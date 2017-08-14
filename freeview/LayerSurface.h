@@ -54,8 +54,8 @@ class SurfaceSpline;
 class LayerROI;
 
 struct RGBMap {
-    QString name;
-    QList<int> data;
+  QString name;
+  QList<int> data;
 };
 
 class LayerSurface : public LayerEditable
@@ -97,7 +97,7 @@ public:
 
   int GetVertexIndexAtRAS( double* ras, double* distance );
 
-  int GetVertexIndexAtTarget( double* ras, double* distance );
+  int GetVertexIndexAtTarget( double* ras, double* distance, int surface_type = -1 );
 
   bool GetRASAtVertex       ( int nVertex, double* ras_out );
   bool GetSurfaceRASAtVertex( int nVertex, double* ras_out );
@@ -218,7 +218,7 @@ public:
 
   int GetNumberOfSplines()
   {
-      return m_splines.size();
+    return m_splines.size();
   }
 
   SurfaceSpline* GetSpline(int n);
@@ -270,14 +270,14 @@ public:
 
   bool GetVisibleIn3D()
   {
-      return m_bVisibleIn3D;
+    return m_bVisibleIn3D;
   }
 
   void GetSmoothedVertexNormal(int nVertex, double* v_out);
 
   int GetActiveRGBMap()
   {
-      return m_nActiveRGBMap;
+    return m_nActiveRGBMap;
   }
 
   void SetActiveRGBMap(int n);
@@ -286,12 +286,12 @@ public:
 
   int GetNumberOfRGBMaps()
   {
-      return m_rgbMaps.size();
+    return m_rgbMaps.size();
   }
 
   QString GetMappingSurfaceName()
   {
-      return m_sMappingSurfaceName;
+    return m_sMappingSurfaceName;
   }
 
   void SetNeighborhoodSize(int nSize);
@@ -300,15 +300,27 @@ public:
 
   bool IsContralateralReady()
   {
-      return (m_surfaceContralateral != NULL);
+    return (m_surfaceContralateral != NULL);
   }
+
+  bool IsContralateralPossible();
 
   LayerSurface* GetContralateralSurface()
   {
-      return m_surfaceContralateral;
+    return m_surfaceContralateral;
   }
 
   int GetContralateralVertex(int nvo);
+
+  int GetMouseVertex()
+  {
+    return m_nMouseVertex;
+  }
+
+  void SetMouseVertex(int n)
+  {
+    m_nMouseVertex = n;
+  }
 
 public slots:
   void SetActiveSurface( int nSurfaceType );
@@ -340,15 +352,15 @@ public slots:
 
   void SetHideIn3D(bool bHide)
   {
-      SetVisibleIn3D(!bHide);
+    SetVisibleIn3D(!bHide);
   }
 
   void SetMappingSurfaceName(const QString& name)
   {
-      if (name.isEmpty())
-          m_sMappingSurfaceName = "white";
-      else
-          m_sMappingSurfaceName = name;
+    if (name.isEmpty())
+      m_sMappingSurfaceName = "white";
+    else
+      m_sMappingSurfaceName = name;
   }
 
   void AddMappedLabel(LayerROI* label);
@@ -359,10 +371,11 @@ public slots:
 
   void UpdateOverlayLabels()
   {
-      UpdateOverlay(true, true);
+    UpdateOverlay(true, true);
   }
 
   void SetContralateralLayer(LayerSurface* layer, LayerSurface* sphere1, LayerSurface* sphere2);
+  void ResetContralateralInfo();
 
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
@@ -440,6 +453,7 @@ protected:
   int         m_nActiveRGBMap;
 
   int         m_nCurrentVertex;
+  int         m_nMouseVertex;
 
   SurfaceROI*           m_roi;
   QList<SurfaceSpline*> m_splines;

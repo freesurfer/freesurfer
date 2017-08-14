@@ -50,7 +50,8 @@ InfoTreeWidget::InfoTreeWidget(QWidget* parent) :
   QTreeWidget(parent),
   m_bShowSurfaceCurvature(false),
   m_bShowSurfaceNormal(false),
-  m_bShowTkRegRAS(true)
+  m_bShowTkRegRAS(true),
+  m_bForCursor(false)
 {
   this->setAlternatingRowColors(true);
   this->setTextElideMode(Qt::ElideMiddle);
@@ -105,8 +106,8 @@ void InfoTreeWidget::UpdateAll()
   QVariantMap map;
   item->setText(1, QString("%1, %2, %3")
                 .arg(ras[0], 0, 'f', 2)
-                .arg(ras[1], 0, 'f', 2)
-                .arg(ras[2], 0, 'f', 2));
+      .arg(ras[1], 0, 'f', 2)
+      .arg(ras[2], 0, 'f', 2));
   map["Type"] = "RAS";
   map["EditableText"] = item->text(1);
   item->setData(1, Qt::UserRole, map);
@@ -117,17 +118,17 @@ void InfoTreeWidget::UpdateAll()
     LayerMRI* mri = qobject_cast<LayerMRI*>(lc_mri->GetActiveLayer());
     if (m_bShowTkRegRAS)
     {
-        mri->NativeRASToTkReg(ras, tkRegRAS);
-        item = new QTreeWidgetItem(this);
-        item->setText(0, QString("TkReg RAS (%1)").arg(mri->GetName()));
-        map.clear();
-        item->setText(1, QString("%1, %2, %3")
-                      .arg(tkRegRAS[0], 0, 'f', 2)
-                .arg(tkRegRAS[1], 0, 'f', 2)
-                .arg(tkRegRAS[2], 0, 'f', 2));
-        map["Type"] = "TkRegRAS";
-        map["EditableText"] = item->text(1);
-        item->setData(1, Qt::UserRole, map);
+      mri->NativeRASToTkReg(ras, tkRegRAS);
+      item = new QTreeWidgetItem(this);
+      item->setText(0, QString("TkReg RAS (%1)").arg(mri->GetName()));
+      map.clear();
+      item->setText(1, QString("%1, %2, %3")
+                    .arg(tkRegRAS[0], 0, 'f', 2)
+          .arg(tkRegRAS[1], 0, 'f', 2)
+          .arg(tkRegRAS[2], 0, 'f', 2));
+      map["Type"] = "TkRegRAS";
+      map["EditableText"] = item->text(1);
+      item->setData(1, Qt::UserRole, map);
     }
     FSVolume*vol = mri->GetSourceVolume();
     item = new QTreeWidgetItem(this);
@@ -135,17 +136,17 @@ void InfoTreeWidget::UpdateAll()
     double tpos[3];
     if (vol->RASToTalairachVoxel(ras, tpos))
     {
-        map.clear();
-        item->setText(1, QString("%1, %2, %3")
-                      .arg(tpos[0], 0, 'f', 2)
-                .arg(tpos[1], 0, 'f', 2)
-                .arg(tpos[2], 0, 'f', 2));
-        map["Type"] = "Talairach";
-        map["EditableText"] = item->text(1);
-        item->setData(1, Qt::UserRole, map);
+      map.clear();
+      item->setText(1, QString("%1, %2, %3")
+                    .arg(tpos[0], 0, 'f', 2)
+          .arg(tpos[1], 0, 'f', 2)
+          .arg(tpos[2], 0, 'f', 2));
+      map["Type"] = "Talairach";
+      map["EditableText"] = item->text(1);
+      item->setData(1, Qt::UserRole, map);
     }
     else
-        item->setText(1, "N/A");
+      item->setText(1, "N/A");
   }
 
   bool bDecimalIndex = MainWindow::GetMainWindow()->GetSetting("DecimalVoxelCoord").toBool();
@@ -159,15 +160,15 @@ void InfoTreeWidget::UpdateAll()
       item->setText(0, layer->GetName());
       layer->RASToOriginalIndex( ras, fIndex );
       double dvalue;
-//      if (layer->IsModified() || layer->GetCorrelationSurface())
-        dvalue = layer->GetVoxelValue( m_dRAS );
-//      else
-//        dvalue = layer->GetVoxelValueByOriginalIndex(nIndex[0]+0.5, nIndex[1]+0.5, nIndex[2]+0.5);
+      //      if (layer->IsModified() || layer->GetCorrelationSurface())
+      dvalue = layer->GetVoxelValue( m_dRAS );
+      //      else
+      //        dvalue = layer->GetVoxelValueByOriginalIndex(nIndex[0]+0.5, nIndex[1]+0.5, nIndex[2]+0.5);
       QString valueStrg = QString("%1").arg(dvalue, 0, 'f', 6);
       while (valueStrg[valueStrg.size()-1] != '.' && valueStrg[valueStrg.size()-1] == '0')
-          valueStrg.resize(valueStrg.size()-1);
+        valueStrg.resize(valueStrg.size()-1);
       if (valueStrg[valueStrg.size()-1] == '.')
-          valueStrg.resize(valueStrg.size()-1);
+        valueStrg.resize(valueStrg.size()-1);
       if (layer->GetNumberOfFrames() > 1 && layer->GetNumberOfFrames() <= 4)
       {
         QList<double> values = layer->GetVoxelValueByOriginalIndexAllFrames(fIndex[0], fIndex[1], fIndex[2]);
@@ -180,12 +181,12 @@ void InfoTreeWidget::UpdateAll()
         fIndex[j] = ((int)(fIndex[j]*100+0.5))/100.0;
       QString editable;
       if (bDecimalIndex)
-          editable = QString("%1, %2, %3").arg(fIndex[0]).arg(fIndex[1]).arg(fIndex[2]);
+        editable = QString("%1, %2, %3").arg(fIndex[0]).arg(fIndex[1]).arg(fIndex[2]);
       else
       {
-          int nIndex[3];
-          layer->RASToOriginalIndex( ras, nIndex );
-          editable = QString("%1, %2, %3").arg(nIndex[0]).arg(nIndex[1]).arg(nIndex[2]);
+        int nIndex[3];
+        layer->RASToOriginalIndex( ras, nIndex );
+        editable = QString("%1, %2, %3").arg(nIndex[0]).arg(nIndex[1]).arg(nIndex[2]);
       }
       QString strg = QString("%1 \t[%2]").arg(valueStrg).arg(editable);
       QString labelStrg;
@@ -216,19 +217,21 @@ void InfoTreeWidget::UpdateAll()
     if ( surf->GetProperty()->GetShowInfo() )
     {
       QTreeWidgetItem* item = new QTreeWidgetItem(this);
-      item->setText(0, surf->GetName());int nVertex = -1;
-      bool bMappingVertex = surf->GetFileName().contains("inflated");
+      item->setText(0, surf->GetName());
+      int nVertex = -1;
+      bool bMappingVertex = (surf->GetFileName().contains("inflated", Qt::CaseInsensitive) && surf->GetSourceSurface()->IsSurfaceLoaded(FSSurface::SurfaceWhite));
       if (bMappingVertex)
-          nVertex = surf->GetCurrentVertex();
+        nVertex = (m_bForCursor ? surf->GetCurrentVertex() : surf->GetMouseVertex());
+
       double sf_pos[3];
-      if (bMappingVertex && nVertex >= 0 && surf->GetSourceSurface()->IsSurfaceLoaded(FSSurface::SurfaceWhite))
-          surf->GetSourceSurface()->GetVertexAtSurfaceType(nVertex, FSSurface::SurfaceWhite, sf_pos);
+      if (bMappingVertex && nVertex >= 0)
+        surf->GetSourceSurface()->GetSurfaceRASAtVertex(nVertex, sf_pos, FSSurface::SurfaceWhite);
       else
-          surf->GetSurfaceRASAtTarget( m_dRAS, sf_pos );
+        surf->GetSurfaceRASAtTarget( m_dRAS, sf_pos );
       QString editable = QString("%1, %2, %3")
-                         .arg(sf_pos[0], 0, 'f', 2)
-                         .arg(sf_pos[1], 0, 'f', 2)
-                         .arg(sf_pos[2], 0, 'f', 2);
+          .arg(sf_pos[0], 0, 'f', 2)
+          .arg(sf_pos[1], 0, 'f', 2)
+          .arg(sf_pos[2], 0, 'f', 2);
       item->setText(1, QString("SurfaceRAS\t[%1]").arg(editable));
       map.clear();
       map["Type"] = "SurfaceRAS";
@@ -237,19 +240,19 @@ void InfoTreeWidget::UpdateAll()
       item->setData(1, Qt::UserRole, map);
 
       if (nVertex < 0)
-          nVertex = surf->GetVertexIndexAtTarget( m_dRAS, NULL );
+        nVertex = surf->GetVertexIndexAtTarget( m_dRAS, NULL );
       if ( nVertex >= 0 )
       {
-        if (bMappingVertex && surf->GetSourceSurface()->IsSurfaceLoaded(FSSurface::SurfaceWhite))
-            surf->GetSourceSurface()->GetVertexAtSurfaceType(nVertex, FSSurface::SurfaceWhite, sf_pos);
+        if (bMappingVertex)
+          surf->GetSourceSurface()->GetSurfaceRASAtVertex(nVertex, sf_pos, FSSurface::SurfaceWhite);
         else
-            surf->GetSurfaceRASAtVertex( nVertex, sf_pos );
+          surf->GetSurfaceRASAtVertex( nVertex, sf_pos );
         QTreeWidgetItem* item = new QTreeWidgetItem(this);
         item->setText(1, QString("Vertex \t%1  [%2, %3, %4]")
                       .arg(nVertex)
                       .arg(sf_pos[0], 0, 'f', 2)
-                      .arg(sf_pos[1], 0, 'f', 2)
-                      .arg(sf_pos[2], 0, 'f', 2));
+            .arg(sf_pos[1], 0, 'f', 2)
+            .arg(sf_pos[2], 0, 'f', 2));
         map.clear();
         map["Type"] = "SurfaceVertex";
         map["EditableText"] = QString::number(nVertex);
@@ -263,8 +266,8 @@ void InfoTreeWidget::UpdateAll()
           item = new QTreeWidgetItem(this);
           item->setText(1, QString("Normal \t[%1, %2, %3]")
                         .arg(vec[0], 0, 'f', 2)
-                        .arg(vec[1], 0, 'f', 2)
-                        .arg(vec[2], 0, 'f', 2));
+              .arg(vec[1], 0, 'f', 2)
+              .arg(vec[2], 0, 'f', 2));
         }
 
         if ( surf->GetActiveVector() >= 0 )
@@ -273,8 +276,8 @@ void InfoTreeWidget::UpdateAll()
           item = new QTreeWidgetItem(this);
           item->setText(1, QString("Vector \t[%1, %2, %3]")
                         .arg(vec[0], 0, 'f', 2)
-                        .arg(vec[1], 0, 'f', 2)
-                        .arg(vec[2], 0, 'f', 2));
+              .arg(vec[1], 0, 'f', 2)
+              .arg(vec[2], 0, 'f', 2));
         }
 
         if ( surf->HasCurvature() && m_bShowSurfaceCurvature)
@@ -405,18 +408,18 @@ void InfoTreeWidget::OnEditFinished()
         }
         else if (type == "Talairach")
         {
-            LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetActiveLayer();
-            if ( mri )
-            {
-                FSVolume* vol = mri->GetSourceVolume();
-                vol->TalairachVoxelToRAS(ras, ras);
-                mri->RASToTarget( ras, ras );
-            }
+          LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetActiveLayer();
+          if ( mri )
+          {
+            FSVolume* vol = mri->GetSourceVolume();
+            vol->TalairachVoxelToRAS(ras, ras);
+            mri->RASToTarget( ras, ras );
+          }
         }
         else if (type == "MRI")
         {
           LayerMRI* mri = qobject_cast<LayerMRI*>(layer);
-      //    int nv[3] = {(int)ras[0], (int)ras[1], (int)ras[2]};
+          //    int nv[3] = {(int)ras[0], (int)ras[1], (int)ras[2]};
           mri->OriginalVoxelToRAS( ras, ras );
           mri->RASToTarget( ras, ras );
         }
@@ -437,11 +440,11 @@ void InfoTreeWidget::OnEditFinished()
     m_editor->hide();
     if (surf)
     {
-        RenderView3D* view = qobject_cast<RenderView3D*>(MainWindow::GetMainWindow()->GetRenderView(3));
-        if (surf->IsInflated())
-            view->MapInflatedCoords(surf, ras, ras, false);
-        else
-            view->MapToInflatedCoords(ras);
+      RenderView3D* view = qobject_cast<RenderView3D*>(MainWindow::GetMainWindow()->GetRenderView(3));
+      if (surf->IsInflated())
+        view->MapInflatedCoords(surf, ras, ras, false);
+      else
+        view->MapToInflatedCoords(ras);
     }
     emit RASChangeTriggered(ras[0], ras[1], ras[2]);
   }

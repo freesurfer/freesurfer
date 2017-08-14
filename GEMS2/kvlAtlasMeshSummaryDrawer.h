@@ -2,138 +2,25 @@
 #define __kvlAtlasMeshSummaryDrawer_h
 
 #include "kvlAtlasMeshRasterizor.h"
+#include "itkImage.h"
+#include "itkRGBAPixel.h"
+#include "kvlCompressionLookupTable.h"
 
 
 namespace kvl
 {
 
 
-namespace FragmentProcessor 
-{
-
 /**
  *
  */
-class DrawSummary
-{
-public:
-  
-  typedef itk::Image< float, 3 >  ImageType;
-
-  DrawSummary()
-    {
-    m_Image = 0;
-    m_MeanInVertex0 = 0.0f;
-    m_MeanInVertex1 = 0.0f;
-    m_MeanInVertex2 = 0.0f;
-    m_MeanInVertex3 = 0.0f;
-    m_Mesh = 0;
-    }
-
-  ~DrawSummary() {};
-
-  void AllocateImage( ImageType::SizeType  size )
-    {
-    m_Image = ImageType::New();
-    m_Image->SetRegions( size );
-    m_Image->Allocate();
-    m_Image->FillBuffer( 0 );
-    }
-    
-  const ImageType* GetImage() const
-    { return m_Image; }
-  
-  inline void operator()( const float& pi0, const float& pi1, const float& pi2, const float& pi3 )
-    {
-    float  mean = pi0 * m_MeanInVertex0 +
-                  pi1 * m_MeanInVertex1 +
-                  pi2 * m_MeanInVertex2 +
-                  pi3 * m_MeanInVertex3;
-    m_Image->SetPixel( m_Index, mean );
-      
-    m_Index[ 0 ]++;
-    }
-    
-  inline void StartNewSpan( int x, int y, int z, const unsigned char* sourcePointer )
-    {
-    m_Index[ 0 ] = x;
-    m_Index[ 1 ] = y;
-    m_Index[ 2 ] = z;
-#if 0
-    if ( z == 49 )
-      {
-      std::cout << "         Starting span (" << x << ", " << y << ", " << z << ")" << std::endl;
-      }
-#endif
-    }
-    
-  inline bool StartNewTetrahedron( AtlasMesh::CellIdentifier cellId )
-    {
-    // Cache the alpha of the specified class in each of the vertices of this tetrahedron
-    AtlasMesh::CellAutoPointer  cell;
-    m_Mesh->GetCell( cellId, cell );
-          
-    AtlasMesh::CellType::PointIdIterator  pit = cell->PointIdsBegin();
-    
-    const AtlasAlphasType&  alphas0 = m_Mesh->GetPointData()->ElementAt( *pit ).m_Alphas;
-    ++pit;
-    const AtlasAlphasType&  alphas1 = m_Mesh->GetPointData()->ElementAt( *pit ).m_Alphas;
-    ++pit;
-    const AtlasAlphasType&  alphas2 = m_Mesh->GetPointData()->ElementAt( *pit ).m_Alphas;
-    ++pit;
-    const AtlasAlphasType&  alphas3 = m_Mesh->GetPointData()->ElementAt( *pit ).m_Alphas;
-    
-    m_MeanInVertex0 = dot_product( alphas0, m_Means );
-    m_MeanInVertex1 = dot_product( alphas1, m_Means );
-    m_MeanInVertex2 = dot_product( alphas2, m_Means );
-    m_MeanInVertex3 = dot_product( alphas3, m_Means );
-
-    return true;
-    }
-    
-  inline void SetMesh( const AtlasMesh* mesh )
-    {
-    m_Mesh = mesh;
-
-    const int  numberOfLabels = mesh->GetPointData()->Begin().Value().m_Alphas.Size();
-    AtlasAlphasType  tmp( numberOfLabels );
-    for ( int labelNumber = 0; labelNumber < numberOfLabels; labelNumber++ )
-      {
-      tmp[ labelNumber ] = labelNumber;
-      }
-    m_Means = tmp;
-    }
-    
-private:
-
-  ImageType::Pointer  m_Image;
-  ImageType::IndexType  m_Index;
-  
-  float  m_MeanInVertex0;
-  float  m_MeanInVertex1;
-  float  m_MeanInVertex2;
-  float  m_MeanInVertex3;
-  
-  AtlasAlphasType  m_Means;
-  AtlasMesh::ConstPointer  m_Mesh;
-  
-    
-};
-
-
-} // End namespace FragmentProcessor
-
-
-/**
- *
- */
-class AtlasMeshSummaryDrawer: public AtlasMeshRasterizor< FragmentProcessor::DrawSummary >
+class AtlasMeshSummaryDrawer: public AtlasMeshRasterizor
 {
 public :
   
   /** Standard class typedefs */
   typedef AtlasMeshSummaryDrawer  Self;
-  typedef AtlasMeshRasterizor< FragmentProcessor::DrawSummary >  Superclass;
+  typedef AtlasMeshRasterizor Superclass;
   typedef itk::SmartPointer< Self >  Pointer;
   typedef itk::SmartPointer< const Self >  ConstPointer;
 
@@ -144,33 +31,43 @@ public :
   itkTypeMacro( AtlasMeshSummaryDrawer, itk::Object );
 
   /** Some typedefs */
-  typedef Superclass::FragmentProcessorType  FragmentProcessorType;
-  typedef Superclass::LabelImageType  LabelImageType;
-  typedef FragmentProcessorType::ImageType  SummaryImageType;
+  typedef itk::Image< itk::RGBAPixel< unsigned char >, 3 >  ImageType;
 
-    
   /** */
-  virtual void SetLabelImage( const LabelImageType*  labelImage )
+  void SetRegions( const ImageType::RegionType&  region )
     {
-    // Use the label image as a template for the alpha image
-    this->GetFragmentProcessor().AllocateImage( labelImage->GetLargestPossibleRegion().GetSize() );
-
-    // Invoke superclass' implementation
-    Superclass::SetLabelImage( labelImage );
+    m_Image = ImageType::New();
+    m_Image->SetRegions( region );
+    m_Image->Allocate();
     }
   
+  // 
+  void SetCompressionLookupTable( const CompressionLookupTable*  lookupTable )
+    {
+    m_CompressionLookupTable = lookupTable;  
+    }  
+
+  
   /** */
-  const SummaryImageType*  GetSummaryImage() const
-    { return this->GetFragmentProcessor().GetImage(); }
+  const ImageType*  GetImage() const
+    { return m_Image; }
+    
   
 protected:
-  AtlasMeshSummaryDrawer() {};
-  virtual ~AtlasMeshSummaryDrawer() {};
+  AtlasMeshSummaryDrawer();
+  virtual ~AtlasMeshSummaryDrawer();
+  
+  //
+  bool RasterizeTetrahedron( const AtlasMesh* mesh, 
+                             AtlasMesh::CellIdentifier tetrahedronId,
+                             int threadNumber );
 
 private:
   AtlasMeshSummaryDrawer(const Self&); //purposely not implemented
   void operator=(const Self&); //purposely not implemented
   
+  ImageType::Pointer  m_Image;
+  CompressionLookupTable::ConstPointer  m_CompressionLookupTable;
   
 };
 
@@ -178,4 +75,3 @@ private:
 } // end namespace kvl
 
 #endif
-

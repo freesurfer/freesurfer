@@ -221,7 +221,7 @@ Q_SIGNALS:
 public slots:
   void ResetRef()
   {
-      m_volumeRef = NULL;
+    m_volumeRef = NULL;
   }
 
 protected:

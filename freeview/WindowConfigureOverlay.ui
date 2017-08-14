@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>485</width>
-    <height>845</height>
+    <width>585</width>
+    <height>882</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -22,42 +22,7 @@
      <property name="topMargin">
       <number>0</number>
      </property>
-     <item row="2" column="0">
-      <widget class="QGroupBox" name="groupBox">
-       <property name="title">
-        <string>Opacity</string>
-       </property>
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <item>
-         <widget class="QSlider" name="sliderOpacity">
-          <property name="maximum">
-           <number>100</number>
-          </property>
-          <property name="value">
-           <number>100</number>
-          </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QDoubleSpinBox" name="doubleSpinBoxOpacity">
-          <property name="maximum">
-           <double>1.000000000000000</double>
-          </property>
-          <property name="singleStep">
-           <double>0.050000000000000</double>
-          </property>
-          <property name="value">
-           <double>1.000000000000000</double>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item row="2" column="1">
+     <item row="3" column="1">
       <widget class="QGroupBox" name="groupBox_5">
        <property name="title">
         <string>Smooth</string>
@@ -109,7 +74,96 @@
        </layout>
       </widget>
      </item>
-     <item row="0" column="0" colspan="2">
+     <item row="3" column="0">
+      <widget class="QGroupBox" name="groupBox">
+       <property name="title">
+        <string>Opacity</string>
+       </property>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QSlider" name="sliderOpacity">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="value">
+           <number>100</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QDoubleSpinBox" name="doubleSpinBoxOpacity">
+          <property name="maximum">
+           <double>1.000000000000000</double>
+          </property>
+          <property name="singleStep">
+           <double>0.050000000000000</double>
+          </property>
+          <property name="value">
+           <double>1.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="1" column="0" colspan="3">
+      <widget class="QGroupBox" name="groupBoxCorrelation">
+       <property name="title">
+        <string>Correlation</string>
+       </property>
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <item>
+         <widget class="QCheckBox" name="checkBoxComputeCorrelation">
+          <property name="text">
+           <string>Compute correlation to</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="comboBoxVolumes">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+            <horstretch>1</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>200</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>300</width>
+            <height>1677777</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_13">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item row="0" column="0" colspan="3">
       <widget class="QGroupBox" name="groupBoxFrame">
        <property name="title">
         <string>Frame</string>
@@ -184,46 +238,42 @@ color: gray;</string>
        </layout>
       </widget>
      </item>
-     <item row="1" column="0" colspan="2">
-      <widget class="QGroupBox" name="groupBoxCorrelation">
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <property name="topMargin">
+      <number>0</number>
+     </property>
+     <item>
+      <widget class="QGroupBox" name="groupBox_2">
        <property name="title">
-        <string>Correlation</string>
+        <string>Color Scale</string>
        </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_4">
-        <item>
-         <widget class="QCheckBox" name="checkBoxComputeCorrelation">
+       <layout class="QGridLayout" name="gridLayout">
+        <item row="1" column="2">
+         <widget class="QCheckBox" name="checkBoxClearLower">
           <property name="text">
-           <string>Compute correlation to</string>
+           <string>Clear Lower</string>
           </property>
          </widget>
         </item>
-        <item>
-         <widget class="QComboBox" name="comboBoxVolumes">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-            <horstretch>1</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="minimumSize">
-           <size>
-            <width>200</width>
-            <height>0</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>300</width>
-            <height>1677777</height>
-           </size>
+        <item row="1" column="3" colspan="2">
+         <widget class="QCheckBox" name="checkBoxClearHigher">
+          <property name="text">
+           <string>Clear Higher</string>
           </property>
          </widget>
         </item>
-        <item>
-         <spacer name="horizontalSpacer_13">
+        <item row="0" column="2">
+         <widget class="QRadioButton" name="radioButtonCustom">
+          <property name="text">
+           <string>Custom</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="3">
+         <spacer name="horizontalSpacer_10">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
@@ -235,97 +285,85 @@ color: gray;</string>
           </property>
          </spacer>
         </item>
+        <item row="0" column="4">
+         <widget class="QPushButton" name="pushButtonFlip">
+          <property name="maximumSize">
+           <size>
+            <width>65</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Flip</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QRadioButton" name="radioButtonHeat">
+          <property name="text">
+           <string>Heat</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QRadioButton" name="radioButtonColorWheel">
+          <property name="text">
+           <string>Color Wheel</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QCheckBox" name="checkBoxTruncate">
+          <property name="text">
+           <string>Truncate</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QCheckBox" name="checkBoxInverse">
+          <property name="text">
+           <string>Inverse</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+     <item>
+      <widget class="QGroupBox" name="groupBox_6">
+       <property name="title">
+        <string>Mask</string>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <item>
+         <widget class="QComboBox" name="comboBoxMask">
+          <property name="minimumSize">
+           <size>
+            <width>120</width>
+            <height>0</height>
+           </size>
+          </property>
+          <item>
+           <property name="text">
+            <string>None</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBoxMaskInverse">
+          <property name="text">
+           <string>Inverse</string>
+          </property>
+         </widget>
+        </item>
        </layout>
       </widget>
      </item>
     </layout>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="groupBox_2">
-     <property name="title">
-      <string>Color Scale</string>
-     </property>
-     <layout class="QGridLayout" name="gridLayout">
-      <item row="0" column="0">
-       <widget class="QRadioButton" name="radioButtonHeat">
-        <property name="text">
-         <string>Heat</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QRadioButton" name="radioButtonColorWheel">
-        <property name="text">
-         <string>Color Wheel</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QRadioButton" name="radioButtonCustom">
-        <property name="text">
-         <string>Custom</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="3">
-       <spacer name="horizontalSpacer_10">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>0</width>
-          <height>0</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item row="0" column="4">
-       <widget class="QPushButton" name="pushButtonFlip">
-        <property name="maximumSize">
-         <size>
-          <width>65</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="text">
-         <string>Flip</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QCheckBox" name="checkBoxTruncate">
-        <property name="text">
-         <string>Truncate</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QCheckBox" name="checkBoxInverse">
-        <property name="text">
-         <string>Inverse</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="QCheckBox" name="checkBoxClearLower">
-        <property name="text">
-         <string>Clear Lower</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="3" colspan="2">
-       <widget class="QCheckBox" name="checkBoxClearHigher">
-        <property name="text">
-         <string>Clear Higher</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
    </item>
    <item>
     <widget class="QGroupBox" name="groupBox_3">
@@ -353,6 +391,7 @@ color: gray;</string>
           <height>180</height>
          </size>
         </property>
+        <zorder></zorder>
        </widget>
       </item>
       <item>
@@ -541,7 +580,16 @@ color: gray;</string>
       <item>
        <widget class="QWidget" name="widgetHolderAddPoint" native="true">
         <layout class="QHBoxLayout" name="horizontalLayout_6">
-         <property name="margin">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
           <number>0</number>
          </property>
          <item>
@@ -774,6 +822,9 @@ color: gray;</string>
    </item>
    <item>
     <widget class="QLabel" name="label_4">
+     <property name="styleSheet">
+      <string notr="true">font-size: 10px;</string>
+     </property>
      <property name="text">
       <string>Or you must click &quot;Apply&quot; to apply changes to the overlay.</string>
      </property>
@@ -822,8 +873,8 @@ color: gray;</string>
    <slot>close()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>475</x>
-     <y>761</y>
+     <x>484</x>
+     <y>872</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -838,8 +889,8 @@ color: gray;</string>
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>159</x>
-     <y>191</y>
+     <x>181</x>
+     <y>215</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -854,8 +905,8 @@ color: gray;</string>
    <slot>OnSpinBoxOpacity(double)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>220</x>
-     <y>196</y>
+     <x>256</x>
+     <y>220</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -870,8 +921,8 @@ color: gray;</string>
    <slot>UpdateGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>93</x>
-     <y>293</y>
+     <x>98</x>
+     <y>320</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -886,8 +937,8 @@ color: gray;</string>
    <slot>UpdateGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>196</x>
-     <y>293</y>
+     <x>203</x>
+     <y>320</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -902,8 +953,8 @@ color: gray;</string>
    <slot>UpdateGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>93</x>
-     <y>263</y>
+     <x>98</x>
+     <y>292</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -918,8 +969,8 @@ color: gray;</string>
    <slot>UpdateGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>196</x>
-     <y>263</y>
+     <x>203</x>
+     <y>292</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -934,8 +985,8 @@ color: gray;</string>
    <slot>UpdateGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>298</x>
-     <y>263</y>
+     <x>306</x>
+     <y>292</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -950,8 +1001,8 @@ color: gray;</string>
    <slot>OnClicked(QAbstractButton*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>369</x>
-     <y>761</y>
+     <x>378</x>
+     <y>872</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -966,12 +1017,12 @@ color: gray;</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>196</x>
-     <y>263</y>
+     <x>203</x>
+     <y>292</y>
     </hint>
     <hint type="destinationlabel">
-     <x>93</x>
-     <y>293</y>
+     <x>98</x>
+     <y>320</y>
     </hint>
    </hints>
   </connection>
@@ -982,12 +1033,12 @@ color: gray;</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>298</x>
-     <y>263</y>
+     <x>306</x>
+     <y>292</y>
     </hint>
     <hint type="destinationlabel">
-     <x>93</x>
-     <y>293</y>
+     <x>98</x>
+     <y>320</y>
     </hint>
    </hints>
   </connection>
@@ -998,12 +1049,12 @@ color: gray;</string>
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>196</x>
-     <y>263</y>
+     <x>203</x>
+     <y>292</y>
     </hint>
     <hint type="destinationlabel">
-     <x>214</x>
-     <y>679</y>
+     <x>212</x>
+     <y>742</y>
     </hint>
    </hints>
   </connection>
@@ -1014,8 +1065,8 @@ color: gray;</string>
    <slot>UpdateGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>92</x>
-     <y>679</y>
+     <x>93</x>
+     <y>742</y>
     </hint>
     <hint type="destinationlabel">
      <x>1</x>
@@ -1030,8 +1081,8 @@ color: gray;</string>
    <slot>UpdateGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>214</x>
-     <y>679</y>
+     <x>212</x>
+     <y>742</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -1046,8 +1097,8 @@ color: gray;</string>
    <slot>UpdateGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>305</x>
-     <y>679</y>
+     <x>303</x>
+     <y>742</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -1062,12 +1113,12 @@ color: gray;</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>196</x>
-     <y>263</y>
+     <x>203</x>
+     <y>292</y>
     </hint>
     <hint type="destinationlabel">
-     <x>93</x>
-     <y>661</y>
+     <x>114</x>
+     <y>754</y>
     </hint>
    </hints>
   </connection>
@@ -1078,12 +1129,12 @@ color: gray;</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>298</x>
-     <y>263</y>
+     <x>306</x>
+     <y>292</y>
     </hint>
     <hint type="destinationlabel">
-     <x>464</x>
-     <y>661</y>
+     <x>485</x>
+     <y>754</y>
     </hint>
    </hints>
   </connection>
@@ -1094,12 +1145,12 @@ color: gray;</string>
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>298</x>
-     <y>263</y>
+     <x>306</x>
+     <y>292</y>
     </hint>
     <hint type="destinationlabel">
-     <x>214</x>
-     <y>679</y>
+     <x>212</x>
+     <y>742</y>
     </hint>
    </hints>
   </connection>
@@ -1110,12 +1161,12 @@ color: gray;</string>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>298</x>
-     <y>263</y>
+     <x>306</x>
+     <y>292</y>
     </hint>
     <hint type="destinationlabel">
-     <x>464</x>
-     <y>597</y>
+     <x>485</x>
+     <y>656</y>
     </hint>
    </hints>
   </connection>
@@ -1126,12 +1177,12 @@ color: gray;</string>
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>298</x>
-     <y>263</y>
+     <x>306</x>
+     <y>292</y>
     </hint>
     <hint type="destinationlabel">
-     <x>455</x>
-     <y>517</y>
+     <x>476</x>
+     <y>627</y>
     </hint>
    </hints>
   </connection>
@@ -1142,8 +1193,8 @@ color: gray;</string>
    <slot>OnButtonAdd()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>367</x>
-     <y>597</y>
+     <x>399</x>
+     <y>656</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1158,12 +1209,12 @@ color: gray;</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>298</x>
-     <y>263</y>
+     <x>306</x>
+     <y>292</y>
     </hint>
     <hint type="destinationlabel">
-     <x>196</x>
-     <y>293</y>
+     <x>203</x>
+     <y>320</y>
     </hint>
    </hints>
   </connection>
@@ -1174,12 +1225,12 @@ color: gray;</string>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>298</x>
-     <y>263</y>
+     <x>306</x>
+     <y>292</y>
     </hint>
     <hint type="destinationlabel">
-     <x>298</x>
-     <y>293</y>
+     <x>306</x>
+     <y>320</y>
     </hint>
    </hints>
   </connection>
@@ -1190,12 +1241,12 @@ color: gray;</string>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>298</x>
-     <y>263</y>
+     <x>306</x>
+     <y>292</y>
     </hint>
     <hint type="destinationlabel">
-     <x>464</x>
-     <y>293</y>
+     <x>417</x>
+     <y>320</y>
     </hint>
    </hints>
   </connection>
@@ -1206,8 +1257,8 @@ color: gray;</string>
    <slot>UpdateGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>298</x>
-     <y>293</y>
+     <x>306</x>
+     <y>320</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1222,8 +1273,8 @@ color: gray;</string>
    <slot>UpdateGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>464</x>
-     <y>293</y>
+     <x>417</x>
+     <y>320</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1238,12 +1289,12 @@ color: gray;</string>
    <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>298</x>
-     <y>263</y>
+     <x>306</x>
+     <y>292</y>
     </hint>
     <hint type="destinationlabel">
-     <x>464</x>
-     <y>266</y>
+     <x>417</x>
+     <y>293</y>
     </hint>
    </hints>
   </connection>
@@ -1254,8 +1305,8 @@ color: gray;</string>
    <slot>FlipMarkers()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>464</x>
-     <y>266</y>
+     <x>417</x>
+     <y>293</y>
     </hint>
     <hint type="destinationlabel">
      <x>376</x>
@@ -1270,12 +1321,12 @@ color: gray;</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>315</x>
-     <y>194</y>
+     <x>351</x>
+     <y>218</y>
     </hint>
     <hint type="destinationlabel">
-     <x>376</x>
-     <y>196</y>
+     <x>412</x>
+     <y>220</y>
     </hint>
    </hints>
   </connection>
@@ -1286,12 +1337,12 @@ color: gray;</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>315</x>
-     <y>194</y>
+     <x>351</x>
+     <y>218</y>
     </hint>
     <hint type="destinationlabel">
-     <x>417</x>
-     <y>196</y>
+     <x>452</x>
+     <y>220</y>
     </hint>
    </hints>
   </connection>
@@ -1302,8 +1353,8 @@ color: gray;</string>
    <slot>OnSmoothChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>315</x>
-     <y>194</y>
+     <x>351</x>
+     <y>218</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1318,8 +1369,8 @@ color: gray;</string>
    <slot>OnSmoothChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>376</x>
-     <y>196</y>
+     <x>412</x>
+     <y>220</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1334,8 +1385,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>155</x>
-     <y>525</y>
+     <x>188</x>
+     <y>589</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1350,8 +1401,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>302</x>
-     <y>525</y>
+     <x>334</x>
+     <y>589</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1366,8 +1417,8 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>436</x>
-     <y>525</y>
+     <x>466</x>
+     <y>589</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1382,12 +1433,12 @@ color: gray;</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>305</x>
-     <y>679</y>
+     <x>303</x>
+     <y>742</y>
     </hint>
     <hint type="destinationlabel">
-     <x>302</x>
-     <y>525</y>
+     <x>334</x>
+     <y>589</y>
     </hint>
    </hints>
   </connection>
@@ -1414,8 +1465,8 @@ color: gray;</string>
    <slot>OnFrameChanged(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>192</x>
-     <y>41</y>
+     <x>284</x>
+     <y>63</y>
     </hint>
     <hint type="destinationlabel">
      <x>195</x>
@@ -1430,8 +1481,8 @@ color: gray;</string>
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>86</x>
-     <y>114</y>
+     <x>108</x>
+     <y>147</y>
     </hint>
     <hint type="destinationlabel">
      <x>74</x>
@@ -1446,12 +1497,12 @@ color: gray;</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>183</x>
-     <y>126</y>
+     <x>185</x>
+     <y>147</y>
     </hint>
     <hint type="destinationlabel">
-     <x>262</x>
-     <y>111</y>
+     <x>454</x>
+     <y>148</y>
     </hint>
    </hints>
   </connection>
@@ -1462,8 +1513,8 @@ color: gray;</string>
    <slot>OnCheckComputeCorrelation(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>60</x>
-     <y>113</y>
+     <x>82</x>
+     <y>147</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -1478,8 +1529,8 @@ color: gray;</string>
    <slot>OnComboCorrelationVolume(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>410</x>
-     <y>118</y>
+     <x>491</x>
+     <y>148</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1494,8 +1545,8 @@ color: gray;</string>
    <slot>OnCheckUsePercentile(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>299</x>
-     <y>625</y>
+     <x>331</x>
+     <y>684</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1510,11 +1561,11 @@ color: gray;</string>
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>284</x>
-     <y>541</y>
+     <x>334</x>
+     <y>618</y>
     </hint>
     <hint type="destinationlabel">
-     <x>625</x>
+     <x>549</x>
      <y>549</y>
     </hint>
    </hints>
@@ -1526,12 +1577,44 @@ color: gray;</string>
    <slot>OnCustomColorScale()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>262</x>
-     <y>246</y>
+     <x>306</x>
+     <y>292</y>
     </hint>
     <hint type="destinationlabel">
-     <x>615</x>
+     <x>549</x>
      <y>231</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>comboBoxMask</sender>
+   <signal>currentIndexChanged(int)</signal>
+   <receiver>WindowConfigureOverlay</receiver>
+   <slot>OnComboMask(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>501</x>
+     <y>282</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>714</x>
+     <y>309</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxMaskInverse</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>WindowConfigureOverlay</receiver>
+   <slot>OnCheckInverseMask(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>498</x>
+     <y>310</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>657</x>
+     <y>323</y>
     </hint>
    </hints>
   </connection>
@@ -1552,5 +1635,7 @@ color: gray;</string>
   <slot>OnComboCorrelationVolume(int)</slot>
   <slot>OnCheckUsePercentile(bool)</slot>
   <slot>OnCustomColorScale()</slot>
+  <slot>OnComboMask(int)</slot>
+  <slot>OnCheckInverseMask(bool)</slot>
  </slots>
 </ui>

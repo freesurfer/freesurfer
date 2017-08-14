@@ -1875,9 +1875,9 @@ MRIdilateUchar(MRI *mri_src, MRI *mri_dst)
 MRI *
 MRIdilate(MRI *mri_src, MRI *mri_dst)
 {
-  int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, same,
+  int     width, height, depth, x, y, z, same,
   xmin, xmax, ymin, ymax, zmin, zmax, f;
-  double    val, max_val ;
+  double    val ;
 
   if (mri_src->type == MRI_UCHAR)
     return(MRIdilateUchar(mri_src, mri_dst)) ;
@@ -1951,8 +1951,13 @@ MRIdilate(MRI *mri_src, MRI *mri_dst)
 #endif
   for (f = 0 ; f < mri_src->nframes ; f++)
   {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
     for (z = zmin ; z <= zmax ; z++)
     {
+      int       y, x, xi, yi, zi, z0, y0, x0 ;
+      double    val, max_val ;
       for (y = ymin ; y <= ymax ; y++)
       {
         for (x = xmin ; x <= xmax ; x++)
@@ -2496,8 +2501,7 @@ MRI *MRIreplaceList(MRI *seg, int *srclist, int *targlist, int nlist, MRI *mask,
 */
 MRI *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
 {
-  int     width, height, depth, x, y, z, frame ;
-  float   val ;
+  int     width, height, depth, z ;
 
   MRIcheckVolDims(mri_src, mri_dst);
 
@@ -2511,8 +2515,14 @@ MRI *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
   if (mri_src->type == MRI_UCHAR && mri_dst->type == MRI_UCHAR)
     return(MRIreplaceValuesUchar
            (mri_src, mri_dst, (BUFTYPE)nint(in_val), (BUFTYPE)nint(out_val))) ;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for shared(mri_src, mri_dst, out_val, width, height, depth)
+#endif
   for (z = 0 ; z < depth ; z++)
   {
+    int     x, y, frame ;
+    float   val ;
+
     for (y = 0 ; y < height ; y++)
     {
       for (x = 0 ; x < width ; x++)
@@ -4499,3 +4509,43 @@ MRIcountValInNbhd(MRI *mri, int wsize, int x, int y, int z, int val)
   }
   return(total) ;
 }
+int
+MRIkarcherMean(MRI *mri, float low_val, float hi_val, int *px, int *py, int *pz) 
+{
+  double   xc, yc, zc, dist, min_dist, val ;
+  int      x, y, z, num ;
+
+  xc = yc = zc = 0.0 ;
+  for (num = x = 0 ; x < mri->width ; x++)
+    for (y = 0 ; y < mri->height ; y++)
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+	val = MRIgetVoxVal(mri, x, y, z, 0) ;
+	if (val < low_val || val > hi_val)
+	  continue ;
+	num++ ;
+	xc += x ; yc += y ; zc += z ;
+      }
+  if (num == 0)
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIkarcherMean: not voxels in range [%d %d]\n",
+				low_val, hi_val));
+  xc /= num ; yc /= num ; zc /= num ;
+  min_dist = mri->width+mri->height+mri->depth ; min_dist *= min_dist ;
+  for (num = x = 0 ; x < mri->width ; x++)
+    for (y = 0 ; y < mri->height ; y++)
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+	val = MRIgetVoxVal(mri, x, y, z, 0) ;
+	if (val < low_val || val > hi_val)
+	  continue ;
+	dist = SQR(x-xc) + SQR(y-yc) + SQR(z-zc) ;
+	if (dist < min_dist)
+	{
+	  min_dist = dist ;
+	  *px = x ; *py = y ; *pz = z ;
+	}
+      }
+
+  return(NO_ERROR) ;
+}
+

@@ -68,9 +68,9 @@ public:
   virtual bool ProcessKeyDownEvent      ( QKeyEvent* event, RenderView* view );
   virtual bool ProcessKeyUpEvent        ( QKeyEvent* event, RenderView* view );
   virtual void ProcessPostMouseMoveEvent( QMouseEvent* event, RenderView* view )
-  {}
+  { Q_UNUSED(event); Q_UNUSED(view); }
   virtual void ProcessPostMouseWheelEvent( QWheelEvent* event, RenderView* view )
-  {}
+  { Q_UNUSED(event); Q_UNUSED(view); }
 
   static void SetUseCommandControl(bool b);
 

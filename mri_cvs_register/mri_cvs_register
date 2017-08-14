@@ -18,6 +18,10 @@
 # Edited : 12-20-2012: young modulus changed to 1000 for atlases as well; no petsc log written now; 
 #                      more timing and launchpad help; openmp option; logfiles written to the outputdir 
 #                      and not into current
+#          03-07-2017: added option for masking full brain target with hemimask in case only one hemi is registered (eg.: exvivo)
+#                      "masktargethemi"
+#          03-07-2017: added option for masking full brain moving subject with hemimask in case only one hemi is registered (eg.: exvivo)
+#                      "maskmovinghemi"
 #
 # CVS Revision Info:
 #    $Author: lzollei $
@@ -63,6 +67,8 @@ set FStemplate = cvs_avg35
 set usingFStemplate = 0
 set CVSMNItemplate = cvs_avg35_inMNI152
 set usingCVSMNItemplate = 0
+set masktargethemi = 0
+set maskmovinghemi = 0
 
 set asegfname = aseg
 
@@ -265,6 +271,8 @@ if ($BothHemis) then
     if (!(-e $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg) || $CleanSurfReg) then
       # the spherical registration does not yet exist
       set cmd = (mris_register -1 -dist 1.0 -inflated $movingsurfdir/$hemi.sphere $templatesurfdir/$hemi.sphere $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg)
+      date |& tee -a $LF
+      pwd  |& tee -a $LF
       echo $cmd >> $LF
       echo $cmd >> $sLF
       $cmd |& tee -a $LF
@@ -275,6 +283,8 @@ else
   if (!(-e $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg) || $CleanSurfReg) then
     # the spherical registration does not yet exist
     set cmd = (mris_register -1 -dist 1.0 -inflated $movingsurfdir/$hemi.sphere $templatesurfdir/$hemi.sphere $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg)
+    date |& tee -a $LF
+    pwd  |& tee -a $LF
     echo $cmd >> $LF
     echo $cmd >> $sLF
     $cmd |& tee -a $LF
@@ -288,6 +298,8 @@ if ($BothHemis) then
     foreach surf (white pial)
       if (!(-e $outdir/$hemi.resample.$surf) || $CleanSurfReg) then 
         set cmd = (mris_resample --atlas_reg $templatesurfdir/$hemi.sphere --annot_in $movinglabeldir/$hemi.$annotfile --annot_out $outdir/$hemi.resample.$annotfile --subject_surf $movingsurfdir/$hemi.$surf --subject_reg $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg --out $outdir/$hemi.resample.$surf)     
+        date |& tee -a $LF
+        pwd  |& tee -a $LF
         echo $cmd >> $LF
         echo $cmd >> $sLF
         $cmd |& tee -a $LF
@@ -299,6 +311,8 @@ else
   foreach surf (white pial)
     if (!(-e $outdir/$hemi.resample.$surf) || $CleanSurfReg) then 
       set cmd = (mris_resample --atlas_reg $templatesurfdir/$hemi.sphere --annot_in $movinglabeldir/$hemi.$annotfile --annot_out $outdir/$hemi.resample.$annotfile --subject_surf $movingsurfdir/$hemi.$surf --subject_reg $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg --out $outdir/$hemi.resample.$surf)     
+      date |& tee -a $LF
+      pwd  |& tee -a $LF
       echo $cmd >> $LF
       echo $cmd >> $sLF
       $cmd |& tee -a $LF
@@ -337,6 +351,16 @@ if ($DoAllSteps || $OnlyStep2) then
 echo "Ready for elastic registration (CVS: Step 2)" >> $sLF
 set Step2StartTime = `date +%s`;
 
+if ($maskmovinghemi) then
+  foreach ftype ($asegfname norm)
+    set cmd = (make_hemi_mask $hemiReq $mmri/$ftype.mgz $outdir/maskedmoving.$hemiReq.$ftype.nii.gz)
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  end
+endif
+
 ## Run the elastic registration
 ###
 # Note about the elasticoptions parameters:
@@ -374,7 +398,14 @@ if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
   $cmd |& tee -a $LF
   if($status) exit 1;
  else
-  set cmd = (surf2vol -fixed_mri $tmri/$voltype.mgz -moving_mri $mmri/$voltype.mgz  \
+
+  if ($maskmovinghemi) then
+    set regmoving = $outdir/maskedmoving.$hemiReq.$voltype.nii.gz
+  else
+    set regmoving = $mmri/$voltype.mgz
+  endif
+  #set cmd = (surf2vol -fixed_mri $tmri/$voltype.mgz -moving_mri $mmri/$voltype.mgz  \
+  set cmd = (surf2vol -fixed_mri $tmri/$voltype.mgz -moving_mri $regmoving  \
                       -fixed_surf $tsurf/$hemiReq.white     -moving_surf $outdir/$hemiReq.resample.white \
                       -fixed_surf_2 $tsurf/$hemiReq.pial    -moving_surf_2 $outdir/$hemiReq.resample.pial \
                       -aparc $tlabel/$hemiReq.aparc.annot   -aparc_2 $tlabel/$hemiReq.aparc.annot \
@@ -406,8 +437,16 @@ set Step3StartTime = `date +%s`;
 
 if ($UseAseg) then 
   set voltype = $asegfname
+
+  if ($maskmovinghemi) then
+    set regmoving = $outdir/maskedmoving.$hemiReq.$voltype.nii.gz
+  else
+    set regmoving = $mmri/$voltype.mgz
+  endif
+
   if (!(-e $outdir/${elasticmorph:r}_${voltype}.mgz) || $CleanSurfReg) then 
-    set cmd = (applyMorph --template $tmri/$voltype.mgz --transform $outdir/${elasticmorph} vol $mmri/$voltype.mgz $outdir/${elasticmorph:r}_${voltype}.mgz nearest)
+    # set cmd = (applyMorph --template $tmri/$voltype.mgz --transform $outdir/${elasticmorph} vol $mmri/$voltype.mgz $outdir/${elasticmorph:r}_${voltype}.mgz nearest)
+    set cmd = (applyMorph --template $tmri/$voltype.mgz --transform $outdir/${elasticmorph} vol $regmoving $outdir/${elasticmorph:r}_${voltype}.mgz nearest)
     echo $cmd >> $LF
     echo $cmd >> $sLF
     $cmd |& tee -a $LF
@@ -426,6 +465,70 @@ endif
 
 echo "Ready for volumetric registration (CVS: Step 3)" >> $sLF
 
+if ($masktargethemi) then
+  if (0) then 
+    ## rh: aseg 46, 47 and ribbon 41, 42
+    ## lh: aseg 7, 8   and ribbon 2, 3
+    ## brainstem, .... unclear for now
+    if ($hemiReq == rh) then
+      set maskribbonlabels = (41 42)
+      set maskaseglabels = (46 47)
+    else 
+      set maskribbonlabels = (2 3)
+      set maskaseglabels = (7 8)
+    endif
+
+    set masktargetfilelist = ()  
+    set masktargetauxfile = $tmri/ribbon.mgz
+    foreach label ($maskribbonlabels)
+      set cmd = (isolate_labels.csh --vol $masktargetauxfile --outprefix $outdir/${masktargetauxfile:t:r}.binaryLabels --L $label)
+      echo $cmd >> $LF
+      echo $cmd >> $sLF
+      $cmd |& tee -a $LF
+      if($status) exit 1;
+      set masktargetfilelist = ($masktargetfilelist $outdir/${masktargetauxfile:t:r}.binaryLabels_label$label.nii.gz)
+    end
+    set masktargetauxfile = $tmri/aseg.mgz
+    foreach label ($maskaseglabels)
+      set cmd = (isolate_labels.csh --vol $masktargetauxfile --outprefix $outdir/${masktargetauxfile:t:r}.binaryLabels --L $label)
+      echo $cmd >> $LF
+      echo $cmd >> $sLF
+      $cmd |& tee -a $LF
+      if($status) exit 1;
+      set masktargetfilelist = ($masktargetfilelist $outdir/${masktargetauxfile:t:r}.binaryLabels_label$label.nii.gz)
+    end
+
+    set cmd = (mri_or -o $masktargetfilelist $outdir/masktarget.$hemiReq.nii.gz)
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+
+    foreach ftype ($asegfname norm)
+      set cmd = (mri_mask $tmri/$ftype.mgz $outdir/masktarget.$hemiReq.nii.gz $outdir/maskedtarget.$hemiReq.$ftype.nii.gz)
+      echo $cmd >> $LF
+      echo $cmd >> $sLF
+      $cmd |& tee -a $LF
+      if($status) exit 1;
+    end
+
+    # cleanup! 
+    set cmd = (rm -f $outdir/*.binaryLabels*nii.gz $outdir/masktarget.$hemiReq.nii.gz )
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif # longer version of taking hemi of target
+
+  foreach ftype ($asegfname norm)
+    set cmd = (make_hemi_mask $hemiReq $tmri/$ftype.mgz $outdir/maskedtarget.$hemiReq.$ftype.nii.gz)
+    echo $cmd >> $LF
+    echo $cmd >> $sLF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  end
+endif
+
 if ($UseAseg) then
   set voltype = $asegfname
   set input = ${elasticmorph:r}  # INPUT morph from CVS_step2
@@ -437,26 +540,43 @@ if ($UseAseg) then
     echo 'ERROR: What happened? The ' $outdir/${input}_${voltype}.mgz ' file does not exist!'
     exit 1;
   endif
+
 ## Run the non-linear registration based on the aseg volumes.
+
+  if ($masktargethemi) then
+    set regtarget = $outdir/maskedtarget.$hemiReq.$voltype.nii.gz
+  else
+    set regtarget = $tmri/$voltype.mgz
+  endif
+  if ($maskmovinghemi) then
+    set regmoving = $outdir/maskedmoving.$hemiReq.$voltype.nii.gz
+  else
+    set regmoving = $mmri/$voltype.mgz
+  endif
+
   if (!(-e $outdir/${nl_regresult}) || $CleanVolReg) then
     if ($downsample) then
-      set cmd = (mri_nl_align -downsample $downsample $options $outdir/${input}_${voltype}.mgz $tmri/$voltype.mgz $outdir/${nl_regresult})
+      # set cmd = (mri_nl_align -downsample $downsample $options $outdir/${input}_${voltype}.mgz $tmri/$voltype.mgz $outdir/${nl_regresult})
+      set cmd = (mri_nl_align -downsample $downsample $options $outdir/${input}_${voltype}.mgz $regtarget $outdir/${nl_regresult})
     else 
-      set cmd = (mri_nl_align $options $outdir/${input}_${voltype}.mgz $tmri/$voltype.mgz $outdir/${nl_regresult})
+      # set cmd = (mri_nl_align $options $outdir/${input}_${voltype}.mgz $tmri/$voltype.mgz $outdir/${nl_regresult})
+      set cmd = (mri_nl_align $options $outdir/${input}_${voltype}.mgz $regtarget $outdir/${nl_regresult})
     endif
     echo $cmd >> $LF
     echo $cmd >> $sLF
     $cmd |& tee -a $LF
     if($status) exit 1;
   endif
-  
+
 ## COMBINE the elastic and aseg nonlinear morphs and APPLY the outcome to the norm volume (for the next registration step)
 ## CREATE also the m3z version of the combined morph
   set combined = combined_to${templateid}_elreg_$voltype.tm3d  
   if (!(-e $outdir/$combined) || $CleanElReg || $CleanVolReg) then
-    set cmd = ( createMorph --out $outdir/$combined --template $tmri/$voltype.mgz \
-                            --subject $mmri/$voltype.mgz --in gcam $outdir/${nl_regresult} \
-                            morph $outdir/${input}.tm3d )  
+#    set cmd = ( createMorph --out $outdir/$combined --template $tmri/$voltype.mgz \
+     set cmd = ( createMorph --out $outdir/$combined --template $regtarget \
+#                            --subject $mmri/$voltype.mgz --in gcam $outdir/${nl_regresult} \
+                             --subject $regmoving --in gcam $outdir/${nl_regresult} \
+                             morph $outdir/${input}.tm3d )  
     echo $cmd >> $LF
     echo $cmd >> $sLF
     $cmd |& tee -a $LF
@@ -464,7 +584,8 @@ if ($UseAseg) then
   endif  
 
   if (!(-e $outdir/${combined:r}.${morphsuffix}) || $CleanElReg || $CleanVolReg) then
-    set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
+#    set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
+     set cmd = (exportGcam --fixed $regtarget --moving $regmoving \
                           --morph $outdir/$combined --out_gcam $outdir/${combined:r}.${morphsuffix})			  
 
     echo $cmd >> $LF
@@ -477,8 +598,10 @@ if ($UseAseg) then
   # apply the gcam morph to aseg so  that 1 less interpolation is applied
   set outputfilename = step1_CVSmorphed_to${templateid}_${voltype}.mgz 
   if (!(-e $outdir/$outputfilename) || $CleanElReg || $CleanVolReg) then
-    set cmd = ( mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
-                            --mov $mmri/${voltype}.mgz --o $outdir/$outputfilename \
+    # set cmd = ( mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
+    set cmd = ( mri_vol2vol --targ $regtarget --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
+    #                        --mov $mmri/${voltype}.mgz --o $outdir/$outputfilename \
+                            --mov $regmoving --o $outdir/$outputfilename \
                             --interp nearest --no-save-reg )
     echo $cmd >> $LF
     echo $cmd >> $sLF
@@ -495,10 +618,23 @@ if ($UseAseg) then
   #endif
 
   set voltype  = norm
+  if ($masktargethemi) then
+    set regtarget = $outdir/maskedtarget.$hemiReq.$voltype.nii.gz
+  else
+    set regtarget = $tmri/$voltype.mgz
+  endif
+  if ($maskmovinghemi) then
+    set regmoving = $outdir/maskedmoving.$hemiReq.$voltype.nii.gz
+  else
+    set regmoving = $mmri/$voltype.mgz
+  endif
+
   set outputfilename = step1_CVSmorphed_to${templateid}_${voltype}.mgz 
   if (!(-e $outdir/$outputfilename) || $CleanElReg || $CleanVolReg) then
-    set cmd = ( mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
-                            --mov $mmri/${voltype}.mgz --o $outdir/$outputfilename \
+    # set cmd = ( mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
+    set cmd = ( mri_vol2vol --targ $regtarget --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
+    #                        --mov $mmri/${voltype}.mgz --o $outdir/$outputfilename \
+                            --mov $regmoving --o $outdir/$outputfilename \
                             --interp trilin --no-save-reg )
     echo $cmd >> $LF
     echo $cmd >> $sLF
@@ -514,7 +650,7 @@ endif # (aseg registration)
 if ($UseInt) then
 set prefix = ()
 set voltype = norm
-if ($UseAseg) then # otherwise already asigned
+if ($UseAseg) then # otherwise already assigned
   set prefix = afteraseg-
 else
   set input = ${elasticmorph:r}.mgz # input from CVS_step2
@@ -528,12 +664,21 @@ endif
 
 set nl_regresult = nlalign-$prefix${voltype}.${morphsuffix}
 if (!(-e $outdir/$nl_regresult) || $CleanVolReg) then 
+
+  if ($masktargethemi) then
+    set regtarget = $outdir/maskedtarget.$hemiReq.$voltype.nii.gz
+  else
+    set regtarget = $tmri/$voltype.mgz
+  endif
+
   # set options = (-apply 1 -z 1 -sigma 2 -dt 0.0001 -intensity 0.1 -T $cvsdir/id.xfm  )
   set options = (-renormalize 1 -apply 1 -z 1 -sigma 2 -dt 0.0001 -intensity 0.1 -T $cvsdir/id.xfm  )
   if ($downsample) then
-    set cmd = (mri_nl_align -downsample $downsample $options $outdir/${input} $tmri/$voltype.mgz $outdir/${nl_regresult})
+    # set cmd = (mri_nl_align -downsample $downsample $options $outdir/${input} $tmri/$voltype.mgz $outdir/${nl_regresult})
+    set cmd = (mri_nl_align -downsample $downsample $options $outdir/${input} $regtarget $outdir/${nl_regresult})
   else
-    set cmd = (mri_nl_align $options $outdir/${input} $tmri/$voltype.mgz $outdir/${nl_regresult})
+    # set cmd = (mri_nl_align $options $outdir/${input} $tmri/$voltype.mgz $outdir/${nl_regresult})
+    set cmd = (mri_nl_align $options $outdir/${input} $regtarget $outdir/${nl_regresult})
   endif
   echo $cmd >> $LF
   echo $cmd >> $sLF
@@ -542,10 +687,19 @@ if (!(-e $outdir/$nl_regresult) || $CleanVolReg) then
 endif
 ## COMBINE the el_reg and the aseg morphs and APPLY it to the norm volumes (next registration step)
 ## CREATE also the m3z version of the combined morph
+if ($maskmovinghemi) then
+  set regmoving = $outdir/maskedmoving.$hemiReq.$voltype.nii.gz
+else
+  set regmoving = $mmri/$voltype.mgz
+endif
+
 if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.tm3d  ) || $CleanElReg || $CleanVolReg) then 
+
   set combined = combined_to${templateid}_elreg_$prefix$voltype.tm3d  
-  set cmd = ( createMorph --out $outdir/$combined --template $tmri/$voltype.mgz \
-                          --subject $mmri/$voltype.mgz --in gcam $outdir/${nl_regresult} \
+  # set cmd = ( createMorph --out $outdir/$combined --template $tmri/$voltype.mgz \
+  set cmd = ( createMorph --out $outdir/$combined --template $regtarget \
+  #                         --subject $mmri/$voltype.mgz --in gcam $outdir/${nl_regresult} \
+                        --subject $regmoving --in gcam $outdir/${nl_regresult} \
                           morph $outdir/$basemorph ) 
   echo $cmd >> $LF
   echo $cmd >> $sLF
@@ -554,7 +708,8 @@ if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.tm3d  ) || $Clea
 endif
 
 if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.${morphsuffix}  ) || $CleanElReg || $CleanVolReg) then 
-  set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
+  # set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
+  set cmd = (exportGcam --fixed $regtarget --moving $regmoving \
                         --morph $outdir/$combined --out_gcam $outdir/${combined:r}.${morphsuffix})
   echo $cmd >> $LF
   echo $cmd >> $sLF
@@ -584,10 +739,21 @@ endif
 ## APPLY the morph to the norm and aseg volumes; former will be resampled
 ## one less time and the latter is just for visualization
 set voltype = norm
+if ($masktargethemi) then
+  set regtarget = $outdir/maskedtarget.$hemiReq.$voltype.nii.gz
+else
+  set regtarget = $tmri/$voltype.mgz
+endif
+if ($maskmovinghemi) then
+  set regmoving = $outdir/maskedmoving.$hemiReq.$voltype.nii.gz
+else
+  set regmoving = $mmri/$voltype.mgz
+endif
+
 set finaloutputfilename = final_CVSmorphed_to${templateid}_${voltype}.mgz
 if ((-e $outdir/${combined:r}.${morphsuffix}) && (!(-e  $outdir/$finaloutputfilename ) || $CleanElReg || $CleanVolReg)) then 
-  set cmd = (mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
-		       --mov $mmri/${voltype}.mgz --o $outdir/$finaloutputfilename --no-save-reg)
+  set cmd = (mri_vol2vol --targ $regtarget --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
+		       --mov $regmoving --o $outdir/$finaloutputfilename --no-save-reg)
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -604,12 +770,25 @@ endif
 
 set oldfinaloutputfilename = $finaloutputfilename
 set voltype = $asegfname
+if ($masktargethemi) then
+  set regtarget = $outdir/maskedtarget.$hemiReq.$voltype.nii.gz
+else
+  set regtarget = $tmri/$voltype.mgz
+endif
+if ($maskmovinghemi) then
+  set regmoving = $outdir/maskedmoving.$hemiReq.$voltype.nii.gz
+else
+  set regmoving = $mmri/$voltype.mgz
+endif
+
 set finaloutputfilename = final_CVSmorphed_to${templateid}_${voltype}.mgz
 if ((-e $outdir/${combined:r}.${morphsuffix}) && (!(-e  $outdir/$finaloutputfilename ) || $CleanElReg || $CleanVolReg)) then 
 #  set cmd = ( applyMorph --template $tmri/$voltype.mgz --transform $outdir/$combined \
 #                         vol $mmri/$voltype.mgz $outdir/${combined:r}_${voltype}.mgz nearest )
-  set cmd = ( mri_vol2vol  --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
-                           --mov $mmri/${voltype}.mgz --o $outdir/$finaloutputfilename \
+  # set cmd = ( mri_vol2vol  --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
+  set cmd = ( mri_vol2vol  --targ $regtarget --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
+  #                         --mov $mmri/${voltype}.mgz --o $outdir/$finaloutputfilename \
+                         --mov $regmoving --o $outdir/$finaloutputfilename \
                            --interp nearest --no-save-reg )
   echo $cmd >> $LF
   echo $cmd >> $sLF
@@ -812,6 +991,14 @@ while( $#argv != 0 )
       set BothHemis = 0;
     breaksw
 
+    case "--masktargethemi":
+      set masktargethemi = 1;
+    breaksw
+
+    case "--maskmovinghemi":
+      set maskmovinghemi = 1;
+    breaksw
+
     case "--openmp":
       if ( $#argv < 1) goto arg1err;
       set openmpN = $argv[1]; shift;
@@ -864,9 +1051,16 @@ check_params:
     exit 1;
   endif
 
-
   if($templateid == $FStemplate) then
     set usingFStemplate = 1;
+  endif
+
+  if($BothHemis == 1 && $masktargethemi == 1) then
+    echo "ERROR: both hemis are planned to be registered but target is also to be masked! Check your param flags!"
+  endif
+
+  if($BothHemis == 1 && $maskmovinghemi == 1) then
+    echo "ERROR: both hemis are planned to be registered but moving subject is also to be masked! Check your param flags!"
   endif
 
   if($templateid == $CVSMNItemplate) then

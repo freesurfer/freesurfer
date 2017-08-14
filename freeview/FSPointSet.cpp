@@ -68,6 +68,8 @@ bool FSPointSet::ReadAsLabel( const QString& filename )
     return false;
   }
 
+  UpdateStatRange();
+
   return true;
 }
 
@@ -128,6 +130,8 @@ bool FSPointSet::ReadFromStringAsControlPoints(const QString &content)
     m_label->lv[i].deleted = false;
     m_label->lv[i].stat = 0;
   }
+
+  UpdateStatRange();
 
   return true;
 }
@@ -214,7 +218,7 @@ void FSPointSet::LabelToPointSet( PointSet& points_out, FSVolume* ref_vol )
 {
   if ( !m_label )
   {
-  //  cerr << "Label is empty\n";
+    //  cerr << "Label is empty\n";
     return;
   }
 
@@ -267,4 +271,19 @@ bool FSPointSet::GetCentroidRASPosition(double* pos, FSVolume* ref_vol)
   }
   else
     return false;
+}
+
+void FSPointSet::UpdateStatRange()
+{
+  m_dStatMax = -1e10;
+  m_dStatMin = 1e10;
+  for ( int i = 0; i < m_label->n_points; i++ )
+  {
+    if (m_label->lv[i].stat > m_dStatMax)
+      m_dStatMax = m_label->lv[i].stat;
+    if (m_label->lv[i].stat < m_dStatMin)
+      m_dStatMin = m_label->lv[i].stat;
+  }
+  if (m_dStatMax <= m_dStatMin)
+    m_dStatMax = m_dStatMin+1;
 }

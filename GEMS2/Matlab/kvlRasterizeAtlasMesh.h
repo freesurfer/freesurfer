@@ -32,7 +32,7 @@ public:
     //          << " and I'm running! " << std::endl;
               
               
-    // alphaBuffer = kvlRasterizeAtlasMesh( mesh, DIM, labelNumber )
+    // alphaBuffer = kvlRasterizeAtlasMesh( mesh, DIM, classNumber )
   
     // Make sure input arguments are correct
     if ( ( nrhs < 2 ) || !mxIsInt64( prhs[ 0 ] ) || 
@@ -42,11 +42,10 @@ public:
       }
       
     // Some typedefs
-    typedef AtlasMeshAlphaDrawer::LabelImageType  LabelImageType;
-    typedef LabelImageType::SizeType  SizeType;
-    typedef AtlasMeshAlphaDrawer::AlphaImageType  AlphaImageType;
-    typedef AtlasMeshMultiAlphaDrawer::AlphasImageType  MultiAlphasImageType;
-    
+    typedef AtlasMeshAlphaDrawer::ImageType  AlphaImageType;
+    typedef AlphaImageType::SizeType  SizeType;
+    typedef AtlasMeshMultiAlphaDrawer::ImageType  MultiAlphasImageType;
+   
     // Retrieve input arguments
     const int meshHandle = *( static_cast< int* >( mxGetData( prhs[ 0 ] ) ) );
     itk::Object::ConstPointer object = kvl::MatlabObjectArray::GetInstance()->GetObject( meshHandle );
@@ -62,34 +61,28 @@ public:
       imageSize[ i ] = static_cast< int >( *tmp );
       }
       
-    int labelNumber = -1;
+    int classNumber = -1;
     if ( nrhs > 2 )
       {
       double* tmp = mxGetPr( prhs[ 2 ] ); 
-      labelNumber = static_cast< int >( *tmp );
+      classNumber = static_cast< int >( *tmp );
       }
     
     //std::cout << "mesh: " << mesh.GetPointer() << std::endl;
     //std::cout << "imageSize: " << imageSize << std::endl;
-    //std::cout << "labelNumber: " << labelNumber << std::endl;
+    //std::cout << "classNumber: " << classNumber << std::endl;
     
 
-    // Create an empty image that serves as a template for the alpha rasterizor
-    LabelImageType::Pointer  templateImage = LabelImageType::New();
-    templateImage->SetRegions( imageSize );
-    templateImage->Allocate();
-    //templateImage->FillBuffer( 0 );
-
-    if ( labelNumber >= 0 )
+    if ( classNumber >= 0 )
       {
-      // Rasterize the specified prior. If the label number is 0, then pre-fill everything
+      // Rasterize the specified prior. If the class number is 0, then pre-fill everything
       // so that parts not overlayed by the mesh are still considered to the background
       kvl::AtlasMeshAlphaDrawer::Pointer  alphaDrawer = kvl::AtlasMeshAlphaDrawer::New();
-      alphaDrawer->SetLabelImage( templateImage );
-      alphaDrawer->SetLabelNumber( labelNumber );
-      if ( labelNumber == 0 )
+      alphaDrawer->SetRegions( imageSize );
+      alphaDrawer->SetClassNumber( classNumber );
+      if ( classNumber == 0 )
         {
-        ( const_cast< AlphaImageType* >( alphaDrawer->GetAlphaImage() ) )->FillBuffer( 1.0 );
+        ( const_cast< AlphaImageType* >( alphaDrawer->GetImage() ) )->FillBuffer( 1.0 );
         }
       alphaDrawer->Rasterize( mesh );
 
@@ -106,8 +99,8 @@ public:
       unsigned short*  data = static_cast< unsigned short* >( mxGetData( plhs[ 0 ] ) ); 
 
       itk::ImageRegionConstIterator< AlphaImageType >  
-                        it( alphaDrawer->GetAlphaImage(),
-                            alphaDrawer->GetAlphaImage()->GetBufferedRegion() );
+                        it( alphaDrawer->GetImage(),
+                            alphaDrawer->GetImage()->GetBufferedRegion() );
       for ( ;!it.IsAtEnd(); ++it, ++data )
         {
         float  probability = it.Value();
@@ -125,18 +118,16 @@ public:
     else
       {
       // Rasterize all priors simultaneously
-      const unsigned int  numberOfLabels = mesh->GetPointData()->Begin().Value().m_Alphas.Size();
-      std::cout << "numberOfLabels: " << numberOfLabels << std::endl;
+      const unsigned int  numberOfClasses = mesh->GetPointData()->Begin().Value().m_Alphas.Size();
+      //std::cout << "numberOfClasses: " << numberOfClasses << std::endl;
 
-      std::cout << "Rasterizing mesh..." << std::flush;
+      //std::cout << "Rasterizing mesh..." << std::flush;
       kvl::AtlasMeshMultiAlphaDrawer::Pointer  drawer = kvl::AtlasMeshMultiAlphaDrawer::New();
-      drawer->SetLabelImage( templateImage );
-      std::cout << "here: " << numberOfLabels << std::endl;
-      //drawer->SetAlphasImage( m_SuperResolutionPriors );
+      drawer->SetRegions( imageSize );
+      //std::cout << "here: " << numberOfClasses << std::endl;
       drawer->Rasterize( mesh );
-std::cout << "here2: " << numberOfLabels << std::endl;
-      MultiAlphasImageType::ConstPointer  alphasImage = drawer->GetAlphasImage();
-      std::cout << "done" << std::endl;
+      MultiAlphasImageType::ConstPointer  alphasImage = drawer->GetImage();
+      //std::cout << "done" << std::endl;
       
       
       // Convert into 4-D Matlab matrix
@@ -146,7 +137,7 @@ std::cout << "here2: " << numberOfLabels << std::endl;
       dims[ 0 ] = imageSize[ 0 ];
       dims[ 1 ] = imageSize[ 1 ];
       dims[ 2 ] = imageSize[ 2 ];
-      dims[ 3 ] = numberOfLabels;
+      dims[ 3 ] = numberOfClasses;
       // The following is much faster than 
       // 
       //   plhs[ 0 ] = mxCreateNumericArray( 4, dims, mxSINGLE_CLASS, mxREAL );
@@ -166,26 +157,40 @@ std::cout << "here2: " << numberOfLabels << std::endl;
 
       //float*  data = static_cast< float* >( mxGetData( plhs[ 0 ] ) ); 
       unsigned short*  data = static_cast< unsigned short* >( mxGetData( plhs[ 0 ] ) ); 
-      for ( int labelNumber = 0; labelNumber < numberOfLabels; labelNumber++ )
+      for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
         {
         // Loop over all voxels
         itk::ImageRegionConstIterator< MultiAlphasImageType >  alphasIt( alphasImage,
                                                                          alphasImage->GetBufferedRegion() );
         for ( ;!alphasIt.IsAtEnd(); ++alphasIt, ++data )
           {
-          //*data = alphasIt.Value()[ labelNumber ];
-          float  probability = alphasIt.Value()[ labelNumber ];
-          if ( probability < 0 )
-            { 
-            probability = 0.0f;  
-            }
-          else if ( probability > 1 )
+          float  probability = 0.0f;
+          if ( alphasIt.Value().sum() == 0 )
             {
-            probability = 1.0f;
-            }  
+            // Outside of mesh so not computed. Let's put that to background
+            if ( classNumber == 0 )
+              {
+              //probability = 1.0f;  
+              }
+            }
+          else  
+            {
+            //*data = alphasIt.Value()[ classNumber ];
+            probability = alphasIt.Value()[ classNumber ];
+            if ( probability < 0 )
+              { 
+              probability = 0.0f;  
+              }
+            else if ( probability > 1 )
+              {
+              probability = 1.0f;
+              }
+            } // End test if outside mesh area
+            
           *data = static_cast< unsigned short >( probability * 65535 + .5 );
           }
           
+        //std::cout << "Done" << std::endl;  
         } // End loop over all labels
       //std::cout << "done" << std::endl;
       

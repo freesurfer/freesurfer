@@ -1,35 +1,43 @@
 #!/bin/tcsh
 
-if (  $#argv < 5 ) then
-  echo "Software requires 5 arguments"
-  echo "segmentSF_T1.sh matlabRuntimeDirectory FShomeDirectory subjectName subjectDir side(must be left or right, in lower case) "
+if (  $#argv < 1 ) then
+  echo "Software requires 1 argument:"
+  echo ""
+  echo "Usage:"
+  echo "  segmentSF_T1.sh SubjectName"
   exit 1
 endif
 
-# Absolute name of script
-set rootdir = `dirname $0`
-set SCRIPTPATH = `cd $rootdir && pwd`
+checkMCR
+if($status) exit 1;
 
 # Parameters
-set RUNTIME=$1;
-set FREESURFER_HOME=$2;
-set SUBJECTNAME=$3;
-set SUBJECTDIR = `cd $4 && pwd`
+set RUNTIME=$FREESURFER_HOME/MCRv80;
+set SUBJECTNAME=$1;
 set RESOLUTION="0.333333333333333333333333333333333333";
 set ATLASMESH="$FREESURFER_HOME/average/HippoSF/atlas/AtlasMesh.gz";
 set ATLASDUMP="$FREESURFER_HOME/average/HippoSF/atlas/AtlasDump.mgz";
 set LUT="$FREESURFER_HOME/average/HippoSF/atlas/compressionLookupTable.txt";
 set K="0.05";
-set SIDE=$5;
 set OPTIMIZER="ConjGrad";
 set MRFCONSTANT="0";
-set SUFFIX="v10";
+set SUFFIX="v20";
+
+if (! -e $SUBJECTS_DIR/$SUBJECTNAME/mri/wmparc.mgz || \
+    ! -e $SUBJECTS_DIR/$SUBJECTNAME/mri/norm.mgz ) then
+  echo "ERROR: cannot find norm.mgz or wmparc.mgz for the subject."
+  echo "ERROR: Make sure recon-all was run on this subject, to completion."
+  exit 1;
+endif 
+
+set HSFLOG = ($SUBJECTS_DIR/$SUBJECTNAME/scripts/hippocampal-subfields-T1.log)
+rm -f $HSFLOG
 
 # command
-set cmd="$SCRIPTPATH/run_segmentSubjectT1_autoEstimateAlveusML.sh $RUNTIME $SUBJECTNAME $SUBJECTDIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K $SIDE $OPTIMIZER $SUFFIX ${FREESURFER_HOME}/bin/ $MRFCONSTANT"
-
-# echo $cmd
-
-eval $cmd
-
+foreach SIDE ( left right )
+  set cmd="run_segmentSubjectT1_autoEstimateAlveusML.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K $SIDE $OPTIMIZER $SUFFIX ${FREESURFER_HOME}/bin/ $MRFCONSTANT"
+  eval $cmd |& tee -a $HSFLOG
+  if($status) exit 1;
+end
+ 
 exit

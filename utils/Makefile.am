@@ -116,6 +116,7 @@ libutils_main_SOURCES=\
 	gcsa.c \
 	getdelim.c \
 	getline.c \
+	geodesics.cpp \
 	gifti_io.c \
 	gifti_local.c \
 	gifti_xml.c \

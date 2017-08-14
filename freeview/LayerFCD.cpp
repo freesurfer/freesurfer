@@ -51,6 +51,7 @@
 #include "ProgressCallback.h"
 #include "LayerSurface.h"
 #include "LayerPropertySurface.h"
+#include "MyVTKUtils.h"
 #include <QDebug>
 #include <QTimer>
 
@@ -174,11 +175,11 @@ LayerFCD::~LayerFCD()
     }
     if (m_surf_lh_sphere_d1)
     {
-        m_fcd->mris_lh_sphere_d1 = NULL;
+      m_fcd->mris_lh_sphere_d1 = NULL;
     }
     if (m_surf_rh_sphere_d1)
     {
-        m_fcd->mris_rh_sphere_d1 = NULL;
+      m_fcd->mris_rh_sphere_d1 = NULL;
     }
 
     FCDfree(&m_fcd);
@@ -208,9 +209,9 @@ void LayerFCD::InitializeData()
     m_imageData->SetOrigin( GetWorldOrigin() );
     m_imageData->SetSpacing( GetWorldVoxelSize() );
     m_imageData->SetDimensions(
-      ( int )( m_dWorldSize[0] / m_dWorldVoxelSize[0] + 0.5 ),
-      ( int )( m_dWorldSize[1] / m_dWorldVoxelSize[1] + 0.5 ),
-      ( int )( m_dWorldSize[2] / m_dWorldVoxelSize[2] + 0.5 ) );
+          ( int )( m_dWorldSize[0] / m_dWorldVoxelSize[0] + 0.5 ),
+        ( int )( m_dWorldSize[1] / m_dWorldVoxelSize[1] + 0.5 ),
+        ( int )( m_dWorldSize[2] / m_dWorldVoxelSize[2] + 0.5 ) );
     m_imageData->AllocateScalars();
     void* ptr = m_imageData->GetScalarPointer();
     int* nDim = m_imageData->GetDimensions();
@@ -249,6 +250,7 @@ bool LayerFCD::LoadFromFile()
     return false;
   }
 
+
   if (m_fcd)
   {
     if (!m_fcd->mri_norm)
@@ -269,7 +271,7 @@ void LayerFCD::MakeAllLayers()
 {
   QString suffix_text;
   if (!m_sSuffix.isEmpty())
-      suffix_text = "." + m_sSuffix;
+    suffix_text = "." + m_sSuffix;
   if (true)
   {
     LayerMRI* mri = m_mri_norm;
@@ -280,7 +282,7 @@ void LayerFCD::MakeAllLayers()
     mri->SetName(m_sSubject + ".norm");
     mri->SetFileName(m_fcd->mri_norm->fname);
     if (!m_sSuffix.isEmpty() && mri->GetFileName().contains(suffix_text))
-        mri->SetName(m_sSubject + ".norm" + suffix_text);
+      mri->SetName(m_sSubject + ".norm" + suffix_text);
     if ( mri->CreateFromMRIData((void*)m_fcd->mri_norm) )
     {
       if (!m_layerSource)
@@ -307,7 +309,7 @@ void LayerFCD::MakeAllLayers()
     mri->SetName(m_sSubject + ".flair");
     mri->SetFileName(m_fcd->mri_flair->fname);
     if (!m_sSuffix.isEmpty() && mri->GetFileName().contains(suffix_text))
-        mri->SetName(m_sSubject + ".flair" + suffix_text);
+      mri->SetName(m_sSubject + ".flair" + suffix_text);
     if ( !mri->CreateFromMRIData((void*)m_fcd->mri_flair) )
     {
       delete m_mri_flair;
@@ -330,7 +332,7 @@ void LayerFCD::MakeAllLayers()
     mri->SetName(m_sSubject + ".t2");
     mri->SetFileName(m_fcd->mri_t2->fname);
     if (!m_sSuffix.isEmpty() && mri->GetFileName().contains(suffix_text))
-        mri->SetName(m_sSubject + ".t2" + suffix_text);
+      mri->SetName(m_sSubject + ".t2" + suffix_text);
     if ( !mri->CreateFromMRIData((void*)m_fcd->mri_t2) )
     {
       delete m_mri_t2;
@@ -353,7 +355,7 @@ void LayerFCD::MakeAllLayers()
     mri->SetName(m_sSubject + ".aseg");
     mri->SetFileName(m_fcd->mri_aseg->fname);
     if (!m_sSuffix.isEmpty() && mri->GetFileName().contains(suffix_text))
-        mri->SetName(m_sSubject + ".aseg" + suffix_text);
+      mri->SetName(m_sSubject + ".aseg" + suffix_text);
     if ( mri->CreateFromMRIData((void*)m_fcd->mri_aseg) )
     {
       mri->GetProperty()->SetColorMap(LayerPropertyMRI::LUT);
@@ -379,7 +381,7 @@ void LayerFCD::MakeAllLayers()
       mri->SetRefVolume(m_layerSource->GetSourceVolume());
     }
     mri->SetName(m_sSubject + ".thickness_difference_lh-rh" + suffix_text);
-//    mri->SetFileName(m_fcd->mri_thickness_increase->fname);
+    //    mri->SetFileName(m_fcd->mri_thickness_increase->fname);
     if ( mri->CreateFromMRIData((void*)m_fcd->mri_thickness_difference) )
     {
       mri->GetProperty()->SetColorMap(LayerPropertyMRI::Heat);
@@ -406,7 +408,7 @@ void LayerFCD::MakeAllLayers()
     surf->SetName(m_sSubject + ".lh");
     surf->SetFileName(m_fcd->mris_lh->fname);
     if (!m_sSuffix.isEmpty() && surf->GetFileName().contains(suffix_text))
-        surf->SetName(m_sSubject + ".lh" + suffix_text);
+      surf->SetName(m_sSubject + ".lh" + suffix_text);
     if (!surf->CreateFromMRIS((void*)m_fcd->mris_lh))
     {
       delete m_surf_lh;
@@ -429,7 +431,7 @@ void LayerFCD::MakeAllLayers()
     surf->SetName(m_sSubject + ".lh.pial");
     surf->SetFileName(m_fcd->mris_lh_pial->fname);
     if (!m_sSuffix.isEmpty() && surf->GetFileName().contains(suffix_text))
-        surf->SetName(m_sSubject + ".lh.pial" + suffix_text);
+      surf->SetName(m_sSubject + ".lh.pial" + suffix_text);
     if (!surf->CreateFromMRIS((void*)m_fcd->mris_lh_pial))
     {
       delete m_surf_lh_pial;
@@ -481,7 +483,7 @@ void LayerFCD::MakeAllLayers()
     surf->SetName(m_sSubject + ".rh");
     surf->SetFileName(m_fcd->mris_rh->fname);
     if (!m_sSuffix.isEmpty() && surf->GetFileName().contains(suffix_text))
-        surf->SetName(m_sSubject + ".rh" + suffix_text);
+      surf->SetName(m_sSubject + ".rh" + suffix_text);
     if (!surf->CreateFromMRIS((void*)m_fcd->mris_rh))
     {
       delete m_surf_rh;
@@ -504,7 +506,7 @@ void LayerFCD::MakeAllLayers()
     surf->SetName(m_sSubject + ".rh.pial");
     surf->SetFileName(m_fcd->mris_rh_pial->fname);
     if (!m_sSuffix.isEmpty() && surf->GetFileName().contains(suffix_text))
-        surf->SetName(m_sSubject + ".rh.pial" + suffix_text);
+      surf->SetName(m_sSubject + ".rh.pial" + suffix_text);
     if (!surf->CreateFromMRIS((void*)m_fcd->mris_rh_pial))
     {
       delete m_surf_rh_pial;
@@ -627,7 +629,10 @@ void LayerFCD::UpdateRASImage( vtkImageData* rasImage)
   int n[3];
   double pos[3];
   int* dim = rasImage->GetDimensions();
-  memset( rasImage->GetScalarPointer(),
+  char* ptr = (char*)rasImage->GetScalarPointer();
+  int scalar_type = rasImage->GetScalarType();
+  int n_frames = rasImage->GetNumberOfScalarComponents();
+  memset( ptr,
           0,
           ((size_t)rasImage->GetScalarSize()) * dim[0] * dim[1] * dim[2]);
   if ( m_fcd->nlabels == 0 )
@@ -649,7 +654,7 @@ void LayerFCD::UpdateRASImage( vtkImageData* rasImage)
       {
         MRIvoxelToWorld(ref_vol->GetMRI(),
                         pos[0], pos[1], pos[2],
-                        pos, pos+1, pos+2);
+            pos, pos+1, pos+2);
       }
       else if (label->coords == LABEL_COORDS_TKREG_RAS)
       {
@@ -660,8 +665,8 @@ void LayerFCD::UpdateRASImage( vtkImageData* rasImage)
       if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&
            n[2] >= 0 && n[2] < dim[2] )
       {
-        rasImage->SetScalarComponentFromFloat
-          ( n[0], n[1], n[2], 0, label->lv[i].vno );
+        MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames,
+             n[0], n[1], n[2], 0, scalar_type, label->lv[i].vno );
       }
     }
   }
@@ -681,7 +686,7 @@ void LayerFCD::InitializeActors()
     //
     mReslice[i] = vtkSmartPointer<vtkImageReslice>::New();
     mReslice[i]->SetInput( m_imageData );
-//  mReslice[i]->SetOutputSpacing( sizeX, sizeY, sizeZ );
+    //  mReslice[i]->SetOutputSpacing( sizeX, sizeY, sizeZ );
     mReslice[i]->BorderOff();
 
     // This sets us to extract slices.
@@ -689,8 +694,8 @@ void LayerFCD::InitializeActors()
 
     // This will change depending what orienation we're in.
     mReslice[i]->SetResliceAxesDirectionCosines( 1, 0, 0,
-        0, 1, 0,
-        0, 0, 1 );
+                                                 0, 1, 0,
+                                                 0, 0, 1 );
 
     // This will change to select a different slice.
     mReslice[i]->SetResliceAxesOrigin( 0, 0, 0 );
@@ -763,7 +768,7 @@ void LayerFCD::OnSlicePositionChanged( int nPlane )
   }
 
   vtkSmartPointer<vtkMatrix4x4> matrix =
-    vtkSmartPointer<vtkMatrix4x4>::New();
+      vtkSmartPointer<vtkMatrix4x4>::New();
   matrix->Identity();
   switch ( nPlane )
   {
@@ -780,8 +785,8 @@ void LayerFCD::OnSlicePositionChanged( int nPlane )
     // Putting negatives in the reslice axes cosines will flip the
     // image on that axis.
     mReslice[0]->SetResliceAxesDirectionCosines( 0, -1, 0,
-        0, 0, 1,
-        1, 0, 0 );
+                                                 0, 0, 1,
+                                                 1, 0, 0 );
     mReslice[0]->SetResliceAxesOrigin( m_dSlicePosition[0], 0, 0  );
     mReslice[0]->Modified();
     break;
@@ -798,8 +803,8 @@ void LayerFCD::OnSlicePositionChanged( int nPlane )
     // Putting negatives in the reslice axes cosines will flip the
     // image on that axis.
     mReslice[1]->SetResliceAxesDirectionCosines( 1, 0, 0,
-        0, 0, 1,
-        0, 1, 0 );
+                                                 0, 0, 1,
+                                                 0, 1, 0 );
     mReslice[1]->SetResliceAxesOrigin( 0, m_dSlicePosition[1], 0 );
     mReslice[1]->Modified();
     break;
@@ -810,8 +815,8 @@ void LayerFCD::OnSlicePositionChanged( int nPlane )
     // m_sliceActor3D[2]->RotateY( 180 );
 
     mReslice[2]->SetResliceAxesDirectionCosines( 1, 0, 0,
-        0, 1, 0,
-        0, 0, 1 );
+                                                 0, 1, 0,
+                                                 0, 0, 1 );
     mReslice[2]->SetResliceAxesOrigin( 0, 0, m_dSlicePosition[2]  );
     mReslice[2]->Modified();
     break;
@@ -872,7 +877,7 @@ void LayerFCD::GetLabelCentroidPosition(int nLabelIndex, double *pos)
     {
       MRIvoxelToWorld(ref_vol->GetMRI(),
                       pos[0], pos[1], pos[2],
-                      pos, pos+1, pos+2);
+          pos, pos+1, pos+2);
     }
     else if (label->coords == LABEL_COORDS_TKREG_RAS)
     {
@@ -889,7 +894,10 @@ void LayerFCD::SetLabelVisible(int nIndex, bool visible)
   FSVolume* ref_vol = m_layerSource->GetSourceVolume();
   int n[3];
   double pos[3];
-  int* dim = m_imageData->GetDimensions();
+  int* dim = m_imageData->GetDimensions(); 
+  char* ptr = (char*)m_imageData->GetScalarPointer();
+  int scalar_type = m_imageData->GetScalarType();
+  int n_frames = m_imageData->GetNumberOfScalarComponents();
   for ( int i = 0; i < label->n_points; i++ )
   {
     pos[0] = label->lv[i].x;
@@ -899,7 +907,7 @@ void LayerFCD::SetLabelVisible(int nIndex, bool visible)
     {
       MRIvoxelToWorld(ref_vol->GetMRI(),
                       pos[0], pos[1], pos[2],
-                      pos, pos+1, pos+2);
+          pos, pos+1, pos+2);
     }
     else if (label->coords == LABEL_COORDS_TKREG_RAS)
     {
@@ -910,8 +918,8 @@ void LayerFCD::SetLabelVisible(int nIndex, bool visible)
     if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&
          n[2] >= 0 && n[2] < dim[2] )
     {
-      m_imageData->SetScalarComponentFromFloat
-        ( n[0], n[1], n[2], 0, visible?label->lv[i].vno:0 );
+      MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames,
+           n[0], n[1], n[2], 0, scalar_type, visible?label->lv[i].vno:0 );
     }
   }
   for (int i = 0; i < 3; i++)
@@ -925,7 +933,7 @@ void LayerFCD::SetMRILayerCTAB(COLOR_TABLE *ctab)
 {
   QList<LayerMRI*> layers = GetMRILayers();
   foreach (LayerMRI* mri, layers)
-  mri->GetProperty()->SetLUTCTAB(ctab);
+    mri->GetProperty()->SetLUTCTAB(ctab);
 }
 
 QList<LayerMRI*> LayerFCD::GetMRILayers()
@@ -966,10 +974,10 @@ QList<LayerSurface*> LayerFCD::GetSurfaceLayers()
   {
     layers << m_surf_lh_pial;
   }
-//  if (m_surf_lh_sphere_d1)
-//  {
-//    layers << m_surf_lh_sphere_d1;
-//  }
+  //  if (m_surf_lh_sphere_d1)
+  //  {
+  //    layers << m_surf_lh_sphere_d1;
+  //  }
   if (m_surf_rh)
   {
     layers << m_surf_rh;
@@ -978,10 +986,10 @@ QList<LayerSurface*> LayerFCD::GetSurfaceLayers()
   {
     layers << m_surf_rh_pial;
   }
-//  if (m_surf_rh_sphere_d1)
-//  {
-//    layers << m_surf_rh_sphere_d1;
-//  }
+  //  if (m_surf_rh_sphere_d1)
+  //  {
+  //    layers << m_surf_rh_sphere_d1;
+  //  }
 
   return layers;
 }
@@ -1042,51 +1050,51 @@ void LayerFCD::OnLayerDestroyed()
 
 bool LayerFCD::GoToContralateralPoint(double *pos, double *pos_out)
 {
-    LayerSurface* oppo_surf = NULL;
-    bool bLeft = true;
-    int nVertex = m_surf_lh->GetVertexIndexAtTarget( pos, NULL );
+  LayerSurface* oppo_surf = NULL;
+  bool bLeft = true;
+  int nVertex = m_surf_lh->GetVertexIndexAtTarget( pos, NULL );
+  if (nVertex < 0)
+  {
+    nVertex = m_surf_lh_pial->GetVertexIndexAtTarget(pos, NULL);
     if (nVertex < 0)
     {
-        nVertex = m_surf_lh_pial->GetVertexIndexAtTarget(pos, NULL);
-        if (nVertex < 0)
-        {
-            bLeft = false;
-            nVertex = m_surf_rh->GetVertexIndexAtTarget( pos, NULL );
-            if (nVertex < 0)
-            {
-                nVertex = m_surf_rh_pial->GetVertexIndexAtTarget(pos, NULL);
-                oppo_surf = m_surf_lh_pial;
-            }
-            else
-                oppo_surf = m_surf_lh;
-        }
-        else
-            oppo_surf = m_surf_rh_pial;
+      bLeft = false;
+      nVertex = m_surf_rh->GetVertexIndexAtTarget( pos, NULL );
+      if (nVertex < 0)
+      {
+        nVertex = m_surf_rh_pial->GetVertexIndexAtTarget(pos, NULL);
+        oppo_surf = m_surf_lh_pial;
+      }
+      else
+        oppo_surf = m_surf_lh;
     }
     else
-        oppo_surf = m_surf_rh;
+      oppo_surf = m_surf_rh_pial;
+  }
+  else
+    oppo_surf = m_surf_rh;
 
+  if (nVertex < 0)
+  {
+    qDebug() << "Did not find any vertex at cursor on" << this->GetName();
+    return false;
+  }
+
+  double ras[3];
+  if (bLeft)
+  {
+    m_surf_lh_sphere_d1->GetSurfaceRASAtVertex(nVertex, ras);
+    nVertex = m_surf_rh_sphere_d1->GetVertexAtSurfaceRAS(ras, NULL);
     if (nVertex < 0)
-    {
-        qDebug() << "Did not find any vertex at cursor";
-        return false;
-    }
-
-    double ras[3];
-    if (bLeft)
-    {
-        m_surf_lh_sphere_d1->GetSurfaceRASAtVertex(nVertex, ras);
-        nVertex = m_surf_rh_sphere_d1->GetVertexAtSurfaceRAS(ras, NULL);
-        if (nVertex < 0)
-            return false;
-    }
-    else
-    {
-        m_surf_rh_sphere_d1->GetSurfaceRASAtVertex(nVertex, ras);
-        nVertex = m_surf_lh_sphere_d1->GetVertexAtSurfaceRAS(ras, NULL);
-        if (nVertex < 0)
-            return false;
-    }
-    oppo_surf->GetTargetAtVertex(nVertex, pos_out);
-    return true;
+      return false;
+  }
+  else
+  {
+    m_surf_rh_sphere_d1->GetSurfaceRASAtVertex(nVertex, ras);
+    nVertex = m_surf_lh_sphere_d1->GetVertexAtSurfaceRAS(ras, NULL);
+    if (nVertex < 0)
+      return false;
+  }
+  oppo_surf->GetTargetAtVertex(nVertex, pos_out);
+  return true;
 }

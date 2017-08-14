@@ -71,7 +71,7 @@ public:
 
   int GetBrushRadius();
 
-  virtual void UpdateVoxelValueRange( double fValue ) {}
+  virtual void UpdateVoxelValueRange( double fValue ) { Q_UNUSED(fValue); }
 
   virtual int GetActiveFrame()
   {
@@ -151,11 +151,12 @@ protected:
     int  plane;                 // -1 means whole 3d volume
     int  slice;
     char* data;
+    int  frame;
     QString cache_filename;     // if not empty, ignore data and read from cache file.
     QVariantMap mri_settings;
   };
 
-  void SaveBufferItem( UndoRedoBufferItem& item, int nPlane = -1, int nSlice = 0, const char* mask = NULL );
+  void SaveBufferItem( UndoRedoBufferItem& item, int nPlane = -1, int nSlice = 0, int nFrame = 0, const char* mask = NULL );
   void LoadBufferItem( UndoRedoBufferItem& item, bool bIgnoreZeros = false );
   QString GenerateCacheFileName();
 

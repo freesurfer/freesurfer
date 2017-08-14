@@ -51,6 +51,8 @@
 
 char *Progname ;
 
+static double extra_norm_range = 0.0 ;
+
 static int fill_in_sample_means(GCA_SAMPLE *gcas, GCA *gca, int nsamples);
 MRI *normalizeChannelFromLabel
 (MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas, int input_index);
@@ -743,6 +745,14 @@ get_option(int argc, char *argv[])
     printf("using T2 volume %s thresholded at %f to mask input volume...\n", 
 	   T2_mask_fname, T2_thresh) ;
   }
+  else if (!stricmp(option, "extra_norm"))
+  {
+    extra_norm_range = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("expanding norm range to [%2.1f --> %2.1f]\n",  (1.0-extra_norm_range) * MIN_WM_BIAS_PCT * DEFAULT_DESIRED_WHITE_MATTER_VALUE,
+	   (1.0+extra_norm_range) * MAX_WM_BIAS_PCT* DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+
+  }
   else if (!stricmp(option, "AMASK"))
   {
     aparc_aseg_fname = argv[2] ;
@@ -968,7 +978,7 @@ find_control_points
              used_in_region, prior_wsize=5, image_wsize=3, histo_peak, n,
                              nbins ;
   GCA_SAMPLE *gcas, *gcas_region, *gcas_norm ;
-  double     means[MAX_GCA_INPUTS], vars[MAX_GCA_INPUTS], val, outlying_nsigma = 2, nsigma ;
+  double     means[MAX_GCA_INPUTS], vars[MAX_GCA_INPUTS], val, outlying_nsigma = 3, nsigma ;
   HISTOGRAM  *histo, *hsmooth ;
   GC1D       *gc ;
   float      fmin, fmax ;
@@ -1579,8 +1589,8 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   if (nsamples == 0)
     return(NO_ERROR) ;
 
-  min_T1 = MIN_WM_BIAS_PCT * DEFAULT_DESIRED_WHITE_MATTER_VALUE  ;
-  max_T1 = MAX_WM_BIAS_PCT* DEFAULT_DESIRED_WHITE_MATTER_VALUE  ;
+  min_T1 = (1.0-extra_norm_range) * MIN_WM_BIAS_PCT * DEFAULT_DESIRED_WHITE_MATTER_VALUE  ;
+  max_T1 = (1.0+extra_norm_range) * MAX_WM_BIAS_PCT* DEFAULT_DESIRED_WHITE_MATTER_VALUE  ;
   for (num = n = 0 ; n < gca->ninputs ; n++)
   {
     int niter = 0 ;

@@ -10,7 +10,7 @@
 #    $Author: greve $
 #    $Date: 2017/02/08 21:17:33 $
 #    $Revision: 1.601 $
-#
+	#
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
@@ -51,6 +51,10 @@ set fs_time = "";
 set ErrorFile = /dev/null
 set cmd = ();
 
+# commands to only process single hemispheres (e.g. for ex vivo)
+set LHonly = 0 ;
+set RHonly = 0 ;
+set nocerebellum = () ;  # will be set to -nocerebellum
 set tcsh61706 = (`tcsh --version | grep "6\.17\.06"`)
 if ("$tcsh61706" != "") then
     echo ""
@@ -2225,6 +2229,9 @@ skullstrip:
           set cmd2 = (mri_em_register)
           if($UseCuda) set cmd2 = (mri_em_register_cuda)
           set cmd2 = ($cmd2 -rusage $touchdir/rusage.mri_em_register.skull.dat) 
+	  set cmd2 = ($cmd2 $nocerebellum )
+	  if ($LHonly) set cmd2 = ($cmd2 -lh )
+	  if ($RHonly) set cmd2 = ($cmd2 -rh )
           set cmd2 = ($cmd2 -skull)
           set cmd2 = ($cmd2 $xopts2 nu.mgz ${GCADIR}/$GCASkull)
           set cmd2 = ($cmd2 transforms/talairach_with_skull.lta)
@@ -2492,6 +2499,9 @@ if($DoGCAReg) then
     if($NoEMReg == 0) then
       set cmd = (mri_em_register)
       if($UseCuda) set cmd = (mri_em_register_cuda)
+      set cmd = ($cmd $nocerebellum )
+      if ($LHonly) set cmd = ($cmd -lh  -spacing 4 -s 7)
+      if ($RHonly) set cmd = ($cmd -rh  -spacing 4 -s 7)
       set cmd = ($cmd -rusage $touchdir/rusage.mri_em_register.dat) 
       if($DoCreateBaseSubj) then
         # base subj processing (norm_template instead of nu, and no mask needed):
@@ -2552,6 +2562,10 @@ if($DoCANormalize) then
   set xopts = `fsr-getxopts mri_ca_normalize $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_ca_normalize)
   if($UseCPsWithCaNorm)  set cmd = ($cmd -f $ControlPointsFile)
+  set cmd = ($cmd $nocerebellum )
+  if ($LHonly) set cmd = ($cmd -lh )
+  if ($RHonly) set cmd = ($cmd -rh )
+    
   if ($longitudinal) then
     # longitudinal processing:
     # use the aseg_base (just created) as initialization of the current TP:
@@ -2593,6 +2607,9 @@ if($DoCAReg) then
   set xopts = `fsr-getxopts mri_ca_register $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_ca_register)
   if($UseCuda) set cmd = (mri_ca_register_cuda)
+  set cmd = ($cmd $nocerebellum )
+  if ($LHonly) set cmd = ($cmd -lh)
+  if ($RHonly) set cmd = ($cmd -rh)
   set cmd = ($cmd -rusage $touchdir/rusage.mri_ca_register.dat) 
   if($#GCARegIterations) set cmd = ($cmd -n $GCARegIterations)
   if($#GCARegTol) set cmd = ($cmd -tol $GCARegTol)
@@ -2695,6 +2712,9 @@ if($DoSkullLTA) then
   set xopts = `fsr-getxopts mri_em_register $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_em_register)
   if ($UseCuda) set cmd = (mri_em_register_cuda)
+  set cmd = ($cmd $nocerebellum )
+  if ($LHonly) set cmd = ($cmd -lh )
+  if ($RHonly) set cmd = ($cmd -rh )
   set cmd = ($cmd -skull -t transforms/talairach.lta \
      $xopts nu_noneck.mgz ${GCADIR}/$GCASkull \
      transforms/talairach_with_skull_2.lta)
@@ -2814,6 +2834,9 @@ if($DoCALabel) then
   set rusage = $touchdir/rusage.mri_ca_label.dat 
   set cmd = (mri_ca_label -relabel_unlikely 9 .3 -prior 0.5)
   set cmd = ($cmd $UseCAAlign)
+  set cmd = ($cmd $nocerebellum )
+  if ($LHonly) set cmd = ($cmd -lh )
+  if ($RHonly) set cmd = ($cmd -rh )
   if($NoWMSA) set cmd = ($cmd -nowmsa)
   set asegbasename=(aseg.auto_noCCseg)
   if($longitudinal && $UseAsegFusion) then
@@ -2833,7 +2856,10 @@ if($DoCALabel) then
   # Run mri_cc to create aseg.auto.mgz
   set xopts = `fsr-getxopts mri_cc $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz \
-    -lta ${subjdir}/mri/transforms/cc_up.lta $xopts $subjid);
+    -lta ${subjdir}/mri/transforms/cc_up.lta);
+  if ($LHonly) set cmd = ($cmd -lh )
+  if ($RHonly) set cmd = ($cmd -rh )
+  set cmd = ($cmd  $xopts $subjid);
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
@@ -3088,7 +3114,9 @@ if($DoFill) then
   if(-e transforms/talairach.lta) then
     set cmd = ($cmd  -xform transforms/talairach.lta)
   endif
-  if($UseAseg) set cmd = ($cmd -segmentation aseg.auto_noCCseg.mgz);
+  if ($LHonly) set cmd = ($cmd -lhonly )
+  if ($RHonly) set cmd = ($cmd -rhonly )
+  if($UseAseg) set cmd = ($cmd -segmentation aseg.presurf.mgz);
   if(! $UseOldTopoFix && ! $NoNormMGZ) set cmd = ($cmd -topofix norm.mgz);
   set cmd = ($cmd $xopts wm.mgz filled.mgz)
   $PWD |& tee -a $LF
@@ -3264,7 +3292,7 @@ if($DoQSphere && ( ! $longitudinal )) then
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
     set xopts = `fsr-getxopts mris_sphere $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_sphere -q)
+    set cmd = (mris_sphere -q  -p 6 -a 128 )
     if($UseCuda) set cmd = (mris_sphere_cuda -q)
     if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
@@ -4200,6 +4228,8 @@ if($DoT2pial || $DoFLAIRpial) then
       else
         # if t2flairraw.lta does not exist in cross, register T2raw to longspace
         set xopts = `fsr-getxopts bbregister $XOptsFile $GlobXOptsFile`;
+	if ($LHonly) set xopts = ($xopts --lh-only )
+	if ($RHonly) set xopts = ($xopts --rh-only )
         set bbcmd = (bbregister \
             --s $subjid \
             --mov $t2flairraw \
@@ -4222,6 +4252,8 @@ if($DoT2pial || $DoFLAIRpial) then
 
       # first create a T2/FLAIR that is registered to the T1s
       set xopts = `fsr-getxopts bbregister $XOptsFile $GlobXOptsFile`;
+      if ($LHonly) set xopts = ($xopts --lh-only )
+      if ($RHonly) set xopts = ($xopts --rh-only )
       set bbcmd = (bbregister \
           --s $subjid \
           --mov $t2flairraw \
@@ -4259,11 +4291,14 @@ if($DoT2pial || $DoFLAIRpial) then
     # then give the T2/FLAIR a little normalizing
     # note: pre-normalized file remains for debug, with .prenorm in name
     # this creates ${t2flair}.norm.mgz
+    set surfaces = ()
+    foreach hemi ($hemilist)
+        set surfaces = ($surfaces -surface $sdir/$hemi.white identity.nofile)
+    end
     set normcmd = (mri_normalize \
         -sigma 0.5 -nonmax_suppress 0 -min_dist 1 \
         -aseg $mdir/aseg.presurf.mgz \
-        -surface $sdir/rh.white identity.nofile \
-        -surface $sdir/lh.white identity.nofile \
+	$surfaces  \
         $mdir/${t2flair}.prenorm.mgz \
         $mdir/${t2flair}.norm.mgz)
     echo "\n $normcmd \n"|& tee -a $LF |& tee -a $CF
@@ -4303,7 +4338,7 @@ if($DoT2pial || $DoFLAIRpial) then
         -orig_white white \
         -orig_pial wo${t2flair}.pial)
     if ($UseAseg) then
-      set cmd = ($cmd -aseg ../mri/aseg.presurf)
+      set cmd = ($cmd -aseg ../mri/aseg)
     else
       set cmd = ($cmd -noaseg)
     endif
@@ -4368,6 +4403,7 @@ if($DoPialSurfs || $DoT2pial || $DoFLAIRpial || $DoSurfVolume) then
     cd $subjdir/surf > /dev/null
     $PWD |& tee -a $LF
     set cmd = (vertexvol --s $subjid --$hemi -$TH3Opt)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
     echo $cmd > $touchdir/$hemi.surfvolume.touch
@@ -4385,11 +4421,15 @@ if($DoCortRibbonVolMask) then
       |& tee -a $SF|& tee -a $LF|& tee -a $CF
   cd $subjdir/mri > /dev/null
   set xopts = `fsr-getxopts mris_volmask $XOptsFile $GlobXOptsFile`;
-  set cmd = (mris_volmask \
+  set cmd = (mris_volmask $xopts)
+  if ($LHonly) set cmd = ($cmd --lh-only )
+  if ($RHonly) set cmd = ($cmd --rh-only )
+  set cmd = ($cmd \
     --aseg_name aseg.presurf \
     --label_left_white   2 --label_left_ribbon   3 \
     --label_right_white 41 --label_right_ribbon 42 \
-    --save_ribbon $subjid)
+    --save_ribbon)
+  set cmd = ($cmd $subjid)
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -4418,6 +4458,7 @@ if($DoParcStats) then
       if($surfname == white) set stats = ../stats/$hemi.aparc.stats
       if($surfname == pial)  set stats = ../stats/$hemi.aparc.pial.stats
       set cmd = (mris_anatomical_stats $TH3Opt -mgz)
+      if ($RHonly || $LHonly) set cmd = ($cmd -noglobal)
       if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
       set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts \
         $subjid $hemi $surfname);
@@ -4503,6 +4544,7 @@ if($DoParcStats2) then
     set ctab  = ../label/aparc.annot.${DESTRIEUX_NAME}.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_anatomical_stats  $TH3Opt -mgz)
+    if ($RHonly || $LHonly) set cmd = ($cmd -noglobal)
     if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
     set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -4586,6 +4628,7 @@ if($DoParcStats3) then
     set ctab  = ../label/aparc.annot.${DKTATLAS_NAME}.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_anatomical_stats  $TH3Opt -mgz)
+    if ($RHonly || $LHonly) set cmd = ($cmd -noglobal)
     if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
     set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -4653,8 +4696,11 @@ if($DoRelabelHypos) then
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
   $PWD |& tee -a $LF
-  set cmd = (mri_relabel_hypointensities \
-    aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz)
+  set xopts = `fsr-getxopts mri_relabel_hypointensities $XOptsFile $GlobXOptsFile`;
+  set cmd = (mri_relabel_hypointensities $xopts)
+  if ($LHonly) set cmd = ($cmd -lh )
+  if ($RHonly) set cmd = ($cmd -rh )
+  set cmd = ($cmd aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
@@ -4680,9 +4726,13 @@ if($DoAParc2ASeg) then
     else
       set asegintensities = $longbasedir/mri/aseg.auto_noCCseg.label_intensities.txt
     endif
-    set cmd = (mri_aparc2aseg --s $subjid --volmask --aseg aseg.presurf.hypos  \
-        --relabel mri/norm.mgz mri/transforms/talairach.m3z \
-        ${GCADIR}/$GCA $asegintensities)
+    set cmd = (mri_aparc2aseg --s $subjid --volmask --aseg aseg.presurf.hypos)
+    if(-e mri/transforms/talairach.m3z) then
+      # These options will not work with samseg, which does not have a tal.m3z
+      set cmd = ($cmd --relabel mri/norm.mgz mri/transforms/talairach.m3z ${GCADIR}/$GCA $asegintensities)
+    endif
+    if ($LHonly) set cmd = ($cmd --lh )
+    if ($RHonly) set cmd = ($cmd --rh )
     if(${parc} != "aparc") then
       #  do Christophe and Mindboggle atlases (if exist)
       if( -e ${subjdir}/label/lh.aparc.${parc}.annot && \
@@ -4781,6 +4831,7 @@ if($DoSegStats) then
   endif
   set cmd = ($cmd --ctab $FREESURFER_HOME/ASegStatsLUT.txt)
   set cmd = ($cmd --subject $subjid $xopts);
+  if ($RHonly || $LHonly) set cmd = ($cmd --no-global-stats)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
@@ -4801,11 +4852,14 @@ if($DoWMParc) then
   set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_aparc2aseg --s $subjid --labelwm --hypo-as-wm --rip-unknown \
              --volmask --o mri/wmparc.mgz --ctxseg aparc+aseg.mgz $xopts )
+  if ($LHonly) set cmd = ($cmd --lh )
+  if ($RHonly) set cmd = ($cmd --rh )
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
   echo $cmd > $touchdir/wmaparc.touch
   # Do wm segstats while we're here
+  set xopts = `fsr-getxopts mri_segstats $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_segstats)
   set cmd = ($cmd --seg mri/wmparc.mgz --sum stats/wmparc.stats \
     --pv mri/norm.mgz --excludeid 0 \
@@ -4818,7 +4872,9 @@ if($DoWMParc) then
     echo "INFO: mri_segstats will not calculate eTIV" |& tee -a $LF
     echo "      due to missing talairach.xfm file" |& tee -a $LF
   endif
+  if ($RHonly || $LHonly) set cmd = ($cmd --no-global-stats)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  set cmd = ($cmd $xopts);
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
   echo $cmd > $touchdir/wmaparc.stats.touch
@@ -4852,6 +4908,7 @@ if($DoAParcASegStats) then
     echo "      due to missing talairach.xfm file" |& tee -a $LF
   endif
   set cmd = ($cmd $xopts);
+  if ($RHonly || $LHonly) set cmd = ($cmd --no-global-stats)
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -5040,7 +5097,9 @@ if ($DoBaLabels) then
     set stats = ../stats/$hemi.BA_exvivo.stats
     set ctab  = ./BA_exvivo.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_anatomical_stats  $TH3Opt -mgz -f $stats \
+    set cmd = (mris_anatomical_stats  $TH3Opt -mgz )
+    if ($RHonly || $LHonly) set cmd = ($cmd -noglobal)
+    set cmd = ($cmd -f $stats \
             -b -a $annot -c $ctab $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -5051,8 +5110,9 @@ if ($DoBaLabels) then
     set stats = ../stats/$hemi.BA_exvivo.thresh.stats
     set ctab  = ./BA_exvivo.thresh.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_anatomical_stats  $TH3Opt -mgz -f $stats \
-            -b -a $annot -c $ctab $xopts $subjid $hemi white);
+    set cmd = (mris_anatomical_stats  $TH3Opt -mgz -f $stats)
+    if ($RHonly || $LHonly) set cmd = ($cmd -noglobal)
+    set cmd = ($cmd  -b -a $annot -c $ctab $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -5142,7 +5202,9 @@ if ($DoLabelExvivoEC) then
     set label = ./$hemi.EC_exvivo_average.label
     set stats = ../stats/$hemi.EC_exvivo_average.stats
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_anatomical_stats  $TH3Opt -mgz -f $stats \
+    set cmd = (mris_anatomical_stats  $TH3Opt -mgz)
+    if ($RHonly || $LHonly) set cmd = ($cmd -noglobal)
+    set cmd = ($cmd -f $stats \
             -b -l $label $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -5165,186 +5227,23 @@ endif # DoLabelExvivoEC
 # For substructure segmentation of hippocampus or brainstem: check if Matlab runtime is there
 if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2 || $DoBSsubst) then
 
-  if ( ! -e ${FREESURFER_HOME}/MCRv80/bin/glnxa64/libdctprocess.so \
-    && ! -e ${FREESURFER_HOME}/MCRv80/bin/maci64/libdctprocess.jnilib  ) then
     echo "     "
-    echo "ERROR: cannot find Matlab 2012b runtime in location:"
-    echo "     "
-    echo "${FREESURFER_HOME}/MCRv80"
-    echo "     "
-    echo "It is looking for either: "
-    echo "  bin/glnxa64/libdctprocess.so    (Linux 64b) or"
-    echo "  bin/maci64/libdctprocess.jnilib (Mac 64b)"
+    echo "The -hippocampal-subfields-T1, -hippocampal-subfields-T1T2, "
+    echo "-hippocampal-subfields-T2 and -brainstem-structures flags have been replaced"
+    echo "by the scripts segmentSF_T1.sh, segmentSF_T2.sh, segmentT1T2.sh and segmentBS.sh"
+    echo "    "
+    echo "Hippocampal subfields: " 
+    echo "  segmentSF_T1.sh SubjectName "
+    echo "  segmentSF_T2.sh SubjectName FileNameAdditionalFile AnalysisID  "
+    echo "  segmentSF_T1T2.sh SubjectName FileNameAdditionalFile AnalysisID  "
+    echo "  (see further details at: https://surfer.nmr.mgh.harvard.edu/fswiki/AmygdalaAndHippocampalSubfields  )"
     echo " "
-    echo "You will need to download the Matlab Compiler Runtime (MCR) for Matlab 2012b." 
-    echo "To do so, please run the following commands (you might need root permissions):"
-    echo " "
-    echo "LINUX:"
-    echo " "
-    echo "cd ${FREESURFER_HOME}"
-    echo "curl "\""http://surfer.nmr.mgh.harvard.edu/fswiki/MatlabRuntime?action=AttachFile&do=get&target=runtime2012bLinux.tar.gz"\"" -o "\""runtime2012b.tar.gz"\"""
-    echo "tar xvf runtime2012b.tar.gz"
-    echo " "
-    echo "MAC:"
-    echo " "
-    echo "cd ${FREESURFER_HOME}"
-    echo "curl "\""http://surfer.nmr.mgh.harvard.edu/fswiki/MatlabRuntime?action=AttachFile&do=get&target=runtime2012bMAC.tar.gz"\"" -o "\""runtime2012b.tar.gz"\"""
-    echo "tar xvf runtime2012b.tar.gz"
-    echo " "
-    echo " "
-    echo "For further details, please visit:"
-    echo "     "
-    echo "https://surfer.nmr.mgh.harvard.edu/fswiki/MatlabRuntime"
-    echo " "
-    goto error_exit;
-  endif
-endif
+    echo "Brainstem substructures: "
+    echo "  segmentBS.sh SubjectName "
+    echo "   "
+    echo "  (see https://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures  ) "
+    echo "   "
 
-# brainstem structures: make sure required files from from default freesurfer processing are in there
-if ($DoBSsubst) then 
-  if (! -e ${subjdir}/mri/aseg.mgz || \
-      ! -e ${subjdir}/mri/norm.mgz ) then
-    echo "ERROR: cannot find norm.mgz or aseg.mgz for the subject."
-    echo "ERROR: Maybe, run recon-all again or disable segmentation of brainstem substructures."
-    goto error_exit;
-  endif #checking of aseg.mgz and norm.mgz 
-endif
-
-# hippocampal subfields: make sure required files from default freesurfer processing are in there, and convert hemilist
-if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2) then 
-  if (! -e ${subjdir}/mri/wmparc.mgz || \
-      ! -e ${subjdir}/mri/norm.mgz || \
-      ! -e ${subjdir}/mri/transforms/talairach.xfm ) then
-    echo "ERROR: cannot find wmparc.mgz or aseg.mgz or talairach.xfm for the subject."
-    echo "ERROR: Maybe, run recon-all again or disable hippocampal subfields processing."
-    goto error_exit;
-  endif #checking of wmparc.mgz, norm.mgz and talairach.xfm
-
-  # these tools assume 'left' and 'right' instead of our usual 'lh' and 'rh'
-  if($#hemilist == 1) then
-    if ("$hemilist" == "lh") set hippohemilist=(left)
-    if ("$hemilist" == "rh") set hippohemilist=(right)
-  else
-    set hippohemilist=(left right)
-  endif
-endif
-
-
-#--------------                        -----------------#
-##-----------   -brainstem-structures  -----------------#
-#--------------                        -----------------#
-if($DoBSsubst) then
-  set BSSLOG = ($subjdir/scripts/brainstem-structures.log)
-  rm -f $BSSLOG
-  echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF |& tee -a $BSSLOG
-  echo "#@# Segmentation of brainstem substructures  `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $BSSLOG
-
-  # segmentation of brainstem structures
-  set cmd = ( ${FREESURFER_HOME}/bin/segmentBS.sh \
-    ${FREESURFER_HOME}/MCRv80 \
-    $FREESURFER_HOME \
-    $subjid  \
-    $SUBJECTS_DIR )
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  echo "See log file: $BSSLOG"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $BSSLOG
-  if($status) goto error_exit;
-
-  echo $cmd > $touchdir/brainstem-structures.touch
-endif
-
-#--------------                        -----------------#
-##-----------   -hippocampal-subfields-T1  -------------#
-#--------------                        -----------------#
-if($DoHippoSF_T1) then
-  set HSFLOG = ($subjdir/scripts/hippocampal-subfields-T1.log)
-  rm -f $HSFLOG
-
-  # do hippocampal processing using just T1 data
-  foreach hemi ($hippohemilist)
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-    echo "#@# Hippocampal Subfields processing (T1 only) $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-    
-    set cmd = ( ${FREESURFER_HOME}/bin/segmentSF_T1.sh \
-      ${FREESURFER_HOME}/MCRv80 \
-      $FREESURFER_HOME \
-      $subjid  \
-      $SUBJECTS_DIR \
-      $hemi )
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    echo "See log file: $HSFLOG"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $HSFLOG
-    if($status) goto error_exit;
-  end
-
-  echo $cmd > $touchdir/hippo-subfields-T1.touch
-endif
-
-#--------------                        -----------------#
-##------------- -hippocampal-subfields-T1T2  -----------#
-#--------------                        -----------------#
-if($DoHippoSF_T1T2) then 
-  set HSFLOG = ($subjdir/scripts/hippocampal-subfields-T1T2.log)
-  rm -f $HSFLOG
-
-  # do hippocampal processing
-  foreach hemi ($hippohemilist)
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-    echo "#@# Hippocampal Subfields processing (T1 + T2 volume) $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-
-    set cmd = ( ${FREESURFER_HOME}/bin/segmentSF_T1T2.sh \
-      ${FREESURFER_HOME}/MCRv80 \
-      $FREESURFER_HOME \
-      $subjid  \
-      $SUBJECTS_DIR \
-      $T2volHippoSF \
-      $hemi \
-      $UserSuffix )
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    echo "See log file: $HSFLOG"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $HSFLOG
-    if($status) goto error_exit;
-  end
-
-  echo $cmd > $touchdir/hippo-subfields-T1T2.touch
-endif
-
-#--------------                        -----------------#
-##------------- -hippocampal-subfields-T2  -------------#
-#--------------                        -----------------#
-if($DoHippoSF_T2) then 
-
-  set HSFLOG = ($subjdir/scripts/hippocampal-subfields-T2.log)
-  rm -f $HSFLOG
-  
-  # do hippocampal processing
-  foreach hemi ($hippohemilist)
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-    echo "#@# Hippocampal Subfields processing (T2 only) $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-
-    set cmd = ( ${FREESURFER_HOME}/bin/segmentSF_T2.sh \
-      ${FREESURFER_HOME}/MCRv80 \
-      $FREESURFER_HOME \
-      $subjid  \
-      $SUBJECTS_DIR \
-      $T2volHippoSF \
-      $hemi \
-      $UserSuffix )
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    echo "See log file: $HSFLOG"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $HSFLOG
-    if($status) goto error_exit;
-  end
-  
-  echo $cmd > $touchdir/hippo-subfields-T2.touch
 endif
 
 
@@ -5682,6 +5581,22 @@ while( $#argv != 0 )
 
   switch($flag)
 
+    case "-no-cerebellum":
+    case "-nocerebellum":
+    case "-NO-CEREBELLUM":
+    case "-NOCEREBELLUM":
+	set nocerebellum=( -nocerebellum)
+	breaksw ;
+    case "-lh":
+    case "-lh-only":
+      set LHonly = 1 ;
+      set hemilist = lh
+      breaksw
+    case "-rh":
+    case "-rh-only":
+      set hemilist = rh
+      set RHonly = 1 ;
+      breaksw
     case "-subject":
     case "-subjid":
     case "-sid":
@@ -6167,6 +6082,10 @@ while( $#argv != 0 )
     case "-noskull-lta":
       set DoSkullLTA  = 0;
       breaksw
+
+    case "-echo":
+      set echo=1 ; 
+      breaksw 
 
     case "-calabel":
       set DoCALabel = 1;
@@ -6757,6 +6676,25 @@ while( $#argv != 0 )
       set DoCurvStats      = 1;
       breaksw
 
+    case "-autorecon2-samseg":
+      set DoASegMerge = 1;
+      set DoNormalization2 = 1;
+      set DoMaskBFS        = 1;
+      set DoSegmentation   = 1;
+      set DoFill           = 1;
+      set DoTessellate     = 1;
+      set DoSmooth1        = 1;
+      set DoInflate1       = 1;
+      set DoQSphere        = 1;
+      set DoFix            = 1;
+      set DoSmooth2        = 1;
+      set DoInflate2       = 1;
+      set DoWhiteSurfs     = 1;
+      set DoCurvHK         = 1;
+      set DoCurvStats      = 1;
+      set DoSegStats       = 0;
+      breaksw
+
     case "-autorecon2-volonly":
       set DoGCAReg         = 1;
       set DoRemoveNeck     = 0;
@@ -6806,9 +6744,11 @@ while( $#argv != 0 )
 
     case "-autorecon2-cp":
     case "-autorecon2-noaseg":
-    case "-autorecon2-wm":
       set DoNormalization2 = 1;
       set DoSegmentation   = 1;
+# no break!
+
+    case "-autorecon2-wm":
       set DoFill           = 1;
       set DoTessellate     = 1;
       set DoSmooth1        = 1;
@@ -7182,6 +7122,7 @@ while( $#argv != 0 )
       limit coredumpsize unlimited
       breaksw
 
+    case "-noisrunning":
     case "-no-isrunning":
       set DoIsRunning = 0;
       breaksw
@@ -7238,6 +7179,7 @@ while( $#argv != 0 )
       echo "INFO: keeping DC when conforming"
       breaksw
 
+    case "-highres":
     case "-hires":
       set HiRes = 1;
       set ConformMin = 1;
@@ -7558,27 +7500,6 @@ check_params:
   if($DoT2pial && $DoFLAIRpial) then
     echo "Cannot specify both T2 and FLAIR for pial correction."
     goto error_exit;
-  endif
-
-  if($DoHippoSF_T1T2 || $DoHippoSF_T2) then
-    if(! -e "$T2volHippoSF") then
-      echo "ERROR: cannot find $T2volHippoSF"
-      goto error_exit;
-    endif
-    if (-d "$T2volHippoSF") then
-      echo "ERROR: You cannot give the hippocampal subfield segmentation a folder as an input. It must be an image file."
-      goto error_exit;
-    endif
-    if(! -r "$T2volHippoSF") then
-      echo "ERROR: $T2volHippoSF exists but is not readable"
-      goto error_exit;
-    endif
-    set InVolDir  = `dirname  "$T2volHippoSF"`;
-    set InVolBase = `basename "$T2volHippoSF"`;
-    pushd $InVolDir > /dev/null
-    set InVolDir = `pwd`;
-    popd > /dev/null
-    set T2volHippoSF = "$InVolDir/$InVolBase";
   endif
 
   if($UseCuda || $GetCuda) then
@@ -8324,36 +8245,26 @@ Run times are approximate for an Intel Xeon E5-2643 64bit 3.4GHz processor:
 If -parallel is specified, runtime is reduced to 3 hours.
 
 
-SEGMENTATION OF HIPPOCAMPAL SUBFIELDS 
+SEGMENTATION OF HIPPOCAMPAL SUBFIELDS AND NUCLEI OF THE AMYGDALA 
 
-The following flags can be used to obtain a segmentation of the hippocampal subfields.
-The method is described in [17], and you can find further information here:
-http://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfields
+The following scripts can be used to obtain a segmentation of the hippocampal subfields
+and the nuclei of the amygdala. These methods are described in [17] (hippocampus) and
+[18] (amygdala). You can find further information here:
+http://surfer.nmr.mgh.harvard.edu/fswiki/AmygdalaAndHippocampalSubfields
 
--hippocampal-subfields-T1 
-
-It uses the T1 scan which the recon-all stream has processed at 1 mm resolution or higher (with -cm). 
-
--hippocampal-subfields-T2 file ID
-
-Instead of the main T1 scan, it uses an additional scan ('file'), typically (but not necessarily)
-a T2 volume with higher resolution, at least in the coronal plane. It also requires a second
-argument ('ID'), which  uniquely identifies the output in the mri directory; this is useful when
-different additional volumes are tried in this mode, in order to prevent files from being overwritten
-
--hippocampal-subfields-T1T2 file ID
-
-This mode is very similar to the previous one, with the only difference that the main T1 and the 
-additional volumes are used simultaneously in the segmentation.
+segmentSF_T1.sh SubjectName
+segmentSF_T2.sh SubjectName FileNameAdditionalFile AnalysisID 
+segmentSF_T1T2.sh SubjectName FileNameAdditionalFile AnalysisID
 
 
 SEGMENTATION OF BRAINSTEM STRUCTURES
 
--brainstem-structures
+This script performs segmentation of brains structures (medulla, pons, midbrain, SCP) on the T1 scan which the 
+recon-all stream has processed, at 1 mm or higher resolution (with -cm). The method is described in [19];
+you can read more at: 
+http://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures
 
-Performs segmentation of brains structures (medulla, pons, midbrain, SCP) on the T1 scan which the 
-recon-all stream has processed, at 1 mm or higher resolution (with -cm). The method is described in [18];
-you can read more at: http://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures
+segmentBS.sh SubjectName
 
 
 EXPERT PREFERENCES
@@ -9290,7 +9201,9 @@ A computational atlas of the hippocampal formation using ex vivo, ultra-high res
 MRI: Application to adaptive segmentation of in vivo MRI.  Neuroimage 115, 2015, 117-137. 
 http://dx.doi.org/10.1016/j.neuroimage.2015.04.042
 
-[18] Iglesias, J.E., Van Leemput, K., Bhatt, P., Casillas, C., Dutt, S., Schuff, N.,
+[18] Saygin, Z.M., Kliemann, D. (joint 1st authors), Iglesias, J.E., van der Kouwe, A.J.W., Boyd, E., Reuter, M., Stevens, A., Van Leemput, K., McKee, A., Frosch, M.P., Fischl, B., Augustinack, J.C., High-resolution magnetic resonance imaging reveals nuclei of the human amygdala: manual segmentation to automatic atlas, NeuroImage, in press.
+
+[19] Iglesias, J.E., Van Leemput, K., Bhatt, P., Casillas, C., Dutt, S., Schuff, N.,
 Truran-Sacrey, D., Boxer, A., and Fischl, B., Bayesian segmentation of brainstem 
 structures in MRI. Neuroimage 113, 2015, 184-195.
 http://dx.doi.org/10.1016/j.neuroimage.2015.02.065

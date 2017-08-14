@@ -119,11 +119,19 @@ public:
     rotate[2] = m_dRotate[2];
   }
 
+  void GetRotationCenter( double* c_pos)
+  {
+    c_pos[0] = m_dRotationCenter[0];
+    c_pos[1] = m_dRotationCenter[1];
+    c_pos[2] = m_dRotationCenter[2];
+  }
+
   void SetRotate(double* rotate, bool bAroundCenter = true);
   void SetTranslate(double* offset);
   void SetTranslateByCenterPosition(double* c_pos);
   void SetScale(double* scale);
   void SetFlip(bool* flip);
+  void SetRotationCenter(double* c_pos);
   void UpdateTransform(int sample_method = 0);
 
   double* GetWorldOrigin();
@@ -214,6 +222,8 @@ public:
     return m_nID;
   }
 
+  void CopyTransformation(Layer* layer);
+
 Q_SIGNALS:
   void NameChanged( const QString& name );
   void Transformed();
@@ -225,18 +235,19 @@ Q_SIGNALS:
 protected:
   virtual bool DoRotate( std::vector<RotationElement>& rotations )
   {
+    Q_UNUSED( rotations );
     return true;
   }
 
   virtual void DoRestore() {}
 
-  virtual void DoTranslate( double* offset ) {}
-  virtual void DoScale( double* scale, int nSampleMethod ) {}
-  virtual void DoTransform( double* mat, int sample_method ) {}
-  virtual void DoRotate( double* rotate, double* pos) {}
+  virtual void DoTranslate( double* offset ) { Q_UNUSED(offset); }
+  virtual void DoScale( double* scale, int nSampleMethod ) { Q_UNUSED(scale); Q_UNUSED(nSampleMethod); }
+  virtual void DoTransform( double* mat, int sample_method ) { Q_UNUSED(mat); Q_UNUSED(sample_method); }
+  virtual void DoRotate( double* rotate, double* pos) { Q_UNUSED(rotate); Q_UNUSED(pos); }
 
   // new transform scheme
-  virtual void DoTransform(int sample_method) {}
+  virtual void DoTransform(int sample_method) { Q_UNUSED(sample_method); }
 
   QString   m_strName;
   double    m_dSlicePosition[3];
@@ -249,7 +260,9 @@ protected:
   double    m_dScale[3];
   double    m_dRotate[3];
   bool      m_bFlip[3];
+  double    m_dRotationCenter[3];
   bool      m_bRotateAroundCenter;
+  bool      m_bUseRotationCenter;
 
   bool      m_bLocked;
 

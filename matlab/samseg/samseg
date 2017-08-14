@@ -3,19 +3,27 @@
 
 set VERSION = '$Id: samseg,v 1.1 2017/01/26 00:23:37 greve Exp $';
 
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
 set outdir = ();
 set subject = ();
 set usebin = 0;
 set usegpu = 0;
 set monly = 0;
 set MLF = ();
+set DoRecon = 0;
 set threads = 1;
+set DoValGrind = 0
+set vg = (valgrind --error-limit=no --leak-check=yes --tool=memcheck --track-origins=yes)
 set tmpdir = ();
 set cleanup = 1;
 set LF = ();
-set input = ()
-set input2 = none
-set input3 = none
+set regmat = ()
+set inputlist = ()
+set computedice = 0;
+set diceseg = none
 if($?SAMSEG_DATA_DIR == 0) then
   setenv SAMSEG_DATA_DIR /autofs/cluster/koen/koen/GEMSapplications/wholeBrain
 endif
@@ -23,7 +31,7 @@ endif
 # Matlab (must be 8.0)
 if($?SAMSEG_MCRROOT == 0) then
   # The mkbin script also uses this env var when compiling
-  setenv SAMSEG_MCRROOT /usr/pubsw/common/matlab/8.0
+  setenv SAMSEG_MCRROOT /usr/pubsw/common/matlab/8.4
 endif
 
 # This is for when running matlab 
@@ -32,9 +40,10 @@ set matlab = $SAMSEG_MCRROOT/bin/matlab
 # This is for running the compiled version
 # Must match how run_samseg was compiled (must be 8.0?)
 if($?LD_LIBRARY_PATH == 0) setenv LD_LIBRARY_PATH
+setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"/usr/lib/libstdc++.so.6"
 setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$SAMSEG_MCRROOT/runtime/glnxa64"
 setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$SAMSEG_MCRROOT/bin/glnxa64"
-setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$SAMSEG_MCRROOT/sys/os/glnxa64"
+# setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$SAMSEG_MCRROOT/sys/os/glnxa64"
 setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$SAMSEG_MCRROOT/sys/java/jre/glnxa64/jre/lib/amd64/native_threads"
 setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$SAMSEG_MCRROOT/sys/java/jre/glnxa64/jre/lib/amd64/server"
 setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$SAMSEG_MCRROOT/sys/java/jre/glnxa64/jre/lib/amd64"
@@ -77,7 +86,10 @@ endif
 mkdir -p $tmpdir
 
 # Set up log file
-if($#LF == 0) if($#LF == 0) set LF = $outdir/samseg.Y$year.M$month.D$day.H$hour.M$min.log
+if($#LF == 0) then
+  if($#subject == 0) set LF = $outdir/samseg.Y$year.M$month.D$day.H$hour.M$min.log
+  if($#subject != 0) set LF = $SUBJECTS_DIR/$subject/scripts/samseg.Y$year.M$month.D$day.H$hour.M$min.log
+endif
 if($LF != /dev/null) rm -f $LF
 echo "Log file for samseg" >> $LF
 date  | tee -a $LF
@@ -97,7 +109,16 @@ endif
 
 #========================================================
 if($usebin) then
-  set cmd = (run_samseg $input $outdir $threads $input2 $input3)
+  set cmd0 = (run_samseg --o $outdir --threads $threads)
+  if($#regmat) set cmd0 = ($cmd0 --regmat $regmat)
+  foreach input ($inputlist)
+    set cmd0 = ($cmd0 --i $input)
+  end
+  if($DoValGrind == 0) then
+    set cmd = (fs_time $cmd0)
+  else
+    set cmd = ($vg $cmd0)
+  endif
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;
@@ -110,13 +131,65 @@ else
   echo "which run_samseg"  >> $MLF
   echo "which samsegment"  >> $MLF
   echo "which samseg_registerToAtlas"  >> $MLF
-  echo "run_samseg('$input','$outdir','$threads','$usegpu','$input2','$input3');" >> $MLF
+  echo -n "run_samseg('--o','$outdir','--threads','$threads'" >> $MLF
+  if($#regmat) echo -n ",'--regmat','$regmat'" >> $MLF; # note leading comma
+  foreach input ($inputlist)
+    echo -n ",'--i','$input'" >> $MLF
+  end
+  echo ")" >> $MLF
   if($monly == 0) echo "quit;" >> $MLF
   # threads here is either 1 or not 1. not1 = all cpus
   cat $MLF | tee -a $LF
-  if(! $monly) cat $MLF |& $matlab -display iconic $threads |& tee -a $LF
+  if(! $monly) then
+    cat $MLF |& $matlab -display iconic $threads |& tee -a $LF
+  endif
+  if($monly) exit 0
 endif
-#========================================================
+
+date | tee -a $LF
+
+# ========================================================
+# Compute dice:
+if($computedice) then
+  set logfile = $outdir/dice.log
+  set tablefile = $outdir/dice.table.dat
+  rm -f $logfile # need to rm because it just appends
+  set cmd = (mri_compute_seg_overlap -table $tablefile -log $logfile $diceseg $outdir/segSubSpace.mgz)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) then
+    echo "error: could not compute seg overlap";
+    goto error_exit;
+  endif
+endif
+
+# Compute segstats
+set sumfile = $outdir/segSubSpace.stats 
+set cmd = (mri_segstats --ctab-default --seg $outdir/segSubSpace.mgz --sum $sumfile)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+# Prep for recon
+if($#subject != 0) then
+  set cmd = (samseg2recon --i $input --s $subject)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+  if($DoRecon) then
+    echo "" | tee -a $LF
+    echo "" | tee -a $LF
+    echo "Starting recon-all `date`" | tee -a $LF
+    set cmd = (recon-all -s $subject -autorecon2-samseg -autorecon3 -threads $threads)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit;
+    echo "recon-all done `date`" | tee -a $LF
+    echo "" | tee -a $LF
+    echo "" | tee -a $LF
+  endif
+endif
+
 # Cleanup
 if($cleanup) rm -rf $tmpdir
 
@@ -161,19 +234,48 @@ while( $#argv != 0 )
       set subject = $argv[1]; shift;
       breaksw
 
+    case "--recon":
+      set DoRecon = 1
+      breaksw
+
+    case "--regmat":
+      # this must be a .mat file like that created by samseg
+      if($#argv < 1) goto arg1err;
+      set regmat = $argv[1]; shift;
+      if(! -e $regmat) then
+        echo "ERROR: cannot find $regmat"
+        exit 1
+      endif
+      breaksw
+
     case "--i":
       if($#argv < 1) goto arg1err;
-      set input = $argv[1]; shift;
+      set inputlist = ($inputlist $argv[1]); shift;
       breaksw
 
     case "--i2":
       if($#argv < 1) goto arg1err;
-      set input2 = $argv[1]; shift;
+      set inputlist = ($inputlist $argv[1]); shift;
       breaksw
 
     case "--i3":
       if($#argv < 1) goto arg1err;
-      set input3 = $argv[1]; shift;
+      set inputlist = ($inputlist $argv[1]); shift;
+      breaksw
+
+    case "--i4":
+      if($#argv < 1) goto arg1err;
+      set inputlist = ($inputlist $argv[1]); shift;
+      breaksw
+
+    case "--i5":
+      if($#argv < 1) goto arg1err;
+      set inputlist = ($inputlist $argv[1]); shift;
+      breaksw
+
+    case "--i6":
+      if($#argv < 1) goto arg1err;
+      set inputlist = ($inputlist $argv[1]); shift;
       breaksw
 
     case "--sdd":
@@ -200,6 +302,10 @@ while( $#argv != 0 )
       set usegpu = 0;
       breaksw
 
+    case "--valgrind":
+      set DoValGrind = 1;
+      breaksw
+
     case "--bin":
       set usebin = 1;
       set monly = 0;
@@ -217,6 +323,12 @@ while( $#argv != 0 )
     case "--nolog":
     case "--no-log":
       set LF = /dev/null
+      breaksw
+
+    case "--dice":
+      if($#argv < 1) goto arg1err;
+      set diceseg = $argv[1]; shift;
+      set computedice = 1;
       breaksw
 
     case "--tmp":
@@ -254,14 +366,44 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-if($#subject) then
-  if(! -e $SUBJECTS_DIR/$subject) then
-    echo "ERROR: cannot find $subject"
+if($#inputlist == 0) then
+  echo "ERROR: must supply at least one input"
+  exit 1
+endif
+foreach f ($inputlist)
+  if($f != none && ! -e $f) then
+    echo "ERROR: cannot find $f"
     exit 1;
   endif
-  set input = $SUBJECTS_DIR/$subject/mri/orig.mgz
-  if($#outdir == 0) set outdir = $SUBJECTS_DIR/$subject/mri/samseg
+end
+
+if($#subject) then
+  if(-e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: $subject already exists"
+    #exit 1;
+  endif
+  if($#outdir != 0) then
+    echo "ERROR: cannot spec --o with --s"
+    exit 1;
+  endif
+  set outdir = $SUBJECTS_DIR/$subject/mri/samseg
+  set cmd = (mri_info --conformed $input)
+  set isconformed = `$cmd | head -n 1`
+  if("$isconformed" != "yes") then
+    echo "$isconformed"
+    echo "ERROR: must use conformed volume with --s"
+    exit 1;
+  endif
+  mkdir -p $outdir 
+  mkdir -p $SUBJECTS_DIR/$subject/scripts 
+  mkdir -p $SUBJECTS_DIR/$subject/mri/transforms
 endif
+
+if($#subject == 0 && $DoRecon) then
+  echo "ERROR: Cannot use --recon without --s"
+  exit 1;
+endif
+
 if($#outdir == 0) then
   echo "ERROR: must spec outdir"
   exit 1;
@@ -283,8 +425,15 @@ arg2err:
 ############--------------##################
 usage_exit:
   echo ""
-  echo "samseg --i file.mgz --o outdir <--i2 file2.mgz <--i3 file3.mgz>>"
-  echo "samseg --s subject"
+  echo "samseg"
+  echo "  --i file.mgz <--i file2.mgz> <--i file3.mgz>... <--i>"
+  echo "  --o outdir "
+  echo "  --s subject : create subject, sets outdir to subject/mri/samseg"
+  echo "    the first input should be the conformed T1 weighted input"
+  echo "  --recon : run recon-all "
+  echo ""
+  echo " --regmat reg.mat : registration file (as output by samseg)"
+  echo "    allows using the reg from one run with another run"
   echo ""
 
   if(! $PrintHelp) exit 1;
@@ -298,17 +447,20 @@ BEGINHELP
 To run this, you will need to have the correct configuration in your
 shell and in matlab. For the shell, the program needs to find some
 samseg-related data, namely mni305_masked_autoCropped.mgz, 
-CurrentMeshCollection30New.txt.gz, and namedCompressionLookupTable.txt.
+CurrentMeshCollection30New.txt.gz, SPM12_6classes_30x30x30_meshCollection.txt.gz,
+SPM12_6classes_30x30x30_template.nii, and namedCompressionLookupTable.txt.
 It will look for these in the path pointed to by the $SAMSEG_DATA_DIR
 environment variable. If this var is unset, then it defaults to
 /autofs/cluster/koen/koen/GEMSapplications/wholeBrain. 
 
-The version of matlab must be 8.0. The matlab used can be controlled
+The version of matlab must be 8.4. The matlab used can be controlled
 with the SAMSEG_MCRROOT env variable. If unset, then this script will
-set it to /usr/pubsw/common/matlab/8.0
+set it to /usr/pubsw/common/matlab/8.4
 
-In matlab, you will need to have added the GEMS mex file folder and
-spm8 to your matlab path, eg,
+In matlab, you will need to have added the GEMS mex file folder
+to your matlab path, eg,
 path(path,'/autofs/cluster/koen/koen/GEMS-Release/bin');
-path(path,'/usr/pubsw/common/spm/spm8');
+
+All inputs should already be registered together
+
 

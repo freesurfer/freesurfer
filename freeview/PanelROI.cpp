@@ -188,56 +188,63 @@ void PanelROI::DoUpdateWidgets()
   int nIndex = 0;
   if (layer)
   {
-      for (int i = 0; i < surfs.size(); i++)
-      {
-          ui->comboBoxMappedSurface->addItem(surfs[i]->GetName(), QVariant::fromValue((QObject*)surfs[i]));
-          if (surfs[i] == layer->GetMappedSurface())
-              nIndex = i+1;
-      }
+    for (int i = 0; i < surfs.size(); i++)
+    {
+      ui->comboBoxMappedSurface->addItem(surfs[i]->GetName(), QVariant::fromValue((QObject*)surfs[i]));
+      if (surfs[i] == layer->GetMappedSurface())
+        nIndex = i+1;
+    }
   }
   ui->comboBoxMappedSurface->setCurrentIndex(nIndex);
   ui->widgetDilateErode->setVisible(nIndex > 0);
+  ui->pushButtonResample->setVisible(nIndex > 0);
 
   BlockAllSignals( false );
 }
 
 void PanelROI::OnComboMappedSurface(int nIndex)
 {
-    LayerSurface* surf = qobject_cast<LayerSurface*>(ui->comboBoxMappedSurface->itemData(nIndex).value<QObject*>());
-    LayerROI* layer = GetCurrentLayer<LayerROI*>();
-    if (layer)
-    {
-        layer->SetMappedSurface(surf);
-        UpdateWidgets();
-    }
+  LayerSurface* surf = qobject_cast<LayerSurface*>(ui->comboBoxMappedSurface->itemData(nIndex).value<QObject*>());
+  LayerROI* layer = GetCurrentLayer<LayerROI*>();
+  if (layer)
+  {
+    layer->SetMappedSurface(surf);
+    UpdateWidgets();
+  }
 }
 
 
 void PanelROI::OnButtonDilate()
 {
-    LayerROI* layer = GetCurrentLayer<LayerROI*>();
-    if (layer)
-        layer->Dilate(ui->spinBoxDilateTimes->value());
+  LayerROI* layer = GetCurrentLayer<LayerROI*>();
+  if (layer)
+    layer->Dilate(ui->spinBoxDilateTimes->value());
 }
 
 void PanelROI::OnButtonErode()
 {
-    LayerROI* layer = GetCurrentLayer<LayerROI*>();
-    if (layer)
-        layer->Erode(ui->spinBoxErodeTimes->value());
+  LayerROI* layer = GetCurrentLayer<LayerROI*>();
+  if (layer)
+    layer->Erode(ui->spinBoxErodeTimes->value());
 }
 
 void PanelROI::OnButtonOpen()
 {
-    LayerROI* layer = GetCurrentLayer<LayerROI*>();
-    if (layer)
-        layer->Open(ui->spinBoxOpenTimes->value());
+  LayerROI* layer = GetCurrentLayer<LayerROI*>();
+  if (layer)
+    layer->Open(ui->spinBoxOpenTimes->value());
 }
 
 void PanelROI::OnButtonClose()
 {
-    LayerROI* layer = GetCurrentLayer<LayerROI*>();
-    if (layer)
-        layer->Close(ui->spinBoxCloseTimes->value());
+  LayerROI* layer = GetCurrentLayer<LayerROI*>();
+  if (layer)
+    layer->Close(ui->spinBoxCloseTimes->value());
 }
 
+void PanelROI::OnButtonResample()
+{
+  LayerROI* layer = GetCurrentLayer<LayerROI*>();
+  if (layer)
+    layer->Resample();
+}

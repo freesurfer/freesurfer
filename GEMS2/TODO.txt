@@ -1,3 +1,63 @@
+DataCostAndAlphaCost computations are a bit weird in kvlAtlasMeshBuilder:
+
+* function OptimizeReferencePositionFast() uses class kvlAtlasMeshCollectionFastReferencePositionCost to compute and optimize the cost (sum of data and alphas cost; kvlAtlasMeshCollectionFastReferencePositionCost first estimates mesh parameters and then measures costs with class kvlAtlasMeshCollectionModelLikelihoodCalculator)
+
+* function GetDataCostAndAlphasCost() uses class kvlAtlasMeshCollectionModelLikelihoodCalculator to compute the two cost components.
+
+Now:
+
+* For retaining edge ("TryToRetainFast"), both functions are used 
+
+* For collapsing edge ("TryToCollapseFast"), the code of the former function seems to be re-implemented (i.e., not used), and the second one is also not used (using class kvlAtlasMeshCollectionFastReferencePositionCost to do it instead).
+
+This seems all messed up in both cases: (1) kvlAtlasMeshCollectionFastReferencePositionCost is used but then final function value is not extracted but rather re-computed; and (2) seems to do it correctly but then effectively reimplements OptimizeReferencePositionFast() (?)
+
+
+--
+
+Eugenio uses system calls from Matlab to the following executables:
+
+kvlApplyTransform
+kvlAutoCrop
+kvlRegister
+kvlAverageMeshes
+
+I know this by doing in directory /home/koen/software/mergedCodeEugenioAndOula/GEMSapplications/subregions
+
+  grep '/kvl' *.m | less
+
+Eugenio emailed that he has the code for replacing kvlAutoCrop and kvlApplyTransform, but that he still needs kvlAverageMeshes. Looks like he's also still using kvlRegister; both are only used in the script SegmentSubfieldsT1Longitudinal.m
+
+UPDATE: kvlAverageMeshes would be trivial to implement in Matlab
+
+
+--
+
+Samseg is under 
+
+  matlab/samseg
+
+Need to write out bias field corrected image  
+
+--
+
+TODO:
+
+* Fold mixture-models-for-each-class into the likelihood filter; for whole-brain segmentation this will reduce the number of classes from 17+4=21 to 6+4=10, more or less doubling the speed of the gradient-based deformation optimization (4 extra because the baricentric coordinates are always computed).
+ 
+* In kvlAtlasMeshAveragingConjugateGradientOptimizerGPU, make the member variable m_Calculator point to
+  the base class, and implement the gradient-to-segmentation-image stuff (simply plug the new kvlAtlasMeshToSegmentationImageGradientCalculatorGPU in)
+  
+
+--
+
+In kvlAtlasMeshDeformationOptimizer
+
+* Functionality of kvlAtlasMeshAveragingConjugateGradientOptimizer needs to be moved into just yet another gradient calculator
+
+  
+--
+
 In kvlAtlasMeshBuilder.cxx, kvlParameterOrderPowellOptimizer will only see a max() value if 
 the cost function throws an exception for NaNs. I forgot to implement this - the cost function
 is set in the following locations:
@@ -9,6 +69,17 @@ is set in the following locations:
   
 But then again GetValue() in both kvlAtlasMeshCollectionReferencePositionCost and kvlAtlasMeshCollectionReferencePositionCost
 already return max() for isnans or cases where things are detected to go wrong.
+
+
+--
+
+* Submit to Git 
+* Create script for synthetic image generation from segmentation result
+
+
+* Clean up Matlab interface (use dynamic_cast<>,  provided as helper function in kvlMatlabRunnerArray.cxx
+* Un-unfold Gaussians from mixture model
+
 
 
 

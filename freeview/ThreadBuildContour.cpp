@@ -32,6 +32,7 @@
 #include "vtkPolyDataMapper.h"
 #include "vtkImageExtractComponents.h"
 #include <QDebug>
+#include <QMap>
 
 ThreadBuildContour::ThreadBuildContour(QObject *parent) :
   QThread(parent),
@@ -64,27 +65,116 @@ void ThreadBuildContour::run()
     QStringList list = m_mri->GetProperty()->GetLabelContourRange().split(",", QString::SkipEmptyParts);
     foreach (QString strg, list)
     {
-        if (strg.contains("-"))
+      if (strg.contains("-"))
+      {
+        QStringList sublist = strg.split("-", QString::SkipEmptyParts);
+        if (sublist.size() > 1)
         {
-            QStringList sublist = strg.split("-", QString::SkipEmptyParts);
-            if (sublist.size() > 1)
-            {
-                int n1 = qMax(1, sublist[0].toInt());
-                int n2 = sublist[1].toInt();
-                for (int i = n1; i <= n2; i++)
-                {
-                    if (!labelList.contains(i))
-                        labelList << i;
-                }
-            }
+          int n1 = qMax(1, sublist[0].toInt());
+          int n2 = sublist[1].toInt();
+          for (int i = n1; i <= n2; i++)
+          {
+            if (!labelList.contains(i))
+              labelList << i;
+          }
         }
-        else
+      }
+      else
+      {
+        int n = -1;
+        n = strg.toInt();
+        if (n > 0 && !labelList.contains(n))
+          labelList << n;
+      }
+    }
+
+    bExtractAllRegions = true;
+  }
+  int nSmoothFactor = m_mri->GetProperty()->GetContourSmoothIterations();
+  if ( m_nSegValue >= 0 )
+  {
+    dTh1 = m_nSegValue - 0.5;
+    dTh2 = m_nSegValue + 0.5;
+  }
+
+  //  int ext[6] = { 370, 520, 0, 140, 0, 280 };
+  vtkImageData* imagedata = m_mri->GetImageData();
+  if (m_mri->GetNumberOfFrames() > 1)
+  {
+    vtkSmartPointer<vtkImageExtractComponents> extract = vtkSmartPointer<vtkImageExtractComponents>::New();
+    extract->SetComponents(m_mri->GetActiveFrame());
+    extract->SetInput(m_mri->GetImageData());
+    extract->Update();
+    imagedata = extract->GetOutput();
+  }
+  QMap<int, vtkActor*> map = m_mri->m_labelActors;
+  labelList = m_mri->GetAvailableLabels();
+  if (bLabelContour && !labelList.isEmpty())
+  {
+    foreach (int i, labelList)
+    {
+      if (!map.contains(i))
+      {
+        vtkActor* actor = vtkActor::New();
+        actor->SetMapper( vtkSmartPointer<vtkPolyDataMapper>::New() );
+        actor->GetMapper()->ScalarVisibilityOn();
+        MyVTKUtils::BuildLabelContourActor(imagedata, i, actor, nSmoothFactor, NULL, bExtractAllRegions, bUpsampleContour );
+        map[i] = actor;
+      }
+    }
+  }
+  else
+  {
+    vtkActor* actor = vtkActor::New();
+    actor->SetMapper( vtkSmartPointer<vtkPolyDataMapper>::New() );
+    MyVTKUtils::BuildContourActor( imagedata, dTh1, dTh2, actor, nSmoothFactor, NULL, bExtractAllRegions, bUpsampleContour );
+    m_mri->m_actorContourTemp = actor;
+    actor->Delete();
+  }
+  m_mri->m_labelActorsTemp = map;
+
+  emit Finished(m_nThreadID);
+}
+
+
+void ThreadBuildContour::run_old()
+{
+  if (!m_mri)
+  {
+    return;
+  }
+  double dTh1 = m_mri->GetProperty()->GetContourMinThreshold();
+  double dTh2 = m_mri->GetProperty()->GetContourMaxThreshold();
+  bool bExtractAllRegions = m_mri->GetProperty()->GetContourExtractAllRegions();
+  bool bLabelContour = m_mri->GetProperty()->GetShowAsLabelContour();
+  bool bUpsampleContour = m_mri->GetProperty()->GetContourUpsample();
+  QList<int> labelList;
+  if (bLabelContour)
+  {
+    QStringList list = m_mri->GetProperty()->GetLabelContourRange().split(",", QString::SkipEmptyParts);
+    foreach (QString strg, list)
+    {
+      if (strg.contains("-"))
+      {
+        QStringList sublist = strg.split("-", QString::SkipEmptyParts);
+        if (sublist.size() > 1)
         {
-            int n = -1;
-            n = strg.toInt();
-            if (n > 0 && !labelList.contains(n))
-                labelList << n;
+          int n1 = qMax(1, sublist[0].toInt());
+          int n2 = sublist[1].toInt();
+          for (int i = n1; i <= n2; i++)
+          {
+            if (!labelList.contains(i))
+              labelList << i;
+          }
         }
+      }
+      else
+      {
+        int n = -1;
+        n = strg.toInt();
+        if (n > 0 && !labelList.contains(n))
+          labelList << n;
+      }
     }
 
     bExtractAllRegions = true;

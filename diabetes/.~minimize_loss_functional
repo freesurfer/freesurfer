@@ -1,0 +1,3 @@
+function [insulin_opt] =  minimize_loss_functional(insulin_init,parms,hyper_parms)
+
+%function [insulin_opt] =  minimize_loss_functional(insulin_init,parms, hyper_parms)

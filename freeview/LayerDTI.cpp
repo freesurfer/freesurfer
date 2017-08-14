@@ -118,7 +118,7 @@ void LayerDTI::InitializeDTIColorMap()
   double v[4] = { 0, 0, 0, 1 };
   int c[3];
   vtkDataArray* vectors = rasDTI->GetPointData()->GetScalars();
-//  qDebug() << vectors->GetDataTypeAsString();
+  //  qDebug() << vectors->GetDataTypeAsString();
   m_vectorData->DeepCopy(vectors);
   vtkFloatArray* fas = vtkFloatArray::New();
   fas->DeepCopy( m_imageData->GetPointData()->GetScalars() );
@@ -154,11 +154,11 @@ void LayerDTI::InitializeDTIColorMap()
       }
     }
     float scalar = c[0]*64*64 + c[1]*64 + c[2];
-//    int x = i%dim[0];
-//    int y = (i/dim[0])%dim[1];
-//    int z = i/(dim[0]*dim[1]);
-//    m_imageData->SetScalarComponentFromFloat( x, y, z, 0, fa );
-//    m_imageData->SetScalarComponentFromFloat( x, y, z, 1, scalar );
+    //    int x = i%dim[0];
+    //    int y = (i/dim[0])%dim[1];
+    //    int z = i/(dim[0]*dim[1]);
+    //    m_imageData->SetScalarComponentFromFloat( x, y, z, 0, fa );
+    //    m_imageData->SetScalarComponentFromFloat( x, y, z, 1, scalar );
     *(ptr+i*2) = fa;
     *(ptr+i*2+1) = scalar;
   }
@@ -269,5 +269,5 @@ void LayerDTI::DoRestore()
 void LayerDTI::UpdateVectorActor( int nPlane )
 {
   LayerMRI::UpdateVectorActor( nPlane, m_vectorSource->GetImageOutput(),
-                              m_eigenvalueSource ? m_eigenvalueSource->GetImageOutput() : NULL );
+                               m_eigenvalueSource ? m_eigenvalueSource->GetImageOutput() : NULL );
 }

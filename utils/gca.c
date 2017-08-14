@@ -14,10 +14,6 @@
  */
 /*
  * Original Author: Bruce Fischl
- * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/05 16:55:58 $
- *    $Revision: 1.347 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5156,6 +5152,146 @@ GCAnormalizedLogSampleProbability(GCA *gca,
   return((float)total_log_p) ;
 }
 
+float
+GCAcomputeLabelIntensityVariance(GCA *gca, GCA_SAMPLE *gcas,
+				 MRI *mri_inputs,
+				 TRANSFORM *transform,int nsamples)
+{
+  int        i, tid, nthreads, label_counts[MAX_CMA_LABELS], label, max_label, nlabels ;
+  double     label_means[MAX_CMA_LABELS], label_vars[MAX_CMA_LABELS], total_var;
+  MATRIX     *m_prior2source_voxel = NULL ;
+  VECTOR     *v_src[_MAX_FS_THREADS], *v_dst[_MAX_FS_THREADS] ;
+
+  memset(label_means, 0, sizeof(label_means)) ;
+  memset(label_vars, 0, sizeof(label_vars)) ;
+  memset(label_counts, 0, sizeof(label_counts)) ;
+
+  /* go through each GC in the sample and compute the probability of
+     the image at that point.
+  */
+  // store inverse transformation .. forward:input->gca template,
+  // inv: gca template->input
+  TransformInvert(transform, mri_inputs) ;
+
+  // go through all sample points
+
+  /* This loop used to be openmp'ed but there was something in it that
+   was not thread-safe and caused unstable/nonrepeatable behavior with
+   multimodal inputs. Removing did not seem to slow it down much.
+  */
+#ifdef HAVE_OPENMP
+  #pragma omp parallel
+  {
+    nthreads = omp_get_num_threads();
+  }
+#else
+  nthreads = 1;
+#endif
+  for (tid = 0 ; tid < nthreads ; tid++)
+  {
+    v_src[tid] = VectorAlloc(4, MATRIX_REAL) ;
+    v_dst[tid] = VectorAlloc(4, MATRIX_REAL) ;
+    *MATRIX_RELT(v_src[tid], 4, 1) = 1.0 ;
+    *MATRIX_RELT(v_dst[tid], 4, 1) = 1.0 ;
+  }    
+
+  if (transform->type == MORPH_3D_TYPE)
+    m_prior2source_voxel = NULL ;
+  else
+    m_prior2source_voxel = GCAgetPriorToSourceVoxelMatrix(gca, mri_inputs,transform);
+
+
+  max_label = 0 ;
+  total_var = 0.0 ;
+// ifdef HAVE_OPENMP
+// pragma omp parallel for firstprivate(gcas, tid, m_prior2source_voxel) reduction(max:max_label)
+// endif
+  for (i = 0 ; i < nsamples ; i++)
+  {
+    int    x, y, z, xp, yp, zp ;
+    float  vals[MAX_GCA_INPUTS] ;
+
+#ifdef HAVE_OPENMP
+    tid = omp_get_thread_num();
+#else
+    tid = 0;
+#endif
+    /////////////////// diag code /////////////////////////////
+    if (i == Gdiag_no)
+      DiagBreak() ;
+    if (Gdiag_no == gcas[i].label)
+      DiagBreak() ;
+    if (i == Gdiag_no || (gcas[i].xp == Gxp && gcas[i].yp == Gyp && gcas[i].zp == Gzp))
+      DiagBreak() ;
+    ///////////////////////////////////////////////////////////
+
+    // get prior coordinates in source volume
+    if (transform->type == MORPH_3D_TYPE)
+    {
+      xp = gcas[i].xp ; yp = gcas[i].yp ; zp = gcas[i].zp ;
+      GCApriorToSourceVoxel(gca, mri_inputs, transform, xp, yp, zp, &x, &y, &z) ;
+    }
+    else
+    {
+      V3_X(v_src[tid]) = xp = gcas[i].xp ; V3_Y(v_src[tid]) = yp = gcas[i].yp ; V3_Z(v_src[tid]) = zp = gcas[i].zp ;
+      MatrixMultiply(m_prior2source_voxel, v_src[tid], v_dst[tid]) ;
+      x = nint(V3_X(v_dst[tid])) ; y = nint(V3_Y(v_dst[tid])) ; z = nint(V3_Z(v_dst[tid])) ;
+    }
+    label = gcas[i].label ;
+    if (label > max_label)
+      max_label = label ;
+    label_counts[label]++ ;
+    if (MRIindexNotInVolume(mri_inputs, x, y, z) == 0) {
+    // if it is inside the source voxel
+      if (x == Gx && y == Gy && z == Gz)
+        DiagBreak() ;
+
+      // (x,y,z) is the source voxel position
+      gcas[i].x = x ; gcas[i].y = y ; gcas[i].z = z ;
+
+      // get values from all inputs
+      load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
+      if (label > 0 && vals[0] < 20)   // real tissue shouldn't land where there is no data
+      {
+	total_var += 1000*1000 ;
+      }
+      label_means[label] += vals[0] ;
+      label_vars[label] += (vals[0]*vals[0]) ;
+
+      if (FZERO(vals[0]) && gcas[i].label == Gdiag_no)
+        DiagBreak() ;
+    }
+    else{  // outside the voxel
+      label_means[gcas[i].label] += 1000000; // BIG
+      label_vars[gcas[i].label] += 1000000; // BIG
+    }
+  }
+  fflush(stdout) ;
+
+  for (nlabels = label = 0 ; label <= max_label ; label++)
+  {
+    if (label_counts[label] > 0)
+    {
+      nlabels++ ;
+      label_means[label] /= label_counts[label] ;
+      label_vars[label] = label_vars[label]/label_counts[label] - label_means[label]*label_means[label] ;
+      total_var += label_vars[label] ;
+    }
+  }
+
+  for (tid = 0 ; tid < nthreads ; tid++)
+  {
+    VectorFree(&v_src[tid]) ;
+    VectorFree(&v_dst[tid]) ;
+  }
+
+  if (m_prior2source_voxel)
+    MatrixFree(&m_prior2source_voxel) ;
+  total_var = sqrt(total_var/nlabels) ;
+  return((float)-total_var) ;
+}
+
+
 
 float
 GCAcomputeLogSampleProbability(GCA *gca,
@@ -7854,7 +7990,7 @@ GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
   MRI    *mri_dst ;
 
   mri_dst = MRIalloc(mri->width, mri->height, mri->depth, MRI_UCHAR) ;
-  MRIcopyHeader(mri, mri_dst);   TransformSetMRIVolGeomToDst(transform, mri_dst) ;
+  MRIcopyHeader(mri, mri_dst);   //TransformSetMRIVolGeomToDst(transform, mri_dst) ;
 
   TransformInvert(transform, mri) ;
   for (n = 0 ; n < nsamples ; n++)
@@ -10021,12 +10157,19 @@ static int choroid_labels[] =
 
 MRI *
 GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
-                          TRANSFORM *transform)
+                          TRANSFORM *transform,
+			  double vent_topo_dist, 
+			  double vent_topo_volume_thresh1,
+			  double vent_topo_volume_thresh2) 
+
 {
-  int              i, nex, *ex, j, nvox; /*, x, y, z, width, height, depth*/
+  int              i, nex, *ex, j, nvox, ndilate; /*, x, y, z, width, height, depth*/
   MRI_SEGMENTATION *mriseg ;
   MRI              *mri_dilated, *mri_in_main_segment ;
+  double           voxel_volume ;
 
+  voxel_volume = mri_inputs->xsize*mri_inputs->ysize*mri_inputs->zsize;
+  ndilate = nint(vent_topo_dist / ((mri_inputs->xsize+mri_inputs->ysize+mri_inputs->zsize)/3));
   mri_dst = MRIcopy(mri_src, mri_dst) ;
 
   for (i = 1 ; i <= MAX_CMA_LABEL ; i++)
@@ -10058,7 +10201,7 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
     {
       int max_segno ;
 
-      mri_dilated = MRIdilateLabel(mri_src, NULL, i, 3) ;
+      mri_dilated = MRIdilateLabel(mri_src, NULL, i, ndilate) ;
       mriseg = MRIsegment(mri_dilated, (float)i, (float)i) ;
       max_segno = MRIfindMaxSegmentNumber(mriseg) ;
       mri_in_main_segment = MRIsegmentFill(mriseg, max_segno, NULL, 1) ; // only retain biggest segment
@@ -10087,13 +10230,17 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
     /*    printf("\t%d segments:\n", mriseg->nsegments) ;*/
     for (j = 0 ; j < mriseg->nsegments ; j++)
     {
-      // every voxel in the lateral ventricle label should be in the max segment found above
-      if (IS_LAT_VENT(i) && mriseg->segments[j].nvoxels > 50 &&
+      // every voxel in the lateral ventricle label should be in the max segment found above, or just big enough and keep it
+      if (IS_LAT_VENT(i) && 
+	  ((mriseg->segments[j].nvoxels*voxel_volume > vent_topo_volume_thresh2) ||
+	   ((mriseg->segments[j].nvoxels*voxel_volume > vent_topo_volume_thresh1) &&
           MRIgetVoxVal(mri_in_main_segment,
                        mriseg->segments[j].voxels[0].x,
                        mriseg->segments[j].voxels[0].y,
-                       mriseg->segments[j].voxels[0].z,0) > 0)
+                       mriseg->segments[j].voxels[0].z,0) > 0)))
       {
+	if (mriseg->segments[j].nvoxels*voxel_volume > vent_topo_volume_thresh2)
+	  printf(" !!!!!!!!! ventrice segment %d with volume %2.0f above threshold %2.0f - not erasing !!!!!!!!!!\n", j, mriseg->segments[j].nvoxels*voxel_volume,vent_topo_volume_thresh2);
         continue ;
       }
       /* printf("\t\t%02d: %d voxels", j, mriseg->segments[j].nvoxels) ;*/
@@ -15203,9 +15350,10 @@ GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities, int num)
     }
     GCAlabelMode(gca, labels[i], &mode) ;
     if (mode <= 0)
-    {
+      GCAlabelMean(gca, Left_Lateral_Ventricle, &mode) ;
+
+    if (mode <= 0)
       scales[i] = 1.0 ;
-    }
     else
     {
       scales[i] = intensities[i] / mode ;
@@ -15246,7 +15394,12 @@ GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities, int num)
           }
 
           gc = &gcan->gcs[n] ;
-          gc->means[0] = scales[i]*gc->means[0] ;
+	  if (gc->means[0] < 1 && gcan->labels[n] == 0) // too close to 0 to scale
+	  {
+	    gc->means[0] = intensities[i] / 3 ;
+	  }
+	  else
+	    gc->means[0] = scales[i]*gc->means[0] ;
         }
       }
     }
@@ -16128,6 +16281,8 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
            box.x+box.dx-1,box.y+box.dy-1, box.z+box.dz-1) ;
 
     h_mri = MRIhistogramRegion(mri_frame, 0, NULL, &box) ;
+    if (h_mri == NULL)
+      return(Gerror) ;
     if (gca->ninputs == 1)
     {
       HISTOclearBins(h_mri, h_mri, 0, min_real_val) ;
@@ -16182,6 +16337,8 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
     }
     {
       double mn, std, std_thresh = 10 ;
+      if (mri->xsize < .9)
+	std_thresh *= 2 ;
       HISTOrobustGaussianFit(h_smooth, .3, &mn, &std) ;
       printf("robust fit to distribution - %2.0f +- %2.1f\n", mn, std) ;
       std_thresh *= (mn / wm_means[r]) ;
@@ -30649,14 +30806,45 @@ GCAremoveHemi(GCA *gca, int lh)
     {
       for (z = 0 ; z < gca->prior_depth ; z++)
       {
+	int max_label ;
+	double max_prior ;
+
         gcap = &gca->priors[x][y][z] ;
+	max_prior = 0 ; max_label = 0 ;
         for (n = 0 ; n < gcap->nlabels ; n++)
         {
-          if ((lh && (IS_LH_CLASS(gcap->labels[n]))) ||
-              (!lh && (IS_RH_CLASS(gcap->labels[n]))))
+          if (gcap->priors[n] > max_prior)
           {
-            gcap->labels[n] = Unknown ;
+	    max_prior = gcap->priors[n] ;
+	    max_label = gcap->labels[n] ;
           }
+        }
+	// most likely class is in the hemi to be erased - erase everything
+	if ( (lh && (IS_LH_CLASS(max_label))) ||
+	     (!lh && (IS_RH_CLASS(max_label))))
+	{
+	  int xn, yn, zn, r ;
+
+	  GCApriorToNode( gca, x, y, z, &xn, &yn, &zn) ;
+	  gcan = &gca->nodes[xn][yn][zn] ;
+	  gcan->nlabels = 1 ;
+	  gcan->labels[0] = Unknown ;
+	  for (r = 0 ; r < gca->ninputs ; r++)
+	  {
+	    gcan->gcs[0].means[r] = 0 ;
+	  }
+	  gcap->nlabels = 1 ; gcap->labels[0] = Unknown ;
+	}
+	else
+	{
+	  for (n = 0 ; n < gcap->nlabels ; n++)
+	  {
+	    if ((lh && (IS_LH_CLASS(gcap->labels[n]))) ||
+		(!lh && (IS_RH_CLASS(gcap->labels[n]))))
+	    {
+	      gcap->labels[n] = Unknown ;
+	    }
+	  }
         }
       }
     }

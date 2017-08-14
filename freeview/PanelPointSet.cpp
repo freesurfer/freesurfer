@@ -149,16 +149,17 @@ void PanelPointSet::DoUpdateWidgets()
 
     ui->comboBoxSplineColor->setCurrentIndex( nColorMap );
 
-    ui->comboBoxScalarMap->clear();;
+    ui->comboBoxScalarMap->clear();
+    ui->comboBoxScalarMap->addItem("stat");
     QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" )->GetLayers();
-    int nSel = -1;
+    int nSel = 0;
     for ( int i = 0; i < layers.size(); i++ )
     {
       ui->comboBoxScalarMap->addItem( layers[i]->GetName(), QVariant::fromValue((QObject*)layers[i]) );
       if ( layer->GetProperty()->GetScalarType() == LayerPropertyPointSet::ScalarLayer &&
            layer->GetProperty()->GetScalarLayer() == layers[i] )
       {
-        nSel = i;
+        nSel = i+1;
       }
     }
     std::vector<ScalarValues> svs = layer->GetProperty()->GetScalarSets();
@@ -168,7 +169,7 @@ void PanelPointSet::DoUpdateWidgets()
       if ( layer->GetProperty()->GetScalarType() == LayerPropertyPointSet::ScalarSet &&
            layer->GetProperty()->GetScalarSet() == i )
       {
-        nSel = i + layers.size();
+        nSel = i+1 + layers.size();
       }
     }
     ui->comboBoxScalarMap->addItem( "Load..." );
@@ -311,7 +312,7 @@ void PanelPointSet::OnLineEditRadius(const QString& text)
   {
     bool bOK;
     double dVal = text.toDouble( &bOK );
-    if ( layer && bOK && dVal > 0 && layer->GetProperty()->GetRadius() != dVal )
+    if ( layer && bOK && dVal >= 0 && layer->GetProperty()->GetRadius() != dVal )
     {
       layer->GetProperty()->SetRadius( dVal );
     }
@@ -342,6 +343,10 @@ void PanelPointSet::OnComboScalarMap(int nSel)
     {
       layer->GetProperty()->SetScalarLayer( mri );
     }
+    else if (nSel == 0)
+    {
+      layer->GetProperty()->SetScalarToStat();
+    }
     else if ( nSel == ui->comboBoxScalarMap->count() - 1 )
     {
       LoadScalarValues();
@@ -360,8 +365,8 @@ void PanelPointSet::LoadScalarValues()
   foreach (LayerPointSet* layer, layers)
   {
     QString fn = QFileDialog::getOpenFileName( this, "Select scalar file",
-                 "",
-                 "All files (*)");
+                                               "",
+                                               "All files (*)");
     if ( !fn.isEmpty() )
     {
       if ( !layer->GetProperty()->LoadScalarsFromFile( fn ) )

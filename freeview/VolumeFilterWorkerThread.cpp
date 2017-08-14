@@ -3,7 +3,7 @@
 #include <QApplication>
 
 VolumeFilterWorkerThread::VolumeFilterWorkerThread(QObject *parent) :
-    QThread(parent), m_filter(NULL)
+  QThread(parent), m_filter(NULL)
 {
   connect(this, SIGNAL(finished()), this, SLOT(OnFinished()));
 }

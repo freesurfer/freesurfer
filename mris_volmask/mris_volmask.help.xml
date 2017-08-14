@@ -62,6 +62,10 @@
       <explanation>display help message</explanation>
       <argument>--save_distance</argument>
       <explanation>option to save the signed distance function as ?h.dwhite.mgz ?h.dpial.mgz in the mri directory</explanation>
+      <argument>--lh-only</argument>
+      <explanation>only process left hemi</explanation>
+      <argument>--rh-only</argument>
+      <explanation>only process right hemi</explanation>
       <argument>--edit_aseg</argument>
       <explanation>option to edit the aseg using the ribbons and save to aseg.ribbon.mgz in the mri directory</explanation>
       <argument>--save_ribbon</argument>

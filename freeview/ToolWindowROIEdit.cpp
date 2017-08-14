@@ -49,7 +49,6 @@ ToolWindowROIEdit::ToolWindowROIEdit(QWidget *parent) :
   MainWindow* wnd = MainWindow::GetMainWindow();
   connect( ui->spinBoxBrushSize, SIGNAL(valueChanged(int)), wnd->GetBrushProperty(), SLOT(SetBrushSize(int)));
 
-
   UpdateWidgets();
 }
 
@@ -63,6 +62,7 @@ ToolWindowROIEdit::~ToolWindowROIEdit()
 
 void ToolWindowROIEdit::showEvent(QShowEvent* event)
 {
+  Q_UNUSED(event);
   static bool bFirstTime = true;
   if ( bFirstTime )
   {

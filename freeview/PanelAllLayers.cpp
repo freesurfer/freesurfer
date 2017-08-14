@@ -3,6 +3,12 @@
 #include "Layer.h"
 #include "MainWindow.h"
 #include "LayerCollection.h"
+#include "LayerSurface.h"
+#include "LayerPropertySurface.h"
+#include "LayerROI.h"
+#include "LayerPropertyROI.h"
+#include "LayerPointSet.h"
+#include "LayerPropertyPointSet.h"
 #include <QDebug>
 #include <QSettings>
 
@@ -75,18 +81,18 @@ void PanelAllLayers::OnActiveLayerChanged(Layer *curlayer)
     }
     if (topItem)
     {
-        for (int j = 0; j < topItem->childCount(); j++)
+      for (int j = 0; j < topItem->childCount(); j++)
+      {
+        item = topItem->child(j);
+        Layer* layer = reinterpret_cast<Layer*>(item->data(0, Qt::UserRole).value<quintptr>());
+        QFont fnt = item->font(0);
+        if (sel != curlayer && layer == curlayer)
         {
-          item = topItem->child(j);
-          Layer* layer = reinterpret_cast<Layer*>(item->data(0, Qt::UserRole).value<quintptr>());
-          QFont fnt = item->font(0);
-          if (sel != curlayer && layer == curlayer)
-          {
-            ui->treeWidgetLayers->setCurrentItem(item);
-          }
-          fnt.setBold(layer == curlayer);
-          item->setFont(0, fnt);
+          ui->treeWidgetLayers->setCurrentItem(item);
         }
+        fnt.setBold(layer == curlayer);
+        item->setFont(0, fnt);
+      }
     }
   }
 }
@@ -148,6 +154,24 @@ void PanelAllLayers::AddLayers(QList<Layer *> layers, const QString &cat_name, L
     {
       QTreeWidgetItem* item = new QTreeWidgetItem();
       item->setText(0, layers[i]->GetName());
+      if (layers[i]->IsTypeOf("Surface"))
+      {
+        LayerSurface* surf = (LayerSurface*)layers[i];
+        SetItemColor(item, surf->GetProperty()->GetEdgeColor());
+        connect(surf->GetProperty(), SIGNAL(EdgeColorChanged()), this, SLOT(OnLayerChanged()), Qt::UniqueConnection);
+      }
+      else if (layers[i]->IsTypeOf("ROI"))
+      {
+        LayerROI* roi = (LayerROI*)layers[i];
+        SetItemColor(item, roi->GetProperty()->GetColor());
+        connect(roi->GetProperty(), SIGNAL(ColorMapChanged()), this, SLOT(OnLayerChanged()), Qt::UniqueConnection);
+      }
+      else if (layers[i]->IsTypeOf("PointSet"))
+      {
+        LayerPointSet* layer = (LayerPointSet*)layers[i];
+        SetItemColor(item, layer->GetProperty()->GetColor());
+        connect(layer->GetProperty(), SIGNAL(ColorChanged()), this, SLOT(OnLayerChanged()), Qt::UniqueConnection);
+      }
       item->setData(0, Qt::UserRole, QVariant::fromValue(reinterpret_cast<quintptr>(layers[i])));
       item->setCheckState(0, layers[i]->IsVisible() ? Qt::Checked : Qt::Unchecked);
       item->setFlags( item->flags() | Qt::ItemIsEditable | Qt::ItemIsDragEnabled);
@@ -272,9 +296,9 @@ void PanelAllLayers::OnItemChanged(QTreeWidgetItem *item)
   if ( layer )
   {
     if (item->text(0) != layer->GetName())
-        layer->SetName( item->text(0) );
+      layer->SetName( item->text(0) );
     if (layer->IsVisible() != (item->checkState( 0 ) == Qt::Checked ))
-        layer->SetVisible( item->checkState( 0 ) == Qt::Checked );
+      layer->SetVisible( item->checkState( 0 ) == Qt::Checked );
   }
 }
 
@@ -320,16 +344,41 @@ void PanelAllLayers::OnLayerChanged()
       {
         item->setText(0, layer->GetName());
         item->setCheckState(0, layer->IsVisible() ?  Qt::Checked : Qt::Unchecked);
+        if (layer->IsTypeOf("Surface"))
+        {
+          LayerSurface* surf = (LayerSurface*)layer;
+          SetItemColor(item, surf->GetProperty()->GetEdgeColor());
+          connect(surf->GetProperty(), SIGNAL(EdgeColorChanged()), this, SLOT(OnLayerChanged()), Qt::UniqueConnection);
+        }
+        else if (layer->IsTypeOf("ROI"))
+        {
+          LayerROI* roi = (LayerROI*)layer;
+          SetItemColor(item, roi->GetProperty()->GetColor());
+          connect(roi->GetProperty(), SIGNAL(ColorMapChanged()), this, SLOT(OnLayerChanged()), Qt::UniqueConnection);
+        }
+        else if (layer->IsTypeOf("PointSet"))
+        {
+          LayerPointSet* ps = (LayerPointSet*)layer;
+          SetItemColor(item, ps->GetProperty()->GetColor());
+          connect(ps->GetProperty(), SIGNAL(ColorChanged()), this, SLOT(OnLayerChanged()), Qt::UniqueConnection);
+        }
       }
     }
   }
   ui->treeWidgetLayers->blockSignals(false);
 }
 
+void PanelAllLayers::SetItemColor(QTreeWidgetItem *item, double *rgb)
+{
+  QPixmap pix(13, 13);
+  pix.fill( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+  item->setIcon(0, QIcon(pix) );
+}
+
 void PanelAllLayers::OnItemDoubleClicked(QTreeWidgetItem *item)
 {
   Layer* layer = reinterpret_cast<Layer*>(item->data( 0, Qt::UserRole ).value<quintptr>());
-/*
+  /*
   QStringList layer_types;
   layer_types << "MRI" << "Surface" << "ROI" << "PointSet" << "CMAT";
   foreach (QString type, layer_types)

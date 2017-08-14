@@ -51,6 +51,7 @@ static void print_version(void) ;
 
 char *Progname ;
 
+static char output_type[STRLEN] = "" ;
 static char *suffix = "" ;
 static int write_flag = 0 ;
 static int nbrs = 2 ;
@@ -353,7 +354,7 @@ main(int argc, char *argv[])
         MRIShistoThresholdCurvature(mris, cthresh) ;
       }
       MRISaverageCurvatures(mris, navgs) ;
-      sprintf(fname, "%s/%s%s.K", path,name, suffix) ;
+      sprintf(fname, "%s/%s%s.K%s", path,name, suffix, output_type) ;
       fprintf(stderr, "writing Gaussian curvature to %s...", fname) ;
       if (normalize)
       {
@@ -370,7 +371,7 @@ main(int argc, char *argv[])
       {
         MRISnormalizeCurvature(mris,which_norm) ;
       }
-      sprintf(fname, "%s/%s%s.H", path,name, suffix) ;
+      sprintf(fname, "%s/%s%s.H%s", path,name, suffix,output_type) ;
       fprintf(stderr, "done.\nwriting mean curvature to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
       fprintf(stderr, "done.\n") ;
@@ -413,6 +414,12 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "diff"))
   {
     diff_flag = 1 ;
+  }
+  else if (!stricmp(option, "mgh") || !stricmp(option, "-mgh") ||
+	   !stricmp(option, "mgz") || !stricmp(option, "-mgz"))
+  {
+    strcpy(output_type, ".mgz");
+    printf("appending %s to output files to change type\n", output_type) ;
   }
   else if (!stricmp(option, "ratio") || !stricmp(option, "defect"))
   {

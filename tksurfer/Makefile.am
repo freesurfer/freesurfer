@@ -42,6 +42,7 @@ if ENABLE_TCLTK_APPS
 # of all cortech-licensed software)
 install-exec-hook:
 	rm -fv $(DESTDIR)$(bindir)/tksurfer
+	rm -fv $(DESTDIR)$(prefix)/tktools/tksurfer.bin
 	cp $(top_builddir)/tksurfer/tksurfer $(DESTDIR)$(prefix)/tktools/tksurfer.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(prefix)/tktools/tksurfer
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
@@ -67,6 +68,7 @@ endif
 if INSTALL_MAC32_GUIS
 install-exec-hook:
 	rm -fv $(DESTDIR)$(bindir)/tksurfer
+	rm -fv $(DESTDIR)$(prefix)/tktools/tksurfer.bin
 	cp $(top_builddir)/distribution/Mac_32b/tksurfer_Mac32.bin $(DESTDIR)$(prefix)/tktools/tksurfer.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(prefix)/tktools/tksurfer
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \

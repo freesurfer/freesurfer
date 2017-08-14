@@ -174,10 +174,10 @@ void RenderView2D::RefreshAllActors(bool bForScreenShot)
     double* size = lc->GetWorldSize();
 
     m_renderer->ResetCameraClippingRange(orig[0], orig[0]+size[0],
-                                         orig[1], orig[1]+size[1],
-                                         orig[2], orig[2]+size[2]);
+        orig[1], orig[1]+size[1],
+        orig[2], orig[2]+size[2]);
   }
-//  m_renderer->ResetCameraClippingRange();
+  //  m_renderer->ResetCameraClippingRange();
   RenderView::RefreshAllActors(bForScreenShot);
 }
 
@@ -205,7 +205,7 @@ void RenderView2D::UpdateViewByWorldCoordinate()
     cam->SetPosition( wcenter[0], wcenter[1], wcenter[2] - len );
     break;
   }
-//  m_renderer->ResetCameraClippingRange();
+  //  m_renderer->ResetCameraClippingRange();
   cam->SetParallelScale( qMax( qMax(m_dWorldSize[0], m_dWorldSize[1]), m_dWorldSize[2])/2 );
 }
 
@@ -297,10 +297,10 @@ void RenderView2D::OnSlicePositionChanged(bool bCenter)
 
   if (bCenter)
   {
-      double x, y, z;
-      WorldToViewport(slicePos[0], slicePos[1], slicePos[2], x, y, z);
-      if (!rect().contains(QPoint(x, y)))
-          this->CenterAtCursor();
+    double x, y, z;
+    WorldToViewport(slicePos[0], slicePos[1], slicePos[2], x, y, z);
+    if (!rect().contains(QPoint(x, y)))
+      this->CenterAtCursor();
   }
 
   RenderView::OnSlicePositionChanged();
@@ -358,11 +358,28 @@ void RenderView2D::UpdateSelection( int nX, int nY )
 void RenderView2D::StopSelection()
 {
   m_selection2D->Show( false );
-
-  QList<Layer*> layers;
-  if (MainWindow::GetMainWindow()->GetCurrentLayerType() == "MRI")
-    layers = MainWindow::GetMainWindow()->GetSelectedLayers("MRI");
-  layers << MainWindow::GetMainWindow()->GetLayers("MRI");
+  QList<Layer*> layers = MainWindow::GetMainWindow()->GetSelectedLayers("MRI");
+  if (layers.size() < 2)
+  {
+    LayerMRI* sel_mri = (LayerMRI*)(layers.isEmpty() ? MainWindow::GetMainWindow()->GetActiveLayer("MRI") : layers[0]);
+    if (sel_mri && !sel_mri->IsWindowAdjustable())
+      sel_mri = NULL;
+    QList<Layer*> vols = MainWindow::GetMainWindow()->GetLayers("MRI");
+    for (int i = 0; i < vols.size(); i++)
+    {
+      LayerMRI* mri = (LayerMRI*)vols[i];
+      if (mri->IsWindowAdjustable())
+      {
+        if (sel_mri == NULL || sel_mri == mri || mri->IsObscuring())
+        {
+          layers.clear();
+          layers << mri;
+          break;
+        }
+      }
+    }
+  }
+  
   for (int i = 0; i < layers.size(); i++)
   {
     LayerMRI* layer = qobject_cast<LayerMRI*>(layers[i]);
@@ -373,7 +390,7 @@ void RenderView2D::StopSelection()
       m_selection2D->GetWorldPoint( 2, m_dPt2 );
       int nColorMap = layer->GetProperty()->GetColorMap();
       if (layer->IsVisible() && nColorMap != LayerPropertyMRI::LUT &&
-              nColorMap != LayerPropertyMRI::DirectionCoded && layer->GetVoxelValueRange( m_dPt0, m_dPt2, m_nViewPlane, range ) )
+          nColorMap != LayerPropertyMRI::DirectionCoded && layer->GetVoxelValueRange( m_dPt0, m_dPt2, m_nViewPlane, range ) )
       {
         switch ( nColorMap )
         {
@@ -387,7 +404,6 @@ void RenderView2D::StopSelection()
           layer->GetProperty()->SetMinMaxGenericThreshold( range[0], range[1] );
           break;
         }
-        break;
       }
     }
   }
@@ -440,6 +456,11 @@ void RenderView2D::MoveSlice( int nStep )
   MainWindow* mainWnd = MainWindow::GetMainWindow();
   LayerCollection* lc_mri = mainWnd->GetLayerCollection( "MRI" );
   double* voxelSize = lc_mri->GetWorldVoxelSize();
+  LayerMRI* mri = qobject_cast<LayerMRI*>(lc_mri->GetActiveLayer());
+  if (mri)
+  {
+    voxelSize = mri->GetWorldVoxelSize();
+  }
   int nPlane = GetViewPlane();
   mainWnd->OffsetSlicePosition( nPlane, voxelSize[nPlane]*nStep );
   lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
@@ -449,7 +470,7 @@ void RenderView2D::MoveSlice( int nStep )
 void RenderView2D::SyncZoomTo( RenderView2D* view )
 {
   m_renderer->GetActiveCamera()->SetParallelScale( view->m_renderer->GetActiveCamera()->GetParallelScale() );
-// PanToWorld( GetCursor2D()->GetPosition() );
+  // PanToWorld( GetCursor2D()->GetPosition() );
   EnsureCursor2DVisible();
   Update2DOverlay();
   UpdateAnnotation();
@@ -583,6 +604,15 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
       ag->addAction(act);
     }
     connect(ag, SIGNAL(triggered(QAction*)), this, SLOT(SetScalarBarLayer(QAction*)));
+  }
+  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
+  if ( surf && surf->IsContralateralPossible())
+  {
+    if (!menu.actions().isEmpty())
+      menu.addSeparator();
+    QAction* act = new QAction("Go To Contralateral Point", this);
+    menu.addAction(act);
+    connect(act, SIGNAL(triggered()), MainWindow::GetMainWindow(), SLOT(GoToContralateralPoint()));
   }
   if (!menu.actions().isEmpty())
     menu.exec(event->globalPos());

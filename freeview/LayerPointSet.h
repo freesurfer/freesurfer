@@ -105,8 +105,8 @@ public:
 protected slots:
   void UpdateColorMap();
   void UpdateOpacity();
-  void UpdateScalars();
-  void UpdateSnapToVoxelCenter();  
+  void UpdateScalars(vtkPolyData* polydata);
+  void UpdateSnapToVoxelCenter();
   void UpdateSplineVisibility();
   void RebuildActors( bool bRebuild3D = true );
 

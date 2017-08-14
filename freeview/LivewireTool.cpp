@@ -115,7 +115,7 @@ void LivewireTool::GetLivewirePoints( double* pt1_in, double* pt2_in, vtkPoints*
 
   vtkIdType beginVertId = m_imageSlice->FindPoint( pt1_in );
   vtkIdType endVertId = m_imageSlice->FindPoint( pt2_in );
-// cout << beginVertId << "  " << endVertId << endl;
+  // cout << beginVertId << "  " << endVertId << endl;
 
   if ( beginVertId == -1 || endVertId == -1 )
   {
@@ -127,14 +127,14 @@ void LivewireTool::GetLivewirePoints( double* pt1_in, double* pt2_in, vtkPoints*
   m_path->SetStartVertex( endVertId );
   m_path->SetEndVertex( beginVertId );
   m_path->Update();
-// double* pt = m_info->GetOutput()->GetPoint( beginVertId );
-// cout << pt[0] << " " << pt[1] << " " << pt[2] << endl;
+  // double* pt = m_info->GetOutput()->GetPoint( beginVertId );
+  // cout << pt[0] << " " << pt[1] << " " << pt[2] << endl;
 
   vtkPolyData *pd = m_path->GetOutput();
   vtkIdType npts = 0, *pts = NULL;
   pd->GetLines()->InitTraversal();
   pd->GetLines()->GetNextCell( npts, pts );
-// cout << npts << endl;
+  // cout << npts << endl;
   double offset[3] = { 0, 0, 0 };
   double* vs = m_imageData->GetSpacing();
   offset[m_nPlane] = m_nSlice*vs[m_nPlane];

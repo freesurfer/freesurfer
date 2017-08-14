@@ -54,8 +54,8 @@ Landmark::Landmark()
 }
 
 LayerLandmarks::LayerLandmarks(QObject *parent) :
-    LayerEditable(parent),
-    m_dRadius(3.0)
+  LayerEditable(parent),
+  m_dRadius(3.0)
 {
   this->m_strTypeNames << "Supplement" << "Landmarks";
 }
@@ -81,6 +81,7 @@ void LayerLandmarks::Append2DProps(vtkRenderer *renderer, int nPlane)
 
 void LayerLandmarks::Append3DProps(vtkRenderer *renderer, bool *bPlaneVisibility)
 {
+  Q_UNUSED(bPlaneVisibility);
   for (int i = 0; i < m_landmarks.size(); i++)
     renderer->AddViewProp(m_landmarks[i].actorSphere);
 }
@@ -118,6 +119,7 @@ void LayerLandmarks::SetVisible(bool bVisible)
 
 void LayerLandmarks::OnSlicePositionChanged(int nPlane)
 {
+  Q_UNUSED(nPlane);
   UpdateActors(false); // no need to rebuild 3D actors
 }
 
@@ -211,7 +213,7 @@ void LayerLandmarks::UpdateActors(bool bBuild3D)
         plane->SetNormal( j==0?1:0, j==1?1:0, j==2?1:0 );
 
         vtkSmartPointer<vtkCutter> cutter =
-          vtkSmartPointer<vtkCutter>::New();
+            vtkSmartPointer<vtkCutter>::New();
         cutter->SetInputConnection( sphere->GetOutputPort() );
         cutter->SetCutFunction( plane );
 
@@ -239,6 +241,7 @@ void LayerLandmarks::UpdateActors(bool bBuild3D)
 
 void LayerLandmarks::DoTransform(double *mat, int sample_method)
 {
+  Q_UNUSED(sample_method);
   if (m_landmarksOriginal.isEmpty())
     m_landmarksOriginal = m_landmarks;
 

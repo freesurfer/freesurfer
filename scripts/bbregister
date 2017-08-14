@@ -947,6 +947,12 @@ while( $#argv != 0 )
 
     case "--init-best":
       set DoInitBest = 1;
+      set InitFSL = 0;
+      set InitSPM = 0;
+      set InitCoreg = 0;
+      set InitRR = 0;
+      set InitHeader = 0;
+      set InitReg = ();
       breaksw
     case "--no-init-best":
       set DoInitBest = 0;

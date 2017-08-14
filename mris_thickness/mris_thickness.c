@@ -1,5 +1,5 @@
 /**
- * @file  mris_thickness.c
+ * @File  mris_thickness.c
  * @brief program for computing thickness of the cerebral cortex from 
  *  previously generated surfaces
  *
@@ -20,8 +20,8 @@
  *
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
  *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
+ * Reporting: freesurfer@nmr.mgh.harvard.include
+	 *
  */
 
 
@@ -79,237 +79,10 @@ static LABEL *fsaverage_label = NULL ;
 
 #include "voxlist.h"
 #include "mrinorm.h"
-MRI *
-MRISsolveLaplaceEquation(MRI_SURFACE *mris, MRI *mri, double res)
-{
-  MRI     *mri_white, *mri_pial, *mri_laplace, *mri_control, *mri_tmp = NULL ;
-  int     x, y, z, ncontrol, nribbon, v, i, xm1, xp1, ym1, yp1, zm1, zp1 ; 
-  VOXLIST *vl ;
-  float   wval, pval, max_change, change, val, oval ;
-
-  MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
-  mri_pial = MRISfillInterior(mris, res, NULL) ;
-  mri_white = MRIclone(mri_pial, NULL) ;
-  MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
-  MRISfillInterior(mris, res, mri_white) ;
-
-  {
-    char fname[STRLEN] ;
-    sprintf(fname, "pi.%2.2f.mgz", res) ;
-    MRIwrite(mri_pial, fname) ;
-    sprintf(fname, "wi.%2.2f.mgz", res) ;
-    MRIwrite(mri_white, fname) ;
-  }
-  mri_laplace = MRIcloneDifferentType(mri_white,MRI_FLOAT) ;
-  mri_control = MRIcloneDifferentType(mri_white,MRI_UCHAR) ;
-  ncontrol = nribbon = 0 ;
-  for (x = 0 ; x < mri_white->width ; x++)
-    for (y = 0 ; y < mri_white->height ; y++)
-      for (z = 0 ; z < mri_white->depth ; z++)
-      {
-        wval = MRIgetVoxVal(mri_white, x, y, z, 0) ;
-        pval = MRIgetVoxVal(mri_pial, x, y, z, 0) ;
-        if (wval)
-        {
-          MRIsetVoxVal(mri_control, x, y, z, 0, CONTROL_MARKED) ;
-          MRIsetVoxVal(mri_laplace, x, y, z, 0, 0.0) ;
-          ncontrol++ ;
-        }
-        else if (FZERO(pval)) // outside pial surface
-        {
-          MRIsetVoxVal(mri_control, x, y, z, 0, CONTROL_MARKED) ;
-          MRIsetVoxVal(mri_laplace, x, y, z, 0, 1.0) ;
-          ncontrol++ ;
-        }
-        else 
-          nribbon++ ;
-      }
-
-  vl = VLSTalloc(nribbon) ;
-  vl->mri = mri_laplace ;
-  nribbon = 0 ;
-  for (x = 0 ; x < mri_white->width ; x++)
-    for (y = 0 ; y < mri_white->height ; y++)
-      for (z = 0 ; z < mri_white->depth ; z++)
-      {
-        wval = MRIgetVoxVal(mri_white, x, y, z, 0) ;
-        pval = MRIgetVoxVal(mri_pial, x, y, z, 0) ;
-        if (FZERO(MRIgetVoxVal(mri_control, x, y, z, 0)))
-        {
-          vl->xi[nribbon] = x ;
-          vl->yi[nribbon] = y ;
-          vl->zi[nribbon] = z ;
-          nribbon++ ;
-        }
-      }
-
-  i = 0 ;
-  do
-  {
-    max_change = 0.0 ;
-    mri_tmp = MRIcopy(mri_laplace, mri_tmp) ;
-    for (v = 0 ; v < vl->nvox  ; v++)
-    {
-      x = vl->xi[v] ; y = vl->yi[v] ; z = vl->zi[v] ;
-      xm1 = mri_laplace->xi[x-1] ; xp1 = mri_laplace->xi[x+1] ;
-      ym1 = mri_laplace->yi[y-1] ; yp1 = mri_laplace->yi[y+1] ;
-      zm1 = mri_laplace->zi[z-1] ; zp1 = mri_laplace->zi[z+1] ;
-      oval = MRIgetVoxVal(mri_laplace, x, y, z, 0) ;
-      val = 
-        (MRIgetVoxVal(mri_laplace, xm1, y, z, 0) +
-         MRIgetVoxVal(mri_laplace, xp1, y, z, 0) +
-         MRIgetVoxVal(mri_laplace, x, ym1, z, 0) +
-         MRIgetVoxVal(mri_laplace, x, yp1, z, 0) +
-         MRIgetVoxVal(mri_laplace, x, y, zm1, 0) +
-         MRIgetVoxVal(mri_laplace, x, y, zp1, 0)) *
-        1.0/6.0;
-      change = fabs(val-oval) ;
-      if (change > max_change)
-        max_change = change ;
-      MRIsetVoxVal(mri_tmp, x, y, z, 0, val);
-    }
-    MRIcopy(mri_tmp, mri_laplace) ;
-    i++ ;
-    if (i%10 == 0)
-      printf("iter %d complete, max change %f\n", i, max_change) ;
-  } while (max_change > 1e-3) ;
-
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-  {
-    MRIwrite(mri_white, "w.mgz") ;
-    MRIwrite(mri_pial, "p.mgz") ;
-  }
-  {
-    char fname[STRLEN] ;
-    sprintf(fname, "laplace.%2.2f.mgz", mri_laplace->xsize) ;
-    MRIwrite(mri_laplace, fname) ;
-  }
-  MRIfree(&mri_white) ; MRIfree(&mri_pial) ; VLSTfree(&vl) ;
-  return(mri_laplace) ;
-}
-
-int
-MRISmeasureLaplaceStreamlines(MRI_SURFACE *mris, MRI *mri_laplace)
-{
-  int    vno, f, x, y, z, npoints, nmissing ;
-  VERTEX *v ;
-  double dx, dy, dz, xv, yv, zv ;
-  MRI    *mri_grad, *mri_mag ;
-  double  val, norm, dt = mri_laplace->xsize/10, dist ;
-
-  mri_mag = MRIclone(mri_laplace, NULL) ;
-  mri_grad = MRIsobel(mri_laplace, NULL, mri_mag) ;
-
-  MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
-
-  // normalize the gradient to be unit vectors
-  for (z = 0 ; z < mri_grad->depth ; z++)   
-    for (y = 0 ; y < mri_grad->height ; y++)
-      for (x = 0 ; x < mri_grad->width ; x++)
-      {
-        norm = MRIgetVoxVal(mri_mag, x, y, z, 0) ;
-        if (FZERO(norm))
-          continue ;
-        for (f = 0 ; f < mri_grad->nframes ; f++)
-        {
-          val = MRIgetVoxVal(mri_grad, x, y, z, f) ;
-          MRIsetVoxVal(mri_grad, x, y, z, f, val/norm) ;
-        }
-      }
-
-  for (nmissing = vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (vno == Gdiag_no)
-      DiagBreak() ;
-
-    if (v->ripflag)
-      continue ;
-    // check to see if this location doesn't have the resolution to represent the pial surface
-    MRISsurfaceRASToVoxel(mris, mri_laplace, v->pialx, v->pialy, v->pialz, &xv, &yv, &zv);
-    MRIsampleVolumeFrame(mri_laplace, xv, yv, zv, 0, &val) ;
-    if (val < 0.5)
-      nmissing++ ;
-
-    MRISsurfaceRASToVoxel(mris, mri_laplace, v->whitex, v->whitey, v->whitez, &xv, &yv, &zv);
-    dist = 0.0 ;
-    npoints = 0 ;
-    do
-    {
-      MRIsampleVolumeFrame(mri_grad, xv, yv, zv, 0, &dx) ;
-      MRIsampleVolumeFrame(mri_grad, xv, yv, zv, 1, &dy) ;
-      MRIsampleVolumeFrame(mri_grad, xv, yv, zv, 2, &dz) ;
-      norm = sqrt(dx*dx + dy*dy + dz*dz) ;
-      npoints++ ;
-      if (FZERO(norm) || dist > 10)
-      {
-        if (val < .9)
-          DiagBreak() ;
-        if (dist > 10)
-          DiagBreak() ;
-        break ;
-      }
-      dx /= norm ; dy /= norm ; dz /= norm ;
-      xv += dx*dt ; yv += dy*dt ; zv += dz*dt ;
-      dist += dt*mri_laplace->xsize ;
-      MRIsampleVolumeFrame(mri_laplace, xv, yv, zv, 0, &val) ;
-      if (vno == Gdiag_no)
-        printf("v %d:   (%2.2f %2.2f %2.2f): dist=%2.2f, val=%2.2f\n",
-               vno, xv, yv, zv, dist, val) ;
-    } while (val < 1) ;
-    if (vno == Gdiag_no)
-    {
-      LABEL *area ;
-      int   i ;
-      char  fname[STRLEN] ;
-      double xs, ys, zs ;
-
-      area = LabelAlloc(npoints, NULL, NULL) ;
-      MRISsurfaceRASToVoxel(mris, mri_laplace, v->whitex, v->whitey, v->whitez, &xv, &yv, &zv);
-      dist = 0 ; i = 0 ;
-      do
-      {
-        MRIsampleVolumeFrame(mri_laplace, xv, yv, zv, 0, &val) ;
-        MRISsurfaceRASFromVoxel(mris, mri_laplace, xv, yv, zv, &xs, &ys, &zs);
-        area->lv[i].x = xs ; area->lv[i].y = ys ;  area->lv[i].z = zs ;
-        area->lv[i].stat = val ;
-        area->lv[i].vno = vno ;
-        area->n_points++ ;
-        MRIsampleVolumeFrame(mri_grad, xv, yv, zv, 0, &dx) ;
-        MRIsampleVolumeFrame(mri_grad, xv, yv, zv, 1, &dy) ;
-        MRIsampleVolumeFrame(mri_grad, xv, yv, zv, 2, &dz) ;
-        norm = sqrt(dx*dx + dy*dy + dz*dz) ;
-        if (FZERO(norm) || dist > 10)
-        {
-          if (val < .9)
-            DiagBreak() ;
-          if (dist > 10)
-            DiagBreak() ;
-          break ;
-        }
-        dx /= norm ; dy /= norm ; dz /= norm ;
-        xv += dx*dt ; yv += dy*dt ; zv += dz*dt ;
-        MRIsampleVolumeFrame(mri_laplace, xv, yv, zv, 0, &val) ;
-        dist += dt ;
-        i++ ;
-      } while (val < 1) ;
-      sprintf(fname, "vno%d.label", vno) ;
-      LabelWrite(area, fname) ;
-      LabelFree(&area) ;
-    }
-
-    v->curv = dist ;
-  }
-
-  //  printf("%d of %d pial surface nodes not resolved - %2.3f %%\n",
-  //         nmissing, mris->nvertices, 100.0*nmissing/mris->nvertices) ;
-  MRIfree(&mri_mag) ; MRIfree(&mri_grad) ;
-  return(NO_ERROR) ;
-}
 int
 main(int argc, char *argv[]) {
-  char          **av, *out_fname, *sname, *cp, fname[STRLEN], *hemi ;
-  int           ac, nargs, msec ;
+  char          *out_fname, *sname, *cp, fname[STRLEN], *hemi ;
+  int           nargs, msec ;
   MRI_SURFACE   *mris ;
   struct timeb  then ;
 
@@ -339,8 +112,6 @@ main(int argc, char *argv[]) {
   parms.integration_type = INTEGRATE_MOMENTUM ;
   parms.tol = 1e-3 ;
 
-  ac = argc ;
-  av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
@@ -433,7 +204,7 @@ main(int argc, char *argv[]) {
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
     MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
     mri_laplace = MRISsolveLaplaceEquation(mris, NULL, laplace_res) ;
-    MRISmeasureLaplaceStreamlines(mris, mri_laplace) ;
+//    MRISmeasureLaplaceStreamlines(mris, mri_laplace, NULL, NULL) ;
   }
   else if (fmin_thick)
   {
@@ -565,7 +336,7 @@ main(int argc, char *argv[]) {
     {
       char line[STRLEN], subject[STRLEN], fname[STRLEN], base_name[STRLEN], *cp,
         tmp[STRLEN], out_fname_only[STRLEN] ;
-      int  ntimepoints, vno ;
+      int  vno ;
       FILE *fp ;
       VERTEX *v ;
       MHT   *mht ;
@@ -586,7 +357,6 @@ main(int argc, char *argv[]) {
       if (cp == NULL)
         cp = tmp-1 ;
       strcpy(base_name, cp+1) ;
-      ntimepoints = 0 ;
       do
       {
         if (fgetl(line, STRLEN-1, fp) == NULL)

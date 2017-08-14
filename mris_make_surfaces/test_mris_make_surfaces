@@ -1,0 +1,108 @@
+#!/bin/tcsh -f
+
+umask 002
+
+if ( $?SKIP_MRIS_MAKE_SURFACES_TEST ) then
+  exit 0
+endif
+
+
+foreach threads ( 1 8 )
+
+  # extract testing data
+
+  gunzip -c testdata.tar.gz | tar xvf -
+
+  cd testdata
+
+  setenv FREESURFER_HOME ../../distribution
+  setenv SUBJECTS_DIR `pwd`
+  setenv OMP_NUM_THREADS $threads
+  echo "testing with $threads thread(s)"
+
+
+  # ---- TEST 1 ----
+
+  # run mris_make_surfaces using typical input
+
+  set cmd=(../mris_make_surfaces \
+           -aseg aseg.presurf \
+           -white white.preaparc -noaparc \
+           -whiteonly -mgz -T1 brain.finalsurfs \
+           subject lh)
+
+  echo ""
+  echo $cmd
+  $cmd
+  if ($status != 0) then
+    echo "mris_make_surfaces FAILED"
+    exit 1
+  endif
+
+  # compare expected results with actual (produced) results
+
+  set TST = subject/surf/lh.white.preaparc
+  set REF = ${TST}.REF
+  set cmd=(../../mris_diff/mris_diff --debug $REF $TST );
+
+  echo ""
+  echo $cmd
+  $cmd
+  set diff_status=$status
+  if ($diff_status != 0) then
+    echo "$cmd FAILED (exit status=$diff_status)"
+    exit 1
+  endif
+
+
+  # ---- TEST 2 ----
+
+  # run mris_make_surfaces using typical input
+
+  set cmd=(../mris_make_surfaces \
+           -orig_white white.preaparc -orig_pial white.preaparc \
+           -aseg aseg.presurf -mgz -T1 brain.finalsurfs \
+           subject lh)
+
+  echo ""
+  echo $cmd
+  $cmd
+  if ($status != 0) then
+    echo "mris_make_surfaces FAILED"
+    exit 1
+  endif
+
+  # compare expected results with actual (produced) results
+
+  foreach surface ( white pial )
+
+    set TST = subject/surf/lh.$surface
+    set REF = ${TST}.REF
+    set cmd=(../../mris_diff/mris_diff --debug $REF $TST );
+
+    echo ""
+    echo $cmd
+    $cmd
+    set diff_status=$status
+    if ($diff_status != 0) then
+      echo "$cmd FAILED (exit status=$diff_status)"
+      exit 1
+    endif
+
+  end
+
+  echo ""
+  echo ""
+  echo ""
+
+
+  # cleanup
+
+  cd ..
+  rm -rf testdata
+
+  end
+
+echo ""
+echo "test_mris_make_surfaces passed all tests"
+exit 0

@@ -48,6 +48,7 @@
 #include <vtkTriangleFilter.h>
 #include <vtkSmartPointer.h>
 #include <vtkPointData.h>
+#include <QDebug>
 
 #define NUM_OF_SIDES  10  // must be even number!
 
@@ -70,7 +71,7 @@ LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : Laye
     double pos[3] = {0,0,0};
     pos[i] = 1e-4;
     if (i == 2)
-        pos[i] = -pos[i];
+      pos[i] = -pos[i];
     m_actorSplineSlice[i]->SetPosition(pos);
   }
   m_layerRef = ref;
@@ -94,8 +95,7 @@ LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : Laye
   connect(p, SIGNAL(ColorMapChanged()), this, SLOT(UpdateColorMap()));
   connect(p, SIGNAL(RadiusChanged(double)), this, SLOT(RebuildActors()));
   connect(p, SIGNAL(SplineRadiusChanged(double)), this, SLOT(RebuildActors()));
-  connect(p, SIGNAL(ScalarLayerChanged(LayerMRI*)), this, SLOT(RebuildActors()));
-  connect(p, SIGNAL(ScalarSetChanged()), this, SLOT(RebuildActors()));
+  connect(p, SIGNAL(ScalarChanged()), this, SLOT(RebuildActors()));
   connect(p, SIGNAL(SnapToVoxelCenterChanged(bool)), this, SLOT(UpdateSnapToVoxelCenter()));
   connect(p, SIGNAL(SplineVisibilityChanged(bool)), this, SLOT(UpdateSplineVisibility()));
 }
@@ -128,6 +128,7 @@ bool LayerPointSet::LoadFromFile( const QString& filename )
     }
   }
 
+  GetProperty()->SetStatRange(m_pointSetSource->GetMinStat(), m_pointSetSource->GetMaxStat());
   m_points.clear();
   m_pointSetSource->LabelToPointSet( m_points, m_layerRef->GetSourceVolume() );
   SetFileName( filename );
@@ -229,6 +230,8 @@ void LayerPointSet::Append2DProps( vtkRenderer* renderer, int nPlane )
 
 void LayerPointSet::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
 {
+  Q_UNUSED(renderer);
+  Q_UNUSED(bSliceVisibility);
   renderer->AddViewProp( m_actorSpline );
   renderer->AddViewProp( m_actorBalls );
 }
@@ -274,6 +277,7 @@ bool LayerPointSet::HasProp( vtkProp* prop )
 
 void LayerPointSet::OnSlicePositionChanged( int nPlane )
 {
+  Q_UNUSED(nPlane);
   RebuildActors( false );   // no need to rebuild 3D points
 }
 
@@ -289,28 +293,31 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
   // 3D
   MRI* mri = m_layerRef->GetSourceVolume()->GetMRITarget();
   double voxel_size[3] = { mri->xsize, mri->ysize, mri->zsize };
-// double* origin = m_layerRef->GetWorldOrigin();
+  // double* origin = m_layerRef->GetWorldOrigin();
   double scale = qMin( voxel_size[0], qMin( voxel_size[1], voxel_size[2] ) );
   double radius = GetProperty()->GetRadius();
 
-  vtkAppendPolyData* append = vtkAppendPolyData::New();
+  vtkSmartPointer<vtkAppendPolyData> append = vtkSmartPointer<vtkAppendPolyData>::New();
   vtkPoints* pts = vtkPoints::New();
   vtkCellArray* lines = vtkCellArray::New();
   lines->InsertNextCell( m_points.size() );
   for ( int i = 0; i < m_points.size(); i++ )
   {
-    vtkSphereSource* sphere = vtkSphereSource::New();
-    sphere->SetCenter( m_points[i].pt );
-    sphere->SetRadius( radius * scale );
-    sphere->SetThetaResolution( 10 );
-    sphere->SetPhiResolution( 20 );
-    append->AddInput( sphere->GetOutput() );
-    sphere->Delete();
+    if (radius > 0)
+    {
+      vtkSphereSource* sphere = vtkSphereSource::New();
+      sphere->SetCenter( m_points[i].pt );
+      sphere->SetRadius( radius * scale );
+      sphere->SetThetaResolution( 10 );
+      sphere->SetPhiResolution( 20 );
+      append->AddInput( sphere->GetOutput() );
+      sphere->Delete();
+    }
     pts->InsertNextPoint( m_points[i].pt );
     lines->InsertCellPoint( i );
   }
   vtkPolyDataMapper* mapper = vtkPolyDataMapper::New();
-  if ( m_points.size() > 0 )
+  if ( m_points.size() > 0 && radius > 0 )
   {
     mapper->SetInput( append->GetOutput() );
   }
@@ -318,7 +325,6 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
   {
     mapper->SetInput( vtkSmartPointer<vtkPolyData>::New() );
   }
-  append->Delete();
   m_actorBalls->SetMapper( mapper );
   mapper->Delete();
 
@@ -336,6 +342,8 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
     }
     if ( m_points.size() > 1 )
     {
+      polydata->Update();
+      UpdateScalars(polydata);
       spline->SetInput( polydata );
       vtkTubeFilter* tube = vtkTubeFilter::New();
       tube->SetNumberOfSides( NUM_OF_SIDES );
@@ -346,7 +354,6 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
       tube->Update();
       polydata_tube = tube->GetOutput();
       m_actorSpline->SetMapper( m_mapper );
-      UpdateScalars();
       tube->Delete();
     }
     polydata->Delete();
@@ -364,7 +371,7 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
     int n = 0;
     for ( int j = 0; j < m_points.size(); j++ )
     {
-      if ( fabs( m_dSlicePosition[i] - m_points[j].pt[i] ) < ( voxel_size[i] / 2 ) )
+      if ( radius > 0 && fabs( m_dSlicePosition[i] - m_points[j].pt[i] ) < ( voxel_size[i] / 2 ) )
       {
         vtkSphereSource* sphere = vtkSphereSource::New();
         double point[3] = { m_points[j].pt[0], m_points[j].pt[1], m_points[j].pt[2] };
@@ -379,7 +386,7 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
         plane->SetNormal( i==0?1:0, i==1?1:0, i==2?1:0 );
 
         vtkSmartPointer<vtkCutter> cutter =
-          vtkSmartPointer<vtkCutter>::New();
+            vtkSmartPointer<vtkCutter>::New();
         cutter->SetInputConnection( sphere->GetOutputPort() );
         cutter->SetCutFunction( plane );
 
@@ -418,7 +425,7 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
       plane->SetNormal( i==0?1:0, i==1?1:0, i==2?1:0 );
 
       vtkSmartPointer<vtkCutter> cutter =
-        vtkSmartPointer<vtkCutter>::New();
+          vtkSmartPointer<vtkCutter>::New();
       cutter->SetInput(polydata_tube);
       cutter->SetCutFunction( plane );
 
@@ -429,6 +436,7 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
       vtkSmartPointer<vtkPolyData> cutpoly = vtkSmartPointer<vtkPolyData>::New();
       cutpoly->SetPoints( stripper->GetOutput()->GetPoints() );
       cutpoly->SetPolys( stripper->GetOutput()->GetLines() );
+      cutpoly->GetPointData()->SetScalars(stripper->GetOutput()->GetPointData()->GetScalars());
 
       vtkSmartPointer<vtkTriangleFilter> triangleFilter = vtkSmartPointer<vtkTriangleFilter>::New();
       triangleFilter->SetInput( cutpoly );
@@ -440,48 +448,51 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
     }
   }
 
+  UpdateColorMap();
+
   if ( !bRebuild3D )
   {
     blockSignals(false);
     return;
   }
 
-
-  UpdateColorMap();
   UpdateOpacity();
 
   blockSignals(false);
   emit ActorUpdated();
 }
 
-void LayerPointSet::UpdateScalars()
+void LayerPointSet::UpdateScalars(vtkPolyData* polydata)
 {
-  if ( 1 )
+  if ( true )
   {
     LayerMRI* layer = GetProperty()->GetScalarLayer();
-    vtkPolyData* polydata = m_mapper->GetInput();
     vtkPoints* pts = polydata->GetPoints();
     int nPts = pts->GetNumberOfPoints();
     vtkFloatArray* scalars = vtkFloatArray::New();
     scalars->SetNumberOfValues( nPts );
-    double pt[3] = { 0, 0, 0 };
+//    double pt[3] = { 0, 0, 0 };
     double val = 0;
     for ( int i = 0; i < nPts; i++ )
     {
-      if ( (i%NUM_OF_SIDES) == 0 )
+      if ( true ) // (i%NUM_OF_SIDES) == 0 )
       {
-        double* p1 = pts->GetPoint( i );
-        double* p2 = pts->GetPoint( i + NUM_OF_SIDES/2 );
-        pt[0] = ( p1[0] + p2[0] ) / 2;
-        pt[1] = ( p1[1] + p2[1] ) / 2;
-        pt[2] = ( p1[2] + p2[2] ) / 2;
+//        double* p1 = pts->GetPoint( i );
+//        double* p2 = pts->GetPoint( i + NUM_OF_SIDES/2 );
+//        pt[0] = ( p1[0] + p2[0] ) / 2;
+//        pt[1] = ( p1[1] + p2[1] ) / 2;
+//        pt[2] = ( p1[2] + p2[2] ) / 2;
         if ( layer && GetProperty()->GetScalarType() == LayerPropertyPointSet::ScalarLayer )
         {
-          val = layer->GetVoxelValue( pt );
+          val = layer->GetVoxelValue( pts->GetPoint(i) );
         }
         else if ( GetProperty()->GetScalarType() == LayerPropertyPointSet::ScalarSet )
         {
-          val = GetProperty()->GetActiveScalarSet().dValue[i/NUM_OF_SIDES];
+          val = GetProperty()->GetActiveScalarSet().dValue[i];
+        }
+        else
+        {
+          val = m_points[i].value;
         }
       }
       scalars->SetValue( i, val );
@@ -515,7 +526,7 @@ int LayerPointSet::FindPoint( double* ras, double tolerance )
 // returns index of the point
 int LayerPointSet::AddPoint( double* ras_in, double value )
 {
-// cout << ras[0] << " " << ras[1] << " " << ras[2] << endl;
+  // cout << ras[0] << " " << ras[1] << " " << ras[2] << endl;
   double ras[3];
   if ( GetProperty()->GetSnapToVoxelCenter() )
   {
@@ -617,6 +628,7 @@ int LayerPointSet::AddPoint( double* ras_in, double value )
 
 bool LayerPointSet::RemovePoint( double* ras, double tolerance )
 {
+  Q_UNUSED(tolerance);
   return RemovePoint( FindPoint( ras ) );
 }
 
@@ -682,7 +694,7 @@ void LayerPointSet::UpdateColorMap()
 {
   for ( int i = 0; i < 3; i++ )
   {
-    m_actorSlice[i]->GetProperty()->SetColor( GetProperty()->GetColor() );  
+    m_actorSlice[i]->GetProperty()->SetColor( GetProperty()->GetColor() );
     m_actorSplineSlice[i]->GetProperty()->SetColor( GetProperty()->GetSplineColor() );
   }
 
@@ -693,10 +705,26 @@ void LayerPointSet::UpdateColorMap()
   case LayerPropertyPointSet::SolidColor:
     m_mapper->ScalarVisibilityOff();
     m_actorSpline->GetProperty()->SetColor( GetProperty()->GetSplineColor() );
+    if (m_actorSplineSlice[0]->GetMapper())
+    {
+      for (int i = 0; i < 3; i++)
+      {
+        m_actorSplineSlice[i]->GetMapper()->ScalarVisibilityOff();
+        m_actorSplineSlice[i]->GetProperty()->SetColor(GetProperty()->GetSplineColor());
+      }
+    }
     break;
   case LayerPropertyPointSet::HeatScale:
     m_mapper->ScalarVisibilityOn();
     m_mapper->SetLookupTable( GetProperty()->GetHeatScaleLUT() );
+    if (m_actorSplineSlice[0]->GetMapper())
+    {
+      for (int i = 0; i < 3; i++)
+      {
+        m_actorSplineSlice[i]->GetMapper()->ScalarVisibilityOn();
+        m_actorSplineSlice[i]->GetMapper()->SetLookupTable( GetProperty()->GetHeatScaleLUT() );
+      }
+    }
     break;
   }
   emit ActorUpdated();
@@ -704,6 +732,9 @@ void LayerPointSet::UpdateColorMap()
 
 bool LayerPointSet::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
 {
+  Q_UNUSED(rotations);
+  Q_UNUSED(wnd);
+  Q_UNUSED(event);
   m_points.clear();
   m_pointSetSource->LabelToPointSet( m_points, m_layerRef->GetSourceVolume() );
   RebuildActors();

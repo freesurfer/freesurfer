@@ -71,8 +71,10 @@ example* , bugs* , reporting* , references* , see-also*)*>
       <explanation>Do not use the intensity volumes in the volumetric registration pipeline (default is 0). Setting this option could shorten significantly the time of registration. It also indicates that the intensity values are not to be trusted during the registration.</explanation>
       <argument>--hemi</argument>
       <explanation>Run the CVS registration only one of the hemispheres. For example, in case of single hemisphere ex-vivo cases.</explanation>
-      <argument>--useonlyhemiinvivomov</argument>
-      <explanation>Use this possibly with the --hemi option. If the invivo scan is th moving subject, this would mask out the appropriate hemisphere in order to avoid strange artifacts resulting from moving a full brain to a single hemisphere. (The other way around it should not be a problem.) </explanation>
+      <argument>--masktargethemi</argument>
+      <explanation>Use this with the --hemi option when hemi is registered to full brain (invivo) target. This will mask out the appropriate hemisphere in the target in order to avoid strange artifacts resulting from registering a single hemi to a full brain. </explanation>
+      <argument>--maskmovinghemi</argument>
+      <explanation>Use this with the --hemi option when full (invivo) brain is registered to single hemi (exvivo) target. This will mask out the appropriate hemisphere in the moving volume in order to avoid strange artifacts resulting from registering a full brain to a single hemisphere. </explanation>
 
 
       <intro>Cleanup Arguments</intro>

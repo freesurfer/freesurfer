@@ -24,10 +24,12 @@ browse-minc-header.tcl \
 bugr \
 build_desikan_killiany_gcs.csh \
 cblumwmgyri \
+check_recons.sh \
 check_subject \
 clear_fs_env.csh \
 compute_interrater_variability.csh \
 compute_label_volumes.csh \
+compute_label_vals.csh \
 cor_to_minc \
 cp-dicom \
 cuda_setup \
@@ -41,6 +43,7 @@ dmrirc.example \
 dmrirc.long.example \
 dsh \
 dt_recon \
+easyfv \
 epidewarp.fsl\
 extract_talairach_avi_QA.awk \
 feat2surf \
@@ -182,6 +185,7 @@ parc_atlas_jackknife_test \
 petsc_setup \
 plot_structure_stats.tcl \
 print_unique_labels.csh \
+process_exvivo_diff_data_bay3.sh \
 progressbar.tcl \
 fsr-checkxopts \
 fsr-getxopts \
@@ -190,6 +194,7 @@ rbbr \
 rcbf-prep \
 rebuild_gca_atlas.csh \
 recon-all \
+recon-all-exvivo \
 recon-all.makefile \
 reg-feat2anat \
 register_child \
@@ -211,6 +216,7 @@ reregister_subject_mixed \
 rmcr \
 rtview \
 run-qdec-glm \
+samseg2recon \
 segment_monkey \
 segment_subject \
 segment_subject_notal \

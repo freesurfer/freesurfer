@@ -301,14 +301,12 @@ double LineProf::pointDistance(const std::vector < double >& pt1,
   return std::sqrt(dsum);
 }
 
-
-
-
-int LineProf::InitializePetsc()
+int LineProf::InitializePetsc(bool DoNotExitOnError)
 {
   PetscInitialize(0, 0,(char*)0,NULL);
   PetscMPIInt mpiSize;
   MPI_Comm_size(PETSC_COMM_WORLD, &mpiSize);
+  Tracer::DoNotExitOnError = DoNotExitOnError;
   return 1;
 }
 

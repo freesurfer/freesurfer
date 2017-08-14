@@ -28,7 +28,7 @@ public:
     //std::cout << "I am " << this->GetNameOfClass() 
     //          << " and I'm running! " << std::endl;
               
-    // kvlSmoothMesh( mesh, sigma )
+    // kvlSmoothMesh( mesh, sigma(s) )
               
     // Make sure input arguments are correct
     if ( ( nrhs != 2 ) || !mxIsDouble( prhs[ 1 ] ) )
@@ -48,10 +48,34 @@ public:
     kvl::AtlasMesh::Pointer  mesh
             = const_cast< kvl::AtlasMesh* >( constMesh.GetPointer() );
 
-    const double sigma = *( mxGetPr( prhs[ 1 ] ) );
-  
+    double  sigmas[ 3 ];
+    double*  tmp = mxGetPr( prhs[ 1 ] );
+    const int  numberOfRows = *( mxGetDimensions( prhs[ 1 ] ) );
+    const int  numberOfColumns = *( mxGetDimensions( prhs[ 1 ] ) + 1 );
+    //std::cout << "numberOfRows: " << numberOfRows << std::endl;
+    //std::cout << "numberOfColumns: " << numberOfColumns << std::endl;
+    if ( ( numberOfRows * numberOfColumns ) == 1 )
+      {
+      for ( int i = 0; i < 3; i++ )
+        {
+        sigmas[ i ] = *tmp;
+        }
+        
+      }
+    else if ( ( numberOfRows * numberOfColumns ) == 3 )
+      {
+      for ( int i = 0; i < 3; i++, tmp++ )
+        {
+        sigmas[ i ] = *tmp;
+        }
+      }
+    else
+      {
+      mexErrMsgTxt( "Sigma(s) must be 1- or 3-dimensional" );
+      }
+
+    
     //std::cout << "mesh: " << mesh.GetPointer() << std::endl;
-    //std::cout << "sigma: " << sigma << std::endl;
 
     // Construct a tempory mesh collection
     kvl::AtlasMeshCollection::Pointer  collection = kvl::AtlasMeshCollection::New();
@@ -60,7 +84,7 @@ public:
     // Smooth
     kvl::AtlasMeshSmoother::Pointer  smoother = kvl::AtlasMeshSmoother::New();
     smoother->SetMeshCollection( collection );
-    smoother->SetSigma( sigma );
+    smoother->SetSigmas( sigmas[ 0 ], sigmas[ 1 ], sigmas[ 2 ] );
     kvl::AtlasMeshCollection::ConstPointer smoothedMeshCollection = smoother->GetSmoothedMeshCollection().GetPointer();
 
     // Set the alphas of the mesh to the smoothed version

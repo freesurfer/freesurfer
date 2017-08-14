@@ -266,6 +266,9 @@ typedef struct
   MRI *dmin;  // Image of start distance (cut off)
   MRI *nd;    // Image of number of samples
 } MOTIONBLUR2D, MB2D;
+
+
+
 MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out);
 int MB2Dfree(MB2D **pmb);
 MB2D *MB2Dcopy(MB2D *src, int CopyMRI, MB2D *copy);
@@ -1493,6 +1496,7 @@ double MRIcomputeLabelAccuracy(MRI *mri_src, MRI *mri_ref,
 double MRIcomputeMeanMinLabelDistance(MRI *mri_src, MRI *mri_ref, int label) ;
 int MRIcomputeLabelCentroid(MRI *mri_aseg, int label,
 														double *pxc, double *pyc, double *pzc) ;
+  int MRIkarcherMean(MRI *mri, float low_val, float hi_val, int *px, int *py, int *pz) ;
 int MRIcomputeCentroid(MRI *mri, double *pxc, double *pyc, double *pzc) ;
 MRI *MRIdivideAseg(MRI *mri_src, MRI *mri_dst, int label, int nunits);
 int MRIgeometryMatched(MRI *mri1, MRI *mri2) ;

@@ -6,16 +6,16 @@
 #include "LayerROI.h"
 
 DialogLabelStats::DialogLabelStats(QWidget *parent) :
-    QWidget(parent),
-    ui(new Ui::DialogLabelStats)
+  QWidget(parent),
+  ui(new Ui::DialogLabelStats)
 {
-    ui->setupUi(this);
-    setWindowFlags(Qt::Dialog);
+  ui->setupUi(this);
+  setWindowFlags(Qt::Dialog);
 }
 
 DialogLabelStats::~DialogLabelStats()
 {
-    delete ui;
+  delete ui;
 }
 
 void DialogLabelStats::UpdateStats()

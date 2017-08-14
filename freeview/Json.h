@@ -8,17 +8,17 @@
 class Json
 {
 public:
-    Json();
+  Json();
 
-    QString encode(const QVariantMap &map);
+  QString encode(const QVariantMap &map);
 
-    QVariantMap decode(const QString &jsonStr);
+  QVariantMap decode(const QString &jsonStr);
 
-    QScriptValue encodeInner(const QVariantMap &map, QScriptEngine* engine);
+  QScriptValue encodeInner(const QVariantMap &map, QScriptEngine* engine);
 
-    QVariantMap decodeInner(QScriptValue object);
+  QVariantMap decodeInner(QScriptValue object);
 
-    QList<QVariant> decodeInnerToList(QScriptValue arrayValue);
+  QList<QVariant> decodeInnerToList(QScriptValue arrayValue);
 };
 
 #endif // JSON_H

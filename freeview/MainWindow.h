@@ -253,8 +253,8 @@ public slots:
   void SyncZoom(bool bSync);
   void SetUseCommandControl(bool b);
   void SetUnifiedTitleAndToolBar(bool b);
-//  void ShowAllLayers();
-//  void HideAllLayers();
+  //  void ShowAllLayers();
+  //  void HideAllLayers();
   bool ParseCommand(const QString& cmd, bool bAutoQuit = false);
   bool ParseCommand(MyCmdLineParser* parser, const QString& cmd, bool bAutoQuit = false);
 
@@ -296,7 +296,7 @@ protected:
                     const QString& reg_fn = "",
                     bool Resample = true );
   void LoadVolumeTrackFile( const QString& fn,
-                    bool Resample = false );
+                            bool Resample = false );
 
   void LoadSurfaceFile( const QString& filename,
                         const QString& fn_patch = "",
@@ -381,6 +381,8 @@ protected:
   void CommandSetSmoothed       ( const QStringList& cmd );
   void CommandGoToLabel         ( const QStringList& cmd );
   void CommandSaveLayer         ( const QStringList& cmd );
+  void CommandSetTrackColor     ( const QStringList& cmd );
+  void CommandSetTrackRender    ( const QStringList& cmd );
 
 public:
   void CommandSetCamera         ( const QStringList& cmd );
@@ -515,6 +517,8 @@ protected slots:
 
   void ReorderLayers(const QList<Layer*>& layers);
 
+  void OnLoadSurfaceLabelRequested(const QString& fn);
+
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);
   void SaveSettings();
@@ -527,8 +531,11 @@ private:
   bool UpdateSurfaceCorrelation(LayerSurface* layer);
   void ShowNonModalMessage(const QString& title, const QString& msg);
   void LoadConnectomeMatrixFile(const QString& fn_cmat, const QString& fn_parcel, const QString& fn_ctab);
+  void GoToContralateralPoint(LayerSurface* layer);
 
   QColor ParseColorInput(const QString& cmd);
+
+  void LoadSphereLeftRightIfNeeded(LayerSurface* layer);
 
   int m_nViewLayout;
   int m_nMainView;
@@ -538,7 +545,7 @@ public:
 
 private:
   RenderView*   m_views[4];
-//  LayerCollectionManager*   m_layerCollectionManager;
+  //  LayerCollectionManager*   m_layerCollectionManager;
   QMap<QString, LayerCollection*> m_layerCollections;
   BrushProperty*    m_propertyBrush;
   bool              m_bResampleToRAS;

@@ -153,8 +153,8 @@ void Region2DPolyline::Update()
   mapper->SetTransformCoordinate( coords );
   m_actorPoints->SetMapper( mapper );
 
-//  m_actorText->SetInput( GetShortStats().c_str() );
-//  double mid_pt[3];
+  //  m_actorText->SetInput( GetShortStats().c_str() );
+  //  double mid_pt[3];
   m_actorText->SetPosition( pts->GetPoint( 0 ) );
   UpdateStats();
 }

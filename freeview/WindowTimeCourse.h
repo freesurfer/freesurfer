@@ -28,7 +28,7 @@
 #include <QWidget>
 
 namespace Ui {
-    class WindowTimeCourse;
+class WindowTimeCourse;
 }
 
 class LayerMRI;
@@ -37,26 +37,33 @@ class SurfaceOverlay;
 
 class WindowTimeCourse : public QWidget
 {
-    Q_OBJECT
+  Q_OBJECT
 
 public:
-    explicit WindowTimeCourse(QWidget *parent = 0);
-    ~WindowTimeCourse();
+  explicit WindowTimeCourse(QWidget *parent = 0);
+  ~WindowTimeCourse();
+
+  void showEvent(QShowEvent* e);
 
 public slots:
-    void UpdateData();
-    void OnFrameChanged(int n);
-    void SetCurrentFrame(int n);
-    void OnLayerCorrelationSurfaceChanged();
+  void UpdateData(bool bForce = false);
+  void OnFrameChanged(int n);
+  void SetCurrentFrame(int n);
+  void OnLayerCorrelationSurfaceChanged();
+  void OnLineEditScaleReturnPressed();
+  void OnCheckAutoScale(bool bChecked);
+  void OnCheckMaxScale(bool bChecked);
+  void UpdateScaleInfo();
 
 signals:
-    void FrameChanged(int frame);
+  void FrameChanged(int frame);
 
 private:
-    Ui::WindowTimeCourse *ui;
-    LayerMRI*     lastMRI;
-    LayerSurface* lastSurface;
-    SurfaceOverlay* lastOverlay;
+
+  Ui::WindowTimeCourse *ui;
+  LayerMRI*     lastMRI;
+  LayerSurface* lastSurface;
+  SurfaceOverlay* lastOverlay;
 };
 
 #endif // WINDOWTIMECOURSE_H

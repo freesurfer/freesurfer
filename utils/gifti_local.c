@@ -662,6 +662,9 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
       mris->hemisphere = NO_HEMISPHERE;
     }
 
+    /* gifti uses real RAS by default */
+    mris->useRealRAS = 1;
+
     /* retrieve volume geometry info */
     {
       int vgvalid = 0; // there are a total of 18 values
@@ -1390,6 +1393,12 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
   {
     mri = MRIallocHeader(num_vertices,1,1,MRI_FLOAT,frame_count);
     mri->nframes = frame_count;
+    // not sure this is the best way to do this (dng, 4/4/17)
+    if(image->numDA > 0){
+      char *stmp = gifti_get_meta_value(&image->darray[0]->meta,"TimeStep");
+      if(stmp)
+	sscanf(stmp,"%f",&mri->tr);
+    }
     return(mri);
   }
 
@@ -1412,6 +1421,13 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
     }
     //printf("frame #%d\n",frame_count);
     frame_count++;
+  }
+
+  // not sure this is the best way to do this (dng, 4/4/17)
+  if(image->numDA > 0){
+    char *stmp = gifti_get_meta_value(&image->darray[0]->meta,"TimeStep");
+    if(stmp)
+      sscanf(stmp,"%f",&mri->tr);
   }
 
   /* And we're done. */
@@ -2232,7 +2248,6 @@ int mriWriteGifti(MRI* mri, const char *out_fname)
 
   /* include some metadata describing this thing */
   insertCommonMetaData(&image->meta);
-
   /* -------------------------------------------------------
    * One DataArray for each 'frame' in the 'volume' data
    */

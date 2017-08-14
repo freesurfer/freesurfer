@@ -6,15 +6,15 @@
 #include <QMessageBox>
 
 DialogVolumeSegmentation::DialogVolumeSegmentation(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DialogVolumeSegmentation)
+  QDialog(parent),
+  ui(new Ui::DialogVolumeSegmentation)
 {
-    ui->setupUi(this);
+  ui->setupUi(this);
 }
 
 DialogVolumeSegmentation::~DialogVolumeSegmentation()
 {
-    delete ui;
+  delete ui;
 }
 
 void DialogVolumeSegmentation::OnButtonRestore()
@@ -67,7 +67,7 @@ bool DialogVolumeSegmentation::ValidateInput()
 void DialogVolumeSegmentation::UpdateVolumes()
 {
   QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
-  LayerMRI* src = NULL, *target = NULL;
+  LayerMRI* src = NULL;
   if ( ui->comboBoxVolume->currentIndex() >= 0)
     src = qobject_cast<LayerMRI*>(ui->comboBoxVolume->itemData(ui->comboBoxVolume->currentIndex()).value<QObject*>());
   ui->comboBoxVolume->clear();

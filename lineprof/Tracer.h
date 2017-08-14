@@ -46,6 +46,8 @@ class Tracer
   LineType ComputeMidline() const;
   LineType ComputeIsoline(double dval) const;
   LineType ComputeProfile(double x, double y) const;
+
+  static bool DoNotExitOnError;
   
  private:
   typedef ImageSOType::OutputVectorType VectorType;

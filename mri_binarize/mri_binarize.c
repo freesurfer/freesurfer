@@ -96,6 +96,12 @@ values. binvalnot only applies when a merge volume is NOT specified.
 Replace every occurrence of (int) value V1 with value V2. Multiple 
 --replace args are possible.
 
+--replaceonly V1 V2
+
+Replace every occurrence of (int) value V1 with value V2. Multiple 
+--replace args are possible. Other locations in the source volume will be propagated 
+to the output (unlike --replace which masks those locations)
+
 --frame frameno
 
 Use give frame of the input. 0-based. Default is 0.
@@ -109,6 +115,10 @@ Sum the frames together before applying threshold.
 Treat the multi-frame volume as binary 'AND' the frames together. This
 takes an intersection of the individual frames. You do not need to 
 specify a --min (the min will be set to nframes-0.5).
+
+--copy copyvol
+
+copy values from copyvol into the output, except where replaceval is matched
 
 --merge mergevol
 
@@ -182,6 +192,7 @@ double round(double x);
 #include "surfcluster.h"
 #include "randomfields.h"
 #include "cma.h"
+#include "region.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -202,6 +213,7 @@ struct utsname uts;
 char *InVolFile=NULL;
 char *OutVolFile=NULL;
 char *MergeVolFile=NULL;
+char *CopyVolFile=NULL;
 char *MaskVolFile=NULL;
 double MinThresh, MaxThresh;
 int MinThreshSet=0, MaxThreshSet=0;
@@ -224,7 +236,7 @@ int nMatch = 0;
 int MatchValues[1000];
 int Matched = 0;
 
-MRI *InVol,*OutVol,*MergeVol,*MaskVol=NULL;
+MRI *InVol,*OutVol,*MergeVol,*MaskVol=NULL, *CopyVol;
 double MaskThresh = 0.5;
 
 int nErode2d = 0;
@@ -243,9 +255,14 @@ int FDRSign = 0;
 
 int nErodeNN=0, NNType=0;
 
+static int replace_only = 0 ;
 int nReplace = 0, SrcReplace[1000], TrgReplace[1000];
 char *SurfFile=NULL;
 int nsmoothsurf=0;
+
+int noverbose = 0;
+int DoBB = 0, nPadBB=0;
+int DoCount = 1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -255,7 +272,7 @@ int main(int argc, char *argv[]) {
   FILE *fp;
   MRI *mritmp;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handle_version_option(argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
@@ -271,7 +288,8 @@ int main(int argc, char *argv[]) {
   parse_commandline(argc, argv);
   check_options();
   if (checkoptsonly) return(0);
-  dump_options(stdout);
+  if (noverbose == 0)
+    dump_options(stdout);
 
   // Load the input volume
   InVol = MRIread(InVolFile);
@@ -371,6 +389,23 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  if (CopyVolFile) {
+    CopyVol = MRIread(CopyVolFile);
+    if (CopyVol==NULL) exit(1);
+    if (CopyVol->width != InVol->width) {
+      printf("ERROR: dimension mismatch between input and merge volumes\n");
+      exit(1);
+    }
+    if (CopyVol->height != InVol->height) {
+      printf("ERROR: dimension mismatch between input and merge volumes\n");
+      exit(1);
+    }
+    if (CopyVol->depth != InVol->depth) {
+      printf("ERROR: dimension mismatch between input and merge volumes\n");
+      exit(1);
+    }
+  }
+
   if(DoPercent) {
     printf("Computing threshold based on top %g percent\n",TopPercent);
     MinThresh = MRIpercentThresh(InVol, MaskVol, frame, TopPercent);
@@ -386,7 +421,8 @@ int main(int argc, char *argv[]) {
     fend = frame;
   }
   nframes = fend - fstart + 1;
-  printf("fstart = %d, fend = %d, nframes = %d\n",fstart,fend,nframes);
+  if (noverbose == 0)
+    printf("fstart = %d, fend = %d, nframes = %d\n",fstart,fend,nframes);
 
   // Prepare the output volume
   mriType = MRI_INT;
@@ -460,12 +496,26 @@ int main(int argc, char *argv[]) {
   } // if(nReplace == 0)
 
   if(nReplace != 0){
-    printf("Replacing %d\n",nReplace);
-    for(n=0; n < nReplace; n++) printf("%2d:  %4d %4d\n",n+1,SrcReplace[n],TrgReplace[n]);
-    OutVol = MRIreplaceList(InVol, SrcReplace, TrgReplace, nReplace, MaskVol, NULL);
+    if (replace_only)
+    {
+      printf("Replacing %d and propagating source list\n",nReplace);
+      OutVol = MRIcopy(InVol, NULL) ;
+      for(n=0; n < nReplace; n++) 
+      {
+	printf("%2d:  %4d %4d\n",n+1,SrcReplace[n],TrgReplace[n]);
+	MRIreplaceValues(OutVol, OutVol, SrcReplace[n], TrgReplace[n]);
+      }
+    }
+    else
+    {
+      printf("Replacing %d\n",nReplace);
+      for(n=0; n < nReplace; n++) printf("%2d:  %4d %4d\n",n+1,SrcReplace[n],TrgReplace[n]);
+      OutVol = MRIreplaceList(InVol, SrcReplace, TrgReplace, nReplace, MaskVol, NULL);
+    }
   }
 
-  printf("Found %d values in range\n",nhits);
+  if (noverbose == 0) 
+    printf("Found %d values in range\n",nhits);
 
   if(nDilate3d > 0){
     printf("Dilating %d voxels in 3d\n",nDilate3d);
@@ -488,23 +538,38 @@ int main(int argc, char *argv[]) {
     }
     MRIfree(&mritmp);
   }
-  
-  printf("Counting number of voxels in first frame\n");
-  nhits = 0;
-  for (c=0; c < OutVol->width; c++) {
-    for (r=0; r < OutVol->height; r++) {
-      for (s=0; s < OutVol->depth; s++) {
-	// Get the value at this voxel
-        val = MRIgetVoxVal(OutVol,c,r,s,0);
-	if(fabs(val-BinVal) < .00001) nhits ++;
-      } // slice
-    } // row
-  } // col
-  printf("Found %d voxels in final mask\n",nhits);
+
+  nhits = -1;
+  if(DoCount){
+    if(noverbose == 0) printf("Counting number of voxels in first frame\n");
+    for (c=0; c < OutVol->width; c++) {
+      for (r=0; r < OutVol->height; r++) {
+	for (s=0; s < OutVol->depth; s++) {
+	  // Get the value at this voxel
+	  val = MRIgetVoxVal(OutVol,c,r,s,0);
+	  if(fabs(val-BinVal) < .00001) nhits ++;
+	} // slice
+      } // row
+    } // col
+    if(noverbose == 0)  printf("Found %d voxels in final mask\n",nhits);
+  }
 
   if(DoBinCol){
     printf("Filling mask with column number\n");
     MRIbinMaskToCol(OutVol, OutVol);
+  }
+
+  if(DoBB){
+    // reduce volume to a smaller volume by reducing to a bounding box 
+    // around non-zero voxels
+    printf("Computing bounding box, npad = %d\n",nPadBB);
+    MRI_REGION *region;
+    region = REGIONgetBoundingBox(OutVol,nPadBB);
+    REGIONprint(stdout, region);
+    mritmp = MRIextractRegion(OutVol, NULL, region);
+    if(mritmp == NULL) exit(1);
+    MRIfree(&OutVol);
+    OutVol = mritmp;
   }
 
   // Save output
@@ -520,7 +585,9 @@ int main(int argc, char *argv[]) {
 
   nvox = OutVol->width * OutVol->height * OutVol->depth;
   voxvol = OutVol->xsize * OutVol->ysize * OutVol->zsize;
-  printf("Count: %d %lf %d %lf\n",nhits,nhits*voxvol,nvox,(double)100*nhits/nvox);
+  if (noverbose == 0)
+    printf("Count: %d %lf %d %lf\n",nhits,nhits*voxvol,nvox,(double)100*nhits/nvox);
+
   if(CountFile){
     fp = fopen(CountFile,"w");
     if(fp == NULL){
@@ -531,7 +598,9 @@ int main(int argc, char *argv[]) {
     fclose(fp);
   }
 
-  printf("mri_binarize done\n");
+  if (noverbose == 0)
+    printf("mri_binarize done\n");
+
   exit(0);
 }
 /* --------------------------------------------- */
@@ -555,12 +624,14 @@ static int parse_commandline(int argc, char **argv) {
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--noverbose"))   noverbose = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--abs")) DoAbs = 1;
     else if (!strcasecmp(option, "--neg")) DoNeg = 1;
     else if (!strcasecmp(option, "--bincol")) DoBinCol = 1;
     else if (!strcasecmp(option, "--uchar")) mriTypeUchar = 1;
+    else if (!strcasecmp(option, "--no-count")) DoCount = 0;
     else if (!strcasecmp(option, "--zero-edges")){
       ZeroColEdges = 1;
       ZeroRowEdges = 1;
@@ -679,6 +750,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       MergeVolFile = pargv[0];
       nargsused = 1;
+    } else if (!strcasecmp(option, "--copy")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      CopyVolFile = pargv[0];
+      nargsused = 1;
     } else if (!strcasecmp(option, "--mask")) {
       if (nargc < 1) CMDargNErr(option,1);
       MaskVolFile = pargv[0];
@@ -723,13 +798,28 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--fdr-neg")) FDRSign = -1;
     else if (!strcasecmp(option, "--fdr-abs")) FDRSign =  0; //default
 
+    else if (!strcasecmp(option, "--bb")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nPadBB);
+      DoBB = 1;
+      nargsused = 1;
+    }    
     else if (!strcasecmp(option, "--replace")) {
       if(nargc < 2) CMDargNErr(option,2);
       sscanf(pargv[0],"%d",&SrcReplace[nReplace]);
       sscanf(pargv[1],"%d",&TrgReplace[nReplace]);
       nReplace++;
       nargsused = 2;
-    }    else if (!strcasecmp(option, "--binval")) {
+    }    
+    else if (!strcasecmp(option, "--replaceonly")) {
+      if(nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%d",&SrcReplace[nReplace]);
+      sscanf(pargv[1],"%d",&TrgReplace[nReplace]);
+      replace_only = 1 ;
+      nReplace++;
+      nargsused = 2;
+    }    
+    else if (!strcasecmp(option, "--binval")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&BinVal);
       nargsused = 1;
@@ -825,6 +915,7 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcasecmp(option, "--count")) {
       if (nargc < 1) CMDargNErr(option,1);
       CountFile = pargv[0];
+      DoCount = 1;
       nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
@@ -856,6 +947,7 @@ static void print_usage(void) {
   printf("   --fdr fdrthresh : compute min based on FDR (assuming -log10(p) input)\n");
   printf("     --fdr-pos, --fdr-neg, --fdr-abs (use only pos, neg, or abs; abs is default)\n");
   printf("   --match matchval <matchval2 ...>  : match instead of threshold\n");
+  printf("   --replaceonly V1 V2 : replace voxels=V1 with V2 and propagate other src voxels instead of binarizing\n");
   printf("   --replace V1 V2 : replace voxels=V1 with V2\n");
   printf("   --ctx-wm : set match vals to 2, 41, 77, 251-255 (aseg for cerebral WM)\n");
   printf("   --all-wm : set match vals to 2, 41, 77, 251-255, 7, and 46, (aseg for all WM)\n");
@@ -866,6 +958,7 @@ static void print_usage(void) {
   printf("   \n");
   printf("   --o outvol : output volume \n");
   printf("   --count countfile : save number of hits in ascii file (hits,ntotvox,pct)\n");
+  printf("   --no-count : turn off counting number of voxels in the first frame -- good for large volumes\n");
   printf("   \n");
   printf("   --binval    val    : set vox within thresh to val (default is 1) \n");
   printf("   --binvalnot notval : set vox outside range to notval (default is 0) \n");
@@ -886,8 +979,10 @@ static void print_usage(void) {
   printf("   --erode-face   nerode: erode binarization using 'face' nearest neighbors\n");
   printf("   --erode-edge   nerode: erode binarization using 'edge' nearest neighbors\n");
   printf("   --erode-corner nerode: erode binarization using 'corner' nearest neighbors (same as --erode)\n");
+  printf("   --bb npad : reduce dim of output to the minimum volume of non-zero voxels with npad boundary\n");
   printf("   --surf surfname : create a surface mesh from the binarization\n");
   printf("   --surf-smooth niterations : iteratively smooth the surface mesh\n");
+  printf("   --noverbose (default *verbose*) \n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -913,6 +1008,8 @@ printf("--min min\n");
 printf("--max max\n");
 printf("--rmin rmin\n");
 printf("--rmax rmax\n");
+printf("\n");
+printf("--noverbose (default is *verbose*) \n");
 printf("\n");
 printf("Minimum and maximum thresholds. If the value at a voxel is >= min and\n");
 printf("<= max, then its value in the output will be 1 (or --binval),\n");

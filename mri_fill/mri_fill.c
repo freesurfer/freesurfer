@@ -106,11 +106,14 @@ static char vcid[] =
 /*-------------------------------------------------------------------
   GLOBAL DATA
   -------------------------------------------------------------------*/
+static MRI * MRIreplaceCCwithWM(MRI *mri_src, MRI *mri_dst)  ;
+
 MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg);
 
 static int find_rh_seed_point(MRI *mri,
                               int *prh_vol_x, int *prh_vol_y, int *prh_vol_z) ;
 static int mri_erase_nonmidline_voxels(MRI *mri_cc, MRI *mri_seg_tal) ;
+
 
 static int find_rh_voxel = 0 ;
 static int find_lh_voxel = 0 ;
@@ -123,6 +126,9 @@ static int rh_fill_val = MRI_RIGHT_HEMISPHERE ;
 static int topofix = 0;
 static int topofix_pbm = 0;
 
+
+static int lhonly = 0 ;
+static int rhonly = 0 ;
 
 static int ylim0,ylim1,xlim0,xlim1;
 static int fill_holes_flag = TRUE;
@@ -219,16 +225,16 @@ static int mriRemoveEdgeConfiguration(MRI *mri_seg,
       for (j = 0 ; j < mri_seg->height-1 ; j++)
         for (i = 0 ; i < mri_seg->width-1 ; i++)
         {
-          if (MRIvox(mri_seg,i,j,k)!=label)
+          if (MRIgetVoxVal(mri_seg,i,j,k, 0)!=label)
           {
             continue;
           }
-          if (MRIvox(mri_seg,i+1,j+1,k)!=label)
+          if (MRIgetVoxVal(mri_seg,i+1,j+1,k, 0)!=label)
           {
             continue;
           }
-          if ((MRIvox(mri_seg,i,j+1,k)==label) ||
-              (MRIvox(mri_seg,i+1,j,k)==label))
+          if ((MRIgetVoxVal(mri_seg,i,j+1,k, 0)==label) ||
+              (MRIgetVoxVal(mri_seg,i+1,j,k, 0)==label))
           {
             continue;
           }
@@ -2298,11 +2304,18 @@ main(int argc, char *argv[])
 
   if (segmentation_fname)
   {
-    printf("reading segmented volume %s...\n", segmentation_fname) ;
+    printf("reading segmented volume %s\n", segmentation_fname) ;
     mri_seg = MRIread(segmentation_fname) ;
     if (!mri_seg)
       ErrorExit(ERROR_NOFILE, "%s: could not read segmentation from %s",
                 Progname, segmentation_fname) ;
+    if (MRIlabelInVolume(mri_seg, CC_Central))
+    {
+      MRI *mri_tmp ;
+      printf("removing CC from segmentation\n") ;
+      mri_tmp = MRIreplaceCCwithWM(mri_seg, NULL) ;
+      MRIfree(&mri_seg) ; mri_seg = mri_tmp ;
+      }
 #if 0
     if  (mri_im->linear_transform == 0)
     {
@@ -2396,7 +2409,6 @@ main(int argc, char *argv[])
       MRIcopyHeader(mri_talheader, mri_seg_tal);
 
       MRItoTalairachExInterp(mri_seg, mri_seg_tal, lta, SAMPLE_NEAREST);
-
 
       if (find_cc_seed_with_segmentation
           (mri_tal, mri_seg_tal, &cc_tal_x, &cc_tal_y, &cc_tal_z) ==
@@ -2836,81 +2848,85 @@ main(int argc, char *argv[])
     MRItalairachToVoxelEx(mri_im, cc_tal_x+2*SEED_SEARCH_SIZE,
                           cc_tal_y,cc_tal_z,&xr,&yr,&zr, lta);
 
-    printf("search rh wm seed point around talairach space:"
-           "(%.2f, %.2f, %.2f) SRC: (%.2f, %.2f, %.2f)\n",
-           cc_tal_x+2*SEED_SEARCH_SIZE, cc_tal_y, cc_tal_z, xr, yr, zr);
-
-    wm_rh_x = nint(xr) ;
-    wm_rh_y = nint(yr) ;
-    wm_rh_z = nint(zr) ;
-    if (wm_rh_x < 0 || wm_rh_x >= mri_im->width ||
-        wm_rh_y < 0 || wm_rh_y >= mri_im->height ||
-        wm_rh_z < 0 || wm_rh_z >= mri_im->depth)
-      ErrorExit(ERROR_BADPARM,
-                "rh white matter seed point out of bounds (%d, %d, %d)\n",
-                wm_rh_x, wm_rh_y, wm_rh_z) ;
-
-    if ((MRIvox(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) <= WM_MIN_VAL) ||  // dark
-        (neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) <
-         MIN_NEIGHBORS)) // one voxel neighbors are dark
+    if (lhonly)
+      wm_rh_x = wm_rh_y = wm_rh_z = -1 ;
+    else
     {
-      found = xnew = ynew = znew = 0 ;
-      min_dist = 10000.0f/voxsize ; // change to voxel distance
-      if (Gdiag & DIAG_SHOW)
+      printf("search rh wm seed point around talairach space:"
+	     "(%.2f, %.2f, %.2f) SRC: (%.2f, %.2f, %.2f)\n",
+	     cc_tal_x+2*SEED_SEARCH_SIZE, cc_tal_y, cc_tal_z, xr, yr, zr);
+      
+      wm_rh_x = nint(xr) ;
+      wm_rh_y = nint(yr) ;
+      wm_rh_z = nint(zr) ;
+      if (wm_rh_x < 0 || wm_rh_x >= mri_im->width ||
+	  wm_rh_y < 0 || wm_rh_y >= mri_im->height ||
+	  wm_rh_z < 0 || wm_rh_z >= mri_im->depth)
+	ErrorExit(ERROR_BADPARM,
+		  "rh white matter seed point out of bounds (%d, %d, %d)\n",
+		  wm_rh_x, wm_rh_y, wm_rh_z) ;
+      
+      if ((MRIvox(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) <= WM_MIN_VAL) ||  // dark
+	  (neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) <
+	   MIN_NEIGHBORS)) // one voxel neighbors are dark
       {
-        fprintf(stderr, "searching for rh wm seed...") ;
-      }
-      for (z = wm_rh_z-seed_search_size ;
-           z <= wm_rh_z+seed_search_size ;
-           z++)
-      {
-        zi = mri_im->zi[z] ;
-        for (y = wm_rh_y-seed_search_size ;
-             y <= wm_rh_y+seed_search_size ;
-             y++)
-        {
-          yi = mri_im->yi[y] ;
-          for (x = wm_rh_x-seed_search_size ;
-               x <= wm_rh_x+seed_search_size;
-               x++)
-          {
-            xi = mri_im->xi[x] ;
-            if ((MRIvox(mri_im, xi, yi, zi) >= WM_MIN_VAL) &&
-                neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS)
-            {
-              found = 1 ;
-              xd = (xi - wm_rh_x) ;
-              yd = (yi - wm_rh_y) ;
-              zd = (zi - wm_rh_z) ;
-              dist = xd*xd + yd*yd + zd*zd ;
-              if (dist < min_dist)
-              {
-                xnew = xi ;
-                ynew = yi ;
-                znew = zi ;
+	found = xnew = ynew = znew = 0 ;
+	min_dist = 10000.0f/voxsize ; // change to voxel distance
+	if (Gdiag & DIAG_SHOW)
+	{
+	  fprintf(stderr, "searching for rh wm seed...") ;
+	}
+	for (z = wm_rh_z-seed_search_size ;
+	     z <= wm_rh_z+seed_search_size ;
+	     z++)
+	{
+	  zi = mri_im->zi[z] ;
+	  for (y = wm_rh_y-seed_search_size ;
+	       y <= wm_rh_y+seed_search_size ;
+	       y++)
+	  {
+	    yi = mri_im->yi[y] ;
+	    for (x = wm_rh_x-seed_search_size ;
+		 x <= wm_rh_x+seed_search_size;
+		 x++)
+	    {
+	      xi = mri_im->xi[x] ;
+	      if ((MRIvox(mri_im, xi, yi, zi) >= WM_MIN_VAL) &&
+		  neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS)
+	      {
+		found = 1 ;
+		xd = (xi - wm_rh_x) ;
+		yd = (yi - wm_rh_y) ;
+		zd = (zi - wm_rh_z) ;
+		dist = xd*xd + yd*yd + zd*zd ;
+		if (dist < min_dist)
+		{
+		  xnew = xi ;
+		  ynew = yi ;
+		  znew = zi ;
                 min_dist = dist ;
-              }
-            }
-          }
-        }
+		}
+	      }
+	    }
+	  }
+	}
+	if (!found)
+	  ErrorExit(ERROR_BADPARM,
+		    "could not find rh seed point around (%d, %d, %d)",
+		    wm_rh_x, wm_rh_y, wm_rh_z) ;
+	wm_rh_x = xnew ;
+	wm_rh_y = ynew ;
+	wm_rh_z = znew ;
+	if (Gdiag & DIAG_SHOW)
+	{
+	  fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
+	}
       }
-      if (!found)
-        ErrorExit(ERROR_BADPARM,
-                  "could not find rh seed point around (%d, %d, %d)",
-                  wm_rh_x, wm_rh_y, wm_rh_z) ;
-      wm_rh_x = xnew ;
-      wm_rh_y = ynew ;
-      wm_rh_z = znew ;
       if (Gdiag & DIAG_SHOW)
-      {
-        fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
-      }
+	fprintf(stderr, "rh seed point at (%d, %d, %d): %d neighbors on.\n",
+		wm_rh_x, wm_rh_y, wm_rh_z,
+		neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z)) ;
     }
-    if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "rh seed point at (%d, %d, %d): %d neighbors on.\n",
-              wm_rh_x, wm_rh_y, wm_rh_z,
-              neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z)) ;
-
   }
 
   // lh side wm
@@ -2945,75 +2961,82 @@ main(int argc, char *argv[])
            " (%.2f, %.2f, %.2f), SRC: (%.2f, %.2f, %.2f)\n",
            cc_tal_x-2*SEED_SEARCH_SIZE, cc_tal_y, cc_tal_z, xr, yr, zr);
 
-    wm_lh_x = nint(xr) ;
-    wm_lh_y = nint(yr) ;
-    wm_lh_z = nint(zr) ;
-    if (wm_lh_x < 0 || wm_lh_x >= mri_im->width ||
-        wm_lh_y < 0 || wm_lh_y >= mri_im->height ||
-        wm_lh_z < 0 || wm_lh_z >= mri_im->depth)
-      ErrorExit(ERROR_BADPARM,
-                "lh white matter seed point out of bounds (%d, %d, %d)\n",
-                wm_lh_x, wm_lh_y, wm_lh_z) ;
-    if ((MRIvox(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) <= WM_MIN_VAL) ||
-        (neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) < MIN_NEIGHBORS))
+    if (rhonly)
+      wm_lh_x = wm_lh_y = wm_lh_z = -1 ;
+    else
     {
-      found = xnew = ynew = znew = 0 ;
-      min_dist = 10000.0f/voxsize ;
+      wm_lh_x = nint(xr) ;
+      wm_lh_y = nint(yr) ;
+      wm_lh_z = nint(zr) ;
+      if (wm_lh_x < 0 || wm_lh_x >= mri_im->width ||
+	  wm_lh_y < 0 || wm_lh_y >= mri_im->height ||
+	  wm_lh_z < 0 || wm_lh_z >= mri_im->depth)
+	ErrorExit(ERROR_BADPARM,
+		  "lh white matter seed point out of bounds (%d, %d, %d)\n",
+		  wm_lh_x, wm_lh_y, wm_lh_z) ;
+      if ((MRIvox(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) <= WM_MIN_VAL) ||
+	  (neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) < MIN_NEIGHBORS))
+      {
+	found = xnew = ynew = znew = 0 ;
+	min_dist = 10000.0f/voxsize ;
+	if (Gdiag & DIAG_SHOW)
+	{
+	  fprintf(stderr, "searching for lh wm seed...") ;
+	}
+	for (z = wm_lh_z-seed_search_size ;
+	     z <= wm_lh_z+seed_search_size ;
+	     z++)
+	{
+	  zi = mri_im->zi[z] ;
+	  for (y = wm_lh_y-seed_search_size ;
+	       y <= wm_lh_y+seed_search_size ;
+	       y++)
+	  {
+	    yi = mri_im->yi[y] ;
+	    for (x = wm_lh_x-seed_search_size ;
+		 x <= wm_lh_x+seed_search_size;
+		 x++)
+	    {
+	      xi = mri_im->xi[x] ;
+	      if ((MRIvox(mri_im, xi, yi, zi) >= WM_MIN_VAL) &&
+		  (neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS))
+	      {
+		found = 1 ;
+		xd = (xi - wm_lh_x) ;
+		yd = (yi - wm_lh_y) ;
+		zd = (zi - wm_lh_z) ;
+		dist = xd*xd + yd*yd + zd*zd ;
+		if (dist < min_dist)
+		{
+		  xnew = xi ;
+		  ynew = yi ;
+		  znew = zi ;
+		  min_dist = dist ;
+		}
+	      }
+	    }
+	  }
+	}
+	if (!found)
+	  ErrorExit(ERROR_BADPARM,
+		    "could not find lh seed point around (%d, %d, %d)",
+		    wm_lh_x, wm_lh_y, wm_lh_z) ;
+	if (Gdiag & DIAG_SHOW)
+	{
+	  fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
+	}
+	wm_lh_x = xnew ;
+	wm_lh_y = ynew ;
+	wm_lh_z = znew ;
+	
+      }
       if (Gdiag & DIAG_SHOW)
-      {
-        fprintf(stderr, "searching for lh wm seed...") ;
-      }
-      for (z = wm_lh_z-seed_search_size ;
-           z <= wm_lh_z+seed_search_size ;
-           z++)
-      {
-        zi = mri_im->zi[z] ;
-        for (y = wm_lh_y-seed_search_size ;
-             y <= wm_lh_y+seed_search_size ;
-             y++)
-        {
-          yi = mri_im->yi[y] ;
-          for (x = wm_lh_x-seed_search_size ;
-               x <= wm_lh_x+seed_search_size;
-               x++)
-          {
-            xi = mri_im->xi[x] ;
-            if ((MRIvox(mri_im, xi, yi, zi) >= WM_MIN_VAL) &&
-                (neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS))
-            {
-              found = 1 ;
-              xd = (xi - wm_lh_x) ;
-              yd = (yi - wm_lh_y) ;
-              zd = (zi - wm_lh_z) ;
-              dist = xd*xd + yd*yd + zd*zd ;
-              if (dist < min_dist)
-              {
-                xnew = xi ;
-                ynew = yi ;
-                znew = zi ;
-                min_dist = dist ;
-              }
-            }
-          }
-        }
-      }
-      if (!found)
-        ErrorExit(ERROR_BADPARM,
-                  "could not find lh seed point around (%d, %d, %d)",
-                  wm_lh_x, wm_lh_y, wm_lh_z) ;
-      if (Gdiag & DIAG_SHOW)
-      {
-        fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
-      }
-      wm_lh_x = xnew ;
-      wm_lh_y = ynew ;
-      wm_lh_z = znew ;
+	fprintf(stderr, "lh seed point at (%d, %d, %d): %d neighbors on.\n",
+		wm_lh_x, wm_lh_y, wm_lh_z,
+		neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z)) ;
 
+      
     }
-    if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "lh seed point at (%d, %d, %d): %d neighbors on.\n",
-              wm_lh_x, wm_lh_y, wm_lh_z,
-              neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z)) ;
   }
 
 #if 0
@@ -3051,15 +3074,17 @@ main(int argc, char *argv[])
   }
 #endif
 
-  if (wm_rh_x < 0 || wm_rh_x >= mri_im->width ||
-      wm_rh_y < 0 || wm_rh_y >= mri_im->height ||
-      wm_rh_z < 0 || wm_rh_z >= mri_im->depth)
+  if (!lhonly &&
+      (wm_rh_x < 0 || wm_rh_x >= mri_im->width ||
+       wm_rh_y < 0 || wm_rh_y >= mri_im->height ||
+       wm_rh_z < 0 || wm_rh_z >= mri_im->depth))
     ErrorExit(ERROR_BADPARM,
               "rh white matter seed point out of bounds (%d, %d, %d)\n",
               wm_rh_x, wm_rh_y, wm_rh_z) ;
-  if (wm_lh_x < 0 || wm_lh_x >= mri_im->width ||
-      wm_lh_y < 0 || wm_lh_y >= mri_im->height ||
-      wm_lh_z < 0 || wm_lh_z >= mri_im->depth)
+  if (!rhonly && 
+      (wm_lh_x < 0 || wm_lh_x >= mri_im->width ||
+       wm_lh_y < 0 || wm_lh_y >= mri_im->height ||
+       wm_lh_z < 0 || wm_lh_z >= mri_im->depth))
     ErrorExit(ERROR_BADPARM,
               "lh white matter seed point out of bounds (%d, %d, %d)\n",
               wm_lh_x, wm_lh_y, wm_lh_z) ;
@@ -3094,12 +3119,18 @@ main(int argc, char *argv[])
     {
       MRIwrite(mri_im, "fill0.mgz") ;
     }
-    fprintf(stderr, "filling left hemisphere...\n") ;
-    MRIfillVolume
-    (mri_lh_fill, mri_lh_im, wm_lh_x, wm_lh_y, wm_lh_z,lh_fill_val);
-    fprintf(stderr, "filling right hemisphere...\n") ;
-    MRIfillVolume
-    (mri_rh_fill, mri_rh_im, wm_rh_x, wm_rh_y, wm_rh_z,rh_fill_val);
+    if (!rhonly)
+    {
+      fprintf(stderr, "filling left hemisphere...\n") ;
+      MRIfillVolume
+	(mri_lh_fill, mri_lh_im, wm_lh_x, wm_lh_y, wm_lh_z,lh_fill_val);
+    }
+    if (!lhonly)
+    {
+      fprintf(stderr, "filling right hemisphere...\n") ;
+      MRIfillVolume
+	(mri_rh_fill, mri_rh_im, wm_rh_x, wm_rh_y, wm_rh_z,rh_fill_val);
+    }
     MRIfree(&mri_lh_im) ;
     MRIfree(&mri_rh_im) ;
     MRIfree(&mri_im) ;
@@ -3566,6 +3597,16 @@ get_option(int argc, char *argv[])
     segmentation_fname = argv[2] ;
     fprintf(stderr, "using segmentation %s...\n", segmentation_fname) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "lhonly"))
+  {
+    lhonly = 1 ;
+    fprintf(stderr, "assuming only lh is present\n") ;
+  }
+  else if (!stricmp(option, "rhonly"))
+  {
+    rhonly = 1 ;
+    fprintf(stderr, "assuming only rh is present\n") ;
   }
   else if (!stricmp(option, "fillonly"))
   {
@@ -6099,277 +6140,6 @@ count_diagonals(MRI *mri, int x0, int y0, int z0)
 
 #if 0
 static int
-edit_segmentation(MRI *mri_wm, MRI *mri_seg)
-{
-  int   width, height, depth, x, y, z, label,
-        non, noff, xi, yi, zi,  xk, yk, zk, nchanged, wsize ;
-  MRI   *mri_filled ;
-
-  mri_filled =  MRIclone(mri_wm,  NULL);
-
-  width = mri_wm->width ;
-  height = mri_wm->height ;
-  depth = mri_wm->depth ;
-
-  non = noff = 0 ;
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (x = 0 ; x < width ; x++)
-      {
-        if (x == Gx && y == Gy && z == Gz)
-        {
-          DiagBreak() ;
-        }
-        label = MRIvox(mri_seg, x, y, z) ;
-
-        switch (label)
-        {
-        case Unknown:
-          wsize=5 ;
-          if (MRIlabelsInNbhd
-              (mri_seg, x, y, z, (wsize-1)/2, Unknown) <
-              (wsize*wsize*wsize-1))
-          {
-            break ;
-          }
-
-          /* !!! no break - erase unknown
-             if it is surrounded by only  unknowns */
-
-          /* erase these  labels */
-        case Left_Cerebellum_White_Matter:
-        case Left_Cerebellum_Exterior:
-        case Left_Cerebellum_Cortex:
-        case Right_Cerebellum_White_Matter:
-        case Right_Cerebellum_Exterior:
-        case Right_Cerebellum_Cortex:
-        case Right_Cerebral_Cortex:
-        case Brain_Stem:
-        case Left_VentralDC:
-        case Right_VentralDC:
-        case Left_Substancia_Nigra:
-        case Right_Substancia_Nigra:
-          if ((neighborLabel
-               (mri_seg, x,y,z,1,Left_Cerebral_Cortex) == 0) &&
-              (neighborLabel
-               (mri_seg, x,y,z,1,Right_Cerebral_Cortex) == 0))
-          {
-            if (MRIvox(mri_im, x, y, z))
-            {
-              MRIvox(mri_wm, x, y, z) = 0 ;
-              noff++ ;
-            }
-          }
-          break ;
-
-          /* fill these */
-        case Left_Lesion:
-        case Right_Lesion:
-        case WM_hypointensities:
-        case Left_WM_hypointensities:
-        case Right_WM_hypointensities:
-        case non_WM_hypointensities:
-        case Left_non_WM_hypointensities:
-        case Right_non_WM_hypointensities:
-          if ((neighborLabel
-               (mri_seg, x, y, z,1,Left_Cerebral_Cortex) >= 0) &&
-              (neighborLabel
-               (mri_seg, x, y, z,1,Right_Cerebral_Cortex) >= 0) &&
-              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL))
-          {
-            MRIvox(mri_wm, x, y, z) = 255 ;
-            MRIvox(mri_filled, x, y, z) = 255 ;
-            non++ ;
-          }
-          break ;
-        case Left_Lateral_Ventricle:
-        case Right_Lateral_Ventricle:
-          if (fillven == 0)
-          {
-            break ;
-          }
-          MRIvox(mri_wm, x, y, z) = 255 ;
-          MRIvox(mri_filled, x, y, z) = 255 ;
-          non++ ;
-        case Left_Inf_Lat_Vent:
-        case Right_Inf_Lat_Vent:
-          if ((neighborLabel
-               (mri_seg, x, y, z,1,Left_Cerebral_Cortex) >= 0) &&
-              (neighborLabel
-               (mri_seg, x, y, z,1,Right_Cerebral_Cortex) >= 0) &&
-              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL))
-          {
-            MRIvox(mri_wm, x, y, z) = 255 ;
-            MRIvox(mri_filled, x, y, z) = 255 ;
-            non++ ;
-          }
-          yi = mri_wm->yi[y+1] ;
-          label = MRIvox(mri_seg, x,yi, z) ;
-          if (((label == Left_Cerebral_Cortex ||
-                label == Right_Cerebral_Cortex) ||
-               (label == Left_Cerebral_White_Matter ||
-                label == Right_Cerebral_White_Matter) ||
-               (label == Unknown))
-              && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
-          {
-            MRIvox(mri_wm, x, yi, z) = 255 ;
-            MRIvox(mri_filled, x, yi, z) = 255 ;
-            non++ ;
-          }
-          if (label == Left_Inf_Lat_Vent ||
-              label ==  Right_Inf_Lat_Vent)  /* fill inferior wm */
-          {
-            int xi,  olabel ;
-
-            xi = label == Left_Inf_Lat_Vent ?
-                 mri_wm->xi[x-1] :  mri_wm->xi[x+1] ;
-            olabel = MRIvox(mri_seg, xi, y, z) ;
-            if (olabel != label)  /* voxel lateral to
-                                     this one is not hippocampus   */
-            {
-              MRIvox(mri_wm, xi, y, z) = 255 ;
-              MRIvox(mri_filled, xi, y, z) = 255 ;
-              non++ ;
-            }
-
-            yi = mri_wm->yi[y+1] ;
-            label = MRIvox(mri_seg, x,yi, z) ;
-            if (((label == Left_Cerebral_Cortex ||
-                  label == Right_Cerebral_Cortex) ||
-                 (label == Left_Cerebral_White_Matter ||
-                  label == Right_Cerebral_White_Matter))
-                && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
-            {
-              MRIvox(mri_wm, x, yi, z) = 255 ;
-              MRIvox(mri_filled, x, yi, z) = 255 ;
-              yi = mri_wm->yi[y+2] ;
-              MRIvox(mri_wm, x, yi, z) = 255 ;
-              MRIvox(mri_filled, x, yi, z) = 255 ;
-              non += 2 ;
-            }
-          }
-          break ;
-        case Left_Hippocampus:
-        case Right_Hippocampus:
-        {
-          int xi,  olabel ;
-
-          xi = label == Right_Hippocampus ?
-               mri_wm->xi[x-1] :  mri_wm->xi[x+1] ;
-          olabel = MRIvox(mri_seg, xi, y, z) ;
-          if (olabel != label)  /* voxel lateral to this
-                               one is not hippocampus   */
-          {
-            MRIvox(mri_wm, xi, y, z) = 255 ;
-            MRIvox(mri_filled, xi, y, z) = 255 ;
-            non++ ;
-          }
-
-          yi = mri_wm->yi[y+1] ;
-          label = MRIvox(mri_seg, x,yi, z) ;
-          if (((label == Left_Cerebral_Cortex ||
-                label == Right_Cerebral_Cortex) ||
-               (label == Left_Cerebral_White_Matter ||
-                label == Right_Cerebral_White_Matter))
-              && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
-          {
-            MRIvox(mri_wm, x, yi, z) = 255 ;
-            MRIvox(mri_filled, x, yi, z) = 255 ;
-            yi = mri_wm->yi[y+2] ;
-            MRIvox(mri_wm, x, yi, z) = 255 ;
-            MRIvox(mri_filled, x, yi, z) = 255 ;
-            non += 2 ;
-          }
-          break ;
-        }
-        case Left_Accumbens_area:
-        case Right_Accumbens_area:
-        case Left_Caudate:
-        case Right_Caudate:
-        case Left_Putamen:
-        case Right_Putamen:
-        case Left_Pallidum:
-        case Right_Pallidum:
-          if (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)
-          {
-            MRIvox(mri_wm, x, y, z) = 255 ;
-            MRIvox(mri_filled, x, y, z) = 255 ;
-            non++ ;
-          }
-          break ;
-        default:
-          break ;
-        }
-      }
-    }
-  }
-
-  /*
-    fill in voxels that were labeled wm
-    by the aseg, but not by  wmfilter, and are
-    neighbors  of  voxels that  have been already been filled .
-  */
-  do
-  {
-    nchanged = 0 ;
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-        for (x = 0 ; x < width ; x++)
-        {
-          if (x == Gx && y == Gy && z == Gz)
-          {
-            DiagBreak() ;
-          }
-          if  (MRIvox(mri_filled, x,  y, z) == 0)
-          {
-            continue  ;
-          }
-          for (xk = -1 ; xk <= 1 ; xk++)
-          {
-            xi = mri_filled->xi[x+xk] ;
-            for (yk = -1 ; yk <= 1 ; yk++)
-            {
-              yi = mri_filled->yi[y+yk] ;
-              for (zk = -1 ; zk <= 1 ; zk++)
-              {
-                zi = mri_filled->zi[z+zk] ;
-                if (xi == Gx && yi == Gy && zi == Gz)
-                {
-                  DiagBreak() ;
-                }
-                label = MRIvox(mri_seg, xi, yi, zi) ;
-                if (IS_WM(label) &&
-                    (MRIvox(mri_wm, xi, yi, zi) < WM_MIN_VAL))
-                {
-                  nchanged++ ;
-                  MRIvox(mri_wm, xi, yi, zi) = 255 ;
-#if 0
-                  MRIvox(mri_filled, xi, yi, zi) = 255 ;
-#endif
-                  non++ ;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    printf("%d additional wm voxels added\n", nchanged)  ;
-  }
-  while (nchanged >  0) ;
-
-  printf("SEG EDIT: %d voxels turned on, %d voxels turned off.\n", non, noff) ;
-  MRIfree(&mri_filled) ;
-  return(NO_ERROR) ;
-}
-#endif
-
-#if 0
-static int
 neighbors(MRI *mri, int x, int y,int z,int whalf,int label)
 {
   int xi, yi, zi, xk, yk, zk, nbrs ;
@@ -6502,15 +6272,15 @@ find_cc_seed_with_segmentation
     {
       for (z = 0 ; z  < mri->width ; z++)
       {
-        label = MRIvox(mri_seg, x,  y, z) ;
+        label = MRIgetVoxVal(mri_seg, x,  y, z,0) ;
         if (!IS_WM(label))
         {
           continue  ;
         }
         xr = mri_seg->xi[x+1] ;
         xl = mri_seg->xi[x-1] ;
-        rlabel = MRIvox(mri_seg, xr, y, z) ;
-        llabel = MRIvox(mri_seg, xl, y, z) ;
+        rlabel = MRIgetVoxVal(mri_seg, xr, y, z,0) ;
+        llabel = MRIgetVoxVal(mri_seg, xl, y, z,0) ;
         if ((!IS_WM(rlabel) || !IS_WM(llabel)) ||
             ((rlabel == label) && (llabel == label)))
         {
@@ -6526,9 +6296,9 @@ find_cc_seed_with_segmentation
           for (zk = -WHALF ; zk <= WHALF ; zk++)
           {
             zi = mri_seg->zi[z+zk] ;
-            rlabel = MRIvox(mri_seg, xr, yi, zi) ;
-            llabel = MRIvox(mri_seg, xl, yi, zi) ;
-            label = MRIvox(mri_seg, x, yi, zi) ;
+            rlabel = MRIgetVoxVal(mri_seg, xr, yi, zi,0) ;
+            llabel = MRIgetVoxVal(mri_seg, xl, yi, zi, 0) ;
+            label = MRIgetVoxVal(mri_seg, x, yi, zi, 0) ;
             if (MRIvox(mri, x, yi, zi) < MIN_WM_VAL)
             {
               continue ;  // must be labeled in wm volume
@@ -6608,9 +6378,9 @@ mri_erase_nonmidline_voxels(MRI *mri_cc, MRI *mri_seg)
       {
         xr = mri_seg->xi[x+1] ;
         xl = mri_seg->xi[x-1] ;
-        label = MRIvox(mri_seg, x, y, z) ;
-        rlabel = MRIvox(mri_seg, xr, y, z) ;
-        llabel = MRIvox(mri_seg, xl, y, z) ;
+        label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
+        rlabel = MRIgetVoxVal(mri_seg, xr, y, z, 0) ;
+        llabel = MRIgetVoxVal(mri_seg, xl, y, z, 0) ;
         if ((IS_WM(rlabel) && !IS_WM(llabel)) &&
             ((rlabel != label) || (llabel != label)))
         {
@@ -6623,9 +6393,9 @@ mri_erase_nonmidline_voxels(MRI *mri_cc, MRI *mri_seg)
         }
         xr = mri_seg->xi[x+1] ;
         xl = mri_seg->xi[x-1] ;
-        label = MRIvox(mri_seg, x, y, z) ;
-        rlabel = MRIvox(mri_seg, xr, y, z) ;
-        llabel = MRIvox(mri_seg, xl, y, z) ;
+        label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
+        rlabel = MRIgetVoxVal(mri_seg, xr, y, z, 0) ;
+        llabel = MRIgetVoxVal(mri_seg, xl, y, z, 0) ;
         if ((!IS_WM(rlabel) || !IS_WM(llabel)) ||
             ((rlabel == label) && (llabel == label)))
         {
@@ -6644,187 +6414,6 @@ mri_erase_nonmidline_voxels(MRI *mri_cc, MRI *mri_seg)
   MRIfree(&mri_mid) ;
   return(NO_ERROR) ;
 }
-#if 0
-
-// stuff for finding the cutting plane that
-// maximally separates lh and rh - not done
-static int
-find_cc_seed_with_segmentation
-(MRI *mri, MRI *mri_seg, Real *pcc_tal_x, Real *pcc_tal_y, Real *pcc_tal_z)
-{
-  int  x,  y, z, label, yi, zi, yk, zk, xl, xr, rlabel, llabel, num, max_num;
-  Real xcc, ycc,  zcc, xn, yn, zn, theta, phi, xncc, yncc, zncc ;
-
-  xn = -1 ;
-  yn = zn = 0.0 ;
-
-#define MAX_ANGLE  RADIANS(3.0)
-#define DELTA_ANGLE RADIANS(0.5)
-
-  xncc = yncc = zncc = xcc = ycc = zcc = 0.0  ;
-  max_num = 0 ;
-
-  for (x = 0 ; x  < mri->width ; x++)
-  {
-    for (y = 0 ; y  < mri->height ; y++)
-    {
-      for (z = 0 ; z  < mri->width ; z++)
-      {
-        label = MRIvox(mri_seg, x,  y, z) ;
-        if (!IS_WM(label))
-        {
-          continue  ;
-        }
-        xr = mri_seg->xi[x+1] ;
-        xl = mri_seg->xi[x-1] ;
-        rlabel = MRIvox(mri_seg, xr, y, z) ;
-        llabel = MRIvox(mri_seg, xl, y, z) ;
-        if ((!IS_WM(rlabel) || !IS_WM(llabel)) ||
-            ((rlabel == label) && (llabel == label)))
-        {
-          continue ;
-        }   /* find places where left/right wm
-                          has different label */
-
-        // look for optimal separating plane
-        for (phi = RADIANS(90)-MAX_ANGLE ;
-             phi <= RADIANS(90)+MAX_ANGLE ;
-             phi += DELTA_ANGLE)
-        {
-#if 0
-          for (theta = -MAX_ANGLE ;
-               theta <= MAX_ANGLE ;
-               theta += DELTA_ANGLE)
-#else
-          theta = 0.0 ;
-#endif
-          {
-            xn = cos(theta)*sin(phi) ;
-            yn = sin(theta)*sin(phi) ;
-            zn = cos(phi) ;
-            num =
-              count_hemisphere_separation
-              (mri_seg, xn, yn, zn, x, y, z) ;
-            if (num > max_num)
-            {
-              xcc = x ;
-              ycc = y ;
-              zcc = z ;
-              xncc = xn ;
-              yncc = yn ;
-              zncc = zn ;
-              max_num = num ;
-            }
-          }
-        }
-
-
-#if 0
-        /* look in sagittal plane and count
-           how many midline voxels there are */
-        for (num = 0, yk = -WHALF ; yk <= WHALF ; yk++)
-        {
-          yi = mri_seg->yi[y+yk] ;
-          for (zk = -WHALF ; zk <= WHALF ; zk++)
-          {
-            zi = mri_seg->zi[z+zk] ;
-            rlabel = MRIvox(mri_seg, xr, yi, zi) ;
-            llabel = MRIvox(mri_seg, xl, yi, zi) ;
-            label = MRIvox(mri_seg, x, yi, zi) ;
-            if (MRIvox(mri, x, yi, zi) < MIN_WM_VAL)
-            {
-              continue ;  // must be labeled in wm volume
-            }
-
-            if ((IS_WM(rlabel) && IS_WM(llabel)) && IS_WM(label) &&
-                ((rlabel != label) || (llabel != label)))
-            {
-              num++ ;
-            }
-          }
-        }
-        if (num > max_num)
-        {
-          xcc = x ;
-          ycc = y ;
-          zcc = z ;
-          max_num = num ;
-        }
-#endif
-      }
-    }
-  }
-  if (max_num <= 0)
-    ErrorExit
-    (ERROR_BADFILE,
-     "%s: could not find any points where lh and rh wm  are nbrs",
-     Progname) ;
-
-
-  MRIvoxelToWorld(mri, xcc, ycc, zcc, pcc_tal_x, pcc_tal_y, pcc_tal_z) ;
-  printf
-  ("segmentation indicates cc at (%d,  %d,  %d) --> (%2.1f, %2.1f, %2.1f)\n",
-   nint(xcc), nint(ycc), nint(zcc), *pcc_tal_x, *pcc_tal_y, *pcc_tal_z) ;
-
-  return(NO_ERROR) ;
-}
-
-
-static int count_hemisphere_separation
-(MRI *mri, double xn, double yn, double zn,
- int x, int y, int z);
-static int
-count_hemisphere_separation
-(MRI *mri, double xn, double yn, double zn, int x0, int y0, int z0)
-{
-  int num, x, y, z, label, lh_neg, lh_pos, rh_neg, rh_pos ;
-  double  dot ;
-
-  lh_neg = lh_pos = rh_neg = rh_pos = 0 ;
-  for (x = 0 ; x < mri->width ; x++)
-  {
-    for (y = 0 ; y < mri->width ; y++)
-    {
-      for (z = 0 ; z < mri->depth ; z++)
-      {
-        label = MRIvox(mri, x, y, z) ;
-        if (!IS_WHITE_CLASS(label) && !IS_GM(label))
-        {
-          continue ;
-        }
-        dot = (x-x0)*xn + (y-y0)*yn + (z-z0)*zn ;
-        if (label == Left_Cerebral_Cortex ||
-            label == Left_Cerebral_White_Matter)
-        {
-          if (dot < 0)
-          {
-            lh_neg++ ;
-          }
-          else
-          {
-            lh_pos++ ;
-          }
-        }
-        else    // right hemisphere
-        {
-          if (dot < 0)
-          {
-            rh_neg++ ;
-          }
-          else
-          {
-            rh_pos++ ;
-          }
-        }
-      }
-    }
-  }
-
-  num = abs(rh_neg-lh_neg) + abs(lh_pos-rh_pos);
-  return(num) ;
-}
-
-#endif
 
 
 MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg)
@@ -6874,7 +6463,7 @@ MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg)
         MRIvox(mri_fill_lh, x, y, z) = 0;
         MRIvox(mri_fill_rh, x, y, z) = 0;
 
-        label = MRIvox(mri_seg,x, y,z);
+        label = MRIgetVoxVal(mri_seg,x, y,z, 0);
 
         switch (label)
         {
@@ -6955,11 +6544,34 @@ MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg)
     for (y=0; y< height; y++)
       for (x=0; x < width; x++)
       {
+	int val ; 
+
 	if (x == Gx && y == Gy && z == Gz)
 	  DiagBreak() ;
-        if (MRIgetVoxVal(mri_img, x, y, z, 0) < WM_MIN_VAL)
+
+	val = MRIgetVoxVal(mri_img, x, y, z, 0) ;
+	if (val == WM_EDITED_OFF_VAL)
+	{
+	  MRIsetVoxVal(mri_fill_lh, x, y, z, 0, 0) ;
+	  MRIsetVoxVal(mri_fill_rh, x, y, z, 0, 0) ;
+	  MRIsetVoxVal(mri_fill, x, y, z, 0, 0) ;
+	  continue ;
+	}
+	else if (val == WM_EDITED_ON_VAL)
+	{
+	  int whalf = (int)ceil(5 / (mri_seg->xsize)) ;
+	  if (MRIlabelsInNbhd(mri_seg,  x,  y,  z, whalf, Left_Cerebral_White_Matter) >
+	      MRIlabelsInNbhd(mri_seg,  x,  y,  z, whalf, Right_Cerebral_White_Matter))
+	    MRIsetVoxVal(mri_fill_lh, x, y, z, 0, 1) ;
+	  else
+	    MRIsetVoxVal(mri_fill_rh, x, y, z, 0, 1) ;
+	  MRIsetVoxVal(mri_fill, x, y, z, 0, 1) ;
+	}
+        else if (val < WM_MIN_VAL)
         {
-          continue;
+	  label = MRIgetVoxVal(mri_seg,x, y,z, 0);
+	  if (label != Left_Lesion && label != Right_Lesion && !IS_WMH(label))
+	    continue;
         }
 
         if (MRIvox(mri_fill, x, y, z) == rh_fill_val)
@@ -7001,3 +6613,34 @@ MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg)
 
   return (mri_fill);
 }
+static MRI *
+MRIreplaceCCwithWM(MRI *mri_src, MRI *mri_dst) 
+{
+  MRI    *mri_dist_lh, *mri_dist_rh ;
+  int    x, y, z, label ;
+  double dist_lh, dist_rh ;
+
+  mri_dst = MRIcopy(mri_src, NULL) ;
+
+  mri_dist_lh = MRIdistanceTransform(mri_src, NULL, Left_Cerebral_White_Matter, 100,DTRANS_MODE_SIGNED, NULL) ;
+  mri_dist_rh = MRIdistanceTransform(mri_src, NULL, Right_Cerebral_White_Matter, 100,DTRANS_MODE_SIGNED, NULL) ;
+
+  for (x = 0 ; x < mri_src->width ; x++)
+    for (y = 0 ; y < mri_src->height ; y++)
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+	label = MRIgetVoxVal(mri_dst, x, y, z, 0) ;
+	if (IS_CC(label))
+	{
+	  dist_lh = MRIgetVoxVal(mri_dist_lh, x, y, z, 0) ;
+	  dist_rh = MRIgetVoxVal(mri_dist_rh, x, y, z, 0) ;
+	  if (dist_lh < dist_rh)
+	    MRIsetVoxVal(mri_dst, x, y, z, 0, Left_Cerebral_White_Matter) ;
+	  else
+	    MRIsetVoxVal(mri_dst, x, y, z, 0, Right_Cerebral_White_Matter) ;
+	}
+      }
+  MRIfree(&mri_dist_lh) ; MRIfree(&mri_dist_rh) ;
+  return(mri_dst) ;
+}
+

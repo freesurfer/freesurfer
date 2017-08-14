@@ -68,6 +68,8 @@ static MRI *MRIfuseSegmentations(MRI *mri_in,
 
 #define MAX_VOLUMES 1000
 static int use_identity = 0 ;
+static double cross_time_sigma = 3.0 ;
+
 int
 main(int argc, char *argv[])
 {
@@ -78,7 +80,6 @@ main(int argc, char *argv[])
   MRI         *mri_norms[MAX_VOLUMES];
   MRI         *mri_asegs[MAX_VOLUMES];
   MRI         *mri_asegs_noCC[MAX_VOLUMES];
-  double      std = 3.0 ;
   LTA         *xforms[MAX_VOLUMES] ;
 
   /* rkt: check for and handle version tag */
@@ -172,7 +173,7 @@ main(int argc, char *argv[])
                                    mri_asegs,
                                    mri_asegs_noCC,
                                    mri_norms,
-                                   std) ;
+                                   cross_time_sigma) ;
 
   printf("writing fused segmentation to %s\n", out_fname) ;
   MRIwrite(mri_fused, out_fname) ;
@@ -218,6 +219,12 @@ static int get_option(int argc, char *argv[])
     Gz = atoi(argv[4]) ;
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
     nargs = 3 ;
+  }
+  else if (!stricmp(option, "cross_time_sigma"))
+  {
+    cross_time_sigma = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("smoothing temporal bias field with sigma = %2.1f\n", cross_time_sigma) ;
   }
   else if (!stricmp(option, "identity"))
   {
@@ -280,13 +287,13 @@ static MRI *MRIfuseSegmentations(MRI *mri_in,
                                  MRI *mri_norms[],
                                  double sigma)
 {
-  int    x, y, z, i, label, min_label, max_label, label_counts[MAX_CMA_LABELS],
-         total;
+  int    x, y, z, i, label, min_label, max_label;
   MATRIX *m_vox2vox[MAX_VOLUMES], *m ;
   VECTOR *v1, *v2 ;
   float  xd, yd, zd ;
   double label_pvals[MAX_CMA_LABELS], p, val, oval, dif ;
   int cc_relabel_count = 0;
+  double s = -0.5 / (sigma*sigma);
 
   v1 = VectorAlloc(4, MATRIX_REAL) ;
   v2 = VectorAlloc(4, MATRIX_REAL) ;
@@ -315,7 +322,6 @@ static MRI *MRIfuseSegmentations(MRI *mri_in,
     MatrixFree(&m) ;
   }
   memset(label_pvals, 0, sizeof(label_pvals)) ;
-  memset(label_counts, 0, sizeof(label_counts)) ;
   if (mri_fused == NULL)
     mri_fused = MRIclone(mri_in, NULL) ;
 
@@ -333,7 +339,6 @@ static MRI *MRIfuseSegmentations(MRI *mri_in,
         val = MRIgetVoxVal(mri_in, x, y, z, 0) ;
         min_label = MAX_CMA_LABELS ; 
         max_label = 0 ;
-        total = 0 ;
         for (i = 0 ; i < nvols ; i++)
         {
           MatrixMultiply(m_vox2vox[i], v1, v2) ;
@@ -376,24 +381,28 @@ static MRI *MRIfuseSegmentations(MRI *mri_in,
           if (label > max_label)
             max_label = label ;
           dif = oval - val ;
-          p = (1.0 / (sqrt(2*M_PI)*sigma)) *
-              exp(-0.5 * (dif*dif) / (sigma*sigma)) ;
+          // if sigma is zero only trust images with identical intensity
+          if (fabs(sigma) < 0.0000001)
+          {
+            if (fabs(dif) < 0.0000001)
+              p = 1.0;
+            else
+              p = 0.0;
+          }
+          else
+            p = exp((dif*dif) *s) ;
           label_pvals[label] += p ;
-          label_counts[label]++ ;
-          total++ ;
         }
         p = 0 ;
+        // select label with highest probability
         for (label = min_label ; label <= max_label ; label++)
         {
-          //          label_pvals[label] *= (double)label_counts[label]/(double)total ;
-          label_pvals[label] /= (double)total ;  // prior is already done by sum
           if (label_pvals[label] > p)
           {
             p = label_pvals[label] ;
             MRIsetVoxVal(mri_fused, x, y, z, 0, label) ;
           }
           label_pvals[label] = 0 ; // reset for next time to avoid big memset
-          label_counts[label] = 0 ;
         }
       }
     }

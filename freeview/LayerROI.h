@@ -86,7 +86,7 @@ public:
 
   LayerSurface* GetMappedSurface()
   {
-      return m_layerMappedSurface;
+    return m_layerMappedSurface;
   }
 
   void MapLabelColorData( unsigned char* colordata, int nVertexCount);
@@ -103,6 +103,7 @@ public slots:
   void Erode(int nTimes = 1);
   void Open(int nTimes = 1);
   void Close(int nTimes = 1);
+  void Resample();
 
 protected slots:
   void OnBaseVoxelEdited(const QList<int> voxel_list, bool bAdd);

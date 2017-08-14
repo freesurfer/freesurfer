@@ -36,15 +36,22 @@ public :
 
   // 
   void  SetSigma( float sigma )
-    { m_Sigma = sigma; }
+    { 
+    this->SetSigmas( sigma, sigma, sigma ); 
+    }
+
+  // 
+  void  SetSigmas( float sigma0, float sigma1, float sigma2 )
+    { 
+    m_Sigma0 = sigma0; 
+    m_Sigma1 = sigma1; 
+    m_Sigma2 = sigma2; 
+    }
 
   //
-  void SetClassesToSmooth( std::vector<int> classesToSmooth )
-    { m_classesToSmooth = classesToSmooth; } 
+  void  SetClassesToSmooth( const std::vector<int>&  classesToSmooth )
+    { m_ClassesToSmooth = classesToSmooth; } 
     
-  //
-  float  GetSigma() const
-    { return m_Sigma; }  
     
   // 
   AtlasMeshCollection::Pointer  GetSmoothedMeshCollection();
@@ -68,8 +75,10 @@ private :
 
   // Data members
   AtlasMeshCollection::Pointer  m_MeshCollection;
-  float  m_Sigma;
-  std::vector<int> m_classesToSmooth;
+  float  m_Sigma0;
+  float  m_Sigma1;
+  float  m_Sigma2;
+  std::vector<int> m_ClassesToSmooth;
 
 };
 

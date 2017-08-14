@@ -48,19 +48,22 @@ Region2D::~Region2D()
 
 void Region2D::UpdateStats()
 {
-//  QString text = m_actorText->GetInput();
-//  QClipboard *clipboard = QApplication::clipboard();
-//  clipboard->setText(text);
+  //  QString text = m_actorText->GetInput();
+  //  QClipboard *clipboard = QApplication::clipboard();
+  //  clipboard->setText(text);
 
   emit StatsUpdated();
 }
 
 void Region2D::UpdateSlicePosition( int nPlane, double pos )
 {
+  Q_UNUSED(nPlane);
+  Q_UNUSED(pos);
   Update();
 }
 
 void Region2D::Show( bool bShow )
 {
+  Q_UNUSED(bShow);
 }
 

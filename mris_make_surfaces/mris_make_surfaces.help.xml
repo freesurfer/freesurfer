@@ -74,6 +74,8 @@
       <explanation>whitesurfname</explanation>
       <argument>-erase_cerebellum</argument>
       <explanation>if aseg is loaded erases cerebellar labled voxels in the input image</explanation>
+      <argument>-wm_weight w</argument>
+      <explanation>weighting of wm mean in calculating T2 threshold of disallowed gm values (w*wm+gm)/(w+1)), default=3</explanation>
       <argument>-nsigma_above n</argument>
       <explanation># of sigmas above the mean to allow gray matter T2 intensities</explanation>
       <argument>-nsigma_below n</argument>
@@ -86,6 +88,8 @@
       <explanation>specify threshold for min T2 value outside of pial surface that will cause surface to deform outwards</explanation>
       <argument>-T2_outside_max threshold</argument>
       <explanation>specify threshold for max T2 value outside of pial surface that will cause surface to deform outwards</explanation>
+      <argument>-min_peak_pct  inside_pct outside_pct</argument>
+      <explanation>specify the pct of the histo peak in the local gm histogram to use as threshold for finding the local inside and outside gm thresholds. Smaller values will cause more intensities to be included as gm </explanation>
     </optional-flagged>
   </arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>

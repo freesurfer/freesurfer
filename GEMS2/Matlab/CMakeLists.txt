@@ -13,46 +13,17 @@ CONFIGURE_FILE( showImage.m
   ${GEMS_LIBRARY_PATH}/showImage.m COPYONLY )
 CONFIGURE_FILE( kvlColorCodeProbabilityImages.m
   ${GEMS_LIBRARY_PATH}/kvlColorCodeProbabilityImages.m COPYONLY )
-CONFIGURE_FILE( smoothWithSeparableBasisFunctions.m
-  ${GEMS_LIBRARY_PATH}/smoothWithSeparableBasisFunctions.m COPYONLY )
-CONFIGURE_FILE( smoothWithSeparableBasisFunctionsWithWeights.m
-  ${GEMS_LIBRARY_PATH}/smoothWithSeparableBasisFunctionsWithWeights.m COPYONLY )
-CONFIGURE_FILE( expandBasisFunctions.m
-  ${GEMS_LIBRARY_PATH}/expandBasisFunctions.m COPYONLY )
 CONFIGURE_FILE( mosaicImages.m
   ${GEMS_LIBRARY_PATH}/mosaicImages.m COPYONLY )
 CONFIGURE_FILE( kvlEvaluateMeshPositionInVectorFormat.m
   ${GEMS_LIBRARY_PATH}/kvlEvaluateMeshPositionInVectorFormat.m COPYONLY )
-CONFIGURE_FILE( kvlMinFunc.m
-  ${GEMS_LIBRARY_PATH}/kvlMinFunc.m COPYONLY )
-CONFIGURE_FILE( kvlBackTrack.m
-  ${GEMS_LIBRARY_PATH}/kvlBackTrack.m COPYONLY )
-CONFIGURE_FILE( computeNumberOfSeparableBasisFunctions.m
-  ${GEMS_LIBRARY_PATH}/computeNumberOfSeparableBasisFunctions.m COPYONLY )
-CONFIGURE_FILE( computeRegularizers.m
-  ${GEMS_LIBRARY_PATH}/computeRegularizers.m COPYONLY )
-CONFIGURE_FILE( computeSeparableBasisFunctions.m
-  ${GEMS_LIBRARY_PATH}/computeSeparableBasisFunctions.m COPYONLY )
-CONFIGURE_FILE( constructAtWA.m
-  ${GEMS_LIBRARY_PATH}/constructAtWA.m COPYONLY )
-CONFIGURE_FILE( constructAtWr.m
-  ${GEMS_LIBRARY_PATH}/constructAtWr.m COPYONLY )
-CONFIGURE_FILE( expandSeparableBasisFunctions.m
-  ${GEMS_LIBRARY_PATH}/expandSeparableBasisFunctions.m COPYONLY )
-CONFIGURE_FILE( smoothWithSeparableBasisFunctionsWithWeightsMultiSpec.m
-  ${GEMS_LIBRARY_PATH}/smoothWithSeparableBasisFunctionsWithWeightsMultiSpec.m COPYONLY )
+CONFIGURE_FILE( backprojectKroneckerProductBasisFunctions.m
+  ${GEMS_LIBRARY_PATH}/backprojectKroneckerProductBasisFunctions.m COPYONLY )
+CONFIGURE_FILE( computePrecisionOfKroneckerProductBasisFunctions.m
+  ${GEMS_LIBRARY_PATH}/computePrecisionOfKroneckerProductBasisFunctions.m COPYONLY )
+CONFIGURE_FILE( projectKroneckerProductBasisFunctions.m
+  ${GEMS_LIBRARY_PATH}/projectKroneckerProductBasisFunctions.m COPYONLY )
 
-
-
-# # Copy some example data as well
-# CONFIGURE_FILE( data/atlas/compressionLookupTable.txt
-#   ${GEMS_LIBRARY_PATH}/compressionLookupTable.txt COPYONLY )
-# CONFIGURE_FILE( data/atlas/atlasMesh_subject01to09.txt.gz
-#   ${GEMS_LIBRARY_PATH}/atlasMesh_subject01to09.txt.gz.txt COPYONLY )
-# CONFIGURE_FILE( data/bert/orig.mgz
-#   ${GEMS_LIBRARY_PATH}/orig.mgz COPYONLY )
-# CONFIGURE_FILE( data/bert/mni305_masked_autoCropped_coregistered_coregistered.mgz
-#   ${GEMS_LIBRARY_PATH}/mni305_masked_autoCropped_coregistered_coregistered.mgz COPYONLY )
 
 
 # For each function, also create a .m file calling the mex file
@@ -83,11 +54,6 @@ CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
 
 SET( runnerName "RasterizeAtlasMesh" )
-SET( runnerNumberOfOutputs "1" )
-CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
-  ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
-
-SET( runnerName "RasterizeAtlasMeshGPU" )
 SET( runnerNumberOfOutputs "1" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
@@ -131,7 +97,6 @@ SET( runnerName "CreateImage" )
 SET( runnerNumberOfOutputs "1" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
-SET( runnerName "CreateImage" )
 
 SET( runnerName "DeformMesh" )
 SET( runnerNumberOfOutputs "1" )
@@ -140,26 +105,6 @@ CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
 
 SET( runnerName "GetLevenbergMarquardtOptimizer" )
 SET( runnerNumberOfOutputs "1" )
-CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
-  ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
-
-SET( runnerName "DeformOneStep" )
-SET( runnerNumberOfOutputs "2" )
-CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
-  ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
-
-SET( runnerName "DeformOneStepGPU" )
-SET( runnerNumberOfOutputs "2" )
-CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
-  ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
-
-SET( runnerName "SetOptimizerProperties" )
-SET( runnerNumberOfOutputs "0" )
-CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
-  ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
-
-SET( runnerName "SetOptimizerPropertiesGPU" )
-SET( runnerNumberOfOutputs "0" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
 
@@ -228,18 +173,13 @@ SET( runnerNumberOfOutputs "2" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
 
+SET( runnerName "EvaluateMeshPositionWithEntropy" )
+SET( runnerNumberOfOutputs "2" )
+CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
+  ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
+
 SET( runnerName "SetMeshNodePositions" )
 SET( runnerNumberOfOutputs "0" )
-CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
-  ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
-
-SET( runnerName "GetConjugateGradientOptimizer" )
-SET( runnerNumberOfOutputs "1" )
-CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
-  ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
-
-SET( runnerName "GetConjugateGradientOptimizerGPU" )
-SET( runnerNumberOfOutputs "1" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
 
@@ -268,3 +208,24 @@ SET( runnerNumberOfOutputs "4" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
 
+SET( runnerName "GetCostAndGradientCalculator" )
+SET( runnerNumberOfOutputs "1" )
+CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
+  ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
+
+SET( runnerName "GetOptimizer" )
+SET( runnerNumberOfOutputs "1" )
+CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
+  ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
+
+SET( runnerName "StepOptimizer" )
+SET( runnerNumberOfOutputs "2" )
+CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
+  ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
+
+SET( runnerName "CreateMeshCollection" )
+SET( runnerNumberOfOutputs "1" )
+CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
+  ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
+
+  

@@ -33,6 +33,8 @@
 
 #include "emregisterutils.h"
 
+extern int use_variance ;
+
 // ===========================================
 
 double local_GCAcomputeLogSampleProbability( GCA *gca,
@@ -75,8 +77,12 @@ double local_GCAcomputeLogSampleProbability( GCA *gca,
   }
   else
   {
-    result = GCAcomputeLogSampleProbability( gca, gcas, mri,
-             transform, nsamples, clamp );
+    if (use_variance)
+      result = GCAcomputeLabelIntensityVariance( gca, gcas, mri,
+						 transform, nsamples );
+    else
+      result = GCAcomputeLogSampleProbability( gca, gcas, mri,
+					       transform, nsamples, clamp );
   }
 
 
@@ -94,7 +100,7 @@ int compute_tissue_modes( MRI *mri_inputs,
                           int nsamples,
                           double *pwm, double *pgm, double *pfluid )
 {
-  int        x, y, z, width, height, depth, i, xp, yp, zp ;
+  int        x, y, z, i, xp, yp, zp ;
   float      vals[MAX_GCA_INPUTS] ;
   int        countOutside = 0, ngm, nwm, nfluid;
   double     gm, wm, fluid ;
@@ -102,9 +108,7 @@ int compute_tissue_modes( MRI *mri_inputs,
   /* go through each GC in the sample and compute the probability of
      the image at that point.
   */
-  width = mri_inputs->width ;
-  height = mri_inputs->height;
-  depth = mri_inputs->depth ;
+
   // store inverse transformation .. forward:input->gca template,
   // inv: gca template->input
   TransformInvert(transform, mri_inputs) ;

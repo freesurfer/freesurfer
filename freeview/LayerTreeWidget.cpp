@@ -26,6 +26,7 @@
 #include "LayerMRI.h"
 #include "LayerPropertyMRI.h"
 #include "LayerSurface.h"
+#include "LayerPropertySurface.h"
 #include <QPainter>
 #include <QContextMenuEvent>
 #include <QMenu>
@@ -56,11 +57,11 @@ LayerTreeWidget::LayerTreeWidget(QWidget *parent) :
   m_itemDelegate = new MyItemDelegate(this);
   setItemDelegate(m_itemDelegate);
 
-//  QAction* act = new QAction("Select All", this);
-//  act->setShortcut(QKeySequence("Ctrl+A"));
-//  act->setShortcutContext(Qt::WidgetWithChildrenShortcut);
-//  connect(act, SIGNAL(triggered()), SLOT(selectAll()));
-//  this->addAction(act);
+  //  QAction* act = new QAction("Select All", this);
+  //  act->setShortcut(QKeySequence("Ctrl+A"));
+  //  act->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+  //  connect(act, SIGNAL(triggered()), SLOT(selectAll()));
+  //  this->addAction(act);
 
   setDragEnabled(true);
   viewport()->setAcceptDrops(true);
@@ -144,9 +145,9 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
   QList<Layer*> layers;
   foreach (QTreeWidgetItem* item, items)
   {
-     Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
-     if (layer)
-       layers << layer;
+    Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
+    if (layer)
+      layers << layer;
   }
 
   QString type;
@@ -166,18 +167,19 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
   MainWindow* wnd = MainWindow::GetMainWindow();
   QMenu* menu = new QMenu(this);
 
-//  if (layer)
-//  {
-//    QAction* act = new QAction("Rename", this);
-//    connect(act, SIGNAL(triggered()), this, SLOT(OnEditName()));
-//    menu->addAction(act);
-//    menu->addSeparator();
-//  }
+  //  if (layer)
+  //  {
+  //    QAction* act = new QAction("Rename", this);
+  //    connect(act, SIGNAL(triggered()), this, SLOT(OnEditName()));
+  //    menu->addAction(act);
+  //    menu->addSeparator();
+  //  }
 
   if (type == "MRI" || type.isEmpty())
   {
     menu->addAction(wnd->ui->actionNewVolume);
     menu->addAction(wnd->ui->actionLoadVolume);
+    menu->addAction(wnd->ui->actionReloadVolume);
     if (type == "MRI")
     {
       QAction* act = new QAction("Save All Checked Volumes", this);
@@ -189,6 +191,7 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
   if (type == "Surface" || type.isEmpty())
   {
     menu->addAction(wnd->ui->actionLoadSurface);
+    menu->addAction(wnd->ui->actionReloadSurface);
     menu->addSeparator();
   }
   if (type == "ROI" || type.isEmpty())
@@ -223,13 +226,13 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
     menu->addAction(act);
     if (layers[0]->IsTypeOf("MRI") || layers[0]->IsTypeOf("Surface"))
     {
-        menu->addSeparator();
-        act = new QAction(layers.size() > 1 ? "Show All in Info Panel" : "Show Info", this );
-        connect(act, SIGNAL(triggered()), this, SLOT(OnShowAllInfo()));
-        menu->addAction(act);
-        act = new QAction(layers.size() > 1 ? "Hide All in Info Panel" : "Hide Info", this );
-        connect(act, SIGNAL(triggered()), this, SLOT(OnHideAllInfo()));
-        menu->addAction(act);
+      menu->addSeparator();
+      act = new QAction(layers.size() > 1 ? "Show All in Info Panel" : "Show Info", this );
+      connect(act, SIGNAL(triggered()), this, SLOT(OnShowAllInfo()));
+      menu->addAction(act);
+      act = new QAction(layers.size() > 1 ? "Hide All in Info Panel" : "Hide Info", this );
+      connect(act, SIGNAL(triggered()), this, SLOT(OnHideAllInfo()));
+      menu->addAction(act);
     }
 
     if (layers[0]->GetEndType() == "MRI")
@@ -283,27 +286,27 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
 
       if (((LayerMRI*)layers[0])->GetRefVolume())
       {
-          act = new QAction("Apply Transformation...", this);
-          connect(act, SIGNAL(triggered(bool)), MainWindow::GetMainWindow(), SLOT(OnApplyVolumeTransform()));
-          menu->addAction(act);
+        act = new QAction("Apply Transformation...", this);
+        connect(act, SIGNAL(triggered(bool)), MainWindow::GetMainWindow(), SLOT(OnApplyVolumeTransform()));
+        menu->addAction(act);
       }
     }
     else if (layers[0]->GetEndType() == "Surface")
     {
-        if (((LayerSurface*)layers[0])->IsContralateralReady())
-        {
-            menu->addSeparator();
-            act = new QAction("Go To Contralateral Point", this);
-            connect(act, SIGNAL(triggered(bool)), MainWindow::GetMainWindow(), SLOT(GoToContralateralPoint()));
-            menu->addAction(act);
-        }
+      if (((LayerSurface*)layers[0])->IsContralateralPossible())
+      {
+        menu->addSeparator();
+        act = new QAction("Go To Contralateral Point", this);
+        connect(act, SIGNAL(triggered(bool)), MainWindow::GetMainWindow(), SLOT(GoToContralateralPoint()));
+        menu->addAction(act);
+      }
     }
     else if (layers[0]->GetEndType() == "PointSet")
     {
-        menu->addSeparator();
-        act = new QAction("Go to Centroid", this);
-        connect(act, SIGNAL(triggered()), MainWindow::GetMainWindow(), SLOT(OnGoToPointSet()));
-        menu->addAction(act);
+      menu->addSeparator();
+      act = new QAction("Go to Centroid", this);
+      connect(act, SIGNAL(triggered()), MainWindow::GetMainWindow(), SLOT(OnGoToPointSet()));
+      menu->addAction(act);
     }
   }
 
@@ -447,107 +450,107 @@ void LayerTreeWidget::DeselectAll()
 
 bool LayerTreeWidget::event(QEvent *e)
 {
-    if (e->type() == QEvent::ShortcutOverride || e->type() == QEvent::KeyPress)
+  if (e->type() == QEvent::ShortcutOverride || e->type() == QEvent::KeyPress)
+  {
+    QKeyEvent* ke = static_cast<QKeyEvent*>(e);
+    if ( ke )
     {
-        QKeyEvent* ke = static_cast<QKeyEvent*>(e);
-        if ( ke )
-        {
-            if (ke->key()== Qt::Key_A && ke->modifiers() & Qt::ControlModifier)
-            {
-                SelectAll();
-                return true;
-            }
-        }
+      if (ke->key()== Qt::Key_A && ke->modifiers() & Qt::ControlModifier)
+      {
+        SelectAll();
+        return true;
+      }
     }
-    return QTreeWidget::event(e);
+  }
+  return QTreeWidget::event(e);
 }
 
 void LayerTreeWidget::dropEvent(QDropEvent *event)
 {
-    QModelIndex droppedIndex = indexAt( event->pos() );
+  QModelIndex droppedIndex = indexAt( event->pos() );
 
-    if ( droppedIndex.isValid() )
+  if ( droppedIndex.isValid() )
+  {
+    DropIndicatorPosition drop_pos = dropIndicatorPosition();
+    QTreeWidgetItem* itemTo = itemAt(event->pos());
+    QList<QTreeWidgetItem*> items = this->selectedItems(), itemsFrom;
+    QTreeWidgetItem* itemCur = this->currentItem();
+    QString type;
+    if (itemCur && itemCur->parent())
     {
-        DropIndicatorPosition drop_pos = dropIndicatorPosition();
-        QTreeWidgetItem* itemTo = itemAt(event->pos());
-        QList<QTreeWidgetItem*> items = this->selectedItems(), itemsFrom;
-        QTreeWidgetItem* itemCur = this->currentItem();
-        QString type;
-        if (itemCur && itemCur->parent())
+      QTreeWidgetItem* parent = itemCur->parent();
+      type = parent->data(0, Qt::UserRole).toString();
+      foreach (QTreeWidgetItem* item, items)
+      {
+        Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
+        if (layer && layer->GetPrimaryType() == type)
         {
-            QTreeWidgetItem* parent = itemCur->parent();
-            type = parent->data(0, Qt::UserRole).toString();
-            foreach (QTreeWidgetItem* item, items)
-            {
-               Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
-               if (layer && layer->GetPrimaryType() == type)
-               {
-                   itemsFrom << item;
-               }
-            }
+          itemsFrom << item;
         }
-        bool bReordered = false;
-        if (!itemsFrom.isEmpty() && itemTo && !itemsFrom.contains(itemTo))
+      }
+    }
+    bool bReordered = false;
+    if (!itemsFrom.isEmpty() && itemTo && !itemsFrom.contains(itemTo))
+    {
+      QTreeWidgetItem* parent = itemTo->parent();
+      if (parent)
+      {
+        if (parent->data(0, Qt::UserRole).toString() == type)
         {
-            QTreeWidgetItem* parent = itemTo->parent();
-            if (parent)
-            {
-                if (parent->data(0, Qt::UserRole).toString() == type)
-                {
-                    foreach (QTreeWidgetItem* item, itemsFrom)
-                    {
-                        parent->removeChild(item);
-                    }
-                    parent->insertChildren(parent->indexOfChild(itemTo) + (drop_pos == QTreeWidget::BelowItem ? 1 : 0), itemsFrom);
-                }
-            }
-            else if (itemTo->data(0, Qt::UserRole).toString() == type)
-            {
-                foreach (QTreeWidgetItem* item, itemsFrom)
-                {
-                    itemTo->removeChild(item);
-                }
-                itemTo->insertChildren(0, itemsFrom);
-            }
-            bReordered = true;
+          foreach (QTreeWidgetItem* item, itemsFrom)
+          {
+            parent->removeChild(item);
+          }
+          parent->insertChildren(parent->indexOfChild(itemTo) + (drop_pos == QTreeWidget::BelowItem ? 1 : 0), itemsFrom);
         }
-        if (itemCur)
-            setCurrentItem(itemCur);
-
+      }
+      else if (itemTo->data(0, Qt::UserRole).toString() == type)
+      {
         foreach (QTreeWidgetItem* item, itemsFrom)
         {
-            item->setSelected(true);
+          itemTo->removeChild(item);
         }
+        itemTo->insertChildren(0, itemsFrom);
+      }
+      bReordered = true;
+    }
+    if (itemCur)
+      setCurrentItem(itemCur);
 
-        if (bReordered)
-        {
-            if (itemTo->parent())
-                itemTo = itemTo->parent();
-            QList<Layer*> layers;
-            for (int i = 0; i < itemTo->childCount(); i++)
-            {
-                QTreeWidgetItem* item = itemTo->child(i);
-                Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
-                if (layer)
-                {
-                    layers << layer;
-                }
-            }
-            emit ToReorderLayers(layers);
-        }
-
-//        QTreeWidgetItem* itemFrom = NULL;
-//        QByteArray encoded = event->mimeData()->data("application/x-qabstractitemmodeldatalist");
-//        QDataStream stream(&encoded, QIODevice::ReadOnly);
-//        if (!stream.atEnd())
-//        {
-//            int row, col;
-//            QMap<int,  QVariant> roleDataMap;
-//            stream >> row >> col >> roleDataMap;
-//            itemFrom = itemFromIndex(rootIndex().child(row, col));
-//        }
-//        qDebug() << itemTo << itemFrom;
+    foreach (QTreeWidgetItem* item, itemsFrom)
+    {
+      item->setSelected(true);
     }
 
-//    QTreeWidget::dropEvent(event);
+    if (bReordered)
+    {
+      if (itemTo->parent())
+        itemTo = itemTo->parent();
+      QList<Layer*> layers;
+      for (int i = 0; i < itemTo->childCount(); i++)
+      {
+        QTreeWidgetItem* item = itemTo->child(i);
+        Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
+        if (layer)
+        {
+          layers << layer;
+        }
+      }
+      emit ToReorderLayers(layers);
+    }
+
+    //        QTreeWidgetItem* itemFrom = NULL;
+    //        QByteArray encoded = event->mimeData()->data("application/x-qabstractitemmodeldatalist");
+    //        QDataStream stream(&encoded, QIODevice::ReadOnly);
+    //        if (!stream.atEnd())
+    //        {
+    //            int row, col;
+    //            QMap<int,  QVariant> roleDataMap;
+    //            stream >> row >> col >> roleDataMap;
+    //            itemFrom = itemFromIndex(rootIndex().child(row, col));
+    //        }
+    //        qDebug() << itemTo << itemFrom;
+  }
+
+  //    QTreeWidget::dropEvent(event);
 }

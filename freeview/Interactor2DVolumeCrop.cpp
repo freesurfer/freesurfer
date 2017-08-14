@@ -82,7 +82,7 @@ bool Interactor2DVolumeCrop::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
     UpdateCursor( event, view );
 
     MainWindow::GetMainWindow()->GetVolumeCropper()
-    ->MoveActiveBound2D( view, event->x(), event->y() );
+        ->MoveActiveBound2D( view, event->x(), event->y() );
 
     return false;
   }

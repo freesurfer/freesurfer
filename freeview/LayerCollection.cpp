@@ -46,10 +46,16 @@ LayerCollection::LayerCollection( const QString& strType, QObject* parent ) :
 
 LayerCollection::~LayerCollection()
 {
+  Clear();
+}
+
+void LayerCollection::Clear()
+{
   for ( int i = 0; i < m_layers.size(); i++ )
   {
-    delete m_layers[i];
+    m_layers[i]->deleteLater();
   }
+  m_layers.clear();
 }
 
 bool LayerCollection::IsEmpty()
@@ -165,33 +171,33 @@ bool LayerCollection::RemoveLayer( Layer* layer, bool deleteObject )
 
 bool LayerCollection::RemoveLayers(QList<Layer *> layers)
 {
-    int nLast = 0;
-    for ( int i = 0; i < m_layers.size(); i++ )
-    {
-        foreach (Layer* layer, layers)
-        {
-            if ( m_layers[i] == layer )
-            {
-                m_layers.erase( m_layers.begin() + i );
-                layer->deleteLater();
-                nLast = i;
-                i--;
-                break;
-            }
-        }
-    }
-    if (m_layers.isEmpty())
-        SetActiveLayer(NULL);
-    else if (nLast < m_layers.size())
-        SetActiveLayer(m_layers[nLast]);
-    else
-        SetActiveLayer(m_layers[m_layers.size()-1]);
-
+  int nLast = 0;
+  for ( int i = 0; i < m_layers.size(); i++ )
+  {
     foreach (Layer* layer, layers)
     {
-        emit LayerRemoved( layer );
+      if ( m_layers[i] == layer )
+      {
+        m_layers.erase( m_layers.begin() + i );
+        layer->deleteLater();
+        nLast = i;
+        i--;
+        break;
+      }
     }
-    return true;
+  }
+  if (m_layers.isEmpty())
+    SetActiveLayer(NULL);
+  else if (nLast < m_layers.size())
+    SetActiveLayer(m_layers[nLast]);
+  else
+    SetActiveLayer(m_layers[m_layers.size()-1]);
+
+  foreach (Layer* layer, layers)
+  {
+    emit LayerRemoved( layer );
+  }
+  return true;
 }
 
 void LayerCollection::MoveLayerUp()
@@ -216,7 +222,7 @@ bool LayerCollection::MoveLayerUp( Layer* layer )
   for ( int i = 0; i < m_layers.size(); i++ )
   {
     // unlocked layers can still be moved
- //   if ( !m_layers[i]->IsLocked() )
+    //   if ( !m_layers[i]->IsLocked() )
     {
       unlocked_layers << m_layers[i];
     }
@@ -262,7 +268,7 @@ bool LayerCollection::MoveLayerDown( Layer* layer )
   QList<Layer*> unlocked_layers;
   for ( int i = 0; i < m_layers.size(); i++ )
   {
-  //  if ( !m_layers[i]->IsLocked() )
+    //  if ( !m_layers[i]->IsLocked() )
     {
       unlocked_layers.push_back( m_layers[i] );
     }
@@ -441,8 +447,8 @@ bool LayerCollection::CycleLayer( bool bMoveUp, bool bChangeActiveLayer )
 
 void LayerCollection::ReorderLayers(const QList<Layer*> &layers)
 {
-    m_layers = layers;
-    emit LayersReordered();
+  m_layers = layers;
+  emit LayersReordered();
 }
 
 bool LayerCollection::Contains( Layer* layer )
@@ -522,17 +528,19 @@ bool LayerCollection::SetSlicePosition( int nPlane, double dPos_in, bool bRoundT
 
   if ( bRoundToGrid )
   {
-    dPos = ((int)( ( dPos - m_dWorldOrigin[nPlane]) / m_dWorldVoxelSize[nPlane] ) ) * m_dWorldVoxelSize[nPlane]
-           + m_dWorldOrigin[nPlane];
-    // no longer refrain to boundary
-    /*
-    if ( m_dSlicePosition[nPlane] <= m_dWorldOrigin[nPlane] + m_dWorldSize[nPlane] &&
-         m_dSlicePosition[nPlane] >= m_dWorldOrigin[nPlane] &&
-         ( dPos >  m_dWorldOrigin[nPlane] + m_dWorldSize[nPlane] || dPos < m_dWorldOrigin[nPlane] ) )
+    double origin[3], voxel_size[3];
+    GetWorldOrigin(origin);
+    GetWorldVoxelSize(voxel_size);
+    Layer* layer = GetActiveLayer();
+    if (layer && layer->IsTypeOf("MRI"))
     {
-      return false;
+      double* wo = layer->GetWorldOrigin();
+      for (int i = 0; i < 3; i++)
+        origin[i] = wo[i] - ((int)((wo[i]-origin[i])/voxel_size[i]+1))*voxel_size[i];
+      layer->GetWorldVoxelSize(voxel_size);
     }
-    */
+    dPos = ((int)( ( dPos - origin[nPlane]) / voxel_size[nPlane] ) ) * voxel_size[nPlane]
+        + origin[nPlane];
   }
 
   if ( fabs( dPos - m_dSlicePosition[nPlane] ) < 1e-8 )
@@ -577,6 +585,8 @@ bool LayerCollection::SetSlicePosition( double* slicePos )
 
 bool LayerCollection::SetSlicePosition( int nPlane, int nSliceNumber )
 {
+  Q_UNUSED(nPlane);
+  Q_UNUSED(nSliceNumber);
   return true;
 }
 

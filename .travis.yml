@@ -1,10 +1,29 @@
-sudo: false
+sudo: required
 
 language: cpp
 
 compiler: gcc
 
 os: linux
+
+cache:
+  - apt
+  - ccache
+
+env:
+  matrix:
+
+  # Autorecon1:
+  - TESTS="mri_convert mri_add_xform_to_header talairach_avi talairach_afd mri_normalize mri_watershed"
+
+  # Autorecon2:
+  - TESTS="mri_cc mri_mask mri_segment mri_edit_wm_with_aseg mri_pretess mri_fill mri_tesellate mris_inflate"
+
+  # Autorecon3:
+  - TESTS="mris_ca_label"
+
+  # Misc
+  - TESTS="utils"
 
 addons:
   apt:
@@ -26,8 +45,19 @@ addons:
      - tcsh
      - curl
      - git
+     - libxml2-utils
+
+before_install:
+  # Needs recent git-annex to be able to get -J3 --metadata
+  - bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh)
+  - travis_retry sudo apt-get update -qq
+  - travis_retry sudo apt-get install git-annex-standalone
+  - git fetch origin git-annex
+  - git remote add datasrc http://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/repo/annex.git
+  - git fetch datasrc git-annex
 
 install:
+  - git annex get -J3 --metadata fstags=makecheck .
   - curl -O ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/centos6_x86_64/centos6-x86_64-packages.tar.gz
   - tar -xzf centos6-x86_64-packages.tar.gz 
   - rm centos6-x86_64-packages.tar.gz 
@@ -36,10 +66,11 @@ install:
   - cd ..
 
 script:
-  - ./setup_configure 
-  - ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/centos6-x86_64-packages --disable-Werror --disable-GUI-build 
+  - ./setup_configure
+  - ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/centos6-x86_64-packages --disable-Werror --disable-GUI-build
   - travis_wait 40 ./travis_make.sh
   - tail build.log
+  - travis_wait 60 ./run_selected_tests
 
 after_failure:
   

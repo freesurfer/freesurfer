@@ -12,14 +12,16 @@ OTHERLDFLAGS=-z muldefs
 endif
 
 BUILT_SOURCES=mri_robust_template.help.xml.h \
-	mri_robust_register.help.xml.h \
-	mri_robust_template.help.xml.html \
-	mri_robust_register.help.xml.html
+              mri_robust_template.help.xml.html \
+              mri_robust_register.help.xml.h \
+              mri_robust_register.help.xml.html \
+              lta_diff.help.xml.h \
+              lta_diff.help.xml.html
 
 foodir=$(prefix)/docs/xml
-foo_DATA=mri_robust_template.help.xml mri_robust_register.help.xml
+foo_DATA=mri_robust_template.help.xml mri_robust_register.help.xml lta_diff.help.xml
 foo2dir=$(prefix)/docs/html
-foo2_DATA=mri_robust_template.help.xml.html mri_robust_register.help.xml.html
+foo2_DATA=mri_robust_template.help.xml.html mri_robust_register.help.xml.html lta_diff.help.xml.html
 
 bin_PROGRAMS = mri_robust_register \
 	mri_robust_template \
@@ -42,7 +44,7 @@ mri_robust_template_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
   $(LIB_LAPACK) $(LIB_BLAS) $(LIB_G2C_A) $(LIB_GFORTRAN)
 mri_robust_template_LDFLAGS=$(OS_LDFLAGS) $(OTHERLDFLAGS)
 
-lta_diff_SOURCES=lta_diff.cpp Registration.cpp \
+lta_diff_SOURCES=lta_diff.help.xml.h lta_diff.cpp Registration.cpp \
 	CostFunctions.cpp MyMatrix.cpp MyMRI.cpp Quaternion.cpp
 lta_diff_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
   $(LIB_LAPACK) $(LIB_BLAS) $(LIB_G2C_A) $(LIB_GFORTRAN)

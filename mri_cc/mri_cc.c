@@ -77,6 +77,8 @@ static Real cc_tal_x = 0.0 ;
 static Real cc_tal_y = 0.0 ;
 static Real cc_tal_z = 27.0 ;
 static int fornix = 0 ;
+static int lh_only = 0 ;
+static int rh_only = 0 ;
 static int skip = 0 ;
 static LTA *lta = 0;
 static char output_fname[STRLEN] = "aseg_with_cc.mgz";
@@ -246,6 +248,13 @@ main(int argc, char *argv[])
     if (mri_aseg == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read aseg volume from %s",
                 Progname, ifname) ;
+    if (lh_only || rh_only)
+    {
+      sprintf(ofname,"%s/%s/mri/%s",data_dir,argv[1], output_fname) ;
+      fprintf(stdout, "copying aseg WITHOUT callosum to %s...\n", ofname) ;
+      MRIwrite(mri_aseg, ofname) ;
+      exit(0) ;
+    }
     if (MRIvoxelsInLabel(mri_aseg, CC_Central) > 0)
     {
       if (force == 0)
@@ -1432,6 +1441,16 @@ get_option(int argc, char *argv[])
   {
     force = 1 ;
     printf("processing regardless of existence of cc in input volume\n") ;
+  }
+  else if (!stricmp(option, "lh"))
+  {
+    lh_only = 1 ;
+    printf("assuming only left hemisphere image\n") ;
+  }
+  else if (!stricmp(option, "rh"))
+  {
+    rh_only = 1 ;
+    printf("assuming only right hemisphere image\n") ;
   }
   else switch (toupper(*option))
     {

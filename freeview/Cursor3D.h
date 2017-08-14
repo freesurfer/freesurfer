@@ -65,15 +65,21 @@ public:
 
   bool IsShown();
 
+  int GetSize()
+  {
+    return m_nSize;
+  }
+
+  int GetThickness()
+  {
+    return m_nThickness;
+  }
+
 public slots:
   void SetColor( const QColor& color );
   void RebuildActor(double scale = -1);
-  void SetLarge(bool bLarge);
-  void SetStyle(int nStyle)
-  {
-      if (nStyle < 2)
-          SetLarge(nStyle);
-  }
+  void SetSize(int nSize);
+  void SetThickness(int nThickness);
 
 Q_SIGNALS:
   void Updated();
@@ -85,7 +91,8 @@ private:
   RenderView3D* m_view;
 
   double  m_dPosition[3];
-  bool    m_bLarge;
+  int     m_nSize;
+  int     m_nThickness;
   double  m_dScale;
 };
 

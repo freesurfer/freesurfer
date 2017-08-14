@@ -113,6 +113,8 @@ white surface. This is more accurate than from the aseg. The aseg values for the
 </explanation>
       <argument>--surf-ctx-vol</argument>
       <explanation>compute cortical volumes from surf</explanation>
+      <argument>--no-global-stats</argument>
+      <explanation>Turns off computation of global stats (eg, wmvol, ctx vol, supratent, totalgray, etc)</explanation>
       <argument>--empty</argument>
       <explanation>Report on segmentations listed in the color table even if they are not found in the segmentation volume.</explanation>
       <argument>--ctab-out ctaboutput</argument>

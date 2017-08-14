@@ -121,6 +121,7 @@ ToolWindowMeasure::~ToolWindowMeasure()
 
 void ToolWindowMeasure::showEvent(QShowEvent* event)
 {
+  Q_UNUSED(event);
   static bool bFirstTime = true;
   if ( bFirstTime )
   {
@@ -311,9 +312,9 @@ void ToolWindowMeasure::OnIdle()
 void ToolWindowMeasure::OnLoad()
 {
   QString filename = QFileDialog::getOpenFileName( this,
-                     "Load region(s) from file",
-                     "",
-                     "All files (*)");
+                                                   "Load region(s) from file",
+                                                   "",
+                                                   "All files (*)");
 
   LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
   if ( mri && !filename.isEmpty() )
@@ -329,9 +330,9 @@ void ToolWindowMeasure::OnLoad()
 void ToolWindowMeasure::OnSave()
 {
   QString filename = QFileDialog::getSaveFileName( this,
-                     "Save region",
-                     "",
-                     "All files (*)");
+                                                   "Save region",
+                                                   "",
+                                                   "All files (*)");
   if ( m_surfaceRegion && !filename.isEmpty() )
   {
     if ( !m_surfaceRegion->Write( filename ) )
@@ -344,9 +345,9 @@ void ToolWindowMeasure::OnSave()
 void ToolWindowMeasure::OnSaveAll()
 {
   QString filename = QFileDialog::getSaveFileName( this,
-                     "Save region",
-                     "",
-                     "All files (*)");
+                                                   "Save region",
+                                                   "",
+                                                   "All files (*)");
   if (!filename.isEmpty() )
   {
     LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
@@ -370,9 +371,9 @@ void ToolWindowMeasure::OnCopy()
 void ToolWindowMeasure::OnExport()
 {
   QString filename = QFileDialog::getSaveFileName( this,
-                     "Export stats to file",
-                     "",
-                     "All files (*)");
+                                                   "Export stats to file",
+                                                   "",
+                                                   "All files (*)");
   if (!filename.isEmpty())
   {
     QFile file(filename);
@@ -408,7 +409,7 @@ void ToolWindowMeasure::OnColorGroup( const QColor& color )
   if ( m_surfaceRegion )
   {
     m_surfaceRegion->GetMRI()->GetSurfaceRegionGroups()
-    ->SetGroupColor( m_surfaceRegion->GetGroup(), color );
+        ->SetGroupColor( m_surfaceRegion->GetGroup(), color );
     UpdateWidgets();
   }
 }

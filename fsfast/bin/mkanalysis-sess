@@ -833,6 +833,7 @@ usage_exit:
   echo "Preprocessing"
   echo "  -surface subject hemi : sample raw data onto the hemi.subject surface"
   echo "  -mni305 <resMM>       : sample raw in mni305 with resolution resMM (1 or 2)"
+  echo "  -cvs                  : sample raw in CVS space (fixed at 2mm)"
   echo "  -native               : leave raw data in native functional space"
   echo "  -fwhm FWHMmm : spatially smooth input by FWHM (in mm) in proper space"
   echo "  -stc SliceOrder : slice-time correct using the name of the SliceOrder (default none)"
@@ -955,6 +956,12 @@ to be resampled onto the MNI305 space with the given resolution. You
 can only choose 1 (1mm) or 2 (2mm). WARNING: if you choose 1mm, it
 will take a very long time and use lots of disk space. Any smoothing will
 be performed in the volume after resampling.
+
+-cvs
+
+When performing volume-based analysis, this will cause the raw 4D data
+to be resampled onto the 2mm Combined-Volume-Surface (CVS) space. Any
+smoothing will be performed in the volume after resampling.
 
 -native
 

@@ -239,7 +239,7 @@ public:
     return m_nTensorInversion;
   }
 
-  bool GetVectorRepresentation()
+  int GetVectorRepresentation()
   {
     return m_nVectorRepresentation;
   }
@@ -378,6 +378,11 @@ public:
           nRange[i] = m_nProjectionMapRange[i];
   }
 
+  QList<int> GetSelectedLabels()
+  {
+    return m_listVisibleLabels;
+  }
+
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -425,6 +430,9 @@ public slots:
   void SetHeatScaleAutoMid(bool bAutoMid);
 
   void SetProjectionMapRange(int n, int start, int end);
+  void SetSelectLabel(int nVal, bool bSelected);
+  void SetSelectAllLabels();
+  void SetUnselectAllLabels();
 
 signals:
   void ColorMapChanged();
@@ -441,6 +449,7 @@ signals:
   void UpSampleMethodChanged( int nMethod );
   void ProjectionMapChanged();
   void ProjectMapTypeChanged(int nType);
+  void LabelContourChanged(int n = -1);
 
 private:
   void UpdateMinMaxValues();
@@ -538,6 +547,8 @@ private:
 
   int     m_nProjectionMapType;
   int     m_nProjectionMapRange[6];
+
+  QList<int>  m_listVisibleLabels;
 };
 
 #endif

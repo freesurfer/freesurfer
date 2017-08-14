@@ -41,8 +41,8 @@ extern "C"
 }
 
 LayerVolumeTrack::LayerVolumeTrack( LayerMRI* ref, QObject* parent ) :
-    LayerMRI( ref, parent ),
-    m_ctabStripped(NULL)
+  LayerMRI( ref, parent ),
+  m_ctabStripped(NULL)
 {
   m_strTypeNames.push_back( "VolumeTrack" );
   SetEditable(false);
@@ -204,6 +204,7 @@ double LayerVolumeTrack::GetThreshold(int nLabel)
 
 void LayerVolumeTrack::Append3DProps(vtkRenderer *renderer, bool *bPlaneVisibility)
 {
+  Q_UNUSED(bPlaneVisibility);
   for (int i = 0; i < m_actors.size(); i++)
     renderer->AddViewProp(m_actors[i]);
 }

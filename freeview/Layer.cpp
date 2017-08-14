@@ -52,6 +52,8 @@ Layer::Layer( QObject* parent ) : QObject( parent )
     m_dRotate[i] = 0;
     m_bFlip[i] = false;
   }
+  m_bUseRotationCenter = false;
+
   m_bLocked = false;
   mProperty = NULL;
   m_nLayerIndex = 0;
@@ -213,7 +215,6 @@ void Layer::GetDisplayBounds( double* bounds )
   this->GetBounds( bounds );
 }
 
-
 bool Layer::Rotate( std::vector<RotationElement>& rotations )
 {
   bool ret = DoRotate( rotations );
@@ -291,6 +292,7 @@ void Layer::Restore()
     m_dScale[i] = 1;
     m_dRotate[i] = 0;
   }
+  m_bUseRotationCenter = false;
 
   emit Transformed();
 }
@@ -301,6 +303,15 @@ void Layer::SetRotate(double *rotate, bool bAroundCenter)
   m_dRotate[1] = rotate[1];
   m_dRotate[2] = rotate[2];
   m_bRotateAroundCenter = bAroundCenter;
+
+  UpdateTransform();
+}
+
+void Layer::SetRotationCenter(double *c_pos)
+{
+  m_dRotationCenter[0] = c_pos[0];
+  m_dRotationCenter[1] = c_pos[1];
+  m_dRotationCenter[2] = c_pos[2];
 
   UpdateTransform();
 }
@@ -336,6 +347,22 @@ void Layer::SetScale(double *scale)
   m_dScale[0] = scale[0];
   m_dScale[1] = scale[1];
   m_dScale[2] = scale[2];
+  UpdateTransform();
+}
+
+void Layer::CopyTransformation(Layer *layer)
+{
+  for (int i = 0; i < 3; i++)
+  {
+    m_dTranslate[i] = layer->m_dTranslate[i];
+    m_dScale[i]     = layer->m_dScale[i];
+    m_dRotate[i]    = layer->m_dRotate[i];
+    m_bFlip[i]      = layer->m_bFlip[i];
+    m_dRotationCenter[i] = layer->m_dRotationCenter[i];
+  }
+  m_bRotateAroundCenter = false; //layer->m_bRotateAroundCenter;
+  m_bUseRotationCenter = true;
+
   UpdateTransform();
 }
 

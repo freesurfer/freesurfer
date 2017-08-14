@@ -27,7 +27,7 @@ public:
     //std::cout << "I am " << this->GetNameOfClass() 
     //          << " and I'm running! " << std::endl;
               
-    // kvlScaleMesh( mesh, scaleFactor )
+    // kvlScaleMesh( mesh, scaleFactor(s) )
               
     // Make sure input arguments are correct
     if ( ( nrhs != 2 ) || ( nlhs != 0 ) || !mxIsDouble( prhs[ 1 ] ) )
@@ -46,14 +46,36 @@ public:
             = static_cast< const kvl::AtlasMesh* >( object.GetPointer() );
     kvl::AtlasMesh::Pointer  mesh
             = const_cast< kvl::AtlasMesh* >( constMesh.GetPointer() );
-
-    const double scaleFactor = *( mxGetPr( prhs[ 1 ] ) );
-  
     //std::cout << "mesh: " << mesh.GetPointer() << std::endl;
-    //std::cout << "scaleFactor: " << scaleFactor << std::endl;
+
+    double  scaling[ 3 ];
+    double*  tmp = mxGetPr( prhs[ 1 ] );
+    const int  numberOfRows = *( mxGetDimensions( prhs[ 1 ] ) );
+    const int  numberOfColumns = *( mxGetDimensions( prhs[ 1 ] ) + 1 );
+    std::cout << "numberOfRows: " << numberOfRows << std::endl;
+    std::cout << "numberOfColumns: " << numberOfColumns << std::endl;
+    if ( ( numberOfRows * numberOfColumns ) == 1 )
+      {
+      for ( int i = 0; i < 3; i++ )
+        {
+        scaling[ i ] = *tmp;
+        }
+        
+      }
+    else if ( ( numberOfRows * numberOfColumns ) == 3 )
+      {
+      for ( int i = 0; i < 3; i++, tmp++ )
+        {
+        scaling[ i ] = *tmp;
+        }
+      }
+    else
+      {
+      mexErrMsgTxt( "Scale factor(s) must be 1- or 3-dimensional" );
+      }
+
 
     // Transform the mesh points
-    const double scaling[] = { scaleFactor, scaleFactor, scaleFactor };
     for ( AtlasMesh::PointsContainer::Iterator it = mesh->GetPoints()->Begin();
           it != mesh->GetPoints()->End(); ++it )
       {

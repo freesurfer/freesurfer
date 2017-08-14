@@ -117,7 +117,7 @@ DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
           MainWindow::GetMainWindow(), SLOT(SaveVolumeAsAndReload()));
 
   LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()
-                              ->GetSupplementLayer("Landmarks");
+      ->GetSupplementLayer("Landmarks");
   landmarks->SetLandmarkColor(0, Qt::red);
   landmarks->SetLandmarkColor(1, Qt::green);
   landmarks->SetLandmarkColor(2, Qt::blue);
@@ -141,7 +141,7 @@ void DialogTransformVolume::showEvent(QShowEvent *e)
 void DialogTransformVolume::closeEvent(QCloseEvent *e)
 {
   LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()
-                              ->GetSupplementLayer("Landmarks");
+      ->GetSupplementLayer("Landmarks");
   if (landmarks)
     landmarks->SetVisible(false);
   QDialog::closeEvent(e);
@@ -160,7 +160,6 @@ void DialogTransformVolume::UpdateUI( int scope )
     }
     if ( scope == 0 || scope == 2 )
     {
-      double* vs = layer->GetWorldVoxelSize();
       double* ws = layer->GetWorldSize();
       double pos[3];
       layer->GetTranslate( pos );
@@ -218,8 +217,8 @@ void DialogTransformVolume::UpdateUI( int scope )
 }
 
 bool DialogTransformVolume::GetRotation( int nIndex_in,
-    int& plane_out,
-    double& angle_out )
+                                         int& plane_out,
+                                         double& angle_out )
 {
   if ( nIndex_in < 0 ||
        nIndex_in > 2 ||
@@ -292,8 +291,8 @@ void DialogTransformVolume::OnSaveReg()
   }
 
   QString filename = QFileDialog::getSaveFileName(this, "Save Registration",
-                     QFileInfo( layer_mri->GetRegFileName() ).absoluteFilePath(),
-                     "LTA files (*.lta);;All files (*)");
+                                                  QFileInfo( layer_mri->GetRegFileName() ).absoluteFilePath(),
+                                                  "LTA files (*.lta);;All files (*)");
   if ( !filename.isEmpty() )
   {
     layer_mri->SaveRegistration( filename );
@@ -307,6 +306,9 @@ void DialogTransformVolume::OnRestore()
   {
     layer->Restore();
     UpdateUI();
+
+    if (ui->checkBoxApplyToAll->isChecked())
+      OnCheckBoxApplyToAll(true);
   }
   LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()->GetSupplementLayer("Landmarks");
   landmarks->Restore();
@@ -333,7 +335,7 @@ void DialogTransformVolume::DoRotate()
       if ( ui->radioButtonAroundCursor->isChecked() )
       {
         MainWindow::GetMainWindow()->GetLayerCollection( "MRI" )->
-        GetSlicePosition( re.Point );
+            GetSlicePosition( re.Point );
         layer->RemapPositionToRealRAS( re.Point, re.Point );
       }
       else
@@ -341,8 +343,8 @@ void DialogTransformVolume::DoRotate()
         // use center of the volume to rotate
         layer->GetRASCenter( re.Point );
       }
-  //    else if ( m_radioSinc->GetValue() )
-  //      re.SampleMethod = SAMPLE_SINC;
+      //    else if ( m_radioSinc->GetValue() )
+      //      re.SampleMethod = SAMPLE_SINC;
 
       for ( int i = 0; i < 3; i++ )
       {
@@ -455,61 +457,73 @@ void DialogTransformVolume::OnSampleMethodChanged()
 
 void DialogTransformVolume::OnLineEditRotateX(const QString& text)
 {
+  Q_UNUSED(text);
   RespondTextRotate( 0 );
 }
 
 void DialogTransformVolume::OnLineEditRotateY(const QString& text)
 {
+  Q_UNUSED(text);
   RespondTextRotate( 1 );
 }
 
 void DialogTransformVolume::OnLineEditRotateZ(const QString& text)
 {
+  Q_UNUSED(text);
   RespondTextRotate( 2 );
 }
 
 void DialogTransformVolume::OnSliderRotateX(int nVal)
 {
+  Q_UNUSED(nVal);
   RespondSliderRotate( 0 );
 }
 
 void DialogTransformVolume::OnSliderRotateY(int nVal)
 {
+  Q_UNUSED(nVal);
   RespondSliderRotate( 1 );
 }
 
 void DialogTransformVolume::OnSliderRotateZ(int nVal)
 {
+  Q_UNUSED(nVal);
   RespondSliderRotate( 2 );
 }
 
 void DialogTransformVolume::OnLineEditTranslateX(const QString& text)
 {
+  Q_UNUSED(text);
   RespondTextTranslate( 0 );
 }
 
 void DialogTransformVolume::OnLineEditTranslateY(const QString& text)
 {
+  Q_UNUSED(text);
   RespondTextTranslate( 1 );
 }
 
 void DialogTransformVolume::OnLineEditTranslateZ(const QString& text)
 {
+  Q_UNUSED(text);
   RespondTextTranslate( 2 );
 }
 
 void DialogTransformVolume::OnScrollBarTranslateX(int nVal)
 {
+  Q_UNUSED(nVal);
   RespondScrollTranslate( 0 );
 }
 
 void DialogTransformVolume::OnScrollBarTranslateY(int nVal)
 {
+  Q_UNUSED(nVal);
   RespondScrollTranslate( 1 );
 }
 
 void DialogTransformVolume::OnScrollBarTranslateZ(int nVal)
 {
+  Q_UNUSED(nVal);
   RespondScrollTranslate( 2 );
 }
 
@@ -529,13 +543,14 @@ void DialogTransformVolume::RespondTextTranslate( int n )
         pos[n] = dvalue;
         layer->SetTranslate( pos );
         MainWindow::GetMainWindow()->RequestRedraw();
-
-        double* vs = layer->GetWorldVoxelSize();
         int range = m_scrollTranslate[n]->maximum();
         m_scrollTranslate[n]->blockSignals(true);
         m_scrollTranslate[n]->setValue(range/2 + (int)( pos[n] / m_dIncrementTranslate ) );
         m_scrollTranslate[n]->blockSignals(false);
         UpdateUI( 1 );
+
+        if (ui->checkBoxApplyToAll->isChecked())
+          OnCheckBoxApplyToAll(true);
       }
     }
   }
@@ -557,6 +572,9 @@ void DialogTransformVolume::RespondScrollTranslate( int n )
       MainWindow::GetMainWindow()->RequestRedraw();
       ChangeLineEditNumber(m_textTranslate[n], pos[n], 2, true);
       UpdateUI( 1 );
+
+      if (ui->checkBoxApplyToAll->isChecked())
+        OnCheckBoxApplyToAll(true);
     }
   }
 }
@@ -587,6 +605,9 @@ void DialogTransformVolume::RespondTextRotate( int n )
         m_sliderRotate[n]->setValue( (int)(dvalue*2) );
         m_sliderRotate[n]->blockSignals(false);
         UpdateUI( 1 );
+
+        if (ui->checkBoxApplyToAll->isChecked())
+          OnCheckBoxApplyToAll(true);
       }
     }
   }
@@ -606,37 +627,46 @@ void DialogTransformVolume::RespondSliderRotate( int n )
       MainWindow::GetMainWindow()->RequestRedraw();
       ChangeLineEditNumber(m_textAngle[n], angle[n], 2, true );
       UpdateUI( 1 );
+
+      if (ui->checkBoxApplyToAll->isChecked())
+        OnCheckBoxApplyToAll(true);
     }
   }
 }
 
 void DialogTransformVolume::OnLineEditScaleX(const QString& text)
 {
+  Q_UNUSED(text);
   RespondTextScale( 0 );
 }
 
 void DialogTransformVolume::OnLineEditScaleY(const QString& text)
 {
+  Q_UNUSED(text);
   RespondTextScale( 1 );
 }
 
 void DialogTransformVolume::OnLineEditScaleZ(const QString& text)
 {
+  Q_UNUSED(text);
   RespondTextScale( 2 );
 }
 
 void DialogTransformVolume::OnScrollBarScaleX(int nVal)
 {
+  Q_UNUSED(nVal);
   RespondScrollScale( 0 );
 }
 
 void DialogTransformVolume::OnScrollBarScaleY(int nVal)
 {
+  Q_UNUSED(nVal);
   RespondScrollScale( 1 );
 }
 
 void DialogTransformVolume::OnScrollBarScaleZ(int nVal)
 {
+  Q_UNUSED(nVal);
   RespondScrollScale( 2 );
 }
 
@@ -669,6 +699,9 @@ void DialogTransformVolume::RespondTextScale( int n )
         }
         m_scrollScale[n]->blockSignals(false);
         UpdateUI( 0 );
+
+        if (ui->checkBoxApplyToAll->isChecked())
+          OnCheckBoxApplyToAll(true);
       }
     }
   }
@@ -696,6 +729,9 @@ void DialogTransformVolume::RespondScrollScale( int n )
 
     ChangeLineEditNumber( m_textScale[n], scale[n], 4, true );
     UpdateUI( 0 );
+
+    if (ui->checkBoxApplyToAll->isChecked())
+      OnCheckBoxApplyToAll(true);
   }
 }
 
@@ -740,7 +776,7 @@ void DialogTransformVolume::OnButtonLandmarkPick()
 void DialogTransformVolume::UpdateLandmarkColors()
 {
   LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()
-                              ->GetSupplementLayer("Landmarks");
+      ->GetSupplementLayer("Landmarks");
   for (int i = 0; i < m_colorPickerLandmark.size(); i++)
   {
     if (qobject_cast<QtColorPicker*>(sender()) == m_colorPickerLandmark[i])
@@ -774,7 +810,7 @@ void DialogTransformVolume::OnRadioButtonLandmark(bool bChecked)
       this->m_btnPickLandmark[i]->setChecked(false);
   }
   LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()
-                              ->GetSupplementLayer("Landmarks");
+      ->GetSupplementLayer("Landmarks");
   if (landmarks)
     landmarks->SetVisible(bChecked);
 }
@@ -800,6 +836,9 @@ void DialogTransformVolume::OnButtonCenterToCursor()
         m_scrollTranslate[n]->blockSignals(false);
       }
       UpdateUI( 0 );
+
+      if (ui->checkBoxApplyToAll->isChecked())
+        OnCheckBoxApplyToAll(true);
     }
   }
 }
@@ -818,6 +857,37 @@ void DialogTransformVolume::OnCheckBoxFlip()
       flip[2] = ui->checkBoxFlipZ->isChecked();
       layer->SetFlip(flip);
       MainWindow::GetMainWindow()->RequestRedraw();
+      UpdateUI(1);
+
+      if (ui->checkBoxApplyToAll->isChecked())
+        OnCheckBoxApplyToAll(true);
     }
+  }
+}
+
+void DialogTransformVolume::OnCheckBoxApplyToAll(bool bAll)
+{
+  LayerMRI* cur_layer = ( LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+  if (cur_layer && bAll)
+  {
+    QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
+    if (cur_layer->IsTransformed())
+    {
+      foreach (Layer* layer, layers)
+      {
+        if (layer != cur_layer && layer->IsVisible())
+          layer->CopyTransformation(cur_layer);
+      }
+    }
+    else
+    {
+      foreach (Layer* layer, layers)
+      {
+        if (layer != cur_layer && layer->IsVisible())
+          layer->Restore();
+      }
+    }
+    if (sender() == ui->checkBoxApplyToAll)
+      MainWindow::GetMainWindow()->RequestRedraw();
   }
 }

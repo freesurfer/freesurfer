@@ -24,13 +24,13 @@
 #include <vtkMath.h>
 
 LayerLineProfile::LayerLineProfile(int nPlane, QObject *parent, LayerPointSet *line1, LayerPointSet *line2) :
-    Layer(parent),
-    m_nPlane(nPlane),
-    m_dResolution(2),
-    m_dSpacing(2),
-    m_nSamples(100),
-    m_dOffset(10),
-    m_nActiveLineId(-1)
+  Layer(parent),
+  m_nPlane(nPlane),
+  m_dResolution(2),
+  m_dSpacing(2),
+  m_nSamples(100),
+  m_dOffset(10),
+  m_nActiveLineId(-1)
 {
   this->m_strTypeNames << "Supplement" << "LineProfile";
   SetSourceLayers(line1, line2);
@@ -97,7 +97,7 @@ void LayerLineProfile::SetSourceLayers(LayerPointSet *line1, LayerPointSet *line
 
 void LayerLineProfile::OnSlicePositionChanged(int nPlane)
 {
-
+  Q_UNUSED(nPlane);
 }
 
 void LayerLineProfile::UpdateColor()
@@ -111,7 +111,7 @@ void LayerLineProfile::UpdateOpacity()
 {
   m_profileLines->GetProperty()->SetOpacity(GetProperty()->GetOpacity());
   m_endLines->GetProperty()->SetOpacity(GetProperty()->GetOpacity());
- // m_activeLine->GetProperty()->SetOpacity(GetProperty()->GetOpacity());
+  // m_activeLine->GetProperty()->SetOpacity(GetProperty()->GetOpacity());
   emit ActorUpdated();
 }
 
@@ -193,7 +193,7 @@ std::vector< std::vector<double> > LayerLineProfile::Points2DToSpline3D(std::vec
 bool LayerLineProfile::Solve(double profileSpacing, double referenceSize, double laplaceResolution, double offset)
 {
   //double laplaceResolution = ;
-//  double referenceSize     = voxel_length; // smallest voxel lenth
+  //  double referenceSize     = voxel_length; // smallest voxel lenth
   double resolution        = laplaceResolution * referenceSize;
   double spacing           = profileSpacing * referenceSize;
   //double resolution        = spacing * 10.0;
@@ -286,7 +286,7 @@ void LayerLineProfile::MakeFlatTube(vtkPoints* points, vtkCellArray* lines, vtkA
   plane->SetNormal( m_nPlane==0?1:0, m_nPlane==1?1:0, m_nPlane==2?1:0 );
 
   vtkSmartPointer<vtkCutter> cutter =
-    vtkSmartPointer<vtkCutter>::New();
+      vtkSmartPointer<vtkCutter>::New();
   cutter->SetInput( tube->GetOutput() );
   cutter->SetCutFunction( plane );
 
@@ -479,7 +479,7 @@ bool LayerLineProfile::Save(const QString &filename)
   out << "\n---\n";
 
   out << QString("\nViewport %1\nResolution %2\nSample %3\nOffset %4\n").arg(m_nPlane).arg(m_dResolution).arg(m_nSamples)
-                    .arg(m_dOffset);
+         .arg(m_dOffset);
   return true;
 }
 
@@ -487,7 +487,7 @@ LayerLineProfile* LayerLineProfile::Load(const QString &filename, LayerMRI* ref)
 {
   QFile file(filename);
   if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-      return false;
+    return false;
 
   QTextStream in (&file);
   QString content = in.readAll();

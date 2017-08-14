@@ -91,17 +91,17 @@ public:
   // the hash table and finds only the closest vertex point. If
   // oDistance is not NULL, the distance to the found point will be
   // returned there.
-  int FindVertexAtRAS        ( float  const iRAS[3],       float*  oDistance );
-  int FindVertexAtRAS        ( double const iRAS[3],       double* oDistance );
-  int FindVertexAtSurfaceRAS ( float  const iSurfaceRAS[3],float*  oDistance );
-  int FindVertexAtSurfaceRAS ( double const iSurfaceRAS[3],double* oDistance );
+  int FindVertexAtRAS        ( float  const iRAS[3],       float*  oDistance, int nSurfaceType = -1 );
+  int FindVertexAtRAS        ( double const iRAS[3],       double* oDistance, int nSurfaceType = -1 );
+  int FindVertexAtSurfaceRAS ( float  const iSurfaceRAS[3],float*  oDistance, int nSurfaceType = -1 );
+  int FindVertexAtSurfaceRAS ( double const iSurfaceRAS[3],double* oDistance, int nSurfaceType = -1 );
 
   // Description:
   // Get the RAS or surface RAS coords at a vertex index.
-  bool GetRASAtVertex        ( int inVertex, float  ioRAS[3] );
-  bool GetRASAtVertex        ( int inVertex, double ioRAS[3] );
-  bool GetSurfaceRASAtVertex ( int inVertex, float  ioRAS[3] );
-  bool GetSurfaceRASAtVertex ( int inVertex, double ioRAS[3] );
+  bool GetRASAtVertex        ( int inVertex, float  ioRAS[3], int nSurfaceType = -1 );
+  bool GetRASAtVertex        ( int inVertex, double ioRAS[3], int nSurfaceType = -1 );
+  bool GetSurfaceRASAtVertex ( int inVertex, float  ioRAS[3], int nSurfaceType = -1 );
+  bool GetSurfaceRASAtVertex ( int inVertex, double ioRAS[3], int nSurfaceType = -1 );
 
   int GetNumberOfVertices () const;
 
@@ -221,21 +221,19 @@ public:
 
   void GetSmoothedNormal(int nVertex, double* v_out)
   {
-      v_out[0] = m_fSmoothedNormal[nVertex].x;
-      v_out[1] = m_fSmoothedNormal[nVertex].y;
-      v_out[2] = m_fSmoothedNormal[nVertex].z;
+    v_out[0] = m_fSmoothedNormal[nVertex].x;
+    v_out[1] = m_fSmoothedNormal[nVertex].y;
+    v_out[2] = m_fSmoothedNormal[nVertex].z;
   }
-
-  bool GetVertexAtSurfaceType(int nVertex, int surface_type, double* v_out);
 
   bool FindPath(int* vert_vno, int num_vno,
                 int* path, int* path_length);
 
 protected:
   bool InitializeData(const QString& vector_filename = QString(),
-                  const QString& patch_filename = QString(),
-                  const QString& target_filename = QString(),
-                  const QStringList& sup_files = QStringList());
+                      const QString& patch_filename = QString(),
+                      const QString& target_filename = QString(),
+                      const QStringList& sup_files = QStringList());
   void UpdatePolyData();
   void UpdatePolyData( MRIS* mris, vtkPolyData* polydata,
                        vtkPolyData* polydata_verts = NULL,

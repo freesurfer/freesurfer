@@ -48,7 +48,7 @@ gunzip -c testdata.tar.gz | tar xvf -
 cd testdata
 
 set log = (../test_mri_ca_label.log)
-set threads=( 1 8 )
+set threads=( 8 )
 if ($?SKIP_MRI_CALABEL_CPU_TEST) then
   echo "skipping test_mri_ca_label"
   exit 77
@@ -85,17 +85,21 @@ echo "" |& tee -a $log
 # compare expected results with actual (produced) results
 #
 compare:
+set REF_FILE=(aseg.auto_noCCseg.mgz)
 if ("`uname -s`" == "Darwin") then 
-  cp aseg.auto_noCCseg.macos.lion.mgz aseg.auto_noCCseg.mgz
-  if ("`uname -r`" =~ "13."*) then
-    cp aseg.auto_noCCseg.macos.mavericks.mgz aseg.auto_noCCseg.mgz
+  if ("`uname -r`" =~ "11."*) then
+    set REF_FILE=(aseg.auto_noCCseg.macos.lion.mgz)
+  else if ("`uname -r`" =~ "13."*) then
+    set REF_FILE=(aseg.auto_noCCseg.macos.mavericks.mgz)
+  else if ("`uname -r`" =~ "15."*) then
+    set REF_FILE=(aseg.auto_noCCseg.macos.el_cap.mgz)
   endif
 endif
 
 foreach num ($threads)
 
   set cmd=(../../mri_diff/mri_diff \
-    aseg.auto_noCCseg.mgz aseg.auto_noCCseg.${num}cpu.mgz);
+    ${REF_FILE} aseg.auto_noCCseg.${num}cpu.mgz);
   echo "\n\n $cmd \n\n" |& tee -a $log
   $cmd |& tee -a $log
   if ($status != 0) then

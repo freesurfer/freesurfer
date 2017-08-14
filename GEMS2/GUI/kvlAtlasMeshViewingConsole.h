@@ -49,9 +49,6 @@ protected:
   void Draw();
   
   //
-  void SelectTriangleContainingPoint( float x, float y );
-
-  //
   void SetSliceLocation( unsigned int  sagittalSliceNumber,
                          unsigned int  coronalSliceNumber,
                          unsigned int  axialSliceNumber );

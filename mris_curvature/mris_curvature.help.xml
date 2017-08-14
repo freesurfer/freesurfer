@@ -39,6 +39,8 @@
       <explanation>save curvature files (will only generate screen output without this option)</explanation>
       <argument>-max</argument>
       <explanation>save  1st (max) principal curvature in ?h.&lt;surface&gt;.max file</explanation>
+      <argument>-mgh</argument>
+      <explanation>save outputs in .mgz format</explanation>
       <argument>-min</argument>
       <explanation>save  2nd (min) principal curvature in ?h.&lt;surface&gt;.min file</explanation>
       <argument>-a &lt;avgs&gt;</argument>

@@ -43,6 +43,7 @@ typedef QVector<QGradientStop> QGradientStops;
 class vtkLookupTable;
 class vtkRGBAColorTransferFunction;
 class SurfaceOverlay;
+class SurfaceLabel;
 
 class SurfaceOverlayProperty  : public QObject
 {
@@ -142,10 +143,28 @@ public:
     emit ColorMapChanged();
   }
 
-Q_SIGNALS:
+  void SetMask(SurfaceLabel* label);
+
+  SurfaceLabel* GetMask()
+  {
+    return m_mask;
+  }
+
+  bool GetMaskInverse()
+  {
+    return m_bInverseMask;
+  }
+
+  void SetMaskInverse(bool b);
+
+signals:
   void ColorMapChanged();
   void SmoothChanged();
+  void MaskChanged();
   void ComputeCorrelationChanged();
+
+public slots:
+  void OnLabelMaskDestroyed(QObject* label);
 
 private:
 
@@ -169,6 +188,10 @@ private:
   bool        m_bSmooth;
   int         m_nSmoothSteps;
   bool        m_bUsePercentile;
+
+  SurfaceLabel* m_mask;
+  unsigned char* m_maskData;
+  bool        m_bInverseMask;
 
   vtkRGBAColorTransferFunction* m_lut;
 

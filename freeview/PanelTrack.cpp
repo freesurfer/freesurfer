@@ -43,11 +43,11 @@ PanelTrack::PanelTrack(QWidget *parent) :
   }
 
   m_widgetlistDirectionalColor << ui->labelDirectionScheme
-                                << ui->comboBoxDirectionScheme
-                                << ui->labelDirectionMapping
-                                << ui->comboBoxDirectionMapping;
+                               << ui->comboBoxDirectionScheme
+                               << ui->labelDirectionMapping
+                               << ui->comboBoxDirectionMapping;
   m_widgetlistSolidColor << ui->labelSolidColor
-                          << ui->colorPickerSolidColor;
+                         << ui->colorPickerSolidColor;
 }
 
 PanelTrack::~PanelTrack()

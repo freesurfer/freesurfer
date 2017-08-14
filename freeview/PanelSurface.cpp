@@ -50,7 +50,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
   ui->toolbar->insertSeparator(ui->actionShowOverlay);
   ui->toolbar2->hide();
 
-//  ui->treeWidgetLabels->hide();
+  //  ui->treeWidgetLabels->hide();
 
   m_widgetsSlope << ui->sliderSlope
                  << ui->lineEditSlope
@@ -114,6 +114,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
            m_wndConfigureOverlay, SLOT(OnActiveSurfaceChanged(Layer*)));
   connect(m_wndConfigureOverlay, SIGNAL(ActiveFrameChanged()), mainwnd, SLOT(UpdateInfoPanel()));
   connect(mainwnd, SIGNAL(SlicePositionChanged()), m_wndConfigureOverlay, SLOT(OnCurrentVertexChanged()));
+  connect(m_wndConfigureOverlay, SIGNAL(MaskLoadRequested(QString)), mainwnd, SLOT(OnLoadSurfaceLabelRequested(QString)));
 
   connect(ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxLabelOutline(bool)));
   connect(ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), this, SLOT(OnColorPickerLabelColor(QColor)));
@@ -170,8 +171,8 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
 
   for (int i = 0; i < layer->GetNumberOfSplines(); i++)
   {
-      SurfaceSpline* spline = layer->GetSpline(i);
-      connect(spline, SIGNAL(SplineChanged()), this, SLOT(UpdateWidgets()));
+    SurfaceSpline* spline = layer->GetSpline(i);
+    connect(spline, SIGNAL(SplineChanged()), this, SLOT(UpdateWidgets()));
   }
 
   connect(layer, SIGNAL(RGBMapChanged()), this, SLOT(UpdateWidgets()));
@@ -180,20 +181,20 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
 
 void PanelSurface::DisconnectAllLayers()
 {
-    PanelLayer::DisconnectAllLayers();
-//    LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("Surface");
-//    for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
-//    {
-//      LayerSurface* layer = (LayerSurface*)lc->GetLayer(i);
-//      for ( int j = 0; j < allWidgets.size(); j++ )
-//      {
-//        for (int k = 0; k < layer->GetNumberOfSplines(); k++)
-//        {
-//            layer->GetSpline(k)->disconnect( this );
-//            allWidgets[j]->disconnect( layer->GetSpline(k) );
-//        }
-//      }
-//    }
+  PanelLayer::DisconnectAllLayers();
+  //    LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("Surface");
+  //    for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+  //    {
+  //      LayerSurface* layer = (LayerSurface*)lc->GetLayer(i);
+  //      for ( int j = 0; j < allWidgets.size(); j++ )
+  //      {
+  //        for (int k = 0; k < layer->GetNumberOfSplines(); k++)
+  //        {
+  //            layer->GetSpline(k)->disconnect( this );
+  //            allWidgets[j]->disconnect( layer->GetSpline(k) );
+  //        }
+  //      }
+  //    }
 }
 
 void PanelSurface::DoIdle()
@@ -219,9 +220,9 @@ void PanelSurface::DoIdle()
   ui->actionShowAnnotation->setEnabled(layer && layer->GetNumberOfAnnotations() > 0);
   ui->actionShowAnnotation->setChecked(layer && layer->GetProperty()->GetShowAnnotation());
   ui->actionMoveLayerUp->setEnabled(layer && m_layerCollection
-                                  && m_layerCollection->GetLayerIndex(layer) > 0);
+                                    && m_layerCollection->GetLayerIndex(layer) > 0);
   ui->actionMoveLayerDown->setEnabled(layer && m_layerCollection
-                                  && m_layerCollection->GetLayerIndex(layer) < m_layerCollection->GetNumberOfLayers()-1);
+                                      && m_layerCollection->GetLayerIndex(layer) < m_layerCollection->GetNumberOfLayers()-1);
   BlockAllSignals( false );
 }
 
@@ -244,7 +245,7 @@ void PanelSurface::DoUpdateWidgets()
   for ( int i = 0; i < this->allWidgets.size(); i++ )
   {
     if ( allWidgets[i] != ui->toolbar && allWidgets[i]->parentWidget() != ui->toolbar &&
-        allWidgets[i] != ui->toolbar2 && allWidgets[i]->parentWidget() != ui->toolbar2)
+         allWidgets[i] != ui->toolbar2 && allWidgets[i]->parentWidget() != ui->toolbar2)
     {
       allWidgets[i]->setEnabled(layer);
     }
@@ -256,8 +257,8 @@ void PanelSurface::DoUpdateWidgets()
     ui->checkBoxHideIn3DView->setChecked(!layer->GetVisibleIn3D());
 
     surf = layer->GetSourceSurface();
-//    ui->toolbar2->setVisible(surf->IsSurfaceLoaded( FSSurface::SurfaceOriginal ) || surf->IsSurfaceLoaded( FSSurface::SurfaceInflated ) ||
-//                             surf->IsSurfaceLoaded( FSSurface::SurfaceWhite ) || surf->IsSurfaceLoaded( FSSurface::SurfacePial ) );
+    //    ui->toolbar2->setVisible(surf->IsSurfaceLoaded( FSSurface::SurfaceOriginal ) || surf->IsSurfaceLoaded( FSSurface::SurfaceInflated ) ||
+    //                             surf->IsSurfaceLoaded( FSSurface::SurfaceWhite ) || surf->IsSurfaceLoaded( FSSurface::SurfacePial ) );
     ui->sliderOpacity->setValue( (int)( layer->GetProperty()->GetOpacity() * 100 ) );
     ChangeDoubleSpinBoxValue( ui->doubleSpinBoxOpacity, layer->GetProperty()->GetOpacity() );
 
@@ -298,7 +299,7 @@ void PanelSurface::DoUpdateWidgets()
     ui->comboBoxColor->clear();
     ui->comboBoxColor->addItem("Solid Color");
     for (int i = 0; i < rgb_names.size(); i++)
-        ui->comboBoxColor->addItem(rgb_names[i]);
+      ui->comboBoxColor->addItem(rgb_names[i]);
     ui->comboBoxColor->addItem("Load RGB map...");
     ui->comboBoxColor->setCurrentIndex(layer->GetActiveRGBMap()+1);
   }
@@ -317,20 +318,20 @@ void PanelSurface::DoUpdateWidgets()
   ui->comboBoxVectorDisplay->setCurrentIndex( surf ? 1 + surf->GetActiveVector() : 0 );
 
   // update spline contorls
-//  ui->comboBoxSplineDisplay->clear();
-//  ui->comboBoxSplineDisplay->addItem("Off");
-//  SurfaceSpline* spline = (layer? layer->GetSpline() : NULL);
-//  if (spline && spline->IsValid())
-//  {
-//      ui->comboBoxSplineDisplay->addItem(spline->GetName());
-//  }
-//  ui->comboBoxSplineDisplay->addItem("Load spline data...");
-//  ui->comboBoxSplineDisplay->setCurrentIndex((spline && spline->IsValid() && spline->IsVisible())?1:0);
-//  if (spline)
-//  {
-//    ui->colorpickerSplineColor->setCurrentColor(spline->GetColor());
-//    ui->checkBoxSplineProjection->setChecked(spline->GetProjection());
-//  }
+  //  ui->comboBoxSplineDisplay->clear();
+  //  ui->comboBoxSplineDisplay->addItem("Off");
+  //  SurfaceSpline* spline = (layer? layer->GetSpline() : NULL);
+  //  if (spline && spline->IsValid())
+  //  {
+  //      ui->comboBoxSplineDisplay->addItem(spline->GetName());
+  //  }
+  //  ui->comboBoxSplineDisplay->addItem("Load spline data...");
+  //  ui->comboBoxSplineDisplay->setCurrentIndex((spline && spline->IsValid() && spline->IsVisible())?1:0);
+  //  if (spline)
+  //  {
+  //    ui->colorpickerSplineColor->setCurrentColor(spline->GetColor());
+  //    ui->checkBoxSplineProjection->setChecked(spline->GetProjection());
+  //  }
 
   // update overlay controls
   ui->comboBoxOverlay->clear();
@@ -392,7 +393,7 @@ void PanelSurface::DoUpdateWidgets()
     ui->pushButtonDeleteLabel->setEnabled(layer->GetNumberOfLabels() > 0);
   }
 
-    // update spline contorls
+  // update spline contorls
   QList<SurfaceSpline*> selected_splines;
   if (layer && ui->treeWidgetSplines->topLevelItemCount() == layer->GetNumberOfSplines())
     selected_splines = GetSelectedSplines();
@@ -452,7 +453,7 @@ void PanelSurface::DoUpdateWidgets()
   ui->labelMapCursorTo->setVisible(isInflated);
   ui->lineEditMappingSurface->setVisible(isInflated);
   if (isInflated)
-      ui->lineEditMappingSurface->setText(layer->GetMappingSurfaceName());
+    ui->lineEditMappingSurface->setText(layer->GetMappingSurfaceName());
 
   UpdateSplineWidgets();
 
@@ -713,19 +714,20 @@ void PanelSurface::OnComboVector( int nSel )
 
 void PanelSurface::OnComboSpline(int nSel)
 {
-//  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
-//  if ( surf )
-//  {
-//    if (surf->GetSpline()->IsValid() && nSel == 1)
-//      surf->GetSpline()->SetVisible(true);
-//    else if (nSel == 0)
-//      surf->GetSpline()->SetVisible(false);
-//    else
-//    {
-//      MainWindow::GetMainWindow()->LoadSurfaceSpline();
-//    }
-//    UpdateWidgets();
-//  }
+  Q_UNUSED(nSel);
+  //  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  //  if ( surf )
+  //  {
+  //    if (surf->GetSpline()->IsValid() && nSel == 1)
+  //      surf->GetSpline()->SetVisible(true);
+  //    else if (nSel == 0)
+  //      surf->GetSpline()->SetVisible(false);
+  //    else
+  //    {
+  //      MainWindow::GetMainWindow()->LoadSurfaceSpline();
+  //    }
+  //    UpdateWidgets();
+  //  }
 }
 
 void PanelSurface::OnButtonConfigureOverlay()
@@ -735,12 +737,12 @@ void PanelSurface::OnButtonConfigureOverlay()
 
 void PanelSurface::OnButtonRemoveOverlay()
 {
-    LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
-    if ( surf )
-    {
-        surf->RemoveCurrentOverlay();
-    }
-    UpdateWidgets();
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf )
+  {
+    surf->RemoveCurrentOverlay();
+  }
+  UpdateWidgets();
 }
 
 void PanelSurface::OnEditPositionOffset()
@@ -767,7 +769,7 @@ void PanelSurface::OnEditPositionOffset()
     }
     else
     {
-    //  QMessageBox::information(this, "Error", "Please enter 3 values for position offset.");
+      //  QMessageBox::information(this, "Error", "Please enter 3 values for position offset.");
     }
   }
 }
@@ -947,19 +949,19 @@ void PanelSurface::OnLockLayer(bool b)
 
 void PanelSurface::OnComboColor(int nSel)
 {
-    LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
-    if ( surf )
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf )
+  {
+    if (nSel == 0)
+      surf->SetActiveRGBMap(-1);
+    else if (nSel > surf->GetNumberOfRGBMaps())
     {
-        if (nSel == 0)
-            surf->SetActiveRGBMap(-1);
-        else if (nSel > surf->GetNumberOfRGBMaps())
-        {
-            if (!MainWindow::GetMainWindow()->LoadSurfaceRGBMap())
-                UpdateWidgets();
-        }
-        else
-            surf->SetActiveRGBMap(nSel-1);
+      if (!MainWindow::GetMainWindow()->LoadSurfaceRGBMap())
+        UpdateWidgets();
     }
+    else
+      surf->SetActiveRGBMap(nSel-1);
+  }
 }
 
 void PanelSurface::OnButtonLoadSpline()
@@ -987,26 +989,26 @@ void PanelSurface::OnButtonDeleteSpline()
 
 void PanelSurface::OnColorPickerSplineColor(const QColor &color)
 {
-    QTreeWidgetItem* item = ui->treeWidgetSplines->currentItem();
-    if (!item)
-      return;
+  QTreeWidgetItem* item = ui->treeWidgetSplines->currentItem();
+  if (!item)
+    return;
 
-    SurfaceSpline* spline = reinterpret_cast<SurfaceSpline*>(item->data(0, Qt::UserRole).value<quintptr>());
-    if ( spline )
-    {
-        spline->SetColor(color);
-    }
+  SurfaceSpline* spline = reinterpret_cast<SurfaceSpline*>(item->data(0, Qt::UserRole).value<quintptr>());
+  if ( spline )
+  {
+    spline->SetColor(color);
+  }
 }
 
 void PanelSurface::OnCheckBoxSplineProjection(bool b)
 {
-    QTreeWidgetItem* item = ui->treeWidgetSplines->currentItem();
-    if (!item)
-      return;
+  QTreeWidgetItem* item = ui->treeWidgetSplines->currentItem();
+  if (!item)
+    return;
 
-    SurfaceSpline* spline = reinterpret_cast<SurfaceSpline*>(item->data(0, Qt::UserRole).value<quintptr>());
-    if ( spline )
-    {
-        spline->SetProjection(b);
-    }
+  SurfaceSpline* spline = reinterpret_cast<SurfaceSpline*>(item->data(0, Qt::UserRole).value<quintptr>());
+  if ( spline )
+  {
+    spline->SetProjection(b);
+  }
 }

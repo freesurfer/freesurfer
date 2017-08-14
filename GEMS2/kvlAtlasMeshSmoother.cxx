@@ -1,5 +1,5 @@
 #include "kvlAtlasMeshSmoother.h"
-#include "kvlAtlasMeshLabelStatisticsCollector.h"
+#include "kvlAtlasMeshProbabilityImageStatisticsCollector.h"
 #include "kvlAtlasMeshMultiAlphaDrawer.h"
 #include "itkImageRegionIterator.h"
 #include "itkDiscreteGaussianImageFilter.h"
@@ -17,7 +17,9 @@ AtlasMeshSmoother
 ::AtlasMeshSmoother()
 {
   m_MeshCollection = 0;
-  m_Sigma = 1.0f;
+  m_Sigma0 = 1.0f;
+  m_Sigma1 = 1.0f;
+  m_Sigma2 = 1.0f;
 }
 
 
@@ -65,7 +67,7 @@ AtlasMeshSmoother
   AtlasMesh::PointDataContainer::Pointer  smoothedParameters = 0;
 
   
-  if ( m_Sigma == 0 )
+  if ( ( m_Sigma0 == 0 ) && ( m_Sigma1 == 0 ) && ( m_Sigma2 ==0 ) )
     {
     // Simply copy, which is not only faster but also avoids numerical problems
     smoothedParameters = AtlasMesh::PointDataContainer::New();
@@ -82,10 +84,8 @@ AtlasMeshSmoother
     //
     
     // First determine size of template image for the alpha rasterizor
-    typedef AtlasMeshMultiAlphaDrawer::AlphasImageType  MultiAlphasImageType;
-    typedef AtlasMeshMultiAlphaDrawer::LabelImageType  LabelImageType;
-    typedef LabelImageType::SizeType  SizeType;
-
+    typedef AtlasMeshMultiAlphaDrawer::ImageType  MultiAlphasImageType;
+    typedef MultiAlphasImageType::SizeType  SizeType;
     SizeType  size;
     size[ 0 ] = 0;
     size[ 1 ] = 0;
@@ -97,7 +97,7 @@ AtlasMeshSmoother
         {
         if ( it.Value()[ i ] > size[ i ] )
           {
-          size[ i ] = static_cast< LabelImageType::SizeType::SizeValueType >( it.Value()[ i ] );
+          size[ i ] = static_cast< MultiAlphasImageType::SizeType::SizeValueType >( it.Value()[ i ] );
           }
         }
       }
@@ -106,18 +106,11 @@ AtlasMeshSmoother
     size[ 2 ]++;
       
 
-    // Create an empty image that serves as a template for the alpha rasterizor
-    LabelImageType::Pointer  templateImage = LabelImageType::New();
-    templateImage->SetRegions( size );
-    templateImage->Allocate();
-    //templateImage->FillBuffer( 0 );
-
-    
     // Rasterize the mesh
     kvl::AtlasMeshMultiAlphaDrawer::Pointer  drawer = kvl::AtlasMeshMultiAlphaDrawer::New();
-    drawer->SetLabelImage( templateImage );
+    drawer->SetRegions( size );
     drawer->Rasterize( m_MeshCollection->GetReferenceMesh() );
-    MultiAlphasImageType::ConstPointer  alphasImage = drawer->GetAlphasImage();
+    MultiAlphasImageType::ConstPointer  alphasImage = drawer->GetImage();
     
     
 
@@ -136,16 +129,23 @@ AtlasMeshSmoother
     //const int  numberOfClasses = m_MeshCollection->GetPointParameters()->Begin().Value().m_Alphas.Size();
     //for(int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
     //Loop only through the classes we explicitly want to smooth - unless the vector is empty; in that case, we do all of them (Eugenio added this)
-    std::vector<int> classesToSmooth;
-    if ( m_classesToSmooth.size()>0) 
-      classesToSmooth = m_classesToSmooth;
+    std::vector< int >  classesToSmooth;
+    if ( m_ClassesToSmooth.size() > 0 )
+      {
+      classesToSmooth = m_ClassesToSmooth;
+      }
     else
-    {
-      for(int c=0; c<m_MeshCollection->GetPointParameters()->Begin().Value().m_Alphas.Size(); c++)
-        classesToSmooth.push_back(c);
-    }
-    for ( std::vector<int>::iterator classIt = classesToSmooth.begin(); classIt != classesToSmooth.end(); ++classIt)
-
+      {
+      for ( int classNumber = 0; 
+            classNumber <m_MeshCollection->GetPointParameters()->Begin().Value().m_Alphas.Size(); 
+            classNumber++ )
+        {
+        classesToSmooth.push_back( classNumber );
+        }
+      }
+    for ( std::vector<int>::iterator classIt = classesToSmooth.begin(); 
+          classIt != classesToSmooth.end(); 
+          ++classIt )
       {
 
       std::cout<<"Smoothing class: "<<*(classIt)<<std::endl;
@@ -170,7 +170,11 @@ AtlasMeshSmoother
       smoother->SetInput( componentImage );
       smoother->SetMaximumError( 0.1 );
       smoother->SetUseImageSpacingOff();
-      smoother->SetVariance( m_Sigma * m_Sigma );
+      float  variances[ 3 ];
+      variances[ 0 ] = m_Sigma0 * m_Sigma0;
+      variances[ 1 ] = m_Sigma1 * m_Sigma1;
+      variances[ 2 ] = m_Sigma2 * m_Sigma2;
+      smoother->SetVariance( variances );
       smoother->Update();
       componentImage = smoother->GetOutput();
       
@@ -197,10 +201,9 @@ AtlasMeshSmoother
     m_MeshCollection->FlattenAlphas(); // Initialization to flat alphas
     for ( int iterationNumber = 0; iterationNumber < 10; iterationNumber++ )
       {
-      AtlasMeshLabelStatisticsCollector::Pointer  statisticsCollector = AtlasMeshLabelStatisticsCollector::New();
-      statisticsCollector->SetLabelImage( templateImage );
+      AtlasMeshProbabilityImageStatisticsCollector::Pointer  statisticsCollector = 
+                                              AtlasMeshProbabilityImageStatisticsCollector::New();
       statisticsCollector->SetProbabilityImage( smoothedAlphasImage );
-      statisticsCollector->SetUseProbabilityImage( true );
       statisticsCollector->Rasterize( m_MeshCollection->GetReferenceMesh() );
       cost = statisticsCollector->GetMinLogLikelihood();
       //std::cout << "   EM iteration " << iterationNumber << " -> " << cost << std::endl;
@@ -209,7 +212,7 @@ AtlasMeshSmoother
       // Normalize and assign to the meshCollection's alpha vectors
       smoothedParameters = m_MeshCollection->GetPointParameters();
       AtlasMesh::PointDataContainer::Iterator  pointParamIt = smoothedParameters->Begin();
-      AtlasMeshLabelStatisticsCollector::StatisticsContainerType::ConstIterator  statIt = statisticsCollector->GetLabelStatistics()->Begin();
+      AtlasMeshProbabilityImageStatisticsCollector::StatisticsContainerType::ConstIterator  statIt = statisticsCollector->GetLabelStatistics()->Begin();
       for ( ; pointParamIt != smoothedParameters->End(); ++pointParamIt, ++statIt )
         {
         if ( pointParamIt.Value().m_CanChangeAlphas )
@@ -233,9 +236,9 @@ AtlasMeshSmoother
   result->SetK( m_MeshCollection->GetK() );
   result->SetPositions( m_MeshCollection->GetPositions() );
 
-//  std::cout << "done!" << std::endl;
-//  m_MeshCollection->Write( "/tmp/original.txt" );  Eugenio: actually, original.txt will be smoothed too...
-//  result->Write( "/tmp/smoothed.txt" );
+  //  std::cout << "done!" << std::endl;
+  //  m_MeshCollection->Write( "/tmp/original.txt" );  Eugenio: actually, original.txt will be smoothed too...
+  //  result->Write( "/tmp/smoothed.txt" );
 
   return result;
 }

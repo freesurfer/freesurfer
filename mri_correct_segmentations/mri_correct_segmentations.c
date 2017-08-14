@@ -39,7 +39,8 @@ static int get_option(int argc, char *argv[]) ;
 static char vcid[] = "$Id: mri_correct_segmentations.c,v 1.1 2015/08/25 01:18:09 lzollei Exp $";
 
 char *Progname ;
-int use_orig_value = 0;
+// int use_orig_value = 0;
+int noGMWM = 0;
 
 /***-------------------------------------------------------****/
 int main(int argc, char *argv[])
@@ -86,21 +87,24 @@ int main(int argc, char *argv[])
   outmri0 = MRIcopy(segmri, NULL) ;
   // MRIwrite(outmri0, "/tmp/segmri.mgz") ;
   correct_gmwm_boundaries(segmri, outmri0);
+
   // MRIwrite(outmri0, "/tmp/outmri0.mgz") ;
   // putamen / pallidum
   outmri1 = MRIcopy(outmri0, NULL) ;
-  correct_putamen_pallidum_boundaries(outmri0, outmri1);
+  if (noGMWM==0)
+    correct_putamen_pallidum_boundaries(outmri0, outmri1);
   // MRIwrite(outmri1, "/tmp/outmri1.mgz") ;
   // GM / WM
   outmri2 = MRIcopy(outmri1, NULL) ;
   correct_gmwm_boundaries_2(outmri1, outmri2);
+
   // MRIwrite(outmri2, "/tmp/outmri2.mgz") ;
   // find largest connected components and close holes 
   outmri3 = MRIcopy(segmri, NULL) ;
   MRIvalueFill(outmri3, 0);
   correct_largestCC_and_fill_holes(outmri2, outmri3);
   // MRIwrite(outmri3, "/tmp/outmri3.mgz") ;
-  // fill leftover voxels in origiinal mask
+  // fill leftover voxels in original mask
   outmri4 = MRIcopy(outmri3, NULL) ;
   fill_leftover_voxels(segmri, outmri3, outmri4);
   // MRIwrite(outmri4, "/tmp/outmri4.mgz") ;
@@ -108,12 +112,15 @@ int main(int argc, char *argv[])
   //
   outmri0 = MRIcopy(outmri4, NULL) ;
   correct_gmwm_boundaries(outmri4, outmri0);
+
   // MRIwrite(outmri0, "/tmp/redone-outmri0.mgz") ;
   outmri1 = MRIcopy(outmri0, NULL) ;
-  correct_putamen_pallidum_boundaries(outmri0, outmri1);
+  if (noGMWM==0)
+    correct_putamen_pallidum_boundaries(outmri0, outmri1);
   // MRIwrite(outmri1, "/tmp/redone-outmri1.mgz") ;
   outmri2 = MRIcopy(outmri1, NULL) ;
   correct_gmwm_boundaries_2(outmri1, outmri2);
+ 
   // MRIwrite(outmri2, "/tmp/redone-outmri2.mgz") ;
   //
 
@@ -159,6 +166,9 @@ get_option(int argc, char *argv[])
     case 'V':
       print_version() ;
       break ;
+    case 'N':
+      noGMWM = 1;
+      break ;
     default:
       fprintf(stderr, "unknown option %s\n", argv[1]) ;
       exit(1) ;
@@ -171,7 +181,7 @@ get_option(int argc, char *argv[])
 /* --------------------------------------------- */
 static void print_usage(void)
 {
-  printf("USAGE: %s fname1 fname2 \n",Progname) ;
+  printf("USAGE: %s [options] fname1 fname2 \n",Progname) ;
   printf("\n");
 }
 
@@ -181,7 +191,7 @@ static void print_help(void)
   print_usage() ;
   printf(
     "\n"
-    "Correcting automated baby segmentation\n"
+    "Correcting automated infant segmentation\n"
   );
   exit(1) ;
 }

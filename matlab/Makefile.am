@@ -2,6 +2,7 @@
 # Makefile.am for matlab files
 #
 
+
 foodir=$(prefix)/matlab/lme/geodesic
 mfilesdir=$(prefix)/matlab
 siemensdir=$(prefix)/matlab
@@ -10,12 +11,11 @@ lmegeofilesdir=$(prefix)/matlab/lme/geodesic
 lmemassunifilesdir=$(prefix)/matlab/lme/mass_univariate
 lmeunifilesdir=$(prefix)/matlab/lme/univariate
 lmeQdecfilesdir=$(prefix)/matlab/lme/Qdec
+samsegfilesdir=$(prefix)/matlab/samseg
 survivalfilesdir=$(prefix)/matlab/Survival
 survivalexdatafilesdir=$(prefix)/matlab/Survival/ex_data
 survivalmassunifilesdir=$(prefix)/matlab/Survival/mass_univariate
 survivalunifilesdir=$(prefix)/matlab/Survival/univariate
-
-dist_bin_SCRIPTS = samseg/run_samseg samseg/samseg
 
 mfiles_DATA=\
 	angles2rotmat.m \
@@ -28,14 +28,17 @@ mfiles_DATA=\
 	cc_cut_dir_afd.m \
 	cc_cut_table.m \
 	combine_labels.m \
+	compute_opt_volume.m \
 	convert_fieldsign.m \
 	convert_unwarp_resample.m \
 	cortical_labeling_afd_txt.m \
 	cortical_labeling_dir_afd_txt.m \
 	cortical_labeling_table.m \
 	dice_labels.m \
+	dilate3d.m \
 	dtifa.m \
 	dtimatrix.m \
+	erode3d.m \
 	fisher_twoclass.m \
 	fread3.m \
 	fwrite3.m \
@@ -66,6 +69,7 @@ mfiles_DATA=\
 	load_nifti.m \
 	load_segstats.m \
 	lta_read.m \
+	lta_write.m \
 	mksubfov.m \
 	mri_cdf2p.m \
 	mri_glmfit_pcc.m \
@@ -255,6 +259,16 @@ lmeQdecfiles_DATA=\
 	lme/Qdec/Qdec2num.m \
 	lme/Qdec/rmQdecCol.m
 
+samsegfiles_DATA=\
+	samseg/run_samseg.m \
+	samseg/samseg_coregisterAtlas_SPM.m \
+	samseg/samsegment.m \
+	samseg/samseg_registerToAtlas.m \
+	samseg/samseg_writeOutFreeSurferSeg.m
+
+samseg_binfiles=\
+	samseg/samseg
+
 survivalfiles_DATA=\
 	Survival/SStat_lmeX_ext.m
 
@@ -291,7 +305,8 @@ install-data-local:
 	$(INSTALL_DATA) $(survivalexdatafiles_datafiles) $(DESTDIR)$(survivalexdatafilesdir)
 	test -z $(DESTDIR)$(foodir) || $(mkdir_p) $(DESTDIR)$(foodir)
 	$(INSTALL_DATA) $(foo_datafiles) $(DESTDIR)$(foodir)
-
+	test -z $(DESTDIR)$(bindir) || $(mkdir_p) $(DESTDIR)$(bindir)
+	$(INSTALL_PROGRAM) $(samseg_binfiles) $(DESTDIR)$(bindir)
 
 
 EXTRA_DIST=$(mfiles_DATA) \
@@ -300,6 +315,7 @@ EXTRA_DIST=$(mfiles_DATA) \
 	$(lmeunifiles_DATA) \
 	$(lmemassunifiles_DATA) \
 	$(lmeQdecfiles_DATA) \
+	$(samsegfiles_DATA) \
 	$(survivalfiles_DATA) \
 	$(survivalexdatafiles_DATA) \
 	$(survivalmassunifiles_DATA) \

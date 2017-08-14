@@ -25,6 +25,7 @@ set DiagCluster = 0;
 set PBNodeType = ();
 set UseCache = 0;
 set PermForce = 0;
+set PermResid = 0; # use residual when running permutation
 set UseGRF = 0;
 set volsubject = fsaverage;
 set subjectOverride = ();
@@ -149,17 +150,17 @@ while($#glmfitcmd)
     if($#y == 0) set y = $glmfitcmd[1]; 
     shift glmfitcmd;
     if($DoClusterMean) then
-    if(! -e $y) then
-      set y = $glmfitcwd/$y
       if(! -e $y) then
-        set y = $glmdir/`basename $y`
+        set y = $glmfitcwd/$y
         if(! -e $y) then
-          echo "ERROR: cannot find $y"
-          echo "If you do not have this file, run with --no-y as the first option"
-          exit 1;
+          set y = $glmdir/`basename $y`
+          if(! -e $y) then
+            echo "ERROR: cannot find $y"
+            echo "If you do not have this file, run with --no-y as the first option"
+            exit 1;
+          endif
         endif
       endif
-    endif
     endif
     if("$flag" == "--table") set UseTable = 1;
     breaksw
@@ -407,7 +408,11 @@ if($DoSim) then
     if($#X)    set cmd = ($cmd --X $X)
     if($#wls)  set cmd = ($cmd --wls $wls)
     # --y must go after --fsgd
-    if(! $UseTable) set cmd = ($cmd --y $y --mask $mask)
+    if(! $UseTable) then
+      set cmd = ($cmd --mask $mask)
+      if($PermResid == 0) set cmd = ($cmd --y $y)
+      if($PermResid == 1) set cmd = ($cmd --y $residual)
+    endif
     if($UseTable)   set cmd = ($cmd --table $y)
     #if($#label) set cmd = ($cmd --label $label)
     if($PermForce) set cmd = ($cmd --perm-force)
@@ -822,6 +827,10 @@ while( $#argv != 0 )
     case "--perm-force":
       set PermForce = 1;
       breaksw
+    case "--perm-resid":
+      set PermResid = 1;
+      set PermForce = 1; # purpose of using residual is to allow non-orthog
+      breaksw
 
     case "--tmp":
       if($#argv < 1) goto arg1err;
@@ -916,7 +925,16 @@ if($DoSim) then
     exit 1;
   endif
 endif
-
+set residual = ()
+if($PermResid) then
+  set stem = $glmdir/eres
+  set residual = `stem2fname $stem`
+  if($status) then
+    echo "ERROR: cannot find residual $stem"
+    echo "  when running mri_glmfit, make sure to include --eres-save"
+    exit 1;
+  endif
+endif
 if($DiagCluster && $DoBackground) then
   echo "ERROR: cannot background with --diag-cluster"
   exit 1;
@@ -967,6 +985,8 @@ usage_exit:
   echo ""
   echo "Use permutation simulation"
   echo " --perm nsim vwthreshold sign"
+  echo "   --perm-resid : add this with non-orthogonal designs to run permutation"
+  echo "      on the residual rather than on the raw data (must have run mri_glmfit with --eres-save)"
   echo ""
   echo "Use Gaussian Random Fields (GRF), volumes only"
   echo " --grf vwthreshold sign : -log10(p) and sign (pos, neg, abs)"
@@ -1162,4 +1182,15 @@ When using this option, put it first on the command-line.
 Specify the GLM input (ie, argument to --y in mri_glmfit) rather
 than determining it from the glmdir. This can be handy if the
 y file was deleted at some point.
+
+--perm-resid
+
+This is used for non-orthogonal designs (eg, when there is a covariate
+present). It runs the permutation using the residual of the analysis
+as the input rather than the raw data (the residual will have the
+covariate regressed out). You must have originally run mri_glmfit with
+the --eres-save option. This method is an APPROXIMATION that allows
+for permutation to be run on non-orthogonal designs.
+
+
 

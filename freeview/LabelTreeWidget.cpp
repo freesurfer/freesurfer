@@ -4,7 +4,7 @@
 #include <QDebug>
 
 LabelTreeWidget::LabelTreeWidget(QWidget *parent) :
-    QTreeWidget(parent)
+  QTreeWidget(parent)
 {
 }
 

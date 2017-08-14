@@ -452,6 +452,7 @@ typedef struct
 {
   double  tol ;               /* tolerance for terminating a step */
   float   l_angle ;           /* coefficient of angle term */
+  float   l_pangle ;          /* coefficient of "positive" angle term - only penalize narrower angles */
   float   l_area ;            /* coefficient of (negative) area term */
   float   l_parea ;           /* coefficient of (all) area term */
   float   l_nlarea ;          /* coefficient of nonlinear area term */
@@ -464,6 +465,7 @@ typedef struct
   float   l_ocorr ;           // overlay correlation weight
   float   l_pcorr ;           /* polar correlation for rigid body */
   float   l_curv ;            /* coefficient of curvature term */
+  float   l_norm ;            /* coefficient of surface self-intersection */
   float   l_scurv ;           /* coefficient of curvature term */
   float   l_lap ;             // coefficient of laplacian term
   float   l_link ;            /* coefficient of link term to keep
@@ -756,6 +758,8 @@ int          MRISreadValuesIntoArray(const char *fname,
                                      int in_array_size,
                                      float** out_array) ;
 int          MRISreadAnnotation(MRI_SURFACE *mris,const  char *fname) ;
+int          MRISwriteVertexLocations(MRI_SURFACE *mris, char *fname, int which_vertices) ;
+int          MRISimportVertexCoords(MRI_SURFACE *mris, float *locations[3], int which_vertices);
 int          MRISwriteAnnotation(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISreadAnnotationIntoArray(const char *fname,
                                          int in_array_size,
@@ -929,8 +933,8 @@ int          MRISupdateEllipsoidSurface(MRI_SURFACE *mris) ;
 MRI_SURFACE  *MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
                          float alpha, float beta, float gamma) ;
 
-MRI          *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int type) ;
-MRI_SURFACE  *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris) ;
+MRI          *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int which) ;
+MRI_SURFACE  *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris, int which) ;
 
 
 
@@ -1089,6 +1093,10 @@ double       MRISParea(MRI_SP *mrisp) ;
 #define TARGET_VERTICES     10
 #define LAYERIV_VERTICES    11
 #define LAYER4_VERTICES     LAYERIV_VERTICES
+#define VERTEX_NORMALS      12
+#define PIAL_NORMALS        13
+#define WHITE_NORMALS       14
+
 
 int MRISsaveVertexPositions(MRI_SURFACE *mris, int which) ;
 int MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
@@ -2157,4 +2165,7 @@ SURFHOPLIST *SetSurfHopList(int CenterVtx, MRI_SURFACE *Surf, int nHops);
 int SurfHopListFree(SURFHOPLIST **shl0);
 MRI *MRISarN(MRIS *surf, MRI *src, MRI *mask, MRI *arN, int N);
 MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *globkern, SURFHOPLIST ***pshl, MRI *out);
+int MRISmeasureLaplaceStreamlines(MRI_SURFACE *mris, MRI *mri_laplace, MRI *mri_intensity, MRI *mri_profiles) ;
+MRI *MRISsolveLaplaceEquation(MRI_SURFACE *mris, MRI *mri, double res) ;
+
 #endif // MRISURF_H

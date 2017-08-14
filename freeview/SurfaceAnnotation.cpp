@@ -118,7 +118,7 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
       for ( int i = 0; i < m_nIndexSize; i++ )
       {
         if ( CTABfindAnnotation( m_lut, mris->vertices[i].annotation, &n ) == 0 &&
-            n >= 0)
+             n >= 0)
         {
           m_nIndices[i] = n;
           if (!annotIndices.contains(n))
@@ -129,7 +129,7 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
       }
       qSort(annotIndices);
       m_nAnnotations = annotIndices.size();
-   //   CTABgetNumberOfValidEntries( m_lut, &m_nAnnotations );
+      //   CTABgetNumberOfValidEntries( m_lut, &m_nAnnotations );
       m_nCenterVertices = new int[m_nAnnotations];
       for ( int i = 0; i < m_nAnnotations; i++ )
       {
@@ -188,34 +188,34 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
       memcpy(m_nOutlineIndices, m_nIndices, sizeof(int)*m_nIndexSize);
       for (int i = 0; i < m_nAnnotations; i++)
       {
-          VERTEX *v;
-          MRISclearMarks(mris);
-          LABEL* label = MRISannotation_to_label(mris, annotIndices[i]);
+        VERTEX *v;
+        MRISclearMarks(mris);
+        LABEL* label = MRISannotation_to_label(mris, annotIndices[i]);
 
-          if (label)
+        if (label)
+        {
+          LabelMarkSurface(label, mris);
+          for (int n = 0 ; n < label->n_points ; n++)
           {
-            LabelMarkSurface(label, mris);
-            for (int n = 0 ; n < label->n_points ; n++)
+            if (label->lv[n].vno >= 0)
             {
-              if (label->lv[n].vno >= 0)
-              {
-                m_nOutlineIndices[label->lv[n].vno] = -1;
-                v = &mris->vertices[label->lv[n].vno] ;
-                if (v->ripflag)
-                  continue;
+              m_nOutlineIndices[label->lv[n].vno] = -1;
+              v = &mris->vertices[label->lv[n].vno] ;
+              if (v->ripflag)
+                continue;
 
-                for (int m = 0 ; m < v->vnum ; m++)
+              for (int m = 0 ; m < v->vnum ; m++)
+              {
+                if (mris->vertices[v->v[m]].marked == 0)
                 {
-                  if (mris->vertices[v->v[m]].marked == 0)
-                  {
-                    m_nOutlineIndices[label->lv[n].vno] = m_nIndices[label->lv[n].vno];
-                    break;
-                  }
+                  m_nOutlineIndices[label->lv[n].vno] = m_nIndices[label->lv[n].vno];
+                  break;
                 }
               }
             }
-            LabelFree(&label);
           }
+          LabelFree(&label);
+        }
       }
       return true;
     }
@@ -292,9 +292,9 @@ void SurfaceAnnotation::MapAnnotationColor( unsigned char* colordata )
   int* indices = (m_bShowOutline ? m_nOutlineIndices : m_nIndices);
   for ( int i = 0; i < m_nIndexSize; i++ )
   {
-    if (indices[i] > 0)
+    if (indices[i] >= 0)
     {
-      if (CTABrgbAtIndexi( m_lut, indices[i], c, c+1, c+2 ) == 0) // no error
+      if (CTABrgbAtIndexi( m_lut, indices[i], c, c+1, c+2 ) == 0 && (c[0] > 0 || c[1] > 0 || c[2] > 0)) // no error & no black color
       {
         colordata[i*4] = ( int )( colordata[i*4] * ( 1 - m_dOpacity ) + c[0] * m_dOpacity );
         colordata[i*4+1] = ( int )( colordata[i*4+1] * ( 1 - m_dOpacity ) + c[1] * m_dOpacity );

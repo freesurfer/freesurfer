@@ -58,6 +58,7 @@ typedef struct
   MRIS_HASH_BIN  *bins ;
   int            max_bins ;
   int            nused ;
+  int            xsize, ysize, zsize ;
 } MRIS_HASH_BUCKET, MHBT ;
 
 //--------------------------
@@ -84,7 +85,7 @@ typedef struct
 // TABLE_SIZE dimensions for array of hash buckets. As defined here
 // TABLE_SIZE = 400.
 //#define TABLE_SIZE     ((int)(FIELD_OF_VIEW / VOXEL_RES))
-#define TABLE_SIZE     400
+#define TABLE_SIZE     2000
 
 #define WORLD_TO_VOLUME(mht,x)   (((x)+FIELD_OF_VIEW/2)/((mht)->vres))
 #define WORLD_TO_VOXEL(mht,x)    ((int)(WORLD_TO_VOLUME(mht,x)))

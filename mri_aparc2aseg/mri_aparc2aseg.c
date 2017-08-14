@@ -94,7 +94,7 @@ static int UseNewRibbon = 1;
 static MRI *ASeg, *filled, *mritmp;
 static MRI *AParc;
 static MRI *Dist;
-static MRI *lhRibbon,*rhRibbon,*RibbonSeg;
+static MRI *lhRibbon=NULL,*rhRibbon=NULL,*RibbonSeg;
 static MRIS *lhwhite, *rhwhite;
 static MRIS *lhpial, *rhpial;
 static MHT *lhwhite_hash, *rhwhite_hash;
@@ -118,6 +118,7 @@ static float hashres = 16;
 static int normal_smoothing_iterations = 10 ;
 int crsTest = 0, ctest=0, rtest=0, stest=0;
 int UseHash = 1;
+int DoLH=1, DoRH=1, LHOnly=0, RHOnly=0;
 
 char *CtxSegFile = NULL;
 MRI *CtxSeg = NULL;
@@ -168,114 +169,141 @@ int main(int argc, char **argv)
   check_options();
   dump_options(stdout);
 
-  /* ------ Load subject's lh white surface ------ */
-  sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
-  printf("\nReading lh white surface \n %s\n",tmpstr);
-  lhwhite = MRISread(tmpstr);
-  if (lhwhite == NULL)
-  {
-    fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
-    exit(1);
-  }
-  /* ------ Load subject's lh pial surface ------ */
-  sprintf(tmpstr,"%s/%s/surf/lh.pial",SUBJECTS_DIR,subject);
-  printf("\nReading lh pial surface \n %s\n",tmpstr);
-  lhpial = MRISread(tmpstr);
-  if (lhpial == NULL)
-  {
-    fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
-    exit(1);
-  }
-  if (lhwhite->nvertices != lhpial->nvertices)
-  {
-    printf("ERROR: lh white and pial have a different number of "
-           "vertices (%d,%d)\n",
-           lhwhite->nvertices,lhpial->nvertices);
-    exit(1);
-  }
-
-  /* ------ Load lh annotation ------ */
-  sprintf(annotfile,"%s/%s/label/lh.%s.annot",SUBJECTS_DIR,subject,annotname);
-  printf("\nLoading lh annotations from %s\n",annotfile);
-  err = MRISreadAnnotation(lhwhite, annotfile);
-  if (err)
-  {
-    printf("ERROR: MRISreadAnnotation() failed %s\n",annotfile);
-    exit(1);
-  }
-
-  /* ------ Load subject's rh white surface ------ */
-  sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
-  printf("\nReading rh white surface \n %s\n",tmpstr);
-  rhwhite = MRISread(tmpstr);
-  if (rhwhite == NULL)
-  {
-    fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
-    exit(1);
-  }
-  /* ------ Load subject's rh pial surface ------ */
-  sprintf(tmpstr,"%s/%s/surf/rh.pial",SUBJECTS_DIR,subject);
-  printf("\nReading rh pial surface \n %s\n",tmpstr);
-  rhpial = MRISread(tmpstr);
-  if (rhpial == NULL)
-  {
-    fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
-    exit(1);
-  }
-  if (rhwhite->nvertices != rhpial->nvertices)
-  {
-    printf("ERROR: rh white and pial have a different "
-           "number of vertices (%d,%d)\n",
-           rhwhite->nvertices,rhpial->nvertices);
-    exit(1);
-  }
-
-  /* ------ Load rh annotation ------ */
-  sprintf(annotfile,"%s/%s/label/rh.%s.annot",SUBJECTS_DIR,subject,annotname);
-  printf("\nLoading rh annotations from %s\n",annotfile);
-  err = MRISreadAnnotation(rhwhite, annotfile);
-  if (err)
-  {
-    printf("ERROR: MRISreadAnnotation() failed %s\n",annotfile);
-    exit(1);
-  }
-
-  if (lhwhite->ct)
-  {
-    printf("Have color table for lh white annotation\n");
-  }
-  if (rhwhite->ct)
-  {
-    printf("Have color table for rh white annotation\n");
-  }
-  //print_annotation_table(stdout);
-
-  if (UseRibbon)
-  {
-    sprintf(tmpstr,"%s/%s/mri/lh.ribbon.mgz",SUBJECTS_DIR,subject);
-    printf("Loading lh ribbon mask from %s\n",tmpstr);
-    lhRibbon = MRIread(tmpstr);
-    if (lhRibbon == NULL)
-    {
-      printf("ERROR: loading %s\n",tmpstr);
+  if(DoLH){
+    /* ------ Load subject's lh white surface ------ */
+    sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
+    printf("\nReading lh white surface \n %s\n",tmpstr);
+    lhwhite = MRISread(tmpstr);
+    if (lhwhite == NULL)  {
+      fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
       exit(1);
     }
-    sprintf(tmpstr,"%s/%s/mri/rh.ribbon.mgz",SUBJECTS_DIR,subject);
-    printf("Loading rh ribbon mask from %s\n",tmpstr);
-    rhRibbon = MRIread(tmpstr);
-    if (rhRibbon == NULL)
-    {
-      printf("ERROR: loading  %s\n",tmpstr);
+    /* ------ Load subject's lh pial surface ------ */
+    sprintf(tmpstr,"%s/%s/surf/lh.pial",SUBJECTS_DIR,subject);
+    printf("\nReading lh pial surface \n %s\n",tmpstr);
+    lhpial = MRISread(tmpstr);
+    if (lhpial == NULL)  {
+      fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
       exit(1);
     }
+    if (lhwhite->nvertices != lhpial->nvertices)  {
+      printf("ERROR: lh white and pial have a different number of "
+	     "vertices (%d,%d)\n",
+	     lhwhite->nvertices,lhpial->nvertices);
+      exit(1);
+    }
+
+    /* ------ Load lh annotation ------ */
+    sprintf(annotfile,"%s/%s/label/lh.%s.annot",SUBJECTS_DIR,subject,annotname);
+    printf("\nLoading lh annotations from %s\n",annotfile);
+    err = MRISreadAnnotation(lhwhite, annotfile);
+    if (err)  {
+      printf("ERROR: MRISreadAnnotation() failed %s\n",annotfile);
+      exit(1);
+    }
+    if(lhwhite->ct) printf("Have color table for lh white annotation\n");
+    if (UseRibbon)  {
+      sprintf(tmpstr,"%s/%s/mri/lh.ribbon.mgz",SUBJECTS_DIR,subject);
+      printf("Loading lh ribbon mask from %s\n",tmpstr);
+      lhRibbon = MRIread(tmpstr);
+      if (lhRibbon == NULL)    {
+	printf("ERROR: loading %s\n",tmpstr);
+	exit(1);
+      }
+    }
+    if(RipUnknown)  {
+      printf("Ripping vertices labeled as unkown\n");
+      nripped = 0;
+      for (vtxno = 0; vtxno < lhwhite->nvertices; vtxno++) {
+	annot = lhwhite->vertices[vtxno].annotation;
+	CTABfindAnnotation(lhwhite->ct, annot, &annotid);
+	// Sometimes the annotation will be "none" indicated by
+	// annotid = -1. We interpret this as "unknown".
+	if (annotid == 0 || annotid == -1) {
+	  lhwhite->vertices[vtxno].ripflag = 1;
+	  lhpial->vertices[vtxno].ripflag = 1;
+	  nripped++;
+	}
+      }
+      printf("Ripped %d vertices from left hemi\n",nripped);
+    }
+    printf("\n");
+    printf("Building hash of lh white\n");
+    lhwhite_hash = MHTfillVertexTableRes(lhwhite, NULL,CURRENT_VERTICES,hashres);
+    printf("\n");
+    printf("Building hash of lh pial\n");
+    lhpial_hash = MHTfillVertexTableRes(lhpial, NULL,CURRENT_VERTICES,hashres);
   }
 
-  if (UseNewRibbon){
+  if(DoRH){
+    /* ------ Load subject's rh white surface ------ */
+    sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
+    printf("\nReading rh white surface \n %s\n",tmpstr);
+    rhwhite = MRISread(tmpstr);
+    if (rhwhite == NULL)      {
+      fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
+      exit(1);
+    }
+    /* ------ Load subject's rh pial surface ------ */
+    sprintf(tmpstr,"%s/%s/surf/rh.pial",SUBJECTS_DIR,subject);
+    printf("\nReading rh pial surface \n %s\n",tmpstr);
+    rhpial = MRISread(tmpstr);
+    if (rhpial == NULL)  {
+      fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
+      exit(1);
+    }
+    if (rhwhite->nvertices != rhpial->nvertices)  {
+      printf("ERROR: rh white and pial have a different "
+	     "number of vertices (%d,%d)\n",
+	     rhwhite->nvertices,rhpial->nvertices);
+      exit(1);
+    }
+
+    /* ------ Load rh annotation ------ */
+    sprintf(annotfile,"%s/%s/label/rh.%s.annot",SUBJECTS_DIR,subject,annotname);
+    printf("\nLoading rh annotations from %s\n",annotfile);
+    err = MRISreadAnnotation(rhwhite, annotfile);
+    if (err)  {
+      printf("ERROR: MRISreadAnnotation() failed %s\n",annotfile);
+      exit(1);
+    }
+    if(rhwhite->ct)    printf("Have color table for rh white annotation\n");
+    if (UseRibbon)  {
+      sprintf(tmpstr,"%s/%s/mri/rh.ribbon.mgz",SUBJECTS_DIR,subject);
+      printf("Loading rh ribbon mask from %s\n",tmpstr);
+      rhRibbon = MRIread(tmpstr);
+      if (rhRibbon == NULL)	{
+	printf("ERROR: loading  %s\n",tmpstr);
+	exit(1);
+      }
+    }
+    if (RipUnknown)  {
+      printf("Ripping vertices labeled as unkown\n");
+      nripped = 0;
+      for (vtxno = 0; vtxno < rhwhite->nvertices; vtxno++)	{
+	annot = rhwhite->vertices[vtxno].annotation;
+	CTABfindAnnotation(rhwhite->ct, annot, &annotid);
+	if (annotid == 0 || annotid == -1)      {
+	  rhwhite->vertices[vtxno].ripflag = 1;
+	  rhpial->vertices[vtxno].ripflag = 1;
+	  nripped++;
+	}
+      }
+      printf("Ripped %d vertices from right hemi\n",nripped);
+    }
+    printf("\n");
+    printf("Building hash of rh white\n");
+    rhwhite_hash = MHTfillVertexTableRes(rhwhite, NULL,CURRENT_VERTICES,hashres);
+    printf("\n");
+    printf("Building hash of rh pial\n");
+    rhpial_hash = MHTfillVertexTableRes(rhpial, NULL,CURRENT_VERTICES,hashres);
+  }
+
+  if(UseNewRibbon){
     sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",SUBJECTS_DIR,subject);
     printf("Loading ribbon segmentation from %s\n",tmpstr);
     RibbonSeg = MRIread(tmpstr);
-    if (RibbonSeg == NULL)
-    {
+    if (RibbonSeg == NULL){
       printf("ERROR: loading %s\n",tmpstr);
       exit(1);
     }
@@ -301,54 +329,6 @@ int main(int argc, char **argv)
     filled = mritmp;
   }
 
-  // ------------ Rip -----------------------
-  if (RipUnknown)
-  {
-    printf("Ripping vertices labeled as unkown\n");
-    nripped = 0;
-    for (vtxno = 0; vtxno < lhwhite->nvertices; vtxno++)
-    {
-      annot = lhwhite->vertices[vtxno].annotation;
-      CTABfindAnnotation(lhwhite->ct, annot, &annotid);
-      // Sometimes the annotation will be "none" indicated by
-      // annotid = -1. We interpret this as "unknown".
-      if (annotid == 0 || annotid == -1)
-      {
-        lhwhite->vertices[vtxno].ripflag = 1;
-        lhpial->vertices[vtxno].ripflag = 1;
-        nripped++;
-      }
-    }
-    printf("Ripped %d vertices from left hemi\n",nripped);
-    nripped = 0;
-    for (vtxno = 0; vtxno < rhwhite->nvertices; vtxno++)
-    {
-      annot = rhwhite->vertices[vtxno].annotation;
-      CTABfindAnnotation(rhwhite->ct, annot, &annotid);
-      if (annotid == 0 || annotid == -1)
-      {
-        rhwhite->vertices[vtxno].ripflag = 1;
-        rhpial->vertices[vtxno].ripflag = 1;
-        nripped++;
-      }
-    }
-    printf("Ripped %d vertices from right hemi\n",nripped);
-  }
-
-
-  printf("\n");
-  printf("Building hash of lh white\n");
-  lhwhite_hash = MHTfillVertexTableRes(lhwhite, NULL,CURRENT_VERTICES,hashres);
-  printf("\n");
-  printf("Building hash of lh pial\n");
-  lhpial_hash = MHTfillVertexTableRes(lhpial, NULL,CURRENT_VERTICES,hashres);
-  printf("\n");
-  printf("Building hash of rh white\n");
-  rhwhite_hash = MHTfillVertexTableRes(rhwhite, NULL,CURRENT_VERTICES,hashres);
-  printf("\n");
-  printf("Building hash of rh pial\n");
-  rhpial_hash = MHTfillVertexTableRes(rhpial, NULL,CURRENT_VERTICES,hashres);
-
   /* ------ Load ASeg ------ */
   sprintf(tmpstr,"%s/%s/mri/%s.mgz",SUBJECTS_DIR,subject,asegname);
   if (!fio_FileExistsReadable(tmpstr))
@@ -359,7 +339,7 @@ int main(int argc, char **argv)
       sprintf(tmpstr,"%s/%s/mri/aseg/COR-.info",SUBJECTS_DIR,subject);
       if (!fio_FileExistsReadable(tmpstr))
       {
-        printf("ERROR: cannot find aseg\n");
+        printf("ERROR: cannot find aseg %s\n",asegname);
         exit(1);
       }
       else
@@ -371,8 +351,7 @@ int main(int argc, char **argv)
 
   printf("\nLoading aseg from %s\n",tmpstr);
   ASeg = MRIread(tmpstr);
-  if (ASeg == NULL)
-  {
+  if (ASeg == NULL)  {
     printf("ERROR: loading aseg %s\n",tmpstr);
     exit(1);
   }
@@ -380,21 +359,27 @@ int main(int argc, char **argv)
   MRIfree(&ASeg);
   ASeg = mritmp;
 
-  mri_lh_dist = MRIcloneDifferentType(ASeg, MRI_FLOAT) ;
-  MRIScomputeDistanceToSurface(lhwhite, mri_lh_dist, mri_lh_dist->xsize) ;
-  mri_rh_dist = MRIcloneDifferentType(ASeg, MRI_FLOAT) ;
-  MRIScomputeDistanceToSurface(rhwhite, mri_rh_dist, mri_rh_dist->xsize) ;
-  mri_dist = MRImin(mri_lh_dist, mri_rh_dist, NULL) ;
-  MRIfree(&mri_lh_dist) ; MRIfree(&mri_rh_dist) ;
-//  MRIwrite(mri_dist, "d.mgz") ;
+  if(DoLH){
+    mri_lh_dist = MRIcloneDifferentType(ASeg, MRI_FLOAT) ;
+    MRIScomputeDistanceToSurface(lhwhite, mri_lh_dist, mri_lh_dist->xsize) ;
+    if(LHOnly) mri_dist = mri_lh_dist;
+  }
+  if(DoRH){
+    mri_rh_dist = MRIcloneDifferentType(ASeg, MRI_FLOAT) ;
+    MRIScomputeDistanceToSurface(rhwhite, mri_rh_dist, mri_rh_dist->xsize) ;
+    if(RHOnly) mri_dist = mri_rh_dist;
+  }
+  if(DoLH && DoRH){
+    mri_dist = MRImin(mri_lh_dist, mri_rh_dist, NULL) ;
+    MRIfree(&mri_lh_dist) ; 
+    MRIfree(&mri_rh_dist) ;
+  }
 
-  if (relabel_norm_name)
-  {
+  if (relabel_norm_name)  {
     mri_fixed = MRIcloneDifferentType(ASeg, MRI_UCHAR) ;
     MRIsetValues(mri_fixed, 1) ;
   }
-  if (CtxSegFile)
-  {
+  if (CtxSegFile)  {
     printf("Loading Ctx Seg File %s\n",CtxSegFile);
     CtxSeg = MRIread(CtxSegFile);
     if (CtxSeg == NULL)
@@ -404,8 +389,7 @@ int main(int argc, char **argv)
   }
 
   AParc = MRIclone(ASeg,NULL);
-  if (OutDistFile != NULL)
-  {
+  if (OutDistFile != NULL)  {
     Dist = MRIclone(ASeg,NULL);
     mritmp = MRIchangeType(Dist,MRI_FLOAT,0,0,0);
     if (mritmp == NULL)
@@ -426,8 +410,7 @@ int main(int argc, char **argv)
   RAS = MatrixAlloc(4,1,MATRIX_REAL);
   RAS->rptr[4][1] = 1;
 
-  if (crsTest)
-  {
+  if (crsTest)  {
     printf("Testing point %d %d %d\n",ctest,rtest,stest);
     err = FindClosestLRWPVertexNo(ctest,rtest,stest,
                                   &lhwvtx, &lhpvtx,
@@ -447,16 +430,20 @@ int main(int argc, char **argv)
   annotid = 0;
   nbrute = 0;
 
-  MRISsmoothSurfaceNormals(lhwhite, normal_smoothing_iterations) ;
-  MRISsmoothSurfaceNormals(lhpial, normal_smoothing_iterations) ;
-  MRISsmoothSurfaceNormals(rhpial, normal_smoothing_iterations) ;
-  MRISsmoothSurfaceNormals(rhwhite, normal_smoothing_iterations) ;
+  if(DoLH){
+    MRISsmoothSurfaceNormals(lhwhite, normal_smoothing_iterations) ;
+    MRISsmoothSurfaceNormals(lhpial, normal_smoothing_iterations) ;
+  }
+  if(DoRH){
+    MRISsmoothSurfaceNormals(rhpial, normal_smoothing_iterations) ;
+    MRISsmoothSurfaceNormals(rhwhite, normal_smoothing_iterations) ;
+  }
 
   if (relabel_gca_name != NULL)    // reclassify voxels interior to white that are likely to be something else
   {
-    MRI    *mri_norm, *mri_rh_dist, *mri_lh_dist, *mri_dist ;
+    MRI    *mri_norm;
     FILE   *fp ;
-    int    *labels, nlines, i, mean, label, nscanned ;
+    int    *labels, nlines, i, mean, label;
     float  *intensities ;
     char   *cp, line[STRLEN], label_name[STRLEN] ;
 
@@ -466,12 +453,25 @@ int main(int argc, char **argv)
     if (mri_norm == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not load norm volume from %s\n", relabel_norm_name) ;
 
-    mri_lh_dist = MRIcloneDifferentType(mri_norm, MRI_FLOAT) ;
-    mri_rh_dist = MRIcloneDifferentType(mri_norm, MRI_FLOAT) ;
-    MRIScomputeDistanceToSurface(rhwhite, mri_rh_dist, mri_rh_dist->xsize) ; 
-    MRIScomputeDistanceToSurface(lhwhite, mri_lh_dist, mri_lh_dist->xsize) ; 
-    mri_dist = MRIcombineDistanceTransforms(mri_lh_dist, mri_rh_dist, NULL) ;
-    MRIfree(&mri_lh_dist) ; MRIfree(&mri_rh_dist) ;
+#if 0
+    // BF included this in his relabel code, but not clear what it does
+    // variables don't seem to be used and shadow variables in the main code
+    MRI    *mri_rh_dist, *mri_lh_dist, *mri_dist;
+    if(DoLH){
+      mri_lh_dist = MRIcloneDifferentType(mri_norm, MRI_FLOAT) ;
+      MRIScomputeDistanceToSurface(lhwhite, mri_lh_dist, mri_lh_dist->xsize) ; 
+      if(LHOnly) mri_dist = mri_lh_dist;
+    }
+    if(DoRH){
+      mri_rh_dist = MRIcloneDifferentType(mri_norm, MRI_FLOAT) ;
+      MRIScomputeDistanceToSurface(rhwhite, mri_rh_dist, mri_rh_dist->xsize) ; 
+      if(RHOnly) mri_dist = mri_rh_dist;
+    }
+    if(DoLH && DoRH){
+      mri_dist = MRIcombineDistanceTransforms(mri_lh_dist, mri_rh_dist, NULL) ;
+      MRIfree(&mri_lh_dist) ; MRIfree(&mri_rh_dist) ;
+    }
+#endif
     
     xform = TransformRead(relabel_xform_name) ;
     if (xform == NULL)
@@ -499,7 +499,7 @@ int main(int argc, char **argv)
     cp = fgetl(line, 199, fp) ;
     for (i = 0 ; i < nlines ; i++)
     {
-      nscanned  = sscanf(cp, "%d %s %*f %*f %d", &label, label_name, &mean) ;
+      sscanf(cp, "%d %s %*f %*f %d", &label, label_name, &mean) ;
       labels[i] = label ;
       intensities[i] = mean ;
       if (labels[i] == Left_Cerebral_White_Matter)
@@ -513,7 +513,7 @@ int main(int argc, char **argv)
     free(intensities) ;
 
     TransformInvert(xform, mri_norm) ;
-// edit GCA to disallow cortical labels at points interior to white that we are relabeling
+    // edit GCA to disallow cortical labels at points interior to white that we are relabeling
     {
       int        x, y, z, n ;
       GCA_PRIOR *gcap ;
@@ -556,6 +556,8 @@ int main(int argc, char **argv)
 	  DiagBreak() ;
 
         asegid = MRIgetVoxVal(ASeg,c,r,s,0);
+	if(LHOnly && (asegid == 41 || asegid == 42)) continue;
+	if(RHOnly && (asegid ==  2 || asegid ==  3)) continue;
         if(asegid == 3 || asegid == 42) IsCortex = 1;
         else                            IsCortex = 0;
         if(asegid >= 77 && asegid <= 82) IsHypo = 1;
@@ -619,8 +621,10 @@ int main(int argc, char **argv)
 
         // Check whether this point is in the ribbon
         if(UseRibbon) {
-          lhRibbonVal = MRIgetVoxVal(lhRibbon,c,r,s,0);
-          rhRibbonVal = MRIgetVoxVal(rhRibbon,c,r,s,0);
+	  lhRibbonVal = 0;
+	  rhRibbonVal = 0;
+	  if(DoLH) lhRibbonVal = MRIgetVoxVal(lhRibbon,c,r,s,0);
+          if(DoRH) rhRibbonVal = MRIgetVoxVal(rhRibbon,c,r,s,0);
           if(IsCortex) {
             // ASeg says it's in cortex, or other logic says so
             if (lhRibbonVal < 0.5 && rhRibbonVal < 0.5) {
@@ -643,14 +647,22 @@ int main(int argc, char **argv)
 
         // Get the index of the closest vertex in the
         // lh.white, lh.pial, rh.white, rh.pial
-        if (UseHash)
-        {
-          lhwvtx = MHTfindClosestVertexNo(lhwhite_hash,lhwhite,&vtx,&dlhw);
-          lhpvtx = MHTfindClosestVertexNo(lhpial_hash, lhpial, &vtx,&dlhp);
-          rhwvtx = MHTfindClosestVertexNo(rhwhite_hash,rhwhite,&vtx,&drhw);
-          rhpvtx = MHTfindClosestVertexNo(rhpial_hash, rhpial, &vtx,&drhp);
-          if (lhwvtx < 0 && lhpvtx < 0 && rhwvtx < 0 && rhpvtx < 0)
-          {
+        if(UseHash) {
+	  if(DoLH){
+	    lhwvtx = MHTfindClosestVertexNo(lhwhite_hash,lhwhite,&vtx,&dlhw);
+	    lhpvtx = MHTfindClosestVertexNo(lhpial_hash, lhpial, &vtx,&dlhp);
+	  } else {
+	    lhwvtx = -1;
+	    lhpvtx = -1;
+	  }
+	  if(DoRH){
+	    rhwvtx = MHTfindClosestVertexNo(rhwhite_hash,rhwhite,&vtx,&drhw);
+	    rhpvtx = MHTfindClosestVertexNo(rhpial_hash, rhpial, &vtx,&drhp);
+	  } else {
+	    rhwvtx = -1;
+	    rhpvtx = -1;
+	  }
+          if (lhwvtx < 0 && lhpvtx < 0 && rhwvtx < 0 && rhpvtx < 0) {
             /*
             printf("  Could not map to any surface with hash table:\n");
             printf("  crs = %d %d %d, ras = %6.4f %6.4f %6.4f \n",
@@ -658,20 +670,34 @@ int main(int argc, char **argv)
             printf("  Using brute force search %d ... \n",nbrute);
             fflush(stdout);
             */
-            lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
-            lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp);
-            rhwvtx = MRISfindClosestVertex(rhwhite,vtx.x,vtx.y,vtx.z,&drhw);
-            rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp);
+	    if(DoLH){
+	      lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
+	      lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp);
+	    }
+	    if(DoRH){
+	      rhwvtx = MRISfindClosestVertex(rhwhite,vtx.x,vtx.y,vtx.z,&drhw);
+	      rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp);
+	    }
             nbrute ++;
             //exit(1);
           }
         }
         else
         {
-          lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
-          lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp);
-          rhwvtx = MRISfindClosestVertex(rhwhite,vtx.x,vtx.y,vtx.z,&drhw);
-          rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp);
+	  if(DoLH){
+	    lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
+	    lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp);
+	  } else {
+	    lhwvtx = -1;
+	    lhpvtx = -1;
+	  }
+	  if(DoRH){
+	    rhwvtx = MRISfindClosestVertex(rhwhite,vtx.x,vtx.y,vtx.z,&drhw);
+	    rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp);
+	  } else {
+	    rhwvtx = -1;
+	    rhpvtx = -1;
+	  }
         }
 
 	/* added some checks here to make sure closest vertex (usually pial but can be white) isn't on
@@ -702,32 +728,18 @@ int main(int argc, char **argv)
 	  if (dot > 0) drhp = 1000000000000000.0;
 	}
 
-        if (dlhw <= dlhp && dlhw < drhw && dlhw < drhp && lhwvtx >= 0)
-        {
+        if (dlhw <= dlhp && dlhw < drhw && dlhw < drhp && lhwvtx >= 0) {
           annot = lhwhite->vertices[lhwvtx].annotation;
           hemi = 1;
-          if (lhwhite->ct)
-          {
-            CTABfindAnnotation(lhwhite->ct, annot, &annotid);
-          }
-          else
-          {
-            annotid = annotation_to_index(annot);
-          }
+          if (lhwhite->ct) CTABfindAnnotation(lhwhite->ct, annot, &annotid);
+          else annotid = annotation_to_index(annot);
           dmin = dlhw;
         }
-        if (dlhp < dlhw && dlhp < drhw && dlhp < drhp && lhpvtx >= 0)
-        {
+        if (dlhp < dlhw && dlhp < drhw && dlhp < drhp && lhpvtx >= 0) {
           annot = lhwhite->vertices[lhpvtx].annotation;
           hemi = 1;
-          if (lhwhite->ct)
-          {
-            CTABfindAnnotation(lhwhite->ct, annot, &annotid);
-          }
-          else
-          {
-            annotid = annotation_to_index(annot);
-          }
+          if (lhwhite->ct) CTABfindAnnotation(lhwhite->ct, annot, &annotid);
+          else annotid = annotation_to_index(annot);
           dmin = dlhp;
         }
 
@@ -735,38 +747,22 @@ int main(int argc, char **argv)
         {
           annot = rhwhite->vertices[rhwvtx].annotation;
           hemi = 2;
-          if (rhwhite->ct)
-          {
-            CTABfindAnnotation(rhwhite->ct, annot, &annotid);
-          }
-          else
-          {
-            annotid = annotation_to_index(annot);
-          }
+          if (rhwhite->ct) CTABfindAnnotation(rhwhite->ct, annot, &annotid);
+          else annotid = annotation_to_index(annot);
           dmin = drhw;
         }
         if (drhp < dlhp && drhp < drhw && drhp < dlhw && rhpvtx >= 0)
         {
           annot = rhwhite->vertices[rhpvtx].annotation;
           hemi = 2;
-          if (rhwhite->ct)
-          {
-            CTABfindAnnotation(rhwhite->ct, annot, &annotid);
-          }
-          else
-          {
-            annotid = annotation_to_index(annot);
-          }
+          if (rhwhite->ct) CTABfindAnnotation(rhwhite->ct, annot, &annotid);
+          else annotid = annotation_to_index(annot);
           dmin = drhp;
         }
 
         // Sometimes the annotation will be "none" indicated by
         // annotid = -1. We interpret this as "unknown".
-        if (annotid == -1)
-        {
-          annotid = 0;
-        }
-
+        if (annotid == -1) annotid = 0;
 
 	/* If the cortical label is "unkown", it is difficult to
 	   determine what to put here. If the aseg says it is WM, then
@@ -799,48 +795,22 @@ int main(int argc, char **argv)
                         rhpial->vertices[rhpvtx].ripflag);
           } */
 
-        if ( IsCortex && hemi == 1)
-        {
-          segval = annotid+1000 + baseoffset;  //ctx-lh
-        }
-        if ( IsCortex && hemi == 2)
-        {
-          segval = annotid+2000 + baseoffset;  //ctx-rh
-        }
-        if (!IsCortex && hemi == 1)
-        {
-          segval = annotid+3000 + baseoffset;  // wm-lh
-        }
-        if (!IsCortex && hemi == 2)
-        {
-          segval = annotid+4000 + baseoffset;  // wm-rh
-        }
-
-        if (!IsCortex && dmin > dmaxctx && hemi == 1)
-        {
-          segval = 5001;
-        }
-        if (!IsCortex && dmin > dmaxctx && hemi == 2)
-        {
-          segval = 5002;
-        }
+        if ( IsCortex && hemi == 1) segval = annotid+1000 + baseoffset;  //ctx-lh
+        if ( IsCortex && hemi == 2) segval = annotid+2000 + baseoffset;  //ctx-rh
+        if (!IsCortex && hemi == 1) segval = annotid+3000 + baseoffset;  // wm-lh
+        if (!IsCortex && hemi == 2) segval = annotid+4000 + baseoffset;  // wm-rh
+        if (!IsCortex && dmin > dmaxctx && hemi == 1) segval = 5001;
+        if (!IsCortex && dmin > dmaxctx && hemi == 2) segval = 5002;
 
         // This is a hack for getting the right cortical seg with --rip-unknown
         // The aparc+aseg should be passed as CtxSeg. Used with WMParc
-        if (IsCortex && CtxSeg)
-        {
-          segval = MRIgetVoxVal(CtxSeg,c,r,s,0);
-        }
+        if (IsCortex && CtxSeg) segval = MRIgetVoxVal(CtxSeg,c,r,s,0);
 
         MRIsetVoxVal(ASeg,c,r,s,0,segval);
         MRIsetVoxVal(AParc,c,r,s,0,annot);
-        if (OutDistFile != NULL)
-        {
-          MRIsetVoxVal(Dist,c,r,s,0,dmin);
-        }
+        if (OutDistFile != NULL) MRIsetVoxVal(Dist,c,r,s,0,dmin);
 
-        if (debug || annotid == -1)
-        {
+        if (debug || annotid == -1) {
           // Gets here when there is no label at the found vertex.
           // This is different than having a vertex labeled as "unknown"
           if (!debug)
@@ -1186,20 +1156,22 @@ static int parse_commandline(int argc, char **argv)
     if (!strcasecmp(option, "--help")||
         !strcasecmp(option, "-h")||
         !strcasecmp(option, "--usage")||
-        !strcasecmp(option, "-u"))
-    {
-      print_help() ;
+        !strcasecmp(option, "-u")) print_help() ;
+    else if (!strcasecmp(option, "--version")) print_version() ;
+    else if (!strcasecmp(option, "--debug")) debug = 1;
+    else if (!strcasecmp(option, "--lh")) {
+      LHOnly = 1;
+      DoLH = 1;
+      RHOnly = 0;
+      DoRH = 0;
     }
-    else if (!strcasecmp(option, "--version"))
-    {
-      print_version() ;
+    else if (!strcasecmp(option, "--rh")) {
+      LHOnly = 0;
+      DoLH = 0;
+      RHOnly = 1;
+      DoRH = 1;
     }
-    else if (!strcasecmp(option, "--debug"))
-    {
-      debug = 1;
-    }
-    else if (!strcasecmp(option, "--relabel"))
-    {
+    else if (!strcasecmp(option, "--relabel")){
       relabel_norm_name = pargv[0] ;
       relabel_xform_name = pargv[1] ;
       relabel_gca_name = pargv[2] ;
@@ -1207,6 +1179,12 @@ static int parse_commandline(int argc, char **argv)
       printf("relabeling unlikely voxels interior to white matter surface:\n\tnorm: %s\n\t XFORM: %s\n\tGCA: %s\n\tlabel intensities: %s\n",
 	     relabel_norm_name, relabel_xform_name, relabel_gca_name, relabel_label_intensities_name) ;
       nargsused = 4;
+    }
+    else if (!strcasecmp(option, "--no-relabel")){
+      relabel_norm_name = NULL;
+      relabel_xform_name =  NULL;
+      relabel_gca_name =  NULL;
+      relabel_label_intensities_name =  NULL;
     }
     else if (!strcasecmp(option, "--debug_voxel"))
     {

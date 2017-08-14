@@ -87,6 +87,7 @@
 #define FILTER_DOG                     45
 #define FILTER_EXTERNAL                46
 #define FILTER_MEAN_MASKED             47
+#define FILTER_HISTO_MATCH             48
 
 #define FILTER_OFFSET            0x0100
 

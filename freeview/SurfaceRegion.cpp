@@ -70,7 +70,7 @@ SurfaceRegion::SurfaceRegion( LayerMRI* owner ) :
   m_clipbox = vtkSmartPointer<vtkBox>::New();
   m_clipperPre = vtkSmartPointer<vtkClipPolyData>::New();
   m_clipperPre->SetClipFunction( m_clipbox );
-//  m_clipper->GenerateClippedOutputOn();
+  //  m_clipper->GenerateClippedOutputOn();
   m_clipperPre->InsideOutOn();
   m_selector->SetInput( m_clipperPre->GetOutput() );
   m_cleanerPost = vtkSmartPointer<vtkCleanPolyData>::New();
@@ -273,10 +273,10 @@ bool SurfaceRegion::Write( const QString& fn )
 bool SurfaceRegion::WriteHeader( FILE* fp, LayerMRI* mri_ref, int nNum )
 {
   QString strg = QString( "VOLUME_PATH %1\nVOLUME_THRESHOLD %2 %3\nSURFACE_REGIONS %4\n" )
-                 .arg( mri_ref->GetFileName() )
-                 .arg( mri_ref->GetProperty()->GetContourMinThreshold() )
-                 .arg( mri_ref->GetProperty()->GetContourMaxThreshold() )
-                 .arg( nNum );
+      .arg( mri_ref->GetFileName() )
+      .arg( mri_ref->GetProperty()->GetContourMinThreshold() )
+      .arg( mri_ref->GetProperty()->GetContourMaxThreshold() )
+      .arg( nNum );
   QFile file;
   file.open( fp, QIODevice::Append );
   QByteArray ba = strg.toLatin1();
@@ -294,9 +294,9 @@ bool SurfaceRegion::WriteBody( FILE* fp )
   vtkPoints* points = polydata->GetPoints();
   vtkCellArray* polys = polydata->GetPolys();
   QString strg = QString( "SURFACE_REGION\nID %1\nGROUP_ID %2\nPOINTS %3\n" )
-                 .arg(m_nId )
-                 .arg(m_nGroup)
-                 .arg(points->GetNumberOfPoints());
+      .arg(m_nId )
+      .arg(m_nGroup)
+      .arg(points->GetNumberOfPoints());
   double pt[3];
   for ( vtkIdType i = 0; i < points->GetNumberOfPoints(); i++ )
   {

@@ -74,7 +74,7 @@ public slots:
   void SelectAll();
   void selectAll()
   {
-      SelectAll();
+    SelectAll();
   }
   void DeselectAll();
 

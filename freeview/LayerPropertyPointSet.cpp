@@ -37,6 +37,7 @@
 #include <QStringList>
 #include <QTextStream>
 #include <QSettings>
+#include <QDebug>
 
 //using namespace std;
 
@@ -63,7 +64,7 @@ LayerPropertyPointSet::LayerPropertyPointSet (QObject* parent) :
   m_dHeatScaleMax = 1;
   m_dHeatScaleOffset = 0;
 
-  m_nScalarType = ScalarLayer;
+  m_nScalarType = ScalarStat;
   m_nType = WayPoint;
 
   m_bShowSpline = true;
@@ -162,6 +163,7 @@ void LayerPropertyPointSet::SetColor ( double r, double g, double b )
   mRGB[1] = g;
   mRGB[2] = b;
   this->SetColorMapChanged();
+  emit ColorChanged();
 }
 
 void LayerPropertyPointSet::SetSplineColor ( double r, double g, double b )
@@ -253,17 +255,27 @@ void LayerPropertyPointSet::SetHeatScaleOffset( double dValue )
   }
 }
 
+void LayerPropertyPointSet::SetScalarToStat()
+{
+  SaveHeatscaleSettings();
+  m_nScalarType = ScalarStat;
+  if (!RestoreHeatscaleSettings("stat"))
+    UpdateScalarValues();
+  this->SetColorMapChanged();
+  emit ScalarChanged();
+}
+
 void LayerPropertyPointSet::SetScalarLayer( LayerMRI* layer )
 {
   if ( m_nScalarType != ScalarLayer || m_layerScalar != layer )
   {
     SaveHeatscaleSettings();
-    m_nScalarType = ScalarLayer;
     m_layerScalar = layer;
+    m_nScalarType = ScalarLayer;
     if (!RestoreHeatscaleSettings(layer->GetName()))
       UpdateScalarValues();
     this->SetColorMapChanged();
-    emit ScalarLayerChanged( layer );
+    emit ScalarChanged();
   }
 }
 
@@ -277,13 +289,13 @@ void LayerPropertyPointSet::SetScalarSet( int n )
     if (!RestoreHeatscaleSettings(m_scalarSets[n].strName))
       UpdateScalarValues();
     this->SetColorMapChanged();
-    emit ScalarSetChanged();
+    emit ScalarChanged();
   }
 }
 
 void LayerPropertyPointSet::SaveHeatscaleSettings()
 {
-  QString name;
+  QString name = "stat";
   if (m_nScalarType == ScalarSet && m_nScalarSet >= 0)
     name = m_scalarSets[m_nScalarSet].strName;
   else if (m_nScalarType == ScalarLayer && m_layerScalar)
@@ -335,6 +347,10 @@ double LayerPropertyPointSet::GetScalarMinValue()
   {
     min = GetActiveScalarSet().dMin;
   }
+  else
+  {
+    min = m_dStatMin;
+  }
 
   return min;
 }
@@ -349,6 +365,10 @@ double LayerPropertyPointSet::GetScalarMaxValue()
   else if ( m_nScalarType == ScalarSet )
   {
     max = GetActiveScalarSet().dMax;
+  }
+  else
+  {
+    max = m_dStatMax;
   }
 
   return max;
@@ -422,4 +442,11 @@ void LayerPropertyPointSet::SetShowSpline( bool bSpline )
 void LayerPropertyPointSet::SetType( int nType )
 {
   m_nType = nType;
+}
+
+void LayerPropertyPointSet::SetStatRange(double dMin, double dMax)
+{
+  m_dStatMin = dMin;
+  m_dStatMax = dMax;
+  UpdateScalarValues();
 }

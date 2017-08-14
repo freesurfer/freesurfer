@@ -132,6 +132,10 @@ MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
   MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
   bmin = (BUFTYPE)fmin ;
   bmax = (BUFTYPE)fmax ;
+  if (nbins <= 0 && FEQUAL(fmin, fmax))
+    ErrorReturn(NULL, 
+		(ERROR_UNSUPPORTED, "MRIhistogramRegion: input mri %s is blank",
+		 mri->fname)) ;
   if (nbins <= 0)
     nbins = nint(fmax - fmin + 1.0) ;
   if (nbins <= 0)
@@ -494,6 +498,15 @@ MRIhistoEqualizeRegion(MRI *mri_src, MRI *mri_dst, int low,MRI_REGION *region)
 {
   HISTOGRAM  *histo_eq ;
 
+  if (region == NULL)
+  {
+    MRI_REGION tmp ;
+    region = &tmp ;
+    region->x = region->y = region->z = 0 ;
+    region->dx = mri_src->width ;
+    region->dy = mri_src->height ;
+    region->dz = mri_src->depth ;
+  }
   histo_eq = HISTOalloc(256) ;
   MRIgetEqualizeHistoRegion(mri_src, histo_eq, low, region, 1) ;
   mri_dst = MRIapplyHistogramToRegion(mri_src, mri_dst, histo_eq, region) ;
@@ -570,6 +583,15 @@ MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low,
   float     *pc, *pdst, total, total_pix ;
 
 
+  if (region == NULL)
+  {
+    MRI_REGION tmp ;
+    region = &tmp ;
+    region->x = region->y = region->z = 0 ;
+    region->dx = mri->width ;
+    region->dy = mri->height ;
+    region->dz = mri->depth ;
+  }
   if (mri->type != MRI_UCHAR)
     ErrorReturn(NULL,
                 (ERROR_UNSUPPORTED,
@@ -813,6 +835,8 @@ MRIhistogram(MRI *mri, int nbins)
   MRIvalRange(mri, &fmin, &fmax) ; // fmin = is wrong!
   if (!nbins)
     nbins = nint(fmax - fmin + 1.0) ;
+  if (fmin == fmax)
+    fmax = 255 ;
   histo = HISTOalloc(nbins) ;
   HISTOinit(histo, nbins, fmin, fmax) ;
   width = mri->width ; height = mri->height ; depth = mri->depth ;
@@ -851,12 +875,18 @@ MRIhistogramLabelRegion(MRI *mri,
   MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
   bmin = (int)fmin ;
   bmax = (int)fmax ;
-  if (!nbins)
+  if (nbins <= 0)
     nbins = nint(fmax - fmin + 1.0) ;
 
   histo = HISTOalloc(nbins) ;
   HISTOinit(histo, nbins, fmin, fmax) ;
 
+  if (FEQUAL(fmin, fmax))
+  {
+    histo->bin_size = 1 ;
+    ErrorReturn(histo, (ERROR_BADPARM, 
+			 "MRIhistogramLabelRegion: constant image")) ;
+  }
   width = mri->width ; height = mri->height ; depth = mri->depth ;
 
   x0 = MAX(0, region->x) ;

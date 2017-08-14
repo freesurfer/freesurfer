@@ -236,15 +236,15 @@ void LayerPropertySurface::BuildCurvatureLUT( vtkRGBAColorTransferFunction* lut,
   case CM_Threshold:
     lut->AddRGBAPoint( -dSlope + m_dThresholdMidPoint,
                        m_dRGBThresholdLow[0],
-                       m_dRGBThresholdLow[1],
-                       m_dRGBThresholdLow[2],
-                       1 );
+        m_dRGBThresholdLow[1],
+        m_dRGBThresholdLow[2],
+        1 );
     lut->AddRGBAPoint( m_dThresholdMidPoint, m_dRGB[0], m_dRGB[1], m_dRGB[2], 1 );
     lut->AddRGBAPoint( dSlope + m_dThresholdMidPoint,
                        m_dRGBThresholdHigh[0],
-                       m_dRGBThresholdHigh[1],
-                       m_dRGBThresholdHigh[2],
-                       1 );
+        m_dRGBThresholdHigh[1],
+        m_dRGBThresholdHigh[2],
+        1 );
     break;
   case CM_Binary:
     lut->AddRGBAPoint( m_dThresholdMidPoint,    hiRGB[0], hiRGB[1], hiRGB[2], 1 );
@@ -316,7 +316,7 @@ void LayerPropertySurface::SetBinaryColor ( double r, double g, double b )
   if ( m_surface )
   {
     if ( m_surface->IsCurvatureLoaded() )
-      {}
+    {}
     this->SetColorMapChanged();
   }
 }
@@ -327,6 +327,7 @@ void LayerPropertySurface::SetEdgeColor ( double r, double g, double b )
   m_dRGBEdge[1] = g;
   m_dRGBEdge[2] = b;
   emit ColorMapChanged();
+  emit EdgeColorChanged();
 }
 
 void LayerPropertySurface::SetVectorColor ( double r, double g, double b )
@@ -477,9 +478,9 @@ void LayerPropertySurface::SetShowAnnotation(bool bShow)
 
 void LayerPropertySurface::SetUseSurfaceColorOn2D(bool bKeep)
 {
-    if (bKeep != m_bUseSurfaceColorOn2D)
-    {
-        m_bUseSurfaceColorOn2D = bKeep;
-        emit ColorMapChanged();
-    }
+  if (bKeep != m_bUseSurfaceColorOn2D)
+  {
+    m_bUseSurfaceColorOn2D = bKeep;
+    emit ColorMapChanged();
+  }
 }

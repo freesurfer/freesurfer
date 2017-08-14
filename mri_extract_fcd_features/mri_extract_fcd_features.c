@@ -61,10 +61,13 @@ static char *aparc_name = "aparc+aseg.mgz" ;
 static char *aseg_name = "aseg.mgz" ;
 static char *sphere_name = "sphere.d1.left_right";
 static char *cortex_label = "cortex" ;
+static char *flair_name = "FLAIR.masked.mgz" ;
+
 
 
 static  MRI *MRIcomputeSurfaceDistanceProbabilities(MRI_SURFACE *mris,  MRI *mri_ribbon, MRI *mri, MRI *mri_aseg) ;
 static  MRI *MRIcomputeSurfaceDistanceIntensities(MRI_SURFACE *mris, MRI *mri_ribbon, MRI *mri_aparc, MRI *mri, MRI *mri_aseg, int whalf) ;
+static  MRI *MRIcomputeFlairRatio(MRI_SURFACE *mris, MRI *mri_ribbon, MRI *mri_aparc, MRI *mri, MRI *mri_flair, MRI *mri_aseg, int whalf) ;
 
 static int whalf = 5 ;
 static int navgs = 0 ;
@@ -72,12 +75,12 @@ static int navgs = 0 ;
 int
 main(int argc, char *argv[]) 
 {
-  char   **av, fname[STRLEN], *cp ;
-  int    ac, nargs ;
+  char   fname[STRLEN], *cp ;
+  int    nargs ;
   char   *subject, *out_fname, *hemi, *ohemi ;
   int    msec, minutes, seconds ;
   struct timeb start ;
-  MRI          *mri, *mri_features, *mri_ribbon, *mri_aseg, *mri_aparc ;
+  MRI          *mri, *mri_features, *mri_ribbon, *mri_aseg, *mri_aparc, *mri_flair ;
   MRI_SURFACE  *mris, *mris_contra ;
   LABEL        *cortex ;
 
@@ -93,8 +96,6 @@ main(int argc, char *argv[])
 
   TimerStart(&start) ;
 
-  ac = argc ;
-  av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
@@ -187,17 +188,37 @@ main(int argc, char *argv[])
   if (mri == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s\n", Progname, fname) ;
 
+  sprintf(fname, "%s/%s/mri/%s", sdir, subject, flair_name) ; 
+  printf("reading %s\n", fname) ;
+  mri_flair  = MRIread(fname) ;
+  if (mri_flair == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: could not read volume from %s\n", Progname, fname) ;
+
   if (0)
     mri_features = MRIcomputeSurfaceDistanceProbabilities(mris, mri_ribbon, mri, mri_aseg) ;
   else
   {
-    MRI *mri_ohemi_features, *mri_ohemi_mapped_to_hemi_features ;
+    MRI *mri_ohemi_features, *mri_ohemi_mapped_to_hemi_features, *mri_flair_features, *mri_ohemi_flair_features, *mri_ohemi_mapped_to_hemi_flair_features ;
+    char fname[STRLEN], ext[STRLEN], fname_no_ext[STRLEN] ;
 
     mri_features = MRIcomputeSurfaceDistanceIntensities(mris, mri_ribbon, mri_aparc, mri, mri_aseg, whalf) ;
     mri_ohemi_features = MRIcomputeSurfaceDistanceIntensities(mris_contra, mri_ribbon, mri_aparc, mri, mri_aseg, whalf) ;
     mri_ohemi_mapped_to_hemi_features = MRISmapToSurface(mris_contra, mris, mri_ohemi_features, NULL) ; // map contra feature to this surface
-//    MRIwrite(mri_ohemi_mapped_to_hemi_features, "test.mgz") ;
     MRIsubtract(mri_features, mri_ohemi_mapped_to_hemi_features, mri_features) ;
+//    MRIwrite(mri_ohemi_mapped_to_hemi_features, "test.mgz") ;
+
+    mri_flair_features = MRIcomputeFlairRatio(mris, mri_ribbon, mri_aparc, mri, mri_flair, mri_aseg, whalf) ;
+    mri_ohemi_flair_features = MRIcomputeFlairRatio(mris_contra, mri_ribbon, mri_aparc, mri, mri_flair, mri_aseg, whalf) ;
+    mri_ohemi_mapped_to_hemi_flair_features = MRISmapToSurface(mris_contra, mris, mri_ohemi_flair_features, NULL) ; // map contra feature to this s
+    MRIsubtract(mri_flair_features, mri_ohemi_mapped_to_hemi_flair_features, mri_flair_features) ;
+    strcpy(fname, out_fname) ;
+    FileNameExtension(fname, ext) ;
+    FileNameRemoveExtension(fname, fname_no_ext) ;
+    sprintf(fname, "%s.flair.%s", fname_no_ext, ext) ;
+    if (Gdiag_no >= 0)
+      printf("feature(%d) = %f\n", Gdiag_no, MRIgetVoxVal(mri_flair_features, Gdiag_no, 0, 0, 0)) ;
+    printf("DISABLED: writing output to %s\n", fname) ;
+//    MRIwrite(mri_flair_features, fname) ;
   }
  
   if (navgs > 0)
@@ -245,6 +266,24 @@ get_option(int argc, char *argv[]) {
     printf("debugging vertex %d\n", Gdiag_no) ;
     nargs = 1 ;
   }
+  else  if (!stricmp(option, "PIAL"))
+  {
+    pial_name = argv[2] ;
+    printf("using pial surface '%s'\n", pial_name) ;
+    nargs = 1 ;
+  }
+  else  if (!stricmp(option, "WHITE"))
+  {
+    white_name = argv[2] ;
+    printf("using white surface '%s'\n", white_name) ;
+    nargs = 1 ;
+  }
+  else  if (!stricmp(option, "VOL"))
+  {
+    vol_name = argv[2] ;
+    printf("using intensity volume '%s'\n", vol_name) ;
+    nargs = 1 ;
+  }
   else switch (toupper(*option)) {
     case 'A':
       navgs = atof(argv[2]) ;
@@ -280,7 +319,7 @@ get_option(int argc, char *argv[]) {
 ----------------------------------------------------------------------*/
 static void
 usage_exit(int code) {
-  printf("usage: %s [options] <subject> <hemi> <output file>", Progname) ;
+  printf("usage: %s [options] <subject> <hemi> <output file>\n", Progname) ;
   printf("\tsdir <subjects dir> - specify SUBJECTS_DIR on the command line instead of in env\n") ;
   exit(code) ;
 }
@@ -298,7 +337,7 @@ static double pial_bin_size = .5 ;
 
 static int NBINS = 256 ;
 
-#define SKIP_LABEL(l)   (IS_CEREBELLUM(l) || IS_VENTRICLE(l) || l == Brain_Stem || IS_CC(l) || IS_WMSA(l) || IS_CAUDATE(l) || IS_AMYGDALA(l) || IS_HIPPO(l))
+#define SKIP_LABEL(l)   (IS_CEREBELLAR_GM(l) || IS_VENTRICLE(l) || l == Brain_Stem || IS_CC(l) || IS_WMSA(l) || IS_CAUDATE(l) || IS_AMYGDALA(l) || IS_HIPPO(l))
 
 static int close_order = 3 ;
 
@@ -341,7 +380,7 @@ MRIcomputeSurfaceDistanceProbabilities(MRI_SURFACE *mris,  MRI *mri_ribbon, MRI 
       for (z = 0 ; z < mri->depth ; z++)
       {
 	label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
-	if (IS_CEREBELLUM(label) || IS_VENTRICLE(label) || label == Brain_Stem || IS_CC(label))
+	if (IS_CEREBELLAR_GM(label) || IS_VENTRICLE(label) || label == Brain_Stem || IS_CC(label))
 	  continue ;
 	pdist = MRIgetVoxVal(mri_pial_dist, x, y, z, 0) ;
 	wdist = MRIgetVoxVal(mri_pial_dist, x, y, z, 0) ;
@@ -358,7 +397,7 @@ MRIcomputeSurfaceDistanceProbabilities(MRI_SURFACE *mris,  MRI *mri_ribbon, MRI 
       for (z = 0 ; z < mri->depth ; z++)
       {
 	label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
-	if (IS_CEREBELLUM(label) || IS_VENTRICLE(label) || label == Brain_Stem || IS_CC(label))
+	if (IS_CEREBELLAR_GM(label) || IS_VENTRICLE(label) || label == Brain_Stem || IS_CC(label))
 	  continue ;
 	pdist = MRIgetVoxVal(mri_pial_dist, x, y, z, 0) ;
 	wdist = MRIgetVoxVal(mri_pial_dist, x, y, z, 0) ;
@@ -523,6 +562,86 @@ MRIcomputeSurfaceDistanceIntensities(MRI_SURFACE *mris,  MRI *mri_ribbon, MRI *m
   }
 
   MRIfree(&mri_white_dist) ; MRIfree(&mri_pial_dist) ; MRIfree(&mri_binary) ;
+  return(mri_features) ;
+}
+
+#define SAMPLE_DIST 3.0
+static  MRI *
+MRIcomputeFlairRatio(MRI_SURFACE *mris, MRI *mri_ribbon, MRI *mri_aparc, MRI *mri, MRI *mri_flair, MRI *mri_aseg, int whalf) 
+{
+  MRI    *mri_features, *mri_dist_white, *mri_tmp, *mri_filled ;
+  int     xv, yv, zv, vno, label ;
+  double  xs, ys, zs, xf, yf, zf, flair, T1, dist, xd, yd, zd, dx, dy, dz, nx, ny, nz, x0, y0, z0, len, dot, theta ;
+  VERTEX  *v ;
+
+  MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
+  MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
+  mri_tmp = MRISfillInterior(mris, mri->xsize/2, NULL) ;
+  mri_filled = MRIextractRegionAndPad(mri_tmp, NULL, NULL, nint(30/mri->xsize)) ; MRIfree(&mri_tmp) ;
+  mri_dist_white = MRIcloneDifferentType(mri_filled, MRI_FLOAT) ;
+  MRIdistanceTransform(mri_filled, mri_dist_white, 1, 100, DTRANS_MODE_SIGNED, NULL) ;
+  MRISrestoreVertexPositions(mris, TMP2_VERTICES) ;
+  MRIfree(&mri_filled) ;
+
+  mri_features = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, 1) ;  // one samples inwards, one in ribbon, and one outside
+  MRIcopyHeader(mri, mri_features) ;
+
+  MRISclearMarks(mris) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    xs = v->whitex - v->nx * SAMPLE_DIST ; ys = v->whitey - v->ny * SAMPLE_DIST ; zs = v->whitez - v->nz * SAMPLE_DIST ;
+    MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xf, &yf, &zf) ;
+    xv = nint(xf) ; yv = nint(yf) ; zv = nint(zf) ;
+    label = MRIgetVoxVal(mri_aseg, xv, yv, zv, 0) ;
+    if (IS_WHITE_MATTER(label) == 0)
+      continue ;
+
+    MRISsurfaceRASToVoxelCached(mris, mri_dist_white, v->whitex, v->whitey, v->whitez, &x0, &y0, &z0) ;
+    MRISsurfaceRASToVoxelCached(mris, mri_dist_white, xs, ys, zs, &xd, &yd, &zd) ;
+    MRIsampleVolumeGradient(mri_dist_white, xd, yd, zd, &dx, &dy, &dz) ; dx *= -1 ; dy *= -1 ; dz *= -1 ;
+    MRIsampleVolume(mri_dist_white, xd, yd, zd, &dist) ;
+
+    nx = xd-x0 ;  ny = yd-y0 ; nz = zd-z0 ; 
+    len = sqrt(nx*nx + ny*ny + nz*nz) ;  nx /= len ; ny /= len ; nz /= len ;
+    dot = nx*dx + ny*dy + nz*dz ;
+    theta = acos(dot) * 360 / (2*M_PI) ;
+    if (theta < 0 || theta > 90)
+    {
+      if (vno == Gdiag_no)
+	printf("v %d: angle %2.3f too large\n", vno, theta) ;
+//      MRIsetVoxVal(mri_features, vno, 0, 0, 0, 0) ;
+      continue ;
+    }
+
+    if (dist > -SAMPLE_DIST/2)   // white matter is too thin here
+    {
+      if (vno == Gdiag_no)
+	printf("vno %d: white dist %2.2f not close enough to sample dist %2.2f\n", vno,dist, SAMPLE_DIST) ;
+//      MRIsetVoxVal(mri_features, vno, 0, 0, 0, 0) ;
+      continue ;
+    }
+
+    MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xf, &yf, &zf) ;
+    MRIsampleVolume(mri_flair, xf, yv, zf, &flair) ;
+    MRIsampleVolume(mri, xf, yv, zf, &T1) ; T1 = 1 ;
+    if (FZERO(T1))
+      continue ;
+
+    v->marked = 1 ;
+    MRIsetVoxVal(mri_features, vno, 0, 0, 0, flair/T1) ;
+  }
+
+  MRISreadFromVolume(mri_features, mris, VERTEX_VALS) ;
+  MRISsoapBubbleVals(mris, 100) ;
+  MRISwriteIntoVolume(mris, mri_features, VERTEX_VALS) ;
+  
+  MRIfree(&mri_dist_white) ;
   return(mri_features) ;
 }
 

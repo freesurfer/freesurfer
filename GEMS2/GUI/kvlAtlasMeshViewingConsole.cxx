@@ -63,7 +63,7 @@ AtlasMeshViewingConsole
 
   // Determine some stuff from the collection
   const unsigned int  numberOfMeshes = m_MeshCollection->GetNumberOfMeshes();
-  const unsigned int  numberOfLabels = m_MeshCollection->GetPointParameters()->Begin().Value().m_Alphas.Size();
+  const unsigned int  numberOfClasses = m_MeshCollection->GetPointParameters()->Begin().Value().m_Alphas.Size();
   ImageType::SizeType  size;
   if ( templateSize )
     {
@@ -93,7 +93,7 @@ AtlasMeshViewingConsole
     size[ 2 ]++;
     }
   std::cout << "numberOfMeshes: " << numberOfMeshes << std::endl;
-  std::cout << "numberOfLabels: " << numberOfLabels << std::endl;
+  std::cout << "numberOfClasses: " << numberOfClasses << std::endl;
   std::cout << "size: " << size << std::endl;
 
   // If background image is given, read it. Otherwise, create an empty image
@@ -138,28 +138,20 @@ AtlasMeshViewingConsole
 
 
   // Try to read the label strings from a lookup table, and fill in the GUI accordingly
-  CompressionLookupTable::Pointer  compressor = CompressionLookupTable::New();
-  if ( compressor->Read( "compressionLookupTable.txt" ) )
+  m_Compressor = CompressionLookupTable::New();
+  if ( m_Compressor->Read( "compressionLookupTable.txt" ) )
     {
-    std::cout << "Found file compressionLookupTable.txt; using it" << std::endl;
-
-    for ( CompressionLookupTable::LabelStringLookupTableType::const_iterator it = compressor->GetLabelStringLookupTable().begin();
-          it != compressor->GetLabelStringLookupTable().end(); ++it )
-      {
-      m_LabelNumber->add( it->second.c_str() );
-      }
-    m_Compressor = compressor;
+    std::cout << "Read compressionLookupTable.txt" << std::endl;  
     }
-  else
+  else  
     {
-    std::cout << "Did not find file compressionLookupTable.txt; using default labels" << std::endl;
-
-    for ( unsigned int i = 0; i < numberOfLabels; i++ )
-      {
-      std::ostringstream  labelStream;
-      labelStream << "Label " << i;
-      m_LabelNumber->add( labelStream.str().c_str() );
-      }
+    std::cout << "Couldn't find a compressionLookupTable.txt -- using default colors/names" << std::endl;  
+    m_Compressor->Construct( numberOfClasses );  
+    }
+  for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
+    {
+    std::cout << m_Compressor->GetLabelName( classNumber ) << std::endl;
+    m_LabelNumber->add( m_Compressor->GetLabelName( classNumber ).c_str() );
     }
   m_LabelNumber->value( 0 );
   
@@ -228,14 +220,14 @@ AtlasMeshViewingConsole
     {
     // Show the alpha image
     AtlasMeshAlphaDrawer::Pointer  alphaDrawer = AtlasMeshAlphaDrawer::New();
-    alphaDrawer->SetLabelImage( m_BackgroundImage );
-    alphaDrawer->SetLabelNumber( static_cast< unsigned char >( m_LabelNumber->value() ) );
+    alphaDrawer->SetRegions( m_BackgroundImage->GetLargestPossibleRegion() );
+    alphaDrawer->SetClassNumber( m_LabelNumber->value() );
     alphaDrawer->Rasterize( mesh );
 
-    typedef itk::IntensityWindowingImageFilter< AtlasMeshAlphaDrawer::AlphaImageType,
+    typedef itk::IntensityWindowingImageFilter< AtlasMeshAlphaDrawer::ImageType,
                                                 ImageViewer::ImageType >   WindowerType;
     WindowerType::Pointer  windower = WindowerType::New();
-    windower->SetInput( alphaDrawer->GetAlphaImage() );
+    windower->SetInput( alphaDrawer->GetImage() );
     windower->SetWindowMinimum( 0 );
     windower->SetWindowMaximum( 1 );
     windower->SetOutputMinimum( 0 );
@@ -247,110 +239,12 @@ AtlasMeshViewingConsole
     }
   else
     {
-    if ( !m_Compressor )
-      {
-      // Show the reconstucted image
-      AtlasMeshSummaryDrawer::Pointer  summaryDrawer = AtlasMeshSummaryDrawer::New();
-      summaryDrawer->SetLabelImage( m_BackgroundImage );
-      summaryDrawer->Rasterize( mesh );
-
-      typedef itk::IntensityWindowingImageFilter< AtlasMeshSummaryDrawer::SummaryImageType,
-                                                  ImageViewer::ImageType >   WindowerType;
-      WindowerType::Pointer  windower = WindowerType::New();
-      windower->SetInput( summaryDrawer->GetSummaryImage() );
-      windower->SetWindowMinimum( 0 );
-      windower->SetWindowMaximum( mesh->GetPointData()->Begin().Value().m_Alphas.Size() );
-      windower->SetOutputMinimum( 0 );
-      windower->SetOutputMaximum( 255 );
-      windower->Update();
-
-      m_ImageViewer->SetOverlayImage( windower->GetOutput() );
-      m_ImageViewer->SetOverlayScale( 1.0f );
-      }
-    else
-      {
-      std::cout << "We can actually fill in the colors for a nice summary image" << std::endl;
-
-      // Generate an empty RGBA image of the float type
-      typedef itk::RGBAPixel< float >  FloatRGBAPixelType;
-      typedef itk::Image< FloatRGBAPixelType, 3 >  FloatRGBAImageType;
-      FloatRGBAImageType::Pointer  floatRgbaImage = FloatRGBAImageType::New();
-      floatRgbaImage->SetRegions( m_BackgroundImage->GetBufferedRegion() );
-      floatRgbaImage->Allocate();
-      FloatRGBAImageType::PixelType  initialPixelValue( 0.0f );
-      //float  tmp[] = { 0.25f, 0.25f, 0.25f, 1.0f };
-      //FloatRGBAImageType::PixelType  initialPixelValue( tmp );
-      floatRgbaImage->FillBuffer( initialPixelValue );
-
-
-      // Loop over all entries in the lookup table, rasterize the corresponding class in the
-      // mesh, and add to each color channel. The color is weighted by the alpha channel, so
-      // it's possible NOT to show some label(s) by editing the lookupTable text file
-      for ( CompressionLookupTable::ColorLookupTableType::const_iterator it = m_Compressor->GetColorLookupTable().begin();
-            it != m_Compressor->GetColorLookupTable().end(); ++it )
-        {
-        // Retrieve labelNumber and associated color
-        const int  labelNumber = ( *it ).first;
-        const kvl::CompressionLookupTable::ColorType  color = ( *it ).second;
-        const float  red = color[ 0 ] / 255.0f;
-        const float  green = color[ 1 ] / 255.0f;
-        const float  blue = color[ 2 ] / 255.0f;
-        const float  alpha = color[ 3 ] / 255.0f;
-        std::cout << "Label " << labelNumber << " maps to ["
-                  << red << "  "
-                  << green << "  "
-                  << blue << "  "
-                  << alpha << "]" << std::endl;
-
-        // Rasterize the prior
-        kvl::AtlasMeshAlphaDrawer::Pointer  alphaDrawer = kvl::AtlasMeshAlphaDrawer::New();
-        alphaDrawer->SetLabelImage( m_BackgroundImage );
-        alphaDrawer->SetLabelNumber( labelNumber );
-        alphaDrawer->Rasterize( mesh );
-        kvl::AtlasMeshAlphaDrawer::AlphaImageType::ConstPointer  priorImage = alphaDrawer->GetAlphaImage();
-
-
-        // Now loop over all voxels, and do the Right Thing
-        itk::ImageRegionConstIterator< kvl::AtlasMeshAlphaDrawer::AlphaImageType >  priorIt( priorImage,
-                                                                                            priorImage->GetBufferedRegion() );
-        itk::ImageRegionIterator< FloatRGBAImageType >  rgbaIt( floatRgbaImage,
-                                                                floatRgbaImage->GetBufferedRegion() );
-
-        for ( ; !priorIt.IsAtEnd(); ++priorIt, ++rgbaIt )
-          {
-          rgbaIt.Value()[ 0 ] += alpha * red * priorIt.Value();
-          rgbaIt.Value()[ 1 ] += alpha * green * priorIt.Value();
-          rgbaIt.Value()[ 2 ] += alpha * blue * priorIt.Value();
-          rgbaIt.Value()[ 3 ] += alpha * priorIt.Value();
-          }
-
-
-        } // End loop over all labels
-
-
-      // Now convert float RGBA image into uchar RGBA image, as required by the viewer
-      typedef ImageViewer::RGBAImageType  RGBAImageType;
-      RGBAImageType::Pointer  rgbaImage = RGBAImageType::New();
-      rgbaImage->SetRegions( m_BackgroundImage->GetBufferedRegion() );
-      rgbaImage->Allocate();
-
-      itk::ImageRegionConstIterator< FloatRGBAImageType >  floatRgbaIt( floatRgbaImage,
-                                                                        floatRgbaImage->GetBufferedRegion() );
-      itk::ImageRegionIterator< RGBAImageType >  rgbaIt( rgbaImage,
-                                                         rgbaImage->GetBufferedRegion() );
-
-      for ( ; !floatRgbaIt.IsAtEnd(); ++floatRgbaIt, ++rgbaIt )
-        {
-        for ( int i = 0; i < 4; i++ )
-          {
-          rgbaIt.Value()[ i ] = static_cast< unsigned char >( floatRgbaIt.Value()[ i ] * 255 + 0.5 );
-          }
-        }
-
-
-      m_ImageViewer->SetOverlayImage( rgbaImage );
-      }
-
+    // Show a nice color summary image
+    AtlasMeshSummaryDrawer::Pointer  summaryDrawer = AtlasMeshSummaryDrawer::New();
+    summaryDrawer->SetRegions( m_BackgroundImage->GetBufferedRegion() );
+    summaryDrawer->SetCompressionLookupTable( m_Compressor );
+    summaryDrawer->Rasterize( mesh );
+    m_ImageViewer->SetOverlayImage( summaryDrawer->GetImage() );
     } // End test if we should show a summary image
   
   // Show the mesh overlaid
@@ -369,35 +263,6 @@ AtlasMeshViewingConsole
   Fl::check();
 
 }
-
-
-
-//
-//
-//
-void
-AtlasMeshViewingConsole
-::SelectTriangleContainingPoint( float x, float y )
-{
-  
-//   unsigned long  triangleId;
-//   if ( m_ImageViewer->GetTriangleContainingPoint( x, y, triangleId ) )
-//     {
-//     // Set the viewer accordingly
-//     m_ImageViewer->SetTriangleIdToHighlight( triangleId );
-// 
-//     // Retrieve the point id of the nearest vertex clicked
-//     unsigned long  nearestVertexPointId = m_ImageViewer->GetNearestVertexPointId( x, y );
-//     std::cout << "nearestVertexPointId: " << nearestVertexPointId << std::endl;
-//     m_ImageViewer->SetPointIdToShowGaussianApproximation( nearestVertexPointId );
-// 
-//     // Redraw            
-//     m_ImageViewer->redraw();
-//     Fl::check();
-//     }
-
-}
-
 
 
 

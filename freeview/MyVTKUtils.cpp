@@ -84,6 +84,8 @@
 #include <vtkImageResample.h>
 #include <vtkWindowedSincPolyDataFilter.h>
 #include <QFileInfo>
+#include <QDebug>
+#include <QMap>
 
 bool MyVTKUtils::VTKScreenCapture( vtkRenderWindow* renderWnd,
                                    vtkRenderer* renderer,
@@ -91,6 +93,7 @@ bool MyVTKUtils::VTKScreenCapture( vtkRenderWindow* renderWnd,
                                    bool bAntiAliasing,
                                    int nMag )
 {
+  Q_UNUSED(bAntiAliasing);
   QString fn = filename;
   vtkImageWriter* writer = 0;
   QString ext = QFileInfo(filename).suffix();
@@ -174,10 +177,10 @@ void MyVTKUtils::ViewportToWorld( vtkRenderer* renderer,
 }
 
 void MyVTKUtils::NormalizedViewportToWorld( vtkRenderer* renderer,
-    double x, double y, double z,
-    double& world_x,
-    double& world_y,
-    double& world_z )
+                                            double x, double y, double z,
+                                            double& world_x,
+                                            double& world_y,
+                                            double& world_z )
 {
   world_x = x;
   world_y = y;
@@ -187,10 +190,10 @@ void MyVTKUtils::NormalizedViewportToWorld( vtkRenderer* renderer,
 }
 
 void MyVTKUtils::NormalizedViewportToWorld( vtkRenderer* renderer,
-    double x, double y,
-    double& world_x,
-    double& world_y,
-    double& world_z )
+                                            double x, double y,
+                                            double& world_x,
+                                            double& world_y,
+                                            double& world_z )
 {
   NormalizedViewportToWorld( renderer, x, y, 0.0, world_x, world_y, world_z );
 }
@@ -207,13 +210,68 @@ void MyVTKUtils::WorldToViewport( vtkRenderer* renderer,
   renderer->NormalizedViewportToViewport( x, y );
 }
 
+bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
+                                         int labelIndex,
+                                         vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions, bool bUpsample )
+{
+  Q_UNUSED(ext);
+  int i = labelIndex;
+  vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
+  threshold->SetInput( data_in );
+  threshold->ThresholdBetween( i-0.5, i+0.5 );
+  threshold->ReplaceOutOn();
+  threshold->SetOutValue( 0 );
+  vtkSmartPointer<vtkImageResample> resampler = vtkSmartPointer<vtkImageResample>::New();
+  if (bUpsample)
+  {
+    resampler->SetAxisMagnificationFactor(0, 2.0);
+    resampler->SetAxisMagnificationFactor(1, 2.0);
+    resampler->SetAxisMagnificationFactor(2, 2.0);
+    resampler->SetInputConnection(threshold->GetOutputPort());
+  }
+  vtkSmartPointer<vtkMarchingCubes> contour = vtkSmartPointer<vtkMarchingCubes>::New();
+  contour->SetInputConnection( bUpsample? resampler->GetOutputPort() : threshold->GetOutputPort());
+  contour->SetValue(0, i);
+
+  vtkSmartPointer<vtkPolyDataConnectivityFilter> conn = vtkSmartPointer<vtkPolyDataConnectivityFilter>::New();
+  conn->SetInputConnection( contour->GetOutputPort() );
+  conn->SetExtractionModeToLargestRegion();
+  vtkSmartPointer<vtkWindowedSincPolyDataFilter> smoother = vtkSmartPointer<vtkWindowedSincPolyDataFilter>::New();
+  if ( bAllRegions )
+  {
+    smoother->SetInputConnection( contour->GetOutputPort() );
+  }
+  else
+  {
+    smoother->SetInputConnection( conn->GetOutputPort() );
+  }
+  smoother->SetNumberOfIterations( nSmoothIterations );
+  //   smoother->FeatureEdgeSmoothingOn();
+  //   smoother->SetEdgeAngle( 90 );
+  vtkSmartPointer<vtkPolyDataNormals> normals = vtkSmartPointer<vtkPolyDataNormals>::New();
+  normals->SetInputConnection( smoother->GetOutputPort() );
+  //    normals->SetInput( polydata );
+  normals->SetFeatureAngle( 90 );
+  vtkSmartPointer<vtkTriangleFilter> stripper = vtkSmartPointer<vtkTriangleFilter>::New();
+  stripper->SetInputConnection( normals->GetOutputPort() );
+  vtkSmartPointer<vtkCleanPolyData> cleaner = vtkSmartPointer<vtkCleanPolyData>::New();
+  cleaner->SetInputConnection(stripper->GetOutputPort());
+  cleaner->Update();
+  vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( actor_out->GetMapper() );
+  mapper->SetInputConnection( cleaner->GetOutputPort() );
+  mapper->ScalarVisibilityOn();
+
+  return true;
+}
+
 // test multiple contours
 bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
-                                    const QList<int>& labelIndices,
-                                    vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions, bool bUpsample )
+                                         const QList<int>& labelIndices,
+                                         vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions, bool bUpsample )
 {
-  double nValue = 1;
-  int nSwell = 2;
+  Q_UNUSED(ext);
+//  double nValue = 1;
+//  int nSwell = 2;
 
   vtkSmartPointer<vtkAppendPolyData> append = vtkSmartPointer<vtkAppendPolyData>::New();
   foreach (int i, labelIndices)
@@ -263,16 +321,17 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
       smoother->SetInputConnection( conn->GetOutputPort() );
     }
     smoother->SetNumberOfIterations( nSmoothIterations );
- //   smoother->FeatureEdgeSmoothingOn();
- //   smoother->SetEdgeAngle( 90 );
+    //   smoother->FeatureEdgeSmoothingOn();
+    //   smoother->SetEdgeAngle( 90 );
     vtkSmartPointer<vtkPolyDataNormals> normals = vtkSmartPointer<vtkPolyDataNormals>::New();
     normals->SetInputConnection( smoother->GetOutputPort() );
-//    normals->SetInput( polydata );
+    //    normals->SetInput( polydata );
     normals->SetFeatureAngle( 90 );
     vtkSmartPointer<vtkTriangleFilter> stripper = vtkSmartPointer<vtkTriangleFilter>::New();
     stripper->SetInputConnection( normals->GetOutputPort() );
     vtkSmartPointer<vtkCleanPolyData> cleaner = vtkSmartPointer<vtkCleanPolyData>::New();
     cleaner->SetInputConnection(stripper->GetOutputPort());
+    cleaner->Update();
     vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( actor_out->GetMapper() );
     mapper->SetInputConnection( cleaner->GetOutputPort() );
     mapper->ScalarVisibilityOn();
@@ -352,17 +411,18 @@ bool MyVTKUtils::BuildContourActor( vtkImageData* data_in,
       smoother->SetInputConnection( conn->GetOutputPort() );
     }
     smoother->SetNumberOfIterations( nSmoothIterations );
- //   smoother->SetRelaxationFactor(smoother->GetRelaxationFactor()*2);
- //   smoother->FeatureEdgeSmoothingOn();
- //   smoother->SetEdgeAngle( 90 );
+    //   smoother->SetRelaxationFactor(smoother->GetRelaxationFactor()*2);
+    //   smoother->FeatureEdgeSmoothingOn();
+    //   smoother->SetEdgeAngle( 90 );
     vtkSmartPointer<vtkPolyDataNormals> normals = vtkSmartPointer<vtkPolyDataNormals>::New();
     normals->SetInputConnection( smoother->GetOutputPort() );
-//    normals->SetInput( polydata );
+    //    normals->SetInput( polydata );
     normals->SetFeatureAngle( 90 );
     vtkSmartPointer<vtkTriangleFilter> stripper = vtkSmartPointer<vtkTriangleFilter>::New();
     stripper->SetInputConnection( normals->GetOutputPort() );
     vtkSmartPointer<vtkCleanPolyData> cleaner = vtkSmartPointer<vtkCleanPolyData>::New();
     cleaner->SetInputConnection(stripper->GetOutputPort());
+    cleaner->Update();
     vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( actor_out->GetMapper() );
     mapper->SetInputConnection( cleaner->GetOutputPort() );
     mapper->ScalarVisibilityOn();
@@ -376,13 +436,13 @@ bool MyVTKUtils::BuildVolume( vtkImageData* data_in,
                               vtkVolume* vol_out )
 {
   vtkSmartPointer<vtkPiecewiseFunction> tfun =
-    vtkSmartPointer<vtkPiecewiseFunction>::New();
+      vtkSmartPointer<vtkPiecewiseFunction>::New();
   tfun->AddPoint(dTh1-0.001, 0.0);
   tfun->AddPoint(dTh1, 0.8);
   tfun->AddPoint(dTh2, 1.0);
 
   vtkSmartPointer<vtkColorTransferFunction> ctfun =
-    vtkSmartPointer<vtkColorTransferFunction>::New();
+      vtkSmartPointer<vtkColorTransferFunction>::New();
   ctfun->AddRGBPoint( 0.0, 0.0, 0.0, 0.0 );
   ctfun->AddRGBPoint( dTh1, 0.25, 0.25, 0.25 );
   ctfun->AddRGBPoint( (dTh1+dTh2) / 2, 0.4, 0.4, 0.4 );
@@ -398,21 +458,21 @@ bool MyVTKUtils::BuildVolume( vtkImageData* data_in,
    // vtkVolumeTextureMapper2D* volumeMapper = vtkVolumeTextureMapper2D::New();
   */
   vtkSmartPointer<vtkFixedPointVolumeRayCastMapper> volumeMapper =
-    vtkSmartPointer<vtkFixedPointVolumeRayCastMapper>::New();
+      vtkSmartPointer<vtkFixedPointVolumeRayCastMapper>::New();
 
   vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
   cast->SetInput( data_in );
   cast->SetOutputScalarTypeToUnsignedShort();
 
-// qDebug() << volumeMapper->GetIntermixIntersectingGeometry();
+  // qDebug() << volumeMapper->GetIntermixIntersectingGeometry();
   volumeMapper->SetInputConnection( cast->GetOutputPort() );
   volumeMapper->SetSampleDistance(0.25);
   volumeMapper->SetMaximumImageSampleDistance(5);
-// volumeMapper->SetCroppingRegionPlanes(0, dim[0]*2, 0, dim[1]*2, 0, dim[2]*2-16*2);
-// volumeMapper->CroppingOn();
+  // volumeMapper->SetCroppingRegionPlanes(0, dim[0]*2, 0, dim[1]*2, 0, dim[2]*2-16*2);
+  // volumeMapper->CroppingOn();
 
   vtkSmartPointer<vtkVolumeProperty> volumeProperty =
-    vtkSmartPointer<vtkVolumeProperty>::New();
+      vtkSmartPointer<vtkVolumeProperty>::New();
   volumeProperty->SetColor(ctfun);
   volumeProperty->SetScalarOpacity(tfun);
   volumeProperty->SetInterpolationTypeToLinear();
@@ -430,11 +490,11 @@ void MyVTKUtils::GetLivewirePoints( vtkImageData* image_in,
                                     vtkPoints* pts_out )
 {
   vtkSmartPointer<vtkImageClip> m_imageClip =
-    vtkSmartPointer<vtkImageClip>::New();
+      vtkSmartPointer<vtkImageClip>::New();
   vtkSmartPointer<vtkDijkstraImageGeodesicPath> m_path =
-    vtkSmartPointer<vtkDijkstraImageGeodesicPath>::New();
+      vtkSmartPointer<vtkDijkstraImageGeodesicPath>::New();
   vtkSmartPointer<vtkImageChangeInformation> m_info =
-    vtkSmartPointer<vtkImageChangeInformation>::New();
+      vtkSmartPointer<vtkImageChangeInformation>::New();
   int m_nPlane = nPlane_in;
   int m_nSlice = nSlice_in;
 
@@ -448,7 +508,7 @@ void MyVTKUtils::GetLivewirePoints( vtkImageData* image_in,
   m_imageClip->Update();
 
   vtkSmartPointer<vtkImageAnisotropicDiffusion2D> smooth =
-    vtkSmartPointer<vtkImageAnisotropicDiffusion2D>::New();
+      vtkSmartPointer<vtkImageAnisotropicDiffusion2D>::New();
   smooth->SetInputConnection( m_imageClip->GetOutputPort() );
   smooth->SetDiffusionFactor( 0.75 );
   smooth->SetDiffusionThreshold( 50.0 );
@@ -460,7 +520,7 @@ void MyVTKUtils::GetLivewirePoints( vtkImageData* image_in,
    smooth->SetStandardDeviations( 1, 1, 1 );*/
 
   vtkSmartPointer<vtkImageGradientMagnitude> grad =
-    vtkSmartPointer<vtkImageGradientMagnitude>::New();
+      vtkSmartPointer<vtkImageGradientMagnitude>::New();
   grad->SetDimensionality( 2 );
   grad->HandleBoundariesOn();
   grad->SetInputConnection( smooth->GetOutputPort() );
@@ -468,7 +528,7 @@ void MyVTKUtils::GetLivewirePoints( vtkImageData* image_in,
 
   double* range = grad->GetOutput()->GetScalarRange();
   vtkSmartPointer<vtkImageShiftScale> scale =
-    vtkSmartPointer<vtkImageShiftScale>::New();
+      vtkSmartPointer<vtkImageShiftScale>::New();
   scale->SetShift( -1.0*range[1] );
   scale->SetScale( 255.0 /( range[0] - range[1] ) );
   scale->SetOutputScalarTypeToShort();
@@ -486,7 +546,7 @@ void MyVTKUtils::GetLivewirePoints( vtkImageData* image_in,
   // m_path->Update();
 
   double pt1[3], pt2[3];
-// double* orig = image_in->GetOrigin();
+  // double* orig = image_in->GetOrigin();
   for ( int i = 0; i < 3; i++ )
   {
     // pt1[i] = pt1_in[i] - orig[i];
@@ -497,7 +557,7 @@ void MyVTKUtils::GetLivewirePoints( vtkImageData* image_in,
 
   vtkIdType beginVertId = m_imageSlice->FindPoint( pt1 );
   vtkIdType endVertId = m_imageSlice->FindPoint( pt2 );
-//  cout << beginVertId << "  " << endVertId << endl;
+  //  cout << beginVertId << "  " << endVertId << endl;
 
   if ( beginVertId == -1 || endVertId == -1 )
   {
@@ -514,7 +574,7 @@ void MyVTKUtils::GetLivewirePoints( vtkImageData* image_in,
   vtkIdType npts = 0, *pts = NULL;
   pd->GetLines()->InitTraversal();
   pd->GetLines()->GetNextCell( npts, pts );
-//  cout << npts << endl;
+  //  cout << npts << endl;
   double offset[3] = { 0, 0, 0 };
   double* vs = image_in->GetSpacing();
   offset[m_nPlane] = m_nSlice*vs[m_nPlane];
@@ -523,7 +583,48 @@ void MyVTKUtils::GetLivewirePoints( vtkImageData* image_in,
     double* p = pd->GetPoint( pts[i] );
     // cout << p[0] << " " << p[1] << " " << p[2] << endl;
     pts_out->InsertNextPoint( p[0] + offset[0],
-                              p[1] + offset[1],
-                              p[2] + offset[2] );
+        p[1] + offset[1],
+        p[2] + offset[2] );
+  }
+}
+
+
+double MyVTKUtils::GetImageDataComponent(char* ptr, int* dim, size_t nNumberOfFrames, size_t i, size_t j, size_t k, size_t nframe, int data_type)
+{
+  switch (data_type)
+  {
+  case VTK_UNSIGNED_CHAR:
+    return ((unsigned char*)ptr)[(k*dim[0]*dim[1]+j*dim[0]+i)*nNumberOfFrames + nframe];
+  case VTK_INT:
+    return ((int*)ptr)[(k*dim[0]*dim[1]+j*dim[0]+i)*nNumberOfFrames + nframe];
+  case VTK_LONG:
+    return ((long*)ptr)[(k*dim[0]*dim[1]+j*dim[0]+i)*nNumberOfFrames + nframe];
+  case VTK_FLOAT:
+    return ((float*)ptr)[(k*dim[0]*dim[1]+j*dim[0]+i)*nNumberOfFrames + nframe];
+  case VTK_SHORT:
+    return ((short*)ptr)[(k*dim[0]*dim[1]+j*dim[0]+i)*nNumberOfFrames + nframe];
+  }
+  return 0;
+}
+
+void MyVTKUtils::SetImageDataComponent(char* ptr, int* dim, size_t nNumberOfFrames, size_t i, size_t j, size_t k, size_t nframe, int data_type, double val)
+{
+  switch (data_type)
+  {
+  case VTK_UNSIGNED_CHAR:
+    ((unsigned char*)ptr)[(k*dim[0]*dim[1]+j*dim[0]+i)*nNumberOfFrames + nframe] = (unsigned char)val;
+    break;
+  case VTK_INT:
+    ((int*)ptr)[(k*dim[0]*dim[1]+j*dim[0]+i)*nNumberOfFrames + nframe] = (int)val;
+    break;
+  case VTK_LONG:
+    ((long*)ptr)[(k*dim[0]*dim[1]+j*dim[0]+i)*nNumberOfFrames + nframe] = (long)val;
+    break;
+  case VTK_FLOAT:
+    ((float*)ptr)[(k*dim[0]*dim[1]+j*dim[0]+i)*nNumberOfFrames + nframe] = (float)val;
+    break;
+  case VTK_SHORT:
+    ((short*)ptr)[(k*dim[0]*dim[1]+j*dim[0]+i)*nNumberOfFrames + nframe] = (short)val;
+    break;
   }
 }

@@ -115,9 +115,13 @@ if (strcmpi(fname((length(fname)-3):length(fname)), '.MGZ') | ...
   % This does not generate a unique fname
   %gzipped =  round(rand(1)*10000000);
   %ind = findstr(fname, '.');
-  %new_fname = sprintf('/tmp/tmp%d.mgh', gzipped);
+  %new_fname = sprintf('/scratch/tmp%d.mgh', gzipped);
 
-  new_fname = tempname('/tmp');
+  if(exist('/scratch'))
+    new_fname = tempname('/scratch');
+  else
+    new_fname = tempname('/tmp');
+  end
   new_fname = sprintf('%s.mgh', new_fname);
   %fprintf('save_mgh tmp file name %s\n',new_fname);
   unix(sprintf('mv %s %s ; gzip %s ; mv %s.gz %s', fname, new_fname, new_fname, new_fname, fname)) ;

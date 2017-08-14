@@ -2,6 +2,7 @@
 #include "kvlMatlabObjectArray.h"
 #include "itkImage.h"
 #include "itkImageFileWriter.h"
+#include "itkMGHImageIO.h"
 
 
 namespace kvl
@@ -25,8 +26,8 @@ public:
   virtual void Run( int nlhs, mxArray* plhs[],
                     int nrhs, const mxArray* prhs[] )
     {
-    std::cout << "I am " << this->GetNameOfClass() 
-              << " and I'm running! " << std::endl;
+    // std::cout << "I am " << this->GetNameOfClass() 
+    //           << " and I'm running! " << std::endl;
               
               
       // kvlWriteImage( image, fileName, transform )
@@ -70,6 +71,26 @@ public:
         }
       TransformType::ConstPointer  transform = static_cast< const TransformType* >( object.GetPointer() );
     
+#if 0      
+      // If this is MGH format, fiddle with the directions (rotation around Z-axis)
+      itk::ImageIOBase::Pointer  io = itk::ImageIOFactory::CreateImageIO(  fileName.c_str(), 
+                                                                           itk::ImageIOFactory::WriteMode );
+      if ( io )
+        {
+        if ( dynamic_cast< itk::MGHImageIO* >( io.GetPointer() ) )
+          {
+          std::cout << "==========================================" << std::endl;  
+          std::cout << "Dealing with MGH format here - rotating orientation around Z-axis!" << std::endl;
+          std::cout << "==========================================" << std::endl;
+          TransformType::OutputVectorType  scaling;
+          scaling[ 0 ] = -1.0;
+          scaling[ 1 ] = -1.0;
+          scaling[ 2 ] = 1.0;
+          const_cast< TransformType* >( transform.GetPointer() )->Scale( scaling );
+          }  
+        }
+#endif
+        
       
       // In order not to modify the original image, we create a new one. The proper way of doing this
       // would be to only copy the header information and of course not the pixel intensities, but I'm

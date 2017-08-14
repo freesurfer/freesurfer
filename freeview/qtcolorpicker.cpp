@@ -282,7 +282,7 @@ QtColorPicker::QtColorPicker(QWidget *parent,
   setIconSize( QSize( 16, 16 ) );
 
   // Set text
-//  setText(tr("Black"));
+  //  setText(tr("Black"));
   setText("");
   firstInserted = false;
 
@@ -466,7 +466,7 @@ void QtColorPicker::setCurrentColor(const QColor &color)
   }
 
   col = color;
-//  setText(item->text());
+  //  setText(item->text());
   setText("");
 
   dirty = true;
@@ -490,7 +490,7 @@ void QtColorPicker::insertColor(const QColor &color, const QString &text, int in
   if (!firstInserted)
   {
     col = color;
-  //  setText(text);
+    //  setText(text);
     setText("");
     firstInserted = true;
   }
@@ -804,14 +804,14 @@ void ColorPickerPopup::keyPressEvent(QKeyEvent *e)
         ++curRow;
       }
       else for (int i = 1; i < grid->columnCount(); ++i)
+      {
+        if (!widgetAt[curRow + 1][i])
         {
-          if (!widgetAt[curRow + 1][i])
-          {
-            curCol = i - 1;
-            ++curRow;
-            break;
-          }
+          curCol = i - 1;
+          ++curRow;
+          break;
         }
+      }
     }
     break;
   case Qt::Key_Space:
@@ -832,7 +832,7 @@ void ColorPickerPopup::keyPressEvent(QKeyEvent *e)
         if (w && w->inherits("ColorPickerItem"))
         {
           ColorPickerItem *litem
-          = reinterpret_cast<ColorPickerItem *>(layoutItem->widget());
+              = reinterpret_cast<ColorPickerItem *>(layoutItem->widget());
           if (litem != wi)
           {
             litem->setSelected(false);
@@ -858,7 +858,7 @@ void ColorPickerPopup::keyPressEvent(QKeyEvent *e)
         if (w && w->inherits("ColorPickerItem"))
         {
           ColorPickerItem *litem
-          = reinterpret_cast<ColorPickerItem *>(layoutItem->widget());
+              = reinterpret_cast<ColorPickerItem *>(layoutItem->widget());
           if (litem != wi)
           {
             litem->setSelected(false);
@@ -872,7 +872,7 @@ void ColorPickerPopup::keyPressEvent(QKeyEvent *e)
       hide();
     }
   }
-  break;
+    break;
   case Qt::Key_Escape:
     hide();
     break;

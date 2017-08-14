@@ -62,7 +62,7 @@ public:
 
   enum ColorMapType { SolidColor = 0, HeatScale };
 
-  enum ScalarType { ScalarLayer = 0, ScalarSet };
+  enum ScalarType { ScalarStat = 0, ScalarLayer, ScalarSet };
 
   enum PointSetType { WayPoint = 0, ControlPoint };
 
@@ -123,6 +123,7 @@ public:
     return m_layerScalar;
   }
 
+
   vtkRGBAColorTransferFunction* GetHeatScaleLUT();
 
   double GetScalarMinValue();
@@ -169,12 +170,16 @@ public:
     return m_nType;
   }
 
+  void SetStatRange(double dMin, double dMax);
+
+  void SetScalarToStat();
+
 signals:
   void SnapToVoxelCenterChanged( bool bSnag );
   void SplineVisibilityChanged( bool bSpline );
-  void ScalarLayerChanged( LayerMRI* );
-  void ScalarSetChanged();
+  void ScalarChanged();
   void ColorMapChanged();
+  void ColorChanged();
   void OpacityChanged( double );
   void RadiusChanged( double );
   void SplineRadiusChanged( double );
@@ -230,6 +235,9 @@ private:
   double  m_dHeatScaleMid;
   double  m_dHeatScaleMax;
   double  m_dHeatScaleOffset;
+
+  double m_dStatMin;
+  double m_dStatMax;
 
   int     m_nType;
   bool    m_bSnapToVoxelCenter;

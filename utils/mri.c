@@ -2942,6 +2942,8 @@ MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, double xv, double yv, double zv,
     yspace  coordinates run from patient posterior to anterior
     and positive zspace coordinates run from inferior to superior.
   */
+#if 0
+// I don't think this check is needed any longer - BRF 7/4/2017
   switch (getSliceDirection(mri_src))
   {
   case MRI_CORONAL:
@@ -2952,7 +2954,7 @@ MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, double xv, double yv, double zv,
                   "MRIvoxelToVoxel: unsupported slice direction %d",
                  getSliceDirection(mri_src))) ;
   }
-
+#endif
   if (!mri_src->linear_transform || !mri_dst->inverse_linear_transform)
   {
     /*

@@ -1,10 +1,10 @@
 #include "LayerPropertyLineProfile.h"
 
 LayerPropertyLineProfile::LayerPropertyLineProfile(QObject *parent) :
-    LayerProperty(parent),
-    m_color(QColor(255, 50, 50)),
-    m_dOpacity(0.7),
-    m_dRadius(0.25)
+  LayerProperty(parent),
+  m_color(QColor(255, 50, 50)),
+  m_dOpacity(0.7),
+  m_dRadius(0.25)
 {
 }
 

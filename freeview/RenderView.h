@@ -82,7 +82,7 @@ public:
 
   bool SaveScreenShot(const QString& filename, bool bAntiAliasing, int nMag = 1);
 
-  virtual void TriggerContextMenu( QMouseEvent* event ) {}
+  virtual void TriggerContextMenu( QMouseEvent* event ) { Q_UNUSED(event); }
 
 signals:
   void ViewChanged();
@@ -110,6 +110,7 @@ protected slots:
   virtual void OnIdle();
   virtual void OnSlicePositionChanged(bool bCenterView = false)
   {
+    Q_UNUSED(bCenterView);
     RequestRedraw();
   }
 

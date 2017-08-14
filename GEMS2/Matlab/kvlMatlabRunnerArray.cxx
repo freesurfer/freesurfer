@@ -6,20 +6,12 @@
 #include "kvlReadMeshCollection.h"
 #include "kvlGetMesh.h"
 #include "kvlRasterizeAtlasMesh.h"
-#include "kvlRasterizeAtlasMeshGPU.h"
 #include "kvlGetAlphasInMeshNodes.h"
 #include "kvlSetAlphasInMeshNodes.h"
 #include "kvlSmoothMeshCollection.h"
 #include "kvlScaleMeshCollection.h"
-#include "kvlBiasFieldCorrectImage.h"
 #include "kvlWriteImage.h"
 #include "kvlCreateImage.h"
-#include "kvlDeformMesh.h"
-#include "kvlGetLevenbergMarquardtOptimizer.h"
-#include "kvlDeformOneStep.h"
-#include "kvlDeformOneStepGPU.h"
-#include "kvlSetOptimizerProperties.h"
-#include "kvlSetOptimizerPropertiesGPU.h"
 #include "kvlClear.h"
 #include "kvlSetMaximumNumberOfThreads.h"
 #include "kvlScaleMesh.h"
@@ -32,15 +24,17 @@
 #include "kvlTransformMeshCollection.h"
 #include "kvlSetKOfMeshCollection.h"
 #include "kvlCreateTransform.h"
-#include "kvlEvaluateMeshPosition.h"
+#include "kvlEvaluateMeshPositionWithEntropy.h"
 #include "kvlSetMeshNodePositions.h"
-#include "kvlGetConjugateGradientOptimizer.h"
-#include "kvlGetConjugateGradientOptimizerGPU.h"
 #include "kvlChangeK.h"
-#include "kvlGetImageFromOptimizer.h"
 #include "kvlCreateRGBImage.h"
 #include "kvlWriteRGBImage.h"
 #include "kvlGetCroppedRegion.h"
+#include "kvlGetCostAndGradientCalculator.h"
+#include "kvlEvaluateMeshPosition.h"
+#include "kvlGetOptimizer.h"
+#include "kvlStepOptimizer.h"
+#include "kvlCreateMeshCollection.h"
 
 
 namespace kvl
@@ -60,21 +54,13 @@ MatlabRunnerArray
   m_Array.push_back( ReadMeshCollection::New().GetPointer() );
   m_Array.push_back( GetMesh::New().GetPointer() );
   m_Array.push_back( RasterizeAtlasMesh::New().GetPointer() );
-  m_Array.push_back( RasterizeAtlasMeshGPU::New().GetPointer() );
   m_Array.push_back( SmoothImageBuffer::New().GetPointer() );
   m_Array.push_back( GetAlphasInMeshNodes::New().GetPointer() );
   m_Array.push_back( SetAlphasInMeshNodes::New().GetPointer() );
   m_Array.push_back( SmoothMeshCollection::New().GetPointer() );
   m_Array.push_back( ScaleMeshCollection::New().GetPointer() );
-  m_Array.push_back( BiasFieldCorrectImage::New().GetPointer() );
   m_Array.push_back( WriteImage::New().GetPointer() );
   m_Array.push_back( CreateImage::New().GetPointer() );
-  m_Array.push_back( DeformMesh::New().GetPointer() );
-  m_Array.push_back( GetLevenbergMarquardtOptimizer::New().GetPointer() );
-  m_Array.push_back( DeformOneStep::New().GetPointer() );
-  m_Array.push_back( DeformOneStepGPU::New().GetPointer() );
-  m_Array.push_back( SetOptimizerProperties::New().GetPointer() );
-  m_Array.push_back( SetOptimizerPropertiesGPU::New().GetPointer() );
   m_Array.push_back( Clear::New().GetPointer() );
   m_Array.push_back( SetMaximumNumberOfThreads::New().GetPointer() );
   m_Array.push_back( ScaleMesh::New().GetPointer() );
@@ -87,15 +73,17 @@ MatlabRunnerArray
   m_Array.push_back( TransformMeshCollection::New().GetPointer() );
   m_Array.push_back( SetKOfMeshCollection::New().GetPointer() );
   m_Array.push_back( CreateTransform::New().GetPointer() );
-  m_Array.push_back( EvaluateMeshPosition::New().GetPointer() );
+  m_Array.push_back( EvaluateMeshPositionWithEntropy::New().GetPointer() );
   m_Array.push_back( SetMeshNodePositions::New().GetPointer() );
-  m_Array.push_back( GetConjugateGradientOptimizer::New().GetPointer() );
-  m_Array.push_back( GetConjugateGradientOptimizerGPU::New().GetPointer() );
   m_Array.push_back( ChangeK::New().GetPointer() );
-  m_Array.push_back( GetImageFromOptimizer::New().GetPointer() );
   m_Array.push_back( CreateRGBImage::New().GetPointer() );
   m_Array.push_back( WriteRGBImage::New().GetPointer() );
   m_Array.push_back( GetCroppedRegion::New().GetPointer() );
+  m_Array.push_back( GetCostAndGradientCalculator::New().GetPointer() );
+  m_Array.push_back( EvaluateMeshPosition::New().GetPointer() );
+  m_Array.push_back( GetOptimizer::New().GetPointer() );
+  m_Array.push_back( StepOptimizer::New().GetPointer() );
+  m_Array.push_back( CreateMeshCollection::New().GetPointer() );
 }
 
 

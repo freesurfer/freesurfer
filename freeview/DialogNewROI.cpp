@@ -67,7 +67,7 @@ void DialogNewROI::SetROIName( const QString& name )
 LayerMRI* DialogNewROI::GetTemplate()
 {
   return qobject_cast<LayerMRI*>(
-           ui->comboBoxTemplate->itemData(ui->comboBoxTemplate->currentIndex()).value<QObject*>());
+        ui->comboBoxTemplate->itemData(ui->comboBoxTemplate->currentIndex()).value<QObject*>());
 }
 
 void DialogNewROI::OnOK()

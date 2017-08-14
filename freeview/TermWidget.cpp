@@ -38,12 +38,14 @@ char stderr_buffer[BUFFER_SIZE] = {0};
 
 void outcallback( const char* ptr, std::streamsize count, void* pBuffer )
 {
+  Q_UNUSED(count)
   QString* str = static_cast<QString*>(pBuffer);
   *str += ptr;
 }
 
 void errcallback( const char* ptr, std::streamsize count, void* pBuffer )
 {
+  Q_UNUSED(count)
   QString* str = static_cast<QString*>(pBuffer);
   *str += ptr;
 }
@@ -99,11 +101,11 @@ TermWidget::~TermWidget()
 
 void TermWidget::EnableListeningStdin()
 {
-    if (!m_stdinNotifier)
-    {
-      m_stdinNotifier = new QSocketNotifier(STDIN_FILENO, QSocketNotifier::Read, this);
-      connect(m_stdinNotifier, SIGNAL(activated(int)), this, SLOT(OnStdinActivated()));
-    }
+  if (!m_stdinNotifier)
+  {
+    m_stdinNotifier = new QSocketNotifier(STDIN_FILENO, QSocketNotifier::Read, this);
+    connect(m_stdinNotifier, SIGNAL(activated(int)), this, SLOT(OnStdinActivated()));
+  }
 }
 
 void TermWidget::SetRedirectStdOutput(bool bRedir)
@@ -172,9 +174,9 @@ void TermWidget::OnCommandTriggered(const QString &cmd)
   else
   {
     if (strg[0] == '-')
-        MainWindow::GetMainWindow()->ParseCommand(QString("freeview ") + strg);
+      MainWindow::GetMainWindow()->ParseCommand(QString("freeview ") + strg);
     else
-        MainWindow::GetMainWindow()->AddScript(strg.split(" ", QString::SkipEmptyParts));
+      MainWindow::GetMainWindow()->AddScript(strg.split(" ", QString::SkipEmptyParts));
     if ( MainWindow::GetMainWindow()->IsBusy())
     {
       AppendErrorString("Still busy. Command is added to queue and will be executed later.\n");
@@ -184,22 +186,22 @@ void TermWidget::OnCommandTriggered(const QString &cmd)
 
 void TermWidget::OnStdinActivated()
 {
-    if (!m_stdinNotifier)
-        return;
+  if (!m_stdinNotifier)
+    return;
 
-    m_stdinNotifier->setEnabled(false);
+  m_stdinNotifier->setEnabled(false);
 
-    char sbuf[8192];
-    fgets(sbuf, sizeof(sbuf), stdin);
-    fflush(stdin);
+  char sbuf[8192];
+  fgets(sbuf, sizeof(sbuf), stdin);
+  fflush(stdin);
 
-    QString line = QString::fromUtf8(sbuf).trimmed();
-    if (line.indexOf("freeview") == 0)
-    {
-        line = line.mid(8).trimmed();
-        OnCommandTriggered(line);
-    }
-    m_stdinNotifier->setEnabled(true);
+  QString line = QString::fromUtf8(sbuf).trimmed();
+  if (line.indexOf("freeview") == 0)
+  {
+    line = line.mid(8).trimmed();
+    OnCommandTriggered(line);
+  }
+  m_stdinNotifier->setEnabled(true);
 }
 
 void TermWidget::OnTimeOut()

@@ -55,6 +55,7 @@
 
 static int contrast = CONTRAST_UNKNOWN ;
 
+static  int threshold_control_points(MRI *mri_ctrl, MRI *mri_intensity, float thresh)  ;
 static MRI *build_outside_of_brain_mask(MRI *mri_src, GCA *gca, TRANSFORM *xform, double prior_thresh, int whalf)  ;
 static int remove_surface_outliers(MRI *mri_ctrl_src,
                                    MRI *mri_dist,
@@ -457,6 +458,7 @@ main(int argc, char *argv[])
     {
       remove_surface_outliers(mri_ctrl, mri_dist, mri_dst, mri_ctrl, min_dist) ;
     }
+    threshold_control_points(mri_ctrl, mri_dst, 10.0) ;
     remove_outliers_near_surface(mri_ctrl, mri_dist, mri_dst, mri_ctrl, min_dist+1, 2.5) ;
     if (contrast == T2_CONTRAST)
       remove_surface_outliers_T2(mri_ctrl, mri_dist, mri_dst, mri_ctrl) ;
@@ -489,6 +491,7 @@ main(int argc, char *argv[])
     mri_dst = MRIapplyBiasCorrectionSameGeometry
               (mri_dst, mri_bias, mri_dst,
                DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+    MRIremoveNaNs(mri_dst, mri_dst) ;
     printf("writing normalized volume to %s\n", out_fname) ;
     MRIwrite(mri_dst, out_fname) ;
     exit(0) ;
@@ -1756,6 +1759,8 @@ remove_surface_outliers(MRI *mri_ctrl_src, MRI *mri_dist, MRI *mri_src,
         }
         if ((int)MRIgetVoxVal(mri_ctrl_src, x, y,z, 0) == 0)
         {
+	  if (x == Gx && y == Gy && z == Gz)
+	    printf("(%d, %d, %d) - not a control point, skipping in outlier detection\n", Gx, Gy, Gz) ;
           continue ;  // not a control point
         }
         val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
@@ -1770,6 +1775,8 @@ remove_surface_outliers(MRI *mri_ctrl_src, MRI *mri_dist, MRI *mri_src,
 #if 1
         if (val > 100 && val < 120)
         {
+	  if (x == Gx && y == Gy && z == Gz)
+	    printf("(%d, %d, %d) -  a control point with reasonable value %2.0f, keeping\n", Gx, Gy, Gz, val) ;
           continue ;  // not an outlier
         }
 #endif
@@ -1786,6 +1793,8 @@ remove_surface_outliers(MRI *mri_ctrl_src, MRI *mri_dist, MRI *mri_src,
         {
           MRIsetVoxVal(mri_ctrl_dst, x, y, z, 0, 0) ;  // remove it as a control point
           MRIsetVoxVal(mri_outlier, x, y, z, 0, 1) ;   // diagnostics
+	  if (x == Gx && y == Gy && z == Gz)
+	    printf("(%d, %d, %d) -  removing control point with val %2.0f - to far from mean %2.0f +- %2.0f\n", Gx, Gy, Gz, val, mean, sigma) ;
         }
 
         if (Gdiag & DIAG_WRITE)
@@ -2047,3 +2056,25 @@ remove_surface_outliers_T2(MRI *mri_ctrl_src,  MRI *mri_dist,  MRI *mri_src, MRI
   return(mri_ctrl_dst) ;
 }
 
+static  int
+threshold_control_points(MRI *mri_ctrl, MRI *mri_intensity, float thresh) 
+{
+  int x, y, z ;
+  double val ;
+
+  for (x = 0 ; x < mri_ctrl->width ; x++)
+    for (y = 0 ; y < mri_ctrl->height ; y++)
+      for (z = 0 ; z < mri_ctrl->depth ; z++)
+      {
+	if (MRIgetVoxVal(mri_ctrl, x, y, z, 0) == 0)
+	  continue;
+	val = MRIgetVoxVal(mri_intensity, x, y, z, 0) ;
+	if (val < thresh)
+	{
+	  if (x == Gx && y == Gy && z == Gz)
+	    printf("(%d, %d, %d) - val %2.0f lower than threshold %2.0f - removing\n",  x, y, z, val, thresh) ;
+	  MRIsetVoxVal(mri_ctrl, x, y, z, 0, 0) ;
+	}
+      }
+  return(NO_ERROR) ;
+}

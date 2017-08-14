@@ -93,6 +93,8 @@ int robust = 0 ;
 static int unknown_nbr_spacing = 1 ;
 static int vent_spacing = -1 ;
 
+int use_variance = 0 ;
+
 static float label_scales[MAX_CMA_LABELS] ;
 static float label_offsets[MAX_CMA_LABELS] ;
 
@@ -353,6 +355,7 @@ main(int argc, char *argv[])
   }
   if (remove_lh)
   {
+    Gvx = nint(gca->width*.4) ; // only one hemi - assume it is left/right centered in FOV
     GCAremoveHemi(gca, 1) ;  // for exvivo contrast
   }
   if (remove_rh)
@@ -1496,7 +1499,7 @@ find_optimal_transform
       HISTOfree(&h_smooth) ;
     }
     max_log_p = find_optimal_translation(gca, gcas, mri, nsamples, m_L,
-                                         -100, 100, 11, 5, Gclamp) ;
+                                         -200, 200, 19, 7, Gclamp) ;
     max_log_p = local_GCAcomputeLogSampleProbability
       (gca, gcas, mri, m_L,nsamples, exvivo, Gclamp) ;
     fprintf(stdout,
@@ -1685,6 +1688,11 @@ get_option(int argc, char *argv[])
     bigvent = 1 ;
     vent_spacing = 30 ;
     printf("handling expanded ventricles with vent_spacing = %d\n", vent_spacing) ;
+  }
+  else if (!strcmp(option, "VAR"))
+  {
+    use_variance = 1 ;
+    printf("minimizing within-label intensity variance\n") ;
   }
   else if (!strcmp(option, "LSCALE"))
   {

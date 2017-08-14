@@ -92,6 +92,7 @@ MRISUBDIRS=\
 	mri_extract \
 	mri_extract_conditions \
 	mri_extract_label \
+	mri_extract_fcd_features \
 	mri_fcili \
 	mri_fdr \
 	mri_fieldsign \
@@ -343,7 +344,6 @@ MISCDIRS=\
 	histo_compute_joint_density \
 	histo_register_block \
 	regdat2xfm \
-	test_window_env \
 	dngtester \
 	test_makevol \
 	images \
@@ -406,7 +406,6 @@ OTHERDIRS=\
 # these have lots of files, each will maximize the multi-threaded make option (-j)
 BIGDIRS=\
 	freeview \
-	GEMS \
 	trc
 
 # SUBDIRS is the automake definition of the 'all' for make

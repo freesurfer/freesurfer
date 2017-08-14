@@ -97,6 +97,8 @@ protected slots:
 
   void OnButtonCenterToCursor();
 
+  void OnCheckBoxApplyToAll(bool bAll);
+
 private:
   void DoRotate();
   void RespondTextTranslate   ( int n );

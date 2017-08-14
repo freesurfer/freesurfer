@@ -1009,6 +1009,11 @@
 5115   rh.slfp                                          204 204 204 0
 5116   rh.slft                                          153 255 255 0
 5117   rh.unc                                           102 153 255 0
+# additional pathways for Traculina 
+5118   lh.ifof                                          153 255 255 0
+5119   rh.ifof                                          153 255 255 0
+5120   lh.fornix                                        204 102 153 0
+5121   rh.fornix                                        204 102 153 0
 
 # These are the same tracula labels as above in human-readable form
 5200   CC-ForcepsMajor                                  204 102 102 0
@@ -1433,4 +1438,3 @@
 14173  wm_rh_S_temporal_inf                    21 180 180   0
 14174  wm_rh_S_temporal_sup                   223 220  60   0
 14175  wm_rh_S_temporal_transverse            221  60  60   0
-

@@ -454,7 +454,11 @@ instead" >&AS_MESSAGE_LOG_FD
     qt_enabled="no"
     break
   fi
-  QT_VERSION_MAJOR=`echo "$at_cv_qt_build" | sed 's/[[^0-9]]*//g'`
+
+# QT_VERSION_MAJOR=`echo "$at_cv_qt_build" | sed 's/[[^0-9]]*//g'` #(WRONG WAY)
+# correct way to detect Qt major version
+  qmake_version_sed=['/^.*\([0-9]\)\.[0-9]\.[0-9].*$/!d;s//\1/']
+  QT_VERSION_MAJOR=`$QMAKE --version 2>&1 | sed "$qmake_version_sed"`
   AC_SUBST([QT_VERSION_MAJOR])
 
   # This sed filter is applied after an expression of the form: /^FOO.*=/!d;

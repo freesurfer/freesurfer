@@ -477,7 +477,7 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
 
   if (wsize <= 0)
   {
-    wsize = DEFAULT_WINDOW_SIZE ;
+    wsize = nint(DEFAULT_WINDOW_SIZE/mri->ysize) ;
   }
 
   if (!desired_wm_value)
@@ -981,6 +981,8 @@ MRInormFindControlPoints(MRI *mri_src, float wm_target, float intensity_above,
      1.5*intensity_above-pass*5, 1.5*intensity_below+pass*5,
      mri_ctrl, 3.0, "", &nctrl, scan_type, mri_not_control) ;
     pass++ ;
+    if (pass > 10)
+      ErrorReturn(NULL, (ERROR_UNSUPPORTED, "MRInormFindControlPoints: could not find enough control points")) ;
   }
   while (nctrl < 10) ;
   MRInormFindControlPointsInWindow(mri_src, wm_target, intensity_above,
@@ -1819,7 +1821,7 @@ MRInormFindControlPointsInWindow(MRI *mri_src,
                                  MRI  *mri_not_control)
 {
   int  width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, *pxi, *pyi;
-  int  *pzi, ctrl, nctrl, val0, val, whalf;
+  int  *pzi, ctrl, nctrl, val0, val = 0, whalf;
   float low_thresh, hi_thresh ;
 
   whalf = nint(whalf_mm / mri_src->xsize) ;
@@ -1882,6 +1884,10 @@ MRInormFindControlPointsInWindow(MRI *mri_src,
         if (ctrl)
           nctrl++ ;
 
+	if (ctrl && x == Gx && y == Gy && z == Gz && !MRIvox(mri_ctrl, x, y, z))
+	{
+	  printf("val %d - setting (%d, %d, %d) as a control point\n", val, x, y, z) ;
+	}
         MRIvox(mri_ctrl, x, y, z) = ctrl ;
       }
     }
@@ -2008,14 +2014,17 @@ MRI3dNormalize(MRI *mri_orig, MRI *mri_src, float wm_target, MRI *mri_norm,
     mri_norm = MRIcopy(mri_src, NULL) ;
   }
 
-
   for (n = 2 ; n < 3 ; n++)
   {
     if (!only_file)
+    {
       mri_ctrl = MRInormFindControlPoints(mri_src, wm_target,
                                           intensity_above,
                                           intensity_below, NULL, n,
                                           scan_type, mri_not_control);
+      if (mri_ctrl == NULL)
+	ErrorExit(ERROR_UNSUPPORTED, "MRInormFindControlPoints failed") ;
+    }
     else
     {
       int nctrl ;
@@ -3975,6 +3984,7 @@ MRI3dUseFileControlPoints(MRI *mri,const char *fname)
   return(NO_ERROR) ;
 }
 
+
 int
 MRI3dUseLabelControlPoints(MRI *mri,  LABEL *control_point_label)
 {
@@ -4031,6 +4041,7 @@ MRI3dUseLabelControlPoints(MRI *mri,  LABEL *control_point_label)
 }
 
 
+
 int
 MRI3dWriteControlPoints(char *t_control_volume_fname)
 {
@@ -4050,7 +4061,8 @@ MRI3dWriteBias(char *t_bias_volume_fname)
 int
 MRInormAddFileControlPoints(MRI *mri_ctrl, int value)
 {
-  int  i, nctrl, x, y, z, bad = 0 ;
+  int  i, nctrl, x, y, z ;
+  long bad = 0 ;
 
   /* read in control points from a file (if specified) */
   for (nctrl = i = 0 ; i < num_control_points ; i++)
@@ -4075,7 +4087,7 @@ MRInormAddFileControlPoints(MRI *mri_ctrl, int value)
   {
     ErrorPrintf(
       ERROR_BADFILE,
-      "!!!!! %d control points rejected for being out of bounds !!!!!!\n") ;
+      "!!!!! %ld control points rejected for being out of bounds !!!!!!\n") ;
   }
   return(nctrl) ;
 }

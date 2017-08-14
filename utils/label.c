@@ -201,6 +201,7 @@ LABEL *LabelRead(const char *subject_name, const char *label_name)
                        Progname, fname)) ;
 
   area = LabelReadFrom(subject_name, fp) ;
+  strcpy(area->name, fname) ;
   fclose(fp) ;
   return(area) ;
 
@@ -1581,6 +1582,37 @@ LabelMean(LABEL *area, double *px, double *py, double *pz)
         Description
 ------------------------------------------------------*/
 double
+LabelMeanIntensity(LABEL *area, MRI *mri)
+{
+  int      i ;
+  double   x, y, z, mean, val ;
+  LV       *lv ;
+  LABEL    *area2 ;
+  
+  area2 = LabelToVoxel(area, mri, NULL) ;
+
+  for (mean = x = y = z = 0.0, i = 0 ; i < area->n_points ; i++)
+  {
+    lv = &area2->lv[i] ;
+
+    x = lv->x ; y = lv->y ; z = lv->z ;
+    MRIsampleVolume(mri, x, y, z, &val) ;
+    mean += val ;
+  }
+  
+  if (i > 0)
+    mean /= (double)i ;
+  LabelFree(&area2) ;
+  return(mean) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+double
 LabelVariance(LABEL *area, double ux, double uy, double uz)
 {
   int      i, n ;
@@ -2436,6 +2468,11 @@ LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
       if (area->lv[label_vno].deleted)
 	continue ;
       vno = area->lv[label_vno].vno;
+      if (vno < 0)
+	continue ;
+      if (vno >= mris->nvertices)
+	ErrorExit(ERROR_BADPARM, "LabelErode: label vertex %d too big for surface (%d)",
+		  vno, mris->nvertices) ;
       if (vno == Gdiag_no)
         DiagBreak() ;
 
@@ -2448,6 +2485,11 @@ LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
         neighbor_vno = mris->vertices[vno].v[neighbor_index];
         if (neighbor_vno == Gdiag_no)
           DiagBreak() ;
+	if (neighbor_vno < 0)
+	  continue ;
+	if (neighbor_vno >= mris->nvertices)
+	  ErrorExit(ERROR_BADPARM, "LabelErode: neighbor label vertex %d too big for surface (%d)",
+		  neighbor_vno, mris->nvertices) ;
 
 
         /* Look for neighbor_vno in the label. */
@@ -3578,12 +3620,15 @@ LabelVoxelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
 
   for (i = 0 ; i < lsrc->n_points ; i++)
   {
-    MRIvoxelToSurfaceRAS(mri, lsrc->lv[i].x, lsrc->lv[i].y, lsrc->lv[i].z, &xs, &ys, &zs) ;
+    if (lsrc->mris)
+      MRISsurfaceRASToVoxel(lsrc->mris, mri, lsrc->lv[i].x, lsrc->lv[i].y, lsrc->lv[i].z, &xs, &ys, &zs) ;
+    else
+      MRIvoxelToSurfaceRAS(mri, lsrc->lv[i].x, lsrc->lv[i].y, lsrc->lv[i].z, &xs, &ys, &zs) ;
     ldst->lv[i].x = xs ; ldst->lv[i].y = ys ;  ldst->lv[i].z = zs ;
     ldst->lv[i].stat = lsrc->lv[i].stat ;
     ldst->lv[i].vno = lsrc->lv[i].vno ;
   }
-  strncpy (ldst->space, "voxel", sizeof(ldst->space));
+
   ldst->coords = LABEL_COORDS_TKREG_RAS ;
   strcpy(ldst->space, "TkReg");
   return(ldst) ;
@@ -3747,6 +3792,8 @@ LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, int coor
         }
       }
     }
+    if (min_vno == 0)
+      DiagBreak() ;
     if (min_vno == -1)
     {
       num_brute_force++ ;
@@ -3879,6 +3926,10 @@ LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
 	MRIsurfaceRASToVoxel(mri_template, lv->x, lv->y, lv->z, &xv, &yv, &zv) ;
 	lv->xv = nint(xv) ; lv->yv = nint(yv) ; lv->zv = nint(zv) ;
 	break ;
+      case LABEL_COORDS_SURFACE_RAS:
+	MRISsurfaceRASToVoxel(area->mris,mri_template, lv->x, lv->y, lv->z, &xv, &yv, &zv) ;
+	lv->xv = nint(xv) ; lv->yv = nint(yv) ; lv->zv = nint(zv) ;
+	break ;
       default:
 	ErrorExit(ERROR_UNSUPPORTED, "LabelInit: coords %d not supported yet", area->coords);
       }
@@ -3945,6 +3996,8 @@ LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
           min_vno = vno ;
         }
       }
+      if (min_vno == 0)
+	DiagBreak() ;
       if (min_vno >= 0)
 	lv->vno = min_vno ;
 
@@ -3979,6 +4032,7 @@ LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices, in
   double  min_dist, dist, x, y, z, vx, vy, vz, dx, dy, dz ;
   VERTEX    *v ;
 
+  x = y = z = 0 ;  // quick bug fix. should review whether code is correct
 
   if (pnvertices)
     *pnvertices = 0 ;
@@ -3987,15 +4041,19 @@ LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices, in
     LabelRealloc(area, nint(1.5*area->n_points)) ;
   n = area->n_points++ ;
   lv = &area->lv[n] ;
-  lv->xv = xv ; lv->yv = yv ; lv->zv = zv ;
+  lv->xv = xv ; lv->yv = yv ; lv->zv = zv ; lv->vno = -1 ;
   if (area->mri_template)
   {
-    MRIvoxelToSurfaceRAS(area->mri_template, xv, yv, zv, &vx, &vy, &vz) ;
+    if (area->mris)
+      MRISsurfaceRASToVoxel(area->mris, area->mri_template, xv, yv, zv, &vx, &vy, &vz);
+    else
+      MRIvoxelToSurfaceRAS(area->mri_template, xv, yv, zv, &vx, &vy, &vz) ;
     lv->x = vx ;  lv->y = vy ;  lv->z = vz ;
   }
 
   if (area->mht == NULL)
     return(NO_ERROR) ;
+
 
   x = y = z = -1 ;
   bucket = MHTgetBucket(area->mht, vx, vy, vz) ;
@@ -4159,4 +4217,31 @@ update_vertex_indices(LABEL *area)
     if (area->lv[n].deleted == 0)
       area->vertex_label_ind[area->lv[n].vno] = n ;
   return(NO_ERROR) ;
+}
+LABEL *
+LabelApplyMatrix(LABEL *lsrc, MATRIX *m, LABEL *ldst)
+{
+  int     n ;
+  VECTOR *v1, *v2 ;
+
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  v1->rptr[4][1] = 1.0f ;
+  v2->rptr[4][1] = 1.0f ;
+
+  if (ldst == NULL)
+  {
+    ldst = LabelClone(lsrc) ;
+    ldst->n_points = lsrc->n_points ;
+  }
+
+  for (n = 0 ; n < lsrc->n_points ; n++)
+  {
+    V3_X(v1) = lsrc->lv[n].x ; V3_Y(v1) = lsrc->lv[n].y ;  V3_Z(v1) = lsrc->lv[n].z ; 
+    MatrixMultiply(m, v1, v2) ;
+    ldst->lv[n].x = V3_X(v2) ; ldst->lv[n].y = V3_Y(v2) ; ldst->lv[n].z = V3_Z(v2) ; 
+  }
+    
+  VectorFree(&v1) ; VectorFree(&v2) ;
+  return(ldst) ;
 }

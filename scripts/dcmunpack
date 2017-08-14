@@ -25,6 +25,9 @@ set infofile = ();
 set itdicom = ();
 set DoAutoRunSeq = 0;
 set AutoRunSeqFmt = ""
+set ExitOnError = 1;
+@ ErrorsFound = 0;
+set RunNoSkip = ()
 
 set RunNos = ();
 set SubDirs = ();
@@ -136,10 +139,6 @@ endif
 if($#flist > 100 && $#SrcInfo == 0) then
   echo "  Interrogating each and every one of them."
   echo "  Be patient." 
-  echo "If you have collected the data in the Martinos center, this "
-  echo "will run faster if you kill this job and re-run with -martinos "
-  echo "Except, with changes in the file naming (Oct 2012), this does "
-  echo "not work."
 endif
 
 # Go through each file, create an info dump, extract params. 
@@ -247,7 +246,13 @@ foreach series ($SeriesNos)
   set f = $r[$#r];
   set max = ();
   if($GetMax) set max = (`mri_probedicom --i $f --max`)
-  set descr = (`mri_probedicom --i $f --t 8 103e | sed 's/ //g' | sed 's/\///g' | sed 's/(//g' | sed 's/)//g'`)
+  # Create a trap in case tag 8 103e is not present (eg, in philips)
+  mri_probedicom --i $f --t 8 103e >& /dev/null
+  if($status) then 
+    set descr = "unknown"
+  else
+    set descr = `mri_probedicom --i $f --t 8 103e | sed 's/ //g' | sed 's/\///g' | sed 's/(//g' | sed 's/)//g'`
+  endif
   set fname = $r[11];
   if($DoBase) set fname = `basename $f`
   echo $Key $r[2] "$descr" $r[5-10] $fname $max | tee -a $SeriesInfo
@@ -306,6 +311,15 @@ end
 foreach run ($RunNos)
   @ nth = $nth + 1;
 
+  set skipit = 0
+  foreach jj ($RunNoSkip)
+    if($run == $jj)   set skipit = 1
+  end
+  if($skipit) then
+    echo "Skipping run $run" |& tee -a $LF
+    continue
+  endif
+
   if($DoFIPS == 0) then
     set SubDir = $SubDirs[$nth];
     set Format = $Formats[$nth];
@@ -332,8 +346,18 @@ foreach run ($RunNos)
   if($DoConvert) then
     set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
     set outfname = $outdir/$FName.$Format
+    echo "" |& tee -a $LF
+    echo "#@# Run $run `date` ==================================" |& tee -a $LF
     mri_convert $f $outfname --nskip $NSkip --ndrop $NDrop $itdicom |& tee -a $LF
-    if($status) exit 1;
+    if($status) then
+      if($ExitOnError) then
+        echo "ERROR: a conversion error was detected in Run $run" |& tee -a $LF
+        echo "Either find out why, exclude this run, or run with -no-exit-on-error to continue with other runs" |& tee -a $LF
+        exit 1;
+      endif
+      echo "ERROR: a conversion error was detected in Run $run, but ExitOnError=1 so continuing to next run" |& tee -a $LF
+      @ ErrorsFound = $ErrorsFound + 1;
+    endif
   endif
 
   if($DoCopy) then
@@ -348,10 +372,7 @@ foreach run ($RunNos)
     set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
     set dumpfile = $outdir/$FName-infodump.dat
     mri_probedicom --i $f > $dumpfile |& tee -a $LF
-    if($status) then
-      cat $dumpfile | tee -a $LF
-      exit 1;
-    endif
+    if($status) cat $dumpfile | tee -a $LF
   endif
 
   if($DoFIPS) then
@@ -385,6 +406,9 @@ set tRunMins = `printf %5.2f $tRunMins`
 echo "Started at $StartTime " |& tee -a $LF
 echo "Ended   at `date`" |& tee -a $LF
 echo "dcmunpack-Run-Time-Min $tRunMins" |& tee -a $LF
+if($ErrorsFound > 0) then
+  echo "WARNING: $ErrorsFound errors during conversion, check logs" |& tee -a $LF
+endif
 
 echo "" | tee -a $LF
 echo "" | tee -a $LF
@@ -621,6 +645,17 @@ while( $#argv != 0 )
       set OnePerDir = 1;
       breaksw
 
+    case "-no-exit-on-error":
+      # continue to unpack data even if there is an error in coversion
+      set ExitOnError = 0;
+      breaksw
+
+    case "-run-skip":
+      if($#argv < 1) goto arg1err;
+      set RunNoSkip = ($RunNoSkip $argv[1]); shift
+      breaksw
+      
+
     case "-debug":
       set verbose = 1;
       set echo = 1;
@@ -760,6 +795,8 @@ usage_exit:
   echo "   -index-out index.out.dat : save index of files to index.out.dat (for re-use)"
   echo "   -index-in  index.dat : read index of files (can make things much faster on 2nd run) "
   echo "   -itdicom : add -it dicom to mri_convert cmd line"
+  echo "   -no-exit-on-error : continue to unpack data even if there is an error in coversion"
+  echo "   -run-skip runno : skip a given run (good when using -auto-runseq)"
   echo ""
   echo "   -fips project site birnid visit"
   echo "   -fips-run run paradigm <<nskip> ndrop>"
@@ -782,12 +819,19 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-Sorts and converts a directory of Siemens or GE DICOM files into an
-output hierarchy with nifti (nii), mgh, mgz, or analyze output formats
-(will not create a series of 3D SPM files). This will recursively
-search through all the subdirectories of the source directory. To a
-large extent, this replaces unpacksdcmdir (the Siemens-only unpacker)
-and will take most of its command-line arguments.
+Sorts and converts a directory of DICOM files (Siemens, GE, Philips)
+into an output hierarchy with nifti (nii), mgh, mgz, or analyze output
+formats (will not create a series of 3D SPM files). This will
+recursively search through all the subdirectories of the source
+directory. To a large extent, this replaces unpacksdcmdir (the
+Siemens-only unpacker) and will take most of its command-line
+arguments. This program can often take a long time to run and usually
+has to be run twice, once to get the list of runs and second to
+specify which runs to unpack. There are two ways to make it run
+faster.  First, use -auto-runseq (see below) which will unpack all
+runs. Alternatively, when you run it the first time to get a list of
+runs, add -index-out index.dat. Then when you run it a second time,
+use -index-in index.dat to make it run much faster.
 
 -src dcmdir <-src dcmdir>
 
@@ -821,10 +865,13 @@ Save all scans in the targetdir as runo.seqname.format. Eg,
 -auto-runseq nii.gz would save files with names like
 0002.mprage.nii.gz, 0003.ge_functionals.nii.gz, etc. This can be
 easier than using the -run because you do not have to specify all the
-runs on the command line. It will exclude any sequneces named
-Localizer, localizer, AAHScout, AHScout_sag, AAHScout_cor,
-AAHScout_tra, AAScout
-
+runs on the command line and you only need to run this dcmunpack
+once. It will exclude any sequneces named Localizer, localizer,
+AAHScout, AHScout_sag, AAHScout_cor, AAHScout_tra, AAScout. 
+If you want to skip a run, then add -run-skip runno. If there are
+errors in the conversion, then, by default, dcmunpack will exit with
+error. If you want to convert all you can and deal with the errors  
+later, then add -no-exit-on-error.
 
 -one-per-dir
 
@@ -841,10 +888,11 @@ Martinos Center when you "push something to bourget" from the scanner,
 namely that each series will have one file that ends in "1.dcm", eg
 397000-000007-000001.dcm.  This can speed things up considerably.
 Note: as of August, 2012, the naming convention that allows for fast
-unpacking does not exist. If you have to run this twice, it will be
-faster if you run it with --index-out index.dat when you are getting a
-list of runs, then run it again with --index-in index.dat when you go
-to unpack it.
+unpacking does not exist. 
+
+If you have to run this twice, it will be faster if you run it with
+--index-out index.dat when you are getting a list of runs, then run it
+again with --index-in index.dat when you go to unpack it.
 
 -no-infodump
 
