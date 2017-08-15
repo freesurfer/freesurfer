@@ -4199,9 +4199,9 @@ if($DoT2pial || $DoFLAIRpial) then
   set sdir=$SUBJECTS_DIR/${subjid}/surf
   set tdir=$SUBJECTS_DIR/${subjid}/touch
 
-  if (! -e $mdir/${t2flair}.mgz) then
+  set t2flairraw = $mdir/orig/${t2flair}raw.mgz
 
-    set t2flairraw = $mdir/orig/${t2flair}raw.mgz
+  if (! -e $mdir/${t2flair}.mgz) then
 
     # Longitudinal processing
     if ($longitudinal) then
@@ -4276,15 +4276,23 @@ if($DoT2pial || $DoFLAIRpial) then
     # both regular and long processing:
 
     # actually map the input (and make conform as the T1 target)
-    # this creates the ${t2flair}.prenorm.mgz
-    set mapcmd = (mri_convert \
-        -odt float \
-        -at $mdir/transforms/${t2flair}raw.lta)
-    if($UseCubic) set mapcmd = ($mapcmd -rt cubic -ns 1)
-    set mapcmd = ($mapcmd -rl $mdir/orig.mgz )
-    set mapcmd = ($mapcmd $t2flairraw )
-    set mapcmd = ($mapcmd $mdir/${t2flair}.prenorm.mgz )
-    echo "\n $mapcmd \n"|& tee -a $LF |& tee -a $CF
+    # this creates the ${t2flair}.prif (enorm.mgz
+    if ($HiRes) then
+      set mapcmd = (mri_vol2vol --no-resample \
+          --lta $mdir/transforms/${t2flair}raw.lta)
+      set mapcmd = ($mapcmd --targ $mdir/orig.mgz )
+      set mapcmd = ($mapcmd --mov $t2flairraw )
+      set mapcmd = ($mapcmd --o $mdir/${t2flair}.prenorm.mgz )
+      echo "\n $mapcmd \n"|& tee -a $LF |& tee -a $CF
+    else
+      set mapcmd = (mri_convert \
+          -odt float \
+          -at $mdir/transforms/${t2flair}raw.lta)
+      if($UseCubic) set mapcmd = ($mapcmd -rt cubic -ns 1)
+      set mapcmd = ($mapcmd -rl $mdir/orig.mgz )
+      set mapcmd = ($mapcmd $t2flairraw )
+      set mapcmd = ($mapcmd $mdir/${t2flair}.prenorm.mgz )
+    endif
     if($RunIt) $fs_time $mapcmd |& tee -a $LF
     if($status) goto error_exit;
 
