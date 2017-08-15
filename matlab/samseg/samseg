@@ -11,6 +11,7 @@ set outdir = ();
 set subject = ();
 set usebin = 0;
 set usegpu = 0;
+set exvivo = 0;
 set monly = 0;
 set MLF = ();
 set DoRecon = 0;
@@ -22,6 +23,7 @@ set cleanup = 1;
 set LF = ();
 set regmat = ()
 set inputlist = ()
+set missingstructs = ()
 set computedice = 0;
 set diceseg = none
 if($?SAMSEG_DATA_DIR == 0) then
@@ -114,6 +116,9 @@ if($usebin) then
   foreach input ($inputlist)
     set cmd0 = ($cmd0 --i $input)
   end
+  foreach structure ($missingstructs)
+    set cmd0 = ($cmd0 --missing $structure)
+  end
   if($DoValGrind == 0) then
     set cmd = (fs_time $cmd0)
   else
@@ -133,8 +138,12 @@ else
   echo "which samseg_registerToAtlas"  >> $MLF
   echo -n "run_samseg('--o','$outdir','--threads','$threads'" >> $MLF
   if($#regmat) echo -n ",'--regmat','$regmat'" >> $MLF; # note leading comma
+  if($exvivo == 1) echo -n ",'--exvivo'" >> $MLF; # note leading comma
   foreach input ($inputlist)
     echo -n ",'--i','$input'" >> $MLF
+  end
+  foreach structure ($missingstructs)
+    echo -n ",'--missing','$structure'" >> $MLF
   end
   echo ")" >> $MLF
   if($monly == 0) echo "quit;" >> $MLF
@@ -278,6 +287,11 @@ while( $#argv != 0 )
       set inputlist = ($inputlist $argv[1]); shift;
       breaksw
 
+    case "--missing":
+      if($#argv < 1) goto arg1err;
+      set missingstructs = ($missingstructs $argv[1]); shift;
+      breaksw
+
     case "--sdd":
       if($#argv < 1) goto arg1err;
       setenv SAMSEG_DATA_DIR $argv[1]; shift;
@@ -340,6 +354,10 @@ while( $#argv != 0 )
 
     case "--nocleanup":
       set cleanup = 0;
+      breaksw
+
+    case "--exvivo":
+      set exvivo = 1;
       breaksw
 
     case "--cleanup":
