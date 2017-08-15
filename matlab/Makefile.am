@@ -261,9 +261,11 @@ lmeQdecfiles_DATA=\
 
 samsegfiles_DATA=\
 	samseg/run_samseg.m \
-	samseg/samseg_coregisterAtlas_SPM.m \
 	samseg/samsegment.m \
-	samseg/samseg_registerToAtlas.m \
+	samseg/getCollage.m \
+	samseg/inspectHistory.m \
+	samseg/prepareExVivoImages.m \
+	samseg/samseg_registerAtlas.m \
 	samseg/samseg_writeOutFreeSurferSeg.m
 
 samseg_binfiles=\
