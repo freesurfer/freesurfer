@@ -119,8 +119,8 @@ protected slots:
   void RebuildActors( bool bRebuild3D = true );
 
 signals:
-  void PointAdded();
-  void PointRemoved();
+  void PointAdded(int nIndex);
+  void PointRemoved(int nIndex);
 
 protected:
   virtual void OnSlicePositionChanged( int nPlane );

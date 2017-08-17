@@ -100,8 +100,10 @@ void PanelPointSet::ConnectLayer( Layer* layer_in )
 
   LayerPropertyPointSet* p = layer->GetProperty();
   connect( p, SIGNAL(PropertyChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
-  connect( layer, SIGNAL(PointAdded()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
-  connect( layer, SIGNAL(PointRemoved()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
+  connect( layer, SIGNAL(PointAdded(int)), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
+  connect( layer, SIGNAL(PointRemoved(int)), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
+  connect( layer, SIGNAL(PointAdded(int)), this, SLOT(SetCurrentPoint(int)), Qt::UniqueConnection);
+  connect( layer, SIGNAL(PointRemoved(int)), this, SLOT(SetCurrentPoint(int)), Qt::UniqueConnection);
   connect( ui->doubleSpinBoxOpacity, SIGNAL(valueChanged(double)), p, SLOT(SetOpacity(double)) );
   connect( ui->checkBoxShowSpline, SIGNAL(toggled(bool)), p, SLOT(SetShowSpline(bool)) );
   connect( ui->checkBoxSnapToCenter, SIGNAL(toggled(bool)), p, SLOT(SetSnapToVoxelCenter(bool)));
@@ -194,7 +196,6 @@ void PanelPointSet::DoUpdateWidgets()
     ui->checkBoxShowSpline->setChecked( bShowSpline );
     ui->checkBoxSnapToCenter->setChecked( layer->GetProperty()->GetSnapToVoxelCenter() );
   }
-
 
   // MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
   ui->colorpickerPointColor->setEnabled( layer );
@@ -392,10 +393,21 @@ void PanelPointSet::LoadScalarValues()
   }
 }
 
-void PanelPointSet::OnSpinBoxGoToPoint(int val)
+void PanelPointSet::SetCurrentPoint(int nIndex)
 {
   LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
   if (layer)
+  {
+    if (nIndex >= layer->GetNumberOfPoints())
+      nIndex = layer->GetNumberOfPoints()-1;
+    ui->spinBoxGoToPoint->setValue(nIndex+1);
+  }
+}
+
+void PanelPointSet::OnSpinBoxGoToPoint(int val)
+{
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  if (layer && layer->GetNumberOfPoints() > 0)
   {
     double pt[3];
     layer->GetPoint(val-1, pt);

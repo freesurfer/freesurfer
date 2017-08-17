@@ -619,7 +619,7 @@ int LayerPointSet::FindPoint( double* ras, double tolerance )
 // returns index of the point
 int LayerPointSet::AddPoint( double* ras_in, double value )
 {
-  // cout << ras[0] << " " << ras[1] << " " << ras[2] << endl;
+  int nRet;
   double ras[3];
   if ( GetProperty()->GetSnapToVoxelCenter() )
   {
@@ -640,14 +640,7 @@ int LayerPointSet::AddPoint( double* ras_in, double value )
     p.pt[2] = ras[2];
     p.value = value;
     m_points.push_back( p );
-
-    RebuildActors();
-
-    SetModified();
-
-    emit PointAdded();
-
-    return m_points.size() - 1;
+    nRet = m_points.size() - 1;
   }
   else
   {
@@ -709,14 +702,13 @@ int LayerPointSet::AddPoint( double* ras_in, double value )
       m_points.insert( m_points.begin() + n, p );
     }
 
-    SetModified();
-
-    RebuildActors();
-
-    emit PointAdded();
-
-    return n;
+    nRet = n;
   }
+
+  SetModified();
+  RebuildActors();
+  emit PointAdded(nRet);
+  return nRet;
 }
 
 bool LayerPointSet::RemovePoint( double* ras, double tolerance )
@@ -738,7 +730,7 @@ bool LayerPointSet::RemovePoint( int nIndex )
 
   RebuildActors();
 
-  emit PointRemoved();
+  emit PointRemoved(nIndex);
 
   return true;
 }
