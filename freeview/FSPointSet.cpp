@@ -222,7 +222,7 @@ void FSPointSet::LabelToPointSet( PointSet& points_out, FSVolume* ref_vol )
     return;
   }
 
-  WayPoint wp;
+  ControlPoint wp;
   for ( int i = 0; i < m_label->n_points; i++ )
   {
     wp.pt[0] = m_label->lv[i].x;

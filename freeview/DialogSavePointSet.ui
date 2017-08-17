@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>217</height>
+    <width>476</width>
+    <height>182</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -92,6 +92,13 @@
       </widget>
      </item>
      <item>
+      <widget class="QRadioButton" name="radioButtonEnhanced">
+       <property name="text">
+        <string>Enhanced Point Set (Json)</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
@@ -142,11 +149,11 @@
    <slot>OnOpen()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>372</x>
-     <y>52</y>
+     <x>465</x>
+     <y>53</y>
     </hint>
     <hint type="destinationlabel">
-     <x>478</x>
+     <x>475</x>
      <y>80</y>
     </hint>
    </hints>
@@ -158,11 +165,11 @@
    <slot>OnOK()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>359</x>
-     <y>187</y>
+     <x>368</x>
+     <y>172</y>
     </hint>
     <hint type="destinationlabel">
-     <x>493</x>
+     <x>475</x>
      <y>156</y>
     </hint>
    </hints>
@@ -174,12 +181,60 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>250</x>
-     <y>187</y>
+     <x>259</x>
+     <y>172</y>
     </hint>
     <hint type="destinationlabel">
-     <x>476</x>
+     <x>475</x>
      <y>143</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButtonWayPoint</sender>
+   <signal>clicked()</signal>
+   <receiver>DialogSavePointSet</receiver>
+   <slot>OnRadioButtonFileType()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>69</x>
+     <y>106</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>112</x>
+     <y>266</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButtonControlPoint</sender>
+   <signal>clicked()</signal>
+   <receiver>DialogSavePointSet</receiver>
+   <slot>OnRadioButtonFileType()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>176</x>
+     <y>112</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>217</x>
+     <y>371</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButtonEnhanced</sender>
+   <signal>clicked()</signal>
+   <receiver>DialogSavePointSet</receiver>
+   <slot>OnRadioButtonFileType()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>317</x>
+     <y>103</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>366</x>
+     <y>495</y>
     </hint>
    </hints>
   </connection>
@@ -187,5 +242,6 @@
  <slots>
   <slot>OnOpen()</slot>
   <slot>OnOK()</slot>
+  <slot>OnRadioButtonFileType()</slot>
  </slots>
 </ui>

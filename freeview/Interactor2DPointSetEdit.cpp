@@ -120,7 +120,7 @@ bool Interactor2DPointSetEdit::ProcessMouseMoveEvent( QMouseEvent* event, Render
       double ras[3];
       view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras );
       LayerPointSet* wp = ( LayerPointSet* )MainWindow::GetMainWindow()->GetActiveLayer( "PointSet" );
-      wp->UpdatePoint( ras, m_nCurrentIndex );
+      wp->UpdatePoint( m_nCurrentIndex, ras );
     }
 
     return false;

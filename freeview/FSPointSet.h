@@ -40,14 +40,14 @@ extern "C"
 
 class FSVolume;
 
-struct WayPoint
+struct ControlPoint
 {
   double pt[3];
   double value;
-  QVariantMap info;
+  QVariantMap info; // enhanced fields
 };
 
-typedef QList<WayPoint> PointSet;
+typedef QList<ControlPoint> PointSet;
 
 class FSPointSet : public QObject
 {
@@ -58,7 +58,7 @@ public:
   bool ReadAsLabel( const QString& filename );
   bool ReadAsControlPoints( const QString& filename );
   bool WriteAsLabel( const QString& filename );
-  bool WriteAsControlPoints( const QString& filename );
+  bool WriteAsControlPoints(const QString& filename);
 
   static bool IsLabelFormat( const QString& filename );
 

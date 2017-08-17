@@ -53,6 +53,7 @@ BUILT_SOURCES = \
   ui_DialogThresholdVolume.h \
   ui_DialogVolumeSegmentation.h \
   ui_DialogLoadTransform.h \
+  ui_DialogAddPointSetStat.h \
 	qtcolorpicker.moc \
 	moc_BrushProperty.cpp \
 	moc_CommandEdit.cpp \
@@ -132,7 +133,7 @@ BUILT_SOURCES = \
 	moc_ToolWindowMeasure.cpp \
 	moc_ToolWindowROIEdit.cpp \
 	moc_VolumeCropper.cpp \
-	moc_VolumeFilter.cpp \
+  moc_VolumeFilter.cpp \DialogLoadTransform
 	moc_WidgetHistogram.cpp \
 	moc_WindowConfigureOverlay.cpp \
 	moc_WindowQuickReference.cpp \
@@ -180,6 +181,7 @@ BUILT_SOURCES = \
   moc_DialogThresholdVolume.cpp \
   moc_DialogVolumeSegmentation.cpp \
   moc_DialogLoadTransform.cpp \
+  moc_DialogAddPointSetStat.cpp \
   qrc_freeview.cpp
 
 if USING_QT_5
@@ -528,6 +530,8 @@ freeview_SOURCES = $(BUILT_SOURCES) $(JSON_SOURCES) \
   DialogVolumeSegmentation.h \
   DialogLoadTransform.cpp \
   DialogLoadTransform.h \
+  DialogAddPointSetStat.cpp \
+  DialogAddPointSetStat.h \
 	freeview.qrc
 
 qrc_freeview.cpp: freeview.qrc
