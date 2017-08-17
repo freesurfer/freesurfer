@@ -133,7 +133,7 @@ BUILT_SOURCES = \
 	moc_ToolWindowMeasure.cpp \
 	moc_ToolWindowROIEdit.cpp \
 	moc_VolumeCropper.cpp \
-  moc_VolumeFilter.cpp \DialogLoadTransform
+  moc_VolumeFilter.cpp \
 	moc_WidgetHistogram.cpp \
 	moc_WindowConfigureOverlay.cpp \
 	moc_WindowQuickReference.cpp \
