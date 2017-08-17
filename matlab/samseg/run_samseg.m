@@ -56,7 +56,9 @@ exvivo
 missingStructureSearchStrings
 
 % Create the output folder
-mkdirp(savePath);
+if ~exist(savePath, 'dir')
+  mkdir(savePath);
+end
 
 % set SAMSEG_DATA_DIR as an environment variable, eg,
 % setenv SAMSEG_DATA_DIR /autofs/cluster/koen/koen/GEMSapplications/wholeBrain
@@ -175,19 +177,6 @@ else
 
 
 end % End test build tailored atlas for affine registration
-
-
-% --- edit below ---
-
-else
-  fprintf('Not performing registration\n');
-  fprintf('  Loading reg %s\n',RegMatFile);
-  load(RegMatFile);
-  fname = sprintf('%s/SPM12_6classes_30x30x30_template_coregistrationMatrices.mat',savePath);
-  save(fname,'worldToWorldTransformMatrix','imageToImageTransformMatrix');
-end
-
-% --- edit above ---
 
 
 %  

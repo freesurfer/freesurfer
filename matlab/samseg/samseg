@@ -135,7 +135,7 @@ else
   # echo "path(path,'/usr/pubsw/common/spm/spm8');" >> $MLF
   echo "which run_samseg"  >> $MLF
   echo "which samsegment"  >> $MLF
-  echo "which samseg_registerToAtlas"  >> $MLF
+  echo "which samseg_registerAtlas"  >> $MLF
   echo -n "run_samseg('--o','$outdir','--threads','$threads'" >> $MLF
   if($#regmat) echo -n ",'--regmat','$regmat'" >> $MLF; # note leading comma
   if($exvivo == 1) echo -n ",'--exvivo'" >> $MLF; # note leading comma
