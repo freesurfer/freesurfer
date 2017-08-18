@@ -80,8 +80,10 @@ typedef struct {
   MRI *volcon, *lhcon, *rhcon;
   MRI *volconS, *lhconS, *rhconS;
   MRI *volconL, *lhconL, *rhconL;
+  MRI *volrhomean, *lhrhomean, *rhrhomean;
   MRI *coordtype, *vertexno, *xyz, *xyz2, *vvol;
   MRI *f, *fnorm;
+  MRI *rhomean; 
   double rholist[100];
   int nrholist;
   int DoDist;
@@ -131,6 +133,7 @@ typedef struct {
   char *volcon, *lhcon, *rhcon;
   char *volconS, *lhconS, *rhconS;
   char *volconL, *lhconL, *rhconL;
+  char *volrhomean,*lhrhomean,*rhrhomean;
   int DoMat;
   char *matfile;
   int DoTest,ForceFail,SaveTest;
@@ -292,6 +295,19 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  if(cmdargs->volrhomean){
+    err = MRIwrite(wbc->volrhomean,cmdargs->volrhomean);
+    if(err) exit(1);
+  }
+  if(cmdargs->lhrhomean){
+    err = MRIwrite(wbc->lhrhomean,cmdargs->lhrhomean);
+    if(err) exit(1);
+  }
+  if(cmdargs->rhrhomean){
+    err = MRIwrite(wbc->rhrhomean,cmdargs->rhrhomean);
+    if(err) exit(1);
+  }
+
   exit(0);
 }
 
@@ -384,6 +400,21 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&cmdargs->distthresh);
       cmdargs->DoDist = 1;
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--volrhomean")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->volrhomean = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--lhrhomean")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->lhrhomean = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--rhrhomean")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->rhrhomean = pargv[0];
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--volcon")) {
@@ -572,6 +603,18 @@ static void check_options(void) {
       cmdargs->rhconL = strcpyalloc(tmpstr);
     }
   }
+  if(cmdargs->fvol != NULL || cmdargs->SaveTest){
+    sprintf(tmpstr,"%s/vol.rho.mean.nii.gz",cmdargs->outdir);
+    cmdargs->volrhomean = strcpyalloc(tmpstr);
+  }
+  if(cmdargs->flh != NULL || cmdargs->SaveTest){
+    sprintf(tmpstr,"%s/lh.rho.mean.nii.gz",cmdargs->outdir);
+    cmdargs->lhrhomean = strcpyalloc(tmpstr);
+  }
+  if(cmdargs->frh != NULL || cmdargs->SaveTest){
+    sprintf(tmpstr,"%s/rh.rho.mean.nii.gz",cmdargs->outdir);
+    cmdargs->rhrhomean = strcpyalloc(tmpstr);
+  }
   if(cmdargs->nrholist == 0){
     cmdargs->rholist[0] = 0.2;
     cmdargs->nrholist = 1;
@@ -596,14 +639,14 @@ static void dump_options(FILE *fp) {
 /*******************************************************************************/
 MRI *WholeBrainCon(WBC *wbc)
 {
-  MRI **conth, **conSth=NULL, **conLth=NULL;
+  MRI **conth, **conSth=NULL, **conLth=NULL, **rhomean;
   int nthreads,nthrho;
   long nperthread0,*nperthread,ntot;
   int threadno;
   long npairs,ia,ib;
   int k1; // note: these are redefined in loop
   struct timeb timer;
-  double **pf;
+  double **pf, val;
   int *k1a,*k1b,*k2a,*k2b;
 
   // Load time courses into a pointer structure
@@ -638,12 +681,14 @@ MRI *WholeBrainCon(WBC *wbc)
   if(ntot != npairs) nperthread[nthreads-1] += npairs-ntot;
 
   // Allocate con volumes for each thread
-  conth = (MRI **) calloc(sizeof(MRI*),nthreads);
+  rhomean = (MRI **) calloc(sizeof(MRI*),nthreads);
+  conth   = (MRI **) calloc(sizeof(MRI*),nthreads);
   if(wbc->DoDist){
     conSth = (MRI **) calloc(sizeof(MRI*),nthreads);
     conLth = (MRI **) calloc(sizeof(MRI*),nthreads);
   }
   for(threadno=0; threadno < nthreads; threadno++){
+    rhomean[threadno] = MRIallocSequence(wbc->ntot, 1,1, MRI_FLOAT, 1);
     conth[threadno] = MRIallocSequence(wbc->ntot, 1,1, MRI_FLOAT, wbc->nrholist);
     if(wbc->DoDist){
       conSth[threadno] = MRIallocSequence(wbc->ntot, 1,1, MRI_FLOAT, wbc->nrholist);
@@ -713,6 +758,8 @@ MRI *WholeBrainCon(WBC *wbc)
 		 TimerStop(&timer)/60000.0);
 	  fflush(stdout);
 	}
+
+	// compute rho
 	rho = 0;
 	pf1 = pf[k1];
 	pf2 = pf[k2];
@@ -725,6 +772,9 @@ MRI *WholeBrainCon(WBC *wbc)
 	  wbc->M->rptr[k1+1][k2+1] = rho;
 	  wbc->M->rptr[k2+1][k1+1] = rho;
 	}
+
+	val = MRIgetVoxVal(rhomean[thno],k1,0,0,0);
+	MRIsetVoxVal(rhomean[thno],k1,0,0,0,val+rho);
 
 	for(nthrho = 0; nthrho < wbc->nrholist; nthrho++){
 	  rhothresh = wbc->rholist[nthrho];
@@ -799,6 +849,7 @@ MRI *WholeBrainCon(WBC *wbc)
 
   // Sum up the threads
   for(threadno=0; threadno < nthreads; threadno++){
+    MRIadd(wbc->rhomean,rhomean[threadno],wbc->rhomean);
     MRIadd(wbc->con,conth[threadno],wbc->con);
     if(wbc->DoDist){
       MRIadd(wbc->conS,conSth[threadno],wbc->conS);
@@ -808,6 +859,7 @@ MRI *WholeBrainCon(WBC *wbc)
 
   // Divide number of connections by total possible
   printf("Scaling by ntot-1 %d\n",wbc->ntot-1);
+  MRImultiplyConst(wbc->rhomean,1.0/(wbc->ntot-1),wbc->rhomean);
   MRImultiplyConst(wbc->con,1.0/(wbc->ntot-1),wbc->con);
   if(wbc->DoDist){
     MRImultiplyConst(wbc->conS,1.0/(wbc->ntot-1),wbc->conS);
@@ -816,6 +868,7 @@ MRI *WholeBrainCon(WBC *wbc)
 
   // Clean up
   for(threadno=0; threadno < nthreads; threadno++){
+    MRIfree(&rhomean[threadno]);
     MRIfree(&conth[threadno]);
     if(wbc->DoDist){
       MRIfree(&conSth[threadno]);
@@ -952,6 +1005,7 @@ int WBCprep(WBC *wbc)
   // normalize by stddev
   wbc->fnorm = MRIframeNorm(wbc->f, NULL, NULL);  
 
+  wbc->rhomean = MRIallocSequence(wbc->ntot, 1,1, MRI_FLOAT, 1);
   wbc->con = MRIallocSequence(wbc->ntot, 1,1, MRI_FLOAT, wbc->nrholist);
   if(wbc->DoDist){
     wbc->conS = MRIallocSequence(wbc->ntot, 1,1, MRI_FLOAT, wbc->nrholist);
@@ -968,6 +1022,9 @@ int WBCfinish(WBC *wbc)
 
   nthvox = 0;
   if(wbc->fvol){
+    wbc->volrhomean = MRIallocSequence(wbc->fvol->width,wbc->fvol->height,wbc->fvol->depth,MRI_FLOAT,1);
+    MRIcopyHeader(wbc->fvol,wbc->volrhomean);
+    MRIcopyPulseParameters(wbc->fvol,wbc->volrhomean);
     wbc->volcon = MRIallocSequence(wbc->fvol->width,wbc->fvol->height,wbc->fvol->depth,MRI_FLOAT,wbc->nrholist);
     MRIcopyHeader(wbc->fvol,wbc->volcon);
     MRIcopyPulseParameters(wbc->fvol,wbc->volcon);
@@ -983,6 +1040,8 @@ int WBCfinish(WBC *wbc)
       for(c=0; c < wbc->fvol->width; c++){
 	for(r=0; r < wbc->fvol->height; r++){
 	  if(wbc->volmask && MRIgetVoxVal(wbc->volmask,c,r,s,0) < 0.5) continue;
+	  val = MRIgetVoxVal(wbc->rhomean,nthvox,0,0,0);
+	  MRIsetVoxVal(wbc->volrhomean,c,r,s,0,val);
 	  for(nthrho=0; nthrho < wbc->nrholist; nthrho++){
 	    val = MRIgetVoxVal(wbc->con,nthvox,0,0,nthrho);
 	    MRIsetVoxVal(wbc->volcon,c,r,s,nthrho,val);
@@ -999,6 +1058,9 @@ int WBCfinish(WBC *wbc)
     } // slice
   }
   if(wbc->flh){
+    wbc->lhrhomean = MRIallocSequence(wbc->flh->width,wbc->flh->height,wbc->flh->depth,MRI_FLOAT,1);
+    MRIcopyHeader(wbc->flh,wbc->lhrhomean);
+    MRIcopyPulseParameters(wbc->flh,wbc->lhrhomean);
     wbc->lhcon = MRIallocSequence(wbc->flh->width,wbc->flh->height,wbc->flh->depth,MRI_FLOAT,wbc->nrholist);
     MRIcopyHeader(wbc->flh,wbc->lhcon);
     MRIcopyPulseParameters(wbc->flh,wbc->lhcon);
@@ -1012,6 +1074,8 @@ int WBCfinish(WBC *wbc)
     }
     for(vtxno = 0; vtxno < wbc->flh->width; vtxno++){
       if(wbc->lhmask && MRIgetVoxVal(wbc->lhmask,vtxno,0,0,0) < 0.5) continue;
+      val = MRIgetVoxVal(wbc->rhomean,nthvox,0,0,0);
+      MRIsetVoxVal(wbc->lhrhomean,vtxno,0,0,0,val);
       for(nthrho=0; nthrho < wbc->nrholist; nthrho++){
 	val = MRIgetVoxVal(wbc->con,nthvox,0,0,nthrho);
 	MRIsetVoxVal(wbc->lhcon,vtxno,0,0,nthrho,val);
@@ -1026,6 +1090,9 @@ int WBCfinish(WBC *wbc)
     } // vertex
   }
   if(wbc->frh){
+    wbc->rhrhomean = MRIallocSequence(wbc->frh->width,wbc->frh->height,wbc->frh->depth,MRI_FLOAT,1);
+    MRIcopyHeader(wbc->frh,wbc->rhrhomean);
+    MRIcopyPulseParameters(wbc->frh,wbc->rhrhomean);
     wbc->rhcon = MRIallocSequence(wbc->frh->width,wbc->frh->height,wbc->frh->depth,MRI_FLOAT,wbc->nrholist);
     MRIcopyHeader(wbc->frh,wbc->rhcon);
     MRIcopyPulseParameters(wbc->frh,wbc->rhcon);
@@ -1039,6 +1106,8 @@ int WBCfinish(WBC *wbc)
     }
     for(vtxno = 0; vtxno < wbc->frh->width; vtxno++){
       if(wbc->rhmask && MRIgetVoxVal(wbc->rhmask,vtxno,0,0,0) < 0.5) continue;
+      val = MRIgetVoxVal(wbc->rhomean,nthvox,0,0,0);
+      MRIsetVoxVal(wbc->rhrhomean,vtxno,0,0,0,val);
       for(nthrho=0; nthrho < wbc->nrholist; nthrho++){
 	val = MRIgetVoxVal(wbc->con,nthvox,0,0,nthrho);
 	MRIsetVoxVal(wbc->rhcon,vtxno,0,0,nthrho,val);
