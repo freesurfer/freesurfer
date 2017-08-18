@@ -83,8 +83,7 @@ static MRI *mri_mean_mask = NULL ;
 static int region_size = REGION_SIZE ;
 int
 main(int argc, char *argv[]) {
-  char   **av ;
-  int    ac, nargs, width, height, depth, x, y, z, xborder, yborder, zborder,
+  int    nargs, width, height, depth, x, y, z, xborder, yborder, zborder,
   xrborder, yrborder, zrborder ;
   char   *in_fname, *out_fname ;
   MRI    *mri_smooth, *mri_grad, *mri_filter_src, *mri_filter_dst, *mri_dst,
@@ -102,8 +101,6 @@ main(int argc, char *argv[]) {
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  ac = argc ;
-  av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
@@ -139,6 +136,8 @@ main(int argc, char *argv[]) {
     clip_region.dz = mri_full->depth-1 ;
   }
   REGIONexpand(&clip_region, &clip_region, (filter_window_size+1)/2) ;
+  if (mri_full->depth == 1)
+    clip_region.dz = 1 ;
   mri_src = MRIextractRegion(mri_full, NULL, &clip_region) ;
   width = mri_src->width ;
   height = mri_src->height ;
@@ -221,12 +220,19 @@ main(int argc, char *argv[]) {
     switch (filter_type)
     {
     default:
+      ErrorExit(ERROR_UNSUPPORTED, "%s: unsupported no crop no offset filter %d\n", Progname, filter_type) ;
     case FILTER_GAUSSIAN:
       mri_tmp = MRIconvolveGaussian(mri_full, NULL, mri_gaussian) ;
       if (!mri_tmp)
 	ErrorExit(ERROR_NOMEMORY,
 		  "%s: could not allocate temporary buffer space",Progname);
       break ;
+    case FILTER_MEDIAN:
+      mri_tmp = MRImedian(mri_full, NULL, filter_window_size, NULL) ;
+      if (!mri_tmp)
+	ErrorExit(ERROR_NOMEMORY,
+		  "%s: could not allocate temporary buffer space",Progname);
+      
     }
     MRIcopy(mri_tmp, mri_full) ;
     MRIfree(&mri_tmp) ;
