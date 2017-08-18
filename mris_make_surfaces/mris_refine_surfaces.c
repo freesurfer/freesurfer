@@ -183,15 +183,15 @@ static float check_contrast_direction
 
 int
 main(int argc, char *argv[]) {
-  char          **av, *hemi, *sname, *cp=0, fname[STRLEN], med_fname[STRLEN], *dot ;
-  int           ac, nargs, i/*, label_val, replace_val*/, msec, n_averages, j ;
+  char          *hemi, *sname, *cp=0, fname[STRLEN], med_fname[STRLEN], *dot ;
+  int           nargs, i/*, label_val, replace_val*/, msec, n_averages, j ;
   MRI_SURFACE   *mris ;
-  MRI           *mri_wm = NULL, *mri_kernel = NULL, *mri_smooth = NULL, *mri_hires, 
+  MRI           *mri_wm = NULL, *mri_smooth = NULL, *mri_hires, 
                 *mri_hires_pial, *mri_mask = NULL, *mri_hires_orig ;
   /*  MRI           *mri_tran = NULL;*/
   float         max_len ;
   float         white_mean, white_std, gray_mean, gray_std ;
-  double        l_intensity, current_sigma ;
+  double        current_sigma ;
   struct timeb  then ;
   MATRIX        *m_reg = NULL ;
   /*  LT            *lt =0;*/
@@ -240,8 +240,6 @@ main(int argc, char *argv[]) {
   parms.l_intensity = 0 ;
 #endif
 
-  ac = argc ;
-  av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
@@ -580,7 +578,7 @@ main(int argc, char *argv[]) {
     for (max_len = 1.5*8 ; max_len > 1 ; max_len /= 2)
     while (MRISdivideLongEdges(mris, max_len) > 0) {}
   }
-  l_intensity = parms.l_intensity ;
+
   MRISsetVals(mris, -1) ;  /* clear white matter intensities */
 
   if (!nowhite) {
@@ -793,7 +791,6 @@ main(int argc, char *argv[]) {
          n_averages >= min_pial_averages ;
          n_averages /= 2, current_sigma /= 2, i++) {
       parms.sigma = current_sigma ;
-      mri_kernel = MRIgaussian1d(current_sigma, 100) ;
       fprintf(stderr, "smoothing hires volume with sigma = %2.3f\n",
               current_sigma) ;
       parms.n_averages = n_averages ;
@@ -1147,7 +1144,7 @@ mrisFindMiddleOfGray(MRI_SURFACE *mris) {
 MRI *
 MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_hires, float thresh,
                  int out_label, MRI *mri_dst) {
-  BUFTYPE   *pdst, *pinv_lv, out_val, T1_val, inv_lv_val, *pT1 ;
+  BUFTYPE   *pdst, *pinv_lv, out_val, inv_lv_val, *pT1 ;
   int       width, height, depth, x, y, z,
   ventricle_voxels;
 
@@ -1169,7 +1166,7 @@ MRIfillVentricle(MRI *mri_inv_lv, MRI *mri_hires, float thresh,
       pT1 = &MRIvox(mri_hires, 0, y, z) ;
       pinv_lv = &MRIvox(mri_inv_lv, 0, y, z) ;
       for (x = 0 ; x < width ; x++) {
-        T1_val = *pT1++ ;
+        pT1++ ;
         inv_lv_val = *pinv_lv++ ;
         out_val = 0 ;
         if (inv_lv_val >= thresh) {
