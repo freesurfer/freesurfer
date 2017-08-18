@@ -661,5 +661,7 @@ void PanelPointSet::OnButtonStatDelete()
 
 void PanelPointSet::OnCurrentStatItemChanged(QTreeWidgetItem *cur, QTreeWidgetItem *old)
 {
+  Q_UNUSED(cur);
+  Q_UNUSED(old);
   ui->pushButtonStatDelete->setEnabled(cur && ui->treeWidgetStats->indexOfTopLevelItem(cur) != 0);
 }
