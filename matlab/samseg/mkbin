@@ -12,11 +12,15 @@ if($?SAMSEG_MCRROOT == 0) then
 endif
 set path = ( $SAMSEG_MCRROOT/bin/ $path )
 
+set StartTime = `date`
+
 mcc  -m -v -R -singleCompThread run_samseg
 
 rm run_run_samseg.sh mccExcludedFiles.log  readme.txt
 
-
+echo "Started at $StartTime"
+echo "Ended at `date`"
+echo "mkbin done"
 
 exit 0
 

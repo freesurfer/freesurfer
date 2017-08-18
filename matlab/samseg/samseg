@@ -11,20 +11,19 @@ set outdir = ();
 set subject = ();
 set usebin = 0;
 set usegpu = 0;
+set exvivo = 0;
 set monly = 0;
 set MLF = ();
 set DoRecon = 0;
 set threads = 1;
+set DoValGrind = 0
+set vg = (valgrind --error-limit=no --leak-check=yes --tool=memcheck --track-origins=yes)
 set tmpdir = ();
 set cleanup = 1;
 set LF = ();
-set regmat = noregmat
-set input = ()
-set input2 = none
-set input3 = none
-set input4 = none
-set input5 = none
-set input6 = none
+set regmat = ()
+set inputlist = ()
+set missingstructs = ()
 set computedice = 0;
 set diceseg = none
 if($?SAMSEG_DATA_DIR == 0) then
@@ -112,7 +111,19 @@ endif
 
 #========================================================
 if($usebin) then
-  set cmd = (fs_time run_samseg $input $outdir $threads $usegpu $regmat $input2 $input3 $input4 $input5 $input6)
+  set cmd0 = (run_samseg --o $outdir --threads $threads)
+  if($#regmat) set cmd0 = ($cmd0 --regmat $regmat)
+  foreach input ($inputlist)
+    set cmd0 = ($cmd0 --i $input)
+  end
+  foreach structure ($missingstructs)
+    set cmd0 = ($cmd0 --missing $structure)
+  end
+  if($DoValGrind == 0) then
+    set cmd = (fs_time $cmd0)
+  else
+    set cmd = ($vg $cmd0)
+  endif
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;
@@ -124,25 +135,51 @@ else
   # echo "path(path,'/usr/pubsw/common/spm/spm8');" >> $MLF
   echo "which run_samseg"  >> $MLF
   echo "which samsegment"  >> $MLF
-  echo "which samseg_registerToAtlas"  >> $MLF
-  echo "run_samseg('$input','$outdir','$threads','$usegpu','$regmat','$input2','$input3','$input4','$input5','$input6');" >> $MLF
+  echo "which samseg_registerAtlas"  >> $MLF
+  echo -n "run_samseg('--o','$outdir','--threads','$threads'" >> $MLF
+  if($#regmat) echo -n ",'--regmat','$regmat'" >> $MLF; # note leading comma
+  if($exvivo == 1) echo -n ",'--exvivo'" >> $MLF; # note leading comma
+  foreach input ($inputlist)
+    echo -n ",'--i','$input'" >> $MLF
+  end
+  foreach structure ($missingstructs)
+    echo -n ",'--missing','$structure'" >> $MLF
+  end
+  echo ")" >> $MLF
   if($monly == 0) echo "quit;" >> $MLF
   # threads here is either 1 or not 1. not1 = all cpus
   cat $MLF | tee -a $LF
-  if(! $monly) cat $MLF |& $matlab -display iconic $threads |& tee -a $LF
+  if(! $monly) then
+    cat $MLF |& $matlab -display iconic $threads |& tee -a $LF
+  endif
+  if($monly) exit 0
 endif
 
 date | tee -a $LF
 
 # ========================================================
 # Compute dice:
-if ($computedice) then
-  set cmd = (mri_compute_seg_overlap -log $outdir/dice.log $diceseg $outdir/segSubSpace.mgz)
+if($computedice) then
+  set logfile = $outdir/dice.log
+  set tablefile = $outdir/dice.table.dat
+  rm -f $logfile # need to rm because it just appends
+  set cmd = (mri_compute_seg_overlap -table $tablefile -log $logfile $diceseg $outdir/segSubSpace.mgz)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
-  if($status) echo "error: could not compute seg overlap";
+  if($status) then
+    echo "error: could not compute seg overlap";
+    goto error_exit;
+  endif
 endif
 
+# Compute segstats
+set sumfile = $outdir/segSubSpace.stats 
+set cmd = (mri_segstats --ctab-default --seg $outdir/segSubSpace.mgz --sum $sumfile)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+# Prep for recon
 if($#subject != 0) then
   set cmd = (samseg2recon --i $input --s $subject)
   echo $cmd | tee -a $LF
@@ -222,32 +259,37 @@ while( $#argv != 0 )
 
     case "--i":
       if($#argv < 1) goto arg1err;
-      set input = $argv[1]; shift;
+      set inputlist = ($inputlist $argv[1]); shift;
       breaksw
 
     case "--i2":
       if($#argv < 1) goto arg1err;
-      set input2 = $argv[1]; shift;
+      set inputlist = ($inputlist $argv[1]); shift;
       breaksw
 
     case "--i3":
       if($#argv < 1) goto arg1err;
-      set input3 = $argv[1]; shift;
+      set inputlist = ($inputlist $argv[1]); shift;
       breaksw
 
     case "--i4":
       if($#argv < 1) goto arg1err;
-      set input4 = $argv[1]; shift;
+      set inputlist = ($inputlist $argv[1]); shift;
       breaksw
 
     case "--i5":
       if($#argv < 1) goto arg1err;
-      set input5 = $argv[1]; shift;
+      set inputlist = ($inputlist $argv[1]); shift;
       breaksw
 
     case "--i6":
       if($#argv < 1) goto arg1err;
-      set input6 = $argv[1]; shift;
+      set inputlist = ($inputlist $argv[1]); shift;
+      breaksw
+
+    case "--missing":
+      if($#argv < 1) goto arg1err;
+      set missingstructs = ($missingstructs $argv[1]); shift;
       breaksw
 
     case "--sdd":
@@ -272,6 +314,10 @@ while( $#argv != 0 )
       breaksw
     case "--no-gpu":
       set usegpu = 0;
+      breaksw
+
+    case "--valgrind":
+      set DoValGrind = 1;
       breaksw
 
     case "--bin":
@@ -310,6 +356,10 @@ while( $#argv != 0 )
       set cleanup = 0;
       breaksw
 
+    case "--exvivo":
+      set exvivo = 1;
+      breaksw
+
     case "--cleanup":
       set cleanup = 1;
       breaksw
@@ -334,11 +384,11 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-if($#input == 0) then
-  echo "ERROR: must supply an input"
+if($#inputlist == 0) then
+  echo "ERROR: must supply at least one input"
   exit 1
 endif
-foreach f ($input $input2 $input3 $input4 $input5 $input6)
+foreach f ($inputlist)
   if($f != none && ! -e $f) then
     echo "ERROR: cannot find $f"
     exit 1;
@@ -394,7 +444,7 @@ arg2err:
 usage_exit:
   echo ""
   echo "samseg"
-  echo "  --i file.mgz <--i2 file2.mgz> <--i3 file3.mgz>... <--i6>"
+  echo "  --i file.mgz <--i file2.mgz> <--i file3.mgz>... <--i>"
   echo "  --o outdir "
   echo "  --s subject : create subject, sets outdir to subject/mri/samseg"
   echo "    the first input should be the conformed T1 weighted input"
@@ -415,17 +465,20 @@ BEGINHELP
 To run this, you will need to have the correct configuration in your
 shell and in matlab. For the shell, the program needs to find some
 samseg-related data, namely mni305_masked_autoCropped.mgz, 
-CurrentMeshCollection30New.txt.gz, and namedCompressionLookupTable.txt.
+CurrentMeshCollection30New.txt.gz, SPM12_6classes_30x30x30_meshCollection.txt.gz,
+SPM12_6classes_30x30x30_template.nii, and namedCompressionLookupTable.txt.
 It will look for these in the path pointed to by the $SAMSEG_DATA_DIR
 environment variable. If this var is unset, then it defaults to
 /autofs/cluster/koen/koen/GEMSapplications/wholeBrain. 
 
-The version of matlab must be 8.0. The matlab used can be controlled
+The version of matlab must be 8.4. The matlab used can be controlled
 with the SAMSEG_MCRROOT env variable. If unset, then this script will
-set it to /usr/pubsw/common/matlab/8.0
+set it to /usr/pubsw/common/matlab/8.4
 
-In matlab, you will need to have added the GEMS mex file folder and
-spm8 to your matlab path, eg,
+In matlab, you will need to have added the GEMS mex file folder
+to your matlab path, eg,
 path(path,'/autofs/cluster/koen/koen/GEMS-Release/bin');
-path(path,'/usr/pubsw/common/spm/spm8');
+
+All inputs should already be registered together
+
 

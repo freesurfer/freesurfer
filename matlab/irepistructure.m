@@ -5,13 +5,23 @@ function s = irepistructure(TBI,nslices,ndummies,ntp,skip,PreInv,InvDur,TI1,ROFl
 s.TBI = TBI; % 2.092*1000; % time bet inversions in ms, like the TR
 s.nslices = nslices;
 s.ndummies = ndummies;
-s.ntp = ntp;
+s.ntp = ntp; % number of time points (number of inversions, excl dummies)
 s.skip = skip; % slice permutation skip, eg 7
 s.InvDur = InvDur; % duration of inversion pulse, eg, 12
-s.TI1 = TI1; % time from end of inv to first readout
+% TI1 - time from end of inv to first readout excitation pulse
+s.TI1 = TI1; 
 s.ROFlip = ROFlip; % readout flip angle in degrees
-s.PreInv = PreInv; % subtract this from TBS of final slice
-s.TBS = (s.TBI-s.TI1-s.InvDur+s.PreInv)/s.nslices; % time between slices
+% PreInv - subtract this from TBS of final slice. This takes into
+% account the fact that the last slice can be treated
+% differently. After the last slice is read, it is possible to go
+% straight into the inversion making the TBS less than that of
+% other slices (positive PreInv). On the other hand, the inversion
+% pulse could come some time after the TBS for the last slice
+% (negative PreInv). 
+s.PreInv = PreInv; 
+% TBS - time between slices, ie, time between adjacent readout
+% excitation pulses 
+s.TBS = (s.TBI-s.TI1-s.InvDur+s.PreInv)/s.nslices; 
 
 % Timing parameters
 s.tEvent = [];    % Time of event ms
@@ -54,8 +64,16 @@ s.yRead = []; % magnetization only at readouts
 s.parset = 1;
 
 % Fit
-s.nexclude = 0; % exclude this number of init slices
-s.nminexclude = 0; % exclude this number of mins/nulls
+% exclude this number of init slices. This was for when we thought
+% the first slice might have some artifacts in it, probably not
+% useful now.
+s.nexclude = 0; 
+% exclude this number of mins/nulls. For each voxel, find the
+% nminexclude time points that have the smallest value and exclude
+% them from the fitting. This is used to try not to use value near
+% 0 to do the fitting because they can never get to 0 due to the
+% mag operation.
+s.nminexclude = 0; 
 s.iexclude = []; % time points excluded
 s.iexclude1 = []; % init time points excluded 
 s.iexclude2 = []; % null/min time points excluded 

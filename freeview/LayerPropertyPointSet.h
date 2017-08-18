@@ -64,7 +64,7 @@ public:
 
   enum ScalarType { ScalarStat = 0, ScalarLayer, ScalarSet };
 
-  enum PointSetType { WayPoint = 0, ControlPoint };
+  enum PointSetType { WayPoint = 0, ControlPoint, Enhanced };
 
   double GetOpacity() const;
 

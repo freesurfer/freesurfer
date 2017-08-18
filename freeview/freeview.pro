@@ -163,7 +163,8 @@ SOURCES += \
     LabelTreeWidget.cpp \
     SplineTreeWidget.cpp \
     DialogLoadTransform.cpp \
-    Interactor3DROIEdit.cpp
+    Interactor3DROIEdit.cpp \
+    DialogAddPointSetStat.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -314,7 +315,8 @@ HEADERS  += \
     LabelTreeWidget.h \
     SplineTreeWidget.h \
     DialogLoadTransform.h \
-    Interactor3DROIEdit.h
+    Interactor3DROIEdit.h \
+    DialogAddPointSetStat.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -363,7 +365,8 @@ FORMS    += MainWindow.ui \
     DialogSetCamera.ui \
     DialogThresholdVolume.ui \
     DialogVolumeSegmentation.ui \
-    DialogLoadTransform.ui
+    DialogLoadTransform.ui \
+    DialogAddPointSetStat.ui
 
 RESOURCES += \
     freeview.qrc

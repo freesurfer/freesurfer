@@ -31,6 +31,9 @@ namespace Ui
 class PanelPointSet;
 }
 
+class QLabel;
+class QTreeWidgetItem;
+
 class PanelPointSet : public PanelLayer
 {
   Q_OBJECT
@@ -44,6 +47,7 @@ protected:
   void DoIdle();
   virtual void ConnectLayer( Layer* layer );
   void LoadScalarValues();
+  void UpdatePointInfo();
 
 protected slots:
   void OnSliderOpacity( int nVal );
@@ -60,12 +64,25 @@ protected slots:
   void OnComboScalarMap(int nSel);
   void OnSpinBoxGoToPoint(int val);
   void OnButtonGoToPoint();
+  void OnButtonCommentAdd();
+  void OnButtonStatAdd();
+  void OnButtonStatDelete();
+  void OnCommentLabelClicked(const QString& link);
+  void ScrollCommentsToBottom();
+  void OnStatItemChanged(QTreeWidgetItem* item, int col);
+  void OnCurrentStatItemChanged(QTreeWidgetItem* cur, QTreeWidgetItem* old);
+  void SetCurrentPoint(int nIndex);
 
 private:
+  QLabel* MakeCommentItem(const QVariantMap& map);
+  QTreeWidgetItem* AddStatItem(const QString& name, double value);
+
   Ui::PanelPointSet *ui;
   QList<QWidget*> m_widgetlistSolidColor;
   QList<QWidget*> m_widgetlistHeatScale;
   QList<QWidget*> m_widgetlistSpline;
+
+  QString     m_self;
 };
 
 #endif // PANELPOINTSET_H

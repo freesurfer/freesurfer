@@ -46,8 +46,10 @@ public:
   virtual ~LayerPointSet();
 
   bool LoadFromFile( const QString& filename );
+  bool LoadFromJsonFile(const QString& filename);
   bool LoadFromString( const QString& content);
   bool Save();
+  bool SaveAsJson(const QString& filename);
 
   bool HasUndo();
   bool HasRedo();
@@ -73,7 +75,9 @@ public:
 
   bool RemovePoint( int nIndex );
 
-  void UpdatePoint( double* ras, int nIndex, bool bRebuildActors = true );
+  void UpdatePoint( int nIndex, double* ras, bool bRebuildActors = true );
+
+  void UpdatePoint( int nIndex, const QString& key, const QVariant& value);
 
   void UpdateLabelData();
 
@@ -93,6 +97,8 @@ public:
 
   void GetPoint(int nIndex, double* pt_out);
 
+  ControlPoint GetPoint(int nIndex);
+
   FSPointSet* GetPointSetData()
   {
     return m_pointSetSource;
@@ -101,6 +107,8 @@ public:
   int GetNumberOfPoints();
 
   bool GetCentroidPosition(double *pos);
+
+  bool IsEnhanced();
 
 protected slots:
   void UpdateColorMap();
@@ -111,8 +119,8 @@ protected slots:
   void RebuildActors( bool bRebuild3D = true );
 
 signals:
-  void PointAdded();
-  void PointRemoved();
+  void PointAdded(int nIndex);
+  void PointRemoved(int nIndex);
 
 protected:
   virtual void OnSlicePositionChanged( int nPlane );
@@ -130,6 +138,7 @@ protected:
   QList< PointSet > m_bufferRedo;
 
   FSPointSet*   m_pointSetSource;
+  QVariantMap   m_mapEnhancedData;
 };
 
 #endif

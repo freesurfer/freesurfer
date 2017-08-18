@@ -22,6 +22,7 @@ set surfcolor = ();
 set mainsurf = ();
 set auxsurf = ();
 set DoSurfs = 0;
+set surfext = ()
 set overlay = ();
 set overlayreg = ();
 set twfvol = ();
@@ -323,6 +324,23 @@ while( $#argv != 0 )
       set surfcolor = ($surfcolor yellow red yellow red);
       breaksw
 
+    case "-pial":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 lh.pial rh.pial)
+      set surfcolor = ($surfcolor red red);
+      breaksw
+
+    case "-white":
+      set DoSurfs = 1;
+      set surflist0 = ($surflist0 lh.white rh.white)
+      set surfcolor = ($surfcolor yellow yellow)
+      breaksw
+
+    case "-surfext":  
+      if($#argv < 1) goto arg1err;
+      set surfext = $argv[1]; shift
+      breaksw
+
     case "-crs":
       if($#argv < 3) goto arg3err;
       set CursorCRS = ($argv[1-3]);
@@ -384,7 +402,7 @@ goto parse_args_return;
 check_params:
 
 if($#subject) then
-  if($subject == getreg) then
+  if("$subject" == getreg) then
     if($#overlayreg == 0) then
       echo "ERROR: must supply regfile with getreg"
       exit 1;
@@ -453,10 +471,10 @@ if($#subject) then
     endif
   endif
   foreach surf ($surflist0)
-    if(-e $surf) then
-      set surflist = ($surflist $surf)
+    if(-e $surf$surfext) then
+      set surflist = ($surflist $surf$surfext)
     else
-      set surfpath = $SUBJECTS_DIR/$subject/surf/$surf
+      set surfpath = $SUBJECTS_DIR/$subject/surf/$surf$surfext
       set surflist = ($surflist $surfpath)
     endif
   end
@@ -536,6 +554,9 @@ usage_exit:
   echo "-crs col row slice : place cursor at given location and center FoV"
   echo "-zoom Zoom : set zoom level"
   echo "-seg2 seg3 <-seg2 seg4> : add segs beyond -seg and -aux-seg"
+  echo "-white : load {l,r}h.white"
+  echo "-pial : load {l,r}h.pial"
+  echo "-surfext ext : add ext to the name of the surface"
   echo ""
   if(! $PrintHelp) exit 1;
   echo $VERSION

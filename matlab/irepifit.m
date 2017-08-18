@@ -8,7 +8,8 @@ s = irepistruct; % copy into s for easy handling
 % s = irepitiming(s); Need to do this if fitting seq params
 
 % Need to be able to cache so not recomputing every slice
-% Need this way too for incremental
+% Need this way too for incremental (8/11/17 - not sure what I mean
+% by 'incremental'). 
 s = irepisynth(s); 
 
 s.X0 = s.yRead;

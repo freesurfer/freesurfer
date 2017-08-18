@@ -5235,186 +5235,23 @@ endif # DoLabelExvivoEC
 # For substructure segmentation of hippocampus or brainstem: check if Matlab runtime is there
 if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2 || $DoBSsubst) then
 
-  if ( ! -e ${FREESURFER_HOME}/MCRv80/bin/glnxa64/libdctprocess.so \
-    && ! -e ${FREESURFER_HOME}/MCRv80/bin/maci64/libdctprocess.jnilib  ) then
     echo "     "
-    echo "ERROR: cannot find Matlab 2012b runtime in location:"
-    echo "     "
-    echo "${FREESURFER_HOME}/MCRv80"
-    echo "     "
-    echo "It is looking for either: "
-    echo "  bin/glnxa64/libdctprocess.so    (Linux 64b) or"
-    echo "  bin/maci64/libdctprocess.jnilib (Mac 64b)"
+    echo "The -hippocampal-subfields-T1, -hippocampal-subfields-T1T2, "
+    echo "-hippocampal-subfields-T2 and -brainstem-structures flags have been replaced"
+    echo "by the scripts segmentSF_T1.sh, segmentSF_T2.sh, segmentT1T2.sh and segmentBS.sh"
+    echo "    "
+    echo "Hippocampal subfields: " 
+    echo "  segmentSF_T1.sh SubjectName "
+    echo "  segmentSF_T2.sh SubjectName FileNameAdditionalFile AnalysisID  "
+    echo "  segmentSF_T1T2.sh SubjectName FileNameAdditionalFile AnalysisID  "
+    echo "  (see further details at: https://surfer.nmr.mgh.harvard.edu/fswiki/AmygdalaAndHippocampalSubfields  )"
     echo " "
-    echo "You will need to download the Matlab Compiler Runtime (MCR) for Matlab 2012b." 
-    echo "To do so, please run the following commands (you might need root permissions):"
-    echo " "
-    echo "LINUX:"
-    echo " "
-    echo "cd ${FREESURFER_HOME}"
-    echo "curl "\""http://surfer.nmr.mgh.harvard.edu/fswiki/MatlabRuntime?action=AttachFile&do=get&target=runtime2012bLinux.tar.gz"\"" -o "\""runtime2012b.tar.gz"\"""
-    echo "tar xvf runtime2012b.tar.gz"
-    echo " "
-    echo "MAC:"
-    echo " "
-    echo "cd ${FREESURFER_HOME}"
-    echo "curl "\""http://surfer.nmr.mgh.harvard.edu/fswiki/MatlabRuntime?action=AttachFile&do=get&target=runtime2012bMAC.tar.gz"\"" -o "\""runtime2012b.tar.gz"\"""
-    echo "tar xvf runtime2012b.tar.gz"
-    echo " "
-    echo " "
-    echo "For further details, please visit:"
-    echo "     "
-    echo "https://surfer.nmr.mgh.harvard.edu/fswiki/MatlabRuntime"
-    echo " "
-    goto error_exit;
-  endif
-endif
+    echo "Brainstem substructures: "
+    echo "  segmentBS.sh SubjectName "
+    echo "   "
+    echo "  (see https://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures  ) "
+    echo "   "
 
-# brainstem structures: make sure required files from from default freesurfer processing are in there
-if ($DoBSsubst) then 
-  if (! -e ${subjdir}/mri/aseg.mgz || \
-      ! -e ${subjdir}/mri/norm.mgz ) then
-    echo "ERROR: cannot find norm.mgz or aseg.mgz for the subject."
-    echo "ERROR: Maybe, run recon-all again or disable segmentation of brainstem substructures."
-    goto error_exit;
-  endif #checking of aseg.mgz and norm.mgz 
-endif
-
-# hippocampal subfields: make sure required files from default freesurfer processing are in there, and convert hemilist
-if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2) then 
-  if (! -e ${subjdir}/mri/wmparc.mgz || \
-      ! -e ${subjdir}/mri/norm.mgz || \
-      ! -e ${subjdir}/mri/transforms/talairach.xfm ) then
-    echo "ERROR: cannot find wmparc.mgz or aseg.mgz or talairach.xfm for the subject."
-    echo "ERROR: Maybe, run recon-all again or disable hippocampal subfields processing."
-    goto error_exit;
-  endif #checking of wmparc.mgz, norm.mgz and talairach.xfm
-
-  # these tools assume 'left' and 'right' instead of our usual 'lh' and 'rh'
-  if($#hemilist == 1) then
-    if ("$hemilist" == "lh") set hippohemilist=(left)
-    if ("$hemilist" == "rh") set hippohemilist=(right)
-  else
-    set hippohemilist=(left right)
-  endif
-endif
-
-
-#--------------                        -----------------#
-##-----------   -brainstem-structures  -----------------#
-#--------------                        -----------------#
-if($DoBSsubst) then
-  set BSSLOG = ($subjdir/scripts/brainstem-structures.log)
-  rm -f $BSSLOG
-  echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF |& tee -a $BSSLOG
-  echo "#@# Segmentation of brainstem substructures  `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $BSSLOG
-
-  # segmentation of brainstem structures
-  set cmd = ( ${FREESURFER_HOME}/bin/segmentBS.sh \
-    ${FREESURFER_HOME}/MCRv80 \
-    $FREESURFER_HOME \
-    $subjid  \
-    $SUBJECTS_DIR )
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  echo "See log file: $BSSLOG"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $BSSLOG
-  if($status) goto error_exit;
-
-  echo $cmd > $touchdir/brainstem-structures.touch
-endif
-
-#--------------                        -----------------#
-##-----------   -hippocampal-subfields-T1  -------------#
-#--------------                        -----------------#
-if($DoHippoSF_T1) then
-  set HSFLOG = ($subjdir/scripts/hippocampal-subfields-T1.log)
-  rm -f $HSFLOG
-
-  # do hippocampal processing using just T1 data
-  foreach hemi ($hippohemilist)
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-    echo "#@# Hippocampal Subfields processing (T1 only) $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-    
-    set cmd = ( ${FREESURFER_HOME}/bin/segmentSF_T1.sh \
-      ${FREESURFER_HOME}/MCRv80 \
-      $FREESURFER_HOME \
-      $subjid  \
-      $SUBJECTS_DIR \
-      $hemi )
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    echo "See log file: $HSFLOG"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $HSFLOG
-    if($status) goto error_exit;
-  end
-
-  echo $cmd > $touchdir/hippo-subfields-T1.touch
-endif
-
-#--------------                        -----------------#
-##------------- -hippocampal-subfields-T1T2  -----------#
-#--------------                        -----------------#
-if($DoHippoSF_T1T2) then 
-  set HSFLOG = ($subjdir/scripts/hippocampal-subfields-T1T2.log)
-  rm -f $HSFLOG
-
-  # do hippocampal processing
-  foreach hemi ($hippohemilist)
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-    echo "#@# Hippocampal Subfields processing (T1 + T2 volume) $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-
-    set cmd = ( ${FREESURFER_HOME}/bin/segmentSF_T1T2.sh \
-      ${FREESURFER_HOME}/MCRv80 \
-      $FREESURFER_HOME \
-      $subjid  \
-      $SUBJECTS_DIR \
-      $T2volHippoSF \
-      $hemi \
-      $UserSuffix )
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    echo "See log file: $HSFLOG"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $HSFLOG
-    if($status) goto error_exit;
-  end
-
-  echo $cmd > $touchdir/hippo-subfields-T1T2.touch
-endif
-
-#--------------                        -----------------#
-##------------- -hippocampal-subfields-T2  -------------#
-#--------------                        -----------------#
-if($DoHippoSF_T2) then 
-
-  set HSFLOG = ($subjdir/scripts/hippocampal-subfields-T2.log)
-  rm -f $HSFLOG
-  
-  # do hippocampal processing
-  foreach hemi ($hippohemilist)
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-    echo "#@# Hippocampal Subfields processing (T2 only) $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-
-    set cmd = ( ${FREESURFER_HOME}/bin/segmentSF_T2.sh \
-      ${FREESURFER_HOME}/MCRv80 \
-      $FREESURFER_HOME \
-      $subjid  \
-      $SUBJECTS_DIR \
-      $T2volHippoSF \
-      $hemi \
-      $UserSuffix )
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    echo "See log file: $HSFLOG"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $HSFLOG
-    if($status) goto error_exit;
-  end
-  
-  echo $cmd > $touchdir/hippo-subfields-T2.touch
 endif
 
 
@@ -7673,27 +7510,6 @@ check_params:
     goto error_exit;
   endif
 
-  if($DoHippoSF_T1T2 || $DoHippoSF_T2) then
-    if(! -e "$T2volHippoSF") then
-      echo "ERROR: cannot find $T2volHippoSF"
-      goto error_exit;
-    endif
-    if (-d "$T2volHippoSF") then
-      echo "ERROR: You cannot give the hippocampal subfield segmentation a folder as an input. It must be an image file."
-      goto error_exit;
-    endif
-    if(! -r "$T2volHippoSF") then
-      echo "ERROR: $T2volHippoSF exists but is not readable"
-      goto error_exit;
-    endif
-    set InVolDir  = `dirname  "$T2volHippoSF"`;
-    set InVolBase = `basename "$T2volHippoSF"`;
-    pushd $InVolDir > /dev/null
-    set InVolDir = `pwd`;
-    popd > /dev/null
-    set T2volHippoSF = "$InVolDir/$InVolBase";
-  endif
-
   if($UseCuda || $GetCuda) then
     # test a binary
     echo "Testing for CUDA device:"
@@ -8437,36 +8253,26 @@ Run times are approximate for an Intel Xeon E5-2643 64bit 3.4GHz processor:
 If -parallel is specified, runtime is reduced to 3 hours.
 
 
-SEGMENTATION OF HIPPOCAMPAL SUBFIELDS 
+SEGMENTATION OF HIPPOCAMPAL SUBFIELDS AND NUCLEI OF THE AMYGDALA 
 
-The following flags can be used to obtain a segmentation of the hippocampal subfields.
-The method is described in [17], and you can find further information here:
-http://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfields
+The following scripts can be used to obtain a segmentation of the hippocampal subfields
+and the nuclei of the amygdala. These methods are described in [17] (hippocampus) and
+[18] (amygdala). You can find further information here:
+http://surfer.nmr.mgh.harvard.edu/fswiki/AmygdalaAndHippocampalSubfields
 
--hippocampal-subfields-T1 
-
-It uses the T1 scan which the recon-all stream has processed at 1 mm resolution or higher (with -cm). 
-
--hippocampal-subfields-T2 file ID
-
-Instead of the main T1 scan, it uses an additional scan ('file'), typically (but not necessarily)
-a T2 volume with higher resolution, at least in the coronal plane. It also requires a second
-argument ('ID'), which  uniquely identifies the output in the mri directory; this is useful when
-different additional volumes are tried in this mode, in order to prevent files from being overwritten
-
--hippocampal-subfields-T1T2 file ID
-
-This mode is very similar to the previous one, with the only difference that the main T1 and the 
-additional volumes are used simultaneously in the segmentation.
+segmentSF_T1.sh SubjectName
+segmentSF_T2.sh SubjectName FileNameAdditionalFile AnalysisID 
+segmentSF_T1T2.sh SubjectName FileNameAdditionalFile AnalysisID
 
 
 SEGMENTATION OF BRAINSTEM STRUCTURES
 
--brainstem-structures
+This script performs segmentation of brains structures (medulla, pons, midbrain, SCP) on the T1 scan which the 
+recon-all stream has processed, at 1 mm or higher resolution (with -cm). The method is described in [19];
+you can read more at: 
+http://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures
 
-Performs segmentation of brains structures (medulla, pons, midbrain, SCP) on the T1 scan which the 
-recon-all stream has processed, at 1 mm or higher resolution (with -cm). The method is described in [18];
-you can read more at: http://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures
+segmentBS.sh SubjectName
 
 
 EXPERT PREFERENCES
@@ -9403,7 +9209,9 @@ A computational atlas of the hippocampal formation using ex vivo, ultra-high res
 MRI: Application to adaptive segmentation of in vivo MRI.  Neuroimage 115, 2015, 117-137. 
 http://dx.doi.org/10.1016/j.neuroimage.2015.04.042
 
-[18] Iglesias, J.E., Van Leemput, K., Bhatt, P., Casillas, C., Dutt, S., Schuff, N.,
+[18] Saygin, Z.M., Kliemann, D. (joint 1st authors), Iglesias, J.E., van der Kouwe, A.J.W., Boyd, E., Reuter, M., Stevens, A., Van Leemput, K., McKee, A., Frosch, M.P., Fischl, B., Augustinack, J.C., High-resolution magnetic resonance imaging reveals nuclei of the human amygdala: manual segmentation to automatic atlas, NeuroImage, in press.
+
+[19] Iglesias, J.E., Van Leemput, K., Bhatt, P., Casillas, C., Dutt, S., Schuff, N.,
 Truran-Sacrey, D., Boxer, A., and Fischl, B., Bayesian segmentation of brainstem 
 structures in MRI. Neuroimage 113, 2015, 184-195.
 http://dx.doi.org/10.1016/j.neuroimage.2015.02.065
