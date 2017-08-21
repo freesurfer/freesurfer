@@ -1013,6 +1013,7 @@ usage_exit:
   echo " --no-out-annot : do not output a cluster annotation"
   echo " --no-cluster-mean : do not compute means of each subject in each cluster (was --no-y)"
   echo " --y yFile : use yFile instead of determining yFile from glmdir"
+  echo " --centroid : report the coordinates/annotation of the centroid instead of max"
   echo " --help"
   echo ""
 
