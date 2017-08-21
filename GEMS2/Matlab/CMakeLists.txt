@@ -39,7 +39,7 @@ CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
 
 SET( runnerName "ReadCroppedImage" )
-SET( runnerNumberOfOutputs "2" )
+SET( runnerNumberOfOutputs "4" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
 

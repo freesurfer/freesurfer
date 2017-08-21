@@ -50,6 +50,7 @@ public:
     AtlasMeshCollection::Pointer  meshCollection = const_cast< kvl::AtlasMeshCollection* >( constMeshCollection.GetPointer() );
     
     
+#if 0    
     // Make sure we're not trying to write positions of non-existing meshes in the collection
     if ( meshCollection->GetNumberOfMeshes() < ( nrhs-2 ) )
       {
@@ -96,6 +97,60 @@ public:
         } // End loop over all points
         
       } // End loop over all positions 
+      
+#else
+    
+    // Loop over all input position matrices, copy their content into the correct format, 
+    // and save
+    AtlasMeshCollection::PointsContainerType::Pointer  referencePosition = 0;
+    std::vector< AtlasMeshCollection::PointsContainerType::Pointer >  positions;
+    for ( int meshNumber = -1; meshNumber < ( nrhs-2 ); ++meshNumber )
+      {
+      // Get pointer to the Matlab data
+      const int  numberOfNodes = mxGetDimensions( prhs[ meshNumber+2 ] )[ 0 ];
+      if ( numberOfNodes != meshCollection->GetReferencePosition()->Size() )
+        {
+        mexErrMsgTxt( "Number of nodes don't match" );
+        }
+      const double*  data = static_cast< double* >( mxGetData( prhs[ meshNumber+2 ] ) ); 
+
+      // Copy the coordinates from the Matlab matrix into a mesh node position container
+      AtlasMeshCollection::PointsContainerType::Pointer  position 
+                                           = AtlasMeshCollection::PointsContainerType::New();
+
+      for ( AtlasMesh::PointsContainer::ConstIterator  it = meshCollection->GetReferencePosition()->Begin(); 
+            it != meshCollection->GetReferencePosition()->End(); ++it, ++data )
+        {
+        AtlasMesh::PointType  point;
+        for ( int i = 0; i < 3; i++ )
+          {
+          point[ i ] = *( data + i * numberOfNodes );  
+          } // End loop over x,y,z directions
+
+        position->InsertElement( it.Index(), point );
+        } // End loop over all points
+        
+      // Save the mesh node position container for later use
+      if ( meshNumber < 0 )
+        {
+        referencePosition = position;
+        }
+      else
+        {
+        positions.push_back( position );
+        }  
+        
+
+        
+      } // End loop over all input positions matrices
+    
+    
+    // Now set the reference position and and mesh positions
+    meshCollection->SetReferencePosition( referencePosition );
+    meshCollection->SetPositions( positions );
+    
+    
+#endif
     
     }
   
