@@ -103,7 +103,7 @@ end
 % Also read in the voxel spacing -- this is needed since we'll be specifying bias field smoothing kernels, downsampling 
 % steps etc in mm.
 [ ~, imageToWorldTransform ] = kvlReadImage( imageFileNames{1} );
-imageToWorldTransformMatrix = double( kvlGetTransformMatrix( imageToWorldTransform ) );
+imageToWorldTransformMatrix = kvlGetTransformMatrix( imageToWorldTransform );
 voxelSpacing = sum( imageToWorldTransformMatrix( 1 : 3, 1 : 3 ).^2 ).^( 1/2 );
 
 
