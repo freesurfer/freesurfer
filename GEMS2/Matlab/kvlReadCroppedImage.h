@@ -50,7 +50,6 @@ public:
     reader->SetExtraFraction( 0.0 );
     reader->Read( imageFileName.c_str(), boundingFileName.c_str() );
     
-
     // Convert the image to float
     typedef itk::Image< float, 3 >  ImageType;
     typedef itk::CastImageFilter< kvl::CroppedImageReader::ImageType, ImageType >  CasterType;
