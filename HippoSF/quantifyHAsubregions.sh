@@ -14,22 +14,24 @@ function doIt {
 }
 
 
-if [ $# -le 1 ]; then
-  echo "Usage: $0 suffix outputFile [subjectsDirectory]"
+if [ $# -le 2 ]; then
+  echo "Usage: $0 prefix suffix outputFile [subjectsDirectory]"
   exit -1
 fi
 
-
-suffix=$1
-outputfile=$2;
+prefix=$1
+suffix=$2
+outputfile=$3;
 resultsDirectory=$SUBJECTS_DIR
-if [ $# -ge 3 ]; then
-  resultsDirectory=$3
+if [ $# -ge 4 ]; then
+  resultsDirectory=$4
 fi
 
 # Show what we have
 echo "Gathering results from subjects in: "
 echo "   $resultsDirectory "
+echo "Using the prefix name: "
+echo "   $prefix"
 echo "Using the suffix name: "
 echo "   $suffix"
 echo "And writing them to: "
@@ -54,8 +56,8 @@ for i in `eval echo {1..$numberOfSubjects}`; do
   subjectName=`echo "${subjectName//\/}"` # strips the /
 
   # Files with volumes
-  leftVolFile="$resultsDirectory/$subjectName/mri/lh.hippoSfVolumes-${suffix}.v10.txt"
-  rightVolFile="$resultsDirectory/$subjectName/mri/rh.hippoSfVolumes-${suffix}.v10.txt"
+  leftVolFile="$resultsDirectory/$subjectName/mri/lh.${suffix}Volumes-${suffix}.v20.txt"
+  rightVolFile="$resultsDirectory/$subjectName/mri/rh.${suffix}Volumes-${suffix}.v20.txt"
 
   # If they exist, collect data
   if [ -f $leftVolFile ] && [ -f $rightVolFile ]; then
