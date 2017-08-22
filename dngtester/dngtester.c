@@ -39,6 +39,26 @@
 #include <omp.h>
 #endif
 
+
+typedef struct {
+  MRIS **surfs;
+  MHT **hashes;
+  int nsurfs;
+  MRI *template;
+  double dmax;
+  LTA *vol2surf; // set to null to use header reg
+  MATRIX *volcrs2surfxyz;
+  LABEL **labels;
+  int vertex_type; // eg, CURRENT_VERTICES
+  float hashres; // eg, 16
+  int debug;
+}  LABEL2SURF;
+LABEL2SURF *L2Salloc(int nsurfs, char *subject);
+int L2Sinit(LABEL2SURF *l2s);
+int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int Operation);
+int L2SaddVoxelFill(LABEL2SURF *l2s, double col, double row, double slice, int Operation, int nsegs);
+int L2Sfree(LABEL2SURF **pl2s);
+
 typedef struct {
   int vtxno; // surface vertex no
   int volindex; // voxel index from volume
@@ -64,13 +84,44 @@ Geodesics *VtxVolPruneGeod(Geodesics *geod, int vtxno, MRI *volindex);
 /*----------------------------------------*/
 int main(int argc, char **argv) 
 {
-  MRIS *surf;
+  MRIS *surf, *surf2;
   int msec, nvertices; //vtxno=0;
   struct timeb  mytimer;
   MRI *mri, *mriindex, *mri2;
   Geodesics *geod;
   float maxdist;
   double d;
+  int c,r,s;
+  LABEL2SURF *l2s;
+  LTA *lta;
+
+  vg_isEqual_Threshold = 10e-4;
+
+  mri  = MRIread(argv[1]);
+  surf = MRISread(argv[2]);
+  surf2 = MRISread(argv[3]);
+  lta = LTAread(argv[4]);
+  l2s = L2Salloc(2, "");
+  l2s->template = mri;
+  l2s->surfs[0] = surf;
+  l2s->surfs[1] = surf2;
+  l2s->dmax = 100;
+  l2s->hashres = 16;
+  l2s->vertex_type = CURRENT_VERTICES;
+  l2s->vol2surf = lta;
+  L2Sinit(l2s);
+  s = 17;
+  for(c = 0; c < mri->width; c++){
+    for(r = 0; r < mri->height; r++){
+      L2SaddVoxelFill(l2s, c, r, s, 1, 7);
+    }
+  }
+  LabelWrite(l2s->labels[0],"./my.label0");
+  LabelWrite(l2s->labels[1],"./my.label1");
+  L2Sfree(&l2s);
+
+  exit(0);
+
 
   // good vertex on the lateral side 108489
   omp_set_num_threads(10);
@@ -534,3 +585,274 @@ Geodesics *VtxVolPruneGeod(Geodesics *geod, int vtxno, MRI *volindex)
 //LABEL *LabelAddVoxelToSurfLabel(MRIS *surf, LTA *lta, MRI *vol, int col, int row, int slice, double dmax, LABEL *slabel) 
 //{
 //}
+
+LABEL2SURF *L2Salloc(int nsurfs, char *subject)
+{
+  int n;
+  LABEL2SURF *l2s;
+  l2s = (LABEL2SURF *) calloc(sizeof(LABEL2SURF),1);
+  l2s->surfs  = (MRIS **) calloc(sizeof(MRIS*),nsurfs);
+  l2s->hashes = (MHT **)  calloc(sizeof(MHT*), nsurfs);
+  l2s->nsurfs = nsurfs;
+  l2s->labels = (LABEL **) calloc(sizeof(LABEL*), nsurfs);
+  for(n=0; n < nsurfs; n++) l2s->labels[n] = LabelAlloc(100,subject,NULL);
+  l2s->vertex_type = CURRENT_VERTICES;
+  return(l2s);
+}
+int L2Sfree(LABEL2SURF **pl2s)
+{
+  int n;
+  LABEL2SURF *l2s = *pl2s;
+
+  free(l2s->surfs);
+  for(n = 0; n < l2s->nsurfs; n++){
+    if(l2s->hashes[n] == NULL) continue;
+    MHTfree(&l2s->hashes[n]);
+    LabelFree(&l2s->labels[n]);
+  }
+  MatrixFree(&l2s->volcrs2surfxyz);
+  free(l2s);
+  return(0);
+}
+
+/*!
+  \fn int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int Operation)
+  \brief Adds (Operation==1) or removes (Operation!=1) a voxel from a label based
+  on its proximity to a surface. The caller must have run L2Salloc() and L2Sinit() and
+  set the appropriate variables in the L2S structure. There is a label for each 
+  surface. If the CRS is within dmax to a surface, then it is assigned to the label
+  of the closest surface. This allows a label to be assigned, for example, to the lh
+  but not the rh if both lh and rh surfaces are included. It could be used for other
+  apps. 
+*/
+int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int Operation)
+{
+  int n,nmin,vtxnominmin,vtxno;
+  VERTEX v;
+  static MATRIX *crs=NULL, *ras=NULL;
+  float dminsurf,dminmin;
+  LV *lv;
+  LABEL *label;
+
+  if(crs==NULL) {
+    crs = MatrixAlloc(4,1,MATRIX_REAL);
+    crs->rptr[4][1] = 1;
+  }
+  crs->rptr[1][1] = col;
+  crs->rptr[2][1] = row;
+  crs->rptr[3][1] = slice;
+
+  // Compute the TkReg RAS of this CRS in the surface volume space
+  ras = MatrixMultiplyD(l2s->volcrs2surfxyz,crs,ras);
+
+  // Load it into a vertex structure
+  v.x = ras->rptr[1][1];
+  v.y = ras->rptr[2][1];
+  v.z = ras->rptr[3][1];
+  if(l2s->debug) printf("%g %g %g   (%5.2f %5.2f %5.2f)\n",col,row,slice,v.x,v.y,v.z);
+
+  // Go through each surface to find the surface and vertex in the surface that
+  // the CRS is closest to. 
+  dminmin = 10e10;
+  vtxnominmin = -1;
+  nmin = -1;
+  for(n = 0; n < l2s->nsurfs; n++){
+    vtxno = MHTfindClosestVertexNo(l2s->hashes[n],l2s->surfs[n],&v,&dminsurf);
+    if(vtxno >= 0){
+      if(l2s->debug) printf("%3d %6d (%5.2f %5.2f %5.2f) %g\n",n,vtxno,
+	     l2s->surfs[n]->vertices[vtxno].x,l2s->surfs[n]->vertices[vtxno].y,l2s->surfs[n]->vertices[vtxno].z,
+	     dminsurf);
+    }
+    // should check whether there was a hash error?
+    if(dminsurf < dminmin && dminsurf < l2s->dmax){
+      dminmin = dminsurf;
+      vtxnominmin = vtxno;
+      nmin = n;
+    }
+  }
+
+  // If it does not meet the distance criteria, then return
+  if(vtxnominmin == -1) return(0);
+
+  // Select the label of the winning surface
+  label = l2s->labels[nmin];
+
+  if(Operation == 1){ // Add vertex to label
+    // If the vertex is already in the label, just return
+    for(n = 0; n < label->n_points; n++){
+      lv = &(label->lv[n]);
+      if(lv->vno == vtxnominmin) return(0); // already there
+    }
+    // If it gets here, then add the vertex
+    if(l2s->debug) printf("Adding surf=%d vtxno=%d %g %g %g   (%5.2f %5.2f %5.2f)\n",
+	   nmin,vtxnominmin,col,row,slice,v.x,v.y,v.z);
+
+    // Check whether need to alloc more points in label
+    if(label->n_points >= label->max_points)
+      LabelRealloc(label, nint(label->max_points*1.5)) ;
+    
+    // Finally, add this point
+    lv = &(label->lv[label->n_points]);
+    lv->vno = vtxnominmin;
+    lv->x = l2s->surfs[nmin]->vertices[vtxnominmin].x;
+    lv->y = l2s->surfs[nmin]->vertices[vtxnominmin].y;
+    lv->z = l2s->surfs[nmin]->vertices[vtxnominmin].z;
+    lv->stat = dminmin;
+
+    // Incr the number of points
+    label->n_points++;
+  }
+  else { // Remove vertex from label
+    // If the vertex is not already in the label, just return
+    int there = 0;
+    for(n = 0; n < label->n_points; n++){
+      lv = &(label->lv[n]);
+      if(lv->vno == vtxnominmin) {
+	there = 1;
+	break;
+      }
+      if(!there) return(0); // not there
+    }
+    // If it gets here, then remove the vertex by copying the last
+    // point into this point, then decrementing the number of points
+    if(l2s->debug) printf("Removing surf=%d vtxno=%d %g %g %g   (%5.2f %5.2f %5.2f)\n",
+	   nmin,vtxnominmin,col,row,slice,v.x,v.y,v.z);
+    memcpy(&label->lv[n],&(label->lv[label->n_points-1]),sizeof(LV));
+    label->n_points --;
+  }
+
+  return(vtxnominmin);
+}
+
+
+/*!
+  \fn int L2Sinit(LABEL2SURF *l2s)
+  \brief Initializes the L2S structure. The caller must have run
+  L2Salloc() and set the surfs and vol2surf structures. If a header
+  registration is good enough, then set vol2surf=NULL. Note that
+  vol2surf can go in either direction; the function will determine
+  which way to go from the template volume and surface vg geometries
+*/
+int L2Sinit(LABEL2SURF *l2s)
+{
+  int n;
+
+  // initialize hashes 
+  for(n = 0; n < l2s->nsurfs; n++){
+    l2s->hashes[n] = MHTfillVertexTableRes(l2s->surfs[n], NULL,
+					   l2s->vertex_type,l2s->hashres);
+    if(l2s->hashes[n] == NULL){
+      printf("ERROR: L2Sinit(): MHTfillVertexTableRes() failed\n");
+      return(-1);
+    }
+  }
+
+  // compute the matrix that maps the template volume CRS to surface RAS
+  // volcrs2surfxyz = K*inv(Vs)*R*Vv
+  MATRIX *K,*Vs,*invVs,*Vv,*R;
+  LTA *lta;
+  K = TkrVox2RASfromVolGeom(&l2s->surfs[0]->vg); // vox2tkras of surface
+  Vs = vg_i_to_r(&l2s->surfs[0]->vg); // vox2scanneras of surface
+  Vv = MRIxfmCRS2XYZ(l2s->template,0); // vox2scanneras of template volume
+  invVs = MatrixInverse(Vs,NULL);
+  if(l2s->vol2surf == NULL) R = MatrixIdentity(4,NULL);
+  else {
+    // A registration LTA has been passed, make sure it is consisent
+    // with the input geometries and that it points in the right
+    // direction.  Note that these function use the global
+    // vg_isEqual_Threshold variable which should be set to something
+    // small, like 10^-4
+    int DoInvert=0;
+    VOL_GEOM vgvol;
+    getVolGeom(l2s->template, &vgvol);
+    if(!vg_isEqual(&vgvol, &(l2s->vol2surf->xforms[0].src))){
+      // The src does not match the template, so try the dst
+      if(!vg_isEqual(&l2s->surfs[0]->vg, &(l2s->vol2surf->xforms[0].src))){
+	printf("ERROR: L2Sinit(): neither registration vgs match template %g\n",vg_isEqual_Threshold);  
+	return(-1);
+      }
+      // Verify that the template matches the dst
+      if(!vg_isEqual(&vgvol, &(l2s->vol2surf->xforms[0].dst))){
+	printf("ERROR: L2Sinit(): registration does not match volume vg %g\n",vg_isEqual_Threshold);
+	return(-1);
+      }
+      DoInvert = 1;
+    }
+    else{
+      // The source matches, but does the target?
+      if(!vg_isEqual(&l2s->surfs[0]->vg, &(l2s->vol2surf->xforms[0].dst))){
+	printf("ERROR: L2Sinit(): registration does not match surface vg %g\n",vg_isEqual_Threshold);
+	return(-1);
+      }
+    }
+    // Copy the LTA
+    lta = LTAcopy(l2s->vol2surf,NULL);
+    // Make sure the type is RAS2RAS
+    LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+    if(DoInvert){
+      if(l2s->debug) printf("L2Sinit(): inverting reg\n");
+      R = MatrixInverse(lta->xforms[0].m_L,NULL);
+    }
+    else R = MatrixCopy(lta->xforms[0].m_L,NULL);
+    LTAfree(&lta);
+  }
+  // Now finally compute it
+  l2s->volcrs2surfxyz = MatrixMultiplyD(K,invVs,NULL);
+  MatrixMultiplyD(l2s->volcrs2surfxyz,R,l2s->volcrs2surfxyz);
+  MatrixMultiplyD(l2s->volcrs2surfxyz,Vv,l2s->volcrs2surfxyz);
+  if(l2s->debug){
+    printf("L2Sinit(): \n");
+    printf("K = [\n");
+    MatrixPrint(stdout,K);
+    printf("];\n");
+    printf("invVs = [\n"); 
+    MatrixPrint(stdout,invVs);
+    printf("];\n");
+    printf("R = [\n");
+    MatrixPrint(stdout,R);
+    printf("];\n");
+    printf("Vv = [\n");
+    MatrixPrint(stdout,Vv);
+    printf("];\n");
+    printf("volcrs2surfxyz = [\n");
+    MatrixPrint(stdout,l2s->volcrs2surfxyz);
+    printf("];\n");
+  }
+  MatrixFree(&K);
+  MatrixFree(&Vs);
+  MatrixFree(&Vv);
+  MatrixFree(&invVs);
+  MatrixFree(&R);
+
+  return(0);
+}
+
+int L2SaddVoxelFill(LABEL2SURF *l2s, double col, double row, double slice, int Operation, int nsegs)
+{
+  double c, r, s, dseg;
+  int ret, kc, kr, ks;
+
+  if(nsegs == 1){
+    ret = L2SaddVoxel(l2s, c, r, s, Operation);
+    return(ret);
+  }
+
+  dseg = 1.0/(nsegs-1);
+
+  for(kc=0; kc < nsegs; kc++){
+    c = col + kc*dseg - 0.5;
+    for(kr=0; kr < nsegs; kr++){
+      r = row + kr*dseg - 0.5;
+      for(ks=0; ks < nsegs; ks++){
+	s = slice + ks*dseg - 0.5;
+	ret = L2SaddVoxel(l2s, c, r, s, Operation);
+	if(ret < 0) return(ret);
+      }
+    }
+  }
+  // Make sure to add the center voxel
+  ret = L2SaddVoxel(l2s, col, row, slice, Operation);
+
+  return(ret);  
+}
+
