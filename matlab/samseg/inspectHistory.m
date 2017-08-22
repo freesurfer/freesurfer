@@ -154,7 +154,7 @@ colors = [  128 0 128 0; ...
 DIM = size( history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).downSampledImageBuffers( :, :, :, 1 ) );
 downSampledMaskIndices = find( history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).downSampledMask );
 dataImage = history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).downSampledImageBuffers( :, :, :, 1 );
-dataImage = exp( dataImage / 1000 );
+dataImage = exp( dataImage );
 while true
   % for i = [ 1 length( history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).historyOfCost ) ]
   %  tmp = history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).historyWithinEachIteration(i).priors;
