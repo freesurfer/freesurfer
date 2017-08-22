@@ -5222,39 +5222,6 @@ if ($DoLabelExvivoEC) then
 endif # DoLabelExvivoEC
 
 
-#--------------                        -----------------#
-#--------------  Hippocampal Subfields -----------------#
-##-----------   -hippocampal-subfields-T1  -------------#
-##-----------   -hippocampal-subfields-T1T2  -----------#
-##-----------   -hippocampal-subfields-T2  -------------#
-#--------------                        -----------------#
-#--------------  Brainstem Substructures ---------------#
-##-----------   -brainstem-structures  -----------------#
-#--------------                        -----------------#
-
-# For substructure segmentation of hippocampus or brainstem: check if Matlab runtime is there
-if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2 || $DoBSsubst) then
-
-    echo "     "
-    echo "The -hippocampal-subfields-T1, -hippocampal-subfields-T1T2, "
-    echo "-hippocampal-subfields-T2 and -brainstem-structures flags have been replaced"
-    echo "by the scripts segmentSF_T1.sh, segmentSF_T2.sh, segmentT1T2.sh and segmentBS.sh"
-    echo "    "
-    echo "Hippocampal subfields: " 
-    echo "  segmentSF_T1.sh SubjectName "
-    echo "  segmentSF_T2.sh SubjectName FileNameAdditionalFile AnalysisID  "
-    echo "  segmentSF_T1T2.sh SubjectName FileNameAdditionalFile AnalysisID  "
-    echo "  (see further details at: https://surfer.nmr.mgh.harvard.edu/fswiki/AmygdalaAndHippocampalSubfields  )"
-    echo " "
-    echo "Brainstem substructures: "
-    echo "  segmentBS.sh SubjectName "
-    echo "   "
-    echo "  (see https://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures  ) "
-    echo "   "
-
-endif
-
-
 #--------                          --------#
 #-------- Local Gyrification Index --------#
 ##-------           -lgi           --------#
@@ -7925,6 +7892,55 @@ check_params:
     exit(1);
   endif
 
+
+#--------------                        -----------------#
+#--------------  Hippocampal Subfields -----------------#
+##-----------   -hippocampal-subfields-T1  -------------#
+##-----------   -hippocampal-subfields-T1T2  -----------#
+##-----------   -hippocampal-subfields-T2  -------------#
+#--------------                        -----------------#
+#--------------  Brainstem Substructures ---------------#
+##-----------   -brainstem-structures  -----------------#
+#--------------                        -----------------#
+# In July 2017, Eugenio and Zeke decied to move this    #
+# code out of recon-all into scripts ones calls from    #
+# the command line. We still keep the flags here, and   #
+# redirect the user to the appropriate script.          #
+
+
+if ($DoBSsubst) then 
+  echo " "
+  echo "ERROR: the brainstem module is now a separate script: segmentBS.sh"
+  echo " "
+  echo "For help, please execute the script with the flag --help: "
+  echo " "
+  echo "     segmentBS.sh --help"
+  echo " "
+  echo "or visit the following page: "
+  echo " "
+  echo "https://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures"
+  echo " "
+  goto error_exit;
+endif
+
+if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2) then 
+  echo " "
+  echo "ERROR: the hippocampal subfield module is now in separate scripts:"
+  echo "  segmentSF_T1.sh"
+  echo "  segmentSF_T2.sh"
+  echo " "
+  echo "For help, please execute the corresponding script  with the flag --help: "
+  echo " "
+  echo "     segmentSF_T1.sh --help"
+  echo "     segmentSF_T2.sh --help"
+  echo " "
+  echo "or visit the following page: "
+  echo " "
+  echo "https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfieldsAndNucleiOfAmygdala" 
+  echo " "
+  goto error_exit;
+endif
+
 #-------------------------------------------------#
 goto check_params_return;
 #-------------------------------------------------#
@@ -8253,26 +8269,47 @@ Run times are approximate for an Intel Xeon E5-2643 64bit 3.4GHz processor:
 If -parallel is specified, runtime is reduced to 3 hours.
 
 
-SEGMENTATION OF HIPPOCAMPAL SUBFIELDS AND NUCLEI OF THE AMYGDALA 
+SEGMENTATION OF HIPPOCAMPAL SUBFIELDS  AND NUCLEI OF THE AMYGDALA (CROSS-SECTIONAL AND LONGITUDINAL)
 
-The following scripts can be used to obtain a segmentation of the hippocampal subfields
-and the nuclei of the amygdala. These methods are described in [17] (hippocampus) and
-[18] (amygdala). You can find further information here:
-http://surfer.nmr.mgh.harvard.edu/fswiki/AmygdalaAndHippocampalSubfields
+The following flags can be used to obtain a segmentation of the hippocampal subfields,
+as well as of the nuclei of the amygdala.
+The methods are described in [17] (hippocampus) and [19] (amygdala). There is also a
+longitudinal version of the algorithm [20]. You can find further information here:
+https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfieldsAndNucleiOfAmygdala
 
-segmentSF_T1.sh SubjectName
-segmentSF_T2.sh SubjectName FileNameAdditionalFile AnalysisID 
-segmentSF_T1T2.sh SubjectName FileNameAdditionalFile AnalysisID
+Note that the following 6.0 flags have been deprecated:
+
+-hippocampal-subfields-T1
+-hippocampal-subfields-T2 
+-hippocampal-subfields-T1T2 
+
+And replaced by the following scripts (for help, run them with flag --help): 
+
+segmentSF_T1.sh: Uses the T1 scan which the recon-all stream has processed at 1 mm 
+resolution or higher (with -cm).
+
+segmentSF_T2.sh: It uses an additional scan in the segmentation, typically  (but
+not necessarily) a T2 volume with higher resolution, at least in the coronal plane. 
+This additional scan can be used in isolation or in combination with the T1 volume
+processed with recon-all
+
+segmentSF_T1_long.sh: This is the longitudinal version of segmentSF_T1.sh.
 
 
 SEGMENTATION OF BRAINSTEM STRUCTURES
 
-This script performs segmentation of brains structures (medulla, pons, midbrain, SCP) on the T1 scan which the 
-recon-all stream has processed, at 1 mm or higher resolution (with -cm). The method is described in [19];
-you can read more at: 
+This module performs segmentation of brains structures (medulla, pons, midbrain, SCP) on 
+the T1 scan which the  recon-all stream has processed, at 1 mm or higher resolution (with 
+-cm). The method is described in [18]. You can read more at: 
 http://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures
 
-segmentBS.sh SubjectName
+Note that the following 6.0 flag has been deprecated:
+
+-brainstem-structures
+
+And replaced by the following script (for help, run it with flag --help): 
+
+segmentBS.sh
 
 
 EXPERT PREFERENCES
@@ -9216,7 +9253,16 @@ Truran-Sacrey, D., Boxer, A., and Fischl, B., Bayesian segmentation of brainstem
 structures in MRI. Neuroimage 113, 2015, 184-195.
 http://dx.doi.org/10.1016/j.neuroimage.2015.02.065
 
+[19] Saygin, Z.M. & Kliemann, D. (joint 1st authors), Iglesias, J.E., van der Kouwe, A.J.W.,
+Boyd, E., Reuter, M., Stevens, A., Van Leemput, K., McKee, A., Frosch, M.P., Fischl, B.,
+and Augustinack, J.C., High-resolution magnetic resonance imaging reveals nuclei of the 
+human amygdala: manual segmentation to automatic atlas. Neuroimage 155, 2017, 370-382.
+http://doi.org/10.1016/j.neuroimage.2017.04.046
 
+[20] Iglesias, J.E., Van Leemput, K., Augustinack, J., Insausti, R., Fischl, B., 
+and Reuter, M., Bayesian longitudinal segmentation of hippocampal substructures in brain MRI
+using subject-specific atlases. Neuroimage 141, 2016, 542-555. 
+http://doi.org/10.1016/j.neuroimage.2016.07.020
 
 
 
