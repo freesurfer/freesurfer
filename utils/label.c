@@ -4032,6 +4032,7 @@ LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices, in
   double  min_dist, dist, x, y, z, vx, vy, vz, dx, dy, dz ;
   VERTEX    *v ;
 
+  x=0; y=0; z=0; // Eugenio: to avoid trouble
 
   if (pnvertices)
     *pnvertices = 0 ;
