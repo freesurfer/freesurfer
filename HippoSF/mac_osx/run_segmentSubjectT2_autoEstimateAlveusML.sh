@@ -37,5 +37,6 @@ else
   rm -rf $MCR_CACHE_ROOT
 
 fi
+
 exit $returnVal
 
