@@ -41,22 +41,23 @@
 
 
 typedef struct {
-  MRIS **surfs;
-  MHT **hashes;
-  int nsurfs;
-  MRI *template;
-  double dmax;
+  MRIS **surfs; // list of surface
+  int nsurfs; // number of surfaces in list
+  MRI *template; // volume template for voxel to add
+  double dmax; // max distance in mm
   LTA *vol2surf; // set to null to use header reg
-  MATRIX *volcrs2surfxyz;
-  LABEL **labels;
+  LABEL **labels; // list of labels, one for each surface
   int vertex_type; // eg, CURRENT_VERTICES
+  MHT **hashes; // hash tables, one for each vertex
   float hashres; // eg, 16
-  int debug;
+  int nsegs; // subsample each voxel into nsegs along each dim to fill holes
+  MATRIX *volcrs2surfxyz; // precomputed matrix converts vol CRS to surface tkRAS
+  int debug; // set to 1 to print out a bunch of stuff
 }  LABEL2SURF;
 LABEL2SURF *L2Salloc(int nsurfs, char *subject);
 int L2Sinit(LABEL2SURF *l2s);
+int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Operation);
 int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int Operation);
-int L2SaddVoxelFill(LABEL2SURF *l2s, double col, double row, double slice, int Operation, int nsegs);
 int L2Sfree(LABEL2SURF **pl2s);
 
 typedef struct {
@@ -101,20 +102,28 @@ int main(int argc, char **argv)
   surf = MRISread(argv[2]);
   surf2 = MRISread(argv[3]);
   lta = LTAread(argv[4]);
+  printf("\n");
+  printf("alloc \n");
   l2s = L2Salloc(2, "");
   l2s->template = mri;
   l2s->surfs[0] = surf;
   l2s->surfs[1] = surf2;
-  l2s->dmax = 100;
+  l2s->dmax = 3;
   l2s->hashres = 16;
   l2s->vertex_type = CURRENT_VERTICES;
   l2s->vol2surf = lta;
+  l2s->nsegs = 7;
+  l2s->debug = 0;
+  printf("init \n");
   L2Sinit(l2s);
+  printf("loop \n");
   s = 17;
   for(c = 0; c < mri->width; c++){
+    printf("%2d ",c); fflush(stdout);
     for(r = 0; r < mri->height; r++){
-      L2SaddVoxelFill(l2s, c, r, s, 1, 7);
+      L2SaddVoxel(l2s, c, r, s, 1);
     }
+    printf("\n");
   }
   LabelWrite(l2s->labels[0],"./my.label0");
   LabelWrite(l2s->labels[1],"./my.label1");
@@ -572,20 +581,6 @@ Geodesics *VtxVolPruneGeod(Geodesics *geod, int vtxno, MRI *volindex)
 }
 
 
-/*
-  \fn LABEL *LabelAddVoxel(MRIS *surf, MRI *volsurf, LTA *lta, MRI *vol, int col, int row, int slice, double dmax, LABEL *slabel)
-  surf is the surface, get geom from vg field
-  lta - registration between volsurf and vol (NULL to align based on scanner coords)
-  vol is the geometry of the voxel to add
-  col, row, slice are indices of the voxel to add
-  dmax - maximum allowable distance between voxel and surface to be added to label
-  slabel - surface-based label.
- */
-
-//LABEL *LabelAddVoxelToSurfLabel(MRIS *surf, LTA *lta, MRI *vol, int col, int row, int slice, double dmax, LABEL *slabel) 
-//{
-//}
-
 LABEL2SURF *L2Salloc(int nsurfs, char *subject)
 {
   int n;
@@ -597,6 +592,7 @@ LABEL2SURF *L2Salloc(int nsurfs, char *subject)
   l2s->labels = (LABEL **) calloc(sizeof(LABEL*), nsurfs);
   for(n=0; n < nsurfs; n++) l2s->labels[n] = LabelAlloc(100,subject,NULL);
   l2s->vertex_type = CURRENT_VERTICES;
+  l2s->nsegs = 1;
   return(l2s);
 }
 int L2Sfree(LABEL2SURF **pl2s)
@@ -616,7 +612,7 @@ int L2Sfree(LABEL2SURF **pl2s)
 }
 
 /*!
-  \fn int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int Operation)
+  \fn int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Operation)
   \brief Adds (Operation==1) or removes (Operation!=1) a voxel from a label based
   on its proximity to a surface. The caller must have run L2Salloc() and L2Sinit() and
   set the appropriate variables in the L2S structure. There is a label for each 
@@ -625,7 +621,7 @@ int L2Sfree(LABEL2SURF **pl2s)
   but not the rh if both lh and rh surfaces are included. It could be used for other
   apps. 
 */
-int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int Operation)
+int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Operation)
 {
   int n,nmin,vtxnominmin,vtxno;
   VERTEX v;
@@ -730,7 +726,7 @@ int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int Opera
   \brief Initializes the L2S structure. The caller must have run
   L2Salloc() and set the surfs and vol2surf structures. If a header
   registration is good enough, then set vol2surf=NULL. Note that
-  vol2surf can go in either direction; the function will determine
+  vol2surf can go in either direction; this function will determine
   which way to go from the template volume and surface vg geometries
 */
 int L2Sinit(LABEL2SURF *l2s)
@@ -827,31 +823,33 @@ int L2Sinit(LABEL2SURF *l2s)
   return(0);
 }
 
-int L2SaddVoxelFill(LABEL2SURF *l2s, double col, double row, double slice, int Operation, int nsegs)
+int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int Operation)
 {
   double c, r, s, dseg;
   int ret, kc, kr, ks;
 
-  if(nsegs == 1){
-    ret = L2SaddVoxel(l2s, c, r, s, Operation);
+  if(l2s->nsegs == 1){
+    ret = L2SaddPoint(l2s, col, row, slice, Operation);
     return(ret);
   }
 
-  dseg = 1.0/(nsegs-1);
-
-  for(kc=0; kc < nsegs; kc++){
+  dseg = 1.0/(l2s->nsegs-1);
+  // using l2s->nsegs as the upper limit (instead of l2s->nsegs+1) means that
+  // the "end" side of the voxel is not included (but the "start" side
+  // is).
+  for(kc=0; kc < l2s->nsegs; kc++){
     c = col + kc*dseg - 0.5;
-    for(kr=0; kr < nsegs; kr++){
+    for(kr=0; kr < l2s->nsegs; kr++){
       r = row + kr*dseg - 0.5;
-      for(ks=0; ks < nsegs; ks++){
+      for(ks=0; ks < l2s->nsegs; ks++){
 	s = slice + ks*dseg - 0.5;
-	ret = L2SaddVoxel(l2s, c, r, s, Operation);
+	ret = L2SaddPoint(l2s, c, r, s, Operation);
 	if(ret < 0) return(ret);
       }
     }
   }
   // Make sure to add the center voxel
-  ret = L2SaddVoxel(l2s, col, row, slice, Operation);
+  ret = L2SaddPoint(l2s, col, row, slice, Operation);
 
   return(ret);  
 }
