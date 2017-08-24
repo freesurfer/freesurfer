@@ -42,6 +42,108 @@ protected:
 };
 
 
+
+//
+// Let's define a helper class for multithreading that holds a mutex that is (1) automatically locked
+// at construction time; (2) automatically unlocked at destruction time so that even when exceptions 
+// are thrown things get wound down properly; (3) also allows for manually locking and unlocking. In
+// addition, this class can also holds a shared (among threads) resource that is added and subtracted
+// to in a similar exception-safe way
+//
+class AtlasMeshBuilderHelper
+{
+public:
+  typedef AtlasMeshBuilderHelper Self;
+
+  AtlasMeshBuilderHelper( AtlasMeshBuilderMutexLock&  mutex, std::map< AtlasMesh::PointIdentifier, int >&  pointOccupancies )
+  : m_Mutex( mutex ), m_MutexIsLocked( true ), m_PointOccupancies( pointOccupancies )
+    {
+    m_Mutex.Lock();
+    }
+
+
+  ~AtlasMeshBuilderHelper()
+    {
+    this->Lock();
+    this->UnregisterPointOccupancies();
+    this->Unlock();  
+    }
+    
+  void Lock()
+    {
+    if ( !m_MutexIsLocked )
+      {
+      m_MutexIsLocked = true;
+      m_Mutex.Lock();
+      }
+      
+    }
+    
+  void Unlock(  )
+    {
+    if ( m_MutexIsLocked )
+      {
+      m_MutexIsLocked = false;
+      m_Mutex.Unlock();
+      }
+    }  
+    
+    
+  void SetAffectedPoints( const std::vector< AtlasMesh::PointIdentifier >&  affectedPoints )  
+    {
+    m_AffectedPoints = affectedPoints;
+    if ( !m_MutexIsLocked )
+      {
+      this->Lock();
+      this->RegisterPointOccupancies();
+      this->Unlock();
+      }
+    else
+      {
+      this->IncreasePointOccupancies();  
+      }
+    
+    }
+
+protected:
+  AtlasMeshBuilderMutexLock&   m_Mutex;
+  bool        m_MutexIsLocked;
+  
+  std::map< AtlasMesh::PointIdentifier, int >&  m_PointOccupancies;
+  std::vector< AtlasMesh::PointIdentifier >  m_AffectedPoints;
+  
+  //
+  void RegisterPointOccupancies()
+    {
+    // Indicate that we are working on them
+    for ( std::vector< AtlasMesh::PointIdentifier >::const_iterator  it = m_AffectedPoints.begin();
+          it != m_AffectedPoints.end(); ++it )
+      {
+      ( m_PointOccupancies[ *it ] )++;
+      }
+    }
+    
+  //
+  void UnregisterPointOccupancies()
+    {
+    // Now "un-protect" the points we flagged as being worked on
+    for ( std::vector< AtlasMesh::PointIdentifier >::const_iterator  it = m_AffectedPoints.begin();
+          it != m_AffectedPoints.end(); ++it )
+      {
+      ( m_PointOccupancies[ *it ] )--;
+      }
+      
+    }
+  
+private:
+  AtlasMeshBuilderHelper(const Self &) ITK_DELETE_FUNCTION;
+  void operator=(const Self &) ITK_DELETE_FUNCTION;
+
+};
+
+
+
+
 // Events generated
 itkEventMacro( EdgeAnalysisProgressEvent, itk::UserEvent );
 
