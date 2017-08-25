@@ -25,6 +25,7 @@ bugr \
 build_desikan_killiany_gcs.csh \
 cblumwmgyri \
 check_recons.sh \
+checkMCR.sh \
 check_subject \
 clear_fs_env.csh \
 compute_interrater_variability.csh \

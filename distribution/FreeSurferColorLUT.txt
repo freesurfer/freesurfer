@@ -202,7 +202,7 @@
 200 Right-fimbria                           0   50  128 0
 201 alveus                                  255 204 153 0
 202 perforant_pathway                       255 128 128 0
-203 parasubiculum                           255 255 0   0
+203 parasubiculum                           175 175 75   0
 204 presubiculum                            64  0   64  0
 205 subiculum                               0   0   255 0
 206 CA1                                     255 0   0   0
@@ -226,6 +226,26 @@
 224 Background                              100 100 100 0
 225 Ectorhinal                              197 150 250 0
 226 HP_tail                                 170 170 255 0
+
+231 HP_body                                 0 255 0 0
+232 HP_head                                 255 0 0 0
+
+233  presubiculum-head                            32  0   32  0
+234  presubiculum-body                            64  0   64  0
+235  subiculum-head                               0   0   175 0
+236  subiculum-body                               0   0   255 0
+237  CA1-head                                     175 75   75   0
+238  CA1-body                                     255 0   0   0
+239  CA3-head                                      0   80 0   0
+240  CA3-body                                      0   128 0   0
+241  CA4-head                                     120 90 50 0
+242  CA4-body                                     196 160 128 0
+243  GC-ML-DG-head                               75   125 175 0
+244  GC-ML-DG-body                                32  200 255 0
+245  molecular_layer_HP-head                      100 25   25   0
+246  molecular_layer_HP-body                      128 0   0   0
+
+
 
 250 Fornix                                  255 0   0   0
 251 CC_Posterior                            0   0   64  0
@@ -1009,11 +1029,6 @@
 5115   rh.slfp                                          204 204 204 0
 5116   rh.slft                                          153 255 255 0
 5117   rh.unc                                           102 153 255 0
-# additional pathways for Traculina 
-5118   lh.ifof                                          153 255 255 0
-5119   rh.ifof                                          153 255 255 0
-5120   lh.fornix                                        204 102 153 0
-5121   rh.fornix                                        204 102 153 0
 
 # These are the same tracula labels as above in human-readable form
 5200   CC-ForcepsMajor                                  204 102 102 0
@@ -1438,3 +1453,4 @@
 14173  wm_rh_S_temporal_inf                    21 180 180   0
 14174  wm_rh_S_temporal_sup                   223 220  60   0
 14175  wm_rh_S_temporal_transverse            221  60  60   0
+

@@ -32,6 +32,15 @@
 #include "LayerMRI.h"
 #include <QFileDialog>
 #include "MyUtils.h"
+#include <QLabel>
+#include <QDateTime>
+#include <QInputDialog>
+#include <QScrollBar>
+#include <QDebug>
+#include <QTimer>
+#include <QTreeWidgetItem>
+#include <QMessageBox>
+#include "DialogAddPointSetStat.h"
 
 PanelPointSet::PanelPointSet(QWidget *parent) :
   PanelLayer("PointSet", parent),
@@ -68,13 +77,16 @@ PanelPointSet::PanelPointSet(QWidget *parent) :
                      << ui->comboBoxSplineColor
                      << ui->lineEditSplineRadius
                      << ui->labelSplineRadius;
+
+  m_self = qgetenv("USER");
+  if (m_self.isEmpty())
+    m_self = qgetenv("USERNAME");
 }
 
 PanelPointSet::~PanelPointSet()
 {
   delete ui;
 }
-
 
 void PanelPointSet::ConnectLayer( Layer* layer_in )
 {
@@ -88,8 +100,10 @@ void PanelPointSet::ConnectLayer( Layer* layer_in )
 
   LayerPropertyPointSet* p = layer->GetProperty();
   connect( p, SIGNAL(PropertyChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
-  connect( layer, SIGNAL(PointAdded()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
-  connect( layer, SIGNAL(PointRemoved()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
+  connect( layer, SIGNAL(PointAdded(int)), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
+  connect( layer, SIGNAL(PointRemoved(int)), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
+  connect( layer, SIGNAL(PointAdded(int)), this, SLOT(SetCurrentPoint(int)), Qt::UniqueConnection);
+  connect( layer, SIGNAL(PointRemoved(int)), this, SLOT(SetCurrentPoint(int)), Qt::UniqueConnection);
   connect( ui->doubleSpinBoxOpacity, SIGNAL(valueChanged(double)), p, SLOT(SetOpacity(double)) );
   connect( ui->checkBoxShowSpline, SIGNAL(toggled(bool)), p, SLOT(SetShowSpline(bool)) );
   connect( ui->checkBoxSnapToCenter, SIGNAL(toggled(bool)), p, SLOT(SetSnapToVoxelCenter(bool)));
@@ -183,18 +197,19 @@ void PanelPointSet::DoUpdateWidgets()
     ui->checkBoxSnapToCenter->setChecked( layer->GetProperty()->GetSnapToVoxelCenter() );
   }
 
-
   // MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
   ui->colorpickerPointColor->setEnabled( layer );
   ui->comboBoxSplineColor->setEnabled( layer );
+  ui->pushButtonCommentAdd->setEnabled(layer && layer->GetNumberOfPoints() > 0);
 
   ShowWidgets( m_widgetlistSpline, bShowSpline );
   ShowWidgets( m_widgetlistSolidColor, bShowSpline && layer && nColorMap == LayerPropertyPointSet::SolidColor );
   ShowWidgets( m_widgetlistHeatScale, bShowSpline && layer && nColorMap == LayerPropertyPointSet::HeatScale );
 
+  UpdatePointInfo();
+
   BlockAllSignals( false );
 }
-
 
 void PanelPointSet::OnSliderOpacity( int nVal )
 {
@@ -378,18 +393,275 @@ void PanelPointSet::LoadScalarValues()
   }
 }
 
-void PanelPointSet::OnSpinBoxGoToPoint(int val)
+void PanelPointSet::SetCurrentPoint(int nIndex)
 {
   LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
   if (layer)
   {
+    if (nIndex >= layer->GetNumberOfPoints())
+      nIndex = layer->GetNumberOfPoints()-1;
+    ui->spinBoxGoToPoint->setValue(nIndex+1);
+  }
+}
+
+void PanelPointSet::OnSpinBoxGoToPoint(int val)
+{
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  if (layer && layer->GetNumberOfPoints() > 0)
+  {
     double pt[3];
     layer->GetPoint(val-1, pt);
     MainWindow::GetMainWindow()->SetSlicePosition(pt);
+    UpdatePointInfo();
   }
 }
 
 void PanelPointSet::OnButtonGoToPoint()
 {
   OnSpinBoxGoToPoint(ui->spinBoxGoToPoint->value());
+}
+
+QLabel* PanelPointSet::MakeCommentItem(const QVariantMap& map)
+{
+  QLabel* label = new QLabel();
+  label->setWordWrap(true);
+  label->setTextInteractionFlags(label->textInteractionFlags() | Qt::TextSelectableByMouse);
+  QString text = tr("<span style=\"color:rgba(0,0,0,150);font-size:10px;\">[%1] (%2)</span><br />%3").arg(map["timestamp"].toDateTime().toString())
+      .arg(map["user"].toString()).arg(map["text"].toString());
+  if (map["user"].toString() == m_self)
+    text +=" (<a href=\"delete\" style=\"font-size:11px\">delete</a>)"; // (<a href=\"hide\" style=\"font-size:10px\">hide</a>)";
+  label->setText(text);
+  label->setStyleSheet("QLabel{font-size:12px;padding:2px;padding-top:3px;padding-bottom:3px;}");
+  connect(label, SIGNAL(linkActivated(QString)), SLOT(OnCommentLabelClicked(QString)));
+  label->setProperty("comment", map);
+  return label;
+}
+
+void PanelPointSet::ScrollCommentsToBottom()
+{
+  ui->scrollAreaComments->verticalScrollBar()->setValue(ui->scrollAreaComments->verticalScrollBar()->maximum());
+}
+
+QTreeWidgetItem* PanelPointSet::AddStatItem(const QString &name, double value)
+{
+  QTreeWidgetItem* item = new QTreeWidgetItem(ui->treeWidgetStats);
+  item->setText(0, name);
+  item->setData(0, Qt::UserRole, name);
+  item->setText(1, QString::number(value));
+  item->setData(1, Qt::UserRole, value);
+  item->setFlags( item->flags() | Qt::ItemIsEditable);
+  return item;
+}
+
+void PanelPointSet::UpdatePointInfo()
+{
+  BlockAllSignals(true);
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  int nIndex = ui->spinBoxGoToPoint->value()-1;
+  if ( layer && layer->GetNumberOfPoints() > nIndex )
+  {
+    ui->labelMoreInfo->setText(tr("Information on Point #%1").arg(nIndex+1));
+
+    // Update comments
+    {
+      QLayoutItem* item;
+      while ( ( item = ui->layoutComments->takeAt( 0 ) ) != NULL )
+      {
+        delete item->widget();
+        delete item;
+      }
+    }
+    ControlPoint p = layer->GetPoint(nIndex);
+    QVariantList comments = p.info.value("comments").toList();
+    foreach (QVariant v, comments)
+    {
+      ui->layoutComments->addWidget(MakeCommentItem(v.toMap()));
+    }
+    ui->layoutComments->addStretch(1);
+    ui->scrollAreaComments->widget()->adjustSize();
+    QTimer::singleShot(0, this, SLOT(ScrollCommentsToBottom()));
+
+    // Update stats
+    ui->treeWidgetStats->clear();
+    QTreeWidgetItem* item = AddStatItem("legacy", p.value);
+    item->setTextColor(0, Qt::gray);
+    QVariantMap stats = p.info.value("statistics").toMap();
+    QStringList keys = stats.keys();
+    foreach (QString key, keys)
+    {
+      AddStatItem(key, stats[key].toDouble());
+    }
+  }
+  BlockAllSignals(false);
+}
+
+void PanelPointSet::OnButtonCommentAdd()
+{
+  QString text = QInputDialog::getText(this, "Add Comment", "Enter your comment:");
+  if (!text.isEmpty())
+  {
+    QVariantMap map;
+    map["text"] = text;
+    // workaround for a QDateTime bug
+    QDateTime local = QDateTime::currentDateTime();
+    QDateTime utc = local.toUTC();
+    utc.setTimeSpec(Qt::LocalTime);
+    local.setUtcOffset(utc.secsTo(local));
+    map["timestamp"] = local;
+    map["user"] = m_self;
+    QLabel* label = MakeCommentItem(map);
+    if (ui->layoutComments->count() > 0)
+      ui->layoutComments->insertWidget(ui->layoutComments->count()-1, label);
+    else
+      ui->layoutComments->addWidget(label);
+    ui->scrollAreaComments->widget()->adjustSize();
+    QTimer::singleShot(0, this, SLOT(ScrollCommentsToBottom()));
+
+    LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+    int nIndex = ui->spinBoxGoToPoint->value()-1;
+    if (layer && nIndex < layer->GetNumberOfPoints())
+    {
+      ControlPoint p = layer->GetPoint(nIndex);
+      QVariantList comments = p.info.value("comments").toList();
+      comments << map;
+      layer->UpdatePoint(nIndex, "comments", comments);
+    }
+  }
+}
+
+void PanelPointSet::OnCommentLabelClicked(const QString &link)
+{
+  if (link == "delete")
+  {
+    QLabel* l = qobject_cast<QLabel*>(sender());
+    if (l)
+    {
+      l->hide();
+
+      LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+      int nIndex = ui->spinBoxGoToPoint->value()-1;
+      if (layer && nIndex < layer->GetNumberOfPoints())
+      {
+        ControlPoint p = layer->GetPoint(nIndex);
+        QVariantList comments = p.info.value("comments").toList();
+        for (int i = 0; i < comments.size(); i++)
+        {
+          if (comments[i].toMap() == l->property("comment").toMap())
+          {
+            comments.removeAt(i);
+            break;
+          }
+        }
+        layer->UpdatePoint(nIndex, "comments", comments);
+      }
+    }
+  }
+}
+
+void PanelPointSet::OnStatItemChanged(QTreeWidgetItem *item, int col)
+{
+  if (item->text(col) == item->data(col, Qt::UserRole).toString())  // no text change
+    return;
+  else if (item->text(col).trimmed().isEmpty())
+  {
+    item->setText(col, item->data(col, Qt::UserRole).toString());
+    return;
+  }
+
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  int nIndex = ui->spinBoxGoToPoint->value()-1;
+  if (!layer || nIndex >= layer->GetNumberOfPoints())
+    return;
+
+  ControlPoint p = layer->GetPoint(nIndex);
+  QVariantMap stats = p.info.value("statistics").toMap();
+  QString old_name = item->data(0, Qt::UserRole).toString();
+  if (col == 0) // change name
+  {
+    if (old_name == "legacy")
+      item->setText(0, "legacy");
+    else if (stats.contains(item->text(0)))
+    {
+      QMessageBox::information(this, "Change Stat", tr("\'%1\' already exists. Click on the inline text to edit existing stat.").arg(item->text(col)));
+    }
+    else
+    {
+      item->setData(0, Qt::UserRole, item->text(0));
+      stats.remove(old_name);
+      stats[item->text(0)] = item->data(1, Qt::UserRole);
+      layer->UpdatePoint(nIndex, "statistics", stats);
+    }
+  }
+  else  // change value
+  {
+    bool bOk;
+    double new_val = item->text(col).toDouble(&bOk);
+    if (!bOk)
+    {
+      item->setText(col, item->data(col, Qt::UserRole).toString());
+      return;
+    }
+
+    item->setData(col, Qt::UserRole, new_val);
+    if (old_name == "legacy")
+    {
+      layer->UpdatePoint(nIndex, "legacy_stat", new_val);
+    }
+    else
+    {
+      stats[item->text(0)] = new_val;
+      layer->UpdatePoint(nIndex, "statistics", stats);
+    }
+  }
+}
+
+void PanelPointSet::OnButtonStatAdd()
+{
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  int nIndex = ui->spinBoxGoToPoint->value()-1;
+  if (layer && nIndex < layer->GetNumberOfPoints())
+  {
+    ControlPoint p = layer->GetPoint(nIndex);
+    QVariantMap stats = p.info.value("statistics").toMap();
+    DialogAddPointSetStat dlg(this);
+    if (dlg.exec() == QDialog::Accepted)
+    {
+      if (stats.contains(dlg.GetStatName()))
+      {
+        QMessageBox::information(this, "Add Statistic", tr("\'%1\' already exists. Click on the inline text to edit existing stat.").arg(dlg.GetStatName()));
+      }
+      else
+      {
+        AddStatItem(dlg.GetStatName(), dlg.GetStatValue());
+        stats[dlg.GetStatName()] = dlg.GetStatValue();
+        layer->UpdatePoint(nIndex, "statistics", stats);
+      }
+    }
+  }
+}
+
+void PanelPointSet::OnButtonStatDelete()
+{
+  QTreeWidgetItem* item = ui->treeWidgetStats->currentItem();
+  if (item && ui->treeWidgetStats->indexOfTopLevelItem(item) != 0)
+  {
+    LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+    int nIndex = ui->spinBoxGoToPoint->value()-1;
+    if (layer && nIndex < layer->GetNumberOfPoints())
+    {
+      ControlPoint p = layer->GetPoint(nIndex);
+      QVariantMap stats = p.info.value("statistics").toMap();
+      stats.remove(item->text(0));
+      layer->UpdatePoint(nIndex, "statistics", stats);
+      ui->treeWidgetStats->takeTopLevelItem(ui->treeWidgetStats->indexOfTopLevelItem(item));
+      delete item;
+    }
+  }
+}
+
+void PanelPointSet::OnCurrentStatItemChanged(QTreeWidgetItem *cur, QTreeWidgetItem *old)
+{
+  Q_UNUSED(cur);
+  Q_UNUSED(old);
+  ui->pushButtonStatDelete->setEnabled(cur && ui->treeWidgetStats->indexOfTopLevelItem(cur) != 0);
 }

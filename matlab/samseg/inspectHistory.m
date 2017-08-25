@@ -10,14 +10,17 @@ end
   
 %
 numberOfVoxels = sum( history.mask( : ) );
+numberOfMultiResolutionLevels = length( history.historyWithinEachMultiResolutionLevel );
 
 
 %
 figure
 %  desiredYLim = [ Inf -Inf ];
-for multiResolutionLevel = 1 : 2
+numberOfRows = ceil( sqrt( numberOfMultiResolutionLevels ) )
+numberOfColumns = ceil( numberOfMultiResolutionLevels / numberOfRows )
+for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
   numberOfVoxels = sum( history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).downSampledMask( : ) )
-  subplot( 1, 2, multiResolutionLevel )
+  subplot( numberOfRows, numberOfColumns, multiResolutionLevel )
   %plot( history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfCost )
   tmp = history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfCost / numberOfVoxels;
   plot( tmp )
@@ -57,8 +60,8 @@ end
 
 %
 figure
-for multiResolutionLevel = 1 : 2
-  subplot( 2, 2, 1 + ( multiResolutionLevel - 1 ) )
+for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
+  subplot( 2, numberOfMultiResolutionLevels, multiResolutionLevel )
   timeTakenIntensity = history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfTimeTakenIntensityParameterUpdating;
   timeTakenDeformation = history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfTimeTakenDeformationUpdating;
   timeTakenIntensity = timeTakenIntensity / 60;
@@ -69,23 +72,23 @@ for multiResolutionLevel = 1 : 2
   grid
   ylabel( 'minutes' )
   l = legend( [ 'Total ' num2str( sum( timeTakenIntensity ) ) 'min' ], [ 'Total ' num2str( sum( timeTakenDeformation ) ) 'min' ] );
-  subplot( 2, 2, 3 + ( multiResolutionLevel - 1 ) )
+  subplot( 2, numberOfMultiResolutionLevels, numberOfMultiResolutionLevels + multiResolutionLevel )
   bar( history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfMaximalDeformationApplied )
   grid
   ylabel( 'max. deformation' )
 end
-% Make sure the y-axes are comparable across multi-resolution levels
-for barTypeNumber = 1 : 2
-  subplot( 2, 2, 1 + 2 * ( barTypeNumber - 1 ) )
-  ylim1 = get( gca, 'ylim' );
-  subplot( 2, 2, 2 + 2 * ( barTypeNumber - 1 ) )
-  ylim2 = get( gca, 'ylim' );
-  ylim = [ min( ylim1(1), ylim2(1) ) max( ylim1(2), ylim2(2) ) ];
-  subplot( 2, 2, 1 + 2 * ( barTypeNumber - 1 )  )
-  set( gca, 'ylim', ylim )
-  subplot( 2, 2, 2 + 2 * ( barTypeNumber - 1 ) )
-  set( gca, 'ylim', ylim )
-end
+%  % Make sure the y-axes are comparable across multi-resolution levels
+%  for barTypeNumber = 1 : 2
+%    subplot( 2, 2, 1 + 2 * ( barTypeNumber - 1 ) )
+%    ylim1 = get( gca, 'ylim' );
+%    subplot( 2, 2, 2 + 2 * ( barTypeNumber - 1 ) )
+%    ylim2 = get( gca, 'ylim' );
+%    ylim = [ min( ylim1(1), ylim2(1) ) max( ylim1(2), ylim2(2) ) ];
+%    subplot( 2, 2, 1 + 2 * ( barTypeNumber - 1 )  )
+%    set( gca, 'ylim', ylim )
+%    subplot( 2, 2, 2 + 2 * ( barTypeNumber - 1 ) )
+%    set( gca, 'ylim', ylim )
+%  end
 
 
 
@@ -151,7 +154,7 @@ colors = [  128 0 128 0; ...
 DIM = size( history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).downSampledImageBuffers( :, :, :, 1 ) );
 downSampledMaskIndices = find( history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).downSampledMask );
 dataImage = history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).downSampledImageBuffers( :, :, :, 1 );
-dataImage = exp( dataImage / 1000 );
+dataImage = exp( dataImage );
 while true
   % for i = [ 1 length( history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).historyOfCost ) ]
   %  tmp = history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).historyWithinEachIteration(i).priors;
@@ -161,8 +164,9 @@ while true
     else
       tmp = history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).priorsAtEnd;
     end
-    priorImages = zeros( [ DIM 7 ] ); 
-    for j = 1 : 7
+    numberOfClasses = size( tmp, 2 );
+    priorImages = zeros( [ DIM numberOfClasses ] ); 
+    for j = 1 : numberOfClasses
       priorImages( downSampledMaskIndices + (j-1)*prod( DIM ) ) = tmp( :, j );
     end  
     imageToShow = ( dataImage - min( dataImage(:) ) ) / ( max( dataImage(:) ) - min( dataImage(:) ) );
@@ -174,5 +178,3 @@ while true
     %pause( .1 )
   end
 end
- 
- 

@@ -207,8 +207,8 @@ static int longitudinal = 0;
 
 int
 main(int argc, char *argv[]) {
-  char          **av, *hemi, *sname, *cp, fname[STRLEN], mdir[STRLEN];
-  int           ac, nargs, i, label_val, replace_val, msec, n_averages, j ;
+  char          *hemi, *sname, *cp, fname[STRLEN], mdir[STRLEN];
+  int           nargs, i, replace_val, msec, n_averages, j ;
   MRI_SURFACE   *mris ;
   MRI           *mri_filled, *mri_T1_30, *mri_T1_5; // *mri_labeled;
   MRI           *mri_em_seg = NULL, *mri_PD = NULL, *mri_T1 = NULL;
@@ -220,7 +220,7 @@ main(int argc, char *argv[]) {
                 PD_gray_std[2];
   float         T1_white_mean, T1_white_std, T1_gray_mean, 
                 T1_gray_std;
-  double        l_intensity, current_sigma ;
+  double        current_sigma ;
   struct timeb  then ;
 
   char cmdline[CMD_LINE_LEN] ;
@@ -271,8 +271,6 @@ main(int argc, char *argv[]) {
   parms.l_surf_repulse = 0.0 ;
   parms.l_repulse = 1 ;
 
-  ac = argc ;
-  av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
@@ -315,10 +313,9 @@ main(int argc, char *argv[]) {
   // setMRIforSurface(mri_filled);
 
   if (!stricmp(hemi, "lh")) //should always be left
-  { label_val = lh_label ;
+  {
     replace_val = rh_label ;
   } else {
-    label_val = rh_label ;
     replace_val = lh_label ;
   }
 
@@ -475,8 +472,6 @@ main(int argc, char *argv[]) {
     for (max_len = 1.5*8 ; max_len > 1 ; max_len /= 2)
     while (MRISdivideLongEdges(mris, max_len) > 0) {}
   }
-  l_intensity = parms.l_intensity ;
-
   //what if I need a vector-values intensity??
   MRISsetVals(mris, -1) ;  /* clear white matter intensities */
   MRIScopyValToValBak(mris);

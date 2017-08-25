@@ -7,8 +7,8 @@ MATLAB_ADD_MEX( NAME kvlGEMSMatlab
 # Copy some scripts
 CONFIGURE_FILE( kvlReadCompressionLookupTable.m
   ${GEMS_LIBRARY_PATH}/kvlReadCompressionLookupTable.m COPYONLY )
-CONFIGURE_FILE( kvlReduceAlphas.m
-  ${GEMS_LIBRARY_PATH}/kvlReduceAlphas.m COPYONLY )
+CONFIGURE_FILE( kvlMergeAlphas.m
+  ${GEMS_LIBRARY_PATH}/kvlMergeAlphas.m COPYONLY )
 CONFIGURE_FILE( showImage.m
   ${GEMS_LIBRARY_PATH}/showImage.m COPYONLY )
 CONFIGURE_FILE( kvlColorCodeProbabilityImages.m
@@ -39,7 +39,7 @@ CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
 
 SET( runnerName "ReadCroppedImage" )
-SET( runnerNumberOfOutputs "2" )
+SET( runnerNumberOfOutputs "4" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
 

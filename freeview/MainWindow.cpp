@@ -5377,7 +5377,7 @@ void MainWindow::OnLoadPointSet()
   }
 }
 
-void MainWindow::OnSavePointSet()
+void MainWindow::OnSavePointSet(bool bForce)
 {
   LayerPointSet* layer = (LayerPointSet*)GetActiveLayer("PointSet");
   if ( !layer )
@@ -5391,22 +5391,14 @@ void MainWindow::OnSavePointSet()
   }
 
   QString fn = layer->GetFileName();
-  if ( fn.isEmpty() )
+  if ( fn.isEmpty() || (!bForce && layer->IsEnhanced() && layer->GetProperty()->GetType() != LayerPropertyPointSet::Enhanced) )
   {
+    if (layer->IsEnhanced())
+      QMessageBox::information(this, "Save Point Set", "To save comments or other added information, it is recommended to save point set in enhanced format in Json.");
     OnSavePointSetAs();
   }
   else
   {
-    if ( layer->GetProperty()->GetType() == LayerPropertyPointSet::WayPoint &&
-         QFileInfo(fn).suffix() != "label")
-    {
-      fn += ".label";
-    }
-    if ( layer->GetProperty()->GetType() == LayerPropertyPointSet::ControlPoint &&
-         QFileInfo(fn).suffix() != "dat" )
-    {
-      fn += ".dat";
-    }
     layer->SetFileName( fn );
     layer->ResetModified();
     if (layer->Save())
@@ -5435,17 +5427,20 @@ void MainWindow::OnSavePointSetAs()
   }
 
   DialogSavePointSet dlg( this );
-  dlg.SetType( layer->GetProperty()->GetType() );
   QString fn = layer->GetFileName();
   if (fn.isEmpty())
     fn = layer->GetName();
-  dlg.SetFileName(fn);
+  int nType = layer->GetProperty()->GetType();
+  if (layer->IsEnhanced())
+    nType = LayerPropertyPointSet::Enhanced;
+  dlg.SetFileName(fn, nType);
+  dlg.SetType(nType);
   dlg.SetLastDir(m_strLastDir);
   if ( dlg.exec() == QDialog::Accepted )
   {
     layer->SetFileName( dlg.GetFileName() );
     layer->GetProperty()->SetType( dlg.GetType() );
-    OnSavePointSet();
+    OnSavePointSet(true);
     ui->widgetAllLayers->UpdateWidgets();
   }
 }

@@ -3,7 +3,7 @@
 
 #include "kvlAtlasMeshPositionCostAndGradientCalculator.h"
 #include "itkImage.h"
-#include "kvlGaussianLikelihoodImageFilter.h"
+#include "kvlGMMLikelihoodImageFilter.h"
 
 
 namespace kvl
@@ -36,8 +36,10 @@ public :
   void SetImages( const std::vector< ImageType::ConstPointer >& images );
 
   /** */
-  void SetParameters( const std::vector< vnl_vector<float> >& means, 
-                      const std::vector< vnl_matrix<float> >& precisions );
+  void SetParameters( const std::vector< vnl_vector< double > >& means, 
+                      const std::vector< vnl_matrix< double > >& variances,
+                      const std::vector< double >&  mixtureWeights,
+                      const std::vector< int >&  numberOfGaussiansPerClass );
     
   /** */  
   void Rasterize( const AtlasMesh* mesh );
@@ -66,7 +68,7 @@ private:
   void operator=(const Self&); //purposely not implemented
   
   //
-  typedef GaussianLikelihoodImageFilter< ImageType >  LikelihoodFilterType;
+  typedef GMMLikelihoodImageFilter< ImageType >  LikelihoodFilterType;
   LikelihoodFilterType::Pointer  m_LikelihoodFilter;
   
 };

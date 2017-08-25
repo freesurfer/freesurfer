@@ -41,8 +41,8 @@ else
   "${exe_dir}"/segmentSubjectT2_autoEstimateAlveusML $args
   returnVal=$?
   rm -rf $MCR_CACHE_ROOT
-
   
 fi
+
 exit $returnVal
 

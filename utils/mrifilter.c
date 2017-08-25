@@ -2492,6 +2492,67 @@ MRImedian(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *box)
     MRIcopyHeader(mri_src, mri_dst) ;
   }
 
+  if (mri_src->depth == 1)  // do a 2D median instead of 3D
+  {
+    int wsquared ;
+
+    printf("performing 2D median filter...\n") ;
+
+    wsquared = (wsize*wsize) ;
+    median_index = wsquared / 2 ;
+    whalf = wsize/2 ;
+
+    if (sort_array && (wsquared != sort_size))
+    {
+      free(sort_array) ;
+      sort_array = NULL ;
+    }
+    if (!sort_array)
+    {
+      sort_array = (float *)calloc(wsquared, sizeof(float)) ;
+      sort_size = wsquared ;
+  }
+
+    if (box)
+    {
+      xmin = box->x ;
+      ymin = box->y ;
+      zmin = box->z ;
+      xmax = box->x+box->dx-1 ;
+      ymax = box->y+box->dy-1 ;
+      zmax = box->z+box->dz-1 ;
+    }
+    else
+    {
+      xmin = ymin = zmin = 0 ;
+      xmax = width-1 ;
+      ymax = height-1 ;
+      zmax = depth-1 ;
+    }
+
+    for (frame = 0 ; frame < mri_src->nframes ; frame++)
+    {
+      for (y = ymin ; y <= ymax ; y++)
+      {
+	for (x = xmin ; x <= xmax  ; x++)
+	{
+	  for (sptr = sort_array, y0 = -whalf ; y0 <= whalf ; y0++)
+	  {
+	    yi = mri_src->yi[y+y0] ;
+	    for (x0 = -whalf ; x0 <= whalf ; x0++)
+	    {
+	      *sptr++ = MRIgetVoxVal(mri_src, mri_src->xi[x+x0], yi, 0, frame) ;
+	    }
+	  }
+	  qsort(sort_array, sort_size, sizeof(float), compare_sort_array) ;
+	  MRIsetVoxVal(mri_dst, x, y, 0, frame, sort_array[median_index]) ;
+	}
+	exec_progress_callback(frame*depth+y, mri_src->nframes*height, 0, 1);
+      }
+    }
+    return(mri_dst) ;
+  }
+
   wcubed = (wsize*wsize*wsize) ;
   median_index = wcubed / 2 ;
   whalf = wsize/2 ;

@@ -34,7 +34,7 @@ public:
     // calculator = kvlGetCostAndGradientCalculator( typeName, image(s), boundaryCondition, transform )
   
     // Make sure input arguments are correct
-    const  std::string  usageString = "Usage: calculator = kvlGetCostAndGradientCalculator( typeName, image(s), boundaryCondition, [ transform ], [ means ], [ precisions ] )\n where typeName = {'AtlasMeshToIntensityImage','ConditionalGaussianEntropy','MutualInformation'}\n and boundaryCondition = {'Sliding', 'Affine', 'Translation', 'None'}";
+    const  std::string  usageString = "Usage: calculator = kvlGetCostAndGradientCalculator( typeName, image(s), boundaryCondition, [ transform ], [ means ], [ variances ], [ mixtureWeights ], [ numberOfGaussiansPerClass ] )\n where typeName = {'AtlasMeshToIntensityImage','ConditionalGaussianEntropy','MutualInformation'}\n and boundaryCondition = {'Sliding', 'Affine', 'Translation', 'None'}";
     if ( ( nrhs < 3 ) || 
          !mxIsChar( prhs[ 0 ] ) || 
          !mxIsInt64( prhs[ 1 ] ) || 
@@ -99,7 +99,7 @@ public:
       
     
     // Retrieve means if they are provided
-    std::vector< vnl_vector< float > >  means;
+    std::vector< vnl_vector< double > >  means;
     if ( nrhs > 4 )
       {
       // Sanity check
@@ -109,36 +109,39 @@ public:
         }
         
       //
-      const int  numberOfClasses = mxGetDimensions( prhs[ 4 ] )[ 0 ];
+      const int  numberOfGaussians = mxGetDimensions( prhs[ 4 ] )[ 0 ];
       const int  numberOfContrasts  = mxGetDimensions( prhs[ 4 ] )[ 1 ];
-      //mexPrintf("numberOfClasses = %d\n",numberOfClasses);
+      //mexPrintf("numberOfGaussians = %d\n",numberOfGaussians);
       //mexPrintf("numberOfContrasts = %d\n",numberOfContrasts);
-      for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
+      for ( int gaussianNumber = 0; gaussianNumber < numberOfGaussians; gaussianNumber++ )
         {
-        vnl_vector< float >  mean( numberOfContrasts, 0.0f );
-        for ( int imageNumber = 0; imageNumber < numberOfContrasts; imageNumber++ )
+        vnl_vector< double >  mean( numberOfContrasts, 0.0f );
+        for ( int contrastNumber = 0; contrastNumber < numberOfContrasts; contrastNumber++ )
           {
-          mean[ imageNumber ] = (mxGetPr( prhs[ 4 ] ))[ classNumber + numberOfClasses*imageNumber ];
+          mean[ contrastNumber ] = (mxGetPr( prhs[ 4 ] ))[ gaussianNumber + numberOfGaussians*contrastNumber ];
           }
         means.push_back( mean );
         }
         
-      // Print what we recovered
-      for (unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
+      if ( false )  
         {
-        vnl_vector<float> miini = means[classNumber];
-        for ( unsigned int nima = 0; nima < numberOfContrasts; nima++ )
+        // Print what we recovered
+        for (unsigned int gaussianNumber = 0; gaussianNumber < numberOfGaussians; gaussianNumber++ )
           {
-          //mexPrintf("means[%d][%d] = %f\n",nima, classNumber, miini[nima]);
+          vnl_vector<double> miini = means[gaussianNumber];
+          for ( unsigned int nima = 0; nima < numberOfContrasts; nima++ )
+            {
+            mexPrintf("means[%d][%d] = %f\n",nima, gaussianNumber, miini[nima]);
+            }
           }
-        }
+        } // End test if printing  
 
       } // End test if means are provided 
         
         
         
-    // Retrieve precisions if they are provided
-    std::vector< vnl_matrix< float > >  precisions;
+    // Retrieve variances if they are provided
+    std::vector< vnl_matrix< double > >  variances;
     if ( nrhs > 5 )
       {
       // Sanity check
@@ -148,40 +151,105 @@ public:
         }
         
       //
-      const int  numberOfClasses = mxGetDimensions( prhs[ 4 ] )[ 0 ];
+      const int  numberOfGaussians = mxGetDimensions( prhs[ 4 ] )[ 0 ];
       const int  numberOfContrasts  = mxGetDimensions( prhs[ 4 ] )[ 1 ];
-      //mexPrintf("numberOfClasses = %d\n",numberOfClasses);
+      //mexPrintf("numberOfGaussians = %d\n",numberOfGaussians);
       //mexPrintf("numberOfContrasts = %d\n",numberOfContrasts);
       
-      // Does not really matter which way you read these in, because the precisions are symmetric matrices
-      //transpose wont do any harm. 
-      for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
+      // Does not really matter which way you read these in, because the variances are symmetric matrices
+      // transpose won't do any harm. 
+      for ( unsigned int gaussianNumber = 0; gaussianNumber < numberOfGaussians; gaussianNumber++ )
         {
-        vnl_matrix< float >  precision( numberOfContrasts, numberOfContrasts, 0.0f );
+        vnl_matrix< double >  variance( numberOfContrasts, numberOfContrasts, 0.0f );
         for ( unsigned int row = 0; row < numberOfContrasts; row++ )
           {
           for ( unsigned int col = 0; col < numberOfContrasts; col++ )
             {
-            precision[ row ][ col ] = mxGetPr( prhs[ 5 ] )[ classNumber + row * numberOfClasses + col * numberOfClasses * numberOfContrasts ];
+            variance[ row ][ col ] = mxGetPr( prhs[ 5 ] )[ gaussianNumber + row * numberOfGaussians + col * numberOfGaussians * numberOfContrasts ];
             }
           }
-        precisions.push_back( precision );
+        variances.push_back( variance );
         }
 
-      // Print what we've recovered
-      for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
+      if ( false )
         {
-        vnl_matrix<float> precMat = precisions[classNumber];
-        for ( unsigned int row = 0; row < numberOfContrasts; row++ )
+        // Print what we've recovered
+        for ( unsigned int gaussianNumber = 0; gaussianNumber < numberOfGaussians; gaussianNumber++ )
           {
-          for ( unsigned int col = 0; col < numberOfContrasts; col++ )
+          vnl_matrix< double >  varMat = variances[gaussianNumber];
+          for ( unsigned int row = 0; row < numberOfContrasts; row++ )
             {
-            //mexPrintf("precisions[%d][%d][%d] = %f\n",row,col,classNumber,precMat[row][col]);
+            for ( unsigned int col = 0; col < numberOfContrasts; col++ )
+              {
+              mexPrintf("variances[%d][%d][%d] = %f\n",row,col,gaussianNumber,varMat[row][col]);
+              }
             }
           }
-        }
+        } // End test if printing out
+        
       
-      } // End test if precisions are provided 
+      } // End test if variances are provided 
+        
+        
+        
+    // Retrieve mixtureWeights if they are provided
+    std::vector< double >  mixtureWeights;
+    if ( nrhs > 6 )
+      {
+      // Sanity check
+      if ( !mxIsDouble( prhs[ 6 ] ) ) 
+        {
+        mexErrMsgTxt( usageString.c_str() ); 
+        }
+        
+      //
+      const int  numberOfGaussians = mxGetDimensions( prhs[ 4 ] )[ 0 ];
+      mixtureWeights = std::vector< double >( numberOfGaussians, 0.0f );
+      for ( int gaussianNumber = 0; gaussianNumber < numberOfGaussians; gaussianNumber++ )
+        {
+        mixtureWeights[ gaussianNumber ] = (mxGetPr( prhs[ 6 ] ))[ gaussianNumber ];
+        }
+    
+      if ( false )
+        {
+        // Print what we've recovered
+        for ( int gaussianNumber = 0; gaussianNumber < numberOfGaussians; gaussianNumber++ )
+          {
+          mexPrintf("mixtureWeights[%d] = %f\n", gaussianNumber, mixtureWeights[ gaussianNumber ] );
+          }  
+        } // End test printing
+        
+      } // End test if mixtureWeights are provided
+
+      
+    // Retrieve numberOfGaussiansPerClass if they are provided
+    std::vector< int >  numberOfGaussiansPerClass;
+    if ( nrhs > 7 )
+      {
+      // Sanity check
+      if ( !mxIsDouble( prhs[ 7 ] ) ) 
+        {
+        mexErrMsgTxt( usageString.c_str() ); 
+        }
+        
+      //
+      const int  numberOfClasses = mxGetNumberOfElements( prhs[ 7 ] );
+      numberOfGaussiansPerClass = std::vector< int >( numberOfClasses, 0 );
+      for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
+        {
+        numberOfGaussiansPerClass[ classNumber ] = static_cast< int >( (mxGetPr( prhs[ 7 ] ))[ classNumber ] );
+        }
+    
+      if ( false )
+        {
+        // Print what we've recovered
+        for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
+          {
+          mexPrintf("numberOfGaussiansPerClass[%d] = %d\n", classNumber, numberOfGaussiansPerClass[ classNumber ] );
+          }  
+        } // End test printing
+        
+      } // End test if numberOfGaussiansPerClass are provided
         
         
         
@@ -196,7 +264,7 @@ public:
         AtlasMeshToIntensityImageCostAndGradientCalculator::Pointer  myCalculator 
                           = AtlasMeshToIntensityImageCostAndGradientCalculator::New();
         myCalculator->SetImages( images );
-        myCalculator->SetParameters( means, precisions );
+        myCalculator->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass );
         calculator = myCalculator;
         break;
         } 

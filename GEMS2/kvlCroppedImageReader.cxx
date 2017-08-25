@@ -286,12 +286,12 @@ CroppedImageReader
 
 
     // Map each of the corners of the bounding box, and record minima and maxima
-    float  minimalMappedCoordinate[ 3 ];
-    float  maximalMappedCoordinate[ 3 ];
+    double  minimalMappedCoordinate[ 3 ];
+    double  maximalMappedCoordinate[ 3 ];
     for ( int i = 0; i < 3; i++ )
       {
-      minimalMappedCoordinate[ i ] = itk::NumericTraits< float >::max();
-      maximalMappedCoordinate[ i ] = itk::NumericTraits< float >::min();
+      minimalMappedCoordinate[ i ] = itk::NumericTraits< double >::max();
+      maximalMappedCoordinate[ i ] = itk::NumericTraits< double >::min();
       }
     std::vector< TransformType::InputPointType >  meshCornerPoints;
     TransformType::InputPointType  corner;
@@ -349,18 +349,25 @@ CroppedImageReader
       }
 
 
-    // Add some margin as a fraction of the found bounding box
+    // Add some margin as a fraction of the found bounding box, and make sure we're not going
+    // outside of the image area
     for ( int i = 0; i < 3; i++ )
       {
       const int  margin = static_cast< int >( m_ExtraFraction * ( max[ i ] - min[ i ] ) );
 
       min[ i ] -= margin;
-      //if ( min[ i ] < 0 )
-      //  min[ i ] = 0;
-
       max[ i ] += margin;
-      //if ( max[ i ] > ( reader->GetOutput()->GetBufferedRegion().GetSize()[i] - 1 ) )
-      //  max[ i ] = ( reader->GetOutput()->GetBufferedRegion().GetSize()[i] - 1 );
+ 
+      if ( min[ i ] < 0 )
+        {
+        min[ i ] = 0;
+        }
+      
+      if ( max[ i ] > ( reader->GetOutput()->GetBufferedRegion().GetSize()[i] - 1 ) )
+        {
+        max[ i ] = ( reader->GetOutput()->GetBufferedRegion().GetSize()[i] - 1 );
+        }
+        
       }
 
     // std::cout << "Cropping with min [" << min[ 0 ] << "  " << min[ 1 ] << "  " << min[ 2 ] << "]" << std::endl;
@@ -386,37 +393,7 @@ CroppedImageReader
     m_Image->Allocate();
     m_Image->FillBuffer( 0 );
 
-    // Copy the intensities by looping over the voxels of interest. Make sure you don't visit non-existing
-    // voxels if the bounding box is bigger than the actual image...
-    // std::cout << "m_OriginalImageRegion before checking margins: " << m_OriginalImageRegion << std::endl;
-    // std::cout << "m_CroppedImageRegion before checking margins: " << m_CroppedImageRegion << std::endl;
-    for ( int i = 0; i < 3; i++ )
-      {
-      const int  endMargin = ( reader->GetOutput()->GetBufferedRegion().GetSize()[i] - 1 ) -
-                             ( m_OriginalImageRegion.GetIndex( i ) + m_OriginalImageRegion.GetSize( i ) - 1 );
-      if ( endMargin < 0 )
-        {
-        m_OriginalImageRegion.SetSize( i, m_OriginalImageRegion.GetSize( i ) + endMargin );
-        m_CroppedImageRegion.SetSize( i, m_CroppedImageRegion.GetSize( i ) + endMargin );
-        }
-
-      const int  startMargin = m_OriginalImageRegion.GetIndex( i );
-      if ( startMargin < 0 )
-        {
-        m_OriginalImageRegion.SetIndex( i, m_OriginalImageRegion.GetIndex( i ) - startMargin );
-        m_OriginalImageRegion.SetSize( i, m_OriginalImageRegion.GetSize( i ) + startMargin );
-
-        m_CroppedImageRegion.SetIndex( i, m_CroppedImageRegion.GetIndex( i ) - startMargin );
-        m_CroppedImageRegion.SetSize( i, m_CroppedImageRegion.GetSize( i ) + startMargin );
-        }
-
-      }
-    // std::cout << std::endl;
-    // std::cout << "m_OriginalImageRegion after checking margins: " << m_OriginalImageRegion << std::endl;
-    // std::cout << "m_CroppedImageRegion after checking margins: " << m_CroppedImageRegion << std::endl;
-
-
-
+    // Copy the intensities by looping over the voxels of interest. 
     itk::ImageRegionConstIterator< ImageType >  originalImageIterator( reader->GetOutput(), m_OriginalImageRegion );
     itk::ImageRegionIterator< ImageType >  croppedImageIterator( m_Image, m_CroppedImageRegion );
     for ( ; !originalImageIterator.IsAtEnd(); ++originalImageIterator, ++croppedImageIterator )
@@ -452,19 +429,21 @@ CroppedImageReader
     shrinker->Update();
     m_Image = shrinker->GetOutput();
 
+#if 0  
     // Make sure to unset spacing and origin as we don't look at it,
     // but VTK sure does!
     const float spacing[] = { 1.0f, 1.0f, 1.0f };
     const float origin[] = { 0.0f, 0.0f, 0.0f };
     m_Image->SetSpacing( spacing );
     m_Image->SetOrigin( origin );
-
+#endif
+    
     // Adjust transformation
-    m_Transform->Scale( 1 / static_cast< float >( m_DownSamplingFactor ) );
+    m_Transform->Scale( 1 / static_cast< double >( m_DownSamplingFactor ) );
     // std::cout << "Transform after scaling: " << std::endl;
     // m_Transform->Print( std::cout );
 
-    m_WorldToImageTransform->Scale( 1 / static_cast< float >( m_DownSamplingFactor ) );
+    m_WorldToImageTransform->Scale( 1 / static_cast< double >( m_DownSamplingFactor ) );
     // std::cout << "WorldToImageTransform after scaling: " << std::endl;
     // m_WorldToImageTransform->Print( std::cout );
     }

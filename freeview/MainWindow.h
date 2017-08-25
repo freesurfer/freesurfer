@@ -411,7 +411,7 @@ protected slots:
   void OnCloseROI();
   void OnNewPointSet();
   void OnLoadPointSet();
-  void OnSavePointSet();
+  void OnSavePointSet(bool bForce = false);
   void OnSavePointSetAs();
   void OnClosePointSet();
   void OnLoadTrack();

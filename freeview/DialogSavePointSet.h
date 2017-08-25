@@ -39,7 +39,7 @@ public:
   explicit DialogSavePointSet(QWidget *parent = 0);
   ~DialogSavePointSet();
 
-  void SetFileName(const QString& fn);
+  void SetFileName(const QString& fn, int type);
 
   void SetLastDir(const QString& dir)
   {
@@ -55,10 +55,13 @@ public:
 protected slots:
   void OnOK();
   void OnOpen();
+  void OnRadioButtonFileType();
 
 private:
   Ui::DialogSavePointSet *ui;
   QString m_strLastDir;
+
+  bool  m_bRemind;
 };
 
 #endif // DIALOGSAVEPOINTSET_H

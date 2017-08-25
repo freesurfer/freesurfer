@@ -17,12 +17,11 @@ endif
 
 # platform-independent data and scripts:
 dist_bin_SCRIPTS = \
-segmentSF_T1_long.sh \
-segmentSF_T1.sh \
-segmentSF_T1T2.sh \
-segmentSF_T2.sh \
-longHippoSubfieldsT1.sh \
-quantifyHippocampalSubfields.sh
+segmentHA_T1_long.sh \
+segmentHA_T1.sh \
+segmentHA_T2.sh \
+quantifyHAsubregions.sh
+
 
 install-data-local:
 	test -z $(DESTDIR)$(foodir) || $(mkdir_p) $(DESTDIR)$(foodir)
