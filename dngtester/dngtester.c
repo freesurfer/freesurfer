@@ -50,6 +50,7 @@ typedef struct {
   int vertex_type; // eg, CURRENT_VERTICES
   MHT **hashes;  // hash tables, one for each vertex
   float hashres; // eg, 16
+  MRI **masks;   // label masks foreach surface
   int nsegs; // subsample each voxel into nsegs along each dim to fill holes
   MATRIX *volcrs2surfxyz; // precomputed matrix converts vol CRS to surface tkRAS
   int debug; // set to 1 to print out a bunch of stuff
@@ -118,15 +119,18 @@ int main(int argc, char **argv)
   L2Sinit(l2s);
   printf("loop \n");
   s = 17;
-  for(c = 0; c < mri->width; c++){
+  for(c = 10; c < mri->width-10; c++){
     printf("%2d ",c); fflush(stdout);
-    for(r = 0; r < mri->height; r++){
-      L2SaddVoxel(l2s, c, r, s, 1);
-    }
+    for(r = 10; r < 40; r++) L2SaddVoxel(l2s, c, r, s, 1);
     printf("\n");
   }
+  // remove, erase a few
+  for(c = 10; c < mri->width-10; c++) L2SaddVoxel(l2s, c, 15, s, 0);
+
   LabelWrite(l2s->labels[0],"./my.label0");
   LabelWrite(l2s->labels[1],"./my.label1");
+  MRIwrite(l2s->masks[0],"mask0.mgh");
+  MRIwrite(l2s->masks[1],"mask1.mgh");
   L2Sfree(&l2s);
 
   exit(0);
@@ -591,6 +595,7 @@ LABEL2SURF *L2Salloc(int nsurfs, char *subject)
   l2s->nsurfs = nsurfs;
   l2s->labels = (LABEL **) calloc(sizeof(LABEL*), nsurfs);
   for(n=0; n < nsurfs; n++) l2s->labels[n] = LabelAlloc(100,subject,NULL);
+  l2s->masks = (MRI **) calloc(sizeof(MRI*), nsurfs);
   l2s->vertex_type = CURRENT_VERTICES;
   l2s->nsegs = 1;
   return(l2s);
@@ -602,10 +607,13 @@ int L2Sfree(LABEL2SURF **pl2s)
 
   free(l2s->surfs); // only free the pointer to the pointers
   for(n = 0; n < l2s->nsurfs; n++){
-    if(l2s->hashes[n] == NULL) continue;
-    MHTfree(&l2s->hashes[n]);
     LabelFree(&l2s->labels[n]);
+    MHTfree(&l2s->hashes[n]);
+    MRIfree(&l2s->masks[n]);
   }
+  free(l2s->labels);
+  free(l2s->hashes);
+  free(l2s->masks);
   MatrixFree(&l2s->volcrs2surfxyz);
   free(l2s);
   return(0);
@@ -623,7 +631,7 @@ int L2Sfree(LABEL2SURF **pl2s)
 */
 int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Operation)
 {
-  int n,nmin,vtxnominmin,vtxno;
+  int n,nmin,vtxnominmin,vtxno,pointno;
   VERTEX v;
   static MATRIX *crs=NULL, *ras=NULL;
   float dminsurf,dminmin;
@@ -645,7 +653,7 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Opera
   v.x = ras->rptr[1][1];
   v.y = ras->rptr[2][1];
   v.z = ras->rptr[3][1];
-  if(l2s->debug) printf("%g %g %g   (%5.2f %5.2f %5.2f)\n",col,row,slice,v.x,v.y,v.z);
+  if(l2s->debug > 1) printf("%g %g %g   (%5.2f %5.2f %5.2f)\n",col,row,slice,v.x,v.y,v.z);
 
   // Go through each surface to find the surface and vertex in the surface that
   // the CRS is closest to. 
@@ -655,7 +663,7 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Opera
   for(n = 0; n < l2s->nsurfs; n++){
     vtxno = MHTfindClosestVertexNo(l2s->hashes[n],l2s->surfs[n],&v,&dminsurf);
     if(vtxno >= 0){
-      if(l2s->debug) printf("%3d %6d (%5.2f %5.2f %5.2f) %g\n",n,vtxno,
+      if(l2s->debug > 1) printf("%3d %6d (%5.2f %5.2f %5.2f) %g\n",n,vtxno,
 	     l2s->surfs[n]->vertices[vtxno].x,l2s->surfs[n]->vertices[vtxno].y,l2s->surfs[n]->vertices[vtxno].z,
 	     dminsurf);
     }
@@ -673,15 +681,17 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Opera
   // Select the label of the winning surface
   label = l2s->labels[nmin];
 
+  // Get the 1-based label point number. 1-based so that 0 can code for 
+  // no label at that point (yet)
+  pointno = MRIgetVoxVal(l2s->masks[nmin],vtxnominmin,0,0,0);
+
   if(Operation == 1){ // Add vertex to label
-    // If the vertex is already in the label, just return
-    for(n = 0; n < label->n_points; n++){
-      lv = &(label->lv[n]);
-      if(lv->vno == vtxnominmin) return(0); // already there
-    }
+    if(pointno>0) return(0); // already there, just return
     // If it gets here, then add the vertex
-    if(l2s->debug) printf("Adding surf=%d vtxno=%d %g %g %g   (%5.2f %5.2f %5.2f)\n",
-	   nmin,vtxnominmin,col,row,slice,v.x,v.y,v.z);
+    if(l2s->debug) printf("Adding surf=%d vtxno=%d  np=%5d   %g %g %g   (%5.2f %5.2f %5.2f)\n",
+			  nmin,vtxnominmin,label->n_points,col,row,slice,v.x,v.y,v.z);
+    // Set value of the mask to the label point number + 1 (so 0=nolabel)
+    MRIsetVoxVal(l2s->masks[nmin],vtxnominmin,0,0,0, label->n_points+1);
 
     // Check whether need to alloc more points in label
     if(label->n_points >= label->max_points)
@@ -700,20 +710,14 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Opera
   }
   else { // Remove vertex from label
     // If the vertex is not already in the label, just return
-    int there = 0;
-    for(n = 0; n < label->n_points; n++){
-      lv = &(label->lv[n]);
-      if(lv->vno == vtxnominmin) {
-	there = 1;
-	break;
-      }
-      if(!there) return(0); // not there
-    }
+    if(pointno==0) return(0); // not there to remove
+    lv = &(label->lv[pointno-1]);
     // If it gets here, then remove the vertex by copying the last
     // point into this point, then decrementing the number of points
     if(l2s->debug) printf("Removing surf=%d vtxno=%d %g %g %g   (%5.2f %5.2f %5.2f)\n",
 	   nmin,vtxnominmin,col,row,slice,v.x,v.y,v.z);
-    memcpy(&label->lv[n],&(label->lv[label->n_points-1]),sizeof(LV));
+    memcpy(&label->lv[pointno-1],&(label->lv[label->n_points-1]),sizeof(LV));
+    MRIsetVoxVal(l2s->masks[nmin],vtxnominmin,0,0,0,0);
     label->n_points --;
   }
 
@@ -741,6 +745,7 @@ int L2Sinit(LABEL2SURF *l2s)
       printf("ERROR: L2Sinit(): MHTfillVertexTableRes() failed\n");
       return(-1);
     }
+    l2s->masks[n] = MRIalloc(l2s->surfs[n]->nvertices,1,1,MRI_INT);
   }
 
   // compute the matrix that maps the template volume CRS to surface RAS
