@@ -41,19 +41,19 @@
 
 
 typedef struct {
-  MRIS **surfs; // list of surface
-  int nsurfs; // number of surfaces in list
+  MRIS **surfs;  // list of surfaces (eg, left and right)
+  int nsurfs;    // number of surfaces in list
   MRI *template; // volume template for voxel to add
-  double dmax; // max distance in mm
-  LTA *vol2surf; // set to null to use header reg
-  LABEL **labels; // list of labels, one for each surface
+  double dmax;   // max allowable distance in mm
+  LTA *vol2surf; // reg bet vol and surf, direction unimportant, set to null to use header reg
+  LABEL **labels;  // list of labels, one for each surface
   int vertex_type; // eg, CURRENT_VERTICES
-  MHT **hashes; // hash tables, one for each vertex
+  MHT **hashes;  // hash tables, one for each vertex
   float hashres; // eg, 16
   int nsegs; // subsample each voxel into nsegs along each dim to fill holes
   MATRIX *volcrs2surfxyz; // precomputed matrix converts vol CRS to surface tkRAS
   int debug; // set to 1 to print out a bunch of stuff
-}  LABEL2SURF;
+} LABEL2SURF;
 LABEL2SURF *L2Salloc(int nsurfs, char *subject);
 int L2Sinit(LABEL2SURF *l2s);
 int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Operation);
@@ -600,7 +600,7 @@ int L2Sfree(LABEL2SURF **pl2s)
   int n;
   LABEL2SURF *l2s = *pl2s;
 
-  free(l2s->surfs);
+  free(l2s->surfs); // only free the pointer to the pointers
   for(n = 0; n < l2s->nsurfs; n++){
     if(l2s->hashes[n] == NULL) continue;
     MHTfree(&l2s->hashes[n]);
