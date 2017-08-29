@@ -21,11 +21,11 @@ if( $#argv == 0 || $#argv > 2) then
   echo " "
   echo "Usage: "
   echo " "
-  echo "   segmentSF_T1.sh SUBJECT_ID [SUBJECT_DIR]" 
+  echo "   segmentHA_T1.sh SUBJECT_ID [SUBJECT_DIR]" 
   echo " "
   echo "Or, for help"
   echo " "
-  echo "   segmentSF_T1.sh --help"  
+  echo "   segmentHA_T1.sh --help"  
   echo " "
   exit 1
 endif
@@ -45,7 +45,7 @@ if( $1 == "--help") then
   echo "processed with the recon-all flag -cm. Then, you can run the following command"
   echo "to obtain the segmentation: "
   echo " "
-  echo "   segmentSF_T1.sh SUBJECT_ID [SUBJECT_DIR]"
+  echo "   segmentHA_T1.sh SUBJECT_ID [SUBJECT_DIR]"
   echo " "
   echo "   (the argument [SUBJECT_DIR] is only necessary if the"
   echo "    environment variable SUBJECTS_DIR has not been set"

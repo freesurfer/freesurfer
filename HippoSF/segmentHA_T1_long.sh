@@ -20,11 +20,11 @@ if( $#argv < 1 ) then
   echo " "
   echo "Usage: "
   echo " "
-  echo "   segmentSF_T1_long.sh BASE_SUBJECT_ID [SUBJECT_DIR]" 
+  echo "   segmentHA_T1_long.sh BASE_SUBJECT_ID [SUBJECT_DIR]" 
   echo " "
   echo "Or, for help"
   echo " "
-  echo "   segmentSF_T1_long.sh --help"  
+  echo "   segmentHA_T1_long.sh --help"  
   echo " "
   exit 1
 endif
@@ -51,7 +51,7 @@ if( $1 == "--help") then
   echo "points simultaneously using the method described in [1] (and the atlases described"
   echo "in [2] and [3]):"
   echo " "
-  echo "   segmentSF_T1_long.sh BASE_SUBJECT_ID [SUBJECT_DIR]"
+  echo "   segmentHA_T1_long.sh BASE_SUBJECT_ID [SUBJECT_DIR]"
   echo " "
   echo "   (the argument [SUBJECT_DIR] is only necessary if the"
   echo "    environment variable SUBJECTS_DIR has not been set"

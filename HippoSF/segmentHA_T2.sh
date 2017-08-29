@@ -21,11 +21,11 @@ if( $#argv == 0 || $#argv == 2  || $#argv == 3 || $#argv > 5) then
   echo " "
   echo "Usage: "
   echo " "
-  echo "   segmentSF_T2.sh  SUBJECT_ID  FILE_ADDITIONAL_SCAN   ANALYSIS_ID  USE_T1  [SUBJECT_DIR]" 
+  echo "   segmentHA_T2.sh  SUBJECT_ID  FILE_ADDITIONAL_SCAN   ANALYSIS_ID  USE_T1  [SUBJECT_DIR]" 
   echo " "
   echo "Or, for help"
   echo " "
-  echo "   segmentSF_T2.sh --help"  
+  echo "   segmentHA_T2.sh --help"  
   echo " "
   exit 1
 endif
@@ -51,7 +51,7 @@ if( $1 == "--help") then
   echo "native resolution, they must be processed with the recon-all flag -cm. Then,"
   echo "you can run the following command to obtain the segmentation: "
   echo " "
-  echo "   segmentSF_T2.sh  SUBJECT_ID  FILE_ADDITIONAL_SCAN   ANALYSIS_ID  USE_T1  [SUBJECT_DIR]"
+  echo "   segmentHA_T2.sh  SUBJECT_ID  FILE_ADDITIONAL_SCAN   ANALYSIS_ID  USE_T1  [SUBJECT_DIR]"
   echo " "
   echo "   (the argument [SUBJECT_DIR] is only necessary if the"
   echo "    environment variable has not been set)"
@@ -62,8 +62,8 @@ if( $1 == "--help") then
   echo "ANALYSIS_ID is a user defined identifier that makes it possible to run different"
   echo "analysis with different types of additional scans, e.g., a T2 and proton density"
   echo "weighted volume (see further information on the website below). Please note that it". 
-  echo "is not possible to two instances of run segmentSF_T2.sh in parallel with USE_T1=0 "
-  echo "and USE_T1=1  (segmentSF_T1.sh or different analysis IDs is fine)."
+  echo "is not possible to two instances of run segmentHA_T2.sh in parallel with USE_T1=0 "
+  echo "and USE_T1=1  (segmentHA_T1.sh or different analysis IDs is fine)."
   echo " "
   echo "USE_T1: set to 1 to use the main T1 from recon-all in the segmentation (multispectral "
   echo "mode). If set to 0, only the intensities of the additional scan are used".
