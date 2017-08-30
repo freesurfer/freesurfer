@@ -7926,13 +7926,15 @@ endif
 if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2) then 
   echo " "
   echo "ERROR: the hippocampal subfield module is now in separate scripts:"
-  echo "  segmentSF_T1.sh"
-  echo "  segmentSF_T2.sh"
+  echo "  segmentHA_T1.sh"
+  echo "  segmentHAS_T2.sh"
+  echo "  segmentHA_T1_long.sh"
   echo " "
   echo "For help, please execute the corresponding script  with the flag --help: "
   echo " "
-  echo "     segmentSF_T1.sh --help"
-  echo "     segmentSF_T2.sh --help"
+  echo "     segmentHA_T1.sh --help"
+  echo "     segmentHA_T2.sh --help"
+  echo "     segmentHA_T1_long.sh --help"
   echo " "
   echo "or visit the following page: "
   echo " "
@@ -8285,15 +8287,15 @@ Note that the following 6.0 flags have been deprecated:
 
 And replaced by the following scripts (for help, run them with flag --help): 
 
-segmentSF_T1.sh: Uses the T1 scan which the recon-all stream has processed at 1 mm 
+segmentHA_T1.sh: Uses the T1 scan which the recon-all stream has processed at 1 mm 
 resolution or higher (with -cm).
 
-segmentSF_T2.sh: It uses an additional scan in the segmentation, typically  (but
+segmentHA_T2.sh: It uses an additional scan in the segmentation, typically  (but
 not necessarily) a T2 volume with higher resolution, at least in the coronal plane. 
 This additional scan can be used in isolation or in combination with the T1 volume
 processed with recon-all
 
-segmentSF_T1_long.sh: This is the longitudinal version of segmentSF_T1.sh.
+segmentHAsegment_T1_long.sh: This is the longitudinal version of segmentHA_T1.sh.
 
 
 SEGMENTATION OF BRAINSTEM STRUCTURES
@@ -9246,9 +9248,7 @@ A computational atlas of the hippocampal formation using ex vivo, ultra-high res
 MRI: Application to adaptive segmentation of in vivo MRI.  Neuroimage 115, 2015, 117-137. 
 http://dx.doi.org/10.1016/j.neuroimage.2015.04.042
 
-[18] Saygin, Z.M., Kliemann, D. (joint 1st authors), Iglesias, J.E., van der Kouwe, A.J.W., Boyd, E., Reuter, M., Stevens, A., Van Leemput, K., McKee, A., Frosch, M.P., Fischl, B., Augustinack, J.C., High-resolution magnetic resonance imaging reveals nuclei of the human amygdala: manual segmentation to automatic atlas, NeuroImage, in press.
-
-[19] Iglesias, J.E., Van Leemput, K., Bhatt, P., Casillas, C., Dutt, S., Schuff, N.,
+[18] Iglesias, J.E., Van Leemput, K., Bhatt, P., Casillas, C., Dutt, S., Schuff, N.,
 Truran-Sacrey, D., Boxer, A., and Fischl, B., Bayesian segmentation of brainstem 
 structures in MRI. Neuroimage 113, 2015, 184-195.
 http://dx.doi.org/10.1016/j.neuroimage.2015.02.065
