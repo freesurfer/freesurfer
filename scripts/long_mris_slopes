@@ -183,9 +183,11 @@ Choose one or more of the following options:
      therefore we recommend pc1fit over pc1.
 * 'do-spc' for symmetrized percent change. Here we normalize by the temporal
      average instead of taking it from the first time point. The average
-     is computed from the linear fit at the middle of the time interval.
-     This is a symmetric 'percent thickening per year' and more robust, as
-     TP1 can be an outlier.
+     is computed from the linear fit at the middle of the time interval. So
+     it is the rate normalized by the temporal average times 100. This is a
+     symmetric 'percent thickening per year' and more robust, as the value 
+     at time point 1 is more noisy than the average. Note, however, that the
+     temporal average will change when adding new time points!
 * 'do-avg' for output of the temporal average (linear fit evaluated at mid
      time).
 
