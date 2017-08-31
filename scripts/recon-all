@@ -4346,7 +4346,7 @@ if($DoT2pial || $DoFLAIRpial) then
         -orig_white white \
         -orig_pial wo${t2flair}.pial)
     if ($UseAseg) then
-      set cmd = ($cmd -aseg ../mri/aseg)
+      set cmd = ($cmd -aseg ../mri/aseg.presurf)
     else
       set cmd = ($cmd -noaseg)
     endif
