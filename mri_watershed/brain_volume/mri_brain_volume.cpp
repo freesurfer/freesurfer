@@ -1724,7 +1724,7 @@ static int Lookat(int i,int j,int k,unsigned char val,int *dpt,Cell* *admax,int 
 
 /*tests a voxel, merges it or creates a new basin*/
 static int Test(Coord crd,STRIP_PARMS *parms,MRI_variables *MRI_var) {
-  int n,nb=0,dpt=-1,tst[6];
+  int n,nb=0,dpt=-1;
   unsigned char val;
   int mean,var,tp=0;
   int a,b,c;
@@ -1735,12 +1735,12 @@ static int Test(Coord crd,STRIP_PARMS *parms,MRI_variables *MRI_var) {
 
   val=MRIvox(MRI_var->mri_src,i,j,k);
 
-  tst[0]=Lookat(i,j,k-1,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
-  tst[1]=Lookat(i,j,k+1,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
-  tst[2]=Lookat(i,j-1,k,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
-  tst[3]=Lookat(i,j+1,k,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
-  tst[4]=Lookat(i-1,j,k,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
-  tst[5]=Lookat(i+1,j,k,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
+  Lookat(i,j,k-1,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
+  Lookat(i,j,k+1,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
+  Lookat(i,j-1,k,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
+  Lookat(i,j+1,k,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
+  Lookat(i-1,j,k,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
+  Lookat(i+1,j,k,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
 
   /*creates a new basin*/
 
@@ -2413,7 +2413,7 @@ static void brain_params(MRI_variables *MRI_var) {
   int i,j,k,xmin,xmax,ymin,zmin,zmax;
   unsigned long n;
   // BUFTYPE *pb;
-  double x,y,z,rad_buff;
+  double x,y,z;
 
   x=y=z=0;
   n=0;
@@ -2436,7 +2436,6 @@ static void brain_params(MRI_variables *MRI_var) {
   MRI_var->yCOG=y/n;
   MRI_var->zCOG=z/n;
 
-  rad_buff=0;
   n=0;
   xmin = MRI_var->width;
   xmax = 0;
