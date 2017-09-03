@@ -3354,7 +3354,7 @@ main(int argc, char *argv[])
   msec = TimerStop(&then) ;
   fprintf(stderr,"filling took %2.1f minutes\n", (float)msec/(60*1000.0f));
 
-  if (lta)
+  if (lta && !lhonly && !rhonly)
   {
     int totRH, totLH;
     totRH = 0;
@@ -6559,28 +6559,44 @@ MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg)
 	}
 	else if (val == WM_EDITED_ON_VAL)
 	{
-	  int whalf = (int)ceil(5 / (mri_seg->xsize)) ;
-	  if (MRIlabelsInNbhd(mri_seg,  x,  y,  z, whalf, Left_Cerebral_White_Matter) >
-	      MRIlabelsInNbhd(mri_seg,  x,  y,  z, whalf, Right_Cerebral_White_Matter))
-	    MRIsetVoxVal(mri_fill_lh, x, y, z, 0, 1) ;
+	  int whalf = (int)ceil(5 / (mri_seg->xsize)), lh, rh ;
+
+	  lh = MRIlabelsInNbhd(mri_seg, x, y, z, whalf, Left_Cerebral_White_Matter) + MRIlabelsInNbhd(mri_seg, x, y, z, whalf, Left_Cerebral_Cortex) ;
+	  rh = MRIlabelsInNbhd(mri_seg, x, y, z, whalf, Right_Cerebral_White_Matter) + MRIlabelsInNbhd(mri_seg, x, y, z, whalf, Right_Cerebral_Cortex) ;
+	  while (lh == 0 && rh == 0)
+	  {
+	    whalf++ ;
+	    lh = MRIlabelsInNbhd(mri_seg, x, y, z, whalf, Left_Cerebral_White_Matter) + MRIlabelsInNbhd(mri_seg, x, y, z, whalf, Left_Cerebral_Cortex) ;
+	    rh = MRIlabelsInNbhd(mri_seg, x, y, z, whalf, Right_Cerebral_White_Matter) + MRIlabelsInNbhd(mri_seg, x, y, z, whalf, Right_Cerebral_Cortex) ;
+	    if (whalf > 20) // give up
+	      break ;
+	  }
+	  if (lh > rh)
+	    MRIsetVoxVal(mri_fill, x, y, z, 0, lh_fill_val) ;
 	  else
-	    MRIsetVoxVal(mri_fill_rh, x, y, z, 0, 1) ;
-	  MRIsetVoxVal(mri_fill, x, y, z, 0, 1) ;
+	    MRIsetVoxVal(mri_fill, x, y, z, 0, rh_fill_val) ;
 	}
         else if (val < WM_MIN_VAL)
         {
 	  label = MRIgetVoxVal(mri_seg,x, y,z, 0);
-	  if (label != Left_Lesion && label != Right_Lesion && !IS_WMH(label))
+	  if (label != Left_Lesion && label != Right_Lesion && !IS_WMSA(label))
+	  {
+	    MRIsetVoxVal(mri_fill_lh, x, y, z, 0, 0) ;
+	    MRIsetVoxVal(mri_fill_rh, x, y, z, 0, 0) ;
+	    MRIsetVoxVal(mri_fill, x, y, z, 0, 0) ;
 	    continue;
+	  }
         }
 
         if (MRIvox(mri_fill, x, y, z) == rh_fill_val)
         {
           MRIvox(mri_fill_rh,x,y,z) = 1;
+          MRIvox(mri_fill_lh,x,y,z) = 0;
         }
         else
         {
           MRIvox(mri_fill_lh,x,y,z) = 1;
+          MRIvox(mri_fill_rh,x,y,z) = 0;
         }
       }
 
@@ -6596,6 +6612,8 @@ MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg)
     for (y=0; y< height; y++)
       for (x=0; x < width; x++)
       {
+	if (Gx == x && y == Gy && Gz == z)
+	  DiagBreak() ;
         MRIvox(mri_fill, x, y, z) = 0;
         if (MRIvox(mri_fill_lh, x, y, z) > 0)
         {
