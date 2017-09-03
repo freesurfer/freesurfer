@@ -5851,6 +5851,11 @@ while( $#argv != 0 )
       set DoDeface = 0;
       breaksw
 
+    case "-nuiterations":
+      if ( $#argv < 1) goto arg1err;
+      set NuIterations = $argv[1]; shift;
+      breaksw
+
     # note: norm3diters and normmaxgrads is applied to both runs of
     # mri_normalize.  use -norm1-b, -norm1-n, -norm2-b, -norm2-n to
     # distinguish -b and -n of the two mri_normalize runs
@@ -8378,7 +8383,7 @@ hippocampus in the temporal lobe. This option is passed to mri_ca_register.
 -nuiterations
 
 Number of iterations in the non-uniform intensity correction.
-Default is 1.
+Default is 2.
 
 -norm3diters niters
 
