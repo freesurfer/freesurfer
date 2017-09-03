@@ -698,7 +698,7 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
   vtkImplicitModeller* implicit = vtkImplicitModeller::New();
   implicit->SetInput(mesh);
   double bounds[6] =
-    { 0, dims[0]-1, 0, dims[1]-1, 0, dims[2]-1 };
+    { 0, (double)dims[0]-1.0, 0.0, (double)dims[1]-1.0, 0.0, (double)dims[2]-1.0 };
   implicit->SetModelBounds(bounds);
   implicit->SetMaximumDistance( thickness );
   implicit->SetSampleDimensions(dims);
