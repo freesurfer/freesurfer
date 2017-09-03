@@ -616,8 +616,7 @@ get_option(int argc, char *argv[]) {
 int main(int argc, char **argv) {
   IMAGE   *I;
   int     i;
-  int     ac, nargs ;
-  char    **av ;
+  int     nargs ;
 
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -632,8 +631,6 @@ int main(int argc, char **argv) {
   argc -= nargs;
 
   Progname = argv[0] ;
-  ac = argc ;
-  av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
