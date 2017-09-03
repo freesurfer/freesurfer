@@ -95,6 +95,7 @@ static int nosnr = 1 ;
 static double min_dist = 2.5 ; // mm away from border in -surface
 
 static char *renorm_fname = NULL ;
+static int renorm_val = DEFAULT_DESIRED_WHITE_MATTER_VALUE ;
 
 static float bias_sigma = 8.0 ;
 
@@ -251,8 +252,8 @@ main(int argc, char *argv[])
       mri_renorm = mri_tmp ;
     }
     mri_ctrl = MRIcloneDifferentType(mri_renorm, MRI_UCHAR) ;
-    MRIcopyLabel(mri_renorm, mri_ctrl, DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
-    MRIbinarize(mri_ctrl, mri_ctrl, DEFAULT_DESIRED_WHITE_MATTER_VALUE, CONTROL_NONE, CONTROL_MARKED) ;
+    MRIcopyLabel(mri_renorm, mri_ctrl, renorm_val) ;
+    MRIbinarize(mri_ctrl, mri_ctrl, renorm_val, CONTROL_NONE, CONTROL_MARKED) ;
     MRIwrite(mri_ctrl, "c.mgz") ;
     if (erode)
     {
@@ -1333,7 +1334,8 @@ MRIremoveWMOutliersAndRetainMedialSurface(MRI *mri_src,
   MRI       *mri_bin, *mri_dist, *mri_dist_sup, *mri_outliers = NULL ;
   float     max, thresh, val;
   HISTOGRAM *histo, *hsmooth ;
-  int       wm_peak, x, y, z, nremoved = 0, whalf = 5 ;
+  int       wm_peak, x, y, z, whalf = 5 ;
+  long      nremoved = 0L ;
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
@@ -1393,7 +1395,7 @@ MRIremoveWMOutliersAndRetainMedialSurface(MRI *mri_src,
     }
   }
 
-  printf( "%d control points removed\n", nremoved) ;
+  printf( "%ld control points removed\n", nremoved) ;
   if (mri_outliers)
   {
     printf( "writing out.mgz outlier volume\n") ;
