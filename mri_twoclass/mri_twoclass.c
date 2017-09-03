@@ -749,7 +749,7 @@ compute_voxel_statistics(VL ***voxel_labels_class1, VL ***voxel_labels_class2,
                          int width, int height, int depth,
                          float resolution, int nclass1, int nclass2,
                          MRI *mri_stats) {
-  int          x, y, z, label_counts_c1[256], label_counts_c2[256], index, dof;
+  int          x, y, z, label_counts_c1[MAX_CMA_LABELS], label_counts_c2[MAX_CMA_LABELS], index, dof;
   int          xc, yc, zc, xp, yp, zp ;
   VOXEL_LABELS *vl ;
   double       chisq, pi, xi1, xi2, numer, denom, n1, n2, ntotal, p,
