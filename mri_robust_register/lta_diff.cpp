@@ -646,7 +646,7 @@ double interpolationError2D(double angle)
   VECTOR * v_X = VectorAlloc(3, MATRIX_REAL);  // input (src) coordinates
   VECTOR * v_Y = VectorAlloc(3, MATRIX_REAL);  // transformed (dst) coordinates
   double errorsum = 0, x, y;
-  int xm, xp, ym, yp;
+  int xm, ym;
   double val, xmd, ymd, xpd, ypd;  // d's are distances
   V3_Z(v_Y)= 0;
   for (int y1 = 0; y1 < side; y1++)
@@ -664,9 +664,7 @@ double interpolationError2D(double angle)
 //         ym = MAX((int)y, 0) ;
 //         yp = MIN(side-1, ym+1) ;
       xm = (int)floor(x);
-      xp = xm+1;
       ym = (int)floor(y);
-      yp = ym+1;
 
       xmd = x - (float)xm;
       ymd = y - (float)ym;
@@ -709,7 +707,7 @@ double interpolationError(LTA* lta)
   VECTOR * v_Y = VectorAlloc(4, MATRIX_REAL);  // transformed (dst) coordinates
   int y3, y2, y1;
   double x, y, z;
-  int xm, xp, ym, yp, zm, zp;
+  int xm, ym, zm;
   double val, xmd, ymd, zmd, xpd, ypd, zpd;  // d's are distances
 
   MRI* mri_error = MRIalloc(width, height, depth, MRI_FLOAT);
@@ -732,11 +730,8 @@ double interpolationError(LTA* lta)
         z = V3_Z(v_X);
 
         xm = MAX((int)x, 0);
-        xp = MIN(width-1, xm+1);
         ym = MAX((int)y, 0);
-        yp = MIN(height-1, ym+1);
         zm = MAX((int)z, 0);
-        zp = MIN(depth-1, zm+1);
 
         xmd = x - (float)xm;
         ymd = y - (float)ym;

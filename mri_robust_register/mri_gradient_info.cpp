@@ -527,9 +527,6 @@ int main(int argc, char *argv[])
 
   MRI* mri_in = MRIread(mrif.c_str());
 
-  MRI* mri_mask = NULL;
-  if (argc >= 3)
-    mri_mask = MRIread(argv[2]);
 
   MRI* mri_mag = MRIalloc(mri_in->width, mri_in->height, mri_in->depth,
       MRI_FLOAT);
