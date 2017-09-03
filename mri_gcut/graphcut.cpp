@@ -671,7 +671,7 @@ void mincut(int ***im_gcut, edgeW *hor, edgeW *ver, edgeW *tra,
             int x_start, int y_start, int z_start, 
             int x_end, int y_end, int z_end)
 {
-  int i, k, x, y, z, m1, m2, m3, n;
+  int i, k, x, y, z, m1, m2, m3;
   int *marked;
 
   x = x_end - x_start + 1;
@@ -680,7 +680,6 @@ void mincut(int ***im_gcut, edgeW *hor, edgeW *ver, edgeW *tra,
   m1 = length_h;
   m2 = length_v;
   m3 = length_t;
-  n = 5;//number of column in edgewts matrix
 
   /* if ((m1 >= m2) && (m1 >= m3))
     m = m1;
