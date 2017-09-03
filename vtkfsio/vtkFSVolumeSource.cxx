@@ -551,11 +551,8 @@ vtkFSVolumeSource::CopyMRIToImage () {
   vtkShortArray         *shortScalars = NULL;
   vtkLongArray          *longScalars = NULL;
   vtkFloatArray         *floatScalars = NULL;
-  void* pixels;
   int cValues;
   int nZ, nY;
-  int cRead;
-  int zElement=0;
 
   if ( mMRI == NULL ) {
     vtkErrorMacro( << "No MRI is present." );
@@ -589,31 +586,26 @@ vtkFSVolumeSource::CopyMRIToImage () {
     mImageData->SetScalarTypeToUnsignedChar();
     ucharScalars = vtkUnsignedCharArray::New();
     scalars = (vtkDataArray*) ucharScalars;
-    zElement = sizeof( unsigned char );
     break;
   case MRI_INT:
     mImageData->SetScalarTypeToInt();
     intScalars = vtkIntArray::New();
     scalars = (vtkDataArray*) intScalars;
-    zElement = sizeof( int );
     break;
   case MRI_LONG:
     mImageData->SetScalarTypeToLong();
     longScalars = vtkLongArray::New();
     scalars = (vtkDataArray*) longScalars;
-    zElement = sizeof( long );
     break;
   case MRI_FLOAT:
     mImageData->SetScalarTypeToFloat();
     floatScalars = vtkFloatArray::New();
     scalars = (vtkDataArray*) floatScalars;
-    zElement = sizeof( float );
     break;
   case MRI_SHORT:
     mImageData->SetScalarTypeToShort();
     shortScalars = vtkShortArray::New();
     scalars = (vtkDataArray*) shortScalars;
-    zElement = sizeof( short );
     break;
   default:
     break ;
@@ -635,9 +627,7 @@ vtkFSVolumeSource::CopyMRIToImage () {
   // Copy the slice data into the scalars.
   vtkDebugMacro (<< "Copying " << cValues << " values into the scalars array");
   float* tuple = (float*) malloc( sizeof(float) * zFrames );
-  cRead = 0;
   int nTuple = 0;
-  pixels = NULL;
   for ( nZ = 0; nZ < zZ; nZ++ ) {
     for ( nY = 0; nY < zY; nY++ ) {
 #if 1
