@@ -362,10 +362,6 @@ vtkKWOrientMRIView2D::SetUpView () {
   // Calcualte the size of the planes.
   float RASBounds[6];
   mFSVolume->GetRASBounds( RASBounds );
-  float size[3];
-  size[0] = RASBounds[1] - RASBounds[0];
-  size[1] = RASBounds[3] - RASBounds[2];
-  size[2] = RASBounds[5] - RASBounds[4];
 
   // If our camera is looking at a different orientation, set it up
   // now.
