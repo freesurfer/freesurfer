@@ -119,9 +119,8 @@ int main(int argc, char *argv[])
   memset(&gDecimationOptions, 0, sizeof(DECIMATION_OPTIONS));
   gDecimationOptions.decimationLevel = 0.5; // Default decimation level if not specified
 
-  char **av;
   char *in_fname, out_fpath[STRLEN] ;
-  int ac, nargs;
+  int nargs;
   MRI_SURFACE *mris ;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -142,8 +141,6 @@ int main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  ac = argc ;
-  av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
   {
     nargs = get_option(argc, argv) ;
