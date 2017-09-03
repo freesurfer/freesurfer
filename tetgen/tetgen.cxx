@@ -10454,7 +10454,7 @@ long tetgenmesh::flip(queue* flipqueue, badface **plastflip) {
   point pa, pb, pc, pd, pe;
   enum fliptype fc;
   REAL sign, bakepsilon;
-  long flipcount, maxfaces;
+  long flipcount;
   int epscount, fcount;
   int ia, ib, ic, id, ie;
 
@@ -10464,7 +10464,6 @@ long tetgenmesh::flip(queue* flipqueue, badface **plastflip) {
 
   flipcount = flip23s + flip32s + flip22s + flip44s;
   if (checksubfaces) {
-    maxfaces = (4l * tetrahedrons->items + hullsize) / 2l;
     fcount = 0;
   }
 
@@ -25367,7 +25366,6 @@ bool tetgenmesh::checksub4badqual(face* testsub, bool enqflag) {
   face sametestsub;
   face subseg1, subseg2;
   point torg, tdest, tapex;
-  point anglevertex;
   REAL dxod, dyod, dzod;
   REAL dxda, dyda, dzda;
   REAL dxao, dyao, dzao;
@@ -25409,7 +25407,6 @@ bool tetgenmesh::checksub4badqual(face* testsub, bool enqflag) {
     // Find the square of the cosine of the angle at the apex.
     angle = dxda * dxao + dyda * dyao + dzda * dzao;
     angle = angle * angle / (orglen * destlen);
-    anglevertex = tapex;
     senext(*testsub, sametestsub);
     sspivot(sametestsub, subseg1);
     senext2(*testsub, sametestsub);
@@ -25419,7 +25416,6 @@ bool tetgenmesh::checksub4badqual(face* testsub, bool enqflag) {
     // Find the square of the cosine of the angle at the origin.
     angle = dxod * dxao + dyod * dyao + dzod * dzao;
     angle = angle * angle / (apexlen * destlen);
-    anglevertex = torg;
     sspivot(*testsub, subseg1);
     senext2(*testsub, sametestsub);
     sspivot(sametestsub, subseg2);
@@ -25428,7 +25424,6 @@ bool tetgenmesh::checksub4badqual(face* testsub, bool enqflag) {
     // Find the square of the cosine of the angle at the destination.
     angle = dxod * dxda + dyod * dyda + dzod * dzda;
     angle = angle * angle / (apexlen * orglen);
-    anglevertex = tdest;
     sspivot(*testsub, subseg1);
     senext(*testsub, sametestsub);
     sspivot(sametestsub, subseg2);
@@ -28096,7 +28091,7 @@ void tetgenmesh::jettisonnodes() {
 void tetgenmesh::highorder() {
   triface tetloop, worktet;
   triface spintet;
-  point torg, tdest, tapex;
+  point tapex;
   point *extralist, *adjextralist;
   point newpoint;
   int hitbdry, ptmark;
@@ -28184,8 +28179,6 @@ void tetgenmesh::highorder() {
           enext2self(worktet);
         }
         // Create a new node on this edge.
-        torg = org(worktet);
-        tdest = dest(worktet);
         // Create a new node in the middle of the edge.
         newpoint = (point) points->alloc();
         // Interpolate its attributes.
