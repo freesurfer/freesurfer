@@ -466,8 +466,7 @@ void reshape(int w, int h) {
 /*#include <term.h>*/
 
 int main(int argc, char** argv) {
-  char   **av ;
-  int    ac, nargs ;
+  int     nargs ;
 
   {
     char c ;
@@ -490,8 +489,6 @@ int main(int argc, char** argv) {
   DiagInit(NULL, NULL, NULL) ;
 
   setenv("__GL_SYNC_TO_VBLANK", "23", 1) ;
-  ac = argc ;
-  av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
