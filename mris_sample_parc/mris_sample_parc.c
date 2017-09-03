@@ -728,6 +728,7 @@ resegment_label(MRI_SURFACE *mris, LABEL *segment) {
   int    max_histo, max_index, nchanged, lno, label ;
   VERTEX *v, *vn ;
 
+  max_label = 0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
