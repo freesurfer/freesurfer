@@ -72,18 +72,15 @@ int main(int argc, char *argv[]) {
   MRI         *mri,*mri_distance;
   int         label,mode;
   float       max_distance;
-  int         ac, nargs ;
-  char        **av ;
+  int         nargs ;
   MRI_SURFACE *mris = NULL ;
-  MRI         *mri_orig_white = NULL, *mri_csf = NULL ;
+  MRI         *mri_csf = NULL ;
 
   max_distance=10;
   mode=1;
 
   Progname=argv[0];
 
-  ac = argc ;
-  av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
@@ -132,7 +129,6 @@ int main(int argc, char *argv[]) {
         ErrorExit(ERROR_NOFILE, "%s: could not read surface from %s", Progname, surf_name) ;
       mri_white = MRIclone(mri, NULL) ;
       MRISfillInterior(mris, mri_white->xsize, mri_white) ;
-      mri_orig_white = MRIcopy(mri_white, NULL) ; // before turning csf off
 
       if (mri_aseg)  // turn off non-wm/cortex labels
       {
