@@ -1690,17 +1690,20 @@ compute_desired_map(MRI_SURFACE *mris, int cols,  LABEL *area, int ndilate)
 static double
 compute_weight_functional(VECTOR **v_D, MATRIX **m_I, VECTOR *v_weights, int nsubjects)
 {
-  double error, total_error ;
+  double total_error ;
   int    n ;
-  VECTOR *v_weight_T = VectorTranspose(v_weights, NULL), *I_weighted, *I_weighted_T ;
+  VECTOR *v_weight_T = VectorTranspose(v_weights, NULL) ;
   
   total_error = 0.0 ;
-  error = 0.0 ;
+
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate (v_D, I_weighted, I_weighted_T, error, v_weight_T) reduction(+:total_error) schedule(static,1)
+#pragma omp parallel for firstprivate (v_D, v_weight_T) reduction(+:total_error) schedule(static,1)
 #endif
   for (n = 0 ; n < nsubjects ; n++)
   {
+    VECTOR *I_weighted, *I_weighted_T ;
+    double error ;
+
     I_weighted = MatrixMultiply(v_weight_T, m_I[n], NULL) ;
     I_weighted_T = MatrixTranspose(I_weighted, NULL) ;
 
@@ -1715,7 +1718,7 @@ static VECTOR *
 compute_gradient_wrt_weights(VECTOR **v_D, MATRIX **m_I, VECTOR *v_weights, int nsubjects, VECTOR *v_gradient)
 {
   int    n, l, nvertices, nvox ;
-  VECTOR *v_weight_T = VectorTranspose(v_weights, NULL), *I_weighted, *v_diff[MAX_SUBJECTS], *I_weighted_T ;
+  VECTOR *v_weight_T = VectorTranspose(v_weights, NULL), *v_diff[MAX_SUBJECTS] ;
   
   if (v_gradient == NULL)
     v_gradient = VectorClone(v_weights) ;
@@ -1723,10 +1726,11 @@ compute_gradient_wrt_weights(VECTOR **v_D, MATRIX **m_I, VECTOR *v_weights, int 
     VectorClear(v_gradient) ;
   nvertices = v_D[0]->rows ; nvox = v_weights->rows ;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate (I_weighted, I_weighted_T, v_D) shared(v_diff)  schedule(static,1)
+#pragma omp parallel for firstprivate (v_D) shared(v_diff)  schedule(static,1)
 #endif
   for (n = 0 ; n < nsubjects ; n++)
   {
+    VECTOR *I_weighted, *I_weighted_T ;
     I_weighted = MatrixMultiply(v_weight_T, m_I[n], NULL) ;
     I_weighted_T = VectorTranspose(I_weighted, NULL) ;
     v_diff[n] = MatrixSubtract(v_D[n], I_weighted_T, NULL) ;
