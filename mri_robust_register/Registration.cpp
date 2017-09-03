@@ -1710,8 +1710,6 @@ void Registration::testRobust(const std::string& fname, int testno)
 
   cout << " Transformed , now registering ..." << endl;
 
-  int steps;
-  steps = 3;
 //  rtype = 2;
 
 //    transonly = true;
@@ -3410,7 +3408,7 @@ vnl_matrix_fixed<double, 4, 4> Registration::initializeTransform(MRI *mriS,
 int Registration::init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
 {
   MATRIX *m_scaling;
-  float sx, sy, sz, dx, dy, dz;
+  float sx, sy, sz;
   MRI_REGION in_bbox, ref_bbox;
 
   m_scaling = MatrixIdentity(4, NULL);
@@ -3420,9 +3418,6 @@ int Registration::init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
   sx = (float) ref_bbox.dx / (float) in_bbox.dx;
   sy = (float) ref_bbox.dy / (float) in_bbox.dy;
   sz = (float) ref_bbox.dz / (float) in_bbox.dz;
-  dx = (ref_bbox.x + ref_bbox.dx - 1) / 2 - (in_bbox.x + in_bbox.dx - 1) / 2;
-  dy = (ref_bbox.y + ref_bbox.dy - 1) / 2 - (in_bbox.y + in_bbox.dy - 1) / 2;
-  dz = (ref_bbox.z + ref_bbox.dz - 1) / 2 - (in_bbox.z + in_bbox.dz - 1) / 2;
 
   if (sx > MAX_DX)
     sx = MAX_DX;

@@ -1576,7 +1576,7 @@ static void initRegistration(Registration & R, Parameters & P)
   {
     MRI * temp = mri_mov;
     struct timeb start;
-    int msec, minutes, seconds;
+    int msec, seconds;
     TimerStart(&start);
     cout << "Converting mov to entropy image (radius " << P.entroradius
         << " ) ... (can take 1-2 min)" << endl;
@@ -1586,7 +1586,7 @@ static void initRegistration(Registration & R, Parameters & P)
       MRIwrite(mri_mov, P.entmov.c_str());
     msec = TimerStop(&start);
     seconds = nint((float) msec / 1000.0f);
-    minutes = seconds / 60;
+//    minutes = seconds / 60;
     //seconds = seconds % 60 ;
     cout << " Entropy computation took " << seconds << " seconds." << endl;
     MRIfree(&temp);
