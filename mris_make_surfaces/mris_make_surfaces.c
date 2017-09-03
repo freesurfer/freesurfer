@@ -1580,6 +1580,7 @@ main(int argc, char *argv[])
   }
 #endif
 
+
   sprintf(parms.base_name, "%s%s%s", pial_name, output_suffix, suffix) ;
   fprintf(stderr, "repositioning cortical surface to gray/csf boundary.\n") ;
   parms.l_repulse = l_repulse ;
@@ -1621,6 +1622,15 @@ main(int argc, char *argv[])
           ErrorExit(ERROR_NOFILE, "%s: could not load flair volume %s", Progname, fname) ;
         }
 
+	if (MRImatchDimensions(mri_flair, mri_aseg) == 0)
+	{
+	  MRI *mri_tmp ;
+	  
+	  printf("resampling to be in voxel space of T2/FLAIR\n") ;
+	  mri_tmp = MRIresample(mri_aseg, mri_flair, SAMPLE_NEAREST) ;
+	  MRIfree(&mri_aseg) ;
+	  mri_aseg = mri_tmp ;
+	}
 
 	if (mri_aseg && erase_cerebellum)
 	{
@@ -1713,7 +1723,7 @@ main(int argc, char *argv[])
         compute_pial_target_locations(mris, mri_flair,
                                       labels, nlabels,
                                       contrast_type, mri_aseg, T2_min_inside, T2_max_inside, T2_min_outside, T2_max_outside,max_outward_dist,Ghisto_min_inside_peak_pct, Ghisto_min_outside_peak_pct, wm_weight, mri_T1_pial) ;
-	parms.l_location /= spring_scale ; 
+//	parms.l_location /= spring_scale ; 
 
         if (Gdiag & DIAG_WRITE)
         {
@@ -2507,6 +2517,11 @@ get_option(int argc, char *argv[])
     printf("\tparms.l_nspring  = %2.1f\n", parms.l_nspring) ;
     printf("\tparms.l_location = %2.1f\n", parms.l_location) ;
   }
+  else if (!stricmp(option, "norms") || !stricmp(option, "no_rms"))
+  {
+    parms.check_tol = 0 ;
+    printf("not checking rms error decrease\n") ;
+  }
   else if (!stricmp(option, "flair"))
   {
     contrast_type = CONTRAST_FLAIR ;
@@ -3100,6 +3115,8 @@ get_option(int argc, char *argv[])
     case 'M':
       parms.integration_type = INTEGRATE_MOMENTUM ;
       parms.momentum = atof(argv[2]) ;
+      if (parms.momentum >= 1 || parms.momentum < 0)
+	ErrorExit(ERROR_BADPARM, "invalid parms.momentum  %f\n",parms.momentum);
       nargs = 1 ;
       fprintf(stderr, "momentum = %2.2f\n", parms.momentum) ;
       break ;
@@ -4431,11 +4448,12 @@ compute_pial_target_locations(MRI_SURFACE *mris,
   int       vno, num_in, num_out, found_bad_intensity, found ;
   int       outside_of_white, n, outside_of_pial, near_cerebellum ;
   VERTEX    *v ;
-  double    min_gray_inside, min_gray_outside, max_gray_outside, max_gray_inside, thickness, nx, ny, nz, sample_dist;
+  double    min_gray_inside, min_gray_outside, max_gray_outside, max_gray_inside, thickness, nx, ny, nz, sample_dist, pix_size ;
   double    last_white, dist_to_white, dist_to_pial, last_dist_to_pial  ;
 //  double last_pial ; 
   MRI       *mri_filled, *mri_filled_pial, *mri_tmp, *mri_dist_lh, *mri_dist_rh, *mri_dist_white, *mri_dist_pial ;
 
+  pix_size = (mri_T2->xsize+mri_T2->ysize + mri_T2->zsize)/3 ;
   sample_dist = MIN(SAMPLE_DIST, mri_T2->xsize/2) ;
   if (mri_aseg)
   {
@@ -4497,9 +4515,11 @@ compute_pial_target_locations(MRI_SURFACE *mris,
   {
     HISTOGRAM *h1, *h2, *hcdf_rev, *hs, *hcdf, *hwm, *hwm2, *hwms ;
     MRI_REGION region ;
-    int whalf, wsize = 15, bin1, bin2;
+    int whalf, wsize, bin1, bin2;
     double mean, sigma, mean_wm, sigma_wm ;
 
+    whalf = nint(7.0/pix_size);
+    wsize = 2*whalf+1 ;
     v = &mris->vertices[vno] ;
     v->targx = v->x ; v->targy = v->y ; v->targz = v->z ;
     if (v->ripflag)
@@ -4508,11 +4528,14 @@ compute_pial_target_locations(MRI_SURFACE *mris,
     // compute a histogram of local GM values and use it to detect unlikely values in the interior
     // or likely values in the exterior
     MRISvertexToVoxel(mris, v, mri_T2, &xv, &yv, &zv) ;
-    whalf = (wsize-1)/2 ;
     region.x = nint(xv)-whalf ; region.y = nint(yv)-whalf ; region.z = nint(zv)-whalf ;
     region.dx = wsize ;  region.dy = wsize ; region.dz = wsize ; 
     h1 = MRIhistogramLabelRegion(mri_T2, mri_aseg, &region, Left_Cerebral_Cortex, 0) ;
+    if (h1->nbins == 1)
+      DiagBreak() ;
     h2 = MRIhistogramLabelRegion(mri_T2, mri_aseg, &region, Right_Cerebral_Cortex, 0) ;
+    if (h2->nbins == 1)
+      DiagBreak() ;
     HISTOadd(h1, h2, h1) ;
     hs = HISTOsmooth(h1, NULL, 4) ;
     hcdf_rev = HISTOmakeReverseCDF(h1, NULL) ;
@@ -4951,7 +4974,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
 	if (vno == Gdiag_no)
 	{
 	  if (found)
-	    printf("v %d: could nudging pial surface 0.5mm outwards despite not detecting exterior\n", vno) ;
+	    printf("v %d:  nudging pial surface 0.5mm outwards despite not detecting exterior\n", vno) ;
 	  else
 	    printf("v %d: could not find pial surface\n", vno) ;
 	}
