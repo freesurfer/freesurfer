@@ -163,9 +163,9 @@ static float light = 0.0f ;
 
 int
 main(int argc, char *argv[]) {
-  char         **av, *in_fname, *out_fname, fname[100], hemi[10],
+  char         *in_fname, fname[100], hemi[10],
   *cp, path[100], name[100] ;
-  int          ac, nargs, i ;
+  int          nargs, i ;
   float        angle ;
 
   /* rkt: check for and handle version tag */
@@ -188,8 +188,6 @@ main(int argc, char *argv[]) {
   parms.write_iterations = WRITE_ITERATIONS ;
   parms.a = parms.b = parms.c = 0.0f ;  /* ellipsoid parameters */
 
-  ac = argc ;
-  av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
@@ -200,7 +198,6 @@ main(int argc, char *argv[]) {
     usage_exit() ;
 
   surf_fname = in_fname = argv[1] ;
-  out_fname = argv[2] ;
 
   if (patch_flag && !strstr(surf_fname, ".geo")) {
     /* read in orig surface before reading in patch */
