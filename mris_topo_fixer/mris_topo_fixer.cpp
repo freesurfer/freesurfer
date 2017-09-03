@@ -153,8 +153,8 @@ static void freeTopoFixerParameters() {
 
 int main(int argc, char *argv[]) {
 
-  char          **av, *hemi, *sname, *cp, fname[STRLEN] ;
-  int           ac, nargs ;
+  char          *hemi, *sname, *cp, fname[STRLEN] ;
+  int           nargs ;
   MRI_SURFACE   *mris, *mris_corrected ;
   // MRI           *mri, *mri_wm ;
   int           msec, nvert, nfaces, nedges, eno ,is_valid;
@@ -187,8 +187,6 @@ int main(int argc, char *argv[]) {
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
-  ac = argc ;
-  av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
