@@ -59,9 +59,9 @@ static char  *surf_name ;   /* used if in surface-based coordinates */
 
 int
 main(int argc, char *argv[]) {
-  char        **av, *in_prefix, *out_prefix, out_fname[100], name[100],
+  char        *in_prefix, *out_prefix, out_fname[100], name[100],
   path[100], *coord_name, fname[100], *cp, subjects_dir[100] ;
-  int         n,ac, nargs, ino, event ;
+  int         n, nargs, ino, event ;
   SV          *sv, *sv_avg = NULL ;
   MRI_SURFACE *mris ;
 
@@ -82,8 +82,6 @@ main(int argc, char *argv[]) {
   for (n=0; n < argc; n++) printf("%s ",argv[n]);
   printf("\n");
 
-  ac = argc ;
-  av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
@@ -171,10 +169,7 @@ main(int argc, char *argv[]) {
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     for (event = 0 ; event < sv_avg->nevents ; event++) {
-      float val ;
 
-      val = MRIFvox(sv_avg->mri_avgs[event], 35, 26, 78) ;
-      val = MRIFvox(sv_avg->mri_avgs[event], 53, 16, 74) ;
       sprintf(out_fname, "avg%d.mgh", event) ;
       MRIwrite(sv_avg->mri_avgs[event], out_fname) ;
       sprintf(out_fname, "std%d.mgh", event) ;
