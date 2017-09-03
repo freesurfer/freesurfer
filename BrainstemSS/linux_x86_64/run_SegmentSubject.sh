@@ -14,7 +14,7 @@ else
   echo Setting up environment variables
   MCRROOT="$1"
   echo ---
- MCRJRE=${MCRROOT}/sys/java/jre/glnxa64/jre/lib/amd64 ;
+  MCRJRE=${MCRROOT}/sys/java/jre/glnxa64/jre/lib/amd64 ;
 
   LD_LIBRARY_PATH=.:${MCRROOT}/runtime/glnxa64:${MCRROOT}/bin/glnxa64:${MCRROOT}/sys/os/glnxa64:${MCRJRE}/native_threads:${MCRJRE}/server:${MCRJRE}/client:${MCRJRE}:$LD_LIBRARY_PATH ;
 
@@ -38,8 +38,9 @@ else
   MCR_CACHE_ROOT=$( echo "/tmp/MCR_${RANDOMNUMBER}/" | tr -d ' ' ) ;
   export MCR_CACHE_ROOT;
   "${exe_dir}"/segmentSubject $args
+  returnVal=$?
   rm -rf $MCR_CACHE_ROOT
 
 fi
-exit
 
+exit $returnVal

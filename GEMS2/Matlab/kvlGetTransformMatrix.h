@@ -55,8 +55,8 @@ public:
     mwSize  dims[ 2 ];
     dims[ 0 ] = 4;
     dims[ 1 ] = 4;
-    plhs[ 0 ] = mxCreateNumericArray( 2, dims, mxSINGLE_CLASS, mxREAL );
-    float*  data = static_cast< float* >( mxGetData( plhs[ 0 ] ) ); 
+    plhs[ 0 ] = mxCreateNumericArray( 2, dims, mxDOUBLE_CLASS, mxREAL );
+    double*  data = static_cast< double* >( mxGetData( plhs[ 0 ] ) ); 
     TransformType::ParametersType  parameters = transform->GetParameters();
 
     for ( unsigned int row = 0; row < 3; row++ )

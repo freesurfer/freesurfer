@@ -626,7 +626,7 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) CMDargNErr(option,1);
       MaskFile = pargv[0];
       LabelFile = NULL;
-      nargsused = 2;
+      nargsused = 1;
     } 
     else if (!strcasecmp(option, "--label")) {
       if(nargc < 1) CMDargNErr(option,1);

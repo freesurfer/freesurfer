@@ -1,4 +1,3 @@
-
 #!/bin/sh
 # script for execution of deployed applications
 #
@@ -42,8 +41,7 @@ else
   "${exe_dir}"/segmentSubjectT1_autoEstimateAlveusML $args
   returnVal=$?
   rm -rf $MCR_CACHE_ROOT
-
   
 fi
-exit $returnVal
 
+exit $returnVal

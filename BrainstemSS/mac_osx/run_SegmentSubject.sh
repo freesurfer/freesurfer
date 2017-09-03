@@ -33,9 +33,9 @@ else
   MCR_CACHE_ROOT=$( echo "/tmp/MCR_${RANDOMNUMBER}/" | tr -d ' ' ) ;
   export MCR_CACHE_ROOT;
   "${exe_dir}"/segmentSubject.app/Contents/MacOS/segmentSubject $args
+  returnVal=$?
   rm -rf $MCR_CACHE_ROOT
 
 fi
-exit
 
-
+exit $returnVal

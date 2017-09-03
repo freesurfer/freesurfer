@@ -25,63 +25,18 @@ function segmentSubject(subjectName,subjectDir,resolution,atlasMeshFileName,atla
 
 
 % clear
-% subjectName='subject1';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/data/WinterburnHippocampalAtlas/FSdirConformed/';
+% subjectName='eugenio';
+% subjectDir='/autofs/space/panamint_005/users/iglesias/brains/myBrain/myBrain/subjectdir/';
 % resolution=0.5;
-% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/FSdistros/brainstemST_FS6/linux/atlas/AtlasMesh.gz';
-% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/FSdistros/brainstemST_FS6/linux/atlas/AtlasDump.mgz';
-% % compressionLUTfileName='/autofs/space/panamint_005/users/iglesias/atlases/brainstem_140710/compressionLookupTable.txt';
-% compressionLUTfileName='/autofs/space/panamint_005/users/iglesias/FSdistros/brainstemST_FS6/linux/atlas/compressionLookupTable.txt';
+% atlasMeshFileName='/usr/local/freesurfer/stable6_0_0/average/BrainstemSS/atlas//AtlasMesh.gz';
+% atlasDumpFileName='/usr/local/freesurfer/stable6_0_0/average/BrainstemSS/atlas//AtlasDump.mgz';
+% compressionLUTfileName='/usr/local/freesurfer/stable6_0_0/average/BrainstemSS/atlas//compressionLookupTable.txt';
 % K=0.05;
 % % optimizerType='LM';
 % optimizerType='ConjGrad';
-% suffix = 'testHR';
-% FSdir='/usr/local/freesurfer/stable5_3_0/bin/';
+% suffix = 'testMemoryEfficient';
+% FSdir='/usr/local/freesurfer/dev/bin/';
 % % additionalFile='/autofs/space/panamint_005/users/iglesias/data/IXI_full/FSdir/IXI055/mri/T2regBFcorr.mgz';
-
-% clear
-% subjectName='49901.long.114_S_0458_base';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/data/ADNI_full_long/';
-% resolution=0.5;
-% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/FSdistros/brainstemST_FS6/linux/atlas/AtlasMesh.gz';
-% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/FSdistros/brainstemST_FS6/linux/atlas/AtlasDump.mgz';
-% % compressionLUTfileName='/autofs/space/panamint_005/users/iglesias/atlases/brainstem_140710/compressionLookupTable.txt';
-% compressionLUTfileName='/autofs/space/panamint_005/users/iglesias/FSdistros/brainstemST_FS6/linux/atlas/compressionLookupTable.txt';
-% K=0.05;
-% % optimizerType='LM';
-% optimizerType='ConjGrad';
-% suffix = 'crossFSlong_K_0.05';
-% FSdir='/usr/local/freesurfer/stable5_3_0/bin/';
-% % additionalFile='/autofs/space/panamint_005/users/iglesias/data/IXI_full/FSdir/IXI055/mri/T2regBFcorr.mgz';
-
-% clear
-% subjectName='IXI071';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/data/IXI_full/FSdir/';
-% resolution=0.5;
-% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/brainstem_140710/output/CurrentMeshCollection29.gz';
-% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/data/MAC_brainstem_data/simplifiedLabels/atlasBS.mgz';
-% % compressionLUTfileName='/autofs/space/panamint_005/users/iglesias/atlases/brainstem_140710/compressionLookupTable.txt';
-% compressionLUTfileName='/autofs/space/panamint_005/users/iglesias/FSdistros/brainstemST_FS6/linux/atlas/compressionLookupTable.txt';
-% K=0.05;
-% % optimizerType='LM';
-% optimizerType='ConjGrad';
-% FSdir = '/usr/local/freesurfer/stable5_3_0/bin/';
-% % additionalFile='/autofs/space/panamint_005/users/iglesias/data/IXI_full/FSdir/IXI055/mri/T2regBFcorr.mgz';
-
-
-% clear
-% subjectName='testSubject';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/Downloads/';
-% resolution=0.5;
-% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/distros/segmentBrainstem/dat/AtlasMesh.gz';
-% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/distros/segmentBrainstem/dat/atlasBS.mgz';
-% compressionLUTfileName='/autofs/space/panamint_005/users/iglesias/distros/segmentBrainstem/dat/compressionLookupTable.txt';
-% K=0.05;
-% % optimizerType='LM';
-% optimizerType='ConjGrad';
-% FSdir = '/usr/local/freesurfer/stable5_3_0/bin/';
-
-
 
 
 
@@ -297,8 +252,39 @@ end
 kvlSetAlphasInMeshNodes( mesh, reducedAlphas )
 
 
-priors = kvlRasterizeAtlasMesh( mesh, synSize );
+
+% Eugenio July 2017
+
+% priors = kvlRasterizeAtlasMesh( mesh, synSize );
+% MASK=imerode(sum(double(priors)/65535,4)>0.99,createSphericalStrel(5)); % borders are often a bit weird...
+
+for l = 1 : size(reducedAlphas,2)    
+    if l==1
+       % This is a bit annoying, but the call to kvlRasterize with a single
+       % label fills in the voxels outside the cuboid with l=1 (whereas the
+       % call with multiple labels does not)
+        sillyAlphas=zeros([size(reducedAlphas,1),2],'single');
+        sillyAlphas(:,1)=reducedAlphas(:,1);
+        sillyAlphas(:,2)=1-sillyAlphas(:,1);
+        kvlSetAlphasInMeshNodes( mesh, sillyAlphas )
+        prior = kvlRasterizeAtlasMesh( mesh, synSize);
+        kvlSetAlphasInMeshNodes( mesh, reducedAlphas )
+        sumpriors=prior(:,:,:,1);
+    else
+        prior = kvlRasterizeAtlasMesh( mesh, synSize, l-1 );
+        sumpriors=sumpriors+prior;        
+    end
+end
+MASK=imerode(sum(single( sumpriors / 65535 ),4)>0.99,createSphericalStrel(5));
+
+
+cheatingImageBuffer=synImBuffer;
+cheatingImageBuffer(~MASK)=0;
+cheatingImage = kvlCreateImage( cheatingImageBuffer );
+
+
 if ~isdeployed && DEBUG>0
+    priors = kvlRasterizeAtlasMesh( mesh, synSize );
     figure
     for cheatingLabel = 1 : size( reducedAlphas, 2 )
         subplot( 3, 4, cheatingLabel )
@@ -306,11 +292,6 @@ if ~isdeployed && DEBUG>0
     end
     title('Priors for segmentation of fake intensity image')
 end
-
-MASK=imerode(sum(double(priors)/65535,4)>0.99,createSphericalStrel(5)); % borders are often a bit weird...
-cheatingImageBuffer=synImBuffer;
-cheatingImageBuffer(~MASK)=0;
-cheatingImage = kvlCreateImage( cheatingImageBuffer );
 
 if ~isdeployed && DEBUG>0
     figure
@@ -547,8 +528,8 @@ end
 
 % Rather than showing rasterized priors defined by the atlas mesh one by one, as we did above,
 % we can color-code them and show everything as one image
-priors = kvlRasterizeAtlasMesh( mesh, imageSize ); % Without specifying a specific label, will rasterize all simultaneously
 if ~isdeployed && DEBUG>0
+    priors = kvlRasterizeAtlasMesh( mesh, imageSize ); % Without specifying a specific label, will rasterize all simultaneously
     colorCodedPriors = kvlColorCodeProbabilityImages( priors, colors );
     figure
     showImage( colorCodedPriors );
@@ -557,11 +538,38 @@ if ~isdeployed && DEBUG>0
 end
 
 
+% Eugenio July 2017: let's avoid rasterizing all priors simultaneously
+% (which was faster, but used much more memory)
+alphas = kvlGetAlphasInMeshNodes( mesh );
+nlabels = size(alphas,2);
+for l = 1 : nlabels
+    
+    if l==1
+       % This is a bit annoying, but the call to kvlRasterize with a single
+       % label fills in the voxels outside the cuboid with p=1 (whereas the
+       % call with multiple labels does not)
+        sillyAlphas=zeros([size(originalAlphas,1),2],'single');
+        sillyAlphas(:,1)=originalAlphas(:,1);
+        sillyAlphas(:,2)=1-sillyAlphas(:,1);
+        kvlSetAlphasInMeshNodes( mesh, sillyAlphas )
+        prior = kvlRasterizeAtlasMesh( mesh, imageSize);
+        kvlSetAlphasInMeshNodes( mesh, originalAlphas )
+        sumpriors=prior(:,:,:,1);
+
+    else
+       
+        prior = kvlRasterizeAtlasMesh( mesh, imageSize, l-1 );
+        sumpriors=sumpriors+prior;
+        
+    end
+end
+
 % We're not interested in image areas that fall outside our cuboid ROI where our atlas is defined. Therefore,
 % generate a mask of what's inside the ROI. Also, by convention we're skipping all voxels whose intensities
 % is exactly zero (which we do to remove image areas far away for FreeSurfer's ASEG hippo segmentation) -
 % also include that in the mask
-mask = single( sum( priors, 4 ) / 65535 ) > 0.99;
+% mask = single( sum( priors, 4 ) / 65535 ) > 0.99;
+mask = single( sumpriors / 65535 ) > 0.99;
 mask = mask & ( imageBuffer > 0 );
 if ~isdeployed && DEBUG>0
     figure
@@ -900,11 +908,19 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         
         % Get the priors as dictated by the current mesh position, as well as the image intensities
         data = double( reshape( kvlGetImageBuffer( image ), [ prod( imageSize ) 1 ] ) ); % Easier to work with vector notation in the computations
-        priors = kvlRasterizeAtlasMesh( mesh, imageSize );
-        priors = reshape( priors, [ prod( imageSize ) numberOfClasses ] ); % Easier to work with vector notation in the computations
         
-        % Ignore everything that's has zero intensity
-        priors = priors( maskIndices, : );
+        % Eugenio July 2017: again, avoid spike of memory use
+        priors=zeros([length(maskIndices),numberOfClasses],'uint16');
+        for l=1:numberOfClasses
+            prior = kvlRasterizeAtlasMesh( mesh, imageSize, l-1 );
+            priors(:,l)=prior(maskIndices);
+        end
+        
+%         priors = kvlRasterizeAtlasMesh( mesh, imageSize );
+%         priors = reshape( priors, [ prod( imageSize ) numberOfClasses ] ); % Easier to work with vector notation in the computations
+%         priors = priors( maskIndices, : );
+        
+        
         data = data( maskIndices );
         
         % Start EM iterations. Initialize the parameters if this is the
@@ -957,7 +973,9 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
                 
             end
             normalizer = sum( posteriors, 2 ) + eps;
-            posteriors = posteriors ./ repmat( normalizer, [ 1 numberOfClasses ] );
+            % Eugenio July 2017
+            % posteriors = posteriors ./ repmat( normalizer, [ 1 numberOfClasses ] );
+            posteriors = bsxfun(@rdivide,posteriors, normalizer);
             
             minLogLikelihood =  minLogLikelihood - sum( log( normalizer ) ) % This is what we're optimizing with EM
             if isnan(minLogLikelihood)
@@ -1161,29 +1179,46 @@ end
 kvlSetAlphasInMeshNodes( mesh, originalAlphas )
 numberOfClasses = size( originalAlphas, 2 );
 
-% Get the priors as dictated by the current mesh position
+% Eugenio July 2017 : this type of call is exactly what we're tryint to
+% avoid....
 data = double( reshape( imageBuffer, [ prod( imageSize ) 1 ] ) ); % Easier to work with vector notation in the computations
-priors = kvlRasterizeAtlasMesh( mesh, imageSize );
-priors = reshape( priors, [ prod( imageSize ) numberOfClasses ] );  % Easier to work with vector notation in the computations
-
-% Ignore everything that's has zero intensity
-priors = priors( maskIndices, : );
 data = data( maskIndices );
 
-% Calculate the posteriors
-posteriors = zeros( size( priors ), 'double' );
+posteriors=zeros([length(maskIndices),numberOfClasses],'single');
 for classNumber = 1 : numberOfClasses
-    % Get the parameters from the correct Gaussian
+    prior = kvlRasterizeAtlasMesh( mesh, imageSize, classNumber-1 );
     mu = means( reducingLookupTable( classNumber ) );
     variance = variances( reducingLookupTable( classNumber ) );
-    prior = single( priors( :, classNumber ) ) / 65535;
-    
-    posteriors( :, classNumber ) = ( exp( -( data - mu ).^2 / 2 / variance ) .* prior ) ...
-        / sqrt( 2 * pi * variance);
+    posteriors( :, classNumber ) = ( exp( -( data - mu ).^2 / 2 / variance ) ...
+        .* (double(prior(maskIndices))/65535) ) / sqrt( 2 * pi * variance);
 end
 normalizer = sum( posteriors, 2 ) + eps;
-posteriors = posteriors ./ repmat( normalizer, [ 1 numberOfClasses ] );
+posteriors = bsxfun(@rdivide,posteriors, normalizer);
 posteriors = uint16( round( posteriors * 65535 ) );
+
+% % Get the priors as dictated by the current mesh position
+% data = double( reshape( imageBuffer, [ prod( imageSize ) 1 ] ) ); % Easier to work with vector notation in the computations
+% priors = kvlRasterizeAtlasMesh( mesh, imageSize );
+% priors = reshape( priors, [ prod( imageSize ) numberOfClasses ] );  % Easier to work with vector notation in the computations
+% 
+% % Ignore everything that's has zero intensity
+% priors = priors( maskIndices, : );
+% data = data( maskIndices );
+% 
+% % Calculate the posteriors
+% posteriors = zeros( size( priors ), 'double' );
+% for classNumber = 1 : numberOfClasses
+%     % Get the parameters from the correct Gaussian
+%     mu = means( reducingLookupTable( classNumber ) );
+%     variance = variances( reducingLookupTable( classNumber ) );
+%     prior = single( priors( :, classNumber ) ) / 65535;
+%     
+%     posteriors( :, classNumber ) = ( exp( -( data - mu ).^2 / 2 / variance ) .* prior ) ...
+%         / sqrt( 2 * pi * variance);
+% end
+% normalizer = sum( posteriors, 2 ) + eps;
+% posteriors = posteriors ./ repmat( normalizer, [ 1 numberOfClasses ] );
+% posteriors = uint16( round( posteriors * 65535 ) );
 
 % Display the posteriors
 if  ~isdeployed && DEBUG>0
@@ -1324,20 +1359,38 @@ aux=aux(1+shiftPos(1):end,1+shiftPos(2):end,1+shiftPos(3):end);
 tmp3.vol=aux;
 myMRIwrite(tmp3,'image.mgz','float',tempdir);
 
+
 % Compute posteriors and volumes
-priorsFull = kvlRasterizeAtlasMesh( mesh, imageSize );
-posteriorsFull=priorsFull;
-
-
-
+% July 2017: make this memory efficient, and add new substructures. We also
+% compute the segmentation along the way. 
 fid=fopen([tempdir '/volumesBrainstem.txt'],'w');
 strOfInterest={'MAC_Medulla','MAC_Pons','MAC_Midbrain','MAC_Sup_Cerebellum_Ped','Medulla','Pons','Midbrain','SCP'};
 totVol=0;
-found=zeros(1,size(priorsFull,4));
-for i=1:size(priorsFull,4)
-    tmp=posteriorsFull(:,:,:,i);
-    tmp(maskIndices)=posteriors(:,i);
-    posteriorsFull(:,:,:,i)=tmp;
+found=zeros(1,numberOfClasses);
+for i=1:numberOfClasses
+    
+    if i==1
+        sillyAlphas=zeros([size(originalAlphas,1),2],'single');
+        sillyAlphas(:,1)=originalAlphas(:,1);
+        sillyAlphas(:,2)=1-sillyAlphas(:,1);
+        kvlSetAlphasInMeshNodes( mesh, sillyAlphas )
+        post = kvlRasterizeAtlasMesh( mesh, imageSize);
+        post=post(:,:,:,1);
+        kvlSetAlphasInMeshNodes( mesh, originalAlphas );
+    else
+        post=kvlRasterizeAtlasMesh( mesh, imageSize , i-1);
+    end
+    post(maskIndices)=posteriors(:,i);
+    
+    if i==1
+        L=ones(size(post));
+        MAXP=post;
+    else
+        M=post>MAXP;
+        L(M)=i;
+        MAXP(M)=post(M);
+    end
+    
     found(i)=0;
     str=[];
     vol=0;
@@ -1350,11 +1403,11 @@ for i=1:size(priorsFull,4)
     end
     if found(i)>0
         str=strOfInterest{found(i)};
-        vol=resolution^3*(sum(sum(sum(double(posteriorsFull(:,:,:,i))/65535))));
+        vol=resolution^3*(sum(double(post(:))/65535));
         fprintf(fid,'%s %f\n',str,vol);
         totVol=totVol+vol;
         if WRITE_POSTERIORS>0
-            kk1=double(posteriorsFull(:,:,:,i))/65535;
+            kk1=double(post)/65535;
             kk2=zeros(size(kk1)); kk2(maskIndices)=1; kk1=kk1.*kk2;
             aux=zeros(size(tmp2.vol)+shiftNeg);
             aux(1+shiftNeg(1):shiftNeg(1)+size(tmp2.vol,1),1+shiftNeg(2):shiftNeg(2)+size(tmp2.vol,2),1+shiftNeg(3):shiftNeg(3)+size(tmp2.vol,3))=permute(kk1,[2 1 3]);
@@ -1371,9 +1424,57 @@ end
 fprintf(fid,'Whole_brainstem %f\n',totVol);
 fclose(fid);
 
+% priorsFull = kvlRasterizeAtlasMesh( mesh, imageSize );
+% posteriorsFull=priorsFull;
+% 
+% fid=fopen([tempdir '/volumesBrainstem.txt'],'w');
+% strOfInterest={'MAC_Medulla','MAC_Pons','MAC_Midbrain','MAC_Sup_Cerebellum_Ped','Medulla','Pons','Midbrain','SCP'};
+% totVol=0;
+% found=zeros(1,size(priorsFull,4));
+% for i=1:size(priorsFull,4)
+%     tmp=posteriorsFull(:,:,:,i);
+%     tmp(maskIndices)=posteriors(:,i);
+%     posteriorsFull(:,:,:,i)=tmp;
+%     found(i)=0;
+%     str=[];
+%     vol=0;
+%     name=names(i,:);
+%     name=lower(name(name~=' '));
+%     for j=1:length(strOfInterest)
+%         if strcmp(name,lower(strOfInterest{j}))>0
+%             found(i)=j;
+%         end
+%     end
+%     if found(i)>0
+%         str=strOfInterest{found(i)};
+%         vol=resolution^3*(sum(sum(sum(double(posteriorsFull(:,:,:,i))/65535))));
+%         fprintf(fid,'%s %f\n',str,vol);
+%         totVol=totVol+vol;
+%         if WRITE_POSTERIORS>0
+%             kk1=double(posteriorsFull(:,:,:,i))/65535;
+%             kk2=zeros(size(kk1)); kk2(maskIndices)=1; kk1=kk1.*kk2;
+%             aux=zeros(size(tmp2.vol)+shiftNeg);
+%             aux(1+shiftNeg(1):shiftNeg(1)+size(tmp2.vol,1),1+shiftNeg(2):shiftNeg(2)+size(tmp2.vol,2),1+shiftNeg(3):shiftNeg(3)+size(tmp2.vol,3))=permute(kk1,[2 1 3]);
+%             aux=aux(1+shiftPos(1):end,1+shiftPos(2):end,1+shiftPos(3):end);
+%             tmp3.vol=aux;
+%             if exist('additionalFile','var')>0
+%                 myMRIwrite(tmp3,['posterior_' strtrim(lower(names(i,:))) '_' suffix '.additional.mgz'],'float',tempdir);
+%             else
+%                 myMRIwrite(tmp3,['posterior_' strtrim(lower(names(i,:))) '_' suffix '.mgz'],'float',tempdir);
+%             end
+%         end
+%     end
+% end
+% fprintf(fid,'Whole_brainstem %f\n',totVol);
+% fclose(fid);
+
 
 % MAP estimates
-[~,inds]=max(posteriorsFull,[],4);
+
+% Eugenio July 2011
+% [~,inds]=max(posteriorsFull,[],4);
+inds=L;
+
 kk1=FreeSurferLabels(inds);
 kk2=zeros(size(kk1)); kk2(maskIndices)=1; kk1=kk1.*kk2;
 aux=zeros(size(tmp2.vol)+shiftNeg);

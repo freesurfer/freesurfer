@@ -213,6 +213,7 @@ modelSpecifications.useDiagonalCovarianceMatrices = false;
 modelSpecifications.brainMaskingSmoothingSigma = 3; % sqrt of the variance of a Gaussian blurring kernel 
 modelSpecifications.brainMaskingThreshold = 0.01;
 modelSpecifications.K = 0.1; % Stiffness of the mesh
+modelSpecifications.biasFieldSmoothingKernelSize = 50.0;  % Distance in mm of sinc function center to first zero crossing
 if exvivo
   modelSpecifications.brainMaskingThreshold = -Inf; % Disable brain masking
   modelSpecifications.useDiagonalCovarianceMatrices = true;
@@ -224,9 +225,12 @@ optimizationOptions.multiResolutionSpecification = struct;
 optimizationOptions.multiResolutionSpecification( 1 ).meshSmoothingSigma = 2.0; % In mm
 optimizationOptions.multiResolutionSpecification( 1 ).targetDownsampledVoxelSpacing = 2.0; % In mm
 optimizationOptions.multiResolutionSpecification( 1 ).maximumNumberOfIterations = 100;
+optimizationOptions.multiResolutionSpecification( 1 ).estimateBiasField = true;
 optimizationOptions.multiResolutionSpecification( 2 ).meshSmoothingSigma = 0.0; % In mm
 optimizationOptions.multiResolutionSpecification( 2 ).targetDownsampledVoxelSpacing = 1.0; % In mm
 optimizationOptions.multiResolutionSpecification( 2 ).maximumNumberOfIterations = 100;
+optimizationOptions.multiResolutionSpecification( 2 ).estimateBiasField = true; % Switching this off will use the bias field estimated 
+                                                                                % at lower resolution(s)
 optimizationOptions.maximumNumberOfDeformationIterations = 20;
 optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion = 1e-4;
 optimizationOptions.verbose = 0;
@@ -241,8 +245,11 @@ if exvivo
   showFigures = true;
 end
 
-samsegment( imageFileNames, transformedTemplateFileName, meshCollectionFileName, compressionLookupTableFileName, ...
-            modelSpecifications, optimizationOptions, savePath, showFigures );
+[ FreeSurferLabels, names, volumesInCubicMm ] = samsegment( imageFileNames, transformedTemplateFileName, meshCollectionFileName, ...
+                                                            compressionLookupTableFileName, modelSpecifications, ...
+                                                            optimizationOptions, savePath, showFigures );
+names
+volumesInCubicMm
 
 fprintf('#@# samseg done %6.4f min\n',toc( samsegStartTime )/60);
 retval = 0;

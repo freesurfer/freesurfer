@@ -52,11 +52,12 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
 //
 void 
 AtlasMeshToIntensityImageCostAndGradientCalculator
-::SetParameters( const std::vector< vnl_vector<float> >& means,
-                 const std::vector< vnl_matrix<float> >& precisions )
+::SetParameters( const std::vector< vnl_vector< double > >& means,
+                 const std::vector< vnl_matrix< double > >& variances,
+                 const std::vector< double >&  mixtureWeights,
+                 const std::vector< int >&  numberOfGaussiansPerClass )
 {
-  m_LikelihoodFilter->SetMeans( means );
-  m_LikelihoodFilter->SetPrecisions( precisions );
+  m_LikelihoodFilter->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass );
 }
 
 
@@ -71,7 +72,7 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
   // Make sure the likelihoods are up-to-date
   //m_LikelihoodFilter->SetNumberOfThreads( 1 );
   m_LikelihoodFilter->Update();
-
+  
   // Now rasterize
   Superclass::Rasterize( mesh );
   
@@ -128,16 +129,16 @@ AtlasMeshToIntensityImageCostAndGradientCalculator
     double  zGradientBasis = 0.0;
     for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
       {
-      // Get the Gaussian likelihood of this class at the intensity of this pixel
-      const double gauss = it.Value()[ classNumber ];
+      // Get the Gaussian mixture model likelihood of this class at the intensity of this pixel
+      const double mixture = it.Value()[ classNumber ];
         
       // Add contribution of the likelihood
-      likelihood += gauss * it.GetExtraLoadingInterpolatedValue( classNumber );
+      likelihood += mixture * it.GetExtraLoadingInterpolatedValue( classNumber );
       
       //
-      xGradientBasis += gauss * it.GetExtraLoadingNextRowAddition( classNumber );
-      yGradientBasis += gauss * it.GetExtraLoadingNextColumnAddition( classNumber );
-      zGradientBasis += gauss * it.GetExtraLoadingNextSliceAddition( classNumber );
+      xGradientBasis += mixture * it.GetExtraLoadingNextRowAddition( classNumber );
+      yGradientBasis += mixture * it.GetExtraLoadingNextColumnAddition( classNumber );
+      zGradientBasis += mixture * it.GetExtraLoadingNextSliceAddition( classNumber );
       } // End loop over all classes
       
       

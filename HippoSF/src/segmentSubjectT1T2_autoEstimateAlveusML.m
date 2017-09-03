@@ -22,22 +22,21 @@
 function segmentSubjectT1T2_autoEstimateAlveusML(subjectName,subjectDir,T2volumeFileName,resolution,atlasMeshFileName,atlasDumpFileName,compressionLUTfileName,K,side,optimizerType,suffix,suffixUser,FSpath,MRFconstant,ByPassBF,UseWholeBrainInHyperPar)
 
 % clear
-% 
-% subjectName='subject1';
-% subjectDir='/autofs/space/panamint_005/users/iglesias/data/WinterburnHippocampalAtlas/FSdirConformed/';
-% T2volumeFileName='/autofs/space/panamint_005/users/iglesias/data/WinterburnHippocampalAtlas/subject1/T2.0.6.nii.gz';
-% atlasMeshFileName='/usr/local/freesurfer/dev/average/HippoSF/atlas/AtlasMesh.gz';
-% atlasDumpFileName='/usr/local/freesurfer/dev/average/HippoSF/atlas/AtlasDump.mgz';
-% compressionLUTfileName='/usr/local/freesurfer/dev/average/HippoSF/atlas/compressionLookupTable.txt';
-% K=0.05;
-% side='right';
+% subjectName='ADNI2_009_S_1030v51_i399379';
+% subjectDir='/autofs/space/panamint_005/users/iglesias/data/ADNI_Feb2016/';
+% T2volumeFileName='/autofs/space/panamint_005/users/iglesias/data/ADNI_Feb2016/ADNI2_009_S_1030v51_i399379/mri/T2.mgz';
+% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoAmygBuckner_170621_CJ_GD_allBuckner_BodyHead/AtlasMesh_merged.gz';
+% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoAmygBuckner_170621_CJ_GD_allBuckner_BodyHead/imageDumpWithAmygdala.mgz';
+% compressionLUTfileName='/autofs/homes/002/iglesias/matlab/code/Atlas3dFreeSurferJuly2017newAtlas/code/compressionLookupTable.txt';
+% K=0.10;
+% side='left';
 % % optimizerType='LM';
 % optimizerType='ConjGrad';
 % suffix='T1T2basedHRtest';
-% suffixUser='T2';
+% suffixUser='TestHippoAmygBodyHeadManySegs';
 % FSpath='/usr/local/freesurfer/dev/bin/';
 % MRFconstant=0;
-% resolution=1/3; % 0.5;
+% resolution=0.4;
 % ByPassBF=1;
 % UseWholeBrainInHyperPar=0;
 
@@ -393,6 +392,13 @@ ASEG.vol(ASEG.vol==0)=1;
 myMRIwrite(ASEG,'asegMod.mgz','float',tempdir);
 
 
+% Eugenio July 2017
+% We now merge hippo, amygdala and cortex in cheating image
+ASEGcha=ASEG;
+ASEGcha.vol(ASEGcha.vol==17)=3; 
+ASEGcha.vol(ASEGcha.vol==18)=3; 
+myMRIwrite(ASEGcha,'asegModCHA.mgz','float',tempdir);
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Now we pretty much copy-paste from preprocessHippoSubfields %
@@ -407,7 +413,10 @@ compressionLookupTableFileName =compressionLUTfileName; % Look-up table belongin
 [ FreeSurferLabels, names, colors ] = kvlReadCompressionLookupTable( compressionLookupTableFileName );
 
 % Read in aseg and also transform
-[ synIm, transform ] = kvlReadCroppedImage( 'asegMod.mgz', boundingFileName );
+% Eugenio July 2017
+% [ synIm, transform ] = kvlReadCroppedImage( 'asegMod.mgz', boundingFileName );
+[ synIm, transform ] = kvlReadCroppedImage( 'asegModCHA.mgz', boundingFileName );
+
 synImBuffer = kvlGetImageBuffer( synIm );
 synSize = size( synImBuffer );
 if ~isdeployed && DEBUG>0
@@ -442,15 +451,22 @@ originalAlphas = kvlGetAlphasInMeshNodes( mesh );
 % In this first step, we're cheating in that we're going to segment the "fake"
 % synthetic image obtained from the ASEG. The means are equal to the ASEG labels
 % The variances we just set to a small value.
+
+% Eugenio July 2017: head / body, and also merged hippos/amygdala/cortex, and moved fissure with background
 FreeSurferLabelGroups=[];
-FreeSurferLabelGroups{end+1}={'Left-Amygdala','Lateral-nucleus','Paralaminar-nucleus','Basal-nucleus','Hippocampal-amygdala-transition-HATA','Accessory-Basal-nucleus','Amygdala-background',...
-    'Corticoamygdaloid-transitio','Central-nucleus','Cortical-nucleus','Medial-nucleus','Anterior-amygdaloid-area-AAA'};
-FreeSurferLabelGroups{end+1}={'Left-Hippocampus','alveus','subiculum','Hippocampal_tail','molecular_layer_HP','GC-ML-DG','CA4','CA1','CA3','HATA','fimbria','presubiculum','parasubiculum','hippocampal-fissure','Left-hippocampus-intensity-abnormality'};
-FreeSurferLabelGroups{end+1}={'Left-Cerebral-Cortex'};
+FreeSurferLabelGroups{end+1}={'Left-Cerebral-Cortex',... % cortex
+    'Left-Hippocampus','alveus','subiculum-body','subiculum-head','Hippocampal_tail',... % hippo
+    'molecular_layer_HP-body','molecular_layer_HP-head','GC-ML-DG-body','GC-ML-DG-head',...
+    'CA4-body','CA4-head','CA1-body','CA1-head','CA3-body','CA3-head','HATA','fimbria',...
+    'presubiculum-body','presubiculum-head','parasubiculum','Left-hippocampus-intensity-abnormality', ...
+    'Left-Amygdala','Lateral-nucleus','Paralaminar-nucleus','Basal-nucleus',... % amygdala
+    'Hippocampal-amygdala-transition-HATA','Accessory-Basal-nucleus','Amygdala-background',...
+    'Corticoamygdaloid-transitio','Central-nucleus','Cortical-nucleus','Medial-nucleus',...
+    'Anterior-amygdaloid-area-AAA'};
 FreeSurferLabelGroups{end+1}={'Left-Cerebral-White-Matter'};
 FreeSurferLabelGroups{end+1}={'Left-Lateral-Ventricle'};
 FreeSurferLabelGroups{end+1}={'Left-choroid-plexus'};
-FreeSurferLabelGroups{end+1}={'Background','Background-CSF','Background-vessels','Background-tissue','Unknown'};
+FreeSurferLabelGroups{end+1}={'Background','hippocampal-fissure','Background-CSF','Background-vessels','Background-tissue','Unknown'};
 FreeSurferLabelGroups{end+1}={'Left-VentralDC'};
 FreeSurferLabelGroups{end+1}={'Left-Putamen'};
 FreeSurferLabelGroups{end+1}={'Left-Pallidum'};
@@ -471,15 +487,16 @@ for g=1:length(FreeSurferLabelGroups)
 end
 
 
+% Eugenio July 2017
 cheatingMeans=zeros(length( sameGaussianParameters),1);
 cheatingVariances=0.01*ones(length( sameGaussianParameters),1);
 for l=1:length(sameGaussianParameters)
-    label= sameGaussianParameters{l}(1);
-    if label>=200 && label<=226,  cheatingMeans(l)=17; % HIPPO SF -> HIPPO
-    elseif label>=7000,  cheatingMeans(l)=18; % AMYGDALOID SUBNUCLEI -> AMYGDALA
-    elseif label==0, cheatingMeans(l)=1; % BACKGROUND is 1 instead of 0
-    elseif label==999, cheatingMeans(l)=55; cheatingVariances(l)=55^2; % This is the generic, "suspicious" label we use for cysts...
-    else cheatingMeans(l)=label;
+    labels= sameGaussianParameters{l};
+    if any(labels>=200 & labels<=226),  cheatingMeans(l)=3; %  cheatingMeans(l)=17; % HIPPO SF -> HIPPO
+    elseif any(labels>=7000),  cheatingMeans(l)=3;  % cheatingMeans(l)=18; % AMYGDALOID SUBNUCLEI -> AMYGDALA
+    elseif any(labels==0), cheatingMeans(l)=1; % BACKGROUND is 1 instead of 0
+    elseif any(labels==999), cheatingMeans(l)=55; cheatingVariances(l)=55^2; % This is the generic, "suspicious" label we use for cysts...
+    else cheatingMeans(l)=labels(1);
     end
 end
 
@@ -492,9 +509,36 @@ end
 % Set the reduced alphas to be the alphas of the mesh
 kvlSetAlphasInMeshNodes( mesh, reducedAlphas )
 
+% Create mask for valid region of cuboid
 
-priors = kvlRasterizeAtlasMesh( mesh, synSize );
+% Eugenio July 2017
+
+% priors = kvlRasterizeAtlasMesh( mesh, synSize );
+% MASK=imerode(sum(double(priors)/65535,4)>0.99,createSphericalStrel(3));
+
+for l = 1 : size(reducedAlphas,2)
+    if l==1
+        % This is a bit annoying, but the call to kvlRasterize with a single
+        % label fills in the voxels outside the cuboid with l=1 (whereas the
+        % call with multiple labels does not)
+        sillyAlphas=zeros([size(reducedAlphas,1),2],'single');
+        sillyAlphas(:,1)=reducedAlphas(:,1);
+        sillyAlphas(:,2)=1-sillyAlphas(:,1);
+        kvlSetAlphasInMeshNodes( mesh, sillyAlphas )
+        prior = kvlRasterizeAtlasMesh( mesh, synSize);
+        kvlSetAlphasInMeshNodes( mesh, reducedAlphas )
+        sumpriors=prior(:,:,:,1);
+    else
+        prior = kvlRasterizeAtlasMesh( mesh, synSize, l-1 );
+        sumpriors=sumpriors+prior;
+    end
+end
+MASK=imerode(sum(single( sumpriors / 65535 ),4)>0.99,createSphericalStrel(3));
+
+
+
 if ~isdeployed && DEBUG>0
+    priors = kvlRasterizeAtlasMesh( mesh, synSize );
     figure
     for cheatingLabel = 1 : size( reducedAlphas, 2 )
         subplot( 3, 4, cheatingLabel )
@@ -503,7 +547,9 @@ if ~isdeployed && DEBUG>0
     title('Priors for segmentation of fake intensity image')
 end
 
-MASK=imerode(sum(double(priors)/65535,4)>0.99,createSphericalStrel(3));
+
+
+
 cheatingImageBuffer=synImBuffer;
 cheatingImageBuffer(~MASK)=0;
 cheatingImage = kvlCreateImage( cheatingImageBuffer );
@@ -862,12 +908,6 @@ myMRIwrite(aux,'imageDump.mgz','float',tempdir);
 
 
 
-
-
-
-
-
-
 % Now we want to extract a block of T1/T2 data around the hippocampus
 
 % Start with T2
@@ -949,9 +989,6 @@ system([FSpath '/mri_mask -T 0.5 T1resampled.mgz hippoMaskResampledDilated.mgz T
 
 
 
-%%%%%%%%%%%%%%%%%%%%% STITCHING POINT WITH TEST_FROM_HERE.M  %%%%%%%%%%%%%%%%%%%%%%%
-
-
 % Read the image data from disk. At the same time, construct a 3-D affine transformation (i.e.,
 % translation, rotation, scaling, and skewing) as well - this transformation will later be used
 % to initially transform the location of the atlas mesh's nodes into the coordinate system of
@@ -1006,8 +1043,8 @@ end
 
 % Rather than showing rasterized priors defined by the atlas mesh one by one, as we did above,
 % we can color-code them and show everything as one image
-priors = kvlRasterizeAtlasMesh( mesh, imageSize ); % Without specifying a specific label, will rasterize all simultaneously
 if ~isdeployed && DEBUG>0
+    priors = kvlRasterizeAtlasMesh( mesh, imageSize ); % Without specifying a specific label, will rasterize all simultaneously
     colorCodedPriors = kvlColorCodeProbabilityImages( priors, colors );
     figure
     showImage( colorCodedPriors );
@@ -1015,12 +1052,40 @@ if ~isdeployed && DEBUG>0
     clear colorCodedPriors
 end
 
+% Eugenio July 2017: let's avoid rasterizing all priors simultaneously
+% (which was faster, but used much more memory)
+alphas = kvlGetAlphasInMeshNodes( mesh );
+nlabels = size(alphas,2);
+for l = 1 : nlabels
+    
+    if l==1
+       % This is a bit annoying, but the call to kvlRasterize with a single
+       % label fills in the voxels outside the cuboid with p=1 (whereas the
+       % call with multiple labels does not)
+        sillyAlphas=zeros([size(originalAlphas,1),2],'single');
+        sillyAlphas(:,1)=originalAlphas(:,1);
+        sillyAlphas(:,2)=1-sillyAlphas(:,1);
+        kvlSetAlphasInMeshNodes( mesh, sillyAlphas )
+        prior = kvlRasterizeAtlasMesh( mesh, imageSize);
+        kvlSetAlphasInMeshNodes( mesh, originalAlphas )
+        sumpriors=prior(:,:,:,1);
+
+    else
+       
+        prior = kvlRasterizeAtlasMesh( mesh, imageSize, l-1 );
+        sumpriors=sumpriors+prior;
+        
+    end
+end
 
 % We're not interested in image areas that fall outside our cuboid ROI where our atlas is defined. Therefore,
 % generate a mask of what's inside the ROI. Also, by convention we're skipping all voxels whose intensities
 % is exactly zero (which we do to remove image areas far away for FreeSurfer's ASEG hippo segmentation) -
 % also include that in the mask
-mask = imerode(single( sum( priors, 4 ) / 65535 ) > 0.99,createSphericalStrel(5));
+
+% mask = imerode(single( sum( priors, 4 ) / 65535 ) > 0.99,createSphericalStrel(5));
+mask = imerode(single( sumpriors / 65535 ) > 0.99,createSphericalStrel(5));
+
 mask = mask & ( imageBuffer1 > 0 );  % We assume T1 always available
 maskObs = mask & ( imageBuffer2 > 0 );  % both channels observed
 maskMis = mask & ( imageBuffer2 == 0 );  % channel 2 missing
@@ -1057,16 +1122,20 @@ end
 % Merge classes
 %%%%%%%%%%%%%%%
 
+% Eugenio July 2017
+
 FreeSurferLabelGroups=[];
-FreeSurferLabelGroups{end+1}={'Left-Cerebral-Cortex','Left-Hippocampus','Left-Amygdala','subiculum','Hippocampal_tail','GC-ML-DG','CA4','presubiculum',...
-    'CA1','parasubiculum','CA3','HATA','Lateral-nucleus','Paralaminar-nucleus',...
+
+FreeSurferLabelGroups{end+1}={'Left-Cerebral-Cortex','Left-Hippocampus','Left-Amygdala','subiculum-head','subiculum-body','Hippocampal_tail','GC-ML-DG-head','GC-ML-DG-body','CA4-head','CA4-body','presubiculum-head','presubiculum-body',...
+    'CA1-head','CA1-body','parasubiculum','CA3-head','CA3-body','HATA','Lateral-nucleus','Paralaminar-nucleus',...
     'Basal-nucleus','Hippocampal-amygdala-transition-HATA','Accessory-Basal-nucleus','Amygdala-background',...
-    'Corticoamygdaloid-transitio','Central-nucleus','Cortical-nucleus','Medial-nucleus','Anterior-amygdaloid-area-AAA'};
+    'Corticoamygdaloid-transitio','Central-nucleus','Cortical-nucleus','Medial-nucleus',...
+    'Anterior-amygdaloid-area-AAA'};
+FreeSurferLabelGroups{end+1}={'molecular_layer_HP-body','molecular_layer_HP-head'};
 FreeSurferLabelGroups{end+1}={'Left-Cerebral-White-Matter','fimbria'};
-FreeSurferLabelGroups{end+1}={'molecular_layer_HP'};
 FreeSurferLabelGroups{end+1}={'alveus'};
-FreeSurferLabelGroups{end+1}={'hippocampal-fissure'};
 FreeSurferLabelGroups{end+1}={'Left-Lateral-Ventricle','Background-CSF','SUSPICIOUS','Left-hippocampus-intensity-abnormality'};
+FreeSurferLabelGroups{end+1}={'hippocampal-fissure'};
 FreeSurferLabelGroups{end+1}={'Left-Pallidum'};
 FreeSurferLabelGroups{end+1}={'Left-Putamen'};
 FreeSurferLabelGroups{end+1}={'Left-Caudate'};
@@ -1266,7 +1335,7 @@ for g=1:length(sameGaussianParameters)
     if any(labels==201)
         ALind=g;
     end
-    if any(labels==214)
+    if any(labels==245)  % Eugenio July 2017 (changed 214 by 245)
         MLind=g;
     end
     if any(labels==215)
@@ -1277,15 +1346,60 @@ for g=1:length(sameGaussianParameters)
     end
 end
 
-priors = kvlRasterizeAtlasMesh( mesh, imageSize );
-priors=double(priors)/63535;
-suma=sum(priors,4);
+% July 2017: avoid rasterizing all labels simultaneously
+% priors = kvlRasterizeAtlasMesh( mesh, imageSize );
+% priors=double(priors)/63535;
+% suma=sum(priors,4);
+% maskPriors=suma>.97;
+% priors=priors./(eps+repmat(suma,[1 1 1 numberOfClasses]));
+% priorsCS=cumsum(priors,4);
+
+ss=[];
+ss.Type='twister';
+ss.Seed=58059898;
+ss.State=uint32([3410437968 493000191 3937088844 2855859649 2055488253 4097603571 1434441578 3002745787 2261240414 2987560210 638430850 3764563185 4024560358 2845954880 1312077213 99046256 724219742 1509071479 2238342804 1354188848 562641151 3308086931 1111208124 3097183433 564927124 1520449620 929509102 859043821 3494335064 30251652 3274900264 633992030 12663028 2368225825 2382998372 4270645069 3706517678 1240495411 4109670805 1688366278 1985578320 3694255828 1103116839 3623746828 2370170267 3356379455 3812986031 3962487973 1117093995 1832124552 730164038 2688373380 1304038691 1133279105 1552678960 3485771784 2067203224 2672129996 2962006980 3811688264 2717503765 4253343185 531441539 1854060530 1488760948 1950262546 3699662348 2197811004 257371645 2932604825 432317016 1665242145 1342657666 510145158 4159693820 3167963749 2582698127 646844076 4224883034 3794533477 1714572503 2220104276 1818580560 2569089347 2486634147 149318545 1710902182 2913078558 1833836366 1230877566 2203621072 510333940 4218667072 2003694149 3899147439 3809686201 2691577592 2278093501 2776020136 3049065324 902390906 4248357917 2091592233 2920425164 2147920508 3195775060 1291700508 379824627 3244040512 281860832 1476677340 1862926681 2143256170 1511616358 3986711235 1472605582 3153067138 1406970208 1041278349 2464407436 2019913624 113009395 3926758644 3581575268 3854073575 840774617 2288814655 998711104 704513897 3965592645 581434087 644907376 264697324 1793526872 3075839507 2835430148 1107661823 1218930003 712025076 3593284091 1484105012 3932223704 2855162513 3994338726 784103664 814417492 1391485041 1602528562 2553133262 2346940117 732289055 1460085355 682492132 965862542 592114344 531690530 2964784340 1540752198 509261826 1465593050 1368541007 1119754638 3933145889 3409194796 1151629249 2543096396 1162952254 120686071 1072796031 1635344410 806990539 1949240388 2401163536 193410941 572929815 1826115942 1709368906 3823569594 3697467021 2606037820 3460208313 3093265774 1210164444 2422290984 1298978291 1597052602 2965991289 3328760101 169935670 3323761361 1034344567 3516510303 1016628606 4066423238 4067124643 3930184562 4104336116 1608506064 2207906500 812669751 1229667590 662572360 433350103 1284930189 953736903 3740888124 1279257809 2785226672 2413884704 1146523319 306943635 522178216 1644263167 4178778721 2407862653 3744063202 714083124 2677063966 4084664585 1903195336 1111708054 1750521315 1651027149 2095369713 96224378 1230846433 2255416769 283958389 848108856 1921761083 2263229615 3918442926 2278922043 2153996993 3053108311 3239184297 860769316 3265577964 1430072418 3870511250 205440931 106415127 2234205764 3974853631 1538962068 2749692830 1026086325 3882157666 2248910349 1703623791 4083086019 69088996 2089223477 3734553120 2288528134 2432850993 3775495635 2584140198 2597747462 886813745 3456528552 4126479183 2665494661 2056877935 2985474899 3334840693 1281194334 2805210650 2541614153 1608904543 1418149132 434633073 3450315291 2544246669 2337360302 3129734298 2591899202 956047506 571391348 4229678133 3339475591 2949518232 1541551447 2820896354 2634046742 3181523285 2013225811 1377073713 1421226137 428907431 3800857064 2742201395 2748902434 1645914435 611390336 113587038 1354467128 1554559976 3466792955 1787621901 1598573513 3157490081 1626593369 826436489 3671892643 3296344051 2643159537 2353297949 2087399669 108248550 3793060546 1667342514 3373407241 2948473492 2295503311 3095880945 648763624 634116976 4006007422 3125045892 2732167107 850138491 2594167551 1505554032 1687909106 2207354331 3265559100 2233507139 730839813 2829260419 3347277264 638525895 1736140020 3934299063 2335726919 1325176590 1863169739 4168059729 2705917166 2321630844 2657034283 961648448 381928833 2265082133 2083664274 2995096459 2848411249 2316887691 2591369222 1788138968 2311732152 2700483846 2576503411 3163343589 682564134 2055292476 824192588 3910582528 892349198 2130497059 1750018378 4175911463 1649173829 3717354654 1351865356 121532870 3453639903 1111023320 70709822 3953205824 1437739351 98337808 1615459686 159735467 2842564047 3273421125 1219401764 3904863290 876248348 3895207109 399482665 2638589731 4224607413 2288927228 1979741565 3083924839 3957274918 1296279006 3108756163 3081916387 89252673 3512991406 2866816427 2795366356 2516904582 3189375678 1380240981 2933642160 1251619690 42023279 263914470 436372455 1597753674 3365407821 1162660455 3135443575 2878706972 840746981 712563146 3586177285 4070568555 3488466883 1530585718 2961550898 769570043 2125673190 3205355305 3401304424 1724485905 693603705 223043625 3173316491 1308457270 2711024482 2804374120 3421132247 2728580540 3263618421 1102717826 3173417011 2724946155 1871187383 2079031531 769248695 4253236639 3311615520 3892062642 770082126 1357814258 1869469601 197863657 2900487501 3255380578 1458605047 3588007173 2501664808 150350842 3021307640 3976191881 2244533893 3946113114 2737382653 2623823297 147068974 347282931 965676538 2275342135 3512707344 1842292017 953709884 1882522525 3606021990 2306000931 826732670 1125648729 3616888784 3556707343 2345214961 1921304782 959778465 795295762 2991903222 1449749849 28980688 2946684790 4282850618 1450192187 1475726809 3938786168 1795023466 410052089 1589871039 3326940022 3818994470 2013723215 3044376647 958995322 3248307235 956083958 2072225296 3448052119 2447195658 2588071956 526006921 1983505568 1674635144 3264951886 2643183237 1318057102 3101414955 2151502608 3755605801 382470011 2878244912 1611623580 706493943 2025110342 1058251689 10454356 1861420073 3013200906 3729580155 738956171 3570317972 4203775383 1334062118 4257296000 3231017523 2818007598 2704948055 2817133652 2642265792 4104267226 1126945493 2596352021 1308859143 252889897 2689131845 344501177 1675665621 3259490044 4094531007 2795650781 1055448013 1035228504 1893552699 2769041259 3983042469 3425284573 3771000695 2741194467 3648153682 211324206 1165361053 1836003831 3002789777 1495668652 2831482182 2519660847 3363669882 2504184968 4141605892 2660518191 3741135717 1154098513 4194132382 2963865630 2547715443 2622625150 538064975 1338423991 2519859283 3951446572 149485389 3462323962 1975074798 4238312472 1812337747 4293462789 2706554319 150102680 2693831106 4288739420 3294196988 3330354565 4256435469 400255261 119744491 4224275315 4021312149 3322490141 2623776852 3053382684 3712861343 815139994 2482144449 3173066022 3288937807 560434293 3486803424 1917193992 1050249372 1487181270 2306492417 3814024376 903907259 3699798550 2757533368 2990388180 1902458037 2611644959 610140678 3632137931 269691837 548141251 2921620252 3314105880 3511432536 4205862093 1004944964 4042395795 3997534221 3892804844 2293573507 1720224801 1691692800 3886465211 1427362579 1214103038 1996640154 2630509595 833738701 1269966945 2011651581 2]);
+rng(ss); 
+aux=rand(imageSize);
+for l = 1 : size(reducedAlphas,2)    
+    if l==1
+       % This is a bit annoying, but the call to kvlRasterize with a single
+       % label fills in the voxels outside the cuboid with p=1 (whereas the
+       % call with multiple labels does not)
+        sillyAlphas=zeros([size(reducedAlphas,1),2],'single');
+        sillyAlphas(:,1)=reducedAlphas(:,1);
+        sillyAlphas(:,2)=1-reducedAlphas(:,1);
+        kvlSetAlphasInMeshNodes( mesh, sillyAlphas )
+        prior = kvlRasterizeAtlasMesh( mesh, imageSize);
+        kvlSetAlphasInMeshNodes( mesh, reducedAlphas )
+        prior=prior(:,:,:,1);
+        sumpriors=prior;
+        M=prior>=(aux*65535);
+        Lrand=double(M);
+        SET=M;
+
+        Lmax=ones(size(prior));
+        PMAX=prior;
+    else
+        prior = kvlRasterizeAtlasMesh( mesh, imageSize, l-1 );
+        sumpriors=sumpriors+prior;
+        M=sumpriors>=(aux*65535) & SET==0;
+        Lrand(M)=l;
+        SET(M)=1;
+        
+        M=prior>PMAX;
+        Lmax(M)=l;
+        PMAX(M)=prior(M);
+    end
+end
+suma=single(sumpriors)/65535;
 maskPriors=suma>.97;
-priors=priors./(eps+repmat(suma,[1 1 1 numberOfClasses]));
-priorsCS=cumsum(priors,4);
+Lrand(SET==0 & maskPriors)=size(reducedAlphas,2); % in case..
+
+    
 
 % T1 channel
-[~,L]=max(priors,[],4);
+% [~,L]=max(priors,[],4); % Eugenio July 2017
+L=Lmax;
 I=zeros(size(L));
 for l=1:numberOfClasses
     if l==ALind
@@ -1324,12 +1438,13 @@ end
 
 
 % T2 channel
-aux=rand(size(maskPriors));
-L=zeros(size(aux));
-for l=numberOfClasses:-1:1
-    L(aux<=priorsCS(:,:,:,l))=l;
-end
+% aux=rand(size(maskPriors)); % Eugenio July 2017
+% L=zeros(size(aux));
+% for l=numberOfClasses:-1:1
+%     L(aux<=priorsCS(:,:,:,l))=l;
+% end
 I=zeros(size(L));
+L=Lrand;
 for l=1:numberOfClasses
     if l==ALind || l==MLind
         I(L==l)=meanHyper(WMind,2);
@@ -1359,7 +1474,8 @@ if ~isempty(FISSind)
     nHyper(FISSind,2)=(nHyper(GMind,2)+nHyper(CSFind,2))/2;
 end
 
-clear priors priorsCS
+clear priors priorsCS 
+clear Lrand Lmax % Eugenio July 2017:
 
 nHyper=10+min(nHyper,[],2); % let's take the minimum to be conservative, and +10 to ensure numerical stability
 % nHyper=10+mean(nHyper,2); % +10 to ensure numerical stability
@@ -1489,10 +1605,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     for iterationNumber = 1 : maximumNumberOfIterations
         
         
-        if multiResolutionLevel==3 && iterationNumber==3
-            kk=1;
-        end
-        
+       
         disp(['Iteration ' num2str(iterationNumber) ' of ' num2str(maximumNumberOfIterations)]);
         %
         % Part I: estimate Gaussian mean and variances using EM
@@ -1508,11 +1621,18 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         data1 = double( reshape( kvlGetImageBuffer( image1 ), [ prod( imageSize ) 1 ] ) ); % Easier to work with vector notation in the computations
         data2 = double( reshape( kvlGetImageBuffer( image2 ), [ prod( imageSize ) 1 ] ) ); % Easier to work with vector notation in the computations
         data=[data1 data2];
-        priors = kvlRasterizeAtlasMesh( mesh, imageSize );
-        priors = reshape( priors, [ prod( imageSize ) numberOfClasses ] ); % Easier to work with vector notation in the computations
         
-        % Ignore everything that's has zero intensity
-        priors = priors( maskIndices, : );
+        % Eugenio July 2017: again, avoid spike of memory use
+        priors=zeros([length(maskIndices),numberOfClasses],'uint16');
+        for l=1:numberOfClasses
+            prior = kvlRasterizeAtlasMesh( mesh, imageSize, l-1 );
+            priors(:,l)=prior(maskIndices);
+        end
+        
+        %         priors = kvlRasterizeAtlasMesh( mesh, imageSize );
+        %         priors = reshape( priors, [ prod( imageSize ) numberOfClasses ] ); % Easier to work with vector notation in the computations
+        %         priors = priors( maskIndices, : );
+        
         data = data( maskIndices,: );
         Mo=maskObs(maskIndices);
         Mm=maskMis(maskIndices);
@@ -1658,7 +1778,11 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
             end
             posteriors(isnan(posteriors))=0;
             normalizer = sum( posteriors, 2 ) + eps;
-            posteriors = posteriors ./ repmat( normalizer, [ 1 numberOfClasses ] );
+            
+            % Eugenio July 2017
+            % posteriors = posteriors ./ repmat( normalizer, [ 1 numberOfClasses ] );
+            posteriors = bsxfun(@rdivide,posteriors, normalizer);
+            
             posteriors(isnan(posteriors))=0; % for zero variance and stuff like that...
             
             minLogLikelihood = minLogLikelihood - sum( log( normalizer ) ) % This is what we're optimizing with EM
@@ -1928,45 +2052,76 @@ kvlSetAlphasInMeshNodes( mesh, originalAlphas )
 numberOfClasses = size( originalAlphas, 2 );
 
 % Get the priors as dictated by the current mesh position
+% Eugenio July 2017 : this type of call is exactly what we're trying to
+% avoid....
 data1 = double( reshape( kvlGetImageBuffer( image1 ), [ prod( imageSize ) 1 ] ) ); % Easier to work with vector notation in the computations
 data2 = double( reshape( kvlGetImageBuffer( image2 ), [ prod( imageSize ) 1 ] ) ); % Easier to work with vector notation in the computations
 data=[data1 data2];
-priors = kvlRasterizeAtlasMesh( mesh, imageSize );
-priors = reshape( priors, [ prod( imageSize ) numberOfClasses ] ); % Easier to work with vector notation in the computations
-
-% Ignore everything that's has zero intensity
-priors = priors( maskIndices, : );
 data = data( maskIndices,: );
 Mo=maskObs(maskIndices);
 Mm=maskMis(maskIndices);
 
-
-% Calculate the posteriors
-posteriors = zeros( size( priors ), 'double' );
+posteriors=zeros([length(maskIndices),numberOfClasses],'single');
 for classNumber = 1 : numberOfClasses
+    
     mu = means( reducingLookupTable( classNumber ),: );
     variance = variances( :,:,reducingLookupTable( classNumber ) );
     precision = precisions( :,:,reducingLookupTable( classNumber ) );
-    prior = double( priors( :, classNumber ) ) / 65535;
+    prior = kvlRasterizeAtlasMesh( mesh, imageSize, classNumber-1 );
+    prior= double(prior(maskIndices))/65535;
     
-    posteriors( Mm, classNumber ) = ( exp( -( data(Mm,1) - mu(1) ).^2 / 2 / variance(1,1) ) .* prior(Mm) ) ...
-        / sqrt( 2 * pi * variance(1,1));
+    posteriors( Mm, classNumber ) = single( ( exp( -( data(Mm,1) - mu(1) ).^2 / 2 / variance(1,1) ) .* prior(Mm) ) ...
+        / sqrt( 2 * pi * variance(1,1)) );
     
     dataM=data(Mo,:);
     dataM=dataM-repmat(mu,[size(dataM,1) 1]);
     aux=(exp(-0.5*(sum(dataM'.*(precision*dataM')))));
     aux(isinf(aux))=1/eps;
-    posteriors( Mo, classNumber ) = prior(Mo)' .* aux /  sqrt(det(variance)*(2*pi)^2);
+    posteriors( Mo, classNumber ) = single(prior(Mo)' .* aux /  sqrt(det(variance)*(2*pi)^2));
 end
-posteriors(isnan(posteriors))=0;
 normalizer = sum( posteriors, 2 ) + eps;
-posteriors = posteriors ./ repmat( normalizer, [ 1 numberOfClasses ] );
+posteriors = bsxfun(@rdivide,posteriors, normalizer);
 posteriors(isnan(posteriors))=0; % for zero variance and stuff like that...
 posteriors = uint16( round( posteriors * 65535 ) );
+
+% 
+% priors = kvlRasterizeAtlasMesh( mesh, imageSize );
+% priors = reshape( priors, [ prod( imageSize ) numberOfClasses ] ); % Easier to work with vector notation in the computations
+% 
+% % Ignore everything that's has zero intensity
+% priors = priors( maskIndices, : );
+% data = data( maskIndices,: );
+% Mo=maskObs(maskIndices);
+% Mm=maskMis(maskIndices);
+% 
+% 
+% % Calculate the posteriors
+% posteriors = zeros( size( priors ), 'double' );
+% for classNumber = 1 : numberOfClasses
+%     mu = means( reducingLookupTable( classNumber ),: );
+%     variance = variances( :,:,reducingLookupTable( classNumber ) );
+%     precision = precisions( :,:,reducingLookupTable( classNumber ) );
+%     prior = double( priors( :, classNumber ) ) / 65535;
+%     
+%     posteriors( Mm, classNumber ) = ( exp( -( data(Mm,1) - mu(1) ).^2 / 2 / variance(1,1) ) .* prior(Mm) ) ...
+%         / sqrt( 2 * pi * variance(1,1));
+%     
+%     dataM=data(Mo,:);
+%     dataM=dataM-repmat(mu,[size(dataM,1) 1]);
+%     aux=(exp(-0.5*(sum(dataM'.*(precision*dataM')))));
+%     aux(isinf(aux))=1/eps;
+%     posteriors( Mo, classNumber ) = prior(Mo)' .* aux /  sqrt(det(variance)*(2*pi)^2);
+% end
+% posteriors(isnan(posteriors))=0;
+% normalizer = sum( posteriors, 2 ) + eps;
+% posteriors = posteriors ./ repmat( normalizer, [ 1 numberOfClasses ] );
+% posteriors(isnan(posteriors))=0; % for zero variance and stuff like that...
+% posteriors = uint16( round( posteriors * 65535 ) );
 
 
 % Display the posteriors
 if  ~isdeployed && DEBUG>0
+    priors = kvlRasterizeAtlasMesh( mesh, imageSize );
     figure
     subplot( 1, 3, 1 )
     showImage( imageBuffer1 ); title('Image 1')
@@ -2109,110 +2264,229 @@ tmp3.vol=aux;
 myMRIwrite(tmp3,'image2.mgz','float',tempdir);
 
 
+% July 2017: make this memory efficient, and add new substructures. We also
+% compute the segmentation along the way. Also, we do hippo and amygdala
+% together. Ah! And we also do volumes for head and body
+fidHP=fopen([tempdir '/volumesHippo.txt'],'w');
+strOfInterestHP={'subiculum-body','subiculum-head','Hippocampal_tail','molecular_layer_HP-body','molecular_layer_HP-head','hippocampal-fissure','GC-ML-DG-body','GC-ML-DG-head','CA4-body','CA4-head','presubiculum-body','presubiculum-head','CA1-body','CA1-head','parasubiculum','fimbria','CA3-body','CA3-head','HATA'};
+totVolHP=0;
+foundHP=zeros([1,numberOfClasses]);
+HPbodyList={'subiculum-body','CA1-body','presubiculum-body','molecular_layer_HP-body','CA3-body','GC-ML-DG-body','CA4-body','fimbria'};
+HPheadList={'subiculum-head','presubiculum-head','CA1-head','parasubiculum','molecular_layer_HP-head','GC-ML-DG-head','CA4-head','CA3-head','HATA'};
+totVolHPbody=0;
+totVolHPhead=0;
 
-% Compute posteriors and volumes
-priorsFull = kvlRasterizeAtlasMesh( mesh, imageSize );
-posteriorsFull=priorsFull;
-
-fid=fopen([tempdir '/volumesHippo.txt'],'w');
-% strOfInterest={'alveus','subiculum','Hippocampal_tail','molecular_layer_HP','hippocampal-fissure','GC-ML-DG','CA4','presubiculum','CA1','parasubiculum','fimbria','CA3','HATA'};
-% no alveus for now ;-)
-strOfInterest={'subiculum','Hippocampal_tail','molecular_layer_HP','hippocampal-fissure','GC-ML-DG','CA4','presubiculum','CA1','parasubiculum','fimbria','CA3','HATA'};
-totVol=0;
-found=zeros(1,size(priorsFull,4));
-for i=1:size(priorsFull,4)
-    tmp=posteriorsFull(:,:,:,i);
-    tmp(maskIndices)=posteriors(:,i);
-    posteriorsFull(:,:,:,i)=tmp;
-    found(i)=0;
-    str=[];
-    vol=0;
-    name=names(i,:);
-    name=lower(name(name~=' '));
-    for j=1:length(strOfInterest)
-        if strcmp(name,lower(strOfInterest{j}))>0
-            found(i)=j;
-        end
-    end
-    if found(i)>0
-        str=strOfInterest{found(i)};
-        vol=resolution^3*(sum(sum(sum(double(posteriorsFull(:,:,:,i))/65535))));
-        fprintf(fid,'%s %f\n',str,vol);
-        if isempty(strfind(lower(names(i,:)),'hippocampal-fissure'))  % don't count the fissure towards the total volume
-            totVol=totVol+vol;
-            
-            if WRITE_POSTERIORS>0
-                kk1=double(posteriorsFull(:,:,:,i))/65535;
-                kk2=zeros(size(kk1)); kk2(maskIndices)=1; kk1=kk1.*kk2;
-                aux=zeros(size(tmp2.vol)+shiftNeg);
-                aux(1+shiftNeg(1):shiftNeg(1)+size(tmp2.vol,1),1+shiftNeg(2):shiftNeg(2)+size(tmp2.vol,2),1+shiftNeg(3):shiftNeg(3)+size(tmp2.vol,3))=permute(kk1,[2 1 3]);
-                aux=aux(1+shiftPos(1):end,1+shiftPos(2):end,1+shiftPos(3):end);
-                tmp3.vol=aux;
-                myMRIwrite(tmp3,['posterior_' side '_' strtrim(lower(names(i,:))) '_T1_' suffixUser '_' suffix '.mgz'],'float',tempdir);
-            end
-            
-        end
-    end
-end
-if sum(found>0)>1
-    fprintf(fid,'Whole_hippocampus %f\n',totVol);
-    fclose(fid);
-else
-    fclose(fid);
-    delete([tempdir '/volumesHippo.txt']);
-end
-
-
-fid=fopen([tempdir '/volumesAmygdala.txt'],'w');
-strOfInterest={'Left-Amygdala','Lateral-nucleus','Paralaminar-nucleus',...
+fidAM=fopen([tempdir '/volumesAmygdala.txt'],'w');
+strOfInterestAM={'Left-Amygdala','Lateral-nucleus','Paralaminar-nucleus',...
     'Basal-nucleus','Hippocampal-amygdala-transition-HATA','Accessory-Basal-nucleus','Amygdala-background',...
     'Corticoamygdaloid-transitio','Central-nucleus','Cortical-nucleus','Medial-nucleus','Anterior-amygdaloid-area-AAA'};
-totVol=0;
-found=zeros(1,size(priorsFull,4));
-for i=1:size(priorsFull,4)
-    tmp=posteriorsFull(:,:,:,i);
-    tmp(maskIndices)=posteriors(:,i);
-    posteriorsFull(:,:,:,i)=tmp;
-    found(i)=0;
-    str=[];
-    vol=0;
+totVolAM=0;
+foundAM=zeros([1,numberOfClasses]);
+
+for i=1:numberOfClasses
+    
+    if i==1
+        sillyAlphas=zeros([size(originalAlphas,1),2],'single');
+        sillyAlphas(:,1)=originalAlphas(:,1);
+        sillyAlphas(:,2)=1-sillyAlphas(:,1);
+        kvlSetAlphasInMeshNodes( mesh, sillyAlphas )
+        post = kvlRasterizeAtlasMesh( mesh, imageSize);
+        post=post(:,:,:,1);
+        kvlSetAlphasInMeshNodes( mesh, originalAlphas );
+    else
+        post=kvlRasterizeAtlasMesh( mesh, imageSize , i-1);
+    end
+    post(maskIndices)=posteriors(:,i);
+    
+    if i==1
+        L=ones(size(post));
+        MAXP=post;
+    else
+        M=post>MAXP;
+        L(M)=i;
+        MAXP(M)=post(M);
+    end
+    
+    foundAM(i)=0;
+    foundHP(i)=0;
+    
     name=names(i,:);
     name=lower(name(name~=' '));
-    for j=1:length(strOfInterest)
-        if strcmp(name,lower(strOfInterest{j}))>0
-            found(i)=j;
+    
+    for j=1:length(strOfInterestHP)
+        if strcmp(name,lower(strOfInterestHP{j}))>0
+            foundHP(i)=j;
         end
     end
-    if found(i)>0
-        str=strOfInterest{found(i)};
-        vol=resolution^3*(sum(sum(sum(double(posteriorsFull(:,:,:,i))/65535))));
-        fprintf(fid,'%s %f\n',str,vol);
-        if isempty(strfind(lower(names(i,:)),'hippocampal-fissure'))  % don't count the fissure towards the total volume
-            totVol=totVol+vol;
-            
-            if WRITE_POSTERIORS>0
-                kk1=double(posteriorsFull(:,:,:,i))/65535;
-                kk2=zeros(size(kk1)); kk2(maskIndices)=1; kk1=kk1.*kk2;
-                aux=zeros(size(tmp2.vol)+shiftNeg);
-                aux(1+shiftNeg(1):shiftNeg(1)+size(tmp2.vol,1),1+shiftNeg(2):shiftNeg(2)+size(tmp2.vol,2),1+shiftNeg(3):shiftNeg(3)+size(tmp2.vol,3))=permute(kk1,[2 1 3]);
-                aux=aux(1+shiftPos(1):end,1+shiftPos(2):end,1+shiftPos(3):end);
-                tmp3.vol=aux;
-                myMRIwrite(tmp3,['posterior_' side '_' strtrim(lower(names(i,:))) '_T1_' suffixUser '_' suffix '.mgz'],'float',tempdir);
-            end
-            
+    
+    for j=1:length(strOfInterestAM)
+        if strcmp(name,lower(strOfInterestAM{j}))>0
+            foundAM(i)=j;
         end
+    end
+    
+    if foundHP(i)>0 || foundAM(i)>0
+        vol=resolution^3*(sum(double(post(:))/65535));
+        if foundHP(i)>0
+            str=strOfInterestHP{foundHP(i)};
+            fprintf(fidHP,'%s %f\n',str,vol);
+            if isempty(strfind(lower(names(i,:)),'hippocampal-fissure'))  % don't count the fissure towards the total volume
+                totVolHP=totVolHP+vol;
+            end
+        else
+            str=strOfInterestAM{foundAM(i)};
+            fprintf(fidAM,'%s %f\n',str,vol);
+            totVolAM=totVolAM+vol;
+        end
+        
+        for j=1:length(HPbodyList)
+            if strcmp(name,lower(HPbodyList{j}))>0
+                totVolHPbody=totVolHPbody+vol;
+            end
+        end
+        for j=1:length(HPheadList)
+            if strcmp(name,lower(HPheadList{j}))>0
+                totVolHPhead=totVolHPhead+vol;
+            end
+        end
+        
+        if WRITE_POSTERIORS>0
+            kk1=double(post)/65535;
+            kk2=zeros(size(kk1)); kk2(maskIndices)=1; kk1=kk1.*kk2;
+            aux=zeros(size(tmp2.vol)+shiftNeg);
+            aux(1+shiftNeg(1):shiftNeg(1)+size(tmp2.vol,1),1+shiftNeg(2):shiftNeg(2)+size(tmp2.vol,2),1+shiftNeg(3):shiftNeg(3)+size(tmp2.vol,3))=permute(kk1,[2 1 3]);
+            aux=aux(1+shiftPos(1):end,1+shiftPos(2):end,1+shiftPos(3):end);
+            tmp3.vol=aux;
+            myMRIwrite(tmp3,['posterior_' side '_' strtrim(lower(names(i,:))) '_T1_' suffix '.mgz'],'float',tempdir);
+        end
+        
     end
 end
-if sum(found>0)>1
-    fprintf(fid,'Whole_amygdala %f\n',totVol);
-    fclose(fid);
+if sum(foundHP>0)>1
+    fprintf(fidHP,'Whole_hippocampal_body %f\n',totVolHPbody);
+    fprintf(fidHP,'Whole_hippocampal_head %f\n',totVolHPhead);    
+    fprintf(fidHP,'Whole_hippocampus %f\n',totVolHP);
+    fclose(fidHP);
 else
-    fclose(fid);
+    fclose(fidHP);
+    delete([tempdir '/volumesHippo.txt']);
+end
+if sum(foundAM>0)>1
+    fprintf(fidAM,'Whole_amygdala %f\n',totVolAM);
+    fclose(fidAM);
+else
+    fclose(fidAM);
     delete([tempdir '/volumesAmygdala.txt']);
 end
 
+
+% % Compute posteriors and volumes
+% priorsFull = kvlRasterizeAtlasMesh( mesh, imageSize );
+% posteriorsFull=priorsFull;
+% 
+% fid=fopen([tempdir '/volumesHippo.txt'],'w');
+% % strOfInterest={'alveus','subiculum','Hippocampal_tail','molecular_layer_HP','hippocampal-fissure','GC-ML-DG','CA4','presubiculum','CA1','parasubiculum','fimbria','CA3','HATA'};
+% % no alveus for now ;-)
+% strOfInterest={'subiculum','Hippocampal_tail','molecular_layer_HP','hippocampal-fissure','GC-ML-DG','CA4','presubiculum','CA1','parasubiculum','fimbria','CA3','HATA'};
+% totVol=0;
+% found=zeros(1,size(priorsFull,4));
+% for i=1:size(priorsFull,4)
+%     tmp=posteriorsFull(:,:,:,i);
+%     tmp(maskIndices)=posteriors(:,i);
+%     posteriorsFull(:,:,:,i)=tmp;
+%     found(i)=0;
+%     str=[];
+%     vol=0;
+%     name=names(i,:);
+%     name=lower(name(name~=' '));
+%     for j=1:length(strOfInterest)
+%         if strcmp(name,lower(strOfInterest{j}))>0
+%             found(i)=j;
+%         end
+%     end
+%     if found(i)>0
+%         str=strOfInterest{found(i)};
+%         vol=resolution^3*(sum(sum(sum(double(posteriorsFull(:,:,:,i))/65535))));
+%         fprintf(fid,'%s %f\n',str,vol);
+%         if isempty(strfind(lower(names(i,:)),'hippocampal-fissure'))  % don't count the fissure towards the total volume
+%             totVol=totVol+vol;
+%             
+%             if WRITE_POSTERIORS>0
+%                 kk1=double(posteriorsFull(:,:,:,i))/65535;
+%                 kk2=zeros(size(kk1)); kk2(maskIndices)=1; kk1=kk1.*kk2;
+%                 aux=zeros(size(tmp2.vol)+shiftNeg);
+%                 aux(1+shiftNeg(1):shiftNeg(1)+size(tmp2.vol,1),1+shiftNeg(2):shiftNeg(2)+size(tmp2.vol,2),1+shiftNeg(3):shiftNeg(3)+size(tmp2.vol,3))=permute(kk1,[2 1 3]);
+%                 aux=aux(1+shiftPos(1):end,1+shiftPos(2):end,1+shiftPos(3):end);
+%                 tmp3.vol=aux;
+%                 myMRIwrite(tmp3,['posterior_' side '_' strtrim(lower(names(i,:))) '_T1_' suffixUser '_' suffix '.mgz'],'float',tempdir);
+%             end
+%             
+%         end
+%     end
+% end
+% if sum(found>0)>1
+%     fprintf(fid,'Whole_hippocampus %f\n',totVol);
+%     fclose(fid);
+% else
+%     fclose(fid);
+%     delete([tempdir '/volumesHippo.txt']);
+% end
+% 
+% 
+% fid=fopen([tempdir '/volumesAmygdala.txt'],'w');
+% strOfInterest={'Left-Amygdala','Lateral-nucleus','Paralaminar-nucleus',...
+%     'Basal-nucleus','Hippocampal-amygdala-transition-HATA','Accessory-Basal-nucleus','Amygdala-background',...
+%     'Corticoamygdaloid-transitio','Central-nucleus','Cortical-nucleus','Medial-nucleus','Anterior-amygdaloid-area-AAA'};
+% totVol=0;
+% found=zeros(1,size(priorsFull,4));
+% for i=1:size(priorsFull,4)
+%     tmp=posteriorsFull(:,:,:,i);
+%     tmp(maskIndices)=posteriors(:,i);
+%     posteriorsFull(:,:,:,i)=tmp;
+%     found(i)=0;
+%     str=[];
+%     vol=0;
+%     name=names(i,:);
+%     name=lower(name(name~=' '));
+%     for j=1:length(strOfInterest)
+%         if strcmp(name,lower(strOfInterest{j}))>0
+%             found(i)=j;
+%         end
+%     end
+%     if found(i)>0
+%         str=strOfInterest{found(i)};
+%         vol=resolution^3*(sum(sum(sum(double(posteriorsFull(:,:,:,i))/65535))));
+%         fprintf(fid,'%s %f\n',str,vol);
+%         if isempty(strfind(lower(names(i,:)),'hippocampal-fissure'))  % don't count the fissure towards the total volume
+%             totVol=totVol+vol;
+%             
+%             if WRITE_POSTERIORS>0
+%                 kk1=double(posteriorsFull(:,:,:,i))/65535;
+%                 kk2=zeros(size(kk1)); kk2(maskIndices)=1; kk1=kk1.*kk2;
+%                 aux=zeros(size(tmp2.vol)+shiftNeg);
+%                 aux(1+shiftNeg(1):shiftNeg(1)+size(tmp2.vol,1),1+shiftNeg(2):shiftNeg(2)+size(tmp2.vol,2),1+shiftNeg(3):shiftNeg(3)+size(tmp2.vol,3))=permute(kk1,[2 1 3]);
+%                 aux=aux(1+shiftPos(1):end,1+shiftPos(2):end,1+shiftPos(3):end);
+%                 tmp3.vol=aux;
+%                 myMRIwrite(tmp3,['posterior_' side '_' strtrim(lower(names(i,:))) '_T1_' suffixUser '_' suffix '.mgz'],'float',tempdir);
+%             end
+%             
+%         end
+%     end
+% end
+% if sum(found>0)>1
+%     fprintf(fid,'Whole_amygdala %f\n',totVol);
+%     fclose(fid);
+% else
+%     fclose(fid);
+%     delete([tempdir '/volumesAmygdala.txt']);
+% end
+
+
 % MAP estimates
-[~,inds]=max(posteriorsFull,[],4);
+% Eugenio July 2017
+% [~,inds]=max(posteriorsFull,[],4);
+inds=L;
+
 kk1=FreeSurferLabels(inds);
 kk2=zeros(size(kk1)); kk2(maskIndices)=1; kk1=kk1.*kk2;
 aux=zeros(size(tmp2.vol)+shiftNeg);
@@ -2221,42 +2495,127 @@ aux=aux(1+shiftPos(1):end,1+shiftPos(2):end,1+shiftPos(3):end);
 tmp3.vol=aux;
 myMRIwrite(tmp3,'discreteLabels_all.mgz','float',tempdir);
 tmp3.vol(tmp3.vol<200)=0;
-tmp3.vol(tmp3.vol>226 & tmp3.vol<7000)=0;
+
+% Eugenio July 2017
+% tmp3.vol(tmp3.vol>226 & tmp3.vol<7000)=0;
+tmp3.vol(tmp3.vol>246 & tmp3.vol<7000)=0;
+
 tmp3.vol(tmp3.vol==201)=0; % kill alveus
 tmp3Mask=getLargestCC(tmp3.vol>0);
 tmp3.vol(~tmp3Mask)=0;
 myMRIwrite(tmp3,'discreteLabels.mgz','float',tempdir);
 
 
+% Eugenio July 2011
+% Write merged versions to disk as well
+% First: tail / body /head
 
-if  MRFconstant>0
-    disp('Markov random field label "smoothing"...')
-    unaryTermWeight=MRFconstant;
-    [~,inds]=max(posteriorsFull,[],4);
-    tmp=FreeSurferLabels(inds);
-    kk=zeros(size(tmp)); kk(maskIndices)=1; tmp=tmp.*kk;
-    tmp(tmp<200)=0; tmp(tmp>226 & tmp<7000)=0;
-    [~,cropping]=cropLabelVol(tmp);
-    Ct=zeros([cropping(4)-cropping(1)+1,cropping(5)-cropping(2)+1,cropping(6)-cropping(3)+1,numberOfClasses]);
-    for c=1:numberOfClasses
-        Ct(:,:,:,c)=-log(1e-12+(double(posteriorsFull(cropping(1):cropping(4),cropping(2):cropping(5),cropping(3):cropping(6),c))/65535)*(1-1e-12))*unaryTermWeight;
-    end
-    varParas = [size(Ct,1); size(Ct,2); size(Ct,3); size(Ct,4); 100; 1e-3; 0.25; 0.11];
-    penalty = ones([size(Ct,1),size(Ct,2),size(Ct,3)]);
-    u = CMF3D_ML_mex(single(penalty), single(Ct), single(varParas));
-    [~,ind] = max(u, [], 4);
-    SEG=FreeSurferLabels(ind);
-    SEG(SEG>226 & SEG<7000)=0; SEG(SEG<200)=0;
+HippoBodyLabel=231;
+HippoHeadLabel=232;
+
+tmp4=tmp3;
+for c=1:numberOfClasses
+    name=names(c,:);
+    name=lower(name(name~=' '));
     
-    data=zeros(size(inds));
-    data(cropping(1):cropping(4),cropping(2):cropping(5),cropping(3):cropping(6))=SEG;
-    aux=zeros(size(tmp2.vol)+shiftNeg);
-    aux(1+shiftNeg(1):shiftNeg(1)+size(tmp2.vol,1),1+shiftNeg(2):shiftNeg(2)+size(tmp2.vol,2),1+shiftNeg(3):shiftNeg(3)+size(tmp2.vol,3))=permute(data,[2 1 3]);
-    aux=aux(1+shiftPos(1):end,1+shiftPos(2):end,1+shiftPos(3):end);
-    tmp3.vol=aux;
-    tmp3Mask=getLargestCC(tmp3.vol>0);
-    tmp3.vol(~tmp3Mask)=0;
-    myMRIwrite(tmp3,'discreteLabels_MRF.mgz','float',tempdir);
+    found=0;
+    for j=1:length(HPbodyList)
+        if strcmp(name,lower(HPbodyList{j}))>0
+            found=1;
+        end
+    end
+    if found==1
+        tmp4.vol(tmp4.vol==FreeSurferLabels(c))=HippoBodyLabel;
+    end
+    
+    found=0;
+    for j=1:length(HPheadList)
+        if strcmp(name,lower(HPheadList{j}))>0
+            found=1;
+        end
+    end
+    if found==1
+        tmp4.vol(tmp4.vol==FreeSurferLabels(c))=HippoHeadLabel;
+    end
+end
+tmp4.vol(tmp4.vol==215)=0; % kill the fissure
+myMRIwrite(tmp4,'discreteLabelsWholeBodyHead.mgz','float',tempdir);
+    
+% Second: head+body of each subfield
+tmp4=tmp3;
+tmp4.vol(tmp3.vol==233 | tmp3.vol==234)=204; % presubiculum
+tmp4.vol(tmp3.vol==235 | tmp3.vol==236)=205; % subiculum
+tmp4.vol(tmp3.vol==237 | tmp3.vol==238)=206; % CA1
+tmp4.vol(tmp3.vol==239 | tmp3.vol==240)=208; % CA3
+tmp4.vol(tmp3.vol==241 | tmp3.vol==242)=209; % CA4
+tmp4.vol(tmp3.vol==243 | tmp3.vol==244)=210; % GC-DG
+tmp4.vol(tmp3.vol==245 | tmp3.vol==246)=214; % ML
+
+myMRIwrite(tmp4,'discreteLabelsMergedBodyHead.mgz','float',tempdir);
+
+% Third: same as above, but getting rid of internal labels
+tmp4.vol(tmp4.vol==210)=209;  % GC-DG -> CA4 
+
+% Molecular layer: replace by nearest label that is not background or
+% fissure
+[~,cropping]=cropLabelVol(tmp4.vol==214,2);
+VOL=applyCropping(tmp4.vol,cropping);
+llist=unique(VOL);
+llist=llist(llist~=0 & llist~=215 & llist~=214);
+mask=VOL==214;
+for l=1:length(llist)
+   label=llist(l);
+   dmap=bwdist(VOL==label);
+   if l==1
+       mini=dmap(mask);
+       seg=label;
+   else
+       dist=dmap(mask);
+       m=dist<mini;
+       mini(m)=dist(m);
+       seg(m)=label;
+   end   
+end
+VOL(mask)=seg;
+tmp4.vol(cropping(1):cropping(4),cropping(2):cropping(5),cropping(3):cropping(6))=VOL;
+myMRIwrite(tmp4,'discreteLabelsMergedBodyHeadNoMLorGCDG.mgz','float',tempdir);
+
+
+
+% Eugenio July 2017
+% I disabled this for now ...
+if  MRFconstant>0
+    
+    % Eugenio July 2017
+    error('MRF smoothing disabled for now');
+    
+%     disp('Markov random field label "smoothing"...')
+%     unaryTermWeight=MRFconstant;
+%     [~,inds]=max(posteriorsFull,[],4);
+%     tmp=FreeSurferLabels(inds);
+%     kk=zeros(size(tmp)); kk(maskIndices)=1; tmp=tmp.*kk;
+%     tmp(tmp<200)=0; tmp(tmp>226 & tmp<7000)=0;
+%     [~,cropping]=cropLabelVol(tmp);
+%     Ct=zeros([cropping(4)-cropping(1)+1,cropping(5)-cropping(2)+1,cropping(6)-cropping(3)+1,numberOfClasses]);
+%     for c=1:numberOfClasses
+%         Ct(:,:,:,c)=-log(1e-12+(double(posteriorsFull(cropping(1):cropping(4),cropping(2):cropping(5),cropping(3):cropping(6),c))/65535)*(1-1e-12))*unaryTermWeight;
+%     end
+%     varParas = [size(Ct,1); size(Ct,2); size(Ct,3); size(Ct,4); 100; 1e-3; 0.25; 0.11];
+%     penalty = ones([size(Ct,1),size(Ct,2),size(Ct,3)]);
+%     u = CMF3D_ML_mex(single(penalty), single(Ct), single(varParas));
+%     [~,ind] = max(u, [], 4);
+%     SEG=FreeSurferLabels(ind);
+%     SEG(SEG>226 & SEG<7000)=0; SEG(SEG<200)=0;
+%     
+%     data=zeros(size(inds));
+%     data(cropping(1):cropping(4),cropping(2):cropping(5),cropping(3):cropping(6))=SEG;
+%     aux=zeros(size(tmp2.vol)+shiftNeg);
+%     aux(1+shiftNeg(1):shiftNeg(1)+size(tmp2.vol,1),1+shiftNeg(2):shiftNeg(2)+size(tmp2.vol,2),1+shiftNeg(3):shiftNeg(3)+size(tmp2.vol,3))=permute(data,[2 1 3]);
+%     aux=aux(1+shiftPos(1):end,1+shiftPos(2):end,1+shiftPos(3):end);
+%     tmp3.vol=aux;
+%     tmp3Mask=getLargestCC(tmp3.vol>0);
+%     tmp3.vol(~tmp3Mask)=0;
+%     myMRIwrite(tmp3,'discreteLabels_MRF.mgz','float',tempdir);
 end
 
 if DEBUG>0
@@ -2277,10 +2636,22 @@ end
 
 % Convert segmentation to 1 mm FreeSurfer Space (with and withoutresampling)
 % Also, convert T2 scans (withoutresampling)
+% Eugenio July 2007: add new volumes
 system([FSpath '/mri_convert  discreteLabels.mgz  discreteLabelsResampledT1.mgz -rt nearest -odt float ' ...
     ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz -ait ' T2transform]);
-
 system([FSpath '/mri_vol2vol --mov discreteLabels.mgz  --o discreteLabelsT1space.mgz --no-resample ' ...
+    ' --targ ' subjectDir '/' subjectName '/mri/norm.mgz --lta-inv ' T2transform]);
+system([FSpath '/mri_convert  discreteLabelsWholeBodyHead.mgz  discreteLabelsWholeBodyHeadResampledT1.mgz -rt nearest -odt float ' ...
+    ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz -ait ' T2transform]);
+system([FSpath '/mri_vol2vol --mov discreteLabelsWholeBodyHead.mgz  --o discreteLabelsWholeBodyHeadT1space.mgz --no-resample ' ...
+    ' --targ ' subjectDir '/' subjectName '/mri/norm.mgz --lta-inv ' T2transform]);
+system([FSpath '/mri_convert  discreteLabelsMergedBodyHead.mgz  discreteLabelsMergedBodyHeadResampledT1.mgz -rt nearest -odt float ' ...
+    ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz -ait ' T2transform]);
+system([FSpath '/mri_vol2vol --mov discreteLabelsMergedBodyHead.mgz  --o discreteLabelsMergedBodyHeadT1space.mgz --no-resample ' ...
+    ' --targ ' subjectDir '/' subjectName '/mri/norm.mgz --lta-inv ' T2transform]);
+system([FSpath '/mri_convert  discreteLabelsMergedBodyHeadNoMLorGCDG.mgz  discreteLabelsMergedBodyHeadNoMLorGCDGResampledT1.mgz -rt nearest -odt float ' ...
+    ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz -ait ' T2transform]);
+system([FSpath '/mri_vol2vol --mov discreteLabelsMergedBodyHeadNoMLorGCDG.mgz  --o discreteLabelsMergedBodyHeadNoMLorGCDGT1space.mgz --no-resample ' ...
     ' --targ ' subjectDir '/' subjectName '/mri/norm.mgz --lta-inv ' T2transform]);
 
 system([FSpath '/mri_vol2vol --mov ' T2volumeFileName '  --o T2inT1space.mgz --no-resample ' ...
@@ -2296,17 +2667,20 @@ end
 
 % Move to MRI directory
 system(['mv T2inT1space.mgz ' subjectDir '/' subjectName '/mri/' suffixUser '.FSspace.mgz']);
-if strcmp(side,'right')>0
-    system(['mv discreteLabelsT1space.mgz ' subjectDir '/' subjectName '/mri/rh.hippoSfLabels-T1-' suffixUser '.' suffix '.mgz']);
-    system(['mv discreteLabelsResampledT1.mgz ' subjectDir '/' subjectName '/mri/rh.hippoSfLabels-T1-' suffixUser '.' suffix '.FSvoxelSpace.mgz']);
-    system(['mv volumesHippo.txt ' subjectDir '/' subjectName '/mri/rh.hippoSfVolumes-T1-' suffixUser '.' suffix '.txt']);
-    system(['mv volumesAmygdala.txt ' subjectDir '/' subjectName '/mri/rh.hippoSfVolumes-T1-' suffixUser '.amygdala.' suffix '.txt']);
-else
-    system(['mv discreteLabelsT1space.mgz ' subjectDir '/' subjectName '/mri/lh.hippoSfLabels-T1-' suffixUser '.' suffix '.mgz']);
-    system(['mv discreteLabelsResampledT1.mgz ' subjectDir '/' subjectName '/mri/lh.hippoSfLabels-T1-' suffixUser '.' suffix '.FSvoxelSpace.mgz']);
-    system(['mv volumesHippo.txt ' subjectDir '/' subjectName '/mri/lh.hippoSfVolumes-T1-' suffixUser '.' suffix '.txt']);
-    system(['mv volumesAmygdala.txt ' subjectDir '/' subjectName '/mri/lh.hippoSfVolumes-T1-' suffixUser '.amygdala.' suffix '.txt']);
-end
+
+% Eugenio July 2007: simplify (L/R) and add new labels
+system(['mv discreteLabelsT1space.mgz ' subjectDir '/' subjectName '/mri/' side(1) 'h.hippoAmygLabels-T1-' suffixUser '.' suffix '.mgz']);
+system(['mv discreteLabelsResampledT1.mgz ' subjectDir '/' subjectName '/mri/' side(1) 'h.hippoAmygLabels-T1-' suffixUser '.' suffix '.FSvoxelSpace.mgz']);
+system(['mv discreteLabelsWholeBodyHeadT1space.mgz ' subjectDir '/' subjectName '/mri/' side(1) 'h.hippoAmygLabels-T1-' suffixUser '.' suffix '.HBT.mgz']);
+system(['mv discreteLabelsWholeBodyHeadResampledT1.mgz ' subjectDir '/' subjectName '/mri/' side(1) 'h.hippoAmygLabels-T1-' suffixUser '.' suffix '.HBT.FSvoxelSpace.mgz']);
+system(['mv discreteLabelsMergedBodyHeadT1space.mgz ' subjectDir '/' subjectName '/mri/' side(1) 'h.hippoAmygLabels-T1-' suffixUser '.' suffix '.FS60.mgz']);
+system(['mv discreteLabelsMergedBodyHeadResampledT1.mgz ' subjectDir '/' subjectName '/mri/' side(1) 'h.hippoAmygLabels-T1-' suffixUser '.' suffix '.FS60.FSvoxelSpace.mgz']);
+system(['mv discreteLabelsMergedBodyHeadNoMLorGCDGT1space.mgz ' subjectDir '/' subjectName '/mri/' side(1) 'h.hippoAmygLabels-T1-' suffixUser '.' suffix '.CA.mgz']);
+system(['mv discreteLabelsMergedBodyHeadNoMLorGCDGResampledT1.mgz ' subjectDir '/' subjectName '/mri/' side(1) 'h.hippoAmygLabels-T1-' suffixUser '.' suffix '.CA.FSvoxelSpace.mgz']);
+
+system(['mv volumesHippo.txt ' subjectDir '/' subjectName '/mri/' side(1) 'h.hippoSfVolumes-T1-' suffixUser '.' suffix '.txt']);
+system(['mv volumesAmygdala.txt ' subjectDir '/' subjectName '/mri/' side(1) 'h.amygNucVolumes-T1-' suffixUser '.' suffix '.txt']);
+
 if WRITE_POSTERIORS>0
     d=dir('posterior_*T1space.mgz');
     for i=1:length(d)
