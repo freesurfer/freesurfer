@@ -9902,7 +9902,7 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   sse_thick_spring =
     mrisComputeThicknessSpringEnergy(mris, parms->l_thick_spring, parms) ;
   if (parms->l_thick_spring > 0 || parms->l_thick_min > 0 || parms->l_thick_parallel > 0 /* && DIAG_VERBOSE_ON*/)
-    printf("min=%2.2f, parallel=%2.4f, normal=%2.2f, spring=%2.2f, ashburner=%2.2f, tsmooth=%2.3f\n", 
+    printf("min=%2.3f, parallel=%2.4f, normal=%2.4f, spring=%2.4f, ashburner=%2.3f, tsmooth=%2.3f\n", 
 	   sse_thick_min/(float)mris->nvertices, sse_thick_parallel/(float)mris->nvertices, 
 	   sse_thick_normal/(float)mris->nvertices, sse_thick_spring/(float)mris->nvertices, 
 	   sse_ashburner_triangle/(float)mris->nvertices,
@@ -10246,7 +10246,7 @@ MRIScomputeSSE_CUDA(MRI_SURFACE *mris,
     (double)parms->l_tsmooth   * sse_tsmooth +
     (double)parms->l_thick_min * sse_thick_min +
     (double)parms->l_thick_parallel * sse_thick_parallel +
-    (double)parms->l_ashburner_triangle * sse_ashburner_triangle +
+//    (double)parms->l_ashburner_triangle * sse_ashburner_triangle +
     (double)parms->l_thick_normal * sse_thick_normal +
     (double)parms->l_thick_spring * sse_thick_spring +
     (double)parms->l_sphere    * sse_sphere + sse_repulsive_ratio +
@@ -24107,7 +24107,7 @@ mrisSampleParallelEnergy(MRI_SURFACE *mris,
   FACE    *face ;
   float   x, y, z ;
   MHT     *mht = (MHT *)(parms->mht) ;
-//  int     n ;
+  int     n ;
 
   project_point_onto_sphere(cx, cy, cz, mris->radius, &cx, &cy, &cz) ;
   x = v->x ;
@@ -24126,7 +24126,7 @@ mrisSampleParallelEnergy(MRI_SURFACE *mris,
   v->y = cy ;
   v->z = cz ;  // change coords to here and compute effects on sse
   sse = mrisSampleParallelEnergyAtVertex(mris, v, parms) ;
-#if 0
+#if 1
   for (num = 1, n = 0 ; n < v->vnum ; n++)
   {
     VERTEX *vn ;
@@ -25175,7 +25175,7 @@ mrisComputeThicknessParallelTerm(MRI_SURFACE *mris, double l_thick_parallel, INT
     dz = -l_thick_parallel * (dE_de1 * e1z + dE_de2 * e2z) ;
     E0 = mrisSampleParallelEnergy(mris, v, parms, v->x,  v->y,  v->z) ;
     E1 = mrisSampleParallelEnergy(mris, v, parms, v->x+parms->dt*dx,  v->y+parms->dt*dy,  v->z+parms->dt*dz) ;
-#if 0
+#if 1
     if (E1 > E0)
     {
       double E2 ;
@@ -35090,8 +35090,8 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
       /* check to see if the error decreased substantially, if not
       reduce the  step size  */
       if (((parms->check_tol && 
-	   ((FZERO(parms->l_location) && ((last_rms-rms)/last_rms < parms->tol))))  || 
-	   (100*(last_sse-sse)/last_sse < parms->tol))
+	    ((last_rms-rms)/last_rms < parms->tol)))  || 
+	  ((FZERO(parms->l_location) && (100*(last_sse-sse)/last_sse < parms->tol)))
 	  ||
 	  ((parms->check_tol == 0) && FZERO(parms->l_location) && (rms > last_rms-0.05)))
       {
@@ -42024,14 +42024,16 @@ mrisComputeIntensityError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 static double
 mrisComputeTargetLocationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  int     vno ;
+  int     vno, max_vno ;
   VERTEX  *v ;
   double    dx, dy, dz ;
-  double  sse, mag ;
+  double  sse, mag, max_mag, last_mag ;
+  static double last_error[500000] ;
 
   if (FZERO(parms->l_location))
     return(0.0f) ;
 
+  last_mag = max_mag = 0 ; max_vno = -1 ;
   for (sse = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
@@ -42050,9 +42052,21 @@ mrisComputeTargetLocationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     if (!devFinite(mag))
       DiagBreak() ;
 
+    if (mag > last_error[vno])
+    {
+      if (mag > max_mag)
+      {
+	last_mag = last_error[vno] ;
+	max_mag = mag ;
+	max_vno = vno ;
+      }
+    }
+    last_error[vno] = mag ;
     sse += mag ;
   }
 
+  if (last_mag > 0)
+    DiagBreak() ;
   return(sse) ;
 }
 /*-----------------------------------------------------
@@ -78686,7 +78700,7 @@ MRISremoveIntersections(MRI_SURFACE *mris)
     if (num >= old_num)  // couldn't remove any
     {
       no_progress++ ;
-      printf("%dth step with no progress\n", no_progress) ;
+      printf("step %d with no progress\n", no_progress) ;
 
       // couldn't make any more progress with current size of neighborhood, expand, reset or quit
       if (nbrs >= MAX_INT_REMOVAL_NEIGHBORS)  // don't let neighborhood get too big
