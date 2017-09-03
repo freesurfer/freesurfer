@@ -120,7 +120,6 @@ int main(int argc, char *argv[])
 {
 
   int          nargs = 0;
-  int          err;
 
   MRI_SURFACE  *mris  = NULL;
 
@@ -201,7 +200,7 @@ int main(int argc, char *argv[])
 
   if ( subdividemethod != -1 )
   {
-    err = mris_mesh_subdivide__VTK(mris, iter);
+    mris_mesh_subdivide__VTK(mris, iter);
   }
 
 
@@ -261,12 +260,11 @@ int main(int argc, char *argv[])
 int mris_mesh_subdivide__VTK(MRI_SURFACE *mris,
                              int iter)
 {
-  int err;
 
   vtkPolyData* inputMesh;
   inputMesh = vtkPolyData::New();
 
-  err = mris_mesh_subdivide__convert_mris_VTK(mris, inputMesh);
+  mris_mesh_subdivide__convert_mris_VTK(mris, inputMesh);
 
   // NOTE TO MYSELF [jrp, 2012/sep/29]: in some viewers like freeview
   // the interpolating subdivision does not appear to strictly
@@ -334,10 +332,10 @@ int mris_mesh_subdivide__VTK(MRI_SURFACE *mris,
 
   mris_subdivide = MRISalloc(outputMesh->GetNumberOfPoints(),
                              outputMesh->GetNumberOfPolys()) ;
-  err = mris_mesh_subdivide__mris_clone_header(mris, mris_subdivide);
-  err = mris_mesh_subdivide__convert_VTK_mris(outputMesh, mris_subdivide);
+  mris_mesh_subdivide__mris_clone_header(mris, mris_subdivide);
+  mris_mesh_subdivide__convert_VTK_mris(outputMesh, mris_subdivide);
 
-  err = mris_mesh_subdivide__VTK_delete(inputMesh);
+  mris_mesh_subdivide__VTK_delete(inputMesh);
   //  err = mris_mesh_subdivide__VTK_delete(outputMesh);
 
   return(0);
