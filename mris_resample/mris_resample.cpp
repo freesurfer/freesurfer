@@ -290,7 +290,7 @@ resampleSurface( MRIS* mrisAtlasReg,
      as the "INFLATED vertex" of mris_template */
 
   int index, k, facenumber, closestface=-1;
-  double sopt, topt, tmps, tmpt; /* triangle parametrization parameters */
+  double tmps, tmpt; /* triangle parametrization parameters */
   double value, distance;
   double Radius, length, scale;
   double sumx, sumy, sumz, sumweight, weight;
@@ -378,8 +378,6 @@ resampleSurface( MRIS* mrisAtlasReg,
       {
         distance = value;
         closestface = facenumber;
-        sopt = tmps;
-        topt = tmpt;
       }
     }
 
