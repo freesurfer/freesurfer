@@ -190,8 +190,8 @@ static int findSurfaceReference(int label) {
 }
 
 int main(int argc, char *argv[]) {
-  char **av,*subject_fname,*subjects_fname[STRLEN],fname[STRLEN],*cp,*hemi;
-  int ac, nargs,n , m,surface_reference,nsubjects;
+  char *subject_fname,*subjects_fname[STRLEN],fname[STRLEN],*cp,*hemi;
+  int  nargs,n , m,surface_reference,nsubjects;
   MRI_SURFACE  *mris;
   MRI *mri,*mri_distance, *mri_orig;
 
@@ -213,8 +213,6 @@ int main(int argc, char *argv[]) {
 
   TimerStart(&start) ;
 
-  ac = argc ;
-  av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
