@@ -119,21 +119,19 @@ int
 mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
                   int *px, int *py, int *pz)
 {
-  int       x, y, z, which, depth, view, frame, xi, yi, zi, xk, yk, zk, slice ;
+  int       x, y, z, which, depth, frame, xi, yi, zi, xk, yk, zk ;
   Real      xr, yr, zr, xt, yt, zt, xv, yv, zv, xtv, ytv, ztv ;
   float     xf, yf, zf, xft, yft, zft ;
   MRI       *mri ;
   char      fname[100] ;
   FILE      *fp ;
-  BUFTYPE   val, old_val ;
+  BUFTYPE   val ;
   static int repaint_needed = 0 ;
 
   which = dimage->which ;
   mri = mris[which] ;
   depth = mri_depths[which] ;
   frame = mri_frames[which] ;
-  view = mri_views[which] ;
-  slice = mri_slices[which] ;
 
   /* click can occur in the middle of other stuff (sort of asynchonous) */
   if (!mri || !mri->slices)
@@ -236,11 +234,9 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
             {
             default:
             case MRI_UCHAR:
-              old_val = MRIseq_vox(mri, xi, yi, zi, mri_frames[which])  ;
               MRIseq_vox(mri, xi, yi, zi, mri_frames[which]) = val ;
               break ;
             case MRI_FLOAT:
-              old_val = (BUFTYPE)MRIFseq_vox(mri, xi,yi,zi,mri_frames[which]);
               MRIFseq_vox(mri, xi, yi, zi, mri_frames[which]) = (float)val ;
               break ;
             }
@@ -1047,9 +1043,6 @@ repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
 int
 XVMRIfree(MRI **pmri, int which)
 {
-  MRI *mri ;
-
-  mri = *pmri ;
   mris[which] = NULL ;
   MRIfree(pmri) ;
   return(NO_ERROR) ;
