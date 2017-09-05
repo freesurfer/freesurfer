@@ -3983,6 +3983,7 @@ AC_OUTPUT([Makefile
            mris_twoclass/Makefile
            mris_volume/Makefile
            mris_warp/Makefile
+           mris_watershed/Makefile
            mris_volmask/Makefile
            mris_w_to_curv/Makefile
            mrisp_paint/Makefile

@@ -318,6 +318,7 @@ MRISSUBDIRS=\
 	mris_transform \
 	mris_translate_annotation \
 	mris_twoclass \
+	mris_watershed \
 	mris_w_to_curv \
 	mris_volmask \
 	mris_volume \
