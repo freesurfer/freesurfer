@@ -151,6 +151,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
             m_bEditing = true;
             mri->SetVoxelByRAS( ras, view->GetViewPlane(),bCondition );
           }
+          view->grabMouse();
         }
         else if ( m_nAction == EM_Clone )
         {
