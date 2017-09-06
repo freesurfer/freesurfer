@@ -87,6 +87,7 @@ bool Interactor::ProcessMouseDownEvent( QMouseEvent* event, RenderView* view )
 
 bool Interactor::ProcessMouseUpEvent( QMouseEvent* event, RenderView* view )
 {
+  view->releaseMouse();
   if ( event->button() == Qt::RightButton && m_nDownPosX == event->x() && m_nDownPosY == event->y() )
   {
     view->TriggerContextMenu( event );

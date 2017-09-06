@@ -140,19 +140,36 @@ BOOST_AUTO_TEST_CASE( DeformationGradients )
 
   // Convert means and precisions to correct format   
   const int  numberOfClasses = means.size();
-  std::vector< vnl_vector< float > > means_( numberOfClasses, vnl_vector< float >( 1, 0.0 ) );
-  std::vector< vnl_matrix< float > >  precisions_( numberOfClasses, vnl_matrix< float >( 1, 1, 0.0 ) );
+  std::vector< vnl_vector< double > > means_( numberOfClasses, vnl_vector< double >( 1, 0.0 ) );
+  std::vector< vnl_matrix< double > >  precisions_( numberOfClasses, vnl_matrix< double >( 1, 1, 0.0 ) );
   for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ ) {
     means_[ classNumber ][0] = means[ classNumber ];
     precisions_[ classNumber ][0][0] = precisions[ classNumber ];
   }
   
+  // Add in mixtureWeights and numberOfGaussiansPerClass
+  std::vector<double> mixtureWeights( numberOfClasses );
+  std::vector<int> numberOfGaussiansPerClass( numberOfClasses );
+  for( int i=0; i<numberOfClasses; i++ ) {
+    mixtureWeights.at(i) = numberOfGaussiansPerClass.at(i) = 1;
+  }
+
+  // Convert precisions to variances
+  std::vector< vnl_matrix<double> > variances( precisions_ );
+  for( int i=0; i<numberOfClasses; i++ ) {
+    auto curr = variances.at(i);
+    if( curr.size() != 1 ) {
+      throw std::runtime_error("Must have 1x1 precisions matrix");
+    }
+    curr(0,0) = 1 / curr(0,0);
+    variances.at(i) = curr;
+  }
 
   //
   kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::Pointer  
       gradientCalculator = kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::New();
   gradientCalculator->SetImages( std::vector< ImageType::ConstPointer >( 1, image.GetPointer() ) );
-  gradientCalculator->SetParameters( means_, precisions_ );
+  gradientCalculator->SetParameters( means_, variances, mixtureWeights, numberOfGaussiansPerClass );
   clock.Reset();
   clock.Start();
   gradientCalculator->Rasterize( mesh );
@@ -174,7 +191,7 @@ BOOST_AUTO_TEST_CASE( DeformationGradients )
   kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::Pointer  
       referenceGradientCalculator = kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::New();
   referenceGradientCalculator->SetImages( std::vector< ImageType::ConstPointer >( 1, const_cast< ImageType* >( image.GetPointer() ) ) );
-  referenceGradientCalculator->SetParameters( means_, precisions_ );
+  referenceGradientCalculator->SetParameters( means_, variances, mixtureWeights, numberOfGaussiansPerClass );
   clock.Reset();
   clock.Start();
   referenceGradientCalculator->Rasterize( mesh );

@@ -89,6 +89,7 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
     }
     else
     {
+      view->grabMouse();
       m_bMovingCursor = true;
       view->UpdateCursorRASPosition( m_nMousePosX, m_nMousePosY,
                                      !mainwnd->IsRepositioningSurface() && ( event->modifiers() & CONTROL_MODIFIER ) &&
@@ -141,6 +142,7 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
 bool Interactor2D::ProcessMouseUpEvent( QMouseEvent* event, RenderView* renderview )
 {
   RenderView2D* view = ( RenderView2D* )renderview;
+  view->releaseMouse();
 
   if ( m_bSelecting )
   {

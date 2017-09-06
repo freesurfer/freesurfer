@@ -1519,9 +1519,9 @@ void RenderView3D::OnLayerVisibilityChanged()
     foreach (Layer* layer, list)
     {
       LayerSurface* surf = (LayerSurface*)layer;
-      if (!surf->IsInflated() && surf->IsVisible())
+      if (!surf->IsInflated() && surf->IsVisible() && surf->GetVisibleIn3D())
         m_cursor3D->Show();
-      else if (surf->IsInflated() && surf->IsVisible())
+      else if (surf->IsInflated() && surf->IsVisible() && surf->GetVisibleIn3D())
         m_cursorInflatedSurf->Show();
     }
   }
