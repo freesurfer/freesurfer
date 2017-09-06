@@ -2034,6 +2034,7 @@ void LayerSurface::SetVisibleIn3D(bool bVisible)
   if (bVisible != m_bVisibleIn3D)
   {
     m_bVisibleIn3D = bVisible;
+    emit VisibilityChanged(bVisible);
     emit ActorChanged();
   }
 }
