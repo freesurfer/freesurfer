@@ -459,6 +459,17 @@ void RenderView2D::MoveSlice( int nStep )
   LayerMRI* mri = qobject_cast<LayerMRI*>(lc_mri->GetActiveLayer());
   if (mri)
   {
+    if (!mri->IsVisible())
+    {
+      for (int i = 0; i < lc_mri->GetNumberOfLayers(); i++)
+      {
+        if (lc_mri->GetLayer(i)->IsVisible())
+        {
+          mri = qobject_cast<LayerMRI*>(lc_mri->GetLayer(i));
+          break;
+        }
+      }
+    }
     voxelSize = mri->GetWorldVoxelSize();
   }
   int nPlane = GetViewPlane();

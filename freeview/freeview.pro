@@ -443,7 +443,8 @@ unix {
       /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkopenjpeg.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkjpeg8.a \
       /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkjpeg12.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkjpeg16.a \
       /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKDICOMParser.a \
-      /usr/lib64/libuuid.a -lz -lcrypt -ldl -lpthread \
+      #/usr/lib64/libuuid.a
+      -luuid -lz -lcrypt -ldl -lpthread \
       /usr/pubsw/packages/mni/1.4/lib/libvolume_io.a -L/usr/pubsw/packages/mni/1.4/lib /usr/pubsw/packages/mni/1.4/lib/libminc.a /usr/pubsw/packages/mni/1.4/lib/libnetcdf.a \
       -lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib \
       -L/usr/pubsw/packages/petsc/current/lib -lpetscts -lpetscsnes -lpetscksp \

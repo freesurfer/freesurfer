@@ -4728,7 +4728,7 @@ bool MainWindow::OffsetSlicePosition( int nPlane, double dPosDiff, bool bRoundTo
       for ( int i = 0; i < keys.size(); i++ )
       {
         m_layerCollections[keys[i]]->blockSignals( true );
-        m_layerCollections[keys[i]]->SetSlicePosition(nPlane, slicePos[nPlane]);
+        m_layerCollections[keys[i]]->SetSlicePosition(nPlane, slicePos[nPlane], false);
         m_layerCollections[keys[i]]->blockSignals( false );
       }
     }
