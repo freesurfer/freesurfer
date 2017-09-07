@@ -47,12 +47,15 @@ typedef struct {
   double dmax;   // max allowable distance in mm
   LTA *vol2surf; // reg bet vol and surf, direction unimportant, set to null to use header reg
   LABEL **labels;  // list of labels, one for each surface
-  int vertex_type; // eg, CURRENT_VERTICES
   MHT **hashes;  // hash tables, one for each vertex
   float hashres; // eg, 16
   MRI **masks;   // label masks foreach surface
   int nsegs; // subsample each voxel into nsegs along each dim to fill holes
   MATRIX *volcrs2surfxyz; // precomputed matrix converts vol CRS to surface tkRAS
+  MATRIX *surfxyz2volcrs; // inverse
+  int nhopsmax; 
+  int DilateWithinVoxel; // require neighboring vertices to be within voxel to include in label
+  int DilateContiguous; // require neighboring vertices to be continguous with the center vertex
   int debug; // set to 1 to print out a bunch of stuff
 } LABEL2SURF;
 LABEL2SURF *L2Salloc(int nsurfs, char *subject);
@@ -99,10 +102,17 @@ int main(int argc, char **argv)
 
   vg_isEqual_Threshold = 10e-4;
 
-  mri  = MRIread(argv[1]);
-  surf = MRISread(argv[2]);
-  surf2 = MRISread(argv[3]);
-  lta = LTAread(argv[4]);
+  if(0){
+    mri  = MRIread(argv[1]);
+    surf = MRISread(argv[2]);
+    surf2 = MRISread(argv[3]);
+    lta = LTAread(argv[4]);
+  }else{
+    mri  = MRIread("template.nii.gz");
+    surf = MRISread("lh.white");
+    surf2 = MRISread("rh.white");
+    lta = LTAread("register.dof6.lta");
+  }
   printf("\n");
   printf("alloc \n");
   l2s = L2Salloc(2, "");
@@ -111,21 +121,24 @@ int main(int argc, char **argv)
   l2s->surfs[1] = surf2;
   l2s->dmax = 3;
   l2s->hashres = 16;
-  l2s->vertex_type = CURRENT_VERTICES;
   l2s->vol2surf = lta;
-  l2s->nsegs = 7;
+  l2s->nsegs = 1;
   l2s->debug = 0;
+  //l2s->nhopsmax = 10;
   printf("init \n");
   L2Sinit(l2s);
+  printf("nhopsmax %d\n",l2s->nhopsmax);
   printf("loop \n");
   s = 17;
-  for(c = 10; c < mri->width-10; c++){
-    printf("%2d ",c); fflush(stdout);
-    for(r = 10; r < 40; r++) L2SaddVoxel(l2s, c, r, s, 1);
-    printf("\n");
+  for(c = 0; c < mri->width; c++){
+    //printf("%2d ",c); fflush(stdout);
+    for(r = 0; r < mri->height; r++) L2SaddVoxel(l2s, c, r, s, 1);
+    //printf("\n");
   }
   // remove, erase a few
   for(c = 10; c < mri->width-10; c++) L2SaddVoxel(l2s, c, 15, s, 0);
+  L2Sfree(&l2s);
+  exit(0);
 
   LabelWrite(l2s->labels[0],"./my.label0");
   LabelWrite(l2s->labels[1],"./my.label1");
@@ -596,8 +609,10 @@ LABEL2SURF *L2Salloc(int nsurfs, char *subject)
   l2s->labels = (LABEL **) calloc(sizeof(LABEL*), nsurfs);
   for(n=0; n < nsurfs; n++) l2s->labels[n] = LabelAlloc(100,subject,NULL);
   l2s->masks = (MRI **) calloc(sizeof(MRI*), nsurfs);
-  l2s->vertex_type = CURRENT_VERTICES;
   l2s->nsegs = 1;
+  l2s->nhopsmax = -1; // use -1 to keep track of whether it has been set or not
+  l2s->DilateWithinVoxel = 1; // turn on by default
+  l2s->DilateContiguous = 0; // turn off by default
   return(l2s);
 }
 int L2Sfree(LABEL2SURF **pl2s)
@@ -620,118 +635,18 @@ int L2Sfree(LABEL2SURF **pl2s)
 }
 
 /*!
-  \fn int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Operation)
-  \brief Adds (Operation==1) or removes (Operation!=1) a voxel from a label based
-  on its proximity to a surface. The caller must have run L2Salloc() and L2Sinit() and
-  set the appropriate variables in the L2S structure. There is a label for each 
-  surface. If the CRS is within dmax to a surface, then it is assigned to the label
-  of the closest surface. This allows a label to be assigned, for example, to the lh
-  but not the rh if both lh and rh surfaces are included. It could be used for other
-  apps. 
-*/
-int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Operation)
-{
-  int n,nmin,vtxnominmin,vtxno,pointno;
-  VERTEX v;
-  static MATRIX *crs=NULL, *ras=NULL;
-  float dminsurf,dminmin;
-  LV *lv;
-  LABEL *label;
-
-  if(crs==NULL) {
-    crs = MatrixAlloc(4,1,MATRIX_REAL);
-    crs->rptr[4][1] = 1;
-  }
-  crs->rptr[1][1] = col;
-  crs->rptr[2][1] = row;
-  crs->rptr[3][1] = slice;
-
-  // Compute the TkReg RAS of this CRS in the surface volume space
-  ras = MatrixMultiplyD(l2s->volcrs2surfxyz,crs,ras);
-
-  // Load it into a vertex structure
-  v.x = ras->rptr[1][1];
-  v.y = ras->rptr[2][1];
-  v.z = ras->rptr[3][1];
-  if(l2s->debug > 1) printf("%g %g %g   (%5.2f %5.2f %5.2f)\n",col,row,slice,v.x,v.y,v.z);
-
-  // Go through each surface to find the surface and vertex in the surface that
-  // the CRS is closest to. 
-  dminmin = 10e10;
-  vtxnominmin = -1;
-  nmin = -1;
-  for(n = 0; n < l2s->nsurfs; n++){
-    vtxno = MHTfindClosestVertexNo(l2s->hashes[n],l2s->surfs[n],&v,&dminsurf);
-    if(vtxno >= 0){
-      if(l2s->debug > 1) printf("%3d %6d (%5.2f %5.2f %5.2f) %g\n",n,vtxno,
-	     l2s->surfs[n]->vertices[vtxno].x,l2s->surfs[n]->vertices[vtxno].y,l2s->surfs[n]->vertices[vtxno].z,
-	     dminsurf);
-    }
-    // should check whether there was a hash error?
-    if(dminsurf < dminmin && dminsurf < l2s->dmax){
-      dminmin = dminsurf;
-      vtxnominmin = vtxno;
-      nmin = n;
-    }
-  }
-
-  // If it does not meet the distance criteria, then return
-  if(vtxnominmin == -1) return(0);
-
-  // Select the label of the winning surface
-  label = l2s->labels[nmin];
-
-  // Get the 1-based label point number. 1-based so that 0 can code for 
-  // no label at that point (yet)
-  pointno = MRIgetVoxVal(l2s->masks[nmin],vtxnominmin,0,0,0);
-
-  if(Operation == 1){ // Add vertex to label
-    if(pointno>0) return(0); // already there, just return
-    // If it gets here, then add the vertex
-    if(l2s->debug) printf("Adding surf=%d vtxno=%d  np=%5d   %g %g %g   (%5.2f %5.2f %5.2f)\n",
-			  nmin,vtxnominmin,label->n_points,col,row,slice,v.x,v.y,v.z);
-    // Set value of the mask to the label point number + 1 (so 0=nolabel)
-    MRIsetVoxVal(l2s->masks[nmin],vtxnominmin,0,0,0, label->n_points+1);
-
-    // Check whether need to alloc more points in label
-    if(label->n_points >= label->max_points)
-      LabelRealloc(label, nint(label->max_points*1.5)) ;
-    
-    // Finally, add this point
-    lv = &(label->lv[label->n_points]);
-    lv->vno = vtxnominmin;
-    lv->x = l2s->surfs[nmin]->vertices[vtxnominmin].x;
-    lv->y = l2s->surfs[nmin]->vertices[vtxnominmin].y;
-    lv->z = l2s->surfs[nmin]->vertices[vtxnominmin].z;
-    lv->stat = dminmin;
-
-    // Incr the number of points
-    label->n_points++;
-  }
-  else { // Remove vertex from label
-    // If the vertex is not already in the label, just return
-    if(pointno==0) return(0); // not there to remove
-    lv = &(label->lv[pointno-1]);
-    // If it gets here, then remove the vertex by copying the last
-    // point into this point, then decrementing the number of points
-    if(l2s->debug) printf("Removing surf=%d vtxno=%d %g %g %g   (%5.2f %5.2f %5.2f)\n",
-	   nmin,vtxnominmin,col,row,slice,v.x,v.y,v.z);
-    memcpy(&label->lv[pointno-1],&(label->lv[label->n_points-1]),sizeof(LV));
-    MRIsetVoxVal(l2s->masks[nmin],vtxnominmin,0,0,0,0);
-    label->n_points --;
-  }
-
-  return(vtxnominmin);
-}
-
-
-/*!
   \fn int L2Sinit(LABEL2SURF *l2s)
   \brief Initializes the L2S structure. The caller must have run
   L2Salloc() and set the surfs and vol2surf structures. If a header
   registration is good enough, then set vol2surf=NULL. Note that
   vol2surf can go in either direction; this function will determine
   which way to go from the template volume and surface vg geometries
+  and handle it appropriately. This also computes the vertex coords in
+  CRS space and stores them in the tx, ty, tz elements of the vertex,
+  so the caller needs make sure that this is not overwriting something
+  needed and to make sure not to overwrite it. Also computes a value
+  for nhopsmax; the value is a reasonable guess based on the voxel
+  size.
 */
 int L2Sinit(LABEL2SURF *l2s)
 {
@@ -740,7 +655,7 @@ int L2Sinit(LABEL2SURF *l2s)
   // initialize hashes 
   for(n = 0; n < l2s->nsurfs; n++){
     l2s->hashes[n] = MHTfillVertexTableRes(l2s->surfs[n], NULL,
-					   l2s->vertex_type,l2s->hashres);
+					   CURRENT_VERTICES,l2s->hashres);
     if(l2s->hashes[n] == NULL){
       printf("ERROR: L2Sinit(): MHTfillVertexTableRes() failed\n");
       return(-1);
@@ -801,6 +716,7 @@ int L2Sinit(LABEL2SURF *l2s)
   l2s->volcrs2surfxyz = MatrixMultiplyD(K,invVs,NULL);
   MatrixMultiplyD(l2s->volcrs2surfxyz,R,l2s->volcrs2surfxyz);
   MatrixMultiplyD(l2s->volcrs2surfxyz,Vv,l2s->volcrs2surfxyz);
+  l2s->surfxyz2volcrs = MatrixInverse(l2s->volcrs2surfxyz,NULL);
   if(l2s->debug){
     printf("L2Sinit(): \n");
     printf("K = [\n");
@@ -825,9 +741,46 @@ int L2Sinit(LABEL2SURF *l2s)
   MatrixFree(&invVs);
   MatrixFree(&R);
 
+  // Now precompute the CRS coords of each vertex and save in the
+  // t{xyz} part of the vertex structure. This makes constraining the
+  // label dilation to within the voxel easier
+  int vtxno;
+  MATRIX *ras, *crs=NULL;
+  ras = MatrixAlloc(4,1,MATRIX_REAL);
+  ras->rptr[4][1] = 1;
+  for(n = 0; n < l2s->nsurfs; n++){
+    for(vtxno = 0; vtxno < l2s->surfs[n]->nvertices; vtxno++){
+      ras->rptr[1][1] = l2s->surfs[n]->vertices[vtxno].x;
+      ras->rptr[2][1] = l2s->surfs[n]->vertices[vtxno].y;
+      ras->rptr[3][1] = l2s->surfs[n]->vertices[vtxno].z;
+      crs = MatrixMultiplyD(l2s->surfxyz2volcrs,ras,crs);
+      l2s->surfs[n]->vertices[vtxno].tx = crs->rptr[1][1];
+      l2s->surfs[n]->vertices[vtxno].ty = crs->rptr[2][1];
+      l2s->surfs[n]->vertices[vtxno].tz = crs->rptr[3][1];
+    }
+  }
+  MatrixFree(&ras);
+  MatrixFree(&crs);
+
+  // Take a stab at automatically computing the maximum number of hops. The basic
+  // idea is to scale the number based upon the voxel size. The 3 is just something
+  // I guessed. 
+  if(l2s->nhopsmax == -1)
+    l2s->nhopsmax = 3*round(sqrt(pow(l2s->template->xsize,2.0)+pow(l2s->template->ysize,2)+
+				 pow(l2s->template->zsize,2)));
+
+
   return(0);
 }
 
+/*!
+  \fn int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int Operation)
+  \brief Divides the voxel into l2s->nsegs parts and then runs L2SaddPoint(). This is an 
+  alternative way to include vertices inside the voxel that are not necessarily the closest
+  vertex. The problem is that it adds any vertex regardless of how far away it is along the
+  surface from the center vertex. L2SaddPoint() has a built-in mechanism for solving this
+  problem, and it may be better. See L2SaddPoint() for argument descriptions.
+*/
 int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int Operation)
 {
   double c, r, s, dseg;
@@ -858,4 +811,157 @@ int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int Opera
 
   return(ret);  
 }
+
+/*!
+  \fn int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Operation)
+  \brief Adds (Operation==1) or removes (Operation!=1) a voxel from a label based
+  on its proximity to a surface. The caller must have run L2Salloc() and L2Sinit() and
+  set the appropriate variables in the L2S structure. There is a label for each 
+  surface. If the CRS is within dmax to a surface, then it is assigned to the label
+  of the closest surface. This allows a label to be assigned, for example, to the lh
+  but not the rh if both lh and rh surfaces are in the voxel. 
+
+*/
+int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Operation)
+{
+  int n,nmin,vtxnominmin,vtxno,pointno;
+  VERTEX v;
+  static MATRIX *crs=NULL, *ras=NULL;
+  float dminsurf,dminmin;
+  LV *lv;
+  LABEL *label;
+
+  if(crs==NULL) {
+    crs = MatrixAlloc(4,1,MATRIX_REAL);
+    crs->rptr[4][1] = 1;
+  }
+  crs->rptr[1][1] = col;
+  crs->rptr[2][1] = row;
+  crs->rptr[3][1] = slice;
+
+  // Compute the TkReg RAS of this CRS in the surface volume space
+  ras = MatrixMultiplyD(l2s->volcrs2surfxyz,crs,ras);
+
+  // Load it into a vertex structure
+  v.x = ras->rptr[1][1];
+  v.y = ras->rptr[2][1];
+  v.z = ras->rptr[3][1];
+  if(l2s->debug > 1) printf("---------------\n%g %g %g   (%5.2f %5.2f %5.2f)\n",col,row,slice,v.x,v.y,v.z);
+
+  // Go through each surface to find the surface and vertex in the surface that
+  // the CRS is closest to. 
+  dminmin = 10e10; // minimum distance over all surfaces
+  vtxnominmin = -1; // number of closest vertex
+  nmin = -1; // index of the surface with the closest vertex
+  for(n = 0; n < l2s->nsurfs; n++){
+    vtxno = MHTfindClosestVertexNo(l2s->hashes[n],l2s->surfs[n],&v,&dminsurf);
+    if(vtxno >= 0){
+      if(l2s->debug > 1) printf("%3d %6d (%5.2f %5.2f %5.2f) %g\n",n,vtxno,
+	l2s->surfs[n]->vertices[vtxno].x,l2s->surfs[n]->vertices[vtxno].y,
+	l2s->surfs[n]->vertices[vtxno].z,dminsurf);
+    }
+    // should check whether there was a hash error?
+    if(dminsurf < dminmin && dminsurf < l2s->dmax){
+      dminmin = dminsurf;
+      vtxnominmin = vtxno;
+      nmin = n;
+    }
+  }
+
+  // If it does not meet the distance criteria, then return 1
+  if(vtxnominmin == -1) return(1);
+
+  // Select the label of the winning surface
+  label = l2s->labels[nmin];
+
+  // Below is a method to expand the label along the surface to
+  // include other nearby vertices to the winning vertex. The hoplist
+  // is a list of vertices for each ring of nearest neighbors. The 0th
+  // hop is always the center vertex.
+  SURFHOPLIST *shl;
+  int nthnbr, nnbrs, nthhop, nthhoplast,nhits;
+  shl = SetSurfHopList(vtxnominmin, l2s->surfs[nmin], l2s->nhopsmax);
+  nthhoplast = 0;
+  for(nthhop = 0; nthhop < l2s->nhopsmax; nthhop++){
+    nnbrs = shl->nperhop[nthhop]; // number of neighbrs in the nthhop ring
+    nhits = 0;
+
+    // loop through the neighbors nthhop rings away
+    for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+      vtxno = shl->vtxlist[nthhop][nthnbr];
+
+      if(l2s->DilateWithinVoxel){
+	// Require nearby vertices to be within the given voxel, where
+	// "within" is defined as +/-0.5 of the voxel because the
+	// voxel coords are at the center of the voxel
+	v.x = l2s->surfs[nmin]->vertices[vtxno].tx;
+	v.y = l2s->surfs[nmin]->vertices[vtxno].ty;
+	v.z = l2s->surfs[nmin]->vertices[vtxno].tz;
+	if(nthhop != 0){
+	  // have to allow nthhop=0 because the closest vertex may be outside of the
+	  // voxel, depending upon the distance threshold
+	  if(fabs(v.x-col) > 0.501 || fabs(v.y-row) > 0.501 || fabs(v.z-slice) > 0.501)
+	    continue;
+	}
+      }
+
+      nthhoplast = nthhop; // keep track of the most recent hop with a hit
+      nhits++; // keep track of the number of vertices hit in this hop
+
+      // Get the 1-based label point number. Using 1-based so that 0
+      // can code for no label at that point (yet)
+      pointno = MRIgetVoxVal(l2s->masks[nmin],vtxno,0,0,0);
+      
+      if(Operation == 1){ // Add vertex to label
+	if(pointno!=0) continue; //already there
+	// If it gets here, then add the vertex
+	if(l2s->debug) printf("Adding surf=%d hop=%d vtxno=%d  np=%5d   %g %g %g   (%5.2f %5.2f %5.2f)\n",
+			      nmin,nthhop,vtxno,label->n_points,col,row,slice,v.x,v.y,v.z);
+	// Set value of the mask to the label point number + 1 (so 0=nolabel)
+	MRIsetVoxVal(l2s->masks[nmin],vtxno,0,0,0, label->n_points+1);
+	
+	// Check whether need to alloc more points in label
+	if(label->n_points >= label->max_points)
+	  LabelRealloc(label, nint(label->max_points*1.5)) ;
+	
+	// Finally, add this point
+	lv = &(label->lv[label->n_points]);
+	lv->vno = vtxno;
+	lv->x = l2s->surfs[nmin]->vertices[vtxno].x;
+	lv->y = l2s->surfs[nmin]->vertices[vtxno].y;
+	lv->z = l2s->surfs[nmin]->vertices[vtxno].z;
+	lv->stat = dminmin;
+	
+	// Incr the number of points in the label
+	label->n_points++;
+      }
+      else { // Operation != 1, Remove vertex from label
+	if(pointno==0) continue; // not already there, cant remove it
+	lv = &(label->lv[pointno-1]);
+	// If it gets here, then remove the vertex by copying the last
+	// point into this point, then decrementing the number of points
+	if(l2s->debug) printf("Removing surf=%d vtxno=%d %g %g %g   (%5.2f %5.2f %5.2f)\n",
+			      nmin,vtxno,col,row,slice,v.x,v.y,v.z);
+	memcpy(&label->lv[pointno-1],&(label->lv[label->n_points-1]),sizeof(LV));
+	MRIsetVoxVal(l2s->masks[nmin],vtxno,0,0,0,0);
+	label->n_points --;
+      }
+    }
+
+    // If it has gone through a ring and not gotten a hit (nhits==0), then future hits
+    // will not be contiguous with the current label. This can happen if the surface
+    // folds back into the voxel. This can easily happen in fMRI-sized voxels. It is not
+    // clear how this should be handled, so I put l2s->DilateContiguous into the structure
+    // to allow or forbid disconinuous labels. 
+    if(l2s->DilateContiguous && nhits == 0) break;
+  }
+  SurfHopListFree(&shl);
+
+  // check whether it might be a good idea to increase the number of hops
+  if(nthhoplast == l2s->nhopsmax-1)
+    if(l2s->debug) printf("WARNING: hop saturation nthsurf=%d, cvtxno = %d\n",nmin,vtxnominmin);
+
+  return(0);
+}
+
 
