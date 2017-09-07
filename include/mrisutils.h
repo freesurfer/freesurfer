@@ -28,6 +28,28 @@
 #ifndef SUTILS_INCLUDED
 #define SUTILS_INCLUDED
 
+// The LABEL2SURF structure is used to facilitate mapping label voxels
+// on the surface. See functions with L2S as the prefix.
+typedef struct {
+  MRIS **surfs;  // list of surfaces (eg, left and right)
+  int nsurfs;    // number of surfaces in list
+  MRI *template; // volume template for voxel to add
+  double dmax;   // max allowable distance in mm bet voxel center and surface vertex
+  LTA *vol2surf; // reg bet vol and surf, direction unimportant, set to null to use header reg
+  LABEL **labels;  // list of labels, one for each surface
+  MHT **hashes;  // hash tables, one for each surface
+  float hashres; // eg, 16
+  MRI **masks;   // binary masks of the label for each surface
+  int nhopsmax; // number of nearest neighbor rings to expand the label
+  int DilateWithinVoxel; // require neighboring vertices to be within voxel to include in label
+  int DilateContiguous; // require neighboring vertices to be continguous with the center vertex
+  int debug; // set to 1 to print out a bunch of stuff
+  MATRIX *volcrs2surfxyz; // precomputed matrix converts vol CRS to surface tkRAS
+  MATRIX *surfxyz2volcrs; // inverse
+} LABEL2SURF;
+
+
+
 void MRISsmoothSurface(MRI_SURFACE *mris,int niter,float step);
 void MRISsmoothSurface2(MRI_SURFACE *mris,int niter,float step,int avrg);
 void MRIScenterCOG(MRI_SURFACE *mris);
@@ -77,5 +99,11 @@ int MRISshiftCRAS(MRIS *mris, int shift);
 int MRISscanner2Tkr(MRIS *mris);
 int MRIStkr2Scanner(MRIS *mris);
 int ComputeMRISvolumeTH3(char *subject, char *hemi, int DoMask, char *outfile);
+
+LABEL2SURF *L2Salloc(int nsurfs, char *subject);
+int L2Sinit(LABEL2SURF *l2s);
+int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Operation);
+int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int nsegs, int Operation);
+int L2Sfree(LABEL2SURF **pl2s);
 
 #endif

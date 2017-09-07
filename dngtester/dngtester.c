@@ -32,6 +32,7 @@
 #include <errno.h>
 #include <float.h>
 #include "mrisurf.h"
+#include "mrisutils.h"
 #include "geodesics.h"
 #include "timer.h"
 #include "utils.h"
@@ -97,7 +98,6 @@ int main(int argc, char **argv)
   l2s->dmax = 3;
   l2s->hashres = 16;
   l2s->vol2surf = lta;
-  l2s->nsegs = 1;
   l2s->debug = 0;
   //l2s->nhopsmax = 10;
   printf("init \n");
@@ -107,13 +107,11 @@ int main(int argc, char **argv)
   s = 17;
   for(c = 0; c < mri->width; c++){
     //printf("%2d ",c); fflush(stdout);
-    for(r = 0; r < mri->height; r++) L2SaddVoxel(l2s, c, r, s, 1);
+    for(r = 0; r < mri->height; r++) L2SaddPoint(l2s, c, r, s, 1);
     //printf("\n");
   }
   // remove, erase a few
-  for(c = 10; c < mri->width-10; c++) L2SaddVoxel(l2s, c, 15, s, 0);
-  L2Sfree(&l2s);
-  exit(0);
+  for(c = 10; c < mri->width-10; c++) L2SaddPoint(l2s, c, 15, s, 0);
 
   LabelWrite(l2s->labels[0],"./my.label0");
   LabelWrite(l2s->labels[1],"./my.label1");
