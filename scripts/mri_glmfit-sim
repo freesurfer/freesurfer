@@ -25,7 +25,7 @@ set DiagCluster = 0;
 set PBNodeType = ();
 set UseCache = 0;
 set PermForce = 0;
-set PermResid = 0; # use residual when running permutation
+set PermResid = 0; # use residual when running permutation, ter Braak method
 set UseGRF = 0;
 set volsubject = fsaverage;
 set subjectOverride = ();
@@ -930,7 +930,7 @@ if($PermResid) then
   set stem = $glmdir/eres
   set residual = `stem2fname $stem`
   if($status) then
-    echo "ERROR: cannot find residual $stem"
+    echo "ERROR: cannot find residual $stem needed with --perm-resid"
     echo "  when running mri_glmfit, make sure to include --eres-save"
     exit 1;
   endif
@@ -972,7 +972,7 @@ arg4err:
 ############--------------##################
 usage_exit:
   echo ""
-  echo "mri_glmfit-sim"
+  echo "mri_glmfit-sim --help"
   echo ""
   echo " --glmdir glmdir"
   echo " --cwp cwthresh : cluster-wise p-value threshold ($cwpvalthresh)"
@@ -986,7 +986,8 @@ usage_exit:
   echo "Use permutation simulation"
   echo " --perm nsim vwthreshold sign"
   echo "   --perm-resid : add this with non-orthogonal designs to run permutation"
-  echo "      on the residual rather than on the raw data (must have run mri_glmfit with --eres-save)"
+  echo "      on the residual rather than on the raw data (must have run mri_glmfit"
+  echo "      with --eres-save)"
   echo ""
   echo "Use Gaussian Random Fields (GRF), volumes only"
   echo " --grf vwthreshold sign : -log10(p) and sign (pos, neg, abs)"
@@ -1190,8 +1191,15 @@ This is used for non-orthogonal designs (eg, when there is a covariate
 present). It runs the permutation using the residual of the analysis
 as the input rather than the raw data (the residual will have the
 covariate regressed out). You must have originally run mri_glmfit with
-the --eres-save option. This method is an APPROXIMATION that allows
-for permutation to be run on non-orthogonal designs.
+the --eres-save option. This method is an APPROXIMATION known as the
+ter Braak method (ter Braak, 1992) that allows for permutation to be
+run on non-orthogonal designs. See also Winkler, 2014.
 
+ter Braak, C.J.F., 1992. Permutation versus bootstrap significance
+tests in multiple regression and ANOVA. In: Jöckel, K.-H., Rothe, G.,
+Sendler, W. (Eds.), Bootstrapping and Related
+Techniques. No. 1989. Springer-Verlag, Berlin, pp. 79–86.
 
+Winkler, et al, 2014. Permutation inference for the general linear
+model. Neuroimage 92 (2014) 381–397.
 
