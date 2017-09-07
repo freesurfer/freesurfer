@@ -783,28 +783,7 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   }
   if ( parser->Found( "viewport", &sa ) )
   {
-    QString strg = sa[0].toLower();
-    if ( strg == "sagittal" || strg == "sag" || strg == "x" )
-    {
-      SetMainView( MV_Sagittal );
-    }
-    else if ( strg == "coronal" ||  strg == "cor" || strg == "y" )
-    {
-      SetMainView( MV_Coronal );
-    }
-    else if ( strg == "axial" || strg == "z" )
-    {
-      SetMainView( MV_Axial );
-    }
-    else if ( strg == "3d" )
-    {
-      SetMainView( MV_3D );
-    }
-    else
-    {
-      std::cerr << "Unrecognized viewport name '" << qPrintable(sa[0]) << "'.\n";
-      //  return false;
-    }
+    this->AddScript( QStringList("setviewport") << sa[0]);
   }
   if (parser->Found("layout", &sa))
   {
@@ -4113,21 +4092,26 @@ void MainWindow::CommandFlyThrough(const QStringList &cmd)
 
 void MainWindow::CommandSetViewport( const QStringList& cmd )
 {
-  if ( cmd[1].toLower() == "x" )
+  QString strg = cmd[1].toLower();
+  if ( strg == "sagittal" || strg == "sag" || strg == "x" )
   {
     SetMainView( MV_Sagittal );
   }
-  else if ( cmd[1].toLower() == "y" )
+  else if ( strg == "coronal" ||  strg == "cor" || strg == "y" )
   {
     SetMainView( MV_Coronal );
   }
-  else if ( cmd[1].toLower() == "z" )
+  else if ( strg == "axial" || strg == "z" )
   {
     SetMainView( MV_Axial );
   }
-  else if ( cmd[1].toLower() == "3d" )
+  else if ( strg == "3d" )
   {
     SetMainView( MV_3D );
+  }
+  else
+  {
+    std::cerr << "Unrecognized viewport name '" << qPrintable(cmd[1]) << "'.\n";
   }
 }
 
