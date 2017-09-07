@@ -50,10 +50,12 @@ char* Progname;
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
+  Q_UNUSED(context);
+
   if (msg.contains("sRGB profile") || msg.contains("QWidget::create"))
     return;
 
-  switch (type)
+  switch ((int)type)
   {
   case QtDebugMsg:
     fprintf(stdout, "%s\n", qPrintable(msg));

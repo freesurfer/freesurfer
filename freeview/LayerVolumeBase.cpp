@@ -115,6 +115,7 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
   int* ref_dim = ref->GetDimensions();
   int ref_scalar_type = ref->GetScalarType();
   int ref_n_frames = ref->GetNumberOfScalarComponents();
+  bool bNotROI = (GetEndType() != "ROI");
   for ( int i = -nsize[0]+1; i < nsize[0]; i++ )
   {
     for ( int j = -nsize[1]+1; j < nsize[1]; j++ )
@@ -132,11 +133,11 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
           double fvalue = MyVTKUtils::GetImageDataComponent(ref_ptr, ref_dim, ref_n_frames, n[0], n[1], n[2], nActiveCompRef, ref_scalar_type );
           if (bAdd)
           {
-            if ( ( m_propertyBrush->GetDrawRangeEnabled() &&
+            if ( ( bNotROI && m_propertyBrush->GetDrawRangeEnabled() &&
                    ( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
-                 ( m_propertyBrush->GetExcludeRangeEnabled() &&
+                 ( bNotROI && m_propertyBrush->GetExcludeRangeEnabled() &&
                    ( fvalue >= exclude_range[0] && fvalue <= exclude_range[1] ) ) ||
-                 ( m_propertyBrush->GetDrawConnectedOnly() &&
+                 ( bNotROI && m_propertyBrush->GetDrawConnectedOnly() &&
                    ( !GetConnectedToOld( m_imageData, nActiveComp, n, nPlane ) ) ) )
             {
               ;
@@ -151,9 +152,9 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
           }
           else
           {
-            if ( ( m_propertyBrush->GetEraseRangeEnabled() &&
+            if ( ( bNotROI && m_propertyBrush->GetEraseRangeEnabled() &&
                    ( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
-                 ( m_propertyBrush->GetEraseExcludeRangeEnabled() &&
+                 ( bNotROI && m_propertyBrush->GetEraseExcludeRangeEnabled() &&
                    ( fvalue >= exclude_range[0] && fvalue <= exclude_range[1] ) ) )
             {
               ;
@@ -198,6 +199,7 @@ bool LayerVolumeBase::CloneVoxelByIndex( int* n_in, int nPlane )
   int* ref_dim = ref->GetDimensions();
   int ref_scalar_type = ref->GetScalarType();
   int ref_n_frames = ref->GetNumberOfScalarComponents();
+  bool bNotROI = (GetEndType() != "ROI");
   for ( int i = -nsize[0]+1; i < nsize[0]; i++ )
   {
     for ( int j = -nsize[1]+1; j < nsize[1]; j++ )
@@ -213,11 +215,11 @@ bool LayerVolumeBase::CloneVoxelByIndex( int* n_in, int nPlane )
              MyUtils::GetDistance<int>( n, n_in ) <= nBrushSize/2.0 )
         {
           double fvalue = MyVTKUtils::GetImageDataComponent(ref_ptr, ref_dim, ref_n_frames, n[0], n[1], n[2], nActiveCompRef, ref_scalar_type );
-          if ( ( m_propertyBrush->GetDrawRangeEnabled() &&
+          if ( ( bNotROI && m_propertyBrush->GetDrawRangeEnabled() &&
                  ( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
-               ( m_propertyBrush->GetExcludeRangeEnabled() &&
+               ( bNotROI && m_propertyBrush->GetExcludeRangeEnabled() &&
                  ( fvalue >= exclude_range[0] && fvalue <= exclude_range[1] ) ) ||
-               ( m_propertyBrush->GetDrawConnectedOnly() &&
+               ( bNotROI && m_propertyBrush->GetDrawConnectedOnly() &&
                  ( !GetConnectedToOld( m_imageData, nActiveComp, n, nPlane ) ) ) )
           {
             ;
@@ -585,6 +587,7 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
   double fRange[2];
   ref->GetScalarRange( fRange );
   double fTolerance = (fRange[1]-fRange[0]) * m_propertyBrush->GetBrushTolerance() / 100.0;   // tolerance is percentage
+  bool bNotROI = (GetEndType() != "ROI");
   switch ( nPlane )
   {
   case 0:
@@ -685,9 +688,9 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
         if ( mask[j][i] == 2 )
         {
           double fvalue = MyVTKUtils::GetImageDataComponent(ref_ptr, ref_dim, ref_n_frames, n[nPlane], i, j, nActiveCompRef, ref_scalar_type );
-          if ( ( m_propertyBrush->GetDrawRangeEnabled() &&
+          if ( ( bNotROI && m_propertyBrush->GetDrawRangeEnabled() &&
                  ( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
-               ( !ignore_exclusion && m_propertyBrush->GetExcludeRangeEnabled() &&
+               ( bNotROI && !ignore_exclusion && m_propertyBrush->GetExcludeRangeEnabled() &&
                  ( fvalue >= exclude_range[0] && fvalue <= exclude_range[1] ) ) )
           {
             ;
@@ -718,9 +721,9 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
         if ( mask[j][i] == 2 )
         {
           double fvalue = MyVTKUtils::GetImageDataComponent(ref_ptr, ref_dim, ref_n_frames, i, n[nPlane], j, nActiveCompRef, ref_scalar_type );
-          if ( ( m_propertyBrush->GetDrawRangeEnabled() &&
+          if ( ( bNotROI && m_propertyBrush->GetDrawRangeEnabled() &&
                  ( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
-               ( m_propertyBrush->GetExcludeRangeEnabled() &&
+               ( bNotROI && m_propertyBrush->GetExcludeRangeEnabled() &&
                  ( fvalue >= exclude_range[0] && fvalue <= exclude_range[1] ) ) )
           {
             ;
@@ -751,9 +754,9 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
         if ( mask[j][i] == 2 )
         {
           double fvalue = MyVTKUtils::GetImageDataComponent(ref_ptr, ref_dim, ref_n_frames, i, j, n[nPlane], nActiveCompRef, ref_scalar_type );
-          if ( ( m_propertyBrush->GetDrawRangeEnabled() &&
+          if ( ( bNotROI && m_propertyBrush->GetDrawRangeEnabled() &&
                  ( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
-               ( m_propertyBrush->GetExcludeRangeEnabled() &&
+               ( bNotROI && m_propertyBrush->GetExcludeRangeEnabled() &&
                  ( fvalue >= exclude_range[0] && fvalue <= exclude_range[1] ) ) )
           {
             ;

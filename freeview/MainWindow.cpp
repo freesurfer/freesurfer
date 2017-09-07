@@ -781,10 +781,6 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   {
     m_defaultSettings["Smoothed"] = true;
   }
-  //  if ( parser->Found( "colormap", &sa ))
-  //  {
-  //    this->SetDefaultColorMapType(sa[0]);
-  //  }
   if ( parser->Found( "viewport", &sa ) )
   {
     QString strg = sa[0].toLower();

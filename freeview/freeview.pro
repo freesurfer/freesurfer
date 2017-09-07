@@ -392,6 +392,7 @@ FREESURFER_BIN = /homes/5/rpwang/freesurfer/bin
 unix {
 !macx {
   greaterThan(QT_MAJOR_VERSION, 4): QT += x11extras
+  greaterThan(QT_MAJOR_VERSION, 4): QMAKE_CXXFLAGS += -fpermissive
 
   LIBS += \
     -lvtkverdict -lvtkGraphics -lvtkmetaio -lvtkpng -lvtkzlib \
