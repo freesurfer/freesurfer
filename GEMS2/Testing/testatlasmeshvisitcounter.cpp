@@ -153,7 +153,14 @@ Mesh::Pointer CreateSingleTetrahedronMesh( const float vertices[nVertices][nDims
   const IdentifierType  id3 = meshSource->AddPoint( vertices[3] );
   meshSource->AddTetrahedron( id0, id1, id2, id3 );
 
-  return meshSource->GetOutput();
+  auto mesh = meshSource->GetOutput();
+
+  kvl::PointParameters emptyParams;
+  for( unsigned int i=0; i<mesh->GetNumberOfPoints(); i++ ) {
+    mesh->SetPointData(i, emptyParams );
+  }
+
+  return mesh;
 }
 
 // ----------------------------

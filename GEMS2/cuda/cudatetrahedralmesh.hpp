@@ -44,6 +44,7 @@ namespace kvl {
 
 	// Sanity check the points used to define the tetrahedra
 	std::set<size_t> activePointIndices;
+	std::set<size_t> alphaCounts;
 	for( size_t iTet=0; iTet<tetIds.size(); iTet++ ) {
 	  kvl::AtlasMesh::CellAutoPointer cell;
 	  mesh->GetCell( tetIds.at(iTet), cell );
@@ -54,6 +55,8 @@ namespace kvl {
 	       ++pit ) {
 	    activePointIndices.insert(*pit);
 	    pointCount++;
+	    auto meshData = mesh->GetPointData()->ElementAt(*pit);
+	    alphaCounts.insert(meshData.m_Alphas.size());
 	  }
     
 	  if( pointCount != nVertices ) {
@@ -62,7 +65,13 @@ namespace kvl {
 	}
 
 	if( activePointIndices.size() != mesh->GetPoints()->size() ) {
+	  // We haven't 'found' all the points in the mesh, so we would have to
+	  // remap the indices to get a dense array
 	  throw std::runtime_error("Point index remapping not supported!");
+	}
+
+	if( alphaCounts.size() != 1 ) {
+	  throw std::runtime_error("Must have only one size for Alphas array");
 	}
 
 	// Transfer data to the GPU
