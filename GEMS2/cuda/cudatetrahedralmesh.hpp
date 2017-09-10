@@ -6,7 +6,7 @@
 
 namespace kvl {
   namespace cuda {
-    template<typename CoordinateType, typename MeshIndexType>
+    template<typename CoordinateType, typename MeshIndexType, typename AlphasType>
     class TetrahedralMesh_GPU {
     public:
       Image_GPU<CoordinateType,2,MeshIndexType> vertices;
@@ -25,13 +25,13 @@ namespace kvl {
       }
     };
 
-    template<typename CoordinateType, typename MeshIndexType>
+    template<typename CoordinateType, typename MeshIndexType, typename AlphasType>
     class CudaTetrahedralMesh {
     public:
       const unsigned char nDims = 3;
       const unsigned char nVertices = 4;
 
-      typedef TetrahedralMesh_GPU<CoordinateType,MeshIndexType> GPUType;
+      typedef TetrahedralMesh_GPU<CoordinateType,MeshIndexType,AlphasType> GPUType;
       typedef CoordinateType CoordType;
 
       void Send( kvl::AtlasMesh::ConstPointer mesh ) {
@@ -79,8 +79,8 @@ namespace kvl {
 	this->SendVertexMap(mesh, tetIds);
       }
 
-      TetrahedralMesh_GPU<CoordinateType,MeshIndexType> getArg() const {
-	TetrahedralMesh_GPU<CoordinateType,MeshIndexType> gpuArg;
+      TetrahedralMesh_GPU<CoordinateType,MeshIndexType,AlphasType> getArg() const {
+	TetrahedralMesh_GPU<CoordinateType,MeshIndexType,AlphasType> gpuArg;
 
 	gpuArg.vertices = this->d_vertices.getArg();
 	gpuArg.vertexMap = this->d_vertexMap.getArg();

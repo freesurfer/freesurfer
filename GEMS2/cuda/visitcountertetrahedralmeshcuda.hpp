@@ -31,7 +31,7 @@ namespace kvl {
 
       virtual void VisitCount( const kvl::AtlasMesh* mesh ) override {
 	this->tVisitCount.Start();
-	CudaTetrahedralMesh<double,unsigned long> ctm;
+	CudaTetrahedralMesh<double,unsigned long,float> ctm;
 
 	this->tVisitCountPack.Start();
 	ctm.Send(mesh);
