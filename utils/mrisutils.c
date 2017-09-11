@@ -3148,7 +3148,7 @@ int L2Sinit(LABEL2SURF *l2s)
   LTA *lta;
   K = TkrVox2RASfromVolGeom(&l2s->surfs[0]->vg); // vox2tkras of surface
   Vs = vg_i_to_r(&l2s->surfs[0]->vg); // vox2scanneras of surface
-  Vv = MRIxfmCRS2XYZ(l2s->template,0); // vox2scanneras of template volume
+  Vv = MRIxfmCRS2XYZ(l2s->mri_template,0); // vox2scanneras of template volume
   invVs = MatrixInverse(Vs,NULL);
   if(l2s->vol2surf == NULL) R = MatrixIdentity(4,NULL);
   else {
@@ -3159,7 +3159,7 @@ int L2Sinit(LABEL2SURF *l2s)
     // small, like 10^-4
     int DoInvert=0;
     VOL_GEOM vgvol;
-    getVolGeom(l2s->template, &vgvol);
+    getVolGeom(l2s->mri_template, &vgvol);
     if(!vg_isEqual(&vgvol, &(l2s->vol2surf->xforms[0].src))){
       // The src does not match the template, so try the dst
       if(!vg_isEqual(&l2s->surfs[0]->vg, &(l2s->vol2surf->xforms[0].src))){
@@ -3245,8 +3245,8 @@ int L2Sinit(LABEL2SURF *l2s)
   // idea is to scale the number based upon the voxel size. The 3 is just something
   // I guessed. 
   if(l2s->nhopsmax == -1)
-    l2s->nhopsmax = 3*round(sqrt(pow(l2s->template->xsize,2.0)+pow(l2s->template->ysize,2)+
-				 pow(l2s->template->zsize,2)));
+    l2s->nhopsmax = 3*round(sqrt(pow(l2s->mri_template->xsize,2.0)+pow(l2s->mri_template->ysize,2)+
+				 pow(l2s->mri_template->zsize,2)));
 
 
   return(0);
