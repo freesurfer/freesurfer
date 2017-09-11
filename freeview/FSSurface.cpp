@@ -1936,14 +1936,13 @@ bool FSSurface::FindPath(int* vert_vno, int num_vno,
   int neighbor_vno;
   float dist_uv;
   int path_vno;
-  int num_path = 0;
+//  int num_path = 0;
   int num_checked;
-  float vu_x, vu_y, vu_z;
+//  float vu_x, vu_y, vu_z;
 
   dist = (float*) calloc (mris->nvertices, sizeof(float));
   pred = (int*) calloc (mris->nvertices, sizeof(int));
   check = (char*) calloc (mris->nvertices, sizeof(char));
-  num_path = 0;
   num_checked = 0;
   (*path_length) = 0;
 
@@ -2005,12 +2004,12 @@ bool FSSurface::FindPath(int* vert_vno, int num_vno,
           u = &(mris->vertices[neighbor_vno]);
 
           /* calc the vector from u to v. */
-          vu_x = u->x - v->x;
-          vu_y = u->y - v->y;
-          if (flag2d)
-            vu_z = 0;
-          else
-            vu_z = u->z - v->z;
+//          vu_x = u->x - v->x;
+//          vu_y = u->y - v->y;
+//          if (flag2d)
+//            vu_z = 0;
+//          else
+//            vu_z = u->z - v->z;
 
           /* recalc the weight. */
           if (flag2d)

@@ -787,13 +787,13 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
 
 void LayerVolumeBase::SetLiveWireByRAS( double* pt1, double* pt2, int nPlane )
 {
-  int n1[3], n2[3];
+  int n1[3];
   double* orig = m_imageData->GetOrigin();
   double* vxlsize = m_imageData->GetSpacing();
   for ( int i = 0; i < 3; i++ )
   {
     n1[i] = ( int )( ( pt1[i] - orig[i] ) / vxlsize[i] );
-    n2[i] = ( int )( ( pt2[i] - orig[i] ) / vxlsize[i] );
+//    n2[i] = ( int )( ( pt2[i] - orig[i] ) / vxlsize[i] );
   }
 
   vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
@@ -841,13 +841,13 @@ std::vector<double> LayerVolumeBase::GetLiveWirePointsByRAS( double* pt1, double
     image = m_imageDataRef;
   }
 
-  int n1[3], n2[3];
+  int n1[3];
   double* orig = image->GetOrigin();
   double* vxlsize = image->GetSpacing();
   for ( int i = 0; i < 3; i++ )
   {
     n1[i] = ( int )( ( pt1[i] - orig[i] ) / vxlsize[i] );
-    n2[i] = ( int )( ( pt2[i] - orig[i] ) / vxlsize[i] );
+//    n2[i] = ( int )( ( pt2[i] - orig[i] ) / vxlsize[i] );
   }
 
   vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
