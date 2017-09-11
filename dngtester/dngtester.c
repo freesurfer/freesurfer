@@ -92,7 +92,7 @@ int main(int argc, char **argv)
   printf("\n");
   printf("alloc \n");
   l2s = L2Salloc(2, "");
-  l2s->template = mri;
+  l2s->mri_template = mri;
   l2s->surfs[0] = surf;
   l2s->surfs[1] = surf2;
   l2s->dmax = 3;

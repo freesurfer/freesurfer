@@ -33,7 +33,7 @@
 typedef struct {
   MRIS **surfs;  // list of surfaces (eg, left and right)
   int nsurfs;    // number of surfaces in list
-  MRI *template; // volume template for voxel to add
+  MRI *mri_template; // volume template for voxel to add
   double dmax;   // max allowable distance in mm bet voxel center and surface vertex
   LTA *vol2surf; // reg bet vol and surf, direction unimportant, set to null to use header reg
   LABEL **labels;  // list of labels, one for each surface
