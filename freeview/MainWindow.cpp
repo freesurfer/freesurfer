@@ -518,6 +518,7 @@ void MainWindow::LoadSettings()
   m_settingsScreenshot.AntiAliasing = settings.value("ScreenShot/AntiAliasing", false).toBool();
   m_settingsScreenshot.HideCoords = settings.value("ScreenShot/HideAnnotation", true).toBool();
   m_settingsScreenshot.HideCursor = settings.value("ScreenShot/HideCursor", true).toBool();
+  m_settingsScreenshot.AutoTrim = settings.value("ScreenShot/AutoTrim", false).toBool();
   m_settings = settings.value("Settings/General").toMap();
   if (!m_settings.contains("SaveCopy"))
   {
@@ -4604,6 +4605,8 @@ bool MainWindow::OnCloseVolume()
       m_layerVolumeRef = (LayerMRI*)GetActiveLayer("MRI");
     }
   }
+  OnSetModeNavigate();
+
   return true;
 }
 
@@ -4990,6 +4993,7 @@ void MainWindow::OnCloseROI()
     }
   }
   GetLayerCollection( "ROI" )->RemoveLayers( layers );
+  OnSetModeNavigate();
 }
 
 void MainWindow::OnNewPointSet()
@@ -5184,6 +5188,7 @@ void MainWindow::OnClosePointSet()
     }
   }
   GetLayerCollection( "PointSet" )->RemoveLayers( layers );
+  OnSetModeNavigate();
 }
 
 void MainWindow::OnLoadTrack()

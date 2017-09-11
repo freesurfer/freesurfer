@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>366</width>
-    <height>322</height>
+    <height>313</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -111,6 +111,13 @@
        <widget class="QCheckBox" name="checkBoxKeepWindow">
         <property name="text">
          <string>Do not close this window after save</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkBoxAutoTrim">
+        <property name="text">
+         <string>Automatically trim saved image</string>
         </property>
        </widget>
       </item>

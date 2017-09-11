@@ -51,6 +51,7 @@ struct SettingsScreenshot
   bool HideCoords;
   bool AntiAliasing;
   int  Magnification;
+  bool AutoTrim;
 };
 
 struct SettingsMovieFrames
