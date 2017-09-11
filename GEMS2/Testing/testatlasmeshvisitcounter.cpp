@@ -156,6 +156,7 @@ Mesh::Pointer CreateSingleTetrahedronMesh( const float vertices[nVertices][nDims
   auto mesh = meshSource->GetOutput();
 
   kvl::PointParameters emptyParams;
+  emptyParams.m_Alphas = kvl::AtlasAlphasType(1);
   for( unsigned int i=0; i<mesh->GetNumberOfPoints(); i++ ) {
     mesh->SetPointData(i, emptyParams );
   }
