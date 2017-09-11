@@ -1896,7 +1896,7 @@ bool FSVolume::CreateImage( MRI* rasMRI )
   vtkLongArray          *longScalars = NULL;
   vtkFloatArray         *floatScalars = NULL;
   vtkIdType cValues;
-  int zElement=0;
+//  int zElement=0;
 
   if ( m_MRI == NULL )
   {
@@ -1978,31 +1978,26 @@ bool FSVolume::CreateImage( MRI* rasMRI )
     imageData->SetScalarTypeToUnsignedChar();
     ucharScalars = vtkUnsignedCharArray::New();
     scalars = (vtkDataArray*) ucharScalars;
-    zElement = sizeof( unsigned char );
     break;
   case MRI_INT:
     imageData->SetScalarTypeToInt();
     intScalars = vtkIntArray::New();
     scalars = (vtkDataArray*) intScalars;
-    zElement = sizeof( int );
     break;
   case MRI_LONG:
     imageData->SetScalarTypeToLong();
     longScalars = vtkLongArray::New();
     scalars = (vtkDataArray*) longScalars;
-    zElement = sizeof( long );
     break;
   case MRI_FLOAT:
     imageData->SetScalarTypeToFloat();
     floatScalars = vtkFloatArray::New();
     scalars = (vtkDataArray*) floatScalars;
-    zElement = sizeof( float );
     break;
   case MRI_SHORT:
     imageData->SetScalarTypeToShort();
     shortScalars = vtkShortArray::New();
     scalars = (vtkDataArray*) shortScalars;
-    zElement = sizeof( short );
     break;
   default:
     break ;
@@ -2697,12 +2692,12 @@ void FSVolume::GetPixelSize( double* pixelSize )
   vtkMatrix4x4::MultiplyPoint(rtv, n, ras1);
   n[1] = 0; n[2] = 1;
   vtkMatrix4x4::MultiplyPoint(rtv, n, ras2);
-  double delta0[3], delta1[3], delta2[3];
+  double delta0[3], delta1[3];
   for (int i = 0; i < 3; i++)
   {
     delta0[i] = ras0[i]-ras_orig[i];
     delta1[i] = ras1[i]-ras_orig[i];
-    delta2[i] = ras2[i]-ras_orig[i];
+//    delta2[i] = ras2[i]-ras_orig[i];
   }
   double vs[3] = { m_MRI->xsize, m_MRI->ysize, m_MRI->zsize };
   if ( fabs( delta0[0] ) >= fabs( delta0[1] ) &&

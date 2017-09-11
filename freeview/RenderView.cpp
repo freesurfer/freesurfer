@@ -51,6 +51,8 @@
 #include <vtkCellPicker.h>
 #include <vtkRenderWindow.h>
 #include "MyUtils.h"
+#include <QDir>
+#include <QFileInfo>
 
 #define SCALE_FACTOR  200
 
@@ -556,12 +558,21 @@ void RenderView::SetScalarBarLayer(QAction *act)
   }
 }
 
-bool RenderView::SaveScreenShot(const QString& filename, bool bAntiAliasing, int nMag)
+bool RenderView::SaveScreenShot(const QString& filename, bool bAntiAliasing, int nMag, bool bAutoTrim)
 {
   blockSignals(true);
   RefreshAllActors(true);
   blockSignals(false);
-  bool ret = SaveImage(filename, bAntiAliasing, nMag);
+  QString fn = filename;
+  if (bAutoTrim)
+  {
+    fn = QFileInfo(QDir::temp(), QString::number(qrand()) + "." + QFileInfo(filename).suffix()).absoluteFilePath();
+  }
+  bool ret = SaveImage(fn, bAntiAliasing, nMag);
+  if (bAutoTrim)
+  {
+    system(QString("convert -trim %1 %2").arg(fn).arg(filename).toLatin1().data());
+  }
   RefreshAllActors(false);
   return ret;
 }

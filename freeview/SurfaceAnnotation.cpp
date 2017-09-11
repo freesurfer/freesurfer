@@ -294,11 +294,15 @@ void SurfaceAnnotation::MapAnnotationColor( unsigned char* colordata )
   {
     if (indices[i] >= 0)
     {
-      if (CTABrgbAtIndexi( m_lut, indices[i], c, c+1, c+2 ) == 0 && (c[0] > 0 || c[1] > 0 || c[2] > 0)) // no error & no black color
+      char name[128] = {0};
+      if ( CTABcopyName( m_lut, indices[i], name, 128 ) == 0 && QString(name).toLower() != "unknown" )
       {
-        colordata[i*4] = ( int )( colordata[i*4] * ( 1 - m_dOpacity ) + c[0] * m_dOpacity );
-        colordata[i*4+1] = ( int )( colordata[i*4+1] * ( 1 - m_dOpacity ) + c[1] * m_dOpacity );
-        colordata[i*4+2] = ( int )( colordata[i*4+2] * ( 1 - m_dOpacity ) + c[2] * m_dOpacity );
+        if (CTABrgbAtIndexi( m_lut, indices[i], c, c+1, c+2 ) == 0) // no error & no black color
+        {
+          colordata[i*4] = ( int )( colordata[i*4] * ( 1 - m_dOpacity ) + c[0] * m_dOpacity );
+          colordata[i*4+1] = ( int )( colordata[i*4+1] * ( 1 - m_dOpacity ) + c[1] * m_dOpacity );
+          colordata[i*4+2] = ( int )( colordata[i*4+2] * ( 1 - m_dOpacity ) + c[2] * m_dOpacity );
+        }
       }
     }
   }
