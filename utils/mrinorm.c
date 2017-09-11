@@ -971,7 +971,7 @@ MRInormFindControlPoints(MRI *mri_src, float wm_target, float intensity_above,
     homogenous regions.
   */
 #if 1
-  nctrl += MRInormAddFileControlPoints(mri_ctrl, 255) ;
+  nctrl += MRInormAddFileControlPoints(mri_ctrl, 255, mri_src) ;
 
   pass=0 ;
   do
@@ -1594,7 +1594,7 @@ MRInormFindControlPoints(MRI *mri_src, float wm_target, float intensity_above,
 #endif
 
 #if 1
-  nctrl += MRInormAddFileControlPoints(mri_ctrl, 255) ;
+  nctrl += MRInormAddFileControlPoints(mri_ctrl, 255, mri_src) ;
 #else
   /* read in control points from a file (if specified) */
   for (i = 0 ; i < num_control_points ; i++)
@@ -1792,7 +1792,7 @@ MRInormGentlyFindControlPoints(MRI *mri_src, float wm_target,
 #undef WHALF
   mriRemoveOutliers(mri_ctrl, 2) ;
 
-  nctrl += MRInormAddFileControlPoints(mri_ctrl, 255) ;
+  nctrl += MRInormAddFileControlPoints(mri_ctrl, 255, mri_src) ;
 
   if (Gdiag & DIAG_SHOW)
   {
@@ -2035,7 +2035,7 @@ MRI3dNormalize(MRI *mri_orig, MRI *mri_src, float wm_target, MRI *mri_norm,
                  mri_src->depth,
                  MRI_UCHAR) ;
       MRIcopyHeader(mri_src, mri_ctrl) ;
-      nctrl = MRInormAddFileControlPoints(mri_ctrl, 255) ;
+      nctrl = MRInormAddFileControlPoints(mri_ctrl, 255, mri_src) ;
       fprintf(stderr, "only using %d unique control points from file...\n",
               nctrl) ;
       if (getenv("WRITE_CONTROL_POINTS") != NULL)
@@ -2183,7 +2183,7 @@ MRI3dGentleNormalize(MRI *mri_src,
                           mri_src->depth,
                           MRI_UCHAR) ;
       MRIcopyHeader(mri_src, mri_ctrl) ;
-      nctrl = MRInormAddFileControlPoints(mri_ctrl, 255) ;
+      nctrl = MRInormAddFileControlPoints(mri_ctrl, 255, mri_src) ;
       mean = MRImeanInLabel(mri_src, mri_ctrl, 255) ;
       if (nctrl == 0 || FZERO(mean))
       {
@@ -3927,6 +3927,57 @@ MRI3dUseFileControlPoints(MRI *mri,const char *fname)
   int useRealRAS = 0;
 
   pArray = MRIreadControlPoints(fname, &count, &useRealRAS);
+
+
+  {
+    int *deleted, ndel, j ;
+    deleted = (int *)calloc(count, sizeof(int)) ;
+    char *cp = getenv("FS_THRESH_CTRL") ;
+    float thresh ;
+
+    if (cp)
+      sscanf(cp, "%f", &thresh) ;
+    else
+      thresh = 0 ;
+
+    ndel = 0 ;
+    for (i = 0 ; i < count ; i++)
+    {
+      switch (useRealRAS)
+      {
+      case 0:
+	MRIsurfaceRASToVoxel(mri,
+			     pArray[i].x, pArray[i].y, pArray[i].z,
+			     &xr, &yr, &zr);
+	if (MRIgetVoxVal(mri, nint(xr), nint(yr), nint(zr), 0) <= thresh)
+	{
+	  printf("unlikely control point %d - (%2.1f, %2.1f, %2.1f) = %2.0f\n", 
+		 i, xr, yr, zr, MRIgetVoxVal(mri, xr, yr, zr, 0)) ;
+	  deleted[i] = 1 ;
+	  ndel++ ;
+	}
+      }
+    }
+    if (ndel > 0 && cp != NULL)
+    {
+      printf("FS_THRESH_CTRL detected in env - deleting %d control points\n", ndel) ;
+      for (i = 0 ; i < count ; i++)
+      {
+	if (deleted[i])
+	{
+	  for (j = i+1 ; j < count ; j++)
+	  {
+	    deleted[i] = deleted[j] ;
+	    *(&pArray[i]) = *(&pArray[j]) ;
+	    count-- ;
+	  }
+	}
+      }
+    }
+    MRIwriteControlPoints(pArray, count, 0, "control.edited.dat") ;
+    free(deleted) ;
+  }
+
   num_control_points = count;
 
   // initialize xctrl, yctrl, zctrl
@@ -3952,6 +4003,8 @@ MRI3dUseFileControlPoints(MRI *mri,const char *fname)
     ErrorExit(ERROR_NOMEMORY,
               "MRI3dUseFileControlPoints: could not allocate %d-sized table",
               num_control_points) ;
+
+
   for (i = 0 ; i < count ; i++)
   {
     switch (useRealRAS)
@@ -4059,7 +4112,7 @@ MRI3dWriteBias(char *t_bias_volume_fname)
 
 
 int
-MRInormAddFileControlPoints(MRI *mri_ctrl, int value)
+MRInormAddFileControlPoints(MRI *mri_ctrl, int value, MRI *mri)
 {
   int  i, nctrl, x, y, z ;
   long bad = 0 ;
@@ -4072,6 +4125,10 @@ MRInormAddFileControlPoints(MRI *mri_ctrl, int value)
     z = zctrl[i] ;
     if (MRIindexNotInVolume(mri_ctrl, x, y, z) == 0)
     {
+      if (mri && MRIgetVoxVal(mri, x, y, z, 0) <= 0)
+      {
+	printf("control point %d @ (%d, %d, %d), MRI=%d, skipping!!!!!\n", i, x, y, z, (int)MRIgetVoxVal(mri,x, y, z,0)) ;
+      }
       if (MRIvox(mri_ctrl, x, y, z) == 0)
       {
         nctrl++ ;
@@ -5028,7 +5085,7 @@ MRInormalizeHighSignalLowStd(MRI *mri_src,
   }
 
   mri_ctrl = MRInormFindHighSignalLowStdControlPoints(mri_src, NULL) ;
-  nctrl = MRInormAddFileControlPoints(mri_ctrl, 255) ;
+  nctrl = MRInormAddFileControlPoints(mri_ctrl, 255, mri_src) ;
   MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED) ;
   mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, NULL, bias_sigma) ;
   MRIfree(&mri_ctrl) ;

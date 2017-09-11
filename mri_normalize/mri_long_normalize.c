@@ -80,8 +80,8 @@ char *Progname ;
 int
 main(int argc, char *argv[])
 {
-  char   **av, *tp_fname, *in_fname, *out_fname, *tp_names[MAX_TPS] ;
-  int    ac, nargs, t, ntps ;
+  char   *tp_fname, *in_fname, *out_fname, *tp_names[MAX_TPS] ;
+  int    nargs, t, ntps ;
   char cmdline[CMD_LINE_LEN], line[STRLEN], *cp, fname[STRLEN], bdir[STRLEN], *bname, sdir[STRLEN] ;
   MRI   *mri_norm = NULL, *mri_aseg = NULL, *mri_ctrl, *mri_bias, *mri_dst, *mri_brain = NULL ;
   FILE  *fp ;
@@ -108,8 +108,6 @@ main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
-  ac = argc ;
-  av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
   {
     nargs = get_option(argc, argv) ;

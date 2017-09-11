@@ -160,8 +160,7 @@ static int remove_nonwm_voxels(MRI *mri_ctrl_src,
 int
 main(int argc, char *argv[])
 {
-  char   **av ;
-  int    ac, nargs, n ;
+  int    nargs, n ;
   MRI    *mri_src, *mri_dst = NULL, *mri_bias, *mri_orig, *mri_aseg = NULL ;
   char   *in_fname, *out_fname ;
   int          msec, minutes, seconds ;
@@ -191,8 +190,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
 
   mni.max_gradient = MAX_GRADIENT ;
-  ac = argc ;
-  av = argv ;
+
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
   {
     nargs = get_option(argc, argv) ;
@@ -268,7 +266,7 @@ main(int argc, char *argv[])
     MRIwrite(mri_ctrl, "e.mgz") ;
     if (control_point_fname || control_point_label)
     {
-      MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
+      MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED, mri_src) ;
     }
     mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, NULL, 0.0) ;
     MRIwrite(mri_bias, "b.mgz") ;
@@ -298,7 +296,7 @@ main(int argc, char *argv[])
   {
     MRI_SURFACE *mris ;
     MRI         *mri_dist=NULL, *mri_dist_sup=NULL, *mri_ctrl, *mri_dist_one ;
-    LTA          *lta= NULL ;
+//    LTA          *lta ;
     int          i ;
     TRANSFORM    *surface_xform ;
 
@@ -334,9 +332,9 @@ main(int argc, char *argv[])
           surface_xform->type == TRANSFORM_ARRAY_TYPE ||
           surface_xform->type  == REGISTER_DAT)
       {
-        lta = (LTA *)(surface_xform->xform) ;
 
 #if 0
+        lta = (LTA *)(surface_xform->xform) ;
         if (invert)
         {
           VOL_GEOM vgtmp;
@@ -404,7 +402,7 @@ main(int argc, char *argv[])
 
     if (control_point_fname || control_point_label)
     {
-      MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
+      MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED, mri_src) ;
     }
 
     if (mask_sigma > 0)
@@ -720,7 +718,7 @@ main(int argc, char *argv[])
         intensity_below) ;
     MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED) ;
     mri_ctrl = MRIchangeType(mri_ctrl, MRI_UCHAR, 0, 255, 1) ;
-    MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
+    MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED, mri_src) ;
 
     if (interior_fname1)
     {
