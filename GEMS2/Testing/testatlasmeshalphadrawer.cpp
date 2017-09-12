@@ -68,6 +68,20 @@ BOOST_AUTO_TEST_CASE( ReferenceImpl )
   BOOST_TEST_MESSAGE( "Interpolate Time (repeat) : " << ad.tInterpolate );
 }
 
+#ifdef CUDA_FOUND
+BOOST_AUTO_TEST_CASE( CudaImpl )
+{
+  kvl::cuda::AtlasMeshAlphaDrawerCUDA ad;
+  const int classNumber = 1;
+
+  // Note that image and mesh are supplied by TestFileLoader
+  CheckAlphaDrawer( &ad, image, mesh, classNumber );
+  
+  BOOST_TEST_MESSAGE( "SetRegions Time           : " << ad.tSetRegions );
+  BOOST_TEST_MESSAGE( "Interpolate Time          : " << ad.tInterpolate );
+}
+#endif
+
 BOOST_AUTO_TEST_CASE( MeshInformation )
 {
   size_t nOther = 0;
