@@ -50,10 +50,12 @@ char* Progname;
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
+  Q_UNUSED(context);
+
   if (msg.contains("sRGB profile") || msg.contains("QWidget::create"))
     return;
 
-  switch (type)
+  switch ((int)type)
   {
   case QtDebugMsg:
     fprintf(stdout, "%s\n", qPrintable(msg));
@@ -260,6 +262,12 @@ int main(int argc, char *argv[])
   {
     return false;
   }
+
+#ifdef Q_OS_LINUX
+#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
+  QApplication::setStyle( "Cleanlooks" );
+#endif
+#endif
 
   MainApplication app(argc, argv);
   app.setOrganizationName("Massachusetts General Hospital");

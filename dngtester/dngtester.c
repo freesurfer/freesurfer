@@ -32,6 +32,7 @@
 #include <errno.h>
 #include <float.h>
 #include "mrisurf.h"
+#include "mrisutils.h"
 #include "geodesics.h"
 #include "timer.h"
 #include "utils.h"
@@ -64,13 +65,62 @@ Geodesics *VtxVolPruneGeod(Geodesics *geod, int vtxno, MRI *volindex);
 /*----------------------------------------*/
 int main(int argc, char **argv) 
 {
-  MRIS *surf;
+  MRIS *surf, *surf2;
   int msec, nvertices; //vtxno=0;
   struct timeb  mytimer;
   MRI *mri, *mriindex, *mri2;
   Geodesics *geod;
   float maxdist;
   double d;
+  int c,r,s;
+  LABEL2SURF *l2s;
+  LTA *lta;
+
+  vg_isEqual_Threshold = 10e-4;
+
+  if(0){
+    mri  = MRIread(argv[1]);
+    surf = MRISread(argv[2]);
+    surf2 = MRISread(argv[3]);
+    lta = LTAread(argv[4]);
+  }else{
+    mri  = MRIread("template.nii.gz");
+    surf = MRISread("lh.white");
+    surf2 = MRISread("rh.white");
+    lta = LTAread("register.dof6.lta");
+  }
+  printf("\n");
+  printf("alloc \n");
+  l2s = L2Salloc(2, "");
+  l2s->mri_template = mri;
+  l2s->surfs[0] = surf;
+  l2s->surfs[1] = surf2;
+  l2s->dmax = 3;
+  l2s->hashres = 16;
+  l2s->vol2surf = lta;
+  l2s->debug = 0;
+  //l2s->nhopsmax = 10;
+  printf("init \n");
+  L2Sinit(l2s);
+  printf("nhopsmax %d\n",l2s->nhopsmax);
+  printf("loop \n");
+  s = 17;
+  for(c = 0; c < mri->width; c++){
+    //printf("%2d ",c); fflush(stdout);
+    for(r = 0; r < mri->height; r++) L2SaddPoint(l2s, c, r, s, 1);
+    //printf("\n");
+  }
+  // remove, erase a few
+  for(c = 10; c < mri->width-10; c++) L2SaddPoint(l2s, c, 15, s, 0);
+
+  LabelWrite(l2s->labels[0],"./my.label0");
+  LabelWrite(l2s->labels[1],"./my.label1");
+  MRIwrite(l2s->masks[0],"mask0.mgh");
+  MRIwrite(l2s->masks[1],"mask1.mgh");
+  L2Sfree(&l2s);
+
+  exit(0);
+
 
   // good vertex on the lateral side 108489
   omp_set_num_threads(10);
@@ -521,16 +571,3 @@ Geodesics *VtxVolPruneGeod(Geodesics *geod, int vtxno, MRI *volindex)
 }
 
 
-/*
-  \fn LABEL *LabelAddVoxel(MRIS *surf, MRI *volsurf, LTA *lta, MRI *vol, int col, int row, int slice, double dmax, LABEL *slabel)
-  surf is the surface, get geom from vg field
-  lta - registration between volsurf and vol (NULL to align based on scanner coords)
-  vol is the geometry of the voxel to add
-  col, row, slice are indices of the voxel to add
-  dmax - maximum allowable distance between voxel and surface to be added to label
-  slabel - surface-based label.
- */
-
-//LABEL *LabelAddVoxelToSurfLabel(MRIS *surf, LTA *lta, MRI *vol, int col, int row, int slice, double dmax, LABEL *slabel) 
-//{
-//}

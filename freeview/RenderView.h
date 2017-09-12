@@ -80,7 +80,7 @@ public:
   bool GetShowScalarBar();
   virtual void UpdateScalarBar();
 
-  bool SaveScreenShot(const QString& filename, bool bAntiAliasing, int nMag = 1);
+  bool SaveScreenShot(const QString& filename, bool bAntiAliasing, int nMag = 1, bool bAutoTrim = false);
 
   virtual void TriggerContextMenu( QMouseEvent* event ) { Q_UNUSED(event); }
 
