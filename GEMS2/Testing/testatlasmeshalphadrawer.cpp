@@ -6,6 +6,11 @@
 #include "atlasmeshalphadrawer.hpp"
 #include "atlasmeshalphadrawercpuwrapper.hpp"
 
+#ifdef CUDA_FOUND
+#include "cudaimage.hpp"
+#include "atlasmeshalphadrawercuda.hpp"
+#endif
+
 #include "testfileloader.hpp"
 #include "testiosupport.hpp"
 
