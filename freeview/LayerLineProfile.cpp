@@ -487,7 +487,7 @@ LayerLineProfile* LayerLineProfile::Load(const QString &filename, LayerMRI* ref)
 {
   QFile file(filename);
   if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-    return false;
+    return NULL;
 
   QTextStream in (&file);
   QString content = in.readAll();
