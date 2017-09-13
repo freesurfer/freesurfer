@@ -80,11 +80,6 @@ public:
     return m_dStatMax;
   }
 
-  bool IsRealRAS()
-  {
-    return m_bRealRas;
-  }
-
 protected:
   void UpdateStatRange();
 
@@ -92,7 +87,6 @@ protected:
   LABEL*   m_label;
   double   m_dStatMin;
   double   m_dStatMax;
-  bool     m_bRealRas;
 };
 
 #endif

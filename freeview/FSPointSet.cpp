@@ -33,7 +33,7 @@
 #include <QDebug>
 
 FSPointSet::FSPointSet( QObject* parent ) : QObject( parent ),
-  m_label( NULL ), m_bRealRas(true)
+  m_label( NULL )
 {}
 
 FSPointSet::~FSPointSet()
@@ -98,7 +98,7 @@ bool FSPointSet::ReadFromStringAsControlPoints(const QString &content)
   QStringList ar = content.split("\n");
   int nCount = 0;
   QList<float> values;
-  m_bRealRas = true;
+  bool bRealRAS = true;
   for ( int i = 0; i < ar.size(); i++ )
   {
     QStringList subs = ar[i].split(" ", QString::SkipEmptyParts );
@@ -112,12 +112,12 @@ bool FSPointSet::ReadFromStringAsControlPoints(const QString &content)
     }
     else if (subs.size() > 1 &&
              subs[0].toLower() == "userealras" && subs[1] == "0")
-      m_bRealRas = false;
+      bRealRAS = false;
   }
 
   m_label = ::LabelAlloc( nCount, NULL, (char*)"" );
   m_label->n_points = nCount;
-  if (m_bRealRas)
+  if (bRealRAS)
     m_label->coords = LABEL_COORDS_SCANNER_RAS;
   else
     m_label->coords = LABEL_COORDS_TKREG_RAS;
