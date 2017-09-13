@@ -50,10 +50,9 @@ before_install:
   - if [[ "$TESTS" != "" ]]; then bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh) ; fi
   - if [[ "$TESTS" != "" ]]; then travis_retry sudo apt-get update -qq ; fi
   - if [[ "$TESTS" != "" ]]; then travis_retry sudo apt-get install git-annex-standalone ; fi
-#  - if [[ "$TESTS" != "" ]]; then git fetch origin git-annex ; fi
+  - if [[ "$TESTS" != "" ]]; then git fetch origin git-annex ; fi
   - if [[ "$TESTS" != "" ]]; then git remote add datasrc http://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/repo/annex.git ; fi
-#  - if [[ "$TESTS" != "" ]]; then git fetch datasrc git-annex ; fi
-  - if [[ "$TESTS" != "" ]]; then git fetch datasrc ; fi
+  - if [[ "$TESTS" != "" ]]; then git fetch datasrc git-annex ; fi
   - if [[ "$TESTS" != "" ]]; then git annex get -J3 --metadata fstags=makecheck . ; fi
 
 install:
