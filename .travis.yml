@@ -12,16 +12,14 @@ cache:
 
 env:
   matrix:
-
+  # Compile Only:
+  - TESTS=""
   # Autorecon1:
   - TESTS="mri_convert mri_add_xform_to_header talairach_avi talairach_afd mri_normalize mri_watershed"
-
   # Autorecon2:
   - TESTS="mri_cc mri_mask mri_segment mri_edit_wm_with_aseg mri_pretess mri_fill mri_tesellate mris_inflate"
-
   # Autorecon3:
   - TESTS="mris_ca_label"
-
   # Misc
   - TESTS="utils"
 
@@ -48,16 +46,17 @@ addons:
      - libxml2-utils
 
 before_install:
-  # Needs recent git-annex to be able to get -J3 --metadata
-  - bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh)
-  - travis_retry sudo apt-get update -qq
-  - travis_retry sudo apt-get install git-annex-standalone
-  - git fetch origin git-annex
-  - git remote add datasrc http://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/repo/annex.git
-  - git fetch datasrc git-annex
+  # Needs recent git-annex to be able to get -J3 --metadata ; fi
+  - if [[ "$TESTS" != "" ]]; then bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh) ; fi
+  - if [[ "$TESTS" != "" ]]; then travis_retry sudo apt-get update -qq ; fi
+  - if [[ "$TESTS" != "" ]]; then travis_retry sudo apt-get install git-annex-standalone ; fi
+  - if [[ "$TESTS" != "" ]]; then git fetch origin git-annex ; fi
+  - if [[ "$TESTS" != "" ]]; then git remote add datasrc http://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/repo/annex.git ; fi
+  - if [[ "$TESTS" != "" ]]; then git fetch datasrc git-annex ; fi
+  - if [[ "$TESTS" != "" ]]; then git annex get -J3 --metadata fstags=makecheck . ; fi
 
 install:
-  - git annex get -J3 --metadata fstags=makecheck .
+  # Install library packages needed to compile FreeSurfer
   - curl -O ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/centos6_x86_64/centos6-x86_64-packages.tar.gz
   - tar -xzf centos6-x86_64-packages.tar.gz 
   - rm centos6-x86_64-packages.tar.gz 
@@ -66,11 +65,14 @@ install:
   - cd ..
 
 script:
+  # configure and build freesurfer
   - ./setup_configure
   - ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/centos6-x86_64-packages --disable-Werror --disable-GUI-build
-  - travis_wait 40 ./travis_make.sh
-  - tail build.log
-  - travis_wait 60 ./run_selected_tests
+  - travis_wait 40 ./travis_make.sh || travis_terminate 1
+  - tail -n 20 build.log
+  # run tests
+  - if [[ "$TESTS" != "" ]]; then travis_wait 60 ./run_selected_tests ; fi
 
 after_failure:
+  - tail -n 20 build.log
   
