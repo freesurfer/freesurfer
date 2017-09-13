@@ -115,6 +115,7 @@ LayerPointSet::~LayerPointSet()
 
 bool LayerPointSet::LoadFromFile( const QString& filename )
 {
+  bool bControlPoint = false;
   if (!LoadFromJsonFile(filename))
   {
     if ( GetProperty()->GetType() == LayerPropertyPointSet::ControlPoint )
@@ -123,6 +124,8 @@ bool LayerPointSet::LoadFromFile( const QString& filename )
       {
         return false;
       }
+      else
+        bControlPoint = true;
     }
     else
     {
@@ -138,6 +141,12 @@ bool LayerPointSet::LoadFromFile( const QString& filename )
   }
   SetFileName( filename );
   RebuildActors();
+
+  if (bControlPoint && !m_pointSetSource->IsRealRAS())
+  {
+    Save();
+    cout << "Warning: Coordinate of control points was converted to realRAS in " << qPrintable(GetFileName()) << endl << endl;
+  }
 
   return true;
 }
