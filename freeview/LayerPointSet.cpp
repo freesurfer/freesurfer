@@ -125,8 +125,8 @@ bool LayerPointSet::LoadFromFile( const QString& filename )
       }
       else
       {
-        cout << "Warning: Coordinate of control points has been converted to realRAS "
-             << qPrintable(GetFileName()) << " and will be saved in realRAS."<< endl << endl;
+        cout << "Warning: Coordinate of control points has been converted to realRAS in "
+             << qPrintable(filename) << " and will be saved in that way."<< endl << endl;
       }
     }
     else
