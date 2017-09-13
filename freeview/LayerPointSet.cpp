@@ -239,7 +239,7 @@ bool LayerPointSet::SaveAsJson(const QString& filename)
     // convert to tkreg coords
     ref_vol->TargetToRAS( p.pt, pos );
     ref_vol->RASToNativeRAS( pos, pos );
-    ref_vol->NativeRASToTkReg(pos, pos);
+//    ref_vol->NativeRASToTkReg(pos, pos);
     QVariantMap coords;
     coords["x"] = pos[0];
     coords["y"] = pos[1];
@@ -252,7 +252,7 @@ bool LayerPointSet::SaveAsJson(const QString& filename)
 
   m_mapEnhancedData["points"] = list;
   m_mapEnhancedData["data_type"] = "fs_pointset";
-  m_mapEnhancedData["vox2ras"] = "tkreg";
+  m_mapEnhancedData["vox2ras"] = "scanner_ras";
 
   QFile file( filename );
   if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
