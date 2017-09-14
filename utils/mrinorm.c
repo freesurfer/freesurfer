@@ -3940,6 +3940,8 @@ MRI3dUseFileControlPoints(MRI *mri,const char *fname)
     else
       thresh = 0 ;
 
+    if (thresh > 0)
+      printf("thresholding control points at %2.1f\n", thresh) ;
     ndel = 0 ;
     for (i = 0 ; i < count ; i++)
     {
@@ -3968,10 +3970,10 @@ MRI3dUseFileControlPoints(MRI *mri,const char *fname)
 	{
 	  for (j = i+1 ; j < count ; j++)
 	  {
-	    deleted[i] = deleted[j] ;
-	    *(&pArray[i]) = *(&pArray[j]) ;
-	    count-- ;
+	    deleted[j-1] = deleted[j] ;
+	    *(&pArray[j-1]) = *(&pArray[j]) ;
 	  }
+	  count-- ;
 	}
       }
       printf("writing updated control point file to %s\n", fname) ;
@@ -5182,6 +5184,8 @@ MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out)
           {
             DiagBreak() ;
           }
+	  if (!devFinite(bias))
+	    DiagBreak() ;
         }
         MRIsetVoxVal(mri_out, x, y, z, 0, val) ;
       }
