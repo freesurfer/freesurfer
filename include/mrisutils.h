@@ -107,5 +107,6 @@ int L2Sinit(LABEL2SURF *l2s);
 int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Operation);
 int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int nsegs, int Operation);
 int L2Sfree(LABEL2SURF **pl2s);
+int L2SimportLabel(LABEL2SURF *l2s, LABEL *label, int surfno);
 
 #endif
