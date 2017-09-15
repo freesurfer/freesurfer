@@ -38,14 +38,18 @@
 using namespace std;
 
 FSLabel::FSLabel( QObject* parent, FSVolume* mri_template ) : QObject( parent ),
-  m_label( NULL )
+  m_label( NULL ), m_l2s( NULL )
 {
   m_dStatsRange[0] = 0;
   m_dStatsRange[1] = 1.0;
   m_label = ::LabelAlloc( 100, NULL, (char*)"" );
-  m_label->coords = LABEL_COORDS_TKREG_RAS;
   if (mri_template)
+  {
     ::LabelInit(m_label, mri_template->GetMRI(), NULL, 0);
+    LABEL* l = m_label;
+    m_label = LabelToScannerRAS(l, mri_template->GetMRI(), NULL);
+    LabelFree(&l);
+  }
 }
 
 FSLabel::~FSLabel()
@@ -58,6 +62,13 @@ FSLabel::~FSLabel()
     ::LabelFree(&l);
   foreach (LABEL* l, m_redoBuffer)
     ::LabelFree(&l);
+  if (m_l2s)
+  {
+    // make sure not to double free labels!
+    for (int i = 0 ;i < m_l2s->nsurfs; i++)
+      m_l2s->labels[i] = NULL;
+    L2Sfree(&m_l2s);
+  }
 }
 
 bool FSLabel::LabelRead( const QString& filename )
@@ -267,7 +278,29 @@ void FSLabel::FillUnassignedVertices(FSSurface* surf, FSVolume* mri_template, in
 
 void FSLabel::Initialize(FSVolume* ref_vol, FSSurface* surf, int coords)
 {
-  ::LabelInit(m_label, ref_vol->GetMRI(), surf?surf->GetMRIS():NULL, coords);
+  /*
+  if (surf)
+  {
+    if (m_l2s)
+      L2Sfree(&m_l2s);
+    m_l2s = L2Salloc(1, "n/a");
+    m_l2s->mri_template = ref_vol->GetMRI();
+    m_l2s->surfs[0] = surf->GetMRIS();
+    m_l2s->dmax = 3;
+    m_l2s->hashres = 16;
+    m_l2s->vol2surf = NULL;
+    m_l2s->nhopsmax = 10;
+    ::LabelFree(&(m_l2s->labels[0]));
+    m_l2s->labels[0] = m_label;
+    L2Sinit(m_l2s);
+    for (int i = 0; i < m_label->n_points; i++)
+    {
+    //  L2SaddPoint(m_l2s, nx, ny, nz, 1);
+    }
+  }
+  else
+  */
+    ::LabelInit(m_label, ref_vol->GetMRI(), surf?surf->GetMRIS():NULL, coords);
 }
 
 void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double threshold )
@@ -382,6 +415,9 @@ void FSLabel::EditVoxel(int nx, int ny, int nz, bool bAdd, int* vertices, int* p
     ::LabelAddVoxel(m_label, nx, ny, nz, WHITE_VERTICES, vertices, pnum);
   else
     ::LabelDeleteVoxel(m_label, nx, ny, nz, vertices, pnum);
+//  Q_UNUSED(vertices);
+//  Q_UNUSED(pnum);
+//  qDebug() << L2SaddPoint(m_l2s, nx, ny, nz, bAdd?1:0);
 }
 
 bool FSLabel::HasUndo()
