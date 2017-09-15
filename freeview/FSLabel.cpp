@@ -38,18 +38,18 @@
 using namespace std;
 
 FSLabel::FSLabel( QObject* parent, FSVolume* mri_template ) : QObject( parent ),
-  m_label( NULL ), m_l2s( NULL )
+  m_label( NULL ), m_l2s( NULL ), m_mri_template(mri_template)
 {
   m_dStatsRange[0] = 0;
   m_dStatsRange[1] = 1.0;
   m_label = ::LabelAlloc( 100, NULL, (char*)"" );
-  if (mri_template)
-  {
-    ::LabelInit(m_label, mri_template->GetMRI(), NULL, 0);
-    LABEL* l = m_label;
-    m_label = LabelToScannerRAS(l, mri_template->GetMRI(), NULL);
-    LabelFree(&l);
-  }
+//  if (mri_template)
+//  {
+//    ::LabelInit(m_label, mri_template->GetMRI(), NULL, 0);
+//    LABEL* l = m_label;
+//    m_label = LabelToScannerRAS(l, mri_template->GetMRI(), NULL);
+//    LabelFree(&l);
+//  }
 }
 
 FSLabel::~FSLabel()
@@ -84,6 +84,13 @@ bool FSLabel::LabelRead( const QString& filename )
     cerr << "LabelRead failed\n";
     return false;
   }
+//  if (m_label->coords != LABEL_COORDS_SCANNER_RAS && m_mri_template)
+//  {
+//    LABEL* l = m_label;
+//    m_label = LabelToScannerRAS(l, m_mri_template->GetMRI(), NULL);
+//    LabelFree(&l);
+//    cout << "Label coordinates are converted to scanner ras for " << qPrintable(filename) << endl << endl;
+//  }
 
   if (m_label && m_label->n_points > 0)
   {

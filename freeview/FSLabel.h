@@ -34,6 +34,7 @@
 extern "C"
 {
 #include "label.h"
+#include "mrisutils.h"
 }
 
 class FSVolume;
@@ -79,6 +80,8 @@ protected:
   QList<LABEL*> m_undoBuffer;
   QList<LABEL*> m_redoBuffer;
   double   m_dStatsRange[2];
+  LABEL2SURF* m_l2s;
+  FSVolume*   m_mri_template;
 };
 
 #endif
