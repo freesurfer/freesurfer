@@ -2948,7 +2948,9 @@ int ComputeMRISvolumeTH3(char *subject, char *hemi, int DoMask, char *outfile)
   assigned to the label of the closest surface. Specifying multiple
   surfaces allows a label to be assigned, for example, to the lh but
   not the rh if both lh and rh surfaces are in the voxel. This
-  function is not thread-safe. See also L2SaddVoxel().
+  function is not thread-safe. See also L2SaddVoxel(). 
+
+  Returns 1 if a point was added or removed and 0 if there was no change.
 
   Example usage:
   mri  = MRIread("template.nii.gz");
@@ -2956,7 +2958,7 @@ int ComputeMRISvolumeTH3(char *subject, char *hemi, int DoMask, char *outfile)
   surf2 = MRISread("rh.white");
   lta = LTAread("register.dof6.lta"); // set to NULL for header reg
   l2s = L2Salloc(2, "bert"); // two surfaces, subject bert
-  l2s->template = mri;
+  l2s->mri_template = mri;
   l2s->surfs[0] = surf;
   l2s->surfs[1] = surf2;
   l2s->dmax = 3; // voxel must be within 3mm of a vertexx
@@ -2964,7 +2966,12 @@ int ComputeMRISvolumeTH3(char *subject, char *hemi, int DoMask, char *outfile)
   l2s->vol2surf = lta;
   l2s->nhopsmax = 10;
   L2Sinit(l2s);
+  // start off with somelabel; any surface label points are assigned to
+  // the 2nd surface (surfno=1); volume label points are assigned to 
+  // the vollabel element
+  L2SimportLabel(l2s, somelabel, 1); 
   L2SaddPoint(l2s, col, row, slice, 1); // add point
+  LabelWrite(l2s->vollabel,"./vol.label");
   LabelWrite(l2s->labels[0],"./lh.label");
   LabelWrite(l2s->labels[1],"./rh.label");
   L2SaddPoint(l2s, col, row, slice, 0); // remove point
@@ -3016,8 +3023,44 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Opera
     }
   }
 
-  // If it does not meet the distance criteria, then return 1
-  if(vtxnominmin == -1) return(1);
+  // If it does not meet the distance criteria, keep it as a volume point
+  if(vtxnominmin == -1) {
+    label = l2s->vollabel;
+    pointno = MRIgetVoxVal(l2s->volmask,round(col),round(row),round(slice),0);
+    if(Operation == 1){ // Add voxel to label
+      if(pointno!=0) return(0); //already there
+      // If it gets here, then add the voxel
+      // Set value of the mask to 1
+      MRIsetVoxVal(l2s->volmask,round(col),round(row),round(slice),0,label->n_points+1);
+      // Check whether need to alloc more points in label
+      if(label->n_points >= label->max_points)
+	LabelRealloc(label, nint(label->max_points*1.5)) ;
+	
+      // Finally, add this point
+      lv = &(label->lv[label->n_points]);
+      lv->vno = -1;
+      lv->x = ras->rptr[1][1];
+      lv->y = ras->rptr[2][1];
+      lv->z = ras->rptr[3][1];
+      lv->stat = 0;
+      // Incr the number of points in the label
+      label->n_points++;
+      return(1); // return=1 because point has been added
+    }
+    else { // Operation != 1, Remove vertex from label
+      if(pointno==0) return(0); // not already there, cant remove it
+      lv = &(label->lv[pointno-1]);
+      // If it gets here, then remove the voxel by copying the last
+      // point into this point, then decrementing the number of points
+      memcpy(&label->lv[pointno-1],&(label->lv[label->n_points-1]),sizeof(LV));
+      MRIsetVoxVal(l2s->volmask,round(col),round(row),round(slice),0,0);
+      label->n_points --;
+      // Need to change the pointno in mask for the moved point
+      lv = &(label->lv[pointno-1]);
+      MRIsetVoxVal(l2s->volmask,round(col),round(row),round(slice),0,pointno);
+      return(1); // return=1 because point has been removed
+    }
+  }
 
   // Select the label of the winning surface
   label = l2s->labels[nmin];
@@ -3028,6 +3071,7 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Opera
   // hop is always the center vertex.
   SURFHOPLIST *shl;
   int nthnbr, nnbrs, nthhop, nthhoplast,nhits;
+  int LabelChanged=0; // Return flag
   shl = SetSurfHopList(vtxnominmin, l2s->surfs[nmin], l2s->nhopsmax);
   nthhoplast = 0;
   for(nthhop = 0; nthhop < l2s->nhopsmax; nthhop++){
@@ -3079,9 +3123,9 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Opera
 	lv->y = l2s->surfs[nmin]->vertices[vtxno].y;
 	lv->z = l2s->surfs[nmin]->vertices[vtxno].z;
 	lv->stat = dminmin;
-	
 	// Incr the number of points in the label
 	label->n_points++;
+	LabelChanged=1;
       }
       else { // Operation != 1, Remove vertex from label
 	if(pointno==0) continue; // not already there, cant remove it
@@ -3093,6 +3137,10 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Opera
 	memcpy(&label->lv[pointno-1],&(label->lv[label->n_points-1]),sizeof(LV));
 	MRIsetVoxVal(l2s->masks[nmin],vtxno,0,0,0,0);
 	label->n_points --;
+	// Need to change the pointno in mask for the moved point
+	lv = &(label->lv[pointno-1]);
+	MRIsetVoxVal(l2s->masks[nmin],lv->vno,0,0,0, pointno);
+	LabelChanged=1;
       }
     }
 
@@ -3109,7 +3157,7 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Opera
   if(nthhoplast == l2s->nhopsmax-1)
     if(l2s->debug) printf("WARNING: hop saturation nthsurf=%d, cvtxno = %d\n",nmin,vtxnominmin);
 
-  return(0);
+  return(LabelChanged);
 }
 
 
@@ -3141,6 +3189,10 @@ int L2Sinit(LABEL2SURF *l2s)
     }
     l2s->masks[n] = MRIalloc(l2s->surfs[n]->nvertices,1,1,MRI_INT);
   }
+  l2s->volmask = MRIallocSequence(l2s->mri_template->width,l2s->mri_template->height,
+				  l2s->mri_template->depth,MRI_INT,1);
+  MRIcopyHeader(l2s->mri_template,l2s->volmask);
+  MRIcopyPulseParameters(l2s->mri_template,l2s->volmask);
 
   // compute the matrix that maps the template volume CRS to surface RAS
   // volcrs2surfxyz = K*inv(Vs)*R*Vv
@@ -3272,6 +3324,7 @@ LABEL2SURF *L2Salloc(int nsurfs, char *subject)
   l2s->nhopsmax = -1; // use -1 to keep track of whether it has been set or not
   l2s->DilateWithinVoxel = 1; // turn on by default
   l2s->DilateContiguous = 0; // turn off by default
+  l2s->vollabel = LabelAlloc(100,subject,NULL);
   return(l2s);
 }
 /*!
@@ -3290,7 +3343,8 @@ int L2Sfree(LABEL2SURF **pl2s)
     MHTfree(&l2s->hashes[n]);
     MRIfree(&l2s->masks[n]);
   }
-  free(l2s->labels);
+  MRIfree(&l2s->volmask);
+  LabelFree(&l2s->vollabel);
   free(l2s->hashes);
   free(l2s->masks);
   MatrixFree(&l2s->volcrs2surfxyz);
@@ -3337,3 +3391,26 @@ int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int nsegs
   return(ret);  
 }
 
+/*!
+  \fn int L2SimportLabel(LABEL2SURF *l2s, LABEL *label, int surfno)
+  \brief Imports the given label into the L2S structure. The given
+  label may be volume, surface, or mixed. If a label point is a
+  volume-based label (ie, vno<0), then it is added to the vollabel
+  element of L2S, otherwise it is added to the label of the surfno
+  surface. The label points are simply copied; no attempt is made to
+  convert the coordinates or check whether any of the label points
+  might be there already.
+ */
+int L2SimportLabel(LABEL2SURF *l2s, LABEL *label, int surfno)
+{
+  int n;
+  LV *lv;
+
+  for(n=0; n < label->n_points; n++){
+    lv = &(label->lv[n]);
+    if(lv->vno < 0) LabelAddPoint(l2s->vollabel, lv);
+    else            LabelAddPoint(l2s->labels[surfno], lv);
+  }
+
+  return(0);
+}

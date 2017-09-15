@@ -40,6 +40,8 @@ typedef struct {
   MHT **hashes;  // hash tables, one for each surface
   float hashres; // eg, 16
   MRI **masks;   // binary masks of the label for each surface
+  MRI *volmask;   // binary masks of the non-surfaace label points
+  LABEL *vollabel; // label of non-surfaace points
   int nhopsmax; // number of nearest neighbor rings to expand the label
   int DilateWithinVoxel; // require neighboring vertices to be within voxel to include in label
   int DilateContiguous; // require neighboring vertices to be continguous with the center vertex
@@ -105,5 +107,6 @@ int L2Sinit(LABEL2SURF *l2s);
 int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Operation);
 int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int nsegs, int Operation);
 int L2Sfree(LABEL2SURF **pl2s);
+int L2SimportLabel(LABEL2SURF *l2s, LABEL *label, int surfno);
 
 #endif
