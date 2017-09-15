@@ -623,8 +623,10 @@ void LayerROI::Resample()
                                           m_layerMappedSurface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
     if (label)
     {
-      old_label->n_points = label->n_points ;
-      memmove(old_label->lv, label->lv, label->n_points*sizeof(LABEL_VERTEX));
+      
+//      old_label->n_points = label->n_points ;
+//      memmove(old_label->lv, label->lv, label->n_points*sizeof(LABEL_VERTEX));
+      LabelCopy(label, old_label) ;
       LabelFree(&label);
     }
     OnLabelDataUpdated();

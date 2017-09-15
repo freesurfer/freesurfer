@@ -45,6 +45,8 @@
 
 extern const char* Progname;
 
+static int labelGetVoxelCoords(LABEL *area, LABEL_VERTEX *lv, float *px, float *py, float *pz);
+static int labelGetSurfaceRasCoords(LABEL *area, LABEL_VERTEX *lv, float *px, float *py, float *pz) ;
 static int update_vertex_indices(LABEL *area) ; ;
 static LABEL_VERTEX *labelFindVertexNumber(LABEL *area, int vno) ;
 static Transform *labelLoadTransform(const char *subject_name,
@@ -901,7 +903,7 @@ LabelAlloc(int max_points, char *subject_name, char *label_name)
       strncpy(area->name, label_name, STRLEN-1) ;
     }
   }
-  strcpy(area->space, "TkReg");
+
 
   area->n_points = 0 ;
   area->max_points = max_points ;
@@ -911,6 +913,8 @@ LabelAlloc(int max_points, char *subject_name, char *label_name)
               "%s: LabelAlloc(%s) could not allocate %d-sized vector",
               Progname, label_name ? label_name : "",
               sizeof(LV)*area->n_points) ;
+  strcpy(area->space, "TkReg");  
+  area->coords = LABEL_COORDS_TKREG_RAS ;   // would like to use scanner RAS, but need an volume or header
   return(area) ;
 }
 /*-----------------------------------------------------
@@ -1388,11 +1392,14 @@ LabelCopy(LABEL *asrc, LABEL *adst)
   adst->mris = asrc->mris ;
   adst->mri_template = asrc->mri_template ;
   adst->mht = asrc->mht ;
+  adst->coords = asrc->coords ;
+  strcpy(adst->space, asrc->space) ;
   if (asrc->vertex_label_ind)
   {
     adst->vertex_label_ind = (int *)calloc(asrc->max_points, sizeof(int)) ;
     if (adst->vertex_label_ind == NULL)
       ErrorExit(ERROR_NOMEMORY, "LabelCompact: could not allocate %d long label index array",  asrc->max_points) ;
+    memmove(adst->vertex_label_ind, asrc->vertex_label_ind, asrc->max_points*sizeof(int)) ;
   }
 
   adst->n_points = asrc->n_points ;
@@ -2088,11 +2095,9 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
       continue ;
     }
     nfilled++ ;
-    bucket = MHTgetBucket(mht, lv->x, lv->y, lv->z) ;
+    labelGetSurfaceRasCoords(area, lv, &x, &y, &z) ;
+    bucket = MHTgetBucket(mht, x, y, z) ;
 
-    x = lv->x ;
-    y = lv->y ;
-    z = lv->z ;
     min_dist = 10000.0 ;
     min_vno = -1 ;
     if (bucket)
@@ -3567,6 +3572,11 @@ LabelClone(LABEL *a)
 {
   LABEL *l ;
   l = LabelAlloc(a->max_points,a->subject_name,a->name) ;
+  l->mri_template = a->mri_template ;
+  l->coords = a->coords ;
+  l->mht = a->mht ;
+  l->mris = a->mris ;
+  l->avg_stat = a->avg_stat ;
   strcpy(l->space, a->space) ;
   return(l) ;
 }
@@ -3720,11 +3730,11 @@ LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, int coor
   VERTEX  *v ;
   float   dx, dy, dz, x, y, z, dist, min_dist ;
   int     num_not_found, nchanged, num_brute_force ;
-  float   vx, vy, vz;
+  float   vx, vy, vz ;
   double  max_spacing ;
   static MRI     *mri = NULL, *mri_cached = NULL ;
   LABEL   *area_dst ;
-  double  xw, yw, zw, xv, yv, zv ;
+  double  xw, yw, zw, xv, yv, zv;
 
   printf("LabelSampleToSurface(%d vertices)\n", area->n_points) ;
   xw = yw = zw = vx = vy = vz = -1; // remove compiler warnings
@@ -3767,9 +3777,9 @@ LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, int coor
       continue ;
 
     nfilled++ ;
-    bucket = MHTgetBucket(mht, lv->x, lv->y, lv->z) ;
+    labelGetSurfaceRasCoords(area, lv, &x, &y, &z) ;
+    bucket = MHTgetBucket(mht, x, y, z) ;   // x,y,z now in surface ras
 
-    x = lv->x ; y = lv->y ; z = lv->z ;
     min_dist = 10000.0 ; min_vno = -1 ;
     if (bucket)
     {
@@ -3822,6 +3832,7 @@ LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, int coor
     if (min_vno == Gdiag_no)
       DiagBreak() ;
     lv->vno = min_vno ;
+    area_dst->vertex_label_ind[min_vno] = n ;
   }
 //  LabelRemoveDuplicates(area) ;
 //  MHTfree(&mht) ;
@@ -3841,11 +3852,10 @@ LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, int coor
   }
   for (i = 0 ; i < area_dst->n_points ; i++)
   {
-    xw = area_dst->lv[i].x  ; yw = area_dst->lv[i].y  ; zw = area_dst->lv[i].z ;
-    MRISsurfaceRASToVoxel(mris, mri, xw, yw, zw, &xv, &yv, &zv) ;
-    if (nint(xv) == Gx &&  nint(yv) == Gy &&  nint(zv) == Gz)
+    labelGetVoxelCoords(area_dst, &area_dst->lv[i], &vx, &vy, &vz) ;
+    if (nint(vx) == Gx &&  nint(vy) == Gy &&  nint(vz) == Gz)
       DiagBreak() ;
-    MRIsetVoxVal(mri, nint(xv), nint(yv), nint(zv), 0, 1) ;
+    MRIsetVoxVal(mri, nint(vx), nint(vy), nint(vz), 0, 1) ;
   }
 
 //  MRISclearMarks(mris) ;
@@ -3879,10 +3889,12 @@ LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, int coor
 	  LABEL_VERTEX *lv ;
 
 	  printf("adding vertex %d at index %d to fill label hole\n", vno2, area_dst->n_points) ;
-	  lv = &area_dst->lv[area_dst->n_points++] ;
+	  lv = &area_dst->lv[area_dst->n_points] ;
 	  lv->vno = vno2 ;  lv->x = xw ; lv->y = yw ; lv->z = zw ; lv->stat = vn->val ;
 	  vn->marked = 1 ;
+	  area_dst->vertex_label_ind[vno2] = area_dst->n_points ;
 	  nchanged++ ;
+	  area_dst->n_points++;
 	}
       }
     }
@@ -3890,11 +3902,10 @@ LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, int coor
   } while (nchanged > 0) ;
   for (i = 0 ; i < area_dst->n_points ; i++)
   {
-    xw = area_dst->lv[i].x  ; yw = area_dst->lv[i].y  ; zw = area_dst->lv[i].z ;
-    MRISsurfaceRASToVoxel(mris, mri, xw, yw, zw, &xv, &yv, &zv) ;
-    if (nint(xv) == Gx &&  nint(yv) == Gy &&  nint(zv) == Gz)
+    labelGetVoxelCoords(area_dst, area_dst->lv+i, &vx, &vy, &vz) ;
+    if (nint(vx) == Gx &&  nint(vy) == Gy &&  nint(vz) == Gz)
       DiagBreak() ;
-    MRIsetVoxVal(mri, nint(xv), nint(yv), nint(zv), 0, 0) ;  // turn them all off
+    MRIsetVoxVal(mri, nint(vx), nint(vy), nint(vz), 0, 0) ;  // turn them all off
   }
 //  MRIfree(&mri) ;
   printf("LabelSampleToSurface: returning (%d vertices)\n", area_dst->n_points) ;
@@ -3914,24 +3925,29 @@ LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
   area->mri_template = mri_template ;
   if (mris == NULL)
   {
-    for (n = 0 ; n < area->n_points ; n++)
+    if (area->coords == LABEL_COORDS_SCANNER_RAS)
+      LabelToScannerRAS(area, mri_template, area) ;
+    else
     {
-      lv = &area->lv[n] ;
-      
-      if (lv->deleted)
-	continue ;
-      switch (area->coords)
+      for (n = 0 ; n < area->n_points ; n++)
       {
-      case LABEL_COORDS_TKREG_RAS:
-	MRIsurfaceRASToVoxel(mri_template, lv->x, lv->y, lv->z, &xv, &yv, &zv) ;
-	lv->xv = nint(xv) ; lv->yv = nint(yv) ; lv->zv = nint(zv) ;
+	lv = &area->lv[n] ;
+	
+	if (lv->deleted)
+	  continue ;
+	switch (area->coords)
+	{
+	case LABEL_COORDS_TKREG_RAS:
+	  MRIsurfaceRASToVoxel(mri_template, lv->x, lv->y, lv->z, &xv, &yv, &zv) ;
+	  lv->xv = nint(xv) ; lv->yv = nint(yv) ; lv->zv = nint(zv) ;
 	break ;
-      case LABEL_COORDS_SURFACE_RAS:
-	MRISsurfaceRASToVoxel(area->mris,mri_template, lv->x, lv->y, lv->z, &xv, &yv, &zv) ;
-	lv->xv = nint(xv) ; lv->yv = nint(yv) ; lv->zv = nint(zv) ;
-	break ;
-      default:
-	ErrorExit(ERROR_UNSUPPORTED, "LabelInit: coords %d not supported yet", area->coords);
+	case LABEL_COORDS_SURFACE_RAS:
+	  MRISsurfaceRASToVoxel(area->mris,mri_template, lv->x, lv->y, lv->z, &xv, &yv, &zv) ;
+	  lv->xv = nint(xv) ; lv->yv = nint(yv) ; lv->zv = nint(zv) ;
+	  break ;
+	default:
+	  ErrorExit(ERROR_UNSUPPORTED, "LabelInit: coords %d not supported yet", area->coords);
+	}
       }
     }
       
@@ -3940,7 +3956,6 @@ LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
 
   x = y = z = -1 ;
   LabelRealloc(area, mris->nvertices) ;   // allocate enough room in the label for the whole surface
-
   area->mris = mris ;
 
   // create a volume of indices into the label. Voxels < 0 are not mapped
@@ -3951,7 +3966,6 @@ LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
     area->vertex_label_ind[n] = -1 ;   // means that this vertex is not in th elabel
 
   MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing, NULL,&max_vno, coords);
-//  printf("max spacing = %2.1f\n", max_spacing) ;
   area->mht = (void *)MHTfillVertexTableRes(mris, NULL, coords, max_spacing) ;
 
 
@@ -3973,7 +3987,21 @@ LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
 
     vx = lv->x ; vy = lv->y ; vz = lv->z ;
     bucket = MHTgetBucket(area->mht, vx, vy, vz) ;
-    MRISsurfaceRASToVoxel(mris, mri_template, vx, vy, vz, &xv, &yv, &zv) ;
+    switch (area->coords)
+    {
+    case LABEL_COORDS_SCANNER_RAS:
+      MRIworldToVoxel(mri_template, vx, vy, vz, &xv, &yv, &zv) ;
+      break ;
+    case LABEL_COORDS_TKREG_RAS:
+      MRISsurfaceRASToVoxel(mris, mri_template, vx, vy, vz, &xv, &yv, &zv) ;
+      break ;
+    case LABEL_COORDS_VOXEL:
+      xv = lv->x ; yv = lv->y ; zv = lv->z ;
+      break ;
+    default:
+      ErrorExit(ERROR_UNSUPPORTED, "LabelInit: area->coords %d unsupported", area->coords) ;
+      break ;
+    }
     lv->xv = nint(xv) ; lv->yv = nint(yv) ; lv->zv = nint(zv) ;
 
     if (bucket)   // some vertices map to this voxel
@@ -3999,7 +4027,10 @@ LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
       if (min_vno == 0)
 	DiagBreak() ;
       if (min_vno >= 0)
+      {
 	lv->vno = min_vno ;
+	area->vertex_label_ind[lv->vno] = n ;
+      }
 
       // now assign other surface vertices that fall into the same voxel to the label
       for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++) // find min dist vertex
@@ -4044,10 +4075,20 @@ LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices, in
   lv->xv = xv ; lv->yv = yv ; lv->zv = zv ; lv->vno = -1 ;
   if (area->mri_template)
   {
-    if (area->mris)
-      MRISsurfaceRASToVoxel(area->mris, area->mri_template, xv, yv, zv, &vx, &vy, &vz);
-    else
-      MRIvoxelToSurfaceRAS(area->mri_template, xv, yv, zv, &vx, &vy, &vz) ;
+    switch (area->coords)
+    {
+    case LABEL_COORDS_TKREG_RAS:
+      if (area->mris)
+	MRISsurfaceRASFromVoxel(area->mris, area->mri_template, xv, yv, zv, &vx, &vy, &vz); // surfaceRASToVoxel BRF!!
+      else
+	MRIvoxelToSurfaceRAS(area->mri_template, xv, yv, zv, &vx, &vy, &vz) ;
+      break ;
+    case LABEL_COORDS_SCANNER_RAS:
+      MRIvoxelToWorld(area->mri_template, xv, yv, zv, &vx, &vy, &vz) ;
+      break ;
+    default:
+      ErrorExit(ERROR_UNSUPPORTED, "LabelAddVoxel: coords %d not supported yet", area->coords);
+    }
     lv->x = vx ;  lv->y = vy ;  lv->z = vz ;
   }
 
@@ -4055,6 +4096,11 @@ LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices, in
     return(NO_ERROR) ;
 
 
+  // must use surface coords for finding vertex
+  if (area->mris)
+    MRISsurfaceRASFromVoxel(area->mris, area->mri_template, xv, yv, zv, &vx, &vy, &vz); // surfaceRASToVoxel BRF!!
+  else
+    MRIvoxelToSurfaceRAS(area->mri_template, xv, yv, zv, &vx, &vy, &vz) ;
   x = y = z = -1 ;
   bucket = MHTgetBucket(area->mht, vx, vy, vz) ;
 
@@ -4082,9 +4128,9 @@ LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices, in
       min_vno = vno ;
     }
   }
+  lv->vno = min_vno ;
   if (min_vno >= 0 && area->vertex_label_ind[min_vno] < 0)  // found one that isn't in label
   {
-    lv->vno = min_vno ;
     area->vertex_label_ind[min_vno] = n ;
     if (pnvertices)
     {
@@ -4244,4 +4290,51 @@ LabelApplyMatrix(LABEL *lsrc, MATRIX *m, LABEL *ldst)
     
   VectorFree(&v1) ; VectorFree(&v2) ;
   return(ldst) ;
+}
+static int
+labelGetSurfaceRasCoords(LABEL *area, LABEL_VERTEX *lv, float *px, float *py, float *pz)
+{
+  double xv, yv, zv, xw, yw, zw ;
+
+  switch (area->coords)
+  {
+  case LABEL_COORDS_TKREG_RAS:
+    *px = lv->x ; *py = lv->y ; *pz = lv->z ;
+    break ;
+  case LABEL_COORDS_SCANNER_RAS:
+    MRIworldToVoxel(area->mri_template, lv->x, lv->y, lv->z, &xv, &yv, &zv) ;
+    MRISsurfaceRASFromVoxel(area->mris, area->mri_template, xv, yv, zv, &xw, &yw, &zw) ;
+    *px = (float)xw ; *py = (float)yw ; *pz = (float)zw ;  // double->float (uggh)
+    break ;
+  default:
+    ErrorExit(ERROR_UNSUPPORTED, "labelGetSurfaceRAScoords: coords %d not supported yet", 
+	      area->coords);
+    break ;
+  }
+  return(NO_ERROR) ;
+}
+
+static int
+labelGetVoxelCoords(LABEL *area, LABEL_VERTEX *lv, float *px, float *py, float *pz)
+{
+  double xv, yv, zv ;
+
+  switch (area->coords)
+  {
+  case LABEL_COORDS_TKREG_RAS:
+    if (area->mris)
+      MRISsurfaceRASToVoxel(area->mris, area->mri_template, lv->x, lv->y, lv->z, &xv, &yv, &zv) ;
+    else
+      MRIvoxelToSurfaceRAS(area->mri_template, lv->x, lv->y, lv->z, &xv, &yv, &zv) ;
+    break ;
+  case LABEL_COORDS_SCANNER_RAS:
+    MRIworldToVoxel(area->mri_template, lv->x, lv->y, lv->z, &xv, &yv, &zv) ;
+    break ;
+  default:
+    ErrorExit(ERROR_UNSUPPORTED, "labelGetSurfaceRAScoords: coords %d not supported yet", 
+	      area->coords);
+    break ;
+  }
+  *px = (float)xv ; *py = (float)yv ; *pz = (float)zv ;
+  return(NO_ERROR) ;
 }
