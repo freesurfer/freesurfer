@@ -182,6 +182,7 @@ LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, i
 int   LabelInit(LABEL *lsrc, MRI *mri_template, MRI_SURFACE *mris, int coords) ;
 int   LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices, int *pnvertices) ;
 int   LabelDeleteVoxel(LABEL *area, int xv, int yv, int zv, int *vertices, int *pnvertices) ;
+LABEL *LabelAddPoint(LABEL *label, LV *lv);
 int   LabelAddVertex(LABEL *area, int vno, int coords) ;
 int   LabelDeleteVertex(LABEL *area, int vno, int coords) ;
 

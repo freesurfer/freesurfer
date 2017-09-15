@@ -45,10 +45,10 @@ FSLabel::FSLabel( QObject* parent, FSVolume* mri_template ) : QObject( parent ),
   m_label = ::LabelAlloc( 100, NULL, (char*)"" );
   if (mri_template)
   {
+    ::LabelInit(m_label, mri_template->GetMRI(), NULL, 0);
     LABEL* l = m_label;
     m_label = LabelToScannerRAS(l, mri_template->GetMRI(), NULL);
     LabelFree(&l);
-    ::LabelInit(m_label, mri_template->GetMRI(), NULL, 0);
   }
 }
 

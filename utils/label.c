@@ -4201,8 +4201,44 @@ LabelDeleteVoxel(LABEL *area, int xv, int yv, int zv, int *vertices, int *pnvert
   return(ndeleted) ;
 }
 
-int
-LabelAddVertex(LABEL *area, int vno, int coords)
+/*!
+  \fn LABEL *LabelAddPoint(LABEL *label, LV *srclv)
+  \brief Adds a label point (ie, label vertex, not the same as a
+  surface vertex) to a label (creates the label if label==NULL). This
+  will reallocate the label if necessary. Does not check whether the
+  label point is there or not. It does not distinguish between surface
+  and volume label points. All it does is to add the passed label
+  point (srclv) to the end of the list of label points, copying over
+  the entire LV structure using memcpy(), and increments
+  n_points. This differs from LabelAddVertex(). LabelAddVertex()
+  specifically adds a surface vertex to the label computing the xyz
+  from the surface coords and updates vertex_label_ind; this function
+  does neither of those.
+*/
+LABEL *LabelAddPoint(LABEL *label, LV *lv)
+{
+  // alloc label if nec
+  if(label == NULL)  label = LabelAlloc(100,NULL,NULL);
+  // realloc label if nec
+  if(label->n_points >= label->max_points)
+    LabelRealloc(label, nint(label->max_points*1.5)) ;
+  // copy structure
+  memcpy(&(label->lv[label->n_points]),lv,sizeof(LV));
+  // increment the number of points
+  label->n_points++;
+  return(label);
+}
+/*!
+  \fn int LabelAddVertex(LABEL *area, int vno, int coords)
+  Adds a surface vertex to a label (note: a surface vertex is
+  different from a label vertex). Reallocs label if needed.  Sets the
+  coordinates based on the coordinates of the given vertex and the
+  coords argument. The voxel coordinates are computed. If the label
+  already exists as indicated by area->vertex_label_ind[vno], then
+  nothing is done and -1 is returned. See also LabelDeleteVertex() and
+  LabelAddPoint().
+ */
+int LabelAddVertex(LABEL *area, int vno, int coords)
 {
   LV     *lv ;
   int    n ;
@@ -4211,17 +4247,10 @@ LabelAddVertex(LABEL *area, int vno, int coords)
 
   x = y = z = -1 ;
 
-  if (area->vertex_label_ind[vno] >= 0)
-  {
-//    printf("LabelAddVertex(%d): already in label\n",  vno) ;
-    return(-1) ;  // already in the label
-  }
-  if (area->n_points >= area->max_points)
-    LabelRealloc(area, nint(1.5*area->n_points)) ;
+  if (area->vertex_label_ind[vno] >= 0) return(-1) ;  // already in the label
+  if (area->n_points >= area->max_points)  LabelRealloc(area, nint(1.5*area->n_points)) ;
 
-
-//  printf("LabelAddVertex(%d)\n",  vno) ;
-  n = area->n_points++ ;
+  n = area->n_points++ ; // n is the number of points before incr
   lv = &area->lv[n] ;
   v = &((MRI_SURFACE *)(area->mris))->vertices[vno] ;
   MRISgetCoords(v, coords, &x, &y, &z);
