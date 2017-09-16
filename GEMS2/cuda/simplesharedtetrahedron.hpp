@@ -1,29 +1,29 @@
 #pragma once
 
-template<typename ArgType,typename InvertType>
+template<typename MeshSupplier,typename ArgType,typename InvertType>
 class SimpleSharedTetrahedron {
 public:
   static const unsigned int nDims = 3;
   static const unsigned int nVertices = 4;
 
   __device__
-  SimpleSharedTetrahedron( ArgType tetrahedron[nVertices][nDims],
-			   ArgType M[nDims][nDims] ) : tet(&tetrahedron[0][0]),
-						       transf(&M[0][0]) {
+  SimpleSharedTetrahedron( const MeshSupplier& srcMesh, 
+			   ArgType tetrahedron[nVertices][nDims],
+			   ArgType M[nDims][nDims]) : mesh(srcMesh),
+						      tet(&tetrahedron[0][0]),
+						      transf(&M[0][0]) {
     // In this class, we assume that the arguments passed in the constructor
     // are actually in shared memory
   } 
   
-  template<typename MeshSupplier>
   __device__
-  void LoadAndBoundingBox( const MeshSupplier& mesh,
-			   const size_t iTet,
+  void LoadAndBoundingBox( const size_t iTet,
 			   unsigned short min[nDims],
 			   unsigned short max[nDims] ) {
     // We presume that min and max are in shared memory
     if( (threadIdx.x < nDims) && (threadIdx.y==0) ) {
       for( unsigned int iVert=0; iVert<nVertices; iVert++ ) {
-	this->tet[(iVert*nDims)+threadIdx.x] = mesh.GetVertexCoordinate(iTet,iVert,threadIdx.x);
+	this->tet[(iVert*nDims)+threadIdx.x] = this->mesh.GetVertexCoordinate(iTet,iVert,threadIdx.x);
       }
       
       // No need to sync since we're only using the first 3 threads
@@ -192,6 +192,7 @@ public:
   }
 
 private:
+  const MeshSupplier& mesh;
   ArgType* tet;
   ArgType* transf;
 };

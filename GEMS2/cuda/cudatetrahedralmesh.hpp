@@ -24,6 +24,13 @@ namespace kvl {
       MeshIndexType GetTetrahedraCount() const {
 	return this->vertexMap.dims[0];
       }
+
+      __device__
+      AlphasType GetAlpha( MeshIndexType iTet, MeshIndexType iVert, MeshIndexType iAlpha ) const {
+	MeshIndexType iVertexId = this->vertexMap(iTet,iVert);
+	
+	return this->alphas(iVertexId,iAlpha);
+      }
     };
 
     template<typename CoordinateType, typename MeshIndexType, typename AlphasType>

@@ -23,9 +23,9 @@ void SimpleSharedTetrahedronInteriorKernel( const IndexType nz,
   __shared__ T tetrahedron[nVertices][nDims];
   __shared__ IndexType min[nDims], max[nDims];
   __shared__ T M[nDims][nDims];
-  SimpleSharedTetrahedron<T,Internal> tet(tetrahedron, M);
+  SimpleSharedTetrahedron<MeshSupplier,T,Internal> tet(mesh, tetrahedron, M);
 
-  tet.LoadAndBoundingBox( mesh, iTet, min, max );
+  tet.LoadAndBoundingBox( iTet, min, max );
 
   tet.ComputeBarycentricTransform();
 
