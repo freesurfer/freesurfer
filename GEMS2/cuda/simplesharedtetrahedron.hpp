@@ -20,10 +20,12 @@ public:
   void LoadAndBoundingBox( const size_t iTet,
 			   unsigned short min[nDims],
 			   unsigned short max[nDims] ) {
+    this->tetId = iTet;
+
     // We presume that min and max are in shared memory
     if( (threadIdx.x < nDims) && (threadIdx.y==0) ) {
       for( unsigned int iVert=0; iVert<nVertices; iVert++ ) {
-	this->tet[(iVert*nDims)+threadIdx.x] = this->mesh.GetVertexCoordinate(iTet,iVert,threadIdx.x);
+	this->tet[(iVert*nDims)+threadIdx.x] = this->mesh.GetVertexCoordinate(this->tetId,iVert,threadIdx.x);
       }
       
       // No need to sync since we're only using the first 3 threads
@@ -188,8 +190,19 @@ public:
     return false; 
   }
 
+  template<typename AlphasType>
+  __device__
+  void LoadAlphas( AlphasType alphas[nVertices], const typename MeshSupplier::MeshIdxType iAlpha ) const {
+    // We presume that alphas is in shared memory and that there are enough threads
+     if( (threadIdx.x < nDims) && (threadIdx.y==0) ) {
+       alphas[threadIdx.x] = this->mesh.GetAlpha( this->tetId, threadIdx.x, iAlpha );
+     }
+     __syncthreads();
+  }
+
 private:
   const MeshSupplier& mesh;
   ArgType* tet;
   ArgType* transf;
+  size_t tetId;
 };

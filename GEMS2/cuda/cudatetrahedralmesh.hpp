@@ -13,6 +13,8 @@ namespace kvl {
       Image_GPU<MeshIndexType,2,MeshIndexType> vertexMap;
       Image_GPU<AlphasType,2,MeshIndexType> alphas;
 
+      typedef MeshIndexType MeshIdxType;
+
       __device__
       CoordinateType GetVertexCoordinate( MeshIndexType iTet, MeshIndexType iVert, unsigned char iDim ) const {
 	MeshIndexType iVertexId = this->vertexMap(iTet,iVert);
