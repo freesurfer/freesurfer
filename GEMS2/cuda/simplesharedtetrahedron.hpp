@@ -99,7 +99,7 @@ public:
   }
 
   __device__
-  void TransformToBarycentric( ArgType p[nDims], const ArgType z, const ArgType y, const ArgType x ) const {
+  void TransformToBarycentric( ArgType p[nDims+1], const ArgType z, const ArgType y, const ArgType x ) const {
     ArgType r[nDims];
     
     // Compute location relative to first vertex
@@ -107,28 +107,25 @@ public:
     r[1] = y - this->tet[(0*nDims)+1];
     r[2] = z - this->tet[(0*nDims)+2];
 
+    // Compute the 'free' barycentric co-ordinates
     for( unsigned int i=0; i<nDims; i++ ) {
-      p[i] = 0;
+      p[i+1] = 0;
       for( unsigned int j=0; j<nDims; j++ ) {
-	p[i] += this->transf[(i*nDims)+j] * r[j];
+	p[i+1] += this->transf[(i*nDims)+j] * r[j];
       }
     }
+
+    // Compute the final coordinate
+    p[0] = 1 - p[1] - p[2] - p[3];
   }
 
   __device__
   bool PointInside( const ArgType z, const ArgType y, const ArgType x ) const {
     bool inside = true;
-	  
-    ArgType pTmp[nDims];
-    
-    this->TransformToBarycentric(pTmp, z, y, x);
 
-    // Form the full set of barycentric co-ordinates
+    // Get the set of barycentric co-ordinates
     ArgType p[nDims+1];
-    for( unsigned int i=0; i< nDims; i++ ) {
-      p[i+1] = pTmp[i];
-    }
-    p[0] = 1 - p[1] - p[2] - p[3];
+    this->TransformToBarycentric(p, z, y, x );
 
     // Do the easiest cull
     if( (p[0] < 0) || (p[1] < 0) || (p[2] < 0) || (p[3] < 0) ) {
