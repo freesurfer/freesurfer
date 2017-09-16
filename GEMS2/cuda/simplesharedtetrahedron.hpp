@@ -200,6 +200,22 @@ public:
      __syncthreads();
   }
 
+  template<typename InterpolateType>
+  __device__
+  InterpolateType BarycentricInterpolation( const InterpolateType vertexValues[nVertices],
+					    const ArgType z, const ArgType y, const ArgType x ) const {
+    // Get the set of barycentric co-ordinates
+    ArgType p[nDims+1];
+    this->TransformToBarycentric(p, z, y, x );
+
+    InterpolateType result = 0;
+    for( unsigned int iVert=0; iVert<nVertices; iVert++ ) {
+      result += p[iVert] * vertexValues[iVert];
+    }
+
+    return result;
+  }
+
 private:
   const MeshSupplier& mesh;
   ArgType* tet;
