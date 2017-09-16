@@ -4,7 +4,9 @@
 
 template<typename AlphasType>
 class AlphaDrawerAction {
-  AlphaDrawerAction(kvl::cuda::Image_GPU<AlphasType,3,unsigned short> target) : output(target) {} 
+public:
+  AlphaDrawerAction(kvl::cuda::Image_GPU<AlphasType,3,unsigned short> target,
+		    const unsigned int iA) : output(target), iAlpha(iA) {} 
 
   template<typename MeshSupplier, typename T, typename Internal, typename IndexType>
   __device__
@@ -16,11 +18,12 @@ class AlphaDrawerAction {
 
     __shared__ AlphasType alphas[nVertices];
 
-    tet->LoadAlphas( &(alphas[0]), this->iAlpha );
-    this->output(iz,iy,ix)) = tet.BarycentricInterpolation( alphas, iz, iy. ix );;
+    tet.LoadAlphas( &(alphas[0]), this->iAlpha );
+    AlphasType result = tet.BarycentricInterpolation( &(alphas[0]), iz, iy, ix );
+    this->output(iz,iy,ix) = result;
   }
 
 private:
   kvl::cuda::Image_GPU<AlphasType,3,unsigned short> output;
-  unsigned short iAlpha;
-}
+  const unsigned int iAlpha;
+};

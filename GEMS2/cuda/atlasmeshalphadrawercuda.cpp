@@ -1,5 +1,7 @@
 #include "atlasmeshalphadrawercuda.hpp"
 
+#include "atlasmeshalphadrawercudaimpl.hpp"
+
 namespace kvl {
   namespace cuda {
     void AtlasMeshAlphaDrawerCUDA::SetRegions( const ImageType::RegionType&  region ) {
@@ -23,7 +25,11 @@ namespace kvl {
     }
 
     void AtlasMeshAlphaDrawerCUDA::Interpolate( const kvl::AtlasMesh* mesh ) {
-      throw std::runtime_error(std::string(__PRETTY_FUNCTION__) + ": Not implemented");
+      CudaTetrahedralMesh<double,unsigned long,float> ctm;
+      
+      ctm.Send(mesh);
+
+      RunAtlasMeshAlphaDrawerCUDA( this->d_Output, ctm, this->classNumber );
     }
 
     const AtlasMeshAlphaDrawerCUDA::ImageType* AtlasMeshAlphaDrawerCUDA::GetImage() const {
