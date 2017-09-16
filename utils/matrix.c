@@ -2830,6 +2830,80 @@ Vector3Angle(VECTOR *v1, VECTOR *v2)
   return(angle) ;
 }
 
+#ifdef BEVIN
+float XYZApproxAngle(XYZ const * normalizedXYZ, float x2, float y2, float z2) {
+
+  double x1 = normalizedXYZ->x;
+  double y1 = normalizedXYZ->y;
+  double z1 = normalizedXYZ->z;
+  
+  float  norm = // since normalizedXYZ has a length of 1.0, can skip multiplying in its length
+    (float)sqrt((double)x2*(double)x2+(double)y2*(double)y2+(double)z2*(double)z2) ;
+    
+  if (FZERO(norm))
+    return(0.0f) ;
+  
+  float dot = x1*x2 + y1*y2 + z1*z2;
+  
+  if (fabs(dot) > norm)
+    norm = fabs(dot) ;
+
+  float acosInput = dot / norm;
+
+  // left the following here for debugging or other investigation
+  if (0)
+#pragma omp critical
+  {
+#define HL 1024
+    static long histogram[HL];
+    static long population;
+    static long populationLimit = 128;
+    int i = (int)((acosInput + 1.0f)/2.0f * (HL-1));
+    histogram[i]++;
+    population++;
+    if (population == populationLimit)
+    {
+      populationLimit *= 2;
+      int j,c;
+      printf("XYZApproxAngle histogram after %ld and after incrementing %d for acosInput:%g\n",population,i,acosInput);
+      c = 0;
+      for (j = 0; j < HL; j++)
+      { 
+        if (!histogram[j]) continue;
+	printf("  %g:%ld", (float)j/(float)(HL-1)*2.0f - 1.0f, histogram[j]);
+	if (++c == 10) { c = 0; printf("\n"); }
+      }
+      if (c > 0) printf("\n");
+    }
+#undef HL
+  }
+  
+  // cos(x) = 1 - x**2/2 + ...
+  // so when acosInput is near 1, which is almost always is,  we get
+  //
+  // acosInput ~= 1 - x**2/2 
+  // x**2/2 = 1 - acosInput
+  // x      = sqrt(2.0 * (1 - acosInput))
+  //
+  float angle;
+
+  if (acosInput < 0.99f) angle = acos(acosInput);
+  else 
+  {
+    angle = sqrt(2.0f * (1.0f - acosInput));
+    // left the following here for debugging or other investigation
+    if (0)
+    #pragma omp critical
+    {
+      static int count;
+      if (count++ < 100) 
+        printf("acos approx inp:%g approx:%g correct:%g\n", acosInput,angle,acos(acosInput));
+    }
+  }
+  
+  return(angle) ;
+}
+#endif
 
 int
 MatrixWriteTxt(const char *fname, MATRIX *mat)

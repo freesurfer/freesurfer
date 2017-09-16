@@ -421,7 +421,7 @@ main(int argc, char *argv[])
   if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
 
   msec = TimerStop(&then) ;
-  fprintf(stderr, "spherical transformation took %2.2f hours\n",
+  fprintf(stderr, "spherical transformation took %2.4f hours\n",
           (float)msec/(1000.0f*60.0f*60.0f));
   // Output formatted so it can be easily grepped
 #ifdef HAVE_OPENMP
