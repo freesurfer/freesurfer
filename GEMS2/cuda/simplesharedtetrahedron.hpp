@@ -193,11 +193,9 @@ public:
   template<typename AlphasType>
   __device__
   void LoadAlphas( AlphasType alphas[nVertices], const typename MeshSupplier::MeshIdxType iAlpha ) const {
-    // We presume that alphas is in shared memory and that there are enough threads
-     if( (threadIdx.x < nDims) && (threadIdx.y==0) ) {
-       alphas[threadIdx.x] = this->mesh.GetAlpha( this->tetId, threadIdx.x, iAlpha );
+    for( unsigned int iVert=0; iVert<nVertices; iVert++ ) {
+       alphas[iVert] = this->mesh.GetAlpha( this->tetId, iVert, iAlpha );
      }
-     __syncthreads();
   }
 
   template<typename InterpolateType>

@@ -16,7 +16,7 @@ public:
 		   const IndexType ix ) {
     const int nVertices = 4;
 
-    __shared__ AlphasType alphas[nVertices];
+    AlphasType alphas[nVertices];
 
     tet.LoadAlphas( &(alphas[0]), this->iAlpha );
     AlphasType result = tet.BarycentricInterpolation( &(alphas[0]), iz, iy, ix );
