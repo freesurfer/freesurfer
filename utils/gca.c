@@ -11423,7 +11423,7 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   if (ctl_point_fname)
   {
     MRI3dUseFileControlPoints(mri_ctrl, ctl_point_fname) ;
-    MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
+    MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED, NULL) ;
   }
 
   /* add control points from file */
@@ -11764,7 +11764,7 @@ void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
   if (ctl_point_fname)
   {
     MRI3dUseFileControlPoints(mri_ctrl, ctl_point_fname) ;
-    nctrl = MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
+    nctrl = MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED, NULL) ;
   }
   else
   {
@@ -12138,7 +12138,7 @@ GCAnormalizeSamplesT1PD(MRI *mri_in, GCA *gca,
   if (ctl_point_fname)
   {
     MRI3dUseFileControlPoints(mri_ctrl, ctl_point_fname) ;
-    MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
+    MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED, NULL) ;
   }
   width = mri_in->width ;
   height = mri_in->height ;
