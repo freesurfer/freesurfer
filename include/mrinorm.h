@@ -135,7 +135,7 @@ int MRI3dUseLabelControlPoints(MRI *mri, LABEL *area) ;
 int MRI3dWriteControlPoints(char *control_volume_fname) ;
 int MRI3dWriteBias(char *bias_volume_fname) ;
 MRI *MRIaverageFixedPoints(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter) ;
-int MRInormAddFileControlPoints(MRI *mri_ctrl, int value) ;
+int MRInormAddFileControlPoints(MRI *mri_ctrl, int value, MRI *mri) ;
 MRI *MRInormFindControlPointsInWindow(MRI *mri_src, float wm_target,
                                       float intensity_above,
                                       float intensity_below, MRI *mri_ctrl,
