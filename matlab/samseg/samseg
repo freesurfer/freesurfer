@@ -125,7 +125,7 @@ if($usebin) then
     set cmd = ($vg $cmd0)
   endif
   echo $cmd | tee -a $LF
-  $cmd | tee -a $LF
+  $cmd |& tee -a $LF
   if($status) goto error_exit;
 else
   if($#MLF == 0) set MLF = $outdir/samseg.m
