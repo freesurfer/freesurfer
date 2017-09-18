@@ -2,6 +2,7 @@
 
 #include "itkImageRegionConstIteratorWithIndex.h"
 
+#include "kvlAtlasMesh.h"
 #include "kvlAtlasMeshAlphaDrawer.h"
 #include "atlasmeshalphadrawer.hpp"
 #include "atlasmeshalphadrawercpuwrapper.hpp"
@@ -13,6 +14,11 @@
 
 #include "testfileloader.hpp"
 #include "testiosupport.hpp"
+
+// ----------------------------------------------
+
+const int nDims = 3;
+const int nVertices = 4;
 
 // ----------------------------------------------
 
@@ -45,6 +51,9 @@ void CheckAlphaDrawer( kvl::interfaces::AtlasMeshAlphaDrawer* ad,
   }
 }
 
+// -----------------------------------------
+
+typedef kvl::interfaces::AtlasMeshAlphaDrawer::ImageType ImageType;
 
 // ==========================================
 
@@ -69,6 +78,7 @@ BOOST_AUTO_TEST_CASE( ReferenceImpl )
 }
 
 #ifdef CUDA_FOUND
+#if 0
 BOOST_AUTO_TEST_CASE( CudaImpl )
 {
   kvl::cuda::AtlasMeshAlphaDrawerCUDA ad;
@@ -80,6 +90,7 @@ BOOST_AUTO_TEST_CASE( CudaImpl )
   BOOST_TEST_MESSAGE( "SetRegions Time           : " << ad.tSetRegions );
   BOOST_TEST_MESSAGE( "Interpolate Time          : " << ad.tInterpolate );
 }
+#endif
 #endif
 
 BOOST_AUTO_TEST_CASE( MeshInformation )

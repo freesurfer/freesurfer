@@ -20,6 +20,7 @@
 #include "visitcountertetrahedralmeshcuda.hpp"
 #endif
 
+#include "imageutils.hpp"
 #include "testfileloader.hpp"
 #include "testiosupport.hpp"
 
@@ -43,6 +44,7 @@ typedef boost::mpl::list<
 
 const int nDims = 3;
 const int nVertices = 4;
+const int nAlphas = 1;
 
 // --------------------
 
@@ -108,62 +110,6 @@ typedef MeshSource::IdentifierType  IdentifierType;
 typedef kvl::AtlasMesh Mesh;
 
 
-ImageType::Pointer CreateImageCube( const int sideLength, const int value ) {
-  const int nx = sideLength;
-  const int ny = sideLength;
-  const int nz = sideLength;
-
-  ImageType::RegionType region;
-  ImageType::IndexType start;
-  ImageType::SizeType size;
-  start[0] = start[1] = start[2] = 0;
-  size[0] = nx;
-  size[1] = ny;
-  size[2] = nz;
-
-  region.SetSize(size);
-  region.SetIndex(start);
-
-  ImageType::Pointer image = ImageType::New();
-  image->SetRegions(region);
-  image->Allocate();
-
-  for( int k=0; k<nz; k++ ) {
-    for( int j=0; j<ny; j++ ) {
-      for( int i=0; i<nx; i++ ) {
-	ImageType::IndexType idx;
-	idx[0] = i;
-	idx[1] = j;
-	idx[2] = k;
-
-	image->SetPixel(idx, value);
-      }
-    }
-  }
-
-  return image;
-}
-
-Mesh::Pointer CreateSingleTetrahedronMesh( const float vertices[nVertices][nDims] ) {
-  MeshSource::Pointer meshSource = MeshSource::New();
-
-  const IdentifierType  id0 = meshSource->AddPoint( vertices[0] );
-  const IdentifierType  id1 = meshSource->AddPoint( vertices[1] );
-  const IdentifierType  id2 = meshSource->AddPoint( vertices[2] );
-  const IdentifierType  id3 = meshSource->AddPoint( vertices[3] );
-  meshSource->AddTetrahedron( id0, id1, id2, id3 );
-
-  auto mesh = meshSource->GetOutput();
-
-  kvl::PointParameters emptyParams;
-  emptyParams.m_Alphas = kvl::AtlasAlphasType(1);
-  for( unsigned int i=0; i<mesh->GetNumberOfPoints(); i++ ) {
-    mesh->SetPointData(i, emptyParams );
-  }
-
-  return mesh;
-}
-
 // ----------------------------
 
 void SingleTetrahedronUnitMesh( kvl::interfaces::AtlasMeshVisitCounter* visitCounter,
@@ -174,10 +120,10 @@ void SingleTetrahedronUnitMesh( kvl::interfaces::AtlasMeshVisitCounter* visitCou
   const int ny = imageSize;
   const int nz = imageSize;
 
-  ImageType::Pointer image = CreateImageCube( imageSize, 0 );
+  ImageType::Pointer image = kvl::Testing::CreateImageCube<ImageType>( imageSize, 0 );
   BOOST_TEST_CHECKPOINT("Image created");
 
-  Mesh::Pointer mesh = CreateSingleTetrahedronMesh( vertices );
+  Mesh::Pointer mesh = kvl::Testing::CreateSingleTetrahedronMesh( vertices, nAlphas );
   BOOST_TEST_CHECKPOINT("Mesh created");
 
   visitCounter->SetRegions( image->GetLargestPossibleRegion() );
@@ -440,7 +386,7 @@ void CheckVisitCounterWithPermutations( kvl::interfaces::AtlasMeshVisitCounter* 
   {
     kvl::AtlasMeshVisitCounterCPUWrapper origVisitCounter;
     BOOST_TEST_CHECKPOINT("Created reference VisitCounter");
-    Mesh::Pointer baseMesh = CreateSingleTetrahedronMesh( tetrahedron );
+    Mesh::Pointer baseMesh = kvl::Testing::CreateSingleTetrahedronMesh( tetrahedron, nAlphas );
     BOOST_TEST_CHECKPOINT("baseMesh Created");
     standardVisit = ApplyVisitCounterToMesh( &origVisitCounter, targetImage, baseMesh );
   }
@@ -466,7 +412,7 @@ void CheckVisitCounterWithPermutations( kvl::interfaces::AtlasMeshVisitCounter* 
 
     BOOST_TEST_CONTEXT( "Tetrahedron : " << TetrahedronToString(permTet) ) {
       // Generate the result image
-      Mesh::Pointer mesh = CreateSingleTetrahedronMesh( permTet );
+      Mesh::Pointer mesh = kvl::Testing::CreateSingleTetrahedronMesh( permTet, nAlphas );
       BOOST_TEST_CHECKPOINT("Permuted mesh created");
 
       ImageType::ConstPointer currVisit = NULL;
@@ -493,7 +439,7 @@ void AutoCorners( kvl::interfaces::AtlasMeshVisitCounter* visitCounter,
 
       // Add one to imageSize since we're specifying the number of points
       // on each edge
-      ImageType::Pointer targetImage = CreateImageCube(imageSize+1,0);
+      ImageType::Pointer targetImage = kvl::Testing::CreateImageCube<ImageType>(imageSize+1,0);
       BOOST_TEST_CHECKPOINT("Generated target image");
 
       CheckVisitCounterWithPermutations( visitCounter, targetImage, baseVertices );
@@ -663,11 +609,11 @@ BOOST_DATA_TEST_CASE( ConsistencyCheck, boost::unit_test::data::xrange(1,2), sca
   GenerateSpecificCornerTetrahedron( scaleVertices, 0, scale );
   BOOST_TEST_CHECKPOINT("Created tetrahedra");
 
-  Mesh::Pointer unitMesh = CreateSingleTetrahedronMesh( unitVertices );
-  Mesh::Pointer scaleMesh = CreateSingleTetrahedronMesh( scaleVertices );
+  Mesh::Pointer unitMesh = kvl::Testing::CreateSingleTetrahedronMesh( unitVertices, nAlphas );
+  Mesh::Pointer scaleMesh = kvl::Testing::CreateSingleTetrahedronMesh( scaleVertices, nAlphas );
   BOOST_TEST_CHECKPOINT("Created meshes");
 
-  ImageType::Pointer targetImage = CreateImageCube(scale+1,0);
+  ImageType::Pointer targetImage = kvl::Testing::CreateImageCube<ImageType>(scale+1,0);
   BOOST_TEST_CHECKPOINT("Created target image");
 
   ImageType::ConstPointer unitVisit = ApplyVisitCounterToMesh( &visitCounter, targetImage, unitMesh );
