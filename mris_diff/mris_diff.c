@@ -159,7 +159,7 @@ static int MAX_NUM_ERRORS=10; // in loops, stop after this many errors found
 // it is important to understand how well the whole surface fits, rather than just looking for the
 // few bad matches.  So histograms of the various properties are used...
 //
-#define HistogramSize 10
+#define HistogramSize 20
 typedef struct {
   double maxV;
   double maxDiff;
@@ -171,11 +171,13 @@ static void initHistogramOfFit(HistogramOfFit* histogramOfFit) {
   histogramOfFit->maxDiff = 0.0;
   int i; for (i = 0; i < HistogramSize; i++) histogramOfFit->v[i] = 0;
 }
+
 static int populationHistogramOfFit(HistogramOfFit* histogramOfFit) {
   int population = 0;
   int i; for (i = 0; i < HistogramSize; i++) population += histogramOfFit->v[i];
   return population;
 }
+
 static int headHistogramOfFit(HistogramOfFit* histogramOfFit) {
   int i; 
   for (i = HistogramSize; i > 0; i--)
@@ -183,21 +185,38 @@ static int headHistogramOfFit(HistogramOfFit* histogramOfFit) {
       return i;
   return 0;
 }
+
 static void insertHistogramOfFit(HistogramOfFit* histogramOfFit, double diff, double v) {
   if (histogramOfFit->maxV < v) histogramOfFit->maxV = v;
   if (histogramOfFit->maxDiff < diff) histogramOfFit->maxDiff = diff;
   double fit = 0.01; int i = 0;
-  while (fit < diff) { fit *= 10; i++; }
+  while (fit < diff) { fit *= 3; i++; }
   if (i >= HistogramSize) i = HistogramSize-1;
   histogramOfFit->v[i]++;
 }
-static void printfHistogramOfFit(HistogramOfFit* histogramOfFit) {
+
+static int printfHistogramOfFit(HistogramOfFit* histogramOfFit, double const* requiredFit) {
+  int countOfBad = 0;
+  const int pop = populationHistogramOfFit(histogramOfFit);
   double fit = 0.01; int i = 0;
-  int head = headHistogramOfFit(histogramOfFit);
+  int popSoFar       = 0;
+  int requiredFitI = 0;
+  const int head = headHistogramOfFit(histogramOfFit);
   while (i < head) { 
-    printf("    %8.2g %9d\n", (i+1<head)?fit:histogramOfFit->maxDiff, histogramOfFit->v[i]);
-    fit *= 10; i++; 
+    const char* comment = "";
+    popSoFar += histogramOfFit->v[i];
+    double fractionSoFar = (double)popSoFar / (double)pop;
+    if (fractionSoFar < requiredFit[requiredFitI]) {
+      countOfBad++;
+      comment = " *** too few";
+    }
+    printf("    %8.2g %9d %4.2g%c of the required %g %s\n", 
+      (i+1<head)?fit:histogramOfFit->maxDiff, histogramOfFit->v[i], 
+      fractionSoFar*100.0, '%', requiredFit[requiredFitI], comment);
+    if (requiredFit[requiredFitI+1] >= 0.0) requiredFitI++;
+    fit *= 3; i++;
   }
+  return countOfBad;
 }
 
 static HistogramOfFit vertexXyzHistogram;
@@ -221,19 +240,37 @@ static void initHistograms() {
   initHistogramOfFit(&vertexCurvHistogram);
 }
 
-static void printOneHistogram(HistogramOfFit* histogramOfFit, const char* name) {
+static void printOneHistogram(
+  HistogramOfFit* histogramOfFit, 
+  const char*     name,
+  double const*   requiredFit,
+  const char**    badHistogram) {
   printf("%s  largest:%g\n", name, histogramOfFit->maxV);
   if (populationHistogramOfFit(histogramOfFit) == 0) { printf(" empty\n"); return; }
-  printfHistogramOfFit(histogramOfFit);
+  if (printfHistogramOfFit(histogramOfFit, requiredFit) > 0) {
+    *badHistogram = name;
+  }
   printf("\n");
 }
 
-static void printHistograms() {
-  printOneHistogram(&vertexXyzHistogram   , "vertex xyz");
-  printOneHistogram(&vertexNxnynzHistogram, "vertex nxnynz");
-  printOneHistogram(&faceNxnynzHistogram  , "face nxnynz");
-  printOneHistogram(&faceAreaHistogram    , "face area");
-  printOneHistogram(&vertexCurvHistogram  , "vertex curv");
+static const char* printHistograms() {
+  const char* badHistogram = NULL;
+  
+  // The following numbers are tunable guesses
+  // 	90%   should be within 0.01
+  // 	90%   should be within 0.03
+  // 	95%   should be within 0.09
+  //	99%   should be within 1
+  //
+  const double vertexRequiredFit[9] = {0.0, 0.0, 0.0, 0.05, 0.1, 0.5, 0.9, 0.99, -1};
+  const double otherRequiredFit [9] = {0.1, 0.5, 0.9, 0.99, -1};
+  
+  printOneHistogram(&vertexXyzHistogram   , "vertex xyz"   , vertexRequiredFit, &badHistogram);
+  printOneHistogram(&vertexNxnynzHistogram, "vertex nxnynz", otherRequiredFit,  &badHistogram);
+  printOneHistogram(&faceNxnynzHistogram  , "face nxnynz"  , otherRequiredFit,  &badHistogram);
+  printOneHistogram(&faceAreaHistogram    , "face area"    , otherRequiredFit,  &badHistogram);
+  printOneHistogram(&vertexCurvHistogram  , "vertex curv"  , otherRequiredFit,  &badHistogram);
+  return badHistogram;
 }
 
 #endif
@@ -550,7 +587,11 @@ int main(int argc, char *argv[]) {
     }
 
 #ifdef BEVIN_IMPLEMENTATION
-    printHistograms();
+    const char* badHistogram = printHistograms();
+    if (badHistogram) {
+      printf("Too many differences in %s (and maybe others)\n", badHistogram);
+      exit(103);
+    }
 #else
     printf("Surfaces are the same\n");
 #endif
