@@ -2061,7 +2061,7 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
   int     num_not_found;
   float   vx, vy, vz;
   double  max_spacing ;
-  vx = vy = vz = -1;
+  vx = vy = vz = x = y = z = -1;
 
   MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing,
                                 NULL,&max_vno, coords);
@@ -3737,7 +3737,7 @@ LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, int coor
   double  xw, yw, zw, xv, yv, zv;
 
   printf("LabelSampleToSurface(%d vertices)\n", area->n_points) ;
-  xw = yw = zw = vx = vy = vz = -1; // remove compiler warnings
+  xw = yw = zw = vx = vy = vz = x = y = z = -1; // remove compiler warnings
 
   for (i = n = 0 ; n < area->n_points ; n++)
   {
