@@ -12,6 +12,7 @@
 #include "atlasmeshalphadrawercuda.hpp"
 #endif
 
+#include "imageutils.hpp"
 #include "testfileloader.hpp"
 #include "testiosupport.hpp"
 
@@ -54,10 +55,57 @@ void CheckAlphaDrawer( kvl::interfaces::AtlasMeshAlphaDrawer* ad,
 // -----------------------------------------
 
 typedef kvl::interfaces::AtlasMeshAlphaDrawer::ImageType ImageType;
+typedef kvl::AtlasMesh Mesh;
 
 // ==========================================
 
 BOOST_AUTO_TEST_SUITE( AtlasMeshAlphaDrawer )
+
+BOOST_AUTO_TEST_SUITE( SingleTetrahedron )
+
+BOOST_AUTO_TEST_CASE( ContainedCube )
+{
+  kvl::AtlasMeshAlphaDrawerCPUWrapper ad;
+  const int classNumber = 1;
+  const int nAlphas = classNumber + 1;
+  const unsigned int imageSize = 2;
+  const float delta = 4.0f;
+  
+  ImageType::Pointer image = kvl::Testing::CreateImageCube<ImageType>( imageSize, 0 );
+  BOOST_TEST_CHECKPOINT("Image created");
+
+  float verts[nVertices][nDims] = {
+    { -delta, -delta, -delta },
+    { 1+(4*delta), -delta, -delta },
+    { -delta, 1+(4*delta), -delta },
+    { -delta, -delta, 1+(4*delta) }
+  };
+
+  Mesh::Pointer mesh = kvl::Testing::CreateSingleTetrahedronMesh( verts, nAlphas );
+  BOOST_TEST_CHECKPOINT("Mesh created");
+
+  ad.SetRegions( image->GetLargestPossibleRegion() );
+  ad.SetClassNumber( classNumber );
+  ad.Interpolate( mesh );
+  BOOST_TEST_CHECKPOINT("AlphaDrawer complete");
+
+  auto img = ad.GetImage();
+  for( unsigned int k=0; k<imageSize; k++ ) {
+    for( unsigned int j=0; j<imageSize; j++ ) {
+      for( unsigned int i=0; i<imageSize; i++ ) {
+	ImageType::IndexType idx;
+	idx[0] = i;
+	idx[1] = j;
+	idx[2] = k;
+
+	BOOST_TEST_INFO( "(" << i << "," << j << "," << k << ")" );
+	BOOST_CHECK_EQUAL( img->GetPixel(idx), classNumber );
+      }
+    }
+  }
+}
+
+BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_FIXTURE_TEST_SUITE( ActualImage, TestFileLoader )
 
