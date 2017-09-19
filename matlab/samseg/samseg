@@ -163,7 +163,7 @@ if($computedice) then
   set logfile = $outdir/dice.log
   set tablefile = $outdir/dice.table.dat
   rm -f $logfile # need to rm because it just appends
-  set cmd = (mri_compute_seg_overlap -table $tablefile -log $logfile $diceseg $outdir/segSubSpace.mgz)
+  set cmd = (mri_compute_seg_overlap -table $tablefile -log $logfile $diceseg $outdir/crispSegmentation.nii)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) then
@@ -173,8 +173,8 @@ if($computedice) then
 endif
 
 # Compute segstats
-set sumfile = $outdir/segSubSpace.stats 
-set cmd = (mri_segstats --ctab-default --seg $outdir/segSubSpace.mgz --sum $sumfile)
+set sumfile = $outdir/crispSegmentation.stats 
+set cmd = (mri_segstats --ctab-default --seg $outdir/crispSegmentation.nii --sum $sumfile)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
