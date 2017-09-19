@@ -126,6 +126,22 @@ BOOST_DATA_TEST_CASE( ContainedLargeCube,  boost::unit_test::data::xrange(nAlpha
   SingleConstantTetrahedronContainedCube( &ad, classNumber, nAlphas, 23 );
 }
 
+#ifdef CUDA_FOUND
+BOOST_DATA_TEST_CASE( ContainedUnitCubeGPU,  boost::unit_test::data::xrange(nAlphas), classNumber )
+{
+  kvl::cuda::AtlasMeshAlphaDrawerCUDA ad;
+
+  SingleConstantTetrahedronContainedCube( &ad, classNumber, nAlphas, 2 );
+}
+
+BOOST_DATA_TEST_CASE( ContainedLargeCubeGPU,  boost::unit_test::data::xrange(nAlphas), classNumber )
+{
+  kvl::cuda::AtlasMeshAlphaDrawerCUDA ad;
+
+  SingleConstantTetrahedronContainedCube( &ad, classNumber, nAlphas, 5 );
+}
+#endif
+
 BOOST_AUTO_TEST_SUITE_END()
 
 // ----------------------------------------------
