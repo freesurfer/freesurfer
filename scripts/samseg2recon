@@ -91,7 +91,7 @@ popd
 
 # Have to change seg to uchar or things break downstream
 set cmd = (mri_convert -odt uchar --no_scale 1 \
-  $samsegdir/segSubSpace.mgz $mdir/aseg.auto_noCCseg.mgz)
+  $samsegdir/crispSegmentation.nii $mdir/aseg.auto_noCCseg.mgz)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
@@ -113,12 +113,12 @@ popd
 # should write out stereotypical file names
 set vbase = `fname2stem $input`
 set vbase = `basename $vbase`
-set bc = $samsegdir/$vbase"_biasCorrected".mgz
+set bc = $samsegdir/$vbase"_biasCorrected".nii
 
 # Need to rescale bias cor such that WM is 110
 # Get mask of WM, eroded
 set wm = $tmpdir/wm.mask.mgh
-set cmd = (mri_binarize --i $samsegdir/segSubSpace.mgz --match 2 41 --erode 2 --o $wm)
+set cmd = (mri_binarize --i $samsegdir/crispSegmentation.nii --match 2 41 --erode 2 --o $wm)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
