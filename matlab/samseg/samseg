@@ -16,7 +16,7 @@ set monly = 0;
 set MLF = ();
 set DoRecon = 0;
 set threads = 1;
-set parallel= 0;
+set parallel = 0;
 set DoValGrind = 0
 set vg = (valgrind --error-limit=no --leak-check=yes --tool=memcheck --track-origins=yes)
 set tmpdir = ();
