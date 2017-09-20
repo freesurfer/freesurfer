@@ -405,7 +405,7 @@ if($#subject) then
     exit 1;
   endif
   set outdir = $SUBJECTS_DIR/$subject/mri/samseg
-  set cmd = (mri_info --conformed $input)
+  set cmd = (mri_info --conformed $inputlist[1])
   set isconformed = `$cmd | head -n 1`
   if("$isconformed" != "yes") then
     echo "$isconformed"
@@ -447,7 +447,7 @@ usage_exit:
   echo "  --i file.mgz <--i file2.mgz> <--i file3.mgz>... <--i>"
   echo "  --o outdir "
   echo "  --s subject : create subject, sets outdir to subject/mri/samseg"
-  echo "    the first input should be the conformed T1 weighted input"
+  echo "                the first input must be the conformed T1 weighted input"
   echo "  --recon : run recon-all "
   echo ""
   echo " --regmat reg.mat : registration file (as output by samseg)"
