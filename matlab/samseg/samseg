@@ -16,6 +16,7 @@ set monly = 0;
 set MLF = ();
 set DoRecon = 0;
 set threads = 1;
+set parallel= 0;
 set DoValGrind = 0
 set vg = (valgrind --error-limit=no --leak-check=yes --tool=memcheck --track-origins=yes)
 set tmpdir = ();
@@ -189,7 +190,11 @@ if($#subject != 0) then
     echo "" | tee -a $LF
     echo "" | tee -a $LF
     echo "Starting recon-all `date`" | tee -a $LF
-    set cmd = (recon-all -s $subject -autorecon2-samseg -autorecon3 -threads $threads)
+    set cmd = (recon-all)
+    if($parallel) then
+      set cmd = ($cmd -parallel)
+    endif
+    set cmd = ($cmd -s $subject -autorecon2-samseg -autorecon3 -threads $threads)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) goto error_exit;
@@ -307,6 +312,10 @@ while( $#argv != 0 )
     case "--threads":
       if( $#argv < 1) goto arg1err;
       set threads =  $1; shift;
+      breaksw
+
+    case "--parallel":
+      set parallel = 1
       breaksw
 
     case "--gpu":
