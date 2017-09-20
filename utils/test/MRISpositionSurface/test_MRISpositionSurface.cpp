@@ -118,10 +118,14 @@ int main(int argc, char *argv[])
   if (err == 1)
   {
     std::cout << "surface vertex stats DO NOT match reference data!\n";
+    std::cout << mris->vertices[160].dist[0] << " "
+              << mris->vertices[1170].dist[0] << " "
+              << mris->vertices[720].dist[0] << std::endl;
   }
 
 
   // shut down:
+  MRISwrite(mris, "positionSurfaceNEW");
   MRISfree(&mris);
   MRIfree(&mri_brain);
   MRIfree(&mri_smooth);
