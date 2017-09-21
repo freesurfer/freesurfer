@@ -19,6 +19,8 @@ IF(Boost_FOUND)
   LIST(APPEND testsrcs testdimensioncuda.cpp)
   LIST(APPEND testsrcs teststopwatch.cpp)
 
+  LIST(APPEND testsrcs imageutils.cpp)
+
   IF( CUDA_FOUND )
     LIST(APPEND testsrcs testcudaimage.cpp)
     LIST(APPEND testsrcs cudaglobalfixture.cpp)

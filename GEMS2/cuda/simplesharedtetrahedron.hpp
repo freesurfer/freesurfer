@@ -1,29 +1,31 @@
 #pragma once
 
-template<typename ArgType,typename InvertType>
+template<typename MeshSupplier,typename ArgType,typename InvertType>
 class SimpleSharedTetrahedron {
 public:
   static const unsigned int nDims = 3;
   static const unsigned int nVertices = 4;
 
   __device__
-  SimpleSharedTetrahedron( ArgType tetrahedron[nVertices][nDims],
-			   ArgType M[nDims][nDims] ) : tet(&tetrahedron[0][0]),
-						       transf(&M[0][0]) {
+  SimpleSharedTetrahedron( const MeshSupplier& srcMesh, 
+			   ArgType tetrahedron[nVertices][nDims],
+			   ArgType M[nDims][nDims]) : mesh(srcMesh),
+						      tet(&tetrahedron[0][0]),
+						      transf(&M[0][0]) {
     // In this class, we assume that the arguments passed in the constructor
     // are actually in shared memory
   } 
   
-  template<typename MeshSupplier>
   __device__
-  void LoadAndBoundingBox( const MeshSupplier& mesh,
-			   const size_t iTet,
+  void LoadAndBoundingBox( const size_t iTet,
 			   unsigned short min[nDims],
 			   unsigned short max[nDims] ) {
+    this->tetId = iTet;
+
     // We presume that min and max are in shared memory
     if( (threadIdx.x < nDims) && (threadIdx.y==0) ) {
       for( unsigned int iVert=0; iVert<nVertices; iVert++ ) {
-	this->tet[(iVert*nDims)+threadIdx.x] = mesh.GetVertexCoordinate(iTet,iVert,threadIdx.x);
+	this->tet[(iVert*nDims)+threadIdx.x] = this->mesh.GetVertexCoordinate(this->tetId,iVert,threadIdx.x);
       }
       
       // No need to sync since we're only using the first 3 threads
@@ -99,7 +101,7 @@ public:
   }
 
   __device__
-  void TransformToBarycentric( ArgType p[nDims], const ArgType z, const ArgType y, const ArgType x ) const {
+  void TransformToBarycentric( ArgType p[nDims+1], const ArgType z, const ArgType y, const ArgType x ) const {
     ArgType r[nDims];
     
     // Compute location relative to first vertex
@@ -107,28 +109,25 @@ public:
     r[1] = y - this->tet[(0*nDims)+1];
     r[2] = z - this->tet[(0*nDims)+2];
 
+    // Compute the 'free' barycentric co-ordinates
     for( unsigned int i=0; i<nDims; i++ ) {
-      p[i] = 0;
+      p[i+1] = 0;
       for( unsigned int j=0; j<nDims; j++ ) {
-	p[i] += this->transf[(i*nDims)+j] * r[j];
+	p[i+1] += this->transf[(i*nDims)+j] * r[j];
       }
     }
+
+    // Compute the final coordinate
+    p[0] = 1 - p[1] - p[2] - p[3];
   }
 
   __device__
   bool PointInside( const ArgType z, const ArgType y, const ArgType x ) const {
     bool inside = true;
-	  
-    ArgType pTmp[nDims];
-    
-    this->TransformToBarycentric(pTmp, z, y, x);
 
-    // Form the full set of barycentric co-ordinates
+    // Get the set of barycentric co-ordinates
     ArgType p[nDims+1];
-    for( unsigned int i=0; i< nDims; i++ ) {
-      p[i+1] = pTmp[i];
-    }
-    p[0] = 1 - p[1] - p[2] - p[3];
+    this->TransformToBarycentric(p, z, y, x );
 
     // Do the easiest cull
     if( (p[0] < 0) || (p[1] < 0) || (p[2] < 0) || (p[3] < 0) ) {
@@ -191,7 +190,33 @@ public:
     return false; 
   }
 
+  template<typename AlphasType>
+  __device__
+  void LoadAlphas( AlphasType alphas[nVertices], const typename MeshSupplier::MeshIdxType iAlpha ) const {
+    for( unsigned int iVert=0; iVert<nVertices; iVert++ ) {
+       alphas[iVert] = this->mesh.GetAlpha( this->tetId, iVert, iAlpha );
+     }
+  }
+
+  template<typename InterpolateType>
+  __device__
+  InterpolateType BarycentricInterpolation( const InterpolateType vertexValues[nVertices],
+					    const ArgType z, const ArgType y, const ArgType x ) const {
+    // Get the set of barycentric co-ordinates
+    ArgType p[nDims+1];
+    this->TransformToBarycentric(p, z, y, x );
+
+    InterpolateType result = 0;
+    for( unsigned int iVert=0; iVert<nVertices; iVert++ ) {
+      result += p[iVert] * vertexValues[iVert];
+    }
+
+    return result;
+  }
+
 private:
+  const MeshSupplier& mesh;
   ArgType* tet;
   ArgType* transf;
+  size_t tetId;
 };

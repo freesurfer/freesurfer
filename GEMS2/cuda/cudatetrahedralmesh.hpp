@@ -6,11 +6,14 @@
 
 namespace kvl {
   namespace cuda {
-    template<typename CoordinateType, typename MeshIndexType>
+    template<typename CoordinateType, typename MeshIndexType, typename AlphasType>
     class TetrahedralMesh_GPU {
     public:
       Image_GPU<CoordinateType,2,MeshIndexType> vertices;
       Image_GPU<MeshIndexType,2,MeshIndexType> vertexMap;
+      Image_GPU<AlphasType,2,MeshIndexType> alphas;
+
+      typedef MeshIndexType MeshIdxType;
 
       __device__
       CoordinateType GetVertexCoordinate( MeshIndexType iTet, MeshIndexType iVert, unsigned char iDim ) const {
@@ -23,15 +26,22 @@ namespace kvl {
       MeshIndexType GetTetrahedraCount() const {
 	return this->vertexMap.dims[0];
       }
+
+      __device__
+      AlphasType GetAlpha( MeshIndexType iTet, MeshIndexType iVert, MeshIndexType iAlpha ) const {
+	MeshIndexType iVertexId = this->vertexMap(iTet,iVert);
+	
+	return this->alphas(iVertexId,iAlpha);
+      }
     };
 
-    template<typename CoordinateType, typename MeshIndexType>
+    template<typename CoordinateType, typename MeshIndexType, typename AlphasType>
     class CudaTetrahedralMesh {
     public:
       const unsigned char nDims = 3;
       const unsigned char nVertices = 4;
 
-      typedef TetrahedralMesh_GPU<CoordinateType,MeshIndexType> GPUType;
+      typedef TetrahedralMesh_GPU<CoordinateType,MeshIndexType,AlphasType> GPUType;
       typedef CoordinateType CoordType;
 
       void Send( kvl::AtlasMesh::ConstPointer mesh ) {
@@ -42,8 +52,14 @@ namespace kvl {
 	  throw std::out_of_range("Too many tetrahedra for MeshIndexType");
 	}
 
+	// Sanity check size of points and pointdata
+	if( mesh->GetPoints()->size() != mesh->GetPointData()->size() ) {
+	  throw std::runtime_error("Must have PointData for every Point");
+	}
+
 	// Sanity check the points used to define the tetrahedra
 	std::set<size_t> activePointIndices;
+	std::set<size_t> alphaCounts;
 	for( size_t iTet=0; iTet<tetIds.size(); iTet++ ) {
 	  kvl::AtlasMesh::CellAutoPointer cell;
 	  mesh->GetCell( tetIds.at(iTet), cell );
@@ -54,6 +70,8 @@ namespace kvl {
 	       ++pit ) {
 	    activePointIndices.insert(*pit);
 	    pointCount++;
+	    auto meshData = mesh->GetPointData()->ElementAt(*pit);
+	    alphaCounts.insert(meshData.m_Alphas.size());
 	  }
     
 	  if( pointCount != nVertices ) {
@@ -62,19 +80,27 @@ namespace kvl {
 	}
 
 	if( activePointIndices.size() != mesh->GetPoints()->size() ) {
+	  // We haven't 'found' all the points in the mesh, so we would have to
+	  // remap the indices to get a dense array
 	  throw std::runtime_error("Point index remapping not supported!");
+	}
+
+	if( alphaCounts.size() != 1 ) {
+	  throw std::runtime_error("Must have only one size for Alphas array");
 	}
 
 	// Transfer data to the GPU
 	this->SendVertices(mesh);
 	this->SendVertexMap(mesh, tetIds);
+	this->SendAlphas(mesh);
       }
 
-      TetrahedralMesh_GPU<CoordinateType,MeshIndexType> getArg() const {
-	TetrahedralMesh_GPU<CoordinateType,MeshIndexType> gpuArg;
+      TetrahedralMesh_GPU<CoordinateType,MeshIndexType,AlphasType> getArg() const {
+	TetrahedralMesh_GPU<CoordinateType,MeshIndexType,AlphasType> gpuArg;
 
 	gpuArg.vertices = this->d_vertices.getArg();
 	gpuArg.vertexMap = this->d_vertexMap.getArg();
+	gpuArg.alphas = this->d_alphas.getArg();
 
 	return gpuArg;
       }
@@ -86,6 +112,7 @@ namespace kvl {
     private:
       CudaImage<CoordinateType,2,MeshIndexType> d_vertices;
       CudaImage<MeshIndexType,2,MeshIndexType> d_vertexMap;
+      CudaImage<AlphasType,2,MeshIndexType> d_alphas;
 
       std::vector<kvl::AtlasMesh::CellIdentifier> GetTetrahedronIds( kvl::AtlasMesh::ConstPointer mesh ) const {
 	std::vector<kvl::AtlasMesh::CellIdentifier> ids;
@@ -143,6 +170,29 @@ namespace kvl {
 	}
 
 	this->d_vertexMap.Send( vertexMap, mapDims );
+      }
+
+      void SendAlphas( kvl::AtlasMesh::ConstPointer mesh ) {
+	// We have already checked that all alpha arrays are the same length
+	Dimension<2,MeshIndexType> alphasDims;
+	alphasDims[0] = mesh->GetPointData()->size();
+	alphasDims[1] = mesh->GetPointData()->ElementAt(0).m_Alphas.size();
+
+	std::vector<AlphasType> alphas;
+	alphas.resize( alphasDims.ElementCount() );
+
+	for( auto pointDataIt = mesh->GetPointData()->Begin();
+	     pointDataIt != mesh->GetPointData()->End();
+	     ++pointDataIt ) {
+	  for( MeshIndexType iAlpha=0; iAlpha<alphasDims[1]; iAlpha++ ) {
+	    AlphasType nxt = pointDataIt->Value().m_Alphas[iAlpha];
+
+	    size_t idx = alphasDims.GetLinearIndex(static_cast<MeshIndexType>(pointDataIt->Index()),iAlpha);
+	    alphas.at(idx) = nxt;
+	  }
+	}
+
+	this->d_alphas.Send( alphas, alphasDims );
       }
     };
   }

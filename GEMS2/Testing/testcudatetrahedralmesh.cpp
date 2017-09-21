@@ -20,14 +20,14 @@ BOOST_FIXTURE_TEST_SUITE( ActualImage, TestFileLoader )
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( SendToGPU, T, CoordTypes )
 {
-  kvl::cuda::CudaTetrahedralMesh<T,unsigned long> ctm;
+  kvl::cuda::CudaTetrahedralMesh<T,unsigned long,float> ctm;
 
   ctm.Send( mesh );
 }
 
 BOOST_AUTO_TEST_CASE( MeshIndexTypeTooSmall )
 {
-  kvl::cuda::CudaTetrahedralMesh<double,unsigned char> ctm;
+  kvl::cuda::CudaTetrahedralMesh<double,unsigned char,float> ctm;
 
   BOOST_CHECK_THROW( ctm.Send(mesh), std::out_of_range );
 }
