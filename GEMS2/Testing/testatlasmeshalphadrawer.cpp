@@ -97,7 +97,8 @@ void SingleConstantTetrahedronContainedCube( kvl::interfaces::AtlasMeshAlphaDraw
 	idx[2] = k;
 
 	BOOST_TEST_INFO( "(" << i << "," << j << "," << k << ")" );
-	BOOST_CHECK_EQUAL( img->GetPixel(idx), classNumber );
+	float pxlValue = img->GetPixel(idx);
+	BOOST_CHECK_EQUAL( img->GetPixel(idx), static_cast<float>(classNumber) );
       }
     }
   }
@@ -110,7 +111,7 @@ BOOST_AUTO_TEST_SUITE( AtlasMeshAlphaDrawer )
 
 BOOST_AUTO_TEST_SUITE( SingleTetrahedron )
 
-const int nAlphas = 4;
+const int nAlphas = 5;
 
 BOOST_DATA_TEST_CASE( ContainedUnitCube,  boost::unit_test::data::xrange(nAlphas), classNumber )
 {
@@ -127,19 +128,30 @@ BOOST_DATA_TEST_CASE( ContainedLargeCube,  boost::unit_test::data::xrange(nAlpha
 }
 
 #ifdef CUDA_FOUND
+#if 0
+BOOST_AUTO_TEST_CASE( ContainedUnitCubeGPU )
+{
+  kvl::cuda::AtlasMeshAlphaDrawerCUDA ad;
+
+  SingleConstantTetrahedronContainedCube( &ad, 3, nAlphas, 2 );
+}
+#else
 BOOST_DATA_TEST_CASE( ContainedUnitCubeGPU,  boost::unit_test::data::xrange(nAlphas), classNumber )
 {
   kvl::cuda::AtlasMeshAlphaDrawerCUDA ad;
 
   SingleConstantTetrahedronContainedCube( &ad, classNumber, nAlphas, 2 );
 }
+#endif
 
+/*
 BOOST_DATA_TEST_CASE( ContainedLargeCubeGPU,  boost::unit_test::data::xrange(nAlphas), classNumber )
 {
   kvl::cuda::AtlasMeshAlphaDrawerCUDA ad;
 
   SingleConstantTetrahedronContainedCube( &ad, classNumber, nAlphas, 5 );
 }
+*/
 #endif
 
 BOOST_AUTO_TEST_SUITE_END()
