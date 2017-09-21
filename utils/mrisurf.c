@@ -4001,7 +4001,7 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
 {
   int     vno,tno ;
 
-#ifndef BEVIN
+#ifndef BEVIN_SERIAL
   VECTOR  *v1[_MAX_FS_THREADS], *v2[_MAX_FS_THREADS] ;
   
   for (tno = 0 ; tno < _MAX_FS_THREADS ; tno++)
@@ -4020,15 +4020,13 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
     int     n, vtotal, *pv ;
     VERTEX  *v, *vn ;
     float   d, xd, yd, zd, circumference = 0.0f, angle ;
-
-#ifdef BEVIN
+#ifdef BEVIN_SERIAL
     float   circumference_divided_by_2PI;
-    v = &mris->vertices[vno];
-#else
+#endif
+
     v = &mris->vertices[vno];
     if (v->ripflag || v->dist == NULL)
       continue ;
-#endif
 
     if (vno == Gdiag_no)
       DiagBreak() ;
@@ -4053,7 +4051,7 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
     case MRIS_PARAMETERIZED_SPHERE:
     case MRIS_SPHERE:
     {
-#ifndef BEVIN
+#ifndef BEVIN_SERIAL
 
 #ifdef HAVE_OPENMP
       // thread ID
@@ -4071,7 +4069,7 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
   
       if (FZERO(circumference))   /* only calculate once */
       {
-#ifndef BEVIN
+#ifndef BEVIN_SERIAL
         circumference = M_PI * 2.0 * V3_LEN(v1[tid]) ;
 #else
         circumference = M_PI * 2.0 * xyz1_length ;
@@ -4085,7 +4083,7 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
         if (vn->ripflag)
           continue ;
 
-#ifndef BEVIN
+#ifndef BEVIN_SERIAL
         VECTOR_LOAD(v2[tid], vn->x, vn->y, vn->z) ;  /* radius vector */
         angle = fabs(Vector3Angle(v1[tid], v2[tid])) ;
 #else
@@ -4098,7 +4096,7 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
         zd = v->z - vn->z ;
         d = sqrt(xd*xd + yd*yd + zd*zd) ;
 #endif
-#ifndef BEVIN
+#ifndef BEVIN_SERIAL
         d = circumference * angle / (2.0 * M_PI) ;
 #else
         d = angle * circumference_divided_by_2PI;
@@ -4113,7 +4111,7 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
     }
   }
 
-#ifndef BEVIN
+#ifndef BEVIN_SERIAL
   for (tno = 0 ; tno < _MAX_FS_THREADS ; tno++)
   {
     VectorFree(&v1[tno]) ;
@@ -22984,14 +22982,6 @@ mrisComputeNormalizedSpringTerm_BEVIN(MRI_SURFACE * const mris, double const l_s
 #endif
   const float dist_scale = dist_scale_init;
 
-  if (0) { static unsigned long int count = 0; static long int maxNvertices = 0;
-    #pragma omp critical
-    if (count++ < 100 || maxNvertices < mris->nvertices) {
-      if (maxNvertices < mris->nvertices) maxNvertices = mris->nvertices;
-      fprintf(stderr, "BEVIN %s:%d mrisComputeNormalizedSpringTerm: count:%d, mris->nvertices:%d\n", __FILE__, (int)(__LINE__), (int)count, (int)(mris->nvertices));
-    }
-  }
-  
   const double num = (double)MRISvalidVertices(mris) ;
 
   double dot_total = 0.0 ;
@@ -42567,9 +42557,6 @@ mrisComputeSphereError(MRI_SURFACE *mris, double l_sphere, double r0)
   // I tried summing in groups of 1024 numbers then summing the sums, and got the same answer in %g format
   //		/Bevin
   //
-#ifdef BEVIN_TRACE_SOME_VERTEX
-  int interestingSseVno = 1;
-#endif
   sse = 0.0;
 #ifdef BEVIN
   #pragma omp parallel for reduction(+:sse)
