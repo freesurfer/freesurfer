@@ -52,7 +52,7 @@ typedef struct
 MATRIX, VECTOR ;
 
 
-#ifdef BEVIN
+#ifdef BEVIN_SERIAL
 typedef struct		// This case is so important it should be optimized 
 {
   float x,y,z;
@@ -196,7 +196,7 @@ MATRIX *MatrixReadFrom(FILE *fp, MATRIX *m) ;
 #define VECTOR_LOAD   VECTOR3_LOAD
 #define V3_LOAD       VECTOR3_LOAD
 
-#ifdef BEVIN
+#ifdef BEVIN_SERIAL
 #include <math.h>
 #include "macros.h"
 

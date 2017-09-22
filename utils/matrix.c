@@ -2830,7 +2830,7 @@ Vector3Angle(VECTOR *v1, VECTOR *v2)
   return(angle) ;
 }
 
-#ifdef BEVIN
+#ifdef BEVIN_SERIAL
 float XYZApproxAngle(XYZ const * normalizedXYZ, float x2, float y2, float z2) {
 
   double x1 = normalizedXYZ->x;
