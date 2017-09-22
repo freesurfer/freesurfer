@@ -104,9 +104,10 @@ int ComputeMRISvolumeTH3(char *subject, char *hemi, int DoMask, char *outfile);
 
 LABEL2SURF *L2Salloc(int nsurfs, char *subject);
 int L2Sinit(LABEL2SURF *l2s);
-int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Operation);
+int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int PointType, int Operation);
 int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int nsegs, int Operation);
 int L2Sfree(LABEL2SURF **pl2s);
 int L2SimportLabel(LABEL2SURF *l2s, LABEL *label, int surfno);
+int L2Stest(char *subject);
 
 #endif

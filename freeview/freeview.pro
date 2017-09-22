@@ -164,7 +164,10 @@ SOURCES += \
     SplineTreeWidget.cpp \
     DialogLoadTransform.cpp \
     Interactor3DROIEdit.cpp \
-    DialogAddPointSetStat.cpp
+    DialogAddPointSetStat.cpp \
+    BinaryTreeNode.cpp \
+    BinaryTreeEdge.cpp \
+    BinaryTreeView.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -316,7 +319,10 @@ HEADERS  += \
     SplineTreeWidget.h \
     DialogLoadTransform.h \
     Interactor3DROIEdit.h \
-    DialogAddPointSetStat.h
+    DialogAddPointSetStat.h \
+    BinaryTreeNode.h \
+    BinaryTreeEdge.h \
+    BinaryTreeView.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \

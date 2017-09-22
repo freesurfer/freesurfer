@@ -26,6 +26,7 @@
 
 #include "Layer.h"
 #include <QColor>
+#include <QVariantMap>
 
 class FSTrack;
 class LayerMRI;
@@ -39,10 +40,10 @@ class LayerTrack : public Layer
 {
   Q_OBJECT
 public:
-  LayerTrack(LayerMRI* ref, QObject* parent = NULL);
+  LayerTrack(LayerMRI* ref, QObject* parent = NULL, bool bCluster = false);
   ~LayerTrack();
 
-  bool LoadTrackFromFile();
+  bool LoadTrackFromFiles();
 
   void Append2DProps(vtkRenderer *renderer, int nPlane);
 
@@ -59,12 +60,30 @@ public:
 
   virtual void SetVisible( bool bVisible = true );
 
+  void SetFileName(const QString& filename);
+
+  void SetFileNames(const QStringList& filenames);
+
+  void SetClusterData(const QVariantMap& data);
+
+  bool IsCluster();
+
+  QVariantMap GetClusterData()
+  {
+    return m_mapCluster;
+  }
+
 signals:
   void Progress(int n);
 
 public slots:
   void RebuildActors();
   void UpdateColor(bool emitSignal = true);
+  void LoadTrackFromFiles(const QStringList& filenames)
+  {
+    SetFileNames(filenames);
+    LoadTrackFromFiles();
+  }
 
 protected:
   virtual void OnSlicePositionChanged(int nPlane);
@@ -75,6 +94,8 @@ protected:
   FSTrack*    m_trackData;
   LayerMRI*   m_layerMRIRef;
   QList<vtkActor*>  m_actors;
+  QStringList m_listFilenames;
+  QVariantMap m_mapCluster;
 };
 
 #endif // LAYERTRACK_H

@@ -7,7 +7,7 @@ if ( $?SKIP_MRIS_MAKE_SURFACES_TEST ) then
 endif
 
 
-foreach threads ( 1 8 )
+foreach threads ( 8 )
 
   # extract testing data
 
@@ -47,7 +47,7 @@ foreach threads ( 1 8 )
 
   echo ""
   echo $cmd
-  $cmd
+  #$cmd
   set diff_status=$status
   if ($diff_status != 0) then
     echo "$cmd FAILED (exit status=$diff_status)"

@@ -1,13 +1,32 @@
 #include <boost/test/unit_test.hpp>
+#include <boost/test/data/test_case.hpp>
+
 
 #include "itkImageRegionConstIteratorWithIndex.h"
 
+#include "kvlAtlasMesh.h"
 #include "kvlAtlasMeshAlphaDrawer.h"
 #include "atlasmeshalphadrawer.hpp"
 #include "atlasmeshalphadrawercpuwrapper.hpp"
 
+#ifdef CUDA_FOUND
+#include "cudaimage.hpp"
+#include "atlasmeshalphadrawercuda.hpp"
+#endif
+
+#include "imageutils.hpp"
 #include "testfileloader.hpp"
 #include "testiosupport.hpp"
+
+// ----------------------------------------------
+
+const int nDims = 3;
+const int nVertices = 4;
+
+// -----------------------------------------
+
+typedef kvl::interfaces::AtlasMeshAlphaDrawer::ImageType ImageType;
+typedef kvl::AtlasMesh Mesh;
 
 // ----------------------------------------------
 
@@ -41,9 +60,103 @@ void CheckAlphaDrawer( kvl::interfaces::AtlasMeshAlphaDrawer* ad,
 }
 
 
+void SingleConstantTetrahedronContainedCube( kvl::interfaces::AtlasMeshAlphaDrawer* ad,
+					     const int classNumber,
+					     const int nAlphas,
+					     const int imageSize ) {
+  BOOST_REQUIRE( nAlphas > 0 );
+  BOOST_REQUIRE( classNumber < nAlphas );
+  BOOST_REQUIRE( imageSize > 1 );
+  const float d = imageSize;
+  
+  ImageType::Pointer image = kvl::Testing::CreateImageCube<ImageType>( imageSize, 0 );
+  BOOST_TEST_CHECKPOINT("Image created");
+
+  float verts[nVertices][nDims] = {
+    { -1 , -1 , -1  },
+    { 4*d, -1 , -1  },
+    { -1 , 4*d, -1  },
+    { -1 , -1 , 4*d }
+  };
+
+  Mesh::Pointer mesh = kvl::Testing::CreateSingleTetrahedronMesh( verts, nAlphas );
+  BOOST_TEST_CHECKPOINT("Mesh created");
+
+  ad->SetRegions( image->GetLargestPossibleRegion() );
+  ad->SetClassNumber( classNumber );
+  ad->Interpolate( mesh );
+  BOOST_TEST_CHECKPOINT("AlphaDrawer complete");
+
+  auto img = ad->GetImage();
+  for( unsigned int k=0; k<imageSize; k++ ) {
+    for( unsigned int j=0; j<imageSize; j++ ) {
+      for( unsigned int i=0; i<imageSize; i++ ) {
+	ImageType::IndexType idx;
+	idx[0] = i;
+	idx[1] = j;
+	idx[2] = k;
+
+	BOOST_TEST_INFO( "(" << i << "," << j << "," << k << ")" );
+	float pxlValue = img->GetPixel(idx);
+	BOOST_CHECK_EQUAL( img->GetPixel(idx), static_cast<float>(classNumber) );
+      }
+    }
+  }
+}
+
+
 // ==========================================
 
 BOOST_AUTO_TEST_SUITE( AtlasMeshAlphaDrawer )
+
+BOOST_AUTO_TEST_SUITE( SingleTetrahedron )
+
+const int nAlphas = 5;
+
+BOOST_DATA_TEST_CASE( ContainedUnitCube,  boost::unit_test::data::xrange(nAlphas), classNumber )
+{
+  kvl::AtlasMeshAlphaDrawerCPUWrapper ad;
+
+  SingleConstantTetrahedronContainedCube( &ad, classNumber, nAlphas, 2 );
+}
+
+BOOST_DATA_TEST_CASE( ContainedLargeCube,  boost::unit_test::data::xrange(nAlphas), classNumber )
+{
+  kvl::AtlasMeshAlphaDrawerCPUWrapper ad;
+
+  SingleConstantTetrahedronContainedCube( &ad, classNumber, nAlphas, 23 );
+}
+
+#ifdef CUDA_FOUND
+#if 0
+BOOST_AUTO_TEST_CASE( ContainedUnitCubeGPU )
+{
+  kvl::cuda::AtlasMeshAlphaDrawerCUDA ad;
+
+  SingleConstantTetrahedronContainedCube( &ad, 3, nAlphas, 2 );
+}
+#else
+BOOST_DATA_TEST_CASE( ContainedUnitCubeGPU,  boost::unit_test::data::xrange(nAlphas), classNumber )
+{
+  kvl::cuda::AtlasMeshAlphaDrawerCUDA ad;
+
+  SingleConstantTetrahedronContainedCube( &ad, classNumber, nAlphas, 2 );
+}
+#endif
+
+/*
+BOOST_DATA_TEST_CASE( ContainedLargeCubeGPU,  boost::unit_test::data::xrange(nAlphas), classNumber )
+{
+  kvl::cuda::AtlasMeshAlphaDrawerCUDA ad;
+
+  SingleConstantTetrahedronContainedCube( &ad, classNumber, nAlphas, 5 );
+}
+*/
+#endif
+
+BOOST_AUTO_TEST_SUITE_END()
+
+// ----------------------------------------------
 
 BOOST_FIXTURE_TEST_SUITE( ActualImage, TestFileLoader )
 
@@ -62,6 +175,22 @@ BOOST_AUTO_TEST_CASE( ReferenceImpl )
   CheckAlphaDrawer( &ad, image, mesh, classNumber );
   BOOST_TEST_MESSAGE( "Interpolate Time (repeat) : " << ad.tInterpolate );
 }
+
+#ifdef CUDA_FOUND
+#if 0
+BOOST_AUTO_TEST_CASE( CudaImpl )
+{
+  kvl::cuda::AtlasMeshAlphaDrawerCUDA ad;
+  const int classNumber = 1;
+
+  // Note that image and mesh are supplied by TestFileLoader
+  CheckAlphaDrawer( &ad, image, mesh, classNumber );
+  
+  BOOST_TEST_MESSAGE( "SetRegions Time           : " << ad.tSetRegions );
+  BOOST_TEST_MESSAGE( "Interpolate Time          : " << ad.tInterpolate );
+}
+#endif
+#endif
 
 BOOST_AUTO_TEST_CASE( MeshInformation )
 {

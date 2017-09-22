@@ -254,7 +254,7 @@ void ThreadIOWorker::run()
       return;
     }
     connect(layer, SIGNAL(Progress(int)), this, SIGNAL(Progress(int)), Qt::UniqueConnection);
-    if ( !layer->LoadTrackFromFile() )
+    if ( !layer->LoadTrackFromFiles() )
     {
       emit Error( m_layer, m_nJobType );
     }

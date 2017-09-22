@@ -16,6 +16,7 @@ set monly = 0;
 set MLF = ();
 set DoRecon = 0;
 set threads = 1;
+set parallel = 0;
 set DoValGrind = 0
 set vg = (valgrind --error-limit=no --leak-check=yes --tool=memcheck --track-origins=yes)
 set tmpdir = ();
@@ -125,7 +126,7 @@ if($usebin) then
     set cmd = ($vg $cmd0)
   endif
   echo $cmd | tee -a $LF
-  $cmd | tee -a $LF
+  $cmd |& tee -a $LF
   if($status) goto error_exit;
 else
   if($#MLF == 0) set MLF = $outdir/samseg.m
@@ -163,7 +164,7 @@ if($computedice) then
   set logfile = $outdir/dice.log
   set tablefile = $outdir/dice.table.dat
   rm -f $logfile # need to rm because it just appends
-  set cmd = (mri_compute_seg_overlap -table $tablefile -log $logfile $diceseg $outdir/segSubSpace.mgz)
+  set cmd = (mri_compute_seg_overlap -table $tablefile -log $logfile $diceseg $outdir/crispSegmentation.nii)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) then
@@ -173,8 +174,8 @@ if($computedice) then
 endif
 
 # Compute segstats
-set sumfile = $outdir/segSubSpace.stats 
-set cmd = (mri_segstats --ctab-default --seg $outdir/segSubSpace.mgz --sum $sumfile)
+set sumfile = $outdir/crispSegmentation.stats 
+set cmd = (mri_segstats --ctab-default --seg $outdir/crispSegmentation.nii --sum $sumfile)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
@@ -189,7 +190,11 @@ if($#subject != 0) then
     echo "" | tee -a $LF
     echo "" | tee -a $LF
     echo "Starting recon-all `date`" | tee -a $LF
-    set cmd = (recon-all -s $subject -autorecon2-samseg -autorecon3 -threads $threads)
+    set cmd = (recon-all)
+    if($parallel) then
+      set cmd = ($cmd -parallel)
+    endif
+    set cmd = ($cmd -s $subject -autorecon2-samseg -autorecon3 -threads $threads)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) goto error_exit;
@@ -309,6 +314,10 @@ while( $#argv != 0 )
       set threads =  $1; shift;
       breaksw
 
+    case "--parallel":
+      set parallel = 1
+      breaksw
+
     case "--gpu":
       set usegpu = 1;
       breaksw
@@ -405,7 +414,7 @@ if($#subject) then
     exit 1;
   endif
   set outdir = $SUBJECTS_DIR/$subject/mri/samseg
-  set cmd = (mri_info --conformed $input)
+  set cmd = (mri_info --conformed $inputlist[1])
   set isconformed = `$cmd | head -n 1`
   if("$isconformed" != "yes") then
     echo "$isconformed"
@@ -447,7 +456,7 @@ usage_exit:
   echo "  --i file.mgz <--i file2.mgz> <--i file3.mgz>... <--i>"
   echo "  --o outdir "
   echo "  --s subject : create subject, sets outdir to subject/mri/samseg"
-  echo "    the first input should be the conformed T1 weighted input"
+  echo "                the first input must be the conformed T1 weighted input"
   echo "  --recon : run recon-all "
   echo ""
   echo " --regmat reg.mat : registration file (as output by samseg)"

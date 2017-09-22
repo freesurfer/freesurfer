@@ -45,7 +45,7 @@ echo
 
 # cleanup:
 cd ..
-rm -rf testdata
+#rm -rf testdata
 
 echo
 echo "MRISpositionSurface passed test"

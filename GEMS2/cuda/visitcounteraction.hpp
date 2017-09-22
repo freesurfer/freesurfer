@@ -6,9 +6,9 @@ class VisitCounterAction {
 public:
   VisitCounterAction(kvl::cuda::Image_GPU<int,3,unsigned short> target) : output(target) {} 
 
-  template<typename T, typename Internal, typename IndexType>
+  template<typename MeshSupplier, typename T, typename Internal, typename IndexType>
   __device__
-  void operator()( const SimpleSharedTetrahedron<T,Internal>& tet,
+  void operator()( const SimpleSharedTetrahedron<MeshSupplier,T,Internal>& tet,
 		   const IndexType iz,
 		   const IndexType iy,
 		   const IndexType ix ) {

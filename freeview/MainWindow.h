@@ -64,6 +64,7 @@ class LayerFCD;
 class DialogSetCamera;
 class DialogThresholdVolume;
 class DialogVolumeSegmentation;
+class BinaryTreeView;
 
 #define MAX_RECENT_FILES    10
 
@@ -519,6 +520,12 @@ protected slots:
 
   void OnLoadSurfaceLabelRequested(const QString& fn);
 
+  void OnLoadTractCluster();
+
+  void OnTractClusterLoaded(const QVariantMap& data);
+
+  void ShowClusterMap();
+
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);
   void SaveSettings();
@@ -590,6 +597,7 @@ private:
   DialogSetCamera*      m_dlgSetCamera;
   DialogThresholdVolume* m_dlgThresholdVolume;
   DialogVolumeSegmentation* m_dlgVolumeSegmentation;
+  BinaryTreeView*       m_wndTractCluster;
 
   VolumeFilterWorkerThread* m_threadVolumeFilter;
 

@@ -48,6 +48,7 @@ PanelTrack::PanelTrack(QWidget *parent) :
                                << ui->comboBoxDirectionMapping;
   m_widgetlistSolidColor << ui->labelSolidColor
                          << ui->colorPickerSolidColor;
+  connect(ui->pushButtonShowClusterMap, SIGNAL(clicked()), mainwnd, SLOT(ShowClusterMap()));
 }
 
 PanelTrack::~PanelTrack()
@@ -112,6 +113,7 @@ void PanelTrack::DoUpdateWidgets()
   ShowWidgets(m_widgetlistSolidColor, layer && layer->GetProperty()->GetColorCode() == LayerPropertyTrack::SolidColor);
   ui->labelFileName->setEnabled( layer );
   ui->lineEditFileName->setEnabled( layer );
+  ui->pushButtonShowClusterMap->setVisible(layer && layer->IsCluster());
 
   BlockAllSignals( false );
 }

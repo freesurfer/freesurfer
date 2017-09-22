@@ -254,7 +254,7 @@
      <x>0</x>
      <y>0</y>
      <width>1213</width>
-     <height>20</height>
+     <height>19</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -297,6 +297,7 @@
     <addaction name="actionCloseConnectome"/>
     <addaction name="separator"/>
     <addaction name="actionLoadTrack"/>
+    <addaction name="actionLoadTractCluster"/>
     <addaction name="actionCloseTrack"/>
     <addaction name="separator"/>
     <addaction name="actionLoadFCD"/>
@@ -1553,6 +1554,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Shift+D</string>
+   </property>
+  </action>
+  <action name="actionLoadTractCluster">
+   <property name="text">
+    <string>Load Tract Cluster...</string>
    </property>
   </action>
  </widget>
@@ -3114,6 +3120,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionLoadTractCluster</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLoadTractCluster()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -3208,5 +3230,6 @@
   <slot>OnToolSaveCamera()</slot>
   <slot>OnToolLoadCamera()</slot>
   <slot>OnVolumeFilterThreshold()</slot>
+  <slot>OnLoadTractCluster()</slot>
  </slots>
 </ui>

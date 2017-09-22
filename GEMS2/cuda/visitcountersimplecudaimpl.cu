@@ -13,6 +13,8 @@ const unsigned int nVertices = 4;
 template<typename ArgType>
 class SimpleMesh_GPU {
 public:
+  typedef size_t MeshIdxType; 
+
   __device__ __host__
   SimpleMesh_GPU( const kvl::cuda::Image_GPU<ArgType,3,size_t>& tetrahedra ) : tetInfo(tetrahedra) {}
 

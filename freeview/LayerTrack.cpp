@@ -42,7 +42,7 @@
 #include <vtkLODActor.h>
 #include "MyUtils.h"
 
-LayerTrack::LayerTrack(LayerMRI* ref, QObject* parent) : Layer(parent),
+LayerTrack::LayerTrack(LayerMRI* ref, QObject* parent, bool bCluster) : Layer(parent),
   m_trackData(0),
   m_layerMRIRef(ref)
 {
@@ -67,7 +67,7 @@ LayerTrack::~LayerTrack()
   m_actors.clear();
 }
 
-bool LayerTrack::LoadTrackFromFile()
+bool LayerTrack::LoadTrackFromFiles()
 {
   if (this->m_sFilename.isEmpty())
   {
@@ -80,7 +80,7 @@ bool LayerTrack::LoadTrackFromFile()
   }
   m_trackData = new FSTrack(refVol);
   connect(m_trackData, SIGNAL(Progress(int)), this, SIGNAL(Progress(int)));
-  if (!m_trackData->LoadFromFile(m_sFilename))
+  if (!m_trackData->LoadFromFiles(m_listFilenames))
   {
     delete m_trackData;
     m_trackData = 0;
@@ -289,4 +289,29 @@ bool LayerTrack::IsVisible()
     return false;
   else
     return m_actors[0]->GetVisibility();
+}
+
+void LayerTrack::SetFileName(const QString &filename)
+{
+  Layer::SetFileName(filename);
+  m_listFilenames.clear();
+  m_listFilenames << filename;
+}
+
+void LayerTrack::SetFileNames(const QStringList &filenames)
+{
+  Layer::SetFileName(filenames.first());
+  m_listFilenames = filenames;
+}
+
+void LayerTrack::SetClusterData(const QVariantMap &data)
+{
+  m_mapCluster = data;
+  if (data.contains("filenames"))
+    SetFileNames(data["filenames"].toStringList());
+}
+
+bool LayerTrack::IsCluster()
+{
+  return !m_mapCluster.isEmpty();
 }

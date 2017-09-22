@@ -182,6 +182,9 @@ BUILT_SOURCES = \
   moc_DialogVolumeSegmentation.cpp \
   moc_DialogLoadTransform.cpp \
   moc_DialogAddPointSetStat.cpp \
+  moc_BinaryTreeEdge.cpp \
+  moc_BinaryTreeNode.cpp \
+  moc_BinaryTreeView.cpp \
   qrc_freeview.cpp
 
 if USING_QT_5
@@ -532,6 +535,12 @@ freeview_SOURCES = $(BUILT_SOURCES) $(JSON_SOURCES) \
   DialogLoadTransform.h \
   DialogAddPointSetStat.cpp \
   DialogAddPointSetStat.h \
+  BinaryTreeEdge.cpp \
+  BinaryTreeEdge.h \
+  BinaryTreeNode.cpp \
+  BinaryTreeNode.h \
+  BinaryTreeView.cpp \
+  BinaryTreeView.h \
 	freeview.qrc
 
 qrc_freeview.cpp: freeview.qrc

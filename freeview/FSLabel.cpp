@@ -64,9 +64,6 @@ FSLabel::~FSLabel()
     ::LabelFree(&l);
   if (m_l2s)
   {
-    // make sure not to double free labels!
-    for (int i = 0 ;i < m_l2s->nsurfs; i++)
-      m_l2s->labels[i] = NULL;
     L2Sfree(&m_l2s);
   }
 }
@@ -285,7 +282,6 @@ void FSLabel::FillUnassignedVertices(FSSurface* surf, FSVolume* mri_template, in
 
 void FSLabel::Initialize(FSVolume* ref_vol, FSSurface* surf, int coords)
 {
-  /*
   if (surf)
   {
     if (m_l2s)
@@ -297,16 +293,10 @@ void FSLabel::Initialize(FSVolume* ref_vol, FSSurface* surf, int coords)
     m_l2s->hashres = 16;
     m_l2s->vol2surf = NULL;
     m_l2s->nhopsmax = 10;
-    ::LabelFree(&(m_l2s->labels[0]));
-    m_l2s->labels[0] = m_label;
     L2Sinit(m_l2s);
-    for (int i = 0; i < m_label->n_points; i++)
-    {
-    //  L2SaddPoint(m_l2s, nx, ny, nz, 1);
-    }
+    L2SimportLabel(m_l2s, m_label, 1);
   }
   else
-  */
     ::LabelInit(m_label, ref_vol->GetMRI(), surf?surf->GetMRIS():NULL, coords);
 }
 
