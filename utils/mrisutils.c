@@ -2977,7 +2977,7 @@ int ComputeMRISvolumeTH3(char *subject, char *hemi, int DoMask, char *outfile)
   L2SaddPoint(l2s, col, row, slice, 0); // remove point
   L2Sfree(&l2s);
 */
-int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Operation)
+int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int PointType, int Operation)
 {
   int n,nmin,vtxnominmin,vtxno,pointno;
   VERTEX v;
@@ -2990,6 +2990,47 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Opera
     crs = MatrixAlloc(4,1,MATRIX_REAL);
     crs->rptr[4][1] = 1;
   }
+
+  if(PointType != 0){ 
+    // point passed is a vertex from a surface
+    vtxno = col;
+    nmin = PointType-1;
+    label = l2s->labels[nmin];
+    pointno = MRIgetVoxVal(l2s->masks[nmin],vtxno,0,0,0);    
+    if(Operation == 1){ // Add vertex to label
+      if(pointno!=0) return(0); //already there
+      // If it gets here, then add the vertex
+      if(l2s->debug) printf("Adding surf=%d vtxno=%d  np=%5d \n",nmin,vtxno,label->n_points);
+      // Set value of the mask to the label point number + 1 (so 0=nolabel)
+      MRIsetVoxVal(l2s->masks[nmin],vtxno,0,0,0, label->n_points+1);
+      // Check whether need to alloc more points in label
+      if(label->n_points >= label->max_points)
+	LabelRealloc(label, nint(label->max_points*1.5)) ;
+      // Finally, add this point
+      lv = &(label->lv[label->n_points]);
+      lv->vno = vtxno;
+      lv->x = l2s->surfs[nmin]->vertices[vtxno].x;
+      lv->y = l2s->surfs[nmin]->vertices[vtxno].y;
+      lv->z = l2s->surfs[nmin]->vertices[vtxno].z;
+      lv->stat = dminmin;
+      // Incr the number of points in the label
+      label->n_points++;
+      return(1);
+    }
+    else { // Operation != 1, Remove vertex from label
+      if(pointno==0) return(0); // not already there, cant remove it
+      lv = &(label->lv[pointno-1]);
+      // If it gets here, then remove the vertex 
+      if(l2s->debug) printf("Removing surf=%d vtxno=%d %g %g %g   (%5.2f %5.2f %5.2f)\n",
+			    nmin,vtxno,col,row,slice,v.x,v.y,v.z);
+      lv->deleted = 1;
+      MRIsetVoxVal(l2s->masks[nmin],lv->vno,0,0,0, 0);
+      return(1);
+    }
+    return(0); // should never get here
+  }
+
+  // If it gets here, then point is from a volume
   crs->rptr[1][1] = col;
   crs->rptr[2][1] = row;
   crs->rptr[3][1] = slice;
@@ -3025,17 +3066,16 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Opera
 
   // If it does not meet the distance criteria, keep it as a volume point
   if(vtxnominmin == -1) {
-    label = l2s->vollabel;
+    label = l2s->labels[0]; // add to the first surf label
     pointno = MRIgetVoxVal(l2s->volmask,round(col),round(row),round(slice),0);
     if(Operation == 1){ // Add voxel to label
       if(pointno!=0) return(0); //already there
       // If it gets here, then add the voxel
-      // Set value of the mask to 1
+      // Set value of the mask to the point number + 1
       MRIsetVoxVal(l2s->volmask,round(col),round(row),round(slice),0,label->n_points+1);
       // Check whether need to alloc more points in label
       if(label->n_points >= label->max_points)
 	LabelRealloc(label, nint(label->max_points*1.5)) ;
-	
       // Finally, add this point
       lv = &(label->lv[label->n_points]);
       lv->vno = -1;
@@ -3050,14 +3090,8 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Opera
     else { // Operation != 1, Remove vertex from label
       if(pointno==0) return(0); // not already there, cant remove it
       lv = &(label->lv[pointno-1]);
-      // If it gets here, then remove the voxel by copying the last
-      // point into this point, then decrementing the number of points
-      memcpy(&label->lv[pointno-1],&(label->lv[label->n_points-1]),sizeof(LV));
+      lv->deleted = 1;
       MRIsetVoxVal(l2s->volmask,round(col),round(row),round(slice),0,0);
-      label->n_points --;
-      // Need to change the pointno in mask for the moved point
-      lv = &(label->lv[pointno-1]);
-      MRIsetVoxVal(l2s->volmask,round(col),round(row),round(slice),0,pointno);
       return(1); // return=1 because point has been removed
     }
   }
@@ -3092,6 +3126,9 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Opera
 	if(nthhop != 0){
 	  // have to allow nthhop=0 because the closest vertex may be outside of the
 	  // voxel, depending upon the distance threshold
+	  // but could also use this to ignore dist thresh and force the source vtx
+	  // to be inside the voxel. but maybe better to do this before even starting 
+	  // the hops?
 	  if(fabs(v.x-col) > 0.501 || fabs(v.y-row) > 0.501 || fabs(v.z-slice) > 0.501)
 	    continue;
 	}
@@ -3130,16 +3167,11 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Opera
       else { // Operation != 1, Remove vertex from label
 	if(pointno==0) continue; // not already there, cant remove it
 	lv = &(label->lv[pointno-1]);
-	// If it gets here, then remove the vertex by copying the last
-	// point into this point, then decrementing the number of points
+	// If it gets here, then remove the vertex 
 	if(l2s->debug) printf("Removing surf=%d vtxno=%d %g %g %g   (%5.2f %5.2f %5.2f)\n",
 			      nmin,vtxno,col,row,slice,v.x,v.y,v.z);
-	memcpy(&label->lv[pointno-1],&(label->lv[label->n_points-1]),sizeof(LV));
-	MRIsetVoxVal(l2s->masks[nmin],vtxno,0,0,0,0);
-	label->n_points --;
-	// Need to change the pointno in mask for the moved point
-	lv = &(label->lv[pointno-1]);
-	MRIsetVoxVal(l2s->masks[nmin],lv->vno,0,0,0, pointno);
+	lv->deleted = 1;
+	MRIsetVoxVal(l2s->masks[nmin],lv->vno,0,0,0, 0);
 	LabelChanged=1;
       }
     }
@@ -3202,6 +3234,11 @@ int L2Sinit(LABEL2SURF *l2s)
   Vs = vg_i_to_r(&l2s->surfs[0]->vg); // vox2scanneras of surface
   Vv = MRIxfmCRS2XYZ(l2s->mri_template,0); // vox2scanneras of template volume
   invVs = MatrixInverse(Vs,NULL);
+  if(invVs == NULL){
+    printf("ERROR: L2Sinit(): surf[0]->vg is null\n");
+    return(-1);
+  }
+
   if(l2s->vol2surf == NULL) R = MatrixIdentity(4,NULL);
   else {
     // A registration LTA has been passed, make sure it is consisent
@@ -3366,7 +3403,7 @@ int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int nsegs
   int ret, kc, kr, ks;
 
   if(nsegs == 1){
-    ret = L2SaddPoint(l2s, col, row, slice, Operation);
+    ret = L2SaddPoint(l2s, col, row, slice, 0, Operation);
     return(ret);
   }
 
@@ -3380,13 +3417,13 @@ int L2SaddVoxel(LABEL2SURF *l2s, double col, double row, double slice, int nsegs
       r = row + kr*dseg - 0.5;
       for(ks=0; ks < nsegs; ks++){
 	s = slice + ks*dseg - 0.5;
-	ret = L2SaddPoint(l2s, c, r, s, Operation);
+	ret = L2SaddPoint(l2s, c, r, s, 0, Operation);
 	if(ret < 0) return(ret);
       }
     }
   }
   // Make sure to add the center voxel
-  ret = L2SaddPoint(l2s, col, row, slice, Operation);
+  ret = L2SaddPoint(l2s, col, row, slice, 0, Operation);
 
   return(ret);  
 }
@@ -3412,5 +3449,187 @@ int L2SimportLabel(LABEL2SURF *l2s, LABEL *label, int surfno)
     else            LabelAddPoint(l2s->labels[surfno], lv);
   }
 
+  return(0);
+}
+
+/*!
+  \fn int L2Stest(char *subject)
+  \brief Runs some tests on L2S routines. These are not exhaustive.
+  subject defaults to bert if NULL.  Note: fails with average subjects
+  because surf vg not set. Returns 0 if all tests passed or 1 if any
+  test failed. 
+*/
+int L2Stest(char *subject)
+{
+  char * SUBJECTS_DIR, tmpstr[2000];
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  MRI *mri,*apas;
+  MRIS *surf;
+  int vno,c,r,s,ok,err,n;
+  LV *lv;
+  LABEL2SURF *l2s;
+  LABEL *label;
+
+  // Note: might fail with average subject because vg not set
+  if(subject == NULL) subject = "bert";
+  printf("L2Stest: subject %s\n",subject);
+
+  sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,subject);
+  mri  = MRIread(tmpstr);
+  if(mri == NULL) return(1);
+
+  sprintf(tmpstr,"%s/%s/mri/aparc+aseg.mgz",SUBJECTS_DIR,subject);
+  apas = MRIread(tmpstr);
+  if(apas == NULL) return(1);
+
+  sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
+  surf = MRISread(tmpstr);
+
+  sprintf(tmpstr,"%s/%s/label/lh.aparc.annot",SUBJECTS_DIR,subject);
+  MRISreadAnnotation(surf, tmpstr);
+
+  l2s = L2Salloc(1, "");
+  l2s->mri_template = mri;
+  l2s->surfs[0] = surf;
+  l2s->dmax = 3;
+  l2s->hashres = 16;
+  l2s->vol2surf = NULL;
+  l2s->debug = 0;
+  L2Sinit(l2s);
+
+  // Add a surface vertex
+  vno = round(surf->nvertices/2);
+  printf("L2Stest: vno = %d\n",vno);
+  L2SaddPoint(l2s, vno, -1, -1, 1, 1);
+  if(l2s->labels[0]->n_points != 1) {
+    printf("L2Stest: Failed to add surf vertex\n");
+    printf("break %s:%d\n",__FILE__,__LINE__);
+    return(1);
+  }
+  lv = &(l2s->labels[0]->lv[0]);
+  if(lv->vno != vno){
+    printf("L2Stest: Failed to add correct surf vertex (%d)\n",lv->vno);
+    printf("break %s:%d\n",__FILE__,__LINE__);
+    return(1);
+  }
+  // Remove a surface vertex
+  L2SaddPoint(l2s, vno, -1, -1, 1, 0);
+  err = 0;
+  for(n=0; n < l2s->labels[0]->n_points; n++){
+    lv = &(l2s->labels[0]->lv[n]);
+    if(lv->vno == vno && !lv->deleted) {
+      err = 1;
+      break;
+    }
+  }
+  if(err) {
+    printf("L2Stest: Failed to add correct surf vertex (%d)\n",lv->vno);
+    printf("break %s:%d\n",__FILE__,__LINE__);
+    return(1);
+  }
+  l2s->labels[0]->n_points = 0; // reset label
+
+  // Add a voxel near a surface vertex. 
+  // A little circular because tx,ty,tz are computed by L2S
+  c = round(surf->vertices[vno].tx);
+  r = round(surf->vertices[vno].ty);
+  s = round(surf->vertices[vno].tz);
+  L2SaddPoint(l2s, c, r, s, 0, 1);
+  ok = 0;
+  for(n=0; n < l2s->labels[0]->n_points; n++){
+    lv = &(l2s->labels[0]->lv[n]);
+    if(lv->vno == vno) {
+      ok = 1;
+      break;
+    }
+  }
+  if(!ok) {
+    printf("L2Stest: Failed to add correct vox-based surf vertex (%d)\n",lv->vno);
+    printf("break %s:%d\n",__FILE__,__LINE__);
+    return(1);
+  }
+  // Remove voxel near a surface vertex
+  L2SaddPoint(l2s, c, r, s, 0, 0);
+  err = 0;
+  for(n=0; n < l2s->labels[0]->n_points; n++){
+    lv = &(l2s->labels[0]->lv[n]);
+    if(lv->vno == vno && !lv->deleted) {
+      err = 1;
+      break;
+    }
+  }
+  if(err) {
+    printf("L2Stest: Failed to add correct surf vertex (%d)\n",lv->vno);
+    printf("break %s:%d\n",__FILE__,__LINE__);
+    return(1);
+  }
+  l2s->labels[0]->n_points = 0; // reset label
+
+  // Add a voxel away from the surface 
+  c = 0; // 0 0 0 should be guaranteed to not be near surf
+  r = 0;
+  s = 0;
+  printf("L2Stest: crs = (%d, %d, %d)\n",c,r,s);
+
+  L2SaddPoint(l2s, c, r, s, 0, 1);
+  if(l2s->labels[0]->n_points != 1) {
+    printf("L2Stest: Failed to add non-surf voxel\n");
+    printf("break %s:%d\n",__FILE__,__LINE__);
+    return(1);
+  }
+  for(n=0; n < l2s->labels[0]->n_points; n++){
+    lv = &(l2s->labels[0]->lv[n]);
+    if(lv->vno != -1) {
+      printf("L2Stest: Added non-surf voxel, but interpreted as a surf-based\n");
+      printf("break %s:%d\n",__FILE__,__LINE__);
+      return(1);
+    }
+  }
+  // Remove voxel away from the surface 
+  L2SaddPoint(l2s, c, r, s, 0, 0);
+  err = 0;
+  for(n=0; n < l2s->labels[0]->n_points; n++){
+    lv = &(l2s->labels[0]->lv[n]);
+    if(!lv->deleted) {
+      err = 1;
+      break;
+    }
+  }
+  if(err) {
+    printf("L2Stest: Failed to remove non-surf-based voxel\n");
+    printf("break %s:%d\n",__FILE__,__LINE__);
+    return(1);
+  }
+  l2s->labels[0]->n_points = 0; // reset label
+
+  // Import a label
+  label = annotation2label(1, surf); // banks of the stss
+  printf("L2Stest: importing label with np = %d\n",label->n_points);
+  L2SimportLabel(l2s, label, 0); 
+  if(label->n_points != l2s->labels[0]->n_points){
+    printf("L2Stest: Failed to import label np = %d %d\n",
+	   label->n_points,l2s->labels[0]->n_points);
+    printf("break %s:%d\n",__FILE__,__LINE__);
+    return(1);
+  }
+  err = 0;
+  for(n=0; n < l2s->labels[0]->n_points; n++){
+    lv = &(l2s->labels[0]->lv[n]);
+    if(lv->vno != label->lv[n].vno) {
+      err = 1;
+      break;
+    }
+  }
+  if(err) {
+    printf("L2Stest: Failed to correctly import label\n");
+    printf("break %s:%d\n",__FILE__,__LINE__);
+    return(1);
+  }
+  l2s->labels[0]->n_points = 0; // reset label
+
+
+  L2Sfree(&l2s);
+
+  printf("L2Stest: passed tests, subject = %s\n",subject);
   return(0);
 }
