@@ -4361,16 +4361,10 @@ MRIprincipleComponents(MRI *mri, MATRIX *mEvectors, float *evalues,
                        double *means, BUFTYPE threshold)
 {
   int     width, height, depth, x, y, z ;
-  BUFTYPE *psrc, val ;
   long    npoints ;
   MATRIX  *mCov, *mX, *mXT, *mTmp ;
-  double  mx, my, mz, weight ;
+  double  mx, my, mz, weight, val ;
 
-  if (mri->type != MRI_UCHAR)
-    ErrorReturn(ERROR_UNSUPPORTED,
-                (ERROR_UNSUPPORTED,
-                 "MRIprincipleComponents: unsupported input type %d",
-                 mri->type)) ;
 
   width = mri->width ;
   height = mri->height ;
@@ -4383,10 +4377,9 @@ MRIprincipleComponents(MRI *mri, MATRIX *mEvectors, float *evalues,
   {
     for (y = 0 ; y < height ; y++)
     {
-      psrc = &MRIvox(mri, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        val = *psrc++ ;
+        val = MRIgetVoxVal(mri, x, y, z, 0) ;
         if (val > threshold)
         {
           weight += val ;
@@ -4420,10 +4413,9 @@ MRIprincipleComponents(MRI *mri, MATRIX *mEvectors, float *evalues,
   {
     for (y = 0 ; y < height ; y++)
     {
-      psrc = &MRIvox(mri, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        val = *psrc++ ;
+        val = MRIgetVoxVal(mri, x, y, z, 0) ;
         if (val > threshold)
         {
           mX->rptr[1][1] = ((float)x - mx)*val ;

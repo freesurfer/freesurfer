@@ -762,7 +762,8 @@ find_corpus_callosum(MRI *mri_tal,
     zv = region.z+region.dz/2;
   }
 
-  fprintf(stdout, "original seed found at x=%d, y=%d z=%d \n", x0, yv, zv );
+  x0 = xv ;  // BRF!!
+  fprintf(stdout, "original seed found at x=%d, y=%d z=%d \n", xv, yv, zv );
   /* find the column with the lowest starting y value of any sign. thick. */
   xcc = ycc = max_y = 0 ;
   for (x = x0-cc_spread ; x <= x0+cc_spread ; x++)
@@ -846,9 +847,9 @@ find_cc_slice(MRI *mri_tal,
   // here we can handle only up to .5 mm voxel size
   int         area[MAX_SLICES*2], flag[MAX_SLICES*2],
               min_area, min_slice, slice, offset,xv,yv,zv,
-              xo, yo ,i, total_area=0, left=0, right=0;
+              i, total_area=0, left=0, right=0;
   MRI         *mri_slice, *mri_filled ;
-  Real        aspect, x_tal, y_tal, z_tal, x, y, z, xvv, yvv, zvv;
+  Real        x_tal, y_tal, z_tal, x, y, z, xvv, yvv, zvv;
   MRI_REGION  region ;
   char        fname[STRLEN] ;
   int         half_slices, ii, jj;
@@ -868,7 +869,6 @@ find_cc_slice(MRI *mri_tal,
   y_tal = *pccy ;
   z_tal = *pccz ;
   offset = 0 ;
-  xo = yo = (slice_size-1)/2 ;  /* center point of the slice */
   xv = yv = zv = 0 ;
   for (slice = 0 ; slice < max_slices ; slice++)
   {
@@ -889,7 +889,6 @@ find_cc_slice(MRI *mri_tal,
       mri_filled =  MRIfillFG(mri_slice, NULL,
                               zv, yv,0,WM_MIN_VAL,CC_VAL,&area[slice]);
       MRIboundingBox(mri_filled, 1, &region) ;
-      aspect = (Real)region.dy / (Real)region.dx ;
       if (i++)
       {
         fprintf(stdout,"moved %d in slice %d \n", i-1, slice);
