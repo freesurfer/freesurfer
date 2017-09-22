@@ -34,6 +34,7 @@ class FSTrack : public TrackData
 public:
   FSTrack(FSVolume* ref = 0, QObject *parent = 0);
   bool LoadFromFile(const QString &filename, const QString& ref_fn = QString());
+  bool LoadFromFiles(const QStringList &filenames, const QString& ref_fn = QString());
 
   void GetRASBounds(double bounds[]);
 

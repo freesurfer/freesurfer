@@ -35,7 +35,14 @@ FSTrack::FSTrack(FSVolume* ref, QObject *parent) :
 
 bool FSTrack::LoadFromFile(const QString &filename, const QString &ref_fn)
 {
-  if (!TrackData::LoadFromFile(filename))
+  QStringList list;
+  list << filename;
+  return LoadFromFiles(list, ref_fn);
+}
+
+bool FSTrack::LoadFromFiles(const QStringList &filenames, const QString &ref_fn)
+{
+  if (!TrackData::LoadFromFiles(filenames))
   {
     return false;
   }

@@ -38,7 +38,7 @@ public:
   TrackData(QObject *parent = 0);
   ~TrackData();
 
-  bool LoadFromFile(const QString& filename);
+  bool LoadFromFiles(const QStringList& filenames);
 
   int GetNumberOfTracks()
   {
@@ -49,6 +49,7 @@ signals:
   void Progress(int n);
 
 public slots:
+  void Clear();
 
 protected:
   int     m_nDim[3];
@@ -64,7 +65,6 @@ protected:
   int     m_nNumberOfSegs;
 
   bool    m_bValidVoxToRas;
-  QString m_sFileName;
 
   QList<Track>    m_tracks;
   QList< QPair<double, double> > m_rangeScalar;

@@ -190,7 +190,7 @@ public:
     return m_sFilename;
   }
 
-  void SetFileName( const QString& fn )
+  virtual void SetFileName( const QString& fn )
   {
     m_sFilename = fn;
   }

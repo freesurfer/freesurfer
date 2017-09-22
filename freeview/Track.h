@@ -36,6 +36,7 @@ struct Track
 
   short* nVoxels;
   int    nNumberOfVoxels;
+  unsigned char charColor[3];
 
   Track()
   {

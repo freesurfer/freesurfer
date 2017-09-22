@@ -112,6 +112,8 @@
 #include "DialogThresholdFilter.h"
 #include "DialogLoadTransform.h"
 #include "LayerPropertyTrack.h"
+#include "BinaryTreeView.h"
+
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
 #endif
@@ -294,6 +296,12 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
   m_dlgSetCamera = new DialogSetCamera(this);
   m_dlgSetCamera->hide();
+
+  m_wndTractCluster = new BinaryTreeView(this);
+  m_wndTractCluster->setWindowFlags(Qt::Window);
+  m_wndTractCluster->setWindowTitle("Tract Cluster");
+  m_wndTractCluster->hide();
+  connect(m_wndTractCluster, SIGNAL(TreeDataLoaded(QVariantMap)), SLOT(OnTractClusterLoaded(QVariantMap)));
 
   QStringList keys = m_layerCollections.keys();
   for ( int i = 0; i < keys.size(); i++ )
@@ -1327,6 +1335,7 @@ void MainWindow::OnIdle()
   ui->actionLoadSurface     ->setEnabled( !bBusy );
   ui->actionLoadTrackVolume ->setEnabled( !bBusy );
   ui->actionLoadTrack       ->setEnabled( !bBusy );
+  ui->actionLoadTractCluster->setEnabled( !bBusy );
   ui->actionNewVolume       ->setEnabled( layerVolume );
   ui->actionNewROI          ->setEnabled( layerVolume );
   ui->actionNewPointSet     ->setEnabled( layerVolume );
@@ -6668,6 +6677,19 @@ void MainWindow::OnActiveLayerChanged(Layer* layer)
       //    else
       //      m_wndTimeCourse->hide();
     }
+    else if (layer->IsTypeOf("Tract"))
+    {
+      QList<Layer*> layers = GetLayers("Tract");
+      foreach (Layer* layer, layers)
+        disconnect(m_wndTractCluster, 0, layer, 0);
+      LayerTrack* tract = qobject_cast<LayerTrack*>(layer);
+      if (tract && tract->IsCluster())
+      {
+        connect(m_wndTractCluster, SIGNAL(TreeNodeActivated(QStringList)), tract,
+                SLOT(LoadTrackFromFiles(QStringList)), Qt::UniqueConnection);
+        m_wndTractCluster->SetData(tract->GetClusterData());
+      }
+    }
   }
 }
 
@@ -7461,4 +7483,35 @@ void MainWindow::OnLoadSurfaceLabelRequested(const QString &fn)
 {
   AddScript(QStringList("loadsurfacelabel") << fn);
   AddScript(QStringList("hidesurfacelabel"));
+}
+
+void MainWindow::OnLoadTractCluster()
+{
+  QString dirPath = QFileDialog::getExistingDirectory(this, "Select Folder");
+  if (!dirPath.isEmpty())
+  {
+    m_wndTractCluster->Load(dirPath);
+  }
+}
+
+void MainWindow::OnTractClusterLoaded(const QVariantMap& data)
+{
+  QStringList filenames = data.value("filenames").toStringList();
+  if (filenames.isEmpty())
+  {
+    QMessageBox::warning(this, "Error", "Could not find any tract files in selected folder");
+  }
+  else
+  {
+    ShowClusterMap();
+    LayerTrack* layer = new LayerTrack( m_layerVolumeRef, NULL, true );
+    layer->SetClusterData(data);
+    m_threadIOWorker->LoadTrack( layer );
+  }
+}
+
+void MainWindow::ShowClusterMap()
+{
+  m_wndTractCluster->show();
+  m_wndTractCluster->raise();
 }

@@ -33,7 +33,7 @@ class LayerPropertyTrack : public LayerProperty
 public:
   LayerPropertyTrack(QObject* parent = 0);
 
-  enum ColorCode { Directional = 0, SolidColor };
+  enum ColorCode { Directional = 0, SolidColor, EmbeddedColor };
   enum DirectionScheme { EndPoints = 0, MidSegment, EverySegment };
   enum DirectionMapping  { RGB = 0, RBG, GRB, GBR, BRG, BGR };
   enum RenderRep { Line = 0, Tube };
