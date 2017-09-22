@@ -2937,18 +2937,29 @@ int ComputeMRISvolumeTH3(char *subject, char *hemi, int DoMask, char *outfile)
 
 
 /*!
-  \fn int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Operation)
+  \fn int L2SaddPoint(LABEL2SURF *l2s, double col_or_vno, double row, double slice, int PointType, int Operation)
 
-  \brief Adds (Operation==1) or removes (Operation!=1) a voxel from a
-  label based on its proximity to a surface. The label can be dilated
-  along the surface based on the options set in the l2s structure.
-  The caller must have run L2Salloc() and L2Sinit() and set the
-  appropriate variables in the L2S structure. There is a label for
-  each surface. If the CRS is within dmax to a surface, then it is
-  assigned to the label of the closest surface. Specifying multiple
-  surfaces allows a label to be assigned, for example, to the lh but
-  not the rh if both lh and rh surfaces are in the voxel. This
-  function is not thread-safe. See also L2SaddVoxel(). 
+  \brief Adds (Operation==1) or removes (Operation!=1) a voxel or a
+  vertex from a label based on its proximity to a surface. If
+  PointType==0, then the point is treated like a voxel (col, row,
+  slice). If PointType>0, then col_or_vno is treated as a vertex
+  number (row and slice ignored), and the value of PointType is used
+  to determine the surface number to use (surfno = PointType-1, so
+  PointType==1 means the 1st surface).
+
+  For label points derived from a voxel, if the CRS is within dmax to
+  a surface, then it is assigned to the label of the closest
+  surface. If it is further away, it is assigned to the label of the
+  first surface (labels[0]) with vno = -1. XYZ of the CRS is
+  determined from the template volume and a transform (can be NULL).
+  Surface labels can be dilated along the surface based on the options
+  set in the l2s structure.  The caller must have run L2Salloc() and
+  L2Sinit() and set the appropriate variables in the L2S structure
+  before running this function.  There is a label for each
+  surface. Specifying multiple surfaces allows a label to be assigned,
+  for example, to the lh but not the rh if both lh and rh surfaces are
+  in the voxel. This function is not thread-safe. See also
+  L2SaddVoxel() and L2Stest().
 
   Returns 1 if a point was added or removed and 0 if there was no change.
 
@@ -2967,14 +2978,19 @@ int ComputeMRISvolumeTH3(char *subject, char *hemi, int DoMask, char *outfile)
   l2s->nhopsmax = 10;
   L2Sinit(l2s);
   // start off with somelabel; any surface label points are assigned to
-  // the 2nd surface (surfno=1); volume label points are assigned to 
+  // the 1st surface (surfno=0); volume label points are assigned to 
   // the vollabel element
-  L2SimportLabel(l2s, somelabel, 1); 
-  L2SaddPoint(l2s, col, row, slice, 1); // add point
-  LabelWrite(l2s->vollabel,"./vol.label");
+  L2SimportLabel(l2s, somelabel, 0); 
+  // add a surface vertex to label of the 1st surface
+  L2SaddPoint(l2s, 110027, -1, -1, 1, 1);
+  // remove some surface vertices from the label of the 2nd surface
+  L2SaddPoint(l2s, 111010, -1, -1, 2, 0);
+  L2SaddPoint(l2s,   5000, -1, -1, 2, 0);
+  // add a voxel at CRS
+  L2SaddPoint(l2s, col, row, slice, 0, 1); // add a voxel
   LabelWrite(l2s->labels[0],"./lh.label");
   LabelWrite(l2s->labels[1],"./rh.label");
-  L2SaddPoint(l2s, col, row, slice, 0); // remove point
+  L2SaddPoint(l2s, col, row, slice, 0, 0); // remove a voxel
   L2Sfree(&l2s);
 */
 int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int PointType, int Operation)
