@@ -36,6 +36,7 @@
 #include "geodesics.h"
 #include "timer.h"
 #include "utils.h"
+#include "annotation.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -78,6 +79,9 @@ int main(int argc, char **argv)
 
   vg_isEqual_Threshold = 10e-4;
 
+  c = L2Stest("fsf03anat");
+  exit(c);
+
   if(0){
     mri  = MRIread(argv[1]);
     surf = MRISread(argv[2]);
@@ -107,11 +111,22 @@ int main(int argc, char **argv)
   s = 17;
   for(c = 0; c < mri->width; c++){
     //printf("%2d ",c); fflush(stdout);
-    for(r = 0; r < mri->height; r++) L2SaddPoint(l2s, c, r, s, 1);
+    for(r = 0; r < mri->height; r++) L2SaddPoint(l2s, c, r, s, 0, 1);
     //printf("\n");
   }
   // remove, erase a few
-  for(c = 10; c < mri->width-10; c++) L2SaddPoint(l2s, c, 15, s, 0);
+  //for(c = 10; c < mri->width-10; c++) L2SaddPoint(l2s, c, 15, s, 0, 0);
+
+  // add surface vertices
+  for(c = 0; c < 10000; c++) L2SaddPoint(l2s, c, -1, -1, 1, 1);
+
+  // add a surface vertex that is already there
+  L2SaddPoint(l2s, 110027, -1, -1, 1, 1);
+
+  // remove some surface vertices
+  L2SaddPoint(l2s, 111010, -1, -1, 1, 0);
+  L2SaddPoint(l2s,   5000, -1, -1, 1, 0);
+
 
   LabelWrite(l2s->labels[0],"./my.label0");
   LabelWrite(l2s->labels[1],"./my.label1");
