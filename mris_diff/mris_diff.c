@@ -263,7 +263,7 @@ static const char* printHistograms() {
   //	99%   should be within 1
   //
   const double vertexRequiredFit[9] = {0.0, 0.0, 0.0, 0.05, 0.1, 0.5, 0.95, 0.99, -1};
-  const double otherRequiredFit [9] = {0.2, 0.7, 0.95, 0.99, -1};
+  const double otherRequiredFit [9] = {0.2, 0.6, 0.95, 0.99, -1};
   
   printOneHistogram(&vertexXyzHistogram   , "vertex xyz"   , vertexRequiredFit, &badHistogram);
   printOneHistogram(&vertexNxnynzHistogram, "vertex nxnynz", otherRequiredFit,  &badHistogram);
