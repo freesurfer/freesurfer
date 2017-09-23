@@ -198,10 +198,11 @@ static void insertHistogramOfFit(HistogramOfFit* histogramOfFit, double diff, do
 static int printfHistogramOfFit(HistogramOfFit* histogramOfFit, double const* requiredFit) {
   int countOfBad = 0;
   const int pop = populationHistogramOfFit(histogramOfFit);
-  double fit = 0.01; int i = 0;
-  int popSoFar       = 0;
+  double fit = 0.01; 
+  int popSoFar     = 0;
   int requiredFitI = 0;
   const int head = headHistogramOfFit(histogramOfFit);
+  int i = 0;
   while (i < head) { 
     const char* comment = "";
     popSoFar += histogramOfFit->v[i];
@@ -220,6 +221,7 @@ static int printfHistogramOfFit(HistogramOfFit* histogramOfFit, double const* re
 }
 
 static HistogramOfFit vertexXyzHistogram;
+static HistogramOfFit vertexRelativeXyzHistogram;
 static HistogramOfFit vertexNxnynzHistogram;
 static HistogramOfFit faceNxnynzHistogram;
 static HistogramOfFit faceAreaHistogram;
@@ -234,6 +236,7 @@ static void compare(HistogramOfFit* histogramOfFit, double lhs, double rhs) {
 
 static void initHistograms() {
   initHistogramOfFit(&vertexXyzHistogram);
+  initHistogramOfFit(&vertexRelativeXyzHistogram);
   initHistogramOfFit(&vertexNxnynzHistogram);
   initHistogramOfFit(&faceNxnynzHistogram);
   initHistogramOfFit(&faceAreaHistogram);
@@ -263,13 +266,15 @@ static const char* printHistograms() {
   //	99%   should be within 1
   //
   const double vertexRequiredFit[9] = {0.0, 0.0, 0.0, 0.05, 0.1, 0.5, 0.95, 0.99, -1};
+  const double relVtxRequiredFit[9] = {0.5, 0.6, 0.90, 0.95, 0.99, -1};
   const double otherRequiredFit [9] = {0.2, 0.6, 0.95, 0.99, -1};
   
-  printOneHistogram(&vertexXyzHistogram   , "vertex xyz"   , vertexRequiredFit, &badHistogram);
-  printOneHistogram(&vertexNxnynzHistogram, "vertex nxnynz", otherRequiredFit,  &badHistogram);
-  printOneHistogram(&faceNxnynzHistogram  , "face nxnynz"  , otherRequiredFit,  &badHistogram);
-  printOneHistogram(&faceAreaHistogram    , "face area"    , otherRequiredFit,  &badHistogram);
-  printOneHistogram(&vertexCurvHistogram  , "vertex curv"  , otherRequiredFit,  &badHistogram);
+  printOneHistogram(&vertexXyzHistogram        , "vertex xyz"     , vertexRequiredFit, &badHistogram);
+  printOneHistogram(&vertexRelativeXyzHistogram, "vertex rel xyz" , relVtxRequiredFit, &badHistogram);
+  printOneHistogram(&vertexNxnynzHistogram     , "vertex nxnynz"  , otherRequiredFit,  &badHistogram);
+  printOneHistogram(&faceNxnynzHistogram       , "face nxnynz"    , otherRequiredFit,  &badHistogram);
+  printOneHistogram(&faceAreaHistogram         , "face area"      , otherRequiredFit,  &badHistogram);
+  printOneHistogram(&vertexCurvHistogram       , "vertex curv"    , otherRequiredFit,  &badHistogram);
   return badHistogram;
 }
 
@@ -438,6 +443,41 @@ int main(int argc, char *argv[]) {
         compare(&vertexXyzHistogram, vtx1->x, vtx2->x);
         compare(&vertexXyzHistogram, vtx1->y, vtx2->y);
         compare(&vertexXyzHistogram, vtx1->z, vtx2->z);
+
+	// The problem with comparing xyz is that a whole "continent" of
+	// faces can drift in the same internal shape and they all
+	// appear to be bad, whereas in reality the internals are as good
+	// as elsewhere.  So, in addition to this dubious compare, compare
+	// the distances between the non-ripped vertices of the faces that come
+	// together at a vertex.
+	//
+	if (vtx1->num != vtx2->num) {
+          printf("Vertex %d differs in num %d %d\n",
+               nthvtx,vtx1->num,vtx2->num);
+          if (++error_count>=MAX_NUM_ERRORS) break;
+	} else {
+	  int fn;
+	  for (fn = 0; fn < vtx1->num; fn++) {
+	    FACE* f1 = &(surf1->faces[vtx1->f[fn]]);
+	    FACE* f2 = &(surf2->faces[vtx2->f[fn]]);
+	    if (f1->ripflag || f2->ripflag) continue;
+	    int vn;
+	    for (vn = 0; vn < VERTICES_PER_FACE; vn++) {
+	      VERTEX* v1 = &(surf1->vertices[f1->v[vn]]);
+	      VERTEX* v2 = &(surf2->vertices[f2->v[vn]]);
+	      if (v1->ripflag || v2->ripflag) continue;
+      	      double dx1 = v1->x - vtx1->x ;
+              double dy1 = v1->y - vtx1->y ;
+              double dz1 = v1->z - vtx1->z ;
+              double dist1 = sqrt(dx1*dx1 + dy1*dy1 + dz1*dz1);
+      	      double dx2 = v2->x - vtx2->x ;
+              double dy2 = v2->y - vtx2->y ;
+              double dz2 = v2->z - vtx2->z ;
+              double dist2 = sqrt(dx2*dx2 + dy2*dy2 + dz2*dz2);
+	      compare(&vertexRelativeXyzHistogram, dist1, dist2);
+	    }
+	  }
+	}
 #else
         diff=fabs(vtx1->x - vtx2->x);
         if (diff>maxdiff) maxdiff=diff;
