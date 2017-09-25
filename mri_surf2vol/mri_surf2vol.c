@@ -689,7 +689,7 @@ static void print_usage(void) {
   printf("  --vtxvol vtxfile : vertex map volume path id\n");
   printf("  \n");
   printf("  Applies to both methods\n");
-  printf("  --add const : add constant value to each non-zore output voxel\n");
+  printf("  --add const : add constant value to each non-zero output voxel\n");
   printf("  --sd subjectsdir : FreeSurfer subjects' directory\n");
   printf("  --help    : hidden secrets of success\n");
   printf("  --gdiagno number : set diag level\n");
