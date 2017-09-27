@@ -2998,7 +2998,8 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Point
   int n,nmin,vtxnominmin,vtxno,pointno;
   VERTEX v;
   static MATRIX *crs=NULL, *ras=NULL;
-  float dminsurf,dminmin;
+  float dminsurf;
+  float dminmin = 0.0;
   LV *lv;
   LABEL *label;
 
