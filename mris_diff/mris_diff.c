@@ -1,5 +1,3 @@
-#define BEVIN_IMPLEMENTATION
-
 /**
  * @file  mris_diff.c
  * @brief Compare two surfaces.
@@ -33,12 +31,6 @@
 // --test-aparc vtxno val
 // --test-curv vtxno val
 // --log
-#ifndef BEVIN_IMPLEMENTATION
-// --thresh
-#else
-// --threshAbs	allow the values to differ by this amount, 
-// --threshRel				   or by this fraction of the larger value
-#endif
 // --debug
 
 /*
@@ -143,9 +135,6 @@ static int CheckNXYZ=1;
 static int ComputeNormalDist=0;
 static int CheckCurv=0;
 static int CheckAParc=0;
-#ifndef BEVIN_IMPLEMENTATION
-static double thresh=0;
-#endif
 
 static long seed=1234;
 
@@ -153,7 +142,6 @@ static int error_count=0;
 static int MAX_NUM_ERRORS=10; // in loops, stop after this many errors found
 // set by cmd-line parm --maxerrs
 
-#ifdef BEVIN_IMPLEMENTATION
 // Because slight numerical differences can cause triangles, especially those on folds, 
 // to end up at significantly different orientations (seen as big variations in nx,ny,nz)
 // it is important to understand how well the whole surface fits, rather than just looking for the
@@ -278,7 +266,6 @@ static const char* printHistograms() {
   return badHistogram;
 }
 
-#endif
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -286,11 +273,7 @@ int main(int argc, char *argv[]) {
   int nthface, annot1, annot2;
   VERTEX *vtx1, *vtx2;
   FACE *face1, *face2;
-#ifdef BEVIN_IMPLEMENTATION
   float maxdiff, rms;
-#else
-  float diff, maxdiff, rms;
-#endif
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -425,9 +408,7 @@ int main(int argc, char *argv[]) {
   if (CheckSurf) {
     printf("Comparing surfaces\n");
 
-#ifdef BEVIN_IMPLEMENTATION
     initHistograms();
-#endif
     // Loop over vertices ---------------------------------------
     error_count=0;
     for (nthvtx=0; nthvtx < surf1->nvertices; nthvtx++) {
@@ -439,7 +420,6 @@ int main(int argc, char *argv[]) {
         if (++error_count>=MAX_NUM_ERRORS) break;
       }
       if (CheckXYZ) {
-#ifdef BEVIN_IMPLEMENTATION
         compare(&vertexXyzHistogram, vtx1->x, vtx2->x);
         compare(&vertexXyzHistogram, vtx1->y, vtx2->y);
         compare(&vertexXyzHistogram, vtx1->z, vtx2->z);
@@ -478,58 +458,11 @@ int main(int argc, char *argv[]) {
 	    }
 	  }
 	}
-#else
-        diff=fabs(vtx1->x - vtx2->x);
-        if (diff>maxdiff) maxdiff=diff;
-        if (diff>thresh) {
-          printf("Vertex %d differs in x %g %g\t(%g)\n",
-                 nthvtx,vtx1->x,vtx2->x,diff);
-          if (++error_count>=MAX_NUM_ERRORS) break;
-        }
-        diff=fabs(vtx1->y - vtx2->y);
-        if (diff>maxdiff) maxdiff=diff;
-        if (diff>thresh) {
-          printf("Vertex %d differs in y %g %g\t(%g)\n",
-                 nthvtx,vtx1->y,vtx2->y,diff);
-          if (++error_count>=MAX_NUM_ERRORS) break;
-        }
-        diff=fabs(vtx1->z - vtx2->z);
-        if (diff>maxdiff) maxdiff=diff;
-        if (diff>thresh) {
-          printf("Vertex %d differs in z %g %g\t(%g)\n",
-                 nthvtx,vtx1->z,vtx2->z,diff);
-          if (++error_count>=MAX_NUM_ERRORS) break;
-        }
-#endif
       }
       if (CheckNXYZ) {
-#ifdef BEVIN_IMPLEMENTATION
         compare(&vertexNxnynzHistogram, vtx1->nx, vtx2->nx);
         compare(&vertexNxnynzHistogram, vtx1->ny, vtx2->ny);
         compare(&vertexNxnynzHistogram, vtx1->nz, vtx2->nz);
-#else
-        diff=fabs(vtx1->nx - vtx2->nx);
-        if (diff>maxdiff) maxdiff=diff;
-        if (diff>thresh) {
-          printf("Vertex %d differs in nx %g %g\t(%g)\n",
-                 nthvtx,vtx1->nx,vtx2->nx,diff);
-          if (++error_count>=MAX_NUM_ERRORS) break;
-        }
-        diff=fabs(vtx1->ny - vtx2->ny);
-        if (diff>maxdiff) maxdiff=diff;
-        if (diff>thresh) {
-          printf("Vertex %d differs in ny %g %g\t(%g)\n",
-                 nthvtx,vtx1->ny,vtx2->ny,diff);
-          if (++error_count>=MAX_NUM_ERRORS) break;
-        }
-        diff=fabs(vtx1->nz - vtx2->nz);
-        if (diff>maxdiff) maxdiff=diff;
-        if (diff>thresh) {
-          printf("Vertex %d differs in nz %g %g\t(%g)\n",
-                 nthvtx,vtx1->nz,vtx2->nz,diff);
-          if (++error_count>=MAX_NUM_ERRORS) break;
-        }
-#endif
       }
       nnbrs1 = surf1->vertices[nthvtx].vnum;
       nnbrs2 = surf2->vertices[nthvtx].vnum;
@@ -564,45 +497,11 @@ int main(int argc, char *argv[]) {
       face1 = &(surf1->faces[nthface]);
       face2 = &(surf2->faces[nthface]);
       if (CheckNXYZ) {
-#ifdef BEVIN_IMPLEMENTATION
         compare(&faceNxnynzHistogram, face1->nx, face2->nx);
         compare(&faceNxnynzHistogram, face1->ny, face2->ny);
         compare(&faceNxnynzHistogram, face1->nz, face2->nz);
-#else
-        diff=fabs(face1->nx - face2->nx);
-        if (diff>maxdiff) maxdiff=diff;
-        if (diff>thresh) {
-          printf("Face %d differs in nx %g %g\t(%g)\n",
-                 nthface,face1->nx,face2->nx,diff);
-          if (++error_count>=MAX_NUM_ERRORS) break;
-        }
-        diff=fabs(face1->ny - face2->ny);
-        if (diff>maxdiff) maxdiff=diff;
-        if (diff>thresh) {
-          printf("Face %d differs in ny %g %g\t(%g)\n",
-                 nthface,face1->ny,face2->ny,diff);
-          if (++error_count>=MAX_NUM_ERRORS) break;
-        }
-        diff=fabs(face1->nz - face2->nz);
-        if (diff>maxdiff) maxdiff=diff;
-        if (diff>thresh) {
-          printf("Face %d differs in nz %g %g\t(%g)\n",
-                 nthface,face1->nz,face2->nz,diff);
-          if (++error_count>=MAX_NUM_ERRORS) break;
-        }
-#endif
       }
-#ifdef BEVIN_IMPLEMENTATION
       compare(&faceAreaHistogram, face1->area, face2->area);
-#else
-      diff=fabs(face1->area - face2->area);
-      if (diff>maxdiff) maxdiff=diff;
-      if (diff>thresh) {
-        printf("Face %d differs in area %g %g\t(%g)\n",
-               nthface,face1->area,face2->area,diff);
-        if (++error_count>=MAX_NUM_ERRORS) break;
-      }
-#endif
       if (face1->ripflag != face2->ripflag) {
         printf("Face %d differs in ripflag %c %c\n",
                nthface,face1->ripflag,face2->ripflag);
@@ -626,24 +525,18 @@ int main(int argc, char *argv[]) {
       exit(103);
     }
 
-#ifdef BEVIN_IMPLEMENTATION
     const char* badHistogram = printHistograms();
     if (badHistogram) {
       printf("Too many differences in %s (and maybe others)\n", badHistogram);
       exit(103);
     }
-#else
-    printf("Surfaces are the same\n");
-#endif
 
     exit(0);
   } // end check surf
 
   // -----------------------------------------------------------------
   if (CheckCurv) {
-#ifdef BEVIN_IMPLEMENTATION
     initHistograms();
-#endif
     printf("Checking curv file %s\n",curvname);
     sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR1,subject1,hemi,curvname);
     printf("Loading curv file %s\n",tmpstr);
@@ -661,17 +554,7 @@ int main(int argc, char *argv[]) {
     for (nthvtx=0; nthvtx < surf1->nvertices; nthvtx++) {
       vtx1 = &(surf1->vertices[nthvtx]);
       vtx2 = &(surf2->vertices[nthvtx]);
-#ifdef BEVIN_IMPLEMENTATION
       compare(&vertexCurvHistogram, vtx1->curv, vtx2->curv);
-#else
-      diff=fabs(vtx1->curv - vtx2->curv);
-      if (diff>maxdiff) maxdiff=diff;
-      if (diff > thresh) {
-        printf("curv files differ at vertex %d %g %g\t(%g)\n",
-               nthvtx,vtx1->curv,vtx2->curv,diff);
-        if (++error_count>=MAX_NUM_ERRORS) break;
-      }
-#endif
     } // end loop over vertices
     if (maxdiff>0) printf("maxdiff=%g\n",maxdiff);
     if (error_count > 0) {
@@ -681,11 +564,11 @@ int main(int argc, char *argv[]) {
       }
       exit(103);
     }
-#ifdef BEVIN_IMPLEMENTATION
-    printHistograms();
-#else
-    printf("Curv files are the same\n");
-#endif
+    const char* badHistogram = printHistograms();
+    if (badHistogram) {
+      printf("Too many differences in %s (and maybe others)\n", badHistogram);
+      exit(103);
+    }
     exit(0);
   } // end check curv
 
@@ -819,12 +702,6 @@ static int parse_commandline(int argc, char **argv) {
       aparc2name = pargv[0];
       CheckAParc=1;
       nargsused = 1;
-#ifndef BEVIN_IMPLEMENTATION
-    } else if (!strcasecmp(option, "--thresh")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%lf",&thresh);
-      nargsused = 1;
-#endif
     } 
     else if (!strcasecmp(option, "--maxerrs")) {
       if (nargc < 1) CMDargNErr(option,1);
