@@ -1108,7 +1108,7 @@ SurfaceROI* RenderView3D::InitializeSurfaceROI( int posX, int posY )
 
   if ( !surf )
   {
-    return false;
+    return NULL;
   }
 
   lc_surf->SetActiveLayer( surf );
