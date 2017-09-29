@@ -1887,9 +1887,15 @@ MRISPconvolveGaussian(MRI_SP *mrisp_src, MRI_SP *mrisp_dst,
 MRI_SP *
 MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno)
 {
-  int    u, v, cart_klen, klen, khalf, uk, vk, u1, v1, no_sphere, voff, f0, f1;
-  double k, total, ktotal, sigma_sq_inv, udiff, vdiff, sin_sq_u, phi ;
-  IMAGE  *Ip_src, *Ip_dst ;
+  int f0, f1;
+  int no_sphere_init;
+  int cart_klen_init;
+  double sigma_sq_inv_init;
+  IMAGE  *Ip_src_init;
+  {
+    int no_sphere, cart_klen;
+    double sigma_sq_inv;
+    IMAGE  *Ip_src, *Ip_dst;
 
   no_sphere = getenv("NO_SPHERE") != NULL ;
   if (no_sphere)
@@ -1924,10 +1930,26 @@ MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno)
   {
     f0 = f1 = fno ;
   }
+
+    cart_klen_init = cart_klen;
+    Ip_src_init = Ip_src;
+    no_sphere_init = no_sphere;
+    sigma_sq_inv_init = sigma_sq_inv;
+  }
+  const int           cart_klen    = cart_klen_init;
+  const int           no_sphere    = no_sphere_init;
+  const double        sigma_sq_inv = sigma_sq_inv_init;
+  const IMAGE * const Ip_src       = Ip_src_init;
+  
+  int u;
+  #pragma omp parallel for collapse(2)
   for (fno = f0 ; fno <= f1 ; fno++)   /* for each frame */
   {
     for (u = 0 ; u < U_DIM(mrisp_src) ; u++)
     {
+      int k,klen, khalf;
+      double phi, sin_sq_u;
+
       if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
         fprintf(stderr, "\r%3.3d of %d     ", u, U_DIM(mrisp_src)-1) ;
       phi = (double)u*PHI_MAX / PHI_DIM(mrisp_src) ;
@@ -1949,15 +1971,20 @@ MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno)
       if (klen >= V_DIM(mrisp_src))
         klen = V_DIM(mrisp_src)-1 ;
       khalf = klen/2 ;
+      int v;
       for (v = 0 ; v < V_DIM(mrisp_src) ; v++)
       {
         /*      theta = (double)v*THETA_MAX / THETA_DIM(mrisp_src) ;*/
         if (u == DEBUG_U && v == DEBUG_V)
           DiagBreak() ;
 
+        double total, ktotal;
+	int uk;
         total = ktotal = 0.0 ;
         for (uk = -khalf ; uk <= khalf ; uk++)
         {
+          int voff, u1;
+          double udiff;
           udiff = (double)(uk*uk) ;  /* distance squared in u */
 
           u1 = u + uk ;
@@ -1982,8 +2009,11 @@ MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno)
             sin_sq_u = 1.0f ;
 #endif
 
+          int vk;
           for (vk = -khalf ; vk <= khalf ; vk++)
           {
+            int v1;
+            double vdiff, k;
             vdiff = (double)(vk*vk) ;
             k = exp(-(udiff+sin_sq_u*vdiff)*sigma_sq_inv) ;
             v1 = v + vk + voff ;
@@ -1992,7 +2022,7 @@ MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno)
             while (v1 >= V_DIM(mrisp_src))
               v1 -= V_DIM(mrisp_src) ;
             ktotal += k ;
-            total += k**IMAGEFseq_pix(Ip_src, u1, v1, fno) ;
+            total += k* *IMAGEFseq_pix(Ip_src, u1, v1, fno) ;
           }
         }
         if (u == DEBUG_U && v == DEBUG_V)
