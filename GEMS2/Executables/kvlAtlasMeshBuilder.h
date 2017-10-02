@@ -100,7 +100,7 @@ public:
       }
     else
       {
-      this->IncreasePointOccupancies();  
+      this->RegisterPointOccupancies();  
       }
     
     }

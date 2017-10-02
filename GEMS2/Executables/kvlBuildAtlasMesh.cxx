@@ -166,7 +166,7 @@ int main( int argc, char** argv )
   // at 0 and densely packed
   kvl::CompressionLookupTable::Pointer  lookupTable = kvl::CompressionLookupTable::New();
   lookupTable->Construct( labelImages );
-  lookupTable->Write( "compressionLookupTable.txt" );
+  //lookupTable->Write( "compressionLookupTable.txt" );
 
 
   // Set up the builder
@@ -201,6 +201,12 @@ int main( int argc, char** argv )
     return -1;
     }
 
+  // Write the lookup table
+  std::ostringstream  fileNameStream;
+  fileNameStream << logDirectory << "/compressionLookupTable.txt";
+  lookupTable->Write( fileNameStream.str().c_str() );
+
+    
   // Write the label images
   typedef itk::ImageFileWriter< LabelImageType >  WriterType;
   for ( int labelImageNumber = 0; 

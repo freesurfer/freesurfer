@@ -829,8 +829,8 @@ AtlasMeshBuilder
       std::ostringstream  stuckStream;
       stuckStream << "threadsNeverReturning";
       m_Current->Write( stuckStream.str().c_str() );
-      //exit(-1);
-      itkExceptionMacro( << "Error: threads never returning" );
+      exit(-1);
+      //itkExceptionMacro( << "Error: threads never returning" );
       }
 
 #if 0      
@@ -990,9 +990,9 @@ AtlasMeshBuilder
     // mutex.DescriptiveLock( descriptionStream.str() );
 
     std::cout << "    [THREAD " << threadId << "] " << "Impossible configuration encountered at eget with id " << edgeId << std::endl;
-    std::ostringstream  impossibleStream;
-    impossibleStream << "impossible_" << edgeId;
-    m_Current->Write( impossibleStream.str().c_str() );
+    //std::ostringstream  impossibleStream;
+    //impossibleStream << "impossible_" << edgeId;
+    //m_Current->Write( impossibleStream.str().c_str() );
     //minTotalCostIndex = 0;
 
 #if 0    

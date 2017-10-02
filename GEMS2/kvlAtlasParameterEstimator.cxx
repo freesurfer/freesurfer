@@ -369,7 +369,7 @@ AtlasParameterEstimator
     case FIXED_STEP_GRADIENT_DESCENT: 
       {
       optimizer = AtlasMeshDeformationFixedStepGradientDescentOptimizer::New();
-      optimizer->SetVerbose( true );
+      optimizer->SetVerbose( false );
       break;
       } 
     case GRADIENT_DESCENT: 
