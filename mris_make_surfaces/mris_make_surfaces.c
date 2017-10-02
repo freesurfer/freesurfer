@@ -34,6 +34,9 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 #include "macros.h"
 #include "error.h"
@@ -50,6 +53,8 @@
 #include "mrinorm.h"
 #include "version.h"
 #include "label.h"
+#include "voxlist.h"
+#include "fsinit.h"
 
 #define CONTRAST_T1    0
 #define CONTRAST_T2    1
@@ -76,6 +81,8 @@ static int find_and_mark_pinched_regions(MRI_SURFACE *mris,
     float nstd_below,
     float nstd_above) ;
 
+static int T2_min_set = 0 ;
+static int T2_max_set = 0 ;
 static float T2_max_inside = 300 ;
 static float T2_min_inside = 60 ;
 static double T2_min_outside = 90 ;  
@@ -89,10 +96,12 @@ static double max_gray_scale = 0.0 ;
 static int above_set = 0 ;
 static int below_set = 0 ;
 
+static int nowmsa = 0 ;
+
 static double l_repulse = 0.0 ;
 
 int MRISremoveSelfIntersections(MRI_SURFACE *mris) ;
-static int  near_bright_structure(MRI *mri_aseg, int xi, int yi, int zi, int whalf) ;
+//static int  near_bright_structure(MRI *mri_aseg, int xi, int yi, int zi, int whalf) ;
 static int compute_pial_target_locations(MRI_SURFACE *mris,
 					 MRI *mri_T2,
 					 LABEL **labels,
@@ -118,7 +127,9 @@ static int compute_white_target_locations(MRI_SURFACE *mris,
 					  float T2_max_inside,
 					  int below_set,
 					  int above_set,
-					  double sigma) ;
+					  double sigma,
+					  double max_out) ;
+#if 0
 static MRI *
 compute_white_matter_intensities(MRI_SURFACE *mris,
 				 MRI *mri_T2,
@@ -127,6 +138,7 @@ compute_white_matter_intensities(MRI_SURFACE *mris,
 				 float nstd_above,
 				 float nstd_below,
 				 MRI *mri_dst);
+#endif
 static int compute_label_normal(MRI *mri_aseg, int x0, int y0, int z0,
                                 int label, int whalf,
                                 double *pnx, double *pny,
@@ -330,6 +342,7 @@ main(int argc, char *argv[])
 
   char cmdline[CMD_LINE_LEN] ;
 
+  FSinit() ;
   make_cmd_version_string
   (argc, argv,
    "$Id: mris_make_surfaces.c,v 1.172 2017/02/16 19:42:36 fischl Exp $",
@@ -532,6 +545,12 @@ main(int argc, char *argv[])
     if (mri_aseg == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read segmentation volume %s",
                 Progname, fname) ;
+    if (nowmsa)
+    {
+      MRIreplaceValuesOnly(mri_aseg, mri_aseg, Left_WM_hypointensities, Left_Cerebral_White_Matter) ;
+      MRIreplaceValuesOnly(mri_aseg, mri_aseg, Right_WM_hypointensities, Right_Cerebral_White_Matter) ;
+      MRIreplaceValuesOnly(mri_aseg, mri_aseg, WM_hypointensities, Left_Cerebral_White_Matter) ;
+    }
     if (erase_brainstem)
     {
       MRImaskLabel(mri_T1, mri_T1, mri_aseg, Brain_Stem, 0) ;
@@ -1160,26 +1179,59 @@ main(int argc, char *argv[])
       if (mri_flair == NULL)
 	ErrorExit(ERROR_NOFILE, "%s: could not load flair volume %s", Progname, fname) ;
 
+#if 0
       {
 	char fname[STRLEN] ;
-	MRI *mri = compute_white_matter_intensities(mris, mri_flair, mri_T1, mri_aseg, 2, 2, NULL) ;
-	if (orig_pial)
-	{
-	  printf("reading initial pial vertex positions from %s...\n", orig_pial) ;
-	  
-	  if (MRISreadPialCoordinates(mris, orig_pial) != NO_ERROR)
-	  {
-	    ErrorExit(Gerror, "reading orig pial positions failed") ;
-	  }
-	}
-	mri = compute_white_matter_intensities(mris, mri_flair, mri_T1, mri_aseg, 2, 2, NULL) ;
+	MRI *mri ;
+L) ;
 	sprintf(fname, "%ch.interior.mgz", mris->hemisphere == LEFT_HEMISPHERE ? 'l' : 'r') ;
 	MRIwrite(mri, fname) ;
 	exit(0); ;
       }
+#endif
+    if (orig_white)  
+      {
+	if (i > 0)
+	  MRISsaveVertexPositions(mris, WHITE_VERTICES) ; // update estimate of white
+	else   // first time - read it in
+	{
+	  printf("reading initial white vertex positions from %s...\n",
+		 orig_white) ;
+	  if (MRISreadVertexPositions(mris, orig_white) != NO_ERROR)
+	  {
+	    ErrorExit(Gerror, "reading of orig white failed...");
+	  }
+	  MRISremoveIntersections(mris) ;
+	}
+      }
+      if (MRImatchDimensions(mri_flair, mri_aseg) == 0)
+      {
+	MRI *mri_tmp ;
+	
+	printf("resampling aseg to be in voxel space of T2/FLAIR\n") ;
+	mri_tmp = MRIresample(mri_aseg, mri_flair, SAMPLE_NEAREST) ;
+	MRIfree(&mri_aseg) ;
+	mri_aseg = mri_tmp ;
+      }
       compute_white_target_locations(mris, mri_flair, mri_aseg,
 				    3, 3,
-				     CONTRAST_FLAIR, T2_min_inside, T2_max_inside, below_set, above_set, white_sigma) ;
+				     CONTRAST_FLAIR, T2_min_inside, T2_max_inside, below_set, above_set, white_sigma,
+				     max_outward_dist) ;
+      if (Gdiag & DIAG_WRITE)
+      {
+	char fname[STRLEN] ;
+	static int callno = 0 ;
+	sprintf(fname, "%ch.dist.%3.3d.mgz", mris->hemisphere == LEFT_HEMISPHERE ? 'l' : 'r', callno) ;
+	printf("writing distances to %s\n", fname) ;
+	MRISwriteD(mris, fname) ;
+	MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
+	MRISrestoreVertexPositions(mris, TARGET_VERTICES) ;
+	sprintf(fname, "%ch.targets.%3.3d", mris->hemisphere == LEFT_HEMISPHERE ? 'l' : 'r', callno) ;
+	printf("writing target locations to %s\n", fname) ;
+	MRISwrite(mris, fname) ;
+	MRISrestoreVertexPositions(mris, TMP2_VERTICES) ;
+	callno++ ;
+      }
     }
     if (vavgs)
     {
@@ -2322,6 +2374,11 @@ get_option(int argc, char *argv[])
     fprintf(stderr,  "using neighborhood size = %d\n", nbrs) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "nowmsa"))
+  {
+    nowmsa = 1 ;
+    fprintf(stderr,  "removing WMSA from input data\n") ;
+  }
   else if (!stricmp(option, "min_peak_pct"))
   {
     Ghisto_min_inside_peak_pct = atof(argv[2]) ;
@@ -2344,13 +2401,13 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "T2_min_inside"))
   {
-    T2_min_inside = atof(argv[2]) ;
+    T2_min_inside = atof(argv[2]) ; T2_min_set = 1 ;
     fprintf(stderr,  "using min interior T2 gray matter threshold %2.1f\n", T2_min_inside) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "T2_min"))
   {
-    T2_min_outside = T2_min_inside = atof(argv[2]) ;
+    T2_min_outside = T2_min_inside = atof(argv[2]) ; T2_min_set = 1 ;
     fprintf(stderr,  "using min T2 gray matter (interior and exterior) threshold %2.1f\n", T2_min_inside) ;
     nargs = 1 ;
   }
@@ -2362,14 +2419,14 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "T2_max_inside"))
   {
-    T2_max_inside = atof(argv[2]) ;
+    T2_max_inside = atof(argv[2]) ; T2_max_set = 1 ;
     fprintf(stderr,  "using max T2 gray matter (interior and exterior) threshold %2.1f\n", T2_max_inside) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "T2_max_outside"))
   {
-    T2_max_outside = atof(argv[2]) ;
-    fprintf(stderr,  "using max T2 gray matter (interior and exterior) threshold %2.1f\n", T2_max_inside) ;
+    T2_max_outside = atof(argv[2]) ; T2_max_set = 1 ;
+    fprintf(stderr,  "using max T2 gray matter exterior threshold %2.1f\n", T2_max_outside) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "T2_min_outside"))
@@ -2966,6 +3023,9 @@ get_option(int argc, char *argv[])
   {
     contrast_type = CONTRAST_FLAIR ;
     flairwhite = 1 ;
+    nbrs = 3 ;
+    parms.l_location = .5 ;
+    parms.l_intensity = 0 ;
     fprintf(stderr, "deforming white matter surfaces to match FLAIR volume\n") ;
   }
   else if (!stricmp(option, "smoothwm"))
@@ -3065,6 +3125,23 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using max_thickness = %2.1f\n", max_thickness) ;
   }
+  else if (!stricmp(option, "debug_voxel"))
+  {
+      Gx = atoi(argv[2]) ;
+      Gy = atoi(argv[3]) ;
+      Gz = atoi(argv[4]) ;
+      nargs = 3 ;
+      printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+  }
+  else if (!stricmp(option, "openmp")) 
+  {
+    char str[STRLEN] ;
+    sprintf(str, "OMP_NUM_THREADS=%d", atoi(argv[2]));
+    putenv(str) ;
+    omp_set_num_threads(atoi(argv[2]));
+    nargs = 1 ;
+    fprintf(stderr, "Setting %s\n", str) ;
+  }
   else if (!stricmp(option, "mgz"))
   {
     MGZ = 1;
@@ -3072,6 +3149,13 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
     {
+    case 'D':
+      Gx = atoi(argv[2]) ;
+      Gy = atoi(argv[3]) ;
+      Gz = atoi(argv[4]) ;
+      nargs = 3 ;
+      printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+      break ;
     case 'S':
       suffix = argv[2] ;
       fprintf(stderr, "using %s as suffix\n", suffix) ;
@@ -4691,7 +4775,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       HISTOplot(hs, "hs.plt") ;
       HISTOplot(hcdf_rev, "hr.plt") ;
       HISTOplot(hcdf, "hc.plt") ;
-      DiagBreak() ;   // XXX
+      DiagBreak() ;   
     }
 
     HISTOfree(&h1) ; HISTOfree(&h2) ; HISTOfree(&hcdf) ; HISTOfree(&hcdf_rev) ; HISTOfree(&hs) ;
@@ -4761,7 +4845,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       }
     }
     if (vno == Gdiag_no)
-      DiagBreak() ;  // XXX
+      DiagBreak() ; 
     if (found_bad_intensity)
     {
       num_in++ ;
@@ -4928,7 +5012,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
           break ;
       }
       if (vno == Gdiag_no)
-	DiagBreak() ;  // XXX
+	DiagBreak() ;  
 #if 0
       if (val > min_gray_inside && val < min_gray_outside)
 	found = 0 ;  // trust T1 and don't displace surface for stuff that is marginal outside
@@ -5059,6 +5143,686 @@ compute_pial_target_locations(MRI_SURFACE *mris,
   return(NO_ERROR) ;
 }
 
+#if 1
+
+#define WM_BORDER    1
+#define WM_INTERIOR  2
+#define WM_NBR       3
+#define GRAD_BINS 256
+#if 0
+
+static double
+min_ctrl_in_nbhd(MRI *mri_border, MRI *mri_intensity, int whalf, int x, int y, int z)
+{
+  int xi, yi, zi, xk, yk, zk, ctrl ;
+  double val, min_val ;
+
+  min_val = 1e10 ;
+  for (xk = -whalf ; xk <= whalf ; xk++)
+  {
+    xi = mri_border->xi[x + xk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri_border->yi[y + yk] ;
+      for (zk = -whalf ; zk <= whalf ; zk++)
+      {
+	zi = mri_border->zi[z + zk] ;
+	ctrl = MRIgetVoxVal(mri_border, xi, yi, zi, 0) ;
+	if (ctrl>0)
+	{
+	  val = MRIgetVoxVal(mri_intensity, xi, yi, zi, 0) ;
+	  if (val < min_val) 
+	    min_val = val ;
+	}
+      }
+    }
+  }
+  return(min_val) ;
+}
+
+#define LABEL_SHOULD_BE_SKIPPED(l)   (IS_HIPPO(l) || IS_AMYGDALA(l) || IS_VENTRICLE(l) || IS_VENTRAL_DC(l) || IS_THALAMUS(l) || IS_ACCUMBENS(l) || IS_CAUDATE(l) || IS_PUTAMEN(l))
+static HISTOGRAM *
+compute_white_gradient_histo(MRI_SURFACE *mris, MRI *mri_T2, MRI *mri_aseg, double max_out)
+{
+  HISTOGRAM *hg ;
+  MRI       *mri_border ;
+  int       vno, nadded, label ;
+  VERTEX    *v ;
+  double    nx, ny, nz, d, inward_dist, grad_scale = 2, prev_dist, next_dist, max_grad, min_grad, upper_wm_thresh, lower_wm_thresh ;
+  double    grad, val, xv, yv, zv, xs, ys, zs, sample_dist, next_grad, prev_grad, next_val, prev_val  ;
+  VOXEL_LIST *vl ;
+
+  mri_border = MRIcloneDifferentType(mri_T2, MRI_UCHAR) ;
+  sample_dist = MIN(SAMPLE_DIST, mri_T2->xsize/2) ;
+  max_grad = min_grad = 0 ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag)
+      continue ;
+    MRISvertexToVoxel(mris, v, mri_T2, &xv, &yv, &zv) ;
+    MRISvertexNormalToVoxelScaled(mris, v, mri_T2, &nx, &ny, &nz) ;
+    MRIsampleVolumeDerivativeScale(mri_T2, xv, yv, zv, nx, ny, nz, &grad, grad_scale) ;
+    MRIsampleVolume(mri_T2, xv, yv, zv, &val) ;
+    label = MRIgetVoxVal(mri_aseg, nint(xv), nint(yv), nint(zv), 0) ;
+    if (!LABEL_SHOULD_BE_SKIPPED(label))
+      continue ;
+
+    // search inwards until we find a voxel that is 110
+    for (inward_dist = 0 ; inward_dist > -max_out && ((val-110)>1) ; inward_dist -= sample_dist) 
+    {
+      xs = v->x + inward_dist * v->nx ; ys = v->y + inward_dist * v->ny ; zs = v->z + inward_dist * v->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolume(mri_T2, xv, yv, zv, &val) ;
+      MRIsampleVolumeDerivativeScale(mri_T2, xv, yv, zv, nx, ny, nz, &grad, grad_scale) ;
+      if (grad < -.5)
+	break ;
+    }
+    label = MRIgetVoxVal(mri_aseg, nint(xv), nint(yv), nint(zv), 0) ;
+    if (!LABEL_SHOULD_BE_SKIPPED(label))
+      continue ;
+    if ((val-110)>1)
+      continue ;
+
+    //   now search outwards for first gradient max
+    for (d = inward_dist ; d <= max_out ; d += sample_dist)
+    {
+      // current values
+      xs = v->x + d * v->nx ; ys = v->y + d * v->ny ; zs = v->z + d * v->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolume(mri_T2, xv, yv, zv, &val) ;
+      MRIsampleVolumeDerivativeScale(mri_T2, xv, yv, zv, nx, ny, nz, &grad, grad_scale) ;
+
+      // previous values
+      prev_dist = d - 2*sample_dist ;
+      xs = v->x + prev_dist * v->nx ; ys = v->y + prev_dist * v->ny ; zs = v->z + prev_dist * v->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolume(mri_T2, xv, yv, zv, &prev_val) ;
+      MRIsampleVolumeDerivativeScale(mri_T2, xv, yv, zv, nx, ny, nz, &prev_grad, grad_scale) ;
+
+      // next values
+      next_dist = d + 2*sample_dist ;
+      xs = v->x + next_dist * v->nx ; ys = v->y + next_dist * v->ny ; zs = v->z + next_dist * v->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolume(mri_T2, xv, yv, zv, &next_val) ; 
+      MRIsampleVolumeDerivativeScale(mri_T2, xv, yv, zv, nx, ny, nz, &next_grad, grad_scale) ;
+      if ((abs(next_val-prev_val) > 5) && (next_grad < grad) && (prev_grad < grad))
+      {
+	if (grad > max_grad)
+	  max_grad = grad ;
+	if (grad < min_grad)
+	  min_grad = grad ;
+	break ; // only use first max
+      }
+    }
+  }
+
+  hg = HISTOalloc(GRAD_BINS) ;
+  HISTOinit(hg, hg->nbins, min_grad, ceil(max_grad)) ;
+
+#define MAX_WM_OFFSET 30
+  lower_wm_thresh = DEFAULT_DESIRED_WHITE_MATTER_VALUE-MAX_WM_OFFSET ;
+  upper_wm_thresh = DEFAULT_DESIRED_WHITE_MATTER_VALUE+MAX_WM_OFFSET ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    int found, xb, yb, zb  ;
+
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag)
+      continue ;
+    MRISvertexToVoxel(mris, v, mri_T2, &xv, &yv, &zv) ;
+    MRISvertexNormalToVoxelScaled(mris, v, mri_T2, &nx, &ny, &nz) ;
+    MRIsampleVolumeDerivativeScale(mri_T2, xv, yv, zv, nx, ny, nz, &grad, grad_scale) ;
+    MRIsampleVolume(mri_T2, xv, yv, zv, &val) ;
+    label = MRIgetVoxVal(mri_aseg, nint(xv), nint(yv), nint(zv), 0) ;
+    if (LABEL_SHOULD_BE_SKIPPED(label))
+      continue ;
+
+    if ((val <= lower_wm_thresh) || (val >= upper_wm_thresh))
+      continue ;
+
+    // search inwards until we find a voxel that is 110
+    for (inward_dist = 0 ; inward_dist > -max_out && ((val-110)>1) ; inward_dist -= sample_dist) 
+    {
+      xs = v->x + inward_dist * v->nx ; ys = v->y + inward_dist * v->ny ; zs = v->z + inward_dist * v->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolume(mri_T2, xv, yv, zv, &val) ;
+      MRIsampleVolumeDerivativeScale(mri_T2, xv, yv, zv, nx, ny, nz, &grad, grad_scale) ;
+      if (grad < -.5)
+	break ;
+    }
+    label = MRIgetVoxVal(mri_aseg, nint(xv), nint(yv), nint(zv), 0) ;
+    if (LABEL_SHOULD_BE_SKIPPED(label))
+      continue ;
+    if ((val-DEFAULT_DESIRED_WHITE_MATTER_VALUE)>1)
+      continue ;
+    if (val <= lower_wm_thresh)
+      continue ;
+
+    //   now search outwards for first gradient max
+    found = 0 ;
+    for (d = inward_dist ; d <= max_out ; d += sample_dist)
+    {
+      // previous values
+      prev_dist = d - 2*sample_dist ;
+      xs = v->x + prev_dist * v->nx ; ys = v->y + prev_dist * v->ny ; zs = v->z + prev_dist * v->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolume(mri_T2, xv, yv, zv, &prev_val) ;
+      MRIsampleVolumeDerivativeScale(mri_T2, xv, yv, zv, nx, ny, nz, &prev_grad, grad_scale) ;
+
+      // next values
+      next_dist = d + 2*sample_dist ;
+      xs = v->x + next_dist * v->nx ; ys = v->y + next_dist * v->ny ; zs = v->z + next_dist * v->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolume(mri_T2, xv, yv, zv, &next_val) ; 
+      MRIsampleVolumeDerivativeScale(mri_T2, xv, yv, zv, nx, ny, nz, &next_grad, grad_scale) ;
+
+      // current values
+      xs = v->x + d * v->nx ; ys = v->y + d * v->ny ; zs = v->z + d * v->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolume(mri_T2, xv, yv, zv, &val) ;
+      MRIsampleVolumeDerivativeScale(mri_T2, xv, yv, zv, nx, ny, nz, &grad, grad_scale) ;
+      label = MRIgetVoxVal(mri_aseg, nint(xv), nint(yv), nint(zv), 0) ;
+      if (LABEL_SHOULD_BE_SKIPPED(label))
+	break ;
+
+      if (vno == Gdiag_no)
+	printf("v %d, dist %2.1f, vox (%d %d %d)=%2.1f, in=%2.1f, out=%2.1f:  grad %2.2f --> %2.2f --> %2.2f\n",
+	       vno, d, nint(xv), nint(yv), nint(zv), val, prev_val, next_val, prev_grad, grad, next_grad) ;
+      if ((val < (DEFAULT_DESIRED_WHITE_MATTER_VALUE-MAX_WM_OFFSET)) ||
+	  (val > (DEFAULT_DESIRED_WHITE_MATTER_VALUE+MAX_WM_OFFSET)))
+	break ;
+
+      // make sure that we are not linearly interpolating very low and very high values to get something reasonable
+      xb = nint(xv) ;  yb = nint(yv) ; zb = nint(zv) ;
+      val = MRIgetVoxVal(mri_T2, xb, yb, zb, 0) ;
+      label = MRIgetVoxVal(mri_aseg, xb, yb, zb, 0) ;
+      if (LABEL_SHOULD_BE_SKIPPED(label))
+	break ;
+      if (IS_INF_LAT_VENT(label))
+	DiagBreak() ;
+      if (IS_VENTRICLE(label))
+	DiagBreak() ;
+
+      if ((val <= lower_wm_thresh) || (val >= upper_wm_thresh))
+	break ;
+      if ((next_grad < grad) && (prev_grad < grad))
+      {
+	if (abs(next_val-prev_val) < 10)   // not a reliable gradient max
+	  break ;
+	if (xv < 0 || xv >= mri_T2->width ||
+	    yv < 0 || yv >= mri_T2->height ||
+	    zv < 0 || zv >= mri_T2->depth)
+	  DiagBreak() ;
+	HISTOaddSample(hg, grad, 0, 0) ;
+	found = 1 ; xb = nint(xv) ;  yb = nint(yv) ; zb = nint(zv) ;
+	if (xb == Gx && yb == Gy && zb == Gz)
+	  DiagBreak() ;
+	if (FZERO(val))
+	  DiagBreak() ;
+	val = MRIgetVoxVal(mri_T2, xb, yb, zb, 0) ;
+	if (FZERO(val))
+	  DiagBreak() ;
+	
+	MRIsetVoxVal(mri_border, xb, yb, zb, 0, WM_BORDER) ;
+	break ; // only use first max
+      }
+    }
+    if (found)
+    {
+      double dist ;
+      int    xi, yi, zi ;
+      for (dist = inward_dist ; dist < d ; dist += sample_dist)
+      {
+	xs = v->x + dist * v->nx ; ys = v->y + dist * v->ny ; zs = v->z + dist * v->nz ;
+	MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+	xi = nint(xv) ; yi = nint(yv) ; zi = nint(zv) ;
+	if (xi == Gx && yi == Gy && zi == Gz)
+	  DiagBreak() ;
+	val = MRIgetVoxVal(mri_T2, xi, yi, zi, 0) ;
+	if (FZERO(val))
+	  DiagBreak() ;
+	MRIsetVoxVal(mri_border, xi, yi, zi, 0, WM_INTERIOR) ;
+      }
+      if (xb == Gx && yb == Gy && zb == Gz)
+	DiagBreak() ;
+      val = MRIgetVoxVal(mri_T2, xb, yb, zb, 0) ;
+      if (FZERO(val))
+	DiagBreak() ;
+      MRIsetVoxVal(mri_border, xb, yb, zb, 0, WM_BORDER) ;
+    }
+  }
+
+  return(hg) ;
+  vl = VLSTalloc(mri_border->width * mri_border->height * mri_border->depth) ; vl->nvox = 0 ;
+  VLSTcreate(mri_border, 1, 3, vl, 0, 0) ;
+  do
+  {
+    int    i ;
+    double max_intensity_change ;
+    VOXEL_LIST *vlnew ;
+
+    vlnew = VLSTalloc(mri_border->width * mri_border->height * mri_border->depth) ; vlnew->nvox = 0 ;
+    max_intensity_change = 5 ;
+    nadded = 0 ;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+:nadded)
+#endif
+    for (i = 0 ; i < vl->nvox ; i++)
+    {
+    
+    int x, y, z, xi, yi, zi, xk, yk, zk ;
+    double val, val0 ;
+
+      x = vl->xi[i] ; y = vl->yi[i] ;  z = vl->zi[i] ; 
+      if (vl->vsrc[i] == WM_BORDER)   // border voxel
+	continue ;
+      if (MRIgetVoxVal(mri_border, x, y, z, 0) != WM_INTERIOR)
+	continue ;
+
+      val0 = MRIgetVoxVal(mri_T2, x, y, z, 0) ;
+      if ((val0 <= lower_wm_thresh) || (val0 >= upper_wm_thresh))
+	continue ;
+      for (xk = -1 ; xk <= 1 ; xk++)
+      {
+	xi = mri_border->xi[x + xk] ;
+	for (yk = -1 ; yk <= 1 ; yk++)
+	{
+	  yi = mri_border->yi[y + yk] ;
+	  for (zk = -1 ; zk <= 1 ; zk++)
+	  {
+	    zi = mri_border->zi[z + zk] ;
+	    if (MRIgetVoxVal(mri_border, xi, yi, zi, 0) > 0)
+	      continue ; // already added
+	    val = MRIgetVoxVal(mri_T2, xi, yi, zi, 0) ;
+	    if ((fabs(val-val0) < max_intensity_change) &&
+		(val < upper_wm_thresh) &&
+		(val > lower_wm_thresh))
+	    {
+	      double min_far_nbr, min_near_nbr ;
+	      if (xi == Gx && yi == Gy && zi == Gz)
+		DiagBreak() ;
+	      min_far_nbr = min_ctrl_in_nbhd(mri_border, mri_T2, 7,  xi,  yi,  zi) ;
+	      min_near_nbr = min_ctrl_in_nbhd(mri_border, mri_T2, 1,  xi,  yi,  zi) ;
+	      if ((min_far_nbr > val-2*max_intensity_change) &&
+		  (min_near_nbr > val-max_intensity_change))
+	      {
+		if (FZERO(val))
+		  DiagBreak() ;
+		if (xi == Gx && yi == Gy && zi == Gz)
+		  DiagBreak() ;
+		nadded++ ;
+#ifdef HAVE_OPENMP
+#pragma omp critical
+#endif
+		VLSTadd(vlnew, xi, yi, zi, xi, yi, zi) ;
+		MRIsetVoxVal(mri_border, xi, yi, zi, 0, WM_NBR) ;
+              }
+	    }
+	  }
+	}
+      }
+    }   
+    VLSTfree(&vl) ;
+    vl = vlnew ;
+    {
+      char fname[STRLEN ] ;
+      static int passno=1 ;
+      sprintf(fname, "b%3.3d.mgz", passno) ;
+      MRIwrite(mri_border, fname) ;
+      printf("pass %d with %d added, writing %s\n", passno, nadded, fname) ;
+      passno++  ;
+    }
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
+    for (i = 0 ; i < vl->nvox ; i++)
+    {
+      int x, y, z ;
+      x = vl->xi[i] ; y = vl->yi[i] ;  z = vl->zi[i] ; 
+      if (MRIgetVoxVal(mri_border, x, y, z, 0) == WM_NBR)
+	MRIsetVoxVal(mri_border, x, y, z, 0, WM_INTERIOR) ;
+    }
+    DiagBreak() ;   // XXX
+  } while (nadded > 0) ;
+  MRIfree(&mri_border) ;
+  return(hg) ;
+}
+#endif
+
+static int
+compute_white_target_locations(MRI_SURFACE *mris,
+			       MRI *mri_T2,
+			       MRI *mri_aseg,
+			       float nstd_below,
+			       float nstd_above,
+			       int contrast_type, float T2_min_inside, float T2_max_inside, 
+			       int below_set, int above_set, double wsigma, double max_out)
+{
+  int       *vlist, vno, vnum, outer_nbhd_size = 11, inner_nbhd_size = 3, n ;
+  int       num_in, num_out ;
+  VERTEX    *v, *vn ;
+  double    min_grad, max_grad, min_inside, max_inside, min_outside, max_outside, sample_dist ;
+  double    nx, ny, nz, d, thickness, grad_scale = 2 ;
+  double    grad_val, inside_val, outside_val, xv, yv, zv, xs, ys, zs  ;
+  HISTOGRAM *h_inside, *h_outside, *h_grad, *hs ;
+
+  vlist = (int *)calloc(mris->nvertices, sizeof(vlist[0])) ;
+  if (vlist == NULL)
+    ErrorExit(ERROR_NOFILE, "compute_white_target_locations: could not allocate vlist") ;
+
+  sample_dist = MIN(SAMPLE_DIST, mri_T2->xsize/2) ;
+
+  MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
+
+#if 0
+  {
+    HISTO *hg ;
+
+    hg = compute_white_gradient_histo(mris, mri_T2, mri_aseg, max_out) ;
+    HISTOplot(hg, "hg.plt") ;
+    DiagBreak() ;
+    HISTOfree(&hg) ;
+  }
+#endif
+  // first compute bounds on gradient and inner and outer values
+  min_outside = min_inside = min_grad = 1e10 ;
+  max_outside = max_inside = max_grad = -1e-10 ;
+  d = 2*sample_dist ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag)
+      continue ;
+    
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    nx = v->pialx - v->whitex ; ny = v->pialy - v->whitey ; nz = v->pialz - v->whitez ;
+    thickness = sqrt(SQR(nx)+SQR(ny)+SQR(nz)) ;
+    if (FZERO(thickness))  // pial and white in same place - no cortex here
+      continue ;
+
+    MRISvertexToVoxel(mris, v, mri_T2, &xv, &yv, &zv) ;
+    MRISvertexNormalToVoxelScaled(mris, v, mri_T2, &nx, &ny, &nz) ;
+    MRIsampleVolumeDerivativeScale(mri_T2, xv, yv, zv, nx, ny, nz, &grad_val, 2) ;
+    xs = v->x - d*v->nx ; ys = v->y - d*v->ny ; zs = v->z - d*v->nz ;
+    MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+    MRIsampleVolume(mri_T2, xv, yv, zv, &inside_val) ;
+    xs = v->x + d*v->nx ; ys = v->y + d*v->ny ; zs = v->z + d*v->nz ;
+    MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+    MRIsampleVolume(mri_T2, xv, yv, zv, &outside_val) ;
+
+    if (inside_val > 250)
+      DiagBreak() ;
+
+    if (outside_val < min_outside)
+      min_outside = outside_val ;
+    if (outside_val > max_outside)
+      max_outside = outside_val ;
+
+    if (grad_val < min_grad)
+      min_grad = grad_val ;
+    if (grad_val > max_grad)
+      max_grad = grad_val ;
+
+    if (inside_val < min_inside)
+      min_inside = inside_val ;
+    if (inside_val > max_inside)
+      max_inside = inside_val ;
+  }
+
+  h_inside = HISTOalloc((int)ceil(max_inside)+1) ;
+  HISTOinit(h_inside, h_inside->nbins, 0, ceil(max_inside)) ;
+  h_outside = HISTOalloc((int)ceil(max_outside)+1) ;
+  HISTOinit(h_outside, h_outside->nbins, 0, ceil(max_outside)) ;
+  h_grad = HISTOalloc(GRAD_BINS) ;
+  HISTOinit(h_grad, h_grad->nbins, min_grad, ceil(max_grad)) ;
+
+  num_in = num_out = 0 ;
+  MRISsaveVertexPositions(mris, TARGET_VERTICES) ;
+  MRISclearMark2s(mris) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    double dist_from_current_white, pin, pout, best_dist, best_dist_prelim ;
+    double pin0, pout0, mean_gm, mean_wm, sigma_wm, sigma_gm, grad_outside, grad_inside ;
+    int  found ;
+
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+    {
+      v->targx = v->x ; v->targy = v->y ; v->targz = v->z ;
+      continue ;
+    }
+
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    nx = v->pialx - v->whitex ; ny = v->pialy - v->whitey ; nz = v->pialz - v->whitez ;
+    thickness = sqrt(SQR(nx)+SQR(ny)+SQR(nz)) ;
+    if (FZERO(thickness))  // pial and white in same place - no cortex here
+      continue ;
+
+    d = 2*sample_dist ;
+    vnum = MRISfindNeighborsAtVertex(mris, vno, outer_nbhd_size, vlist);
+    for (n = 0 ; n < vnum ; n++)
+    {
+      vn = &mris->vertices[vlist[n]] ;
+      if (vn->ripflag || vn->marked <= inner_nbhd_size)
+	continue ;
+
+      MRISvertexToVoxel(mris, vn, mri_T2, &xv, &yv, &zv) ;
+      MRISvertexNormalToVoxelScaled(mris, vn, mri_T2, &nx, &ny, &nz) ;
+      MRIsampleVolumeDerivativeScale(mri_T2, xv, yv, zv, nx, ny, nz, &grad_val, grad_scale) ;
+      if (grad_val < -2)
+	DiagBreak() ;
+
+      // sample further into interior of WM to avoid biasing distribution by misplaced boundaries
+      xs = vn->x - 4*d*vn->nx ; ys = vn->y - 4*d*vn->ny ; zs = vn->z - 4*d*vn->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolume(mri_T2, xv, yv, zv, &inside_val) ;
+
+      xs = vn->x + 2*d*vn->nx ; ys = vn->y + 2*d*vn->ny ; zs = vn->z + 2*d*vn->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolume(mri_T2, xv, yv, zv, &outside_val) ;
+
+      // sample inside and outside and make sure we are at a local max of the gradient. If not, don't trust
+      xs = vn->x - 2*d*vn->nx ; ys = vn->y - 2*d*vn->ny ; zs = vn->z - 2*d*vn->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolumeDerivativeScale(mri_T2, xv, yv, zv, nx, ny, nz, &grad_inside, grad_scale) ;
+      xs = vn->x + 2*d*vn->nx ; ys = vn->y + 2*d*vn->ny ; zs = vn->z + 2*d*vn->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolumeDerivativeScale(mri_T2, xv, yv, zv, nx, ny, nz, &grad_outside, grad_scale) ;
+      if ((grad_val > 1) && (grad_val > grad_inside && grad_val > grad_outside)) // only regions we are confident of
+      {
+	double dist ;
+
+	HISTOaddSample(h_outside, outside_val, 0, 0) ;
+	HISTOaddSample(h_grad, grad_val, 0, 0) ;
+
+	// sample a number of points in the interior to get a good histogram
+	for (dist = -2*sample_dist ; dist >= -8*d ; dist -= sample_dist)
+	{
+	  xs = vn->x + dist*vn->nx ; ys = vn->y + dist*vn->ny ; zs = vn->z + dist*vn->nz ;
+	  MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+	  MRIsampleVolume(mri_T2, xv, yv, zv, &inside_val) ;
+	  MRIsampleVolumeDerivativeScale(mri_T2, xv, yv, zv, nx, ny, nz, &grad_val, grad_scale) ;
+	  if (grad_val < 0)
+	    break ;
+	  HISTOaddSample(h_inside, inside_val, 0, 0) ;
+	}
+      }
+    }
+
+    HISTOfillHoles(h_grad) ; HISTOfillHoles(h_inside) ; HISTOfillHoles(h_outside) ;
+    hs = HISTOsmooth(h_inside, NULL, 2) ; HISTOfree(&h_inside) ; h_inside = hs ;
+    hs = HISTOsmooth(h_outside, NULL, 2) ; HISTOfree(&h_outside) ; h_outside = hs ;
+    hs = HISTOsmooth(h_grad, NULL, 2) ; HISTOfree(&h_grad) ; h_grad = hs ;
+    HISTOmakePDF(h_grad, h_grad) ; HISTOmakePDF(h_inside, h_inside) ; HISTOmakePDF(h_outside, h_outside) ;
+
+    d = 2*sample_dist ;   
+    MRISvertexNormalToVoxelScaled(mris, v, mri_T2, &nx, &ny, &nz) ;
+    MRIsampleVolumeDerivativeScale(mri_T2, xv, yv, zv, nx, ny, nz, &grad_val, grad_scale) ;
+    xs = v->x - d*v->nx ; ys = v->y - d*v->ny ; zs = v->z - d*v->nz ;
+    MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+    MRIsampleVolume(mri_T2, xv, yv, zv, &inside_val) ;
+    xs = v->x + d*v->nx ; ys = v->y + d*v->ny ; zs = v->z + d*v->nz ;
+    MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+    MRIsampleVolume(mri_T2, xv, yv, zv, &outside_val) ;
+    HISTOrobustGaussianFit(h_inside, .9, &mean_wm, &sigma_wm) ;
+    HISTOrobustGaussianFit(h_outside, .9, &mean_gm, &sigma_gm) ;
+    sigma_gm = sigma_wm = 1 ; // don't trust variances
+#define MIN_GM_DIST_FROM_WM_PEAK 15
+    if (abs(mean_wm - DEFAULT_DESIRED_WHITE_MATTER_VALUE) > 10)
+      mean_wm = DEFAULT_DESIRED_WHITE_MATTER_VALUE ;
+    if (mean_gm - mean_wm < MIN_GM_DIST_FROM_WM_PEAK)
+      mean_gm = DEFAULT_DESIRED_WHITE_MATTER_VALUE + MIN_GM_DIST_FROM_WM_PEAK ;
+
+    if (FZERO(inside_val) || FZERO(outside_val))
+      continue ;  // ventricles are near edge of volume - don't deform
+
+    pin0 = HISTOgetCount(h_inside, inside_val) ;
+    pout0 = HISTOgetCount(h_outside, outside_val) ;
+    if (vno == Gdiag_no)
+    {
+      printf("vno %d: vertex in=%2.1f (%2.3f), out=%2.1f (%2.3f), grad=%2.1f\n", vno, inside_val, pin0, outside_val, pout0, grad_val) ;
+      HISTOplot(h_inside, "hi.plt") ;
+      HISTOplot(h_outside, "ho.plt") ;
+      printf(" wm = %2.1f +- %2.1f, gm = %2.1f +- %2.1f\n", mean_wm, sigma_wm, mean_gm, sigma_gm) ;
+    }
+
+    best_dist = 0 ; max_grad = 0 ;
+    for (dist_from_current_white = -max_out ; dist_from_current_white <= max_out ; dist_from_current_white += sample_dist)
+    {
+      double xs0, ys0, zs0, gm_dist_in, gm_dist_out, wm_dist_in, wm_dist_out ;
+
+      xs0 = v->x + dist_from_current_white*v->nx ; 
+      ys0 = v->y + dist_from_current_white*v->ny ; 
+      zs0 = v->z + dist_from_current_white*v->nz ;
+
+      MRISsurfaceRASToVoxelCached(mris, mri_T2, xs0, ys0, zs0, &xv, &yv, &zv);
+      MRIsampleVolumeDerivativeScale(mri_T2, xv, yv, zv, nx, ny, nz, &grad_val, grad_scale) ;
+      if (grad_val < 0)
+	continue ; // don't consider locations with gradient pointing the wrong way
+
+      xs = xs0 - d*v->nx ; ys = ys0 - d*v->ny ; zs = zs0 - d*v->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolume(mri_T2, xv, yv, zv, &inside_val) ;
+      xs = xs0 + d*v->nx ; ys = ys0 + d*v->ny ; zs = zs0 + d*v->nz ;
+      MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+      MRIsampleVolume(mri_T2, xv, yv, zv, &outside_val) ;
+
+      pin = HISTOgetCount(h_inside, inside_val) ;
+      pout = HISTOgetCount(h_outside, outside_val) ;
+      wm_dist_in = abs(mean_wm-inside_val) / sigma_wm ;
+      gm_dist_in = abs(mean_gm-inside_val) / sigma_gm ;  
+      wm_dist_out = abs(mean_wm-outside_val) / sigma_wm ;
+      gm_dist_out = abs(mean_gm-outside_val) / sigma_gm ;
+      if (vno == Gdiag_no)
+      {
+	MRISsurfaceRASToVoxelCached(mris, mri_T2, xs0, ys0, zs0, &xv, &yv, &zv);
+	printf("vno %d: dist %2.2f, vox=(%2.1f %2.1f %2.1f),  in=%2.1f (%2.3f, WM/GM=%2.1f/%2.1f), out=%2.1f (%2.3f, WM/GM=%2.1f/%2.1f), grad=%2.1f\n", vno, dist_from_current_white, xv, yv, zv, inside_val, pin, wm_dist_in, gm_dist_in, outside_val, pout, wm_dist_out, gm_dist_out, grad_val) ;
+      }
+      
+      if (dist_from_current_white > 0 && (wm_dist_in > 6 || gm_dist_in < wm_dist_in))
+      {
+	if (vno == Gdiag_no)
+	  printf("terminating search due to unlikely WM found (interior wm_dist=%2.1f, gm_dist=%2.1f)\n", wm_dist_in,gm_dist_in) ;
+	break ;
+      }
+      wm_dist_out = abs(mean_wm-outside_val) / sigma_wm ;  // now compute dist to exterior val
+      gm_dist_out = abs(mean_gm-outside_val) / sigma_gm ;  // now compute dist to exterior val
+      if (dist_from_current_white < 0 && gm_dist_out > 4 && !FZERO(best_dist))  // found illegal interior val
+      {
+	if (vno == Gdiag_no)
+	  printf("resetting search due to non-allowable gm val %2.1f (dist=%2.1f)\n", outside_val, gm_dist_out);
+	max_grad = 0 ; best_dist = 0 ;
+      }
+      if (grad_val > max_grad)    // this is the largest gradient found yet, so if vals are reasonable
+      {
+	if ((wm_dist_in < 1 && gm_dist_out < 1) ||   // either it really looks correct
+	    (
+	      (wm_dist_in < 2 && gm_dist_out < 2) && // or it  almost looks correct and is better than current
+	      (pin0*pout0 < pin*pout)
+	      )
+	    ||
+	    ((wm_dist_in < gm_dist_in) && (wm_dist_out > gm_dist_out)) // inside more likely wm and out more likely gm
+	  )
+	{
+	  found = 1 ;
+	  max_grad = grad_val ;
+	  best_dist = dist_from_current_white ;
+	}
+      }
+    }
+
+    v->marked2 = found ;
+    best_dist_prelim = best_dist;
+    if (vno == Gdiag_no)
+    {
+      printf("vno %d: found %d, prelim best distance %2.2f, searching for local grad max\n", vno, found, best_dist_prelim) ;
+      DiagBreak() ;
+    }
+    // tweak location to be at peak of gradient mag
+    for (dist_from_current_white = best_dist_prelim-2*sample_dist ; dist_from_current_white <= best_dist_prelim + 2*sample_dist ; dist_from_current_white += sample_dist)
+    {
+      double xs0, ys0, zs0 ;
+
+      xs0 = v->x + dist_from_current_white*v->nx ; 
+      ys0 = v->y + dist_from_current_white*v->ny ; 
+      zs0 = v->z + dist_from_current_white*v->nz ;
+
+      MRISsurfaceRASToVoxelCached(mris, mri_T2, xs0, ys0, zs0, &xv, &yv, &zv);
+      MRISvertexNormalToVoxelScaled(mris, v, mri_T2, &nx, &ny, &nz) ;
+      MRIsampleVolumeDerivativeScale(mri_T2, xv, yv, zv, nx, ny, nz, &grad_val, grad_scale) ;
+      if (grad_val > max_grad)
+      {
+	if (vno == Gdiag_no)
+	{
+	  printf("vno %d: updating max grad dist to %2.2f, vox=(%2.1f %2.1f %2.1f),  grad=%2.1f\n", 
+		 vno, dist_from_current_white, xv, yv, zv, grad_val) ;
+	  DiagBreak() ;
+	}
+	best_dist = dist_from_current_white ;
+	max_grad = grad_val ;
+      }
+    }
+
+    if (vno == Gdiag_no)
+    {
+      printf("vno %d: best distance %2.2f\n", vno, best_dist) ;
+      DiagBreak() ;
+    }
+    v->targx = v->x+best_dist*v->nx ; v->targy = v->y+best_dist*v->ny ; v->targz = v->z+best_dist*v->nz ;
+    v->d = best_dist ;
+
+    // reset things for next iteration
+    HISTOclearCounts(h_inside, h_inside) ;
+    HISTOclearCounts(h_outside, h_outside) ;
+    HISTOclearCounts(h_grad, h_grad) ;
+    for (n = 0 ; n < vnum ; n++)
+      mris->vertices[vlist[n]].marked = 0 ;
+    if (best_dist > 0)
+      num_out++ ;
+    else if (best_dist < 0)
+      num_in++ ;
+  }
+
+  MRIScopyMarked2ToMarked(mris) ;
+  MRISwriteMarked(mris, "found.mgz") ;
+  HISTOfree(&h_inside) ; HISTOfree(&h_outside) ; HISTOfree(&h_grad) ;
+
+  printf("%d surface locations found to contain inconsistent values (%d in, %d out)\n",
+         num_in+num_out, num_in, num_out) ;
+  return(NO_ERROR) ;
+}
+#else
 static int
 compute_white_target_locations(MRI_SURFACE *mris,
 			       MRI *mri_T2,
@@ -5073,9 +5837,10 @@ compute_white_target_locations(MRI_SURFACE *mris,
   int       done, bin, niter, histo_nbins, in_white ;
   VERTEX    *v ;
   double    min_white, max_white, thickness, nx, ny, nz, mn, mx, sig, sample_dist;
-  HISTOGRAM *h, *hcdf, *hcdf_rev ;
-  MRI       *mri_filled, *mri_tmp ;
-  float     min_val, max_val ;
+  HISTOGRAM  h, *hcdf, *hcdf_rev ;
+  MRI        *mri_filled, *mri_tmp ;
+  float      min_val, max_val ;
+  HISTOGRAAM
 
   sample_dist = MIN(SAMPLE_DIST, mri_T2->xsize/2) ;
   MRIvalRange(mri_T2, &min_val, &max_val) ;
@@ -5195,12 +5960,12 @@ compute_white_target_locations(MRI_SURFACE *mris,
       }
     }
   }
-  if (T2_min_inside >= 0)
+  if (T2_min_set >= 0)
   {
     min_white = T2_min_inside ;
     printf("using user specified min white threshold %2.1f\n", min_white) ;
   }
-  if (T2_max_inside >= 0)
+  if (T2_max_set >= 0)
   {
     max_white = T2_max_inside ;
     printf("using user specified max white threshold %2.1f\n", max_white) ;
@@ -5281,7 +6046,9 @@ compute_white_target_locations(MRI_SURFACE *mris,
          num_in+num_out, num_in, num_out) ;
   return(NO_ERROR) ;
 }
+#endif
 
+#if 0
 #define T1I  0
 #define T2I  1
 #define WMI  0
@@ -5595,7 +6362,7 @@ compute_white_matter_intensities(MRI_SURFACE *mris,
 
   return(mri_dst) ;
 }
-
+#endif
 #define HISTO_NBINS 256
 
 static int
@@ -6131,6 +6898,7 @@ compute_label_normal(MRI *mri_aseg, int x0, int y0, int z0,
   *pnz = nz ;
   return(NO_ERROR) ;
 }
+#if 0
 static int 
 near_bright_structure(MRI *mri_aseg, int xi, int yi, int zi, int whalf)
 {
@@ -6149,7 +6917,7 @@ near_bright_structure(MRI *mri_aseg, int xi, int yi, int zi, int whalf)
     (label_histo[Right_Amygdala] > 0)
     );
 }
-
+#endif
 int
 MRISremoveSelfIntersections(MRI_SURFACE *mris)
 {
@@ -6157,6 +6925,7 @@ MRISremoveSelfIntersections(MRI_SURFACE *mris)
   int              n, vno, fno ;
   VERTEX           *v ;
 
+//  return(NO_ERROR) ;
   MRISremoveIntersections(mris);
   return(NO_ERROR) ;
   mht = MHTfillTable(mris, NULL) ;

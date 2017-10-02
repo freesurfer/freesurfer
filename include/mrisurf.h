@@ -1747,6 +1747,7 @@ int MRIScopyMarked2ToMarked(MRI_SURFACE *mris) ;
 int MRIScopyMarkedToMarked3(MRI_SURFACE *mris) ;
 int MRIScopyMarked3ToMarked(MRI_SURFACE *mris) ;
 int MRISexpandMarked(MRI_SURFACE *mris) ;
+int MRISnotMarked(MRI_SURFACE *mri) ;
 double MRISsmoothingArea(MRIS *mris, int vtxno, int niters);
 
 int MRISopenMarked(MRI_SURFACE *mris, int order) ;
@@ -2145,7 +2146,17 @@ MRI_SURFACE *MRISconcat(MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_SURFACE *mri
 #define TAUBIN_INVERSE_WEIGHTS   1
 #define TAUBIN_EDGE_WEIGHTS      2
 
+int MRISvertexNormalToVoxelScaled(MRI_SURFACE *mris,
+				  VERTEX *v,
+				  MRI *mri,
+				  double *pnx, double *pny, double *pnz) ;
+int
+MRISvertexNormalToVoxel(MRI_SURFACE *mris,
+			VERTEX *v,
+			MRI *mri,
+			double *pnx, double *pny, double *pnz) ;
 MRI *MRIcomputeLaminarVolumeFractions(MRI_SURFACE *mris, double res, MRI *mri_src, MRI *mri_vfracs) ;
+int MRISfindNeighborsAtVertex(MRI_SURFACE *mris, int vno, int nlinks, int *vlist);
 int mrisFindNeighbors(MRI_SURFACE *mris);
 MRIS *MRIStessellate(MRI *mri,  int value, int all_flag);
 void TESSaddFace(MRI *mri, int imnr, int i, int j, int f, int prev_flag, int *pface_index, 

@@ -82,6 +82,7 @@
 // mostly for diagnostics
 #define MAXVERTICES 10000000
 #define MAXFACES    (2*MAXVERTICES)
+#define MAX_NBHD_VERTICES  20000
 
 // uncomment this to expose code which shows timings of gpu activities:
 //#define FS_CUDA_TIMINGS
@@ -2264,6 +2265,76 @@ int mrisFindNeighbors(MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 
+/*
+  fills the vlist parameter with the indices of the vertices up to and include
+  nlinks distances in terms of number of edges. Each vertex->marked field will be 
+  set to the number of edges between it and the central vertex.
+*/
+int MRISfindNeighborsAtVertex(MRI_SURFACE *mris, int vno, int nlinks, int *vlist)
+{
+  int    m, n, vtotal = 0, link_dist, ring_total ;
+  VERTEX *v, *vn ;
+
+  v = &mris->vertices[vno];
+  if (v->ripflag)
+    return(0) ;
+
+  v->marked = -1 ;
+  for (n = 0 ; n < v->vtotal ; n++)
+  {
+    vlist[n] = v->v[n] ;
+    mris->vertices[v->v[n]].marked = n < v->vnum ? 1 : (n < v->v2num ? 2 : 3) ;
+  }
+  if (nlinks < mris->nsize)
+  {
+    switch (nlinks)
+    {
+    case 1:
+      vtotal = v->vnum ;
+      break ;
+    case 2:
+      vtotal = v->v2num ;
+      break ;
+    case 3:
+      v->vtotal = v->v3num ;
+      break ;
+    default:
+      vtotal = 0 ;
+      ErrorExit(ERROR_BADPARM, "MRISfindNeighborsAtVertex: nlinks=%d invalid",nlinks) ;
+      break ;
+    }
+  }
+  else   // bigger than biggest neighborhood held at each vertex
+  {
+    v->marked = mris->nsize ;
+    link_dist = mris->nsize ;
+    vtotal = v->vtotal ;
+    // at each iteration mark one more ring with the ring distance
+    do
+    {
+      link_dist++ ;
+      ring_total = 0 ; 
+      for (n = 0 ; n < vtotal ; n++)
+      {
+	vn = &mris->vertices[vlist[n]] ;
+	if (vn->ripflag)
+	  continue ;
+	for (m = 0 ; m < vn->vnum ; m++)  // one more ring out
+	{
+	  if (mris->vertices[vn->v[m]].marked == 0)
+	  {
+	    vlist[vtotal + ring_total] = vn->v[m] ;
+	    mris->vertices[vn->v[m]].marked = link_dist ;
+	    ring_total++ ;
+	  }
+	}
+      }
+      vtotal += ring_total ;
+    } while (link_dist < nlinks) ;  // expand by one
+  }
+  return(vtotal) ;
+}
+
 
 /*-----------------------------------------------------
   Parameters:
@@ -2303,7 +2374,6 @@ MRISsampleAtEachDistance(MRI_SURFACE *mris,int nbhd_size,int nbrs_per_distance)
   Expand the list of neighbors of each vertex, reallocating
   the v->v array to hold the expanded list.
   ------------------------------------------------------*/
-#define MAX_VERTICES  20000
 #define MAX_V         5000  /* max for any one node, actually way too big */
 #define TRIANGLE_DISTANCE_CORRECTION  1.09f /*1.1f*/
 /*1.066f*/ /*1.12578*/ /* 1.13105f*/ /*1.1501f  (1.1364f)*/
@@ -2364,9 +2434,9 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
     dist_scale = TRIANGLE_DISTANCE_CORRECTION ;
   }
 
-  vnbrs = (int *)calloc(MAX_VERTICES, sizeof(int)) ;
-  vall = (int *)calloc(MAX_VERTICES, sizeof(int)) ;
-  vnb = (int *)calloc(MAX_VERTICES, sizeof(int)) ;
+  vnbrs = (int *)calloc(MAX_NBHD_VERTICES, sizeof(int)) ;
+  vall = (int *)calloc(MAX_NBHD_VERTICES, sizeof(int)) ;
+  vnb = (int *)calloc(MAX_NBHD_VERTICES, sizeof(int)) ;
   vtotal = total_nbrs = 0 ;
   for (vtotal = max_possible = 0, n = 1 ; n <= max_nbhd ; n++)
   {
@@ -2496,14 +2566,14 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
     vall_num = 1 ;
     old_vnum = 0 ;
     v->marked = 1 ;  /* a hack - it is a zero neighbor */
-    for (nbhd_size = 1 ; vall_num < MAX_VERTICES && nbhd_size <= max_nbhd ;
+    for (nbhd_size = 1 ; vall_num < MAX_NBHD_VERTICES && nbhd_size <= max_nbhd ;
          nbhd_size++)
     {
       /* expand neighborhood outward by a ring of vertices */
       vnbrs_num = 0 ;  /* will count neighbors in this ring */
       vnum = vall_num ;
       for (found = 0, n = old_vnum;
-           vall_num<MAX_VERTICES && n < vall_num;
+           vall_num<MAX_NBHD_VERTICES && n < vall_num;
            n++)
       {
         vn = &mris->vertices[vall[n]] ;
@@ -2965,7 +3035,6 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
   Expand the list of neighbors of each vertex, reallocating
   the v->v array to hold the expanded list.
   ------------------------------------------------------*/
-#define MAX_VERTICES  20000
 #define MAX_V         1000  /* max for any one node, actually way too big */
 int
 MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
@@ -2988,8 +3057,8 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
   v2 = VectorAlloc(3, MATRIX_REAL) ;
 
   dist_scale = (1.0 + sqrt(2.0)) / 2 ;  /* adjust for Manhattan distance */
-  vnbrs = (int *)calloc(MAX_VERTICES, sizeof(int)) ;
-  vall = (int *)calloc(MAX_VERTICES, sizeof(int)) ;
+  vnbrs = (int *)calloc(MAX_NBHD_VERTICES, sizeof(int)) ;
+  vall = (int *)calloc(MAX_NBHD_VERTICES, sizeof(int)) ;
   total_nbrs = 0 ;
   for (vtotal = max_possible = 0, n = 1 ; n <= max_nbhd ; n++)
   {
@@ -3077,14 +3146,14 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
     vall_num = 1 ;
     old_vnum = 0 ;
     v->marked = 1 ;  /* a hack - it is a zero neighbor */
-    for (nbhd_size = 1 ; vall_num < MAX_VERTICES && nbhd_size <= max_nbhd ;
+    for (nbhd_size = 1 ; vall_num < MAX_NBHD_VERTICES && nbhd_size <= max_nbhd ;
          nbhd_size++)
     {
       /* expand neighborhood outward by a ring of vertices */
       vnbrs_num = 0 ;  /* will count neighbors in this ring */
       vnum = vall_num ;
       for (found = 0, n = old_vnum;
-           vall_num<MAX_VERTICES && n < vall_num;
+           vall_num<MAX_NBHD_VERTICES && n < vall_num;
            n++)
       {
         vn = &mris->vertices[vall[n]] ;
@@ -3565,7 +3634,7 @@ int
 MRISremoveRipped(MRI_SURFACE *mris)
 {
   int     vno, n, fno, nripped, remove, vno2 ;
-  VERTEX  *v, *vn ;
+  VERTEX  *v ;
   FACE    *face ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -3699,13 +3768,13 @@ MRISremoveRipped(MRI_SURFACE *mris)
       for (n = v->vnum ; n < v->v2num ; n++)
       {
         int    n2, n3 ;
-        VERTEX *vn2 ;
+        VERTEX *vn, *vn2 ;
 
         remove = 1  ;
 
         vno2 = v->v[n] ;
         vn = &mris->vertices[vno2] ;
-        for (n2 = 0 ; n2 < v->vnum ; n2++)  // 1-nbrs of the central node
+        for (n2 = 0 ; n2 < vn->vnum ; n2++)  // 1-nbrs of the central node
         {
           vn2 = &mris->vertices[v->v[n2]] ;
           for (n3 = 0 ; remove && n3 < vn2->vnum ; n3++) // 1 nbrs of nbr
@@ -3752,14 +3821,14 @@ MRISremoveRipped(MRI_SURFACE *mris)
       for (n = v->v2num ; n < v->v3num ; n++)
       {
         int    n2, n3 ;
-        VERTEX *vn2 ;
+        VERTEX *vn, *vn2 ;
 
         remove = 1  ;
 
         vno2 = v->v[n] ;
         vn = &mris->vertices[vno2] ;
-        for (n2 = v->vnum ;
-             n2 < v->v2num ;
+        for (n2 = vn->vnum ;
+             n2 < vn->v2num ;
              n2++)  // 2-nbrs of the central node
         {
           vn2 = &mris->vertices[v->v[n2]] ;
@@ -5095,7 +5164,7 @@ int
 MRISreadFloatFile(MRI_SURFACE *mris, const char *sname)
 {
   int    k,vnum,fnum;
-  float  f, fmin, fmax;
+  float  f;
   FILE   *fp;
   char   *cp, path[STRLEN], fname[STRLEN] ;
 
@@ -5145,8 +5214,6 @@ MRISreadFloatFile(MRI_SURFACE *mris, const char *sname)
                 (ERROR_NOFILE, "MRISreadFloatFile: incompatible # of faces "
                  "file %s", fname)) ;
   }
-  fmin = 10000.0f ;
-  fmax = -10000.0f ;  /* for compiler warnings */
   for (k=0; k<vnum; k++)
   {
     f = freadFloat(fp);
@@ -6547,7 +6614,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
              int max_passes, float min_degrees, float max_degrees, int nangles)
 {
   float   sigma /*, target_sigma, dof*/ ;
-  int     i, start_t, done, sno, ino, msec, min_averages=0,
+  int     i, start_t, sno, ino, msec, min_averages=0,
     nsurfaces, using_big_averages=0 ;
   MRI_SP  *mrisp ;
   char    fname[STRLEN], base_name[STRLEN], path[STRLEN] ;
@@ -6927,7 +6994,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
       }
 
       mrisClearMomentum(mris) ;
-      done = 0 ;
+
       if (using_big_averages)
       {
         float sigma = 4.0 ;
@@ -7139,7 +7206,7 @@ int MRISvectorRegister(MRI_SURFACE *mris,
                        int nangles)
 {
   float   sigma ;
-  int     i,/*steps,*/ done, msec ;
+  int     i,/*steps,*/ msec ;
   MRI_SP  *mrisp ;
   VERTEX *v;
   char    fname[STRLEN], base_name[STRLEN], path[STRLEN] ;
@@ -7149,7 +7216,6 @@ int MRISvectorRegister(MRI_SURFACE *mris,
   int n,fno,ncorrs;
   int *frames,nframes,nf,*indices;
   float l_corr;
-  int pdone = 1 ;
   VALS_VP *vp;
 
   if (IS_QUADRANGULAR(mris))
@@ -7507,7 +7573,6 @@ int MRISvectorRegister(MRI_SURFACE *mris,
       if (pdone)
       {
         /* only once */
-        pdone=0;
         /* only small adjustments needed after 1st time around */
         parms->tol *= 2.0f ;
 
@@ -7520,8 +7585,6 @@ int MRISvectorRegister(MRI_SURFACE *mris,
         }
       }
     }
-#else
-    pdone = 0 ;
 #endif
 
     if (first)
@@ -7551,7 +7614,6 @@ int MRISvectorRegister(MRI_SURFACE *mris,
     }
 
     mrisClearMomentum(mris) ;
-    done = 0 ;
 
     mrisIntegrationEpoch(mris, parms, parms->n_averages) ;
   }
@@ -33863,6 +33925,40 @@ MRISvertexToVoxel(MRI_SURFACE *mris,
   yw = v->y ;
   zw = v->z ;
   MRISsurfaceRASToVoxelCached(mris, mri, xw, yw, zw, pxv, pyv, pzv) ;
+  return(NO_ERROR) ;
+}
+
+int
+MRISvertexNormalToVoxel(MRI_SURFACE *mris,
+			VERTEX *v,
+			MRI *mri,
+			double *pnx, double *pny, double *pnz)
+{
+  double  xw, yw, zw ;
+  double  xv0, yv0, zv0, xv1, yv1, zv1 ;
+
+  xw = v->x ; yw = v->y ; zw = v->z ;
+  MRISsurfaceRASToVoxelCached(mris, mri, xw, yw, zw, &xv0, &yv0, &zv0) ;
+  xw = v->x+v->nx ; yw = v->y+v->ny ; zw = v->z+v->nz ;
+  MRISsurfaceRASToVoxelCached(mris, mri, xw, yw, zw, &xv1, &yv1, &zv1) ;
+  *pnx = xv1-xv0 ; *pny = yv1-yv0 ; *pnz = zv1-zv0 ;
+  return(NO_ERROR) ;
+}
+int
+MRISvertexNormalToVoxelScaled(MRI_SURFACE *mris,
+			      VERTEX *v,
+			      MRI *mri,
+			      double *pnx, double *pny, double *pnz)
+{
+  double  nx, ny, nz, len ;
+
+  MRISvertexNormalToVoxel(mris, v, mri, &nx, &ny, &nz) ;
+  len = sqrt(nx*nx + ny*ny + nz*nz) ;
+  if (FZERO(len))
+    return(ERROR_BADPARM) ;
+  *pnx = nx / len ;
+  *pny = ny / len ;
+  *pnz = nz / len ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -78682,8 +78778,7 @@ int MRIScopyVolGeomFromMRI(MRI_SURFACE *mris, MRI *mri)
 int
 MRISremoveIntersections(MRI_SURFACE *mris)
 {
-  int     n, num, vno, writeit=0, old_num, nbrs, min_int, no_progress = 0 ;
-  VERTEX  *v ;
+  int     n, num, writeit=0, old_num, nbrs, min_int, no_progress = 0 ;
 
   n = 0 ;
 
@@ -78695,12 +78790,13 @@ MRISremoveIntersections(MRI_SURFACE *mris)
   MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
   nbrs = 0 ;
   MRISclearMarks(mris) ;
+  num = mrisMarkIntersections(mris) ;
   while (num > 0)
   {
-    if (num >= old_num)  // couldn't remove any
+    if ((num > old_num) || ((num == old_num) && (no_progress >= nbrs)))  // couldn't remove any
     {
       no_progress++ ;
-      printf("step %d with no progress\n", no_progress) ;
+      printf("step %d with no progress (num=%d, old_num=%d)\n", no_progress, num, old_num) ;
 
       // couldn't make any more progress with current size of neighborhood, expand, reset or quit
       if (nbrs >= MAX_INT_REMOVAL_NEIGHBORS)  // don't let neighborhood get too big
@@ -78712,26 +78808,32 @@ MRISremoveIntersections(MRI_SURFACE *mris)
       }
       else
       {
-	nbrs++ ;
-	printf("expanding nbhd size to %d\n", nbrs);
+// disable this code as it was causing the surface to do wacky things. Just try smoothing
+// vertices that are actually intersecting
+//	nbrs++ ;
+//	printf("expanding nbhd size to %d\n", nbrs);
+	if (no_progress > 15)
+	  break ;
       }
     }
-    else
+    else   // num didn't get bigger
     {
-      no_progress = 0 ;
-      min_int = num ;
-      MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
+      if (num < old_num)   // num actually decreased
+	no_progress = 0 ;
+      else
+	no_progress++ ;
+      if (num < min_int)
+      {
+	min_int = num ;
+	MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
+      }
     }
       
     MRISdilateMarked(mris,nbrs) ;
     old_num = num ;
 
     printf("%03d: %d intersecting\n", n, num) ;
-    for (vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      v->marked = !v->marked ;  // soap bubble will fix the marked ones
-    }
+    MRISnotMarked(mris) ;  // turn off->on and on->off so soap bubble is correct (marked are fixed)
     MRISsoapBubbleVertexPositions(mris, 100) ;
     if (writeit)
     {
@@ -86991,5 +87093,19 @@ MRISmeasureLaplaceStreamlines(MRI_SURFACE *mris, MRI *mri_laplace, MRI *mri_inte
   //  printf("%d of %d pial surface nodes not resolved - %2.3f %%\n",
   //         nmissing, mris->nvertices, 100.0*nmissing/mris->nvertices) ;
   MRIfree(&mri_mag) ; MRIfree(&mri_grad) ;
+  return(NO_ERROR) ;
+}
+int
+MRISnotMarked(MRI_SURFACE *mris)
+{
+  int vno ;
+  VERTEX *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag == 0)
+      v->marked = !v->marked ;
+  }
   return(NO_ERROR) ;
 }
