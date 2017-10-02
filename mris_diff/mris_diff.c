@@ -702,7 +702,11 @@ static int parse_commandline(int argc, char **argv) {
       aparc2name = pargv[0];
       CheckAParc=1;
       nargsused = 1;
-    } 
+    } else if (!strcasecmp(option, "--thresh")) {
+      // ignore --thresh for now
+      if (nargc < 1) CMDargNErr(option,1);
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--maxerrs")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&MAX_NUM_ERRORS);
@@ -751,7 +755,7 @@ static void print_usage(void) {
   printf("   --aparc2 aparc2   optional different name to compare to aparc\n");
   printf("\n");
   printf("other options:\n");
-  printf("   --thresh N    threshold (default=0)\n");
+  printf("   --thresh N    threshold (default=0) [note: not currently implemented!] \n");
   printf("   --maxerrs N   stop looping after N errors (default=%d)\n",
          MAX_NUM_ERRORS);
   printf("\n");
