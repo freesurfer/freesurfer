@@ -94,6 +94,11 @@ static int noskull = 0 ;
 static int nosnr = 1 ;
 static double min_dist = 2.5 ; // mm away from border in -surface
 
+static int remove_controlpoints_outside_range(MRI *mri_ctrl, MRI *mri, float fmin, float fmax) ;
+static char *checknorm_fname = NULL ;
+static float check_min = 90 ;
+static float check_max = 120 ;
+
 static char *renorm_fname = NULL ;
 static int renorm_val = DEFAULT_DESIRED_WHITE_MATTER_VALUE ;
 
@@ -456,6 +461,15 @@ main(int argc, char *argv[])
     else
     {
       remove_surface_outliers(mri_ctrl, mri_dist, mri_dst, mri_ctrl, min_dist) ;
+    }
+    if (checknorm_fname)
+    {
+      MRI *mri ;
+      mri = MRIread(checknorm_fname) ;
+      if (mri == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not load %s", Progname, checknorm_fname) ;
+      remove_controlpoints_outside_range(mri_ctrl, mri, check_min, check_max) ;
+      MRIfree(&mri) ;
     }
     threshold_control_points(mri_ctrl, mri_dst, 10.0) ;
     remove_outliers_near_surface(mri_ctrl, mri_dist, mri_dst, mri_ctrl, min_dist+1, 2.5) ;
@@ -1005,6 +1019,14 @@ get_option(int argc, char *argv[])
     renorm_fname = argv[2] ;
     printf("renormalizing using voxels that are %d in %s\n",  DEFAULT_DESIRED_WHITE_MATTER_VALUE, renorm_fname) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "checknorm"))
+  {
+    checknorm_fname = argv[2] ;
+    check_min = atof(argv[3]) ;
+    check_max = atof(argv[4]) ;
+    printf("removing control points that are not in [%2.0f %2.f] in %s\n",  check_min, check_max, checknorm_fname) ;
+    nargs = 3 ;
   }
   else if (!stricmp(option, "ATLAS"))
   {
@@ -2078,3 +2100,31 @@ threshold_control_points(MRI *mri_ctrl, MRI *mri_intensity, float thresh)
       }
   return(NO_ERROR) ;
 }
+static int
+remove_controlpoints_outside_range(MRI *mri_ctrl, MRI *mri, float fmin, float fmax)
+{
+  int  x, y, z, nremoved = 0, ctrl ;
+  float val ;
+
+  for (x = 0 ; x < mri->width ; x++)
+    for (y = 0 ; y < mri->height ; y++)
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	ctrl = (int)MRIgetVoxVal(mri_ctrl, x, y, z, 0) ;
+	if (ctrl == 0)
+	  continue ;
+	val = MRIgetVoxVal(mri, x, y, z, 0) ;
+	if (val < fmin || val > fmax)
+	{
+	  if (x == Gx && y == Gy && z == Gz)
+	    printf("voxel(%d, %d, %d) = %2.1f, removing due to intensity outlier\n", x, y, z, val) ;
+	  nremoved++ ;
+	  MRIsetVoxVal(mri_ctrl, x, y, z, 0, CONTROL_NONE) ;
+	}
+      }
+  printf("%d control points removed in intensity range checking\n", nremoved) ;
+  return(NO_ERROR) ;
+}
+	
