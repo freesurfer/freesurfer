@@ -29,6 +29,7 @@
 #include "MyUtils.h"
 #include "LayerCollection.h"
 #include "LayerPropertyTrack.h"
+#include <QFileInfo>
 
 PanelTrack::PanelTrack(QWidget *parent) :
   PanelLayer("Tract", parent),
@@ -48,7 +49,7 @@ PanelTrack::PanelTrack(QWidget *parent) :
                                << ui->comboBoxDirectionMapping;
   m_widgetlistSolidColor << ui->labelSolidColor
                          << ui->colorPickerSolidColor;
-  connect(ui->pushButtonShowClusterMap, SIGNAL(clicked()), mainwnd, SLOT(ShowClusterMap()));
+  connect(ui->pushButtonShowClusterMap, SIGNAL(clicked()), mainwnd, SLOT(ShowTractClusterMap()));
 }
 
 PanelTrack::~PanelTrack()
@@ -101,7 +102,10 @@ void PanelTrack::DoUpdateWidgets()
   ui->lineEditFileName->clear();
   if ( layer )
   {
-    ui->lineEditFileName->setText( MyUtils::Win32PathProof(layer->GetFileName()) );
+    QString fn = layer->GetFileName();
+    if (layer->IsCluster())
+      fn = QFileInfo(fn).absolutePath() + "/*.trk";
+    ui->lineEditFileName->setText(fn);
     ui->lineEditFileName->setCursorPosition( ui->lineEditFileName->text().size() );
     ui->comboBoxColorCode->setCurrentIndex(layer->GetProperty()->GetColorCode());
     ui->comboBoxDirectionMapping->setCurrentIndex(layer->GetProperty()->GetDirectionMapping());

@@ -524,7 +524,7 @@ protected slots:
 
   void OnTractClusterLoaded(const QVariantMap& data);
 
-  void ShowClusterMap();
+  void ShowTractClusterMap();
 
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);

@@ -29,6 +29,8 @@ public:
     QPainterPath shape() const;
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget);
 
+    void SetHighlighted(bool bHighlight, bool whole_branch = false);
+
 protected:
    // QVariant itemChange(GraphicsItemChange change, const QVariant &value) Q_DECL_OVERRIDE;
 
@@ -39,6 +41,7 @@ private:
     QList<BinaryTreeEdge *> edgeList;
     QPointF newPos;
     BinaryTreeView *graph;
+    bool  m_bHighlighted;
 };
 
 #endif // BINARYTREENODE_H

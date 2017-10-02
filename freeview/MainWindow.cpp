@@ -6642,8 +6642,11 @@ void MainWindow::OnActiveLayerChanged(Layer* layer)
   }
   else
   {
+    QString fn = layer->GetFileName();
+    if (layer->IsTypeOf("Tract") && ((LayerTrack*)layer)->IsCluster())
+      fn = QFileInfo(fn).absolutePath() + "/*.trk";
     this->setWindowTitle(QString("FreeView (%1)")
-                         .arg(MyUtils::Win32PathProof(layer->GetFileName())));
+                         .arg(fn));
     if (layer->IsTypeOf("MRI") && !layer->IsTypeOf("DTI") && !layer->IsTypeOf("PLabel"))
     {
       if (((LayerMRI*)layer)->GetNumberOfFrames() > 1 && !((LayerMRI*)layer)->GetCorrelationSurface())
@@ -7503,14 +7506,14 @@ void MainWindow::OnTractClusterLoaded(const QVariantMap& data)
   }
   else
   {
-    ShowClusterMap();
+    ShowTractClusterMap();
     LayerTrack* layer = new LayerTrack( m_layerVolumeRef, NULL, true );
     layer->SetClusterData(data);
     m_threadIOWorker->LoadTrack( layer );
   }
 }
 
-void MainWindow::ShowClusterMap()
+void MainWindow::ShowTractClusterMap()
 {
   m_wndTractCluster->show();
   m_wndTractCluster->raise();

@@ -14,8 +14,10 @@
 #include <QGraphicsPixmapItem>
 #include <QDebug>
 
+#define NODE_RADIUS 5
+
 BinaryTreeNode::BinaryTreeNode(BinaryTreeView *graphWidget)
-  : graph(graphWidget)
+  : graph(graphWidget), m_bHighlighted(false)
 {
   setFlag(ItemIsSelectable);
   //setFlag(ItemIsMovable);
@@ -31,7 +33,6 @@ void BinaryTreeNode::addEdge(BinaryTreeEdge *edge)
   edgeList << edge;
   edge->adjust();
 }
-
 
 QList<BinaryTreeEdge *> BinaryTreeNode::edges() const
 {
@@ -50,13 +51,13 @@ bool BinaryTreeNode::advance()
 QRectF BinaryTreeNode::boundingRect() const
 {
   qreal adjust = 2;
-  return QRectF( -10 - adjust, -10 - adjust, 23 + adjust, 23 + adjust);
+  return QRectF( -NODE_RADIUS - adjust, -NODE_RADIUS - adjust, NODE_RADIUS*2 + adjust, NODE_RADIUS*2 + adjust);
 }
 
 QPainterPath BinaryTreeNode::shape() const
 {
   QPainterPath path;
-  path.addEllipse(-10, -10, 20, 20);
+  path.addEllipse(-NODE_RADIUS-1, -NODE_RADIUS-1, NODE_RADIUS*2+2, NODE_RADIUS*2+2);
   return path;
 }
 
@@ -67,33 +68,40 @@ void BinaryTreeNode::paint(QPainter *painter, const QStyleOptionGraphicsItem *op
 //  painter->drawEllipse(-3.5, -3.5, 5, 5);
 
   QRadialGradient gradient(-3, -3, 10);
-  if (option->state & QStyle::State_Sunken) {
-    gradient.setCenter(3, 3);
-    gradient.setFocalPoint(3, 3);
-    gradient.setColorAt(1, QColor(Qt::yellow).light(120));
-    gradient.setColorAt(0, QColor(Qt::darkYellow).light(120));
-  } else {
-    gradient.setColorAt(0, Qt::yellow);
-    gradient.setColorAt(1, Qt::darkYellow);
-  }
+  gradient.setColorAt(0, m_bHighlighted?QColor(Qt::red).lighter() : Qt::yellow);
+  gradient.setColorAt(1, m_bHighlighted?Qt::red : Qt::darkYellow);
 
   painter->setBrush(gradient);
 
-  painter->setPen(QPen(Qt::black, 0));
+  painter->setPen(QPen(m_bHighlighted?Qt::darkRed:Qt::black, 0));
   //painter->drawEllipse(-10, -10, 20, 20);
-  painter->drawEllipse(-5, -5, 10, 10);
-
+  painter->drawEllipse(-NODE_RADIUS, -NODE_RADIUS, NODE_RADIUS*2, NODE_RADIUS*2);
 }
 
 void BinaryTreeNode::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
   QGraphicsItem::mousePressEvent(event);
-  update();
 }
 
 void BinaryTreeNode::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
-  update();
   QGraphicsItem::mouseReleaseEvent(event);
+}
+
+void BinaryTreeNode::SetHighlighted(bool bHighlight, bool whole_branch)
+{
+  m_bHighlighted = bHighlight;
+  if (whole_branch)
+  {
+    foreach (BinaryTreeEdge* edge, edgeList)
+    {
+      if (edge->destNode() && edge->destNode() != this)
+      {
+        edge->destNode()->SetHighlighted(bHighlight, whole_branch);
+        edge->SetHighlighted(bHighlight);
+      }
+    }
+  }
+  update();
 }
 

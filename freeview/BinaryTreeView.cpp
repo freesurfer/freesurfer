@@ -74,7 +74,7 @@ void TreeDataLoader::DoLoad(const QString &dirPath, BinaryTreeView *view)
   emit DataLoaded(data);
 }
 
-BinaryTreeView::BinaryTreeView(QWidget* parent) : QGraphicsView(parent)
+BinaryTreeView::BinaryTreeView(QWidget* parent) : QGraphicsView(parent), m_selectedNode(NULL)
 {
   setMouseTracking(true);
   m_scene = new QGraphicsScene(this);
@@ -123,6 +123,15 @@ void BinaryTreeView::mousePressEvent(QMouseEvent *event)
       }
       emit TreeNodeActivated(filenames);
     }
+//    foreach (BinaryTreeNode* node, m_listSelectedNodes)
+//      node->SetSelected(false);
+//    m_listSelectedNodes = item->GetAllChildNodes();
+//    foreach (BinaryTreeNode* node, m_listSelectedNodes)
+//      node->SetSelected(true);
+    if (m_selectedNode)
+      m_selectedNode->SetHighlighted(false, true);
+    m_selectedNode = item;
+    item->SetHighlighted(true, true);
   }
   QGraphicsView::mousePressEvent(event);
 }
@@ -237,6 +246,7 @@ void BinaryTreeView::OnDataLoaded(const QVariantMap& data)
 
 void BinaryTreeView::SetData(const QVariantMap &data)
 {
+  m_selectedNode = NULL;
   m_mapData = data;
   if (m_mapData.contains("path"))
     m_strDataDir = m_mapData["path"].toString();

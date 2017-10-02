@@ -67,6 +67,7 @@ protected:
 private:
   QVariantMap m_mapData;
   QMap<QString, BinaryTreeNode*> m_mapNode;
+  BinaryTreeNode* m_selectedNode;
   BinaryTreeNode* m_nodeStart;
 
   QGraphicsScene* m_scene;

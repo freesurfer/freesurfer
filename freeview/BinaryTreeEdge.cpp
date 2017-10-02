@@ -9,7 +9,7 @@ static const double Pi = 3.14159265358979323846264338327950288419717;
 static double TwoPi = 2.0 * Pi;
 
 BinaryTreeEdge::BinaryTreeEdge(BinaryTreeNode *sourceNode, BinaryTreeNode *destNode)
-    : arrowSize(0)
+    : arrowSize(0), m_bHighlighted(false)
 {
     setAcceptedMouseButtons(0);
     source = sourceNode;
@@ -72,24 +72,30 @@ void BinaryTreeEdge::paint(QPainter *painter, const QStyleOptionGraphicsItem *, 
         return;
 
     // Draw the line itself
-    painter->setPen(QPen(Qt::black, 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    painter->setPen(QPen(m_bHighlighted?Qt::red : Qt::black, 1, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
     painter->drawLine(line);
 
     // Draw the arrows
-    double angle = ::acos(line.dx() / line.length());
-    if (line.dy() >= 0)
-        angle = TwoPi - angle;
+//    double angle = ::acos(line.dx() / line.length());
+//    if (line.dy() >= 0)
+//        angle = TwoPi - angle;
 
-    QPointF sourceArrowP1 = sourcePoint + QPointF(sin(angle + Pi / 3) * arrowSize,
-                                                  cos(angle + Pi / 3) * arrowSize);
-    QPointF sourceArrowP2 = sourcePoint + QPointF(sin(angle + Pi - Pi / 3) * arrowSize,
-                                                  cos(angle + Pi - Pi / 3) * arrowSize);
-    QPointF destArrowP1 = destPoint + QPointF(sin(angle - Pi / 3) * arrowSize,
-                                              cos(angle - Pi / 3) * arrowSize);
-    QPointF destArrowP2 = destPoint + QPointF(sin(angle - Pi + Pi / 3) * arrowSize,
-                                              cos(angle - Pi + Pi / 3) * arrowSize);
+//    QPointF sourceArrowP1 = sourcePoint + QPointF(sin(angle + Pi / 3) * arrowSize,
+//                                                  cos(angle + Pi / 3) * arrowSize);
+//    QPointF sourceArrowP2 = sourcePoint + QPointF(sin(angle + Pi - Pi / 3) * arrowSize,
+//                                                  cos(angle + Pi - Pi / 3) * arrowSize);
+//    QPointF destArrowP1 = destPoint + QPointF(sin(angle - Pi / 3) * arrowSize,
+//                                              cos(angle - Pi / 3) * arrowSize);
+//    QPointF destArrowP2 = destPoint + QPointF(sin(angle - Pi + Pi / 3) * arrowSize,
+//                                              cos(angle - Pi + Pi / 3) * arrowSize);
 
-    painter->setBrush(Qt::black);
-    painter->drawPolygon(QPolygonF() << line.p1() << sourceArrowP1 << sourceArrowP2);
-    painter->drawPolygon(QPolygonF() << line.p2() << destArrowP1 << destArrowP2);
+//    painter->setBrush(Qt::black);
+//    painter->drawPolygon(QPolygonF() << line.p1() << sourceArrowP1 << sourceArrowP2);
+//    painter->drawPolygon(QPolygonF() << line.p2() << destArrowP1 << destArrowP2);
+}
+
+void BinaryTreeEdge::SetHighlighted(bool bHighlight)
+{
+  m_bHighlighted = bHighlight;
+  update();
 }

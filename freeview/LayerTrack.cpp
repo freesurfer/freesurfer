@@ -27,6 +27,7 @@
 #include "FSVolume.h"
 #include "LayerPropertyTrack.h"
 #include <QFileInfo>
+#include <QDir>
 #include <QDebug>
 #include <vtkActor.h>
 #include <vtkPolyData.h>
@@ -87,7 +88,10 @@ bool LayerTrack::LoadTrackFromFiles()
     qDebug() << "Failed to load from file " << m_sFilename << ".";
     return false;
   }
-  SetName(QFileInfo(m_sFilename).completeBaseName());
+  if (IsCluster())
+    SetName(QFileInfo(m_sFilename).dir().dirName());
+  else
+    SetName(QFileInfo(m_sFilename).completeBaseName());
 
   RebuildActors();
   double dval[6];
