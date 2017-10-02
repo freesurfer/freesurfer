@@ -83,6 +83,10 @@
       <explanation>for debugging</explanation>
       <argument>-d Gx Gy Gz</argument>
       <explanation>for debugging</explanation>
+      <argument>-renorm volume </argument>
+      <explanation>load volume and use all points in it that are exactly 110 as control points</explanation>
+      <argument>-checknorm volume min max </argument>
+      <explanation>load volume and remove all control points that aren't in [min max] in volume</explanation>
       <argument>-r controlpoints biasfield</argument>
       <explanation>for reading</explanation>
       <argument>-surface &lt;surface&gt; &lt;xform&gt;</argument>
