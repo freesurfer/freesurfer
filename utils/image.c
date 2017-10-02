@@ -175,13 +175,14 @@ int ImageUpdateHeader(IMAGE *I, const char *fname) {
         Description
 ------------------------------------------------------*/
 IMAGE *ImageThreshold(IMAGE *Isrc, IMAGE *Idst, float threshold) {
-  int ecode;
+  // int ecode;
   Pixelval p;
 
   if (!Idst) Idst = ImageAlloc(Isrc->rows, Isrc->cols, Isrc->pixel_format, Isrc->num_frame);
 
   p.v_float = threshold;
-  ecode = h_softthresh(Isrc, Idst, &p);
+  // ecode =
+  h_softthresh(Isrc, Idst, &p);
   return (Idst);
 }
 /*-----------------------------------------------------
@@ -1121,7 +1122,7 @@ int ImageScaleRange(IMAGE *image, float fmin, float fmax, int low, int high) {
   byte *csrc, cmin_val, cmax_val, cval;
   int *isrc, imin_val, imax_val, ival;
   float *fsrc, fval, norm;
-  double *dsrc, dval, dmin, dmax, dnorm, dlow;
+  double *dsrc, dval, dmin, dmax, dnorm;  //, dlow;
 
   if (FZERO(fmax - fmin)) return (ERROR_BADPARM);
 
@@ -1159,7 +1160,7 @@ int ImageScaleRange(IMAGE *image, float fmin, float fmax, int low, int high) {
       size = image->cols * image->rows;
       dsrc = IMAGEDpix(image, 0, 0);
       dnorm = ((double)high - (double)low) / (dmax - dmin);
-      dlow = (double)low;
+      // dlow = (double)low;
       while (size--) {
         dval = *dsrc;
         dval = ((dval - dmin) * dnorm) + (double)low;
@@ -1746,8 +1747,8 @@ int ImageDifferentialScaleUp(IMAGE *Isrc, IMAGE *Iout, int outRows, int outCols)
 ----------------------------------------------------------------------*/
 int ImageReflect(IMAGE *inImage, IMAGE *outImage, int how) {
   int x, y, ymax;
-  unsigned char *src, *dst, *tmp;
-  unsigned int *isrc, *idst, *itmp;
+  unsigned char *src, *dst;   //, *tmp;
+  unsigned int *isrc, *idst;  //, *itmp;
 
   if (!ImageCheckSize(inImage, outImage, 0, 0, 0))
     ErrorReturn(-1, (ERROR_NO_MEMORY, "ImageReflect: output image not large enough\n"));
@@ -1760,7 +1761,7 @@ int ImageReflect(IMAGE *inImage, IMAGE *outImage, int how) {
         case IMAGE_REFLECT_AROUND_X_AXIS:
           ymax = inImage->rows - 1;
           src = inImage->image;
-          tmp = outImage->image;
+          // tmp = outImage->image;
           for (y = 0; y < inImage->rows; y++) {
             for (x = 0; x < inImage->cols; x++) {
               dst = IMAGEpix(outImage, x, ymax - y);
@@ -1780,7 +1781,7 @@ int ImageReflect(IMAGE *inImage, IMAGE *outImage, int how) {
         case IMAGE_REFLECT_AROUND_X_AXIS:
           ymax = inImage->rows - 1;
           isrc = (unsigned int *)inImage->image;
-          itmp = (unsigned int *)outImage->image;
+          // itmp = (unsigned int *)outImage->image;
           for (y = 0; y < inImage->rows; y++) {
             for (x = 0; x < inImage->cols; x++) {
               idst = IMAGEIpix(outImage, x, ymax - y);

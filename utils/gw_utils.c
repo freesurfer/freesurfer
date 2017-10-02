@@ -188,13 +188,13 @@ MRI *MRIFromMHTandMRIS(MHT *mht, MRIS *mris, MFMM_Option_t mfmm_option) {
   MHBT *bucket;
   MHB *bin;
   int binnum;
-  int fno_usage;  //
+  // int fno_usage; //
   int outval;
 
 #define HALFMHTFOV 200
 #define HALFMRIFOV 128
 
-  fno_usage = mht->fno_usage;
+  // fno_usage = mht->fno_usage;
 
   amri = MRIalloc(256, 256, 256, MRI_SHORT);
   for (mriz = 0; mriz < 255; mriz++) {
@@ -260,9 +260,8 @@ static char local_Progversion[100] = "uninitialized";
 static char local_Logfilepath[1000] = "uninitialized";
 
 //----------------------------------------
-int gw_log_init(char *AProgname, char *AProgversion, char *ALogfilepath,
-                int newfile) {  // 0 for OK
-                                //----------------------------------------
+int gw_log_init(char *AProgname, char *AProgversion, char *ALogfilepath, int newfile) {  // 0 for OK
+  //----------------------------------------
   FILE *afile;
   int rslt = 0;
   strcpy(local_Progname, AProgname);
@@ -296,11 +295,12 @@ static void nowstr(char *buf) {
   //------------------------------
   time_t tim;
   struct tm *tmr;
-  int rslt;
+  // int rslt;
 
   time(&tim);
   tmr = localtime(&tim);
-  rslt = strftime(buf, 100, "%Y-%m-%d %H:%M:%S", tmr);
+  // rslt =
+  strftime(buf, 100, "%Y-%m-%d %H:%M:%S", tmr);
 }
 
 //------------------------------

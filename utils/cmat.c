@@ -39,21 +39,40 @@ CMAT *CMATread(const char *fname) {
   FILE *fp;
 
   fp = fopen(fname, "r");
-  if (fp == NULL) ErrorReturn(NULL, (ERROR_NOFILE, "CMATread(%s): could not open file", fname));
 
-  fscanf(fp, "CMAT - %d\n", &nlabels);
+  if (!fp) {
+    ErrorReturn(NULL, (ERROR_NOFILE, "CMATread(%s): could not open file", fname));
+  }
+
+  if (fscanf(fp, "CMAT - %d\n", &nlabels) != 1) {
+    ErrorPrintf(ERROR_BAD_FILE, "CMATread(%s): could not read parameter(s)", fname);
+  }
   cmat = CMATalloc(nlabels, NULL);
 
-  for (i = 0; i < nlabels; i++) fscanf(fp, "%d\n", &cmat->labels[i]);
+  for (i = 0; i < nlabels; i++) {
+    if (fscanf(fp, "%d\n", &cmat->labels[i]) != 1) {
+      ErrorPrintf(ERROR_BAD_FILE, "CMATread(%s): could not read parameter(s)", fname);
+    }
+  }
 
   for (i = 0; i < cmat->nlabels - 1; i++) {
-    for (j = i + 1; j < cmat->nlabels; j++) fscanf(fp, "%lf", &cmat->weights[i][j]);
-    fscanf(fp, "\n");
+    for (j = i + 1; j < cmat->nlabels; j++) {
+      if (fscanf(fp, "%lf", &cmat->weights[i][j]) != 1) {
+        ErrorPrintf(ERROR_BAD_FILE, "CMATread(%s): could not read parameter(s)", fname);
+      }
+    }
+    if (fscanf(fp, "\n") != 1) {
+      ErrorPrintf(ERROR_BAD_FILE, "CMATread(%s): could not read parameter(s)", fname);
+    }
   }
   for (i = 0; i < cmat->nlabels - 1; i++) {
     for (j = i + 1; j < cmat->nlabels; j++) {
-      fscanf(fp, "%d %d\n", &ind1, &ind2);
-      if (feof(fp)) break;
+      if (fscanf(fp, "%d %d\n", &ind1, &ind2) != 2) {
+        ErrorPrintf(ERROR_BAD_FILE, "CMATread(%s): could not read parameter(s)", fname);
+      }
+      if (feof(fp)) {
+        break;
+      }
       cmat->splines[ind1][ind2] = LabelReadFrom(NULL, fp);
       if (cmat->coords == LABEL_COORDS_NONE) {
         cmat->coords = cmat->splines[ind1][ind2]->coords;

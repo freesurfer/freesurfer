@@ -134,7 +134,6 @@ void xDbg_PopStack() {
 
     strncpy(xDbg_sStackDesc, masStackTitle[mCurrentStackDepth], xDbg_knMaxDescLength);
     strncpy(xDbg_sCurNoteDesc, masStackNote[mCurrentStackDepth], xDbg_knMaxDescLength);
-
   } else {
     DebugPrint(("ERROR: xDbg_PopStack call when stack is empty.\n"));
   }

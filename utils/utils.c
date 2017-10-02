@@ -608,7 +608,10 @@ void FileRename(const char *inName, const char *outName) {
 #ifndef _MSDOS
   char cmd_string[200];
   sprintf(cmd_string, "mv %s %s", inName, outName);
-  system(cmd_string);
+  int retval = system(cmd_string);
+  if (retval) {
+    fprintf(stdout, "Renaming file returned: %d", retval);
+  }
 #else
   rename(inName, outName);
 #endif

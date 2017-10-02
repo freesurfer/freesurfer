@@ -22,8 +22,9 @@
  *
  */
 
-#include "mriSurface.h"
 #include "error.h"
+
+#include "mriSurface.h"
 
 char *Surf_ksaErrorStrings[Surf_knNumErrorCodes] = {
 

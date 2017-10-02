@@ -6383,7 +6383,6 @@ S90:
   yy = *fx;
   if (!(yy == 0.0e0)) goto S100;
   *status = 0;
-  qok = 1;
   return;
 S100:
   qup = (qincr && yy < 0.0e0) || (!qincr && yy > 0.0e0);
@@ -9088,8 +9087,7 @@ FIFIDINT:
 Truncates a double precision number to a long integer
 ************************************************************************/
 long fifidint(double a)
-/* a - number to be truncated */
-{
+/* a - number to be truncated */ {
   return (long)(a);
 }
 /************************************************************************
@@ -9098,8 +9096,7 @@ returns the modulo of a and b
 ************************************************************************/
 long fifmod(long a, long b)
 /* a - numerator */
-/* b - denominator */
-{
+/* b - denominator */ {
   return a % b;
 }
 /************************************************************************

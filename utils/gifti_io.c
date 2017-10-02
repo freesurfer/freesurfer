@@ -2961,7 +2961,8 @@ static int can_compare_DA_data(const giiDataArray *d1, const giiDataArray *d2, i
 int gifti_compare_nvpairs(const nvpairs *p1, const nvpairs *p2, int verb) {
   char *value;
   int lverb = verb; /* possibly override passed verb */
-  int c, len, diffs = 0;
+  int c, diffs = 0;
+  // int len = 0;
 
   if (G.verb > lverb) lverb = G.verb;
 
@@ -2984,7 +2985,7 @@ int gifti_compare_nvpairs(const nvpairs *p1, const nvpairs *p2, int verb) {
 
   /* search for mis-matches or non-existence from list 1 into list 2  */
   /* assume Names are unique (each that is not will show a mis-match) */
-  len = p1->length < p2->length ? p1->length : p2->length;
+  // len = p1->length < p2->length ? p1->length : p2->length;
   for (c = 0; c < p1->length; c++) {
     if (!p1->value[c]) continue; /* skip anything that doesn't exist */
     value = gifti_get_meta_value(p2, p1->name[c]);
@@ -3043,7 +3044,8 @@ int gifti_approx_labeltables(const giiLabelTable *t1, const giiLabelTable *t2, i
 */ /*-------------------------------------------------------------------*/
 static int compare_labeltables(const giiLabelTable *t1, const giiLabelTable *t2, int verb, int approx) {
   int lverb = verb; /* possibly override passed verb */
-  int c, roff, offset, diffs = 0;
+  int c, offset, diffs = 0;
+  // int roff = 0;
 
   if (G.verb > lverb) lverb = G.verb;
 
@@ -3078,7 +3080,7 @@ static int compare_labeltables(const giiLabelTable *t1, const giiLabelTable *t2,
   }
 
   /* walk through list to compare labels */
-  roff = 0;
+  // roff = 0;
   for (c = 0; c < t1->length; c++) {
     if (gifti_strdiff(t1->label[c], t2->label[c])) {
       if (lverb > 2) printf("-- labeltable Label diff at index %d\n", c);

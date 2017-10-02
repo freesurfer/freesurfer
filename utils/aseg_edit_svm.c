@@ -27,18 +27,22 @@ extern const char *Progname;
 /*-----------------------------------------------------
   INCLUDE FILES
   -------------------------------------------------------*/
-#include "aseg_edit_svm.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "diag.h"
 #include "error.h"
 #include "mri.h"
 #include "utils.h"
 #include "voxlist.h"
 
-#define NINPUTS(wsize, nscales) \
-  (4 + (wsize * wsize * wsize) * nscales * (1 + 1))  // 3+1 = 3 grad components plus image intensity
+#include "aseg_edit_svm.h"
+
+/*#define NINPUTS(wsize, nscales) \
+  (4 +                                                                         \
+   (wsize * wsize * wsize) * nscales *                                         \
+       (1 + 1)) // 3+1 = 3 grad components plus image intensity*/
 float **build_svm_training_data(VOXEL_LIST *vl_total,
                                 int target_label,
                                 float *svm_classes,

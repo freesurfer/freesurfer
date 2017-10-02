@@ -1710,12 +1710,13 @@ MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias)
 }
 #else
 MRI *MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias, float sigma) {
-  int width, height, depth, x, y, z;
+  // int width, height, depth;
+  int x, y, z;
   MRI *mri_kernel;
 
-  width = mri_src->width;
-  height = mri_src->height;
-  depth = mri_src->depth;
+  // width = mri_src->width;
+  // height = mri_src->height;
+  // depth = mri_src->depth;
 
   mri_kernel = MRIgaussian1d(sigma, -1);
   mri_bias = MRIclone(mri_src, NULL);
@@ -2010,7 +2011,7 @@ static MRI *mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
   short *psrc, *pdst;
   float src, val, mean;
   MRI *mri_marked;
-  float scale;
+  // float scale;
 
   if (mri_src->type != MRI_SHORT || mri_dst->type != MRI_SHORT)
     ErrorExit(ERROR_UNSUPPORTED, "mriBuildVoronoiDiagramShort: incorrect input type(s)");
@@ -2022,7 +2023,7 @@ static MRI *mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
     mri_dst = MRIclone(mri_src, NULL);
   }
 
-  scale = mri_src->width / mri_dst->width;
+  // scale = mri_src->width / mri_dst->width;
   pxi = mri_src->xi;
   pyi = mri_src->yi;
   pzi = mri_src->zi;
@@ -2166,7 +2167,7 @@ static MRI *mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
   BUFTYPE ctrl, mark;
   float src, val, mean, *pdst, *psrc;
   MRI *mri_marked;
-  float scale;
+  // float scale;
 
   if (!mri_dst) {
     mri_dst = MRIclone(mri_src, NULL);
@@ -2178,7 +2179,7 @@ static MRI *mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
   height = mri_src->height;
   depth = mri_src->depth;
 
-  scale = mri_src->width / mri_dst->width;
+  // scale = mri_src->width / mri_dst->width;
   pxi = mri_src->xi;
   pyi = mri_src->yi;
   pzi = mri_src->zi;
@@ -2318,7 +2319,7 @@ static MRI *mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
   BUFTYPE *psrc, *pdst;
   float src, val, mean;
   MRI *mri_marked;
-  float scale;
+  // float scale;
   // char tmpstr[128];
 
   if (mri_src->type != MRI_UCHAR || (mri_dst && mri_dst->type != MRI_UCHAR))
@@ -2331,7 +2332,7 @@ static MRI *mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
     mri_dst = MRIclone(mri_src, NULL);
   }
 
-  scale = mri_src->width / mri_dst->width;
+  // scale = mri_src->width / mri_dst->width;
   pxi = mri_src->xi;
   pyi = mri_src->yi;
   pzi = mri_src->zi;
@@ -3413,7 +3414,6 @@ int MRI3dUseFileControlPoints(MRI *mri, const char *fname) {
   zctrl = (int *)calloc(count, sizeof(int));
   if (!xctrl || !yctrl || !zctrl)
     ErrorExit(ERROR_NOMEMORY, "MRI3dUseFileControlPoints: could not allocate %d-sized table", num_control_points);
-
   for (i = 0; i < count; i++) {
     switch (useRealRAS) {
       case 0:
@@ -4148,7 +4148,8 @@ static float csf_in_window(MRI *mri, int x0, int y0, int z0, float max_dist, flo
 }
 
 static float find_tissue_intensities(MRI *mri_src, MRI *mri_ctrl, float *pwm, float *pgm, float *pcsf) {
-  int csf_peak, thresh_bin /*, bg_end*/, wm_peak, wm_valley;
+  int csf_peak, thresh_bin /*, bg_end*/, wm_peak;
+  // int wm_valley;
   int gm_peak, gm_valley;
   HISTOGRAM *h, *hsmooth, *hwm;
   float csf_thresh, wm_val;
@@ -4211,7 +4212,8 @@ static float find_tissue_intensities(MRI *mri_src, MRI *mri_ctrl, float *pwm, fl
   wm_val = hsmooth->bins[wm_peak];
   printf("white matter peak found at %2.0f\n", wm_val);
 #define MIN_PEAK_HALF_WIDTH 10
-  wm_valley = HISTOfindPreviousValley(hsmooth, nint(wm_peak - 5 * hsmooth->bin_size));
+  // wm_valley =
+  HISTOfindPreviousValley(hsmooth, nint(wm_peak - 5 * hsmooth->bin_size));
   gm_peak = HISTOfindPreviousPeak(hsmooth, wm_peak - 10 * hsmooth->bin_size, MIN_PEAK_HALF_WIDTH);
 #define MIN_GM 40
   if (gm_peak < 0) {
@@ -4359,7 +4361,8 @@ MRI *MRInormFindHighSignalLowStdControlPoints(MRI *mri_src, MRI *mri_ctrl) {
 }
 
 MRI *MRInormalizeHighSignalLowStd(MRI *mri_src, MRI *mri_norm, float bias_sigma, float wm_target) {
-  int nctrl, x, y, z, width, depth, height;
+  int x, y, z, width, depth, height;
+  // int nctrl;
   MRI *mri_ctrl, *mri_bias;
   float norm, src, bias;
 
@@ -4372,7 +4375,8 @@ MRI *MRInormalizeHighSignalLowStd(MRI *mri_src, MRI *mri_norm, float bias_sigma,
   }
 
   mri_ctrl = MRInormFindHighSignalLowStdControlPoints(mri_src, NULL);
-  nctrl = MRInormAddFileControlPoints(mri_ctrl, 255, mri_src);
+  // nctrl =
+  MRInormAddFileControlPoints(mri_ctrl, 255, mri_src);
   MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED);
   mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, NULL, bias_sigma);
   MRIfree(&mri_ctrl);

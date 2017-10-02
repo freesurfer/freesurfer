@@ -65,7 +65,8 @@
 /* to make the correct conversion. */
 
 /* Start with the reconstructed image. */
-/* Transpose as per RECO_transposition: eg is RECO_transposition is 1 start with */
+/* Transpose as per RECO_transposition: eg is RECO_transposition is 1 start with
+ */
 
 /* 0 1 0 0 */
 /* 1 0 0 0 */
@@ -74,7 +75,8 @@
 
 /* or is RECO_transposition = 0 start with a 4x4 identity matrix. */
 
-/* Then convert to coordinates from the centre of the ft'ed image, in mm; with */
+/* Then convert to coordinates from the centre of the ft'ed image, in mm; with
+ */
 /* first voxel or coordinates 0,0,0, this gives a vox -> mm matrix: */
 
 /* vox(dim)  = RECO_fov(dim) * 10 / RECO_size(dim) */
@@ -100,7 +102,8 @@
 /* 0 1 0 ACQ_phase1_offset; */
 /* 0 0 1 ACQ_slice_offset; */
 /* 0 0 0 1 */
-/* ( for 2D image with 1 slice package use ACQ_slice_offset of the middle slice */
+/* ( for 2D image with 1 slice package use ACQ_slice_offset of the middle slice
+ */
 /*   = IMND_slicepack_position[0] or PVM_SPackArrSliceOffset[0].) */
 
 /* rotation matrix is given by */
@@ -127,10 +130,12 @@
 /* The ParaVision patient coordinate system is: */
 /* L->R, */
 
-/* The whole 4x4 matrix to give mm coordinates in terms of isocentre, from voxel */
+/* The whole 4x4 matrix to give mm coordinates in terms of isocentre, from voxel
+ */
 /* coordinates, is */
 
-/* [ras matrix *] rotation matrix * translation matrix * swap matrix * vox->mm */
+/* [ras matrix *] rotation matrix * translation matrix * swap matrix * vox->mm
+ */
 /* matrix * transposition matrix */
 
 /* I hope, this helps you a little bit, with best regards */
@@ -139,16 +144,18 @@
 
 char *BRUCKER_C_VERSION = "$Revision: 1.12 $";
 
-#include "Bruker.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
 #include "matrix.h"
 #include "mri.h"
 #include "utils.h"
+
+#include "Bruker.h"
 
 #define V4_LOAD(v, x, y, z, r) (VECTOR_ELT(v, 1) = x, VECTOR_ELT(v, 2) = y, VECTOR_ELT(v, 3) = z, VECTOR_ELT(v, 4) = r);
 
@@ -318,7 +325,9 @@ int readBrukerD3proc(char *d3procFile, int *px, int *py, int *pz, int *ptype, in
     else if (!strcmp(Parameter, "$IM_SIZ"))
       lRead = sscanf(Value, "%d", pz);
     else if (!strcmp(Parameter, "$IM_SIT")) {
-      lRead = sscanf(Value, "%d", pnframes);
+      sscanf(Value, "%d", pz);
+    } else if (!strcmp(Parameter, "$IM_SIT")) {
+      sscanf(Value, "%d", pnframes);
       if (*pnframes > 1) {
         fprintf(stderr, "ERROR: nframes %d but one is supported.\n", *pnframes);
         return 0;
@@ -329,7 +338,10 @@ int readBrukerD3proc(char *d3procFile, int *px, int *py, int *pz, int *ptype, in
       else if (strcmp(Value, "ip_int") == 0)
         *ptype = MRI_INT;
       else {
-        fprintf(stderr, "ERROR: currently only short and int types are supported (Value=%s).\n", Value);
+        fprintf(stderr,
+                "ERROR: currently only short and int types are "
+                "supported (Value=%s).\n",
+                Value);
         return 0;
       }
     }
@@ -526,7 +538,7 @@ int readBrukerAcqp(char *acqpFile, double *pTR, double *pTE, double *pTI, double
   char line[512];
   char Parameter[256];
   char Value[128];
-  int lRead = 0;
+  // int lRead = 0;
   int dim = 0;
 
   fp = fopen(acqpFile, "r");
@@ -541,14 +553,19 @@ int readBrukerAcqp(char *acqpFile, double *pTR, double *pTE, double *pTI, double
     if (!strcmp(Parameter, "END"))
       break;
     else if (!strcmp(Parameter, "OWNER")) {
-      fgets(line, sizeof(line), fp);
+      if (!fgets(line, sizeof(line), fp)) {
+        fprintf(stderr, "warning, no lines read by fgets\n");
+      }
       printf("INFO: %s", line);
-      fgets(line, sizeof(line), fp);
+      if (!fgets(line, sizeof(line), fp)) {
+        fprintf(stderr, "warning, no lines read by fgets\n");
+      }
       printf("INFO: %s", line);
     }
     // another check for dimension
     else if (!strcmp(Parameter, "$ACQ_dim")) {
-      lRead = sscanf(Value, "%d", &dim);
+      // lRead =
+      sscanf(Value, "%d", &dim);
       if (dim != 3) {
         printf("INFO: acqp tells the dimension is not 3 but %d\n", dim);
         printf("INFO: usually the volume has multiple 2d slices\n");
@@ -557,7 +574,8 @@ int readBrukerAcqp(char *acqpFile, double *pTR, double *pTE, double *pTI, double
     }
     // flip angle
     else if (!strcmp(Parameter, "$ACQ_flip_angle")) {
-      lRead = sscanf(Value, "%lf", pflip_angle);
+      //  lRead =
+      sscanf(Value, "%lf", pflip_angle);
       // convert into radians
       *pflip_angle = *pflip_angle * 3.141592653589793 / 180.;
     }
@@ -641,7 +659,7 @@ int readBrukerReco(char *recoFile, BrukerTransform *pTran) {
   char line[512];
   char Parameter[256];
   char Value[128];
-  int lRead = 0;
+  // int lRead = 0;
   int dim = 0;
   int i;
 
@@ -663,26 +681,33 @@ int readBrukerReco(char *recoFile, BrukerTransform *pTran) {
         fclose(fp);
         return 0;
       }
+
       sscanf(line, "%d", &pTran->transposition);
     } else if (!strcmp(Parameter, "$RECO_fov")) {
-      lRead = sscanf(Value, "%d", &dim);
+      // lRead =
+      sscanf(Value, "%d", &dim);
       pTran->dim = dim;
+
       if (dim != 3) {
         fprintf(stderr, "INFO: fov dimension is %d. The data is not a 3D volume.\n", dim);
       }
+
       if (!fgets(line, sizeof(line), fp)) {
         fprintf(stderr, "ERROR: value must follow RECO_fov");
         fclose(fp);
         return 0;
       }
-      if (dim == 3)
-        lRead = sscanf(line, "%lf %lf %lf", &pTran->fov[0], &pTran->fov[1], &pTran->fov[2]);
-      else if (dim == 2) {
-        lRead = sscanf(line, "%lf %lf", &pTran->fov[0], &pTran->fov[1]);
+
+      if (dim == 3) {
+        sscanf(line, "%lf %lf %lf", &pTran->fov[0], &pTran->fov[1], &pTran->fov[2]);
+      } else if (dim == 2) {
+        sscanf(line, "%lf %lf", &pTran->fov[0], &pTran->fov[1]);
+
         pTran->fov[2] = pTran->fov[0];
       }
     } else if (!strcmp(Parameter, "$RECO_size")) {
-      lRead = sscanf(Value, "%d", &dim);
+      // lRead =
+      sscanf(Value, "%d", &dim);
       if (dim != 3) fprintf(stderr, "INFO: size dimension is %d. The data is not a 3D volume.\n", dim);
 
       if (!fgets(line, sizeof(line), fp)) {
@@ -691,13 +716,14 @@ int readBrukerReco(char *recoFile, BrukerTransform *pTran) {
         return 0;
       }
       if (dim == 3)
-        lRead = sscanf(line, "%d %d %d", &pTran->size[0], &pTran->size[1], &pTran->size[2]);
+        sscanf(line, "%d %d %d", &pTran->size[0], &pTran->size[1], &pTran->size[2]);
       else if (dim == 2) {
-        lRead = sscanf(line, "%d %d", &pTran->size[0], &pTran->size[1]);
+        sscanf(line, "%d %d", &pTran->size[0], &pTran->size[1]);
         pTran->size[2] = pTran->size[0];  // just fake
       }
     } else if (!strcmp(Parameter, "$RECO_ft_size")) {
-      lRead = sscanf(Value, "%d", &dim);
+      // lRead =
+      sscanf(Value, "%d", &dim);
       if (dim != 3) fprintf(stderr, "INFO: ft_size dimension is %d. The data is not a 3D volume.\n", dim);
 
       if (!fgets(line, sizeof(line), fp)) {
@@ -706,9 +732,9 @@ int readBrukerReco(char *recoFile, BrukerTransform *pTran) {
         return 0;
       }
       if (dim == 3)
-        lRead = sscanf(line, "%d %d %d", &pTran->ft_size[0], &pTran->ft_size[1], &pTran->ft_size[2]);
+        sscanf(line, "%d %d %d", &pTran->ft_size[0], &pTran->ft_size[1], &pTran->ft_size[2]);
       else if (dim == 2) {
-        lRead = sscanf(line, "%d %d", &pTran->ft_size[0], &pTran->ft_size[1]);
+        sscanf(line, "%d %d", &pTran->ft_size[0], &pTran->ft_size[1]);
         pTran->ft_size[2] = pTran->ft_size[0];  // just fake
       }
     } else if (!strcmp(Parameter, "$RECO_wordtype")) {
@@ -743,7 +769,7 @@ int readBrukerVolume(MRI *mri, char *dataFile) {
   int k, j;
   int nread;
   int swap_bytes_flag = 0;
-  int size;
+  //  int size;
 
   if (!mri) {
     fprintf(stderr, "ERROR: readBrukerMethod() must be called before readBrukerVolume");
@@ -758,19 +784,19 @@ int readBrukerVolume(MRI *mri, char *dataFile) {
   }
   switch (mri->type) {
     case MRI_UCHAR:
-      size = sizeof(unsigned char);
+      //  size = sizeof(unsigned char);
       break;
     case MRI_SHORT:
-      size = sizeof(short);
+      //   size = sizeof(short);
       break;
     case MRI_FLOAT:
-      size = sizeof(float);
+      //   size = sizeof(float);
       break;
     case MRI_INT:
-      size = sizeof(int);
+      //   size = sizeof(int);
       break;
     case MRI_LONG:
-      size = sizeof(long);
+      //   size = sizeof(long);
       break;
     default:
       fprintf(stderr, "INFO: unknown size.  bail out\n");

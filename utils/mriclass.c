@@ -400,8 +400,8 @@ MRI *MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst, float conf, MRI *mri_p
   MATRIX *m_priors;
   VECTOR *v_inputs;
   GCLASSIFY *gc;
-  int x, y, z, width, depth, height, classno, nclasses, xt, yt, zt, type, round, x1, y1, z1, x0, c, bg, max_white_class,
-      max_non_white_class;
+  int x, y, z, classno, nclasses, xt, yt, zt, type, round, x1, y1, z1, x0, c, bg, max_white_class, max_non_white_class;
+  // int width, depth, height;
   BUFTYPE *psrc, src, *pdst, *pclasses;
   float prob, *pprobs = NULL, total, min_output, fmin, fmax, white_prob, non_white_prob, max_white_prob,
               max_non_white_prob, p;
@@ -435,9 +435,9 @@ MRI *MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst, float conf, MRI *mri_p
   else
     m_priors = NULL;
 
-  width = mri_src->width;
-  height = mri_src->height;
-  depth = mri_src->depth;
+  // width = mri_src->width;
+  // height = mri_src->height;
+  // depth = mri_src->depth;
 
   mri_in = mri_src;
   for (round = 0; round < mric->nrounds; round++) {
@@ -998,8 +998,10 @@ int MRInormalizePriors(MRI *mri_priors) {
 int MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src, MRI *mri_wm, MRI_REGION *box) {
   GCLASSIFY *gc;
   GCLASS *gcl;
-  int x, y, z, classno, nclasses, width, height, depth, row, col, x1, y1, z1;
-  BUFTYPE *psrc, *ptarget, src;
+  int x, y, z, classno, row, col, x1, y1, z1;
+  BUFTYPE *ptarget;
+  // BUFTYPE *psrc;
+  // int width, height, depth, src, nclasses;
   float covariance;
   VECTOR *v_inputs;
   MRI *mri_target;
@@ -1007,12 +1009,12 @@ int MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src, MRI *mri_wm, MRI_R
   mri_target = MRICbuildTargetImage(mri_src, NULL, mri_wm, LO_LIM, HI_LIM);
   v_inputs = VectorAlloc(mric->ninputs[round], MATRIX_REAL);
 
-  nclasses = mric->classifier[round].gc->nclasses;
+  // nclasses = mric->classifier[round].gc->nclasses;
   gc = mric->classifier[round].gc;
 
-  width = mri_src->width;
-  height = mri_src->height;
-  depth = mri_src->depth;
+  // width = mri_src->width;
+  // height = mri_src->height;
+  // depth = mri_src->depth;
 
   x1 = box->x + box->dx - 1;
   y1 = box->y + box->dy - 1;
@@ -1020,10 +1022,11 @@ int MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src, MRI *mri_wm, MRI_R
   for (z = box->z; z <= z1; z++) {
     DiagHeartbeat((float)((z - box->z) + round * box->dz) / (float)(box->dz * mric->nrounds));
     for (y = box->y; y <= y1; y++) {
-      psrc = &MRIvox(mri_src, box->x, y, z);
+      // psrc = &MRIvox(mri_src, box->x, y, z);
       ptarget = &MRIvox(mri_target, box->x, y, z);
       for (x = box->x; x <= x1; x++) {
-        src = *psrc++;
+        // psrc is not used for anything, so commented out /clarsen
+        // src = *psrc++;
         classno = (int)*ptarget++;
         gcl = &gc->classes[classno];
         gcl->nobs++;
@@ -1569,7 +1572,8 @@ int MRICexamineTrainingSet(MRIC *mric, char *file_name, int round) {
 #define SCATTER_ROUND 0
 
 int MRICbuildScatterPlot(MRIC *mric, int class, MATRIX *m_scatter, char *training_file_name) {
-  int obs_no = 0, i, x, y, nbins, half_bins, bin_offset;
+  int obs_no = 0, i, x, y, nbins;
+  // int half_bins, bin_offset;
   VECTOR *v_obs;
 #if 0
   static int       first = 0 ;
@@ -1581,8 +1585,8 @@ int MRICbuildScatterPlot(MRIC *mric, int class, MATRIX *m_scatter, char *trainin
   FILE *fp;
 
   nbins = m_scatter->rows;
-  half_bins = (nbins - 1) / 2;
-  bin_offset = half_bins;
+// half_bins = (nbins - 1) / 2;
+// bin_offset = half_bins;
 #if 0
   if (!first)
   {

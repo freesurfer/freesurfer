@@ -377,10 +377,11 @@ int xhDownHeap(int k, Xheap H) {
 }
 
 int xhInsert(double value, int id, int *p, Xheap H) {
-  XheapElement *a, v;
+  // XheapElement *a;
+  XheapElement v;
   int N, k;
 
-  a = (XheapElement *)pgListData(H);
+  // a = (XheapElement *)pgListData(H);
 
   v.value = value;
   v.id = id;

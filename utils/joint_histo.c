@@ -22,10 +22,11 @@
 #include "error.h"
 #include "fio.h"
 #include "histo.h"
-#include "joint_histo.h"
 #include "macros.h"
 #include "mri.h"
 #include "proto.h"
+
+#include "joint_histo.h"
 
 inline int min(int a, int b) { return (a < b) ? a : b; }
 inline int max(int a, int b) { return (a > b) ? a : b; }
@@ -96,7 +97,7 @@ int JHISTOwriteInto(JOINT_HISTOGRAM *h, FILE *fp) {
 }
 
 JOINT_HISTOGRAM *JHISTOreadFrom(FILE *fp) {
-  int b1, b2, nbins_1, nbins_2, sample_count;
+  int b1, b2, nbins_1, nbins_2;  //, sample_count;
   JOINT_HISTOGRAM *jh;
 
   nbins_1 = freadInt(fp);
@@ -104,7 +105,8 @@ JOINT_HISTOGRAM *JHISTOreadFrom(FILE *fp) {
   jh = JHISTOalloc(nbins_1, nbins_2);
 
   // total_bins = freadInt(fp) ;
-  sample_count = freadInt(fp);
+  // sample_count =
+  freadInt(fp);
 
   for (b1 = 0; b1 < jh->nbins_1; b1++)
     for (b2 = 0; b2 < jh->nbins_2; b2++) jh->counts[b1 * jh->nbins_2 + b2] = freadInt(fp);

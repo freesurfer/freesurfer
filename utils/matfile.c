@@ -28,11 +28,12 @@
 
 #include "diag.h"
 #include "error.h"
-#include "matfile.h"
 #include "matrix.h"
 #include "mghendian.h"
 #include "proto.h"
 #include "zlib.h"
+
+#include "matfile.h"
 
 static double **matAlloc(int rows, int ncols);
 static void matFree(double **matrix, int nrows, int ncols);

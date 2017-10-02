@@ -64,7 +64,9 @@
 #else
 #include "proto.h"
 #endif
+
 #include "math.h"
+
 #include "mosaic.h"
 
 //#define _DEBUG
@@ -81,7 +83,8 @@
 --------------------------------------------------------*/
 int VolSS2MosSS(
     int cvol, int rvol, int svol, int ncvol, int nrvol, int ncmos, int nrmos, int *cmos, int *rmos, int *OutOfBounds) {
-  int nctmos, nrtmos;
+  int nctmos;
+  // int nrtmos;
   int ctmos, rtmos;
 
   if ((ncmos % ncvol) != 0) {
@@ -106,7 +109,7 @@ int VolSS2MosSS(
 
   /* number of col and row tiles in the mosaic */
   nctmos = ncmos / ncvol;
-  nrtmos = nrmos / nrvol;
+  // nrtmos = nrmos / nrvol;
 
   /* the row and col tile of the given slice */
   rtmos = (int)(floor(svol / nctmos));
@@ -145,7 +148,8 @@ int MosSS2VolSS(int cmos,
                 int *rvol,
                 int *svol,
                 int *OutOfBounds) {
-  int nctmos, nrtmos;
+  int nctmos;
+  // int nrtmos;
   int ctmos, rtmos;
 
   if ((ncmos % ncvol) != 0) {
@@ -170,7 +174,7 @@ int MosSS2VolSS(int cmos,
 
   /* number of col and row tiles in the mosaic */
   nctmos = ncmos / ncvol;
-  nrtmos = nrmos / nrvol;
+  // nrtmos = nrmos / nrvol;
 
   /* the row and col tile of the given point in the mosaic */
   ctmos = (int)(floor(cmos / ncvol));

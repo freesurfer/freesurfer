@@ -71,12 +71,12 @@ static int mriComputeSegmentStatistics(MRI_SEGMENTATION *mriseg);
 
 int MRImaxSegmentArea(MRI_SEGMENTATION *mriseg) {
   int maxarea = -1;
-  int max = -1;
+  // int max = -1;
   int k;
 
   for (k = 0; k < mriseg->max_segments; k++)
     if (mriseg->segments[k].nvoxels > maxarea) {
-      max = k;
+      // max = k;
       maxarea = mriseg->segments[k].nvoxels;
     }
   return maxarea;

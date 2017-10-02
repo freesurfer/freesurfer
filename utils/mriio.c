@@ -44,6 +44,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "mri.h"
+
 #include "AFNI.h"
 #include "Bruker.h"
 #include "DICOMRead.h"
@@ -66,7 +68,6 @@
 #include "matrix.h"
 #include "mghendian.h"
 #include "minc_volume_io.h"
-#include "mri.h"
 #include "mri2.h"
 #include "mri_circulars.h"
 #include "mri_identify.h"
@@ -78,6 +79,7 @@
 #include "tags.h"
 #include "utils.h"
 #include "znzlib.h"
+
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
@@ -598,7 +600,6 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
         errno = 0;
         ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): bad end frame ('%s')\n", colon));
       }
-
     } else {
       start_frame = end_frame = strtol(pound, &ep, 10);
       if (*ep != '\0') {
@@ -3790,7 +3791,6 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type) {
     fclose(fp);
 
     if (result != NO_ERROR) return (result);
-
   } else
     MRIfree(&subject_info);
 
@@ -3949,7 +3949,6 @@ static MRI *get_b_info(const char *fname_passed, int read_volume, char *director
     }
 
     strcpy(mri->fname, fname_passed);
-
   } else {
     /* ----- get defaults ----- */
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -10277,7 +10276,6 @@ static MRI *sdtRead(const char *fname, int read_volume) {
     if (mri == NULL) return (NULL);
 
     fclose(fp);
-
   } else {
     mri = MRIallocHeader(dim[0], dim[1], dim[2], data_type, dim[3]);
     if (mri == NULL) return (NULL);

@@ -33,8 +33,9 @@
  * Notes:   1. MinPoint[0] = row of minimum...
  ***************************************************************/
 
-#include "minmaxrc.h"
 #include <hips.h>
+
+#include "minmaxrc.h"
 
 /************************************************************/
 int h_minmaxrc(struct header *phdSrc, Pixelval *Min, int MinPoint[2], Pixelval *Max, int MaxPoint[2]) {

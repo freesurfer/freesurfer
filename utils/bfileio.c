@@ -209,7 +209,10 @@ int bf_readheader(char *hdrfile, int *nrows, int *ncols, int *nfrms, int *endian
   }
 
   /* read the data */
-  fscanf(fp, "%d %d %d %d", nrows, ncols, nfrms, endian);
+  int scanned = fscanf(fp, "%d %d %d %d", nrows, ncols, nfrms, endian);
+  if (scanned != 4) {
+    fprintf(stderr, "Warning, scanned %d elements, expected 4\n", scanned);
+  }
   fclose(fp);
 
   return (0);

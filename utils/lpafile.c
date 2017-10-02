@@ -33,11 +33,12 @@
 #include "error.h"
 #include "hipsu.h"
 #include "image.h"
-#include "lpafile.h"
 #include "machine.h"
 #include "macros.h"
 #include "proto.h"
 #include "utils.h"
+
+#include "lpafile.h"
 
 static int lpafFillEntries(LP_ANSWER_FILE *lpaf, char *fname, int entryno);
 static void lpafDump(FILE *fp, LP_ANSWER_FILE *lpaf);
@@ -130,7 +131,7 @@ int LPAFresetImageAnswer(LPAF *lpaf, int current) {
   IMAGE Iheader, *I;
   FILE *infp, *outfp;
   int ecode, frame, nframes, *parms, i, current_frame, type;
-  LP_BOX *lpb;
+  // LP_BOX *lpb;
   struct extpar *xp;
 
   fullname = lpaf->filelist[current];
@@ -170,7 +171,7 @@ int LPAFresetImageAnswer(LPAF *lpaf, int current) {
   }
 
   /* now put answer into header */
-  lpb = &lpaf->coords[current];
+  // lpb = &lpaf->coords[current];
 
   for (frame = 0, xp = Iheader.params; xp; xp = xp->nextp)
     if (frame++ == current_frame) break;

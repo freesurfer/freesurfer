@@ -37,6 +37,5 @@ std::ostream &operator<<(std::ostream &os, const SciGPU::Utilities::Chronometer 
 
   return (os);
 }
-
 }  // namespace Utilities
 }  // namespace SciGPU

@@ -79,7 +79,6 @@ extern "C" MRI *MRIextractDistanceMap(
               "ERROR : incompatible structure with mri_dst:\n"
               "mri_dst->type=%d != MRI_FLOAT\n",
               mri_dst->type);
-
   } else {
     // set values to zero
     for (int z = 0; z < mri_dst->depth; z++)

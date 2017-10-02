@@ -442,5 +442,4 @@ const_GCAnode_GC1D const_GCAnode::GetConstGC1D(const int iGC1D) const {
 
   return (gc1d);
 }
-
 }  // namespace Freesurfer

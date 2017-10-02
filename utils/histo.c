@@ -863,10 +863,11 @@ int HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int b0, i
   Description
   ------------------------------------------------------*/
 int HISTOfindHighestPeakInRegion(HISTOGRAM *h, int b0, int b1) {
-  int b, nbins, max_count_bin;
+  // int  nbins;
+  int b, max_count_bin;
   float val, max_count;
 
-  nbins = h->nbins;
+  // nbins = h->nbins;
 
   if (b0 < 0) b0 = 0;
   if (b1 >= h->nbins) b1 = h->nbins - 1;
@@ -1111,12 +1112,11 @@ int HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct) {
         }
       }
       if (peak) {
-        int bv;
-
-        bv = HISTOfindNextValley(histo, 0);
-#if 0
-        if (bv >= 0 && center_val*min_pct < histo->counts[bv])
-          continue ;
+#if 1
+        HISTOfindNextValley(histo, 0);
+#else
+        int bv = HISTOfindNextValley(histo, 0);
+        if (bv >= 0 && center_val * min_pct < histo->counts[bv]) continue;
 #endif
         return (b);
       }
@@ -1137,12 +1137,11 @@ int HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct) {
         }
       }
       if (peak) {
-        int bv;
-
-        bv = HISTOfindPreviousValley(histo, 0);
-#if 0
-        if (bv >= 0 && center_val*min_pct < histo->counts[bv])
-          continue ;
+#if 1
+        HISTOfindPreviousValley(histo, 0);
+#else
+        int bv = HISTOfindPreviousValley(histo, 0);
+        if (bv >= 0 && center_val * min_pct < histo->counts[bv]) continue;
 #endif
         return (b);
       }

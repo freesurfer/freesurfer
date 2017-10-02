@@ -23,13 +23,15 @@
  *
  */
 
-#include "mgh_matrix.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "error.h"
 #include "proto.h"
 #include "typedefs.h"
+
+#include "mgh_matrix.h"
 
 FLOATTYPE *MGH_vector(int n) {
   FLOATTYPE *h;
@@ -86,7 +88,9 @@ void read_matrix(FILE *fptr, FLOATTYPE **a, int m, int n) {
 
   for (i = 0; i < m; i++)
     for (j = 0; j < n; j++) {
-      fscanf(fptr, "%f", &f);
+      if (fscanf(fptr, "%f", &f) != 1) {
+        printf("read_matrix: scan failed\n");
+      }
       a[i][j] = f;
     }
 }

@@ -30,11 +30,12 @@
 #include "diag.h"
 #include "error.h"
 
-#include "evschutils.h"
 #include "matfile.h"
 #include "matrix.h"
 #include "proto.h"
 #include "utils.h"
+
+#include "evschutils.h"
 
 #ifdef const
 #undef const
@@ -134,9 +135,9 @@ MATRIX *EVS2FIRmtx(
       if (tPSD > tMax) break;
 
       /* Could compute the time of the closest row, then skip if
-      fabs(tRow-tPSD) > dPSD/2 ????? This would be easily
-         extended to the cases where the data were not aquired
-      uniformly in time. */
+fabs(tRow-tPSD) > dPSD/2 ????? This would be easily
+   extended to the cases where the data were not aquired
+uniformly in time. */
 
       /* rA would be the row of X if the rows of X were separated by dPSD */
       rA = (int)rint(tPSD / dPSD);

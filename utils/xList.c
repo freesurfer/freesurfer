@@ -139,7 +139,6 @@ xList_tErr xList_InsertItem(xListRef this, void *ipItemToInsert) {
     this->mpHead = pNewNode;
     this->mpNext = pNewNode;
     this->mpTail = pNewNode;
-
   } else {
     this->mpTail->mpNext = pNewNode;
     this->mpTail = pNewNode;
@@ -172,7 +171,6 @@ xList_tErr xList_RemoveItem(xListRef this, void **iopItemToRemove) {
     // compare the nodes. if we found it exit the loop.
     if (xList_CompareItems_(this, pCurNode->mpData, pItemToRemove) == xList_tCompare_Match) {
       bFound = TRUE;
-
     } else {
       // next node.
       pBackNode = pCurNode;
@@ -190,7 +188,6 @@ xList_tErr xList_RemoveItem(xListRef this, void **iopItemToRemove) {
   if (NULL == pBackNode) {
     // node to be deleted is head.
     this->mpHead = pCurNode->mpNext;
-
   } else {
     // wrap list around it.
     pBackNode->mpNext = pCurNode->mpNext;
@@ -247,7 +244,6 @@ xListNodeRef xList_FindItem_(xListRef this, void *ipItem) {
     // compare the nodes. if we found it, return it.
     if (xList_CompareItems_(this, pCurNode->mpData, ipItem) == xList_tCompare_Match) {
       return pCurNode;
-
     } else {
       // next node.
       pCurNode = pCurNode->mpNext;
@@ -346,7 +342,6 @@ xList_tErr xList_GetFirstItem(xListRef this, void **oppFirstItem) {
   if (this->mpHead) {
     // return the data ptr.
     *oppFirstItem = this->mpHead->mpData;
-
   } else {
     eResult = xList_tErr_ListEmpty;
   }
@@ -377,12 +372,10 @@ xList_tErr xList_GetNextItem(xListRef this, void *ipCurrentItem, void **oppNextI
     if (NULL != pCurNode->mpNext) {
       // get its data.
       pNextItem = ((xListNodeRef)pCurNode->mpNext)->mpData;
-
     } else {
       // end of list.
       eResult = xList_tErr_EndOfList;
     }
-
   } else {
     // couldn't find item.
     eResult = xList_tErr_ItemNotInList;
@@ -490,7 +483,6 @@ xList_tErr xList_PushItem(xListRef this, void *ipItemToInsert) {
     this->mpHead = pNewNode;
     this->mpNext = pNewNode;
     this->mpTail = pNewNode;
-
   } else {
     pNewNode->mpNext = this->mpHead;
     this->mpHead = pNewNode;

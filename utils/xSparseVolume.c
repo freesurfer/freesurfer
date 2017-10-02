@@ -145,10 +145,8 @@ xSVol_tErr xSVol_Get(xSparseVolumeRef this, xVoxelRef iWhere, void **oppItem) {
   if (xSVol_tErr_IndexNotAllocated == eResult) {
     pItem = NULL;
     eResult = xSVol_tErr_NoErr;
-
   } else if (xSVol_tErr_NoErr != eResult) {
     goto error;
-
   } else {
     /* find the item. */
     pItem = this->mStorage[xVoxl_GetZ(iWhere)][xVoxl_GetY(iWhere)][xVoxl_GetX(iWhere)];
@@ -203,7 +201,6 @@ xSVol_tErr xSVol_Set(xSparseVolumeRef this, xVoxelRef iWhere, void *ipItem) {
 
     /* clear the error */
     eResult = xSVol_tErr_NoErr;
-
   } else if (xSVol_tErr_NoErr != eResult) {
     goto error;
   }

@@ -45,8 +45,7 @@ MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS) {
   float xw, yw, zw;
   char text[256];
   int val;
-  int numpoints;
-  int num_control_points, nargs;
+  int numpoints, num_control_points, nargs;
   MPoint *pointArray = 0;
   char extension[STRLEN];
 
@@ -239,7 +238,8 @@ MPoint *MRImapControlPoints(const MPoint *pointArray, int count, int useRealRAS,
 }
 
 /*!
-  \fn MPoint *ControlPoints2Vox(MPoint *ras, int npoints, int UseRealRAS, MRI *vol)
+  \fn MPoint *ControlPoints2Vox(MPoint *ras, int npoints, int UseRealRAS, MRI
+  *vol)
   \brief Converts control points from RAS to Voxel (col, row, slice)
   in the given volume. The col, row slice remain floating point.
   Note: UseRealRAS has not really been tested.
@@ -281,7 +281,8 @@ MPoint *ControlPoints2Vox(MPoint *ras, int npoints, int UseRealRAS, MRI *vol) {
 }
 
 /*!
-  \fn MPoint *ControlPointsApplyMatrix(MPoint *srcctr, int nctrpoints, MATRIX *M, MPoint *outctr)
+  \fn MPoint *ControlPointsApplyMatrix(MPoint *srcctr, int nctrpoints, MATRIX
+  *M, MPoint *outctr)
   \brief Multiplies the xyz of the control points by the given matrix
  */
 MPoint *ControlPointsApplyMatrix(MPoint *srcctr, int nctrpoints, MATRIX *M, MPoint *outctr) {
@@ -369,7 +370,8 @@ MATRIX *ControlPoints2TalMatrix(char *subject) {
 }
 
 /*!
-  \fn MPoint *GetTalControlPoints(char **subjectlist, int nsubjects, int *pnctrtot)
+  \fn MPoint *GetTalControlPoints(char **subjectlist, int nsubjects, int
+  *pnctrtot)
   \brief Loads in the control points for each subject in the list and
   converts them to talairach (fsaverage) space. If a subject does not
   have a control.dat then it is skipped.
@@ -382,7 +384,8 @@ MPoint *GetTalControlPoints(char **subjectlist, int nsubjects, int *pnctrtot) {
 
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
 
-  // First, count the total number of control points so structure can be allocated
+  // First, count the total number of control points so structure can be
+  // allocated
   nctot = 0;
   for (nthsubject = 0; nthsubject < nsubjects; nthsubject++) {
     sprintf(tmpstr, "%s/%s/tmp/control.dat", SUBJECTS_DIR, subjectlist[nthsubject]);

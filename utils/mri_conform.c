@@ -22,16 +22,18 @@
  *
  */
 
-#include "mri_conform.h"
 #include <errno.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
 #include "error.h"
 #include "histo.h"
 #include "mri.h"
+
+#include "mri_conform.h"
 
 /*-------------------------------------------------------------------*/
 double round(double);  // why is this never defined?!?
@@ -76,17 +78,17 @@ MATRIX *MRIgetConformMatrix(MRI *mri) {
 
 MRI *MRIconform(MRI *mri) {
   MRI *templ, *mri2, *res;
-  int conform_width;
-  double conform_size;
-  int KeepDC;
+  // int conform_width;
+  // double conform_size;
+  // int KeepDC;
 
   res = MRIcopy(mri, NULL); /* don't mess with the input */
 
   if (res->ras_good_flag == 0) setDirectionCosine(res, MRI_CORONAL);
 
-  conform_width = 256;
-  conform_size = 1;
-  KeepDC = 0;
+// conform_width = 256;
+// conform_size = 1;
+// KeepDC = 0;
 
 #if 0
   templ = MRIconformedTemplate(mri, conform_width, conform_size, KeepDC);

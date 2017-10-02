@@ -154,22 +154,23 @@ MRI *MRISribbon(MRI_SURFACE *inner_mris, MRI_SURFACE *outer_mris, MRI *mri_src, 
    from the tesselated surface (mris) as voxels of 255 */
 MRI *MRISshell(MRI *mri_src, MRI_SURFACE *mris, MRI *mri_dst, int clearflag) {
   int width, height, depth, i, j, imnr, fno, numu, numv, u, v;
-  int imnr0;
-  float ps, st, xx0, xx1, yy0, yy1, zz0, zz1, x0, y0, z0, x1, y1, z1, x2, y2, z2, d0, d1, d2, dmax;
+  // int imnr0;
+  // float ps, st, xx0, xx1, yy0, yy1, zz0, zz1;
+  float x0, y0, z0, x1, y1, z1, x2, y2, z2, d0, d1, d2, dmax;
   float px0, py0, pz0, px1, py1, pz1, px, py, pz;
   double fi, fj, fimnr;
   VERTEX *v_0, *v_1, *v_2;
   FACE *f;
 
-  imnr0 = mri_src->imnr0;
-  st = mri_src->thick; /* slice thickness */
-  ps = mri_src->ps;
-  xx0 = mri_src->xstart;
-  xx1 = mri_src->xend;
-  yy0 = mri_src->ystart;
-  yy1 = mri_src->yend;
-  zz0 = mri_src->zstart;
-  zz1 = mri_src->zend;
+  // imnr0 =  mri_src->imnr0;
+  // st = mri_src->thick; /* slice thickness */
+  // ps = mri_src->ps;
+  // xx0 = mri_src->xstart;
+  // xx1 = mri_src->xend;
+  // yy0 = mri_src->ystart;
+  // yy1 = mri_src->yend;
+  // zz0 = mri_src->zstart;
+  // zz1 = mri_src->zend;
 
   /* Create new blank MRI or clear existing destination MRI */
   width = mri_src->width;
@@ -512,23 +513,24 @@ MRI *MRIbitwisenot(MRI *mri_src, MRI *mri_dst) {
 /* unsigned char in the MRI structure. */
 MRI *MRISpartialshell(MRI *mri_src, MRI_SURFACE *mris, MRI *mri_dst, int clearflag) {
   int width, height, depth, i, j, imnr, isub, jsub, isubmnr, fno, numu, numv, u, v;
-  int imnr0;
-  float ps, st, xx0, xx1, yy0, yy1, zz0, zz1, x0, y0, z0, x1, y1, z1, x2, y2, z2, d0, d1, d2, dmax;
+  // int imnr0;
+  // float ps, st, xx0, xx1, yy0, yy1, zz0, zz1;
+  float x0, y0, z0, x1, y1, z1, x2, y2, z2, d0, d1, d2, dmax;
   float px0, py0, pz0, px1, py1, pz1, px, py, pz;
   double fi, fj, fimnr;
   VERTEX *v_0, *v_1, *v_2;
   FACE *f;
   int val;
 
-  imnr0 = mri_src->imnr0;
-  st = mri_src->thick; /* slice thickness */
-  ps = mri_src->ps;
-  xx0 = mri_src->xstart;
-  xx1 = mri_src->xend;
-  yy0 = mri_src->ystart;
-  yy1 = mri_src->yend;
-  zz0 = mri_src->zstart;
-  zz1 = mri_src->zend;
+  // imnr0 = mri_src->imnr0;
+  // st = mri_src->thick; /* slice thickness */
+  // ps = mri_src->ps;
+  // xx0 = mri_src->xstart;
+  // xx1 = mri_src->xend;
+  // yy0 = mri_src->ystart;
+  // yy1 = mri_src->yend;
+  // zz0 = mri_src->zstart;
+  // zz1 = mri_src->zend;
 
   /* Create new blank MRI or clear existing destination MRI */
   width = mri_src->width;
@@ -617,7 +619,8 @@ MRI *MRISpartialshell(MRI *mri_src, MRI_SURFACE *mris, MRI *mri_dst, int clearfl
 
 MRI *MRIbitwiseor(MRI *mri1, MRI *mri2, MRI *mri_dst) {
   int width, height, depth, x, y, z;
-  BUFTYPE *p1, *p2, *pdst, v1, v2;
+  // BUFTYPE *p1, *p2, *pdst;
+  BUFTYPE v1, v2;
 
   width = mri1->width;
   height = mri1->height;
@@ -627,9 +630,9 @@ MRI *MRIbitwiseor(MRI *mri1, MRI *mri2, MRI *mri_dst) {
 
   for (z = 0; z < depth; z++) {
     for (y = 0; y < height; y++) {
-      pdst = &MRIvox(mri_dst, 0, y, z);
-      p1 = &MRIvox(mri1, 0, y, z);
-      p2 = &MRIvox(mri2, 0, y, z);
+      // pdst = &MRIvox(mri_dst, 0, y, z);
+      // p1 = &MRIvox(mri1, 0, y, z);
+      // p2 = &MRIvox(mri2, 0, y, z);
       for (x = 0; x < width; x++) {
         v1 = (int)MRIgetVoxVal(mri1, x, y, z, 0);
         v2 = (int)MRIgetVoxVal(mri2, x, y, z, 0);
@@ -642,7 +645,8 @@ MRI *MRIbitwiseor(MRI *mri1, MRI *mri2, MRI *mri_dst) {
 
 MRI *MRIbitwiseand(MRI *mri1, MRI *mri2, MRI *mri_dst) {
   int width, height, depth, x, y, z;
-  BUFTYPE *p1, *p2, *pdst, v1, v2;
+  // BUFTYPE *p1, *p2, *pdst;
+  BUFTYPE v1, v2;
 
   width = mri1->width;
   height = mri1->height;
@@ -652,9 +656,9 @@ MRI *MRIbitwiseand(MRI *mri1, MRI *mri2, MRI *mri_dst) {
 
   for (z = 0; z < depth; z++) {
     for (y = 0; y < height; y++) {
-      pdst = &MRIvox(mri_dst, 0, y, z);
-      p1 = &MRIvox(mri1, 0, y, z);
-      p2 = &MRIvox(mri2, 0, y, z);
+      // pdst = &MRIvox(mri_dst, 0, y, z);
+      // p1 = &MRIvox(mri1, 0, y, z);
+      // p2 = &MRIvox(mri2, 0, y, z);
       for (x = 0; x < width; x++) {
         v1 = (int)MRIgetVoxVal(mri1, x, y, z, 0);
         v2 = (int)MRIgetVoxVal(mri2, x, y, z, 0);

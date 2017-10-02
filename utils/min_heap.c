@@ -183,7 +183,6 @@ static int Min_HeapifyDown(MIN_HEAP *MH, int index) {
         smallest = curr_index;
 
       if (right < MH->CurrHeapSize && MH->MHE_array[right].HeapKey < MH->MHE_array[smallest].HeapKey) smallest = right;
-
     } else {
       smallest = curr_index;
     }

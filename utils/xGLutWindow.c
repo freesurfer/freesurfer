@@ -325,7 +325,6 @@ void xGWin_PassEventToCurrentWindow(xGWin_tEventRef ipEvent) {
     // call the window's event handler with the window handler data
     // and this event.
     pWindow->mpHandlerFunc(pWindow->mpHandlerFuncData, ipEvent);
-
   } else {
     DebugPrint(
         ("xGWin_PassEventToCurrentWindow: Couldn't find current"

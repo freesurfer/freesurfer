@@ -449,8 +449,10 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits) {
 
 /*
   will split up parcellation units based on area and write the index of the
-  new unit into the marked field (marked=0->old annot, marked=1-> 1st new subdivision, etc..)
-  and will also put the continuous measure of how far along the eigendirection the
+  new unit into the marked field (marked=0->old annot, marked=1-> 1st new
+  subdivision, etc..)
+  and will also put the continuous measure of how far along the eigendirection
+  the
   vertex is into v->curv (in [0 1]).
 
   return the # of additional parcellation units that have been added
@@ -591,12 +593,14 @@ int MRISdivideAnnotationUnit(MRI_SURFACE *mris, int annot, int nunits) {
 }
 
 /*!
-  \fn int MRISmergeAnnotations(MRIS *mris, int nparcs, char **parcnames, char *newparcname)
+  \fn int MRISmergeAnnotations(MRIS *mris, int nparcs, char **parcnames, char
+  *newparcname)
   \param mris - surface structure
   \param nparcs - number of parcs to merge
   \param parcnames - names of parcs to merge
   \param newparcname - name of new parcellation
-  \brief Merges parcellations into a single parcellation with the new name. The color
+  \brief Merges parcellations into a single parcellation with the new name. The
+  color
   will be that of the first parcellation in the list of names.
   Example:
     parcnames[0] = "caudalmiddlefrontal";
@@ -913,7 +917,8 @@ int MRISfbirnAnnot(MRIS *surf) {
 
 /*---------------------------------------------------------------*/
 /*!
-  \fn double *MRISannotDice(MRIS *surf1, MRIS *surf2, int *nsegs, int **segidlist)
+  \fn double *MRISannotDice(MRIS *surf1, MRIS *surf2, int *nsegs, int
+  **segidlist)
   \brief Computes dice coefficient for each parcellation unit. surf1
   and surf2 should be the same surface with different parcellations
   loaded.  *nsegs returns the number of parcellations. **segidlist is

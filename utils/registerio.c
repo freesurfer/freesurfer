@@ -290,7 +290,11 @@ int regio_read_mincxfm(const char *xfmfile, MATRIX **R, char **fileinfo) {
   rewind(fp);
 
   /* skip all but the last 3 lines */
-  for (n = 0; n < nlines - 3; n++) fgets(tmpstr, 1000, fp);
+  for (n = 0; n < nlines - 3; n++) {
+    if (!fgets(tmpstr, 1000, fp)) {
+      fprintf(stderr, "regio_read_mincxfm(): could not read file\n");
+    }
+  }
 
   *R = MatrixAlloc(4, 4, MATRIX_REAL);
   if (*R == NULL) {
@@ -381,7 +385,11 @@ int regio_read_xfm4(const char *xfmfile, MATRIX **R) {
   rewind(fp);
 
   /* skip all but the last 3 lines */
-  for (n = 0; n < nlines - 4; n++) fgets(tmpstr, 1000, fp);
+  for (n = 0; n < nlines - 4; n++) {
+    if (!fgets(tmpstr, 1000, fp)) {
+      fprintf(stderr, "regio_read_mincxfm(): could not read file\n");
+    }
+  }
 
   *R = MatrixAlloc(4, 4, MATRIX_REAL);
   if (*R == NULL) {

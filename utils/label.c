@@ -30,17 +30,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "mri.h"
+#include "mrisurf.h"
+
 #include "diag.h"
 #include "error.h"
 #include "fio.h"
-#include "label.h"
 #include "macros.h"
 #include "minc_volume_io.h"
-#include "mri.h"
 #include "mrishash.h"
-#include "mrisurf.h"
 #include "proto.h"
 #include "utils.h"
+
+#include "label.h"
 
 extern const char *Progname;
 

@@ -50,15 +50,29 @@ IOP *IOPRead(char *fname, int hemi) {
   iop->pthresh = 1000;
   c = getc(fp);
   if (c == '#') {
-    fscanf(fp, "%s", str);
-    if (!strcmp(str, "version")) fscanf(fp, "%d", &iop->version);
+    if (fscanf(fp, "%s", str) != 1) {
+      ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
+    }
+    if (!strcmp(str, "version")) {
+      if (fscanf(fp, "%d", &iop->version) != 1) {
+        ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
+      }
+    }
     printf("iop version = %d\n", iop->version);
-    fscanf(
-        fp, "%d %d %d %d", &iop->neeg_channels, &iop->nmeg_channels, &iop->ndipoles_per_location, &iop->ndipole_files);
+    if (fscanf(fp,
+               "%d %d %d %d",
+               &iop->neeg_channels,
+               &iop->nmeg_channels,
+               &iop->ndipoles_per_location,
+               &iop->ndipole_files) != 4) {
+      ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
+    }
 
     iop->nchan = iop->neeg_channels + iop->nmeg_channels;
     for (i = 1; i <= hemi; i++) {
-      fscanf(fp, "%d %d", &dipoles_in_decimation, &iop->ndipoles);
+      if (fscanf(fp, "%d %d", &dipoles_in_decimation, &iop->ndipoles) != 2) {
+        ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
+      }
       if (i == hemi) {
 #if 0
         if (iop->ndipoles_per_location != sol_ndec)
@@ -99,38 +113,58 @@ IOP *IOPRead(char *fname, int hemi) {
       }
       for (j = 0; j < iop->ndipoles; j++) {
         if (i == hemi) {
-          fscanf(fp, "%d", &d);
+          if (fscanf(fp, "%d", &d) != 1) {
+            ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
+          }
           iop->dipole_vertices[j] = d;
-        } else
-          fscanf(fp, "%*d");
+        } else {
+          if (fscanf(fp, "%*d") != 0) {
+            ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
+          }
+        }
       }
       for (j = 0; j < iop->ndipoles; j++) {
         if (i == hemi) {
-          fscanf(fp, "%f", &f);
+          if (fscanf(fp, "%f", &f) != 1) {
+            ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
+          }
           *MATRIX_RELT(iop->pvals, j + 1, 1) = f;
           f = fabs(f);
           if (f < iop->pthresh) iop->pthresh = f;
-        } else
-          fscanf(fp, "%*f");
+        } else {
+          if (fscanf(fp, "%*f") != 0) {
+            ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
+          }
+        }
       }
       for (j = 0; j < iop->ndipoles; j++) {
         if (i == hemi) {
-          fscanf(fp, "%f", &f);
+          if (fscanf(fp, "%f", &f) != 1) {
+            ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
+          }
           *MATRIX_RELT(iop->spatial_priors, j + 1, 1) = f;
 #if 0
           vertex[iop->dipole_vertices[j]].val = f;
 #endif
-        } else
-          fscanf(fp, "%*f");
+        } else {
+          if (fscanf(fp, "%*f") != 0) {
+            ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
+          }
+        }
       }
       for (j = 0; j < iop->ndipoles; j++) {
         for (jc = 0; jc < iop->ndipoles_per_location; jc++) {
           for (k = 0; k < iop->nchan; k++) {
             if (i == hemi) {
-              fscanf(fp, "%f", &f);
+              if (fscanf(fp, "%f", &f) != 1) {
+                ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
+              }
               *MATRIX_RELT(iop->m_iop, j * iop->ndipoles_per_location + jc + 1, k + 1) = f;
-            } else
-              fscanf(fp, "%*f");
+            } else {
+              if (fscanf(fp, "%*f") != 0) {
+                ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
+              }
+            }
           }
         }
       }
@@ -139,10 +173,15 @@ IOP *IOPRead(char *fname, int hemi) {
           for (jc = 0; jc < iop->ndipoles_per_location; jc++) {
             for (k = 0; k < iop->nchan; k++) {
               if (i == hemi) {
-                fscanf(fp, "%f", &f);
+                if (fscanf(fp, "%f", &f) != 1) {
+                  ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
+                }
                 *MATRIX_RELT(iop->m_forward, k + 1, j * iop->ndipoles_per_location + jc + 1) = f;
-              } else
-                fscanf(fp, "%*f");
+              } else {
+                if (fscanf(fp, "%*f") != 0) {
+                  ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
+                }
+              }
             }
           }
         }

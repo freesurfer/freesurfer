@@ -31,6 +31,7 @@
 
 #include "error.h"
 #include "getline.h"
+
 #include "path.h"
 
 int PathReadMany(char *fname, int *num_read, PATH ***returned_paths) {
@@ -59,7 +60,9 @@ int PathReadMany(char *fname, int *num_read, PATH ***returned_paths) {
 
   /* Look for keywords... */
   while (!feof(fp)) {
-    getline(&line, &line_size, fp);
+    if (getline(&line, &line_size, fp) == -1) {
+      ErrorPrintf(ERROR_BAD_FILE, "Couldn't read file\n");
+    }
     line_number++;
 
     /* Skip comments. */
@@ -99,7 +102,9 @@ int PathReadMany(char *fname, int *num_read, PATH ***returned_paths) {
       }
     } else if (0 == strncmp(line, "BEGINPATH", 9)) {
       /* Start a new path decsription. */
-      getline(&line, &line_size, fp);
+      if (getline(&line, &line_size, fp) == -1) {
+        ErrorPrintf(ERROR_BAD_FILE, "Couldn't read file\n");
+      }
       line_number++;
       if (0 != strncmp(line, "NUMVERTICES", 11) && 0 != strncmp(line, "NUMPOINTS", 9)) {
         fclose(fp);
@@ -153,7 +158,9 @@ int PathReadMany(char *fname, int *num_read, PATH ***returned_paths) {
       /* Read in a line of coordinates for every point we
          have. */
       for (path_pno = 0; path_pno < num_points; path_pno++) {
-        getline(&line, &line_size, fp);
+        if (getline(&line, &line_size, fp) == -1) {
+          ErrorPrintf(ERROR_BAD_FILE, "Couldn't read file\n");
+        }
         line_number++;
 
         switch (version) {
@@ -203,7 +210,9 @@ int PathReadMany(char *fname, int *num_read, PATH ***returned_paths) {
       }
 
       /* Make sure we got the ENDPATH keyword. */
-      getline(&line, &line_size, fp);
+      if (getline(&line, &line_size, fp) == -1) {
+        ErrorPrintf(ERROR_BAD_FILE, "Couldn't read file\n");
+      }
       line_number++;
       if (0 != strncmp(line, "ENDPATH", 7)) {
         fclose(fp);
@@ -364,7 +373,9 @@ int PathIsPathFileStream(FILE *fp) {
 
   while (!feof(fp) && !found) {
     /* Get a line. */
-    getline(&line, &size, fp);
+    if (getline(&line, &size, fp) == -1) {
+      ErrorPrintf(ERROR_BAD_FILE, "Couldn't read file\n");
+    }
 
     /* If it's a comment line. */
     if (line[0] == '#') {

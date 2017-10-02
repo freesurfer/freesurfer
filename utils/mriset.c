@@ -2148,7 +2148,7 @@ MRI *MRIreplaceValuesUchar(MRI *mri_src, MRI *mri_dst, BUFTYPE in_val, BUFTYPE o
   ------------------------------------------------------*/
 MRI *MRImeanMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask, int wsize) {
   int width, height, depth, x, y, z, mask_val;
-  BUFTYPE *pmask;
+  // BUFTYPE *pmask;
   float val;
 
   MRIcheckVolDims(mri_src, mri_mask);
@@ -2164,7 +2164,7 @@ MRI *MRImeanMask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask, int wsize)
 
   for (z = 0; z < depth; z++) {
     for (y = 0; y < height; y++) {
-      pmask = &MRIvox(mri_mask, 0, y, z);
+      // pmask = &MRIvox(mri_mask, 0, y, z);
       for (x = 0; x < width; x++) {
         if (x == Gx && y == Gy && z == Gz) DiagBreak();
         mask_val = MRIgetVoxVal(mri_mask, x, y, z, 0);
@@ -3318,7 +3318,8 @@ int MRIcomputeLabelCentroid(MRI *mri_aseg, int label, double *pxc, double *pyc, 
   return (NO_ERROR);
 }
 MRI *MRIdivideAseg(MRI *mri_src, MRI *mri_dst, int label, int nunits) {
-  float evalues[3], dx, dy, dz, e1x, e1y, e1z, mx;
+  float evalues[3], dx, dy, dz, e1x, e1y, e1z;
+  // float mx;
   MATRIX *m_obs, *m_obs_T, *m_cov, *m_eig;
   int x, y, z, l, num;
   double cx, cy, cz, dot, min_dot, max_dot;
@@ -3352,13 +3353,14 @@ MRI *MRIdivideAseg(MRI *mri_src, MRI *mri_dst, int label, int nunits) {
   e1x = *MATRIX_RELT(m_eig, 1, 1);
   e1y = *MATRIX_RELT(m_eig, 2, 1);
   e1z = *MATRIX_RELT(m_eig, 3, 1);
-  if (fabs(e1x) > fabs(e1y) && fabs(e1x) > fabs(e1z))
-    mx = e1x;
-  else if (fabs(e1y) > fabs(e1z))
-    mx = e1y;
-  else
-    mx = e1z;
+  // if (fabs(e1x) > fabs(e1y) && fabs(e1x) > fabs(e1z))
+  //   mx = e1x;
+  // else if (fabs(e1y) > fabs(e1z))
+  //   mx = e1y;
+  // else
+  //   mx = e1z;
   //  if (mx < 0)
+
   if (e1y < 0)  // orient them from posterior to anterior
   {
     e1x *= -1;

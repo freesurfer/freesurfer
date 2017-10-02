@@ -72,11 +72,11 @@
 ------------------------------------------------------------------------*/
 QUEUE *Qalloc(int max_elts) {
   QUEUE *q;
-  int i = max_elts;
+  // int i = max_elts;
 
   q = (QUEUE *)calloc(1, sizeof(QUEUE));
 
-  i = max_elts + 1;
+  // i = max_elts + 1;
   return (q);
 }
 /*------------------------------------------------------------------------

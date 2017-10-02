@@ -21,25 +21,27 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-
-#include "mri_identify.h"
 #include <errno.h>
 #include <libgen.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+#include "mri.h"
+
 #include "Bruker.h"
 #include "DICOMRead.h"
 #include "analyze.h"
 #include "fio.h"
 #include "machine.h"
 #include "minc_volume_io.h"
-#include "mri.h"
 #include "mrisurf.h"
 #include "proto.h"
 #include "signa.h"
 #include "utils.h"
+
+#include "mri_identify.h"
 
 extern int errno;
 
@@ -682,7 +684,7 @@ int is_ge_lx(const char *fname) {
   }
 
   fseek(fp, 3228, SEEK_CUR);
-  if (fread(&magic, 4, 1, fp) < 0) {
+  if (fread(&magic, 4, 1, fp) != 1) {
     errno = 0;
     fclose(fp);
     return (0);
@@ -775,7 +777,8 @@ int is_mnc(const char *fname) {
 
 int is_mgh(const char *fname) {
   FILE *fp;
-  int version, width, height, depth, nframes, type, dof;
+  int width, height, depth, nframes;
+  // int version, type, dof;
 
   if (strstr(fname, ".mgh") || strstr(fname, ".mgz") || strstr(fname, ".mgh.gz")) return 1;
 
@@ -784,13 +787,16 @@ int is_mgh(const char *fname) {
     return (0);
   }
 
-  version = freadInt(fp);
+  // version =
+  freadInt(fp);
   width = freadInt(fp);
   height = freadInt(fp);
   depth = freadInt(fp);
   nframes = freadInt(fp);
-  type = freadInt(fp);
-  dof = freadInt(fp);
+  // type =
+  freadInt(fp);
+  // dof =
+  freadInt(fp);
 
   fclose(fp);
 

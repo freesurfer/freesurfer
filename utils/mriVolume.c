@@ -30,11 +30,12 @@
 #include "fsenv.h"
 #include "macros.h"  // FEQUAL
 #include "mriTransform.h"
-#include "mriVolume.h"
 #include "mri_conform.h"
 #include "proto.h"  // nint
 #include "xList.h"
 #include "xUtilities.h"
+
+#include "mriVolume.h"
 
 // should be in transform.h if they aren't already
 
@@ -58,8 +59,8 @@ char Volm_ksaErrorStrings[Volm_knNumErrorCodes][Volm_knErrStringLen] = {
     "environment variable.",
     "While trying to find a suitable destination volume for the display transform, couldn't find "
     "FREESURFER_HOME/average/mni305.cor.mgz.",
-    "Error reading FREESURFER_HOME/average/mni305.cor.mgz while trying to population destination information in the "
-    "display transform."};
+    "Error reading FREESURFER_HOME/average/mni305.cor.mgz while trying to population destination information in "
+    "the display transform."};
 
 Volm_tErr Volm_New(mriVolumeRef *opVolume) {
   Volm_tErr eResult = Volm_tErr_NoErr;
@@ -908,7 +909,6 @@ void Volm_GetIntColorAtIdx(mriVolumeRef this, xVoxelRef iIdx, xColor3nRef oColor
     if (Volm_VerifyIdx_(this, &disp) == Volm_tErr_NoErr) {
       Volm_GetSampledValueAtIdx_(this, &disp, &value);
     }
-
   } else {
     /* Get the sampled value. Cap it to the color min and max. If in
        between that, calculate the color index between 0 and 255. */
@@ -2061,7 +2061,6 @@ Volm_tErr Volm_Flood(mriVolumeRef this, Volm_tFloodParams *iParams) {
         if (FALSE == iParams->mComparatorFunc(curVoxel, fValue, iParams->mComparatorFuncData)) {
           continue;
         }
-
       } else {
         /* Compare ths source value and the original value. */
         switch (iParams->mComparatorType) {
@@ -2952,7 +2951,6 @@ Volm_tErr Volm_ExtractAndSetSubjectName(mriVolumeRef this, char *isSource) {
       nWordChar++;
       sWord += sizeof(char);
     }
-
   } else {
     /* look for 'subjects' in the title */
     DebugNote(("Looking for subjects/ in source"));
@@ -2974,7 +2972,6 @@ Volm_tErr Volm_ExtractAndSetSubjectName(mriVolumeRef this, char *isSource) {
         nWordChar++;
         nChar++;
       }
-
     } else {
       /* else just use the last part */
       nChar = 0;

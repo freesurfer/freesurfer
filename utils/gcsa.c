@@ -30,21 +30,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "mrisurf.h"
+
 #include "annotation.h"
 #include "cma.h"
 #include "colortab.h"
 #include "diag.h"
 #include "error.h"
 #include "fio.h"
-#include "gcsa.h"
 #include "icosahedron.h"
 #include "macros.h"
 #include "mrishash.h"
-#include "mrisurf.h"
 #include "proto.h"
 #include "tags.h"
 #include "transform.h"
 #include "utils.h"
+
+#include "gcsa.h"
 
 extern const char *Progname;
 
@@ -599,7 +601,9 @@ GCSA *GCSAread(char *fname) {
   for (i = 0; i < ninputs; i++) {
     gcsa->inputs[i].type = freadInt(fp);
     j = freadInt(fp);
-    fread(gcsa->inputs[i].fname, sizeof(char), j, fp);
+    if (fread(gcsa->inputs[i].fname, sizeof(char), j, fp) != j) {
+      ErrorPrintf(ERROR_BADFILE, "afniRead(): error reading from file %s", gcsa->inputs[i].fname);
+    }
     gcsa->inputs[i].navgs = freadInt(fp);
     gcsa->inputs[i].flags = freadInt(fp);
   }
@@ -761,7 +765,7 @@ int GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris) {
     // O.Hinds needs this for vertex probability feature (mris_ca_label -p) but it breaks mris_ca_label    v->val = p ;
     if (vno == Gdiag_no) {
       int n;
-      CP *cp;
+      // CP *cp;
       GCS *gcs;
 
       if (gcsa->ninputs == 2)
@@ -773,7 +777,7 @@ int GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris) {
                annotation_to_index(label),
                label);
       for (n = 0; n < cpn->nlabels; n++) {
-        cp = &cpn->cps[n];
+        // cp = &cpn->cps[n];
         gcs = getGC(gcsan, cpn->labels[n], NULL);
         printf("label %s (%d) [%d], p=%2.4f, means:\n",
                annotation_to_name(cpn->labels[n], NULL),
@@ -1068,7 +1072,7 @@ int GCSAreclassifyUsingGibbsPriors(GCSA *gcsa, MRI_SURFACE *mris) {
   int n, vno, i, nchanged, label, best_label, old_label, vno_prior, vno_classifier, niter, examined;
   double ll, max_ll;
   VERTEX *v, *v_classifier, *v_prior, *vn;
-  GCSA_NODE *gcsan;
+  // GCSA_NODE *gcsan;
   CP_NODE *cpn;
   double v_inputs[100];
 
@@ -1107,7 +1111,7 @@ int GCSAreclassifyUsingGibbsPriors(GCSA *gcsa, MRI_SURFACE *mris) {
 
       v_classifier = GCSAsourceToClassifierVertex(gcsa, v_prior);
       vno_classifier = v_classifier - gcsa->mris_classifiers->vertices;
-      gcsan = &gcsa->gc_nodes[vno_classifier];
+      // gcsan = &gcsa->gc_nodes[vno_classifier];
       if (vno_classifier == Gdiag_no) DiagBreak();
 
       best_label = old_label = v->annotation;

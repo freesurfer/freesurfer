@@ -57,11 +57,17 @@
  */
 
 #define RESAMPLE_SOURCE_CODE_FILE
-#include "resample.h"
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "timer.h"
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "bfileio.h"
 #include "corio.h"
 #include "diag.h"
@@ -73,10 +79,8 @@
 #include "mrishash.h"
 #include "mrisurf.h"
 #include "proto.h"  // nint
-#include "timer.h"
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+
+#include "resample.h"
 
 /*-------------------------------------------------------------------*/
 double round(double);  // why is this never defined?!?
@@ -857,7 +861,8 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
   MRI *TrgSurfVals = NULL;
   MRI_SURFACE *SrcSurfReg, *TrgSurfReg;
   int svtx = 0, tvtx, tvtxN, svtxN = 0, f, n, nrevhits, nSrcLost;
-  int npairs, kS, kT, nhits, nunmapped;
+  int npairs, kS, kT, nhits;
+  // int nunmapped;
   VERTEX *v;
   float dmin;
   MHT **Hash = NULL;
@@ -935,7 +940,7 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
   /* Go through the forwad loop (finding closest srcvtx to each trgvtx).
   This maps each target vertex to a source vertex */
   printf("MRISapplyReg: Forward Loop (%d)\n", TrgSurfReg->nvertices);
-  nunmapped = 0;
+  // nunmapped = 0;
   for (tvtx = 0; tvtx < TrgSurfReg->nvertices; tvtx++) {
     if (!UseHash) {
       if (tvtx % 100 == 0) {
@@ -1264,7 +1269,8 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals,
                         int ReverseMapFlag,
                         int UseHash) {
   MRI *TrgSurfVals = NULL;
-  int svtx, tvtx, f, n, nunmapped, nrevhits, nSrcLost, nhits;
+  int svtx, tvtx, f, n, nrevhits, nSrcLost, nhits;
+  // int nunmapped;
   VERTEX *v;
   MHT *SrcHash, *TrgHash;
   float dmin, srcval;
@@ -1305,7 +1311,7 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals,
 
   // First forward loop just counts the number of hits for each src
   printf("Surf2SurfJac: 1st Forward Loop (%d)\n", TrgSurfReg->nvertices);
-  nunmapped = 0;
+  // nunmapped = 0;
   for (tvtx = 0; tvtx < TrgSurfReg->nvertices; tvtx++) {
     /* find closest source vertex */
     v = &(TrgSurfReg->vertices[tvtx]);
@@ -1836,10 +1842,14 @@ MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol, MATRIX *Qa2v, float projfrac) {
 }
 /*
   \fn MRI *MRIseg2SegPVF(MRI *seg, LTA *seg2vol, double resmm, int *segidlist, int nsegs, MRI *mask, int ReInit, MRI
-  *out) \brief Computes the partial volume fraction (PVF:0->1) for each segmentation. The output geometry is derived
-  from the dst in seg2vol (seg2vol can go the other direction, it figures it out). The number of frames in the output
-  equals the number of segmentations (excluding 0).  Each frame is a map where the voxel value is the fraction of that
-  voxel that contains the seg corresonding to that frame. The algorithm works by sampling each output voxel over a
+  *out)
+  \brief Computes the partial volume fraction (PVF:0->1) for each
+  segmentation. The output geometry is derived from the dst in seg2vol
+  (seg2vol can go the other direction, it figures it out). The number
+  of frames in the output equals the number of segmentations
+  (excluding 0).  Each frame is a map where the voxel value is the
+  fraction of that voxel that contains the seg corresonding to that
+  frame. The algorithm works by sampling each output voxel over a
   uniform grid. For each sample, the location in seg is computed to
   get the segmentation. The number of hits for this segmentation/frame
   is then updated for that voxel. The distance in mm between the

@@ -314,7 +314,8 @@ int tri_tri_intersect(double V0[3], double V1[3], double V2[3], double U0[3], do
 #include "matrix.h"
 int triangle_ray_intersect(
     double orig_pt[3], double dir[3], double U0[3], double U1[3], double U2[3], double int_pt[3]) {
-  double basis1[3], basis2[3], tmp[3], L0[3], L1[3], len, a, b, t, dot, norm_proj[3], *V0, *V1, *V2, desc[3], Point[3];
+  double basis1[3], basis2[3], tmp[3], L0[3], L1[3], len, t, dot, norm_proj[3], *V0, *V1, *V2, desc[3], Point[3];
+  // douoble a, b;
   MATRIX *m_U, *m_inv;
   VECTOR *v_p, *v_r;
   int i;
@@ -358,8 +359,8 @@ int triangle_ray_intersect(
   MatrixMultiply(m_inv, v_p, v_r);
 
   /* a and b are coordinate of point in plane, t is parameterization of ray */
-  a = VECTOR_ELT(v_r, 1);
-  b = VECTOR_ELT(v_r, 2);
+  // a = VECTOR_ELT(v_r, 1);
+  // b = VECTOR_ELT(v_r, 2);
   t = VECTOR_ELT(v_r, 3);
   MatrixFree(&m_U);
   VectorFree(&v_p);

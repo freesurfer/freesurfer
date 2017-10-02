@@ -1082,7 +1082,6 @@ extern "C" int OpenLUMatrixInverse(MATRIX *iMatrix, MATRIX *oInverse) {
       else
         vnl_inverse(m).copy_out(oInverse->data);
     }
-
   }
 
   else  // > 4x4 matrices
@@ -1095,7 +1094,6 @@ extern "C" int OpenLUMatrixInverse(MATRIX *iMatrix, MATRIX *oInverse) {
     if (vnlMatrixInverter.determinant() != 0.0) {
       vnl_matrix< float > inverse = vnlMatrixInverter.inverse();
       inverse.copy_out(oInverse->data);
-
     } else {
       errorCode = ERROR_BADPARM;
     }
@@ -1149,7 +1147,6 @@ extern "C" int OpenSvdcmp(MATRIX *ioA, VECTOR *oW, MATRIX *oV) {
     } else {
       errorCode = ERROR_BADPARM;
     }
-
   } else {
     errorCode = ERROR_BADPARM;
   }
@@ -1605,8 +1602,7 @@ extern "C" float **matrix(long nrl, long nrh, long ncl, long nch)
 }
 
 extern "C" void free_vector(float *v, long nl, long nh)
-/* free a float vector allocated with vector() */
-{
+/* free a float vector allocated with vector() */ {
   free((FREE_ARG)(v + nl - NR_END));
 }
 

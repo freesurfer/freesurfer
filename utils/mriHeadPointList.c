@@ -199,7 +199,9 @@ HPtL_tErr HPtL_ReadHeadListFile_(mriHeadPointListRef this, char *isListName) {
   nNumPoints = 0;
   while (1) /* !feof( file ) ) */
   {
-    fgets(sLine, 1024, file);
+    if (!fgets(sLine, 1024, file) && ferror(file)) {
+      break;
+    }
     if (feof(file))  // wow read too much.  break
     {
       break;
@@ -218,7 +220,10 @@ HPtL_tErr HPtL_ReadHeadListFile_(mriHeadPointListRef this, char *isListName) {
   rewind(file);
   for (nPoint = 0; nPoint < nNumPoints; nPoint++) {
     /* read and parse line */
-    fgets(sLine, 1024, file);
+    if (!fgets(sLine, 1024, file) && ferror(file)) {
+      fprintf(stdout, "ERROR (mriHeadPointList.c): reading file.\n");
+      break;
+    }
     bGood = sscanf(sLine, "%s %d %f %f %f", sPointLabel, &nPointIndex, &fPointX, &fPointY, &fPointZ);
     if (!bGood) {
       eResult = HPtL_tErr_ErrorParsingHeadPointFile;

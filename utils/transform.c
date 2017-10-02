@@ -2227,7 +2227,6 @@ int TransformSampleReal(TRANSFORM *transform, float xv, float yv, float zv, floa
     xt = MRIgetVoxVal(gcam->mri_xind, xi, yi, zi, 0) * gcam->spacing;
     yt = MRIgetVoxVal(gcam->mri_yind, xi, yi, zi, 0) * gcam->spacing;
     zt = MRIgetVoxVal(gcam->mri_zind, xi, yi, zi, 0) * gcam->spacing;
-
   } else {
     lta = (LTA *)transform->xform;
     if (lta->type != LINEAR_VOXEL_TO_VOXEL) {
@@ -2307,7 +2306,6 @@ int TransformSampleReal2(TRANSFORM *transform, float xv, float yv, float zv, flo
     xt *= gcam->spacing;
     yt *= gcam->spacing;
     zt *= gcam->spacing;
-
   } else {
     lta = (LTA *)transform->xform;
     if (lta->type != LINEAR_VOXEL_TO_VOXEL) {

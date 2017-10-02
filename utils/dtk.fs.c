@@ -35,7 +35,6 @@
 
 double round(double x);
 #include "diag.h"
-#include "dtk.fs.h"
 #include "error.h"
 #include "matrix.h"
 #include "mri.h"
@@ -43,6 +42,8 @@ double round(double x);
 #include "mri_identify.h"
 #include "proto.h"
 #include "utils.h"
+
+#include "dtk.fs.h"
 
 #ifdef X
 #undef X
@@ -163,20 +164,37 @@ DTK_TRACK *DTKreadTrack(FILE *fp, int n_scalars, int n_properties, float dc, flo
   DTK_TRACK *trk;
   float x, y, z;
 
-  fread(&npoints, sizeof(int), 1, fp);
+  if (fread(&npoints, sizeof(int), 1, fp) != 1) {
+    fprintf(stderr, "Could not read value(s)\n");
+  }
   trk = DTKallocTrack(npoints, n_scalars, n_properties);
-  if (trk == NULL) return (NULL);
-
+  if (trk == NULL) {
+    return (NULL);
+  }
   for (n = 0; n < trk->npoints; n++) {
-    fread(&x, sizeof(float), 1, fp);
-    fread(&y, sizeof(float), 1, fp);
-    fread(&z, sizeof(float), 1, fp);
+    if (fread(&x, sizeof(float), 1, fp) != 1) {
+      fprintf(stderr, "Could not read value(s)\n");
+    }
+    if (fread(&y, sizeof(float), 1, fp) != 1) {
+      fprintf(stderr, "Could not read value(s)\n");
+    }
+    if (fread(&z, sizeof(float), 1, fp) != 1) {
+      fprintf(stderr, "Could not read value(s)\n");
+    }
     trk->c[n] = x / dc - trkvisOffset;
     trk->r[n] = y / dr - trkvisOffset;
     trk->s[n] = z / ds - trkvisOffset;
-    for (ns = 0; ns < trk->n_scalars; ns++) fread(&(trk->scalars[ns][n]), sizeof(float), 1, fp);
+    for (ns = 0; ns < trk->n_scalars; ns++) {
+      if (fread(&(trk->scalars[ns][n]), sizeof(float), 1, fp) != 1) {
+        fprintf(stderr, "Could not read value(s)\n");
+      }
+    }
   }
-  for (n = 0; n < trk->n_properties; n++) fread(&(trk->properties[n]), sizeof(float), 1, fp);
+  for (n = 0; n < trk->n_properties; n++) {
+    if (fread(&(trk->properties[n]), sizeof(float), 1, fp) != 1) {
+      fprintf(stderr, "Could not read value(s)\n");
+    }
+  }
 
   return (trk);
 }

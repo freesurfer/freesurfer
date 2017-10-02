@@ -23,8 +23,12 @@
  *
  */
 
-#include "mincutils.h"
 #include <stdio.h>
+
+#include "mri.h"
+
+#include <stdio.h>
+#include "mincutils.h"
 #include "mri.h"
 
 /*-----------------------------------------------------*/

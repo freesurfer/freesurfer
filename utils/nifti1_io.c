@@ -3625,7 +3625,6 @@ nifti_image *nifti_convert_nhdr2nim(struct nifti_1_header nhdr, const char *fnam
     nim->sform_code = NIFTI_XFORM_UNKNOWN;
 
     if (g_opts.debug > 1) fprintf(stderr, "-d no sform provided\n");
-
   } else {
     /**- else set the sto transformation from srow_*[] */
 
@@ -5747,7 +5746,6 @@ static int unescape_string(char *str) {
       else if (jj < ii) {
         str[jj] = str[ii];
       }
-
     } else if (str[ii] == CR) { /* is a carriage return */
 
       if (str[ii + 1] == LF) {
@@ -5759,8 +5757,7 @@ static int unescape_string(char *str) {
         str[jj] = LF;
         ;
         nn++;
-      } /* CR only */
-
+      }      /* CR only */
     } else { /* is a normal character, just copy to output */
 
       if (jj < ii) {

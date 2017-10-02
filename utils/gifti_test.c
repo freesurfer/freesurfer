@@ -1,9 +1,10 @@
-
-#include "gifti_test.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
 #include "gifti_io.h"
+
+#include "gifti_test.h"
 
 int show_help() {
   fprintf(stderr,
@@ -119,7 +120,6 @@ int main(int argc, char *argv[]) {
           return 1;
         }
       }
-
     } else if (!strcmp(argv[ac], "-verb")) {
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-verb");

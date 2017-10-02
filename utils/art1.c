@@ -33,7 +33,8 @@
 
       Description:
 
-  $Header: /space/repo/1/dev/dev/utils/art1.c,v 1.3 2011/03/02 00:04:42 nicks Exp $
+  $Header: /space/repo/1/dev/dev/utils/art1.c,v 1.3 2011/03/02 00:04:42 nicks
+Exp $
   $Log: art1.c,v $
   Revision 1.3  2011/03/02 00:04:42  nicks
   ENH: new license header mods
@@ -156,9 +157,11 @@ ART1 *Art1Read(char *fname) {
   FILE *fp;
 
   fp = fopen(fname, "r");
-  if (!fp) return (NULL);
+  if (!fp) return NULL;
 
-  fscanf(fp, "%d %d %d %lf %lf\n", &ninputs, &noutputs, &max_f2, &beta, &rho);
+  if (fscanf(fp, "%d %d %d %lf %lf\n", &ninputs, &noutputs, &max_f2, &beta, &rho) != 5) {
+    fprintf(stderr, "Warning: fscanf did not read expected number of values\n");
+  }
 
   art1 = Art1Alloc(ninputs, max_f2, rho);
   art1->noutputs = art1->noutputs;
@@ -166,7 +169,9 @@ ART1 *Art1Read(char *fname) {
 
   for (i = 0; i < art1->ninputs; i++) {
     for (j = 0; j < art1->noutputs; j++) {
-      fscanf(fp, "%lf\n", &zj);
+      if (fscanf(fp, "%lf\n", &zj) != 1) {
+        fprintf(stderr, "Warning: fscanf did not read expected number of values\n");
+      }
       *Mzj(art1, i, j) = zj;
     }
   }
@@ -227,7 +232,8 @@ int Art1Free(ART1 **art1) {
     Returns:
 ----------------------------------------------------------------------*/
 int Art1Process(ART1 *art1, double *I) {
-  int nclass, i, class;
+  // int nclass;
+  int i, class;
 
   if (Gdiag & DIAG_WRITE) printf("Art1Process()\n");
 
@@ -235,7 +241,7 @@ int Art1Process(ART1 *art1, double *I) {
 
   for (i = 0; i < art1->noutputs; i++) art1->flags[i] &= ~ART1_RESET;
 
-  nclass = 0;
+  // nclass = 0;
   do {
     art1->class = class = artFeedForward(art1);
     if (class < 0) break; /* no classes left */
@@ -334,7 +340,8 @@ int artFeedBack(ART1 *art1, int class) {
 ----------------------------------------------------------------------*/
 int artFeedForward(ART1 *art1) {
   int max_j, j;
-  double f2, max_out;
+  // double f2;
+  double max_out;
 
   max_j = -1;
   max_out = -1.0;
@@ -342,7 +349,8 @@ int artFeedForward(ART1 *art1) {
   for (j = 0; j < art1->noutputs; j++) {
     if (art1->flags[j] & ART1_RESET) continue; /* this node was previous winner */
 
-    f2 = art1->f2[j] = artChoice(art1, j);
+    // f2 =
+    art1->f2[j] = artChoice(art1, j);
     if (art1->f2[j] > max_out) {
       max_j = j;
       max_out = art1->f2[j];
@@ -415,13 +423,14 @@ double norm(double huge *a, int len) {
      zj = I ^ zj
 */
 void artFastLearn(ART1 *art1, int j) {
-  double norm_I_int_zj;
+  // double norm_I_int_zj;
   int i;
 
   if (j < 0) return; /* not a valid class */
 
   intersect(art1->f0, Mzj(art1, 0, j), art1->scratch, art1->ninputs);
-  norm_I_int_zj = norm(art1->scratch, art1->ninputs);
+  // norm_I_int_zj =
+  norm(art1->scratch, art1->ninputs);
   for (i = 0; i < art1->ninputs; i++) {
     *Mzj(art1, i, j) = art1->scratch[i];
   }

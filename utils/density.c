@@ -166,34 +166,55 @@ DENSITY *DensityRead(char *fname) {
   i = sscanf(cp, "%*s %d\n", &nbins);
   pdf->Ipdf = ImageAlloc(nbins, nbins, PFFLOAT, 1);
   if (pdf->Ipdf == NULL) ErrorExit(ERROR_NOMEMORY, "DensityRead(%d): could not allocate density image", nbins);
-  fscanf(fp, ":vol1 %f %f\n", &pdf->min_val1, &pdf->max_val1);
-  fscanf(fp, ":vol2 %f %f\n", &pdf->min_val2, &pdf->max_val2);
-  fscanf(fp, ":sigma %f\n", &pdf->sigma);
-  fscanf(fp, ":dof %d\n", &pdf->dof);
-  fscanf(fp, ":mri1 %s\n", pdf->fname1);
-  fscanf(fp, ":mri2 %s\n", pdf->fname2);
+  if (fscanf(fp,
+             ":vol1 %f %f\n:vol2 %f %f\n:sigma %f\n:dof %d\n:mri1 %s\n:mri2 %s\n:valid1 ",
+             &pdf->min_val1,
+             &pdf->max_val1,
+             &pdf->min_val2,
+             &pdf->max_val2,
+             &pdf->sigma,
+             &pdf->dof,
+             pdf->fname1,
+             pdf->fname2) != 8) {
+    ErrorPrintf(ERROR_BAD_FILE, "DensityRead(%s): could not read parameter(s)", fname);
+  }
 
-  fscanf(fp, ":valid1 ");
   n = ceil(pdf->max_val1 - pdf->min_val1 + 1);
   pdf->valid1 = (int *)calloc(n, sizeof(int));
   if (!pdf->valid1) ErrorExit(ERROR_NOMEMORY, "DensityHistogramEstimate: could not allocate lookup tables (%d)\n", n);
-  for (i = 0; i < n; i++) fscanf(fp, "%d ", &pdf->valid1[i]);
-  fscanf(fp, "\n");
-  fscanf(fp, ":valid2 ");
+  for (i = 0; i < n; i++) {
+    if (fscanf(fp, "%d ", &pdf->valid1[i]) != 1) {
+      ErrorPrintf(ERROR_BAD_FILE, "DensityRead(%s): could not read parameter(s)", fname);
+    }
+  }
+  if (fscanf(fp, "\n:valid2 ") != 0) {
+    ErrorPrintf(ERROR_BAD_FILE, "DensityRead(%s): could not read expected line", fname);
+  }
   n = ceil(pdf->max_val2 - pdf->min_val2 + 1);
   pdf->valid2 = (int *)calloc(n, sizeof(int));
   if (!pdf->valid2) ErrorExit(ERROR_NOMEMORY, "DensityHistogramEstimate: could not allocate lookup tables (%d)\n", n);
-  for (i = 0; i < n; i++) fscanf(fp, "%d ", &pdf->valid2[i]);
-  fscanf(fp, "\n");
+  for (i = 0; i < n; i++) {
+    if (fscanf(fp, "%d ", &pdf->valid2[i]) != 1) {
+      ErrorPrintf(ERROR_BAD_FILE, "DensityRead(%s): could not read parameter(s)", fname);
+    }
+  }
+  if (fscanf(fp, "\n") != 0) {
+    ErrorPrintf(ERROR_BAD_FILE, "DensityRead(%s): could not read expected line", fname);
+  }
 
   pdf->min_p = 1.0;
   for (i = 0; i < pdf->Ipdf->rows; i++) {
     for (j = 0; j < pdf->Ipdf->cols; j++) {
-      fscanf(fp, "%f ", IMAGEFpix(pdf->Ipdf, i, j));
-      if (!DZERO(*IMAGEFpix(pdf->Ipdf, i, j)) && (*IMAGEFpix(pdf->Ipdf, i, j) < pdf->min_p))
+      if (fscanf(fp, "%f ", IMAGEFpix(pdf->Ipdf, i, j)) != 1) {
+        ErrorPrintf(ERROR_BAD_FILE, "DensityRead(%s): could not read parameter(s)", fname);
+      }
+      if (!DZERO(*IMAGEFpix(pdf->Ipdf, i, j)) && (*IMAGEFpix(pdf->Ipdf, i, j) < pdf->min_p)) {
         pdf->min_p = *IMAGEFpix(pdf->Ipdf, i, j);
+      }
     }
-    fscanf(fp, "\n");
+    if (fscanf(fp, "\n") != 0) {
+      ErrorPrintf(ERROR_BAD_FILE, "DensityRead(%s): reached end of file", fname);
+    }
   }
 
   return (pdf);

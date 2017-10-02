@@ -57,10 +57,11 @@
 ------------------------------------------------------*/
 float MRIvoxelDx(MRI *mri, int x, int y, int z) {
   float left, right, dx;
-  int width, height, xm1, xp1, ym1, yp1;
+  // int width, height;
+  int xm1, xp1, ym1, yp1;
 
-  width = mri->width;
-  height = mri->height;
+  // width = mri->width;
+  // height = mri->height;
 
   x = mri->xi[x];
   xm1 = mri->xi[x - 1];
@@ -90,10 +91,11 @@ float MRIvoxelDx(MRI *mri, int x, int y, int z) {
 ------------------------------------------------------*/
 float MRIvoxelDy(MRI *mri, int x, int y, int z) {
   float top, bottom, dy;
-  int width, height, xm1, xp1, ym1, yp1;
+  // int width, height;
+  int xm1, xp1, ym1, yp1;
 
-  width = mri->width;
-  height = mri->height;
+  // width = mri->width;
+  // height = mri->height;
 
   x = mri->xi[x];
   xm1 = mri->xi[x - 1];
@@ -123,10 +125,11 @@ float MRIvoxelDy(MRI *mri, int x, int y, int z) {
 ------------------------------------------------------*/
 float MRIvoxelDz(MRI *mri, int x, int y, int z) {
   float dz, top, bottom;
-  int width, depth, xm1, xp1, zm1, zp1;
+  // int width, depth;
+  int xm1, xp1, zm1, zp1;
 
-  width = mri->width;
-  depth = mri->depth;
+  // width = mri->width;
+  // depth = mri->depth;
 
   x = mri->xi[x];
   xm1 = mri->xi[x - 1];
@@ -313,7 +316,8 @@ float MRIvoxelStd(MRI *mri, int x0, int y0, int z0, float mean, int wsize) {
 #define MAX_WINDOW 7
 #define MAX_LEN (MAX_WINDOW * MAX_WINDOW * MAX_WINDOW)
 float MRIvoxelDirection(MRI *mri, int x0, int y0, int z0, int wsize) {
-  int whalf, width, height, depth, x, y, z, npix, total, xmin, xmax, ymin, ymax, zmin, zmax;
+  int whalf, width, height, depth, x, y, z, xmax, ymax, zmax;
+  // int npix, total, xmin, ymin, zmin;
   float dx_win[MAX_LEN], dy_win[MAX_LEN], dz_win[MAX_LEN], dx, dy, dz, odx, ody, odz, *pdx, *pdy, *pdz, dir;
 
   if (wsize > MAX_WINDOW) ErrorReturn(0.0f, (ERROR_BADPARM, "MRIvoxelDirection: window size %d too big", wsize));
@@ -322,15 +326,15 @@ float MRIvoxelDirection(MRI *mri, int x0, int y0, int z0, int wsize) {
   height = mri->height;
   depth = mri->depth;
 
-  total = 0;
+  // total = 0;
   zmax = MIN(depth - 1, z0 + whalf);
   ymax = MIN(height - 1, y0 + whalf);
   xmax = MIN(width - 1, x0 + whalf);
 
-  zmin = MAX(0, z0 - whalf);
-  ymin = MAX(0, y0 - whalf);
-  xmin = MAX(0, x0 - whalf);
-  npix = (zmax - zmin + 1) * (ymax - ymin + 1) * (xmax - xmin + 1);
+// zmin = MAX(0, z0 - whalf);
+// ymin = MAX(0, y0 - whalf);
+// xmin = MAX(0, x0 - whalf);
+// npix = (zmax - zmin + 1) * (ymax - ymin + 1) * (xmax - xmin + 1);
 
 /* should do something smarter than this about border conditions */
 #if 0
@@ -380,14 +384,15 @@ float MRIvoxelDirection(MRI *mri, int x0, int y0, int z0, int wsize) {
         Description
 ------------------------------------------------------*/
 float MRIvoxelGradientDir2ndDerivative(MRI *mri, int x0, int y0, int z0, int wsize) {
-  int whalf, width, height, depth;
+  int whalf;
+  // int width, height, depth;
   float odx, ody, odz, len, d2I_dg2, xf, yf, zf, d;
   double val;
 
   whalf = wsize / 2;
-  width = mri->width;
-  height = mri->height;
-  depth = mri->depth;
+  // width = mri->width;
+  // height = mri->height;
+  // depth = mri->depth;
 
   odx = MRIvoxelDx(mri, x0, y0, z0);
   ody = MRIvoxelDy(mri, x0, y0, z0);
@@ -457,7 +462,8 @@ static int compare_sort_array(const void *pc1, const void *pc2) {
 }
 float MRIvoxelMedian(MRI *mri, int x0, int y0, int z0, int wsize) {
   float median, val;
-  int whalf, width, height, depth, x, y, z, npix, xmin, xmax, median_index, ymin, ymax, zmin, zmax, wcubed;
+  int whalf, width, height, depth, x, y, z, xmin, xmax, median_index, ymin, ymax, zmin, zmax, wcubed;
+  // int npix;
   static float *sort_array = NULL;
   float *sptr;
 
@@ -472,7 +478,7 @@ float MRIvoxelMedian(MRI *mri, int x0, int y0, int z0, int wsize) {
   ymax = MIN(height - 1, y0 + whalf);
   xmin = MAX(0, x0 - whalf);
   xmax = MIN(width - 1, x0 + whalf);
-  npix = (zmax - zmin + 1) * (ymax - ymin + 1) * (xmax - xmin + 1);
+  // npix = (zmax - zmin + 1) * (ymax - ymin + 1) * (xmax - xmin + 1);
 
   for (sptr = sort_array, z = zmin; z <= zmax; z++) {
     for (y = ymin; y <= ymax; y++) {

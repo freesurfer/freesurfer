@@ -33,17 +33,20 @@
 //
 // moved out from mriio.c
 //
+
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "error.h"
 
-#include "AFNI.h"
+#include "mri.h"
+
+#include "error.h"
 #include "machine.h"
 #include "mghendian.h"
-#include "mri.h"
 #include "utils.h"
+
+#include "AFNI.h"
 
 #ifdef Linux
 extern void swab(const void *from, void *to, size_t n);

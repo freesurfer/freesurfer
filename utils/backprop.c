@@ -732,18 +732,20 @@ float BackpropTrainEpoch(
 
   if (!bp->nepochs) bp->sse = new_bp->sse; /* nothing to compare it to */
 
-  /*
-    for adaptive learning rate: If sse increases by more than ERROR_RATIO,
-    then update the step size according to:
+/*
+  for adaptive learning rate: If sse increases by more than ERROR_RATIO,
+  then update the step size according to:
 
-    learning_rate = learning_rate * TRATE_DECREASE
+/*
+for adaptive learning rate: If sse increases by more than ERROR_RATIO,
+then update the step size according to:
 
-    otherwise, if the sse decresed, the increase the step size by:
+learning_rate = learning_rate * TRATE_DECREASE
 
-    learning_rate = learning_rate * TRATE_INCREASE.
-  */
+otherwise, if the sse decresed, the increase the step size by:
 
-  error_ratio = bp->sse / new_bp->sse;
+learning_rate = learning_rate * TRATE_INCREASE.
+*/
 
 #if 0
   /* only use new weights if error didn't increase too much */
@@ -800,7 +802,8 @@ float BackpropTrainEpoch(
     Returns:
 ----------------------------------------------------------------------*/
 float BackpropLearn(BACKPROP *backprop, float *inputs, float *targets) {
-  int bpClass, i;
+  // int bpClass;
+  int i;
   LAYER *hidden, *output;
   float bpError;
 
@@ -819,7 +822,8 @@ float BackpropLearn(BACKPROP *backprop, float *inputs, float *targets) {
 
   backprop->learn = 1;
 
-  bpClass = BackpropProcess(backprop, inputs);
+  // bpClass =
+  BackpropProcess(backprop, inputs);
 
   hidden = &backprop->hidden;
   output = &backprop->output;
@@ -1019,19 +1023,36 @@ static void bpInitLayerWeights(LAYER *layer) {
     Returns:
 ----------------------------------------------------------------------*/
 static void bpReadLayer(FILE *fp, LAYER *layer) {
-  int i, j;
+  int i, j, scanned;
 
-  fscanf(fp, "%d  %d\n", &layer->ninputs, &layer->nunits);
+  scanned = fscanf(fp, "%d  %d\n", &layer->ninputs, &layer->nunits);
+  if (scanned != 2) {
+    fprintf(stderr, "Warning: scanned %d elements, expected 2\n", scanned);
+  }
   bpInitLayer(layer, layer->ninputs, layer->nunits);
 
-  fscanf(fp, "\n");
-
+  scanned = fscanf(fp, "\n");
+  if (scanned != 1) {
+    fprintf(stderr, "Warning: scanned %d elements, expected 1\n", scanned);
+  }
   /* now read in weights */
   for (j = 0; j < layer->nunits; j++) {
-    fscanf(fp, "%f\n", &layer->biases[j]);
-    for (i = 0; i < layer->ninputs; i++) fscanf(fp, "%f ", &Wij(layer, i, j));
+    scanned = fscanf(fp, "%f\n", &layer->biases[j]);
+    if (scanned != 1) {
+      fprintf(stderr, "Warning: scanned %d elements, expected 1\n", scanned);
+    }
 
-    fscanf(fp, "\n");
+    for (i = 0; i < layer->ninputs; i++) {
+      scanned = fscanf(fp, "%f ", &Wij(layer, i, j));
+      if (scanned != 1) {
+        fprintf(stderr, "Warning: scanned %d elements, expected 1\n", scanned);
+      }
+    }
+
+    scanned = fscanf(fp, "\n");
+    if (scanned != 0) {
+      fprintf(stderr, "Warning: expected to read newline\n");
+    }
   }
 }
 /*----------------------------------------------------------------------

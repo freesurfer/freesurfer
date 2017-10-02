@@ -23,10 +23,11 @@
  *
  */
 
-#include "prime.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "prime.h"
 
 static int CompareFactors(const void *pf1, const void *pf2);
 

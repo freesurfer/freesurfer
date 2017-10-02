@@ -73,10 +73,10 @@ void trans_VoxelToRAS(double irVoxX, double irVoxY, double irVoxZ, double *orRAS
 }
 
 void trans_VoxelIndexToRAS(int inVoxX, int inVoxY, int inVoxZ, double *orRASX, double *orRASY, double *orRASZ) {
-  double irVoxX, irVoxY, irVoxZ;
+  // double irVoxX, irVoxY, irVoxZ;
 
-  irVoxX = (double)inVoxX;
-  irVoxY = (double)inVoxY;
-  irVoxZ = (double)inVoxZ;
+  // irVoxX = (double)inVoxX;
+  // irVoxY = (double)inVoxY;
+  // irVoxZ = (double)inVoxZ;
   trans_VoxelToRAS(inVoxX, inVoxY, inVoxZ, orRASX, orRASY, orRASZ);
 }

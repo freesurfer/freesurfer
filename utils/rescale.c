@@ -42,10 +42,13 @@
  *             b.  The output image does not have to be float
  *                 (as in linscale).
  ******************************************************************/
-#include "rescale.h"
+
 #include <hips.h>
+
 #include "macros.h"
 #include "minmaxrc.h"
+
+#include "rescale.h"
 
 /* y = Offset + Slope * x, y=New, x=Old  ***/
 static int h_GetScaleParams(float OldMin, float OldMax, float NewMin, float NewMax, float *Offset, float *Slope) {

@@ -31,7 +31,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "annotation.h"
+#include "mri.h"
+#include "mrisurf.h"
+
 #include "chklc.h"
 #include "cma.h"
 #include "const.h"
@@ -43,17 +45,18 @@
 #include "icosahedron.h"
 #include "macros.h"
 #include "matrix.h"
-#include "mri.h"
 #include "mri_identify.h"
 #include "mrisegment.h"
 #include "mrishash.h"
-#include "mrisurf.h"
-#include "mrisutils.h"
 #include "proto.h"
 #include "sig.h"
 #include "stats.h"
 #include "timer.h"
 #include "tritri.h"
+
+#include "mrisutils.h"
+
+#include "annotation.h"
 
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////

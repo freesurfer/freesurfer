@@ -367,19 +367,25 @@ extern "C" Geodesics *geodesicsRead(char *fname, int *pnvertices) {
   FILE *fp;
 
   fp = fopen(fname, "rb");
-  fscanf(fp, "%s", tmpstr);
+  if (fscanf(fp, "%s", tmpstr) != 1) {
+    printf("ERROR (%s): could not read file\n", fname);
+  }
   if (strcmp(tmpstr, "FreeSurferGeodesics")) {
     fclose(fp);
     printf("ERROR: %s not a geodesics file\n", fname);
     return (NULL);
   }
-  fscanf(fp, "%d", &magic);
+  if (fscanf(fp, "%d", &magic) != 1) {
+    printf("ERROR (%s): could not read file\n", fname);
+  }
   if (magic != -1) {
     fclose(fp);
     printf("ERROR: %s wrong endian\n", fname);
     return (NULL);
   }
-  fscanf(fp, "%d", pnvertices);
+  if (fscanf(fp, "%d", pnvertices) != 1) {
+    printf("ERROR (%s): could not read file\n", fname);
+  }
   fgetc(fp);  // swallow the new line
   printf("    geodesicsRead(): %s nvertices = %d, magic = %d\n", fname, *pnvertices, magic);
   fflush(stdout);

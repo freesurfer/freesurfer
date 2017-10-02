@@ -106,7 +106,7 @@ MRI *MRIapplyHistogram(MRI *mri_src, MRI *mri_dst, HISTOGRAM *histo) {
 HISTOGRAM *MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region) {
   int overlap;
   float fmin, fmax, bin_size;
-  BUFTYPE bmin, bmax;
+  // BUFTYPE bmin, bmax;
   static MRI *mri_prev = NULL;
   static HISTOGRAM *h_prev;
   static MRI_REGION reg_prev;
@@ -118,8 +118,8 @@ HISTOGRAM *MRIhistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION 
 #endif
 
   MRIvalRangeRegion(mri, &fmin, &fmax, region);
-  bmin = (BUFTYPE)fmin;
-  bmax = (BUFTYPE)fmax;
+  // bmin = (BUFTYPE)fmin;
+  // bmax = (BUFTYPE)fmax;
   if (nbins <= 0 && FEQUAL(fmin, fmax))
     ErrorReturn(NULL, (ERROR_UNSUPPORTED, "MRIhistogramRegion: input mri %s is blank", mri->fname));
   if (nbins <= 0) nbins = nint(fmax - fmin + 1.0);
@@ -215,7 +215,8 @@ HISTOGRAM *MRIhistogramLabelStruct(MRI *mri, int nbins, HISTOGRAM *histo, LABEL 
 }
 
 static HISTOGRAM *mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label) {
-  int width, height, depth, x, y, z, bin_no, i;
+  // int width, height, depth;
+  int x, y, z, bin_no, i;
   float fmin, fmax, bin_size, val;
   double xv, yv, zv;
 
@@ -244,9 +245,9 @@ static HISTOGRAM *mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL
     bin_size = 1;
   } else
     bin_size = histo->bin_size = (fmax - fmin + 1) / (float)nbins;
-  width = mri->width;
-  height = mri->height;
-  depth = mri->depth;
+  // width = mri->width;
+  // height = mri->height;
+  // depth = mri->depth;
 
   for (bin_no = 0; bin_no < nbins; bin_no++) histo->bins[bin_no] = (bin_no)*bin_size + fmin;
 
@@ -307,7 +308,8 @@ static HISTOGRAM *mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL
 static HISTOGRAM *mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region) {
   int width, height, depth, x, y, z, bin_no, x0, y0, z0;
   float fmin, fmax;
-  BUFTYPE val, *psrc, bmin, bmax;
+  BUFTYPE val, *psrc;
+  // BUFTYPE bmin, bmax;
   short *spsrc;
   float *fpsrc;
 
@@ -327,8 +329,8 @@ static HISTOGRAM *mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_
 
   MRIvalRangeRegion(mri, &fmin, &fmax, region);
 
-  bmin = (BUFTYPE)fmin;
-  bmax = (BUFTYPE)fmax;
+  // bmin = (BUFTYPE)fmin;
+  // bmax = (BUFTYPE)fmax;
 
   if (!nbins) nbins = nint(fmax - fmin + 1.0);
 
@@ -718,12 +720,13 @@ HISTOGRAM *MRIhistogramLabelRegion(MRI *mri, MRI *mri_labeled, MRI_REGION *regio
   HISTOGRAM *histo;
   float fmin, fmax;
   BUFTYPE *psrc;
-  int val, bmin, bmax;
+  int val, bmin;
+  // int bmax;
   float fval;
 
   MRIvalRangeRegion(mri, &fmin, &fmax, region);
   bmin = (int)fmin;
-  bmax = (int)fmax;
+  // bmax = (int)fmax;
   if (nbins <= 0) nbins = nint(fmax - fmin + 1.0);
 
   histo = HISTOalloc(nbins);
@@ -787,12 +790,13 @@ HISTOGRAM *MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins) {
   int width, height, depth, x, y, z, bin_no;
   HISTOGRAM *histo;
   float fmin, fmax;
-  int val, bmin, bmax;
+  int val, bmin;
+  // int bmax;
   float fval;
 
   MRIlabelValRange(mri, mri_labeled, label, &fmin, &fmax);
   bmin = (int)fmin;
-  bmax = (int)fmax;
+  // bmax = (int)fmax;
   if (nbins <= 0) nbins = nint(fmax - fmin + 1.0);
 
   histo = HISTOalloc(nbins);
@@ -882,14 +886,15 @@ HISTOGRAM *MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins) {
 #define Z_DB 128
 
 MRI *MRIhistoSegment(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi, int gray_hi, int wsize, float sigma) {
-  int width, height, depth, x, y, z, whalf, in_val, label, nvox, valley, wm_peak, gray_peak, thresh, nlabeled;
+  int width, height, depth, x, y, z, whalf, in_val, label, nvox, valley, wm_peak, gray_peak, nlabeled;
+  // int thresh;
   BUFTYPE *pdst, *psrc;
   MRI_REGION region;
   HISTOGRAM *histo, *hsmooth;
 
   if (sigma < 0) sigma = SMOOTH_SIGMA;
 
-  thresh = (gray_hi + wm_low) / 2;
+  // thresh = (gray_hi + wm_low) / 2;
   histo = hsmooth = NULL;
   width = mri_src->width;
   height = mri_src->height;
@@ -1042,12 +1047,11 @@ MRI *MRIhistoSegmentVoxel(MRI *mri_src,
                           HISTOGRAM *histo,
                           HISTOGRAM *hsmooth,
                           float sigma) {
-  int whalf, in_val, valley, wm_peak, gray_peak, thresh /*, npeaks,
-                peaks[300]*/;
+  int whalf, in_val, valley, wm_peak, gray_peak /*, thresh */;
   MRI_REGION region;
   float sig;
 
-  thresh = (gray_hi + wm_low) / 2;
+  // thresh = (gray_hi + wm_low) / 2;
 
   whalf = wsize / 2;
   region.dx = region.dy = region.dz = wsize;
@@ -1065,6 +1069,7 @@ MRI *MRIhistoSegmentVoxel(MRI *mri_src,
 #if 1
   sig = sigma;
 #else
+  int npeaks, peaks[300];
   sig = 0.0f;
   do {
     hsmooth = HISTOsmooth(histo, hsmooth, sigma);

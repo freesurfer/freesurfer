@@ -246,5 +246,4 @@ void GCAlinearPrior::ScorchPriors(GCA *targ) const {
   }
   free(targ->priors);
 }
-
 }  // namespace Freesurfer

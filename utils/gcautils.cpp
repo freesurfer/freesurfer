@@ -125,5 +125,4 @@ void GetGCApriorStats(const GCA *const src) {
   std::cout << "  nLabels   : " << nLabelsPrior << std::endl;
   std::cout << "  maxLabels : " << maxLabelsPrior << std::endl;
 }
-
 }  // namespace Freesurfer

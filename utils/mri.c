@@ -50,7 +50,6 @@ const char *MRI_C_VERSION = "$Revision: 1.575 $";
 #include "macros.h"
 #include "matrix.h"
 #include "minc_volume_io.h"
-#include "mri.h"
 #include "mri2.h"
 #include "mriBSpline.h"
 #include "mri_transform.h"
@@ -61,6 +60,8 @@ const char *MRI_C_VERSION = "$Revision: 1.575 $";
 #include "talairachex.h"
 #include "utils.h"
 #include "voxlist.h"
+
+#include "mri.h"
 
 extern int errno;
 
@@ -13591,7 +13592,6 @@ float MRIvoxelsInLabelWithPartialVolumeEffects(
                 MRIsetVoxVal(mri_mixing_coef, x, y, z, 0, 1.0);
               }
             }
-
           } else {
             // compute partial volume pct
             mean_nbr = label_means[nbr_label];

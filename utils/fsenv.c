@@ -63,7 +63,9 @@ FSENV *FSENVgetenv(void) {
   fsenv->user = strcpyalloc(VERuser());
 
   // Current working directory
-  getcwd(tmpstr, 2000);
+  if (!getcwd(tmpstr, 2000)) {
+    printf("ERROR: getcwd returned no path");
+  }
   fsenv->cwd = strcpyalloc(tmpstr);
 
   // Kernel information

@@ -23,13 +23,15 @@
  *
  */
 
-#include "pdf.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+
 #include "proto.h"
 #include "utils.h"
+
+#include "pdf.h"
 
 double round(double x);
 
@@ -165,8 +167,11 @@ int PDFloadCDF(char *fname, double **xcdf, double **cdf, int *ncdf) {
   *xcdf = (double *)calloc(*ncdf, sizeof(double));
   *cdf = (double *)calloc(*ncdf, sizeof(double));
 
-  for (n = 0; n < *ncdf; n++) fscanf(fp, "%lf %lf", (*xcdf + n), (*cdf + n));
-
+  for (n = 0; n < *ncdf; n++) {
+    if (fscanf(fp, "%lf %lf", (*xcdf + n), (*cdf + n)) != 2) {
+      printf("ERROR: cannot read parameters\n");
+    }
+  }
   fclose(fp);
 
   return (0);

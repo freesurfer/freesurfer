@@ -48,7 +48,6 @@ xUtil_tErr xUtil_BreakStringIntoPathAndStem(char *isPathAndStem, char *osPath, c
     strcpy(osPath, "");
     strcpy(osStem, isPathAndStem);
     goto cleanup;
-
   } else {
     /* got the first section of the path, now get the rest. */
     strcpy(sPathSection[0], sSection);
@@ -179,7 +178,6 @@ void xUtil_HandleUserCancelCallback(int signal) {
   /* if we're listening, set the flag, if not, exit normally. */
   if (xUtil_gCancelListening) {
     xUtil_gCancelUserCanceled = 1;
-
   } else {
     printf("Killed\n");
     fflush(stdout);

@@ -30,7 +30,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "annotation.h"
+#include "mri.h"
+#include "mrisurf.h"
+
 #include "chklc.h"
 #include "cma.h"
 #include "colortab.h"
@@ -43,12 +45,10 @@
 #include "machine.h"
 #include "macros.h"
 #include "matrix.h"
-#include "mri.h"
 #include "mri2.h"
 #include "mri_circulars.h"
 #include "mri_identify.h"
 #include "mrishash.h"
-#include "mrisurf.h"
 #include "proto.h"
 #include "selxavgio.h"
 #include "stats.h"
@@ -60,6 +60,9 @@
 #include "tritri.h"
 #include "utils.h"
 #include "voxlist.h"
+
+#include "annotation.h"
+
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
