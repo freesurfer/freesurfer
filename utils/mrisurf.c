@@ -4215,29 +4215,19 @@ mrisComputeOriginalVertexDistances(MRI_SURFACE *mris)
   -------------------------------------------------------------*/
 static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
 {
-#ifndef BEVIN
-  double Avg, Sum, Sum2, d;
-  VERTEX *vtx1,*vtx2;
-  int nNNbrs, nthNNbr, NbrVtxNo, VtxNo;
-  long N;
-#else
   double Sum, Sum2;
   long N;
-#endif
 
   Sum = 0;
   Sum2 = 0;
   N = 0;
-#ifdef BEVIN
+
   int VtxNo;
   #pragma omp parallel for reduction(+:Sum) reduction(+:Sum2) reduction(+:N)
-#endif
   for (VtxNo = 0; VtxNo < Surf->nvertices; VtxNo++)
   {
-#ifdef BEVIN
     VERTEX *vtx1,*vtx2;
     int nNNbrs, nthNNbr, NbrVtxNo;
-#endif
     vtx1 = &Surf->vertices[VtxNo] ;
     if (vtx1->ripflag)
     {
@@ -4252,9 +4242,7 @@ static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
       {
         continue;
       }
-#ifdef BEVIN
       double d;
-#endif
       d = vtx1->dist[nthNNbr];
       /*d = sqrt( (vtx1->x-vtx2->x)*(vtx1->x-vtx2->x) +
         (vtx1->y-vtx2->y)*(vtx1->y-vtx2->y) +
@@ -4264,12 +4252,10 @@ static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
       N++;
     }
   }
-#ifdef BEVIN
   // NOTE - This is a poor algorithm for computing the std dev because of how the floating point errors accumulate
   // but it seems to work for us because the double has enough accuracy to sum the few hundred thousand small but not too small floats
   // that we have
   double Avg;
-#endif
   Avg = Sum/N;
   if (StdDev != NULL)
   {
@@ -10392,13 +10378,7 @@ MRIScomputeSSEExternal(MRI_SURFACE *mris,
 static double
 mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris)
 {
-#ifndef BEVIN
-  double  sse, area_scale, error, ratio ;
-  int     fno ;
-  FACE    *face ;
-#else
   double area_scale;
-#endif
 
 #if METRIC_SCALE
   if (mris->patch)
@@ -10413,19 +10393,14 @@ mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris)
   area_scale = 1.0 ;
 #endif
 
-#ifndef BEVIN
-  sse = 0.0 ;
-#else
   double sse = 0.0;
   int fno;
   #pragma omp parallel for reduction(+:sse)
-#endif
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
-#ifdef BEVIN
     double  error, ratio ;
     FACE    *face ;
-#endif
+
     face = &mris->faces[fno] ;
     if (face->ripflag)
     {
@@ -10641,26 +10616,16 @@ mrisFindPoles(MRIS *mris)
 static int
 mrisOrientEllipsoid(MRI_SURFACE *mris)
 {
-#ifndef BEVIN
-  int     fno, ano ;
-  VERTEX  *v0, *v1, *v2 ;
-  FACE    *face ;
-  float   dot, xc, yc, zc ;
-#else
   int     fno;
-#endif
 
-#ifdef BEVIN
   #pragma omp parallel for
-#endif
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
-#ifdef BEVIN
     int     ano ;
     VERTEX  *v0, *v1, *v2 ;
     FACE    *face ;
     float   dot, xc, yc, zc ;
-#endif
+
     face = &mris->faces[fno] ;
     if (face->ripflag)
     {
@@ -10700,18 +10665,13 @@ mrisOrientEllipsoid(MRI_SURFACE *mris)
 #endif
   {
     mris->total_area = mris->neg_orig_area = mris->neg_area = 0.0f ;
-#ifndef BEVIN
-    #define PREFIX mris->
-#else
-    #define PREFIX 
+
     double total_area = 0.0, neg_area = 0.0, neg_orig_area = 0.0;
     #pragma omp parallel for reduction(+:total_area)  reduction(+:neg_area)  reduction(+:neg_orig_area)
-#endif
     for (fno = 0 ; fno < mris->nfaces ; fno++)
     {
-#ifdef BEVIN
       FACE *face ;
-#endif
+
       face = &mris->faces[fno] ;
       if (face->ripflag)
       {
@@ -10719,18 +10679,16 @@ mrisOrientEllipsoid(MRI_SURFACE *mris)
       }
       if (face->area >= 0.0f)
       {
-        PREFIX total_area += face->area ;
+        total_area += face->area ;
       }
       else
       {
-        PREFIX neg_area += -face->area ;
-        PREFIX neg_orig_area += face->orig_area ;
+        neg_area += -face->area ;
+        neg_orig_area += face->orig_area ;
       }
     }
-#ifdef BEVIN
+
     mris->total_area = total_area; mris->neg_orig_area = neg_orig_area; mris->neg_area = neg_area ;
-#endif
-#undef PREFIX
   }
 
   return(NO_ERROR) ;
@@ -10942,11 +10900,7 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
     for (i = 0 ; i < num_avgs ; i++)
     {
 #ifdef HAVE_OPENMP
-#ifndef BEVIN
-#pragma omp parallel for schedule(static,1)
-#else
 #pragma omp parallel for
-#endif
 #endif
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
@@ -11555,11 +11509,7 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
   }
 
 #ifdef HAVE_OPENMP
-#ifndef BEVIN
-#pragma omp parallel for reduction(+:total_area) schedule(static,1)
-#else
 #pragma omp parallel for reduction(+:total_area)
-#endif
 #endif
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
@@ -11664,11 +11614,7 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
 
   /* calculate the "area" of the vertices */
 #ifdef HAVE_OPENMP
-#ifndef BEVIN
-#pragma omp parallel for schedule(static,1)
-#else
 #pragma omp parallel for
-#endif
 #endif
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -20770,29 +20716,20 @@ mrisComputeCurvatureTerm(MRI_SURFACE *mris, double l_curv)
 static int
 mrisComputeConvexityTerm(MRI_SURFACE *mris, double l_convex)
 {
-#ifndef BEVIN
-  int     vno, n, m ;
-  VERTEX  *vertex, *vn ;
-  float   sx, sy, sz, nx, ny, nz, nc, x, y, z ;
-#else
   int     vno;
-#endif
 
   if (FZERO(l_convex))
   {
     return(NO_ERROR) ;
   }
 
-#ifdef BEVIN
   #pragma omp parallel for
-#endif
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-#ifdef BEVIN
     int     n, m ;
     VERTEX  *vertex, *vn ;
     float   sx, sy, sz, nx, ny, nz, nc, x, y, z ;
-#endif
+
     vertex = &mris->vertices[vno] ;
     if (vertex->ripflag)
     {
@@ -22851,115 +22788,7 @@ mrisComputeNormalizedSpringTerm(MRI_SURFACE *mris, double l_spring)
   return(NO_ERROR) ;
 }
 #else
-static int
-#ifdef BEVIN
-mrisComputeNormalizedSpringTerm_original(MRI_SURFACE *mris, double l_spring)
-#else
-mrisComputeNormalizedSpringTerm(MRI_SURFACE *mris, double l_spring)
-#endif
-{
-  int     vno, n, m ;
-  VERTEX  *v, *vn ;
-  float   sx, sy, sz, x, y, z, dist_scale, nx, ny, nz, dx, dy, dz ;
-  double  dot_total, num ;
-
-  if (FZERO(l_spring))
-  {
-    return(NO_ERROR) ;
-  }
-
-#if METRIC_SCALE
-  if (mris->patch)
-  {
-    dist_scale = 1.0 ;
-  }
-  else
-  {
-    dist_scale = sqrt(mris->orig_area / mris->total_area) ;
-  }
-#else
-  dist_scale = 1.0 ;
-#endif
-
-  dot_total = 0.0 ;
-  num = (double)MRISvalidVertices(mris) ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-    {
-      continue ;
-    }
-    if (vno == Gdiag_no)
-    {
-      DiagBreak() ;
-    }
-
-    x = v->x ;
-    y = v->y ;
-    z = v->z ;
-    nx = v->nx ;
-    ny = v->ny ;
-    nz = v->nz ;
-
-    sx = sy = sz = 0.0 ;
-    n=0;
-    for (m = 0 ; m < v->vnum ; m++)
-    {
-      vn = &mris->vertices[v->v[m]] ;
-      if (!vn->ripflag)
-      {
-        dx = vn->x - x;
-        dy = vn->y - y;
-        dz = vn->z - z;
-        sx += dx ;
-        sy += dy ;
-        sz += dz ;
-        n++;
-      }
-    }
-    if (n>0)
-    {
-      sx = dist_scale*sx/n;
-      sy = dist_scale*sy/n;
-      sz = dist_scale*sz/n;
-    }
-
-    dot_total += l_spring*(nx*sx + ny*sy + nz*sz) ;
-    v->dx += l_spring * sx ;
-    v->dy += l_spring * sy ;
-    v->dz += l_spring * sz ;
-    if (vno == Gdiag_no)
-      fprintf(stdout, "v %d spring norm term: (%2.3f, %2.3f, %2.3f)\n",
-              vno, l_spring*sx, l_spring*sy, l_spring*sz) ;
-  }
-  dot_total /= num ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-    {
-      continue ;
-    }
-    if (vno == Gdiag_no)
-    {
-      DiagBreak() ;
-    }
-    nx = v->nx ;
-    ny = v->ny ;
-    nz = v->nz ;
-
-    v->dx -= dot_total * nx ;
-    v->dy -= dot_total * ny ;
-    v->dz -= dot_total * nz ;
-  }
-
-  return(NO_ERROR) ;
-}
-
-#ifdef BEVIN
-static int
-mrisComputeNormalizedSpringTerm_BEVIN(MRI_SURFACE * const mris, double const l_spring)
+static int mrisComputeNormalizedSpringTerm(MRI_SURFACE * const mris, double const l_spring)
 {
 
   if (FZERO(l_spring))
@@ -23055,17 +22884,6 @@ mrisComputeNormalizedSpringTerm_BEVIN(MRI_SURFACE * const mris, double const l_s
 
   return(NO_ERROR) ;
 }
-
-static int
-mrisComputeNormalizedSpringTerm(MRI_SURFACE *mris, double l_spring)
-{
-#ifndef BEVIN
-    return mrisComputeNormalizedSpringTerm_original(mris, l_spring);
-#else
-    return mrisComputeNormalizedSpringTerm_BEVIN   (mris, l_spring);
-#endif
-}
-#endif
 
 #endif
 
@@ -30534,10 +30352,7 @@ double
 mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                             int use_stds)
 {
-  double   src, target, sse, delta, std ;
-  VERTEX   *v ;
-  int      vno, max_vno ;
-  float    x, y, z, l_corr, max_delta ;
+  float l_corr;
 
   l_corr = parms->l_corr + parms->l_pcorr ;  /* only one will be nonzero */
   if (FZERO(l_corr))
@@ -30545,11 +30360,12 @@ mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     return(0.0) ;
   }
 
-  max_delta = 0.0 ;
-  max_vno = -1 ;
-  for (sse = 0.0f, vno = 0 ; vno < mris->nvertices ; vno++)
+  int    vno;
+  double sse = 0.0;
+  #pragma omp parallel for reduction(+:sse)
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX *v = &mris->vertices[vno] ;
     if (vno == Gdiag_no)
     {
       DiagBreak() ;
@@ -30558,6 +30374,9 @@ mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     {
       continue ;
     }
+
+    double   src, target, delta, std ;
+    float    x, y, z;
 
     x = v->x ;
     y = v->y ;
@@ -30586,11 +30405,6 @@ mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     }
 #endif
     delta = (src - target) / std ;
-    if (fabs(delta) > max_delta)
-    {
-      max_delta = fabs(delta) ;
-      max_vno = vno ;
-    }
     if (!isfinite(target) || !isfinite(delta))
     {
       DiagBreak() ;
@@ -42531,14 +42345,8 @@ MRISuseCurvatureContrast(MRI_SURFACE *mris)
 static double
 mrisComputeSphereError(MRI_SURFACE *mris, double l_sphere, double r0)
 {
-#ifndef BEVIN
   int     vno ;
-  VERTEX  *v ;
-  double  del, sse, x, y, z, x0, y0, z0, r ;
-#else
-  int     vno ;
-  double  sse, x0, y0, z0, r ;
-#endif
+  double  sse, x0, y0, z0 ;
 
   if (FZERO(l_sphere))
   {
@@ -42558,15 +42366,12 @@ mrisComputeSphereError(MRI_SURFACE *mris, double l_sphere, double r0)
   //		/Bevin
   //
   sse = 0.0;
-#ifdef BEVIN
   #pragma omp parallel for reduction(+:sse)
-#endif
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-#ifdef BEVIN
     VERTEX  *v ;
     double  del, x, y, z, r ;
-#endif
+
     v = &mris->vertices[vno] ;
     if (v->ripflag)
     {
