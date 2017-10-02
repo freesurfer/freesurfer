@@ -330,9 +330,159 @@ MultiResolutionAtlasMesher
                      double stiffness ) const
 {
   // Construct the cells by running TetGen on the referencePosition point set
-  AtlasMesh::CellsContainer::Pointer  cells = this->GetCells( referencePosition );
+  AtlasMesh::CellsContainer::Pointer  cells = 0;
+  //for ( int cellGeneratingMeshNumber = m_NumberOfMeshes; cellGeneratingMeshNumber >= 0; cellGeneratingMeshNumber-- )
+  for ( int cellGeneratingMeshNumber = m_NumberOfMeshes; cellGeneratingMeshNumber >= m_NumberOfMeshes; cellGeneratingMeshNumber-- )
+    {
+      
+    // Retrieve the corresponding original point set
+    AtlasMesh::PointsContainer::Pointer  cellGeneratingPosition;
+    if ( cellGeneratingMeshNumber < static_cast< int >( m_NumberOfMeshes ) )
+      {
+      cellGeneratingPosition = positions[ cellGeneratingMeshNumber ];
+      std::cout << "Trying to generate cells from mesh number " << cellGeneratingMeshNumber << std::endl;
+      }
+    else
+      {
+      cellGeneratingPosition = referencePosition;
+      std::cout << "Trying to generate cells from referencePosition" << std::endl;
+      }
+
+    // Generate cells  
+    cells = this->GetCells( cellGeneratingPosition );
+  
+  
+    // Check that our tets are not negative volume.
+    // Do this by calculating the volume of the tetrahedron; this should be positive.
+    bool  problemDetected = false;
+    for ( int meshNumber = m_NumberOfMeshes; meshNumber >= 0; meshNumber-- )
+      {
+
+      // Retrieve the corresponding original point set
+      AtlasMesh::PointsContainer::Pointer  thisPosition;
+      if ( meshNumber < static_cast< int >( m_NumberOfMeshes ) )
+        {
+        thisPosition = positions[ meshNumber ];
+        }
+      else
+        {
+        thisPosition = referencePosition;
+        }
 
 
+      // Loop over all tetrahedra
+      for ( AtlasMesh::CellsContainer::ConstIterator  cellIt = cells->Begin();
+            cellIt != cells->End(); ++cellIt )
+        {
+        const AtlasMesh::CellType*  cell = cellIt.Value();
+
+        if ( cell->GetType() != AtlasMesh::CellType::TETRAHEDRON_CELL )
+          {
+          continue;
+          }
+
+        AtlasMesh::CellType::PointIdConstIterator  pit = cell->PointIdsBegin();
+        AtlasMesh::CellIdentifier  point0Id = *pit;
+        ++pit;
+        AtlasMesh::CellIdentifier  point1Id = *pit;
+        ++pit;
+        AtlasMesh::CellIdentifier  point2Id = *pit;
+        ++pit;
+        AtlasMesh::CellIdentifier  point3Id = *pit;
+
+
+        // In what follows, the matrix Lambda is the Jacobian of the transform from a standarized tetrahedron
+        // ( ( 0 0 0 )^T, ( 1 0 0 )^T, ( 0 1 0 )^T, ( 0 0 1 )^T ), which has volume 1/6, to the actual tetrahedron
+        const double x0 = thisPosition->ElementAt( point0Id )[ 0 ];
+        const double y0 = thisPosition->ElementAt( point0Id )[ 1 ];
+        const double z0 = thisPosition->ElementAt( point0Id )[ 2 ];
+
+        const double x1 = thisPosition->ElementAt( point1Id )[ 0 ];
+        const double y1 = thisPosition->ElementAt( point1Id )[ 1 ];
+        const double z1 = thisPosition->ElementAt( point1Id )[ 2 ];
+
+        const double x2 = thisPosition->ElementAt( point2Id )[ 0 ];
+        const double y2 = thisPosition->ElementAt( point2Id )[ 1 ];
+        const double z2 = thisPosition->ElementAt( point2Id )[ 2 ];
+
+        const double x3 = thisPosition->ElementAt( point3Id )[ 0 ];
+        const double y3 = thisPosition->ElementAt( point3Id )[ 1 ];
+        const double z3 = thisPosition->ElementAt( point3Id )[ 2 ];
+
+        const double  lambda11 = -x0 + x1;
+        const double  lambda21 = -y0 + y1;
+        const double  lambda31 = -z0 + z1;
+        const double  lambda12 = -x0 + x2;
+        const double  lambda22 = -y0 + y2;
+        const double  lambda32 = -z0 + z2;
+        const double  lambda13 = -x0 + x3;
+        const double  lambda23 = -y0 + y3;
+        const double  lambda33 = -z0 + z3;
+        const double  volume = ( lambda11 * ( lambda22*lambda33 - lambda32*lambda23 )
+                                - lambda12 * ( lambda21*lambda33 - lambda31*lambda23 )
+                                + lambda13 * ( lambda21*lambda32 - lambda31*lambda22 ) ) / 6;
+        if ( volume <= 0 ) 
+          {
+          std::cout << "****************************************" << std::endl;
+          std::cout << "****************************************" << std::endl;
+          std::cout << "Ouch: Upsampling has generated a tetrahedron with negative volume in one of the meshes! " << std::endl;
+          if ( meshNumber < static_cast< int >( m_NumberOfMeshes ) )
+            {
+            std::cout << "         meshNumber: " << meshNumber << std::endl;
+            }
+          else
+            {
+            std::cout << "      referenceMesh " << std::endl;
+            }
+          std::cout << "      tetrahedronId: " << cellIt.Index() << std::endl;
+          std::cout << "               p0Id: " << point0Id << std::endl;
+          std::cout << "               p1Id: " << point1Id << std::endl;
+          std::cout << "               p2Id: " << point2Id << std::endl;
+          std::cout << "               p3Id: " << point3Id << std::endl;
+          std::cout << "                 p0: " << thisPosition->ElementAt( point0Id ) << std::endl;
+          std::cout << "                 p1: " << thisPosition->ElementAt( point1Id ) << std::endl;
+          std::cout << "                 p2: " << thisPosition->ElementAt( point2Id ) << std::endl;
+          std::cout << "                 p3: " << thisPosition->ElementAt( point3Id ) << std::endl;
+          std::cout << "             volume: " << volume << std::endl;
+          std::cout << "****************************************" << std::endl;
+          std::cout << "****************************************" << std::endl;
+
+          problemDetected = true;
+          break;
+          }
+
+        } // End loop over all tetrahedra
+
+      if ( problemDetected )
+        {
+        break;  
+        }
+      } // End loop over all meshes
+
+    if ( !problemDetected )
+      {
+      // We've got cells that everyone is happy with; stop looking
+      std::cout << "Got good cells! :-)" << std::endl;
+      break;  
+      }
+    else
+      {
+      // The cells we got are useless - forget about them
+      cells = 0;
+      }
+      
+    } // End loop over cell generating mesh candidates
+
+  //
+  if ( !cells )
+    {
+    std::cout << "Couldn't figure out how to make cells such that all meshes are valid -- giving up" << std::endl;
+    m_Current->Write( "debug_Current.txt" );
+    exit( -1 );
+    }
+  
+  
+  
   // Also get point parameters. Assign flat alphas as a starting point. Vertices lying on the border
   // can not move freely and belong to
   // first class
@@ -397,7 +547,7 @@ MultiResolutionAtlasMesher
   meshCollection->SetK( stiffness );
 
 
-
+#if 0
     {
     //meshCollection->Write( "debug.txt" );
     //std::cout << "Enter any character to continue" << std::endl;
@@ -508,9 +658,7 @@ MultiResolutionAtlasMesher
 
 
     }
-
-
-
+#endif
 
 
   return meshCollection;

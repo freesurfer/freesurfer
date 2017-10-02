@@ -2330,7 +2330,7 @@ AtlasMeshCollection
       {
       if ( it.Value()[ i ] > domainSize[ i ] )
         {
-        domainSize[ i ] = static_cast< int >( it.Value()[ i ] );
+        domainSize[ i ] = static_cast< int >( it.Value()[ i ] + 0.5 );
         }
       }
     }

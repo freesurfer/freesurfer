@@ -43,7 +43,9 @@
 
 extern const char* Progname;
 
+#ifndef SQR	// BEVIN - the header files might include the one that defines SQR
 #define SQR(x) ((x)*(x))
+#endif
 
 #define MAXFACES    3000000
 #define MAXVERTICES 1500000

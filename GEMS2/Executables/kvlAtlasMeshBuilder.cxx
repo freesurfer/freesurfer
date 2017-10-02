@@ -744,7 +744,11 @@ AtlasMeshBuilder
                                 int  threadId )
 {
 
+#if 0  
   mutex.Lock(); 
+#else
+  AtlasMeshBuilderHelper  helper( mutex, pointOccupancies );
+#endif
   //std::ostringstream  descriptionStream;
   //descriptionStream << "    [THREAD " << threadId << "] locked mutex because trying to find edge to analyze";
   //mutex.DescriptiveLock( descriptionStream.str() );
@@ -752,8 +756,10 @@ AtlasMeshBuilder
   // Check if there is anything left to do
   if ( edges.size() == 0 )
     {
+#if 0      
     mutex.Unlock();
     //mutex.DescriptiveUnlock();
+#endif    
     return false;
     }
 
@@ -823,12 +829,16 @@ AtlasMeshBuilder
       std::ostringstream  stuckStream;
       stuckStream << "threadsNeverReturning";
       m_Current->Write( stuckStream.str().c_str() );
-      //exit(-1);
-      itkExceptionMacro( << "Error: threads never returning" );
+      exit(-1);
+      //itkExceptionMacro( << "Error: threads never returning" );
       }
 
+#if 0      
     mutex.Unlock();
     //mutex.DescriptiveUnlock();
+#else
+    helper.Unlock();
+#endif
     usleep( rand() % 1000000 );
     return true;
     }
@@ -871,6 +881,7 @@ AtlasMeshBuilder
     affectedPoints.push_back( refPosIt.Index() );
     }
 
+#if 0    
   // Indicate that we are working on them
   for ( std::vector< AtlasMesh::PointIdentifier >::const_iterator  it = affectedPoints.begin();
         it != affectedPoints.end(); ++it )
@@ -881,7 +892,11 @@ AtlasMeshBuilder
 
   mutex.Unlock();
   //mutex.DescriptiveUnlock();
-
+#else
+  helper.SetAffectedPoints( affectedPoints );
+  helper.Unlock();
+#endif
+  
   // itk::TimeProbe  timeProbe;
   // timeProbe.Start();
 
@@ -965,18 +980,22 @@ AtlasMeshBuilder
 
   if ( minTotalCostIndex == -1 )
     {
+#if 0      
     mutex.Lock();
-
+#else
+    helper.Lock();
+#endif
     // descriptionStream << "    [THREAD " << threadId << "] locked mutex because impossible configuration encountered";
     // std::ostringstream  descriptionStream;
     // mutex.DescriptiveLock( descriptionStream.str() );
 
     std::cout << "    [THREAD " << threadId << "] " << "Impossible configuration encountered at eget with id " << edgeId << std::endl;
-    std::ostringstream  impossibleStream;
-    impossibleStream << "impossible_" << edgeId;
-    m_Current->Write( impossibleStream.str().c_str() );
+    //std::ostringstream  impossibleStream;
+    //impossibleStream << "impossible_" << edgeId;
+    //m_Current->Write( impossibleStream.str().c_str() );
     //minTotalCostIndex = 0;
 
+#if 0    
     // Now "un-protect" the points we flagged as being worked on
     for ( std::vector< AtlasMesh::PointIdentifier >::const_iterator  it = affectedPoints.begin();
           it != affectedPoints.end(); ++it )
@@ -987,16 +1006,21 @@ AtlasMeshBuilder
 
     mutex.Unlock();
     //mutex.DescriptiveUnlock();
-
+#endif
+    
     return true;
     }
 
 
+#if 0    
   mutex.Lock();
   // std::ostringstream  descriptionStream;
   // descriptionStream << "    [THREAD " << threadId << "] locked mutex because applying best move to the global mesh";
   // mutex.DescriptiveLock( descriptionStream.str() );
-
+#else
+  helper.Lock();
+#endif
+  
   // Do the best move
   if ( minTotalCostIndex == 0 )
     {
@@ -1167,6 +1191,7 @@ AtlasMeshBuilder
     } // End deciding what the best operation is for this edge
 
 
+#if 0    
   // Now "un-protect" the points we flagged as being worked on
   for ( std::vector< AtlasMesh::PointIdentifier >::const_iterator  it = affectedPoints.begin();
         it != affectedPoints.end(); ++it )
@@ -1182,7 +1207,8 @@ AtlasMeshBuilder
   
   mutex.Unlock();
   //mutex.DescriptiveUnlock();
-
+#endif
+  
   return true;
 
 }
@@ -1263,10 +1289,22 @@ AtlasMeshBuilder
                 <<  numberOfEdgesAnalyzed << " edges so far" << std::endl;
       }           
 
-    if ( !str->m_Builder->LoadBalancedAnalyzeEdgeFast( str->m_Edges, str->m_PointOccupancies, threadId ) )
+    try
       {
-      std::cout << "Nothing left to do for thread " << threadId << std::endl;
-      break;
+      if ( !str->m_Builder->LoadBalancedAnalyzeEdgeFast( str->m_Edges, str->m_PointOccupancies, threadId ) )
+        {
+        std::cout << "Nothing left to do for thread " << threadId << std::endl;
+        break;
+        }
+      }
+    catch( itk::ExceptionObject& e )
+      {
+      // Apparently somewhere an exception was thrown. We'll just catch it, display what the problem was,
+      // and move on
+      std::cout << "Exception === Exception === Exception === Exception === Exception === Exception" << std::endl;  
+      std::cout << "   An exception was thrown in thread " << threadId << std::endl;
+      std::cout << "     " << e << std::endl;
+      std::cout << "Exception === Exception === Exception === Exception === Exception === Exception" << std::endl;  
       }
 
     numberOfEdgesAnalyzed++;
