@@ -3029,7 +3029,7 @@ int L2SaddPoint(LABEL2SURF *l2s, double col, double row, double slice, int Point
       lv->x = l2s->surfs[nmin]->vertices[vtxno].x;
       lv->y = l2s->surfs[nmin]->vertices[vtxno].y;
       lv->z = l2s->surfs[nmin]->vertices[vtxno].z;
-      lv->stat = dminmin;
+      lv->stat = 0.0;
       // Incr the number of points in the label
       label->n_points++;
       return(1);
