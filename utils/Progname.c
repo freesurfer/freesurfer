@@ -1,1 +1,1 @@
-char *Progname = "no name" ;
+char *Progname = "no name";

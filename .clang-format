@@ -1,0 +1,42 @@
+# Base style on something sane, then customize. WebKit looks like a good choice..
+BasedOnStyle: Google
+
+# readability
+#AlignConsecutiveAssignments: true
+#AlignConsecutiveDeclarations: true
+AlignTrailingComments: true
+AlignOperands: true
+
+# Align arguments after round, angle and square brackets
+AlignAfterOpenBracket: Align
+
+# Newline all arguments and parameters consistently when not fitting onto a single line
+BinPackArguments: false
+BinPackParameters: false
+
+# Use customized breaks for braces to conform with old FS coding patterns
+#BreakBeforeBraces: Custom
+#BraceWrapping:
+#  AfterClass: true
+#  AfterControlStatement: true
+#  AfterEnum: true
+#  AfterFunction: true
+  # AfterNamespace:  true
+  # AfterObjCDeclaration: true
+  # AfterStruct: true
+  # AfterUnion: true
+#  BeforeCatch: true
+#  BeforeElse: true
+#  IndentBraces: false
+
+# Enforce indentation, width and use of tabs/vs spaces
+IndentWidth: 2
+ColumnLimit: 120 # this is pretty conservative these days 
+UseTab: Never
+
+# Force pointers to the type for C++.
+DerivePointerAlignment: false
+PointerAlignment: Right
+
+# Ensure nested templates will compile by inserting spaces
+SpacesInAngles: true

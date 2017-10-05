@@ -5,7 +5,7 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
  * CVS Revision Info:
  *    $Author: nicks $
  *    $Date: 2011/03/02 00:04:55 $
@@ -22,7 +22,6 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-
 
 /*******************************************************************
  * Name:    rescale.c
@@ -43,116 +42,90 @@
  *             b.  The output image does not have to be float
  *                 (as in linscale).
  ******************************************************************/
-#include <hips.h>
-#include "minmaxrc.h"
 #include "rescale.h"
+#include <hips.h>
 #include "macros.h"
+#include "minmaxrc.h"
 
 /* y = Offset + Slope * x, y=New, x=Old  ***/
-static int h_GetScaleParams(float OldMin,  float OldMax,
-                            float NewMin,  float NewMax,
-                            float *Offset, float *Slope)
-{
+static int h_GetScaleParams(float OldMin, float OldMax, float NewMin, float NewMax, float *Offset, float *Slope) {
   float Del;
-  int Warning=1;
+  int Warning = 1;
 
   Del = OldMax - OldMin;
-  if (Del < .00000001F)
-  {
+  if (Del < .00000001F) {
     *Offset = 0.0F;
-    *Slope  = 1.0F;
+    *Slope = 1.0F;
     Warning = 1;
-  }
-  else
-  {
-    *Slope = (NewMax - NewMin)/Del;
+  } else {
+    *Slope = (NewMax - NewMin) / Del;
     *Offset = (NewMin - *Slope * OldMin);
     Warning = 0;
   }
 
-  return(Warning);
+  return (Warning);
 }
 /*************************************************************/
-int h_rescale(struct header *phdSrc,
-              float NewMin, float NewMax,
-              int MinPoint[2], int MaxPoint[2],
-              struct header *phdDst)
-{
-  Pixelval Min,Max;
+int h_rescale(
+    struct header *phdSrc, float NewMin, float NewMax, int MinPoint[2], int MaxPoint[2], struct header *phdDst) {
+  Pixelval Min, Max;
   float Offset, Slope;
   int err;
 
   /** find the present min and max and where they are **/
   err = h_minmaxrc(phdSrc, &Min, MinPoint, &Max, MaxPoint);
-  if (err) return(err);
+  if (err) return (err);
 
   /****** switch over the input format *************/
-  switch (phdSrc->pixel_format)
-  {
-
-  case PFFLOAT:
-    /* for float input, switch over the output format */
-    switch (phdDst->pixel_format)
-    {
-
-    case PFBYTE:
-      h_GetScaleParams(Min.v_float, Max.v_float,
-                       NewMin, NewMax, &Offset, &Slope);
-      return(h_rescale_fb(phdSrc, Slope, Offset, phdDst));
-      break;
-
+  switch (phdSrc->pixel_format) {
     case PFFLOAT:
-      h_GetScaleParams(Min.v_float, Max.v_float,
-                       NewMin, NewMax, &Offset, &Slope);
-      return(h_rescale_ff(phdSrc, Slope, Offset, phdDst));
+      /* for float input, switch over the output format */
+      switch (phdDst->pixel_format) {
+        case PFBYTE:
+          h_GetScaleParams(Min.v_float, Max.v_float, NewMin, NewMax, &Offset, &Slope);
+          return (h_rescale_fb(phdSrc, Slope, Offset, phdDst));
+          break;
+
+        case PFFLOAT:
+          h_GetScaleParams(Min.v_float, Max.v_float, NewMin, NewMax, &Offset, &Slope);
+          return (h_rescale_ff(phdSrc, Slope, Offset, phdDst));
+          break;
+
+        default:
+          return (perr(HE_FMTSUBR, "h_rescale: Destination", hformatname(phdDst->pixel_format)));
+      } /* end switch over destination pixel format for float input*/
       break;
 
     default:
-      return(perr(HE_FMTSUBR,"h_rescale: Destination",
-                  hformatname(phdDst->pixel_format)));
-    }/* end switch over destination pixel format for float input*/
-    break;
-
-  default:
-    return(perr(HE_FMTSUBR,"h_rescale: Source",
-                hformatname(phdSrc->pixel_format)));
-  }/********** end switch over source pixel format *************/
-  return(HIPS_OK) ;
+      return (perr(HE_FMTSUBR, "h_rescale: Source", hformatname(phdSrc->pixel_format)));
+  } /********** end switch over source pixel format *************/
+  return (HIPS_OK);
 }
 
 /********************************************************/
-int h_rescale_fb(struct header *phdSrc,
-                 float Slope, float Offset,
-                 struct header *phdDst)
-{
+int h_rescale_fb(struct header *phdSrc, float Slope, float Offset, struct header *phdDst) {
   register INT32B n;
   register float *pSrc;
-  register byte  *pDst;
+  register byte *pDst;
 
-  pSrc = (float *) phdSrc->image;
-  pDst = (byte  *) phdDst->image;
+  pSrc = (float *)phdSrc->image;
+  pDst = (byte *)phdDst->image;
 
-  for (n=0;n<phdSrc->numpix;n++)
-    *pDst++ = (byte)( *pSrc++ * Slope + Offset);
+  for (n = 0; n < phdSrc->numpix; n++) *pDst++ = (byte)(*pSrc++ * Slope + Offset);
 
-  return(HIPS_OK);
+  return (HIPS_OK);
 }
 
 /********************************************************/
-int h_rescale_ff(struct header *phdSrc,
-                 float Slope, float Offset,
-                 struct header *phdDst)
-{
+int h_rescale_ff(struct header *phdSrc, float Slope, float Offset, struct header *phdDst) {
   register INT32B n;
   register float *pSrc;
-  register float  *pDst;
+  register float *pDst;
 
-  pSrc = (float *) phdSrc->image;
-  pDst = (float  *) phdDst->image;
+  pSrc = (float *)phdSrc->image;
+  pDst = (float *)phdDst->image;
 
-  for (n=0;n<phdSrc->numpix;n++)
-    *pDst++ = (float)( *pSrc++ * Slope + Offset);
+  for (n = 0; n < phdSrc->numpix; n++) *pDst++ = (float)(*pSrc++ * Slope + Offset);
 
-  return(HIPS_OK);
+  return (HIPS_OK);
 }
-

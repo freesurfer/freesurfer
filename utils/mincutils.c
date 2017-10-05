@@ -5,7 +5,7 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
  * CVS Revision Info:
  *    $Author: nicks $
  *    $Date: 2011/03/02 00:04:45 $
@@ -23,51 +23,41 @@
  *
  */
 
-
+#include "mincutils.h"
 #include <stdio.h>
 #include "mri.h"
-#include "mincutils.h"
 
 /*-----------------------------------------------------*/
-int DumpMINCAxes(FILE *fp, MINCAXES *MA)
-{
+int DumpMINCAxes(FILE *fp, MINCAXES *MA) {
   int i;
 
-  fprintf(fp,"Storage Order: %d %d %d\n",
+  fprintf(fp,
+          "Storage Order: %d %d %d\n",
           MA->VoxAxisStorageOrder[0],
           MA->VoxAxisStorageOrder[1],
           MA->VoxAxisStorageOrder[2]);
-  fprintf(fp,"Volume Voxel Center: %g %g %g\n",
-          MA->VolCenterVox[0],
-          MA->VolCenterVox[1],
-          MA->VolCenterVox[2]);
-  fprintf(fp,"Volume World Center: %g %g %g\n",
-          MA->VolCenterWorld[0],
-          MA->VolCenterWorld[1],
-          MA->VolCenterWorld[2]);
+  fprintf(fp, "Volume Voxel Center: %g %g %g\n", MA->VolCenterVox[0], MA->VolCenterVox[1], MA->VolCenterVox[2]);
+  fprintf(fp, "Volume World Center: %g %g %g\n", MA->VolCenterWorld[0], MA->VolCenterWorld[1], MA->VolCenterWorld[2]);
 
-  for (i=0;i<3;i++)
-  {
-    fprintf(fp,"VoxAxisName:  %s ------ \n",MA->Axis[i].VoxAxisName);
-    fprintf(fp,"VoxAxisId:    %d\n",MA->Axis[i].VoxAxisId);
-    fprintf(fp,"MINCAxisId:   %d\n",MA->Axis[i].MINCAxisId);
-    fprintf(fp,"MINCAxisName: %s\n",MA->Axis[i].MINCAxisName);
-    fprintf(fp,"Length:       %d\n",MA->Axis[i].Len);
-    fprintf(fp,"Resolution:   %g\n",MA->Axis[i].Res);
-    fprintf(fp,"DC:           %g %g %g \n",MA->Axis[i].DirCos[0],
-            MA->Axis[i].DirCos[1],MA->Axis[i].DirCos[2]);
+  for (i = 0; i < 3; i++) {
+    fprintf(fp, "VoxAxisName:  %s ------ \n", MA->Axis[i].VoxAxisName);
+    fprintf(fp, "VoxAxisId:    %d\n", MA->Axis[i].VoxAxisId);
+    fprintf(fp, "MINCAxisId:   %d\n", MA->Axis[i].MINCAxisId);
+    fprintf(fp, "MINCAxisName: %s\n", MA->Axis[i].MINCAxisName);
+    fprintf(fp, "Length:       %d\n", MA->Axis[i].Len);
+    fprintf(fp, "Resolution:   %g\n", MA->Axis[i].Res);
+    fprintf(fp, "DC:           %g %g %g \n", MA->Axis[i].DirCos[0], MA->Axis[i].DirCos[1], MA->Axis[i].DirCos[2]);
   }
 
-  return(0);
+  return (0);
 }
 
 /*-----------------------------------------------------*/
-MINCAXES *ConfigMINCAxes(MRI *mri)
-{
+MINCAXES *ConfigMINCAxes(MRI *mri) {
   MINCAXES *MA;
   int va;
 
-  MA = (MINCAXES *) calloc(1,sizeof(MINCAXES));
+  MA = (MINCAXES *)calloc(1, sizeof(MINCAXES));
 
   /* column voxel axis */
   va = 0;
@@ -109,16 +99,15 @@ MINCAXES *ConfigMINCAxes(MRI *mri)
   NameMINCAxes(MA);
   MINCAxesStorageOrder(MA);
 
-  return(MA);
+  return (MA);
 }
 
 /*-----------------------------------------------------*/
-int NameMINCAxes(MINCAXES *MA)
-{
+int NameMINCAxes(MINCAXES *MA) {
   int xspacehit, yspacehit, zspacehit;
   int xspaceid, yspaceid, zspaceid;
   char *space[3];
-  int   colspaceid=0, rowspaceid=0, slcspaceid=0;
+  int colspaceid = 0, rowspaceid = 0, slcspaceid = 0;
   float col_dc_x, col_dc_y, col_dc_z;
   float row_dc_x, row_dc_y, row_dc_z;
   float slc_dc_x, slc_dc_y, slc_dc_z;
@@ -145,102 +134,84 @@ int NameMINCAxes(MINCAXES *MA)
   zspacehit = 0;
 
   /* Name the Column Axis */
-  if (col_dc_x >= row_dc_x && col_dc_x >= slc_dc_x)
-  {
+  if (col_dc_x >= row_dc_x && col_dc_x >= slc_dc_x) {
     colspaceid = xspaceid;
-    MA->VolCenterVox[0] = (MA->Axis[0].Len-1)/2;
+    MA->VolCenterVox[0] = (MA->Axis[0].Len - 1) / 2;
     xspacehit = 1;
-  }
-  else if (col_dc_y >= row_dc_y && col_dc_y >= slc_dc_y)
-  {
+  } else if (col_dc_y >= row_dc_y && col_dc_y >= slc_dc_y) {
     colspaceid = yspaceid;
-    MA->VolCenterVox[1] = (MA->Axis[0].Len-1)/2;
+    MA->VolCenterVox[1] = (MA->Axis[0].Len - 1) / 2;
     yspacehit = 1;
-  }
-  else if (col_dc_z >= row_dc_z && col_dc_z >= slc_dc_z)
-  {
+  } else if (col_dc_z >= row_dc_z && col_dc_z >= slc_dc_z) {
     colspaceid = zspaceid;
-    MA->VolCenterVox[2] = (MA->Axis[0].Len-1)/2;
+    MA->VolCenterVox[2] = (MA->Axis[0].Len - 1) / 2;
     zspacehit = 1;
   }
 
   /* Name the Row Axis */
-  if (!xspacehit && row_dc_x >= slc_dc_x)
-  {
+  if (!xspacehit && row_dc_x >= slc_dc_x) {
     rowspaceid = xspaceid;
-    MA->VolCenterVox[0] = (MA->Axis[1].Len-1)/2;
+    MA->VolCenterVox[0] = (MA->Axis[1].Len - 1) / 2;
     xspacehit = 1;
-  }
-  else if (!yspacehit && row_dc_y >= slc_dc_y)
-  {
+  } else if (!yspacehit && row_dc_y >= slc_dc_y) {
     rowspaceid = yspaceid;
-    MA->VolCenterVox[1] = (MA->Axis[1].Len-1)/2;
+    MA->VolCenterVox[1] = (MA->Axis[1].Len - 1) / 2;
     yspacehit = 1;
-  }
-  else if (!zspacehit && row_dc_z >= slc_dc_z)
-  {
+  } else if (!zspacehit && row_dc_z >= slc_dc_z) {
     rowspaceid = zspaceid;
-    MA->VolCenterVox[2] = (MA->Axis[1].Len-1)/2;
+    MA->VolCenterVox[2] = (MA->Axis[1].Len - 1) / 2;
     zspacehit = 1;
   }
 
   /* Name the Slice Axis */
-  if (!xspacehit)
-  {
+  if (!xspacehit) {
     slcspaceid = xspaceid;
-    MA->VolCenterVox[0] = (MA->Axis[2].Len-1)/2;
+    MA->VolCenterVox[0] = (MA->Axis[2].Len - 1) / 2;
     xspacehit = 1;
-  }
-  else if (!yspacehit)
-  {
+  } else if (!yspacehit) {
     slcspaceid = yspaceid;
-    MA->VolCenterVox[1] = (MA->Axis[2].Len-1)/2;
+    MA->VolCenterVox[1] = (MA->Axis[2].Len - 1) / 2;
     yspacehit = 1;
   }
-  if (!zspacehit)
-  {
+  if (!zspacehit) {
     slcspaceid = zspaceid;
-    MA->VolCenterVox[2] = (MA->Axis[2].Len-1)/2;
+    MA->VolCenterVox[2] = (MA->Axis[2].Len - 1) / 2;
     zspacehit = 1;
   }
 
   /* Check for errors */
   err = 0;
-  if (!xspacehit)
-  {
+  if (!xspacehit) {
     printf("ERROR: could not assign xspace\n");
     err = 1;
   }
-  if (!yspacehit)
-  {
+  if (!yspacehit) {
     printf("ERROR: could not assign yspace\n");
     err = 1;
   }
-  if (!zspacehit)
-  {
+  if (!zspacehit) {
     printf("ERROR: could not assign zspace\n");
     err = 1;
   }
-  if (err) return(1);
+  if (err) return (1);
 
   /* Make final assignments */
   space[xspaceid] = MIxspace;
   space[yspaceid] = MIyspace;
   space[zspaceid] = MIzspace;
 
-  MA->Axis[0].MINCAxisId   = colspaceid;
-  MA->Axis[1].MINCAxisId   = rowspaceid;
-  MA->Axis[2].MINCAxisId   = slcspaceid;
+  MA->Axis[0].MINCAxisId = colspaceid;
+  MA->Axis[1].MINCAxisId = rowspaceid;
+  MA->Axis[2].MINCAxisId = slcspaceid;
 
   MA->Axis[0].MINCAxisName = space[colspaceid];
   MA->Axis[1].MINCAxisName = space[rowspaceid];
   MA->Axis[2].MINCAxisName = space[slcspaceid];
 
-  return(0);
+  return (0);
 }
 /*-----------------------------------------------------*/
-int MINCAxesStorageOrder(MINCAXES *MA)
-{
+int MINCAxesStorageOrder(MINCAXES *MA) {
   int ncols, nrows, nslcs;
   int col, row, slc;
 
@@ -252,50 +223,34 @@ int MINCAxesStorageOrder(MINCAXES *MA)
   nrows = MA->Axis[1].Len;
   nslcs = MA->Axis[2].Len;
 
-  if (ncols >= nrows && ncols >= nslcs)
-  {
+  if (ncols >= nrows && ncols >= nslcs) {
     MA->VoxAxisStorageOrder[0] = col;
-    if (nrows >= nslcs)
-    {
+    if (nrows >= nslcs) {
       MA->VoxAxisStorageOrder[1] = row;
       MA->VoxAxisStorageOrder[2] = slc;
-    }
-    else
-    {
+    } else {
       MA->VoxAxisStorageOrder[1] = slc;
       MA->VoxAxisStorageOrder[2] = row;
     }
-  }
-  else if (nrows >= nslcs)
-  {
+  } else if (nrows >= nslcs) {
     MA->VoxAxisStorageOrder[0] = row;
-    if (ncols >= nslcs)
-    {
+    if (ncols >= nslcs) {
       MA->VoxAxisStorageOrder[1] = col;
       MA->VoxAxisStorageOrder[2] = slc;
-    }
-    else
-    {
+    } else {
       MA->VoxAxisStorageOrder[1] = slc;
       MA->VoxAxisStorageOrder[2] = col;
     }
-  }
-  else
-  {
+  } else {
     MA->VoxAxisStorageOrder[0] = slc;
-    if (ncols >= nrows)
-    {
+    if (ncols >= nrows) {
       MA->VoxAxisStorageOrder[1] = col;
       MA->VoxAxisStorageOrder[2] = row;
-    }
-    else
-    {
+    } else {
       MA->VoxAxisStorageOrder[1] = row;
       MA->VoxAxisStorageOrder[2] = col;
     }
   }
 
-  return(0);
+  return (0);
 }
-
-

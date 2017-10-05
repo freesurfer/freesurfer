@@ -5,7 +5,7 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
  * CVS Revision Info:
  *    $Author: nicks $
  *    $Date: 2011/03/02 00:04:41 $
@@ -23,68 +23,56 @@
  *
  */
 
-
 /* MRI I/O - routines for reading and writing large files fast */
 /* 2/1/91 - AD */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <string.h>
 #include "MRIio_old.h"
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "proto.h"
 
-static void MGHprint_error(char *str) ;
+static void MGHprint_error(char *str);
 
-static void
-MGHprint_error(char *str)
-{
-  printf("%s",str);
+static void MGHprint_error(char *str) {
+  printf("%s", str);
   exit(0);
 }
 
-char *
-lmalloc(unsigned long size)
-{
+char *lmalloc(unsigned long size) {
   char *p;
 
   p = malloc(size);
-  if (p==NULL) MGHprint_error("Cannot malloc()\n");
+  if (p == NULL) MGHprint_error("Cannot malloc()\n");
   return p;
 }
 
-char *
-lcalloc(size_t nmemb,size_t size)
-{
+char *lcalloc(size_t nmemb, size_t size) {
   char *p;
 
-  p = calloc(nmemb,size);
-  if (p==NULL) MGHprint_error("Cannot calloc()\n");
+  p = calloc(nmemb, size);
+  if (p == NULL) MGHprint_error("Cannot calloc()\n");
   return p;
 }
 
-void
-file_name(char *fpref, char *fname, int num, char *form)
-{
+void file_name(char *fpref, char *fname, int num, char *form) {
   char ext[10];
 
-  sprintf(ext,form,num);
-  strcpy(fname,fpref);
-  strcat(fname,ext);
+  sprintf(ext, form, num);
+  strcpy(fname, fpref);
+  strcat(fname, ext);
 }
 
-void
-buffer_to_image(unsigned char *buf, unsigned char **im,int ysize,int xsize)
-{
-  int i,j;
+void buffer_to_image(unsigned char *buf, unsigned char **im, int ysize, int xsize) {
+  int i, j;
   unsigned long k;
   float sum;
 
-  k=0;
+  k = 0;
   sum = 0;
-  for (i=0;i<ysize;i++)
-    for (j=0;j<xsize;j++)
-    {
+  for (i = 0; i < ysize; i++)
+    for (j = 0; j < xsize; j++) {
       im[i][j] = buf[k++];
       sum += im[i][j];
     }
@@ -93,14 +81,11 @@ buffer_to_image(unsigned char *buf, unsigned char **im,int ysize,int xsize)
   */
 }
 
-void
-image_to_buffer(unsigned char **im, unsigned char *buf,int ysize,int xsize)
-{
-  int i,j;
+void image_to_buffer(unsigned char **im, unsigned char *buf, int ysize, int xsize) {
+  int i, j;
   unsigned long k;
 
-  k=0;
-  for (i=0;i<ysize;i++)
-    for (j=0;j<xsize;j++)
-      buf[k++] = im[i][j];
+  k = 0;
+  for (i = 0; i < ysize; i++)
+    for (j = 0; j < xsize; j++) buf[k++] = im[i][j];
 }

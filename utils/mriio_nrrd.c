@@ -24,27 +24,24 @@
  */
 
 #include <ctype.h>
-#include <unistd.h>
+#include <dirent.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <memory.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <ctype.h>
-#include <dirent.h>
 #include <time.h>
-#include <errno.h>
-#include <fcntl.h>
+#include <unistd.h>
 
-#include "utils.h"
-#include "error.h"
-#include "proto.h"
-#include "mri.h"
 #include "NrrdIO/NrrdIO.h"
+#include "error.h"
+#include "mri.h"
+#include "proto.h"
+#include "utils.h"
 extern MRI *mriNrrdReadDiffusion(char *fname, int read_volume);
 
-MRI *mriNrrdRead(char *fname, int read_volume)
-{
-  if (!nrrdSanity())
-  {
+MRI *mriNrrdRead(char *fname, int read_volume) {
+  if (!nrrdSanity()) {
     fprintf(stderr, "\n");
     fprintf(stderr, "!!! nrrd sanity check FAILED: fix and re-compile\n");
     char *err = biffGet(NRRD);
@@ -58,8 +55,7 @@ MRI *mriNrrdRead(char *fname, int read_volume)
   NrrdIoState *nio = nrrdIoStateNew();
 
   /* read in the nrrd from file */
-  if (nrrdLoad(nin, fname, nio))
-  {
+  if (nrrdLoad(nin, fname, nio)) {
     char *err = biffGetDone(NRRD);
     fprintf(stderr, "mriNrrdRead: trouble reading \"%s\":\n%s", fname, err);
     free(err);
@@ -68,14 +64,16 @@ MRI *mriNrrdRead(char *fname, int read_volume)
 
   /* if it has more than 3 dimensions, then maybe its diffusion data that
      the ITK reader might understand (assuming we're building with ITK)*/
-  if ( ((nin->dim != 3) && (nin->dim != 4)) || (nin->spaceDim != 3) )
-  {
+  if (((nin->dim != 3) && (nin->dim != 4)) || (nin->spaceDim != 3)) {
     /* say something about the array */
     printf("mriNrrdRead: \"%s\" is a %d-dimensional nrrd of type %d (%s)\n",
-           fname, nin->dim, nin->type,
+           fname,
+           nin->dim,
+           nin->type,
            airEnumStr(nrrdType, nin->type));
     printf("mriNrrdRead: the array contains %d elements, %d bytes in size\n",
-           (int)nrrdElementNumber(nin), (int)nrrdElementSize(nin));
+           (int)nrrdElementNumber(nin),
+           (int)nrrdElementSize(nin));
     if (nin->content) printf("mriNrrdRead: content: %s\n", nin->content);
 
     return mriNrrdReadDiffusion(fname, read_volume);
@@ -83,11 +81,9 @@ MRI *mriNrrdRead(char *fname, int read_volume)
 
   /* print out the key/value pairs present */
   int kvn = nrrdKeyValueSize(nin);
-  if (kvn)
-  {
+  if (kvn) {
     int kvi;
-    for (kvi=0; kvi<kvn; kvi++)
-    {
+    for (kvi = 0; kvi < kvn; kvi++) {
       char *val, *key;
       nrrdKeyValueIndex(nin, &key, &val, kvi);
       printf("mriNrrdRead: key:value %d = %s:%s\n", kvi, key, val);
@@ -99,106 +95,91 @@ MRI *mriNrrdRead(char *fname, int read_volume)
 
   // Get the component type.
   int type = MRI_UCHAR;
-  switch (nin->type)
-  {
-  case nrrdTypeChar:
-  case nrrdTypeUChar: type = MRI_UCHAR; break;
-  case nrrdTypeShort:
-  case nrrdTypeUShort: type = MRI_SHORT; break;
-  case nrrdTypeInt:
-  case nrrdTypeUInt: type = MRI_INT; break;
-  case nrrdTypeLLong:
-  case nrrdTypeULLong: type = MRI_LONG; break;
-  case nrrdTypeFloat: type = MRI_FLOAT; break;
-  default:
-    printf("mriNrrdRead: Unsupported type: %d (%s)\n",
-           nin->type, airEnumStr(nrrdType, nin->type));
-    return NULL;
+  switch (nin->type) {
+    case nrrdTypeChar:
+    case nrrdTypeUChar:
+      type = MRI_UCHAR;
+      break;
+    case nrrdTypeShort:
+    case nrrdTypeUShort:
+      type = MRI_SHORT;
+      break;
+    case nrrdTypeInt:
+    case nrrdTypeUInt:
+      type = MRI_INT;
+      break;
+    case nrrdTypeLLong:
+    case nrrdTypeULLong:
+      type = MRI_LONG;
+      break;
+    case nrrdTypeFloat:
+      type = MRI_FLOAT;
+      break;
+    default:
+      printf("mriNrrdRead: Unsupported type: %d (%s)\n", nin->type, airEnumStr(nrrdType, nin->type));
+      return NULL;
   }
 
   // alloc mri struct with the correct dimensions.
-  int width  = nin->axis[0].size;
+  int width = nin->axis[0].size;
   int height = nin->axis[1].size;
-  int depth  = nin->axis[2].size;
-  int nframes = 1; // default nin->dim = 3
-  if (nin->dim == 4) nframes = nin->axis[3].size; // multiple frames found
-  MRI *mri = MRIallocSequence( width, height, depth, type, nframes );
-  if( NULL == mri )
-  {
-    printf("mriNrrdRead: Couldn't allocate MRI of size %d %d %d %d\n",
-           width, height, depth, nframes);
+  int depth = nin->axis[2].size;
+  int nframes = 1;                                 // default nin->dim = 3
+  if (nin->dim == 4) nframes = nin->axis[3].size;  // multiple frames found
+  MRI *mri = MRIallocSequence(width, height, depth, type, nframes);
+  if (NULL == mri) {
+    printf("mriNrrdRead: Couldn't allocate MRI of size %d %d %d %d\n", width, height, depth, nframes);
     return NULL;
   }
 
   // Copy all the pixel data.
-  int x,y,z,f;
-  if (type == MRI_UCHAR)
-  {
+  int x, y, z, f;
+  if (type == MRI_UCHAR) {
     for (f = 0; f < nframes; f++)
       for (z = 0; z < depth; z++)
         for (y = 0; y < height; y++)
-          for (x = 0; x < width; x++)
-          {
-            int index = x + (y * width) + 
-              (z * width * height) + (f * width * height * depth);
-            unsigned char *_uc = (unsigned char*)nin->data;
+          for (x = 0; x < width; x++) {
+            int index = x + (y * width) + (z * width * height) + (f * width * height * depth);
+            unsigned char *_uc = (unsigned char *)nin->data;
             MRIseq_vox(mri, x, y, z, f) = (BUFTYPE)_uc[index];
           }
-  }
-  else if (type == MRI_SHORT)
-  {
+  } else if (type == MRI_SHORT) {
     for (f = 0; f < nframes; f++)
       for (z = 0; z < depth; z++)
         for (y = 0; y < height; y++)
-          for (x = 0; x < width; x++)
-          {
-            int index = x + (y * width) + 
-              (z * width * height) + (f * width * height * depth);
-            short *_s = (short*)nin->data;
-            MRISseq_vox( mri, x, y, z, f ) = (short)_s[index];
+          for (x = 0; x < width; x++) {
+            int index = x + (y * width) + (z * width * height) + (f * width * height * depth);
+            short *_s = (short *)nin->data;
+            MRISseq_vox(mri, x, y, z, f) = (short)_s[index];
           }
-  }
-  else if (type == MRI_INT)
-  {
+  } else if (type == MRI_INT) {
     for (f = 0; f < nframes; f++)
       for (z = 0; z < depth; z++)
         for (y = 0; y < height; y++)
-          for (x = 0; x < width; x++)
-          {
-            int index = x + (y * width) + 
-              (z * width * height) + (f * width * height * depth);
-            int *_i = (int*)nin->data;
-            MRIIseq_vox( mri, x, y, z, f ) = (int)_i[index];
+          for (x = 0; x < width; x++) {
+            int index = x + (y * width) + (z * width * height) + (f * width * height * depth);
+            int *_i = (int *)nin->data;
+            MRIIseq_vox(mri, x, y, z, f) = (int)_i[index];
           }
-  }
-  else if (type == MRI_LONG)
-  {
+  } else if (type == MRI_LONG) {
     for (f = 0; f < nframes; f++)
       for (z = 0; z < depth; z++)
         for (y = 0; y < height; y++)
-          for (x = 0; x < width; x++)
-          {
-            int index = x + (y * width) + 
-              (z * width * height) + (f * width * height * depth);
-            long *_l = (long*)nin->data;
-            MRILseq_vox( mri, x, y, z, f ) = (long)_l[index];
+          for (x = 0; x < width; x++) {
+            int index = x + (y * width) + (z * width * height) + (f * width * height * depth);
+            long *_l = (long *)nin->data;
+            MRILseq_vox(mri, x, y, z, f) = (long)_l[index];
           }
-  }
-  else if (type == MRI_FLOAT)
-  {
+  } else if (type == MRI_FLOAT) {
     for (f = 0; f < nframes; f++)
       for (z = 0; z < depth; z++)
         for (y = 0; y < height; y++)
-          for (x = 0; x < width; x++)
-          {
-            int index = x + (y * width) + 
-              (z * width * height) + (f * width * height * depth);
-            float *_f = (float*)nin->data;
-            MRIFseq_vox( mri, x, y, z, f ) = (float)_f[index];
+          for (x = 0; x < width; x++) {
+            int index = x + (y * width) + (z * width * height) + (f * width * height * depth);
+            float *_f = (float *)nin->data;
+            MRIFseq_vox(mri, x, y, z, f) = (float)_f[index];
           }
-  }
-  else
-  {
+  } else {
     printf("mriNrrdRead: Unsupported type=%d\n", type);
     return NULL;
   }
@@ -215,35 +196,24 @@ MRI *mriNrrdRead(char *fname, int read_volume)
   mri->zsize = (float)nin->axis[2].spaceDirection[2];
 
   // set orientation string
-  switch (nin->space)
-  {
-  case nrrdSpaceRightAnteriorSuperior:
-  {
-    MRIorientationStringToDircos(mri, "RAS");
-    break;
-  }
-  case nrrdSpaceLeftAnteriorSuperior:
-  {
-    MRIorientationStringToDircos(mri, "LAS");
-    break;
-  }
-  case nrrdSpaceLeftPosteriorSuperior:
-  {
-    MRIorientationStringToDircos(mri, "LPS");
-    break;
-  }
+  switch (nin->space) {
+    case nrrdSpaceRightAnteriorSuperior: {
+      MRIorientationStringToDircos(mri, "RAS");
+      break;
+    }
+    case nrrdSpaceLeftAnteriorSuperior: {
+      MRIorientationStringToDircos(mri, "LAS");
+      break;
+    }
+    case nrrdSpaceLeftPosteriorSuperior: {
+      MRIorientationStringToDircos(mri, "LPS");
+      break;
+    }
   }
 
   return mri;
 }
 
-
-
-int mriNrrdWrite(MRI *mri, char *fname)
-{
-  ErrorReturn
-    (ERROR_UNSUPPORTED,
-     (ERROR_UNSUPPORTED,
-      "mriNrrdWrite(): Nrrd output not supported!"));
+int mriNrrdWrite(MRI *mri, char *fname) {
+  ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "mriNrrdWrite(): Nrrd output not supported!"));
 }
-

@@ -5,7 +5,7 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
  * CVS Revision Info:
  *    $Author: nicks $
  *    $Date: 2011/03/02 00:04:54 $
@@ -22,7 +22,6 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-
 
 /*
    @(#)queue.c  1.3
@@ -52,11 +51,9 @@
                             CONSTANTS
 ------------------------------------------------------------------------*/
 
-
 /*------------------------------------------------------------------------
                             STATIC DATA
 ------------------------------------------------------------------------*/
-
 
 /*------------------------------------------------------------------------
                             STATIC PROTOTYPES
@@ -73,16 +70,14 @@
     Return Values:
         nothing.
 ------------------------------------------------------------------------*/
-QUEUE *
-Qalloc(int max_elts)
-{
-  QUEUE *q ;
-  int i=max_elts;
+QUEUE *Qalloc(int max_elts) {
+  QUEUE *q;
+  int i = max_elts;
 
-  q = (QUEUE *)calloc(1, sizeof(QUEUE)) ;
+  q = (QUEUE *)calloc(1, sizeof(QUEUE));
 
-  i = max_elts+1 ;
-  return(q) ;
+  i = max_elts + 1;
+  return (q);
 }
 /*------------------------------------------------------------------------
        Parameters:
@@ -92,15 +87,12 @@ Qalloc(int max_elts)
     Return Values:
         nothing.
 ------------------------------------------------------------------------*/
-void
-Qfree(QUEUE *q)
-{
-  QELT *qelt ;
+void Qfree(QUEUE *q) {
+  QELT *qelt;
 
-  for (qelt = Qget(q, 0) ; qelt ; qelt = Qget(q, 0))
-    free(qelt) ;
+  for (qelt = Qget(q, 0); qelt; qelt = Qget(q, 0)) free(qelt);
 
-  free(q) ;
+  free(q);
 }
 /*------------------------------------------------------------------------
        Parameters:
@@ -110,32 +102,28 @@ Qfree(QUEUE *q)
     Return Values:
         nothing.
 ------------------------------------------------------------------------*/
-int
-Qput(QUEUE *q, void *data)
-{
-  QELT *qelt ;
+int Qput(QUEUE *q, void *data) {
+  QELT *qelt;
 
-  qelt = (QELT *)calloc(1, sizeof(QELT)) ;
-  if (!qelt)
-    return(-1) ;
+  qelt = (QELT *)calloc(1, sizeof(QELT));
+  if (!qelt) return (-1);
 
-  qelt->data = data ;
+  qelt->data = data;
 
-  if (!q->head)  /* empty list */
+  if (!q->head) /* empty list */
   {
-    q->head = q->tail = qelt ;
-    qelt->next = qelt->prev = NULL ;   /* just to be explicit */
-  }
-  else           /* link in at end of list */
+    q->head = q->tail = qelt;
+    qelt->next = qelt->prev = NULL; /* just to be explicit */
+  } else                            /* link in at end of list */
   {
-    qelt->next = NULL ;
-    qelt->prev = q->tail ;
-    q->tail->next = qelt ;
-    q->tail = qelt ;
+    qelt->next = NULL;
+    qelt->prev = q->tail;
+    q->tail->next = qelt;
+    q->tail = qelt;
   }
 
-  q->nelts++ ;
-  return(0) ;
+  q->nelts++;
+  return (0);
 }
 /*------------------------------------------------------------------------
        Parameters:
@@ -145,33 +133,30 @@ Qput(QUEUE *q, void *data)
     Return Values:
         nothing.
 ------------------------------------------------------------------------*/
-void *
-Qget(QUEUE *q, int mode)
-{
-  QELT *qelt ;
-  void *data ;
+void *Qget(QUEUE *q, int mode) {
+  QELT *qelt;
+  void *data;
 
-  if (!q->head)
-  {
+  if (!q->head) {
     if (mode == Q_DONT_WAIT)
-      return(NULL) ;
+      return (NULL);
     else
-      ThreadSuspend(TID_SELF, 0) ;
+      ThreadSuspend(TID_SELF, 0);
 
-    if (!q->head)   /* somebody woke me up and nothing was there */
-      return(NULL) ;
+    if (!q->head) /* somebody woke me up and nothing was there */
+      return (NULL);
   }
 
-  qelt = q->head ;
-  q->head = qelt->next ;
+  qelt = q->head;
+  q->head = qelt->next;
   if (!q->head)
-    q->tail = NULL ;        /* empty list */
+    q->tail = NULL; /* empty list */
   else
-    q->head->prev = NULL ;    /* head of list now */
+    q->head->prev = NULL; /* head of list now */
 
-  q->nelts-- ;
-  data = qelt->data ;
-  free(qelt) ;
+  q->nelts--;
+  data = qelt->data;
+  free(qelt);
 
-  return(data) ;
+  return (data);
 }
