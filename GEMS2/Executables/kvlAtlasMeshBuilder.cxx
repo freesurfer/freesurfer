@@ -50,6 +50,7 @@ AtlasMeshBuilder
   m_CollapsedAlphasCost = 0;
   m_CollapsedPositionCost = 0;
 
+  m_EdgeCollapseEncouragementFactor = 1.0;
 }
 
 
@@ -105,9 +106,12 @@ AtlasMeshBuilder
 //
 void
 AtlasMeshBuilder
-::Build( AtlasMeshCollection* explicitStartCollection )
+::Build( AtlasMeshCollection* explicitStartCollection, double edgeCollapseEncouragementFactor )
 {
 
+  //
+  m_EdgeCollapseEncouragementFactor = edgeCollapseEncouragementFactor;
+  
   // Estimate high-resolution mesh first
   if ( explicitStartCollection == 0 )
     {
@@ -116,7 +120,26 @@ AtlasMeshBuilder
     }
   else
     {
-    m_Current = explicitStartCollection;
+    if ( fabs( explicitStartCollection->GetK() - m_InitialStiffnesses.back() ) < 1e-2 )
+      {
+      m_Current = explicitStartCollection;
+      }
+    else
+      {
+      // 
+      std::cout << "Got an explicitStartCollection, but it's stiffness does not match: " 
+                << explicitStartCollection->GetK() << " vs. " << m_InitialStiffnesses.back() << std::endl;
+      std::cout << "    difference is " << explicitStartCollection->GetK() - m_InitialStiffnesses.back() << std::endl;          
+      std::cout << "So re-estimating that collection first" << std::endl;
+      explicitStartCollection->SetK( m_InitialStiffnesses.back() );
+      AtlasParameterEstimator::Pointer  estimator = AtlasParameterEstimator::New();
+      estimator->SetLabelImages( m_LabelImages, m_CompressionLookupTable );
+      estimator->SetInitialMeshCollection( explicitStartCollection );
+      estimator->SetPositionOptimizer( AtlasParameterEstimator::LBFGS );    
+      estimator->Estimate( true );
+      m_Current = const_cast< AtlasMeshCollection* >( estimator->GetCurrentMeshCollection() );
+      m_Current->Write( "debug_explicit_after_estimating.txt" );
+      }
     }
 
 
@@ -960,7 +983,7 @@ AtlasMeshBuilder
               << " + " << collapsedPositionCost <<") " << std::endl;
     }          
   std::vector< double >  totalCosts;
-  totalCosts.push_back( retainedCost );
+  totalCosts.push_back( retainedCost * m_EdgeCollapseEncouragementFactor );
   totalCosts.push_back( collapsedCost );
   double  minTotalCost = itk::NumericTraits< double >::max();
   int minTotalCostIndex = -1;
