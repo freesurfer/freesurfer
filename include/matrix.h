@@ -52,12 +52,10 @@ typedef struct
 MATRIX, VECTOR ;
 
 
-#ifdef BEVIN_SERIAL
 typedef struct		// This case is so important it should be optimized 
 {
   float x,y,z;
 } XYZ;
-#endif
 
 
 typedef struct
@@ -196,7 +194,6 @@ MATRIX *MatrixReadFrom(FILE *fp, MATRIX *m) ;
 #define VECTOR_LOAD   VECTOR3_LOAD
 #define V3_LOAD       VECTOR3_LOAD
 
-#ifdef BEVIN_SERIAL
 #include <math.h>
 #include "macros.h"
 
@@ -225,8 +222,6 @@ static void XYZ_NORMALIZED_LOAD(XYZ* xyz, float* xyz_length, float x, float y, f
 
 
 float XYZApproxAngle(XYZ const * normalizedXYZ, float x2, float y2, float z2);
-
-#endif
 
 
 double Vector3Angle(VECTOR *v1, VECTOR *v2) ;

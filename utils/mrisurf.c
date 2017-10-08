@@ -4070,16 +4070,6 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
 {
   int     vno,tno ;
 
-#ifndef BEVIN_SERIAL
-  VECTOR  *v1[_MAX_FS_THREADS], *v2[_MAX_FS_THREADS] ;
-  
-  for (tno = 0 ; tno < _MAX_FS_THREADS ; tno++)
-  {
-    v1[tno] = VectorAlloc(3, MATRIX_REAL) ;
-    v2[tno] = VectorAlloc(3, MATRIX_REAL) ;
-  }
-#endif
-    
 #ifdef HAVE_OPENMP
 // have to  make v1 and v2 arrays and use tids for this to work
 #pragma omp parallel for
@@ -4089,9 +4079,7 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
     int     n, vtotal, *pv ;
     VERTEX  *v, *vn ;
     float   d, xd, yd, zd, circumference = 0.0f, angle ;
-#ifdef BEVIN_SERIAL
     float   circumference_divided_by_2PI;
-#endif
 
     v = &mris->vertices[vno];
     if (v->ripflag || v->dist == NULL)
@@ -4120,30 +4108,14 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
     case MRIS_PARAMETERIZED_SPHERE:
     case MRIS_SPHERE:
     {
-#ifndef BEVIN_SERIAL
-
-#ifdef HAVE_OPENMP
-      // thread ID
-      int tid = omp_get_thread_num();
-#else
-      int tid = 0;
-#endif
-      VECTOR_LOAD(v1[tid], v->x, v->y, v->z) ;  /* radius vector */
-
-#else
       XYZ xyz1_normalized;
       float xyz1_length;
       XYZ_NORMALIZED_LOAD(&xyz1_normalized, &xyz1_length, v->x, v->y, v->z);	// length 1 along radius vector
-#endif
   
       if (FZERO(circumference))   /* only calculate once */
       {
-#ifndef BEVIN_SERIAL
-        circumference = M_PI * 2.0 * V3_LEN(v1[tid]) ;
-#else
         circumference = M_PI * 2.0 * xyz1_length ;
         circumference_divided_by_2PI = circumference / (2.0 * M_PI) ;
-#endif
       }
 
       for (pv = v->v, n = 0 ; n < vtotal ; n++)
@@ -4152,12 +4124,7 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
         if (vn->ripflag)
           continue ;
 
-#ifndef BEVIN_SERIAL
-        VECTOR_LOAD(v2[tid], vn->x, vn->y, vn->z) ;  /* radius vector */
-        angle = fabs(Vector3Angle(v1[tid], v2[tid])) ;
-#else
 	angle = fabs(XYZApproxAngle(&xyz1_normalized, vn->x, vn->y, vn->z));
-#endif
 
 #if 0
         xd = v->x - vn->x ;
@@ -4165,11 +4132,7 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
         zd = v->z - vn->z ;
         d = sqrt(xd*xd + yd*yd + zd*zd) ;
 #endif
-#ifndef BEVIN_SERIAL
-        d = circumference * angle / (2.0 * M_PI) ;
-#else
         d = angle * circumference_divided_by_2PI;
-#endif
         if (angle > M_PI || angle < -M_PI || d > circumference/2 || angle < 0)
           DiagBreak() ;
 
@@ -4179,14 +4142,6 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
     }
     }
   }
-
-#ifndef BEVIN_SERIAL
-  for (tno = 0 ; tno < _MAX_FS_THREADS ; tno++)
-  {
-    VectorFree(&v1[tno]) ;
-    VectorFree(&v2[tno]) ;
-  }
-#endif
 
   return(NO_ERROR) ;
 }
