@@ -21,6 +21,8 @@
  *
  */
 
+#define BEVIN_MRISURF
+
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -10865,6 +10867,15 @@ MRISupdateEllipsoidSurface(MRI_SURFACE *mris)
   using num_avgs nearest-neighbor averages. See also
   MRISaverageGradientsFast()
   ------------------------------------------------------*/
+#ifdef BEVIN_MRISURF
+static int closeEnough(float a, float b) {
+  float mag = fabs(a) > fabs(b) ? fabs(a) : fabs(b);
+  if (mag < 1.0e-6) return 1;
+  if (fabs(a-b) < mag*1.0e-2) return 1;
+  return 0; 
+}
+#endif
+
 int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
 {
   int    i, vno ;
@@ -10913,7 +10924,180 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
     MRISPfree(&mrisp) ;
     MRISPfree(&mrisp_blur) ;
   }
-  else 
+  else
+#ifdef BEVIN_MRISURF
+  {
+    // This code shows the num_avgs typically is repeated 1-4 times as 1024, 256, 64, 16, 4, and then 1
+    //
+    if (0) {
+      static int num_avgs_being_counted = 0;
+      static int count = 0;
+      static int limit = 1;
+      int changing = (num_avgs_being_counted != num_avgs);
+      if (changing || count == limit) {
+        if (count > 0) {
+          fprintf(stderr,"%s:%d num_avgs:%d count:%d\n",__FILE__,__LINE__,num_avgs_being_counted,count);
+          fprintf(stdout,"%s:%d num_avgs:%d count:%d\n",__FILE__,__LINE__,num_avgs_being_counted,count);
+        }
+        if (!changing) limit *= 2;
+        else {
+          num_avgs_being_counted = num_avgs;
+          count = 0;
+          limit = 1;
+        }
+      }
+      count++;
+    }
+
+    // Since the num_avgs is so high there are far more efficient ways to iterate.
+    // The following implementation is one of them.
+
+    // The following code supports three ways of doing the two algorithms
+    // - only the old algorithm
+    // - only the new algorithm
+    // - both algorithms, and compare them
+    
+    static const int BEVIN_SERIAL_doNew = 1;
+    static const int BEVIN_SERIAL_doOld = 0;
+    
+    // This is the new algorithm
+    //
+    int*   vno_to_index = NULL ;
+    int*   index_to_vno = NULL ;
+    int    index_to_vno_size = 0;
+    
+    typedef struct Data {
+      float dx,dy,dz;
+    } Data;
+    Data*  datas_inp   = NULL ;
+    Data*  datas_out   = NULL ;
+
+    typedef struct Control {    
+      int numNeighbors;
+      int firstNeighbor;
+    } Control;
+    Control* controls = NULL ;
+
+    int  neighbors_capacity = 0 ;
+    int  neighbors_size     = 0 ;
+    int *neighbors          = NULL ;
+    
+    if (BEVIN_SERIAL_doNew) {
+    
+      // Malloc the needed storage
+      //
+      vno_to_index = (int*)    malloc(sizeof(int)     * mris->nvertices) ;
+      index_to_vno = (int*)    malloc(sizeof(int)     * mris->nvertices) ;
+      datas_inp    = (Data*)   malloc(sizeof(Data)    * mris->nvertices) ;
+      datas_out    = (Data*)   malloc(sizeof(Data)    * mris->nvertices) ;
+      controls     = (Control*)malloc(sizeof(Control) * mris->nvertices) ;
+    
+      // Find all the vertices that will change
+      // Ripped ones, and those whose neighbors are all ripped, will not change and hence are not entered
+      //
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+        VERTEX *v = &mris->vertices[vno] ;
+        
+        int num = 0;
+        if (!v->ripflag) {
+          num = 1;
+          // At this stage the neighbors with higher vno's will not have been entered into the vno_to_index table
+          int  vnum = v->vnum ;
+          int* pnb  = v->v;
+          int vnb;
+          for (vnb = 0; vnb < vnum; vnb++) {
+            int neighborVno = *pnb++;
+            VERTEX* vn = &mris->vertices[neighborVno] ; /* neighboring vertex pointer */
+            if (vn->ripflag) continue ;
+  	    num++;
+          }
+        }
+        
+        if (num <= 1) {
+          vno_to_index[vno] = -1 ;
+        } else {
+  	  vno_to_index[vno] = index_to_vno_size ;
+          index_to_vno[index_to_vno_size] = vno ;
+  	  Data* d = datas_inp + index_to_vno_size ;
+          d->dx = v->dx ;
+          d->dy = v->dy ;
+          d->dz = v->dz ;
+  	  Control* c = controls + index_to_vno_size ;
+  	  c->numNeighbors = num - 1 ;
+  	  index_to_vno_size++ ;
+        }
+      }
+      
+      // For each vertex that will change, fill in the index of the vertices it must average with.
+      // There could be many of them, so this array vector grows as needed.
+      //
+      neighbors_capacity = 6 * index_to_vno_size ;
+      neighbors_size     = 0 ;
+      neighbors          = (int*)malloc(sizeof(int) * neighbors_capacity) ;
+      
+      int  index;
+      for (index = 0; index < index_to_vno_size; index++) {
+        const int vno = index_to_vno[index] ;
+        Control* const c = controls + index ;
+        c->firstNeighbor = neighbors_size ;
+        VERTEX * const v    = &mris->vertices[vno] ;
+        int      const vnum = v->vnum ;
+        int *pnb  = v->v ;
+        int vnb;
+        for (vnb = 0; vnb < vnum; vnb++) {
+          int const neighborVno = *pnb++ ;
+  	  int const neighborIndex = vno_to_index[neighborVno] ;
+  	  if (neighborIndex < 0) continue ;			// ->ripflag must be set
+  	  if (neighbors_size == neighbors_capacity) {
+            int  const new_neighbors_capacity = neighbors_capacity + neighbors_capacity/2 ;
+            int* const new_neighbors          = (int*)malloc(sizeof(int) * new_neighbors_capacity) ;
+            int i; 
+	    for (i = 0; i < neighbors_size; i++) new_neighbors[i] = neighbors[i] ;
+  	    free(neighbors);
+  	    neighbors = new_neighbors ;
+  	    neighbors_capacity = new_neighbors_capacity ;
+  	  }
+  	  neighbors[neighbors_size++] = neighborIndex ;
+        }      
+      }
+      
+      // Do all the iterations
+      //
+      for (i = 0 ; i < num_avgs ; i++)
+      {
+        int index;
+      
+#ifdef HAVE_OPENMP
+        #pragma omp parallel for
+#endif
+        for (index = 0; index < index_to_vno_size ; index++ ) {
+          Data*    d = datas_inp + index ;
+  	  Control* c = controls  + index ;
+  	  float dx = d->dx, dy = d->dy, dz = d->dz ;
+  	  int* nearby = neighbors + c->firstNeighbor;
+  	  int n;
+  	  for (n = 0; n < c->numNeighbors; n++) {
+  	    int neighborIndex = nearby[n];
+  	    Data* neighborData = datas_inp + neighborIndex ;
+  	    dx += neighborData->dx ; dy += neighborData->dy ; dz += neighborData->dz ;
+  	  }
+  	  d = datas_out + index ;
+  	  float inv_num = 1.0f/(c->numNeighbors + 1);
+  	  d->dx = dx*inv_num ; d->dy = dy*inv_num ; d->dz = dz*inv_num ; 
+        }
+  
+        // swap the output and the input going into the next round
+        Data* tmp = datas_inp ; datas_inp = datas_out ; datas_out = tmp ;
+      }
+    }
+
+    if (BEVIN_SERIAL_doOld) {
+    	// Only perform the old algorithm when needed
+#endif
+    
+    // This is the old algorithm
+    //
     for (i = 0 ; i < num_avgs ; i++)
     {
 #ifdef HAVE_OPENMP
@@ -10958,7 +11142,66 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
 
         v->dx = v->tdx ; v->dy = v->tdy ; v->dz = v->tdz ;
       }
+
+      // End of one of the num_avgs iterations
     }
+
+#ifdef BEVIN_MRISURF
+    } // if (BEVIN_SERIAL_doOld) 
+
+    
+    // Compare the new algorithm and old algorithm answers
+    //
+    if (BEVIN_SERIAL_doOld && BEVIN_SERIAL_doNew) {
+    
+      int errors = 0;
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+        VERTEX *v = &mris->vertices[vno] ;
+        int index = vno_to_index[vno] ;
+        if (index == -1) {
+          // check has not changed - but this is not currently possible
+          // but could be enabled by making all these nodes go into the high end of the initial datas_inp vector
+        } else {
+          Data* d = datas_inp + index ;
+  	  if (!closeEnough(d->dx,v->dx) || !closeEnough(d->dy,v->dy) || !closeEnough(d->dz,v->dz)) {
+  	    errors++ ;
+  	    if (errors < 10) {
+              fprintf(stderr,"%s:%d vno:%d d->dx:%g v->dx:%g d->dy:%g v->dy:%g d->dz:%g v->dz:%g\n",__FILE__,__LINE__,
+  	                            vno, d->dx,   v->dx,   d->dy,   v->dy,   d->dz,   v->dz);
+  	    }
+  	  }
+        }
+      }
+      fprintf(stderr,"%s:%d errors:%d\n",__FILE__,__LINE__,errors);
+      if (errors > 0) exit (103);
+    }
+
+    // Put the results where they belong
+    // Note: this code does not set tdx, etc. - I believe they are temporaries
+    //    
+    if (BEVIN_SERIAL_doNew) {
+    
+      int index;
+      for (index = 0 ; index < index_to_vno_size; index++)
+      {
+        VERTEX *v = &mris->vertices[index_to_vno[index]] ;
+        Data   *d = datas_inp + index ;
+ 	v->dx = d->dx ; 
+	v->dy = d->dy ; 
+	v->dz = d->dz ;
+      }
+    
+      free(neighbors); 
+      free(controls);
+      free(datas_out); 
+      free(datas_inp);
+      free(index_to_vno);
+      free(vno_to_index);
+    }
+  }
+#endif
+
   if (Gdiag_no >= 0)
   {
     float dot ;
