@@ -68,8 +68,9 @@ script:
   # configure and build freesurfer
   - ./setup_configure
   - ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/centos6-x86_64-packages --disable-Werror --disable-GUI-build
-  - travis_wait 40 ./travis_make.sh || travis_terminate 1
-  - tail -n 20 build.log
+  # - travis_wait 40 ./travis_make.sh || travis_terminate 1
+  - make -j4
+  # - tail -n 20 build.log
   # run tests
   - if [[ "$TESTS" != "" ]]; then travis_wait 60 ./run_selected_tests ; fi
 
