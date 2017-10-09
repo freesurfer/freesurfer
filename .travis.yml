@@ -46,6 +46,9 @@ addons:
      - libxml2-utils
 
 before_install:
+  # Remove the MongoDB repo as their GPG key has expired (tmp fix)
+  - sudo rm /etc/apt/sources.list.d/mongodb-3.2.list
+  
   # Needs recent git-annex to be able to get -J3 --metadata ; fi
   - if [[ "$TESTS" != "" ]]; then bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh) ; fi
   - if [[ "$TESTS" != "" ]]; then travis_retry sudo apt-get update -qq ; fi
