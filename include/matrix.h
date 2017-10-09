@@ -198,7 +198,7 @@ MATRIX *MatrixReadFrom(FILE *fp, MATRIX *m) ;
 #include "macros.h"
 
 #define XYZ_LOAD(v,x,y,z)             do { XYZ* xyz = &v; xyz.x=x, xyz.y=y, xyz.z=z; } while 0
-static void XYZ_NORMALIZED_LOAD(XYZ* xyz, float* xyz_length, float x, float y, float z)
+void XYZ_NORMALIZED_LOAD(XYZ* xyz, float* xyz_length, float x, float y, float z)
 {
   float len = *xyz_length =
 	   sqrt(
