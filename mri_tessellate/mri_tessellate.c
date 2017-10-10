@@ -94,8 +94,6 @@ char *MRI_TESSELLATE_VERSION = "$Revision: 1.39 $";
 static char vcid[] =
   "$Id: mri_tessellate.c,v 1.39 2016/07/20 21:05:04 zkaufman Exp $";
 
-#define SQR(x) ((x)*(x))
-
 /////////////////////////////////////////////
 #define MAXV 10000000
 static long MAXVERTICES = MAXV;

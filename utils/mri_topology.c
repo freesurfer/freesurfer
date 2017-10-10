@@ -756,9 +756,7 @@ Nbh* reverseNbh(Nbh* nbh_src,Nbh *nbh_dst)
 //     Correct the topology of a volume working at the voxel scale
 //
 ///////////////////////////////////////////////////////////////////////
-//#ifndef SQR
-#define SQR(x) ((x)*(x))
-//#endif
+
 
 typedef struct Cell
 {

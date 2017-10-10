@@ -4068,7 +4068,7 @@ MRIScomputeNormals(MRI_SURFACE *mris)
 static int
 mrisComputeVertexDistances(MRI_SURFACE *mris)
 {
-  int     vno,tno ;
+  int     vno;
 
 #ifdef HAVE_OPENMP
 // have to  make v1 and v2 arrays and use tids for this to work
