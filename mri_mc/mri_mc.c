@@ -48,8 +48,6 @@
 #include "gca.h"
 #include "MC.h"
 
-#define SQR(x) ((x)*(x))
-
 #define MAXFACES    3000000
 #define MAXVERTICES 1500000
 #define FACEINCREASE 1.2

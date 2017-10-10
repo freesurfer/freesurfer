@@ -47,7 +47,6 @@
 #include "MC.h"
 
 #define USE_WM -1
-#define SQR(x) ((x)*(x))
 
 char *Progname;
 
