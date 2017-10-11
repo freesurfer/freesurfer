@@ -5,7 +5,8 @@
 #include <omp.h>
 #endif
 
-int FSinit(void) {
+int FSinit(void)
+{
   // char *cp;
   if (getenv("FS_DISABLE_LANG") == NULL)
     if (!setlocale(LC_NUMERIC, "en_US")) {

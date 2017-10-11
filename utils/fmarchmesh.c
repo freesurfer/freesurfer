@@ -37,7 +37,8 @@
 float ReCompute(int vIDc, int vIDa, int vIDb, MRI_SURFACE *mesh, float *T, unsigned char *label);
 float ComputeTInAcute(float, float, float, float, float);
 
-float *FastMarchMesh(MRI_SURFACE *mesh, int *contour, int numinitvert, float thred) {
+float *FastMarchMesh(MRI_SURFACE *mesh, int *contour, int numinitvert, float thred)
+{
   /* Compute the geodesic distance of surface vertices to the initial contour*/
   /* vector 'contour' contains the indices of the vertice at the initial
      contour, i.e., vertices with zero distance. numinitvert is the size of
@@ -217,7 +218,8 @@ float *FastMarchMesh(MRI_SURFACE *mesh, int *contour, int numinitvert, float thr
 /* compute the new T for vIDc based on the current T values of vIDa & vIDb */
 /* Unfold the mesh around edge AB if C is an obtuse angle */
 /* see Kimmel and Sethian for derivation of these formulae */
-float ReCompute(int vIDc, int vIDa, int vIDb, MRI_SURFACE *mesh, float *T, unsigned char *label) {
+float ReCompute(int vIDc, int vIDa, int vIDb, MRI_SURFACE *mesh, float *T, unsigned char *label)
+{
   float a, b, c;
   VERTEX *Va, *Vb, *Vc;
   unsigned char la, lb;
@@ -291,7 +293,8 @@ float ReCompute(int vIDc, int vIDa, int vIDb, MRI_SURFACE *mesh, float *T, unsig
     if (la == ALIVE && lb == ALIVE) {
       t = ComputeTInAcute(Ta, Tb, a, b, c);
       return t;
-    } else
+    }
+    else
       return (MIN(b + Ta, a + Tb)); /* Infinity + sth = Infinity */
   }
 
@@ -335,7 +338,8 @@ float ReCompute(int vIDc, int vIDa, int vIDb, MRI_SURFACE *mesh, float *T, unsig
       if (n0 == P2ID && n1 != UNotID) {
         UID = n1;
         break;
-      } else if (n1 == P2ID && n0 != UNotID) {
+      }
+      else if (n1 == P2ID && n0 != UNotID) {
         UID = n0;
         break;
       }
@@ -374,14 +378,16 @@ float ReCompute(int vIDc, int vIDa, int vIDb, MRI_SURFACE *mesh, float *T, unsig
       P2A = UA;
       P2B = UB;
       P2C = UC;
-    } else if (UB > (UC + BC)) { /* Unfold along P2U */
+    }
+    else if (UB > (UC + BC)) { /* Unfold along P2U */
       UNotID = P1ID;
       P1ID = UID;
       P1P2 = P2U;
       P1A = UA;
       P1B = UB;
       P1C = UC;
-    } else { /* Stop Unfolding and compute T*/
+    }
+    else { /* Stop Unfolding and compute T*/
       /* Compute the actual lengthes */
       UC = sqrt(UC);
       UA = sqrt(UA);
@@ -389,14 +395,17 @@ float ReCompute(int vIDc, int vIDa, int vIDb, MRI_SURFACE *mesh, float *T, unsig
       if (label[UID] == (unsigned char)ALIVE) {
         if (la == ALIVE) {
           t1 = ComputeTInAcute(Ta, T[UID], UC, b, UA);
-        } else
+        }
+        else
           t1 = INFINITY;
         if (lb == ALIVE) {
           t2 = ComputeTInAcute(Tb, T[UID], UC, a, UB);
-        } else
+        }
+        else
           t2 = INFINITY;
         return MIN(t1, t2);
-      } else
+      }
+      else
         return (MIN(b + Ta, a + Tb));
     }
 
@@ -415,7 +424,8 @@ float ReCompute(int vIDc, int vIDa, int vIDb, MRI_SURFACE *mesh, float *T, unsig
   return (MIN(b + Ta, a + Tb));
 }
 
-float ComputeTInAcute(float Ta, float Tb, float a, float b, float c) {
+float ComputeTInAcute(float Ta, float Tb, float a, float b, float c)
+{
   float t1, t2, t, CD, costheta;
   float aa, bb, cc, u, tmp;
 

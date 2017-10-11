@@ -47,7 +47,8 @@ static void lpafAllocParms(IMAGE *I);
 #define NFLUSH 10      /* flush after every 10th write */
 #define INIT_VAL 10000 /* initial value of parameters */
 
-int LPAFreadImageAnswer(LPAF *lpaf, int current) {
+int LPAFreadImageAnswer(LPAF *lpaf, int current)
+{
   char *fullname, fname[100];
   FILE *fp;
   IMAGE Iheader;
@@ -126,7 +127,8 @@ int LPAFreadImageAnswer(LPAF *lpaf, int current) {
   return (1);
 }
 
-int LPAFresetImageAnswer(LPAF *lpaf, int current) {
+int LPAFresetImageAnswer(LPAF *lpaf, int current)
+{
   char *fullname, tmpname[100], fname[100];
   IMAGE Iheader, *I;
   FILE *infp, *outfp;
@@ -188,7 +190,8 @@ int LPAFresetImageAnswer(LPAF *lpaf, int current) {
   return (1);
 }
 
-int LPAFwriteImageAnswer(LPAF *lpaf, int current) {
+int LPAFwriteImageAnswer(LPAF *lpaf, int current)
+{
   char *fullname, tmpname[100], fname[100];
   IMAGE Iheader, *I;
   FILE *infp, *outfp;
@@ -250,7 +253,8 @@ int LPAFwriteImageAnswer(LPAF *lpaf, int current) {
   return (1);
 }
 
-LP_ANSWER_FILE *LPAFcreate(char *out_fname, int argc, char *argv[]) {
+LP_ANSWER_FILE *LPAFcreate(char *out_fname, int argc, char *argv[])
+{
   LP_ANSWER_FILE *lpaf;
   int i, nentries, nfiles, entryno;
 
@@ -270,7 +274,8 @@ LP_ANSWER_FILE *LPAFcreate(char *out_fname, int argc, char *argv[]) {
     unlink(lpaf->fname);
     lpaf->fp = fopen(lpaf->fname, "a+b");
     if (!lpaf->fp) ErrorReturn(NULL, (ERROR_NO_FILE, "LPAFcreate: could not open %s", out_fname));
-  } else
+  }
+  else
     lpaf->fp = NULL;
 
   lpaf->nfiles = nfiles;
@@ -294,7 +299,8 @@ LP_ANSWER_FILE *LPAFcreate(char *out_fname, int argc, char *argv[]) {
 
   return (lpaf);
 }
-static int lpafFillEntries(LP_ANSWER_FILE *lpaf, char *fname, int entryno) {
+static int lpafFillEntries(LP_ANSWER_FILE *lpaf, char *fname, int entryno)
+{
   int nentries, type, i, num;
   char buf[100], *base_name, line[200], *cp;
   FILE *fp;
@@ -328,7 +334,8 @@ static int lpafFillEntries(LP_ANSWER_FILE *lpaf, char *fname, int entryno) {
   return (nentries);
 }
 
-static void lpafDump(FILE *fp, LP_ANSWER_FILE *lpaf) {
+static void lpafDump(FILE *fp, LP_ANSWER_FILE *lpaf)
+{
   int i;
 
   if (strcmp(lpaf->fname, "test")) return;
@@ -339,7 +346,8 @@ static void lpafDump(FILE *fp, LP_ANSWER_FILE *lpaf) {
 /* filename (centroid) (x, y) ... */
 #define FILE_FMT "%s (%3d, %3d) (%3d, %3d) (%3d, %3d) (%3d, %3d) (%3d, %3d)\n"
 
-int LPAFwrite(LPAF *lpaf, int current) {
+int LPAFwrite(LPAF *lpaf, int current)
+{
   LP_BOX *lpb;
 
   LPAFwriteImageAnswer(lpaf, current);
@@ -350,7 +358,8 @@ int LPAFwrite(LPAF *lpaf, int current) {
     {
       if (fseek(lpaf->fp, lpb->fpos, SEEK_SET) < 0)
         ErrorReturn(-1, (ERROR_BADFILE, "LPAFwrite could not seek to %ld", lpb->fpos));
-    } else
+    }
+    else
       lpb->fpos = ftell(lpaf->fp);
 
     if (current > lpaf->last_written)
@@ -381,7 +390,8 @@ int LPAFwrite(LPAF *lpaf, int current) {
   return (0);
 }
 
-int LPAFread(LPAF *lpaf, int current) {
+int LPAFread(LPAF *lpaf, int current)
+{
   LP_BOX *lpb;
   char line[300], *cp;
 
@@ -426,7 +436,8 @@ int LPAFread(LPAF *lpaf, int current) {
   return (abs(lpb->xc) < INIT_VAL); /* handles garbages as well as unwritten */
 }
 
-int LPAFset(LPAF *lpaf, int current, int *xp, int *yp, int xc, int yc) {
+int LPAFset(LPAF *lpaf, int current, int *xp, int *yp, int xc, int yc)
+{
   LP_BOX *lpb;
   int i;
 
@@ -442,7 +453,8 @@ int LPAFset(LPAF *lpaf, int current, int *xp, int *yp, int xc, int yc) {
 
 #define NPARAMS 10
 
-static void lpafAllocParms(IMAGE *I) {
+static void lpafAllocParms(IMAGE *I)
+{
   int frame, nframes, i;
   struct extpar *params;
 

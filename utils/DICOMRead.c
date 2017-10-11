@@ -92,7 +92,8 @@ static const char *rllEncoded_UID = "1.2.840.10008.1.2.5";
   be unpacked as one run. If using mri_convert, it can be passed
   with the --sdcmlist.
   -----------------------------------------------------------------*/
-MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly) {
+MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
+{
   SDCMFILEINFO *sdfi;
   DCM_ELEMENT *element;
   SDCMFILEINFO **sdfi_list;
@@ -244,7 +245,8 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly) {
       fflush(stderr);
       return (NULL);
     }
-  } else {
+  }
+  else {
     vol = MRIallocHeader(ncols, nrows, nslices, vol_datatype, nframes);
     if (vol == NULL) {
       fprintf(stderr, "ERROR: could not alloc MRI header \n");
@@ -290,7 +292,8 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly) {
       // and earlier.
       printf("Computing TR with number of slices\n");
       vol->tr = sdfi->RepetitionTime * (sdfi->VolDim[2]);
-    } else
+    }
+    else
       vol->tr = sdfi->RepetitionTime;
     /* Need to add any gap (eg, as in a hammer sequence */
     printf("Repetition Time = %g, TR = %g ms\n", sdfi->RepetitionTime, vol->tr);
@@ -393,7 +396,8 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly) {
         exit(1);
       }
       FileNameUse = tmpfile;
-    } else {
+    }
+    else {
       IsCompressed = 0;
       FileNameUse = sdfi->FileName;
     }
@@ -438,7 +442,8 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly) {
                                 a SHORT, but now we're saving as FLOATs.. */
               // val = 8*MinSliceScaleFactor*(*(pixeldata++))/sdfi->SliceScaleFactor;
               val = ((float)*(pixeldata++)) / sdfi->SliceScaleFactor;
-            } else
+            }
+            else
               val = *(pixeldata++);
             MRIsetVoxVal(vol, col, row, slice, frame, val);
           }
@@ -467,7 +472,8 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly) {
         frame = 0;
         slice++;
       }
-    } else {  // is a mosaic
+    }
+    else {  // is a mosaic
       /*---------------------------------------------*/
       /* It is a mosaic -- load entire volume for this frame from pixel data */
       frame = nthfile;
@@ -522,7 +528,8 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly) {
     voltmp = MRIreverseSliceOrder(vol, NULL);
     MRIfree(&vol);
     vol = voltmp;
-  } else
+  }
+  else
     printf("INFO: no Siemens slice order reversal detected (good!). \n");
 
   if (IsDWI) {
@@ -569,7 +576,8 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly) {
   This is what is needed for autoscaled diffusion
   data. TW 03/22/2012
 */
-MRI *sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly) {
+MRI *sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly)
+{
   SDCMFILEINFO *sdfi;
   DCM_ELEMENT *element;
   SDCMFILEINFO **sdfi_list;
@@ -603,7 +611,8 @@ MRI *sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly) {
   global_progress_range[1] = nstart + (nend - nstart) / 3;
   if (SDCMListFile != NULL) {
     SeriesList = ReadSiemensSeries(SDCMListFile, &nlist, dcmfile);
-  } else {
+  }
+  else {
     SeriesList = ScanSiemensSeries(dcmfile, &nlist);
   }
 
@@ -643,7 +652,8 @@ MRI *sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly) {
   /* First File in the Run */
   if (nthonly < 0) {
     sdfi = sdfi_list[0];
-  } else {
+  }
+  else {
     sdfi = sdfi_list[nthonly];
   }
 
@@ -705,7 +715,8 @@ MRI *sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly) {
   if (LoadVolume) {
     if (nthonly < 0) {
       vol = MRIallocSequence(ncols, nrows, nslices, MRI_FLOAT, nframes);
-    } else {
+    }
+    else {
       vol = MRIallocSequence(ncols, nrows, nslices, MRI_FLOAT, 1);
     }
     if (vol == NULL) {
@@ -713,7 +724,8 @@ MRI *sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly) {
       fflush(stderr);
       return (NULL);
     }
-  } else {
+  }
+  else {
     vol = MRIallocHeader(ncols, nrows, nslices, MRI_FLOAT, nframes);
     if (vol == NULL) {
       fprintf(stderr, "ERROR: could not alloc MRI header \n");
@@ -745,7 +757,8 @@ MRI *sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly) {
   vol->FieldStrength = sdfi->FieldStrength;
   if (!sdfi->IsMosaic) {
     vol->tr = sdfi->RepetitionTime;
-  } else {
+  }
+  else {
     /* The TR definition will depend upon the software version */
     tmpstring = sdcmExtractNumarisVer(sdfi->NumarisVer, &Maj, &Min, &MinMin);
     if (tmpstring != NULL) {
@@ -759,7 +772,8 @@ MRI *sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly) {
       // and earlier.
       printf("Computing TR with number of slices\n");
       vol->tr = sdfi->RepetitionTime * (sdfi->VolDim[2]);
-    } else {
+    }
+    else {
       vol->tr = sdfi->RepetitionTime;
     }
     /* Need to add any gap (eg, as in a hammer sequence */
@@ -772,7 +786,8 @@ MRI *sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly) {
   // Phase Enc Direction
   if (sdfi->PhEncDir == NULL) {
     vol->pedir = strcpyalloc("UNKNOWN");
-  } else {
+  }
+  else {
     vol->pedir = strcpyalloc(sdfi->PhEncDir);
     str_toupper(vol->pedir);
   }
@@ -790,18 +805,21 @@ MRI *sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly) {
     printf("This looks like an MGH DTI volume\n");
     if (getenv("UNPACK_MGH_DTI") != NULL) {
       sscanf(getenv("UNPACK_MGH_DTI"), "%d", &TryDTI);
-    } else {
+    }
+    else {
       TryDTI = 1;
     }
     if (TryDTI) {
       DoDTI = 1;
-    } else {
+    }
+    else {
       DoDTI = 0;
     }
     if (!DoDTI) {
       printf("  but not getting bvec info because UNPACK_MGH_DTI is 0\n");
     }
-  } else {
+  }
+  else {
     DoDTI = 0;
   }
   if (DoDTI && !sdfi->IsMosaic) {
@@ -945,7 +963,8 @@ MRI *sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly) {
         frame = 0;
         slice++;
       }
-    } else {
+    }
+    else {
       /*---------------------------------------------*/
       /* It is a mosaic -- load entire volume for this frame from pixel data */
       frame = nthfile;
@@ -990,7 +1009,8 @@ MRI *sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly) {
     voltmp = MRIreverseSliceOrder(vol, NULL);
     MRIfree(&vol);
     vol = voltmp;
-  } else {
+  }
+  else {
     printf("INFO: no Siemens slice order reversal detected (good!). \n");
   }
 
@@ -1048,7 +1068,8 @@ MRI *sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly) {
   \fn MATRIX *sdcmAutoAlignMatrix(const char *dcmfile)
   \brief Extracts the Auto Align Matrix from the Siemens ascii header.
 */
-MATRIX *sdcmAutoAlignMatrix(const char *dcmfile) {
+MATRIX *sdcmAutoAlignMatrix(const char *dcmfile)
+{
   char *tmpstr;
   char sdcmtag[1000];
   int n, row, col;
@@ -1073,7 +1094,8 @@ MATRIX *sdcmAutoAlignMatrix(const char *dcmfile) {
       tmpstr = SiemensAsciiTagEx(dcmfile, sdcmtag, 0);
       if (tmpstr == NULL) {
         v = 0;
-      } else {
+      }
+      else {
         sscanf(tmpstr, "%lf", &v);
         free(tmpstr);
       }
@@ -1100,7 +1122,8 @@ MATRIX *sdcmAutoAlignMatrix(const char *dcmfile) {
   a pointer to the object (or NULL upon failure).
   Author: Douglas Greve 9/6/2001
   ---------------------------------------------------------------*/
-DCM_ELEMENT *GetElementFromFile(const char *dicomfile, long grpid, long elid) {
+DCM_ELEMENT *GetElementFromFile(const char *dicomfile, long grpid, long elid)
+{
   DCM_OBJECT *object = 0;
   CONDITION cond;
   DCM_ELEMENT *element;
@@ -1142,7 +1165,8 @@ DCM_ELEMENT *GetElementFromFile(const char *dicomfile, long grpid, long elid) {
   a pointer to the object (or NULL upon failure).
   Author: Douglas Greve
   ---------------------------------------------------------------*/
-DCM_OBJECT *GetObjectFromFile(const char *fname, unsigned long options) {
+DCM_OBJECT *GetObjectFromFile(const char *fname, unsigned long options)
+{
   CONDITION cond;
   DCM_OBJECT *object = 0;
   int ok;
@@ -1186,7 +1210,8 @@ DCM_OBJECT *GetObjectFromFile(const char *fname, unsigned long options) {
   Use FreeElementData() to free the data portion.
   Author: Douglas N. Greve, 9/6/2001
   -------------------------------------------------------------------*/
-int AllocElementData(DCM_ELEMENT *e) {
+int AllocElementData(DCM_ELEMENT *e)
+{
   switch (e->representation) {
     case DCM_AE:
     case DCM_AS:
@@ -1247,7 +1272,8 @@ int AllocElementData(DCM_ELEMENT *e) {
   For string elements, it just copies the string and adds a
   terminator. For others, it just uses sprrintf.
   ---------------------------------------------------------------*/
-char *ElementValueString(DCM_ELEMENT *e, int DoBackslash) {
+char *ElementValueString(DCM_ELEMENT *e, int DoBackslash)
+{
   char *evstring;
   int n, len;
   char tmpstr[20000];
@@ -1338,7 +1364,8 @@ char *ElementValueString(DCM_ELEMENT *e, int DoBackslash) {
   See also AllocElementData().
   Author: Douglas N. Greve, 9/6/2001
   -------------------------------------------------------------------*/
-int FreeElementData(DCM_ELEMENT *e) {
+int FreeElementData(DCM_ELEMENT *e)
+{
   switch (e->representation) {
     case DCM_AE:
     case DCM_AS:
@@ -1408,7 +1435,8 @@ int FreeElementData(DCM_ELEMENT *e) {
   Checks DICOM tag (8,70).
   Author: Douglas N. Greve, 9/6/2001
   -------------------------------------------------------------------*/
-int IsSiemensDICOM(const char *dcmfile) {
+int IsSiemensDICOM(const char *dcmfile)
+{
   DCM_ELEMENT *e;
 
   // printf("Entering IsSiemensDICOM (%s)\n",dcmfile);
@@ -1452,7 +1480,8 @@ int IsSiemensDICOM(const char *dcmfile) {
 
 /* The original SiemensQsciiTag() is too slow         */
 /* make sure that returned value be freed if non-null */
-char *SiemensAsciiTagEx(const char *dcmfile, const char *TagString, int cleanup) {
+char *SiemensAsciiTagEx(const char *dcmfile, const char *TagString, int cleanup)
+{
   static char filename[1024] = "";
   static char **lists = 0;
   static int count = 0;
@@ -1551,7 +1580,8 @@ char *SiemensAsciiTagEx(const char *dcmfile, const char *TagString, int cleanup)
       // do not include the chars ' ###'
       if (strncmp(buf, "### ASCCONV BEGIN", 17) == 0) {
         startOfAscii = 1;
-      } else if (strncmp(buf, "### ASCCONV END ###", 19) == 0) {
+      }
+      else if (strncmp(buf, "### ASCCONV END ###", 19) == 0) {
         startOfAscii = 0;
       }
 
@@ -1574,7 +1604,8 @@ char *SiemensAsciiTagEx(const char *dcmfile, const char *TagString, int cleanup)
               lists[MAX_ASCIILIST + i] = (char *)0;
             }
             MAX_ASCIILIST = newSize;
-          } else {
+          }
+          else {
             // this should not happen, but hey just in case.
             // Ascii tag is not essential and thus allow it to pass.
             fprintf(stderr,
@@ -1598,7 +1629,8 @@ char *SiemensAsciiTagEx(const char *dcmfile, const char *TagString, int cleanup)
       sscanf(lists[i], "%*s %*s %s", tmpstr2);
       VariableValue = (char *)calloc(strlen(tmpstr2) + 17, sizeof(char));
       memmove(VariableValue, tmpstr2, strlen(tmpstr2));
-    } else {
+    }
+    else {
       continue;
     }
   }
@@ -1636,7 +1668,8 @@ char *SiemensAsciiTagEx(const char *dcmfile, const char *TagString, int cleanup)
 
   Author: Douglas N. Greve, 9/6/2001
   -----------------------------------------------------------------*/
-char *SiemensAsciiTag(const char *dcmfile, const char *TagString, int flag) {
+char *SiemensAsciiTag(const char *dcmfile, const char *TagString, int flag)
+{
   char linestr[4000];
   char tmpstr2[500];
   FILE *fp;
@@ -1744,7 +1777,8 @@ char *SiemensAsciiTag(const char *dcmfile, const char *TagString, int flag) {
   See sdcmMosaicSliceRes().
   Author: Douglas N. Greve, 9/6/2001
   -----------------------------------------------------------------------*/
-int dcmGetVolRes(const char *dcmfile, float *ColRes, float *RowRes, float *SliceRes) {
+int dcmGetVolRes(const char *dcmfile, float *ColRes, float *RowRes, float *SliceRes)
+{
   DCM_ELEMENT *e;
   char *s;
   int ns, n;
@@ -1799,7 +1833,8 @@ int dcmGetVolRes(const char *dcmfile, float *ColRes, float *RowRes, float *Slice
         SliceResElTag1 = 0x50;
       else
         SliceResElTag1 = 0x88;
-    } else
+    }
+    else
       printf("Tag 18,23 is null, cannot automatically determine SliceResElTag\n");
     printf("SliceResElTag order is %lx then %lx\n", SliceResElTag1, SliceResElTag2);
   }
@@ -1835,7 +1870,8 @@ int dcmGetVolRes(const char *dcmfile, float *ColRes, float *RowRes, float *Slice
   Returns -1 if error.
   Author: Douglas N. Greve, 9/25/2001
   -----------------------------------------------------------------------*/
-int dcmGetSeriesNo(const char *dcmfile) {
+int dcmGetSeriesNo(const char *dcmfile)
+{
   DCM_ELEMENT *e;
   int SeriesNo;
 
@@ -1858,7 +1894,8 @@ int dcmGetSeriesNo(const char *dcmfile) {
   Returns -1 if error.
   Author: Douglas N. Greve, 9/6/2001
   -----------------------------------------------------------------------*/
-int dcmGetNRows(const char *dcmfile) {
+int dcmGetNRows(const char *dcmfile)
+{
   DCM_ELEMENT *e;
   int NRows;
 
@@ -1885,7 +1922,8 @@ int dcmGetNRows(const char *dcmfile) {
   Returns -1 if error.
   Author: Douglas N. Greve, 9/6/2001
   -----------------------------------------------------------------------*/
-int dcmGetNCols(const char *dcmfile) {
+int dcmGetNCols(const char *dcmfile)
+{
   DCM_ELEMENT *e;
   int NCols;
 
@@ -1910,7 +1948,8 @@ int dcmGetNCols(const char *dcmfile) {
   Returns 1 if error.
   Author: Douglas N. Greve, 9/10/2001
   -----------------------------------------------------------------------*/
-int dcmImageDirCos(const char *dcmfile, float *Vcx, float *Vcy, float *Vcz, float *Vrx, float *Vry, float *Vrz) {
+int dcmImageDirCos(const char *dcmfile, float *Vcx, float *Vcy, float *Vcz, float *Vrx, float *Vry, float *Vrz)
+{
   DCM_ELEMENT *e;
   char *s;
   int n, nbs;
@@ -1972,7 +2011,8 @@ int dcmImageDirCos(const char *dcmfile, float *Vcx, float *Vcy, float *Vcz, floa
   Returns 1 if error.
   Author: Douglas N. Greve, 9/10/2001
   -----------------------------------------------------------------------*/
-int dcmImagePosition(const char *dcmfile, float *x, float *y, float *z) {
+int dcmImagePosition(const char *dcmfile, float *x, float *y, float *z)
+{
   DCM_ELEMENT *e;
   char *s;
   int n, nbs;
@@ -2024,7 +2064,8 @@ int dcmImagePosition(const char *dcmfile, float *x, float *y, float *z) {
   Returns 1 if error.
   Author: Douglas N. Greve, 9/10/2001
   -----------------------------------------------------------------------*/
-int sdcmSliceDirCos(const char *dcmfile, float *Vsx, float *Vsy, float *Vsz) {
+int sdcmSliceDirCos(const char *dcmfile, float *Vsx, float *Vsy, float *Vsz)
+{
   char *tmpstr;
   float rms;
 
@@ -2084,7 +2125,8 @@ int sdcmSliceDirCos(const char *dcmfile, float *Vsx, float *Vsy, float *Vsz) {
 
   Author: Douglas N. Greve, 9/6/2001
   -----------------------------------------------------------------------*/
-int sdcmIsMosaic(const char *dcmfile, int *pNcols, int *pNrows, int *pNslices, int *pNframes) {
+int sdcmIsMosaic(const char *dcmfile, int *pNcols, int *pNrows, int *pNslices, int *pNframes)
+{
   DCM_ELEMENT *e;
   char *PhEncDir;
   int Nrows, Ncols;
@@ -2150,7 +2192,8 @@ int sdcmIsMosaic(const char *dcmfile, int *pNcols, int *pNrows, int *pNslices, i
     /* Each row is a different phase encode */
     NrowsExp = (int)(rint(PhEncFOV / RowRes));
     NcolsExp = (int)(rint(ReadOutFOV / ColRes));
-  } else {
+  }
+  else {
     /* Each column is a different phase encode */
     NrowsExp = (int)(rint(ReadOutFOV / RowRes));
     NcolsExp = (int)(rint(PhEncFOV / ColRes));
@@ -2162,7 +2205,8 @@ int sdcmIsMosaic(const char *dcmfile, int *pNcols, int *pNrows, int *pNslices, i
       tmpstr = getenv("NROWS_OVERRIDE");
       if (tmpstr == NULL) {
         *pNrows = NrowsExp;
-      } else {
+      }
+      else {
         sscanf(tmpstr, "%d", pNrows);
         printf("Overriding number of rows with %d\n", *pNrows);
       }
@@ -2171,7 +2215,8 @@ int sdcmIsMosaic(const char *dcmfile, int *pNcols, int *pNrows, int *pNslices, i
       tmpstr = getenv("NCOLS_OVERRIDE");
       if (tmpstr == NULL) {
         *pNcols = NcolsExp;
-      } else {
+      }
+      else {
         sscanf(tmpstr, "%d", pNcols);
         printf("Overriding number of columns with %d\n", *pNcols);
       }
@@ -2185,7 +2230,8 @@ int sdcmIsMosaic(const char *dcmfile, int *pNcols, int *pNrows, int *pNslices, i
         }
         sscanf(tmpstr, "%d", pNslices);
         free(tmpstr);
-      } else {
+      }
+      else {
         sscanf(tmpstr, "%d", pNslices);
         printf("Overriding number of slices with %d\n", *pNslices);
       }
@@ -2210,7 +2256,8 @@ int sdcmIsMosaic(const char *dcmfile, int *pNcols, int *pNrows, int *pNslices, i
   the DICOM header and some from the Siemens ASCII header. The
   pixel data are not loaded.
   ----------------------------------------------------------------*/
-SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile) {
+SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile)
+{
   DCM_OBJECT *object = 0;
   SDCMFILEINFO *sdcmfi;
   CONDITION cond;
@@ -2322,7 +2369,8 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile) {
   cond = GetDoubleFromString(&object, tag, &dtmp);
   if (cond == DCM_NORMAL) {
     sdcmfi->FlipAngle = (float)M_PI * dtmp / 180.0;
-  } else {
+  }
+  else {
     sdcmfi->FlipAngle = 0;
   }
 
@@ -2364,7 +2412,8 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile) {
     // This can cause problems with DTI scans if lRepetitions is actually set
     sscanf(strtmp, "%d", &(sdcmfi->lRepetitions));
     free(strtmp);
-  } else {
+  }
+  else {
     strtmp = SiemensAsciiTag(dcmfile, "sDiffusion.lDiffDirections", 0);
     strtmp2 = SiemensAsciiTag(dcmfile, "sWiPMemBlock.alFree[8]", 0);
     if (strtmp != NULL && strtmp2 != NULL) {
@@ -2375,7 +2424,8 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile) {
       // printf("nDiffDirections = %d, nB0 = %d\n",nDiffDirections,nB0);
       // printf("%s %g %d\n",sdcmfi->PulseSequence,
       //     sdcmfi->bValue, sdcmfi->nthDirection);
-    } else {
+    }
+    else {
       sdcmfi->lRepetitions = 0;
     }
     if (strtmp) {
@@ -2392,7 +2442,8 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile) {
   if (strtmp != NULL) {
     sscanf(strtmp, "%d", &(sdcmfi->SliceArraylSize));
     free(strtmp);
-  } else {
+  }
+  else {
     sdcmfi->SliceArraylSize = 0;
   }
 
@@ -2400,7 +2451,8 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile) {
   if (strtmp != NULL) {
     sscanf(strtmp, "%f", &(sdcmfi->PhEncFOV));
     free(strtmp);
-  } else {
+  }
+  else {
     sdcmfi->PhEncFOV = 0;
   }
 
@@ -2408,7 +2460,8 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile) {
   if (strtmp != NULL) {
     sscanf(strtmp, "%f", &(sdcmfi->ReadoutFOV));
     free(strtmp);
-  } else {
+  }
+  else {
     sdcmfi->ReadoutFOV = 0;
   }
 
@@ -2478,7 +2531,8 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile) {
 
   if (sdcmfi->IsMosaic) {
     sdcmIsMosaic(dcmfile, &(sdcmfi->VolDim[0]), &(sdcmfi->VolDim[1]), &(sdcmfi->VolDim[2]), &(sdcmfi->NFrames));
-  } else {
+  }
+  else {
     sdcmfi->VolDim[0] = sdcmfi->NImageCols;
     sdcmfi->VolDim[1] = sdcmfi->NImageRows;
   }
@@ -2506,7 +2560,8 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile) {
     sdcmfi->bvecx = xbvec;
     sdcmfi->bvecy = ybvec;
     sdcmfi->bvecz = zbvec;
-  } else {
+  }
+  else {
     sdcmfi->bval = 0;
     sdcmfi->bvecx = 0;
     sdcmfi->bvecy = 0;
@@ -2524,7 +2579,8 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile) {
   return (sdcmfi);
 }
 /*----------------------------------------------------------*/
-int DumpSDCMFileInfo(FILE *fp, SDCMFILEINFO *sdcmfi) {
+int DumpSDCMFileInfo(FILE *fp, SDCMFILEINFO *sdcmfi)
+{
   fprintf(fp, "FileName \t\t%s\n", sdcmfi->FileName);
   fprintf(fp, "Identification\n");
   fprintf(fp, "\tNumarisVer        %s\n", sdcmfi->NumarisVer);
@@ -2575,7 +2631,8 @@ int DumpSDCMFileInfo(FILE *fp, SDCMFILEINFO *sdcmfi) {
 }
 
 /*-----------------------------------------------------------------*/
-int FreeSDCMFileInfo(SDCMFILEINFO **ppsdcmfi) {
+int FreeSDCMFileInfo(SDCMFILEINFO **ppsdcmfi)
+{
   SDCMFILEINFO *p;
 
   p = *ppsdcmfi;
@@ -2624,7 +2681,8 @@ int FreeSDCMFileInfo(SDCMFILEINFO **ppsdcmfi) {
   Minor number is the number after VA.  The MinorMinor number is the
   number the Minor.
   -------------------------------------------------------------------*/
-char *sdcmExtractNumarisVer(const char *e_18_1020, int *Maj, int *Min, int *MinMin) {
+char *sdcmExtractNumarisVer(const char *e_18_1020, int *Maj, int *Min, int *MinMin)
+{
   int l, n, m;
   char *ver;
 
@@ -2694,7 +2752,8 @@ char *sdcmExtractNumarisVer(const char *e_18_1020, int *Maj, int *Min, int *MinM
   Author: Douglas Greve.
   Date: 09/10/2001
   *------------------------------------------------------------------*/
-SDCMFILEINFO **ScanSiemensDCMDir(const char *PathName, int *NSDCMFiles) {
+SDCMFILEINFO **ScanSiemensDCMDir(const char *PathName, int *NSDCMFiles)
+{
   struct dirent **NameList;
   int i, pathlength;
   int NFiles;
@@ -2800,7 +2859,8 @@ SDCMFILEINFO **ScanSiemensDCMDir(const char *PathName, int *NSDCMFiles) {
   Author: Douglas Greve.
   Date: 09/10/2001
   *------------------------------------------------------------------*/
-SDCMFILEINFO **LoadSiemensSeriesInfo(char **SeriesList, int nList) {
+SDCMFILEINFO **LoadSiemensSeriesInfo(char **SeriesList, int nList)
+{
   SDCMFILEINFO **sdfi_list;
   int n;
 
@@ -2850,7 +2910,8 @@ SDCMFILEINFO **LoadSiemensSeriesInfo(char **SeriesList, int nList) {
   Author: Douglas Greve.
   Date: 09/25/2001
   *------------------------------------------------------------------*/
-char **ReadSiemensSeries(const char *ListFile, int *nList, const char *dcmfile) {
+char **ReadSiemensSeries(const char *ListFile, int *nList, const char *dcmfile)
+{
   FILE *fp;
   char **SeriesList;
   char tmpstr[1000];
@@ -2935,7 +2996,8 @@ char **ReadSiemensSeries(const char *ListFile, int *nList, const char *dcmfile) 
   Author: Douglas Greve.
   Date: 09/25/2001
   *------------------------------------------------------------------*/
-char **ScanSiemensSeries(const char *dcmfile, int *nList) {
+char **ScanSiemensSeries(const char *dcmfile, int *nList)
+{
   int SeriesNo, SeriesNoTest;
   char *PathName;
   int NFiles, i;
@@ -3011,7 +3073,8 @@ char **ScanSiemensSeries(const char *dcmfile, int *nList) {
 }
 
 /*-----------------------------------------------------------*/
-int SortSDCMFileInfo(SDCMFILEINFO **sdcmfi_list, int nlist) {
+int SortSDCMFileInfo(SDCMFILEINFO **sdcmfi_list, int nlist)
+{
   qsort(sdcmfi_list, nlist, sizeof(SDCMFILEINFO **), CompareSDCMFileInfo);
   return (0);
 }
@@ -3076,7 +3139,8 @@ int SortSDCMFileInfo(SDCMFILEINFO **sdcmfi_list, int nlist) {
   note 2, the image number comparison should never be reached.
   4. For non-mosaics, image number increases for later acquisitions.
   -----------------------------------------------------------*/
-int CompareSDCMFileInfo(const void *a, const void *b) {
+int CompareSDCMFileInfo(const void *a, const void *b)
+{
   SDCMFILEINFO *sdcmfi1;
   SDCMFILEINFO *sdcmfi2;
   int n;
@@ -3160,7 +3224,8 @@ int CompareSDCMFileInfo(const void *a, const void *b) {
 /*-----------------------------------------------------------
   sdfiAssignRunNo2() - assigns run number based on series number
   -----------------------------------------------------------*/
-int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist) {
+int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist)
+{
   SDCMFILEINFO *sdfi, *sdfitmp, *sdfi0;
   int nthfile, NRuns, nthrun, nthslice, nthframe;
   int nfilesperrun = 0, firstpass, nframes;
@@ -3208,7 +3273,8 @@ int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist) {
           nthfile++;
           if (nthfile < nfilesperrun) {
             sdfitmp = sdfi_list[RunList[nthfile]];
-          } else {
+          }
+          else {
             break;
           }
         }
@@ -3256,7 +3322,8 @@ int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist) {
 /*-----------------------------------------------------------
   sdfiRunNoList() - returns a list of run numbers
   -----------------------------------------------------------*/
-int *sdfiRunNoList(SDCMFILEINFO **sdfi_list, int nlist, int *NRuns) {
+int *sdfiRunNoList(SDCMFILEINFO **sdfi_list, int nlist, int *NRuns)
+{
   SDCMFILEINFO *sdfi;
   int nthfile, PrevRunNo;
   int *RunNoList;
@@ -3286,7 +3353,8 @@ int *sdfiRunNoList(SDCMFILEINFO **sdfi_list, int nlist, int *NRuns) {
 /*-----------------------------------------------------------
   sdfiCountRuns() - counts the number of runs in the list
   -----------------------------------------------------------*/
-int sdfiCountRuns(SDCMFILEINFO **sdfi_list, int nlist) {
+int sdfiCountRuns(SDCMFILEINFO **sdfi_list, int nlist)
+{
   SDCMFILEINFO *sdfi;
   int nthfile, NRuns, PrevRunNo;
 
@@ -3307,7 +3375,8 @@ int sdfiCountRuns(SDCMFILEINFO **sdfi_list, int nlist) {
   given run. This differs from sdfiNFilesInRun() in that
   this takes a run number instead of a file name.
   -----------------------------------------------------------*/
-int sdfiCountFilesInRun(int RunNo, SDCMFILEINFO **sdfi_list, int nlist) {
+int sdfiCountFilesInRun(int RunNo, SDCMFILEINFO **sdfi_list, int nlist)
+{
   SDCMFILEINFO *sdfi;
   int nthfile, NFilesInRun;
 
@@ -3324,7 +3393,8 @@ int sdfiCountFilesInRun(int RunNo, SDCMFILEINFO **sdfi_list, int nlist) {
   sdfiFirstFileInRun() - returns the name of the first file
   in the given run.
   -----------------------------------------------------------*/
-char *sdfiFirstFileInRun(int RunNo, SDCMFILEINFO **sdfi_list, int nlist) {
+char *sdfiFirstFileInRun(int RunNo, SDCMFILEINFO **sdfi_list, int nlist)
+{
   SDCMFILEINFO *sdfi;
   int nthfile, len;
   char *FirstFileName;
@@ -3375,7 +3445,8 @@ char *sdfiFirstFileInRun(int RunNo, SDCMFILEINFO **sdfi_list, int nlist) {
   2. For non-mosaics with multiple frames, the number of frames
   (ie, ->NFrames) is also determined here.
   -----------------------------------------------------------*/
-int sdfiAssignRunNo(SDCMFILEINFO **sdcmfi_list, int nfiles) {
+int sdfiAssignRunNo(SDCMFILEINFO **sdcmfi_list, int nfiles)
+{
   int nthfile, nthrun, nthslice, nthframe, serno, sernotest;
   int nfilesperrun;
   int ncols, nrows, nslices, nframes;
@@ -3438,7 +3509,8 @@ int sdfiAssignRunNo(SDCMFILEINFO **sdcmfi_list, int nfiles) {
           if (nthfile < nfiles) {
             sdfi = sdcmfi_list[nthfile];
             sernotest = sdfi->SeriesNo;
-          } else {
+          }
+          else {
             sernotest = -1;
             break;
           }
@@ -3518,7 +3590,8 @@ int sdfiAssignRunNo(SDCMFILEINFO **sdcmfi_list, int nfiles) {
   dcmfile. The RunNo member is then returned. The sdfi_list must
   have been sorted into runs with sdfiAssignRunNo().
   ------------------------------------------------------------------*/
-int sdfiRunNo(const char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist) {
+int sdfiRunNo(const char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist)
+{
   int nthfile;
   SDCMFILEINFO *sdfi;
 
@@ -3538,7 +3611,8 @@ int sdfiRunNo(const char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist) {
   with dcmfile. The Run Number for dcmfile is obtained using sdfiRunNo().
   The list is searched for all the files with the same Run Number.
   ------------------------------------------------------------------*/
-int sdfiNFilesInRun(const char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist) {
+int sdfiNFilesInRun(const char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist)
+{
   int nthfile;
   int RunNo;
   int NFilesInRun;
@@ -3564,7 +3638,8 @@ int sdfiNFilesInRun(const char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist) {
   share the same Run Number. The number in the list is passed as
   NRunList.
   ------------------------------------------------------------------*/
-int *sdfiRunFileList(const char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist, int *NRunList) {
+int *sdfiRunFileList(const char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist, int *NRunList)
+{
   int nthfile, nthfileinrun;
   SDCMFILEINFO *sdfi;
   int *RunList;
@@ -3620,7 +3695,8 @@ int *sdfiRunFileList(const char *dcmfile, SDCMFILEINFO **sdfi_list, int nlist, i
   the from non-mosaic volumes with identical slice prescriptions. This
   change was made on 7/28/05.
   -----------------------------------------------------------------------*/
-int sdfiFixImagePosition(SDCMFILEINFO *sdfi) {
+int sdfiFixImagePosition(SDCMFILEINFO *sdfi)
+{
   char *strtmp, *dcmfile;
   MATRIX *ras_c, *R, *crs_c, *ras0;
   int r;
@@ -3689,7 +3765,8 @@ int sdfiFixImagePosition(SDCMFILEINFO *sdfi) {
 
   Author: Douglas N. Greve, 9/12/2001. Updated 12/19/02.
   -----------------------------------------------------------------------*/
-int sdfiVolCenter(SDCMFILEINFO *sdfi) {
+int sdfiVolCenter(SDCMFILEINFO *sdfi)
+{
   int r, c;
   float Mdc[3][3], FoV[3];
 
@@ -3722,7 +3799,8 @@ int sdfiVolCenter(SDCMFILEINFO *sdfi) {
   have the same slice position.
   Author: Douglas N. Greve, 9/12/2001
   -----------------------------------------------------------------------*/
-int sdfiSameSlicePos(SDCMFILEINFO *sdfi1, SDCMFILEINFO *sdfi2) {
+int sdfiSameSlicePos(SDCMFILEINFO *sdfi1, SDCMFILEINFO *sdfi2)
+{
   static float eps = 0;
   if (eps == 0) {
     char *pc;
@@ -3762,7 +3840,8 @@ int sdfiSameSlicePos(SDCMFILEINFO *sdfi1, SDCMFILEINFO *sdfi2) {
 
   Author: Douglas N. Greve, 7/28/05
   -----------------------------------------------------------------------*/
-int sdfiIsSliceOrderReversed(SDCMFILEINFO *sdfi) {
+int sdfiIsSliceOrderReversed(SDCMFILEINFO *sdfi)
+{
   int correv, sagrev, trarev;
   char *dcmfile, *strtmp;
 
@@ -3839,7 +3918,8 @@ int sdfiIsSliceOrderReversed(SDCMFILEINFO *sdfi) {
    input: structure DICOMInfo
    output: prints specific DICOM fields
 *******************************************************/
-void PrintDICOMInfo(DICOMInfo *dcminfo) {
+void PrintDICOMInfo(DICOMInfo *dcminfo)
+{
   int i;
   char str[256];
 
@@ -3851,28 +3931,32 @@ void PrintDICOMInfo(DICOMInfo *dcminfo) {
   printf("Date and time\n");
   if (IsTagPresent[DCM_StudyDate]) {
     sprintf(str, "%s", dcminfo->StudyDate);
-  } else {
+  }
+  else {
     strcpy(str, "not found");
   }
   printf("\tstudy date\t\t%s\n", str);
 
   if (IsTagPresent[DCM_StudyTime]) {
     sprintf(str, "%s", dcminfo->StudyTime);
-  } else {
+  }
+  else {
     strcpy(str, "not found");
   }
   printf("\tstudy time\t\t%s\n", str);
 
   if (IsTagPresent[DCM_SeriesTime]) {
     sprintf(str, "%s", dcminfo->SeriesTime);
-  } else {
+  }
+  else {
     strcpy(str, "not found");
   }
   printf("\tseries time\t\t%s\n", str);
 
   if (IsTagPresent[DCM_AcquisitionTime]) {
     sprintf(str, "%s", dcminfo->AcquisitionTime);
-  } else {
+  }
+  else {
     strcpy(str, "not found");
   }
   printf("\tacquisition time\t%s\n", str);
@@ -3880,14 +3964,16 @@ void PrintDICOMInfo(DICOMInfo *dcminfo) {
   printf("Identification\n");
   if (IsTagPresent[DCM_PatientName]) {
     sprintf(str, "%s", dcminfo->PatientName);
-  } else {
+  }
+  else {
     strcpy(str, "not found");
   }
   printf("\tpatient name\t\t%s\n", str);
 
   if (IsTagPresent[DCM_Manufacturer]) {
     sprintf(str, "%s", dcminfo->Manufacturer);
-  } else {
+  }
+  else {
     strcpy(str, "not found");
   }
   printf("\tmanufacturer\t\t%s\n", str);
@@ -3895,14 +3981,16 @@ void PrintDICOMInfo(DICOMInfo *dcminfo) {
   printf("Dimensions\n");
   if (IsTagPresent[DCM_Rows]) {
     sprintf(str, "%d", dcminfo->Rows);
-  } else {
+  }
+  else {
     strcpy(str, "not found");
   }
   printf("\tnumber of rows\t\t%s\n", str);
 
   if (IsTagPresent[DCM_Columns]) {
     sprintf(str, "%d", dcminfo->Columns);
-  } else {
+  }
+  else {
     strcpy(str, "not found");
   }
   printf("\tnumber of columns\t%s\n", str);
@@ -3911,21 +3999,24 @@ void PrintDICOMInfo(DICOMInfo *dcminfo) {
 
   if (IsTagPresent[DCM_xsize]) {
     sprintf(str, "%g", dcminfo->xsize);
-  } else {
+  }
+  else {
     strcpy(str, "not found");
   }
   printf("\tpixel width\t\t%s\n", str);
 
   if (IsTagPresent[DCM_ysize]) {
     sprintf(str, "%g", dcminfo->ysize);
-  } else {
+  }
+  else {
     strcpy(str, "not found");
   }
   printf("\tpixel height\t\t%s\n", str);
 
   if (IsTagPresent[DCM_SliceThickness]) {
     sprintf(str, "%g", dcminfo->SliceThickness);
-  } else {
+  }
+  else {
     strcpy(str, "not found");
   }
   printf("\tslice thickness\t\t%s\n", str);
@@ -3934,7 +4025,8 @@ void PrintDICOMInfo(DICOMInfo *dcminfo) {
 
   if (IsTagPresent[DCM_ImageNumber]) {
     sprintf(str, "%d", dcminfo->ImageNumber);
-  } else {
+  }
+  else {
     strcpy(str, "not found");
   }
   printf("\timage number\t\t%s (might be not reliable)\n", str);
@@ -3946,42 +4038,48 @@ void PrintDICOMInfo(DICOMInfo *dcminfo) {
   printf("Acquisition parameters\n");
   if (IsTagPresent[DCM_EchoTime]) {
     sprintf(str, "%g", dcminfo->EchoTime);
-  } else {
+  }
+  else {
     strcpy(str, "not found");
   }
   printf("\techo time\t\t%s\n", str);
 
   if (IsTagPresent[DCM_RepetitionTime]) {
     sprintf(str, "%g", dcminfo->RepetitionTime);
-  } else {
+  }
+  else {
     strcpy(str, "not found");
   }
   printf("\trepetition time\t\t%s\n", str);
 
   if (IsTagPresent[DCM_InversionTime]) {
     sprintf(str, "%g", dcminfo->InversionTime);
-  } else {
+  }
+  else {
     strcpy(str, "not found");
   }
   printf("\tinversion time\t\t%s\n", str);
 
   if (IsTagPresent[DCM_EchoNumber]) {
     sprintf(str, "%d", dcminfo->EchoNumber);
-  } else {
+  }
+  else {
     strcpy(str, "not found");
   }
   printf("\techo number\t\t%s\n", str);
 
   if (IsTagPresent[DCM_FlipAngle]) {
     sprintf(str, "%g", dcminfo->FlipAngle);
-  } else {
+  }
+  else {
     strcpy(str, "not found");
   }
   printf("\tflip angle\t\t%s\n", str);
 
   if (IsTagPresent[DCM_BitsAllocated]) {
     sprintf(str, "%d", dcminfo->BitsAllocated);
-  } else {
+  }
+  else {
     strcpy(str, "not found");
   }
   printf("\tbits allocated\t\t%s\n", str);
@@ -3994,7 +4092,8 @@ void PrintDICOMInfo(DICOMInfo *dcminfo) {
       printf("%g ", dcminfo->FirstImagePosition[i]);
     }
     printf("\n");
-  } else {
+  }
+  else {
     printf("notfound\n");
   }
 
@@ -4004,7 +4103,8 @@ void PrintDICOMInfo(DICOMInfo *dcminfo) {
       printf("%g ", dcminfo->LastImagePosition[i]);
     }
     printf("\n");
-  } else {
+  }
+  else {
     printf("notfound\n");
   }
 
@@ -4014,14 +4114,16 @@ void PrintDICOMInfo(DICOMInfo *dcminfo) {
       printf("%g ", dcminfo->ImageOrientation[i]);
     }
     printf("\n");
-  } else {
+  }
+  else {
     printf("notfound\n");
   }
 
   printf("-------------------------------------------------\n\n");
 }
 
-CONDITION GetString(DCM_OBJECT **object, DCM_TAG tag, char **st) {
+CONDITION GetString(DCM_OBJECT **object, DCM_TAG tag, char **st)
+{
   DCM_ELEMENT attribute;
   CONDITION cond;
   void *ctx;
@@ -4040,7 +4142,8 @@ CONDITION GetString(DCM_OBJECT **object, DCM_TAG tag, char **st) {
   return cond;
 }
 
-CONDITION GetUSFromString(DCM_OBJECT **object, DCM_TAG tag, unsigned short *us) {
+CONDITION GetUSFromString(DCM_OBJECT **object, DCM_TAG tag, unsigned short *us)
+{
   DCM_ELEMENT attribute;
   CONDITION cond;
   char *s;
@@ -4060,7 +4163,8 @@ CONDITION GetUSFromString(DCM_OBJECT **object, DCM_TAG tag, unsigned short *us) 
   return cond;
 }
 
-CONDITION GetShortFromString(DCM_OBJECT **object, DCM_TAG tag, short *sh) {
+CONDITION GetShortFromString(DCM_OBJECT **object, DCM_TAG tag, short *sh)
+{
   DCM_ELEMENT attribute;
   CONDITION cond;
   char *s;
@@ -4080,7 +4184,8 @@ CONDITION GetShortFromString(DCM_OBJECT **object, DCM_TAG tag, short *sh) {
   return cond;
 }
 
-CONDITION GetUSFromUS(DCM_OBJECT **object, DCM_TAG tag, unsigned short *us) {
+CONDITION GetUSFromUS(DCM_OBJECT **object, DCM_TAG tag, unsigned short *us)
+{
   DCM_ELEMENT attribute;
   CONDITION cond;
   void *ctx, *ot;
@@ -4099,7 +4204,8 @@ CONDITION GetUSFromUS(DCM_OBJECT **object, DCM_TAG tag, unsigned short *us) {
   return cond;
 }
 
-CONDITION GetShortFromShort(DCM_OBJECT **object, DCM_TAG tag, short *ss) {
+CONDITION GetShortFromShort(DCM_OBJECT **object, DCM_TAG tag, short *ss)
+{
   DCM_ELEMENT attribute;
   CONDITION cond;
   void *ctx, *ot;
@@ -4118,7 +4224,8 @@ CONDITION GetShortFromShort(DCM_OBJECT **object, DCM_TAG tag, short *ss) {
   return cond;
 }
 
-CONDITION GetPixelData_Save(DCM_OBJECT **object, DCM_TAG tag, unsigned short **ad) {
+CONDITION GetPixelData_Save(DCM_OBJECT **object, DCM_TAG tag, unsigned short **ad)
+{
   DCM_ELEMENT attribute;
   CONDITION cond;
   void *ctx, *ot;
@@ -4136,7 +4243,8 @@ CONDITION GetPixelData_Save(DCM_OBJECT **object, DCM_TAG tag, unsigned short **a
   return cond;
 }
 
-CONDITION GetPixelData(DCM_OBJECT **object, DCM_TAG tag, void **ad) {
+CONDITION GetPixelData(DCM_OBJECT **object, DCM_TAG tag, void **ad)
+{
   DCM_ELEMENT attribute;
   CONDITION cond;
   void *ctx, *ot;
@@ -4163,7 +4271,8 @@ CONDITION GetPixelData(DCM_OBJECT **object, DCM_TAG tag, void **ad) {
   return cond;
 }
 
-CONDITION GetDoubleFromString(DCM_OBJECT **object, DCM_TAG tag, double *d) {
+CONDITION GetDoubleFromString(DCM_OBJECT **object, DCM_TAG tag, double *d)
+{
   DCM_ELEMENT attribute;
   CONDITION cond;
   char *s;
@@ -4183,7 +4292,8 @@ CONDITION GetDoubleFromString(DCM_OBJECT **object, DCM_TAG tag, double *d) {
   return cond;
 }
 
-CONDITION GetMultiDoubleFromString(DCM_OBJECT **object, DCM_TAG tag, double *d[], int multiplicity) {
+CONDITION GetMultiDoubleFromString(DCM_OBJECT **object, DCM_TAG tag, double *d[], int multiplicity)
+{
   DCM_ELEMENT attribute;
   CONDITION cond;
   char *s, *ss;
@@ -4218,7 +4328,8 @@ CONDITION GetMultiDoubleFromString(DCM_OBJECT **object, DCM_TAG tag, double *d[]
   return cond;
 }
 
-CONDITION GetMultiShortFromString(DCM_OBJECT **object, DCM_TAG tag, short *us[], int multiplicity) {
+CONDITION GetMultiShortFromString(DCM_OBJECT **object, DCM_TAG tag, short *us[], int multiplicity)
+{
   DCM_ELEMENT attribute;
   CONDITION cond;
   char *s, *ss;
@@ -4261,7 +4372,8 @@ CONDITION GetMultiShortFromString(DCM_OBJECT **object, DCM_TAG tag, short *us[],
    output: fills in structure DICOMInfo with DICOM meta-header fields
 *******************************************************/
 
-CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, int ImageNumber) {
+CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, int ImageNumber)
+{
   DCM_OBJECT **object = (DCM_OBJECT **)calloc(1, sizeof(DCM_OBJECT *));
   DCM_TAG tag;
   CONDITION cond, cond2 = DCM_NORMAL;
@@ -4302,7 +4414,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
 #ifdef _DEBUG
     printf("WARNING: tag TransferSystaxUID not found in %s\n", fname);
 #endif
-  } else {
+  }
+  else {
     IsTagPresent[DCM_TransferSyntaxUID] = true;
   }
 
@@ -4339,7 +4452,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
 #ifdef _DEBUG
     printf("WARNING: tag Manufacturer not found in %s\n", fname);
 #endif
-  } else {
+  }
+  else {
     IsTagPresent[DCM_Manufacturer] = true;
   }
 
@@ -4353,7 +4467,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
 #ifdef _DEBUG
     printf("WARNING: tag PatientName not found in %s\n", fname);
 #endif
-  } else {
+  }
+  else {
     IsTagPresent[DCM_PatientName] = true;
   }
 
@@ -4367,7 +4482,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
 #ifdef _DEBUG
     printf("WARNING: tag StudyDate not found in %s\n", fname);
 #endif
-  } else {
+  }
+  else {
     IsTagPresent[DCM_StudyDate] = true;
   }
 
@@ -4381,7 +4497,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
 #ifdef _DEBUG
     printf("WARNING: tag StudyTime not found in %s\n", fname);
 #endif
-  } else {
+  }
+  else {
     IsTagPresent[DCM_StudyTime] = true;
   }
 
@@ -4395,7 +4512,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
 #ifdef _DEBUG
     printf("WARNING: tag SeriesTime not found in %s\n", fname);
 #endif
-  } else {
+  }
+  else {
     IsTagPresent[DCM_SeriesTime] = true;
   }
 
@@ -4409,7 +4527,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
 #ifdef _DEBUG
     printf("WARNING: tag AcquisitionTime not found in %s\n", fname);
 #endif
-  } else {
+  }
+  else {
     IsTagPresent[DCM_AcquisitionTime] = true;
   }
 
@@ -4429,10 +4548,12 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
 #ifdef _DEBUG
       printf("WARNING: tag Slice Thickness not found\n");
 #endif
-    } else {
+    }
+    else {
       IsTagPresent[DCM_SliceThickness] = true;
     }
-  } else {
+  }
+  else {
     IsTagPresent[DCM_SliceThickness] = true;
   }
 
@@ -4443,7 +4564,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
     dcminfo->ImageNumber = ImageNumber;
     cond2 = cond;
     printf("WARNING: tag ImageNumber not found in %s\n", fname);
-  } else {
+  }
+  else {
     IsTagPresent[DCM_ImageNumber] = true;
   }
 
@@ -4453,7 +4575,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
   if (cond != DCM_NORMAL || dcminfo->SeriesNumber == 0) {
     cond2 = cond;
     printf("WARNING: tag SeriesNumber not found in %s\n", fname);
-  } else {
+  }
+  else {
     IsTagPresent[DCM_SeriesNumber] = true;
   }
 
@@ -4466,7 +4589,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
 #ifdef _DEBUG
     printf("WARNING: tag Rows not found in %s\n", fname);
 #endif
-  } else {
+  }
+  else {
     IsTagPresent[DCM_Rows] = true;
   }
 
@@ -4479,7 +4603,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
 #ifdef _DEBUG
     printf("WARNING: tag Columns not found in %s\n", fname);
 #endif
-  } else {
+  }
+  else {
     IsTagPresent[DCM_Columns] = true;
   }
 
@@ -4493,7 +4618,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
 #ifdef _DEBUG
     printf("WARNING: tag Pixel spacing not found in %s\n", fname);
 #endif
-  } else {
+  }
+  else {
     dcminfo->xsize = tmp[0];
     dcminfo->ysize = tmp[1];
     IsTagPresent[DCM_xsize] = true;
@@ -4509,7 +4635,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
 #ifdef _DEBUG
     printf("WARNING: tag BitsAllocated not found in %s\n", fname);
 #endif
-  } else {
+  }
+  else {
     IsTagPresent[DCM_BitsAllocated] = true;
   }
 
@@ -4522,7 +4649,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
 #ifdef _DEBUG
     printf("WARNING: tag RepetitionTime not found in %s\n", fname);
 #endif
-  } else {
+  }
+  else {
     IsTagPresent[DCM_RepetitionTime] = true;
   }
 
@@ -4535,7 +4663,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
 #ifdef _DEBUG
     printf("WARNING: tag EchoTime not found in %s\n", fname);
 #endif
-  } else {
+  }
+  else {
     IsTagPresent[DCM_EchoTime] = true;
   }
 
@@ -4555,7 +4684,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
 #ifdef _DEBUG
     printf("WARNING: tag FlipAngle not found in %s\n", fname);
 #endif
-  } else {
+  }
+  else {
     dcminfo->FlipAngle = M_PI * dcminfo->FlipAngle / 180.0;
     IsTagPresent[DCM_FlipAngle] = true;
   }
@@ -4569,7 +4699,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
 #ifdef _DEBUG
     printf("WARNING: tag InversionTime not found in %s\n", fname);
 #endif
-  } else {
+  }
+  else {
     IsTagPresent[DCM_InversionTime] = true;
   }
 
@@ -4582,7 +4713,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
 #ifdef _DEBUG
     printf("WARNING: tag EchoNumber not found in %s\n", fname);
 #endif
-  } else {
+  }
+  else {
     IsTagPresent[DCM_EchoNumber] = true;
   }
 
@@ -4599,7 +4731,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
 #ifdef _DEBUG
     printf("WARNING: tag image position not found in %s\n", fname);
 #endif
-  } else {
+  }
+  else {
     IsTagPresent[DCM_ImagePosition] = true;
     for (i = 0; i < 3; i++) {
       dcminfo->ImagePosition[i] = tmp[i];
@@ -4615,7 +4748,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
     }
     cond2 = cond;
     printf("WARNING: tag image orientation not found in %s\n", fname);
-  } else {
+  }
+  else {
     IsTagPresent[DCM_ImageOrientation] = true;
     for (i = 0; i < 6; i++) {
       dcminfo->ImageOrientation[i] = tmp[i];
@@ -4641,7 +4775,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
   cond = GetString(object, tag, &strtmp);
   if (cond != DCM_NORMAL) {
     dcminfo->PhEncDir = NULL;
-  } else {
+  }
+  else {
     dcminfo->PhEncDir = deblank(strtmp);
     free(strtmp);
   }
@@ -4668,7 +4803,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
     dcminfo->bvecx = xbvec;
     dcminfo->bvecy = ybvec;
     dcminfo->bvecz = zbvec;
-  } else {
+  }
+  else {
     dcminfo->bval = 0;
     dcminfo->bvecx = 0;
     dcminfo->bvecy = 0;
@@ -4712,7 +4848,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
            informations stored in first array element
 *******************************************************/
 
-void *ReadDICOMImage(int nfiles, DICOMInfo **aDicomInfo) {
+void *ReadDICOMImage(int nfiles, DICOMInfo **aDicomInfo)
+{
   int n, i, j, bitsAllocated, numberOfFrames, offset, nvox;
   DICOMInfo dcminfo;
   unsigned char *PixelData8, *v8 = NULL;
@@ -4771,7 +4908,8 @@ void *ReadDICOMImage(int nfiles, DICOMInfo **aDicomInfo) {
           v8[offset + j] = PixelData8[j];
           if (PixelData8[j] > max8) {
             max8 = PixelData8[j];
-          } else if (PixelData8[j] < min8) {
+          }
+          else if (PixelData8[j] < min8) {
             min8 = PixelData8[j];
           }
         }
@@ -4786,7 +4924,8 @@ void *ReadDICOMImage(int nfiles, DICOMInfo **aDicomInfo) {
           v16[offset + j] = PixelData16[j];
           if (PixelData16[j] > max16) {
             max16 = PixelData16[j];
-          } else if (PixelData16[j] < min16) {
+          }
+          else if (PixelData16[j] < min16) {
             min16 = PixelData16[j];
           }
         }
@@ -4817,7 +4956,8 @@ void *ReadDICOMImage(int nfiles, DICOMInfo **aDicomInfo) {
 // ReadDICOMImage2
 //
 ///////////////////////////////////////////////////////////////////
-void *ReadDICOMImage2(int nfiles, DICOMInfo **aDicomInfo, int startIndex) {
+void *ReadDICOMImage2(int nfiles, DICOMInfo **aDicomInfo, int startIndex)
+{
   int n, i, j, bitsAllocated, numberOfFrames, offset, nvox;
   DICOMInfo dcminfo;
   unsigned char *PixelData8, *v8 = NULL;
@@ -4875,7 +5015,8 @@ void *ReadDICOMImage2(int nfiles, DICOMInfo **aDicomInfo, int startIndex) {
           v8[offset + j] = PixelData8[j];
           if (PixelData8[j] > max8) {
             max8 = PixelData8[j];
-          } else if (PixelData8[j] < min8) {
+          }
+          else if (PixelData8[j] < min8) {
             min8 = PixelData8[j];
           }
         }
@@ -4891,7 +5032,8 @@ void *ReadDICOMImage2(int nfiles, DICOMInfo **aDicomInfo, int startIndex) {
           v16[offset + j] = PixelData16[j];
           if (PixelData16[j] > max16) {
             max16 = PixelData16[j];
-          } else if (PixelData16[j] < min16) {
+          }
+          else if (PixelData16[j] < min16) {
             min16 = PixelData16[j];
           }
         }
@@ -4934,7 +5076,8 @@ void *ReadDICOMImage2(int nfiles, DICOMInfo **aDicomInfo, int startIndex) {
 
 *******************************************************/
 
-void SortFiles(char *fNames[], int nFiles, DICOMInfo ***ptrDicomArray, int *nStudies) {
+void SortFiles(char *fNames[], int nFiles, DICOMInfo ***ptrDicomArray, int *nStudies)
+{
   int n, npermut;
   BOOL done;
 
@@ -5008,7 +5151,8 @@ void SortFiles(char *fNames[], int nFiles, DICOMInfo ***ptrDicomArray, int *nStu
    output: true if file is DICOM part 10 (version 3.0) compliant
 *******************************************************/
 
-int IsDICOM(const char *fname) {
+int IsDICOM(const char *fname)
+{
   int d;
   FILE *fp;
   CONDITION cond;
@@ -5024,7 +5168,8 @@ int IsDICOM(const char *fname) {
   // use the cached value if the fname is the same as privious one
   if (d == 0 && !strcmp(fname, file)) {
     return yes;  // used before
-  } else {
+  }
+  else {
     yes = 0;              // initialize
     strcpy(file, fname);  // save the current filename
   }
@@ -5111,14 +5256,16 @@ int IsDICOM(const char *fname) {
   // cache the current value
   if (cond == DCM_NORMAL) {
     yes = 1;
-  } else {
+  }
+  else {
     yes = 0;
   }
 
   return (cond == DCM_NORMAL);
 }
 /*---------------------------------------------------------------*/
-static int DCMPrintCond(CONDITION cond) {
+static int DCMPrintCond(CONDITION cond)
+{
   switch (cond) {
     case DCM_NORMAL:
       printf("DCM_NORMAL\n");
@@ -5153,7 +5300,8 @@ static int DCMPrintCond(CONDITION cond) {
    output: array of files listed in directory, and number of files
 *******************************************************/
 
-int ScanDir(const char *PathName, char ***FileNames, int *NumberOfFiles) {
+int ScanDir(const char *PathName, char ***FileNames, int *NumberOfFiles)
+{
   char **pfn;
   struct dirent **NameList;
   int i, length, pathlength;
@@ -5187,7 +5335,8 @@ int ScanDir(const char *PathName, char ***FileNames, int *NumberOfFiles) {
 int scandir(const char *dir,
             struct_dirent ***namelist,
             int (*select)(const struct_dirent *),
-            int (*compar)(const void *, const void *)) {
+            int (*compar)(const void *, const void *))
+{
   DIR *d;
   struct_dirent *entry;
   register int i = 0;
@@ -5227,7 +5376,8 @@ int scandir(const char *dir,
 }
 #endif
 #ifndef HAVE_ALPHASORT
-int alphasort(const void *a, const void *b) {
+int alphasort(const void *a, const void *b)
+{
   struct_dirent **da = (struct_dirent **)a;
   struct_dirent **db = (struct_dirent **)b;
   return (strcmp((*da)->d_name, (*db)->d_name));
@@ -5245,7 +5395,8 @@ int alphasort(const void *a, const void *b) {
   DICOMRead2() - generic dicom reader. It should be possible to
   use this for everything but siemens mosaics.
   --------------------------------------------------------------*/
-MRI *DICOMRead2(const char *dcmfile, int LoadVolume) {
+MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
+{
   char **FileNames, *dcmdir;
   DICOMInfo RefDCMInfo, TmpDCMInfo, **dcminfo;
   int nfiles, nframes, nslices, r, c, s, f, err, fid;
@@ -5372,7 +5523,8 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume) {
           "WARNING: the number of frames * number of slices is less than\n"
           "the number of dicom files.\n");
       // dont error exit, because we have enough files to complete the deal
-    } else {
+    }
+    else {
       printf(
           "ERROR: the number of frames * number of slices does\n"
           "not equal the number of dicom files.\n");
@@ -5483,7 +5635,8 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume) {
   // Phase Enc Direction
   if (RefDCMInfo.PhEncDir == NULL) {
     mri->pedir = strcpyalloc("UNKNOWN");
-  } else {
+  }
+  else {
     mri->pedir = strcpyalloc(RefDCMInfo.PhEncDir);
     str_toupper(mri->pedir);
   }
@@ -5549,7 +5702,8 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume) {
             exit(1);
           }
           FileNameUse = tmpfile;
-        } else {
+        }
+        else {
           IsCompressed = 0;
           FileNameUse = dcminfo[nthfile]->FileName;
         }
@@ -5611,7 +5765,8 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume) {
   when determining the number of frames and slices (eg, see
   DCMCountFrames()).
   ----------------------------------------------------------*/
-int CompareDCMFileInfo(const void *a, const void *b) {
+int CompareDCMFileInfo(const void *a, const void *b)
+{
   DICOMInfo *dcmfi1;
   DICOMInfo *dcmfi2;
   int n;
@@ -5689,7 +5844,8 @@ int CompareDCMFileInfo(const void *a, const void *b) {
 }
 
 /*-----------------------------------------------------------*/
-int SortDCMFileInfo(DICOMInfo **dcmfi_list, int nlist) {
+int SortDCMFileInfo(DICOMInfo **dcmfi_list, int nlist)
+{
   qsort(dcmfi_list, nlist, sizeof(DICOMInfo **), CompareDCMFileInfo);
   return (0);
 }
@@ -5702,7 +5858,8 @@ int SortDCMFileInfo(DICOMInfo **dcmfi_list, int nlist) {
   the slice position changes from that of the first file. The number
   of slices is then the number of files/nframes.
   -----------------------------------------------------------*/
-int DCMCountFrames(DICOMInfo **dcmfi_list, int nlist) {
+int DCMCountFrames(DICOMInfo **dcmfi_list, int nlist)
+{
   // Assumes they have been sorted
   int nframes, nth, c, stop;
   double ImgPos0[3], d[3];
@@ -5738,7 +5895,8 @@ int DCMCountFrames(DICOMInfo **dcmfi_list, int nlist) {
   in the dicom series will sort to the first slice in the volume. For
   EPI, this is important for slice timing correction.
   -----------------------------------------------------------*/
-int DCMSliceDir(DICOMInfo **dcmfi_list, int nlist) {
+int DCMSliceDir(DICOMInfo **dcmfi_list, int nlist)
+{
   // Assumes they have been sorted
   int nth, c, stop;
   double ImgPos0[3], d[3], dlength;
@@ -5823,7 +5981,8 @@ int DCMSliceDir(DICOMInfo **dcmfi_list, int nlist) {
    output: array of file names that are DICOM 3.0 compliant
 *******************************************************/
 
-int CleanFileNames(char **FileNames, int NumberOfDICOMFiles, char ***CleanedFileNames) {
+int CleanFileNames(char **FileNames, int NumberOfDICOMFiles, char ***CleanedFileNames)
+{
   char **pfn;
   int i, j, length;
 
@@ -5845,7 +6004,8 @@ int CleanFileNames(char **FileNames, int NumberOfDICOMFiles, char ***CleanedFile
 
 /* kteich - renamed this to myRound because round() was causing
    versioning problems */
-int myRound(double d) {
+int myRound(double d)
+{
   double c, f, ddown, dup;
 
   c = ceil(d);
@@ -5854,7 +6014,8 @@ int myRound(double d) {
   dup = c - d;
   if (ddown < dup) {
     return (int)f;
-  } else {
+  }
+  else {
     return (int)c;
   }
 }
@@ -5868,7 +6029,8 @@ int myRound(double d) {
    called-by: DICOMInfo2MRI
 *******************************************************/
 
-void DebugPrint(FILE *fp, const char *msg, ...) {
+void DebugPrint(FILE *fp, const char *msg, ...)
+{
 #ifndef __OPTIMIZE
   va_list ap;
   va_start(ap, msg);
@@ -6008,7 +6170,8 @@ and finally c_ras = center = T3x3 * n/2
       if (i < 2)  // convert LP to RA
       {
         s[i] = dcm->FirstImagePosition[i] - dcm->LastImagePosition[i];
-      } else  // S stays the same
+      }
+      else  // S stays the same
       {
         s[i] = dcm->LastImagePosition[i] - dcm->FirstImagePosition[i];
       }
@@ -6018,7 +6181,8 @@ and finally c_ras = center = T3x3 * n/2
     for (i = 0; i < 3; i++) {
       s[i] /= rms;
     }
-  } else {
+  }
+  else {
     // build s[i] from c[i] and r[i]
     // there is an ambiguity in sign due to left-handed
     // or right-handed coords
@@ -6101,7 +6265,8 @@ and finally c_ras = center = T3x3 * n/2
    input: array of 16-bit pixels, number of elements
    output: array of 8-bit pixels
 *******************************************************/
-unsigned char *DICOM16To8(unsigned short *v16, int nvox) {
+unsigned char *DICOM16To8(unsigned short *v16, int nvox)
+{
   unsigned char *v8;
   int i;
   double min16, max16, min8, max8, ratio;
@@ -6139,7 +6304,8 @@ unsigned char *DICOM16To8(unsigned short *v16, int nvox) {
    output: fill in MRI structure, including the image
 *******************************************************/
 
-int DICOMInfo2MRI(DICOMInfo *dcm, void *data, MRI *mri) {
+int DICOMInfo2MRI(DICOMInfo *dcm, void *data, MRI *mri)
+{
   long n;
   int i, j, k;
   unsigned char *data8;
@@ -6205,7 +6371,8 @@ int DICOMInfo2MRI(DICOMInfo *dcm, void *data, MRI *mri) {
    This routine is used for non-Siemens DICOM files
 *******************************************************/
 
-int DICOMRead(const char *FileName, MRI **mri, int ReadImage) {
+int DICOMRead(const char *FileName, MRI **mri, int ReadImage)
+{
   MRI *pmri = NULL;
   char **CleanedFileNames, **FileNames, *c, PathName[256];
   int i, NumberOfFiles, NumberOfDICOMFiles, nStudies, error;
@@ -6228,7 +6395,8 @@ int DICOMRead(const char *FileName, MRI **mri, int ReadImage) {
   c = strrchr(FileName, '/');
   if (c == NULL) {
     PathName[0] = '\0';
-  } else {
+  }
+  else {
     length = (int)(c - FileName);
     strncpy(PathName, FileName, length);
     PathName[length] = '/';
@@ -6255,7 +6423,8 @@ int DICOMRead(const char *FileName, MRI **mri, int ReadImage) {
   if (NumberOfDICOMFiles == 0) {
     fprintf(stderr, "no DICOM files found. Exit\n");
     exit(1);
-  } else {
+  }
+  else {
     printf("%d DICOM 3.0 files in list\n", NumberOfDICOMFiles);
   }
 
@@ -6282,7 +6451,8 @@ int DICOMRead(const char *FileName, MRI **mri, int ReadImage) {
     fp = fopen("dicom.log", "w");
     if (fp == NULL) {
       printf("Can not create file dicom.log\n");
-    } else {
+    }
+    else {
       printf("Starting filenames for the studies\n");
       for (i = 0; i < NumberOfDICOMFiles; i++) {
         fprintf(fp, "%s\t%d\n", aDicomInfo[i]->FileName, aDicomInfo[i]->ImageNumber);
@@ -6326,7 +6496,8 @@ int DICOMRead(const char *FileName, MRI **mri, int ReadImage) {
     }
 
     free((void *)startIndices);
-  } else  // only 1 studies
+  }
+  else  // only 1 studies
   {
     nextIndex = inputIndex + NumberOfDICOMFiles;
   }
@@ -6416,7 +6587,8 @@ int DICOMRead(const char *FileName, MRI **mri, int ReadImage) {
   the bvalues and bvects, then zero is still returned but bvals and bvecs
   are set to 0.
  */
-int dcmGetDWIParams(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec) {
+int dcmGetDWIParams(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec)
+{
   DCM_ELEMENT *e;
   CONDITION cond;
   DCM_TAG tag;
@@ -6449,16 +6621,19 @@ int dcmGetDWIParams(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybv
     if (Gdiag_no > 0) printf("Attempting to get DWI Parameters from Siemens DICOM\n");
     err = dcmGetDWIParamsSiemens(dcm, pbval, pxbvec, pybvec, pzbvec);
     if (err) return (err);
-  } else if (strcmp(e->d.string, "GE MEDICAL SYSTEMS") == 0) {
+  }
+  else if (strcmp(e->d.string, "GE MEDICAL SYSTEMS") == 0) {
     if (Gdiag_no > 0) printf("Attempting to get DWI Parameters from GE DICOM\n");
     err = dcmGetDWIParamsGE(dcm, pbval, pxbvec, pybvec, pzbvec);
     if (err) return (err);
-  } else if (strcmp(e->d.string, "Philips Medical Systems ") == 0) {
+  }
+  else if (strcmp(e->d.string, "Philips Medical Systems ") == 0) {
     // Note: need space at the end of 'Systems' above
     if (Gdiag_no > 0) printf("Attempting to get DWI Parameters from Phlips DICOM\n");
     err = dcmGetDWIParamsPhilips(dcm, pbval, pxbvec, pybvec, pzbvec);
     if (err) return (err);
-  } else {
+  }
+  else {
     printf("ERROR: don't know how to get DWI parameters from --%s--\n", e->d.string);
     fflush(stdout);
     return (1);
@@ -6483,7 +6658,8 @@ int dcmGetDWIParams(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybv
   return (0);
 }
 
-int dcmGetDWIParamsPhilips(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec) {
+int dcmGetDWIParamsPhilips(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec)
+{
   DCM_ELEMENT *e;
   CONDITION cond;
   DCM_TAG tag;
@@ -6555,7 +6731,8 @@ int dcmGetDWIParamsPhilips(DCM_OBJECT *dcm, double *pbval, double *pxbvec, doubl
    voxel space already. However, gradients are converted to RAS.
    Returns 0 if no error.
 */
-int dcmGetDWIParamsGE(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec) {
+int dcmGetDWIParamsGE(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec)
+{
   DCM_ELEMENT *e;
   CONDITION cond;
   DCM_TAG tag;
@@ -6664,7 +6841,8 @@ int dcmGetDWIParamsGE(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *py
   exists, then gets bvec from 0x100e. If not, then uses an alternative
   method. Returns 0 if everything ok. Gradients transformed to RAS.
  */
-int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec) {
+int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec)
+{
   DCM_ELEMENT *e;
   CONDITION cond;
   DCM_TAG tag;
@@ -6691,7 +6869,8 @@ int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, doubl
     if (Gdiag_no > 0) printf("  bval 0x19,0x100c does not exist, try alternative method\n");
     err = dcmGetDWIParamsSiemensAlt(dcm, pbval, pxbvec, pybvec, pzbvec);
     if (err) return (err);
-  } else {
+  }
+  else {
     // The bvalue tag does exist, get gradients
     if (Gdiag_no > 0) printf("  bval 0x19,0x100c does exist, getting gradients\n");
     AllocElementData(e);
@@ -6785,7 +6964,8 @@ int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, doubl
   the sequence was not diffusion weighted. This makes it hard to
   do error checking.
  */
-int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec) {
+int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec)
+{
   DCM_ELEMENT *e;
   CONDITION cond;
   DCM_TAG tag;
@@ -6921,8 +7101,8 @@ int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, do
   Differs from dcmImageDirCos() in that it uses an object instead of
   opening a file. Returns 1 if error, 0 otherwise.
  */
-int dcmImageDirCosObject(
-    DCM_OBJECT *dcm, double *Vcx, double *Vcy, double *Vcz, double *Vrx, double *Vry, double *Vrz) {
+int dcmImageDirCosObject(DCM_OBJECT *dcm, double *Vcx, double *Vcy, double *Vcz, double *Vrx, double *Vry, double *Vrz)
+{
   DCM_ELEMENT *e;
   CONDITION cond;
   DCM_TAG tag;
@@ -6987,7 +7167,8 @@ int dcmImageDirCosObject(
   will be arbitrary.
  */
 MATRIX *ImageDirCos2Slice(
-    double Vcx, double Vcy, double Vcz, double Vrx, double Vry, double Vrz, double *Vsx, double *Vsy, double *Vsz) {
+    double Vcx, double Vcy, double Vcz, double Vrx, double Vry, double Vrz, double *Vsx, double *Vsy, double *Vsz)
+{
   VECTOR *Vc, *Vr, *Vs;
   MATRIX *Mdc;
 

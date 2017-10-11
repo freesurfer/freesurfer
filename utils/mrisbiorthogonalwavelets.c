@@ -54,7 +54,8 @@ MRI_SURFACE *wavelet_analysis_vec(MRI_SURFACE *mris_out, int order);
 MRI_SURFACE *wavelet_synthesis_curv(MRI_SURFACE *mris_out, int order);
 MRI_SURFACE *wavelet_synthesis_vec(MRI_SURFACE *mris_out, int order);
 
-MRI_SURFACE *wavelet_analysis_curv(MRI_SURFACE *mris_out, int order) {
+MRI_SURFACE *wavelet_analysis_curv(MRI_SURFACE *mris_out, int order)
+{
   int i, number, vno, nnum, m, k, b1 = 0, b2 = 0, cno, flag = 0;
   MRIS *mris_high;
   VERTEX *vm_out, *vm_high, *v;
@@ -182,7 +183,8 @@ MRI_SURFACE *wavelet_analysis_curv(MRI_SURFACE *mris_out, int order) {
   return (mris_out);
 }
 
-MRI_SURFACE *wavelet_analysis_vec(MRI_SURFACE *mris_out, int order) {
+MRI_SURFACE *wavelet_analysis_vec(MRI_SURFACE *mris_out, int order)
+{
   int i, number, vno, nnum, m, k, b1 = 0, b2 = 0, cno, flag = 0;
   MRIS *mris_high;
   VERTEX *vm_out, *vm_high, *v;
@@ -331,7 +333,8 @@ MRI_SURFACE *wavelet_analysis_vec(MRI_SURFACE *mris_out, int order) {
   return (mris_out);
 }
 
-MRI_SURFACE *wavelet_synthesis_curv(MRI_SURFACE *mris_out, int order) {
+MRI_SURFACE *wavelet_synthesis_curv(MRI_SURFACE *mris_out, int order)
+{
   int i, number, vno, nnum, m, k, b1 = 0, b2 = 0, cno, flag = 0;
   MRIS *mris_high;
   VERTEX *vm_out, *vm_high, *v;
@@ -454,7 +457,8 @@ MRI_SURFACE *wavelet_synthesis_curv(MRI_SURFACE *mris_out, int order) {
   return (mris_out);
 }
 
-MRI_SURFACE *wavelet_synthesis_vec(MRI_SURFACE *mris_out, int order) {
+MRI_SURFACE *wavelet_synthesis_vec(MRI_SURFACE *mris_out, int order)
+{
   int i, number, vno, nnum, m, k, b1 = 0, b2 = 0, cno, flag = 0;
   MRIS *mris_high;
   VERTEX *vm_out, *vm_high, *v;

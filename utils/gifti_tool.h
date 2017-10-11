@@ -1,16 +1,19 @@
 #ifndef GIFTI_TOOL_H
 #define GIFTI_TOOL_H
 
-typedef struct {
+typedef struct
+{
   int len;
   char **list;
 } gt_str_list;
-typedef struct {
+typedef struct
+{
   int len;
   int *list;
 } gt_int_list;
 
-typedef struct {
+typedef struct
+{
   /* main action flags */
   int gt_compare; /* somehow compare 2 datasets           */
   int gt_copy;    /* copy things between 2 datasets       */

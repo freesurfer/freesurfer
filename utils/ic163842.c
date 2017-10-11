@@ -37,7 +37,8 @@ static int static_read_icosahedron(void);
 IC_VERTEX *ic163842_vertices = NULL;
 IC_FACE *ic163842_faces = NULL;
 
-MRI_SURFACE *ic163842_make_surface(int max_vertices, int max_faces) {
+MRI_SURFACE *ic163842_make_surface(int max_vertices, int max_faces)
+{
   MRI_SURFACE *mris;
   int vno, fno, n, vn, n1, n2;
   VERTEX *v;
@@ -151,7 +152,8 @@ MRI_SURFACE *ic163842_make_surface(int max_vertices, int max_faces) {
   first_time = 1;
   return (mris);
 }
-static int static_read_icosahedron(void) {
+static int static_read_icosahedron(void)
+{
   FILE *fp;
   char line[200], *cp;
   int vno, fno, vno1, vno2, vno3, n;

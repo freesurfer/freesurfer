@@ -35,7 +35,8 @@
 #include "mrisurf.h"
 #include "sig.h"
 
-int cvector_compute_variance(float *var, float *mean, int norm, int num) {
+int cvector_compute_variance(float *var, float *mean, int norm, int num)
+{
   int i;
 
   for (i = 0; i < num; i++) {
@@ -45,20 +46,23 @@ int cvector_compute_variance(float *var, float *mean, int norm, int num) {
   }
   return (NO_ERROR);
 }
-int cvector_normalize(float *v, float norm, int num) {
+int cvector_normalize(float *v, float norm, int num)
+{
   int i;
 
   for (i = 0; i < num; i++) v[i] /= norm;
   return (NO_ERROR);
 }
 
-int cvector_accumulate_square(float *v, float *vtotal, int num) {
+int cvector_accumulate_square(float *v, float *vtotal, int num)
+{
   int i;
 
   for (i = 0; i < num; i++) vtotal[i] += v[i] * v[i];
   return (NO_ERROR);
 }
-int cvector_accumulate(float *v, float *vtotal, int num) {
+int cvector_accumulate(float *v, float *vtotal, int num)
+{
   int i;
 
   for (i = 0; i < num; i++) vtotal[i] += v[i];
@@ -73,7 +77,8 @@ double cvector_compute_t_test(float *c1_mean,
                               int num_class2,
                               float *pvals,
                               int num,
-                              int *pvno) {
+                              int *pvno)
+{
   int i;
   double t, numer, denom, p, max_p;
 
@@ -85,7 +90,8 @@ double cvector_compute_t_test(float *c1_mean,
     if (FZERO(denom)) {
       t = 0;
       p = 0.0f;
-    } else {
+    }
+    else {
       if (num_class1 == 1 || num_class2 == 1) {
         int dof_out = num_class1 + num_class2;
         /*
@@ -93,7 +99,8 @@ double cvector_compute_t_test(float *c1_mean,
           then use standard deviation rather than standard error.
         */
         denom = sqrt((dof_out - 1) * ((c1_var[i] / num_class1) + (c2_var[i] / num_class2)));
-      } else
+      }
+      else
         denom = sqrt((c1_var[i] / num_class1) + (c2_var[i] / num_class2));
       t = numer / denom;
       p = sigt(t, num_class1 + num_class2 - 2);
@@ -109,7 +116,8 @@ double cvector_compute_t_test(float *c1_mean,
   }
   return (max_p);
 }
-double cvector_compute_mean_diff(float *c1_mean, float *c2_mean, float *vmean_diff, int num, int *pvno) {
+double cvector_compute_mean_diff(float *c1_mean, float *c2_mean, float *vmean_diff, int num, int *pvno)
+{
   int i;
   double max_diff;
 
@@ -125,13 +133,15 @@ double cvector_compute_mean_diff(float *c1_mean, float *c2_mean, float *vmean_di
   return (max_diff);
 }
 
-int cvector_subtract(float *v1, float *v2, float *vdst, int num) {
+int cvector_subtract(float *v1, float *v2, float *vdst, int num)
+{
   int i;
 
   for (i = 0; i < num; i++) vdst[i] = v1[i] - v2[i];
   return (NO_ERROR);
 }
-int cvector_mark_low_prob_vertices(float *pvals, float pthresh, MRI_SURFACE *mris) {
+int cvector_mark_low_prob_vertices(float *pvals, float pthresh, MRI_SURFACE *mris)
+{
   int i, num;
 
   for (num = i = 0; i < mris->nvertices; i++) {
@@ -152,7 +162,8 @@ double cvector_compute_dist_free_snr(float **c1_thickness,
                                      float *c2_mean,
                                      float *vsnr,
                                      int num,
-                                     int *pi) {
+                                     int *pi)
+{
   int i, max_i, n, correct, total;
   double max_snr, mean, snr;
 
@@ -167,7 +178,8 @@ double cvector_compute_dist_free_snr(float **c1_thickness,
 
       for (n = 0; n < num_class2; n++)
         if (c2_thickness[n][i] < mean) correct++;
-    } else {
+    }
+    else {
       for (n = 0; n < num_class1; n++)
         if (c1_thickness[n][i] < mean) correct++;
 
@@ -187,7 +199,8 @@ double cvector_compute_dist_free_snr(float **c1_thickness,
   return (max_snr);
 }
 double cvector_compute_snr(
-    float *c1_mean, float *c2_mean, float *vvar, float *vsnr, int num, int *pi, float bonferroni, int stat_type) {
+    float *c1_mean, float *c2_mean, float *vvar, float *vsnr, int num, int *pi, float bonferroni, int stat_type)
+{
   double snr;
 
   switch (stat_type) {
@@ -200,7 +213,8 @@ double cvector_compute_snr(
   return (snr);
 }
 double cvector_compute_snr_F(
-    float *c1_mean, float *c2_mean, float *vvar, float *snr, int num, int *pi, float bonferroni) {
+    float *c1_mean, float *c2_mean, float *vvar, float *snr, int num, int *pi, float bonferroni)
+{
   int i, max_i;
   float f, max_snr;
 
@@ -222,7 +236,8 @@ double cvector_compute_snr_F(
   *pi = max_i;
   return (max_snr);
 }
-double cvector_len(float *v, int num) {
+double cvector_len(float *v, int num)
+{
   int i;
   double len;
 
@@ -232,7 +247,8 @@ double cvector_len(float *v, int num) {
   return (len);
 }
 
-float *cvector_alloc(int num) {
+float *cvector_alloc(int num)
+{
   float *v;
 
   v = (float *)calloc(num, sizeof(float));
@@ -240,14 +256,16 @@ float *cvector_alloc(int num) {
   return (v);
 }
 
-int cvector_clear(float *v, int num) {
+int cvector_clear(float *v, int num)
+{
   int i;
 
   for (i = 0; i < num; i++) v[i] = 0;
   return (NO_ERROR);
 }
 int cvector_add_variances(
-    float *c1_var, float *c2_var, int num_class1, int num_class2, float *vtotal_var, int nvertices) {
+    float *c1_var, float *c2_var, int num_class1, int num_class2, float *vtotal_var, int nvertices)
+{
   int i, total_dof;
 
   total_dof = num_class1 + num_class2;
@@ -257,7 +275,8 @@ int cvector_add_variances(
 }
 
 int cvector_multiply_variances(
-    float *c1_var, float *c2_var, int num_class1, int num_class2, float *vtotal_var, int nvertices) {
+    float *c1_var, float *c2_var, int num_class1, int num_class2, float *vtotal_var, int nvertices)
+{
   int i, total_dof;
 
   total_dof = num_class1 + num_class2;
@@ -286,7 +305,8 @@ int cvector_track_best_snr(float *vsnr,
                            int avgs,
                            int num,
                            float fthresh,
-                           int *pnum_found) {
+                           int *pnum_found)
+{
   int i, n;
 
   *pnum_found = 0;
@@ -326,7 +346,8 @@ int cvector_track_best_stats(float *vpvals,
                              int avgs,
                              int num,
                              float fthresh,
-                             int *pnum_found) {
+                             int *pnum_found)
+{
   int i, n;
 
   *pnum_found = 0;
@@ -347,7 +368,8 @@ int cvector_track_best_stats(float *vpvals,
   return (NO_ERROR);
 }
 
-int cvector_copy(float *v1, float *v2, int num) {
+int cvector_copy(float *v1, float *v2, int num)
+{
   int i;
 
   for (i = 0; i < num; i++) v2[i] = v1[i];
@@ -355,7 +377,8 @@ int cvector_copy(float *v1, float *v2, int num) {
   return (NO_ERROR);
 }
 
-int cvector_extract_best_avg(float *vbest_avgs, float *vsrc, float *vdst, int navgs, int num) {
+int cvector_extract_best_avg(float *vbest_avgs, float *vsrc, float *vdst, int navgs, int num)
+{
   int i;
 
   for (i = 0; i < num; i++) {
@@ -363,7 +386,8 @@ int cvector_extract_best_avg(float *vbest_avgs, float *vsrc, float *vdst, int na
   }
   return (NO_ERROR);
 }
-double cvector_average_in_label(float *v, LABEL *area, int num) {
+double cvector_average_in_label(float *v, LABEL *area, int num)
+{
   int i;
   double avg;
 
@@ -375,12 +399,14 @@ double cvector_average_in_label(float *v, LABEL *area, int num) {
   return (avg);
 }
 
-typedef struct {
+typedef struct
+{
   float snr;
   int index;
 } SORT_ELT;
 int compare_sort_elts(const void *vse1, const void *vse2);
-int compare_sort_elts(const void *vse1, const void *vse2) {
+int compare_sort_elts(const void *vse1, const void *vse2)
+{
   const SORT_ELT *se1, *se2;
 
   se1 = vse1;
@@ -388,7 +414,8 @@ int compare_sort_elts(const void *vse1, const void *vse2) {
   return (se2->snr > se1->snr);
 }
 
-int *cvector_sort(float *vbest_snr, int nvertices) {
+int *cvector_sort(float *vbest_snr, int nvertices)
+{
   int *sorted_vertices, i;
   SORT_ELT *se_table;
 
@@ -416,7 +443,8 @@ double cvector_compute_pvalues(float *c1_mean,
                                float *pvals,
                                int num,
                                int stat_type,
-                               int *pvno) {
+                               int *pvno)
+{
   switch (stat_type) {
     default:
     case STAT_T:
@@ -428,7 +456,8 @@ double cvector_compute_pvalues(float *c1_mean,
   return (NO_ERROR);
 }
 
-int cvector_scalar_mul(float *v, float m, int num) {
+int cvector_scalar_mul(float *v, float m, int num)
+{
   int i;
 
   for (i = 0; i < num; i++) v[i] *= m;
@@ -436,7 +465,8 @@ int cvector_scalar_mul(float *v, float m, int num) {
   return (NO_ERROR);
 }
 
-int cvector_set(float *v, float val, int num) {
+int cvector_set(float *v, float val, int num)
+{
   int i;
 
   for (i = 0; i < num; i++) v[i] = val;

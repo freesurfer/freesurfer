@@ -34,7 +34,8 @@
 
 #include "path.h"
 
-int PathReadMany(char *fname, int *num_read, PATH ***returned_paths) {
+int PathReadMany(char *fname, int *num_read, PATH ***returned_paths)
+{
   FILE *fp;
   int num_scanf;
   int line_number;
@@ -100,7 +101,8 @@ int PathReadMany(char *fname, int *num_read, PATH ***returned_paths) {
                      fname,
                      version));
       }
-    } else if (0 == strncmp(line, "BEGINPATH", 9)) {
+    }
+    else if (0 == strncmp(line, "BEGINPATH", 9)) {
       /* Start a new path decsription. */
       if (getline(&line, &line_size, fp) == -1) {
         ErrorPrintf(ERROR_BAD_FILE, "Couldn't read file\n");
@@ -231,13 +233,15 @@ int PathReadMany(char *fname, int *num_read, PATH ***returned_paths) {
       /* Add the path to our array. */
       if (NULL == paths) {
         paths = (PATH **)calloc(num_paths + 1, sizeof(PATH *));
-      } else {
+      }
+      else {
         paths = (PATH **)realloc(paths, (num_paths + 1) * sizeof(PATH *));
       }
       paths[num_paths] = path;
       num_paths++;
       path = NULL;
-    } else {
+    }
+    else {
       /* Didn't get a keyword we're looking for. */
       ErrorReturn(ERROR_BADPARM,
                   (ERROR_BADPARM,
@@ -258,7 +262,8 @@ int PathReadMany(char *fname, int *num_read, PATH ***returned_paths) {
   return (ERROR_NONE);
 }
 
-int PathWriteMany(char *fname, int num_paths, PATH **paths) {
+int PathWriteMany(char *fname, int num_paths, PATH **paths)
+{
   FILE *fp;
   int path;
   int path_pno;
@@ -300,7 +305,8 @@ int PathWriteMany(char *fname, int num_paths, PATH **paths) {
   return (ERROR_NONE);
 }
 
-PATH *PathAlloc(int n_points, char *name) {
+PATH *PathAlloc(int n_points, char *name)
+{
   PATH *path;
 
   if (n_points < 0) return NULL;
@@ -332,7 +338,8 @@ PATH *PathAlloc(int n_points, char *name) {
   return path;
 }
 
-int PathFree(PATH **path) {
+int PathFree(PATH **path)
+{
   if (NULL == path || NULL == (*path)) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "No path supplied."));
 
   /* Free the points array, then the path struct. */
@@ -343,7 +350,8 @@ int PathFree(PATH **path) {
   return (ERROR_NONE);
 }
 
-int PathIsPathFile(char *fname) {
+int PathIsPathFile(char *fname)
+{
   FILE *fp = NULL;
   int is_path_file = 0;
 
@@ -360,7 +368,8 @@ int PathIsPathFile(char *fname) {
   return is_path_file;
 }
 
-int PathIsPathFileStream(FILE *fp) {
+int PathIsPathFileStream(FILE *fp)
+{
   char *line = NULL;
   size_t size = 1024;
   char *needle = NULL;
@@ -393,7 +402,8 @@ int PathIsPathFileStream(FILE *fp) {
   return found;
 }
 
-int PathConvertToLabel(PATH *path, LABEL **label) {
+int PathConvertToLabel(PATH *path, LABEL **label)
+{
   LABEL *new_label = NULL;
   int pno = 0;
 
@@ -422,7 +432,8 @@ int PathConvertToLabel(PATH *path, LABEL **label) {
   return (ERROR_NONE);
 }
 
-int PathCreateFromLabel(LABEL *label, PATH **path) {
+int PathCreateFromLabel(LABEL *label, PATH **path)
+{
   PATH *new_path = NULL;
   int pno = 0;
 

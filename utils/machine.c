@@ -27,7 +27,8 @@
 
 #include "machine.h"
 
-double swapDouble(double d) {
+double swapDouble(double d)
+{
   size_t typeSize = sizeof(double);
   char *pVar = (char *)(&d);
   char tmp;
@@ -44,7 +45,8 @@ double swapDouble(double d) {
   return w;
 }
 
-long64 swapLong64(long64 l) {
+long64 swapLong64(long64 l)
+{
   size_t typeSize = sizeof(long64);
   char *pVar = (char *)(&l);
   char tmp;
@@ -74,7 +76,8 @@ typedef union {
 } SWAP_LONG32;
 
 /* does not work for 64 bit OS */
-long32 swapLong32(long32 l) {
+long32 swapLong32(long32 l)
+{
   SWAP_LONG32 sl;
   short s;
 
@@ -91,7 +94,8 @@ long32 swapLong32(long32 l) {
   return (sl.l);
 }
 
-float swapFloat(float f) {
+float swapFloat(float f)
+{
   SWAP_LONG32 sl;
   short s;
 
@@ -113,7 +117,8 @@ typedef union {
   char buf[sizeof(short)];
 } SWAP_SHORT;
 
-short swapShort(short s) {
+short swapShort(short s)
+{
   SWAP_SHORT ss;
   char c;
 
@@ -150,7 +155,8 @@ swapDouble(double d)
 }
 */
 
-int swapInt(int i) {
+int swapInt(int i)
+{
   SWAP_LONG32 sl;
   short s;
 
@@ -176,7 +182,8 @@ int swapInt(int i) {
     3. This is consistent with the endianness flag in the
        bshort/bfloat format.
   --------------------------------------------------------*/
-int Arch486(void) {
+int Arch486(void)
+{
   int endian;
   short tmp = 1;
   char *ctmp;
@@ -194,7 +201,8 @@ int Arch486(void) {
   in Buf. nitems is the number of nBytesPerItem-byte items
   in Buf.
   ---------------------------------------------------------*/
-int ByteSwapBuf(void *Buf, long int nItems, int nBytesPerItem) {
+int ByteSwapBuf(void *Buf, long int nItems, int nBytesPerItem)
+{
   switch (nBytesPerItem) {
     case 1:
       break;
@@ -218,7 +226,8 @@ int ByteSwapBuf(void *Buf, long int nItems, int nBytesPerItem) {
   Reverses the byte order of each 2-byte buffer of buf2.
   nitems is the number of 2-byte items in buf2;
   ---------------------------------------------------------*/
-int ByteSwap2(void *buf2, long int nitems) {
+int ByteSwap2(void *buf2, long int nitems)
+{
   register char *cbuf, ctmp;
   register long int n;
 
@@ -236,7 +245,8 @@ int ByteSwap2(void *buf2, long int nitems) {
   Reverses the byte order of each 4-byte buffer of buf4.
   nitems is the number of 4-byte items in buf4;
   ---------------------------------------------------------*/
-int ByteSwap4(void *buf4, long int nitems) {
+int ByteSwap4(void *buf4, long int nitems)
+{
   register char *cbuf, ctmp;
   register long int n;
 
@@ -262,7 +272,8 @@ int ByteSwap4(void *buf4, long int nitems) {
   Reverses the byte order of each 8-byte buffer of buf8.
   nitems is the number of 8-byte items in buf8;
   ---------------------------------------------------------*/
-int ByteSwap8(void *buf8, long int nitems) {
+int ByteSwap8(void *buf8, long int nitems)
+{
   register char *cbuf, ctmp;
   register long int n;
 

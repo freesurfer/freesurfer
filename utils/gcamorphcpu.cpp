@@ -27,9 +27,10 @@
 
 #include "gcamorphcpu.hpp"
 
-namespace Freesurfer {
-
-void GCAmorphCPU::CheckIntegrity(void) const {
+namespace Freesurfer
+{
+void GCAmorphCPU::CheckIntegrity(void) const
+{
   bool good;
 
   good = this->rx.MatchDims(this->ry);
@@ -71,7 +72,8 @@ void GCAmorphCPU::CheckIntegrity(void) const {
 
 // -----------------------------
 
-void GCAmorphCPU::AllocateFromTemplate(const GPU::Classes::GCAmorphGPU &src) {
+void GCAmorphCPU::AllocateFromTemplate(const GPU::Classes::GCAmorphGPU &src)
+{
   src.CheckIntegrity();
 
   const dim3 dims = src.d_rx.GetDims();
@@ -79,7 +81,8 @@ void GCAmorphCPU::AllocateFromTemplate(const GPU::Classes::GCAmorphGPU &src) {
   this->AllocateAll(dims.x, dims.y, dims.z);
 }
 
-void GCAmorphCPU::AllocateAll(const unsigned int nx, const unsigned int ny, const unsigned int nz) {
+void GCAmorphCPU::AllocateAll(const unsigned int nx, const unsigned int ny, const unsigned int nz)
+{
   GCAmorphCPU::tAllocate.Start();
 
   this->rx.Allocate(nx, ny, nz);
@@ -119,7 +122,8 @@ void GCAmorphCPU::AllocateAll(const unsigned int nx, const unsigned int ny, cons
 
 // --------------------------------
 
-void GCAmorphCPU::GetFromGPU(const GPU::Classes::GCAmorphGPU &src) {
+void GCAmorphCPU::GetFromGPU(const GPU::Classes::GCAmorphGPU &src)
+{
   /*!
     Retrieves linearly packed data from the GPU.
     Assumes that the current object has already allocated its memory
@@ -181,7 +185,8 @@ void GCAmorphCPU::GetFromGPU(const GPU::Classes::GCAmorphGPU &src) {
   GCAmorphCPU::tGetTot.Stop();
 }
 
-void GCAmorphCPU::PutOnGPU(GPU::Classes::GCAmorphGPU &dst) const {
+void GCAmorphCPU::PutOnGPU(GPU::Classes::GCAmorphGPU &dst) const
+{
   /*!
     Puts the linearly packed data back on the GPU.
     Requires preallocated data
@@ -245,7 +250,8 @@ void GCAmorphCPU::PutOnGPU(GPU::Classes::GCAmorphGPU &dst) const {
 
 // ----------------------------------------------
 
-void GCAmorphCPU::ShowTimings(void) {
+void GCAmorphCPU::ShowTimings(void)
+{
 #ifdef CUDA_SHOW_TIMINGS
   std::cout << "==================================" << std::endl;
   std::cout << "GCAmorphCPU timers" << std::endl;

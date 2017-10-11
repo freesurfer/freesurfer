@@ -69,7 +69,8 @@ static double InitialCausalCoefficient(double c[],      /* coefficients */
       zn *= z;
     }
     return (Sum);
-  } else {
+  }
+  else {
     /* full loop */
     zn = z;
     iz = 1.0 / z;
@@ -139,15 +140,18 @@ static void ConvertToInterpolationCoefficients(double c[],      /* input samples
 
 // get and set line routines need to be improved (speedup by grabbing a
 // whole row in data block...)
-static void getZLine(const MRI *mri, int x, int y, int f, double Line[]) {
+static void getZLine(const MRI *mri, int x, int y, int f, double Line[])
+{
   int z;
   for (z = 0; z < mri->depth; z++) Line[z] = MRIgetVoxVal(mri, x, y, z, f);
 }
-static void getZLineStop(const MRI *mri, int x, int y, int f, double Line[], int zstop) {
+static void getZLineStop(const MRI *mri, int x, int y, int f, double Line[], int zstop)
+{
   int z;
   for (z = 0; z < zstop; z++) Line[z] = MRIgetVoxVal(mri, x, y, z, f);
 }
-static void setZLine(MRI *mri, int x, int y, int f, double Line[]) {
+static void setZLine(MRI *mri, int x, int y, int f, double Line[])
+{
   int z;
   if (x >= mri->width) {
     printf("X limit error\n");
@@ -169,19 +173,23 @@ static void setZLine(MRI *mri, int x, int y, int f, double Line[]) {
         MRIsetVoxVal(mri, x, y, z, f, 0);
       else
         MRIsetVoxVal(mri, x, y, z, f, nint(Line[z]));
-    } else
+    }
+    else
       MRIsetVoxVal(mri, x, y, z, f, (float)Line[z]);
   }
 }
-static void getYLine(const MRI *mri, int x, int z, int f, double Line[]) {
+static void getYLine(const MRI *mri, int x, int z, int f, double Line[])
+{
   int y;
   for (y = 0; y < mri->height; y++) Line[y] = MRIgetVoxVal(mri, x, y, z, f);
 }
-static void getYLineStop(const MRI *mri, int x, int z, int f, double Line[], int ystop) {
+static void getYLineStop(const MRI *mri, int x, int z, int f, double Line[], int ystop)
+{
   int y;
   for (y = 0; y < ystop; y++) Line[y] = MRIgetVoxVal(mri, x, y, z, f);
 }
-static void setYLine(MRI *mri, int x, int z, int f, double Line[]) {
+static void setYLine(MRI *mri, int x, int z, int f, double Line[])
+{
   int y;
   if (x >= mri->width) {
     printf("X limit error\n");
@@ -203,11 +211,13 @@ static void setYLine(MRI *mri, int x, int z, int f, double Line[]) {
         MRIsetVoxVal(mri, x, y, z, f, 0);
       else
         MRIsetVoxVal(mri, x, y, z, f, nint(Line[y]));
-    } else
+    }
+    else
       MRIsetVoxVal(mri, x, y, z, f, (float)Line[y]);
   }
 }
-static void getXLine(const MRI *mri, int y, int z, int f, double Line[]) {
+static void getXLine(const MRI *mri, int y, int z, int f, double Line[])
+{
   int x;
   for (x = 0; x < mri->width; x++) Line[x] = MRIgetVoxVal(mri, x, y, z, f);
 }
@@ -216,7 +226,8 @@ static void getXLine(const MRI *mri, int y, int z, int f, double Line[]) {
 // 	int	x;
 //   for (x=0;x<xstop;x++) Line[x] = MRIgetVoxVal(mri, x, y, z, f);
 // }
-static void setXLine(MRI *mri, int y, int z, int f, double Line[]) {
+static void setXLine(MRI *mri, int y, int z, int f, double Line[])
+{
   int x;
   if (y >= mri->height) {
     printf("Y limit error\n");
@@ -239,12 +250,14 @@ static void setXLine(MRI *mri, int y, int z, int f, double Line[]) {
         MRIsetVoxVal(mri, x, y, z, f, 0);
       else
         MRIsetVoxVal(mri, x, y, z, f, nint(Line[x]));
-    } else
+    }
+    else
       MRIsetVoxVal(mri, x, y, z, f, (float)Line[x]);
   }
 }
 
-static int initPoles(double Pole[4], int SplineDegree) {
+static int initPoles(double Pole[4], int SplineDegree)
+{
   int NbPoles = 0;
   /* recover the poles from a lookup table */
   switch (SplineDegree) {
@@ -299,7 +312,8 @@ static int initPoles(double Pole[4], int SplineDegree) {
   return NbPoles;
 }
 
-static void BsplineWeights(int SplineDegree, const double *val, const int *index, double *weights) {
+static void BsplineWeights(int SplineDegree, const double *val, const int *index, double *weights)
+{
   double w, w2, w4, t, t0, t1;
   switch (SplineDegree) {
     case 2:
@@ -490,7 +504,8 @@ static void BsplineWeights(int SplineDegree, const double *val, const int *index
         Author:		Michael Unser, NIH, BEIP, May 1992
 
 ---------------------------------------------------------------------------- */
-static void PyramidFilterSplinel2(double g[], long *ng, double *h, long *nh, long Order) {
+static void PyramidFilterSplinel2(double g[], long *ng, double *h, long *nh, long Order)
+{
   switch (Order) {
     case 0L:
       *ng = 1L;
@@ -597,7 +612,8 @@ static void PyramidFilterSplinel2(double g[], long *ng, double *h, long *nh, lon
 
 ---------------------------------------------------------------------------- */
 
-static void PyramidFilterSplineL2(double g[], long *ng, double h[], long *nh, long Order) {
+static void PyramidFilterSplineL2(double g[], long *ng, double h[], long *nh, long Order)
+{
   switch (Order) {
     case 0L:
       *ng = 1L;
@@ -754,7 +770,8 @@ static void PyramidFilterSplineL2(double g[], long *ng, double h[], long *nh, lo
                                 Daniel Sage, EPFL, Biomedical Imaging Group, November 1999
 
 ---------------------------------------------------------------------------- */
-static void PyramidFilterCentered(double g[], long *ng, double h[], long *nh, long Order) {
+static void PyramidFilterCentered(double g[], long *ng, double h[], long *nh, long Order)
+{
   switch (Order) {
     case 0:
       g[0] = 1;
@@ -944,7 +961,8 @@ static void PyramidFilterCentered(double g[], long *ng, double h[], long *nh, lo
                                 Daniel Sage, EPFL, Biomedical Imaging Group, November 1999
 
 ---------------------------------------------------------------------------- */
-static void PyramidFilterCenteredL2(double g[], long *ng, double h[], long *nh, long Order) {
+static void PyramidFilterCenteredL2(double g[], long *ng, double h[], long *nh, long Order)
+{
   switch (Order) {
     case 0:
       g[0] = 1.;
@@ -1339,7 +1357,8 @@ static void PyramidFilterCenteredL2(double g[], long *ng, double h[], long *nh, 
                         FALSE if it is not a centered filter
 
 ---------------------------------------------------------------------------- */
-static int GetPyramidFilter(char *Filter, long Order, double g[], long *ng, double h[], long *nh, short *IsCentered) {
+static int GetPyramidFilter(char *Filter, long Order, double g[], long *ng, double h[], long *nh, short *IsCentered)
+{
   ng[0] = -1L;
   nh[0] = -1L;
   *IsCentered = FALSE;
@@ -1389,7 +1408,8 @@ static int GetPyramidFilter(char *Filter, long Order, double g[], long *ng, doub
                 Daniel Sage, EPFL, Biomedical Imaging Group, April 1999
 
 ---------------------------------------------------------------------------- */
-static void ReduceStandard_1D(double In[], long NxIn, double Out[], double g[], long ng) {
+static void ReduceStandard_1D(double In[], long NxIn, double Out[], double g[], long ng)
+{
   long k, i, i1, i2;
   long kk, kn, nred, n;
 
@@ -1445,7 +1465,8 @@ static void ReduceStandard_1D(double In[], long NxIn, double Out[], double g[], 
                 Daniel Sage, EPFL, Biomedical Imaging Group, April 1999
 
 ---------------------------------------------------------------------------- */
-static void ExpandStandard_1D(double In[], long NxIn, double Out[], double h[], long nh) {
+static void ExpandStandard_1D(double In[], long NxIn, double Out[], double h[], long nh)
+{
   long k, j, i, i1, i2;
   long kn, nexp, n;
 
@@ -1504,7 +1525,8 @@ static void ExpandStandard_1D(double In[], long NxIn, double Out[], double h[], 
                 Daniel Sage, EPFL, Biomedical Imaging Group, April 1999
 
 ---------------------------------------------------------------------------- */
-static void ReduceCentered_1D(double In[], long NxIn, double Out[], double g[], long ng) {
+static void ReduceCentered_1D(double In[], long NxIn, double Out[], double g[], long ng)
+{
   double *y_tmp;
   long k, i, i1, i2;
   long kk, kn, nred, n;
@@ -1570,7 +1592,8 @@ static void ReduceCentered_1D(double In[], long NxIn, double Out[], double g[], 
                 Daniel Sage, EPFL, Biomedical Imaging Group, April 1999
 
 ---------------------------------------------------------------------------- */
-static void ExpandCentered_1D(double In[], long NxIn, double Out[], double h[], long nh) {
+static void ExpandCentered_1D(double In[], long NxIn, double Out[], double h[], long nh)
+{
   long k, i, j, i1, k0, i2;
   long kk, kn, nexp, n;
 
@@ -1625,7 +1648,8 @@ static void ExpandCentered_1D(double In[], long NxIn, double Out[], double h[], 
                 Router function to call ReduceStandard_1D or ReduceCentered_1D
 
 ---------------------------------------------------------------------------- */
-static void Reduce_1D(double In[], long NxIn, double Out[], double g[], long ng, short IsCentered) {
+static void Reduce_1D(double In[], long NxIn, double Out[], double g[], long ng, short IsCentered)
+{
   if (IsCentered)
     ReduceCentered_1D(In, NxIn, Out, g, ng);
   else
@@ -1640,7 +1664,8 @@ static void Reduce_1D(double In[], long NxIn, double Out[], double g[], long ng,
                 Router function to call ExpandStandard_1D or ExpandCentered_1D
 
 ---------------------------------------------------------------------------- */
-static void Expand_1D(double In[], long NxIn, double Out[], double h[], long nh, short IsCentered) {
+static void Expand_1D(double In[], long NxIn, double Out[], double h[], long nh, short IsCentered)
+{
   if (IsCentered)
     ExpandCentered_1D(In, NxIn, Out, h, nh);
   else
@@ -1649,7 +1674,8 @@ static void Expand_1D(double In[], long NxIn, double Out[], double h[], long nh,
 
 /*--------------------------------------------------------------------------*/
 
-extern MRI_BSPLINE *MRIallocBSpline(int width, int height, int depth, int nframes) {
+extern MRI_BSPLINE *MRIallocBSpline(int width, int height, int depth, int nframes)
+{
   MRI_BSPLINE *bspline = (MRI_BSPLINE *)calloc(1, sizeof(MRI_BSPLINE));
   if (!bspline) ErrorExit(ERROR_NO_MEMORY, "MRIalloc: could not allocate MRI_BSPLINE\n");
   bspline->coeff = MRIallocSequence(width, height, depth, MRI_FLOAT, nframes);
@@ -1659,7 +1685,8 @@ extern MRI_BSPLINE *MRIallocBSpline(int width, int height, int depth, int nframe
   return bspline;
 }
 
-extern int MRIfreeBSpline(MRI_BSPLINE **pbspline) {
+extern int MRIfreeBSpline(MRI_BSPLINE **pbspline)
+{
   MRI_BSPLINE *bspline = *pbspline;
   if (!bspline) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIfreeBSpline: null pointer\n"));
   MRIfree(&bspline->coeff);
@@ -1669,7 +1696,8 @@ extern int MRIfreeBSpline(MRI_BSPLINE **pbspline) {
   return (NO_ERROR);
 }
 
-extern MRI_BSPLINE *MRItoBSpline(const MRI *mri_src, MRI_BSPLINE *bspline, int degree) {
+extern MRI_BSPLINE *MRItoBSpline(const MRI *mri_src, MRI_BSPLINE *bspline, int degree)
+{
   printf("MRItoBSpline degree %i\n", degree);
 
   double *Lines[_MAX_FS_THREADS];
@@ -1723,7 +1751,9 @@ extern MRI_BSPLINE *MRItoBSpline(const MRI *mri_src, MRI_BSPLINE *bspline, int d
 /* convert the image samples into interpolation coefficients */
 #ifdef HAVE_OPENMP
 #pragma omp parallel
-  { nthreads = omp_get_num_threads(); }
+  {
+    nthreads = omp_get_num_threads();
+  }
 #else
   nthreads = 1;
 #endif
@@ -1893,7 +1923,8 @@ extern int MRIsampleBSpline(const MRI_BSPLINE *bspline, /* input B-spline array 
       yIndex[l] = j++;
       zIndex[l] = k++;
     }
-  } else {
+  }
+  else {
     i = (long)floor(x + 0.5) - SplineDegree / 2;
     j = (long)floor(y + 0.5) - SplineDegree / 2;
     k = (long)floor(z + 0.5) - SplineDegree / 2;
@@ -1990,7 +2021,8 @@ extern int MRIsampleBSpline(const MRI_BSPLINE *bspline, /* input B-spline array 
 }
 
 extern int MRIsampleSeqBSpline(
-    const MRI_BSPLINE *bspline, double x, double y, double z, float *valvect, int firstframe, int lastframe) {
+    const MRI_BSPLINE *bspline, double x, double y, double z, float *valvect, int firstframe, int lastframe)
+{
   int f;
   int OutOfBounds = MRIindexNotInVolume(bspline->coeff, x, y, z);
   if (OutOfBounds == 1) {
@@ -2021,7 +2053,8 @@ extern int MRIsampleSeqBSpline(
       yIndex[l] = j++;
       zIndex[l] = k++;
     }
-  } else {
+  }
+  else {
     i = (long)floor(x + 0.5) - SplineDegree / 2;
     j = (long)floor(y + 0.5) - SplineDegree / 2;
     k = (long)floor(z + 0.5) - SplineDegree / 2;
@@ -2110,7 +2143,9 @@ MRI *MRIlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX 
   int nthreads = 1, tid = 0;
 #ifdef HAVE_OPENMP
 #pragma omp parallel
-  { nthreads = omp_get_num_threads(); }
+  {
+    nthreads = omp_get_num_threads();
+  }
 #endif
 
   mAinv = MatrixInverse(mA, NULL); /* will sample from dst back to src */
@@ -2119,7 +2154,8 @@ MRI *MRIlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX 
   if (!mri_dst) {
     // mri_dst = MRIclone(mri_src, NULL) ;
     mri_dst = MRIcloneDifferentType(bspline->coeff, bspline->srctype);
-  } else
+  }
+  else
     MRIclear(mri_dst);
 
   width = mri_dst->width;
@@ -2182,7 +2218,8 @@ MRI *MRIlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX 
   return (mri_dst);
 }
 
-MRI *MRIapplyRASlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX *m_ras_xform) {
+MRI *MRIapplyRASlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX *m_ras_xform)
+{
   MATRIX *m_voxel_xform;
 
   m_voxel_xform = MRIrasXformToVoxelXform(bspline->coeff, mri_dst, m_ras_xform, NULL);
@@ -2264,7 +2301,8 @@ MRI *LTAtransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, LTA *lta)
         mri_dst->type = bspline->srctype;
         // make sure the geometry is taken from the transform, not from src:
         useVolGeomToMRI(&tran->dst, mri_dst);
-      } else if (getenv("USE_AVERAGE305")) {
+      }
+      else if (getenv("USE_AVERAGE305")) {
         fprintf(stderr,
                 "INFO: Environmental variable "
                 "USE_AVERAGE305 set\n");
@@ -2286,7 +2324,8 @@ MRI *LTAtransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, LTA *lta)
         // do the following whenever
         // we change direction cosines
         MRIreInitCache(mri_dst);
-      } else {
+      }
+      else {
         fprintf(stderr,
                 "INFO: Transform dst volume "
                 "info is not used (valid flag = 0).\n");
@@ -2303,7 +2342,8 @@ MRI *LTAtransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, LTA *lta)
     if (lta->type == LINEAR_RAS_TO_RAS) {
       // don't need any info from dst(in lta) only from mri_dst:
       return (MRIapplyRASlinearTransformBSpline(bspline, mri_dst, lta->xforms[0].m_L));
-    } else if (lta->type == LINEAR_VOX_TO_VOX)  // vox-to-vox
+    }
+    else if (lta->type == LINEAR_VOX_TO_VOX)  // vox-to-vox
     {
       // convert to ras_to_ras using xforms from lta if available
       // this strips geometry information and allows to use the
@@ -2312,7 +2352,8 @@ MRI *LTAtransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, LTA *lta)
       // we use the geometry from the passed source and target image
       if (lta->xforms[0].dst.valid) {
         i2r = vg_i_to_r(&lta->xforms[0].dst);  // allocated
-      } else {
+      }
+      else {
         fprintf(stderr,
                 "INFO: LTA dst geometry information missing!\n"
                 "      We assume that the dst volume passed is the\n"
@@ -2322,7 +2363,8 @@ MRI *LTAtransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, LTA *lta)
       tmp = MatrixMultiply(i2r, lta->xforms[0].m_L, NULL);
       if (lta->xforms[0].src.valid) {
         r2i = vg_r_to_i(&lta->xforms[0].src);  // allocated
-      } else {
+      }
+      else {
         fprintf(stderr,
                 "INFO: LTA src geometry information missing!\n"
                 "      We assume that the src volume passed is the\n"
@@ -2362,11 +2404,13 @@ MRI *LTAtransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, LTA *lta)
         return(MRIlinearTransformBSpline(bspline, mri_dst,
                                         lta->xforms[0].m_L)) ;
       }*/
-    } else if (lta->type == LINEAR_PHYSVOX_TO_PHYSVOX) {
+    }
+    else if (lta->type == LINEAR_PHYSVOX_TO_PHYSVOX) {
       // must have both transform src and dst geometry information
       LTAchangeType(lta, LINEAR_RAS_TO_RAS);
       return (MRIapplyRASlinearTransformBSpline(bspline, mri_dst, lta->xforms[0].m_L));
-    } else
+    }
+    else
       ErrorExit(ERROR_BADPARM, "LTAtransformBSpline: unknown linear transform\n");
   }
 
@@ -2389,7 +2433,8 @@ MRI *LTAtransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, LTA *lta)
 #define SPLINE_CENT "Centered Spline"       /* Centered Spline filter (l2-norm) */
 #define SPLINE_CENT_L2 "Centered Spline L2" /* Centered Spline filter (L2-norm) */
 
-extern MRI *MRIdownsample2BSpline(const MRI *mri_src, MRI *mri_dst) {
+extern MRI *MRIdownsample2BSpline(const MRI *mri_src, MRI *mri_dst)
+{
   double *InBuffer;  /* Input buffer to 1D process */
   double *OutBuffer; /* Output buffer to 1D process */
   double g[MAXF];    /* Coefficients of the reduce filter */
@@ -2439,7 +2484,8 @@ extern MRI *MRIdownsample2BSpline(const MRI *mri_src, MRI *mri_dst) {
           Reduce_1D(InBuffer, NxIn, OutBuffer, g, ng, IsCentered);
           // printf(" f %i  z %i  y %i  NxOut %i  width %i\n",kf,kz,ky,NxOut,mri_tmp->width);
           setXLine(mri_tmp, ky, kz, kf, OutBuffer);
-        } else {
+        }
+        else {
           getXLine(mri_src, ky, kz, kf, InBuffer);
           setXLine(mri_tmp, ky, kz, kf, InBuffer);
         }
@@ -2471,7 +2517,8 @@ extern MRI *MRIdownsample2BSpline(const MRI *mri_src, MRI *mri_dst) {
           getYLine(mri_tmp, kx, kz, kf, InBuffer);
           Reduce_1D(InBuffer, NyIn, OutBuffer, g, ng, IsCentered);
           setYLine(mri_tmp2, kx, kz, kf, OutBuffer);
-        } else {
+        }
+        else {
           getYLine(mri_tmp, kx, kz, kf, InBuffer);
           setYLine(mri_tmp2, kx, kz, kf, InBuffer);
         }
@@ -2513,7 +2560,8 @@ extern MRI *MRIdownsample2BSpline(const MRI *mri_src, MRI *mri_dst) {
           getZLine(mri_tmp2, kx, ky, kf, InBuffer);
           Reduce_1D(InBuffer, NzIn, OutBuffer, g, ng, IsCentered);
           setZLine(mri_dst, kx, ky, kf, OutBuffer);
-        } else {
+        }
+        else {
           getZLine(mri_tmp2, kx, ky, kf, InBuffer);
           setZLine(mri_dst, kx, ky, kf, InBuffer);
         }
@@ -2556,7 +2604,8 @@ extern MRI *MRIdownsample2BSpline(const MRI *mri_src, MRI *mri_dst) {
   return (mri_dst);
 }
 
-extern MRI *MRIupsample2BSpline(const MRI *mri_src, MRI *mri_dst) {
+extern MRI *MRIupsample2BSpline(const MRI *mri_src, MRI *mri_dst)
+{
   double *InBuffer;  /* Input buffer to 1D process */
   double *OutBuffer; /* Output buffer to 1D process */
   double g[MAXF];    /* Coefficients of the reduce filter */
@@ -2621,7 +2670,8 @@ extern MRI *MRIupsample2BSpline(const MRI *mri_src, MRI *mri_dst) {
           getXLine(mri_src, ky, kz, kf, InBuffer);
           Expand_1D(InBuffer, NxIn, OutBuffer, h, nh, IsCentered);
           setXLine(mri_dst, ky, kz, kf, OutBuffer);
-        } else {
+        }
+        else {
           getXLine(mri_src, ky, kz, kf, InBuffer);
           setXLine(mri_dst, ky, kz, kf, InBuffer);
         }
@@ -2648,7 +2698,8 @@ extern MRI *MRIupsample2BSpline(const MRI *mri_src, MRI *mri_dst) {
           getYLineStop(mri_dst, kx, kz, kf, InBuffer, NyIn);
           Expand_1D(InBuffer, NyIn, OutBuffer, h, nh, IsCentered);
           setYLine(mri_dst, kx, kz, kf, OutBuffer);
-        } else {
+        }
+        else {
           getYLine(mri_src, kx, kz, kf, InBuffer);
           setYLine(mri_dst, kx, kz, kf, InBuffer);
         }
@@ -2675,7 +2726,8 @@ extern MRI *MRIupsample2BSpline(const MRI *mri_src, MRI *mri_dst) {
           getZLineStop(mri_dst, kx, ky, kf, InBuffer, NzIn);
           Expand_1D(InBuffer, NzIn, OutBuffer, h, nh, IsCentered);
           setZLine(mri_dst, kx, ky, kf, OutBuffer);
-        } else {
+        }
+        else {
           getZLine(mri_src, kx, ky, kf, InBuffer);
           setZLine(mri_dst, kx, ky, kf, InBuffer);
         }

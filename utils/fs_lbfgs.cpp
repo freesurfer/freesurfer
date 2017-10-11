@@ -39,13 +39,15 @@ fs_lbfgs::fs_lbfgs(vnl_cost_function &f) : fs_lbfgs_subject(), f_(&f) { init_par
 
 //: Called by constructors.
 // Memory is set to 5, line_search_accuracy to 0.9, default_step_length to 1.
-void fs_lbfgs::init_parameters() {
+void fs_lbfgs::init_parameters()
+{
   memory = 5;
   line_search_accuracy = 0.9;
   default_step_length = 1.0;
 }
 
-bool fs_lbfgs::minimize(vnl_vector< double > &x) {
+bool fs_lbfgs::minimize(vnl_vector< double > &x)
+{
   /* Local variables */
   /*     The driver for vnl_lbfgs must always declare LB2 as EXTERNAL */
 
@@ -98,7 +100,8 @@ bool fs_lbfgs::minimize(vnl_vector< double > &x) {
     if (this->num_evaluations_ == 0) {
       this->start_error_ = f;
       best_f = f;
-    } else if (f < best_f) {
+    }
+    else if (f < best_f) {
       best_x = x;
       best_f = f;
 

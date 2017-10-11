@@ -33,7 +33,8 @@
 #include "macros.h"
 #include "matrix.h"
 
-IOP *IOPRead(char *fname, int hemi) {
+IOP *IOPRead(char *fname, int hemi)
+{
   IOP *iop;
   int i, j, k, jc, d, dipoles_in_decimation;
   FILE *fp;
@@ -117,7 +118,8 @@ IOP *IOPRead(char *fname, int hemi) {
             ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
           }
           iop->dipole_vertices[j] = d;
-        } else {
+        }
+        else {
           if (fscanf(fp, "%*d") != 0) {
             ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
           }
@@ -131,7 +133,8 @@ IOP *IOPRead(char *fname, int hemi) {
           *MATRIX_RELT(iop->pvals, j + 1, 1) = f;
           f = fabs(f);
           if (f < iop->pthresh) iop->pthresh = f;
-        } else {
+        }
+        else {
           if (fscanf(fp, "%*f") != 0) {
             ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
           }
@@ -146,7 +149,8 @@ IOP *IOPRead(char *fname, int hemi) {
 #if 0
           vertex[iop->dipole_vertices[j]].val = f;
 #endif
-        } else {
+        }
+        else {
           if (fscanf(fp, "%*f") != 0) {
             ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
           }
@@ -160,7 +164,8 @@ IOP *IOPRead(char *fname, int hemi) {
                 ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
               }
               *MATRIX_RELT(iop->m_iop, j * iop->ndipoles_per_location + jc + 1, k + 1) = f;
-            } else {
+            }
+            else {
               if (fscanf(fp, "%*f") != 0) {
                 ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
               }
@@ -177,7 +182,8 @@ IOP *IOPRead(char *fname, int hemi) {
                   ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
                 }
                 *MATRIX_RELT(iop->m_forward, k + 1, j * iop->ndipoles_per_location + jc + 1) = f;
-              } else {
+              }
+              else {
                 if (fscanf(fp, "%*f") != 0) {
                   ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
                 }
@@ -187,7 +193,8 @@ IOP *IOPRead(char *fname, int hemi) {
         }
       }
     }
-  } else {
+  }
+  else {
     printf("Can't read binary .iop files\n");
   }
   fclose(fp);
@@ -201,7 +208,8 @@ IOP *IOPRead(char *fname, int hemi) {
   return (iop);
 }
 int IOPWrite(IOP *iop, char *fname) { return (NO_ERROR); }
-int IOPFree(IOP **piop) {
+int IOPFree(IOP **piop)
+{
   IOP *iop;
 
   iop = *piop;
@@ -215,7 +223,8 @@ int IOPFree(IOP **piop) {
   return (NO_ERROR);
 }
 
-int IOPNormalize(IOP *iop) {
+int IOPNormalize(IOP *iop)
+{
   int j, k, jc;
   double sum, val;
 
@@ -236,7 +245,8 @@ int IOPNormalize(IOP *iop) {
   }
   return (NO_ERROR);
 }
-MATRIX *IOPapplyInverseOperator(IOP *iop, REC *rec, MATRIX *m_sol) {
+MATRIX *IOPapplyInverseOperator(IOP *iop, REC *rec, MATRIX *m_sol)
+{
   m_sol = MatrixMultiply(iop->m_iop, rec->m_data, NULL);
   return (m_sol);
 }

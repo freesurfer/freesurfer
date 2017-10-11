@@ -25,7 +25,8 @@
 #include "fastmarching.h"
 
 extern "C" MRI *MRIextractDistanceMap(
-    MRI *mri_src, MRI *mri_dst, int label, float max_distance, int mode, MRI *mri_mask) {
+    MRI *mri_src, MRI *mri_dst, int label, float max_distance, int mode, MRI *mri_mask)
+{
   MRI *mri_distance = NULL;
 
 #if 0
@@ -79,7 +80,8 @@ extern "C" MRI *MRIextractDistanceMap(
               "ERROR : incompatible structure with mri_dst:\n"
               "mri_dst->type=%d != MRI_FLOAT\n",
               mri_dst->type);
-  } else {
+  }
+  else {
     // set values to zero
     for (int z = 0; z < mri_dst->depth; z++)
       for (int y = 0; y < mri_dst->height; y++)

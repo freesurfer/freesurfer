@@ -68,7 +68,8 @@ int Gerror = NO_ERROR;
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
 
-void SetErrorExitDoneFile(char *DoneFile) {
+void SetErrorExitDoneFile(char *DoneFile)
+{
   extern char *ErrorExitDoneFile;
   ErrorExitDoneFile = DoneFile;
 }
@@ -80,7 +81,8 @@ void SetErrorExitDoneFile(char *DoneFile) {
 
         Description
 ------------------------------------------------------*/
-static void rgb_error(char *error_str) {
+static void rgb_error(char *error_str)
+{
   ErrorPrintf(ERROR_BADPARM, error_str);
   return;
 }
@@ -94,7 +96,8 @@ static void rgb_error(char *error_str) {
 ------------------------------------------------------*/
 int ErrorInit(char *fname,
               int (*vfprint)(FILE *fp, const char *fmt, va_list args),
-              int (*vprint)(const char *fmt, va_list args)) {
+              int (*vprint)(const char *fmt, va_list args))
+{
   FSinit();
   error_exit = (void *)exit;
   i_seterror(rgb_error);
@@ -116,7 +119,8 @@ int ErrorInit(char *fname,
 
         Description
 ------------------------------------------------------*/
-void ErrorExit(int ecode, const char *fmt, ...) {
+void ErrorExit(int ecode, const char *fmt, ...)
+{
   va_list args;
   extern char *ErrorExitDoneFile;
 
@@ -153,7 +157,8 @@ void ErrorExit(int ecode, const char *fmt, ...) {
   ErrorExit(). If no error occurs during processing, then
   the process should run ErrorWriteDoneFile(DoneFile, 0);
  */
-int ErrorWriteDoneFile(char *DoneFile, int errorcode) {
+int ErrorWriteDoneFile(char *DoneFile, int errorcode)
+{
   FILE *fp;
   if (DoneFile == NULL) return (0);
   fp = fopen(DoneFile, "w");
@@ -170,7 +175,8 @@ int ErrorWriteDoneFile(char *DoneFile, int errorcode) {
 
         Description
 ------------------------------------------------------*/
-int ErrorPrintf(int ecode, const char *fmt, ...) {
+int ErrorPrintf(int ecode, const char *fmt, ...)
+{
   va_list args;
   FILE *fp;
 
@@ -205,7 +211,8 @@ int ErrorPrintf(int ecode, const char *fmt, ...) {
 
         Description
 ------------------------------------------------------*/
-int ErrorSetExitFunc(void (*exit_func)(int ecode)) {
+int ErrorSetExitFunc(void (*exit_func)(int ecode))
+{
   error_exit = exit_func;
   return (1);
 }

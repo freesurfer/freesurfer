@@ -45,7 +45,8 @@ char *Surf_ksaVertexSets[Surf_knNumVertexSets] = {"main", "original", "pial"};
 
 static xVoxel sTmpVertex;
 
-Surf_tErr Surf_New(mriSurfaceRef *opSurface, char *isFileName) {
+Surf_tErr Surf_New(mriSurfaceRef *opSurface, char *isFileName)
+{
   mriSurfaceRef this = NULL;
   Surf_tErr eResult = Surf_tErr_NoErr;
   mriTransformRef transform = NULL;
@@ -129,7 +130,8 @@ cleanup:
   return eResult;
 }
 
-Surf_tErr Surf_Delete(mriSurfaceRef *iopSurface) {
+Surf_tErr Surf_Delete(mriSurfaceRef *iopSurface)
+{
   mriSurfaceRef this = NULL;
   Surf_tErr eResult = Surf_tErr_NoErr;
 
@@ -176,7 +178,8 @@ cleanup:
   return eResult;
 }
 
-Surf_tErr Surf_SetTransform(mriSurfaceRef this, mriTransformRef iTransform) {
+Surf_tErr Surf_SetTransform(mriSurfaceRef this, mriTransformRef iTransform)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
 
   eResult = Surf_Verify(this);
@@ -214,7 +217,8 @@ cleanup:
   return eResult;
 }
 
-Surf_tErr Surf_LoadVertexSet(mriSurfaceRef this, char *isName, Surf_tVertexSet iSet) {
+Surf_tErr Surf_LoadVertexSet(mriSurfaceRef this, char *isName, Surf_tVertexSet iSet)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
   int eMRIS = NO_ERROR;
 
@@ -275,7 +279,8 @@ cleanup:
   return eResult;
 }
 
-Surf_tErr Surf_WriteValues(mriSurfaceRef this, char *isFileName) {
+Surf_tErr Surf_WriteValues(mriSurfaceRef this, char *isFileName)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
   int vno;
 
@@ -307,7 +312,8 @@ cleanup:
   return eResult;
 }
 
-Surf_tErr Surf_IsVertexSetLoaded(mriSurfaceRef this, Surf_tVertexSet iSet, tBoolean *obIsLoaded) {
+Surf_tErr Surf_IsVertexSetLoaded(mriSurfaceRef this, Surf_tVertexSet iSet, tBoolean *obIsLoaded)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
 
   eResult = Surf_Verify(this);
@@ -331,7 +337,8 @@ cleanup:
   return eResult;
 }
 
-Surf_tErr Surf_LoadAnnotation(mriSurfaceRef this, char *isFileName) {
+Surf_tErr Surf_LoadAnnotation(mriSurfaceRef this, char *isFileName)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
   int eMRIS = NO_ERROR;
 
@@ -361,7 +368,8 @@ cleanup:
   return eResult;
 }
 
-Surf_tErr Surf_IsInternalColorTablePresent(mriSurfaceRef this, tBoolean *obPresent) {
+Surf_tErr Surf_IsInternalColorTablePresent(mriSurfaceRef this, tBoolean *obPresent)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
 
   eResult = Surf_Verify(this);
@@ -385,7 +393,8 @@ cleanup:
   return eResult;
 }
 
-Surf_tErr Surf_NewColorTableFromInternal(mriSurfaceRef this, COLOR_TABLE **opTable) {
+Surf_tErr Surf_NewColorTableFromInternal(mriSurfaceRef this, COLOR_TABLE **opTable)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
   COLOR_TABLE *colorTable = NULL;
 
@@ -420,7 +429,8 @@ cleanup:
   return eResult;
 }
 
-Surf_tErr Surf_ConvertSurfaceToClientSpace_(mriSurfaceRef this, Surf_tVertexSet iSet) {
+Surf_tErr Surf_ConvertSurfaceToClientSpace_(mriSurfaceRef this, Surf_tVertexSet iSet)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
   int nFaceIdx = 0;
   face_type *face = NULL;
@@ -496,7 +506,8 @@ cleanup:
   return eResult;
 }
 
-Surf_tErr Surf_SetIteratorPosition(mriSurfaceRef this, xVoxelRef iPlane) {
+Surf_tErr Surf_SetIteratorPosition(mriSurfaceRef this, xVoxelRef iPlane)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
 
   eResult = Surf_Verify(this);
@@ -508,10 +519,12 @@ Surf_tErr Surf_SetIteratorPosition(mriSurfaceRef this, xVoxelRef iPlane) {
   if (xVoxl_GetFloatX(iPlane) != 0) {
     this->mIterOrientation = Surf_tOrientation_X;
     this->mfIterPlane = xVoxl_GetFloatX(iPlane);
-  } else if (xVoxl_GetFloatY(iPlane) != 0) {
+  }
+  else if (xVoxl_GetFloatY(iPlane) != 0) {
     this->mIterOrientation = Surf_tOrientation_Y;
     this->mfIterPlane = xVoxl_GetFloatY(iPlane);
-  } else if (xVoxl_GetFloatZ(iPlane) != 0) {
+  }
+  else if (xVoxl_GetFloatZ(iPlane) != 0) {
     this->mIterOrientation = Surf_tOrientation_Z;
     this->mfIterPlane = xVoxl_GetFloatZ(iPlane);
   }
@@ -538,7 +551,8 @@ Surf_tErr Surf_GetNextAndNeighborVertex(mriSurfaceRef this,
                                         xVoxelRef oNextVoxel,
                                         int *onNextIndex,
                                         xVoxelRef oNeighborVoxel,
-                                        int *onNeighborIndex) {
+                                        int *onNeighborIndex)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
   tBoolean bFaceFound = FALSE;
   Surf_tFaceRef face = NULL;
@@ -586,7 +600,8 @@ Surf_tErr Surf_GetNextAndNeighborVertex(mriSurfaceRef this,
       less than some amount, use this face. */
       if (fabs(fVertexPlane - this->mfIterPlane) <= this->mfLongestEdge) {
         bFaceFound = TRUE;
-      } else {
+      }
+      else {
         this->mnCurFace++;
       }
     }
@@ -648,7 +663,8 @@ cleanup:
   return eResult;
 }
 
-Surf_tErr Surf_CopyGeometryInformation(mriSurfaceRef this, VOL_GEOM *ioVolumeGeometry) {
+Surf_tErr Surf_CopyGeometryInformation(mriSurfaceRef this, VOL_GEOM *ioVolumeGeometry)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
 
   DebugEnterFunction(
@@ -676,7 +692,8 @@ Surf_tErr Surf_CopyGeometryInformation(mriSurfaceRef this, VOL_GEOM *ioVolumeGeo
   return eResult;
 }
 
-Surf_tErr Surf_TransformToVolumeGeometry(mriSurfaceRef this, VOL_GEOM *iVolumeGeometry) {
+Surf_tErr Surf_TransformToVolumeGeometry(mriSurfaceRef this, VOL_GEOM *iVolumeGeometry)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
   int eMRIS = ERROR_NONE;
   MRI *mri = NULL;
@@ -737,7 +754,8 @@ Surf_tErr Surf_TransformToVolumeGeometry(mriSurfaceRef this, VOL_GEOM *iVolumeGe
 }
 
 Surf_tErr Surf_GetNthVertex(
-    mriSurfaceRef this, Surf_tVertexSet iSet, int inIndex, xVoxelRef oVoxel, char *osDescription) {
+    mriSurfaceRef this, Surf_tVertexSet iSet, int inIndex, xVoxelRef oVoxel, char *osDescription)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
   vertex_type *vertex = NULL;
 
@@ -785,7 +803,8 @@ cleanup:
 }
 
 Surf_tErr Surf_GetClosestVertexVoxel(
-    mriSurfaceRef this, Surf_tVertexSet iSet, xVoxelRef iClientVoxel, xVoxelRef oClientVoxel, char *osDescription) {
+    mriSurfaceRef this, Surf_tVertexSet iSet, xVoxelRef iClientVoxel, xVoxelRef oClientVoxel, char *osDescription)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
   xVoxel surfaceVoxel;
   vertex_type *vertex = NULL;
@@ -832,7 +851,8 @@ cleanup:
   return eResult;
 }
 
-float Surf_GetVertexCoord(vertex_type *iVertex, Surf_tVertexSet iSet, Surf_tOrientation iOrientation) {
+float Surf_GetVertexCoord(vertex_type *iVertex, Surf_tVertexSet iSet, Surf_tOrientation iOrientation)
+{
   switch (iSet) {
     case Surf_tVertexSet_Main:
       switch (iOrientation) {
@@ -886,7 +906,8 @@ float Surf_GetVertexCoord(vertex_type *iVertex, Surf_tVertexSet iSet, Surf_tOrie
 }
 
 Surf_tErr Surf_SetVertexValue(
-    mriSurfaceRef this, Surf_tVertexSet iVertexSet, Surf_tValueSet iValueSet, xVoxelRef iClientVoxel, float iValue) {
+    mriSurfaceRef this, Surf_tVertexSet iVertexSet, Surf_tValueSet iValueSet, xVoxelRef iClientVoxel, float iValue)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
   xVoxel surfaceVoxel;
   VERTEX *vertex = NULL;
@@ -939,7 +960,8 @@ cleanup:
 }
 
 Surf_tErr Surf_GetVertexValue(
-    mriSurfaceRef this, Surf_tVertexSet iVertexSet, Surf_tValueSet iValueSet, xVoxelRef iClientVoxel, float *opValue) {
+    mriSurfaceRef this, Surf_tVertexSet iVertexSet, Surf_tValueSet iValueSet, xVoxelRef iClientVoxel, float *opValue)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
   xVoxel surfaceVoxel;
   VERTEX *vertex = NULL;
@@ -981,7 +1003,8 @@ cleanup:
   return eResult;
 }
 
-Surf_tErr Surf_GetVertexAnnotationByIndex(mriSurfaceRef this, int iVertexIndex, int *oAnnotation) {
+Surf_tErr Surf_GetVertexAnnotationByIndex(mriSurfaceRef this, int iVertexIndex, int *oAnnotation)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
 
   eResult = Surf_Verify(this);
@@ -1011,7 +1034,8 @@ cleanup:
   return eResult;
 }
 
-Surf_tErr Surf_GetDistance(mriSurfaceRef this, xVoxelRef iClientVoxel1, xVoxelRef iClientVoxel2, float *ofDistance) {
+Surf_tErr Surf_GetDistance(mriSurfaceRef this, xVoxelRef iClientVoxel1, xVoxelRef iClientVoxel2, float *ofDistance)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
   xVoxel surfaceVoxel1;
   xVoxel surfaceVoxel2;
@@ -1051,7 +1075,8 @@ cleanup:
   return eResult;
 }
 
-Surf_tErr Surf_GetMRIS(mriSurfaceRef this, MRIS **opSurface) {
+Surf_tErr Surf_GetMRIS(mriSurfaceRef this, MRIS **opSurface)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
 
   eResult = Surf_Verify(this);
@@ -1075,7 +1100,8 @@ cleanup:
   return eResult;
 }
 
-Surf_tErr Surf_GetSurfaceSetName(Surf_tVertexSet iSet, char *osName) {
+Surf_tErr Surf_GetSurfaceSetName(Surf_tVertexSet iSet, char *osName)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
 
   if (iSet < 0 || iSet >= Surf_knNumVertexSets || NULL == osName) {
@@ -1098,7 +1124,8 @@ cleanup:
   return eResult;
 }
 
-Surf_tErr Surf_UsesRealRAS(mriSurfaceRef this, tBoolean *obUseRealRAS) {
+Surf_tErr Surf_UsesRealRAS(mriSurfaceRef this, tBoolean *obUseRealRAS)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
 
   eResult = Surf_Verify(this);
@@ -1121,7 +1148,8 @@ cleanup:
   return eResult;
 }
 
-Surf_tErr Surf_AverageVertexPositions(mriSurfaceRef this, int inNumAverages) {
+Surf_tErr Surf_AverageVertexPositions(mriSurfaceRef this, int inNumAverages)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
   int eMRIS = NO_ERROR;
 
@@ -1162,7 +1190,8 @@ void Surf_GetClosestVertex(mriSurfaceRef this,
                            xVoxelRef iSurfaceVoxel,
                            vertex_type **opVertex,
                            int *onIndex,
-                           float *ofDistance) {
+                           float *ofDistance)
+{
   vertex_type *currentVertex = NULL;
   int nVertex = 0;
   int nBestVertex = -1;
@@ -1221,10 +1250,8 @@ cleanup:
   return;
 }
 
-void Surf_ConvertVertexToVoxel(vertex_type *iVertex,
-                               Surf_tVertexSet iSet,
-                               mriTransformRef iTransform,
-                               xVoxelRef oVoxel) {
+void Surf_ConvertVertexToVoxel(vertex_type *iVertex, Surf_tVertexSet iSet, mriTransformRef iTransform, xVoxelRef oVoxel)
+{
   /* if we don't have a transform, just copy vertex into voxel */
   if (NULL == iTransform) {
     oVoxel->mfX = ((iSet == Surf_tVertexSet_Main) ? iVertex->x
@@ -1239,7 +1266,8 @@ void Surf_ConvertVertexToVoxel(vertex_type *iVertex,
                     Surf_GetVertexCoord( iVertex, iSet, Surf_tOrientation_Y ),
                     Surf_GetVertexCoord( iVertex, iSet, Surf_tOrientation_Z ));
 #endif
-  } else {
+  }
+  else {
 /* stuff the vertex into a voxel */
 #if 0
     xVoxl_SetFloat( &sTmpVertex,
@@ -1269,7 +1297,8 @@ void Surf_ConvertVertexToVoxel(vertex_type *iVertex,
   }
 }
 
-void Surf_ConvertVoxelToSurfaceSpace(xVoxelRef iVoxel, mriTransformRef iTransform, xVoxelRef oSurfVox) {
+void Surf_ConvertVoxelToSurfaceSpace(xVoxelRef iVoxel, mriTransformRef iTransform, xVoxelRef oSurfVox)
+{
 #if 0
   static MATRIX * BtoRAS = NULL;
   static MATRIX * tmp1   = NULL;
@@ -1279,7 +1308,8 @@ void Surf_ConvertVoxelToSurfaceSpace(xVoxelRef iVoxel, mriTransformRef iTransfor
   /* if we don't have a transform, just copy vertex into voxel */
   if (NULL == iTransform) {
     xVoxl_Copy(oSurfVox, iVoxel);
-  } else {
+  }
+  else {
     /* transform voxel */
     /* RKT: In the opposite of this function, CovertVertexToVoxel, we
        use CovertBRAStoB, so we'll use ConvertBtoRAS here. Even though
@@ -1319,7 +1349,8 @@ void Surf_ConvertVoxelToSurfaceSpace(xVoxelRef iVoxel, mriTransformRef iTransfor
   }
 }
 
-Surf_tErr Surf_Verify(mriSurfaceRef this) {
+Surf_tErr Surf_Verify(mriSurfaceRef this)
+{
   Surf_tErr eResult = Surf_tErr_NoErr;
 
   /* check for null ptr */
@@ -1339,7 +1370,8 @@ cleanup:
   return eResult;
 }
 
-char *Surf_GetErrorString(Surf_tErr ieCode) {
+char *Surf_GetErrorString(Surf_tErr ieCode)
+{
   Surf_tErr eCode = ieCode;
 
   if (ieCode < 0 || ieCode >= Surf_knNumErrorCodes) {

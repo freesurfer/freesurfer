@@ -77,14 +77,16 @@ read_signa(char *fname, char *h, float scale)
 
 /*------------------------------------------------------------*/
 /* Get Header (Character) */
-char *ghc(char *destin, char *header, int offset, int byte_length) {
+char *ghc(char *destin, char *header, int offset, int byte_length)
+{
   strncpy(destin, header + (2 * offset), byte_length);
   return (destin);
 }
 
 /*------------------------------------------------------------*/
 /* Get Header (integer) */
-int ghi(char *header, int offset) {
+int ghi(char *header, int offset)
+{
   int num;
   int i;
   int byte_length = 2;
@@ -99,7 +101,8 @@ int ghi(char *header, int offset) {
 
 /*------------------------------------------------------------*/
 /* Get Header (float) */
-float ghf(char *header, int offset) {
+float ghf(char *header, int offset)
+{
 #define sign_bit 020000000000
 #define dmantissa 077777777
 #define dexponent 0177
@@ -149,7 +152,8 @@ float ghf(char *header, int offset) {
 
 /*------------------------------------------------------------*/
 /* Get header info */
-int get_signa_header_info(char *h, HINFO *hinfo) {
+int get_signa_header_info(char *h, HINFO *hinfo)
+{
   hinfo->plane_type = ghi(h, SEHDR_START + SEHDR_PTYPE);
   hinfo->x = ghi(h, IHDR_START + IHDR_X);
   hinfo->y = ghi(h, IHDR_START + IHDR_Y);
@@ -183,7 +187,8 @@ int get_signa_header_info(char *h, HINFO *hinfo) {
   return (NO_ERROR);
 }
 
-int is_signa(char *fname) {
+int is_signa(char *fname)
+{
   HINFO header;
   char h[HLENGTH + 2];
   FILE *fp;
@@ -203,7 +208,8 @@ int is_signa(char *fname) {
           (header.ti > 0 && header.imnr1 >= 0 && devFinite(header.psiz)));
 }
 
-MRI *signaRead(char *fname, int read_volume_flag) {
+MRI *signaRead(char *fname, int read_volume_flag)
+{
   HINFO header;
   char h[HLENGTH + 2];
   FILE *fp;
@@ -215,7 +221,8 @@ MRI *signaRead(char *fname, int read_volume_flag) {
   if (getenv("GE_ODD")) {
     odd_only = 1;
     printf("only using odd # GE Signa files\n");
-  } else if (getenv("GE_EVEN")) {
+  }
+  else if (getenv("GE_EVEN")) {
     even_only = 1;
     printf("only using even # GE Signa files\n");
   }
@@ -233,7 +240,8 @@ MRI *signaRead(char *fname, int read_volume_flag) {
   if (odd_only) {
     if (ISEVEN(header.imnr0)) header.imnr0--;
     if (ISEVEN(header.imnr1)) header.imnr1--;
-  } else if (even_only) {
+  }
+  else if (even_only) {
     if (ISODD(header.imnr0)) header.imnr0++;
     if (ISODD(header.imnr1)) header.imnr1++;
   }
@@ -242,7 +250,8 @@ MRI *signaRead(char *fname, int read_volume_flag) {
   else if (header.num_echoes > 1) {
     printf("SIGNA multi-echo file detected (%d echoes)\n", header.num_echoes);
     mri = MRIallocSequence(header.x, header.y, (header.imnr1 - header.imnr0) / 2 + 1, MRI_SHORT, header.num_echoes);
-  } else
+  }
+  else
     mri = MRIalloc(header.x, header.y, header.imnr1 - header.imnr0 + 1, MRI_SHORT);
   if (!mri)
     ErrorReturn(NULL,
@@ -302,7 +311,8 @@ MRI *signaRead(char *fname, int read_volume_flag) {
       fread(&MRISseq_vox(mri, 0, 0, slice, frame), sizeof(short), mri->width * mri->height, fp);
       orderShortBuffer(&MRISseq_vox(mri, 0, 0, slice, frame), mri->width * mri->height);
       if (frame == 0) slice--;  // same slice, next echo
-    } else {
+    }
+    else {
       fread(&MRISvox(mri, 0, 0, slice), sizeof(short), mri->width * mri->height, fp);
       orderShortBuffer(&MRISvox(mri, 0, 0, slice), mri->width * mri->height);
     }
@@ -314,7 +324,8 @@ MRI *signaRead(char *fname, int read_volume_flag) {
   return (mri);
 }
 
-static int orderShortBuffer(short *sbuf, int nbytes) {
+static int orderShortBuffer(short *sbuf, int nbytes)
+{
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   int i;
 

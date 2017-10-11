@@ -39,7 +39,8 @@ char *xSVol_ksaErrorStrings[xSVol_knNumErrorCodes] = {
     "Index not allocated.",
     "Invalid error code."};
 
-xSVol_tErr xSVol_New(xSparseVolumeRef *opVolume, int inXDim, int inYDim, int inZDim) {
+xSVol_tErr xSVol_New(xSparseVolumeRef *opVolume, int inXDim, int inYDim, int inZDim)
+{
   xSVol_tErr eResult = xSVol_tErr_NoErr;
   xSparseVolumeRef this = NULL;
 
@@ -83,7 +84,8 @@ cleanup:
   return eResult;
 }
 
-xSVol_tErr xSVol_Delete(xSparseVolumeRef *iopVolume, xSVol_tDeleteEntryFuncPtr ipDeleteFunc) {
+xSVol_tErr xSVol_Delete(xSparseVolumeRef *iopVolume, xSVol_tDeleteEntryFuncPtr ipDeleteFunc)
+{
   xSVol_tErr eResult = xSVol_tErr_NoErr;
   xSparseVolumeRef this = NULL;
 
@@ -124,7 +126,8 @@ cleanup:
   return eResult;
 }
 
-xSVol_tErr xSVol_Get(xSparseVolumeRef this, xVoxelRef iWhere, void **oppItem) {
+xSVol_tErr xSVol_Get(xSparseVolumeRef this, xVoxelRef iWhere, void **oppItem)
+{
   xSVol_tErr eResult = xSVol_tErr_NoErr;
   void *pItem = NULL;
 
@@ -145,9 +148,11 @@ xSVol_tErr xSVol_Get(xSparseVolumeRef this, xVoxelRef iWhere, void **oppItem) {
   if (xSVol_tErr_IndexNotAllocated == eResult) {
     pItem = NULL;
     eResult = xSVol_tErr_NoErr;
-  } else if (xSVol_tErr_NoErr != eResult) {
+  }
+  else if (xSVol_tErr_NoErr != eResult) {
     goto error;
-  } else {
+  }
+  else {
     /* find the item. */
     pItem = this->mStorage[xVoxl_GetZ(iWhere)][xVoxl_GetY(iWhere)][xVoxl_GetX(iWhere)];
   }
@@ -166,7 +171,8 @@ cleanup:
   return eResult;
 }
 
-xSVol_tErr xSVol_Set(xSparseVolumeRef this, xVoxelRef iWhere, void *ipItem) {
+xSVol_tErr xSVol_Set(xSparseVolumeRef this, xVoxelRef iWhere, void *ipItem)
+{
   xSVol_tErr eResult = xSVol_tErr_NoErr;
 
   eResult = xSVol_Verify(this);
@@ -201,7 +207,8 @@ xSVol_tErr xSVol_Set(xSparseVolumeRef this, xVoxelRef iWhere, void *ipItem) {
 
     /* clear the error */
     eResult = xSVol_tErr_NoErr;
-  } else if (xSVol_tErr_NoErr != eResult) {
+  }
+  else if (xSVol_tErr_NoErr != eResult) {
     goto error;
   }
 
@@ -219,7 +226,8 @@ cleanup:
   return eResult;
 }
 
-xSVol_tErr xSVol_Purge(xSparseVolumeRef this, xSVol_tDeleteEntryFuncPtr ipDeleteFunc) {
+xSVol_tErr xSVol_Purge(xSparseVolumeRef this, xSVol_tDeleteEntryFuncPtr ipDeleteFunc)
+{
   xSVol_tErr eResult = xSVol_tErr_NoErr;
   int nZ = 0;
   int nY = 0;
@@ -265,7 +273,8 @@ xSVol_tErr xSVol_VisitAll(xSparseVolumeRef this,
                           void (*ipVisitFunction)(void *ipItem),
                           void (*ipXFunction)(int inIndex, tBoolean bEntering),
                           void (*ipYFunction)(int inIndex, tBoolean bEntering),
-                          void (*ipZFunction)(int inIndex, tBoolean bEntering)) {
+                          void (*ipZFunction)(int inIndex, tBoolean bEntering))
+{
   xSVol_tErr eResult = xSVol_tErr_NoErr;
   int nX = 0;
   int nY = 0;
@@ -321,7 +330,8 @@ cleanup:
   return eResult;
 }
 
-xSVol_tErr xSVol_VerifyIndex_(xSparseVolumeRef this, xVoxelRef iIndex) {
+xSVol_tErr xSVol_VerifyIndex_(xSparseVolumeRef this, xVoxelRef iIndex)
+{
   /* check for bounds */
   if (xVoxl_GetX(iIndex) < 0 || xVoxl_GetX(iIndex) >= this->mnXDim || xVoxl_GetY(iIndex) < 0 ||
       xVoxl_GetY(iIndex) >= this->mnYDim || xVoxl_GetZ(iIndex) < 0 || xVoxl_GetZ(iIndex) >= this->mnZDim) {
@@ -331,12 +341,14 @@ xSVol_tErr xSVol_VerifyIndex_(xSparseVolumeRef this, xVoxelRef iIndex) {
   /* check if it exists */
   if (NULL != this->mStorage[xVoxl_GetZ(iIndex)] && NULL != this->mStorage[xVoxl_GetZ(iIndex)][xVoxl_GetY(iIndex)]) {
     return xSVol_tErr_NoErr;
-  } else {
+  }
+  else {
     return xSVol_tErr_IndexNotAllocated;
   }
 }
 
-char *xSVol_GetErrorString(xSVol_tErr ieCode) {
+char *xSVol_GetErrorString(xSVol_tErr ieCode)
+{
   xSVol_tErr eCode = ieCode;
 
   if (ieCode < 0 || ieCode >= xSVol_knNumErrorCodes) {
@@ -346,7 +358,8 @@ char *xSVol_GetErrorString(xSVol_tErr ieCode) {
   return xSVol_ksaErrorStrings[eCode];
 }
 
-xSVol_tErr xSVol_Verify(xSparseVolumeRef this) {
+xSVol_tErr xSVol_Verify(xSparseVolumeRef this)
+{
   xSVol_tErr eResult = xSVol_tErr_NoErr;
 
   /* check for null ptr */

@@ -30,9 +30,10 @@
 
 // ============================================================
 
-namespace Freesurfer {
-
-void GetGCAstats(const GCA *const src) {
+namespace Freesurfer
+{
+void GetGCAstats(const GCA *const src)
+{
   std::cout << "GCA Vital Statistics" << std::endl;
 
   std::cout << "ninputs    : " << src->ninputs << std::endl;
@@ -46,7 +47,8 @@ void GetGCAstats(const GCA *const src) {
 
 // --------------------------------------
 
-void GetGCAnodeStats(const GCA *const src) {
+void GetGCAnodeStats(const GCA *const src)
+{
   std::cout << "Stats from nodes:" << std::endl;
 
   unsigned int nx, ny, nz;
@@ -93,7 +95,8 @@ void GetGCAnodeStats(const GCA *const src) {
 
 // --------------------------------------
 
-void GetGCApriorStats(const GCA *const src) {
+void GetGCApriorStats(const GCA *const src)
+{
   std::cout << "Stats from priors:" << std::endl;
 
   unsigned int nx, ny, nz;

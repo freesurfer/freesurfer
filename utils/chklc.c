@@ -78,7 +78,8 @@ static const char *permission_msg =
     "  chmod a+r %s\n"
     "---------------------------------------------------------------------------\n";
 
-void chklc(void) {
+void chklc(void)
+{
   char dirname[STRLEN], *cp, *alt;
   FILE *lfile = NULL;
   char *email;
@@ -104,7 +105,8 @@ void chklc(void) {
 #else
     exit(-1);
 #endif
-  } else {
+  }
+  else {
     strncpy(dirname, cp, STRLEN);
   }
 
@@ -185,7 +187,8 @@ void chklc(void) {
       printf("ERROR: crypt() returned null with 4-line file\n");
       exit(1);
     }
-  } else {
+  }
+  else {
     // We have a 3 line license file.
     if (Gdiag_no > 0 && first_time) printf("3 line license file\n");
 #ifdef Darwin
@@ -236,7 +239,8 @@ void chklc(void) {
 //                  1 - passed
 //
 //  if failed, error msg will be returned in msg. make sure msg is pre-allocated with enough space
-int chklc2(char *msg) {
+int chklc2(char *msg)
+{
   char dirname[STRLEN], *cp, *alt;
   FILE *lfile = NULL;
   char *email;
@@ -261,7 +265,8 @@ int chklc2(char *msg) {
 #else
     exit(-1);
 #endif
-  } else {
+  }
+  else {
     strncpy(dirname, cp, STRLEN);
   }
 
@@ -332,7 +337,8 @@ int chklc2(char *msg) {
     // We have a 4 line license file.
     strcpy(key, key2);
     crypt_gkey = crypt(gkey, "FS");
-  } else {
+  }
+  else {
 // We have a 3 line license file.
 #ifdef Darwin
     // On Darwin systems the key produced with a salt of '*C'
@@ -363,7 +369,8 @@ int chklc2(char *msg) {
 }
 
 #ifndef Darwin
-void cmp_glib_version(void) {
+void cmp_glib_version(void)
+{
   int i;
   char *GNU_LIBC_VERSION_MAX = "2.15";
   int glibc_max[2], glibc_current[2];

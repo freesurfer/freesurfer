@@ -40,7 +40,8 @@ char *x3Lst_ksaErrorString[x3Lst_knNumErrorCodes] = {"No error.",
                                                      "Invalid error code."};
 
 /* init the space */
-x3Lst_tErr x3Lst_New(x3DListRef *op3DList, int inListSize) {
+x3Lst_tErr x3Lst_New(x3DListRef *op3DList, int inListSize)
+{
   x3DListRef this = NULL;
   x3Lst_tErr eResult = x3Lst_tErr_NoErr;
   x3Lst_tPlane plane = 0;
@@ -92,7 +93,8 @@ cleanup:
   return eResult;
 }
 
-x3Lst_tErr x3Lst_Delete(x3DListRef *iop3DList) {
+x3Lst_tErr x3Lst_Delete(x3DListRef *iop3DList)
+{
   x3DListRef this = NULL;
   x3Lst_tErr eResult = x3Lst_tErr_NoErr;
   x3Lst_tPlane plane = 0;
@@ -146,7 +148,8 @@ cleanup:
   return eResult;
 }
 
-x3Lst_tErr x3Lst_GetPlaneSize(x3DListRef this, int *onPlaneSize) {
+x3Lst_tErr x3Lst_GetPlaneSize(x3DListRef this, int *onPlaneSize)
+{
   x3Lst_tErr eResult = x3Lst_tErr_NoErr;
 
   eResult = x3Lst_Verify(this);
@@ -173,7 +176,8 @@ cleanup:
   return eResult;
 }
 
-x3Lst_tErr x3Lst_AddItem(x3DListRef this, xVoxelRef iWhere, void *ipItem) {
+x3Lst_tErr x3Lst_AddItem(x3DListRef this, xVoxelRef iWhere, void *ipItem)
+{
   x3Lst_tErr eResult = x3Lst_tErr_NoErr;
   xList_tErr eList = xList_tErr_NoErr;
 
@@ -217,7 +221,8 @@ cleanup:
   return eResult;
 }
 
-x3Lst_tErr x3Lst_RemoveItem(x3DListRef this, xVoxelRef iWhere, void **iopItemToRemove) {
+x3Lst_tErr x3Lst_RemoveItem(x3DListRef this, xVoxelRef iWhere, void **iopItemToRemove)
+{
   x3Lst_tErr eResult = x3Lst_tErr_NoErr;
   xList_tErr eList = xList_tErr_NoErr;
   void *pItemToRemove = NULL;
@@ -261,7 +266,8 @@ error:
   if (xList_tErr_NoErr != eList) {
     if (xList_tErr_ItemNotInList == eList) {
       eResult = x3Lst_tErr_ItemNotInSpace;
-    } else {
+    }
+    else {
       eResult = x3Lst_tErr_ErrorAccessingList;
     }
   }
@@ -275,7 +281,8 @@ cleanup:
   return eResult;
 }
 
-x3Lst_tErr x3Lst_Clear(x3DListRef this) {
+x3Lst_tErr x3Lst_Clear(x3DListRef this)
+{
   x3Lst_tErr eResult = x3Lst_tErr_NoErr;
   xList_tErr eList = xList_tErr_NoErr;
   x3Lst_tPlane plane = 0;
@@ -309,7 +316,8 @@ cleanup:
   return eResult;
 }
 
-x3Lst_tErr x3Lst_IsInList(x3DListRef this, void *ipData, tBoolean *outIsInList) {
+x3Lst_tErr x3Lst_IsInList(x3DListRef this, void *ipData, tBoolean *outIsInList)
+{
   x3Lst_tErr eResult = x3Lst_tErr_NoErr;
   xList_tErr eList = xList_tErr_NoErr;
   x3Lst_tPlane plane = 0;
@@ -350,7 +358,8 @@ cleanup:
   return eResult;
 }
 
-x3Lst_tErr x3Lst_GetItemsInXPlane(x3DListRef this, int inXPlane, xListRef *opList) {
+x3Lst_tErr x3Lst_GetItemsInXPlane(x3DListRef this, int inXPlane, xListRef *opList)
+{
   x3Lst_tErr eResult = x3Lst_tErr_NoErr;
 
   eResult = x3Lst_Verify(this);
@@ -374,7 +383,8 @@ cleanup:
   return eResult;
 }
 
-x3Lst_tErr x3Lst_GetItemsInYPlane(x3DListRef this, int inYPlane, xListRef *opList) {
+x3Lst_tErr x3Lst_GetItemsInYPlane(x3DListRef this, int inYPlane, xListRef *opList)
+{
   x3Lst_tErr eResult = x3Lst_tErr_NoErr;
 
   eResult = x3Lst_Verify(this);
@@ -398,7 +408,8 @@ cleanup:
   return eResult;
 }
 
-x3Lst_tErr x3Lst_GetItemsInZPlane(x3DListRef this, int inZPlane, xListRef *opList) {
+x3Lst_tErr x3Lst_GetItemsInZPlane(x3DListRef this, int inZPlane, xListRef *opList)
+{
   x3Lst_tErr eResult = x3Lst_tErr_NoErr;
 
   eResult = x3Lst_Verify(this);
@@ -422,7 +433,8 @@ cleanup:
   return eResult;
 }
 
-x3Lst_tErr x3Lst_GetItemsInPlane_(x3DListRef this, x3Lst_tPlane iPlane, int inPlaneIndex, xListRef *opList) {
+x3Lst_tErr x3Lst_GetItemsInPlane_(x3DListRef this, x3Lst_tPlane iPlane, int inPlaneIndex, xListRef *opList)
+{
   x3Lst_tErr eResult = x3Lst_tErr_NoErr;
 
   /* make sure the index is in bounds */
@@ -445,7 +457,8 @@ cleanup:
   return eResult;
 }
 
-x3Lst_tErr x3Lst_SetComparator(x3DListRef this, xList_tCompare (*iComparator)(void *, void *)) {
+x3Lst_tErr x3Lst_SetComparator(x3DListRef this, xList_tCompare (*iComparator)(void *, void *))
+{
   x3Lst_tErr eResult = x3Lst_tErr_NoErr;
   x3Lst_tPlane plane = 0;
   int list = 0;
@@ -482,7 +495,8 @@ cleanup:
   return eResult;
 }
 
-x3Lst_tErr x3Lst_Verify(x3DListRef this) {
+x3Lst_tErr x3Lst_Verify(x3DListRef this)
+{
   x3Lst_tErr eResult = x3Lst_tErr_NoErr;
 
   if (NULL == this) {
@@ -500,7 +514,8 @@ cleanup:
   return eResult;
 }
 
-x3Lst_tErr x3Lst_VerifyLocation(x3DListRef this, xVoxelRef iWhere) {
+x3Lst_tErr x3Lst_VerifyLocation(x3DListRef this, xVoxelRef iWhere)
+{
   x3Lst_tErr eResult = x3Lst_tErr_NoErr;
 
   if (xVoxl_GetX(iWhere) < 0 || xVoxl_GetX(iWhere) >= this->mnPlaneSize || xVoxl_GetY(iWhere) < 0 ||
@@ -511,7 +526,8 @@ x3Lst_tErr x3Lst_VerifyLocation(x3DListRef this, xVoxelRef iWhere) {
   return eResult;
 }
 
-char *x3Lst_GetErrorString(x3Lst_tErr ieCode) {
+char *x3Lst_GetErrorString(x3Lst_tErr ieCode)
+{
   x3Lst_tErr eCode = ieCode;
 
   if (ieCode < 0 || ieCode >= x3Lst_knNumErrorCodes) {

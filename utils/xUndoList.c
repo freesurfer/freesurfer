@@ -47,7 +47,8 @@ static char *xUndL_ksaError[xUndL_knNumErrorCodes] = {
 
 xUndL_tErr xUndL_New(xUndoListRef *oppList,
                      xUndL_tSwapFuncPtr ipSwapFunction,
-                     xUndL_tDeleteEntryFuncPtr ipDeleteFunction) {
+                     xUndL_tDeleteEntryFuncPtr ipDeleteFunction)
+{
   xUndoListRef this = NULL;
   xUndL_tErr eResult = xUndL_tErr_NoErr;
 
@@ -89,7 +90,8 @@ cleanup:
   return eResult;
 }
 
-xUndL_tErr xUndL_NewList_(xListRef *oppList) {
+xUndL_tErr xUndL_NewList_(xListRef *oppList)
+{
   xListRef pList = NULL;
   xList_tErr eListResult = xList_tErr_NoErr;
   xUndL_tErr eResult = xUndL_tErr_NoErr;
@@ -112,7 +114,8 @@ cleanup:
   return eResult;
 }
 
-xUndL_tErr xUndL_Delete(xUndoListRef *ioppList) {
+xUndL_tErr xUndL_Delete(xUndoListRef *ioppList)
+{
   xUndoListRef this = NULL;
   xUndL_tErr eResult = xUndL_tErr_NoErr;
 
@@ -143,7 +146,8 @@ cleanup:
   return eResult;
 }
 
-xUndL_tErr xUndL_DeleteList_(xUndoListRef ipUndoList, xListRef *ioppList) {
+xUndL_tErr xUndL_DeleteList_(xUndoListRef ipUndoList, xListRef *ioppList)
+{
   xUndL_tErr eResult = xUndL_tErr_NoErr;
   xListRef pList = NULL;
   xList_tErr eListResult = xList_tErr_NoErr;
@@ -179,7 +183,8 @@ xUndL_tErr xUndL_DeleteList_(xUndoListRef ipUndoList, xListRef *ioppList) {
 
 cleanup:
 
-  DebugCode if (xList_tErr_NoErr != eListResult) {
+  DebugCode if (xList_tErr_NoErr != eListResult)
+  {
     DebugPrint(("xUndL_DeleteInternalList(): Error in xList function %d: %s\n",
                 eListResult,
                 xList_GetErrorString(eListResult)));
@@ -189,7 +194,8 @@ cleanup:
   return eResult;
 }
 
-xUndL_tErr xUndL_Clear(xUndoListRef ipList) {
+xUndL_tErr xUndL_Clear(xUndoListRef ipList)
+{
   xUndoListRef this = NULL;
   xUndL_tErr eResult = xUndL_tErr_NoErr;
   xList_tErr eListResult = xList_tErr_NoErr;
@@ -219,7 +225,8 @@ cleanup:
   return eResult;
 }
 
-xUndL_tErr xUndL_AddEntry(xUndoListRef ipList, xUndL_tEntryPtr ipEntry) {
+xUndL_tErr xUndL_AddEntry(xUndoListRef ipList, xUndL_tEntryPtr ipEntry)
+{
   xUndoListRef this = NULL;
   xUndL_tErr eResult = xUndL_tErr_NoErr;
   xList_tErr eListResult = xList_tErr_NoErr;
@@ -243,7 +250,8 @@ xUndL_tErr xUndL_AddEntry(xUndoListRef ipList, xUndL_tEntryPtr ipEntry) {
 
 cleanup:
 
-  DebugCode if (xList_tErr_NoErr != eListResult) {
+  DebugCode if (xList_tErr_NoErr != eListResult)
+  {
     DebugPrint(("xUndL_AddEntry(): Error in xList function %d: %s\n", eListResult, xList_GetErrorString(eListResult)));
   }
   EndDebugCode;
@@ -251,7 +259,8 @@ cleanup:
   return eResult;
 }
 
-xUndL_tErr xUndL_Restore(xUndoListRef ipList) {
+xUndL_tErr xUndL_Restore(xUndoListRef ipList)
+{
   xUndoListRef this = NULL;
   xUndL_tErr eResult = xUndL_tErr_NoErr;
   xListRef pSwapList = NULL;
@@ -303,7 +312,8 @@ xUndL_tErr xUndL_Restore(xUndoListRef ipList) {
   // clear the end of list flag
   if (xList_tErr_EndOfList == eListResult) {
     eListResult = xList_tErr_NoErr;
-  } else {
+  }
+  else {
     goto cleanup;
   }
 
@@ -321,7 +331,8 @@ xUndL_tErr xUndL_Restore(xUndoListRef ipList) {
 
 cleanup:
 
-  DebugCode if (xList_tErr_NoErr != eListResult) {
+  DebugCode if (xList_tErr_NoErr != eListResult)
+  {
     DebugPrint(
         ("xUndL_RestoreList(): Error in xList function %d: %s\n", eListResult, xList_GetErrorString(eListResult)));
   }
@@ -330,7 +341,8 @@ cleanup:
   return eResult;
 }
 
-xUndL_tErr xUndL_SetPrintFunction(xUndoListRef this, xUndL_tPrintEntryFuncPtr ipPrintFunction) {
+xUndL_tErr xUndL_SetPrintFunction(xUndoListRef this, xUndL_tPrintEntryFuncPtr ipPrintFunction)
+{
   xUndL_tErr eResult = xUndL_tErr_NoErr;
 
   // verify ourself.
@@ -347,7 +359,8 @@ cleanup:
   return eResult;
 }
 
-xUndL_tErr xUndL_Print(xUndoListRef this) {
+xUndL_tErr xUndL_Print(xUndoListRef this)
+{
   xUndL_tErr eResult = xUndL_tErr_NoErr;
   xList_tErr eListResult = xList_tErr_NoErr;
   xUndL_tEntryPtr pItem = NULL;
@@ -404,7 +417,8 @@ xUndL_tErr xUndL_Print(xUndoListRef this) {
 
 cleanup:
 
-  DebugCode if (xList_tErr_NoErr != eListResult) {
+  DebugCode if (xList_tErr_NoErr != eListResult)
+  {
     DebugPrint(("xUndL_PrintList(): Error in xList function %d: %s\n", eListResult, xList_GetErrorString(eListResult)));
   }
   EndDebugCode;
@@ -412,7 +426,8 @@ cleanup:
   return eResult;
 }
 
-xUndL_tErr xUndL_Verify(xUndoListRef ipList) {
+xUndL_tErr xUndL_Verify(xUndoListRef ipList)
+{
   xUndL_tErr eResult = xUndL_tErr_NoErr;
 
   // check for a null list ptr.
@@ -433,7 +448,8 @@ xUndL_tErr xUndL_Verify(xUndoListRef ipList) {
   return eResult;
 }
 
-char *xUndL_GetErrorString(xUndL_tErr ieCode) {
+char *xUndL_GetErrorString(xUndL_tErr ieCode)
+{
   xUndL_tErr eCode = ieCode;
 
   if (ieCode < xUndL_tErr_NoErr || ieCode >= xUndL_knNumErrorCodes) {

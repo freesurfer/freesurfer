@@ -60,7 +60,8 @@ static int CSAEcomputeGradient(CSAE *csae,
 static double aeApplyAccumulatedGradient(AE *ae, SAE_INTEGRATION_PARMS *parms);
 static int reset_constant_nodes(AE *ae, double thresh);
 
-AE *SAEfindLastLayer(SAE *sae, AE *ae) {
+AE *SAEfindLastLayer(SAE *sae, AE *ae)
+{
   if (ae == NULL)
     return (SAEfindLastLayer(sae, sae->first));
   else if (ae->next)
@@ -69,7 +70,8 @@ AE *SAEfindLastLayer(SAE *sae, AE *ae) {
     return (ae);
 }
 
-SAE *SAEalloc(int whalf, int nlevels, int type, double scale) {
+SAE *SAEalloc(int whalf, int nlevels, int type, double scale)
+{
   SAE *sae;
   int ninputs, wsize, nhidden, noutputs;
 
@@ -99,7 +101,8 @@ SAE *SAEalloc(int whalf, int nlevels, int type, double scale) {
   return (sae);
 }
 
-static AE *AEalloc(AE *prev, int ninputs, int nhidden, int noutputs) {
+static AE *AEalloc(AE *prev, int ninputs, int nhidden, int noutputs)
+{
   AE *ae;
   int i, j, k;
   double norm, w, wt_lim = .1;
@@ -211,7 +214,8 @@ static AE *AEalloc(AE *prev, int ninputs, int nhidden, int noutputs) {
   return (ae);
 }
 
-static void AEfree(AE **pae) {
+static void AEfree(AE **pae)
+{
   AE *ae = *pae;
 
   *pae = NULL;
@@ -244,7 +248,8 @@ static void AEfree(AE **pae) {
   free(ae->average_act);
 }
 
-void SAEfree(SAE **psae) {
+void SAEfree(SAE **psae)
+{
   SAE *sae = *psae;
   AE *ae, *next;
 
@@ -259,7 +264,8 @@ void SAEfree(SAE **psae) {
 
   free(sae);
 }
-AE *SAEaddLayer(SAE *sae, float scale) {
+AE *SAEaddLayer(SAE *sae, float scale)
+{
   AE *ae, *last;
   int nhidden, noutputs;
 
@@ -273,7 +279,8 @@ AE *SAEaddLayer(SAE *sae, float scale) {
   return (ae);
 }
 
-SAE *SAEtrainLayer(SAE *sae, AE *layer, MRI **mri, double tol) {
+SAE *SAEtrainLayer(SAE *sae, AE *layer, MRI **mri, double tol)
+{
   int x, y, z;
 
   for (x = 0; x < mri[0]->width; x++)
@@ -284,7 +291,8 @@ SAE *SAEtrainLayer(SAE *sae, AE *layer, MRI **mri, double tol) {
       }
   return (sae);
 }
-double SAEcomputeTotalRMS(SAE *sae, MRI **mri) {
+double SAEcomputeTotalRMS(SAE *sae, MRI **mri)
+{
   int x, y, z, nvox;
   double rms, total_rms;
 
@@ -305,12 +313,14 @@ double SAEcomputeTotalRMS(SAE *sae, MRI **mri) {
   return (total_rms / nvox);
 }
 
-VECTOR *SAEactivateNetwork(SAE *sae) {
+VECTOR *SAEactivateNetwork(SAE *sae)
+{
   AEactivateLayer(sae->first, sae->first->v_input);
   return (sae->first->v_output);
 }
 
-static int AEactivateLayer(AE *ae, VECTOR *v_input) {
+static int AEactivateLayer(AE *ae, VECTOR *v_input)
+{
   int row, ninputs = ae->v_input->rows;
   double o, net;
 
@@ -355,7 +365,8 @@ static int AEactivateLayer(AE *ae, VECTOR *v_input) {
 
 VECTOR *SAEactivateLastHiddenLayer(SAE *sae, MRI *mri) { return (sae->first->v_output); }
 
-double SAEcomputeRMS(SAE *sae) {
+double SAEcomputeRMS(SAE *sae)
+{
   VECTOR *v_output;
   int row;
   double error, rms;
@@ -367,7 +378,8 @@ double SAEcomputeRMS(SAE *sae) {
       error = VECTOR_ELT(sae->first->v_input, row) - VECTOR_ELT(sae->first->v_output, row);
       rms += error * error;
     }
-  } else {
+  }
+  else {
     row = (sae->first->v_input->rows + 1) / 2;
     error = VECTOR_ELT(sae->first->v_input, row) - VECTOR_ELT(sae->first->v_output, 1);
     rms = error * error;
@@ -375,7 +387,8 @@ double SAEcomputeRMS(SAE *sae) {
   }
   return (sqrt(rms / row));
 }
-static double AEcomputeRMS(AE *ae) {
+static double AEcomputeRMS(AE *ae)
+{
   int row;
   double error, rms;
 
@@ -385,7 +398,8 @@ static double AEcomputeRMS(AE *ae) {
       error = VECTOR_ELT(ae->v_input, row) - VECTOR_ELT(ae->v_output, row);
       rms += error * error;
     }
-  } else {
+  }
+  else {
     row = (ae->v_input->rows + 1) / 2;
     error = VECTOR_ELT(ae->v_input, row) - VECTOR_ELT(ae->v_output, 1);
     rms = error * error;
@@ -396,7 +410,8 @@ static double AEcomputeRMS(AE *ae) {
 }
 
 // NOTE: input MRI must be type float and scaled to be 0->1 (that is, scale down MRI_UCHAR vols by 255)
-double SAEtrainFromMRI(SAE *sae, MRI **mri_pyramid, SAE_INTEGRATION_PARMS *parms) {
+double SAEtrainFromMRI(SAE *sae, MRI **mri_pyramid, SAE_INTEGRATION_PARMS *parms)
+{
   double error = 0.0, rms, last_rms, total_rms, last_total_rms, pct_decrease, running_last_rms, G_rms,
          G_last_rms = 1e10;
   int x, y, z, iter = 0, visited, ind, nvox, calls = 0;
@@ -564,7 +579,8 @@ double SAEtrainFromMRI(SAE *sae, MRI **mri_pyramid, SAE_INTEGRATION_PARMS *parms
 }
 
 // NOTE: input MRI must be type float and scaled to be 0->1 (that is, scale down MRI_UCHAR vols by 255)
-double SAEtrainFromVoxlist(SAE *sae, VOXEL_LIST *vl, MRI **mri_pyramid, SAE_INTEGRATION_PARMS *parms) {
+double SAEtrainFromVoxlist(SAE *sae, VOXEL_LIST *vl, MRI **mri_pyramid, SAE_INTEGRATION_PARMS *parms)
+{
   double error = 0.0, rms, last_rms, total_rms, last_total_rms, pct_decrease, running_last_rms, G_rms,
          G_last_rms = 1e10;
   int x, y, z, iter = 0, visited, ind, calls = 0, *indices, i;
@@ -728,7 +744,8 @@ static int CSAEcomputeGradient(CSAE *csae,
                                int start_index,
                                int end_index,
                                int *indices,
-                               SAE_INTEGRATION_PARMS *parms) {
+                               SAE_INTEGRATION_PARMS *parms)
+{
   int ind, i, j, k, whalf, x, y, z, ninputs, nhidden, noutputs, num_indices;
 
   AEclearGradients(ae);
@@ -781,7 +798,8 @@ static int CSAEcomputeGradient(CSAE *csae,
   return (NO_ERROR);
 }
 
-static int AEclearGradients(AE *ae) {
+static int AEclearGradients(AE *ae)
+{
   int j;
 
   if (ae->m_grad_input_to_hidden == NULL) return (NO_ERROR);
@@ -813,7 +831,8 @@ Out[8]= ---------------
 
 */
 
-static double AEaccumulateGradient(AE *ae, SAE_INTEGRATION_PARMS *parms) {
+static double AEaccumulateGradient(AE *ae, SAE_INTEGRATION_PARMS *parms)
+{
   double rms = 0, error, wt;
   int i, j, k, ninputs, nhidden, noutputs;
 
@@ -839,7 +858,8 @@ static double AEaccumulateGradient(AE *ae, SAE_INTEGRATION_PARMS *parms) {
       error = VECTOR_ELT(ae->v_error, k) = VECTOR_ELT(ae->v_output, k) - VECTOR_ELT(ae->v_input, k);
       rms += error * error;
     }
-  } else {
+  }
+  else {
     int ind;
     ind = (ninputs + 1) / 2;
     rms = VECTOR_ELT(ae->v_error, 1) = VECTOR_ELT(ae->v_output, 1) - VECTOR_ELT(ae->v_input, ind);
@@ -948,7 +968,8 @@ static double AEaccumulateGradient(AE *ae, SAE_INTEGRATION_PARMS *parms) {
   return (rms);
 }
 
-static double aeApplyAccumulatedGradient(AE *ae, SAE_INTEGRATION_PARMS *parms) {
+static double aeApplyAccumulatedGradient(AE *ae, SAE_INTEGRATION_PARMS *parms)
+{
   double rms = 0, dt, momentum, Egrad, Erandom;
   int ninputs, nhidden, noutputs;
 
@@ -992,7 +1013,8 @@ static double aeApplyAccumulatedGradient(AE *ae, SAE_INTEGRATION_PARMS *parms) {
     MatrixCopy(ae->m_grad_hidden_to_output, ae->m_previous_step_hidden_to_output);
     MatrixCopy(ae->m_grad_input_to_hidden, ae->m_previous_step_input_to_hidden);
     rms = sqrt(rms / noutputs);
-  } else if (parms->integration_type == INTEGRATE_CONJUGATE_GRADIENT) {
+  }
+  else if (parms->integration_type == INTEGRATE_CONJUGATE_GRADIENT) {
     double beta, best_dt, orig_dt, rms, best_rms;
     static int callno = 0;
 
@@ -1043,7 +1065,8 @@ static double aeApplyAccumulatedGradient(AE *ae, SAE_INTEGRATION_PARMS *parms) {
     VectorCopy(ae->v_grad_hidden_bias, parms->v_prev_grad_hidden_bias) ;
     parms->norm_hidden_bias = VectorLen(parms->v_prev_grad_hidden_bias) ; parms->norm_hidden_bias *= parms->norm_hidden_bias ;
 #endif
-  } else if (parms->integration_type == INTEGRATE_BOLTZMANN_MACHINE) {
+  }
+  else if (parms->integration_type == INTEGRATE_BOLTZMANN_MACHINE) {
     static MATRIX *m_hidden_to_output_delta = NULL, *m_input_to_hidden_delta = NULL, *v_hidden_bias_delta = NULL,
                   *v_output_bias_delta = NULL;
     double acceptance_val;
@@ -1082,14 +1105,16 @@ static double aeApplyAccumulatedGradient(AE *ae, SAE_INTEGRATION_PARMS *parms) {
       MatrixAdd(ae->v_grad_hidden_bias, ae->v_hidden_bias, ae->v_hidden_bias);
       MatrixAdd(ae->m_grad_hidden_to_output, ae->m_hidden_to_output, ae->m_hidden_to_output);
       MatrixAdd(ae->m_grad_input_to_hidden, ae->m_input_to_hidden, ae->m_input_to_hidden);
-    } else
+    }
+    else
       DiagBreak();
   }
 
   return (rms);
 }
 
-static int aeApplyGradient(AE *ae, SAE_INTEGRATION_PARMS *parms, double dt) {
+static int aeApplyGradient(AE *ae, SAE_INTEGRATION_PARMS *parms, double dt)
+{
   static MATRIX *m_grad_hidden_to_output, *m_grad_input_to_hidden;
   static VECTOR *v_grad_hidden_bias, *v_grad_output_bias;
 
@@ -1113,7 +1138,8 @@ static int aeApplyGradient(AE *ae, SAE_INTEGRATION_PARMS *parms, double dt) {
   return (NO_ERROR);
 }
 
-static double AEtrain(AE *ae, SAE_INTEGRATION_PARMS *parms) {
+static double AEtrain(AE *ae, SAE_INTEGRATION_PARMS *parms)
+{
   double rms = 0, error, dt, momentum, Egrad, Erandom, wt;
   int i, j, k, ninputs, nhidden, noutputs;
 
@@ -1141,7 +1167,8 @@ static double AEtrain(AE *ae, SAE_INTEGRATION_PARMS *parms) {
       error = VECTOR_ELT(ae->v_error, k) = VECTOR_ELT(ae->v_output, k) - VECTOR_ELT(ae->v_input, k);
       rms += error * error;
     }
-  } else {
+  }
+  else {
     int ind;
     ind = (ninputs + 1) / 2;
     rms = VECTOR_ELT(ae->v_error, 1) = VECTOR_ELT(ae->v_output, 1) - VECTOR_ELT(ae->v_input, ind);
@@ -1304,7 +1331,8 @@ static double AEtrain(AE *ae, SAE_INTEGRATION_PARMS *parms) {
     MatrixCopy(ae->m_grad_hidden_to_output, ae->m_previous_step_hidden_to_output);
     MatrixCopy(ae->m_grad_input_to_hidden, ae->m_previous_step_input_to_hidden);
     rms = sqrt(rms / noutputs);
-  } else if (parms->integration_type == INTEGRATE_CONJUGATE_GRADIENT) {
+  }
+  else if (parms->integration_type == INTEGRATE_CONJUGATE_GRADIENT) {
     double beta, best_dt, orig_dt, rms, best_rms;
     static int callno = 0;
 
@@ -1355,7 +1383,8 @@ static double AEtrain(AE *ae, SAE_INTEGRATION_PARMS *parms) {
     VectorCopy(ae->v_grad_hidden_bias, parms->v_prev_grad_hidden_bias) ;
     parms->norm_hidden_bias = VectorLen(parms->v_prev_grad_hidden_bias) ; parms->norm_hidden_bias *= parms->norm_hidden_bias ;
 #endif
-  } else if (parms->integration_type == INTEGRATE_BOLTZMANN_MACHINE) {
+  }
+  else if (parms->integration_type == INTEGRATE_BOLTZMANN_MACHINE) {
     static MATRIX *m_hidden_to_output_delta = NULL, *m_input_to_hidden_delta = NULL, *v_hidden_bias_delta = NULL,
                   *v_output_bias_delta = NULL;
     double acceptance_val;
@@ -1394,14 +1423,16 @@ static double AEtrain(AE *ae, SAE_INTEGRATION_PARMS *parms) {
       MatrixAdd(ae->v_grad_hidden_bias, ae->v_hidden_bias, ae->v_hidden_bias);
       MatrixAdd(ae->m_grad_hidden_to_output, ae->m_hidden_to_output, ae->m_hidden_to_output);
       MatrixAdd(ae->m_grad_input_to_hidden, ae->m_input_to_hidden, ae->m_input_to_hidden);
-    } else
+    }
+    else
       DiagBreak();
   }
 
   return (rms);
 }
 
-VECTOR *SAEfillInputVector(MRI **mri, int nlevels, int x0, int y0, int z0, int whalf, VECTOR *v_input) {
+VECTOR *SAEfillInputVector(MRI **mri, int nlevels, int x0, int y0, int z0, int whalf, VECTOR *v_input)
+{
   int i, n, xk, yk, zk;
   double x, y, z, xi, yi, zi, scale, val, zmin, zmax;
 
@@ -1414,7 +1445,8 @@ VECTOR *SAEfillInputVector(MRI **mri, int nlevels, int x0, int y0, int z0, int w
   if (mri[0]->depth > 1) {
     zmin = -whalf;
     zmax = whalf;
-  } else
+  }
+  else
     zmin = zmax = 0;
   for (n = 0; n < nlevels; n++) {
     scale = pow(2.0, n);
@@ -1450,7 +1482,8 @@ VECTOR *SAEfillInputVector(MRI **mri, int nlevels, int x0, int y0, int z0, int w
   return (v_input);
 }
 
-MRI *SAEvectorToMRI(VECTOR *v_input, int nlevels, int whalf, MRI *mri) {
+MRI *SAEvectorToMRI(VECTOR *v_input, int nlevels, int whalf, MRI *mri)
+{
   int xk, yk, zk, i, wsize, n, zsize;
 
   wsize = (2 * whalf) + 1;
@@ -1469,7 +1502,8 @@ MRI *SAEvectorToMRI(VECTOR *v_input, int nlevels, int whalf, MRI *mri) {
   return (mri);
 }
 
-MRI *SAEinputWeightsToMRI(SAE *sae, MRI *mri) {
+MRI *SAEinputWeightsToMRI(SAE *sae, MRI *mri)
+{
   int xk, yk, zk, i, wsize, frame, hidden, n;
 
   wsize = (2 * sae->whalf) + 1;
@@ -1493,7 +1527,8 @@ MRI *SAEinputWeightsToMRI(SAE *sae, MRI *mri) {
   return (mri);
 }
 
-int SAEwrite(SAE *sae, char *fname) {
+int SAEwrite(SAE *sae, char *fname)
+{
   FILE *fp;
   AE *ae;
   int i, n;
@@ -1515,7 +1550,8 @@ int SAEwrite(SAE *sae, char *fname) {
   fclose(fp);
   return (NO_ERROR);
 }
-static int AEwrite(AE *ae, FILE *fp) {
+static int AEwrite(AE *ae, FILE *fp)
+{
   MatrixWriteInto(fp, ae->m_input_to_hidden);
   MatrixWriteInto(fp, ae->v_output_bias);
   MatrixWriteInto(fp, ae->v_hidden_bias);
@@ -1526,7 +1562,8 @@ static int AEwrite(AE *ae, FILE *fp) {
   fwriteInt(ae->ksize, fp);
   return (NO_ERROR);
 }
-static AE *AEread(FILE *fp, AE *prev) {
+static AE *AEread(FILE *fp, AE *prev)
+{
   AE *ae;
   MATRIX *m_input_to_hidden, *v_output_bias;
 
@@ -1549,7 +1586,8 @@ static AE *AEread(FILE *fp, AE *prev) {
   return (ae);
 }
 
-SAE *SAEread(char *fname) {
+SAE *SAEread(char *fname)
+{
   FILE *fp;
   int whalf, nencoders, i, type, nlevels, n;
   SAE *sae;
@@ -1578,7 +1616,8 @@ SAE *SAEread(char *fname) {
   return (sae);
 }
 
-void AEdump(AE *ae) {
+void AEdump(AE *ae)
+{
   if (ae->v_input->rows == 1) {
     printf("f(I=%2.2f * wij=%2.2f + bj=%2.2f = %2.2f) = %2.2f * wjk=%2.2f + bk=%2.2f = %2.2f, E=%2.2f\n",
            ae->v_input->rptr[1][1],
@@ -1631,7 +1670,8 @@ void AEdump(AE *ae) {
     MatrixPrint(Gstdout, ae->v_grad_output_bias);
   }
 }
-static int AEsaveState(AE *ae) {
+static int AEsaveState(AE *ae)
+{
   ae->m_saved_input_to_hidden = MatrixCopy(ae->m_input_to_hidden, ae->m_saved_input_to_hidden);
   ae->m_saved_hidden_to_output = MatrixCopy(ae->m_hidden_to_output, ae->m_saved_hidden_to_output);
   ae->v_saved_hidden_bias = MatrixCopy(ae->v_hidden_bias, ae->v_saved_hidden_bias);
@@ -1639,7 +1679,8 @@ static int AEsaveState(AE *ae) {
   return (NO_ERROR);
 }
 
-static int AErestoreState(AE *ae) {
+static int AErestoreState(AE *ae)
+{
   MatrixCopy(ae->m_saved_input_to_hidden, ae->m_input_to_hidden);
   MatrixCopy(ae->m_saved_hidden_to_output, ae->m_hidden_to_output);
   MatrixCopy(ae->v_saved_hidden_bias, ae->v_hidden_bias);
@@ -1651,7 +1692,8 @@ static int AErestoreState(AE *ae) {
 
 int CSAEwrite(CSAE *csae, char *fname) { return (SAEwrite(csae->sae, fname)); }
 
-CSAE *CSAEalloc(int type, int nlayers, int *ksizes, int *ngroups, MRI *mri_inputs) {
+CSAE *CSAEalloc(int type, int nlayers, int *ksizes, int *ngroups, MRI *mri_inputs)
+{
   int whalf = (ksizes[0] - 1) / 2, layer;
   double scale;
   AE *ae;
@@ -1674,7 +1716,8 @@ CSAE *CSAEalloc(int type, int nlayers, int *ksizes, int *ngroups, MRI *mri_input
   }
   return (csae);
 }
-int CSAEfillInputs(CSAE *csae, MRI *mri_inputs, VECTOR *v_visible, int x0, int y0, int z0, int ksize) {
+int CSAEfillInputs(CSAE *csae, MRI *mri_inputs, VECTOR *v_visible, int x0, int y0, int z0, int ksize)
+{
   int xk, yk, xi, yi, whalf, v, f;
   float val;
 
@@ -1691,7 +1734,8 @@ int CSAEfillInputs(CSAE *csae, MRI *mri_inputs, VECTOR *v_visible, int x0, int y
 
   return (NO_ERROR);
 }
-MRI *CSAEcreateOutputs(CSAE *csae, MRI *mri_inputs, int first_layer, int last_layer) {
+MRI *CSAEcreateOutputs(CSAE *csae, MRI *mri_inputs, int first_layer, int last_layer)
+{
   int layer, x, y, z, h;
   // int whalf;
   MRI *mri_layer_inputs, *mri_outputs = NULL;
@@ -1722,7 +1766,8 @@ MRI *CSAEcreateOutputs(CSAE *csae, MRI *mri_inputs, int first_layer, int last_la
 
   return (mri_outputs);
 }
-AE *CSAEaddLayer(CSAE *csae, int ksize, int nhidden) {
+AE *CSAEaddLayer(CSAE *csae, int ksize, int nhidden)
+{
   AE *ae, *last;
   int ninputs;
   // float scale;
@@ -1738,8 +1783,8 @@ AE *CSAEaddLayer(CSAE *csae, int ksize, int nhidden) {
   return (ae);
 }
 // NOTE: input MRI must be type float and scaled to be 0->1 (that is, scale down MRI_UCHAR vols by 255)
-double CSAEtrainLayerFromVoxlist(
-    CSAE *csae, int layer, VOXEL_LIST *vl, MRI **mri_pyramid, SAE_INTEGRATION_PARMS *parms) {
+double CSAEtrainLayerFromVoxlist(CSAE *csae, int layer, VOXEL_LIST *vl, MRI **mri_pyramid, SAE_INTEGRATION_PARMS *parms)
+{
   double total_rms, last_total_rms, pct_decrease, running_last_rms = 0, running_rms;
   int iter = 0, ind, *indices, end_index, end_mini_batch, always, never, nbad, i;
   double dt, acceptance_sigma, proposal_sigma, tol, min_rms;
@@ -1842,7 +1887,8 @@ double CSAEtrainLayerFromVoxlist(
              min_rms,
              nbad,
              parms->max_no_progress);
-    } else {
+    }
+    else {
       printf("new min RMS %2.4f found (previous %2.4f)\n", total_rms, min_rms);
       min_rms = total_rms;
       nbad = 0;
@@ -1887,7 +1933,8 @@ double CSAEtrainLayerFromVoxlist(
   return (total_rms);
 }
 
-MRI *CSAElayerWeightsToMRI(CSAE *csae, int layer) {
+MRI *CSAElayerWeightsToMRI(CSAE *csae, int layer)
+{
   MRI *mri = NULL, *mri_prev, *mri_counts;
   int width, whalf, whalf_prev, x, y, xk, yk, v, h, count, xp, yp, hp;
   AE *ae, *ae_prev;
@@ -1951,7 +1998,8 @@ MRI *CSAElayerWeightsToMRI(CSAE *csae, int layer) {
   }
   return (mri);
 }
-MRI *SAElayerWeightsToMRI(SAE *sae, int layer) {
+MRI *SAElayerWeightsToMRI(SAE *sae, int layer)
+{
   MRI *mri = NULL, *mri_prev, *mri_counts;
   int width, whalf_prev, x, y, xk, yk, v, h, count, xp, yp, hp;
   AE *ae, *ae_prev;
@@ -2018,7 +2066,8 @@ MRI *SAElayerWeightsToMRI(SAE *sae, int layer) {
   }
   return (mri);
 }
-double CSAEcomputeTotalRMS(CSAE *csae, int layer, MRI **mri) {
+double CSAEcomputeTotalRMS(CSAE *csae, int layer, MRI **mri)
+{
   int x, y, z, nvox;
   double rms, total_rms;
   AE *ae;
@@ -2041,7 +2090,8 @@ double CSAEcomputeTotalRMS(CSAE *csae, int layer, MRI **mri) {
       }
   return (total_rms / nvox);
 }
-static double AEcomputeHiddenRMS(AE *ae, SAE_INTEGRATION_PARMS *parms) {
+static double AEcomputeHiddenRMS(AE *ae, SAE_INTEGRATION_PARMS *parms)
+{
   int j;
   double target, rms, hidden, nhidden;
 
@@ -2063,7 +2113,8 @@ double CSAEcomputeVoxlistRMS(CSAE *csae,
                              int start_index,
                              int end_index,
                              int *always,
-                             int *never) {
+                             int *never)
+{
   int x, y, z, nvox, i, ind, *histo, h, nhidden, iz, num_indices;
   double class_rms, rms, total_rms, total_class_rms;
   AE *ae;
@@ -2141,7 +2192,8 @@ double CSAEcomputeVoxlistRMS(CSAE *csae,
   free(histo);
   return (total_rms / nvox);
 }
-CSAE *CSAEread(char *fname) {
+CSAE *CSAEread(char *fname)
+{
   CSAE *csae;
   SAE *sae;
   int layer;
@@ -2166,7 +2218,8 @@ CSAE *CSAEread(char *fname) {
   return (csae);
 }
 
-static int reset_constant_nodes(AE *ae, double thresh) {
+static int reset_constant_nodes(AE *ae, double thresh)
+{
   static int calls = 0;
   int i, j, nreset = 0, ninputs;
   float mean, std, val;

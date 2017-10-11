@@ -67,7 +67,8 @@ int isblank(int c);
   nothing.
   ------------------------------------------------------------------------*/
 static long idum = 0L, nrgcalls = 0L;
-int setRandomSeed(long seed) {
+int setRandomSeed(long seed)
+{
   // also seed the 'standard' random number generators: rand() and random()
   srand(seed);
   srandom(seed);
@@ -93,7 +94,8 @@ int setRandomSeed(long seed) {
 long getRandomSeed(void) { return (idum); }
 long getRandomCalls(void) { return (nrgcalls); }
 
-double randomNumber(double low, double hi) {
+double randomNumber(double low, double hi)
+{
   double val, range;
 
   if (low > hi) {
@@ -123,7 +125,8 @@ double randomNumber(double low, double hi) {
   Return Values:
   nothing.
   ------------------------------------------------------------------------*/
-double normAngle(double angle) {
+double normAngle(double angle)
+{
   while (angle > PI) angle -= 2.0 * PI;
 
   while (angle < -PI) angle += 2.0 * PI;
@@ -139,7 +142,8 @@ double normAngle(double angle) {
   Return Values:
   nothing.
   ------------------------------------------------------------------------*/
-double calcDeltaPhi(double phi1, double phi2) {
+double calcDeltaPhi(double phi1, double phi2)
+{
   double delta_phi;
 
   if (phi1 < 0.0)
@@ -169,7 +173,8 @@ double calcDeltaPhi(double phi1, double phi2) {
   Return Values:
   nothing.
   ------------------------------------------------------------------------*/
-double latan2(double y, double x) {
+double latan2(double y, double x)
+{
   int oerr;
   double val;
 
@@ -193,7 +198,8 @@ double latan2(double y, double x) {
   Return Values:
   nothing.
   ------------------------------------------------------------------------*/
-int QuadEqual(double a1, double a2) {
+int QuadEqual(double a1, double a2)
+{
   a1 = normAngle(a1);
   a2 = normAngle(a2);
   if (fabs(a1 - a2) < RADIANS(90.0))
@@ -210,7 +216,8 @@ int QuadEqual(double a1, double a2) {
   Return Values:
   nothing.
   ------------------------------------------------------------------------*/
-void fComplementCode(double *pdIn, double *pdOut, int iLen) {
+void fComplementCode(double *pdIn, double *pdOut, int iLen)
+{
   int i;
   double d;
 
@@ -231,7 +238,8 @@ void fComplementCode(double *pdIn, double *pdOut, int iLen) {
   Return Values:
   nothing.
   ------------------------------------------------------------------------*/
-char *fgetl(char *s, int n, FILE *fp) {
+char *fgetl(char *s, int n, FILE *fp)
+{
   char *cp, *cp2;
   int len;
 
@@ -258,7 +266,8 @@ char *fgetl(char *s, int n, FILE *fp) {
  *
  * Algorithm due to Isaac Newton, takes log(n)/2 iterations.
  */
-int IntSqrt(int n) {
+int IntSqrt(int n)
+{
   register int approx, prev;
 
   if (n == 0) return 0;
@@ -292,7 +301,8 @@ int IntSqrt(int n) {
   Return Values:
   nothing.
   ------------------------------------------------------------------------*/
-char *StrUpper(char *str) {
+char *StrUpper(char *str)
+{
   char *cp;
 
   for (cp = str; *cp; cp++) *cp = (char)toupper(*cp);
@@ -308,7 +318,8 @@ char *StrUpper(char *str) {
   Return Values:
   nothing.
   ------------------------------------------------------------------------*/
-char *StrLower(char *str) {
+char *StrLower(char *str)
+{
   char *cp;
 
   for (cp = str; *cp; cp++) *cp = (char)tolower(*cp);
@@ -326,7 +337,8 @@ char *StrLower(char *str) {
   Return Values:
 
   ------------------------------------------------------------------------*/
-char *StrReplace(const char *src, char *dst, char csrc, int cdst) {
+char *StrReplace(const char *src, char *dst, char csrc, int cdst)
+{
   const char *cp_src;
   char *cp_dst;
 
@@ -349,7 +361,8 @@ char *StrReplace(const char *src, char *dst, char csrc, int cdst) {
   Return Values:
   nothing.
   ------------------------------------------------------------------------*/
-char *FileNameOnly(const char *full_name, char *fname) {
+char *FileNameOnly(const char *full_name, char *fname)
+{
   char *slash, *number, *at;
 
   slash = strrchr(full_name, '/');
@@ -359,7 +372,8 @@ char *FileNameOnly(const char *full_name, char *fname) {
       strcpy(fname, full_name);
     else
       strcpy(fname, slash + 1);
-  } else {
+  }
+  else {
     // cannot process in place due to con
     //
     // best solution: copy full_name to fname
@@ -385,7 +399,8 @@ char *FileNameOnly(const char *full_name, char *fname) {
   Return Values:
   1 if the file exists, 0 otherwise
   ------------------------------------------------------------------------*/
-int FileExists(const char *fname) {
+int FileExists(const char *fname)
+{
   FILE *fp;
   int old_errno;
 
@@ -409,7 +424,8 @@ int FileExists(const char *fname) {
   Return Values:
   nothing.
   ------------------------------------------------------------------------*/
-char *FileName(char *full_name) {
+char *FileName(char *full_name)
+{
   char *fname, *number, *at;
 
   fname = strrchr(full_name, '/');
@@ -437,7 +453,8 @@ char *FileName(char *full_name) {
   Return Values:
 
   ------------------------------------------------------------------------*/
-int FileType(const char *fname) {
+int FileType(const char *fname)
+{
   char *dot, buf[STR_LEN], *number;
 
   if (*fname == '@') return (LIST_FILE);
@@ -472,7 +489,8 @@ int FileType(const char *fname) {
   Return Values:
 
   ------------------------------------------------------------------------*/
-int FileNumber(const char *fname) {
+int FileNumber(const char *fname)
+{
   char buf[STR_LEN], *number;
   int num;
 
@@ -494,7 +512,8 @@ int FileNumber(const char *fname) {
   Return Values:
 
   ------------------------------------------------------------------------*/
-int FileNumberOfEntries(const char *fname) {
+int FileNumberOfEntries(const char *fname)
+{
   int type, num, nentries;
   FILE *fp;
   char buf[STR_LEN], line[2 * STR_LEN], *cp;
@@ -539,7 +558,8 @@ int FileNumberOfEntries(const char *fname) {
         nentries = -1;
         break;
     }
-  } else
+  }
+  else
     nentries = 1;
 
   return (nentries);
@@ -555,7 +575,8 @@ int FileNumberOfEntries(const char *fname) {
   Return Values:
   nothing.
   ------------------------------------------------------------------------*/
-char *FileFullName(char *full_name) {
+char *FileFullName(char *full_name)
+{
   char *fname, *number, *at;
 
   fname = full_name;
@@ -578,7 +599,8 @@ char *FileFullName(char *full_name) {
   Return Values:
   pointer to the filename
   ------------------------------------------------------------------------*/
-char *FileTmpName(char *basename) {
+char *FileTmpName(char *basename)
+{
   static char fname[STR_LEN];
   int i;
   FILE *fp;
@@ -604,7 +626,8 @@ char *FileTmpName(char *basename) {
   Return Values:
   pointer to the filename
   ------------------------------------------------------------------------*/
-void FileRename(const char *inName, const char *outName) {
+void FileRename(const char *inName, const char *outName)
+{
 #ifndef _MSDOS
   char cmd_string[200];
   sprintf(cmd_string, "mv %s %s", inName, outName);
@@ -626,7 +649,8 @@ void FileRename(const char *inName, const char *outName) {
   Return Values:
   the distance.
   ------------------------------------------------------------------------*/
-float angleDistance(float theta1, float theta2) {
+float angleDistance(float theta1, float theta2)
+{
   float adist;
 
   adist = (float)fabs(theta1 - theta2);
@@ -636,7 +660,8 @@ float angleDistance(float theta1, float theta2) {
 }
 /*#ifndef SunOS*/
 #ifndef Windows_NT
-int stricmp(const char *str1, const char *str2) {
+int stricmp(const char *str1, const char *str2)
+{
   char buf1[STR_LEN], buf2[STR_LEN];
 
   strcpy(buf1, str1);
@@ -657,7 +682,8 @@ int stricmp(const char *str1, const char *str2) {
   Return Values:
   remove leading spaces from a string
   ------------------------------------------------------------------------*/
-char *StrRemoveSpaces(char *str) {
+char *StrRemoveSpaces(char *str)
+{
   while (isspace((int)*str)) str++;
 
   return (str);
@@ -674,13 +700,15 @@ char *StrRemoveSpaces(char *str) {
 extern char *getcwd(char *pathname, size_t size);
 #endif
 
-char *FileNameAbsolute(const char *fname, char *absFname) {
+char *FileNameAbsolute(const char *fname, char *absFname)
+{
   char pathname[MAXPATHLEN];
   int len;
 
   if (*fname == '/') {
     if (absFname != fname) strcpy(absFname, fname);
-  } else /* not already absolute */
+  }
+  else /* not already absolute */
   {
     len = strlen(fname);
     char *fn = strcpyalloc(fname);
@@ -709,7 +737,8 @@ char *FileNameAbsolute(const char *fname, char *absFname) {
 
   Return Values:
   ------------------------------------------------------------------------*/
-char *FileNamePath(const char *fname, char *pathName) {
+char *FileNamePath(const char *fname, char *pathName)
+{
   char *slash;
 
   strcpy(pathName, fname);
@@ -738,7 +767,8 @@ char *FileNamePath(const char *fname, char *pathName) {
 
   Return Values:
   ------------------------------------------------------------------------*/
-char *StrSkipNumber(char *str) {
+char *StrSkipNumber(char *str)
+{
   while (*str && isdigit((int)*str)) str++;
   if (*str == '.') /* check for floating point # */
   {
@@ -757,7 +787,8 @@ char *StrSkipNumber(char *str) {
 
   Description
   ------------------------------------------------------*/
-float deltaAngle(float angle1, float angle2) {
+float deltaAngle(float angle1, float angle2)
+{
   float delta;
 
   delta = angle1 - angle2;
@@ -781,7 +812,8 @@ float deltaAngle(float angle1, float angle2) {
    3. if src cannot be reallocated, then the function
    forces an exit.
    ---------------------------------------------------------*/
-char *AppendString(char *src, char *app) {
+char *AppendString(char *src, char *app)
+{
   int sz1 = 0, sz2 = 0;
   char *tmp;
 
@@ -826,7 +858,8 @@ union ieee754_float {
   float f;
 
   /* This is the IEEE 754 single-precision format.  */
-  struct {
+  struct
+  {
     unsigned int negative : 1;
     unsigned int exponent : 8;
     unsigned int mantissa : 23;
@@ -837,7 +870,8 @@ union ieee754_float {
   float f;
 
   /* This is the IEEE 754 single-precision format.  */
-  struct {
+  struct
+  {
     unsigned int mantissa : 23;
     unsigned int exponent : 8;
     unsigned int negative : 1;
@@ -845,7 +879,8 @@ union ieee754_float {
 };
 #endif
 
-int devIsinf(float value) {
+int devIsinf(float value)
+{
   unsigned int s, e, f;
 
   union ieee754_float v;
@@ -862,7 +897,8 @@ int devIsinf(float value) {
 } /* end devIsinf() */
 
 /* isnan non-zero if NaN, 0 otherwise */
-int devIsnan(float value) {
+int devIsnan(float value)
+{
   unsigned int e, f;
   //  unsigned int s;
 
@@ -878,13 +914,15 @@ int devIsnan(float value) {
 } /* end devIsnan() */
 
 /* non-zero if neither infinite nor NaN, 0 otherwise */
-int devFinite(float value) {
+int devFinite(float value)
+{
   if (!devIsinf(value) && !devIsnan(value)) return (1);
 
   return (0);
 } /* end devFinite() */
 
-char *FileNameRemoveExtension(const char *in_fname, char *out_fname) {
+char *FileNameRemoveExtension(const char *in_fname, char *out_fname)
+{
   char *dot;
 
   if (out_fname != in_fname) strcpy(out_fname, in_fname);
@@ -892,7 +930,8 @@ char *FileNameRemoveExtension(const char *in_fname, char *out_fname) {
   if (dot) *dot = 0;
   return (out_fname);
 }
-char *FileNameExtension(const char *fname, char *ext) {
+char *FileNameExtension(const char *fname, char *ext)
+{
   char *dot, buf[STR_LEN];
 
   ext[0] = 0;
@@ -905,7 +944,8 @@ char *FileNameExtension(const char *fname, char *ext) {
 
 #include <glob.h>
 
-char *FileNameFromWildcard(const char *inStr, char *outStr) {
+char *FileNameFromWildcard(const char *inStr, char *outStr)
+{
   char *cp;
   glob_t gbuf;
 
@@ -919,7 +959,8 @@ char *FileNameFromWildcard(const char *inStr, char *outStr) {
 }
 
 // return Kbytes memory used
-int getMemoryUsed() {
+int getMemoryUsed()
+{
 #ifdef Linux
   FILE *fp = 0;
   char buf[256];
@@ -943,7 +984,8 @@ int getMemoryUsed() {
     if (numassigned == 1) {
       pclose(fp);
       return memused;
-    } else {
+    }
+    else {
       pclose(fp);
       errno = 0;
       fprintf(stderr, "getting memoryused failed");
@@ -969,7 +1011,8 @@ int getMemoryUsed() {
 void printMemoryUsed() { printf("heap used: %d Kbytes.\n", getMemoryUsed()); }
 
 // String copy will allocation.
-char *strcpyalloc(const char *str) {
+char *strcpyalloc(const char *str)
+{
   char *cpstr;
   cpstr = (char *)calloc(strlen(str) + 1, sizeof(char));
   strcpy(cpstr, str);
@@ -982,7 +1025,8 @@ char *strcpyalloc(const char *str) {
   are separated by white space as determined by isspace(). These
   include \f, \n, \r, \t and \v as well as the simple space.
   *-----------------------------------------------------------*/
-int ItemsInString(const char *str) {
+int ItemsInString(const char *str)
+{
   int items, nthchar, len;
 
   len = strlen(str);
@@ -1019,7 +1063,8 @@ int ItemsInString(const char *str) {
   \fn char *deblank(char *str)
   \brief removes blanks from a string.
 */
-char *deblank(const char *str) {
+char *deblank(const char *str)
+{
   char *dbstr;
   int n, m;
 
@@ -1041,7 +1086,8 @@ char *deblank(const char *str) {
   \fn int str_toupper(char *str)
   \brief Converts each char in str to upper case. Done in place.
 */
-char *str_toupper(char *str) {
+char *str_toupper(char *str)
+{
   int n;
   for (n = 0; n < strlen(str); n++) str[n] = toupper(str[n]);
   return (0);
@@ -1053,11 +1099,13 @@ char *str_toupper(char *str) {
  * routines are declared here (instead of trying to guess how long to quad
  * should be implemented)...
  */
-void __ltoq(void) {
+void __ltoq(void)
+{
   printf("ERROR: Attempting usage of '__ltoq' routine!\n");
   exit(1);
 }
-void __qtol(void) {
+void __qtol(void)
+{
   printf("ERROR: Attempting usage of '__qtol' routine!\n");
   exit(1);
 }
@@ -1070,7 +1118,8 @@ void __qtol(void) {
   and the number in the list (nx). This allows the computation of the
   stddev with only one trip through the list.
 */
-double sum2stddev(double xsum, double xsum2, int nx) {
+double sum2stddev(double xsum, double xsum2, int nx)
+{
   double xmean, xstd;
   xmean = xsum / nx;
   xstd = sqrt((xsum2 - 2 * xmean * xsum + nx * xmean * xmean) / (nx - 1));
@@ -1083,7 +1132,8 @@ double sum2stddev(double xsum, double xsum2, int nx) {
   \fn int compare_ints(const void *v1,const void *v2)
   \brief Int comparison function suitable for qsort.
 */
-int compare_ints(const void *v1, const void *v2) {
+int compare_ints(const void *v1, const void *v2)
+{
   int i1, i2;
   i1 = *((int *)v1);
   i2 = *((int *)v2);
@@ -1096,7 +1146,8 @@ int compare_ints(const void *v1, const void *v2) {
   \fn int compare_ints(const void *v1,const void *v2)
   \brief Float comparison function suitable for qsort.
 */
-int compare_floats(const void *v1, const void *v2) {
+int compare_floats(const void *v1, const void *v2)
+{
   float i1, i2;
   i1 = *((float *)v1);
   i2 = *((float *)v2);
@@ -1110,7 +1161,8 @@ int compare_floats(const void *v1, const void *v2) {
   \brief Returns/counts the number of unique items in a
   list of integers. The list will be sorted.
 */
-int nunqiue_int_list(int *idlist, int nlist) {
+int nunqiue_int_list(int *idlist, int nlist)
+{
   int idprev, nunique, n;
 
   qsort(idlist, nlist, sizeof(int), compare_ints);
@@ -1130,7 +1182,8 @@ int nunqiue_int_list(int *idlist, int nlist) {
   \brief Returns the unique items in a list of integers.
   The list will be sorted.
 */
-int *unqiue_int_list(int *idlist, int nlist, int *nunique) {
+int *unqiue_int_list(int *idlist, int nlist, int *nunique)
+{
   int n, *ulist, nthu;
 
   /* count number of unique elements in the list,
@@ -1157,7 +1210,8 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique) {
   If there is a tie, it returns the first sorted. The list will be
   sorted.
 */
-int most_frequent_int_list(int *idlist, int nlist, int *nmax) {
+int most_frequent_int_list(int *idlist, int nlist, int *nmax)
+{
   int n, *ulist, nthu, nthumax, nunique, *nper, mostfreq;
 
   ulist = unqiue_int_list(idlist, nlist, &nunique);
@@ -1187,7 +1241,8 @@ int most_frequent_int_list(int *idlist, int nlist, int *nmax) {
   one or more contiguous non-blank characters. Same
   as gdfCountItemsInString().
   --------------------------------------------------*/
-int CountItemsInString(const char *str) {
+int CountItemsInString(const char *str)
+{
   int len, n, nhits;
   len = strlen(str);
   nhits = 0;
@@ -1208,7 +1263,8 @@ int CountItemsInString(const char *str) {
   is -1, then it returns the last item. item is a string that
   must be freed by the caller. Same as gdfGetNthItemFromString().
   ------------------------------------------------------------------*/
-char *GetNthItemFromString(const char *str, int nth) {
+char *GetNthItemFromString(const char *str, int nth)
+{
   char *item;
   int nitems, n;
   static char fmt[2000], tmpstr[2000];
@@ -1253,7 +1309,8 @@ char *GetNthItemFromString(const char *str, int nth) {
                   can be used to compute the median
 
  ---------------------------------------------------------------------------*/
-float kth_smallest(float a[], int n, int k) {
+float kth_smallest(float a[], int n, int k)
+{
   int i, j, l, m;
   float x, t;
   int kk = k - 1;
@@ -1286,7 +1343,8 @@ float kth_smallest(float a[], int n, int k) {
   * "Numerical recipes in C", Second Edition,
   * Cambridge University Press, 1992, Section 8.5, ISBN 0-521-43108-5
  ---------------------------------------------------------------------------*/
-float quick_select(float arr[], int n, int k) {
+float quick_select(float arr[], int n, int k)
+{
   int low, high;
   int median;
   int middle, ll, hh;
@@ -1361,7 +1419,8 @@ float quick_select(float arr[], int n, int k) {
 //       Input float array t[] of length n
 //       computation in situ, t will be reordered
  ---------------------------------------------------------------------------*/
-float median(float t[], int n) {
+float median(float t[], int n)
+{
   float q, q2;
   if (n % 2 == 1)  // odd
   {
@@ -1390,7 +1449,8 @@ float median(float t[], int n) {
 //       computation in situ, a will be reordered
 //
  ---------------------------------------------------------------------------*/
-float mad(float a[], int n) {
+float mad(float a[], int n)
+{
   float d, mm, medi;
   int i;
   float *t = (float *)calloc(n, sizeof(float));
@@ -1423,7 +1483,8 @@ int global_progress_range[2] = {0, 100};
 //       default is 0 and 100
 //
  ---------------------------------------------------------------------------*/
-void SetProgressCallback(void (*callback)(int), int start, int end) {
+void SetProgressCallback(void (*callback)(int), int start, int end)
+{
   progress_callback = callback;
   global_progress_range[0] = start;
   global_progress_range[1] = end;
@@ -1438,12 +1499,14 @@ void SetProgressCallback(void (*callback)(int), int start, int end) {
 //       total_frames to 1
 //
  ---------------------------------------------------------------------------*/
-void exec_progress_callback(int slice, int total_slices, int frame, int total_frames) {
+void exec_progress_callback(int slice, int total_slices, int frame, int total_frames)
+{
   if (progress_callback)
     progress_callback(global_progress_range[0] + (global_progress_range[1] - global_progress_range[0]) *
                                                      (slice + total_slices * frame) / (total_slices * total_frames));
 }
-int *compute_permutation(int num, int *vec) {
+int *compute_permutation(int num, int *vec)
+{
   int n, index, tmp;
 
   if (vec == NULL) vec = (int *)calloc(num, sizeof(vec[0]));
@@ -1461,7 +1524,8 @@ int *compute_permutation(int num, int *vec) {
 }
 
 // probably better to use getrusage(). see below
-int *GetMemUsage(int *u) {
+int *GetMemUsage(int *u)
+{
   FILE *fp;
   static char tag[500];
   int r;
@@ -1489,7 +1553,8 @@ int *GetMemUsage(int *u) {
   return (u);
 }
 
-int PrintMemUsage(FILE *fp) {
+int PrintMemUsage(FILE *fp)
+{
   static int u[5];
   GetMemUsage(u);
 
@@ -1505,7 +1570,8 @@ int PrintMemUsage(FILE *fp) {
   probably want: who = RUSAGE_SELF;
   pre is a string that will start each line.
 */
-int PrintRUsage(int who, const char *pre, FILE *fp) {
+int PrintRUsage(int who, const char *pre, FILE *fp)
+{
   int err;
   struct rusage u;
   err = getrusage(who, &u);
@@ -1536,7 +1602,8 @@ int PrintRUsage(int who, const char *pre, FILE *fp) {
   probably want: who = RUSAGE_SELF;
   pre is a string that will start each line.
 */
-int WriteRUsage(int who, const char *pre, char *fname) {
+int WriteRUsage(int who, const char *pre, char *fname)
+{
   int err;
   FILE *fp;
   fp = fopen(fname, "w");

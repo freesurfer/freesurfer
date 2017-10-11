@@ -38,7 +38,8 @@
 #ifndef Linux
 int not_used_000(void);
 
-int not_used_000(void) {
+int not_used_000(void)
+{
   int i;
   i = 0;
   return (i);
@@ -71,7 +72,8 @@ MACROS AND CONSTANTS
 STRUCTURES
 ----------------------------------------------------------------------*/
 
-typedef struct {
+typedef struct
+{
   void *ptr;
   int status;
 } HandleInfo;
@@ -106,7 +108,8 @@ Returns:
 the newly allocated handle.
 ----------------------------------------------------------------------*/
 PTR_HANDLE
-HandleAlloc(void *ptr) {
+HandleAlloc(void *ptr)
+{
   HandleInfo *handleInfo;
   PTR_HANDLE handle;
 
@@ -128,7 +131,8 @@ Free a previously allocated handle.
 Returns:
 nothing.
 ----------------------------------------------------------------------*/
-void HandleFree(PTR_HANDLE handle) {
+void HandleFree(PTR_HANDLE handle)
+{
   HandleInfo *handleInfo;
 
   if (HandleOk(handle) <= 0) ESCAPE(ERROR_BADPARM, "HandleFree: bad handle %d", handle);
@@ -148,7 +152,8 @@ turn a handle into the pointer which it reprents.
 Returns:
 the pointer which the handle represents.
 ----------------------------------------------------------------------*/
-void *HandleToPtr(PTR_HANDLE handle) {
+void *HandleToPtr(PTR_HANDLE handle)
+{
   HandleInfo *handleInfo;
 
   if (HandleOk(handle) <= 0) ESCAPE(ERROR_BADPARM, "HandleToPtr: bad handle %d", handle);
@@ -168,7 +173,8 @@ Returns:
 -1  if the handle is ok and not allocated
 0  if the handle is out of range.
 ----------------------------------------------------------------------*/
-int HandleOk(PTR_HANDLE handle) {
+int HandleOk(PTR_HANDLE handle)
+{
   HandleInfo *handleInfo;
 
   if ((handle <= (PTR_HANDLE)0) || (handle > nhandles)) return (0);
@@ -189,7 +195,8 @@ the current information into it.
 Returns:
 nothing.
 ----------------------------------------------------------------------*/
-static void growHandleTable(void) {
+static void growHandleTable(void)
+{
   HandleInfo *newTable;
   int newMaxHandles = 0;
 

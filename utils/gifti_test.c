@@ -6,7 +6,8 @@
 
 #include "gifti_test.h"
 
-int show_help() {
+int show_help()
+{
   fprintf(stderr,
           "------------------------------------------------------------\n"
           "gifti_test  - test reading/writing a GIFTI dataset\n"
@@ -47,7 +48,8 @@ int show_help() {
   return 0;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   gifti_image *gim;
   char *infile = NULL, *gfile = NULL;
   int *slist = NULL, slen = 0;
@@ -73,28 +75,36 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "** invalid parm to -encoding: %s\n", argv[ac]);
         return 1;
       }
-    } else if (!strcmp(argv[ac], "-gifti_hist")) {
+    }
+    else if (!strcmp(argv[ac], "-gifti_hist")) {
       gifti_disp_lib_hist();
       return 0;
-    } else if (!strcmp(argv[ac], "-gifti_ver")) {
+    }
+    else if (!strcmp(argv[ac], "-gifti_ver")) {
       gifti_disp_lib_version();
       return 0;
-    } else if (!strcmp(argv[ac], "-gfile")) {
+    }
+    else if (!strcmp(argv[ac], "-gfile")) {
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-gfile");
       gfile = argv[ac];
-    } else if (!strcmp(argv[ac], "-help")) {
+    }
+    else if (!strcmp(argv[ac], "-help")) {
       show_help();
       return 1;
-    } else if (!strcmp(argv[ac], "-infile")) {
+    }
+    else if (!strcmp(argv[ac], "-infile")) {
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-infile");
       infile = argv[ac];
-    } else if (!strcmp(argv[ac], "-no_data")) {
+    }
+    else if (!strcmp(argv[ac], "-no_data")) {
       data = 0;
-    } else if (!strcmp(argv[ac], "-show")) {
+    }
+    else if (!strcmp(argv[ac], "-show")) {
       show = 1;
-    } else if (!strcmp(argv[ac], "-slist")) {
+    }
+    else if (!strcmp(argv[ac], "-slist")) {
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-slist");
       slen = atol(argv[ac]);
@@ -120,11 +130,13 @@ int main(int argc, char *argv[]) {
           return 1;
         }
       }
-    } else if (!strcmp(argv[ac], "-verb")) {
+    }
+    else if (!strcmp(argv[ac], "-verb")) {
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-verb");
       gifti_set_verb(atoi(argv[ac]));
-    } else {
+    }
+    else {
       fprintf(stderr, "** unknown option: '%s'\n", argv[ac]);
       return 1;
     }
@@ -165,7 +177,8 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-int write_surf_file(giiDataArray *dc, giiDataArray *dt, char *prefix, int add_suf) {
+int write_surf_file(giiDataArray *dc, giiDataArray *dt, char *prefix, int add_suf)
+{
   giiDataArray *da;
   FILE *fp;
   char *name = prefix;
@@ -190,7 +203,8 @@ int write_surf_file(giiDataArray *dc, giiDataArray *dt, char *prefix, int add_su
     fclose(fp);
     if (nbuf) free(nbuf);
     return 1;
-  } else if (gifti_DA_rows_cols(dt, &trows, &tcols)) {
+  }
+  else if (gifti_DA_rows_cols(dt, &trows, &tcols)) {
     fclose(fp);
     if (nbuf) free(nbuf);
     return 1;
@@ -211,7 +225,8 @@ int write_surf_file(giiDataArray *dc, giiDataArray *dt, char *prefix, int add_su
   if (da->ind_ord == GIFTI_IND_ORD_COL_MAJOR) {
     fprintf(stderr, "-- writing coord rows in reverse order\n");
     for (c = rows - 1; c >= 0; c--) ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
-  } else {
+  }
+  else {
     fprintf(stderr, "-- writing coord rows in normal order\n");
     for (c = 0; c < rows; c++) ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
   }
@@ -225,7 +240,8 @@ int write_surf_file(giiDataArray *dc, giiDataArray *dt, char *prefix, int add_su
   if (da->ind_ord == GIFTI_IND_ORD_COL_MAJOR) {
     fprintf(stderr, "-- writing triangle rows in reverse order\n");
     for (c = rows - 1; c >= 0; c--) ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
-  } else {
+  }
+  else {
     fprintf(stderr, "-- writing triangle rows in normal order\n");
     for (c = 0; c < rows; c++) ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
   }
@@ -235,7 +251,8 @@ int write_surf_file(giiDataArray *dc, giiDataArray *dt, char *prefix, int add_su
   return 0;
 }
 
-int ewrite_data_line(void *data, int type, int row, int cols, int spaces, int trail0, FILE *fp) {
+int ewrite_data_line(void *data, int type, int row, int cols, int spaces, int trail0, FILE *fp)
+{
   int c;
   if (!data || row < 0 || cols <= 0 || !fp) return 1;
 
@@ -325,7 +342,8 @@ int ewrite_data_line(void *data, int type, int row, int cols, int spaces, int tr
 }
 
 /* write out as cols by rows (else we'd use ewrite_data_line) */
-int ewrite_many_lines(void **data, int type, long long cols, long long rows, int spaces, FILE *fp) {
+int ewrite_many_lines(void **data, int type, long long cols, long long rows, int spaces, FILE *fp)
+{
   long long r, c;
 
   if (!data || rows == 0 || cols == 0 || !fp) return 1;

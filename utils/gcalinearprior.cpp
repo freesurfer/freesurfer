@@ -34,16 +34,19 @@ using namespace std;
 
 #include "gcalinearprior.hpp"
 
-namespace Freesurfer {
+namespace Freesurfer
+{
 // ==========================================
-void GCAlinearPrior::PrintStats(ostream &os) const {
+void GCAlinearPrior::PrintStats(ostream &os) const
+{
   os << "Stats for GCAlinearPrior" << endl;
   os << "  Exhumation time = " << this->tExhume << endl;
   os << "  Inhumation time = " << this->tInhume << endl;
 }
 
 // ==========================================
-void GCAlinearPrior::ExtractDims(const GCA *const src) {
+void GCAlinearPrior::ExtractDims(const GCA *const src)
+{
   /*!
     Fills in the dimensions required from the given GCA.
     Does this by looping over all voxels, and finding the
@@ -66,7 +69,8 @@ void GCAlinearPrior::ExtractDims(const GCA *const src) {
 }
 
 // ==========================================
-void GCAlinearPrior::Allocate(void) {
+void GCAlinearPrior::Allocate(void)
+{
   /*!
     Allocates the main arrays according to the 'dimension'
     members.
@@ -105,7 +109,8 @@ void GCAlinearPrior::Allocate(void) {
 
 // ==========================================
 
-void GCAlinearPrior::Exhume(const GCA *const src) {
+void GCAlinearPrior::Exhume(const GCA *const src)
+{
   /*!
     This method is responsible for extracting GCA_PRIOR data
     from the source GCA, and packing into the linear arrays
@@ -154,12 +159,14 @@ void GCAlinearPrior::Exhume(const GCA *const src) {
 }
 
 // ==========================================
-const_GCAprior GCAlinearPrior::GetConstPrior(const int ix, const int iy, const int iz) const {
+const_GCAprior GCAlinearPrior::GetConstPrior(const int ix, const int iy, const int iz) const
+{
   return (const_GCAprior(ix, iy, iz, *this));
 }
 
 // ==========================================
-void GCAlinearPrior::Inhume(GCA *dst) const {
+void GCAlinearPrior::Inhume(GCA *dst) const
+{
   /*!
     Stores data about the priors back into the target
     GCA.
@@ -229,7 +236,8 @@ void GCAlinearPrior::Inhume(GCA *dst) const {
 
 // ==========================================
 
-void GCAlinearPrior::ScorchPriors(GCA *targ) const {
+void GCAlinearPrior::ScorchPriors(GCA *targ) const
+{
   /*!
     This method destroys the priors structure of a GCA,
     prior to inhumation of new data

@@ -62,7 +62,8 @@ char Volm_ksaErrorStrings[Volm_knNumErrorCodes][Volm_knErrStringLen] = {
     "Error reading FREESURFER_HOME/average/mni305.cor.mgz while trying to population destination information in "
     "the display transform."};
 
-Volm_tErr Volm_New(mriVolumeRef *opVolume) {
+Volm_tErr Volm_New(mriVolumeRef *opVolume)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   mriVolumeRef this = NULL;
   MATRIX *tmpMatrix = NULL;
@@ -149,7 +150,8 @@ Volm_tErr Volm_New(mriVolumeRef *opVolume) {
   return eResult;
 }
 
-Volm_tErr Volm_Delete(mriVolumeRef *iopVolume) {
+Volm_tErr Volm_Delete(mriVolumeRef *iopVolume)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   mriVolumeRef this = NULL;
 
@@ -214,7 +216,8 @@ Volm_tErr Volm_Delete(mriVolumeRef *iopVolume) {
   return eResult;
 }
 
-Volm_tErr Volm_DeepClone(mriVolumeRef this, mriVolumeRef *opVolume) {
+Volm_tErr Volm_DeepClone(mriVolumeRef this, mriVolumeRef *opVolume)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   Trns_tErr eTransform = Trns_tErr_NoErr;
   mriVolumeRef clone = NULL;
@@ -317,7 +320,8 @@ Volm_tErr Volm_DeepClone(mriVolumeRef this, mriVolumeRef *opVolume) {
   return eResult;
 }
 
-Volm_tErr Volm_CreateFromVolume(mriVolumeRef this, mriVolumeRef iVolume) {
+Volm_tErr Volm_CreateFromVolume(mriVolumeRef this, mriVolumeRef iVolume)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   int nDimensionX = 0;
   int nDimensionY = 0;
@@ -382,7 +386,8 @@ Volm_tErr Volm_CreateFromVolume(mriVolumeRef this, mriVolumeRef iVolume) {
   return eResult;
 }
 
-Volm_tErr Volm_ImportData(mriVolumeRef this, char *isSource) {
+Volm_tErr Volm_ImportData(mriVolumeRef this, char *isSource)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   MRI *mriVolume = NULL;
 
@@ -423,7 +428,8 @@ Volm_tErr Volm_ImportData(mriVolumeRef this, char *isSource) {
   return eResult;
 }
 
-Volm_tErr Volm_SetFromMRI_(mriVolumeRef this, MRI *iMRI) {
+Volm_tErr Volm_SetFromMRI_(mriVolumeRef this, MRI *iMRI)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   MATRIX *identity = NULL;
   MATRIX *scannerTransform = NULL;
@@ -535,7 +541,8 @@ Volm_tErr Volm_SetFromMRI_(mriVolumeRef this, MRI *iMRI) {
   return eResult;
 }
 
-Volm_tErr Volm_CalculateMRIIdxToAnaIdx_(mriVolumeRef this) {
+Volm_tErr Volm_CalculateMRIIdxToAnaIdx_(mriVolumeRef this)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   MATRIX *identity = NULL;
   MATRIX *idxToRASTransform = NULL;
@@ -623,10 +630,8 @@ Volm_tErr Volm_CalculateMRIIdxToAnaIdx_(mriVolumeRef this) {
   return eResult;
 }
 
-Volm_tErr Volm_GetMaxValueAtMRIIdx_(mriVolumeRef this,
-                                    xVoxelRef iMRIIdx,
-                                    mri_tOrientation iOrientation,
-                                    float *oValue) {
+Volm_tErr Volm_GetMaxValueAtMRIIdx_(mriVolumeRef this, xVoxelRef iMRIIdx, mri_tOrientation iOrientation, float *oValue)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -668,7 +673,8 @@ Volm_tErr Volm_GetMaxValueAtMRIIdx_(mriVolumeRef this,
   return eResult;
 }
 
-Volm_tErr Volm_ExportNormToCOR(mriVolumeRef this, char *isPath) {
+Volm_tErr Volm_ExportNormToCOR(mriVolumeRef this, char *isPath)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   char sPath[mri_knPathLen] = "";
   int eMRI = NO_ERROR;
@@ -682,7 +688,8 @@ Volm_tErr Volm_ExportNormToCOR(mriVolumeRef this, char *isPath) {
   /* if out isPath is null, use the original path. */
   if (NULL == isPath) {
     xUtil_strncpy(sPath, this->msOriginalPath, sizeof(sPath));
-  } else {
+  }
+  else {
     xUtil_strncpy(sPath, isPath, sizeof(sPath));
   }
 
@@ -704,7 +711,8 @@ Volm_tErr Volm_ExportNormToCOR(mriVolumeRef this, char *isPath) {
   return eResult;
 }
 
-Volm_tErr Volm_Save(mriVolumeRef this, char *isFileName, tBoolean ibSaveFileName) {
+Volm_tErr Volm_Save(mriVolumeRef this, char *isFileName, tBoolean ibSaveFileName)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   char sFileName[mri_knPathLen] = "";
   int eMRI = NO_ERROR;
@@ -718,7 +726,8 @@ Volm_tErr Volm_Save(mriVolumeRef this, char *isFileName, tBoolean ibSaveFileName
   /* if out isFileName is null, use the original. */
   if (NULL == isFileName) {
     xUtil_strncpy(sFileName, this->msOriginalPath, sizeof(sFileName));
-  } else {
+  }
+  else {
     xUtil_strncpy(sFileName, isFileName, sizeof(sFileName));
   }
 
@@ -742,7 +751,8 @@ Volm_tErr Volm_Save(mriVolumeRef this, char *isFileName, tBoolean ibSaveFileName
   return eResult;
 }
 
-Volm_tErr Volm_LoadDisplayTransform(mriVolumeRef this, char *isFileName) {
+Volm_tErr Volm_LoadDisplayTransform(mriVolumeRef this, char *isFileName)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   TRANSFORM *transform = NULL;
   int eTransform = ERROR_NONE;
@@ -839,7 +849,8 @@ Volm_tErr Volm_LoadDisplayTransform(mriVolumeRef this, char *isFileName) {
   return eResult;
 }
 
-Volm_tErr Volm_UnloadDisplayTransform(mriVolumeRef this) {
+Volm_tErr Volm_UnloadDisplayTransform(mriVolumeRef this)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(("Volm_UnloadDisplayTransform( this=%p )", this));
@@ -866,7 +877,8 @@ Volm_tErr Volm_UnloadDisplayTransform(mriVolumeRef this) {
   return eResult;
 }
 
-Volm_tErr Volm_CopyGeometryInformation(mriVolumeRef this, VOL_GEOM *ioVolumeGeometry) {
+Volm_tErr Volm_CopyGeometryInformation(mriVolumeRef this, VOL_GEOM *ioVolumeGeometry)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -894,7 +906,8 @@ Volm_tErr Volm_CopyGeometryInformation(mriVolumeRef this, VOL_GEOM *ioVolumeGeom
   return eResult;
 }
 
-void Volm_GetIntColorAtIdx(mriVolumeRef this, xVoxelRef iIdx, xColor3nRef oColor) {
+void Volm_GetIntColorAtIdx(mriVolumeRef this, xVoxelRef iIdx, xColor3nRef oColor)
+{
   float x, y, z;
   float value = 0;
   int colorIdx = 0;
@@ -909,7 +922,8 @@ void Volm_GetIntColorAtIdx(mriVolumeRef this, xVoxelRef iIdx, xColor3nRef oColor
     if (Volm_VerifyIdx_(this, &disp) == Volm_tErr_NoErr) {
       Volm_GetSampledValueAtIdx_(this, &disp, &value);
     }
-  } else {
+  }
+  else {
     /* Get the sampled value. Cap it to the color min and max. If in
        between that, calculate the color index between 0 and 255. */
     Volm_GetSampledValueAtIdx_(this, iIdx, &value);
@@ -917,16 +931,19 @@ void Volm_GetIntColorAtIdx(mriVolumeRef this, xVoxelRef iIdx, xColor3nRef oColor
 
   if (value <= this->mfColorMin) {
     colorIdx = 0;
-  } else if (value >= this->mfColorMax) {
+  }
+  else if (value >= this->mfColorMax) {
     colorIdx = 255;
-  } else {
+  }
+  else {
     colorIdx = (int)(Volm_knNumColorTableEntries * (value - this->mfColorMin) / (this->mfColorMax - this->mfColorMin));
   }
 
   *oColor = this->manColorTable[colorIdx];
 }
 
-void Volm_GetMaxIntColorAtIdx(mriVolumeRef this, xVoxelRef iIdx, mri_tOrientation iOrientation, xColor3nRef oColor) {
+void Volm_GetMaxIntColorAtIdx(mriVolumeRef this, xVoxelRef iIdx, mri_tOrientation iOrientation, xColor3nRef oColor)
+{
   xVoxel MRI;
   float value = 0;
   int colorIdx = 0;
@@ -939,7 +956,8 @@ void Volm_GetMaxIntColorAtIdx(mriVolumeRef this, xVoxelRef iIdx, mri_tOrientatio
   *oColor = this->manColorTable[colorIdx];
 }
 
-Volm_tErr Volm_GetDimensions(mriVolumeRef this, int *onDimensionX, int *onDimensionY, int *onDimensionZ) {
+Volm_tErr Volm_GetDimensions(mriVolumeRef this, int *onDimensionX, int *onDimensionY, int *onDimensionZ)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -968,7 +986,8 @@ Volm_tErr Volm_GetDimensions(mriVolumeRef this, int *onDimensionX, int *onDimens
   return eResult;
 }
 
-Volm_tErr Volm_GetNumberOfFrames(mriVolumeRef this, int *onDimensionFrames) {
+Volm_tErr Volm_GetNumberOfFrames(mriVolumeRef this, int *onDimensionFrames)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -997,7 +1016,8 @@ Volm_tErr Volm_GetNumberOfFrames(mriVolumeRef this, int *onDimensionFrames) {
   return eResult;
 }
 
-Volm_tErr Volm_GetType(mriVolumeRef this, int *onType) {
+Volm_tErr Volm_GetType(mriVolumeRef this, int *onType)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(("Volm_GetType( this=%p, onType=%p )", this, onType));
@@ -1025,7 +1045,8 @@ Volm_tErr Volm_GetType(mriVolumeRef this, int *onType) {
   return eResult;
 }
 
-Volm_tErr Volm_GetValueMinMax(mriVolumeRef this, float *ofMin, float *ofMax) {
+Volm_tErr Volm_GetValueMinMax(mriVolumeRef this, float *ofMin, float *ofMax)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(("Volm_GetValueMinMax( this=%p, ofMin=%p, ofMax )", this, ofMin, ofMax));
@@ -1052,7 +1073,8 @@ Volm_tErr Volm_GetValueMinMax(mriVolumeRef this, float *ofMin, float *ofMax) {
   return eResult;
 }
 
-Volm_tErr Volm_GetResampleMethod(mriVolumeRef this, Volm_tResampleMethod *oMethod) {
+Volm_tErr Volm_GetResampleMethod(mriVolumeRef this, Volm_tResampleMethod *oMethod)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -1081,7 +1103,8 @@ Volm_tErr Volm_GetResampleMethod(mriVolumeRef this, Volm_tResampleMethod *oMetho
   return eResult;
 }
 
-Volm_tErr Volm_SetResampleMethod(mriVolumeRef this, Volm_tResampleMethod iMethod) {
+Volm_tErr Volm_SetResampleMethod(mriVolumeRef this, Volm_tResampleMethod iMethod)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(("Volm_SetResampleMethod( this=%p, iMethod=%d )", this, (int)iMethod));
@@ -1124,7 +1147,8 @@ Volm_tErr Volm_SetResampleMethod(mriVolumeRef this, Volm_tResampleMethod iMethod
   return eResult;
 }
 
-Volm_tErr Volm_GetSampleType(mriVolumeRef this, Volm_tSampleType *oType) {
+Volm_tErr Volm_GetSampleType(mriVolumeRef this, Volm_tSampleType *oType)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -1153,7 +1177,8 @@ Volm_tErr Volm_GetSampleType(mriVolumeRef this, Volm_tSampleType *oType) {
   return eResult;
 }
 
-Volm_tErr Volm_SetSampleType(mriVolumeRef this, Volm_tSampleType iType) {
+Volm_tErr Volm_SetSampleType(mriVolumeRef this, Volm_tSampleType iType)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(("Volm_SetSampleType( this=%p, iType=%d )", this, (int)iType));
@@ -1177,7 +1202,8 @@ Volm_tErr Volm_SetSampleType(mriVolumeRef this, Volm_tSampleType iType) {
   return eResult;
 }
 
-Volm_tErr Volm_GetValueAtIdx(mriVolumeRef this, xVoxelRef iIdx, float *oValue) {
+Volm_tErr Volm_GetValueAtIdx(mriVolumeRef this, xVoxelRef iIdx, float *oValue)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -1209,13 +1235,15 @@ Volm_tErr Volm_GetValueAtIdx(mriVolumeRef this, xVoxelRef iIdx, float *oValue) {
   return eResult;
 }
 
-Volm_tErr Volm_GetValueAtIdxUnsafe(mriVolumeRef this, xVoxelRef iIdx, float *oValue) {
+Volm_tErr Volm_GetValueAtIdxUnsafe(mriVolumeRef this, xVoxelRef iIdx, float *oValue)
+{
   Volm_GetValueAtIdx_(this, iIdx, oValue);
 
   return Volm_tErr_NoErr;
 }
 
-Volm_tErr Volm_SetValueAtIdx(mriVolumeRef this, xVoxelRef iIdx, float iValue) {
+Volm_tErr Volm_SetValueAtIdx(mriVolumeRef this, xVoxelRef iIdx, float iValue)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -1255,7 +1283,8 @@ Volm_tErr Volm_SetValueAtIdx(mriVolumeRef this, xVoxelRef iIdx, float iValue) {
   return eResult;
 }
 
-Volm_tErr Volm_GetValueAtIdxFrame(mriVolumeRef this, xVoxelRef iIdx, int iFrame, float *oValue) {
+Volm_tErr Volm_GetValueAtIdxFrame(mriVolumeRef this, xVoxelRef iIdx, int iFrame, float *oValue)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -1290,13 +1319,15 @@ Volm_tErr Volm_GetValueAtIdxFrame(mriVolumeRef this, xVoxelRef iIdx, int iFrame,
   return eResult;
 }
 
-Volm_tErr Volm_GetValueAtIdxFrameUnsafe(mriVolumeRef this, xVoxelRef iIdx, int iFrame, float *oValue) {
+Volm_tErr Volm_GetValueAtIdxFrameUnsafe(mriVolumeRef this, xVoxelRef iIdx, int iFrame, float *oValue)
+{
   Volm_GetValueAtIdxFrame_(this, iIdx, iFrame, oValue);
 
   return Volm_tErr_NoErr;
 }
 
-Volm_tErr Volm_SetValueAtIdxFrame(mriVolumeRef this, xVoxelRef iIdx, int iFrame, float iValue) {
+Volm_tErr Volm_SetValueAtIdxFrame(mriVolumeRef this, xVoxelRef iIdx, int iFrame, float iValue)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -1330,7 +1361,8 @@ Volm_tErr Volm_SetValueAtIdxFrame(mriVolumeRef this, xVoxelRef iIdx, int iFrame,
   return eResult;
 }
 
-Volm_tErr Volm_GetValueAtMRIIdx(mriVolumeRef this, xVoxelRef iMRIIdx, float *oValue) {
+Volm_tErr Volm_GetValueAtMRIIdx(mriVolumeRef this, xVoxelRef iMRIIdx, float *oValue)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -1361,7 +1393,8 @@ Volm_tErr Volm_GetValueAtMRIIdx(mriVolumeRef this, xVoxelRef iMRIIdx, float *oVa
   return eResult;
 }
 
-Volm_tErr Volm_SetValueAtMRIIdx(mriVolumeRef this, xVoxelRef iMRIIdx, float iValue) {
+Volm_tErr Volm_SetValueAtMRIIdx(mriVolumeRef this, xVoxelRef iMRIIdx, float iValue)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -1400,7 +1433,8 @@ Volm_tErr Volm_SetValueAtMRIIdx(mriVolumeRef this, xVoxelRef iMRIIdx, float iVal
   return eResult;
 }
 
-Volm_tErr Volm_HasTalTransform(mriVolumeRef this, tBoolean *obHasTransform) {
+Volm_tErr Volm_HasTalTransform(mriVolumeRef this, tBoolean *obHasTransform)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(("Volm_HasTalTransform( this=%p, obHasTransform=%p)", this, obHasTransform));
@@ -1415,7 +1449,8 @@ Volm_tErr Volm_HasTalTransform(mriVolumeRef this, tBoolean *obHasTransform) {
   /* Return true if we have a tal transform, false if not. */
   if (NULL != this->mpMriValues->linear_transform) {
     *obHasTransform = TRUE;
-  } else {
+  }
+  else {
     *obHasTransform = FALSE;
   }
 
@@ -1428,7 +1463,8 @@ Volm_tErr Volm_HasTalTransform(mriVolumeRef this, tBoolean *obHasTransform) {
   return eResult;
 }
 
-Volm_tErr Volm_ConvertIdxToRAS(mriVolumeRef this, xVoxelRef iIdx, xVoxelRef oRAS) {
+Volm_tErr Volm_ConvertIdxToRAS(mriVolumeRef this, xVoxelRef iIdx, xVoxelRef oRAS)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   xVoxel mriIdx;
   double rasX = 0;
@@ -1467,7 +1503,8 @@ Volm_tErr Volm_ConvertIdxToRAS(mriVolumeRef this, xVoxelRef iIdx, xVoxelRef oRAS
   return eResult;
 }
 
-Volm_tErr Volm_ConvertRASToIdx(mriVolumeRef this, xVoxelRef iRAS, xVoxelRef oIdx) {
+Volm_tErr Volm_ConvertRASToIdx(mriVolumeRef this, xVoxelRef iRAS, xVoxelRef oIdx)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   double idxX = 0;
   double idxY = 0;
@@ -1504,7 +1541,8 @@ Volm_tErr Volm_ConvertRASToIdx(mriVolumeRef this, xVoxelRef iRAS, xVoxelRef oIdx
   return eResult;
 }
 
-Volm_tErr Volm_ConvertIdxToMNITal(mriVolumeRef this, xVoxelRef iIdx, xVoxelRef oMNITal) {
+Volm_tErr Volm_ConvertIdxToMNITal(mriVolumeRef this, xVoxelRef iIdx, xVoxelRef oMNITal)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   xVoxel scannerRAS;
   double talX = 0;
@@ -1549,7 +1587,8 @@ Volm_tErr Volm_ConvertIdxToMNITal(mriVolumeRef this, xVoxelRef iIdx, xVoxelRef o
   return eResult;
 }
 
-Volm_tErr Volm_ConvertIdxToTal(mriVolumeRef this, xVoxelRef iIdx, xVoxelRef oTal) {
+Volm_tErr Volm_ConvertIdxToTal(mriVolumeRef this, xVoxelRef iIdx, xVoxelRef oTal)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   xVoxel scannerRAS;
   double talX = 0;
@@ -1587,7 +1626,8 @@ Volm_tErr Volm_ConvertIdxToTal(mriVolumeRef this, xVoxelRef iIdx, xVoxelRef oTal
   if (xVoxl_GetFloatZ(&tal) > 0) {
     DebugNote(("Converting to real tal with >0 transform"));
     Trns_ConvertAtoB(this->mMNITalGtzToRealTalTransform, &tal, oTal);
-  } else {
+  }
+  else {
     DebugNote(("Converting to real tal with <0 transform"));
     Trns_ConvertAtoB(this->mMNITalLtzToRealTalTransform, &tal, oTal);
   }
@@ -1601,7 +1641,8 @@ Volm_tErr Volm_ConvertIdxToTal(mriVolumeRef this, xVoxelRef iIdx, xVoxelRef oTal
   return eResult;
 }
 
-Volm_tErr Volm_ConvertTalToIdx(mriVolumeRef this, xVoxelRef iTal, xVoxelRef oIdx) {
+Volm_tErr Volm_ConvertTalToIdx(mriVolumeRef this, xVoxelRef iTal, xVoxelRef oIdx)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   double idxX = 0;
   double idxY = 0;
@@ -1627,7 +1668,8 @@ Volm_tErr Volm_ConvertTalToIdx(mriVolumeRef this, xVoxelRef iTal, xVoxelRef oIdx
   if (xVoxl_GetFloatZ(iTal) > 0) {
     DebugNote(("Converting to mni tal with >0 transform"));
     Trns_ConvertBtoA(this->mMNITalGtzToRealTalTransform, iTal, &mniTal);
-  } else {
+  }
+  else {
     DebugNote(("Converting to mni tal with <=0 transform"));
     Trns_ConvertBtoA(this->mMNITalLtzToRealTalTransform, iTal, &mniTal);
   }
@@ -1653,7 +1695,8 @@ Volm_tErr Volm_ConvertTalToIdx(mriVolumeRef this, xVoxelRef iTal, xVoxelRef oIdx
   return eResult;
 }
 
-Volm_tErr Volm_ConvertIdxToScanner(mriVolumeRef this, xVoxelRef iIdx, xVoxelRef oScanner) {
+Volm_tErr Volm_ConvertIdxToScanner(mriVolumeRef this, xVoxelRef iIdx, xVoxelRef oScanner)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   xVoxel mriIdx;
 
@@ -1688,7 +1731,8 @@ Volm_tErr Volm_ConvertIdxToScanner(mriVolumeRef this, xVoxelRef iIdx, xVoxelRef 
   return eResult;
 }
 
-Volm_tErr Volm_ConvertMRIIdxToScanner(mriVolumeRef this, xVoxelRef iMRIIdx, xVoxelRef oScanner) {
+Volm_tErr Volm_ConvertMRIIdxToScanner(mriVolumeRef this, xVoxelRef iMRIIdx, xVoxelRef oScanner)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -1718,7 +1762,8 @@ Volm_tErr Volm_ConvertMRIIdxToScanner(mriVolumeRef this, xVoxelRef iMRIIdx, xVox
   return eResult;
 }
 
-Volm_tErr Volm_ConvertIdxToMRIIdx(mriVolumeRef this, xVoxelRef iIdx, xVoxelRef oMRIIdx) {
+Volm_tErr Volm_ConvertIdxToMRIIdx(mriVolumeRef this, xVoxelRef iIdx, xVoxelRef oMRIIdx)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -1753,7 +1798,8 @@ Volm_tErr Volm_ConvertIdxToMRIIdx(mriVolumeRef this, xVoxelRef iIdx, xVoxelRef o
   return eResult;
 }
 
-Volm_tErr Volm_ConvertMRIIdxToIdx(mriVolumeRef this, xVoxelRef iMRIIdx, xVoxelRef oIdx) {
+Volm_tErr Volm_ConvertMRIIdxToIdx(mriVolumeRef this, xVoxelRef iMRIIdx, xVoxelRef oIdx)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -1788,7 +1834,8 @@ Volm_tErr Volm_ConvertMRIIdxToIdx(mriVolumeRef this, xVoxelRef iMRIIdx, xVoxelRe
   return eResult;
 }
 
-Volm_tErr Volm_ConvertMRIIdxToRAS(mriVolumeRef this, xVoxelRef iMRIIdx, xVoxelRef oRAS) {
+Volm_tErr Volm_ConvertMRIIdxToRAS(mriVolumeRef this, xVoxelRef iMRIIdx, xVoxelRef oRAS)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   double rasX = 0;
   double rasY = 0;
@@ -1822,7 +1869,8 @@ Volm_tErr Volm_ConvertMRIIdxToRAS(mriVolumeRef this, xVoxelRef iMRIIdx, xVoxelRe
   return eResult;
 }
 
-Volm_tErr Volm_ConvertRASToMRIIdx(mriVolumeRef this, xVoxelRef iRAS, xVoxelRef oMRIIdx) {
+Volm_tErr Volm_ConvertRASToMRIIdx(mriVolumeRef this, xVoxelRef iRAS, xVoxelRef oMRIIdx)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   double idxX = 0;
   double idxY = 0;
@@ -1854,7 +1902,8 @@ Volm_tErr Volm_ConvertRASToMRIIdx(mriVolumeRef this, xVoxelRef iRAS, xVoxelRef o
   return eResult;
 }
 
-Volm_tErr Volm_ConvertMRIIdxToSurfaceRAS(mriVolumeRef this, xVoxelRef iMRIIdx, xVoxelRef oSurfaceRAS) {
+Volm_tErr Volm_ConvertMRIIdxToSurfaceRAS(mriVolumeRef this, xVoxelRef iMRIIdx, xVoxelRef oSurfaceRAS)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   double rasX = 0;
   double rasY = 0;
@@ -1893,7 +1942,8 @@ Volm_tErr Volm_ConvertMRIIdxToSurfaceRAS(mriVolumeRef this, xVoxelRef iMRIIdx, x
   return eResult;
 }
 
-Volm_tErr Volm_ConvertSurfaceRASToMRIIdx(mriVolumeRef this, xVoxelRef iSurfaceRAS, xVoxelRef oMRIIdx) {
+Volm_tErr Volm_ConvertSurfaceRASToMRIIdx(mriVolumeRef this, xVoxelRef iSurfaceRAS, xVoxelRef oMRIIdx)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   double idxX = 0;
   double idxY = 0;
@@ -1930,7 +1980,8 @@ Volm_tErr Volm_ConvertSurfaceRASToMRIIdx(mriVolumeRef this, xVoxelRef iSurfaceRA
   return eResult;
 }
 
-Volm_tErr Volm_GetMRIIdxToAnaIdxTransform(mriVolumeRef this, mriTransformRef *opTransform) {
+Volm_tErr Volm_GetMRIIdxToAnaIdxTransform(mriVolumeRef this, mriTransformRef *opTransform)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -1961,7 +2012,8 @@ Volm_tErr Volm_GetMRIIdxToAnaIdxTransform(mriVolumeRef this, mriTransformRef *op
   return eResult;
 }
 
-Volm_tErr Volm_Flood(mriVolumeRef this, Volm_tFloodParams *iParams) {
+Volm_tErr Volm_Flood(mriVolumeRef this, Volm_tFloodParams *iParams)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   xList_tErr eList = xList_tErr_NoErr;
   xListRef list = NULL;
@@ -2061,7 +2113,8 @@ Volm_tErr Volm_Flood(mriVolumeRef this, Volm_tFloodParams *iParams) {
         if (FALSE == iParams->mComparatorFunc(curVoxel, fValue, iParams->mComparatorFuncData)) {
           continue;
         }
-      } else {
+      }
+      else {
         /* Compare ths source value and the original value. */
         switch (iParams->mComparatorType) {
           case Volm_tValueComparator_LTE:
@@ -2171,7 +2224,8 @@ Volm_tErr Volm_Flood(mriVolumeRef this, Volm_tFloodParams *iParams) {
   return eResult;
 }
 
-Volm_tErr Volm_VisitAllVoxels(mriVolumeRef this, Volm_tVisitFunction iFunc, void *ipData) {
+Volm_tErr Volm_VisitAllVoxels(mriVolumeRef this, Volm_tVisitFunction iFunc, void *ipData)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   Volm_tVisitCommand eVisit = Volm_tVisitComm_Continue;
   tBoolean bGo = TRUE;
@@ -2230,7 +2284,8 @@ Volm_tErr Volm_VisitAllVoxels(mriVolumeRef this, Volm_tVisitFunction iFunc, void
   return eResult;
 }
 
-Volm_tErr Volm_FindMaxValues(mriVolumeRef this) {
+Volm_tErr Volm_FindMaxValues(mriVolumeRef this)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   float value = 0;
   int nX = 0;
@@ -2310,7 +2365,8 @@ Volm_tErr Volm_FindMaxValues(mriVolumeRef this) {
   return eResult;
 }
 
-Volm_tErr Volm_MakeColorTable(mriVolumeRef this) {
+Volm_tErr Volm_MakeColorTable(mriVolumeRef this)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   float min = 0;
   float max = 0;
@@ -2340,7 +2396,8 @@ Volm_tErr Volm_MakeColorTable(mriVolumeRef this) {
       this->manColorTable[entry].mnGreen = 0;
       this->manColorTable[entry].mnBlue = 0;
     }
-  } else {
+  }
+  else {
     for (entry = 0; entry < Volm_knNumColorTableEntries; entry++) {
       /* Get the corresponding value for this entry, where entry 0 = min
       and entry Volm_knNumColorTableEntries = max. */
@@ -2378,7 +2435,8 @@ Volm_tErr Volm_MakeColorTable(mriVolumeRef this) {
   return eResult;
 }
 
-Volm_tErr Volm_SetBrightnessAndContrast(mriVolumeRef this, float ifBrightness, float ifContrast) {
+Volm_tErr Volm_SetBrightnessAndContrast(mriVolumeRef this, float ifBrightness, float ifContrast)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -2409,7 +2467,8 @@ Volm_tErr Volm_SetBrightnessAndContrast(mriVolumeRef this, float ifBrightness, f
   return eResult;
 }
 
-Volm_tErr Volm_SetColorMinMax(mriVolumeRef this, float ifMin, float ifMax) {
+Volm_tErr Volm_SetColorMinMax(mriVolumeRef this, float ifMin, float ifMax)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -2453,7 +2512,8 @@ Volm_tErr Volm_SetColorMinMax(mriVolumeRef this, float ifMin, float ifMax) {
   return eResult;
 }
 
-Volm_tErr Volm_GetBrightnessAndContrast(mriVolumeRef this, float *ofBrightness, float *ofContrast) {
+Volm_tErr Volm_GetBrightnessAndContrast(mriVolumeRef this, float *ofBrightness, float *ofContrast)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -2481,7 +2541,8 @@ Volm_tErr Volm_GetBrightnessAndContrast(mriVolumeRef this, float *ofBrightness, 
   return eResult;
 }
 
-Volm_tErr Volm_SaveToSnapshot(mriVolumeRef this) {
+Volm_tErr Volm_SaveToSnapshot(mriVolumeRef this)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   int nSize = 0;
 
@@ -2529,7 +2590,8 @@ Volm_tErr Volm_SaveToSnapshot(mriVolumeRef this) {
   return eResult;
 }
 
-Volm_tErr Volm_RestoreFromSnapshot(mriVolumeRef this) {
+Volm_tErr Volm_RestoreFromSnapshot(mriVolumeRef this)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   int nSize = 0;
 
@@ -2573,7 +2635,8 @@ Volm_tErr Volm_RestoreFromSnapshot(mriVolumeRef this) {
   return eResult;
 }
 
-Volm_tErr Volm_Rotate(mriVolumeRef this, mri_tOrientation iAxis, float ifDegrees) {
+Volm_tErr Volm_Rotate(mriVolumeRef this, mri_tOrientation iAxis, float ifDegrees)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   MRI *newNorm = NULL;
   float fRadians = 0;
@@ -2620,7 +2683,8 @@ Volm_tErr Volm_Rotate(mriVolumeRef this, mri_tOrientation iAxis, float ifDegrees
   return eResult;
 }
 
-Volm_tErr Volm_Threshold(mriVolumeRef this, float iThreshold, tBoolean ibAbove, float iNewValue) {
+Volm_tErr Volm_Threshold(mriVolumeRef this, float iThreshold, tBoolean ibAbove, float iNewValue)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   float value = 0;
   xVoxel idx;
@@ -2660,7 +2724,8 @@ Volm_tErr Volm_Threshold(mriVolumeRef this, float iThreshold, tBoolean ibAbove, 
   return eResult;
 }
 
-Volm_tErr Volm_Flip(mriVolumeRef this, mri_tOrientation iAxis) {
+Volm_tErr Volm_Flip(mriVolumeRef this, mri_tOrientation iAxis)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   float value = 0;
   float flippedValue = 0;
@@ -2734,7 +2799,8 @@ Volm_tErr Volm_Flip(mriVolumeRef this, mri_tOrientation iAxis) {
   return eResult;
 }
 
-Volm_tErr Volm_SetAllValues(mriVolumeRef this, float iNewValue) {
+Volm_tErr Volm_SetAllValues(mriVolumeRef this, float iNewValue)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(("Volm_SetAllValues( this=%p, iNewValue=%d )", this, (int)iNewValue));
@@ -2755,7 +2821,8 @@ Volm_tErr Volm_SetAllValues(mriVolumeRef this, float iNewValue) {
   return eResult;
 }
 
-Volm_tErr Volm_CopySubjectName(mriVolumeRef this, char *oSubjectName, int inDestLen) {
+Volm_tErr Volm_CopySubjectName(mriVolumeRef this, char *oSubjectName, int inDestLen)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -2784,7 +2851,8 @@ Volm_tErr Volm_CopySubjectName(mriVolumeRef this, char *oSubjectName, int inDest
   return eResult;
 }
 
-Volm_tErr Volm_CopyVolumeName(mriVolumeRef this, char *oVolumeName, int inDestLen) {
+Volm_tErr Volm_CopyVolumeName(mriVolumeRef this, char *oVolumeName, int inDestLen)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -2813,7 +2881,8 @@ Volm_tErr Volm_CopyVolumeName(mriVolumeRef this, char *oVolumeName, int inDestLe
   return eResult;
 }
 
-Volm_tErr Volm_CopySourceDir(mriVolumeRef this, char *oSourceDir, int inDestLen) {
+Volm_tErr Volm_CopySourceDir(mriVolumeRef this, char *oSourceDir, int inDestLen)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(
@@ -2842,7 +2911,8 @@ Volm_tErr Volm_CopySourceDir(mriVolumeRef this, char *oSourceDir, int inDestLen)
   return eResult;
 }
 
-Volm_tErr Volm_(mriVolumeRef this) {
+Volm_tErr Volm_(mriVolumeRef this)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(("Volm_( this=%p )", this));
@@ -2863,7 +2933,8 @@ Volm_tErr Volm_(mriVolumeRef this) {
   return eResult;
 }
 
-Volm_tErr Volm_SetSubjectName(mriVolumeRef this, char *isName) {
+Volm_tErr Volm_SetSubjectName(mriVolumeRef this, char *isName)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(("Volm_SetSubjectName( this=%p, isName=%s )", this, isName));
@@ -2887,7 +2958,8 @@ Volm_tErr Volm_SetSubjectName(mriVolumeRef this, char *isName) {
   return eResult;
 }
 
-Volm_tErr Volm_SetVolumeName(mriVolumeRef this, char *isName) {
+Volm_tErr Volm_SetVolumeName(mriVolumeRef this, char *isName)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(("Volm_SetVolumeName( this=%p, isName=%s )", this, isName));
@@ -2911,7 +2983,8 @@ Volm_tErr Volm_SetVolumeName(mriVolumeRef this, char *isName) {
   return eResult;
 }
 
-Volm_tErr Volm_ExtractAndSetSubjectName(mriVolumeRef this, char *isSource) {
+Volm_tErr Volm_ExtractAndSetSubjectName(mriVolumeRef this, char *isSource)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   int nChar = 0;
   int nWordChar = 0;
@@ -2951,7 +3024,8 @@ Volm_tErr Volm_ExtractAndSetSubjectName(mriVolumeRef this, char *isSource) {
       nWordChar++;
       sWord += sizeof(char);
     }
-  } else {
+  }
+  else {
     /* look for 'subjects' in the title */
     DebugNote(("Looking for subjects/ in source"));
     sWord = strstr(isSource, "subjects/");
@@ -2972,7 +3046,8 @@ Volm_tErr Volm_ExtractAndSetSubjectName(mriVolumeRef this, char *isSource) {
         nWordChar++;
         nChar++;
       }
-    } else {
+    }
+    else {
       /* else just use the last part */
       nChar = 0;
       DebugNote(("Scooting to last slash"));
@@ -2987,7 +3062,8 @@ Volm_tErr Volm_ExtractAndSetSubjectName(mriVolumeRef this, char *isSource) {
       if (isSource[nLastSlash] == '/') {
         DebugNote(("Copying everything from last slash to end of source"));
         xUtil_strncpy(sName, &(isSource[nLastSlash + 1]), sizeof(sName));
-      } else {
+      }
+      else {
         DebugNote(("Copying entire source"));
         xUtil_strncpy(sName, isSource, sizeof(sName));
       }
@@ -3007,7 +3083,8 @@ Volm_tErr Volm_ExtractAndSetSubjectName(mriVolumeRef this, char *isSource) {
   return eResult;
 }
 
-Volm_tErr Volm_ExtractAndSetVolumeName(mriVolumeRef this, char *isSource) {
+Volm_tErr Volm_ExtractAndSetVolumeName(mriVolumeRef this, char *isSource)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   int nChar = 0;
   int nLastSlash = 0;
@@ -3035,7 +3112,8 @@ Volm_tErr Volm_ExtractAndSetVolumeName(mriVolumeRef this, char *isSource) {
   if (isSource[nLastSlash] == '/') {
     DebugNote(("Copying in source name from char %d", nLastSlash + 1));
     xUtil_strncpy(this->msVolumeName, &(isSource[nLastSlash + 1]), sizeof(this->msVolumeName));
-  } else {
+  }
+  else {
     DebugNote(("Copying in whole source name"));
     xUtil_strncpy(this->msVolumeName, isSource, sizeof(this->msVolumeName));
   }
@@ -3049,7 +3127,8 @@ Volm_tErr Volm_ExtractAndSetVolumeName(mriVolumeRef this, char *isSource) {
   return eResult;
 }
 
-Volm_tErr Volm_SetMinVoxelSizeToOne(mriVolumeRef this) {
+Volm_tErr Volm_SetMinVoxelSizeToOne(mriVolumeRef this)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   float scale, fov_x, fov_y, fov_z;
 
@@ -3096,7 +3175,8 @@ Volm_tErr Volm_SetMinVoxelSizeToOne(mriVolumeRef this) {
   return eResult;
 }
 
-Volm_tErr Volm_Conform(mriVolumeRef this) {
+Volm_tErr Volm_Conform(mriVolumeRef this)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   MRI *conformed = NULL;
 
@@ -3128,7 +3208,8 @@ Volm_tErr Volm_Conform(mriVolumeRef this) {
 /* ======================================== BEGIN FUNCTION VERION OF MACROS */
 #ifndef VOLM_USE_MACROS
 
-void Volm_ConvertScreenIdxToMRIIdx_(mriVolumeRef this, xVoxelRef iScreenIdx, xVoxelRef oMRIIdx) {
+void Volm_ConvertScreenIdxToMRIIdx_(mriVolumeRef this, xVoxelRef iScreenIdx, xVoxelRef oMRIIdx)
+{
   /* Stuff the screen index. */
   DebugNote(("Stuffing iScreenIdx into vector"));
   *MATRIX_RELT(this->mpTmpScreenIdx, 1, 1) = xVoxl_GetFloatX(iScreenIdx);
@@ -3155,7 +3236,8 @@ void Volm_ConvertScreenIdxToMRIIdx_(mriVolumeRef this, xVoxelRef iScreenIdx, xVo
   }
 }
 
-void Volm_ConvertMRIIdxToScreenIdx_(mriVolumeRef this, xVoxelRef iMRIIdx, xVoxelRef oScreenIdx) {
+void Volm_ConvertMRIIdxToScreenIdx_(mriVolumeRef this, xVoxelRef iMRIIdx, xVoxelRef oScreenIdx)
+{
   /* Stuff the mri index. */
   DebugNote(("Stuffing iMRIIdx into vector"));
   *MATRIX_RELT(this->mpTmpMRIIdx, 1, 1) = xVoxl_GetFloatX(iMRIIdx);
@@ -3181,7 +3263,8 @@ void Volm_ConvertMRIIdxToScreenIdx_(mriVolumeRef this, xVoxelRef iMRIIdx, xVoxel
   }
 }
 
-void Volm_GetValueAtIdx_(mriVolumeRef this, xVoxelRef iIdx, float *oValue) {
+void Volm_GetValueAtIdx_(mriVolumeRef this, xVoxelRef iIdx, float *oValue)
+{
   int x, y, z;
 
   /* First convert to MRI index, and then switch on the volume data
@@ -3220,7 +3303,8 @@ void Volm_GetValueAtIdx_(mriVolumeRef this, xVoxelRef iIdx, float *oValue) {
   }
 }
 
-void Volm_GetValueAtMRIIdx_(mriVolumeRef this, xVoxelRef iMRIIdx, float *oValue) {
+void Volm_GetValueAtMRIIdx_(mriVolumeRef this, xVoxelRef iMRIIdx, float *oValue)
+{
   switch (this->mpMriValues->type) {
     case MRI_UCHAR:
       *oValue = MRIvox(this->mpMriValues, xVoxl_GetX(iMRIIdx), xVoxl_GetY(iMRIIdx), xVoxl_GetZ(iMRIIdx));
@@ -3243,7 +3327,8 @@ void Volm_GetValueAtMRIIdx_(mriVolumeRef this, xVoxelRef iMRIIdx, float *oValue)
   }
 }
 
-void Volm_GetValueAtIdxFrame_(mriVolumeRef this, xVoxelRef iIdx, int iFrame, float *oValue) {
+void Volm_GetValueAtIdxFrame_(mriVolumeRef this, xVoxelRef iIdx, int iFrame, float *oValue)
+{
   /* First convert to MRI index, and then switch on the volume data
      type and use the proper MRIvox access function to get the
      value. */
@@ -3291,7 +3376,8 @@ void Volm_GetValueAtIdxFrame_(mriVolumeRef this, xVoxelRef iIdx, int iFrame, flo
   }
 }
 
-void Volm_GetSampledValueAtIdx_(mriVolumeRef this, xVoxelRef iIdx, float *oValue) {
+void Volm_GetSampledValueAtIdx_(mriVolumeRef this, xVoxelRef iIdx, float *oValue)
+{
   double value;
 
   /* First convert to MRI index, then use the MRI access function to
@@ -3308,7 +3394,8 @@ void Volm_GetSampledValueAtIdx_(mriVolumeRef this, xVoxelRef iIdx, float *oValue
   *oValue = (float)value;
 }
 
-void Volm_GetSampledValueAtIdxFrame_(mriVolumeRef this, xVoxelRef iIdx, int iFrame, float *oValue) {
+void Volm_GetSampledValueAtIdxFrame_(mriVolumeRef this, xVoxelRef iIdx, int iFrame, float *oValue)
+{
   double value;
 
   /* First convert to MRI index, then use the MRI access function to
@@ -3326,7 +3413,8 @@ void Volm_GetSampledValueAtIdxFrame_(mriVolumeRef this, xVoxelRef iIdx, int iFra
   *oValue = (float)value;
 }
 
-void Volm_SetValueAtIdx_(mriVolumeRef this, xVoxelRef iIdx, float iValue) {
+void Volm_SetValueAtIdx_(mriVolumeRef this, xVoxelRef iIdx, float iValue)
+{
   /* First convert to MRI index, and then switch on the volume data
      type and use the proper MRIvox access function to set the
      value. */
@@ -3363,7 +3451,8 @@ void Volm_SetValueAtIdx_(mriVolumeRef this, xVoxelRef iIdx, float iValue) {
   }
 }
 
-void Volm_SetValueAtMRIIdx_(mriVolumeRef this, xVoxelRef iMRIIdx, float iValue) {
+void Volm_SetValueAtMRIIdx_(mriVolumeRef this, xVoxelRef iMRIIdx, float iValue)
+{
   switch (this->mpMriValues->type) {
     default:
       break;
@@ -3385,7 +3474,8 @@ void Volm_SetValueAtMRIIdx_(mriVolumeRef this, xVoxelRef iMRIIdx, float iValue) 
   }
 }
 
-void Volm_SetValueAtIdxFrame_(mriVolumeRef this, xVoxelRef iIdx, int iFrame, float iValue) {
+void Volm_SetValueAtIdxFrame_(mriVolumeRef this, xVoxelRef iIdx, int iFrame, float iValue)
+{
   /* First convert to MRI index, and then switch on the volume data
      type and use the proper MRIvox access function to set the
      value. */
@@ -3434,7 +3524,8 @@ void Volm_SetValueAtIdxFrame_(mriVolumeRef this, xVoxelRef iIdx, int iFrame, flo
 #endif /* VOLM_USE_MACROS */
 /* ======================================== END OF FUNCTION VERION OF MACROS */
 
-Volm_tErr Volm_Verify(mriVolumeRef this) {
+Volm_tErr Volm_Verify(mriVolumeRef this)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction(("Volm_Verify( this=%p )", this));
@@ -3452,7 +3543,8 @@ Volm_tErr Volm_Verify(mriVolumeRef this) {
   return eResult;
 }
 
-Volm_tErr Volm_VerifyIdx(mriVolumeRef this, xVoxelRef iIdx) {
+Volm_tErr Volm_VerifyIdx(mriVolumeRef this, xVoxelRef iIdx)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   eResult = Volm_Verify(this);
@@ -3467,7 +3559,8 @@ Volm_tErr Volm_VerifyIdx(mriVolumeRef this, xVoxelRef iIdx) {
   return eResult;
 }
 
-Volm_tErr Volm_VerifyIdx_(mriVolumeRef this, xVoxelRef iIdx) {
+Volm_tErr Volm_VerifyIdx_(mriVolumeRef this, xVoxelRef iIdx)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
   xVoxel mriIdx;
 
@@ -3484,7 +3577,8 @@ Volm_tErr Volm_VerifyIdx_(mriVolumeRef this, xVoxelRef iIdx) {
   return eResult;
 }
 
-Volm_tErr Volm_VerifyMRIIdx_(mriVolumeRef this, xVoxelRef iMRIIdx) {
+Volm_tErr Volm_VerifyMRIIdx_(mriVolumeRef this, xVoxelRef iMRIIdx)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugAssertThrowX((xVoxl_GetX(iMRIIdx) >= 0 && xVoxl_GetRoundX(iMRIIdx) < this->mnDimensionX &&
@@ -3498,7 +3592,8 @@ Volm_tErr Volm_VerifyMRIIdx_(mriVolumeRef this, xVoxelRef iMRIIdx) {
   return eResult;
 }
 
-Volm_tErr Volm_VerifyIdxInMRIBounds(mriVolumeRef this, xVoxelRef iScreenIdx) {
+Volm_tErr Volm_VerifyIdxInMRIBounds(mriVolumeRef this, xVoxelRef iScreenIdx)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   eResult = Volm_Verify(this);
@@ -3535,7 +3630,8 @@ Volm_tErr Volm_VerifyIdxInMRIBounds(mriVolumeRef this, xVoxelRef iScreenIdx) {
   return eResult;
 }
 
-Volm_tErr Volm_VerifyFrame_(mriVolumeRef this, int iFrame) {
+Volm_tErr Volm_VerifyFrame_(mriVolumeRef this, int iFrame)
+{
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugAssertThrowX((iFrame >= 0 && iFrame < this->mnDimensionFrame), eResult, Volm_tErr_InvalidIdx);
@@ -3546,7 +3642,8 @@ Volm_tErr Volm_VerifyFrame_(mriVolumeRef this, int iFrame) {
   return eResult;
 }
 
-char *Volm_GetErrorString(Volm_tErr ieCode) {
+char *Volm_GetErrorString(Volm_tErr ieCode)
+{
   Volm_tErr eCode = ieCode;
 
   if (ieCode < 0 || ieCode >= Volm_knNumErrorCodes) {

@@ -54,7 +54,8 @@
   the False Discovery Rate.  Christopher R. Genovese, Nicole A. Lazar,
   Thomas E. Nichols (2002).  NeuroImage 15:870-878.
   ---------------------------------------------------------*/
-double fdr2vwth(double *p, int np, double fdr) {
+double fdr2vwth(double *p, int np, double fdr)
+{
   int n;
   double r;
   r = fdr / np;
@@ -81,7 +82,8 @@ double fdr2vwth(double *p, int np, double fdr) {
   Return: FDR between 0 and 1.
   Note: values in p will be changed (sorted ascending).
   ---------------------------------------------------------*/
-double vwth2fdr(double *p, int np, double vwth) {
+double vwth2fdr(double *p, int np, double vwth)
+{
   double fdr = 0, r = 0;
   int n;
 
@@ -102,7 +104,8 @@ double vwth2fdr(double *p, int np, double vwth) {
 /*---------------------------------------------------------------
   doublecompar() - qsort compare function to compare two doubles
   --------------------------------------------------------------*/
-int doublecompar(const void *v1, const void *v2) {
+int doublecompar(const void *v1, const void *v2)
+{
   double dv1, dv2;
   dv1 = *((double *)v1);
   dv2 = *((double *)v2);
@@ -114,7 +117,8 @@ int doublecompar(const void *v1, const void *v2) {
 #define MAXT 30.0
 #define MAXDOF 200
 /* note, everything here is Doug's fault */
-double sigt(double t, int df) {
+double sigt(double t, int df)
+{
   double sig = 0.0, sig1, sig2;
 
   if (df == 0)
@@ -137,7 +141,8 @@ double sigt(double t, int df) {
   return sig;
 }
 
-float sigchisq(double chisq, int df) {
+float sigchisq(double chisq, int df)
+{
   float p;
 
   if (FZERO(chisq) || df == 0) return (1.0f);

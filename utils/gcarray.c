@@ -74,7 +74,8 @@ int GCarrayFinish(GCARRAY *gcarray);
           scale pixels, with scale/2 at the left margin.
 
 ------------------------------------------------------*/
-GCARRAY *GCarrayAlloc(MRI *mri_template, int scale, int nvars) {
+GCARRAY *GCarrayAlloc(MRI *mri_template, int scale, int nvars)
+{
   GCARRAY *gcarray;
   int x, y, z, width, height, depth;
   double xw, yw, zw;
@@ -142,7 +143,8 @@ GCARRAY *GCarrayAlloc(MRI *mri_template, int scale, int nvars) {
         Description
 
 ------------------------------------------------------*/
-int GCarrayFree(GCARRAY **pgcarray) {
+int GCarrayFree(GCARRAY **pgcarray)
+{
   GCARRAY *gcarray;
   int x, y, z;
 
@@ -178,7 +180,8 @@ int GCarrayFree(GCARRAY **pgcarray) {
           go through again and compute the covariance matrices.
 
 ------------------------------------------------------*/
-GCARRAY *GCarrayTrainAll(GCARRAY *gcarray, char *training_file_name, int scale, int ninputs) {
+GCARRAY *GCarrayTrainAll(GCARRAY *gcarray, char *training_file_name, int scale, int ninputs)
+{
   char source_fname[100], target_fname[100], line[300], *cp;
   FILE *fp;
   int fno, nfiles;
@@ -321,7 +324,8 @@ int GCarrayFinish(GCARRAY *gcarray) { return (NO_ERROR); }
 #define LO_LIM 60
 #define HI_LIM 150
 
-int GCarrayTrain(GCARRAY *gcarray, MRI *mri_src, MRI *mri_zscore, MRI *mri_target) {
+int GCarrayTrain(GCARRAY *gcarray, MRI *mri_src, MRI *mri_zscore, MRI *mri_target)
+{
   MATRIX *m_inputs[NCLASSES];
   GCLASSIFY *gc, **pgc;
   int x, y, z, x0, y0, z0, x1, y1, z1, xm, ym, zm, xv, yv, zv, width, depth, height, scale, classno, nclasses,
@@ -432,7 +436,8 @@ int GCarrayTrain(GCARRAY *gcarray, MRI *mri_src, MRI *mri_zscore, MRI *mri_targe
 ------------------------------------------------------*/
 #define PRETTY_SURE .90f
 
-MRI *GCarrayClassify(GCARRAY *gcarray, MRI *mri_src, MRI *mri_dst, float conf, MRI *mri_probs, MRI *mri_classes) {
+MRI *GCarrayClassify(GCARRAY *gcarray, MRI *mri_src, MRI *mri_dst, float conf, MRI *mri_probs, MRI *mri_classes)
+{
   MATRIX *m_inputs;
   GCLASSIFY *gc;
   int x, y, z, xc, yc, zc, width, depth, height, scale, classno, swidth, sheight, sdepth;
@@ -542,7 +547,8 @@ MRI *GCarrayClassify(GCARRAY *gcarray, MRI *mri_src, MRI *mri_dst, float conf, M
         Description
 
 ------------------------------------------------------*/
-int GCarrayToVoxel(GCARRAY *gcarray, int xc, int yc, int zc, int *pxv, int *pyv, int *pzv) {
+int GCarrayToVoxel(GCARRAY *gcarray, int xc, int yc, int zc, int *pxv, int *pyv, int *pzv)
+{
   int scale;
 
   scale = gcarray->scale;
@@ -559,7 +565,8 @@ int GCarrayToVoxel(GCARRAY *gcarray, int xc, int yc, int zc, int *pxv, int *pyv,
         Description
 
 ------------------------------------------------------*/
-int GCarrayVoxelToClass(GCARRAY *gcarray, int xv, int yv, int zv, int *pxc, int *pyc, int *pzc) {
+int GCarrayVoxelToClass(GCARRAY *gcarray, int xv, int yv, int zv, int *pxc, int *pyc, int *pzc)
+{
   int scale;
 
   scale = gcarray->scale;
@@ -576,7 +583,8 @@ int GCarrayVoxelToClass(GCARRAY *gcarray, int xv, int yv, int zv, int *pxc, int 
         Description
 
 ------------------------------------------------------*/
-int GCarraySetTransform(GCARRAY *gcarray, Transform *transform, Transform *inverse_transform) {
+int GCarraySetTransform(GCARRAY *gcarray, Transform *transform, Transform *inverse_transform)
+{
   gcarray->transform = transform;
   gcarray->inverse_transform = inverse_transform;
   return (NO_ERROR);
@@ -589,7 +597,8 @@ int GCarraySetTransform(GCARRAY *gcarray, Transform *transform, Transform *inver
         Description
 
 ------------------------------------------------------*/
-GCARRAY *GCarrayRead(char *fname) {
+GCARRAY *GCarrayRead(char *fname)
+{
   GCARRAY *gcarray;
   FILE *fp;
   int width, height, depth, nvars, scale, x, y, z;
@@ -643,7 +652,8 @@ GCARRAY *GCarrayRead(char *fname) {
         Description
 
 ------------------------------------------------------*/
-int GCarrayWrite(GCARRAY *gcarray, char *fname) {
+int GCarrayWrite(GCARRAY *gcarray, char *fname)
+{
   FILE *fp;
   int x, y, z;
 
@@ -682,7 +692,8 @@ int GCarrayWrite(GCARRAY *gcarray, char *fname) {
         Description
 
 ------------------------------------------------------*/
-MRI *GCarrayThreshold(GCARRAY *gcarray, MRI *mri_probs, MRI *mri_classes, MRI *mri_dst, float threshold) {
+MRI *GCarrayThreshold(GCARRAY *gcarray, MRI *mri_probs, MRI *mri_classes, MRI *mri_dst, float threshold)
+{
   int x, y, z, width, height, depth, class;
   float *pprobs, prob;
   BUFTYPE *pclasses, *pdst;
@@ -721,7 +732,8 @@ MRI *GCarrayThreshold(GCARRAY *gcarray, MRI *mri_probs, MRI *mri_classes, MRI *m
         Description
 
 ------------------------------------------------------*/
-GCLASSIFY *MRIgetClassifier(GCARRAY *gcarray, MRI *mri, int x, int y, int z) {
+GCLASSIFY *MRIgetClassifier(GCARRAY *gcarray, MRI *mri, int x, int y, int z)
+{
   GCLASSIFY *gc;
   double xt, yt, zt;
   int width, depth, height, scale, xc, yc, zc, xv, yv, zv;
@@ -778,7 +790,8 @@ GCLASSIFY *MRIgetClassifier(GCARRAY *gcarray, MRI *mri, int x, int y, int z) {
         Description
           update the means using this set of images
 ------------------------------------------------------*/
-int GCarrayUpdateMeans(GCARRAY *gcarray, MRI *mris[], MRI *mri_target, int nimages) {
+int GCarrayUpdateMeans(GCARRAY *gcarray, MRI *mris[], MRI *mri_target, int nimages)
+{
   GCLASSIFY *gc;
   GCLASS *gcl;
   int x, y, z, xc, yc, zc, width, depth, height, scale, classno, swidth, sheight, sdepth;
@@ -878,7 +891,8 @@ int GCarrayUpdateMeans(GCARRAY *gcarray, MRI *mris[], MRI *mri_target, int nimag
         Description
            update the covariance estimates based on new observations
 ------------------------------------------------------*/
-int GCarrayUpdateCovariances(GCARRAY *gcarray, MRI *mris[], MRI *mri_target, int nimages) {
+int GCarrayUpdateCovariances(GCARRAY *gcarray, MRI *mris[], MRI *mri_target, int nimages)
+{
   GCLASSIFY *gc;
   GCLASS *gcl;
   int x, y, z, xc, yc, zc, width, depth, height, scale, classno, swidth, sheight, sdepth, col, row;
@@ -984,7 +998,8 @@ int GCarrayUpdateCovariances(GCARRAY *gcarray, MRI *mris[], MRI *mri_target, int
         Description
            compute the means for each class
 ------------------------------------------------------*/
-int GCarrayComputeMeans(GCARRAY *gcarray) {
+int GCarrayComputeMeans(GCARRAY *gcarray)
+{
   GCLASSIFY *gc, **pgc;
   GCLASS *gcl;
   int x, y, z, width, depth, height, classno, nclasses, nobs, row;
@@ -1027,7 +1042,8 @@ int GCarrayComputeMeans(GCARRAY *gcarray) {
         Description
            compute the means for each class
 ------------------------------------------------------*/
-int GCarrayComputeCovariances(GCARRAY *gcarray) {
+int GCarrayComputeCovariances(GCARRAY *gcarray)
+{
   GCLASSIFY *gc, **pgc;
   GCLASS *gcl;
   int x, y, z, width, depth, height, classno, nclasses, row, col;

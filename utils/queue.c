@@ -70,7 +70,8 @@
     Return Values:
         nothing.
 ------------------------------------------------------------------------*/
-QUEUE *Qalloc(int max_elts) {
+QUEUE *Qalloc(int max_elts)
+{
   QUEUE *q;
   // int i = max_elts;
 
@@ -87,7 +88,8 @@ QUEUE *Qalloc(int max_elts) {
     Return Values:
         nothing.
 ------------------------------------------------------------------------*/
-void Qfree(QUEUE *q) {
+void Qfree(QUEUE *q)
+{
   QELT *qelt;
 
   for (qelt = Qget(q, 0); qelt; qelt = Qget(q, 0)) free(qelt);
@@ -102,7 +104,8 @@ void Qfree(QUEUE *q) {
     Return Values:
         nothing.
 ------------------------------------------------------------------------*/
-int Qput(QUEUE *q, void *data) {
+int Qput(QUEUE *q, void *data)
+{
   QELT *qelt;
 
   qelt = (QELT *)calloc(1, sizeof(QELT));
@@ -114,7 +117,8 @@ int Qput(QUEUE *q, void *data) {
   {
     q->head = q->tail = qelt;
     qelt->next = qelt->prev = NULL; /* just to be explicit */
-  } else                            /* link in at end of list */
+  }
+  else /* link in at end of list */
   {
     qelt->next = NULL;
     qelt->prev = q->tail;
@@ -133,7 +137,8 @@ int Qput(QUEUE *q, void *data) {
     Return Values:
         nothing.
 ------------------------------------------------------------------------*/
-void *Qget(QUEUE *q, int mode) {
+void *Qget(QUEUE *q, int mode)
+{
   QELT *qelt;
   void *data;
 

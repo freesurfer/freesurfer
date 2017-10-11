@@ -26,13 +26,15 @@
 #define xColr_kfHilightAmt 0.3
 #define xColr_kfMinHighlightDistance 0.3
 
-void xColr_SetFloat(xColor3fRef iColor, float ifRed, float ifGreen, float ifBlue) {
+void xColr_SetFloat(xColor3fRef iColor, float ifRed, float ifGreen, float ifBlue)
+{
   iColor->mfRed = ifRed;
   iColor->mfGreen = ifGreen;
   iColor->mfBlue = ifBlue;
 }
 
-void xColr_SetFloatComponent(xColor3fRef iColor, xColr_tComponent iComponent, float ifValue) {
+void xColr_SetFloatComponent(xColor3fRef iColor, xColr_tComponent iComponent, float ifValue)
+{
   switch (iComponent) {
     case xColr_tComponent_Red:
       iColor->mfRed = ifValue;
@@ -48,7 +50,8 @@ void xColr_SetFloatComponent(xColor3fRef iColor, xColr_tComponent iComponent, fl
   }
 }
 
-float xColr_GetFloatComponent(xColor3fRef iColor, xColr_tComponent iComponent) {
+float xColr_GetFloatComponent(xColor3fRef iColor, xColr_tComponent iComponent)
+{
   switch (iComponent) {
     case xColr_tComponent_Red:
       return iColor->mfRed;
@@ -64,13 +67,15 @@ float xColr_GetFloatComponent(xColor3fRef iColor, xColr_tComponent iComponent) {
   }
 }
 
-void xColr_SetInt(xColor3nRef iColor, int inRed, int inGreen, int inBlue) {
+void xColr_SetInt(xColor3nRef iColor, int inRed, int inGreen, int inBlue)
+{
   iColor->mnRed = inRed;
   iColor->mnGreen = inGreen;
   iColor->mnBlue = inBlue;
 }
 
-void xColr_SetIntComponent(xColor3nRef iColor, xColr_tComponent iComponent, int inValue) {
+void xColr_SetIntComponent(xColor3nRef iColor, xColr_tComponent iComponent, int inValue)
+{
   switch (iComponent) {
     case xColr_tComponent_Red:
       iColor->mnRed = inValue;
@@ -86,7 +91,8 @@ void xColr_SetIntComponent(xColor3nRef iColor, xColr_tComponent iComponent, int 
   }
 }
 
-int xColr_GetIntComponent(xColor3nRef iColor, xColr_tComponent iComponent) {
+int xColr_GetIntComponent(xColor3nRef iColor, xColr_tComponent iComponent)
+{
   switch (iComponent) {
     case xColr_tComponent_Red:
       return iColor->mnRed;
@@ -102,13 +108,15 @@ int xColr_GetIntComponent(xColor3nRef iColor, xColr_tComponent iComponent) {
   }
 }
 
-void xColr_PackFloatArray(xColor3fRef iColor, float *iafColor) {
+void xColr_PackFloatArray(xColor3fRef iColor, float *iafColor)
+{
   iafColor[0] = iColor->mfRed;
   iafColor[1] = iColor->mfGreen;
   iafColor[2] = iColor->mfBlue;
 }
 
-void xColr_HilightComponent(xColor3fRef iColor, xColr_tComponent iComponent) {
+void xColr_HilightComponent(xColor3fRef iColor, xColr_tComponent iComponent)
+{
   if (NULL == iColor) {
     return;
   }

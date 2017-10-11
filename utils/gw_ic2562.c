@@ -2025,7 +2025,8 @@ MRI_SURFACE *ic2562_make_two_icos(float x1, float y1, float z1, float r1, float 
         //------------------------------------------------------
         if (fno < ICO_NFACES) {
           vn = gw_ic2562_faces[fno].vno[n1] - 1; /* make it zero-based */
-        } else {
+        }
+        else {
           vn = gw_ic2562_faces[fno - ICO_NFACES].vno[n1] - 1 + ICO_NVERTICES; /* make it zero-based */
         }
 

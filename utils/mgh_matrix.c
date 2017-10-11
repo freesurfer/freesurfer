@@ -33,7 +33,8 @@
 
 #include "mgh_matrix.h"
 
-FLOATTYPE *MGH_vector(int n) {
+FLOATTYPE *MGH_vector(int n)
+{
   FLOATTYPE *h;
 
   h = (FLOATTYPE *)calloc(n, sizeof(FLOATTYPE));
@@ -44,7 +45,8 @@ FLOATTYPE *MGH_vector(int n) {
   return h;
 }
 
-int *MGH_ivector(int n) {
+int *MGH_ivector(int n)
+{
   int *h;
 
   h = (int *)calloc(n, sizeof(int));
@@ -55,7 +57,8 @@ int *MGH_ivector(int n) {
   return h;
 }
 
-FLOATTYPE **MGH_matrix(int n, int m) {
+FLOATTYPE **MGH_matrix(int n, int m)
+{
   FLOATTYPE **h;
   int i;
 
@@ -68,7 +71,8 @@ FLOATTYPE **MGH_matrix(int n, int m) {
   return h;
 }
 
-void print_matrix(FLOATTYPE **a, int m, int n) {
+void print_matrix(FLOATTYPE **a, int m, int n)
+{
   int i, j;
 
   if (n > 0) {
@@ -82,7 +86,8 @@ void print_matrix(FLOATTYPE **a, int m, int n) {
   }
 }
 
-void read_matrix(FILE *fptr, FLOATTYPE **a, int m, int n) {
+void read_matrix(FILE *fptr, FLOATTYPE **a, int m, int n)
+{
   int i, j;
   float f;
 
@@ -95,7 +100,8 @@ void read_matrix(FILE *fptr, FLOATTYPE **a, int m, int n) {
     }
 }
 
-void print_vector(FLOATTYPE *v, int n) {
+void print_vector(FLOATTYPE *v, int n)
+{
   int i;
 
   for (i = 0; i < n; i++) {
@@ -104,7 +110,8 @@ void print_vector(FLOATTYPE *v, int n) {
   printf("\n\n");
 }
 
-void row_vector(FLOATTYPE **a, FLOATTYPE *v, int i, int n) {
+void row_vector(FLOATTYPE **a, FLOATTYPE *v, int i, int n)
+{
   int j;
 
   for (j = 0; j < n; j++) {
@@ -112,7 +119,8 @@ void row_vector(FLOATTYPE **a, FLOATTYPE *v, int i, int n) {
   }
 }
 
-void vector_to_matrix(FLOATTYPE *v, FLOATTYPE **a, int m, int n) {
+void vector_to_matrix(FLOATTYPE *v, FLOATTYPE **a, int m, int n)
+{
   int i, j, indx = 0;
 
   for (i = 0; i < m; i++)
@@ -121,14 +129,16 @@ void vector_to_matrix(FLOATTYPE *v, FLOATTYPE **a, int m, int n) {
     }
 }
 
-void scale_matrix(FLOATTYPE **a, FLOATTYPE s, int n, int m) {
+void scale_matrix(FLOATTYPE **a, FLOATTYPE s, int n, int m)
+{
   int i, j;
 
   for (i = 0; i < n; i++)
     for (j = 0; j < m; j++) a[i][j] *= s;
 }
 
-void normalize_matrix(FLOATTYPE **a, int n, int m) {
+void normalize_matrix(FLOATTYPE **a, int n, int m)
+{
   FLOATTYPE sum = 0;
   int i, j;
 
@@ -137,35 +147,40 @@ void normalize_matrix(FLOATTYPE **a, int n, int m) {
   /*  scale_matrix(a,n/sum,n,m); */
 }
 
-void matrix_copy(FLOATTYPE **a, FLOATTYPE **b, int n, int m) {
+void matrix_copy(FLOATTYPE **a, FLOATTYPE **b, int n, int m)
+{
   int i, j;
 
   for (i = 0; i < n; i++)
     for (j = 0; j < m; j++) b[i][j] = a[i][j];
 }
 
-void matrix_copy2(FLOATTYPE **a, FLOATTYPE **b, int n, int m, int sno, int smo, int tno, int tmo) {
+void matrix_copy2(FLOATTYPE **a, FLOATTYPE **b, int n, int m, int sno, int smo, int tno, int tmo)
+{
   int i, j;
 
   for (i = 0; i < n; i++)
     for (j = 0; j < m; j++) b[i + tno][j + tmo] = a[i + sno][j + smo];
 }
 
-void matrix_transpose(FLOATTYPE **a, FLOATTYPE **at, int n, int m) {
+void matrix_transpose(FLOATTYPE **a, FLOATTYPE **at, int n, int m)
+{
   int i, j;
 
   for (i = 0; i < m; i++)
     for (j = 0; j < n; j++) at[i][j] = a[j][i];
 }
 
-void matrix_add(FLOATTYPE **a, FLOATTYPE **b, FLOATTYPE **c, int n, int m) {
+void matrix_add(FLOATTYPE **a, FLOATTYPE **b, FLOATTYPE **c, int n, int m)
+{
   int i, j;
 
   for (i = 0; i < n; i++)
     for (j = 0; j < m; j++) c[i][j] = a[i][j] + b[i][j];
 }
 
-void matrix_multiply(FLOATTYPE **a, FLOATTYPE **b, FLOATTYPE **c, int n, int m) {
+void matrix_multiply(FLOATTYPE **a, FLOATTYPE **b, FLOATTYPE **c, int n, int m)
+{
   FLOATTYPE sum;
   int i, j, k;
 
@@ -178,7 +193,8 @@ void matrix_multiply(FLOATTYPE **a, FLOATTYPE **b, FLOATTYPE **c, int n, int m) 
   }
 }
 
-void matrix_multiply2(FLOATTYPE **a, FLOATTYPE **b, FLOATTYPE **c, int n, int m, int l) {
+void matrix_multiply2(FLOATTYPE **a, FLOATTYPE **b, FLOATTYPE **c, int n, int m, int l)
+{
   FLOATTYPE sum;
   int i, j, k;
 
@@ -191,7 +207,8 @@ void matrix_multiply2(FLOATTYPE **a, FLOATTYPE **b, FLOATTYPE **c, int n, int m,
   }
 }
 
-void matrix_angles(FLOATTYPE **a, FLOATTYPE **b, FLOATTYPE **c, int n, int m) {
+void matrix_angles(FLOATTYPE **a, FLOATTYPE **b, FLOATTYPE **c, int n, int m)
+{
   FLOATTYPE sum, asum, bsum;
   int i, j, k;
 
@@ -208,19 +225,22 @@ void matrix_angles(FLOATTYPE **a, FLOATTYPE **b, FLOATTYPE **c, int n, int m) {
   }
 }
 
-void vector_subtract(FLOATTYPE *a, FLOATTYPE *b, FLOATTYPE *c, int n) {
+void vector_subtract(FLOATTYPE *a, FLOATTYPE *b, FLOATTYPE *c, int n)
+{
   int i;
 
   for (i = 0; i < n; i++) c[i] = a[i] - b[i];
 }
 
-void vector_add(FLOATTYPE *a, FLOATTYPE *b, FLOATTYPE *c, FLOATTYPE fa, FLOATTYPE fb, int n) {
+void vector_add(FLOATTYPE *a, FLOATTYPE *b, FLOATTYPE *c, FLOATTYPE fa, FLOATTYPE fb, int n)
+{
   int i;
 
   for (i = 0; i < n; i++) c[i] = fa * a[i] + fb * b[i];
 }
 
-void vector_multiply(FLOATTYPE **a, FLOATTYPE *b, FLOATTYPE *c, int n, int m) {
+void vector_multiply(FLOATTYPE **a, FLOATTYPE *b, FLOATTYPE *c, int n, int m)
+{
   FLOATTYPE sum;
   int i, j;
 
@@ -231,7 +251,8 @@ void vector_multiply(FLOATTYPE **a, FLOATTYPE *b, FLOATTYPE *c, int n, int m) {
   }
 }
 
-void derivative_matrix(FLOATTYPE **D, int dy, int dx) {
+void derivative_matrix(FLOATTYPE **D, int dy, int dx)
+{
   int i, j, n = dx * dy;
 
   for (i = 0; i < n; i++)
@@ -242,14 +263,16 @@ void derivative_matrix(FLOATTYPE **D, int dy, int dx) {
   }
 }
 
-void MGH_identity_matrix(FLOATTYPE **I, int n) {
+void MGH_identity_matrix(FLOATTYPE **I, int n)
+{
   int i, j;
 
   for (i = 0; i < n; i++)
     for (j = 0; j < n; j++) I[i][j] = (i == j) ? 1.0 : 0.0;
 }
 
-void regularization_matrix(FLOATTYPE **R, int n) {
+void regularization_matrix(FLOATTYPE **R, int n)
+{
   int i, j;
 
   for (i = 0; i < n; i++)
@@ -261,7 +284,8 @@ void regularization_matrix(FLOATTYPE **R, int n) {
   }
 }
 
-void covariance_matrix(FLOATTYPE **R, int n) {
+void covariance_matrix(FLOATTYPE **R, int n)
+{
   int i, j;
 
   for (i = 0; i < n; i++)
@@ -271,7 +295,8 @@ void covariance_matrix(FLOATTYPE **R, int n) {
     }
 }
 
-void mgh_ludcmp(FLOATTYPE **a, int n, int *indx, FLOATTYPE *d) {
+void mgh_ludcmp(FLOATTYPE **a, int n, int *indx, FLOATTYPE *d)
+{
   int i, imax = 0, j, k; /* imax = 0 to shut up gcc */
   FLOATTYPE big, dum, sum, temp;
   FLOATTYPE *vv, *vector();
@@ -320,7 +345,8 @@ void mgh_ludcmp(FLOATTYPE **a, int n, int *indx, FLOATTYPE *d) {
   free(vv);
 }
 
-void mgh_lubksb(FLOATTYPE **a, int n, int *indx, FLOATTYPE *b) {
+void mgh_lubksb(FLOATTYPE **a, int n, int *indx, FLOATTYPE *b)
+{
   int i, ii = -1, ip, j;
   FLOATTYPE sum;
 
@@ -341,7 +367,8 @@ void mgh_lubksb(FLOATTYPE **a, int n, int *indx, FLOATTYPE *b) {
   }
 }
 
-void inverse(FLOATTYPE **a, FLOATTYPE **y, int n) {
+void inverse(FLOATTYPE **a, FLOATTYPE **y, int n)
+{
   FLOATTYPE d, *col;
   int i, j, *indx;
 
@@ -356,7 +383,8 @@ void inverse(FLOATTYPE **a, FLOATTYPE **y, int n) {
   }
 }
 
-FLOATTYPE determinant(FLOATTYPE **a, int n) {
+FLOATTYPE determinant(FLOATTYPE **a, int n)
+{
   FLOATTYPE d;
   int j, *indx;
 
@@ -367,7 +395,8 @@ FLOATTYPE determinant(FLOATTYPE **a, int n) {
   return d;
 }
 
-FLOATTYPE MGH_svd(FLOATTYPE **A, FLOATTYPE **V, FLOATTYPE *z, int m, int n) {
+FLOATTYPE MGH_svd(FLOATTYPE **A, FLOATTYPE **V, FLOATTYPE *z, int m, int n)
+{
   int i, j, k, count;
   FLOATTYPE c, s, p, q, r, v, toll = 0.1;
 
@@ -386,7 +415,8 @@ FLOATTYPE MGH_svd(FLOATTYPE **A, FLOATTYPE **V, FLOATTYPE *z, int m, int n) {
         if (q < r) {
           c = 0;
           s = 1;
-        } else {
+        }
+        else {
           q = q - r;
           v = sqrt(4 * p * p + q * q);
           c = sqrt((v + q) / (2 * v));
@@ -434,7 +464,8 @@ static FLOATTYPE maxarg1, maxarg2;
 #define SIGN(a, b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
 #endif
 
-void mgh_svdcmp(FLOATTYPE **a, FLOATTYPE *w, FLOATTYPE **v, int m, int n) {
+void mgh_svdcmp(FLOATTYPE **a, FLOATTYPE *w, FLOATTYPE **v, int m, int n)
+{
   int flag, i, its, j, jj, k, l = 0, nm = 0; /* Keep gcc happy */
   FLOATTYPE c, f, h, s, x, y, z;
   FLOATTYPE anorm = 0.0, g = 0.0, scale = 0.0;
@@ -524,7 +555,8 @@ void mgh_svdcmp(FLOATTYPE **a, FLOATTYPE *w, FLOATTYPE **v, int m, int n) {
         }
       }
       for (j = i; j < m; j++) a[j][i] *= g;
-    } else {
+    }
+    else {
       for (j = i; j < m; j++) a[j][i] = 0.0;
     }
     ++a[i][i];

@@ -85,7 +85,8 @@ static int      normalizeObservation(CLUSTER_SET *cs, VECTOR *v_obs) ;
         Description
           Print the contents of a CLUSTER_SET to a file.
 ------------------------------------------------------*/
-int CSprint(CLUSTER_SET *cs, FILE *fp) {
+int CSprint(CLUSTER_SET *cs, FILE *fp)
+{
   int c;
 
   fprintf(fp,
@@ -114,7 +115,8 @@ int CSprint(CLUSTER_SET *cs, FILE *fp) {
            allocate and initialize a CLUSTER_SET structure
            in preparation for clustering a data set.
 ------------------------------------------------------*/
-CLUSTER_SET *CSinit(int max_clusters, int ninputs, int normalize) {
+CLUSTER_SET *CSinit(int max_clusters, int ninputs, int normalize)
+{
   CLUSTER_SET *cs;
   int c;
 
@@ -157,7 +159,8 @@ CLUSTER_SET *CSinit(int max_clusters, int ninputs, int normalize) {
           Free a CLUSTER_SET structure and all memory that
           it has allocated.
 ------------------------------------------------------*/
-int CSfree(CLUSTER_SET **pcs) {
+int CSfree(CLUSTER_SET **pcs)
+{
   CLUSTER_SET *cs;
   int c;
 
@@ -183,7 +186,8 @@ int CSfree(CLUSTER_SET **pcs) {
            allocate the internal variables of the given cluster
            and initialize them to reasonable values.
 ------------------------------------------------------*/
-static int clusterInit(CLUSTER *cluster, int ninputs) {
+static int clusterInit(CLUSTER *cluster, int ninputs)
+{
   cluster->m_scatter = MatrixAlloc(ninputs, ninputs, MATRIX_REAL);
   if (!cluster->m_scatter) ErrorExit(ERROR_NO_MEMORY, "clusterInit(%d): could not allocate scatter matrix", ninputs);
   cluster->v_means = VectorAlloc(ninputs, MATRIX_REAL);
@@ -204,7 +208,8 @@ static int clusterInit(CLUSTER *cluster, int ninputs) {
           Free a CLUSTER structure and all memory that
           it has allocated.
 ------------------------------------------------------*/
-static int clusterFree(CLUSTER *cluster) {
+static int clusterFree(CLUSTER *cluster)
+{
   if (cluster->m_scatter) MatrixFree(&cluster->m_scatter);
   if (cluster->v_means) VectorFree(&cluster->v_means);
   if (cluster->evalues) free(cluster->evalues);
@@ -219,7 +224,8 @@ static int clusterFree(CLUSTER *cluster) {
         Description
            Add this observation to the appropriate cluster.
 ------------------------------------------------------*/
-int CSnewObservation(CLUSTER_SET *cs, VECTOR *v_obs) {
+int CSnewObservation(CLUSTER_SET *cs, VECTOR *v_obs)
+{
   int c, min_cluster;
   float min_dist, dist;
 
@@ -247,7 +253,8 @@ int CSnewObservation(CLUSTER_SET *cs, VECTOR *v_obs) {
            A pass has just been made through the data set, divide
            the cluster with the maximum variance.
 ------------------------------------------------------*/
-int CSdivide(CLUSTER_SET *cs) {
+int CSdivide(CLUSTER_SET *cs)
+{
   int c, max_cluster, nobs, max_obs;
   float max_variance, variance;
 
@@ -292,7 +299,8 @@ int CSdivide(CLUSTER_SET *cs) {
         Description
            Add this observation to the appropriate cluster.
 ------------------------------------------------------*/
-static int clusterNewObservation(CLUSTER *cluster, VECTOR *v_obs) {
+static int clusterNewObservation(CLUSTER *cluster, VECTOR *v_obs)
+{
   float covariance;
   int row, col;
 
@@ -316,7 +324,8 @@ static int clusterNewObservation(CLUSTER *cluster, VECTOR *v_obs) {
           Determine the distance from this cluster to the observation
           vector.
 ------------------------------------------------------*/
-static float clusterDistance(CLUSTER_SET *cs, CLUSTER *cluster, VECTOR *v_obs) {
+static float clusterDistance(CLUSTER_SET *cs, CLUSTER *cluster, VECTOR *v_obs)
+{
   float dist, mean, sigma, v1, v2, d;
   int row;
 
@@ -350,7 +359,8 @@ static float clusterDistance(CLUSTER_SET *cs, CLUSTER *cluster, VECTOR *v_obs) {
           a round of observations is done - complete the calculation
           of means and scatter matrices for this cluster
 ------------------------------------------------------*/
-static int clusterComputeStatistics(CLUSTER_SET *cs, CLUSTER *cluster) {
+static int clusterComputeStatistics(CLUSTER_SET *cs, CLUSTER *cluster)
+{
   float mean_a, mean_b, covariance;
   int nobs, row, col;
 
@@ -380,14 +390,16 @@ static int clusterComputeStatistics(CLUSTER_SET *cs, CLUSTER *cluster) {
       {
         MatrixRegularize(cluster->m_scatter, cluster->m_scatter);
         cluster->m_inverse = MatrixInverse(cluster->m_scatter, cluster->m_inverse);
-      } else
+      }
+      else
         cluster->m_inverse = MatrixSVDInverse(cluster->m_scatter, cluster->m_inverse);
       cluster->det = MatrixDeterminant(cluster->m_scatter);
       if (cluster->det <= 0.0f)
         cluster->norm = 1.0f; /* no good choice */
       else
         cluster->norm = 1.0f / sqrt(cluster->det);
-    } else {
+    }
+    else {
       cluster->ill_conditioned = 0;
       cluster->m_inverse = MatrixInverse(cluster->m_scatter, cluster->m_inverse);
       cluster->norm = 1.0f / sqrt(cluster->det);
@@ -412,7 +424,8 @@ static int clusterComputeStatistics(CLUSTER_SET *cs, CLUSTER *cluster) {
     fprintf(stderr, "inverse scatter matrix:\n") ;
     MatrixPrint(stderr, cluster->m_inverse) ;
 #endif
-  } else
+  }
+  else
     return (ERROR_BADPARM);
 #if 0
   ErrorReturn(ERROR_BADPARM,
@@ -440,7 +453,8 @@ static int clusterComputeStatistics(CLUSTER_SET *cs, CLUSTER *cluster) {
         Description
           Print the contents of a cluster to a file.
 ------------------------------------------------------*/
-static int clusterPrint(CLUSTER *cluster, FILE *fp) {
+static int clusterPrint(CLUSTER *cluster, FILE *fp)
+{
   /*  int    i ;*/
 
   fprintf(fp, "cluster %d has %d observations. Seed:", cluster->cno, cluster->nsamples);
@@ -471,7 +485,8 @@ static int clusterPrint(CLUSTER *cluster, FILE *fp) {
           Compute the variance of this cluster to decide whether (and how)
           it should be split.
 ------------------------------------------------------*/
-static float clusterVariance(CLUSTER *cluster) {
+static float clusterVariance(CLUSTER *cluster)
+{
   float variance;
   int i;
 
@@ -490,7 +505,8 @@ static float clusterVariance(CLUSTER *cluster) {
 ------------------------------------------------------*/
 #define SMALL 1e-4
 
-static CLUSTER *clusterDivide(CLUSTER *csrc, CLUSTER *cdst) {
+static CLUSTER *clusterDivide(CLUSTER *csrc, CLUSTER *cdst)
+{
   VECTOR *v_e;
   float len;
 
@@ -547,7 +563,8 @@ static CLUSTER *clusterDivide(CLUSTER *csrc, CLUSTER *cdst) {
           inverse of the within-cluster scatter matrix, and Sb is the
           between cluster scatter matrix.
 ------------------------------------------------------*/
-int CScluster(CLUSTER_SET *cs, int (*get_observation_func)(VECTOR *v_obs, int no, void *parm), void *parm) {
+int CScluster(CLUSTER_SET *cs, int (*get_observation_func)(VECTOR *v_obs, int no, void *parm), void *parm)
+{
   int obs_no, epoch = 0;
   VECTOR *v_obs;
 
@@ -603,7 +620,8 @@ int CScluster(CLUSTER_SET *cs, int (*get_observation_func)(VECTOR *v_obs, int no
           Go through all the clusters and clear their mean and
           scatter matrices.
 ------------------------------------------------------*/
-int CSreset(CLUSTER_SET *cs) {
+int CSreset(CLUSTER_SET *cs)
+{
   int c;
   CLUSTER *cluster;
 
@@ -625,7 +643,8 @@ int CSreset(CLUSTER_SET *cs) {
           Compute the covariances and means of all the clusters
           (performed after each complete pass through the data).
 ------------------------------------------------------*/
-int CScomputeStatistics(CLUSTER_SET *cs) {
+int CScomputeStatistics(CLUSTER_SET *cs)
+{
   int c, c1;
 
   for (c = 0; c < cs->nclusters; c++)
@@ -652,7 +671,8 @@ int CScomputeStatistics(CLUSTER_SET *cs) {
 ------------------------------------------------------*/
 int CScomputeDimensionStatistics(CLUSTER_SET *cs,
                                  int (*get_observation_func)(VECTOR *v_obs, int no, void *parm),
-                                 void *parm) {
+                                 void *parm)
+{
   int obs_no = 0, i;
   VECTOR *v_obs;
   float v, mean;
@@ -715,7 +735,8 @@ normalizeObservation(CLUSTER_SET *cs, VECTOR *v_obs)
           clusters are represented in terms of the original
           measurement spaces.
 ------------------------------------------------------*/
-int CSrenormalize(CLUSTER_SET *cs) {
+int CSrenormalize(CLUSTER_SET *cs)
+{
   int c, row;
   CLUSTER *cluster;
   float mean, sigma;
@@ -742,7 +763,8 @@ int CSrenormalize(CLUSTER_SET *cs) {
           Write a CLUSTER_SET and all it's associated parameters
           into the specified file.
 ------------------------------------------------------*/
-int CSwriteInto(FILE *fp, CLUSTER_SET *cs) {
+int CSwriteInto(FILE *fp, CLUSTER_SET *cs)
+{
   int i;
 
   fprintf(
@@ -771,7 +793,8 @@ int CSwriteInto(FILE *fp, CLUSTER_SET *cs) {
           associated parameters into the specified file.
 
 ------------------------------------------------------*/
-CLUSTER_SET *CSreadFrom(FILE *fp, CLUSTER_SET *cs) {
+CLUSTER_SET *CSreadFrom(FILE *fp, CLUSTER_SET *cs)
+{
   int i, ninputs, max_clusters, normalize, nobs, nsamples, nclusters;
   char *cp, line[200];
 
@@ -785,7 +808,8 @@ CLUSTER_SET *CSreadFrom(FILE *fp, CLUSTER_SET *cs) {
     cs->ninputs = ninputs;
     cs->max_clusters = max_clusters;
     cs->normalize = normalize;
-  } else
+  }
+  else
     cs = CSinit(max_clusters, ninputs, normalize);
 
   cs->nobs = nobs;
@@ -819,7 +843,8 @@ CLUSTER_SET *CSreadFrom(FILE *fp, CLUSTER_SET *cs) {
           Write a CLUSTER_SET and all it's associated parameters
           into the specified file.
 ------------------------------------------------------*/
-static int clusterWriteInto(FILE *fp, CLUSTER *cluster) {
+static int clusterWriteInto(FILE *fp, CLUSTER *cluster)
+{
   fprintf(fp, "\n# cluster %d (nobs, nsamples, cno, det)\n", cluster->cno);
   fprintf(fp, "%d %d %d %f\n", cluster->nobs, cluster->nsamples, cluster->cno, cluster->det);
   fprintf(fp, "# scatter matrix:\n");
@@ -842,7 +867,8 @@ static int clusterWriteInto(FILE *fp, CLUSTER *cluster) {
           associated parameters into the specified file.
 
 ------------------------------------------------------*/
-static CLUSTER *clusterReadFrom(FILE *fp, CLUSTER *cluster) {
+static CLUSTER *clusterReadFrom(FILE *fp, CLUSTER *cluster)
+{
   char *cp, line[200];
 
   cp = fgetl(line, 199, fp);
@@ -867,14 +893,16 @@ static CLUSTER *clusterReadFrom(FILE *fp, CLUSTER *cluster) {
     {
       MatrixRegularize(cluster->m_scatter, cluster->m_scatter);
       cluster->m_inverse = MatrixInverse(cluster->m_scatter, cluster->m_inverse);
-    } else
+    }
+    else
       cluster->m_inverse = MatrixSVDInverse(cluster->m_scatter, cluster->m_inverse);
     cluster->det = MatrixDeterminant(cluster->m_scatter);
     if (cluster->det <= 0.0f)
       cluster->norm = 1.0f; /* no good choice */
     else
       cluster->norm = 1.0f / sqrt(cluster->det);
-  } else {
+  }
+  else {
     cluster->norm = 1.0f / sqrt(cluster->det);
     cluster->ill_conditioned = 0;
     cluster->m_inverse = MatrixInverse(cluster->m_scatter, cluster->m_inverse);
@@ -900,7 +928,8 @@ static CLUSTER *clusterReadFrom(FILE *fp, CLUSTER *cluster) {
         Description
           Copy the data from one cluster into another.
 ------------------------------------------------------*/
-static int clusterCopy(CLUSTER *csrc, CLUSTER *cdst) {
+static int clusterCopy(CLUSTER *csrc, CLUSTER *cdst)
+{
   MatrixCopy(csrc->m_scatter, cdst->m_scatter);
   if (csrc->m_inverse) MatrixCopy(csrc->m_inverse, cdst->m_inverse);
   if (csrc->m_evectors) MatrixCopy(csrc->m_evectors, cdst->m_evectors);

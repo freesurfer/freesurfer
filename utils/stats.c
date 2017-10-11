@@ -54,7 +54,8 @@ MATRIX *StatLoadTalairachXFM(const char *subjid, const char *xfmfile);
 
 /*--------------------------------------------------------------------*/
 // Load output of asegstats2table or aparcstats2table.
-STAT_TABLE *LoadStatTable(const char *statfile) {
+STAT_TABLE *LoadStatTable(const char *statfile)
+{
   STAT_TABLE *st;
   FILE *fp;
   char tmpstr[100000];
@@ -139,7 +140,8 @@ STAT_TABLE *LoadStatTable(const char *statfile) {
   return (st);
 }
 
-STAT_TABLE *AllocStatTable(int nrows, int ncols) {
+STAT_TABLE *AllocStatTable(int nrows, int ncols)
+{
   STAT_TABLE *st;
   int r;
 
@@ -156,7 +158,8 @@ STAT_TABLE *AllocStatTable(int nrows, int ncols) {
 }
 
 // Write output equivalant of asegstats2table or aparcstats2table.
-int WriteStatTable(const char *fname, STAT_TABLE *st) {
+int WriteStatTable(const char *fname, STAT_TABLE *st)
+{
   FILE *fp;
   int err;
 
@@ -169,7 +172,8 @@ int WriteStatTable(const char *fname, STAT_TABLE *st) {
   return (err);
 }
 
-int PrintStatTable(FILE *fp, STAT_TABLE *st) {
+int PrintStatTable(FILE *fp, STAT_TABLE *st)
+{
   int r, c;
 
   fprintf(fp, "%-33s ", st->measure);
@@ -255,7 +259,8 @@ STAT_TABLE *InitStatTableFromMRI(MRI *mri_in, const char *tablefile)
 
 /*------------------------------------------------------------------------
   ------------------------------------------------------------------------*/
-fMRI_REG *StatReadRegistration(const char *fname) {
+fMRI_REG *StatReadRegistration(const char *fname)
+{
   int float2int, err;
   fMRI_REG *reg;
   char *subject;
@@ -272,7 +277,8 @@ fMRI_REG *StatReadRegistration(const char *fname) {
 
 /*------------------------------------------------------------------------
   ------------------------------------------------------------------------*/
-int StatFreeRegistration(fMRI_REG **preg) {
+int StatFreeRegistration(fMRI_REG **preg)
+{
   fMRI_REG *reg;
 
   reg = *preg;
@@ -285,7 +291,8 @@ int StatFreeRegistration(fMRI_REG **preg) {
 
 /*------------------------------------------------------------------------
   ------------------------------------------------------------------------*/
-SV *StatReadVolume(const char *prefix) {
+SV *StatReadVolume(const char *prefix)
+{
   char path[STRLEN], fname[STRLEN], line[MAX_LINE_LEN], *cp;
   STAT_VOLUME *sv;
   FILE *fp;
@@ -331,13 +338,15 @@ SV *StatReadVolume(const char *prefix) {
       printf("SelXAvg Format TER = %g, DOF =  %d\n", TER, DOF);
       sv->voltype = 2;
       fprintf(stderr, "INFO: detected volume %s as type selxavg\n", prefix);
-    } else {
+    }
+    else {
       sv->voltype = 1;
       fprintf(stderr, "INFO: detected volume %s as type selavg\n", prefix);
     }
     fclose(fp);
     which_alloc |= ALLOC_STDS;
-  } else {
+  }
+  else {
     /*fprintf(stderr,"WARNING: %s: StatReadVolume():\n",Progname);
       fprintf(stderr,"%s does not exist\n",fname);*/
     fprintf(stderr, "INFO: detected volume %s as type raw\n", prefix);
@@ -363,11 +372,13 @@ SV *StatReadVolume(const char *prefix) {
         sv->std_dofs[event_number] = (float)dof_sigma;
       }
       fclose(fp);
-    } else {
+    }
+    else {
       fprintf(stderr, "WARNING: %s: StatReadVolume():\n", Progname);
       fprintf(stderr, "%s does not exist\n", fname);
     }
-  } else {
+  }
+  else {
     if (sv->voltype == 0) DOF = 1; /* for raw type */
     for (event_number = 0; event_number < sv->nevents; event_number++) {
       sv->mean_dofs[event_number] = (float)DOF + 1;
@@ -430,7 +441,8 @@ SV *StatReadVolume(const char *prefix) {
       sprintf(fname, "%s_%3.3d.bshort", prefix, z);
       if (!fp) {
         ErrorReturn(NULL, (ERROR_NOFILE, "StatReadVolume: could not open %s", fname));
-      } else
+      }
+      else
         fprintf(stderr, "ERROR: %s does not support bshort volumes\n", Progname);
     }
 
@@ -534,7 +546,8 @@ SV *StatReadVolume(const char *prefix) {
 
 /*------------------------------------------------------------------------
   ------------------------------------------------------------------------*/
-SV *StatReadVolume2(const char *prefix) {
+SV *StatReadVolume2(const char *prefix)
+{
   char path[STRLEN], fname[STRLEN], line[MAX_LINE_LEN];
   STAT_VOLUME *sv;
   FILE *fp;
@@ -652,7 +665,8 @@ SV *StatReadVolume2(const char *prefix) {
 
 /*------------------------------------------------------------------------
   ------------------------------------------------------------------------*/
-int StatFree(SV **psv) {
+int StatFree(SV **psv)
+{
   SV *sv;
   int event, width, height, nslices;
 
@@ -694,8 +708,8 @@ StatVolumeToTalairach(SV *sv, MRI *mri, int resolution)
 #endif
 /*------------------------------------------------------------------------
   ------------------------------------------------------------------------*/
-STAT_VOLUME *StatAllocVolume(
-    SV *sv, int nevents, int width, int height, int nslices, int time_points, int which_alloc) {
+STAT_VOLUME *StatAllocVolume(SV *sv, int nevents, int width, int height, int nslices, int time_points, int which_alloc)
+{
   int event;
 
   if (!sv) {
@@ -739,7 +753,8 @@ STAT_VOLUME *StatAllocVolume(
 }
 /*------------------------------------------------------------------------
   ------------------------------------------------------------------------*/
-SV *StatAllocStructuralVolume(SV *sv, float fov, float resolution, const char *name) {
+SV *StatAllocStructuralVolume(SV *sv, float fov, float resolution, const char *name)
+{
   SV *sv_tal;
   int width, height, depth, event;
 
@@ -776,7 +791,8 @@ SV *StatAllocStructuralVolume(SV *sv, float fov, float resolution, const char *n
 }
 /*------------------------------------------------------------------------
   ------------------------------------------------------------------------*/
-int StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris) {
+int StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
+{
   int x, y, z, width, height, depth, event, t, xv, yv, zv, swidth, sheight, sdepth, vno;
   double xf, yf, zf, xr, yr, zr;
   float mean, surf_mean, std, surf_std, surf_dof, dof, xoff, yoff, zoff, sxoff, syoff, szoff, xs, ys, zs;
@@ -968,7 +984,8 @@ int StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris) {
 }
 /*------------------------------------------------------------------------
   ------------------------------------------------------------------------*/
-int StatAccumulateTalairachVolume(SV *sv_tal, SV *sv) {
+int StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
+{
   int x, y, z, width, height, depth, event, t, xv, yv, zv, swidth, sheight, sdepth;
   // double   xf, yf, zf ;
   float mean, tal_mean, std, tal_std, tal_dof, dof, xoff, yoff, zoff, sxoff, syoff, szoff;
@@ -1140,7 +1157,8 @@ int StatAccumulateTalairachVolume(SV *sv_tal, SV *sv) {
 }
 /*--------------------------------------------------------------
   ----------------------------------------------------------------*/
-int StatWriteVolume(SV *sv, const char *prefix) {
+int StatWriteVolume(SV *sv, const char *prefix)
+{
   char path[STRLEN], fname[STRLEN];
   FILE *fp;
   int event_number, width, height, nslices, t, event, nitems, x, y, z, nframes;
@@ -1317,7 +1335,8 @@ int StatWriteVolume(SV *sv, const char *prefix) {
 }
 /*------------------------------------------------------------------
   -------------------------------------------------------------------*/
-int StatWriteRegistration(fMRI_REG *reg, const char *fname) {
+int StatWriteRegistration(fMRI_REG *reg, const char *fname)
+{
   FILE *fp;
   int row, col;
 
@@ -1337,7 +1356,8 @@ int StatWriteRegistration(fMRI_REG *reg, const char *fname) {
 }
 /*-------------------------------------------------------------------
   -------------------------------------------------------------------*/
-int StatReadTransform(STAT_VOLUME *sv, const char *name) {
+int StatReadTransform(STAT_VOLUME *sv, const char *name)
+{
   char *sd, subjects[STRLEN], fname[STRLEN];
   int event;
 
@@ -1363,7 +1383,8 @@ int StatReadTransform(STAT_VOLUME *sv, const char *name) {
 }
 /*------------------------------------------------------------------------
   ------------------------------------------------------------------------*/
-int StatVolumeExists(const char *prefix) {
+int StatVolumeExists(const char *prefix)
+{
   char fname[STRLEN];
   FILE *fp;
 
@@ -1378,7 +1399,8 @@ int StatVolumeExists(const char *prefix) {
   If the transform is Vox2Vox, converts it to RAS2RAS. The file is
   assumed to exist in SUBJECTS_DIR/subjid/mri/transforms/xfmfile.
   ------------------------------------------------------------------------*/
-MATRIX *StatLoadTalairachXFM(const char *subjid, const char *xfmfile) {
+MATRIX *StatLoadTalairachXFM(const char *subjid, const char *xfmfile)
+{
   char subjects[STRLEN], fname[STRLEN];
   MATRIX *Mcor2tal;
   LTA *lta;
@@ -1407,7 +1429,8 @@ MATRIX *StatLoadTalairachXFM(const char *subjid, const char *xfmfile) {
 
   return (Mcor2tal);
 }
-FS_STATS *FSstatsRead(char *fname) {
+FS_STATS *FSstatsRead(char *fname)
+{
   FS_STATS *stats;
   char line[MAX_LINE_LEN], *cp, name[STRLEN];
   FILE *fp;
@@ -1441,7 +1464,8 @@ FS_STATS *FSstatsRead(char *fname) {
   return (stats);
 }
 
-int PrintSegStat(FILE *fp, SEGSTAT *segstat) {
+int PrintSegStat(FILE *fp, SEGSTAT *segstat)
+{
   int n, c;
   char tmpstr[1000];
 
@@ -1463,7 +1487,8 @@ int PrintSegStat(FILE *fp, SEGSTAT *segstat) {
     fprintf(fp, "# TableCol  4 FieldName Volume\n");
     fprintf(fp, "# TableCol  4 Units     mm^3\n");
     segstat->ColHeaders[3] = strcpyalloc("Volume_mm3");
-  } else {
+  }
+  else {
     fprintf(fp, "# TableCol  3 ColHeader NVertices \n");
     fprintf(fp, "# TableCol  3 FieldName Number of Vertices\n");
     fprintf(fp, "# TableCol  3 Units     unitless\n");

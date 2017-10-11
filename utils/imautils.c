@@ -47,7 +47,8 @@ static int imaGetKeyEntryNo(const char *key);
   the caller is responsible for dealloc. If the architecture is
   Intel0-based, the byte order is reversed based on nybtes.
   --------------------------------------------------------------------*/
-void *imaLoadVal(FILE *imafp, int offset, int nbytes, int nitems, void *pval) {
+void *imaLoadVal(FILE *imafp, int offset, int nbytes, int nitems, void *pval)
+{
   int r;
 
   /* Go to the designated offset relative to the start of the file*/
@@ -91,7 +92,8 @@ void *imaLoadVal(FILE *imafp, int offset, int nbytes, int nitems, void *pval) {
   string, and, for strings, the number of characters in the string.
   The order is arbitrary.
   --------------------------------------------------------------------*/
-void MkImaDictionary(void) {
+void MkImaDictionary(void)
+{
   // extern int nImaDictionary, ImaDictionaryGood;
   int n = 0;
 
@@ -168,7 +170,8 @@ void MkImaDictionary(void) {
 }
 /*--------------------------------------------------------------------
   --------------------------------------------------------------------*/
-static int imaSetDictEntry(int nthEntry, char *key, int offset, char *typestring, int nitems) {
+static int imaSetDictEntry(int nthEntry, char *key, int offset, char *typestring, int nitems)
+{
   int type;
 
   if (nthEntry >= NMAX_IMA_DICTIONARY) {
@@ -199,7 +202,8 @@ static int imaSetDictEntry(int nthEntry, char *key, int offset, char *typestring
   This is just a list of the items in the dictionary, not the
   values from a file.
   ---------------------------------------------------------------*/
-void DumpImaDictionary(FILE *fp) {
+void DumpImaDictionary(FILE *fp)
+{
   // extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
   // extern int nImaDictionary, ImaDictionaryGood;
   int n;
@@ -218,7 +222,8 @@ void DumpImaDictionary(FILE *fp) {
   DumpImaDictionaryVal() - dumps the dictionary to a file stream,
   including the corresponding values from a given ima file.
   ---------------------------------------------------------------*/
-int DumpImaDictionaryVal(FILE *fp, const char *imafile) {
+int DumpImaDictionaryVal(FILE *fp, const char *imafile)
+{
   // extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
   // extern int nImaDictionary, ImaDictionaryGood;
   char *key, *typestring;
@@ -284,7 +289,8 @@ int DumpImaDictionaryVal(FILE *fp, const char *imafile) {
   value and the data type. The value is derefferenced based on the
   data type and printed. No spaces or newlines are printed.
   --------------------------------------------------------------------*/
-int imaPrintVal(FILE *fp, int type, void *pval) {
+int imaPrintVal(FILE *fp, int type, void *pval)
+{
   switch (type) {
     case IMA_TYPE_SHORT:
       fprintf(fp, "%d", *((short *)pval));
@@ -313,7 +319,8 @@ int imaPrintVal(FILE *fp, int type, void *pval) {
   imaLoadValFromKey() - loads a value from a file stream given the key
   in the IMA dictionary.
   --------------------------------------------------------------------*/
-void *imaLoadValFromKey(FILE *imafp, const char *key, void *pval) {
+void *imaLoadValFromKey(FILE *imafp, const char *key, void *pval)
+{
   // extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
   // extern int ImaDictionaryGood;
   int n, offset, typesize, nitems, nbytes;
@@ -349,7 +356,8 @@ void *imaLoadValFromKey(FILE *imafp, const char *key, void *pval) {
   imaTypeFromKey() - returns the interger code of the data type
   (IMA_TYPE_XXX) of an entry in the IMA dictionary given the key.
   --------------------------------------------------------------------*/
-int imaTypeFromKey(const char *key) {
+int imaTypeFromKey(const char *key)
+{
   // extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
   // extern int  ImaDictionaryGood;
   int n;
@@ -364,7 +372,8 @@ int imaTypeFromKey(const char *key) {
 /*--------------------------------------------------------------------
   imaGetKeyEntryNo() - return the entry number of the key.
   --------------------------------------------------------------------*/
-static int imaGetKeyEntryNo(const char *key) {
+static int imaGetKeyEntryNo(const char *key)
+{
   // extern IMA_DICTIONARY_ENTRY ImaDictionary[NMAX_IMA_DICTIONARY];
   // extern int nImaDictionary, ImaDictionaryGood;
   int n;
@@ -381,7 +390,8 @@ static int imaGetKeyEntryNo(const char *key) {
   imaTypeFromString() - returns the interger type code (IMA_TYPE_XXX)
   given the string name of the type.
   --------------------------------------------------------------------*/
-int imaTypeFromString(const char *typestring) {
+int imaTypeFromString(const char *typestring)
+{
   int i;
   for (i = 0; i < 6; i++) {
     // printf("%d %s\n",i,imaTypeString[i]);
@@ -398,7 +408,8 @@ int imaTypeFromString(const char *typestring) {
   distance between slices is computed from the slice thickness and
   the distance factor.
   --------------------------------------------------------------------*/
-IMAFILEINFO *imaLoadFileInfo(const char *imafile) {
+IMAFILEINFO *imaLoadFileInfo(const char *imafile)
+{
   IMAFILEINFO *ifi;
   FILE *fp;
   int itmp, len, err;
@@ -551,7 +562,8 @@ IMAFILEINFO *imaLoadFileInfo(const char *imafile) {
   if (!ifi->IsMosaic) {
     ifi->NFilesPerFrame = ifi->VolDim[2];
     ifi->NFrames = 1;
-  } else {
+  }
+  else {
     nVolVoxs = ifi->VolDim[0] * ifi->VolDim[1] * ifi->VolDim[2];
     nMosVoxs = ifi->NImageRows * ifi->NImageCols;
     ifi->NFilesPerFrame = (int)(ceil((float)nVolVoxs / nMosVoxs));
@@ -572,7 +584,8 @@ IMAFILEINFO *imaLoadFileInfo(const char *imafile) {
   return (ifi);
 }
 /*--------------------------------------------------------------------*/
-short *imaReadPixelData(IMAFILEINFO *ifi, short *PixelData) {
+short *imaReadPixelData(IMAFILEINFO *ifi, short *PixelData)
+{
   FILE *fp;
   int npixels, alloced = 0;
   int nread, r;
@@ -622,7 +635,8 @@ short *imaReadPixelData(IMAFILEINFO *ifi, short *PixelData) {
   return (PixelData);
 }
 /*--------------------------------------------------------------------*/
-int imaDumpFileInfo(FILE *fp, IMAFILEINFO *ifi) {
+int imaDumpFileInfo(FILE *fp, IMAFILEINFO *ifi)
+{
   fprintf(fp, "FileName          %s\n", ifi->FileName);
   fprintf(fp, "PatientName       %s\n", ifi->PatientName);
   fprintf(fp, "PatientDOB        %s\n", ifi->PatientDOB);
@@ -667,7 +681,8 @@ int imaDumpFileInfo(FILE *fp, IMAFILEINFO *ifi) {
 /*--------------------------------------------------------------------
   imaParseName() - studyno-seriesno-imageno.ima
   --------------------------------------------------------------------*/
-int imaParseName(const char *imafile, int *StudyNo, int *SeriesNo, int *ImageNo, char *Separator) {
+int imaParseName(const char *imafile, int *StudyNo, int *SeriesNo, int *ImageNo, char *Separator)
+{
   char *imabase;
   int baselen, n, m;
   char tmpstr[500];
@@ -750,7 +765,8 @@ int imaParseName(const char *imafile, int *StudyNo, int *SeriesNo, int *ImageNo,
   imaHasIMAExtension() - returns 1 if the given file name ends in a
   .ima (or .IMA) extension.
   --------------------------------------------------------------------*/
-int imaHasIMAExtension(const char *filename) {
+int imaHasIMAExtension(const char *filename)
+{
   char *ext;
 
   ext = fio_extension(filename);
@@ -765,7 +781,8 @@ int imaHasIMAExtension(const char *filename) {
   file. Returns 0 if it is not a Siemens IMA file or if the file does
   not exist.
   --------------------------------------------------------------------*/
-int imaIsSiemensIMA(const char *imafile) {
+int imaIsSiemensIMA(const char *imafile)
+{
   FILE *fp;
   char *Manufacturer;
 
@@ -793,7 +810,8 @@ int imaIsSiemensIMA(const char *imafile) {
   file in the series, and up to determine the last. The number
   in the series is then last-first+1.
   --------------------------------------------------------------------*/
-int imaCountFilesInSeries(const char *imafile, int *FirstImageNo) {
+int imaCountFilesInSeries(const char *imafile, int *FirstImageNo)
+{
   int StudyNo, SeriesNo, ImageNo, LastImageNo;
   char *imadir = NULL, *imaext;
   int err, n;

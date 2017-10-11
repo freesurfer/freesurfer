@@ -39,7 +39,8 @@
 #include "utils.h"
 #include "version.h"
 
-MRI *MRIcomputeVolumeFractionFromSurface(MRI_SURFACE *mris, double acc, MRI *mri_src, MRI *mri_fractions) {
+MRI *MRIcomputeVolumeFractionFromSurface(MRI_SURFACE *mris, double acc, MRI *mri_src, MRI *mri_fractions)
+{
   const int width = mri_src->width;
   const int height = mri_src->height;
   const int depth = mri_src->depth;
@@ -91,14 +92,16 @@ MRI *MRIcomputeVolumeFractionFromSurface(MRI_SURFACE *mris, double acc, MRI *mri
           /* compute the volume fraction of this voxel */
           frac = MRIcomputeVoxelFractions(V, v, acc, 1, mris);
           MRIsetVoxVal(mri_fractions, x, y, z, 0, frac.frac);
-        } else if (MRIgetVoxVal(mri_interior, x, y, z, 0) > 0.0)
+        }
+        else if (MRIgetVoxVal(mri_interior, x, y, z, 0) > 0.0)
           MRIsetVoxVal(mri_fractions, x, y, z, 0, 1.0);
       }
     }
   }
   return mri_fractions;
 }
-volFraction MRIcomputeVoxelFractions(octTreeVoxel V, VERTEX *v, double acc, int current_depth, MRI_SURFACE *mris) {
+volFraction MRIcomputeVoxelFractions(octTreeVoxel V, VERTEX *v, double acc, int current_depth, MRI_SURFACE *mris)
+{
   /* inputs:
      V: voxel element, which includes center, corners and the vsize
      v: closest vertex to this voxel
@@ -137,7 +140,8 @@ volFraction MRIcomputeVoxelFractions(octTreeVoxel V, VERTEX *v, double acc, int 
                  meanNorm[2] * (V.corn[j][2] - meanVert[2]);
     if (dotProduct < 0.0) {
       allout = 0;
-    } else {
+    }
+    else {
       allin = 0;
     }
   }
@@ -152,17 +156,20 @@ volFraction MRIcomputeVoxelFractions(octTreeVoxel V, VERTEX *v, double acc, int 
   {
     frac.frac = relativeVolume;
     frac.err = 0;
-  } else if (allout == 1) /* all corners are out return 0 */
+  }
+  else if (allout == 1) /* all corners are out return 0 */
   {
     frac.frac = 0;
     frac.err = 0;
-  } else /* some in some out */
+  }
+  else /* some in some out */
   {
     if (relativeVolume < acc) /* the error we are making is small enough */
     {
       frac.frac = relativeVolume / 2;
       frac.err = relativeVolume / 2;
-    } else /* the error we are making is too big we will redivide and recurse */
+    }
+    else /* the error we are making is too big we will redivide and recurse */
     {
       for (k = 0; k < 8; k++) {
         volFraction frac_new = MRIcomputeVoxelFractions(octTreeVoxelDivide(k + 1, V), v, acc, current_depth + 1, mris);
@@ -173,7 +180,8 @@ volFraction MRIcomputeVoxelFractions(octTreeVoxel V, VERTEX *v, double acc, int 
   }
   return frac;
 }
-octTreeVoxel octTreeVoxelCreate(double *vox, double *vsize) {
+octTreeVoxel octTreeVoxelCreate(double *vox, double *vsize)
+{
   octTreeVoxel v;
   int k;
   /*
@@ -223,7 +231,8 @@ octTreeVoxel octTreeVoxelCreate(double *vox, double *vsize) {
 
   return v;
 }
-octTreeVoxel octTreeVoxelDivide(int type, octTreeVoxel v) {
+octTreeVoxel octTreeVoxelDivide(int type, octTreeVoxel v)
+{
   double vsize_new[3];
   double vox_new[3] = {0, 0, 0};
   vsize_new[0] = v.vsize[0] / 2.0;

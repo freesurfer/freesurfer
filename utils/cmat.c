@@ -33,7 +33,8 @@
 #include "cmat.h"
 #include "error.h"
 
-CMAT *CMATread(const char *fname) {
+CMAT *CMATread(const char *fname)
+{
   CMAT *cmat;
   int nlabels, i, j, ind1, ind2;
   FILE *fp;
@@ -86,7 +87,8 @@ CMAT *CMATread(const char *fname) {
   return (cmat);
 }
 
-int CMATwrite(CMAT *cmat, const char *fname) {
+int CMATwrite(CMAT *cmat, const char *fname)
+{
   FILE *fp;
   int i, j;
 
@@ -110,7 +112,8 @@ int CMATwrite(CMAT *cmat, const char *fname) {
   return (NO_ERROR);
 }
 
-CMAT *CMATalloc(int nlabels, int *labels) {
+CMAT *CMATalloc(int nlabels, int *labels)
+{
   CMAT *cmat;
   int i;
 
@@ -138,7 +141,8 @@ CMAT *CMATalloc(int nlabels, int *labels) {
   return (cmat);
 }
 
-int CMATfree(CMAT **pcmat) {
+int CMATfree(CMAT **pcmat)
+{
   CMAT *cmat;
   int i, j;
 
@@ -159,7 +163,8 @@ int CMATfree(CMAT **pcmat) {
   free(cmat);
   return (NO_ERROR);
 }
-CMAT *CMATtransform(CMAT *csrc, TRANSFORM *xform, MRI *mri_src, MRI *mri_dst, CMAT *cdst) {
+CMAT *CMATtransform(CMAT *csrc, TRANSFORM *xform, MRI *mri_src, MRI *mri_dst, CMAT *cdst)
+{
   int i, j;
 
   cdst = CMATalloc(csrc->nlabels, csrc->labels);
@@ -175,7 +180,8 @@ CMAT *CMATtransform(CMAT *csrc, TRANSFORM *xform, MRI *mri_src, MRI *mri_dst, CM
   return (cdst);
 }
 
-int CMATtoVoxel(CMAT *cmat, MRI *mri) {
+int CMATtoVoxel(CMAT *cmat, MRI *mri)
+{
   int i, j;
 
   cmat->coords = LABEL_COORDS_VOXEL;
@@ -190,7 +196,8 @@ int CMATtoVoxel(CMAT *cmat, MRI *mri) {
 
   return (NO_ERROR);
 }
-int CMATtoTKreg(CMAT *cmat, MRI *mri) {
+int CMATtoTKreg(CMAT *cmat, MRI *mri)
+{
   int i, j;
 
   cmat->coords = LABEL_COORDS_TKREG_RAS;
@@ -205,7 +212,8 @@ int CMATtoTKreg(CMAT *cmat, MRI *mri) {
 
   return (NO_ERROR);
 }
-int CMATtoScannerRAS(CMAT *cmat, MRI *mri) {
+int CMATtoScannerRAS(CMAT *cmat, MRI *mri)
+{
   int i, j;
 
   cmat->coords = LABEL_COORDS_SCANNER_RAS;

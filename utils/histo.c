@@ -47,7 +47,8 @@
 
   Description
   ------------------------------------------------------*/
-int HISTOfree(HISTOGRAM **phisto) {
+int HISTOfree(HISTOGRAM **phisto)
+{
   HISTOGRAM *histo;
 
   histo = *phisto;
@@ -56,15 +57,18 @@ int HISTOfree(HISTOGRAM **phisto) {
     if (histo->bins) {
       free(histo->bins);
       histo->bins = NULL;
-    } else
+    }
+    else
       DiagBreak();
     if (histo->counts) {
       free(histo->counts);
       histo->counts = NULL;
-    } else
+    }
+    else
       DiagBreak();
     free(histo);
-  } else
+  }
+  else
     DiagBreak();
 
   return (NO_ERROR);
@@ -77,7 +81,8 @@ int HISTOfree(HISTOGRAM **phisto) {
 
   Description
   ------------------------------------------------------*/
-int HISTOdump(HISTOGRAM *histo, FILE *fp) {
+int HISTOdump(HISTOGRAM *histo, FILE *fp)
+{
   int bin_no;
 
   if (!histo)
@@ -91,7 +96,8 @@ int HISTOdump(HISTOGRAM *histo, FILE *fp) {
   return (NO_ERROR);
 }
 
-HISTOGRAM *HISTOrealloc(HISTOGRAM *histo, int nbins) {
+HISTOGRAM *HISTOrealloc(HISTOGRAM *histo, int nbins)
+{
   if (histo == NULL) return (HISTOalloc(nbins));
 
   if (histo->bins) free(histo->bins);
@@ -112,7 +118,8 @@ HISTOGRAM *HISTOrealloc(HISTOGRAM *histo, int nbins) {
 
   Description
   ------------------------------------------------------*/
-HISTOGRAM *HISTOalloc(int nbins) {
+HISTOGRAM *HISTOalloc(int nbins)
+{
   HISTOGRAM *histo;
 
   histo = (HISTOGRAM *)calloc(1, sizeof(HISTOGRAM));
@@ -134,7 +141,8 @@ HISTOGRAM *HISTOalloc(int nbins) {
 
   Description
   ------------------------------------------------------*/
-HISTOGRAM *HISTOcrunch(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) {
+HISTOGRAM *HISTOcrunch(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
+{
   int b, deleted;
 
   if (!histo_dst) histo_dst = HISTOalloc(histo_src->nbins);
@@ -161,7 +169,8 @@ HISTOGRAM *HISTOcrunch(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) {
 
   Description
   ------------------------------------------------------*/
-HISTOGRAM *HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) {
+HISTOGRAM *HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
+{
   if (!histo_dst) histo_dst = HISTOalloc(histo_src->nbins);
   histo_dst->nbins = histo_src->nbins;
   histo_dst->bin_size = histo_src->bin_size;
@@ -183,7 +192,8 @@ HISTOGRAM *HISTOcopy(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) {
   Treat histo_src as a function mapping input intensities
   to output intensities, and numerically invert it.
   ------------------------------------------------------*/
-HISTOGRAM *HISTOinvert(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int max_dst) {
+HISTOGRAM *HISTOinvert(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int max_dst)
+{
   int b, bdst, val, max_count;
 
   histo_dst = HISTOclear(histo_src, histo_dst);
@@ -227,7 +237,8 @@ HISTOGRAM *HISTOinvert(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int max_dst) 
 
   Description
   ------------------------------------------------------*/
-HISTOGRAM *HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int max_out) {
+HISTOGRAM *HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int max_out)
+{
   int max_count, b;
   float scale;
 
@@ -251,7 +262,8 @@ HISTOGRAM *HISTOnormalize(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int max_ou
 
   Description
   ------------------------------------------------------*/
-HISTOGRAM *HISTOclear(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) {
+HISTOGRAM *HISTOclear(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
+{
   if (!histo_dst) histo_dst = HISTOalloc(histo_src->nbins);
 
   memset(histo_dst->counts, 0, histo_dst->nbins * sizeof(*histo_dst->counts));
@@ -267,7 +279,8 @@ HISTOGRAM *HISTOclear(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) {
 
   Description
   ------------------------------------------------------*/
-HISTOGRAM *HISTOclearCounts(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) {
+HISTOGRAM *HISTOclearCounts(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
+{
   if (!histo_dst) {
     histo_dst = HISTOalloc(histo_src->nbins);
     memmove(histo_dst->bins, histo_src->bins, sizeof(*histo_src->bins));
@@ -289,7 +302,8 @@ HISTOGRAM *HISTOclearCounts(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) {
   mappings into a composite transformation (first histo1 then
   histo2).
   ------------------------------------------------------*/
-HISTOGRAM *HISTOcompose(HISTOGRAM *histo1, HISTOGRAM *histo2, HISTOGRAM *histo_dst) {
+HISTOGRAM *HISTOcompose(HISTOGRAM *histo1, HISTOGRAM *histo2, HISTOGRAM *histo_dst)
+{
   int b, val;
 
   if (!histo_dst) histo_dst = HISTOalloc(histo1->nbins);
@@ -310,7 +324,8 @@ HISTOGRAM *HISTOcompose(HISTOGRAM *histo1, HISTOGRAM *histo2, HISTOGRAM *histo_d
 
   Description
   ------------------------------------------------------*/
-HISTOGRAM *HISTOfillZeros(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) {
+HISTOGRAM *HISTOfillZeros(HISTOGRAM *histo_src, HISTOGRAM *histo_dst)
+{
   int b, val;
 
   histo_dst = HISTOcopy(histo_src, histo_dst);
@@ -342,7 +357,8 @@ HISTOGRAM *HISTOfillZeros(HISTOGRAM *histo_src, HISTOGRAM *histo_dst) {
   ------------------------------------------------------*/
 #define MAX_STRETCH 2
 
-HISTOGRAM *HISTOcomposeInvert(HISTOGRAM *histo_fwd, HISTOGRAM *histo_inv, HISTOGRAM *histo_dst) {
+HISTOGRAM *HISTOcomposeInvert(HISTOGRAM *histo_fwd, HISTOGRAM *histo_inv, HISTOGRAM *histo_dst)
+{
   int b, binv, val, max_fwd, max_inv, stretch;
   float ffwd, next = 0.0f, prev;
 
@@ -387,7 +403,8 @@ HISTOGRAM *HISTOcomposeInvert(HISTOGRAM *histo_fwd, HISTOGRAM *histo_inv, HISTOG
 
   Description
   ------------------------------------------------------*/
-HISTOGRAM *HISTOadd(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) {
+HISTOGRAM *HISTOadd(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
+{
   int b;
   float *pc1, *pc2, *pcdst;
 
@@ -398,7 +415,8 @@ HISTOGRAM *HISTOadd(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) {
     histo_dst->max = h1->max;
     histo_dst->bin_size = h1->bin_size;
     if (h2 == NULL) h2 = histo_dst;
-  } else
+  }
+  else
     histo_dst->nbins = h1->nbins;
 
   pc1 = &h1->counts[0];
@@ -416,7 +434,8 @@ HISTOGRAM *HISTOadd(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) {
 
   Description
   ------------------------------------------------------*/
-HISTOGRAM *HISTOmul(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) {
+HISTOGRAM *HISTOmul(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
+{
   int b;
   float *pc1, *pc2, *pcdst;
 
@@ -440,7 +459,8 @@ HISTOGRAM *HISTOmul(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) {
 
   Description
   ------------------------------------------------------*/
-HISTOGRAM *HISTOsubtract(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) {
+HISTOGRAM *HISTOsubtract(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst)
+{
   int b;
   float *pc1, *pc2, *pcdst;
 
@@ -464,7 +484,8 @@ HISTOGRAM *HISTOsubtract(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) {
 
   Description
   ------------------------------------------------------*/
-HISTOGRAM *HISTOclearBins(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int min_val, int max_val) {
+HISTOGRAM *HISTOclearBins(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int min_val, int max_val)
+{
   int b;
 
   if (!histo_src) return (NULL);
@@ -488,7 +509,8 @@ HISTOGRAM *HISTOclearBins(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, int min_va
   Description
   ------------------------------------------------------*/
 #define MAX_LEN 2000
-HISTOGRAM *HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, float sigma) {
+HISTOGRAM *HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, float sigma)
+{
   float norm, two_sigma, fx, k, kernel[MAX_LEN], total;
   int x, half, len, b, kx, b1, nbins;
 
@@ -496,7 +518,8 @@ HISTOGRAM *HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, float sigma) 
   if (!histo_dst) {
     histo_dst = HISTOcopy(histo_src, NULL);
     HISTOclearCounts(histo_dst, histo_dst);
-  } else {
+  }
+  else {
     if (histo_dst->nbins < histo_src->nbins) {
       // fprintf(stderr, "realloc: histo_dst->nbins = %d, "
       //"histo_src->nbins = %d\n",
@@ -553,7 +576,8 @@ HISTOGRAM *HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst, float sigma) 
 
   Description
   ------------------------------------------------------*/
-int HISTOfindLastPeakRelative(HISTOGRAM *h, int wsize, float min_pct) {
+int HISTOfindLastPeakRelative(HISTOGRAM *h, int wsize, float min_pct)
+{
   int peak, b, bw, nbins, whalf, other_val;
   float max_count, min_count, center_val;
 
@@ -591,7 +615,8 @@ int HISTOfindLastPeakRelative(HISTOGRAM *h, int wsize, float min_pct) {
 
   Description
   ------------------------------------------------------*/
-int HISTOfindFirstPeakRelative(HISTOGRAM *h, int wsize, float min_pct) {
+int HISTOfindFirstPeakRelative(HISTOGRAM *h, int wsize, float min_pct)
+{
   int peak, b, bw, nbins, whalf, other_val;
   float max_count, min_count, center_val;
 
@@ -629,7 +654,8 @@ int HISTOfindFirstPeakRelative(HISTOGRAM *h, int wsize, float min_pct) {
 
   Description
   ------------------------------------------------------*/
-int HISTOfindLastPeak(HISTOGRAM *h, int wsize, float min_pct) {
+int HISTOfindLastPeak(HISTOGRAM *h, int wsize, float min_pct)
+{
   int peak, b, bw, nbins, whalf;
   float min_count, max_count, center_val, other_val;
 
@@ -670,7 +696,8 @@ int HISTOfindLastPeak(HISTOGRAM *h, int wsize, float min_pct) {
 
   Description
   ------------------------------------------------------*/
-int HISTOfindFirstPeak(HISTOGRAM *h, int wsize, float min_pct) {
+int HISTOfindFirstPeak(HISTOGRAM *h, int wsize, float min_pct)
+{
   int peak, b, bw, nbins, whalf;
   float center_val, max_count, other_val, min_count;
 
@@ -715,7 +742,8 @@ int HISTOfindFirstPeak(HISTOGRAM *h, int wsize, float min_pct) {
 
   Description
   ------------------------------------------------------*/
-int HISTOfindValley(HISTOGRAM *h, int wsize, int I0, int I1) {
+int HISTOfindValley(HISTOGRAM *h, int wsize, int I0, int I1)
+{
   int valley, b, bw, nbins, whalf, center_val, max_count, other_val, b0, b1;
 
   // find max, and find bins corresponding to I0 and I1
@@ -765,7 +793,8 @@ int HISTOfindValley(HISTOGRAM *h, int wsize, int I0, int I1) {
 */
 #define MIN_STD 1.9
 
-int HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int I0, int I1) {
+int HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int I0, int I1)
+{
   int peak, b, bw, nbins, whalf, b0, b1;
   float mean_count, min_count, max_count, other_val, center_val, total;
 
@@ -820,7 +849,8 @@ int HISTOfindLastPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int I0, in
 
   Description
   ------------------------------------------------------*/
-int HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int b0, int b1) {
+int HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int b0, int b1)
+{
   int peak, b, bw, nbins, whalf;
   float center_val, max_count, other_val, min_count, total;
 
@@ -862,7 +892,8 @@ int HISTOfindFirstPeakInRegion(HISTOGRAM *h, int wsize, float min_pct, int b0, i
 
   Description
   ------------------------------------------------------*/
-int HISTOfindHighestPeakInRegion(HISTOGRAM *h, int b0, int b1) {
+int HISTOfindHighestPeakInRegion(HISTOGRAM *h, int b0, int b1)
+{
   // int  nbins;
   int b, max_count_bin;
   float val, max_count;
@@ -895,7 +926,8 @@ int HISTOfindHighestPeakInRegion(HISTOGRAM *h, int b0, int b1) {
 
   Description
   ------------------------------------------------------*/
-int HISTOplot(HISTOGRAM *histo, char *fname) {
+int HISTOplot(HISTOGRAM *histo, char *fname)
+{
   FILE *fp;
   int bin_no, bmin, bmax;
 
@@ -919,7 +951,8 @@ int HISTOplot(HISTOGRAM *histo, char *fname) {
    the standard deviation of the peak around it's mean must be at least
    two or above.
 */
-int HISTOcountPeaksInRegion(HISTOGRAM *h, int wsize, float min_pct, int *peaks, int max_peaks, int b0, int b1) {
+int HISTOcountPeaksInRegion(HISTOGRAM *h, int wsize, float min_pct, int *peaks, int max_peaks, int b0, int b1)
+{
   int npeaks = 0, peak_index;
 
   do {
@@ -931,7 +964,8 @@ int HISTOcountPeaksInRegion(HISTOGRAM *h, int wsize, float min_pct, int *peaks, 
   return (npeaks);
 }
 
-int HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax) {
+int HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax)
+{
   int bin_no;
   float bin_size;
 
@@ -940,7 +974,8 @@ int HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax) {
     bmin = histo->min;
     bmax = histo->max;
     bin_size = histo->bin_size;
-  } else
+  }
+  else
     bin_size = (bmax - bmin) / ((float)histo->nbins - 1);
 
   bin_no = nint((val - bmin) / bin_size);
@@ -956,7 +991,8 @@ int HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax) {
   return (bin_no);
 }
 
-int HISTOaddFractionalSample(HISTOGRAM *histo, float val, float bmin, float bmax, float frac) {
+int HISTOaddFractionalSample(HISTOGRAM *histo, float val, float bmin, float bmax, float frac)
+{
   int bin_no;
   float bin_size;
 
@@ -965,7 +1001,8 @@ int HISTOaddFractionalSample(HISTOGRAM *histo, float val, float bmin, float bmax
     bmin = histo->min;
     bmax = histo->max;
     bin_size = histo->bin_size;
-  } else
+  }
+  else
     bin_size = (bmax - bmin) / ((float)histo->nbins - 1);
 
   bin_no = nint((val - bmin) / bin_size);
@@ -977,7 +1014,8 @@ int HISTOaddFractionalSample(HISTOGRAM *histo, float val, float bmin, float bmax
   return (bin_no);
 }
 
-int HISTOfindPreviousValley(HISTOGRAM *h, int b0) {
+int HISTOfindPreviousValley(HISTOGRAM *h, int b0)
+{
   int b;
   float prev_val, val;
 
@@ -992,7 +1030,8 @@ int HISTOfindPreviousValley(HISTOGRAM *h, int b0) {
   return (-1);
 }
 
-int HISTOfindNextValley(HISTOGRAM *h, int b0) {
+int HISTOfindNextValley(HISTOGRAM *h, int b0)
+{
   int b;
   float prev_val, val;
 
@@ -1007,7 +1046,8 @@ int HISTOfindNextValley(HISTOGRAM *h, int b0) {
   return (-1);
 }
 
-int HISTOfindNextPeak(HISTOGRAM *h, int b0, int whalf) {
+int HISTOfindNextPeak(HISTOGRAM *h, int b0, int whalf)
+{
   int b, bk, peak = 0;
   float val;
 
@@ -1025,7 +1065,8 @@ int HISTOfindNextPeak(HISTOGRAM *h, int b0, int whalf) {
   return (peak ? b : -1);
 }
 
-int HISTOfindPreviousPeak(HISTOGRAM *h, int b0, int whalf) {
+int HISTOfindPreviousPeak(HISTOGRAM *h, int b0, int whalf)
+{
   int b, bk, peak = 0;
   float val;
 
@@ -1043,7 +1084,8 @@ int HISTOfindPreviousPeak(HISTOGRAM *h, int b0, int whalf) {
   return (peak ? b : -1);
 }
 
-int HISTOfindStartOfPeak(HISTOGRAM *h, int b0, float pct_peak) {
+int HISTOfindStartOfPeak(HISTOGRAM *h, int b0, float pct_peak)
+{
   int b, b1;
   float val, thresh;
 
@@ -1059,7 +1101,8 @@ int HISTOfindStartOfPeak(HISTOGRAM *h, int b0, float pct_peak) {
   return (b);
 }
 
-int HISTOfindEndOfPeak(HISTOGRAM *h, int b0, float pct_peak) {
+int HISTOfindEndOfPeak(HISTOGRAM *h, int b0, float pct_peak)
+{
   int b, b1;
   float val, thresh;
 
@@ -1076,7 +1119,8 @@ int HISTOfindEndOfPeak(HISTOGRAM *h, int b0, float pct_peak) {
   return (b);
 }
 
-int HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct) {
+int HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct)
+{
   int b, whalf, bw, peak, nbins = histo->nbins;
   float next_count, prev_count, other_val, center_val;
   float max_count, min_count;
@@ -1121,7 +1165,8 @@ int HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct) {
         return (b);
       }
     }
-  } else /* search backwards */
+  }
+  else /* search backwards */
   {
     for (b = b0; b >= 0; b--) {
       if (b >= histo->nbins) continue;
@@ -1151,7 +1196,8 @@ int HISTOfindCurrentPeak(HISTOGRAM *histo, int b0, int wsize, float min_pct) {
   return (-1);
 }
 
-int HISTOfillHoles(HISTO *h) {
+int HISTOfillHoles(HISTO *h)
+{
   int b, min_b, max_b, *filled, niter;
   double max_change, new_val, change;
 
@@ -1191,7 +1237,8 @@ int HISTOfillHoles(HISTO *h) {
   return (NO_ERROR);
 }
 
-float HISTOtotalInRegion(HISTO *h, int b0, int b1) {
+float HISTOtotalInRegion(HISTO *h, int b0, int b1)
+{
   int b;
   float total = 0.0;
 
@@ -1204,7 +1251,8 @@ float HISTOtotalInRegion(HISTO *h, int b0, int b1) {
 
 float HISTOtotal(HISTO *h) { return HISTOtotalInRegion(h, 0, h->nbins - 1); }
 
-int HISTOclearZeroBin(HISTOGRAM *h) {
+int HISTOclearZeroBin(HISTOGRAM *h)
+{
   int b;
 
   if (h->bins[0] > h->bin_size)  // zero bin not in range
@@ -1217,7 +1265,8 @@ int HISTOclearZeroBin(HISTOGRAM *h) {
   return (NO_ERROR);
 }
 
-int HISTOfindBinWithCount(HISTOGRAM *h, float val) {
+int HISTOfindBinWithCount(HISTOGRAM *h, float val)
+{
   int b, min_b;
   double min_dist, dist;
 
@@ -1234,7 +1283,8 @@ int HISTOfindBinWithCount(HISTOGRAM *h, float val) {
   return (min_b);
 }
 
-int HISTOfindBin(HISTOGRAM *h, float val) {
+int HISTOfindBin(HISTOGRAM *h, float val)
+{
   int b;
 
   if (h->bin_size == 1) return ((int)val - h->bins[0]);
@@ -1244,7 +1294,8 @@ int HISTOfindBin(HISTOGRAM *h, float val) {
 
   return (0);
 }
-double HISTOgetCount(HISTOGRAM *h, float bin_val) {
+double HISTOgetCount(HISTOGRAM *h, float bin_val)
+{
   int b;
 
   b = HISTOfindBin(h, bin_val);
@@ -1252,7 +1303,8 @@ double HISTOgetCount(HISTOGRAM *h, float bin_val) {
   return (h->counts[b]);
 }
 
-HISTO *HISTOclearBG(HISTOGRAM *hsrc, HISTOGRAM *hdst, int *pbg_end) {
+HISTO *HISTOclearBG(HISTOGRAM *hsrc, HISTOGRAM *hdst, int *pbg_end)
+{
   int b0, nv;
   float min_count;
 
@@ -1271,7 +1323,8 @@ HISTO *HISTOclearBG(HISTOGRAM *hsrc, HISTOGRAM *hdst, int *pbg_end) {
   return (hdst);
 }
 
-double HISTOcorrelate(HISTOGRAM *h1, HISTOGRAM *h2) {
+double HISTOcorrelate(HISTOGRAM *h1, HISTOGRAM *h2)
+{
   int b1, b2, h2_done[256];
   double correlation, c1, c2, norm1, norm2;
 
@@ -1298,7 +1351,8 @@ double HISTOcorrelate(HISTOGRAM *h1, HISTOGRAM *h2) {
   return (correlation);
 }
 
-static double histoComputeLinearFitCorrelation(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b) {
+static double histoComputeLinearFitCorrelation(HISTOGRAM *h1, HISTOGRAM *h2, double a, double b)
+{
   // this one uses correlation instead of SSE, and should be more robust!
   int b1, b2;
   double correlation, c1, c2;
@@ -1331,7 +1385,8 @@ static double histoComputeLinearFitCorrelation(HISTOGRAM *h1, HISTOGRAM *h2, dou
 
 #define NSTEPS 1000
 double HISTOfindLinearFit(
-    HISTOGRAM *h1, HISTOGRAM *h2, double amin, double amax, double bmin, double bmax, float *pa, float *pb) {
+    HISTOGRAM *h1, HISTOGRAM *h2, double amin, double amax, double bmin, double bmax, float *pa, float *pb)
+{
   double a, b, correlation, best_correlation, best_a, best_b, astep, bstep;
 
   best_correlation = histoComputeLinearFitCorrelation(h1, h2, 1.0, 0.0);
@@ -1357,7 +1412,8 @@ double HISTOfindLinearFit(
   return (best_correlation);
 }
 
-HISTO *HISTOlinearScale(HISTOGRAM *hsrc, HISTOGRAM *hdst, float scale, float offset) {
+HISTO *HISTOlinearScale(HISTOGRAM *hsrc, HISTOGRAM *hdst, float scale, float offset)
+{
   int b;
 
   hdst = HISTOcopy(hsrc, hdst);
@@ -1370,7 +1426,8 @@ HISTO *HISTOlinearScale(HISTOGRAM *hsrc, HISTOGRAM *hdst, float scale, float off
   return (hdst);
 }
 
-float HISTOthreshSum(HISTOGRAM *h_mask, HISTOGRAM *h_src, float m_thresh) {
+float HISTOthreshSum(HISTOGRAM *h_mask, HISTOGRAM *h_src, float m_thresh)
+{
   int b;
   float total;
 
@@ -1381,7 +1438,8 @@ float HISTOthreshSum(HISTOGRAM *h_mask, HISTOGRAM *h_src, float m_thresh) {
   return (total);
 }
 
-HISTOGRAM *HISTOmakePDF(HISTO *h_src, HISTO *h_dst) {
+HISTOGRAM *HISTOmakePDF(HISTO *h_src, HISTO *h_dst)
+{
   int b;
   float total;
 
@@ -1403,7 +1461,8 @@ HISTOGRAM *HISTOmakePDF(HISTO *h_src, HISTO *h_dst) {
   between min and max. The first bin is centered at min. The last
   bin is centered at max. This makes the bin size (max-min)/(nbins-1).
   -------------------------------------------------------------------*/
-HISTO *HISTObins(int nbins, double min, double max) {
+HISTO *HISTObins(int nbins, double min, double max)
+{
   HISTO *h;
   int n;
 
@@ -1420,7 +1479,8 @@ HISTO *HISTObins(int nbins, double min, double max) {
   HISTOcount() - builds histogram based on samples. Must have already
   allocated hist and set bin centers.
   -------------------------------------------------------------------*/
-int HISTOcount(HISTO *h, double *samples, int nsamples) {
+int HISTOcount(HISTO *h, double *samples, int nsamples)
+{
   int n, bin;
 
   for (n = 0; n < nsamples; n++) {
@@ -1435,7 +1495,8 @@ int HISTOcount(HISTO *h, double *samples, int nsamples) {
   HISTOvalToBin() - returns the histogram bin number for
   the given value.
   ----------------------------------------------------------*/
-int HISTOvalToBin(HISTO *h, double val) {
+int HISTOvalToBin(HISTO *h, double val)
+{
   int bin, nthbin;
   double d, dmin;
 
@@ -1452,14 +1513,16 @@ int HISTOvalToBin(HISTO *h, double val) {
   return (bin);
 }
 
-int HISTOvalToBinDirect(HISTOGRAM *histo, float val) {
+int HISTOvalToBinDirect(HISTOGRAM *histo, float val)
+{
   int bin_no;
   bin_no = nint((float)(val - histo->min) / (float)histo->bin_size);
 
   return (bin_no);
 }
 
-float HISTOvalToCount(HISTOGRAM *histo, float val) {
+float HISTOvalToCount(HISTOGRAM *histo, float val)
+{
   int bin_no;
   if (histo == NULL) return (0.0);
   bin_no = nint((float)(val - histo->min) / (float)histo->bin_size);
@@ -1467,7 +1530,8 @@ float HISTOvalToCount(HISTOGRAM *histo, float val) {
 
   return (histo->counts[bin_no]);
 }
-HISTOGRAM *HISTOinit(HISTOGRAM *h, int nbins, double mn, double mx) {
+HISTOGRAM *HISTOinit(HISTOGRAM *h, int nbins, double mn, double mx)
+{
   int b;
 
   if (h == NULL)
@@ -1489,7 +1553,8 @@ HISTOGRAM *HISTOinit(HISTOGRAM *h, int nbins, double mn, double mx) {
   return (h);
 }
 
-int HISTOwriteInto(HISTOGRAM *h, FILE *fp) {
+int HISTOwriteInto(HISTOGRAM *h, FILE *fp)
+{
   int b;
 
   fwriteInt(h->nbins, fp);
@@ -1502,7 +1567,8 @@ int HISTOwriteInto(HISTOGRAM *h, FILE *fp) {
   return (NO_ERROR);
 }
 
-HISTOGRAM *HISTOreadFrom(FILE *fp) {
+HISTOGRAM *HISTOreadFrom(FILE *fp)
+{
   int b, nbins;
   HISTOGRAM *h;
 
@@ -1516,7 +1582,8 @@ HISTOGRAM *HISTOreadFrom(FILE *fp) {
   for (b = 0; b < h->nbins; b++) h->counts[b] = freadFloat(fp);
   return (h);
 }
-double HISTOfindMedian(HISTOGRAM *h) {
+double HISTOfindMedian(HISTOGRAM *h)
+{
   double median, total, total2;
   int b;
 
@@ -1538,7 +1605,8 @@ double HISTOfindMedian(HISTOGRAM *h) {
   return (median);
 }
 
-HISTOGRAM *HISTOmakeReverseCDF(HISTOGRAM *hsrc, HISTOGRAM *hdst) {
+HISTOGRAM *HISTOmakeReverseCDF(HISTOGRAM *hsrc, HISTOGRAM *hdst)
+{
   int b, b2;
   double total = 0;
   HISTOGRAM *habs;
@@ -1551,7 +1619,8 @@ HISTOGRAM *HISTOmakeReverseCDF(HISTOGRAM *hsrc, HISTOGRAM *hdst) {
       for (total = 0.0, b2 = habs->nbins - 1; b2 >= 0; b2--)
         if (fabs(habs->bins[b2]) >= hdst->bins[b]) total += habs->counts[b2];
       hdst->counts[b] = total;
-    } else
+    }
+    else
       hdst->counts[b] = 0;
   }
 
@@ -1560,7 +1629,8 @@ HISTOGRAM *HISTOmakeReverseCDF(HISTOGRAM *hsrc, HISTOGRAM *hdst) {
   HISTOfree(&habs);
   return (hdst);
 }
-HISTOGRAM *HISTOmakeCDF(HISTOGRAM *hsrc, HISTOGRAM *hdst) {
+HISTOGRAM *HISTOmakeCDF(HISTOGRAM *hsrc, HISTOGRAM *hdst)
+{
   int b, b2;
   double total = 0;
   HISTOGRAM *habs;
@@ -1573,7 +1643,8 @@ HISTOGRAM *HISTOmakeCDF(HISTOGRAM *hsrc, HISTOGRAM *hdst) {
       for (total = 0.0, b2 = 0; b2 < habs->nbins; b2++)
         if (fabs(habs->bins[b2]) <= hdst->bins[b]) total += habs->counts[b2];
       hdst->counts[b] = total;
-    } else
+    }
+    else
       hdst->counts[b] = 0;
   }
 
@@ -1583,7 +1654,8 @@ HISTOGRAM *HISTOmakeCDF(HISTOGRAM *hsrc, HISTOGRAM *hdst) {
   return (hdst);
 }
 
-int HISTOrobustGaussianFit(HISTOGRAM *h, double max_percentile, double *poffset, double *psigma) {
+int HISTOrobustGaussianFit(HISTOGRAM *h, double max_percentile, double *poffset, double *psigma)
+{
   int peak, bin, min_bin, max_bin, zbin, n;
   HISTOGRAM *habs, *hcdf, *hz, *hs;
   double thresh, sigma, delta_sigma, max_sigma, predicted_val, val, sqrt_2pi, sse, best_sigma, best_sse, error, scale,
@@ -1610,7 +1682,8 @@ int HISTOrobustGaussianFit(HISTOGRAM *h, double max_percentile, double *poffset,
   if (bin < 0) {
     bin = HISTOfindBinWithCount(hcdf, max_percentile);
     thresh = hcdf->bins[bin];  // threshold for computing variance
-  } else                       // found a valid next valley. Now look backwards to find bulk of distribution
+  }
+  else  // found a valid next valley. Now look backwards to find bulk of distribution
   {
     while (h->counts[bin] < h->counts[peak] * max_percentile &&
            bin > peak + 1)  // don't fit way out on tails of distribution
@@ -1699,7 +1772,8 @@ int HISTOrobustGaussianFit(HISTOGRAM *h, double max_percentile, double *poffset,
   return (NO_ERROR);
 }
 
-HISTOGRAM *HISTOgaussianCDF(HISTOGRAM *h, double mean, double sigma, int nbins) {
+HISTOGRAM *HISTOgaussianCDF(HISTOGRAM *h, double mean, double sigma, int nbins)
+{
   HISTOGRAM *hpdf;
 
   hpdf = HISTOgaussianPDF(h, mean, sigma, nbins);
@@ -1708,7 +1782,8 @@ HISTOGRAM *HISTOgaussianCDF(HISTOGRAM *h, double mean, double sigma, int nbins) 
   return (h);
 }
 
-HISTOGRAM *HISTOgaussianPDF(HISTOGRAM *h, double mean, double sigma, int nbins) {
+HISTOGRAM *HISTOgaussianPDF(HISTOGRAM *h, double mean, double sigma, int nbins)
+{
   int bin;
   double val, sqrt_2pi;
 
@@ -1730,7 +1805,8 @@ HISTOGRAM *HISTOgaussianPDF(HISTOGRAM *h, double mean, double sigma, int nbins) 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) HISTOplot(h, "h.plt");
   return (h);
 }
-HISTOGRAM *HISTOabs(HISTOGRAM *h, HISTOGRAM *habs) {
+HISTOGRAM *HISTOabs(HISTOGRAM *h, HISTOGRAM *habs)
+{
   int b, pbins, pbin;
   double mx, mn;
 
@@ -1754,7 +1830,8 @@ HISTOGRAM *HISTOabs(HISTOGRAM *h, HISTOGRAM *habs) {
   }
   return (habs);
 }
-HISTOGRAM *HISTOscalarMul(HISTOGRAM *hsrc, float mul, HISTOGRAM *hdst) {
+HISTOGRAM *HISTOscalarMul(HISTOGRAM *hsrc, float mul, HISTOGRAM *hdst)
+{
   int b;
 
   if (!hdst)
@@ -1767,7 +1844,8 @@ HISTOGRAM *HISTOscalarMul(HISTOGRAM *hsrc, float mul, HISTOGRAM *hdst) {
   return (hdst);
 }
 
-HISTOGRAM *HISTOscalarAdd(HISTOGRAM *hsrc, float add, HISTOGRAM *hdst) {
+HISTOGRAM *HISTOscalarAdd(HISTOGRAM *hsrc, float add, HISTOGRAM *hdst)
+{
   int b;
 
   if (!hdst)
@@ -1780,7 +1858,8 @@ HISTOGRAM *HISTOscalarAdd(HISTOGRAM *hsrc, float add, HISTOGRAM *hdst) {
   return (hdst);
 }
 
-double HISTOgetEntropy(HISTOGRAM *h) {
+double HISTOgetEntropy(HISTOGRAM *h)
+{
   double total = (double)HISTOtotal(h);
   double entropy = 0.0, p;
   int b;
@@ -1794,7 +1873,8 @@ double HISTOgetEntropy(HISTOGRAM *h) {
   return (entropy);
 }
 
-HISTOGRAM *HISTOsoapBubbleZeros(HISTOGRAM *hsrc, HISTOGRAM *hdst, int niters) {
+HISTOGRAM *HISTOsoapBubbleZeros(HISTOGRAM *hsrc, HISTOGRAM *hdst, int niters)
+{
   int n, b, *control;
   double *tmp;
 
@@ -1826,7 +1906,8 @@ HISTOGRAM *HISTOsoapBubbleZeros(HISTOGRAM *hsrc, HISTOGRAM *hdst, int niters) {
   free(control);
   return (hdst);
 }
-int HISTOfindMaxDerivative(HISTOGRAM *h, double min_count, double max_count, int whalf, int grad_dir) {
+int HISTOfindMaxDerivative(HISTOGRAM *h, double min_count, double max_count, int whalf, int grad_dir)
+{
   int index, i0, peak_index, num = 0;
   double prev_val, next_val, max_d, d;
 
@@ -1854,7 +1935,8 @@ int HISTOfindMaxDerivative(HISTOGRAM *h, double min_count, double max_count, int
 
 /**************************   2D Histogram stuff starts *************** */
 
-HISTOGRAM2D *HISTO2Dalloc(int nbins1, int nbins2) {
+HISTOGRAM2D *HISTO2Dalloc(int nbins1, int nbins2)
+{
   HISTOGRAM2D *histo;
   int i;
 
@@ -1876,7 +1958,8 @@ HISTOGRAM2D *HISTO2Dalloc(int nbins1, int nbins2) {
 
   return (histo);
 }
-int HISTO2Dfree(HISTOGRAM2D **phisto) {
+int HISTO2Dfree(HISTOGRAM2D **phisto)
+{
   HISTOGRAM2D *histo;
   int i;
 
@@ -1888,16 +1971,19 @@ int HISTO2Dfree(HISTOGRAM2D **phisto) {
     if (histo->counts) {
       for (i = 0; i < histo->nbins1; i++) free(histo->counts[i]);
       free(histo->counts);
-    } else
+    }
+    else
       DiagBreak();
     free(histo);
-  } else
+  }
+  else
     DiagBreak();
 
   return (NO_ERROR);
 }
 
-int HISTO2Ddump(HISTOGRAM2D *histo, FILE *fp) {
+int HISTO2Ddump(HISTOGRAM2D *histo, FILE *fp)
+{
   int bin1, bin2;
 
   if (!histo)
@@ -1918,7 +2004,8 @@ int HISTO2Ddump(HISTOGRAM2D *histo, FILE *fp) {
   }
   return (NO_ERROR);
 }
-int HISTO2Dwrite(HISTOGRAM2D *h, char *fname) {
+int HISTO2Dwrite(HISTOGRAM2D *h, char *fname)
+{
   FILE *fp;
   int ret;
 
@@ -1927,7 +2014,8 @@ int HISTO2Dwrite(HISTOGRAM2D *h, char *fname) {
   fclose(fp);
   return (ret);
 }
-int HISTO2DwriteInto(HISTOGRAM2D *h, FILE *fp) {
+int HISTO2DwriteInto(HISTOGRAM2D *h, FILE *fp)
+{
   int b1, b2;
 
   fwriteInt(h->nbins1, fp);
@@ -1945,7 +2033,8 @@ int HISTO2DwriteInto(HISTOGRAM2D *h, FILE *fp) {
     for (b2 = 0; b2 < h->nbins2; b2++) fwriteFloat(h->counts[b1][b2], fp);
   return (NO_ERROR);
 }
-HISTOGRAM2D *HISTO2Dread(char *fname) {
+HISTOGRAM2D *HISTO2Dread(char *fname)
+{
   HISTOGRAM2D *histo;
   FILE *fp;
 
@@ -1957,7 +2046,8 @@ HISTOGRAM2D *HISTO2Dread(char *fname) {
   return (histo);
 }
 
-HISTOGRAM2D *HISTO2DreadFrom(FILE *fp) {
+HISTOGRAM2D *HISTO2DreadFrom(FILE *fp)
+{
   int b1, nbins1, b2, nbins2;
   HISTOGRAM2D *h;
 
@@ -1977,7 +2067,8 @@ HISTOGRAM2D *HISTO2DreadFrom(FILE *fp) {
     for (b2 = 0; b2 < h->nbins2; b2++) h->counts[b1][b2] = freadFloat(fp);
   return (h);
 }
-HISTOGRAM2D *HISTO2Dclear(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst) {
+HISTOGRAM2D *HISTO2Dclear(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst)
+{
   int b;
 
   if (!histo_dst) histo_dst = HISTO2Dalloc(histo_src->nbins1, histo_src->nbins2);
@@ -1989,7 +2080,8 @@ HISTOGRAM2D *HISTO2Dclear(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst) {
 
   return (histo_dst);
 }
-HISTOGRAM2D *HISTO2Dinit(HISTOGRAM2D *h, int nbins1, int nbins2, double mn1, int mx1, double mn2, double mx2) {
+HISTOGRAM2D *HISTO2Dinit(HISTOGRAM2D *h, int nbins1, int nbins2, double mn1, int mx1, double mn2, double mx2)
+{
   int b;
 
   if (h == NULL)
@@ -2009,7 +2101,8 @@ HISTOGRAM2D *HISTO2Dinit(HISTOGRAM2D *h, int nbins1, int nbins2, double mn1, int
 
   return (h);
 }
-HISTOGRAM2D *HISTO2Drealloc(HISTOGRAM2D *histo, int nbins1, int nbins2) {
+HISTOGRAM2D *HISTO2Drealloc(HISTOGRAM2D *histo, int nbins1, int nbins2)
+{
   int b;
   if (histo == NULL) return (HISTO2Dalloc(nbins1, nbins2));
 
@@ -2031,7 +2124,8 @@ HISTOGRAM2D *HISTO2Drealloc(HISTOGRAM2D *histo, int nbins1, int nbins2) {
   return (histo);
 }
 int HISTO2DaddFractionalSample(
-    HISTOGRAM2D *histo, float val1, float val2, float bmin1, float bmax1, float bmin2, float bmax2, float frac) {
+    HISTOGRAM2D *histo, float val1, float val2, float bmin1, float bmax1, float bmin2, float bmax2, float frac)
+{
   int bin_no1, bin_no2;
   float bin_size1, bin_size2;
 
@@ -2040,7 +2134,8 @@ int HISTO2DaddFractionalSample(
     bmin1 = histo->min1;
     bmax1 = histo->max1;
     bin_size1 = histo->bin_size1;
-  } else
+  }
+  else
     bin_size1 = (bmax1 - bmin1) / ((float)histo->nbins1 - 1);
 
   bin_no1 = nint((val1 - bmin1) / bin_size1);
@@ -2049,7 +2144,8 @@ int HISTO2DaddFractionalSample(
     bmin2 = histo->min2;
     bmax2 = histo->max2;
     bin_size2 = histo->bin_size2;
-  } else
+  }
+  else
     bin_size2 = (bmax2 - bmin2) / ((float)histo->nbins2 - 1);
 
   bin_no2 = nint((val2 - bmin2) / bin_size2);
@@ -2061,7 +2157,8 @@ int HISTO2DaddFractionalSample(
 
   return (NO_ERROR);
 }
-int HISTO2DaddSample(HISTOGRAM2D *histo, float val1, float val2, float bmin1, float bmax1, float bmin2, float bmax2) {
+int HISTO2DaddSample(HISTOGRAM2D *histo, float val1, float val2, float bmin1, float bmax1, float bmin2, float bmax2)
+{
   int bin_no1, bin_no2;
   float bin_size1, bin_size2;
 
@@ -2070,7 +2167,8 @@ int HISTO2DaddSample(HISTOGRAM2D *histo, float val1, float val2, float bmin1, fl
     bmin1 = histo->min1;
     bmax1 = histo->max1;
     bin_size1 = histo->bin_size1;
-  } else
+  }
+  else
     bin_size1 = (bmax1 - bmin1) / ((float)histo->nbins1 - 1);
   bin_no1 = nint((val1 - bmin1) / bin_size1);
 
@@ -2079,7 +2177,8 @@ int HISTO2DaddSample(HISTOGRAM2D *histo, float val1, float val2, float bmin1, fl
     bmin2 = histo->min2;
     bmax2 = histo->max2;
     bin_size2 = histo->bin_size2;
-  } else
+  }
+  else
     bin_size2 = (bmax2 - bmin2) / ((float)histo->nbins2 - 1);
   bin_no2 = nint((val2 - bmin2) / bin_size2);
 
@@ -2090,7 +2189,8 @@ int HISTO2DaddSample(HISTOGRAM2D *histo, float val1, float val2, float bmin1, fl
 
   return (NO_ERROR);
 }
-int HISTO2Dplot(HISTOGRAM2D *histo, char *fname) {
+int HISTO2Dplot(HISTOGRAM2D *histo, char *fname)
+{
   FILE *fp;
   int bin_no1, bmin1, bmax1, bin_no2, bmin2, bmax2;
 
@@ -2123,7 +2223,8 @@ int HISTO2Dplot(HISTOGRAM2D *histo, char *fname) {
 
   return (NO_ERROR);
 }
-HISTOGRAM2D *HISTO2Dcopy(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst) {
+HISTOGRAM2D *HISTO2Dcopy(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst)
+{
   int b;
 
   if (!histo_dst) histo_dst = HISTO2Dalloc(histo_src->nbins1, histo_src->nbins2);
@@ -2144,7 +2245,8 @@ HISTOGRAM2D *HISTO2Dcopy(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst) {
 
   return (histo_dst);
 }
-HISTOGRAM2D *HISTO2DmakePDF(HISTO2D *h_src, HISTO2D *h_dst) {
+HISTOGRAM2D *HISTO2DmakePDF(HISTO2D *h_src, HISTO2D *h_dst)
+{
   int b1, b2;
   double total, unlikely;
 
@@ -2164,7 +2266,8 @@ HISTOGRAM2D *HISTO2DmakePDF(HISTO2D *h_src, HISTO2D *h_dst) {
 
   return (h_dst);
 }
-int HISTO2DfindBin1(HISTOGRAM2D *h, float val) {
+int HISTO2DfindBin1(HISTOGRAM2D *h, float val)
+{
   int b;
 
   if (h->bin_size1 == 1) return ((int)val - h->min1);
@@ -2174,7 +2277,8 @@ int HISTO2DfindBin1(HISTOGRAM2D *h, float val) {
 
   return (0);
 }
-int HISTO2DfindBin2(HISTOGRAM2D *h, float val) {
+int HISTO2DfindBin2(HISTOGRAM2D *h, float val)
+{
   int b;
 
   if (h->bin_size2 == 1) return ((int)val - h->min2);
@@ -2184,7 +2288,8 @@ int HISTO2DfindBin2(HISTOGRAM2D *h, float val) {
 
   return (0);
 }
-double HISTO2DgetCount(HISTOGRAM2D *h, float bin_val1, float bin_val2) {
+double HISTO2DgetCount(HISTOGRAM2D *h, float bin_val1, float bin_val2)
+{
   int b1, b2;
 
   b1 = HISTO2DfindBin1(h, bin_val1);
@@ -2209,7 +2314,8 @@ double HISTO2DgetCount(HISTOGRAM2D *h, float bin_val1, float bin_val2) {
   Description
   ------------------------------------------------------*/
 #define MAX_LEN 2000
-HISTOGRAM2D *HISTO2Dsmooth(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, float sigma) {
+HISTOGRAM2D *HISTO2Dsmooth(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, float sigma)
+{
   float norm, two_sigma, fx, k, kernel[MAX_LEN], total;
   int x, half, len, b1, b2, kx, nbins1, nbins2, y, ky, b1k, b2k, i;
 
@@ -2223,7 +2329,8 @@ HISTOGRAM2D *HISTO2Dsmooth(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, float
     histo_dst->bin_size2 = histo_src->bin_size2;
     histo_dst->min2 = histo_src->min2;
     histo_dst->max2 = histo_src->max2;
-  } else {
+  }
+  else {
     if ((histo_dst->nbins1 < histo_src->nbins1) || (histo_dst->nbins2 < histo_src->nbins2)) {
       // fprintf(stderr, "realloc: histo_dst->nbins = %d, "
       //"histo_src->nbins = %d\n",
@@ -2293,7 +2400,8 @@ HISTOGRAM2D *HISTO2Dsmooth(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, float
   return (histo_dst);
 }
 #if 1
-HISTOGRAM2D *HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, float sigma1, float sigma2) {
+HISTOGRAM2D *HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, float sigma1, float sigma2)
+{
   float norm, k, total;
   int x, half1, half2, len1, len2, b1, b2, kx, nbins1, nbins2, y, ky, b1k, b2k, dist;
 
@@ -2307,7 +2415,8 @@ HISTOGRAM2D *HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo
     histo_dst->bin_size2 = histo_src->bin_size2;
     histo_dst->min2 = histo_src->min2;
     histo_dst->max2 = histo_src->max2;
-  } else {
+  }
+  else {
     if ((histo_dst->nbins1 < histo_src->nbins1) || (histo_dst->nbins2 < histo_src->nbins2)) {
       // fprintf(stderr, "realloc: histo_dst->nbins = %d, "
       //"histo_src->nbins = %d\n",
@@ -2367,7 +2476,8 @@ HISTOGRAM2D *HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo
 }
 #else
 #if 1
-HISTOGRAM2D *HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, float sigma1, float sigma2) {
+HISTOGRAM2D *HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, float sigma1, float sigma2)
+{
   float norm, two_sigma, fx, k, k1, k2, kernel1[MAX_LEN], kernel2[MAX_LEN], total;
   int x, half1, half2, len1, len2, b1, b2, kx, nbins1, nbins2, y, ky, b1k, b2k;
 
@@ -2381,7 +2491,8 @@ HISTOGRAM2D *HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo
     histo_dst->bin_size2 = histo_src->bin_size2;
     histo_dst->min2 = histo_src->min2;
     histo_dst->max2 = histo_src->max2;
-  } else {
+  }
+  else {
     if ((histo_dst->nbins1 < histo_src->nbins1) || (histo_dst->nbins2 < histo_src->nbins2)) {
       // fprintf(stderr, "realloc: histo_dst->nbins = %d, "
       //"histo_src->nbins = %d\n",
@@ -2477,7 +2588,8 @@ HISTOGRAM2D *HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo
   return (histo_dst);
 }
 #else
-HISTOGRAM2D *HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, float sigma1, float sigma2) {
+HISTOGRAM2D *HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, float sigma1, float sigma2)
+{
   HISTO2D *h_tmp;
   h_tmp = HISTO2DsmoothBins1(histo_src, NULL, sigma1);
   histo_dst = HISTO2DsmoothBins2(h_tmp, histo_dst, sigma2);
@@ -2486,7 +2598,8 @@ HISTOGRAM2D *HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo
 }
 #endif
 #endif
-HISTOGRAM2D *HISTO2DsmoothBins1(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, float sigma) {
+HISTOGRAM2D *HISTO2DsmoothBins1(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, float sigma)
+{
   float norm, two_sigma, fx, k, kernel[MAX_LEN], total;
   int x, half, len, b1, b2, kx, nbins1, nbins2, b1k;
 
@@ -2500,7 +2613,8 @@ HISTOGRAM2D *HISTO2DsmoothBins1(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, 
     histo_dst->bin_size2 = histo_src->bin_size2;
     histo_dst->min2 = histo_src->min2;
     histo_dst->max2 = histo_src->max2;
-  } else {
+  }
+  else {
     if ((histo_dst->nbins1 < histo_src->nbins1) || (histo_dst->nbins2 < histo_src->nbins2)) {
       // fprintf(stderr, "realloc: histo_dst->nbins = %d, "
       //"histo_src->nbins = %d\n",
@@ -2564,7 +2678,8 @@ HISTOGRAM2D *HISTO2DsmoothBins1(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, 
   return (histo_dst);
 }
 
-HISTOGRAM2D *HISTO2DsmoothBins2(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, float sigma) {
+HISTOGRAM2D *HISTO2DsmoothBins2(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, float sigma)
+{
   float norm, two_sigma, fx, k, kernel[MAX_LEN], total;
   int x, kx, half, len, b1, b2, nbins1, nbins2, b2k;
 
@@ -2578,7 +2693,8 @@ HISTOGRAM2D *HISTO2DsmoothBins2(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, 
     histo_dst->bin_size2 = histo_src->bin_size2;
     histo_dst->min2 = histo_src->min2;
     histo_dst->max2 = histo_src->max2;
-  } else {
+  }
+  else {
     if ((histo_dst->nbins1 < histo_src->nbins1) || (histo_dst->nbins2 < histo_src->nbins2)) {
       // fprintf(stderr, "realloc: histo_dst->nbins = %d, "
       //"histo_src->nbins = %d\n",
@@ -2642,7 +2758,8 @@ HISTOGRAM2D *HISTO2DsmoothBins2(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst, 
   return (histo_dst);
 }
 
-HISTOGRAM2D *HISTO2DsoapBubbleZeros(HISTOGRAM2D *hsrc, HISTOGRAM2D *hdst, int niters) {
+HISTOGRAM2D *HISTO2DsoapBubbleZeros(HISTOGRAM2D *hsrc, HISTOGRAM2D *hdst, int niters)
+{
   int n, b1, b2, **control, num;
   double **tmp, val;
 
@@ -2732,7 +2849,8 @@ HISTOGRAM2D *HISTO2DsoapBubbleZeros(HISTOGRAM2D *hsrc, HISTOGRAM2D *hdst, int ni
   free(control);
   return (hdst);
 }
-float HISTOcomputeFWHM(HISTOGRAM *h, int peak) {
+float HISTOcomputeFWHM(HISTOGRAM *h, int peak)
+{
   int width, max_width;
   float thresh, fwhm;
 
@@ -2747,7 +2865,8 @@ float HISTOcomputeFWHM(HISTOGRAM *h, int peak) {
   return (fwhm);
 }
 
-double HISTOrmsDifference(HISTOGRAM *h1, HISTOGRAM *h2) {
+double HISTOrmsDifference(HISTOGRAM *h1, HISTOGRAM *h2)
+{
   int b;
   double rms, error;
 
@@ -2757,7 +2876,8 @@ double HISTOrmsDifference(HISTOGRAM *h1, HISTOGRAM *h2) {
   }
   return (sqrt(rms / h1->nbins));
 }
-double HISTOearthMoversDistance(HISTOGRAM *h1, HISTOGRAM *h2) {
+double HISTOearthMoversDistance(HISTOGRAM *h1, HISTOGRAM *h2)
+{
   double emd = 0.0;
 
   h1 = HISTOcopy(h1, NULL);
@@ -2770,7 +2890,8 @@ double HISTOearthMoversDistance(HISTOGRAM *h1, HISTOGRAM *h2) {
   return (emd);
 }
 
-double HISTOksDistance(HISTOGRAM *h1, HISTOGRAM *h2) {
+double HISTOksDistance(HISTOGRAM *h1, HISTOGRAM *h2)
+{
   double ks_dist, dist, c2;
   int b;
 
@@ -2790,8 +2911,8 @@ double HISTOksDistance(HISTOGRAM *h1, HISTOGRAM *h2) {
   return (ks_dist);
 }
 
-HISTOGRAM *HISTOeraseRightmostPeak(
-    HISTOGRAM *hsrc, HISTOGRAM *hdst, int whalf, float min_pct, int min_val, int max_val) {
+HISTOGRAM *HISTOeraseRightmostPeak(HISTOGRAM *hsrc, HISTOGRAM *hdst, int whalf, float min_pct, int min_val, int max_val)
+{
   int bmin, bmax, b;
 
   hdst = HISTOcopy(hsrc, hdst);
@@ -2807,7 +2928,8 @@ HISTOGRAM *HISTOeraseRightmostPeak(
     HISTOerase(hdst, MAX(0, b - 1), bmax);
   return (hdst);
 }
-int HISTOerase(HISTOGRAM *h, int bmin, int bmax) {
+int HISTOerase(HISTOGRAM *h, int bmin, int bmax)
+{
   int b;
 
   bmin = MAX(0, bmin);
@@ -2816,7 +2938,8 @@ int HISTOerase(HISTOGRAM *h, int bmin, int bmax) {
   if (bmax == h->nbins - 1) h->nbins = bmin - 1;
   return (NO_ERROR);
 }
-int HISTOisPeak(HISTOGRAM *h, int bin, int whalf) {
+int HISTOisPeak(HISTOGRAM *h, int bin, int whalf)
+{
   int b, bmin, bmax;
   float val;
 

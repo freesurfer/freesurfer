@@ -34,7 +34,8 @@ static int non_hippo_labels[] = {
 };
 #define NUM_NON_HIPPO_LABELS (sizeof(non_hippo_labels) / sizeof(non_hippo_labels[0]))
 
-MRI *HIPPOremoveNonHippoLabels(MRI *mri_src, MRI *mri_dst) {
+MRI *HIPPOremoveNonHippoLabels(MRI *mri_src, MRI *mri_dst)
+{
   int i, label;
 
   mri_dst = MRIcopy(mri_src, mri_dst);
@@ -45,7 +46,8 @@ MRI *HIPPOremoveNonHippoLabels(MRI *mri_src, MRI *mri_dst) {
   }
   return (mri_dst);
 }
-MRI *HIPPOestimateIntensityImage(MRI *mri_hippo_labels, MRI *mri_aseg, MRI *mri_intensity, MRI *mri_dst) {
+MRI *HIPPOestimateIntensityImage(MRI *mri_hippo_labels, MRI *mri_aseg, MRI *mri_intensity, MRI *mri_dst)
+{
   GCAM_LABEL_TRANSLATION_TABLE gcam_ltt;
   int i, x, y, z, in_label, out_label;
 

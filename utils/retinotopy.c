@@ -46,7 +46,8 @@ double round(double x);
     valbak  = angle for polar (-pi to +pi)
     val2bak = log10(p) for polar
   ------------------------------------------------------------*/
-void RETcompute_angles(MRIS *mris, double EccenRotAngleRad, double PolarRotAngleRad) {
+void RETcompute_angles(MRIS *mris, double EccenRotAngleRad, double PolarRotAngleRad)
+{
   int k;
   float val, valbak, val2, val2bak;
 
@@ -61,7 +62,8 @@ void RETcompute_angles(MRIS *mris, double EccenRotAngleRad, double PolarRotAngle
       valbak = atan2(mris->vertices[k].val2bak, mris->vertices[k].valbak);
       valbak += PolarRotAngleRad;
       val2bak = sqrt(SQR(mris->vertices[k].val2bak) + SQR(mris->vertices[k].valbak));
-    } else {
+    }
+    else {
       val = 0.0;
       val2 = 0.0;
       valbak = 0.0;
@@ -74,7 +76,8 @@ void RETcompute_angles(MRIS *mris, double EccenRotAngleRad, double PolarRotAngle
   }
 }
 /*------------------------------------------------------------*/
-float RETcircsubtract(float a, float b) {
+float RETcircsubtract(float a, float b)
+{
   float h = a - b;
   if (h < -M_PI)
     h = h + 2 * M_PI;
@@ -83,7 +86,8 @@ float RETcircsubtract(float a, float b) {
   return h;
 }
 /*------------------------------------------------------------*/
-void RETcompute_fieldsign(MRIS *mris) {
+void RETcompute_fieldsign(MRIS *mris)
+{
   int k, m, n;
   VERTEX *v;
   float dv1, dv2, dx, dy, dv1dx, dv1dy, dv2dx, dv2dy;
@@ -135,7 +139,8 @@ void RETcompute_fieldsign(MRIS *mris) {
 }
 
 /*--------------------------------------------------------------------------*/
-int RETlogMap(MRIS *surf, double k, double a, double xc0, double yc0) {
+int RETlogMap(MRIS *surf, double k, double a, double xc0, double yc0)
+{
   double n, r, theta, xw, yw, r2, theta2, xc2, yc2, xc, yc;
   float dmin;
   int vno;
@@ -183,7 +188,8 @@ int RETlogMap(MRIS *surf, double k, double a, double xc0, double yc0) {
 }
 
 /*--------------------------------------------------------------------------*/
-int RETinvLogMapFunc(double xc, double yc, double xc0, double yc0, double a, double k, double *r, double *theta) {
+int RETinvLogMapFunc(double xc, double yc, double xc0, double yc0, double a, double k, double *r, double *theta)
+{
   double r2, theta2, xw, yw;
   r2 = exp((xc - xc0) / k);
   theta2 = (yc - yc0) / k;
@@ -194,7 +200,8 @@ int RETinvLogMapFunc(double xc, double yc, double xc0, double yc0, double a, dou
   return (0);
 }
 /*--------------------------------------------------------------------------*/
-int RETreverseSign(MRI *mri) {
+int RETreverseSign(MRI *mri)
+{
   int c, r, s;
   double v;
 

@@ -25,7 +25,8 @@
 /*---------------------------------------------------------------------------
 // Construct an empty PGlist with specified capacity and capacity increment
 //-------------------------------------------------------------------------*/
-PGlist pgList2(int elementSize, int capacity, int capacityIncrement) {
+PGlist pgList2(int elementSize, int capacity, int capacityIncrement)
+{
   PGlist list;
   void *data;
 
@@ -58,7 +59,8 @@ PGlist pgList2(int elementSize, int capacity, int capacityIncrement) {
 // Construct an empty PGlist with specified capacity and default
 // capacity increment as 100
 //-------------------------------------------------------------------------*/
-PGlist pgList1(int elementSize, int capacity) {
+PGlist pgList1(int elementSize, int capacity)
+{
   PGlist list;
 
   list = pgList2(elementSize, capacity, 100);
@@ -70,7 +72,8 @@ PGlist pgList1(int elementSize, int capacity) {
 // Construct an empty PGlist with default capacity as 0 and
 // capacity increment as 100
 //-------------------------------------------------------------------------*/
-PGlist pgList(int elementSize) {
+PGlist pgList(int elementSize)
+{
   PGlist list;
 
   list = pgList2(elementSize, 0, 100);
@@ -82,7 +85,8 @@ PGlist pgList(int elementSize) {
 // Construct an empty PGlist with specified size, all the elements are set to
 // zero
 //-------------------------------------------------------------------------*/
-PGlist pgListOfSize(int size, int elementSize) {
+PGlist pgListOfSize(int size, int elementSize)
+{
   PGlist list;
   char *data;
   int i;
@@ -106,7 +110,8 @@ PGlist pgListOfSize(int size, int elementSize) {
 /*---------------------------------------------------------------------------
 // Delete this list
 //-------------------------------------------------------------------------*/
-void pgListDelete(PGlist list) {
+void pgListDelete(PGlist list)
+{
   void *data;
 
   data = pgListData(list);
@@ -117,7 +122,8 @@ void pgListDelete(PGlist list) {
 /*---------------------------------------------------------------------------
 // Add an element to this list
 //-------------------------------------------------------------------------*/
-void pgListAddElement(PGlist list, void *element) {
+void pgListAddElement(PGlist list, void *element)
+{
   int size, capacity, elementSize, capacityIncrement;
   void *data;
 
@@ -132,7 +138,8 @@ void pgListAddElement(PGlist list, void *element) {
       capacity += capacityIncrement;
       pgListSetCapacity(list, capacity);
       data = (void *)malloc(elementSize * capacity);
-    } else {
+    }
+    else {
       /* allocate a larger list */
       capacity += capacityIncrement;
       pgListSetCapacity(list, capacity);
@@ -148,7 +155,8 @@ void pgListAddElement(PGlist list, void *element) {
 /*---------------------------------------------------------------------------
 // Insert an element into the list at the specified index
 //-------------------------------------------------------------------------*/
-int pgListInsertElementAt(PGlist list, int index, void *element) {
+int pgListInsertElementAt(PGlist list, int index, void *element)
+{
   int size, elementSize;
   void *data;
   void *tempPtr;
@@ -181,7 +189,8 @@ int pgListInsertElementAt(PGlist list, int index, void *element) {
 /*---------------------------------------------------------------------------
 // Retrieve an element from this list at a given index
 //-------------------------------------------------------------------------*/
-int pgListElementAt(PGlist list, int index, void *element) {
+int pgListElementAt(PGlist list, int index, void *element)
+{
   int size, elementSize;
   void *data;
 
@@ -200,7 +209,8 @@ int pgListElementAt(PGlist list, int index, void *element) {
 /*---------------------------------------------------------------------------
 // Sets a list element at a given index
 //-------------------------------------------------------------------------*/
-int pgListSetElementAt(PGlist list, int index, void *element) {
+int pgListSetElementAt(PGlist list, int index, void *element)
+{
   int size, elementSize;
   void *data;
 
@@ -220,7 +230,8 @@ int pgListSetElementAt(PGlist list, int index, void *element) {
 /*---------------------------------------------------------------------------
 // Removes all elements from this list and sets its size to zero
 //-------------------------------------------------------------------------*/
-int pgListRemoveElementAt(PGlist list, int index) {
+int pgListRemoveElementAt(PGlist list, int index)
+{
   int size, elementSize;
   void *data;
   char *currentPtr, *nextPtr;
@@ -253,7 +264,8 @@ void pgListRemoveAllElements(PGlist list) { pgListSetSize(list, 0); }
 /*---------------------------------------------------------------------------
 // Trim this list to current size
 //-------------------------------------------------------------------------*/
-void pgListTrim(PGlist list) {
+void pgListTrim(PGlist list)
+{
   void *data;
   int size, elementSize;
 
@@ -266,7 +278,8 @@ void pgListTrim(PGlist list) {
   pgListSetCapacity(list, size);
 }
 
-void pgListInfo(PGlist list) {
+void pgListInfo(PGlist list)
+{
   int elementSize, size, capacity, capacityIncrement;
 
   elementSize = pgListElementSize(list);
@@ -281,7 +294,8 @@ void pgListInfo(PGlist list) {
   printf("\n");
 }
 
-Xheap xhInitEmpty() {
+Xheap xhInitEmpty()
+{
   Xheap H;
   XheapElement he;
 
@@ -298,7 +312,8 @@ Xheap xhInitEmpty() {
   return (H);
 }
 
-Xheap xhInit(XheapElement *array, int N) {
+Xheap xhInit(XheapElement *array, int N)
+{
   Xheap H;
   XheapElement *data, he;
   int i, *p;
@@ -326,7 +341,8 @@ Xheap xhInit(XheapElement *array, int N) {
 /* destroy the heap and free the memory */
 void xhDestroy(Xheap H) { pgListDelete(H); }
 
-int xhUpHeap(int k, Xheap H) {
+int xhUpHeap(int k, Xheap H)
+{
   XheapElement *a, v;
   int k_father;
   int *p;
@@ -349,7 +365,8 @@ int xhUpHeap(int k, Xheap H) {
   return (k);
 }
 
-int xhDownHeap(int k, Xheap H) {
+int xhDownHeap(int k, Xheap H)
+{
   XheapElement *a, v;
   int N, k_minson;
   int *p;
@@ -376,7 +393,8 @@ int xhDownHeap(int k, Xheap H) {
   return (k);
 }
 
-int xhInsert(double value, int id, int *p, Xheap H) {
+int xhInsert(double value, int id, int *p, Xheap H)
+{
   // XheapElement *a;
   XheapElement v;
   int N, k;
@@ -395,7 +413,8 @@ int xhInsert(double value, int id, int *p, Xheap H) {
 }
 
 /* remove the smallest element */
-XheapElement xhRemove(Xheap H) {
+XheapElement xhRemove(Xheap H)
+{
   XheapElement v, *a;
   int N;
 
@@ -415,7 +434,8 @@ XheapElement xhRemove(Xheap H) {
 
 /* replace the smallest value with a new value if the new value is smaller
    otherwise the new value is returned and the heap is unchanged */
-XheapElement xhReplace(double value, int id, int *p, Xheap H) {
+XheapElement xhReplace(double value, int id, int *p, Xheap H)
+{
   XheapElement *a, v;
 
   a = (XheapElement *)pgListData(H);
@@ -426,7 +446,8 @@ XheapElement xhReplace(double value, int id, int *p, Xheap H) {
     a[1].id = id;
     a[1].p = p;
     xhDownHeap(1, H);
-  } else {
+  }
+  else {
     v.value = value;
     v.id = id;
     v.p = p;
@@ -435,7 +456,8 @@ XheapElement xhReplace(double value, int id, int *p, Xheap H) {
 }
 
 /* delete an item in the heap and its value is returned */
-XheapElement xhDelete(int k, Xheap H) {
+XheapElement xhDelete(int k, Xheap H)
+{
   XheapElement *a, v;
   int N;
 
@@ -455,7 +477,8 @@ XheapElement xhDelete(int k, Xheap H) {
 }
 
 /* change the value of an item and its original value is returned */
-XheapElement xhChange(int k, double value, int id, int *p, Xheap H) {
+XheapElement xhChange(int k, double value, int id, int *p, Xheap H)
+{
   XheapElement *a, v;
 
   a = (XheapElement *)pgListData(H);
@@ -475,7 +498,8 @@ XheapElement xhChange(int k, double value, int id, int *p, Xheap H) {
 }
 
 /* change the value of an item and its original value is returned */
-XheapElement xhChangeValue(int k, double value, Xheap H) {
+XheapElement xhChangeValue(int k, double value, Xheap H)
+{
   XheapElement *a, v;
 
   a = (XheapElement *)pgListData(H);
@@ -492,7 +516,8 @@ XheapElement xhChangeValue(int k, double value, Xheap H) {
   return (v);
 }
 
-XheapElement xhGet(int k, Xheap H) {
+XheapElement xhGet(int k, Xheap H)
+{
   XheapElement v;
 
   pgListElementAt(H, k, &v);

@@ -47,7 +47,8 @@ static float kinputGetPoint(HIPSPyramid *pyr, int x, int y, int level);
            Description:
 ----------------------------------------------------------------------*/
 KINPUT *KinputAlloc(
-    int rows, int cols, int nscales, int input_size, float sigma, float sigma_scale_factor, int abs_gradient) {
+    int rows, int cols, int nscales, int input_size, float sigma, float sigma_scale_factor, int abs_gradient)
+{
   KINPUT *kinput;
   int scale;
 
@@ -84,7 +85,8 @@ KINPUT *KinputAlloc(
 
            Description:
 ----------------------------------------------------------------------*/
-int KinputFree(KINPUT **pkinput) {
+int KinputFree(KINPUT **pkinput)
+{
   KINPUT *kinput;
   int scale;
 
@@ -112,7 +114,8 @@ int KinputFree(KINPUT **pkinput) {
 
            Description:
 ----------------------------------------------------------------------*/
-int KinputInit(KINPUT *kinput, IMAGE *image) {
+int KinputInit(KINPUT *kinput, IMAGE *image)
+{
   int scale;
 
 #if USE_PYRAMID
@@ -145,7 +148,8 @@ int KinputInit(KINPUT *kinput, IMAGE *image) {
 
            Description:
 ----------------------------------------------------------------------*/
-int KinputVector(KINPUT *kinput, int x0, int y0) {
+int KinputVector(KINPUT *kinput, int x0, int y0)
+{
   int x, y, x1, y1, rows, cols, scale, neg_half, half_in;
   float *in, xval, yval;
 
@@ -214,7 +218,8 @@ int KinputVector(KINPUT *kinput, int x0, int y0) {
 }
 #if USE_PYRAMID
 
-static float kinputGetPoint(IMAGEPyramid *pyr, int x, int y, int level) {
+static float kinputGetPoint(IMAGEPyramid *pyr, int x, int y, int level)
+{
   float val;
 
   int x1, x2, y1, y2, cols, rows, cols0, rows0;

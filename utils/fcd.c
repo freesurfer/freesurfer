@@ -43,7 +43,8 @@ static MRI *build_distance_by_intensity_histo(
     MRI *mri_norm, MRI *mri_dist, MRI *mri_aseg, double dist_spacing, double max_dist);
 static int augment_thicknesses(FCD_DATA *fcd, MRI *mri_pvals, double min_dist, double max_dist, double thresh);
 
-static int most_frequent_label(MRI *mri_seg, MRI_SEGMENT *mseg) {
+static int most_frequent_label(MRI *mri_seg, MRI_SEGMENT *mseg)
+{
   int label_counts[MAX_CMA_LABELS], i, max_count, max_label, label;
 
   memset(label_counts, 0, sizeof(label_counts));
@@ -65,7 +66,8 @@ static int most_frequent_label(MRI *mri_seg, MRI_SEGMENT *mseg) {
 #define MAX_DIST 10
 #define DIST_SPACING .5
 
-FCD_DATA *FCDloadData(char *sdir, char *subject, char *suffix_in) {
+FCD_DATA *FCDloadData(char *sdir, char *subject, char *suffix_in)
+{
   FCD_DATA *fcd;
   char fname[STRLEN];
   MRI *mri_interior, *mri_dist, *mri_int_lh, *mri_int_rh, *mri_pvals;
@@ -303,7 +305,8 @@ FCD_DATA *FCDloadData(char *sdir, char *subject, char *suffix_in) {
   return (fcd);
 }
 
-static int sort_labels(FCD_DATA *fcd) {
+static int sort_labels(FCD_DATA *fcd)
+{
   int i;
 
   qsort(fcd->labels, fcd->nlabels, sizeof(LABEL *), compare_labels);
@@ -313,7 +316,8 @@ static int sort_labels(FCD_DATA *fcd) {
   return (NO_ERROR);
 }
 
-static int compare_labels(const void *v1, const void *v2) {
+static int compare_labels(const void *v1, const void *v2)
+{
   LABEL *l1, *l2;
 
   l1 = *((LABEL **)v1);
@@ -327,7 +331,8 @@ static int compare_labels(const void *v1, const void *v2) {
   return (0);  // equal
 }
 
-int FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, int size_thresh) {
+int FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, int size_thresh)
+{
   MRI *mri_lh, *mri_rh, *mri_lh_diff, *mri_rh_diff;
   int niter, vno, s;
   MRI_SEGMENTATION *mriseg;
@@ -413,7 +418,8 @@ int FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sig
           if (base_label) {
             break;
           }
-        } else {
+        }
+        else {
           base_label = label;
         }
         if (val >= 0) {
@@ -422,7 +428,8 @@ int FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sig
           if (val > val2) {
             MRIsetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0, val);
           }
-        } else {
+        }
+        else {
           val2 = MRIgetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0);
           // check if another thread already populated this voxel
           if (val < val2) {
@@ -475,7 +482,8 @@ int FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sig
           if (base_label) {
             break;
           }
-        } else {
+        }
+        else {
           base_label = label;
         }
 
@@ -484,7 +492,8 @@ int FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sig
           if (val > val2) {
             MRIsetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0, val);
           }
-        } else {
+        }
+        else {
           val2 = MRIgetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0);
           if (val < val2) {
             MRIsetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0, val);
@@ -533,7 +542,8 @@ int FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sig
   return (fcd->nlabels);
 }
 
-int FCDwriteLabels(FCD_DATA *fcd, char *dir) {
+int FCDwriteLabels(FCD_DATA *fcd, char *dir)
+{
   int s;
   char label_name[STRLEN];
 
@@ -549,7 +559,8 @@ int FCDwriteLabels(FCD_DATA *fcd, char *dir) {
   return (NO_ERROR);
 }
 
-static int fcdFreeLabels(FCD_DATA *fcd) {
+static int fcdFreeLabels(FCD_DATA *fcd)
+{
   int s;
 
   for (s = 0; s < fcd->nlabels; s++)
@@ -560,7 +571,8 @@ static int fcdFreeLabels(FCD_DATA *fcd) {
   return (NO_ERROR);
 }
 
-int FCDfree(FCD_DATA **pfcd) {
+int FCDfree(FCD_DATA **pfcd)
+{
   FCD_DATA *fcd;
 
   fcd = *pfcd;
@@ -625,7 +637,8 @@ int FCDfree(FCD_DATA **pfcd) {
 }
 
 static MRI *build_distance_by_intensity_histo(
-    MRI *mri_norm, MRI *mri_dist, MRI *mri_aseg, double dist_spacing, double max_dist) {
+    MRI *mri_norm, MRI *mri_dist, MRI *mri_aseg, double dist_spacing, double max_dist)
+{
   HISTOGRAM2D *h_dist_by_int;
   int x, y, z, b1, b2, label;
   float val, dist;
@@ -690,7 +703,8 @@ static MRI *build_distance_by_intensity_histo(
         pval = HISTO2DgetCount(h_dist_by_int, dist, val);
         if (pval > 0) {
           pval = -log10(pval);
-        } else {
+        }
+        else {
           pval = -10000;
         }
         MRIsetVoxVal(mri_pvals, x, y, z, 0, pval);
@@ -700,7 +714,8 @@ static MRI *build_distance_by_intensity_histo(
   return (mri_pvals);
 }
 
-static int augment_thicknesses(FCD_DATA *fcd, MRI *mri_pvals, double min_dist, double max_dist, double thresh) {
+static int augment_thicknesses(FCD_DATA *fcd, MRI *mri_pvals, double min_dist, double max_dist, double thresh)
+{
   int h, vno;
   VERTEX *v;
   MRI_SURFACE *mris;
@@ -722,7 +737,8 @@ static int augment_thicknesses(FCD_DATA *fcd, MRI *mri_pvals, double min_dist, d
     {
       mri_thickness = fcd->lh_thickness_on_lh;
       mris = fcd->mris_lh;
-    } else  // right hemi
+    }
+    else  // right hemi
     {
       mri_thickness = fcd->rh_thickness_on_rh;
       mris = fcd->mris_rh;
