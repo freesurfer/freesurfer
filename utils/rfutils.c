@@ -22,19 +22,18 @@
  *
  */
 
+#include <ctype.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
-#include <ctype.h>
 
+#include "cma.h"
 #include "diag.h"
 #include "error.h"
-#include "rfa.h"
-#include "cma.h"
-#include "transform.h"
-#include "talairachex.h"
 #include "gcamorph.h"
-#include "utils.h"
-#include "rfutils.h"
 #include "macros.h"
-
+#include "rfa.h"
+#include "rfutils.h"
+#include "talairachex.h"
+#include "transform.h"
+#include "utils.h"
