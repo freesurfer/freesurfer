@@ -43,7 +43,8 @@
 static int EVScompare(const void *evsch1, const void *evsch2);
 
 /*-------------------------------------------------------------*/
-EVENT_SCHEDULE *EVSAlloc(int nevents, int allocweight) {
+EVENT_SCHEDULE *EVSAlloc(int nevents, int allocweight)
+{
   EVENT_SCHEDULE *EvSch;
 
   EvSch = (EVENT_SCHEDULE *)calloc(sizeof(EVENT_SCHEDULE), 1);
@@ -60,7 +61,8 @@ EVENT_SCHEDULE *EVSAlloc(int nevents, int allocweight) {
   return (EvSch);
 }
 /*-------------------------------------------------------------*/
-int EVSfree(EVENT_SCHEDULE **ppEvSch) {
+int EVSfree(EVENT_SCHEDULE **ppEvSch)
+{
   EVENT_SCHEDULE *pEvSch;
 
   pEvSch = *ppEvSch;
@@ -83,7 +85,8 @@ int EVSfree(EVENT_SCHEDULE **ppEvSch) {
   an FIR design matrix.
   -------------------------------------------------------------*/
 MATRIX *EVS2FIRmtx(
-    int EvId, EVSCH *EvSch, float tDelay, float TR, int Ntps, float PSDMin, float PSDMax, float dPSD, MATRIX *X) {
+    int EvId, EVSCH *EvSch, float tDelay, float TR, int Ntps, float PSDMin, float PSDMax, float dPSD, MATRIX *X)
+{
   float tMax, tmp, PSDWindow, tPSD, PSD;
   int RSR, Npsds, nthPSD, n, rA, rB;
 
@@ -161,7 +164,8 @@ uniformly in time. */
   all events types. The matrices for the individual event types are
   horizontally concatenated.
   ---------------------------------------------------------------------*/
-MATRIX *EVSfirMtxAll(EVSCH *EvSch, float tDelay, float TR, int Ntps, float PSDMin, float PSDMax, float dPSD) {
+MATRIX *EVSfirMtxAll(EVSCH *EvSch, float tDelay, float TR, int Ntps, float PSDMin, float PSDMax, float dPSD)
+{
   int ev;
   MATRIX *Xevfir = NULL, *Xtmp = NULL, *Xfir = NULL;
 
@@ -182,7 +186,8 @@ MATRIX *EVSfirMtxAll(EVSCH *EvSch, float tDelay, float TR, int Ntps, float PSDMi
   return (Xfir);
 }
 /*-------------------------------------------------------------*/
-int EVSPrint(FILE *fp, EVENT_SCHEDULE *EvSch) {
+int EVSPrint(FILE *fp, EVENT_SCHEDULE *EvSch)
+{
   int n;
   for (n = 0; n < EvSch->nevents; n++) {
     // fprintf(fp,"%3d %8.4f  %3d ",n,EvSch->tevent[n],EvSch->eventid[n]);
@@ -200,7 +205,8 @@ int EVSPrint(FILE *fp, EVENT_SCHEDULE *EvSch) {
   '-0.00'. This is PURELY for cosmetic reasons since it is usually
   the first thing that users see.
   -----------------------------------------------------------------*/
-int EVSwritePar(char *parfile, EVENT_SCHEDULE *EvSch, char **labels, float tPreScan, float tMax) {
+int EVSwritePar(char *parfile, EVENT_SCHEDULE *EvSch, char **labels, float tPreScan, float tMax)
+{
   FILE *fp;
   float NullDur = 0.0, tNull = 0.0, t = 0.0;
   int n, id;
@@ -271,7 +277,8 @@ EVENT_SCHEDULE *EVSsynth(int nEvTypes,
                          float tPreScan,
                          int nCB1Search,
                          float tNullMin,
-                         float tNullMax) {
+                         float tNullMax)
+{
   int id, m, n, nevents, nSlotsNull, nSlotsTot, *EvSeq, nNullMax;
   float tStimTot, t, tScanTot, tNullTot;
   EVENT_SCHEDULE *EvSch;
@@ -356,7 +363,8 @@ EVENT_SCHEDULE *EVSsynth(int nEvTypes,
       t += tPer[id - 1];
       t += tNullMin;
       m++;
-    } else
+    }
+    else
       t += tRes;
   }
 
@@ -371,7 +379,8 @@ EVENT_SCHEDULE *EVSsynth(int nEvTypes,
   EVScb1Optimize() - search for an event sequence which will
   minimize the first-order counter-balancing error.
 -----------------------------------------------------------*/
-EVSCH *EVScb1Optimize(int nEvTypes, int *nEvReps, int nSearch) {
+EVSCH *EVScb1Optimize(int nEvTypes, int *nEvReps, int nSearch)
+{
   EVSCH *EvSch, *EvSchBest = NULL;
   int n;
 
@@ -390,7 +399,8 @@ EVSCH *EVScb1Optimize(int nEvTypes, int *nEvReps, int nSearch) {
       if (EvSchBest->cb1err > EvSch->cb1err) {
         EVSfree(&EvSchBest);
         EvSchBest = EvSch;
-      } else
+      }
+      else
         EVSfree(&EvSch);
     }
   }
@@ -402,7 +412,8 @@ EVSCH *EVScb1Optimize(int nEvTypes, int *nEvReps, int nSearch) {
   given number of event types and number of repetitions per
   event.
   -----------------------------------------------------------*/
-EVSCH *EVSRandSequence(int nEvTypes, int *nEvReps) {
+EVSCH *EVSRandSequence(int nEvTypes, int *nEvReps)
+{
   EVSCH *EvSch;
   int nevents, m, n, nthev;
 
@@ -433,7 +444,8 @@ EVSCH *EVSRandSequence(int nEvTypes, int *nEvReps) {
 /*------------------------------------------
   EVSmaxId() - return the maximum id.
   ------------------------------------------*/
-int EVSmaxId(EVSCH *EvSch) {
+int EVSmaxId(EVSCH *EvSch)
+{
   int n, id, condmax;
 
   condmax = -1;
@@ -448,7 +460,8 @@ int EVSmaxId(EVSCH *EvSch) {
   EVSreadPar() - read an event schedule stored in paradigm
   file format.
 -------------------------------------------------------------*/
-EVENT_SCHEDULE *EVSreadPar(char *parfile) {
+EVENT_SCHEDULE *EVSreadPar(char *parfile)
+{
   FILE *fp;
   EVENT_SCHEDULE *EvSch;
   int nevents, id, ev;
@@ -500,7 +513,8 @@ EVENT_SCHEDULE *EVSreadPar(char *parfile) {
   RandPerm() - returns a list of randomly permuted integers
   between 0 and N-1. Should be the same as matlab's.
   ------------------------------------------------------------*/
-int *RandPerm(int N, int *v) {
+int *RandPerm(int N, int *v)
+{
   int tmp, n, n2;
 
   if (v == NULL) v = (int *)calloc(sizeof(int), N);
@@ -523,7 +537,8 @@ int *RandPerm(int N, int *v) {
  Returns  0 upon successfully finding a legal sequence. Returns -1
  if the maximum number of iterations is exceeded.
  -----------------------------------------------------------------*/
-int RandPermListLimit0(int N, int *v, int lim, int nitersmax) {
+int RandPermListLimit0(int N, int *v, int lim, int nitersmax)
+{
   int niters, runlenmax, runlen, n;
 
   niters = 0;
@@ -553,7 +568,8 @@ int RandPermListLimit0(int N, int *v, int lim, int nitersmax) {
 /*---------------------------------------------------------------
   RandPermList() - randomly permutes members of the given list.
   ------------------------------------------------------------*/
-int RandPermList(int N, int *v) {
+int RandPermList(int N, int *v)
+{
   int *p, *vp, n;
 
   if (v == NULL) {
@@ -576,7 +592,8 @@ int RandPermList(int N, int *v) {
   value in the cost element. Sorts so that the maximum
   cost is first (is descending order).
   ---------------------------------------------------------*/
-int EVSsort(EVSCH **EvSchList, int nList) {
+int EVSsort(EVSCH **EvSchList, int nList)
+{
   qsort(EvSchList, nList, sizeof(EVSCH **), EVScompare);
   return (0);
 }
@@ -585,7 +602,8 @@ int EVSsort(EVSCH **EvSchList, int nList) {
   Compares based on he cost element so that the maximum cost is first
   (is descending order).
   --------------------------------------------------------------*/
-static int EVScompare(const void *evsch1, const void *evsch2) {
+static int EVScompare(const void *evsch1, const void *evsch2)
+{
   EVSCH *EvSch1, *EvSch2;
 
   EvSch1 = *((EVSCH **)evsch1);
@@ -604,7 +622,8 @@ static int EVScompare(const void *evsch1, const void *evsch2) {
   condition i was followed by condition j. This does not include
   condition 0.
   --------------------------------------------------------------*/
-MATRIX *EVScb1Matrix(EVSCH *EvSch) {
+MATRIX *EVScb1Matrix(EVSCH *EvSch)
+{
   MATRIX *Ncb1;
   int nthev, i, j;
 
@@ -627,7 +646,8 @@ MATRIX *EVScb1Matrix(EVSCH *EvSch) {
   Pcb1 should sum to 1.0, but this will not be the case for
   which ever condition the sequence ends on.
   --------------------------------------------------------------*/
-MATRIX *EVScb1ProbMatrix(EVSCH *EvSch) {
+MATRIX *EVScb1ProbMatrix(EVSCH *EvSch)
+{
   MATRIX *Ncb1, *Pcb1 = NULL;
   int i, j;
 
@@ -651,7 +671,8 @@ MATRIX *EVScb1ProbMatrix(EVSCH *EvSch) {
   j, which is just equal to the probability of condition j. This does
   not include condition 0.
   --------------------------------------------------------------*/
-MATRIX *EVScb1IdealProbMatrix(EVSCH *EvSch) {
+MATRIX *EVScb1IdealProbMatrix(EVSCH *EvSch)
+{
   MATRIX *IdealPcb1;
   int i, j;
 
@@ -675,7 +696,8 @@ MATRIX *EVScb1IdealProbMatrix(EVSCH *EvSch) {
   probability matrix and the actual matrix, averaged over all the
   elements in the matrix.
   ------------------------------------------------------------*/
-float EVScb1Error(EVSCH *EvSch) {
+float EVScb1Error(EVSCH *EvSch)
+{
   MATRIX *IdealPcb1, *Pcb1;
   int i, j;
   float cb1err;
@@ -702,7 +724,8 @@ float EVScb1Error(EVSCH *EvSch) {
   EVScostId() - converts from a string indicating a cost function
   to a numeric id that can be used in a case statement.
   ----------------------------------------------------------------*/
-int EVScostId(char *CostString) {
+int EVScostId(char *CostString)
+{
   if (!strcmp("eff", CostString)) return (EVS_COST_EFF);
   if (!strcmp("effinv", CostString)) return (EVS_COST_EFF_INV);
   if (!strcmp("vrfavg", CostString)) return (EVS_COST_VRFAVG);
@@ -717,7 +740,8 @@ int EVScostId(char *CostString) {
   statement) indicating a cost function to a human-readable
   string.
   ----------------------------------------------------------------*/
-char *EVScostString(int CostId) {
+char *EVScostString(int CostId)
+{
   switch (CostId) {
     case EVS_COST_UNKNOWN:
       return ("unknown");
@@ -748,7 +772,8 @@ char *EVScostString(int CostId) {
   EVScost() - compute the cost of the event schedule based on
   the cost function (specified with CostId).
   ------------------------------------------------------------------*/
-float EVScost(EVSCH *EvSch, int CostId, float *params) {
+float EVScost(EVSCH *EvSch, int CostId, float *params)
+{
   switch (CostId) {
     case EVS_COST_EFF:
       /* efficiency */
@@ -789,7 +814,8 @@ float EVScost(EVSCH *EvSch, int CostId, float *params) {
   modified to compute the VRF differently when there are different
   numbers of stimuli in each event type.x
   -------------------------------------------------------------------*/
-int EVSdesignMtxStats(MATRIX *Xtask, MATRIX *Xnuis, EVSCH *EvSch, MATRIX *C, MATRIX *W) {
+int EVSdesignMtxStats(MATRIX *Xtask, MATRIX *Xnuis, EVSCH *EvSch, MATRIX *C, MATRIX *W)
+{
   MATRIX *X = NULL, *Xt = NULL, *XtX = NULL;
   MATRIX *iXtX = NULL, *VRF = NULL, *Ct = NULL, *CiXtX = NULL, *CiXtXCt = NULL;
   int r, m, nTaskAvgs, nNuisAvgs, nAvgs, Cfree, J;
@@ -849,7 +875,8 @@ int EVSdesignMtxStats(MATRIX *Xtask, MATRIX *Xnuis, EVSCH *EvSch, MATRIX *C, MAT
     MatrixFree(&CiXtX);
     MatrixFree(&CiXtXCt);
     MatrixFree(&VRF);
-  } else
+  }
+  else
     r = 1;
 
   MatrixFree(&X);
@@ -884,7 +911,8 @@ int EVSdesignMtxStats(MATRIX *Xtask, MATRIX *Xnuis, EVSCH *EvSch, MATRIX *C, MAT
   3-1=2 dPSDs.
   -------------------------------------------------------------*/
 MATRIX *EVSfirXtXIdeal(
-    int nEvTypes, int *nEvReps, float *EvDur, float TR, int Ntp, float PSDMin, float PSDMax, float dPSD) {
+    int nEvTypes, int *nEvReps, float *EvDur, float TR, int Ntp, float PSDMin, float PSDMax, float dPSD)
+{
   MATRIX *XtX = NULL;
   int Npsd, Navgs, npsd1, npsd2, nevt1, nevt2;
   int n, nslots, nshift;
@@ -922,7 +950,8 @@ MATRIX *EVSfirXtXIdeal(
               vx = 0.0;
             else
               vx = nEvReps[nevt1] * nEvReps[nevt1] / nslots;
-          } else {
+          }
+          else {
             /* off-diagonal block */
             if (nshift == 0 || (nshift > 0 && nshift < EvDur_dPSD[nevt2]) ||
                 (nshift < 0 && -nshift < EvDur_dPSD[nevt1]))
@@ -944,7 +973,8 @@ MATRIX *EVSfirXtXIdeal(
   on the amount of time since the end of the last event.
   This penalizes based on a refractory model.
   --------------------------------------------------------*/
-int EVSrefractory(EVSCH *sch, double alpha, double T, double dtmin) {
+int EVSrefractory(EVSCH *sch, double alpha, double T, double dtmin)
+{
   int n, idprev;
   double tonprev, durprev, tonev, dt = 0.0, toffprev;
 

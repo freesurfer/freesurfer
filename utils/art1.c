@@ -122,7 +122,8 @@ void artFastLearn(ART1 *art1, int j);
 
     Returns:
 ----------------------------------------------------------------------*/
-ART1 *Art1Alloc(int ninputs, int max_f2, double rho) {
+ART1 *Art1Alloc(int ninputs, int max_f2, double rho)
+{
   ART1 *art1;
 
   art1 = (ART1 *)InsCalloc(1, sizeof(ART1));
@@ -150,7 +151,8 @@ ART1 *Art1Alloc(int ninputs, int max_f2, double rho) {
 
     Returns:
 ----------------------------------------------------------------------*/
-ART1 *Art1Read(char *fname) {
+ART1 *Art1Read(char *fname)
+{
   ART1 *art1;
   int ninputs, noutputs, max_f2, i, j;
   double zj, rho, beta;
@@ -186,7 +188,8 @@ ART1 *Art1Read(char *fname) {
 
     Returns:
 ----------------------------------------------------------------------*/
-int Art1Write(ART1 *art1, char *fname) {
+int Art1Write(ART1 *art1, char *fname)
+{
   FILE *fp;
   int i, j;
   double zj;
@@ -213,7 +216,8 @@ int Art1Write(ART1 *art1, char *fname) {
 
     Returns:
 ----------------------------------------------------------------------*/
-int Art1Free(ART1 **art1) {
+int Art1Free(ART1 **art1)
+{
   InsFree((*art1)->scratch);
   InsFree((*art1)->f0);
   InsFree((*art1)->f1);
@@ -231,7 +235,8 @@ int Art1Free(ART1 **art1) {
 
     Returns:
 ----------------------------------------------------------------------*/
-int Art1Process(ART1 *art1, double *I) {
+int Art1Process(ART1 *art1, double *I)
+{
   // int nclass;
   int i, class;
 
@@ -254,7 +259,8 @@ int Art1Process(ART1 *art1, double *I) {
       /* find the closest feed-forward match and force it's use */
       for (i = 0; i < art1->noutputs; i++) art1->flags[i] &= ~ART1_RESET;
       class = artFeedForward(art1);
-    } else /* allocate new f2 node for this category */
+    }
+    else /* allocate new f2 node for this category */
     {
       class = art1->class = art1->noutputs++;
       art1->flags[class] = ART1_COMMITTED;
@@ -273,7 +279,8 @@ int Art1Process(ART1 *art1, double *I) {
 
     Returns:
 ----------------------------------------------------------------------*/
-void artInitWeights(ART1 *art1) {
+void artInitWeights(ART1 *art1)
+{
   int i, j;
   double *zj;
 
@@ -299,7 +306,8 @@ void artInitWeights(ART1 *art1) {
 
     Returns:
 ----------------------------------------------------------------------*/
-int artFeedBack(ART1 *art1, int class) {
+int artFeedBack(ART1 *art1, int class)
+{
   int j, ninputs;
   double match, norm_I_int_zj, norm_I;
 
@@ -328,7 +336,8 @@ int artFeedBack(ART1 *art1, int class) {
   {
     art1->flags[j] |= ART1_RESET;
     return (0);
-  } else
+  }
+  else
     return (1); /* resonance */
 }
 /*----------------------------------------------------------------------
@@ -338,7 +347,8 @@ int artFeedBack(ART1 *art1, int class) {
 
     Returns:
 ----------------------------------------------------------------------*/
-int artFeedForward(ART1 *art1) {
+int artFeedForward(ART1 *art1)
+{
   int max_j, j;
   // double f2;
   double max_out;
@@ -372,7 +382,8 @@ int artFeedForward(ART1 *art1) {
 
     Returns:
 ----------------------------------------------------------------------*/
-double artChoice(ART1 *art1, int j) {
+double artChoice(ART1 *art1, int j)
+{
   double Tj, *zj, norm_zj, norm_I_int_zj;
 
   zj = Mzj(art1, 0, j); /* address of jth nodes weights */
@@ -384,7 +395,8 @@ double artChoice(ART1 *art1, int j) {
     norm_zj = norm(zj, art1->ninputs);
 
     Tj = (double)norm_I_int_zj / (art1->beta + (double)norm_zj);
-  } else /* Tj = |I| * ALPHA(j) */
+  }
+  else /* Tj = |I| * ALPHA(j) */
   {
     Tj = (double)norm(art1->f0, art1->ninputs);
     Tj *= ALPHA(art1, j);
@@ -395,7 +407,8 @@ double artChoice(ART1 *art1, int j) {
    take the intersection of vectors a and b, and return it
    in vector c.  All vectors have length 'len'.
 */
-void intersect(double huge *a, double huge *b, double huge *c, int len) {
+void intersect(double huge *a, double huge *b, double huge *c, int len)
+{
   register int i;
 
   for (i = 0; i < len; i++, a++, b++, c++) *c = MIN(*a, *b);
@@ -404,7 +417,8 @@ void intersect(double huge *a, double huge *b, double huge *c, int len) {
 /*
    take the norm (city block) of vector a of length 'len'.
 */
-double norm(double huge *a, int len) {
+double norm(double huge *a, int len)
+{
   register int i;
   double norm_val;
 
@@ -422,7 +436,8 @@ double norm(double huge *a, int len) {
    f2->f1 learning:
      zj = I ^ zj
 */
-void artFastLearn(ART1 *art1, int j) {
+void artFastLearn(ART1 *art1, int j)
+{
   // double norm_I_int_zj;
   int i;
 
@@ -435,7 +450,8 @@ void artFastLearn(ART1 *art1, int j) {
     *Mzj(art1, i, j) = art1->scratch[i];
   }
 }
-int Art1SetParms(ART1 *art1, double rho) {
+int Art1SetParms(ART1 *art1, double rho)
+{
   art1->rho = rho;
   return (NO_ERROR);
 }

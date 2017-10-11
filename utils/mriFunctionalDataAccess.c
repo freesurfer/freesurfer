@@ -90,7 +90,8 @@ FunD_tErr FunD_New(mriFunctionalDataRef *opVolume,
                    char *isRegistrationFileName,
                    int inScalarSize,
                    mriVolumeRef iAnatomicalVolume,
-                   tBoolean ibIsLeftHemisphere) {
+                   tBoolean ibIsLeftHemisphere)
+{
   mriFunctionalDataRef this = NULL;
   FunD_tErr eResult = FunD_tErr_NoError;
 
@@ -122,7 +123,8 @@ FunD_tErr FunD_New(mriFunctionalDataRef *opVolume,
   if (NULL != isRegistrationFileName) {
     DebugNote(("Saving registration file name"));
     strcpy(this->msRegistrationFileName, isRegistrationFileName);
-  } else {
+  }
+  else {
     strcpy(this->msRegistrationFileName, "");
   }
 
@@ -208,7 +210,8 @@ FunD_tErr FunD_New(mriFunctionalDataRef *opVolume,
   return eResult;
 }
 
-FunD_tErr FunD_Delete(mriFunctionalDataRef *iopVolume) {
+FunD_tErr FunD_Delete(mriFunctionalDataRef *iopVolume)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   mriFunctionalDataRef this = NULL;
   int column = 0;
@@ -264,7 +267,8 @@ FunD_tErr FunD_Delete(mriFunctionalDataRef *iopVolume) {
 FunD_tErr FunD_ReshapeIfScalar_(mriFunctionalDataRef this,
                                 int inNumValues,
                                 tBoolean *obReshaped,
-                                tBoolean ibIsLeftHemisphere) {
+                                tBoolean ibIsLeftHemisphere)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   MRI *reshapedVolume = NULL;
 
@@ -286,7 +290,8 @@ FunD_tErr FunD_ReshapeIfScalar_(mriFunctionalDataRef this,
       mri_tmp = MRIextractInto(
           this->mpData, NULL, 0, 0, 0, this->mpData->width / 2, this->mpData->height, this->mpData->depth, 0, 0, 0);
       mri_tmp2 = MRIcopyFrames(mri_tmp, NULL, 0, inNumValues - 1, 0);
-    } else {
+    }
+    else {
       mri_tmp = MRIextractInto(this->mpData,
                                NULL,
                                0,
@@ -340,7 +345,8 @@ FunD_tErr FunD_ReshapeIfScalar_(mriFunctionalDataRef this,
   return eResult;
 }
 
-FunD_tErr FunD_FindAndParseStemHeader_(mriFunctionalDataRef this) {
+FunD_tErr FunD_FindAndParseStemHeader_(mriFunctionalDataRef this)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   tBoolean bFoundFile = FALSE;
   char sFileName[FunD_knPathLen] = "", *ptmp;
@@ -418,23 +424,27 @@ FunD_tErr FunD_FindAndParseStemHeader_(mriFunctionalDataRef this) {
       nValuesRead = fscanf(pHeader, "%f", &this->mTimeResolution);
       bGood = (1 == nValuesRead);
       bSomethingRead = TRUE;
-    } else if (strcmp(sKeyword, "TPreStim") == 0) {
+    }
+    else if (strcmp(sKeyword, "TPreStim") == 0) {
       DebugNote(("Reading TPreStim"));
       nValuesRead = fscanf(pHeader, "%f", &fPreStimSecs);
       bGood = (1 == nValuesRead);
       bSomethingRead = TRUE;
-    } else if (strcmp(sKeyword, "nCond") == 0) {
+    }
+    else if (strcmp(sKeyword, "nCond") == 0) {
       DebugNote(("Reading nCond"));
       nValuesRead = fscanf(pHeader, "%d", &this->mNumConditions);
       bGood = (1 == nValuesRead);
       this->mbNullConditionPresent = TRUE;
       bSomethingRead = TRUE;
-    } else if (strcmp(sKeyword, "Nh") == 0) {
+    }
+    else if (strcmp(sKeyword, "Nh") == 0) {
       DebugNote(("Reading Nh"));
       nValuesRead = fscanf(pHeader, "%d", &this->mNumTimePoints);
       bGood = (1 == nValuesRead);
       bSomethingRead = TRUE;
-    } else if (strcmp(sKeyword, "SumXtX") == 0) {
+    }
+    else if (strcmp(sKeyword, "SumXtX") == 0) {
       DebugNote(("Reading SumXtX"));
       nNumValues = pow(this->mNumTimePoints * (this->mNumConditions - 1), 2);
       for (nValue = 0; nValue < nNumValues; nValue++) {
@@ -443,7 +453,8 @@ FunD_tErr FunD_FindAndParseStemHeader_(mriFunctionalDataRef this) {
         }
       }
       bSomethingRead = TRUE;
-    } else if (strcmp(sKeyword, "hCovMtx") == 0) {
+    }
+    else if (strcmp(sKeyword, "hCovMtx") == 0) {
       /* Allocate the covariance matrix. It's the size of the number
          of time points times conditions (minus null condition) on both
          sides. */
@@ -497,7 +508,8 @@ FunD_tErr FunD_FindAndParseStemHeader_(mriFunctionalDataRef this) {
   return eResult;
 }
 
-FunD_tErr FunD_GuessMetaInformation_(mriFunctionalDataRef this) {
+FunD_tErr FunD_GuessMetaInformation_(mriFunctionalDataRef this)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(("FunD_GuessMetaInformation_( this=%p )", this));
@@ -524,7 +536,8 @@ FunD_tErr FunD_GuessMetaInformation_(mriFunctionalDataRef this) {
 
 FunD_tErr FunD_ParseRegistrationAndInitMatricies_(mriFunctionalDataRef this,
                                                   FunD_tRegistrationType iType,
-                                                  mriVolumeRef iAnatomicalVolume) {
+                                                  mriVolumeRef iAnatomicalVolume)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   char sBasePath[1024] = "";
   char sFileName[1024] = "";
@@ -691,7 +704,8 @@ FunD_tErr FunD_ParseRegistrationAndInitMatricies_(mriFunctionalDataRef this,
   return eResult;
 }
 
-FunD_tErr FunD_RestoreRegistration(mriFunctionalDataRef this) {
+FunD_tErr FunD_RestoreRegistration(mriFunctionalDataRef this)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(("FunD_RestoreRegistration( this=%p )", this));
@@ -715,7 +729,8 @@ FunD_tErr FunD_RestoreRegistration(mriFunctionalDataRef this) {
 }
 
 FunD_tErr FunD_SetClientCoordBounds(
-    mriFunctionalDataRef this, int inXMin, int inYMin, int inZMin, int inXMax, int inYMax, int inZMax) {
+    mriFunctionalDataRef this, int inXMin, int inYMin, int inZMin, int inXMax, int inYMax, int inZMax)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(
@@ -759,7 +774,8 @@ FunD_tErr FunD_SetClientCoordBounds(
   return eResult;
 }
 
-FunD_tErr FunD_SetConversionMethod(mriFunctionalDataRef this, FunD_tConversionMethod iMethod) {
+FunD_tErr FunD_SetConversionMethod(mriFunctionalDataRef this, FunD_tConversionMethod iMethod)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(("FunD_SetConversionMethod( this=%p, iMethod=%d )", this, iMethod));
@@ -784,7 +800,8 @@ FunD_tErr FunD_SetConversionMethod(mriFunctionalDataRef this, FunD_tConversionMe
   return eResult;
 }
 
-FunD_tErr FunD_GetSampleType(mriFunctionalDataRef this, FunD_tSampleType *oType) {
+FunD_tErr FunD_GetSampleType(mriFunctionalDataRef this, FunD_tSampleType *oType)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(
@@ -813,7 +830,8 @@ FunD_tErr FunD_GetSampleType(mriFunctionalDataRef this, FunD_tSampleType *oType)
   return eResult;
 }
 
-FunD_tErr FunD_SetSampleType(mriFunctionalDataRef this, FunD_tSampleType iType) {
+FunD_tErr FunD_SetSampleType(mriFunctionalDataRef this, FunD_tSampleType iType)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(("FunD_SetSampleType( this=%p, iType=%d )", this, (int)iType));
@@ -837,7 +855,8 @@ FunD_tErr FunD_SetSampleType(mriFunctionalDataRef this, FunD_tSampleType iType) 
   return eResult;
 }
 
-FunD_tErr FunD_ClientSpaceIsTkRegRAS(mriFunctionalDataRef this) {
+FunD_tErr FunD_ClientSpaceIsTkRegRAS(mriFunctionalDataRef this)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   MATRIX *identity = NULL;
   Trns_tErr eTrns = Trns_tErr_NoErr;
@@ -873,7 +892,8 @@ FunD_tErr FunD_ClientSpaceIsTkRegRAS(mriFunctionalDataRef this) {
   return eResult;
 }
 
-FunD_tErr FunD_IsScalar(mriFunctionalDataRef this, tBoolean *obScalar) {
+FunD_tErr FunD_IsScalar(mriFunctionalDataRef this, tBoolean *obScalar)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(("FunD_IsScalar( this=%p, obScalar=%p )", this, obScalar));
@@ -903,7 +923,8 @@ FunD_tErr FunD_IsScalar(mriFunctionalDataRef this, tBoolean *obScalar) {
    way to do this. - RKT */
 #define BE_SUPA_FAST
 
-FunD_tErr FunD_GetData(mriFunctionalDataRef this, xVoxelRef iClientVox, int iCondition, int iTimePoint, float *oValue) {
+FunD_tErr FunD_GetData(mriFunctionalDataRef this, xVoxelRef iClientVox, int iCondition, int iTimePoint, float *oValue)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   xVoxel funcIdx;
   float fValue = 0;
@@ -943,7 +964,8 @@ FunD_tErr FunD_GetData(mriFunctionalDataRef this, xVoxelRef iClientVox, int iCon
     DebugNote(("Converting client to func idx"));
 #endif
     FunD_ConvertClientToFloatFuncIdx_(this, iClientVox, &funcIdx);
-  } else {
+  }
+  else {
     xVoxl_Copy(&funcIdx, iClientVox);
   }
 
@@ -975,7 +997,8 @@ FunD_tErr FunD_GetData(mriFunctionalDataRef this, xVoxelRef iClientVox, int iCon
 }
 
 FunD_tErr FunD_GetSampledData(
-    mriFunctionalDataRef this, xVoxelRef iClientVox, int iCondition, int iTimePoint, float *oValue) {
+    mriFunctionalDataRef this, xVoxelRef iClientVox, int iCondition, int iTimePoint, float *oValue)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   xVoxel funcIdx;
   float fValue = 0;
@@ -1015,7 +1038,8 @@ FunD_tErr FunD_GetSampledData(
     DebugNote(("Converting client to func idx"));
 #endif
     FunD_ConvertClientToFloatFuncIdx_(this, iClientVox, &funcIdx);
-  } else {
+  }
+  else {
     xVoxl_Copy(&funcIdx, iClientVox);
   }
 
@@ -1046,10 +1070,8 @@ FunD_tErr FunD_GetSampledData(
   return eResult;
 }
 
-FunD_tErr FunD_GetDataForAllTimePoints(mriFunctionalDataRef this,
-                                       xVoxelRef iClientVox,
-                                       int iCondition,
-                                       float *oaValue) {
+FunD_tErr FunD_GetDataForAllTimePoints(mriFunctionalDataRef this, xVoxelRef iClientVox, int iCondition, float *oaValue)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   xVoxel funcIdx;
   int nTimePoint = 0;
@@ -1075,7 +1097,8 @@ FunD_tErr FunD_GetDataForAllTimePoints(mriFunctionalDataRef this,
   if (!this->mbScalar) {
     DebugNote(("Converting client to func idx"));
     FunD_ConvertClientToFloatFuncIdx_(this, iClientVox, &funcIdx);
-  } else {
+  }
+  else {
     xVoxl_Copy(&funcIdx, iClientVox);
   }
 
@@ -1101,7 +1124,8 @@ FunD_tErr FunD_GetDataForAllTimePoints(mriFunctionalDataRef this,
 }
 
 FunD_tErr FunD_GetDeviation(
-    mriFunctionalDataRef this, xVoxelRef iClientVox, int iCondition, int iTimePoint, float *oValue) {
+    mriFunctionalDataRef this, xVoxelRef iClientVox, int iCondition, int iTimePoint, float *oValue)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   xVoxel funcIdx;
   float fCovariance = 0;
@@ -1132,7 +1156,8 @@ FunD_tErr FunD_GetDeviation(
   if (0 == iCondition) {
     DebugNote(("Setting return value"));
     *oValue = 0;
-  } else {
+  }
+  else {
     DebugNote(("Getting cov mtx for cond %d tp %d\n", iCondition, iTimePoint));
     nCovMtx = ((iCondition - 1) * this->mNumTimePoints) + iTimePoint;
     fCovariance = this->mCovMtx[nCovMtx][nCovMtx];
@@ -1140,7 +1165,8 @@ FunD_tErr FunD_GetDeviation(
     if (!this->mbScalar) {
       DebugNote(("Converting client to func idx"));
       FunD_ConvertClientToFuncIdx_(this, iClientVox, &funcIdx);
-    } else {
+    }
+    else {
       xVoxl_Copy(&funcIdx, iClientVox);
     }
 
@@ -1163,7 +1189,8 @@ FunD_tErr FunD_GetDeviation(
 FunD_tErr FunD_GetDeviationForAllTimePoints(mriFunctionalDataRef this,
                                             xVoxelRef iClientVox,
                                             int iCondition,
-                                            float *oaValue) {
+                                            float *oaValue)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   int nTimePoint = 0;
   xVoxel funcIdx;
@@ -1190,7 +1217,8 @@ FunD_tErr FunD_GetDeviationForAllTimePoints(mriFunctionalDataRef this,
   if (!this->mbScalar) {
     DebugNote(("Converting client to func idx"));
     FunD_ConvertClientToFuncIdx_(this, iClientVox, &funcIdx);
-  } else {
+  }
+  else {
     xVoxl_Copy(&funcIdx, iClientVox);
   }
 
@@ -1200,7 +1228,8 @@ FunD_tErr FunD_GetDeviationForAllTimePoints(mriFunctionalDataRef this,
     if (0 == iCondition) {
       DebugNote(("Setting return value"));
       oaValue[nTimePoint] = 0;
-    } else {
+    }
+    else {
       DebugNote(("Getting sigma value"));
       FunD_GetSigma_(this, &funcIdx, nTimePoint, &fSigma);
 
@@ -1222,7 +1251,8 @@ FunD_tErr FunD_GetDeviationForAllTimePoints(mriFunctionalDataRef this,
   return eResult;
 }
 
-FunD_tErr FunD_Smooth(mriFunctionalDataRef this, int iTimePoint, int iCondition, float iSigma) {
+FunD_tErr FunD_Smooth(mriFunctionalDataRef this, int iTimePoint, int iCondition, float iSigma)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   MRI *kernel = NULL;
 
@@ -1265,7 +1295,8 @@ FunD_tErr FunD_Smooth(mriFunctionalDataRef this, int iTimePoint, int iCondition,
   return eResult;
 }
 
-FunD_tErr FunD_NormalizeOverAll(mriFunctionalDataRef this) {
+FunD_tErr FunD_NormalizeOverAll(mriFunctionalDataRef this)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(("FunD_NormalizeOverAll( this=%p )", this));
@@ -1289,7 +1320,8 @@ FunD_tErr FunD_NormalizeOverAll(mriFunctionalDataRef this) {
   return eResult;
 }
 
-FunD_tErr FunD_ConvertTimePointToSecond(mriFunctionalDataRef this, int iTimePoint, float *oSecond) {
+FunD_tErr FunD_ConvertTimePointToSecond(mriFunctionalDataRef this, int iTimePoint, float *oSecond)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   float timeAtFirstPoint = 0;
 
@@ -1323,7 +1355,8 @@ FunD_tErr FunD_ConvertTimePointToSecond(mriFunctionalDataRef this, int iTimePoin
   return eResult;
 }
 
-FunD_tErr FunD_ConvertSecondToTimePoint(mriFunctionalDataRef this, float iSecond, int *oTimePoint) {
+FunD_tErr FunD_ConvertSecondToTimePoint(mriFunctionalDataRef this, float iSecond, int *oTimePoint)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(
@@ -1353,7 +1386,8 @@ FunD_tErr FunD_ConvertSecondToTimePoint(mriFunctionalDataRef this, float iSecond
   return eResult;
 }
 
-FunD_tErr FunD_SetTimeResolution(mriFunctionalDataRef this, float iTimeResolution) {
+FunD_tErr FunD_SetTimeResolution(mriFunctionalDataRef this, float iTimeResolution)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(("FunD_SetTimeResolution( this=%p, iTimeResolution=%f )", this, iTimeResolution));
@@ -1378,7 +1412,8 @@ FunD_tErr FunD_SetTimeResolution(mriFunctionalDataRef this, float iTimeResolutio
   return eResult;
 }
 
-FunD_tErr FunD_SetNumPreStimTimePoints(mriFunctionalDataRef this, int iNumPoints) {
+FunD_tErr FunD_SetNumPreStimTimePoints(mriFunctionalDataRef this, int iNumPoints)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(("FunD_SetNumPreStimTimePoints( this=%p, iNumPoints=%d)", this, iNumPoints));
@@ -1403,7 +1438,8 @@ FunD_tErr FunD_SetNumPreStimTimePoints(mriFunctionalDataRef this, int iNumPoints
   return eResult;
 }
 
-FunD_tErr FunD_GetSubjectName(mriFunctionalDataRef this, char *oSubjectName) {
+FunD_tErr FunD_GetSubjectName(mriFunctionalDataRef this, char *oSubjectName)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(("FunD_GetSubjectName( this=%p, oSubjectName=%s)", this, oSubjectName));
@@ -1428,7 +1464,8 @@ FunD_tErr FunD_GetSubjectName(mriFunctionalDataRef this, char *oSubjectName) {
   return eResult;
 }
 
-FunD_tErr FunD_GetNumTimePoints(mriFunctionalDataRef this, int *oNumTimePoints) {
+FunD_tErr FunD_GetNumTimePoints(mriFunctionalDataRef this, int *oNumTimePoints)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(("FunD_GetNumTimePoints( this=%p, oNumTimePoints=%p)", this, oNumTimePoints));
@@ -1453,7 +1490,8 @@ FunD_tErr FunD_GetNumTimePoints(mriFunctionalDataRef this, int *oNumTimePoints) 
   return eResult;
 }
 
-FunD_tErr FunD_GetNumConditions(mriFunctionalDataRef this, int *oNumConditions) {
+FunD_tErr FunD_GetNumConditions(mriFunctionalDataRef this, int *oNumConditions)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(("FunD_GetNumConditions( this=%p, oNumConditions=%p)", this, oNumConditions));
@@ -1478,7 +1516,8 @@ FunD_tErr FunD_GetNumConditions(mriFunctionalDataRef this, int *oNumConditions) 
   return eResult;
 }
 
-FunD_tErr FunD_GetTimeResolution(mriFunctionalDataRef this, float *oTimeResolution) {
+FunD_tErr FunD_GetTimeResolution(mriFunctionalDataRef this, float *oTimeResolution)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(("FunD_Get( this=%p, oTimeResolution=%p)", this, oTimeResolution));
@@ -1503,7 +1542,8 @@ FunD_tErr FunD_GetTimeResolution(mriFunctionalDataRef this, float *oTimeResoluti
   return eResult;
 }
 
-FunD_tErr FunD_GetNumPreStimTimePoints(mriFunctionalDataRef this, int *oNumPoints) {
+FunD_tErr FunD_GetNumPreStimTimePoints(mriFunctionalDataRef this, int *oNumPoints)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(("FunD_GetNumPreStimTimePoints( this=%p, oNumPoints=%p)", this, oNumPoints));
@@ -1528,7 +1568,8 @@ FunD_tErr FunD_GetNumPreStimTimePoints(mriFunctionalDataRef this, int *oNumPoint
   return eResult;
 }
 
-FunD_tErr FunD_GetValueRange(mriFunctionalDataRef this, float *oMin, float *oMax) {
+FunD_tErr FunD_GetValueRange(mriFunctionalDataRef this, float *oMin, float *oMax)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(("FunD_GetValueRange( this=%p, oMin=%p, oMax=%p)", this, oMin, oMax));
@@ -1554,7 +1595,8 @@ FunD_tErr FunD_GetValueRange(mriFunctionalDataRef this, float *oMin, float *oMax
   return eResult;
 }
 
-FunD_tErr FunD_IsErrorDataPresent(mriFunctionalDataRef this, tBoolean *oPresent) {
+FunD_tErr FunD_IsErrorDataPresent(mriFunctionalDataRef this, tBoolean *oPresent)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(("FunD_IsErrorDataPresent( this=%p, oPresent=%p)", this, oPresent));
@@ -1579,7 +1621,8 @@ FunD_tErr FunD_IsErrorDataPresent(mriFunctionalDataRef this, tBoolean *oPresent)
   return eResult;
 }
 
-FunD_tErr FunD_GetBoundsInClientSpace(mriFunctionalDataRef this, xVoxelRef oBeginCorner, xVoxelRef oEndCorner) {
+FunD_tErr FunD_GetBoundsInClientSpace(mriFunctionalDataRef this, xVoxelRef oBeginCorner, xVoxelRef oEndCorner)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   xVoxel curIdx;
   xVoxel curClient;
@@ -1638,7 +1681,8 @@ FunD_tErr FunD_GetBoundsInClientSpace(mriFunctionalDataRef this, xVoxelRef oBegi
   return eResult;
 }
 
-FunD_tErr FunD_GetValueAtPercentile(mriFunctionalDataRef this, float iPercentile, float *oValue) {
+FunD_tErr FunD_GetValueAtPercentile(mriFunctionalDataRef this, float iPercentile, float *oValue)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   int numValues = 0;
   int targetCount = 0;
@@ -1770,7 +1814,8 @@ FunD_tErr FunD_CalcFDRThreshold(mriFunctionalDataRef this,
                                 int iSign,
                                 float iRate,
                                 MRI *iMaskVolume,
-                                float *oThresholdMin) {
+                                float *oThresholdMin)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   int eMRI = ERROR_NONE;
   int nFrame = 0;
@@ -1858,7 +1903,8 @@ FunD_tErr FunD_CalcFDRThreshold(mriFunctionalDataRef this,
   return eResult;
 }
 
-FunD_tErr FunD_SaveRegistration(mriFunctionalDataRef this) {
+FunD_tErr FunD_SaveRegistration(mriFunctionalDataRef this)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   fMRI_REG *regInfo = NULL;
   struct stat fileInfo;
@@ -1976,7 +2022,8 @@ FunD_tErr FunD_SaveRegistration(mriFunctionalDataRef this) {
   return eResult;
 }
 
-FunD_tErr FunD_SetRegistrationToIdentity(mriFunctionalDataRef this) {
+FunD_tErr FunD_SetRegistrationToIdentity(mriFunctionalDataRef this)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   MATRIX *identity = NULL;
 
@@ -2012,7 +2059,8 @@ FunD_tErr FunD_SetRegistrationToIdentity(mriFunctionalDataRef this) {
   return eResult;
 }
 
-FunD_tErr FunD_ApplyTransformToRegistration(mriFunctionalDataRef this, MATRIX *iTransform) {
+FunD_tErr FunD_ApplyTransformToRegistration(mriFunctionalDataRef this, MATRIX *iTransform)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   Trns_tErr eTransform = Trns_tErr_NoErr;
   MATRIX *invTransform = NULL;
@@ -2053,7 +2101,8 @@ FunD_tErr FunD_ApplyTransformToRegistration(mriFunctionalDataRef this, MATRIX *i
   return eResult;
 }
 
-FunD_tErr FunD_TranslateRegistration(mriFunctionalDataRef this, float ifDistance, tAxis iAxis) {
+FunD_tErr FunD_TranslateRegistration(mriFunctionalDataRef this, float ifDistance, tAxis iAxis)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
@@ -2086,7 +2135,8 @@ FunD_tErr FunD_TranslateRegistration(mriFunctionalDataRef this, float ifDistance
   return eResult;
 }
 
-FunD_tErr FunD_RotateRegistration(mriFunctionalDataRef this, float ifDegrees, tAxis iAxis, xVoxelRef iCenterFuncRAS) {
+FunD_tErr FunD_RotateRegistration(mriFunctionalDataRef this, float ifDegrees, tAxis iAxis, xVoxelRef iCenterFuncRAS)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   Trns_tErr eTransform = Trns_tErr_NoErr;
   float fX = 0;
@@ -2141,7 +2191,8 @@ FunD_tErr FunD_RotateRegistration(mriFunctionalDataRef this, float ifDegrees, tA
   return eResult;
 }
 
-FunD_tErr FunD_ScaleRegistration(mriFunctionalDataRef this, float ifFactor, tAxis iAxis) {
+FunD_tErr FunD_ScaleRegistration(mriFunctionalDataRef this, float ifFactor, tAxis iAxis)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
@@ -2174,7 +2225,8 @@ FunD_tErr FunD_ScaleRegistration(mriFunctionalDataRef this, float ifFactor, tAxi
   return eResult;
 }
 
-FunD_tErr FunD_DebugPrint(mriFunctionalDataRef this) {
+FunD_tErr FunD_DebugPrint(mriFunctionalDataRef this)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(("FunD_DebugPrint( this=%p )", this));
@@ -2216,7 +2268,8 @@ FunD_tErr FunD_DebugPrint(mriFunctionalDataRef this) {
   return eResult;
 }
 
-FunD_tErr FunD_ResampleData_(mriFunctionalDataRef this) {
+FunD_tErr FunD_ResampleData_(mriFunctionalDataRef this)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   MRI *volume = NULL;
   int nTimePoint = 0;
@@ -2266,13 +2319,15 @@ FunD_tErr FunD_ResampleData_(mriFunctionalDataRef this) {
         if (!this->mbScalar) {
           DebugNote(("Converting client to func idx"));
           FunD_ConvertClientToFuncIdx_(this, &clientIdx, &funcIdx);
-        } else {
+        }
+        else {
           xVoxl_Copy(&funcIdx, &clientIdx);
         }
         eResult = FunD_VerifyFuncIdx_(this, &funcIdx);
         if (FunD_tErr_NoError == eResult) {
           FunD_GetValue_(this, this->mpData, &funcIdx, nCondition, nTimePoint, &value);
-        } else {
+        }
+        else {
           continue;
         }
 
@@ -2307,7 +2362,8 @@ FunD_tErr FunD_ResampleData_(mriFunctionalDataRef this) {
   return eResult;
 }
 
-FunD_tErr FunD_CalcFrequencies_(mriFunctionalDataRef this, int iNumBins) {
+FunD_tErr FunD_CalcFrequencies_(mriFunctionalDataRef this, int iNumBins)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
   int *aFrequencies = NULL;
   int nCondition = 0;
@@ -2371,7 +2427,8 @@ FunD_tErr FunD_CalcFrequencies_(mriFunctionalDataRef this, int iNumBins) {
   return eResult;
 }
 
-char *FunD_GetErrorString(FunD_tErr iErr) {
+char *FunD_GetErrorString(FunD_tErr iErr)
+{
   if (!(iErr >= 0 && iErr < FunD_tErr_knNumErrorCodes)) {
     iErr = FunD_tErr_InvalidErrorCode;
   }
@@ -2381,7 +2438,8 @@ char *FunD_GetErrorString(FunD_tErr iErr) {
 
 #ifndef FUND_USE_MACROS
 
-void FunD_ConvertClientToFuncIdx_(mriFunctionalDataRef this, xVoxelRef iClientVox, xVoxelRef oFuncIdx) {
+void FunD_ConvertClientToFuncIdx_(mriFunctionalDataRef this, xVoxelRef iClientVox, xVoxelRef oFuncIdx)
+{
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
   DebugEnterFunction(
@@ -2435,7 +2493,8 @@ void FunD_ConvertClientToFuncIdx_(mriFunctionalDataRef this, xVoxelRef iClientVo
   DebugExitFunction;
 }
 
-void FunD_ConvertClientToFloatFuncIdx_(mriFunctionalDataRef this, xVoxelRef iClientVox, xVoxelRef oFuncIdx) {
+void FunD_ConvertClientToFloatFuncIdx_(mriFunctionalDataRef this, xVoxelRef iClientVox, xVoxelRef oFuncIdx)
+{
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
   DebugEnterFunction(
@@ -2464,7 +2523,8 @@ void FunD_ConvertClientToFloatFuncIdx_(mriFunctionalDataRef this, xVoxelRef iCli
 
 #endif
 
-void FunD_ConvertClientToFuncRAS_(mriFunctionalDataRef this, xVoxelRef iClientVox, xVoxelRef oFuncRAS) {
+void FunD_ConvertClientToFuncRAS_(mriFunctionalDataRef this, xVoxelRef iClientVox, xVoxelRef oFuncRAS)
+{
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
   DebugEnterFunction(
@@ -2498,7 +2558,8 @@ void FunD_ConvertClientToFuncRAS_(mriFunctionalDataRef this, xVoxelRef iClientVo
   DebugExitFunction;
 }
 
-void FunD_ConvertFuncIdxToClient_(mriFunctionalDataRef this, xVoxelRef iFuncIdx, xVoxelRef oClientVox) {
+void FunD_ConvertFuncIdxToClient_(mriFunctionalDataRef this, xVoxelRef iFuncIdx, xVoxelRef oClientVox)
+{
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
   DebugEnterFunction(
@@ -2528,7 +2589,8 @@ void FunD_ConvertFuncIdxToClient_(mriFunctionalDataRef this, xVoxelRef iFuncIdx,
   DebugExitFunction;
 }
 
-void FunD_ConvertRASToFuncIdx_(mriFunctionalDataRef this, xVoxelRef iRAS, xVoxelRef oFuncIdx) {
+void FunD_ConvertRASToFuncIdx_(mriFunctionalDataRef this, xVoxelRef iRAS, xVoxelRef oFuncIdx)
+{
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
   DebugEnterFunction(
@@ -2582,7 +2644,8 @@ void FunD_ConvertRASToFuncIdx_(mriFunctionalDataRef this, xVoxelRef iRAS, xVoxel
   DebugExitFunction;
 }
 
-void FunD_ConvertFuncIdxToFuncRAS_(mriFunctionalDataRef this, xVoxelRef iFuncIdx, xVoxelRef oFuncRAS) {
+void FunD_ConvertFuncIdxToFuncRAS_(mriFunctionalDataRef this, xVoxelRef iFuncIdx, xVoxelRef oFuncRAS)
+{
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
   DebugEnterFunction(
@@ -2615,7 +2678,8 @@ void FunD_ConvertFuncIdxToFuncRAS_(mriFunctionalDataRef this, xVoxelRef iFuncIdx
 #ifndef FUND_USE_MACROS
 
 void FunD_GetValue_(
-    mriFunctionalDataRef this, MRI *iData, xVoxelRef iIdx, int inCondition, int inTimePoint, float *oValue) {
+    mriFunctionalDataRef this, MRI *iData, xVoxelRef iIdx, int inCondition, int inTimePoint, float *oValue)
+{
   int nFrame = 0;
 
   FunD_GetDataFrameNumber(inCondition, inTimePoint, &nFrame);
@@ -2661,7 +2725,8 @@ void FunD_GetValue_(
 }
 
 void FunD_GetSampledValue_(
-    mriFunctionalDataRef this, MRI *iData, xVoxelRef iIdx, int inCondition, int inTimePoint, float *oValue) {
+    mriFunctionalDataRef this, MRI *iData, xVoxelRef iIdx, int inCondition, int inTimePoint, float *oValue)
+{
   int nFrame = 0;
 
   FunD_GetDataFrameNumber(inCondition, inTimePoint, &nFrame);
@@ -2678,7 +2743,8 @@ void FunD_GetSampledValue_(
 }
 
 void FunD_SetValue_(
-    mriFunctionalDataRef this, MRI *iData, xVoxelRef iIdx, int inCondition, int inTimePoint, float iValue) {
+    mriFunctionalDataRef this, MRI *iData, xVoxelRef iIdx, int inCondition, int inTimePoint, float iValue)
+{
   int nFrame = 0;
 
   FunD_GetDataFrameNumber(inCondition, inTimePoint, &nFrame);
@@ -2706,7 +2772,8 @@ void FunD_SetValue_(
 
 #endif /* FUND_USE_MACROS */
 
-void FunD_GetSigma_(mriFunctionalDataRef this, xVoxelRef iFuncIdx, int inTimePoint, float *oSigma) {
+void FunD_GetSigma_(mriFunctionalDataRef this, xVoxelRef iFuncIdx, int inTimePoint, float *oSigma)
+{
   int nFrame = 0;
 
   FunD_GetSigmaFrameNumber(inTimePoint, &nFrame);
@@ -2733,7 +2800,8 @@ void FunD_GetSigma_(mriFunctionalDataRef this, xVoxelRef iFuncIdx, int inTimePoi
   }
 }
 
-FunD_tErr FunD_Verify(mriFunctionalDataRef this) {
+FunD_tErr FunD_Verify(mriFunctionalDataRef this)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   //  DebugEnterFunction( ("FunD_Verify( this=%p )", this) );
@@ -2750,7 +2818,8 @@ FunD_tErr FunD_Verify(mriFunctionalDataRef this) {
   return eResult;
 }
 
-FunD_tErr FunD_VerifyFuncIdx_(mriFunctionalDataRef this, xVoxelRef iFuncIdx) {
+FunD_tErr FunD_VerifyFuncIdx_(mriFunctionalDataRef this, xVoxelRef iFuncIdx)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugAssertThrowX((NULL != this && NULL != iFuncIdx), eResult, FunD_tErr_InvalidParameter);
@@ -2768,7 +2837,8 @@ FunD_tErr FunD_VerifyFuncIdx_(mriFunctionalDataRef this, xVoxelRef iFuncIdx) {
   return eResult;
 }
 
-FunD_tErr FunD_VerifyTimePoint(mriFunctionalDataRef this, int iTimePoint) {
+FunD_tErr FunD_VerifyTimePoint(mriFunctionalDataRef this, int iTimePoint)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(("FunD_VerifyTimePoint( this=%p, iTimePoint=%p )", this, iTimePoint));
@@ -2787,7 +2857,8 @@ FunD_tErr FunD_VerifyTimePoint(mriFunctionalDataRef this, int iTimePoint) {
   return eResult;
 }
 
-FunD_tErr FunD_VerifyCondition(mriFunctionalDataRef this, int iCondition) {
+FunD_tErr FunD_VerifyCondition(mriFunctionalDataRef this, int iCondition)
+{
   FunD_tErr eResult = FunD_tErr_NoError;
 
   DebugEnterFunction(("FunD_VerifyTimePoint( this=%p, iCondition=%p )", this, iCondition));

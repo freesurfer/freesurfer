@@ -15,18 +15,18 @@ BinPackArguments: false
 BinPackParameters: false
 
 # Use customized breaks for braces to conform with old FS coding patterns
-#BreakBeforeBraces: Custom
-#BraceWrapping:
-#  AfterClass: true
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterClass: true
 #  AfterControlStatement: true
 #  AfterEnum: true
-#  AfterFunction: true
-  # AfterNamespace:  true
+  AfterFunction: true
+  AfterNamespace:  true
   # AfterObjCDeclaration: true
-  # AfterStruct: true
+  AfterStruct: true
   # AfterUnion: true
 #  BeforeCatch: true
-#  BeforeElse: true
+  BeforeElse: true
 #  IndentBraces: false
 
 # Enforce indentation, width and use of tabs/vs spaces

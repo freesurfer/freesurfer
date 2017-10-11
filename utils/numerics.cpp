@@ -67,7 +67,8 @@ void (*user_call_func)(float[]) = NULL;
 
 static void ConvertFromFloatToVNLDouble(const float *iaSource,
                                         vnl_vector< double > &oDestination,
-                                        const int icSourceAndDestination) {
+                                        const int icSourceAndDestination)
+{
   // indexing p at 1 because of NR legacy
   for (int nDest = 0; nDest < icSourceAndDestination; nDest++) {
     oDestination(nDest) = static_cast< double >(iaSource[nDest + 1]);
@@ -76,7 +77,8 @@ static void ConvertFromFloatToVNLDouble(const float *iaSource,
 
 static void ConvertFromVNLDoubleToFloat(const vnl_vector< double > iSource,
                                         float *oaDestination,
-                                        const int icSourceAndDestination) {
+                                        const int icSourceAndDestination)
+{
   // indexing p at 1 because of NR legacy
   for (int i = 0; i < icSourceAndDestination; i++) {
     oaDestination[i + 1] = static_cast< float >(iSource(i));
@@ -85,7 +87,8 @@ static void ConvertFromVNLDoubleToFloat(const vnl_vector< double > iSource,
 
 static void ConvertFromFloatToVNLDouble(float **iaSource,
                                         vnl_matrix< double > &oDestination,
-                                        const int icSourceAndDestination) {
+                                        const int icSourceAndDestination)
+{
   // indexing p at 1 because of NR legacy
   for (int row = 0; row < icSourceAndDestination; row++) {
     for (int col = 0; col < icSourceAndDestination; col++) {
@@ -96,7 +99,8 @@ static void ConvertFromFloatToVNLDouble(float **iaSource,
 
 static void ConvertFromVNLDoubleToFloat(const vnl_matrix< double > iSource,
                                         float **oaDestination,
-                                        const int icSourceAndDestination) {
+                                        const int icSourceAndDestination)
+{
   // indexing p at 1 because of NR legacy
   for (int row = 0; row < icSourceAndDestination; row++) {
     for (int col = 0; col < icSourceAndDestination; col++) {
@@ -135,7 +139,8 @@ static double d_huge() { return HUGE_VAL; }
  *
  * @return floating point round-off unit.
  */
-static double d_epsilon() {
+static double d_epsilon()
+{
   double r;
 
   r = 1.0;
@@ -221,7 +226,8 @@ static double d_epsilon() {
  *   If X <= 0.0, or if overflow would occur, the program returns the
  *   value XINF, the largest representable floating point number.
  */
-static double gamma_log(double x) {
+static double gamma_log(double x)
+{
   double c[7] = {-1.910444077728E-03,
                  8.4171387781295E-04,
                  -5.952379913043012E-04,
@@ -302,11 +308,13 @@ static double gamma_log(double x) {
 
   if (x <= d_epsilon()) {
     res = -log(x);
-  } else if (x <= 1.5) {
+  }
+  else if (x <= 1.5) {
     if (x < pnt68) {
       corr = -log(x);
       xm1 = x;
-    } else {
+    }
+    else {
       corr = 0.0;
       xm1 = (x - 0.5) - 0.5;
     }
@@ -321,7 +329,8 @@ static double gamma_log(double x) {
       }
 
       res = corr + (xm1 * (d1 + xm1 * (xnum / xden)));
-    } else {
+    }
+    else {
       xm2 = (x - 0.5) - 0.5;
       xden = 1.0;
       xnum = 0.0;
@@ -332,7 +341,8 @@ static double gamma_log(double x) {
 
       res = corr + xm2 * (d2 + xm2 * (xnum / xden));
     }
-  } else if (x <= 4.0) {
+  }
+  else if (x <= 4.0) {
     xm2 = x - 2.0;
     xden = 1.0;
     xnum = 0.0;
@@ -342,7 +352,8 @@ static double gamma_log(double x) {
     }
 
     res = xm2 * (d2 + xm2 * (xnum / xden));
-  } else if (x <= 12.0) {
+  }
+  else if (x <= 12.0) {
     xm4 = x - 4.0;
     xden = -1.0;
     xnum = 0.0;
@@ -352,7 +363,8 @@ static double gamma_log(double x) {
     }
 
     res = d4 + xm4 * (xnum / xden);
-  } else {
+  }
+  else {
     res = 0.0;
 
     if (x <= frtbig) {
@@ -397,7 +409,8 @@ static double gamma_log(double x) {
  * @param y Parameter that define the Beta function.  Must be greater than 0.
  * @return Value of the Beta function.
  */
-static double beta(double x, double y) {
+static double beta(double x, double y)
+{
   if (x <= 0.0 || y <= 0.0) {
     std::cout << "\n";
     std::cout << "BETA - Fatal error!\n";
@@ -443,7 +456,8 @@ static double beta(double x, double y) {
  * @param x Argument of the function.  Normally, 0.0 <= x <= 1.0.
  * @return Value of the function.
  */
-extern "C" float OpenBetaIncomplete(float a, float b, float x) {
+extern "C" float OpenBetaIncomplete(float a, float b, float x)
+{
   double cx;
   int i;
   int it;
@@ -477,7 +491,8 @@ extern "C" float OpenBetaIncomplete(float a, float b, float x) {
   if (x <= 0.0) {
     value = 0.0;
     return value;
-  } else if (1.0 <= x) {
+  }
+  else if (1.0 <= x) {
     value = 1.0;
     return value;
   }
@@ -492,7 +507,8 @@ extern "C" float OpenBetaIncomplete(float a, float b, float x) {
     pp = b;
     qq = a;
     indx = true;
-  } else {
+  }
+  else {
     xx = x;
     cx = 1.0 - x;
     pp = a;
@@ -548,7 +564,8 @@ extern "C" float OpenBetaIncomplete(float a, float b, float x) {
       if (ns == 0) {
         rx = xx;
       }
-    } else {
+    }
+    else {
       temp = psq;
       psq = psq + 1.0;
     }
@@ -575,10 +592,12 @@ extern "C" float OpenBetaIncomplete(float a, float b, float x) {
  * @param y Quantity to compare.
  * @return Minimum of x and y.
  */
-static double d_min(double x, double y) {
+static double d_min(double x, double y)
+{
   if (y < x) {
     return y;
-  } else {
+  }
+  else {
     return x;
   }
 }
@@ -599,7 +618,8 @@ static double d_min(double x, double y) {
  * @param X The argument of the CDF.
  * @return The value of the CDF.
  */
-double normal_01_cdf(double x) {
+double normal_01_cdf(double x)
+{
   double a1 = 0.398942280444;
   double a2 = 0.399903438504;
   double a3 = 5.75885480458;
@@ -632,7 +652,8 @@ double normal_01_cdf(double x) {
     //
     //  1.28 < |X| <= 12.7
     //
-  } else if (fabs(x) <= 12.7) {
+  }
+  else if (fabs(x) <= 12.7) {
     y = 0.5 * x * x;
 
     q = exp(-y) * b0 /
@@ -641,7 +662,8 @@ double normal_01_cdf(double x) {
     //
     //  12.7 < |X|
     //
-  } else {
+  }
+  else {
     q = 0.0;
   }
   //
@@ -649,7 +671,8 @@ double normal_01_cdf(double x) {
   //
   if (x < 0.0) {
     cdf = q;
-  } else {
+  }
+  else {
     cdf = 1.0 - q;
   }
 
@@ -685,7 +708,8 @@ double normal_01_cdf(double x) {
  * GAMMA_INC is returned as 0.
  * @return The value of the function.
  */
-extern "C" float OpenGammaIncomplete(float p, float x) {
+extern "C" float OpenGammaIncomplete(float p, float x)
+{
   double a;
   double arg;
   double b;
@@ -756,7 +780,8 @@ extern "C" float OpenGammaIncomplete(float p, float x) {
 
     if (exp_arg_min <= arg) {
       value = exp(arg);
-    } else {
+    }
+    else {
       value = 0.0;
     }
   }
@@ -789,7 +814,8 @@ extern "C" float OpenGammaIncomplete(float p, float x) {
 
           if (exp_arg_min <= arg) {
             value = 1.0 - exp(arg);
-          } else {
+          }
+          else {
             value = 1.0;
           }
 
@@ -825,7 +851,8 @@ extern "C" int OpenDFPMin(float p[],
                           void (*iDerivativeFunction)(float[], float[]),
                           void (*iStepFunction)(int, float, void *, float *),
                           void *iStepFunctionParams,
-                          void (*iUserCallBackFunction)(float[])) {
+                          void (*iUserCallBackFunction)(float[]))
+{
   int returnCode;
   fs_cost_function costFunction(iFunction, iDerivativeFunction, n);
 
@@ -873,7 +900,8 @@ extern "C" int OpenDFPMin(float p[],
     *oFinalFunctionReturn = minimizer.get_end_error();
     ConvertFromVNLDoubleToFloat(finalParameters, p, n);
     returnCode = 0;
-  } else {
+  }
+  else {
     returnCode = minimizer.get_failure_code();
 
     if (returnCode == vnl_nonlinear_minimizer::ERROR_FAILURE) {
@@ -881,12 +909,14 @@ extern "C" int OpenDFPMin(float p[],
       *oFinalFunctionReturn = minimizer.get_end_error();
 
       ConvertFromVNLDoubleToFloat(finalParameters, p, n);
-    } else if (returnCode == vnl_nonlinear_minimizer::ERROR_DODGY_INPUT) {
+    }
+    else if (returnCode == vnl_nonlinear_minimizer::ERROR_DODGY_INPUT) {
       ErrorExit(ERROR_BADPARM, "quasi-Newton minimization (lbfsg) dodgy input");
-    } else if (returnCode == vnl_nonlinear_minimizer::FAILED_TOO_MANY_ITERATIONS ||
-               returnCode == vnl_nonlinear_minimizer::FAILED_FTOL_TOO_SMALL ||
-               returnCode == vnl_nonlinear_minimizer::FAILED_XTOL_TOO_SMALL ||
-               returnCode == vnl_nonlinear_minimizer::FAILED_GTOL_TOO_SMALL) {
+    }
+    else if (returnCode == vnl_nonlinear_minimizer::FAILED_TOO_MANY_ITERATIONS ||
+             returnCode == vnl_nonlinear_minimizer::FAILED_FTOL_TOO_SMALL ||
+             returnCode == vnl_nonlinear_minimizer::FAILED_XTOL_TOO_SMALL ||
+             returnCode == vnl_nonlinear_minimizer::FAILED_GTOL_TOO_SMALL) {
       ErrorExit(ERROR_BADPARM, "quasi-Newton minimization (lbfsg) tolerances too small");
     }
   }
@@ -896,7 +926,8 @@ extern "C" int OpenDFPMin(float p[],
 /**
  * Provides the eigen values and vectors for symmetric matrices.
  */
-extern "C" int OpenEigenSystem(float *iaData, int icData, float *oEigenValues, float *oEigenVectors) {
+extern "C" int OpenEigenSystem(float *iaData, int icData, float *oEigenValues, float *oEigenVectors)
+{
   vnl_matrix< float > vnlMatrix(iaData, icData, icData);
 
   vnl_symmetric_eigensystem< float > eigenSystem(vnlMatrix);
@@ -913,7 +944,8 @@ extern "C" int OpenEigenSystem(float *iaData, int icData, float *oEigenValues, f
 /**
  * Provides the eigen values and vectors for symmetric matrices.
  */
-extern "C" int OpenNonSymmetricEigenSystem(float *iaData, int icData, float *oEigenValues, float *oEigenVectors) {
+extern "C" int OpenNonSymmetricEigenSystem(float *iaData, int icData, float *oEigenValues, float *oEigenVectors)
+{
   // convert the data into a double
   double data[icData * icData];
   for (int row = 0; row < icData; row++) {
@@ -950,7 +982,8 @@ extern "C" void OpenPowell(float iaParams[],
                            float iTolerance,
                            int *oIterations,
                            float *oFinalFunctionReturn,
-                           float (*iFunction)(float[])) {
+                           float (*iFunction)(float[]))
+{
   fs_cost_function costFunction(iFunction);
   fs_powell minimizer(&costFunction);
 
@@ -970,11 +1003,13 @@ extern "C" void OpenPowell(float iaParams[],
   // exit if failure
   if (returnCode == vnl_nonlinear_minimizer::FAILED_TOO_MANY_ITERATIONS) {
     ErrorExit(ERROR_BADPARM, "powell exceeding maximum iterations.");
-  } else if (returnCode == fs_powell::ERROR_FAILURE || returnCode == fs_powell::ERROR_DODGY_INPUT ||
-             returnCode == fs_powell::FAILED_FTOL_TOO_SMALL || returnCode == fs_powell::FAILED_XTOL_TOO_SMALL ||
-             returnCode == fs_powell::FAILED_GTOL_TOO_SMALL) {
+  }
+  else if (returnCode == fs_powell::ERROR_FAILURE || returnCode == fs_powell::ERROR_DODGY_INPUT ||
+           returnCode == fs_powell::FAILED_FTOL_TOO_SMALL || returnCode == fs_powell::FAILED_XTOL_TOO_SMALL ||
+           returnCode == fs_powell::FAILED_GTOL_TOO_SMALL) {
     ErrorExit(ERROR_BADPARM, "powell error.");
-  } else {
+  }
+  else {
     // success
     *oIterations = minimizer.get_num_iterations();
     *oFinalFunctionReturn = minimizer.get_end_error();
@@ -1006,7 +1041,8 @@ extern "C" int OpenPowell2(float iaParams[],
                            int MaxIterations,
                            int *oIterations,
                            float *oFinalFunctionReturn,
-                           float (*iFunction)(float[])) {
+                           float (*iFunction)(float[]))
+{
   fs_cost_function costFunction(iFunction);
   fs_powell minimizer(&costFunction);
 
@@ -1039,9 +1075,10 @@ extern "C" int OpenPowell2(float iaParams[],
   if (returnCode == vnl_nonlinear_minimizer::FAILED_TOO_MANY_ITERATIONS) {
     printf("powell exceeded maximum iterations\n");
     return (1);
-  } else if (returnCode == fs_powell::ERROR_FAILURE || returnCode == fs_powell::ERROR_DODGY_INPUT ||
-             returnCode == fs_powell::FAILED_FTOL_TOO_SMALL || returnCode == fs_powell::FAILED_XTOL_TOO_SMALL ||
-             returnCode == fs_powell::FAILED_GTOL_TOO_SMALL) {
+  }
+  else if (returnCode == fs_powell::ERROR_FAILURE || returnCode == fs_powell::ERROR_DODGY_INPUT ||
+           returnCode == fs_powell::FAILED_FTOL_TOO_SMALL || returnCode == fs_powell::FAILED_XTOL_TOO_SMALL ||
+           returnCode == fs_powell::FAILED_GTOL_TOO_SMALL) {
     printf("powell error %d\n", returnCode);
     return (1);
   }
@@ -1050,7 +1087,8 @@ extern "C" int OpenPowell2(float iaParams[],
   return (0);
 }
 
-extern "C" int OpenLUMatrixInverse(MATRIX *iMatrix, MATRIX *oInverse) {
+extern "C" int OpenLUMatrixInverse(MATRIX *iMatrix, MATRIX *oInverse)
+{
   // NO_ERROR from error.h
   int errorCode = NO_ERROR;
 
@@ -1063,19 +1101,22 @@ extern "C" int OpenLUMatrixInverse(MATRIX *iMatrix, MATRIX *oInverse) {
         errorCode = ERROR_BADPARM;
       else
         oInverse->data[0] = 1.0 / vnlMatrix(0, 0);
-    } else if (r == 2) {
+    }
+    else if (r == 2) {
       vnl_matrix_fixed< float, 2, 2 > m(vnlMatrix);
       if (vnl_det(m) == 0.0)
         errorCode = ERROR_BADPARM;
       else
         vnl_inverse(m).copy_out(oInverse->data);
-    } else if (r == 3) {
+    }
+    else if (r == 3) {
       vnl_matrix_fixed< float, 3, 3 > m(vnlMatrix);
       if (vnl_det(m) == 0.0)
         errorCode = ERROR_BADPARM;
       else
         vnl_inverse(m).copy_out(oInverse->data);
-    } else {
+    }
+    else {
       vnl_matrix_fixed< float, 4, 4 > m(vnlMatrix);
       if (vnl_det(m) == 0.0)
         errorCode = ERROR_BADPARM;
@@ -1094,7 +1135,8 @@ extern "C" int OpenLUMatrixInverse(MATRIX *iMatrix, MATRIX *oInverse) {
     if (vnlMatrixInverter.determinant() != 0.0) {
       vnl_matrix< float > inverse = vnlMatrixInverter.inverse();
       inverse.copy_out(oInverse->data);
-    } else {
+    }
+    else {
       errorCode = ERROR_BADPARM;
     }
   }
@@ -1107,7 +1149,8 @@ extern "C" int OpenLUMatrixInverse(MATRIX *iMatrix, MATRIX *oInverse) {
  * @param iMatrix
  * @return Returns 0 if the matrix is non-square.
  */
-extern "C" float OpenMatrixDeterminant(MATRIX *iMatrix) {
+extern "C" float OpenMatrixDeterminant(MATRIX *iMatrix)
+{
   float determinant = 0.0;
 
   if (iMatrix->rows == iMatrix->cols) {
@@ -1133,7 +1176,8 @@ extern "C" float OpenMatrixDeterminant(MATRIX *iMatrix) {
  * @param oW Ouput diagonal vector.
  * @param oV Ouput V matrix.
  */
-extern "C" int OpenSvdcmp(MATRIX *ioA, VECTOR *oW, MATRIX *oV) {
+extern "C" int OpenSvdcmp(MATRIX *ioA, VECTOR *oW, MATRIX *oV)
+{
   int errorCode = NO_ERROR;
 
   if (ioA->rows >= ioA->cols) {
@@ -1144,10 +1188,12 @@ extern "C" int OpenSvdcmp(MATRIX *ioA, VECTOR *oW, MATRIX *oV) {
       svdMatrix.U().copy_out(ioA->data);
       svdMatrix.W().diagonal().copy_out(oW->data);
       svdMatrix.V().copy_out(oV->data);
-    } else {
+    }
+    else {
       errorCode = ERROR_BADPARM;
     }
-  } else {
+  }
+  else {
     errorCode = ERROR_BADPARM;
   }
 
@@ -1161,7 +1207,8 @@ extern "C" int OpenSvdcmp(MATRIX *ioA, VECTOR *oW, MATRIX *oV) {
  * different seed.  The behaviour of this function is meant to mimic that of
  * the ran1 algorithm in numerical recipes.
  */
-extern "C" float OpenRan1(long *iSeed) {
+extern "C" float OpenRan1(long *iSeed)
+{
   static const double MIN = 0.0;
   static const double MAX = 1.0;
 
@@ -1184,7 +1231,8 @@ extern "C" float OpenRan1(long *iSeed) {
  * @param iYEndDerivative The derivative at the last point of the function.
  */
 extern "C" void OpenSpline(
-    float iaX[], float iaY[], int icXY, float iYStartDerivative, float iYEndDerivative, float oaYSecondDerivatives[]) {
+    float iaX[], float iaY[], int icXY, float iYStartDerivative, float iYEndDerivative, float oaYSecondDerivatives[])
+{
   float *secondDerivatives = SplineCubicSet(
       icXY, iaX, iaY, SPLINE_USE_FIRST_DERIVATIVE, iYStartDerivative, SPLINE_USE_FIRST_DERIVATIVE, iYEndDerivative);
 
@@ -1201,7 +1249,8 @@ extern "C" void OpenSpline(
  * point.
  */
 extern "C" void OpenSplint(
-    float iaX[], float iaY[], float iaYSecondDerivatives[], int icYSecondDerivatives, float iX, float *oY) {
+    float iaX[], float iaY[], float iaYSecondDerivatives[], int icYSecondDerivatives, float iX, float *oY)
+{
   float firstDerivative = 0.0;
   float secondDerivative = 0.0;
 
@@ -1311,7 +1360,8 @@ extern "C" void OpenSplint(
  *
  * @return The second derivatives of the cubic spline, size n.
  */
-float *SplineCubicSet(int n, float t[], float y[], int ibcbeg, float ybcbeg, int ibcend, float ybcend) {
+float *SplineCubicSet(int n, float t[], float y[], int ibcbeg, float ybcbeg, int ibcend, float ybcend)
+{
   float *a;
   float *b;
   int i;
@@ -1347,15 +1397,18 @@ float *SplineCubicSet(int n, float t[], float y[], int ibcbeg, float ybcbeg, int
     b[0] = 0.0;
     a[1 + 0 * 3] = 1.0;
     a[0 + 1 * 3] = -1.0;
-  } else if (ibcbeg == SPLINE_USE_FIRST_DERIVATIVE) {
+  }
+  else if (ibcbeg == SPLINE_USE_FIRST_DERIVATIVE) {
     b[0] = (y[1] - y[0]) / (t[1] - t[0]) - ybcbeg;
     a[1 + 0 * 3] = (t[1] - t[0]) / 3.0;
     a[0 + 1 * 3] = (t[1] - t[0]) / 6.0;
-  } else if (ibcbeg == SPLINE_USE_SECOND_DERIVATIVE) {
+  }
+  else if (ibcbeg == SPLINE_USE_SECOND_DERIVATIVE) {
     b[0] = ybcbeg;
     a[1 + 0 * 3] = 1.0;
     a[0 + 1 * 3] = 0.0;
-  } else {
+  }
+  else {
     std::cout << "\n";
     std::cout << "SPLINE_CUBIC_SET - Fatal error!\n";
     std::cout << "  IBCBEG must be 0, 1 or 2.\n";
@@ -1380,15 +1433,18 @@ float *SplineCubicSet(int n, float t[], float y[], int ibcbeg, float ybcbeg, int
     b[n - 1] = 0.0;
     a[2 + (n - 2) * 3] = -1.0;
     a[1 + (n - 1) * 3] = 1.0;
-  } else if (ibcend == SPLINE_USE_FIRST_DERIVATIVE) {
+  }
+  else if (ibcend == SPLINE_USE_FIRST_DERIVATIVE) {
     b[n - 1] = ybcend - (y[n - 1] - y[n - 2]) / (t[n - 1] - t[n - 2]);
     a[2 + (n - 2) * 3] = (t[n - 1] - t[n - 2]) / 6.0;
     a[1 + (n - 1) * 3] = (t[n - 1] - t[n - 2]) / 3.0;
-  } else if (ibcend == SPLINE_USE_SECOND_DERIVATIVE) {
+  }
+  else if (ibcend == SPLINE_USE_SECOND_DERIVATIVE) {
     b[n - 1] = ybcend;
     a[2 + (n - 2) * 3] = 0.0;
     a[1 + (n - 1) * 3] = 1.0;
-  } else {
+  }
+  else {
     std::cout << "\n";
     std::cout << "SPLINE_CUBIC_SET - Fatal error!\n";
     std::cout << "  IBCEND must be 0, 1 or 2.\n";
@@ -1405,7 +1461,8 @@ float *SplineCubicSet(int n, float t[], float y[], int ibcbeg, float ybcbeg, int
 
     ypp[0] = 0.0;
     ypp[1] = 0.0;
-  } else {
+  }
+  else {
     ypp = d3_np_fs(n, a, b);
 
     if (!ypp) {
@@ -1458,19 +1515,22 @@ float *SplineCubicSet(int n, float t[], float y[], int ibcbeg, float ybcbeg, int
  * @param yppval The second derivative of the spline at TVAL.
  * @return The value of the spline at TVAL.
  */
-float SplineCubicValue(int n, float t[], float tval, float y[], float ypp[], float *ypval, float *yppval) {
+float SplineCubicValue(int n, float t[], float tval, float y[], float ypp[], float *ypval, float *yppval)
+{
   float yval;
   int ival = n - 2;
 
   if (tval <= t[0]) {
     // enforce constant function outside of domain
     yval = y[0];
-  } else if (tval >= t[n - 1]) {
+  }
+  else if (tval >= t[n - 1]) {
     // enforce constant function outside of domain
     yval = y[n - 1];
     *ypval = 0.0;
     *ypval = 0.0;
-  } else {
+  }
+  else {
     // we're not outside of the range, so interpolate
     for (int i = 0; i < n - 1; i++) {
       if (tval < t[i + 1]) {
@@ -1531,7 +1591,8 @@ float SplineCubicValue(int n, float t[], float tval, float y[], float ypp[], flo
  * This is NULL if there was an error
  * because one of the diagonal entries was zero.  Size n.
  */
-float *d3_np_fs(int n, float a[], float b[]) {
+float *d3_np_fs(int n, float a[], float b[])
+{
   int i;
   float *x;
   float xmult;
@@ -1602,9 +1663,7 @@ extern "C" float **matrix(long nrl, long nrh, long ncl, long nch)
 }
 
 extern "C" void free_vector(float *v, long nl, long nh)
-/* free a float vector allocated with vector() */ {
-  free((FREE_ARG)(v + nl - NR_END));
-}
+/* free a float vector allocated with vector() */ { free((FREE_ARG)(v + nl - NR_END)); }
 
 void free_matrix(float **m, long nrl, long nrh, long ncl, long nch)
 /* free a float matrix allocated by matrix() */
@@ -1621,7 +1680,8 @@ void free_matrix(float **m, long nrl, long nrh, long ncl, long nch)
     Algorithm computes sqrt of 3x3 part and then adjusts the translation part
     Output: 4x4 sqrt of M
 */
-vnl_matrix_fixed< double, 4, 4 > MatrixSqrt(const vnl_matrix_fixed< double, 4, 4 > &m) {
+vnl_matrix_fixed< double, 4, 4 > MatrixSqrt(const vnl_matrix_fixed< double, 4, 4 > &m)
+{
   // assert(m.rows() == 4 && m.cols() == 4);
 
   vnl_matrix_fixed< double, 3, 3 > R;  // = m.extract(3,3,0,0);
@@ -1716,7 +1776,8 @@ vnl_matrix_fixed< double, 4, 4 > MatrixSqrt(const vnl_matrix_fixed< double, 4, 4
   return msqrt;
 }
 
-extern "C" MATRIX *MatrixSqrt(MATRIX *m, MATRIX *sqrtm) {
+extern "C" MATRIX *MatrixSqrt(MATRIX *m, MATRIX *sqrtm)
+{
   int i, j;
   vnl_matrix_fixed< double, 4, 4 > vnl_m;
 
@@ -1785,7 +1846,8 @@ double sc_ugauss(const sc_rng *r);
   Returns 0 on success and nonzero otherwise (eg,
   when U is non-positive def).
  */
-extern "C" int sc_linalg_cholesky_decomp(MATRIX *U) {
+extern "C" int sc_linalg_cholesky_decomp(MATRIX *U)
+{
   int i, j, err;
 
   vnl_matrix< double > P(U->rows, U->cols);
@@ -1808,14 +1870,16 @@ extern "C" int sc_linalg_cholesky_decomp(MATRIX *U) {
 
 //######### UTILS #######################################################
 
-static void sc_err_msg(const char *msg) {
+static void sc_err_msg(const char *msg)
+{
   printf("ERROR: %s", msg);
   exit(1);
 }
 
 //########################## RNG ###############################
 
-extern "C" unsigned long int sc_inc_status(sc_status_t *status) {
+extern "C" unsigned long int sc_inc_status(sc_status_t *status)
+{
   int i, j;
   long int step;
 
@@ -1826,21 +1890,24 @@ extern "C" unsigned long int sc_inc_status(sc_status_t *status) {
   if (step & SC_MASK_HI) {
     status->carry = 1;
     step &= SC_MASK_LO;
-  } else {
+  }
+  else {
     status->carry = 0;
   }
   status->u[i] = step;
 
   if (i == 0) {
     i = 23;
-  } else {
+  }
+  else {
     i--;
   }
   status->i = i;
 
   if (j == 0) {
     j = 23;
-  } else {
+  }
+  else {
     j--;
   }
   status->j = j;
@@ -1848,7 +1915,8 @@ extern "C" unsigned long int sc_inc_status(sc_status_t *status) {
   return (step);
 }
 
-extern "C" unsigned long int sc_rng_get(const sc_rng *r) {
+extern "C" unsigned long int sc_rng_get(const sc_rng *r)
+{
   sc_status_t *status;
   int i, skip;
   unsigned long int ret;
@@ -1866,7 +1934,8 @@ extern "C" unsigned long int sc_rng_get(const sc_rng *r) {
   return (ret);
 }
 
-extern "C" void sc_rng_set(sc_rng *r, unsigned long int seed_in) {
+extern "C" void sc_rng_set(sc_rng *r, unsigned long int seed_in)
+{
   int const_lux;
   sc_status_t *status;
   int i;
@@ -1878,7 +1947,8 @@ extern "C" void sc_rng_set(sc_rng *r, unsigned long int seed_in) {
 
   if (seed_in == 0) {
     seed = 314159265;
-  } else {
+  }
+  else {
     seed = seed_in;
   }
 
@@ -1898,14 +1968,16 @@ extern "C" void sc_rng_set(sc_rng *r, unsigned long int seed_in) {
 
   if (status->u[23] & SC_MASK_HI) {
     status->carry = 1;
-  } else {
+  }
+  else {
     status->carry = 0;
   }
 
   return;
 }
 
-extern "C" sc_rng *sc_rng_alloc(const sc_rng_type *T) {
+extern "C" sc_rng *sc_rng_alloc(const sc_rng_type *T)
+{
   sc_rng *r;
 
   r = (sc_rng *)malloc(sizeof(sc_rng));
@@ -1921,7 +1993,8 @@ extern "C" sc_rng *sc_rng_alloc(const sc_rng_type *T) {
   return (r);
 }
 
-extern "C" void sc_rng_free(sc_rng *r) {
+extern "C" void sc_rng_free(sc_rng *r)
+{
   if (r->status != NULL) free(r->status);
 
   if (r != NULL) free(r);
@@ -1929,7 +2002,8 @@ extern "C" void sc_rng_free(sc_rng *r) {
   return;
 }
 
-extern "C" double sc_uni(const sc_rng *r) {
+extern "C" double sc_uni(const sc_rng *r)
+{
   double u;
 
   u = (double)(sc_rng_get(r) / 16777216.0);
@@ -1937,7 +2011,8 @@ extern "C" double sc_uni(const sc_rng *r) {
   return (u);
 }
 
-extern "C" double sc_uni_pos(const sc_rng *r) {
+extern "C" double sc_uni_pos(const sc_rng *r)
+{
   double x;
   do {
     x = (double)(sc_rng_get(r) / 16777216.0);
@@ -1948,7 +2023,8 @@ extern "C" double sc_uni_pos(const sc_rng *r) {
 
 //##################### RAN ###
 
-extern "C" double sc_ran_flat(const sc_rng *r, const double a, const double b) {
+extern "C" double sc_ran_flat(const sc_rng *r, const double a, const double b)
+{
   double u, ret;
 
   u = sc_uni(r);
@@ -1956,7 +2032,8 @@ extern "C" double sc_ran_flat(const sc_rng *r, const double a, const double b) {
   return (ret);
 }
 
-extern "C" double sc_ran_gaussian(const sc_rng *r, const double sigma) {
+extern "C" double sc_ran_gaussian(const sc_rng *r, const double sigma)
+{
   double x, y, r2, ret;
 
   do {
@@ -1969,7 +2046,8 @@ extern "C" double sc_ran_gaussian(const sc_rng *r, const double sigma) {
   return (ret);
 }
 
-extern "C" double sc_ugauss(const sc_rng *r) {
+extern "C" double sc_ugauss(const sc_rng *r)
+{
   double ret;
 
   ret = sc_ran_gaussian(r, 1.0);
@@ -1977,7 +2055,8 @@ extern "C" double sc_ugauss(const sc_rng *r) {
   return (ret);
 }
 
-extern "C" double sc_gamma_int(const sc_rng *r, const unsigned int a) {
+extern "C" double sc_gamma_int(const sc_rng *r, const unsigned int a)
+{
   unsigned int i;
   double prod, ret;
 
@@ -1988,13 +2067,15 @@ extern "C" double sc_gamma_int(const sc_rng *r, const unsigned int a) {
     }
     ret = -log(prod);
     return (ret);
-  } else {
+  }
+  else {
     ret = sc_gamma_large(r, (double)a);
     return (ret);
   }
 }
 
-extern "C" double sc_gamma_large(const sc_rng *r, const double a) {
+extern "C" double sc_gamma_large(const sc_rng *r, const double a)
+{
   double sqa, y, v, ret;
 
   sqa = sqrt(2 * a - 1);
@@ -2009,7 +2090,8 @@ extern "C" double sc_gamma_large(const sc_rng *r, const double a) {
   return (ret);
 }
 
-extern "C" double sc_gamma_frac(const sc_rng *r, const double a) {
+extern "C" double sc_gamma_frac(const sc_rng *r, const double a)
+{
   double p, q, u, v, ret;
   p = M_E / (a + M_E);
   do {
@@ -2019,7 +2101,8 @@ extern "C" double sc_gamma_frac(const sc_rng *r, const double a) {
     if (u < p) {
       ret = exp((1 / a) * log(v));
       q = exp(-ret);
-    } else {
+    }
+    else {
       ret = 1 - log(v);
       q = exp((a - 1) * log(ret));
     }
@@ -2028,7 +2111,8 @@ extern "C" double sc_gamma_frac(const sc_rng *r, const double a) {
   return (ret);
 }
 
-extern "C" double sc_ran_gamma(const sc_rng *r, const double a, const double b) {
+extern "C" double sc_ran_gamma(const sc_rng *r, const double a, const double b)
+{
   unsigned int na;
   double ret;
 
@@ -2036,16 +2120,19 @@ extern "C" double sc_ran_gamma(const sc_rng *r, const double a, const double b) 
   if (a == na) {
     ret = b * sc_gamma_int(r, na);
     return (ret);
-  } else if (na == 0) {
+  }
+  else if (na == 0) {
     ret = b * sc_gamma_frac(r, a);
     return (ret);
-  } else {
+  }
+  else {
     ret = b * (sc_gamma_int(r, na) + sc_gamma_frac(r, a - na));
     return (ret);
   }
 }
 
-extern "C" double sc_ran_fdist(const sc_rng *r, const double nu1, const double nu2) {
+extern "C" double sc_ran_fdist(const sc_rng *r, const double nu1, const double nu2)
+{
   double Y1, Y2, ret;
 
   Y1 = sc_ran_gamma(r, nu1 / 2, 2.0);
@@ -2055,14 +2142,16 @@ extern "C" double sc_ran_fdist(const sc_rng *r, const double nu1, const double n
   return (ret);
 }
 
-extern "C" double sc_ran_chisq(const sc_rng *r, const double nu) {
+extern "C" double sc_ran_chisq(const sc_rng *r, const double nu)
+{
   double ret;
 
   ret = 2 * sc_ran_gamma(r, nu / 2, 1.0);
   return (ret);
 }
 
-extern "C" double sc_ran_tdist(const sc_rng *r, const double nu) {
+extern "C" double sc_ran_tdist(const sc_rng *r, const double nu)
+{
   double Y1, Y2, Z, ret;
 
   if (nu <= 2) {
@@ -2070,7 +2159,8 @@ extern "C" double sc_ran_tdist(const sc_rng *r, const double nu) {
     Y2 = sc_ran_chisq(r, nu);
     ret = Y1 / sqrt(Y2 / nu);
     return (ret);
-  } else {
+  }
+  else {
     do {
       Y1 = sc_ugauss(r);
       Y2 = sc_ran_exponential(r, 1 / (nu / 2 - 1));
@@ -2082,7 +2172,8 @@ extern "C" double sc_ran_tdist(const sc_rng *r, const double nu) {
   }
 }
 
-extern "C" double sc_ran_exponential(const sc_rng *r, const double mu) {
+extern "C" double sc_ran_exponential(const sc_rng *r, const double mu)
+{
   double u, ret;
 
   u = sc_uni_pos(r);
@@ -2091,12 +2182,14 @@ extern "C" double sc_ran_exponential(const sc_rng *r, const double mu) {
   return (ret);
 }
 
-extern "C" double sc_ran_binomial_pdf(unsigned int k, double p, unsigned int n) {
+extern "C" double sc_ran_binomial_pdf(unsigned int k, double p, unsigned int n)
+{
   double ret;
 
   if (k == 0) {
     ret = bdtr(k, n, p);
-  } else {
+  }
+  else {
     ret = bdtr(k, n, p) - bdtr(k - 1, n, p);
   }
 
@@ -2105,7 +2198,8 @@ extern "C" double sc_ran_binomial_pdf(unsigned int k, double p, unsigned int n) 
 
 //##################### CDF ###
 
-extern "C" double sc_cdf_flat_Q(double x, double a, double b) {
+extern "C" double sc_cdf_flat_Q(double x, double a, double b)
+{
   double ret = 0.0;
 
   if (x <= a) ret = 0.0;
@@ -2115,7 +2209,8 @@ extern "C" double sc_cdf_flat_Q(double x, double a, double b) {
   return (1.0 - ret);
 }
 
-extern "C" double sc_cdf_flat_Qinv(double Q, double a, double b) {
+extern "C" double sc_cdf_flat_Qinv(double Q, double a, double b)
+{
   double ret = 0.0;
 
   if (Q == 0.0) ret = b;
@@ -2127,7 +2222,8 @@ extern "C" double sc_cdf_flat_Qinv(double Q, double a, double b) {
   return (ret);
 }
 
-extern "C" double sc_cdf_fdist_Q(double x, double nu1, double nu2) {
+extern "C" double sc_cdf_fdist_Q(double x, double nu1, double nu2)
+{
   double ret = 0.0;
 
   ret = fdtrc(nu1, nu2, x);
@@ -2135,7 +2231,8 @@ extern "C" double sc_cdf_fdist_Q(double x, double nu1, double nu2) {
   return (ret);
 }
 
-extern "C" double sc_cdf_fdist_Qinv(double Q, double nu1, double nu2) {
+extern "C" double sc_cdf_fdist_Qinv(double Q, double nu1, double nu2)
+{
   double ret = 0.0;
 
   ret = fdtri(nu1, nu2, Q);
@@ -2143,7 +2240,8 @@ extern "C" double sc_cdf_fdist_Qinv(double Q, double nu1, double nu2) {
   return (ret);
 }
 
-extern "C" double sc_cdf_tdist_Q(double x, double nu) {
+extern "C" double sc_cdf_tdist_Q(double x, double nu)
+{
   double ret = 0.0;
 
   ret = 1.0 - stdtr(nu, x);
@@ -2151,7 +2249,8 @@ extern "C" double sc_cdf_tdist_Q(double x, double nu) {
   return (ret);
 }
 
-extern "C" double sc_cdf_tdist_Qinv(double Q, double nu) {
+extern "C" double sc_cdf_tdist_Qinv(double Q, double nu)
+{
   double ret = 0.0;
 
   ret = (-1) * stdtri(nu, Q);
@@ -2159,7 +2258,8 @@ extern "C" double sc_cdf_tdist_Qinv(double Q, double nu) {
   return (ret);
 }
 
-extern "C" double sc_cdf_gaussian_Q(double x, double nu) {
+extern "C" double sc_cdf_gaussian_Q(double x, double nu)
+{
   double ret = 0.0;
 
   if (nu != 1.0) {
@@ -2172,7 +2272,8 @@ extern "C" double sc_cdf_gaussian_Q(double x, double nu) {
   return (ret);
 }
 
-extern "C" double sc_cdf_gaussian_Qinv(double Q, double nu) {
+extern "C" double sc_cdf_gaussian_Qinv(double Q, double nu)
+{
   double ret = 0.0;
 
   if (nu != 1.0) {
@@ -2185,7 +2286,8 @@ extern "C" double sc_cdf_gaussian_Qinv(double Q, double nu) {
   return (ret);
 }
 
-extern "C" double sc_cdf_chisq_Q(double x, double nu) {
+extern "C" double sc_cdf_chisq_Q(double x, double nu)
+{
   double ret = 0.0;
 
   ret = chdtrc(nu, x);
@@ -2193,7 +2295,8 @@ extern "C" double sc_cdf_chisq_Q(double x, double nu) {
   return (ret);
 }
 
-extern "C" double sc_cdf_chisq_Qinv(double Q, double nu) {
+extern "C" double sc_cdf_chisq_Qinv(double Q, double nu)
+{
   double ret = 0.0;
 
   ret = chdtri(nu, Q);

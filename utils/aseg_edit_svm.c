@@ -51,7 +51,8 @@ float **build_svm_training_data(VOXEL_LIST *vl_total,
                                 MRI **mri_laplacian,
                                 MRI *mri_dtrans,
                                 int wsize,
-                                int nscales) {
+                                int nscales)
+{
   float **svm_inputs;
   int i, ninputs;
   MRI *mri_dtrans_grad;
@@ -93,7 +94,8 @@ float *build_svm_inputs_at_voxel(VOXEL_LIST *vl,
                                  MRI *mri_dtrans_grad,
                                  int wsize,
                                  int nscales,
-                                 float *svm_inputs) {
+                                 float *svm_inputs)
+{
   int s, xk, yk, zk, xi, yi, zi, x, y, z, ninputs, whalf, input;
 
   whalf = (wsize - 1) / 2;

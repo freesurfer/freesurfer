@@ -130,13 +130,15 @@ static int debug_z = -1;
 
 #define MAX_LABELS 1000
 
-void showTran(float p[]) {
+void showTran(float p[])
+{
   printf("after pass:transform: ( %.2f, %.2f, %.2f, %.2f)\n", p[1], p[2], p[3], p[4]);
   printf("                      ( %.2f, %.2f, %.2f, %.2f)\n", p[5], p[6], p[7], p[8]);
   printf("                      ( %.2f, %.2f, %.2f, %.2f)\n", p[9], p[10], p[11], p[12]);
 }
 
-int MatrixPrintHires(FILE *fp, MATRIX *mat) {
+int MatrixPrintHires(FILE *fp, MATRIX *mat)
+{
   int row, col, rows, cols;
 
   if (fp == NULL) {
@@ -176,7 +178,8 @@ int MatrixPrintHires(FILE *fp, MATRIX *mat) {
 
         Description
 ------------------------------------------------------*/
-HISTOGRAM *MRIhorizontalHistogram(MRI *mri, int thresh_low, int thresh_hi) {
+HISTOGRAM *MRIhorizontalHistogram(MRI *mri, int thresh_low, int thresh_hi)
+{
   HISTOGRAM *histo;
   int x, y, z, width, height, depth, npix, val;
 
@@ -206,7 +209,8 @@ HISTOGRAM *MRIhorizontalHistogram(MRI *mri, int thresh_low, int thresh_hi) {
 
         Description
 ------------------------------------------------------*/
-HISTOGRAM *MRIhorizontalBoundingBoxHistogram(MRI *mri, int thresh) {
+HISTOGRAM *MRIhorizontalBoundingBoxHistogram(MRI *mri, int thresh)
+{
   HISTOGRAM *histo;
   int x, y, z, width, height, depth, xmin, xmax, zmin, zmax;
 
@@ -243,7 +247,8 @@ HISTOGRAM *MRIhorizontalBoundingBoxHistogram(MRI *mri, int thresh) {
 \fn int MRIcountAboveThreshold(MRI *mri, int thresh)
 \brief Returns the number of voxels above the given threshold
 ------------------------------------------------------*/
-int MRIcountAboveThreshold(MRI *mri, double thresh) {
+int MRIcountAboveThreshold(MRI *mri, double thresh)
+{
   int x, y, z, width, height, depth, count;
   double val;
 
@@ -269,7 +274,8 @@ int MRIcountAboveThreshold(MRI *mri, double thresh) {
 
         Description
 ------------------------------------------------------*/
-MRI *MRIlabel(MRI *mri_src, MRI *mri_dst, int *pnlabels) {
+MRI *MRIlabel(MRI *mri_src, MRI *mri_dst, int *pnlabels)
+{
   int l, x, y, z, width, height, depth, *pxi, *pyi, *pzi, xi, yi, zi, total_on, total_labeled, labeled, xk, yk, zk;
   BUFTYPE *psrc, *plabel;
 
@@ -296,7 +302,8 @@ MRI *MRIlabel(MRI *mri_src, MRI *mri_dst, int *pnlabels) {
             *plabel = l;
             labeled = 1;
             total_labeled++;
-          } else
+          }
+          else
             plabel++;
         }
       }
@@ -341,7 +348,8 @@ MRI *MRIlabel(MRI *mri_src, MRI *mri_dst, int *pnlabels) {
 
         Description
 ------------------------------------------------------*/
-int MRIlabelBoundingBoxes(MRI *mri, MRI_REGION *bboxes, int nlabels) {
+int MRIlabelBoundingBoxes(MRI *mri, MRI_REGION *bboxes, int nlabels)
+{
   int l, x, y, z, width, height, depth, x0, x1, y0, y1, z0, z1;
   BUFTYPE *plabel;
 
@@ -391,7 +399,8 @@ int MRIlabelBoundingBoxes(MRI *mri, MRI_REGION *bboxes, int nlabels) {
 
         Description
 ------------------------------------------------------*/
-int MRIeraseOtherLabels(MRI *mri_src, MRI *mri_dst, int label) {
+int MRIeraseOtherLabels(MRI *mri_src, MRI *mri_dst, int label)
+{
   int x, y, z, width, height, depth;
   BUFTYPE *psrc, *pdst;
 
@@ -421,7 +430,8 @@ int MRIeraseOtherLabels(MRI *mri_src, MRI *mri_dst, int label) {
 
         Description
 ------------------------------------------------------*/
-int MRIeraseLabel(MRI *mri_src, MRI *mri_dst, int label) {
+int MRIeraseLabel(MRI *mri_src, MRI *mri_dst, int label)
+{
   int x, y, z, width, height, depth;
   BUFTYPE *psrc, *pdst, l;
 
@@ -452,7 +462,8 @@ int MRIeraseLabel(MRI *mri_src, MRI *mri_dst, int label) {
 
         Description
 ------------------------------------------------------*/
-int MRIfindHorizontalLabelLimits(MRI *mri, int label, int *xmins, int *xmaxs) {
+int MRIfindHorizontalLabelLimits(MRI *mri, int label, int *xmins, int *xmaxs)
+{
   int x, y, z, width, height, depth, ymin;
   BUFTYPE *psrc;
 
@@ -502,7 +513,8 @@ int MRIfindHorizontalLabelLimits(MRI *mri, int label, int *xmins, int *xmaxs) {
 
 #define DISTANCE_BELOW_SPINAL_FUSION 40.0
 
-MRI *MRIfindNeck(MRI *mri_src, MRI *mri_dst, int thresh_low, int thresh_hi, MP *parms, int dir, NECK_PARMS *np) {
+MRI *MRIfindNeck(MRI *mri_src, MRI *mri_dst, int thresh_low, int thresh_hi, MP *parms, int dir, NECK_PARMS *np)
+{
   MRI *mri_label, *mri_thresh, *mri_midline, *mri_rot;
   int nlabels, l, max_dy, spinal_label, xmins[256], xmaxs[256], y;
   MRI_REGION bboxes[MAX_LABELS], *spinal_bbox, in_bbox;
@@ -704,7 +716,8 @@ MRI *MRIfindNeck(MRI *mri_src, MRI *mri_dst, int thresh_low, int thresh_hi, MP *
 #endif
 #define WSIZE 21
 #define WHALF ((WSIZE - 1) / 2)
-static MRI *find_midline(MRI *mri_src, MRI *mri_thresh, float *px) {
+static MRI *find_midline(MRI *mri_src, MRI *mri_thresh, float *px)
+{
   MRI *mri_dst;
   MRI_REGION bbox;
   int count, min_count, x, x0, xmid;
@@ -743,7 +756,8 @@ static MRI *find_midline(MRI *mri_src, MRI *mri_thresh, float *px) {
         Description
            Compute the centroid of a label (in mm coordinates)
 ------------------------------------------------------*/
-int MRIlabelCentroid(MRI *mri, int target_l, float *px, float *py, float *pz) {
+int MRIlabelCentroid(MRI *mri, int target_l, float *px, float *py, float *pz)
+{
   int l, x, y, z, width, height, depth, nvox;
   BUFTYPE *plabel;
   float thick, x0, y0, z0;
@@ -771,7 +785,8 @@ int MRIlabelCentroid(MRI *mri, int target_l, float *px, float *py, float *pz) {
     *px = x0 / nvox;
     *py = y0 / nvox;
     *pz = z0 / nvox;
-  } else
+  }
+  else
     *px = *py = *pz = 0.0f;
 
   return (NO_ERROR);
@@ -784,7 +799,8 @@ int MRIlabelCentroid(MRI *mri, int target_l, float *px, float *py, float *pz) {
         Description
           Compute the area of all labels (in mm^3)
 ------------------------------------------------------*/
-int MRIlabelAreas(MRI *mri, float *areas, int nlabels) {
+int MRIlabelAreas(MRI *mri, float *areas, int nlabels)
+{
   int l, x, y, z, width, height, depth;
   BUFTYPE *plabel;
   float voxel_area;
@@ -837,7 +853,8 @@ int MRIlabelAreas(MRI *mri, float *areas, int nlabels) {
 #define MIN_SPINAL_CX (128 - MAX_SPINAL_WIDTH / 2)
 #define MAX_SPINAL_CX (128 + MAX_SPINAL_WIDTH / 2)
 
-static int find_spinal_fusion(MRI *mri_thresh, float *px, float *py, float *pz) {
+static int find_spinal_fusion(MRI *mri_thresh, float *px, float *py, float *pz)
+{
   MRI *mri_label, *mri_slice;
   float areas[MAX_LABELS], spinal_area, aspect, corner_dist, thick, x0, y0, z0;
   int y, found, nlabels, l, spinal_l = 0;
@@ -925,7 +942,8 @@ static int find_spinal_fusion(MRI *mri_thresh, float *px, float *py, float *pz) 
 
         Description
 ------------------------------------------------------*/
-int MRIinitTranslation(MRI *mri_in, MRI *mri_ref, MATRIX *m_L) {
+int MRIinitTranslation(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
+{
   MATRIX *m_translation;
   float in_means[4], ref_means[4];
   double dx, dy, dz;
@@ -971,7 +989,8 @@ int MRIinitTranslation(MRI *mri_in, MRI *mri_ref, MATRIX *m_L) {
 #define MIN_DZ (1.0 / MAX_DZ)
 #define MAX_RATIO 1.1
 
-int MRIinitScaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L) {
+int MRIinitScaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
+{
   MATRIX *m_scaling;
   float sx, sy, sz, dx, dy, dz;
   MRI_REGION in_bbox, ref_bbox;
@@ -1028,7 +1047,8 @@ int MRIinitScaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L) {
 ------------------------------------------------------*/
 #define MIN_PYR_WIDTH 16
 #define USE_PYRAMID 1
-int MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MP *parms) {
+int MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MP *parms)
+{
 #if USE_PYRAMID
   int nlevels, max_levels, i;
   MRI *mri_in_pyramid[MAX_LEVELS], *mri_ref_pyramid[MAX_LEVELS];
@@ -1114,7 +1134,8 @@ int MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MP *parms) {
         fflush(stdout);
         MRIfree(&mri_kernel);
         mriLinearAlignPyramidLevel(mri_in_blur, mri_ref_blur, parms);
-      } else
+      }
+      else
         mriLinearAlignPyramidLevel(mri_in, mri_ref, parms);
     }
     parms->dt = dt;
@@ -1168,7 +1189,8 @@ int MRIlinearAlign(MRI *mri_in, MRI *mri_ref, MP *parms) {
         Description
 
 ------------------------------------------------------*/
-int MRIfindMeans(MRI *mri, float *means) {
+int MRIfindMeans(MRI *mri, float *means)
+{
   int width, height, depth, x, y, z, val, npoints, mx, my, mz;
   BUFTYPE *psrc;
 
@@ -1197,7 +1219,8 @@ int MRIfindMeans(MRI *mri, float *means) {
     means[0] = (float)mx / npoints;
     means[1] = (float)my / npoints;
     means[2] = (float)mz / npoints;
-  } else
+  }
+  else
     means[0] = means[1] = means[2] = 0.0f;
 
   return (NO_ERROR);
@@ -1210,7 +1233,8 @@ int MRIfindMeans(MRI *mri, float *means) {
         Description
 
 ------------------------------------------------------*/
-int MRIfindCenterOfBrain(MRI *mri, float *px0, float *py0, float *pz0) {
+int MRIfindCenterOfBrain(MRI *mri, float *px0, float *py0, float *pz0)
+{
 #if 1
   int x, y, z, width, height, depth;
   float x0, y0, z0, total, val;
@@ -1238,7 +1262,8 @@ int MRIfindCenterOfBrain(MRI *mri, float *px0, float *py0, float *pz0) {
     *px0 = x0 / (float)total;
     *py0 = y0 / (float)total;
     *pz0 = z0 / (float)total;
-  } else {
+  }
+  else {
     *px0 = width / 2;
     *py0 = height / 2;
     *pz0 = depth / 2;
@@ -1262,7 +1287,8 @@ int MRIfindCenterOfBrain(MRI *mri, float *px0, float *py0, float *pz0) {
 
 ------------------------------------------------------*/
 
-static int mriLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms) {
+static int mriLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
+{
   double rms, old_rms, dt;
   int k, n, nsmall = 0;
   MATRIX *m_L;
@@ -1378,7 +1404,8 @@ static int mriLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *pa
           an input image after a linear transformation of the input
           coordinate system.
 ------------------------------------------------------*/
-static double mriIntensityRMS(MRI *mri_in, MRI *mri_ref, LTA *lta, double l_intensity, NECK_PARMS *np) {
+static double mriIntensityRMS(MRI *mri_in, MRI *mri_ref, LTA *lta, double l_intensity, NECK_PARMS *np)
+{
   int x1, x2, x3, width, height, depth;
   VECTOR *v_X, *v_Y; /* original and transformed coordinate systems */
   double val, y1, y2, y3, thick;
@@ -1428,7 +1455,8 @@ static double mriIntensityRMS(MRI *mri_in, MRI *mri_ref, LTA *lta, double l_inte
           std /= mean_std;
           if (DZERO(std)) std = 1.0;
           delta = (val - (double)in_val) / std;
-        } else /* out of bounds, assume in val is 0 */
+        }
+        else /* out of bounds, assume in val is 0 */
           delta = (0.0 - in_val) / mean_std;
         if (fabs(delta) > 20) DiagBreak();
         delta *= dot;
@@ -1453,7 +1481,8 @@ static double mriIntensityRMS(MRI *mri_in, MRI *mri_ref, LTA *lta, double l_inte
         Description
 
 ------------------------------------------------------*/
-static int writeSnapshot(MRI *mri, MORPH_PARMS *parms, int n) {
+static int writeSnapshot(MRI *mri, MORPH_PARMS *parms, int n)
+{
   MRI *mri_tmp;
   char fname[STRLEN];
   TRANSFORM transform;
@@ -1515,7 +1544,8 @@ static int writeSnapshot(MRI *mri, MORPH_PARMS *parms, int n) {
         Description
 ------------------------------------------------------*/
 static double ltaGradientStep(
-    MRI *mri_in, MRI *mri_ref, LTA *lta, double dt, double momentum, NECK_PARMS *np, double tmul) {
+    MRI *mri_in, MRI *mri_ref, LTA *lta, double dt, double momentum, NECK_PARMS *np, double tmul)
+{
   int width, height, depth;
   VECTOR *v_X, *v_Y, *v_Yk; /* original and transformed coordinate systems */
   MATRIX *m_tmp, *m_L, *m_dT_X_T;
@@ -1579,7 +1609,8 @@ static double ltaGradientStep(
           else
             std = mean_std;
           MRIsampleVolumeGradient(mri_ref, y1, y2, y3, &dx, &dy, &dz);
-        } else {
+        }
+        else {
           std = mean_std;
           val = 0.0f;
           dx = dy = dz = 0.0f;
@@ -1690,7 +1721,8 @@ static double ltaGradientStep(
 
         Description
 ------------------------------------------------------*/
-static int openLogFile(MORPH_PARMS *parms) {
+static int openLogFile(MORPH_PARMS *parms)
+{
   char fname[STRLEN];
 
   if ((Gdiag & DIAG_WRITE) && (parms->log_fp == NULL)) {
@@ -1736,7 +1768,8 @@ static int openLogFile(MORPH_PARMS *parms) {
 
         Description
 ------------------------------------------------------*/
-static int logIntegration(MORPH_PARMS *parms, int n, double rms) {
+static int logIntegration(MORPH_PARMS *parms, int n, double rms)
+{
   if (Gdiag & DIAG_WRITE) {
     fprintf(parms->log_fp, "%3.3d: rms = %2.3f\n", n + 1, rms);
     fflush(parms->log_fp);
@@ -1821,7 +1854,8 @@ static double m3dSSE(MRI *mri_in,
                      MORPH_3D *m3d,
                      double *pintensity_rms,
                      double *pdistance_rms,
-                     double *parea_rms) {
+                     double *parea_rms)
+{
   double sse, intensity_sse, area_sse, distance_sse, nvox, nlarea_sse, compression_sse;
 
   intensity_sse = m3dCorrelationSSE(mri_in, mri_ref, m3d, &parms->in_np);
@@ -1846,7 +1880,8 @@ static double m3dSSE(MRI *mri_in,
         Description
           Compute correlation SSE
 ------------------------------------------------------*/
-static double m3dCorrelationSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d, NECK_PARMS *np) {
+static double m3dCorrelationSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d, NECK_PARMS *np)
+{
   double sse;
   int width, height, depth, x, y, z, xsi, ysi, zsi, *pxi, *pyi, *pzi;
   MORPH_NODE *mn;
@@ -1889,7 +1924,8 @@ static double m3dCorrelationSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d, NECK_P
           MRIsampleVolume(mri_ref, xd, yd, zd, &ref_val);
           MRIsampleVolumeFrame(mri_ref, xd, yd, zd, 1, &ref_std);
           ref_std /= mean_std;
-        } else {
+        }
+        else {
           ref_std = mean_std;
           ref_val = 0.0;
         }
@@ -1920,7 +1956,8 @@ static double m3dCorrelationSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d, NECK_P
         Description
           Compute SSE for distance term.
 ------------------------------------------------------*/
-static double m3dDistanceSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d) {
+static double m3dDistanceSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d)
+{
   int i, j, k, width, height, depth, n;
   MORPH_NODE *mn, *mn_nbr;
   MNP *mnp;
@@ -2001,7 +2038,8 @@ static double m3dDistanceSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d) {
         Description
           Compute SSE for area term.
 ------------------------------------------------------*/
-static double m3dNonlinearAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d, MORPH_PARMS *parms) {
+static double m3dNonlinearAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d, MORPH_PARMS *parms)
+{
   double sse, delta, n3, ratio, exponent;
   int i, j, k, width, height, depth;
   MORPH_NODE *mn;
@@ -2057,7 +2095,8 @@ static double m3dNonlinearAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d, MORP
         Description
           Compute SSE for area term.
 ------------------------------------------------------*/
-static double m3dAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d) {
+static double m3dAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d)
+{
   double sse, delta, n3;
   int i, j, k, width, height, depth;
   MORPH_NODE *mn;
@@ -2098,7 +2137,8 @@ static double m3dAreaSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d) {
         Description
           Allocate and initialize 3D properties
 ------------------------------------------------------*/
-static int m3dAllocProperties(MORPH_3D *m3d) {
+static int m3dAllocProperties(MORPH_3D *m3d)
+{
   int x, y, width, height, depth;
 
   width = m3d->width;
@@ -2125,7 +2165,8 @@ static int m3dAllocProperties(MORPH_3D *m3d) {
         Description
           Allocate and initialize a 3D morph structure.
 ------------------------------------------------------*/
-static MORPH_3D *m3dalloc(int width, int height, int depth, float node_spacing) {
+static MORPH_3D *m3dalloc(int width, int height, int depth, float node_spacing)
+{
   MORPH_3D *m3d;
   int x, y;
 
@@ -2163,7 +2204,8 @@ static MORPH_3D *m3dalloc(int width, int height, int depth, float node_spacing) 
         Description
           Allocate and initialize a 3D morph structure.
 ------------------------------------------------------*/
-static MORPH_3D *m3dInit(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, float node_spacing) {
+static MORPH_3D *m3dInit(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, float node_spacing)
+{
   MORPH_3D *m3d;
   int width, height, depth, x, y, i, j, k;
   float scale;
@@ -2247,7 +2289,8 @@ static MORPH_3D *m3dInit(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, float no
           Store the current metric properties of the m3d structure
           as the reference values to be used for computing distortion.
 ------------------------------------------------------*/
-static int m3dStoreMetricProperties(MORPH_3D *m3d) {
+static int m3dStoreMetricProperties(MORPH_3D *m3d)
+{
   MORPH_NODE *mn;
   MNP *mnp;
   int i, j, k, width, height, depth;
@@ -2341,7 +2384,8 @@ m3dinit(MORPH_3D *m3d)
         Description
 ------------------------------------------------------*/
 #define MIN_3D_PYR_WIDTH 32
-MORPH_3D *MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms) {
+MORPH_3D *MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
+{
   int nlevels, i, max_levels, navgs, base_avgs;
   MRI *mri_in_pyramid[MAX_LEVELS], *mri_ref_pyramid[MAX_LEVELS];
   MORPH_3D *m3d_tmp, *m3d;
@@ -2370,7 +2414,8 @@ MORPH_3D *MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms) {
     parms->ref_np.neck_dx = parms->ref_np.neck_dy = parms->ref_np.neck_dz = 1;
     parms->in_np.neck_x0 = parms->in_np.neck_y0 = parms->in_np.neck_z0 = 1000;
     parms->in_np.neck_dx = parms->in_np.neck_dy = parms->in_np.neck_dz = 1;
-  } else {
+  }
+  else {
     fprintf(stdout,
             "moving spinal estimate from (%2.0f,%2.0f,%2.0f) to ",
             parms->in_np.neck_x0,
@@ -2654,7 +2699,8 @@ MORPH_3D *MRI3Dmorph(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms) {
           done in unsigned char volumes which forces things
           to be scaled up and then back down in various places.
 ------------------------------------------------------*/
-MRI *MRIapply3DMorph(MRI *mri_in, MORPH_3D *m3d, MRI *mri_morphed) {
+MRI *MRIapply3DMorph(MRI *mri_in, MORPH_3D *m3d, MRI *mri_morphed)
+{
   int width, height, depth, x, y, z, xm1, ym1, zm1, xp1, yp1, zp1;
   float xd, yd, zd, dx, dy, dz, thick;
   double weight, orig_val, val;
@@ -2817,7 +2863,8 @@ MRI *MRIapply3DMorph(MRI *mri_in, MORPH_3D *m3d, MRI *mri_morphed) {
           simpler than the inverse mapping as the sampling is
           uniform in this direction.
 ------------------------------------------------------*/
-MRI *MRIapplyInverse3DMorph(MRI *mri_ref, MORPH_3D *m3d, MRI *mri_morphed) {
+MRI *MRIapplyInverse3DMorph(MRI *mri_ref, MORPH_3D *m3d, MRI *mri_morphed)
+{
   int width, height, depth, x, y, z;
   float xd, yd, zd;
   double val;
@@ -2861,7 +2908,8 @@ MRI *MRIapplyInverse3DMorph(MRI *mri_ref, MORPH_3D *m3d, MRI *mri_morphed) {
 
         Description
 ------------------------------------------------------*/
-int MRIsample3DmorphOrig(MORPH_3D *m3d, float x, float y, float z, float *pxd, float *pyd, float *pzd) {
+int MRIsample3DmorphOrig(MORPH_3D *m3d, float x, float y, float z, float *pxd, float *pyd, float *pzd)
+{
   int xm, xp, ym, yp, zm, zp, width, height, depth;
   float xmd, ymd, zmd, xpd, ypd, zpd; /* d's are distances */
 
@@ -2915,7 +2963,8 @@ int MRIsample3DmorphOrig(MORPH_3D *m3d, float x, float y, float z, float *pxd, f
         Description
 
 ------------------------------------------------------*/
-static int MRIsample3Dmorph(MORPH_3D *m3d, float x, float y, float z, float *pxd, float *pyd, float *pzd) {
+static int MRIsample3Dmorph(MORPH_3D *m3d, float x, float y, float z, float *pxd, float *pyd, float *pzd)
+{
   int xm, xp, ym, yp, zm, zp, width, height, depth;
   float xmd, ymd, zmd, xpd, ypd, zpd; /* d's are distances */
 
@@ -2969,7 +3018,8 @@ static int MRIsample3Dmorph(MORPH_3D *m3d, float x, float y, float z, float *pxd
         Description
           Free the properties field of a 3d morph structure
 ------------------------------------------------------*/
-int MRI3DmorphFreeProperties(MORPH_3D *m3d) {
+int MRI3DmorphFreeProperties(MORPH_3D *m3d)
+{
   int x, y;
 
   if (m3d->pnodes) {
@@ -2991,7 +3041,8 @@ int MRI3DmorphFreeProperties(MORPH_3D *m3d) {
         Description
           Free a 3d morph structure and set the pointer to NULL.
 ------------------------------------------------------*/
-int MRI3DmorphFree(MORPH_3D **pm3d) {
+int MRI3DmorphFree(MORPH_3D **pm3d)
+{
   MORPH_3D *m3d = *pm3d;
   int x, y;
 
@@ -3036,7 +3087,8 @@ static int m3dCorrelationTerm(MRI *mri_in,
                               double zref,
                               double *pdx,
                               double *pdy,
-                              double *pdz) {
+                              double *pdz)
+{
   double ref_val, in_val, delta, Tdx, Tdy, Tdz, len, ref_std, mean_std;
 
   mean_std = mri_ref->mean;
@@ -3048,7 +3100,8 @@ static int m3dCorrelationTerm(MRI *mri_in,
     MRIsampleVolume(mri_ref, xref, yref, zref, &ref_val);
     MRIsampleVolumeFrame(mri_ref, xref, yref, zref, 1, &ref_std);
     if (DZERO(ref_std)) ref_std = 1.0;
-  } else {
+  }
+  else {
     ref_std = mean_std;
     ref_val = 0.0;
   }
@@ -3076,8 +3129,8 @@ static int m3dCorrelationTerm(MRI *mri_in,
           Compute the directional derivative of the distance term
           w.r.t the i,j,kth node.
 ------------------------------------------------------*/
-static int m3dDistanceTerm(
-    MORPH_3D *m3d, double l_distance, int i, int j, int k, double *pdx, double *pdy, double *pdz) {
+static int m3dDistanceTerm(MORPH_3D *m3d, double l_distance, int i, int j, int k, double *pdx, double *pdy, double *pdz)
+{
   int n, num;
   double dx, dy, dz, dist, delta, xgrad, ygrad, zgrad;
   MORPH_NODE *mn, *mn_nbr;
@@ -3171,7 +3224,8 @@ static int m3dDistanceTerm(
           w.r.t the i,j,kth node.
 ------------------------------------------------------*/
 #define AREA_NEIGHBORS 8
-static int m3dAreaTerm(MORPH_3D *m3d, double l_area, int i, int j, int k, double *pdx, double *pdy, double *pdz) {
+static int m3dAreaTerm(MORPH_3D *m3d, double l_area, int i, int j, int k, double *pdx, double *pdy, double *pdz)
+{
   MORPH_NODE *mn, *mni, *mnj, *mnk;
   MNP *mnp, *mnpi, *mnpj, *mnpk;
   float delta, node_spacing, n3 /*, odx, ody, odz*/;
@@ -3211,7 +3265,8 @@ static int m3dAreaTerm(MORPH_3D *m3d, double l_area, int i, int j, int k, double
     v_j_x_i = VectorAlloc(3, MATRIX_REAL);
     v_i_x_k = VectorAlloc(3, MATRIX_REAL);
     v_tmp = VectorAlloc(3, MATRIX_REAL);
-  } else {
+  }
+  else {
     V3_CLEAR(v_grad);
   }
 
@@ -3393,7 +3448,8 @@ static int m3dAreaTerm(MORPH_3D *m3d, double l_area, int i, int j, int k, double
     *pdx = l_area * V3_X(v_grad);
     *pdy = l_area * V3_Y(v_grad);
     *pdz = l_area * V3_Z(v_grad);
-  } else {
+  }
+  else {
     /* if on the border st no area term can be computed, move in a
        quasi-rigid fashion by applying strong distance term.
     */
@@ -3405,7 +3461,8 @@ static int m3dAreaTerm(MORPH_3D *m3d, double l_area, int i, int j, int k, double
   return (NO_ERROR);
 }
 static int m3dNonlinearAreaTerm(
-    MORPH_3D *m3d, double l_nlarea, int i, int j, int k, double *pdx, double *pdy, double *pdz, MORPH_PARMS *parms) {
+    MORPH_3D *m3d, double l_nlarea, int i, int j, int k, double *pdx, double *pdy, double *pdz, MORPH_PARMS *parms)
+{
   MORPH_NODE *mn, *mni, *mnj, *mnk;
   MNP *mnp;
   float delta, delta_scale, ratio, node_spacing, n3;
@@ -3437,7 +3494,8 @@ static int m3dNonlinearAreaTerm(
     v_j_x_i = VectorAlloc(3, MATRIX_REAL);
     v_i_x_k = VectorAlloc(3, MATRIX_REAL);
     v_tmp = VectorAlloc(3, MATRIX_REAL);
-  } else {
+  }
+  else {
     V3_CLEAR(v_grad);
   }
 
@@ -3586,7 +3644,8 @@ static int m3dNonlinearAreaTerm(
         Description
 ------------------------------------------------------*/
 #define AVG_LEN 5
-static int m3dAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur, MP *parms, MORPH_3D *m3d) {
+static int m3dAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur, MP *parms, MORPH_3D *m3d)
+{
   double dt, sse, rms, nvox, intensity_rms, distance_rms, area_rms, d, old_rms, last_avg, current_avg;
   int n, last_neg;
 
@@ -3668,7 +3727,8 @@ static int m3dAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur, MP
       last_neg = m3d->neg;
       last_avg = current_avg;
       current_avg = rms;
-    } else
+    }
+    else
       current_avg += rms;
   }
 
@@ -3684,7 +3744,8 @@ static int m3dAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur, MP
         Description
 ------------------------------------------------------*/
 static double m3dIntegrationStep(
-    MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur, MORPH_PARMS *parms, MORPH_3D *m3d, double dt) {
+    MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur, MORPH_PARMS *parms, MORPH_3D *m3d, double dt)
+{
   double dx, dy, dz, xgrad, ygrad, zgrad, dot, nx, ny, nz, ndx, ndy, ndz, thick, pdx, pdy, pdz;
   int width, height, depth, x, y, z, xsi, ysi, zsi, *pxi, *pyi, *pzi;
   MORPH_NODE *mn;
@@ -3794,7 +3855,8 @@ static double m3dIntegrationStep(
 
         Description
 ------------------------------------------------------*/
-static int m3dInitDistances(MORPH_3D *m3d) {
+static int m3dInitDistances(MORPH_3D *m3d)
+{
   int i, j, k, width, height, depth, n, ndists;
   MORPH_NODE *mn;
   MNP *mnp, *mnp_nbr;
@@ -3875,7 +3937,8 @@ static int m3dInitDistances(MORPH_3D *m3d) {
 
         Description
 ------------------------------------------------------*/
-static int m3dInitAreas(MORPH_3D *m3d) {
+static int m3dInitAreas(MORPH_3D *m3d)
+{
   int i, j, k, width, height, depth, num, num_zero, total_num;
   MNP *mnp, *mnpi, *mnpj, *mnpk;
   VECTOR *v_i, *v_j, *v_k;
@@ -3904,7 +3967,8 @@ static int m3dInitAreas(MORPH_3D *m3d) {
           MNP_SUB(mnpk, mnp, v_k);
           area = VectorTripleProduct(v_j, v_k, v_i);
           num++;
-        } else
+        }
+        else
           area = 0.0;
         if ((i > 0) && (j > 0) && (k > 0)) /* left hand coordinate system */
         {
@@ -3962,7 +4026,8 @@ static int log3DIntegration(MORPH_PARMS *parms,
                             double rms,
                             double intensity_rms,
                             double distance_rms,
-                            double area_rms) {
+                            double area_rms)
+{
   if (Gdiag & DIAG_SHOW)
 #if USE_ITERATIVE_AVERAGING
     fprintf(stdout,
@@ -4028,7 +4093,8 @@ static int log3DIntegration(MORPH_PARMS *parms,
 
 ------------------------------------------------------*/
 #include "image.h"
-static int write3DSnapshot(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, MORPH_3D *m3d, int n) {
+static int write3DSnapshot(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, MORPH_3D *m3d, int n)
+{
   MRI *mri_tmp;
   char fname[STRLEN];
 
@@ -4067,7 +4133,8 @@ static int write3DSnapshot(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, MORPH_
         Description
 
 ------------------------------------------------------*/
-int MRIwriteImageViews(MRI *mri, char *base_name, int target_size) {
+int MRIwriteImageViews(MRI *mri, char *base_name, int target_size)
+{
   int slice_direction = getSliceDirection(mri), x, y, z;
 
   switch (slice_direction) {
@@ -4120,7 +4187,8 @@ int MRIwriteImageViews(MRI *mri, char *base_name, int target_size) {
         Description
 
 ------------------------------------------------------*/
-static int mriWriteImageView(MRI *mri, char *base_name, int target_size, int view, int slice) {
+static int mriWriteImageView(MRI *mri, char *base_name, int target_size, int view, int slice)
+{
   char fname[STRLEN], *prefix;
   IMAGE *I;
   float scale;
@@ -4201,7 +4269,8 @@ static int mriWriteImageView(MRI *mri, char *base_name, int target_size, int vie
 
         Description
 ------------------------------------------------------*/
-static int m3dComputeMetricProperties(MORPH_3D *m3d) {
+static int m3dComputeMetricProperties(MORPH_3D *m3d)
+{
   double area;
   int i, j, k, width, height, depth, num;
   MORPH_NODE *mn, *mni, *mnj, *mnk;
@@ -4230,7 +4299,8 @@ static int m3dComputeMetricProperties(MORPH_3D *m3d) {
           MN_SUB(mnj, mn, v_j);
           MN_SUB(mnk, mn, v_k);
           area = VectorTripleProduct(v_j, v_k, v_i);
-        } else
+        }
+        else
           area = 0;
         if ((i > 0) && (j > 0) && (k > 0)) /* left-hand coordinate system */
         {
@@ -4266,7 +4336,8 @@ static int m3dComputeMetricProperties(MORPH_3D *m3d) {
 
         Description
 ------------------------------------------------------*/
-static int m3dclearGradient(MORPH_3D *m3d) {
+static int m3dclearGradient(MORPH_3D *m3d)
+{
   int i, j, k, width, height, depth;
   MNP *mnp;
 
@@ -4295,7 +4366,8 @@ static int m3dclearGradient(MORPH_3D *m3d) {
 #define DJ 90
 #define DK 104
 
-static int m3dapplyGradient(MORPH_3D *m3d, double dt) {
+static int m3dapplyGradient(MORPH_3D *m3d, double dt)
+{
   int i, j, k, width, height, depth;
   MORPH_NODE *mn;
   MNP *mnp;
@@ -4328,7 +4400,8 @@ static int m3dapplyGradient(MORPH_3D *m3d, double dt) {
 
         Description
 ------------------------------------------------------*/
-static int finitep(float f) {
+static int finitep(float f)
+{
   return (1);
   if (!isfinite(f)) return (0);
   if (fabs(f) > 1e5) return (0);
@@ -4341,7 +4414,8 @@ static int finitep(float f) {
 
         Description
 ------------------------------------------------------*/
-static double m3dscaleDeltaT(MORPH_3D *m3d, double dt, double max_len, MORPH_PARMS *parms) {
+static double m3dscaleDeltaT(MORPH_3D *m3d, double dt, double max_len, MORPH_PARMS *parms)
+{
   int i, j, k, width, height, depth, maxi, maxj, maxk, mini, minj, mink;
   MORPH_NODE *mn;
   MNP *mnp;
@@ -4430,7 +4504,8 @@ static double m3dscaleDeltaT(MORPH_3D *m3d, double dt, double max_len, MORPH_PAR
 ------------------------------------------------------*/
 #define UNUSED_SPACE_SIZE 256
 
-int MRI3Dwrite(MORPH_3D *m3d, char *fname) {
+int MRI3Dwrite(MORPH_3D *m3d, char *fname)
+{
   FILE *fp;
   int i, j, k;
   MORPH_NODE *mn;
@@ -4472,7 +4547,8 @@ int MRI3Dwrite(MORPH_3D *m3d, char *fname) {
            Read a 3d morph from a file, and initialize it,
            not allocating the properties field to conserve memory.
 ------------------------------------------------------*/
-MORPH_3D *MRI3DreadSmall(char *fname) {
+MORPH_3D *MRI3DreadSmall(char *fname)
+{
   MORPH_3D *m3d;
   FILE *fp;
   int i, j, k, width, height, depth, magic, version;
@@ -4520,7 +4596,8 @@ MORPH_3D *MRI3DreadSmall(char *fname) {
         Description
            Read a 3d morph from a file, and initialize it.
 ------------------------------------------------------*/
-MORPH_3D *MRI3Dread(char *fname) {
+MORPH_3D *MRI3Dread(char *fname)
+{
   MORPH_3D *m3d;
 
   m3d = MRI3DreadSmall(fname);
@@ -4801,7 +4878,8 @@ MatrixCopy(v_X, v_Y) ;
   return(m3d_out) ;
 }
 #else
-static MORPH_3D *m3dscaleUp2(MORPH_3D *m3d_in, MORPH_3D *m3d_out, MORPH_PARMS *parms) {
+static MORPH_3D *m3dscaleUp2(MORPH_3D *m3d_in, MORPH_3D *m3d_out, MORPH_PARMS *parms)
+{
   int width, height, depth, i, j, k, alloced = 0;
   MORPH_NODE *mn;
   MNP *mnp;
@@ -4983,7 +5061,8 @@ m3dComputeOrigArea(MORPH_3D *m3d, int i, int j, int k)
   return(area) ;
 }
 #endif
-int MRIeraseBorders(MRI *mri, int width) {
+int MRIeraseBorders(MRI *mri, int width)
+{
   int i;
 
   for (i = 0; i < width; i++) {
@@ -4997,7 +5076,8 @@ int MRIeraseBorders(MRI *mri, int width) {
   return (NO_ERROR);
 }
 
-static int mriNormalizeStds(MRI *mri) {
+static int mriNormalizeStds(MRI *mri)
+{
   int x, y, z, width, height, depth, std, val;
   BUFTYPE *pstd, *pval;
   double mean_std;
@@ -5025,7 +5105,8 @@ static int mriNormalizeStds(MRI *mri) {
           std = *pstd;
           if (std < mean_std) std = mean_std;
           *pstd++ = std;
-        } else
+        }
+        else
           pstd++;
       }
     }
@@ -5038,7 +5119,8 @@ static int mriNormalizeStds(MRI *mri) {
   return (NO_ERROR);
 }
 #if USE_ITERATIVE_AVERAGING
-static int m3daverageGradient(MORPH_3D *m3d, int niter) {
+static int m3daverageGradient(MORPH_3D *m3d, int niter)
+{
   int i, j, k, width, height, depth, n, a, num;
   MORPH_NODE *mn;
   MNP *mnp, *mnp_nbr;
@@ -5123,7 +5205,8 @@ static int m3daverageGradient(MORPH_3D *m3d, int niter) {
   return (NO_ERROR);
 }
 #else
-static int m3dblurGradient(MORPH_3D *m3d, float sigma) {
+static int m3dblurGradient(MORPH_3D *m3d, float sigma)
+{
   int i, j, k, i1, j1, k1, whalf, width, height, depth;
   MORPH_NODE *mn;
   MNP *mnp, *mnp_nbr;
@@ -5222,7 +5305,8 @@ static int m3dblurGradient(MORPH_3D *m3d, float sigma) {
 }
 #endif
 
-static int m3dCopyTempToGradient(MORPH_3D *m3d) {
+static int m3dCopyTempToGradient(MORPH_3D *m3d)
+{
   int i, j, k, width, height, depth;
   MNP *mnp;
 
@@ -5242,7 +5326,8 @@ static int m3dCopyTempToGradient(MORPH_3D *m3d) {
   }
   return (NO_ERROR);
 }
-static int m3dcheck(MORPH_3D *m3d) {
+static int m3dcheck(MORPH_3D *m3d)
+{
   MNP *mnp;
   int i, j, k;
 
@@ -5259,7 +5344,8 @@ static int m3dcheck(MORPH_3D *m3d) {
 
 static float mriMaxRadius(MRI *mri, int low_val, int hi_val, float *px0, float *py0, float *pz0);
 int MRISmoveOrigin(MRI_SURFACE *mris, float x0, float y0, float z0);
-static float mriMaxRadius(MRI *mri, int low_val, int hi_val, float *px0, float *py0, float *pz0) {
+static float mriMaxRadius(MRI *mri, int low_val, int hi_val, float *px0, float *py0, float *pz0)
+{
   int x, y, z, width, depth, height, nvox;
   double xw, yw, zw, max_radius, radius, xd, yd, zd;
   float x0, y0, z0;
@@ -5310,7 +5396,8 @@ static float mriMaxRadius(MRI *mri, int low_val, int hi_val, float *px0, float *
   return (max_radius);
 }
 
-int MRISmoveOrigin(MRI_SURFACE *mris, float x0, float y0, float z0) {
+int MRISmoveOrigin(MRI_SURFACE *mris, float x0, float y0, float z0)
+{
   int vno;
   VERTEX *v;
   float x, y, z, xlo, xhi, zlo, zhi, ylo, yhi;
@@ -5347,7 +5434,8 @@ int MRISmoveOrigin(MRI_SURFACE *mris, float x0, float y0, float z0) {
   return (NO_ERROR);
 }
 
-MRI_SURFACE *MRISshrinkWrapSkull(MRI *mri, MORPH_PARMS *parms) {
+MRI_SURFACE *MRISshrinkWrapSkull(MRI *mri, MORPH_PARMS *parms)
+{
   MRI_SURFACE *mris;
   MRI *mri_smooth, *mri_kernel;
   float radius, max_radius, scale, x0, y0, z0, sx, sy, sz, thick;
@@ -5437,7 +5525,8 @@ MRI_SURFACE *MRISshrinkWrapSkull(MRI *mri, MORPH_PARMS *parms) {
           w.r.t the i,j,kth node.
 ------------------------------------------------------*/
 static int m3dCompressionTerm(
-    MORPH_3D *m3d, double l_compression, int i, int j, int k, double *pdx, double *pdy, double *pdz) {
+    MORPH_3D *m3d, double l_compression, int i, int j, int k, double *pdx, double *pdy, double *pdz)
+{
   int n, num;
   double dx, dy, dz, dist, delta, xgrad, ygrad, zgrad, expansion;
   MORPH_NODE *mn, *mn_nbr;
@@ -5533,7 +5622,8 @@ static int m3dCompressionTerm(
           w.r.t the i,j,kth node.
 ------------------------------------------------------*/
 static int m3dNonlinearDistanceTerm(
-    MORPH_3D *m3d, double l_nldist, int i, int j, int k, double *pdx, double *pdy, double *pdz) {
+    MORPH_3D *m3d, double l_nldist, int i, int j, int k, double *pdx, double *pdy, double *pdz)
+{
   int n, num;
   double dx, dy, dz, dist, delta, xgrad, ygrad, zgrad, expansion;
   MORPH_NODE *mn, *mn_nbr;
@@ -5702,7 +5792,8 @@ m3dAverageNodeDistance(MORPH_3D *m3d, int i, int j, int k)
 
         Description
 ------------------------------------------------------*/
-static float m3dNodeAverageExpansion(MORPH_3D *m3d, int i, int j, int k) {
+static float m3dNodeAverageExpansion(MORPH_3D *m3d, int i, int j, int k)
+{
   int n, num;
   double dx, dy, dz, dist, xgrad, ygrad, zgrad, avg_expansion;
   MORPH_NODE *mn, *mn_nbr;
@@ -5781,7 +5872,8 @@ static float m3dNodeAverageExpansion(MORPH_3D *m3d, int i, int j, int k) {
 
         Description
 ------------------------------------------------------*/
-static double m3dCompressionSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d) {
+static double m3dCompressionSSE(MRI *mri_in, MRI *mri_ref, MORPH_3D *m3d)
+{
   int i, j, k, width, height, depth, n;
   MORPH_NODE *mn, *mn_nbr;
   MNP *mnp;
@@ -5904,7 +5996,8 @@ m3dPutExpansionFactorInDx(MORPH_3D *m3d)
 
         Description
 ------------------------------------------------------*/
-int MRIeraseNeck(MRI *mri, NECK_PARMS *np) {
+int MRIeraseNeck(MRI *mri, NECK_PARMS *np)
+{
   float dx, dy, dz, y, thick, x0, y0, z0;
 
   thick = mri->thick;
@@ -5925,7 +6018,8 @@ int MRIeraseNeck(MRI *mri, NECK_PARMS *np) {
 
         Description
 ------------------------------------------------------*/
-static int m3dPositionBorderNodes(MORPH_3D *m3d) {
+static int m3dPositionBorderNodes(MORPH_3D *m3d)
+{
 #if 0
   int         i, j, k, width, height, depth, n, num ;
   double      dx, dy, dz, xavg, yavg, zavg ;
@@ -6033,7 +6127,8 @@ static int m3dPositionBorderNodes(MORPH_3D *m3d) {
   return (NO_ERROR);
 }
 
-static int m3dblurDx(MORPH_3D *m3d, float sigma) {
+static int m3dblurDx(MORPH_3D *m3d, float sigma)
+{
   int i, j, k, i1, j1, k1, whalf, width, height, depth;
   MORPH_NODE *mn;
   MNP *mnp, *mnp_nbr;
@@ -6125,7 +6220,8 @@ static int m3dblurDx(MORPH_3D *m3d, float sigma) {
 
         Description
 ------------------------------------------------------*/
-static int m3dTranslate(MORPH_3D *m3d, float dx, float dy, float dz) {
+static int m3dTranslate(MORPH_3D *m3d, float dx, float dy, float dz)
+{
   MORPH_NODE *mn;
   int i, j, k, width, height, depth;
 
@@ -6156,7 +6252,8 @@ static int m3dTranslate(MORPH_3D *m3d, float dx, float dy, float dz) {
    note that mri_in and mri_ref will be copied so that the neck can
    be erased from both without changing the caller's volumes.
    */
-static int m3RecomputeTranslation(MORPH_3D *m3d, MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms) {
+static int m3RecomputeTranslation(MORPH_3D *m3d, MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms)
+{
   float in_means[4], ref_means[4];
   double dx, dy, dz;
   MRI *mri_in_xformed;
@@ -6191,7 +6288,8 @@ static int m3RecomputeTranslation(MORPH_3D *m3d, MRI *mri_in, MRI *mri_ref, MORP
 /*
   transform in volume using mapping specified by mri_in_skull -> mri_ref_skull
 */
-static int m3dMorphSkull(MORPH_3D *m3d, MRI_SURFACE *mris_in_skull, MRI_SURFACE *mris_ref_skull, MRI *mri) {
+static int m3dMorphSkull(MORPH_3D *m3d, MRI_SURFACE *mris_in_skull, MRI_SURFACE *mris_ref_skull, MRI *mri)
+{
   MHT *mht_in, *mht_ref;
   MORPH_NODE *mn;
   MNP *mnp;
@@ -6275,7 +6373,8 @@ static int m3dMorphSkull(MORPH_3D *m3d, MRI_SURFACE *mris_in_skull, MRI_SURFACE 
             scale = MAX_DX;
           else if (scale < MIN_DX)
             scale = MIN_DX;
-        } else {
+        }
+        else {
           scale = 1.0;
 #if 1
           fprintf(stdout, "warning: node (%d,%d,%d) has zero in dist\n", i, j, k);
@@ -6356,7 +6455,8 @@ static int m3dMorphSkull(MORPH_3D *m3d, MRI_SURFACE *mris_in_skull, MRI_SURFACE 
 
         Description
 ------------------------------------------------------*/
-int MRIrigidAlign(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, MATRIX *m_L) {
+int MRIrigidAlign(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, MATRIX *m_L)
+{
   int nlevels, i;
   MRI *mri_in_pyramid[MAX_LEVELS], *mri_ref_pyramid[MAX_LEVELS];
   char base_name[STRLEN];
@@ -6484,7 +6584,8 @@ int MRIrigidAlign(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, MATRIX *m_L) {
 
 /* for 3d vector macros */
 #include "tritri.h"
-static int mriOrthonormalizeTransform(MATRIX *m_L) {
+static int mriOrthonormalizeTransform(MATRIX *m_L)
+{
   double dot, c1[3], c2[3], c3[3], len;
   int i;
 
@@ -6583,7 +6684,8 @@ integration_step(float *p)
 static void dfp_step_func(int itno, float rms, void *vparms, float *p);
 static void dfp_em_step_func(int itno, float rms, void *vparms, float *p);
 
-static void dfp_step_func(int itno, float sse, void *vparms, float *p) {
+static void dfp_step_func(int itno, float sse, void *vparms, float *p)
+{
   MP *parms = (MP *)vparms;
   int i, row, col;
   float rms;
@@ -6604,7 +6706,8 @@ static void dfp_step_func(int itno, float sse, void *vparms, float *p) {
     parms->m_xform_mean = m_save;
     intensity_rms = sqrt(intensity_rms);
     fprintf(stdout, "%03d: %2.3f (intensity=%2.3f)\n", parms->start_t + itno, rms, intensity_rms);
-  } else {
+  }
+  else {
     fprintf(stdout, "%03d: %2.3f\n", parms->start_t + itno, rms);
   }
 
@@ -6630,7 +6733,8 @@ static void dfp_step_func(int itno, float sse, void *vparms, float *p) {
   fflush(stdout);
 }
 
-static void dfp_em_step_func(int itno, float sse, void *vparms, float *p) {
+static void dfp_em_step_func(int itno, float sse, void *vparms, float *p)
+{
   MP *parms = (MP *)vparms;
   int i, row, col;
 
@@ -6668,7 +6772,8 @@ static void dfp_em_step_func(int itno, float sse, void *vparms, float *p) {
   fflush(stdout);
 }
 
-static int mriQuasiNewtonLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MP *parms) {
+static int mriQuasiNewtonLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MP *parms)
+{
   float p[5 * 4], fold, fnew;
   int row, col, i, iter, steps;
   MATRIX *m_L;
@@ -6730,7 +6835,8 @@ static int mriQuasiNewtonLinearAlignPyramidLevel(MRI *mri_in, MRI *mri_ref, MP *
 
         Description
 ------------------------------------------------------*/
-static void computeRigidAlignmentGradient(float *p, float *g) {
+static void computeRigidAlignmentGradient(float *p, float *g)
+{
   int width, height, depth, row, col, i, y1, y2, y3;
   VECTOR *v_X, *v_Y, *v_Yk; /* original and transformed coordinate systems */
   VECTOR *v_crop;
@@ -6770,7 +6876,8 @@ static void computeRigidAlignmentGradient(float *p, float *g) {
     m_crop = MRIvoxelXformToRasXform(mri_ref, parms->mri_crop, m_tmp, NULL);
     MatrixFree(&m_tmp);
     v_crop = VectorAlloc(4, MATRIX_REAL);
-  } else
+  }
+  else
     v_crop = m_crop = NULL;
 
   width = mri_in->width;
@@ -6826,7 +6933,8 @@ static void computeRigidAlignmentGradient(float *p, float *g) {
           if (FZERO(in_val))  /* don't compute errors from cropping */
             continue ;
 #endif
-        } else
+        }
+        else
           in_val = 0.0;
         delta = ref_wt * (ref_val - in_val) / std;
 
@@ -6913,7 +7021,8 @@ static void computeRigidAlignmentGradient(float *p, float *g) {
   MatrixFree(&m_L);
   MatrixFree(&m_dL);
 }
-static float computeRigidAlignmentErrorFunctional(float *p) {
+static float computeRigidAlignmentErrorFunctional(float *p)
+{
   int y1, y2, y3, width, height, depth, row, col, i;
   VECTOR *v_X, *v_Y, *v_crop; /* original and transformed coordinate systems */
   double ref_val, in_val, x1, x2, x3;
@@ -6944,7 +7053,8 @@ static float computeRigidAlignmentErrorFunctional(float *p) {
     m_crop = MRIvoxelXformToRasXform(mri_ref, parms->mri_crop, m_tmp, NULL);
     MatrixFree(&m_tmp);
     v_crop = VectorAlloc(4, MATRIX_REAL);
-  } else
+  }
+  else
     v_crop = m_crop = NULL;
 
   mean_std = mri_ref->mean;
@@ -6991,7 +7101,8 @@ static float computeRigidAlignmentErrorFunctional(float *p) {
           if (FZERO(in_val))  /* don't compute errors from cropping */
             continue ;
 #endif
-        } else /* out of bounds, assume in val is 0 */
+        }
+        else /* out of bounds, assume in val is 0 */
           in_val = 0;
 
         wt = MRIsampleReferenceWeighting(mri_ref, y1, y2, y3);
@@ -7045,7 +7156,8 @@ static float computeRigidAlignmentErrorFunctional(float *p) {
         Description
 ------------------------------------------------------*/
 static void  // in         out
-computeEMAlignmentGradient(float *p, float *g) {
+computeEMAlignmentGradient(float *p, float *g)
+{
 #if 1
   int width, height, depth, row, col, i, xn, yn, zn, xv, yv, zv, n, ndets = 0;
   VECTOR *v_X, *v_Y, *v_means, *v_X_T; /* original and transformed coordinate systems */
@@ -7120,7 +7232,8 @@ computeEMAlignmentGradient(float *p, float *g) {
         det = MatrixDeterminant(m_inv_cov);
         det_total += det;
         ndets++;
-      } else {
+      }
+      else {
         MatrixClear(v_means);
         MatrixIdentity(gca->ninputs, m_inv_cov);
       }
@@ -7178,7 +7291,8 @@ computeEMAlignmentGradient(float *p, float *g) {
   VectorFree(&v_means);
 #endif
 }
-static float computeEMAlignmentErrorFunctional(float *p) {
+static float computeEMAlignmentErrorFunctional(float *p)
+{
   float log_p;
   LTA *lta, *old_lta;
   MATRIX *m_L;
@@ -7387,7 +7501,8 @@ computeRigidAlignmentErrorFunctionalAndGradient(int index, float *p,
 #endif
 
 #define HANNING_RADIUS 100
-int MRIsampleReferenceWeightingGradient(MRI *mri, int x, int y, int z, double *pdx, double *pdy, double *pdz) {
+int MRIsampleReferenceWeightingGradient(MRI *mri, int x, int y, int z, double *pdx, double *pdy, double *pdz)
+{
   double dx, dy, dz, vp1, vm1;
 
   vp1 = MRIsampleReferenceWeighting(mri, x + 1, y, z);
@@ -7410,7 +7525,8 @@ int MRIsampleReferenceWeightingGradient(MRI *mri, int x, int y, int z, double *p
 #define T0_X -1
 #define T0_Y -10
 #define T0_Z -17
-double MRIsampleReferenceWeighting(MRI *mri, int x, int y, int z) {
+double MRIsampleReferenceWeighting(MRI *mri, int x, int y, int z)
+{
 #if 0
   double wt, dist  ;
   double   x_ras, y_ras, z_ras, dx, dy, dz ;
@@ -7428,7 +7544,8 @@ double MRIsampleReferenceWeighting(MRI *mri, int x, int y, int z) {
 }
 
 #define MAX_CLASSES 4
-int MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L) {
+int MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L)
+{
   int i;
   char base_name[STRLEN];
   float pcurrent, pold;
@@ -7501,7 +7618,8 @@ int MRIemAlign(MRI *mri_in, GCA *gca, MORPH_PARMS *parms, MATRIX *m_L) {
   /*  mriOrthonormalizeTransform(parms->lta->xforms[0].m_L) ;*/
   return (NO_ERROR);
 }
-int MRIquasiNewtonAlignVolumes(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, MATRIX *m_L) {
+int MRIquasiNewtonAlignVolumes(MRI *mri_in, MRI *mri_ref, MORPH_PARMS *parms, MATRIX *m_L)
+{
   int i;
   char base_name[STRLEN];
   float pcurrent, pold;
@@ -7620,7 +7738,8 @@ write_snapshot(MRI *mri_source, MRI *mri_target, MATRIX *m_vox_xform,
 #endif
 /* compute mean squared error of two images with a transform */
 static double compute_likelihood(
-    VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L, float scale_factor, int map_both_ways) {
+    VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L, float scale_factor, int map_both_ways)
+{
   int x, y, z, width, height, depth, hwidth, hheight, hdepth, i;
   VECTOR *v1, *v2;
   MRI *mri_target, *mri_source;
@@ -7730,7 +7849,8 @@ MATRIX *MRIpowellAlignImages(MRI *mri_source,
                              MATRIX *m_constraint,
                              MRI *mri_source_mask,
                              MRI *mri_target_mask,
-                             int map_both_ways) {
+                             int map_both_ways)
+{
   int i;
   float fmin, fmax;
   VOXEL_LIST *vl_target, *vl_source;
@@ -7773,7 +7893,8 @@ static int powell_minimize(VOXEL_LIST *vl_source,
                            MATRIX *mat,
                            float *pscale_factor,
                            MATRIX *m_constraint,
-                           int map_both_ways) {
+                           int map_both_ways)
+{
   float *p, **xi, fret, fstart, scale_factor, min_sse;
   int i, r, c, iter;
   p = vector(1, NPARMS + 1);
@@ -7928,7 +8049,8 @@ static int powell_minimize(VOXEL_LIST *vl_source,
   if (pscale_factor) *pscale_factor = scale_factor;
   return (NO_ERROR);
 }
-static float compute_powell_sse(float *p) {
+static float compute_powell_sse(float *p)
+{
   static MATRIX *mat = NULL;
   float error, scale_factor;
   int i, r, c;
@@ -7954,7 +8076,8 @@ static float compute_powell_sse(float *p) {
 
 extern void (*user_call_func)(float[]);
 
-static int mriQuasiNewtonEMAlignPyramidLevel(MRI *mri_in, GCA *gca, MP *parms) {
+static int mriQuasiNewtonEMAlignPyramidLevel(MRI *mri_in, GCA *gca, MP *parms)
+{
   float p[5 * 5], fold, fnew;
   int row, col, i, iter, steps, retval;
   MATRIX *m_L;
@@ -8022,7 +8145,8 @@ static int mriQuasiNewtonEMAlignPyramidLevel(MRI *mri_in, GCA *gca, MP *parms) {
   return (NO_ERROR);
 }
 
-MATRIX *MRIfaridAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L) {
+MATRIX *MRIfaridAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L)
+{
   // compute linear registration using Hanry Farid's method
   float fmin, fmax;
   VOXEL_LIST *vl_target, *vl_source;
@@ -8058,7 +8182,8 @@ MATRIX *MRIfaridAlignImages(MRI *mri_source, MRI *mri_target, MATRIX *m_L) {
 }
 
 static int ComputeStepTransform(
-    VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, float cx, float cy, float cz, MATRIX *Minc) {
+    VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, float cx, float cy, float cz, MATRIX *Minc)
+{
   //(cx, cy, cz) is used to translate the coordinates system to be centered at it; may help reduce numerical errors
   int i, j, k, width, height, depth;
   int x, y, z;
@@ -8158,7 +8283,8 @@ static int ComputeStepTransform(
     Mvec[8] = 1.0;
     Mvec[12] = 1.0;
     if (NPARMS == 14) Mvec[13] = 0.0;  // offset
-  } else {
+  }
+  else {
     for (i = 1; i <= NPARMS; i++)
       for (j = 1; j <= NPARMS; j++) Mvec[i - 1] += invCC->rptr[i][j] * VECTOR_ELT(sumCk, j);
   }
@@ -8206,11 +8332,13 @@ static int ComputeStepTransform(
     else
       printf("final contrast scaling = %2.2f\n", Mvec[12]);
     return 1;  // converged
-  } else
+  }
+  else
     return 0;
 }
 
-static int farid_align(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L) {
+static int farid_align(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L)
+{
   int iterations;
   int i;
   int width, height, depth, x, y, z;
@@ -8314,7 +8442,8 @@ static int farid_align(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L
   if (iterations == 31) {
     //    printf("Not converged yet after 30 iterations \n");
     return 0;
-  } else
+  }
+  else
     return 1;
 }
 
@@ -8323,7 +8452,8 @@ static float compute_powell_label_sse(float *p);
 static double compute_label_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L);
 
 /* compute mean squared error of two label images with a transform */
-static double compute_label_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L) {
+static double compute_label_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L)
+{
   int x, y, z, width, height, depth, hwidth, hheight, hdepth, i;
   VECTOR *v1, *v2;
   MRI *mri_target, *mri_source;
@@ -8382,7 +8512,8 @@ static double compute_label_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_tar
   return (-sqrt(sse / (double)(vl_target->nvox + vl_source->nvox)));
 }
 
-MATRIX *MRIpowellAlignLabels(MRI *mri_source, MRI *mri_target, MATRIX *m_L) {
+MATRIX *MRIpowellAlignLabels(MRI *mri_source, MRI *mri_target, MATRIX *m_L)
+{
   // align two label volumes
   VOXEL_LIST *vl_target, *vl_source;
 
@@ -8412,7 +8543,8 @@ MATRIX *MRIpowellAlignLabels(MRI *mri_source, MRI *mri_target, MATRIX *m_L) {
 #endif
 #define TOL 1e-5
 
-static int powell_minimize_label(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat) {
+static int powell_minimize_label(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *mat)
+{
   // used for registration of two label volumes
   float *p, **xi, fret, fstart;
   int i, r, c, iter;
@@ -8471,7 +8603,8 @@ static int powell_minimize_label(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, M
 
   return (NO_ERROR);
 }
-static float compute_powell_label_sse(float *p) {
+static float compute_powell_label_sse(float *p)
+{
   static MATRIX *mat = NULL;
   float error;
   int i, r, c;
@@ -8508,7 +8641,8 @@ double MRIcomputeOptimalLinearXform(MRI *mri_source,
                                     float trans_steps,
                                     int nreductions,
                                     char *base_name,
-                                    int map_both_ways) {
+                                    int map_both_ways)
+{
   MATRIX *m_rot, *m_x_rot, *m_y_rot, *m_z_rot, *m_tmp, *m_L_tmp, *m_origin_inv, *m_tmp2, *m_scale, *m_trans,
       *m_tmp3 = NULL, *m_origin;
   double x_angle, y_angle, z_angle, x_max_rot;
@@ -8746,7 +8880,8 @@ double MRIcomputeOptimalLinearXform(MRI *mri_source,
   return (max_log_p);
 }
 
-static double mriIntensitySSE(MRI *mri_in, MRI *mri_ref, MATRIX *m_L) {
+static double mriIntensitySSE(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
+{
   int x, y, z;
   VECTOR *v1, *v2;
   double xd, yd, zd, sse, width, height, depth;

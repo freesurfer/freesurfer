@@ -145,7 +145,8 @@ static int bpChangeNumberOfNets(FILE *fp, int nnets);
 int coef = -1;
 
 BACKPROP *BackpropAlloc(
-    int ninputs, int noutputs, int nhidden, float trate, float momentum, float *mean_out, float *std_out) {
+    int ninputs, int noutputs, int nhidden, float trate, float momentum, float *mean_out, float *std_out)
+{
   BACKPROP *backprop;
 
   backprop = (BACKPROP *)InsCalloc(1, sizeof(BACKPROP));
@@ -179,7 +180,8 @@ BACKPROP *BackpropAlloc(
 
     Returns:
 ----------------------------------------------------------------------*/
-int BackpropFileNumberOfNets(char *fname) {
+int BackpropFileNumberOfNets(char *fname)
+{
   BPFILE_HEADER hd;
   FILE *fp;
 
@@ -188,7 +190,8 @@ int BackpropFileNumberOfNets(char *fname) {
     if (!fp) return (-1);
     fclose(fp);
     fp = fopen(fname, "r+");
-  } else
+  }
+  else
     fp = stdin;
 
   if (fread(&hd, sizeof(hd), 1, fp) != 1)
@@ -214,7 +217,8 @@ int BackpropFileNumberOfNets(char *fname) {
 
     Returns:
 ----------------------------------------------------------------------*/
-BACKPROP *BackpropRead(char *fname, int netno) {
+BACKPROP *BackpropRead(char *fname, int netno)
+{
   BACKPROP *backprop;
   int ninputs, noutputs, nhidden, ubytes, swapped = 0;
   FILE *fp;
@@ -226,7 +230,8 @@ BACKPROP *BackpropRead(char *fname, int netno) {
     if (!fp) return (NULL);
     fclose(fp);
     fp = fopen(fname, "r+");
-  } else
+  }
+  else
     fp = stdin;
 
   if (fread(&hd, sizeof(hd), 1, fp) != 1)
@@ -305,7 +310,8 @@ BACKPROP *BackpropRead(char *fname, int netno) {
 
     Returns:
 ----------------------------------------------------------------------*/
-BACKPROP *BackpropCopy(BACKPROP *bp_src, BACKPROP *bp_dst) {
+BACKPROP *BackpropCopy(BACKPROP *bp_src, BACKPROP *bp_dst)
+{
   if (bp_dst && ((bp_dst->ninputs != bp_src->ninputs) || (bp_dst->noutputs != bp_src->noutputs) ||
                  (bp_dst->nhidden != bp_src->nhidden)))
     BackpropFree(&bp_dst);
@@ -350,7 +356,8 @@ BACKPROP *BackpropCopy(BACKPROP *bp_src, BACKPROP *bp_dst) {
 
     Returns:
 ----------------------------------------------------------------------*/
-static void bpCopyLayer(LAYER *lsrc, LAYER *ldst) {
+static void bpCopyLayer(LAYER *lsrc, LAYER *ldst)
+{
   int nweights;
 
   nweights = lsrc->nunits * lsrc->ninputs;
@@ -370,7 +377,8 @@ static void bpCopyLayer(LAYER *lsrc, LAYER *ldst) {
 
     Returns:
 ----------------------------------------------------------------------*/
-int BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[], char *comments, int mode) {
+int BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[], char *comments, int mode)
+{
   FILE *fp = NULL;
   int i;
   char *user, *time_str;
@@ -462,7 +470,8 @@ int BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[], char 
 
     Returns:
 ----------------------------------------------------------------------*/
-int BackpropProcess(BACKPROP *backprop, float *I) {
+int BackpropProcess(BACKPROP *backprop, float *I)
+{
   int i, class = -1;
   LAYER *hidden, *output;
   float maxX;
@@ -505,7 +514,8 @@ int BackpropProcess(BACKPROP *backprop, float *I) {
        convert the output range to unnormalized format
 ----------------------------------------------------------------------*/
 #define NO_CONVERT 0
-static void bpUnnormalizeOutputs(BACKPROP *backprop) {
+static void bpUnnormalizeOutputs(BACKPROP *backprop)
+{
   float mean, std;
   int i;
   LAYER *output;
@@ -526,7 +536,8 @@ static void bpUnnormalizeOutputs(BACKPROP *backprop) {
     Returns:
       scale targets to desired range
 ----------------------------------------------------------------------*/
-static void bpNormalizeTargets(BACKPROP *backprop, float *targets) {
+static void bpNormalizeTargets(BACKPROP *backprop, float *targets)
+{
   float mean, std;
   int i;
 
@@ -545,7 +556,8 @@ static void bpNormalizeTargets(BACKPROP *backprop, float *targets) {
     Returns:
        convert targets back to original unnormalized range
 ----------------------------------------------------------------------*/
-static void bpUnnormalizeTargets(BACKPROP *backprop, float *targets) {
+static void bpUnnormalizeTargets(BACKPROP *backprop, float *targets)
+{
   float mean, std;
   int i;
 
@@ -566,7 +578,8 @@ Returns:
 scale outputs to desired range
 ----------------------------------------------------------------------*/
 #define NO_CONVERT 0
-static void bpUnnormalizeOutputs(BACKPROP *backprop) {
+static void bpUnnormalizeOutputs(BACKPROP *backprop)
+{
   float scale, min_out;
   int i;
   LAYER *output;
@@ -591,7 +604,8 @@ Description:
 Returns:
 scale outputs to desired range
 ----------------------------------------------------------------------*/
-static void bpNormalizeTargets(BACKPROP *backprop, float *targets) {
+static void bpNormalizeTargets(BACKPROP *backprop, float *targets)
+{
   float scale, min_out;
   int i;
 
@@ -614,7 +628,8 @@ Description:
 Returns:
 scale outputs to desired range
 ----------------------------------------------------------------------*/
-static void bpUnnormalizeTargets(BACKPROP *backprop, float *targets) {
+static void bpUnnormalizeTargets(BACKPROP *backprop, float *targets)
+{
   float scale, min_out;
   int i;
 
@@ -637,7 +652,8 @@ static void bpUnnormalizeTargets(BACKPROP *backprop, float *targets) {
 
     Returns:
 ----------------------------------------------------------------------*/
-static void bpLayerFeedForward(float *I, LAYER *layer, int nlin) {
+static void bpLayerFeedForward(float *I, LAYER *layer, int nlin)
+{
   int i, j, nunits, ninputs;
   float *pbias, *px;
   register float net, *Ii, *wij;
@@ -687,7 +703,8 @@ float BackpropTrainEpoch(
     BACKPROP *bp,
     int ntrials,
     int (*io_func)(float *inputs, float *targets, int index, int ninputs, int noutputs, void *user),
-    void *user) {
+    void *user)
+{
   char *input_tested;
   float *inputs, *targets, error_ratio;
   int tested, index, min_trial, max_trial, i;
@@ -768,12 +785,14 @@ learning_rate = learning_rate * TRATE_INCREASE.
   {
     bp->trate = bp->trate * bp->trate_down;
     bp->momentum = 0.0f;
-  } else /* new error is acceptable, use new network */
+  }
+  else /* new error is acceptable, use new network */
   {
     if (new_bp->sse < bp->sse) /* error decreased, increase trate */
     {
       new_bp->trate = new_bp->trate * new_bp->trate_up;
-    } else /* error increased by a little   NEW!!!! */
+    }
+    else /* error increased by a little   NEW!!!! */
     {
       new_bp->trate = new_bp->trate * new_bp->trate_down;
       /*      new_bp->momentum = 0.0f ;*/
@@ -801,7 +820,8 @@ learning_rate = learning_rate * TRATE_INCREASE.
 
     Returns:
 ----------------------------------------------------------------------*/
-float BackpropLearn(BACKPROP *backprop, float *inputs, float *targets) {
+float BackpropLearn(BACKPROP *backprop, float *inputs, float *targets)
+{
   // int bpClass;
   int i;
   LAYER *hidden, *output;
@@ -854,7 +874,8 @@ float BackpropLearn(BACKPROP *backprop, float *inputs, float *targets) {
 
     Returns:
 ----------------------------------------------------------------------*/
-static void bpCalculateOutputDeltas(BACKPROP *backprop, float *targets) {
+static void bpCalculateOutputDeltas(BACKPROP *backprop, float *targets)
+{
   LAYER *output;
   float *ptarget, *px, *pdelta, target;
   int j, nunits;
@@ -885,7 +906,8 @@ static void bpCalculateOutputDeltas(BACKPROP *backprop, float *targets) {
 
     Returns:
 ----------------------------------------------------------------------*/
-static void bpCalculateHiddenDeltas(BACKPROP *backprop) {
+static void bpCalculateHiddenDeltas(BACKPROP *backprop)
+{
   LAYER *output, *hidden;
   int i, j, hnunits, onunits;
   register float *pdeli, *pdelj;
@@ -933,7 +955,8 @@ static void bpCalculateHiddenDeltas(BACKPROP *backprop) {
 
     Returns:
 ----------------------------------------------------------------------*/
-static void bpInitLayer(LAYER *layer, int ninputs, int nunits) {
+static void bpInitLayer(LAYER *layer, int ninputs, int nunits)
+{
   long nweights;
 
   layer->ninputs = ninputs;
@@ -954,7 +977,8 @@ static void bpInitLayer(LAYER *layer, int ninputs, int nunits) {
 
     Returns:
 ----------------------------------------------------------------------*/
-static void bpUpdateLayerWeights(LAYER *layer, float *I, float trate, float momentum) {
+static void bpUpdateLayerWeights(LAYER *layer, float *I, float trate, float momentum)
+{
   int i, j, nunits, ninputs;
   float delta, one_minus_momentum, db, *Ii;
   register float dw, *dwij, *wij;
@@ -1001,7 +1025,8 @@ static void bpUpdateLayerWeights(LAYER *layer, float *I, float trate, float mome
 
     Returns:
 ----------------------------------------------------------------------*/
-static void bpInitLayerWeights(LAYER *layer) {
+static void bpInitLayerWeights(LAYER *layer)
+{
   int i, j;
   double rlim;
 
@@ -1022,7 +1047,8 @@ static void bpInitLayerWeights(LAYER *layer) {
 
     Returns:
 ----------------------------------------------------------------------*/
-static void bpReadLayer(FILE *fp, LAYER *layer) {
+static void bpReadLayer(FILE *fp, LAYER *layer)
+{
   int i, j, scanned;
 
   scanned = fscanf(fp, "%d  %d\n", &layer->ninputs, &layer->nunits);
@@ -1062,7 +1088,8 @@ static void bpReadLayer(FILE *fp, LAYER *layer) {
 
     Returns:
 ----------------------------------------------------------------------*/
-static void bpWriteLayer(FILE *fp, LAYER *layer) {
+static void bpWriteLayer(FILE *fp, LAYER *layer)
+{
   int i, j;
 
   fprintf(fp, "%d  %d\n", layer->ninputs, layer->nunits);
@@ -1081,7 +1108,8 @@ static void bpWriteLayer(FILE *fp, LAYER *layer) {
 
     Returns:
 ----------------------------------------------------------------------*/
-int BackpropFree(BACKPROP **pbackprop) {
+int BackpropFree(BACKPROP **pbackprop)
+{
   BACKPROP *backprop;
 
   backprop = *pbackprop;
@@ -1099,7 +1127,8 @@ int BackpropFree(BACKPROP **pbackprop) {
 
     Returns:
 ----------------------------------------------------------------------*/
-static void bpFreeLayer(LAYER *layer) {
+static void bpFreeLayer(LAYER *layer)
+{
   InsFree(layer->x);
   InsHfree(layer->w);
   InsHfree(layer->dw);
@@ -1123,7 +1152,8 @@ static void bpFreeLayer(LAYER *layer) {
 #define TINY 0.000001f
 #endif
 
-float BackpropError(BACKPROP *bp, float *targets) {
+float BackpropError(BACKPROP *bp, float *targets)
+{
   float bpError, total, error;
   int i, nunits;
   LAYER *output;
@@ -1169,7 +1199,8 @@ float BackpropError(BACKPROP *bp, float *targets) {
 
     Returns:
 ----------------------------------------------------------------------*/
-int BackpropErrorReset(BACKPROP *bp) {
+int BackpropErrorReset(BACKPROP *bp)
+{
   memset(bp->errors, 0, bp->noutputs * sizeof(float));
 
   return (0);
@@ -1181,7 +1212,8 @@ int BackpropErrorReset(BACKPROP *bp) {
 
     Returns:
 ----------------------------------------------------------------------*/
-int BackpropSetParms(BACKPROP *bp, float trate_up, float trate_down, float error_ratio) {
+int BackpropSetParms(BACKPROP *bp, float trate_up, float trate_down, float error_ratio)
+{
   bp->trate_up = trate_up;
   bp->trate_down = trate_down;
   bp->error_ratio = error_ratio;
@@ -1238,7 +1270,8 @@ BackpropEpochComplete(BACKPROP *bp)
 
     Returns:
 ----------------------------------------------------------------------*/
-static long bpFileNewEnd(FILE *fp, BPFILE_HEADER *hd, int swapped) {
+static long bpFileNewEnd(FILE *fp, BPFILE_HEADER *hd, int swapped)
+{
   long end;
   int err;
 
@@ -1261,7 +1294,8 @@ static long bpFileNewEnd(FILE *fp, BPFILE_HEADER *hd, int swapped) {
 
     Returns:
 ----------------------------------------------------------------------*/
-static long bpFileSeekEndPtr(FILE *fp, BPFILE_HEADER *hd, int swapped) {
+static long bpFileSeekEndPtr(FILE *fp, BPFILE_HEADER *hd, int swapped)
+{
   long next;
 
   /*
@@ -1292,7 +1326,8 @@ static long bpFileSeekEndPtr(FILE *fp, BPFILE_HEADER *hd, int swapped) {
 
     Returns:
 ----------------------------------------------------------------------*/
-static long bpFileSeekNet(FILE *fp, BPFILE_HEADER *hd, int netno, int swapped) {
+static long bpFileSeekNet(FILE *fp, BPFILE_HEADER *hd, int netno, int swapped)
+{
   int index;
   long next;
 
@@ -1322,7 +1357,8 @@ static long bpFileSeekNet(FILE *fp, BPFILE_HEADER *hd, int netno, int swapped) {
 
     Returns:
 ----------------------------------------------------------------------*/
-static int bpChangeNumberOfNets(FILE *fp, int nnets) {
+static int bpChangeNumberOfNets(FILE *fp, int nnets)
+{
   BPFILE_HEADER hd;
 
   DiagPrintf(DIAG_WRITE, "bpChangeNumberOfNets(%d)\n", nnets);

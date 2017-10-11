@@ -155,7 +155,8 @@ const char *GLMSrcVersion(void) { return ("$Id: fsglm.c,v 1.34 2015/04/15 19:55:
   GLManalyze() - fill y, X, ncontrasts, and C in the glm
   and run this to fit and test.
   -----------------------------------------------------------*/
-int GLManalyze(GLMMAT *glm) {
+int GLManalyze(GLMMAT *glm)
+{
   GLMcMatrices(glm);
   GLMxMatrices(glm);
   GLMfit(glm);
@@ -169,7 +170,8 @@ int GLManalyze(GLMMAT *glm) {
   of the matrices (that's done by GLMfit(), GLMtest(), and
   GLMcMatrices(), and GLMxMatrices.
   -------------------------------------------------------*/
-GLMMAT *GLMalloc(void) {
+GLMMAT *GLMalloc(void)
+{
   int n;
   GLMMAT *glm;
 
@@ -234,7 +236,8 @@ GLMMAT *GLMalloc(void) {
 /*--------------------------------------------------------------------
   GLMdof() - computes DOF = #Xrows - #Xcols
   ------------------------------------------------------------------*/
-int GLMdof(GLMMAT *glm) {
+int GLMdof(GLMMAT *glm)
+{
   glm->dof = glm->X->rows - glm->X->cols;
   if (glm->dof == 0 && glm->AllowZeroDOF) glm->dof = 1;
   return (glm->dof);
@@ -245,7 +248,8 @@ int GLMdof(GLMMAT *glm) {
   and the dims are correct, then just returns. If dims are not correct,
   frees and then allocs.
   ------------------------------------------------------------------*/
-int GLMallocX(GLMMAT *glm, int nrows, int ncols) {
+int GLMallocX(GLMMAT *glm, int nrows, int ncols)
+{
   if (glm->X != NULL) {
     if (glm->X->rows == nrows && glm->X->cols == ncols)
       return (0);
@@ -261,7 +265,8 @@ int GLMallocX(GLMMAT *glm, int nrows, int ncols) {
   and the dims are correct, then just returns. If dims are not correct,
   frees and then allocs.
   ------------------------------------------------------------------*/
-int GLMallocY(GLMMAT *glm) {
+int GLMallocY(GLMMAT *glm)
+{
   if (glm->y != NULL) {
     if (glm->y->rows == glm->X->rows && glm->y->cols == 1)
       return (0);
@@ -277,7 +282,8 @@ int GLMallocY(GLMMAT *glm) {
   been alloced and the dims are correct, then just returns. If dims
   are not correct, frees and then  allocs.
 ------------------------------------------------------------------*/
-int GLMallocYFFxVar(GLMMAT *glm) {
+int GLMallocYFFxVar(GLMMAT *glm)
+{
   if (glm->yffxvar != NULL) {
     if (glm->yffxvar->rows == glm->X->rows && glm->yffxvar->cols == 1)
       return (0);
@@ -292,7 +298,8 @@ int GLMallocYFFxVar(GLMMAT *glm) {
   GLMfree() - frees all the matrices associcated with the GLM struct,
   and the GLM struct itself.
   ------------------------------------------------------------------*/
-int GLMfree(GLMMAT **pglm) {
+int GLMfree(GLMMAT **pglm)
+{
   int n;
   GLMMAT *glm;
   glm = *pglm;
@@ -349,7 +356,8 @@ int GLMfree(GLMMAT **pglm) {
   this within GLMtest(), but GLMtest() may be run many times whereas
   Ct only needs to be computed once.
   ----------------------------------------------------------------*/
-int GLMcMatrices(GLMMAT *glm) {
+int GLMcMatrices(GLMMAT *glm)
+{
   int n, err;
 
   for (n = 0; n < glm->ncontrasts; n++) {
@@ -379,7 +387,8 @@ int GLMcMatrices(GLMMAT *glm) {
       glm->Xcdt[n] = MatrixTranspose(glm->Xcd[n], NULL);
       glm->sumXcd[n] = MatrixSum(glm->Xcd[n], 1, NULL);
       glm->sumXcd2[n] = MatrixSumSquare(glm->Xcd[n], 1, NULL);
-    } else
+    }
+    else
       glm->Dt[n] = NULL;  // make sure
   }
   return (0);
@@ -393,7 +402,8 @@ int GLMcMatrices(GLMMAT *glm) {
   than once. Eg, when doing an analysis where the desgin matrix
   is the same at all voxels, then it is not necessary.
   ---------------------------------------------------------------*/
-int GLMxMatrices(GLMMAT *glm) {
+int GLMxMatrices(GLMMAT *glm)
+{
   int n, c, r;
   MATRIX *Mtmp, *Xnorm, *Xtnorm, *Xscale, *XtX;
   double v;
@@ -412,7 +422,8 @@ int GLMxMatrices(GLMMAT *glm) {
     Xnorm = MatrixNormalizeCol(glm->X, NULL, Xscale);
     Xtnorm = MatrixTranspose(Xnorm, NULL);
     XtX = MatrixMultiplyD(Xtnorm, Xnorm, NULL);
-  } else
+  }
+  else
     XtX = glm->XtX;
 
   Mtmp = MatrixInverse(XtX, glm->iXtX);
@@ -455,7 +466,8 @@ int GLMxMatrices(GLMMAT *glm) {
   do spatial filtering on the eres). XtX and iXtX must have been
   computed by GLMxMatrices() first.
   ---------------------------------------------------------------*/
-int GLMfit(GLMMAT *glm) {
+int GLMfit(GLMMAT *glm)
+{
   int f;
 
   if (glm->ill_cond_flag) return (0);
@@ -488,7 +500,8 @@ int GLMfit(GLMMAT *glm) {
   GLMtest() - tests all the contrasts for the given GLM. Must have already
   run GLMcMatrices(), GLMxMatrices(), and GLMfit(). See also GLMtestFFX().
   ------------------------------------------------------------------------*/
-int GLMtest(GLMMAT *glm) {
+int GLMtest(GLMMAT *glm)
+{
   int n;
   double dtmp;
   static MATRIX *F = NULL, *mtmp = NULL;
@@ -553,9 +566,11 @@ int GLMtest(GLMMAT *glm) {
             (glm->Xcdyhatd[n]->rptr[1][1] - glm->sumXcd[n]->rptr[1][1] * glm->sumyhatd[n]->rptr[1][1]) /
             sqrt((glm->sumXcd2[n]->rptr[1][1] - glm->sumXcd[n]->rptr[1][1] * glm->sumXcd[n]->rptr[1][1]) *
                  (glm->sumyhatd2[n]->rptr[1][1] - glm->sumyhatd[n]->rptr[1][1] * glm->sumyhatd[n]->rptr[1][1]));
-      } else
+      }
+      else
         glm->pcc[n] = 0;
-    } else {
+    }
+    else {
       // this usually happens when the var is close to 0. But if this is
       // happening, should probably use a mask.
       glm->F[n] = 0;
@@ -572,7 +587,8 @@ int GLMtest(GLMMAT *glm) {
   GLMtestFFx() - tests all the contrasts for the given GLM. Must have already
   run GLMcMatrices(), GLMxMatrices(), and GLMfit(). See also GLMtest().
   ------------------------------------------------------------------------*/
-int GLMtestFFx(GLMMAT *glm) {
+int GLMtestFFx(GLMMAT *glm)
+{
   double val;
   int n, r, c;
   static MATRIX *F = NULL, *mtmp = NULL;
@@ -611,7 +627,8 @@ int GLMtestFFx(GLMMAT *glm) {
       glm->F[n] = F->rptr[1][1];
       glm->p[n] = sc_cdf_fdist_Q(glm->F[n], glm->C[n]->rows, glm->ffxdof);
       glm->igCVM[n] = mtmp;
-    } else {
+    }
+    else {
       // this usually happens when the var is close to 0. But if this is
       // happening, should probably use a mask.
       glm->F[n] = 0;
@@ -634,7 +651,8 @@ int GLMtestFFx(GLMMAT *glm) {
   tested, where each contrast matrix is 2-by-ncols. Returns
   the number of msec used.
   -----------------------------------------------------------*/
-int GLMprofile(int nrows, int ncols, int ncon, int niters) {
+int GLMprofile(int nrows, int ncols, int ncon, int niters)
+{
   int n, c, msec;
   GLMMAT *glm;
   struct timeb then;
@@ -673,7 +691,8 @@ int GLMprofile(int nrows, int ncols, int ncon, int niters) {
 /*---------------------------------------------------------
   GLMsynth() - synthesizes y, X, and Cs and fits and tests.
   ---------------------------------------------------------*/
-GLMMAT *GLMsynth(void) {
+GLMMAT *GLMsynth(void)
+{
   static char tmpstr[1000];
   int nrows, ncols, ncon, c;
   GLMMAT *glm;
@@ -709,7 +728,8 @@ GLMMAT *GLMsynth(void) {
   the failure is passed back. If there is no failure, then the max
   rvar is passed.
   ---------------------------------------------------------*/
-int GLMresynthTest(int niters, double *prvar) {
+int GLMresynthTest(int niters, double *prvar)
+{
   int nrows, ncols, n;
   GLMMAT *glm;
   double rvarmax;
@@ -749,7 +769,8 @@ int GLMresynthTest(int niters, double *prvar) {
   GLMdump() - saves a lot of the stuff from the GLMMAT
   struct into ascii files in the given directory.
   ---------------------------------------------------------*/
-int GLMdump(char *dumpdir, GLMMAT *glm) {
+int GLMdump(char *dumpdir, GLMMAT *glm)
+{
   char fname[1000], condir[1000];
   FILE *fp;
   int c;
@@ -844,7 +865,8 @@ int GLMdump(char *dumpdir, GLMMAT *glm) {
   condition number is computed and returned through cond so that the
   calling program can decide whether it is  ill-conditioned.
   ------------------------------------------------------------------*/
-MATRIX *GLMpmfMatrix(MATRIX *C, double *cond, MATRIX *P) {
+MATRIX *GLMpmfMatrix(MATRIX *C, double *cond, MATRIX *P)
+{
   MATRIX *Ct = NULL, *CCt = NULL, *iCCt = NULL, *CtiCCt = NULL;
 
   if (P != NULL) {

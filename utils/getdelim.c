@@ -41,7 +41,8 @@
    necessary.  Returns the number of characters read (not including
    the null terminator), or -1 on error or EOF.  */
 
-ssize_t getdelim(char **lineptr, size_t *n, int delimiter, FILE *fp) {
+ssize_t getdelim(char **lineptr, size_t *n, int delimiter, FILE *fp)
+{
   ssize_t result = 0;
   size_t cur_len = 0;
 

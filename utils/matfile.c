@@ -57,18 +57,21 @@ int MLFCfree(MLFC **ppmlfc);
 #endif
 
 static int (*mat_printf)(const char *szFormat, ...) = NULL;
-int Matlab_Install_printf(int (*new_printf)(const char *szFormat, ...)) {
+int Matlab_Install_printf(int (*new_printf)(const char *szFormat, ...))
+{
   mat_printf = new_printf;
   return (0);
 }
 
-int MatlabWrite(MATRIX *mat, const char *fname, const char *name) {
+int MatlabWrite(MATRIX *mat, const char *fname, const char *name)
+{
   if (!name) return (MatFileWrite(fname, mat->data, mat->rows, mat->cols, "matrix"));
 
   return (MatFileWrite(fname, mat->data, mat->rows, mat->cols, name));
 }
 
-MATRIX *MatlabRead(const char *fname) {
+MATRIX *MatlabRead(const char *fname)
+{
   MATRIX *mat;
   MATFILE mf;
   FILE *fp;
@@ -119,7 +122,8 @@ MATRIX *MatlabRead(const char *fname) {
 #else
     if (mf.imagf) {
       fptr = (float *)MATRIX_CELT(mat, row, 1);
-    } else
+    }
+    else
       fptr = MATRIX_RELT(mat, row, 1);
 #endif
 
@@ -137,7 +141,8 @@ MATRIX *MatlabRead(const char *fname) {
   return (mat);
 }
 
-MATFILE *MatFileRead(const char *fname, int type) {
+MATFILE *MatFileRead(const char *fname, int type)
+{
   MATFILE *mf;
   FILE *fp;
   char *name;
@@ -198,7 +203,8 @@ MATFILE *MatFileRead(const char *fname, int type) {
   return (mf);
 }
 
-int MatFileWrite(const char *fname, float *data, int rows, int cols, const char *name) {
+int MatFileWrite(const char *fname, float *data, int rows, int cols, const char *name)
+{
   int row, col, nitems, mtype;
   float *fptr;
   FILE *fp;
@@ -267,7 +273,8 @@ int MatFileWrite(const char *fname, float *data, int rows, int cols, const char 
   return (0);
 }
 
-static void matFree(double **matrix, int rows, int cols) {
+static void matFree(double **matrix, int rows, int cols)
+{
   int i;
   i = cols; /* prevents warning */
 
@@ -276,7 +283,8 @@ static void matFree(double **matrix, int rows, int cols) {
   free(matrix);
 }
 
-static double **matAlloc(int rows, int cols) {
+static double **matAlloc(int rows, int cols)
+{
   double **matrix;
   int i;
 
@@ -299,7 +307,8 @@ static double **matAlloc(int rows, int cols) {
   return (matrix);
 }
 
-static int readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix) {
+static int readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **imag_matrix)
+{
   int row, col, type, nitems;
   short sval;
   long lval;
@@ -333,7 +342,8 @@ static int readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **ima
             ERROR_BADFILE, "unsupported matlab format %d (%s)\n", type, type == MAT_FLOAT ? "float" : "unknown");
         break;
     }
-  } else {                                                /* if (mf.version == 4) */
+  }
+  else {                                                  /* if (mf.version == 4) */
     type = (int)mf->type - ((int)mf->type / 1000) * 1000; /* remove 1000s */
     type = type - type / 100 * 100;                       /* remove 100s from type */
     type = type / 10 * 10;                                /* 10s digit specifies data type */
@@ -445,7 +455,8 @@ static int readMatFile(FILE *fp, MATFILE *mf, double **real_matrix, double **ima
 }
 
 /*---------------------------------------------------------*/
-char *MatReadHeader0(FILE *fp, MATFILE *mf) {
+char *MatReadHeader0(FILE *fp, MATFILE *mf)
+{
   int nitems;
   char *name;
 
@@ -489,7 +500,8 @@ char *MatReadHeader0(FILE *fp, MATFILE *mf) {
   return (name);
 }
 
-static void swapBytes(MATFILE *mf) {
+static void swapBytes(MATFILE *mf)
+{
   mf->type = swapLong32(mf->type);
   mf->mrows = swapLong32(mf->mrows);
   mf->ncols = swapLong32(mf->ncols);
@@ -501,7 +513,8 @@ static void swapBytes(MATFILE *mf) {
   variables from a matlab file and return the matrix associated
   with the given variable name.
   -------------------------------------------------------------*/
-MATRIX *ReadMatlabFileVariable(const char *fname, const char *varname) {
+MATRIX *ReadMatlabFileVariable(const char *fname, const char *varname)
+{
   MLFC *mlfc;
   int n;
   MATRIX *M;
@@ -529,7 +542,8 @@ MATRIX *ReadMatlabFileVariable(const char *fname, const char *varname) {
   variables from a matlab file, including the variable name
   and data matrix.
   -------------------------------------------------------------*/
-MLFC *ReadMatlabFileContents(const char *fname) {
+MLFC *ReadMatlabFileContents(const char *fname)
+{
   MLFC *mlfc;
   MATRIX *mat;
   MATFILE mf;
@@ -609,7 +623,8 @@ MLFC *ReadMatlabFileContents(const char *fname) {
 }
 
 /*-------------------------------------------------------*/
-int MLFCprint(FILE *fp, MLFC *mlfc) {
+int MLFCprint(FILE *fp, MLFC *mlfc)
+{
   int n;
 
   fprintf(fp, "mfile: %s\n", mlfc->mfile);
@@ -625,7 +640,8 @@ int MLFCprint(FILE *fp, MLFC *mlfc) {
 }
 
 /*-------------------------------------------------------*/
-int MLFCfree(MLFC **ppmlfc) {
+int MLFCfree(MLFC **ppmlfc)
+{
   MLFC *mlfc;
   int n;
 
@@ -650,7 +666,8 @@ int MLFCfree(MLFC **ppmlfc) {
   should not be NULL (but does not check that there is an imaginary
   part to read in).
   --------------------------------------------------------------*/
-static int znzreadMatFile(char *unbuff, MATFILE *mf, double **real_matrix, double **imag_matrix) {
+static int znzreadMatFile(char *unbuff, MATFILE *mf, double **real_matrix, double **imag_matrix)
+{
   int row, col, type, offset = 0;
   short sval = 1;
   long lval = 1;
@@ -743,7 +760,8 @@ static int znzreadMatFile(char *unbuff, MATFILE *mf, double **real_matrix, doubl
   return (0);
 }
 /*--------------------------------------------------------------*/
-MATRIX *MatlabRead2(const char *fname) {
+MATRIX *MatlabRead2(const char *fname)
+{
   MATRIX *mat;
   MATFILE mf;
   FILE *znzfp = NULL;
@@ -809,7 +827,8 @@ MATRIX *MatlabRead2(const char *fname) {
 #else
     if (mf.imagf) {
       fptr = (float *)MATRIX_CELT(mat, row, 1);
-    } else
+    }
+    else
       fptr = MATRIX_RELT(mat, row, 1);
 #endif
 
@@ -834,7 +853,8 @@ MATRIX *MatlabRead2(const char *fname) {
   element.  If it has elements that are compressed, then it does not
   read anything. Returns NULL if something fails or if compressed.
   -------------------------------------------------------------------*/
-char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed) {
+char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed)
+{
   int nitems, padding;
   char *name;
   char a, b, c, d, m;
@@ -925,7 +945,8 @@ char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed) {
       d = fgetc(fp);
       ungetc(d, fp);
       ungetc(c, fp);
-    } else {
+    }
+    else {
       a = fgetc(fp);
       b = fgetc(fp);
       c = fgetc(fp);
@@ -944,7 +965,8 @@ char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed) {
       // If name does not fill up an 8 byte segment, read past the filler
       padding = 8 - ((int)mf->namlen - (int)mf->namlen / 8 * 8);
       fseek(fp, padding, SEEK_CUR);
-    } else { /*small data element*/
+    }
+    else { /*small data element*/
       fread(&(mf->namlen), 1, fourbytes, fp);
       if (DIFFERENT_ENDIAN(mf)) mf->namlen = swapLong32(mf->namlen);
       memmove(&namlen_temp, &mf->namlen, sizeof(short));
@@ -1011,7 +1033,8 @@ char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed) {
   a compressed element. Does not actually interpret the data as a
   matrix, just uncompresses it into a buffer.
   ----------------------------------------------------------------*/
-char *znzMatReadHeader(FILE *fp, MATFILE *mf, char **data) {
+char *znzMatReadHeader(FILE *fp, MATFILE *mf, char **data)
+{
   char *name = NULL;
   char m, c;
   char endian;
@@ -1088,7 +1111,8 @@ char *znzMatReadHeader(FILE *fp, MATFILE *mf, char **data) {
     padding = 48 + ((((int)mf->namlen - 1) / 8) + 1);
     memmove(&(mf->type), &unbuff[padding], sizeof(long));
     if (DIFFERENT_ENDIAN(mf)) mf->type = swapLong32(mf->type);
-  } else {
+  }
+  else {
     /*small data*/
     memmove(&(mf->namlen), &unbuff[40], sizeof(long));
     if (DIFFERENT_ENDIAN(mf)) mf->namlen = swapLong32(mf->namlen);

@@ -102,7 +102,8 @@ void mapLearn(ARTMAP *artmap, int ja, int jb);
 
     Returns:
 ----------------------------------------------------------------------*/
-ARTMAP *ArtmapAlloc(int ninputs, int noutputs, double rho_bar, int max_f2) {
+ARTMAP *ArtmapAlloc(int ninputs, int noutputs, double rho_bar, int max_f2)
+{
   ARTMAP *artmap;
 
   artmap = (ARTMAP *)InsCalloc(1, sizeof(ARTMAP));
@@ -132,7 +133,8 @@ ARTMAP *ArtmapAlloc(int ninputs, int noutputs, double rho_bar, int max_f2) {
 
     Returns:
 ----------------------------------------------------------------------*/
-ARTMAP *ArtmapRead(char *fname) {
+ARTMAP *ArtmapRead(char *fname)
+{
   ARTMAP *artmap;
   int ninputs, noutputs, f2nodes, i, j, k, wj;
   double zj;
@@ -181,7 +183,8 @@ ARTMAP *ArtmapRead(char *fname) {
 
     Returns:
 ----------------------------------------------------------------------*/
-int ArtmapWrite(ARTMAP *artmap, char *fname) {
+int ArtmapWrite(ARTMAP *artmap, char *fname)
+{
   FILE *fp;
   int i, j, k, wj;
   double zj;
@@ -216,7 +219,8 @@ int ArtmapWrite(ARTMAP *artmap, char *fname) {
 
     Returns:
 ----------------------------------------------------------------------*/
-int ArtmapFree(ARTMAP **artmap) {
+int ArtmapFree(ARTMAP **artmap)
+{
   InsFree((*artmap)->scratch);
   InsFree((*artmap)->f0);
   InsFree((*artmap)->f1);
@@ -236,7 +240,8 @@ int ArtmapFree(ARTMAP **artmap) {
 
     Returns:
 ----------------------------------------------------------------------*/
-int ArtmapProcess(ARTMAP *artmap, double *I) {
+int ArtmapProcess(ARTMAP *artmap, double *I)
+{
   int class;
 
   if (Gdiag & DIAG_WRITE) printf("ArtmapProcess()\n");
@@ -258,7 +263,8 @@ int ArtmapProcess(ARTMAP *artmap, double *I) {
 
     Returns:
 ----------------------------------------------------------------------*/
-int artProcess(ARTMAP *artmap, double *I) {
+int artProcess(ARTMAP *artmap, double *I)
+{
   int nclass, i, class = 0;
 
   for (i = 0; i < artmap->ninputs; i++) artmap->f0[i] = artmap->f1[i] = I[i];
@@ -290,7 +296,8 @@ int artProcess(ARTMAP *artmap, double *I) {
 
     Returns:
 ----------------------------------------------------------------------*/
-int ArtmapLearn(ARTMAP *artmap, double *I, int class) {
+int ArtmapLearn(ARTMAP *artmap, double *I, int class)
+{
   int artClass;
 
   if (Gdiag & DIAG_WRITE) printf("ArtmapLearn(%d)\n", class);
@@ -311,7 +318,8 @@ int ArtmapLearn(ARTMAP *artmap, double *I, int class) {
         artmap->flags[artmap->class] |= ARTMAP_COMMITTED;
         artmap->ncommitted++;
         break;
-      } else
+      }
+      else
         return (-1); /* out of memory */
     }
     if (artClass != class) {
@@ -333,7 +341,8 @@ int ArtmapLearn(ARTMAP *artmap, double *I, int class) {
 
     Returns:
 ----------------------------------------------------------------------*/
-static void artInitWeights(ARTMAP *artmap) {
+static void artInitWeights(ARTMAP *artmap)
+{
   int i, j, k;
   double *zj;
 
@@ -365,7 +374,8 @@ static void artInitWeights(ARTMAP *artmap) {
 
     Returns:
 ----------------------------------------------------------------------*/
-static int artFeedBack(ARTMAP *artmap, int class) {
+static int artFeedBack(ARTMAP *artmap, int class)
+{
   int j, ninputs;
   double match, norm_I_int_zj, norm_I;
 
@@ -395,7 +405,8 @@ static int artFeedBack(ARTMAP *artmap, int class) {
   {
     artmap->flags[j] |= ARTMAP_RESET;
     return (0);
-  } else
+  }
+  else
     return (1); /* resonance */
 }
 
@@ -406,7 +417,8 @@ static int artFeedBack(ARTMAP *artmap, int class) {
 
     Returns:
 ----------------------------------------------------------------------*/
-static int artFeedForward(ARTMAP *artmap) {
+static int artFeedForward(ARTMAP *artmap)
+{
   int max_j, j;
   // double f2,
   double max_out;
@@ -441,7 +453,8 @@ static int artFeedForward(ARTMAP *artmap) {
 
     Returns:
 ----------------------------------------------------------------------*/
-static double artChoice(ARTMAP *artmap, int j) {
+static double artChoice(ARTMAP *artmap, int j)
+{
   double Tj, *zj, norm_zj, norm_I_int_zj;
 
   zj = Mzj(artmap, 0, j); /* address of jth nodes weights */
@@ -453,7 +466,8 @@ static double artChoice(ARTMAP *artmap, int j) {
     norm_zj = norm(zj, artmap->ninputs);
 
     Tj = (double)norm_I_int_zj / (artmap->beta + (double)norm_zj);
-  } else /* Tj = |I| * ALPHA(j) */
+  }
+  else /* Tj = |I| * ALPHA(j) */
   {
     Tj = (double)norm(artmap->f0, artmap->ninputs);
     Tj *= ALPHA(artmap, j);
@@ -465,7 +479,8 @@ static double artChoice(ARTMAP *artmap, int j) {
    take the intersection of vectors a and b, and return it
    in vector c.  All vectors have length 'len'.
 */
-static void intersect(double huge *a, double huge *b, double huge *c, int len) {
+static void intersect(double huge *a, double huge *b, double huge *c, int len)
+{
   register int i;
 
   for (i = 0; i < len; i++, a++, b++, c++) *c = MIN(*a, *b);
@@ -474,7 +489,8 @@ static void intersect(double huge *a, double huge *b, double huge *c, int len) {
 /*
    take the norm (city block) of vector a of length 'len'.
 */
-static double norm(double huge *a, int len) {
+static double norm(double huge *a, int len)
+{
   register int i;
   double norm_val;
 
@@ -492,7 +508,8 @@ static double norm(double huge *a, int len) {
    f2->f1 learning:
      zj = I ^ zj
 */
-static void artFastLearn(ARTMAP *artmap, int j) {
+static void artFastLearn(ARTMAP *artmap, int j)
+{
   // double norm_I_int_zj;
   int i;
 
@@ -517,7 +534,8 @@ static void artFastLearn(ARTMAP *artmap, int j) {
 
     Returns:
 ----------------------------------------------------------------------*/
-int mapFeedForward(ARTMAP *artmap, int class) {
+int mapFeedForward(ARTMAP *artmap, int class)
+{
   int k, apredict;
 
   if (class < 0) return (-1); /* ARTa did not make a choice */
@@ -544,7 +562,8 @@ int mapFeedForward(ARTMAP *artmap, int class) {
 
     Returns:
 ----------------------------------------------------------------------*/
-void mapLearn(ARTMAP *artmap, int aclass, int mapclass) {
+void mapLearn(ARTMAP *artmap, int aclass, int mapclass)
+{
   register int k, *wj;
 
   if (Gdiag & DIAG_WRITE) printf("mapLearn(%d-->%d)\n", aclass, mapclass);

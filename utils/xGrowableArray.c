@@ -31,7 +31,8 @@ char *xGArr_ksaErrorStrings[xGArr_knNumErrorCodes] = {
 
     "No error.", "Invalid object.", "Invalid signature.", "Allocation failed.", "Last item.", "Invalid error code."};
 
-xGArr_tErr xGArr_New(xGrowableArrayRef *opList, int inSize, int inInitialNumItems) {
+xGArr_tErr xGArr_New(xGrowableArrayRef *opList, int inSize, int inInitialNumItems)
+{
   xGArr_tErr eResult = xGArr_tErr_NoErr;
   xGrowableArrayRef this = NULL;
 
@@ -79,7 +80,8 @@ cleanup:
   return eResult;
 }
 
-xGArr_tErr xGArr_Delete(xGrowableArrayRef *iopList) {
+xGArr_tErr xGArr_Delete(xGrowableArrayRef *iopList)
+{
   xGArr_tErr eResult = xGArr_tErr_NoErr;
   xGrowableArrayRef this = NULL;
 
@@ -117,7 +119,8 @@ cleanup:
   return eResult;
 }
 
-xGArr_tErr xGArr_Add(xGrowableArrayRef this, void *ipSrc) {
+xGArr_tErr xGArr_Add(xGrowableArrayRef this, void *ipSrc)
+{
   xGArr_tErr eResult = xGArr_tErr_NoErr;
   void *pNewStorage = NULL;
 
@@ -167,7 +170,8 @@ cleanup:
   return eResult;
 }
 
-xGArr_tErr xGArr_ResetIterator(xGrowableArrayRef this) {
+xGArr_tErr xGArr_ResetIterator(xGrowableArrayRef this)
+{
   xGArr_tErr eResult = xGArr_tErr_NoErr;
 
   eResult = xGArr_Verify(this);
@@ -190,7 +194,8 @@ cleanup:
   return eResult;
 }
 
-xGArr_tErr xGArr_NextItem(xGrowableArrayRef this, void *opDest) {
+xGArr_tErr xGArr_NextItem(xGrowableArrayRef this, void *opDest)
+{
   xGArr_tErr eResult = xGArr_tErr_NoErr;
 
   eResult = xGArr_Verify(this);
@@ -223,7 +228,8 @@ cleanup:
   return eResult;
 }
 
-xGArr_tErr xGArr_Clear(xGrowableArrayRef this) {
+xGArr_tErr xGArr_Clear(xGrowableArrayRef this)
+{
   xGArr_tErr eResult = xGArr_tErr_NoErr;
 
   eResult = xGArr_Verify(this);
@@ -256,7 +262,8 @@ cleanup:
   return eResult;
 }
 
-xGArr_tErr xGArr_Verify(xGrowableArrayRef this) {
+xGArr_tErr xGArr_Verify(xGrowableArrayRef this)
+{
   xGArr_tErr eResult = xGArr_tErr_NoErr;
 
   /* check for null ptr */
@@ -276,7 +283,8 @@ cleanup:
   return eResult;
 }
 
-char *xGArr_GetErrorString(xGArr_tErr ieCode) {
+char *xGArr_GetErrorString(xGArr_tErr ieCode)
+{
   xGArr_tErr eCode = ieCode;
 
   if (ieCode < 0 || ieCode >= xGArr_knNumErrorCodes) {

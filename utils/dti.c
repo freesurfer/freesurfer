@@ -49,7 +49,8 @@
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void) { return ("$Id: dti.c,v 1.30 2015/04/22 16:49:32 greve Exp $"); }
 /* --------------------------------------------- */
-int DTIfree(DTI **pdti) {
+int DTIfree(DTI **pdti)
+{
   DTI *dti;
   dti = *pdti;
   if (dti->GradFile) free(dti->GradFile);
@@ -111,7 +112,8 @@ int DTIparamsFromSiemensAscii(const char *fname, float *bValue, int *nDir, int *
   return (0);
 }
 /*------------------------------------------------------------*/
-int DTIloadGradients(DTI *dti, const char *GradFile) {
+int DTIloadGradients(DTI *dti, const char *GradFile)
+{
   static char tmpstr[2000];
   FILE *fp;
   int c, r, n;
@@ -165,7 +167,8 @@ int DTIloadGradients(DTI *dti, const char *GradFile) {
 }
 
 /*--------------------------------------------------------*/
-DTI *DTIstructFromSiemensAscii(const char *fname) {
+DTI *DTIstructFromSiemensAscii(const char *fname)
+{
   int err;
   float bval;
   DTI *dti;
@@ -205,7 +208,8 @@ DTI *DTIstructFromSiemensAscii(const char *fname) {
 }
 
 /*--------------------------------------------------------*/
-int DTInormGradDir(DTI *dti) {
+int DTInormGradDir(DTI *dti)
+{
   int r, c;
   double len, maxlen;
 
@@ -227,7 +231,8 @@ int DTInormGradDir(DTI *dti) {
   return (0);
 }
 /*--------------------------------------------------------*/
-int DTIdesignMatrix(DTI *dti) {
+int DTIdesignMatrix(DTI *dti)
+{
   int r, xr;
   double bval;
   MATRIX *g;
@@ -257,7 +262,8 @@ int DTIdesignMatrix(DTI *dti) {
 }
 
 /*---------------------------------------------------------*/
-MRI *DTIbeta2Tensor(MRI *beta, MRI *mask, MRI *tensor) {
+MRI *DTIbeta2Tensor(MRI *beta, MRI *mask, MRI *tensor)
+{
   int c, r, s;
   double m, v;
 
@@ -316,7 +322,8 @@ MRI *DTIbeta2Tensor(MRI *beta, MRI *mask, MRI *tensor) {
   return (tensor);
 }
 /*---------------------------------------------------------*/
-int DTItensor2Eig(MRI *tensor, MRI *mask, MRI **evals, MRI **evec1, MRI **evec2, MRI **evec3) {
+int DTItensor2Eig(MRI *tensor, MRI *mask, MRI **evals, MRI **evec1, MRI **evec2, MRI **evec3)
+{
   int c, r, s, a, b, n;
   double m;
   MATRIX *T, *Evec;
@@ -392,7 +399,8 @@ int DTItensor2Eig(MRI *tensor, MRI *mask, MRI **evals, MRI **evec1, MRI **evec2,
   DTIsortEV() - sorts the eigenvalues and eigenvectors from
   max to min.
   ---------------------------------------------------------*/
-int DTIsortEV(float *EigVals, MATRIX *EigVecs) {
+int DTIsortEV(float *EigVals, MATRIX *EigVecs)
+{
   int r;
   static MATRIX *EigVecsTmp = NULL;
   static float EigValsTmp[3];
@@ -405,7 +413,8 @@ int DTIsortEV(float *EigVals, MATRIX *EigVecs) {
     if (EigVals[1] > EigVals[2]) {
       // 1st > 2nd > 3rd -- nothing to do
       return (0);
-    } else {
+    }
+    else {
       // 1st > 3rd > 2nd -- swap 2nd and 3rd cols
       for (r = 1; r <= 3; r++) {
         EigVecs->rptr[r][2] = EigVecsTmp->rptr[r][3];
@@ -428,7 +437,8 @@ int DTIsortEV(float *EigVals, MATRIX *EigVecs) {
       EigVals[1 - 1] = EigValsTmp[2 - 1];
       EigVals[2 - 1] = EigValsTmp[1 - 1];
       return (0);
-    } else {
+    }
+    else {
       // 2nd > 3rd > 1st
       for (r = 1; r <= 3; r++) {
         EigVecs->rptr[r][1] = EigVecsTmp->rptr[r][2];
@@ -454,7 +464,8 @@ int DTIsortEV(float *EigVals, MATRIX *EigVecs) {
     EigVals[2 - 1] = EigValsTmp[1 - 1];
     EigVals[3 - 1] = EigValsTmp[2 - 1];
     return (0);
-  } else {
+  }
+  else {
     // 3rd > 2nd > 1st
     for (r = 1; r <= 3; r++) {
       EigVecs->rptr[r][1] = EigVecsTmp->rptr[r][3];
@@ -479,7 +490,8 @@ int DTIsortEV(float *EigVals, MATRIX *EigVecs) {
   regression parameter. This should be the average volume
   when bvalue=0.
   ---------------------------------------------------------*/
-MRI *DTIbeta2LowB(MRI *beta, MRI *mask, MRI *lowb) {
+MRI *DTIbeta2LowB(MRI *beta, MRI *mask, MRI *lowb)
+{
   int c, r, s;
   double m, v;
 
@@ -512,7 +524,8 @@ MRI *DTIbeta2LowB(MRI *beta, MRI *mask, MRI *lowb) {
   DTItensor2ADC() - computes apparent diffusion coefficient
   as the trace/3.
   ---------------------------------------------------------*/
-MRI *DTItensor2ADC(MRI *tensor, MRI *mask, MRI *adc) {
+MRI *DTItensor2ADC(MRI *tensor, MRI *mask, MRI *adc)
+{
   int c, r, s;
   double m, v1, v2, v3, vadc;
 
@@ -545,7 +558,8 @@ MRI *DTItensor2ADC(MRI *tensor, MRI *mask, MRI *adc) {
   return (adc);
 }
 /*------------------------------------------------------------*/
-MRI *DTIeigvals2FA(MRI *evals, MRI *mask, MRI *FA) {
+MRI *DTIeigvals2FA(MRI *evals, MRI *mask, MRI *FA)
+{
   int c, r, s;
   double m, v1, v2, v3, vmean, vsse, vnorm, v;
 
@@ -583,7 +597,8 @@ MRI *DTIeigvals2FA(MRI *evals, MRI *mask, MRI *FA) {
 /*------------------------------------------------------------
   DTIeigvals2RA() - relative anisotropy
   ------------------------------------------------------------*/
-MRI *DTIeigvals2RA(MRI *evals, MRI *mask, MRI *RA) {
+MRI *DTIeigvals2RA(MRI *evals, MRI *mask, MRI *RA)
+{
   int c, r, s;
   double m, v1, v2, v3, vmean, vsse, v;
 
@@ -611,7 +626,8 @@ MRI *DTIeigvals2RA(MRI *evals, MRI *mask, MRI *RA) {
         if (vmean != 0) {
           vsse = pow(v1 - vmean, 2.0) + pow(v2 - vmean, 2.0) + pow(v3 - vmean, 2.0);
           v = sqrt(vsse / (3.0 * vmean));
-        } else
+        }
+        else
           v = 0;
         MRIsetVoxVal(RA, c, r, s, 0, v);
       }
@@ -624,7 +640,8 @@ MRI *DTIeigvals2RA(MRI *evals, MRI *mask, MRI *RA) {
   DTIeigvals2VR() - volume ratio measure of anisotropy. Actually,
   1-VR is used so that it increases with anisotropy.
   ------------------------------------------------------------*/
-MRI *DTIeigvals2VR(MRI *evals, MRI *mask, MRI *VR) {
+MRI *DTIeigvals2VR(MRI *evals, MRI *mask, MRI *VR)
+{
   int c, r, s;
   double m, v1, v2, v3, vmean, v;
 
@@ -665,7 +682,8 @@ MRI *DTIeigvals2VR(MRI *evals, MRI *mask, MRI *VR) {
   read in by FSL's dtifit with -b option. They put all the bvalues
   on one line.
   ----------------------------------------------------------------*/
-int DTIfslBValFile(DTI *dti, const char *bvalfname) {
+int DTIfslBValFile(DTI *dti, const char *bvalfname)
+{
   FILE *fp;
   int n;
 
@@ -686,7 +704,8 @@ int DTIfslBValFile(DTI *dti, const char *bvalfname) {
   by FSL's dtifit with -r option. They put all the gradients on three
   lines (ie, there are 3 rows and nsamples columns).
   ----------------------------------------------------------------*/
-int DTIfslBVecFile(DTI *dti, const char *bvecfname) {
+int DTIfslBVecFile(DTI *dti, const char *bvecfname)
+{
   FILE *fp;
   int n, c;
 
@@ -709,7 +728,8 @@ int DTIfslBVecFile(DTI *dti, const char *bvecfname) {
   \fn MRI *DTIsynthDWI(MATRIX *X, MRI *beta, MRI *mask, MRI *synth);
   \brief Computes exp(-X*beta). Currently mask has no effect.
 */
-MRI *DTIsynthDWI(MATRIX *X, MRI *beta, MRI *mask, MRI *synth) {
+MRI *DTIsynthDWI(MATRIX *X, MRI *beta, MRI *mask, MRI *synth)
+{
   synth = fMRImatrixMultiply(beta, X, synth);
   if (synth == NULL) return (NULL);
   synth = MRIexp(synth, 1, -1, NULL, synth);
@@ -720,7 +740,8 @@ MRI *DTIsynthDWI(MATRIX *X, MRI *beta, MRI *mask, MRI *synth) {
   \fn MRI *DTIivc(MRI *evec, MRI *mask, MRI *ivc)
   \brief Computes intervoxel coherence
 */
-MRI *DTIivc(MRI *evec, MRI *mask, MRI *ivc) {
+MRI *DTIivc(MRI *evec, MRI *mask, MRI *ivc)
+{
   int c, r, s, f, dc, dr, ds, err;
   double v1, v2, vsum, angle, anglesum, m;
   int nhits;
@@ -732,7 +753,8 @@ MRI *DTIivc(MRI *evec, MRI *mask, MRI *ivc) {
       return (NULL);
     }
     MRIcopyHeader(evec, ivc);
-  } else {
+  }
+  else {
     err = MRIdimMismatch(evec, ivc, 0);
     if (err) {
       printf("ERROR: DTIivc(): output dimension mismatch (%d)\n", err);
@@ -792,7 +814,8 @@ MRI *DTIivc(MRI *evec, MRI *mask, MRI *ivc) {
   \brief Loads in bvalues from text file. It does not matter
     whether they are all on the same line or not.
 */
-MATRIX *DTIloadBValues(const char *bvalfile) {
+MATRIX *DTIloadBValues(const char *bvalfile)
+{
   FILE *fp;
   double b;
   int nbvalues;
@@ -846,7 +869,8 @@ MATRIX *DTIloadBValues(const char *bvalfile) {
   return (bvals);
 }
 /*---------------------------------------------------------------------*/
-int DTIwriteBValues(MATRIX *bvals, const char *bvalfile) {
+int DTIwriteBValues(MATRIX *bvals, const char *bvalfile)
+{
   FILE *fp;
   int n;
 
@@ -865,7 +889,8 @@ int DTIwriteBValues(MATRIX *bvals, const char *bvalfile) {
   \brief Loads in gradient directions from text file. Each line
     has a different 3-component vector (not the same as FSL).
 */
-MATRIX *DTIloadBVectors(const char *bvecfile) {
+MATRIX *DTIloadBVectors(const char *bvecfile)
+{
   FILE *fp;
   double gx, gy, gz;
   int nbvecs, isFSL;
@@ -920,7 +945,8 @@ MATRIX *DTIloadBVectors(const char *bvecfile) {
       }
       nbvecs++;
     }
-  } else {
+  }
+  else {
     printf("Detected BVec file as FSL formatted\n");
     for (nbvecs = 0; nbvecs < bvecs->rows; nbvecs++) {
       if (fscanf(fp, "%f", &(bvecs->rptr[nbvecs + 1][1]))) {
@@ -945,7 +971,8 @@ MATRIX *DTIloadBVectors(const char *bvecfile) {
   return (bvecs);
 }
 /*---------------------------------------------------------------------*/
-int DTIwriteBVectors(MATRIX *bvecs, const char *bvecfile) {
+int DTIwriteBVectors(MATRIX *bvecs, const char *bvecfile)
+{
   FILE *fp;
   int n;
 
@@ -961,7 +988,8 @@ int DTIwriteBVectors(MATRIX *bvecs, const char *bvecfile) {
 }
 
 /*--------------------------------------------------------*/
-DTI *DTIstructFromBFiles(const char *bvalfile, const char *bvecfile) {
+DTI *DTIstructFromBFiles(const char *bvalfile, const char *bvecfile)
+{
   MATRIX *bvals, *bvecs;
   DTI *dti;
 
@@ -992,7 +1020,8 @@ DTI *DTIstructFromBFiles(const char *bvalfile, const char *bvecfile) {
 
 /*-------------------------------------------------------------------------*/
 //  ep_bX#N    X = bvalue     N = nth acq for that bvalue
-int DTIparsePulseSeqName(const char *pulseseq, double *bValue, int *nthDirection) {
+int DTIparsePulseSeqName(const char *pulseseq, double *bValue, int *nthDirection)
+{
   int n;
   const char *pc;
   char tmpstr[100];
@@ -1035,7 +1064,8 @@ int DTIparsePulseSeqName(const char *pulseseq, double *bValue, int *nthDirection
   has more than 3 elements. Returns -1 if error, 1 if FSL,
   0 if not FSL.
 */
-int DTIisFSLBVec(const char *fname) {
+int DTIisFSLBVec(const char *fname)
+{
   FILE *fp;
   char tmpstr[10000], *s;
   float f;
@@ -1060,7 +1090,8 @@ int DTIisFSLBVec(const char *fname) {
   \brief Computes radial diffusivity, which is the average
   of the 2nd and 3rd eigenvalues.
 */
-MRI *DTIradialDiffusivity(MRI *evals, MRI *mask, MRI *RD) {
+MRI *DTIradialDiffusivity(MRI *evals, MRI *mask, MRI *RD)
+{
   int c, r, s;
   double m, v2, v3, vmean;
 
@@ -1092,7 +1123,8 @@ MRI *DTIradialDiffusivity(MRI *evals, MRI *mask, MRI *RD) {
   return (RD);
 }
 
-int DTIbvecChangeSpace(MRI *vol, int desired_bvec_space) {
+int DTIbvecChangeSpace(MRI *vol, int desired_bvec_space)
+{
   int b, i, f;
   MATRIX *Mdc, *M, *bvec;
 

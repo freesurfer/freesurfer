@@ -54,7 +54,8 @@
 #endif
 
 /*------------------------------------------------------------------------------------*/
-int GTMSEGprint(GTMSEG *gtmseg, FILE *fp) {
+int GTMSEGprint(GTMSEG *gtmseg, FILE *fp)
+{
   fprintf(fp, "subject %s\n", gtmseg->subject);
   fprintf(fp, "USF %d\n", gtmseg->USF);
   fprintf(fp, "OutputUSF %d\n", gtmseg->OutputUSF);
@@ -63,7 +64,8 @@ int GTMSEGprint(GTMSEG *gtmseg, FILE *fp) {
     fprintf(fp, "wmannotfile %s\n", gtmseg->wmannotfile);
     fprintf(fp, "wmlhbase %d\n", gtmseg->wmlhbase);
     fprintf(fp, "wmrhbase %d\n", gtmseg->wmrhbase);
-  } else
+  }
+  else
     fprintf(fp, "wmannotfile NULL\n");
   fprintf(fp, "ctxannotfile %s\n", gtmseg->ctxannotfile);
   fprintf(fp, "ctxlhbase %d\n", gtmseg->ctxlhbase);
@@ -82,7 +84,8 @@ int GTMSEGprint(GTMSEG *gtmseg, FILE *fp) {
 }
 
 /*------------------------------------------------------------------------------------*/
-int MRIgtmSeg(GTMSEG *gtmseg) {
+int MRIgtmSeg(GTMSEG *gtmseg)
+{
   int err, *segidlist, nsegs, n;
   char *SUBJECTS_DIR, tmpstr[5000];
   MRI *apas, *aseg, *hrseg, *ctxseg;
@@ -143,7 +146,8 @@ int MRIgtmSeg(GTMSEG *gtmseg) {
     MRISripUnknown(gtmseg->rhw);
     gtmseg->lhw->ct->idbase = gtmseg->wmlhbase;
     gtmseg->rhw->ct->idbase = gtmseg->wmrhbase;
-  } else
+  }
+  else
     printf("Not segmenting WM\n");
 
   sprintf(tmpstr, "%s/%s/label/lh.%s", SUBJECTS_DIR, gtmseg->subject, gtmseg->ctxannotfile);
@@ -218,7 +222,8 @@ int MRIgtmSeg(GTMSEG *gtmseg) {
     printf(" t = %6.4f\n", TimerStop(&timer) / 1000.0);
     fflush(stdout);
     ctxseg = MRIannot2CerebralWMSeg(ctxseg, gtmseg->lhw, gtmseg->rhw, gtmseg->dmax, NULL, ctxseg);
-  } else
+  }
+  else
     printf("Not subsegmenting WM\n");
 
   gtmseg->seg = MRIreplaceList(ctxseg, gtmseg->srclist, gtmseg->targlist, gtmseg->nlist, NULL, NULL);
@@ -269,7 +274,8 @@ vessel).  CC subsegs are merged into a single label 192.  It is
 assumed that ReplaceThis and WithThat are arrays that have already
 been allocated. It is also assumed that nReplace has been initialized.
 The result is that items are added to the list. */
-int GTMdefaultSegReplacmentList(int *nReplace, int *ReplaceThis, int *WithThat) {
+int GTMdefaultSegReplacmentList(int *nReplace, int *ReplaceThis, int *WithThat)
+{
   int nlist;
 
   nlist = *nReplace;
@@ -365,7 +371,8 @@ determined from the white surf annot. Entries for subcortical
 structures are determined from ctSubCort (which should have tissue
 type set for all relevant structures).
 */
-COLOR_TABLE *GTMSEGctab(GTMSEG *gtmseg, COLOR_TABLE *ctSubCort) {
+COLOR_TABLE *GTMSEGctab(GTMSEG *gtmseg, COLOR_TABLE *ctSubCort)
+{
   int nsegs, *segidlist, *segidhit, n, m, hit, segid, err;
   COLOR_TABLE *ct, *ct0;
   CTE *cte, *cte0;
@@ -554,7 +561,8 @@ COLOR_TABLE *GTMSEGctab(GTMSEG *gtmseg, COLOR_TABLE *ctSubCort) {
   of voxels for the seg, and betavar for each seg and frame. Also computes
   the max and min VRF.
 */
-int VRFStats(GTM *gtm, double *vrfmean, double *vrfmin, double *vrfmax) {
+int VRFStats(GTM *gtm, double *vrfmean, double *vrfmin, double *vrfmax)
+{
   int n, nvox, segid, f;
   double vrf;
 
@@ -599,7 +607,8 @@ int VRFStats(GTM *gtm, double *vrfmean, double *vrfmin, double *vrfmax) {
   \brief Creates the vrf.dat file in the output folder. This is a text file
   that reports several statistics including the variance reduction factor (VRF).
 */
-int WriteVRFStats(char *fname, GTM *gtm) {
+int WriteVRFStats(char *fname, GTM *gtm)
+{
   int n, segid, nvox;
   double vrf;
   FILE *fp;
@@ -644,7 +653,8 @@ int WriteVRFStats(char *fname, GTM *gtm) {
   \brief Computes global mean for GM, GM+WM, and GM+WM+CSF, each
   weighted according to number of voxels in each ROI.
 */
-int GTMglobalStats(GTM *gtm) {
+int GTMglobalStats(GTM *gtm)
+{
   int nthseg, segid, tt, f, ngm, ngmwm, ngmwmcsf;
   double v;
 
@@ -698,7 +708,8 @@ int GTMglobalStats(GTM *gtm) {
   \fn int GTMfree(GTM **pGTM)
   \brief Frees a lot of stuff, but not everything.
 */
-int GTMfree(GTM **pGTM) {
+int GTMfree(GTM **pGTM)
+{
   GTM *gtm = *pGTM;
 
   MRIfree(&gtm->yvol);
@@ -723,7 +734,8 @@ int GTMfree(GTM **pGTM) {
   \brief Converts the input gtm->yvol to a matrix using GTMvol2mat().
   It is important that this be done conistently with X, etc.
 */
-int GTMmatrixY(GTM *gtm) {
+int GTMmatrixY(GTM *gtm)
+{
   gtm->y = GTMvol2mat(gtm, gtm->yvol, NULL);
   return (0);
 }
@@ -733,7 +745,8 @@ int GTMmatrixY(GTM *gtm) {
   \brief Computes the number of voxels in the mask. If the mask is
   NULL, then just computes the number of voxels in the input.
 */
-int GTMsetNMask(GTM *gtm) {
+int GTMsetNMask(GTM *gtm)
+{
   if (gtm->mask)
     gtm->nmask = MRIcountAboveThreshold(gtm->mask, 0.5);
   else
@@ -745,7 +758,8 @@ int GTMsetNMask(GTM *gtm) {
   \fn int GTMpsfStd(GTM *gtm)
   \brief Convert the PSF {crs}FWHM to a standard deviation.
 */
-int GTMpsfStd(GTM *gtm) {
+int GTMpsfStd(GTM *gtm)
+{
   gtm->cStd = gtm->cFWHM / sqrt(log(256.0));
   gtm->rStd = gtm->rFWHM / sqrt(log(256.0));
   gtm->sStd = gtm->sFWHM / sqrt(log(256.0));
@@ -757,7 +771,8 @@ int GTMpsfStd(GTM *gtm) {
   \brief Compute a sorted list of segmentation IDs from the segmentation
   itself (excludes 0). Just runs MRIsegIdListNot0().
 */
-int GTMsegidlist(GTM *gtm) {
+int GTMsegidlist(GTM *gtm)
+{
   gtm->segidlist = MRIsegIdListNot0(gtm->anatseg, &gtm->nsegs, 0);
   return (0);
 }
@@ -767,7 +782,8 @@ int GTMsegidlist(GTM *gtm) {
   \brief Allocates the GTM structure but nothing in the structure.
    sets PadThresh = .0001;
 */
-GTM *GTMalloc() {
+GTM *GTMalloc()
+{
   GTM *gtm;
   gtm = (GTM *)calloc(sizeof(GTM), 1);
   gtm->PadThresh = .0001;
@@ -792,7 +808,8 @@ GTM *GTMalloc() {
   an individual seg in GTMbuildX(). A similar method is used by
   GTMautoMask() to create a bounding box around the head mask.
 */
-int GTMnPad(GTM *gtm) {
+int GTMnPad(GTM *gtm)
+{
   double maxFWHM, maxStd;
   maxFWHM = MAX(gtm->cFWHM / gtm->yvol->xsize, MAX(gtm->rFWHM / gtm->yvol->ysize, gtm->sFWHM / gtm->yvol->zsize));
   if (maxFWHM > 0) {
@@ -800,7 +817,8 @@ int GTMnPad(GTM *gtm) {
     maxStd = maxFWHM * sqrt(log(256.0));
     gtm->nPad = ceil(sqrt(-log(gtm->PadThresh * maxStd * sqrt(2 * M_PI)) * 2 * maxStd));
     printf("maxFWHM = %g (voxels), PadThresh=%g, nPad=%d\n", maxFWHM, gtm->PadThresh, gtm->nPad);
-  } else
+  }
+  else
     gtm->nPad = 1;
   return (0);
 }
@@ -812,7 +830,8 @@ int GTMnPad(GTM *gtm) {
   Also will rescale if rescaling. Returns 1 and computes condition
   number if matrix cannot be inverted. Otherwise returns 0.
 */
-int GTMsolve(GTM *gtm) {
+int GTMsolve(GTM *gtm)
+{
   struct timeb timer;
   int n, f;
   double sum;
@@ -870,7 +889,8 @@ int GTMsolve(GTM *gtm) {
   on the matrix data must be consistent when going from vol to matrix
   and back. See also GTMbuildX() and GTMvol2mat().
 */
-MRI *GTMmat2vol(GTM *gtm, MATRIX *m, MRI *vol) {
+MRI *GTMmat2vol(GTM *gtm, MATRIX *m, MRI *vol)
+{
   int k, c, r, s, f;
 
   if (vol == NULL) {
@@ -905,7 +925,8 @@ MRI *GTMmat2vol(GTM *gtm, MATRIX *m, MRI *vol) {
   on the matrix data must be consistent when going from vol to matrix
   and back. See also GTMbuildX() and GTMmat2vol().
 */
-MATRIX *GTMvol2mat(GTM *gtm, MRI *vol, MATRIX *m) {
+MATRIX *GTMvol2mat(GTM *gtm, MRI *vol, MATRIX *m)
+{
   int k, c, r, s, f;
 
   if (m == NULL) {
@@ -942,7 +963,8 @@ MATRIX *GTMvol2mat(GTM *gtm, MRI *vol, MATRIX *m) {
   \brief Computes the residual variance in each segmentation. Not perfect
   because the resdiual has spill-over. Hopefully it is meaningful for something.
 */
-int GTMsegrvar(GTM *gtm) {
+int GTMsegrvar(GTM *gtm)
+{
   int c, r, s, f, k;
   int nthseg = 0, segid;
   double v;
@@ -992,7 +1014,8 @@ int GTMsegrvar(GTM *gtm) {
   It is a QA metric to compare against the GTM. If masking, it will
   not be accurate for segs outside the brain.
  */
-int GTMrbv(GTM *gtm) {
+int GTMrbv(GTM *gtm)
+{
   int c, r, s, f, nthseg, segid;
   double val, v, vhat0, vhat, v2;
   LTA *lta;
@@ -1033,7 +1056,8 @@ int GTMrbv(GTM *gtm) {
     MRI *tmp = MRIextractRegion(gtm->rbvsegmasked, NULL, region);
     MRIfree(&gtm->rbvsegmasked);
     gtm->rbvsegmasked = tmp;
-  } else
+  }
+  else
     gtm->rbvsegmasked = gtm->rbvseg;
   gtm->anat2rbv = TransformRegDat2LTA(gtm->anatconf, gtm->rbvsegmasked, NULL);
   strcpy(gtm->anat2rbv->subject, gtm->anat2pet->subject);
@@ -1169,7 +1193,8 @@ int GTMrbv(GTM *gtm) {
   include reducing the FoV of the rbv seg to a tight box around the
   brain. This is done in GTMrbv().
  */
-int GTMrbvseg(GTM *gtm) {
+int GTMrbvseg(GTM *gtm)
+{
   double res;
   LTA *new2seg;  // *seg2new; //
 
@@ -1202,7 +1227,8 @@ int GTMrbvseg(GTM *gtm) {
   registration is not needed. Use GTMrbv() instead since it manages
   memory much better and provides the same output.
  */
-int GTMrbv0(GTM *gtm) {
+int GTMrbv0(GTM *gtm)
+{
   int c, r, s, f, nthseg, segid;
   double val, v, vhat0, vhat, v2;
   LTA *lta;
@@ -1351,7 +1377,8 @@ int GTMrbv0(GTM *gtm) {
   cortex only, Target=2 means subcorticalgm only, Target=3 means both
   cortical and subcortical GM. Tissue type IDs are hard-coded.
  */
-int GTMmgxpvc(GTM *gtm, int Target) {
+int GTMmgxpvc(GTM *gtm, int Target)
+{
   int nthseg, segid, r, tt, f;
   MATRIX *betaNotTarg, *yNotTarg, *ydiff;
   double sum;
@@ -1406,7 +1433,8 @@ int GTMmgxpvc(GTM *gtm, int Target) {
   \brief Performs Muller-Gartner PVC. Hardcodes tissue type IDs to
   be frame0=cortex, frame1=subcortexgm, frame2=WM.
  */
-int GTMmgpvc(GTM *gtm) {
+int GTMmgpvc(GTM *gtm)
+{
   int c, r, s, f;
   double vgmpsf, vwmpsf, vwmtac, vtac, vmgtac;
   // MRI *ctxpvf, *subctxpvf, *gmpvf;
@@ -1477,7 +1505,8 @@ int GTMmgpvc(GTM *gtm) {
 }
 
 // Compute the MG reference TAC
-int GTMmgRefTAC(GTM *gtm) {
+int GTMmgRefTAC(GTM *gtm)
+{
   int f, nhits, n, found, nthseg, segid;
   double sum;
 
@@ -1510,7 +1539,8 @@ int GTMmgRefTAC(GTM *gtm) {
   \brief Performs Meltzer PVC. Hardcodes tissue type IDs to
   be 0=cortex, 1=subcortexgm, 2=WM.
  */
-int GTMmeltzerpvc(GTM *gtm) {
+int GTMmeltzerpvc(GTM *gtm)
+{
   int c, r, s, f, k, segid, nhits;
   double vgmwmpsf, v, sum;
   MRI *ctxpvf, *subctxpvf, *wmpvf, *gmwmpvf, *gmwmpvfpsf, *mritmp, *nhitseg;
@@ -1599,7 +1629,8 @@ int GTMmeltzerpvc(GTM *gtm) {
    then exponentially distributed noise is added. The noisy
    volume is replicated nReps times with different noise in each rep.
  */
-int GTMsynth(GTM *gtm, int NoiseSeed, int nReps) {
+int GTMsynth(GTM *gtm, int NoiseSeed, int nReps)
+{
   MATRIX *yhat;
   MRI *mritmp;
 
@@ -1630,7 +1661,8 @@ int GTMsynth(GTM *gtm, int NoiseSeed, int nReps) {
   \brief Smooths the synthesized volume (ysynth) to create the ysynthsm vol.
   Should give the same result as X*beta.
  */
-int GTMsmoothSynth(GTM *gtm) {
+int GTMsmoothSynth(GTM *gtm)
+{
   if (gtm->ysynth == NULL) GTMsynth(gtm, 0, 0);
   gtm->ysynthsm = MRIgaussianSmoothNI(gtm->ysynth, gtm->cStd, gtm->rStd, gtm->sStd, gtm->ysynthsm);
   if (gtm->UseMBrad) {
@@ -1663,7 +1695,8 @@ int GTMsmoothSynth(GTM *gtm) {
   \fn int GTMcheckX(MATRIX *X)
   \brief Checks that all colums sum to 1
  */
-int GTMcheckX(MATRIX *X) {
+int GTMcheckX(MATRIX *X)
+{
   int r, c, count;
   double sum, d, dmax;
 
@@ -1688,7 +1721,8 @@ int GTMcheckX(MATRIX *X) {
   \brief Builds the GTM design matrix both with (X) and without (X0) PSF.  If
   gtm->DoVoxFracCor=1 then corrects for volume fraction effect.
 */
-int GTMbuildX(GTM *gtm) {
+int GTMbuildX(GTM *gtm)
+{
   int nthseg, err;
   struct timeb timer;
 
@@ -1809,7 +1843,8 @@ int GTMbuildX(GTM *gtm) {
   If frame < 0, then all frames are are computed. If frame >= 0, then synth
   will have only one frame reprsenting the passed frame.
 */
-MRI *GTMsegSynth(GTM *gtm, int frame, MRI *synth) {
+MRI *GTMsegSynth(GTM *gtm, int frame, MRI *synth)
+{
   int c, r, s, f, segid, segno, nframes;
 
   if (frame < 0)
@@ -1841,7 +1876,8 @@ MRI *GTMsegSynth(GTM *gtm, int frame, MRI *synth) {
         }
         if (frame < 0) {
           for (f = 0; f < gtm->beta->cols; f++) MRIsetVoxVal(synth, c, r, s, f, gtm->beta->rptr[segno + 1][f + 1]);
-        } else
+        }
+        else
           MRIsetVoxVal(synth, c, r, s, 0, gtm->beta->rptr[segno + 1][frame + 1]);
       }
     }
@@ -1855,7 +1891,8 @@ MRI *GTMsegSynth(GTM *gtm, int frame, MRI *synth) {
   \fn int GTMprintMGRefTAC(GTM *gtm, FILE *fp)
   \brief Prints the Muller-Gartner WM reference TAC to the given file pointer
 */
-int GTMprintMGRefTAC(GTM *gtm, FILE *fp) {
+int GTMprintMGRefTAC(GTM *gtm, FILE *fp)
+{
   int f;
   for (f = 0; f < gtm->yvol->nframes; f++) fprintf(fp, "%3d %10.5f\n", f, gtm->mg_reftac->rptr[f + 1][1]);
 
@@ -1867,7 +1904,8 @@ int GTMprintMGRefTAC(GTM *gtm, FILE *fp) {
   \fn int GTMwriteMGRefTAC(GTM *gtm, char *filename)
   \brief Writes the Muller-Gartner WM reference TAC to the given file
 */
-int GTMwriteMGRefTAC(GTM *gtm, char *filename) {
+int GTMwriteMGRefTAC(GTM *gtm, char *filename)
+{
   FILE *fp;
   fp = fopen(filename, "w");
   GTMprintMGRefTAC(gtm, fp);
@@ -1881,7 +1919,8 @@ int GTMwriteMGRefTAC(GTM *gtm, char *filename) {
   \brief Computes global rescaling factor and applies it to yvol, beta, and y.
   The factor = 100/mean(beta_i) where i is the list of scale seg IDs (scale_ref_ids)
 */
-int GTMrescale(GTM *gtm) {
+int GTMrescale(GTM *gtm)
+{
   int f, n, nthseg, segid, found, nhits;
   double sum;
 
@@ -1917,7 +1956,8 @@ int GTMrescale(GTM *gtm) {
   \fn int GTMsteadyState(GTM *gtm)
   \brief out = (in - ref)*dcf/(scale*bpc)
 */
-int GTMsteadyState(GTM *gtm) {
+int GTMsteadyState(GTM *gtm)
+{
   int f, n, c, r, s;
   double v, y, ref;
 
@@ -1950,7 +1990,8 @@ int GTMsteadyState(GTM *gtm) {
   \brief Computes a t-test for each contrast. This includes computing gamma,
   gammavar, t, and p.
 */
-int GTMttest(GTM *gtm) {
+int GTMttest(GTM *gtm)
+{
   MATRIX *Ct, *CiXtX, *CiXtXCt;
   int n, f, nframes;
   GTMCON *gtmc;
@@ -1985,7 +2026,8 @@ int GTMttest(GTM *gtm) {
   \brief Creates an ASCII file in the output folder for each contrast with gamma,
   gammavar, t, and p
  */
-int GTMwriteContrasts(GTM *gtm) {
+int GTMwriteContrasts(GTM *gtm)
+{
   int n, nframes, f;
   GTMCON *gtmc;
   char tmpstr[5000];
@@ -2019,7 +2061,8 @@ int GTMwriteContrasts(GTM *gtm) {
   \brief Checks the segmentation IDs used for rescaling, MG, KM Ref, and KM HB
   to make sure that they are in the segmentation.
  */
-int GTMcheckRefIds(GTM *gtm) {
+int GTMcheckRefIds(GTM *gtm)
+{
   int n, m, ok;
 
   if (gtm->rescale) {
@@ -2098,7 +2141,8 @@ int GTMcheckRefIds(GTM *gtm) {
   \brief Prints the segmentation IDs used for rescaling, MG, KM Ref, and KM HB
   to the given FILE pointer.
  */
-int GTMprintRefIds(GTM *gtm, FILE *fp) {
+int GTMprintRefIds(GTM *gtm, FILE *fp)
+{
   int n;
 
   if (gtm->rescale) {
@@ -2133,7 +2177,8 @@ int GTMprintRefIds(GTM *gtm, FILE *fp) {
   to the output folder. The HB TAC is written as both an ascii file
   and a nii.gz (the later needed for KM analysis with mri_glmfit)
  */
-int GTMrefTAC(GTM *gtm) {
+int GTMrefTAC(GTM *gtm)
+{
   int f, n, nthseg, segid;
   double sum;
   char tmpstr[5000];
@@ -2192,7 +2237,8 @@ int GTMrefTAC(GTM *gtm) {
   \fn int GTMprintReplaceList(FILE *fp, const int nReplace, const int *ReplaceThis, const int *WithThat)
   \brief Prints the replacement list to the FILE pointer.
  */
-int GTMprintReplaceList(FILE *fp, const int nReplace, const int *ReplaceThis, const int *WithThat) {
+int GTMprintReplaceList(FILE *fp, const int nReplace, const int *ReplaceThis, const int *WithThat)
+{
   int n;
   for (n = 0; n < nReplace; n++) fprintf(fp, "%5d %5d\n", ReplaceThis[n], WithThat[n]);
   return (0);
@@ -2203,7 +2249,8 @@ int GTMprintReplaceList(FILE *fp, const int nReplace, const int *ReplaceThis, co
   \brief Checks replacement list to make sure that no item in ReplaceThis list appears in
   the WithThat list.
  */
-int GTMcheckReplaceList(const int nReplace, const int *ReplaceThis, const int *WithThat) {
+int GTMcheckReplaceList(const int nReplace, const int *ReplaceThis, const int *WithThat)
+{
   int n, m;
   for (n = 0; n < nReplace; n++) {
     for (m = 0; m < nReplace; m++) {
@@ -2222,7 +2269,8 @@ int GTMcheckReplaceList(const int nReplace, const int *ReplaceThis, const int *W
   is the segmentation ID to replace the second is the segmentation ID to replace it with.
   It will ignore any line that begins with a #.
  */
-int GTMloadReplacmentList(const char *fname, int *nReplace, int *ReplaceThis, int *WithThat) {
+int GTMloadReplacmentList(const char *fname, int *nReplace, int *ReplaceThis, int *WithThat)
+{
   FILE *fp;
   int nlist, r, nth;
   char tmpstr[1001], *s;
@@ -2267,7 +2315,8 @@ int GTMloadReplacmentList(const char *fname, int *nReplace, int *ReplaceThis, in
   matrices.  The header of the full FoV PET is kept in
   gtm->yvol_full_fov but the pixel data are freed to reduce storage.
 */
-int GTMautoMask(GTM *gtm) {
+int GTMautoMask(GTM *gtm)
+{
   LTA *lta;
   double std;
 
@@ -2302,7 +2351,8 @@ int GTMautoMask(GTM *gtm) {
   Also writes rvar.gm.dat in the output folder. The value is computed
   as the sum of res.^2 in GM divided by the number of GM voxels.x
 */
-int GTMrvarGM(GTM *gtm) {
+int GTMrvarGM(GTM *gtm)
+{
   COLOR_TABLE *ct;
   int f, s, c, r, n, nhits, nhitsb, segid, tt;
   double sum, sumb;
@@ -2392,7 +2442,8 @@ int GTMrvarGM(GTM *gtm) {
   tissue type in its own frame
   \param nrad defines neighborhood as (2*nrad+1)^3 voxels
 */
-MRI **GTMlocal(GTM *gtm, MRI **pvc) {
+MRI **GTMlocal(GTM *gtm, MRI **pvc)
+{
   int c, tt, nTT, nvmax;
   struct timeb timer;
   MRI *pvfpsf;
@@ -2587,7 +2638,8 @@ MRI **GTMlocal(GTM *gtm, MRI **pvc) {
   \brief Computes the percent of each tissue type contributing to
    each segmentation.
 */
-int GTMttPercent(GTM *gtm) {
+int GTMttPercent(GTM *gtm)
+{
   int nTT, k, s, c, r, segid, nthseg, mthseg, mthsegid, tt;
   double sum;
 
@@ -2633,7 +2685,8 @@ int GTMttPercent(GTM *gtm) {
   \fn int GTMsegid2nthseg(GTM *gtm, int segid)
   \breif Returns the nthseg of the given segid
  */
-int GTMsegid2nthseg(GTM *gtm, int segid) {
+int GTMsegid2nthseg(GTM *gtm, int segid)
+{
   int nthseg, ok;
   ok = 0;
   for (nthseg = 0; nthseg < gtm->nsegs; nthseg++) {

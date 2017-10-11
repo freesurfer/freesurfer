@@ -114,7 +114,8 @@
    argc -= nargs;
 */
 int make_cmd_version_string(
-    int argc, char **argv, const char *id_string, const char *version_string, char *return_string) {
+    int argc, char **argv, const char *id_string, const char *version_string, char *return_string)
+{
   int nnarg = 0;
   char stripped_version_string[1024];
   int length;
@@ -137,7 +138,8 @@ int make_cmd_version_string(
     if (length > 2) {
       stripped_version_string[length - 2] = '\0';
     }
-  } else {
+  }
+  else {
     strcpy(stripped_version_string, version_string);
   }
 
@@ -189,7 +191,8 @@ int make_cmd_version_string(
     // fprintf (stderr, "uname() returned %d\n", result);
     strcpy(machine, "UNKNOWN");
     strcpy(platform_version, "UNKNOWN");
-  } else {
+  }
+  else {
     strcpy(machine, kernel_info.nodename);
     strcpy(platform_version, kernel_info.release);
   }
@@ -228,7 +231,8 @@ int make_cmd_version_string(
   return (NO_ERROR);
 }
 
-int handle_version_option(int argc, char **argv, const char *id_string, const char *version_string) {
+int handle_version_option(int argc, char **argv, const char *id_string, const char *version_string)
+{
   int narg = 0;
   int nnarg = 0;
   int num_processed_args = 0;
@@ -276,7 +280,8 @@ int handle_version_option(int argc, char **argv, const char *id_string, const ch
         if (length > 2) {
           stripped_version_string[length - 2] = '\0';
         }
-      } else {
+      }
+      else {
         strcpy(stripped_version_string, version_string);
       }
 
@@ -304,7 +309,8 @@ int handle_version_option(int argc, char **argv, const char *id_string, const ch
       begin = strrchr(argv[0], (int)'/');
       if (NULL == begin) {
         begin = argv[0];
-      } else {
+      }
+      else {
         begin = begin + 1;
       }
       strcpy(program_name, begin);
@@ -353,7 +359,8 @@ int handle_version_option(int argc, char **argv, const char *id_string, const ch
         // fprintf (stderr, "uname() returned %d\n", result);
         strcpy(machine, "UNKNOWN");
         strcpy(platform_version, "UNKNOWN");
-      } else {
+      }
+      else {
         strcpy(machine, kernel_info.nodename);
         strcpy(platform_version, kernel_info.release);
       }
@@ -401,7 +408,8 @@ int handle_version_option(int argc, char **argv, const char *id_string, const ch
 /*------------------------------------------------------------------------
   argv2cmdline() - converts argv into a single string.
   ------------------------------------------------------------------------*/
-char *argv2cmdline(int argc, char *argv[]) {
+char *argv2cmdline(int argc, char *argv[])
+{
   int len, n;
   char *cmdline;
 
@@ -421,7 +429,8 @@ char *argv2cmdline(int argc, char *argv[]) {
   VERuser(void) - returns the user id (or UNKNOWN). Allocates
   char, so caller must free.
   *----------------------------------------------------------*/
-char *VERuser(void) {
+char *VERuser(void)
+{
   char *user;
   struct passwd *pw;
 
@@ -443,7 +452,8 @@ char *VERuser(void) {
 /*----------------------------------------------------------
   VERfileTimeStamp(fname)
   *----------------------------------------------------------*/
-char *VERfileTimeStamp(char *fname) {
+char *VERfileTimeStamp(char *fname)
+{
   struct stat buf;
   struct tm *lt = NULL;
   int err;
@@ -472,7 +482,8 @@ char *VERfileTimeStamp(char *fname) {
   VERcurTimeStamp() - time stamp at the time this function
   is called.
   *----------------------------------------------------------*/
-char *VERcurTimeStamp(void) {
+char *VERcurTimeStamp(void)
+{
   char tmpstr[2000], *current_time_stamp;
   time_t seconds;
   struct tm broken_time;

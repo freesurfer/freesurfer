@@ -21,7 +21,8 @@ static float GetMilliSeconds(const struct timeval t1, const struct timeval t2);
 
 // ===========================================================
 
-float GetMilliSeconds(const struct timeval t1, const struct timeval t2) {
+float GetMilliSeconds(const struct timeval t1, const struct timeval t2)
+{
   // Returns the difference in ms between two timevals
   float secs, musecs, msecs;
 
@@ -35,7 +36,8 @@ float GetMilliSeconds(const struct timeval t1, const struct timeval t2) {
 
 // ===========================================================
 
-void InitChronometer(Chronometer *theChronometer) {
+void InitChronometer(Chronometer *theChronometer)
+{
   // Prepares a timer for use
 
   theChronometer->running = kStopped;
@@ -45,7 +47,8 @@ void InitChronometer(Chronometer *theChronometer) {
 
 // ===========================================================
 
-void StartChronometer(Chronometer *theChronometer) {
+void StartChronometer(Chronometer *theChronometer)
+{
   // Starts the timer running
 
   // Sanity check
@@ -60,7 +63,8 @@ void StartChronometer(Chronometer *theChronometer) {
 
 // ===========================================================
 
-void StopChronometer(Chronometer *theChronometer) {
+void StopChronometer(Chronometer *theChronometer)
+{
   // Stops the current timer
 
   struct timeval tStop;
@@ -80,7 +84,8 @@ void StopChronometer(Chronometer *theChronometer) {
 
 // ============================================================
 
-void ResetChronometer(Chronometer *theChronometer) {
+void ResetChronometer(Chronometer *theChronometer)
+{
   // For the C library, this is a wrapper
 
   InitChronometer(theChronometer);
@@ -88,7 +93,8 @@ void ResetChronometer(Chronometer *theChronometer) {
 
 // ============================================================
 
-float GetChronometerValue(const Chronometer *theChronometer) {
+float GetChronometerValue(const Chronometer *theChronometer)
+{
   // Returns the time in milliseconds
   struct timeval now;
   float msecs;
@@ -106,7 +112,8 @@ float GetChronometerValue(const Chronometer *theChronometer) {
 
 // ============================================================
 
-float GetAverageChronometerValue(const Chronometer *theChronometer) {
+float GetAverageChronometerValue(const Chronometer *theChronometer)
+{
   // Returns the time in milliseconds averaged over the number of starts
   float msecs;
 

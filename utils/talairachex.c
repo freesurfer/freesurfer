@@ -35,7 +35,8 @@ extern const char *Progname;
 
 #define V4_LOAD(v, x, y, z, r) (VECTOR_ELT(v, 1) = x, VECTOR_ELT(v, 2) = y, VECTOR_ELT(v, 3) = z, VECTOR_ELT(v, 4) = r);
 
-int ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta) {
+int ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta)
+{
   LT *tran = 0;
   // if lta is given
   if (lta != 0) {
@@ -48,7 +49,8 @@ int ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta) {
           mri_tal->c_r = tran->dst.c_r;
           mri_tal->c_a = tran->dst.c_a;
           mri_tal->c_s = tran->dst.c_s;
-        } else if (getenv("NO_AVERAGE305"))  // if this is set
+        }
+        else if (getenv("NO_AVERAGE305"))  // if this is set
           fprintf(stderr, "INFO: tal c_(r,a,s) not modified\n");
         else {
           // use average_305 value
@@ -60,9 +62,11 @@ int ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta) {
           mri_tal->c_a = -16.51;
           mri_tal->c_s = 9.75;
         }
-      } else
+      }
+      else
         ErrorExit(ERROR_BADPARM, "%s: xfm passed is not of RAS-to-RAS type", Progname);
-    } else
+    }
+    else
       ErrorExit(ERROR_BADPARM, "%s: xfm has more than one xfrm", Progname);
   }  // lta != 0
   else {
@@ -109,7 +113,8 @@ int ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta) {
 ////////////////////////////////////////////////////////////////////
 // Matrix routines
 ///////////////////////////////////////////////////////////////////
-MATRIX *MtalairachFromVoxel(MRI *mri_src, const LTA *lta) {
+MATRIX *MtalairachFromVoxel(MRI *mri_src, const LTA *lta)
+{
   MATRIX *RASfromVoxel = 0;
   MATRIX *talRASfromVoxel = 0;
   RASfromVoxel = extract_i_to_r(mri_src);
@@ -118,14 +123,16 @@ MATRIX *MtalairachFromVoxel(MRI *mri_src, const LTA *lta) {
     if (lta->type != LINEAR_RAS_TO_RAS) ErrorExit(ERROR_BADPARM, "lta must be RAS_TO_RAS transform");
 
     talRASfromVoxel = MatrixMultiply(lta->xforms[0].m_L, RASfromVoxel, NULL);  // allocate memory
-  } else                                                                       // no transform.  just copy
+  }
+  else  // no transform.  just copy
     talRASfromVoxel = MatrixCopy(RASfromVoxel, NULL);
 
   MatrixFree(&RASfromVoxel);
   return talRASfromVoxel;
 }
 
-MATRIX *MtalVoxelFromVoxel(MRI *mri_src, const LTA *lta) {
+MATRIX *MtalVoxelFromVoxel(MRI *mri_src, const LTA *lta)
+{
   MATRIX *talRASFromVoxel = 0;
   MATRIX *talVoxelFromTalRAS = 0;
   MATRIX *res;
@@ -145,7 +152,8 @@ MATRIX *MtalVoxelFromVoxel(MRI *mri_src, const LTA *lta) {
   return res;
 }
 
-MATRIX *MvoxelFromTalairach(MRI *mri_dst, const LTA *lta) {
+MATRIX *MvoxelFromTalairach(MRI *mri_dst, const LTA *lta)
+{
   MATRIX *RASFromTalairach = 0;
   MATRIX *voxelFromRAS = 0;
   MATRIX *res = 0;
@@ -160,7 +168,8 @@ MATRIX *MvoxelFromTalairach(MRI *mri_dst, const LTA *lta) {
   return res;
 }
 
-MATRIX *MvoxelFromTalVoxel(MRI *mri_dst, const LTA *lta) {
+MATRIX *MvoxelFromTalVoxel(MRI *mri_dst, const LTA *lta)
+{
   MATRIX *talairachFromTalVol = 0;
   MATRIX *voxelFromTalRAS = 0;
   MATRIX *res = 0;
@@ -179,7 +188,8 @@ MATRIX *MvoxelFromTalVoxel(MRI *mri_dst, const LTA *lta) {
   return res;
 }
 
-MATRIX *MRASFromTalVoxel(MRI *mri, const LTA *lta) {
+MATRIX *MRASFromTalVoxel(MRI *mri, const LTA *lta)
+{
   MRI *mriTal = 0;
   MATRIX *talRASfromTalVoxel = 0;
   MATRIX *RASfromTalRAS = 0;
@@ -200,7 +210,8 @@ MATRIX *MRASFromTalVoxel(MRI *mri, const LTA *lta) {
 }
 
 void TransformWithMatrix(
-    const MATRIX *mat, const double x, const double y, const double z, double *px, double *py, double *pz) {
+    const MATRIX *mat, const double x, const double y, const double z, double *px, double *py, double *pz)
+{
 #if 0
   // VECTOR *src, *dst;
   static VECTOR *src__ = 0;
@@ -247,7 +258,8 @@ void TransformWithMatrix(
 // point to point routines
 //////////////////////////////////////////////////////////////////////////////////
 int MRIvoxelToTalairachEx(
-    MRI *mri_src, double xv, double yv, double zv, double *pxt, double *pyt, double *pzt, const LTA *lta) {
+    MRI *mri_src, double xv, double yv, double zv, double *pxt, double *pyt, double *pzt, const LTA *lta)
+{
   MATRIX *talairachFromVoxel = MtalairachFromVoxel(mri_src, lta);
   TransformWithMatrix(talairachFromVoxel, xv, yv, zv, pxt, pyt, pzt);
 
@@ -258,7 +270,8 @@ int MRIvoxelToTalairachEx(
 // voxel -> RAS -> talairach RAS -> talairachVolume
 // mri must be the source volume
 int MRIvoxelToTalairachVoxelEx(
-    MRI *mri_src, double xv, double yv, double zv, double *pxt, double *pyt, double *pzt, const LTA *lta) {
+    MRI *mri_src, double xv, double yv, double zv, double *pxt, double *pyt, double *pzt, const LTA *lta)
+{
   MATRIX *talVoxelFromVoxel = MtalVoxelFromVoxel(mri_src, lta);
   TransformWithMatrix(talVoxelFromVoxel, xv, yv, zv, pxt, pyt, pzt);
 
@@ -269,7 +282,8 @@ int MRIvoxelToTalairachVoxelEx(
 // talairachRAS -> RAS -> voxel
 // needs the target non-tal volume
 int MRItalairachToVoxelEx(
-    MRI *mri_dst, double xt, double yt, double zt, double *pxv, double *pyv, double *pzv, const LTA *lta) {
+    MRI *mri_dst, double xt, double yt, double zt, double *pxv, double *pyv, double *pzv, const LTA *lta)
+{
   MATRIX *voxelFromTalairach = MvoxelFromTalairach(mri_dst, lta);
   TransformWithMatrix(voxelFromTalairach, xt, yt, zt, pxv, pyv, pzv);
 
@@ -280,7 +294,8 @@ int MRItalairachToVoxelEx(
 // talairachVolume-> talairachRAS -> RAS
 // dst is the non-talairach volume
 int MRItalairachVoxelToWorldEx(
-    MRI *mri_dst, double xt, double yt, double zt, double *pxw, double *pyw, double *pzw, const LTA *lta) {
+    MRI *mri_dst, double xt, double yt, double zt, double *pxw, double *pyw, double *pzw, const LTA *lta)
+{
   MATRIX *RASfromTalVoxel = MRASFromTalVoxel(mri_dst, lta);
   TransformWithMatrix(RASfromTalVoxel, xt, yt, zt, pxw, pyw, pzw);
 
@@ -290,7 +305,8 @@ int MRItalairachVoxelToWorldEx(
 
 // talairachVolume-> talairach RAS -> RAS -> voxel
 int MRItalairachVoxelToVoxelEx(
-    MRI *mri_dst, double xtv, double ytv, double ztv, double *pxv, double *pyv, double *pzv, const LTA *lta) {
+    MRI *mri_dst, double xtv, double ytv, double ztv, double *pxv, double *pyv, double *pzv, const LTA *lta)
+{
   MATRIX *voxelFromTalVoxel = MvoxelFromTalVoxel(mri_dst, lta);
   TransformWithMatrix(voxelFromTalVoxel, xtv, ytv, ztv, pxv, pyv, pzv);
 
@@ -301,7 +317,8 @@ int MRItalairachVoxelToVoxelEx(
 ////////////////////////////////////////////////////////////////////////////////
 // volume to volume routines
 ////////////////////////////////////////////////////////////////////////////////
-MRI *MRItoTalairachExInterp(MRI *mri_src, MRI *mri_tal, const LTA *lta, int interp) {
+MRI *MRItoTalairachExInterp(MRI *mri_src, MRI *mri_tal, const LTA *lta, int interp)
+{
   MATRIX *voxToTalvoxel = MtalVoxelFromVoxel(mri_src, lta);
   fprintf(stderr, "voxel to talairach voxel transform\n");
   MatrixPrint(stderr, voxToTalvoxel);
@@ -315,7 +332,8 @@ MRI *MRItoTalairachExInterp(MRI *mri_src, MRI *mri_tal, const LTA *lta, int inte
   return (mri_tal);
 }
 // volume -> Talairach volume
-MRI *MRItoTalairachEx(MRI *mri_src, MRI *mri_tal, const LTA *lta) {
+MRI *MRItoTalairachEx(MRI *mri_src, MRI *mri_tal, const LTA *lta)
+{
   MATRIX *voxToTalvoxel = MtalVoxelFromVoxel(mri_src, lta);
   fprintf(stderr, "voxel to talairach voxel transform\n");
   MatrixPrint(stderr, voxToTalvoxel);
@@ -331,7 +349,8 @@ MRI *MRItoTalairachEx(MRI *mri_src, MRI *mri_tal, const LTA *lta) {
 
 // assumes mri contain xform
 // transform talairach volume into the dst volume
-MRI *MRIfromTalairachEx(MRI *mri_tal, MRI *mri_dst, const LTA *lta) {
+MRI *MRIfromTalairachEx(MRI *mri_tal, MRI *mri_dst, const LTA *lta)
+{
   MATRIX *talVoxelToVoxel = MvoxelFromTalVoxel(mri_dst, lta);
   fprintf(stderr, "talairach voxel to voxel transform\n");
   MatrixPrint(stderr, talVoxelToVoxel);
@@ -346,7 +365,8 @@ MRI *MRIfromTalairachEx(MRI *mri_tal, MRI *mri_dst, const LTA *lta) {
 }
 
 // extract a talairach plane at point (x,y,z)
-MRI *MRIextractTalairachPlaneEx(MRI *mri_src, MRI *mri_dst, int orientation, int x, int y, int z, int wsize, LTA *lta) {
+MRI *MRIextractTalairachPlaneEx(MRI *mri_src, MRI *mri_dst, int orientation, int x, int y, int z, int wsize, LTA *lta)
+{
   double e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase;
   int whalf, xk, yk, xi, yi, zi;
   double ex, ey, ez, x0, y0, z0;
@@ -455,7 +475,8 @@ MRI *MRIextractTalairachPlaneEx(MRI *mri_src, MRI *mri_dst, int orientation, int
 }
 
 int MRIeraseTalairachPlaneNewEx(
-    MRI *mri, MRI *mri_mask, int orientation, int x, int y, int z, int wsize, int fill_val, LTA *lta) {
+    MRI *mri, MRI *mri_mask, int orientation, int x, int y, int z, int wsize, int fill_val, LTA *lta)
+{
   double e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase;
   int whalf, xk, yk, xi, yi, zi, xki, yki, x0, y0;
   double ex, ey, ez, xt0, yt0, zt0;

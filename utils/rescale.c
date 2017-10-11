@@ -51,7 +51,8 @@
 #include "rescale.h"
 
 /* y = Offset + Slope * x, y=New, x=Old  ***/
-static int h_GetScaleParams(float OldMin, float OldMax, float NewMin, float NewMax, float *Offset, float *Slope) {
+static int h_GetScaleParams(float OldMin, float OldMax, float NewMin, float NewMax, float *Offset, float *Slope)
+{
   float Del;
   int Warning = 1;
 
@@ -60,7 +61,8 @@ static int h_GetScaleParams(float OldMin, float OldMax, float NewMin, float NewM
     *Offset = 0.0F;
     *Slope = 1.0F;
     Warning = 1;
-  } else {
+  }
+  else {
     *Slope = (NewMax - NewMin) / Del;
     *Offset = (NewMin - *Slope * OldMin);
     Warning = 0;
@@ -70,7 +72,8 @@ static int h_GetScaleParams(float OldMin, float OldMax, float NewMin, float NewM
 }
 /*************************************************************/
 int h_rescale(
-    struct header *phdSrc, float NewMin, float NewMax, int MinPoint[2], int MaxPoint[2], struct header *phdDst) {
+    struct header *phdSrc, float NewMin, float NewMax, int MinPoint[2], int MaxPoint[2], struct header *phdDst)
+{
   Pixelval Min, Max;
   float Offset, Slope;
   int err;
@@ -106,7 +109,8 @@ int h_rescale(
 }
 
 /********************************************************/
-int h_rescale_fb(struct header *phdSrc, float Slope, float Offset, struct header *phdDst) {
+int h_rescale_fb(struct header *phdSrc, float Slope, float Offset, struct header *phdDst)
+{
   register INT32B n;
   register float *pSrc;
   register byte *pDst;
@@ -120,7 +124,8 @@ int h_rescale_fb(struct header *phdSrc, float Slope, float Offset, struct header
 }
 
 /********************************************************/
-int h_rescale_ff(struct header *phdSrc, float Slope, float Offset, struct header *phdDst) {
+int h_rescale_ff(struct header *phdSrc, float Slope, float Offset, struct header *phdDst)
+{
   register INT32B n;
   register float *pSrc;
   register float *pDst;

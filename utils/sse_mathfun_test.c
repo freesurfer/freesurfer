@@ -117,7 +117,8 @@ millions of vector evaluations/second ->  29 cycles/value on a 2000MHz computer 
 #include <xmmintrin.h>
 
 /* useful when debuggin.. */
-void print4(__m128 v) {
+void print4(__m128 v)
+{
   float *p = (float *)&v;
 #ifndef USE_SSE2
   _mm_empty();
@@ -125,14 +126,16 @@ void print4(__m128 v) {
   printf("[%13.8g, %13.8g, %13.8g, %13.8g]", p[0], p[1], p[2], p[3]);
 }
 
-void print2i(__m64 v) {
+void print2i(__m64 v)
+{
   unsigned *p = (unsigned *)&v;
   printf("[%08x %08x]", p[0], p[1]);
 }
 
 #ifdef USE_SSE2
 #include <emmintrin.h>
-void print4i(__m128i v) {
+void print4i(__m128i v)
+{
   unsigned *p = (unsigned *)&v;
   printf("[%08x %08x %08x %08x]", p[0], p[1], p[2], p[3]);
 }
@@ -167,7 +170,8 @@ typedef ALIGN16_BEG union {
 double frand() { return rand() / (double)RAND_MAX; }
 
 #if defined(HAVE_SYS_TIMES)
-inline double uclock_sec(void) {
+inline double uclock_sec(void)
+{
   static double ttclk = 0.;
   if (ttclk == 0.) ttclk = sysconf(_SC_CLK_TCK);
   struct tms t;
@@ -185,14 +189,16 @@ inline double uclock_sec(void) { return (double)clock() / (double)CLOCKS_PER_SEC
 #define M_LN2 0.69314718055994530942
 #endif
 
-int bitdiff(float a, float b) {
+int bitdiff(float a, float b)
+{
   if (a == b)
     return 24;
   else if (a == 0) {
     int j = -log(fabs(b)) / M_LN2;
     if (j > 24) j = 24;
     return j;
-  } else
+  }
+  else
     return log(fabs(a)) / M_LN2 - log(fabs(b - a)) / M_LN2;
 }
 
@@ -202,7 +208,8 @@ float cephes_cosf(float);
 float cephes_logf(float);
 float cephes_expf(float);
 
-int check_sincos_precision(float xmin, float xmax) {
+int check_sincos_precision(float xmin, float xmax)
+{
   unsigned nb_trials = 100000;
   printf("checking sines on [%g*Pi, %g*Pi]\n", xmin, xmax);
 
@@ -283,7 +290,8 @@ int check_sincos_precision(float xmin, float xmax) {
   if (max_err_sum_sqr_ref < 2e-7 && max_err_sin_ref < 2e-7 && max_err_cos_ref < 2e-7) {
     printf("   ->> precision OK for the sin_ps / cos_ps / sincos_ps <<-\n\n");
     return 0;
-  } else {
+  }
+  else {
     printf("\n   WRONG PRECISION !! there is a problem\n\n");
     return 1;
   }
@@ -294,7 +302,8 @@ union float_int_union {
   float f;
 } QNAN = {0xFFC00000}, QNAN2 = {0x7FC00000}, PINF = {0x7F800000}, MINF = {0xFF800000};
 
-int check_explog_precision(float xmin, float xmax) {
+int check_explog_precision(float xmin, float xmax)
+{
   unsigned nb_trials = 100000;
   printf("checking exp/log [%g, %g]\n", xmin, xmax);
 
@@ -355,13 +364,15 @@ int check_explog_precision(float xmin, float xmax) {
   if (max_err_logexp_test < 2e-7 && max_err_exp_ref < 2e-7 && max_err_log_ref < 2e-7) {
     printf("   ->> precision OK for the exp_ps / log_ps <<-\n\n");
     return 0;
-  } else {
+  }
+  else {
     printf("\n   WRONG PRECISION !! there is a problem\n\n");
     return 1;
   }
 }
 
-void dumb() {
+void dumb()
+{
   V4SF x = {{0.0903333798051, 0.0903333798051, 0.0903333798051, 0.0903333798051}};
   V4SF w;
   w.v = log_ps(x.v);
@@ -375,7 +386,8 @@ void dumb() {
   exit(1);
 }
 
-void check_special_values() {
+void check_special_values()
+{
   V4SF vx;
   vx.f[0] = -1000;
   vx.f[1] = -100;
@@ -440,7 +452,8 @@ void check_special_values() {
 }
 
 #define DECL_SCALAR_FN_BENCH(fn)      \
-  int bench_##fn() {                  \
+  int bench_##fn()                    \
+  {                                   \
     int niter = 10000, i, j;          \
     float x = 0.5f, y = 0;            \
     for (i = 0; i < niter; ++i) {     \
@@ -454,7 +467,8 @@ void check_special_values() {
   }
 
 #define DECL_VECTOR_FN_BENCH(fn)                           \
-  int bench_##fn() {                                       \
+  int bench_##fn()                                         \
+  {                                                        \
     int niter = 10000, i;                                  \
     v4sf bmin = _mm_set_ps1(0.5), bmax = _mm_set_ps1(1.0); \
     v4sf x = _mm_set_ps1(0.75);                            \
@@ -469,13 +483,15 @@ void check_special_values() {
 
 #ifdef __GNUC__
 #define HAVE_SINCOS_X86_FPU
-void sincos_x86_fpu(double t, double *st, double *ct) {
+void sincos_x86_fpu(double t, double *st, double *ct)
+{
   asm("fsincos;" : "=t"(*ct), "=u"(*st) : "0"(t) : "st(7)");
   //*st = sin(t); *ct = cos(t);
 }
 #elif defined(_MSC_VER) && !defined(_WIN64)
 #define HAVE_SINCOS_X86_FPU
-void sincos_x86_fpu(double t, double *st_, double *ct_) {
+void sincos_x86_fpu(double t, double *st_, double *ct_)
+{
   _asm {
     fld QWORD PTR [t]
     fsincos
@@ -488,14 +504,16 @@ void sincos_x86_fpu(double t, double *st_, double *ct_) {
 #endif
 
 #ifdef HAVE_SINCOS_X86_FPU
-float stupid_sincos_x86_fpu(float x) {
+float stupid_sincos_x86_fpu(float x)
+{
   double s, c;
   sincos_x86_fpu(x, &s, &c);
   return s + c;
 }
 #endif
 
-v4sf stupid_sincos_ps(v4sf x) {
+v4sf stupid_sincos_ps(v4sf x)
+{
   v4sf s, c;
   sincos_ps(x, &s, &c);
   return s;
@@ -530,7 +548,8 @@ DECL_VECTOR_FN_BENCH(__vrs4_expf);
 DECL_VECTOR_FN_BENCH(__vrs4_logf);
 #endif
 
-void run_bench(const char *s, int (*fn)()) {
+void run_bench(const char *s, int (*fn)())
+{
   printf("benching %20s ..", s);
   fflush(stdout);
   double t0 = uclock_sec(), t1, tmax = 1.0;
@@ -546,7 +565,8 @@ void run_bench(const char *s, int (*fn)()) {
          REF_FREQ_MHZ);
 }
 
-void sanity_check() {
+void sanity_check()
+{
   printf("doing some sanity checks...\n");
 #ifndef USE_SSE2
   V4SF v = {{1, 2, 3, 4}}, z = {{5, 6, 7, 8}};
@@ -616,7 +636,8 @@ void sanity_check() {
 #endif  // USE_SSE2
 }
 
-int main() {
+int main()
+{
   // dumb();
   // sanity_check();
   int err = 0;
@@ -777,7 +798,8 @@ static float T24M1 = 16777215.;
 static float sincof[] = {-1.9515295891E-4, 8.3321608736E-3, -1.6666654611E-1};
 static float coscof[] = {2.443315711809948E-005, -1.388731625493765E-003, 4.166664568298827E-002};
 
-float cephes_sinf(float xx) {
+float cephes_sinf(float xx)
+{
   float *p;
   float x, y, z;
   register unsigned long j;
@@ -809,7 +831,8 @@ float cephes_sinf(float xx) {
   if (x > lossth) {
     // mtherr( "sinf", PLOSS );
     x = x - y * PIO4F;
-  } else {
+  }
+  else {
     /* Extended precision modular arithmetic */
     x = ((x - y * DP1) - y * DP2) - y * DP3;
   }
@@ -831,7 +854,8 @@ float cephes_sinf(float xx) {
     y *= z;
     y -= 0.5 * z;
     y += 1.0;
-  } else {
+  }
+  else {
     /* Theoretical relative error = 3.8e-9 in [-pi/4, +pi/4] */
     /*
       y = ((-1.9515295891E-4 * z
@@ -860,7 +884,8 @@ float cephes_sinf(float xx) {
  * rms relative error: 2.2e-8
  */
 
-float cephes_cosf(float xx) {
+float cephes_cosf(float xx)
+{
   float x, y, z;
   int j, sign;
 
@@ -893,7 +918,8 @@ float cephes_cosf(float xx) {
   if (x > lossth) {
     // mtherr( "cosf", PLOSS );
     x = x - y * PIO4F;
-  } else
+  }
+  else
     /* Extended precision modular arithmetic */
     x = ((x - y * DP1) - y * DP2) - y * DP3;
 
@@ -903,7 +929,8 @@ float cephes_cosf(float xx) {
 
   if ((j == 1) || (j == 2)) {
     y = (((-1.9515295891E-4f * z + 8.3321608736E-3f) * z - 1.6666654611E-1f) * z * x) + x;
-  } else {
+  }
+  else {
     y = ((2.443315711809948E-005f * z - 1.388731625493765E-003f) * z + 4.166664568298827E-002f) * z * z;
     y -= 0.5 * z;
     y += 1.0;
@@ -988,7 +1015,8 @@ static float LOG2EF = 1.44269504088896341;
 static float C1 = 0.693359375;
 static float C2 = -2.12194440e-4;
 
-float cephes_expf(float xx) {
+float cephes_expf(float xx)
+{
   float x, z;
   int n;
 
@@ -1090,7 +1118,8 @@ float PIF = 3.141592653589793238;
 float PIO2F = 1.5707963267948966192;
 float MACHEPF = 5.9604644775390625E-8;
 
-float cephes_logf(float xx) {
+float cephes_logf(float xx)
+{
   register float y;
   float x, z, fe;
   int e;
@@ -1108,7 +1137,8 @@ float cephes_logf(float xx) {
   if (x < SQRTHF) {
     e -= 1;
     x = x + x - 1.0; /*  2x - 1  */
-  } else {
+  }
+  else {
     x = x - 1.0;
   }
   z = x * x;

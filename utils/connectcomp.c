@@ -41,7 +41,8 @@ static int xoff26[26] = {0, 1, 0, 0, -1, 0, 1, 1, -1, -1, 1, 1, -1, -1, 0, 0, 0,
 static int yoff26[26] = {1, 0, 0, -1, 0, 0, 1, -1, 1, -1, 0, 0, 0, 0, 1, 1, -1, -1, -1, -1, -1, -1, 1, 1, 1, 1};
 static int zoff26[26] = {0, 0, 1, 0, 0, -1, 0, 0, 0, 0, 1, -1, 1, -1, 1, -1, 1, -1, -1, 1, -1, 1, -1, 1, -1, 1};
 
-void RemoveHoles(MRI *orivol) {
+void RemoveHoles(MRI *orivol)
+{
   /* This function assumes the object is disconnected to the volume boundary.
      It first finds the bkground CC that connected with the volume boundary,
      then set all the voxels of the volume to object value(1) except for this CC.
@@ -109,7 +110,8 @@ void GrassFire(MRI *orivol,
                int *minY,
                int *maxY,
                int *minZ,
-               int *maxZ) {
+               int *maxZ)
+{
   /* This function does binary region growing from seed Pt.
      It assumes that object has value != 0, while bkground = 0.
      minX,maxX,...,maxZ denote the boundary of the current region.
@@ -189,7 +191,8 @@ void GrassFire6(MRI *orivol,
                 int *minY,
                 int *maxY,
                 int *minZ,
-                int *maxZ) {
+                int *maxZ)
+{
   /* This function does binary region growing from seed Pt.
      It assumes that object has value != 0, while bkground = 0.
      minX,maxX,...,maxZ denote the boundary of the current region.
@@ -268,7 +271,8 @@ void GrassFire18(MRI *orivol,
                  int *minY,
                  int *maxY,
                  int *minZ,
-                 int *maxZ) {
+                 int *maxZ)
+{
   /* This function does binary region growing from seed Pt.
      It assumes that object has value != 0, while bkground = 0.
      minX,maxX,...,maxZ denote the boundary of the current region.
@@ -337,7 +341,8 @@ void GrassFire18(MRI *orivol,
   return;
 }
 
-void GetLargestCC6(MRI *orivol) {
+void GetLargestCC6(MRI *orivol)
+{
   /* This function keeps the largest CC, and reset all other CC to bgvalue (0) */
   MRI *Label;
   int i, j, k;
@@ -387,7 +392,8 @@ void GetLargestCC6(MRI *orivol) {
   return;
 }
 
-void GetLargestCC18(MRI *orivol) {
+void GetLargestCC18(MRI *orivol)
+{
   /* This function keeps the largest CC, and reset all other CC to bgvalue (0) */
   MRI *Label;
   int i, j, k;
@@ -437,7 +443,8 @@ void GetLargestCC18(MRI *orivol) {
   return;
 }
 
-MRI *Dilation6(MRI *ori, MRI *out, int R) {
+MRI *Dilation6(MRI *ori, MRI *out, int R)
+{
   int i, j, k, index, ci, cj, ck, count, XN, YN, ZN;
   MRI *tmpvol;
 
@@ -494,7 +501,8 @@ MRI *Dilation6(MRI *ori, MRI *out, int R) {
   return (out);
 }
 
-MRI *Erosion6(MRI *ori, MRI *out, int R) {
+MRI *Erosion6(MRI *ori, MRI *out, int R)
+{
   int i, j, k, index, ci, cj, ck, count, XN, YN, ZN;
   MRI *tmpvol;
 
@@ -552,7 +560,8 @@ MRI *Erosion6(MRI *ori, MRI *out, int R) {
   return (out);
 }
 
-MRI *Dilation26(MRI *ori, MRI *out, int R) {
+MRI *Dilation26(MRI *ori, MRI *out, int R)
+{
   int i, j, k, index, ci, cj, ck, count, XN, YN, ZN;
   MRI *tmpvol;
 
@@ -613,7 +622,8 @@ MRI *Dilation26(MRI *ori, MRI *out, int R) {
   return (out);
 }
 
-MRI *Erosion26(MRI *ori, MRI *out, int R) {
+MRI *Erosion26(MRI *ori, MRI *out, int R)
+{
   int i, j, k, index, ci, cj, ck, count, XN, YN, ZN;
   MRI *tmpvol;
 
@@ -671,7 +681,8 @@ MRI *Erosion26(MRI *ori, MRI *out, int R) {
   return (out);
 }
 
-MRI *BinaryOpen6(MRI *ori, MRI *out, int R) {
+MRI *BinaryOpen6(MRI *ori, MRI *out, int R)
+{
   /* This function assumes input volume is binary. It performs openning
      on the input volume using a structure element defined as R-times
      convolution of the basic SE (6, or 18).
@@ -687,7 +698,8 @@ MRI *BinaryOpen6(MRI *ori, MRI *out, int R) {
   return (out);
 }
 
-MRI *BinaryOpen26(MRI *ori, MRI *out, int R) {
+MRI *BinaryOpen26(MRI *ori, MRI *out, int R)
+{
   /* This function assumes input volume is binary. It performs openning
      on the input volume using a structure element defined as R-times
      convolution of the basic SE (6, or 18).
@@ -705,7 +717,8 @@ MRI *BinaryOpen26(MRI *ori, MRI *out, int R) {
   return (out);
 }
 
-MRI *BinaryClose6(MRI *ori, MRI *out, int R) {
+MRI *BinaryClose6(MRI *ori, MRI *out, int R)
+{
   /* This function assumes input volume is binary. It performs openning
      on the input volume using a structure element defined as R-times
      convolution of the basic SE (6, or 18).
@@ -721,7 +734,8 @@ MRI *BinaryClose6(MRI *ori, MRI *out, int R) {
   return (out);
 }
 
-MRI *BinaryClose26(MRI *ori, MRI *out, int R) {
+MRI *BinaryClose26(MRI *ori, MRI *out, int R)
+{
   /* This function assumes input volume is binary. It performs openning
      on the input volume using a structure element defined as R-times
      convolution of the basic SE (6, or 18).
@@ -777,7 +791,8 @@ MRI *BinaryClose26(MRI *ori, MRI *out, int R) {
 /*---------------------------------------------------------------------------
 // Construct an empty MYlist with specified capacity and capacity increment
 //-------------------------------------------------------------------------*/
-MYlist myList2(int elementSize, int capacity, int capacityIncrement) {
+MYlist myList2(int elementSize, int capacity, int capacityIncrement)
+{
   MYlist list;
   void *data;
 
@@ -810,7 +825,8 @@ MYlist myList2(int elementSize, int capacity, int capacityIncrement) {
 // Construct an empty MYlist with specified capacity and default
 // capacity increment as 100
 //-------------------------------------------------------------------------*/
-MYlist myList1(int elementSize, int capacity) {
+MYlist myList1(int elementSize, int capacity)
+{
   MYlist list;
 
   list = myList2(elementSize, capacity, 100);
@@ -822,7 +838,8 @@ MYlist myList1(int elementSize, int capacity) {
 // Construct an empty MYlist with default capacity as 0 and
 // capacity increment as 100
 //-------------------------------------------------------------------------*/
-MYlist myList(int elementSize) {
+MYlist myList(int elementSize)
+{
   MYlist list;
 
   list = myList2(elementSize, 0, 100);
@@ -834,7 +851,8 @@ MYlist myList(int elementSize) {
 // Construct an empty MYlist with specified size, all the elements are set to
 // zero
 //-------------------------------------------------------------------------*/
-MYlist myListOfSize(int size, int elementSize) {
+MYlist myListOfSize(int size, int elementSize)
+{
   MYlist list;
   char *data;
   int i;
@@ -858,7 +876,8 @@ MYlist myListOfSize(int size, int elementSize) {
 /*---------------------------------------------------------------------------
 // Delete this list
 //-------------------------------------------------------------------------*/
-void myListDelete(MYlist list) {
+void myListDelete(MYlist list)
+{
   void *data;
 
   data = myListData(list);
@@ -869,7 +888,8 @@ void myListDelete(MYlist list) {
 /*---------------------------------------------------------------------------
 // Add an element to this list
 //-------------------------------------------------------------------------*/
-void myListAddElement(MYlist list, void *element) {
+void myListAddElement(MYlist list, void *element)
+{
   int size, capacity, elementSize, capacityIncrement;
   void *data;
 
@@ -884,7 +904,8 @@ void myListAddElement(MYlist list, void *element) {
     if (data == NULL) {
       /* initial list */
       data = (void *)myMalloc(elementSize * capacity);
-    } else {
+    }
+    else {
       /* allocate a larger list */
       data = (void *)myRealloc(data, elementSize * capacity);
     }
@@ -898,7 +919,8 @@ void myListAddElement(MYlist list, void *element) {
 /*---------------------------------------------------------------------------
 // Add an integer to this list (must be a list consists of only integers)
 //-------------------------------------------------------------------------*/
-void myListAddInt(MYlist list, int element) {
+void myListAddInt(MYlist list, int element)
+{
   int size, capacity, elementSize, capacityIncrement;
   int *data;
 
@@ -914,7 +936,8 @@ void myListAddInt(MYlist list, int element) {
     if (data == NULL) {
       /* initial list */
       data = (int *)myMalloc(elementSize * capacity);
-    } else {
+    }
+    else {
       /* allocate a larger list */
       data = (int *)myRealloc(data, elementSize * capacity);
     }
@@ -928,7 +951,8 @@ void myListAddInt(MYlist list, int element) {
 /*---------------------------------------------------------------------------
 // Add an array to this list
 //-------------------------------------------------------------------------*/
-void myListAddArray(MYlist list, void *array, int num) {
+void myListAddArray(MYlist list, void *array, int num)
+{
   int size, capacity, elementSize, capacityIncrement, actualIncrement;
   void *data;
 
@@ -945,7 +969,8 @@ void myListAddArray(MYlist list, void *array, int num) {
     if (data == NULL) {
       /* initial list */
       data = (void *)myMalloc(elementSize * capacity);
-    } else {
+    }
+    else {
       /* allocate a larger list */
       data = (void *)myRealloc(data, elementSize * capacity);
     }
@@ -959,7 +984,8 @@ void myListAddArray(MYlist list, void *array, int num) {
 /*---------------------------------------------------------------------------
 // Insert an element into the list at the specified index
 //-------------------------------------------------------------------------*/
-int myListInsertElementAt(MYlist list, int index, void *element) {
+int myListInsertElementAt(MYlist list, int index, void *element)
+{
   int size, elementSize;
   void *data;
   void *tempPtr;
@@ -992,7 +1018,8 @@ int myListInsertElementAt(MYlist list, int index, void *element) {
 /*---------------------------------------------------------------------------
 // Retrieve an element from this list at a given index
 //-------------------------------------------------------------------------*/
-int myListElementAt(MYlist list, int index, void *element) {
+int myListElementAt(MYlist list, int index, void *element)
+{
   int size, elementSize;
   void *data;
 
@@ -1011,7 +1038,8 @@ int myListElementAt(MYlist list, int index, void *element) {
 /*---------------------------------------------------------------------------
 // Sets a list element at a given index
 //-------------------------------------------------------------------------*/
-int myListSetElementAt(MYlist list, int index, void *element) {
+int myListSetElementAt(MYlist list, int index, void *element)
+{
   int size, elementSize;
   void *data;
 
@@ -1031,7 +1059,8 @@ int myListSetElementAt(MYlist list, int index, void *element) {
 /*---------------------------------------------------------------------------
 // Removes all elements from this list and sets its size to zero
 //-------------------------------------------------------------------------*/
-int myListRemoveElementAt(MYlist list, int index) {
+int myListRemoveElementAt(MYlist list, int index)
+{
   int size, elementSize;
   void *data;
   char *currentPtr, *nextPtr;
@@ -1064,7 +1093,8 @@ void myListRemoveAllElements(MYlist list) { myListSetSize(list, 0); }
 /*---------------------------------------------------------------------------
 // Trim this list to current size
 //-------------------------------------------------------------------------*/
-void myListTrim(MYlist list) {
+void myListTrim(MYlist list)
+{
   void *data;
   int size, elementSize;
 
@@ -1077,7 +1107,8 @@ void myListTrim(MYlist list) {
   myListSetCapacity(list, size);
 }
 
-void myListInfo(MYlist list) {
+void myListInfo(MYlist list)
+{
   int elementSize, size, capacity, capacityIncrement;
 
   elementSize = myListElementSize(list);
@@ -1095,7 +1126,8 @@ void myListInfo(MYlist list) {
 /*---------------------------------------------------------------------------
 // pop out the top element from the stack
 //-------------------------------------------------------------------------*/
-void myStackPop(MYstack stack, void *element) {
+void myStackPop(MYstack stack, void *element)
+{
   int size, elementSize;
   void *data;
 
@@ -1110,7 +1142,8 @@ void myStackPop(MYstack stack, void *element) {
 /*---------------------------------------------------------------------------
 // Construct an empty MYqueue with specified capacity and capacity increment
 //-------------------------------------------------------------------------*/
-MYqueue myQueue2(int elementSize, int capacity, int capacityIncrement) {
+MYqueue myQueue2(int elementSize, int capacity, int capacityIncrement)
+{
   MYqueue queue;
 
   queue = (MYqueue)myMalloc(sizeof(MYqueueStruct));
@@ -1125,7 +1158,8 @@ MYqueue myQueue2(int elementSize, int capacity, int capacityIncrement) {
 // Construct an empty MYqueue with specified capacity and default
 // capacity increment as 100
 //-------------------------------------------------------------------------*/
-MYqueue myQueue1(int elementSize, int capacity) {
+MYqueue myQueue1(int elementSize, int capacity)
+{
   MYqueue queue;
 
   queue = myQueue2(elementSize, capacity, 100);
@@ -1136,7 +1170,8 @@ MYqueue myQueue1(int elementSize, int capacity) {
 /*---------------------------------------------------------------------------
 // default constructor
 //-------------------------------------------------------------------------*/
-MYqueue myQueue(int elementSize) {
+MYqueue myQueue(int elementSize)
+{
   MYqueue queue;
 
   queue = myQueue2(elementSize, 0, 100);
@@ -1151,7 +1186,8 @@ void myQueueEnsureSize(MYqueue queue) { myListSetSize(queue->list, myQueueSize(q
 /*---------------------------------------------------------------------------
 // delete the queue and its memory
 //-------------------------------------------------------------------------*/
-void myQueueDelete(MYqueue queue) {
+void myQueueDelete(MYqueue queue)
+{
   myListDelete(queue->list);
   free(queue);
 }
@@ -1159,14 +1195,16 @@ void myQueueDelete(MYqueue queue) {
 /*---------------------------------------------------------------------------
 // removes all elements from the queue without releasing memory
 //-------------------------------------------------------------------------*/
-void myQueueRemoveAllElements(MYqueue queue) {
+void myQueueRemoveAllElements(MYqueue queue)
+{
   queue->start = 0;
   queue->end = -1;
   myQueueEnsureSize(queue);
 }
 
 /* a private function for clean queue, ie. move things to the front */
-void myQueueMoveToFront(MYqueue queue) {
+void myQueueMoveToFront(MYqueue queue)
+{
   void *data;
   void *s1, *s2;
   int elementSize, start, end;
@@ -1186,7 +1224,8 @@ void myQueueMoveToFront(MYqueue queue) {
 /*---------------------------------------------------------------------------
 // push an element to the end of the queue
 //-------------------------------------------------------------------------*/
-void myQueuePush(MYqueue queue, void *element) {
+void myQueuePush(MYqueue queue, void *element)
+{
   int size, capacity;
   int q = MY_QUEUE_Q;
   /* this is the factor determines the frequency of cleaning */
@@ -1207,7 +1246,8 @@ void myQueuePush(MYqueue queue, void *element) {
 /*---------------------------------------------------------------------------
 // push an array to the end of the queue
 //-------------------------------------------------------------------------*/
-void myQueuePushArray(MYqueue queue, void *array, int num) {
+void myQueuePushArray(MYqueue queue, void *array, int num)
+{
   int size, capacity;
   int q = MY_QUEUE_Q;
   /* this is the factor determines the frequency of cleaning */
@@ -1229,7 +1269,8 @@ void myQueuePushArray(MYqueue queue, void *array, int num) {
 // pop out the first element from the queue
 
 //-------------------------------------------------------------------------*/
-int myQueuePop(MYqueue queue, void *element) {
+int myQueuePop(MYqueue queue, void *element)
+{
   int start;
 
   start = queue->start;
@@ -1237,7 +1278,8 @@ int myQueuePop(MYqueue queue, void *element) {
     myListElementAt(queue->list, start, element); /* get the first one */
     queue->start = start + 1;
     return (1); /* correctly got the result */
-  } else {
+  }
+  else {
     return (0); /* element is undefined */
   }
 }
@@ -1245,7 +1287,8 @@ int myQueuePop(MYqueue queue, void *element) {
 /*---------------------------------------------------------------------------
 // trim the queue to its current size
 //-------------------------------------------------------------------------*/
-void myQueueTrim(MYqueue queue) {
+void myQueueTrim(MYqueue queue)
+{
   myQueueMoveToFront(queue);
 
   myListTrim(queue->list);
@@ -1254,7 +1297,8 @@ void myQueueTrim(MYqueue queue) {
 /*---------------------------------------------------------------------------
 // extract an array from the queue
 //-------------------------------------------------------------------------*/
-void *myQueueToArray(MYqueue queue) {
+void *myQueueToArray(MYqueue queue)
+{
   void *arr, *data;
   int size, elementSize;
 
@@ -1263,7 +1307,8 @@ void *myQueueToArray(MYqueue queue) {
 
   if (size == 0) {
     arr = NULL;
-  } else {
+  }
+  else {
     data = myListData(queue->list);
     arr = (void *)myMalloc(elementSize * size);
     memcpy(arr, (char *)data + queue->start * elementSize, size * elementSize);
@@ -1272,20 +1317,23 @@ void *myQueueToArray(MYqueue queue) {
   return (arr);
 }
 
-void myQueueInfo(MYqueue queue) {
+void myQueueInfo(MYqueue queue)
+{
   printf("               start = %d\n", queue->start);
   printf("               end   = %d\n", queue->end);
   myListInfo(queue->list);
 }
 
-void *myMalloc(int size) {
+void *myMalloc(int size)
+{
   register void *value = (void *)malloc(size);
   if (value == 0) myError("Virtual memory exhausted!");
 
   return value;
 }
 
-void *myRealloc(void *ptr, int size) {
+void *myRealloc(void *ptr, int size)
+{
   register void *value = (void *)realloc(ptr, size);
   if (value == 0) myError("Virtual memory exhausted!");
 
@@ -1293,7 +1341,8 @@ void *myRealloc(void *ptr, int size) {
 }
 
 /* Prints error message */
-void myError(char error_text[]) {
+void myError(char error_text[])
+{
   fprintf(stderr, "Utility run-time error:\n");
   fprintf(stderr, "%s\n", error_text);
   fprintf(stderr, "Now exiting to system.\n");

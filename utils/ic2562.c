@@ -7725,7 +7725,8 @@ IC_FACE  ic2562_faces[5120] =
   } ;
 // clang-format on
 
-MRI_SURFACE *ic2562_make_surface(int max_vertices, int max_faces) {
+MRI_SURFACE *ic2562_make_surface(int max_vertices, int max_faces)
+{
   MRI_SURFACE *mris;
   int vno, fno, n, vn, n1, n2;
   VERTEX *v;

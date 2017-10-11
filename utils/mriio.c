@@ -206,7 +206,8 @@ static int n_unknown_labels;
 // this is a one way of setting direction cosine
 // when the direction cosine is not provided in the volume.
 // may not agree with the volume. what can we do?  Let them set by themselves.
-int setDirectionCosine(MRI *mri, int orientation) {
+int setDirectionCosine(MRI *mri, int orientation)
+{
   switch (orientation) {
     case MRI_CORONAL:  // x is from right to left.
       // y is from top to neck, z is from back to front
@@ -264,7 +265,8 @@ int setDirectionCosine(MRI *mri, int orientation) {
 #define isCloseToOne(a) (fabs(fabs(a) - 1) < 0.1)
 
 // here I take the narrow view of slice_direction
-int getSliceDirection(MRI *mri) {
+int getSliceDirection(MRI *mri)
+{
   int direction = MRI_UNDEFINED;
 
   if (!strcmp(MRIsliceDirectionName(mri), "coronal"))
@@ -291,7 +293,8 @@ int getSliceDirection(MRI *mri) {
 
 // For surface, we currently cannot handle volumes with general slice direction
 // nor we cannot handle non-conformed volumes
-int mriOKforSurface(MRI *mri) {
+int mriOKforSurface(MRI *mri)
+{
   // first check slice direction
   if (getSliceDirection(mri) != MRI_CORONAL) return 0;
   // remove slice size limitation
@@ -304,7 +307,8 @@ int mriOKforSurface(MRI *mri) {
     return 1;
 }
 
-int mriConformed(MRI *mri) {
+int mriConformed(MRI *mri)
+{
   // first check slice direction
   if (getSliceDirection(mri) != MRI_CORONAL)
     return 0;
@@ -318,7 +322,8 @@ int mriConformed(MRI *mri) {
     return 1;
 }
 
-float MRIfindMinSize(MRI *mri, int *conform_width) {
+float MRIfindMinSize(MRI *mri, int *conform_width)
+{
   double xsize, ysize, zsize, minsize;
   double fwidth, fheight, fdepth, fmax;
   xsize = mri->xsize;
@@ -335,7 +340,8 @@ float MRIfindMinSize(MRI *mri, int *conform_width) {
   // z > y > x    x min
   if (xsize > ysize) {
     minsize = (ysize > zsize) ? zsize : ysize;
-  } else {
+  }
+  else {
     minsize = (zsize > xsize) ? xsize : zsize;
   }
 
@@ -348,7 +354,8 @@ float MRIfindMinSize(MRI *mri, int *conform_width) {
   // pick the largest
   if (fwidth > fheight) {
     fmax = (fwidth > fdepth) ? fwidth : fdepth;
-  } else {
+  }
+  else {
     fmax = (fdepth > fheight) ? fdepth : fheight;
   }
 
@@ -363,7 +370,8 @@ float MRIfindMinSize(MRI *mri, int *conform_width) {
 }
 
 // this function is called when conform is done
-int MRIfindRightSize(MRI *mri, float conform_size) {
+int MRIfindRightSize(MRI *mri, float conform_size)
+{
   // user gave the conform_size
   double xsize, ysize, zsize;
   double fwidth, fheight, fdepth, fmax;
@@ -381,7 +389,8 @@ int MRIfindRightSize(MRI *mri, float conform_size) {
   // pick the largest
   if (fwidth > fheight) {
     fmax = (fwidth > fdepth) ? fwidth : fdepth;
-  } else {
+  }
+  else {
     fmax = (fdepth > fheight) ? fdepth : fheight;
   }
   // get the width with conform_size
@@ -421,7 +430,8 @@ int MRIfindRightSize(MRI *mri, float conform_size) {
   return conform_width;
 }
 
-void setMRIforSurface(MRI *mri) {
+void setMRIforSurface(MRI *mri)
+{
   if (!mriOKforSurface(mri))
     ErrorExit(ERROR_BADPARM,
               "%s: the volume is not conformed, that is, "
@@ -445,7 +455,8 @@ void setMRIforSurface(MRI *mri) {
 #endif
 }
 
-int mriio_command_line(int argc, char *argv[]) {
+int mriio_command_line(int argc, char *argv[])
+{
   int i;
   int length;
   char *c;
@@ -470,7 +481,8 @@ int mriio_command_line(int argc, char *argv[]) {
 
 } /* end mriio_command_line() */
 
-int mriio_set_subject_name(const char *name) {
+int mriio_set_subject_name(const char *name)
+{
   if (subject_name == NULL) subject_name = (char *)malloc(STRLEN);
 
   if (subject_name == NULL) {
@@ -493,14 +505,16 @@ int mriio_set_subject_name(const char *name) {
 
 } /* end mriio_set_subject_name() */
 
-void mriio_set_gdf_crop_flag(int new_gdf_crop_flag) {
+void mriio_set_gdf_crop_flag(int new_gdf_crop_flag)
+{
   gdf_crop_flag = new_gdf_crop_flag;
 
   return;
 
 } /* end mriio_set_gdf_crop_flag() */
 
-int MRIgetVolumeName(const char *string, char *name_only) {
+int MRIgetVolumeName(const char *string, char *name_only)
+{
   char *at, *pound;
 
   strcpy(name_only, string);
@@ -515,7 +529,8 @@ int MRIgetVolumeName(const char *string, char *name_only) {
 
 } /* end MRIgetVolumeName() */
 
-MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int end_frame) {
+MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int end_frame)
+{
   MRI *mri, *mri2;
   IMAGE *I;
   char fname_copy[STRLEN];
@@ -544,9 +559,11 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
       strcat(fname_copy, "/");
       strcat(fname_copy, fname);
       free(cwd);
-    } else  // why fail?
+    }
+    else  // why fail?
       strcpy(fname_copy, fname);
-  } else
+  }
+  else
     strcpy(fname_copy, fname);
 
   at = strrchr(fname_copy, '@');
@@ -571,7 +588,8 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
       errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): unknown type '%s'\n", at));
     }
-  } else if (type == MRI_VOLUME_TYPE_UNKNOWN) {
+  }
+  else if (type == MRI_VOLUME_TYPE_UNKNOWN) {
     type = mri_identify(fname_copy);
     if (type == MRI_VOLUME_TYPE_UNKNOWN) {
       errno = 0;
@@ -600,7 +618,8 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
         errno = 0;
         ErrorReturn(NULL, (ERROR_BADPARM, "mri_read(): bad end frame ('%s')\n", colon));
       }
-    } else {
+    }
+    else {
       start_frame = end_frame = strtol(pound, &ep, 10);
       if (*ep != '\0') {
         errno = 0;
@@ -631,40 +650,54 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
 
   if (type == MRI_CORONAL_SLICE_DIRECTORY) {
     mri = corRead(fname_copy, volume_flag);
-  } else if (type == SIEMENS_FILE) {
+  }
+  else if (type == SIEMENS_FILE) {
     mri = siemensRead(fname_copy, volume_flag);
-  } else if (type == MRI_GCA_FILE) {
+  }
+  else if (type == MRI_GCA_FILE) {
     mri = readGCA(fname_copy, start_frame, end_frame);
     start_frame = -1;
-  } else if (type == BHDR) {
+  }
+  else if (type == BHDR) {
     ptmpstr = bhdr_firstslicefname(fname_copy);
     t = bhdr_precision(fname_copy);
     mri = bvolumeRead(ptmpstr, volume_flag, t);
     free(ptmpstr);
-  } else if (type == BSHORT_FILE) {
+  }
+  else if (type == BSHORT_FILE) {
     // mri = bshortRead(fname_copy, volume_flag);
     mri = bvolumeRead(fname_copy, volume_flag, MRI_SHORT);
-  } else if (type == BFLOAT_FILE) {
+  }
+  else if (type == BFLOAT_FILE) {
     // mri = bfloatRead(fname_copy, volume_flag);
     mri = bvolumeRead(fname_copy, volume_flag, MRI_FLOAT);
-  } else if (type == GENESIS_FILE) {
+  }
+  else if (type == GENESIS_FILE) {
     mri = genesisRead(fname_copy, volume_flag);
-  } else if (type == SIGNA_FILE) {
+  }
+  else if (type == SIGNA_FILE) {
     mri = signaRead(fname_copy, volume_flag);
-  } else if (type == GE_LX_FILE) {
+  }
+  else if (type == GE_LX_FILE) {
     mri = gelxRead(fname_copy, volume_flag);
-  } else if (type == MRI_ANALYZE_FILE || type == MRI_ANALYZE4D_FILE) {
+  }
+  else if (type == MRI_ANALYZE_FILE || type == MRI_ANALYZE4D_FILE) {
     mri = analyzeRead(fname_copy, volume_flag);
-  } else if (type == BRIK_FILE) {
+  }
+  else if (type == BRIK_FILE) {
     mri = afniRead(fname_copy, volume_flag);
-  } else if (type == MRI_MINC_FILE) {
+  }
+  else if (type == MRI_MINC_FILE) {
     // mri = mincRead2(fname_copy, volume_flag);
     mri = mincRead(fname_copy, volume_flag);
-  } else if (type == SDT_FILE) {
+  }
+  else if (type == SDT_FILE) {
     mri = sdtRead(fname_copy, volume_flag);
-  } else if (type == MRI_MGH_FILE) {
+  }
+  else if (type == MRI_MGH_FILE) {
     mri = mghRead(fname_copy, volume_flag, -1);
-  } else if (type == MGH_MORPH) {
+  }
+  else if (type == MGH_MORPH) {
     GCA_MORPH *gcam;
     gcam = GCAMread(fname_copy);
     if (gcam == NULL) ErrorReturn(NULL, (ERROR_BADPARM, "MRIread(%s): could not read .m3z\n", fname_copy));
@@ -678,7 +711,8 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
     }
 
     GCAMfree(&gcam);
-  } else if (type == MGH_AUTOENCODER) {
+  }
+  else if (type == MGH_AUTOENCODER) {
     SAE *sae;
     sae = SAEread(fname_copy);
     if (sae == NULL) ErrorReturn(NULL, (ERROR_BADPARM, "MRIread(%s): could not read autoencoder\n", fname_copy));
@@ -687,31 +721,40 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
     start_frame = 0;
     end_frame = mri->nframes - 1;
     SAEfree(&sae);
-  } else if (type == GDF_FILE) {
+  }
+  else if (type == GDF_FILE) {
     mri = gdfRead(fname_copy, volume_flag);
-  } else if (type == DICOM_FILE) {
+  }
+  else if (type == DICOM_FILE) {
     if (!UseDICOMRead2)
       DICOMRead(fname_copy, &mri, volume_flag);
     else
       mri = DICOMRead2(fname_copy, volume_flag);
-  } else if (type == SIEMENS_DICOM_FILE) {
+  }
+  else if (type == SIEMENS_DICOM_FILE) {
     // mri_convert -nth option sets start_frame = nth.  otherwise -1
     mri = sdcmLoadVolume(fname_copy, volume_flag, start_frame);
     start_frame = -1;
     // in order to avoid the later processing on start_frame and end_frame
     // read the comment later on
     end_frame = 0;
-  } else if (type == BRUKER_FILE) {
+  }
+  else if (type == BRUKER_FILE) {
     mri = brukerRead(fname_copy, volume_flag);
-  } else if (type == XIMG_FILE) {
+  }
+  else if (type == XIMG_FILE) {
     mri = ximgRead(fname_copy, volume_flag);
-  } else if (type == NIFTI1_FILE) {
+  }
+  else if (type == NIFTI1_FILE) {
     mri = nifti1Read(fname_copy, volume_flag);
-  } else if (type == NII_FILE) {
+  }
+  else if (type == NII_FILE) {
     mri = niiRead(fname_copy, volume_flag);
-  } else if (type == NRRD_FILE) {
+  }
+  else if (type == NRRD_FILE) {
     mri = mriNrrdRead(fname_copy, volume_flag);
-  } else if (type == MRI_CURV_FILE)
+  }
+  else if (type == MRI_CURV_FILE)
     mri = MRISreadCurvAsMRI(fname_copy, volume_flag);
   else if (type == GIFTI_FILE)
     mri = MRISreadGiftiAsMRI(fname_copy, volume_flag);
@@ -719,7 +762,8 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
     I = ImageRead(fname_copy);
     mri = ImageToMRI(I);
     ImageFree(&I);
-  } else {
+  }
+  else {
     fprintf(stderr, "mri_read(): type = %d\n", type);
     errno = 0;
     ErrorReturn(NULL,
@@ -849,7 +893,8 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
 
 } /* end mri_read() */
 
-static int nan_inf_check(MRI *mri) {
+static int nan_inf_check(MRI *mri)
+{
   int i, j, k, t;
 
   if (mri->type != MRI_FLOAT) return (NO_ERROR);
@@ -862,10 +907,12 @@ static int nan_inf_check(MRI *mri) {
             if (devIsinf((MRIFseq_vox(mri, i, j, k, t))) != 0) {
               errno = 0;
               ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "nan_inf_check(): Inf at voxel %d, %d, %d, %d", i, j, k, t));
-            } else if (devIsnan((MRIFseq_vox(mri, i, j, k, t)))) {
+            }
+            else if (devIsnan((MRIFseq_vox(mri, i, j, k, t)))) {
               errno = 0;
               ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "nan_inf_check(): NaN at voxel %d, %d, %d, %d", i, j, k, t));
-            } else {
+            }
+            else {
               errno = 0;
               ErrorReturn(ERROR_BADPARM,
                           (ERROR_BADPARM,
@@ -882,7 +929,8 @@ static int nan_inf_check(MRI *mri) {
 
 } /* end nan_inf_check() */
 
-MRI *MRIreadType(const char *fname, int type) {
+MRI *MRIreadType(const char *fname, int type)
+{
   MRI *mri;
 
   chklc();
@@ -893,7 +941,8 @@ MRI *MRIreadType(const char *fname, int type) {
 
 } /* end MRIreadType() */
 
-MRI *MRIread(const char *fname) {
+MRI *MRIread(const char *fname)
+{
   char buf[STRLEN];
   MRI *mri = NULL;
 
@@ -922,7 +971,8 @@ MRI *MRIread(const char *fname) {
 
 // allow picking one frame out of many frame
 // currently implemented only for Siemens dicom file
-MRI *MRIreadEx(const char *fname, int nthframe) {
+MRI *MRIreadEx(const char *fname, int nthframe)
+{
   char buf[STRLEN];
   MRI *mri = NULL;
 
@@ -942,7 +992,8 @@ MRI *MRIreadEx(const char *fname, int nthframe) {
 
 } /* end MRIread() */
 
-MRI *MRIreadInfo(const char *fname) {
+MRI *MRIreadInfo(const char *fname)
+{
   MRI *mri = NULL;
 
   mri = mri_read(fname, MRI_VOLUME_TYPE_UNKNOWN, FALSE, -1, -1);
@@ -956,7 +1007,8 @@ MRI *MRIreadInfo(const char *fname) {
   If type is MRI_VOLUME_TYPE_UNKNOWN, then the type will be
   inferred from the file name.
   ---------------------------------------------------------------*/
-MRI *MRIreadHeader(const char *fname, int type) {
+MRI *MRIreadHeader(const char *fname, int type)
+{
   int usetype;
   MRI *mri = NULL;
   char modFname[STRLEN];
@@ -972,9 +1024,11 @@ MRI *MRIreadHeader(const char *fname, int type) {
       strcat(modFname, "/");
       strcat(modFname, fname);
       free(cwd);
-    } else  // why fail?
+    }
+    else  // why fail?
       strcpy(modFname, fname);
-  } else
+  }
+  else
     strcpy(modFname, fname);
 
   if (usetype == MRI_VOLUME_TYPE_UNKNOWN) {
@@ -994,7 +1048,8 @@ MRI *MRIreadHeader(const char *fname, int type) {
 
 } /* end MRIreadInfo() */
 
-int MRIwriteType(MRI *mri, const char *fname, int type) {
+int MRIwriteType(MRI *mri, const char *fname, int type)
+{
   struct stat stat_buf;
   int error = 0;
   char *fstem;
@@ -1002,7 +1057,8 @@ int MRIwriteType(MRI *mri, const char *fname, int type) {
 
   if (type == MRI_CORONAL_SLICE_DIRECTORY) {
     error = corWrite(mri, fname);
-  } else {
+  }
+  else {
     /* ----- all remaining types should write to
        a filename, not to within a directory,
        so check that it isn't an existing directory name we've been passed.
@@ -1026,33 +1082,42 @@ int MRIwriteType(MRI *mri, const char *fname, int type) {
 
   if (type == MRI_MINC_FILE) {
     error = mincWrite(mri, fname);
-  } else if (type == IMAGE_FILE) {
+  }
+  else if (type == IMAGE_FILE) {
     IMAGE *image;
     if (mri->depth != 1) ErrorExit(ERROR_BADPARM, "MRIwriteType(%s): image files cannnot have depth > 1\n", fname);
     image = MRItoImage(mri, NULL, 0);
     ImageWrite(image, fname);
     ImageFree(&image);
-  } else if (type == BHDR) {
+  }
+  else if (type == BHDR) {
     fstem = bhdr_stem(fname);
     if (mri->type == MRI_SHORT) {
       sprintf(tmpstr, "%s_000.bshort", fstem);
       error = bvolumeWrite(mri, tmpstr, MRI_SHORT);
-    } else {
+    }
+    else {
       sprintf(tmpstr, "%s_000.bfloat", fstem);
       error = bvolumeWrite(mri, tmpstr, MRI_FLOAT);
     }
     free(fstem);
-  } else if (type == BSHORT_FILE) {
+  }
+  else if (type == BSHORT_FILE) {
     error = bvolumeWrite(mri, fname, MRI_SHORT);
-  } else if (type == BFLOAT_FILE) {
+  }
+  else if (type == BFLOAT_FILE) {
     error = bvolumeWrite(mri, fname, MRI_FLOAT);
-  } else if (type == MRI_ANALYZE_FILE) {
+  }
+  else if (type == MRI_ANALYZE_FILE) {
     error = analyzeWrite(mri, fname);
-  } else if (type == MRI_ANALYZE4D_FILE) {
+  }
+  else if (type == MRI_ANALYZE4D_FILE) {
     error = analyzeWrite4D(mri, fname);
-  } else if (type == BRIK_FILE) {
+  }
+  else if (type == BRIK_FILE) {
     error = afniWrite(mri, fname);
-  } else if (type == MGH_MORPH) {
+  }
+  else if (type == MGH_MORPH) {
     GCA_MORPH *gcam;
 
     if (mri->nframes != 3)
@@ -1063,61 +1128,81 @@ int MRIwriteType(MRI *mri, const char *fname, int type) {
     GCAMreadWarpFromMRI(gcam, mri);
     GCAMwrite(gcam, fname);
     GCAMfree(&gcam);
-  } else if (type == ITK_MORPH) {
+  }
+  else if (type == ITK_MORPH) {
     if (mri->nframes != 3)
       ErrorReturn(-1,
                   (ERROR_UNSUPPORTED, "MRIwriteType: itk warp - input mri must have 3 frames, not %d", mri->nframes));
     error = itkMorphWrite(mri, fname);
-  } else if (type == MRI_MGH_FILE) {
+  }
+  else if (type == MRI_MGH_FILE) {
     error = mghWrite(mri, fname, -1);
-  } else if (type == GDF_FILE) {
+  }
+  else if (type == GDF_FILE) {
     error = gdfWrite(mri, fname);
-  } else if (type == NIFTI1_FILE) {
+  }
+  else if (type == NIFTI1_FILE) {
     error = nifti1Write(mri, fname);
-  } else if (type == NII_FILE) {
+  }
+  else if (type == NII_FILE) {
     // printf("Before writing nii file \n");
     error = niiWrite(mri, fname);
     // printf("The error code is: %d\n", error);
-  } else if (type == NRRD_FILE) {
+  }
+  else if (type == NRRD_FILE) {
     error = mriNrrdWrite(mri, fname);
-  } else if (type == GIFTI_FILE) {
+  }
+  else if (type == GIFTI_FILE) {
     error = mriWriteGifti(mri, fname);
-  } else if (type == GENESIS_FILE) {
+  }
+  else if (type == GENESIS_FILE) {
     errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIwriteType(): writing of GENESIS file type not supported"));
-  } else if (type == GE_LX_FILE) {
+  }
+  else if (type == GE_LX_FILE) {
     errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIwriteType(): writing of GE LX file type not supported"));
-  } else if (type == SIEMENS_FILE) {
+  }
+  else if (type == SIEMENS_FILE) {
     errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIwriteType(): writing of SIEMENS file type not supported"));
-  } else if (type == SDT_FILE) {
+  }
+  else if (type == SDT_FILE) {
     errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIwriteType(): writing of SDT file type not supported"));
-  } else if (type == OTL_FILE) {
+  }
+  else if (type == OTL_FILE) {
     errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIwriteType(): writing of OTL file type not supported"));
-  } else if (type == RAW_FILE) {
+  }
+  else if (type == RAW_FILE) {
     errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIwriteType(): writing of RAW file type not supported"));
-  } else if (type == SIGNA_FILE) {
+  }
+  else if (type == SIGNA_FILE) {
     errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIwriteType(): writing of SIGNA file type not supported"));
-  } else if (type == DICOM_FILE) {
+  }
+  else if (type == DICOM_FILE) {
     errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIwriteType(): writing of DICOM file type not supported"));
-  } else if (type == SIEMENS_DICOM_FILE) {
+  }
+  else if (type == SIEMENS_DICOM_FILE) {
     errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIwriteType(): writing of SIEMENS DICOM file type not supported"));
-  } else if (type == BRUKER_FILE) {
+  }
+  else if (type == BRUKER_FILE) {
     errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIwriteType(): writing of BRUKER file type not supported"));
-  } else if (type == XIMG_FILE) {
+  }
+  else if (type == XIMG_FILE) {
     errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIwriteType(): writing of XIMG file type not supported"));
-  } else if (type == MRI_CORONAL_SLICE_DIRECTORY) {
+  }
+  else if (type == MRI_CORONAL_SLICE_DIRECTORY) {
     // already processed above
-  } else {
+  }
+  else {
     errno = 0;
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM,
@@ -1150,7 +1235,8 @@ int MRIwriteType(MRI *mri, const char *fname, int type) {
 
 } /* end MRIwriteType() */
 
-int MRIwriteFrame(MRI *mri, const char *fname, int frame) {
+int MRIwriteFrame(MRI *mri, const char *fname, int frame)
+{
   MRI *mri_tmp;
 
   if (frame >= mri->nframes)
@@ -1161,7 +1247,8 @@ int MRIwriteFrame(MRI *mri, const char *fname, int frame) {
   return (NO_ERROR);
 }
 
-int MRIwrite(MRI *mri, const char *fname) {
+int MRIwrite(MRI *mri, const char *fname)
+{
   int int_type = -1;
   int error;
 
@@ -1195,7 +1282,8 @@ int MRIwrite(MRI *mri, const char *fname) {
 #define ENDZ_FLAG 0x00001000
 
 /* trivially time course clean */
-static MRI *corRead(const char *fname, int read_volume) {
+static MRI *corRead(const char *fname, int read_volume)
+{
   MRI *mri;
   struct stat stat_buf;
   char fname_use[STRLEN];
@@ -1277,66 +1365,90 @@ static MRI *corRead(const char *fname, int read_volume) {
     if (strncmp(line, "imnr0 ", 6) == 0) {
       sscanf(line, "%*s %d", &imnr0);
       gotten = gotten | IMNR0_FLAG;
-    } else if (strncmp(line, "imnr1 ", 6) == 0) {
+    }
+    else if (strncmp(line, "imnr1 ", 6) == 0) {
       sscanf(line, "%*s %d", &imnr1);
       gotten = gotten | IMNR1_FLAG;
-    } else if (strncmp(line, "ptype ", 6) == 0) {
+    }
+    else if (strncmp(line, "ptype ", 6) == 0) {
       sscanf(line, "%*s %d", &ptype);
       gotten = gotten | PTYPE_FLAG;
-    } else if (strncmp(line, "x ", 2) == 0) {
+    }
+    else if (strncmp(line, "x ", 2) == 0) {
       sscanf(line, "%*s %d", &x);
       gotten = gotten | X_FLAG;
-    } else if (strncmp(line, "y ", 2) == 0) {
+    }
+    else if (strncmp(line, "y ", 2) == 0) {
       sscanf(line, "%*s %d", &y);
       gotten = gotten | Y_FLAG;
-    } else if (strncmp(line, "fov ", 4) == 0) {
+    }
+    else if (strncmp(line, "fov ", 4) == 0) {
       sscanf(line, "%*s %lf", &fov);
-    } else if (strncmp(line, "thick ", 6) == 0) {
+    }
+    else if (strncmp(line, "thick ", 6) == 0) {
       sscanf(line, "%*s %lf", &thick);
       gotten = gotten | THICK_FLAG;
-    } else if (strncmp(line, "flip ", 5) == 0) {
+    }
+    else if (strncmp(line, "flip ", 5) == 0) {
       sscanf(line + 11, "%f", &flip_angle);
       flip_angle = RADIANS(flip_angle);
-    } else if (strncmp(line, "psiz ", 5) == 0) {
+    }
+    else if (strncmp(line, "psiz ", 5) == 0) {
       sscanf(line, "%*s %lf", &psiz);
       gotten = gotten | PSIZ_FLAG;
-    } else if (strncmp(line, "locatn ", 7) == 0) {
+    }
+    else if (strncmp(line, "locatn ", 7) == 0) {
       sscanf(line, "%*s %lf", &locatn);
-    } else if (strncmp(line, "strtx ", 6) == 0) {
+    }
+    else if (strncmp(line, "strtx ", 6) == 0) {
       sscanf(line, "%*s %f", &strtx);
       gotten = gotten | STRTX_FLAG;
-    } else if (strncmp(line, "endx ", 5) == 0) {
+    }
+    else if (strncmp(line, "endx ", 5) == 0) {
       sscanf(line, "%*s %f", &endx);
       gotten = gotten | ENDX_FLAG;
-    } else if (strncmp(line, "strty ", 6) == 0) {
+    }
+    else if (strncmp(line, "strty ", 6) == 0) {
       sscanf(line, "%*s %f", &strty);
       gotten = gotten | STRTY_FLAG;
-    } else if (strncmp(line, "endy ", 5) == 0) {
+    }
+    else if (strncmp(line, "endy ", 5) == 0) {
       sscanf(line, "%*s %f", &endy);
       gotten = gotten | ENDY_FLAG;
-    } else if (strncmp(line, "strtz ", 6) == 0) {
+    }
+    else if (strncmp(line, "strtz ", 6) == 0) {
       sscanf(line, "%*s %f", &strtz);
       gotten = gotten | STRTZ_FLAG;
-    } else if (strncmp(line, "endz ", 5) == 0) {
+    }
+    else if (strncmp(line, "endz ", 5) == 0) {
       sscanf(line, "%*s %f", &endz);
       gotten = gotten | ENDZ_FLAG;
-    } else if (strncmp(line, "tr ", 3) == 0) {
+    }
+    else if (strncmp(line, "tr ", 3) == 0) {
       sscanf(line, "%*s %f", &tr);
-    } else if (strncmp(line, "te ", 3) == 0) {
+    }
+    else if (strncmp(line, "te ", 3) == 0) {
       sscanf(line, "%*s %f", &te);
-    } else if (strncmp(line, "ti ", 3) == 0) {
+    }
+    else if (strncmp(line, "ti ", 3) == 0) {
       sscanf(line, "%*s %f", &ti);
-    } else if (strncmp(line, "ras_good_flag ", 14) == 0) {
+    }
+    else if (strncmp(line, "ras_good_flag ", 14) == 0) {
       sscanf(line, "%*s %d", &ras_good_flag);
-    } else if (strncmp(line, "x_ras ", 6) == 0) {
+    }
+    else if (strncmp(line, "x_ras ", 6) == 0) {
       sscanf(line, "%*s %f %f %f", &x_r, &x_a, &x_s);
-    } else if (strncmp(line, "y_ras ", 6) == 0) {
+    }
+    else if (strncmp(line, "y_ras ", 6) == 0) {
       sscanf(line, "%*s %f %f %f", &y_r, &y_a, &y_s);
-    } else if (strncmp(line, "z_ras ", 6) == 0) {
+    }
+    else if (strncmp(line, "z_ras ", 6) == 0) {
       sscanf(line, "%*s %f %f %f", &z_r, &z_a, &z_s);
-    } else if (strncmp(line, "c_ras ", 6) == 0) {
+    }
+    else if (strncmp(line, "c_ras ", 6) == 0) {
       sscanf(line, "%*s %f %f %f", &c_r, &c_a, &c_s);
-    } else if (strncmp(line, "xform", 5) == 0 || strncmp(line, "transform", 9) == 0) {
+    }
+    else if (strncmp(line, "xform", 5) == 0 || strncmp(line, "transform", 9) == 0) {
       sscanf(line, "%*s %s", xform);
     }
   }
@@ -1503,7 +1615,8 @@ static MRI *corRead(const char *fname, int read_volume) {
         mri->free_transform = 1;
         strcpy(mri->transform_fname, xform_use);
         if (DIAG_VERBOSE_ON) fprintf(stderr, "INFO: loaded talairach xform : %s\n", mri->transform_fname);
-      } else {
+      }
+      else {
         errno = 0;
         ErrorPrintf(ERROR_BAD_FILE, "error loading transform from %s", xform_use);
         mri->linear_transform = NULL;
@@ -1539,7 +1652,8 @@ static MRI *corRead(const char *fname, int read_volume) {
 
 } /* end corRead() */
 
-static int corWrite(MRI *mri, const char *fname) {
+static int corWrite(MRI *mri, const char *fname)
+{
   struct stat stat_buf;
   char fname_use[STRLEN];
   char *fbase;
@@ -1687,7 +1801,8 @@ static int corWrite(MRI *mri, const char *fname) {
 
 } /* end corWrite() */
 
-static MRI *siemensRead(const char *fname, int read_volume_flag) {
+static MRI *siemensRead(const char *fname, int read_volume_flag)
+{
   int file_n, n_low, n_high;
   char fname_use[STRLEN];
   MRI *mri;
@@ -1852,7 +1967,8 @@ static MRI *siemensRead(const char *fname, int read_volume_flag) {
     }
     mos_r = mos_c = 1;
     mosaic_size = 1;
-  } else {
+  }
+  else {
     if (rows % base_raw_matrix_size != 0) {
       errno = 0;
       ErrorReturn(NULL,
@@ -2102,7 +2218,8 @@ static MRI *siemensRead(const char *fname, int read_volume_flag) {
 
 } /* end siemensRead() */
 /*-----------------------------------------------------------*/
-static MRI *mincRead(const char *fname, int read_volume) {
+static MRI *mincRead(const char *fname, int read_volume)
+{
   // double wx, wy, wz;
   MRI *mri;
   Volume vol;
@@ -2911,7 +3028,8 @@ static int NormalizeVector(float *v, int n)
 #endif
 /*----------------------------------------------------------*/
 /* time course clean */
-static int mincWrite(MRI *mri, const char *fname) {
+static int mincWrite(MRI *mri, const char *fname)
+{
   Volume minc_volume;
   STRING dimension_names[4] = {"xspace", "yspace", "zspace", "time"};
   nc_type nc_data_type;
@@ -3046,19 +3164,24 @@ static int mincWrite(MRI *mri, const char *fname) {
   if (mri->type == MRI_UCHAR) {
     nc_data_type = NC_BYTE;
     signed_flag = 0;
-  } else if (mri->type == MRI_SHORT) {
+  }
+  else if (mri->type == MRI_SHORT) {
     nc_data_type = NC_SHORT;
     signed_flag = 1;
-  } else if (mri->type == MRI_INT) {
+  }
+  else if (mri->type == MRI_INT) {
     nc_data_type = NC_LONG;
     signed_flag = 1;
-  } else if (mri->type == MRI_LONG) {
+  }
+  else if (mri->type == MRI_LONG) {
     nc_data_type = NC_LONG;
     signed_flag = 1;
-  } else if (mri->type == MRI_FLOAT) {
+  }
+  else if (mri->type == MRI_FLOAT) {
     nc_data_type = NC_FLOAT;
     signed_flag = 1;
-  } else {
+  }
+  else {
     errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "mincWrite(): bad data type (%d) in mri structure", mri->type));
   }
@@ -3190,7 +3313,8 @@ static int mincWrite(MRI *mri, const char *fname) {
   bvolumeWrite() - replaces bshortWrite and bfloatWrite.
   Bug: fname_passed must the the stem, not the full file name.
   -----------------------------------------------------------------*/
-static int bvolumeWrite(MRI *vol, const char *fname_passed, int type) {
+static int bvolumeWrite(MRI *vol, const char *fname_passed, int type)
+{
   int i, j, t;
   char fname[STRLEN];
   short *bufshort;
@@ -3255,7 +3379,8 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type) {
     mri->depth = nslices;
     mri->nframes = nframes;
     dealloc = 1;
-  } else {
+  }
+  else {
     mri = vol;
     dealloc = 0;
   }
@@ -3389,14 +3514,17 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type) {
       errno = 0;
       ErrorPrintf(ERROR_BADPARM, "bvolumeWrite(): environment variable SUBJECTS_DIR unset");
       if (dealloc) MRIfree(&mri);
-    } else {
+    }
+    else {
       sprintf(subject_dir, "%s/%s", subjects_dir, sn);
       if (stat(subject_dir, &stat_buf) < 0) {
         fprintf(stderr, "can't stat %s; writing to bhdr instead\n", subject_dir);
-      } else {
+      }
+      else {
         if (!S_ISDIR(stat_buf.st_mode)) {
           fprintf(stderr, "%s is not a directory; writing to bhdr instead\n", subject_dir);
-        } else {
+        }
+        else {
           sprintf(subject_volume_dir, "%s/mri/T1", subject_dir);
           subject_info = MRIreadInfo(subject_volume_dir);
           if (subject_info == NULL) {
@@ -3791,7 +3919,8 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type) {
     fclose(fp);
 
     if (result != NO_ERROR) return (result);
-  } else
+  }
+  else
     MRIfree(&subject_info);
 
   if (dealloc) MRIfree(&mri);
@@ -3800,7 +3929,8 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type) {
 
 } /* end bvolumeWrite() */
 
-static MRI *get_b_info(const char *fname_passed, int read_volume, char *directory, char *stem, int type) {
+static MRI *get_b_info(const char *fname_passed, int read_volume, char *directory, char *stem, int type)
+{
   MRI *mri, *mri2;
   FILE *fp;
   int nslices = 0, nt;
@@ -3949,7 +4079,8 @@ static MRI *get_b_info(const char *fname_passed, int read_volume, char *director
     }
 
     strcpy(mri->fname, fname_passed);
-  } else {
+  }
+  else {
     /* ----- get defaults ----- */
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr,
@@ -4035,7 +4166,8 @@ static MRI *get_b_info(const char *fname_passed, int read_volume, char *director
 /*-------------------------------------------------------------------
   bvolumeRead() - this replaces bshortRead and bfloatRead.
   -------------------------------------------------------------------*/
-static MRI *bvolumeRead(const char *fname_passed, int read_volume, int type) {
+static MRI *bvolumeRead(const char *fname_passed, int read_volume, int type)
+{
   MRI *mri;
   FILE *fp;
   char fname[STRLEN];
@@ -4078,7 +4210,8 @@ static MRI *bvolumeRead(const char *fname_passed, int read_volume, int type) {
   if ((fp = fopen(fname, "r")) == NULL) {
     fprintf(stderr, "ERROR: can't open file %s; assuming big-endian bvolume\n", fname);
     swap_bytes_flag = 0;
-  } else {
+  }
+  else {
     fscanf(fp, "%*d %*d %*d %d", &swap_bytes_flag);
 #if (BYTE_ORDER == LITTLE_ENDIAN)
     swap_bytes_flag = !swap_bytes_flag;
@@ -4351,7 +4484,8 @@ static int orient_with_register(MRI *mri)
 } /* end orient_with_register() */
 #endif
 
-int decompose_b_fname(const char *fname, char *dir, char *stem) {
+int decompose_b_fname(const char *fname, char *dir, char *stem)
+{
   char *slash, *dot, *stem_start, *underscore;
   int fname_length;
   int und_pos;
@@ -4381,7 +4515,8 @@ int decompose_b_fname(const char *fname, char *dir, char *stem) {
   if (slash == NULL) {
     stem_start = fname_copy;
     sprintf(dir, ".");
-  } else {
+  }
+  else {
     *slash = '\0';
     strcpy(dir, fname_copy);
     stem_start = slash + 1;
@@ -4410,7 +4545,8 @@ int decompose_b_fname(const char *fname, char *dir, char *stem) {
 } /* end decompose_b_fname() */
 
 /*-------------------------------------------------------------*/
-static int write_bhdr(MRI *mri, FILE *fp) {
+static int write_bhdr(MRI *mri, FILE *fp)
+{
   float vl;            /* vector length */
   float tlr, tla, tls; /* top left coordinates */
   float trr, tra, trs; /* top right coordinates */
@@ -4530,7 +4666,8 @@ static int write_bhdr(MRI *mri, FILE *fp) {
 } /* end write_bhdr() */
 
 /*------------------------------------------------------*/
-int read_bhdr(MRI *mri, FILE *fp) {
+int read_bhdr(MRI *mri, FILE *fp)
+{
   char line[STRLEN];
   char *l;
   float tlr = 0.;
@@ -4582,7 +4719,8 @@ int read_bhdr(MRI *mri, FILE *fp) {
       else if (strncmp(l, "image_tr: ", 10) == 0) {
         sscanf(l, "%*s %f", &mri->tr);
         mri->tr = 1000.0 * mri->tr;  // convert from sec to msec
-      } else if (strncmp(l, "image_ti: ", 10) == 0)
+      }
+      else if (strncmp(l, "image_ti: ", 10) == 0)
         sscanf(l, "%*s %f", &mri->ti);
       else if (strncmp(l, "flip_angle: ", 10) == 0)
         sscanf(l, "%*s %lf", &mri->flip_angle);
@@ -4649,7 +4787,8 @@ int read_bhdr(MRI *mri, FILE *fp) {
     mri->x_r = xr / mri->xsize;
     mri->x_a = xa / mri->xsize;
     mri->x_s = xs / mri->xsize;
-  } else  // fake values
+  }
+  else  // fake values
   {
     mri->xsize = 1;
     mri->x_r = -1;
@@ -4665,7 +4804,8 @@ int read_bhdr(MRI *mri, FILE *fp) {
     mri->y_r = yr / mri->ysize;
     mri->y_a = ya / mri->ysize;
     mri->y_s = ys / mri->ysize;
-  } else  // fake values
+  }
+  else  // fake values
   {
     mri->ysize = 1;
     mri->y_r = 0;
@@ -4718,7 +4858,8 @@ int read_bhdr(MRI *mri, FILE *fp) {
 
 } /* end read_bhdr() */
 
-static MRI *genesisRead(const char *fname, int read_volume) {
+static MRI *genesisRead(const char *fname, int read_volume)
+{
   char fname_format[STRLEN];
   char fname_format2[STRLEN];
   char fname_dir[STRLEN];
@@ -4750,7 +4891,8 @@ static MRI *genesisRead(const char *fname, int read_volume) {
   if (getenv("GE_ODD")) {
     odd_only = 1;
     printf("only using odd # GE files\n");
-  } else if (getenv("GE_EVEN")) {
+  }
+  else if (getenv("GE_EVEN")) {
     even_only = 1;
     printf("only using even # GE files\n");
   }
@@ -4766,7 +4908,8 @@ static MRI *genesisRead(const char *fname, int read_volume) {
   if (c == NULL) {
     fname_dir[0] = '\0';
     strcpy(fname_base, fname);
-  } else {
+  }
+  else {
     strncpy(fname_dir, fname, (c - fname + 1));
     fname_dir[c - fname + 1] = '\0';
     strcpy(fname_base, c + 1);
@@ -4795,11 +4938,13 @@ static MRI *genesisRead(const char *fname, int read_volume) {
       // another type %s%%03d.MR" must be examined
       sprintf(fname_format, "%s%%d.MR", fname_base);
       sprintf(fname_format2, "%s%%03d.MR", fname_base);
-    } else {
+    }
+    else {
       errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(): can't determine file name format for %s", fname));
     }
-  } else {
+  }
+  else {
     errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(): can't determine file name format for %s", fname));
   }
@@ -4830,7 +4975,8 @@ static MRI *genesisRead(const char *fname, int read_volume) {
       sprintf(fname_use, fname_format, im_high);
     } while (FileExists(fname_use));
     im_high -= 2;
-  } else {
+  }
+  else {
     im_low = im_init;
     do {
       im_low--;
@@ -4861,7 +5007,8 @@ static MRI *genesisRead(const char *fname, int read_volume) {
       sprintf(fname_use, fname_format2, im_high2);
     } while (FileExists(fname_use));
     im_high2--;
-  } else {
+  }
+  else {
     im_high2 = im_low2 = 0;
   }
   // now decide which one to pick
@@ -4931,7 +5078,8 @@ static MRI *genesisRead(const char *fname, int read_volume) {
   header->nframes = freadShort(fp);
   if (header->nframes > 1) {
     printf("multi-echo genesis file detected (%d echoes)...\n", header->nframes);
-  } else if (header->nframes == 0) {
+  }
+  else if (header->nframes == 0) {
     printf("zero frames specified in file - setting to 1\n");
     header->nframes = 1;
   }
@@ -5079,7 +5227,8 @@ static MRI *genesisRead(const char *fname, int read_volume) {
 
 } /* end genesisRead() */
 
-static MRI *gelxRead(const char *fname, int read_volume) {
+static MRI *gelxRead(const char *fname, int read_volume)
+{
   char fname_format[STRLEN];
   char fname_dir[STRLEN];
   char fname_base[STRLEN];
@@ -5114,7 +5263,8 @@ static MRI *gelxRead(const char *fname, int read_volume) {
   if (c == NULL) {
     fname_dir[0] = '\0';
     strcpy(fname_base, fname);
-  } else {
+  }
+  else {
     strncpy(fname_dir, fname, (c - fname + 1));
     fname_dir[c - fname + 1] = '\0';
     strcpy(fname_base, c + 1);
@@ -5137,7 +5287,8 @@ static MRI *gelxRead(const char *fname, int read_volume) {
     im_init = atoi(c + 1);
     *c = '\0';
     sprintf(fname_format, "%si%%d", fname_base);
-  } else {
+  }
+  else {
     errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(): can't determine file name format for %s", fname));
   }
@@ -5319,7 +5470,8 @@ static MRI *gelxRead(const char *fname, int read_volume) {
   SPM_START_FRAME and uses its value as the number of the first frame
   for an SPM series.  If this variable does not exist, then uses  1.
   ----------------------------------------------------------------------*/
-int GetSPMStartFrame(void) {
+int GetSPMStartFrame(void)
+{
   char *s;
   int startframe;
   s = getenv("SPM_START_FRAME");
@@ -5341,7 +5493,8 @@ int GetSPMStartFrame(void) {
   ppstem == NULL).
   Note: the files must actually exist.
   -------------------------------------------------------------------------*/
-int CountAnalyzeFiles(const char *analyzefname, int nzpad, char **ppstem) {
+int CountAnalyzeFiles(const char *analyzefname, int nzpad, char **ppstem)
+{
   int len, ncopy;
   char *stem, fmt[1000], fname[1000];
   int nfiles, keepcounting, startframe;
@@ -5360,7 +5513,8 @@ int CountAnalyzeFiles(const char *analyzefname, int nzpad, char **ppstem) {
           "       with zero pad variable.\n");
       return (-1);
     }
-  } else {
+  }
+  else {
     ncopy = len;
     if (nzpad < 0) nfiles = 1;
   }
@@ -5401,7 +5555,8 @@ int CountAnalyzeFiles(const char *analyzefname, int nzpad, char **ppstem) {
   return (nfiles);
 }
 /*-------------------------------------------------------------------------*/
-static int DumpAnalyzeHeader(FILE *fp, dsr *hdr) {
+static int DumpAnalyzeHeader(FILE *fp, dsr *hdr)
+{
   fprintf(fp, "Header Key\n");
   fprintf(fp, "  sizeof_hdr    %d\n", hdr->hk.sizeof_hdr);
   fprintf(fp, "  data_type     %s\n", hdr->hk.data_type);
@@ -5442,7 +5597,8 @@ static int DumpAnalyzeHeader(FILE *fp, dsr *hdr) {
   return (0);
 }
 /*-------------------------------------------------------------------------*/
-static dsr *ReadAnalyzeHeader(const char *hdrfile, int *swap, int *mritype, int *bytes_per_voxel) {
+static dsr *ReadAnalyzeHeader(const char *hdrfile, int *swap, int *mritype, int *bytes_per_voxel)
+{
   FILE *fp;
   dsr *hdr;
 
@@ -5467,26 +5623,32 @@ static dsr *ReadAnalyzeHeader(const char *hdrfile, int *swap, int *mritype, int 
   if (hdr->dime.datatype == DT_UNSIGNED_CHAR) {
     *mritype = MRI_UCHAR;
     *bytes_per_voxel = 1;
-  } else if (hdr->dime.datatype == DT_SIGNED_SHORT) {
+  }
+  else if (hdr->dime.datatype == DT_SIGNED_SHORT) {
     *mritype = MRI_SHORT;
     *bytes_per_voxel = 2;
-  } else if (hdr->dime.datatype == DT_UINT16) {
+  }
+  else if (hdr->dime.datatype == DT_UINT16) {
     // Can happen if this is nifti
     printf(
         "Unsigned short not supported, but trying to read it \n"
         "in as a signed short. Will be ok if no vals >= 32k.\n");
     *mritype = MRI_SHORT;
     *bytes_per_voxel = 2;
-  } else if (hdr->dime.datatype == DT_SIGNED_INT) {
+  }
+  else if (hdr->dime.datatype == DT_SIGNED_INT) {
     *mritype = MRI_INT;
     *bytes_per_voxel = 4;
-  } else if (hdr->dime.datatype == DT_FLOAT) {
+  }
+  else if (hdr->dime.datatype == DT_FLOAT) {
     *mritype = MRI_FLOAT;
     *bytes_per_voxel = 4;
-  } else if (hdr->dime.datatype == DT_DOUBLE) {
+  }
+  else if (hdr->dime.datatype == DT_DOUBLE) {
     *mritype = MRI_FLOAT;
     *bytes_per_voxel = 8;
-  } else {
+  }
+  else {
     free(hdr);
     errno = 0;
     ErrorReturn(NULL,
@@ -5503,7 +5665,8 @@ static dsr *ReadAnalyzeHeader(const char *hdrfile, int *swap, int *mritype, int 
   analyzeRead() - see the end of file for the old (pre-10/11/01) analyzeRead().
   The fname can take one of several forms.
   -------------------------------------------------------------------------*/
-static MRI *analyzeRead(const char *fname, int read_volume) {
+static MRI *analyzeRead(const char *fname, int read_volume)
+{
   extern int N_Zero_Pad_Input;
   int nfiles, k, nread;
   char *stem;
@@ -5543,7 +5706,8 @@ static MRI *analyzeRead(const char *fname, int read_volume) {
     sprintf(hdrfile, fmt, startframe, "hdr");
     sprintf(matfile, fmt, startframe, "mat");
     sprintf(imgfile, fmt, startframe, "img");
-  } else {
+  }
+  else {
     sprintf(hdrfile, "%s.hdr", stem);
     sprintf(matfile, "%s.mat", stem);
     sprintf(imgfile, "%s.img", stem);
@@ -5580,7 +5744,8 @@ static MRI *analyzeRead(const char *fname, int read_volume) {
   if (nfiles == 1) {
     nframes = hdr->dime.dim[4];
     if (nframes == 0) nframes = 1;
-  } else
+  }
+  else
     nframes = nfiles;
 
   ncols = hdr->dime.dim[1];
@@ -5628,7 +5793,8 @@ static MRI *analyzeRead(const char *fname, int read_volume) {
         printf("  may not be matlab4 mat file ... proceeding without it.\n");
         fflush(stdout);
         cantreadmatfile = 1;
-      } else {
+      }
+      else {
         /* Convert from 1-based to 0-based */
         Q = MtxCRS1toCRS0(Q);
         T = MatrixMultiply(T1, Q, T);
@@ -5671,7 +5837,8 @@ static MRI *analyzeRead(const char *fname, int read_volume) {
         T->rptr[2][4] = -mri->ysize * (mri->height / 2.0);
         T->rptr[3][4] = -mri->zsize * (mri->depth / 2.0);
         T->rptr[4][4] = 1.;
-      } else if (hdr->hist.orient == 1) /* x = -r, y = s, z = a */
+      }
+      else if (hdr->hist.orient == 1) /* x = -r, y = s, z = a */
       {
         strcpy(direction, "coronal unflipped");
         T = MatrixAlloc(4, 4, MATRIX_REAL);
@@ -5682,7 +5849,8 @@ static MRI *analyzeRead(const char *fname, int read_volume) {
         T->rptr[2][4] = -mri->zsize * (mri->depth / 2.0);
         T->rptr[3][4] = -mri->ysize * (mri->height / 2.0);
         T->rptr[4][4] = 1.;
-      } else if (hdr->hist.orient == 2) /* x = a, y = s, z = -r */
+      }
+      else if (hdr->hist.orient == 2) /* x = a, y = s, z = -r */
       {
         strcpy(direction, "sagittal unflipped");
         T = MatrixAlloc(4, 4, MATRIX_REAL);
@@ -5693,7 +5861,8 @@ static MRI *analyzeRead(const char *fname, int read_volume) {
         T->rptr[2][4] = -mri->xsize * (mri->width / 2.0);
         T->rptr[3][4] = -mri->ysize * (mri->height / 2.0);
         T->rptr[4][4] = 1.;
-      } else if (hdr->hist.orient == 3) /* x = -r, y = -a, z = s */
+      }
+      else if (hdr->hist.orient == 3) /* x = -r, y = -a, z = s */
       {
         strcpy(direction, "transverse flipped");
         T = MatrixAlloc(4, 4, MATRIX_REAL);
@@ -5704,7 +5873,8 @@ static MRI *analyzeRead(const char *fname, int read_volume) {
         T->rptr[2][4] = mri->ysize * (mri->height / 2.0);
         T->rptr[3][4] = -mri->zsize * (mri->depth / 2.0);
         T->rptr[4][4] = 1.;
-      } else if (hdr->hist.orient == 4) /* x = -r, y = -s, z = a */
+      }
+      else if (hdr->hist.orient == 4) /* x = -r, y = -s, z = a */
       {
         strcpy(direction, "coronal flipped");
         T = MatrixAlloc(4, 4, MATRIX_REAL);
@@ -5715,7 +5885,8 @@ static MRI *analyzeRead(const char *fname, int read_volume) {
         T->rptr[2][4] = -mri->zsize * (mri->depth / 2.0);
         T->rptr[3][4] = mri->ysize * (mri->height / 2.0);
         T->rptr[4][4] = 1.;
-      } else if (hdr->hist.orient == 5) /* x = a, y = -s, z = -r */
+      }
+      else if (hdr->hist.orient == 5) /* x = a, y = -s, z = -r */
       {
         strcpy(direction, "sagittal flipped");
         T = MatrixAlloc(4, 4, MATRIX_REAL);
@@ -5748,7 +5919,8 @@ static MRI *analyzeRead(const char *fname, int read_volume) {
                 "WARNING: assuming %s\n",
                 matfile,
                 direction);
-      } else {
+      }
+      else {
         // It's probably not a good idea to set this to 1, but setting it
         // to 0 created all kinds of problems with mghRead() which will
         // force dir cos to be Coronal if rasgood<0.
@@ -5765,7 +5937,8 @@ static MRI *analyzeRead(const char *fname, int read_volume) {
                 matfile);
       }
     }
-  } else {
+  }
+  else {
     // Just read in this one file as nifti to get vox2ras matrix
     // What a hack.
     mritmp = MRIreadHeader(imgfile, NIFTI1_FILE);
@@ -5882,7 +6055,8 @@ static MRI *analyzeRead(const char *fname, int read_volume) {
           for (width = 0; width < mri->width; width++) {
             MRIFvox(mri, width, row, slice) = (float)*dp++;
           }
-        } else {
+        }
+        else {
           /*copy*/
           memmove(mri->slices[k][row], buf, bytes_per_voxel * mri->width);
         }
@@ -5933,7 +6107,8 @@ static MRI *analyzeRead(const char *fname, int read_volume) {
   series can be saved from mri_convert by specifying the basename and
   adding "--out_type spm". See also analyzeWrite4D(). DNG
   ---------------------------------------------------------------*/
-static int analyzeWrite(MRI *mri, const char *fname) {
+static int analyzeWrite(MRI *mri, const char *fname)
+{
   int len;
   int error_value;
 
@@ -5955,14 +6130,16 @@ static int analyzeWrite(MRI *mri, const char *fname) {
   by DNG to be able to save a particular frame so that it could be
   used to write out an entire series.
   ---------------------------------------------------------------*/
-static void printDirCos(MRI *mri) {
+static void printDirCos(MRI *mri)
+{
   fprintf(stderr, "Direction cosines for %s are:\n", mri->fname);
   fprintf(stderr, "  x_r = %8.4f, y_r = %8.4f, z_r = %8.4f, c_r = %10.4f\n", mri->x_r, mri->y_r, mri->z_r, mri->c_r);
   fprintf(stderr, "  x_a = %8.4f, y_a = %8.4f, z_a = %8.4f, c_a = %10.4f\n", mri->x_a, mri->y_a, mri->z_a, mri->c_a);
   fprintf(stderr, "  x_s = %8.4f, y_s = %8.4f, z_s = %8.4f, c_s = %10.4f\n", mri->x_s, mri->y_s, mri->z_s, mri->c_s);
 }
 
-static int analyzeWriteFrame(MRI *mri, const char *fname, int frame) {
+static int analyzeWriteFrame(MRI *mri, const char *fname, int frame)
+{
   dsr hdr;
   float max, min, det;
   MATRIX *T, *invT;
@@ -6043,7 +6220,8 @@ static int analyzeWriteFrame(MRI *mri, const char *fname, int frame) {
   if (mri->type == MRI_UCHAR) {
     hdr.dime.datatype = DT_UNSIGNED_CHAR;
     bytes_per_voxel = 1;
-  } else if (mri->type == MRI_SHORT) {
+  }
+  else if (mri->type == MRI_SHORT) {
     hdr.dime.datatype = DT_SIGNED_SHORT;
     bytes_per_voxel = 2;
   }
@@ -6051,10 +6229,12 @@ static int analyzeWriteFrame(MRI *mri, const char *fname, int frame) {
   else if (mri->type == MRI_INT || mri->type == MRI_LONG) {
     hdr.dime.datatype = DT_SIGNED_INT;
     bytes_per_voxel = 4;
-  } else if (mri->type == MRI_FLOAT) {
+  }
+  else if (mri->type == MRI_FLOAT) {
     hdr.dime.datatype = DT_FLOAT;
     bytes_per_voxel = 4;
-  } else {
+  }
+  else {
     errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "analyzeWriteFrame(): bad data type %d", mri->type));
   }
@@ -6209,7 +6389,8 @@ static int analyzeWriteFrame(MRI *mri, const char *fname, int frame) {
 } /* end analyzeWriteFrame() */
 
 /*-------------------------------------------------------------*/
-static int analyzeWriteSeries(MRI *mri, const char *fname) {
+static int analyzeWriteSeries(MRI *mri, const char *fname)
+{
   extern int N_Zero_Pad_Output;
   int frame;
   int err;
@@ -6244,7 +6425,8 @@ static int analyzeWriteSeries(MRI *mri, const char *fname) {
 /*---------------------------------------------------------------
   analyzeWrite4D() - saves data in analyze 4D format.
   ---------------------------------------------------------------*/
-static int analyzeWrite4D(MRI *mri, const char *fname) {
+static int analyzeWrite4D(MRI *mri, const char *fname)
+{
   dsr hdr;
   float max, min, det;
   MATRIX *T, *invT;
@@ -6310,7 +6492,8 @@ static int analyzeWrite4D(MRI *mri, const char *fname) {
   if (mri->type == MRI_UCHAR) {
     hdr.dime.datatype = DT_UNSIGNED_CHAR;
     bytes_per_voxel = 1;
-  } else if (mri->type == MRI_SHORT) {
+  }
+  else if (mri->type == MRI_SHORT) {
     hdr.dime.datatype = DT_SIGNED_SHORT;
     bytes_per_voxel = 2;
   }
@@ -6318,10 +6501,12 @@ static int analyzeWrite4D(MRI *mri, const char *fname) {
   else if (mri->type == MRI_INT || mri->type == MRI_LONG) {
     hdr.dime.datatype = DT_SIGNED_INT;
     bytes_per_voxel = 4;
-  } else if (mri->type == MRI_FLOAT) {
+  }
+  else if (mri->type == MRI_FLOAT) {
     hdr.dime.datatype = DT_FLOAT;
     bytes_per_voxel = 4;
-  } else {
+  }
+  else {
     errno = 0;
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "analyzeWrite4D(): bad data type %d", mri->type));
   }
@@ -6451,7 +6636,8 @@ static int analyzeWrite4D(MRI *mri, const char *fname) {
 } /* end analyzeWrite4D() */
 
 /*-------------------------------------------------------------*/
-static void swap_analyze_header(dsr *hdr) {
+static void swap_analyze_header(dsr *hdr)
+{
   int i;
   char c;
 
@@ -6664,7 +6850,8 @@ static int center_voxel_to_voxel_center(MRI *mri, float x, float y, float z)
 } /* end center_voxel_to_voxel_center() */
 #endif  // if 0
 
-static MRI *gdfRead(const char *fname, int read_volume) {
+static MRI *gdfRead(const char *fname, int read_volume)
+{
   MRI *mri;
   FILE *fp;
   char line[STRLEN];
@@ -6712,46 +6899,60 @@ static MRI *gdfRead(const char *fname, int read_volume) {
     if (strncmp(line, "IMAGE_FILE_PATH", 15) == 0) {
       sscanf(line, "%*s %s", file_path);
       path_d = TRUE;
-    } else if (strncmp(line, "IP_RES", 6) == 0) {
+    }
+    else if (strncmp(line, "IP_RES", 6) == 0) {
       sscanf(line, "%*s %f %f", &ipr[0], &ipr[1]);
       ipr_d = TRUE;
-    } else if (strncmp(line, "SL_THICK", 8) == 0) {
+    }
+    else if (strncmp(line, "SL_THICK", 8) == 0) {
       sscanf(line, "%*s %f", &st);
       st_d = TRUE;
-    } else if (strncmp(line, "UNITS", 5) == 0) {
+    }
+    else if (strncmp(line, "UNITS", 5) == 0) {
       sscanf(line, "%*s %s", units_string);
       u_d = TRUE;
-    } else if (strncmp(line, "SIZE", 4) == 0) {
+    }
+    else if (strncmp(line, "SIZE", 4) == 0) {
       sscanf(line, "%*s %d %d", &size[0], &size[1]);
       s_d = TRUE;
-    } else if (strncmp(line, "FS_X_RAS", 8) == 0) {
+    }
+    else if (strncmp(line, "FS_X_RAS", 8) == 0) {
       sscanf(line, "%*s %f %f %f", &x_r, &x_a, &x_s);
       x_ras_d = TRUE;
-    } else if (strncmp(line, "FS_Y_RAS", 8) == 0) {
+    }
+    else if (strncmp(line, "FS_Y_RAS", 8) == 0) {
       sscanf(line, "%*s %f %f %f", &y_r, &y_a, &y_s);
       y_ras_d = TRUE;
-    } else if (strncmp(line, "FS_Z_RAS", 8) == 0) {
+    }
+    else if (strncmp(line, "FS_Z_RAS", 8) == 0) {
       sscanf(line, "%*s %f %f %f", &z_r, &z_a, &z_s);
       z_ras_d = TRUE;
-    } else if (strncmp(line, "FS_C_RAS", 8) == 0) {
+    }
+    else if (strncmp(line, "FS_C_RAS", 8) == 0) {
       sscanf(line, "%*s %f %f %f", &c_r, &c_a, &c_s);
       c_ras_d = TRUE;
-    } else if (strncmp(line, "DATA_TYPE", 9) == 0) {
+    }
+    else if (strncmp(line, "DATA_TYPE", 9) == 0) {
       strcpy(data_type_string, &line[10]);
       dt_d = TRUE;
-    } else if (strncmp(line, "ORIENTATION", 11) == 0) {
+    }
+    else if (strncmp(line, "ORIENTATION", 11) == 0) {
       sscanf(line, "%*s %s", orientation_string);
       strcpy(os_orig, orientation_string);
       o_d = TRUE;
-    } else if (strncmp(line, "FILE_OFFSET", 11) == 0) {
+    }
+    else if (strncmp(line, "FILE_OFFSET", 11) == 0) {
       sscanf(line, "%*s %d", &file_offset);
-    } else if (strncmp(line, "MIN_CROP", 8) == 0) {
+    }
+    else if (strncmp(line, "MIN_CROP", 8) == 0) {
       sscanf(line, "%*s %f %f %f", &min_crop[0], &min_crop[1], &min_crop[2]);
       have_min_crop = TRUE;
-    } else if (strncmp(line, "MAX_CROP", 8) == 0) {
+    }
+    else if (strncmp(line, "MAX_CROP", 8) == 0) {
       sscanf(line, "%*s %f %f %f", &max_crop[0], &max_crop[1], &max_crop[2]);
       have_max_crop = TRUE;
-    } else {
+    }
+    else {
     }
   }
 
@@ -6773,7 +6974,8 @@ static MRI *gdfRead(const char *fname, int read_volume) {
           "missing field ORIENTATION in file %s, "
           "but you've got {xyz}_{ras}, so never mind\n",
           fname);
-    } else {
+    }
+    else {
       printf("missing field ORIENTATION in file %s; assuming 'coronal'\n", fname);
       sprintf(orientation_string, "coronal");
     }
@@ -6933,7 +7135,8 @@ static MRI *gdfRead(const char *fname, int read_volume) {
     mri->z_a = z_a;
     mri->z_s = z_s;
     mri->ras_good_flag = TRUE;
-  } else {
+  }
+  else {
     /*
        direction cosine is not set.  we pick a particular kind
        of direction cosine.  If the volume is different you have
@@ -6951,7 +7154,8 @@ static MRI *gdfRead(const char *fname, int read_volume) {
     mri->c_r = c_r;
     mri->c_a = c_a;
     mri->c_s = c_s;
-  } else {
+  }
+  else {
     mri->c_r = mri->c_a = mri->c_s = 0.0;
     printf("warning: gdf volume may be incorrectly centered\n");
   }
@@ -6965,7 +7169,8 @@ static MRI *gdfRead(const char *fname, int read_volume) {
       errno = 0;
       ErrorReturn(NULL, (ERROR_NOMEMORY, "gdfRead(): error allocating %d bytes for read buffer", mri->width));
     }
-  } else if (mri->type == MRI_SHORT) {
+  }
+  else if (mri->type == MRI_SHORT) {
     sbuf = (short *)malloc(mri->width * sizeof(short));
     if (sbuf == NULL) {
       MRIfree(&mri);
@@ -6973,7 +7178,8 @@ static MRI *gdfRead(const char *fname, int read_volume) {
       ErrorReturn(NULL,
                   (ERROR_NOMEMORY, "gdfRead(): error allocating %d bytes for read buffer", mri->width * sizeof(short)));
     }
-  } else if (mri->type == MRI_FLOAT) {
+  }
+  else if (mri->type == MRI_FLOAT) {
     fbuf = (float *)malloc(mri->width * sizeof(float));
     if (fbuf == NULL) {
       MRIfree(&mri);
@@ -6981,7 +7187,8 @@ static MRI *gdfRead(const char *fname, int read_volume) {
       ErrorReturn(NULL,
                   (ERROR_NOMEMORY, "gdfRead(): error allocating %d bytes for read buffer", mri->width * sizeof(float)));
     }
-  } else {
+  }
+  else {
     MRIfree(&mri);
     errno = 0;
     ErrorReturn(NULL,
@@ -7090,7 +7297,8 @@ static MRI *gdfRead(const char *fname, int read_volume) {
         }
       }
     }
-  } else {
+  }
+  else {
     printf("NOTICE: not cropping GDF data\n");
   }
 
@@ -7098,7 +7306,8 @@ static MRI *gdfRead(const char *fname, int read_volume) {
 
 } /* end gdfRead() */
 
-static int gdfWrite(MRI *mri, const char *fname) {
+static int gdfWrite(MRI *mri, const char *fname)
+{
   FILE *fp;
   int i, j;
   char im_fname[STRLEN];
@@ -7224,7 +7433,8 @@ static int parc_fill(short label_value, short seed_x, short seed_y)
 } /* end parc_fill() */
 #endif
 
-static int register_unknown_label(const char *label) {
+static int register_unknown_label(const char *label)
+{
   int i;
 
   if (n_unknown_labels == MAX_UNKNOWN_LABELS) return (NO_ERROR);
@@ -7240,14 +7450,16 @@ static int register_unknown_label(const char *label) {
 
 } /* end register_unknown_label() */
 
-static int clear_unknown_labels(void) {
+static int clear_unknown_labels(void)
+{
   n_unknown_labels = 0;
 
   return (NO_ERROR);
 
 } /* end clear_unknown_labels() */
 
-static int print_unknown_labels(const char *prefix) {
+static int print_unknown_labels(const char *prefix)
+{
   int i;
 
   for (i = 0; i < n_unknown_labels; i++) printf("%s%s\n", prefix, unknown_labels[i]);
@@ -7257,7 +7469,8 @@ static int print_unknown_labels(const char *prefix) {
 } /* end print_unknown_labels() */
 
 static int read_otl_file(
-    FILE *fp, MRI *mri, int slice, COLOR_TABLE *ctab, int fill_flag, int translate_label_flag, int zero_outlines_flag) {
+    FILE *fp, MRI *mri, int slice, COLOR_TABLE *ctab, int fill_flag, int translate_label_flag, int zero_outlines_flag)
+{
   int n_outlines = -1;
   int n_rows, n_cols;
   char label[STRLEN], label_to_compare[STRLEN];
@@ -7397,7 +7610,8 @@ static int read_otl_file(
                 label,
                 slice);
           internal_structures_flag = FALSE;
-        } else
+        }
+        else
           internal_structures_flag = TRUE;
       }
     }
@@ -7436,7 +7650,8 @@ static int read_otl_file(
       CMAfreeOutlineField(&of);
       errno = 0;
       ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "undefined TYPE in otl file %d", slice));
-    } else {
+    }
+    else {
       CMAfreeOutlineField(&of);
       errno = 0;
       ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "unsupported TYPE \"%s\" in otl file %d", type, slice));
@@ -7473,7 +7688,8 @@ static int read_otl_file(
         }
         sscanf(line, "%hd %hd", &(points[2 * row]), &(points[2 * row + 1]));
       }
-    } else {
+    }
+    else {
       n_read = fread(points, 2, n_rows * 2, fp);
       if (n_read != n_rows * 2) {
         free(points);
@@ -7533,7 +7749,8 @@ static int read_otl_file(
       if (j < 0) /* all dashes! */
       {
         /* for now, let this fall through to an unknown label */
-      } else /* j is the index of the last non-dash character */
+      }
+      else /* j is the index of the last non-dash character */
       {
         label_to_compare[j + 1] = '\0';
       }
@@ -7552,7 +7769,8 @@ static int read_otl_file(
 
       if (label_value == -1) {
         register_unknown_label(label);
-      } else {
+      }
+      else {
         for (j = 0; j < n_rows; j++) cma_field[points[2 * j]][points[2 * j + 1]] = label_value;
 
         CMAclaimPoints(of, label_value, points, n_rows, seed_x, seed_y);
@@ -7586,7 +7804,8 @@ static int read_otl_file(
 
 } /* end read_otl_file() */
 
-int list_labels_in_otl_file(FILE *fp) {
+int list_labels_in_otl_file(FILE *fp)
+{
   char line[STRLEN];
   int main_header_flag;
   int n_outlines = -1;
@@ -7722,7 +7941,8 @@ int list_labels_in_otl_file(FILE *fp) {
     else if (type[0] == '\0') {
       errno = 0;
       ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "undefined TYPE in otl file"));
-    } else {
+    }
+    else {
       errno = 0;
       ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "unsupported TYPE \"%s\" in otl file", type));
     }
@@ -7754,7 +7974,8 @@ int list_labels_in_otl_file(FILE *fp) {
         }
         sscanf(line, "%hd %hd", &(points[2 * row]), &(points[2 * row + 1]));
       }
-    } else {
+    }
+    else {
       n_read = fread(points, 2, n_rows * 2, fp);
       if (n_read != n_rows * 2) {
         free(points);
@@ -7787,7 +8008,8 @@ int list_labels_in_otl_file(FILE *fp) {
 
 } /* end list_labels_in_otl_file() */
 
-MRI *MRIreadOtl(const char *fname, int width, int height, int slices, const char *color_file_name, int flags) {
+MRI *MRIreadOtl(const char *fname, int width, int height, int slices, const char *color_file_name, int flags)
+{
   char stem[STRLEN];
   int i;
   MRI *mri;
@@ -7902,7 +8124,8 @@ MRI *MRIreadOtl(const char *fname, int width, int height, int slices, const char
 
   if (n_unknown_labels == 0) {
     printf("no unknown labels\n");
-  } else {
+  }
+  else {
     printf("unknown labels:\n");
     print_unknown_labels("  ");
   }
@@ -7919,7 +8142,8 @@ MRI *MRIreadOtl(const char *fname, int width, int height, int slices, const char
 #define XIMG_PIXEL_DATA_OFFSET 8432
 #define XIMG_IMAGE_HEADER_OFFSET 2308
 
-static MRI *ximgRead(const char *fname, int read_volume) {
+static MRI *ximgRead(const char *fname, int read_volume)
+{
   char fname_format[STRLEN];
   char fname_dir[STRLEN];
   char fname_base[STRLEN];
@@ -7957,7 +8181,8 @@ static MRI *ximgRead(const char *fname, int read_volume) {
   if (c == NULL) {
     fname_dir[0] = '\0';
     strcpy(fname_base, fname);
-  } else {
+  }
+  else {
     strncpy(fname_dir, fname, (c - fname + 1));
     fname_dir[c - fname + 1] = '\0';
     strcpy(fname_base, c + 1);
@@ -7967,7 +8192,8 @@ static MRI *ximgRead(const char *fname, int read_volume) {
   if (strncmp(fname_base, "I.", 2) == 0) {
     im_init = atoi(&fname_base[2]);
     sprintf(fname_format, "I.%%03d");
-  } else if (strlen(fname_base) >= 3) /* avoid core dumps below... */
+  }
+  else if (strlen(fname_base) >= 3) /* avoid core dumps below... */
   {
     c = &fname_base[strlen(fname_base) - 3];
     if (strcmp(c, ".MR") == 0) {
@@ -7978,11 +8204,13 @@ static MRI *ximgRead(const char *fname, int read_volume) {
       im_init = atoi(c);
       *c = '\0';
       sprintf(fname_format, "%s%%d.MR", fname_base);
-    } else {
+    }
+    else {
       errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(): can't determine file name format for %s", fname));
     }
-  } else {
+  }
+  else {
     errno = 0;
     ErrorReturn(NULL, (ERROR_BADPARM, "genesisRead(): can't determine file name format for %s", fname));
   }
@@ -8206,7 +8434,8 @@ static MRI *ximgRead(const char *fname, int read_volume) {
   MRISreadCurvAsMRI() - reads freesurfer surface curv format
   as an MRI.
   -----------------------------------------------------------*/
-static MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume) {
+static MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume)
+{
   int magno, k, vnum, fnum, vals_per_vertex;
   float curv;
   FILE *fp;
@@ -8250,7 +8479,8 @@ static MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume) {
   Automatically detects whether an input is Ico7 and
   reshapes.
    -----------------------------------------------------------------*/
-static MRI *nifti1Read(const char *fname, int read_volume) {
+static MRI *nifti1Read(const char *fname, int read_volume)
+{
   char hdr_fname[STRLEN];
   char img_fname[STRLEN];
   char fname_stem[STRLEN];
@@ -8316,7 +8546,8 @@ static MRI *nifti1Read(const char *fname, int read_volume) {
   else if (space_units == NIFTI_UNITS_UNKNOWN) {
     printf("nifti1Read(): NIFTI_UNITS_UNKNOWN, assuming mm\n");
     space_units_factor = 1.0;
-  } else {
+  }
+  else {
     ErrorReturn(NULL, (ERROR_BADFILE, "nifti1Read(): unknown space units %d in %s", space_units, hdr_fname));
   }
 
@@ -8330,7 +8561,8 @@ static MRI *nifti1Read(const char *fname, int read_volume) {
   else {
     if (hdr.dim[4] > 1) {
       ErrorReturn(NULL, (ERROR_BADFILE, "nifti1Read(): unknown time units %d in %s", time_units, hdr_fname));
-    } else
+    }
+    else
       time_units_factor = 0;
   }
 
@@ -8354,22 +8586,27 @@ static MRI *nifti1Read(const char *fname, int read_volume) {
     if (hdr.datatype == DT_UNSIGNED_CHAR) {
       fs_type = MRI_UCHAR;
       bytes_per_voxel = 1;
-    } else if (hdr.datatype == DT_SIGNED_SHORT) {
+    }
+    else if (hdr.datatype == DT_SIGNED_SHORT) {
       fs_type = MRI_SHORT;
       bytes_per_voxel = 2;
-    } else if (hdr.datatype == DT_UINT16) {
+    }
+    else if (hdr.datatype == DT_UINT16) {
       // This will not always work ...
       printf("INFO: this is an unsiged short. I'll try to read it, but\n");
       printf("      it might not work if there are values over 32k\n");
       fs_type = MRI_SHORT;
       bytes_per_voxel = 2;
-    } else if (hdr.datatype == DT_SIGNED_INT) {
+    }
+    else if (hdr.datatype == DT_SIGNED_INT) {
       fs_type = MRI_INT;
       bytes_per_voxel = 4;
-    } else if (hdr.datatype == DT_FLOAT) {
+    }
+    else if (hdr.datatype == DT_FLOAT) {
       fs_type = MRI_FLOAT;
       bytes_per_voxel = 4;
-    } else {
+    }
+    else {
       ErrorReturn(NULL,
                   (ERROR_UNSUPPORTED,
                    "nifti1Read(): unsupported datatype %d "
@@ -8377,7 +8614,8 @@ static MRI *nifti1Read(const char *fname, int read_volume) {
                    hdr.datatype,
                    hdr_fname));
     }
-  } else  // we must scale the voxel values
+  }
+  else  // we must scale the voxel values
   {
     if (hdr.datatype != DT_UNSIGNED_CHAR && hdr.datatype != DT_SIGNED_SHORT && hdr.datatype != DT_SIGNED_INT &&
         hdr.datatype != DT_FLOAT && hdr.datatype != DT_DOUBLE && hdr.datatype != DT_INT8 && hdr.datatype != DT_UINT16 &&
@@ -8431,7 +8669,8 @@ static MRI *nifti1Read(const char *fname, int read_volume) {
       return (NULL);
     }
     mri->ras_good_flag = 1;
-  } else if (hdr.qform_code != 0) {
+  }
+  else if (hdr.qform_code != 0) {
     // Then, try the qform, if that is ok
     fprintf(stderr, "INFO: using NIfTI-1 qform \n");
     if (niftiQformToMri(mri, &hdr) != NO_ERROR) {
@@ -8439,7 +8678,8 @@ static MRI *nifti1Read(const char *fname, int read_volume) {
       return (NULL);
     }
     mri->ras_good_flag = 1;
-  } else {
+  }
+  else {
     // Should probably just die here.
     printf("WARNING: neither NIfTI-1 qform or sform are valid\n");
     printf("WARNING: your volume will probably be incorrectly oriented\n");
@@ -8499,7 +8739,8 @@ static MRI *nifti1Read(const char *fname, int read_volume) {
         }
         exec_progress_callback(k, mri->depth, t, mri->nframes);
       }
-  } else  // voxel value scaling needed
+  }
+  else  // voxel value scaling needed
   {
     if (hdr.datatype == DT_UNSIGNED_CHAR) {
       unsigned char *buf;
@@ -8725,7 +8966,8 @@ static MRI *nifti1Read(const char *fname, int read_volume) {
   edit both. Automatically detects whether an input is Ico7
   and reshapes.
   -----------------------------------------------------------------*/
-static int nifti1Write(MRI *mri0, const char *fname) {
+static int nifti1Write(MRI *mri0, const char *fname)
+{
   FILE *fp;
   int j, k, t;
   BUFTYPE *buf;
@@ -8744,7 +8986,8 @@ static int nifti1Write(MRI *mri0, const char *fname) {
     // printf("nifit1Write: reshaping\n");
     mri = mri_reshape(mri0, 27307, 1, 6, mri0->nframes);
     FreeMRI = 1;
-  } else
+  }
+  else
     mri = mri0;
 
   shortmax = (int)(pow(2.0, 15.0));
@@ -8800,23 +9043,30 @@ static int nifti1Write(MRI *mri0, const char *fname) {
   if (mri->type == MRI_UCHAR) {
     hdr.datatype = DT_UNSIGNED_CHAR;
     hdr.bitpix = 8;
-  } else if (mri->type == MRI_INT) {
+  }
+  else if (mri->type == MRI_INT) {
     hdr.datatype = DT_SIGNED_INT;
     hdr.bitpix = 32;
-  } else if (mri->type == MRI_LONG) {
+  }
+  else if (mri->type == MRI_LONG) {
     hdr.datatype = DT_SIGNED_INT;
     hdr.bitpix = 32;
-  } else if (mri->type == MRI_FLOAT) {
+  }
+  else if (mri->type == MRI_FLOAT) {
     hdr.datatype = DT_FLOAT;
     hdr.bitpix = 32;
-  } else if (mri->type == MRI_SHORT) {
+  }
+  else if (mri->type == MRI_SHORT) {
     hdr.datatype = DT_SIGNED_SHORT;
     hdr.bitpix = 16;
-  } else if (mri->type == MRI_BITMAP) {
+  }
+  else if (mri->type == MRI_BITMAP) {
     ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "nifti1Write(): data type MRI_BITMAP unsupported"));
-  } else if (mri->type == MRI_TENSOR) {
+  }
+  else if (mri->type == MRI_TENSOR) {
     ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "nifti1Write(): data type MRI_TENSOR unsupported"));
-  } else {
+  }
+  else {
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "nifti1Write(): unknown data type %d", mri->type));
   }
 
@@ -8894,7 +9144,8 @@ static int nifti1Write(MRI *mri0, const char *fname) {
   edit both. Automatically detects whether an input is Ico7
   and reshapes.
   -----------------------------------------------------------------*/
-static MRI *niiRead(const char *fname, int read_volume) {
+static MRI *niiRead(const char *fname, int read_volume)
+{
   znzFile fp;
   MRI *mri, *mritmp;
   struct nifti_1_header hdr;
@@ -8962,7 +9213,8 @@ static MRI *niiRead(const char *fname, int read_volume) {
   else if (space_units == NIFTI_UNITS_UNKNOWN) {
     printf("niiRead(): NIFTI_UNITS_UNKNOWN, assuming mm\n");
     space_units_factor = 1.0;
-  } else
+  }
+  else
     ErrorReturn(NULL, (ERROR_BADFILE, "niiRead(): unknown space units %d in %s", space_units, fname));
 
   time_units = XYZT_TO_TIME(hdr.xyzt_units);
@@ -9011,31 +9263,38 @@ static MRI *niiRead(const char *fname, int read_volume) {
     if (hdr.datatype == DT_UNSIGNED_CHAR) {
       fs_type = MRI_UCHAR;
       bytes_per_voxel = 1;
-    } else if (hdr.datatype == DT_SIGNED_SHORT) {
+    }
+    else if (hdr.datatype == DT_SIGNED_SHORT) {
       fs_type = MRI_SHORT;
       bytes_per_voxel = 2;
-    } else if (hdr.datatype == DT_UINT16) {
+    }
+    else if (hdr.datatype == DT_UINT16) {
       // This will not always work ...
       printf("INFO: this is an unsiged short. I'll try to read it, but\n");
       printf("      it might not work if there are values over 32k\n");
       fs_type = MRI_SHORT;
       bytes_per_voxel = 2;
-    } else if (hdr.datatype == DT_SIGNED_INT) {
+    }
+    else if (hdr.datatype == DT_SIGNED_INT) {
       fs_type = MRI_INT;
       bytes_per_voxel = 4;
-    } else if (hdr.datatype == DT_FLOAT) {
+    }
+    else if (hdr.datatype == DT_FLOAT) {
       fs_type = MRI_FLOAT;
       bytes_per_voxel = 4;
-    } else if (hdr.datatype == DT_DOUBLE) {
+    }
+    else if (hdr.datatype == DT_DOUBLE) {
       fs_type = MRI_FLOAT;
       bytes_per_voxel = 8;
       printf("niiRead(): detected input as 64 bit double, reading in as 32 bit float\n");
-    } else {
+    }
+    else {
       ErrorReturn(
           NULL,
           (ERROR_UNSUPPORTED, "niiRead(): unsupported datatype %d (with scl_slope = 0) in %s", hdr.datatype, fname));
     }
-  } else {
+  }
+  else {
     // we must scale the voxel values
     if (hdr.datatype != DT_UNSIGNED_CHAR && hdr.datatype != DT_SIGNED_SHORT && hdr.datatype != DT_SIGNED_INT &&
         hdr.datatype != DT_FLOAT && hdr.datatype != DT_DOUBLE && hdr.datatype != DT_INT8 && hdr.datatype != DT_UINT16 &&
@@ -9084,7 +9343,8 @@ static MRI *niiRead(const char *fname, int read_volume) {
       return (NULL);
     }
     mri->ras_good_flag = 1;
-  } else if (hdr.qform_code != 0) {
+  }
+  else if (hdr.qform_code != 0) {
     // Then, try the qform, if that is ok
     fprintf(stderr, "INFO: using NIfTI-1 qform \n");
     if (niftiQformToMri(mri, &hdr) != NO_ERROR) {
@@ -9092,7 +9352,8 @@ static MRI *niiRead(const char *fname, int read_volume) {
       return (NULL);
     }
     mri->ras_good_flag = 1;
-  } else {
+  }
+  else {
     // Should probably just die here.
     fprintf(stderr, "WARNING: neither NIfTI-1 qform or sform are valid\n");
     fprintf(stderr, "WARNING: your volume will probably be incorrectly oriented\n");
@@ -9190,7 +9451,8 @@ static MRI *niiRead(const char *fname, int read_volume) {
     }
     free(fbuf);
     free(dbuf);
-  } else {
+  }
+  else {
     // voxel value scaling needed
     if (hdr.datatype == DT_UNSIGNED_CHAR) {
       unsigned char *buf;
@@ -9415,7 +9677,8 @@ static MRI *niiRead(const char *fname, int read_volume) {
   edit both. Automatically detects whether an input is Ico7
   and reshapes.
   -----------------------------------------------------------------*/
-static int niiWrite(MRI *mri0, const char *fname) {
+static int niiWrite(MRI *mri0, const char *fname)
+{
   znzFile fp;
   int j, k, t;
   BUFTYPE *buf;
@@ -9437,7 +9700,8 @@ static int niiWrite(MRI *mri0, const char *fname) {
     // printf("niiWrite: reshaping\n");
     mri = mri_reshape(mri0, 27307, 1, 6, mri0->nframes);
     FreeMRI = 1;
-  } else
+  }
+  else
     mri = mri0;
 
   shortmax = (int)(pow(2.0, 15.0));
@@ -9496,23 +9760,30 @@ static int niiWrite(MRI *mri0, const char *fname) {
   if (mri->type == MRI_UCHAR) {
     hdr.datatype = DT_UNSIGNED_CHAR;
     hdr.bitpix = 8;
-  } else if (mri->type == MRI_INT) {
+  }
+  else if (mri->type == MRI_INT) {
     hdr.datatype = DT_SIGNED_INT;
     hdr.bitpix = 32;
-  } else if (mri->type == MRI_LONG) {
+  }
+  else if (mri->type == MRI_LONG) {
     hdr.datatype = DT_SIGNED_INT;
     hdr.bitpix = 32;
-  } else if (mri->type == MRI_FLOAT) {
+  }
+  else if (mri->type == MRI_FLOAT) {
     hdr.datatype = DT_FLOAT;
     hdr.bitpix = 32;
-  } else if (mri->type == MRI_SHORT) {
+  }
+  else if (mri->type == MRI_SHORT) {
     hdr.datatype = DT_SIGNED_SHORT;
     hdr.bitpix = 16;
-  } else if (mri->type == MRI_BITMAP) {
+  }
+  else if (mri->type == MRI_BITMAP) {
     ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "niiWrite(): data type MRI_BITMAP unsupported"));
-  } else if (mri->type == MRI_TENSOR) {
+  }
+  else if (mri->type == MRI_TENSOR) {
     ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "niiWrite(): data type MRI_TENSOR unsupported"));
-  } else {
+  }
+  else {
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "niiWrite(): unknown data type %d", mri->type));
   }
 
@@ -9589,7 +9860,8 @@ static int niiWrite(MRI *mri0, const char *fname) {
 /*------------------------------------------------------------------
   itkMorphWrite()
   -----------------------------------------------------------------*/
-static int itkMorphWrite(MRI *mri, const char *fname) {
+static int itkMorphWrite(MRI *mri, const char *fname)
+{
   znzFile fp;
   int j, k, t;
   BUFTYPE *buf;
@@ -9643,7 +9915,8 @@ static int itkMorphWrite(MRI *mri, const char *fname) {
   if (mri->type == MRI_FLOAT) {
     hdr.datatype = DT_FLOAT;
     hdr.bitpix = 32;
-  } else {
+  }
+  else {
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "itkMorphWrite(): unknown data type %d", mri->type));
   }
 
@@ -9713,7 +9986,8 @@ static int itkMorphWrite(MRI *mri, const char *fname) {
 
 } /* end itkMorphWrite() */
 
-static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr) {
+static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr)
+{
   int err;
   MATRIX *sform;
   sform = MatrixConstVal(0, 4, 4, NULL);
@@ -9740,7 +10014,8 @@ static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr) {
   return (err);
 } /* end niftiSformToMri() */
 
-static int niftiQformToMri(MRI *mri, struct nifti_1_header *hdr) {
+static int niftiQformToMri(MRI *mri, struct nifti_1_header *hdr)
+{
   float a, b, c, d;
   float r11, r12, r13;
   float r21, r22, r23;
@@ -9759,7 +10034,8 @@ static int niftiQformToMri(MRI *mri, struct nifti_1_header *hdr) {
     c *= a;
     d *= a;
     a = 0.0;
-  } else
+  }
+  else
     a = sqrt(a);
 
   r11 = a * a + b * b - c * c - d * d;
@@ -9821,7 +10097,8 @@ static int niftiQformToMri(MRI *mri, struct nifti_1_header *hdr) {
   mriToNiftiSform() - just copies the vox2ras to sform and sets the
   xform code to scanner anat.
   ---------------------------------------------------------------------*/
-static int mriToNiftiSform(MRI *mri, struct nifti_1_header *hdr) {
+static int mriToNiftiSform(MRI *mri, struct nifti_1_header *hdr)
+{
   MATRIX *vox2ras;
   int c;
   vox2ras = MRIxfmCRS2XYZ(mri, 0);
@@ -9836,7 +10113,8 @@ static int mriToNiftiSform(MRI *mri, struct nifti_1_header *hdr) {
 }
 
 /*---------------------------------------------------------------------*/
-static int mriToNiftiQform(MRI *mri, struct nifti_1_header *hdr) {
+static int mriToNiftiQform(MRI *mri, struct nifti_1_header *hdr)
+{
   MATRIX *i_to_r;
   float r11, r12, r13;
   float r21, r22, r23;
@@ -9917,7 +10195,8 @@ static int mriToNiftiQform(MRI *mri, struct nifti_1_header *hdr) {
         "WARNING: bad orientation matrix (determinant = 0) "
         "in nifti1 file ...\n");
     printf(" ... continuing.\n");
-  } else if (r_det > 0.0)
+  }
+  else if (r_det > 0.0)
     qfac = 1.0;
   else {
     r13 = -r13;
@@ -9935,7 +10214,8 @@ static int mriToNiftiQform(MRI *mri, struct nifti_1_header *hdr) {
     b = 0.25 * (r32 - r23) / a;
     c = 0.25 * (r13 - r31) / a;
     d = 0.25 * (r21 - r12) / a;
-  } else {
+  }
+  else {
     xd = 1.0 + r11 - (r22 + r33);
     yd = 1.0 + r22 - (r11 + r33);
     zd = 1.0 + r33 - (r11 + r22);
@@ -9945,12 +10225,14 @@ static int mriToNiftiQform(MRI *mri, struct nifti_1_header *hdr) {
       c = 0.25 * (r12 + r21) / b;
       d = 0.25 * (r13 + r31) / b;
       a = 0.25 * (r32 - r23) / b;
-    } else if (yd > 1.0) {
+    }
+    else if (yd > 1.0) {
       c = 0.5 * sqrt(yd);
       b = 0.25 * (r12 + r21) / c;
       d = 0.25 * (r23 + r32) / c;
       a = 0.25 * (r13 - r31) / c;
-    } else {
+    }
+    else {
       d = 0.5 * sqrt(zd);
       b = 0.25 * (r13 + r31) / d;
       c = 0.25 * (r23 + r32) / d;
@@ -9986,7 +10268,8 @@ static int mriToNiftiQform(MRI *mri, struct nifti_1_header *hdr) {
 
 } /* end mriToNiftiQform() */
 
-static void swap_nifti_1_header(struct nifti_1_header *hdr) {
+static void swap_nifti_1_header(struct nifti_1_header *hdr)
+{
   int i;
 
   hdr->sizeof_hdr = swapInt(hdr->sizeof_hdr);
@@ -10030,7 +10313,8 @@ static void swap_nifti_1_header(struct nifti_1_header *hdr) {
 
 } /* end swap_nifti_1_header */
 
-MRI *MRIreadGeRoi(const char *fname, int n_slices) {
+MRI *MRIreadGeRoi(const char *fname, int n_slices)
+{
   MRI *mri;
   int i;
   char prefix[STRLEN], postfix[STRLEN];
@@ -10136,7 +10420,8 @@ MRI *MRIreadGeRoi(const char *fname, int n_slices) {
 
 static int data_size[] = {1, 4, 4, 4, 2};
 
-static MRI *sdtRead(const char *fname, int read_volume) {
+static MRI *sdtRead(const char *fname, int read_volume)
+{
   char header_fname[STR_LEN];
   char line[STR_LEN];
   char *colon, *dot;
@@ -10186,7 +10471,8 @@ static MRI *sdtRead(const char *fname, int read_volume) {
                        fname,
                        ndim));
         }
-      } else if (strcmp(line, "dim") == 0) {
+      }
+      else if (strcmp(line, "dim") == 0) {
         if (ndim == -1) {
           fclose(fp);
           errno = 0;
@@ -10196,7 +10482,8 @@ static MRI *sdtRead(const char *fname, int read_volume) {
         if (ndim == 3) {
           sscanf(colon, "%d %d %d", &dim[0], &dim[1], &dim[2]);
           dim[3] = 1;
-        } else {
+        }
+        else {
           sscanf(colon, "%d %d %d %d", &dim[0], &dim[1], &dim[2], &dim[3]);
           if (dim[3] != 1) {
             fclose(fp);
@@ -10209,7 +10496,8 @@ static MRI *sdtRead(const char *fname, int read_volume) {
                          dim[3]));
           }
         }
-      } else if (strcmp(line, "dataType") == 0) {
+      }
+      else if (strcmp(line, "dataType") == 0) {
         while (isspace((int)*colon)) colon++;
         if (strncmp(colon, "BYTE", 4) == 0)
           data_type = MRI_UCHAR;
@@ -10223,12 +10511,14 @@ static MRI *sdtRead(const char *fname, int read_volume) {
           fclose(fp);
           errno = 0;
           ErrorReturn(NULL, (ERROR_UNSUPPORTED, "sdtRead(%s): unsupported data type '%s'\n", fname, colon));
-        } else {
+        }
+        else {
           fclose(fp);
           errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "sdtRead(%s): unknown data type '%s'\n", fname, colon));
         }
-      } else if (strcmp(line, "interval") == 0) {
+      }
+      else if (strcmp(line, "interval") == 0) {
         if (ndim == 3)
           sscanf(colon, "%f %f %f", &xsize, &ysize, &zsize);
         else
@@ -10236,7 +10526,8 @@ static MRI *sdtRead(const char *fname, int read_volume) {
         xsize *= 10.0;
         ysize *= 10.0;
         zsize *= 10.0;
-      } else if (strcmp(line, "sdtOrient") == 0) {
+      }
+      else if (strcmp(line, "sdtOrient") == 0) {
         while (isspace((int)*colon)) colon++;
         if (strncmp(colon, "sag", 3) == 0)
           orientation = MRI_SAGITTAL;
@@ -10249,7 +10540,8 @@ static MRI *sdtRead(const char *fname, int read_volume) {
           errno = 0;
           ErrorReturn(NULL, (ERROR_BADFILE, "sdtRead(%s): unknown orientation %s\n", fname, colon));
         }
-      } else {
+      }
+      else {
       }
     }
   }
@@ -10276,7 +10568,8 @@ static MRI *sdtRead(const char *fname, int read_volume) {
     if (mri == NULL) return (NULL);
 
     fclose(fp);
-  } else {
+  }
+  else {
     mri = MRIallocHeader(dim[0], dim[1], dim[2], data_type, dim[3]);
     if (mri == NULL) return (NULL);
   }
@@ -10309,7 +10602,8 @@ static MRI *sdtRead(const char *fname, int read_volume) {
 
 } /* end sdtRead() */
 
-MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type) {
+MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type)
+{
   MRI *mri;
   BUFTYPE *buf;
   int slice, pixels;
@@ -10353,7 +10647,8 @@ MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type) {
   return (mri);
 }
 
-static void int_local_buffer_to_image(int *buf, MRI *mri, int slice, int frame) {
+static void int_local_buffer_to_image(int *buf, MRI *mri, int slice, int frame)
+{
   int y, width, height;
   int *pslice;
 
@@ -10483,7 +10778,8 @@ image_to_float_buffer(float *buf, MRI *mri, int slice)
 }
 #endif
 
-static void long32_local_buffer_to_image(long32 *buf, MRI *mri, int slice, int frame) {
+static void long32_local_buffer_to_image(long32 *buf, MRI *mri, int slice, int frame)
+{
   int y, width, height;
   long32 *pslice;
 
@@ -10496,7 +10792,8 @@ static void long32_local_buffer_to_image(long32 *buf, MRI *mri, int slice, int f
   }
 }
 
-static void float_local_buffer_to_image(float *buf, MRI *mri, int slice, int frame) {
+static void float_local_buffer_to_image(float *buf, MRI *mri, int slice, int frame)
+{
   int y, width, height;
   float *pslice;
 
@@ -10509,7 +10806,8 @@ static void float_local_buffer_to_image(float *buf, MRI *mri, int slice, int fra
   }
 }
 
-static void short_local_buffer_to_image(short *buf, MRI *mri, int slice, int frame) {
+static void short_local_buffer_to_image(short *buf, MRI *mri, int slice, int frame)
+{
   int y, width, height;
   short *pslice;
 
@@ -10522,7 +10820,8 @@ static void short_local_buffer_to_image(short *buf, MRI *mri, int slice, int fra
   }
 }
 
-static void local_buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame) {
+static void local_buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame)
+{
   int y, width, height;
   BUFTYPE *pslice;
 
@@ -10535,7 +10834,8 @@ static void local_buffer_to_image(BUFTYPE *buf, MRI *mri, int slice, int frame) 
   }
 }
 
-int znzTAGwriteMRIframes(znzFile fp, MRI *mri) {
+int znzTAGwriteMRIframes(znzFile fp, MRI *mri)
+{
   long long len = 0, fstart, fend, here;
   int fno, i;
   MRI_FRAME *frame;
@@ -10612,7 +10912,8 @@ int znzTAGwriteMRIframes(znzFile fp, MRI *mri) {
 
   return (NO_ERROR);
 }
-int znzTAGreadMRIframes(znzFile fp, MRI *mri, long len) {
+int znzTAGreadMRIframes(znzFile fp, MRI *mri, long len)
+{
   int fno, i;
   long long fstart, fend;
   MRI_FRAME *frame;
@@ -10688,7 +10989,8 @@ int znzTAGreadMRIframes(znzFile fp, MRI *mri, long len) {
 // declare function pointer
 // static int (*myclose)(FILE *stream);
 
-static MRI *mghRead(const char *fname, int read_volume, int frame) {
+static MRI *mghRead(const char *fname, int read_volume, int frame)
+{
   MRI *mri;
   znzFile fp;
   int start_frame, end_frame, width, height, depth, nframes, type, x, y, z, bpv, dof, bytes, version, ival,
@@ -10711,7 +11013,8 @@ static MRI *mghRead(const char *fname, int read_volume, int frame) {
     if (!stricmp(ext, "mgz") || strstr(fname, "mgh.gz")) {
       gzipped = 1;
       valid_ext = 1;
-    } else if (!stricmp(ext, "mgh")) {
+    }
+    else if (!stricmp(ext, "mgh")) {
       valid_ext = 1;
     }
   }
@@ -10722,7 +11025,8 @@ static MRI *mghRead(const char *fname, int read_volume, int frame) {
       errno = 0;
       ErrorReturn(NULL, (ERROR_BADPARM, "mghRead(%s, %d): could not open file", fname, frame));
     }
-  } else {
+  }
+  else {
     ErrorReturn(NULL,
                 (ERROR_BADPARM,
                  "mghRead(%s, %d): could not open file.\n"
@@ -10805,21 +11109,25 @@ static MRI *mghRead(const char *fname, int read_volume, int frame) {
       total_bytes = (long)mri->nframes * width * height * depth * bpv;
       for (count = 0; count < total_bytes - STRLEN; count += STRLEN) znzread(buf, STRLEN, 1, fp);
       znzread(buf, total_bytes - count, 1, fp);
-    } else
+    }
+    else
       znzseek(fp, (long)mri->nframes * width * height * depth * bpv, SEEK_CUR);
-  } else {
+  }
+  else {
     if (frame >= 0) {
       start_frame = end_frame = frame;
       if (gzipped) {  // pipe cannot seek
         long count;
         for (count = 0; count < (long)frame * width * height * depth * bpv; count++) znzgetc(fp);
-      } else
+      }
+      else
         znzseek(fp, (long)frame * width * height * depth * bpv, SEEK_CUR);
       nframes = 1;
-    } else { /* hack - # of frames < -1 means to only read in that
-                many frames. Otherwise I would have had to change the whole
-                MRIread interface and that was too much of a pain. Sorry.
-             */
+    }
+    else { /* hack - # of frames < -1 means to only read in that
+              many frames. Otherwise I would have had to change the whole
+              MRIread interface and that was too much of a pain. Sorry.
+           */
       if (frame < -1) nframes = frame * -1;
 
       start_frame = 0;
@@ -10901,7 +11209,8 @@ static MRI *mghRead(const char *fname, int read_volume, int frame) {
     mri->c_a = c_a;
     mri->c_s = c_s;
     if (good_ras_flag > 0) mri->ras_good_flag = 1;
-  } else {
+  }
+  else {
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr,
               "-----------------------------------------------------------------\n"
@@ -10966,7 +11275,8 @@ static MRI *mghRead(const char *fname, int read_volume, int frame) {
               mri->inverse_linear_transform = get_inverse_linear_transform_ptr(&mri->transform);
               mri->free_transform = 1;
               if (DIAG_VERBOSE_ON) fprintf(stderr, "INFO: loaded talairach xform : %s\n", mri->transform_fname);
-            } else {
+            }
+            else {
               errno = 0;
               ErrorPrintf(ERROR_BAD_FILE, "error loading transform from %s", mri->transform_fname);
               mri->linear_transform = NULL;
@@ -11026,7 +11336,8 @@ static MRI *mghRead(const char *fname, int read_volume, int frame) {
   return (mri);
 }
 
-static int mghWrite(MRI *mri, const char *fname, int frame) {
+static int mghWrite(MRI *mri, const char *fname, int frame)
+{
   znzFile fp;
   int ival, start_frame, end_frame, x, y, z, width, height, depth, unused_space_size, flen;
   char buf[UNUSED_SPACE_SIZE + 1];
@@ -11050,7 +11361,8 @@ static int mghWrite(MRI *mri, const char *fname, int frame) {
     if (!stricmp(ext, "mgz") || strstr(fname, "mgh.gz")) {
       gzipped = 1;
       valid_ext = 1;
-    } else if (!stricmp(ext, "mgh")) {
+    }
+    else if (!stricmp(ext, "mgh")) {
       valid_ext = 1;
     }
   }
@@ -11060,7 +11372,8 @@ static int mghWrite(MRI *mri, const char *fname, int frame) {
       errno = 0;
       ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "mghWrite(%s, %d): could not open file", fname, frame));
     }
-  } else {
+  }
+  else {
     errno = 0;
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM,
@@ -11215,7 +11528,8 @@ static int mghWrite(MRI *mri, const char *fname, int frame) {
 \param mri - input
 \param order[4] - new order of old dims
 */
-MRI *MRIreorder4(MRI *mri, int order[4]) {
+MRI *MRIreorder4(MRI *mri, int order[4])
+{
   MRI *new;
   int n, olddims[4], newdims[4];
   int dold[4], dnew[4];
@@ -11267,7 +11581,8 @@ MRIreorder(). xdim,ydim,zdim indicate which dimension the given dimension
 moves to. So xdim=2 indicates that the cols of the source become the rows
 of the destination. The dims can be signed.
 */
-int MRIreorderVox2RAS(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim) {
+int MRIreorderVox2RAS(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
+{
   MATRIX *Q, *Msrc, *Mdst;
 
   // Source vox2ras
@@ -11316,7 +11631,8 @@ can be signed indicating a reversal. xdim, ydim, zdim values are only
 volumes will share RAS space (and can be alligned with a header
 registration. Handles multiple frames.
 */
-MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim) {
+MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
+{
   int width, height, depth, xs, ys, zs, xd, yd, zd, x, y, z, f;
   int srcdims[3], dstdims[3];
   float srcsizes[3], dstsizes[3];
@@ -11530,7 +11846,8 @@ MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim) {
   Write the MRI header information to the file
   COR-.info in the directory specified by 'fpref'
   ------------------------------------------------------*/
-int MRIwriteInfo(MRI *mri, const char *fpref) {
+int MRIwriteInfo(MRI *mri, const char *fpref)
+{
   FILE *fp;
   char fname[STRLEN];
   int slice_direction;
@@ -11601,7 +11918,8 @@ int MRIwriteInfo(MRI *mri, const char *fpref) {
   Write an MRI header and a set of data files to
   the directory specified by 'fpref'
   ------------------------------------------------------*/
-int MRIappend(MRI *mri, const char *fpref) {
+int MRIappend(MRI *mri, const char *fpref)
+{
   int type, frame;
   char fname[STRLEN];
 
@@ -11616,7 +11934,8 @@ int MRIappend(MRI *mri, const char *fpref) {
   return (NO_ERROR);
 }
 
-static int mghAppend(MRI *mri, const char *fname, int frame) {
+static int mghAppend(MRI *mri, const char *fname, int frame)
+{
   FILE *fp;
   int start_frame, end_frame, x, y, z, width, height, depth, nframes;
 
@@ -11681,7 +12000,8 @@ static int mghAppend(MRI *mri, const char *fname, int frame) {
 
   Description
   ------------------------------------------------------*/
-int MRIunpackFileName(const char *inFname, int *pframe, int *ptype, char *outFname) {
+int MRIunpackFileName(const char *inFname, int *pframe, int *ptype, char *outFname)
+{
   char *number = NULL, *at = NULL, buf[STRLEN];
   struct stat stat_buf;
 
@@ -11699,7 +12019,8 @@ int MRIunpackFileName(const char *inFname, int *pframe, int *ptype, char *outFna
   {
     if (sscanf(number + 1, "%d", pframe) < 1) *pframe = -1;
     *number = 0;
-  } else
+  }
+  else
     *pframe = -1;
 
   if (at) {
@@ -11730,7 +12051,8 @@ int MRIunpackFileName(const char *inFname, int *pframe, int *ptype, char *outFna
       errno = 0;
       ErrorExit(ERROR_UNSUPPORTED, "unknown file type %s", at);
     }
-  } else /* no '@' found */
+  }
+  else /* no '@' found */
   {
     *ptype = -1;
 
@@ -11783,7 +12105,8 @@ int MRIunpackFileName(const char *inFname, int *pframe, int *ptype, char *outFna
   formats include: wfile, paint, w, bshort, bfloat, COR, analyze,
   analyze4d, spm.
   ---------------------------------------------------------------*/
-int MRIwriteAnyFormat(MRI *mri, const char *fileid, const char *fmt, int mriframe, MRIS *surf) {
+int MRIwriteAnyFormat(MRI *mri, const char *fileid, const char *fmt, int mriframe, MRIS *surf)
+{
   int fmtid, err, n, r, c, s;
   float *v = NULL, f;
   MRI *mritmp = NULL;
@@ -11847,7 +12170,8 @@ int MRIwriteAnyFormat(MRI *mri, const char *fileid, const char *fmt, int mrifram
         }
       }
     }
-  } else
+  }
+  else
     mritmp = mri;
 
   /*------------ Save using MRIwrite or MRIwriteType ---------*/
@@ -11863,7 +12187,8 @@ int MRIwriteAnyFormat(MRI *mri, const char *fileid, const char *fmt, int mrifram
       printf("ERROR: MRIwriteAnyFormat: could not write to %s\n", fileid);
       return (1);
     }
-  } else {
+  }
+  else {
     /* Try to infer the type and save (format is NULL) */
     err = MRIwrite(mritmp, fileid);
     if (err) {
@@ -13139,7 +13464,8 @@ static void nflip(unsigned char *buf, int b, int n)
 
 #endif
 #include "gca.h"
-static MRI *readGCA(const char *fname, int start_frame, int end_frame) {
+static MRI *readGCA(const char *fname, int start_frame, int end_frame)
+{
   GCA *gca;
   MRI *mri;
 
@@ -13199,7 +13525,8 @@ static MRI *readGCA(const char *fname, int start_frame, int end_frame) {
   return (mri);
 }
 
-MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst) {
+MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst)
+{
   int x, nans = 0, width;
 
   if (mri_dst != mri_src) mri_dst = MRIcopy(mri_src, mri_dst);
@@ -13232,7 +13559,8 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst) {
   return (mri_dst);
 }
 
-int MRIaddCommandLine(MRI *mri, char *cmdline) {
+int MRIaddCommandLine(MRI *mri, char *cmdline)
+{
   int i;
   if (mri->ncmds >= MAX_CMDS)
     ErrorExit(ERROR_NOMEMORY, "MRIaddCommandLine: can't add cmd %s (%d)", cmdline, mri->ncmds);
@@ -13247,7 +13575,8 @@ int MRIaddCommandLine(MRI *mri, char *cmdline) {
   niiPrintHdr() - this dumps (most of) the nifti header to the given
   stream.
   ------------------------------------------------------------------*/
-static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr) {
+static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr)
+{
   int n;
   fprintf(fp, "sizeof_hdr %d \n", hdr->sizeof_hdr);
   fprintf(fp, "data_type  %s \n", hdr->data_type);

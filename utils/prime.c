@@ -36,7 +36,8 @@ static int CompareFactors(const void *pf1, const void *pf2);
    or equal to Nmax. The number of primes is returned
    in *Nprimes;
  ------------------------------------------------------- */
-int *GetPrimes(int Nmax, int *Nprimes) {
+int *GetPrimes(int Nmax, int *Nprimes)
+{
   int *numlist, n, m, k, k2, kmax;
   int *primes;
 
@@ -83,7 +84,8 @@ int *GetPrimes(int Nmax, int *Nprimes) {
    number of prime factors is returned in *Nfactors. The factors
    are sorted from lowest to highest.
    ------------------------------------------------------- */
-int *GetPrimeFactors(int N, int *Nfactors) {
+int *GetPrimeFactors(int N, int *Nfactors)
+{
   int *pfactors, n, m, NN;
   int *allprimes, nallprimes;
   int changed;
@@ -144,7 +146,8 @@ int *GetPrimeFactors(int N, int *Nfactors) {
 /* --------------------------------------------------------------
    CompareFactors() - only for sorting.
    ------------------------------------------------------------- */
-static int CompareFactors(const void *pf1, const void *pf2) {
+static int CompareFactors(const void *pf1, const void *pf2)
+{
   int f1, f2;
 
   f1 = *((int *)pf1);
@@ -157,7 +160,8 @@ static int CompareFactors(const void *pf1, const void *pf2) {
 /* --------------------------------------------------------------
    IsPrime() - returns 1 if N is prime, zero otherwise
    ------------------------------------------------------------- */
-int IsPrime(int N) {
+int IsPrime(int N)
+{
   int *primes, nprimes, r;
 
   if (N < 1) {
@@ -177,7 +181,8 @@ int IsPrime(int N) {
 /* --------------------------------------------------------------
    GetMaxPrimeFactor() - returns the maximum prime factor of N.
    ------------------------------------------------------------- */
-int GetMaxPrimeFactor(int N) {
+int GetMaxPrimeFactor(int N)
+{
   int *pfactors, nfactors;
   int maxfactor;
 
@@ -191,7 +196,8 @@ int GetMaxPrimeFactor(int N) {
    GetClosestPrimeFactor() - returns the prime factor of N
    closest to P.
    ------------------------------------------------------------- */
-int GetClosestPrimeFactor(int N, int P) {
+int GetClosestPrimeFactor(int N, int P)
+{
   int *pfactors, nfactors;
   int n, d, dmin, nmin, fclosest;
 
@@ -216,7 +222,8 @@ int GetClosestPrimeFactor(int N, int P) {
    GetClosestPrimeFactorLess() - returns the prime factor of N
    closest to and less than P.
    ------------------------------------------------------------- */
-int GetClosestPrimeFactorLess(int N, int P) {
+int GetClosestPrimeFactorLess(int N, int P)
+{
   int *pfactors, nfactors;
   int n, d, dmin, nmin, fclosest;
 

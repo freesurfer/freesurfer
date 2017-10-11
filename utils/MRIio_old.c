@@ -37,12 +37,14 @@
 
 static void MGHprint_error(char *str);
 
-static void MGHprint_error(char *str) {
+static void MGHprint_error(char *str)
+{
   printf("%s", str);
   exit(0);
 }
 
-char *lmalloc(unsigned long size) {
+char *lmalloc(unsigned long size)
+{
   char *p;
 
   p = malloc(size);
@@ -50,7 +52,8 @@ char *lmalloc(unsigned long size) {
   return p;
 }
 
-char *lcalloc(size_t nmemb, size_t size) {
+char *lcalloc(size_t nmemb, size_t size)
+{
   char *p;
 
   p = calloc(nmemb, size);
@@ -58,7 +61,8 @@ char *lcalloc(size_t nmemb, size_t size) {
   return p;
 }
 
-void file_name(char *fpref, char *fname, int num, char *form) {
+void file_name(char *fpref, char *fname, int num, char *form)
+{
   char ext[10];
 
   sprintf(ext, form, num);
@@ -66,7 +70,8 @@ void file_name(char *fpref, char *fname, int num, char *form) {
   strcat(fname, ext);
 }
 
-void buffer_to_image(unsigned char *buf, unsigned char **im, int ysize, int xsize) {
+void buffer_to_image(unsigned char *buf, unsigned char **im, int ysize, int xsize)
+{
   int i, j;
   unsigned long k;
   float sum;
@@ -83,7 +88,8 @@ void buffer_to_image(unsigned char *buf, unsigned char **im, int ysize, int xsiz
   */
 }
 
-void image_to_buffer(unsigned char **im, unsigned char *buf, int ysize, int xsize) {
+void image_to_buffer(unsigned char **im, unsigned char *buf, int ysize, int xsize)
+{
   int i, j;
   unsigned long k;
 

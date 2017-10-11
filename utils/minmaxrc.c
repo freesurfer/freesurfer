@@ -38,7 +38,8 @@
 #include "minmaxrc.h"
 
 /************************************************************/
-int h_minmaxrc(struct header *phdSrc, Pixelval *Min, int MinPoint[2], Pixelval *Max, int MaxPoint[2]) {
+int h_minmaxrc(struct header *phdSrc, Pixelval *Min, int MinPoint[2], Pixelval *Max, int MaxPoint[2])
+{
   switch (phdSrc->pixel_format) {
     case PFBYTE:
       return (h_minmaxrc_b(phdSrc, (byte *)Min, MinPoint, (byte *)Max, MaxPoint));
@@ -54,7 +55,8 @@ int h_minmaxrc(struct header *phdSrc, Pixelval *Min, int MinPoint[2], Pixelval *
 }
 
 /************************************************************/
-int h_minmaxrc_b(struct header *phdSrc, byte *Min, int MinPoint[2], byte *Max, int MaxPoint[2]) {
+int h_minmaxrc_b(struct header *phdSrc, byte *Min, int MinPoint[2], byte *Max, int MaxPoint[2])
+{
   register int r, c;
   register byte x, *p;
 
@@ -74,7 +76,8 @@ int h_minmaxrc_b(struct header *phdSrc, byte *Min, int MinPoint[2], byte *Max, i
         *Max = x;
         MaxPoint[0] = r;
         MaxPoint[1] = c;
-      } else if (x < *Min) {
+      }
+      else if (x < *Min) {
         *Min = x;
         MinPoint[0] = r;
         MinPoint[1] = c;
@@ -84,7 +87,8 @@ int h_minmaxrc_b(struct header *phdSrc, byte *Min, int MinPoint[2], byte *Max, i
   return (HIPS_OK);
 }
 /************************************************************/
-int h_minmaxrc_s(struct header *phdSrc, short *Min, int MinPoint[2], short *Max, int MaxPoint[2]) {
+int h_minmaxrc_s(struct header *phdSrc, short *Min, int MinPoint[2], short *Max, int MaxPoint[2])
+{
   register int r, c;
   register short x, *p;
 
@@ -104,7 +108,8 @@ int h_minmaxrc_s(struct header *phdSrc, short *Min, int MinPoint[2], short *Max,
         *Max = x;
         MaxPoint[0] = r;
         MaxPoint[1] = c;
-      } else if (x < *Min) {
+      }
+      else if (x < *Min) {
         *Min = x;
         MinPoint[0] = r;
         MinPoint[1] = c;
@@ -114,7 +119,8 @@ int h_minmaxrc_s(struct header *phdSrc, short *Min, int MinPoint[2], short *Max,
   return (HIPS_OK);
 }
 /************************************************************/
-int h_minmaxrc_i(struct header *phdSrc, int *Min, int MinPoint[2], int *Max, int MaxPoint[2]) {
+int h_minmaxrc_i(struct header *phdSrc, int *Min, int MinPoint[2], int *Max, int MaxPoint[2])
+{
   register int r, c;
   register int x, *p;
 
@@ -134,7 +140,8 @@ int h_minmaxrc_i(struct header *phdSrc, int *Min, int MinPoint[2], int *Max, int
         *Max = x;
         MaxPoint[0] = r;
         MaxPoint[1] = c;
-      } else if (x < *Min) {
+      }
+      else if (x < *Min) {
         *Min = x;
         MinPoint[0] = r;
         MinPoint[1] = c;
@@ -144,7 +151,8 @@ int h_minmaxrc_i(struct header *phdSrc, int *Min, int MinPoint[2], int *Max, int
   return (HIPS_OK);
 }
 /************************************************************/
-int h_minmaxrc_f(struct header *phdSrc, float *Min, int MinPoint[2], float *Max, int MaxPoint[2]) {
+int h_minmaxrc_f(struct header *phdSrc, float *Min, int MinPoint[2], float *Max, int MaxPoint[2])
+{
   register int r, c;
   register float x, *p;
 
@@ -164,7 +172,8 @@ int h_minmaxrc_f(struct header *phdSrc, float *Min, int MinPoint[2], float *Max,
         *Max = x;
         MaxPoint[0] = r;
         MaxPoint[1] = c;
-      } else if (x < *Min) {
+      }
+      else if (x < *Min) {
         *Min = x;
         MinPoint[0] = r;
         MinPoint[1] = c;

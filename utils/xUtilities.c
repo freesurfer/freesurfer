@@ -35,7 +35,8 @@ char *xUtil_ksaErrorString[xUtil_tErr_knNumErrorCodes] = {"No error.", "Invalid 
 int xUtil_gCancelListening = 0;
 int xUtil_gCancelUserCanceled = 0;
 
-xUtil_tErr xUtil_BreakStringIntoPathAndStem(char *isPathAndStem, char *osPath, char *osStem) {
+xUtil_tErr xUtil_BreakStringIntoPathAndStem(char *isPathAndStem, char *osPath, char *osStem)
+{
   xUtil_tErr eResult = xUtil_tErr_NoError;
   char *sSection = "";
   char sPathSection[20][60];
@@ -48,7 +49,8 @@ xUtil_tErr xUtil_BreakStringIntoPathAndStem(char *isPathAndStem, char *osPath, c
     strcpy(osPath, "");
     strcpy(osStem, isPathAndStem);
     goto cleanup;
-  } else {
+  }
+  else {
     /* got the first section of the path, now get the rest. */
     strcpy(sPathSection[0], sSection);
     nSection = 1;
@@ -81,7 +83,8 @@ cleanup:
   return eResult;
 }
 
-char *xUtil_GetErrorString(xUtil_tErr ieCode) {
+char *xUtil_GetErrorString(xUtil_tErr ieCode)
+{
   xUtil_tErr eCode = ieCode;
 
   if (ieCode < 0 || ieCode >= xUtil_tErr_knNumErrorCodes) {
@@ -96,14 +99,16 @@ struct timeval sEndTime = {};
 
 void xUtil_StartTimer() { gettimeofday(&sStartTime, NULL); }
 
-void xUtil_StopTimer(char *isMessage) {
+void xUtil_StopTimer(char *isMessage)
+{
   gettimeofday(&sEndTime, NULL);
 
   if (NULL != isMessage) {
     DebugPrint(("%s: %lu usec\n",
                 isMessage,
                 (sEndTime.tv_sec * 1000000 + sEndTime.tv_usec) - (sStartTime.tv_sec * 1000000 + sStartTime.tv_usec)));
-  } else {
+  }
+  else {
     DebugPrint(("Timer stopped: %lu usec\n",
                 (sEndTime.tv_sec * 1000000 + sEndTime.tv_usec) - (sStartTime.tv_sec * 1000000 + sStartTime.tv_usec)));
   }
@@ -111,7 +116,8 @@ void xUtil_StopTimer(char *isMessage) {
 
 void xUtil_strcpy(char *ipDest, char *ipSrc) { strcpy(ipDest, ipSrc); }
 
-void xUtil_strncpy(char *ipDest, char *ipSrc, int inSize) {
+void xUtil_strncpy(char *ipDest, char *ipSrc, int inSize)
+{
   strncpy(ipDest, ipSrc, inSize);
 
   if (ipDest[inSize - 1] != '\0') {
@@ -122,7 +128,8 @@ void xUtil_strncpy(char *ipDest, char *ipSrc, int inSize) {
   }
 }
 
-void xUtil_sprintf(char *ipDest, char *isFormat, ...) {
+void xUtil_sprintf(char *ipDest, char *isFormat, ...)
+{
   va_list args;
 
   va_start(args, isFormat);
@@ -130,7 +137,8 @@ void xUtil_sprintf(char *ipDest, char *isFormat, ...) {
   va_end(args);
 }
 
-void xUtil_snprintf(char *ipDest, int inSize, char *isFormat, ...) {
+void xUtil_snprintf(char *ipDest, int inSize, char *isFormat, ...)
+{
   va_list args;
 
   memset(ipDest, 0, inSize);
@@ -151,34 +159,40 @@ void xUtil_snprintf(char *ipDest, int inSize, char *isFormat, ...) {
   }
 }
 
-void xUtil_InitializeUserCancel() {
+void xUtil_InitializeUserCancel()
+{
   /* init the flags and register our handler. */
   xUtil_gCancelListening = 0;
   xUtil_gCancelUserCanceled = 0;
   signal(SIGINT, xUtil_HandleUserCancelCallback);
 }
 
-void xUtil_StartListeningForUserCancel() {
+void xUtil_StartListeningForUserCancel()
+{
   /* set our listening flag. */
   xUtil_gCancelListening = 1;
 }
 
-void xUtil_StopListeningForUserCancel() {
+void xUtil_StopListeningForUserCancel()
+{
   /* stop listening and reset the canceled flag. */
   xUtil_gCancelListening = 0;
   xUtil_gCancelUserCanceled = 0;
 }
 
-int xUtil_DidUserCancel() {
+int xUtil_DidUserCancel()
+{
   /* just return the canceled flag. */
   return xUtil_gCancelUserCanceled;
 }
 
-void xUtil_HandleUserCancelCallback(int signal) {
+void xUtil_HandleUserCancelCallback(int signal)
+{
   /* if we're listening, set the flag, if not, exit normally. */
   if (xUtil_gCancelListening) {
     xUtil_gCancelUserCanceled = 1;
-  } else {
+  }
+  else {
     printf("Killed\n");
     fflush(stdout);
     exit(1);

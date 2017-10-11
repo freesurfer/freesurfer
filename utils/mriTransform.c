@@ -41,7 +41,8 @@ char *Trns_ksaErrorStrings[Trns_knNumErrorCodes] = {
     "LTA import (LTAread) failed.",
     "Invalid error code."};
 
-Trns_tErr Trns_New(mriTransformRef *opTransform) {
+Trns_tErr Trns_New(mriTransformRef *opTransform)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
   mriTransformRef this = NULL;
 
@@ -85,7 +86,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_NewFromLTA(mriTransformRef *opTransform, char *isLTAFileName) {
+Trns_tErr Trns_NewFromLTA(mriTransformRef *opTransform, char *isLTAFileName)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
   mriTransformRef this = NULL;
   LTA *LTATransform = NULL;
@@ -155,7 +157,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_Delete(mriTransformRef *iopTransform) {
+Trns_tErr Trns_Delete(mriTransformRef *iopTransform)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
   mriTransformRef this = NULL;
 
@@ -219,7 +222,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_DeepClone(mriTransformRef this, mriTransformRef *opTransform) {
+Trns_tErr Trns_DeepClone(mriTransformRef this, mriTransformRef *opTransform)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
   mriTransformRef clone = NULL;
 
@@ -261,7 +265,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_CopyAtoRAS(mriTransformRef this, MATRIX *iAtoRAS) {
+Trns_tErr Trns_CopyAtoRAS(mriTransformRef this, MATRIX *iAtoRAS)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);
@@ -292,7 +297,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_CopyBtoRAS(mriTransformRef this, MATRIX *iBtoRAS) {
+Trns_tErr Trns_CopyBtoRAS(mriTransformRef this, MATRIX *iBtoRAS)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);
@@ -323,7 +329,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_CopyARAStoBRAS(mriTransformRef this, MATRIX *iARAStoBRAS) {
+Trns_tErr Trns_CopyARAStoBRAS(mriTransformRef this, MATRIX *iARAStoBRAS)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);
@@ -354,7 +361,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_GetAtoRAS(mriTransformRef this, MATRIX **opMatrix) {
+Trns_tErr Trns_GetAtoRAS(mriTransformRef this, MATRIX **opMatrix)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);
@@ -378,7 +386,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_GetBtoRAS(mriTransformRef this, MATRIX **opMatrix) {
+Trns_tErr Trns_GetBtoRAS(mriTransformRef this, MATRIX **opMatrix)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);
@@ -402,7 +411,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_GetARAStoBRAS(mriTransformRef this, MATRIX **opMatrix) {
+Trns_tErr Trns_GetARAStoBRAS(mriTransformRef this, MATRIX **opMatrix)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);
@@ -425,7 +435,8 @@ cleanup:
 
   return eResult;
 }
-Trns_tErr Trns_GetAtoB(mriTransformRef this, MATRIX **opMatrix) {
+Trns_tErr Trns_GetAtoB(mriTransformRef this, MATRIX **opMatrix)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);
@@ -448,7 +459,8 @@ cleanup:
 
   return eResult;
 }
-Trns_tErr Trns_GetBtoA(mriTransformRef this, MATRIX **opMatrix) {
+Trns_tErr Trns_GetBtoA(mriTransformRef this, MATRIX **opMatrix)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);
@@ -476,7 +488,8 @@ cleanup:
   fprintf(stderr, "%s\n", l); \
   MatrixPrint(stderr, m);
 
-Trns_tErr Trns_ApplyTransform(mriTransformRef this, MATRIX *iTransform) {
+Trns_tErr Trns_ApplyTransform(mriTransformRef this, MATRIX *iTransform)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
   MATRIX *mTranslation = NULL;
   MATRIX *mTranslationInv = NULL;
@@ -613,7 +626,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_ExtractTranslationMatrix(MATRIX *iTransform, MATRIX *oTranslation) {
+Trns_tErr Trns_ExtractTranslationMatrix(MATRIX *iTransform, MATRIX *oTranslation)
+{
   if (NULL == iTransform || NULL == oTranslation) {
     return Trns_tErr_InvalidParameter;
   }
@@ -627,7 +641,8 @@ Trns_tErr Trns_ExtractTranslationMatrix(MATRIX *iTransform, MATRIX *oTranslation
   return Trns_tErr_NoErr;
 }
 
-Trns_tErr Trns_ExtractRotationMatrix(MATRIX *iTransform, MATRIX *oRotation) {
+Trns_tErr Trns_ExtractRotationMatrix(MATRIX *iTransform, MATRIX *oRotation)
+{
   MATRIX *mScale = NULL;
   MATRIX *mTmp = NULL;
   int n = 0;
@@ -651,7 +666,8 @@ Trns_tErr Trns_ExtractRotationMatrix(MATRIX *iTransform, MATRIX *oRotation) {
   for (n = 1; n <= 3; n++)
     if (!FZERO(*MATRIX_RELT(mScale, n, n))) {
       *MATRIX_RELT(mScale, n, n) = 1.0 / *MATRIX_RELT(mScale, n, n);
-    } else {
+    }
+    else {
       *MATRIX_RELT(mScale, n, n) = 1.0;
     }
 
@@ -664,7 +680,8 @@ Trns_tErr Trns_ExtractRotationMatrix(MATRIX *iTransform, MATRIX *oRotation) {
   return Trns_tErr_NoErr;
 }
 
-Trns_tErr Trns_ExtractScaleMatrix(MATRIX *iTransform, MATRIX *oScale) {
+Trns_tErr Trns_ExtractScaleMatrix(MATRIX *iTransform, MATRIX *oScale)
+{
   MATRIX *mTmp = NULL;
   VECTOR *vTmp = NULL;
   float fFactor = 0;
@@ -716,7 +733,8 @@ Trns_tErr Trns_ExtractScaleMatrix(MATRIX *iTransform, MATRIX *oScale) {
   return Trns_tErr_NoErr;
 }
 
-Trns_tErr Trns_Translate(mriTransformRef this, float ifAmount, tAxis iAxis) {
+Trns_tErr Trns_Translate(mriTransformRef this, float ifAmount, tAxis iAxis)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
   MATRIX *mTransform = NULL;
   MATRIX *mOld = NULL;
@@ -780,7 +798,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_Rotate(mriTransformRef this, float ifDegrees, tAxis iAxis) {
+Trns_tErr Trns_Rotate(mriTransformRef this, float ifDegrees, tAxis iAxis)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
   MATRIX *mTransform = NULL;
   MATRIX *mOld = NULL;
@@ -835,7 +854,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_Scale(mriTransformRef this, float ifFactor, tAxis iAxis) {
+Trns_tErr Trns_Scale(mriTransformRef this, float ifFactor, tAxis iAxis)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
   MATRIX *mTransform = NULL;
   MATRIX *mOld = NULL;
@@ -889,7 +909,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_ConvertAtoB(mriTransformRef this, xVoxelRef iAVoxel, xVoxelRef oBVoxel) {
+Trns_tErr Trns_ConvertAtoB(mriTransformRef this, xVoxelRef iAVoxel, xVoxelRef oBVoxel)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);
@@ -929,7 +950,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_ConvertAtoRAS(mriTransformRef this, xVoxelRef iAVoxel, xVoxelRef oRASVoxel) {
+Trns_tErr Trns_ConvertAtoRAS(mriTransformRef this, xVoxelRef iAVoxel, xVoxelRef oRASVoxel)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);
@@ -971,7 +993,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_ConvertBtoA(mriTransformRef this, xVoxelRef iBVoxel, xVoxelRef oAVoxel) {
+Trns_tErr Trns_ConvertBtoA(mriTransformRef this, xVoxelRef iBVoxel, xVoxelRef oAVoxel)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);
@@ -1011,7 +1034,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_ConvertBtoRAS(mriTransformRef this, xVoxelRef iBVoxel, xVoxelRef oRASVoxel) {
+Trns_tErr Trns_ConvertBtoRAS(mriTransformRef this, xVoxelRef iBVoxel, xVoxelRef oRASVoxel)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);
@@ -1053,7 +1077,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_ConvertBRAStoB(mriTransformRef this, xVoxelRef iBRASVoxel, xVoxelRef oBVoxel) {
+Trns_tErr Trns_ConvertBRAStoB(mriTransformRef this, xVoxelRef iBRASVoxel, xVoxelRef oBVoxel)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);
@@ -1093,7 +1118,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_ConvertMatrixAtoB(mriTransformRef this, MATRIX *iAMatrix, MATRIX *oBMatrix) {
+Trns_tErr Trns_ConvertMatrixAtoB(mriTransformRef this, MATRIX *iAMatrix, MATRIX *oBMatrix)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);
@@ -1123,7 +1149,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_ConvertMatrixAtoRAS(mriTransformRef this, MATRIX *iAMatrix, MATRIX *oRASMatrix) {
+Trns_tErr Trns_ConvertMatrixAtoRAS(mriTransformRef this, MATRIX *iAMatrix, MATRIX *oRASMatrix)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);
@@ -1153,7 +1180,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_ConvertMatrixBtoA(mriTransformRef this, MATRIX *iBMatrix, MATRIX *oAMatrix) {
+Trns_tErr Trns_ConvertMatrixBtoA(mriTransformRef this, MATRIX *iBMatrix, MATRIX *oAMatrix)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);
@@ -1183,7 +1211,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_ConvertMatrixBtoRAS(mriTransformRef this, MATRIX *iBMatrix, MATRIX *oRASMatrix) {
+Trns_tErr Trns_ConvertMatrixBtoRAS(mriTransformRef this, MATRIX *iBMatrix, MATRIX *oRASMatrix)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);
@@ -1215,7 +1244,8 @@ cleanup:
 
 /* don't use the next function when copying mAtoB or mBtoA */
 /* they will be replaced by recalculated ones              */
-Trns_tErr Trns_CalcMatricies_(mriTransformRef this) {
+Trns_tErr Trns_CalcMatricies_(mriTransformRef this)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
   MATRIX *tmp = NULL;
 
@@ -1257,7 +1287,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_Verify(mriTransformRef this) {
+Trns_tErr Trns_Verify(mriTransformRef this)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   /* check for null ptr */
@@ -1277,11 +1308,13 @@ cleanup:
   return eResult;
 }
 
-void Trns_Signal(char *isFuncName, int inLineNum, Trns_tErr ieCode) {
+void Trns_Signal(char *isFuncName, int inLineNum, Trns_tErr ieCode)
+{
   DebugPrint(("Signal in %s, line %d: %d, %s", isFuncName, inLineNum, ieCode, Trns_GetErrorString(ieCode)));
 }
 
-char *Trns_GetErrorString(Trns_tErr ieCode) {
+char *Trns_GetErrorString(Trns_tErr ieCode)
+{
   Trns_tErr eCode = ieCode;
 
   if (ieCode < 0 || ieCode >= Trns_knNumErrorCodes) {
@@ -1291,7 +1324,8 @@ char *Trns_GetErrorString(Trns_tErr ieCode) {
   return Trns_ksaErrorStrings[eCode];
 }
 
-void Trns_DebugPrint_(mriTransformRef this) {
+void Trns_DebugPrint_(mriTransformRef this)
+{
   if (NULL != this->mAtoRAS) {
     DebugPrint(("A to RAS:\n"));
     MatrixPrint(stderr, this->mAtoRAS);
@@ -1327,7 +1361,8 @@ void Trns_DebugPrint_(mriTransformRef this) {
     MatrixPrint(stderr, this->mAtoB);
   }
 }
-Trns_tErr Trns_GetType(mriTransformRef this, int *ptype) {
+Trns_tErr Trns_GetType(mriTransformRef this, int *ptype)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);
@@ -1351,7 +1386,8 @@ cleanup:
   return eResult;
 }
 
-Trns_tErr Trns_CopyAtoB(mriTransformRef this, MATRIX *iAtoB) {
+Trns_tErr Trns_CopyAtoB(mriTransformRef this, MATRIX *iAtoB)
+{
   Trns_tErr eResult = Trns_tErr_NoErr;
 
   eResult = Trns_Verify(this);

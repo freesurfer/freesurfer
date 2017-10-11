@@ -40,7 +40,8 @@
 // Return the CVS version of this file.
 const char *FSENVsrcVersion(void) { return ("$Id: fsenv.c,v 1.7 2015/04/16 18:49:31 greve Exp $"); }
 
-FSENV *FSENVgetenv(void) {
+FSENV *FSENVgetenv(void)
+{
   FSENV *fsenv;
   char *pc, tmpstr[2000];
   struct utsname uts;
@@ -101,13 +102,15 @@ FSENV *FSENVgetenv(void) {
       return (NULL);
     }
     fsenv->desired_bvec_space = b;
-  } else
+  }
+  else
     fsenv->desired_bvec_space = BVEC_SPACE_VOXEL;
 
   return (fsenv);
 }
 /*-----------------------------------------------*/
-int FSENVfree(FSENV **ppenv) {
+int FSENVfree(FSENV **ppenv)
+{
   FSENV *env = *ppenv;
   free(env->FREESURFER_HOME);
   free(env->SUBJECTS_DIR);
@@ -125,7 +128,8 @@ int FSENVfree(FSENV **ppenv) {
 }
 
 /*-----------------------------------------------*/
-int FSENVprintenv(FILE *fp, FSENV *env) {
+int FSENVprintenv(FILE *fp, FSENV *env)
+{
   fprintf(fp, "FREESURFER_HOME %s\n", env->FREESURFER_HOME);
   fprintf(fp, "SUBJECTS_DIR %s\n", env->SUBJECTS_DIR);
   fprintf(fp, "user %s\n", env->user);
@@ -138,7 +142,8 @@ int FSENVprintenv(FILE *fp, FSENV *env) {
 }
 
 /*-----------------------------------------------*/
-char *FSENVgetSUBJECTS_DIR(void) {
+char *FSENVgetSUBJECTS_DIR(void)
+{
   char *pc = getenv("SUBJECTS_DIR");
   if (pc == NULL) {
     printf("FSENVgetSUBJECTS_DIR: SUBJECTS_DIR not defined\n");
@@ -148,7 +153,8 @@ char *FSENVgetSUBJECTS_DIR(void) {
 }
 
 /*-----------------------------------------------*/
-int FSENVsetSUBJECTS_DIR(char *SUBJECTS_DIR) {
+int FSENVsetSUBJECTS_DIR(char *SUBJECTS_DIR)
+{
   setenv("SUBJECTS_DIR", SUBJECTS_DIR, 1);
   return (0);
 }

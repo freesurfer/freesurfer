@@ -389,7 +389,8 @@ MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale,int fno)
   return(mrisp) ;
 }
 #else
-MRI_SP *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, int fno) {
+MRI_SP *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, int fno)
+{
   float a, b, c, phi, theta, x, y, z, uf, vf, d, total_d, **distances, *fp;
   int vno, u, v, unfilled, **filled, npasses, nfilled;
   VERTEX *vertex;
@@ -590,9 +591,11 @@ MRI_SP *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, in
             *IMAGEFseq_pix(Itmp, u, v, fno) = total;
             filled[u][v] = FILLING_ELT;
             nfilled++;
-          } else
+          }
+          else
             unfilled++;
-        } else
+        }
+        else
           *IMAGEFseq_pix(Itmp, u, v, fno) = *IMAGEFseq_pix(Ip, u, v, fno);
       }
     }
@@ -628,7 +631,8 @@ MRI_SP *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, in
 
 static double UF = 254.8, VF = 409.5;
 
-MRI_SP *MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, int which_vertices) {
+MRI_SP *MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, int which_vertices)
+{
   float a, b, c, phi, theta, x, y, z, uf, vf, d, total_d, **distances;
   int vno, u, v, unfilled, **filled, npasses, nfilled;
   VERTEX *vertex;
@@ -826,9 +830,11 @@ MRI_SP *MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float sca
             *IMAGEFseq_pix(Itmp, u, v, 2) = totalz;
             filled[u][v] = FILLING_ELT;
             nfilled++;
-          } else
+          }
+          else
             unfilled++;
-        } else {
+        }
+        else {
           *IMAGEFseq_pix(Itmp, u, v, 0) = *IMAGEFseq_pix(Ip, u, v, 0);
           *IMAGEFseq_pix(Itmp, u, v, 1) = *IMAGEFseq_pix(Ip, u, v, 1);
           *IMAGEFseq_pix(Itmp, u, v, 2) = *IMAGEFseq_pix(Ip, u, v, 2);
@@ -869,7 +875,8 @@ MRI_SP *MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float sca
 
         Description
 ------------------------------------------------------*/
-MRI_SURFACE *MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int fno) {
+MRI_SURFACE *MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int fno)
+{
   float a, b, c, phi, theta, x, y, z, uf, vf, du, dv, curv, d;
   int vno, u0, v0, u1, v1;
   VERTEX *vertex;
@@ -948,7 +955,8 @@ MRI_SURFACE *MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int fno)
 
         Description
 ------------------------------------------------------*/
-MRI_SURFACE *MRIScoordsFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int which_vertices) {
+MRI_SURFACE *MRIScoordsFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int which_vertices)
+{
   float a, b, c, phi, theta, x, y, z, uf, vf, du, dv, origx, origy, origz, d, val1, val2, val3, val4;
   int vno, u0, v0, u1, v1;
   VERTEX *vertex;
@@ -1067,7 +1075,8 @@ MRI_SURFACE *MRIScoordsFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, in
 
         Description
 ------------------------------------------------------*/
-MRI_SURFACE *MRISnormalizeFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int fno) {
+MRI_SURFACE *MRISnormalizeFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int fno)
+{
   float a, b, c, phi, theta, x, y, z, uf, vf, du, dv, curv, d, var;
   int vno, u0, v0, u1, v1;
   VERTEX *vertex;
@@ -1142,7 +1151,8 @@ MRI_SURFACE *MRISnormalizeFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris,
 
         Description
 ------------------------------------------------------*/
-MRI_SP *MRISgradientToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale) {
+MRI_SP *MRISgradientToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale)
+{
   float a, b, c, phi, theta, x, y, z, uf, vf, d, total_d, **distances, sigma, two_sigma_sq;
   int vno, u, v, unfilled, **filled;
   VERTEX *vertex;
@@ -1310,7 +1320,8 @@ MRI_SP *MRISgradientToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float s
 
         Description
 ------------------------------------------------------*/
-MRI_SURFACE *MRISgradientFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris) {
+MRI_SURFACE *MRISgradientFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris)
+{
   float a, b, c, phi, theta, x, y, z, uf, vf, du, dv, d;
   int vno, u0, v0, u1, v1;
   VERTEX *vertex;
@@ -1397,7 +1408,8 @@ MRI_SURFACE *MRISgradientFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris) 
 
         Description
 ------------------------------------------------------*/
-double MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp, MRI_SURFACE *mris, float x, float y, float z, int fno) {
+double MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp, MRI_SURFACE *mris, float x, float y, float z, int fno)
+{
   double r, r2, r4, r6, val, d, x2, y2, z2, g, h, f, dx, dy, dz;
   float phi, theta, uf, vf, du, dv;
   int u0, v0, u1, v1, u0_voff, u1_voff, u1_v0, u1_v1, u0_v0, u0_v1;
@@ -1445,19 +1457,23 @@ double MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp, MRI_SURFACE *mris, 
   {
     u0_voff = V_DIM(mrisp) / 2;
     u0 = -u0;
-  } else if (u0 >= U_DIM(mrisp)) {
+  }
+  else if (u0 >= U_DIM(mrisp)) {
     u0_voff = V_DIM(mrisp) / 2;
     u0 = U_DIM(mrisp) - (u0 - U_DIM(mrisp) + 1);
-  } else
+  }
+  else
     u0_voff = 0;
   if (u1 < 0) /* enforce spherical topology  */
   {
     u1_voff = V_DIM(mrisp) / 2;
     u1 = -u1;
-  } else if (u1 >= U_DIM(mrisp)) {
+  }
+  else if (u1 >= U_DIM(mrisp)) {
     u1_voff = V_DIM(mrisp) / 2;
     u1 = U_DIM(mrisp) - (u1 - U_DIM(mrisp) + 1);
-  } else
+  }
+  else
     u1_voff = 0;
   if (v0 < 0) v0 += V_DIM(mrisp);
   if (v0 >= V_DIM(mrisp)) v0 -= V_DIM(mrisp);
@@ -1487,7 +1503,8 @@ double MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp, MRI_SURFACE *mris, 
 
         Description
 ------------------------------------------------------*/
-MRI_SP *MRISPclone(MRI_SP *mrisp_src) {
+MRI_SP *MRISPclone(MRI_SP *mrisp_src)
+{
   MRI_SP *mrisp_dst;
 
   mrisp_dst = (MRI_SP *)calloc(1, sizeof(MRI_SP));
@@ -1507,7 +1524,8 @@ MRI_SP *MRISPclone(MRI_SP *mrisp_src) {
 #define MAX_LEN 4
 #define MAX_KLEN 50
 
-MRI_SP *MRISPconvolveGaussian(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, float radius, int fno) {
+MRI_SP *MRISPconvolveGaussian(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, float radius, int fno)
+{
   int u, v, cart_klen, klen, khalf, uk, vk, u1, v1, voff, f0, f1;
   double d, k, total, ktotal, sigma_sq_inv, theta, phi, theta1, phi1, sin_phi, cos_phi, sin_phi1, cos_phi1;
   float x0, y0, z0, x1, y1, z1, circumference = 0.0f, angle, max_len = 0.0f, min_len = 10000.0f;
@@ -1538,7 +1556,8 @@ MRI_SP *MRISPconvolveGaussian(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma,
   if (fno < 0) {
     f0 = 0;
     f1 = Ip_src->num_frame - 1;
-  } else {
+  }
+  else {
     f0 = f1 = fno;
   }
 
@@ -1610,10 +1629,12 @@ MRI_SP *MRISPconvolveGaussian(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma,
           {
             voff = V_DIM(mrisp_src) / 2;
             u1 = -u1;
-          } else if (u1 >= U_DIM(mrisp_src)) {
+          }
+          else if (u1 >= U_DIM(mrisp_src)) {
             u1 = U_DIM(mrisp_src) - (u1 - U_DIM(mrisp_src) + 1);
             voff = V_DIM(mrisp_src) / 2;
-          } else
+          }
+          else
             voff = 0;
 
           phi1 = (double)u1 * PHI_MAX / PHI_DIM(mrisp_src);
@@ -1658,7 +1679,8 @@ MRI_SP *MRISPconvolveGaussian(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma,
 
         Description
 ------------------------------------------------------*/
-MRI_SP *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno) {
+MRI_SP *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno)
+{
   int f0, f1;
   int no_sphere_init;
   int cart_klen_init;
@@ -1693,7 +1715,8 @@ MRI_SP *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno) {
     if (fno < 0) {
       f0 = 0;
       f1 = Ip_src->num_frame - 1;
-    } else {
+    }
+    else {
       f0 = f1 = fno;
     }
 
@@ -1723,7 +1746,8 @@ MRI_SP *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno) {
         k = cart_klen * cart_klen;
         klen = sqrt(k + k / sin_sq_u);
         if (klen > MAX_LEN * cart_klen) klen = MAX_LEN * cart_klen;
-      } else
+      }
+      else
         klen = MAX_LEN * cart_klen; /* arbitrary max length */
       if (no_sphere) sin_sq_u = 1.0f, klen = cart_klen;
       if (klen >= U_DIM(mrisp_src)) klen = U_DIM(mrisp_src) - 1;
@@ -1747,10 +1771,12 @@ MRI_SP *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno) {
           {
             voff = V_DIM(mrisp_src) / 2;
             u1 = -u1;
-          } else if (u1 >= U_DIM(mrisp_src)) {
+          }
+          else if (u1 >= U_DIM(mrisp_src)) {
             u1 = U_DIM(mrisp_src) - (u1 - U_DIM(mrisp_src) + 1);
             voff = V_DIM(mrisp_src) / 2;
-          } else
+          }
+          else
             voff = 0;
 
 #if 0
@@ -1793,7 +1819,8 @@ MRI_SP *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno) {
 
         Description
 ------------------------------------------------------*/
-MRI_SP *MRISPalloc(float scale, int nfuncs) {
+MRI_SP *MRISPalloc(float scale, int nfuncs)
+{
   MRI_SP *mrisp;
   int u_dim, v_dim;
 
@@ -1816,7 +1843,8 @@ MRI_SP *MRISPalloc(float scale, int nfuncs) {
 
         Description
 ------------------------------------------------------*/
-int MRISPfree(MRI_SP **pmrisp) {
+int MRISPfree(MRI_SP **pmrisp)
+{
   MRI_SP *mrisp;
 
   mrisp = *pmrisp;
@@ -1832,7 +1860,8 @@ int MRISPfree(MRI_SP **pmrisp) {
 
         Description
 ------------------------------------------------------*/
-MRI_SP *MRISPalign(MRI_SP *mrisp_orig, MRI_SP *mrisp_src, MRI_SP *mrisp_tmp, MRI_SP *mrisp_dst) {
+MRI_SP *MRISPalign(MRI_SP *mrisp_orig, MRI_SP *mrisp_src, MRI_SP *mrisp_tmp, MRI_SP *mrisp_dst)
+{
 #if 0
   IMAGE  *Icorr = NULL ;
   int    u_peak, v_peak ;
@@ -1870,7 +1899,8 @@ MRI_SP *MRISPalign(MRI_SP *mrisp_orig, MRI_SP *mrisp_src, MRI_SP *mrisp_tmp, MRI
 
         Description
 ------------------------------------------------------*/
-MRI_SP *MRISPtranslate(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, int du, int dv) {
+MRI_SP *MRISPtranslate(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, int du, int dv)
+{
   int u, v, udst, vdst, voff;
 
   if (!mrisp_dst) mrisp_dst = MRISPclone(mrisp_src);
@@ -1882,10 +1912,12 @@ MRI_SP *MRISPtranslate(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, int du, int dv) {
     {
       voff = V_DIM(mrisp_src) / 2;
       udst = -udst;
-    } else if (udst >= U_DIM(mrisp_src)) {
+    }
+    else if (udst >= U_DIM(mrisp_src)) {
       voff = V_DIM(mrisp_src) / 2;
       udst = U_DIM(mrisp_src) - (udst - U_DIM(mrisp_src) + 1);
-    } else
+    }
+    else
       voff = 0;
     for (v = 0; v <= V_MAX_INDEX(mrisp_src); v++) {
       vdst = v + dv + voff;
@@ -1910,7 +1942,8 @@ MRI_SP *MRISPtranslate(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, int du, int dv) {
           The 1st surface in this case represents a single surface,
           while the second is an average of some (unknown) number.
 ------------------------------------------------------*/
-MRI_SP *MRISPcombine(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno) {
+MRI_SP *MRISPcombine(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno)
+{
   int u, v, nframes;
   float dof, mean, vart, var, val;
   IMAGE *Ip, *Ipt;
@@ -1956,7 +1989,8 @@ MRI_SP *MRISPcombine(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno) {
 
         Description
 ------------------------------------------------------*/
-int MRISPwrite(MRI_SP *mrisp, char *fname) {
+int MRISPwrite(MRI_SP *mrisp, char *fname)
+{
   ImageWrite(mrisp->Ip, fname);
   return (NO_ERROR);
 }
@@ -1967,7 +2001,8 @@ int MRISPwrite(MRI_SP *mrisp, char *fname) {
 
         Description
 ------------------------------------------------------*/
-MRI_SP *MRISPread(char *fname) {
+MRI_SP *MRISPread(char *fname)
+{
   MRI_SP *mrisp;
 
   mrisp = (MRI_SP *)calloc(1, sizeof(MRI_SP));
@@ -1984,7 +2019,8 @@ MRI_SP *MRISPread(char *fname) {
 
         Description
 ------------------------------------------------------*/
-double MRISParea(MRI_SP *mrisp) {
+double MRISParea(MRI_SP *mrisp)
+{
   double total_area = 0.0, phi0, theta0, phi1, theta1, radius, l1, l2, x0, y0, z0, x1, y1, z1, x2, y2, z2;
   float val, max_len = 0.0;
   int u, v;
@@ -2025,7 +2061,8 @@ double MRISParea(MRI_SP *mrisp) {
 
         Description
 ------------------------------------------------------*/
-MRI_SP *MRISPorLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) {
+MRI_SP *MRISPorLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area)
+{
   int n, vno, u, v;
   float r, x, y, z, phi, theta, d, rsq;
 
@@ -2055,7 +2092,8 @@ MRI_SP *MRISPorLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) {
 
         Description
 ------------------------------------------------------*/
-MRI_SP *MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) {
+MRI_SP *MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area)
+{
   int n, vno, u, v;
   float r, x, y, z, phi, theta, d, rsq;
 
@@ -2090,7 +2128,8 @@ MRI_SP *MRISPandLabel(MRI_SP *mrisp, MRI_SURFACE *mris, LABEL *area) {
   return (mrisp);
 }
 
-int MRISPcoordinate(MRI_SP *mrisp, float x, float y, float z, int *pu, int *pv) {
+int MRISPcoordinate(MRI_SP *mrisp, float x, float y, float z, int *pu, int *pv)
+{
   double phi, theta, uf, vf;
   int u, v;
 
@@ -2109,7 +2148,8 @@ int MRISPcoordinate(MRI_SP *mrisp, float x, float y, float z, int *pu, int *pv) 
   *pv = v;
   return (NO_ERROR);
 }
-static int spherical_coordinate(double x, double y, double z, double *pphi, double *ptheta) {
+static int spherical_coordinate(double x, double y, double z, double *pphi, double *ptheta)
+{
   double r, d;
 
   r = sqrt(x * x + y * y + z * z);
@@ -2135,7 +2175,8 @@ static int spherical_coordinate(double x, double y, double z, double *pphi, doub
           The 1st surface in this case represents a single surface,
           while the second is an average of some (unknown) number.
 ------------------------------------------------------*/
-MRI_SP *MRISPaccumulate(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno) {
+MRI_SP *MRISPaccumulate(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno)
+{
   int u, v, nframes;
   IMAGE *Ip, *Ipt;
 
@@ -2171,7 +2212,8 @@ int MRISPfunctionVectorVals(MRI_SURFACE_PARAMETERIZATION *mrisp,
                             float z,
                             int *frames,
                             int nframes,
-                            double *vals) {
+                            double *vals)
+{
   double r, r2, r4, r6, val, d, x2, y2, z2, g, h, f, dx, dy, dz;
   float phi, theta, uf, vf, du, dv;
   int n, fno, u0, v0, u1, v1, u0_voff, u1_voff, u1_v0, u1_v1, u0_v0, u0_v1;
@@ -2219,19 +2261,23 @@ int MRISPfunctionVectorVals(MRI_SURFACE_PARAMETERIZATION *mrisp,
   {
     u0_voff = V_DIM(mrisp) / 2;
     u0 = -u0;
-  } else if (u0 >= U_DIM(mrisp)) {
+  }
+  else if (u0 >= U_DIM(mrisp)) {
     u0_voff = V_DIM(mrisp) / 2;
     u0 = U_DIM(mrisp) - (u0 - U_DIM(mrisp) + 1);
-  } else
+  }
+  else
     u0_voff = 0;
   if (u1 < 0) /* enforce spherical topology  */
   {
     u1_voff = V_DIM(mrisp) / 2;
     u1 = -u1;
-  } else if (u1 >= U_DIM(mrisp)) {
+  }
+  else if (u1 >= U_DIM(mrisp)) {
     u1_voff = V_DIM(mrisp) / 2;
     u1 = U_DIM(mrisp) - (u1 - U_DIM(mrisp) + 1);
-  } else
+  }
+  else
     u1_voff = 0;
   if (v0 < 0) v0 += V_DIM(mrisp);
   if (v0 >= V_DIM(mrisp)) v0 -= V_DIM(mrisp);
@@ -2260,7 +2306,8 @@ int MRISPfunctionVectorVals(MRI_SURFACE_PARAMETERIZATION *mrisp,
   return (NO_ERROR);
 }
 
-MRI_SURFACE *MRISfromParameterizations(MRI_SP *mrisp, MRI_SURFACE *mris, int *frames, int *indices, int nframes) {
+MRI_SURFACE *MRISfromParameterizations(MRI_SP *mrisp, MRI_SURFACE *mris, int *frames, int *indices, int nframes)
+{
   float a, b, c, phi, theta, x, y, z, uf, vf, du, dv, curv, d;
   int n, fno, vno, u0, v0, u1, v1;
   VALS_VP *vp;
@@ -2327,7 +2374,8 @@ MRI_SURFACE *MRISfromParameterizations(MRI_SP *mrisp, MRI_SURFACE *mris, int *fr
   return (mris);
 }
 
-MRI_SP *MRIStoParameterizations(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, int *frames, int *indices, int nframes) {
+MRI_SP *MRIStoParameterizations(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, int *frames, int *indices, int nframes)
+{
   float a, b, c, phi, theta, x, y, z, uf, vf, d, total_d, **distances, *total;
   int m, vno, u, v, unfilled, **filled, npasses, nfilled;
   VERTEX *vertex;
@@ -2339,7 +2387,8 @@ MRI_SP *MRIStoParameterizations(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, i
 
   if (!mrisp) {
     ErrorExit(0, "MRIStoParameterizations: NULL mrisp\n");
-  } else
+  }
+  else
     for (m = 0; m < nframes; m++) ImageClearArea(mrisp->Ip, -1, -1, -1, -1, 0, frames[m]);
 
   a = b = c = MRISaverageRadius(mris);
@@ -2476,9 +2525,11 @@ MRI_SP *MRIStoParameterizations(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, i
             }
             filled[u][v] = FILLING_ELT;
             nfilled++;
-          } else
+          }
+          else
             unfilled++;
-        } else {
+        }
+        else {
           for (m = 0; m < nframes; m++) *IMAGEFseq_pix(Itmp, u, v, frames[m]) = *IMAGEFseq_pix(Ip, u, v, frames[m]);
         }
       }
@@ -2511,7 +2562,8 @@ MRI_SP *MRIStoParameterizations(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, i
   return (mrisp);
 }
 
-MRI_SP *MRISPblurFrames(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int *frames, int nframes) {
+MRI_SP *MRISPblurFrames(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int *frames, int nframes)
+{
   int n, u, v, cart_klen, klen, khalf, uk, vk, u1, v1, no_sphere, voff;
   double k, *total, ktotal, sigma_sq_inv, udiff, vdiff, sin_sq_u, phi;
   IMAGE *Ip_src, *Ip_dst;
@@ -2549,7 +2601,8 @@ MRI_SP *MRISPblurFrames(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int *
       k = cart_klen * cart_klen;
       klen = sqrt(k + k / sin_sq_u);
       if (klen > MAX_LEN * cart_klen) klen = MAX_LEN * cart_klen;
-    } else
+    }
+    else
       klen = MAX_LEN * cart_klen; /* arbitrary max length */
     if (no_sphere) sin_sq_u = 1.0f, klen = cart_klen;
     if (klen >= U_DIM(mrisp_src)) klen = U_DIM(mrisp_src) - 1;
@@ -2569,10 +2622,12 @@ MRI_SP *MRISPblurFrames(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int *
         {
           voff = V_DIM(mrisp_src) / 2;
           u1 = -u1;
-        } else if (u1 >= U_DIM(mrisp_src)) {
+        }
+        else if (u1 >= U_DIM(mrisp_src)) {
           u1 = U_DIM(mrisp_src) - (u1 - U_DIM(mrisp_src) + 1);
           voff = V_DIM(mrisp_src) / 2;
-        } else
+        }
+        else
           voff = 0;
 
         for (vk = -khalf; vk <= khalf; vk++) {
@@ -2601,7 +2656,8 @@ MRI_SP *MRISPblurFrames(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int *
   return (mrisp_dst);
 }
 
-int MRISPsetFrameVal(MRI_SP *mrisp, int frame, float val) {
+int MRISPsetFrameVal(MRI_SP *mrisp, int frame, float val)
+{
   int u, v;
 
   for (u = 0; u <= U_MAX_INDEX(mrisp); u++) {
@@ -2611,7 +2667,8 @@ int MRISPsetFrameVal(MRI_SP *mrisp, int frame, float val) {
   }
   return (NO_ERROR);
 }
-float MRISPsample(MRI_SP *mrisp, float x, float y, float z, int fno) {
+float MRISPsample(MRI_SP *mrisp, float x, float y, float z, int fno)
+{
   float retval, theta, phi, radius, d, du, dv, uf, vf;
   int u0, u1, v0, v1;
 

@@ -41,7 +41,8 @@ static char *g_history[] = {
 static char g_version[] = "gifti_tool version 1.3, 24 December 2009";
 
 /* globals: verbosity, for now */
-typedef struct {
+typedef struct
+{
   int verb;
 } gt_globs;
 gt_globs G = {1};
@@ -59,7 +60,8 @@ static int process_opts(int argc, char *argv[], gt_opts *opts);
 static int show_version(void);
 
 /* the main event */
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   gt_opts opts;
   int rv = 0;
 
@@ -93,7 +95,8 @@ int main(int argc, char *argv[]) {
  *         0 : success, continue
  *        -1 : failure, terminate
  */
-static int process_opts(int argc, char *argv[], gt_opts *opts) {
+static int process_opts(int argc, char *argv[], gt_opts *opts)
+{
   int ac, c;
 
   if (argc <= 1) {
@@ -106,22 +109,28 @@ static int process_opts(int argc, char *argv[], gt_opts *opts) {
     if (!strcmp(argv[ac], "-help")) {
       show_help();
       return 1;
-    } else if (!strcmp(argv[ac], "-hist")) {
+    }
+    else if (!strcmp(argv[ac], "-hist")) {
       show_hist();
       return 1;
-    } else if (!strcmp(argv[ac], "-ver")) {
+    }
+    else if (!strcmp(argv[ac], "-ver")) {
       show_version();
       return 1;
-    } else if (!strcmp(argv[ac], "-gifti_dtd_url")) {
+    }
+    else if (!strcmp(argv[ac], "-gifti_dtd_url")) {
       gifti_disp_dtd_url();
       return 1;
-    } else if (!strcmp(argv[ac], "-gifti_hist")) {
+    }
+    else if (!strcmp(argv[ac], "-gifti_hist")) {
       gifti_disp_lib_hist();
       return 1;
-    } else if (!strcmp(argv[ac], "-gifti_ver")) {
+    }
+    else if (!strcmp(argv[ac], "-gifti_ver")) {
       gifti_disp_lib_version();
       return 1;
-    } else if (!strcmp(argv[ac], "-gifti_zlib")) {
+    }
+    else if (!strcmp(argv[ac], "-gifti_zlib")) {
       printf("library compiled %s ZLIB\n", GIFTI_COMP_WITH_ZLIB ? "with" : "without");
       return 1;
     }
@@ -138,7 +147,8 @@ static int process_opts(int argc, char *argv[], gt_opts *opts) {
     else if (!strcmp(argv[ac], "-approx_gifti")) {
       opts->approx_gifti = 1;
       opts->gt_compare = 1;
-    } else if (!strcmp(argv[ac], "-b64_check")) {
+    }
+    else if (!strcmp(argv[ac], "-b64_check")) {
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-b64_check");
       if (!strcmp(argv[ac], "NONE"))
@@ -155,33 +165,40 @@ static int process_opts(int argc, char *argv[], gt_opts *opts) {
         fprintf(stderr, "** invalid parm to -b64_check: %s\n", argv[ac]);
         return -1;
       }
-    } else if (!strcmp(argv[ac], "-buf_size")) {
+    }
+    else if (!strcmp(argv[ac], "-buf_size")) {
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-buf_size");
       opts->buf_size = atoi(argv[ac]);
       /* compare options */
-    } else if (!strcmp(argv[ac], "-compare_data")) {
+    }
+    else if (!strcmp(argv[ac], "-compare_data")) {
       opts->comp_data = 1;
       opts->gt_compare = 1;
-    } else if (!strcmp(argv[ac], "-compare_gifti")) {
+    }
+    else if (!strcmp(argv[ac], "-compare_gifti")) {
       opts->comp_gifti = 1;
       opts->gt_compare = 1;
-    } else if (!strcmp(argv[ac], "-compare_verb")) {
+    }
+    else if (!strcmp(argv[ac], "-compare_verb")) {
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-compare_verb");
       opts->comp_verb = atoi(argv[ac]);
       /* copy options */
-    } else if (!strcmp(argv[ac], "-copy_gifti_meta")) {
+    }
+    else if (!strcmp(argv[ac], "-copy_gifti_meta")) {
       opts->copy_gim_meta = 1;
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-copy_gifti_meta");
       if (add_to_str_list(&opts->gim_meta, argv[ac])) return -1;
-    } else if (!strcmp(argv[ac], "-copy_DA_meta")) {
+    }
+    else if (!strcmp(argv[ac], "-copy_DA_meta")) {
       opts->copy_DA_meta = 1;
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-copy_DA_meta");
       if (add_to_str_list(&opts->DA_meta, argv[ac])) return -1;
-    } else if (!strcmp(argv[ac], "-DA_index_list")) {
+    }
+    else if (!strcmp(argv[ac], "-DA_index_list")) {
       ac++;
       for (c = 0; (ac < argc) && (argv[ac][0] != '-'); ac++, c++)
         if (add_to_int_list(&opts->DAlist, atoi(argv[ac]))) return -1;
@@ -192,7 +209,8 @@ static int process_opts(int argc, char *argv[], gt_opts *opts) {
       }
       /* and back up if we've looked too far */
       if (ac < argc && argv[ac][0] == '-') ac--;
-    } else if (!strcmp(argv[ac], "-encoding")) {
+    }
+    else if (!strcmp(argv[ac], "-encoding")) {
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-encoding");
       if (!strcmp(argv[ac], "ASCII"))
@@ -205,13 +223,16 @@ static int process_opts(int argc, char *argv[], gt_opts *opts) {
         fprintf(stderr, "** invalid parm to -encoding: %s\n", argv[ac]);
         return -1;
       }
-    } else if (!strcmp(argv[ac], "-gifti_test")) {
+    }
+    else if (!strcmp(argv[ac], "-gifti_test")) {
       opts->gt_test = 1;
-    } else if (!strcmp(argv[ac], "-indent")) {
+    }
+    else if (!strcmp(argv[ac], "-indent")) {
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-indent");
       opts->indent = atoi(argv[ac]);
-    } else if (!strncmp(argv[ac], "-infile", 7)) { /* maybe infiles... */
+    }
+    else if (!strncmp(argv[ac], "-infile", 7)) { /* maybe infiles... */
       ac++;
       for (c = 0; (ac < argc) && (argv[ac][0] != '-'); ac++, c++)
         if (add_to_str_list(&opts->infiles, argv[ac])) return -1;
@@ -222,9 +243,11 @@ static int process_opts(int argc, char *argv[], gt_opts *opts) {
       }
       /* and back up if we've looked too far */
       if (ac < argc && argv[ac][0] == '-') ac--;
-    } else if (!strcmp(argv[ac], "-mod_add_data")) {
+    }
+    else if (!strcmp(argv[ac], "-mod_add_data")) {
       opts->mod_add_data = 1;
-    } else if (!strcmp(argv[ac], "-mod_DA_atr")) {
+    }
+    else if (!strcmp(argv[ac], "-mod_DA_atr")) {
       opts->mod_DA_atr = 1;
       ac++;
       if (ac > argc - 2 || argv[ac][0] == '-' || argv[ac + 1][0] == '-') {
@@ -233,7 +256,8 @@ static int process_opts(int argc, char *argv[], gt_opts *opts) {
       }
       if (add_to_str_list(&opts->DA_atrs, argv[ac]) || add_to_str_list(&opts->DA_atrs, argv[ac + 1])) return -1;
       ac++; /* and consume last arg */
-    } else if (!strcmp(argv[ac], "-mod_DA_meta")) {
+    }
+    else if (!strcmp(argv[ac], "-mod_DA_meta")) {
       opts->mod_DA_meta = 1;
       ac++;
       if (ac > argc - 2 || argv[ac][0] == '-' || argv[ac + 1][0] == '-') {
@@ -242,7 +266,8 @@ static int process_opts(int argc, char *argv[], gt_opts *opts) {
       }
       if (add_to_str_list(&opts->DA_meta, argv[ac]) || add_to_str_list(&opts->DA_meta, argv[ac + 1])) return -1;
       ac++; /* and consume last arg */
-    } else if (!strcmp(argv[ac], "-mod_DAs")) {
+    }
+    else if (!strcmp(argv[ac], "-mod_DAs")) {
       ac++;
       for (c = 0; (ac < argc) && (argv[ac][0] != '-'); ac++, c++)
         if (add_to_int_list(&opts->DAmodlist, atoi(argv[ac]))) return -1;
@@ -253,7 +278,8 @@ static int process_opts(int argc, char *argv[], gt_opts *opts) {
       }
       /* and back up if we've looked too far */
       if (ac < argc && argv[ac][0] == '-') ac--;
-    } else if (!strcmp(argv[ac], "-mod_gim_atr")) {
+    }
+    else if (!strcmp(argv[ac], "-mod_gim_atr")) {
       opts->mod_gim_atr = 1;
       ac++;
       if (ac > argc - 2 || argv[ac][0] == '-' || argv[ac + 1][0] == '-') {
@@ -262,7 +288,8 @@ static int process_opts(int argc, char *argv[], gt_opts *opts) {
       }
       if (add_to_str_list(&opts->gim_atrs, argv[ac]) || add_to_str_list(&opts->gim_atrs, argv[ac + 1])) return -1;
       ac++; /* and consume last arg */
-    } else if (!strcmp(argv[ac], "-mod_gim_meta")) {
+    }
+    else if (!strcmp(argv[ac], "-mod_gim_meta")) {
       opts->mod_gim_meta = 1;
       ac++;
       if (ac > argc - 2 || argv[ac][0] == '-' || argv[ac + 1][0] == '-') {
@@ -271,15 +298,19 @@ static int process_opts(int argc, char *argv[], gt_opts *opts) {
       }
       if (add_to_str_list(&opts->gim_meta, argv[ac]) || add_to_str_list(&opts->gim_meta, argv[ac + 1])) return -1;
       ac++; /* and consume last arg */
-    } else if (!strcmp(argv[ac], "-mod_to_float")) {
+    }
+    else if (!strcmp(argv[ac], "-mod_to_float")) {
       opts->mod_to_float = 1;
-    } else if (!strcmp(argv[ac], "-new_dset")) {
+    }
+    else if (!strcmp(argv[ac], "-new_dset")) {
       if (add_to_str_list(&opts->infiles, "MAKE_IM")) return -1;
-    } else if (!strcmp(argv[ac], "-new_numDA")) {
+    }
+    else if (!strcmp(argv[ac], "-new_numDA")) {
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-new_numDA");
       opts->new_numDA = atol(argv[ac]);
-    } else if (!strcmp(argv[ac], "-new_intent")) {
+    }
+    else if (!strcmp(argv[ac], "-new_intent")) {
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-new_intent");
       opts->new_intent = gifti_intent_from_string(argv[ac]);
@@ -287,7 +318,8 @@ static int process_opts(int argc, char *argv[], gt_opts *opts) {
         fprintf(stderr, "** invalid intent '%s'\n", argv[ac]);
         return -1;
       }
-    } else if (!strcmp(argv[ac], "-new_dtype")) {
+    }
+    else if (!strcmp(argv[ac], "-new_dtype")) {
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-new_dtype");
       opts->new_dtype = gifti_str2datatype(argv[ac]);
@@ -295,11 +327,13 @@ static int process_opts(int argc, char *argv[], gt_opts *opts) {
         fprintf(stderr, "** invalid datatype '%s'\n", argv[ac]);
         return -1;
       }
-    } else if (!strcmp(argv[ac], "-new_ndim")) {
+    }
+    else if (!strcmp(argv[ac], "-new_ndim")) {
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-new_ndim");
       opts->new_ndim = atol(argv[ac]);
-    } else if (!strcmp(argv[ac], "-new_dims")) {
+    }
+    else if (!strcmp(argv[ac], "-new_dims")) {
       ac++;
       for (c = 0; ac < argc && c < GIFTI_DARRAY_DIM_LEN && argv[ac][0] != '-'; ac++, c++)
         opts->new_dims[c] = atol(argv[ac]);
@@ -308,13 +342,17 @@ static int process_opts(int argc, char *argv[], gt_opts *opts) {
         return -1;
       }
       ac--; /* You've gone too far, go to your room! */
-    } else if (!strcmp(argv[ac], "-new_data")) {
+    }
+    else if (!strcmp(argv[ac], "-new_data")) {
       opts->new_data = 1;
-    } else if (!strcmp(argv[ac], "-no_data")) {
+    }
+    else if (!strcmp(argv[ac], "-no_data")) {
       opts->dstore = 0;
-    } else if (!strcmp(argv[ac], "-no_updates")) {
+    }
+    else if (!strcmp(argv[ac], "-no_updates")) {
       opts->update_ok = 0;
-    } else if (!strcmp(argv[ac], "-read_DAs")) {
+    }
+    else if (!strcmp(argv[ac], "-read_DAs")) {
       ac++;
       for (c = 0; (ac < argc) && (argv[ac][0] != '-'); ac++, c++)
         if (add_to_int_list(&opts->DAlistr, atoi(argv[ac]))) return -1;
@@ -325,7 +363,8 @@ static int process_opts(int argc, char *argv[], gt_opts *opts) {
       }
       /* and back up if we've looked too far */
       if (ac < argc && argv[ac][0] == '-') ac--;
-    } else if (!strcmp(argv[ac], "-set_extern_filelist")) {
+    }
+    else if (!strcmp(argv[ac], "-set_extern_filelist")) {
       opts->set_extern = 1;
       ac++;
       for (c = 0; (ac < argc) && (argv[ac][0] != '-'); ac++, c++)
@@ -337,26 +376,32 @@ static int process_opts(int argc, char *argv[], gt_opts *opts) {
       }
       /* and back up if we've looked too far */
       if (ac < argc && argv[ac][0] == '-') ac--;
-    } else if (!strcmp(argv[ac], "-show_gifti")) {
+    }
+    else if (!strcmp(argv[ac], "-show_gifti")) {
       opts->gt_display = 1;
       opts->show_gifti = 1;
-    } else if (!strcmp(argv[ac], "-write_1D")) {
+    }
+    else if (!strcmp(argv[ac], "-write_1D")) {
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-write_1D");
       opts->ofile_1D = argv[ac];
-    } else if (!strcmp(argv[ac], "-write_asc")) {
+    }
+    else if (!strcmp(argv[ac], "-write_asc")) {
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-write_asc");
       opts->ofile_asc = argv[ac];
-    } else if (!strcmp(argv[ac], "-write_gifti")) {
+    }
+    else if (!strcmp(argv[ac], "-write_gifti")) {
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-write_gifti");
       opts->ofile_gifti = argv[ac];
-    } else if (!strcmp(argv[ac], "-zlevel")) {
+    }
+    else if (!strcmp(argv[ac], "-zlevel")) {
       ac++;
       CHECK_NEXT_OPT(ac, argc, "-zlevel");
       opts->zlevel = atoi(argv[ac]);
-    } else {
+    }
+    else {
       fprintf(stderr, "** unknown option: '%s'\n", argv[ac]);
       return 1;
     }
@@ -407,7 +452,8 @@ static int process_opts(int argc, char *argv[], gt_opts *opts) {
   return 0;
 }
 
-static int free_gt_opts(gt_opts *opts) {
+static int free_gt_opts(gt_opts *opts)
+{
   if (opts->DAlist.len > 0 && opts->DAlist.list) free(opts->DAlist.list);
   if (opts->DAlistr.len > 0 && opts->DAlistr.list) free(opts->DAlistr.list);
   if (opts->DAmodlist.len > 0 && opts->DAmodlist.list) free(opts->DAmodlist.list);
@@ -441,7 +487,8 @@ static int free_gt_opts(gt_opts *opts) {
   return 0;
 }
 
-int gt_display(gt_opts *opts) {
+int gt_display(gt_opts *opts)
+{
   gifti_image *gim;
   int c, rv = 0;
 
@@ -458,7 +505,8 @@ int gt_display(gt_opts *opts) {
     if (!gim) {
       fprintf(stderr, "** gt_display: failed to read '%s'\n", opts->infiles.list[c]);
       rv = 1;
-    } else
+    }
+    else
       gifti_free_image(gim);
   }
 
@@ -466,7 +514,8 @@ int gt_display(gt_opts *opts) {
 }
 
 /* compare gifti structures and/or included data */
-int gt_compare(gt_opts *opts) {
+int gt_compare(gt_opts *opts)
+{
   gifti_image *gimA;
   gifti_image *gimB;
   int rv0 = 0, rv1 = 0;
@@ -512,7 +561,8 @@ int gt_compare(gt_opts *opts) {
 }
 
 /* copy MetaData between GIFTI elements or some DataArray elements */
-int gt_copy(gt_opts *opts) {
+int gt_copy(gt_opts *opts)
+{
   gifti_image *src;
   gifti_image *dest;
   char **names;
@@ -544,7 +594,8 @@ int gt_copy(gt_opts *opts) {
     if (opts->gim_meta.len == 1 && !strcmp(opts->gim_meta.list[0], "ALL")) {
       names = src->meta.name;
       for (c = 0; c < src->meta.length; c++) rv |= gifti_copy_gifti_meta(dest, src, names[c]);
-    } else {
+    }
+    else {
       names = opts->gim_meta.list;
       for (c = 0; c < opts->gim_meta.len; c++) rv |= gifti_copy_gifti_meta(dest, src, names[c]);
     }
@@ -556,13 +607,16 @@ int gt_copy(gt_opts *opts) {
       if (src->numDA != dest->numDA || src->numDA <= 0) {
         fprintf(stderr, "** bad numDA for DA MD copy, %d, %d\n", src->numDA, dest->numDA);
         rv = 1;
-      } else if (!src->darray || !dest->darray) {
+      }
+      else if (!src->darray || !dest->darray) {
         fprintf(stderr, "** invalid darray pointers for copy\n");
         rv = 1;
-      } else { /* all seems well, copy all meta from src to dest */
+      }
+      else { /* all seems well, copy all meta from src to dest */
         for (c = 0; c < src->numDA; c++) rv |= gifti_copy_all_DA_meta(dest->darray[c], src->darray[c]);
       }
-    } else {
+    }
+    else {
       names = opts->DA_meta.list;
       for (c = 0; c < opts->DA_meta.len; c++)
         rv |= gifti_copy_DA_meta_many(dest, src, names[c], opts->DAlist.list, opts->DAlist.len);
@@ -577,7 +631,8 @@ int gt_copy(gt_opts *opts) {
   return rv;
 }
 
-int gt_test(gt_opts *opts) {
+int gt_test(gt_opts *opts)
+{
   gifti_image *gim;
   int c, rv = 0;
 
@@ -592,7 +647,8 @@ int gt_test(gt_opts *opts) {
     if (!gim) {
       fprintf(stderr, "** gt_test: failed to read '%s'\n", opts->infiles.list[c]);
       rv = 1;
-    } else
+    }
+    else
       gifti_free_image(gim);
   }
 
@@ -607,7 +663,8 @@ int gt_test(gt_opts *opts) {
  *
  * input: there can be only one (immortal?  Sean Connery?)
  */
-int gt_write(gt_opts *opts) {
+int gt_write(gt_opts *opts)
+{
   gifti_image *gim;
   int rv;
 
@@ -633,7 +690,8 @@ int gt_write(gt_opts *opts) {
 }
 
 /* apply encoding, and allow other formats */
-int gt_write_dataset(gt_opts *opts, gifti_image *gim) {
+int gt_write_dataset(gt_opts *opts, gifti_image *gim)
+{
   int c;
 
   if (!gim) {
@@ -699,7 +757,8 @@ int gt_write_dataset(gt_opts *opts, gifti_image *gim) {
  * Note that the DA list selection requires reading the dataset twice,
  * first to compute the number of DA elements.
  */
-gifti_image *gt_read_dataset(gt_opts *opts, char *fname) {
+gifti_image *gt_read_dataset(gt_opts *opts, char *fname)
+{
   gifti_image *gim;
   char *fcopy = NULL, *iptr, *infile = fname;
   int *dalist = NULL, numDA = -1;
@@ -791,7 +850,8 @@ gifti_image *gt_read_dataset(gt_opts *opts, char *fname) {
 
 /* init any options that should not default to 0 (so 0 means something,
  * or the default is non-zero) */
-static int init_opts(gt_opts *opts) {
+static int init_opts(gt_opts *opts)
+{
   memset(opts, 0, sizeof(gt_opts));
 
   /* gt_* should init to 0 */
@@ -815,7 +875,8 @@ static int init_opts(gt_opts *opts) {
   return 0;
 }
 
-static int disp_gt_opts(char *mesg, gt_opts *opts, FILE *stream) {
+static int disp_gt_opts(char *mesg, gt_opts *opts, FILE *stream)
+{
   FILE *fp = stream ? stream : stdout;
 
   if (mesg) fputs(mesg, fp);
@@ -924,7 +985,8 @@ static int disp_gt_opts(char *mesg, gt_opts *opts, FILE *stream) {
   return 0;
 }
 
-static int show_str_list(const char *mesg, gt_str_list *list, FILE *fp) {
+static int show_str_list(const char *mesg, gt_str_list *list, FILE *fp)
+{
   FILE *stream = fp ? fp : stdout;
   int c;
 
@@ -945,19 +1007,22 @@ static int show_str_list(const char *mesg, gt_str_list *list, FILE *fp) {
   return 0;
 }
 
-static int show_hist(void) {
+static int show_hist(void)
+{
   int c, len = sizeof(g_history) / sizeof(char *);
   for (c = 0; c < len; c++) fputs(g_history[c], stdout);
   putchar('\n');
   return 0;
 }
 
-static int show_version(void) {
+static int show_version(void)
+{
   puts(g_version);
   return 0;
 }
 
-static int show_help() {
+static int show_help()
+{
   printf(
       "------------------------------------------------------------\n"
       "gifti_tool  - create, display, modify or compare GIFTI datasets\n"
@@ -1505,7 +1570,8 @@ static int show_help() {
   return 0;
 }
 
-int write_as_asc(gifti_image *gim, char *prefix) {
+int write_as_asc(gifti_image *gim, char *prefix)
+{
   giiDataArray *dac; /* coords */
   giiDataArray *dat; /* triangles */
 
@@ -1524,7 +1590,8 @@ int write_as_asc(gifti_image *gim, char *prefix) {
 
 /* if dlist contains 1 element, write out as 2-D list,
    else each DA must have only 1 dimension */
-int write_1D_file(giiDataArray **dlist, int len, char *prefix, int add_suf) {
+int write_1D_file(giiDataArray **dlist, int len, char *prefix, int add_suf)
+{
   giiDataArray *da;
   FILE *fp;
   char *name = prefix;
@@ -1558,11 +1625,13 @@ int write_1D_file(giiDataArray **dlist, int len, char *prefix, int add_suf) {
     if (da->ind_ord == GIFTI_IND_ORD_COL_MAJOR) {
       fprintf(stderr, "-- writing data rows in reverse order\n");
       for (c = rows - 1; c >= 0; c--) ewrite_data_line(da->data, da->datatype, c, cols, 0, 0, fp);
-    } else {
+    }
+    else {
       fprintf(stderr, "-- writing data rows in normal order\n");
       for (c = 0; c < rows; c++) ewrite_data_line(da->data, da->datatype, c, cols, 0, 0, fp);
     }
-  } else { /* write da->nvals lines of 'num values */
+  }
+  else { /* write da->nvals lines of 'num values */
     void **vlist = (void **)malloc(len * sizeof(void *));
     int fail = 0;
 
@@ -1574,10 +1643,12 @@ int write_1D_file(giiDataArray **dlist, int len, char *prefix, int add_suf) {
       if (!vlist[c]) {
         fprintf(stderr, "** DA[%lld] has no data, bailing...\n", c);
         fail = 1;
-      } else if (dlist[c]->nvals != dlist[0]->nvals) {
+      }
+      else if (dlist[c]->nvals != dlist[0]->nvals) {
         fprintf(stderr, "** d[%lld] has %lld vals, but d[0] has %lld\n", c, dlist[c]->nvals, dlist[0]->nvals);
         fail = 1;
-      } else if (dlist[c]->datatype != dlist[0]->datatype) {
+      }
+      else if (dlist[c]->datatype != dlist[0]->datatype) {
         fprintf(stderr, "** d[%lld] has type %d, but d[0] has %d\n", c, dlist[c]->datatype, dlist[0]->datatype);
         fail = 1;
       }
@@ -1610,7 +1681,8 @@ int write_1D_file(giiDataArray **dlist, int len, char *prefix, int add_suf) {
   return 0;
 }
 
-int write_surf_file(giiDataArray *dc, giiDataArray *dt, char *prefix, int add_suf) {
+int write_surf_file(giiDataArray *dc, giiDataArray *dt, char *prefix, int add_suf)
+{
   giiDataArray *da;
   FILE *fp;
   char *name = prefix;
@@ -1635,7 +1707,8 @@ int write_surf_file(giiDataArray *dc, giiDataArray *dt, char *prefix, int add_su
     fclose(fp);
     if (nbuf) free(nbuf);
     return 1;
-  } else if (gifti_DA_rows_cols(dt, &trows, &tcols)) {
+  }
+  else if (gifti_DA_rows_cols(dt, &trows, &tcols)) {
     fclose(fp);
     if (nbuf) free(nbuf);
     return 1;
@@ -1656,7 +1729,8 @@ int write_surf_file(giiDataArray *dc, giiDataArray *dt, char *prefix, int add_su
   if (da->ind_ord == GIFTI_IND_ORD_COL_MAJOR) {
     fprintf(stderr, "-- writing coord rows in reverse order\n");
     for (c = rows - 1; c >= 0; c--) ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
-  } else {
+  }
+  else {
     fprintf(stderr, "-- writing coord rows in normal order\n");
     for (c = 0; c < rows; c++) ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
   }
@@ -1670,7 +1744,8 @@ int write_surf_file(giiDataArray *dc, giiDataArray *dt, char *prefix, int add_su
   if (da->ind_ord == GIFTI_IND_ORD_COL_MAJOR) {
     fprintf(stderr, "-- writing triangle rows in reverse order\n");
     for (c = rows - 1; c >= 0; c--) ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
-  } else {
+  }
+  else {
     fprintf(stderr, "-- writing triangle rows in normal order\n");
     for (c = 0; c < rows; c++) ewrite_data_line(da->data, da->datatype, c, cols, 0, 1, fp);
   }
@@ -1680,7 +1755,8 @@ int write_surf_file(giiDataArray *dc, giiDataArray *dt, char *prefix, int add_su
   return 0;
 }
 
-int ewrite_data_line(void *data, int type, int row, int cols, int spaces, int trail0, FILE *fp) {
+int ewrite_data_line(void *data, int type, int row, int cols, int spaces, int trail0, FILE *fp)
+{
   int c;
   if (!data || row < 0 || cols <= 0 || !fp) {
     static int show = 1;
@@ -1779,7 +1855,8 @@ int ewrite_data_line(void *data, int type, int row, int cols, int spaces, int tr
 }
 
 /* write out as cols by rows (else we'd use ewrite_data_line) */
-int ewrite_many_lines(void **data, int type, long long cols, long long rows, int spaces, FILE *fp) {
+int ewrite_many_lines(void **data, int type, long long cols, long long rows, int spaces, FILE *fp)
+{
   long long r, c;
 
   if (!data || rows == 0 || cols == 0 || !fp) return 1;
@@ -1899,7 +1976,8 @@ int ewrite_many_lines(void **data, int type, long long cols, long long rows, int
  * - only bother to alloc one pointer at a time (don't need efficiency here)
  * - return 0 on success
  *----------------------------------------------------------------------*/
-static int add_to_int_list(gt_int_list *ilist, int val) {
+static int add_to_int_list(gt_int_list *ilist, int val)
+{
   if (ilist->len == 0) ilist->list = NULL; /* just to be safe */
   ilist->len++;
   ilist->list = (int *)realloc(ilist->list, ilist->len * sizeof(int));
@@ -1918,7 +1996,8 @@ static int add_to_int_list(gt_int_list *ilist, int val) {
  * - only bother to alloc one pointer at a time (don't need efficiency here)
  * - return 0 on success
  *----------------------------------------------------------------------*/
-static int add_to_str_list(gt_str_list *slist, char *str) {
+static int add_to_str_list(gt_str_list *slist, char *str)
+{
   if (slist->len == 0) slist->list = NULL; /* just to be safe */
   slist->len++;
   slist->list = (char **)realloc(slist->list, slist->len * sizeof(char *));
@@ -1932,7 +2011,8 @@ static int add_to_str_list(gt_str_list *slist, char *str) {
   return 0;
 }
 
-int gt_modify_dset(gt_opts *opts, gifti_image *gim) {
+int gt_modify_dset(gt_opts *opts, gifti_image *gim)
+{
   gt_int_list *ilist;
   int c, errs = 0;
 
@@ -1962,7 +2042,8 @@ int gt_modify_dset(gt_opts *opts, gifti_image *gim) {
       /* apply to list */
       for (c = 0; c < opts->DAmodlist.len; c++)
         errs += gifti_set_DA_atrs(gim->darray[ilist->list[c]], (const char **)opts->DA_atrs.list, opts->DA_atrs.len, 0);
-    } else /* apply to all DA elements */
+    }
+    else /* apply to all DA elements */
       for (c = 0; c < gim->numDA; c++)
         errs += gifti_set_DA_atrs(gim->darray[c], (const char **)opts->DA_atrs.list, opts->DA_atrs.len, 0);
   }

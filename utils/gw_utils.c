@@ -41,10 +41,8 @@
   -- Zero-based vertex and face numbering
 
   -------------------------------------------------*/
-MRI_SURFACE *GWU_make_surface_from_lists(GWUTILS_VERTEX *vertices,
-                                         int vertexcount,
-                                         GWUTILS_FACE *faces,
-                                         int facecount) {
+MRI_SURFACE *GWU_make_surface_from_lists(GWUTILS_VERTEX *vertices, int vertexcount, GWUTILS_FACE *faces, int facecount)
+{
   MRI_SURFACE *mris;
   int vno, fno, n, vn, n1, n2;
   VERTEX *v = NULL;
@@ -181,7 +179,8 @@ MRI_SURFACE *GWU_make_surface_from_lists(GWUTILS_VERTEX *vertices,
   (because what to do when mht->vres is large?)
   just a way to read out the MHT data in 3D
   ---------------------------------------------------------*/
-MRI *MRIFromMHTandMRIS(MHT *mht, MRIS *mris, MFMM_Option_t mfmm_option) {
+MRI *MRIFromMHTandMRIS(MHT *mht, MRIS *mris, MFMM_Option_t mfmm_option)
+{
   MRI *amri;
   int mhtvx, mhtvy, mhtvz;  // MHT "voxels"
   int mrix, mriy, mriz;     // MRI voxels
@@ -260,7 +259,8 @@ static char local_Progversion[100] = "uninitialized";
 static char local_Logfilepath[1000] = "uninitialized";
 
 //----------------------------------------
-int gw_log_init(char *AProgname, char *AProgversion, char *ALogfilepath, int newfile) {  // 0 for OK
+int gw_log_init(char *AProgname, char *AProgversion, char *ALogfilepath, int newfile)
+{  // 0 for OK
   //----------------------------------------
   FILE *afile;
   int rslt = 0;
@@ -269,20 +269,23 @@ int gw_log_init(char *AProgname, char *AProgversion, char *ALogfilepath, int new
   strcpy(local_Logfilepath, ALogfilepath);
   if (newfile) {
     afile = fopen(local_Logfilepath, "w");
-  } else {
+  }
+  else {
     afile = fopen(local_Logfilepath, "a");
   }
 
   if (afile) {
     fclose(afile);
-  } else {
+  }
+  else {
     rslt = 1;
   }
   return rslt;
 }
 
 //------------------------------
-void gw_log_message(char *msg) {
+void gw_log_message(char *msg)
+{
   //------------------------------
   FILE *afile;
   afile = fopen(local_Logfilepath, "a");
@@ -291,7 +294,8 @@ void gw_log_message(char *msg) {
 }
 
 //------------------------------
-static void nowstr(char *buf) {
+static void nowstr(char *buf)
+{
   //------------------------------
   time_t tim;
   struct tm *tmr;
@@ -304,7 +308,8 @@ static void nowstr(char *buf) {
 }
 
 //------------------------------
-void gw_log_timestamp(char *label) {
+void gw_log_timestamp(char *label)
+{
   //------------------------------
   char datestr[100];
   char msg[200];
@@ -315,13 +320,15 @@ void gw_log_timestamp(char *label) {
 }
 
 //------------------------------
-void gw_log_begin(void) {
+void gw_log_begin(void)
+{
   //------------------------------
   gw_log_timestamp("Begin");
 }
 
 //------------------------------
-void gw_log_end(void) {
+void gw_log_end(void)
+{
   //------------------------------
   gw_log_timestamp("End");
 }

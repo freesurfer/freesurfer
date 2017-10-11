@@ -47,7 +47,8 @@ float sx[9] = {-0.25f, 0.0f, 0.25f, -0.5f, 0.0f, 0.5f, -0.25f, 0.0f, 0.25f};
 ----------------------------------------------------------------------*/
 #define g(I, k) exp((-1.0 / (k)) * fabs((double)(I)))
 #define LAMBDA 0.25
-int ImageDiffuse(IMAGE *inImage, IMAGE *outImage, double k, int niter, int which, double slope, KIMAGE *kimage) {
+int ImageDiffuse(IMAGE *inImage, IMAGE *outImage, double k, int niter, int which, double slope, KIMAGE *kimage)
+{
   IMAGE *fSrcImage, *fDstImage;
 
   if (outImage->pixel_format != inImage->pixel_format) {
@@ -117,7 +118,8 @@ int ImageDiffuse(IMAGE *inImage, IMAGE *outImage, double k, int niter, int which
 #define KERNEL_MUL 0.125f
 #endif
 
-int ImageDiffuseCurvature(IMAGE *inImage, IMAGE *outImage, double A, int niter, double slope, KIMAGE *kimage) {
+int ImageDiffuseCurvature(IMAGE *inImage, IMAGE *outImage, double A, int niter, double slope, KIMAGE *kimage)
+{
   int x, y, i, rows, cols, *xE, *yN, *xW, *yS, ys, yn, xe, xw, ci;
   float c[9], fvals[9], dst_val;
   FILE *fp;
@@ -309,7 +311,8 @@ static float ykernel[KSIZE * 3];
 
 #endif
 
-int ImageDiffuseHV(IMAGE *inImage, IMAGE *outImage, double k, int niter, double slope, KIMAGE *kimage) {
+int ImageDiffuseHV(IMAGE *inImage, IMAGE *outImage, double k, int niter, double slope, KIMAGE *kimage)
+{
   int x, y, i, rows, cols, *xE, *yN, *xW, *yS, ys, yn, xe, xw, ci;
   float c[9], fvals[9], dst_val;
   FILE *fp;
@@ -377,14 +380,16 @@ int ImageDiffuseHV(IMAGE *inImage, IMAGE *outImage, double k, int niter, double 
   if (!ImageCheckSize(inImage, xImage, 0, 0, 0)) {
     if (xImage) ImageFree(&xImage);
     xImage = ImageAlloc(rows, cols, PFFLOAT, 1);
-  } else {
+  }
+  else {
     xImage->rows = rows;
     xImage->cols = cols;
   }
   if (!ImageCheckSize(inImage, yImage, 0, 0, 0)) {
     if (yImage) ImageFree(&yImage);
     yImage = ImageAlloc(rows, cols, PFFLOAT, 1);
-  } else {
+  }
+  else {
     yImage->rows = rows;
     yImage->cols = cols;
   }
@@ -520,7 +525,8 @@ int ImageDiffuseHV(IMAGE *inImage, IMAGE *outImage, double k, int niter, double 
 
 #define C(grad, k) ((float)exp(-0.5f * SQR((float)fabs((grad)) / k)))
 
-int ImageDiffusePerona(IMAGE *inImage, IMAGE *outImage, double k, int niter, double slope, KIMAGE *kimage) {
+int ImageDiffusePerona(IMAGE *inImage, IMAGE *outImage, double k, int niter, double slope, KIMAGE *kimage)
+{
   int x, y, i, rows, cols, *xE, *yN, *xW, *yS, ys, yn, xe, xw, ci;
   float c[9], fvals[9], dst_val;
   FILE *fp;
@@ -675,7 +681,8 @@ int ImageDiffusePerona(IMAGE *inImage, IMAGE *outImage, double k, int niter, dou
 }
 #else
 
-int ImageDiffusePerona(IMAGE *inImage, IMAGE *outImage, double k, int niter, double slope, KIMAGE *kimage) {
+int ImageDiffusePerona(IMAGE *inImage, IMAGE *outImage, double k, int niter, double slope, KIMAGE *kimage)
+{
   UCHAR *csrc, *cdst;
   float *fsrc, *fdst, fcval, feval, fwval, fnval, fsval, fdval;
   int x, y, cval, eval, wval, nval, sval, i, dval;
@@ -770,7 +777,8 @@ int ImageDiffusePerona(IMAGE *inImage, IMAGE *outImage, double k, int niter, dou
 
            Description:
 ----------------------------------------------------------------------*/
-int ImageCurvature(IMAGE *inImage, float A, IMAGE *gradImage) {
+int ImageCurvature(IMAGE *inImage, float A, IMAGE *gradImage)
+{
   static IMAGE *xImage = NULL, *yImage = NULL;
   int x, y, rows, cols;
   float *xpix, *ypix, *gradpix, xval, yval, gval, Asq;
@@ -780,14 +788,16 @@ int ImageCurvature(IMAGE *inImage, float A, IMAGE *gradImage) {
   if (!ImageCheckSize(inImage, xImage, 0, 0, 0)) {
     if (xImage) ImageFree(&xImage);
     xImage = ImageAlloc(rows, cols, PFFLOAT, 1);
-  } else {
+  }
+  else {
     xImage->rows = rows;
     xImage->cols = cols;
   }
   if (!ImageCheckSize(inImage, yImage, 0, 0, 0)) {
     if (yImage) ImageFree(&yImage);
     yImage = ImageAlloc(rows, cols, PFFLOAT, 1);
-  } else {
+  }
+  else {
     yImage->rows = rows;
     yImage->cols = cols;
   }

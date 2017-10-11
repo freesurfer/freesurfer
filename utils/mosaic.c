@@ -82,7 +82,8 @@
         in the image
 --------------------------------------------------------*/
 int VolSS2MosSS(
-    int cvol, int rvol, int svol, int ncvol, int nrvol, int ncmos, int nrmos, int *cmos, int *rmos, int *OutOfBounds) {
+    int cvol, int rvol, int svol, int ncvol, int nrvol, int ncmos, int nrmos, int *cmos, int *rmos, int *OutOfBounds)
+{
   int nctmos;
   // int nrtmos;
   int ctmos, rtmos;
@@ -147,7 +148,8 @@ int MosSS2VolSS(int cmos,
                 int *cvol,
                 int *rvol,
                 int *svol,
-                int *OutOfBounds) {
+                int *OutOfBounds)
+{
   int nctmos;
   // int nrtmos;
   int ctmos, rtmos;
@@ -212,7 +214,8 @@ int MosSS2VolSS(int cmos,
   CheckMosaic(void) - this is just a diagnostic that prints
   info to stdout.
   ----------------------------------------------------------*/
-int CheckMosaic(void) {
+int CheckMosaic(void)
+{
   int cvol, rvol, svol, ncvol, nrvol, nsvol;
   int ncmos, nrmos, cmos, rmos;
   int cvol2, rvol2, svol2;

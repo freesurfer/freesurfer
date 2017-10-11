@@ -35,7 +35,8 @@
 #include "proto.h"
 #include "stc.h"
 
-int StcWrite(char *fname, MATRIX *m_data, float epoch_begin_lat, float sample_period, int *vertices, int nvertices) {
+int StcWrite(char *fname, MATRIX *m_data, float epoch_begin_lat, float sample_period, int *vertices, int nvertices)
+{
   int vno, ntime, row, col;
   FILE *fp;
   float val;
@@ -66,7 +67,8 @@ int StcWrite(char *fname, MATRIX *m_data, float epoch_begin_lat, float sample_pe
   return (NO_ERROR);
 }
 
-STC_FILE *StcOpen(char *fstem) {
+STC_FILE *StcOpen(char *fstem)
+{
   STC_FILE *stc_file;
   char fname[STRLEN];
   int vno;
@@ -92,7 +94,8 @@ STC_FILE *StcOpen(char *fstem) {
   return stc_file;
 }
 
-void StcClose(STC_FILE *stc_file) {
+void StcClose(STC_FILE *stc_file)
+{
   if (stc_file->file_handle) fclose(stc_file->file_handle);
 
   if (stc_file->vertices) {
@@ -102,7 +105,8 @@ void StcClose(STC_FILE *stc_file) {
   }
 }
 
-STC_FRAME *StcReadFrame(int fno, STC_FILE *stc_file) {
+STC_FRAME *StcReadFrame(int fno, STC_FILE *stc_file)
+{
   STC_FRAME *stc;
   int baseoffset, offset;
   int framesize, vno;
@@ -133,7 +137,8 @@ STC_FRAME *StcReadFrame(int fno, STC_FILE *stc_file) {
   return stc;
 }
 
-STC *StcRead(char *fstem) {
+STC *StcRead(char *fstem)
+{
   int j, vno;
   char fname[STRLEN];
   FILE *fp;
@@ -188,7 +193,8 @@ STC *StcRead(char *fstem) {
   return (stc);
 }
 
-void StcFree(STC *stc) {
+void StcFree(STC *stc)
+{
   if (stc->vertices) free(stc->vertices);
   if (stc->m_vals) MatrixFree(&stc->m_vals);
 

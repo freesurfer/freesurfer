@@ -75,7 +75,8 @@ static int load_inputs(VERTEX *v, double *v_inputs, int ninputs);
 static int fill_cpn_holes(GCSA *gcsa);
 static int fill_gcsan_holes(GCSA *gcsa);
 
-GCSA *GCSAalloc(int ninputs, int icno_priors, int icno_classifiers) {
+GCSA *GCSAalloc(int ninputs, int icno_priors, int icno_classifiers)
+{
   char fname[STRLEN], *cp;
   int i, n;
   GCSA *gcsa;
@@ -171,7 +172,8 @@ GCSA *GCSAalloc(int ninputs, int icno_priors, int icno_classifiers) {
   return (gcsa);
 }
 
-int GCSAfree(GCSA **pgcsa) {
+int GCSAfree(GCSA **pgcsa)
+{
   int i, n;
   GCSA *gcsa;
   GCSA_NODE *gcsan;
@@ -216,7 +218,8 @@ int GCSAfree(GCSA **pgcsa) {
   v->origx,y,z should have original coordinates.
   second fundamental form should have been computed on
 */
-int GCSAtrainMeans(GCSA *gcsa, MRI_SURFACE *mris) {
+int GCSAtrainMeans(GCSA *gcsa, MRI_SURFACE *mris)
+{
   int vno, vno_prior, vno_classifier;
   VERTEX *v, *v_prior, *v_classifier;
   GCSA_NODE *gcsan;
@@ -258,7 +261,8 @@ int GCSAtrainMeans(GCSA *gcsa, MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int GCSAtrainCovariances(GCSA *gcsa, MRI_SURFACE *mris) {
+int GCSAtrainCovariances(GCSA *gcsa, MRI_SURFACE *mris)
+{
   int vno, vno_classifier, vno_prior;
   VERTEX *v, *v_classifier, *v_prior;
   GCSA_NODE *gcsan;
@@ -287,27 +291,31 @@ int GCSAtrainCovariances(GCSA *gcsa, MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-VERTEX *GCSAsourceToClassifierVertex(GCSA *gcsa, VERTEX *v) {
+VERTEX *GCSAsourceToClassifierVertex(GCSA *gcsa, VERTEX *v)
+{
   VERTEX *vdst;
 
   vdst = MHTfindClosestVertex(gcsa->mht_classifiers, gcsa->mris_classifiers, v);
   return (vdst);
 }
 /*------------------------------------------------------------------*/
-VERTEX *GCSAsourceToPriorVertex(GCSA *gcsa, VERTEX *v) {
+VERTEX *GCSAsourceToPriorVertex(GCSA *gcsa, VERTEX *v)
+{
   VERTEX *vdst;
   vdst = MHTfindClosestVertex(gcsa->mht_priors, gcsa->mris_priors, v);
   return (vdst);
 }
 /*------------------------------------------------------------------*/
-int GCSAsourceToPriorVertexNo(GCSA *gcsa, VERTEX *v) {
+int GCSAsourceToPriorVertexNo(GCSA *gcsa, VERTEX *v)
+{
   int vdstno;
   float dmin;
   vdstno = MHTfindClosestVertexNo(gcsa->mht_priors, gcsa->mris_priors, v, &dmin);
   return (vdstno);
 }
 
-static int GCSAupdateNodeMeans(GCSA_NODE *gcsan, int label, double *v_inputs, int ninputs) {
+static int GCSAupdateNodeMeans(GCSA_NODE *gcsan, int label, double *v_inputs, int ninputs)
+{
   int n, i;
   GCS *gcs;
 
@@ -370,7 +378,8 @@ static int GCSAupdateNodeMeans(GCSA_NODE *gcsan, int label, double *v_inputs, in
   return (NO_ERROR);
 }
 
-int GCSAnormalizeMeans(GCSA *gcsa) {
+int GCSAnormalizeMeans(GCSA *gcsa)
+{
   int vno, n, total_gcs, total_cps;
   GCSA_NODE *gcsan;
   GCS *gcs;
@@ -396,7 +405,8 @@ int GCSAnormalizeMeans(GCSA *gcsa) {
   return (NO_ERROR);
 }
 
-static int GCSAupdateNodeCovariance(GCSA_NODE *gcsan, int label, double *v_inputs, int ninputs) {
+static int GCSAupdateNodeCovariance(GCSA_NODE *gcsan, int label, double *v_inputs, int ninputs)
+{
   int n, i, j;
   GCS *gcs;
   double cov, mean1, mean2;
@@ -424,7 +434,8 @@ static int GCSAupdateNodeCovariance(GCSA_NODE *gcsan, int label, double *v_input
   return (NO_ERROR);
 }
 
-int GCSAnormalizeCovariances(GCSA *gcsa) {
+int GCSAnormalizeCovariances(GCSA *gcsa)
+{
   int vno, n, cno, i, j;
   GCSA_NODE *gcsan;
   GCS *gcs;
@@ -451,7 +462,8 @@ int GCSAnormalizeCovariances(GCSA *gcsa) {
           if (min_var < MIN_VAR) min_var = MIN_VAR;
           if (*MATRIX_RELT(gcs->m_cov, i, i) < min_var) *MATRIX_RELT(gcs->m_cov, i, i) = min_var;
         }
-      } else {
+      }
+      else {
         for (i = 1; i <= gcsa->ninputs; i++) {
           mean = VECTOR_ELT(gcs->v_means, i);
           min_var = mean * .1;
@@ -473,7 +485,8 @@ int GCSAnormalizeCovariances(GCSA *gcsa) {
       m_inv = MatrixIdentity(gcsa->ninputs, NULL);
       if (!m_inv) {
         fprintf(stderr, "vno %d, n = %d, m_cov is singular!\n", vno, n);
-      } else
+      }
+      else
         MatrixFree(&m_inv);
     }
   }
@@ -497,7 +510,8 @@ int GCSAnormalizeCovariances(GCSA *gcsa) {
   return (NO_ERROR);
 }
 
-int GCSAwrite(GCSA *gcsa, char *fname) {
+int GCSAwrite(GCSA *gcsa, char *fname)
+{
   FILE *fp;
   int vno, n, i, j;
   GCSA_NODE *gcsan;
@@ -574,7 +588,8 @@ int GCSAwrite(GCSA *gcsa, char *fname) {
   return (NO_ERROR);
 }
 
-GCSA *GCSAread(char *fname) {
+GCSA *GCSAread(char *fname)
+{
   FILE *fp;
   int vno, n, ninputs, icno_classifiers, icno_priors, magic, i, j;
   GCSA_NODE *gcsan;
@@ -703,7 +718,8 @@ GCSA *GCSAread(char *fname) {
   return (gcsa);
 }
 /*---------------------------------------------------------*/
-int GCSAbuildMostLikelyLabels(GCSA *gcsa, MRI_SURFACE *mris) {
+int GCSAbuildMostLikelyLabels(GCSA *gcsa, MRI_SURFACE *mris)
+{
   int vno, vno_prior, max_label, n;
   VERTEX *v;  //, *v_prior ;
   CP_NODE *cpn;
@@ -738,7 +754,8 @@ int GCSAbuildMostLikelyLabels(GCSA *gcsa, MRI_SURFACE *mris) {
 }
 
 static int Gvno = -1;
-int GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris) {
+int GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris)
+{
   int vno, vno_classifier, label, vno_prior;
   VERTEX *v, *v_classifier, *v_prior;
   GCSA_NODE *gcsan;
@@ -793,7 +810,8 @@ int GCSAlabel(GCSA *gcsa, MRI_SURFACE *mris) {
 }
 
 static int GCSANclassify(
-    GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs, double *pprob, int *exclude_list, int nexcluded) {
+    GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs, double *pprob, int *exclude_list, int nexcluded)
+{
   int n, best_label, i, j, skip;
   double p, ptotal, max_p, det;
   CP *cp;
@@ -859,7 +877,8 @@ static int GCSANclassify(
   return (best_label);
 }
 
-int dump_gcsan(GCSA_NODE *gcsan, CP_NODE *cpn, FILE *fp, int verbose) {
+int dump_gcsan(GCSA_NODE *gcsan, CP_NODE *cpn, FILE *fp, int verbose)
+{
   int n, index, i, j;
   GCS *gcs;
   char *name;
@@ -882,7 +901,8 @@ int dump_gcsan(GCSA_NODE *gcsan, CP_NODE *cpn, FILE *fp, int verbose) {
       MatrixPrint(fp, gcs->v_means);
       fprintf(fp, "\tcovariance:\n");
       MatrixPrint(fp, gcs->m_cov);
-    } else {
+    }
+    else {
       fprintf(fp, "\tmean %2.2f +- %2.1f\n", VECTOR_ELT(gcs->v_means, 1), sqrt(*MATRIX_RELT(gcs->m_cov, 1, 1)));
     }
     if (verbose) {
@@ -898,7 +918,8 @@ int dump_gcsan(GCSA_NODE *gcsan, CP_NODE *cpn, FILE *fp, int verbose) {
   return (NO_ERROR);
 }
 
-int GCSAdump(GCSA *gcsa, int vno, MRI_SURFACE *mris, FILE *fp) {
+int GCSAdump(GCSA *gcsa, int vno, MRI_SURFACE *mris, FILE *fp)
+{
   int vno_classifier, vno_prior;
   VERTEX *vclassifier, *v, *vprior;
   GCSA_NODE *gcsan;
@@ -926,7 +947,8 @@ int GCSAdump(GCSA *gcsa, int vno, MRI_SURFACE *mris, FILE *fp) {
   return (NO_ERROR);
 }
 
-static int GCSAupdateNodeGibbsPriors(CP_NODE *cpn, int label, MRI_SURFACE *mris, int vno) {
+static int GCSAupdateNodeGibbsPriors(CP_NODE *cpn, int label, MRI_SURFACE *mris, int vno)
+{
   int n, i, j, m, nbr_label;
   CP *cp;
   VERTEX *v, *vn;
@@ -1033,7 +1055,8 @@ static int GCSAupdateNodeGibbsPriors(CP_NODE *cpn, int label, MRI_SURFACE *mris,
   return (NO_ERROR);
 }
 
-static int edge_to_index(VERTEX *v, VERTEX *vn) {
+static int edge_to_index(VERTEX *v, VERTEX *vn)
+{
   float dx, dy, dz, dot1, dot2, index, x_dist, y_dist, z_dist;
 
   /* first find out which of the principal directions the edge connecting v
@@ -1067,7 +1090,8 @@ static int edge_to_index(VERTEX *v, VERTEX *vn) {
 int gcsa_write_iterations = 0;
 char *gcsa_write_fname = NULL;
 
-int GCSAreclassifyUsingGibbsPriors(GCSA *gcsa, MRI_SURFACE *mris) {
+int GCSAreclassifyUsingGibbsPriors(GCSA *gcsa, MRI_SURFACE *mris)
+{
   int *indices;
   int n, vno, i, nchanged, label, best_label, old_label, vno_prior, vno_classifier, niter, examined;
   double ll, max_ll;
@@ -1168,7 +1192,8 @@ int GCSAreclassifyUsingGibbsPriors(GCSA *gcsa, MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRIScomputeVertexPermutation(MRI_SURFACE *mris, int *indices) {
+int MRIScomputeVertexPermutation(MRI_SURFACE *mris, int *indices)
+{
   int i, index, tmp;
 
   for (i = 0; i < mris->nvertices; i++) {
@@ -1185,7 +1210,8 @@ int MRIScomputeVertexPermutation(MRI_SURFACE *mris, int *indices) {
 }
 
 static double gcsaNbhdGibbsLogLikelihood(
-    GCSA *gcsa, MRI_SURFACE *mris, double *v_inputs, int vno, double gibbs_coef, int label) {
+    GCSA *gcsa, MRI_SURFACE *mris, double *v_inputs, int vno, double gibbs_coef, int label)
+{
   double total_ll, ll;
   int n, old_annotation;
   VERTEX *v;
@@ -1206,8 +1232,8 @@ static double gcsaNbhdGibbsLogLikelihood(
   return (total_ll);
 }
 
-static double gcsaVertexGibbsLogLikelihood(
-    GCSA *gcsa, MRI_SURFACE *mris, double *v_inputs, int vno, double gibbs_coef) {
+static double gcsaVertexGibbsLogLikelihood(GCSA *gcsa, MRI_SURFACE *mris, double *v_inputs, int vno, double gibbs_coef)
+{
   double ll, nbr_prior, det;
   int nbr_label, label, i, j, np, n, nc, vno_prior, vno_classifier;
   GCSA_NODE *gcsan;
@@ -1275,7 +1301,8 @@ static double gcsaVertexGibbsLogLikelihood(
         nbr_prior += log(cp->label_priors[i][j]);
       else
         nbr_prior += BIG_AND_NEGATIVE;
-    } else /* never occurred - make it unlikely */
+    }
+    else /* never occurred - make it unlikely */
     {
       nbr_prior += BIG_AND_NEGATIVE;
     }
@@ -1298,7 +1325,8 @@ getCP(CP_NODE *cpn, int label)
 }
 #endif
 
-static GCS *getGC(GCSA_NODE *gcsan, int label, int *pn) {
+static GCS *getGC(GCSA_NODE *gcsan, int label, int *pn)
+{
   int n;
 
   for (n = 0; n < gcsan->nlabels; n++)
@@ -1309,7 +1337,8 @@ static GCS *getGC(GCSA_NODE *gcsan, int label, int *pn) {
   return (NULL);
 }
 
-int GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area) {
+int GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area)
+{
   int i, n, vno, annotation, best_label, max_ll, ll, nchanged, total;
   VERTEX *v, *vn;
   double v_inputs[100];
@@ -1355,7 +1384,8 @@ int GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area) {
   return (total);
 }
 
-static int load_inputs(VERTEX *v, double *v_inputs, int ninputs) {
+static int load_inputs(VERTEX *v, double *v_inputs, int ninputs)
+{
   v_inputs[0] = v->val;
   if (ninputs > 1) v_inputs[1] = v->val2;
   if (ninputs > 2) v_inputs[2] = v->imag_val;
@@ -1363,7 +1393,8 @@ static int load_inputs(VERTEX *v, double *v_inputs, int ninputs) {
 }
 
 #if 1
-static int fill_cpn_holes(GCSA *gcsa) {
+static int fill_cpn_holes(GCSA *gcsa)
+{
   int min_n, vno, n, i, nholes, nfilled, vno_classifier;
   double dist, min_dist;
   float x, y, z;
@@ -1466,7 +1497,8 @@ static int fill_cpn_holes(GCSA *gcsa) {
   return (NO_ERROR);
 }
 
-static int fill_gcsan_holes(GCSA *gcsa) {
+static int fill_gcsan_holes(GCSA *gcsa)
+{
   int min_n, vno, n, nholes, nfilled;
   double dist, min_dist;
   float x, y, z;
@@ -1531,7 +1563,8 @@ static int fill_gcsan_holes(GCSA *gcsa) {
   return (NO_ERROR);
 }
 #else
-static int fill_cpn_holes(GCSA *gcsa) {
+static int fill_cpn_holes(GCSA *gcsa)
+{
   int vno, n, nholes, nfilled, filled, i;
   VERTEX *v;
   CP_NODE *cpn, *cpn_nbr;
@@ -1572,7 +1605,8 @@ static int fill_cpn_holes(GCSA *gcsa) {
   return (NO_ERROR);
 }
 
-static int fill_gcsan_holes(GCSA *gcsa) {
+static int fill_gcsan_holes(GCSA *gcsa)
+{
   int vno, n, i, nholes, nfilled, filled;
   VERTEX *v;
   GCSA_NODE *gcsan, *gcsan_nbr;
@@ -1603,7 +1637,8 @@ static int fill_gcsan_holes(GCSA *gcsa) {
 }
 #endif
 
-static int add_gc_to_gcsan(GCSA_NODE *gcsan_src, int nsrc, GCSA_NODE *gcsan_dst) {
+static int add_gc_to_gcsan(GCSA_NODE *gcsan_src, int nsrc, GCSA_NODE *gcsan_dst)
+{
   int ndst;
 
   for (ndst = 0; ndst < gcsan_dst->nlabels; ndst++)
@@ -1640,7 +1675,8 @@ static int add_gc_to_gcsan(GCSA_NODE *gcsan_src, int nsrc, GCSA_NODE *gcsan_dst)
     gcsan_dst->gcs[ndst].m_cov = MatrixCopy(gcsan_src->gcs[nsrc].m_cov, NULL);
     gcsan_dst->gcs[ndst].v_means = MatrixCopy(gcsan_src->gcs[nsrc].v_means, NULL);
     gcsan_dst->max_labels = gcsan_dst->nlabels;
-  } else /* add to existing GCS */
+  }
+  else /* add to existing GCS */
   {
     GCS *gcs_src, *gcs_dst;
     MATRIX *m_src, *m_dst;
@@ -1858,7 +1894,8 @@ findClosestNode(GCSA *gcsa, int vno, int label)
 }
 
 #endif
-int GCSAputInputType(GCSA *gcsa, int type, char *fname, int navgs, int flags, int ino) {
+int GCSAputInputType(GCSA *gcsa, int type, char *fname, int navgs, int flags, int ino)
+{
   if (ino < 0 || ino >= gcsa->ninputs)
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM,
@@ -1875,7 +1912,8 @@ int GCSAputInputType(GCSA *gcsa, int type, char *fname, int navgs, int flags, in
   return (NO_ERROR);
 }
 
-int GCSAsetCovariancesToIdentity(GCSA *gcsa) {
+int GCSAsetCovariancesToIdentity(GCSA *gcsa)
+{
   GCSA_NODE *gcsan;
   GCS *gcs;
   int i, n;
@@ -1893,7 +1931,8 @@ int GCSAsetCovariancesToIdentity(GCSA *gcsa) {
 }
 
 #define MIN_DET 1e-7
-int gcsaFixSingularCovarianceMatrices(GCSA *gcsa) {
+int gcsaFixSingularCovarianceMatrices(GCSA *gcsa)
+{
   int j, fixed = 0, r, n, num, nparams, regularized = 0;
   GCSA_NODE *gcsan;
   GCS *gcs;
@@ -1931,7 +1970,8 @@ int gcsaFixSingularCovarianceMatrices(GCSA *gcsa) {
     }
     min_det = min_det / pow(100.0, gcsa->ninputs);
     printf("  using min determinant for regularization = %2.3f\n", min_det);
-  } else
+  }
+  else
     min_det = MIN_DET;
 
   for (regularized = fixed = j = 0; j < gcsa->mris_classifiers->nvertices; j++) {
@@ -1948,7 +1988,8 @@ int gcsaFixSingularCovarianceMatrices(GCSA *gcsa) {
         for (r = 0; r < gcsa->ninputs; r++) {
           *MATRIX_RELT(gcs->m_cov, r + 1, r + 1) += vars[r];
         }
-      } else /* not singular - check if it is ill-conditioned */
+      }
+      else /* not singular - check if it is ill-conditioned */
       {
         if ((gcs->total_training * gcsa->ninputs < 2 * nparams && det < 0.1) ||
             ((det < min_det) && (gcs->total_training < 4 * nparams))) {
@@ -1983,7 +2024,8 @@ int gcsaFixSingularCovarianceMatrices(GCSA *gcsa) {
   return (NO_ERROR);
 }
 
-int GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg) {
+int GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg)
+{
   int old_index, vno, vno_classifier, vno_prior, label, index, changed, cc_annotation;
   VERTEX *v, *v_classifier, *v_prior;
   GCSA_NODE *gcsan;
@@ -2017,14 +2059,16 @@ int GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg) {
         CTABannotationAtIndex(mris->ct, index, &v->annotation);
         changed++;
       }
-    } else if (IS_LAT_VENT(label) || IS_THALAMUS(label) || IS_CAUDATE(label)) {
+    }
+    else if (IS_LAT_VENT(label) || IS_THALAMUS(label) || IS_CAUDATE(label)) {
       CTABfindName(mris->ct, "Medial_wall", &index);
       if (index < 0) CTABfindName(mris->ct, "unknown", &index);
       if (index != old_index && index >= 0) {
         CTABannotationAtIndex(mris->ct, index, &v->annotation);
         changed++;
       }
-    } else if (old_index >= 0 && mris->ct && !stricmp(mris->ct->entries[old_index]->name, "corpuscallosum")) {
+    }
+    else if (old_index >= 0 && mris->ct && !stricmp(mris->ct->entries[old_index]->name, "corpuscallosum")) {
       // find 2nd most likely label that isn't callosum
       CTABannotationAtIndex(mris->ct, old_index, &cc_annotation);
       label = GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, &p, &cc_annotation, 1);
@@ -2037,7 +2081,8 @@ int GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg) {
   printf("%d labels changed using aseg\n", changed);
   return (NO_ERROR);
 }
-int GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris, int mark, int *exclude_list, int nexcluded) {
+int GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris, int mark, int *exclude_list, int nexcluded)
+{
   int old_index, vno, vno_classifier, vno_prior, label, index, changed, num, n;
   VERTEX *v, *v_classifier, *v_prior, *vn;
   GCSA_NODE *gcsan;

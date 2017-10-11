@@ -40,7 +40,8 @@ double round(double x);
   The seed will be different from microsecond-to-microsecond. This
   can be used as input to srand48().
   -------------------------------------------------------------------*/
-unsigned long PDFtodSeed(void) {
+unsigned long PDFtodSeed(void)
+{
   struct timeval tv;
   unsigned long seed;
   gettimeofday(&tv, NULL);
@@ -56,7 +57,8 @@ unsigned long PDFtodSeed(void) {
  *          distribution with zero mean and std dev of 1:
  *              pdf(x) = e^(x^2/2)/sqrt(2pi)
  ************************************************************/
-double PDFgaussian(void) {
+double PDFgaussian(void)
+{
   double v1, v2, r2;
 
   do {
@@ -74,7 +76,8 @@ double PDFgaussian(void) {
  *   pdf(x) = r*((r*(x-avg+1))^(r-1)) * exp(-r*(x-avg+1)) / (r-1)!
  * when order=1, an exponential distribution is generated.
  ************************************************************/
-double PDFerlang(int order) {
+double PDFerlang(int order)
+{
   double v, n;
 
   v = 0;
@@ -89,7 +92,8 @@ double PDFerlang(int order) {
   is the probability that the random number will be <= xcdf[n].  See
   also PDFloadCDF().
   -------------------------------------------------------------------*/
-double PDFsampleCDF(double *xcdf, double *cdf, int ncdf) {
+double PDFsampleCDF(double *xcdf, double *cdf, int ncdf)
+{
   double u;
   int n;
 
@@ -119,7 +123,8 @@ double PDFsampleCDF(double *xcdf, double *cdf, int ncdf) {
   PDFsearchOrderedTable() - returns the index in y such that y(index)
   is closest to u. Assumes that y is sorted from lowest to highest.
   ----------------------------------------------------------------*/
-int PDFsearchOrderedTable(double u, double *y, int ny) {
+int PDFsearchOrderedTable(double u, double *y, int ny)
+{
   int n1, n2, n3;
 
   n1 = 0;
@@ -130,7 +135,8 @@ int PDFsearchOrderedTable(double u, double *y, int ny) {
     if (y[n2] <= u) {
       n1 = n2;
       n2 = (int)round((n2 + n3) / 2);
-    } else {
+    }
+    else {
       n3 = n2;
       n2 = (int)round((n1 + n2) / 2);
     }
@@ -146,7 +152,8 @@ int PDFsearchOrderedTable(double u, double *y, int ny) {
   two columns. The first column is the x at which the cdf is sampled,
   the second column is the value of the cdf. See also PDFsampleCDF().
   ----------------------------------------------------------------*/
-int PDFloadCDF(char *fname, double **xcdf, double **cdf, int *ncdf) {
+int PDFloadCDF(char *fname, double **xcdf, double **cdf, int *ncdf)
+{
   FILE *fp;
   int n;
   char tmpstring[1000];

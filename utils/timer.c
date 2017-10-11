@@ -29,7 +29,8 @@
 #include "sys/timeb.h"
 #include "timer.h"
 
-struct timeb *TimerStart(struct timeb *then) {
+struct timeb *TimerStart(struct timeb *then)
+{
 /* according to the header ftime() is obsolete */
 #if 0
   ftime(then) ;
@@ -44,7 +45,8 @@ struct timeb *TimerStart(struct timeb *then) {
   return then;
 }
 
-int TimerStop(struct timeb *then) {
+int TimerStop(struct timeb *then)
+{
 #if 0
   struct timeb now ;
   int          msec, now_msec, then_msec ;

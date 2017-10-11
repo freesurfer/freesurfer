@@ -26,7 +26,8 @@
 #include "tukey.h"
 #include <stdlib.h>
 
-double tukey_biweight(double residual, double C) {
+double tukey_biweight(double residual, double C)
+{
   double p;
 
   if (abs(residual) > C)

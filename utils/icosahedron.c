@@ -1717,7 +1717,8 @@ IC_FACE ic4_faces[5120] = {
     {{2561, 2559, 2197}}, {{2561, 2197, 558}},  {{624, 2560, 2562}},  {{2560, 642, 2561}},  {{2562, 2560, 2561}},
     {{2562, 2561, 558}},  {{624, 2562, 2478}},  {{2562, 558, 2202}},  {{2478, 2562, 2202}}, {{2478, 2202, 12}}};
 
-MRI_SURFACE *ICOreadOverAlloc(const char *fname, double pct_over) {
+MRI_SURFACE *ICOreadOverAlloc(const char *fname, double pct_over)
+{
   ICOSAHEDRON *ico;
   int fno, vno, n1, n2, n, vn;
   MRI_SURFACE *mris;
@@ -1863,7 +1864,8 @@ MRI_SURFACE *ICOreadOverAlloc(const char *fname, double pct_over) {
   free(ico);
   return (mris);
 }
-MRI_SURFACE *ICOread(const char *fname) {
+MRI_SURFACE *ICOread(const char *fname)
+{
   ICOSAHEDRON *ico;
   int fno, vno, n1, n2, n, vn;
   MRI_SURFACE *mris;
@@ -2014,7 +2016,8 @@ MRI_SURFACE *ICOread(const char *fname) {
   file "FREESURFER_HOME/lib/bem/ic%d.tri" where %d is the "order".  As read in,
   the vertices of the icosahedron are on the unit sphere.
   -------------------------------------------------------------------*/
-ICOSAHEDRON *read_icosahedron_by_order(int order) {
+ICOSAHEDRON *read_icosahedron_by_order(int order)
+{
   char fname[STRLEN], *FREESURFER_HOME;
 
   FREESURFER_HOME = getenv("FREESURFER_HOME");
@@ -2025,7 +2028,8 @@ ICOSAHEDRON *read_icosahedron_by_order(int order) {
   return (read_icosahedron(fname));
 }
 
-ICOSAHEDRON *read_icosahedron(const char *fname) {
+ICOSAHEDRON *read_icosahedron(const char *fname)
+{
   FILE *fp;
   char line[200], *cp;
   int vno, fno, vno1, vno2, vno3, n, nvertices, nfaces;
@@ -2056,11 +2060,13 @@ ICOSAHEDRON *read_icosahedron(const char *fname) {
       x = y;
       y = z;
       z = nx;
-    } else if (count == 6)  // else x, y, z, nx, ny, nz
+    }
+    else if (count == 6)  // else x, y, z, nx, ny, nz
     {
       vno = n + 1;
       // keep x, y, z as is
-    } else
+    }
+    else
       break;
     ico->vertices[vno - 1].x = x;
     ico->vertices[vno - 1].y = y;
@@ -2096,7 +2102,8 @@ ICOSAHEDRON *read_icosahedron(const char *fname) {
   return (ico);
 }
 
-int ICOreadVertexPositions(MRI_SURFACE *mris, const char *fname, int which) {
+int ICOreadVertexPositions(MRI_SURFACE *mris, const char *fname, int which)
+{
   ICOSAHEDRON *ico;
   int vno;
   VERTEX *v;
@@ -2143,7 +2150,8 @@ int ICOreadVertexPositions(MRI_SURFACE *mris, const char *fname, int which) {
   Note: I (doug) don't know I'm using the term "order" properly.
   I did not know what else to call this particular property.
   -------------------------------------------------------------------*/
-MRI_SURFACE *ReadIcoByOrder(int IcoOrder, float RescaleFactor) {
+MRI_SURFACE *ReadIcoByOrder(int IcoOrder, float RescaleFactor)
+{
   char *FREESURFER_HOME, trifile[2048];
   MRI_SURFACE *surf;
   VERTEX *v;
@@ -2175,7 +2183,8 @@ MRI_SURFACE *ReadIcoByOrder(int IcoOrder, float RescaleFactor) {
   of vertices.  Converts the number of vertices into the "order", then
   calls ReadIcoByOrder().
   ------------------------------------------------------------------*/
-MRI_SURFACE *ReadIcoByNVtxs(int nIcoVtxs, float RescaleFactor) {
+MRI_SURFACE *ReadIcoByNVtxs(int nIcoVtxs, float RescaleFactor)
+{
   MRI_SURFACE *surf;
   int IcoOrder;
 
@@ -2192,7 +2201,8 @@ MRI_SURFACE *ReadIcoByNVtxs(int nIcoVtxs, float RescaleFactor) {
   Note: I (doug) don't know I'm using the term "order" properly.
   I did not know what else to call this particular property.
   --------------------------------------------------------------*/
-int IcoOrderFromNVtxs(int nIcoVtxs) {
+int IcoOrderFromNVtxs(int nIcoVtxs)
+{
   int IcoOrder = -1;
 
   switch (nIcoVtxs) {
@@ -2227,7 +2237,8 @@ int IcoOrderFromNVtxs(int nIcoVtxs) {
 /*-------------------------------------------------------------
   IcoNVtxsFromOrder()
   --------------------------------------------------------------*/
-int IcoNVtxsFromOrder(int IcoOrder) {
+int IcoNVtxsFromOrder(int IcoOrder)
+{
   int nIcoVtxs = -1;
 
   switch (IcoOrder) {
@@ -2260,7 +2271,8 @@ int IcoNVtxsFromOrder(int IcoOrder) {
   return (nIcoVtxs);
 }
 
-int IcoFindNClosestVertices(IC_VERTEX *vertices, int nvertices, float nx, float ny, float nz, int num, int *pv) {
+int IcoFindNClosestVertices(IC_VERTEX *vertices, int nvertices, float nx, float ny, float nz, int num, int *pv)
+{
   int index, max_n, nout, found, n;
   double max_dot, dot;
 
@@ -2290,7 +2302,8 @@ int IcoFindNClosestVertices(IC_VERTEX *vertices, int nvertices, float nx, float 
   return (pv[0]);
 }
 
-int IcoFindClosestVertex(IC_VERTEX *vertices, int nvertices, float nx, float ny, float nz) {
+int IcoFindClosestVertex(IC_VERTEX *vertices, int nvertices, float nx, float ny, float nz)
+{
   int n, max_n;
   float mag, dot, max_dot;
 
@@ -2311,7 +2324,8 @@ int IcoFindClosestVertex(IC_VERTEX *vertices, int nvertices, float nx, float ny,
   return (max_n);
 }
 
-static ICO_FACE_LIST *ICPbuildFaceList(MRI_SURFACE *ico1, MRI_SURFACE *ico2) {
+static ICO_FACE_LIST *ICPbuildFaceList(MRI_SURFACE *ico1, MRI_SURFACE *ico2)
+{
   ICO_FACE_LIST *icf;
   FACE *f1, *f2;
   int fno1, fno2, min_fno, index;
@@ -2390,7 +2404,8 @@ static ICO_FACE_LIST *ICPbuildFaceList(MRI_SURFACE *ico1, MRI_SURFACE *ico2) {
   return (icf);
 }
 
-ICO_PYRAMID *ICPread(int min_level, int max_level) {
+ICO_PYRAMID *ICPread(int min_level, int max_level)
+{
   ICO_PYRAMID *icp;
   char *cp, fname[STRLEN];
   int ico_no;

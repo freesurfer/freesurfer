@@ -72,7 +72,8 @@
 
 /* solve ut + f |grad(u)| = e uxx */
 
-MRI *MRIregionGrow(MRI *mri_src, MRI *mri_distance, float x0, float y0, float z0, int niter) {
+MRI *MRIregionGrow(MRI *mri_src, MRI *mri_distance, float x0, float y0, float z0, int niter)
+{
   int width, height, depth, t, x, y, z, xp1, xm1, yp1, ym1, zp1, zm1, write_iter;
   double dx, dy, dz, dxx, dyy, dzz, dxy, dxz, dyz, dist_xp1, dist_xm1, dist_yp1, dist_ym1, dist_zp1, dist_zm1, dist, km,
       denom, mag, dist_xp1yp1, dist_xp1zp1, dist_yp1zp1, grad, F, laplacian, dx_f, dx_b, dy_f, dy_b, dz_f, dz_b, sdx,
@@ -305,7 +306,8 @@ MRI *MRIregionGrow(MRI *mri_src, MRI *mri_distance, float x0, float y0, float z0
 
            Description:
 ----------------------------------------------------------------------*/
-MRI *MRIbuildDistanceMap(MRI *mri_src, MRI *mri_distance, float x0, float y0, float z0, float r) {
+MRI *MRIbuildDistanceMap(MRI *mri_src, MRI *mri_distance, float x0, float y0, float z0, float r)
+{
   int width, height, depth, x, y, z;
   float dist, xdist, ydist, zdist, norm;
 
@@ -340,7 +342,8 @@ MRI *MRIbuildDistanceMap(MRI *mri_src, MRI *mri_distance, float x0, float y0, fl
 
            Description:
 ----------------------------------------------------------------------*/
-MRI *MRIextractInterior(MRI *mri_src, MRI *mri_distance, MRI *mri_dst) {
+MRI *MRIextractInterior(MRI *mri_src, MRI *mri_distance, MRI *mri_dst)
+{
   int width, height, depth, x, y, z;
   float *pdist, dist;
   BUFTYPE *pdst, *psrc;
@@ -373,7 +376,8 @@ MRI *MRIextractInterior(MRI *mri_src, MRI *mri_distance, MRI *mri_dst) {
 
            Description:
 ----------------------------------------------------------------------*/
-MRI *MRIupdateDistanceMap(MRI *mri_distance) {
+MRI *MRIupdateDistanceMap(MRI *mri_distance)
+{
   int width, height, depth, x, y, z, xk, yk, zk, x0, y0, z0, xmin, ymin, zmin;
   float dist, min_dist, xdist, ydist, zdist;
 

@@ -36,7 +36,8 @@ using namespace std;
 
 // ======================================================================
 
-GCAMorphUtils::GCAMorphUtils(void) : varTypeMap(), scalarTypeMap() {
+GCAMorphUtils::GCAMorphUtils(void) : varTypeMap(), scalarTypeMap()
+{
   std::cout << __FUNCTION__ << ": Will not write out saved, saved2 and saved original positions" << std::endl;
   std::cout << __FUNCTION__ << ": Will not write out spacing scalar value" << std::endl;
 
@@ -102,7 +103,8 @@ GCAMorphUtils::GCAMorphUtils(void) : varTypeMap(), scalarTypeMap() {
   }
 }
 
-void GCAMorphUtils::Write(const GCAM *src, string fName) const {
+void GCAMorphUtils::Write(const GCAM *src, string fName) const
+{
   // Construct the filename, using fName passed by value
   fName += ".nc";
 
@@ -217,7 +219,8 @@ void GCAMorphUtils::Write(const GCAM *src, string fName) const {
         if (gcamn.gc != NULL) {
           mean.at(i1d) = gcamn.gc->means[0];
           variance.at(i1d) = gcamn.gc->covars[0];
-        } else {
+        }
+        else {
           mean.at(i1d) = -1;
           variance.at(i1d) = -1;
         }
@@ -273,7 +276,8 @@ void GCAMorphUtils::Write(const GCAM *src, string fName) const {
 
 // ---------------
 
-void GCAMorphUtils::Read(GCAM **dst, string fName) const {
+void GCAMorphUtils::Read(GCAM **dst, string fName) const
+{
   // Make sure input pointer is NULL
   if (*dst != NULL) {
     cerr << __FUNCTION__ << ": dst pointer not NULL!" << endl;
@@ -458,7 +462,8 @@ void GCAMorphUtils::Read(GCAM **dst, string fName) const {
           gcamn.gc = alloc_gcs(1, 0, 1);
           gcamn.gc->means[0] = mean.at(i1d);
           gcamn.gc->covars[0] = variance.at(i1d);
-        } else {
+        }
+        else {
           gcamn.gc = NULL;
         }
       }

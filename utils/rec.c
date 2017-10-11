@@ -31,7 +31,8 @@
 #include "matrix.h"
 #include "rec.h"
 
-REC *RecRead(char *fname, int iop_neeg, int iop_nmeg) {
+REC *RecRead(char *fname, int iop_neeg, int iop_nmeg)
+{
   int i, j, tnchan;
   float f;
   FILE *fp;
@@ -103,7 +104,8 @@ REC *RecRead(char *fname, int iop_neeg, int iop_nmeg) {
    flag = 2 load only MEG channels
    flag = 4 don't pad with ramp
 */
-REC *RecReadPartially(char *fname, int iop_neeg, int iop_nmeg, int flag) {
+REC *RecReadPartially(char *fname, int iop_neeg, int iop_nmeg, int flag)
+{
   int i, j, tnchan;
   float f;
   FILE *fp;

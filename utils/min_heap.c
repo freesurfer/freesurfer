@@ -13,7 +13,8 @@ static int Min_HeapifyDown(MIN_HEAP *MH, int index);
 static int Min_HeapifyUp(MIN_HEAP *MH, int index);
 
 MIN_HEAP
-*Min_HeapAllocate(int max_size, int max_id_array_size) {
+*Min_HeapAllocate(int max_size, int max_id_array_size)
+{
   MIN_HEAP *MH;
   int i;
 
@@ -39,7 +40,8 @@ MIN_HEAP
     }
 
     for (i = 0; i < max_id_array_size; i++) MH->id_array[i] = -1;
-  } else {
+  }
+  else {
     fprintf(stderr, "Min_HeapAllocate: max_id_array_size is 0!!\n");
     return (NULL);
   }
@@ -48,7 +50,8 @@ MIN_HEAP
   return MH;
 }
 
-static int Min_HeapExchangeElements(MIN_HEAP *MH, int i, int j) {
+static int Min_HeapExchangeElements(MIN_HEAP *MH, int i, int j)
+{
   double tempHeapKey;
   int tempID = 0;
   void *tempData;
@@ -66,12 +69,14 @@ static int Min_HeapExchangeElements(MIN_HEAP *MH, int i, int j) {
   if (i == j) {
     fprintf(stderr, "Min_HeapExchangeElements: The indices %d and %d are the same!!\n", i, j);
     return (ERROR);
-  } else if (i < j) {
+  }
+  else if (i < j) {
     if (j != 2 * i + 1 && j != 2 * i + 2) {
       fprintf(stderr, "Min_HeapExchangeElements: %d is not the child of %d!!\n", j, i);
       return (ERROR);
     }
-  } else {
+  }
+  else {
     if (i != 2 * j + 1 && i != 2 * j + 2) {
       fprintf(stderr, "Min_HeapExchangeElements: %d is not the child of %d!!\n", i, j);
       return (ERROR);
@@ -101,7 +106,8 @@ static int Min_HeapExchangeElements(MIN_HEAP *MH, int i, int j) {
   return (NO_ERROR);
 }
 
-int Min_HeapEditKeyIndexID(MIN_HEAP *MH, int id, double newKey) {
+int Min_HeapEditKeyIndexID(MIN_HEAP *MH, int id, double newKey)
+{
   double tempKey;
 
   if (id < 0 || id >= MH->max_id_array_size) {
@@ -119,24 +125,29 @@ int Min_HeapEditKeyIndexID(MIN_HEAP *MH, int id, double newKey) {
 
   if (tempKey > newKey) {
     Min_HeapifyUp(MH, MH->id_array[id]);
-  } else if (tempKey < newKey) {
+  }
+  else if (tempKey < newKey) {
     Min_HeapifyDown(MH, MH->id_array[id]);
-  } else {
+  }
+  else {
     // key same as before, nothing to do
   }
   return (NO_ERROR);
 }
 
-int Min_HeapQueryKeyIndexID(MIN_HEAP *MH, int id, double *key) {
+int Min_HeapQueryKeyIndexID(MIN_HEAP *MH, int id, double *key)
+{
   if (Min_HeapIdIsInHeap(MH, id)) {
     *key = MH->MHE_array[MH->id_array[id]].HeapKey;
     return (NO_ERROR);
-  } else {
+  }
+  else {
     return (-1);
   }
 }
 
-int Min_HeapExtract(MIN_HEAP *MH, double *key, void **data, int *id) {
+int Min_HeapExtract(MIN_HEAP *MH, double *key, void **data, int *id)
+{
   if (MH->CurrHeapSize == 0) {
     fprintf(stderr, "Min_HeapExtract: There's no element to be extracted!!\n");
     return (ERROR);
@@ -162,7 +173,8 @@ int Min_HeapExtract(MIN_HEAP *MH, double *key, void **data, int *id) {
 }
 
 // Min_HeapifyDown assumes index might be bigger than its children but everyone above it is ok
-static int Min_HeapifyDown(MIN_HEAP *MH, int index) {
+static int Min_HeapifyDown(MIN_HEAP *MH, int index)
+{
   int left, right, smallest, curr_index;
 
   if (index < 0 || index >= MH->CurrHeapSize) {
@@ -183,7 +195,8 @@ static int Min_HeapifyDown(MIN_HEAP *MH, int index) {
         smallest = curr_index;
 
       if (right < MH->CurrHeapSize && MH->MHE_array[right].HeapKey < MH->MHE_array[smallest].HeapKey) smallest = right;
-    } else {
+    }
+    else {
       smallest = curr_index;
     }
 
@@ -199,7 +212,8 @@ static int Min_HeapifyDown(MIN_HEAP *MH, int index) {
 }
 
 // Min_HeapifyUp assumes index's parent might be bigger than it, but everyone belong it is ok.
-static int Min_HeapifyUp(MIN_HEAP *MH, int index) {
+static int Min_HeapifyUp(MIN_HEAP *MH, int index)
+{
   int parent, curr_index;
 
   if (index < 0 || index >= MH->CurrHeapSize) {
@@ -217,7 +231,8 @@ static int Min_HeapifyUp(MIN_HEAP *MH, int index) {
     if (MH->MHE_array[parent].HeapKey > MH->MHE_array[curr_index].HeapKey) {
       Min_HeapExchangeElements(MH, parent, curr_index);
       curr_index = parent;
-    } else {
+    }
+    else {
       break;
     }
   }
@@ -225,7 +240,8 @@ static int Min_HeapifyUp(MIN_HEAP *MH, int index) {
   return (NO_ERROR);
 }
 
-int Min_HeapIdIsInHeap(MIN_HEAP *MH, int id) {
+int Min_HeapIdIsInHeap(MIN_HEAP *MH, int id)
+{
   if (id < 0 || id >= MH->max_id_array_size) return (NOT_IN_HEAP);
 
   if (MH->id_array[id] < 0)
@@ -234,7 +250,8 @@ int Min_HeapIdIsInHeap(MIN_HEAP *MH, int id) {
     return (IS_IN_HEAP);
 }
 
-int Min_HeapInsert(MIN_HEAP *MH, double key, void *data, int id) {
+int Min_HeapInsert(MIN_HEAP *MH, double key, void *data, int id)
+{
   if (id < 0 || id >= MH->max_id_array_size) {
     fprintf(stderr, "Min_HeapInsert: ID %d is out of range. id_array size is %d\n", id, MH->max_id_array_size);
     return (ERROR);
@@ -250,7 +267,8 @@ int Min_HeapInsert(MIN_HEAP *MH, double key, void *data, int id) {
         stderr,
         "Min_HeapInsert: Heap runs out of space. Current version doesn't allocate more space when heap is full!!\n");
     return (ERROR);
-  } else {
+  }
+  else {
     MH->MHE_array[MH->CurrHeapSize].HeapKey = key;
     MH->MHE_array[MH->CurrHeapSize].Data = data;
     MH->MHE_array[MH->CurrHeapSize].id = id;
@@ -263,14 +281,16 @@ int Min_HeapInsert(MIN_HEAP *MH, double key, void *data, int id) {
   return (NO_ERROR);
 }
 
-int Min_HeapFree(MIN_HEAP *MH) {
+int Min_HeapFree(MIN_HEAP *MH)
+{
   free(MH->MHE_array);
   if (MH->id_array) free(MH->id_array);
   free(MH);
   return (NO_ERROR);
 }
 
-void Min_HeapInternalCheck(MIN_HEAP *MH, int PrintContent) {
+void Min_HeapInternalCheck(MIN_HEAP *MH, int PrintContent)
+{
   int i, total = 0;
   int child1, child2;
 
