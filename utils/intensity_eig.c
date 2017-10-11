@@ -5,7 +5,7 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
  * CVS Revision Info:
  *    $Author: nicks $
  *    $Date: 2011/03/02 00:04:45 $
@@ -23,7 +23,7 @@
  *
  */
 
-
+// clang-format off
 #include "intensity_eig.h"
 int intensity_eig_labels[NUM_INT_EIG_LABELS] =
   {
@@ -209,3 +209,4 @@ double intensity_eig_vectors[NUM_INT_EIG_LABELS][NUM_INT_EIG_LABELS] =
       -0.246691, 0.074886, -0.125556, 0.334524, -0.419321, 0.078670, -0.078760, 0.078946, 0.115704, 0.077912,
       0.016013, 0.035891 }
   };
+// clang-format on

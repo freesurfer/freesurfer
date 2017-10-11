@@ -22,36 +22,22 @@
  *
  */
 
-
+#include "xGrowableArray.h"
 #include <stdlib.h>
 #include <string.h>
-#include "xGrowableArray.h"
 #include "xDebug.h"
 
-char *xGArr_ksaErrorStrings [xGArr_knNumErrorCodes] =
-{
+char *xGArr_ksaErrorStrings[xGArr_knNumErrorCodes] = {
 
-  "No error.",
-  "Invalid object.",
-  "Invalid signature.",
-  "Allocation failed.",
-  "Last item.",
-  "Invalid error code."
-};
+    "No error.", "Invalid object.", "Invalid signature.", "Allocation failed.", "Last item.", "Invalid error code."};
 
+xGArr_tErr xGArr_New(xGrowableArrayRef *opList, int inSize, int inInitialNumItems) {
+  xGArr_tErr eResult = xGArr_tErr_NoErr;
+  xGrowableArrayRef this = NULL;
 
-xGArr_tErr xGArr_New ( xGrowableArrayRef* opList,
-                       int                inSize,
-                       int                inInitialNumItems )
-{
-
-  xGArr_tErr        eResult = xGArr_tErr_NoErr;
-  xGrowableArrayRef this    = NULL;
-
-  this = (xGrowableArrayRef) malloc( sizeof( xGrowableArray ) );
+  this = (xGrowableArrayRef)malloc(sizeof(xGrowableArray));
   ;
-  if ( NULL == this )
-  {
+  if (NULL == this) {
     eResult = xGArr_tErr_AllocationFailed;
     goto error;
   }
@@ -60,16 +46,15 @@ xGArr_tErr xGArr_New ( xGrowableArrayRef* opList,
   this->mSignature = xGArr_kSignature;
 
   /* initial values */
-  this->mnNumItems      = 0;
-  this->mnMaxNumItems   = inInitialNumItems;
+  this->mnNumItems = 0;
+  this->mnMaxNumItems = inInitialNumItems;
   this->mnItemSizeBytes = inSize;
-  this->mnMaxSizeBytes  = inInitialNumItems * inSize;
-  this->mnNext          = 0;
+  this->mnMaxSizeBytes = inInitialNumItems * inSize;
+  this->mnNext = 0;
 
   /* allocate initial storage */
-  this->mpData = malloc( this->mnMaxSizeBytes );
-  if ( NULL == this->mpData )
-  {
+  this->mpData = malloc(this->mnMaxSizeBytes);
+  if (NULL == this->mpData) {
     eResult = xGArr_tErr_AllocationFailed;
     goto error;
   }
@@ -81,15 +66,12 @@ xGArr_tErr xGArr_New ( xGrowableArrayRef* opList,
 
 error:
 
-  if ( NULL != this )
-  {
-    free( this );
+  if (NULL != this) {
+    free(this);
   }
 
-  if ( xGArr_tErr_NoErr != eResult )
-  {
-    DebugPrint( ( "Error %d in xGArr_New: %s\n",
-                  eResult, xGArr_GetErrorString( eResult ) ));
+  if (xGArr_tErr_NoErr != eResult) {
+    DebugPrint(("Error %d in xGArr_New: %s\n", eResult, xGArr_GetErrorString(eResult)));
   }
 
 cleanup:
@@ -97,23 +79,19 @@ cleanup:
   return eResult;
 }
 
-xGArr_tErr xGArr_Delete ( xGrowableArrayRef* iopList )
-{
+xGArr_tErr xGArr_Delete(xGrowableArrayRef *iopList) {
+  xGArr_tErr eResult = xGArr_tErr_NoErr;
+  xGrowableArrayRef this = NULL;
 
-  xGArr_tErr        eResult = xGArr_tErr_NoErr;
-  xGrowableArrayRef this    = NULL;
-
-  if ( iopList == NULL )
-  {
+  if (iopList == NULL) {
     eResult = xGArr_tErr_InvalidObject;
     goto error;
   }
 
   this = *iopList;
 
-  eResult = xGArr_Verify( this );
-  if ( xGArr_tErr_NoErr != eResult )
-  {
+  eResult = xGArr_Verify(this);
+  if (xGArr_tErr_NoErr != eResult) {
     goto error;
   }
 
@@ -121,8 +99,8 @@ xGArr_tErr xGArr_Delete ( xGrowableArrayRef* iopList )
   this->mSignature = 0x1;
 
   /* free us */
-  free( this->mpData );
-  free( this );
+  free(this->mpData);
+  free(this);
 
   *iopList = NULL;
 
@@ -130,10 +108,8 @@ xGArr_tErr xGArr_Delete ( xGrowableArrayRef* iopList )
 
 error:
 
-  if ( xGArr_tErr_NoErr != eResult )
-  {
-    DebugPrint( ( "Error %d in xGArr_Delete: %s\n",
-                  eResult, xGArr_GetErrorString( eResult ) ));
+  if (xGArr_tErr_NoErr != eResult) {
+    DebugPrint(("Error %d in xGArr_Delete: %s\n", eResult, xGArr_GetErrorString(eResult)));
   }
 
 cleanup:
@@ -141,37 +117,29 @@ cleanup:
   return eResult;
 }
 
+xGArr_tErr xGArr_Add(xGrowableArrayRef this, void *ipSrc) {
+  xGArr_tErr eResult = xGArr_tErr_NoErr;
+  void *pNewStorage = NULL;
 
-xGArr_tErr xGArr_Add ( xGrowableArrayRef this,
-                       void*      ipSrc )
-{
-
-  xGArr_tErr eResult     = xGArr_tErr_NoErr;
-  void*      pNewStorage = NULL;
-
-  eResult = xGArr_Verify( this );
-  if ( xGArr_tErr_NoErr != eResult )
-  {
+  eResult = xGArr_Verify(this);
+  if (xGArr_tErr_NoErr != eResult) {
     goto error;
   }
 
   /* if our num items is not less than our max items.... */
-  if ( !(this->mnNumItems < this->mnMaxNumItems) )
-  {
-
+  if (!(this->mnNumItems < this->mnMaxNumItems)) {
     /* allocate twice the storage */
-    pNewStorage = malloc( this->mnMaxSizeBytes * 2 );
-    if ( NULL == pNewStorage )
-    {
+    pNewStorage = malloc(this->mnMaxSizeBytes * 2);
+    if (NULL == pNewStorage) {
       eResult = xGArr_tErr_AllocationFailed;
       goto error;
     }
 
     /* copy our current data in */
-    memmove( pNewStorage, this->mpData, this->mnMaxSizeBytes );
+    memmove(pNewStorage, this->mpData, this->mnMaxSizeBytes);
 
     /* delete old storage and point to new one */
-    free( this->mpData );
+    free(this->mpData);
     this->mpData = pNewStorage;
     pNewStorage = NULL;
 
@@ -181,20 +149,17 @@ xGArr_tErr xGArr_Add ( xGrowableArrayRef this,
   }
 
   /* copy data into this location */
-  memmove( &((char*)this->mpData)[ this->mnNumItems * this->mnItemSizeBytes ],
-           ipSrc, this->mnItemSizeBytes );
+  memmove(&((char *)this->mpData)[this->mnNumItems * this->mnItemSizeBytes], ipSrc, this->mnItemSizeBytes);
 
   /* inc num items */
-  this->mnNumItems ++;
+  this->mnNumItems++;
 
   goto cleanup;
 
 error:
 
-  if ( xGArr_tErr_NoErr != eResult )
-  {
-    DebugPrint( ( "Error %d in xGArr_Add: %s\n",
-                  eResult, xGArr_GetErrorString( eResult ) ));
+  if (xGArr_tErr_NoErr != eResult) {
+    DebugPrint(("Error %d in xGArr_Add: %s\n", eResult, xGArr_GetErrorString(eResult)));
   }
 
 cleanup:
@@ -202,15 +167,11 @@ cleanup:
   return eResult;
 }
 
-
-xGArr_tErr xGArr_ResetIterator ( xGrowableArrayRef this )
-{
-
+xGArr_tErr xGArr_ResetIterator(xGrowableArrayRef this) {
   xGArr_tErr eResult = xGArr_tErr_NoErr;
 
-  eResult = xGArr_Verify( this );
-  if ( xGArr_tErr_NoErr != eResult )
-  {
+  eResult = xGArr_Verify(this);
+  if (xGArr_tErr_NoErr != eResult) {
     goto error;
   }
 
@@ -220,10 +181,8 @@ xGArr_tErr xGArr_ResetIterator ( xGrowableArrayRef this )
 
 error:
 
-  if ( xGArr_tErr_NoErr != eResult )
-  {
-    DebugPrint( ( "Error %d in xGArr_ResetIterator: %s\n",
-                  eResult, xGArr_GetErrorString( eResult ) ));
+  if (xGArr_tErr_NoErr != eResult) {
+    DebugPrint(("Error %d in xGArr_ResetIterator: %s\n", eResult, xGArr_GetErrorString(eResult)));
   }
 
 cleanup:
@@ -231,29 +190,22 @@ cleanup:
   return eResult;
 }
 
-xGArr_tErr xGArr_NextItem ( xGrowableArrayRef this,
-                            void*             opDest )
-{
-
+xGArr_tErr xGArr_NextItem(xGrowableArrayRef this, void *opDest) {
   xGArr_tErr eResult = xGArr_tErr_NoErr;
 
-  eResult = xGArr_Verify( this );
-  if ( xGArr_tErr_NoErr != eResult )
-  {
+  eResult = xGArr_Verify(this);
+  if (xGArr_tErr_NoErr != eResult) {
     goto error;
   }
 
   /* see if we're at the end */
-  if ( this->mnNext >= (this->mnNumItems) )
-  {
+  if (this->mnNext >= (this->mnNumItems)) {
     eResult = xGArr_tErr_LastItem;
     goto cleanup;
   }
 
   /* return data at this location */
-  memmove( opDest,
-           &((char*)this->mpData)[ this->mnNext * this->mnItemSizeBytes ],
-           this->mnItemSizeBytes );
+  memmove(opDest, &((char *)this->mpData)[this->mnNext * this->mnItemSizeBytes], this->mnItemSizeBytes);
 
   /* inc interator */
   this->mnNext++;
@@ -262,10 +214,8 @@ xGArr_tErr xGArr_NextItem ( xGrowableArrayRef this,
 
 error:
 
-  if ( xGArr_tErr_NoErr != eResult )
-  {
-    DebugPrint( ( "Error %d in xGArr_NextItem: %s\n",
-                  eResult, xGArr_GetErrorString( eResult ) ));
+  if (xGArr_tErr_NoErr != eResult) {
+    DebugPrint(("Error %d in xGArr_NextItem: %s\n", eResult, xGArr_GetErrorString(eResult)));
   }
 
 cleanup:
@@ -273,63 +223,50 @@ cleanup:
   return eResult;
 }
 
-xGArr_tErr xGArr_Clear  ( xGrowableArrayRef this )
-{
-
+xGArr_tErr xGArr_Clear(xGrowableArrayRef this) {
   xGArr_tErr eResult = xGArr_tErr_NoErr;
 
-  eResult = xGArr_Verify( this );
-  if ( xGArr_tErr_NoErr != eResult )
-  {
+  eResult = xGArr_Verify(this);
+  if (xGArr_tErr_NoErr != eResult) {
     goto error;
   }
 
   /* free our storage and realloc it */
-  free( this->mpData );
-  this->mpData = malloc( this->mnMaxSizeBytes );
-  if ( NULL == this->mpData )
-  {
+  free(this->mpData);
+  this->mpData = malloc(this->mnMaxSizeBytes);
+  if (NULL == this->mpData) {
     eResult = xGArr_tErr_AllocationFailed;
     goto error;
   }
 
   /* reset counter */
   this->mnNumItems = 0;
-  this->mnNext     = 0;
+  this->mnNext = 0;
 
   goto cleanup;
 
 error:
 
-  if ( xGArr_tErr_NoErr != eResult )
-  {
-    DebugPrint( ( "Error %d in xGArr_Clear: %s\n",
-                  eResult, xGArr_GetErrorString( eResult ) ));
+  if (xGArr_tErr_NoErr != eResult) {
+    DebugPrint(("Error %d in xGArr_Clear: %s\n", eResult, xGArr_GetErrorString(eResult)));
   }
 
 cleanup:
 
   return eResult;
-
-
 }
 
-
-xGArr_tErr xGArr_Verify ( xGrowableArrayRef this )
-{
-
+xGArr_tErr xGArr_Verify(xGrowableArrayRef this) {
   xGArr_tErr eResult = xGArr_tErr_NoErr;
 
   /* check for null ptr */
-  if ( NULL == this )
-  {
+  if (NULL == this) {
     eResult = xGArr_tErr_InvalidObject;
     goto cleanup;
   }
 
   /* check signature */
-  if ( xGArr_kSignature != this->mSignature )
-  {
+  if (xGArr_kSignature != this->mSignature) {
     eResult = xGArr_tErr_InvalidSignature;
     goto cleanup;
   }
@@ -337,19 +274,14 @@ xGArr_tErr xGArr_Verify ( xGrowableArrayRef this )
 cleanup:
 
   return eResult;
-
 }
 
-char* xGArr_GetErrorString ( xGArr_tErr ieCode )
-{
-
+char *xGArr_GetErrorString(xGArr_tErr ieCode) {
   xGArr_tErr eCode = ieCode;
 
-  if ( ieCode    < 0
-       || ieCode >= xGArr_knNumErrorCodes )
-  {
+  if (ieCode < 0 || ieCode >= xGArr_knNumErrorCodes) {
     eCode = xGArr_tErr_InvalidErrorCode;
   }
 
-  return xGArr_ksaErrorStrings [eCode];
+  return xGArr_ksaErrorStrings[eCode];
 }
