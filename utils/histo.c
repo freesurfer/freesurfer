@@ -1187,7 +1187,21 @@ HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax)
 
   bin_no = nint((val - bmin) / bin_size) ;
   if (bin_no < histo->nbins && bin_no >= 0)
-    histo->counts[bin_no]++ ;
+  {
+    double dp, dn, dbin ;
+    int    bp, bn ;
+    dbin = ((val - bmin) / bin_size) ;
+    dp = dbin-floor(dbin) ;
+    dn = ceil(dbin)-dbin ;
+    bp = (int)floor(dbin) ;
+    bn = (int)ceil(dbin) ;
+    if (bp < 0)
+      bp = 0 ;
+    if (bn >= histo->nbins)
+      bn = histo->nbins-1 ;
+    histo->counts[bn] += dp ;
+    histo->counts[bp]  += dn ;
+  }
   else
   {
     if (bin_no < bmin)
