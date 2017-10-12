@@ -706,7 +706,7 @@ float BackpropTrainEpoch(
     void *user)
 {
   char *input_tested;
-  float *inputs, *targets, error_ratio;
+  float *inputs, *targets;
   int tested, index, min_trial, max_trial, i;
   BACKPROP *new_bp = NULL;
 
@@ -753,7 +753,6 @@ float BackpropTrainEpoch(
   for adaptive learning rate: If sse increases by more than ERROR_RATIO,
   then update the step size according to:
 
-/*
 for adaptive learning rate: If sse increases by more than ERROR_RATIO,
 then update the step size according to:
 
