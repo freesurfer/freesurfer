@@ -48,7 +48,8 @@
 
 extern int errno;
 
-int CMAfreeOutlineField(CMAoutlineField **of) {
+int CMAfreeOutlineField(CMAoutlineField **of)
+{
   CMAoutlineField *ofp;
   int i;
 
@@ -81,7 +82,8 @@ int CMAfreeOutlineField(CMAoutlineField **of) {
 
 } /* end CMAfreeOutlineField() */
 
-CMAoutlineField *CMAoutlineFieldAlloc(int width, int height) {
+CMAoutlineField *CMAoutlineFieldAlloc(int width, int height)
+{
   CMAoutlineField *of;
   int i;
 
@@ -146,7 +148,8 @@ CMAoutlineField *CMAoutlineFieldAlloc(int width, int height) {
 
 } /* end CMAoutlineFieldAlloc() */
 
-int CMAclearFillField(CMAoutlineField *field) {
+int CMAclearFillField(CMAoutlineField *field)
+{
   int i;
 
   for (i = 0; i < field->height; i++)
@@ -158,7 +161,8 @@ int CMAclearFillField(CMAoutlineField *field) {
 } /* end CMAclearFillField() */
 
 /* fills with CMA_FILL_INTERIOR to non-zero values */
-int CMAfill(CMAoutlineField *field, short seed_x, short seed_y) {
+int CMAfill(CMAoutlineField *field, short seed_x, short seed_y)
+{
   if (seed_x < 0 || seed_x >= field->width) return (NO_ERROR);
 
   if (seed_y < 0 || seed_y >= field->height) return (NO_ERROR);
@@ -176,7 +180,8 @@ int CMAfill(CMAoutlineField *field, short seed_x, short seed_y) {
 
 } /* end CMAfill() */
 
-int CMAclaimPoints(CMAoutlineField *field, short label, short *points, int n_points, short seed_x, short seed_y) {
+int CMAclaimPoints(CMAoutlineField *field, short label, short *points, int n_points, short seed_x, short seed_y)
+{
   int i, j;
   short x, y;
 
@@ -237,21 +242,24 @@ int CMAclaimPoints(CMAoutlineField *field, short label, short *points, int n_poi
 
 } /* end CMAclaimPoints() */
 
-int CMAvalueClaims(CMAoutlineClaim *claim) {
+int CMAvalueClaims(CMAoutlineClaim *claim)
+{
   int i;
 
   for (i = 0; i < MAX_OUTLINE_CLAIMS; i++) claim->claim_values[i] = 0.0;
 
   if (claim->n_claims == 0) {
     claim->no_label_claim = 0.5;
-  } else if (claim->n_claims == 1) {
+  }
+  else if (claim->n_claims == 1) {
     if (claim->interior_claim_flag == 1)
       claim->claim_values[0] = 1.0;
     else {
       claim->claim_values[0] = 0.5;
       claim->no_label_claim = 0.5;
     }
-  } else {
+  }
+  else {
     float ct = 1.0 / (float)claim->n_claims;
     for (i = 0; i < claim->n_claims; i++) claim->claim_values[i] = ct;
   }
@@ -260,7 +268,8 @@ int CMAvalueClaims(CMAoutlineClaim *claim) {
 
 } /* end CMAvalueClaims() */
 
-int CMAvalueAllClaims(CMAoutlineField *field) {
+int CMAvalueAllClaims(CMAoutlineField *field)
+{
   int i, j;
 
   for (i = 0; i < field->width; i++)
@@ -270,7 +279,8 @@ int CMAvalueAllClaims(CMAoutlineField *field) {
 
 } /* end CMAvalueAllClaims() */
 
-int CMAaddWeightedTotals(CMAoutlineClaim *claim, float weight, float *claim_totals) {
+int CMAaddWeightedTotals(CMAoutlineClaim *claim, float weight, float *claim_totals)
+{
   int i;
 
   /* we've checked the label range in CMAclaimPoints() */
@@ -284,7 +294,8 @@ int CMAaddWeightedTotals(CMAoutlineClaim *claim, float weight, float *claim_tota
 } /* end CMAaddWeightedTotals() */
 
 /* returns the label with the greatest claim to a given pixel */
-short CMAtotalClaims(CMAoutlineField *field, int x, int y) {
+short CMAtotalClaims(CMAoutlineField *field, int x, int y)
+{
   float claim_totals[MAX_CMA_LABEL + 1];
   float best_claim;
   short best_index;
@@ -331,7 +342,8 @@ short CMAtotalClaims(CMAoutlineField *field, int x, int y) {
 
 } /* end CMAtotalClaims() */
 
-int CMAassignLabels(CMAoutlineField *field) {
+int CMAassignLabels(CMAoutlineField *field)
+{
   int i, j;
 
   CMAclearFillField(field);
@@ -345,7 +357,8 @@ int CMAassignLabels(CMAoutlineField *field) {
 
 } /* end CMAassignLabels() */
 
-int CMAzeroOutlines(CMAoutlineField *field) {
+int CMAzeroOutlines(CMAoutlineField *field)
+{
   int i, j;
 
   for (i = 0; i < field->width; i++)
@@ -360,8 +373,8 @@ int CMAzeroOutlines(CMAoutlineField *field) {
 #include "error.h"
 #include "macros.h"
 #include "mrisurf.h"
-int insert_ribbon_into_aseg(
-    MRI *mri_src_aseg, MRI *mri_aseg, MRI_SURFACE *mris_white, MRI_SURFACE *mris_pial, int hemi) {
+int insert_ribbon_into_aseg(MRI *mri_src_aseg, MRI *mri_aseg, MRI_SURFACE *mris_white, MRI_SURFACE *mris_pial, int hemi)
+{
   MRI *mri_ribbon, *mri_white;
   int x, y, z, gm_label, wm_label, label, nbr_label, dont_change;
 
@@ -422,13 +435,15 @@ int insert_ribbon_into_aseg(
             }
             if (dont_change == 0) MRIsetVoxVal(mri_aseg, x, y, z, 0, gm_label);
           }
-        } else  // not in ribbon
+        }
+        else  // not in ribbon
         {
           if (MRIgetVoxVal(mri_white, x, y, z, 0) > 0)  // inside white surface - disambiguate
           {
             if (label == gm_label)  // gm inside white surface should be wm
               MRIsetVoxVal(mri_aseg, x, y, z, 0, wm_label);
-          } else if (label == gm_label)  // gm outside ribbon should be unknown
+          }
+          else if (label == gm_label)  // gm outside ribbon should be unknown
             MRIsetVoxVal(mri_aseg, x, y, z, 0, Unknown);
         }
       }
@@ -448,7 +463,8 @@ int insert_ribbon_into_aseg(
 subcortical gray does not include brainstem or cerebellum cortex.
 \param SegId - segmentation id number
 */
-int IsSubCorticalGray(int SegId) {
+int IsSubCorticalGray(int SegId)
+{
   if (SegId == Left_Thalamus) return (1);
   if (SegId == Right_Thalamus) return (1);
   if (SegId == Left_Thalamus_Proper) return (1);
@@ -486,7 +502,8 @@ everything else. Note that there is no partial volume correction.
 \param ribbon is the ribbon.mgz, which has non-zero values for
 everything inside the pial surf.
 */
-double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon) {
+double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon)
+{
   int c, r, s, SegId;
   double vol = 0;
   int RibbonVal, VoxSize;
@@ -559,7 +576,8 @@ pial.
 \param ribbon - ribbon
 \param hemi - 1=left, 2=right
 */
-double CorticalGMVolCorrection(MRI *aseg, MRI *ribbon, int hemi) {
+double CorticalGMVolCorrection(MRI *aseg, MRI *ribbon, int hemi)
+{
   int c, r, s, SegId;
   double vol = 0, vol2 = 0;
   int RibbonVal, VoxSize;
@@ -644,7 +662,8 @@ fail. It only changes the voxel values and has no effect on the
 volume geometry.
 \param aseg - segmentation
 */
-MRI *MRIlrswapAseg(MRI *aseg) {
+MRI *MRIlrswapAseg(MRI *aseg)
+{
   MRI *asegswap;
   int c, r, s, id, id2;
 
@@ -910,7 +929,8 @@ with ribbon values if the aseg is CtxGM or CtxWM or unknown.
 \param aseg - aseg.mgz segmentation
 \param ribbon - ribbon.mgz segmentation
 */
-MRI *MRIfixAsegWithRibbon(MRI *aseg, MRI *ribbon, MRI *asegfixed) {
+MRI *MRIfixAsegWithRibbon(MRI *aseg, MRI *ribbon, MRI *asegfixed)
+{
   int c, r, s, asegid, ribbonid;
 
   asegfixed = MRIcopy(aseg, asegfixed);
@@ -940,7 +960,8 @@ surface-based analysis. It also computes the same values based on
 volume-based analysis to check against the surface-based results.
 \param subject
 */
-double *ComputeBrainVolumeStats(char *subject, char *suffix, char *sdir) {
+double *ComputeBrainVolumeStats(char *subject, char *suffix, char *sdir)
+{
   char tmpstr[2000];
   char *SUBJECTS_DIR;
   MRI *aseg, *ribbon, *asegfixed, *brainmask;
@@ -1007,7 +1028,8 @@ double *ComputeBrainVolumeStats(char *subject, char *suffix, char *sdir) {
     if (ribbon == NULL) return (NULL);
     asegfixed = MRIfixAsegWithRibbon(aseg, ribbon, NULL);
     ribbonRead = 1;
-  } else {
+  }
+  else {
     printf("WARNING: %s does not exist, ribbon based measurements will be inaccurate\n", tmpstr);
     ribbon = aseg;
     asegfixed = aseg;
@@ -1208,7 +1230,8 @@ double *ComputeBrainVolumeStats(char *subject, char *suffix, char *sdir) {
   \brief Creates a segmentation volume where the segmentation is
   that of tissue type (tissue type info in the ctab).
 */
-MRI *MRIseg2TissueType(MRI *seg, COLOR_TABLE *ct, MRI *tt) {
+MRI *MRIseg2TissueType(MRI *seg, COLOR_TABLE *ct, MRI *tt)
+{
   int c, r, s, segid;
 
   if (ct->ctabTissueType == NULL) {
@@ -1244,7 +1267,8 @@ MRI *MRIseg2TissueType(MRI *seg, COLOR_TABLE *ct, MRI *tt) {
   \brief Creates a volume with only the segmentations in the given tissue type.
   Tissue type info in the ctab.
 */
-MRI *MRIextractTissueTypeSeg(MRI *seg, COLOR_TABLE *ct, int tt, MRI *ttseg) {
+MRI *MRIextractTissueTypeSeg(MRI *seg, COLOR_TABLE *ct, int tt, MRI *ttseg)
+{
   int c, r, s, segid;
 
   if (ct->ctabTissueType == NULL) {
@@ -1286,7 +1310,8 @@ MRI *MRIextractTissueTypeSeg(MRI *seg, COLOR_TABLE *ct, int tt, MRI *ttseg) {
   each entry.
   \return 0 if no error, 1 if error
 */
-int CheckSegTissueType(MRI *seg, COLOR_TABLE *ct) {
+int CheckSegTissueType(MRI *seg, COLOR_TABLE *ct)
+{
   int c, r, s, n, segid, err;
 
   err = 1;
@@ -1326,7 +1351,8 @@ int CheckSegTissueType(MRI *seg, COLOR_TABLE *ct) {
   fill in voxels from the masked out tissue types. This technique
   is used for GTM partial volume correction. Tissue type info in the ctab.
 */
-MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct, MRI **r) {
+MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct, MRI **r)
+{
   MRI *segtt = NULL;
   int nc, tt;
   // char tmpstr[1000];
@@ -1358,7 +1384,8 @@ MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct, MRI **r) {
   structure and performs
   GTMdefaultSegReplacmentList(). Writes out stats.
 */
-int Seg2NbrNonBrainWrapper(char *subject, char *segname, COLOR_TABLE *ctab, char *statname, double threshmm) {
+int Seg2NbrNonBrainWrapper(char *subject, char *segname, COLOR_TABLE *ctab, char *statname, double threshmm)
+{
   char *SUBJECTS_DIR, tmpstr[2000];
   MRI *seg, *mritmp;
   int nReplace, SrcReplace[1000], TrgReplace[1000];
@@ -1411,7 +1438,8 @@ int Seg2NbrNonBrainWrapper(char *subject, char *segname, COLOR_TABLE *ctab, char
   PrintSegStat(fp, segstat). Note that a single non-brain voxel may
   be counted multiple times.
 */
-SEGSTAT *Seg2NbrNonBrain(MRI *seg, COLOR_TABLE *ctab, double threshmm) {
+SEGSTAT *Seg2NbrNonBrain(MRI *seg, COLOR_TABLE *ctab, double threshmm)
+{
   int c, r, s, cB, rB, sB, nthseg, segno, segnoB, FreeCTab;
   int *segnolist, *count, *segcount, nsegs;
   double threshvox, d2, dc2, dr2, dc, dr, ds, voxsize, threshmm2;

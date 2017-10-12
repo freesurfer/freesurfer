@@ -94,7 +94,8 @@ static int (*diag_vfprintf)(FILE *fp, const char *fmt, va_list args) = vfprintf;
 ------------------------------------------------------------------------*/
 unsigned long DiagInit(char *fname,
                        int (*vfprint)(FILE *fp, const char *fmt, va_list args),
-                       int (*vprint)(const char *fmt, va_list args)) {
+                       int (*vprint)(const char *fmt, va_list args))
+{
   char *cp = 0;
   unsigned long diag = 0L;
 
@@ -162,7 +163,8 @@ unsigned long DiagInit(char *fname,
 
         Description
 ------------------------------------------------------*/
-int DiagShowImage(unsigned long diag_bits, int win, int which, IMAGE *I, char *fmt, ...) {
+int DiagShowImage(unsigned long diag_bits, int win, int which, IMAGE *I, char *fmt, ...)
+{
 #if 0
   char    name[100] ;
   va_list args ;
@@ -192,7 +194,8 @@ int DiagShowImage(unsigned long diag_bits, int win, int which, IMAGE *I, char *f
 
         Description
 ------------------------------------------------------*/
-int DiagDrawBox(unsigned long diag_bits, int win, int row0, int col, int rows, int cols, int color) {
+int DiagDrawBox(unsigned long diag_bits, int win, int row0, int col, int rows, int cols, int color)
+{
   int i;
   i = win;
   i = row0;
@@ -215,7 +218,8 @@ int DiagDrawBox(unsigned long diag_bits, int win, int row0, int col, int rows, i
 
         Description
 ------------------------------------------------------*/
-int DiagCloseWindow(unsigned long diag_bits, int win) {
+int DiagCloseWindow(unsigned long diag_bits, int win)
+{
   if (diag_bits && !(diag_bits & Gdiag)) return (-1);
 
   win = win + (int)diag_bits; /* to remove warning */
@@ -228,7 +232,8 @@ int DiagCloseWindow(unsigned long diag_bits, int win) {
 
         Description
 ------------------------------------------------------*/
-int DiagCreateWindow(unsigned long diag_bits, int wrows, int wcols, int rows, int cols) {
+int DiagCreateWindow(unsigned long diag_bits, int wrows, int wcols, int rows, int cols)
+{
   int win = -1;
 #if 0
   int i;
@@ -257,7 +262,8 @@ int DiagCreateWindow(unsigned long diag_bits, int wrows, int wcols, int rows, in
 
         Description
 ------------------------------------------------------*/
-int DiagFprintf(unsigned long diag_bits, char *fmt, ...) {
+int DiagFprintf(unsigned long diag_bits, char *fmt, ...)
+{
   static int first = 1;
   va_list args;
   FILE *fp;
@@ -282,7 +288,8 @@ int DiagFprintf(unsigned long diag_bits, char *fmt, ...) {
 
         Description
 ------------------------------------------------------*/
-int DiagPrintf(unsigned long diag_bits, char *fmt, ...) {
+int DiagPrintf(unsigned long diag_bits, char *fmt, ...)
+{
   va_list args;
 
   if (diag_bits && !(diag_bits & Gdiag)) return (-1);
@@ -307,7 +314,8 @@ void DiagBreak(void) {}
         Description
           dummy for break points in debugger
 ------------------------------------------------------*/
-void DiagHeartbeat(float pct_done) {
+void DiagHeartbeat(float pct_done)
+{
   static float old_pct = -10.0f;
 
 #if 0
@@ -335,7 +343,8 @@ void DiagHeartbeat(float pct_done) {
         Description
           dummy for break points in debugger
 ------------------------------------------------------*/
-void DiagShowPctDone(float pct_done, int nprints) {
+void DiagShowPctDone(float pct_done, int nprints)
+{
   static float old_pct = -10.0f;
 
   if (pct_done < old_pct) old_pct = -20;
@@ -345,7 +354,8 @@ void DiagShowPctDone(float pct_done, int nprints) {
   }
 }
 
-int check_finite(char *where, double what) {
+int check_finite(char *where, double what)
+{
   if (!isfinite(what)) {
     ErrorPrintf(ERROR_BADPARM, "%s not finite!\n", where);
     DiagBreak();

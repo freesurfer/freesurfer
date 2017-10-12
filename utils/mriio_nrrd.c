@@ -40,7 +40,8 @@
 #include "utils.h"
 extern MRI *mriNrrdReadDiffusion(char *fname, int read_volume);
 
-MRI *mriNrrdRead(char *fname, int read_volume) {
+MRI *mriNrrdRead(char *fname, int read_volume)
+{
   if (!nrrdSanity()) {
     fprintf(stderr, "\n");
     fprintf(stderr, "!!! nrrd sanity check FAILED: fix and re-compile\n");
@@ -143,7 +144,8 @@ MRI *mriNrrdRead(char *fname, int read_volume) {
             unsigned char *_uc = (unsigned char *)nin->data;
             MRIseq_vox(mri, x, y, z, f) = (BUFTYPE)_uc[index];
           }
-  } else if (type == MRI_SHORT) {
+  }
+  else if (type == MRI_SHORT) {
     for (f = 0; f < nframes; f++)
       for (z = 0; z < depth; z++)
         for (y = 0; y < height; y++)
@@ -152,7 +154,8 @@ MRI *mriNrrdRead(char *fname, int read_volume) {
             short *_s = (short *)nin->data;
             MRISseq_vox(mri, x, y, z, f) = (short)_s[index];
           }
-  } else if (type == MRI_INT) {
+  }
+  else if (type == MRI_INT) {
     for (f = 0; f < nframes; f++)
       for (z = 0; z < depth; z++)
         for (y = 0; y < height; y++)
@@ -161,7 +164,8 @@ MRI *mriNrrdRead(char *fname, int read_volume) {
             int *_i = (int *)nin->data;
             MRIIseq_vox(mri, x, y, z, f) = (int)_i[index];
           }
-  } else if (type == MRI_LONG) {
+  }
+  else if (type == MRI_LONG) {
     for (f = 0; f < nframes; f++)
       for (z = 0; z < depth; z++)
         for (y = 0; y < height; y++)
@@ -170,7 +174,8 @@ MRI *mriNrrdRead(char *fname, int read_volume) {
             long *_l = (long *)nin->data;
             MRILseq_vox(mri, x, y, z, f) = (long)_l[index];
           }
-  } else if (type == MRI_FLOAT) {
+  }
+  else if (type == MRI_FLOAT) {
     for (f = 0; f < nframes; f++)
       for (z = 0; z < depth; z++)
         for (y = 0; y < height; y++)
@@ -179,7 +184,8 @@ MRI *mriNrrdRead(char *fname, int read_volume) {
             float *_f = (float *)nin->data;
             MRIFseq_vox(mri, x, y, z, f) = (float)_f[index];
           }
-  } else {
+  }
+  else {
     printf("mriNrrdRead: Unsupported type=%d\n", type);
     return NULL;
   }
@@ -214,6 +220,7 @@ MRI *mriNrrdRead(char *fname, int read_volume) {
   return mri;
 }
 
-int mriNrrdWrite(MRI *mri, char *fname) {
+int mriNrrdWrite(MRI *mri, char *fname)
+{
   ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "mriNrrdWrite(): Nrrd output not supported!"));
 }

@@ -37,7 +37,8 @@
 extern const char *Progname;
 
 VOXEL_LIST *VLSTcreateInRegion(
-    MRI *mri, float low_val, float hi_val, VOXEL_LIST *vl, int skip, int border_only, MRI_REGION *box) {
+    MRI *mri, float low_val, float hi_val, VOXEL_LIST *vl, int skip, int border_only, MRI_REGION *box)
+{
   int x, y, z, f, nvox, i, width, height, depth;
   double val;
 
@@ -104,7 +105,8 @@ VOXEL_LIST *VLSTcreateInRegion(
   vl->mri = mri;
   return (vl);
 }
-VOXEL_LIST *VLSTcreate(MRI *mri, float low_val, float hi_val, VOXEL_LIST *vl, int skip, int border_only) {
+VOXEL_LIST *VLSTcreate(MRI *mri, float low_val, float hi_val, VOXEL_LIST *vl, int skip, int border_only)
+{
   int x, y, z, nvox, i, f;
   double val;
 
@@ -175,12 +177,14 @@ VOXEL_LIST *VLSTcreate(MRI *mri, float low_val, float hi_val, VOXEL_LIST *vl, in
   return (vl);
 }
 
-typedef struct {
+typedef struct
+{
   float vsrc, vdst, xd, yd, zd;
   int xi, yi, zi;
 } SORT_VOXEL;
 
-static int compare_sort(const void *psv1, const void *psv2) {
+static int compare_sort(const void *psv1, const void *psv2)
+{
   SORT_VOXEL *sv1, *sv2;
 
   sv1 = (SORT_VOXEL *)psv1;
@@ -188,22 +192,29 @@ static int compare_sort(const void *psv1, const void *psv2) {
 
   if (sv1->vsrc < sv2->vsrc) {
     return (1);
-  } else if (sv1->vsrc > sv2->vsrc) {
+  }
+  else if (sv1->vsrc > sv2->vsrc) {
     return (-1);
-  } else {
+  }
+  else {
     if (sv1->xi < sv2->xi) {
       return (1);
-    } else if (sv1->xi > sv2->xi) {
+    }
+    else if (sv1->xi > sv2->xi) {
       return (-1);
-    } else {
+    }
+    else {
       if (sv1->yi < sv2->yi) {
         return (1);
-      } else if (sv1->yi > sv2->yi) {
+      }
+      else if (sv1->yi > sv2->yi) {
         return (-1);
-      } else {
+      }
+      else {
         if (sv1->zi < sv2->zi) {
           return (1);
-        } else if (sv1->zi > sv2->zi) {
+        }
+        else if (sv1->zi > sv2->zi) {
           return (-1);
         }
       }
@@ -213,7 +224,8 @@ static int compare_sort(const void *psv1, const void *psv2) {
   return (0);
 }
 
-VOXEL_LIST *VLSTsort(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst) {
+VOXEL_LIST *VLSTsort(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst)
+{
   SORT_VOXEL *sort_voxels;
   int n;
 
@@ -249,7 +261,8 @@ VOXEL_LIST *VLSTsort(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst) {
   return (vl_dst);
 }
 
-int VLSTfree(VOXEL_LIST **pvl) {
+int VLSTfree(VOXEL_LIST **pvl)
+{
   VOXEL_LIST *vl = *pvl;
   *pvl = NULL;
 
@@ -272,7 +285,8 @@ int VLSTfree(VOXEL_LIST **pvl) {
   free(vl);
   return (NO_ERROR);
 }
-MRI *VLSTcreateMri(VOXEL_LIST *vl, int val) {
+MRI *VLSTcreateMri(VOXEL_LIST *vl, int val)
+{
   int i;
   MRI *mri;
 
@@ -284,7 +298,8 @@ MRI *VLSTcreateMri(VOXEL_LIST *vl, int val) {
   return (mri);
 }
 
-MRI *VLSTaddToMri(VOXEL_LIST *vl, MRI *mri, int val) {
+MRI *VLSTaddToMri(VOXEL_LIST *vl, MRI *mri, int val)
+{
   int i;
 
   if (mri == NULL) {
@@ -296,7 +311,8 @@ MRI *VLSTaddToMri(VOXEL_LIST *vl, MRI *mri, int val) {
   }
   return (mri);
 }
-MRI *VLSTtoMri(VOXEL_LIST *vl, MRI *mri) {
+MRI *VLSTtoMri(VOXEL_LIST *vl, MRI *mri)
+{
   int i;
   double val;
 
@@ -312,7 +328,8 @@ MRI *VLSTtoMri(VOXEL_LIST *vl, MRI *mri) {
   return (mri);
 }
 
-MRI *VLSTvsrcToMri(VOXEL_LIST *vl, MRI *mri) {
+MRI *VLSTvsrcToMri(VOXEL_LIST *vl, MRI *mri)
+{
   int i;
   double val;
 
@@ -325,7 +342,8 @@ MRI *VLSTvsrcToMri(VOXEL_LIST *vl, MRI *mri) {
   return (mri);
 }
 
-VOXEL_LIST *VLSTdilate(VOXEL_LIST *vl, int mode, MRI *mri_exclude) {
+VOXEL_LIST *VLSTdilate(VOXEL_LIST *vl, int mode, MRI *mri_exclude)
+{
   MRI *mri_current, *mri_new;
   int i, xi, yi, zi, xk, yk, zk, nvox;
   VOXEL_LIST *vl_exp = NULL;
@@ -370,7 +388,8 @@ VOXEL_LIST *VLSTdilate(VOXEL_LIST *vl, int mode, MRI *mri_exclude) {
       vl_exp->zi[i] = vl->zi[i];
     }
     nvox = vl->nvox;
-  } else if (mode == VL_DILATE_REPLACE) {
+  }
+  else if (mode == VL_DILATE_REPLACE) {
     vl_exp = (VOXEL_LIST *)calloc(1, sizeof(VOXEL_LIST));
     vl_exp->nvox = vl_exp->max_vox = nvox;
     vl_exp->mri = vl->mri;
@@ -407,7 +426,8 @@ VOXEL_LIST *VLSTdilate(VOXEL_LIST *vl, int mode, MRI *mri_exclude) {
   return (vl_exp);
 }
 
-void VLSTcomputeStats(VOXEL_LIST *vl) {
+void VLSTcomputeStats(VOXEL_LIST *vl)
+{
   double mean = 0;
   double std = 0;
   int i;
@@ -435,7 +455,8 @@ void VLSTcomputeStats(VOXEL_LIST *vl) {
 
   return;
 }
-int VLSTtransform(VOXEL_LIST *vl, MATRIX *m, MRI *mri, int sample_type) {
+int VLSTtransform(VOXEL_LIST *vl, MATRIX *m, MRI *mri, int sample_type)
+{
   double val, xd, yd, zd;
   int i;
 
@@ -466,7 +487,8 @@ int VLSTtransform(VOXEL_LIST *vl, MATRIX *m, MRI *mri, int sample_type) {
   }
   return (NO_ERROR);
 }
-int VLSTtransformCoords(VOXEL_LIST *vl, MATRIX *m, int skip) {
+int VLSTtransformCoords(VOXEL_LIST *vl, MATRIX *m, int skip)
+{
   double xd, yd, zd, val;
   int i, x, y, z;
   static VECTOR *v1 = NULL, *v2;
@@ -501,7 +523,8 @@ int VLSTtransformCoords(VOXEL_LIST *vl, MATRIX *m, int skip) {
   return (NO_ERROR);
 }
 
-VOXEL_LIST *VLSTcreateFromDifference(MRI *mri1, MRI *mri2, VOXEL_LIST *vl, int target_label) {
+VOXEL_LIST *VLSTcreateFromDifference(MRI *mri1, MRI *mri2, VOXEL_LIST *vl, int target_label)
+{
   int x, y, z, f, nvox, i;
   double val1, val2;
 
@@ -572,7 +595,8 @@ VOXEL_LIST *VLSTcreateFromDifference(MRI *mri1, MRI *mri2, VOXEL_LIST *vl, int t
   vl->mri2 = mri2;
   return (vl);
 }
-VOXEL_LIST *VLSTalloc(int nvox) {
+VOXEL_LIST *VLSTalloc(int nvox)
+{
   VOXEL_LIST *vl;
 
   vl = (VOXEL_LIST *)calloc(1, sizeof(VOXEL_LIST));
@@ -593,7 +617,8 @@ VOXEL_LIST *VLSTalloc(int nvox) {
     ErrorExit(ERROR_NOMEMORY, "VLSTalloc(%d): could not allocate VL struct", nvox);
   return (vl);
 }
-VOXEL_LIST *VLSTcopy(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_src_index, int num) {
+VOXEL_LIST *VLSTcopy(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_src_index, int num)
+{
   int i;
 
   if (vl_dst == NULL) vl_dst = VLSTalloc(num);
@@ -631,7 +656,8 @@ VOXEL_LIST *VLSTcopy(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_src_index
   if (vl_dst->nvox < num) vl_dst->nvox = num;
   return (vl_dst);
 }
-VOXEL_LIST *VLSTcopyInto(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_dst_index, int num) {
+VOXEL_LIST *VLSTcopyInto(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_dst_index, int num)
+{
   int i;
 
   if (vl_dst == NULL) vl_dst = VLSTalloc(start_dst_index + num);
@@ -669,12 +695,14 @@ VOXEL_LIST *VLSTcopyInto(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_dst_i
   if (vl_dst->nvox < start_dst_index + num) vl_dst->nvox = start_dst_index + num;
   return (vl_dst);
 }
-int VLSTaddUnique(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, float zd) {
+int VLSTaddUnique(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, float zd)
+{
   if (VLSTinList(vl, x, y, z)) return (0);
   VLSTadd(vl, x, y, z, xd, yd, zd);
   return (1);
 }
-int VLSTadd(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, float zd) {
+int VLSTadd(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, float zd)
+{
   if (vl->nvox >= vl->max_vox)
     ErrorReturn(ERROR_NOMEMORY, (ERROR_NOMEMORY, "VLSTadd: too many voxels (%d)", vl->max_vox));
   vl->xi[vl->nvox] = x;
@@ -687,7 +715,8 @@ int VLSTadd(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, float zd) {
   return (NO_ERROR);
 }
 
-int VLSTinList(VOXEL_LIST *vl, int x, int y, int z) {
+int VLSTinList(VOXEL_LIST *vl, int x, int y, int z)
+{
   int n;
 
   for (n = 0; n < vl->nvox; n++)
@@ -695,7 +724,8 @@ int VLSTinList(VOXEL_LIST *vl, int x, int y, int z) {
   return (0);
 }
 
-VOXEL_LIST *VLSTsplineFit(VOXEL_LIST *vl, int num_control) {
+VOXEL_LIST *VLSTsplineFit(VOXEL_LIST *vl, int num_control)
+{
   VOXEL_LIST *vl_spline;
   int k, i, km1, kp1;
   float len, total_len, dx, dy, dz, tx, ty, tz;
@@ -776,13 +806,15 @@ VOXEL_LIST *VLSTsplineFit(VOXEL_LIST *vl, int num_control) {
 
   return (vl_spline);
 }
-int VLSTwriteLabel(VOXEL_LIST *vl, char *fname, MRI_SURFACE *mris, MRI *mri) {
+int VLSTwriteLabel(VOXEL_LIST *vl, char *fname, MRI_SURFACE *mris, MRI *mri)
+{
   LABEL *area = VLSTtoLabel(vl, mris, mri);
   LabelWrite(area, fname);
   LabelFree(&area);
   return (NO_ERROR);
 }
-LABEL *VLSTtoLabel(VOXEL_LIST *vl, MRI_SURFACE *mris, MRI *mri) {
+LABEL *VLSTtoLabel(VOXEL_LIST *vl, MRI_SURFACE *mris, MRI *mri)
+{
   int n;
   LABEL *area = LabelAlloc(vl->nvox, NULL, "");
   double xs, ys, zs;
@@ -795,7 +827,8 @@ LABEL *VLSTtoLabel(VOXEL_LIST *vl, MRI_SURFACE *mris, MRI *mri) {
       area->lv[n].z = zs;
       area->lv[n].stat = vl->vsrc[n];
     }
-  } else  // use scanner coords
+  }
+  else  // use scanner coords
   {
     for (n = 0; n < vl->nvox; n++) {
       MRIvoxelToWorld(mri, (double)vl->xd[n], (double)vl->yd[n], (double)vl->zd[n], &xs, &ys, &zs);
@@ -811,7 +844,8 @@ LABEL *VLSTtoLabel(VOXEL_LIST *vl, MRI_SURFACE *mris, MRI *mri) {
   return (area);
 }
 
-VOXEL_LIST *VLSTinterpolate(VOXEL_LIST *vl, float spacing) {
+VOXEL_LIST *VLSTinterpolate(VOXEL_LIST *vl, float spacing)
+{
   int k, nvox, km1, kp1;
   VOXEL_LIST *vl_interp;
   float x_k, y_k, z_k, x_kp1, y_kp1, z_kp1, x, y, z, t, dx, dy, dz, mx_k, my_k, mz_k, mx_kp1, my_kp1, mz_kp1, len;
@@ -919,7 +953,8 @@ VOXEL_LIST *VLSTinterpolate(VOXEL_LIST *vl, float spacing) {
   return (vl_interp);
 }
 
-MRI *VLSTwriteOrderToMRI(VOXEL_LIST *vl, MRI *mri) {
+MRI *VLSTwriteOrderToMRI(VOXEL_LIST *vl, MRI *mri)
+{
   int n;
 
   if (mri == NULL) {
@@ -933,7 +968,8 @@ MRI *VLSTwriteOrderToMRI(VOXEL_LIST *vl, MRI *mri) {
 
   return (mri);
 }
-VOXEL_LIST *VLSTfromMRI(MRI *mri, int vno) {
+VOXEL_LIST *VLSTfromMRI(MRI *mri, int vno)
+{
   VOXEL_LIST *vl;
   int n;
   double xd, yd, zd;
@@ -949,7 +985,8 @@ VOXEL_LIST *VLSTfromMRI(MRI *mri, int vno) {
 
   return (vl);
 }
-int VLSTinterpolateSplineIntoVolume(VOXEL_LIST *vl, MRI *mri, double spacing, VOXEL_LIST *vl_total, float val) {
+int VLSTinterpolateSplineIntoVolume(VOXEL_LIST *vl, MRI *mri, double spacing, VOXEL_LIST *vl_total, float val)
+{
   VOXEL_LIST *vl_interp;
 
   vl_interp = VLSTinterpolate(vl, spacing);
@@ -959,7 +996,8 @@ int VLSTinterpolateSplineIntoVolume(VOXEL_LIST *vl, MRI *mri, double spacing, VO
   VLSTfree(&vl_interp);
   return (NO_ERROR);
 }
-int VLSTinterpolateIntoVolume(VOXEL_LIST *vl, MRI *mri, float val) {
+int VLSTinterpolateIntoVolume(VOXEL_LIST *vl, MRI *mri, float val)
+{
   int n;
 
   for (n = 0; n < vl->nvox; n++) MRIinterpolateIntoVolume(mri, vl->xd[n], vl->yd[n], vl->zd[n], val);
@@ -967,7 +1005,8 @@ int VLSTinterpolateIntoVolume(VOXEL_LIST *vl, MRI *mri, float val) {
   return (NO_ERROR);
 }
 
-double VLSTcomputeEntropy(VOXEL_LIST *vl, MRI *mri, int num) {
+double VLSTcomputeEntropy(VOXEL_LIST *vl, MRI *mri, int num)
+{
   double val, entropy, total;
   int n;
 
@@ -987,7 +1026,8 @@ double VLSTcomputeEntropy(VOXEL_LIST *vl, MRI *mri, int num) {
   return (entropy);
 }
 
-double VLSTcomputeSplineMean(VOXEL_LIST *vl_spline, MRI *mri, double step_size) {
+double VLSTcomputeSplineMean(VOXEL_LIST *vl_spline, MRI *mri, double step_size)
+{
   VOXEL_LIST *vl = VLSTinterpolate(vl_spline, step_size);
   double mean, val;
   int n;
@@ -1003,7 +1043,8 @@ double VLSTcomputeSplineMean(VOXEL_LIST *vl_spline, MRI *mri, double step_size) 
   return (mean);
 }
 
-float VLSTcomputeSplineMedian(VOXEL_LIST *vl_spline, MRI *mri, double step_size) {
+float VLSTcomputeSplineMedian(VOXEL_LIST *vl_spline, MRI *mri, double step_size)
+{
   VOXEL_LIST *vl = VLSTinterpolate(vl_spline, step_size);
   float *vals, median;
   int n;
@@ -1021,7 +1062,8 @@ float VLSTcomputeSplineMedian(VOXEL_LIST *vl_spline, MRI *mri, double step_size)
   return (median);
 }
 
-double VLSTcomputeSplineSegmentMean(VOXEL_LIST *vl_spline, MRI *mri, double step_size, int start, int stop) {
+double VLSTcomputeSplineSegmentMean(VOXEL_LIST *vl_spline, MRI *mri, double step_size, int start, int stop)
+{
   VOXEL_LIST *vl = VLSTinterpolate(vl_spline, step_size);
   double mean, val;
   int n;
@@ -1039,7 +1081,8 @@ double VLSTcomputeSplineSegmentMean(VOXEL_LIST *vl_spline, MRI *mri, double step
   return (mean);
 }
 
-double VLSTrmsDistance(VOXEL_LIST *vl1, VOXEL_LIST *vl2, double max_dist, MRI **pmri_dist) {
+double VLSTrmsDistance(VOXEL_LIST *vl1, VOXEL_LIST *vl2, double max_dist, MRI **pmri_dist)
+{
   MRI *mri_dist;
   double dist, rms;
   int i;
@@ -1052,7 +1095,8 @@ double VLSTrmsDistance(VOXEL_LIST *vl1, VOXEL_LIST *vl2, double max_dist, MRI **
     MRIbinarize(mri_tmp, mri_tmp, 1, 0, 1);
     *pmri_dist = mri_dist = MRIdistanceTransform(mri_tmp, NULL, 1, max_dist, DTRANS_MODE_SIGNED, NULL);
     MRIfree(&mri_tmp);
-  } else
+  }
+  else
     mri_dist = *pmri_dist;  // already allocated and computed (hopefully!)
 
   for (rms = 0.0, i = 0; i < vl2->nvox; i++) {
@@ -1064,7 +1108,8 @@ double VLSTrmsDistance(VOXEL_LIST *vl1, VOXEL_LIST *vl2, double max_dist, MRI **
   return (rms);
 }
 
-double VLSThausdorffDistance(VOXEL_LIST *vl1, VOXEL_LIST *vl2, double max_dist, MRI **pmri_dist) {
+double VLSThausdorffDistance(VOXEL_LIST *vl1, VOXEL_LIST *vl2, double max_dist, MRI **pmri_dist)
+{
   MRI *mri_dist;
   double dist, hdist;
   int i;
@@ -1077,7 +1122,8 @@ double VLSThausdorffDistance(VOXEL_LIST *vl1, VOXEL_LIST *vl2, double max_dist, 
     MRIbinarize(mri_tmp, mri_tmp, 1, 0, 1);
     *pmri_dist = mri_dist = MRIdistanceTransform(mri_tmp, NULL, 1, max_dist, DTRANS_MODE_SIGNED, NULL);
     MRIfree(&mri_tmp);
-  } else
+  }
+  else
     mri_dist = *pmri_dist;  // already allocated and computed (hopefully!)
 
   hdist = 0;
@@ -1088,7 +1134,8 @@ double VLSThausdorffDistance(VOXEL_LIST *vl1, VOXEL_LIST *vl2, double max_dist, 
   }
   return (hdist);
 }
-double VLSTmean(VOXEL_LIST *vl, MRI *mri, double *pvar) {
+double VLSTmean(VOXEL_LIST *vl, MRI *mri, double *pvar)
+{
   double mean, var, val;
   int x, y, z, f, n;
 
@@ -1108,7 +1155,8 @@ double VLSTmean(VOXEL_LIST *vl, MRI *mri, double *pvar) {
   return (mean);
 }
 
-int VLSTsample(VOXEL_LIST *vl, MRI *mri) {
+int VLSTsample(VOXEL_LIST *vl, MRI *mri)
+{
   double val;
   int x, y, z, f, n;
 
@@ -1126,7 +1174,8 @@ int VLSTsample(VOXEL_LIST *vl, MRI *mri) {
   }
   return (NO_ERROR);
 }
-int VLSTsampleFloat(VOXEL_LIST *vl, MRI *mri) {
+int VLSTsampleFloat(VOXEL_LIST *vl, MRI *mri)
+{
   double val;
   double x, y, z;
   int n, f;
@@ -1143,7 +1192,8 @@ int VLSTsampleFloat(VOXEL_LIST *vl, MRI *mri) {
   return (NO_ERROR);
 }
 
-int VLmostCommonLabel(VOXEL_LIST *vl) {
+int VLmostCommonLabel(VOXEL_LIST *vl)
+{
   int max_label, *label_counts, n, label, max_label_count;
 
   max_label = 0;

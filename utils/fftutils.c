@@ -47,10 +47,12 @@ static int _rev = 0;
 int *reversedBits;
 int **_reverseBits = NULL;
 static int _lookupTabletLength = -1;
-typedef struct complex {
+typedef struct complex
+{
   double a, b;
 } complex;
-typedef struct complexF {
+typedef struct complexF
+{
   float a, b;
 } complexF;
 
@@ -62,26 +64,31 @@ static complexF **_uILookupF = NULL;
 static float *uRLookup = NULL;
 static float *uILookup = NULL;
 
-static void FFTerror(char *string) {
+static void FFTerror(char *string)
+{
   fprintf(stdout, "\nFFT Error: %s\n", string);
   exit(1);
 }
 
-void FFTdebugAssert(int b, char *string) {
+void FFTdebugAssert(int b, char *string)
+{
   if (!b) FFTerror(string);
 }
 
-static void Swap(float *a, float *b) {
+static void Swap(float *a, float *b)
+{
   float temp = *a;
   *a = *b;
   *b = temp;
 }
 int FFTisPowerOf2(int x) { return (x & (x - 1)) == 0; }
-int FFTpow2(int exponent) {
+int FFTpow2(int exponent)
+{
   if (exponent >= 0 && exponent < 31) return 1 << exponent;
   return 0;
 }
-int FFTlog2(int x) {  // ceiling of FFTlog2
+int FFTlog2(int x)
+{  // ceiling of FFTlog2
   if (x <= 65536) {
     if (x <= 256) {
       if (x <= 16) {
@@ -150,7 +157,8 @@ int FFTlog2(int x) {  // ceiling of FFTlog2
   return 31;
 }
 
-static void ReorderArray(float *data, int data_length) {
+static void ReorderArray(float *data, int data_length)
+{
   FFTdebugAssert(data != NULL, "ReorderArray : Data = Null");
   int length = data_length / 2;
   int numberOfBits = FFTlog2(length);
@@ -181,7 +189,8 @@ static void ReorderArray(float *data, int data_length) {
   }
 }
 
-static int _ReverseBits(int bits, int n) {
+static int _ReverseBits(int bits, int n)
+{
   int bitsReversed = 0;
   int i;
   for (i = 0; i < n; i++) {
@@ -190,7 +199,8 @@ static int _ReverseBits(int bits, int n) {
   }
   return bitsReversed;
 }
-static void InitializeReverseBits(int levels) {
+static void InitializeReverseBits(int levels)
+{
   int i, j;
   if (_reverseBits) free(_reverseBits);
   _reverseBits = (int **)malloc((levels + 1) * sizeof(int *));
@@ -203,7 +213,8 @@ static void InitializeReverseBits(int levels) {
   }
 }
 
-static void InitializeComplexRotations(int levels) {
+static void InitializeComplexRotations(int levels)
+{
   int ln = levels;
 
   if (_uRLookup) free(_uRLookup);
@@ -258,7 +269,8 @@ static void InitializeComplexRotations(int levels) {
   }
 }
 
-static void SyncLookupTableLength(int length) {
+static void SyncLookupTableLength(int length)
+{
   FFTdebugAssert(length < 1024 * 10, "SyncLookupTableLength : length too big");
   FFTdebugAssert(length >= 0, "SyncLookupTableLength : length<0");
   if (length > _lookupTabletLength) {
@@ -269,7 +281,8 @@ static void SyncLookupTableLength(int length) {
   }
 }
 
-static void copy_vect(float *vect, complexF **mat, int level, int signIndex, int M) {
+static void copy_vect(float *vect, complexF **mat, int level, int signIndex, int M)
+{
   int j;
   if (signIndex)
     for (j = 0; j < M; j++) vect[j] = mat[level][j].b;
@@ -285,7 +298,8 @@ static void copy_vect(float *vect, complexF **mat, int level, int signIndex, int
  The direction means either from time to frequency, or
  from frequency to time.
 ------------------------------------------------------*/
-static void FFT(float *data, int data_length, int length, int direction) {
+static void FFT(float *data, int data_length, int length, int direction)
+{
   FFTdebugAssert(data != NULL, "FFT : DATA = NULL");
   FFTdebugAssert(data_length >= length * 2, "FFT : data_length < length*2");
   FFTdebugAssert(FFTisPowerOf2(length) == 1, "FFT : length is not a power of 2");
@@ -351,7 +365,8 @@ static void FFT(float *data, int data_length, int length, int direction) {
  The vector data will be :
  A	E	H	h	G	g	F	f
 */
-void RFFT(float *data, int data_length, int length, int direction) {
+void RFFT(float *data, int data_length, int length, int direction)
+{
   FFTdebugAssert(data != NULL, "RFFT :data");
   FFTdebugAssert(data_length >= length, "RFFT : length must be at least as large as data_length parameter");
   FFTdebugAssert(FFTisPowerOf2(length) == 1, "RFFT : length must be a power of 2");
@@ -362,7 +377,8 @@ void RFFT(float *data, int data_length, int length, int direction) {
   if (direction == FourierForward) {
     c2 = -0.5f;
     FFT(data, data_length, length / 2, direction);
-  } else {
+  }
+  else {
     c2 = 0.5f;
     theta = -theta;
   }
@@ -393,7 +409,8 @@ void RFFT(float *data, int data_length, int length, int direction) {
     float hir = data[0];
     data[0] = hir + data[1];
     data[1] = hir - data[1];
-  } else {
+  }
+  else {
     float hir = data[0];
     data[0] = c1 * (hir + data[1]);
     data[1] = c1 * (hir - data[1]);
@@ -404,7 +421,8 @@ void RFFT(float *data, int data_length, int length, int direction) {
  RFFTforward performs a real FFT. Here, the result is given
  in the two vectors : re and im
 ------------------------------------------------------*/
-void RFFTforward(float *data, int length, float *re, float *im) {
+void RFFTforward(float *data, int length, float *re, float *im)
+{
   int j;
   RFFT(data, length, length, FourierForward);
   re[0] = data[0];
@@ -424,7 +442,8 @@ void RFFTforward(float *data, int length, float *re, float *im) {
  one vector for the real parts and one for the imag ones.
  The results are given the same way.
  ------------------------------------------------------*/
-void CFFTforward(float *re, float *im, int length) {
+void CFFTforward(float *re, float *im, int length)
+{
   float *rec, *imc;
   int j;
   rec = (float *)malloc(length * sizeof(float));
@@ -456,7 +475,8 @@ void CFFTforward(float *re, float *im, int length) {
 /*-----------------------------------------------------
  CFFTbackward performs a cplx FFT inverse .
  ------------------------------------------------------*/
-void CFFTbackward(float *re, float *im, int length) {
+void CFFTbackward(float *re, float *im, int length)
+{
   float *a, *b;
   int j;
   a = (float *)malloc(length * sizeof(float));
@@ -498,7 +518,8 @@ void CFFTbackward(float *re, float *im, int length) {
  only 1D-FFT. We perform one 1D-FFT, then we swith 2 coords
  and perform another 1D-FFT and we repeat this process once.
  ------------------------------------------------------*/
-void FFTswitch_with_z(float ***vect, int dimension, int is_y) {
+void FFTswitch_with_z(float ***vect, int dimension, int is_y)
+{
   float ***res;
   int x, y, z;
   res = (float ***)malloc(dimension * sizeof(float **));
@@ -521,7 +542,8 @@ void FFTswitch_with_z(float ***vect, int dimension, int is_y) {
   free(res);
 }
 
-float ***FFTinv_quarter(float ***vect, int dimension) {
+float ***FFTinv_quarter(float ***vect, int dimension)
+{
   int transl = dimension / 2;
   int x, y, z, k, j;
   float ***res;
@@ -554,7 +576,8 @@ float ***FFTinv_quarter(float ***vect, int dimension) {
   }
   return (res);
 }
-float argument(float re, float im) {
+float argument(float re, float im)
+{
   if (re == 0 && im == 0) return 0;
   if (re > 0) return (atan(im / re));
   if (re < 0) {
@@ -569,7 +592,8 @@ float argument(float re, float im) {
     return (-M_PI / 2);
 }
 
-void FFTreim_to_modarg(float ***re_mod, float ***im_arg, int l) {
+void FFTreim_to_modarg(float ***re_mod, float ***im_arg, int l)
+{
   int x, y, z;
   float a, b;
   for (z = 0; z < l; z++)
@@ -582,7 +606,8 @@ void FFTreim_to_modarg(float ***re_mod, float ***im_arg, int l) {
       }
 }
 
-void FFTmodarg_to_reim(float ***re_mod, float ***im_arg, int l) {
+void FFTmodarg_to_reim(float ***re_mod, float ***im_arg, int l)
+{
   int x, y, z;
   float a, b;
   for (z = 0; z < l; z++)
@@ -595,7 +620,8 @@ void FFTmodarg_to_reim(float ***re_mod, float ***im_arg, int l) {
       }
 }
 
-float FFTdist(int x, int y, int z, int len) {
+float FFTdist(int x, int y, int z, int len)
+{
   return ((x - (float)len / 2) * (x - (float)len / 2) + (y - (float)len / 2) * (y - (float)len / 2) +
           (z - (float)len / 2) * (z - (float)len / 2));
 }

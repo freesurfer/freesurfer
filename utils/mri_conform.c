@@ -41,7 +41,8 @@ double round(double);  // why is this never defined?!?
 
 extern int errno;
 
-MATRIX *MRIgetConformMatrix(MRI *mri) {
+MATRIX *MRIgetConformMatrix(MRI *mri)
+{
   MRI *templ;
   MATRIX *m_resample;
 
@@ -76,7 +77,8 @@ MATRIX *MRIgetConformMatrix(MRI *mri) {
   return (m_resample);
 }
 
-MRI *MRIconform(MRI *mri) {
+MRI *MRIconform(MRI *mri)
+{
   MRI *templ, *mri2, *res;
   // int conform_width;
   // double conform_size;
@@ -140,7 +142,8 @@ MRI *MRIconform(MRI *mri) {
 
 } /*  end MRIconform()  */
 
-MRI *MRIconformedTemplate(MRI *mri, int conform_width, double conform_size, int KeepDC) {
+MRI *MRIconformedTemplate(MRI *mri, int conform_width, double conform_size, int KeepDC)
+{
   MRI *template;
   char ostr[4];
   int iLR, iIS, iAP, Nvox[3], FoV[3], conform_FoV, c;
@@ -193,7 +196,8 @@ MRI *MRIconformedTemplate(MRI *mri, int conform_width, double conform_size, int 
     if (ostr[iLR] == 'L') {
       K->rptr[1][iLR + 1] = step;
       K->rptr[1][4] = pad;
-    } else {
+    }
+    else {
       K->rptr[1][iLR + 1] = -step;
       K->rptr[1][4] = conform_width - pad;
     }
@@ -203,7 +207,8 @@ MRI *MRIconformedTemplate(MRI *mri, int conform_width, double conform_size, int 
     if (ostr[iIS] == 'I') {
       K->rptr[2][iIS + 1] = step;
       K->rptr[2][4] = pad;
-    } else {
+    }
+    else {
       K->rptr[2][iIS + 1] = -step;
       K->rptr[2][4] = conform_width - pad;
     }
@@ -213,7 +218,8 @@ MRI *MRIconformedTemplate(MRI *mri, int conform_width, double conform_size, int 
     if (ostr[iAP] == 'A') {
       K->rptr[3][iAP + 1] = step;
       K->rptr[3][4] = pad;
-    } else {
+    }
+    else {
       K->rptr[3][iAP + 1] = -step;
       K->rptr[3][4] = conform_width - pad;
     }
@@ -237,7 +243,8 @@ MRI *MRIconformedTemplate(MRI *mri, int conform_width, double conform_size, int 
     MatrixFree(&invK);
     MatrixFree(&Smri);
     MatrixFree(&Stemp);
-  } else {
+  }
+  else {
     // replicates old method exactly
     template->x_r = -1.0;
     template->x_a = 0.0;

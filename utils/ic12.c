@@ -44,7 +44,8 @@ IC_FACE ic12_faces[ICO_NFACES]
         { { 6, 7, 11 } },  { { 6, 2, 7 } },    { { 2, 8, 7 } },   { { 2, 3, 8 } },   { { 3, 9, 8 } },
         { { 9, 10, 12 } }, { { 10, 11, 12 } }, { { 11, 7, 12 } }, { { 7, 8, 12 } },  { { 8, 9, 12 } } };
 // clang-format on
-MRI_SURFACE *ic12_make_surface(int max_vertices, int max_faces) {
+MRI_SURFACE *ic12_make_surface(int max_vertices, int max_faces)
+{
   MRI_SURFACE *mris;
   int vno, fno, n, vn, n1, n2;
   VERTEX *v;

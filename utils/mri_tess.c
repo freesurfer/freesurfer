@@ -51,19 +51,22 @@ extern const char *Progname;
 #define FACEINCREASE 1.2
 #define VERTEXINCREASE 1.2
 
-typedef struct quad_face_type_ {
+typedef struct quad_face_type_
+{
   int imnr, i, j, f;
   int num;
   int v[4];
 } quad_face_type;
 
-typedef struct quad_vertex_type_ {
+typedef struct quad_vertex_type_
+{
   int imnr, i, j;
   int num;
   int f[9];
 } quad_vertex_type;
 
-typedef struct tesselation_parms_ {
+typedef struct tesselation_parms_
+{
   /*labeled volume*/
   MRI *mri;
 
@@ -240,7 +243,8 @@ static void initImage(tesselation_parms *parms)
 
 /*initialization of tesselation_parms*/
 /*note that not all the fields are allocated*/
-static void initTesselationParms(tesselation_parms *parms) {
+static void initTesselationParms(tesselation_parms *parms)
+{
   int i, j, k, n;
   int depth, width, height;
   int *xmin, *ymin, *zmin, *xmax, *ymax, *zmax;
@@ -327,7 +331,8 @@ static void initTesselationParms(tesselation_parms *parms) {
   parms->all_flag = 0;
 }
 
-static int freeTesselationParms(tesselation_parms **parms) {
+static int freeTesselationParms(tesselation_parms **parms)
+{
   int j, k;
   tesselation_parms *tmp = *parms;
   int depth, width, height;
@@ -354,7 +359,8 @@ static int freeTesselationParms(tesselation_parms **parms) {
   return (NO_ERROR);
 }
 
-static void allocateTesselation(tesselation_parms *parms) {
+static void allocateTesselation(tesselation_parms *parms)
+{
   int imgsize = parms->imgsize;
   parms->face = (quad_face_type *)lcalloc(MAXFACES, sizeof(quad_face_type));
   parms->maxfaces = MAXFACES;
@@ -373,7 +379,8 @@ static void allocateTesselation(tesselation_parms *parms) {
     ErrorExit(ERROR_NO_MEMORY, "MRIStesselate: local tesselation tables");
 }
 
-static void freeTesselation(tesselation_parms *parms) {
+static void freeTesselation(tesselation_parms *parms)
+{
   free(parms->face);
   free(parms->face_index_table0);
   free(parms->face_index_table1);
@@ -391,7 +398,8 @@ static void freeTesselation(tesselation_parms *parms) {
 
 /* This may be the same as that in mrisurf.c. Whoever wrote it should
    NOT have done this. Very bad programming. */
-static int mrisFindNeighbors2(MRI_SURFACE *mris) {
+static int mrisFindNeighbors2(MRI_SURFACE *mris)
+{
   int n0, n1, i, k, m, n, vno, vtotal, ntotal, vtmp[MAX_NEIGHBORS];
   FACE *f;
   VERTEX *v;
@@ -477,7 +485,8 @@ static int mrisFindNeighbors2(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-static int saveTesselation(tesselation_parms *parms) {
+static int saveTesselation(tesselation_parms *parms)
+{
   int vno, m, n, fno;
   int pct_over = 1;
   quad_face_type *face2;
@@ -553,7 +562,8 @@ static int saveTesselation(tesselation_parms *parms) {
       mris->faces[fno + 1].v[0] = face2->v[2];
       mris->faces[fno + 1].v[1] = face2->v[3];
       mris->faces[fno + 1].v[2] = face2->v[1];
-    } else {
+    }
+    else {
       /* 1st triangle */
       mris->faces[fno].v[0] = face2->v[0];
       mris->faces[fno].v[1] = face2->v[1];
@@ -634,7 +644,8 @@ static int saveTesselation(tesselation_parms *parms) {
   return (NO_ERROR);
 }
 
-MRIS *MRISconcatenateQuadSurfaces(int number_of_labels, MRIS **mris_tab) {
+MRIS *MRISconcatenateQuadSurfaces(int number_of_labels, MRIS **mris_tab)
+{
   MRIS *mris;
   int nvertices, nfaces, n, count, countvnbr, vno, fno;
 
@@ -665,7 +676,8 @@ MRIS *MRISconcatenateQuadSurfaces(int number_of_labels, MRIS **mris_tab) {
   return mris;
 }
 
-static void reallocateVertices(tesselation_parms *parms) {
+static void reallocateVertices(tesselation_parms *parms)
+{
   quad_vertex_type *tmp;
   int k, n;
   int vertex_index = parms->vertex_index;
@@ -683,7 +695,8 @@ static void reallocateVertices(tesselation_parms *parms) {
   free(parms->vertex);
   parms->vertex = tmp;
 }
-static void reallocateFaces(tesselation_parms *parms) {
+static void reallocateFaces(tesselation_parms *parms)
+{
   quad_face_type *tmp;
   int k, n;
   int face_index = parms->face_index;
@@ -704,7 +717,8 @@ static void reallocateFaces(tesselation_parms *parms) {
   parms->face = tmp;
 }
 
-static void add_face(int imnr, int i, int j, int f, int prev_flag, tesselation_parms *parms) {
+static void add_face(int imnr, int i, int j, int f, int prev_flag, tesselation_parms *parms)
+{
   int pack = f * parms->imgsize + i * parms->width + j;
   int face_index = parms->face_index;
 
@@ -721,7 +735,8 @@ static void add_face(int imnr, int i, int j, int f, int prev_flag, tesselation_p
   parms->face_index++;
 }
 
-static int add_vertex(int imnr, int i, int j, tesselation_parms *parms) {
+static int add_vertex(int imnr, int i, int j, tesselation_parms *parms)
+{
   //  int pack = i*(parms->width+1)+j;
   int vertex_index = parms->vertex_index;
 
@@ -734,7 +749,8 @@ static int add_vertex(int imnr, int i, int j, tesselation_parms *parms) {
   return parms->vertex_index++;
 }
 
-static int facep(int im0, int i0, int j0, int im1, int i1, int j1, tesselation_parms *parms) {
+static int facep(int im0, int i0, int j0, int im1, int i1, int j1, tesselation_parms *parms)
+{
   unsigned char ***im = parms->im;
   int value = parms->current_label;
   return (im0 >= parms->zmin && im0 <= parms->zmax && i0 >= parms->ymin && i0 <= parms->ymax && j0 >= parms->xmin &&
@@ -743,17 +759,9 @@ static int facep(int im0, int i0, int j0, int im1, int i1, int j1, tesselation_p
           ((im[im0][i0][j0] == value || im[im1][i1][j1] == value) || parms->all_flag));
 }
 
-static void check_face(int im0,
-                       int i0,
-                       int j0,
-                       int im1,
-                       int i1,
-                       int j1,
-                       int f,
-                       int n,
-                       int v_ind,
-                       int prev_flag,
-                       tesselation_parms *parms) {
+static void check_face(
+    int im0, int i0, int j0, int im1, int i1, int j1, int f, int n, int v_ind, int prev_flag, tesselation_parms *parms)
+{
   int f_pack = f * parms->imgsize + i0 * parms->width + j0;
   int f_ind;
   unsigned char ***im = parms->im;
@@ -777,17 +785,9 @@ static void check_face(int im0,
   }
 }
 
-static void check_face2(int im0,
-                        int i0,
-                        int j0,
-                        int im1,
-                        int i1,
-                        int j1,
-                        int f,
-                        int n,
-                        int v_ind,
-                        int prev_flag,
-                        tesselation_parms *parms) {
+static void check_face2(
+    int im0, int i0, int j0, int im1, int i1, int j1, int f, int n, int v_ind, int prev_flag, tesselation_parms *parms)
+{
   int f_pack = f * parms->imgsize + i0 * parms->width + j0;
   int f_ind;
 
@@ -802,7 +802,8 @@ static void check_face2(int im0,
   if (parms->vertex[v_ind].num < 9) parms->vertex[v_ind].f[parms->vertex[v_ind].num++] = f_ind;
 }
 
-static void make_surface(tesselation_parms *parms) {
+static void make_surface(tesselation_parms *parms)
+{
   int imnr, i, j, f_pack, v_ind, f;
   int n;
 
@@ -878,7 +879,8 @@ static void make_surface(tesselation_parms *parms) {
 
 typedef unsigned char CNBH[2][2][2];
 
-static int computeconnectedcomponents(CNBH *tab) {
+static int computeconnectedcomponents(CNBH *tab)
+{
   int i, j, k, a, b, c, ik, jk, kk, ct;
   int nvox, label, sum;
   int comp_table[12];
@@ -916,7 +918,8 @@ static int computeconnectedcomponents(CNBH *tab) {
               ;
             (*tab)[i][j][k] = ct + 1;  // label the new basin
             comp_table[ct] = 1;        // note that this number is taken
-          } else {
+          }
+          else {
             min_val = 11;
 
             // merging into the smallest value
@@ -949,7 +952,8 @@ static int computeconnectedcomponents(CNBH *tab) {
   return nvox;
 }
 
-static void make_surface_with_connectivity(tesselation_parms *parms) {
+static void make_surface_with_connectivity(tesselation_parms *parms)
+{
   int imnr, i, j, k, f_pack, v_ind, f, a, b, c, label, nlabels, comp, m;
   int n, slcx, slcy, slcz, indx, indy, indz;
   CNBH tab;
@@ -1138,7 +1142,8 @@ static void make_surface_with_connectivity(tesselation_parms *parms) {
   MRIfree(&mri);
 }
 
-MRIS *MRIScreateSurfaceFromVolume(MRI *mri, int label, int connectivity) {
+MRIS *MRIScreateSurfaceFromVolume(MRI *mri, int label, int connectivity)
+{
   tesselation_parms *parms;
   MRIS **mris_table, *mris;
 
@@ -1173,7 +1178,8 @@ MRIS *MRIScreateSurfaceFromVolume(MRI *mri, int label, int connectivity) {
   return mris;
 }
 
-MRIS **MRIScreateSurfacesFromVolume(MRI *mri, int number_of_labels, int *labelvalues, int connectivity) {
+MRIS **MRIScreateSurfacesFromVolume(MRI *mri, int number_of_labels, int *labelvalues, int connectivity)
+{
   tesselation_parms *parms;
   MRIS **mris_table;
 

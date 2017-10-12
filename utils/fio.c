@@ -42,7 +42,8 @@
 int fio_npushes = -1;
 char fio_dirstack[FIO_NPUSHES_MAX][1000];
 
-FILE *MGHopen_file(const char *fname, const char *rwmode) {
+FILE *MGHopen_file(const char *fname, const char *rwmode)
+{
   FILE *f1;
 
   if ((f1 = fopen(fname, rwmode)) == NULL) {
@@ -52,14 +53,16 @@ FILE *MGHopen_file(const char *fname, const char *rwmode) {
   return f1;
 }
 
-int putf(float f, FILE *fp) {
+int putf(float f, FILE *fp)
+{
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   f = swapFloat(f);
 #endif
   return (fwrite(&f, 4, 1, fp));
 }
 
-float getf(FILE *fp) {
+float getf(FILE *fp)
+{
   float f;
 
   if (fread(&f, 4, 1, fp) != 1) {
@@ -71,7 +74,8 @@ float getf(FILE *fp) {
   return f;
 }
 
-int fread1(int *v, FILE *fp) {
+int fread1(int *v, FILE *fp)
+{
   unsigned char c;
   int ret;
 
@@ -80,7 +84,8 @@ int fread1(int *v, FILE *fp) {
   return (ret);
 }
 
-int fread2(int *v, FILE *fp) {
+int fread2(int *v, FILE *fp)
+{
   short s;
   int ret;
 
@@ -92,7 +97,8 @@ int fread2(int *v, FILE *fp) {
   return (ret);
 }
 
-int fread3(int *v, FILE *fp) {
+int fread3(int *v, FILE *fp)
+{
   unsigned int i = 0;
   int ret;
 
@@ -104,7 +110,8 @@ int fread3(int *v, FILE *fp) {
   return (ret);
 }
 
-int fread4(float *v, FILE *fp) {
+int fread4(float *v, FILE *fp)
+{
   float f;
   int ret;
 
@@ -116,13 +123,15 @@ int fread4(float *v, FILE *fp) {
   return (ret);
 }
 
-int fwrite1(int v, FILE *fp) {
+int fwrite1(int v, FILE *fp)
+{
   unsigned char c = (unsigned char)v;
 
   return (fwrite(&c, 1, 1, fp));
 }
 
-int fwrite2(int v, FILE *fp) {
+int fwrite2(int v, FILE *fp)
+{
   short s;
 
   if (v > 0x7fff) /* don't let it overflow */
@@ -136,7 +145,8 @@ int fwrite2(int v, FILE *fp) {
   return (fwrite(&s, 2, 1, fp));
 }
 
-int fwrite3(int v, FILE *fp) {
+int fwrite3(int v, FILE *fp)
+{
   unsigned int i = (unsigned int)(v << 8);
 
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -145,20 +155,23 @@ int fwrite3(int v, FILE *fp) {
   return (fwrite(&i, 3, 1, fp));
 }
 
-int fwrite4(int v, FILE *fp) {
+int fwrite4(int v, FILE *fp)
+{
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   v = swapInt(v);
 #endif
   return (fwrite(&v, 4, 1, fp));
 }
 
-int fwriteShort(short s, FILE *fp) {
+int fwriteShort(short s, FILE *fp)
+{
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   s = swapShort(s);
 #endif
   return (fwrite(&s, sizeof(short), 1, fp));
 }
-double freadDouble(FILE *fp) {
+double freadDouble(FILE *fp)
+{
   double d;
   int ret;
 
@@ -170,7 +183,8 @@ double freadDouble(FILE *fp) {
   return (d);
 }
 
-int freadInt(FILE *fp) {
+int freadInt(FILE *fp)
+{
   int i;
 
   if (fread(&i, sizeof(int), 1, fp) != 1) {
@@ -181,7 +195,8 @@ int freadInt(FILE *fp) {
 #endif
   return (i);
 }
-long long freadLong(FILE *fp) {
+long long freadLong(FILE *fp)
+{
   long long i;
 
   if (fread(&i, sizeof(long long), 1, fp) != 1) {
@@ -193,7 +208,8 @@ long long freadLong(FILE *fp) {
   return (i);
 }
 
-short freadShort(FILE *fp) {
+short freadShort(FILE *fp)
+{
   short s;
 
   if (fread(&s, sizeof(short), 1, fp) != 1) {
@@ -214,7 +230,8 @@ short freadShort(FILE *fp) {
 /* while (fread..Ex(., fp))                            */
 /*   dosomething();                                    */
 /*******************************************************/
-int freadFloatEx(float *pf, FILE *fp) {
+int freadFloatEx(float *pf, FILE *fp)
+{
   int ret;
   ret = fread(pf, sizeof(float), 1, fp);
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -223,7 +240,8 @@ int freadFloatEx(float *pf, FILE *fp) {
   return ret;
 }
 
-int freadDoubleEx(double *pd, FILE *fp) {
+int freadDoubleEx(double *pd, FILE *fp)
+{
   int ret;
   ret = fread(pd, sizeof(double), 1, fp);
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -232,7 +250,8 @@ int freadDoubleEx(double *pd, FILE *fp) {
   return ret;
 }
 
-int freadIntEx(int *pi, FILE *fp) {
+int freadIntEx(int *pi, FILE *fp)
+{
   int nread;
   nread = fread(pi, sizeof(int), 1, fp);
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -241,7 +260,8 @@ int freadIntEx(int *pi, FILE *fp) {
   return (nread);
 }
 
-int freadShortEx(short *ps, FILE *fp) {
+int freadShortEx(short *ps, FILE *fp)
+{
   int nread;
   nread = fread(ps, sizeof(short), 1, fp);
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -251,14 +271,16 @@ int freadShortEx(short *ps, FILE *fp) {
 }
 
 /******************************************************/
-int fwriteInt(int v, FILE *fp) {
+int fwriteInt(int v, FILE *fp)
+{
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   v = swapInt(v);
 #endif
   return (fwrite(&v, sizeof(int), 1, fp));
 }
 
-int fwriteLong(long long v, FILE *fp) {
+int fwriteLong(long long v, FILE *fp)
+{
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   v = swapLong64(v);
 #endif
@@ -266,7 +288,8 @@ int fwriteLong(long long v, FILE *fp) {
 }
 
 /*----------------------------------------*/
-float freadFloat(FILE *fp) {
+float freadFloat(FILE *fp)
+{
   char buf[4];
   float f;
   int ret;
@@ -284,7 +307,8 @@ float freadFloat(FILE *fp) {
   return (f);
 }
 /*----------------------------------------*/
-int fwriteFloat(float f, FILE *fp) {
+int fwriteFloat(float f, FILE *fp)
+{
   int ret;
   char buf[4];
   memmove(buf, &f, 4);
@@ -297,7 +321,8 @@ int fwriteFloat(float f, FILE *fp) {
   return (ret);
 }
 /*----------------------------------------*/
-int fwriteDouble(double d, FILE *fp) {
+int fwriteDouble(double d, FILE *fp)
+{
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   d = swapDouble(d);
 #endif
@@ -305,7 +330,8 @@ int fwriteDouble(double d, FILE *fp) {
 }
 
 /*------ znzlib support ------------*/
-int znzread1(int *v, znzFile fp) {
+int znzread1(int *v, znzFile fp)
+{
   unsigned char c;
   int ret;
 
@@ -314,7 +340,8 @@ int znzread1(int *v, znzFile fp) {
   return (ret);
 }
 
-int znzread2(int *v, znzFile fp) {
+int znzread2(int *v, znzFile fp)
+{
   short s;
   int ret;
 
@@ -326,7 +353,8 @@ int znzread2(int *v, znzFile fp) {
   return (ret);
 }
 
-int znzread3(int *v, znzFile fp) {
+int znzread3(int *v, znzFile fp)
+{
   unsigned int i = 0;
   int ret;
 
@@ -338,7 +366,8 @@ int znzread3(int *v, znzFile fp) {
   return (ret);
 }
 
-int znzread4(float *v, znzFile fp) {
+int znzread4(float *v, znzFile fp)
+{
   float f;
   int ret;
 
@@ -350,13 +379,15 @@ int znzread4(float *v, znzFile fp) {
   return (ret);
 }
 
-int znzwrite1(int v, znzFile fp) {
+int znzwrite1(int v, znzFile fp)
+{
   unsigned char c = (unsigned char)v;
 
   return (znzwrite(&c, 1, 1, fp));
 }
 
-int znzwrite2(int v, znzFile fp) {
+int znzwrite2(int v, znzFile fp)
+{
   short s;
 
   if (v > 0x7fff) /* don't let it overflow */
@@ -370,7 +401,8 @@ int znzwrite2(int v, znzFile fp) {
   return (znzwrite(&s, 2, 1, fp));
 }
 
-int znzwrite3(int v, znzFile fp) {
+int znzwrite3(int v, znzFile fp)
+{
   unsigned int i = (unsigned int)(v << 8);
 
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -379,21 +411,24 @@ int znzwrite3(int v, znzFile fp) {
   return (znzwrite(&i, 3, 1, fp));
 }
 
-int znzwrite4(int v, znzFile fp) {
+int znzwrite4(int v, znzFile fp)
+{
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   v = swapInt(v);
 #endif
   return (znzwrite(&v, 4, 1, fp));
 }
 
-int znzwriteShort(short s, znzFile fp) {
+int znzwriteShort(short s, znzFile fp)
+{
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   s = swapShort(s);
 #endif
   return (znzwrite(&s, sizeof(short), 1, fp));
 }
 
-double znzreadDouble(znzFile fp) {
+double znzreadDouble(znzFile fp)
+{
   double d;
   int ret;
 
@@ -405,7 +440,8 @@ double znzreadDouble(znzFile fp) {
   return (d);
 }
 
-int znzreadInt(znzFile fp) {
+int znzreadInt(znzFile fp)
+{
   int i;
 
   if (znzread(&i, sizeof(int), 1, fp) != 1) {
@@ -417,7 +453,8 @@ int znzreadInt(znzFile fp) {
   return (i);
 }
 
-long long znzreadLong(znzFile fp) {
+long long znzreadLong(znzFile fp)
+{
   long long i;
 
   if (znzread(&i, sizeof(long long), 1, fp) != 1) {
@@ -429,7 +466,8 @@ long long znzreadLong(znzFile fp) {
   return (i);
 }
 
-short znzreadShort(znzFile fp) {
+short znzreadShort(znzFile fp)
+{
   int nread;
   short s;
 
@@ -453,7 +491,8 @@ short znzreadShort(znzFile fp) {
   because TAGwrite() does not do a byte order swap. Use
   znzTAGreadFloat() instead of znzreadFloatEx().
  */
-int znzreadFloatEx(float *pf, znzFile fp) {
+int znzreadFloatEx(float *pf, znzFile fp)
+{
   int ret;
   ret = znzread(pf, sizeof(float), 1, fp);
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -462,7 +501,8 @@ int znzreadFloatEx(float *pf, znzFile fp) {
   return ret;
 }
 
-int znzreadDoubleEx(double *pd, znzFile fp) {
+int znzreadDoubleEx(double *pd, znzFile fp)
+{
   int ret;
   ret = znzread(pd, sizeof(double), 1, fp);
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -471,7 +511,8 @@ int znzreadDoubleEx(double *pd, znzFile fp) {
   return ret;
 }
 
-int znzreadIntEx(int *pi, znzFile fp) {
+int znzreadIntEx(int *pi, znzFile fp)
+{
   int nread;
   nread = znzread(pi, sizeof(int), 1, fp);
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -480,7 +521,8 @@ int znzreadIntEx(int *pi, znzFile fp) {
   return (nread);
 }
 
-int znzreadShortEx(short *ps, znzFile fp) {
+int znzreadShortEx(short *ps, znzFile fp)
+{
   int nread;
   nread = znzread(ps, sizeof(short), 1, fp);
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -490,14 +532,16 @@ int znzreadShortEx(short *ps, znzFile fp) {
 }
 
 /******************************************************/
-int znzwriteInt(int v, znzFile fp) {
+int znzwriteInt(int v, znzFile fp)
+{
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   v = swapInt(v);
 #endif
   return (znzwrite(&v, sizeof(int), 1, fp));
 }
 
-int znzwriteLong(long long v, znzFile fp) {
+int znzwriteLong(long long v, znzFile fp)
+{
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   v = swapLong64(v);
 #endif
@@ -505,7 +549,8 @@ int znzwriteLong(long long v, znzFile fp) {
 }
 
 /*----------------------------------------*/
-float znzreadFloat(znzFile fp) {
+float znzreadFloat(znzFile fp)
+{
   char buf[4];
   float f;
   int ret;
@@ -523,7 +568,8 @@ float znzreadFloat(znzFile fp) {
   return (f);
 }
 /*----------------------------------------*/
-int znzwriteFloat(float f, znzFile fp) {
+int znzwriteFloat(float f, znzFile fp)
+{
   int ret;
   char buf[4];
   memmove(buf, &f, 4);
@@ -536,7 +582,8 @@ int znzwriteFloat(float f, znzFile fp) {
   return (ret);
 }
 /*----------------------------------------*/
-int znzwriteDouble(double d, znzFile fp) {
+int znzwriteDouble(double d, znzFile fp)
+{
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   d = swapDouble(d);
 #endif
@@ -548,7 +595,8 @@ int znzwriteDouble(double d, znzFile fp) {
   of the unix dirname.
   Author: Douglas Greve, 9/10/2001
   ------------------------------------------------------*/
-char *fio_dirname(const char *pathname) {
+char *fio_dirname(const char *pathname)
+{
   int l, n;
   char *dirname;
 
@@ -605,7 +653,8 @@ char *fio_dirname(const char *pathname) {
   of the unix basename.
   Author: Douglas Greve, 9/10/2001
   ------------------------------------------------------*/
-char *fio_basename(const char *pathname, const char *ext) {
+char *fio_basename(const char *pathname, const char *ext)
+{
   int l, n, lext;
   char *basename, *tmp;
 
@@ -658,7 +707,8 @@ char *fio_basename(const char *pathname, const char *ext) {
   fio_extension() - returns the extension of the given filename.
   Author: Douglas Greve, 1/30/2002
   -------------------------------------------------------------*/
-char *fio_extension(const char *pathname) {
+char *fio_extension(const char *pathname)
+{
   int lpathname, n, lext;
   char *ext;
 
@@ -691,7 +741,8 @@ char *fio_extension(const char *pathname) {
   dirname is treated as path to a filename. It will
   return 0 if the directory does not exist.
   ----------------------------------------------------- */
-int fio_DirIsWritable(const char *dirname, int fname) {
+int fio_DirIsWritable(const char *dirname, int fname)
+{
   FILE *fp;
   char tmpstr[2000];
 
@@ -711,7 +762,8 @@ int fio_DirIsWritable(const char *dirname, int fname) {
 /*-----------------------------------------------------
   fio_FileExistsReadable() - file exists and is readable
   -----------------------------------------------------*/
-int fio_FileExistsReadable(const char *fname) {
+int fio_FileExistsReadable(const char *fname)
+{
   FILE *fp;
 
   fp = fopen(fname, "r");
@@ -724,7 +776,8 @@ int fio_FileExistsReadable(const char *fname) {
 /*-----------------------------------------------------
   fio_IsDirectory(fname) - fname exists and is a directory
   -----------------------------------------------------*/
-int fio_IsDirectory(const char *fname) {
+int fio_IsDirectory(const char *fname)
+{
   FILE *fp;
   struct stat buf;
   int err;
@@ -740,7 +793,8 @@ int fio_IsDirectory(const char *fname) {
   fio_NLines() - get the number of lines. The line length
   should not exceed 4000 characters.
   ------------------------------------------------------------*/
-int fio_NLines(const char *fname) {
+int fio_NLines(const char *fname)
+{
   FILE *fp;
   int nrows;
   char tmpstring[4001];
@@ -759,7 +813,8 @@ int fio_NLines(const char *fname) {
 }
 
 /*------------------------------------------------------------------------*/
-int fio_pushd(const char *dir) {
+int fio_pushd(const char *dir)
+{
   extern int fio_npushes;
   extern char fio_dirstack[FIO_NPUSHES_MAX][1000];
   int err;
@@ -784,7 +839,8 @@ int fio_pushd(const char *dir) {
   return (0);
 }
 /*------------------------------------------------------------------------*/
-int fio_popd(void) {
+int fio_popd(void)
+{
   extern int fio_npushes;
   extern char fio_dirstack[FIO_NPUSHES_MAX][1000];
   int err;
@@ -810,7 +866,8 @@ int fio_popd(void) {
   by pushing into the file dir, getting the cwd, appending the file
   basename to the cwd to get the full path, then popping the stack.
   -------------------------------------------------------------------*/
-char *fio_fullpath(const char *fname) {
+char *fio_fullpath(const char *fname)
+{
   static char cwd[1000];
   char *dirname, *basename;
   char *fullpath;
@@ -840,7 +897,8 @@ char *fio_fullpath(const char *fname) {
 }
 
 // Replicates mkdir -p
-int fio_mkdirp(const char *path, mode_t mode) {
+int fio_mkdirp(const char *path, mode_t mode)
+{
   int l, n, m, nthseg, err;
   char seg[2000], path2[2000];
   memset(path2, '\0', 2000);
@@ -882,7 +940,8 @@ int fio_mkdirp(const char *path, mode_t mode) {
   The CRs can be replaced with a new line with
     cat file | sed 's/\r/\n/g' > newfile
  */
-int fio_FileHasCarriageReturn(char *fname) {
+int fio_FileHasCarriageReturn(char *fname)
+{
   FILE *fp;
   char c;
   int n;

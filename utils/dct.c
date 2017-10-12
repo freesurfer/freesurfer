@@ -36,7 +36,8 @@
 
 #define FOV 256.0
 
-DCT *DCTalloc(int ncoef, MRI *mri_source) {
+DCT *DCTalloc(int ncoef, MRI *mri_source)
+{
   DCT *dct;
   dct = (DCT *)calloc(1, sizeof(DCT));
   if (dct == NULL) ErrorExit(ERROR_NOMEMORY, "DCTalloc(%d): allocation failed", ncoef);
@@ -63,7 +64,8 @@ DCT *DCTalloc(int ncoef, MRI *mri_source) {
   DCTupdate(dct);
   return (dct);
 }
-int DCTfree(DCT **pdct) {
+int DCTfree(DCT **pdct)
+{
   DCT *dct;
 
   dct = *pdct;
@@ -84,7 +86,8 @@ int DCTfree(DCT **pdct) {
   free(dct);
   return (NO_ERROR);
 }
-int DCTcreateMatrix(DCT *dct, MRI *mri, int skip) {
+int DCTcreateMatrix(DCT *dct, MRI *mri, int skip)
+{
   int Nx, Ny, Nz, vox, k, N, i;
   double dk;
   MATRIX *m;
@@ -134,7 +137,8 @@ int DCTcreateMatrix(DCT *dct, MRI *mri, int skip) {
   return (NO_ERROR);
 }
 
-DCT *DCTcopy(DCT *dct_src, DCT *dct_dst) {
+DCT *DCTcopy(DCT *dct_src, DCT *dct_dst)
+{
   if (dct_dst == NULL) dct_dst = DCTalloc(dct_src->ncoef, dct_src->mri_source);
 
   MatrixCopyRealRegion(dct_src->v_xk, dct_dst->v_xk, 1, 1, MIN(dct_src->v_xk->rows, dct_dst->v_xk->rows), 1, 1, 1);
@@ -143,7 +147,8 @@ DCT *DCTcopy(DCT *dct_src, DCT *dct_dst) {
   return (dct_dst);
 }
 
-MRI *DCTapply(DCT *dct, MRI *mri_src, MRI *mri_target, MRI *mri_dst, int sample_type) {
+MRI *DCTapply(DCT *dct, MRI *mri_src, MRI *mri_target, MRI *mri_dst, int sample_type)
+{
   int x, y, z;
   double xd, yd, zd;
   double val;
@@ -178,7 +183,8 @@ MRI *DCTapply(DCT *dct, MRI *mri_src, MRI *mri_target, MRI *mri_dst, int sample_
   VectorFree(&v2);
   return (mri_dst);
 }
-MRI *DCTapplyInverse(DCT *dct, MRI *mri_src, MRI *mri_dst, int sample_type) {
+MRI *DCTapplyInverse(DCT *dct, MRI *mri_src, MRI *mri_dst, int sample_type)
+{
   int x, y, z;
   double xs, ys, zs;
   double val;
@@ -199,7 +205,8 @@ MRI *DCTapplyInverse(DCT *dct, MRI *mri_src, MRI *mri_dst, int sample_type) {
   return (mri_dst);
 }
 
-int DCTtransformVoxlist(DCT *dct, VOXEL_LIST *vl) {
+int DCTtransformVoxlist(DCT *dct, VOXEL_LIST *vl)
+{
   int i;
   double x, y, z, xd, yd, zd;
 
@@ -216,7 +223,8 @@ int DCTtransformVoxlist(DCT *dct, VOXEL_LIST *vl) {
   return (NO_ERROR);
 }
 
-int DCTinverseTransformVoxlist(DCT *dct, VOXEL_LIST *vl) {
+int DCTinverseTransformVoxlist(DCT *dct, VOXEL_LIST *vl)
+{
   int i, x, y, z;
   MATRIX *m_vox2vox;
   static VECTOR *v1 = NULL, *v2;
@@ -269,7 +277,8 @@ int DCTinverseTransformVoxlist(DCT *dct, VOXEL_LIST *vl) {
   MatrixFree(&m_vox2vox);
   return (NO_ERROR);
 }
-int DCTtransformPoint(DCT *dct, int x, int y, int z, double *px, double *py, double *pz) {
+int DCTtransformPoint(DCT *dct, int x, int y, int z, double *px, double *py, double *pz)
+{
   double xd, yd, zd;
 
   xd = MatrixRowDotProduct(dct->m_x_basis, x + 1, dct->v_xk);
@@ -281,7 +290,8 @@ int DCTtransformPoint(DCT *dct, int x, int y, int z, double *px, double *py, dou
   return (NO_ERROR);
 }
 
-int DCTinverseTransformPoint(DCT *dct, double x, double y, double z, double *px, double *py, double *pz) {
+int DCTinverseTransformPoint(DCT *dct, double x, double y, double z, double *px, double *py, double *pz)
+{
   double xd, yd, zd;
   int xi, yi, zi;
 
@@ -304,7 +314,8 @@ int DCTinverseTransformPoint(DCT *dct, double x, double y, double z, double *px,
   return (NO_ERROR);
 }
 
-int DCTdump(DCT *dct, FILE *fp) {
+int DCTdump(DCT *dct, FILE *fp)
+{
   int k;
   fprintf(fp, "DCT (%d):\n", dct->ncoef);
   for (k = 1; k <= dct->ncoef; k++)
@@ -314,7 +325,8 @@ int DCTdump(DCT *dct, FILE *fp) {
   return (NO_ERROR);
 }
 static int soap_bubble(double *in_vals, double *ctrl, double *out_vals, int N, double max_change_allowed);
-int DCTupdate(DCT *dct) {
+int DCTupdate(DCT *dct)
+{
   double *x_wts, *y_wts, *z_wts, xd, yd, zd, jcd, jfd, *wts, *inv, *fwd, jd;
   int jc, jf, x, y, z, N, i, j, Ninv;
 
@@ -402,7 +414,8 @@ int DCTupdate(DCT *dct) {
   free(z_wts);
   return (NO_ERROR);
 }
-static int soap_bubble(double *in_vals, double *ctrl, double *out_vals, int N, double max_change_allowed) {
+static int soap_bubble(double *in_vals, double *ctrl, double *out_vals, int N, double max_change_allowed)
+{
   double *tmp_vals, max_change, change, out_val, min_val, max_val;
   int iter, i, j, num;
 

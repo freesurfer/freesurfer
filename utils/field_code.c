@@ -32,7 +32,8 @@
 
 #include "field_code.h"
 
-char *ReturnFieldName(int which_field) {
+char *ReturnFieldName(int which_field)
+{
   switch (which_field) {
     case OVERLAY_FRAME:
       return (OVERLAY_NAME);
@@ -90,7 +91,8 @@ char *ReturnFieldName(int which_field) {
   return NULL;
 }
 
-int IsDistanceField(int which_field) {
+int IsDistanceField(int which_field)
+{
   switch (which_field) {
     case OVERLAY_FRAME:
       return (0);
@@ -146,12 +148,14 @@ int IsDistanceField(int which_field) {
   return 0;
 }
 
-int InitFieldLabel(FIELD_LABEL *label) {
+int InitFieldLabel(FIELD_LABEL *label)
+{
   memset(label, 0, sizeof(FIELD_LABEL));
   return NO_ERROR;
 }
 
-int SetFieldLabel(FIELD_LABEL *label, int field, int frame, float l_corr, float l_pcorr, int navgs, int which_norm) {
+int SetFieldLabel(FIELD_LABEL *label, int field, int frame, float l_corr, float l_pcorr, int navgs, int which_norm)
+{
   label->field = field;
   label->frame = frame;
   label->type = IsDistanceField(field);
@@ -164,7 +168,8 @@ int SetFieldLabel(FIELD_LABEL *label, int field, int frame, float l_corr, float 
   return NO_ERROR;
 }
 
-int SetFieldName(FIELD_LABEL *label, char *name) {
+int SetFieldName(FIELD_LABEL *label, char *name)
+{
   label->name = name;
   return (NO_ERROR);
 }

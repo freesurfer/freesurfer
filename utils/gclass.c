@@ -66,7 +66,8 @@
 
         Description
 ------------------------------------------------------*/
-GCLASSIFY *GCalloc(int nclasses, int nvars, char *class_names[]) {
+GCLASSIFY *GCalloc(int nclasses, int nvars, char *class_names[])
+{
   GCLASSIFY *gc;
   GCLASS *gcl;
   int cno;
@@ -156,7 +157,8 @@ GCLASSIFY *GCalloc(int nclasses, int nvars, char *class_names[]) {
              is the # of observations, and the # of cols is the #
              of variables.
 ------------------------------------------------------*/
-int GCtrain(GCLASSIFY *gc, int class, MATRIX *m_inputs) {
+int GCtrain(GCLASSIFY *gc, int class, MATRIX *m_inputs)
+{
   GCLASS *gcl;
 
   gcl = &gc->classes[class];
@@ -181,7 +183,8 @@ int GCtrain(GCLASSIFY *gc, int class, MATRIX *m_inputs) {
 
         Description
 ------------------------------------------------------*/
-int GCfree(GCLASSIFY **pgc) {
+int GCfree(GCLASSIFY **pgc)
+{
   GCLASSIFY *gc;
   GCLASS *gcl;
   int cno;
@@ -212,7 +215,8 @@ int GCfree(GCLASSIFY **pgc) {
 
         Description
 ------------------------------------------------------*/
-int GCclassify(GCLASSIFY *gc, MATRIX *m_x, MATRIX *m_priors, float *prisk) {
+int GCclassify(GCLASSIFY *gc, MATRIX *m_x, MATRIX *m_priors, float *prisk)
+{
   int cno, class = -1;
   GCLASS *gcl;
   static MATRIX *m_xT = NULL, *m_tmp, *m_tmp2, *m_tmp3;
@@ -277,7 +281,8 @@ int GCclassify(GCLASSIFY *gc, MATRIX *m_x, MATRIX *m_priors, float *prisk) {
         Description
           save a classifier to disk in an already opened file
 ------------------------------------------------------*/
-int GCasciiWriteInto(FILE *fp, GCLASSIFY *gc) {
+int GCasciiWriteInto(FILE *fp, GCLASSIFY *gc)
+{
   int classno;
 
   fprintf(fp, "%d %d %d\n", gc->nclasses, gc->nvars, gc->type);
@@ -294,7 +299,8 @@ int GCasciiWriteInto(FILE *fp, GCLASSIFY *gc) {
            read a classifier from disk in ASCII format from
            an already opened file.
 ------------------------------------------------------*/
-GCLASSIFY *GCasciiReadFrom(FILE *fp, GCLASSIFY *gc) {
+GCLASSIFY *GCasciiReadFrom(FILE *fp, GCLASSIFY *gc)
+{
   int classno, nclasses, nvars, type;
 
   if (fscanf(fp, "%d %d %d\n", &nclasses, &nvars, &type) != 3)
@@ -303,7 +309,8 @@ GCLASSIFY *GCasciiReadFrom(FILE *fp, GCLASSIFY *gc) {
   if (!gc) {
     gc = GCalloc(nclasses, nvars, NULL);
     if (!gc) ErrorReturn(NULL, (ERROR_BADFILE, "GCasciiReadFrom: GCalloc failed"));
-  } else if ((gc->nclasses != nclasses) || (gc->nvars != nvars))
+  }
+  else if ((gc->nclasses != nclasses) || (gc->nvars != nvars))
     ErrorReturn(NULL, (ERROR_BADPARM, "GCasciiReadFrom: specified classifier is of wrong form"));
 
   for (classno = 0; classno < gc->nclasses; classno++) GCasciiReadClassFrom(fp, &gc->classes[classno]);
@@ -318,7 +325,8 @@ GCLASSIFY *GCasciiReadFrom(FILE *fp, GCLASSIFY *gc) {
         Description
           write a single class to disk in ascii format
 ------------------------------------------------------*/
-int GCasciiWriteClassInto(FILE *fp, GCLASS *gcl) {
+int GCasciiWriteClassInto(FILE *fp, GCLASS *gcl)
+{
   fprintf(fp, "%d %f %d\n", gcl->classno, gcl->w0, gcl->nobs);
   fprintf(fp, "%s\n", gcl->class_name);
   MatrixAsciiWriteInto(fp, gcl->m_covariance);
@@ -335,7 +343,8 @@ int GCasciiWriteClassInto(FILE *fp, GCLASS *gcl) {
         Description
            read a single class from disk in ascii format
 ------------------------------------------------------*/
-GCLASS *GCasciiReadClassFrom(FILE *fp, GCLASS *gcl) {
+GCLASS *GCasciiReadClassFrom(FILE *fp, GCLASS *gcl)
+{
   char class_name[CLASS_NAME_LEN], *cp;
 
   if (fscanf(fp, "%d %f %d\n", &gcl->classno, &gcl->w0, &gcl->nobs) != 3)
@@ -362,7 +371,8 @@ GCLASS *GCasciiReadClassFrom(FILE *fp, GCLASS *gcl) {
            static components. After this call, the classifier
            should be ready for use.
 ------------------------------------------------------*/
-int GCinit(GCLASSIFY *gc, int class) {
+int GCinit(GCLASSIFY *gc, int class)
+{
   GCLASS *gcl;
   MATRIX *m_sigma_inverse, *m_uT, *m_tmp, *m_tmp2;
   float det;

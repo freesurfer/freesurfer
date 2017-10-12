@@ -1964,7 +1964,8 @@ IC_FACE  ic642_faces[1280] =
     {{ 634, 607,  12 }}
   } ;
 // clang-format on
-MRI_SURFACE *ic642_make_surface(int max_vertices, int max_faces) {
+MRI_SURFACE *ic642_make_surface(int max_vertices, int max_faces)
+{
   MRI_SURFACE *mris;
   int vno, fno, n, vn, n1, n2;
   VERTEX *v;

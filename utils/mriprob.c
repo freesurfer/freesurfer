@@ -37,7 +37,8 @@
 
 #define DEBUG_POINT(x, y, z) (((x == 140) && (y == 74)) && ((z) == 174))
 
-MRI *MRIapplyBayesLaw(MRI *mri_priors, MRI *mri_p1, MRI *mri_p2, MRI *mri_dst) {
+MRI *MRIapplyBayesLaw(MRI *mri_priors, MRI *mri_p1, MRI *mri_p2, MRI *mri_dst)
+{
   int x, y, z, width, height, depth;
   BUFTYPE *ppriors, *pdst;
   float p, p1, p2, prior, *pp1, *pp2;
@@ -71,7 +72,8 @@ MRI *MRIapplyBayesLaw(MRI *mri_priors, MRI *mri_p1, MRI *mri_p2, MRI *mri_dst) {
   }
   return (mri_dst);
 }
-MRI *MRIcomputeConditionalProbabilities(MRI *mri_T1, MRI *mri_mean, MRI *mri_std, MRI *mri_dst) {
+MRI *MRIcomputeConditionalProbabilities(MRI *mri_T1, MRI *mri_mean, MRI *mri_std, MRI *mri_dst)
+{
   int x, y, z, width, height, depth;
   BUFTYPE *pT1, *pmean, *pstd;
   float p, mean, std, val, n, *pdst;
@@ -111,7 +113,8 @@ MRI *MRIcomputeConditionalProbabilities(MRI *mri_T1, MRI *mri_mean, MRI *mri_std
 
            Description:
 ----------------------------------------------------------------------*/
-MRI *MRIprobabilityThresholdNeighborhoodOff(MRI *mri_src, MRI *mri_prob, MRI *mri_dst, float threshold, int nsize) {
+MRI *MRIprobabilityThresholdNeighborhoodOff(MRI *mri_src, MRI *mri_prob, MRI *mri_dst, float threshold, int nsize)
+{
   BUFTYPE *pprob, out_val;
   int width, height, depth, x, y, z, x1, y1, z1, xi, yi, zi, xmin, xmax, ymin, ymax, zmin, zmax, nchanged;
   float nvox;
@@ -204,7 +207,8 @@ MRI *MRIprobabilityThresholdNeighborhoodOff(MRI *mri_src, MRI *mri_prob, MRI *mr
            Description:
 ----------------------------------------------------------------------*/
 MRI *MRIprobabilityThresholdNeighborhoodOn(
-    MRI *mri_src, MRI *mri_prob, MRI *mri_dst, float threshold, int nsize, int out_label) {
+    MRI *mri_src, MRI *mri_prob, MRI *mri_dst, float threshold, int nsize, int out_label)
+{
   BUFTYPE *pprob, out_val;
   int width, height, depth, x, y, z, x1, y1, z1, xi, yi, zi, xmin, xmax, ymin, ymax, zmin, zmax, nchanged;
   float nvox;
@@ -288,7 +292,8 @@ MRI *MRIprobabilityThresholdNeighborhoodOn(
   return (mri_dst);
 }
 
-MRI *MRIprobabilityThreshold(MRI *mri_src, MRI *mri_prob, MRI *mri_dst, float threshold, int out_label) {
+MRI *MRIprobabilityThreshold(MRI *mri_src, MRI *mri_prob, MRI *mri_dst, float threshold, int out_label)
+{
   BUFTYPE *pprob, *pdst, *psrc, out_val, prob, in_val;
   int width, height, depth, x, y, z, nchanged, noff, non;
   float nvox;

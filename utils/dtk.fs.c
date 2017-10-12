@@ -56,7 +56,8 @@ double trkvisOffset = 0.5;
 const char *DTKFSSrcVersion(void) { return ("$Id: dtk.fs.c,v 1.5 2011/03/02 00:04:43 nicks Exp $"); }
 
 /*----------------------------------------------------------------*/
-DTK_TRACK_SET *DTKloadTrackSet(char *trkfile, char *mrifile) {
+DTK_TRACK_SET *DTKloadTrackSet(char *trkfile, char *mrifile)
+{
   DTK_TRACK_SET *dtkset;
   FILE *fp;
   size_t nread;
@@ -79,7 +80,8 @@ DTK_TRACK_SET *DTKloadTrackSet(char *trkfile, char *mrifile) {
     if (fname == NULL) {
       printf("WARNING: DTKloadTrackSet(): cannot find matching MRI file for %s\n", trkfile);
     }
-  } else
+  }
+  else
     fname = mrifile;
   if (fname) {
     printf("DTKloadTrackSet(): reading geometry from %s\n", fname);
@@ -138,7 +140,8 @@ DTK_TRACK_SET *DTKloadTrackSet(char *trkfile, char *mrifile) {
   return (dtkset);
 }
 /* --------------------------------------------- */
-int DTKwriteTrackSet(char *trkfile, DTK_TRACK_SET *dtkset) {
+int DTKwriteTrackSet(char *trkfile, DTK_TRACK_SET *dtkset)
+{
   FILE *fp;
   int nthtrk;
   float dc, dr, ds;
@@ -159,7 +162,8 @@ int DTKwriteTrackSet(char *trkfile, DTK_TRACK_SET *dtkset) {
   return (0);
 }
 /*---------------------------------------------------------------------*/
-DTK_TRACK *DTKreadTrack(FILE *fp, int n_scalars, int n_properties, float dc, float dr, float ds) {
+DTK_TRACK *DTKreadTrack(FILE *fp, int n_scalars, int n_properties, float dc, float dr, float ds)
+{
   int npoints, n, ns;
   DTK_TRACK *trk;
   float x, y, z;
@@ -199,7 +203,8 @@ DTK_TRACK *DTKreadTrack(FILE *fp, int n_scalars, int n_properties, float dc, flo
   return (trk);
 }
 /*-------------------------------------------------------------*/
-int DTKwriteTrack(FILE *fp, DTK_TRACK *trk, float dc, float dr, float ds) {
+int DTKwriteTrack(FILE *fp, DTK_TRACK *trk, float dc, float dr, float ds)
+{
   int n, ns;
   float x, y, z;
 
@@ -218,7 +223,8 @@ int DTKwriteTrack(FILE *fp, DTK_TRACK *trk, float dc, float dr, float ds) {
   return (0);
 }
 /*-----------------------------------------------------------*/
-int DTKprintTrack(FILE *fp, DTK_TRACK *trk) {
+int DTKprintTrack(FILE *fp, DTK_TRACK *trk)
+{
   int n, ns;
   for (n = 0; n < trk->npoints; n++) {
     fprintf(fp, "%d %f %f %f ", n, trk->c[n], trk->r[n], trk->s[n]);
@@ -228,7 +234,8 @@ int DTKprintTrack(FILE *fp, DTK_TRACK *trk) {
   return (0);
 }
 /*-------------------------------------------------------------------*/
-DTK_TRACK *DTKcopyTrack(DTK_TRACK *trk) {
+DTK_TRACK *DTKcopyTrack(DTK_TRACK *trk)
+{
   DTK_TRACK *newtrk;
   int n, ns;
   newtrk = DTKallocTrack(trk->npoints, trk->n_scalars, trk->n_properties);
@@ -245,7 +252,8 @@ DTK_TRACK *DTKcopyTrack(DTK_TRACK *trk) {
   return (newtrk);
 }
 /*-------------------------------------------------------------------*/
-DTK_TRACK *DTKallocTrack(int npoints, int n_scalars, int n_properties) {
+DTK_TRACK *DTKallocTrack(int npoints, int n_scalars, int n_properties)
+{
   DTK_TRACK *trk;
   int ns;
 
@@ -269,7 +277,8 @@ DTK_TRACK *DTKallocTrack(int npoints, int n_scalars, int n_properties) {
   return (trk);
 }
 /*-------------------------------------------------------------*/
-MRI *DTKmapEndPoints(DTK_TRACK_SET *dtkset) {
+MRI *DTKmapEndPoints(DTK_TRACK_SET *dtkset)
+{
   MRI *mri, *t;
   int ntrk, c, r, s, nlast, n;
   DTK_TRACK *trk;
@@ -304,7 +313,8 @@ MRI *DTKmapEndPoints(DTK_TRACK_SET *dtkset) {
 }
 
 /*-------------------------------------------------------------*/
-int DTKlabelTracks(DTK_TRACK_SET *trkset, MRI *seg) {
+int DTKlabelTracks(DTK_TRACK_SET *trkset, MRI *seg)
+{
   int nthtrk, c, r, s, n;
   DTK_TRACK *trk;
   int ndiv = 2000, nthdiv;
@@ -337,7 +347,8 @@ int DTKlabelTracks(DTK_TRACK_SET *trkset, MRI *seg) {
 }
 
 /*-------------------------------------------------------------*/
-int DTKlabelTracks0(DTK_TRACK_SET *trkset, MRI *seg) {
+int DTKlabelTracks0(DTK_TRACK_SET *trkset, MRI *seg)
+{
   int nthtrk, c, r, s, n;
   DTK_TRACK *trk;
   // printf("Labeling tracks\n");
@@ -362,7 +373,8 @@ int DTKlabelTracks0(DTK_TRACK_SET *trkset, MRI *seg) {
 
 /*--------------------------------------------------------*/
 // must first DTKlabelTracks();
-DTK_TRACK_SET *DTKextractCC(DTK_TRACK_SET *trkset) {
+DTK_TRACK_SET *DTKextractCC(DTK_TRACK_SET *trkset)
+{
   int n, nthtrk, id, isCC;
   DTK_TRACK *trk;
   DTK_TRACK_SET *newset;
@@ -393,7 +405,8 @@ DTK_TRACK_SET *DTKextractCC(DTK_TRACK_SET *trkset) {
 }
 
 /*---------------------------------------------------------------*/
-DTK_TRACK_SET *DTKextractSeg(DTK_TRACK_SET *trkset, int segid) {
+DTK_TRACK_SET *DTKextractSeg(DTK_TRACK_SET *trkset, int segid)
+{
   int n, nthtrk, id, isSeg;
   DTK_TRACK *trk;
   DTK_TRACK_SET *newset;
@@ -426,7 +439,8 @@ DTK_TRACK_SET *DTKextractSeg(DTK_TRACK_SET *trkset, int segid) {
 }
 
 /*---------------------------------------------------------------*/
-DTK_TRACK_SET *DTKextractSegEndPoints(DTK_TRACK_SET *trkset, int segid) {
+DTK_TRACK_SET *DTKextractSegEndPoints(DTK_TRACK_SET *trkset, int segid)
+{
   int nthtrk;
   DTK_TRACK *trk;
   DTK_TRACK_SET *newset;
@@ -452,7 +466,8 @@ DTK_TRACK_SET *DTKextractSegEndPoints(DTK_TRACK_SET *trkset, int segid) {
 }
 
 /*-------------------------------------------------------------*/
-int DTKprintHeader(FILE *fp, DTK_HDR *trkh) {
+int DTKprintHeader(FILE *fp, DTK_HDR *trkh)
+{
   fprintf(fp, "id_string %s\n", trkh->id_string);
   fprintf(fp, "dim %d %d %d\n", trkh->dim[0], trkh->dim[1], trkh->dim[2]);
   fprintf(fp, "voxel_size  %f %f %f\n", trkh->voxel_size[0], trkh->voxel_size[1], trkh->voxel_size[2]);
@@ -465,7 +480,8 @@ int DTKprintHeader(FILE *fp, DTK_HDR *trkh) {
   fprintf(fp, "hdr_size %d\n", trkh->hdr_size);
   return (0);
 }
-LABEL *DTKtrack2Label(DTK_TRACK *trk) {
+LABEL *DTKtrack2Label(DTK_TRACK *trk)
+{
   LABEL *trklabel;
   int n;
   MRI *mri;
@@ -503,7 +519,8 @@ LABEL *DTKtrack2Label(DTK_TRACK *trk) {
   through the voxel, the remainder are the track numbers of the
   passing tracks.
   --------------------------------------------------------------*/
-MRI *DTKmapTrackNos(DTK_TRACK_SET *trkset) {
+MRI *DTKmapTrackNos(DTK_TRACK_SET *trkset)
+{
   MRI *mri, *t;
   int ntrk, c, r, s, n, nhits, nmaxhits = 10000;
   DTK_TRACK *trk;
@@ -544,7 +561,8 @@ MRI *DTKmapTrackNos(DTK_TRACK_SET *trkset) {
 }
 
 /*----------------------------------------------------------------*/
-MRI *DTKsegROI(DTK_TRACK_SET *trkset, MRI *seg, int segid) {
+MRI *DTKsegROI(DTK_TRACK_SET *trkset, MRI *seg, int segid)
+{
   MRI *mri, *tracknos;
   int c, r, s, id, nthid, idlist[1000], ntracks, id0, n0, trackno, n;
   int term, cT = 0, rT = 0, sT = 0, idT = 0, pct = 0;
@@ -612,7 +630,8 @@ MRI *DTKsegROI(DTK_TRACK_SET *trkset, MRI *seg, int segid) {
           // Get the most frequently occuring label
           id0 = most_frequent_int_list(idlist, nthid, &n0);
           pct = nint(1000.0 * n0 / nthid);  // 10x percent
-        } else
+        }
+        else
           id0 = 0;  // nothing appropriate
 
         MRIsetVoxVal(mri, c, r, s, 0, id0);

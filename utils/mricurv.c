@@ -42,7 +42,8 @@
 
 static float computeLocalCurvature(int *ref_tab, int connectivity);
 
-float Nbhcurvature(Nbh *nbh, int connectivity) {
+float Nbhcurvature(Nbh *nbh, int connectivity)
+{
   int a, b, c, ref;
   int reference_table[8];
   float curv;
@@ -66,7 +67,8 @@ float Nbhcurvature(Nbh *nbh, int connectivity) {
   return curv;
 }
 
-float MRIcurvature(MRI *mri, int i, int j, int k, int label, int connectivity) {
+float MRIcurvature(MRI *mri, int i, int j, int k, int label, int connectivity)
+{
   int a, b, c, ref;
   int reference_table[8];
   float curv;
@@ -90,7 +92,8 @@ float MRIcurvature(MRI *mri, int i, int j, int k, int label, int connectivity) {
   return curv;
 }
 
-typedef struct VerTex {
+typedef struct VerTex
+{
   float x, y, z;
   int f[20];
   int fnum;
@@ -98,7 +101,8 @@ typedef struct VerTex {
   int vnum;
   int marked;
 } VerTex;
-typedef struct FaCe {
+typedef struct FaCe
+{
   int v[3];
   float nx, ny, nz, area;
 } FaCe;
@@ -112,7 +116,8 @@ static float fz[12] = {0, 0, 0, 0, 0.5, 0.5, 0.5, 0.5, 1, 1, 1, 1};
 
 #define MAX_VERTICES 100
 #define MAX_FACES 40
-static float computeLocalCurvature(int *ref_tab, int connectivity) {
+static float computeLocalCurvature(int *ref_tab, int connectivity)
+{
   int number_of_vertices;
   VerTex vertex[MAX_VERTICES];
   int number_of_faces, reference, refdst;
@@ -840,7 +845,8 @@ static float computeLocalCurvature(int *ref_tab, int connectivity) {
     maxcurv = 0;
     for (n = 0; n < kvt_nbr; n++) maxcurv += curvature[n];
     maxcurv /= (float)kvt_nbr;
-  } else {
+  }
+  else {
     maxcurv = 0;
     m = 0;
     for (n = 0; n < kvt_nbr; n++)
@@ -852,7 +858,8 @@ static float computeLocalCurvature(int *ref_tab, int connectivity) {
   return curvature[m];
 }
 
-static void computeCurvature(VerTex *vertex, int nvt, FaCe *face, int nfc, int *ref_tab, int nb, float *curv) {
+static void computeCurvature(VerTex *vertex, int nvt, FaCe *face, int nfc, int *ref_tab, int nb, float *curv)
+{
   int n, m, reference;
   VECTOR *v_n, *v_e1, *v_e2, *v;
   float nx, ny, nz, area, dx, dy, dz, y, r2, u1, u2, YR2, R4;
@@ -914,7 +921,8 @@ static void computeCurvature(VerTex *vertex, int nvt, FaCe *face, int nfc, int *
   VectorFree(&v_e2);
 }
 
-static void computeFaceProperties(VerTex *vertex, int nvt, FaCe *face, int nfc) {
+static void computeFaceProperties(VerTex *vertex, int nvt, FaCe *face, int nfc)
+{
   int n;
   float nx, ny, nz, area, dx1, dx2, dy1, dy2, dz1, dz2;
 

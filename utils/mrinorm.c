@@ -111,7 +111,8 @@ static char *bias_volume_fname = NULL;
   ------------------------------------------------------*/
 #define BIAS_IMAGE_WIDTH 25
 
-MRI *MRIsplineNormalize(MRI *mri_src, MRI *mri_dst, MRI **pmri_field, float *inputs, float *outputs, int npoints) {
+MRI *MRIsplineNormalize(MRI *mri_src, MRI *mri_dst, MRI **pmri_field, float *inputs, float *outputs, int npoints)
+{
   int width, height, depth, x, y, z, i;
   BUFTYPE *pfield = NULL;
   float outputs_2[MAX_SPLINE_POINTS], frac;
@@ -125,7 +126,8 @@ MRI *MRIsplineNormalize(MRI *mri_src, MRI *mri_dst, MRI **pmri_field, float *inp
   cp = getenv("RAN");
   if (cp) {
     d = atof(cp);
-  } else {
+  }
+  else {
     d = 0.0;
   }
 
@@ -168,7 +170,8 @@ MRI *MRIsplineNormalize(MRI *mri_src, MRI *mri_dst, MRI **pmri_field, float *inp
         {
           if (dval > 255) {
             dval = 255;
-          } else if (dval < 0) {
+          }
+          else if (dval < 0) {
             dval = 0;
           }
         }
@@ -179,7 +182,8 @@ MRI *MRIsplineNormalize(MRI *mri_src, MRI *mri_dst, MRI **pmri_field, float *inp
   return (mri_dst);
 }
 static MRI *mriSplineNormalizeShort(
-    MRI *mri_src, MRI *mri_dst, MRI **pmri_field, float *inputs, float *outputs, int npoints) {
+    MRI *mri_src, MRI *mri_dst, MRI **pmri_field, float *inputs, float *outputs, int npoints)
+{
   int width, height, depth, x, y, z, i, dval;
   short *psrc, *pdst, sval;
   char *pfield = NULL;
@@ -191,7 +195,8 @@ static MRI *mriSplineNormalizeShort(
   cp = getenv("RAN");
   if (cp) {
     d = atof(cp);
-  } else {
+  }
+  else {
     d = 0.0;
   }
 
@@ -230,7 +235,8 @@ static MRI *mriSplineNormalizeShort(
         dval = nint((float)sval * frac + randomNumber(0.0, d));
         if (dval > 255) {
           dval = 255;
-        } else if (dval < 0) {
+        }
+        else if (dval < 0) {
           dval = 0;
         }
         *pdst++ = (short)dval;
@@ -250,7 +256,8 @@ static MRI *mriSplineNormalizeShort(
   the hsize x hsize region around it (hsize >> wsize) and
   around the corresponding region in mri_template, and adjust
   ------------------------------------------------------*/
-MRI *MRIadaptiveHistoNormalize(MRI *mri_src, MRI *mri_norm, MRI *mri_template, int wsize, int hsize, int low) {
+MRI *MRIadaptiveHistoNormalize(MRI *mri_src, MRI *mri_norm, MRI *mri_template, int wsize, int hsize, int low)
+{
   int width, height, depth, woff;
   MRI_REGION wreg, h_src_reg, h_tmp_reg, h_clip_reg;
 
@@ -323,7 +330,8 @@ MRI *MRIhistoNormalizeRegion(MRI *mri_src,
                              int low,
                              MRI_REGION *wreg,
                              MRI_REGION *h_src_reg,
-                             MRI_REGION *h_tmp_reg) {
+                             MRI_REGION *h_tmp_reg)
+{
   HISTOGRAM h_fwd_eq, h_template_eq, h_norm;
 
   MRIgetEqualizeHistoRegion(mri_src, &h_fwd_eq, low, h_src_reg, 0);
@@ -355,7 +363,8 @@ MRI *MRIhistoNormalizeRegion(MRI *mri_src,
 
   Description
   ------------------------------------------------------*/
-MRI *MRIhistoNormalize(MRI *mri_src, MRI *mri_norm, MRI *mri_template, int low, int high) {
+MRI *MRIhistoNormalize(MRI *mri_src, MRI *mri_norm, MRI *mri_template, int low, int high)
+{
   HISTOGRAM h_fwd_eq, h_template_eq, h_norm;
 
   HISTOclear(&h_fwd_eq, &h_fwd_eq);
@@ -390,13 +399,9 @@ MRI *MRIhistoNormalize(MRI *mri_src, MRI *mri_norm, MRI *mri_template, int low, 
   ------------------------------------------------------*/
 #define WINDOW_WIDTH 120 /* in millimeters */
 
-int MRInormInit(MRI *mri,
-                MNI *mni,
-                int windows_above_t0,
-                int windows_below_t0,
-                int wsize,
-                int desired_wm_value,
-                float smooth_sigma) {
+int MRInormInit(
+    MRI *mri, MNI *mni, int windows_above_t0, int windows_below_t0, int wsize, int desired_wm_value, float smooth_sigma)
+{
   MRI_REGION *reg;
   int i, x, y, z, dx, dy, dz, nup, z_offset, nwindows;
   int x0_tal, y0_tal, z0_tal;
@@ -421,7 +426,8 @@ int MRInormInit(MRI *mri,
   }
   if (FZERO(smooth_sigma)) {
     smooth_sigma = mni->smooth_sigma = DEFAULT_SMOOTH_SIGMA;
-  } else {
+  }
+  else {
     mni->smooth_sigma = smooth_sigma;
   }
   // look for talairach.xfm
@@ -458,7 +464,8 @@ int MRInormInit(MRI *mri,
       if (getenv("NO_AVERAGE305"))  // if this is set
       {
         fprintf(stderr, "INFO: tal dst c_(r,a,s) not modified\n");
-      } else {
+      }
+      else {
         fprintf(stderr,
                 "INFO: Modifying talairach volume c_(r,a,s) "
                 "based on average_305\n");
@@ -479,7 +486,8 @@ int MRInormInit(MRI *mri,
     y0_tal = nint(y0);
     z0_tal = nint(z0);
     LTAfree(&lta);
-  } else /* no Talairach information available */
+  }
+  else /* no Talairach information available */
   {
     MRI_REGION bbox;
 
@@ -499,13 +507,15 @@ int MRInormInit(MRI *mri,
 
   if (windows_above_t0 > 0) {
     mni->windows_above_t0 = windows_above_t0;
-  } else {
+  }
+  else {
     windows_above_t0 = mni->windows_above_t0 = DEFAULT_WINDOWS_ABOVE_T0;
   }
 
   if (windows_below_t0 > 0) {
     mni->windows_below_t0 = windows_below_t0;
-  } else {
+  }
+  else {
     windows_below_t0 = mni->windows_below_t0 = DEFAULT_WINDOWS_BELOW_T0;
   }
   nwindows = mni->windows_above_t0 + mni->windows_below_t0;
@@ -531,7 +541,8 @@ int MRInormInit(MRI *mri,
     {
       nup = windows_above_t0 - i;
       size_mod = pow(SIZE_MOD, (double)nup);
-    } else {
+    }
+    else {
       size_mod = 1.0f;
     }
 
@@ -560,7 +571,8 @@ int MRInormInit(MRI *mri,
   Description
   ------------------------------------------------------*/
 #define TOO_BRIGHT 225
-int MRInormFillHistograms(MRI *mri, MNI *mni) {
+int MRInormFillHistograms(MRI *mri, MNI *mni)
+{
   int i, nwindows;
 
   nwindows = mni->windows_above_t0 + mni->windows_below_t0;
@@ -578,7 +590,8 @@ int MRInormFillHistograms(MRI *mri, MNI *mni) {
 
   Description
   ------------------------------------------------------*/
-int MRInormFindPeaks(MNI *mni, float *inputs, float *outputs) {
+int MRInormFindPeaks(MNI *mni, float *inputs, float *outputs)
+{
   int i, peak, deleted, nwindows, npeaks, whalf = (HISTO_WINDOW_SIZE - 1) / 2;
   HISTOGRAM *hsmooth = NULL;
   MRI_REGION *reg;
@@ -590,7 +603,8 @@ int MRInormFindPeaks(MNI *mni, float *inputs, float *outputs) {
     peak = HISTOfindLastPeakInRegion(hsmooth, HISTO_WINDOW_SIZE, MIN_HISTO_PCT, whalf, hsmooth->nbins - whalf);
     if (peak < 0) {
       deleted++;
-    } else {
+    }
+    else {
       inputs[i - deleted] = (float)reg->y + (float)reg->dy / 2.0f;
 #if 0
       outputs[i-deleted] = mni->desired_wm_value / (float)peak ;
@@ -635,7 +649,8 @@ int MRInormFindPeaks(MNI *mni, float *inputs, float *outputs) {
   one is more likely to have both fwd and bkwd derivatives far
   from the mean).
   ------------------------------------------------------*/
-int MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks) {
+int MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks)
+{
   int starting_slice, slice, deleted[MAX_SPLINE_POINTS], old_slice, n;
   float Iup, I, Idown, dI, dy, grad, max_gradient;
   int i;
@@ -651,7 +666,8 @@ int MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks) {
 
   if (FZERO(mni->max_gradient)) {
     max_gradient = MAX_GRADIENT;
-  } else {
+  }
+  else {
     max_gradient = mni->max_gradient;
   }
 
@@ -685,9 +701,11 @@ int MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks) {
 
   if ((I >= MIN(Iup, Idown)) && (I <= MAX(Iup, Idown))) {
     starting_slice = starting_slice;
-  } else if ((Iup >= MIN(I, Idown)) && (Iup <= MAX(I, Idown))) {
+  }
+  else if ((Iup >= MIN(I, Idown)) && (Iup <= MAX(I, Idown))) {
     starting_slice = starting_slice - SLICE_OFFSET;
-  } else {
+  }
+  else {
     starting_slice = starting_slice + SLICE_OFFSET;
   }
 
@@ -706,7 +724,8 @@ int MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks) {
     deleted[slice] = ((grad > max_gradient) || ((slice - old_slice) > MAX_SKIPPED));
     if (!deleted[slice]) {
       old_slice = slice;
-    } else if (Gdiag & DIAG_SHOW)
+    }
+    else if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "deleting peak[%d]=%2.0f, grad = %2.0f / %2.0f = %2.1f\n", slice, outputs[slice], dI, dy, grad);
   }
 
@@ -723,7 +742,8 @@ int MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks) {
     deleted[slice] = ((grad > max_gradient) || ((old_slice - slice) > MAX_SKIPPED));
     if (!deleted[slice]) {
       old_slice = slice;
-    } else if (Gdiag & DIAG_SHOW)
+    }
+    else if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "deleting peak[%d]=%2.0f, grad = %2.0f / %2.0f = %2.1f\n", slice, outputs[slice], dI, dy, grad);
   }
 
@@ -751,7 +771,8 @@ int MRInormCheckPeaks(MNI *mni, float *inputs, float *outputs, int npeaks) {
 
   Description
   ------------------------------------------------------*/
-MRI *MRInormalize(MRI *mri_src, MRI *mri_dst, MNI *mni) {
+MRI *MRInormalize(MRI *mri_src, MRI *mri_dst, MNI *mni)
+{
   float inputs[MAX_SPLINE_POINTS], outputs[MAX_SPLINE_POINTS];
   int npeaks, dealloc = 0;
 
@@ -806,7 +827,8 @@ MRI *MRInormFindControlPoints(MRI *mri_src,
                               MRI *mri_ctrl,
                               int which,
                               int scan_type,
-                              MRI *mri_not_control) {
+                              MRI *mri_not_control)
+{
   int width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi;
   int *pxi, *pyi, *pzi, ctrl, nctrl, nfilled, too_low, total_filled;
   int n, whalf, pass = 0;
@@ -937,7 +959,8 @@ MRI *MRInormFindControlPoints(MRI *mri_src,
               }
             }
           }
-        } else
+        }
+        else
           ctrl = 0;
 
         if (ctrl) nctrl++;
@@ -986,7 +1009,8 @@ MRI *MRInormFindControlPoints(MRI *mri_src,
               }
             }
           }
-        } else
+        }
+        else
           ctrl = 0;
         if (ctrl) nctrl++;
 
@@ -1437,7 +1461,8 @@ MRI *MRInormFindControlPoints(MRI *mri_src,
 }
 
 MRI *MRInormGentlyFindControlPoints(
-    MRI *mri_src, float wm_target, float intensity_above, float intensity_below, MRI *mri_ctrl, MRI *mri_not_control) {
+    MRI *mri_src, float wm_target, float intensity_above, float intensity_below, MRI *mri_ctrl, MRI *mri_not_control)
+{
   int width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi;
   int *pxi, *pyi, *pzi, ctrl, nctrl, val0, val, whalf = 0;
   BUFTYPE low_thresh, hi_thresh;
@@ -1501,7 +1526,8 @@ MRI *MRInormGentlyFindControlPoints(
               }
             }
           }
-        } else {
+        }
+        else {
           ctrl = 0;
         }
         if (ctrl) {
@@ -1556,7 +1582,8 @@ MRI *MRInormGentlyFindControlPoints(
               }
             }
           }
-        } else {
+        }
+        else {
           ctrl = 0;
         }
         if (ctrl) {
@@ -1606,7 +1633,8 @@ MRI *MRInormFindControlPointsInWindow(MRI *mri_src,
                                       const char *debug_str,
                                       int *pnctrl,
                                       int scan_type,
-                                      MRI *mri_not_control) {
+                                      MRI *mri_not_control)
+{
   int width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, *pxi, *pyi;
   int *pzi, ctrl, nctrl, val0, val = 0, whalf;
   float low_thresh, hi_thresh;
@@ -1654,7 +1682,8 @@ MRI *MRInormFindControlPointsInWindow(MRI *mri_src,
               }
             }
           }
-        } else
+        }
+        else
           ctrl = 0;
         if (ctrl) nctrl++;
 
@@ -1709,7 +1738,8 @@ MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias)
   return(mri_bias) ;
 }
 #else
-MRI *MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias, float sigma) {
+MRI *MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias, float sigma)
+{
   // int width, height, depth;
   int x, y, z;
   MRI *mri_kernel;
@@ -1763,7 +1793,8 @@ MRI *MRI3dNormalize(MRI *mri_orig,
                     int prune,
                     float bias_sigma,
                     int scan_type,
-                    MRI *mri_not_control) {
+                    MRI *mri_not_control)
+{
   int width, height, depth, x, y, z, n;
   float norm, src, bias;
   MRI *mri_bias = NULL, *mri_ctrl, *mri_tmp;
@@ -1787,7 +1818,8 @@ MRI *MRI3dNormalize(MRI *mri_orig,
       mri_ctrl = MRInormFindControlPoints(
           mri_src, wm_target, intensity_above, intensity_below, NULL, n, scan_type, mri_not_control);
       if (mri_ctrl == NULL) ErrorExit(ERROR_UNSUPPORTED, "MRInormFindControlPoints failed");
-    } else {
+    }
+    else {
       int nctrl;
 
       mri_ctrl = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_UCHAR);
@@ -1886,7 +1918,8 @@ MRI *MRI3dGentleNormalize(MRI *mri_src,
                           float intensity_below,
                           int only_file,
                           float bias_sigma,
-                          MRI *mri_not_control) {
+                          MRI *mri_not_control)
+{
   int width, height, depth, x, y, z, src, bias, free_bias;
   float norm;
 
@@ -1965,7 +1998,8 @@ MRI *MRI3dGentleNormalize(MRI *mri_src,
       pass++;
     }
     MRIfree(&mri_ctrl);
-  } else {
+  }
+  else {
     free_bias = 0;
   }
 
@@ -1980,7 +2014,8 @@ MRI *MRI3dGentleNormalize(MRI *mri_src,
         if (!bias) /* should never happen */
         {
           norm = (float)src;
-        } else {
+        }
+        else {
           norm = (float)src * (float)wm_target / (float)bias;
         }
         if (norm > 255.0f && mri_norm->type == MRI_UCHAR) {
@@ -2004,7 +2039,8 @@ MRI *MRI3dGentleNormalize(MRI *mri_src,
 
   Description
   ------------------------------------------------------*/
-static MRI *mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst) {
+static MRI *mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
+{
   int width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi;
   int *pxi, *pyi, *pzi, nchanged, n, total, visited;
   BUFTYPE *pmarked, ctrl, mark;
@@ -2041,8 +2077,9 @@ static MRI *mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
         src = (float)*psrc++;
         if (!ctrl) {
           val = 0;
-        } else /* find mean in region,
-                  and use it as bias field estimate */
+        }
+        else /* find mean in region,
+                and use it as bias field estimate */
         {
           val = src;
           total++;
@@ -2126,7 +2163,8 @@ static MRI *mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
           {
             *pdst++ = nint(mean / (float)n);
             nchanged++;
-          } else /* should never happen anymore */
+          }
+          else /* should never happen anymore */
           {
             pdst++;
           }
@@ -2161,7 +2199,8 @@ static MRI *mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
 
   Description
   ------------------------------------------------------*/
-static MRI *mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst) {
+static MRI *mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
+{
   int width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi;
   int *pxi, *pyi, *pzi, nchanged, n, total, visited;
   BUFTYPE ctrl, mark;
@@ -2197,7 +2236,8 @@ static MRI *mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
         src = (float)*psrc++;
         if (!ctrl) {
           val = 0;
-        } else  // find mean in region, and use it as bias field estimate
+        }
+        else  // find mean in region, and use it as bias field estimate
         {
           val = src;
           total++;
@@ -2282,7 +2322,8 @@ static MRI *mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
           {
             *pdst++ = (mean / (float)n);
             nchanged++;
-          } else /* should never happen anymore */
+          }
+          else /* should never happen anymore */
           {
             pdst++;
           }
@@ -2312,7 +2353,8 @@ static MRI *mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
 
   Description
   ------------------------------------------------------*/
-static MRI *mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst) {
+static MRI *mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
+{
   int width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi;
   int *pxi, *pyi, *pzi, nchanged, n, total, visited;
   int ctrl, mark;
@@ -2355,7 +2397,8 @@ static MRI *mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
         src = (float)*psrc++;
         if (!ctrl) {
           val = 0;
-        } else /* find mean in region, and use it as bias field estimate */
+        }
+        else /* find mean in region, and use it as bias field estimate */
         {
           val = src;
           total++;
@@ -2440,7 +2483,8 @@ static MRI *mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
           {
             *pdst++ = mean / (float)n;
             nchanged++;
-          } else /* should never happen anymore */
+          }
+          else /* should never happen anymore */
           {
             pdst++;
           }
@@ -2472,7 +2516,8 @@ static MRI *mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_ds
 
   Description
   ------------------------------------------------------*/
-MRI *MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst) {
+MRI *MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
+{
   switch (mri_src->type) {
     case MRI_FLOAT:
       return (mriBuildVoronoiDiagramFloat(mri_src, mri_ctrl, mri_dst));
@@ -2493,14 +2538,16 @@ MRI *MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst) {
 
   Description
   ------------------------------------------------------*/
-MRI *MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter, float min_change) {
+MRI *MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter, float min_change)
+{
   int width, height, depth, frames, x, y, z, f, xk, yk, zk, xi, yi, zi, i, *pxi, *pyi, *pzi, mean;
   BUFTYPE ctrl, *ptmp;
   MRI *mri_tmp;
 
   if (mri_src->type == MRI_FLOAT) {
     return (mriSoapBubbleFloat(mri_src, mri_ctrl, mri_dst, niter, min_change));
-  } else if (mri_src->type == MRI_SHORT) {
+  }
+  else if (mri_src->type == MRI_SHORT) {
     return (mriSoapBubbleShort(mri_src, mri_ctrl, mri_dst, niter));
   }
 
@@ -2570,7 +2617,8 @@ MRI *MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter, float m
 
   Description
   ------------------------------------------------------*/
-MRI *MRIaverageFixedPoints(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter) {
+MRI *MRIaverageFixedPoints(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter)
+{
   int width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, i, *pxi, *pyi, *pzi, mean, num;
   BUFTYPE *pctrl, ctrl, *ptmp;
   MRI *mri_tmp;
@@ -2643,7 +2691,8 @@ MRI *MRIaverageFixedPoints(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter)
 
   Description
   ------------------------------------------------------*/
-MRI *MRIsoapBubbleExpand(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter) {
+MRI *MRIsoapBubbleExpand(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter)
+{
   int width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, i, *pxi, *pyi, *pzi;
   BUFTYPE *pctrl, ctrl, *ptmp;
   MRI *mri_tmp;
@@ -2700,7 +2749,8 @@ MRI *MRIsoapBubbleExpand(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter) {
           if (nvox) {
             *ptmp++ = (BUFTYPE)nint(mean / nvox);
             MRIvox(mri_ctrl, x, y, z) = CONTROL_TMP;
-          } else {
+          }
+          else {
             ptmp++;
           }
         }
@@ -2816,7 +2866,8 @@ mriSoapBubbleFloat(MRI *mri_src,
   return(mri_dst) ;
 }
 #else
-static MRI *mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter, float min_change) {
+static MRI *mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter, float min_change)
+{
   int width, height, depth, frames, x, y, z, f, xk, yk, zk, xi, yi, zi, i, *pxi, *pyi, *pzi, num, x1, y1, z1, x2, y2,
       z2;
   BUFTYPE *pctrl, ctrl;
@@ -2969,7 +3020,8 @@ static MRI *mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int ni
 
   Description
   ------------------------------------------------------*/
-static MRI *mriSoapBubbleShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter) {
+static MRI *mriSoapBubbleShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter)
+{
   int width, height, depth, frames, x, y, z, f, xk, yk, zk, xi, yi, zi, i, *pxi, *pyi, *pzi, num;
   BUFTYPE *pctrl, ctrl;
   short *ptmp;
@@ -3073,7 +3125,8 @@ static MRI *mriSoapBubbleShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int ni
 
   Description
   ------------------------------------------------------*/
-static MRI *mriSoapBubbleExpandFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter) {
+static MRI *mriSoapBubbleExpandFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter)
+{
   int width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, i, *pxi, *pyi, *pzi;
   BUFTYPE *pctrl, ctrl;
   float *ptmp, nvox, mean;
@@ -3126,7 +3179,8 @@ static MRI *mriSoapBubbleExpandFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, 
           if (nvox) {
             *ptmp++ = (float)mean / nvox;
             MRIvox(mri_ctrl, x, y, z) = CONTROL_TMP;
-          } else {
+          }
+          else {
             ptmp++;
           }
         }
@@ -3153,7 +3207,8 @@ static MRI *mriSoapBubbleExpandFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, 
   return (mri_dst);
 }
 
-static MRI *mriMarkUnmarkedNeighbors(MRI *mri_src, MRI *mri_marked, MRI *mri_dst, int mark, int nbr_mark) {
+static MRI *mriMarkUnmarkedNeighbors(MRI *mri_src, MRI *mri_marked, MRI *mri_dst, int mark, int nbr_mark)
+{
   int width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, *pxi, *pyi, *pzi, *psrc_int = NULL, val = 0;
   unsigned char *psrc_uchar = NULL;
 
@@ -3176,9 +3231,11 @@ static MRI *mriMarkUnmarkedNeighbors(MRI *mri_src, MRI *mri_marked, MRI *mri_dst
     for (y = 0; y < height; y++) {
       if (mri_src->type == MRI_UCHAR) {
         psrc_uchar = &MRIvox(mri_src, 0, y, z);
-      } else if (mri_src->type == MRI_INT) {
+      }
+      else if (mri_src->type == MRI_INT) {
         psrc_int = &MRIIvox(mri_src, 0, y, z);
-      } else {
+      }
+      else {
         ErrorExit(ERROR_UNSUPPORTED,
                   "mriMarkUnmarkedNeighbors: all inputs must be "
                   "MRI_UCHAR or MRI_INT");
@@ -3186,7 +3243,8 @@ static MRI *mriMarkUnmarkedNeighbors(MRI *mri_src, MRI *mri_marked, MRI *mri_dst
       for (x = 0; x < width; x++) {
         if (mri_src->type == MRI_UCHAR) {
           val = *psrc_uchar++;
-        } else if (mri_src->type == MRI_INT) {
+        }
+        else if (mri_src->type == MRI_INT) {
           val = *psrc_int++;
         }
         if (val == mark) /* mark all neighbors */
@@ -3201,11 +3259,13 @@ static MRI *mriMarkUnmarkedNeighbors(MRI *mri_src, MRI *mri_marked, MRI *mri_dst
                   if (MRIvox(mri_marked, xi, yi, zi) == CONTROL_NONE) {
                     MRIvox(mri_dst, xi, yi, zi) = nbr_mark;
                   }
-                } else if (mri_src->type == MRI_INT) {
+                }
+                else if (mri_src->type == MRI_INT) {
                   if (MRIIvox(mri_marked, xi, yi, zi) == CONTROL_NONE) {
                     MRIIvox(mri_dst, xi, yi, zi) = nbr_mark;
                   }
-                } else {
+                }
+                else {
                   ErrorExit(ERROR_UNSUPPORTED,
                             "mriMarkUnmarkedNeighbors: all inputs must be "
                             "MRI_UCHAR or MRI_INT");
@@ -3220,7 +3280,8 @@ static MRI *mriMarkUnmarkedNeighbors(MRI *mri_src, MRI *mri_marked, MRI *mri_dst
   return (mri_dst);
 }
 
-static int mriRemoveOutliers(MRI *mri, int min_nbrs) {
+static int mriRemoveOutliers(MRI *mri, int min_nbrs)
+{
   int width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi;
   int *pxi, *pyi, *pzi, marked, nbrs, deleted;
   BUFTYPE *pmarked;
@@ -3261,7 +3322,8 @@ static int mriRemoveOutliers(MRI *mri, int min_nbrs) {
         if (nbrs < min_nbrs) {
           deleted++;
           *pmarked++ = 0;
-        } else {
+        }
+        else {
           pmarked++;
         }
       }
@@ -3337,7 +3399,8 @@ mriDownsampleCtrl2(MRI *mri_src, MRI *mri_dst)
 }
 #endif
 
-int MRI3dUseFileControlPoints(MRI *mri, const char *fname) {
+int MRI3dUseFileControlPoints(MRI *mri, const char *fname)
+{
   int i = 0;
   double xr, yr, zr;
   MPoint *pArray = 0;
@@ -3436,7 +3499,8 @@ int MRI3dUseFileControlPoints(MRI *mri, const char *fname) {
   return (NO_ERROR);
 }
 
-int MRI3dUseLabelControlPoints(MRI *mri, LABEL *control_point_label) {
+int MRI3dUseLabelControlPoints(MRI *mri, LABEL *control_point_label)
+{
   int i = 0;
   MPoint *pArray = 0;
   int count = 0;
@@ -3480,17 +3544,20 @@ int MRI3dUseLabelControlPoints(MRI *mri, LABEL *control_point_label) {
   return (NO_ERROR);
 }
 
-int MRI3dWriteControlPoints(char *t_control_volume_fname) {
+int MRI3dWriteControlPoints(char *t_control_volume_fname)
+{
   control_volume_fname = t_control_volume_fname;
   return (NO_ERROR);
 }
 
-int MRI3dWriteBias(char *t_bias_volume_fname) {
+int MRI3dWriteBias(char *t_bias_volume_fname)
+{
   bias_volume_fname = t_bias_volume_fname;
   return (NO_ERROR);
 }
 
-int MRInormAddFileControlPoints(MRI *mri_ctrl, int value, MRI *mri) {
+int MRInormAddFileControlPoints(MRI *mri_ctrl, int value, MRI *mri)
+{
   int i, nctrl, x, y, z;
   long bad = 0;
 
@@ -3508,7 +3575,8 @@ int MRInormAddFileControlPoints(MRI *mri_ctrl, int value, MRI *mri) {
         nctrl++;
       }
       MRIvox(mri_ctrl, x, y, z) = value;
-    } else {
+    }
+    else {
       bad++;
     }
   }
@@ -3846,7 +3914,8 @@ static int remove_gray_matter_control_points(MRI *mri_ctrl,
                                              float intensity_above,
                                              float intensity_below,
                                              int scan_type,
-                                             MRI *mri_not_control) {
+                                             MRI *mri_not_control)
+{
   MRI *mri_ctrl_outside, *mri_ctrl_inside, *mri_tmp = NULL;
   int n, x, y, z, xi, yi, zi, xk, yk, zk;
   int nremoved, removed, num, nretained, nclose_to_csf = 0;
@@ -3987,7 +4056,8 @@ static int remove_gray_matter_control_points(MRI *mri_ctrl,
                   (float)MIN_DISTANCE_TO_CSF);
             MRIvox(mri_ctrl, x, y, z) = CONTROL_NONE;
             nclose_to_csf++;
-          } else {
+          }
+          else {
             n = removed = 0;
           }
           if (val0 > low_thresh) /* pretty certain it's wm regardless */
@@ -4026,7 +4096,8 @@ static int remove_gray_matter_control_points(MRI *mri_ctrl,
                               xi,
                               yi,
                               zi);
-                      } else {
+                      }
+                      else {
                         if (x == Gx && y == Gy && z == Gz)
                           printf(
                               "found nbhd val %2.0f "
@@ -4086,7 +4157,8 @@ static int remove_gray_matter_control_points(MRI *mri_ctrl,
   return (NO_ERROR);
 }
 
-static float csf_in_window(MRI *mri, int x0, int y0, int z0, float max_dist, float csf) {
+static float csf_in_window(MRI *mri, int x0, int y0, int z0, float max_dist, float csf)
+{
   int xi, yi, zi, xk, yk, zk, whalf;
   float val, dx, dy, dz, dist;
 
@@ -4118,7 +4190,8 @@ static float csf_in_window(MRI *mri, int x0, int y0, int z0, float max_dist, flo
         }
       }
     }
-  } else {
+  }
+  else {
     for (xk = -whalf; xk <= whalf; xk++) {
       xi = mri->xi[x0 + xk];
       dx = SQR(xi - x0);
@@ -4147,7 +4220,8 @@ static float csf_in_window(MRI *mri, int x0, int y0, int z0, float max_dist, flo
   return (0);
 }
 
-static float find_tissue_intensities(MRI *mri_src, MRI *mri_ctrl, float *pwm, float *pgm, float *pcsf) {
+static float find_tissue_intensities(MRI *mri_src, MRI *mri_ctrl, float *pwm, float *pgm, float *pcsf)
+{
   int csf_peak, thresh_bin /*, bg_end*/, wm_peak;
   // int wm_valley;
   int gm_peak, gm_valley;
@@ -4192,7 +4266,8 @@ static float find_tissue_intensities(MRI *mri_src, MRI *mri_ctrl, float *pwm, fl
     HISTOclearBins(h, h, 0, 5);
     hsmooth = HISTOsmooth(h, NULL, 2);
     ;
-  } else {
+  }
+  else {
 #if 0
     hsmooth = HISTOsmooth(h, NULL, 2) ;
     // no idea how this worked
@@ -4271,7 +4346,8 @@ static float find_tissue_intensities(MRI *mri_src, MRI *mri_ctrl, float *pwm, fl
 #define WSIZE(mri) ((((int)((7.0 / mri->thick) / 2)) * 2) + 1) /* make sure it's odd */
 #define MIN_WM_SNR 20
 
-MRI *MRInormFindHighSignalLowStdControlPoints(MRI *mri_src, MRI *mri_ctrl) {
+MRI *MRInormFindHighSignalLowStdControlPoints(MRI *mri_src, MRI *mri_ctrl)
+{
   MRI *mri_ratio, *mri_mean, *mri_std; /*, *mri_tmp = NULL */
   ;
   MRI_SEGMENTATION *mriseg;
@@ -4360,7 +4436,8 @@ MRI *MRInormFindHighSignalLowStdControlPoints(MRI *mri_src, MRI *mri_ctrl) {
   return (mri_ctrl);
 }
 
-MRI *MRInormalizeHighSignalLowStd(MRI *mri_src, MRI *mri_norm, float bias_sigma, float wm_target) {
+MRI *MRInormalizeHighSignalLowStd(MRI *mri_src, MRI *mri_norm, float bias_sigma, float wm_target)
+{
   int x, y, z, width, depth, height;
   // int nctrl;
   MRI *mri_ctrl, *mri_bias;
@@ -4391,7 +4468,8 @@ MRI *MRInormalizeHighSignalLowStd(MRI *mri_src, MRI *mri_norm, float bias_sigma,
         if (!bias) /* should never happen */
         {
           norm = src;
-        } else {
+        }
+        else {
           norm = src * wm_target / bias;
         }
         if (norm > 255.0f && mri_norm->type == MRI_UCHAR) {
@@ -4411,7 +4489,8 @@ MRI *MRInormalizeHighSignalLowStd(MRI *mri_src, MRI *mri_norm, float bias_sigma,
   return (mri_norm);
 }
 
-MRI *MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out) {
+MRI *MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out)
+{
   int x, y, z;
   double bias, val, xd, yd, zd;
   MATRIX *m_in_vox2ras, *m_bias_ras2vox, *m_vox2vox;
@@ -4463,7 +4542,8 @@ MRI *MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out) {
   return (mri_out);
 }
 
-MRI *MRIapplyBiasCorrectionSameGeometry(MRI *mri_in, MRI *mri_bias, MRI *mri_out, float target_val) {
+MRI *MRIapplyBiasCorrectionSameGeometry(MRI *mri_in, MRI *mri_bias, MRI *mri_out, float target_val)
+{
   int x, y, z;
   double bias, val;
 

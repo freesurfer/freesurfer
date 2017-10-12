@@ -26,7 +26,8 @@ final_cost:  array of size N of type double. MARS_DT_Boundary will save the outp
 NOTE: vertNbors is 1-based arrays are 1-based!!
 */
 
-void MARS_DT_Boundary(int *sv, int numVerts, int maxNeighbors, int *vertNbors, double *costNbors, double *final_cost) {
+void MARS_DT_Boundary(int *sv, int numVerts, int maxNeighbors, int *vertNbors, double *costNbors, double *final_cost)
+{
   MIN_HEAP *MH;
   int *prev_neighbor, neighbor;
   int i, result, heap_size;

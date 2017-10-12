@@ -41,7 +41,8 @@
 /*
  *
  */
-static giiDataArray *gifti_alloc_and_add_darray(gifti_image *image) {
+static giiDataArray *gifti_alloc_and_add_darray(gifti_image *image)
+{
   if (!image) {
     fprintf(stderr, "** gifti_alloc_and_add_darray: NULL image\n");
     return NULL;
@@ -62,7 +63,8 @@ static giiDataArray *gifti_alloc_and_add_darray(gifti_image *image) {
 /*
  *
  */
-static double gifti_get_DA_value_2D(giiDataArray *da, int row, int col) {
+static double gifti_get_DA_value_2D(giiDataArray *da, int row, int col)
+{
   int dim0_index, dim1_index;
   int dims_0 = 0, dims_1 = 0;
 
@@ -82,10 +84,12 @@ static double gifti_get_DA_value_2D(giiDataArray *da, int row, int col) {
     }
     dims_0 = da->dims[0];
     dims_1 = 1;  // 1D data
-  } else if (da->num_dim != 2) {
+  }
+  else if (da->num_dim != 2) {
     fprintf(stderr, "** gifti_get_DA_value_2D, array dim is %d\n", da->num_dim);
     exit(1);
-  } else {
+  }
+  else {
     dims_0 = da->dims[0];
     dims_1 = da->dims[1];
   }
@@ -94,12 +98,14 @@ static double gifti_get_DA_value_2D(giiDataArray *da, int row, int col) {
   if (GIFTI_IND_ORD_ROW_MAJOR == da->ind_ord) {
     dim0_index = row;
     dim1_index = col;
-  } else if (GIFTI_IND_ORD_COL_MAJOR == da->ind_ord) {
+  }
+  else if (GIFTI_IND_ORD_COL_MAJOR == da->ind_ord) {
     // NJS NOTE: notice that order is treated as row/col, so that the
     // calling sequence can just assume row major
     dim0_index = row;  // col;
     dim1_index = col;  // row;
-  } else {
+  }
+  else {
     fprintf(stderr, "** gifti_get_DA_value_2D, unknown ind_ord: %d\n", da->ind_ord);
     exit(1);
   }
@@ -201,7 +207,8 @@ static double gifti_get_DA_value_2D(giiDataArray *da, int row, int col) {
 /*
  *
  */
-static void gifti_set_DA_value_2D(giiDataArray *da, int row, int col, double value) {
+static void gifti_set_DA_value_2D(giiDataArray *da, int row, int col, double value)
+{
   int dim0_index, dim1_index;
   int dims_0 = 0, dims_1 = 0;
 
@@ -221,10 +228,12 @@ static void gifti_set_DA_value_2D(giiDataArray *da, int row, int col, double val
     }
     dims_0 = da->dims[0];
     dims_1 = 1;  // 1D data
-  } else if (da->num_dim != 2) {
+  }
+  else if (da->num_dim != 2) {
     fprintf(stderr, "** gifti_set_DA_value_2D, array dim is %d\n", da->num_dim);
     exit(1);
-  } else {
+  }
+  else {
     dims_0 = da->dims[0];
     dims_1 = da->dims[1];
   }
@@ -233,7 +242,8 @@ static void gifti_set_DA_value_2D(giiDataArray *da, int row, int col, double val
   if (GIFTI_IND_ORD_ROW_MAJOR == da->ind_ord) {
     dim0_index = row;
     dim1_index = col;
-  } else {
+  }
+  else {
     dim0_index = col;
     dim1_index = row;
   }
@@ -332,7 +342,8 @@ static void gifti_set_DA_value_2D(giiDataArray *da, int row, int col, double val
                  if daNum is not -1, then read only the
                  data in data array number daNum
   -------------------------------------------------------------------*/
-MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
+MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
+{
   /*
    * attempt to read the file
    */
@@ -471,7 +482,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
   for (numDA = 0; numDA < image->numDA; numDA++) {
     if (image->darray[numDA]->intent == NIFTI_INTENT_POINTSET) {
       coords = image->darray[numDA];
-    } else if (image->darray[numDA]->intent == NIFTI_INTENT_TRIANGLE) {
+    }
+    else if (image->darray[numDA]->intent == NIFTI_INTENT_TRIANGLE) {
       faces = image->darray[numDA];
     }
   }
@@ -486,7 +498,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
     if (coords->ind_ord == GIFTI_IND_ORD_ROW_MAJOR) {
       // RowMajorOrder
       gifti_DA_rows_cols(coords, &num_vertices, &num_cols);
-    } else {
+    }
+    else {
       // ColumnMajorOrder
       gifti_DA_rows_cols(coords, &num_cols, &num_vertices);
     }
@@ -505,7 +518,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
     if (faces->ind_ord == GIFTI_IND_ORD_ROW_MAJOR) {
       // RowMajorOrder
       gifti_DA_rows_cols(faces, &num_faces, &num_cols);
-    } else {
+    }
+    else {
       // ColumnMajorOrder
       gifti_DA_rows_cols(faces, &num_cols, &num_faces);
     }
@@ -538,9 +552,11 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
     char *hemi = gifti_get_meta_value(&coords->meta, "AnatomicalStructurePrimary");
     if (hemi && (strcmp(hemi, "CortexRight") == 0)) {
       mris->hemisphere = RIGHT_HEMISPHERE;
-    } else if (hemi && (strcmp(hemi, "CortexLeft") == 0)) {
+    }
+    else if (hemi && (strcmp(hemi, "CortexLeft") == 0)) {
       mris->hemisphere = LEFT_HEMISPHERE;
-    } else {
+    }
+    else {
       mris->hemisphere = NO_HEMISPHERE;
     }
 
@@ -830,18 +846,22 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
       // else good to do, so store this node index info
       node_index = darray;
       continue;
-    } else {
+    }
+    else {
       /* Check the number of vertices, so we dont trounce the mris struct */
       long long num_vertices = 0;
       long long num_cols = 0;
       long long expected_num_cols = 1;
       if (darray->intent == NIFTI_INTENT_VECTOR) {
         expected_num_cols = 3;
-      } else if (darray->intent == NIFTI_INTENT_RGB_VECTOR) {
+      }
+      else if (darray->intent == NIFTI_INTENT_RGB_VECTOR) {
         expected_num_cols = 3;
-      } else if (darray->intent == NIFTI_INTENT_RGBA_VECTOR) {
+      }
+      else if (darray->intent == NIFTI_INTENT_RGBA_VECTOR) {
         expected_num_cols = 4;
-      } else if (darray->intent == NIFTI_INTENT_GENMATRIX) {
+      }
+      else if (darray->intent == NIFTI_INTENT_GENMATRIX) {
         expected_num_cols = 9;
       }
       gifti_DA_rows_cols(darray, &num_vertices, &num_cols);
@@ -871,7 +891,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
                 "been read!  Skipping data in array #%d in file %s\n",
                 numDA,
                 fname);
-      } else {
+      }
+      else {
         found_curv_data++;
 
         if (node_index)  // sparse data storage
@@ -884,7 +905,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
             }
             mris->vertices[vno].curv = (float)gifti_get_DA_value_2D(darray, nindex, 0);
           }
-        } else  // regular indexing
+        }
+        else  // regular indexing
         {
           int vno;
           for (vno = 0; vno < mris->nvertices; vno++) {
@@ -895,7 +917,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
           }
         }
       }
-    } else if (darray->intent == NIFTI_INTENT_LABEL) {
+    }
+    else if (darray->intent == NIFTI_INTENT_LABEL) {
       // 'label' data goes into the 'annotation' data element of mris
       if ((NULL == mris->ct) || (NULL == ct))  // sanity-check
       {
@@ -912,7 +935,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
         {
           vno = gifti_get_DA_value_2D(node_index, nindex, 0);
           da_index = nindex;
-        } else  // regular indexing
+        }
+        else  // regular indexing
         {
           da_index = vno;
         }
@@ -955,12 +979,14 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
           if (++nindex >= num_index_nodes) {
             break;
           }
-        } else  // regular indexing
+        }
+        else  // regular indexing
         {
           vno++;
         }
       }
-    } else if (darray->intent == NIFTI_INTENT_VECTOR) {
+    }
+    else if (darray->intent == NIFTI_INTENT_VECTOR) {
       // 'vector' data goes in our 'dx,dy,dz' data element of mris
       int vno;
       for (vno = 0; vno < mris->nvertices; vno++) {
@@ -971,7 +997,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
         mris->vertices[vno].dy = (float)gifti_get_DA_value_2D(darray, vno, 1);
         mris->vertices[vno].dz = (float)gifti_get_DA_value_2D(darray, vno, 2);
       }
-    } else if ((darray->intent == NIFTI_INTENT_RGB_VECTOR) || (darray->intent == NIFTI_INTENT_RGBA_VECTOR)) {
+    }
+    else if ((darray->intent == NIFTI_INTENT_RGB_VECTOR) || (darray->intent == NIFTI_INTENT_RGBA_VECTOR)) {
       // 'rgba' data goes in our 'annotation' data element of mris
       int vno;
       for (vno = 0; vno < mris->nvertices; vno++) {
@@ -986,7 +1013,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
 
         if (red > 1) {
           r = (int)red;
-        } else {
+        }
+        else {
           r = (int)floor(red * 256);
         }
         if (r > 255) {
@@ -994,7 +1022,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
         }
         if (green > 1) {
           g = (int)green;
-        } else {
+        }
+        else {
           g = (int)floor(green * 256);
         }
         if (g > 255) {
@@ -1002,7 +1031,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
         }
         if (blue > 1) {
           b = (int)blue;
-        } else {
+        }
+        else {
           b = (int)floor(blue * 256);
         }
         if (b > 255) {
@@ -1011,12 +1041,14 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
 
         MRISRGBToAnnot(r, g, b, mris->vertices[vno].annotation);
       }
-    } else if (darray->intent == NIFTI_INTENT_GENMATRIX) {
+    }
+    else if (darray->intent == NIFTI_INTENT_GENMATRIX) {
       fprintf(stderr,
               "WARNING: ignoring unsupported data array NIFTI_INTENT_GENMATRIX"
               " in file %s\n",
               fname);
-    } else {
+    }
+    else {
       // 'statistics' and all other kinds of data we'll put in both our
       // 'stat' and 'val' data elements of the mris structure
       if (found_statval_data) {
@@ -1025,7 +1057,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
                 "been read!  Skipping data in array #%d in file %s\n",
                 numDA,
                 fname);
-      } else {
+      }
+      else {
         found_statval_data++;
 
         if (node_index)  // sparse data storage
@@ -1039,7 +1072,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
             mris->vertices[vno].val = (float)gifti_get_DA_value_2D(darray, nindex, 0);
             mris->vertices[vno].stat = (float)gifti_get_DA_value_2D(darray, nindex, 0);
           }
-        } else  // regular indexing
+        }
+        else  // regular indexing
         {
           int vno;
           for (vno = 0; vno < mris->nvertices; vno++) {
@@ -1062,7 +1096,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum) {
   return mris;
 }
 
-MRI_SURFACE *mrisReadGIFTIfile(const char *fname, MRI_SURFACE *mris) {
+MRI_SURFACE *mrisReadGIFTIfile(const char *fname, MRI_SURFACE *mris)
+{
   // default read routine (read all data arrays)
   return mrisReadGIFTIdanum(fname, mris, -1);
 }
@@ -1075,7 +1110,8 @@ MRI_SURFACE *mrisReadGIFTIfile(const char *fname, MRI_SURFACE *mris) {
   This routine will only read NIFTI_INTENT_TIME_SERIES data
   arrays.
   -----------------------------------------------------------*/
-MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume) {
+MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
+{
   /* Attempt to read the file. */
   gifti_image *image = gifti_read_image(fname, 1);
   if (NULL == image) {
@@ -1109,7 +1145,8 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume) {
       if (NULL == scalars) {
         if (++da_num >= image->numDA) {
           break;
-        } else {
+        }
+        else {
           continue;
         }
       }
@@ -1119,7 +1156,8 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume) {
       if (num_vertices == -1) {
         num_vertices = nvertices;
         num_cols = ncols;
-      } else {
+      }
+      else {
         if (num_vertices <= 0 || num_vertices != nvertices || ncols != 1) {
           fprintf(stderr,
                   "MRISreadGiftiAsMRI: malformed time-series data array in file "
@@ -1198,7 +1236,8 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume) {
 /*
  * insert username and current date into meta data
  */
-static void insertCommonMetaData(giiMetaData *md) {
+static void insertCommonMetaData(giiMetaData *md)
+{
 #if 0
 #include <uuid/uuid.h>
   uuid_t uuid;
@@ -1244,7 +1283,8 @@ static void insertCommonMetaData(giiMetaData *md) {
                  if NIFTI_INTENT_LABEL, then write LabelTable and annotations
                  if NIFTI_INTENT_<statistic>, then write .stats data
   ------------------------------------------------------------------------*/
-int MRISwriteGIFTI(MRIS *mris, int intent_code, const char *out_fname, const char *curv_fname) {
+int MRISwriteGIFTI(MRIS *mris, int intent_code, const char *out_fname, const char *curv_fname)
+{
   if (NULL == mris || NULL == out_fname) {
     fprintf(stderr, "MRISwriteGIFTI: invalid parameter\n");
     return ERROR_BADPARM;
@@ -1669,7 +1709,8 @@ int MRISwriteGIFTI(MRIS *mris, int intent_code, const char *out_fname, const cha
       if (mris->ct->entries[idx]->name) {
         // printf("idx=%d, name=%s\n",idx,mris->ct->entries[idx]->name);
         labeltable.label[idx] = strcpyalloc(mris->ct->entries[idx]->name);
-      } else {
+      }
+      else {
         char tmpname[30];
         sprintf(tmpname, "unknown_%d", idx);
         printf("idx=%d, name=NULL, assigned as %s (is the colortable correct?)\n", idx, tmpname);
@@ -1680,7 +1721,8 @@ int MRISwriteGIFTI(MRIS *mris, int intent_code, const char *out_fname, const cha
           (0 == strcmp(labeltable.label[idx], "Unknown"))) {
         // make certain unknown region is completely empty, invisible
         rgba[0] = rgba[1] = rgba[2] = rgba[3] = 0.0f;
-      } else {
+      }
+      else {
         rgba[0] = mris->ct->entries[idx]->rf;
         rgba[1] = mris->ct->entries[idx]->gf;
         rgba[2] = mris->ct->entries[idx]->bf;
@@ -1865,7 +1907,8 @@ int MRISwriteGIFTI(MRIS *mris, int intent_code, const char *out_fname, const cha
   Description:   writes a GIFTI file containing functional or
                  timeseries data
   -----------------------------------------------------------*/
-int mriWriteGifti(MRI *mri, const char *out_fname) {
+int mriWriteGifti(MRI *mri, const char *out_fname)
+{
   if (NULL == mri || NULL == out_fname) {
     fprintf(stderr, "mriWriteGifti: invalid input parameters\n");
     return ERROR_BADPARM;

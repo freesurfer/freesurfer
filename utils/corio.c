@@ -64,7 +64,8 @@ extern int errno;
 #include "corio.h"
 
 /*-------------------------------------*/
-unsigned char **alloc_cor(void) {
+unsigned char **alloc_cor(void)
+{
   unsigned char **COR;
   int n;
 
@@ -84,7 +85,8 @@ unsigned char **alloc_cor(void) {
   return (COR);
 }
 /*-------------------------------------*/
-int free_cor(unsigned char ***pppCOR) {
+int free_cor(unsigned char ***pppCOR)
+{
   int n;
   unsigned char **COR;
 
@@ -97,7 +99,8 @@ int free_cor(unsigned char ***pppCOR) {
 }
 
 /*-------------------------------------*/
-unsigned char **ld_cor(char *cordir) {
+unsigned char **ld_cor(char *cordir)
+{
   unsigned char **COR;
   int n;
   char fname[1000];
@@ -133,7 +136,8 @@ unsigned char **ld_cor(char *cordir) {
   return (COR);
 }
 /*-------------------------------------------------*/
-int cordir_iswritable(char *cordir) {
+int cordir_iswritable(char *cordir)
+{
   char tmpstr[2000];
   FILE *fp;
 
@@ -151,7 +155,8 @@ int cordir_iswritable(char *cordir) {
 }
 
 /*-------------------------------------------------*/
-int sv_cor(unsigned char **COR, char *cordir) {
+int sv_cor(unsigned char **COR, char *cordir)
+{
   int n;
   char fname[1000];
   FILE *fp;
@@ -211,7 +216,8 @@ int sv_cor(unsigned char **COR, char *cordir) {
   return (0);
 }
 /*-------------------------------------------------*/
-unsigned char getcorval(unsigned char **COR, int row, int col, int slc) {
+unsigned char getcorval(unsigned char **COR, int row, int col, int slc)
+{
   if (col < 0 || col > 255) {
     fprintf(stderr, "getcorval: col = %d, out of bounds\n", col);
     return (0);
@@ -228,7 +234,8 @@ unsigned char getcorval(unsigned char **COR, int row, int col, int slc) {
   return (*(COR[slc] + col + row * 256));
 }
 /*-------------------------------------------------*/
-int setcorval(unsigned char val, unsigned char **COR, int row, int col, int slc) {
+int setcorval(unsigned char val, unsigned char **COR, int row, int col, int slc)
+{
   if (col < 0 || col > 255) {
     fprintf(stderr, "setcorval: col = %d, out of bounds\n", col);
     return (1);

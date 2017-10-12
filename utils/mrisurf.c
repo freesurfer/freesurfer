@@ -573,7 +573,8 @@ static double MRIScomputeSSE_CUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, IN
 #include <stdlib.h>
 #include <sys/time.h>
 #include <unistd.h>
-static int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y) {
+static int timeval_subtract(struct timeval *result, struct timeval *x, struct timeval *y)
+{
   /* Perform the carry for the later subtraction by updating y. */
   if (x->tv_usec < y->tv_usec) {
     int nsec = (y->tv_usec - x->tv_usec) / 1000000 + 1;
@@ -657,7 +658,8 @@ const char *MRISurfSrcVersion(void) { return ("$Id: mrisurf.c,v 1.793 2017/02/16
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
-MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over) {
+MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
+{
   MRI_SURFACE *mris = NULL;
   int nquads, nvertices, magic, version, ix, iy, iz, vno, fno, n, m;
   int imnr, imnr0, imnr1, type, vertices[VERTICES_PER_FACE + 1], num;
@@ -681,7 +683,8 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over) {
       return (NULL);
     }
     version = -3;
-  } else if (type == MRIS_ICO_FILE) /* .TRI, .ICO */
+  }
+  else if (type == MRIS_ICO_FILE) /* .TRI, .ICO */
   {
     mris = ICOreadOverAlloc(fname, pct_over);
     if (!mris) {
@@ -689,38 +692,44 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over) {
     }
     return (mris);
     version = -2;
-  } else if (type == MRIS_GEO_TRIANGLE_FILE) /* .GEO */
+  }
+  else if (type == MRIS_GEO_TRIANGLE_FILE) /* .GEO */
   {
     mris = mrisReadGeoFile(fname);
     if (!mris) {
       return (NULL);
     }
     version = -4;
-  } else if (type == MRIS_STL_FILE) /* .STL */
+  }
+  else if (type == MRIS_STL_FILE) /* .STL */
   {
     mris = mrisReadSTLfile(fname);
     if (!mris) {
       return (NULL);
     }
     version = -3;
-  } else if (type == MRIS_VTK_FILE) /* .vtk */
+  }
+  else if (type == MRIS_VTK_FILE) /* .vtk */
   {
     mris = MRISreadVTK(mris, fname);
     if (!mris) {
       return (NULL);
     }
     version = -3;
-  } else if (type == MRIS_GIFTI_FILE) /* .gii */
+  }
+  else if (type == MRIS_GIFTI_FILE) /* .gii */
   {
     mris = mrisReadGIFTIfile(fname, NULL);
     if (!mris) {
       return (NULL);
     }
-    version = -3;                  /* Not really sure what is appropriate here */
-  } else if (type == MRI_MGH_FILE) /* .mgh */
+    version = -3; /* Not really sure what is appropriate here */
+  }
+  else if (type == MRI_MGH_FILE) /* .mgh */
   {
     ErrorExit(ERROR_BADFILE, "ERROR: MRISread: cannot read surface data from file %s!\n", fname);
-  } else  // default type MRIS_BINARY_QUADRANGLE_FILE ... use magic number
+  }
+  else  // default type MRIS_BINARY_QUADRANGLE_FILE ... use magic number
   {
     fp = fopen(fname, "rb");
     if (!fp) ErrorReturn(NULL, (ERROR_NOFILE, "MRISread(%s): could not open file", fname));
@@ -738,16 +747,19 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over) {
       if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
         fprintf(stdout, "new surface file format\n");
       }
-    } else if (magic == NEW_QUAD_FILE_MAGIC_NUMBER) {
+    }
+    else if (magic == NEW_QUAD_FILE_MAGIC_NUMBER) {
       version = -2;
-    } else if (magic == TRIANGLE_FILE_MAGIC_NUMBER) {
+    }
+    else if (magic == TRIANGLE_FILE_MAGIC_NUMBER) {
       fclose(fp);
       mris = mrisReadTriangleFile(fname, pct_over);
       if (!mris) {
         ErrorReturn(NULL, (Gerror, "mrisReadTriangleFile failed.\n"));
       }
       version = -3;
-    } else /* no magic number assigned */
+    }
+    else /* no magic number assigned */
     {
       rewind(fp);
       version = 0;
@@ -795,7 +807,8 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over) {
         vertex->x = ix / 100.0;
         vertex->y = iy / 100.0;
         vertex->z = iz / 100.0;
-      } else /* version == -2 */ /* NEW_QUAD_FILE_MAGIC_NUMBER */
+      }
+      else /* version == -2 */ /* NEW_QUAD_FILE_MAGIC_NUMBER */
       {
         vertex->x = freadFloat(fp);
         vertex->y = freadFloat(fp);
@@ -823,7 +836,8 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over) {
         for (n = 0; n < vertex->num; n++) {
           fread3(&vertex->f[n], fp);
         }
-      } else {
+      }
+      else {
         vertex->num = 0; /* will figure it out */
       }
     }
@@ -860,7 +874,8 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over) {
         mris->faces[fno + 1].v[0] = vertices[2];
         mris->faces[fno + 1].v[1] = vertices[3];
         mris->faces[fno + 1].v[2] = vertices[1];
-      } else {
+      }
+      else {
         mris->faces[fno].v[0] = vertices[0];
         mris->faces[fno].v[1] = vertices[1];
         mris->faces[fno].v[2] = vertices[2];
@@ -925,16 +940,20 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over) {
     surf_name = strrchr(fname, '/');
     if (surf_name == NULL) {
       surf_name = fname;
-    } else {
+    }
+    else {
       surf_name++; /* past the last slash */
     }
     if (toupper(*surf_name) == 'R') {
       mris->hemisphere = RIGHT_HEMISPHERE;
-    } else if (toupper(*surf_name) == 'L') {
+    }
+    else if (toupper(*surf_name) == 'L') {
       mris->hemisphere = LEFT_HEMISPHERE;
-    } else if (toupper(*surf_name) == 'B') {
+    }
+    else if (toupper(*surf_name) == 'B') {
       mris->hemisphere = BOTH_HEMISPHERES;
-    } else {
+    }
+    else {
       mris->hemisphere = NO_HEMISPHERE;
     }
   }
@@ -1038,7 +1057,8 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over) {
     MRIScomputeSecondFundamentalForm(mris) ;
     MRISuseMeanCurvature(mris) ;
 #endif
-  } else {
+  }
+  else {
 #if 0
     if (MRISreadBinaryCurvature(mris, fname) != NO_ERROR)
     {
@@ -1084,7 +1104,8 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over) {
     MRIScopyMRI(mris, mri, 0, "group_avg_area");
     MRIfree(&mri);
     mris->group_avg_vtxarea_loaded = 1;
-  } else {
+  }
+  else {
     mris->group_avg_vtxarea_loaded = 0;
   }
   if (Gdiag_no >= 0 && DIAG_VERBOSE_ON) {
@@ -1100,7 +1121,8 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over) {
   Returns value:
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISfastRead(const char *fname) {
+MRI_SURFACE *MRISfastRead(const char *fname)
+{
 /********* why you keep the rest ? ******************/
 #if 1
   return (MRISread(fname));
@@ -1122,20 +1144,23 @@ MRI_SURFACE *MRISfastRead(const char *fname) {
       return (NULL);
     }
     version = -3;
-  } else if (type == MRIS_ICO_FILE) {
+  }
+  else if (type == MRIS_ICO_FILE) {
     mris = ICOread(fname);
     if (!mris) {
       return (NULL);
     }
     return (mris);
     version = -2;
-  } else if (type == MRIS_GEO_TRIANGLE_FILE) {
+  }
+  else if (type == MRIS_GEO_TRIANGLE_FILE) {
     mris = mrisReadGeoFile(fname);
     if (!mris) {
       return (NULL);
     }
     version = -4;
-  } else /* custom binary file - find out which type using magic # */
+  }
+  else /* custom binary file - find out which type using magic # */
   {
     fp = fopen(fname, "rb");
     if (!fp) ErrorReturn(NULL, (ERROR_NOFILE, "MRISread(%s): could not open file", fname));
@@ -1148,17 +1173,20 @@ MRI_SURFACE *MRISfastRead(const char *fname) {
         ErrorReturn(NULL, (Gerror, "mrisReadTriangleFile failed.\n"));
       }
       version = -3;
-    } else if (magic == QUAD_FILE_MAGIC_NUMBER) {
+    }
+    else if (magic == QUAD_FILE_MAGIC_NUMBER) {
       version = -1;
       if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
         fprintf(stdout, "new surface file format\n");
       }
-    } else if (magic == NEW_QUAD_FILE_MAGIC_NUMBER) {
+    }
+    else if (magic == NEW_QUAD_FILE_MAGIC_NUMBER) {
       version = -2;
       if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
         fprintf(stdout, "new surface file format\n");
       }
-    } else {
+    }
+    else {
       rewind(fp);
       version = 0;
       if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
@@ -1187,7 +1215,8 @@ MRI_SURFACE *MRISfastRead(const char *fname) {
         vertex->x = ix / 100.0;
         vertex->y = iy / 100.0;
         vertex->z = iz / 100.0;
-      } else /* version == -2 */
+      }
+      else /* version == -2 */
       {
         vertex->x = freadFloat(fp);
         vertex->y = freadFloat(fp);
@@ -1214,7 +1243,8 @@ MRI_SURFACE *MRISfastRead(const char *fname) {
         for (n = 0; n < vertex->num; n++) {
           fread3(&vertex->f[n], fp);
         }
-      } else {
+      }
+      else {
         vertex->num = 0;
       }
     }
@@ -1252,12 +1282,14 @@ MRI_SURFACE *MRISfastRead(const char *fname) {
     surf_name = strrchr(fname, '/');
     if (surf_name == NULL) {
       surf_name = fname;
-    } else {
+    }
+    else {
       surf_name++; /* past the last slash */
     }
     if (toupper(*surf_name) == 'R') {
       mris->hemisphere = RIGHT_HEMISPHERE;
-    } else {
+    }
+    else {
       mris->hemisphere = LEFT_HEMISPHERE;
     }
   }
@@ -1357,7 +1389,8 @@ MRI_SURFACE *MRISfastRead(const char *fname) {
     MRISsetNeighborhoodSize(mris, 2);
     MRIScomputeSecondFundamentalForm(mris);
     MRISuseMeanCurvature(mris);
-  } else {
+  }
+  else {
     if (MRISreadBinaryCurvature(mris, fname) != NO_ERROR) {
       fprintf(stdout, "ignoring curvature file...\n"); /*return(NULL) ;*/
     }
@@ -1387,7 +1420,8 @@ MRI_SURFACE *MRISfastRead(const char *fname) {
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISread(const char *fname) {
+MRI_SURFACE *MRISread(const char *fname)
+{
   MRI_SURFACE *mris;
 
   mris = MRISreadOverAlloc(fname, 0.0);
@@ -1397,7 +1431,8 @@ MRI_SURFACE *MRISread(const char *fname) {
   return (mris);
 }
 
-int MRISwriteVertexLocations(MRI_SURFACE *mris, char *fname, int which_vertices) {
+int MRISwriteVertexLocations(MRI_SURFACE *mris, char *fname, int which_vertices)
+{
   int retval, i;
   float *coords[3];
 
@@ -1424,7 +1459,8 @@ int MRISwriteVertexLocations(MRI_SURFACE *mris, char *fname, int which_vertices)
   Description
   ------------------------------------------------------*/
 #define USE_NEW_QUAD_FILE 1  // new style stores float instead of int
-int MRISwrite(MRI_SURFACE *mris, const char *name) {
+int MRISwrite(MRI_SURFACE *mris, const char *name)
+{
   int k, type;
   float x, y, z;
   FILE *fp;
@@ -1435,15 +1471,20 @@ int MRISwrite(MRI_SURFACE *mris, const char *name) {
   type = MRISfileNameType(fname);
   if (type == MRIS_ASCII_TRIANGLE_FILE) {
     return (MRISwriteAscii(mris, fname));
-  } else if (type == MRIS_VTK_FILE) {
+  }
+  else if (type == MRIS_VTK_FILE) {
     return (MRISwriteVTK(mris, fname));
-  } else if (type == MRIS_GEO_TRIANGLE_FILE) {
+  }
+  else if (type == MRIS_GEO_TRIANGLE_FILE) {
     return (MRISwriteGeo(mris, fname));
-  } else if (type == MRIS_ICO_FILE) {
+  }
+  else if (type == MRIS_ICO_FILE) {
     return MRISwriteICO(mris, fname);
-  } else if (type == MRIS_STL_FILE) {
+  }
+  else if (type == MRIS_STL_FILE) {
     return MRISwriteSTL(mris, fname);
-  } else if (type == MRIS_GIFTI_FILE) {
+  }
+  else if (type == MRIS_GIFTI_FILE) {
     return MRISwriteGIFTI(mris, NIFTI_INTENT_POINTSET, fname, NULL);
   }
 
@@ -1494,7 +1535,8 @@ int MRISwrite(MRI_SURFACE *mris, const char *name) {
       fwrite3(mris->faces[k].v[1], fp);
       fwrite3(mris->faces[k + 1].v[0], fp);
       fwrite3(mris->faces[k].v[2], fp);
-    } else {
+    }
+    else {
       fwrite3(mris->faces[k].v[0], fp);
       fwrite3(mris->faces[k].v[1], fp);
       fwrite3(mris->faces[k].v[2], fp);
@@ -1533,7 +1575,8 @@ int MRISwrite(MRI_SURFACE *mris, const char *name) {
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISoverAlloc(int max_vertices, int max_faces, int nvertices, int nfaces) {
+MRI_SURFACE *MRISoverAlloc(int max_vertices, int max_faces, int nvertices, int nfaces)
+{
   MRI_SURFACE *mris;
 
   if (max_vertices <= 0) {
@@ -1560,7 +1603,8 @@ MRI_SURFACE *MRISoverAlloc(int max_vertices, int max_faces, int nvertices, int n
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISalloc(int nvertices, int nfaces) {
+MRI_SURFACE *MRISalloc(int nvertices, int nfaces)
+{
   MRI_SURFACE *mris;
 
   if (nvertices < 0) ErrorExit(ERROR_BADPARM, "ERROR: MRISalloc: nvertices=%d < 0\n", nvertices);
@@ -1604,7 +1648,8 @@ MRI_SURFACE *MRISalloc(int nvertices, int nfaces) {
 
   Description
   ------------------------------------------------------*/
-int MRISfree(MRI_SURFACE **pmris) {
+int MRISfree(MRI_SURFACE **pmris)
+{
   MRI_SURFACE *mris;
   int vno;
 
@@ -1689,7 +1734,8 @@ int MRISfree(MRI_SURFACE **pmris) {
 
   Description
   ------------------------------------------------------*/
-int MRISfreeDists(MRI_SURFACE *mris) {
+int MRISfreeDists(MRI_SURFACE *mris)
+{
   int vno;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -1715,7 +1761,8 @@ int MRISfreeDists(MRI_SURFACE *mris) {
   if nsize <=0 then neighborhood size gets reset back to whatever
   it's max was.
   ------------------------------------------------------*/
-int MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize) {
+int MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
+{
   int vno;
   VERTEX *v;
 
@@ -1762,7 +1809,8 @@ int MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize) {
 #define MAX_2_NEIGHBORS 20
 #define MAX_1_NEIGHBORS 8
 #define MAX_NEIGHBORS (10000)
-int mrisFindNeighbors(MRI_SURFACE *mris) {
+int mrisFindNeighbors(MRI_SURFACE *mris)
+{
   int n0, n1, i, k, m, n, vno, vtotal, ntotal, vtmp[MAX_NEIGHBORS];
   FACE *f;
   VERTEX *v;
@@ -1873,7 +1921,8 @@ int mrisFindNeighbors(MRI_SURFACE *mris) {
   nlinks distances in terms of number of edges. Each vertex->marked field will be
   set to the number of edges between it and the central vertex.
 */
-int MRISfindNeighborsAtVertex(MRI_SURFACE *mris, int vno, int nlinks, int *vlist) {
+int MRISfindNeighborsAtVertex(MRI_SURFACE *mris, int vno, int nlinks, int *vlist)
+{
   int m, n, vtotal = 0, link_dist, ring_total;
   VERTEX *v, *vn;
 
@@ -1901,7 +1950,8 @@ int MRISfindNeighborsAtVertex(MRI_SURFACE *mris, int vno, int nlinks, int *vlist
         ErrorExit(ERROR_BADPARM, "MRISfindNeighborsAtVertex: nlinks=%d invalid", nlinks);
         break;
     }
-  } else  // bigger than biggest neighborhood held at each vertex
+  }
+  else  // bigger than biggest neighborhood held at each vertex
   {
     v->marked = mris->nsize;
     link_dist = mris->nsize;
@@ -1935,7 +1985,8 @@ int MRISfindNeighborsAtVertex(MRI_SURFACE *mris, int vno, int nlinks, int *vlist
 
   Description
   ------------------------------------------------------*/
-int MRISsampleAtEachDistance(MRI_SURFACE *mris, int nbhd_size, int nbrs_per_distance) {
+int MRISsampleAtEachDistance(MRI_SURFACE *mris, int nbhd_size, int nbrs_per_distance)
+{
   int n, nbrs_array[MAX_NBHD_SIZE];
 
   if (!nbhd_size) {
@@ -1964,7 +2015,8 @@ int MRISsampleAtEachDistance(MRI_SURFACE *mris, int nbhd_size, int nbrs_per_dist
 #define TRIANGLE_DISTANCE_CORRECTION 1.09f                 /*1.1f*/
 /*1.066f*/ /*1.12578*/ /* 1.13105f*/                       /*1.1501f  (1.1364f)*/
 #define QUADRANGLE_DISTANCE_CORRECTION ((1 + sqrt(2)) / 2) /* 1.2071  */
-int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd) {
+int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
+{
   int i, n, vno, vnum, old_vnum, total_nbrs, max_possible, max_v, vtotal;
   VERTEX *v, *vn, *vn2;
   int *vnbrs, *vall, *vnb, found, n2, vnbrs_num, vall_num, nbhd_size, done, checks = 0;
@@ -1983,12 +2035,14 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd) {
 
   if ((cp = getenv("VDIAG1")) != NULL) {
     diag_vno1 = atoi(cp);
-  } else {
+  }
+  else {
     diag_vno1 = -1;
   }
   if ((cp = getenv("VDIAG2")) != NULL) {
     diag_vno2 = atoi(cp);
-  } else {
+  }
+  else {
     diag_vno2 = -1;
   }
   if (diag_vno1 >= 0) {
@@ -2003,7 +2057,8 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd) {
   /* adjust for Manhattan distance */
   if (IS_QUADRANGULAR(mris)) {
     dist_scale = (1.0 + sqrt(2.0)) / 2.0f;
-  } else {
+  }
+  else {
     dist_scale = TRIANGLE_DISTANCE_CORRECTION;
   }
 
@@ -2049,9 +2104,11 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd) {
     vtotal = v->vtotal;
     if (v->nsize == 3) {
       v->vtotal = v->v3num;
-    } else if (v->nsize == 2) {
+    }
+    else if (v->nsize == 2) {
       v->vtotal = v->v2num;
-    } else {
+    }
+    else {
       v->vtotal = v->vnum;
     }
 
@@ -2287,7 +2344,8 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd) {
             DiagBreak();
           }
         }
-      } else /* randomly sample from them */
+      }
+      else /* randomly sample from them */
       {
         int vstart = v->vtotal;
         for (n = 0; n < nbrs[nbhd_size]; n++, v->vtotal++) {
@@ -2399,9 +2457,11 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd) {
     }
     if (v->nsize == 3) {
       vtotal = v->v3num;
-    } else if (v->nsize == 2) {
+    }
+    else if (v->nsize == 2) {
       vtotal = v->v2num;
-    } else {
+    }
+    else {
       vtotal = v->vnum;
     }
     for (n = 0; n < vtotal; n++) {
@@ -2890,7 +2950,8 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
   Expand the list of neighbors of each vertex, reallocating
   the v->v array to hold the expanded list.
   ------------------------------------------------------*/
-int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize) {
+int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
+{
   int vno, niter, ntotal, vtotal;
 
   /*
@@ -3088,7 +3149,8 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize) {
   Remove ripped vertices and faces from the v->v and the
   v->f arrays respectively.
   ------------------------------------------------------*/
-int MRISremoveRipped(MRI_SURFACE *mris) {
+int MRISremoveRipped(MRI_SURFACE *mris)
+{
   int vno, n, fno, nripped, remove, vno2;
   VERTEX *v;
   FACE *face;
@@ -3331,7 +3393,8 @@ int MRISremoveRipped(MRI_SURFACE *mris) {
   ------------------------------------------------------*/
 #define RAN 0.001 /* one thousandth of a millimeter */
 
-int MRIScomputeNormals(MRI_SURFACE *mris) {
+int MRIScomputeNormals(MRI_SURFACE *mris)
+{
   long seed;
   int k, i;
 
@@ -3414,7 +3477,8 @@ int MRIScomputeNormals(MRI_SURFACE *mris) {
         v->ny = snorm[1];
         v->nz = snorm[2];
         i = 0;
-      } else {
+      }
+      else {
         if (i++ > 5) continue;
 
         if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -3463,7 +3527,8 @@ int MRIScomputeNormals(MRI_SURFACE *mris) {
   Calculate distances between each vertex and all of its neighbors.
   CVD.
   ----------------------------------------------------------------*/
-static int mrisComputeVertexDistances(MRI_SURFACE *mris) {
+static int mrisComputeVertexDistances(MRI_SURFACE *mris)
+{
   int vno;
 
 #ifdef HAVE_OPENMP
@@ -3537,7 +3602,8 @@ static int mrisComputeVertexDistances(MRI_SURFACE *mris) {
   Calculate distances between each vertex and all of its neighbors.
   CVD.
   ----------------------------------------------------------------*/
-static int mrisComputeOriginalVertexDistances(MRI_SURFACE *mris) {
+static int mrisComputeOriginalVertexDistances(MRI_SURFACE *mris)
+{
   int vno, n, vtotal, *pv;
   VERTEX *v, *vn;
   float d, xd, yd, zd, circumference = 0.0f, angle;
@@ -3612,7 +3678,8 @@ static int mrisComputeOriginalVertexDistances(MRI_SURFACE *mris) {
   it is ignored. Requires that mrisComputeVertexDistances()
   have been run in order to comute vertex->dist[n].
   -------------------------------------------------------------*/
-static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev) {
+static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
+{
   double Sum, Sum2;
   long N;
 
@@ -3666,7 +3733,8 @@ static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev) {
   the distance from the origin to each vertex. If StdDev is NULL,
   it is ignored.
   -------------------------------------------------------------*/
-double MRISavgVetexRadius(MRIS *Surf, double *StdDev) {
+double MRISavgVetexRadius(MRIS *Surf, double *StdDev)
+{
   double Avg, Sum, Sum2, d;
   VERTEX *vtx;
   int VtxNo, N;
@@ -3694,7 +3762,8 @@ double MRISavgVetexRadius(MRIS *Surf, double *StdDev) {
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
-static void mrisNormalize(float v[3]) {
+static void mrisNormalize(float v[3])
+{
   float d;
 
   d = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
@@ -3712,7 +3781,8 @@ static void mrisNormalize(float v[3]) {
 
   Description
   ------------------------------------------------------*/
-static float mrisTriangleArea(MRIS *mris, int fac, int n) {
+static float mrisTriangleArea(MRIS *mris, int fac, int n)
+{
   int n0, n1;
   face_type *f;
   float v0[3], v1[3], d1, d2, d3;
@@ -3739,7 +3809,8 @@ static float mrisTriangleArea(MRIS *mris, int fac, int n) {
 
   Description
   ------------------------------------------------------*/
-static int mrisComputeOrigNormal(MRIS *mris, int vno, float norm[]) {
+static int mrisComputeOrigNormal(MRIS *mris, int vno, float norm[])
+{
   float snorm[3];
   VERTEX *v;
   int n, num;
@@ -3769,7 +3840,8 @@ static int mrisComputeOrigNormal(MRIS *mris, int vno, float norm[]) {
 
   Description
   ------------------------------------------------------*/
-static int mrisComputeWhiteNormal(MRIS *mris, int vno, float norm[]) {
+static int mrisComputeWhiteNormal(MRIS *mris, int vno, float norm[])
+{
   float snorm[3];
   VERTEX *v;
   int n, num;
@@ -3799,7 +3871,8 @@ static int mrisComputeWhiteNormal(MRIS *mris, int vno, float norm[]) {
 
   Description
   ------------------------------------------------------*/
-static int mrisComputePialNormal(MRIS *mris, int vno, float norm[]) {
+static int mrisComputePialNormal(MRIS *mris, int vno, float norm[])
+{
   float snorm[3];
   VERTEX *v;
   int n, num;
@@ -3829,7 +3902,8 @@ static int mrisComputePialNormal(MRIS *mris, int vno, float norm[]) {
 
   Description
   ------------------------------------------------------*/
-static int mrisOrigNormalFace(MRIS *mris, int fac, int n, float norm[]) {
+static int mrisOrigNormalFace(MRIS *mris, int fac, int n, float norm[])
+{
   int n0, n1, *pv;
   FACE *f;
   float v0[3], v1[3];
@@ -3867,7 +3941,8 @@ static int mrisOrigNormalFace(MRIS *mris, int fac, int n, float norm[]) {
 
   Description
   ------------------------------------------------------*/
-static int mrisWhiteNormalFace(MRIS *mris, int fac, int n, float norm[]) {
+static int mrisWhiteNormalFace(MRIS *mris, int fac, int n, float norm[])
+{
   int n0, n1, *pv;
   FACE *f;
   float v0[3], v1[3];
@@ -3905,7 +3980,8 @@ static int mrisWhiteNormalFace(MRIS *mris, int fac, int n, float norm[]) {
 
   Description
   ------------------------------------------------------*/
-static int mrisPialNormalFace(MRIS *mris, int fac, int n, float norm[]) {
+static int mrisPialNormalFace(MRIS *mris, int fac, int n, float norm[])
+{
   int n0, n1, *pv;
   FACE *f;
   float v0[3], v1[3];
@@ -3943,7 +4019,8 @@ static int mrisPialNormalFace(MRIS *mris, int fac, int n, float norm[]) {
 
   Description
   ------------------------------------------------------*/
-static int mrisNormalFace(MRIS *mris, int fac, int n, float norm[]) {
+static int mrisNormalFace(MRIS *mris, int fac, int n, float norm[])
+{
   int n0, n1, *pv;
   FACE *f;
   float v0[3], v1[3];
@@ -3982,7 +4059,8 @@ static int mrisNormalFace(MRIS *mris, int fac, int n, float norm[]) {
   Description
   ------------------------------------------------------*/
 // here reads mri/transforms/talairach.xfm (MNI style transform)
-static int mrisReadTransform(MRIS *mris, const char *mris_fname) {
+static int mrisReadTransform(MRIS *mris, const char *mris_fname)
+{
   char transform_fname[STRLEN], fpref[300];
   LT *lt = 0;
   MRI *orig = 0;
@@ -3998,7 +4076,8 @@ static int mrisReadTransform(MRIS *mris, const char *mris_fname) {
 
   if (!(mris->lta = LTAreadEx(transform_fname))) {
     ErrorReturn(ERROR_NO_FILE, (ERROR_NOFILE, "mrisReadTransform: could not read xform file '%s'", transform_fname));
-  } else {
+  }
+  else {
     if (mris->lta->type != LINEAR_RAS_TO_RAS)
       ErrorExit(ERROR_BADPARM, "the transform is not RAS-TO-RAS.  not supported.");
   }
@@ -4014,7 +4093,8 @@ static int mrisReadTransform(MRIS *mris, const char *mris_fname) {
       lt->src.c_r = mris->vg.c_r;
       lt->src.c_a = mris->vg.c_a;
       lt->src.c_s = mris->vg.c_s;
-    } else {
+    }
+    else {
       // first try to get it from mri/orig
       sprintf(transform_fname, "%s/../mri/orig", fpref);  // reuse of the buffer
       rStat = stat(transform_fname, &info);
@@ -4033,7 +4113,8 @@ static int mrisReadTransform(MRIS *mris, const char *mris_fname) {
                   "to get c_(ras) information for src\n");
           fprintf(stderr, "INFO: added info to the surface.\n");
         }
-      } else {
+      }
+      else {
         if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
           fprintf(stderr,
                   "INFO: cannot find mri/orig volume to "
@@ -4053,7 +4134,8 @@ static int mrisReadTransform(MRIS *mris, const char *mris_fname) {
         lt->src.c_s = 0;
       }
     }
-  } else  // lt->src.valid == 1
+  }
+  else  // lt->src.valid == 1
   {
     // verify
     if (mris->vg.valid) {
@@ -4130,7 +4212,8 @@ int MRISreadTransform(MRIS *mris, const char *fname) { return mrisReadTransform(
 
   Description
   ------------------------------------------------------*/
-int MRISreadBinaryCurvature(MRI_SURFACE *mris, const char *mris_fname) {
+int MRISreadBinaryCurvature(MRI_SURFACE *mris, const char *mris_fname)
+{
   char fname[STRLEN], fpref[STRLEN], hemi[20];
 
   FileNamePath(mris_fname, fpref);
@@ -4146,7 +4229,8 @@ int MRISreadBinaryCurvature(MRI_SURFACE *mris, const char *mris_fname) {
 
   Description
   ------------------------------------------------------*/
-int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname) {
+int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
+{
   int k, i, vnum, fnum;
   float curv = 0, curvmin, curvmax;
   FILE *fp;
@@ -4160,17 +4244,20 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname) {
     if (getenv("FS_POSIX")) {
       // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
       sprintf(fname, "./%s", sname);
-    } else {
+    }
+    else {
       cp = strchr(sname, '.');
       FileNamePath(mris->fname, path);
       if (cp && ((strncmp(cp - 2, "lh", 2) == 0) || (strncmp(cp - 2, "rh", 2) == 0))) {
         sprintf(fname, "%s/%s", path, sname);
-      } else /* no hemisphere specified */
+      }
+      else /* no hemisphere specified */
       {
         sprintf(fname, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname);
       }
     }
-  } else {
+  }
+  else {
     strcpy(fname, sname); /* path specified explicitly */
   }
   mritype = mri_identify(sname);
@@ -4178,7 +4265,8 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname) {
     mris = mrisReadGIFTIfile(fname, mris);
     if (mris) {
       return (NO_ERROR);
-    } else {
+    }
+    else {
       return (ERROR_BADFILE);
     }
   }
@@ -4237,11 +4325,13 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname) {
   type = MRISfileNameType(fname);
   if (type == MRIS_ASCII_TRIANGLE_FILE) {
     return (mrisReadAsciiCurvatureFile(mris, fname));
-  } else if (type == MRIS_GIFTI_FILE) {
+  }
+  else if (type == MRIS_GIFTI_FILE) {
     mris = mrisReadGIFTIfile(fname, mris);
     if (mris) {
       return (NO_ERROR);
-    } else {
+    }
+    else {
       return (ERROR_BADFILE);
     }
   }
@@ -4301,7 +4391,8 @@ int MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname) {
 
   Description
   ------------------------------------------------------*/
-float *MRISreadCurvatureVector(MRI_SURFACE *mris, const char *sname) {
+float *MRISreadCurvatureVector(MRI_SURFACE *mris, const char *sname)
+{
   char *cp, path[STRLEN], fname[STRLEN];
   float *cvec = NULL;
   int return_code = ERROR_NONE;
@@ -4313,9 +4404,11 @@ float *MRISreadCurvatureVector(MRI_SURFACE *mris, const char *sname) {
     FileNamePath(mris->fname, path);
     if (cp) {
       sprintf(fname, "%s/%s", path, sname);
-    } else /* no hemisphere specified */
+    }
+    else /* no hemisphere specified */
       sprintf(fname, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname);
-  } else {
+  }
+  else {
     strcpy(fname, sname); /* path specified explcitly */
   }
 
@@ -4330,7 +4423,8 @@ float *MRISreadCurvatureVector(MRI_SURFACE *mris, const char *sname) {
   return cvec;
 }
 
-int MRISreadCurvatureIntoArray(const char *sname, int in_array_size, float **out_array) {
+int MRISreadCurvatureIntoArray(const char *sname, int in_array_size, float **out_array)
+{
   int k, i, vnum, fnum;
   float *cvec;
   FILE *fp;
@@ -4385,7 +4479,8 @@ int MRISreadCurvatureIntoArray(const char *sname, int in_array_size, float **out
 
   Description
   ------------------------------------------------------*/
-int MRISreadFloatFile(MRI_SURFACE *mris, const char *sname) {
+int MRISreadFloatFile(MRI_SURFACE *mris, const char *sname)
+{
   int k, vnum, fnum;
   float f;
   FILE *fp;
@@ -4398,9 +4493,11 @@ int MRISreadFloatFile(MRI_SURFACE *mris, const char *sname) {
     FileNamePath(mris->fname, path);
     if (cp) {
       sprintf(fname, "%s/%s", path, sname);
-    } else /* no hemisphere specified */
+    }
+    else /* no hemisphere specified */
       sprintf(fname, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname);
-  } else {
+  }
+  else {
     strcpy(fname, sname); /* path specified explcitly */
   }
 
@@ -4444,7 +4541,8 @@ int MRISreadFloatFile(MRI_SURFACE *mris, const char *sname) {
 
   Description
   ------------------------------------------------------*/
-int MRISreadBinaryAreas(MRI_SURFACE *mris, const char *mris_fname) {
+int MRISreadBinaryAreas(MRI_SURFACE *mris, const char *mris_fname)
+{
   int k, vnum, fnum;
   float f;
   FILE *fp;
@@ -4490,7 +4588,8 @@ int MRISreadBinaryAreas(MRI_SURFACE *mris, const char *mris_fname) {
   return (NO_ERROR);
 }
 
-int MRISwriteMarked(MRI_SURFACE *mris, const char *sname) {
+int MRISwriteMarked(MRI_SURFACE *mris, const char *sname)
+{
   float *curv_save;
 
   curv_save = (float *)calloc(mris->nvertices, sizeof(float));
@@ -4504,7 +4603,8 @@ int MRISwriteMarked(MRI_SURFACE *mris, const char *sname) {
   return (NO_ERROR);
 }
 
-int MRISreadMarked(MRI_SURFACE *mris, const char *sname) {
+int MRISreadMarked(MRI_SURFACE *mris, const char *sname)
+{
   float *curv_save;
 
   curv_save = (float *)calloc(mris->nvertices, sizeof(float));
@@ -4527,7 +4627,8 @@ int MRISreadMarked(MRI_SURFACE *mris, const char *sname) {
 
   Description
   ------------------------------------------------------*/
-int MRISwriteArea(MRI_SURFACE *mris, const char *sname) {
+int MRISwriteArea(MRI_SURFACE *mris, const char *sname)
+{
   float *curv_save;
 
   curv_save = (float *)calloc(mris->nvertices, sizeof(float));
@@ -4664,7 +4765,8 @@ normalize_binary_curvature(MRI_SURFACE *mris)
   point on the cortical surface to the closest cylindrical
   coordinate.
   ------------------------------------------------------*/
-int MRISprojectOntoCylinder(MRI_SURFACE *mris, float radius) {
+int MRISprojectOntoCylinder(MRI_SURFACE *mris, float radius)
+{
   VERTEX *v;
   int k;
   float x, y, z, x2, z2, dx, dz;
@@ -4708,7 +4810,8 @@ int MRISprojectOntoCylinder(MRI_SURFACE *mris, float radius) {
   point on the cortical surface to the closest spherical
   coordinate.
   ------------------------------------------------------*/
-MRI_SURFACE *MRISprojectOntoSphere(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, double r) {
+MRI_SURFACE *MRISprojectOntoSphere(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, double r)
+{
   VERTEX *v;
   int vno;
   double x, y, z, d, dx, dy, dz, dist, total_dist, x2, y2, z2;
@@ -4746,7 +4849,8 @@ MRI_SURFACE *MRISprojectOntoSphere(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     dist = sqrt(x2 + y2 + z2);
     if (FZERO(dist)) {
       d = 0;
-    } else {
+    }
+    else {
       d = 1 - r / dist;
     }
     dx = d * x;
@@ -4795,7 +4899,8 @@ MRI_SURFACE *MRISprojectOntoSphere(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
   ------------------------------------------------------*/
 extern double sqrt(double);
 
-MRI_SURFACE *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float a, float b, float c) {
+MRI_SURFACE *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float a, float b, float c)
+{
   VERTEX *v;
   int k;
   float x, y, z, x2, y2, z2, dx, dy, dz, a2, b2, c2, a4, b4, c4, a6, b6, c6;
@@ -4908,7 +5013,8 @@ MRI_SURFACE *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *mris_d
   MRISupdateEllipsoidSurface(mris_dst);
   if (FZERO(a - b) && FZERO(b - c)) {
     mris_dst->status = MRIS_SPHERE;
-  } else {
+  }
+  else {
     mris_dst->status = MRIS_ELLIPSOID;
   }
   return (mris_dst);
@@ -4918,7 +5024,8 @@ MRI_SURFACE *MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *mris_d
   this one projects along the line from the origin to the ellipsoidal
   surface - not orthographic unless the ellipsoid is a sphere.
 */
-MRI_SURFACE *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float a, float b, float c) {
+MRI_SURFACE *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float a, float b, float c)
+{
   int vno;
   VERTEX *vsrc, *vdst;
   float x0, y0, z0, x1, y1, z1, denom, asq_bsq, asq_csq, bsq_csq, x1sq, y1sq, z1sq, abc;
@@ -4987,7 +5094,8 @@ MRI_SURFACE *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *
   MRISupdateEllipsoidSurface(mris_dst);
   if (FZERO(a - b) && FZERO(b - c)) {
     mris_dst->status = MRIS_SPHERE;
-  } else {
+  }
+  else {
     mris_dst->status = MRIS_ELLIPSOID;
   }
   return (mris_dst);
@@ -5000,7 +5108,8 @@ MRI_SURFACE *MRISradialProjectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src) {
+MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src)
+{
   MRI_SURFACE *mris_dst;
   int vno, fno, n;
   VERTEX *vsrc, *vdst;
@@ -5127,7 +5236,8 @@ MRI_SURFACE *MRISclone(MRI_SURFACE *mris_src) {
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) {
+MRI_SURFACE *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
+{
   int vno;
   VERTEX *vdst;
   float x, y, z, x0, y0, z0, xlo, xhi, zlo, zhi, ylo, yhi;
@@ -5242,7 +5352,8 @@ MRI_SURFACE *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) {
 
   We need to know the Csrc and Ctal values
   ------------------------------------------------------*/
-MRI_SURFACE *MRIStalairachTransform(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) {
+MRI_SURFACE *MRIStalairachTransform(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst)
+{
   int vno;
   VERTEX *v;
   double x, y, z, xt, yt, zt;
@@ -5590,11 +5701,13 @@ static float *sigmas = sigmas_default;  // can be changed by caller
 #define NSIGMAS (sizeof(sigmas_default) / sizeof(sigmas_default[0]))
 static double nsigmas = NSIGMAS;
 
-int MRISsetRegistrationSigmas(float *sigmas_local, int nsigmas_local) {
+int MRISsetRegistrationSigmas(float *sigmas_local, int nsigmas_local)
+{
   if (sigmas_local == NULL) {
     nsigmas = NSIGMAS;
     sigmas = sigmas_default;
-  } else {
+  }
+  else {
     nsigmas = nsigmas_local;
     sigmas = sigmas_local;
   }
@@ -5605,7 +5718,8 @@ static char *surface_names[] = {"inflated", "smoothwm", "smoothwm"};
 
 static char *curvature_names[] = {"inflated.H", "sulc", NULL};
 
-int MRISsetCurvatureName(int nth, char *name) {
+int MRISsetCurvatureName(int nth, char *name)
+{
   if (nth > 2) {
     printf("ERROR: MRISsetCurvatureName() nth=%d > 2\n", nth);
     return (1);
@@ -5613,7 +5727,8 @@ int MRISsetCurvatureName(int nth, char *name) {
   curvature_names[nth] = strcpyalloc(name);
   return (0);
 }
-int MRISprintCurvatureNames(FILE *fp) {
+int MRISprintCurvatureNames(FILE *fp)
+{
   int k;
   for (k = 0; k < sizeof(curvature_names) / sizeof(curvature_names[0]); k++) {
     if (curvature_names[k])
@@ -5624,7 +5739,8 @@ int MRISprintCurvatureNames(FILE *fp) {
   return (0);
 }
 
-int MRISsetInflatedFileName(char *inflated_name) {
+int MRISsetInflatedFileName(char *inflated_name)
+{
   char fname[STRLEN];
 
   surface_names[0] = inflated_name;
@@ -5634,13 +5750,15 @@ int MRISsetInflatedFileName(char *inflated_name) {
   return (NO_ERROR);
 }
 
-int MRISsetSulcFileName(const char *sulc_name) {
+int MRISsetSulcFileName(const char *sulc_name)
+{
   curvature_names[1] = (char *)calloc(strlen(sulc_name) + 1, sizeof(char));
   strcpy(curvature_names[1], sulc_name);
   return (NO_ERROR);
 }
 
-int MRISsetOriginalFileName(char *orig_name) {
+int MRISsetOriginalFileName(char *orig_name)
+{
   surface_names[1] = surface_names[2] = orig_name;
   return (NO_ERROR);
 }
@@ -5661,7 +5779,8 @@ int MRISregister(MRI_SURFACE *mris,
                  int max_passes,
                  float min_degrees,
                  float max_degrees,
-                 int nangles) {
+                 int nangles)
+{
   float sigma /*, target_sigma, dof*/;
   int i, start_t, sno, ino, msec, min_averages = 0, nsurfaces, using_big_averages = 0;
   MRI_SP *mrisp;
@@ -5707,7 +5826,8 @@ int MRISregister(MRI_SURFACE *mris,
     sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
     if (!parms->start_t) {
       parms->fp = fopen(fname, "w");
-    } else {
+    }
+    else {
       parms->fp = fopen(fname, "a");
     }
     if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
@@ -5721,15 +5841,18 @@ int MRISregister(MRI_SURFACE *mris,
     fprintf(stderr, "will not rigidly align the surface\n");
     first = 0;
     sno = 2;
-  } else if (parms->flags & IP_USE_INFLATED) {
+  }
+  else if (parms->flags & IP_USE_INFLATED) {
     sno = 0;
-  } else {
+  }
+  else {
     sno = 1;
   }
 
   if (parms->nsurfaces > 0) {
     nsurfaces = parms->nsurfaces;
-  } else {
+  }
+  else {
     nsurfaces = SURFACES;
   }
 
@@ -5750,7 +5873,8 @@ int MRISregister(MRI_SURFACE *mris,
       if (parms->trinarize_thresh > 0) {
         MRIStrinarizeCurvature(mris, parms->trinarize_thresh);
       }
-    } else /* compute curvature of surface */
+    }
+    else /* compute curvature of surface */
     {
       sprintf(fname, "%s", surface_names[sno]);
       MRISsaveVertexPositions(mris, TMP_VERTICES);
@@ -5773,7 +5897,8 @@ int MRISregister(MRI_SURFACE *mris,
     if (Gdiag & DIAG_SHOW) {
       if (curvature_names[sno]) {
         printf("reading precomputed curvature from %s\n", fname);
-      } else {
+      }
+      else {
         printf("calculating curvature of %s surface\n", fname);
       }
     }
@@ -5781,7 +5906,8 @@ int MRISregister(MRI_SURFACE *mris,
     if (Gdiag & DIAG_WRITE) {
       if (curvature_names[sno]) {
         fprintf(parms->fp, "using precomputed curvature from %s\n", fname);
-      } else {
+      }
+      else {
         fprintf(parms->fp, "calculating curvature of %s surface\n", fname);
       }
     }
@@ -5800,7 +5926,8 @@ int MRISregister(MRI_SURFACE *mris,
       }
       //      if (Gdiag & DIAG_SHOW)
       mrisLogIntegrationParms(stderr, mris, parms);
-    } else if (!first) /* don't do curvature alignment */
+    }
+    else if (!first) /* don't do curvature alignment */
     {
       break; /* finished */
     }
@@ -6057,7 +6184,8 @@ int MRISregister(MRI_SURFACE *mris,
   return (NO_ERROR);
 }
 
-void MRISsetCurvaturesToValues(MRIS *mris, int fno) {
+void MRISsetCurvaturesToValues(MRIS *mris, int fno)
+{
   int n;
   VERTEX *v;
   for (n = 0; n < mris->nvertices; n++) {
@@ -6069,7 +6197,8 @@ void MRISsetCurvaturesToValues(MRIS *mris, int fno) {
   }
 }
 
-void MRISsetCurvaturesToOrigValues(MRIS *mris, int fno) {
+void MRISsetCurvaturesToOrigValues(MRIS *mris, int fno)
+{
   int n;
   VERTEX *v;
   for (n = 0; n < mris->nvertices; n++) {
@@ -6081,7 +6210,8 @@ void MRISsetCurvaturesToOrigValues(MRIS *mris, int fno) {
   }
 }
 
-void MRISsetOrigValuesToCurvatures(MRIS *mris, int fno) {
+void MRISsetOrigValuesToCurvatures(MRIS *mris, int fno)
+{
   int n;
   VERTEX *v;
   for (n = 0; n < mris->nvertices; n++) {
@@ -6093,7 +6223,8 @@ void MRISsetOrigValuesToCurvatures(MRIS *mris, int fno) {
   }
 }
 
-void MRISsetOrigValuesToValues(MRIS *mris, int fno) {
+void MRISsetOrigValuesToValues(MRIS *mris, int fno)
+{
   int n;
   VERTEX *v;
   for (n = 0; n < mris->nvertices; n++) {
@@ -6105,7 +6236,8 @@ void MRISsetOrigValuesToValues(MRIS *mris, int fno) {
   }
 }
 
-void MRISsetValuesToCurvatures(MRIS *mris, int fno) {
+void MRISsetValuesToCurvatures(MRIS *mris, int fno)
+{
   int n;
   VERTEX *v;
   for (n = 0; n < mris->nvertices; n++) {
@@ -6117,7 +6249,8 @@ void MRISsetValuesToCurvatures(MRIS *mris, int fno) {
   }
 }
 
-void MRISnormalizeField(MRIS *mris, int distance_field, int which_norm) {
+void MRISnormalizeField(MRIS *mris, int distance_field, int which_norm)
+{
   int n;
   VERTEX *v;
   float max_value;
@@ -6148,7 +6281,8 @@ void MRISnormalizeField(MRIS *mris, int distance_field, int which_norm) {
         v->curv = v->curv / max_value;
       }
     }
-  } else /* gaussian */
+  }
+  else /* gaussian */
   {
     MRISnormalizeCurvature(mris, which_norm);
   }
@@ -6160,7 +6294,8 @@ int MRISvectorRegister(MRI_SURFACE *mris,
                        int max_passes,
                        float min_degrees,
                        float max_degrees,
-                       int nangles) {
+                       int nangles)
+{
   float sigma;
   int i, /*steps,*/ msec;
   MRI_SP *mrisp;
@@ -6263,7 +6398,8 @@ int MRISvectorRegister(MRI_SURFACE *mris,
                 path,
                 mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh",
                 parms->fields[n].name);
-      } else {
+      }
+      else {
         sprintf(fname,
                 "%s/../%s/%s.%s",
                 path,
@@ -6278,7 +6414,8 @@ int MRISvectorRegister(MRI_SURFACE *mris,
         MRISripMedialWall(mris);
       }
       MRIScopyValuesToCurvature(mris);
-    } else if (ReturnFieldName(parms->fields[n].field)) {
+    }
+    else if (ReturnFieldName(parms->fields[n].field)) {
       /* read in precomputed curvature file */
       sprintf(
           fname, "%s.%s", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", ReturnFieldName(parms->fields[n].field));
@@ -6288,7 +6425,8 @@ int MRISvectorRegister(MRI_SURFACE *mris,
         parms->fields[n].l_corr = parms->fields[n].l_pcorr = 0.0;
         continue;
       }
-    } else {
+    }
+    else {
       /* compute curvature of surface */
       sprintf(fname, "%s", surface_names[parms->fields[n].field]);
       /*                        if(parms->fields[n].field==0) */
@@ -6550,7 +6688,8 @@ static float dist_coefs[] = {0.1f, 1.0f, 1.0f};
 #define MAX_NBHD_SIZE 200
 #define NBR_COEF (M_PI * 1.0f)
 
-MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes) {
+MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
+{
   int base_averages, i, nbrs[MAX_NBHD_SIZE], niter, passno, msec, use_nl_area;
   double starting_sse, ending_sse, l_area, pct_error;
   struct timeb start;
@@ -6589,7 +6728,8 @@ MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_pas
     if (!parms->fp) {
       if (!parms->start_t) {
         parms->fp = fopen(fname, "w");
-      } else {
+      }
+      else {
         parms->fp = fopen(fname, "a");
       }
 
@@ -6643,7 +6783,8 @@ MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_pas
       MRIScomputeMetricProperties(mris);
       if (parms->complete_dist_mat) {
         MRIScomputeAllDistances(mris);
-      } else {
+      }
+      else {
         MRISsampleDistances(mris, nbrs, parms->nbhd_size);
       }
       MRISrestoreVertexPositions(mris, TMP_VERTICES);
@@ -6742,7 +6883,8 @@ MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_pas
       parms->l_dist = dist_coefs[i];
       if (use_nl_area) {
         parms->l_nlarea = area_coefs[i];
-      } else {
+      }
+      else {
         parms->l_area = area_coefs[i];
       }
       parms->l_angle = ANGLE_AREA_SCALE * parms->l_area;
@@ -6756,7 +6898,8 @@ MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_pas
 
     if (use_nl_area) {
       parms->l_nlarea = area_coefs[NCOEFS - 1];
-    } else {
+    }
+    else {
       parms->l_area = area_coefs[NCOEFS - 1];
     }
     parms->l_dist = dist_coefs[NCOEFS - 1];
@@ -6860,7 +7003,8 @@ MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_pas
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes) {
+MRI_SURFACE *MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_passes)
+{
   int niter, passno, msec, nbrs[MAX_NBHD_SIZE], i, use_dists, base_averages;
   double pct_error, orig_k, last_sse, sse, pct_change;
   struct timeb start;
@@ -6887,7 +7031,8 @@ MRI_SURFACE *MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int ma
     if (!parms->fp) {
       if (!parms->start_t) {
         parms->fp = fopen(fname, "w");
-      } else {
+      }
+      else {
         parms->fp = fopen(fname, "a");
       }
       if (!parms->fp) ErrorExit(ERROR_NOFILE, "MRISquickSphere: could not open log file %s\n", fname);
@@ -7207,7 +7352,8 @@ static float neg_area_ratios[] = {
     1e-1};
 #define MAX_PASSES (sizeof(neg_area_ratios) / sizeof(neg_area_ratios[0]))
 static int mrisRemoveNegativeArea(
-    MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int base_averages, float min_area_pct, int max_passes) {
+    MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int base_averages, float min_area_pct, int max_passes)
+{
   int total_steps, done, steps, n_averages, old_averages, npasses, niter;
   float pct_neg, ratio;
   char *snum, *sdenom;
@@ -7220,7 +7366,8 @@ static int mrisRemoveNegativeArea(
     sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
     if (!parms->start_t) {
       parms->fp = fopen(fname, "w");
-    } else {
+    }
+    else {
       parms->fp = fopen(fname, "a");
     }
     if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
@@ -7258,7 +7405,8 @@ static int mrisRemoveNegativeArea(
   if (!FZERO(l_corr)) {
     sdenom = "corr";
     pdenom = &parms->l_corr; /*cmod = 10.0f ;*/
-  } else {
+  }
+  else {
     sdenom = "dist";
     pdenom = &parms->l_dist;
   }
@@ -7266,10 +7414,12 @@ static int mrisRemoveNegativeArea(
   if (!FZERO(l_area)) {
     snum = "area";
     pnum = &parms->l_area;
-  } else if (!FZERO(l_nlarea)) {
+  }
+  else if (!FZERO(l_nlarea)) {
     snum = "nlarea";
     pnum = &parms->l_nlarea;
-  } else if (!FZERO(l_parea))
+  }
+  else if (!FZERO(l_parea))
 #if 0
   {
     snum = "parea" ;
@@ -7281,7 +7431,8 @@ static int mrisRemoveNegativeArea(
     pnum = &parms->l_area;
   }
 #endif
-    else {
+    else
+    {
       snum = "spring";
       pnum = &parms->l_spring;
     }
@@ -7352,7 +7503,8 @@ static int mrisRemoveNegativeArea(
   Description
 
   ------------------------------------------------------*/
-static int mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int base_averages) {
+static int mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int base_averages)
+{
   int total_steps, done, steps, n_averages, old_averages;
   char *snum, *sdenom;
   float ratio, *pdenom, *pnum;
@@ -7360,7 +7512,8 @@ static int mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int
   if (!FZERO(parms->l_corr)) {
     sdenom = "corr";
     pdenom = &parms->l_corr;
-  } else {
+  }
+  else {
     sdenom = "dist";
     pdenom = &parms->l_dist;
   }
@@ -7368,13 +7521,16 @@ static int mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int
   if (!FZERO(parms->l_nlarea)) {
     snum = "nlarea";
     pnum = &parms->l_nlarea;
-  } else if (!FZERO(parms->l_area)) {
+  }
+  else if (!FZERO(parms->l_area)) {
     snum = "area";
     pnum = &parms->l_area;
-  } else if (!FZERO(parms->l_parea)) {
+  }
+  else if (!FZERO(parms->l_parea)) {
     snum = "parea";
     pnum = &parms->l_parea;
-  } else {
+  }
+  else {
     snum = "spring";
     pnum = &parms->l_spring;
   }
@@ -7396,7 +7552,8 @@ static int mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int
         sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
         if (!parms->start_t) {
           parms->fp = fopen(fname, "w");
-        } else {
+        }
+        else {
           parms->fp = fopen(fname, "a");
         }
         if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
@@ -7470,7 +7627,8 @@ static int mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int
   Description
 
   ------------------------------------------------------*/
-int MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages) {
+int MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
+{
   int t, write_iterations, niterations, nsmall, neg;
   double l_dist, l_area, l_spring, sse, old_sse, delta_t, total_small = 0.0;
   double sse_thresh, pct_neg, pct_neg_area, total_vertices, tol;
@@ -7483,7 +7641,8 @@ int MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages) {
     sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
     if (!parms->start_t) {
       parms->fp = fopen(fname, "w");
-    } else {
+    }
+    else {
       parms->fp = fopen(fname, "a");
     }
     if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
@@ -7496,7 +7655,8 @@ int MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages) {
   niterations = parms->niterations;
   if (((parms->flags & IPFLAG_QUICK) == 0) && ((parms->flags & IPFLAG_NOSCALE_TOL) == 0)) {
     tol = parms->tol * sqrt(((double)n_averages + 1.0) / 1024.0);
-  } else {
+  }
+  else {
     tol = parms->tol;
   }
   sse_thresh = tol;
@@ -7764,7 +7924,8 @@ int MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages) {
       if (++total_small > TOTAL_SMALL) {
         break;
       }
-    } else {
+    }
+    else {
       if (total_small > 0.0) /* if error increases more
                                 than 1/4 time quit */
       {
@@ -7826,7 +7987,8 @@ int MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages) {
    this is basically a fork of MRISIntegrate, but it shouldn't be.
    In future this should be merged into MRISIntegrate with the according ifdefs
 */
-int mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages) {
+int mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
+{
   int t, write_iterations, niterations, nsmall, neg;
   double l_dist, l_area, l_spring, sse, old_sse, delta_t, total_small = 0.0;
   double sse_thresh, pct_neg, pct_neg_area, total_vertices, tol;
@@ -7857,7 +8019,8 @@ int mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_average
     sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
     if (!parms->start_t) {
       parms->fp = fopen(fname, "w");
-    } else {
+    }
+    else {
       parms->fp = fopen(fname, "a");
     }
     if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
@@ -7870,7 +8033,8 @@ int mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_average
   niterations = parms->niterations;
   if (((parms->flags & IPFLAG_QUICK) == 0) && ((parms->flags & IPFLAG_NOSCALE_TOL) == 0)) {
     tol = parms->tol * sqrt(((double)n_averages + 1.0) / 1024.0);
-  } else {
+  }
+  else {
     tol = parms->tol;
   }
   sse_thresh = tol;
@@ -8037,7 +8201,8 @@ int mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_average
       printf("CUDA MRISCverageGradients: %ld ms\n", result.tv_sec * 1000 + result.tv_usec / 1000);
       fflush(stdout);
 #endif  // FS_CUDA_TIMINGS
-    } else {
+    }
+    else {
 #ifdef FS_CUDA_TIMINGS
       gettimeofday(&tv1, NULL);
 #endif  // FS_CUDA_TIMINGS
@@ -8180,7 +8345,8 @@ int mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_average
       if (++total_small > TOTAL_SMALL) {
         break;
       }
-    } else {
+    }
+    else {
       if (total_small > 0.0) /* if error increases more
                                 than 1/4 time quit */
       {
@@ -8243,7 +8409,8 @@ int mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_average
   // last and the distance vector on the GPU is outdated.
   if (mris->status != MRIS_PLANE) {
     parms->ending_sse = MRIScomputeSSE_CUDA(mris, mrisc, parms);
-  } else {
+  }
+  else {
     parms->ending_sse = MRIScomputeSSE(mris, parms);
   }
   /*  mrisProjectSurface(mris) ;*/
@@ -8269,7 +8436,8 @@ static double mrisComputeError(MRI_SURFACE *mris,
                                float *pangle_rms,
                                float *pcurv_rms,
                                float *pdist_rms,
-                               float *pcorr_rms) {
+                               float *pcorr_rms)
+{
   double rms, sse_area, sse_angle, sse_curv, delta, area_scale, sse_dist, sse_corr;
   int ano, fno, ntriangles, total_neighbors;
   FACE *face;
@@ -8278,7 +8446,8 @@ static double mrisComputeError(MRI_SURFACE *mris,
 #if METRIC_SCALE
   if (mris->patch) {
     area_scale = 1.0;
-  } else {
+  }
+  else {
     area_scale = mris->orig_area / mris->total_area;
   }
 #else
@@ -8305,7 +8474,8 @@ static double mrisComputeError(MRI_SURFACE *mris,
   sse_corr = mrisComputeCorrelationError(mris, parms, 1);
   if (!DZERO(parms->l_dist)) {
     sse_dist = mrisComputeDistanceError(mris, parms);
-  } else {
+  }
+  else {
     sse_dist = 0;
   }
 
@@ -8326,7 +8496,8 @@ static double mrisComputeError(MRI_SURFACE *mris,
   nv = (float)MRISvalidVertices(mris);
   if (mris->status != MRIS_PLANE) {
     *pcurv_rms = (float)sqrt(sse_curv / nv);
-  } else {
+  }
+  else {
     *pcurv_rms = 0.0f;
   }
   *pdist_rms = (float)sqrt(sse_dist / (double)total_neighbors);
@@ -8372,7 +8543,8 @@ static double mrisComputeError(MRI_SURFACE *mris,
 }
 
 static double mrisComputeSSE_MEF(
-    MRI_SURFACE *mris, INTEGRATION_PARMS *parms, MRI *mri30, MRI *mri5, double weight30, double weight5, MHT *mht) {
+    MRI_SURFACE *mris, INTEGRATION_PARMS *parms, MRI *mri30, MRI *mri5, double weight30, double weight5, MHT *mht)
+{
   double sse, l_intensity, rms;
 
   l_intensity = parms->l_intensity;
@@ -8397,7 +8569,8 @@ static double mrisComputeSSE_MEF(
   As such, it must represent the exact error function being
   minimized (as opposed to computeError above).
   ------------------------------------------------------*/
-double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   double sse, sse_area, sse_angle, sse_curv, sse_spring, sse_dist, area_scale, sse_corr, sse_neg_area, l_corr, sse_val,
       sse_sphere, sse_thick_min, sse_thick_parallel, sse_ashburner_triangle, sse_grad, sse_nl_area, sse_nl_dist,
       sse_tspring, sse_repulse, sse_tsmooth, sse_loc, sse_thick_spring, sse_repulsive_ratio, sse_shrinkwrap,
@@ -8409,7 +8582,8 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
 #if METRIC_SCALE
   if (mris->patch || mris->noscale) {
     area_scale = 1.0;
-  } else {
+  }
+  else {
     area_scale = mris->orig_area / mris->total_area;
   }
 #else
@@ -8572,7 +8746,8 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
 }
 
 #ifdef FS_CUDA
-static double MRIScomputeSSE_CUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms) {
+static double MRIScomputeSSE_CUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms)
+{
   double sse, sse_area, sse_angle, delta, sse_curv, sse_spring, sse_dist, area_scale, sse_corr, sse_neg_area, l_corr,
       sse_val, sse_sphere, sse_thick_min, sse_thick_parallel, sse_ashburner_triangle, sse_grad, sse_nl_area,
       sse_nl_dist, sse_tspring, sse_repulse, sse_tsmooth, sse_loc, sse_repulsive_ratio, sse_shrinkwrap, sse_expandwrap,
@@ -8585,7 +8760,8 @@ static double MRIScomputeSSE_CUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, IN
 #if METRIC_SCALE
   if (mris->patch || mris->noscale) {
     area_scale = 1.0;
-  } else {
+  }
+  else {
     area_scale = mris->orig_area / mris->total_area;
   }
 #else
@@ -8744,12 +8920,14 @@ static double MRIScomputeSSE_CUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, IN
   As such, it must represent the exact error function being
   minimized (as opposed to computeError above).
   ------------------------------------------------------*/
-double MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, double *ext_sse) {
+double MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, double *ext_sse)
+{
   double sse;
 
   if (gMRISexternalSSE) {
     sse = (*gMRISexternalSSE)(mris, parms);
-  } else {
+  }
+  else {
     sse = 0;
   }
   *ext_sse = sse;
@@ -8766,13 +8944,15 @@ double MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, doubl
 
   Description
   ------------------------------------------------------*/
-static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris) {
+static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris)
+{
   double area_scale;
 
 #if METRIC_SCALE
   if (mris->patch) {
     area_scale = 1.0;
-  } else {
+  }
+  else {
     area_scale = mris->orig_area / mris->total_area;
   }
 #else
@@ -8794,7 +8974,8 @@ static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris) {
 #if SCALE_NONLINEAR_AREA
     if (!FZERO(face->orig_area)) {
       ratio = area_scale * face->area / face->orig_area;
-    } else {
+    }
+    else {
       ratio = 0.0f;
     }
 #else
@@ -8802,7 +8983,8 @@ static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris) {
 #endif
     if (ratio > MAX_NEG_RATIO) {
       ratio = MAX_NEG_RATIO;
-    } else if (ratio < -MAX_NEG_RATIO) {
+    }
+    else if (ratio < -MAX_NEG_RATIO) {
       ratio = -MAX_NEG_RATIO;
     }
 #if 0
@@ -8826,7 +9008,8 @@ static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISscaleBrainArea(MRI_SURFACE *mris) {
+int MRISscaleBrainArea(MRI_SURFACE *mris)
+{
   float scale;
 
   scale = sqrt(mris->orig_area / (mris->total_area + mris->neg_area));
@@ -8985,7 +9168,8 @@ mrisFindPoles(MRIS *mris)
 
   Description
   ------------------------------------------------------*/
-static int mrisOrientEllipsoid(MRI_SURFACE *mris) {
+static int mrisOrientEllipsoid(MRI_SURFACE *mris)
+{
   int fno;
 
 #pragma omp parallel for
@@ -9043,7 +9227,8 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris) {
       }
       if (face->area >= 0.0f) {
         total_area += face->area;
-      } else {
+      }
+      else {
         neg_area += -face->area;
         neg_orig_area += face->orig_area;
       }
@@ -9064,7 +9249,8 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-static int mrisOrientPlane(MRI_SURFACE *mris) {
+static int mrisOrientPlane(MRI_SURFACE *mris)
+{
   int fno, ano, vno;
   FACE *face;
   VERTEX *v;
@@ -9099,7 +9285,8 @@ static int mrisOrientPlane(MRI_SURFACE *mris) {
     }
     if (face->area >= 0.0f) {
       mris->total_area += face->area;
-    } else {
+    }
+    else {
       mris->neg_area += -face->area;
       mris->neg_orig_area += face->orig_area;
     }
@@ -9114,7 +9301,8 @@ static int mrisOrientPlane(MRI_SURFACE *mris) {
     if (v->nz < 0) {
       v->nz *= -1;
       v->neg = 1;
-    } else {
+    }
+    else {
       v->neg = 0;
     }
     v->area = 0;
@@ -9124,7 +9312,8 @@ static int mrisOrientPlane(MRI_SURFACE *mris) {
     }
     if (fix_vertex_area) {
       v->area /= 3.0;
-    } else {
+    }
+    else {
       v->area /= 2.0;
     }
   }
@@ -9139,7 +9328,8 @@ static int mrisOrientPlane(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScountNegativeTriangles(MRI_SURFACE *mris) {
+int MRIScountNegativeTriangles(MRI_SURFACE *mris)
+{
   int fno, negative;
   FACE *face;
 
@@ -9164,7 +9354,8 @@ int MRIScountNegativeTriangles(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISupdateEllipsoidSurface(MRI_SURFACE *mris) {
+int MRISupdateEllipsoidSurface(MRI_SURFACE *mris)
+{
 #if 0
   MRIScomputeTriangleProperties(mris) ;  /* recompute areas and normals */
 #endif
@@ -9179,7 +9370,8 @@ int MRISupdateEllipsoidSurface(MRI_SURFACE *mris) {
   using num_avgs nearest-neighbor averages. See also
   MRISaverageGradientsFast()
   ------------------------------------------------------*/
-int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs) {
+int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
+{
   int i, vno;
   float sigma;
   VERTEX *v;
@@ -9219,7 +9411,8 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs) {
     MRISgradientFromParameterization(mrisp_blur, mris);
     MRISPfree(&mrisp);
     MRISPfree(&mrisp_blur);
-  } else
+  }
+  else
     for (i = 0; i < num_avgs; i++) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for
@@ -9291,7 +9484,8 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs) {
   of MRISaverageGradients(). Should be about 40% faster. It also gives
   identical results as can be verified with MRISaverageGradientsFastCheck().
   ------------------------------------------------------*/
-int MRISaverageGradientsFast(MRI_SURFACE *mris, int num_avgs) {
+int MRISaverageGradientsFast(MRI_SURFACE *mris, int num_avgs)
+{
   int vno, vnb, *pnb, num, nthavg;
   VERTEX *v, *vn;
   float **pdx, **pdy, **pdz, sumdx, sumdy, sumdz;
@@ -9418,7 +9612,8 @@ int MRISaverageGradientsFast(MRI_SURFACE *mris, int num_avgs) {
   return (NO_ERROR);
 }
 /*--------------------------------------------------------*/
-int MRISaverageGradientsFastCheck(int num_avgs) {
+int MRISaverageGradientsFastCheck(int num_avgs)
+{
   char tmpstr[2000], *UFSS;
   MRIS *mrisA, *mrisB;
   int k, msec, nerrs;
@@ -9517,7 +9712,8 @@ int MRISaverageGradientsFastCheck(int num_avgs) {
 
   Description
   ------------------------------------------------------*/
-int MRISreadTriangleProperties(MRI_SURFACE *mris, const char *mris_fname) {
+int MRISreadTriangleProperties(MRI_SURFACE *mris, const char *mris_fname)
+{
   int ano, vnum, fnum, fno, vno;
   FACE *face;
   VERTEX *v;
@@ -9645,7 +9841,8 @@ int MRISreadTriangleProperties(MRI_SURFACE *mris, const char *mris_fname) {
 
   Description
   ------------------------------------------------------*/
-int MRISwriteTriangleProperties(MRI_SURFACE *mris, const char *mris_fname) {
+int MRISwriteTriangleProperties(MRI_SURFACE *mris, const char *mris_fname)
+{
   int fno, ano, vno;
   FACE *face;
   FILE *fp;
@@ -9765,7 +9962,8 @@ int MRISwriteTriangleProperties(MRI_SURFACE *mris, const char *mris_fname) {
 
 
   ------------------------------------------------------*/
-int MRIScomputeTriangleProperties(MRI_SURFACE *mris) {
+int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
+{
   int fno, vno, tno;
   double total_area;
   VECTOR *v_a[_MAX_FS_THREADS], *v_b[_MAX_FS_THREADS], *v_n[_MAX_FS_THREADS];
@@ -9823,9 +10021,11 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris) {
     VECTOR_LOAD(v_n[tid], face->nx, face->ny, face->nz);
     if ((V3_X(v_n[tid]) < V3_Y(v_n[tid])) && (V3_X(v_n[tid]) < V3_Z(v_n[tid]))) {
       dz = fabs(V3_X(v_n[tid]));
-    } else if (V3_Y(v_n[tid]) < V3_Z(v_n[tid])) {
+    }
+    else if (V3_Y(v_n[tid]) < V3_Z(v_n[tid])) {
       dz = fabs(V3_Y(v_n[tid]));
-    } else {
+    }
+    else {
       dz = fabs(V3_Z(v_n[tid]));
     }
     for (ano = 0; ano < ANGLES_PER_TRIANGLE; ano++) {
@@ -9912,7 +10112,8 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris) {
 #define MAX_MOMENTUM_MM 1
 #define MIN_MM 0.001
 
-static double mrisAdaptiveTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static double mrisAdaptiveTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   double delta_t, sse, starting_sse;
 
   starting_sse = MRIScomputeSSE(mris, parms);
@@ -9943,7 +10144,8 @@ static double mrisAdaptiveTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) 
       MRISrestoreOldPositions(mris);
       mrisProjectSurface(mris);
     }
-  } else /* error decreased */
+  }
+  else /* error decreased */
   {
     parms->dt *= parms->dt_increase;
   }
@@ -9957,7 +10159,8 @@ static double mrisAdaptiveTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) 
 
   Description
   ------------------------------------------------------*/
-static double mrisAsynchronousTimeStep(MRI_SURFACE *mris, float momentum, float delta_t, MHT *mht, float max_mag) {
+static double mrisAsynchronousTimeStep(MRI_SURFACE *mris, float momentum, float delta_t, MHT *mht, float max_mag)
+{
   static int direction = 1;
   double mag;
   int vno, i;
@@ -9969,11 +10172,13 @@ static double mrisAsynchronousTimeStep(MRI_SURFACE *mris, float momentum, float 
     mris->db = delta_t * mris->beta + momentum * mris->db;
     mris->dg = delta_t * mris->gamma + momentum * mris->dg;
     MRISrotate(mris, mris, mris->da, mris->db, mris->dg);
-  } else
+  }
+  else
     for (i = 0; i < mris->nvertices; i++) {
       if (direction < 0) {
         vno = mris->nvertices - i - 1;
-      } else {
+      }
+      else {
         vno = i;
       }
       v = &mris->vertices[vno];
@@ -10069,7 +10274,8 @@ static double mrisAsynchronousTimeStep(MRI_SURFACE *mris, float momentum, float 
 
   Description
   ------------------------------------------------------*/
-static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, float delta_t, MHT *mht, float max_mag) {
+static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, float delta_t, MHT *mht, float max_mag)
+{
   static int direction = 1;
   double mag;
   int vno, i;
@@ -10081,11 +10287,13 @@ static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, flo
     mris->db = delta_t * mris->beta + momentum * mris->db;
     mris->dg = delta_t * mris->gamma + momentum * mris->dg;
     MRISrotate(mris, mris, mris->da, mris->db, mris->dg);
-  } else
+  }
+  else
     for (i = 0; i < mris->nvertices; i++) {
       if (direction < 0) {
         vno = mris->nvertices - i - 1;
-      } else {
+      }
+      else {
         vno = i;
       }
       v = &mris->vertices[vno];
@@ -10187,7 +10395,8 @@ static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, flo
 
   Description
   ------------------------------------------------------*/
-double MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol, float n_averages) {
+double MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float tol, float n_averages)
+{
   double delta_t, mag;
   int vno;
   VERTEX *v;
@@ -10234,7 +10443,8 @@ double MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float t
     mris->db = delta_t * mris->beta + momentum * mris->db;
     mris->dg = delta_t * mris->gamma + momentum * mris->dg;
     MRISrotate(mris, mris, mris->da, mris->db, mris->dg);
-  } else if (mris->status == MRIS_SPHERICAL_PATCH) {
+  }
+  else if (mris->status == MRIS_SPHERICAL_PATCH) {
     for (vno = 0; vno < mris->nvertices; vno++) {
       v = &mris->vertices[vno];
       if (v->ripflag) {
@@ -10266,7 +10476,8 @@ double MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float t
     if (mris->patch != 2) {
       mrisApplyTopologyPreservingGradient(mris, 0, 1);
     }
-  } else
+  }
+  else
     for (vno = 0; vno < mris->nvertices; vno++) {
       v = &mris->vertices[vno];
       if (v->ripflag) {
@@ -10341,7 +10552,8 @@ static int mrisApplyGradientPositiveAreaMaximizing(MRI_SURFACE *mris, double dt)
   sampled points, including the predicted one.
   ------------------------------------------------------*/
 #define MAX_ENTRIES 100
-static double mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static double mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   char fname[STRLEN];
   FILE *fp = NULL;
   double starting_sse, sse, min_sse, max_dt, min_delta, max_delta, mag, grad, delta_t, min_dt, mean_delta;
@@ -10545,7 +10757,8 @@ static double mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
         sse_out[N++] = sse;
       }
     }
-  } else /* couldn't invert matrix */
+  }
+  else /* couldn't invert matrix */
   {
     fprintf(stderr, "singular matrix in quadratic form\n");
     MatrixFree(&mX);
@@ -10608,11 +10821,14 @@ static double mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
 
   if (mris->status == MRIS_SPHERICAL_PATCH && parms->flags & IPFLAG_PRESERVE_TOPOLOGY_CONVEXHULL) {
     mrisApplyTopologyPreservingGradient(mris, dt_in[mini], 0);
-  } else if (parms->flags & IPFLAG_PRESERVE_SPHERICAL_POSITIVE_AREA) {
+  }
+  else if (parms->flags & IPFLAG_PRESERVE_SPHERICAL_POSITIVE_AREA) {
     mrisApplyGradientPositiveAreaPreserving(mris, dt_in[mini]);
-  } else if (parms->flags & IPFLAG_MAXIMIZE_SPHERICAL_POSITIVE_AREA) {
+  }
+  else if (parms->flags & IPFLAG_MAXIMIZE_SPHERICAL_POSITIVE_AREA) {
     mrisApplyGradientPositiveAreaMaximizing(mris, dt_in[mini]);
-  } else {
+  }
+  else {
     MRISapplyGradient(mris, dt_in[mini]);
   }
   return (dt_in[mini]);
@@ -10626,7 +10842,8 @@ static double mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
    integrate this into mrisLineMinimize with ifdefs
 
 */
-static double mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc, MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static double mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc, MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   char fname[STRLEN];
   FILE *fp = NULL;
   double starting_sse, sse, min_sse, max_dt, min_delta, max_delta, mag, grad, delta_t, min_dt, mean_delta;
@@ -10893,7 +11110,8 @@ static double mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc, MRI_SURFACE *mris, I
         sse_out[N++] = sse;
       }
     }
-  } else /* couldn't invert matrix */
+  }
+  else /* couldn't invert matrix */
   {
     fprintf(stderr, "singular matrix in quadratic form\n");
     MatrixFree(&mX);
@@ -10964,11 +11182,14 @@ static double mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc, MRI_SURFACE *mris, I
 
   if (mris->status == MRIS_SPHERICAL_PATCH && parms->flags & IPFLAG_PRESERVE_TOPOLOGY_CONVEXHULL) {
     mrisApplyTopologyPreservingGradient(mris, dt_in[mini], 0);
-  } else if (parms->flags & IPFLAG_PRESERVE_SPHERICAL_POSITIVE_AREA) {
+  }
+  else if (parms->flags & IPFLAG_PRESERVE_SPHERICAL_POSITIVE_AREA) {
     mrisApplyGradientPositiveAreaPreserving(mris, dt_in[mini]);
-  } else if (parms->flags & IPFLAG_MAXIMIZE_SPHERICAL_POSITIVE_AREA) {
+  }
+  else if (parms->flags & IPFLAG_MAXIMIZE_SPHERICAL_POSITIVE_AREA) {
     mrisApplyGradientPositiveAreaMaximizing(mris, dt_in[mini]);
-  } else {
+  }
+  else {
     MRISapplyGradient(mris, dt_in[mini]);
   }
 
@@ -10993,7 +11214,8 @@ static double mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc, MRI_SURFACE *mris, I
   Use a binary search in the gradient direction to find the
   location of the minimum.
   ------------------------------------------------------*/
-static double mrisLineMinimizeSearch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static double mrisLineMinimizeSearch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   char fname[STRLEN];
   FILE *fp = NULL;
   double starting_sse, sse, min_sse, max_dt, total_delta, min_delta, max_delta, mag, grad, delta_t, min_dt, mean_delta;
@@ -11113,7 +11335,8 @@ static double mrisLineMinimizeSearch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms
       }
       min_sse = sse;
       total_delta += delta_t; /* keep track of total time step */
-    } else                    /* error increased - undo it and decrease time step */
+    }
+    else /* error increased - undo it and decrease time step */
     {
       if (increasing) /* went too far - reverse delta_t change */
       {
@@ -11129,7 +11352,8 @@ static double mrisLineMinimizeSearch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms
     }
     if (increasing) {
       delta_t *= 2.0; /* increase time step and search further out */
-    } else            /* decreasing - reduce time step */
+    }
+    else /* decreasing - reduce time step */
     {
       delta_t *= 0.5;
     }
@@ -11149,7 +11373,8 @@ static double mrisLineMinimizeSearch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float scale) {
+MRI_SURFACE *MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float scale)
+{
   VERTEX *v;
   int k;
   float xlo, ylo, zlo, xhi, yhi, zhi, x0, y0, z0;
@@ -11259,7 +11484,8 @@ MRI_SURFACE *MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float 
 
   Description
   ------------------------------------------------------*/
-int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname) {
+int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname)
+{
   int k, mritype;
   float curv;
   char fname[STRLEN], *cp, path[STRLEN], name[STRLEN], *hemi;
@@ -11288,24 +11514,29 @@ int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname) {
       if (getenv("FS_POSIX")) {
         // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
         sprintf(fname, "./%s.%s", hemi, sname);
-      } else {
+      }
+      else {
         sprintf(fname, "%s/%s.%s", path, hemi, sname);
       }
-    } else {
+    }
+    else {
       if (getenv("FS_POSIX")) {
         // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
         sprintf(fname, "./%s", sname);
-      } else {
+      }
+      else {
         sprintf(fname, "%s/%s", path, sname);
       }
     }
-  } else {
+  }
+  else {
     FileNamePath(sname, path);
     FileNameOnly(sname, name);
     cp = strchr(name, '.');
     if (!cp || ((cp - name) != 2) || *(cp - 1) != 'h' || ((*(cp - 2) != 'l' && *(cp - 2) != 'r'))) {
       sprintf(fname, "%s/%s.%s", path, hemi, name);
-    } else {
+    }
+    else {
       sprintf(fname, "%s/%s", path, name);
     }
   }
@@ -11336,7 +11567,8 @@ int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname) {
     MRIwrite(TempMRI, fname);
     MRIfree(&TempMRI);
     return (NO_ERROR);
-  } else if (mritype == VTK_FILE) {
+  }
+  else if (mritype == VTK_FILE) {
     MRISwriteVTK(mris, fname);
     MRISwriteCurvVTK(mris, fname);
     return (NO_ERROR);
@@ -11363,7 +11595,8 @@ int MRISwriteCurvature(MRI_SURFACE *mris, const char *sname) {
 
   Description
   ------------------------------------------------------*/
-int MRISwriteDists(MRI_SURFACE *mris, const char *sname) {
+int MRISwriteDists(MRI_SURFACE *mris, const char *sname)
+{
   int k, i;
   float dist;
   char fname[STRLEN], *cp, path[STRLEN];
@@ -11378,8 +11611,8 @@ int MRISwriteDists(MRI_SURFACE *mris, const char *sname) {
       if (getenv("FS_POSIX")) {
         // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
         sprintf(fname, "./%s.%s", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname);
-
-      } else {
+      }
+      else {
         // PW 2017/05/15: Legacy behaviour
         sprintf(fname, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname);
       }
@@ -11387,12 +11620,14 @@ int MRISwriteDists(MRI_SURFACE *mris, const char *sname) {
       if (getenv("FS_POSIX")) {
         // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
         sprintf(fname, "./%s", sname);
-      } else {
+      }
+      else {
         // PW 2017/05/15: Legacy behaviour
         sprintf(fname, "%s/%s", path, sname);
       }
     }
-  } else {
+  }
+  else {
     strcpy(fname, sname); /* path specified explcitly */
   }
   fp = fopen(fname, "wb");
@@ -11415,7 +11650,8 @@ int MRISwriteDists(MRI_SURFACE *mris, const char *sname) {
 
   Description
   ------------------------------------------------------*/
-MRI *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int which) {
+MRI *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int which)
+{
   int vno;
   VERTEX *v;
   float val = 0;
@@ -11480,7 +11716,8 @@ MRI *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int which) {
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris, int which) {
+MRI_SURFACE *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris, int which)
+{
   int vno;
   VERTEX *v;
   float val;
@@ -11535,7 +11772,8 @@ MRI_SURFACE *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris, int which) {
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float alpha, float beta, float gamma) {
+MRI_SURFACE *MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float alpha, float beta, float gamma)
+{
   int vno;
   VERTEX *vertex;
   float x, y, z, ca, cb, cg, sa, sb, sg, xp, yp, zp;
@@ -11592,7 +11830,8 @@ MRI_SURFACE *MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float alph
 
   Description
   ------------------------------------------------------*/
-int MRISwriteAreaError(MRI_SURFACE *mris, const char *name) {
+int MRISwriteAreaError(MRI_SURFACE *mris, const char *name)
+{
   int vno, fno, i;
   float area, orig_area;
   FACE *face;
@@ -11641,7 +11880,8 @@ int MRISwriteAreaError(MRI_SURFACE *mris, const char *name) {
 
   Description
   ------------------------------------------------------*/
-int MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, const char *name) {
+int MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, const char *name)
+{
   int vno, fno;
   float area, orig_area;
   FACE *face;
@@ -11678,7 +11918,8 @@ int MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, const char *name) {
 
   Description
   ------------------------------------------------------*/
-int MRISwriteAngleError(MRI_SURFACE *mris, const char *fname) {
+int MRISwriteAngleError(MRI_SURFACE *mris, const char *fname)
+{
   int vno, fno, ano, i;
   float error;
   FILE *fp;
@@ -11722,7 +11963,8 @@ int MRISwriteAngleError(MRI_SURFACE *mris, const char *fname) {
   Description
   ------------------------------------------------------*/
 #if AVERAGE_AREAS
-static int mrisAverageAreas(MRI_SURFACE *mris, int num_avgs, int which) {
+static int mrisAverageAreas(MRI_SURFACE *mris, int num_avgs, int which)
+{
   int i, vno, vnb, *pnb, fno, num, vf, nfno;
   float area;
   VERTEX *v, *vn;
@@ -11800,7 +12042,8 @@ static int mrisAverageAreas(MRI_SURFACE *mris, int num_avgs, int which) {
   Description
   ------------------------------------------------------*/
 #include "stats.h"
-int MRISsampleStatVolume(MRI_SURFACE *mris, void *vsv, int time_point, int coords) {
+int MRISsampleStatVolume(MRI_SURFACE *mris, void *vsv, int time_point, int coords)
+{
   VERTEX *v;
   int vno, xv, yv, zv, width, height, depth;
   double x, y, z, xt, yt, zt;
@@ -11860,7 +12103,8 @@ int MRISsampleStatVolume(MRI_SURFACE *mris, void *vsv, int time_point, int coord
 
   Description
   ------------------------------------------------------*/
-int MRISwriteCurvatureToWFile(MRI_SURFACE *mris, const char *fname) {
+int MRISwriteCurvatureToWFile(MRI_SURFACE *mris, const char *fname)
+{
   int k, num; /* loop counters */
   float f;
   FILE *fp;
@@ -11912,7 +12156,8 @@ int MRISwriteCurvatureToWFile(MRI_SURFACE *mris, const char *fname) {
 
   Description
   ------------------------------------------------------*/
-int MRISwriteValues(MRI_SURFACE *mris, const char *sname) {
+int MRISwriteValues(MRI_SURFACE *mris, const char *sname)
+{
   int k, num; /* loop counters */
   float f;
   char fname[STRLEN], *cp;
@@ -11991,11 +12236,13 @@ int MRISwriteValues(MRI_SURFACE *mris, const char *sname) {
     sum2 = (sum2 / num - sum * sum);
     if (sum2 > 0) {
       sum2 = sqrt(sum2);
-    } else {
+    }
+    else {
       sum2 = 0;
     }
     printf("avg = %2.3f, stdev = %2.3f, min = %2.3f, max = %2.3f\n", sum, sum2, min, max);
-  } else {
+  }
+  else {
     printf("Warning: all vertex values are zero\n");
   }
 
@@ -12003,7 +12250,8 @@ int MRISwriteValues(MRI_SURFACE *mris, const char *sname) {
 }
 
 #if 1
-int MRISwriteD(MRI_SURFACE *mris, const char *sname) {
+int MRISwriteD(MRI_SURFACE *mris, const char *sname)
+{
   float *curv_save;
 
   curv_save = (float *)calloc(mris->nvertices, sizeof(float));
@@ -12025,7 +12273,8 @@ int MRISwriteD(MRI_SURFACE *mris, const char *sname) {
 
   Description
   ------------------------------------------------------*/
-int MRISwriteD(MRI_SURFACE *mris, const char *sname) {
+int MRISwriteD(MRI_SURFACE *mris, const char *sname)
+{
   int k, num; /* loop counters */
   float f;
   char fname[STRLEN], *cp;
@@ -12098,11 +12347,13 @@ int MRISwriteD(MRI_SURFACE *mris, const char *sname) {
     sum2 = (sum2 / num - sum * sum);
     if (sum2 > 0) {
       sum2 = sqrt(sum2);
-    } else {
+    }
+    else {
       sum2 = 0;
     }
     printf("avg = %2.3f, stdev = %2.3f, min = %2.3f, max = %2.3f\n", sum, sum2, min, max);
-  } else {
+  }
+  else {
     printf("Warning: all vertex d values are zero\n");
   }
 
@@ -12117,7 +12368,8 @@ int MRISwriteD(MRI_SURFACE *mris, const char *sname) {
 
   Description
   ------------------------------------------------------*/
-int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname) {
+int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
+{
   int vno, need_hemi;
   int return_code;
   char *cp, fname[STRLEN], path[STRLEN], fname_no_path[STRLEN];
@@ -12134,7 +12386,8 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname) {
     mris = mrisReadGIFTIfile(sname, mris);
     if (mris) {
       return (NO_ERROR);
-    } else {
+    }
+    else {
       return (ERROR_BADFILE);
     }
   }
@@ -12154,9 +12407,11 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname) {
     FileNamePath(mris->fname, path);
     if (!need_hemi) {
       sprintf(fname, "%s/../label/%s", path, fname_no_path);
-    } else /* no hemisphere specified */
+    }
+    else /* no hemisphere specified */
       sprintf(fname, "%s/../label/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", fname_no_path);
-  } else {
+  }
+  else {
     strcpy(fname, sname); /* full path specified */
     cp = strstr(fname, ".annot");
     if (!cp) {
@@ -12281,7 +12536,8 @@ int MRISreadAnnotation(MRI_SURFACE *mris, const char *sname) {
     incorrect number of vertices in the annotation file.
 
  ------------------------------------------------------*/
-int MRISreadAnnotationIntoArray(const char *fname, int in_array_size, int **out_array) {
+int MRISreadAnnotationIntoArray(const char *fname, int in_array_size, int **out_array)
+{
   int i, j, vno, num;
   FILE *fp;
   int *array = NULL;
@@ -12333,7 +12589,8 @@ int MRISreadAnnotationIntoArray(const char *fname, int in_array_size, int **out_
                   "ERROR: Too many out-of-range vertex indices in "
                   "MRISreadAnnotationIntoArray!\n");
       }
-    } else {
+    }
+    else {
       array[vno] = i;
     }
   }
@@ -12360,7 +12617,8 @@ int MRISreadAnnotationIntoArray(const char *fname, int in_array_size, int **out_
     value, and if present, reads in a color table.
 
 */
-int MRISreadCTABFromAnnotationIfPresent(const char *fname, COLOR_TABLE **out_table) {
+int MRISreadCTABFromAnnotationIfPresent(const char *fname, COLOR_TABLE **out_table)
+{
   int skip, j, num;
   FILE *fp;
   COLOR_TABLE *ctab = NULL;
@@ -12424,7 +12682,8 @@ int MRISreadCTABFromAnnotationIfPresent(const char *fname, COLOR_TABLE **out_tab
     value, and if present, sets *present to 1, or 0 if not present.
 
 */
-int MRISisCTABPresentInAnnotation(const char *fname, int *present) {
+int MRISisCTABPresentInAnnotation(const char *fname, int *present)
+{
   int skip, j, num;
   FILE *fp;
   int tag;
@@ -12475,7 +12734,8 @@ int MRISisCTABPresentInAnnotation(const char *fname, int *present) {
 
   Description
   ------------------------------------------------------*/
-int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname) {
+int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname)
+{
   int i, vno, need_hemi;
   FILE *fp;
   const char *cp;
@@ -12498,20 +12758,24 @@ int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname) {
       if (getenv("FS_POSIX")) {
         // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
         sprintf(fname, "./%s", fname_no_path);
-      } else {
+      }
+      else {
         // PW 2017/05/15: Legacy behaviour
         sprintf(fname, "%s/../label/%s", path, fname_no_path);
       }
-    } else { /* no hemisphere specified */
+    }
+    else { /* no hemisphere specified */
       if (getenv("FS_POSIX")) {
         // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
         sprintf(fname, "./%s.%s", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", fname_no_path);
-      } else {
+      }
+      else {
         // PW 2017/05/15: Legacy behaviour
         sprintf(fname, "%s/../label/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", fname_no_path);
       }
     }
-  } else {
+  }
+  else {
     strcpy(fname, sname); /* full path specified */
     cp = strstr(fname, ".annot");
     if (!cp) {
@@ -12551,7 +12815,8 @@ int MRISwriteAnnotation(MRI_SURFACE *mris, const char *sname) {
 
   Description
   ------------------------------------------------------*/
-int MRISreadValues(MRI_SURFACE *mris, const char *sname) {
+int MRISreadValues(MRI_SURFACE *mris, const char *sname)
+{
   float *array = NULL;
   int return_code = 0;
   int vno;
@@ -12578,7 +12843,8 @@ int MRISreadValues(MRI_SURFACE *mris, const char *sname) {
   return (NO_ERROR);
 }
 
-int MRISreadValuesIntoArray(const char *sname, int in_array_size, float **out_array) {
+int MRISreadValuesIntoArray(const char *sname, int in_array_size, float **out_array)
+{
   int i, k, num, ilat, vno;
   float f = 0;
   float lat;
@@ -12747,7 +13013,8 @@ int MRISreadValuesIntoArray(const char *sname, int in_array_size, float **out_ar
 
   Description
   ------------------------------------------------------*/
-int MRISreadValuesBak(MRI_SURFACE *mris, const char *fname) {
+int MRISreadValuesBak(MRI_SURFACE *mris, const char *fname)
+{
   int i, k, num, ilat;
   float f;
   float lat;
@@ -12767,7 +13034,8 @@ int MRISreadValuesBak(MRI_SURFACE *mris, const char *fname) {
     f = freadFloat(fp);
     if (k >= mris->nvertices || k < 0) {
       printf("MRISreadValuesBak: vertex index out of range: %d f=%f\n", k, f);
-    } else {
+    }
+    else {
       mris->vertices[k].valbak = f;
     }
   }
@@ -12782,7 +13050,8 @@ int MRISreadValuesBak(MRI_SURFACE *mris, const char *fname) {
 
   Description
   ------------------------------------------------------*/
-int MRISreadImagValues(MRI_SURFACE *mris, const char *fname) {
+int MRISreadImagValues(MRI_SURFACE *mris, const char *fname)
+{
   int i, k, num, ilat;
   float f;
   float lat;
@@ -12815,7 +13084,8 @@ int MRISreadImagValues(MRI_SURFACE *mris, const char *fname) {
   fclose(fp);
   return (NO_ERROR);
 }
-int MRIScopyMarksToAnnotation(MRI_SURFACE *mris) {
+int MRIScopyMarksToAnnotation(MRI_SURFACE *mris)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -12829,7 +13099,8 @@ int MRIScopyMarksToAnnotation(MRI_SURFACE *mris) {
   }
   return (NO_ERROR);
 }
-int MRISmaxMarked(MRI_SURFACE *mris) {
+int MRISmaxMarked(MRI_SURFACE *mris)
+{
   int vno, max_marked;
   VERTEX *v;
 
@@ -12849,7 +13120,8 @@ int MRISmaxMarked(MRI_SURFACE *mris) {
   }
   return (max_marked);
 }
-int MRIScopyAnnotationsToMarkedIndex(MRI_SURFACE *mris) {
+int MRIScopyAnnotationsToMarkedIndex(MRI_SURFACE *mris)
+{
   int vno, index;
   VERTEX *v;
 
@@ -12873,7 +13145,8 @@ int MRIScopyAnnotationsToMarkedIndex(MRI_SURFACE *mris) {
   }
   return (NO_ERROR);
 }
-int MRIScopyStatsToValues(MRI_SURFACE *mris) {
+int MRIScopyStatsToValues(MRI_SURFACE *mris)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -12895,7 +13168,8 @@ int MRIScopyStatsToValues(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScopyValuesToImagValues(MRI_SURFACE *mris) {
+int MRIScopyValuesToImagValues(MRI_SURFACE *mris)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -12917,7 +13191,8 @@ int MRIScopyValuesToImagValues(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScopyImagValuesToValues(MRI_SURFACE *mris) {
+int MRIScopyImagValuesToValues(MRI_SURFACE *mris)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -12939,7 +13214,8 @@ int MRIScopyImagValuesToValues(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISreadInflatedCoordinates(MRI_SURFACE *mris, const char *sname) {
+int MRISreadInflatedCoordinates(MRI_SURFACE *mris, const char *sname)
+{
   if (!sname) {
     sname = "inflated";
   }
@@ -12959,7 +13235,8 @@ int MRISreadInflatedCoordinates(MRI_SURFACE *mris, const char *sname) {
 
   Description
   ------------------------------------------------------*/
-int MRISreadFlattenedCoordinates(MRI_SURFACE *mris, const char *sname) {
+int MRISreadFlattenedCoordinates(MRI_SURFACE *mris, const char *sname)
+{
   int vno, fno;
   VERTEX *v;
   FACE *f;
@@ -12998,7 +13275,8 @@ int MRISreadFlattenedCoordinates(MRI_SURFACE *mris, const char *sname) {
 
   Description
   ------------------------------------------------------*/
-int MRISreadWhiteCoordinates(MRI_SURFACE *mris, const char *sname) {
+int MRISreadWhiteCoordinates(MRI_SURFACE *mris, const char *sname)
+{
   if (!sname) {
     sname = "white";
   }
@@ -13018,7 +13296,8 @@ int MRISreadWhiteCoordinates(MRI_SURFACE *mris, const char *sname) {
 
   Description
   ------------------------------------------------------*/
-int MRISreadPialCoordinates(MRI_SURFACE *mris, const char *sname) {
+int MRISreadPialCoordinates(MRI_SURFACE *mris, const char *sname)
+{
   if (!sname) {
     sname = "pial";
   }
@@ -13038,7 +13317,8 @@ int MRISreadPialCoordinates(MRI_SURFACE *mris, const char *sname) {
 
   Description
   ------------------------------------------------------*/
-int MRISreadCanonicalCoordinates(MRI_SURFACE *mris, const char *sname) {
+int MRISreadCanonicalCoordinates(MRI_SURFACE *mris, const char *sname)
+{
   MRISsaveVertexPositions(mris, TMP_VERTICES);
   if (MRISreadVertexPositions(mris, sname) != NO_ERROR) {
     return (Gerror);
@@ -13056,7 +13336,8 @@ int MRISreadCanonicalCoordinates(MRI_SURFACE *mris, const char *sname) {
 
   Description
   ------------------------------------------------------*/
-int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname) {
+int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname)
+{
   int ix, iy, iz, k, i, j, npts;
   double rx, ry, rz;
   FILE *fp = NULL;
@@ -13086,7 +13367,8 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname) {
   if (type == MRIS_GIFTI_FILE)    /* .gii */
   {
     mris = MRISread(fname);
-  } else if (type == MRIS_ASCII_TRIANGLE_FILE) /* .ASC */
+  }
+  else if (type == MRIS_ASCII_TRIANGLE_FILE) /* .ASC */
   {
     fp = fopen(fname, "r");
     if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISreadPatch(%s): could not open file", fname));
@@ -13109,7 +13391,8 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname) {
       // read int
       if ((cp = fgetl(line, 256, fp))) {
         sscanf(cp, "%d %*s", &i);
-      } else
+      }
+      else
         ErrorReturn(ERROR_BADPARM, (ERROR_BAD_PARM, "MRISreadPatch(%s): could not read line for point %d\n", fname, j));
 
       // if negative, flip it
@@ -13133,7 +13416,8 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname) {
       // read 3 positions
       if ((cp = fgetl(line, 256, fp))) {
         sscanf(cp, "%lf %lf %lf", &rx, &ry, &rz);
-      } else
+      }
+      else
         ErrorReturn(ERROR_BADPARM,
                     (ERROR_BADPARM,
                      "MRISreadPatch(%s): could not read 3 floating "
@@ -13172,7 +13456,6 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname) {
                 mris->vertices[k].y,
                 mris->vertices[k].z);
     }
-
   }
   /////////////////////////////////////////////////////////////////////////
   // here file was binary
@@ -13252,7 +13535,8 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname) {
                   mris->vertices[k].y,
                   mris->vertices[k].z);
       }
-    } else  // new surface format
+    }
+    else  // new surface format
     {
       // read number of vertices
       npts = freadInt(fp);
@@ -13350,7 +13634,8 @@ int MRISreadPatchNoRemove(MRI_SURFACE *mris, const char *pname) {
 
   Description
   ------------------------------------------------------*/
-int MRISreadPatch(MRI_SURFACE *mris, const char *pname) {
+int MRISreadPatch(MRI_SURFACE *mris, const char *pname)
+{
   int ret;
 
   // update the vertices in patch file
@@ -13382,7 +13667,8 @@ int MRISreadPatch(MRI_SURFACE *mris, const char *pname) {
 
   Description
   ------------------------------------------------------*/
-int MRISripFaces(MRI_SURFACE *mris) {
+int MRISripFaces(MRI_SURFACE *mris)
+{
   int n, k;
   face_type *f;
 
@@ -13449,7 +13735,8 @@ mrisRipVertices(MRI_SURFACE *mris)
 
   Description
   ------------------------------------------------------*/
-int MRISwritePatch(MRI_SURFACE *mris, const char *fname) {
+int MRISwritePatch(MRI_SURFACE *mris, const char *fname)
+{
   int k, i, npts, type;
   float x, y, z;
   FILE *fp;
@@ -13458,10 +13745,12 @@ int MRISwritePatch(MRI_SURFACE *mris, const char *fname) {
   if (type == MRIS_ASCII_TRIANGLE_FILE)  // extension is ASC
   {
     return (MRISwritePatchAscii(mris, fname));
-  } else if (type == MRIS_GEO_TRIANGLE_FILE)  // extension is GEO
+  }
+  else if (type == MRIS_GEO_TRIANGLE_FILE)  // extension is GEO
   {
     return (MRISwriteGeo(mris, fname));
-  } else if (type == MRIS_STL_FILE) {
+  }
+  else if (type == MRIS_STL_FILE) {
     return (MRISwriteSTL(mris, fname));
   }
 
@@ -13507,7 +13796,8 @@ int MRISwritePatch(MRI_SURFACE *mris, const char *fname) {
 
   Description
   ------------------------------------------------------*/
-int MRISsmoothSurfaceNormals(MRI_SURFACE *mris, int navgs) {
+int MRISsmoothSurfaceNormals(MRI_SURFACE *mris, int navgs)
+{
   int i, vno, vnb, *pnb, vnum;
   float nx, ny, nz, num, len;
   VERTEX *v, *vn;
@@ -13563,7 +13853,8 @@ int MRISsmoothSurfaceNormals(MRI_SURFACE *mris, int navgs) {
 
   Description
   ------------------------------------------------------*/
-static int mrisSmoothBoundaryNormals(MRI_SURFACE *mris, int niter) {
+static int mrisSmoothBoundaryNormals(MRI_SURFACE *mris, int niter)
+{
 #if 0
   int iter,k,m,n;
   vertex_type *v;
@@ -13617,7 +13908,8 @@ static int mrisSmoothBoundaryNormals(MRI_SURFACE *mris, int niter) {
 
   Description
   ------------------------------------------------------*/
-static int mrisComputeBoundaryNormals(MRI_SURFACE *mris) {
+static int mrisComputeBoundaryNormals(MRI_SURFACE *mris)
+{
 #if 0
   int      k,m,n;
   VERTEX   *v;
@@ -13685,7 +13977,8 @@ static int mrisComputeBoundaryNormals(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISflattenPatchRandomly(MRI_SURFACE *mris) {
+int MRISflattenPatchRandomly(MRI_SURFACE *mris)
+{
   float extent;
   int vno;
 
@@ -13715,7 +14008,8 @@ int MRISflattenPatchRandomly(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISflattenPatch(MRI_SURFACE *mris) {
+int MRISflattenPatch(MRI_SURFACE *mris)
+{
   float x, y, z, d, d1, d2;
   float nx, ny, nz;
   VERTEX *v;
@@ -13888,7 +14182,8 @@ int MRISflattenPatch(MRI_SURFACE *mris) {
   Description
   2 vects ortho to summed normal
   ------------------------------------------------------*/
-static int transform(float *xptr, float *yptr, float *zptr, float nx, float ny, float nz, float d) {
+static int transform(float *xptr, float *yptr, float *zptr, float nx, float ny, float nz, float d)
+{
   float x = *xptr, y = *yptr, z = *zptr;
 
   *zptr = nx * x + ny * y + nz * z;
@@ -13900,7 +14195,8 @@ static int transform(float *xptr, float *yptr, float *zptr, float nx, float ny, 
   */
   return (NO_ERROR);
 }
-static int mrisComputeLinkTerm(MRI_SURFACE *mris, double l_link, int pial) {
+static int mrisComputeLinkTerm(MRI_SURFACE *mris, double l_link, int pial)
+{
   int vno;
   VERTEX *v;
   float dx, dy, dz, lx, ly, lz, len;
@@ -13973,7 +14269,8 @@ static int mrisComputeLinkTerm(MRI_SURFACE *mris, double l_link, int pial) {
 
   Description
   ------------------------------------------------------*/
-static int mrisComputeTangentPlanes(MRI_SURFACE *mris) {
+static int mrisComputeTangentPlanes(MRI_SURFACE *mris)
+{
   VECTOR *v_n, *v_e1, *v_e2, *v;
   int vno;
   VERTEX *vertex;
@@ -14040,7 +14337,8 @@ static int mrisComputeTangentPlanes(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScomputeMeanCurvature(MRI_SURFACE *mris) {
+int MRIScomputeMeanCurvature(MRI_SURFACE *mris)
+{
   VECTOR *v_n, *v_e1, *v_e2, *v_i;
   int vno, i, N;
   VERTEX *vertex, *vnb;
@@ -14087,7 +14385,8 @@ int MRIScomputeMeanCurvature(MRI_SURFACE *mris) {
     }
     if (N > 0) {
       vertex->H = 0.5f * H / (float)N;
-    } else {
+    }
+    else {
       vertex->H = 0;
     }
     if (vertex->H > Hmax) {
@@ -14131,7 +14430,8 @@ int MRIScomputeMeanCurvature(MRI_SURFACE *mris) {
   is from going through the central vertex).  Move the
   vertex in the normal direction to improve the fit.
   ------------------------------------------------------*/
-static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv) {
+static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)
+{
   MATRIX *m_X, *m_X_inv;
   VECTOR *v_Y, *v_n, *v_e1, *v_e2, *v_nbr, *v_P;
   int vno, n;
@@ -14223,7 +14523,8 @@ static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv) {
   the square of the constant term (the distance the quadratic fit surface
   is from going through the central vertex)
   ------------------------------------------------------*/
-static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv) {
+static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
+{
   MATRIX *m_X, *m_X_inv;
   VECTOR *v_Y, *v_n, *v_e1, *v_e2, *v_nbr, *v_P;
   int vno, n;
@@ -14303,7 +14604,8 @@ static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
   Fit a 1-d quadratic to the surface locally and move the
   vertex in the normal direction to improve the fit.
   ------------------------------------------------------*/
-static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv) {
+static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)
+{
   MATRIX *m_R, *m_R_inv;
   VECTOR *v_Y, *v_A, *v_n, *v_e1, *v_e2, *v_nbr;
   int vno, n;
@@ -14391,7 +14693,8 @@ static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv) {
   Fit a 1-d quadratic to the surface locally and move the
   vertex in the normal direction to improve the fit.
   ------------------------------------------------------*/
-static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv) {
+static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
+{
   MATRIX *m_R, *m_R_inv;
   VECTOR *v_Y, *v_A, *v_n, *v_e1, *v_e2, *v_nbr;
   int vno, n;
@@ -14466,7 +14769,8 @@ static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
   Fit a 1-d quadratic to the surface locally and move the
   vertex in the normal direction to improve the fit.
   ------------------------------------------------------*/
-static int mrisComputeSurfaceNormalIntersectionTerm(MRI_SURFACE *mris, MHT *mht, double l_norm, double max_dist) {
+static int mrisComputeSurfaceNormalIntersectionTerm(MRI_SURFACE *mris, MHT *mht, double l_norm, double max_dist)
+{
   int vno;
   double step;
 
@@ -14877,7 +15181,8 @@ mrisComputeCurvatureGradientTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   Description
   ------------------------------------------------------*/
-int MRISupdateSurface(MRI_SURFACE *mris) {
+int MRISupdateSurface(MRI_SURFACE *mris)
+{
   MRIScomputeMetricProperties(mris);
   MRIScomputeSecondFundamentalForm(mris);
   return (NO_ERROR);
@@ -14889,7 +15194,8 @@ int MRISupdateSurface(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScomputeEulerNumber(MRI_SURFACE *mris, int *pnvertices, int *pnfaces, int *pnedges) {
+int MRIScomputeEulerNumber(MRI_SURFACE *mris, int *pnvertices, int *pnfaces, int *pnedges)
+{
   int eno, nfaces, nedges, nvertices, vno, fno, vnb, i;
   VERTEX *v1;
 
@@ -14929,7 +15235,8 @@ int MRIScomputeEulerNumber(MRI_SURFACE *mris, int *pnvertices, int *pnfaces, int
 
   Description
   ------------------------------------------------------*/
-int MRIStopologicalDefectIndex(MRI_SURFACE *mris) {
+int MRIStopologicalDefectIndex(MRI_SURFACE *mris)
+{
   int eno, nfaces, nedges, nvertices, vno, fno, vnb, i, dno;
   VERTEX *v1;
 
@@ -14970,7 +15277,8 @@ int MRIStopologicalDefectIndex(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISremoveTopologicalDefects(MRI_SURFACE *mris, float curv_thresh) {
+int MRISremoveTopologicalDefects(MRI_SURFACE *mris, float curv_thresh)
+{
   VECTOR *v_n, *v_e1, *v_e2, *v_i;
   int vno, i;
   VERTEX *vertex, *vnb;
@@ -15026,7 +15334,8 @@ int MRISremoveTopologicalDefects(MRI_SURFACE *mris, float curv_thresh) {
 
   Description
   ------------------------------------------------------*/
-static int mrisRemoveLink(MRI_SURFACE *mris, int vno1, int vno2) {
+static int mrisRemoveLink(MRI_SURFACE *mris, int vno1, int vno2)
+{
   FACE *face;
   int vno, fno, nvalid;
   VERTEX *v1, *v2;
@@ -15075,7 +15384,8 @@ static int mrisRemoveLink(MRI_SURFACE *mris, int vno1, int vno2) {
 
   Description
   ------------------------------------------------------*/
-static int mrisRemoveEdge(MRI_SURFACE *mris, int vno1, int vno2) {
+static int mrisRemoveEdge(MRI_SURFACE *mris, int vno1, int vno2)
+{
   int i;
   VERTEX *v1, *v2;
 
@@ -15101,7 +15411,8 @@ static int mrisRemoveEdge(MRI_SURFACE *mris, int vno1, int vno2) {
   remove this face, as well as the link two vertices if
   they only exist through this face.
   ------------------------------------------------------*/
-static int mrisRemoveFace(MRI_SURFACE *mris, int fno) {
+static int mrisRemoveFace(MRI_SURFACE *mris, int fno)
+{
   int vno1, vno2, vno;
   FACE *face;
 
@@ -15127,7 +15438,8 @@ static int mrisRemoveFace(MRI_SURFACE *mris, int fno) {
   Go through all the (valid) faces in vno1 and see how man
   valid links to vno2 exists.
   ------------------------------------------------------*/
-static int mrisCountValidLinks(MRI_SURFACE *mris, int vno1, int vno2) {
+static int mrisCountValidLinks(MRI_SURFACE *mris, int vno1, int vno2)
+{
   int nvalid, fno, vno;
   FACE *face;
   VERTEX *v;
@@ -15142,7 +15454,8 @@ static int mrisCountValidLinks(MRI_SURFACE *mris, int vno1, int vno2) {
       if (face->v[vno] == vno1) {
         if ((vno == VERTICES_PER_FACE - 1) && (face->v[0] == vno2)) {
           nvalid++;
-        } else if ((vno < VERTICES_PER_FACE - 1) && (face->v[vno + 1] == vno2)) {
+        }
+        else if ((vno < VERTICES_PER_FACE - 1) && (face->v[vno + 1] == vno2)) {
           nvalid++;
         }
       }
@@ -15158,11 +15471,13 @@ static int mrisCountValidLinks(MRI_SURFACE *mris, int vno1, int vno2) {
   ------------------------------------------------------*/
 //#define ILL_CONDITIONED   5000.0
 #define ILL_CONDITIONED 500000.0
-int MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris) {
+int MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
+{
   return (MRIScomputeSecondFundamentalFormThresholded(mris, -1));
 }
 
-int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_thresh) {
+int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_thresh)
+{
   double min_k1, min_k2, max_k1, max_k2, k1_scale, k2_scale, total, thresh, orig_rsq_thresh;
   int bin, zbin1, zbin2, nthresh = 0;
   int vno, i, n, vmax, nbad = 0, niter;
@@ -15182,7 +15497,8 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
     vmean = MRIScomputeTotalVertexSpacingStats(mris, &vsigma, NULL, NULL, NULL, NULL);
     rsq_thresh = MIN(vmean * .25, 1.0);
     rsq_thresh *= rsq_thresh;
-  } else {
+  }
+  else {
     rsq_thresh = 0.0;
   }
 
@@ -15283,7 +15599,8 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
       nbad++;
       evalues[0] = evalues[1] = 0.0;
       MatrixIdentity(m_eigen->rows, m_eigen);
-    } else {
+    }
+    else {
       m_tmp1 = MatrixMultiply(m_Ut, v_z, NULL); /* Ut z */
       MatrixMultiply(m_inverse, m_tmp1, v_c);   /* (Ut U)^-1 Ut z */
 
@@ -15313,7 +15630,8 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
         if (k1 * k2 < 0) {
           vertex->K = mris->Kmin;
           vertex->H = mris->Hmin;
-        } else {
+        }
+        else {
           vertex->K = mris->Kmax;
           vertex->H = mris->Hmax;
         }
@@ -15588,7 +15906,8 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
             max_k2);
   return (NO_ERROR);
 }
-int MRIScomputeSecondFundamentalFormAtVertex(MRI_SURFACE *mris, int vno, int *vertices, int vnum) {
+int MRIScomputeSecondFundamentalFormAtVertex(MRI_SURFACE *mris, int vno, int *vertices, int vnum)
+{
   int i, n, nbad = 0;
   VERTEX *vertex, *vnb;
   MATRIX *m_U, *m_Ut, *m_tmp1, *m_tmp2, *m_inverse;
@@ -15678,7 +15997,8 @@ int MRIScomputeSecondFundamentalFormAtVertex(MRI_SURFACE *mris, int vno, int *ve
   {
     nbad++;
     evalues[0] = evalues[1] = 0.0;
-  } else {
+  }
+  else {
     m_tmp1 = MatrixMultiply(m_Ut, v_z, NULL); /* Ut z */
     MatrixMultiply(m_inverse, m_tmp1, v_c);   /* (Ut U)^-1 Ut z */
 
@@ -15700,7 +16020,8 @@ int MRIScomputeSecondFundamentalFormAtVertex(MRI_SURFACE *mris, int vno, int *ve
       if (k1 * k2 < 0) {
         vertex->K = mris->Kmin;
         vertex->H = mris->Hmin;
-      } else {
+      }
+      else {
         vertex->K = mris->Kmax;
         vertex->H = mris->Hmax;
       }
@@ -15790,7 +16111,8 @@ int MRIScomputeSecondFundamentalFormAtVertex(MRI_SURFACE *mris, int vno, int *ve
 
   Description
   ------------------------------------------------------*/
-int MRISuseAreaErrors(MRI_SURFACE *mris) {
+int MRISuseAreaErrors(MRI_SURFACE *mris)
+{
   int vno, fno, n;
   float area, orig_area;
   FACE *face;
@@ -15824,7 +16146,8 @@ int MRISuseAreaErrors(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISuseGaussianCurvature(MRI_SURFACE *mris) {
+int MRISuseGaussianCurvature(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *vertex;
 
@@ -15844,7 +16167,8 @@ int MRISuseGaussianCurvature(MRI_SURFACE *mris) {
   int MRISuseMeanCurvature(MRI_SURFACE *mris)
   Set vertex->curv = vertex->H ;
   ------------------------------------------------------*/
-int MRISuseMeanCurvature(MRI_SURFACE *mris) {
+int MRISuseMeanCurvature(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *vertex;
 
@@ -15867,7 +16191,8 @@ int MRISuseMeanCurvature(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISusePrincipalCurvature(MRI_SURFACE *mris) {
+int MRISusePrincipalCurvature(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *vertex;
 
@@ -15884,7 +16209,8 @@ int MRISusePrincipalCurvature(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRISuseK1Curvature(MRI_SURFACE *mris) {
+int MRISuseK1Curvature(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *vertex;
 
@@ -15910,7 +16236,8 @@ int MRISuseK1Curvature(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRISuseK2Curvature(MRI_SURFACE *mris) {
+int MRISuseK2Curvature(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *vertex;
 
@@ -15936,7 +16263,8 @@ int MRISuseK2Curvature(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRISusePrincipalCurvatureFunction(MRI_SURFACE *pmris, float (*f)(float k1, float k2)) {
+int MRISusePrincipalCurvatureFunction(MRI_SURFACE *pmris, float (*f)(float k1, float k2))
+{
   //
   // PRECONDITIONS
   //  o The principal curvatures k1 and k2 for each vertex point on the
@@ -15988,7 +16316,8 @@ int MRISusePrincipalCurvatureFunction(MRI_SURFACE *pmris, float (*f)(float k1, f
   Drury and Van Essen:  ICI = 56  (lh) and 54  (rh)
   FI = 500 (lh) and 520 (rh)
   ------------------------------------------------------*/
-int MRIScomputeCurvatureIndices(MRI_SURFACE *mris, double *pici, double *pfi) {
+int MRIScomputeCurvatureIndices(MRI_SURFACE *mris, double *pici, double *pfi)
+{
   int vno;
   VERTEX *vertex;
   double k1, k2, ici, fi, area, Kmax, Kmin;
@@ -16024,7 +16353,8 @@ int MRIScomputeCurvatureIndices(MRI_SURFACE *mris, double *pici, double *pfi) {
 
   Description
   ------------------------------------------------------*/
-double MRISmaxRadius(MRI_SURFACE *mris) {
+double MRISmaxRadius(MRI_SURFACE *mris)
+{
   double radius;
   int vno, n;
   VERTEX *vertex;
@@ -16098,7 +16428,8 @@ double MRISmaxRadius(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-static int mrisComputeSurfaceDimensions(MRI_SURFACE *mris) {
+static int mrisComputeSurfaceDimensions(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *vertex;
   double x, y, z, xlo, ylo, zlo, xhi, yhi, zhi;
@@ -16153,7 +16484,8 @@ static int mrisComputeSurfaceDimensions(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-double MRISaverageRadius(MRI_SURFACE *mris) {
+double MRISaverageRadius(MRI_SURFACE *mris)
+{
   double radius;
   int vno, n;
   VERTEX *vertex;
@@ -16222,7 +16554,8 @@ double MRISaverageRadius(MRI_SURFACE *mris) {
 
   Descripton
   ------------------------------------------------------*/
-double MRISaverageCanonicalRadius(MRI_SURFACE *mris) {
+double MRISaverageCanonicalRadius(MRI_SURFACE *mris)
+{
   double radius;
   int vno, n;
   VERTEX *vertex;
@@ -16288,7 +16621,8 @@ double MRISaverageCanonicalRadius(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   int n_averages, n, write_iterations, niterations;
   double delta_t = 0.0, rms_height, desired_rms_height, sse, l_dist;
 
@@ -16303,7 +16637,8 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
     sprintf(fname, "%s.out", parms->base_name);
     if (!parms->start_t) {
       parms->fp = fopen(fname, "w");
-    } else {
+    }
+    else {
       parms->fp = fopen(fname, "a");
     }
     if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
@@ -16442,7 +16777,8 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
 
   Description
   ------------------------------------------------------*/
-int MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+int MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   int n_averages, n, write_iterations, niterations, base_averages;
   double delta_t = 0.0, rms_radial_error, sse, base_dt;
   MHT *mht_v_current = NULL;
@@ -16461,7 +16797,8 @@ int MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
     if (!parms->fp) {
       if (!parms->start_t) {
         parms->fp = fopen(fname, "w");
-      } else {
+      }
+      else {
         parms->fp = fopen(fname, "a");
       }
 
@@ -16476,7 +16813,8 @@ int MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
     sprintf(fname, "%s.out", parms->base_name);
     if (!parms->start_t) {
       parms->fp = fopen(fname, "w");
-    } else {
+    }
+    else {
       parms->fp = fopen(fname, "a");
     }
     if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
@@ -16604,7 +16942,8 @@ int MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
 }
 
 /* project onto the sphere of radius DEFAULT_RADIUS */
-static void sphericalProjection(float xs, float ys, float zs, float *xd, float *yd, float *zd) {
+static void sphericalProjection(float xs, float ys, float zs, float *xd, float *yd, float *zd)
+{
   double dist, lambda;
 
   dist = sqrt(SQR(xs) + SQR(ys) + SQR(zs));
@@ -16626,7 +16965,8 @@ static void sphericalProjection(float xs, float ys, float zs, float *xd, float *
   *zd = zs * lambda;
 }
 
-int MRISsmoothOnSphere(MRIS *mris, int niters) {
+int MRISsmoothOnSphere(MRIS *mris, int niters)
+{
   int n, p;
   float x, y, z;
   VERTEX *v, *vp;
@@ -16648,7 +16988,8 @@ int MRISsmoothOnSphere(MRIS *mris, int niters) {
         v->ty = v->y;
         v->tz = v->z;
         DiagBreak();
-      } else {
+      }
+      else {
         v->tx = x / v->vnum;
         v->ty = y / v->vnum;
         v->tz = z / v->vnum;
@@ -16670,7 +17011,8 @@ int MRISsmoothOnSphere(MRIS *mris, int niters) {
   return NO_ERROR;
 }
 
-static int mrisSphericalProjection(MRIS *mris) {
+static int mrisSphericalProjection(MRIS *mris)
+{
   int n;
   VERTEX *v;
   //    fprintf(stderr,"spherical projection\n");
@@ -16715,7 +17057,8 @@ static int mrisSphericalProjection(MRIS *mris) {
   return NO_ERROR;
 }
 
-static float computeArea(MRIS *mris, int fac, int n) {
+static float computeArea(MRIS *mris, int fac, int n)
+{
   int n0, n1;
   face_type *f;
   float v0[3], v1[3], d1, d2, d3, dot, area;
@@ -16742,7 +17085,8 @@ static float computeArea(MRIS *mris, int fac, int n) {
   if (dot < 0.0f) /* not in same direction, area < 0 and reverse n */
   {
     area = -sqrt(d1 * d1 + d2 * d2 + d3 * d3);
-  } else {
+  }
+  else {
     area = sqrt(d1 * d1 + d2 * d2 + d3 * d3);
   }
 
@@ -16752,7 +17096,8 @@ static float computeArea(MRIS *mris, int fac, int n) {
 /* preserve the topology of the deformation field
    this constraint is too strong - useless!
 */
-int mrisApplyGradientPositiveAreaPreserving(MRI_SURFACE *mris, double dt) {
+int mrisApplyGradientPositiveAreaPreserving(MRI_SURFACE *mris, double dt)
+{
   int vno, nvertices, n;
   VERTEX *v;
   float x, y, z, dx, dy, dz;
@@ -16841,18 +17186,21 @@ int mrisApplyGradientPositiveAreaPreserving(MRI_SURFACE *mris, double dt) {
    constrain the gradient triangle by triangle
    but do not ensure that the final gradient is topology preserving
 */
-int mrisApplyGradientPositiveAreaMaximizing(MRI_SURFACE *mris, double dt) {
+int mrisApplyGradientPositiveAreaMaximizing(MRI_SURFACE *mris, double dt)
+{
   return mrisApplyGradientPositiveAreaPreserving(mris, dt);
 }
 
-int MRISapplyGradient(MRI_SURFACE *mris, double dt) {
+int MRISapplyGradient(MRI_SURFACE *mris, double dt)
+{
   int vno, nvertices;
 
   nvertices = mris->nvertices;
   MRISstoreCurrentPositions(mris);
   if (mris->status == MRIS_RIGID_BODY) {
     MRISrotate(mris, mris, dt * mris->alpha, dt * mris->beta, dt * mris->gamma);
-  } else {
+  }
+  else {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static, 1)
 #endif
@@ -16880,7 +17228,8 @@ int MRISapplyGradient(MRI_SURFACE *mris, double dt) {
 
   Description
   ------------------------------------------------------*/
-static int mrisClearDistances(MRI_SURFACE *mris) {
+static int mrisClearDistances(MRI_SURFACE *mris)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -16902,7 +17251,8 @@ static int mrisClearDistances(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISclearGradient(MRI_SURFACE *mris) {
+int MRISclearGradient(MRI_SURFACE *mris)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -16926,7 +17276,8 @@ int MRISclearGradient(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-static int mrisClearExtraGradient(MRI_SURFACE *mris) {
+static int mrisClearExtraGradient(MRI_SURFACE *mris)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -16950,7 +17301,8 @@ static int mrisClearExtraGradient(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-static int mrisClearMomentum(MRI_SURFACE *mris) {
+static int mrisClearMomentum(MRI_SURFACE *mris)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -16974,7 +17326,8 @@ static int mrisClearMomentum(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-double MRIStotalVariationDifference(MRI_SURFACE *mris) {
+double MRIStotalVariationDifference(MRI_SURFACE *mris)
+{
   int vno, nvertices;
   VERTEX *v;
   double var, delta;
@@ -17000,7 +17353,8 @@ double MRIStotalVariationDifference(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-double MRIStotalVariation(MRI_SURFACE *mris) {
+double MRIStotalVariation(MRI_SURFACE *mris)
+{
   int vno, nvertices;
   VERTEX *v;
   double var, delta;
@@ -17025,7 +17379,8 @@ double MRIStotalVariation(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-double MRIScurvatureError(MRI_SURFACE *mris, double Kd) {
+double MRIScurvatureError(MRI_SURFACE *mris, double Kd)
+{
   int vno, nvertices, n;
   VERTEX *v;
   double Kerror, deltaK;
@@ -17056,7 +17411,8 @@ double MRIScurvatureError(MRI_SURFACE *mris, double Kd) {
 
   Description
   ------------------------------------------------------*/
-int MRISrestoreOldPositions(MRI_SURFACE *mris) {
+int MRISrestoreOldPositions(MRI_SURFACE *mris)
+{
 #if 1
   return (MRISrestoreVertexPositions(mris, TMP_VERTICES));
 #else
@@ -17085,7 +17441,8 @@ int MRISrestoreOldPositions(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISstoreCurrentPositions(MRI_SURFACE *mris) {
+int MRISstoreCurrentPositions(MRI_SURFACE *mris)
+{
 #if 1
   return (MRISsaveVertexPositions(mris, TMP_VERTICES));
 #else
@@ -17143,7 +17500,8 @@ mrisStoreCurrentGradient(MRI_SURFACE *mris)
 
   Description
   ------------------------------------------------------*/
-int MRISstoreMeanCurvature(MRI_SURFACE *mris) {
+int MRISstoreMeanCurvature(MRI_SURFACE *mris)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -17165,7 +17523,8 @@ int MRISstoreMeanCurvature(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISstoreMetricProperties(MRI_SURFACE *mris) {
+int MRISstoreMetricProperties(MRI_SURFACE *mris)
+{
   int vno, nvertices, fno, ano, n;
   VERTEX *v;
   FACE *f;
@@ -17209,7 +17568,8 @@ int MRISstoreMetricProperties(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISrestoreMetricProperties(MRI_SURFACE *mris) {
+int MRISrestoreMetricProperties(MRI_SURFACE *mris)
+{
   int vno, nvertices, fno, ano, n;
   VERTEX *v;
   FACE *f;
@@ -17246,7 +17606,8 @@ int MRISrestoreMetricProperties(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISvalidVertices(MRI_SURFACE *mris) {
+int MRISvalidVertices(MRI_SURFACE *mris)
+{
   int vno, nvertices, nvalid;
 
   nvertices = mris->nvertices;
@@ -17264,7 +17625,8 @@ int MRISvalidVertices(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISmarkedVertices(MRI_SURFACE *mris) {
+int MRISmarkedVertices(MRI_SURFACE *mris)
+{
   int vno, nvertices, nmarked;
 
   nvertices = mris->nvertices;
@@ -17283,7 +17645,8 @@ int MRISmarkedVertices(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-static int mrisValidFaces(MRI_SURFACE *mris) {
+static int mrisValidFaces(MRI_SURFACE *mris)
+{
   int fno, nfaces, nvalid;
 
   nfaces = mris->nfaces;
@@ -17305,7 +17668,8 @@ static int mrisValidFaces(MRI_SURFACE *mris) {
 
   name x y z
   ------------------------------------------------------*/
-int MRISreadTetherFile(MRI_SURFACE *mris, const char *fname, float radius) {
+int MRISreadTetherFile(MRI_SURFACE *mris, const char *fname, float radius)
+{
   int l;
   float cx, cy, cz;
   FILE *fp;
@@ -17348,7 +17712,8 @@ int MRISreadTetherFile(MRI_SURFACE *mris, const char *fname, float radius) {
 
   name x y z
   ------------------------------------------------------*/
-static int mrisLabelVertices(MRI_SURFACE *mris, float cx, float cy, float cz, int label, float radius) {
+static int mrisLabelVertices(MRI_SURFACE *mris, float cx, float cy, float cz, int label, float radius)
+{
   VERTEX *v;
   float xd, yd, zd, d;
   int vno;
@@ -17382,7 +17747,8 @@ static int mrisLabelVertices(MRI_SURFACE *mris, float cx, float cy, float cz, in
   ------------------------------------------------------*/
 #define K_A 0.4f
 static float kernel[] = {K_A, 0.25f, 0.25f - K_A / 2.0f};
-int MRISsmoothCurvatures(MRI_SURFACE *mris, int niterations) {
+int MRISsmoothCurvatures(MRI_SURFACE *mris, int niterations)
+{
   int vno, i, vn;
   double g, H, norm;
   VERTEX *vertex;
@@ -17791,7 +18157,8 @@ mrisComputeCurvatureTerm(MRI_SURFACE *mris, double l_curv)
 
   name x y z
   ------------------------------------------------------*/
-static int mrisComputeConvexityTerm(MRI_SURFACE *mris, double l_convex) {
+static int mrisComputeConvexityTerm(MRI_SURFACE *mris, double l_convex)
+{
   int vno;
 
   if (FZERO(l_convex)) {
@@ -17863,7 +18230,8 @@ static int mrisComputeConvexityTerm(MRI_SURFACE *mris, double l_convex) {
 
   name x y z
   ------------------------------------------------------*/
-static int mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring) {
+static int mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring)
+{
   int vno, n, m;
   VERTEX *vertex, *vn;
   float sx, sy, sz, nx, ny, nz, nc, x, y, z;
@@ -17928,7 +18296,8 @@ static int mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring) {
 
   name x y z
   ------------------------------------------------------*/
-static int mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring) {
+static int mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring)
+{
   int vno, n, m;
   VERTEX *v, *vn;
   float sx, sy, sz, x, y, z, nc;
@@ -17998,7 +18367,8 @@ static int mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring) {
 
   name x y z
   ------------------------------------------------------*/
-static int mrisComputeNonlinearTangentialSpringTerm(MRI_SURFACE *mris, double l_spring, double min_dist) {
+static int mrisComputeNonlinearTangentialSpringTerm(MRI_SURFACE *mris, double l_spring, double min_dist)
+{
   int vno, m, n;
   VERTEX *v, *vn;
   float sx, sy, sz, x, y, z, dx, dy, dz;
@@ -18059,7 +18429,8 @@ static int mrisComputeNonlinearTangentialSpringTerm(MRI_SURFACE *mris, double l_
   return (NO_ERROR);
 }
 
-static double mrisComputeDuraError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static double mrisComputeDuraError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   double dura_thresh = parms->dura_thresh, sse;
   MRI *mri_dura = parms->mri_dura;
   int vno;
@@ -18097,7 +18468,8 @@ static double mrisComputeDuraError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) 
   return (sse);
 }
 
-static int mrisComputeDuraTerm(MRI_SURFACE *mris, double l_dura, MRI *mri_dura, double dura_thresh) {
+static int mrisComputeDuraTerm(MRI_SURFACE *mris, double l_dura, MRI *mri_dura, double dura_thresh)
+{
   int vno;
   VERTEX *v;
   float x, y, z, nx, ny, nz, dx, dy, dz;
@@ -18213,7 +18585,8 @@ static int mrisComputeIntensityTerm(MRI_SURFACE *mris,
                                     MRI *mri_brain,
                                     MRI *mri_smooth,
                                     double sigma_global,
-                                    INTEGRATION_PARMS *parms) {
+                                    INTEGRATION_PARMS *parms)
+{
   int vno;
   VERTEX *v;
   float x, y, z, nx, ny, nz, dx, dy, dz;
@@ -18265,7 +18638,8 @@ static int mrisComputeIntensityTerm(MRI_SURFACE *mris,
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
       MRIwrite(mri_interior, "int.mgz");
     }
-  } else {
+  }
+  else {
     mri_interior = NULL;
   }
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -18317,7 +18691,8 @@ static int mrisComputeIntensityTerm(MRI_SURFACE *mris,
           MRISsurfaceRASToVoxelCached(mris, mri_brain, xw, yw, zw, &xw, &yw, &zw);
           MRIsampleVolume(mri_brain, xw, yw, zw, &val);
           val_outside += k * val;
-        } else {
+        }
+        else {
           DiagBreak();
         }
 
@@ -18334,7 +18709,8 @@ static int mrisComputeIntensityTerm(MRI_SURFACE *mris,
           MRIsampleVolume(mri_brain, xw, yw, zw, &val);
           val_inside += k * val;
           ktotal_inside += k;
-        } else {
+        }
+        else {
           DiagBreak();
         }
       }
@@ -18344,7 +18720,8 @@ static int mrisComputeIntensityTerm(MRI_SURFACE *mris,
       if (ktotal_outside > 0) {
         val_outside /= (double)ktotal_outside;
       }
-    } else  // don't compute gradient - assume
+    }
+    else  // don't compute gradient - assume
     {
       val_outside = parms->grad_dir;
       val_inside = -parms->grad_dir;
@@ -18355,13 +18732,15 @@ static int mrisComputeIntensityTerm(MRI_SURFACE *mris,
 
     if (!FZERO(delI)) {
       delI /= fabs(delI);
-    } else {
+    }
+    else {
       delI = -1; /* intensities tend to increase inwards */
     }
 
     if (delV > 5) {
       delV = 5;
-    } else if (delV < -5) {
+    }
+    else if (delV < -5) {
       delV = -5;
     }
 
@@ -18435,7 +18814,8 @@ static int mrisComputeIntensityTerm(MRI_SURFACE *mris,
   return (NO_ERROR);
 }
 
-static int mrisComputeTargetLocationTerm(MRI_SURFACE *mris, double l_location, INTEGRATION_PARMS *parms) {
+static int mrisComputeTargetLocationTerm(MRI_SURFACE *mris, double l_location, INTEGRATION_PARMS *parms)
+{
   int vno;
   VERTEX *v;
   double dx, dy, dz, norm;
@@ -18501,7 +18881,8 @@ static int mrisComputeIntensityTerm_mef(MRI_SURFACE *mris,
                                         double sigma_global,
                                         float weight30,
                                         float weight5,
-                                        INTEGRATION_PARMS *parms) {
+                                        INTEGRATION_PARMS *parms)
+{
   int vno;
   VERTEX *v;
   float x, y, z, nx, ny, nz, dx, dy, dz;
@@ -18520,7 +18901,8 @@ static int mrisComputeIntensityTerm_mef(MRI_SURFACE *mris,
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
       MRIwrite(mri_interior, "int.mgz");
     }
-  } else {
+  }
+  else {
     mri_interior = NULL;
   }
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -18569,7 +18951,8 @@ static int mrisComputeIntensityTerm_mef(MRI_SURFACE *mris,
             MRIsampleVolume(mri_30, xw, yw, zw, &val);
             val_outside += k * val;
             ktotal_outside += k;
-          } else {
+          }
+          else {
             DiagBreak();
           }
 
@@ -18584,7 +18967,8 @@ static int mrisComputeIntensityTerm_mef(MRI_SURFACE *mris,
             MRIsampleVolume(mri_30, xw, yw, zw, &val);
             val_inside += k * val;
             ktotal_inside += k;
-          } else {
+          }
+          else {
             DiagBreak();
           }
         }
@@ -18594,7 +18978,8 @@ static int mrisComputeIntensityTerm_mef(MRI_SURFACE *mris,
         if (ktotal_outside > 0) {
           val_outside /= (double)ktotal_outside;
         }
-      } else  // don't compute gradient - assume
+      }
+      else  // don't compute gradient - assume
       {
         val_outside = parms->grad_dir;
         val_inside = -parms->grad_dir;
@@ -18605,13 +18990,15 @@ static int mrisComputeIntensityTerm_mef(MRI_SURFACE *mris,
 
       if (!FZERO(delI)) {
         delI /= fabs(delI);
-      } else {
+      }
+      else {
         delI = -1;  // intensity tends to increase inwards for flash30
       }
 
       if (delV > 5) {
         delV = 5;
-      } else if (delV < -5) {
+      }
+      else if (delV < -5) {
         delV = -5;
       }
 
@@ -18722,7 +19109,8 @@ static int mrisComputeIntensityTerm_mef(MRI_SURFACE *mris,
         if (ktotal_outside > 0) {
           val_outside /= (double)ktotal_outside;
         }
-      } else  // don't compute gradient - assume
+      }
+      else  // don't compute gradient - assume
       {
         val_outside = parms->grad_dir;
         val_inside = -parms->grad_dir;
@@ -18733,13 +19121,15 @@ static int mrisComputeIntensityTerm_mef(MRI_SURFACE *mris,
 
       if (!FZERO(delI)) {
         delI /= fabs(delI);
-      } else {
+      }
+      else {
         delI = 0;
       }
 
       if (delV > 5) {
         delV = 5;
-      } else if (delV < -5) {
+      }
+      else if (delV < -5) {
         delV = -5;
       }
 
@@ -18806,7 +19196,8 @@ static int mrisComputeIntensityTerm_mef(MRI_SURFACE *mris,
 }
 
 #if 1
-static int mrisComputeIntensityGradientTerm(MRI_SURFACE *mris, double l_grad, MRI *mri_brain, MRI *mri_smooth) {
+static int mrisComputeIntensityGradientTerm(MRI_SURFACE *mris, double l_grad, MRI *mri_brain, MRI *mri_smooth)
+{
   int vno;
   VERTEX *v;
   float x, y, z, nx, ny, nz;
@@ -18869,7 +19260,8 @@ static int mrisComputeIntensityGradientTerm(MRI_SURFACE *mris, double l_grad, MR
     if (mag_outside > mag_inside) /* gradients suggest edge is outwards */
     {
       val_dist = val_outside - v->val;
-    } else /* gradients suggest edge is inwards */
+    }
+    else /* gradients suggest edge is inwards */
     {
       val_dist = val_inside - v->val;
     }
@@ -18889,7 +19281,8 @@ static int mrisComputeIntensityGradientTerm(MRI_SURFACE *mris, double l_grad, MR
       if (((mag_inside < mag_outside) && dn > 0) || ((mag_inside > mag_outside) && dn < 0)) {
         val_dist = 0;
       }
-    } else /* current point is dimmer than target */
+    }
+    else /* current point is dimmer than target */
     {
       /* dn > 0 implies should move out, but gradient mag points in */
       if (((mag_inside > mag_outside) && dn > 0) || ((mag_inside < mag_outside) && dn < 0)) {
@@ -18929,7 +19322,8 @@ static int mrisComputeIntensityGradientTerm(MRI_SURFACE *mris, double l_grad, MR
   return (NO_ERROR);
 }
 #else
-static int mrisComputeIntensityGradientTerm(MRI_SURFACE *mris, double l_grad, MRI *mri_brain, MRI *mri_smooth) {
+static int mrisComputeIntensityGradientTerm(MRI_SURFACE *mris, double l_grad, MRI *mri_brain, MRI *mri_smooth)
+{
   int vno;
   VERTEX *v;
   float x, y, z, nx, ny, nz;
@@ -19000,7 +19394,8 @@ static int mrisComputeIntensityGradientTerm(MRI_SURFACE *mris, double l_grad, MR
   Description
   Apply a uniform outward expansion force.
   ------------------------------------------------------*/
-static int mrisComputeSphereTerm(MRI_SURFACE *mris, double l_sphere, float radius) {
+static int mrisComputeSphereTerm(MRI_SURFACE *mris, double l_sphere, float radius)
+{
   int vno;
   VERTEX *v;
   float r, x, y, z, x0, y0, z0;
@@ -19134,7 +19529,8 @@ static int mrisComputeSphereTerm(MRI_SURFACE *mris, double l_sphere, float radiu
   Description
   Apply a uniform outward expansion force.
   ------------------------------------------------------*/
-static int mrisComputeExpansionTerm(MRI_SURFACE *mris, double l_expand) {
+static int mrisComputeExpansionTerm(MRI_SURFACE *mris, double l_expand)
+{
   int vno;
   VERTEX *v;
 
@@ -19161,7 +19557,8 @@ static int mrisComputeExpansionTerm(MRI_SURFACE *mris, double l_expand) {
   return (NO_ERROR);
 }
 
-static int mrisComputeBorderTerm(MRI_SURFACE *mris, double l_border) {
+static int mrisComputeBorderTerm(MRI_SURFACE *mris, double l_border)
+{
   int vno, n, m;
   VERTEX *v, *vn;
   float sx, sy, sz, x, y, z, dist_scale;
@@ -19172,7 +19569,8 @@ static int mrisComputeBorderTerm(MRI_SURFACE *mris, double l_border) {
 
   if (mris->patch) {
     dist_scale = 1.0;
-  } else {
+  }
+  else {
     dist_scale = sqrt(mris->orig_area / mris->total_area);
   }
 
@@ -19237,7 +19635,8 @@ static int mrisComputeBorderTerm(MRI_SURFACE *mris, double l_border) {
   MRIScopyMarked3ToMarked(mris);
   return (NO_ERROR);
 }
-static int mrisComputeMaxSpringTerm(MRI_SURFACE *mris, double l_max_spring) {
+static int mrisComputeMaxSpringTerm(MRI_SURFACE *mris, double l_max_spring)
+{
   int vno, n, m, m_max;
   VERTEX *v, *vn;
   float dx, dy, dz, x, y, z, dist_scale, dist, max_dist;
@@ -19248,7 +19647,8 @@ static int mrisComputeMaxSpringTerm(MRI_SURFACE *mris, double l_max_spring) {
 
   if (mris->patch) {
     dist_scale = l_max_spring;
-  } else {
+  }
+  else {
     dist_scale = l_max_spring * sqrt(mris->orig_area / mris->total_area);
   }
 
@@ -19315,7 +19715,8 @@ static int mrisComputeMaxSpringTerm(MRI_SURFACE *mris, double l_max_spring) {
 
   name x y z
   ------------------------------------------------------*/
-static int mrisComputeSpringTerm(MRI_SURFACE *mris, double l_spring) {
+static int mrisComputeSpringTerm(MRI_SURFACE *mris, double l_spring)
+{
   int vno, n, m;
   VERTEX *v, *vn;
   float sx, sy, sz, x, y, z, dist_scale;
@@ -19327,7 +19728,8 @@ static int mrisComputeSpringTerm(MRI_SURFACE *mris, double l_spring) {
 #if METRIC_SCALE
   if (mris->patch) {
     dist_scale = 1.0;
-  } else {
+  }
+  else {
     dist_scale = sqrt(mris->orig_area / mris->total_area);
   }
 #else
@@ -19393,7 +19795,8 @@ static int mrisComputeSpringTerm(MRI_SURFACE *mris, double l_spring) {
   has the original (i.e. after
   global rotational alignment) spherical coordinates in the TMP2_VERTICES
   ------------------------------------------------------*/
-static int mrisComputeLaplacianTerm(MRI_SURFACE *mris, double l_lap) {
+static int mrisComputeLaplacianTerm(MRI_SURFACE *mris, double l_lap)
+{
   int vno, n, m;
   VERTEX *v, *vn;
   float x, y, z, vx, vy, vz, vnx, vny, vnz, dx, dy, dz;
@@ -19646,7 +20049,8 @@ mrisComputeNormalizedSpringTerm(MRI_SURFACE *mris, double l_spring)
   return(NO_ERROR) ;
 }
 #else
-static int mrisComputeNormalizedSpringTerm(MRI_SURFACE *const mris, double const l_spring) {
+static int mrisComputeNormalizedSpringTerm(MRI_SURFACE *const mris, double const l_spring)
+{
   if (FZERO(l_spring)) {
     return (NO_ERROR);
   }
@@ -19655,7 +20059,8 @@ static int mrisComputeNormalizedSpringTerm(MRI_SURFACE *const mris, double const
 #if METRIC_SCALE
   if (mris->patch) {
     dist_scale_init = 1.0;
-  } else {
+  }
+  else {
     dist_scale_init = sqrt(mris->orig_area / mris->total_area);
   }
 #else
@@ -19740,7 +20145,8 @@ static int mrisComputeNormalizedSpringTerm(MRI_SURFACE *const mris, double const
   Description
   Compute the folding of the surface.
   ------------------------------------------------------*/
-double MRIScomputeFolding(MRI_SURFACE *mris) {
+double MRIScomputeFolding(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *vertex;
   double k1, k2, folding, area;
@@ -19768,7 +20174,8 @@ double MRIScomputeFolding(MRI_SURFACE *mris) {
   Description
   Compute the effects of the gradient of the distance term
   ------------------------------------------------------*/
-static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   float l_dist, scale, max_del, norm;
   int vno, tno;
   //  int     max_n, max_v ;
@@ -19778,12 +20185,14 @@ static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) 
 
   if ((cp = getenv("VDIAG1")) != NULL) {
     diag_vno1 = atoi(cp);
-  } else {
+  }
+  else {
     diag_vno1 = -1;
   }
   if ((cp = getenv("VDIAG2")) != NULL) {
     diag_vno2 = atoi(cp);
-  } else {
+  }
+  else {
     diag_vno2 = -1;
   }
 
@@ -19801,9 +20210,11 @@ static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) 
 #if METRIC_SCALE
   if (mris->patch) {
     scale = 1.0f;
-  } else if (mris->status == MRIS_PARAMETERIZED_SPHERE || mris->status == MRIS_SPHERE) {
+  }
+  else if (mris->status == MRIS_PARAMETERIZED_SPHERE || mris->status == MRIS_SPHERE) {
     scale = sqrt(mris->orig_area / mris->total_area);
-  } else
+  }
+  else
     scale = mris->neg_area < mris->total_area ? sqrt(mris->orig_area / (mris->total_area - mris->neg_area))
                                               : sqrt(mris->orig_area / mris->total_area);
 #else
@@ -19963,7 +20374,8 @@ static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) 
   Description
   Compute the effects of the gradient of the distance term
   ------------------------------------------------------*/
-static int mrisComputeNonlinearDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static int mrisComputeNonlinearDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   VECTOR *v_y, *v_delta, *v_n;
   float l_dist, d0, dt, delta, nc, scale, norm, ratio;
   VERTEX *v, *vn;
@@ -19982,9 +20394,11 @@ static int mrisComputeNonlinearDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS
 #if METRIC_SCALE
   if (mris->patch) {
     scale = 1.0f;
-  } else if (mris->status == MRIS_PARAMETERIZED_SPHERE) {
+  }
+  else if (mris->status == MRIS_PARAMETERIZED_SPHERE) {
     scale = sqrt(mris->orig_area / mris->total_area);
-  } else
+  }
+  else
     scale = mris->neg_area < mris->total_area ? sqrt(mris->orig_area / (mris->total_area - mris->neg_area))
                                               : sqrt(mris->orig_area / mris->total_area);
 #else
@@ -20069,7 +20483,8 @@ static int mrisComputeNonlinearDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS
 }
 
 /*-----------------------------------------------------*/
-int mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+int mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   char *cp, host_name[STRLEN];
   static int first = 1;
 
@@ -20080,7 +20495,8 @@ int mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris, INTEGRATION_PARMS *parm
   cp = getenv("HOST");
   if (cp) {
     strcpy(host_name, cp);
-  } else {
+  }
+  else {
     strcpy(host_name, "unknown");
   }
 
@@ -20273,7 +20689,8 @@ int mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris, INTEGRATION_PARMS *parm
 
   Description
   ------------------------------------------------------*/
-static int mrisWriteSnapshots(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t) {
+static int mrisWriteSnapshots(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
+{
   char base_name[STRLEN];
 
   MRISsaveVertexPositions(mris, TMP_VERTICES);
@@ -20302,7 +20719,8 @@ static int mrisWriteSnapshots(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t
 
   Description
   ------------------------------------------------------*/
-static int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t) {
+static int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
+{
   char fname[STRLEN], path[STRLEN], base_name[STRLEN], *cp, *hemi;
 
   switch (mris->hemisphere) {
@@ -20325,7 +20743,8 @@ static int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
     *cp = 0;
     sprintf(fname, "%s%4.4d.geo", base_name, t);
     *cp = '.';
-  } else {
+  }
+  else {
     sprintf(fname, "%s%4.4d", base_name, t);
   }
 #if 1
@@ -20334,7 +20753,8 @@ static int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
   }
   if (mris->patch) {
     MRISwritePatch(mris, fname);
-  } else {
+  }
+  else {
     if (parms->l_thick_normal > 0 || parms->l_thick_parallel > 0 || parms->l_thick_min > 0 || parms->l_thick_spring) {
       int vno;
       MRI *mri_vector;
@@ -20364,7 +20784,8 @@ static int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
       printf("writing vector field to %s\n", fname);
       MRIwrite(mri_vector, fname);
       MRIfree(&mri_vector);
-    } else
+    }
+    else
       MRISwrite(mris, fname);
   }
 
@@ -20410,7 +20831,8 @@ static int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
 
   Description
   ------------------------------------------------------*/
-static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   int vno, max_v, max_n, err_cnt, max_errs;
   double dist_scale, sse_dist, max_del;
   static int first = 1;
@@ -20418,9 +20840,11 @@ static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *par
 #if METRIC_SCALE
   if (mris->patch) {
     dist_scale = 1.0;
-  } else if (mris->status == MRIS_PARAMETERIZED_SPHERE) {
+  }
+  else if (mris->status == MRIS_PARAMETERIZED_SPHERE) {
     dist_scale = sqrt(mris->orig_area / mris->total_area);
-  } else
+  }
+  else
     dist_scale = mris->neg_area < mris->total_area ? sqrt(mris->orig_area / (mris->total_area - mris->neg_area))
                                                    : sqrt(mris->orig_area / mris->total_area);
 #else
@@ -20518,15 +20942,18 @@ static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *par
 }
 
 #ifdef FS_CUDA
-static float mrisComputeDistanceErrorCUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms) {
+static float mrisComputeDistanceErrorCUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, INTEGRATION_PARMS *parms)
+{
   double dist_scale, sse_dist;
 
 #if METRIC_SCALE
   if (mris->patch) {
     dist_scale = 1.0;
-  } else if (mris->status == MRIS_PARAMETERIZED_SPHERE) {
+  }
+  else if (mris->status == MRIS_PARAMETERIZED_SPHERE) {
     dist_scale = sqrt(mris->orig_area / mris->total_area);
-  } else
+  }
+  else
     dist_scale = mris->neg_area < mris->total_area ? sqrt(mris->orig_area / (mris->total_area - mris->neg_area))
                                                    : sqrt(mris->orig_area / mris->total_area);
 #else
@@ -20541,7 +20968,8 @@ static float mrisComputeDistanceErrorCUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *m
 
   if (parms->vsmoothness == NULL && parms->dist_error == NULL) {
     sse_dist = (double)(MRISCcomputeDistanceError(mrisc, dist_scale));
-  } else {
+  }
+  else {
     sse_dist = mrisComputeDistanceError(mris, parms);
   }
 
@@ -20560,7 +20988,8 @@ static float mrisComputeDistanceErrorCUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *m
 
   Description
   ------------------------------------------------------*/
-static double mrisComputeNonlinearDistanceSSE(MRI_SURFACE *mris) {
+static double mrisComputeNonlinearDistanceSSE(MRI_SURFACE *mris)
+{
   VERTEX *v;
   int vno, n, nvertices, max_v, max_n;
   double dist_scale, sse_dist, delta, v_sse, max_del, ratio;
@@ -20568,9 +20997,11 @@ static double mrisComputeNonlinearDistanceSSE(MRI_SURFACE *mris) {
 #if METRIC_SCALE
   if (mris->patch) {
     dist_scale = 1.0;
-  } else if (mris->status == MRIS_PARAMETERIZED_SPHERE) {
+  }
+  else if (mris->status == MRIS_PARAMETERIZED_SPHERE) {
     dist_scale = sqrt(mris->orig_area / mris->total_area);
-  } else
+  }
+  else
     dist_scale = mris->neg_area < mris->total_area ? sqrt(mris->orig_area / (mris->total_area - mris->neg_area))
                                                    : sqrt(mris->orig_area / mris->total_area);
 #else
@@ -20612,7 +21043,8 @@ static double mrisComputeNonlinearDistanceSSE(MRI_SURFACE *mris) {
   indicate the correspondence between white and pial, and the canonical spherical ones v->c[xyz] have the ?h.sphere in
   them.
 */
-int MRISmeasureThicknessFromCorrespondence(MRI_SURFACE *mris, MHT *mht, float max_thick) {
+int MRISmeasureThicknessFromCorrespondence(MRI_SURFACE *mris, MHT *mht, float max_thick)
+{
   int vno, alloced;
   VERTEX *v;
   float xw, yw, zw, dx, dy, dz, xp, yp, zp;
@@ -20620,7 +21052,8 @@ int MRISmeasureThicknessFromCorrespondence(MRI_SURFACE *mris, MHT *mht, float ma
   if (mht == NULL) {
     mht = MHTfillTableAtResolution(mris, NULL, CANONICAL_VERTICES, 1.0);  // to lookup closest face
     alloced = 1;
-  } else
+  }
+  else
     alloced = 0;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -20649,7 +21082,8 @@ int MRISmeasureThicknessFromCorrespondence(MRI_SURFACE *mris, MHT *mht, float ma
 
   Description
   ------------------------------------------------------*/
-static double mrisComputeThicknessSmoothnessEnergy(MRI_SURFACE *mris, double l_tsmooth, INTEGRATION_PARMS *parms) {
+static double mrisComputeThicknessSmoothnessEnergy(MRI_SURFACE *mris, double l_tsmooth, INTEGRATION_PARMS *parms)
+{
   int vno, n;
   double sse_tsmooth, v_sse, dn, dx, dy, dz, d0;
   float xp, yp, zp;
@@ -20685,7 +21119,8 @@ static double mrisComputeThicknessSmoothnessEnergy(MRI_SURFACE *mris, double l_t
   return (sse_tsmooth);
 }
 static float mrisSampleMinimizationEnergy(
-    MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms, float cx, float cy, float cz) {
+    MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms, float cx, float cy, float cz)
+{
   float xw, yw, zw, dx, dy, dz, thick_sq, xp, yp, zp;
 
   project_point_onto_sphere(cx, cy, cz, mris->radius, &cx, &cy, &cz);
@@ -20699,7 +21134,8 @@ static float mrisSampleMinimizationEnergy(
 
   return (thick_sq);
 }
-static int project_point_onto_sphere(float cx, float cy, float cz, float radius, float *pcx, float *pcy, float *pcz) {
+static int project_point_onto_sphere(float cx, float cy, float cz, float radius, float *pcx, float *pcy, float *pcz)
+{
   float x2, y2, z2, d, dist, dx, dy, dz;
 
   x2 = cx * cx;
@@ -20708,7 +21144,8 @@ static int project_point_onto_sphere(float cx, float cy, float cz, float radius,
   dist = sqrt(x2 + y2 + z2);
   if (FZERO(dist)) {
     d = 0;
-  } else {
+  }
+  else {
     d = 1 - radius / dist;
   }
   dx = d * cx;
@@ -20720,7 +21157,8 @@ static int project_point_onto_sphere(float cx, float cy, float cz, float radius,
   return (NO_ERROR);
 }
 
-static float mrisSampleParallelEnergyAtVertex(MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms) {
+static float mrisSampleParallelEnergyAtVertex(MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms)
+{
   float xw, yw, zw, xp, yp, zp, dx, dy, dz, dxn, dyn, dzn, len, dxn_total, dyn_total, dzn_total;
   int n, num;
   double sse;
@@ -20770,7 +21208,8 @@ static float mrisSampleParallelEnergyAtVertex(MRI_SURFACE *mris, VERTEX *v, INTE
     MRISvertexCoord2XYZ_float(vn, WHITE_VERTICES, &xw, &yw, &zw);
     if (vn->fno >= 0) {
       MRISsampleFaceCoords(mris, vn->fno, vn->x, vn->y, vn->z, PIAL_VERTICES, CANONICAL_VERTICES, &xp, &yp, &zp);
-    } else {
+    }
+    else {
       MRISsampleFaceCoordsCanonical((MHT *)(parms->mht), mris, vn->x, vn->y, vn->z, PIAL_VERTICES, &xp, &yp, &zp);
     }
 
@@ -20813,7 +21252,8 @@ static float mrisSampleParallelEnergyAtVertex(MRI_SURFACE *mris, VERTEX *v, INTE
   return (sse);
 }
 static float mrisSampleParallelEnergy(
-    MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms, float cx, float cy, float cz) {
+    MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms, float cx, float cy, float cz)
+{
   int fno = 0, old_fno, num;
   double sse, fdist;
   FACE *face;
@@ -20857,7 +21297,8 @@ static float mrisSampleParallelEnergy(
 }
 
 static float mrisSampleNormalEnergy(
-    MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms, float cx, float cy, float cz) {
+    MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms, float cx, float cy, float cz)
+{
   float dx, dy, dz, len, xw, yw, zw, xp, yp, zp, pnx, pny, pnz;
   double sse;
 
@@ -20901,7 +21342,8 @@ static float mrisSampleNormalEnergy(
 }
 
 static float mrisSampleSpringEnergy(
-    MRI_SURFACE *mris, VERTEX *v, float cx, float cy, float cz, INTEGRATION_PARMS *parms) {
+    MRI_SURFACE *mris, VERTEX *v, float cx, float cy, float cz, INTEGRATION_PARMS *parms)
+{
   float xn, yn, zn, xp, yp, zp, xc, yc, zc;
   double sse, fdist, vdist = mris->avg_vertex_dist;
   int n, num, fno;
@@ -21067,7 +21509,8 @@ ashburnerTriangleEnergy(MRI_SURFACE *mris, int fno, double lambda)
 #else
 
 // this version isn't working yet, not sure why
-static double ashburnerTriangleEnergy(MRI_SURFACE *mris, int fno, double lambda) {
+static double ashburnerTriangleEnergy(MRI_SURFACE *mris, int fno, double lambda)
+{
   static MATRIX *_m_x[_MAX_FS_THREADS], *_m_x_inv[_MAX_FS_THREADS], *_m_y[_MAX_FS_THREADS], *_m_J[_MAX_FS_THREADS],
       *_m_U[_MAX_FS_THREADS], *_m_V[_MAX_FS_THREADS], *_m_m[_MAX_FS_THREADS], *_m_evectors[_MAX_FS_THREADS];
   MATRIX *m_x, *m_x_inv, *m_y, *m_J, *m_U, *m_V, *m_m, *m_evectors = NULL;
@@ -21206,7 +21649,8 @@ static double ashburnerTriangleEnergy(MRI_SURFACE *mris, int fno, double lambda)
 }
 #endif
 static float mrisSampleAshburnerTriangleEnergy(
-    MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms, float cx, float cy, float cz) {
+    MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms, float cx, float cy, float cz)
+{
   double sse, ox, oy, oz, sse_total;
   int n;
 
@@ -21290,7 +21734,8 @@ mrisSamplePialCoordsInTangentPlane(MRI_SURFACE *mris, VERTEX *v, float x, float 
 
   Description
   ------------------------------------------------------*/
-static double mrisComputeThicknessMinimizationEnergy(MRI_SURFACE *mris, double l_thick_min, INTEGRATION_PARMS *parms) {
+static double mrisComputeThicknessMinimizationEnergy(MRI_SURFACE *mris, double l_thick_min, INTEGRATION_PARMS *parms)
+{
   int vno;
   double sse_tmin;
   static int cno = 0;
@@ -21341,7 +21786,8 @@ static double mrisComputeThicknessMinimizationEnergy(MRI_SURFACE *mris, double l
   Description
   ------------------------------------------------------*/
 static double big_sse = 10.0;
-static double mrisComputeThicknessNormalEnergy(MRI_SURFACE *mris, double l_thick_normal, INTEGRATION_PARMS *parms) {
+static double mrisComputeThicknessNormalEnergy(MRI_SURFACE *mris, double l_thick_normal, INTEGRATION_PARMS *parms)
+{
   int vno;
   double sse_tnormal;
   static int cno = 0;
@@ -21415,7 +21861,8 @@ static double mrisComputeThicknessNormalEnergy(MRI_SURFACE *mris, double l_thick
 
   Description
   ------------------------------------------------------*/
-static double mrisComputeThicknessSpringEnergy(MRI_SURFACE *mris, double l_thick_spring, INTEGRATION_PARMS *parms) {
+static double mrisComputeThicknessSpringEnergy(MRI_SURFACE *mris, double l_thick_spring, INTEGRATION_PARMS *parms)
+{
   int vno;
   double sse_spring, sse;
   VERTEX *v;
@@ -21467,7 +21914,8 @@ static double mrisComputeThicknessSpringEnergy(MRI_SURFACE *mris, double l_thick
   sse_spring /= 2;
   return (sse_spring);
 }
-static int mrisAssignFaces(MRI_SURFACE *mris, MHT *mht, int which_vertices) {
+static int mrisAssignFaces(MRI_SURFACE *mris, MHT *mht, int which_vertices)
+{
   int vno;
 
 #ifdef HAVE_OPENMP
@@ -21500,7 +21948,8 @@ static int mrisAssignFaces(MRI_SURFACE *mris, MHT *mht, int which_vertices) {
 
   Description
   ------------------------------------------------------*/
-static double mrisComputeThicknessParallelEnergy(MRI_SURFACE *mris, double l_thick_parallel, INTEGRATION_PARMS *parms) {
+static double mrisComputeThicknessParallelEnergy(MRI_SURFACE *mris, double l_thick_parallel, INTEGRATION_PARMS *parms)
+{
   int vno, max_vno;
   double sse_tparallel, max_inc;
   static int cno = 0;
@@ -21559,7 +22008,8 @@ static double mrisComputeThicknessParallelEnergy(MRI_SURFACE *mris, double l_thi
   ------------------------------------------------------*/
 static double mrisComputeAshburnerTriangleEnergy(MRI_SURFACE *mris,
                                                  double l_ashburner_triangle,
-                                                 INTEGRATION_PARMS *parms) {
+                                                 INTEGRATION_PARMS *parms)
+{
   int vno;
   double sse_ashburner;
 
@@ -21592,7 +22042,8 @@ static double mrisComputeAshburnerTriangleEnergy(MRI_SURFACE *mris,
 #if 1
 // debugged and working, but not needed at the moment
 static int get_face_axes(
-    MRI_SURFACE *mris, FACE *face, float *pe1x, float *pe1y, float *pe1z, float *pe2x, float *pe2y, float *pe2z) {
+    MRI_SURFACE *mris, FACE *face, float *pe1x, float *pe1y, float *pe1z, float *pe2x, float *pe2y, float *pe2z)
+{
   double V0[3], V1[3], V2[3], e1[3], e2[3], tmp[3], norm, dot;
 
   V0[0] = mris->vertices[face->v[0]].x;
@@ -21669,7 +22120,8 @@ static int get_face_axes(
 
   Description
   ------------------------------------------------------*/
-static int mrisComputeThicknessMinimizationTerm(MRI_SURFACE *mris, double l_thick_min, INTEGRATION_PARMS *parms) {
+static int mrisComputeThicknessMinimizationTerm(MRI_SURFACE *mris, double l_thick_min, INTEGRATION_PARMS *parms)
+{
   int vno;
 
   if (FZERO(l_thick_min)) return (0.0);
@@ -21732,7 +22184,8 @@ static int mrisComputeThicknessMinimizationTerm(MRI_SURFACE *mris, double l_thic
         dx *= -1;
         dy *= -1;
         dz *= -1;
-      } else {
+      }
+      else {
         dx = dy = dz = 0;
       }
     }
@@ -21770,7 +22223,8 @@ static int mrisComputeThicknessMinimizationTerm(MRI_SURFACE *mris, double l_thic
 
   Description
   ------------------------------------------------------*/
-static int mrisComputeThicknessParallelTerm(MRI_SURFACE *mris, double l_thick_parallel, INTEGRATION_PARMS *parms) {
+static int mrisComputeThicknessParallelTerm(MRI_SURFACE *mris, double l_thick_parallel, INTEGRATION_PARMS *parms)
+{
   int vno;
 
   if (FZERO(l_thick_parallel)) return (0.0);
@@ -21829,7 +22283,8 @@ static int mrisComputeThicknessParallelTerm(MRI_SURFACE *mris, double l_thick_pa
         dx *= -1;
         dy *= -1;
         dz *= -1;
-      } else {
+      }
+      else {
         dx = dy = dz = 0;
       }
     }
@@ -22008,7 +22463,8 @@ mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_normal, INTEGRA
   return(NO_ERROR) ;
 }
 #else
-static int mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_normal, INTEGRATION_PARMS *parms) {
+static int mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_normal, INTEGRATION_PARMS *parms)
+{
   int vno;
   //  int     missed = 0 ;
 
@@ -22070,7 +22526,8 @@ static int mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_norm
         dx *= -1;
         dy *= -1;
         dz *= -1;
-      } else {
+      }
+      else {
         dx = dy = dz = 0;
       }
     }
@@ -22124,7 +22581,8 @@ static int mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_norm
 
   return (NO_ERROR);
 }
-static int mrisComputeThicknessSpringTerm(MRI_SURFACE *mris, double l_thick_spring, INTEGRATION_PARMS *parms) {
+static int mrisComputeThicknessSpringTerm(MRI_SURFACE *mris, double l_thick_spring, INTEGRATION_PARMS *parms)
+{
   int vno, max_vno;
   float dE_de1, dE_de2, e1p, e1m, e2p, e2m, cx, cy, cz;
   float E0, E1, dx, dy, dz;
@@ -22189,28 +22647,33 @@ static int mrisComputeThicknessSpringTerm(MRI_SURFACE *mris, double l_thick_spri
         dx *= -1;
         dy *= -1;
         dz *= -1;
-      } else {
+      }
+      else {
         if (e1m < e2m && e1m < e1p && e1m < e2p && e1m < E0)  // e1m is best
         {
           dx = -d_dist * e1x;
           dy = -d_dist * e1y;
           dz = d_dist * e1z;
-        } else if (e2m < e1p && e2m < e2p && e2m < E0)  // e2m is best
+        }
+        else if (e2m < e1p && e2m < e2p && e2m < E0)  // e2m is best
         {
           dx = -d_dist * e2x;
           dy = -d_dist * e2y;
           dz = -d_dist * e2z;
-        } else if (e1p < e2p && e1p < E0)  // e1p is best
+        }
+        else if (e1p < e2p && e1p < E0)  // e1p is best
         {
           dx = d_dist * e1x;
           dy = d_dist * e1y;
           dz = d_dist * e1z;
-        } else if (e2p < E0)  // e2p is best
+        }
+        else if (e2p < E0)  // e2p is best
         {
           dx = d_dist * e2x;
           dy = d_dist * e2y;
           dz = d_dist * e2z;
-        } else {
+        }
+        else {
           dx = dy = dz = 0;
         }
       }
@@ -22265,7 +22728,8 @@ static int mrisComputeThicknessSpringTerm(MRI_SURFACE *mris, double l_thick_spri
   return (NO_ERROR);
 }
 #endif
-static int mrisComputeAshburnerTriangleTerm(MRI_SURFACE *mris, double l_ashburner_triangle, INTEGRATION_PARMS *parms) {
+static int mrisComputeAshburnerTriangleTerm(MRI_SURFACE *mris, double l_ashburner_triangle, INTEGRATION_PARMS *parms)
+{
   int vno;
   //  int     missed = 0 ;
 
@@ -22334,7 +22798,8 @@ static int mrisComputeAshburnerTriangleTerm(MRI_SURFACE *mris, double l_ashburne
         dx *= -1;
         dy *= -1;
         dz *= -1;
-      } else {
+      }
+      else {
         dx = dy = dz = 0;
       }
     }
@@ -22413,7 +22878,8 @@ mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse)
   return(l_repulse * sse_repulse) ;
 }
 #else
-static double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht, MHT *mht_faces) {
+static double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht, MHT *mht_faces)
+{
   int vno, num, min_vno, i, n;
   float dist, dx, dy, dz, x, y, z, min_d;
   double sse_repulse, v_sse;
@@ -22569,7 +23035,8 @@ static double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MH
   Description
   ------------------------------------------------------*/
 
-static double mrisComputeRepulsiveRatioEnergy(MRI_SURFACE *mris, double l_repulse) {
+static double mrisComputeRepulsiveRatioEnergy(MRI_SURFACE *mris, double l_repulse)
+{
   int vno, n;
   double sse_repulse, v_sse, dist, dx, dy, dz, x, y, z, canon_dist, cdx, cdy, cdz;
   VERTEX *v, *vn;
@@ -22619,7 +23086,8 @@ static double mrisComputeRepulsiveRatioEnergy(MRI_SURFACE *mris, double l_repuls
 
   Description
   ------------------------------------------------------*/
-static int mrisComputeThicknessSmoothnessTerm(MRI_SURFACE *mris, double l_tsmooth, INTEGRATION_PARMS *parms) {
+static int mrisComputeThicknessSmoothnessTerm(MRI_SURFACE *mris, double l_tsmooth, INTEGRATION_PARMS *parms)
+{
   int vno, n, num;
   float dx, dy, dz, x, y, z, dn, d0, vx, vy, vz, delta;
   VERTEX *v, *vn;
@@ -22677,7 +23145,8 @@ static int mrisComputeThicknessSmoothnessTerm(MRI_SURFACE *mris, double l_tsmoot
 
   Description
   ------------------------------------------------------*/
-static int mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht, MHT *mht_faces) {
+static int mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht, MHT *mht_faces)
+{
   int vno, num, min_vno, i, n;
   float dist, dx, dy, dz, x, y, z, sx, sy, sz, min_d, min_scale, norm;
   double scale;
@@ -22890,7 +23359,8 @@ static int mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mh
 
   Description
   ------------------------------------------------------*/
-static int mrisComputeRepulsiveRatioTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht) {
+static int mrisComputeRepulsiveRatioTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
+{
   int vno, num, min_vno, i;
   float dist, dx, dy, dz, x, y, z, sx, sy, sz, min_d, min_scale, canon_dist, cdx, cdy, cdz;
   double scale;
@@ -22981,7 +23451,8 @@ static int mrisComputeRepulsiveRatioTerm(MRI_SURFACE *mris, double l_repulse, MH
 
   Description
   ------------------------------------------------------*/
-static double mrisComputeSpringEnergy(MRI_SURFACE *mris) {
+static double mrisComputeSpringEnergy(MRI_SURFACE *mris)
+{
   int vno, n;
   double area_scale, sse_spring, v_sse;
   VERTEX *v;
@@ -22989,7 +23460,8 @@ static double mrisComputeSpringEnergy(MRI_SURFACE *mris) {
 #if METRIC_SCALE
   if (mris->patch) {
     area_scale = 1.0;
-  } else {
+  }
+  else {
     area_scale = mris->orig_area / mris->total_area;
   }
 #else
@@ -23022,7 +23494,8 @@ static double mrisComputeSpringEnergy(MRI_SURFACE *mris) {
   (i.e. after global rotational alignment)
   spherical coordinates in the TMP2_VERTICES
   ------------------------------------------------------*/
-static double mrisComputeLaplacianEnergy(MRI_SURFACE *mris) {
+static double mrisComputeLaplacianEnergy(MRI_SURFACE *mris)
+{
   int vno, n;
   double area_scale, sse_lap, v_sse, dx, dy, dz, vx, vy, vz, vnx, vny, vnz, error;
   VERTEX *v, *vn;
@@ -23030,7 +23503,8 @@ static double mrisComputeLaplacianEnergy(MRI_SURFACE *mris) {
 #if METRIC_SCALE
   if (mris->patch) {
     area_scale = 1.0;
-  } else {
+  }
+  else {
     area_scale = mris->orig_area / mris->total_area;
   }
 #else
@@ -23069,7 +23543,8 @@ static double mrisComputeLaplacianEnergy(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-static double mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris) {
+static double mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris)
+{
   int vno, n;
   double area_scale, sse_spring, v_sse;
   VERTEX *v, *vn;
@@ -23078,7 +23553,8 @@ static double mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris) {
 #if METRIC_SCALE
   if (mris->patch) {
     area_scale = 1.0;
-  } else {
+  }
+  else {
     area_scale = FZERO(mris->total_area) ? 1.0 : mris->orig_area / mris->total_area;
   }
 #else
@@ -23122,7 +23598,8 @@ static double mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris) {
 #define RMIN 1
 #define RMAX 5
 
-static int mrisComputeNonlinearSpringTerm(MRI_SURFACE *mris, double l_nlspring, INTEGRATION_PARMS *parms) {
+static int mrisComputeNonlinearSpringTerm(MRI_SURFACE *mris, double l_nlspring, INTEGRATION_PARMS *parms)
+{
   int vno, n;
   double area_scale, sse_spring, E, F, f, rmin, rmax;
   VERTEX *v, *vn;
@@ -23135,7 +23612,8 @@ static int mrisComputeNonlinearSpringTerm(MRI_SURFACE *mris, double l_nlspring, 
 #if METRIC_SCALE
   if (mris->patch) {
     area_scale = 1.0;
-  } else {
+  }
+  else {
     area_scale = mris->orig_area / mris->total_area;
   }
 #else
@@ -23188,7 +23666,8 @@ static int mrisComputeNonlinearSpringTerm(MRI_SURFACE *mris, double l_nlspring, 
   return (NO_ERROR);
 }
 
-static double mrisComputeNonlinearSpringEnergy(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static double mrisComputeNonlinearSpringEnergy(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   int vno, n;
   double area_scale, sse_spring, E, F, f, rmin, rmax, ftotal;
   VERTEX *v, *vn;
@@ -23199,7 +23678,8 @@ static double mrisComputeNonlinearSpringEnergy(MRI_SURFACE *mris, INTEGRATION_PA
 #if METRIC_SCALE
   if (mris->patch) {
     area_scale = 1.0;
-  } else {
+  }
+  else {
     area_scale = mris->orig_area / mris->total_area;
   }
 #else
@@ -23283,7 +23763,8 @@ static double mrisComputeNonlinearSpringEnergy(MRI_SURFACE *mris, INTEGRATION_PA
   A0 = 0.5 (a x b) . n
 
   ------------------------------------------------------*/
-static int mrisComputeAngleAreaTerms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static int mrisComputeAngleAreaTerms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   int fno, ano;
   VERTEX *v0, *v1, *v2, *va, *vb, *vo;
   VECTOR *v_a, *v_b, *v_a_x_n, *v_b_x_n, *v_n, *v_tmp, *v_sum;
@@ -23293,7 +23774,8 @@ static int mrisComputeAngleAreaTerms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms
 #if METRIC_SCALE
   if (mris->patch || (mris->status != MRIS_SPHERE && mris->status != MRIS_PARAMETERIZED_SPHERE)) {
     area_scale = 1.0f;
-  } else {
+  }
+  else {
     area_scale = mris->orig_area / mris->total_area;
   }
 #else
@@ -23436,7 +23918,8 @@ static int mrisComputeAngleAreaTerms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms
         len = V3_DOT(v_a, v_a);
         if (!FZERO(len)) {
           V3_SCALAR_MUL(v_tmp, delta / len, v_tmp);
-        } else {
+        }
+        else {
           V3_SCALAR_MUL(v_tmp, 0.0f, v_tmp);
         }
         va->dx += V3_X(v_tmp);
@@ -23451,7 +23934,8 @@ static int mrisComputeAngleAreaTerms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms
         len = V3_DOT(v_b, v_b);
         if (!FZERO(len)) {
           V3_SCALAR_MUL(v_sum, delta / len, v_sum);
-        } else {
+        }
+        else {
           V3_SCALAR_MUL(v_sum, 0.0f, v_sum);
         }
         vb->dx += V3_X(v_sum);
@@ -23491,7 +23975,8 @@ static int mrisComputeAngleAreaTerms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms
 
   Description
   ------------------------------------------------------*/
-static int mrisComputeNonlinearAreaTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static int mrisComputeNonlinearAreaTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   int fno;
   VERTEX *v0, *v1, *v2;
   VECTOR *v_a, *v_b, *v_a_x_n, *v_b_x_n, *v_n, *v_tmp, *v_sum;
@@ -23501,7 +23986,8 @@ static int mrisComputeNonlinearAreaTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *pa
 #if METRIC_SCALE
   if (mris->patch || (mris->status != MRIS_SPHERE && mris->status != MRIS_PARAMETERIZED_SPHERE)) {
     area_scale = 1.0f;
-  } else {
+  }
+  else {
     area_scale = mris->orig_area / mris->total_area;
   }
 #else
@@ -23546,7 +24032,8 @@ static int mrisComputeNonlinearAreaTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *pa
 #if SCALE_NONLINEAR_AREA
     if (!FZERO(orig_area)) {
       ratio = area / orig_area;
-    } else {
+    }
+    else {
       ratio = 0.0f;
     }
 #else
@@ -23555,7 +24042,8 @@ static int mrisComputeNonlinearAreaTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *pa
 
     if (ratio > MAX_NEG_RATIO) {
       ratio = MAX_NEG_RATIO;
-    } else if (ratio < -MAX_NEG_RATIO) {
+    }
+    else if (ratio < -MAX_NEG_RATIO) {
       ratio = -MAX_NEG_RATIO;
     }
 #if 0
@@ -23626,7 +24114,8 @@ static int mrisComputeNonlinearAreaTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *pa
 
   Description
   ------------------------------------------------------*/
-static int mrisComputeSurfaceRepulsionTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht) {
+static int mrisComputeSurfaceRepulsionTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
+{
   int vno, max_vno, i;
   float dx, dy, dz, x, y, z, sx, sy, sz, norm[3], dot;
   float max_scale, max_dot;
@@ -23682,7 +24171,8 @@ static int mrisComputeSurfaceRepulsionTerm(MRI_SURFACE *mris, double l_repulse, 
       }
       if (dot > MAX_NEG_RATIO) {
         dot = MAX_NEG_RATIO;
-      } else if (dot < -MAX_NEG_RATIO) {
+      }
+      else if (dot < -MAX_NEG_RATIO) {
         dot = -MAX_NEG_RATIO;
       }
 #if 0
@@ -23724,7 +24214,8 @@ static int mrisComputeSurfaceRepulsionTerm(MRI_SURFACE *mris, double l_repulse, 
   Description
   ------------------------------------------------------*/
 static int mrisComputeWhichSurfaceRepulsionTerm(
-    MRI_SURFACE *mris, double l_repulse, MHT *mht, int which, float dot_thresh) {
+    MRI_SURFACE *mris, double l_repulse, MHT *mht, int which, float dot_thresh)
+{
   int vno, max_vno, i;
   float dx, dy, dz, x, y, z, sx, sy, sz, norm[3], dot;
   float max_scale, max_dot;
@@ -23739,7 +24230,8 @@ static int mrisComputeWhichSurfaceRepulsionTerm(
 
   if (l_repulse < 0) {
     sgn = -1;
-  } else {
+  }
+  else {
     sgn = 1;
   }
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -23799,7 +24291,8 @@ static int mrisComputeWhichSurfaceRepulsionTerm(
       }
       if (dot > MAX_NEG_RATIO) {
         dot = MAX_NEG_RATIO;
-      } else if (dot < -MAX_NEG_RATIO) {
+      }
+      else if (dot < -MAX_NEG_RATIO) {
         dot = -MAX_NEG_RATIO;
       }
 #if 0
@@ -23884,7 +24377,8 @@ mrisComputeAverageHeight(MRI_SURFACE *mris)
 
   Description
   ------------------------------------------------------*/
-static int mrisProjectSurface(MRI_SURFACE *mris) {
+static int mrisProjectSurface(MRI_SURFACE *mris)
+{
   /*  MRISupdateSurface(mris) ;*/
   switch (mris->status) {
     case MRIS_PLANE:
@@ -23925,7 +24419,8 @@ static int mrisProjectSurface(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-static int mrisOrientSurface(MRI_SURFACE *mris) {
+static int mrisOrientSurface(MRI_SURFACE *mris)
+{
   switch (mris->status) {
     case MRIS_RIGID_BODY:
     case MRIS_PARAMETERIZED_SPHERE:
@@ -23951,7 +24446,8 @@ static int mrisOrientSurface(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-static int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float dt, float old_sse) {
+static int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float dt, float old_sse)
+{
   float area_rms, angle_rms, curv_rms, sse, dist_rms, corr_rms;
   int n, negative;
   float nv;
@@ -23984,7 +24480,8 @@ static int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, 
     sse = MRIScomputeSSE(mris, parms);
     if (old_sse > 0) {
       pct_change = 100 * (old_sse - sse) / (old_sse);
-    } else {
+    }
+    else {
       pct_change = 0.0;
     }
     fprintf(fp,
@@ -23998,7 +24495,8 @@ static int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, 
             100.0 * mris->neg_orig_area / (mris->orig_area),
             parms->n_averages,
             pct_change);
-  } else {
+  }
+  else {
     sse = mrisComputeError(mris, parms, &area_rms, &angle_rms, &curv_rms, &dist_rms, &corr_rms);
 
     if (fyi) {
@@ -24034,7 +24532,8 @@ static int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, 
       if (dist_rms > 20) {
         DiagBreak();
       }
-    } else {
+    }
+    else {
       if (parms->flags & IP_USE_MULTIFRAMES) {
         nv = (float)MRISvalidVertices(mris);
 
@@ -24059,7 +24558,8 @@ static int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, 
           fprintf(stdout, "  (%d: %2.3f : %2.3f)", n, parms->fields[n].sse, sqrt(parms->fields[n].sse / nv));
         }
         fprintf(stdout, "\n");
-      } else
+      }
+      else
         fprintf(fp,
                 "%3.3d: dt: %2.3f, sse: %2.1f (%2.3f, %2.1f, %2.3f, %2.3f), "
                 "neg: %d (%%%2.2f:%%%2.2f), avgs: %d\n",
@@ -24087,7 +24587,8 @@ static int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, 
 
   Description
   ------------------------------------------------------*/
-int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name) {
+int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
+{
   char fname[STRLEN];
   int vno, nvertices, nfaces, magic, version, tmp, ix, iy, iz, n, type;
   VERTEX *vertex;
@@ -24097,7 +24598,8 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name) {
   MRISbuildFileName(mris, name, fname);
   if (type == MRIS_GEO_TRIANGLE_FILE) {
     return (mrisReadGeoFilePositions(mris, fname));
-  } else if (type == MRIS_ICO_FILE) {
+  }
+  else if (type == MRIS_ICO_FILE) {
     return (ICOreadVertexPositions(mris, fname, CURRENT_VERTICES));
   }
   fp = fopen(fname, "rb");
@@ -24109,15 +24611,18 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name) {
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
       fprintf(stdout, "new surface file format\n");
     }
-  } else if (magic == NEW_QUAD_FILE_MAGIC_NUMBER) {
+  }
+  else if (magic == NEW_QUAD_FILE_MAGIC_NUMBER) {
     version = -2;
-  } else if (magic == TRIANGLE_FILE_MAGIC_NUMBER) {
+  }
+  else if (magic == TRIANGLE_FILE_MAGIC_NUMBER) {
     fclose(fp);
     if (mrisReadTriangleFilePositions(mris, fname) != NO_ERROR) {
       ErrorReturn(Gerror, (Gerror, "mrisReadTriangleFile failed.\n"));
     }
     version = -3;
-  } else {
+  }
+  else {
     rewind(fp);
     version = 0;
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
@@ -24156,7 +24661,8 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name) {
         vertex->x = ix / 100.0;
         vertex->y = iy / 100.0;
         vertex->z = iz / 100.0;
-      } else /* version == -2 */
+      }
+      else /* version == -2 */
       {
         vertex->x = freadFloat(fp);
         vertex->y = freadFloat(fp);
@@ -24184,7 +24690,8 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name) {
 
   Description
   ------------------------------------------------------*/
-int MRIScomputeMetricProperties(MRI_SURFACE *mris) {
+int MRIScomputeMetricProperties(MRI_SURFACE *mris)
+{
   MRIScomputeNormals(mris);
   mrisComputeVertexDistances(mris);
   mrisComputeSurfaceDimensions(mris);
@@ -24205,7 +24712,8 @@ int MRIScomputeMetricProperties(MRI_SURFACE *mris) {
 /* this is a fork of mrisComputeMetricProperties,
    but ultimately shouldn't be
 */
-int mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris) {
+int mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris)
+{
 #ifdef FS_CUDA_TIMINGS
   struct timeval tv1, tv2, result;
 #endif  // FS_CUDA_TIMINGS
@@ -24242,7 +24750,8 @@ int mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris) 
 
     /* DOWNLOAD distances */
     MRISCdownloadDistances(mrics, mris);
-  } else {
+  }
+  else {
 #ifdef FS_CUDA_TIMINGS
     gettimeofday(&tv1, NULL);
 #endif  // FS_CUDA_TIMINGS
@@ -24307,7 +24816,8 @@ int mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris) 
    MRISrescaleMetricProperties() have been run. Returns the distance
    scaling factor. Has no effect if surface is not a group surface.
    -------------------------------------------------------------------- */
-double MRISrescaleMetricProperties(MRIS *surf) {
+double MRISrescaleMetricProperties(MRIS *surf)
+{
   int VtxNo, nthNNbr, nNNbrs, NbrVtxNo;
   VERTEX *vtx1, *vtx2;
   double scale;
@@ -24344,7 +24854,8 @@ double MRISrescaleMetricProperties(MRIS *surf) {
 
 /*------------------------------------------------------
   ------------------------------------------------------*/
-static int mrisCountTotalNeighbors(MRI_SURFACE *mris) {
+static int mrisCountTotalNeighbors(MRI_SURFACE *mris)
+{
   int vno, total;
   VERTEX *v;
 
@@ -24476,7 +24987,8 @@ mrisComputeNegTerm(MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
 }
 #endif
 
-static int mrisFlipPatch(MRI_SURFACE *mris) {
+static int mrisFlipPatch(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -24502,7 +25014,8 @@ static int mrisFlipPatch(MRI_SURFACE *mris) {
   Note we must change the status of the mris as the
   original surface has no externally defined orientation.
   ------------------------------------------------------*/
-int MRISreadOriginalProperties(MRI_SURFACE *mris, const char *sname) {
+int MRISreadOriginalProperties(MRI_SURFACE *mris, const char *sname)
+{
   int old_status;
 
   if (!sname) {
@@ -24537,7 +25050,8 @@ int MRISreadOriginalProperties(MRI_SURFACE *mris, const char *sname) {
 
   Description
   ------------------------------------------------------*/
-int MRISsaveVertexPositions(MRI_SURFACE *mris, int which) {
+int MRISsaveVertexPositions(MRI_SURFACE *mris, int which)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -24616,7 +25130,8 @@ int MRISsaveVertexPositions(MRI_SURFACE *mris, int which) {
 
   Description
   ------------------------------------------------------*/
-int MRISsaveNormals(MRI_SURFACE *mris, int which) {
+int MRISsaveNormals(MRI_SURFACE *mris, int which)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -24663,7 +25178,8 @@ int MRISsaveNormals(MRI_SURFACE *mris, int which) {
 
   Description
   ------------------------------------------------------*/
-int MRISrestoreNormals(MRI_SURFACE *mris, int which) {
+int MRISrestoreNormals(MRI_SURFACE *mris, int which)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -24706,7 +25222,8 @@ int MRISrestoreNormals(MRI_SURFACE *mris, int which) {
 
   Description
   ------------------------------------------------------*/
-int MRIScomputeCanonicalCoordinates(MRI_SURFACE *mris) {
+int MRIScomputeCanonicalCoordinates(MRI_SURFACE *mris)
+{
   float theta, phi, r, d, x, y, z;
   VERTEX *v;
   int vno;
@@ -24740,7 +25257,8 @@ int MRIScomputeCanonicalCoordinates(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) {
+int MRISrestoreVertexPositions(MRI_SURFACE *mris, int which)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -24869,14 +25387,16 @@ int MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) {
 
   Description
   ------------------------------------------------------*/
-double MRISpercentDistanceError(MRI_SURFACE *mris) {
+double MRISpercentDistanceError(MRI_SURFACE *mris)
+{
   VERTEX *v;
   int vno, n, nvertices;
   double dist_scale, pct, dist, odist, mean, mean_error;
 
   if (mris->patch) {
     dist_scale = 1.0;
-  } else {
+  }
+  else {
     dist_scale = sqrt(mris->orig_area / mris->total_area);
   }
 
@@ -24920,7 +25440,8 @@ double MRISpercentDistanceError(MRI_SURFACE *mris) {
 #else
   if (!FZERO(mean)) {
     pct = mean_error / mean;
-  } else {
+  }
+  else {
     pct = 1000.0; /* should never happen */
   }
 #endif
@@ -24937,7 +25458,8 @@ double MRISpercentDistanceError(MRI_SURFACE *mris) {
   Description: return filetype using the extension
   default is MRIS_BINARY_QUADRANGLE_FILE
   ------------------------------------------------------*/
-int MRISfileNameType(const char *fname) {
+int MRISfileNameType(const char *fname)
+{
   int type;
   char *dot, ext[STRLEN], str[STRLEN], *idext;
 
@@ -24955,7 +25477,8 @@ int MRISfileNameType(const char *fname) {
   if (dot) {
     *dot = 0; /* remove it from file name so that fopen will work */
     strcpy(ext, dot + 1);
-  } else /* no explicit type - check extension */
+  }
+  else /* no explicit type - check extension */
   {
     dot = strrchr(str, '.');
     if (dot) {
@@ -24965,21 +25488,29 @@ int MRISfileNameType(const char *fname) {
   StrUpper(ext);
   if (!strcmp(ext, "ASC")) {
     type = MRIS_ASCII_TRIANGLE_FILE;
-  } else if (!strcmp(ext, "GEO")) {
+  }
+  else if (!strcmp(ext, "GEO")) {
     type = MRIS_GEO_TRIANGLE_FILE;
-  } else if (!strcmp(ext, "TRI") || !strcmp(ext, "ICO")) {
+  }
+  else if (!strcmp(ext, "TRI") || !strcmp(ext, "ICO")) {
     type = MRIS_ICO_FILE;
-  } else if (!strcmp(ext, "VTK")) {
+  }
+  else if (!strcmp(ext, "VTK")) {
     type = MRIS_VTK_FILE;
-  } else if (!strcmp(ext, "STL")) {
+  }
+  else if (!strcmp(ext, "STL")) {
     type = MRIS_STL_FILE;
-  } else if (!strcmp(ext, "GII")) {
+  }
+  else if (!strcmp(ext, "GII")) {
     type = MRIS_GIFTI_FILE;
-  } else if (!strcmp(ext, "MGH")) {
+  }
+  else if (!strcmp(ext, "MGH")) {
     type = MRI_MGH_FILE;  // surface-encoded volume
-  } else if (!strcmp(ext, "ANNOT")) {
+  }
+  else if (!strcmp(ext, "ANNOT")) {
     type = MRIS_ANNOT_FILE;
-  } else {
+  }
+  else {
     type = MRIS_BINARY_QUADRANGLE_FILE;
   }
 
@@ -24993,7 +25524,8 @@ int MRISfileNameType(const char *fname) {
 
   Description
   ------------------------------------------------------*/
-int MRISwriteAscii(MRI_SURFACE *mris, const char *fname) {
+int MRISwriteAscii(MRI_SURFACE *mris, const char *fname)
+{
   int vno, fno, n;
   VERTEX *v;
   FACE *face;
@@ -25025,7 +25557,8 @@ int MRISwriteAscii(MRI_SURFACE *mris, const char *fname) {
   Description: Same as MRISwriteAscii, but write surface
   normals instead of
   ------------------------------------------------------*/
-int MRISwriteNormalsAscii(MRI_SURFACE *mris, const char *fname) {
+int MRISwriteNormalsAscii(MRI_SURFACE *mris, const char *fname)
+{
   int vno, fno, n;
   VERTEX *v;
   FACE *face;
@@ -25056,7 +25589,8 @@ int MRISwriteNormalsAscii(MRI_SURFACE *mris, const char *fname) {
 /*-----------------------------------------------------
   Description: Same write the surface normals into a .mgz volume
   ------------------------------------------------------*/
-int MRISwriteNormals(MRI_SURFACE *mris, const char *fname) {
+int MRISwriteNormals(MRI_SURFACE *mris, const char *fname)
+{
   int vno;
   VERTEX *v;
   MRI *mri;
@@ -25076,7 +25610,8 @@ int MRISwriteNormals(MRI_SURFACE *mris, const char *fname) {
   MRIfree(&mri);
   return (NO_ERROR);
 }
-int MRISreadNormals(MRI_SURFACE *mris, const char *fname) {
+int MRISreadNormals(MRI_SURFACE *mris, const char *fname)
+{
   int vno;
   VERTEX *v;
   MRI *mri;
@@ -25098,7 +25633,8 @@ int MRISreadNormals(MRI_SURFACE *mris, const char *fname) {
 /*-----------------------------------------------------
   Description: Same write the white matter surface normals into a .mgz volume
   ------------------------------------------------------*/
-int MRISwriteWhiteNormals(MRI_SURFACE *mris, const char *fname) {
+int MRISwriteWhiteNormals(MRI_SURFACE *mris, const char *fname)
+{
   int vno;
   VERTEX *v;
   MRI *mri;
@@ -25121,7 +25657,8 @@ int MRISwriteWhiteNormals(MRI_SURFACE *mris, const char *fname) {
 /*-----------------------------------------------------
   Description: write the principal curvature directions
   ------------------------------------------------------*/
-int MRISwritePrincipalDirection(MRI_SURFACE *mris, int dir_index, const char *fname) {
+int MRISwritePrincipalDirection(MRI_SURFACE *mris, int dir_index, const char *fname)
+{
   int vno;
   VERTEX *v;
   MRI *mri;
@@ -25138,7 +25675,8 @@ int MRISwritePrincipalDirection(MRI_SURFACE *mris, int dir_index, const char *fn
       MRIsetVoxVal(mri, vno, 0, 0, 0, v->e1x);
       MRIsetVoxVal(mri, vno, 0, 0, 1, v->e1y);
       MRIsetVoxVal(mri, vno, 0, 0, 2, v->e1z);
-    } else {
+    }
+    else {
       MRIsetVoxVal(mri, vno, 0, 0, 0, v->e2x);
       MRIsetVoxVal(mri, vno, 0, 0, 1, v->e2y);
       MRIsetVoxVal(mri, vno, 0, 0, 2, v->e2z);
@@ -25155,7 +25693,8 @@ int MRISwritePrincipalDirection(MRI_SURFACE *mris, int dir_index, const char *fn
 
   Description
   ------------------------------------------------------*/
-int MRISwriteVTK(MRI_SURFACE *mris, const char *fname) {
+int MRISwriteVTK(MRI_SURFACE *mris, const char *fname)
+{
   int vno, fno, n;
   VERTEX *v;
   FACE *face;
@@ -25195,7 +25734,8 @@ int MRISwriteVTK(MRI_SURFACE *mris, const char *fname) {
   is assumed to have been written with point and face
   data via the MRISwriteVTK routine.
   ------------------------------------------------------*/
-int MRISwriteCurvVTK(MRI_SURFACE *mris, const char *fname) {
+int MRISwriteCurvVTK(MRI_SURFACE *mris, const char *fname)
+{
   FILE *fp = fopen(fname, "a");
   if (!fp) ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISwriteScalarVTK: could not open file %s", fname));
 
@@ -25220,7 +25760,8 @@ int MRISwriteCurvVTK(MRI_SURFACE *mris, const char *fname) {
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname) {
+MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname)
+{
   char line[STRLEN], *cp = NULL;
 
   FILE *fp = fopen(fname, "r");
@@ -25278,7 +25819,8 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname) {
       fclose(fp);
       ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadVTK: error reading file %s, invalid nvertices=%d\n", fname, nvertices));
     }
-  } else {
+  }
+  else {
     fclose(fp);
     ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadVTK: error reading file %s, no POINTS field\n", fname));
   }
@@ -25289,7 +25831,8 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname) {
     mris = MRISalloc(nvertices, 0);  // note: nfaces=0 for now...
     mris->type = MRIS_TRIANGULAR_SURFACE;
     newMris = 1;  // flag indicating need to fill-in vertex and face data
-  } else {
+  }
+  else {
     // confirm that the mris structure we've been passed has the same
     // number of vertices
     if (mris->nvertices != nvertices) {
@@ -25337,7 +25880,8 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname) {
       fclose(fp);
       ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadVTK: error reading file %s, invalid POLYGON data\n", fname));
     }
-  } else {
+  }
+  else {
     fclose(fp);
     ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadVTK: error parsing POLYGONS in file %s", fname));
   }
@@ -25350,10 +25894,12 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname) {
     if (!mris->faces) {
       fclose(fp);
       ErrorExit(ERROR_NO_MEMORY, "MRISreadVTK(%d, %d): could not allocate faces", nfaces, sizeof(FACE));
-    } else {
+    }
+    else {
       memset(mris->faces, 0, nfaces * sizeof(FACE));
     }
-  } else {
+  }
+  else {
     // confirm that the mris structure passed to us has the expected num faces
     if (mris->nfaces != nfaces) {
       fclose(fp);
@@ -25385,7 +25931,8 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname) {
         // fill-in the face data to our new mris struct
         face->v[n] = vno;
         mris->vertices[vno].num++;
-      } else {
+      }
+      else {
         // confirm that the mris structure passed to us has the same face num
         if (face->v[n] != vno) {
           fclose(fp);
@@ -25470,7 +26017,8 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname) {
                     curvmin = v->curv;
                   }
                 }
-              } else {
+              }
+              else {
                 fclose(fp);
                 ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadVTK: error parsing %s FIELD in file %s", fieldName, fname));
               }
@@ -25480,7 +26028,8 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname) {
               mris->min_curv = curvmin;
               // printf("maxcurv=%f, mincurv=%f\n",curvmax, curvmin);
             }
-          } else {
+          }
+          else {
             fclose(fp);
             ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadVTK: error parsing FIELDs in file %s", fname));
           }
@@ -25500,7 +26049,8 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname) {
 
   Description
   ------------------------------------------------------*/
-int MRISwriteGeo(MRI_SURFACE *mris, const char *fname) {
+int MRISwriteGeo(MRI_SURFACE *mris, const char *fname)
+{
   int vno, fno, n, actual_vno, toggle, nfaces, nvertices, vnos[300000];
   VERTEX *v;
   FACE *face;
@@ -25530,7 +26080,8 @@ int MRISwriteGeo(MRI_SURFACE *mris, const char *fname) {
     if (toggle) {
       toggle = 0;
       fprintf(fp, "\n");
-    } else {
+    }
+    else {
       toggle = 1;
       fprintf(fp, " ");
     }
@@ -25565,7 +26116,8 @@ int MRISwriteGeo(MRI_SURFACE *mris, const char *fname) {
   Description: write ascii icosahedron data (vertices and face vertices info)
   ------------------------------------------------------*/
 /* note that .tri or .ico file.  numbering is 1-based output.*/
-int MRISwriteICO(MRI_SURFACE *mris, const char *fname) {
+int MRISwriteICO(MRI_SURFACE *mris, const char *fname)
+{
   int vno, fno, nfaces, nvertices;
   int actual_fno, actual_vno;
   VERTEX *v;
@@ -25615,7 +26167,8 @@ int MRISwriteICO(MRI_SURFACE *mris, const char *fname) {
 
   Description
   ------------------------------------------------------*/
-int MRISwritePatchAscii(MRI_SURFACE *mris, const char *fname) {
+int MRISwritePatchAscii(MRI_SURFACE *mris, const char *fname)
+{
   FILE *fp;
   int vno, fno, n, nvertices, nfaces, type;
   VERTEX *v;
@@ -25685,7 +26238,8 @@ int MRISwritePatchAscii(MRI_SURFACE *mris, const char *fname) {
 
   Description: write ascii STL (stereolithography) format
   ------------------------------------------------------*/
-int MRISwriteSTL(MRI_SURFACE *mris, const char *fname) {
+int MRISwriteSTL(MRI_SURFACE *mris, const char *fname)
+{
   int vno, fno;
   VERTEX *v;
   FACE *face;
@@ -25729,7 +26283,8 @@ int MRISwriteSTL(MRI_SURFACE *mris, const char *fname) {
 
   Description
   ------------------------------------------------------*/
-static MRI_SURFACE *mrisReadAsciiFile(const char *fname) {
+static MRI_SURFACE *mrisReadAsciiFile(const char *fname)
+{
   MRI_SURFACE *mris;
   char line[STRLEN], *cp;
   int vno, fno, n, nvertices, nfaces, patch, rip;
@@ -25791,7 +26346,8 @@ static MRI_SURFACE *mrisReadAsciiFile(const char *fname) {
 
   Description
   ------------------------------------------------------*/
-static MRI_SURFACE *mrisReadGeoFile(const char *fname) {
+static MRI_SURFACE *mrisReadGeoFile(const char *fname)
+{
   MRI_SURFACE *mris;
   char line[202], *cp;
   int vno, fno, n, nvertices, nfaces, patch, vertices_per_face, nedges;
@@ -25862,7 +26418,8 @@ static MRI_SURFACE *mrisReadGeoFile(const char *fname) {
 
   Description
   ------------------------------------------------------*/
-static int mrisReadGeoFilePositions(MRI_SURFACE *mris, const char *fname) {
+static int mrisReadGeoFilePositions(MRI_SURFACE *mris, const char *fname)
+{
   char line[202], *cp;
   int vno, nvertices, nfaces, patch, vertices_per_face, nedges;
   VERTEX *v;
@@ -25960,7 +26517,8 @@ mrisReadAsciiPatchFile(char *fname)
                  and face normals into an MRIS_SURFACE
                  structure.
   ------------------------------------------------------*/
-static MRI_SURFACE *mrisReadSTLfile(const char *fname) {
+static MRI_SURFACE *mrisReadSTLfile(const char *fname)
+{
   MRI_SURFACE *mris;
   char line[STRLEN], *cp;
   int nfaces, fno, vno, fvno, n2;
@@ -26002,7 +26560,8 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname) {
   mris = MRISalloc(nfaces * 3, nfaces);
   if (mris == NULL) {
     ErrorReturn(NULL, (ERROR_NOMEMORY, "MRISreadSTLfile: could not alloc memory for mris"));
-  } else {
+  }
+  else {
     mris->type = MRIS_TRIANGULAR_SURFACE;
   }
 
@@ -26049,7 +26608,8 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname) {
   }
   if (!cp) {
     ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: error reading file %s", fname));
-  } else {
+  }
+  else {
     printf("Found %d faces and %d vertices in STL file\n", fno, vno);
   }
 
@@ -26099,7 +26659,8 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname) {
       if (vnums[n] != n) {
         nduplicates++;
         vnums2[n] = -1;
-      } else {
+      }
+      else {
         vnums2[n] = n - nduplicates;
       }
     }
@@ -26240,7 +26801,8 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname) {
   return (mris);
 }
 
-double MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, int fno) {
+double MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, int fno)
+{
   INTEGRATION_PARMS parms;
   float error;
 
@@ -26263,7 +26825,8 @@ double MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, in
 
   Description
   ------------------------------------------------------*/
-double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int use_stds) {
+double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int use_stds)
+{
   float l_corr;
 
   l_corr = parms->l_corr + parms->l_pcorr; /* only one will be nonzero */
@@ -26318,14 +26881,16 @@ double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
     }
     if (parms->abs_norm) {
       sse += fabs(delta);
-    } else {
+    }
+    else {
       sse += delta * delta;
     }
   }
   return (sse);
 }
 
-static double mrisComputeVectorCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int use_stds) {
+static double mrisComputeVectorCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int use_stds)
+{
   double src, target, sse, delta, std;
   VERTEX *v;
   int n, vno, fno;
@@ -26490,7 +27055,8 @@ static double mrisComputeVectorCorrelationError(MRI_SURFACE *mris, INTEGRATION_P
   Description
   ------------------------------------------------------*/
 
-static int mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static int mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   double du, dv, up1, um1, vp1, vm1, delta, src, target, mag, max_mag, l_corr;
   VERTEX *v;
   int vno, fno;
@@ -26604,7 +27170,8 @@ static int mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parm
   return (NO_ERROR);
 }
 
-static int mrisComputeVectorCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static int mrisComputeVectorCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   double du, dv, up1, um1, vp1, vm1, delta, src, target, mag, max_mag, l_corr;
   VERTEX *v;
   int vno, fno, n;
@@ -26866,7 +27433,8 @@ static int mrisComputeVectorCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS
   ------------------------------------------------------*/
 #define D_ANGLE RADIANS(0.25)
 
-static int mrisComputePolarCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static int mrisComputePolarCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   double ap1, am1, da, bp1, bm1, db, gp1, gm1, dg, delta, src, target, mag, max_mag;
   VERTEX *v;
   int vno, fno;
@@ -26975,7 +27543,8 @@ static int mrisComputePolarCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS 
   return (NO_ERROR);
 }
 
-static int mrisComputePolarVectorCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static int mrisComputePolarVectorCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   double da, db, dg, delta, src, target, l_pcorr;
   VERTEX *v;
   int vno, fno, n;
@@ -27254,7 +27823,8 @@ static int mrisComputePolarVectorCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_
 
   Description
   ------------------------------------------------------*/
-int MRISzeroMeanCurvature(MRI_SURFACE *mris) {
+int MRISzeroMeanCurvature(MRI_SURFACE *mris)
+{
   double mean;
   int vno, vtotal;
   VERTEX *v;
@@ -27292,7 +27862,8 @@ which_norm can be NORM_MEDIAN or NORM_MEAN. NORM_MEAN results
 in the usual stddev computation. NORM_MEDIAN uses the median
 instead of the mean for the stddev computation.
   ------------------------------------------------------*/
-int MRISnormalizeCurvature(MRI_SURFACE *mris, int which_norm) {
+int MRISnormalizeCurvature(MRI_SURFACE *mris, int which_norm)
+{
   double mean, var, std, median;
   int vno, vtotal;
   VERTEX *v;
@@ -27336,7 +27907,8 @@ int MRISnormalizeCurvature(MRI_SURFACE *mris, int which_norm) {
       }
       v->curv = (v->curv - median) / std;
     }
-  } else  // normalize mean
+  }
+  else  // normalize mean
   {
     for (mean = 0.0f, vtotal = vno = 0; vno < mris->nvertices; vno++) {
       v = &mris->vertices[vno];
@@ -27384,7 +27956,8 @@ int MRISnormalizeCurvature(MRI_SURFACE *mris, int which_norm) {
 
   Description
   ------------------------------------------------------*/
-int MRISnormalizeCurvatureVariance(MRI_SURFACE *mris) {
+int MRISnormalizeCurvatureVariance(MRI_SURFACE *mris)
+{
   double mean, var, std;
   int vno, vtotal;
   VERTEX *v;
@@ -27436,7 +28009,8 @@ int MRISnormalizeCurvatureVariance(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISscaleDistances(MRI_SURFACE *mris, float scale) {
+int MRISscaleDistances(MRI_SURFACE *mris, float scale)
+{
   int vno, n;
   VERTEX *v;
 
@@ -27488,7 +28062,8 @@ mrisCheck(MRI_SURFACE *mris)
 
   Description
   ------------------------------------------------------*/
-int MRISminFilterCurvatures(MRI_SURFACE *mris, int niter) {
+int MRISminFilterCurvatures(MRI_SURFACE *mris, int niter)
+{
   int i, vno, vnb, *pnb, vnum;
   float curv;
   VERTEX *v, *vn;
@@ -27531,7 +28106,8 @@ int MRISminFilterCurvatures(MRI_SURFACE *mris, int niter) {
 
   Description
   ------------------------------------------------------*/
-int MRISmaxFilterCurvatures(MRI_SURFACE *mris, int niter) {
+int MRISmaxFilterCurvatures(MRI_SURFACE *mris, int niter)
+{
   int i, vno, vnb, *pnb, vnum;
   float curv;
   VERTEX *v, *vn;
@@ -27571,7 +28147,8 @@ int MRISmaxFilterCurvatures(MRI_SURFACE *mris, int niter) {
 int MRISaverageCurvatures(MRI_SURFACE *mris, int navgs)
 Performs navgs steps of iterative spatial smoothing on curv.
 ------------------------------------------------------*/
-int MRISaverageCurvatures(MRI_SURFACE *mris, int navgs) {
+int MRISaverageCurvatures(MRI_SURFACE *mris, int navgs)
+{
   int i, vno, vnb, *pnb, vnum;
   float curv, num;
   VERTEX *v, *vn;
@@ -27614,7 +28191,8 @@ int MRISaverageCurvatures(MRI_SURFACE *mris, int navgs) {
 
   Description
   ------------------------------------------------------*/
-int MRISaverageMarkedCurvatures(MRI_SURFACE *mris, int navgs) {
+int MRISaverageMarkedCurvatures(MRI_SURFACE *mris, int navgs)
+{
   int i, vno, vnb, *pnb, vnum;
   float curv, num;
   VERTEX *v, *vn;
@@ -27657,7 +28235,8 @@ int MRISaverageMarkedCurvatures(MRI_SURFACE *mris, int navgs) {
 
   Description
   ------------------------------------------------------*/
-int MRISaverageMarkedVals(MRI_SURFACE *mris, int navgs) {
+int MRISaverageMarkedVals(MRI_SURFACE *mris, int navgs)
+{
   int i, vno, vnb, *pnb, vnum;
   float val, num;
   VERTEX *v, *vn;
@@ -27699,7 +28278,8 @@ int MRISaverageMarkedVals(MRI_SURFACE *mris, int navgs) {
 
   Description
   ------------------------------------------------------*/
-int MRISaverageVals(MRI_SURFACE *mris, int navgs) {
+int MRISaverageVals(MRI_SURFACE *mris, int navgs)
+{
   int i, vno;
 
   for (i = 0; i < navgs; i++) {
@@ -27748,7 +28328,8 @@ int MRISaverageVals(MRI_SURFACE *mris, int navgs) {
   Description
   spatially average the v->d field
   ------------------------------------------------------*/
-int MRISaverageD(MRI_SURFACE *mris, int navgs) {
+int MRISaverageD(MRI_SURFACE *mris, int navgs)
+{
   int i, vno, vnb, *pnb, vnum;
   float val, num;
   VERTEX *v, *vn;
@@ -27783,7 +28364,8 @@ int MRISaverageD(MRI_SURFACE *mris, int navgs) {
   }
   return (NO_ERROR);
 }
-static int compare_sort_vals(const void *pc1, const void *pc2) {
+static int compare_sort_vals(const void *pc1, const void *pc2)
+{
   register float c1, c2;
 
   c1 = *(float *)pc1;
@@ -27792,7 +28374,8 @@ static int compare_sort_vals(const void *pc1, const void *pc2) {
   /*  return(c1 > c2 ? 1 : c1 == c2 ? 0 : -1) ;*/
   if (c1 > c2) {
     return (1);
-  } else if (c1 < c2) {
+  }
+  else if (c1 < c2) {
     return (-1);
   }
 
@@ -27805,7 +28388,8 @@ static int compare_sort_vals(const void *pc1, const void *pc2) {
 
   Description
   ------------------------------------------------------*/
-int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians) {
+int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians)
+{
   int i, vno, vnb, *pnb, vnum, num;
   float val_list[MAX_NEIGHBORS];
   VERTEX *v, *vn;
@@ -27831,7 +28415,8 @@ int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians) {
       qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals);
       if (ISODD(num)) {
         v->tdx = val_list[(num - 1) / 2];
-      } else {
+      }
+      else {
         v->tdx = (val_list[num / 2] + val_list[num / 2 - 1]) / 2;
       }
     }
@@ -27852,7 +28437,8 @@ int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians) {
 
   Description
   ------------------------------------------------------*/
-int MRISmedianFilterVerexPositions(MRI_SURFACE *mris, int nmedians) {
+int MRISmedianFilterVerexPositions(MRI_SURFACE *mris, int nmedians)
+{
   int i, vno, vnb, *pnb, vnum, num;
   float val_list[MAX_NEIGHBORS];
   VERTEX *v, *vn;
@@ -27877,7 +28463,8 @@ int MRISmedianFilterVerexPositions(MRI_SURFACE *mris, int nmedians) {
       qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals);
       if (ISODD(num)) {
         v->tdx = val_list[(num - 1) / 2];
-      } else {
+      }
+      else {
         v->tdx = (val_list[num / 2] + val_list[num / 2 - 1]) / 2;
       }
 
@@ -27895,7 +28482,8 @@ int MRISmedianFilterVerexPositions(MRI_SURFACE *mris, int nmedians) {
       qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals);
       if (ISODD(num)) {
         v->tdy = val_list[(num - 1) / 2];
-      } else {
+      }
+      else {
         v->tdy = (val_list[num / 2] + val_list[num / 2 - 1]) / 2;
       }
 
@@ -27913,7 +28501,8 @@ int MRISmedianFilterVerexPositions(MRI_SURFACE *mris, int nmedians) {
       qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals);
       if (ISODD(num)) {
         v->tdz = val_list[(num - 1) / 2];
-      } else {
+      }
+      else {
         v->tdz = (val_list[num / 2] + val_list[num / 2 - 1]) / 2;
       }
     }
@@ -27936,7 +28525,8 @@ int MRISmedianFilterVerexPositions(MRI_SURFACE *mris, int nmedians) {
 
   Description
   ------------------------------------------------------*/
-int MRISgaussianFilterD(MRI_SURFACE *mris, double wt) {
+int MRISgaussianFilterD(MRI_SURFACE *mris, double wt)
+{
   int vno, vnb, *pnb, vnum;
   double nbr_wt, val, norm;
   VERTEX *v, *vn;
@@ -27979,7 +28569,8 @@ int MRISgaussianFilterD(MRI_SURFACE *mris, double wt) {
 
   Description
   ------------------------------------------------------*/
-int MRISmedianFilterD(MRI_SURFACE *mris, int nmedians, int vtotal) {
+int MRISmedianFilterD(MRI_SURFACE *mris, int nmedians, int vtotal)
+{
   int i, vno, vnb, *pnb, vnum, num;
   float val_list[MAX_NEIGHBORS];
   VERTEX *v, *vn;
@@ -27993,7 +28584,8 @@ int MRISmedianFilterD(MRI_SURFACE *mris, int nmedians, int vtotal) {
       pnb = v->v;
       if (vtotal) {
         vnum = v->vtotal;
-      } else {
+      }
+      else {
         vnum = v->vnum;
       }
       val_list[0] = v->d;
@@ -28008,7 +28600,8 @@ int MRISmedianFilterD(MRI_SURFACE *mris, int nmedians, int vtotal) {
       qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals);
       if (ISODD(num)) {
         v->tdx = val_list[(num - 1) / 2];
-      } else {
+      }
+      else {
         v->tdx = (val_list[num / 2] + val_list[num / 2 - 1]) / 2;
       }
     }
@@ -28029,7 +28622,8 @@ int MRISmedianFilterD(MRI_SURFACE *mris, int nmedians, int vtotal) {
 
   Description
   ------------------------------------------------------*/
-int MRISmedianFilterCurvature(MRI_SURFACE *mris, int nmedians) {
+int MRISmedianFilterCurvature(MRI_SURFACE *mris, int nmedians)
+{
   int i, vno, vnb, *pnb, vnum, num;
   float val_list[MAX_NEIGHBORS];
   VERTEX *v, *vn;
@@ -28054,7 +28648,8 @@ int MRISmedianFilterCurvature(MRI_SURFACE *mris, int nmedians) {
       qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals);
       if (ISODD(num)) {
         v->tdx = val_list[(num - 1) / 2];
-      } else {
+      }
+      else {
         v->tdx = (val_list[num / 2] + val_list[num / 2 - 1]) / 2;
       }
     }
@@ -28075,7 +28670,8 @@ int MRISmedianFilterCurvature(MRI_SURFACE *mris, int nmedians) {
 
   Description
   ------------------------------------------------------*/
-int MRISmedianFilterVal2s(MRI_SURFACE *mris, int nmedians) {
+int MRISmedianFilterVal2s(MRI_SURFACE *mris, int nmedians)
+{
   int i, vno, vnb, *pnb, vnum, num;
   float val_list[MAX_NEIGHBORS];
   VERTEX *v, *vn;
@@ -28100,7 +28696,8 @@ int MRISmedianFilterVal2s(MRI_SURFACE *mris, int nmedians) {
       qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals);
       if (ISODD(num)) {
         v->tdx = val_list[(num - 1) / 2];
-      } else {
+      }
+      else {
         v->tdx = (val_list[num / 2] + val_list[num / 2 - 1]) / 2;
       }
     }
@@ -28121,7 +28718,8 @@ int MRISmedianFilterVal2s(MRI_SURFACE *mris, int nmedians) {
 
   Description
   ------------------------------------------------------*/
-int MRISmedianFilterVal2baks(MRI_SURFACE *mris, int nmedians) {
+int MRISmedianFilterVal2baks(MRI_SURFACE *mris, int nmedians)
+{
   int i, vno, vnb, *pnb, vnum, num;
   float val_list[MAX_NEIGHBORS];
   VERTEX *v, *vn;
@@ -28146,7 +28744,8 @@ int MRISmedianFilterVal2baks(MRI_SURFACE *mris, int nmedians) {
       qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals);
       if (ISODD(num)) {
         v->tdx = val_list[(num - 1) / 2];
-      } else {
+      }
+      else {
         v->tdx = (val_list[num / 2] + val_list[num / 2 - 1]) / 2;
       }
     }
@@ -28167,7 +28766,8 @@ int MRISmedianFilterVal2baks(MRI_SURFACE *mris, int nmedians) {
 
   Description
   ------------------------------------------------------*/
-int MRISaverageVal2s(MRI_SURFACE *mris, int navgs) {
+int MRISaverageVal2s(MRI_SURFACE *mris, int navgs)
+{
   int i, vno, vnb, *pnb, vnum;
   float val, num;
   VERTEX *v, *vn;
@@ -28209,7 +28809,8 @@ int MRISaverageVal2s(MRI_SURFACE *mris, int navgs) {
 
   Description
   ------------------------------------------------------*/
-int MRISaverageVal2baks(MRI_SURFACE *mris, int navgs) {
+int MRISaverageVal2baks(MRI_SURFACE *mris, int navgs)
+{
   int i, vno, vnb, *pnb, vnum;
   float val, num;
   VERTEX *v, *vn;
@@ -28251,7 +28852,8 @@ int MRISaverageVal2baks(MRI_SURFACE *mris, int navgs) {
 
   Description
   ------------------------------------------------------*/
-int MRISscaleCurvatures(MRI_SURFACE *mris, float min_curv, float max_curv) {
+int MRISscaleCurvatures(MRI_SURFACE *mris, float min_curv, float max_curv)
+{
   double old_min_curv, old_max_curv, mean, scale;
   int vno, vtotal;
   VERTEX *v;
@@ -28293,7 +28895,8 @@ int MRISscaleCurvatures(MRI_SURFACE *mris, float min_curv, float max_curv) {
 
   Description
   ------------------------------------------------------*/
-int MRISnonmaxSuppress(MRI_SURFACE *mris) {
+int MRISnonmaxSuppress(MRI_SURFACE *mris)
+{
   double du, dv, up1, um1, vp1, vm1, src, dx, dy, dz, fp1, fm1, mag;
   VERTEX *v;
   int vno;
@@ -28360,7 +28963,8 @@ int MRISnonmaxSuppress(MRI_SURFACE *mris) {
     if (FZERO(mag)) /* zero gradient */
     {
       v->curv = 0;
-    } else {
+    }
+    else {
       mag *= .1;
       dx = dx / mag;
       dy = dy / mag;
@@ -28372,10 +28976,12 @@ int MRISnonmaxSuppress(MRI_SURFACE *mris) {
     if ((src >= fp1) && (src >= fm1)) /* local max */
     {
       v->curv = 1;
-    } else if ((src <= fp1) && (src <= fm1)) /* local min */
+    }
+    else if ((src <= fp1) && (src <= fm1)) /* local min */
     {
       v->curv = -1;
-    } else {
+    }
+    else {
       v->curv = 0;
     }
     v->curv = src;
@@ -28391,7 +28997,8 @@ int MRISnonmaxSuppress(MRI_SURFACE *mris) {
   Description
   same as  below, but tracks odx,ody,odz fields
   ------------------------------------------------------*/
-static int mrisTrackTotalDistanceNew(MRI_SURFACE *mris) {
+static int mrisTrackTotalDistanceNew(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
   float nc;
@@ -28413,7 +29020,8 @@ static int mrisTrackTotalDistanceNew(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-static int mrisTrackTotalDistance(MRI_SURFACE *mris) {
+static int mrisTrackTotalDistance(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
   float nc;
@@ -28435,7 +29043,8 @@ static int mrisTrackTotalDistance(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISclearCurvature(MRI_SURFACE *mris) {
+int MRISclearCurvature(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -28455,7 +29064,8 @@ int MRISclearCurvature(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISrigidBodyAlignLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms) {
+int MRISrigidBodyAlignLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
+{
   int old_status, steps;
   INTEGRATION_PARMS parms;
 
@@ -28496,7 +29106,8 @@ int MRISrigidBodyAlignLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms) {
   return (NO_ERROR);
 }
 
-int MRISrigidBodyAlignVectorLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms) {
+int MRISrigidBodyAlignVectorLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
+{
   int n, old_status, steps;
   INTEGRATION_PARMS parms;
 
@@ -28556,7 +29167,8 @@ int MRISrigidBodyAlignVectorLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parm
 #define NANGLES 8
 
 int MRISrigidBodyAlignGlobal(
-    MRI_SURFACE *mris, INTEGRATION_PARMS *parms, float min_degrees, float max_degrees, int nangles) {
+    MRI_SURFACE *mris, INTEGRATION_PARMS *parms, float min_degrees, float max_degrees, int nangles)
+{
   double alpha, beta, gamma, degrees, delta, mina, minb, ming, sse, min_sse, ext_sse;
   int old_status = mris->status, old_norm, msec;
   struct timeb mytimer;
@@ -28702,7 +29314,8 @@ int MRISrigidBodyAlignGlobal(
 }
 
 int MRISrigidBodyAlignVectorGlobal(
-    MRI_SURFACE *mris, INTEGRATION_PARMS *parms, float min_degrees, float max_degrees, int nangles) {
+    MRI_SURFACE *mris, INTEGRATION_PARMS *parms, float min_degrees, float max_degrees, int nangles)
+{
   double alpha, beta, gamma, degrees, delta, mina, minb, ming, sse, min_sse;
   int old_status = mris->status;
 
@@ -28812,7 +29425,8 @@ int MRISrigidBodyAlignVectorGlobal(
 
   Description
   ------------------------------------------------------*/
-double MRISrmsTPHeight(MRI_SURFACE *mris) {
+double MRISrmsTPHeight(MRI_SURFACE *mris)
+{
   int vno, i, total_nbrs;
   VERTEX *vertex, *vnb;
   double avg_height, dot, nx, ny, nz, x, y, z, d;
@@ -28872,7 +29486,8 @@ double MRISrmsTPHeight(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISzeroNegativeAreas(MRI_SURFACE *mris) {
+int MRISzeroNegativeAreas(MRI_SURFACE *mris)
+{
   int vno, fno;
   VERTEX *v;
   FACE *face;
@@ -28904,7 +29519,8 @@ int MRISzeroNegativeAreas(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z, float *dmin) {
+int MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z, float *dmin)
+{
   int vno, min_v = -1;
   VERTEX *v;
   float d, min_d, dx, dy, dz;
@@ -28936,7 +29552,8 @@ int MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z, float *d
 
   Description
   ------------------------------------------------------*/
-int MRISfindClosestOriginalVertex(MRI_SURFACE *mris, float x, float y, float z) {
+int MRISfindClosestOriginalVertex(MRI_SURFACE *mris, float x, float y, float z)
+{
   int vno, min_v = -1;
   VERTEX *v;
   float d, min_d, dx, dy, dz;
@@ -28969,7 +29586,8 @@ int MRISfindClosestOriginalVertex(MRI_SURFACE *mris, float x, float y, float z) 
 
   Description
   ------------------------------------------------------*/
-int MRISfindClosestCanonicalVertex(MRI_SURFACE *mris, float x, float y, float z) {
+int MRISfindClosestCanonicalVertex(MRI_SURFACE *mris, float x, float y, float z)
+{
   int vno, min_v = -1;
   VERTEX *v;
   float d, min_d, dx, dy, dz;
@@ -28999,7 +29617,8 @@ int MRISfindClosestCanonicalVertex(MRI_SURFACE *mris, float x, float y, float z)
 
   Description
   ------------------------------------------------------*/
-int MRISfindClosestWhiteVertex(MRI_SURFACE *mris, float x, float y, float z) {
+int MRISfindClosestWhiteVertex(MRI_SURFACE *mris, float x, float y, float z)
+{
   int vno, min_v = -1;
   VERTEX *v;
   float d, min_d, dx, dy, dz;
@@ -29029,7 +29648,8 @@ int MRISfindClosestWhiteVertex(MRI_SURFACE *mris, float x, float y, float z) {
 
   Description
   ------------------------------------------------------*/
-int MRISuseCurvatureDifference(MRI_SURFACE *mris) {
+int MRISuseCurvatureDifference(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *vertex;
   float kmin, kmax;
@@ -29061,7 +29681,8 @@ int MRISuseCurvatureDifference(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISuseCurvatureMax(MRI_SURFACE *mris) {
+int MRISuseCurvatureMax(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
   float kmin, kmax;
@@ -29075,7 +29696,8 @@ int MRISuseCurvatureMax(MRI_SURFACE *mris) {
     }
     if (fabs(v->k1) > fabs(v->k2)) {
       v->curv = v->k1;
-    } else {
+    }
+    else {
       v->curv = v->k2;
     }
     /*    v->curv = MAX(fabs(v->k1), fabs(v->k2)) ;*/
@@ -29102,7 +29724,8 @@ int MRISuseCurvatureMax(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISuseCurvatureMin(MRI_SURFACE *mris) {
+int MRISuseCurvatureMin(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
   float kmin, kmax;
@@ -29116,7 +29739,8 @@ int MRISuseCurvatureMin(MRI_SURFACE *mris) {
     }
     if (fabs(v->k1) > fabs(v->k2)) {
       v->curv = v->k2;
-    } else {
+    }
+    else {
       v->curv = v->k1;
     }
     /*    v->curv = MIN(v->k1, v->k2) ;*/
@@ -29142,7 +29766,8 @@ int MRISuseCurvatureMin(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISuseCurvatureStretch(MRI_SURFACE *mris) {
+int MRISuseCurvatureStretch(MRI_SURFACE *mris)
+{
   int vno, n;
   VERTEX *v;
   float kmin, kmax, dist, dist_orig, curv, dist_scale, max_stretch, stretch;
@@ -29187,7 +29812,8 @@ int MRISuseCurvatureStretch(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISuseNegCurvature(MRI_SURFACE *mris) {
+int MRISuseNegCurvature(MRI_SURFACE *mris)
+{
   int vno, fno;
   VERTEX *v;
   FACE *f;
@@ -29218,7 +29844,8 @@ int MRISuseNegCurvature(MRI_SURFACE *mris) {
   Description
   ------------------------------------------------------*/
 // get the vertex number
-int MRIStalairachToVertex(MRI_SURFACE *mris, double xt, double yt, double zt) {
+int MRIStalairachToVertex(MRI_SURFACE *mris, double xt, double yt, double zt)
+{
   int vno;
   double xw, yw, zw;
 
@@ -29238,7 +29865,8 @@ int MRIStalairachToVertex(MRI_SURFACE *mris, double xt, double yt, double zt) {
 
   Description
   ------------------------------------------------------*/
-int MRIScanonicalToVertex(MRI_SURFACE *mris, double phi, double theta) {
+int MRIScanonicalToVertex(MRI_SURFACE *mris, double phi, double theta)
+{
   int vno;
   double xw, yw, zw;
 
@@ -29254,7 +29882,8 @@ int MRIScanonicalToVertex(MRI_SURFACE *mris, double phi, double theta) {
   Description
   ------------------------------------------------------*/
 int MRISsurfaceRASToTalairachVoxel(
-    MRI_SURFACE *mris, MRI *mri, double xw, double yw, double zw, double *pxv, double *pyv, double *pzv) {
+    MRI_SURFACE *mris, MRI *mri, double xw, double yw, double zw, double *pxv, double *pyv, double *pzv)
+{
   //   conformed -->  SRAS
   //       |            |
   //       |            | SRASToRAS
@@ -29315,7 +29944,8 @@ int MRISsurfaceRASToTalairachVoxel(
 
   Description
   ------------------------------------------------------*/
-int MRISvertexToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri, double *pxv, double *pyv, double *pzv) {
+int MRISvertexToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri, double *pxv, double *pyv, double *pzv)
+{
   double xw, yw, zw;
 
   xw = v->x;
@@ -29325,7 +29955,8 @@ int MRISvertexToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri, double *pxv, doubl
   return (NO_ERROR);
 }
 
-int MRISvertexNormalToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri, double *pnx, double *pny, double *pnz) {
+int MRISvertexNormalToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri, double *pnx, double *pny, double *pnz)
+{
   double xw, yw, zw;
   double xv0, yv0, zv0, xv1, yv1, zv1;
 
@@ -29342,7 +29973,8 @@ int MRISvertexNormalToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri, double *pnx,
   *pnz = zv1 - zv0;
   return (NO_ERROR);
 }
-int MRISvertexNormalToVoxelScaled(MRI_SURFACE *mris, VERTEX *v, MRI *mri, double *pnx, double *pny, double *pnz) {
+int MRISvertexNormalToVoxelScaled(MRI_SURFACE *mris, VERTEX *v, MRI *mri, double *pnx, double *pny, double *pnz)
+{
   double nx, ny, nz, len;
 
   MRISvertexNormalToVoxel(mris, v, mri, &nx, &ny, &nz);
@@ -29360,7 +29992,8 @@ int MRISvertexNormalToVoxelScaled(MRI_SURFACE *mris, VERTEX *v, MRI *mri, double
 
   Description
   ------------------------------------------------------*/
-int MRISvertexCoordToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri, int coords, double *pxv, double *pyv, double *pzv) {
+int MRISvertexCoordToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri, int coords, double *pxv, double *pyv, double *pzv)
+{
   double xw = 0., yw = 0., zw = 0.;
 
   MRISgetCoords(v, coords, &xw, &yw, &zw);
@@ -29374,7 +30007,8 @@ int MRISvertexCoordToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri, int coords, d
 
   Description
   ------------------------------------------------------*/
-int MRISorigVertexToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri, double *pxv, double *pyv, double *pzv) {
+int MRISorigVertexToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri, double *pxv, double *pyv, double *pzv)
+{
   double xw, yw, zw;
 
   xw = v->origx;
@@ -29390,7 +30024,8 @@ int MRISorigVertexToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri, double *pxv, d
 
   Description
   ------------------------------------------------------*/
-int MRISwhiteVertexToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri, double *pxv, double *pyv, double *pzv) {
+int MRISwhiteVertexToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri, double *pxv, double *pyv, double *pzv)
+{
   double xw, yw, zw;
 
   xw = v->whitex;
@@ -29406,7 +30041,8 @@ int MRISwhiteVertexToVoxel(MRI_SURFACE *mris, VERTEX *v, MRI *mri, double *pxv, 
 
   Description
   ------------------------------------------------------*/
-int MRISaverageVertexPositions(MRI_SURFACE *mris, int navgs) {
+int MRISaverageVertexPositions(MRI_SURFACE *mris, int navgs)
+{
   int i, vno, vnb, *pnb, vnum;
   float x, y, z, num;
   VERTEX *v, *vn;
@@ -29456,7 +30092,8 @@ int MRISaverageVertexPositions(MRI_SURFACE *mris, int navgs) {
 
   Description
   ------------------------------------------------------*/
-int MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, int which) {
+int MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, int which)
+{
   int i, vno, vnb, *pnb, vnum;
   float x, y, z, num;
   VERTEX *v, *vn;
@@ -29500,7 +30137,8 @@ int MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, int which
   }
   return (NO_ERROR);
 }
-static int mrisCountCompressed(MRI_SURFACE *mris, double min_dist) {
+static int mrisCountCompressed(MRI_SURFACE *mris, double min_dist)
+{
   int vno, n, num;
   VERTEX *v, *vn;
   double d, dx, dy, dz;
@@ -29530,7 +30168,8 @@ static int mrisCountCompressed(MRI_SURFACE *mris, double min_dist) {
   return (num);
 }
 
-static int mrisComputePlaneTerm(MRI_SURFACE *mris, double l_plane, double l_spacing) {
+static int mrisComputePlaneTerm(MRI_SURFACE *mris, double l_plane, double l_spacing)
+{
   int vno, n, vnum;
   MATRIX *M, *m_evectors;
   VERTEX *v, *vn;
@@ -29657,7 +30296,8 @@ int mrisComputeOptimalPlane(MRI_SURFACE *mris,
                             double *pzn,
                             double *pxc,
                             double *pyc,
-                            double *pzc) {
+                            double *pzc)
+{
   int vno, n, vnum;
   MATRIX *M, *m_evectors;
   VERTEX *v;
@@ -29727,7 +30367,8 @@ int mrisComputeOptimalPlane(MRI_SURFACE *mris,
   return (NO_ERROR);
 }
 
-int MRISremoveCompressedRegions(MRI_SURFACE *mris, double min_dist) {
+int MRISremoveCompressedRegions(MRI_SURFACE *mris, double min_dist)
+{
   int compressed, iters = 0, old_compressed, n_averages, nsize;
   MHT *mht = NULL;
   double delta_t, l_spring, l_convex, l_max_spring;
@@ -29766,7 +30407,8 @@ int MRISremoveCompressedRegions(MRI_SURFACE *mris, double min_dist) {
     MRISclearGradient(mris);
     if ((parms.flags & IPFLAG_NO_SELF_INT_TEST) == 0) {
       mht = MHTfillTable(mris, mht);
-    } else {
+    }
+    else {
       mht = NULL;
     }
     if (Gdiag_no >= 0 && DIAG_VERBOSE_ON) {
@@ -29820,7 +30462,8 @@ int MRISremoveCompressedRegions(MRI_SURFACE *mris, double min_dist) {
 #define MAX_REDUCTIONS 2
 #define REDUCTION_PCT 0.5
 
-int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATION_PARMS *parms) {
+int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEGRATION_PARMS *parms)
+{
   /*  char   *cp ;*/
   int niterations, n, write_iterations, nreductions = 0, ripped = 0, increased = 0;
   double pial_sse, sse, wm_sse, delta_t = 0.0, dt, l_intensity, base_dt, last_sse, rms, mle_sse, last_mle_sse,
@@ -29845,7 +30488,8 @@ int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEG
       sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
       if (!parms->start_t) {
         parms->fp = fopen(fname, "w");
-      } else {
+      }
+      else {
         parms->fp = fopen(fname, "a");
       }
       if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
@@ -30020,7 +30664,8 @@ int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEG
           break;
         }
         n--; /* don't count this as a time step */
-      } else {
+      }
+      else {
         printf(
             "error decreased by %2.4f%% - "
             "%dth time step reduction: dt=%2.3f\n",
@@ -30048,7 +30693,8 @@ int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEG
         n++;
         break;
       }
-    } else {
+    }
+    else {
       last_mle_sse = mle_sse;
       increased = 0;
     }
@@ -30146,7 +30792,8 @@ int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEG
   return (NO_ERROR);
 }
 
-int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTEGRATION_PARMS *parms) {
+int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTEGRATION_PARMS *parms)
+{
   /*  char   *cp ;*/
   int avgs, niterations, n, write_iterations, nreductions = 0, done;
   double sse, delta_t = 0.0, rms, dt, l_intensity, base_dt, last_sse, last_rms, max_mm;
@@ -30182,7 +30829,8 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
               parms->base_name);
       if (!parms->start_t) {
         parms->fp = fopen(fname, "w");
-      } else {
+      }
+      else {
         parms->fp = fopen(fname, "a");
       }
       if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
@@ -30210,7 +30858,8 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
   avgs = parms->n_averages;
   if (!FZERO(parms->l_histo)) {
     last_rms = rms = mrisComputeHistoNegativeLikelihood(mris, parms);
-  } else if (!FZERO(parms->l_map)) {
+  }
+  else if (!FZERO(parms->l_map)) {
     int nvox;
     MRISsaveVertexPositions(mris, PIAL_VERTICES);
     if (parms->mri_volume_fractions) MRIfree(&parms->mri_volume_fractions);
@@ -30220,7 +30869,8 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     rms = mrisComputeNegativeLogPosterior(mris, parms, &nvox);
     //    last_rms = rms = 1-exp(-rms/nvox) ;
     last_rms = rms = sqrt(rms / nvox);
-  } else if (!FZERO(parms->l_map2d)) {
+  }
+  else if (!FZERO(parms->l_map2d)) {
     int nvox;
     MRISsaveVertexPositions(mris, PIAL_VERTICES);
 #if 0
@@ -30232,21 +30882,25 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     if ((getenv("READ_VOLS") != NULL)) {
       parms->mri_volume_fractions = MRIread("map2d.vfrac.0000.mgz");
       parms->mri_dtrans = MRIread("dtrans.mgz");
-    } else
+    }
+    else
       parms->mri_volume_fractions = MRIcomputeLaminarVolumeFractions(mris, parms->resolution, parms->mri_brain, NULL);
 
     rms = mrisComputeNegativeLogPosterior2D(mris, parms, &nvox);
     //    last_rms = rms = 1-exp(-rms/nvox) ;
     last_rms = rms = sqrt(rms / nvox);
-  } else if (!FZERO(parms->l_location)) {
+  }
+  else if (!FZERO(parms->l_location)) {
     last_rms = rms = mrisRmsDistanceError(mris);
-  } else {
+  }
+  else {
     last_rms = rms = mrisRmsValError(mris, mri_brain);
   }
   last_sse = sse = MRIScomputeSSE(mris, parms);
   if (DZERO(parms->l_histo) == 0) {
     last_rms = rms = mrisComputeHistoNegativeLikelihood(mris, parms);
-  } else if (DZERO(parms->l_intensity) && gMRISexternalRMS != NULL && parms->l_external > 0) {
+  }
+  else if (DZERO(parms->l_intensity) && gMRISexternalRMS != NULL && parms->l_external > 0) {
     last_rms = rms = (*gMRISexternalRMS)(mris, parms);
   }
 #if 0
@@ -30395,14 +31049,16 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
       MRIScomputeMetricProperties(mris);
       if (!FZERO(parms->l_histo)) {
         rms = mrisComputeHistoNegativeLikelihood(mris, parms);
-      } else if (!FZERO(parms->l_map)) {
+      }
+      else if (!FZERO(parms->l_map)) {
         int nvox;
         MRISsaveVertexPositions(mris, PIAL_VERTICES);
         if (parms->mri_volume_fractions) MRIfree(&parms->mri_volume_fractions);
         parms->mri_volume_fractions = MRIcomputeLaminarVolumeFractions(mris, parms->resolution, parms->mri_brain, NULL);
         rms = mrisComputeNegativeLogPosterior(mris, parms, &nvox);
         rms = sqrt(rms / nvox);
-      } else if (!FZERO(parms->l_map2d)) {
+      }
+      else if (!FZERO(parms->l_map2d)) {
         int nvox;
         MRISsaveVertexPositions(mris, PIAL_VERTICES);
 #if 0
@@ -30414,11 +31070,14 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
         parms->mri_volume_fractions = MRIcomputeLaminarVolumeFractions(mris, parms->resolution, parms->mri_brain, NULL);
         rms = mrisComputeNegativeLogPosterior2D(mris, parms, &nvox);
         rms = sqrt(rms / nvox);
-      } else if (!FZERO(parms->l_location)) {
+      }
+      else if (!FZERO(parms->l_location)) {
         rms = mrisRmsDistanceError(mris);
-      } else if (DZERO(parms->l_intensity) && gMRISexternalRMS != NULL && parms->l_external > 0) {
+      }
+      else if (DZERO(parms->l_intensity) && gMRISexternalRMS != NULL && parms->l_external > 0) {
         rms = (*gMRISexternalRMS)(mris, parms);
-      } else {
+      }
+      else {
         rms = mrisRmsValError(mris, mri_brain);
       }
       sse = MRIScomputeSSE(mris, parms);
@@ -30560,7 +31219,8 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
 }
 
 int MRISpositionSurface_mef(
-    MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5, INTEGRATION_PARMS *parms, float weight30, float weight5) {
+    MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5, INTEGRATION_PARMS *parms, float weight30, float weight5)
+{
   /*  char   *cp ;*/
   int avgs, niterations, n, write_iterations, nreductions = 0, done;
   double delta_t = 0.0, rms, dt, l_intensity, base_dt, last_rms, max_mm, sse, last_sse, delta_rms;
@@ -30593,7 +31253,8 @@ int MRISpositionSurface_mef(
       sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
       if (!parms->start_t) {
         parms->fp = fopen(fname, "w");
-      } else {
+      }
+      else {
         parms->fp = fopen(fname, "a");
       }
       if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
@@ -30678,7 +31339,8 @@ int MRISpositionSurface_mef(
 #if 1
       if (parms->check_tol) {
         delta_rms = parms->tol * last_rms;
-      } else {
+      }
+      else {
         delta_rms = 0.05;  // don't worry about energy functional decreasing, just continue
       }
       if (parms->check_tol && (rms > last_rms - delta_rms))  // error increased - reduce step size
@@ -30766,7 +31428,8 @@ int MRISpositionSurface_mef(
   return (NO_ERROR);
 }
 
-int MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTEGRATION_PARMS *parms) {
+int MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTEGRATION_PARMS *parms)
+{
   /*  char   *cp ;*/
   double sse_before, sse_after, rms_before, rms_after;
   MHT *mht = NULL;
@@ -30785,7 +31448,8 @@ int MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTEGRAT
       sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
       if (!parms->start_t) {
         parms->fp = fopen(fname, "w");
-      } else {
+      }
+      else {
         parms->fp = fopen(fname, "a");
       }
       if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
@@ -30862,7 +31526,8 @@ int MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTEGRAT
 
   Description
   ------------------------------------------------------*/
-MRI *MRISwriteSurfaceIntoVolume(MRI_SURFACE *mris, MRI *mri_template, MRI *mri) {
+MRI *MRISwriteSurfaceIntoVolume(MRI_SURFACE *mris, MRI *mri_template, MRI *mri)
+{
   int fno;
 
   if (!mri) {
@@ -30875,7 +31540,8 @@ MRI *MRISwriteSurfaceIntoVolume(MRI_SURFACE *mris, MRI *mri_template, MRI *mri) 
     mri->yend = mri_template->yend;
     mri->zstart = mri_template->zstart;
     mri->zend = mri_template->zend;
-  } else {
+  }
+  else {
     MRIclear(mri);
   }
 
@@ -30926,7 +31592,8 @@ static int mrisFillFace(MRI_SURFACE *mris, MRI *mri, int fno) { return (mrisHatc
   ------------------------------------------------------*/
 #define SAMPLE_DIST 0.25
 
-static int mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on) {
+static int mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on)
+{
   double x, y, z, xa, ya, za, xc, yc, zc, t0, t1, adx, ady, adz, dx, dy, dz, cdx, cdy, cdz, alen, clen, delta_t0,
       delta_t1, len;
   int xv, yv, zv, i;
@@ -30982,7 +31649,8 @@ static int mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on) {
     */
     if (FZERO(alen) && FZERO(clen)) {
       delta_t0 = 0.99;
-    } else
+    }
+    else
       delta_t0 = (alen > clen) ? (SAMPLE_DIST / alen) : (SAMPLE_DIST / clen);
     if (FZERO(delta_t0))
       ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "mrisFillFace: face %d has infinite leg (%d, %d)\n", fno, alen, clen));
@@ -31007,7 +31675,8 @@ static int mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on) {
       len = sqrt(SQR(dx) + SQR(dy) + SQR(dz));
       if (FZERO(len)) {
         delta_t1 = 0.99;
-      } else {
+      }
+      else {
         delta_t1 = SAMPLE_DIST / len; /* sample at SAMPLE_DIST intervals */
         if (delta_t1 >= 1.0f) {
           delta_t1 = 0.99;
@@ -31027,7 +31696,8 @@ static int mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on) {
         zv = nint(z); /* voxel coordinate */
         if (on) {
           MRIset_bit(mri, xv, yv, zv); /* mark it filled */
-        } else {
+        }
+        else {
           MRIclear_bit(mri, xv, yv, zv); /* mark it empty */
         }
       }
@@ -31042,7 +31712,8 @@ static int mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on) {
       zv = nint(z); /* voxel coordinate */
       if (on) {
         MRIset_bit(mri, xv, yv, zv); /* mark it filled */
-      } else {
+      }
+      else {
         MRIclear_bit(mri, xv, yv, zv); /* mark it empty */
       }
     }
@@ -31061,7 +31732,8 @@ static int mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on) {
     len = sqrt(SQR(dx) + SQR(dy) + SQR(dz));
     if (FZERO(len)) {
       delta_t1 = 0.99;
-    } else {
+    }
+    else {
       delta_t1 = SAMPLE_DIST / len; /* sample at SAMPLE_DIST intervals */
       if (delta_t1 >= 1.0f) {
         delta_t1 = 0.99;
@@ -31081,7 +31753,8 @@ static int mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on) {
       zv = nint(z); /* voxel coordinate */
       if (on) {
         MRIset_bit(mri, xv, yv, zv); /* mark it filled */
-      } else {
+      }
+      else {
         MRIclear_bit(mri, xv, yv, zv); /* mark it empty */
       }
     }
@@ -31096,7 +31769,8 @@ static int mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on) {
     zv = nint(z); /* voxel coordinate */
     if (on) {
       MRIset_bit(mri, xv, yv, zv); /* mark it filled */
-    } else {
+    }
+    else {
       MRIclear_bit(mri, xv, yv, zv); /* mark it empty */
     }
   }
@@ -31132,7 +31806,8 @@ mrisEraseFace(MRI_SURFACE *mris, MRI *mri, int fno)
   ------------------------------------------------------*/
 
 #if 1
-int MRISfindClosestOrigVertices(MRI_SURFACE *mris, int nbhd_size) {
+int MRISfindClosestOrigVertices(MRI_SURFACE *mris, int nbhd_size)
+{
   int vno, n, vlist[100000], vtotal, ns, i, vnum, nbr_count[100], min_n, min_vno;
   VERTEX *v, *vn, *vn2;
   float dx, dy, dz, dist, min_dist, nx, ny, nz, dot;
@@ -31223,7 +31898,8 @@ int MRISfindClosestOrigVertices(MRI_SURFACE *mris, int nbhd_size) {
   find the closest pial vertex and use it's spherical coords to initialize
   the thickness minimization. Put the v->c[xyz] coords of the nearest pial vertex into v->[xyz] of each vertex.
 */
-int MRISfindClosestPialVerticesCanonicalCoords(MRI_SURFACE *mris, int nbhd_size) {
+int MRISfindClosestPialVerticesCanonicalCoords(MRI_SURFACE *mris, int nbhd_size)
+{
   int vno, n, vlist[100000], vtotal, ns, i, vnum, nbr_count[100], min_n, min_vno;
   VERTEX *v, *vn, *vn2;
   float dx, dy, dz, dist, min_dist, nx, ny, nz, dot;
@@ -31312,7 +31988,8 @@ int MRISfindClosestPialVerticesCanonicalCoords(MRI_SURFACE *mris, int nbhd_size)
   }
   return (NO_ERROR);
 }
-int MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, float max_thick) {
+int MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, float max_thick)
+{
   int vno, n, vlist[100000], vtotal, ns, i, vnum, nbr_count[100], min_n, nwg_bad, ngw_bad;
   VERTEX *v, *vn, *vn2;
   float dx, dy, dz, dist, min_dist, nx, ny, nz, dot;
@@ -31505,7 +32182,8 @@ int MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, float max_thi
 }
 #else
 #define MAX_THICKNESS 6.0f
-int MRISmeasureCorticalThickness(MRI_SURFACE *mris) {
+int MRISmeasureCorticalThickness(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
   float max_out_dist;
@@ -31542,7 +32220,8 @@ int MRISmeasureCorticalThickness(MRI_SURFACE *mris) {
       dz = v->z - v->origz;
       v->curv = sqrt(dx * dx + dy * dy + dz * dz);
       v->marked = 1;
-    } else {
+    }
+    else {
       v->curv = max_out_dist;
     }
   }
@@ -31761,7 +32440,8 @@ mrisFindNormalDistance(MRI_SURFACE *mris, MHT *mht, int vno, double max_dist, in
   given location.
   ------------------------------------------------------*/
 static int mrisDirectionTriangleIntersection(
-    MRI_SURFACE *mris, float x0, float y0, float z0, float nx, float ny, float nz, MHT *mht, double *pdist, int vno) {
+    MRI_SURFACE *mris, float x0, float y0, float z0, float nx, float ny, float nz, MHT *mht, double *pdist, int vno)
+{
   double dist, min_dist, U0[3], U1[3], U2[3], pt[3], dir[3], int_pt[3], dot;
   float x, y, z, dx, dy, dz;
   MHBT *bucket;
@@ -31914,7 +32594,8 @@ mrisNormalDirectionTriangleIntersection(MRI_SURFACE *mris, VERTEX *v,
   given location.
   ------------------------------------------------------*/
 static int mrisAllNormalDirectionCurrentTriangleIntersections(
-    MRI_SURFACE *mris, VERTEX *v, MHT *mht, double *pdist, int *flist) {
+    MRI_SURFACE *mris, VERTEX *v, MHT *mht, double *pdist, int *flist)
+{
   double dist, min_dist, U0[3], U1[3], U2[3], pt[3], dir[3], int_pt[3];
   float nx, ny, nz, x, y, z, dx, dy, dz, dot;
   MHBT *bucket;
@@ -32035,7 +32716,8 @@ mrisAllCurrentTriangleIntersections(MRI_SURFACE *mris, float x, float y,
 }
 #endif
 
-static int load_orig_triangle_vertices(MRI_SURFACE *mris, int fno, double U0[3], double U1[3], double U2[3]) {
+static int load_orig_triangle_vertices(MRI_SURFACE *mris, int fno, double U0[3], double U1[3], double U2[3])
+{
   VERTEX *v;
   FACE *face;
 
@@ -32054,7 +32736,8 @@ static int load_orig_triangle_vertices(MRI_SURFACE *mris, int fno, double U0[3],
   U2[2] = v->origz;
   return (NO_ERROR);
 }
-static int load_triangle_vertices(MRI_SURFACE *mris, int fno, double U0[3], double U1[3], double U2[3], int which) {
+static int load_triangle_vertices(MRI_SURFACE *mris, int fno, double U0[3], double U1[3], double U2[3], int which)
+{
   VERTEX *v;
   FACE *face;
 
@@ -32174,7 +32857,8 @@ mrisFindClosestFilledVoxel(MRI_SURFACE *mris, MRI *mri_filled, int vno,
 
   Description
   ------------------------------------------------------*/
-int MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs) {
+int MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs)
+{
   int i, vno, vnb, *pnb, vnum, n;
   float x, y, z, num;
   VERTEX *v, *vn;
@@ -32282,7 +32966,8 @@ int MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs) {
 
   Description
   ------------------------------------------------------*/
-int MRISweightedSoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs) {
+int MRISweightedSoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs)
+{
   int i, vno, vnb, *pnb, vnum, n;
   float x, y, z;
   VERTEX *v, *vn;
@@ -32432,7 +33117,8 @@ int MRISweightedSoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs) {
 
   Description
   ------------------------------------------------------*/
-int MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs) {
+int MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs)
+{
   int i, vno, vnb, *pnb, vnum;
   float x, y, z, num;
   VERTEX *v, *vn;
@@ -32516,7 +33202,8 @@ int MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs) {
   }
   return (NO_ERROR);
 }
-int MRISsoapBubbleTargetVertexPositions(MRI_SURFACE *mris, int navgs) {
+int MRISsoapBubbleTargetVertexPositions(MRI_SURFACE *mris, int navgs)
+{
   int i, vno, vnb, *pnb, vnum;
   float x, y, z, num;
   VERTEX *v, *vn;
@@ -32676,7 +33363,8 @@ MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs, float pct_fixed)
   Description
   ------------------------------------------------------*/
 
-int MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked) {
+int MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked)
+{
   int vno;
   VERTEX *v;
   float r;
@@ -32700,7 +33388,8 @@ int MRISmarkRandomVertices(MRI_SURFACE *mris, float prob_marked) {
 
   Description
   ------------------------------------------------------*/
-int MRISclearMarks(MRI_SURFACE *mris) {
+int MRISclearMarks(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -32714,7 +33403,8 @@ int MRISclearMarks(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRISclearFaceMarks(MRIS *mris) {
+int MRISclearFaceMarks(MRIS *mris)
+{
   int fno;
   FACE *f;
 
@@ -32732,7 +33422,8 @@ int MRISclearFaceMarks(MRIS *mris) {
 
     Description
     ------------------------------------------------------*/
-int MRISclearFixedValFlags(MRI_SURFACE *mris) {
+int MRISclearFixedValFlags(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -32752,7 +33443,8 @@ int MRISclearFixedValFlags(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScopyFixedValFlagsToMarks(MRI_SURFACE *mris) {
+int MRIScopyFixedValFlagsToMarks(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -32772,7 +33464,8 @@ int MRIScopyFixedValFlagsToMarks(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISclearAnnotations(MRI_SURFACE *mris) {
+int MRISclearAnnotations(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -32792,7 +33485,8 @@ int MRISclearAnnotations(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISsetMarks(MRI_SURFACE *mris, int mark) {
+int MRISsetMarks(MRI_SURFACE *mris, int mark)
+{
   int vno;
   VERTEX *v;
 
@@ -32812,7 +33506,8 @@ int MRISsetMarks(MRI_SURFACE *mris, int mark) {
 
   Description
   ------------------------------------------------------*/
-int MRISsequentialAverageVertexPositions(MRI_SURFACE *mris, int navgs) {
+int MRISsequentialAverageVertexPositions(MRI_SURFACE *mris, int navgs)
+{
   int i, vno, vnb, *pnb, vnum;
   float x, y, z, num;
   VERTEX *v, *vn;
@@ -32963,7 +33658,8 @@ mrisComputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain,
 #if 1
 #define MAX_CSF 55.0f
 #define STEP_SIZE 0.1
-int MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth) {
+int MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth)
+{
   double val, x, y, z, min_val, xw, yw, zw, mag, max_mag, xw1, yw1, zw1, previous_val, next_val;
   int total_vertices, vno, nmissing = 0;
   float mean_white, dist, nx, ny, nz;
@@ -33045,7 +33741,8 @@ int MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_sm
       mean_white += min_val;
       total_vertices++;
       v->marked = 1;
-    } else {
+    }
+    else {
       nmissing++;
     }
     if (vno == Gdiag_no) fprintf(stdout, "v %d, target value = %2.1f, mag = %2.1f\n", Gdiag_no, v->val, v->mean);
@@ -33066,7 +33763,8 @@ Returns value:
 
 Description
 ------------------------------------------------------*/
-int MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm, float nsigma) {
+int MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm, float nsigma)
+{
   double val, x, y, z;
   int total_vertices, vno, xv, yv, zv, xo, yo, zo, xi, yi, zi, nwhite_vox, ngray_vox;
   float total_white, total_gray, total_sq_white, total_sq_gray, std_white, mean_white, mean_gray, total_mean_gray,
@@ -33110,7 +33808,8 @@ int MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm
             total_white += val;
             total_sq_white += val * val;
             nwhite_vox++;
-          } else /* gray matter */
+          }
+          else /* gray matter */
           {
             if (MRIneighborsOn(mri_wm, xi, yi, zi, WM_MIN_VAL + 1) == 0) {
               continue; /* not a border voxel */
@@ -33127,7 +33826,8 @@ int MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm
     }
     if (!nwhite_vox || !ngray_vox) {
       v->val = 0.0f;
-    } else {
+    }
+    else {
       mean_white = total_white / (float)nwhite_vox;
       mean_gray = total_gray / (float)ngray_vox;
       std_white = sqrt(total_sq_white / (float)nwhite_vox - mean_white * mean_white);
@@ -33138,7 +33838,8 @@ int MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm
         if (DIAG_VERBOSE_ON)
           fprintf(stdout, "mean gray (%2.1f) > mean white (%2.1f) at v %d!\n", mean_gray, mean_white, vno);
         v->val = mean_white;
-      } else
+      }
+      else
         v->val = (std_gray * mean_white + std_white * mean_gray) / (std_gray + std_white);
       total_vertices++;
       total_mean_white += mean_white;
@@ -33194,7 +33895,8 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
                             MRI *mri_mask,
                             double thresh,
                             int flags,
-                            MRI *mri_aseg) {
+                            MRI *mri_aseg)
+{
   double val, x, y, z, max_mag_val, xw, yw, zw, mag, max_mag, max_mag_dist = 0.0f, previous_val, next_val, min_val,
                                                               inward_dist, outward_dist, xw1, yw1, zw1, min_val_dist,
                                                               orig_dist, dx, dy, dz, previous_mag, next_mag;
@@ -33210,7 +33912,8 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
   step_size = mri_brain->xsize / 2;
   if (mri_brain->type == MRI_UCHAR) {
     mri_tmp = MRIreplaceValues(mri_brain, NULL, 255, 0);
-  } else {
+  }
+  else {
     mri_tmp = MRIcopy(mri_brain, NULL);
   }
 
@@ -33522,7 +34225,8 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
             max_mag = fabs(mag);
             max_mag_val = val;
           }
-        } else {
+        }
+        else {
           /*
             if no local max found yet, just used largest gradient
             if the intensity is in the right range.
@@ -33570,7 +34274,8 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
         }
         if (i < len - 1 && i > 0) {
           dm[i] = mri[i + 1] - mri[i - 1];
-        } else {
+        }
+        else {
           dm[i] = 0;
         }
       }
@@ -33620,7 +34325,8 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
           max_mag_val = mri[i];
           max_mag = fabs(dm[i]);
           max_mag_dist = dists[i];
-        } else if (flags & IPFLAG_FIND_FIRST_WM_PEAK)  // not a local max in 1st derivative - try second */
+        }
+        else if (flags & IPFLAG_FIND_FIRST_WM_PEAK)  // not a local max in 1st derivative - try second */
         {
           for (i = 0; i < len; i++) {
             if (i == Gdiag_no2) DiagBreak();
@@ -33708,14 +34414,16 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
     {
       if (local_max_found) {
         ngrad_max++;
-      } else {
+      }
+      else {
         ngrad++;
       }
       if (max_mag_dist > 0) {
         nout++;
         nfound++;
         mean_out += max_mag_dist;
-      } else {
+      }
+      else {
         nin++;
         nfound++;
         mean_in -= max_mag_dist;
@@ -33731,7 +34439,8 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
       total_vertices++;
       v->d = max_mag_dist;
       v->marked = 1;
-    } else /* couldn't find the border value */
+    }
+    else /* couldn't find the border value */
     {
       if (min_val < 1000) {
         nmin++;
@@ -33754,7 +34463,8 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
         mean_border += min_val;
         total_vertices++;
         v->marked = 1;
-      } else {
+      }
+      else {
         /* don't overwrite old target intensity if it was there */
         /*        v->val = -1.0f ;*/
         v->d = 0;
@@ -33764,7 +34474,8 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
           v->val = (border_low+border_hi)/2 ;
 #endif
           v->marked = 0;
-        } else {
+        }
+        else {
           v->marked = 1;
         }
         nmissing++;
@@ -33854,7 +34565,8 @@ int MRIScomputeInvertedGrayWhiteBorderValues(MRI_SURFACE *mris,
                                              double outside_hi,
                                              double sigma,
                                              float max_thickness,
-                                             FILE *log_fp) {
+                                             FILE *log_fp)
+{
   double val, x, y, z, xw, yw, zw, dist, prev_val, next_val;
   int total_vertices, vno, inward_increasing, ngray, nwhite;
   VERTEX *v;
@@ -33948,7 +34660,8 @@ int MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,
                                    float dir,
                                    FILE *log_fp,
                                    MRI *mri_wm,
-                                   int callno) {
+                                   int callno)
+{
   int total_vertices, vno, n, num, found;
   VERTEX *v, *vn;
   double x, y, z, xv, yv, zv, dist, grad, max_grad, max_grad_dist, sigma_vox, nx, ny, nz, sample_dist, mag,
@@ -33966,7 +34679,8 @@ int MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,
   if (0) {
     // mri_median = MRImedian(mri_brain, NULL, 3, &box) ;
     // MRIwrite(mri_median, "median.mgz") ;
-  } else {
+  }
+  else {
     mri_median = mri_brain;
   }
 
@@ -34021,10 +34735,12 @@ int MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,
 
             if (min_val > min_wm_val) {
               min_val = val;
-            } else {
+            }
+            else {
               DiagBreak();
             }
-          } else {
+          }
+          else {
             min_val = val;
           }
         }
@@ -34105,7 +34821,8 @@ int MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,
     {
       wm_hi = wm_mean + 10 * wm_std;
       wm_lo = wm_mean - 2 * wm_std;
-    } else {
+    }
+    else {
       wm_hi = wm_mean + 2 * wm_std;
       wm_lo = wm_mean - 7 * wm_std;
     }
@@ -34175,7 +34892,8 @@ int MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,
                wm_hi);
       v->val = max_grad_val;
       v->marked = 1;
-    } else {
+    }
+    else {
       v->marked = 0;
       if (vno == Gdiag_no) {
         printf("v %d: could not find valid gradient maximum\n", vno);
@@ -34207,7 +34925,8 @@ int MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,
                                        float dir,
                                        FILE *log_fp,
                                        int callno,
-                                       MRI *mri_mask) {
+                                       MRI *mri_mask)
+{
   int total_vertices, vno, n, num, found;
   VERTEX *v, *vn;
   double x, y, z, xv, yv, zv, dist, grad, max_grad, max_grad_dist, sigma_vox, xm, ym, zm, nx, ny, nz, sample_dist, mag,
@@ -34236,7 +34955,8 @@ int MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,
   if (0) {
     // mri_median = MRImedian(mri_brain, NULL, 3, &box) ;
     // MRIwrite(mri_median, "median.mgz") ;
-  } else {
+  }
+  else {
     mri_median = mri_brain;
   }
 
@@ -34378,7 +35098,8 @@ int MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,
     {
       wm_hi = wm_mean + 10 * wm_std;
       wm_lo = wm_mean - 2 * wm_std;
-    } else {
+    }
+    else {
       wm_hi = wm_mean + 2 * wm_std;
       wm_lo = wm_mean - 7 * wm_std;
     }
@@ -34416,7 +35137,8 @@ int MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,
           if (callno > 0 || dist > max_thickness / 2) {
             break;
           }
-        } else if ((dir * grad > 0) && val < min_val) {
+        }
+        else if ((dir * grad > 0) && val < min_val) {
           min_val = val;
           found = 1;
           max_grad_dist = dist;
@@ -34498,11 +35220,13 @@ int MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,
       MRISsurfaceRASToVoxelCached(mris, mri_brain, v->tx, v->ty, v->tz, &xv, &yv, &zv);
       if (MRIindexNotInVolume(mri_targets, xv, yv, zv) == 0) {
         MRIsetVoxVal(mri_targets, xv, yv, zv, 0, 1.0);
-      } else {
+      }
+      else {
         DiagBreak();
       }
       v->marked = 1;
-    } else {
+    }
+    else {
       v->marked = 0;
       if (vno == Gdiag_no) {
         printf("v %d: could not find valid gradient maximum\n", vno);
@@ -34543,7 +35267,8 @@ int MRIScomputeInvertedGrayWhiteBorderValues(MRI_SURFACE *mris,
                                              double outside_hi,
                                              double sigma,
                                              float max_thickness,
-                                             FILE *log_fp) {
+                                             FILE *log_fp)
+{
   double val, x, y, z, xw, yw, zw;
   int total_vertices, vno, inward_increasing, ngray, nwhite;
   VERTEX *v;
@@ -34624,7 +35349,8 @@ int MRIScomputeInvertedPialBorderValues(MRI_SURFACE *mris,
                                         double outside_hi,
                                         double sigma,
                                         float max_thickness,
-                                        FILE *log_fp) {
+                                        FILE *log_fp)
+{
   double val, x, y, z, xw, yw, zw, dist, prev_val, next_val;
   int total_vertices, vno, inward_increasing, ngray, ncsf;
   VERTEX *v;
@@ -34773,7 +35499,8 @@ int MRIScomputeInvertedPialBorderValues(MRI_SURFACE *mris,
   Description
   ------------------------------------------------------*/
 
-int MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, float gray_surface) {
+int MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, float gray_surface)
+{
   double val, x, y, z, min_val, xw, yw, zw, dx, dy, dz, mag, max_mag;
   int total_vertices, vno, nmissing;
   float mean_gray, dist;
@@ -34834,7 +35561,8 @@ int MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smo
       v->mean = max_mag;
       mean_gray += min_val;
       total_vertices++;
-    } else {
+    }
+    else {
       nmissing++;
       v->val = 0.0f;
     }
@@ -34854,7 +35582,8 @@ int MRIScomputeGraySurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smo
   \brief Reverse sign of one of the dimensions of the surface coords.
   If reversing X, the order of the verticies is also reversed.
 */
-int MRISreverseCoords(MRI_SURFACE *mris, int which_direction, int reverse_face_order, int which_coords) {
+int MRISreverseCoords(MRI_SURFACE *mris, int which_direction, int reverse_face_order, int which_coords)
+{
   int vno;
   float x = 0, y = 0, z = 0;
   VERTEX *v;
@@ -34929,7 +35658,8 @@ int MRISreverseCoords(MRI_SURFACE *mris, int which_direction, int reverse_face_o
   \brief Reverse sign of one of the dimensions of the surface coords.
   If reversing X, the order of the verticies is also reversed.
 */
-int MRISreverse(MRI_SURFACE *mris, int which, int reverse_face_order) {
+int MRISreverse(MRI_SURFACE *mris, int which, int reverse_face_order)
+{
   int vno;
   float x, y, z;
   VERTEX *v;
@@ -34971,7 +35701,8 @@ int MRISreverse(MRI_SURFACE *mris, int which, int reverse_face_order) {
   \brief Reverse order of the vertices in each face. This
   is needed when changing the sign of the x surface coord.
 */
-int MRISreverseFaceOrder(MRIS *mris) {
+int MRISreverseFaceOrder(MRIS *mris)
+{
   int fno, vno0, vno1, vno2;
   FACE *f;
 
@@ -35488,7 +36219,8 @@ mrisFindNormalDistanceLimits(MRI_SURFACE *mris, MRI *mri_filled, int vno,
 
   Description
   ------------------------------------------------------*/
-static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT *mht, int vno) {
+static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT *mht, int vno)
+{
 #if 1  // NJS: else code causes mris_expand test failure Aug2012
   VERTEX *v;
 
@@ -35914,7 +36646,8 @@ mrisDebugVertex(MRI_SURFACE *mris, int vno)
 
   Description
   ------------------------------------------------------*/
-static double mrisRmsValError(MRI_SURFACE *mris, MRI *mri) {
+static double mrisRmsValError(MRI_SURFACE *mris, MRI *mri)
+{
   int vno, n, xv, yv, zv;
   double val, total, delta, x, y, z;
   VERTEX *v;
@@ -35933,11 +36666,14 @@ static double mrisRmsValError(MRI_SURFACE *mris, MRI *mri) {
     delta = (val - v->val);
     if (fabs(delta) > 100) {
       DiagBreak();
-    } else if (fabs(delta) > 1000) {
+    }
+    else if (fabs(delta) > 1000) {
       DiagBreak();
-    } else if (fabs(delta) > 10000) {
+    }
+    else if (fabs(delta) > 10000) {
       DiagBreak();
-    } else if (fabs(delta) > 100000) {
+    }
+    else if (fabs(delta) > 100000) {
       DiagBreak();
     }
 
@@ -35960,7 +36696,8 @@ static double mrisRmsValError(MRI_SURFACE *mris, MRI *mri) {
   Description
   ------------------------------------------------------*/
 
-static double mrisRmsValError_mef(MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5, float weight30, float weight5) {
+static double mrisRmsValError_mef(MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5, float weight30, float weight5)
+{
   int vno, n, max_vno;  //, xv, yv, zv ;
   double val30, val5, total, delta, x, y, z, error, max_del;
   VERTEX *v;
@@ -36032,7 +36769,8 @@ mrisNeighborAtVoxel(MRI_SURFACE *mris, MRI *mri, int vno, int xv,int yv,int zv)
 
   Description
   ------------------------------------------------------*/
-double MRIScomputeAnalyticDistanceError(MRI_SURFACE *mris, int which, FILE *fp) {
+double MRIScomputeAnalyticDistanceError(MRI_SURFACE *mris, int which, FILE *fp)
+{
   int vno, n, vtotal, *pv, ndists;
   VERTEX *v, *vn;
   float d, xd, yd, zd, circumference = 0.0f, angle, odist;
@@ -36123,7 +36861,8 @@ double MRIScomputeAnalyticDistanceError(MRI_SURFACE *mris, int which, FILE *fp) 
     cp = getenv("FS_DISTURB_DISTANCES");
     if (cp) {
       disturb_pct = atof(cp);
-    } else {
+    }
+    else {
       disturb_pct = 0.0;
     }
     measured_error = MRISpercentDistanceError(mris);
@@ -36155,7 +36894,8 @@ double MRIScomputeAnalyticDistanceError(MRI_SURFACE *mris, int which, FILE *fp) 
 
   Description
   ------------------------------------------------------*/
-double MRISstoreAnalyticDistances(MRI_SURFACE *mris, int which) {
+double MRISstoreAnalyticDistances(MRI_SURFACE *mris, int which)
+{
   int vno, n, vtotal, *pv;
   VERTEX *v, *vn;
   float d, xd, yd, zd, circumference = 0.0f, angle, odist;
@@ -36224,7 +36964,8 @@ double MRISstoreAnalyticDistances(MRI_SURFACE *mris, int which) {
 
   Description
   ------------------------------------------------------*/
-int MRISdisturbOriginalDistances(MRI_SURFACE *mris, double max_pct) {
+int MRISdisturbOriginalDistances(MRI_SURFACE *mris, double max_pct)
+{
   int vno, n;
   VERTEX *v;
 
@@ -36247,7 +36988,8 @@ int MRISdisturbOriginalDistances(MRI_SURFACE *mris, double max_pct) {
 
   Description
   ------------------------------------------------------*/
-int MRISnegateValues(MRI_SURFACE *mris) {
+int MRISnegateValues(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -36267,7 +37009,8 @@ int MRISnegateValues(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScopyMeansToValues(MRI_SURFACE *mris) {
+int MRIScopyMeansToValues(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -36287,7 +37030,8 @@ int MRIScopyMeansToValues(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScopyImaginaryMeansToValues(MRI_SURFACE *mris) {
+int MRIScopyImaginaryMeansToValues(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -36307,7 +37051,8 @@ int MRIScopyImaginaryMeansToValues(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScopyStandardErrorsToValues(MRI_SURFACE *mris) {
+int MRIScopyStandardErrorsToValues(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -36327,8 +37072,8 @@ int MRIScopyStandardErrorsToValues(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISaccumulateMeansInVolume(
-    MRI_SURFACE *mris, MRI *mri, int mris_dof, int mri_dof, int coordinate_system, int sno) {
+int MRISaccumulateMeansInVolume(MRI_SURFACE *mris, MRI *mri, int mris_dof, int mri_dof, int coordinate_system, int sno)
+{
   VERTEX *vertex;
   double ndof, x, y, z, mean;
   int vno, xv, yv, zv;
@@ -36371,7 +37116,8 @@ int MRISaccumulateMeansInVolume(
   actually these are squared standard errors
   ------------------------------------------------------*/
 int MRISaccumulateStandardErrorsInVolume(
-    MRI_SURFACE *mris, MRI *mri, int mris_dof, int mri_dof, int coordinate_system, int sno) {
+    MRI_SURFACE *mris, MRI *mri, int mris_dof, int mri_dof, int coordinate_system, int sno)
+{
   VERTEX *vertex;
   double ndof, x, y, z, mris_sigma, mri_sigma;
   int vno, xv, yv, zv;
@@ -36429,7 +37175,8 @@ int MRISaccumulateStandardErrorsInVolume(
 
   Description
   ------------------------------------------------------*/
-int MRISaccumulateMeansOnSurface(MRI_SURFACE *mris, int total_dof, int new_dof) {
+int MRISaccumulateMeansOnSurface(MRI_SURFACE *mris, int total_dof, int new_dof)
+{
   int vno, ndof;
   VERTEX *v;
 
@@ -36452,7 +37199,8 @@ int MRISaccumulateMeansOnSurface(MRI_SURFACE *mris, int total_dof, int new_dof) 
 
   Description
   ------------------------------------------------------*/
-int MRISaccumulateImaginaryMeansOnSurface(MRI_SURFACE *mris, int total_dof, int new_dof) {
+int MRISaccumulateImaginaryMeansOnSurface(MRI_SURFACE *mris, int total_dof, int new_dof)
+{
   int vno, ndof;
   VERTEX *v;
 
@@ -36476,7 +37224,8 @@ int MRISaccumulateImaginaryMeansOnSurface(MRI_SURFACE *mris, int total_dof, int 
   Description
   actually these are squared standard errors
   ------------------------------------------------------*/
-int MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris, int total_dof, int new_dof) {
+int MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris, int total_dof, int new_dof)
+{
   int vno, ndof;
   VERTEX *v;
   double var;
@@ -36502,7 +37251,8 @@ int MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris, int total_dof, int 
   Description
   actually these are squared standard errors
   ------------------------------------------------------*/
-int MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area, float *pdx, float *pdy, float *pdz) {
+int MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area, float *pdx, float *pdy, float *pdz)
+{
   int N, vno, n, i;
   VERTEX *v, *vn;
   VECTOR *vdf, *vfz;
@@ -36530,7 +37280,8 @@ int MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area, floa
     vdf = VectorAlloc(N, MATRIX_REAL); /* function deltas */
     if (mris->patch) {
       mz = MatrixAlloc(N, 2, MATRIX_REAL); /* vertex spacing deltas */
-    } else {
+    }
+    else {
       mz = MatrixAlloc(N, 3, MATRIX_REAL); /* vertex spacing deltas */
     }
 
@@ -36568,7 +37319,8 @@ int MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area, floa
       v->dy = VECTOR_ELT(vfz, 2);
       if (!mris->patch) {
         v->dz = VECTOR_ELT(vfz, 3);
-      } else {
+      }
+      else {
         v->dz = 0.0f;
       }
       dx += v->dx;
@@ -36599,7 +37351,8 @@ int MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area, floa
 
   Description
   ------------------------------------------------------*/
-static double mrisComputeIntensityError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static double mrisComputeIntensityError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   int vno;
   VERTEX *v;
   float x, y, z;
@@ -36639,7 +37392,8 @@ static double mrisComputeIntensityError(MRI_SURFACE *mris, INTEGRATION_PARMS *pa
 
   Description
   ------------------------------------------------------*/
-static double mrisComputeTargetLocationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static double mrisComputeTargetLocationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   int vno, max_vno;
   VERTEX *v;
   double dx, dy, dz;
@@ -36686,7 +37440,8 @@ static double mrisComputeTargetLocationError(MRI_SURFACE *mris, INTEGRATION_PARM
 
   Description
   ------------------------------------------------------*/
-static double mrisComputeIntensityGradientError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static double mrisComputeIntensityGradientError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   int vno;
   VERTEX *v;
   float x, y, z;
@@ -36734,7 +37489,8 @@ static double mrisComputeIntensityGradientError(MRI_SURFACE *mris, INTEGRATION_P
   Compute the ratio of the two principal curvatures and
   store it in the vertex->curv variable.
   ------------------------------------------------------*/
-int MRISuseCurvatureRatio(MRI_SURFACE *mris) {
+int MRISuseCurvatureRatio(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
   float min_curv, max_curv, k1, k2, curv;
@@ -36751,7 +37507,8 @@ int MRISuseCurvatureRatio(MRI_SURFACE *mris) {
     if (fabs(v->k1) > fabs(v->k2)) {
       k1 = v->k1;
       k2 = v->k2;
-    } else {
+    }
+    else {
       k1 = v->k2;
       k2 = v->k1;
     }
@@ -36777,7 +37534,8 @@ int MRISuseCurvatureRatio(MRI_SURFACE *mris) {
     if (fabs(v->k1) > fabs(v->k2)) {
       k1 = v->k1;
       k2 = v->k2;
-    } else {
+    }
+    else {
       k1 = v->k2;
       k2 = v->k1;
     }
@@ -36785,7 +37543,8 @@ int MRISuseCurvatureRatio(MRI_SURFACE *mris) {
     if (FZERO(k2)) {
       if (FZERO(k1)) {
         curv = 0.0;
-      } else {
+      }
+      else {
         curv = k1 < 0 ? min_curv : max_curv;
       }
       v->curv = curv;
@@ -36805,7 +37564,8 @@ int MRISuseCurvatureRatio(MRI_SURFACE *mris) {
   Compute the contrast of the two principal curvatures and
   store it in the vertex->curv variable.
   ------------------------------------------------------*/
-int MRISuseCurvatureContrast(MRI_SURFACE *mris) {
+int MRISuseCurvatureContrast(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
   float min_curv, max_curv, k1, k2, curv, min_k;
@@ -36836,7 +37596,8 @@ int MRISuseCurvatureContrast(MRI_SURFACE *mris) {
     if (v->k1 > v->k2) {
       k1 = v->k1;
       k2 = v->k2;
-    } else {
+    }
+    else {
       k1 = v->k2;
       k2 = v->k1;
     }
@@ -36865,7 +37626,8 @@ int MRISuseCurvatureContrast(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-static double mrisComputeSphereError(MRI_SURFACE *mris, double l_sphere, double r0) {
+static double mrisComputeSphereError(MRI_SURFACE *mris, double l_sphere, double r0)
+{
   int vno;
   double sse, x0, y0, z0;
 
@@ -36922,7 +37684,8 @@ static double mrisComputeSphereError(MRI_SURFACE *mris, double l_sphere, double 
 
   Description
   ------------------------------------------------------*/
-int MRIScanonicalToWorld(MRI_SURFACE *mris, double phi, double theta, double *pxw, double *pyw, double *pzw) {
+int MRIScanonicalToWorld(MRI_SURFACE *mris, double phi, double theta, double *pxw, double *pyw, double *pzw)
+{
   double x, y, z, radius;
 
   radius = mris->radius;
@@ -37010,7 +37773,8 @@ mrisClipMomentumGradient(MRI_SURFACE *mris, float max_len)
 
   Description
   ------------------------------------------------------*/
-int MRIScopyCurvatureToValues(MRI_SURFACE *mris) {
+int MRIScopyCurvatureToValues(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -37030,7 +37794,8 @@ int MRIScopyCurvatureToValues(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScopyVal2ToVal(MRI_SURFACE *mris) {
+int MRIScopyVal2ToVal(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -37051,7 +37816,8 @@ int MRIScopyVal2ToVal(MRI_SURFACE *mris) {
   Description
    copy the v->val2bak field into the v->val for every vertex
   ------------------------------------------------------*/
-int MRIScopyVal2BakToVal(MRI_SURFACE *mris) {
+int MRIScopyVal2BakToVal(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -37071,7 +37837,8 @@ int MRIScopyVal2BakToVal(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScopyCurvatureToImagValues(MRI_SURFACE *mris) {
+int MRIScopyCurvatureToImagValues(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -37091,7 +37858,8 @@ int MRIScopyCurvatureToImagValues(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScopyValuesToCurvature(MRI_SURFACE *mris) {
+int MRIScopyValuesToCurvature(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -37111,7 +37879,8 @@ int MRIScopyValuesToCurvature(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScopyImagValuesToCurvature(MRI_SURFACE *mris) {
+int MRIScopyImagValuesToCurvature(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -37131,7 +37900,8 @@ int MRIScopyImagValuesToCurvature(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScopyCurvatureFromValues(MRI_SURFACE *mris) {
+int MRIScopyCurvatureFromValues(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -37151,7 +37921,8 @@ int MRIScopyCurvatureFromValues(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScopyCurvatureFromImagValues(MRI_SURFACE *mris) {
+int MRIScopyCurvatureFromImagValues(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -37171,7 +37942,8 @@ int MRIScopyCurvatureFromImagValues(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs) {
+int MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs)
+{
   VERTEX *v;
   int vno, n, nvertices;
   double dist_scale, pct, dist, odist, mean, mean_error, smean, total_mean_error, total_mean;
@@ -37179,7 +37951,8 @@ int MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs) {
   MRIScomputeMetricProperties(mris);
   if (mris->patch) {
     dist_scale = 1.0;
-  } else {
+  }
+  else {
     dist_scale = sqrt(mris->orig_area / mris->total_area);
   }
 
@@ -37245,7 +38018,8 @@ int MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs) {
 
   Description
   ------------------------------------------------------*/
-int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname) {
+int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
+{
   int k, n;
   FILE *fp;
   time_t tt;
@@ -37309,7 +38083,8 @@ int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname) {
 
   Description
   ------------------------------------------------------*/
-static SMALL_SURFACE *mrisReadTriangleFileVertexPositionsOnly(const char *fname) {
+static SMALL_SURFACE *mrisReadTriangleFileVertexPositionsOnly(const char *fname)
+{
   SMALL_VERTEX *v;
   int nvertices, nfaces, magic, vno;
   char line[STRLEN];
@@ -37366,7 +38141,8 @@ static SMALL_SURFACE *mrisReadTriangleFileVertexPositionsOnly(const char *fname)
 
   Description
   ------------------------------------------------------*/
-static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname) {
+static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname)
+{
   VERTEX *v;
   int nvertices, nfaces, magic, vno;
   char line[STRLEN];
@@ -37432,7 +38208,8 @@ static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname) {
 
   Description
   ------------------------------------------------------*/
-static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over) {
+static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over)
+{
   VERTEX *v;
   FACE *f;
   int nvertices, nfaces, magic, vno, fno, n;
@@ -37573,7 +38350,8 @@ mrisRemoveNormalGradientComponent(MRI_SURFACE *mris, int vno)
   ------------------------------------------------------*/
 #define MIN_NBR_DIST (0.01)
 
-static int mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno) {
+static int mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno)
+{
   VERTEX *v, *vn;
   int n;
   float dx, dy, dz, dot, x, y, z, dist, min_nbr_dist;
@@ -37622,7 +38400,8 @@ static int mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno) {
 
   Description
   ------------------------------------------------------*/
-int MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname) {
+int MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname)
+{
   char path[STRLEN], *slash, *dot;
 
   slash = strchr(sname, '/');
@@ -37634,18 +38413,21 @@ int MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname) {
       if (getenv("FS_POSIX")) {
         // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
         sprintf(fname, "./%s", sname);
-      } else {
+      }
+      else {
         // PW 2017/05/15: Legacy behaviour
         sprintf(fname, "%s/%s", path, sname);
       }
-    } else /* no hemisphere specified */
+    }
+    else /* no hemisphere specified */
         if (getenv("FS_POSIX")) {
       // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
       sprintf(fname,
               "./%s.%s",
               mris->hemisphere == LEFT_HEMISPHERE ? "lh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh",
               sname);
-    } else {
+    }
+    else {
       // PW 2017/05/15: Legacy behaviour
       sprintf(fname,
               "%s/%s.%s",
@@ -37653,7 +38435,8 @@ int MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname) {
               mris->hemisphere == LEFT_HEMISPHERE ? "lh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh",
               sname);
     }
-  } else {
+  }
+  else {
     strcpy(fname, sname); /* path specified explicitly */
   }
   return (NO_ERROR);
@@ -37665,7 +38448,8 @@ int MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname) {
 
   Description
   ------------------------------------------------------*/
-int MRISmodeFilterVals(MRI_SURFACE *mris, int niter) {
+int MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
+{
   int *histo;
   int i, n, vno, ino, index, max_histo, max_index, nchanged, nzero, max_val;
   VERTEX *v, *vn;
@@ -37720,7 +38504,8 @@ int MRISmodeFilterVals(MRI_SURFACE *mris, int niter) {
       if (v->val != v->valbak) {
         v->marked = 0; /* process it again */
         nchanged++;
-      } else
+      }
+      else
         v->marked = 1; /* didn't change */
 
       v->val = v->valbak;
@@ -37751,7 +38536,8 @@ int MRISmodeFilterVals(MRI_SURFACE *mris, int niter) {
 
   Description
   ------------------------------------------------------*/
-int MRISmodeFilterZeroVals(MRI_SURFACE *mris) {
+int MRISmodeFilterZeroVals(MRI_SURFACE *mris)
+{
   int *histo, i, n, vno, ino, max_val, index, max_histo, max_index, nchanged, nzero;
   VERTEX *v, *vn;
 
@@ -37807,7 +38593,8 @@ int MRISmodeFilterZeroVals(MRI_SURFACE *mris) {
       if (v->val != v->valbak) {
         v->marked = 0; /* process it again */
         nchanged++;
-      } else
+      }
+      else
         v->marked = 1; /* didn't change */
 
       v->val = v->valbak;
@@ -37841,7 +38628,8 @@ int MRISmodeFilterZeroVals(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter) {
+int MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
+{
   int *histo, i, n, vno, ino, index, max_histo, max_index, max_annotation, *annotations, nchanged = 0;
   VERTEX *v, *vn;
 
@@ -37884,7 +38672,8 @@ int MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter) {
         histo[index]++;
         max_histo = histo[index];
         max_annotation = v->annotation;
-      } else
+      }
+      else
         max_histo = max_annotation = 0;
 
       for (i = 1; i <= max_index; i++) {
@@ -37921,7 +38710,8 @@ int MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter) {
 
   Description
   ------------------------------------------------------*/
-int MRISsoapBubbleVals(MRI_SURFACE *mris, int navgs) {
+int MRISsoapBubbleVals(MRI_SURFACE *mris, int navgs)
+{
   int vno, n, i, cmpt, nmarked;
   VERTEX *v, *vn;
   double mean;
@@ -37975,7 +38765,8 @@ int MRISsoapBubbleVals(MRI_SURFACE *mris, int navgs) {
     apply a soap bubble to the vertex->d field
      (used for target distances frequently)
   ------------------------------------------------------*/
-int MRISsoapBubbleD(MRI_SURFACE *mris, int navgs) {
+int MRISsoapBubbleD(MRI_SURFACE *mris, int navgs)
+{
   int vno, n, i, cmpt, nmarked;
   VERTEX *v, *vn;
   double mean;
@@ -38020,7 +38811,8 @@ int MRISsoapBubbleD(MRI_SURFACE *mris, int navgs) {
   /*  fprintf(stdout, "\n") ;*/
   return (NO_ERROR);
 }
-int MRISremoveTriangleLinks(MRI_SURFACE *mris) {
+int MRISremoveTriangleLinks(MRI_SURFACE *mris)
+{
   int fno, which;
   FACE *f;
 
@@ -38046,14 +38838,16 @@ int MRISremoveTriangleLinks(MRI_SURFACE *mris) {
     if (EVEN(which)) {
       mrisRemoveVertexLink(mris, f->v[1], f->v[2]);
       mrisRemoveVertexLink(mris, f->v[2], f->v[1]);
-    } else {
+    }
+    else {
       mrisRemoveVertexLink(mris, f->v[0], f->v[2]);
       mrisRemoveVertexLink(mris, f->v[2], f->v[0]);
     }
   }
   return (NO_ERROR);
 }
-static int mrisRemoveVertexLink(MRI_SURFACE *mris, int vno1, int vno2) {
+static int mrisRemoveVertexLink(MRI_SURFACE *mris, int vno1, int vno2)
+{
   int n;
   VERTEX *v;
 
@@ -38077,7 +38871,8 @@ static int mrisRemoveVertexLink(MRI_SURFACE *mris, int vno1, int vno2) {
         = 3 --> divide edge in half three times, add 7 vertices
 */
 #define MAX_SURFACE_FACES 200000
-int MRISdivideEdges(MRI_SURFACE *mris, int nsubdivisions) {
+int MRISdivideEdges(MRI_SURFACE *mris, int nsubdivisions)
+{
   int nadded, sub, nfaces, fno, nvertices, faces[MAX_SURFACE_FACES], index;
   FACE *f;
 
@@ -38143,7 +38938,8 @@ int MRISdivideEdges(MRI_SURFACE *mris, int nsubdivisions) {
 
   Description
   ------------------------------------------------------*/
-int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh) {
+int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh)
+{
   double dist;
   int vno, nadded, n /*,nvertices, nfaces, nedges, eno*/;
   VERTEX *v, *vn;
@@ -38266,7 +39062,8 @@ mrisAddVertices(MRI_SURFACE *mris, double thresh)
   ------------------------------------------------------*/
 #define MAX_VERTEX_NEIGHBORS 50
 #define MAX_FACES 50
-static int mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2) {
+static int mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2)
+{
   VERTEX *v1, *v2, *vnew;
   int vnew_no, n, m, fno, n1, n2, flist[100];
   FACE *face;
@@ -38466,7 +39263,8 @@ static int mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2) {
 
   Description
   ------------------------------------------------------*/
-static int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vnew_no) {
+static int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vnew_no)
+{
   FACE *f1, *f2;
   VERTEX *v1, *v2, *v3, *vnew;
   int fnew_no, n, vno3, flist[5000], vlist[5000], nlist[5000];
@@ -38500,7 +39298,8 @@ static int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vn
       f1->v[n] = vnew_no;
       vnew->f[vnew->num] = fno;
       vnew->n[vnew->num++] = (uchar)n;
-    } else if (f1->v[n] != vno1) {
+    }
+    else if (f1->v[n] != vno1) {
       vno3 = f1->v[n];
     }
   }
@@ -38839,7 +39638,8 @@ VertexReplaceNeighbor(VERTEX *v, int vno_old, int vno_new)
 
   Description
   ------------------------------------------------------*/
-double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma, double *pmin, double *pmax) {
+double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma, double *pmin, double *pmax)
+{
   double total_area, mean, var, nf, sigma, min_area, max_area, area, area_scale;
   int fno;
   FACE *f;
@@ -38848,7 +39648,8 @@ double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma, double *pmin,
 
   if (mris->patch) {
     area_scale = 1.0;
-  } else {
+  }
+  else {
     area_scale = mris->orig_area / mris->total_area;
   }
 
@@ -38888,7 +39689,8 @@ double MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma, double *pmin,
   Description
   ------------------------------------------------------*/
 double MRIScomputeVertexSpacingStats(
-    MRI_SURFACE *mris, double *psigma, double *pmin, double *pmax, int *pvno, int *pvno2, int which_vertices) {
+    MRI_SURFACE *mris, double *psigma, double *pmin, double *pmax, int *pvno, int *pvno2, int which_vertices)
+{
   double total_dist, mean, var, nv, dist, sigma, min_dist, max_dist, dist_scale;
   int vno, n;
   VERTEX *v, *vn;
@@ -38896,7 +39698,8 @@ double MRIScomputeVertexSpacingStats(
   MRIScomputeMetricProperties(mris);
   if (mris->patch) {
     dist_scale = 1.0;
-  } else {
+  }
+  else {
     dist_scale = sqrt(mris->orig_area / mris->total_area);
   }
   dist_scale = 1.0f;
@@ -38977,7 +39780,8 @@ double MRIScomputeVertexSpacingStats(
   Description
   ------------------------------------------------------*/
 double MRIScomputeTotalVertexSpacingStats(
-    MRI_SURFACE *mris, double *psigma, double *pmin, double *pmax, int *pvno, int *pvno2) {
+    MRI_SURFACE *mris, double *psigma, double *pmin, double *pmax, int *pvno, int *pvno2)
+{
   double total_dist, mean, var, nv, dist, sigma, min_dist, max_dist, dist_scale;
   int vno, n;
   VERTEX *v, *vn;
@@ -38985,7 +39789,8 @@ double MRIScomputeTotalVertexSpacingStats(
   MRIScomputeMetricProperties(mris);
   if (mris->patch) {
     dist_scale = 1.0;
-  } else {
+  }
+  else {
     dist_scale = sqrt(mris->orig_area / mris->total_area);
   }
   dist_scale = 1.0f;
@@ -39039,7 +39844,8 @@ double MRIScomputeTotalVertexSpacingStats(
 
   Description
   ------------------------------------------------------*/
-static int mrisComputeCurvatureMinMax(MRI_SURFACE *mris) {
+static int mrisComputeCurvatureMinMax(MRI_SURFACE *mris)
+{
   int vno, found = 0;
   VERTEX *v;
 
@@ -39051,7 +39857,8 @@ static int mrisComputeCurvatureMinMax(MRI_SURFACE *mris) {
     if (found == 0) {
       mris->max_curv = mris->min_curv = v->curv;
       found = 1;
-    } else {
+    }
+    else {
       if (v->curv > mris->max_curv) {
         mris->max_curv = v->curv;
       }
@@ -39069,7 +39876,8 @@ static int mrisComputeCurvatureMinMax(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISsetVals(MRI_SURFACE *mris, float val) {
+int MRISsetVals(MRI_SURFACE *mris, float val)
+{
   int vno;
   VERTEX *v;
 
@@ -39089,7 +39897,8 @@ int MRISsetVals(MRI_SURFACE *mris, float val) {
 
   Description
   ------------------------------------------------------*/
-int MRISscaleVals(MRI_SURFACE *mris, float scale) {
+int MRISscaleVals(MRI_SURFACE *mris, float scale)
+{
   int vno;
   VERTEX *v;
 
@@ -39109,7 +39918,8 @@ int MRISscaleVals(MRI_SURFACE *mris, float scale) {
 
   Description
   ------------------------------------------------------*/
-float MRISdistanceToSurface(MRI_SURFACE *mris, MHT *mht, float x0, float y0, float z0, float nx, float ny, float nz) {
+float MRISdistanceToSurface(MRI_SURFACE *mris, MHT *mht, float x0, float y0, float z0, float nx, float ny, float nz)
+{
   double dist, len;
 
 #if 0
@@ -39148,7 +39958,8 @@ float MRISdistanceToSurface(MRI_SURFACE *mris, MHT *mht, float x0, float y0, flo
 
   return (0.0);
 }
-static int mrisUpdateTargetLocations(MRI_SURFACE *mris, MRI *mri, double target_intensity) {
+static int mrisUpdateTargetLocations(MRI_SURFACE *mris, MRI *mri, double target_intensity)
+{
   int vno;
   double xv, yv, zv, val, val0, xv0, yv0, zv0;
   VERTEX *v;
@@ -39207,7 +40018,8 @@ static int mrisUpdateTargetLocations(MRI_SURFACE *mris, MRI *mri, double target_
     useful for calling iteratively
   ------------------------------------------------------*/
 #define MAX_EXP_MM 0.1
-int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parms, int use_thick, int nsurfaces) {
+int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parms, int use_thick, int nsurfaces)
+{
   int vno, n, niter, avgs, nrounds, surf_no, orig_start_t = parms->start_t;
   VERTEX *v;
   double dist, dx = 0., dy = 0., dz = 0.0, dtotal, *pial_x, *pial_y, *pial_z, l_spring_orig;
@@ -39261,7 +40073,8 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
       v->y += distance * v->ny;
       v->z += distance * v->nz;
     }
-  } else {
+  }
+  else {
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES);
     if (use_thick) {
       memset(&thick_parms, 0, sizeof(thick_parms));
@@ -39311,7 +40124,8 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
     if (use_thick)  // distance is a % of the total thickness
     {
       niter = nint(fabs(distance) * 2 / (nsurfaces * parms->dt * MAX_EXP_MM));
-    } else {
+    }
+    else {
       niter = nint(2 * fabs(distance) / (parms->l_location * nrounds * nsurfaces * parms->dt * MAX_EXP_MM));
     }
     if (Gdiag_no >= 0) {
@@ -39351,7 +40165,8 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
           v->targx = v->origx + dx * dist;
           v->targy = v->origy + dy * dist;
           v->targz = v->origz + dz * dist;
-        } else  // just move outwards along surface normal
+        }
+        else  // just move outwards along surface normal
         {
           dist = distance;
           v->targx = v->origx + v->nx * distance;
@@ -39498,7 +40313,8 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
       if (parms->smooth_averages > 0) {
         printf("\nsmoothing vertex locations %d times\n", parms->smooth_averages);
         MRISaverageVertexPositions(mris, parms->smooth_averages);
-      } else {
+      }
+      else {
         printf("\n");
       }
       sprintf(fname, "%s.%s%3.3d", hemi, parms->base_name, surf_no + 1);
@@ -39517,7 +40333,8 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
   free(pial_z);
   return (NO_ERROR);
 }
-int MRISripZeroThicknessRegions(MRI_SURFACE *mris) {
+int MRISripZeroThicknessRegions(MRI_SURFACE *mris)
+{
   VERTEX *v;
   int vno;
 
@@ -39540,7 +40357,8 @@ int MRISripZeroThicknessRegions(MRI_SURFACE *mris) {
   Description
   Translate a surface by (dx, dy, dz)
   ------------------------------------------------------*/
-int MRIStranslate(MRI_SURFACE *mris, float dx, float dy, float dz) {
+int MRIStranslate(MRI_SURFACE *mris, float dx, float dy, float dz)
+{
   int vno;
   VERTEX *v;
 
@@ -39571,7 +40389,8 @@ int MRIStranslate(MRI_SURFACE *mris, float dx, float dy, float dz) {
   See also MRISmatrixMultiply().
   ------------------------------------------------------*/
 #include "gcamorph.h"
-int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_dst) {
+int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_dst)
+{
   LTA *lta;
   int vno;
   VERTEX *v;
@@ -39674,7 +40493,8 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
     if (srcNotGiven) {
       MRIfree(&mri);
     }
-  } else {
+  }
+  else {
     lta = (LTA *)(transform->xform);
     if (!mri_dst) {
       dstNotGiven = 1;
@@ -39797,7 +40617,8 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
       mri->zsize = mris->vg.zsize;
       mri->ras_good_flag = 1;
       MRIreInitCache(mri);
-    } else if (!mri) {
+    }
+    else if (!mri) {
       error = 1;
       strcpy(errMsg, "When mri == NULL, the transform must have the valid src info.\n");
       goto mristransform_cleanup;
@@ -39828,7 +40649,8 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
       mri_dst->ysize = lt->dst.ysize;
       mri_dst->zsize = lt->dst.zsize;
       mri_dst->ras_good_flag = 1;
-    } else if (!mri_dst) {
+    }
+    else if (!mri_dst) {
       fprintf(stderr, "WARNING:*********************************************************\n");
       fprintf(stderr, "WARNING: transform does not have valid destination volume.       \n");
       fprintf(stderr, "WARNING: The standard CORONAL volume with c_(ras) = 0 is assumed.\n");
@@ -39901,13 +40723,15 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
       //
       if (mris->useRealRAS) {
         surfaceRASFromSurfaceRAS = MatrixCopy(lta->xforms[0].m_L, NULL);
-      } else {
+      }
+      else {
         RASFromSurfaceRAS = RASFromSurfaceRAS_(mri);      // needs only c_(ras) info
         surfaceRASFromRAS = surfaceRASFromRAS_(mri_dst);  // need only c_(ras) info
         m = MatrixMultiply(lta->xforms[0].m_L, RASFromSurfaceRAS, NULL);
         surfaceRASFromSurfaceRAS = MatrixMultiply(surfaceRASFromRAS, m, NULL);
       }
-    } else if (lta->type == LINEAR_VOX_TO_VOX) {
+    }
+    else if (lta->type == LINEAR_VOX_TO_VOX) {
       if (mri->width != mri_dst->width || mri->height != mri_dst->height || mri->depth != mri_dst->depth) {
         fprintf(stderr, "WARNING:********************************************************\n");
         fprintf(stderr, "WARNING:voxel-to-voxel transform must have the same volume sizes.\n");
@@ -39975,7 +40799,8 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
   if (error) {
     ErrorExit(ERROR_BADPARM, errMsg);
     return -1;  // just to satisfy compiler
-  } else {
+  }
+  else {
     return (NO_ERROR);
   }
 }
@@ -39983,7 +40808,8 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
   MRISmatrixMultiply() - simply multiplies matrix M by the vertex xyz.
   See also MRIStransform().
   ------------------------------------------------------------------------*/
-int MRISmatrixMultiply(MRIS *mris, MATRIX *M) {
+int MRISmatrixMultiply(MRIS *mris, MATRIX *M)
+{
   int vno;
 
 #ifdef HAVE_OPENMP
@@ -40019,7 +40845,8 @@ int MRISmatrixMultiply(MRIS *mris, MATRIX *M) {
   Description
   Scale a surface anisotropically.
   ------------------------------------------------------*/
-int MRISanisotropicScale(MRI_SURFACE *mris, float sx, float sy, float sz) {
+int MRISanisotropicScale(MRI_SURFACE *mris, float sx, float sy, float sz)
+{
   VERTEX *v;
   int k;
   float x0, y0, z0;
@@ -40047,7 +40874,8 @@ static int mrisChooseFace(MRI_SURFACE *mris, MHT *mht, VERTEX *v);
 static int mrisFindUnambiguousFace(MRI_SURFACE *mris, MHT *mht, VERTEX *v, int *pnum);
 
 #if 1
-int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) {
+int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico)
+{
   double r;
   int fno, vno, num_ambiguous = 0, nfound, i, max_count;
   VERTEX *v;
@@ -40101,7 +40929,8 @@ int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) {
         mrisDumpFace(mris, fno, stderr);
       }
       v->marked = 1;
-    } else {
+    }
+    else {
       if (Gdiag & DIAG_SHOW) {
         fprintf(stdout, "v %d maps to %d faces\n", vno, nfound);
       }
@@ -40168,7 +40997,8 @@ int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) {
   note that fno refers to a face in mris and
   v is a vertex in mris_ico (not given), NOT mris.
   ------------------------------------------------------*/
-static int mrisPlaceVertexInOrigFace(MRI_SURFACE *mris, VERTEX *v, int fno) {
+static int mrisPlaceVertexInOrigFace(MRI_SURFACE *mris, VERTEX *v, int fno)
+{
   double U0[3], U1[3], U2[3], pt[3], dir[3], int_pt[3], l1[3], l2[3], l2_len, l1_len, l_len, P[3], theta1, theta2, dot,
       theta_ratio, len_scale, e1[3], e2[3], etmp[3], x, y;
   int ret;
@@ -40227,7 +41057,8 @@ static int mrisPlaceVertexInOrigFace(MRI_SURFACE *mris, VERTEX *v, int fno) {
   }
   if (!DZERO(theta2)) {
     theta_ratio = theta1 / theta2;
-  } else /* degenerate triangle */
+  }
+  else /* degenerate triangle */
   {
     theta_ratio = 0;
   }
@@ -40297,7 +41128,8 @@ static int mrisPlaceVertexInOrigFace(MRI_SURFACE *mris, VERTEX *v, int fno) {
   Find the face in which v lies. If it lies in more than one
   face, return not found.
   ------------------------------------------------------*/
-static int mrisFindUnambiguousFace(MRI_SURFACE *mris, MHT *mht, VERTEX *v, int *pnfound) {
+static int mrisFindUnambiguousFace(MRI_SURFACE *mris, MHT *mht, VERTEX *v, int *pnfound)
+{
   int nfound, flist[1000], *fptr, total_found, i, j;
   double dist, d;
 
@@ -40337,7 +41169,8 @@ static int mrisFindUnambiguousFace(MRI_SURFACE *mris, MHT *mht, VERTEX *v, int *
   of v.
   ------------------------------------------------------*/
 #if 1
-static int mrisChooseFace(MRI_SURFACE *mris, MHT *mht, VERTEX *v) {
+static int mrisChooseFace(MRI_SURFACE *mris, MHT *mht, VERTEX *v)
+{
   int fno, nfound, flist[1000], min_fno, i, j, total_found, *fptr;
   double dist, d;
   float dx, dy, dz, cx[1000], cy[1000], cz[1000], total_dist, max_dist;
@@ -40403,7 +41236,8 @@ static int mrisChooseFace(MRI_SURFACE *mris, MHT *mht, VERTEX *v) {
   return (min_fno);
 }
 #else
-static int mrisChooseFace(MRI_SURFACE *mris, MHT *mht, VERTEX *v) {
+static int mrisChooseFace(MRI_SURFACE *mris, MHT *mht, VERTEX *v)
+{
   int fno, nfound, flist[1000], min_fno, i, j, total_found, *fptr;
   float x, y, z, dx, dy, dz;
   double dist, min_dist, d;
@@ -40453,7 +41287,8 @@ static int mrisChooseFace(MRI_SURFACE *mris, MHT *mht, VERTEX *v) {
 }
 #endif
 #else
-int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) {
+int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico)
+{
   double r;
   int vno /*, fno, n, num*/;
 #if 0
@@ -40530,7 +41365,8 @@ int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) {
       mris->vertices[vno].nx,mris->vertices[vno].ny,mris->vertices[vno].nz);
       */
       mris->vertices[vno].curv = 1;
-    } else {
+    }
+    else {
       mris->vertices[vno].curv = 0;
     }
   }
@@ -40573,14 +41409,16 @@ int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico) {
     if (mris_ico->vertices[vno].curv != 0) {
       mris_ico->vertices[vno].marked = 0;
       printf("ambiguous ico vertex %d\n", vno);
-    } else {
+    }
+    else {
       mris_ico->vertices[vno].marked = 1;
     }
     if (numvol[ix][iy][iz] > 0) {
       mris_ico->vertices[vno].x = xvol[ix][iy][iz];
       mris_ico->vertices[vno].y = yvol[ix][iy][iz];
       mris_ico->vertices[vno].z = zvol[ix][iy][iz];
-    } else {
+    }
+    else {
       printf("### ico vertex %d missed volume\n", vno);
       mris_ico->vertices[vno].marked = 0;
     }
@@ -40969,7 +41807,8 @@ mrisComputeFaceStretch(MRI_SURFACE *mris, int fno)
   Description
   Scale a surface anisotropically.
   ------------------------------------------------------*/
-static int mrisCalculateCanonicalFaceCentroid(MRI_SURFACE *mris, int fno, float *px, float *py, float *pz) {
+static int mrisCalculateCanonicalFaceCentroid(MRI_SURFACE *mris, int fno, float *px, float *py, float *pz)
+{
   float x, y, z;
   VERTEX *v0, *v1, *v2;
   FACE *f;
@@ -40999,7 +41838,8 @@ static int mrisCalculateCanonicalFaceCentroid(MRI_SURFACE *mris, int fno, float 
   Description
   Scale a surface anisotropically.
   ------------------------------------------------------*/
-static int mrisCalculateOriginalFaceCentroid(MRI_SURFACE *mris, int fno, float *px, float *py, float *pz) {
+static int mrisCalculateOriginalFaceCentroid(MRI_SURFACE *mris, int fno, float *px, float *py, float *pz)
+{
   float x, y, z;
   VERTEX *v0, *v1, *v2;
   FACE *f;
@@ -41029,7 +41869,8 @@ static int mrisCalculateOriginalFaceCentroid(MRI_SURFACE *mris, int fno, float *
   Description
   Scale a surface anisotropically.
   ------------------------------------------------------*/
-static int mrisCalculateFaceCentroid(MRI_SURFACE *mris, int fno, float *px, float *py, float *pz) {
+static int mrisCalculateFaceCentroid(MRI_SURFACE *mris, int fno, float *px, float *py, float *pz)
+{
   float x, y, z;
   VERTEX *v0, *v1, *v2;
   FACE *f;
@@ -41059,7 +41900,8 @@ static int mrisCalculateFaceCentroid(MRI_SURFACE *mris, int fno, float *px, floa
   Description
   Scale a surface anisotropically.
   ------------------------------------------------------*/
-int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp) {
+int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp)
+{
   double mean, dsigma, dmin, dmax;
   int vno = 0, vno2 = 0;
 
@@ -41100,7 +41942,8 @@ int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp) {
 
   Description
   ------------------------------------------------------*/
-static void mrisDumpFace(MRI_SURFACE *mris, int fno, FILE *fp) {
+static void mrisDumpFace(MRI_SURFACE *mris, int fno, FILE *fp)
+{
   FACE *f;
   VERTEX *v;
   int n;
@@ -41128,7 +41971,8 @@ static void mrisDumpFace(MRI_SURFACE *mris, int fno, FILE *fp) {
 
   Description
   ------------------------------------------------------*/
-static int mrisStoreVtotalInV3num(MRI_SURFACE *mris) {
+static int mrisStoreVtotalInV3num(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -41146,7 +41990,8 @@ static int mrisStoreVtotalInV3num(MRI_SURFACE *mris) {
   Description
   ------------------------------------------------------*/
 #define MAX_INT_FACES 100000
-int MRISripDefectiveFaces(MRI_SURFACE *mris) {
+int MRISripDefectiveFaces(MRI_SURFACE *mris)
+{
   FACE *f;
   int fno, flist[MAX_INT_FACES], retained_i, i, j, nfaces, nripped, n;
   double dist, min_face_dist, max_dist, r;
@@ -41311,7 +42156,8 @@ static int edgesIntersectStable(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2);
 #if SPHERE_INTERSECTION
 
 /* check for intersection on the sphere */
-static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2) {
+static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2)
+{
   VERTEX *v1, *v2;
   double n0[3], n1[3], n2[3], u0[3], u1[3], u2[3], u3[3], u[3];
   double a0, a1, a2, a3, a, b;
@@ -41362,20 +42208,25 @@ static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2) {
 
   if (a > 0) {
     return (0);
-  } else if (a < 0) {
+  }
+  else if (a < 0) {
     //      fprintf(stderr,"-");
     if (b > 0) {
       return (0);
-    } else {
+    }
+    else {
       return (1);
     }
-  } else {
+  }
+  else {
     //    fprintf(stderr,"+");
     if (b > 0) {
       return (0);
-    } else if (b < 0) {
+    }
+    else if (b < 0) {
       return (1);
-    } else {
+    }
+    else {
       // special case again! The points are exactly aligned...
       double c0, c1, c2, c3, x1_min, x1_max, x2_min, x2_max;
 
@@ -41421,7 +42272,8 @@ static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2) {
 
 /* it should be a more stable implementation but a bit
    slower than the previous one */
-static int edgesIntersectStable(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2) {
+static int edgesIntersectStable(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2)
+{
   VERTEX *v1, *v2;
   double n0[3], n1[3], n2[3], u0[3], u1[3], u2[3], u3[3], u[3];
   double og0[3], og1[3], v_0[3], v_1[3];
@@ -41490,19 +42342,24 @@ static int edgesIntersectStable(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2) {
 
   if (a > 0) {
     return (0);
-  } else if (a < 0) {
+  }
+  else if (a < 0) {
     if (b > 0) {
       return (0);
-    } else {
+    }
+    else {
       return (1);
     }
-  } else {
+  }
+  else {
     //    fprintf(stderr,"+");
     if (b > 0) {
       return (0);
-    } else if (b < 0) {
+    }
+    else if (b < 0) {
       return (1);
-    } else {
+    }
+    else {
       // special case again! The points are exactly aligned...
       double c0, c1, c2, c3, x1_min, x1_max, x2_min, x2_max;
 
@@ -41532,7 +42389,8 @@ static int edgesIntersectStable(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2) {
 
 #else
 /* original version */
-static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2) {
+static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2)
+{
   VERTEX *v1, *v2;
   double b1, b2, m1, m2, x1_start, x1_end, y1_start, y1_end, x2_start, x2_end, y2_start, y2_end, x, y, x1min, x1max,
       y1min, y1max, x2min, x2max, y2min, y2max, cx, cy, cz;
@@ -41572,7 +42430,8 @@ static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2) {
   if (!FEQUAL(x1_start, x1_end)) {
     m1 = (y1_end - y1_start) / (x1_end - x1_start);
     b1 = y1_end - m1 * x1_end;
-  } else {
+  }
+  else {
     m1 = b1 = 0; /* will be handled differently */
   }
 
@@ -41624,7 +42483,8 @@ static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2) {
     if (y >= y1min && y <= y1max) {
       return (1);
     }
-  } else if (FEQUAL(x2_start, x2_end)) /* l2 is vertical */
+  }
+  else if (FEQUAL(x2_start, x2_end)) /* l2 is vertical */
   {
     if (FEQUAL(x1_start, x1_end)) /* both vertical */
     {
@@ -41634,7 +42494,8 @@ static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2) {
     if (y >= y2min && y <= y2max) {
       return (1);
     }
-  } else /* neither line is vertical, compute intersection point */
+  }
+  else /* neither line is vertical, compute intersection point */
   {
     m2 = (y2_end - y2_start) / (x2_end - x2_start);
     b2 = y2_end - m2 * x2_end;
@@ -41663,7 +42524,8 @@ static int edgesIntersect(MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2) {
 
   Description
   ------------------------------------------------------*/
-static int mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht, int fno, int *flist) {
+static int mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht, int fno, int *flist)
+{
   double x0, x1, y0, y1, z0, z1, x, y, z;
   int i, n, m, total_found, all_faces[1000000], nfaces;
   MHBT *bucket, *last_bucket;
@@ -41774,7 +42636,8 @@ static int mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht, int fno, int
   Description
   restore ripflag to 0 (NOTE: Won't undo MRISremoveRipped!!)
   ------------------------------------------------------*/
-int MRISunrip(MRI_SURFACE *mris) {
+int MRISunrip(MRI_SURFACE *mris)
+{
   int vno, fno;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -41807,7 +42670,8 @@ int MRISunrip(MRI_SURFACE *mris) {
 
 #define ET_OVERLAP_LIST_INCOMPLETE 0x0001
 
-typedef struct {
+typedef struct
+{
   int nedges;
   EDGE *edges;
   int **overlapping_edges; /* indices of all edges
@@ -41817,7 +42681,8 @@ typedef struct {
   int use_overlap;
 } EDGE_TABLE;
 
-typedef struct {
+typedef struct
+{
   double fitness;
   int nedges;
   int *ordering; /* order of edges in EDGE_TABLE
@@ -41843,7 +42708,8 @@ typedef struct {
 
 } DEFECT_PATCH, DP;
 
-typedef struct {
+typedef struct
+{
   int vno;  /* vertex # in surface */
   int vnum; /* original # of 1 neighbors */
   int vtotal;
@@ -41858,7 +42724,8 @@ typedef struct {
 
 } VERTEX_STATE, VS;
 
-typedef struct {
+typedef struct
+{
   DEFECT *defect;
   VERTEX_STATE *vs;
   int nvertices;
@@ -41868,12 +42735,14 @@ typedef struct {
 } DEFECT_VERTEX_STATE, DVS;
 
 /* this structure is used in the VERTEX structure (*vp) */
-typedef struct {
+typedef struct
+{
   int nedges;
   int *edges;
 } EDGE_POINTER, EP;
 
-typedef struct {
+typedef struct
+{
   /* edges constituting the cluster */
   int *edges;
   int nedges;
@@ -41885,7 +42754,8 @@ typedef struct {
 } SEGMENT;
 
 // for the clustering of overlapping edges
-typedef struct {
+typedef struct
+{
   int n;          /* position of this edge in the table */
   int vno1, vno2; /* vertices in the ORIGINAL tessellation */
   int segment;    /* cluster number */
@@ -41894,7 +42764,8 @@ typedef struct {
   int nxedges;
 } EDGE_STRUCTURE, ES;
 
-typedef struct {
+typedef struct
+{
   SEGMENT *segments;
   int nsegments;
   int max_segments;
@@ -41904,7 +42775,8 @@ typedef struct {
   int nedges;
 } SEGMENTATION;
 
-typedef struct {
+typedef struct
+{
   /* save the best configuration */
   int *best_ordering;
   float best_fitness;
@@ -41915,13 +42787,15 @@ typedef struct {
   float *vertex_fitness;
 } RANDOM_PATCH, RP;
 
-typedef struct {
+typedef struct
+{
   float c_x, c_y, c_z;    /* canonical coordinates */
   float oc_x, oc_y, oc_z; /* orig coordinates in optimized configuations */
   float status;           /* DISCARDED VERTEX OR KEPT VERTEX */
 } FS_VERTEX_INFO;
 
-typedef struct {
+typedef struct
+{
   int nvertices;
   int ninside; /* index of the first inside vertex */
   FS_VERTEX_INFO *vertices;
@@ -41930,7 +42804,8 @@ typedef struct {
 } MAPPING;
 
 /* structure which encodes the information for the optimal mapping */
-typedef struct {
+typedef struct
+{
   MRIS *mris; /* structure encoding the original mapping */
 
   int *vertex_trans;
@@ -42293,13 +43168,15 @@ static int mrisComputePrincipalCurvatureDistributions(MRI_SURFACE *mris,
                                                       MRI *mri_k1_k2);
 static int mrisComputeNormalDotDistribution(MRI_SURFACE *mris, HISTOGRAM *h_dot);
 
-void MRISmapOntoSphere(MRIS *mris) {
+void MRISmapOntoSphere(MRIS *mris)
+{
   MRISprojectOntoSphere(mris, mris, 100.0f);
 
   MRISsmoothOnSphere(mris, 10000);
 }
 
-DEFECT_LIST *mrisSegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_segmented) {
+DEFECT_LIST *mrisSegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_segmented)
+{
   DEFECT_LIST *dl;
   int vno, nadded;
   VERTEX *v;
@@ -42335,7 +43212,8 @@ DEFECT_LIST *mrisSegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_
 
 static int mrisMarkAllDefects(MRI_SURFACE *mris, DEFECT_LIST *dl, int flag);
 
-static DEFECT_LIST *mrisRemoveOverlappingDefects(MRIS *mris, DEFECT_LIST *dl) {
+static DEFECT_LIST *mrisRemoveOverlappingDefects(MRIS *mris, DEFECT_LIST *dl)
+{
   int i, n, found, removed;
   DEFECT *defect, *removed_defect;
   DEFECT_LIST *new_dl;
@@ -42420,7 +43298,8 @@ static DEFECT_LIST *mrisRemoveOverlappingDefects(MRIS *mris, DEFECT_LIST *dl) {
 static int mrisRipAllDefects(MRI_SURFACE *mris, DEFECT_LIST *dl, int ripflag);
 static int mrisRipDefect(MRI_SURFACE *mris, DEFECT *defect, int ripflag);
 
-int MRISisSurfaceValid(MRIS *mris, int patch, int verbose) {
+int MRISisSurfaceValid(MRIS *mris, int patch, int verbose)
+{
   int n, m, p, q, vnop, nfound, mark;
   VERTEX *vn;
   int euler, nedges, nvf, nffm, nffs, cf, nvc;
@@ -42560,13 +43439,15 @@ int MRISisSurfaceValid(MRIS *mris, int patch, int verbose) {
 
   if (patch && (nffm || nvc)) {
     return 0;
-  } else if (nvf || nffs || nffm || nvc) {
+  }
+  else if (nvf || nffs || nffm || nvc) {
     return 0;
   }
   return 1;
 }
 
-void MRISidentifyDefects(MRIS *mris, TOPOFIX_PARMS *parms) {
+void MRISidentifyDefects(MRIS *mris, TOPOFIX_PARMS *parms)
+{
   int fno;
   FACE_DEFECT_LIST *fdl;
   DEFECT_LIST *dl;
@@ -42598,7 +43479,8 @@ void MRISidentifyDefects(MRIS *mris, TOPOFIX_PARMS *parms) {
   parms->defect_list = (void *)dl;
 }
 
-static int detectContrast(MRIS *mris) {
+static int detectContrast(MRIS *mris)
+{
   int n, nv;
   double wm, gm;
   VERTEX *v;
@@ -42621,13 +43503,15 @@ static int detectContrast(MRIS *mris) {
   if (wm > gm) {
     fprintf(WHICH_OUTPUT, " right direction [ GM (%3.2f) < WM (%3.2f) ]\n", gm, wm);
     return 1;
-  } else {
+  }
+  else {
     fprintf(WHICH_OUTPUT, " inverted [ WM (%3.2f) < GM (%3.2f) ]\n", wm, gm);
     return -1;
   }
 }
 
-void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms) {
+void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms)
+{
 #if MATRIX_ALLOCATION
   /* allocation of the transform matrix */
   VoxelFromSRASmatrix = GetSurfaceRASToVoxelMatrix(parms->mri);
@@ -42675,7 +43559,8 @@ void MRISinitTopoFixParameters(MRIS *mris, TOPOFIX_PARMS *parms) {
   mrisMarkAllDefects(mris, (DEFECT_LIST *)parms->defect_list, 0);
 }
 
-MRI *mriInitDefectVolume(MRIS *mris, TOPOFIX_PARMS *parms) {
+MRI *mriInitDefectVolume(MRIS *mris, TOPOFIX_PARMS *parms)
+{
   MRI *mri;
   VERTEX *v;
 
@@ -42685,7 +43570,8 @@ MRI *mriInitDefectVolume(MRIS *mris, TOPOFIX_PARMS *parms) {
 
   if (parms->volume_resolution == -1) {
     scale = VOLUME_SCALE;
-  } else {
+  }
+  else {
     scale = parms->volume_resolution;
   }
 
@@ -42752,7 +43638,8 @@ MRI *mriInitDefectVolume(MRIS *mris, TOPOFIX_PARMS *parms) {
 }
 
 // used for fs_topo_fixer
-void MRISsaveLocal(MRIS *mris, TOPOFIX_PARMS *parms, char *name) {
+void MRISsaveLocal(MRIS *mris, TOPOFIX_PARMS *parms, char *name)
+{
   int static n_br = 0;
   char fname[512];
   int n;
@@ -42808,7 +43695,8 @@ void MRISsaveLocal(MRIS *mris, TOPOFIX_PARMS *parms, char *name) {
 
 static void defectVolumeWM(MRI *mri, MRI *mri_defect, MRI *mri_wm);
 
-void mrisInitDefectMRIParameters(MRIS *mris, TOPOFIX_PARMS *parms) {
+void mrisInitDefectMRIParameters(MRIS *mris, TOPOFIX_PARMS *parms)
+{
   MRI *mri_defect, *mri_defect_white, *mri_defect_gray, *mri_defect_sign, *mri_defect_initial_sign, *mri_defect_wm;
   DP *dp;
   DEFECT *defect;
@@ -42849,7 +43737,8 @@ void mrisInitDefectMRIParameters(MRIS *mris, TOPOFIX_PARMS *parms) {
   dp->mri = parms->mri;
 }
 
-void MRISinitDefectParameters(MRIS *mris, TOPOFIX_PARMS *parms) {
+void MRISinitDefectParameters(MRIS *mris, TOPOFIX_PARMS *parms)
+{
   int n, nvertices, nchull, defect_number;
   DEFECT *defect;
   DP *dp;
@@ -42937,7 +43826,8 @@ void MRISinitDefectParameters(MRIS *mris, TOPOFIX_PARMS *parms) {
   mrisInitDefectMRIParameters(mris, parms);
 }
 
-void TOPOFIXfreeDP(TOPOFIX_PARMS *parms) {
+void TOPOFIXfreeDP(TOPOFIX_PARMS *parms)
+{
   DP *dp;
   dp = (DP *)parms->dp;
   if (dp == NULL) {
@@ -42971,7 +43861,8 @@ void TOPOFIXfreeDP(TOPOFIX_PARMS *parms) {
   parms->dp = NULL;
 }
 
-void MRISmarkPatchVertices(MRIS *mris, TOPOFIX_PARMS *parms, int ninitvertices) {
+void MRISmarkPatchVertices(MRIS *mris, TOPOFIX_PARMS *parms, int ninitvertices)
+{
   int n;
   DP *dp;
   TP *tp;
@@ -42986,7 +43877,8 @@ void MRISmarkPatchVertices(MRIS *mris, TOPOFIX_PARMS *parms, int ninitvertices) 
   }
 }
 
-void MRISmarkBorderVertices(MRIS *mris, TOPOFIX_PARMS *parms, int mark) {
+void MRISmarkBorderVertices(MRIS *mris, TOPOFIX_PARMS *parms, int mark)
+{
   int n;
   DP *dp;
   TP *tp;
@@ -42999,7 +43891,8 @@ void MRISmarkBorderVertices(MRIS *mris, TOPOFIX_PARMS *parms, int mark) {
   }
 }
 
-void MRISinitDefectPatch(MRIS *mris, TOPOFIX_PARMS *parms) {
+void MRISinitDefectPatch(MRIS *mris, TOPOFIX_PARMS *parms)
+{
   int n;
   DP *dp;
   TP *tp;
@@ -43041,7 +43934,8 @@ void MRISinitDefectPatch(MRIS *mris, TOPOFIX_PARMS *parms) {
   tp->nedges = 0;
 }
 
-void MRIScomputeInitialFitness(MRIS *mris, TOPOFIX_PARMS *parms) {
+void MRIScomputeInitialFitness(MRIS *mris, TOPOFIX_PARMS *parms)
+{
   parms->mris_defect = mris;
   MRIScomputeFitness(mris, parms, 0);
   parms->initial_fitness = 0.0;
@@ -43054,14 +43948,16 @@ void MRIScomputeInitialFitness(MRIS *mris, TOPOFIX_PARMS *parms) {
 
 static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha, int mode);
 
-void MRISdefectMatch(MRIS *mris, TOPOFIX_PARMS *parms) {
+void MRISdefectMatch(MRIS *mris, TOPOFIX_PARMS *parms)
+{
   // fs_topo_fixer_test
   // defectMatch(parms->mri,mris,(DP*)parms->dp,2,1);//parms->smooth, parms->match);
   MRISdefectMaximizeLikelihood(parms->mri, mris, (DP *)parms->dp, 40, 0.5, 1);
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES);
 }
 
-double computeSurfaceLikelihood(MRIS *mris, DP *dp, int verbose) {
+double computeSurfaceLikelihood(MRIS *mris, DP *dp, int verbose)
+{
   int n;
   double Km, Hm;
   VERTEX *v;
@@ -43083,7 +43979,8 @@ double computeSurfaceLikelihood(MRIS *mris, DP *dp, int verbose) {
   return -Hm;
 }
 
-double computeVolumeLikelihood(DP *dp, int contrast, int verbose) {
+double computeVolumeLikelihood(DP *dp, int contrast, int verbose)
+{
   double int_g, int_w, val, val2, dval, delta, delta_ll;
   int i, j, k;
   double white_mean, gray_mean, white_vol, gray_vol;
@@ -43134,7 +44031,8 @@ double computeVolumeLikelihood(DP *dp, int contrast, int verbose) {
         if (val2 > val) {
           white_vol += dval;
           int_w += dval * valvox;
-        } else {
+        }
+        else {
           gray_vol += dval;
           int_g += dval * valvox;
         }
@@ -43163,7 +44061,8 @@ double computeVolumeLikelihood(DP *dp, int contrast, int verbose) {
   if (verbose) {
     if (gray_vol > white_vol) {
       fprintf(stderr, "CUTTING HANDLE\n");
-    } else {
+    }
+    else {
       fprintf(stderr, "FILLING HANDLE\n");
     }
 
@@ -43194,7 +44093,8 @@ static double l_vol = 1.0;
 static double l_surf = 1.0;
 static double l_wm = 1.0;
 
-double MRIScomputeFitness(MRIS *mris, TOPOFIX_PARMS *parms, int verbose) {
+double MRIScomputeFitness(MRIS *mris, TOPOFIX_PARMS *parms, int verbose)
+{
   static int first_time = 1;
   double fitness, unmri_ll, curv_ll;
   DP *dp;
@@ -43268,7 +44168,8 @@ double MRIScomputeFitness(MRIS *mris, TOPOFIX_PARMS *parms, int verbose) {
   return (fitness);
 }
 
-void MRISprintInfo(TOPOFIX_PARMS *parms) {
+void MRISprintInfo(TOPOFIX_PARMS *parms)
+{
   TP *tp;
   tp = &((DP *)parms->dp)->tp;
   TPprint(tp);
@@ -43276,7 +44177,8 @@ void MRISprintInfo(TOPOFIX_PARMS *parms) {
 
 // ------------ Definition of the static functions -------------------- //
 
-static void TPprint(TP *tp) {
+static void TPprint(TP *tp)
+{
   double mri, curv;
 #if DO_NOT_USE_AREA
   mri = (tp->face_ll + tp->vertex_ll) / 4.0;
@@ -43295,13 +44197,15 @@ static void TPprint(TP *tp) {
   fprintf(WHICH_OUTPUT, "         ( f=%2.2f , v=%2.2f , c=%2.2f , q= %2.2f ) \n", tp->fll, tp->vll, tp->cll, tp->qcll);
 }
 
-static void TPinit(TP *tp) {
+static void TPinit(TP *tp)
+{
   tp->vertices = NULL;
   tp->faces = NULL;
   tp->edges = NULL;
 }
 
-static void TPfree(TP *tp) {
+static void TPfree(TP *tp)
+{
   if (tp->vertices) {
     free(tp->vertices);
   }
@@ -43314,7 +44218,8 @@ static void TPfree(TP *tp) {
   TPinit(tp);
 }
 
-static SEGMENTATION *SEGMENTATIONalloc(int max_segments, int max_edges) {
+static SEGMENTATION *SEGMENTATIONalloc(int max_segments, int max_edges)
+{
   int n;
   SEGMENTATION *seg;
   SEGMENT *segment;
@@ -43338,7 +44243,8 @@ static SEGMENTATION *SEGMENTATIONalloc(int max_segments, int max_edges) {
   return seg;
 }
 
-static void SEGMENTATIONfree(SEGMENTATION **segmentation) {
+static void SEGMENTATIONfree(SEGMENTATION **segmentation)
+{
   int n;
   SEGMENTATION *seg;
 
@@ -43359,7 +44265,8 @@ static void SEGMENTATIONfree(SEGMENTATION **segmentation) {
   free(seg);
 }
 
-static int findSegment(SEGMENTATION *segmentation) {
+static int findSegment(SEGMENTATION *segmentation)
+{
   int n;
   SEGMENT *tmp;
 
@@ -43378,7 +44285,8 @@ static int findSegment(SEGMENTATION *segmentation) {
   return n;
 }
 
-static int compatibility(SEGMENTATION *segmentation, int segment_n, int edge_n) {
+static int compatibility(SEGMENTATION *segmentation, int segment_n, int edge_n)
+{
   SEGMENT *segment;
   ES *es;
   int n, m;
@@ -43406,7 +44314,8 @@ static int compatibility(SEGMENTATION *segmentation, int segment_n, int edge_n) 
 }
 
 /* add edge n into segment n */
-static int addEdgeToSegment(SEGMENTATION *segmentation, int segment_n, int edge_n) {
+static int addEdgeToSegment(SEGMENTATION *segmentation, int segment_n, int edge_n)
+{
   SEGMENT *segment;
   int n, m, inside, val, *tmp, nedges;
   ES *es;
@@ -43453,7 +44362,8 @@ static int addEdgeToSegment(SEGMENTATION *segmentation, int segment_n, int edge_
 }
 
 /* merge segment 2 into segment 1 */
-static int mergeSegmentToSegment(SEGMENTATION *segmentation, int segment_1, int segment_2) {
+static int mergeSegmentToSegment(SEGMENTATION *segmentation, int segment_1, int segment_2)
+{
   int n, m, val, inside, nedges, *tmp;
   SEGMENT *segment1, *segment2;
 
@@ -43523,7 +44433,8 @@ static int mergeSegmentToSegment(SEGMENTATION *segmentation, int segment_1, int 
 
 #define MAX_CLUSTERS 40
 
-static void segmentEdge(MRIS *mris, SEGMENTATION *segmentation, int edge_n) {
+static void segmentEdge(MRIS *mris, SEGMENTATION *segmentation, int edge_n)
+{
   int n, m, vno, stop;
   int clusters[MAX_CLUSTERS], nclusters, segment_n;
   EP *ep;
@@ -43601,7 +44512,8 @@ static void segmentEdge(MRIS *mris, SEGMENTATION *segmentation, int edge_n) {
   //  fprintf(stderr," %d",segmentation->nsegments);
 }
 
-static SEGMENTATION *segmentIntersectingEdges(MRIS *mris, DEFECT *defect, int *vertex_trans, ES *es, int *nedges) {
+static SEGMENTATION *segmentIntersectingEdges(MRIS *mris, DEFECT *defect, int *vertex_trans, ES *es, int *nedges)
+{
   int n, m, vno1, vno2, ndiscarded, nes, vtn;
   int nsegments, *segments, *sizes, changed, tmp;
   EDGE e1, e2;
@@ -43896,7 +44808,8 @@ static SEGMENTATION *segmentIntersectingEdges(MRIS *mris, DEFECT *defect, int *v
           if (nbh_size == -1) {
             nbh = segmentation->edges[ep->edges[m]].segment;
             nbh_size = segmentation->segments[nbh].nedges;
-          } else if (segmentation->segments[segmentation->edges[ep->edges[m]].segment].nedges < nbh_size) {
+          }
+          else if (segmentation->segments[segmentation->edges[ep->edges[m]].segment].nedges < nbh_size) {
             nbh = segmentation->edges[ep->edges[m]].segment;
             nbh_size = segmentation->segments[nbh].nedges;
           }
@@ -43908,7 +44821,8 @@ static SEGMENTATION *segmentIntersectingEdges(MRIS *mris, DEFECT *defect, int *v
           if (nbh_size == -1) {
             nbh = segmentation->edges[ep->edges[m]].segment;
             nbh_size = segmentation->segments[nbh].nedges;
-          } else if (segmentation->segments[segmentation->edges[ep->edges[m]].segment].nedges < nbh_size) {
+          }
+          else if (segmentation->segments[segmentation->edges[ep->edges[m]].segment].nedges < nbh_size) {
             nbh = segmentation->edges[ep->edges[m]].segment;
             nbh_size = segmentation->segments[nbh].nedges;
           }
@@ -43971,7 +44885,8 @@ static SEGMENTATION *segmentIntersectingEdges(MRIS *mris, DEFECT *defect, int *v
 }
 
 static void saveSegmentation(
-    MRIS *mris, MRIS *mris_corrected, DEFECT *defect, int *vertex_trans, ES *es, int nes, char *fname) {
+    MRIS *mris, MRIS *mris_corrected, DEFECT *defect, int *vertex_trans, ES *es, int nes, char *fname)
+{
   int n, val, v_rgb, vtn;
   int r, g, b, rgb[10];
   char name[500];
@@ -44026,7 +44941,8 @@ static void saveSegmentation(
   MRISwriteAnnotation(mris, name);
 }
 
-static void generateOrdering(DP *dp, SEGMENTATION *segmentation, int i) {
+static void generateOrdering(DP *dp, SEGMENTATION *segmentation, int i)
+{
   int n, m, val, r;
   int *ordering, *counter, nedges;
   int *seg_order, nseg;
@@ -44110,7 +45026,8 @@ static void generateOrdering(DP *dp, SEGMENTATION *segmentation, int i) {
   }
 }
 
-static MRIS *extractDefect(MRIS *mris, DEFECT *defect) {
+static MRIS *extractDefect(MRIS *mris, DEFECT *defect)
+{
   int n, vno, nvertices, nfaces, *vtrans, *vertex_trans;
   VERTEX *vdst, *vsrc;
   FACE *fdst, *fsrc;
@@ -44162,7 +45079,8 @@ static MRIS *extractDefect(MRIS *mris, DEFECT *defect) {
         continue;
       }
       vno = vertex_trans[defect->vertices[n]];
-    } else {
+    }
+    else {
       vno = vertex_trans[defect->chull[n - defect->nvertices]];
     }
 
@@ -44223,8 +45141,8 @@ static MRIS *extractDefect(MRIS *mris, DEFECT *defect) {
 
 #define EXTRACT_SMALL_SURFACE 0
 
-static void savePatch(
-    MRI *mri, MRIS *mris, MRIS *mris_corrected, DVS *dvs, DP *dp, char *fname, TOPOLOGY_PARMS *parms) {
+static void savePatch(MRI *mri, MRIS *mris, MRIS *mris_corrected, DVS *dvs, DP *dp, char *fname, TOPOLOGY_PARMS *parms)
+{
   int i;
   VERTEX *vsrc, *vdst;
   MRIS *mris_small;
@@ -44253,7 +45171,8 @@ static void savePatch(
     mris_small = extractDefect(mris_corrected, dp->defect);
     /* save surface */
     MRISwrite(mris_small, fname);
-  } else
+  }
+  else
   /* save surface */
   {
     MRISwrite(mris_corrected, fname);
@@ -44276,7 +45195,8 @@ static void savePatch(
           continue;
         }
         vno = dp->defect->vertex_trans[dp->defect->vertices[i]];
-      } else
+      }
+      else
         vno = dp->defect->vertex_trans[dp->defect->chull[i - dp->defect->nvertices]];
       if (vno < 0 || vno >= mris_corrected->nvertices) {
         continue;
@@ -44289,7 +45209,8 @@ static void savePatch(
     }
     /* save surface */
     MRISwrite(mris_small, fname);
-  } else
+  }
+  else
   /* save surface */
   {
     MRISwrite(mris_corrected, fname);
@@ -44312,7 +45233,8 @@ static void savePatch(
           continue;
         }
         vno = dp->defect->vertex_trans[dp->defect->vertices[i]];
-      } else {
+      }
+      else {
         vno = dp->defect->vertex_trans[dp->defect->chull[i - dp->defect->nvertices]];
       }
       if (vno < 0 || vno >= mris_corrected->nvertices) {
@@ -44326,7 +45248,8 @@ static void savePatch(
     }
     /* save surface */
     MRISwrite(mris_small, fname);
-  } else
+  }
+  else
   /* save surface */
   {
     MRISwrite(mris_corrected, fname);
@@ -44360,7 +45283,8 @@ static void savePatch(
       MRISwriteCurvature(mris_small, fname);
       /* free small surface */
       MRISfree(&mris_small);
-    } else
+    }
+    else
     /* save curvature  */
     {
       MRISwriteCurvature(mris_corrected, fname);
@@ -44388,7 +45312,8 @@ static void savePatch(
 }
 
 static void updateVertexStatistics(
-    MRIS *mris, MRIS *mris_corrected, DVS *dvs, RP *rp, DP *dp, int *vertex_trans, float fitness) {
+    MRIS *mris, MRIS *mris_corrected, DVS *dvs, RP *rp, DP *dp, int *vertex_trans, float fitness)
+{
   DEFECT *defect;
   EDGE_TABLE *etable;
   int i, nedges;
@@ -44453,7 +45378,8 @@ static void updateVertexStatistics(
   }
 }
 
-static int deleteWorstVertices(MRIS *mris, RP *rp, DEFECT *defect, int *vertex_trans, float fraction, int count) {
+static int deleteWorstVertices(MRIS *mris, RP *rp, DEFECT *defect, int *vertex_trans, float fraction, int count)
+{
   int i, nvoxels, niters, init, changed;
   float max;
   int max_i;
@@ -44545,7 +45471,8 @@ static int deleteWorstVertices(MRIS *mris, RP *rp, DEFECT *defect, int *vertex_t
 /*   (*k)=kVOL(mri,x); */
 /* } */
 
-static MRI *mriDefectVolume(MRIS *mris, EDGE_TABLE *etable, TOPOLOGY_PARMS *parms) {
+static MRI *mriDefectVolume(MRIS *mris, EDGE_TABLE *etable, TOPOLOGY_PARMS *parms)
+{
   MRI *mri;
   VERTEX *v;
 #if 0
@@ -44558,7 +45485,8 @@ static MRI *mriDefectVolume(MRIS *mris, EDGE_TABLE *etable, TOPOLOGY_PARMS *parm
 
   if (parms->volume_resolution == -1) {
     scale = VOLUME_SCALE;
-  } else {
+  }
+  else {
     scale = parms->volume_resolution;
   }
 
@@ -44677,7 +45605,8 @@ static MRI *mriDefectVolume(MRIS *mris, EDGE_TABLE *etable, TOPOLOGY_PARMS *parm
         }
         MRIvox(mri, l, p, q) = 1;
       }
-    } else {
+    }
+    else {
       dx = dy = dz = 0.0f;
       l = iVOL(mri, x1);
       p = jVOL(mri, y1);
@@ -44798,7 +45727,8 @@ static MRI *mriDefectVolume(MRIS *mris, EDGE_TABLE *etable, TOPOLOGY_PARMS *parm
   return mri;
 }
 
-static void defectVolumeWM(MRI *mri, MRI *mri_defect, MRI *mri_wm) {
+static void defectVolumeWM(MRI *mri, MRI *mri_defect, MRI *mri_wm)
+{
   int i, j, k;
   double x, y, z, xv, yv, zv, val;
 
@@ -44834,7 +45764,8 @@ static void defectVolumeLikelihood(MRI *mri,
                                    float white_mean,
                                    float gray_mean,
                                    int type,
-                                   int contrast) {
+                                   int contrast)
+{
   int i, j, k, n;
   double x, y, z, xv, yv, zv, val, sigma;
 
@@ -44861,8 +45792,8 @@ static void defectVolumeLikelihood(MRI *mri,
         if (type == 0) {
           MRIFvox(mri_white, i, j, k) = log(h_white->counts[nint(MIN(val, white_mean))]);
           MRIFvox(mri_gray, i, j, k) = log(h_gray->counts[nint(MAX(val, gray_mean))]);
-
-        } else {
+        }
+        else {
           // topo_fixer
 
           // MRIFvox(mri_white,i,j,k) = log(1.0/(1.0+exp(-(val-mu)/sigma)));
@@ -44871,26 +45802,32 @@ static void defectVolumeLikelihood(MRI *mri,
           if (contrast == 1) {
             if (val > white_mean) {
               MRIFvox(mri_white, i, j, k) = 0.0;
-            } else {
+            }
+            else {
               MRIFvox(mri_white, i, j, k) = SQR((val - white_mean) / sigma);
             }
             if (val < gray_mean) {
               MRIFvox(mri_gray, i, j, k) = 0.0;
-            } else {
+            }
+            else {
               MRIFvox(mri_gray, i, j, k) = SQR((val - gray_mean) / sigma);
             }
-          } else if (contrast == -1) {
+          }
+          else if (contrast == -1) {
             if (val < white_mean) {
               MRIFvox(mri_white, i, j, k) = 0.0;
-            } else {
+            }
+            else {
               MRIFvox(mri_white, i, j, k) = SQR((val - white_mean) / sigma);
             }
             if (val > gray_mean) {
               MRIFvox(mri_gray, i, j, k) = 0.0;
-            } else {
+            }
+            else {
               MRIFvox(mri_gray, i, j, k) = SQR((val - gray_mean) / sigma);
             }
-          } else {
+          }
+          else {
             MRIFvox(mri_white, i, j, k) = SQR((val - white_mean) / sigma);
             MRIFvox(mri_gray, i, j, k) = SQR((val - gray_mean) / sigma);
           }
@@ -44908,7 +45845,8 @@ static void defectVolumeLikelihood(MRI *mri,
 }
 
 static void mrisComputeSurfaceStatistics(
-    MRIS *mris, MRI *mri, HISTOGRAM *h_k1, HISTOGRAM *h_k2, MRI *mri_k1_k2, MRI *mri_gray_white, HISTOGRAM *h_dot) {
+    MRIS *mris, MRI *mri, HISTOGRAM *h_k1, HISTOGRAM *h_k2, MRI *mri_k1_k2, MRI *mri_gray_white, HISTOGRAM *h_dot)
+{
   int n, nvertices, nfaces;
   TP tp;
   float total_ll;
@@ -44974,7 +45912,8 @@ static void computeDefectStatistics(MRI *mri,
                                     HISTOGRAM *h_k1,
                                     HISTOGRAM *h_k2,
                                     MRI *mri_k1_k2,
-                                    int verbose) {
+                                    int verbose)
+{
   float val, mean, var, mg, mw, vw, vg, total, max, white_val, gray_val, x, y, z, cx, cy, cz, ival, k1, k2, vk1, vk2,
       wv, gv;
   double xv, yv, zv, int_val;
@@ -45232,7 +46171,8 @@ static void computeDefectStatistics(MRI *mri,
 }
 
 /* call the right smoothing and matching functions */
-static void defectMatch(MRI *mri, MRI_SURFACE *mris, DP *dp, int smooth, int match) {
+static void defectMatch(MRI *mri, MRI_SURFACE *mris, DP *dp, int smooth, int match)
+{
   if (smooth) {
     defectSmooth(mris, dp, 25, 0.1, smooth);
   }
@@ -45242,7 +46182,8 @@ static void defectMatch(MRI *mri, MRI_SURFACE *mris, DP *dp, int smooth, int mat
 }
 
 /* perform a light smoothing of the defect vertices */
-static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int type) {
+static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int type)
+{
   int i, n;
   VERTEX *v, *vn;
   float x, y, z;
@@ -45578,7 +46519,8 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
   computeDefectVertexNormals(mris, dp);
 }
 
-static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha, int mode) {
+static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha, int mode)
+{
   float wm, gm, mean;
   int i, n, nvertices, *vertices;
   VERTEX *v, *vn;
@@ -45696,7 +46638,8 @@ static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, in
   }
 }
 
-static void defectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha) {
+static void defectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha)
+{
   float wm, gm, mean;
   int i, n, nvertices;
   VERTEX *v, *vn;
@@ -45792,7 +46735,8 @@ static void defectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int ni
   }
 }
 
-static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp) {
+static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp)
+{
   int i, n, m, vno, vn1, vn2, nvertices, nthings, *things, nfaces;
   int optimal = dp->defect->optimal_mapping;
   VERTEX *v;
@@ -45887,7 +46831,8 @@ static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp) {
 
 #define DEBUG_INFO 0
 
-static int computePatchEulerNumber(MRIS *mris, DP *dp) {
+static int computePatchEulerNumber(MRIS *mris, DP *dp)
+{
   int nfaces, nedges, nvertices, euler;
 
   /* everything has already been computed */
@@ -45915,7 +46860,8 @@ static int computePatchEulerNumber(MRIS *mris, DP *dp) {
   return euler;
 }
 
-static void orientDefectFaces(MRIS *mris, DP *dp) {
+static void orientDefectFaces(MRIS *mris, DP *dp)
+{
   int n, m, vno0, vno1, fno;
   float dot, cx, cy, cz, a[3], b[3], norm[3];
   TP *tp;
@@ -45974,7 +46920,8 @@ static void orientDefectFaces(MRIS *mris, DP *dp) {
   }
 }
 
-static void computeDefectFaceNormal(MRIS *mris, FACE *face) {
+static void computeDefectFaceNormal(MRIS *mris, FACE *face)
+{
   VERTEX *v1, *v2, *v3;
   float a[3], b[3], norm[3], len, nx, ny, nz;
 
@@ -46030,7 +46977,8 @@ static void computeDefectFaceNormal(MRIS *mris, FACE *face) {
 // FLO TO BE CHECKED
 #define TEMPORARY_RIPPED_FACE 2
 
-static void computeDefectFaceNormals(MRIS *mris, DP *dp) {
+static void computeDefectFaceNormals(MRIS *mris, DP *dp)
+{
   int i, n;
   VERTEX *v;
   FACE *face;
@@ -46064,7 +47012,8 @@ static void computeDefectFaceNormals(MRIS *mris, DP *dp) {
   }
 }
 
-static void computeDefectVertexNormals(MRIS *mris, DP *dp) {
+static void computeDefectVertexNormals(MRIS *mris, DP *dp)
+{
   int n, m;
   float nx, ny, nz, len;
   TP *tp;
@@ -46103,7 +47052,8 @@ static void computeDefectVertexNormals(MRIS *mris, DP *dp) {
   }
 }
 
-static void computeDefectTangentPlaneAtVertex(MRIS *mris, int vno) {
+static void computeDefectTangentPlaneAtVertex(MRIS *mris, int vno)
+{
   float a[3], b[3], c[3], len;
 
   VERTEX *v;
@@ -46154,7 +47104,8 @@ static void computeDefectTangentPlaneAtVertex(MRIS *mris, int vno) {
   v->e2z = b[2] / len;
 }
 
-static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp) {
+static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp)
+{
   int p, vno, i, n, nbad = 0;
   VERTEX *vertex, *vnb;
   MATRIX *m_U, *m_Ut, *m_tmp1, *m_tmp2, *m_inverse, *m_eigen, *m_Q;
@@ -46241,7 +47192,8 @@ static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp) {
       /* singular matrix - must be planar?? */
       nbad++;
       evalues[0] = evalues[1] = 0.0;
-    } else {
+    }
+    else {
       m_tmp1 = MatrixMultiply(m_Ut, v_z, NULL); /* Ut z */
       MatrixMultiply(m_inverse, m_tmp1, v_c);   /* (Ut U)^-1 Ut z */
 
@@ -46328,7 +47280,8 @@ static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp) {
 /*   computeDefectSecondFundamentalForm(mris,tp); */
 /* } */
 
-static void printDefectStatistics(DP *dp) {
+static void printDefectStatistics(DP *dp)
+{
   // fprintf(WHICH_OUTPUT,"fitness=%2.4f\n",dp->fitness);
   fprintf(WHICH_OUTPUT,
           "X=%d (v=%d,e=%d,f=%d): %d vertices were discarded\n",
@@ -46359,7 +47312,8 @@ static void printDefectStatistics(DP *dp) {
 #define BORDER_VERTEX TRIANGLE_VERTEX /* part of a triangle! */
 #define USED_VERTEX 5                 /* used in the final tessellation */
 
-static int isVertexInsideFace(MRIS *mris, int vno, int fno) {
+static int isVertexInsideFace(MRIS *mris, int vno, int fno)
+{
   int i;
   VERTEX *V0, *V1, *V2, *V, *Vn;
   double sign, test, normal[3], orgn[3], tangent[3];
@@ -46418,7 +47372,8 @@ static int isVertexInsideFace(MRIS *mris, int vno, int fno) {
 }
 
 /* check if the vertex vno1 is contained in one of the faces of vno2 */
-static int isDiscarded(MRIS *mris, int vno1, int vno2) {
+static int isDiscarded(MRIS *mris, int vno1, int vno2)
+{
   int n;
   VERTEX *v;
 
@@ -46433,7 +47388,8 @@ static int isDiscarded(MRIS *mris, int vno1, int vno2) {
   return 0;
 }
 
-static void removeVertex(MRIS *mris, int vno) {
+static void removeVertex(MRIS *mris, int vno)
+{
   int n, m, vnum, *oldlist;
   VERTEX *v, *vn;
 
@@ -46464,7 +47420,8 @@ static void removeVertex(MRIS *mris, int vno) {
         vn->v[vnum++] = oldlist[m];
       }
       free(oldlist);
-    } else {
+    }
+    else {
       vn->v = NULL;
     }
     vn->vnum = vnum;
@@ -46481,7 +47438,8 @@ static void removeVertex(MRIS *mris, int vno) {
   v->vtotal = 0;
 }
 
-static int updateVertexTriangle(MRIS *mris, int vno, int fno) {
+static int updateVertexTriangle(MRIS *mris, int vno, int fno)
+{
   int n, m, vn;
   VERTEX *v;
 
@@ -46529,7 +47487,8 @@ static int updateVertexTriangle(MRIS *mris, int vno, int fno) {
 /* } */
 
 /* check if the edge vno1 <--> vno2 is the edge of a triangle */
-static void findNewTriangles(MRIS *mris, int vno1, int vno2) {
+static void findNewTriangles(MRIS *mris, int vno1, int vno2)
+{
   int n, m, vn, fno;
   VERTEX *v;
 
@@ -46570,7 +47529,8 @@ static void findNewTriangles(MRIS *mris, int vno1, int vno2) {
   }
 }
 
-static int isEdgeAdded(MRIS *mris, int vno1, int vno2, int mode) {
+static int isEdgeAdded(MRIS *mris, int vno1, int vno2, int mode)
+{
   int mark1, mark2, tmp;
   VERTEX *v1, *v2;
 
@@ -46607,14 +47567,16 @@ static int isEdgeAdded(MRIS *mris, int vno1, int vno2, int mode) {
           /* remove this vertex that is not connected to anyone */
           v1->marked = DISCARDED_VERTEX;
           return 0;
-        } else {
+        }
+        else {
           /* outside the faces */
           mrisAddEdge(mris, vno1, vno2);
           /* the first vertex becomes EDGE */
           v1->marked = EDGE_VERTEX;
           return 1;
         }
-      } else {
+      }
+      else {
         /* the second vertex is either of type INSIDE or EDGE */
         mrisAddEdge(mris, vno1, vno2);
         /* they both become EDGE */
@@ -46630,7 +47592,8 @@ static int isEdgeAdded(MRIS *mris, int vno1, int vno2, int mode) {
         /* look for new triangles */
         findNewTriangles(mris, vno1, vno2);
         return 1;
-      } else {
+      }
+      else {
         /* vno2 is of type TRIANGLE_VERTEX */
         /* is the first vertex inside or outside the faces of vno2 */
         if (isDiscarded(mris, vno1, vno2)) {
@@ -46638,7 +47601,8 @@ static int isEdgeAdded(MRIS *mris, int vno1, int vno2, int mode) {
           /* remove this vertex and its connexions */
           removeVertex(mris, vno1);
           return 0;
-        } else {
+        }
+        else {
           /* outside */
           mrisAddEdge(mris, vno1, vno2);
           /* check if some new triangles have been formed : if yes, update type*/
@@ -46659,12 +47623,14 @@ static int isEdgeAdded(MRIS *mris, int vno1, int vno2, int mode) {
   return 0;
 };
 
-typedef struct {
+typedef struct
+{
   int intersected;
   int vno1, vno2;
 } INTERSECTION_TABLE, IT;
 
-static int retessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DVS *dvs, DP *dp) {
+static int retessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DVS *dvs, DP *dp)
+{
   double max_len;
   int i, j, max_i, max_added, nadded, index, ndiscarded;
   int (*intersection_function)(MRI_SURFACE * mris, DEFECT * defect, EDGE * e, int *vertex_trans, int *v1, int *v2);
@@ -46737,7 +47703,8 @@ static int retessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DV
     for (index = 0; index < nedges; index++) {
       if (ordering) {
         i = ordering[index];
-      } else {
+      }
+      else {
         i = index;
       }
 
@@ -46789,7 +47756,8 @@ static int retessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DV
         }
         if (etable->flags[i] & ET_OVERLAP_LIST_INCOMPLETE) {
           intersection_function = intersectDefectEdges;
-        } else {
+        }
+        else {
           intersection_function = intersectDefectConvexHullEdges;
         }
       }
@@ -46801,7 +47769,8 @@ static int retessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DV
           if (et[i].used) /* used in original tessellation */
           {
             et[i].used = USED_IN_BOTH_TEMPORARY_TESSELLATION;
-          } else {
+          }
+          else {
             et[i].used = USED_IN_NEW_TEMPORARY_TESSELLATION;
           }
           /* useful only if mode = USE_ALL_VERTICES */
@@ -46817,7 +47786,8 @@ static int retessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DV
             }
           }
         }
-      } else /* intersecting edge with edge e1<-->e2 */
+      }
+      else /* intersecting edge with edge e1<-->e2 */
       {
         it[i].intersected = 2;
       }
@@ -46827,7 +47797,8 @@ static int retessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DV
       /* keep the same order (not necessary) */
       if (ordering) {
         i = ordering[index];
-      } else {
+      }
+      else {
         i = index;
       }
 
@@ -46858,10 +47829,12 @@ static int retessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DV
             mris_corrected->vertices[it[i].vno2].marked == DISCARDED_VERTEX) {
           modified = 1;
           it[i].intersected = 0;
-        } else {
+        }
+        else {
           it[i].intersected = 1;
         }
-      } else {
+      }
+      else {
         it[i].intersected = 1;
       }
     }
@@ -46874,7 +47847,8 @@ static int retessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DV
     /* keep the same order (not necessary) */
     if (ordering) {
       i = ordering[index];
-    } else {
+    }
+    else {
       i = index;
     }
 
@@ -46967,7 +47941,8 @@ static int retessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DV
   return (NO_ERROR);
 }
 
-static void computeDisplacement(MRI_SURFACE *mris, DP *dp) {
+static void computeDisplacement(MRI_SURFACE *mris, DP *dp)
+{
   DEFECT *defect;
   int p, vno;
   float val;
@@ -47001,7 +47976,8 @@ static double mrisDefectPatchFitness(MRI_SURFACE *mris,
                                      HISTOGRAM *h_grad,
                                      MRI *mri_gray_white,
                                      HISTOGRAM *h_dot,
-                                     TOPOLOGY_PARMS *parms) {
+                                     TOPOLOGY_PARMS *parms)
+{
   int i, euler;
   VERTEX *v;
   DEFECT *defect = dp->defect;
@@ -47114,7 +48090,8 @@ static double mrisDefectPatchFitness(MRI_SURFACE *mris,
   return (dp->fitness);
 }
 
-static int mrisFreeDefectVertexState(DEFECT_VERTEX_STATE *dvs) {
+static int mrisFreeDefectVertexState(DEFECT_VERTEX_STATE *dvs)
+{
   int i;
 
   for (i = 0; i < dvs->nvertices; i++) {
@@ -47132,7 +48109,8 @@ static int mrisFreeDefectVertexState(DEFECT_VERTEX_STATE *dvs) {
   return (NO_ERROR);
 }
 
-static DEFECT_VERTEX_STATE *mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *defect, int *vertex_trans) {
+static DEFECT_VERTEX_STATE *mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *defect, int *vertex_trans)
+{
   DEFECT_VERTEX_STATE *dvs;
   int i, n, vno;
   VERTEX *v;
@@ -47212,7 +48190,8 @@ static DEFECT_VERTEX_STATE *mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *def
         vs->f[n] = v->f[n];
         vs->n[n] = v->n[n];
       }
-    } else {
+    }
+    else {
       vs->num = 0;
       vs->f = NULL;
       vs->n = NULL;
@@ -47223,7 +48202,8 @@ static DEFECT_VERTEX_STATE *mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *def
   return (dvs);
 }
 
-static int mrisRestoreFaceVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs) {
+static int mrisRestoreFaceVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs)
+{
   int i, n, vno;
   VERTEX *v;
   VERTEX_STATE *vs;
@@ -47263,7 +48243,8 @@ static int mrisRestoreFaceVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dv
   return (NO_ERROR);
 }
 
-static int mrisRestoreVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs) {
+static int mrisRestoreVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs)
+{
   int i, n, vno;
   VERTEX *v;
   VERTEX_STATE *vs;
@@ -47326,7 +48307,8 @@ static int mrisRestoreVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs) {
   return (NO_ERROR);
 }
 
-static int mrisComputeNormalDotDistribution(MRI_SURFACE *mris, HISTOGRAM *h_dot) {
+static int mrisComputeNormalDotDistribution(MRI_SURFACE *mris, HISTOGRAM *h_dot)
+{
   int vno, bin, n, num;
   VERTEX *v, *vn;
   float bin_size, min_dot, max_dot, bin_val, dot, dx, dy, dz, nx, ny, nz, x, y, z;
@@ -47428,7 +48410,8 @@ static int mrisComputeNormalDotDistribution(MRI_SURFACE *mris, HISTOGRAM *h_dot)
 static int mrisComputePrincipalCurvatureDistributions(MRI_SURFACE *mris,
                                                       HISTOGRAM *h_k1,
                                                       HISTOGRAM *h_k2,
-                                                      MRI *mri_k1_k2) {
+                                                      MRI *mri_k1_k2)
+{
   int vno, bin, bink1, bink2, nvertices, x, y;
   VERTEX *v;
   float k1_bin_size, k2_bin_size, min_k1, max_k1, min_k2, max_k2, bin_val, norm;
@@ -47569,7 +48552,8 @@ static void computeGradient(MRIS *mris, double cx, double cy, double cz, double 
 /* compute the NRG associated with the center
    (cx,cy,cz) and the squared radius R2
    NRG = sum((x-cx)^2+(y-cy)^2+(z-cz)^2-R2)^2 */
-static double estimateNRG(MRIS *mris, double cx, double cy, double cz, double R2) {
+static double estimateNRG(MRIS *mris, double cx, double cy, double cz, double R2)
+{
   int n;
   double NRG;
   for (NRG = 0, n = 0; n < mris->nvertices; n++) {
@@ -47581,7 +48565,8 @@ static double estimateNRG(MRIS *mris, double cx, double cy, double cz, double R2
 /* estimate the squared radius that
    minimizes the energy defined above for a given
    center (cx,cy,cz) */
-static double estimateSquaredRadius(MRIS *mris, double cx, double cy, double cz) {
+static double estimateSquaredRadius(MRIS *mris, double cx, double cy, double cz)
+{
   int n;
   double R2;
 
@@ -47596,8 +48581,8 @@ static double estimateSquaredRadius(MRIS *mris, double cx, double cy, double cz)
 
 /* compute the gradient of the energy
    defined above at location (cx,cy,cz,R2) */
-static void computeGradient(
-    MRIS *mris, double cx, double cy, double cz, double R2, double *gx, double *gy, double *gz) {
+static void computeGradient(MRIS *mris, double cx, double cy, double cz, double R2, double *gx, double *gy, double *gz)
+{
   int n;
   double tx, ty, tz;
   tx = 0.0;
@@ -47620,7 +48605,8 @@ static void computeGradient(
 
 /* Center the surface mris at location (cx,cy,cz) with a radius r
    such the energy sum((x-cx)^2+(y-cy)^2+(z-cz)^2-r^2)^2 is minimized */
-int MRIScenterSphere(MRI_SURFACE *mris) {
+int MRIScenterSphere(MRI_SURFACE *mris)
+{
   VERTEX *vertex;
   int n, niters;
   /* sphere parameters */
@@ -47744,7 +48730,8 @@ int MRIScenterSphere(MRI_SURFACE *mris) {
               10000. * y,
               10000. * z);
 #endif
-    } else {
+    }
+    else {
       NRG = estimateNRG(mris, x, y, z, R2);
     }
   }
@@ -47829,7 +48816,8 @@ static float computeAngleSign(MRIS *mris, int v,int v2, int v3)
 }
 #endif
 
-typedef struct {
+typedef struct
+{
   EDGE *inside_edges, *border_edges;
   int n_inside_edges, n_border_edges;
 } EDGE_LIST_INFO;
@@ -47840,7 +48828,8 @@ typedef struct {
 static int ver1 = -1, ver2 = -1, ver3 = -1, ver4 = -1;
 #endif
 
-int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_gradient) {
+int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_gradient)
+{
   int vno, nvertices, n, m;
   VERTEX *v, *vn;  //,*vm;
   EDGE e1, *e2;
@@ -47906,8 +48895,8 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
       dx = v->odx;
       dy = v->ody;
       dz = v->odz;
-
-    } else {
+    }
+    else {
       if (!isfinite(v->dx) || !isfinite(v->dy) || !isfinite(v->dz)) {
         ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n", vno);
       }
@@ -48052,7 +49041,8 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
         // step=5;
         if (step != 0 && step != 5) {
           fprintf(stderr, "%d+", step);
-        } else {
+        }
+        else {
           fprintf(stderr, ".");
         }
 #endif
@@ -48214,7 +49204,8 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
         // step=5;
         if (step != 0 && step != 5) {
           fprintf(stderr, "%d_", step);
-        } else {
+        }
+        else {
           fprintf(stderr, ":");
         }
 #endif
@@ -48302,7 +49293,8 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
         // step=5;
         if (step != 0 && step != 5) {
           fprintf(stderr, "%d-", step);
-        } else {
+        }
+        else {
           fprintf(stderr, ",");
         }
 #endif
@@ -48395,7 +49387,8 @@ static long nkilled = 0;
 
 static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris, DEFECT_LIST *dl);
 
-static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris, DEFECT_LIST *dl) {
+static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris, DEFECT_LIST *dl)
+{
   int i, j, n, m, *nd, ndefects, merged;
   int vlist[MAX_DEFECT_VERTICES], nadded;
   float len;
@@ -48587,7 +49580,8 @@ static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris, DEFECT_LIST *dl) {
   return new_dl;
 }
 
-MRIS *MRISremoveRippedSurfaceElements(MRIS *mris) {
+MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
+{
   int *vertex_trans, *face_trans;
   int vno, fno, i, n, nrippedfaces, nrippedvertices, kept_vertices, kept_faces;
   MRIS *mris_corrected;
@@ -48743,7 +49737,8 @@ static int defectIdentifyDefectiveVertices(MRI_SURFACE *mris,
                                            int mark_retained,
                                            int mark_discard,
                                            MHT *mht,
-                                           int mode) {
+                                           int mode)
+{
   int counting, n, p;
   VERTEX *v, *v0, *v1, *v2;
   FACE *f;
@@ -48789,7 +49784,8 @@ static int defectIdentifyDefectiveVertices(MRI_SURFACE *mris,
       if (dot < 0.0f) /* not in same direction, area < 0 and reverse n */
       {
         f->area = -area;
-      } else {
+      }
+      else {
         f->area = area;
       }
     }
@@ -48831,7 +49827,8 @@ static int defectIdentifyDefectiveVertices(MRI_SURFACE *mris,
 }
 #if ADD_EXTRA_VERTICES
 /* verify if some defects are not overlapping : to be implemented */
-static DEFECT_LIST *mrisDefectAnalysis(MRIS *mris, DEFECT_LIST *dl) {
+static DEFECT_LIST *mrisDefectAnalysis(MRIS *mris, DEFECT_LIST *dl)
+{
   int i, n;
   DEFECT *defect;
 
@@ -48889,7 +49886,8 @@ static DEFECT_LIST *mrisDefectAnalysis(MRIS *mris, DEFECT_LIST *dl) {
 #endif
 
 #if ADD_EXTRA_VERTICES
-static int pushApartDefects(MRIS *mris, DEFECT_LIST *dl) {
+static int pushApartDefects(MRIS *mris, DEFECT_LIST *dl)
+{
   int i, n, p, m, vnop, total_nadded, nadded;
   DEFECT *defect;
   VERTEX *v, *vp, *vadded;
@@ -48962,7 +49960,8 @@ static int pushApartDefects(MRIS *mris, DEFECT_LIST *dl) {
 //////////////////////////////////////////////////////////////////////
 
 MRI_SURFACE *MRIScorrectTopology(
-    MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MRI *mri_wm, int nsmooth, TOPOLOGY_PARMS *parms) {
+    MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri, MRI *mri_wm, int nsmooth, TOPOLOGY_PARMS *parms)
+{
   FACE_DEFECT_LIST *fdl;
   DEFECT_LIST *dl;
   DEFECT *defect;
@@ -49089,7 +50088,8 @@ MRI_SURFACE *MRIScorrectTopology(
           continue;
         }
         vno = defect->vertices[n];
-      } else {
+      }
+      else {
         vno = defect->border[n - defect->nvertices];
       }
       v = &mris->vertices[vno];
@@ -49099,7 +50099,8 @@ MRI_SURFACE *MRIScorrectTopology(
             continue;
           }
           vno2 = defect->vertices[n2];
-        } else {
+        }
+        else {
           vno2 = defect->border[n2 - defect->nvertices];
         }
         if (vno == vno2) {
@@ -49823,7 +50824,8 @@ MRI_SURFACE *MRIScorrectTopology(
 #if TESTING_OPTIMAL
       mrisFreeDefectVertexState(dvs);
 #endif
-    } else {
+    }
+    else {
       // main part of the routine: retessellation of the defect
       mrisTessellateDefect(mris,
                            mris_corrected,
@@ -50126,7 +51128,8 @@ MRI_SURFACE *MRIScorrectTopology(
   return (mris_corrected_final);
 }
 
-static int mrisMarkAllDefects(MRI_SURFACE *mris, DEFECT_LIST *dl, int flag) {
+static int mrisMarkAllDefects(MRI_SURFACE *mris, DEFECT_LIST *dl, int flag)
+{
   int j;
 
   for (j = 0; j < dl->ndefects; j++) {
@@ -50135,7 +51138,8 @@ static int mrisMarkAllDefects(MRI_SURFACE *mris, DEFECT_LIST *dl, int flag) {
   return (NO_ERROR);
 }
 
-static int mrisRipAllDefects(MRI_SURFACE *mris, DEFECT_LIST *dl, int flag) {
+static int mrisRipAllDefects(MRI_SURFACE *mris, DEFECT_LIST *dl, int flag)
+{
   int j;
 
   for (j = 0; j < dl->ndefects; j++) {
@@ -50155,7 +51159,8 @@ static int mrisRipAllDefects(MRI_SURFACE *mris, DEFECT_LIST *dl, int flag) {
   regions in which the topology is broken as the spherical
   homeomorphism is non-invertible.
   ------------------------------------------------------*/
-FACE_DEFECT_LIST *MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark) {
+FACE_DEFECT_LIST *MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
+{
   FACE *f;
   VERTEX *v;
   int fno, flist[MAX_INT_FACES], i, nfaces, nmarked, n /*, vno, neg*/;
@@ -50325,7 +51330,8 @@ FACE_DEFECT_LIST *MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark) {
   - curv is used to save the marked flags during divideedge.
   - undefval and old_undefval are used to find the enclosing loop
   ------------------------------------------------------*/
-DEFECT_LIST *MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_segmented) {
+DEFECT_LIST *MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_segmented)
+{
   DEFECT_LIST *dl;
   int vno, nadded;
   VERTEX *v;
@@ -50402,7 +51408,8 @@ DEFECT_LIST *MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_
   Segment the connected region of a defect, starting with vno
   and spreading outwards.
   ------------------------------------------------------*/
-static int mrisSegmentDefect(MRI_SURFACE *mris, int vno, DEFECT *defect, int mark_ambiguous, int mark_segmented) {
+static int mrisSegmentDefect(MRI_SURFACE *mris, int vno, DEFECT *defect, int mark_ambiguous, int mark_segmented)
+{
   int vlist[MAX_DEFECT_VERTICES], i, j, n, nfilled, nadded, vno1, m;
   VERTEX *v, *vn, *vadded;
   float len, nx, ny, nz;
@@ -50552,7 +51559,8 @@ static int mrisSegmentDefect(MRI_SURFACE *mris, int vno, DEFECT *defect, int mar
 //#if FIND_ENCLOSING_LOOP
 /* segment a surface into connected components using undefval to mark
    the different components and avoiding old_undefval */
-static int mrisSegmentConnectedComponents(MRIS *mris) {
+static int mrisSegmentConnectedComponents(MRIS *mris)
+{
   int n, p, vno = 0, seed, found;
   int *vlist, nvertices;
   int *next_vlist, next_nvertices, total_vertices, maxn, maxv;
@@ -50642,7 +51650,8 @@ static int mrisSegmentConnectedComponents(MRIS *mris) {
   - old_undefval are forbidden points (borders, inside)
   - undefval are flags for the segmentation into connected components
   ------------------------------------------------------*/
-static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect, int mark_ambiguous, int mark_segmented) {
+static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect, int mark_ambiguous, int mark_segmented)
+{
   int n, p, l, label, j, w;
   int nvertices, nedges, inside_face, outside_face;
   int add_vertex, add_edges;
@@ -50708,7 +51717,8 @@ static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect, int mark
     if (v->undefval != label) {
       varray[vnb++] = n;
       v->undefval = 1;
-    } else {
+    }
+    else {
       v->undefval = 0;
     }
   }
@@ -50858,7 +51868,8 @@ static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect, int mark
     if (v->undefval == 3) /* good border vertex */
     {
       barray[bnb++] = defect->border[n];
-    } else /* becomes inside vertex */
+    }
+    else /* becomes inside vertex */
     {
       varray[vnb++] = defect->border[n];
     }
@@ -51040,7 +52051,8 @@ int mrisMarkRetainedPartOfDefect(MRI_SURFACE *mris,
                                  int mark_retain,
                                  int mark_discard,
                                  MHT *mht,
-                                 int mode) {
+                                 int mode)
+{
 #if 0
   int      n, i, j, nfaces, fno, flist[100000], n2, vno, retain;
   FACE     *f ;
@@ -51054,7 +52066,8 @@ int mrisMarkRetainedPartOfDefect(MRI_SURFACE *mris,
     mrisDefectRemoveDegenerateVertices(mris, MIN_SPHERE_DIST, defect);
     mrisDefectRemoveProximalVertices(mris, MIN_ORIG_DIST, defect);
     mrisDefectRemoveNegativeVertices(mris, defect);
-  } else {
+  }
+  else {
     int i;
     for (i = 0; i < defect->nvertices; i++) {
       defect->status[i] = KEEP_VERTEX;
@@ -51298,7 +52311,8 @@ static int mrisMarkRetainedPartOfDefect(MRI_SURFACE *mris,
                                         float area_threshold,
                                         int mark_retain,
                                         int mark_discard,
-                                        MHT *mht) {
+                                        MHT *mht)
+{
 #define USING_CUBE 0
 #if USING_CUBE || 1
   /* based on faces */
@@ -51450,7 +52464,8 @@ static int mrisMarkRetainedPartOfDefect(MRI_SURFACE *mris,
     }
     if (inside) {
       v->val = -1.0f;
-    } else {
+    }
+    else {
       v->val = 1.0f;
     }
     defect->cx += v->x;
@@ -51502,7 +52517,8 @@ static int mrisMarkRetainedPartOfDefect(MRI_SURFACE *mris,
         defect->status[n] = KEEP_VERTEX;
         v->imag_val = -1.0;
       }
-    } else {
+    }
+    else {
       if (mrisFindNextOutwardFace(mris, mht, vno, 20.0f) >= 0) {
         defect->status[n] = DISCARD_VERTEX;
         v->imag_val = -1.0;
@@ -51532,7 +52548,8 @@ static int mrisMarkRetainedPartOfDefect(MRI_SURFACE *mris,
         continue;
       }
       v = &mris->vertices[defect->vertices[i]];
-    } else {
+    }
+    else {
       v = &mris->vertices[defect->border[i - defect->nvertices]];
     }
     for (j = i + 1; j < defect->nvertices; j++) {
@@ -51561,7 +52578,8 @@ static int mrisMarkRetainedPartOfDefect(MRI_SURFACE *mris,
         continue;
       }
       v = &mris->vertices[defect->vertices[i]];
-    } else {
+    }
+    else {
       v = &mris->vertices[defect->border[i - defect->nvertices]];
     }
     for (j = i + 1; j < defect->nvertices; j++) {
@@ -51593,7 +52611,8 @@ static int mrisMarkRetainedPartOfDefect(MRI_SURFACE *mris,
   Description
   Is vno a vertex of face fno?
   ------------------------------------------------------*/
-static int vertexInFace(MRI_SURFACE *mris, int vno, int fno) {
+static int vertexInFace(MRI_SURFACE *mris, int vno, int fno)
+{
   VERTEX *v;
   int n;
 
@@ -51605,7 +52624,8 @@ static int vertexInFace(MRI_SURFACE *mris, int vno, int fno) {
   return (0);
 }
 
-static int mrisRipDefect(MRI_SURFACE *mris, DEFECT *defect, int ripflag) {
+static int mrisRipDefect(MRI_SURFACE *mris, DEFECT *defect, int ripflag)
+{
   int n;
 
   for (n = 0; n < defect->nvertices; n++) {
@@ -51623,7 +52643,8 @@ static int mrisRipDefect(MRI_SURFACE *mris, DEFECT *defect, int ripflag) {
   Description
   Mark all the vertices in the given defect.
   ------------------------------------------------------*/
-static int mrisMarkDefect(MRI_SURFACE *mris, DEFECT *defect, int mark) {
+static int mrisMarkDefect(MRI_SURFACE *mris, DEFECT *defect, int mark)
+{
   int n;
 
   for (n = 0; n < defect->nvertices; n++) {
@@ -51640,7 +52661,8 @@ static int mrisMarkDefect(MRI_SURFACE *mris, DEFECT *defect, int mark) {
   Description
   Mark all the border vertices in the given defect.
   ------------------------------------------------------*/
-static int mrisMarkDefectConvexHull(MRI_SURFACE *mris, DEFECT *defect, int mark) {
+static int mrisMarkDefectConvexHull(MRI_SURFACE *mris, DEFECT *defect, int mark)
+{
   int n;
 
   for (n = 0; n < defect->nchull; n++) {
@@ -51657,7 +52679,8 @@ static int mrisMarkDefectConvexHull(MRI_SURFACE *mris, DEFECT *defect, int mark)
   Description
   Mark all the border vertices in the given defect.
   ------------------------------------------------------*/
-static int mrisMarkDefectBorder(MRI_SURFACE *mris, DEFECT *defect, int mark) {
+static int mrisMarkDefectBorder(MRI_SURFACE *mris, DEFECT *defect, int mark)
+{
   int n;
 
   for (n = 0; n < defect->nborder; n++) {
@@ -51715,7 +52738,8 @@ mrisScaleMaxDimension(MRI_SURFACE *mris, float maxr)
   Description
   See if any of the vertices in a triangle are marked
   ------------------------------------------------------*/
-static int triangleMarked(MRI_SURFACE *mris, int fno) {
+static int triangleMarked(MRI_SURFACE *mris, int fno)
+{
   int n;
   FACE *f;
 
@@ -51762,7 +52786,8 @@ triangleNeighbors(MRI_SURFACE *mris, int fno1, int fno2)
 //////////////////////////////////////////////////////////////
 // Find inside and outside voxels of a surface mris
 //////////////////////////////////////////////////////////////
-MRI *MRISbinarizeVolume(MRI_SURFACE *mris, MRI_REGION *region, float resolution, float distance_from_surface) {
+MRI *MRISbinarizeVolume(MRI_SURFACE *mris, MRI_REGION *region, float resolution, float distance_from_surface)
+{
   int k, i, j, p, width, height, depth;
   float x0, x1, x2, y0, y1, y2, z0, z1, z2;
   float x, y, z;
@@ -51945,7 +52970,8 @@ MRI *MRISbinarizeVolume(MRI_SURFACE *mris, MRI_REGION *region, float resolution,
             valu = 1;
             sign = val;
             distance = val; /* n_f is already normalized */
-          } else {
+          }
+          else {
             distance = NPY;
             sign = 0;
             valu = 0;
@@ -51958,12 +52984,14 @@ MRI *MRISbinarizeVolume(MRI_SURFACE *mris, MRI_REGION *region, float resolution,
                 sign = F_DOT(n_v0, vec0);
                 valu = 2;
                 distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec0));
-              } else if (val < SQR3(e0)) {
+              }
+              else if (val < SQR3(e0)) {
                 /* closer to edge0 */
                 sign = F_DOT(n_e0, vec0);
                 valu = 3;
                 distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec0) - SQR(val) / SQR3(e0))));
-              } else {
+              }
+              else {
                 /* closer to x1 */
                 sign = F_DOT(n_v1, vec1);
                 valu = 2;
@@ -51977,12 +53005,14 @@ MRI *MRISbinarizeVolume(MRI_SURFACE *mris, MRI_REGION *region, float resolution,
                 sign = F_DOT(n_v1, vec1);
                 valu = 2;
                 distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec1));
-              } else if (val < SQR3(e1)) {
+              }
+              else if (val < SQR3(e1)) {
                 /* closer to edge1 */
                 sign = F_DOT(n_e1, vec1);
                 valu = 3;
                 distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec1) - SQR(val) / SQR3(e1))));
-              } else {
+              }
+              else {
                 /* closer to x2 */
                 sign = F_DOT(n_v2, vec2);
                 valu = 2;
@@ -51996,12 +53026,14 @@ MRI *MRISbinarizeVolume(MRI_SURFACE *mris, MRI_REGION *region, float resolution,
                 sign = F_DOT(n_v2, vec2);
                 valu = 2;
                 distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec2));
-              } else if (val < SQR3(e2)) {
+              }
+              else if (val < SQR3(e2)) {
                 /* closer to edge2 */
                 sign = F_DOT(n_e2, vec2);
                 valu = 3;
                 distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec2) - SQR(val) / SQR3(e2))));
-              } else {
+              }
+              else {
                 /* closer to x0 */
                 sign = F_DOT(n_v0, vec0);
                 valu = 2;
@@ -52046,7 +53078,8 @@ static int defect_no = 0;
 static int compare_edge_length(const void *pe1, const void *pe2);
 static int edgeExists(MRI_SURFACE *mris, int vno1, int vno2);
 
-static int edgeExists(MRI_SURFACE *mris, int vno1, int vno2) {
+static int edgeExists(MRI_SURFACE *mris, int vno1, int vno2)
+{
   int n;
   VERTEX *v;
 
@@ -52063,7 +53096,8 @@ static int edgeExists(MRI_SURFACE *mris, int vno1, int vno2) {
 #define V4_LOAD(v, x, y, z, r) (VECTOR_ELT(v, 1) = x, VECTOR_ELT(v, 2) = y, VECTOR_ELT(v, 3) = z, VECTOR_ELT(v, 4) = r);
 #endif
 
-int mriSurfaceRASToVoxel(double xr, double yr, double zr, double *xv, double *yv, double *zv) {
+int mriSurfaceRASToVoxel(double xr, double yr, double zr, double *xv, double *yv, double *zv)
+{
   VECTOR *sr, *vv;
 
   sr = VectorAlloc(4, MATRIX_REAL);
@@ -52084,13 +53118,9 @@ int mriSurfaceRASToVoxel(double xr, double yr, double zr, double *xv, double *yv
 
 #endif
 
-static float mrisDefectFaceMRILogLikelihood(MRI_SURFACE *mris,
-                                            MRI *mri,
-                                            TP *tp,
-                                            HISTOGRAM *h_white,
-                                            HISTOGRAM *h_gray,
-                                            HISTOGRAM *h_grad,
-                                            MRI *mri_gray_white) {
+static float mrisDefectFaceMRILogLikelihood(
+    MRI_SURFACE *mris, MRI *mri, TP *tp, HISTOGRAM *h_white, HISTOGRAM *h_gray, HISTOGRAM *h_grad, MRI *mri_gray_white)
+{
   int n, vno0, vno1, vno2;
   double x, y, z, nx, ny, nz, xv, yv, zv, white_val, gray_val, val;
   double int_w, int_g;
@@ -52157,7 +53187,8 @@ static float mrisDefectFaceMRILogLikelihood(MRI_SURFACE *mris,
     int_g /= (double)tp->nfaces;
     // fs_topo_fixer_test
     //  fprintf(stderr,"face : gray = %f and white = %f\n",int_g,int_w);
-  } else {
+  }
+  else {
     tp->fll = 0.0;
     tp->face_ll = 0.0;
   }
@@ -52189,7 +53220,8 @@ static float mrisDefectFaceMRILogLikelihood(MRI_SURFACE *mris,
   */
   if (FZERO(alen) && FZERO(clen)) {
     delta_t0 = 0.99;
-  } else {
+  }
+  else {
     delta_t0 = (alen > clen) ? (SAMPLE_DIST / alen) : (SAMPLE_DIST / clen);
   }
   if (FZERO(delta_t0))
@@ -52215,7 +53247,8 @@ static float mrisDefectFaceMRILogLikelihood(MRI_SURFACE *mris,
     len = sqrt(SQR(dx) + SQR(dy) + SQR(dz));
     if (FZERO(len)) {
       delta_t1 = 0.99;
-    } else {
+    }
+    else {
       delta_t1 = SAMPLE_DIST / len; /* sample at SAMPLE_DIST intervals */
       if (delta_t1 >= 1.0f) {
         delta_t1 = 0.99;
@@ -52249,7 +53282,8 @@ static float mrisDefectFaceMRILogLikelihood(MRI_SURFACE *mris,
       bin = nint((grad - h_grad->bins[0]) / h_grad->bin_size);
       if (bin < 0) {
         bin = 0;
-      } else if (bin >= h_grad->nbins) {
+      }
+      else if (bin >= h_grad->nbins) {
         bin = h_grad->nbins - 1;
       }
       ll += log(h_grad->counts[bin]);
@@ -52281,7 +53315,8 @@ static float mrisDefectFaceMRILogLikelihood(MRI_SURFACE *mris,
     bin = nint((grad - h_grad->bins[0]) / h_grad->bin_size);
     if (bin < 0) {
       bin = 0;
-    } else if (bin >= h_grad->nbins) {
+    }
+    else if (bin >= h_grad->nbins) {
       bin = h_grad->nbins - 1;
     }
     ll += log(h_grad->counts[bin]);
@@ -52304,7 +53339,8 @@ static float mrisDefectFaceMRILogLikelihood(MRI_SURFACE *mris,
   len = sqrt(SQR(dx) + SQR(dy) + SQR(dz));
   if (FZERO(len)) {
     delta_t1 = 0.99;
-  } else {
+  }
+  else {
     delta_t1 = SAMPLE_DIST / len; /* sample at SAMPLE_DIST intervals */
     if (delta_t1 >= 1.0f) {
       delta_t1 = 0.99;
@@ -52337,7 +53373,8 @@ static float mrisDefectFaceMRILogLikelihood(MRI_SURFACE *mris,
     bin = nint((grad - h_grad->bins[0]) / h_grad->bin_size);
     if (bin < 0) {
       bin = 0;
-    } else if (bin >= h_grad->nbins) {
+    }
+    else if (bin >= h_grad->nbins) {
       bin = h_grad->nbins - 1;
     }
     ll += log(h_grad->counts[bin]);
@@ -52369,7 +53406,8 @@ static float mrisDefectFaceMRILogLikelihood(MRI_SURFACE *mris,
   bin = nint((grad - h_grad->bins[0]) / h_grad->bin_size);
   if (bin < 0) {
     bin = 0;
-  } else if (bin >= h_grad->nbins) {
+  }
+  else if (bin >= h_grad->nbins) {
     bin = h_grad->nbins - 1;
   }
   ll += log(h_grad->counts[bin]);
@@ -52385,13 +53423,9 @@ static float mrisDefectFaceMRILogLikelihood(MRI_SURFACE *mris,
 #endif
 }
 
-static float mrisDefectVertexMRILogLikelihood(MRI_SURFACE *mris,
-                                              MRI *mri,
-                                              TP *tp,
-                                              HISTOGRAM *h_white,
-                                              HISTOGRAM *h_gray,
-                                              HISTOGRAM *h_grad,
-                                              MRI *mri_gray_white) {
+static float mrisDefectVertexMRILogLikelihood(
+    MRI_SURFACE *mris, MRI *mri, TP *tp, HISTOGRAM *h_white, HISTOGRAM *h_gray, HISTOGRAM *h_grad, MRI *mri_gray_white)
+{
   int n;
   double x, y, z, nx, ny, nz, xv, yv, zv, white_val, gray_val, val;
   double int_w, int_g;
@@ -52446,7 +53480,8 @@ static float mrisDefectVertexMRILogLikelihood(MRI_SURFACE *mris,
     int_g /= (double)tp->nvertices;
     // fs_topo_fixer_test
     //  fprintf(stderr,"vertex : gray = %f and white = %f\n",int_g,int_w);
-  } else {
+  }
+  else {
     tp->vll = 0.0;
     tp->vertex_ll = 0.0;
   }
@@ -52454,13 +53489,9 @@ static float mrisDefectVertexMRILogLikelihood(MRI_SURFACE *mris,
   return tp->vertex_ll;
 }
 
-static double mrisComputeDefectMRILogLikelihood(MRI_SURFACE *mris,
-                                                MRI *mri,
-                                                TP *tp,
-                                                HISTOGRAM *h_white,
-                                                HISTOGRAM *h_gray,
-                                                HISTOGRAM *h_grad,
-                                                MRI *mri_gray_white) {
+static double mrisComputeDefectMRILogLikelihood(
+    MRI_SURFACE *mris, MRI *mri, TP *tp, HISTOGRAM *h_white, HISTOGRAM *h_gray, HISTOGRAM *h_grad, MRI *mri_gray_white)
+{
   double mll;
 
   mll = mrisDefectVertexMRILogLikelihood(mris, mri, tp, h_white, h_gray, h_grad, mri_gray_white);
@@ -52468,7 +53499,8 @@ static double mrisComputeDefectMRILogLikelihood(MRI_SURFACE *mris,
   return mll;
 }
 
-static int findOtherEdgeFace(MRIS *mris, int fno, int vno, int vn1) {
+static int findOtherEdgeFace(MRIS *mris, int fno, int vno, int vn1)
+{
   int n, m;
 
   VERTEX *v1, *v2;
@@ -52489,7 +53521,8 @@ static int findOtherEdgeFace(MRIS *mris, int fno, int vno, int vn1) {
   return fno;
 }
 
-static void vertexPseudoNormal(MRIS *mris1, int vn1, MRIS *mris2, int vn2, float norm[3]) {
+static void vertexPseudoNormal(MRIS *mris1, int vn1, MRIS *mris2, int vn2, float norm[3])
+{
   int n, n0, n1, n2;
   float v1[3], v2[3], alpha;
   VERTEX *v;
@@ -52617,7 +53650,8 @@ static void vertexPseudoNormal(MRIS *mris1, int vn1, MRIS *mris2, int vn2, float
   }
 }
 
-static void computeVertexPseudoNormal(MRIS *mris, int vno, float norm[3], int verbose) {
+static void computeVertexPseudoNormal(MRIS *mris, int vno, float norm[3], int verbose)
+{
   int n, n0, n1, n2;
   float v1[3], v2[3], alpha;
   VERTEX *v;
@@ -52680,7 +53714,8 @@ static void computeVertexPseudoNormal(MRIS *mris, int vno, float norm[3], int ve
   }
 }
 
-static int findNonMarkedFace(MRIS *mris, int vno, int vn1) {
+static int findNonMarkedFace(MRIS *mris, int vno, int vn1)
+{
   int i, nf;
   int fn;
   VERTEX *v;
@@ -52717,7 +53752,8 @@ static int _DY[6] = {0, 0, -1, 1, 0, 0};
 static int _DZ[6] = {0, 0, 0, 0, -1, 1};
 
 // compute a signed distance volume from two surfaces ( the original ones + a corrected defect )
-void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) {
+void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
+{
   int k, i, j, p;
   float x0, x1, x2, y0, y1, y2, z0, z1, z2;
   float x, y, z;
@@ -52796,7 +53832,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
       if (mris->faces[fno].marked) {
         continue;
       }
-    } else {
+    }
+    else {
       fno = p;
       mris = mris_defect;
       wsurf = 0;  // using defect surface
@@ -52865,10 +53902,12 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
           fn1 = fno;
         }
         oface = &mris_defect->faces[fn1];
-      } else {
+      }
+      else {
         oface = &mris->faces[fn1];
       }
-    } else {
+    }
+    else {
       // defect surface
       if (fn1 == fno) {
         // border face
@@ -52879,7 +53918,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
           fn1 = fno;  // sanity check
         }
         oface = &mris_source->faces[fn1];
-      } else {
+      }
+      else {
         oface = &mris->faces[fn1];
       }
     }
@@ -52905,10 +53945,12 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
           fn1 = fno;
         }
         oface = &mris_defect->faces[fn1];
-      } else {
+      }
+      else {
         oface = &mris->faces[fn1];
       }
-    } else {
+    }
+    else {
       // defect surface
       if (fn1 == fno) {
         // border face
@@ -52919,7 +53961,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
           fn1 = fno;  // sanity check
         }
         oface = &mris_source->faces[fn1];
-      } else {
+      }
+      else {
         oface = &mris->faces[fn1];
       }
     }
@@ -52945,10 +53988,12 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
           fn1 = fno;
         }
         oface = &mris_defect->faces[fn1];
-      } else {
+      }
+      else {
         oface = &mris->faces[fn1];
       }
-    } else {
+    }
+    else {
       // defect surface
       if (fn1 == fno) {
         // border face
@@ -52959,7 +54004,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
           fn1 = fno;  // sanity check
         }
         oface = &mris_source->faces[fn1];
-      } else {
+      }
+      else {
         oface = &mris->faces[fn1];
       }
     }
@@ -52980,7 +54026,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
         // fprintf(stderr,"to0(%d-",vn);
         // fprintf(stderr,"%d),",vfrom[vn]);
         vertexPseudoNormal(mris_source, vn, mris_defect, vfrom[vn], n_v0);
-      } else {
+      }
+      else {
         computeVertexPseudoNormal(mris, vn, n_v0, 0);
       }
       vn = face->v[1];
@@ -52993,7 +54040,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
         // fprintf(stderr,"to1(%d-",vn);
         // fprintf(stderr,"%d),",vfrom[vn]);
         vertexPseudoNormal(mris_source, vn, mris_defect, vfrom[vn], n_v1);
-      } else {
+      }
+      else {
         computeVertexPseudoNormal(mris, vn, n_v1, 0);
       }
       vn = face->v[2];
@@ -53006,10 +54054,12 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
         // fprintf(stderr,"to2(%d-",vn);
         // fprintf(stderr,"%d),",vfrom[vn]);
         vertexPseudoNormal(mris_source, vn, mris_defect, vfrom[vn], n_v2);
-      } else {
+      }
+      else {
         computeVertexPseudoNormal(mris, vn, n_v2, 0);
       }
-    } else {
+    }
+    else {
       int vn = face->v[0];
       // fprintf(stderr,"we have %d and %d \n", mris->vertices[vn].vnum,mris->vertices[vn].num);
       if (mris->vertices[vn].vnum != mris->vertices[vn].num) {
@@ -53021,7 +54071,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
         // fprintf(stderr,"fo0(%d-",vn);
         // fprintf(stderr,"%d),",vto[vn]);
         vertexPseudoNormal(mris_source, vto[vn], mris_defect, vn, n_v0);
-      } else {
+      }
+      else {
         computeVertexPseudoNormal(mris, vn, n_v0, 0);
       }
       vn = face->v[1];
@@ -53034,7 +54085,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
         // fprintf(stderr,"fo1(%d-",vn);
         // fprintf(stderr,"%d),",vto[vn]);
         vertexPseudoNormal(mris_source, vto[vn], mris_defect, vn, n_v1);
-      } else {
+      }
+      else {
         computeVertexPseudoNormal(mris, vn, n_v1, 0);
       }
       vn = face->v[2];
@@ -53047,7 +54099,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
         // fprintf(stderr,"fo2(%d-",vn);
         // fprintf(stderr,"%d),",vto[vn]);
         vertexPseudoNormal(mris_source, vto[vn], mris_defect, vn, n_v2);
-      } else {
+      }
+      else {
         computeVertexPseudoNormal(mris, vn, n_v2, 0);
       }
     }
@@ -53102,7 +54155,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
             valu = 1;
             sign = val;
             distance = val; /* n_f is already normalized */
-          } else {
+          }
+          else {
             distance = NPY;
             sign = 0;
             valu = 0;
@@ -53115,12 +54169,14 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
                 sign = F_DOT(n_v0, vec0);
                 valu = 2;
                 distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec0));
-              } else if (val < SQR3(e0)) {
+              }
+              else if (val < SQR3(e0)) {
                 /* closer to edge0 */
                 sign = F_DOT(n_e0, vec0);
                 valu = 3;
                 distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec0) - SQR(val) / SQR3(e0))));
-              } else {
+              }
+              else {
                 /* closer to x1 */
                 sign = F_DOT(n_v1, vec1);
                 valu = 2;
@@ -53134,12 +54190,14 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
                 sign = F_DOT(n_v1, vec1);
                 valu = 2;
                 distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec1));
-              } else if (val < SQR3(e1)) {
+              }
+              else if (val < SQR3(e1)) {
                 /* closer to edge1 */
                 sign = F_DOT(n_e1, vec1);
                 valu = 3;
                 distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec1) - SQR(val) / SQR3(e1))));
-              } else {
+              }
+              else {
                 /* closer to x2 */
                 sign = F_DOT(n_v2, vec2);
                 valu = 2;
@@ -53153,12 +54211,14 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
                 sign = F_DOT(n_v2, vec2);
                 valu = 2;
                 distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec2));
-              } else if (val < SQR3(e2)) {
+              }
+              else if (val < SQR3(e2)) {
                 /* closer to edge2 */
                 sign = F_DOT(n_e2, vec2);
                 valu = 3;
                 distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec2) - SQR(val) / SQR3(e2))));
-              } else {
+              }
+              else {
                 /* closer to x0 */
                 sign = F_DOT(n_v0, vec0);
                 valu = 2;
@@ -53196,9 +54256,11 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
         }
         if (fabs(distance) * scale > 1.5) {
           MRIFvox(mri_distance, i, j, k) = NPY;
-        } else if (distance > 0.0) {
+        }
+        else if (distance > 0.0) {
           MRIFvox(mri_distance, i, j, k) = MIN(distance * scale, 1.0f);
-        } else {
+        }
+        else {
           MRIFvox(mri_distance, i, j, k) = MAX(distance * scale, -1.0f);
         }
       }
@@ -53218,7 +54280,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
             if (fabs(sign) < NPY) {
               if (sign > 0) {
                 MRIFvox(mri_distance, i, j, k) = 1.0f;
-              } else {
+              }
+              else {
                 MRIFvox(mri_distance, i, j, k) = -1.0f;
               }
               found = 1;
@@ -53234,7 +54297,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
         sign = MRIFvox(mri_distance, i, j, k);
         if (sign > 0.0) {
           MRIFvox(mri_distance, i, j, k) = MIN(1.0f, sign);
-        } else {
+        }
+        else {
           MRIFvox(mri_distance, i, j, k) = MAX(-1.0f, sign);
         }
       }
@@ -53242,7 +54306,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface) 
 
 #define DEBUG_UL 0
 
-static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATCH *dp, HISTOGRAM *h_border) {
+static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATCH *dp, HISTOGRAM *h_border)
+{
 #if 0
   int u,v,numu,numv;
   float d0,d1,d2,dmax,px,px0,px1,py,py0,py1,pz,pz0,pz1,nx,ny,nz;
@@ -53445,7 +54510,8 @@ static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATC
             valu = 1;
             sign = val;
             distance = val; /* n_f is already normalized */
-          } else {
+          }
+          else {
             distance = NPY;
             sign = 0;
             valu = 0;
@@ -53458,12 +54524,14 @@ static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATC
                 sign = F_DOT(n_v0, vec0);
                 valu = 2;
                 distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec0));
-              } else if (val < SQR3(e0)) {
+              }
+              else if (val < SQR3(e0)) {
                 /* closer to edge0 */
                 sign = F_DOT(n_e0, vec0);
                 valu = 3;
                 distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec0) - SQR(val) / SQR3(e0))));
-              } else {
+              }
+              else {
                 /* closer to x1 */
                 sign = F_DOT(n_v1, vec1);
                 valu = 2;
@@ -53477,12 +54545,14 @@ static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATC
                 sign = F_DOT(n_v1, vec1);
                 valu = 2;
                 distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec1));
-              } else if (val < SQR3(e1)) {
+              }
+              else if (val < SQR3(e1)) {
                 /* closer to edge1 */
                 sign = F_DOT(n_e1, vec1);
                 valu = 3;
                 distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec1) - SQR(val) / SQR3(e1))));
-              } else {
+              }
+              else {
                 /* closer to x2 */
                 sign = F_DOT(n_v2, vec2);
                 valu = 2;
@@ -53496,12 +54566,14 @@ static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATC
                 sign = F_DOT(n_v2, vec2);
                 valu = 2;
                 distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec2));
-              } else if (val < SQR3(e2)) {
+              }
+              else if (val < SQR3(e2)) {
                 /* closer to edge2 */
                 sign = F_DOT(n_e2, vec2);
                 valu = 3;
                 distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec2) - SQR(val) / SQR3(e2))));
-              } else {
+              }
+              else {
                 /* closer to x0 */
                 sign = F_DOT(n_v0, vec0);
                 valu = 2;
@@ -53598,7 +54670,8 @@ static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATC
           if (MRIFvox(mri_distance, i, j, k) < 100) {
             MRIFvox(mri_debug2, i, j, k) = 4; /* outside */
           }
-        } else if (MRIFvox(mri_distance, i, j, k) < 0) {
+        }
+        else if (MRIFvox(mri_distance, i, j, k) < 0) {
           MRIFvox(mri_debug2, i, j, k) = 2; /* inside */
         }
       }
@@ -53843,7 +54916,8 @@ static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATC
       // FLO : max_distance=MIN(2.0f, max_distance) ?
       if (val == NPY) {
         val = 1.0f;
-      } else {
+      }
+      else {
         val = fabs(val) / max_distance;
       }
 
@@ -53859,7 +54933,8 @@ static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATC
 }
 
 static double mrisComputeDefectCurvatureLogLikelihood(
-    MRI_SURFACE *mris, TP *tp, HISTOGRAM *h_k1, HISTOGRAM *h_k2, MRI *mri_k1_k2) {
+    MRI_SURFACE *mris, TP *tp, HISTOGRAM *h_k1, HISTOGRAM *h_k2, MRI *mri_k1_k2)
+{
   double v_ll, total_ll = 0.0, new_total;
   int i, vno, bin, bink1, bink2;
   VERTEX *v;
@@ -53877,7 +54952,8 @@ static double mrisComputeDefectCurvatureLogLikelihood(
     bin = nint((v->k1 - h_k1->bins[0]) / h_k1->bin_size);
     if (bin < 0) {
       bin = 0;
-    } else if (bin >= h_k1->nbins) {
+    }
+    else if (bin >= h_k1->nbins) {
       bin = h_k1->nbins - 1;
     }
     v_ll = log(h_k1->counts[bin]);
@@ -53887,7 +54963,8 @@ static double mrisComputeDefectCurvatureLogLikelihood(
     bin = nint((v->k2 - h_k2->bins[0]) / h_k2->bin_size);
     if (bin < 0) {
       bin = 0;
-    } else if (bin >= h_k2->nbins) {
+    }
+    else if (bin >= h_k2->nbins) {
       bin = h_k2->nbins - 1;
     }
     v_ll += log(h_k2->counts[bin]);
@@ -53909,7 +54986,8 @@ static double mrisComputeDefectCurvatureLogLikelihood(
   if (tp->nvertices) {
     tp->qcurv_ll = total_ll / (double)tp->nvertices;
     tp->qcll = tc_area / t_area;
-  } else {
+  }
+  else {
     tp->qcll = 0.0;
     tp->qcurv_ll = 0.0;
   }
@@ -53919,7 +54997,8 @@ static double mrisComputeDefectCurvatureLogLikelihood(
   return tp->qcurv_ll;
 }
 
-static double mrisComputeDefectNormalDotLogLikelihood(MRI_SURFACE *mris, TP *tp, HISTOGRAM *h_dot) {
+static double mrisComputeDefectNormalDotLogLikelihood(MRI_SURFACE *mris, TP *tp, HISTOGRAM *h_dot)
+{
   double v_ll, total_ll = 0.0, nx, ny, nz, x, y, z, dx, dy, dz, dot;
   int vno, n, i, bin;
   VERTEX *v, *vn;
@@ -53950,7 +55029,8 @@ static double mrisComputeDefectNormalDotLogLikelihood(MRI_SURFACE *mris, TP *tp,
       bin = nint((dot - h_dot->bins[0]) / h_dot->bin_size);
       if (bin < 0) {
         bin = 0;
-      } else if (bin >= h_dot->nbins) {
+      }
+      else if (bin >= h_dot->nbins) {
         bin = h_dot->nbins - 1;
       }
 
@@ -53964,7 +55044,8 @@ static double mrisComputeDefectNormalDotLogLikelihood(MRI_SURFACE *mris, TP *tp,
   if (tp->nvertices) {
     tp->cll = tc_area / t_area;
     tp->curv_ll = total_ll / (double)tp->nvertices;
-  } else {
+  }
+  else {
     tp->cll = 0.0;
     tp->curv_ll = 0.0;
   }
@@ -55077,7 +56158,8 @@ mrisComputeDefectMRIEnergy
 }
 #endif
 
-static int mrisCheckDefectFaces(MRI_SURFACE *mris, DEFECT_PATCH *dp) {
+static int mrisCheckDefectFaces(MRI_SURFACE *mris, DEFECT_PATCH *dp)
+{
   int fno, n1, n2, vno1, vno2, fshared;
   VERTEX *v;
 
@@ -55106,7 +56188,8 @@ static double mrisComputeDefectLogLikelihood(MRI_SURFACE *mris,
                                              HISTOGRAM *h_grad,
                                              MRI *mri_gray_white,
                                              HISTOGRAM *h_dot,
-                                             TOPOLOGY_PARMS *parms) {
+                                             TOPOLOGY_PARMS *parms)
+{
   static int first_time = 1;
   double ll = 0.0;
 
@@ -55489,7 +56572,8 @@ static int generateMovie(MRIS *mris_src)
 static int findNumberOfClusters(MRIS *mris) { return NB_OF_CLUSTERS; }
 /* using orig vertices to cluster
    fixedval indexes the clusters */
-static int clusterDefectVertices(MRIS *mris) {
+static int clusterDefectVertices(MRIS *mris)
+{
   int n, niters, nvertices, k;
   int p, q, nclusters, found;
   int clusters[10], ngroups;
@@ -55602,7 +56686,8 @@ static int clusterDefectVertices(MRIS *mris) {
       }
       if (!nbv) {
         fprintf(stderr, "ERROR in clusterDefectVertices");
-      } else {
+      }
+      else {
         x /= nbv;
         y /= nbv;
         z /= nbv;
@@ -55673,7 +56758,8 @@ static int clusterDefectVertices(MRIS *mris) {
   return ngroups;
 }
 
-static void computeInteriorGradients(MRIS *mris, int option) {
+static void computeInteriorGradients(MRIS *mris, int option)
+{
   int n, p, count;
   float x, y, z;
   VERTEX *v, *vp;
@@ -55712,7 +56798,8 @@ static void computeInteriorGradients(MRIS *mris, int option) {
 }
 
 /* use fixedval to exclude some random vertices */
-static void computeGradients(MRIS *mris, int option) {
+static void computeGradients(MRIS *mris, int option)
+{
   int n;
   VERTEX *v;
 
@@ -55732,7 +56819,8 @@ static void computeGradients(MRIS *mris, int option) {
   computeInteriorGradients(mris, option);
 }
 
-static void circleProjection(float x, float y, float *xd, float *yd, float r) {
+static void circleProjection(float x, float y, float *xd, float *yd, float r)
+{
   float dist;
 
   dist = sqrt(SQR(x) + SQR(y));
@@ -55744,7 +56832,8 @@ static void circleProjection(float x, float y, float *xd, float *yd, float r) {
 }
 
 /* generate a place xy mapping */
-static void generateDefectMapping(MRIS *mris, int option) {
+static void generateDefectMapping(MRIS *mris, int option)
+{
   int n, niter = 100;
   double dt = 0.1;
   VERTEX *v;
@@ -55797,7 +56886,8 @@ static void generateDefectMapping(MRIS *mris, int option) {
   }
 }
 
-static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFECT *defect) {
+static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFECT *defect)
+{
   int nvertices, nfaces, nchull;
   int *vertex_trans, *face_trans, *vertex_list;
   int vno, n, m, i, first_inside_vertex, first_border_vertex;
@@ -55910,10 +57000,12 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
     if (n < nchull) /* vertex in the convex hull */
     {
       v_dst->flags = VERTEX_CHULL;
-    } else if (n < defect->nchull) /* vertex in the border */
+    }
+    else if (n < defect->nchull) /* vertex in the border */
     {
       v_dst->flags = VERTEX_BORDER;
-    } else /* vertex inside the defect */
+    }
+    else /* vertex inside the defect */
     {
       v_dst->flags = VERTEX_INTERIOR;
     }
@@ -55961,7 +57053,8 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
           i++;
         }
       }
-    } else {
+    }
+    else {
       /* neighboring vertices */
       v_dst->vnum = v_src->vnum;
       v_dst->vtotal = v_dst->vnum;
@@ -56193,7 +57286,8 @@ static int mrisTessellateDefect(MRI_SURFACE *mris,
                                 HISTOGRAM *h_grad,
                                 MRI *mri_gray_white,
                                 HISTOGRAM *h_dot,
-                                TOPOLOGY_PARMS *parms) {
+                                TOPOLOGY_PARMS *parms)
+{
   int i, j, vlist[MAX_DEFECT_VERTICES], n, nvertices, nedges, ndiscarded;
   VERTEX *v, *v2;
   EDGE *et;
@@ -56449,7 +57543,8 @@ static int mrisTessellateDefect(MRI_SURFACE *mris,
       if (!edgeExists(mris, vlist[i], vlist[j])) {
         /* prioritize edges in original tessellation */
         et[n].len += 100; /*ASCENDING ORDER*/
-      } else {
+      }
+      else {
         if (et[n].used == USED_IN_TESSELLATION) {
           continue;
         }
@@ -56605,7 +57700,8 @@ static int mrisTessellateDefect(MRI_SURFACE *mris,
 
 #define NUM_TO_ADD_FROM_ONE_PARENT 1
 
-static int mrisCrossoverDefectPatches(DEFECT_PATCH *dp1, DEFECT_PATCH *dp2, DEFECT_PATCH *dp_dst, EDGE_TABLE *etable) {
+static int mrisCrossoverDefectPatches(DEFECT_PATCH *dp1, DEFECT_PATCH *dp2, DEFECT_PATCH *dp_dst, EDGE_TABLE *etable)
+{
   int i1, i2, *added, i, isrc, j, nadded;
   double p;
   DEFECT_PATCH *dp_src;
@@ -56615,7 +57711,8 @@ static int mrisCrossoverDefectPatches(DEFECT_PATCH *dp1, DEFECT_PATCH *dp2, DEFE
   if (p < 0.5) /* add from first defect */
   {
     dp_src = dp1;
-  } else {
+  }
+  else {
     dp_src = dp2;
   }
 
@@ -56627,16 +57724,19 @@ static int mrisCrossoverDefectPatches(DEFECT_PATCH *dp1, DEFECT_PATCH *dp2, DEFE
       {
         dp_src = dp2;
         isrc = i2;
-      } else if (i1 < dp1->nedges) {
+      }
+      else if (i1 < dp1->nedges) {
         dp_src = dp1;
         isrc = i1;
       }
-    } else /* keep adding from the same parent */
+    }
+    else /* keep adding from the same parent */
     {
       nadded++;
       if (dp_src == dp1) {
         isrc = i1;
-      } else {
+      }
+      else {
         isrc = i2;
       }
     }
@@ -56665,7 +57765,8 @@ static int mrisCrossoverDefectPatches(DEFECT_PATCH *dp1, DEFECT_PATCH *dp2, DEFE
     if (dp_src == dp1) /* update source index for next iteration */
     {
       i1 = isrc + 1;
-    } else {
+    }
+    else {
       i2 = isrc + 1;
     }
 
@@ -56700,7 +57801,8 @@ static int mrisCrossoverDefectPatches(DEFECT_PATCH *dp1, DEFECT_PATCH *dp2, DEFE
 }
 #define NTRY 0
 #if 1
-static int mrisMutateDefectPatch(DEFECT_PATCH *dp, EDGE_TABLE *etable, double pmutation) {
+static int mrisMutateDefectPatch(DEFECT_PATCH *dp, EDGE_TABLE *etable, double pmutation)
+{
   int i, j, eti, etj, tmp, *dp_indices, ntry;
   double p;
   EDGE *e;
@@ -56727,7 +57829,8 @@ static int mrisMutateDefectPatch(DEFECT_PATCH *dp, EDGE_TABLE *etable, double pm
             e = &etable->edges[dp->ordering[j]]; /*potential new edge */
             if (e->used != USED_IN_ORIGINAL_TESSELLATION) {
               ntry++;
-            } else {
+            }
+            else {
               break;
             }
             j = (int)randomNumber(0.0, dp->nedges - .1);
@@ -56735,8 +57838,8 @@ static int mrisMutateDefectPatch(DEFECT_PATCH *dp, EDGE_TABLE *etable, double pm
           tmp = dp->ordering[i];
           dp->ordering[i] = dp->ordering[j];
           dp->ordering[j] = tmp;
-
-        } else /* swap two edges that intersect */
+        }
+        else /* swap two edges that intersect */
         {
           ntry = 0;
           j = (int)randomNumber(0.0, etable->noverlap[eti] - 0.0001);
@@ -56748,7 +57851,8 @@ static int mrisMutateDefectPatch(DEFECT_PATCH *dp, EDGE_TABLE *etable, double pm
             e = &etable->edges[dp->ordering[j]]; /*potential new edge */
             if (e->used != USED_IN_ORIGINAL_TESSELLATION) {
               ntry++;
-            } else {
+            }
+            else {
               break;
             }
             j = (int)randomNumber(0.0, etable->noverlap[eti] - 0.0001);
@@ -56764,7 +57868,8 @@ static int mrisMutateDefectPatch(DEFECT_PATCH *dp, EDGE_TABLE *etable, double pm
           dp_indices[dp->ordering[i]] = i;
           dp_indices[dp->ordering[j]] = j;
         }
-      } else {
+      }
+      else {
         /* swap any two */
         ntry = 0;
         j = (int)randomNumber(0.0, dp->nedges - .1);
@@ -56772,7 +57877,8 @@ static int mrisMutateDefectPatch(DEFECT_PATCH *dp, EDGE_TABLE *etable, double pm
           e = &etable->edges[dp->ordering[j]]; /*potential new edge */
           if (e->used != USED_IN_ORIGINAL_TESSELLATION) {
             ntry++;
-          } else {
+          }
+          else {
             break;
           }
           j = (int)randomNumber(0.0, dp->nedges - .1);
@@ -56788,7 +57894,8 @@ static int mrisMutateDefectPatch(DEFECT_PATCH *dp, EDGE_TABLE *etable, double pm
   return (NO_ERROR);
 }
 #else
-static int mrisMutateDefectPatch(DEFECT_PATCH *dp, EDGE_TABLE *etable, double pmutation) {
+static int mrisMutateDefectPatch(DEFECT_PATCH *dp, EDGE_TABLE *etable, double pmutation)
+{
   int i, j, eti, etj, tmp, *dp_indices;
   double p;
 
@@ -56807,7 +57914,8 @@ static int mrisMutateDefectPatch(DEFECT_PATCH *dp, EDGE_TABLE *etable, double pm
         tmp = dp->ordering[i];
         dp->ordering[i] = dp->ordering[j];
         dp->ordering[j] = tmp;
-      } else /* swap two edges that intersect */
+      }
+      else /* swap two edges that intersect */
       {
         j = (int)randomNumber(0.0, etable->noverlap[eti] - 0.0001);
         etj = etable->overlapping_edges[eti][j]; /* index of jth
@@ -56867,7 +57975,8 @@ mrisDefectPatchFitness
 }
 #endif
 
-static int mrisCopyDefectPatch(DEFECT_PATCH *dp_src, DEFECT_PATCH *dp_dst) {
+static int mrisCopyDefectPatch(DEFECT_PATCH *dp_src, DEFECT_PATCH *dp_dst)
+{
   int i;
 
   dp_dst->etable = dp_src->etable;
@@ -56884,7 +57993,8 @@ static int mrisCopyDefectPatch(DEFECT_PATCH *dp_src, DEFECT_PATCH *dp_dst) {
   return (NO_ERROR);
 }
 
-static int defectPatchRank(DEFECT_PATCH *dps, int index, int npatches) {
+static int defectPatchRank(DEFECT_PATCH *dps, int index, int npatches)
+{
   int i, rank = 0;
 
   for (i = 0; i < npatches; i++) {
@@ -56896,7 +58006,8 @@ static int defectPatchRank(DEFECT_PATCH *dps, int index, int npatches) {
       if (index > i) {
         rank++;
       }
-    } else if (dps[i].fitness > dps[index].fitness) {
+    }
+    else if (dps[i].fitness > dps[index].fitness) {
       rank++;
     }
   }
@@ -56914,7 +58025,8 @@ static int tessellatePatch(MRI *mri,
                            int nedges,
                            int *ordering,
                            EDGE_TABLE *etable,
-                           TOPOLOGY_PARMS *parms) {
+                           TOPOLOGY_PARMS *parms)
+{
   int i, k, vni;
   DVS *dvs;
   DP dp;
@@ -56929,7 +58041,8 @@ static int tessellatePatch(MRI *mri,
 
   if (etable) {
     new_et = etable;
-  } else {
+  }
+  else {
     new_et = (EDGE_TABLE *)calloc(1, sizeof(EDGE_TABLE));
     new_et->nedges = nedges;
     new_et->edges = et;
@@ -56938,7 +58051,8 @@ static int tessellatePatch(MRI *mri,
 
   if (parms->retessellation_mode) {
     dp.retessellation_mode = USE_SOME_VERTICES;
-  } else {
+  }
+  else {
     dp.retessellation_mode = USE_ALL_VERTICES;
   }
   dp.nedges = nedges;
@@ -57005,7 +58119,8 @@ static int tessellatePatch(MRI *mri,
 
 #define USE_SCALING 0
 
-int mrisCountIntersectingFaces(MRIS *mris, int *flist, int nfaces) {
+int mrisCountIntersectingFaces(MRIS *mris, int *flist, int nfaces)
+{
   int n, m, i, count, intersect, j;
   int vn[3];
   int un[3];
@@ -57171,7 +58286,8 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
                                             HISTOGRAM *h_grad,
                                             MRI *mri_gray_white,
                                             HISTOGRAM *h_dot,
-                                            TOPOLOGY_PARMS *parms) {
+                                            TOPOLOGY_PARMS *parms)
+{
   DEFECT_VERTEX_STATE *dvs;
   DEFECT_PATCH dps1[MAX_PATCHES], dps2[MAX_PATCHES], *dps, *dp, *dps_next_generation;
   int i, best_i, j, g, nselected, nreplacements, rank, nunchanged = 0, nelite, ncrossovers, k, l, noverlap;
@@ -57231,7 +58347,8 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
     int debug_patch = atoi(getenv("FS_DEBUG_PATCH"));
     if (debug_patch != dno) {
       max_patches = 0;
-    } else {
+    }
+    else {
       if (getenv("FS_DEBUG_PATCH_N") != NULL) {
         debug_patch_n = atoi(getenv("FS_DEBUG_PATCH_N"));
         fprintf(WHICH_OUTPUT, "terminating after %dth best tessellation\n", debug_patch_n);
@@ -57289,12 +58406,14 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
 
     return (NO_ERROR);
 #endif
-  } else if (nedges > 100000) {
+  }
+  else if (nedges > 100000) {
     printf("L defect detected...\n");
     max_unchanged = MIN(max_unchanged, 1);
     max_patches = MAX(MIN(max_patches, 10), 1);
     max_edges = MIN(max_edges, 100);
-  } else if (nedges > 50000) {
+  }
+  else if (nedges > 50000) {
     max_patches = MAX(max_patches / 2, 1);
     max_edges = max_edges / 5;
     max_unchanged = max_unchanged / 5;
@@ -57340,7 +58459,8 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
         if (noverlap > MAX_EDGES) {
           etable.noverlap[i] = MAX_EDGES;
           etable.flags[i] |= ET_OVERLAP_LIST_INCOMPLETE;
-        } else {
+        }
+        else {
           etable.noverlap[i] = noverlap;
         }
 
@@ -57354,7 +58474,8 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
                     i,
                     etable.noverlap[i]);
         memmove(etable.overlapping_edges[i], overlap, etable.noverlap[i] * sizeof(int));
-      } else {
+      }
+      else {
         nzero++;
       }
     }
@@ -57422,7 +58543,8 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
 
       if (parms->retessellation_mode) {
         dp->retessellation_mode = USE_SOME_VERTICES;
-      } else {
+      }
+      else {
         dp->retessellation_mode = USE_ALL_VERTICES;
       }
 
@@ -57446,7 +58568,8 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
 
       if (parms->retessellation_mode) {
         dp->retessellation_mode = USE_SOME_VERTICES;
-      } else {
+      }
+      else {
         dp->retessellation_mode = USE_ALL_VERTICES;
       }
 
@@ -57573,7 +58696,8 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
     if (segmentation) {
       SEGMENTATIONfree(&segmentation);
     }
-  } else {
+  }
+  else {
     /* generate initial population of patches */
     best_fitness = -1000000;
     best_i = 0;
@@ -57582,7 +58706,8 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
 
       if (parms->retessellation_mode) {
         dp->retessellation_mode = USE_SOME_VERTICES;
-      } else {
+      }
+      else {
         dp->retessellation_mode = USE_ALL_VERTICES;
       }
 
@@ -57607,7 +58732,8 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
 
       if (parms->retessellation_mode) {
         dp->retessellation_mode = USE_SOME_VERTICES;
-      } else {
+      }
+      else {
         dp->retessellation_mode = USE_ALL_VERTICES;
       }
 
@@ -57770,7 +58896,8 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
   fitness_sigma = (fitness_sigma / max_patches - (fitness_mean * fitness_mean));
   if (fitness_sigma < 0) {
     fitness_sigma = 0;
-  } else {
+  }
+  else {
     fitness_sigma = sqrt(fitness_sigma);
   }
 
@@ -57810,7 +58937,8 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
 
     if (dps == dps1) {
       dps_next_generation = dps2;
-    } else {
+    }
+    else {
       dps_next_generation = dps1;
     }
 
@@ -57920,7 +59048,8 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
     fitness_sigma = (fitness_sigma / max_patches - (fitness_mean * fitness_mean));
     if (fitness_sigma < 0) {
       fitness_sigma = 0;
-    } else {
+    }
+    else {
       fitness_sigma = sqrt(fitness_sigma);
     }
     if (!isfinite(fitness_sigma)) {
@@ -57966,7 +59095,8 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
       nadd = nint(pfitness * ncrossovers);
       if (nadd >= ncrossovers) {
         nadd = ncrossovers - 1;
-      } else if (nadd == 0) {
+      }
+      else if (nadd == 0) {
         nadd = 1;
       }
 
@@ -58092,7 +59222,8 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
           dps = dps_next_generation;
           goto debug_use_this_patch;
         }
-      } else /* mutate it also */
+      }
+      else /* mutate it also */
       {
         mrisMutateDefectPatch(dp, &etable, MUTATION_PCT);
         fitness = mrisDefectPatchFitness(mris,
@@ -58196,7 +59327,8 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
     if (dps == dps1) {
       dps = dps2;
       dps_next_generation = dps1;
-    } else {
+    }
+    else {
       dps = dps1;
       dps_next_generation = dps2;
     }
@@ -58227,7 +59359,8 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
               fitness_sigma);
     if (FEQUAL(last_best, best_fitness)) {
       nunchanged++;
-    } else {
+    }
+    else {
       last_euthanasia = -1;
       nunchanged = 0;
     }
@@ -58270,13 +59403,15 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
           break;
         }
         count++;
-      } else if (ngenerations >= 10 && (ngenerations % 3 == 0)) {
+      }
+      else if (ngenerations >= 10 && (ngenerations % 3 == 0)) {
         ndeleted = deleteWorstVertices(mris_corrected, &rp, defect, vertex_trans, 0.1, count);
         nremovedvertices += ndeleted;
         if (parms->verbose == VERBOSE_MODE_LOW) {
           if (ndeleted == 1) {
             fprintf(WHICH_OUTPUT, "Worst vertex has been deleted\n");
-          } else if (ndeleted)
+          }
+          else if (ndeleted)
             fprintf(WHICH_OUTPUT, "Worst %d vertices have been deleted (corresponds to ~1%%)\n", ndeleted);
         }
       }
@@ -58334,7 +59469,8 @@ debug_use_this_patch:
     }
     if (defect->status[i] != DISCARD_VERTEX) {
       mris_corrected->vertices[vni].ripflag = 0;
-    } else {
+    }
+    else {
       mris_corrected->vertices[vni].ripflag = 1;
     }
   }
@@ -58509,7 +59645,8 @@ static int mrisComputeRandomRetessellation(MRI_SURFACE *mris,
                                            HISTOGRAM *h_grad,
                                            MRI *mri_gray_white,
                                            HISTOGRAM *h_dot,
-                                           TOPOLOGY_PARMS *parms) {
+                                           TOPOLOGY_PARMS *parms)
+{
   DEFECT_VERTEX_STATE *dvs;
   DEFECT_PATCH dp;
   int niters, m, tmp, best_i, i, j, k, noverlap;
@@ -58599,7 +59736,8 @@ static int mrisComputeRandomRetessellation(MRI_SURFACE *mris,
         if (noverlap > MAX_EDGES) {
           etable.noverlap[i] = MAX_EDGES;
           etable.flags[i] |= ET_OVERLAP_LIST_INCOMPLETE;
-        } else {
+        }
+        else {
           etable.noverlap[i] = noverlap;
         }
 
@@ -58664,7 +59802,8 @@ static int mrisComputeRandomRetessellation(MRI_SURFACE *mris,
 
   if (parms->retessellation_mode) {
     dp.retessellation_mode = USE_SOME_VERTICES;
-  } else {
+  }
+  else {
     dp.retessellation_mode = USE_ALL_VERTICES;
   }
 
@@ -58724,7 +59863,8 @@ static int mrisComputeRandomRetessellation(MRI_SURFACE *mris,
     fitness_values[niters] = fitness;
     if (niters) {
       best_values[niters] = MAX(best_values[niters - 1], fitness);
-    } else {
+    }
+    else {
       best_values[niters] = fitness;
     }
 #endif
@@ -58806,7 +59946,8 @@ static int mrisComputeRandomRetessellation(MRI_SURFACE *mris,
     }
     if (defect->status[i] != DISCARD_VERTEX) {
       mris_corrected->vertices[vni].ripflag = 0;
-    } else {
+    }
+    else {
       mris_corrected->vertices[vni].ripflag = 1;
     }
   }
@@ -58938,7 +60079,8 @@ static int mrisRetessellateDefect(MRI_SURFACE *mris,
                                   EDGE *et,
                                   int nedges,
                                   int *ordering,
-                                  EDGE_TABLE *etable) {
+                                  EDGE_TABLE *etable)
+{
   double max_len;
   int i, j, max_i, max_added, nadded, index;
   int (*intersection_function)(MRI_SURFACE * mris, DEFECT * defect, EDGE * e, int *vertex_trans, int *v1, int *v2);
@@ -58950,7 +60092,8 @@ static int mrisRetessellateDefect(MRI_SURFACE *mris,
   for (index = 0; index < nedges; index++) {
     if (ordering) {
       i = ordering[index];
-    } else {
+    }
+    else {
       i = index;
     }
 
@@ -58987,7 +60130,8 @@ static int mrisRetessellateDefect(MRI_SURFACE *mris,
       }
       if (etable->flags[i] & ET_OVERLAP_LIST_INCOMPLETE) {
         intersection_function = intersectDefectEdges;
-      } else {
+      }
+      else {
         intersection_function = intersectDefectConvexHullEdges;
       }
     }
@@ -58997,7 +60141,8 @@ static int mrisRetessellateDefect(MRI_SURFACE *mris,
       if (et[i].used) {
         et[i].used = USED_IN_BOTH_TESSELLATION;
         nadded++;
-      } else {
+      }
+      else {
         et[i].used = USED_IN_NEW_TESSELLATION;
         nadded++;
       }
@@ -59012,7 +60157,8 @@ static int mrisRetessellateDefect(MRI_SURFACE *mris,
   return (NO_ERROR);
 }
 
-static int compare_edge_length(const void *pe0, const void *pe1) {
+static int compare_edge_length(const void *pe0, const void *pe1)
+{
   register EDGE *e0, *e1;
 
   e0 = (EDGE *)pe0;
@@ -59021,7 +60167,8 @@ static int compare_edge_length(const void *pe0, const void *pe1) {
   /*  return(c1 > c2 ? 1 : c1 == c2 ? 0 : -1) ;*/
   if (e0->len > e1->len) {
     return (1);
-  } else if (e0->len < e1->len) {
+  }
+  else if (e0->len < e1->len) {
     return (-1);
   }
 
@@ -59103,7 +60250,8 @@ mrisCheckDefectEdges(MRI_SURFACE *mris, DEFECT *defect, int vno,
   (e.g. sorting).
   ------------------------------------------------------*/
 #if 1
-static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans, int *v1, int *v2) {
+static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans, int *v1, int *v2)
+{
   VERTEX *v;
   int i, n, vno;
   EDGE edge2;
@@ -59111,7 +60259,8 @@ static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int 
   for (i = 0; i < defect->nvertices + defect->nchull; i++) {
     if (i < defect->nvertices) {
       vno = vertex_trans[defect->vertices[i]];
-    } else {
+    }
+    else {
       vno = vertex_trans[defect->chull[i - defect->nvertices]];
     }
 
@@ -59155,7 +60304,8 @@ static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int 
 }
 
 static int intersectDefectConvexHullEdges(
-    MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans, int *v1, int *v2) {
+    MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans, int *v1, int *v2)
+{
   VERTEX *v;
   int i, n, vno;
   EDGE edge2;
@@ -59201,7 +60351,8 @@ static int intersectDefectConvexHullEdges(
   return (0);
 }
 #else
-static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans) {
+static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans)
+{
   VERTEX *v;
   int i, n, vno;
   FILE *fp = NULL;
@@ -59214,7 +60365,8 @@ static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int 
   for (i = 0; i < defect->nvertices + defect->nchull; i++) {
     if (i < defect->nvertices) {
       vno = vertex_trans[defect->vertices[i]];
-    } else {
+    }
+    else {
       vno = vertex_trans[defect->chull[i - defect->nvertices]];
     }
 
@@ -59273,7 +60425,8 @@ static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int 
       for (i = 0; i < defect->nvertices + defect->nchull; i++) {
         if (i < defect->nvertices) {
           vno = vertex_trans[defect->vertices[i]];
-        } else {
+        }
+        else {
           vno = vertex_trans[defect->chull[i - defect->nvertices]];
         }
 
@@ -59306,8 +60459,8 @@ static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int 
           fprintf(fp, "%2.3f  %2.3f\n%2.3f  %2.3f\n\n", x2_start, y2_start, x2_end, y2_end);
         }
       }
-
-    } else {
+    }
+    else {
       fp = fopen(fname, "a");
     }
     fprintf(fp, "%2.3f  %2.3f\n%2.3f  %2.3f\n\n", x1_start, y1_start, x1_end, y1_end);
@@ -59324,7 +60477,8 @@ static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int 
       for (i = 0; i < defect->nvertices + defect->nchull; i++) {
         if (i < defect->nvertices) {
           vno = vertex_trans[defect->vertices[i]];
-        } else {
+        }
+        else {
           vno = vertex_trans[defect->chull[i - defect->nvertices]];
         }
 
@@ -59357,8 +60511,8 @@ static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int 
           fprintf(fp, "%d  %d  %2.3f  %2.3f  %2.3f  %2.3f\n", vno, v->v[n], x2_start, y2_start, x2_end, y2_end);
         }
       }
-
-    } else {
+    }
+    else {
       fp = fopen(fname, "a");
     }
     fprintf(fp, "%d  %d  %2.3f  %2.3f  %2.3f  %2.3f\n", e->vno1, e->vno2, x1_start, y1_start, x1_end, y1_end);
@@ -59379,7 +60533,8 @@ it's border. Sorry this code is such a hatchet job. I'm sure
 there are far more elegant ways of doing intersection
 (e.g. sorting).
 ------------------------------------------------------*/
-static int intersectDefectConvexHullEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans) {
+static int intersectDefectConvexHullEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans)
+{
   VERTEX *v;
   int i, n, vno;
   FILE *fp = NULL;
@@ -59447,7 +60602,8 @@ static int intersectDefectConvexHullEdges(MRI_SURFACE *mris, DEFECT *defect, EDG
       for (i = 0; i < defect->nvertices + defect->nchull; i++) {
         if (i < defect->nvertices) {
           vno = vertex_trans[defect->vertices[i]];
-        } else {
+        }
+        else {
           vno = vertex_trans[defect->chull[i - defect->nvertices]];
         }
 
@@ -59480,8 +60636,8 @@ static int intersectDefectConvexHullEdges(MRI_SURFACE *mris, DEFECT *defect, EDG
           fprintf(fp, "%2.3f  %2.3f\n%2.3f  %2.3f\n\n", x2_start, y2_start, x2_end, y2_end);
         }
       }
-
-    } else {
+    }
+    else {
       fp = fopen(fname, "a");
     }
     fprintf(fp, "%2.3f  %2.3f\n%2.3f  %2.3f\n\n", x1_start, y1_start, x1_end, y1_end);
@@ -59498,7 +60654,8 @@ static int intersectDefectConvexHullEdges(MRI_SURFACE *mris, DEFECT *defect, EDG
       for (i = 0; i < defect->nvertices + defect->nchull; i++) {
         if (i < defect->nvertices) {
           vno = vertex_trans[defect->vertices[i]];
-        } else {
+        }
+        else {
           vno = vertex_trans[defect->chull[i - defect->nvertices]];
         }
 
@@ -59531,8 +60688,8 @@ static int intersectDefectConvexHullEdges(MRI_SURFACE *mris, DEFECT *defect, EDG
           fprintf(fp, "%d  %d  %2.3f  %2.3f  %2.3f  %2.3f\n", vno, v->v[n], x2_start, y2_start, x2_end, y2_end);
         }
       }
-
-    } else {
+    }
+    else {
       fp = fopen(fname, "a");
     }
     fprintf(fp, "%d  %d  %2.3f  %2.3f  %2.3f  %2.3f\n", e->vno1, e->vno2, x1_start, y1_start, x1_end, y1_end);
@@ -59689,7 +60846,8 @@ colinearDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e,
   Description
   Is vno1 is a neighbor of vno2
   ------------------------------------------------------*/
-static int vertexNeighbor(MRI_SURFACE *mris, int vno1, int vno2) {
+static int vertexNeighbor(MRI_SURFACE *mris, int vno1, int vno2)
+{
   VERTEX *v;
   int n;
 
@@ -59709,7 +60867,8 @@ static int vertexNeighbor(MRI_SURFACE *mris, int vno1, int vno2) {
   Add the edge vnot <--> vno2 to the tessellation
   ------------------------------------------------------*/
 #define MAX_VLIST 255
-static int mrisAddEdge(MRI_SURFACE *mris, int vno1, int vno2) {
+static int mrisAddEdge(MRI_SURFACE *mris, int vno1, int vno2)
+{
   int vlist[MAX_VLIST];
   VERTEX *v;
 
@@ -59765,7 +60924,8 @@ static int mrisAddEdge(MRI_SURFACE *mris, int vno1, int vno2) {
   Description
   Add the triangle vno0 --> vno1 --> vno2 to the tessellation
   ------------------------------------------------------*/
-static int mrisAddFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2) {
+static int mrisAddFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2)
+{
   int n, fno, ilist[1000], n0, n1;
   FACE *f;
   VERTEX *v;
@@ -59848,7 +61008,8 @@ static int mrisAddFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2) {
   Description
   Is the triangle vno0-->vno1-->vno2 already in the tessellation
   ------------------------------------------------------*/
-static int isFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2) {
+static int isFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2)
+{
   VERTEX *v;
   FACE *f;
   int n, n1, vno;
@@ -59876,7 +61037,8 @@ static int isFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2) {
   Description
   Is the triangle vno0-->vno1-->vno2 already in the tessellation
   ------------------------------------------------------*/
-static int findFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2) {
+static int findFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2)
+{
   VERTEX *v;
   FACE *f;
   int n, n1, vno, fno;
@@ -60083,7 +61245,8 @@ mrisRestoreDefectPositions(MRI_SURFACE *mris, DEFECT *defect, int which)
   Search the face for vno and set the v->n[] field
   appropriately.
   ------------------------------------------------------*/
-static int mrisSetVertexFaceIndex(MRI_SURFACE *mris, int vno, int fno) {
+static int mrisSetVertexFaceIndex(MRI_SURFACE *mris, int vno, int fno)
+{
   VERTEX *v;
   FACE *f;
   int n, i;
@@ -60186,7 +61349,8 @@ mrisAddDefectFaces(MRI_SURFACE *mris, double e0[3], double e1[3],
   Description
   Add the appropriate face to the tessellation.
   ------------------------------------------------------*/
-static int mrisAddAllDefectFaces(MRI_SURFACE *mris, DEFECT_LIST *dl, int *vertex_trans) {
+static int mrisAddAllDefectFaces(MRI_SURFACE *mris, DEFECT_LIST *dl, int *vertex_trans)
+{
   DEFECT *defect;
   int i, vno1, vno2, nfaces, n, m, dno;
   VERTEX *v;
@@ -60203,7 +61367,8 @@ static int mrisAddAllDefectFaces(MRI_SURFACE *mris, DEFECT_LIST *dl, int *vertex
           continue;
         }
         vno1 = vertex_trans[defect->vertices[i]];
-      } else {
+      }
+      else {
         vno1 = vertex_trans[defect->border[i - defect->nvertices]];
       }
       if (vno1 < 0) {
@@ -60258,7 +61423,8 @@ static int mrisAddAllDefectFaces(MRI_SURFACE *mris, DEFECT_LIST *dl, int *vertex
   If so, it should not be added to the tessellation.
   ------------------------------------------------------*/
 #if SPHERE_INTERSECTION
-static int containsAnotherVertexOnSphere(MRI_SURFACE *mris, int vno0, int vno1, int vno2, int mode) {
+static int containsAnotherVertexOnSphere(MRI_SURFACE *mris, int vno0, int vno1, int vno2, int mode)
+{
   VERTEX *V0, *V1, *V2, *v, *vn;
   int i, n, nvertices, vertices[1000], v1, v2;
   double sign[3], normal[3][3], orgn[3][3], tangent[3], test;
@@ -60501,7 +61667,8 @@ static int containsAnotherVertex(
           {
             break;
           }
-        } else {
+        }
+        else {
           m = (y1 - y0) / (x1 - x0);
           b = y1 - m * x1;
           if ((y2 - (m * x2 + b)) * (yn - (m * xn + b)) < 0) {
@@ -60630,33 +61797,38 @@ static int containsAnotherVertex(
 #endif
 #endif
 
-static int computeOrientation(MRIS *mris, int f, int v0, int v1) {
+static int computeOrientation(MRIS *mris, int f, int v0, int v1)
+{
   FACE *face;
 
   face = &mris->faces[f];
   if (face->v[0] == v0) {
     if (face->v[1] == v1) {
       return 1;
-    } else {
+    }
+    else {
       return -1;
     }
   };
   if (face->v[1] == v0) {
     if (face->v[2] == v1) {
       return 1;
-    } else {
+    }
+    else {
       return -1;
     }
   };
   if (face->v[0] == v1) {
     return 1;
-  } else {
+  }
+  else {
     return -1;
   }
 }
 
 /* extract the non-marked vertices from a surface */
-MRIS *MRISextractMarkedVertices(MRIS *mris) {
+MRIS *MRISextractMarkedVertices(MRIS *mris)
+{
   MRIS *mris_corrected;
   int *face_trans, *vertex_trans;
   VERTEX *v, *vdst;
@@ -60780,7 +61952,8 @@ MRIS *MRISextractMarkedVertices(MRIS *mris) {
 
 /* extract the main connected component from a triangulation
    use the v->marked to extract the surface */
-MRIS *MRISextractMainComponent(MRI_SURFACE *mris, int do_not_extract, int verbose, int *ncpts) {
+MRIS *MRISextractMainComponent(MRI_SURFACE *mris, int do_not_extract, int verbose, int *ncpts)
+{
   MRIS *mris_out;
   VERTEX *v, *vp1, *vp2;
   int n, vn0, vn1, vn2, p, count, max_c, max_nbr, found, ncpt;
@@ -60884,7 +62057,8 @@ MRIS *MRISextractMainComponent(MRI_SURFACE *mris, int do_not_extract, int verbos
     if (!do_not_extract && verbose) {
       fprintf(WHICH_OUTPUT, "\nnothing to do");
     }
-  } else {
+  }
+  else {
     if (verbose) {
       fprintf(WHICH_OUTPUT, "\n%d components have been found", count);
     }
@@ -60905,7 +62079,8 @@ MRIS *MRISextractMainComponent(MRI_SURFACE *mris, int do_not_extract, int verbos
     v = &mris->vertices[n];
     if (v->marked == max_c) {
       v->marked = 0;
-    } else {
+    }
+    else {
       v->marked = 1;
     }
   }
@@ -60919,7 +62094,8 @@ MRIS *MRISextractMainComponent(MRI_SURFACE *mris, int do_not_extract, int verbos
    constituting the tessellation. Writes the orientation changes in
    curv. Note that this function can easily be modified to check the
    orientation changes for any tessellations (not only triangulations) */
-int MRISmarkOrientationChanges(MRI_SURFACE *mris) {
+int MRISmarkOrientationChanges(MRI_SURFACE *mris)
+{
   VERTEX *v;
   int face1, face2, vn0, p, vn1, vn2, d1, d2, count;
 #if 0
@@ -60967,7 +62143,8 @@ int MRISmarkOrientationChanges(MRI_SURFACE *mris) {
           nfaces++;
           if (nfaces == 1) {
             face1 = findFace(mris, vn0, vn1, vn2);
-          } else {
+          }
+          else {
             face2 = findFace(mris, vn0, vn1, vn2);
           }
         }
@@ -61182,7 +62359,8 @@ int MRISmarkOrientationChanges(MRI_SURFACE *mris) {
   surface).
   ------------------------------------------------------*/
 #if 1
-static int mrisOrientRetessellatedSurface(MRI_SURFACE *mris, DEFECT_LIST *dl, int *vtrans) {
+static int mrisOrientRetessellatedSurface(MRI_SURFACE *mris, DEFECT_LIST *dl, int *vtrans)
+{
   int vno, n, fno, m, vno0, vno1; /*n0, n1;*/
   VERTEX *v, *v1, *v2, *v3;
   FACE *f;
@@ -61298,7 +62476,8 @@ static int mrisOrientRetessellatedSurface(MRI_SURFACE *mris, DEFECT_LIST *dl, in
   return (NO_ERROR);
 }
 #else
-static int mrisOrientRetessellatedSurface(MRI_SURFACE *mris, DEFECT_LIST *dl, int *vtrans) {
+static int mrisOrientRetessellatedSurface(MRI_SURFACE *mris, DEFECT_LIST *dl, int *vtrans)
+{
 #if 1
   int dno, fno, vno, i, n, m, vno0, vno1, n0, n1, oriented, nreversed;
   VERTEX *v, *vn;
@@ -61829,7 +63008,8 @@ mrisComputeCanonicalBasis(MRI_SURFACE *mris, int fno, double origin[3],
   ------------------------------------------------------*/
 #if (!SPHERE_INTERSECTION)
 static int mrisComputeCanonicalEdgeBasis(
-    MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2, double origin[3], double e0[3], double e1[3]) {
+    MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2, double origin[3], double e0[3], double e1[3])
+{
   VERTEX *v0, *v1, *v2, *v3;
   double len, normal[3];
   float fx, fy, fz;
@@ -61877,7 +63057,8 @@ static int mrisComputeCanonicalEdgeBasis(
   find the convex hull of the defect on the sphere (actually,
   just a disk, but at least it's convex....)
   ------------------------------------------------------*/
-static int mrisFindDefectConvexHull(MRI_SURFACE *mris, DEFECT *defect) {
+static int mrisFindDefectConvexHull(MRI_SURFACE *mris, DEFECT *defect)
+{
 #if SMALL_CONVEX_HULL
   VERTEX *v, *vn;
   int chull[MAX_DEFECT_VERTICES], nfound, n, i, vno;
@@ -61928,7 +63109,8 @@ static int mrisFindDefectConvexHull(MRI_SURFACE *mris, DEFECT *defect) {
       if (defect->status[i] == DISCARD_VERTEX) {
         continue;
       }
-    } else {
+    }
+    else {
       vno = defect->border[i - defect->nvertices];
     }
     v = &mris->vertices[vno];
@@ -61998,7 +63180,8 @@ static int mrisFindDefectConvexHull(MRI_SURFACE *mris, DEFECT *defect) {
 
   Description
   ------------------------------------------------------*/
-static int mrisCheckSurface(MRI_SURFACE *mris) {
+static int mrisCheckSurface(MRI_SURFACE *mris)
+{
   int vno, n, nfaces, m, vno2, nbad, flist[100];
   VERTEX *v;
 
@@ -62055,7 +63238,8 @@ static int mrisCheckSurface(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-static int mrisMarkBadEdgeVertices(MRI_SURFACE *mris, int mark) {
+static int mrisMarkBadEdgeVertices(MRI_SURFACE *mris, int mark)
+{
   int vno, n, nfaces, m, vno2, nmarked;
   VERTEX *v;
 
@@ -62097,7 +63281,8 @@ static int mrisMarkBadEdgeVertices(MRI_SURFACE *mris, int mark) {
 
   Description
   ------------------------------------------------------*/
-int MRISdilateMarked(MRI_SURFACE *mris, int ndil) {
+int MRISdilateMarked(MRI_SURFACE *mris, int ndil)
+{
   int vno, i, n, mx;
   VERTEX *v, *vn;
 
@@ -62139,7 +63324,8 @@ int MRISdilateMarked(MRI_SURFACE *mris, int ndil) {
 
   Description
   ------------------------------------------------------*/
-int MRISdilateRipped(MRI_SURFACE *mris, int ndil) {
+int MRISdilateRipped(MRI_SURFACE *mris, int ndil)
+{
   int vno, i, n;
   VERTEX *v, *vn;
 
@@ -62177,7 +63363,8 @@ int MRISdilateRipped(MRI_SURFACE *mris, int ndil) {
   annotation. If newid >= 0, then the surface annot field of vertices
   in the dilated mask is set to the annot corresponding to newid.
   -------------------------------------------------------------------*/
-MRI *MRISdilateConfined(MRIS *surf, MRI *mask, int annotidmask, int niters, int newid) {
+MRI *MRISdilateConfined(MRIS *surf, MRI *mask, int annotidmask, int niters, int newid)
+{
   int vtxno, annot, annotid, nnbrs, nbrvtxno, nthnbr, nthiter, new_annot;
   VERTEX *vtx;
   MRI *mri1, *mri2;
@@ -62246,7 +63433,8 @@ MRI *MRISdilateConfined(MRIS *surf, MRI *mask, int annotidmask, int niters, int 
   MRI *MRISfbirnMask_SFG_Cing(MRIS *surf) - creates a mask in the
   SFG where it borders CAcing, PAcing, and RAcing.
   -------------------------------------------------------------*/
-MRI *MRISfbirnMask_SFG_Cing(MRIS *surf) {
+MRI *MRISfbirnMask_SFG_Cing(MRIS *surf)
+{
   int vtxno, annot, annotid, nnbrs, nbrvtx, nthnbr, nbrannotid;
   VERTEX *vtx;
   int superiorfrontal, posteriorcingulate;
@@ -62294,7 +63482,8 @@ MRI *MRISfbirnMask_SFG_Cing(MRIS *surf) {
   MRI *MRISfbirnMask_MOF_RACing(MRIS *surf) - creates a mask at the intersection
   Meidal Orbital Frontal and RA Cingulate
   -------------------------------------------------------------*/
-MRI *MRISfbirnMask_MOF_RACing(MRIS *surf) {
+MRI *MRISfbirnMask_MOF_RACing(MRIS *surf)
+{
   int vtxno, annot, annotid, nnbrs, nbrvtx, nthnbr, nbrannotid;
   VERTEX *vtx;
   int medialorbitofrontal, rostralanteriorcingulate;
@@ -62341,7 +63530,8 @@ MRI *MRISfbirnMask_MOF_RACing(MRIS *surf) {
   Returns value:
   Description
   ------------------------------------------------------*/
-int MRISerodeRipped(MRI_SURFACE *mris, int ndil) {
+int MRISerodeRipped(MRI_SURFACE *mris, int ndil)
+{
   int vno, i, n, mn;
   VERTEX *v, *vn;
 
@@ -62375,7 +63565,8 @@ int MRISerodeRipped(MRI_SURFACE *mris, int ndil) {
 
   Description
   ------------------------------------------------------*/
-int MRISerodeMarked(MRI_SURFACE *mris, int num) {
+int MRISerodeMarked(MRI_SURFACE *mris, int num)
+{
   int vno, i, n, mn;
   VERTEX *v, *vn;
 
@@ -62417,7 +63608,8 @@ int MRISerodeMarked(MRI_SURFACE *mris, int num) {
 
   Description
   ------------------------------------------------------*/
-int MRIScloseMarked(MRI_SURFACE *mris, int order) {
+int MRIScloseMarked(MRI_SURFACE *mris, int order)
+{
   MRISdilateMarked(mris, order);
   MRISerodeMarked(mris, order);
   return (NO_ERROR);
@@ -62429,7 +63621,8 @@ int MRIScloseMarked(MRI_SURFACE *mris, int order) {
 
   Description
   ------------------------------------------------------*/
-int MRISopenMarked(MRI_SURFACE *mris, int order) {
+int MRISopenMarked(MRI_SURFACE *mris, int order)
+{
   MRISerodeMarked(mris, order);
   MRISdilateMarked(mris, order);
   return (NO_ERROR);
@@ -62441,7 +63634,8 @@ int MRISopenMarked(MRI_SURFACE *mris, int order) {
 
   Description
   ------------------------------------------------------*/
-static int mrisDumpDefectiveEdge(MRI_SURFACE *mris, int vno1, int vno2) {
+static int mrisDumpDefectiveEdge(MRI_SURFACE *mris, int vno1, int vno2)
+{
 #if 0
   FILE   *fp ;
   char   fname[STRLEN] ;
@@ -62567,7 +63761,8 @@ mrisDumpTriangle(MRI_SURFACE *mris, int fno)
   return(NO_ERROR) ;
 }
 #endif
-static int mrisDefectRemoveNegativeVertices(MRI_SURFACE *mris, DEFECT *defect) {
+static int mrisDefectRemoveNegativeVertices(MRI_SURFACE *mris, DEFECT *defect)
+{
   int i, n;
   VERTEX *v;
 
@@ -62590,7 +63785,8 @@ static int mrisDefectRemoveNegativeVertices(MRI_SURFACE *mris, DEFECT *defect) {
 
   Description
   ------------------------------------------------------*/
-static int mrisDefectRemoveDegenerateVertices(MRI_SURFACE *mris, float min_sphere_dist, DEFECT *defect) {
+static int mrisDefectRemoveDegenerateVertices(MRI_SURFACE *mris, float min_sphere_dist, DEFECT *defect)
+{
   float dx, dy, dz, dist;
   int i, j;
   VERTEX *v, *vn;
@@ -62605,7 +63801,8 @@ static int mrisDefectRemoveDegenerateVertices(MRI_SURFACE *mris, float min_spher
       if (defect->vertices[i] == Gdiag_no) {
         DiagBreak();
       }
-    } else {
+    }
+    else {
       v = &mris->vertices[defect->border[i - defect->nvertices]];
       if (defect->border[i - defect->nvertices] == Gdiag_no) {
         DiagBreak();
@@ -62636,7 +63833,8 @@ static int mrisDefectRemoveDegenerateVertices(MRI_SURFACE *mris, float min_spher
 
   Description
   ------------------------------------------------------*/
-static int mrisDefectRemoveProximalVertices(MRI_SURFACE *mris, float min_orig_dist, DEFECT *defect) {
+static int mrisDefectRemoveProximalVertices(MRI_SURFACE *mris, float min_orig_dist, DEFECT *defect)
+{
   float dx, dy, dz, dist;
   int i, j;
   VERTEX *v, *vn;
@@ -62651,7 +63849,8 @@ static int mrisDefectRemoveProximalVertices(MRI_SURFACE *mris, float min_orig_di
       if (defect->vertices[i] == Gdiag_no) {
         DiagBreak();
       }
-    } else {
+    }
+    else {
       v = &mris->vertices[defect->border[i - defect->nvertices]];
       if (defect->border[i - defect->nvertices] == Gdiag_no) {
         DiagBreak();
@@ -62678,7 +63877,8 @@ static int mrisDefectRemoveProximalVertices(MRI_SURFACE *mris, float min_orig_di
 }
 /*-----------------------------------------------------
   ------------------------------------------------------*/
-static int mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno) {
+static int mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno)
+{
   VERTEX *v, *vnb, *vnb2;
   int vtmp[MAX_NEIGHBORS], vnum, i, j, n, neighbors, nsize;
 
@@ -62795,7 +63995,8 @@ static int mrisInitializeNeighborhood(MRI_SURFACE *mris, int vno) {
 
   Description
   ------------------------------------------------------*/
-int MRISmarkNegativeVertices(MRI_SURFACE *mris, int mark) {
+int MRISmarkNegativeVertices(MRI_SURFACE *mris, int mark)
+{
   int fno, n;
   FACE *f;
 
@@ -62815,7 +64016,8 @@ int MRISmarkNegativeVertices(MRI_SURFACE *mris, int mark) {
 
   Description
   ------------------------------------------------------*/
-int MRISripNegativeVertices(MRI_SURFACE *mris) {
+int MRISripNegativeVertices(MRI_SURFACE *mris)
+{
   int fno, n;
   FACE *f;
 
@@ -62837,7 +64039,8 @@ int MRISripNegativeVertices(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-double MRIScomputeAverageCurvature(MRI_SURFACE *mris, double *psigma) {
+double MRIScomputeAverageCurvature(MRI_SURFACE *mris, double *psigma)
+{
   double mean, var, total, total_sq, nv, d;
   int vno;
   VERTEX *v;
@@ -62855,7 +64058,8 @@ double MRIScomputeAverageCurvature(MRI_SURFACE *mris, double *psigma) {
   if (nv) {
     mean = total / nv;
     var = total_sq / nv - (mean * mean);
-  } else {
+  }
+  else {
     var = mean = 0.0;
   }
   if (psigma) {
@@ -62870,7 +64074,8 @@ double MRIScomputeAverageCurvature(MRI_SURFACE *mris, double *psigma) {
 
   Description
   ------------------------------------------------------*/
-int MRIScopyValToVal2(MRI_SURFACE *mris) {
+int MRIScopyValToVal2(MRI_SURFACE *mris)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -62891,7 +64096,8 @@ int MRIScopyValToVal2(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScopyValuesToVal2Bak(MRI_SURFACE *mris) {
+int MRIScopyValuesToVal2Bak(MRI_SURFACE *mris)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -62912,7 +64118,8 @@ int MRIScopyValuesToVal2Bak(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScopyValToValBak(MRI_SURFACE *mris) {
+int MRIScopyValToValBak(MRI_SURFACE *mris)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -62933,7 +64140,8 @@ int MRIScopyValToValBak(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRIScopyValToVal2Bak(MRI_SURFACE *mris) {
+int MRIScopyValToVal2Bak(MRI_SURFACE *mris)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -62955,7 +64163,8 @@ Returns value:
 
 Description
 ------------------------------------------------------*/
-int MRISsqrtVal(MRI_SURFACE *mris) {
+int MRISsqrtVal(MRI_SURFACE *mris)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -62979,7 +64188,8 @@ Returns value:
 
 Description
 ------------------------------------------------------*/
-int MRISmulVal(MRI_SURFACE *mris, float mul) {
+int MRISmulVal(MRI_SURFACE *mris, float mul)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -62994,7 +64204,8 @@ int MRISmulVal(MRI_SURFACE *mris, float mul) {
   return (NO_ERROR);
 }
 
-SMALL_SURFACE *MRISreadVerticesOnly(char *fname) {
+SMALL_SURFACE *MRISreadVerticesOnly(char *fname)
+{
   SMALL_SURFACE *mriss = NULL;
   int type, magic, version, ix, iy, iz, nquads, nvertices, vno;
   SMALL_VERTEX *vertex;
@@ -63020,16 +64231,19 @@ SMALL_SURFACE *MRISreadVerticesOnly(char *fname) {
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
       fprintf(stdout, "new surface file format\n");
     }
-  } else if (magic == NEW_QUAD_FILE_MAGIC_NUMBER) {
+  }
+  else if (magic == NEW_QUAD_FILE_MAGIC_NUMBER) {
     version = -2;
-  } else if (magic == TRIANGLE_FILE_MAGIC_NUMBER) {
+  }
+  else if (magic == TRIANGLE_FILE_MAGIC_NUMBER) {
     fclose(fp);
     mriss = mrisReadTriangleFileVertexPositionsOnly(fname);
     if (!mriss) {
       ErrorReturn(NULL, (Gerror, "mrisReadTriangleFile failed.\n"));
     }
     version = -3;
-  } else {
+  }
+  else {
     rewind(fp);
     version = 0;
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
@@ -63062,7 +64276,8 @@ SMALL_SURFACE *MRISreadVerticesOnly(char *fname) {
         vertex->x = ix / 100.0;
         vertex->y = iy / 100.0;
         vertex->z = iz / 100.0;
-      } else /* version == -2 */
+      }
+      else /* version == -2 */
       {
         vertex->x = freadFloat(fp);
         vertex->y = freadFloat(fp);
@@ -63073,7 +64288,8 @@ SMALL_SURFACE *MRISreadVerticesOnly(char *fname) {
 
   return (mriss);
 }
-int MRISSfree(SMALL_SURFACE **pmriss) {
+int MRISSfree(SMALL_SURFACE **pmriss)
+{
   SMALL_SURFACE *mriss;
 
   mriss = *pmriss;
@@ -63082,7 +64298,8 @@ int MRISSfree(SMALL_SURFACE **pmriss) {
   free(mriss);
   return (NO_ERROR);
 }
-int MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs) {
+int MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs)
+{
   int vno;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -63091,7 +64308,8 @@ int MRISextractCurvatureVector(MRI_SURFACE *mris, float *curvs) {
 
   return (NO_ERROR);
 }
-int MRISextractCurvatureVectorDouble(MRI_SURFACE *mris, double *curvs, int offset) {
+int MRISextractCurvatureVectorDouble(MRI_SURFACE *mris, double *curvs, int offset)
+{
   int vno;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -63100,7 +64318,8 @@ int MRISextractCurvatureVectorDouble(MRI_SURFACE *mris, double *curvs, int offse
 
   return (NO_ERROR);
 }
-int MRISextractCurvatureDoubleVector(MRI_SURFACE *mris, double *curvs) {
+int MRISextractCurvatureDoubleVector(MRI_SURFACE *mris, double *curvs)
+{
   int vno;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -63109,7 +64328,8 @@ int MRISextractCurvatureDoubleVector(MRI_SURFACE *mris, double *curvs) {
 
   return (NO_ERROR);
 }
-int MRISimportCurvatureVector(MRI_SURFACE *mris, float *curvs) {
+int MRISimportCurvatureVector(MRI_SURFACE *mris, float *curvs)
+{
   int vno;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -63119,7 +64339,8 @@ int MRISimportCurvatureVector(MRI_SURFACE *mris, float *curvs) {
   return (NO_ERROR);
 }
 
-int MRISimportValVector(MRI_SURFACE *mris, float *vals) {
+int MRISimportValVector(MRI_SURFACE *mris, float *vals)
+{
   int vno;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -63128,7 +64349,8 @@ int MRISimportValVector(MRI_SURFACE *mris, float *vals) {
 
   return (NO_ERROR);
 }
-int MRISimportValFromMatrixColumn(MRI_SURFACE *mris, MATRIX *m, int col) {
+int MRISimportValFromMatrixColumn(MRI_SURFACE *mris, MATRIX *m, int col)
+{
   int vno;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -63137,7 +64359,8 @@ int MRISimportValFromMatrixColumn(MRI_SURFACE *mris, MATRIX *m, int col) {
 
   return (NO_ERROR);
 }
-int MRISexportValVector(MRI_SURFACE *mris, float *vals) {
+int MRISexportValVector(MRI_SURFACE *mris, float *vals)
+{
   int vno;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -63146,7 +64369,8 @@ int MRISexportValVector(MRI_SURFACE *mris, float *vals) {
 
   return (NO_ERROR);
 }
-int MRISexportValVectorDouble(MRI_SURFACE *mris, double *vals, int offset) {
+int MRISexportValVectorDouble(MRI_SURFACE *mris, double *vals, int offset)
+{
   int vno;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -63155,7 +64379,8 @@ int MRISexportValVectorDouble(MRI_SURFACE *mris, double *vals, int offset) {
 
   return (NO_ERROR);
 }
-int MRISmaskLabel(MRI_SURFACE *mris, LABEL *area) {
+int MRISmaskLabel(MRI_SURFACE *mris, LABEL *area)
+{
   int i;
   VERTEX *v;
 
@@ -63165,7 +64390,8 @@ int MRISmaskLabel(MRI_SURFACE *mris, LABEL *area) {
   }
   return (NO_ERROR);
 }
-int MRISmaskNotLabel(MRI_SURFACE *mris, LABEL *area) {
+int MRISmaskNotLabel(MRI_SURFACE *mris, LABEL *area)
+{
   int i, vno;
   VERTEX *v;
 
@@ -63186,7 +64412,8 @@ int MRISmaskNotLabel(MRI_SURFACE *mris, LABEL *area) {
   }
   return (NO_ERROR);
 }
-int MRISripLabel(MRI_SURFACE *mris, LABEL *area) {
+int MRISripLabel(MRI_SURFACE *mris, LABEL *area)
+{
   int i;
   VERTEX *v;
 
@@ -63196,7 +64423,8 @@ int MRISripLabel(MRI_SURFACE *mris, LABEL *area) {
   }
   return (NO_ERROR);
 }
-int MRISripNotLabel(MRI_SURFACE *mris, LABEL *area) {
+int MRISripNotLabel(MRI_SURFACE *mris, LABEL *area)
+{
   int i, vno;
   VERTEX *v;
 
@@ -63217,7 +64445,8 @@ int MRISripNotLabel(MRI_SURFACE *mris, LABEL *area) {
   }
   return (NO_ERROR);
 }
-int MRISinvertMarks(MRI_SURFACE *mris) {
+int MRISinvertMarks(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -63231,7 +64460,8 @@ int MRISinvertMarks(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRISsegmentMarked(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels, float min_label_area) {
+int MRISsegmentMarked(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels, float min_label_area)
+{
   int vno, nfound, n, nlabels, *marks;
   VERTEX *v;
   LABEL *area = NULL, **tmp, **label_array;
@@ -63277,7 +64507,8 @@ int MRISsegmentMarked(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels, f
       }
       LabelFree(&area);
       nfound = 1;
-    } else {
+    }
+    else {
       nfound = 0;
     }
 
@@ -63304,7 +64535,8 @@ int MRISsegmentMarked(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels, f
   return (NO_ERROR);
 }
 
-int MRISsegmentAnnotated(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels, float min_label_area) {
+int MRISsegmentAnnotated(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels, float min_label_area)
+{
   int vno, nfound, n, nlabels, last_vno;
   VERTEX *v;
   LABEL *area = NULL, **tmp, **label_array;
@@ -63344,7 +64576,8 @@ int MRISsegmentAnnotated(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels
       LabelFree(&area);
       nfound = 1;
       last_vno = vno;
-    } else {
+    }
+    else {
       nfound = 0;
     }
 
@@ -63363,7 +64596,8 @@ int MRISsegmentAnnotated(MRI_SURFACE *mris, LABEL ***plabel_array, int *pnlabels
   return (NO_ERROR);
 }
 
-int MRISsubsampleDist(MRI_SURFACE *mris, float spacing) {
+int MRISsubsampleDist(MRI_SURFACE *mris, float spacing)
+{
   int k, m, n, sub_num;
   VERTEX *v;
 
@@ -63428,7 +64662,8 @@ int MRISsubsampleDist(MRI_SURFACE *mris, float spacing) {
 
   return (sub_num);
 }
-int MRISwriteDecimation(MRI_SURFACE *mris, char *fname) {
+int MRISwriteDecimation(MRI_SURFACE *mris, char *fname)
+{
   int k;
   FILE *fptr;
 
@@ -63439,14 +64674,16 @@ int MRISwriteDecimation(MRI_SURFACE *mris, char *fname) {
   for (k = 0; k < mris->nvertices; k++) {
     if (mris->vertices[k].d == 0) {
       fputc('\1', fptr);
-    } else {
+    }
+    else {
       fputc('\0', fptr);
     }
   }
   fclose(fptr);
   return (NO_ERROR);
 }
-int MRISreadDecimation(MRI_SURFACE *mris, char *fname) {
+int MRISreadDecimation(MRI_SURFACE *mris, char *fname)
+{
   int k, d, ndec;
   char c;
   FILE *fptr;
@@ -63473,7 +64710,8 @@ int MRISreadDecimation(MRI_SURFACE *mris, char *fname) {
         ndec++;
       }
     }
-  } else {
+  }
+  else {
     d = freadInt(fptr);
     if (d != mris->nvertices)
       ErrorReturn(0, (ERROR_BADFILE, "%s: decimation file %s has wrong # of vertices\n", Progname, fname, d));
@@ -63491,7 +64729,8 @@ int MRISreadDecimation(MRI_SURFACE *mris, char *fname) {
   return (ndec);
 }
 
-int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE *mht, int which) {
+int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE *mht, int which)
+{
   int vno;
   VERTEX *v, *vdst;
   MHT *mht_src = NULL;
@@ -63633,7 +64872,8 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE 
 }
 
 #if 1
-int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TABLE *mht, int which) {
+int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TABLE *mht, int which)
+{
   int vno;
   VERTEX *v, *vdst;
   MHT *mht_src = NULL;
@@ -63696,7 +64936,8 @@ int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TA
   return (NO_ERROR);
 }
 #else
-int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TABLE *mht, int which) {
+int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TABLE *mht, int which)
+{
   int vno;
   VERTEX *v, *vdst;
   MHT *mht_src = NULL;
@@ -63866,7 +65107,8 @@ int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TA
 }
 #endif
 
-int MRISorigAreaToCurv(MRI_SURFACE *mris) {
+int MRISorigAreaToCurv(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -63880,7 +65122,8 @@ int MRISorigAreaToCurv(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRISareaToCurv(MRI_SURFACE *mris) {
+int MRISareaToCurv(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -63894,7 +65137,8 @@ int MRISareaToCurv(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRISmarkedToCurv(MRI_SURFACE *mris) {
+int MRISmarkedToCurv(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -63908,7 +65152,8 @@ int MRISmarkedToCurv(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRIScurvToMarked(MRI_SURFACE *mris) {
+int MRIScurvToMarked(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -63922,7 +65167,8 @@ int MRIScurvToMarked(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRISdToCurv(MRI_SURFACE *mris) {
+int MRISdToCurv(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -63936,7 +65182,8 @@ int MRISdToCurv(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRIScurvToD(MRI_SURFACE *mris) {
+int MRIScurvToD(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -63950,7 +65197,8 @@ int MRIScurvToD(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRISclearOrigArea(MRI_SURFACE *mris) {
+int MRISclearOrigArea(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -63964,7 +65212,8 @@ int MRISclearOrigArea(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRISclearOrigDistances(MRI_SURFACE *mris) {
+int MRISclearOrigDistances(MRI_SURFACE *mris)
+{
   int vno, n;
   VERTEX *v;
 
@@ -63980,7 +65229,8 @@ int MRISclearOrigDistances(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRISclear(MRI_SURFACE *mris, int which) {
+int MRISclear(MRI_SURFACE *mris, int which)
+{
   int vno;
   VERTEX *v;
 
@@ -64005,7 +65255,8 @@ int MRISclear(MRI_SURFACE *mris, int which) {
   }
   return (NO_ERROR);
 }
-int MRISnormalize(MRI_SURFACE *mris, int dof, int which) {
+int MRISnormalize(MRI_SURFACE *mris, int dof, int which)
+{
   int vno;
   VERTEX *v;
   float fdof = (float)dof, mean;
@@ -64047,7 +65298,8 @@ static int mrisComputeGrayWhiteBorderDistributions(MRI_SURFACE *mris,
                                                    HISTOGRAM *h_white,
                                                    HISTOGRAM *h_gray,
                                                    HISTOGRAM *h_border,
-                                                   HISTOGRAM *h_grad) {
+                                                   HISTOGRAM *h_grad)
+{
   int vno, n2, n, i, nvertices, bin;
   VERTEX *v, *vn, *vn2;
   HISTOGRAM *h_white_raw, *h_gray_raw, *h_border_raw, *h_grad_raw;
@@ -64199,7 +65451,8 @@ static int mrisComputeGrayWhiteBorderDistributions(MRI_SURFACE *mris,
   return (NO_ERROR);
 }
 
-static int mrisComputeJointGrayWhiteBorderDistributions(MRI_SURFACE *mris, MRI *mri, MRI *mri_gray_white, MRI *mri_wm) {
+static int mrisComputeJointGrayWhiteBorderDistributions(MRI_SURFACE *mris, MRI *mri, MRI *mri_gray_white, MRI *mri_wm)
+{
   int vno, x, y;
   VERTEX *v;
   float norm;
@@ -64279,7 +65532,8 @@ static int mrisComputeJointGrayWhiteBorderDistributions(MRI_SURFACE *mris, MRI *
   return (NO_ERROR);
 }
 
-static int mrisFindGrayWhiteBorderMean(MRI_SURFACE *mris, MRI *mri) {
+static int mrisFindGrayWhiteBorderMean(MRI_SURFACE *mris, MRI *mri)
+{
   double x, y, z, xv, yv, zv, gray_val, white_val, nx, ny, nz;
   int vno;
   VERTEX *v;
@@ -64332,7 +65586,8 @@ static int mrisFindGrayWhiteBorderMean(MRI_SURFACE *mris, MRI *mri) {
   return (NO_ERROR);
 }
 
-int MRISreadNewCurvatureFile(MRI_SURFACE *mris, const char *sname) {
+int MRISreadNewCurvatureFile(MRI_SURFACE *mris, const char *sname)
+{
   int k, vnum, fnum, vals_per_vertex;
   float curv, curvmin, curvmax;
   FILE *fp;
@@ -64345,9 +65600,11 @@ int MRISreadNewCurvatureFile(MRI_SURFACE *mris, const char *sname) {
     FileNamePath(mris->fname, path);
     if (cp) {
       sprintf(fname, "%s/%s", path, sname);
-    } else /* no hemisphere specified */
+    }
+    else /* no hemisphere specified */
       sprintf(fname, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname);
-  } else {
+  }
+  else {
     strcpy(fname, sname); /* path specified explcitly */
   }
 
@@ -64405,7 +65662,8 @@ int MRISreadNewCurvatureFile(MRI_SURFACE *mris, const char *sname) {
   fclose(fp);
   return (NO_ERROR);
 }
-float *MRISreadNewCurvatureVector(MRI_SURFACE *mris, const char *sname) {
+float *MRISreadNewCurvatureVector(MRI_SURFACE *mris, const char *sname)
+{
   char *cp, path[STRLEN], fname[STRLEN];
   float *cvec = NULL;
   int return_code = ERROR_NONE;
@@ -64417,9 +65675,11 @@ float *MRISreadNewCurvatureVector(MRI_SURFACE *mris, const char *sname) {
     FileNamePath(mris->fname, path);
     if (cp) {
       sprintf(fname, "%s/%s", path, sname);
-    } else /* no hemisphere specified */
+    }
+    else /* no hemisphere specified */
       sprintf(fname, "%s/%s.%s", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname);
-  } else {
+  }
+  else {
     strcpy(fname, sname); /* path specified explcitly */
   }
 
@@ -64434,7 +65694,8 @@ float *MRISreadNewCurvatureVector(MRI_SURFACE *mris, const char *sname) {
   return cvec;
 }
 
-int MRISreadNewCurvatureIntoArray(const char *sname, int in_array_size, float **out_array) {
+int MRISreadNewCurvatureIntoArray(const char *sname, int in_array_size, float **out_array)
+{
   int k, vnum, fnum;
   float *cvec;
   FILE *fp;
@@ -64498,7 +65759,8 @@ int MRISreadNewCurvatureIntoArray(const char *sname, int in_array_size, float **
 
   Description
   ------------------------------------------------------*/
-int MRISpaintVolume(MRI_SURFACE *mris, LTA *lta, MRI *mri) {
+int MRISpaintVolume(MRI_SURFACE *mris, LTA *lta, MRI *mri)
+{
   VERTEX *v;
   int vno, width, height, depth;
   double x, y, z, val;
@@ -64554,7 +65816,8 @@ int MRISpaintVolume(MRI_SURFACE *mris, LTA *lta, MRI *mri) {
   MatrixFree(&m_ras_to_voxel);
   return (NO_ERROR);
 }
-static int mrisComputePositioningGradients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static int mrisComputePositioningGradients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   MHT *mht_v_orig = NULL, *mht_v_current = NULL, *mht_f_current;
   MRI *mri_brain = parms->mri_brain;
   int avgs;
@@ -64602,7 +65865,8 @@ static int mrisComputePositioningGradients(MRI_SURFACE *mris, INTEGRATION_PARMS 
   }
   return (NO_ERROR);
 }
-int MRISallocExtraGradients(MRI_SURFACE *mris) {
+int MRISallocExtraGradients(MRI_SURFACE *mris)
+{
   if (mris->dx2) {
     return (NO_ERROR); /* already allocated */
   }
@@ -64615,7 +65879,8 @@ int MRISallocExtraGradients(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRISrestoreExtraGradients(MRI_SURFACE *mris) {
+int MRISrestoreExtraGradients(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -64633,7 +65898,8 @@ int MRISrestoreExtraGradients(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRISclearDistances(MRI_SURFACE *mris) {
+int MRISclearDistances(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -64670,7 +65936,8 @@ MRI *MRISloadSurfVals(const char *srcvalfile,
                       MRI_SURFACE *Surf,
                       const char *subject,
                       const char *hemi,
-                      const char *subjectsdir) {
+                      const char *subjectsdir)
+{
   MRI *SrcVals, *mritmp;
   char fname[2000];
   int srctype, reshapefactor = 0, f;
@@ -64696,7 +65963,8 @@ MRI *MRISloadSurfVals(const char *srcvalfile,
       return (NULL);
     }
     freesurface = 1;
-  } else {
+  }
+  else {
     subject = Surf->subject_name;
     if (Surf->hemisphere == LEFT_HEMISPHERE) {
       hemi = "lh";
@@ -64727,13 +65995,15 @@ MRI *MRISloadSurfVals(const char *srcvalfile,
     // for(vtx = 0; vtx < Surf->nvertices; vtx++){
     //  MRIFseq_vox(SrcVals,vtx,0,0,0) = Surf->vertices[vtx].curv;
     //}
-  } else if (!strcmp(typestring, "paint") || !strcmp(typestring, "w")) {
+  }
+  else if (!strcmp(typestring, "paint") || !strcmp(typestring, "w")) {
     MRISreadValues(Surf, srcvalfile);
     SrcVals = MRIcopyMRIS(NULL, Surf, 0, "val");
     // SrcVals = MRIallocSequence(Surf->nvertices, 1, 1,MRI_FLOAT,1);
     // for(vtx = 0; vtx < Surf->nvertices; vtx++)
     //  MRIFseq_vox(SrcVals,vtx,0,0,0) = Surf->vertices[vtx].val;
-  } else {
+  }
+  else {
     /* Use MRIreadType */
     srctype = string_to_type(typestring);
     if (srctype == MRI_VOLUME_TYPE_UNKNOWN) {
@@ -64799,7 +66069,8 @@ MRI *MRISloadSurfVals(const char *srcvalfile,
   imag_val, curv, curvbak, fsmask, nc. Others can be easily added. If
   there is an error, a 1 is returned; otherwise 0.
   -----------------------------------------------------------------*/
-int MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field) {
+int MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field)
+{
   int vtx, useval = 0, usecurv = 0, nvox, c, r, s;
   float val;
 
@@ -64822,12 +66093,14 @@ int MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field) {
   /* A separate variable is used for val and curv for speed purposes */
   if (!strcmp(Field, "val")) {
     useval = 1;
-  } else {
+  }
+  else {
     useval = 0;
   }
   if (!strcmp(Field, "curv")) {
     usecurv = 1;
-  } else {
+  }
+  else {
     usecurv = 0;
   }
 
@@ -64841,75 +66114,110 @@ int MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field) {
 
         if (useval) {
           Surf->vertices[vtx].val = val;
-        } else if (usecurv) {
+        }
+        else if (usecurv) {
           Surf->vertices[vtx].curv = val;
-        } else if (!strcmp(Field, "stat")) {
+        }
+        else if (!strcmp(Field, "stat")) {
           Surf->vertices[vtx].stat = val;
-        } else if (!strcmp(Field, "valbak")) {
+        }
+        else if (!strcmp(Field, "valbak")) {
           Surf->vertices[vtx].valbak = val;
-        } else if (!strcmp(Field, "val2")) {
+        }
+        else if (!strcmp(Field, "val2")) {
           Surf->vertices[vtx].val2 = val;
-        } else if (!strcmp(Field, "val2bak")) {
+        }
+        else if (!strcmp(Field, "val2bak")) {
           Surf->vertices[vtx].val2bak = val;
-        } else if (!strcmp(Field, "imag_val")) {
+        }
+        else if (!strcmp(Field, "imag_val")) {
           Surf->vertices[vtx].imag_val = val;
-        } else if (!strcmp(Field, "curvbak")) {
+        }
+        else if (!strcmp(Field, "curvbak")) {
           Surf->vertices[vtx].curvbak = val;
-        } else if (!strcmp(Field, "fsmask")) {
+        }
+        else if (!strcmp(Field, "fsmask")) {
           Surf->vertices[vtx].fsmask = val;
-        } else if (!strcmp(Field, "nc")) {
+        }
+        else if (!strcmp(Field, "nc")) {
           Surf->vertices[vtx].nc = val;
-        } else if (!strcmp(Field, "undefval")) {
+        }
+        else if (!strcmp(Field, "undefval")) {
           Surf->vertices[vtx].undefval = val;
-        } else if (!strcmp(Field, "x")) {
+        }
+        else if (!strcmp(Field, "x")) {
           Surf->vertices[vtx].x = val;
-        } else if (!strcmp(Field, "y")) {
+        }
+        else if (!strcmp(Field, "y")) {
           Surf->vertices[vtx].y = val;
-        } else if (!strcmp(Field, "z")) {
+        }
+        else if (!strcmp(Field, "z")) {
           Surf->vertices[vtx].z = val;
-        } else if (!strcmp(Field, "vnum")) {
+        }
+        else if (!strcmp(Field, "vnum")) {
           Surf->vertices[vtx].vnum = val;
-        } else if (!strcmp(Field, "annotation")) {
+        }
+        else if (!strcmp(Field, "annotation")) {
           Surf->vertices[vtx].annotation = val;
-        } else if (!strcmp(Field, "ripflag")) {
+        }
+        else if (!strcmp(Field, "ripflag")) {
           Surf->vertices[vtx].ripflag = val;
-        } else if (!strcmp(Field, "area")) {
+        }
+        else if (!strcmp(Field, "area")) {
           Surf->vertices[vtx].area = val;
-        } else if (!strcmp(Field, "group_avg_area")) {
+        }
+        else if (!strcmp(Field, "group_avg_area")) {
           Surf->vertices[vtx].group_avg_area = val;
-        } else if (!strcmp(Field, "K")) {
+        }
+        else if (!strcmp(Field, "K")) {
           Surf->vertices[vtx].K = val;
-        } else if (!strcmp(Field, "H")) {
+        }
+        else if (!strcmp(Field, "H")) {
           Surf->vertices[vtx].H = val;
-        } else if (!strcmp(Field, "k1")) {
+        }
+        else if (!strcmp(Field, "k1")) {
           Surf->vertices[vtx].k1 = val;
-        } else if (!strcmp(Field, "k2")) {
+        }
+        else if (!strcmp(Field, "k2")) {
           Surf->vertices[vtx].k2 = val;
-        } else if (!strcmp(Field, "nx")) {
+        }
+        else if (!strcmp(Field, "nx")) {
           Surf->vertices[vtx].nx = val;
-        } else if (!strcmp(Field, "ny")) {
+        }
+        else if (!strcmp(Field, "ny")) {
           Surf->vertices[vtx].ny = val;
-        } else if (!strcmp(Field, "nz")) {
+        }
+        else if (!strcmp(Field, "nz")) {
           Surf->vertices[vtx].nz = val;
-        } else if (!strcmp(Field, "tx")) {
+        }
+        else if (!strcmp(Field, "tx")) {
           Surf->vertices[vtx].tx = val;
-        } else if (!strcmp(Field, "ty")) {
+        }
+        else if (!strcmp(Field, "ty")) {
           Surf->vertices[vtx].ty = val;
-        } else if (!strcmp(Field, "tz")) {
+        }
+        else if (!strcmp(Field, "tz")) {
           Surf->vertices[vtx].tz = val;
-        } else if (!strcmp(Field, "dx")) {
+        }
+        else if (!strcmp(Field, "dx")) {
           Surf->vertices[vtx].dx = val;
-        } else if (!strcmp(Field, "dy")) {
+        }
+        else if (!strcmp(Field, "dy")) {
           Surf->vertices[vtx].dy = val;
-        } else if (!strcmp(Field, "dz")) {
+        }
+        else if (!strcmp(Field, "dz")) {
           Surf->vertices[vtx].dz = val;
-        } else if (!strcmp(Field, "tdx")) {
+        }
+        else if (!strcmp(Field, "tdx")) {
           Surf->vertices[vtx].tdx = val;
-        } else if (!strcmp(Field, "tdy")) {
+        }
+        else if (!strcmp(Field, "tdy")) {
           Surf->vertices[vtx].tdy = val;
-        } else if (!strcmp(Field, "tdz")) {
+        }
+        else if (!strcmp(Field, "tdz")) {
           Surf->vertices[vtx].tdz = val;
-        } else {
+        }
+        else {
           printf("ERROR: MRIScopyMRI(): Field %s not supported\n", Field);
           return (1);
         }
@@ -64932,7 +66240,8 @@ int MRIScopyMRI(MRIS *Surf, MRI *Src, int Frame, char *Field) {
   type will be MRI_FLOAT. A pointer to mri is returned. If an error
   occurs, NULL is returned.
   -----------------------------------------------------------------*/
-MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field) {
+MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field)
+{
   int vtx, useval = 0, usecurv = 0, nvox, c, r, s;
   float val;
 
@@ -64957,12 +66266,14 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field) {
   /* A separate variable is used for val and curv for speed purposes */
   if (!strcmp(Field, "val")) {
     useval = 1;
-  } else {
+  }
+  else {
     useval = 0;
   }
   if (!strcmp(Field, "curv")) {
     usecurv = 1;
-  } else {
+  }
+  else {
     usecurv = 0;
   }
 
@@ -64973,79 +66284,116 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field) {
       for (c = 0; c < mri->width; c++) {
         if (useval) {
           val = surf->vertices[vtx].val;
-        } else if (usecurv) {
+        }
+        else if (usecurv) {
           val = surf->vertices[vtx].curv;
-        } else if (!strcmp(Field, "stat")) {
+        }
+        else if (!strcmp(Field, "stat")) {
           val = surf->vertices[vtx].stat;
-        } else if (!strcmp(Field, "d")) {
+        }
+        else if (!strcmp(Field, "d")) {
           val = surf->vertices[vtx].d;
-        } else if (!strcmp(Field, "valbak")) {
+        }
+        else if (!strcmp(Field, "valbak")) {
           val = surf->vertices[vtx].valbak;
-        } else if (!strcmp(Field, "val2")) {
+        }
+        else if (!strcmp(Field, "val2")) {
           val = surf->vertices[vtx].val2;
-        } else if (!strcmp(Field, "val2bak")) {
+        }
+        else if (!strcmp(Field, "val2bak")) {
           val = surf->vertices[vtx].val2bak;
-        } else if (!strcmp(Field, "imag_val")) {
+        }
+        else if (!strcmp(Field, "imag_val")) {
           val = surf->vertices[vtx].imag_val;
-        } else if (!strcmp(Field, "curvbak")) {
+        }
+        else if (!strcmp(Field, "curvbak")) {
           val = surf->vertices[vtx].curvbak;
-        } else if (!strcmp(Field, "fsmask")) {
+        }
+        else if (!strcmp(Field, "fsmask")) {
           val = surf->vertices[vtx].fsmask;
-        } else if (!strcmp(Field, "fieldsign")) {
+        }
+        else if (!strcmp(Field, "fieldsign")) {
           val = surf->vertices[vtx].fieldsign;
-        } else if (!strcmp(Field, "nc")) {
+        }
+        else if (!strcmp(Field, "nc")) {
           val = surf->vertices[vtx].nc;
-        } else if (!strcmp(Field, "undefval")) {
+        }
+        else if (!strcmp(Field, "undefval")) {
           val = surf->vertices[vtx].undefval;
-        } else if (!strcmp(Field, "x")) {
+        }
+        else if (!strcmp(Field, "x")) {
           val = surf->vertices[vtx].x;
-        } else if (!strcmp(Field, "y")) {
+        }
+        else if (!strcmp(Field, "y")) {
           val = surf->vertices[vtx].y;
-        } else if (!strcmp(Field, "z")) {
+        }
+        else if (!strcmp(Field, "z")) {
           val = surf->vertices[vtx].z;
-        } else if (!strcmp(Field, "vnum")) {
+        }
+        else if (!strcmp(Field, "vnum")) {
           val = surf->vertices[vtx].vnum;
-        } else if (!strcmp(Field, "annotation")) {
+        }
+        else if (!strcmp(Field, "annotation")) {
           val = surf->vertices[vtx].annotation;
-        } else if (!strcmp(Field, "ripflag")) {
+        }
+        else if (!strcmp(Field, "ripflag")) {
           val = surf->vertices[vtx].ripflag;
-        } else if (!strcmp(Field, "area")) {
+        }
+        else if (!strcmp(Field, "area")) {
           val = surf->vertices[vtx].area;
-        } else if (!strcmp(Field, "group_avg_area")) {
+        }
+        else if (!strcmp(Field, "group_avg_area")) {
           val = surf->vertices[vtx].group_avg_area;
-        } else if (!strcmp(Field, "K")) {
+        }
+        else if (!strcmp(Field, "K")) {
           val = surf->vertices[vtx].K;
-        } else if (!strcmp(Field, "H")) {
+        }
+        else if (!strcmp(Field, "H")) {
           val = surf->vertices[vtx].H;
-        } else if (!strcmp(Field, "k1")) {
+        }
+        else if (!strcmp(Field, "k1")) {
           val = surf->vertices[vtx].k1;
-        } else if (!strcmp(Field, "k2")) {
+        }
+        else if (!strcmp(Field, "k2")) {
           val = surf->vertices[vtx].k2;
-        } else if (!strcmp(Field, "nx")) {
+        }
+        else if (!strcmp(Field, "nx")) {
           val = surf->vertices[vtx].nx;
-        } else if (!strcmp(Field, "ny")) {
+        }
+        else if (!strcmp(Field, "ny")) {
           val = surf->vertices[vtx].ny;
-        } else if (!strcmp(Field, "nz")) {
+        }
+        else if (!strcmp(Field, "nz")) {
           val = surf->vertices[vtx].nz;
-        } else if (!strcmp(Field, "tx")) {
+        }
+        else if (!strcmp(Field, "tx")) {
           val = surf->vertices[vtx].tx;
-        } else if (!strcmp(Field, "ty")) {
+        }
+        else if (!strcmp(Field, "ty")) {
           val = surf->vertices[vtx].ty;
-        } else if (!strcmp(Field, "tz")) {
+        }
+        else if (!strcmp(Field, "tz")) {
           val = surf->vertices[vtx].tz;
-        } else if (!strcmp(Field, "tdx")) {
+        }
+        else if (!strcmp(Field, "tdx")) {
           val = surf->vertices[vtx].tdx;
-        } else if (!strcmp(Field, "tdy")) {
+        }
+        else if (!strcmp(Field, "tdy")) {
           val = surf->vertices[vtx].tdy;
-        } else if (!strcmp(Field, "tdz")) {
+        }
+        else if (!strcmp(Field, "tdz")) {
           val = surf->vertices[vtx].tdz;
-        } else if (!strcmp(Field, "dx")) {
+        }
+        else if (!strcmp(Field, "dx")) {
           val = surf->vertices[vtx].dx;
-        } else if (!strcmp(Field, "dy")) {
+        }
+        else if (!strcmp(Field, "dy")) {
           val = surf->vertices[vtx].dy;
-        } else if (!strcmp(Field, "dz")) {
+        }
+        else if (!strcmp(Field, "dz")) {
           val = surf->vertices[vtx].dz;
-        } else {
+        }
+        else {
           printf("ERROR: MRIScopyMRI(): Field %s not supported\n", Field);
           return (NULL);
         }
@@ -65068,7 +66416,8 @@ MRI *MRIcopyMRIS(MRI *mri, MRIS *surf, int Frame, char *Field) {
   (but does go the other way). Same for mask. If mask is NULL, it
   is ignored. See also MRISsmoothMRIFast()
   -------------------------------------------------------------------*/
-MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *BinMask, MRI *Targ) {
+MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *BinMask, MRI *Targ)
+{
   int nnbrs, nthstep, frame, vtx, nbrvtx, nthnbr, **crslut, c, r, s, nvox;
   int nnbrs_actual;
   float val, m;
@@ -65106,7 +66455,8 @@ MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *BinMask, MRI *Ta
       return (NULL);
     }
     MRIcopyHeader(Src, Targ);
-  } else {
+  }
+  else {
     if (Src->width != Targ->width || Src->height != Targ->height || Src->depth != Targ->depth ||
         Src->nframes != Targ->nframes) {
       printf("ERROR: MRISsmooth: output dimension mismatch\n");
@@ -65194,7 +66544,8 @@ MRI *MRISsmoothMRI(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *BinMask, MRI *Ta
   mask=1 are included. If mask is NULL, it is ignored. Gives identical
   results as MRISsmoothMRI(); see MRISsmoothMRIFastCheck().
   -------------------------------------------------------------------*/
-MRI *MRISsmoothMRIFast(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask, MRI *Targ) {
+MRI *MRISsmoothMRIFast(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask, MRI *Targ)
+{
   int nnbrs, nthstep, frame, vno, nthnbr, num, nvox, nbrvno, reshape;
   MRI *SrcTmp, *mritmp, *IncMaskTmp = NULL;
   struct timeb mytimer;
@@ -65225,7 +66576,8 @@ MRI *MRISsmoothMRIFast(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask, MRI
     if (Gdiag_no > 0) printf("MRISsmoothMRIFast(): reshaping\n");
     SrcTmp = mri_reshape(Src, nvox, 1, 1, Src->nframes);
     reshape = 1;
-  } else {
+  }
+  else {
     reshape = 0;
     SrcTmp = MRIcopy(Src, NULL);
   }
@@ -65327,7 +66679,8 @@ MRI *MRISsmoothMRIFast(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask, MRI
     mritmp = mri_reshape(SrcTmp, Src->width, Src->height, Src->depth, Src->nframes);
     Targ = MRIcopy(mritmp, Targ);
     MRIfree(&mritmp);
-  } else
+  }
+  else
     Targ = MRIcopy(SrcTmp, Targ);
 
   msecTime = TimerStop(&mytimer);
@@ -65353,7 +66706,8 @@ MRI *MRISsmoothMRIFast(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask, MRI
   float or using double (and this function is slower than the float
   version).
   -------------------------------------------------------------------*/
-MRI *MRISsmoothMRIFastD(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask, MRI *Targ) {
+MRI *MRISsmoothMRIFastD(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask, MRI *Targ)
+{
   int nnbrs, nthstep, frame, vno, nthnbr, num, nvox, nbrvno, c, r, s;
   MRI *IncMaskTmp = NULL;
   struct timeb mytimer;
@@ -65505,7 +66859,8 @@ MRI *MRISsmoothMRIFastD(MRIS *Surf, MRI *Src, int nSmoothSteps, MRI *IncMask, MR
   a static data structure. Note: this will fail if Src is not
   nvertices x 1 x 1 x nframes.
   ------------------------------------------------------------------*/
-int MRISsmoothMRIFastFrame(MRIS *Surf, MRI *Src, int frame, int nSmoothSteps, MRI *IncMask) {
+int MRISsmoothMRIFastFrame(MRIS *Surf, MRI *Src, int frame, int nSmoothSteps, MRI *IncMask)
+{
   int nnbrs, nthstep, vno, nthnbr, num, nvox, nbrvno;
   struct timeb mytimer;
   int msecTime;
@@ -65629,7 +66984,8 @@ int MRISsmoothMRIFastFrame(MRIS *Surf, MRI *Src, int frame, int nSmoothSteps, MR
   return (0);
 }
 /*--------------------------------------------------------------*/
-int MRISsmoothMRIFastCheck(int nSmoothSteps) {
+int MRISsmoothMRIFastCheck(int nSmoothSteps)
+{
   char tmpstr[2000], *UFSS;
   MRIS *mris;
   MRI *src, *mri1, *mri2, *mask;
@@ -65700,7 +67056,8 @@ int MRISsmoothMRIFastCheck(int nSmoothSteps) {
   return (nerrs);
 }
 
-int SetHop(int CenterVtx, MRI_SURFACE *Surf, int HopNo, int MaxHopNo) {
+int SetHop(int CenterVtx, MRI_SURFACE *Surf, int HopNo, int MaxHopNo)
+{
   int nbr, nbr_vtx, nbr_hopno, nbr_has_been_center;
 
   if (HopNo >= MaxHopNo) return (0);
@@ -65724,7 +67081,8 @@ int SetHop(int CenterVtx, MRI_SURFACE *Surf, int HopNo, int MaxHopNo) {
   return (0);
 }
 
-SURFHOPLIST *SetSurfHopListAlloc(MRI_SURFACE *Surf, int nHops) {
+SURFHOPLIST *SetSurfHopListAlloc(MRI_SURFACE *Surf, int nHops)
+{
   SURFHOPLIST *shl;
   int nthhop;
   shl = (SURFHOPLIST *)calloc(sizeof(SURFHOPLIST), 1);
@@ -65740,7 +67098,8 @@ SURFHOPLIST *SetSurfHopListAlloc(MRI_SURFACE *Surf, int nHops) {
   return (shl);
 }
 
-int SurfHopListFree(SURFHOPLIST **shl0) {
+int SurfHopListFree(SURFHOPLIST **shl0)
+{
   SURFHOPLIST *shl = *shl0;
   int nthhop;
   for (nthhop = 0; nthhop < shl->nhops; nthhop++) free(shl->vtxlist[nthhop]);
@@ -65760,7 +67119,8 @@ int SurfHopListFree(SURFHOPLIST **shl0) {
   set neighborhoods or compute the spatial autocorrelation function.
 */
 
-SURFHOPLIST *SetSurfHopList(int CenterVtx, MRI_SURFACE *Surf, int nHops) {
+SURFHOPLIST *SetSurfHopList(int CenterVtx, MRI_SURFACE *Surf, int nHops)
+{
   SURFHOPLIST *shl;
   int nthhop, nhits, nthvtx, vtxno, nthnbr, nbr_vtxno;
 
@@ -65816,7 +67176,8 @@ SURFHOPLIST *SetSurfHopList(int CenterVtx, MRI_SURFACE *Surf, int nHops) {
   frame 0 is always 1, frame 1 is the average AR between the vertex
   and the vertices 1 hop away, etc.
   -----------------------------------------------------------------------*/
-MRI *MRISarN(MRIS *surf, MRI *src, MRI *mask, MRI *arN, int N) {
+MRI *MRISarN(MRIS *surf, MRI *src, MRI *mask, MRI *arN, int N)
+{
   int **crslut, nvox, vtx;
 
   nvox = src->width * src->height * src->depth;
@@ -65912,7 +67273,8 @@ MRI *MRISarN(MRIS *surf, MRI *src, MRI *mask, MRI *arN, int N) {
   MRISsmoothKernel() -
   kernel = ACF^2
   -----------------------------------------------------------------------*/
-MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *globkern, SURFHOPLIST ***pshl, MRI *out) {
+MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *globkern, SURFHOPLIST ***pshl, MRI *out)
+{
   int vtx, **crslut, nvox;
   double *kern;
   int n, nhops;
@@ -65937,7 +67299,8 @@ MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *glo
       printf("ERROR: MRISsmoothKernel(): could not alloc\n");
       return (NULL);
     }
-  } else {
+  }
+  else {
     if (out == src) {
       printf("ERROR: MRISsmoothKernel(): cannot run in-place\n");
       return (NULL);
@@ -65969,7 +67332,8 @@ MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *glo
     *pshl = shl;
     msecTime = TimerStop(&mytimer);
     printf("Done allocating shl %d, %g sec\n", surf->nvertices, msecTime / 1000.0);
-  } else
+  }
+  else
     shl = *pshl;
 
   printf("Starting loop over %d vertices\n", surf->nvertices);
@@ -65995,7 +67359,8 @@ MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *glo
     if (mrikern) {
       vkern = (double *)calloc(nhops, sizeof(double));
       for (nthhop = 0; nthhop < nhops; nthhop++) vkern[nthhop] = MRIgetVoxVal(mrikern, vtx, 0, 0, nthhop);
-    } else
+    }
+    else
       vkern = kern;
 
     for (frame = 0; frame < src->nframes; frame++) {
@@ -66049,7 +67414,8 @@ MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *glo
   account different distances between neighbors. Note: theoretical AR1
   for one smoothing step is 4/7=0.57.
   -----------------------------------------------------------------------*/
-MRI *MRISar1(MRIS *surf, MRI *src, MRI *mask, MRI *ar1) {
+MRI *MRISar1(MRIS *surf, MRI *src, MRI *mask, MRI *ar1)
+{
   int nnbrs, frame, vtx, nbrvtx, nthnbr, **crslut, c, r, s, nvox;
   int cnbr, rnbr, snbr, nnbrs_actual;
   double valvtx, valnbr, ar1sum, sumsqvtx, vtxvar, sumsqnbr, sumsqx, nbrvar;
@@ -66140,7 +67506,8 @@ MRI *MRISar1(MRIS *surf, MRI *src, MRI *mask, MRI *ar1) {
   MRI struct has ncols*nrows*nslices = nvertices.
   See also MRIScrsLUTFee().
   ---------------------------------------------------------------*/
-int **MRIScrsLUT(MRIS *surf, MRI *src) {
+int **MRIScrsLUT(MRIS *surf, MRI *src)
+{
   int **crslut, c, r, s, nvox, vtx;
   crslut = (int **)calloc(3, sizeof(int *));
 
@@ -66170,7 +67537,8 @@ int **MRIScrsLUT(MRIS *surf, MRI *src) {
 /*----------------------------------------------------------
   MRIScrsLUTFree() - frees memoary allocated by MRIScrsLUT.
   ----------------------------------------------------------*/
-int MRIScrsLUTFree(int **crslut) {
+int MRIScrsLUTFree(int **crslut)
+{
   free(crslut[0]);
   free(crslut[1]);
   free(crslut[2]);
@@ -66182,7 +67550,8 @@ int MRIScrsLUTFree(int **crslut) {
   MRISremoveRippedFromMask() - sets voxels in mask to 0 if corresponding
   vertex has been ripped.
   -------------------------------------------------------------------*/
-MRI *MRISremoveRippedFromMask(MRIS *surf, MRI *mask, MRI *outmask) {
+MRI *MRISremoveRippedFromMask(MRIS *surf, MRI *mask, MRI *outmask)
+{
   int c, r, s, vtx;
   outmask = MRIcopy(mask, outmask);
   vtx = 0;
@@ -66202,7 +67571,8 @@ MRI *MRISremoveRippedFromMask(MRIS *surf, MRI *mask, MRI *outmask) {
   MRISlabel2Mask() - creates a mask from the label by setting each
   voxel corresponding to a label point to 1 with the rest 0.
   ------------------------------------------------------------------*/
-MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask) {
+MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask)
+{
   int vtxno, n;
 
   if (mask == NULL)  // create mask as all 0s
@@ -66223,7 +67593,8 @@ MRI *MRISlabel2Mask(MRIS *surf, LABEL *lb, MRI *mask) {
 }
 
 /*----------------------------------------------------------------------*/
-int MRISrectifyCurvature(MRI_SURFACE *mris) {
+int MRISrectifyCurvature(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -66567,7 +67938,8 @@ markAllDistantConvex(MRI_SURFACE *mris, float min_dist)
 
   Description
   ------------------------------------------------------*/
-static int mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs) {
+static int mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs)
+{
   int i, vno;
   float sigma;
   VERTEX *v;
@@ -66615,7 +67987,8 @@ static int mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs) {
     MRISgradientFromParameterization(mrisp_blur, mris);
     MRISPfree(&mrisp);
     MRISPfree(&mrisp_blur);
-  } else
+  }
+  else
     for (i = 0; i < num_avgs; i++) {
 #ifdef HAVE_OPENMP
 #pragma omp parallel for
@@ -66976,7 +68349,8 @@ mrisUpdateSulcalGradients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 }
 #endif
 
-int MRISsetFlags(MRI_SURFACE *mris, int flags) {
+int MRISsetFlags(MRI_SURFACE *mris, int flags)
+{
   int vno;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -66985,7 +68359,8 @@ int MRISsetFlags(MRI_SURFACE *mris, int flags) {
   return (NO_ERROR);
 }
 
-int MRISclearFlags(MRI_SURFACE *mris, int flags) {
+int MRISclearFlags(MRI_SURFACE *mris, int flags)
+{
   int vno;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -66994,7 +68369,8 @@ int MRISclearFlags(MRI_SURFACE *mris, int flags) {
   return (NO_ERROR);
 }
 
-static int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname) {
+static int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname)
+{
   FILE *fp;
   int vno;
   char line[STRLEN], *cp;
@@ -67027,7 +68403,8 @@ static int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname) {
 
 // expand the surface by "h" and create a volume
 // which has "val" outside of this surface
-unsigned long MRISeraseOutsideOfSurface(float h, MRI *mri_dst, MRIS *mris, unsigned char val) {
+unsigned long MRISeraseOutsideOfSurface(float h, MRI *mri_dst, MRIS *mris, unsigned char val)
+{
   int i, j, k, imnr;
   float x0, y0, z0, x1, y1, z1, x2, y2, z2, d0, d1, d2, dmax, u, v;
   float px, py, pz, px0, py0, pz0, px1, py1, pz1;
@@ -67135,7 +68512,8 @@ unsigned long MRISeraseOutsideOfSurface(float h, MRI *mri_dst, MRIS *mris, unsig
         for (i = 0; i < width; i++) {
           if (MRIvox(mri_buff, i, j, k) == 64) {
             MRIvox(mri_dst, i, j, k) = 0;
-          } else {
+          }
+          else {
             brainsize++;
           }
         }
@@ -67145,7 +68523,8 @@ unsigned long MRISeraseOutsideOfSurface(float h, MRI *mri_dst, MRIS *mris, unsig
         for (i = 0; i < width; i++) {
           if (MRIvox(mri_buff, i, j, k) != 64) {
             MRIvox(mri_dst, i, j, k) = val;
-          } else {
+          }
+          else {
             brainsize++;
           }
         }
@@ -67163,7 +68542,8 @@ unsigned long MRISeraseOutsideOfSurface(float h, MRI *mri_dst, MRIS *mris, unsig
   return brainsize;
 }
 
-int MRISmarkedSpringTerm(MRI_SURFACE *mris, double l_spring) {
+int MRISmarkedSpringTerm(MRI_SURFACE *mris, double l_spring)
+{
   int vno, n, m;
   VERTEX *vertex, *vn;
   float sx, sy, sz, x, y, z;
@@ -67215,7 +68595,8 @@ int MRISmarkedSpringTerm(MRI_SURFACE *mris, double l_spring) {
   return (NO_ERROR);
 }
 
-int MRISnormalSpringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, double l_spring) {
+int MRISnormalSpringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, double l_spring)
+{
   int vno, n, m;
   VERTEX *vertex, *vn;
   float sx, sy, sz, x, y, z, scale, nc, nx, ny, nz;
@@ -67281,7 +68662,8 @@ int MRISnormalSpringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian
 
   return (NO_ERROR);
 }
-int MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, double l_spring) {
+int MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm, double l_spring)
+{
   int vno, n, m;
   VERTEX *vertex, *vn;
   float sx, sy, sz, x, y, z, scale;
@@ -67340,7 +68722,8 @@ int MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris, double gaussian_norm,
   return (NO_ERROR);
 }
 
-static int mrisGraphLaplacian(MRI_SURFACE *mris, int vno, double *pdx, double *pdy, double *pdz, int which) {
+static int mrisGraphLaplacian(MRI_SURFACE *mris, int vno, double *pdx, double *pdy, double *pdz, int which)
+{
   VERTEX *v, *vn;
   double lx, ly, lz, w, norm, dx, dy, dz, wtotal;
   int n;
@@ -67365,7 +68748,8 @@ static int mrisGraphLaplacian(MRI_SURFACE *mris, int vno, double *pdx, double *p
 
         if (!FZERO(norm)) {
           w = 1.0 / norm;
-        } else {
+        }
+        else {
           w = 1;
         }
         break;
@@ -67392,7 +68776,8 @@ static int mrisGraphLaplacian(MRI_SURFACE *mris, int vno, double *pdx, double *p
 #define Lambda .3
 #define Mu     (1.0)/((K_bp)-1.0/Lambda)
 */
-int MRIStaubinSmooth(MRI_SURFACE *mris, int niters, double lambda, double mu, int which) {
+int MRIStaubinSmooth(MRI_SURFACE *mris, int niters, double lambda, double mu, int which)
+{
   int n, vno;
   double dx, dy, dz;
   VERTEX *v;
@@ -67419,7 +68804,8 @@ int MRIStaubinSmooth(MRI_SURFACE *mris, int niters, double lambda, double mu, in
         v->tx = v->x + lambda * dx;
         v->ty = v->y + lambda * dy;
         v->tz = v->z + lambda * dz;
-      } else {
+      }
+      else {
         v->tx = v->x + mu * dx;
         v->ty = v->y + mu * dy;
         v->tz = v->z + mu * dz;
@@ -67431,7 +68817,8 @@ int MRIStaubinSmooth(MRI_SURFACE *mris, int niters, double lambda, double mu, in
   return (NO_ERROR);
 }
 
-int MRISnormalTermWithGaussianCurvature(MRI_SURFACE *mris, double lambda) {
+int MRISnormalTermWithGaussianCurvature(MRI_SURFACE *mris, double lambda)
+{
   int vno;
   VERTEX *v;
 
@@ -67456,7 +68843,8 @@ int MRISnormalTermWithGaussianCurvature(MRI_SURFACE *mris, double lambda) {
   return (NO_ERROR);
 }
 
-static int mrisComputeExpandwrapTerm(MRI_SURFACE *mris, MRI *mri_brain, double l_expandwrap) {
+static int mrisComputeExpandwrapTerm(MRI_SURFACE *mris, MRI *mri_brain, double l_expandwrap)
+{
   int vno;
   double xw, yw, zw, x, y, z, val, dx, dy, dz;
   VERTEX *v;
@@ -67503,7 +68891,8 @@ static int mrisComputeExpandwrapTerm(MRI_SURFACE *mris, MRI *mri_brain, double l
   return (NO_ERROR);
 }
 
-static double mrisComputeExpandwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_expandwrap, double target_radius) {
+static double mrisComputeExpandwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_expandwrap, double target_radius)
+{
   int vno;
   double xw, yw, zw, x, y, z, val, dx, dy, dz, sse, error, dist;
   VERTEX *v;
@@ -67532,7 +68921,8 @@ static double mrisComputeExpandwrapError(MRI_SURFACE *mris, MRI *mri_brain, doub
       dist = sqrt(dx * dx + dy * dy + dz * dz);
       error = (target_radius - dist);
       sse += error * error;
-    } else {
+    }
+    else {
       error = 0.0;
     }
 
@@ -67548,7 +68938,8 @@ static double mrisComputeExpandwrapError(MRI_SURFACE *mris, MRI *mri_brain, doub
   }
   return (sse);
 }
-static int mrisComputeShrinkwrapTerm(MRI_SURFACE *mris, MRI *mri_brain, double l_shrinkwrap) {
+static int mrisComputeShrinkwrapTerm(MRI_SURFACE *mris, MRI *mri_brain, double l_shrinkwrap)
+{
   int vno;
   double xw, yw, zw, x, y, z, val, dx, dy, dz;
   VERTEX *v;
@@ -67597,7 +68988,8 @@ static int mrisComputeShrinkwrapTerm(MRI_SURFACE *mris, MRI *mri_brain, double l
   return (NO_ERROR);
 }
 
-static double mrisComputeShrinkwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_shrinkwrap) {
+static double mrisComputeShrinkwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_shrinkwrap)
+{
 #if 0
   static int iter = 100 ;
   int    vno ;
@@ -67627,7 +69019,8 @@ static double mrisComputeShrinkwrapError(MRI_SURFACE *mris, MRI *mri_brain, doub
   at TruncFactor stddevs. Note: this will change the val2bak of all
   the vertices. See also MRISspatialFilter() and MRISgaussianWeights().
   -------------------------------------------------------------------*/
-MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ, double TruncFactor) {
+MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ, double TruncFactor)
+{
   int vtxno1, vtxno2;
   float val;
   MRI *SrcTmp, *GSum, *GSum2, *nXNbrsMRI;
@@ -67649,7 +69042,8 @@ MRI *MRISgaussianSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ, double Tru
       printf("ERROR: MRISgaussianSmooth: could not alloc\n");
       return (NULL);
     }
-  } else {
+  }
+  else {
     if (Src->width != Targ->width || Src->height != Targ->height || Src->depth != Targ->depth ||
         Src->nframes != Targ->nframes) {
       printf("ERROR: MRISgaussianSmooth: output dimension mismatch\n");
@@ -67845,7 +69239,8 @@ int MRISextendedNeighbors(MRIS *SphSurf,
                           double *XNbrDotProd,
                           int *nXNbrs,
                           int nXNbrsMax,
-                          int DistType) {
+                          int DistType)
+{
   static int ncalls = 0;
   VERTEX *vtarg, *vcur;
   int nNNbrs, n, NbrVtxNo, err;
@@ -67883,7 +69278,8 @@ int MRISextendedNeighbors(MRIS *SphSurf,
     if (DotProd <= DotProdThresh) {
       return (0);
     }
-  } else {
+  }
+  else {
     // Cartesian - dist squared along sphere (so thresh should be squared)
     dx = vtarg->x - vcur->x;
     dy = vtarg->y - vcur->y;
@@ -67929,7 +69325,8 @@ int MRISextendedNeighbors(MRIS *SphSurf,
   row.  Each of the extended neighbrs is placed in a frame. The weights
   for a given vertex will be normalized so that the sum=1.
   --------------------------------------------------------------------------*/
-int MRISgaussianWeights(MRIS *surf, MRI *dist, double GStd) {
+int MRISgaussianWeights(MRIS *surf, MRI *dist, double GStd)
+{
   int n, m, nXNbrs;
   double GVar2, f, gsum, d, g;
 
@@ -67958,7 +69355,8 @@ int MRISgaussianWeights(MRIS *surf, MRI *dist, double GStd) {
   be as computed by MRISgaussianWeights() and MRISdistSphere(). It is
   assumed that the weights are already normalized.
   -------------------------------------------------------------------*/
-MRI *MRISspatialFilter(MRI *Src, MRI *wdist, MRI *Targ) {
+MRI *MRISspatialFilter(MRI *Src, MRI *wdist, MRI *Targ)
+{
   int n, nXNbrs, m, vtxno, frame;
   float w, val;
   MRI *SrcCopy = NULL;
@@ -68006,7 +69404,8 @@ MRI *MRISspatialFilter(MRI *Src, MRI *wdist, MRI *Targ) {
   extended neighborhood of a vertex includes itself. See also
   MRISgaussianWeights().
   -------------------------------------------------------------------*/
-MRI *MRISdistSphere(MRIS *surf, double dmax) {
+MRI *MRISdistSphere(MRIS *surf, double dmax)
+{
   int vtxno;
   MRI *dist;
   double Radius, Radius2, d, costheta, theta;
@@ -68130,7 +69529,8 @@ MRI *MRISdistSphere(MRIS *surf, double dmax) {
 //     conformed   ------->  surfaceRAS (c_(ras) = 0 )
 //            surface lives here for talairach space
 //
-MATRIX *surfaceRASToSurfaceRAS_(MRI *src, MRI *dst, LTA *lta) {
+MATRIX *surfaceRASToSurfaceRAS_(MRI *src, MRI *dst, LTA *lta)
+{
   MATRIX *sRASToRAS = 0;
   MATRIX *RASToSRAS = 0;
   MATRIX *tmp = 0;
@@ -68148,7 +69548,8 @@ MATRIX *surfaceRASToSurfaceRAS_(MRI *src, MRI *dst, LTA *lta) {
     MatrixFree(&tmp);
 
     return res;
-  } else if (lta->type == LINEAR_VOX_TO_VOX) {
+  }
+  else if (lta->type == LINEAR_VOX_TO_VOX) {
     // just make sure
     if (!src->r_to_i__) {
       src->r_to_i__ = extract_r_to_i(src);
@@ -68159,7 +69560,8 @@ MATRIX *surfaceRASToSurfaceRAS_(MRI *src, MRI *dst, LTA *lta) {
       tmp2 = extract_i_to_r(dst);
       AffineMatrixAlloc(&(dst->i_to_r__));
       SetAffineMatrix(dst->i_to_r__, tmp);
-    } else {
+    }
+    else {
       tmp2 = MatrixAlloc(4, 4, MATRIX_REAL);
       GetAffineMatrix(tmp, dst->i_to_r__);
     }
@@ -68177,12 +69579,14 @@ MATRIX *surfaceRASToSurfaceRAS_(MRI *src, MRI *dst, LTA *lta) {
     MatrixFree(&tmp2);
 
     return res;
-  } else
+  }
+  else
     ErrorExit(ERROR_BADPARM, "%s: xfm passed is neither of RAS-to-RAS type nor Vox-To-Vox type.", Progname);
   return 0;
 }
 
-MATRIX *getSRASToTalSRAS(LT *lt) {
+MATRIX *getSRASToTalSRAS(LT *lt)
+{
   MATRIX *RASFromSRAS = 0;
   MATRIX *sRASFromRAS = 0;
   MATRIX *tmpM = 0;
@@ -68224,7 +69628,8 @@ MATRIX *getSRASToTalSRAS(LT *lt) {
 }
 
 // transform surface vertices to the dst volume surface
-int MRISsurf2surf(MRIS *mris, MRI *dst, LTA *lta) {
+int MRISsurf2surf(MRIS *mris, MRI *dst, LTA *lta)
+{
   VECTOR *sX = 0;
   VECTOR *dX = 0;
   MATRIX *surf2surf = 0;
@@ -68283,7 +69688,8 @@ int MRISsurf2surf(MRIS *mris, MRI *dst, LTA *lta) {
   return 0;
 }
 // transform surface vertices positions (all of them) to the dst volume surface
-int MRISsurf2surfAll(MRIS *mris, MRI *dst, LTA *lta) {
+int MRISsurf2surfAll(MRIS *mris, MRI *dst, LTA *lta)
+{
   VECTOR *sX = 0;
   VECTOR *dX = 0;
   MATRIX *surf2surf = 0;
@@ -68377,7 +69783,8 @@ void MRISsetReadFrame(int frame) { mris_readval_frame = frame; }
   MRISgetReadFrame() - gets frame to read when loading a "volume"
   with MRISreadValues().
   --------------------------------------------------------*/
-int MRISgetReadFrame(void) {
+int MRISgetReadFrame(void)
+{
   int frame = 0;
   char *envframe;
   if (mris_readval_frame >= 0) {
@@ -68390,7 +69797,8 @@ int MRISgetReadFrame(void) {
   sscanf(envframe, "%d", &frame);
   return (frame);
 }
-int MRISaddCommandLine(MRI_SURFACE *mris, char *cmdline) {
+int MRISaddCommandLine(MRI_SURFACE *mris, char *cmdline)
+{
   int i;
   if (mris->ncmds >= MAX_CMDS)
     ErrorExit(ERROR_NOMEMORY, "MRISaddCommandLine: can't add cmd %s (%d)", cmdline, mris->ncmds);
@@ -68400,7 +69808,8 @@ int MRISaddCommandLine(MRI_SURFACE *mris, char *cmdline) {
   strcpy(mris->cmdlines[i], cmdline);
   return (NO_ERROR);
 }
-int MRISabsVals(MRI_SURFACE *mris) {
+int MRISabsVals(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -68413,7 +69822,8 @@ int MRISabsVals(MRI_SURFACE *mris) {
   }
   return (NO_ERROR);
 }
-int MRISabsCurvature(MRI_SURFACE *mris) {
+int MRISabsCurvature(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -68426,7 +69836,8 @@ int MRISabsCurvature(MRI_SURFACE *mris) {
   }
   return (NO_ERROR);
 }
-int MRISsmoothFrames(MRI_SURFACE *mris, MRI *mri, int navgs) {
+int MRISsmoothFrames(MRI_SURFACE *mris, MRI *mri, int navgs)
+{
   int frame;
 
   for (frame = 0; frame < mri->nframes; frame++) {
@@ -68436,7 +69847,8 @@ int MRISsmoothFrames(MRI_SURFACE *mris, MRI *mri, int navgs) {
   }
   return (NO_ERROR);
 }
-int MRISwriteFrameToValues(MRI_SURFACE *mris, MRI *mri, int frame) {
+int MRISwriteFrameToValues(MRI_SURFACE *mris, MRI *mri, int frame)
+{
   int vno;
   VERTEX *v;
 
@@ -68453,7 +69865,8 @@ int MRISwriteFrameToValues(MRI_SURFACE *mris, MRI *mri, int frame) {
   }
   return (NO_ERROR);
 }
-int MRISreadFrameFromValues(MRI_SURFACE *mris, MRI *mri, int frame) {
+int MRISreadFrameFromValues(MRI_SURFACE *mris, MRI *mri, int frame)
+{
   int vno;
   VERTEX *v;
 
@@ -68472,7 +69885,8 @@ int MRISreadFrameFromValues(MRI_SURFACE *mris, MRI *mri, int frame) {
 }
 
 static int mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
-int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   int negative, old_neg, same = 0, min_neg, min_neg_iter, last_expand;
 
   parms->dt = .99;
@@ -68507,11 +69921,13 @@ int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) 
     if (negative < min_neg) {
       min_neg = negative;
       min_neg_iter = parms->t;
-    } else if ((((parms->t - min_neg_iter) % 10) == 0) && parms->t > min_neg_iter) {
+    }
+    else if ((((parms->t - min_neg_iter) % 10) == 0) && parms->t > min_neg_iter) {
       if (parms->dt > 0.01) {
         parms->dt *= 0.95;
       }
-    } else if ((parms->t > min_neg_iter + 50) && parms->t > last_expand + 25) {
+    }
+    else if ((parms->t > min_neg_iter + 50) && parms->t > last_expand + 25) {
       if (parms->max_nbrs < 1) {
         parms->dt = 0.99;
         parms->max_nbrs++;
@@ -68534,7 +69950,8 @@ int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) 
         //        parms->dt /= 2 ;
         same = 0;
       }
-    } else {
+    }
+    else {
       same = 0;
     }
 #if 0
@@ -68584,7 +70001,8 @@ int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) 
   return (NO_ERROR);
 }
 
-static int mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static int mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   int vno, n, m, fno;
   VERTEX *v, *vn;
   FACE *face;
@@ -68713,7 +70131,8 @@ static int mrisSmoothingTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
   return (NO_ERROR);
 }
 
-int MRISupsampleIco(MRI_SURFACE *mris, MRI_SURFACE *mris_new) {
+int MRISupsampleIco(MRI_SURFACE *mris, MRI_SURFACE *mris_new)
+{
   int vno;
   VERTEX *vold, *vnew;
 
@@ -68735,7 +70154,8 @@ int MRISupsampleIco(MRI_SURFACE *mris, MRI_SURFACE *mris_new) {
   return (NO_ERROR);
 }
 
-int MRIScopyVolGeomFromMRI(MRI_SURFACE *mris, MRI *mri) {
+int MRIScopyVolGeomFromMRI(MRI_SURFACE *mris, MRI *mri)
+{
   VOL_GEOM *vg = &mris->vg;
 
   vg->xsize = mri->xsize;
@@ -68762,7 +70182,8 @@ int MRIScopyVolGeomFromMRI(MRI_SURFACE *mris, MRI *mri) {
 }
 
 #define MAX_INT_REMOVAL_NEIGHBORS 5
-int MRISremoveIntersections(MRI_SURFACE *mris) {
+int MRISremoveIntersections(MRI_SURFACE *mris)
+{
   int n, num, writeit = 0, old_num, nbrs, min_int, no_progress = 0;
 
   n = 0;
@@ -68788,14 +70209,16 @@ int MRISremoveIntersections(MRI_SURFACE *mris) {
           break;
         printf("max nbrs reached, resetting neighborhood size\n");
         nbrs = 0;
-      } else {
+      }
+      else {
         // disable this code as it was causing the surface to do wacky things. Just try smoothing
         // vertices that are actually intersecting
         //	nbrs++ ;
         //	printf("expanding nbhd size to %d\n", nbrs);
         if (no_progress > 15) break;
       }
-    } else  // num didn't get bigger
+    }
+    else  // num didn't get bigger
     {
       if (num < old_num)  // num actually decreased
         no_progress = 0;
@@ -68833,7 +70256,8 @@ int MRISremoveIntersections(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-static int mrisMarkIntersections(MRI_SURFACE *mris) {
+static int mrisMarkIntersections(MRI_SURFACE *mris)
+{
   MRIS_HASH_TABLE *mht;
   FACE *f;
   int fno, n, num = 0;
@@ -68861,7 +70285,8 @@ static int mrisMarkIntersections(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISaverageMarkedVertexPositions(MRI_SURFACE *mris, int navgs) {
+int MRISaverageMarkedVertexPositions(MRI_SURFACE *mris, int navgs)
+{
   int i, vno, vnb, *pnb, vnum;
   float x, y, z, num;
   VERTEX *v, *vn;
@@ -68957,7 +70382,8 @@ mrisSoapBubbleIntersectingDefects(MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 #endif
-int MRIScopyMarkedToMarked2(MRI_SURFACE *mris) {
+int MRIScopyMarkedToMarked2(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -68967,7 +70393,8 @@ int MRIScopyMarkedToMarked2(MRI_SURFACE *mris) {
   }
   return (NO_ERROR);
 }
-int MRIScopyValsToAnnotations(MRI_SURFACE *mris) {
+int MRIScopyValsToAnnotations(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -68978,7 +70405,8 @@ int MRIScopyValsToAnnotations(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRIScopyMarked2ToMarked(MRI_SURFACE *mris) {
+int MRIScopyMarked2ToMarked(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -68989,7 +70417,8 @@ int MRIScopyMarked2ToMarked(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRIScopyMarkedToMarked3(MRI_SURFACE *mris) {
+int MRIScopyMarkedToMarked3(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -69000,7 +70429,8 @@ int MRIScopyMarkedToMarked3(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRIScopyMarked3ToMarked(MRI_SURFACE *mris) {
+int MRIScopyMarked3ToMarked(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -69012,7 +70442,8 @@ int MRIScopyMarked3ToMarked(MRI_SURFACE *mris) {
 }
 
 /* assume that the mark is 1 */
-int MRISexpandMarked(MRI_SURFACE *mris) {
+int MRISexpandMarked(MRI_SURFACE *mris)
+{
   int vno, n;
   VERTEX *v, *vn;
 
@@ -69039,16 +70470,19 @@ int MRISexpandMarked(MRI_SURFACE *mris) {
 // the vertex area. Default is to fix, but this can be changed
 // by setting to 0. fix_vertex_area is defined as "static int fix_vertex_area;"
 // at the top of this file.
-int MRISsetFixVertexAreaValue(int value) {
+int MRISsetFixVertexAreaValue(int value)
+{
   extern int fix_vertex_area;
   fix_vertex_area = value;
   return (fix_vertex_area);
 }
-int MRISgetFixVertexAreaValue(void) {
+int MRISgetFixVertexAreaValue(void)
+{
   extern int fix_vertex_area;
   return (fix_vertex_area);
 }
-int MRISsetCurvature(MRI_SURFACE *mris, float val) {
+int MRISsetCurvature(MRI_SURFACE *mris, float val)
+{
   int vno;
   VERTEX *v;
 
@@ -69063,7 +70497,8 @@ int MRISsetCurvature(MRI_SURFACE *mris, float val) {
 }
 
 int MRIScomputeClassStatistics(
-    MRI_SURFACE *mris, MRI *mri, float *pwhite_mean, float *pwhite_std, float *pgray_mean, float *pgray_std) {
+    MRI_SURFACE *mris, MRI *mri, float *pwhite_mean, float *pwhite_std, float *pgray_mean, float *pgray_std)
+{
   double val, x, y, z, xw, yw, zw;
   int total_vertices, vno;
   VERTEX *v;
@@ -69073,7 +70508,8 @@ int MRIScomputeClassStatistics(
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     fpwm = fopen("wm.dat", "w");
     fpgm = fopen("gm.dat", "w");
-  } else {
+  }
+  else {
     fpgm = fpwm = NULL;
   }
 
@@ -69139,7 +70575,8 @@ int MRIScomputeClassModes(MRI_SURFACE *mris,
                           float *pcsf_mode,
                           float *pwhite_std,
                           float *pgray_std,
-                          float *pcsf_std) {
+                          float *pcsf_std)
+{
   HISTOGRAM *h_white, *h_csf, *h_gray;
   float min_val, max_val, white_std, gray_std, csf_std = 0;
   int nbins, b, vno, gray_peak, white_peak, csf_peak, bin;
@@ -69284,12 +70721,13 @@ int MRIScomputeClassModes(MRI_SURFACE *mris,
   return (NO_ERROR);
 }
 
-int MRISrasToVoxel(
-    MRI_SURFACE *mris, MRI *mri, double xs, double ys, double zs, double *pxv, double *pyv, double *pzv) {
+int MRISrasToVoxel(MRI_SURFACE *mris, MRI *mri, double xs, double ys, double zs, double *pxv, double *pyv, double *pzv)
+{
   return (MRISsurfaceRASToVoxelCached(mris, mri, xs, ys, zs, pxv, pyv, pzv));
 }
 
-int MRISstoreRipFlags(MRI_SURFACE *mris) {
+int MRISstoreRipFlags(MRI_SURFACE *mris)
+{
   int vno, fno;
   VERTEX *v;
   FACE *f;
@@ -69305,7 +70743,8 @@ int MRISstoreRipFlags(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRISrestoreRipFlags(MRI_SURFACE *mris) {
+int MRISrestoreRipFlags(MRI_SURFACE *mris)
+{
   int vno, fno;
   VERTEX *v;
   FACE *f;
@@ -69330,7 +70769,8 @@ int MRISrestoreRipFlags(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISripMedialWall(MRI_SURFACE *mris) {
+int MRISripMedialWall(MRI_SURFACE *mris)
+{
   int vno, med_index, unknown_index;
   VERTEX *v;
   int structure;
@@ -69356,7 +70796,8 @@ int MRISripMedialWall(MRI_SURFACE *mris) {
 
   Description
   ------------------------------------------------------*/
-int MRISzeroMedialWallCurvature(MRI_SURFACE *mris) {
+int MRISzeroMedialWallCurvature(MRI_SURFACE *mris)
+{
   int vno, med_index, unknown_index;
   VERTEX *v;
   int structure;
@@ -69375,7 +70816,8 @@ int MRISzeroMedialWallCurvature(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris, MRI *mri, int vno, double *pnx, double *pny, double *pnz) {
+int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris, MRI *mri, int vno, double *pnx, double *pny, double *pnz)
+{
   double xv0, yv0, zv0, xv1, yv1, zv1, xw, yw, zw, norm, nx, ny, nz;
   VERTEX *v;
 
@@ -69403,7 +70845,8 @@ int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris, MRI *mri, int vno, double *
   return (NO_ERROR);
 }
 
-static int enforce_links(MRI_SURFACE *mris) {
+static int enforce_links(MRI_SURFACE *mris)
+{
   int vno, vno2, n;
   VERTEX *v, *v2;
   VERTEX_INFO *vi;
@@ -69469,7 +70912,8 @@ static int enforce_links(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-static int enforce_link_positions(MRI_SURFACE *mris) {
+static int enforce_link_positions(MRI_SURFACE *mris)
+{
   int vno, vno2, n;
   VERTEX *v, *v2;
   VERTEX_INFO *vi;
@@ -69548,7 +70992,8 @@ MRISPiterative_blur(MRI_SURFACE *mris,
   return(mrisp_dst) ;
 }
 #endif
-int MRISripMarked(MRI_SURFACE *mris) {
+int MRISripMarked(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -69560,7 +71005,8 @@ int MRISripMarked(MRI_SURFACE *mris) {
   }
   return (NO_ERROR);
 }
-int MRISripUnmarked(MRI_SURFACE *mris) {
+int MRISripUnmarked(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -69574,7 +71020,8 @@ int MRISripUnmarked(MRI_SURFACE *mris) {
 }
 
 // set all the marks to a user specified value INCLUDING RIPPED VERTICES!
-int MRISsetAllMarks(MRI_SURFACE *mris, int mark) {
+int MRISsetAllMarks(MRI_SURFACE *mris, int mark)
+{
   int vno;
   VERTEX *v;
 
@@ -69585,7 +71032,8 @@ int MRISsetAllMarks(MRI_SURFACE *mris, int mark) {
   return (NO_ERROR);
 }
 #include "diag.h"
-int MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius, int diag_no, MRI **pmri) {
+int MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius, int diag_no, MRI **pmri)
+{
   MRI *mri_interior;
   int x, y, z, vno, num, vradius, xmin, xmax, ymin, ymax, zmin, zmax;
   VERTEX *v;
@@ -69659,7 +71107,8 @@ int MRISmakeDensityMap(MRI_SURFACE *mris, double resolution, double radius, int 
   \fn double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolution)
   \brief Computes surface-based white matter volume, excluding subcort
 */
-double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolution) {
+double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolution)
+{
   MRI *mri_filled;
   MATRIX *m_vox2vox;
   double total_volume = 0.0, vox_volume;
@@ -69740,7 +71189,8 @@ double MRIScomputeWhiteVolume(MRI_SURFACE *mris, MRI *mri_aseg, double resolutio
   return (total_volume);
 }
 MRI *MRISfillWhiteMatterInterior(
-    MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_filled, double resolution, int wm_val, int gm_val, int csf_val) {
+    MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_filled, double resolution, int wm_val, int gm_val, int csf_val)
+{
   MATRIX *m_vox2vox;
   double vox_volume;
   int x, y, z, label, xa, ya, za;
@@ -69845,7 +71295,8 @@ MRI *MRISfillWhiteMatterInterior(
   MatrixFree(&v2);
   return (mri_filled);
 }
-static int mrisCheckSurfaceNbrs(MRI_SURFACE *mris) {
+static int mrisCheckSurfaceNbrs(MRI_SURFACE *mris)
+{
   int vno, n, n2, found;
   VERTEX *v, *vn;
 
@@ -69870,7 +71321,8 @@ static int mrisCheckSurfaceNbrs(MRI_SURFACE *mris) {
   return (1);
 }
 
-int MRISbinarizeCurvature(MRI_SURFACE *mris, float thresh, float low, float high, int use_abs) {
+int MRISbinarizeCurvature(MRI_SURFACE *mris, float thresh, float low, float high, int use_abs)
+{
   int vno;
   VERTEX *v;
   float val;
@@ -69883,14 +71335,16 @@ int MRISbinarizeCurvature(MRI_SURFACE *mris, float thresh, float low, float high
     val = (use_abs ? fabs(v->curv) : v->curv);
     if (val < thresh) {
       v->curv = low;
-    } else {
+    }
+    else {
       v->curv = v->curv < 0 ? -high : high;
     }
   }
 
   return (NO_ERROR);
 }
-int MRISthresholdCurvature(MRI_SURFACE *mris, float thresh, int use_abs) {
+int MRISthresholdCurvature(MRI_SURFACE *mris, float thresh, int use_abs)
+{
   int vno;
   VERTEX *v;
   float val;
@@ -69909,7 +71363,8 @@ int MRISthresholdCurvature(MRI_SURFACE *mris, float thresh, int use_abs) {
   return (NO_ERROR);
 }
 
-int MRISthresholdValIntoMarked(MRI_SURFACE *mris, float thresh) {
+int MRISthresholdValIntoMarked(MRI_SURFACE *mris, float thresh)
+{
   int vno;
   VERTEX *v;
 
@@ -69925,7 +71380,8 @@ int MRISthresholdValIntoMarked(MRI_SURFACE *mris, float thresh) {
 }
 
 // remove outliers in the v->curv field
-int MRIShistoThresholdCurvature(MRI_SURFACE *mris, float thresh_pct) {
+int MRIShistoThresholdCurvature(MRI_SURFACE *mris, float thresh_pct)
+{
   double min_curv, max_curv, curv_scale, total, thresh;
   int bin, zbin, nthresh = 0, vno;
   HISTOGRAM *h_curv;
@@ -70030,7 +71486,8 @@ int MRIShistoThresholdCurvature(MRI_SURFACE *mris, float thresh_pct) {
   return (NO_ERROR);
 }
 
-static int mrisComputeVariableSmoothnessCoefficients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static int mrisComputeVariableSmoothnessCoefficients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   VERTEX *v;
   int vno;
   float vsmooth;
@@ -70063,7 +71520,8 @@ static int mrisComputeVariableSmoothnessCoefficients(MRI_SURFACE *mris, INTEGRAT
     vsmooth = parms->vsmoothness[vno];
     if (v->val > 0) {
       vsmooth += VDELTA;
-    } else {
+    }
+    else {
       vsmooth -= VDELTA;
     }
     vsmooth = MAX(0, vsmooth);
@@ -70076,13 +71534,15 @@ static int mrisComputeVariableSmoothnessCoefficients(MRI_SURFACE *mris, INTEGRAT
 
 // sets the RAS for a surface
 // FUNDAMENTAL ASSUMPTION - all the vertices are created in voxel coordinates associated with srcMri
-void MRISsetVolumeForSurface(MRI_SURFACE *mris, MRI *srcMri) {
+void MRISsetVolumeForSurface(MRI_SURFACE *mris, MRI *srcMri)
+{
   MRIScopyVolGeomFromMRI(mris, srcMri);
   MATRIX *matrix = surfaceRASFromVoxel_(srcMri);
   MRISmatrixMultiply(mris, matrix);
   MatrixFree(&matrix);
 }
-int MRISsetVal2(MRI_SURFACE *mris, float val) {
+int MRISsetVal2(MRI_SURFACE *mris, float val)
+{
   VERTEX *v;
   int vno;
 
@@ -70096,12 +71556,14 @@ int MRISsetVal2(MRI_SURFACE *mris, float val) {
   return (NO_ERROR);
 }
 
-MRI *MRIScomputeDistanceToSurface(MRI_SURFACE *mris, MRI *mri_dist, float resolution) {
+MRI *MRIScomputeDistanceToSurface(MRI_SURFACE *mris, MRI *mri_dist, float resolution)
+{
   MRI *mri_tmp, *mri_mask;
 
   if (mri_dist != NULL) {
     mri_tmp = MRIclone(mri_dist, NULL);
-  } else {
+  }
+  else {
     mri_tmp = NULL;  // will get allocated by MRISfillInterior
   }
   mri_tmp = MRISfillInterior(mris, resolution, mri_tmp);
@@ -70109,7 +71571,8 @@ MRI *MRIScomputeDistanceToSurface(MRI_SURFACE *mris, MRI *mri_dist, float resolu
 #define PAD 10
   if (mri_dist == NULL) {
     mri_mask = MRIextractRegionAndPad(mri_tmp, NULL, NULL, PAD);
-  } else {
+  }
+  else {
     mri_mask = MRIcopy(mri_tmp, NULL);  // geometry specified by caller
   }
   mri_dist = MRIdistanceTransform(mri_mask, mri_dist, 1, nint(PAD / mri_mask->xsize), DTRANS_MODE_SIGNED, NULL);
@@ -70118,7 +71581,8 @@ MRI *MRIScomputeDistanceToSurface(MRI_SURFACE *mris, MRI *mri_dist, float resolu
   MRIfree(&mri_mask);
   return (mri_dist);
 }
-int MRISclearMark2s(MRI_SURFACE *mris) {
+int MRISclearMark2s(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -70134,7 +71598,8 @@ int MRISclearMark2s(MRI_SURFACE *mris) {
 
 // Discrete Principle Curvature and Related vvvvvvvvvvvvvvvvvv
 
-int slprints(char *apch_txt) {
+int slprints(char *apch_txt)
+{
   //
   // PRECONDITIONS
   //      o String <apch_txt> to print to stdout
@@ -70166,7 +71631,8 @@ int slprints(char *apch_txt) {
   return strlen(pch_output);
 }
 
-void cprints(char *apch_left, char *apch_right) {
+void cprints(char *apch_left, char *apch_right)
+{
   //
   // PRECONDITIONS
   //  o The length of each text string should be such that
@@ -70189,7 +71655,8 @@ void cprints(char *apch_left, char *apch_right) {
   fflush(stderr);
 }
 
-void cprintd(char *apch_left, int a_right) {
+void cprintd(char *apch_left, int a_right)
+{
   //
   // PRECONDITIONS
   //  o The length of each text string should be such that
@@ -70205,14 +71672,16 @@ void cprintd(char *apch_left, int a_right) {
   sprintf(pch_right, " [ %d ]\n", a_right);
   if (strlen(apch_left)) {
     fprintf(stderr, "%*s", G_LC, apch_left);
-  } else {
+  }
+  else {
     fprintf(stderr, "%*s", G_LC, " ");
   }
   fprintf(stderr, "%*s", G_RC, pch_right);
   fflush(stderr);
 }
 
-void cprintf(char *apch_left, float af_right) {
+void cprintf(char *apch_left, float af_right)
+{
   //
   // PRECONDITIONS
   //  o The length of each text string should be such that
@@ -70228,14 +71697,16 @@ void cprintf(char *apch_left, float af_right) {
   sprintf(pch_right, " [ %f ]\n", af_right);
   if (strlen(apch_left)) {
     fprintf(stderr, "%*s", G_LC, apch_left);
-  } else {
+  }
+  else {
     fprintf(stderr, "%*s", G_LC, " ");
   }
   fprintf(stderr, "%*s", G_RC, pch_right);
   fflush(stderr);
 }
 
-short FACE_vertexIndex_find(FACE *pFace, int avertex) {
+short FACE_vertexIndex_find(FACE *pFace, int avertex)
+{
   //
   // PRECONDITIONS
   // o <avertex> denotes a vertex number to lookup in the <pFace>.
@@ -70253,7 +71724,8 @@ short FACE_vertexIndex_find(FACE *pFace, int avertex) {
   return ret;
 }
 
-short VECTOR_elementIndex_findNotEqual(VECTOR *apV, float af_searchTerm) {
+short VECTOR_elementIndex_findNotEqual(VECTOR *apV, float af_searchTerm)
+{
   //
   // PRECONDITIONS
   //  o The <apV> is a column vector.
@@ -70276,7 +71748,8 @@ short VECTOR_elementIndex_findNotEqual(VECTOR *apV, float af_searchTerm) {
   return b_ret;
 }
 
-short VECTOR_elementIndex_find(VECTOR *apV, float af_searchTerm) {
+short VECTOR_elementIndex_find(VECTOR *apV, float af_searchTerm)
+{
   //
   // PRECONDITIONS
   //  o The <apV> is a column vector.
@@ -70299,7 +71772,8 @@ short VECTOR_elementIndex_find(VECTOR *apV, float af_searchTerm) {
   return b_ret;
 }
 
-short MRIS_vertexProgress_print(MRIS *apmris, int avertex, char *apch_message) {
+short MRIS_vertexProgress_print(MRIS *apmris, int avertex, char *apch_message)
+{
   //
   // PRECONDITIONS
   //  o <avertex> is the current vertex being processed in a stream.
@@ -70334,7 +71808,8 @@ short MRIS_vertexProgress_print(MRIS *apmris, int avertex, char *apch_message) {
   return 1;
 }
 
-int FACE_vertexIndexAtMask_find(FACE *apFACE_I, VECTOR *apv_verticesCommon) {
+int FACE_vertexIndexAtMask_find(FACE *apFACE_I, VECTOR *apv_verticesCommon)
+{
   //
   // PRECONDITIONS
   //  o Called after <apv_verticesCommon> has been processed by
@@ -70369,7 +71844,8 @@ int FACE_vertexIndexAtMask_find(FACE *apFACE_I, VECTOR *apv_verticesCommon) {
   return ret;
 }
 
-short VERTICES_commonInFaces_find(FACE *apFACE_I, FACE *apFACE_J, VECTOR *apv_verticesCommon) {
+short VERTICES_commonInFaces_find(FACE *apFACE_I, FACE *apFACE_J, VECTOR *apv_verticesCommon)
+{
   //
   // PRECONDITIONS
   //  o The <apFACE>s must be triangles with 3 vertices each.
@@ -70417,7 +71893,8 @@ short VERTICES_commonInFaces_find(FACE *apFACE_I, FACE *apFACE_J, VECTOR *apv_ve
   return k;
 }
 
-short FACES_Hcurvature_determineSign(MRIS *apmris, FACE *apFACE_O, FACE *apFACE_I) {
+short FACES_Hcurvature_determineSign(MRIS *apmris, FACE *apFACE_O, FACE *apFACE_I)
+{
   //
   // PRECONDITIONS
   //  o Typically called from MRIS_Hcurvature_determineSign()
@@ -70489,7 +71966,8 @@ short FACES_Hcurvature_determineSign(MRIS *apmris, FACE *apFACE_O, FACE *apFACE_
 
     if (sign == 1) {
       f_distNormal = V3_LEN(pv_connectOI);
-    } else {
+    }
+    else {
       f_distAntiNormal = V3_LEN(pv_connectOI);
     }
   }
@@ -70508,7 +71986,8 @@ short FACES_Hcurvature_determineSign(MRIS *apmris, FACE *apFACE_O, FACE *apFACE_
   return ret;
 }
 
-int VERTEX_faceAngles_determine(MRIS *apmris, int avertex, VECTOR *apv_angle) {
+int VERTEX_faceAngles_determine(MRIS *apmris, int avertex, VECTOR *apv_angle)
+{
   //
   // PRECONDITIONS
   //  o <apmris> is a valid surface.
@@ -70587,7 +72066,8 @@ int VERTEX_faceAngles_determine(MRIS *apmris, int avertex, VECTOR *apv_angle) {
 }
 
 int VERTEX_faceMinMaxAngles_determine(
-    MRIS *apmris, int avertex, int *ap_minIndex, float *apf_minAngle, int *ap_maxIndex, float *apf_maxAngle) {
+    MRIS *apmris, int avertex, int *ap_minIndex, float *apf_minAngle, int *ap_maxIndex, float *apf_maxAngle)
+{
   //
   // PRECONDITIONS
   //  o <apmris> is a valid surface.
@@ -70640,7 +72120,8 @@ int VERTEX_faceMinMaxAngles_determine(
   return face;
 }
 
-int signum_eval(float af) {
+int signum_eval(float af)
+{
   //
   // PRECONDITIONS
   //  o <af> is an input float.
@@ -70652,7 +72133,8 @@ int signum_eval(float af) {
   return af < 0 ? -1 : 1;
 }
 
-int MRIS_Hcurvature_determineSign(MRIS *apmris) {
+int MRIS_Hcurvature_determineSign(MRIS *apmris)
+{
   //
   // NOTE
   //  This function is obsolete and should not be used! Mean curvature (H)
@@ -70702,7 +72184,8 @@ int MRIS_Hcurvature_determineSign(MRIS *apmris) {
   return ret;
 }
 
-int MRIS_facesAtVertices_reorder(MRIS *apmris) {
+int MRIS_facesAtVertices_reorder(MRIS *apmris)
+{
   //
   // PRECONDITIONS
   //  o <apmris> is a valid surface.
@@ -70760,7 +72243,8 @@ int MRIS_facesAtVertices_reorder(MRIS *apmris) {
   return ret;
 }
 
-int MRIScomputeGeometricProperties(MRIS *apmris) {
+int MRIScomputeGeometricProperties(MRIS *apmris)
+{
   //
   // PRECONDITIONS
   //  o Needs to be called before computing discrete curvatures.
@@ -70780,7 +72264,8 @@ int MRIScomputeGeometricProperties(MRIS *apmris) {
   return ret;
 }
 
-short FACES_aroundVertex_reorder(MRIS *apmris, int avertex, VECTOR *pv_geometricOrder) {
+short FACES_aroundVertex_reorder(MRIS *apmris, int avertex, VECTOR *pv_geometricOrder)
+{
   //
   // PRECONDITIONS
   //  o <avertex> is a valid vertex on the surface.
@@ -70872,7 +72357,8 @@ short FACES_aroundVertex_reorder(MRIS *apmris, int avertex, VECTOR *pv_geometric
   return 1;
 }
 
-float FACES_angleNormal_find(MRIS *apmris, FACE *apFACE_I, FACE *apFACE_J) {
+float FACES_angleNormal_find(MRIS *apmris, FACE *apFACE_I, FACE *apFACE_J)
+{
   //
   // PRECONDITIONS
   //  o The <apFACE>s should be triangles with 3 vertices each.
@@ -70929,7 +72415,8 @@ float FACES_angleNormal_find(MRIS *apmris, FACE *apFACE_I, FACE *apFACE_J) {
   return f_angleNormalIJ;
 }
 
-float FACES_commonEdgeLength_find(MRIS *apmris, FACE *apFACE_I, FACE *apFACE_J) {
+float FACES_commonEdgeLength_find(MRIS *apmris, FACE *apFACE_I, FACE *apFACE_J)
+{
   //
   // PRECONDITIONS
   //  o The <apFACE>s should be triangles with 3 vertices each.
@@ -70978,7 +72465,8 @@ float FACES_commonEdgeLength_find(MRIS *apmris, FACE *apFACE_I, FACE *apFACE_J) 
   return (f_edgeLength);
 }
 
-short MRIS_discreteKH_compute(MRIS *apmris) {
+short MRIS_discreteKH_compute(MRIS *apmris)
+{
   //
   // PRECONDITIONS
   //  o A valid SURFACE with computed triangle properties.
@@ -71080,7 +72568,8 @@ short MRIS_discreteKH_compute(MRIS *apmris) {
   return (NO_ERROR);
 }
 
-short MRIS_discretek1k2_compute(MRIS *apmris, short ab_signedPrinciples) {
+short MRIS_discretek1k2_compute(MRIS *apmris, short ab_signedPrinciples)
+{
   //
   // PRECONDITIONS
   //  o A valid SURFACE with computed triangle properties.
@@ -71123,7 +72612,8 @@ short MRIS_discretek1k2_compute(MRIS *apmris, short ab_signedPrinciples) {
     if (!ab_signedPrinciples) {
       f_k1 = fabs(f_A) >= fabs(f_B) ? f_A : f_B;
       f_k2 = fabs(f_A) <= fabs(f_B) ? f_A : f_B;
-    } else {
+    }
+    else {
       f_k1 = f_A >= f_B ? f_A : f_B;
       f_k2 = f_A <= f_B ? f_A : f_B;
     }
@@ -71136,7 +72626,8 @@ short MRIS_discretek1k2_compute(MRIS *apmris, short ab_signedPrinciples) {
   return (NO_ERROR);
 }
 
-short MRIScomputeSecondFundamentalFormDiscrete(MRIS *apmris, short ab_signedPrinciples) {
+short MRIScomputeSecondFundamentalFormDiscrete(MRIS *apmris, short ab_signedPrinciples)
+{
   int retKH, retk1k2;
 
   retKH = 1;
@@ -71149,7 +72640,8 @@ short MRIScomputeSecondFundamentalFormDiscrete(MRIS *apmris, short ab_signedPrin
   return (retKH | retk1k2);
 }
 
-int MRISscaleCurvature(MRI_SURFACE *apmris, float af_scale) {
+int MRISscaleCurvature(MRI_SURFACE *apmris, float af_scale)
+{
   //
   // POSTCONDITIONS
   // o Each curvature value in apmris is scaled by:
@@ -71186,8 +72678,8 @@ int MRISscaleCurvature(MRI_SURFACE *apmris, float af_scale) {
 
 // Discrete Principle Curvature and Related ^^^^^^^^^^^^^^^^^^
 
-int MRISsurfaceRASToVoxel(
-    MRI_SURFACE *mris, MRI *mri, double r, double a, double s, double *px, double *py, double *pz) {
+int MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, double r, double a, double s, double *px, double *py, double *pz)
+{
   MATRIX *m_sras2vox = NULL;
   MATRIX *m_sras2ras, *m_ras2vox;
   MRI *mri_tmp;
@@ -71214,7 +72706,8 @@ int MRISsurfaceRASToVoxel(
     MRIcopyVolGeomToMRI(mri_tmp, &mris->vg);
     m_sras2ras = RASFromSurfaceRAS_(mri_tmp);
     MRIfree(&mri_tmp);
-  } else  // no valid geom - assume it came from provided volume
+  }
+  else  // no valid geom - assume it came from provided volume
   {
     m_sras2ras = RASFromSurfaceRAS_(mri);
   }
@@ -71249,7 +72742,8 @@ int MRISsurfaceRASToVoxel(
   \param px, py, pz - pointers to col, rowl, and slice in mri (output)
 */
 int MRISsurfaceRASToVoxelCached(
-    MRI_SURFACE *mris, MRI *mri, double r, double a, double s, double *px, double *py, double *pz) {
+    MRI_SURFACE *mris, MRI *mri, double r, double a, double s, double *px, double *py, double *pz)
+{
   static VECTOR *v1[_MAX_FS_THREADS] = {NULL};
   static VECTOR *v2[_MAX_FS_THREADS] = {NULL};
 
@@ -71294,7 +72788,8 @@ int MRISsurfaceRASToVoxelCached(
       MRIcopyVolGeomToMRI(mri_tmp, &mris->vg);
       m_sras2ras = RASFromSurfaceRAS_(mri_tmp);
       MRIfree(&mri_tmp);
-    } else {
+    }
+    else {
       // Use geometry from MRI struct passed with function
       // Function should reduce to inv(Vox2TkRegRAS)*SurfRAS
       m_sras2ras = RASFromSurfaceRAS_(mri);
@@ -71319,7 +72814,8 @@ int MRISsurfaceRASToVoxelCached(
 }
 
 int MRISsurfaceRASFromVoxel(
-    MRI_SURFACE *mris, MRI *mri, double x, double y, double z, double *pr, double *pa, double *ps) {
+    MRI_SURFACE *mris, MRI *mri, double x, double y, double z, double *pr, double *pa, double *ps)
+{
   MATRIX *m_sras2vox = NULL;
   MATRIX *m_vox2sras = NULL;
   MATRIX *m_sras2ras, *m_ras2vox;
@@ -71347,7 +72843,8 @@ int MRISsurfaceRASFromVoxel(
     MRIcopyVolGeomToMRI(mri_tmp, &mris->vg);
     m_sras2ras = RASFromSurfaceRAS_(mri_tmp);
     MRIfree(&mri_tmp);
-  } else  // no valid geom - assume it came from provided volume
+  }
+  else  // no valid geom - assume it came from provided volume
   {
     m_sras2ras = RASFromSurfaceRAS_(mri);
   }
@@ -71372,7 +72869,8 @@ int MRISsurfaceRASFromVoxel(
 }
 
 int MRISsurfaceRASFromVoxelCached(
-    MRI_SURFACE *mris, MRI *mri, double x, double y, double z, double *pr, double *pa, double *ps) {
+    MRI_SURFACE *mris, MRI *mri, double x, double y, double z, double *pr, double *pa, double *ps)
+{
   static MATRIX *m_vox2sras[_MAX_FS_THREADS] = {NULL};
   static VECTOR *v1[_MAX_FS_THREADS] = {NULL};
   static VECTOR *v2[_MAX_FS_THREADS] = {NULL};
@@ -71394,7 +72892,8 @@ int MRISsurfaceRASFromVoxelCached(
       MRIcopyVolGeomToMRI(mri_tmp, &mris->vg);
       m_sras2ras = RASFromSurfaceRAS_(mri_tmp);
       MRIfree(&mri_tmp);
-    } else {
+    }
+    else {
       m_sras2ras = RASFromSurfaceRAS_(mri);
     }
 
@@ -71427,7 +72926,8 @@ int MRISsurfaceRASFromVoxelCached(
 
   Description
   ------------------------------------------------------*/
-int MRIScomputeNormal(MRIS *mris, int which, int vno, double *pnx, double *pny, double *pnz) {
+int MRIScomputeNormal(MRIS *mris, int which, int vno, double *pnx, double *pny, double *pnz)
+{
   float snorm[3], norm[3];
   VERTEX *v;
   int n, num;
@@ -71472,7 +72972,8 @@ int MRIScomputeNormal(MRIS *mris, int which, int vno, double *pnx, double *pny, 
   return (NO_ERROR);
 }
 
-static double mrisComputeSurfaceRepulsionEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht) {
+static double mrisComputeSurfaceRepulsionEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht)
+{
   int vno, max_vno, i;
   float dx, dy, dz, x, y, z, sx, sy, sz, norm[3], dot;
   float max_scale, max_dot;
@@ -71525,7 +73026,8 @@ static double mrisComputeSurfaceRepulsionEnergy(MRI_SURFACE *mris, double l_repu
       }
       if (dot > MAX_NEG_RATIO) {
         dot = MAX_NEG_RATIO;
-      } else if (dot < -MAX_NEG_RATIO) {
+      }
+      else if (dot < -MAX_NEG_RATIO) {
         dot = -MAX_NEG_RATIO;
       }
 #if 0
@@ -71551,7 +73053,8 @@ static double mrisComputeSurfaceRepulsionEnergy(MRI_SURFACE *mris, double l_repu
 
 // average the stats on the surface, and propagate marks
 // outwards to new non-zero locations
-int MRISaverageMarkedStats(MRI_SURFACE *mris, int navgs) {
+int MRISaverageMarkedStats(MRI_SURFACE *mris, int navgs)
+{
   int i, vno, vnb, *pnb, vnum;
   float val, num;
   VERTEX *v, *vn;
@@ -71599,7 +73102,8 @@ int MRISaverageMarkedStats(MRI_SURFACE *mris, int navgs) {
   return (NO_ERROR);
 }
 
-void UpdateMRIS(MRI_SURFACE *mris, const char *fname) {
+void UpdateMRIS(MRI_SURFACE *mris, const char *fname)
+{
   mrisFindNeighbors(mris);
   mrisComputeVertexDistances(mris);
   if (fname) {
@@ -71617,7 +73121,8 @@ void UpdateMRIS(MRI_SURFACE *mris, const char *fname) {
 */
 
 #include "MARS_DT_Boundary.h"
-int MRISdistanceTransform(MRI_SURFACE *mris, LABEL *area, int mode) {
+int MRISdistanceTransform(MRI_SURFACE *mris, LABEL *area, int mode)
+{
   int *vertices, *vertNbrs, vno, max_nbrs, j, index;
   double *cost, *vertDists;
   VERTEX *v;
@@ -71735,7 +73240,8 @@ int MRISdistanceTransform(MRI_SURFACE *mris, LABEL *area, int mode) {
   assumes v->val has the distances for label1 and v->val2 has the distances
   for label 2, computed using MRISdistanceTransform
 */
-double MRIScomputeHausdorffDistance(MRI_SURFACE *mris, int mode) {
+double MRIScomputeHausdorffDistance(MRI_SURFACE *mris, int mode)
+{
   double hdist = 0, d, dist;
   int vno, n, num;
   VERTEX *v, *vn;
@@ -71762,7 +73268,8 @@ double MRIScomputeHausdorffDistance(MRI_SURFACE *mris, int mode) {
         if (vn->val < 0) {
           dist = -vn->val / (-vn->val + v->val);  // fraction of way
           dist = 1 - dist;                        // measure from v not vn
-        } else {
+        }
+        else {
           dist = -v->val / (-v->val + vn->val);  // fraction of way
         }
         d = dist * fabs(v->val2) + (1 - dist) * fabs(vn->val2);  // compute val2 at this point
@@ -71777,7 +73284,8 @@ double MRIScomputeHausdorffDistance(MRI_SURFACE *mris, int mode) {
         if (vn->val2 < 0) {
           dist = -vn->val2 / (-vn->val2 + v->val2);  // fraction of way
           dist = 1 - dist;                           // measure from v not vn
-        } else {
+        }
+        else {
           dist = -v->val2 / (-v->val2 + vn->val2);  // fraction of way
         }
         num++;
@@ -71793,7 +73301,8 @@ double MRIScomputeHausdorffDistance(MRI_SURFACE *mris, int mode) {
   return (hdist);
 }
 
-int MRIScomputeAllDistances(MRI_SURFACE *mris) {
+int MRIScomputeAllDistances(MRI_SURFACE *mris)
+{
   int vno, done = 0, nvalid;
   LABEL *area;
 
@@ -71881,7 +73390,8 @@ int MRIScomputeAllDistances(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRISsetValues(MRI_SURFACE *mris, float val) {
+int MRISsetValues(MRI_SURFACE *mris, float val)
+{
   int vno;
   VERTEX *v;
 
@@ -71894,7 +73404,8 @@ int MRISsetValues(MRI_SURFACE *mris, float val) {
   }
   return (NO_ERROR);
 }
-int MRISaddToValues(MRI_SURFACE *mris, float val) {
+int MRISaddToValues(MRI_SURFACE *mris, float val)
+{
   int vno;
   VERTEX *v;
 
@@ -71908,7 +73419,8 @@ int MRISaddToValues(MRI_SURFACE *mris, float val) {
   return (NO_ERROR);
 }
 
-LABEL *MRISannotation_to_label(MRI_SURFACE *mris, int annot_index) {
+LABEL *MRISannotation_to_label(MRI_SURFACE *mris, int annot_index)
+{
   int vno, nv, annot;
   VERTEX *v;
   LABEL *area;
@@ -71941,7 +73453,8 @@ LABEL *MRISannotation_to_label(MRI_SURFACE *mris, int annot_index) {
   return (area);
 }
 #include "histo.h"
-HISTOGRAM *MRISgetHistogram(MRI_SURFACE *mris, int nbins, int field) {
+HISTOGRAM *MRISgetHistogram(MRI_SURFACE *mris, int nbins, int field)
+{
   int vno, bin;
   VERTEX *v;
   double fmin, fmax, bin_size, val;
@@ -71998,7 +73511,8 @@ HISTOGRAM *MRISgetHistogram(MRI_SURFACE *mris, int nbins, int field) {
   h = HISTOalloc(nbins);
   if (fmax == fmin) {
     bin_size = 1;
-  } else {
+  }
+  else {
     bin_size = (fmax - fmin) / ((float)h->nbins - 1);
   }
   h->bin_size = bin_size;
@@ -72051,7 +73565,8 @@ HISTOGRAM *MRISgetHistogram(MRI_SURFACE *mris, int nbins, int field) {
 #include "mrishash.h"
 
 #define MAX_DIST 10
-int MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris, MRI_SURFACE *mris2, int signed_dist) {
+int MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris, MRI_SURFACE *mris2, int signed_dist)
+{
   int vno;
   VERTEX *v1, *v2;
   MRIS_HASH_TABLE *mht;
@@ -72087,7 +73602,8 @@ int MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris, MRI_SURFACE *mris2, in
   return (NO_ERROR);
 }
 
-int MRISwriteCoordsToIco(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, int which_vertices) {
+int MRISwriteCoordsToIco(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, int which_vertices)
+{
   MHT *mht;
   int vno, fno, debug;
   VERTEX *v;
@@ -72131,7 +73647,8 @@ int MRISwriteCoordsToIco(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, int which_ver
   return (NO_ERROR);
 }
 
-int MRISvertexCoord2XYZ_float(VERTEX *v, int which, float *x, float *y, float *z) {
+int MRISvertexCoord2XYZ_float(VERTEX *v, int which, float *x, float *y, float *z)
+{
   switch (which) {
     case ORIGINAL_VERTICES:
       *x = v->origx;
@@ -72200,7 +73717,8 @@ int MRISvertexCoord2XYZ_float(VERTEX *v, int which, float *x, float *y, float *z
   }
   return (NO_ERROR);
 }
-int MRISvertexCoord2XYZ_double(VERTEX *v, int which, double *x, double *y, double *z) {
+int MRISvertexCoord2XYZ_double(VERTEX *v, int which, double *x, double *y, double *z)
+{
   switch (which) {
     default:
     case GOOD_VERTICES:
@@ -72255,7 +73773,8 @@ int MRISvertexCoord2XYZ_double(VERTEX *v, int which, double *x, double *y, doubl
   return (NO_ERROR);
 }
 int MRISsampleFaceCoordsCanonical(
-    MHT *mht, MRI_SURFACE *mris, float x, float y, float z, int which, float *px, float *py, float *pz) {
+    MHT *mht, MRI_SURFACE *mris, float x, float y, float z, int which, float *px, float *py, float *pz)
+{
   float xv, yv, zv;
   double lambda[3], fdist, norm;
   int n, ret = NO_ERROR, fno;
@@ -72275,7 +73794,8 @@ int MRISsampleFaceCoordsCanonical(
     DiagBreak();
     MHTfindClosestFaceGeneric(mht, mris, x, y, z, 1000, -1, -1, &face, &fno, &fdist);
     lambda[0] = lambda[1] = lambda[2] = 1.0 / 3.0;
-  } else {
+  }
+  else {
     ret = face_barycentric_coords(mris, fno, CANONICAL_VERTICES, x, y, z, &lambda[0], &lambda[1], &lambda[2]);
   }
 
@@ -72293,7 +73813,8 @@ int MRISsampleFaceCoordsCanonical(
 
 #if 1
 static int mris_project_point_into_face(
-    MRI_SURFACE *mris, FACE *face, int which, double x, double y, double z, double *px, double *py, double *pz) {
+    MRI_SURFACE *mris, FACE *face, int which, double x, double y, double z, double *px, double *py, double *pz)
+{
   double point[3], V0[3], V1[3], V2[3], proj[3];
 
   point[0] = x;
@@ -72366,7 +73887,8 @@ int face_barycentric_coords(MRI_SURFACE *mris,
                             double cz,
                             double *pl1,
                             double *pl2,
-                            double *pl3) {
+                            double *pl3)
+{
   double l1, l2, l3, x, y, x1, x2, x3, y1, y2, y3, e1[3], e2[3];
   FACE *face = &mris->faces[fno];
   double V0[3], V1[3], V2[3], point[3], proj[3], detT;
@@ -72459,7 +73981,8 @@ int face_barycentric_coords(MRI_SURFACE *mris,
 
   if (l1 > 0 && l1 < 1 && l2 > 0 && l2 < 1 && l3 > 0 && l3 < 1) {
     ret = 1;  // interior to the triangle
-  } else {
+  }
+  else {
     float l1d, l2d, l3d;
 
     l1d = MIN(l1 - 0, 1 - l1);
@@ -72467,7 +73990,8 @@ int face_barycentric_coords(MRI_SURFACE *mris,
     l3d = MIN(l3 - 0, 1 - l3);
     if ((l1d < 0 && !FZERO(l1d)) || (l2d < 0 && !FZERO(l2d)) || (l3d < 0 && !FZERO(l3d))) {
       ret = -1;  // outside triangle
-    } else {
+    }
+    else {
       ret = 0;  // on  boundary of triangle
     }
   }
@@ -72483,7 +74007,8 @@ int MRISsampleFaceCoords(MRI_SURFACE *mris,
                          int which_barycentric,
                          float *px,
                          float *py,
-                         float *pz) {
+                         float *pz)
+{
   float xv, yv, zv;
   double lambda[3];
   int n, ret;
@@ -72510,7 +74035,8 @@ int MRISsampleFaceCoords(MRI_SURFACE *mris,
   return (ret);
 }
 double MRISsampleFace(
-    MRI_SURFACE *mris, int fno, int which, double x, double y, double z, double val0, double val1, double val2) {
+    MRI_SURFACE *mris, int fno, int which, double x, double y, double z, double val0, double val1, double val2)
+{
   float xv, yv, zv;
   double lambda[3], val;
   int n, ret;
@@ -72542,7 +74068,8 @@ double MRISsampleFace(
 
   return (val);
 }
-int MRISsampleFaceNormal(MRI_SURFACE *mris, int fno, double x, double y, double z, float *px, float *py, float *pz) {
+int MRISsampleFaceNormal(MRI_SURFACE *mris, int fno, double x, double y, double z, float *px, float *py, float *pz)
+{
   float d, dtotal, dx, dy, dz, xc, yc, zc;
   int n;
   FACE *face;
@@ -72592,7 +74119,8 @@ int MRISsampleFaceNormal(MRI_SURFACE *mris, int fno, double x, double y, double 
   will be replaced with the new ones computed by this function.
 */
 
-int MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, float max_thick) {
+int MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, float max_thick)
+{
   int vno, navgs = 5;
   VERTEX *v;
   double ending_sse, vsize;
@@ -72636,7 +74164,8 @@ int MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     if (!parms->fp) {
       if (!parms->start_t) {
         parms->fp = fopen(fname, "w");
-      } else {
+      }
+      else {
         parms->fp = fopen(fname, "a");
       }
 
@@ -72657,7 +74186,8 @@ int MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   if (parms->start_t == 0)  // && parms->remove_neg == 0
   {
     MRISfindClosestPialVerticesCanonicalCoords(mris, mris->nsize);
-  } else
+  }
+  else
 #endif
     MRISrestoreVertexPositions(mris, CANONICAL_VERTICES);  // start with pial coord of this vtx
   mris->status = MRIS_SPHERE;
@@ -72708,7 +74238,8 @@ int MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   return (NO_ERROR);
 }
 
-MRI *MRISlaplacian(MRI_SURFACE *mris, MRI *mri_cmatrix, double inner_width, double outer_width) {
+MRI *MRISlaplacian(MRI_SURFACE *mris, MRI *mri_cmatrix, double inner_width, double outer_width)
+{
   int vno, vno2, i, num, n;
   VERTEX *v, *vn;
   MRI *mri_laplacian;
@@ -72742,7 +74273,8 @@ MRI *MRISlaplacian(MRI_SURFACE *mris, MRI *mri_cmatrix, double inner_width, doub
 
   return (mri_laplacian);
 }
-double MRISsampleValue(MRI_SURFACE *mris, FACE *f, double xp, double yp, double zp, int which, MRI *mri_vals) {
+double MRISsampleValue(MRI_SURFACE *mris, FACE *f, double xp, double yp, double zp, int which, MRI *mri_vals)
+{
   double val, x[VERTICES_PER_FACE], y[VERTICES_PER_FACE], dx1, dy1, dx2, dy2, e1x, e1y, e1z, e2x, e2y, e2z, x0, y0, a0,
       a1, a2, val0, val1, val2;
   int n;
@@ -72797,7 +74329,8 @@ double MRISsampleValue(MRI_SURFACE *mris, FACE *f, double xp, double yp, double 
 }
 
 #ifdef FS_CUDA
-static INTEGRATION_PARMS *mrisCloneIP(INTEGRATION_PARMS *parms) {
+static INTEGRATION_PARMS *mrisCloneIP(INTEGRATION_PARMS *parms)
+{
   /* this needs some work to check whether this is successful */
   INTEGRATION_PARMS *rval = malloc(sizeof(INTEGRATION_PARMS));
 
@@ -72805,14 +74338,16 @@ static INTEGRATION_PARMS *mrisCloneIP(INTEGRATION_PARMS *parms) {
   return rval;
 }
 
-static void mrisDeleteIP(INTEGRATION_PARMS *parms) {
+static void mrisDeleteIP(INTEGRATION_PARMS *parms)
+{
   if (parms != NULL) {
     free(parms);
   }
 }
 #endif /* FS_CUDA */
 
-int MRIScomputeSurfaceNormals(MRI_SURFACE *mris, int which, int navgs) {
+int MRIScomputeSurfaceNormals(MRI_SURFACE *mris, int which, int navgs)
+{
   int vno, n, i;
   VERTEX *v, *vn;
   double nx = 0.0, ny = 0.0, nz = 0.0, norm = 0.0;
@@ -72957,7 +74492,8 @@ int MRIScomputeSurfaceNormals(MRI_SURFACE *mris, int which, int navgs) {
   return (NO_ERROR);
 }
 
-static double mrisRmsDistanceError(MRI_SURFACE *mris) {
+static double mrisRmsDistanceError(MRI_SURFACE *mris)
+{
   INTEGRATION_PARMS parms;
   double rms;
 
@@ -72966,7 +74502,8 @@ static double mrisRmsDistanceError(MRI_SURFACE *mris) {
   rms = mrisComputeTargetLocationError(mris, &parms);
   return (sqrt(rms / MRISvalidVertices(mris)));
 }
-int MRISscaleVertexCoordinates(MRI_SURFACE *mris, double scale) {
+int MRISscaleVertexCoordinates(MRI_SURFACE *mris, double scale)
+{
   VERTEX *v;
   int vno;
 
@@ -72981,7 +74518,8 @@ int MRISscaleVertexCoordinates(MRI_SURFACE *mris, double scale) {
   }
   return (NO_ERROR);
 }
-int MRISstoreTangentPlanes(MRI_SURFACE *mris, int which_vertices) {
+int MRISstoreTangentPlanes(MRI_SURFACE *mris, int which_vertices)
+{
   VERTEX *v;
   int vno;
 
@@ -73000,7 +74538,8 @@ int MRISstoreTangentPlanes(MRI_SURFACE *mris, int which_vertices) {
   return (NO_ERROR);
 }
 int MRISrepositionSurface(
-    MRI_SURFACE *mris, MRI *mri, int *target_vnos, float *target_vals, int nv, int nsize, double sigma, int flags) {
+    MRI_SURFACE *mris, MRI *mri, int *target_vnos, float *target_vals, int nv, int nsize, double sigma, int flags)
+{
   int vno, n;
   INTEGRATION_PARMS parms;
   VERTEX *v;
@@ -73026,7 +74565,8 @@ int MRISrepositionSurface(
   if (flags & IPFLAG_FORCE_GRADIENT_IN) {
     parms.grad_dir = -1;
     printf("forcing gradient in\n");
-  } else if (flags & IPFLAG_FORCE_GRADIENT_IN) {
+  }
+  else if (flags & IPFLAG_FORCE_GRADIENT_IN) {
     parms.grad_dir = 1;
     printf("forcing gradient out\n");
   }
@@ -73067,7 +74607,8 @@ int MRISrepositionSurface(
   return (NO_ERROR);
 }
 int MRISrepositionSurfaceToCoordinate(
-    MRI_SURFACE *mris, MRI *mri, int target_vno, float tx, float ty, float tz, int nsize, double sigma, int flags) {
+    MRI_SURFACE *mris, MRI *mri, int target_vno, float tx, float ty, float tz, int nsize, double sigma, int flags)
+{
   int vno;
   INTEGRATION_PARMS parms;
   VERTEX *v;
@@ -73154,7 +74695,8 @@ int MRISrepositionSurfaceToCoordinate(
   return (NO_ERROR);
 }
 
-static int mrisProjectOntoSurface(MRI_SURFACE *mris, int which_vertices) {
+static int mrisProjectOntoSurface(MRI_SURFACE *mris, int which_vertices)
+{
   int vno, fno;
   double px, py, pz, fdist;
   FACE *face;
@@ -73189,7 +74731,8 @@ static int mrisProjectOntoSurface(MRI_SURFACE *mris, int which_vertices) {
       norm = VLEN(lambda);
       if (FZERO(norm)) {
         lambda[0] = 1.0;  // arbitrary choice to handle pathological case
-      } else {
+      }
+      else {
         SCALAR_MUL(lambda, 1.0 / norm, lambda);
       }
       lambda[2] = 1 - (lambda[0] + lambda[1]);
@@ -73214,7 +74757,8 @@ static int mrisProjectOntoSurface(MRI_SURFACE *mris, int which_vertices) {
       if (vno == Gdiag_no) {
         printf("v %d:  lambda = (%2.2f %2.2f %2.2f)\n", vno, lambda[0], lambda[1], lambda[2]);
       }
-    } else {
+    }
+    else {
       mris_project_point_into_face(mris, face, which_vertices, v->x, v->y, v->z, &px, &py, &pz);
     }
 
@@ -73241,7 +74785,8 @@ static int mrisProjectOntoSurface(MRI_SURFACE *mris, int which_vertices) {
   return (NO_ERROR);
 }
 
-int MRISlogOdds(MRI_SURFACE *mris, LABEL *area, double slope) {
+int MRISlogOdds(MRI_SURFACE *mris, LABEL *area, double slope)
+{
   int vno;
   VERTEX *v;
   double p;
@@ -73264,7 +74809,8 @@ int MRISlogOdds(MRI_SURFACE *mris, LABEL *area, double slope) {
   }
   return (NO_ERROR);
 }
-int MRISextractVertexCoords(MRI_SURFACE *mris, float *locations[3], int which) {
+int MRISextractVertexCoords(MRI_SURFACE *mris, float *locations[3], int which)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -73335,7 +74881,8 @@ int MRISextractVertexCoords(MRI_SURFACE *mris, float *locations[3], int which) {
   return (NO_ERROR);
 }
 
-int MRISimportVertexCoords(MRI_SURFACE *mris, float *locations[3], int which) {
+int MRISimportVertexCoords(MRI_SURFACE *mris, float *locations[3], int which)
+{
   int vno, nvertices;
   VERTEX *v;
 
@@ -73406,7 +74953,8 @@ int MRISimportVertexCoords(MRI_SURFACE *mris, float *locations[3], int which) {
   return (NO_ERROR);
 }
 
-int MRIStrinarizeCurvature(MRI_SURFACE *mris, float trinarize_thresh) {
+int MRIStrinarizeCurvature(MRI_SURFACE *mris, float trinarize_thresh)
+{
   int vno;
   VERTEX *v;
 
@@ -73417,16 +74965,19 @@ int MRIStrinarizeCurvature(MRI_SURFACE *mris, float trinarize_thresh) {
     }
     if (v->curv < -trinarize_thresh) {
       v->curv = -1;
-    } else if (v->curv > trinarize_thresh) {
+    }
+    else if (v->curv > trinarize_thresh) {
       v->curv = 1;
-    } else {
+    }
+    else {
       v->curv = 0;
     }
   }
   return (NO_ERROR);
 }
 
-int MRIScountTotalNeighbors(MRI_SURFACE *mris, int nsize) {
+int MRIScountTotalNeighbors(MRI_SURFACE *mris, int nsize)
+{
   int vno, total_nbrs;
   VERTEX *v;
 
@@ -73455,7 +75006,8 @@ int MRIScountTotalNeighbors(MRI_SURFACE *mris, int nsize) {
   return (total_nbrs);
 }
 
-static int mrisScaleTimeStepByCurvature(MRI_SURFACE *mris) {
+static int mrisScaleTimeStepByCurvature(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
   float scale;
@@ -73485,7 +75037,8 @@ static int mrisScaleTimeStepByCurvature(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRIScountMarked(MRI_SURFACE *mris, int mark_threshold) {
+int MRIScountMarked(MRI_SURFACE *mris, int mark_threshold)
+{
   int vno, total_marked;
   VERTEX *v;
 
@@ -73502,7 +75055,8 @@ int MRIScountMarked(MRI_SURFACE *mris, int mark_threshold) {
   return (total_marked);
 }
 
-int MRISprintVertexStats(MRI_SURFACE *mris, int vno, FILE *fp, int which_vertices) {
+int MRISprintVertexStats(MRI_SURFACE *mris, int vno, FILE *fp, int which_vertices)
+{
   double mn, d;
   int n, num;
   VERTEX *v, *vn;
@@ -73539,7 +75093,8 @@ int MRISprintVertexStats(MRI_SURFACE *mris, int vno, FILE *fp, int which_vertice
   return (NO_ERROR);
 }
 
-static int mrisCreateLikelihoodHistograms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static int mrisCreateLikelihoodHistograms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   int x, y, z, wlabel, plabel;
   VECTOR *v_brain, *v_hires;
   MATRIX *m_hires_to_brain;
@@ -73581,7 +75136,8 @@ static int mrisCreateLikelihoodHistograms(MRI_SURFACE *mris, INTEGRATION_PARMS *
         zv = V3_Z(v_brain);
         if (MRIindexNotInVolume(parms->mri_brain, xv, yv, zv)) {
           val = 0;
-        } else {
+        }
+        else {
           MRIsampleVolume(parms->mri_brain, xv, yv, zv, &val);
         }
 
@@ -73595,10 +75151,12 @@ static int mrisCreateLikelihoodHistograms(MRI_SURFACE *mris, INTEGRATION_PARMS *
         if (wlabel) {
           MRIsetVoxVal(parms->mri_labels, x, y, z, 0, MRI_WHITE_INTERIOR);
           HISTOaddSample(parms->h_wm, val, 0, 255);
-        } else if (plabel) {
+        }
+        else if (plabel) {
           MRIsetVoxVal(parms->mri_labels, x, y, z, 0, MRI_PIAL_INTERIOR);
           HISTOaddSample(parms->h_gm, val, 0, 255);
-        } else {
+        }
+        else {
           MRIsetVoxVal(parms->mri_labels, x, y, z, 0, MRI_NONBRAIN);
           HISTOaddSample(parms->h_nonbrain, val, 0, 255);
         }
@@ -73614,7 +75172,8 @@ static int mrisCreateLikelihoodHistograms(MRI_SURFACE *mris, INTEGRATION_PARMS *
   MRIfree(&mri_pial);
   return (NO_ERROR);
 }
-MRI_SURFACE *MRISconcat(MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_SURFACE *mris) {
+MRI_SURFACE *MRISconcat(MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_SURFACE *mris)
+{
   int vno, n;
   int fno;
   VERTEX *v, *vo;
@@ -73676,7 +75235,8 @@ MRI_SURFACE *MRISconcat(MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_SURFACE *mri
 #define GM_VAL 2
 #define CSF_VAL 3
 
-MRI *MRIcomputeLaminarVolumeFractions(MRI_SURFACE *mris, double resolution, MRI *mri_src, MRI *mri_fractions) {
+MRI *MRIcomputeLaminarVolumeFractions(MRI_SURFACE *mris, double resolution, MRI *mri_src, MRI *mri_fractions)
+{
   int width, height, depth, nvox;
   MRI *mri_layers, *mri_interior_pial, *mri_tmp;
   MATRIX *m_vox2vox;
@@ -73739,7 +75299,8 @@ MRI *MRIcomputeLaminarVolumeFractions(MRI_SURFACE *mris, double resolution, MRI 
     MRIScomputeMetricProperties(mris);
     MRISfillInterior(mris, resolution, mri_layers);
     mri_interior_wm = MRIcopy(mri_layers, NULL);
-  } else
+  }
+  else
     MRIcopy(mri_interior_wm, mri_layers);
 
   MRISrestoreVertexPositions(mris, PIAL_VERTICES);
@@ -73766,7 +75327,8 @@ MRI *MRIcomputeLaminarVolumeFractions(MRI_SURFACE *mris, double resolution, MRI 
   return (mri_fractions);
 }
 
-static double mrisComputeHistoNegativeLikelihood(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static double mrisComputeHistoNegativeLikelihood(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   double likelihood, entropy;
   int x, y, z, label;
   VECTOR *v_brain, *v_hires;
@@ -73793,7 +75355,8 @@ static double mrisComputeHistoNegativeLikelihood(MRI_SURFACE *mris, INTEGRATION_
         zv = V3_Z(v_hires);
         if (MRIindexNotInVolume(parms->mri_labels, xv, yv, zv)) {
           label = MRI_NONBRAIN;
-        } else {
+        }
+        else {
           label = MRIgetVoxVal(parms->mri_labels, nint(xv), nint(yv), nint(zv), 0);
         }
 
@@ -73823,7 +75386,8 @@ static double mrisComputeHistoNegativeLikelihood(MRI_SURFACE *mris, INTEGRATION_
   return (entropy);
 }
 
-static int mrisComputeHistoTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static int mrisComputeHistoTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   int vno;
   VERTEX *v;
   double xv, yv, zv, val, p, dx, dy, dz, d, d2, x, y, z, best_d, best_p;
@@ -73853,7 +75417,8 @@ static int mrisComputeHistoTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
         MRIsampleVolume(parms->mri_brain, xv, yv, zv, &val);
         if (d2 < d) {
           p += HISTOgetCount(parms->h_gm, val);
-        } else {
+        }
+        else {
           p += HISTOgetCount(parms->h_nonbrain, val);
         }
         num++;
@@ -73895,7 +75460,8 @@ static int mrisComputeHistoTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
   return (NO_ERROR);
 }
 static double vlst_loglikelihood(
-    MRI_SURFACE *mris, MRI *mri, int vno, double displacement, VOXEL_LIST *vl, HISTOGRAM *hin, HISTOGRAM *hout) {
+    MRI_SURFACE *mris, MRI *mri, int vno, double displacement, VOXEL_LIST *vl, HISTOGRAM *hin, HISTOGRAM *hout)
+{
   double ll = 0.0, dot, dx, dy, dz, pval, dist, Ig, Ic, gm_frac, out_frac;
   int i;
   float val;
@@ -73918,7 +75484,8 @@ static double vlst_loglikelihood(
       if (dot > 0) {
         out_frac = dist + .5;
         gm_frac = 1 - out_frac;
-      } else {
+      }
+      else {
         gm_frac = dist + .5;
         out_frac = 1 - gm_frac;
       }
@@ -73926,7 +75493,8 @@ static double vlst_loglikelihood(
         Ic = (val - gm_frac * Ig) / out_frac;
         pval += HISTOgetCount(hout, Ic) * HISTOgetCount(hin, Ig);
       }
-    } else if (dot > 0)  // outside surface
+    }
+    else if (dot > 0)  // outside surface
       pval = HISTOgetCount(hout, val);
     else  // inside the surface
       pval = HISTOgetCount(hin, val);
@@ -73986,7 +75554,8 @@ vlst_loglikelihood2D(MRI_SURFACE *mris, MRI *mri, int vno, double displacement, 
 }
 #else
 static double vlst_loglikelihood2D(
-    MRI_SURFACE *mris, MRI *mri, int vno, double displacement, VOXEL_LIST *vl, HISTOGRAM2D *h, FILE *fp) {
+    MRI_SURFACE *mris, MRI *mri, int vno, double displacement, VOXEL_LIST *vl, HISTOGRAM2D *h, FILE *fp)
+{
   double ll = 0.0, dot, dx, dy, dz, pval, dist;
   int i;
   float val;
@@ -74016,7 +75585,8 @@ static double vlst_loglikelihood2D(
   return (ll);
 }
 #endif
-static VOXEL_LIST **vlst_alloc(MRI_SURFACE *mris, int max_vox) {
+static VOXEL_LIST **vlst_alloc(MRI_SURFACE *mris, int max_vox)
+{
   int vno;
   VOXEL_LIST **vl;
 
@@ -74029,7 +75599,8 @@ static VOXEL_LIST **vlst_alloc(MRI_SURFACE *mris, int max_vox) {
   }
   return (vl);
 }
-static int vlst_free(MRI_SURFACE *mris, VOXEL_LIST ***pvl) {
+static int vlst_free(MRI_SURFACE *mris, VOXEL_LIST ***pvl)
+{
   VOXEL_LIST **vl = *pvl;
   int vno;
 
@@ -74040,7 +75611,8 @@ static int vlst_free(MRI_SURFACE *mris, VOXEL_LIST ***pvl) {
 }
 
 #if 1
-static int vlst_enough_data(MRI_SURFACE *mris, int vno, VOXEL_LIST *vl, double displacement) {
+static int vlst_enough_data(MRI_SURFACE *mris, int vno, VOXEL_LIST *vl, double displacement)
+{
   double dot, dx, dy, dz;
   int i, nin, nout;
   VERTEX *v;
@@ -74068,7 +75640,8 @@ static int vlst_enough_data(MRI_SURFACE *mris, int vno, VOXEL_LIST *vl, double d
 #define MAX_DISPLACEMENT 5
 #define DISPLACEMENT_DELTA .1
 
-static double mrisComputeNegativeLogPosterior(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int *pnvox) {
+static double mrisComputeNegativeLogPosterior(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int *pnvox)
+{
   MRI *mri = parms->mri_brain;
   double sse = 0.0, ll, wm_frac, gm_frac, out_frac, Ig, Ic, pval;
   float vmin, vmax, val;
@@ -74125,7 +75698,8 @@ static double mrisComputeNegativeLogPosterior(MRI_SURFACE *mris, INTEGRATION_PAR
       sprintf(fname, "hout.%s.%3.3d.plt", parms->base_name, parms->t);
       HISTOplot(hout, fname);
     }
-  } else  // use previously computed ones
+  }
+  else  // use previously computed ones
   {
     hin = parms->hgm;
     hout = parms->hout;
@@ -74190,7 +75764,8 @@ static double mrisComputeNegativeLogPosterior(MRI_SURFACE *mris, INTEGRATION_PAR
   return (sse);
 }
 
-static int vlst_add_to_list(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst) {
+static int vlst_add_to_list(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst)
+{
   int i;
 
   for (i = 0; i < vl_src->nvox; i++)
@@ -74198,7 +75773,8 @@ static int vlst_add_to_list(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst) {
 
   return (NO_ERROR);
 }
-static int mrisComputePosteriorTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static int mrisComputePosteriorTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   MRI *mri = parms->mri_brain;
   static MRI *mri_white_dist;
   FILE *fp;
@@ -74295,7 +75871,8 @@ static int mrisComputePosteriorTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       char fname[STRLEN];
       sprintf(fname, "vno%d.%d.l.dat", vno, parms->t);
       fp = fopen(fname, "w");
-    } else
+    }
+    else
       fp = NULL;
     best_ll = -1e10;
     best_dn = 0;
@@ -74420,7 +75997,8 @@ static int mrisComputePosteriorTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   horrific. Don't blame me, I did not write it, I just copied the from
   mri_tessellate.
  */
-MRIS *MRIStessellate(MRI *mri, int value, int all_flag) {
+MRIS *MRIStessellate(MRI *mri, int value, int all_flag)
+{
   int imnr, i, j, f_pack, v_ind, f;
   int xnum, ynum, numimg;
   int face_index, vertex_index;
@@ -74984,7 +76562,8 @@ MRIS *MRIStessellate(MRI *mri, int value, int all_flag) {
       surf->faces[fno + 1].v[0] = vertices[2];
       surf->faces[fno + 1].v[1] = vertices[3];
       surf->faces[fno + 1].v[2] = vertices[1];
-    } else {
+    }
+    else {
       surf->faces[fno].v[0] = vertices[0];
       surf->faces[fno].v[1] = vertices[1];
       surf->faces[fno].v[2] = vertices[2];
@@ -75034,7 +76613,8 @@ void TESSaddFace(MRI *mri,
                  int *pface_index,
                  tface_type *face,
                  int *face_index_table0,
-                 int *face_index_table1) {
+                 int *face_index_table1)
+{
   int xnum, ynum, pack;
 
   xnum = mri->width;
@@ -75044,7 +76624,8 @@ void TESSaddFace(MRI *mri,
   if (*pface_index >= MAXFACES - 1) ErrorExit(ERROR_NOMEMORY, "%s: max faces %d exceeded", Progname, MAXFACES);
   if (prev_flag) {
     face_index_table0[pack] = *pface_index;
-  } else {
+  }
+  else {
     face_index_table1[pack] = *pface_index;
   }
   face[*pface_index].imnr = imnr;  // z
@@ -75072,7 +76653,8 @@ void TESScheckFace(MRI *mri,
                    int *pface_index,
                    int *face_index_table0,
                    int *face_index_table1,
-                   tvertex_type *vertex) {
+                   tvertex_type *vertex)
+{
   int xnum, ynum, numimg, f_pack, f_ind;
   int imax, imin, jmax, jmin;
   xnum = mri->width;
@@ -75101,7 +76683,8 @@ void TESScheckFace(MRI *mri,
   }
 }
 
-int TESSaddVertex(MRI *mri, int imnr, int i, int j, int *pvertex_index, int *vertex_index_table, tvertex_type *vertex) {
+int TESSaddVertex(MRI *mri, int imnr, int i, int j, int *pvertex_index, int *vertex_index_table, tvertex_type *vertex)
+{
   int xnum = mri->width;
 
   int pack = i * (xnum + 1) + j;
@@ -75117,7 +76700,8 @@ int TESSaddVertex(MRI *mri, int imnr, int i, int j, int *pvertex_index, int *ver
   return ((*pvertex_index)++);
 }
 
-int TESSfacep(MRI *mri, int im0, int i0, int j0, int im1, int i1, int j1, int value, int all_flag) {
+int TESSfacep(MRI *mri, int im0, int i0, int j0, int im1, int i1, int j1, int value, int all_flag)
+{
   int numimg, imax, imin, jmax, jmin;
   numimg = mri->depth;
   // it is so confusing this guy uses j for width and i for height
@@ -75556,7 +77140,8 @@ mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   return(NO_ERROR) ;
 }
 #else
-static double mrisComputeNegativeLogPosterior2D(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int *pnvox) {
+static double mrisComputeNegativeLogPosterior2D(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int *pnvox)
+{
   MRI *mri = parms->mri_brain;
   MHT *mht;
   double sse = 0.0, ll, wm_frac, pval, dist, vdist, xs, ys, zs;
@@ -75709,7 +77294,8 @@ static double mrisComputeNegativeLogPosterior2D(MRI_SURFACE *mris, INTEGRATION_P
 
       DiagBreak();
     }
-  } else  // use previously computed ones
+  }
+  else  // use previously computed ones
   {
   }
 
@@ -75778,7 +77364,8 @@ static double mrisComputeNegativeLogPosterior2D(MRI_SURFACE *mris, INTEGRATION_P
   return (sse);
 }
 
-static int mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
+static int mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+{
   MRI *mri = parms->mri_brain;
   FILE *fp, *fp2;
   double dist, xs, ys, zs, dn, best_dn, best_ll, ll;
@@ -75883,7 +77470,8 @@ static int mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parm
       fp = fopen(fname, "w");
       sprintf(fname, "vno%d.%d.l.vals.dat", vno, parms->t);
       fp2 = fopen(fname, "w");
-    } else
+    }
+    else
       fp = fp2 = NULL;
     best_ll = -1e10;
     best_dn = 0;
@@ -76029,7 +77617,8 @@ static int mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parm
 }
 #endif
 
-MRI *MRISmapToSurface(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRI *mri_src_features, MRI *mri_dst_features) {
+MRI *MRISmapToSurface(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRI *mri_src_features, MRI *mri_dst_features)
+{
   int vno_src, vno_dst;
   MHT *mht;
   VERTEX *vdst, *vsrc;
@@ -76052,7 +77641,8 @@ MRI *MRISmapToSurface(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRI *mri_src
   MHTfree(&mht);
   return (mri_dst_features);
 }
-int MRIScountNegativeFaces(MRI_SURFACE *mris) {
+int MRIScountNegativeFaces(MRI_SURFACE *mris)
+{
   int fno, neg;
   FACE *face;
 
@@ -76063,7 +77653,8 @@ int MRIScountNegativeFaces(MRI_SURFACE *mris) {
   }
   return (neg);
 }
-int MRISevertSurface(MRI_SURFACE *mris) {
+int MRISevertSurface(MRI_SURFACE *mris)
+{
   int v0, fno;
   FACE *face;
 
@@ -76077,7 +77668,8 @@ int MRISevertSurface(MRI_SURFACE *mris) {
 
   return (NO_ERROR);
 }
-int MRISsetCroppedToZero(MRI_SURFACE *mris) {
+int MRISsetCroppedToZero(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -76089,7 +77681,8 @@ int MRISsetCroppedToZero(MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-int MRIScopyFromCropped(MRI_SURFACE *mris, int which) {
+int MRIScopyFromCropped(MRI_SURFACE *mris, int which)
+{
   int vno;
   VERTEX *v;
 
@@ -76111,7 +77704,8 @@ int MRIScopyFromCropped(MRI_SURFACE *mris, int which) {
   return (NO_ERROR);
 }
 
-int MRIScopyToCropped(MRI_SURFACE *mris, int which) {
+int MRIScopyToCropped(MRI_SURFACE *mris, int which)
+{
   int vno;
   VERTEX *v;
 
@@ -76132,7 +77726,8 @@ int MRIScopyToCropped(MRI_SURFACE *mris, int which) {
   }
   return (NO_ERROR);
 }
-int MRISwriteCropped(MRI_SURFACE *mris, char *fname) {
+int MRISwriteCropped(MRI_SURFACE *mris, char *fname)
+{
   float *vals;
 
   vals = (float *)calloc(mris->nvertices, sizeof(*vals));
@@ -76145,7 +77740,8 @@ int MRISwriteCropped(MRI_SURFACE *mris, char *fname) {
   free(vals);
   return (NO_ERROR);
 }
-int IsMRISselfIntersecting(MRI_SURFACE *mris) {
+int IsMRISselfIntersecting(MRI_SURFACE *mris)
+{
   MRIS_HASH_TABLE *mht;
   int fno;
 
@@ -76162,7 +77758,8 @@ int IsMRISselfIntersecting(MRI_SURFACE *mris) {
   return 0;
 }
 #include "mrinorm.h"
-MRI *MRISsolveLaplaceEquation(MRI_SURFACE *mris, MRI *mri, double res) {
+MRI *MRISsolveLaplaceEquation(MRI_SURFACE *mris, MRI *mri, double res)
+{
   MRI *mri_white, *mri_pial, *mri_laplace, *mri_control, *mri_tmp = NULL;
   int x, y, z, ncontrol, nribbon, v, i, xm1, xp1, ym1, yp1, zm1, zp1;
   VOXLIST *vl;
@@ -76193,12 +77790,14 @@ MRI *MRISsolveLaplaceEquation(MRI_SURFACE *mris, MRI *mri, double res) {
           MRIsetVoxVal(mri_control, x, y, z, 0, CONTROL_MARKED);
           MRIsetVoxVal(mri_laplace, x, y, z, 0, 0.0);
           ncontrol++;
-        } else if (FZERO(pval))  // outside pial surface
+        }
+        else if (FZERO(pval))  // outside pial surface
         {
           MRIsetVoxVal(mri_control, x, y, z, 0, CONTROL_MARKED);
           MRIsetVoxVal(mri_laplace, x, y, z, 0, 1.0);
           ncontrol++;
-        } else
+        }
+        else
           nribbon++;
       }
 
@@ -76261,7 +77860,8 @@ MRI *MRISsolveLaplaceEquation(MRI_SURFACE *mris, MRI *mri, double res) {
   return (mri_laplace);
 }
 
-int MRISmeasureLaplaceStreamlines(MRI_SURFACE *mris, MRI *mri_laplace, MRI *mri_intensity, MRI *mri_profiles) {
+int MRISmeasureLaplaceStreamlines(MRI_SURFACE *mris, MRI *mri_laplace, MRI *mri_intensity, MRI *mri_profiles)
+{
   int vno, f, x, y, z, npoints, nmissing, nbr_is_diag;
   VERTEX *v;
   double dx, dy, dz, xv, yv, zv, voxsize;
@@ -76426,7 +78026,8 @@ int MRISmeasureLaplaceStreamlines(MRI_SURFACE *mris, MRI *mri_laplace, MRI *mri_
         MRIsetVoxVal(mri_profiles, vno, 0, 0, frame, val);
         frame = new_frame;
         if (frame >= mri_profiles->nframes) break;
-      } else
+      }
+      else
         MRIsetVoxVal(mri_profiles, vno, 0, 0, frame, val);
 
       MRIsampleVolumeFrame(mri_laplace, xv, yv, zv, 0, &val);
@@ -76442,7 +78043,8 @@ int MRISmeasureLaplaceStreamlines(MRI_SURFACE *mris, MRI *mri_laplace, MRI *mri_
   MRIfree(&mri_grad);
   return (NO_ERROR);
 }
-int MRISnotMarked(MRI_SURFACE *mris) {
+int MRISnotMarked(MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 

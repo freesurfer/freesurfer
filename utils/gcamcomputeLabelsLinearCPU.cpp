@@ -31,7 +31,8 @@
 
 #include "gcamcomputeLabelsLinearCPU.h"
 
-int GCAMcomputeLabelsLinearCPU(MRI *mri, GCA_MORPH *gcam) {
+int GCAMcomputeLabelsLinearCPU(MRI *mri, GCA_MORPH *gcam)
+{
   int nchanged = 0;
 
   if (gcam->gca == NULL) {

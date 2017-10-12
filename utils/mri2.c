@@ -70,7 +70,8 @@
   mri_load_bvolume() -- same as bf_ldvolume() but returns an
   MRI structure instead of a BF_DATA. See bfileio.h.
   -------------------------------------------------------------*/
-MRI *mri_load_bvolume(char *bfstem) {
+MRI *mri_load_bvolume(char *bfstem)
+{
   BF_DATA *bfvol;
   MRI *vol;
   int r, c, s, f;
@@ -108,7 +109,8 @@ MRI *mri_load_bvolume(char *bfstem) {
   mri_save_as_bvolume() - same as bf_svvolume() but takes an MRI
   sturucture as input. See also bfileio.h.
   -------------------------------------------------------------*/
-int mri_save_as_bvolume(MRI *vol, char *stem, int svendian, int svtype) {
+int mri_save_as_bvolume(MRI *vol, char *stem, int svendian, int svtype)
+{
   BF_DATA *bfvol;
   int r, c, s, f;
   float val;
@@ -138,7 +140,8 @@ int mri_save_as_bvolume(MRI *vol, char *stem, int svendian, int svtype) {
 /*-------------------------------------------------------------
   mri_load_bvolume_frame() -- loads a single frame as an MRI.
   -------------------------------------------------------------*/
-MRI *mri_load_bvolume_frame(char *bfstem, int frameno) {
+MRI *mri_load_bvolume_frame(char *bfstem, int frameno)
+{
   BF_DATA *bfvol;
   MRI *vol;
   int r, c, s;
@@ -191,7 +194,8 @@ MRI *mri_load_bvolume_frame(char *bfstem, int frameno) {
   of unsigned char), the MRI can be rescaled to 0-255 by setting
   the rescale flag to non-zero. See also corio.h.
   -------------------------------------------------------------*/
-int mri_save_as_cor(MRI *vol, char *cordir, int frame, int rescale) {
+int mri_save_as_cor(MRI *vol, char *cordir, int frame, int rescale)
+{
   unsigned char **COR;
   int r, c, s;
   int rmax, cmax, smax;
@@ -248,7 +252,8 @@ int mri_save_as_cor(MRI *vol, char *cordir, int frame, int rescale) {
   outvol if non-null, otherwise allocates an output volume. Can
   be done in-place. Rescales across all frames.
   ------------------------------------------------------------*/
-MRI *mri_rescale(MRI *vol, float min, float max, MRI *outvol) {
+MRI *mri_rescale(MRI *vol, float min, float max, MRI *outvol)
+{
   int r, c, s, f;
   float val, volmin, volmax, range;
   // float volrange;
@@ -298,7 +303,8 @@ MRI *mri_rescale(MRI *vol, float min, float max, MRI *outvol) {
 /*------------------------------------------------------------
   mri_minmax() -- gets min and max values of volume
   ------------------------------------------------------------*/
-int mri_minmax(MRI *vol, float *min, float *max) {
+int mri_minmax(MRI *vol, float *min, float *max)
+{
   int r, c, s, f;
   float val;
 
@@ -326,7 +332,8 @@ int mri_minmax(MRI *vol, float *min, float *max) {
   squared before spatial averaging and then square-rooted before
   saving again.
   -----------------------------------------------------------*/
-int mri_framepower(MRI *vol, float *framepower) {
+int mri_framepower(MRI *vol, float *framepower)
+{
   int r, c, s, f;
   float val;
 
@@ -384,7 +391,8 @@ int mri_framepower(MRI *vol, float *framepower) {
   number of voxels in vol that meet the threshold criteria
   (ie, the number of 1's in volbin).
   -----------------------------------------------------------------*/
-MRI *mri_binarize(MRI *vol, float thresh, char *tail, int invert, MRI *volbin, int *nover) {
+MRI *mri_binarize(MRI *vol, float thresh, char *tail, int invert, MRI *volbin, int *nover)
+{
   int r, c, s, f, tailcode;
   float val;
   int b, onval, offval;
@@ -409,14 +417,16 @@ MRI *mri_binarize(MRI *vol, float thresh, char *tail, int invert, MRI *volbin, i
     if (voltmp == NULL) return (NULL);
     MRIcopyHeader(vol, voltmp);
     MRIcopyPulseParameters(vol, voltmp);
-  } else
+  }
+  else
     voltmp = volbin;
 
   if (!invert) {
     onval = 1;
     offval = 0;
     printf("NOT INVERTING\n");
-  } else {
+  }
+  else {
     onval = 0;
     offval = 1;
     printf("INVERTING\n");
@@ -454,7 +464,8 @@ MRI *mri_binarize(MRI *vol, float thresh, char *tail, int invert, MRI *volbin, i
 /*--------------------------------------------------------
   mri_load_cor_as_float()
   --------------------------------------------------------*/
-MRI *mri_load_cor_as_float(char *cordir) {
+MRI *mri_load_cor_as_float(char *cordir)
+{
   MRI *ucvol;
   MRI *vol;
   int r, c, s;
@@ -483,7 +494,8 @@ MRI *mri_load_cor_as_float(char *cordir) {
 }
 /* ---------------------------------------- */
 /* not tested */
-MRI *mri_load_wfile(char *wfile) {
+MRI *mri_load_wfile(char *wfile)
+{
   FILE *fp;
   int i, ilat, num, vtx, nvertices;
   int *vtxnum;
@@ -526,7 +538,8 @@ MRI *mri_load_wfile(char *wfile) {
   mri_sizeof() - returns the size of the data type of the MRI
   volume (in number of bytes).
   ------------------------------------------------------------*/
-size_t mri_sizeof(MRI *vol) {
+size_t mri_sizeof(MRI *vol)
+{
   size_t bytes = 0;
 
   switch (vol->type) {
@@ -552,7 +565,8 @@ size_t mri_sizeof(MRI *vol) {
 /*------------------------------------------------------------
   mri_reshape() --
   ------------------------------------------------------------*/
-MRI *mri_reshape(MRI *vol, int ncols, int nrows, int nslices, int nframes) {
+MRI *mri_reshape(MRI *vol, int ncols, int nrows, int nslices, int nframes)
+{
   MRI *outvol;
   int r, c, s, f, nv1, nv2;
   int r2, c2, s2, f2;
@@ -631,7 +645,8 @@ MRI *mri_reshape(MRI *vol, int ncols, int nrows, int nslices, int nframes) {
   \brief Reshapes the MRI structure to have nvox columns,
   1 row, and 1 slice; does not change the number of frames.
  */
-MRI *MRIreshape1d(MRI *src, MRI *trg) {
+MRI *MRIreshape1d(MRI *src, MRI *trg)
+{
   int ncols, nrows, nslices, nvox, nframes;
   ncols = src->width;
   nrows = src->height;
@@ -665,7 +680,8 @@ MRI *MRIreshape1d(MRI *src, MRI *trg) {
   param is a generic parameter. For sinc, param is the hw parameter,
   otherwise, it currently has no meaning.
   ---------------------------------------------------------------*/
-int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param) {
+int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
+{
 #ifdef FS_CUDA
   int cudaReturn;
 #else
@@ -841,7 +857,8 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param) {
 
   return (0);
 }
-int MRIvol2VolR(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param, MATRIX *RRot) {
+int MRIvol2VolR(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param, MATRIX *RRot)
+{
   int ct, rt, st, f;
   int ics, irs, iss;
   float fcs, frs, fss;
@@ -939,7 +956,8 @@ int MRIvol2VolR(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param, 
           for (col = 1; col <= 3; col++) {
             MRIsetVoxVal(targ, ct, rt, st, col - 1, VECTOR_ELT(RotVector, col));
           }
-        } else  // if(nframes == 9)
+        }
+        else  // if(nframes == 9)
         {
           int row, col;
           for (row = 1; row <= 3; row++)
@@ -980,7 +998,8 @@ int MRIvol2VolR(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param, 
   \param InterCode - SAMPLE_NEAREST, SAMPLE_TRILINEAR, SAMPLE_SINC.
     Sinc probably does not work.
  */
-int MRIvol2VolTkReg(MRI *mov, MRI *targ, MATRIX *Rtkreg, int InterpCode, float param) {
+int MRIvol2VolTkReg(MRI *mov, MRI *targ, MATRIX *Rtkreg, int InterpCode, float param)
+{
   MATRIX *vox2vox = NULL;
   MATRIX *Tmov, *invTmov, *Ttarg;
   int err;
@@ -993,7 +1012,8 @@ int MRIvol2VolTkReg(MRI *mov, MRI *targ, MATRIX *Rtkreg, int InterpCode, float p
     // vox2vox = invTmov*R*Ttarg
     vox2vox = MatrixMultiply(invTmov, Rtkreg, vox2vox);
     MatrixMultiply(vox2vox, Ttarg, vox2vox);
-  } else
+  }
+  else
     vox2vox = NULL;
 
   // resample
@@ -1017,7 +1037,8 @@ int MRIvol2VolTkReg(MRI *mov, MRI *targ, MATRIX *Rtkreg, int InterpCode, float p
   \param targ - target volume
   \param Vt2s - vox2vox transform from target to source (can be NULL)
  */
-MRI *MRIvol2VolTLKernel(MRI *src, MRI *targ, MATRIX *Vt2s) {
+MRI *MRIvol2VolTLKernel(MRI *src, MRI *targ, MATRIX *Vt2s)
+{
   int ct, rt, st, f;
   int ics, irs, iss;
   float fcs, frs, fss;
@@ -1087,7 +1108,8 @@ MRI *MRIvol2VolTLKernel(MRI *src, MRI *targ, MATRIX *Vt2s) {
   non-zero voxels in the mask is created.
 
  */
-MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int nPad, int DoConserve, LTA **src2out) {
+MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int nPad, int DoConserve, LTA **src2out)
+{
   MRI *srcmask, *srcus;
   MRI_REGION *region;
 
@@ -1110,7 +1132,8 @@ MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int nPad, int D
       srcus = MRIupsampleNConserve(srcmask, NULL, UpsampleFactor);
     else
       srcus = MRIupsampleN(srcmask, NULL, UpsampleFactor);
-  } else
+  }
+  else
     srcus = srcmask;
 
   *src2out = TransformRegDat2LTA(src, srcus, NULL);  // src2srcus
@@ -1127,7 +1150,8 @@ MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int nPad, int D
     3 slices mismatch
     4 frames mismatch - note: frameflag must = 1 to check frames
   ---------------------------------------------------------------*/
-int MRIdimMismatch(const MRI *v1, const MRI *v2, int frameflag) {
+int MRIdimMismatch(const MRI *v1, const MRI *v2, int frameflag)
+{
   if (v1->width != v2->width) return (1);
   if (v1->height != v2->height) return (2);
   if (v1->depth != v2->depth) return (3);
@@ -1190,7 +1214,8 @@ int MRIfdr2vwth(MRI **vollist,
                 int log10flag,
                 MRI **masklist,
                 double *vwth,
-                MRI **ovollist) {
+                MRI **ovollist)
+{
   MRI *vol, *mask, *ovol;
   double *p = NULL, val = 0.0, valnull = 0.0, maskval;
   int Nv, np, c, r, s, frame, nthvol;
@@ -1355,7 +1380,8 @@ int MRIfdr2vwth(MRI **vollist,
   in the mask are less than 0.5 are excluded from the computation of
   the covariance matrix, and Nv becomes the number points in the mask.
   ------------------------------------------------------------------*/
-MATRIX *MRIcovarianceMatrix(MRI *mri, MRI *mask) {
+MATRIX *MRIcovarianceMatrix(MRI *mri, MRI *mask)
+{
   int UseMask = 0, nmask, f1, f2;
   int r, c, s;
   double sum, v1, v2;
@@ -1378,7 +1404,8 @@ MATRIX *MRIcovarianceMatrix(MRI *mri, MRI *mask) {
       return (NULL);
     }
     UseMask = 1;
-  } else {
+  }
+  else {
     // Otherwise use all voxels/vertices
     nmask = mri->width * mri->height * mri->depth;
     UseMask = 0;
@@ -1420,7 +1447,8 @@ MATRIX *MRIcovarianceMatrix(MRI *mri, MRI *mask) {
   non-null, uses only the voxels for which mask>0.5. When complete,
   D = U*S*V';
   -------------------------------------------------------------------*/
-int MRIpca(MRI *D, MATRIX **pU, VECTOR **pS, MRI **pV, MRI *mask) {
+int MRIpca(MRI *D, MATRIX **pU, VECTOR **pS, MRI **pV, MRI *mask)
+{
   int dim, dim_real, nvoxels, c, r, s, f, UseMask, nmask = 0;
   MATRIX *M, *VV, *UinvS, *Fd, *Fv;
   VECTOR *S2;
@@ -1436,7 +1464,8 @@ int MRIpca(MRI *D, MATRIX **pU, VECTOR **pS, MRI **pV, MRI *mask) {
       for (r = 0; r < D->height; r++)
         for (s = 0; s < D->depth; s++)
           if (UseMask && MRIgetVoxVal(mask, c, r, s, 0) > 0.5) nmask++;
-  } else {
+  }
+  else {
     UseMask = 0;
     nmask = nvoxels;
   }
@@ -1520,7 +1549,8 @@ int MRIpca(MRI *D, MATRIX **pU, VECTOR **pS, MRI **pV, MRI *mask) {
   (3) var spanned by 1-nth EVs, (3) percent var spanned by nth,
   (4) perent var spanned by 1-nth EVs,
   --------------------------------------------------------------*/
-int PrintPCAStats(FILE *fp, MATRIX *Spca) {
+int PrintPCAStats(FILE *fp, MATRIX *Spca)
+{
   int n;
   double totvar, v, vsum;
 
@@ -1540,7 +1570,8 @@ int PrintPCAStats(FILE *fp, MATRIX *Spca) {
   WritePCAStats() - writes pca summary statistics to a file.
   see PrintPCAStats() for more info.
   --------------------------------------------------------------*/
-int WritePCAStats(char *fname, MATRIX *Spca) {
+int WritePCAStats(char *fname, MATRIX *Spca)
+{
   FILE *fp;
   fp = fopen(fname, "w");
   if (fp == NULL) {
@@ -1553,7 +1584,8 @@ int WritePCAStats(char *fname, MATRIX *Spca) {
 /*---------------------------------------------------------------
   MRIsqrt() - computes sqrt(fabs(v)). Calls MRIsquraRoot().
   ---------------------------------------------------------------*/
-MRI *MRIsqrt(MRI *invol, MRI *outvol) {
+MRI *MRIsqrt(MRI *invol, MRI *outvol)
+{
   outvol = MRIsquareRoot(invol, NULL, outvol);
   return (outvol);
 }
@@ -1570,7 +1602,8 @@ MRI *MRIsqrt(MRI *invol, MRI *outvol) {
  it gets the data type of mri1. If it is specified, it can
  be any data type.
 */
-MRI *MRImax(MRI *mri1, MRI *mri2, MRI *out) {
+MRI *MRImax(MRI *mri1, MRI *mri2, MRI *out)
+{
   int c, r, s, f, n, ncols, nrows, nslices, nframes;
   void *pmri1 = NULL, *pmri2 = NULL, *pout = NULL;
   double v1 = 0, v2 = 0, v;
@@ -1632,7 +1665,8 @@ MRI *MRImax(MRI *mri1, MRI *mri2, MRI *out) {
   MRImaxAbsDiff() - finds the voxel where the two volumes differ
   the most.
   ---------------------------------------------------------------*/
-double MRImaxAbsDiff(MRI *vol1, MRI *vol2, int *cmax, int *rmax, int *smax, int *fmax) {
+double MRImaxAbsDiff(MRI *vol1, MRI *vol2, int *cmax, int *rmax, int *smax, int *fmax)
+{
   int c, r, s, f;
   double v1, v2, maxdiff;
 
@@ -1657,7 +1691,8 @@ double MRImaxAbsDiff(MRI *vol1, MRI *vol2, int *cmax, int *rmax, int *smax, int 
   return (maxdiff);
 }
 /* --------------------------------------------------------------- */
-MRI *MRImultiplyConst(MRI *src, double vconst, MRI *dst) {
+MRI *MRImultiplyConst(MRI *src, double vconst, MRI *dst)
+{
   int r, c, s, f;
   double v;
 
@@ -1680,7 +1715,8 @@ MRI *MRImultiplyConst(MRI *src, double vconst, MRI *dst) {
   return (dst);
 }
 /* --------------------------------------------------------------- */
-MRI *MRIaddConst(MRI *src, double vconst, MRI *dst) {
+MRI *MRIaddConst(MRI *src, double vconst, MRI *dst)
+{
   int r, c, s, f;
   double v;
 
@@ -1711,7 +1747,8 @@ MRI *MRIaddConst(MRI *src, double vconst, MRI *dst) {
   it does not meet the frame criteria in mri, then it will be set to
   0. Note: if mask is not null, it's values will be changed.
   --------------------------------------------------------------------*/
-MRI *MRIframeBinarize(MRI *mri, double thresh, MRI *mask) {
+MRI *MRIframeBinarize(MRI *mri, double thresh, MRI *mask)
+{
   int c, r, s, f, n, premask;
   double val, m;
   premask = 1;
@@ -1748,7 +1785,8 @@ MRI *MRIframeBinarize(MRI *mri, double thresh, MRI *mask) {
          outside the mask (ie, mask < 0.5) are set to 0 (if out=NULL)
          or the previous value of out.
  */
-MRI *MRIexp(MRI *mri, double a, double b, MRI *mask, MRI *out) {
+MRI *MRIexp(MRI *mri, double a, double b, MRI *mask, MRI *out)
+{
   int c, r, s, f;
   double val, valout, m;
   int err;
@@ -1759,7 +1797,8 @@ MRI *MRIexp(MRI *mri, double a, double b, MRI *mask, MRI *out) {
       printf("ERROR: MRIexp: could not alloc\n");
       return (NULL);
     }
-  } else {
+  }
+  else {
     err = MRIdimMismatch(mri, out, 1);
     if (err) {
       printf("ERROR: MRIexp(): output dimension mismatch (%d)\n", err);
@@ -1795,7 +1834,8 @@ MRI *MRIexp(MRI *mri, double a, double b, MRI *mask, MRI *out) {
          outside the mask (ie, mask < 0.5) are set to 0 (if out=NULL)
          or the previous value of out.
  */
-MRI *MRIsum(MRI *mri1, MRI *mri2, double a, double b, MRI *mask, MRI *out) {
+MRI *MRIsum(MRI *mri1, MRI *mri2, double a, double b, MRI *mask, MRI *out)
+{
   int c, r, s, f;
   double val1, val2, valout, m;
   int err;
@@ -1812,7 +1852,8 @@ MRI *MRIsum(MRI *mri1, MRI *mri2, double a, double b, MRI *mask, MRI *out) {
       printf("ERROR: MRIsum: could not alloc\n");
       return (NULL);
     }
-  } else {
+  }
+  else {
     err = MRIdimMismatch(mri1, out, 1);
     if (err) {
       printf("ERROR: MRIsum(): output dimension mismatch (%d)\n", err);
@@ -1847,7 +1888,8 @@ MRI *MRIsum(MRI *mri1, MRI *mri2, double a, double b, MRI *mask, MRI *out) {
      (2) Fraction of occurances (ie noccurances/nframes)
   Note: input will be sorted in asc order
  */
-MRI *MRIvote(MRI *in, MRI *mask, MRI *vote) {
+MRI *MRIvote(MRI *in, MRI *mask, MRI *vote)
+{
   int c, r, s, f, f0, ncols, nrows, nslices, nframes;
   float m;
   double vmax, v, v0;
@@ -1934,7 +1976,8 @@ column, row, and slice at the given frame. The neighborhood size is within
 delta of the center voxel and includes the center voxel. Ie, the number
 of voxels searched is (2*delta + 1)^3
 */
-int MRImostFreqNeighbor(MRI *mri, int c, int r, int s, int f, int delta) {
+int MRImostFreqNeighbor(MRI *mri, int c, int r, int s, int f, int delta)
+{
   int dc, dr, ds, cn, rn, sn, nbr;
   int nlist, *list, nmax, nside;
 
@@ -1974,7 +2017,8 @@ int MRImostFreqNeighbor(MRI *mri, int c, int r, int s, int f, int delta) {
    anatomical volume, the anatomical volume should be the targ
    parameter, and the functional should be the mov parameter.
  */
-int MRImakeVox2VoxReg(MRI *targ, MRI *mov, int regtype, char *regname, mriTransformRef *transform) {
+int MRImakeVox2VoxReg(MRI *targ, MRI *mov, int regtype, char *regname, mriTransformRef *transform)
+{
   int retcode = 0;
   char *cur_char, *base_end;
   int err;
@@ -2041,7 +2085,8 @@ int MRImakeVox2VoxReg(MRI *targ, MRI *mov, int regtype, char *regname, mriTransf
       generate one from our data file location. */
       if (VOX2VOXREGTYPE_FILE == regtype) {
         strncpy(fullregname, regname, sizeof(fullregname));
-      } else if (VOX2VOXREGTYPE_FIND == regtype) {
+      }
+      else if (VOX2VOXREGTYPE_FIND == regtype) {
         /* Copy the movable volume name and find the last / in the
            file name. From there, copy in "register.dat" for our file
            name. */
@@ -2147,7 +2192,8 @@ cleanup:
   \fn double MRIsum2All(MRI *mri)
   \brief squares and then sums all the voxels.
 */
-double MRIsum2All(MRI *mri) {
+double MRIsum2All(MRI *mri)
+{
   int c, r, s, f;
   double sum2all, val;
 
@@ -2169,7 +2215,8 @@ double MRIsum2All(MRI *mri) {
   \brief Squares the value at each voxel. Values outside
   of the mask are set to 0. mask can be NULL.
 */
-MRI *MRIsquare(MRI *in, MRI *mask, MRI *out) {
+MRI *MRIsquare(MRI *in, MRI *mask, MRI *out)
+{
   int c, r, s, f;
   double val, mval;
 
@@ -2202,7 +2249,8 @@ MRI *MRIsquare(MRI *in, MRI *mask, MRI *out) {
   Values outside of the mask are set to 0.  mask can be
   NULL.
 */
-MRI *MRIsquareRoot(MRI *in, MRI *mask, MRI *out) {
+MRI *MRIsquareRoot(MRI *in, MRI *mask, MRI *out)
+{
   int c, r, s, f;
   double val, mval;
 
@@ -2220,7 +2268,8 @@ MRI *MRIsquareRoot(MRI *in, MRI *mask, MRI *out) {
         for (f = 0; f < in->nframes; f++) {
           if (mval > 0.5) {
             val = MRIgetVoxVal(in, c, r, s, f);
-          } else
+          }
+          else
             val = 0.0;
           MRIsetVoxVal(out, c, r, s, f, sqrt(fabs(val)));
         }
@@ -2233,7 +2282,8 @@ MRI *MRIsquareRoot(MRI *in, MRI *mask, MRI *out) {
   \fn MRI *MRIsqr(MRI *in, MRI *out)
   \brief Square of the value at each voxel.
 */
-MRI *MRIsqr(MRI *in, MRI *out) {
+MRI *MRIsqr(MRI *in, MRI *out)
+{
   int c, r, s, f;
   double val;
 
@@ -2263,7 +2313,8 @@ MRI *MRIsqr(MRI *in, MRI *out) {
   visualizing the voxel sampling. Set fthresh = .1, fmax=3.5,
   and use linear blending.
 */
-MRI *MRIchecker(MRI *mri, MRI *checker) {
+MRI *MRIchecker(MRI *mri, MRI *checker)
+{
   int c, r, s, f;
   double cval = 0, rval = 0, sval = 0, fval = 0;
 
@@ -2309,7 +2360,8 @@ MRI *MRIchecker(MRI *mri, MRI *checker) {
   \fn MRI *MRIgrid(MRI *mri, int dc, int dr, int ds, float val, MRI *grid)
   \brief Creates a grid pattern.
 */
-MRI *MRIgrid(MRI *mri, int dc, int dr, int ds, float val, MRI *grid) {
+MRI *MRIgrid(MRI *mri, int dc, int dr, int ds, float val, MRI *grid)
+{
   int c, r, s, f;
 
   if (grid == NULL) {
@@ -2342,7 +2394,8 @@ MRI *MRIgrid(MRI *mri, int dc, int dr, int ds, float val, MRI *grid) {
   \param targ - target volume
   \param Rt2s - ras2ras transform from target to source (can be NULL, but why?)
  */
-MRI *MRIvol2VolDelta(MRI *mov, MRI *targ, MATRIX *Rt2s) {
+MRI *MRIvol2VolDelta(MRI *mov, MRI *targ, MATRIX *Rt2s)
+{
   int ct, rt, st;
   double dx, dy, dz;
   MATRIX *targCRS, *targRAS = NULL, *movRAS = NULL, *targVox2RAS, *targVox2movRAS;
@@ -2404,7 +2457,8 @@ MRI *MRIvol2VolDelta(MRI *mov, MRI *targ, MATRIX *Rt2s) {
   \param crs1 - col, row, slice to start cropping (inclusive)
   \param crs2 - col, row, slice to end cropping (inclusive)
  */
-MRI *MRIcrop(MRI *mri, int c1, int r1, int s1, int c2, int r2, int s2) {
+MRI *MRIcrop(MRI *mri, int c1, int r1, int s1, int c2, int r2, int s2)
+{
   int c, r, s, f, Nc, Nr, Ns;
   MRI *crop;
   MATRIX *Vox2RAS, *crs, *P0;
@@ -2470,7 +2524,8 @@ MRI *MRIcrop(MRI *mri, int c1, int r1, int s1, int c2, int r2, int s2) {
   \param crs2 - col, row, slice in template at
   which cropping ended   (inclusive)
  */
-MRI *MRIuncrop(MRI *mri, MRI *crop, int c1, int r1, int s1, int c2, int r2, int s2) {
+MRI *MRIuncrop(MRI *mri, MRI *crop, int c1, int r1, int s1, int c2, int r2, int s2)
+{
   int c, r, s, f;
   MRI *uncrop;
   double v;
@@ -2507,7 +2562,8 @@ MRI *MRIuncrop(MRI *mri, MRI *crop, int c1, int r1, int s1, int c2, int r2, int 
   \brief Reverses the order of the slices and updates the
     vox2ras matrix.
 */
-MRI *MRIreverseSlices(MRI *in, MRI *out) {
+MRI *MRIreverseSlices(MRI *in, MRI *out)
+{
   int c, r, s, f;
   MATRIX *M, *invM, *Sin, *Sout;
   double v;
@@ -2559,7 +2615,8 @@ MRI *MRIreverseSlices(MRI *in, MRI *out) {
   return (out);
 }
 /*----------------------------------------------------------------*/
-MRI *MRIcutEndSlices(MRI *mri, int ncut) {
+MRI *MRIcutEndSlices(MRI *mri, int ncut)
+{
   MRI *out;
   int nslices;
   int c, r, s, f, scut;
@@ -2597,7 +2654,8 @@ MRI *MRIcutEndSlices(MRI *mri, int ncut) {
    *pnlist. The volume need not be an int or char, but it is probably
    what it will be.
 */
-int *MRIsegIdListExclude0(MRI *seg, int *pnlist, int frame) {
+int *MRIsegIdListExclude0(MRI *seg, int *pnlist, int frame)
+{
   int *segidlist, *segidlist2, n, m, has0;
 
   segidlist = MRIsegIdList(seg, pnlist, frame);
@@ -2629,7 +2687,8 @@ int *MRIsegIdListExclude0(MRI *seg, int *pnlist, int frame) {
    excluding segid=0. The number in the list is *nsegs. The volume
    need not be an int or char, but it is probably what it will be.
 */
-int *MRIsegIdListNot0(MRI *seg, int *nsegs, int frame) {
+int *MRIsegIdListNot0(MRI *seg, int *nsegs, int frame)
+{
   int *segidlist0, *segidlist, msegs, nthseg;
   segidlist0 = MRIsegIdList(seg, nsegs, frame);
   // remove 0 from the list
@@ -2651,7 +2710,8 @@ int *MRIsegIdListNot0(MRI *seg, int *nsegs, int frame) {
    the volume. The number in the list is *nlist. The volume need not
    be an int or char, but it is probably what it will be.
 */
-int *MRIsegIdList(MRI *seg, int *nlist, int frame) {
+int *MRIsegIdList(MRI *seg, int *nlist, int frame)
+{
   int nvoxels, r, c, s, nth;
   int *tmplist = NULL;
   int *segidlist = NULL;
@@ -2684,7 +2744,8 @@ int *MRIsegIdList(MRI *seg, int *nlist, int frame) {
   should have the same number of segs. Note: to get the name of
   the seg, CTABcopyName(ctab,segidlist[k],tmpstr,sizeof(tmpstr));
 */
-double *MRIsegDice(MRI *seg1, MRI *seg2, int *nsegs, int **segidlist) {
+double *MRIsegDice(MRI *seg1, MRI *seg2, int *nsegs, int **segidlist)
+{
   int k, c, r, s, id1, id2, k1 = 0, k2 = 0;
   int nsegid1, *segidlist1;
   int nsegid2, *segidlist2;
@@ -2757,7 +2818,8 @@ double *MRIsegDice(MRI *seg1, MRI *seg2, int *nsegs, int **segidlist) {
   Note that if there is no difference, all voxels will have the
   value of VOXEL_UNCHANGED. See also MRIsegMergeDiff().
 */
-MRI *MRIsegDiff(MRI *old, MRI *new, int *DiffFlag) {
+MRI *MRIsegDiff(MRI *old, MRI *new, int *DiffFlag)
+{
   MRI *diff;
   int c, r, s;
   int vold, vnew, vdiff;
@@ -2794,7 +2856,8 @@ MRI *MRIsegDiff(MRI *old, MRI *new, int *DiffFlag) {
   have a diff value other than VOXEL_UNCHANGED take their value from
   the "diff" segmentation.  See also MRIsegDiff().
 */
-MRI *MRIsegMergeDiff(MRI *old, MRI *diff) {
+MRI *MRIsegMergeDiff(MRI *old, MRI *diff)
+{
   MRI *new;
   int c, r, s;
   int vold, vdiff, vnew;
@@ -2828,7 +2891,8 @@ MRI *MRIsegMergeDiff(MRI *old, MRI *diff) {
     a control parameter. When 0, there is no bias. 1 is full
     bias.
 */
-MRI *MRIhalfCosBias(MRI *in, double alpha, MRI *out) {
+MRI *MRIhalfCosBias(MRI *in, double alpha, MRI *out)
+{
   int c, r, s, f;
   double v, w;
 
@@ -2850,7 +2914,8 @@ MRI *MRIhalfCosBias(MRI *in, double alpha, MRI *out) {
   return (out);
 }
 
-int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param, MRI *vsm) {
+int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param, MRI *vsm)
+{
   int ct, rt, st, f;
   int ics, irs, iss, cvsm, rvsm;
   float fcs, frs, fss;
@@ -2992,7 +3057,8 @@ MRI *MRIvol2surfVSM(const MRI *SrcVol,
                     float ProjFrac,
                     int ProjType,
                     int nskip,
-                    MRI *TrgVol) {
+                    MRI *TrgVol)
+{
   MATRIX *ras2vox, *vox2ras;
   AffineVector Scrs, Txyz;
   AffineMatrix ras2voxAffine;
@@ -3029,7 +3095,8 @@ MRI *MRIvol2surfVSM(const MRI *SrcVol,
     TrgVol = MRIallocSequence(TrgSurf->nvertices, 1, 1, MRI_FLOAT, SrcVol->nframes);
     if (TrgVol == NULL) return (NULL);
     MRIcopyHeader(SrcVol, TrgVol);
-  } else {
+  }
+  else {
     if (TrgVol->width != TrgSurf->nvertices || TrgVol->nframes != SrcVol->nframes) {
       printf("ERROR: MRIvol2surfVSM: dimension mismatch (%d,%d), or (%d,%d)\n",
              TrgVol->width,
@@ -3078,7 +3145,8 @@ MRI *MRIvol2surfVSM(const MRI *SrcVol,
         ProjNormDist(&Tx, &Ty, &Tz, TrgSurf, vtx, ProjFrac);
       else
         ProjNormFracThick(&Tx, &Ty, &Tz, TrgSurf, vtx, ProjFrac);
-    } else {
+    }
+    else {
       Tx = v->x;
       Ty = v->y;
       Tz = v->z;
@@ -3142,7 +3210,8 @@ MRI *MRIvol2surfVSM(const MRI *SrcVol,
       MRIsampleSeqVolume(SrcVol, fcol, frow, fslc, valvect, 0, SrcVol->nframes - 1);
       if (Gdiag_no == vtx) printf("val = %f\n", valvect[0]);
       for (frm = 0; frm < SrcVol->nframes; frm++) MRIFseq_vox(TrgVol, vtx, 0, 0, frm) = valvect[frm];
-    } else {
+    }
+    else {
       for (frm = 0; frm < SrcVol->nframes; frm++) {
         switch (InterpMethod) {
           case SAMPLE_NEAREST:
@@ -3180,7 +3249,8 @@ MRI *MRIvol2surfVSM(const MRI *SrcVol,
   return (TrgVol);
 }
 
-int MRIvol2VolTkRegVSM(MRI *mov, MRI *targ, MATRIX *Rtkreg, int InterpCode, float param, MRI *vsm) {
+int MRIvol2VolTkRegVSM(MRI *mov, MRI *targ, MATRIX *Rtkreg, int InterpCode, float param, MRI *vsm)
+{
   MATRIX *vox2vox = NULL;
   MATRIX *Tmov, *invTmov, *Ttarg;
   int err;
@@ -3193,7 +3263,8 @@ int MRIvol2VolTkRegVSM(MRI *mov, MRI *targ, MATRIX *Rtkreg, int InterpCode, floa
     // vox2vox = invTmov*R*Ttarg
     vox2vox = MatrixMultiply(invTmov, Rtkreg, vox2vox);
     MatrixMultiply(vox2vox, Ttarg, vox2vox);
-  } else
+  }
+  else
     vox2vox = NULL;
 
   // resample
@@ -3221,7 +3292,8 @@ int MRIvol2VolTkRegVSM(MRI *mov, MRI *targ, MATRIX *Rtkreg, int InterpCode, floa
   the source. It is possible that no source voxels map to a given
   target voxel (but probably not likely if targ is lowres).
  */
-MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int DoConserve, MRI *outfill) {
+MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int DoConserve, MRI *outfill)
+{
   int c, r, s, ct, rt, st, f, nhits, nPad = 2;
   MATRIX *crssrc, *crstarg, *v2v, *vmusinv;
   double vsrc, vout;
@@ -3248,7 +3320,8 @@ MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int DoCon
     if (Gdiag_no > 0) printf("MRIvol2VolFill(): not using inverse\n");
     v2v = ltatmp->xforms[0].m_L;
     vgtarg = ltatmp->xforms[lta->num_xforms - 1].dst;
-  } else {
+  }
+  else {
     // Invert the matrix if the LTA goes in the wrong direction
     if (Gdiag_no > 0) printf("MRIvol2VolFill(): using inverse\n");
     LTAfillInverse(ltatmp);
@@ -3263,7 +3336,8 @@ MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int DoCon
     v2v = MatrixMultiply(v2v, vmusinv, v2v);
     MatrixFree(&vmusinv);
     LTAfree(&src2srcmus);
-  } else
+  }
+  else
     srcmus = src;
 
   if (outfill == NULL) {
@@ -3350,7 +3424,8 @@ MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int DoCon
   \brief Creates a segmentation boundary volume in which voxels
   whose neighbors are the same seg are set to 0.
 */
-MRI *MRIsegBoundary(MRI *seg) {
+MRI *MRIsegBoundary(MRI *seg)
+{
   MRI *boundary;
   int c, r, s, dc, dr, ds;
   int cseg, nseg, b;
@@ -3395,7 +3470,8 @@ MRI *MRIsegBoundary(MRI *seg) {
   \brief Creates a 1-frame volume with the value
   at frame 0 equal to the slice number.
 */
-MRI *MRIsliceNo(MRI *in, MRI *out) {
+MRI *MRIsliceNo(MRI *in, MRI *out)
+{
   int c, r, s;
   if (out == NULL) {
     out = MRIalloc(in->width, in->height, in->depth, MRI_FLOAT);
@@ -3419,7 +3495,8 @@ MRI *MRIsliceNo(MRI *in, MRI *out) {
   at frame 0 equal to the voxel index, eg,
   sliceno*nrows*ncols + rowno*ncols + col.
 */
-MRI *MRIindexNo(MRI *in, MRI *out) {
+MRI *MRIindexNo(MRI *in, MRI *out)
+{
   int c, r, s, index;
   if (out == NULL) {
     out = MRIalloc(in->width, in->height, in->depth, MRI_FLOAT);
@@ -3446,7 +3523,8 @@ MRI *MRIindexNo(MRI *in, MRI *out) {
   at frame 0 equal to the column number, frame 1
   the row, and frame 2 the slice.
 */
-MRI *MRIcrs(MRI *in, MRI *out) {
+MRI *MRIcrs(MRI *in, MRI *out)
+{
   int c, r, s;
 
   if (out == NULL) {
@@ -3472,8 +3550,8 @@ MRI *MRIcrs(MRI *in, MRI *out) {
   segmentation. Returns the number of voxels in the
   segmentation.
   ---------------------------------------------------------*/
-int MRIsegStats(
-    MRI *seg, int segid, MRI *mri, int frame, float *min, float *max, float *range, float *mean, float *std) {
+int MRIsegStats(MRI *seg, int segid, MRI *mri, int frame, float *min, float *max, float *range, float *mean, float *std)
+{
   int id, nvoxels, r, c, s;
   double val, sum, sum2;
 
@@ -3511,7 +3589,8 @@ int MRIsegStats(
 
   if (nvoxels != 0) {
     *mean = sum / nvoxels;
-  } else {
+  }
+  else {
     *mean = 0.0;
   }
 
@@ -3531,16 +3610,9 @@ int MRIsegStats(
   \brief Computes stats based on the the middle 100-2*Pct values, ie,
          it trims Pct off the ends.
 */
-int MRIsegStatsRobust(MRI *seg,
-                      int segid,
-                      MRI *mri,
-                      int frame,
-                      float *min,
-                      float *max,
-                      float *range,
-                      float *mean,
-                      float *std,
-                      float Pct) {
+int MRIsegStatsRobust(
+    MRI *seg, int segid, MRI *mri, int frame, float *min, float *max, float *range, float *mean, float *std, float Pct)
+{
   int id, nvoxels, r, c, s, k, m;
   double val, sum, sum2;
   float *vlist;
@@ -3617,7 +3689,8 @@ int MRIsegStatsRobust(MRI *seg,
   segmentation. favg must be preallocated to number of
   frames. favg = (double *) calloc(sizeof(double),mri->nframes);
   ---------------------------------------------------------*/
-int MRIsegFrameAvg(MRI *seg, int segid, MRI *mri, double *favg) {
+int MRIsegFrameAvg(MRI *seg, int segid, MRI *mri, double *favg)
+{
   int id, nvoxels, r, c, s, f;
   double val;
 
@@ -3652,7 +3725,8 @@ int MRIsegFrameAvg(MRI *seg, int segid, MRI *mri, double *favg) {
 }
 
 MRI *MRImask_with_T2_and_aparc_aseg(
-    MRI *mri_src, MRI *mri_dst, MRI *mri_T2, MRI *mri_aparc_aseg, float T2_thresh, int mm_from_exterior) {
+    MRI *mri_src, MRI *mri_dst, MRI *mri_T2, MRI *mri_aparc_aseg, float T2_thresh, int mm_from_exterior)
+{
   int x, y, z, nremoved, i;
   MRI *mri_bright, *mri_mask, *mri_tmp = NULL;
 
@@ -3667,7 +3741,8 @@ MRI *MRImask_with_T2_and_aparc_aseg(
     GetLargestCC6(mri_aparc_aseg);           // remove disconnected background components
     MRIand(mri_mask, mri_aparc_aseg, mri_mask, 1);
     MRIopenN(mri_mask, mri_mask, 3);  // third order open will remove thin chains of bright T2 that are in the interior
-  } else                              // just use T2
+  }
+  else  // just use T2
   {
     GetLargestCC6(mri_mask);
   }
@@ -3712,7 +3787,8 @@ MRI *MRImask_with_T2_and_aparc_aseg(
   \brief Extracts a list of unique segmentation IDs from the volume.
     Includes 0.
 */
-int *MRIsegmentationList(MRI *seg, int *pListLength) {
+int *MRIsegmentationList(MRI *seg, int *pListLength)
+{
   int c, r, s, n, nvox;
   int *list, *voxlist;
 
@@ -3749,7 +3825,8 @@ int *MRIsegmentationList(MRI *seg, int *pListLength) {
      making it consistent with matlab. This order must be used when
      creating the y-matrix.
 */
-MATRIX *BuildGTM0(MRI *seg, MRI *mask, double cFWHM, double rFWHM, double sFWHM, MATRIX *X) {
+MATRIX *BuildGTM0(MRI *seg, MRI *mask, double cFWHM, double rFWHM, double sFWHM, MATRIX *X)
+{
   int c, r, s, nmask, nsegs, nthseg, mthseg, segid, *segidlist, has0;
   double cStd, rStd, sStd, val;
   MRI *roimask = NULL, *roimasksm = NULL;
@@ -3838,7 +3915,8 @@ MATRIX *BuildGTM0(MRI *seg, MRI *mask, double cFWHM, double rFWHM, double sFWHM,
   \brief Computes fisher transform. The input should be a correlation
   coefficient with values between -1 and +1
 */
-MRI *MRIfisherTransform(MRI *rho, MRI *mask, MRI *out) {
+MRI *MRIfisherTransform(MRI *rho, MRI *mask, MRI *out)
+{
   int c, r, s, f;
   double v, ft;
 
@@ -3870,7 +3948,8 @@ MRI *MRIfisherTransform(MRI *rho, MRI *mask, MRI *out) {
   \fn MRI *MRIbinarizeMatch(MRI *seg, int match, int frame, MRI *out)
   \brief Binarizes a volume based on the voxels values that match the match value.
 */
-MRI *MRIbinarizeMatch(MRI *seg, int *MatchList, int nList, int frame, MRI *out) {
+MRI *MRIbinarizeMatch(MRI *seg, int *MatchList, int nList, int frame, MRI *out)
+{
   int c, r, s, m, n;
 
   if (out == NULL) {
@@ -3909,7 +3988,8 @@ MRI *MRIbinarizeMatch(MRI *seg, int *MatchList, int nList, int frame, MRI *out) 
   be NULL.  This is really meant for the aseg to be the aseg.mgz with
   cortex = 3,42 and cerebralwm = 2,41.
 */
-MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF, LTA **aseg2hrseg) {
+MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF, LTA **aseg2hrseg)
+{
   MRI *asegus, *lhwvol, *rhwvol, *lhpvol, *rhpvol, *seg;
   int c, r, s, asegv, lhwv, rhwv, lhpv, rhpv, segv, lhRibbon, rhRibbon, Ribbon, SubCort;
   int nPad = 2;
@@ -3927,7 +4007,8 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
       asegus = aseg;
       *aseg2hrseg = TransformRegDat2LTA(aseg, aseg, NULL);  // Identity
     }
-  } else {
+  }
+  else {
     // aseg might be null for testing purposes
     if (lhw->vg.valid == 0) {
       printf("ERROR: MRIhiresSeg(): if aseg=NULL, then surface volume geometry must be valid\n");
@@ -4016,7 +4097,8 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
           // but not if you are expecting the labels to be correct.
           if (lhRibbon) segv = Left_Cerebral_Cortex;
           if (rhRibbon) segv = Right_Cerebral_Cortex;
-        } else {
+        }
+        else {
           /* To get here, it cannot be in the true ribbon so, if the
              aseg says it is CorticalGM, that is wrong. The question
              is, what is right? Probably WM xCSF , but ideally, this should
@@ -4026,12 +4108,14 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
               segv = Left_Cerebral_White_Matter;
             else
               segv = UnknownFill;
-          } else if (asegv == Right_Cerebral_Cortex) {
+          }
+          else if (asegv == Right_Cerebral_Cortex) {
             if (rhpv)
               segv = Right_Cerebral_White_Matter;
             else
               segv = UnknownFill;
-          } else {
+          }
+          else {
             // To get here aseg can only be CerebralWM, CSF_ExtraCerebral, Head_ExtraCerebral
             // or something else outside of the brain.
             if (asegv != Left_Cerebral_White_Matter && asegv != Right_Cerebral_White_Matter &&
@@ -4061,7 +4145,8 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
   The return is an array of MRIs, one for each tissue type. The output volume
   is that of the dst volume geometry in seg2vol.
  */
-MRI *MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, double resmm, COLOR_TABLE *ct, MRI *pvf) {
+MRI *MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, double resmm, COLOR_TABLE *ct, MRI *pvf)
+{
   MRI *ttseg;
   int nTT, nsegs, *segidlist;
   VOL_GEOM *vg;
@@ -4143,7 +4228,8 @@ MRI *MRIpartialVolumeFractionAS(LTA *aseg2vol,
                                 int USF,
                                 double resmm,
                                 COLOR_TABLE *ct,
-                                MRI *pvf) {
+                                MRI *pvf)
+{
   MRI *hrseg;
   LTA *aseg2hrseg, *hrseg2aseg, *hrseg2vol, *ltaArray[2];
 
@@ -4171,7 +4257,8 @@ MRI *MRIpartialVolumeFractionAS(LTA *aseg2vol,
   \brief Count the number of times there is a match in seg at the given frame
   within the mask (mask can be null).
  */
-int MRIcountMatches(const MRI *seg, const int MatchVal, const int frame, const MRI *mask) {
+int MRIcountMatches(const MRI *seg, const int MatchVal, const int frame, const MRI *mask)
+{
   int nMatches = 0;
   int c;
 
@@ -4198,7 +4285,8 @@ int MRIcountMatches(const MRI *seg, const int MatchVal, const int frame, const M
   the segmentation are used. Note: this makes no attempt whatsoever to do a true segmentation
   of extra-cerebral CSF!!! The seg (or out if non-NULL) must not be UCHAR.
 */
-MRI *MRIaddExtraCerebralCSF(MRI *seg, int nDil, MRI *out) {
+MRI *MRIaddExtraCerebralCSF(MRI *seg, int nDil, MRI *out)
+{
   int c, r, s, n, nxcsf;
   MRI *mask = NULL;
 
@@ -4244,7 +4332,8 @@ MRI *MRIaddExtraCerebralCSF(MRI *seg, int nDil, MRI *out) {
 \fn COLOR_TABLE *CTABpruneCTab(const COLOR_TABLE *ct0, MRI *seg)
 \brief Creates a new CTAB with only the segments in seg
 */
-COLOR_TABLE *CTABpruneCTab(const COLOR_TABLE *ct0, MRI *seg) {
+COLOR_TABLE *CTABpruneCTab(const COLOR_TABLE *ct0, MRI *seg)
+{
   COLOR_TABLE *ct;
   int *segidlist, nsegs, segid, n;
 
@@ -4287,7 +4376,8 @@ COLOR_TABLE *CTABpruneCTab(const COLOR_TABLE *ct0, MRI *seg) {
   be run on the pial surfaces before using this function. The output
   will be the same size as seg.
  */
-MRI *MRIannot2CorticalSeg(MRI *seg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, LTA *anat2seg, MRI *ctxseg) {
+MRI *MRIannot2CorticalSeg(MRI *seg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, LTA *anat2seg, MRI *ctxseg)
+{
   MATRIX *AnatVox2SurfRAS, *SegVox2SurfRAS;
   float hashres = 16;
   MHT *lhw_hash = NULL, *rhw_hash = NULL, *lhp_hash = NULL, *rhp_hash = NULL;
@@ -4377,7 +4467,8 @@ MRI *MRIannot2CorticalSeg(MRI *seg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, 
           phash = lhp_hash;
           psurf = lhp;
           // wmval = Left_Cerebral_White_Matter;
-        } else {
+        }
+        else {
           wsurf = rhw;
           whash = rhw_hash;
           phash = rhp_hash;
@@ -4458,7 +4549,8 @@ MRI *MRIannot2CorticalSeg(MRI *seg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, 
   (see MRIunsegmentWM()). This function basically is what is done when
   creating wmparc.mgz.
  */
-MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, LTA *anat2seg, MRI *wmseg) {
+MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, LTA *anat2seg, MRI *wmseg)
+{
   MATRIX *AnatVox2SurfRAS, *SegVox2SurfRAS;
   float hashres = 16;
   MHT *lhw_hash = NULL, *rhw_hash = NULL;
@@ -4534,7 +4626,8 @@ MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, L
           wsurf = lhw;
           whash = lhw_hash;
           wmunknown = 5001;
-        } else {
+        }
+        else {
           wsurf = rhw;
           whash = rhw_hash;
           wmunknown = 5002;
@@ -4563,7 +4656,8 @@ MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, L
             segv = annotid + wsurf->ct->idbase;
           else
             segv = wmunknown;  // no annotation present
-        } else
+        }
+        else
           segv = wmunknown;
         MRIsetVoxVal(wmseg, c, r, s, 0, segv);
       }
@@ -4589,7 +4683,8 @@ MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, L
   space the surface anatomical space. If NULL, then it assumes that the surface VOL_GEOM and the
   seg share a scanner RAS space. This function can be used to relabel hypointensities and CC.
  */
-MRI *MRIunsegmentWM(MRI *seg, MRIS *lhw, MRIS *rhw, int *segidlist, int nlist, LTA *anat2seg, MRI *wmseg) {
+MRI *MRIunsegmentWM(MRI *seg, MRIS *lhw, MRIS *rhw, int *segidlist, int nlist, LTA *anat2seg, MRI *wmseg)
+{
   MATRIX *AnatVox2SurfRAS, *SegVox2SurfRAS;
   float hashres = 16;
   MHT *lhw_hash = NULL, *rhw_hash = NULL;
@@ -4709,7 +4804,8 @@ MRI *MRIunsegmentWM(MRI *seg, MRIS *lhw, MRIS *rhw, int *segidlist, int nlist, L
   then it assumes that the surface VOL_GEOM and the seg share a
   scanner RAS space. See also MRIunsegmentWM().
  */
-MRI *MRIrelabelHypoHemi(MRI *seg, MRIS *lhw, MRIS *rhw, LTA *anat2seg, MRI *wmseg) {
+MRI *MRIrelabelHypoHemi(MRI *seg, MRIS *lhw, MRIS *rhw, LTA *anat2seg, MRI *wmseg)
+{
   MATRIX *AnatVox2SurfRAS, *SegVox2SurfRAS;
   float hashres = 16;
   MHT *lhw_hash = NULL, *rhw_hash = NULL;
@@ -4820,7 +4916,8 @@ MRI *MRIrelabelHypoHemi(MRI *seg, MRIS *lhw, MRIS *rhw, LTA *anat2seg, MRI *wmse
   upper limit is used This is used prior to running MRIhiresSeg().
   It's a long story. Can be done in-place.  Ideally, seg is something
   like aparc+aseg.mgz */
-MRI *MRIunsegmentCortex(MRI *seg, int lhmin, int lhmax, int rhmin, int rhmax, MRI *out) {
+MRI *MRIunsegmentCortex(MRI *seg, int lhmin, int lhmax, int rhmin, int rhmax, MRI *out)
+{
   int c;
 
   if (out == NULL) {
@@ -4864,7 +4961,8 @@ MRI *MRIunsegmentCortex(MRI *seg, int lhmin, int lhmax, int rhmin, int rhmax, MR
   none of the nearest neighbors are in the segidlist, the hypo is not
   relabeled.
  */
-MRI *MRIrelabelNonWMHypos(MRI *seg0, int *segidlist, int nsegs, int *outsegidlist) {
+MRI *MRIrelabelNonWMHypos(MRI *seg0, int *segidlist, int nsegs, int *outsegidlist)
+{
   int c, r, s, c0, r0, s0, k, n, loop, nchanged, mfsegid, nbrmax, nthnbr, nhits, segid, hit;
   int *clist, *rlist, *slist, *hitlist, nbrlist[3 * 3 * 3], nchangedtot;
   MRI *seg, *newseg;
@@ -4983,7 +5081,8 @@ MRI *MRIrelabelNonWMHypos(MRI *seg0, int *segidlist, int nsegs, int *outsegidlis
 number of non-null entries in the table. The value is set the to count
 for that entry in the ctab.
 */
-MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg) {
+MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg)
+{
   int n, ntot;
   MRI *mri;
   float voxsize;

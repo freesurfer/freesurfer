@@ -41,7 +41,8 @@ static void bandpass(float data[], int nn, float lo, float hi);
 void bpfilter(FLOATTYPE **data, int nchan, int nsamp, float lo, float hi);
 /* End prototypes */
 
-static void four1(float data[], int nn, int isign) {
+static void four1(float data[], int nn, int isign)
+{
   int n, mmax, m, j, istep, i;
   double wtemp, wr, wpr, wpi, wi, theta;
   float tempr, tempi;
@@ -108,7 +109,8 @@ static void lowpass(float data[],int nn,float hi)
 }
 #endif
 
-static void bandpass(float data[], int nn, float lo, float hi) {
+static void bandpass(float data[], int nn, float lo, float hi)
+{
   // float norm,
   float f, fl, fh, w, wh, wl;
   int i;
@@ -130,7 +132,8 @@ static void bandpass(float data[], int nn, float lo, float hi) {
   four1(data - 1, nn, -1);
 }
 
-void bpfilter(FLOATTYPE **data, int nchan, int nsamp, float lo, float hi) {
+void bpfilter(FLOATTYPE **data, int nchan, int nsamp, float lo, float hi)
+{
   float *tmpvec;
   int i, j;
 

@@ -56,7 +56,8 @@ static Transform *labelLoadTransform(const char *subject_name, const char *sdir,
 #define MAX_VERTICES 500000
 /*-----------------------------------------------------
 ------------------------------------------------------*/
-LABEL *LabelReadFrom(const char *subject_name, FILE *fp) {
+LABEL *LabelReadFrom(const char *subject_name, FILE *fp)
+{
   LABEL *area;
   char line[STRLEN], subjects_dir[STRLEN], *cp, *str;
   int vno, nlines;
@@ -121,7 +122,8 @@ LABEL *LabelReadFrom(const char *subject_name, FILE *fp) {
   return (area);
 }
 
-LABEL *LabelRead(const char *subject_name, const char *label_name) {
+LABEL *LabelRead(const char *subject_name, const char *label_name)
+{
   LABEL *area;
   char fname[STRLEN], *cp, subjects_dir[STRLEN], lname[STRLEN];
   char label_name0[STRLEN];
@@ -150,7 +152,8 @@ LABEL *LabelRead(const char *subject_name, const char *label_name) {
       label_name = lname;
 
     sprintf(fname, "%s/%s/label/%s.label", subjects_dir, subject_name, label_name);
-  } else {
+  }
+  else {
     strcpy(fname, label_name);
     cp = getenv("SUBJECTS_DIR");
     if (!cp)
@@ -189,7 +192,8 @@ LABEL *LabelRead(const char *subject_name, const char *label_name) {
 
         Description
 ------------------------------------------------------*/
-int LabelDump(FILE *fp, LABEL *area) {
+int LabelDump(FILE *fp, LABEL *area)
+{
   int n;
 
   fprintf(fp, "label %s, from subject %s %s\n", area->name, area->subject_name, area->space);
@@ -204,7 +208,8 @@ int LabelDump(FILE *fp, LABEL *area) {
 
         Description
 ------------------------------------------------------*/
-int LabelFree(LABEL **parea) {
+int LabelFree(LABEL **parea)
+{
   LABEL *area;
 
   area = *parea;
@@ -222,7 +227,8 @@ int LabelFree(LABEL **parea) {
 
         Description
 ------------------------------------------------------*/
-int LabelToCanonical(LABEL *area, MRI_SURFACE *mris) {
+int LabelToCanonical(LABEL *area, MRI_SURFACE *mris)
+{
   int n, vno;
   VERTEX *v;
 
@@ -244,7 +250,8 @@ int LabelToCanonical(LABEL *area, MRI_SURFACE *mris) {
 
         Description
 ------------------------------------------------------*/
-int LabelToCurrent(LABEL *area, MRI_SURFACE *mris) {
+int LabelToCurrent(LABEL *area, MRI_SURFACE *mris)
+{
   int n, vno;
   VERTEX *v;
 
@@ -266,7 +273,8 @@ int LabelToCurrent(LABEL *area, MRI_SURFACE *mris) {
 
         Description
 ------------------------------------------------------*/
-int LabelFromCanonical(LABEL *area, MRI_SURFACE *mris) {
+int LabelFromCanonical(LABEL *area, MRI_SURFACE *mris)
+{
   int n, vno, ui, vi, vlist[500000], nvertices;
   VERTEX *v;
   MRI_SP *mrisp;
@@ -461,7 +469,8 @@ LabelFromTalairach(LABEL *area, MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 #else
-int LabelFromTalairach(LABEL *area, MRI_SURFACE *mris) {
+int LabelFromTalairach(LABEL *area, MRI_SURFACE *mris)
+{
   int n, vno;
   VERTEX *v;
 
@@ -484,7 +493,8 @@ int LabelFromTalairach(LABEL *area, MRI_SURFACE *mris) {
 
         Description
 ------------------------------------------------------*/
-int LabelToFlat(LABEL *area, MRI_SURFACE *mris) {
+int LabelToFlat(LABEL *area, MRI_SURFACE *mris)
+{
   int n, vno;
   VERTEX *v;
   MRIS_HASH_TABLE *mht;
@@ -499,7 +509,8 @@ int LabelToFlat(LABEL *area, MRI_SURFACE *mris) {
       area->lv[n].x = v->x;
       area->lv[n].y = v->y;
       area->lv[n].z = v->z;
-    } else /* in canonical coordinate system - find closest vertex */
+    }
+    else /* in canonical coordinate system - find closest vertex */
     {
 #if 0
       vno =
@@ -527,7 +538,8 @@ int LabelToFlat(LABEL *area, MRI_SURFACE *mris) {
   MHTfree(&mht);
   return (NO_ERROR);
 }
-int LabelWriteInto(LABEL *area, FILE *fp) {
+int LabelWriteInto(LABEL *area, FILE *fp)
+{
   int n, num, nbytes;
 
   for (num = n = 0; n < area->n_points; n++)
@@ -572,7 +584,8 @@ int LabelWriteInto(LABEL *area, FILE *fp) {
 
         Description
 ------------------------------------------------------*/
-int LabelWrite(LABEL *area, const char *label_name) {
+int LabelWrite(LABEL *area, const char *label_name)
+{
   char fname[STRLEN], *cp, subjects_dir[STRLEN], lname[STRLEN];
   FILE *fp;
   int ret;
@@ -593,11 +606,13 @@ int LabelWrite(LABEL *area, const char *label_name) {
                 Progname);
     strcpy(subjects_dir, cp);
     sprintf(fname, "%s/%s/label/%s.label", subjects_dir, area->subject_name, label_name);
-  } else {
+  }
+  else {
     cp = strrchr(lname, '.');
     if (cp && stricmp(cp, ".label") == 0) {
       strcpy(fname, label_name);
-    } else {
+    }
+    else {
       sprintf(fname, "%s.label", label_name);
     }
   }
@@ -616,7 +631,8 @@ int LabelWrite(LABEL *area, const char *label_name) {
 
         Description
 ------------------------------------------------------*/
-int LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris) {
+int LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris)
+{
   int vno, n;
   VERTEX *v;
 
@@ -648,7 +664,8 @@ int LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris) {
 
         Description
 ------------------------------------------------------*/
-int LabelRipRestOfSurfaceWithThreshold(LABEL *area, MRI_SURFACE *mris, float thresh) {
+int LabelRipRestOfSurfaceWithThreshold(LABEL *area, MRI_SURFACE *mris, float thresh)
+{
   int vno, n;
   VERTEX *v;
 
@@ -681,7 +698,8 @@ int LabelRipRestOfSurfaceWithThreshold(LABEL *area, MRI_SURFACE *mris, float thr
 
         Description
 ------------------------------------------------------*/
-int LabelRemoveOverlap(LABEL *area1, LABEL *area2) {
+int LabelRemoveOverlap(LABEL *area1, LABEL *area2)
+{
   int n1, n2, vno;
 
   for (n1 = 0; n1 < area1->n_points; n1++) {
@@ -703,7 +721,8 @@ int LabelRemoveOverlap(LABEL *area1, LABEL *area2) {
         Description: elements are not removed, only the deleted
                      flag is set
 ------------------------------------------------------*/
-int LabelIntersect(LABEL *area1, LABEL *area2) {
+int LabelIntersect(LABEL *area1, LABEL *area2)
+{
   int n, vno;
   int vmin, vmax, vnum;
   int *isec;
@@ -759,7 +778,8 @@ int LabelIntersect(LABEL *area1, LABEL *area2) {
 
         Description
 ------------------------------------------------------*/
-LABEL *LabelAlloc(int max_points, char *subject_name, char *label_name) {
+LABEL *LabelAlloc(int max_points, char *subject_name, char *label_name)
+{
   LABEL *area;
   char *cp, subjects_dir[STRLEN];
 
@@ -776,7 +796,8 @@ LABEL *LabelAlloc(int max_points, char *subject_name, char *label_name) {
                 Progname);
     strcpy(subjects_dir, cp);
     strcpy(area->subject_name, subject_name);
-  } else {
+  }
+  else {
     if (label_name) {
       strncpy(area->name, label_name, STRLEN - 1);
     }
@@ -802,7 +823,8 @@ LABEL *LabelAlloc(int max_points, char *subject_name, char *label_name) {
 
         Description
 ------------------------------------------------------*/
-int LabelCurvFill(LABEL *area, int *vertex_list, int nvertices, int max_vertices, MRI_SURFACE *mris) {
+int LabelCurvFill(LABEL *area, int *vertex_list, int nvertices, int max_vertices, MRI_SURFACE *mris)
+{
   int n, nfilled, nv;
   float min_curv, max_curv, curv_thresh;
   VERTEX *v, *vn;
@@ -835,7 +857,8 @@ int LabelCurvFill(LABEL *area, int *vertex_list, int nvertices, int max_vertices
   }
   if (-min_curv > max_curv) {
     curv_thresh = min_curv;
-  } else {
+  }
+  else {
     curv_thresh = max_curv;
   }
   curv_thresh *= 0.1; /* 10% of max */
@@ -886,7 +909,8 @@ int LabelCurvFill(LABEL *area, int *vertex_list, int nvertices, int max_vertices
 
         Description
 ------------------------------------------------------*/
-int LabelFillMarked(LABEL *area, MRI_SURFACE *mris) {
+int LabelFillMarked(LABEL *area, MRI_SURFACE *mris)
+{
   int n, nfilled, nv;
   VERTEX *v, *vn;
   LV *lv, *lvn;
@@ -940,7 +964,8 @@ int LabelFillMarked(LABEL *area, MRI_SURFACE *mris) {
 
         Description
 ------------------------------------------------------*/
-int LabelFillAnnotated(LABEL *area, MRI_SURFACE *mris) {
+int LabelFillAnnotated(LABEL *area, MRI_SURFACE *mris)
+{
   int n, nfilled, nv, annotation;
   VERTEX *v, *vn;
   LV *lv, *lvn;
@@ -995,7 +1020,8 @@ int LabelFillAnnotated(LABEL *area, MRI_SURFACE *mris) {
 
         Description
 ------------------------------------------------------*/
-int LabelFillAll(LABEL *area, int *vertex_list, int nvertices, int max_vertices, MRI_SURFACE *mris) {
+int LabelFillAll(LABEL *area, int *vertex_list, int nvertices, int max_vertices, MRI_SURFACE *mris)
+{
   int n, nfilled, nv;
   VERTEX *v, *vn;
   LV *lv, *lvn;
@@ -1062,7 +1088,8 @@ int LabelFillAll(LABEL *area, int *vertex_list, int nvertices, int max_vertices,
 
         Description
 ------------------------------------------------------*/
-static Transform *labelLoadTransform(const char *subject_name, const char *sdir, General_transform *transform) {
+static Transform *labelLoadTransform(const char *subject_name, const char *sdir, General_transform *transform)
+{
   char xform_fname[STRLEN];
 
   sprintf(xform_fname, "%s/%s/mri/transforms/talairach.xfm", sdir, subject_name);
@@ -1079,7 +1106,8 @@ static Transform *labelLoadTransform(const char *subject_name, const char *sdir,
 
         Description
 ------------------------------------------------------*/
-int LabelTalairachTransform(LABEL *area, MRI_SURFACE *mris) {
+int LabelTalairachTransform(LABEL *area, MRI_SURFACE *mris)
+{
   int n;
   LV *lv;
   double x, y, z, xt, yt, zt;
@@ -1105,7 +1133,8 @@ int LabelTalairachTransform(LABEL *area, MRI_SURFACE *mris) {
 
         Description
 ------------------------------------------------------*/
-int LabelSphericalTransform(LABEL *area, MRI_SURFACE *mris) {
+int LabelSphericalTransform(LABEL *area, MRI_SURFACE *mris)
+{
   int n;
   LV *lv;
   VERTEX *v;
@@ -1126,7 +1155,8 @@ int LabelSphericalTransform(LABEL *area, MRI_SURFACE *mris) {
 
         Description
 ------------------------------------------------------*/
-MATRIX *LabelCovarianceMatrix(LABEL *area, MATRIX *mCov) {
+MATRIX *LabelCovarianceMatrix(LABEL *area, MATRIX *mCov)
+{
   MATRIX *mInputs;
   int i;
   LV *lv;
@@ -1150,7 +1180,8 @@ MATRIX *LabelCovarianceMatrix(LABEL *area, MATRIX *mCov) {
 
         Description
 ------------------------------------------------------*/
-LABEL *LabelCombine(LABEL *asrc, LABEL *adst) {
+LABEL *LabelCombine(LABEL *asrc, LABEL *adst)
+{
   LABEL *atmp;
   int n;
   LV *vsrc, *vdst;
@@ -1181,7 +1212,8 @@ LABEL *LabelCombine(LABEL *asrc, LABEL *adst) {
 
         Description
 ------------------------------------------------------*/
-LABEL *LabelCopy(LABEL *asrc, LABEL *adst) {
+LABEL *LabelCopy(LABEL *asrc, LABEL *adst)
+{
   if (!adst) {
     adst = LabelAlloc(asrc->max_points, asrc->subject_name, asrc->name);
   }
@@ -1210,7 +1242,8 @@ LABEL *LabelCopy(LABEL *asrc, LABEL *adst) {
   Sets the 'deleted' flag of a label point if it is
   a duplicate. Does not actually remove duplicats!
   ------------------------------------------------------*/
-int LabelRemoveDuplicates(LABEL *area) {
+int LabelRemoveDuplicates(LABEL *area)
+{
   int n1, n2, deleted = 0;
   LV *lv1, *lv2;
 
@@ -1226,7 +1259,8 @@ int LabelRemoveDuplicates(LABEL *area) {
       if (lv1->vno >= 0 && lv2->vno >= 0 && lv1->vno == lv2->vno) {
         deleted++;
         lv2->deleted = 1;
-      } else if (lv1->vno < 0 && lv2->vno < 0) {
+      }
+      else if (lv1->vno < 0 && lv2->vno < 0) {
         if (FEQUAL(lv1->x, lv2->x) && FEQUAL(lv1->y, lv2->y) && FEQUAL(lv1->z, lv2->z)) {
           deleted++;
           lv2->deleted = 1;
@@ -1244,7 +1278,8 @@ int LabelRemoveDuplicates(LABEL *area) {
   Sets the 'deleted' flag of a label point if it is
   a duplicate. Does not actually remove duplicats!
   ------------------------------------------------------*/
-LABEL *LabelRemoveAlmostDuplicates(LABEL *area, double dist, LABEL *ldst) {
+LABEL *LabelRemoveAlmostDuplicates(LABEL *area, double dist, LABEL *ldst)
+{
   int n1, n2, deleted = 0;
   LV *lv1, *lv2;
 
@@ -1260,7 +1295,8 @@ LABEL *LabelRemoveAlmostDuplicates(LABEL *area, double dist, LABEL *ldst) {
       if (lv1->vno >= 0 && lv2->vno >= 0 && lv1->vno == lv2->vno) {
         deleted++;
         lv2->deleted = 1;
-      } else if (lv1->vno < 0 && lv2->vno < 0) {
+      }
+      else if (lv1->vno < 0 && lv2->vno < 0) {
         if (fabs(lv1->x - lv2->x) < dist && fabs(lv1->y - lv2->y) < dist && fabs(lv1->z - lv2->z) < dist) {
           deleted++;
           lv2->deleted = 1;
@@ -1272,7 +1308,8 @@ LABEL *LabelRemoveAlmostDuplicates(LABEL *area, double dist, LABEL *ldst) {
   ldst = LabelCompact(area, ldst);
   return (ldst);
 }
-LABEL *LabelCompact(LABEL *lsrc, LABEL *ldst) {
+LABEL *LabelCompact(LABEL *lsrc, LABEL *ldst)
+{
   int i, n;
   for (i = n = 0; i < lsrc->n_points; i++)
     if (lsrc->lv[i].deleted == 0) n++;
@@ -1302,7 +1339,8 @@ LABEL *LabelCompact(LABEL *lsrc, LABEL *ldst) {
 }
 
 /*-----------------------------------------------------*/
-double LabelArea(LABEL *area, MRI_SURFACE *mris) {
+double LabelArea(LABEL *area, MRI_SURFACE *mris)
+{
   int i;
   double total_area;
   LV *lv;
@@ -1325,7 +1363,8 @@ double LabelArea(LABEL *area, MRI_SURFACE *mris) {
 
         Description
 ------------------------------------------------------*/
-int LabelMean(LABEL *area, double *px, double *py, double *pz) {
+int LabelMean(LABEL *area, double *px, double *py, double *pz)
+{
   int i, n;
   double x, y, z;
   LV *lv;
@@ -1351,7 +1390,8 @@ int LabelMean(LABEL *area, double *px, double *py, double *pz) {
 
         Description
 ------------------------------------------------------*/
-double LabelMeanIntensity(LABEL *area, MRI *mri) {
+double LabelMeanIntensity(LABEL *area, MRI *mri)
+{
   int i;
   double x, y, z, mean, val;
   LV *lv;
@@ -1380,7 +1420,8 @@ double LabelMeanIntensity(LABEL *area, MRI *mri) {
 
         Description
 ------------------------------------------------------*/
-double LabelVariance(LABEL *area, double ux, double uy, double uz) {
+double LabelVariance(LABEL *area, double ux, double uy, double uz)
+{
   int i, n;
   double xd, yd, zd, dsq;
   LV *lv;
@@ -1405,7 +1446,8 @@ double LabelVariance(LABEL *area, double ux, double uy, double uz) {
 
         Description
 ------------------------------------------------------*/
-int LabelMark(LABEL *area, MRI_SURFACE *mris) {
+int LabelMark(LABEL *area, MRI_SURFACE *mris)
+{
   int n, vno;
   VERTEX *v;
 
@@ -1429,7 +1471,8 @@ int LabelMark(LABEL *area, MRI_SURFACE *mris) {
 
         Description
 ------------------------------------------------------*/
-int LabelAddToMark(LABEL *area, MRI_SURFACE *mris, int val_to_add) {
+int LabelAddToMark(LABEL *area, MRI_SURFACE *mris, int val_to_add)
+{
   int n, vno;
   VERTEX *v;
 
@@ -1452,7 +1495,8 @@ int LabelAddToMark(LABEL *area, MRI_SURFACE *mris, int val_to_add) {
 
         Description
 ------------------------------------------------------*/
-int LabelMarkWithThreshold(LABEL *area, MRI_SURFACE *mris, float thresh) {
+int LabelMarkWithThreshold(LABEL *area, MRI_SURFACE *mris, float thresh)
+{
   int n, vno;
   VERTEX *v;
 
@@ -1478,7 +1522,8 @@ int LabelMarkWithThreshold(LABEL *area, MRI_SURFACE *mris, float thresh) {
         has its marked flag turned on.
 
 ------------------------------------------------------*/
-int LabelMarkUndeleted(LABEL *area, MRI_SURFACE *mris) {
+int LabelMarkUndeleted(LABEL *area, MRI_SURFACE *mris)
+{
   int n, vno;
   VERTEX *v;
 
@@ -1507,7 +1552,8 @@ int LabelMarkUndeleted(LABEL *area, MRI_SURFACE *mris) {
 
         Description
 ------------------------------------------------------*/
-int LabelUnmark(LABEL *area, MRI_SURFACE *mris) {
+int LabelUnmark(LABEL *area, MRI_SURFACE *mris)
+{
   int n, vno;
   VERTEX *v;
 
@@ -1528,7 +1574,8 @@ int LabelUnmark(LABEL *area, MRI_SURFACE *mris) {
 
         Description
 ------------------------------------------------------*/
-int LabelToOriginal(LABEL *area, MRI_SURFACE *mris) {
+int LabelToOriginal(LABEL *area, MRI_SURFACE *mris)
+{
   int n, vno;
   VERTEX *v;
 
@@ -1554,7 +1601,8 @@ int LabelToOriginal(LABEL *area, MRI_SURFACE *mris) {
                      corresponding white coords from the surface and
                      writes them in the label.
  ------------------------------------------------------*/
-int LabelToWhite(LABEL *area, MRI_SURFACE *mris) {
+int LabelToWhite(LABEL *area, MRI_SURFACE *mris)
+{
   int n, vno;
   VERTEX *v;
 
@@ -1578,7 +1626,8 @@ int LabelToWhite(LABEL *area, MRI_SURFACE *mris) {
 
         Description
 ------------------------------------------------------*/
-LABEL *LabelFromMarkedSurface(MRI_SURFACE *mris) {
+LABEL *LabelFromMarkedSurface(MRI_SURFACE *mris)
+{
   int vno, npoints, n;
   LABEL *area;
   VERTEX *v;
@@ -1620,7 +1669,8 @@ LABEL *LabelFromMarkedSurface(MRI_SURFACE *mris) {
 
         Description
 ------------------------------------------------------*/
-LABEL *LabelFromMarkValue(MRI_SURFACE *mris, int mark) {
+LABEL *LabelFromMarkValue(MRI_SURFACE *mris, int mark)
+{
   int vno, npoints, n;
   LABEL *area;
   VERTEX *v;
@@ -1657,7 +1707,8 @@ LABEL *LabelFromMarkValue(MRI_SURFACE *mris, int mark) {
 }
 /*-----------------------------------------------------
 ------------------------------------------------------*/
-int LabelAddToSurfaceMark(LABEL *area, MRI_SURFACE *mris, int mark_to_add) {
+int LabelAddToSurfaceMark(LABEL *area, MRI_SURFACE *mris, int mark_to_add)
+{
   int n, vno;
   VERTEX *v;
 
@@ -1678,7 +1729,8 @@ int LabelAddToSurfaceMark(LABEL *area, MRI_SURFACE *mris, int mark_to_add) {
 }
 /*-----------------------------------------------------
 ------------------------------------------------------*/
-int LabelMarkSurface(LABEL *area, MRI_SURFACE *mris) {
+int LabelMarkSurface(LABEL *area, MRI_SURFACE *mris)
+{
   int n, vno;
   VERTEX *v;
 
@@ -1706,7 +1758,8 @@ int LabelMarkSurface(LABEL *area, MRI_SURFACE *mris) {
 
         Description
 ------------------------------------------------------*/
-int LabelIsCompletelyUnassigned(LABEL *area, int *unassigned) {
+int LabelIsCompletelyUnassigned(LABEL *area, int *unassigned)
+{
   int i;
 
   if (NULL == area) {
@@ -1737,7 +1790,8 @@ int LabelIsCompletelyUnassigned(LABEL *area, int *unassigned) {
         Description
 ------------------------------------------------------*/
 #include "mrishash.h"
-int LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords) {
+int LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
+{
   int n, i, vno, min_vno, nfilled = 0, max_vno;
   LV *lv;
   MHT *mht;
@@ -1834,7 +1888,8 @@ int LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords) {
   return (nfilled);
 }
 
-LABEL *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht, MRI_SURFACE *mris_dst, LABEL *adst) {
+LABEL *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht, MRI_SURFACE *mris_dst, LABEL *adst)
+{
   int vno, n, nfilled, m;
   VERTEX *v, *vdst, *vn, *vsrc;
   LABEL_VERTEX *lv_dst;
@@ -1881,7 +1936,8 @@ LABEL *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mh
     lv_dst = labelFindVertexNumber(adst, vdst - mris_dst->vertices);
     if (lv_dst == NULL) {
       lv_dst = &adst->lv[adst->n_points++];
-    } else if (lv_dst - adst->lv == Gdiag_no) {
+    }
+    else if (lv_dst - adst->lv == Gdiag_no) {
       DiagBreak();
     }
     lv_dst->vno = vdst - mris_dst->vertices;
@@ -1957,7 +2013,8 @@ LABEL *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mh
           lv_dst = labelFindVertexNumber(adst, v->v[m]);
           if (lv_dst == NULL) {
             lv_dst = &adst->lv[adst->n_points++];
-          } else if (lv_dst - adst->lv == Gdiag_no) {
+          }
+          else if (lv_dst - adst->lv == Gdiag_no) {
             DiagBreak();
           }
           lv_dst->x = adst->lv[n].x;
@@ -1983,7 +2040,8 @@ LABEL *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mh
   return (adst);
 }
 
-int LabelNormalizeStats(LABEL *area, float norm) {
+int LabelNormalizeStats(LABEL *area, float norm)
+{
   LABEL_VERTEX *lv;
   int n;
 
@@ -1998,7 +2056,8 @@ int LabelNormalizeStats(LABEL *area, float norm) {
   MaskSurfLabel() - removes vertices from a label based on the
   value of those vertices in a surface mask.
   -------------------------------------------------------------*/
-LABEL *MaskSurfLabel(LABEL *lbl, MRI *SurfMask, float thresh, char *masksign, int frame) {
+LABEL *MaskSurfLabel(LABEL *lbl, MRI *SurfMask, float thresh, char *masksign, int frame)
+{
   LABEL *msklbl;
   int n, vno, ok, noverlap;
   float maskval;
@@ -2069,7 +2128,8 @@ LABEL *MaskSurfLabel(LABEL *lbl, MRI *SurfMask, float thresh, char *masksign, in
   return (msklbl);
 }
 
-int LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times) {
+int LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
+{
   int n, label_vno, vno, neighbor_index, neighbor_vno, found_nbr_off;
   VERTEX *vn;
 
@@ -2132,7 +2192,8 @@ int LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times) {
   return (NO_ERROR);
 }
 
-int LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times, int coords) {
+int LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times, int coords)
+{
   int n, neighbor_index, neighbor_vno, found, vno;
   VERTEX *vn, *v;
 
@@ -2209,7 +2270,8 @@ int LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times, int coords) {
   return (NO_ERROR);
 }
 
-static LABEL_VERTEX *labelFindVertexNumber(LABEL *area, int vno) {
+static LABEL_VERTEX *labelFindVertexNumber(LABEL *area, int vno)
+{
   int n;
   LABEL_VERTEX *lv;
 
@@ -2222,7 +2284,8 @@ static LABEL_VERTEX *labelFindVertexNumber(LABEL *area, int vno) {
   return (NULL);
 }
 
-int LabelSetStat(LABEL *area, float stat) {
+int LabelSetStat(LABEL *area, float stat)
+{
   int n;
 
   for (n = 0; n < area->n_points; n++) {
@@ -2232,7 +2295,8 @@ int LabelSetStat(LABEL *area, float stat) {
   return (NO_ERROR);
 }
 
-int LabelMarkStats(LABEL *area, MRI_SURFACE *mris) {
+int LabelMarkStats(LABEL *area, MRI_SURFACE *mris)
+{
   int n, vno;
   VERTEX *v;
 
@@ -2248,7 +2312,8 @@ int LabelMarkStats(LABEL *area, MRI_SURFACE *mris) {
   return (NO_ERROR);
 }
 
-LABEL *LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords) {
+LABEL *LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords)
+{
   MRI *mri;
   int i, dst_index, vno, xi, yi, zi, xk, yk, zk, found, x2, y2, z2, nchanged;
   double xw, yw, zw, xv, yv, zv;
@@ -2356,7 +2421,8 @@ LABEL *LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords) {
   MRIfree(&mri);
   return (area_dst);
 }
-LABEL *LabelFillHolesWithOrig(LABEL *area_src, MRI_SURFACE *mris) {
+LABEL *LabelFillHolesWithOrig(LABEL *area_src, MRI_SURFACE *mris)
+{
   MRI *mri;
   int i, dst_index, vno;
   double xw, yw, zw, xv, yv, zv;
@@ -2376,7 +2442,8 @@ LABEL *LabelFillHolesWithOrig(LABEL *area_src, MRI_SURFACE *mris) {
     // MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv) ;
     if (mris->useRealRAS) {
       MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
-    } else {
+    }
+    else {
       MRIsurfaceRASToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
     }
     MRIvox(mri, nint(xv), nint(yv), nint(zv)) = 1;
@@ -2409,7 +2476,8 @@ LABEL *LabelFillHolesWithOrig(LABEL *area_src, MRI_SURFACE *mris) {
   otherwise returns the number of the label point that corresponds
   to the vertex number.
   ---------------------------------------------------------------*/
-int LabelHasVertex(int vtxno, LABEL *lb) {
+int LabelHasVertex(int vtxno, LABEL *lb)
+{
   int n;
   for (n = 0; n < lb->n_points; n++)
     if (lb->lv[n].vno == vtxno) {
@@ -2422,7 +2490,8 @@ int LabelHasVertex(int vtxno, LABEL *lb) {
   to have max_points. If something goes wrong, returns 1 without
   changing anything. Otherwise returns 0.
   ---------------------------------------------------------------*/
-LABEL *LabelRealloc(LABEL *lb, int max_points) {
+LABEL *LabelRealloc(LABEL *lb, int max_points)
+{
   LV *lvtmp;
 
   if (lb == NULL) return (LabelAlloc(max_points, NULL, NULL));
@@ -2446,7 +2515,8 @@ LABEL *LabelRealloc(LABEL *lb, int max_points) {
   match the code, then it silently returns NULL. Note: this
   generates the same result as the code in mri_cor2label.c.
   ------------------------------------------------------------*/
-LABEL *LabelfromASeg(MRI *aseg, int segcode) {
+LABEL *LabelfromASeg(MRI *aseg, int segcode)
+{
   int c, r, s, nlabel, v;
   LABEL *lb;
   MATRIX *Vox2RAS, *crs, *ras;
@@ -2513,7 +2583,8 @@ LABEL *LabelfromASeg(MRI *aseg, int segcode) {
   VertexIsInLabel() - returns a 1 if the given vertex number is
   in the label. Label must be surface-based.
   ---------------------------------------------------------------*/
-int VertexIsInLabel(int vtxno, LABEL *label) {
+int VertexIsInLabel(int vtxno, LABEL *label)
+{
   int n;
 
   for (n = 0; n < label->n_points; n++)
@@ -2527,7 +2598,8 @@ int VertexIsInLabel(int vtxno, LABEL *label) {
   LabelBoundary() - returns a label of all the points in the input
   label on the edge/boundary. Label must be surface-based.
   ---------------------------------------------------------------*/
-LABEL *LabelBoundary(LABEL *label, MRIS *surf) {
+LABEL *LabelBoundary(LABEL *label, MRIS *surf)
+{
   int n, nnbrs, nthnbr, vtxno, nbrvtxno;
   LABEL *boundary;
 
@@ -2559,7 +2631,8 @@ LABEL *LabelBoundary(LABEL *label, MRIS *surf) {
   then the shape is a plane. If order=2, then it is a quad, 3 for
   cubic. Returns the regression coefficients.
   ---------------------------------------------------------------*/
-MATRIX *LabelFitXYZ(LABEL *label, int order) {
+MATRIX *LabelFitXYZ(LABEL *label, int order)
+{
   int n;
   MATRIX *X, *Xt, *XtX, *iXtX, *iXtXXt, *y, *beta;
 
@@ -2606,7 +2679,8 @@ MATRIX *LabelFitXYZ(LABEL *label, int order) {
 
   return (beta);
 }
-LABEL *LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad) {
+LABEL *LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad)
+{
   LABEL *area;
   int vno, npoints;
   VERTEX *v;
@@ -2679,7 +2753,8 @@ LABEL *LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad) {
   // LabelWrite(area, "./lh.all.label");
   return (area);
 }
-LABEL *LabelTranslate(LABEL *area, LABEL *area_offset, float dx, float dy, float dz) {
+LABEL *LabelTranslate(LABEL *area, LABEL *area_offset, float dx, float dy, float dz)
+{
   int i;
 
   if (area_offset == NULL) {
@@ -2694,7 +2769,8 @@ LABEL *LabelTranslate(LABEL *area, LABEL *area_offset, float dx, float dy, float
   return (area_offset);
 }
 
-int LabelUnassign(LABEL *area) {
+int LabelUnassign(LABEL *area)
+{
   int i;
 
   for (i = 0; i < area->n_points; i++) {
@@ -2707,7 +2783,8 @@ int LabelUnassign(LABEL *area) {
   MRISlabelInvert(MRIS *surf, LABEL *label)
   Creates a label with all the vertices NOT in the input label.
   ---------------------------------------------------------------*/
-LABEL *MRISlabelInvert(MRIS *surf, LABEL *label) {
+LABEL *MRISlabelInvert(MRIS *surf, LABEL *label)
+{
   MRI *tmpmri;
   LABEL *invlabel;
   int n, vtxno, ninv, nlabel;
@@ -2742,7 +2819,8 @@ LABEL *MRISlabelInvert(MRIS *surf, LABEL *label) {
   MRIfree(&tmpmri);
   return (invlabel);
 }
-int LabelCopyStatsToSurface(LABEL *area, MRI_SURFACE *mris, int which) {
+int LabelCopyStatsToSurface(LABEL *area, MRI_SURFACE *mris, int which)
+{
   int n, vno;
   VERTEX *v;
 
@@ -2767,7 +2845,8 @@ int LabelCopyStatsToSurface(LABEL *area, MRI_SURFACE *mris, int which) {
   return (NO_ERROR);
 }
 
-int LabelThreshold(LABEL *area, float thresh) {
+int LabelThreshold(LABEL *area, float thresh)
+{
   int n, ndel;
   LABEL_VERTEX *lv;
 
@@ -2781,7 +2860,8 @@ int LabelThreshold(LABEL *area, float thresh) {
   return (ndel);
 }
 
-int LabelCropAnterior(LABEL *area, float anterior_dist) {
+int LabelCropAnterior(LABEL *area, float anterior_dist)
+{
   int n;
   float amax;
 
@@ -2802,7 +2882,8 @@ int LabelCropAnterior(LABEL *area, float anterior_dist) {
   return (NO_ERROR);
 }
 
-int LabelCropPosterior(LABEL *area, float anterior_dist) {
+int LabelCropPosterior(LABEL *area, float anterior_dist)
+{
   int n;
   float amax;
 
@@ -2823,7 +2904,8 @@ int LabelCropPosterior(LABEL *area, float anterior_dist) {
   return (NO_ERROR);
 }
 
-int LabelMaskSurface(LABEL *area, MRI_SURFACE *mris) {
+int LabelMaskSurface(LABEL *area, MRI_SURFACE *mris)
+{
   int vno;
   VERTEX *v;
 
@@ -2839,7 +2921,8 @@ int LabelMaskSurface(LABEL *area, MRI_SURFACE *mris) {
   MRISclearMarks(mris);
   return (NO_ERROR);
 }
-int LabelMaskSurfaceVolume(LABEL *area, MRI *mri, float nonmask_val) {
+int LabelMaskSurfaceVolume(LABEL *area, MRI *mri, float nonmask_val)
+{
   int vno, n, x, y, z, f;
   uchar *marked;
   long nvox;
@@ -2861,7 +2944,8 @@ int LabelMaskSurfaceVolume(LABEL *area, MRI *mri, float nonmask_val) {
   free(marked);
   return (NO_ERROR);
 }
-int LabelCentroid(LABEL *area, MRI_SURFACE *mris, double *px, double *py, double *pz, int *pvno) {
+int LabelCentroid(LABEL *area, MRI_SURFACE *mris, double *px, double *py, double *pz, int *pvno)
+{
   int vno, num, n;
   VERTEX *v;
   double xc, yc, zc;
@@ -2904,7 +2988,8 @@ int LabelCentroid(LABEL *area, MRI_SURFACE *mris, double *px, double *py, double
   return (NO_ERROR);
 }
 
-int LabelFillVolume(MRI *mri, LABEL *area, int fillval) {
+int LabelFillVolume(MRI *mri, LABEL *area, int fillval)
+{
   int n;
   double xv, yv, zv;
   LABEL_VERTEX *lv;
@@ -2917,7 +3002,8 @@ int LabelFillVolume(MRI *mri, LABEL *area, int fillval) {
   return (NO_ERROR);
 }
 
-int LabelSetVals(MRI_SURFACE *mris, LABEL *area, float fillval) {
+int LabelSetVals(MRI_SURFACE *mris, LABEL *area, float fillval)
+{
   int n;
   LABEL_VERTEX *lv;
 
@@ -2932,7 +3018,8 @@ int LabelSetVals(MRI_SURFACE *mris, LABEL *area, float fillval) {
   convert the label coords from tkreg (surface) RAS to scanner RAS. Note that this assumes that the
   label coords are in tkreg space
 */
-LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst) {
+LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
+{
   int i;
   MATRIX *M_surface_to_RAS = RASFromSurfaceRAS_(mri);
   VECTOR *v1, *v2;
@@ -2967,7 +3054,8 @@ LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst) {
   convert the label coords from tkreg (surface) RAS to scanner RAS. Note that this assumes that the
   label coords are in tkreg space
 */
-LABEL *LabelFromScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst) {
+LABEL *LabelFromScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
+{
   int i;
   MATRIX *M_surface_to_RAS = RASFromSurfaceRAS_(mri), *M_surface_from_RAS;
   VECTOR *v1, *v2;
@@ -3006,7 +3094,8 @@ LABEL *LabelFromScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst) {
   convert the label coords from tkreg (surface) RAS to voxels. Note that this assumes that the
   label coords are in tkreg space
 */
-LABEL *LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst) {
+LABEL *LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst)
+{
   int i;
   MATRIX *M_surface_to_vox = RASFromSurfaceRAS_(mri);
   VECTOR *v1, *v2;
@@ -3040,7 +3129,8 @@ LABEL *LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst) {
   MatrixFree(&M_surface_to_vox);
   return (ldst);
 }
-LABEL *LabelClone(LABEL *a) {
+LABEL *LabelClone(LABEL *a)
+{
   LABEL *l;
   l = LabelAlloc(a->max_points, a->subject_name, a->name);
   l->mri_template = a->mri_template;
@@ -3052,7 +3142,8 @@ LABEL *LabelClone(LABEL *a) {
   return (l);
 }
 
-LABEL *LabelTransform(LABEL *lsrc, TRANSFORM *xform, MRI *mri, LABEL *ldst) {
+LABEL *LabelTransform(LABEL *lsrc, TRANSFORM *xform, MRI *mri, LABEL *ldst)
+{
   int i;
   MATRIX *M;
   VECTOR *v1, *v2;
@@ -3092,7 +3183,8 @@ LABEL *LabelTransform(LABEL *lsrc, TRANSFORM *xform, MRI *mri, LABEL *ldst) {
   return (ldst);
 }
 
-LABEL *LabelVoxelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst) {
+LABEL *LabelVoxelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
+{
   int i;
   double xs, ys, zs;
 
@@ -3121,7 +3213,8 @@ LABEL *LabelVoxelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst) {
   controls how finely the face is filled. delta should be between 0
   and 1.
  */
-LABEL *LabelBaryFill(MRIS *mris, LABEL *srclabel, double delta) {
+LABEL *LabelBaryFill(MRIS *mris, LABEL *srclabel, double delta)
+{
   MRI *mri;
   LABEL *outlabel;
   int k, ok, n, vtxno, nPerTriangle, nTriangles, nthlab;
@@ -3186,7 +3279,8 @@ LABEL *LabelBaryFill(MRIS *mris, LABEL *srclabel, double delta) {
 
   return (outlabel);
 }
-LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, int coords) {
+LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, int coords)
+{
   int n, i, vno, min_vno, nfilled = 0, max_vno;
   LV *lv;
   static MHT *mht = NULL;
@@ -3358,7 +3452,8 @@ LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, i
   return (area_dst);
 }
 
-int LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords) {
+int LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
+{
   double xv, yv, zv, max_spacing, x, y, z, min_dist, dx, dy, dz, vx, vy, vz, dist;
   int n, max_vno, min_vno, i, vno;
   MHBT *bucket;
@@ -3493,7 +3588,8 @@ int LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords) {
   return (NO_ERROR);
 }
 
-int LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices, int *pnvertices) {
+int LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices, int *pnvertices)
+{
   MHBT *bucket;
   MHB *bin;
   int n, min_vno, i, vno;
@@ -3604,7 +3700,8 @@ int LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices
   return (min_vno);
 }
 
-int LabelDeleteVoxel(LABEL *area, int xv, int yv, int zv, int *vertices, int *pnvertices) {
+int LabelDeleteVoxel(LABEL *area, int xv, int yv, int zv, int *vertices, int *pnvertices)
+{
   int n, ndeleted;
   LV *lv;
 
@@ -3640,7 +3737,8 @@ int LabelDeleteVoxel(LABEL *area, int xv, int yv, int zv, int *vertices, int *pn
   from the surface coords and updates vertex_label_ind; this function
   does neither of those.
 */
-LABEL *LabelAddPoint(LABEL *label, LV *lv) {
+LABEL *LabelAddPoint(LABEL *label, LV *lv)
+{
   // alloc label if nec
   if (label == NULL) label = LabelAlloc(100, NULL, NULL);
   // realloc label if nec
@@ -3661,7 +3759,8 @@ LABEL *LabelAddPoint(LABEL *label, LV *lv) {
   nothing is done and -1 is returned. See also LabelDeleteVertex() and
   LabelAddPoint().
  */
-int LabelAddVertex(LABEL *area, int vno, int coords) {
+int LabelAddVertex(LABEL *area, int vno, int coords)
+{
   LV *lv;
   int n;
   double xv, yv, zv, x, y, z;
@@ -3690,7 +3789,8 @@ int LabelAddVertex(LABEL *area, int vno, int coords) {
   return (NO_ERROR);
 }
 
-int LabelDeleteVertex(LABEL *area, int vno, int coords) {
+int LabelDeleteVertex(LABEL *area, int vno, int coords)
+{
   int n;
 
   if (area->vertex_label_ind[vno] < 0) return (-1);
@@ -3699,7 +3799,8 @@ int LabelDeleteVertex(LABEL *area, int vno, int coords) {
   area->lv[n].deleted = 1;
   return (NO_ERROR);
 }
-static int update_vertex_indices(LABEL *area) {
+static int update_vertex_indices(LABEL *area)
+{
   int vno, n;
   MRI_SURFACE *mris = (MRI_SURFACE *)(area->mris);
 
@@ -3711,7 +3812,8 @@ static int update_vertex_indices(LABEL *area) {
     if (area->lv[n].deleted == 0) area->vertex_label_ind[area->lv[n].vno] = n;
   return (NO_ERROR);
 }
-LABEL *LabelApplyMatrix(LABEL *lsrc, MATRIX *m, LABEL *ldst) {
+LABEL *LabelApplyMatrix(LABEL *lsrc, MATRIX *m, LABEL *ldst)
+{
   int n;
   VECTOR *v1, *v2;
 
@@ -3739,7 +3841,8 @@ LABEL *LabelApplyMatrix(LABEL *lsrc, MATRIX *m, LABEL *ldst) {
   VectorFree(&v2);
   return (ldst);
 }
-static int labelGetSurfaceRasCoords(LABEL *area, LABEL_VERTEX *lv, float *px, float *py, float *pz) {
+static int labelGetSurfaceRasCoords(LABEL *area, LABEL_VERTEX *lv, float *px, float *py, float *pz)
+{
   double xv, yv, zv, xw, yw, zw;
 
   switch (area->coords) {
@@ -3762,7 +3865,8 @@ static int labelGetSurfaceRasCoords(LABEL *area, LABEL_VERTEX *lv, float *px, fl
   return (NO_ERROR);
 }
 
-static int labelGetVoxelCoords(LABEL *area, LABEL_VERTEX *lv, float *px, float *py, float *pz) {
+static int labelGetVoxelCoords(LABEL *area, LABEL_VERTEX *lv, float *px, float *py, float *pz)
+{
   double xv, yv, zv;
 
   switch (area->coords) {

@@ -42,7 +42,8 @@ static char *xList_ksaError[xList_knNumErrorCodes] = {
     "List is empty.",
     "Invalid error code."};
 
-xList_tErr xList_New(xListRef *oppList) {
+xList_tErr xList_New(xListRef *oppList)
+{
   xListRef this = NULL;
   xList_tErr eResult = xList_tErr_NoErr;
 
@@ -75,7 +76,8 @@ cleanup:
   return eResult;
 }
 
-xList_tErr xList_Delete(xListRef *ioppList) {
+xList_tErr xList_Delete(xListRef *ioppList)
+{
   xListRef this = NULL;
   xList_tErr eResult = xList_tErr_NoErr;
 
@@ -105,7 +107,8 @@ cleanup:
   return eResult;
 }
 
-xList_tErr xList_InsertItem(xListRef this, void *ipItemToInsert) {
+xList_tErr xList_InsertItem(xListRef this, void *ipItemToInsert)
+{
   xList_tErr eResult = xList_tErr_NoErr;
   xListNodeRef pNewNode = NULL;
   tBoolean bIsInList = FALSE;
@@ -139,7 +142,8 @@ xList_tErr xList_InsertItem(xListRef this, void *ipItemToInsert) {
     this->mpHead = pNewNode;
     this->mpNext = pNewNode;
     this->mpTail = pNewNode;
-  } else {
+  }
+  else {
     this->mpTail->mpNext = pNewNode;
     this->mpTail = pNewNode;
   }
@@ -149,7 +153,8 @@ cleanup:
   return eResult;
 }
 
-xList_tErr xList_RemoveItem(xListRef this, void **iopItemToRemove) {
+xList_tErr xList_RemoveItem(xListRef this, void **iopItemToRemove)
+{
   xList_tErr eResult = xList_tErr_NoErr;
   xListNodeRef pCurNode = NULL;
   xListNodeRef pBackNode = NULL;
@@ -171,7 +176,8 @@ xList_tErr xList_RemoveItem(xListRef this, void **iopItemToRemove) {
     // compare the nodes. if we found it exit the loop.
     if (xList_CompareItems_(this, pCurNode->mpData, pItemToRemove) == xList_tCompare_Match) {
       bFound = TRUE;
-    } else {
+    }
+    else {
       // next node.
       pBackNode = pCurNode;
       pCurNode = pCurNode->mpNext;
@@ -188,7 +194,8 @@ xList_tErr xList_RemoveItem(xListRef this, void **iopItemToRemove) {
   if (NULL == pBackNode) {
     // node to be deleted is head.
     this->mpHead = pCurNode->mpNext;
-  } else {
+  }
+  else {
     // wrap list around it.
     pBackNode->mpNext = pCurNode->mpNext;
 
@@ -209,7 +216,8 @@ cleanup:
   return eResult;
 }
 
-xList_tErr xList_IsInList(xListRef this, void *ipItemToFind, tBoolean *obpIsInList) {
+xList_tErr xList_IsInList(xListRef this, void *ipItemToFind, tBoolean *obpIsInList)
+{
   xList_tErr eResult = xList_tErr_NoErr;
   tBoolean bFound = FALSE;
 
@@ -230,7 +238,8 @@ cleanup:
   return eResult;
 }
 
-xListNodeRef xList_FindItem_(xListRef this, void *ipItem) {
+xListNodeRef xList_FindItem_(xListRef this, void *ipItem)
+{
   xListNodeRef pCurNode = NULL;
 
   // if no comparator, return null.
@@ -244,7 +253,8 @@ xListNodeRef xList_FindItem_(xListRef this, void *ipItem) {
     // compare the nodes. if we found it, return it.
     if (xList_CompareItems_(this, pCurNode->mpData, ipItem) == xList_tCompare_Match) {
       return pCurNode;
-    } else {
+    }
+    else {
       // next node.
       pCurNode = pCurNode->mpNext;
     }
@@ -254,7 +264,8 @@ xListNodeRef xList_FindItem_(xListRef this, void *ipItem) {
   return NULL;
 }
 
-xList_tErr xList_Clear(xListRef this) {
+xList_tErr xList_Clear(xListRef this)
+{
   xList_tErr eResult = xList_tErr_NoErr;
   xListNodeRef pCurNode = NULL;
   xListNodeRef pDelNode = NULL;
@@ -296,7 +307,8 @@ cleanup:
   return eResult;
 }
 
-xList_tErr xList_GetCount(xListRef this, int *opnCount) {
+xList_tErr xList_GetCount(xListRef this, int *opnCount)
+{
   xList_tErr eResult = xList_tErr_NoErr;
   xListNodeRef pCurNode = NULL;
   int nCount = 0;
@@ -326,7 +338,8 @@ cleanup:
   return eResult;
 }
 
-xList_tErr xList_GetFirstItem(xListRef this, void **oppFirstItem) {
+xList_tErr xList_GetFirstItem(xListRef this, void **oppFirstItem)
+{
   xList_tErr eResult = xList_tErr_NoErr;
 
   // verify the list.
@@ -342,7 +355,8 @@ xList_tErr xList_GetFirstItem(xListRef this, void **oppFirstItem) {
   if (this->mpHead) {
     // return the data ptr.
     *oppFirstItem = this->mpHead->mpData;
-  } else {
+  }
+  else {
     eResult = xList_tErr_ListEmpty;
   }
 
@@ -351,7 +365,8 @@ cleanup:
   return eResult;
 }
 
-xList_tErr xList_GetNextItem(xListRef this, void *ipCurrentItem, void **oppNextItem) {
+xList_tErr xList_GetNextItem(xListRef this, void *ipCurrentItem, void **oppNextItem)
+{
   xList_tErr eResult = xList_tErr_NoErr;
   xListNodeRef pCurNode = NULL;
   void *pNextItem = NULL;
@@ -372,11 +387,13 @@ xList_tErr xList_GetNextItem(xListRef this, void *ipCurrentItem, void **oppNextI
     if (NULL != pCurNode->mpNext) {
       // get its data.
       pNextItem = ((xListNodeRef)pCurNode->mpNext)->mpData;
-    } else {
+    }
+    else {
       // end of list.
       eResult = xList_tErr_EndOfList;
     }
-  } else {
+  }
+  else {
     // couldn't find item.
     eResult = xList_tErr_ItemNotInList;
   }
@@ -389,7 +406,8 @@ cleanup:
   return eResult;
 }
 
-xList_tErr xList_ResetPosition(xListRef this) {
+xList_tErr xList_ResetPosition(xListRef this)
+{
   xList_tErr eResult = xList_tErr_NoErr;
 
   // verify the list.
@@ -406,7 +424,8 @@ cleanup:
   return eResult;
 }
 
-xList_tErr xList_GetNextItemFromPosition(xListRef this, void **oppNextItem) {
+xList_tErr xList_GetNextItemFromPosition(xListRef this, void **oppNextItem)
+{
   xList_tErr eResult = xList_tErr_NoErr;
   void *pNextItem = NULL;
 
@@ -445,11 +464,13 @@ cleanup:
   return eResult;
 }
 
-xList_tErr xList_NextFromPos(xListRef this, void **oppNextItem) {
+xList_tErr xList_NextFromPos(xListRef this, void **oppNextItem)
+{
   return xList_GetNextItemFromPosition(this, oppNextItem);
 }
 
-xList_tErr xList_PushItem(xListRef this, void *ipItemToInsert) {
+xList_tErr xList_PushItem(xListRef this, void *ipItemToInsert)
+{
   xList_tErr eResult = xList_tErr_NoErr;
   xListNodeRef pNewNode = NULL;
   tBoolean bIsInList = FALSE;
@@ -483,7 +504,8 @@ xList_tErr xList_PushItem(xListRef this, void *ipItemToInsert) {
     this->mpHead = pNewNode;
     this->mpNext = pNewNode;
     this->mpTail = pNewNode;
-  } else {
+  }
+  else {
     pNewNode->mpNext = this->mpHead;
     this->mpHead = pNewNode;
   }
@@ -493,7 +515,8 @@ cleanup:
   return eResult;
 }
 
-xList_tErr xList_PopItem(xListRef this, void **oppItem) {
+xList_tErr xList_PopItem(xListRef this, void **oppItem)
+{
   xList_tErr eResult = xList_tErr_NoErr;
   xListNodeRef pDelNode = NULL;
   void *pItem = NULL;
@@ -537,7 +560,8 @@ cleanup:
   return eResult;
 }
 
-xList_tErr xList_SetComparator(xListRef this, xList_tCompare (*iComparator)(void *, void *)) {
+xList_tErr xList_SetComparator(xListRef this, xList_tCompare (*iComparator)(void *, void *))
+{
   xList_tErr eResult = xList_tErr_NoErr;
 
   // verify the list.
@@ -556,15 +580,18 @@ cleanup:
   return eResult;
 }
 
-xList_tCompare xList_CompareItems_(xListRef this, void *pItemA, void *pItemB) {
+xList_tCompare xList_CompareItems_(xListRef this, void *pItemA, void *pItemB)
+{
   xList_tCompare eResult = xList_tCompare_Match;
 
   if (this->mComparator) {
     eResult = this->mComparator(pItemA, pItemB);
-  } else {
+  }
+  else {
     if (pItemA == pItemB) {
       eResult = xList_tCompare_Match;
-    } else {
+    }
+    else {
       eResult = xList_tCompare_GreaterThan;
     }
   }
@@ -572,7 +599,8 @@ xList_tCompare xList_CompareItems_(xListRef this, void *pItemA, void *pItemB) {
   return eResult;
 }
 
-xList_tErr xList_Verify(xListRef this) {
+xList_tErr xList_Verify(xListRef this)
+{
   xList_tErr eResult = xList_tErr_NoErr;
 
   // check pointer.
@@ -592,7 +620,8 @@ cleanup:
   return eResult;
 }
 
-char *xList_GetErrorString(xList_tErr ieCode) {
+char *xList_GetErrorString(xList_tErr ieCode)
+{
   xList_tErr eCode = ieCode;
 
   if (ieCode < xList_tErr_NoErr || ieCode >= xList_knNumErrorCodes) {

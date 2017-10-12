@@ -59,7 +59,8 @@
                             STRUCTURES
 ------------------------------------------------------------------------*/
 
-typedef struct {
+typedef struct
+{
   char *name;
   int iMtid; /* machine specific id of this thread */
   int iSusSignal;
@@ -96,7 +97,8 @@ static int iMachineId = 0;
             0 on success, < 0 otherwise.
 
 ------------------------------------------------------------------------*/
-int ThreadInit(int mid, int iMaxThr, int stacksize, int npriorities) {
+int ThreadInit(int mid, int iMaxThr, int stacksize, int npriorities)
+{
   THREAD *thread;
   int iError;
 
@@ -125,7 +127,8 @@ int ThreadInit(int mid, int iMaxThr, int stacksize, int npriorities) {
             0 on success, < 0 otherwise.
 
 ------------------------------------------------------------------------*/
-int ThreadEnd(int iTid) {
+int ThreadEnd(int iTid)
+{
   int iMtid;
 
   if (iTid >= iNthreads) return (ErrorSet(ERROR_NO_MEMORY, "ThreadEnd(%d) - invalid thread #\n", iTid));
@@ -148,7 +151,8 @@ int ThreadEnd(int iTid) {
             0 on success, < 0 otherwise.
 
 ------------------------------------------------------------------------*/
-int ThreadStart(char *name, void (*func)(int iTid, void *parm), void *parm, int priority) {
+int ThreadStart(char *name, void (*func)(int iTid, void *parm), void *parm, int priority)
+{
   int iMtid, iTid;
   THREAD *pthr;
 
@@ -188,7 +192,8 @@ int ThreadStart(char *name, void (*func)(int iTid, void *parm), void *parm, int 
             0 on success, < 0 otherwise.
 
 ------------------------------------------------------------------------*/
-int ThreadSuspend(int iTid, int iSignal) {
+int ThreadSuspend(int iTid, int iSignal)
+{
   int iMtid;
   THREAD *pthr;
 
@@ -213,7 +218,8 @@ int ThreadSuspend(int iTid, int iSignal) {
             0 on success, < 0 otherwise.
 
 ------------------------------------------------------------------------*/
-int ThreadResume(int iTid, int iSignal) {
+int ThreadResume(int iTid, int iSignal)
+{
   THREAD *pthr;
   int iMtid;
 
@@ -223,7 +229,8 @@ int ThreadResume(int iTid, int iSignal) {
     for (iTid = 0; iTid < iNthreads; iTid++) ThreadResume(iTid, iSignal);
 
     return (0);
-  } else {
+  }
+  else {
     if (iTid == TID_SELF) iTid = ThreadGetTid();
 
     pthr = &pthrTable[iTid];
@@ -245,7 +252,8 @@ int ThreadResume(int iTid, int iSignal) {
             0 on success, < 0 otherwise.
 
 ------------------------------------------------------------------------*/
-int ThreadSleep(int iTid, long usec) {
+int ThreadSleep(int iTid, long usec)
+{
   int iMtid;
 
   if (iTid >= iNthreads) return (ErrorSet(ERROR_NO_MEMORY, "ThreadSleep(%d) - invalid thread #\n", iTid));
@@ -269,7 +277,8 @@ int ThreadSleep(int iTid, long usec) {
           1 if the thread was woken up, 0 if not.
 
 ------------------------------------------------------------------------*/
-int ThreadSignal(int iTid, int iSignal) {
+int ThreadSignal(int iTid, int iSignal)
+{
   THREAD *pthr;
 
   if (iTid >= iNthreads) return (ErrorSet(ERROR_NO_MEMORY, "ThreadSignal(%d) - invalid thread #\n", iTid));
@@ -280,7 +289,8 @@ int ThreadSignal(int iTid, int iSignal) {
   if (pthr->iSusSignal & iSignal) {
     ThreadResume(iTid, iSignal);
     return (1);
-  } else
+  }
+  else
     return (0);
 }
 /*------------------------------------------------------------------------
@@ -295,7 +305,8 @@ int ThreadSignal(int iTid, int iSignal) {
             0 on success, < 0 otherwise.
 
 ------------------------------------------------------------------------*/
-int ThreadYield(void) {
+int ThreadYield(void)
+{
   int iMtid, iTid;
 
   /* ThreadCheckMailbox() ;*/
@@ -318,14 +329,16 @@ int ThreadYield(void) {
             0 on success, < 0 otherwise.
 
 ------------------------------------------------------------------------*/
-int ThreadEnqueue(int iTid, void *msg) {
+int ThreadEnqueue(int iTid, void *msg)
+{
   THREAD *thr;
 
   if (iTid >= iNthreads) return (ErrorSet(ERROR_NO_MEMORY, "ThreadEnqueue(%d) - invalid thread #\n", iTid));
 
   if (iTid == TID_ALL) {
     for (iTid = 0; iTid < iNthreads; iTid++) ThreadEnqueue(iTid, msg);
-  } else {
+  }
+  else {
     thr = &pthrTable[iTid];
     if (msg) Qput(thr->inQ, msg);
     if (thr->iSusSignal & SIG_Q_PENDING) ThreadResume(iTid, SIG_Q_PENDING);
@@ -346,7 +359,8 @@ int ThreadEnqueue(int iTid, void *msg) {
                head of the Q otherwise.
 
 ------------------------------------------------------------------------*/
-void *ThreadDequeue(int mode) {
+void *ThreadDequeue(int mode)
+{
   int iTid;
   THREAD *thr;
 
@@ -375,7 +389,8 @@ void *ThreadDequeue(int mode) {
             the TID on success (> 0), < 0 on error.
 
 ------------------------------------------------------------------------*/
-int ThreadGetTid(void) {
+int ThreadGetTid(void)
+{
   int iMtid, iTid;
 
   iMtid = MachThreadGetTid();
@@ -417,7 +432,8 @@ int ThreadGetMid(void) { return (iMachineId); }
          the number of elements processed.
 
 ------------------------------------------------------------------------*/
-int ThreadCheckMailbox(void) {
+int ThreadCheckMailbox(void)
+{
   MSG *msg;
   int iNcalls = 0;
 

@@ -43,7 +43,8 @@ char *HPtL_ksaErrorStrings[HPtL_knNumErrorCodes] = {
     "Last point.",
     "Invalid error code."};
 
-HPtL_tErr HPtL_New(mriHeadPointListRef *oList, char *isListName, char *isTransformName, MATRIX *iClientTransform) {
+HPtL_tErr HPtL_New(mriHeadPointListRef *oList, char *isListName, char *isTransformName, MATRIX *iClientTransform)
+{
   mriHeadPointListRef this = NULL;
   HPtL_tErr eResult = HPtL_tErr_NoErr;
 
@@ -130,7 +131,8 @@ HPtL_tErr HPtL_New(mriHeadPointListRef *oList, char *isListName, char *isTransfo
   return eResult;
 }
 
-HPtL_tErr HPtL_Delete(mriHeadPointListRef *iopList) {
+HPtL_tErr HPtL_Delete(mriHeadPointListRef *iopList)
+{
   mriHeadPointListRef this = NULL;
   HPtL_tErr eResult = HPtL_tErr_NoErr;
 
@@ -174,7 +176,8 @@ cleanup:
   return eResult;
 }
 
-HPtL_tErr HPtL_ReadHeadListFile_(mriHeadPointListRef this, char *isListName) {
+HPtL_tErr HPtL_ReadHeadListFile_(mriHeadPointListRef this, char *isListName)
+{
   HPtL_tErr eResult = HPtL_tErr_NoErr;
   FILE *file = NULL;
   char sLine[1024] = "";
@@ -266,7 +269,8 @@ cleanup:
   return eResult;
 }
 
-HPtL_tErr HPtL_CreateTransform_(mriHeadPointListRef this, char *isTransformName, MATRIX *iClientTransform) {
+HPtL_tErr HPtL_CreateTransform_(mriHeadPointListRef this, char *isTransformName, MATRIX *iClientTransform)
+{
   HPtL_tErr eResult = HPtL_tErr_NoErr;
   char sTransformName[256] = "";
   char *psSuffix = NULL;
@@ -310,11 +314,13 @@ HPtL_tErr HPtL_CreateTransform_(mriHeadPointListRef this, char *isTransformName,
     if (NULL != psSuffix) {
       DebugNote(("Creating transform name. Replacing .hpts with .trans"));
       strcpy(psSuffix, ".trans");
-    } else {
+    }
+    else {
       eResult = HPtL_tErr_InvalidParameter;
       goto error;
     }
-  } else {
+  }
+  else {
     DebugNote(("Copying transform name"));
     strcpy(sTransformName, isTransformName);
   }
@@ -419,7 +425,8 @@ HPtL_tErr HPtL_CreateTransform_(mriHeadPointListRef this, char *isTransformName,
   return eResult;
 }
 
-HPtL_tErr HPtL_ConvertListToClientSpace_(mriHeadPointListRef this) {
+HPtL_tErr HPtL_ConvertListToClientSpace_(mriHeadPointListRef this)
+{
   HPtL_tErr eResult = HPtL_tErr_NoErr;
   HPtL_tHeadPointRef pHeadPt = NULL;
 
@@ -462,7 +469,8 @@ HPtL_tErr HPtL_ConvertListToClientSpace_(mriHeadPointListRef this) {
   return eResult;
 }
 
-HPtL_tErr HPtL_WriteTransform(mriHeadPointListRef this, char *isDest) {
+HPtL_tErr HPtL_WriteTransform(mriHeadPointListRef this, char *isDest)
+{
   HPtL_tErr eResult = HPtL_tErr_NoErr;
   char sTransform[256] = "";
   MATRIX *mTmp = NULL;
@@ -482,7 +490,8 @@ HPtL_tErr HPtL_WriteTransform(mriHeadPointListRef this, char *isDest) {
   /* if null arg, use saved transform name */
   if (NULL == isDest) {
     strcpy(sTransform, this->msTransformFile);
-  } else {
+  }
+  else {
     strcpy(sTransform, isDest);
   }
 
@@ -536,7 +545,8 @@ cleanup:
   return eResult;
 }
 
-HPtL_tErr HPtL_WriteHeadPointFile(mriHeadPointListRef this, char *isDest) {
+HPtL_tErr HPtL_WriteHeadPointFile(mriHeadPointListRef this, char *isDest)
+{
   HPtL_tErr eResult = HPtL_tErr_NoErr;
   char sFilename[256] = "";
   FILE *file = NULL;
@@ -550,7 +560,8 @@ HPtL_tErr HPtL_WriteHeadPointFile(mriHeadPointListRef this, char *isDest) {
   /* if null arg, use saved name */
   if (NULL == isDest) {
     strcpy(sFilename, this->msPointFile);
-  } else {
+  }
+  else {
     strcpy(sFilename, isDest);
   }
   /* attempt to open the file */
@@ -590,7 +601,8 @@ cleanup:
 HPtL_tErr HPtL_ResetIterator(mriHeadPointListRef this,
                              HPtL_tIterationPlane iPlane,
                              float ifPlaneNumber,
-                             float ifPlaneRange) {
+                             float ifPlaneRange)
+{
   HPtL_tErr eResult = HPtL_tErr_NoErr;
 
   eResult = HPtL_Verify(this);
@@ -619,7 +631,8 @@ cleanup:
   return eResult;
 }
 
-HPtL_tErr HPtL_NextPoint(mriHeadPointListRef this, HPtL_tHeadPointRef *opPoint) {
+HPtL_tErr HPtL_NextPoint(mriHeadPointListRef this, HPtL_tHeadPointRef *opPoint)
+{
   HPtL_tErr eResult = HPtL_tErr_NoErr;
   HPtL_tHeadPointRef point = NULL;
   tBoolean bGoodPoint = FALSE;
@@ -686,7 +699,8 @@ HPtL_tErr HPtL_FindNearestPoint(mriHeadPointListRef this,
                                 HPtL_tIterationPlane iPlane,
                                 float ifPlaneRange,
                                 xVoxelRef iWhere,
-                                HPtL_tHeadPointRef *opPoint) {
+                                HPtL_tHeadPointRef *opPoint)
+{
   HPtL_tErr eResult = HPtL_tErr_NoErr;
   float fPlane = 0;
   HPtL_tHeadPointRef pPoint = NULL;
@@ -766,7 +780,8 @@ cleanup:
 HPtL_tErr HPtL_FindFlattenedNearestPoint(mriHeadPointListRef this,
                                          HPtL_tIterationPlane iPlane,
                                          xVoxelRef iWhere,
-                                         HPtL_tHeadPointRef *opPoint) {
+                                         HPtL_tHeadPointRef *opPoint)
+{
   HPtL_tErr eResult = HPtL_tErr_NoErr;
   float fDistance = 0;
   HPtL_tHeadPointRef pNearestPoint = NULL;
@@ -830,7 +845,8 @@ cleanup:
   return eResult;
 }
 
-HPtL_tErr HPtL_RestoreTransform(mriHeadPointListRef this) {
+HPtL_tErr HPtL_RestoreTransform(mriHeadPointListRef this)
+{
   HPtL_tErr eResult = HPtL_tErr_NoErr;
   Trns_tErr eTransform = Trns_tErr_NoErr;
   MATRIX *mTransform = NULL;
@@ -867,7 +883,8 @@ cleanup:
   return eResult;
 }
 
-HPtL_tErr HPtL_ApplyTransform(mriHeadPointListRef this, MATRIX *iTransform) {
+HPtL_tErr HPtL_ApplyTransform(mriHeadPointListRef this, MATRIX *iTransform)
+{
   HPtL_tErr eResult = HPtL_tErr_NoErr;
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
@@ -910,7 +927,8 @@ cleanup:
   return eResult;
 }
 
-HPtL_tErr HPtL_Translate(mriHeadPointListRef this, float ifDistance, tAxis iAxis) {
+HPtL_tErr HPtL_Translate(mriHeadPointListRef this, float ifDistance, tAxis iAxis)
+{
   HPtL_tErr eResult = HPtL_tErr_NoErr;
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
@@ -948,7 +966,8 @@ cleanup:
   return eResult;
 }
 
-HPtL_tErr HPtL_Rotate(mriHeadPointListRef this, float ifDegrees, tAxis iAxis) {
+HPtL_tErr HPtL_Rotate(mriHeadPointListRef this, float ifDegrees, tAxis iAxis)
+{
   HPtL_tErr eResult = HPtL_tErr_NoErr;
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
@@ -986,7 +1005,8 @@ cleanup:
   return eResult;
 }
 
-HPtL_tErr HPtL_Scale(mriHeadPointListRef this, float ifFactor, tAxis iAxis) {
+HPtL_tErr HPtL_Scale(mriHeadPointListRef this, float ifFactor, tAxis iAxis)
+{
   HPtL_tErr eResult = HPtL_tErr_NoErr;
   Trns_tErr eTransform = Trns_tErr_NoErr;
 
@@ -1024,7 +1044,8 @@ cleanup:
   return eResult;
 }
 
-HPtL_tErr HPtL_AlignPointToClientVoxel(mriHeadPointListRef this, HPtL_tHeadPointRef iPoint, xVoxelRef iClientVox) {
+HPtL_tErr HPtL_AlignPointToClientVoxel(mriHeadPointListRef this, HPtL_tHeadPointRef iPoint, xVoxelRef iClientVox)
+{
   HPtL_tErr eResult = HPtL_tErr_NoErr;
   xVoxel destPt;
   xVoxel srcPt;
@@ -1096,7 +1117,8 @@ cleanup:
   return eResult;
 }
 
-HPtL_tErr HPtL_Verify(mriHeadPointListRef this) {
+HPtL_tErr HPtL_Verify(mriHeadPointListRef this)
+{
   HPtL_tErr eResult = HPtL_tErr_NoErr;
 
   /* check for null ptr */
@@ -1116,7 +1138,8 @@ cleanup:
   return eResult;
 }
 
-char *HPtL_GetErrorString(HPtL_tErr ieCode) {
+char *HPtL_GetErrorString(HPtL_tErr ieCode)
+{
   HPtL_tErr eCode = ieCode;
 
   if (ieCode < 0 || ieCode >= HPtL_knNumErrorCodes) {

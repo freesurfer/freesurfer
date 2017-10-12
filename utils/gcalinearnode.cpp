@@ -34,17 +34,19 @@ using namespace std;
 
 #include "gcalinearnode.hpp"
 
-namespace Freesurfer {
-
+namespace Freesurfer
+{
 // ====================================================
-void GCAlinearNode::PrintStats(ostream &os) const {
+void GCAlinearNode::PrintStats(ostream &os) const
+{
   os << "Stats for GCAlinearNode" << endl;
   os << "  Exhumation time = " << this->tExhume << endl;
   os << "  Inhumation time = " << this->tInhume << endl;
 }
 
 // ==========================================
-void GCAlinearNode::Exhume(const GCA *const src) {
+void GCAlinearNode::Exhume(const GCA *const src)
+{
   /*!
     This method is responsible for extracting data from
     the source GCA, and packing into the linear arrays
@@ -163,13 +165,15 @@ void GCAlinearNode::Exhume(const GCA *const src) {
 
 // ====================================================
 
-const_GCAnode GCAlinearNode::GetConstNode(const int ix, const int iy, const int iz) const {
+const_GCAnode GCAlinearNode::GetConstNode(const int ix, const int iy, const int iz) const
+{
   return (const_GCAnode(ix, iy, iz, *this));
 }
 
 // ====================================================
 
-void GCAlinearNode::Inhume(GCA *dst) const {
+void GCAlinearNode::Inhume(GCA *dst) const
+{
   /*!
     Stores data back from the linear arrays into a GCA.
     This removes the existing node structure, and reallocates
@@ -333,7 +337,8 @@ void GCAlinearNode::Inhume(GCA *dst) const {
 
 // ====================================================
 
-void GCAlinearNode::Allocate(void) {
+void GCAlinearNode::Allocate(void)
+{
   /*!
     Allocates the main arrays according to
     the values stored in the dimension member
@@ -368,7 +373,8 @@ void GCAlinearNode::Allocate(void) {
 
 // ====================================================
 
-void GCAlinearNode::ExtractDims(const GCA *const src) {
+void GCAlinearNode::ExtractDims(const GCA *const src)
+{
   /*!
     Fills in the dimensions required from the given GCA.
     Does this by looping over all voxels, and finding the
@@ -401,7 +407,8 @@ void GCAlinearNode::ExtractDims(const GCA *const src) {
             for (unsigned int iNeighbour = 0; iNeighbour < GIBBS_NEIGHBORHOOD; iNeighbour++) {
               this->n6D += gc1d->nlabels[iNeighbour];
             }
-          } else {
+          }
+          else {
             this->hasGibbsNeighbourhood = false;
           }
         }
@@ -412,7 +419,8 @@ void GCAlinearNode::ExtractDims(const GCA *const src) {
 
 // ====================================================
 
-void GCAlinearNode::ScorchNodes(GCA *targ) const {
+void GCAlinearNode::ScorchNodes(GCA *targ) const
+{
   /*!
     Deletes all of the node related things from
     a GCA, prior to inhumation of new data
@@ -432,7 +440,8 @@ void GCAlinearNode::ScorchNodes(GCA *targ) const {
 
 // ###############################################################
 
-const_GCAnode_GC1D const_GCAnode::GetConstGC1D(const int iGC1D) const {
+const_GCAnode_GC1D const_GCAnode::GetConstGC1D(const int iGC1D) const
+{
   if ((iGC1D < 0) || (iGC1D >= this->myGC1Dcount)) {
     std::cerr << __FUNCTION__ << ": Out of range " << iGC1D << std::endl;
     abort();

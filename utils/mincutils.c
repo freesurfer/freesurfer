@@ -32,7 +32,8 @@
 #include "mri.h"
 
 /*-----------------------------------------------------*/
-int DumpMINCAxes(FILE *fp, MINCAXES *MA) {
+int DumpMINCAxes(FILE *fp, MINCAXES *MA)
+{
   int i;
 
   fprintf(fp,
@@ -57,7 +58,8 @@ int DumpMINCAxes(FILE *fp, MINCAXES *MA) {
 }
 
 /*-----------------------------------------------------*/
-MINCAXES *ConfigMINCAxes(MRI *mri) {
+MINCAXES *ConfigMINCAxes(MRI *mri)
+{
   MINCAXES *MA;
   int va;
 
@@ -107,7 +109,8 @@ MINCAXES *ConfigMINCAxes(MRI *mri) {
 }
 
 /*-----------------------------------------------------*/
-int NameMINCAxes(MINCAXES *MA) {
+int NameMINCAxes(MINCAXES *MA)
+{
   int xspacehit, yspacehit, zspacehit;
   int xspaceid, yspaceid, zspaceid;
   char *space[3];
@@ -142,11 +145,13 @@ int NameMINCAxes(MINCAXES *MA) {
     colspaceid = xspaceid;
     MA->VolCenterVox[0] = (MA->Axis[0].Len - 1) / 2;
     xspacehit = 1;
-  } else if (col_dc_y >= row_dc_y && col_dc_y >= slc_dc_y) {
+  }
+  else if (col_dc_y >= row_dc_y && col_dc_y >= slc_dc_y) {
     colspaceid = yspaceid;
     MA->VolCenterVox[1] = (MA->Axis[0].Len - 1) / 2;
     yspacehit = 1;
-  } else if (col_dc_z >= row_dc_z && col_dc_z >= slc_dc_z) {
+  }
+  else if (col_dc_z >= row_dc_z && col_dc_z >= slc_dc_z) {
     colspaceid = zspaceid;
     MA->VolCenterVox[2] = (MA->Axis[0].Len - 1) / 2;
     zspacehit = 1;
@@ -157,11 +162,13 @@ int NameMINCAxes(MINCAXES *MA) {
     rowspaceid = xspaceid;
     MA->VolCenterVox[0] = (MA->Axis[1].Len - 1) / 2;
     xspacehit = 1;
-  } else if (!yspacehit && row_dc_y >= slc_dc_y) {
+  }
+  else if (!yspacehit && row_dc_y >= slc_dc_y) {
     rowspaceid = yspaceid;
     MA->VolCenterVox[1] = (MA->Axis[1].Len - 1) / 2;
     yspacehit = 1;
-  } else if (!zspacehit && row_dc_z >= slc_dc_z) {
+  }
+  else if (!zspacehit && row_dc_z >= slc_dc_z) {
     rowspaceid = zspaceid;
     MA->VolCenterVox[2] = (MA->Axis[1].Len - 1) / 2;
     zspacehit = 1;
@@ -172,7 +179,8 @@ int NameMINCAxes(MINCAXES *MA) {
     slcspaceid = xspaceid;
     MA->VolCenterVox[0] = (MA->Axis[2].Len - 1) / 2;
     xspacehit = 1;
-  } else if (!yspacehit) {
+  }
+  else if (!yspacehit) {
     slcspaceid = yspaceid;
     MA->VolCenterVox[1] = (MA->Axis[2].Len - 1) / 2;
     yspacehit = 1;
@@ -215,7 +223,8 @@ int NameMINCAxes(MINCAXES *MA) {
   return (0);
 }
 /*-----------------------------------------------------*/
-int MINCAxesStorageOrder(MINCAXES *MA) {
+int MINCAxesStorageOrder(MINCAXES *MA)
+{
   int ncols, nrows, nslcs;
   int col, row, slc;
 
@@ -232,25 +241,30 @@ int MINCAxesStorageOrder(MINCAXES *MA) {
     if (nrows >= nslcs) {
       MA->VoxAxisStorageOrder[1] = row;
       MA->VoxAxisStorageOrder[2] = slc;
-    } else {
+    }
+    else {
       MA->VoxAxisStorageOrder[1] = slc;
       MA->VoxAxisStorageOrder[2] = row;
     }
-  } else if (nrows >= nslcs) {
+  }
+  else if (nrows >= nslcs) {
     MA->VoxAxisStorageOrder[0] = row;
     if (ncols >= nslcs) {
       MA->VoxAxisStorageOrder[1] = col;
       MA->VoxAxisStorageOrder[2] = slc;
-    } else {
+    }
+    else {
       MA->VoxAxisStorageOrder[1] = slc;
       MA->VoxAxisStorageOrder[2] = col;
     }
-  } else {
+  }
+  else {
     MA->VoxAxisStorageOrder[0] = slc;
     if (ncols >= nrows) {
       MA->VoxAxisStorageOrder[1] = col;
       MA->VoxAxisStorageOrder[2] = row;
-    } else {
+    }
+    else {
       MA->VoxAxisStorageOrder[1] = row;
       MA->VoxAxisStorageOrder[2] = col;
     }

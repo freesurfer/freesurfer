@@ -41,7 +41,8 @@ static double entropy(int *class_counts, int nclasses, int *Nc);
 static double rfFeatureInfoGain(
     RANDOM_FOREST *rf, TREE *tree, NODE *parent, NODE *left, NODE *right, int fno, int *ptotal_count);
 
-RANDOM_FOREST *RFalloc(int ntrees, int nfeatures, int nclasses, int max_depth, char **class_names, int nsteps) {
+RANDOM_FOREST *RFalloc(int ntrees, int nfeatures, int nclasses, int max_depth, char **class_names, int nsteps)
+{
   RANDOM_FOREST *rf;
   TREE *tree;
   int n, c = 0;
@@ -113,7 +114,8 @@ RANDOM_FOREST *RFalloc(int ntrees, int nfeatures, int nclasses, int max_depth, c
 }
 
 static double compute_info_gain(
-    RF *rf, TREE *tree, NODE *parent, NODE *left, NODE *right, double **training_data, int fno, double thresh) {
+    RF *rf, TREE *tree, NODE *parent, NODE *left, NODE *right, double **training_data, int fno, double thresh)
+{
   double entropy_before, entropy_after, wl, wr;
   int i, tno, c;
   NODE *node;
@@ -146,7 +148,8 @@ static double compute_info_gain(
   return (entropy_before - entropy_after);
 }
 static int adjust_optimal_threshold(
-    RF *rf, TREE *tree, NODE *parent, NODE *left, NODE *right, double **training_data, int fno, double *pbest_thresh) {
+    RF *rf, TREE *tree, NODE *parent, NODE *left, NODE *right, double **training_data, int fno, double *pbest_thresh)
+{
   double previous_thresh, next_thresh, info_gain, best_info_gain, step, thresh, best_thresh;
 
   best_thresh = *pbest_thresh;
@@ -199,7 +202,8 @@ static double find_optimal_threshold(RF *rf,
                                      double *pinfo_gain,
                                      int nsteps,
                                      double fmin,
-                                     double fmax) {
+                                     double fmax)
+{
   double step, thresh, best_thresh, info_gain, best_info_gain;
 
   step = (fmax - fmin) / (nsteps - 1);
@@ -226,7 +230,8 @@ static int find_optimal_feature_and_threshold(RANDOM_FOREST *rf,
                                               NODE *right,
                                               int *training_classes,
                                               double **training_data,
-                                              int ntraining) {
+                                              int ntraining)
+{
   double info_gain, best_info_gain, thresh, best_thresh, fmin, fmax, tdata;
   int f, best_f, fno, nsteps, i, tno;
 
@@ -267,7 +272,8 @@ static int find_optimal_feature_and_threshold(RANDOM_FOREST *rf,
   return (1);
 }
 
-static NODE *rfAllocateNode(int ntraining, int depth, int nclasses) {
+static NODE *rfAllocateNode(int ntraining, int depth, int nclasses)
+{
   NODE *node;
   node = (NODE *)calloc(1, sizeof(NODE));
   if (node == NULL) ErrorExit(ERROR_NOMEMORY, "rfAllocateNode: could not allocate node");
@@ -279,7 +285,8 @@ static NODE *rfAllocateNode(int ntraining, int depth, int nclasses) {
   return (node);
 }
 
-static int rfFreeNode(NODE **pnode) {
+static int rfFreeNode(NODE **pnode)
+{
   NODE *node;
 
   node = *pnode;
@@ -291,7 +298,8 @@ static int rfFreeNode(NODE **pnode) {
 }
 
 static int rfTrainNode(
-    RANDOM_FOREST *rf, TREE *tree, NODE *node, int *training_classes, double **training_data, int ntraining) {
+    RANDOM_FOREST *rf, TREE *tree, NODE *node, int *training_classes, double **training_data, int ntraining)
+{
   if (node->left == NULL)  // not trained yet
   {
     node->left = rfAllocateNode(node->total_counts, node->depth + 1, rf->nclasses);
@@ -314,21 +322,24 @@ static int rfTrainNode(
   return (1);
 }
 
-static int rfFindNodeLeaves(TREE *tree, NODE *node) {
+static int rfFindNodeLeaves(TREE *tree, NODE *node)
+{
   if (node->left == NULL) {
     if (tree->leaves) {
       if (tree->nleaves >= tree->max_leaves && tree->max_leaves > 0) DiagBreak();
       tree->leaves[tree->nleaves] = node;
     }
     tree->nleaves++;
-  } else {
+  }
+  else {
     rfFindNodeLeaves(tree, node->left);
     rfFindNodeLeaves(tree, node->right);
   }
   return (NO_ERROR);
 }
 
-static int rfFindLeaves(TREE *tree) {
+static int rfFindLeaves(TREE *tree)
+{
   if (tree->leaves) {
     free(tree->leaves);
     tree->leaves = NULL;
@@ -343,7 +354,8 @@ static int rfFindLeaves(TREE *tree) {
 
   return (NO_ERROR);
 }
-static int rfTrainTree(RANDOM_FOREST *rf, TREE *tree, int *training_classes, double **training_data, int ntraining) {
+static int rfTrainTree(RANDOM_FOREST *rf, TREE *tree, int *training_classes, double **training_data, int ntraining)
+{
   int done = 0, n, iter, tno, fno, f, i;
   double total_entropy, last_f;
 
@@ -386,7 +398,8 @@ int RFtrain(RANDOM_FOREST *rf,
             double training_fraction,
             int *training_classes,
             double **training_data,
-            int ntraining) {
+            int ntraining)
+{
   int n, ii, nfeatures_per_tree = 0, *feature_permutation, *training_permutation, f, index, start_no, end_no,
              ntraining_per_tree = 0, total_to_remove = 0;
   TREE *tree = NULL;
@@ -559,7 +572,8 @@ int RFtrain(RANDOM_FOREST *rf,
   free(training_permutation);
   return (NO_ERROR);
 }
-int RFtrainTree(RANDOM_FOREST *rf, int tno, int *training_classes, double **training_data, int ntraining) {
+int RFtrainTree(RANDOM_FOREST *rf, int tno, int *training_classes, double **training_data, int ntraining)
+{
   int i, f;
   TREE *tree;
 
@@ -603,7 +617,8 @@ int RFtrainTree(RANDOM_FOREST *rf, int tno, int *training_classes, double **trai
   return (NO_ERROR);
 }
 
-static double entropy(int *class_counts, int nclasses, int *Nc) {
+static double entropy(int *class_counts, int nclasses, int *Nc)
+{
   int c;
   double ent, p, total;
 
@@ -615,7 +630,8 @@ static double entropy(int *class_counts, int nclasses, int *Nc) {
     if (Nc[c] > 0) {
       norm_class_counts[c] = (double)class_counts[c] / (double)Nc[c];
       total += norm_class_counts[c];
-    } else  // then class_counts[c] has to be 0 also
+    }
+    else  // then class_counts[c] has to be 0 also
       norm_class_counts[c] = 0.0;
   }
   if (FZERO(total))  // shouldn't ever happen
@@ -636,7 +652,8 @@ static double entropy(int *class_counts, int nclasses, int *Nc) {
   return (ent);
 }
 
-static int rfWriteNode(RANDOM_FOREST *rf, NODE *node, FILE *fp) {
+static int rfWriteNode(RANDOM_FOREST *rf, NODE *node, FILE *fp)
+{
   int c;
 
   fprintf(fp, "NODE %d %d %d %lf\n", node->left == NULL, node->depth, node->feature, node->thresh);
@@ -653,7 +670,8 @@ static int rfWriteNode(RANDOM_FOREST *rf, NODE *node, FILE *fp) {
   }
   return (NO_ERROR);
 }
-static int rfWriteTree(RANDOM_FOREST *rf, TREE *tree, FILE *fp) {
+static int rfWriteTree(RANDOM_FOREST *rf, TREE *tree, FILE *fp)
+{
   int f;
 
   fprintf(fp, "TREE %d %d %d\n", tree->depth, tree->nleaves, tree->nfeatures);
@@ -662,7 +680,8 @@ static int rfWriteTree(RANDOM_FOREST *rf, TREE *tree, FILE *fp) {
   fprintf(fp, "TREE: END\n");
   return (NO_ERROR);
 }
-static int rfReadNode(RANDOM_FOREST *rf, NODE *node, FILE *fp) {
+static int rfReadNode(RANDOM_FOREST *rf, NODE *node, FILE *fp)
+{
   int c, leaf;
   char line[MAX_LINE_LEN], *cp;
 
@@ -699,7 +718,8 @@ static int rfReadNode(RANDOM_FOREST *rf, NODE *node, FILE *fp) {
   }
   return (NO_ERROR);
 }
-static int rfReadTree(RANDOM_FOREST *rf, TREE *tree, FILE *fp) {
+static int rfReadTree(RANDOM_FOREST *rf, TREE *tree, FILE *fp)
+{
   int f;
   char line[MAX_LINE_LEN], *cp;
 
@@ -718,7 +738,8 @@ static int rfReadTree(RANDOM_FOREST *rf, TREE *tree, FILE *fp) {
   rfFindLeaves(tree);
   return (NO_ERROR);
 }
-int RFwrite(RANDOM_FOREST *rf, char *fname) {
+int RFwrite(RANDOM_FOREST *rf, char *fname)
+{
   FILE *fp;
   int err;
 
@@ -728,7 +749,8 @@ int RFwrite(RANDOM_FOREST *rf, char *fname) {
   fclose(fp);
   return (err);
 }
-int RFwriteInto(RANDOM_FOREST *rf, FILE *fp) {
+int RFwriteInto(RANDOM_FOREST *rf, FILE *fp)
+{
   int c, f, n;
 
   fprintf(fp,
@@ -756,7 +778,8 @@ int RFwriteInto(RANDOM_FOREST *rf, FILE *fp) {
   return (NO_ERROR);
 }
 
-static NODE *rfFindLeaf(RF *rf, NODE *node, double *feature) {
+static NODE *rfFindLeaf(RF *rf, NODE *node, double *feature)
+{
   if (DIAG_VERBOSE_ON) {
     if (node->left)  // not a leaf
     {
@@ -787,7 +810,8 @@ static NODE *rfFindLeaf(RF *rf, NODE *node, double *feature) {
     return (rfFindLeaf(rf, node->right, feature));
 }
 
-int RFcomputeOutOfBagCorrect(RANDOM_FOREST *rf, int *training_classes, double **training_data, int ntraining) {
+int RFcomputeOutOfBagCorrect(RANDOM_FOREST *rf, int *training_classes, double **training_data, int ntraining)
+{
   int max_class = -1, n, c, max_count, i, correct, **tree_training;
   NODE *node;
   TREE *tree;
@@ -890,7 +914,8 @@ int RFcomputeOutOfBagCorrect(RANDOM_FOREST *rf, int *training_classes, double **
   return (correct);
 }
 
-int RFclassify(RANDOM_FOREST *rf, double *feature, double *p_pval, int true_class) {
+int RFclassify(RANDOM_FOREST *rf, double *feature, double *p_pval, int true_class)
+{
   int max_class = -1, n, c;
   NODE *node;
   double max_count, class_counts[MAX_CLASSES], total_count;
@@ -953,7 +978,8 @@ int RFclassify(RANDOM_FOREST *rf, double *feature, double *p_pval, int true_clas
                    rf->class_names[true_class],
                    100.0 * class_counts[true_class] / total_count);
         }
-      } else
+      }
+      else
         printf("%s: p = %2.2f %s\n",
                rf->class_names[c],
                100 * (double)class_counts[c] / total_count,
@@ -962,7 +988,8 @@ int RFclassify(RANDOM_FOREST *rf, double *feature, double *p_pval, int true_clas
   return (max_class);
 }
 
-RANDOM_FOREST *RFread(char *fname) {
+RANDOM_FOREST *RFread(char *fname)
+{
   FILE *fp;
   RF *rf;
 
@@ -973,7 +1000,8 @@ RANDOM_FOREST *RFread(char *fname) {
   fclose(fp);
   return (rf);
 }
-RANDOM_FOREST *RFreadFrom(FILE *fp) {
+RANDOM_FOREST *RFreadFrom(FILE *fp)
+{
   RF *rf;
   int nfeatures, nclasses, ntrees, max_depth, ntraining, nsteps, c, n, f;
   char line[MAX_LINE_LEN], *cp, *class_names[MAX_CLASSES];
@@ -1019,7 +1047,8 @@ RANDOM_FOREST *RFreadFrom(FILE *fp) {
   return (rf);
 }
 
-int RFsetNumberOfClasses(RANDOM_FOREST *rf, int nclasses) {
+int RFsetNumberOfClasses(RANDOM_FOREST *rf, int nclasses)
+{
   int n, c;
   char **old_class_names;
   int *old_class_counts;
@@ -1051,7 +1080,8 @@ int RFsetNumberOfClasses(RANDOM_FOREST *rf, int nclasses) {
   rf->nclasses = nclasses;
   return (NO_ERROR);
 }
-int RFevaluateFeatures(RANDOM_FOREST *rf, FILE *fp) {
+int RFevaluateFeatures(RANDOM_FOREST *rf, FILE *fp)
+{
   int fno, tree_count, total_count = 0, tno;
   TREE *tree;
   double info_gain, total_info_gain;
@@ -1074,7 +1104,8 @@ int RFevaluateFeatures(RANDOM_FOREST *rf, FILE *fp) {
   return (NO_ERROR);
 }
 static double rfFeatureInfoGain(
-    RANDOM_FOREST *rf, TREE *tree, NODE *parent, NODE *left, NODE *right, int fno, int *ptotal_count) {
+    RANDOM_FOREST *rf, TREE *tree, NODE *parent, NODE *left, NODE *right, int fno, int *ptotal_count)
+{
   int c;
   double info_gain = 0, entropy_before, entropy_after, wr, wl;
 
@@ -1094,7 +1125,8 @@ static double rfFeatureInfoGain(
                       wr * entropy(right->class_counts, rf->nclasses, tree->root.class_counts);
       info_gain = ((double)parent->total_counts * (entropy_before - entropy_after));
       *ptotal_count += parent->total_counts;
-    } else
+    }
+    else
       info_gain = 0;
 
     info_gain += rfFeatureInfoGain(rf, tree, left, left->left, left->right, fno, ptotal_count);
@@ -1102,7 +1134,8 @@ static double rfFeatureInfoGain(
   }
   return (info_gain);
 }
-static int rfFreeNodes(NODE *node) {
+static int rfFreeNodes(NODE *node)
+{
   if (node->left) rfFreeNodes(node->left);
   if (node->right) rfFreeNodes(node->right);
 
@@ -1112,7 +1145,8 @@ static int rfFreeNodes(NODE *node) {
   return (NO_ERROR);
 }
 
-int RFfree(RANDOM_FOREST **prf) {
+int RFfree(RANDOM_FOREST **prf)
+{
   RANDOM_FOREST *rf = *prf;
   int c, t;
   TREE *tree;
@@ -1135,7 +1169,8 @@ int RFfree(RANDOM_FOREST **prf) {
   return (NO_ERROR);
 }
 
-static int rfPruneTree(NODE *node, int min_training_samples) {
+static int rfPruneTree(NODE *node, int min_training_samples)
+{
   int deleted;
 
   if (node == NULL) return (0);
@@ -1150,7 +1185,8 @@ static int rfPruneTree(NODE *node, int min_training_samples) {
   return (deleted);
 }
 
-int RFpruneTree(RANDOM_FOREST *rf, int min_training_samples) {
+int RFpruneTree(RANDOM_FOREST *rf, int min_training_samples)
+{
   int t;
   TREE *tree;
 

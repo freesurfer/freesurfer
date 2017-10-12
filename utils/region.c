@@ -51,7 +51,8 @@ static int regionCornerCoords(MRI_REGION *r, int which_corner, int *px, int *py,
 /*-----------------------------------------------------
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
-MRI_REGION *REGIONalloc(void) {
+MRI_REGION *REGIONalloc(void)
+{
   MRI_REGION *r;
 
   r = (MRI_REGION *)calloc(1, sizeof(MRI_REGION));
@@ -72,7 +73,8 @@ MRI_REGION *REGIONalloc(void) {
           finding the portion of an advancing window which is
           new.
 ------------------------------------------------------*/
-MRI_REGION *REGIONsubtract(MRI_REGION *reg1, MRI_REGION *reg2, MRI_REGION *rdst) {
+MRI_REGION *REGIONsubtract(MRI_REGION *reg1, MRI_REGION *reg2, MRI_REGION *rdst)
+{
   int x1_start, x1_end, x2_end, y1_start, y1_end, y2_end, z1_start, z1_end, z2_end;
 
   x1_start = reg1->x;
@@ -116,7 +118,8 @@ MRI_REGION *REGIONadd(MRI_REGION *reg1, MRI_REGION *reg2, MRI_REGION *rdst) { re
 
         Description
 ------------------------------------------------------*/
-MRI_REGION *REGIONclear(MRI_REGION *r) {
+MRI_REGION *REGIONclear(MRI_REGION *r)
+{
   memset(r, 0, sizeof(*r));
   return (r);
 }
@@ -127,7 +130,8 @@ MRI_REGION *REGIONclear(MRI_REGION *r) {
 
         Description
 ------------------------------------------------------*/
-MRI_REGION *REGIONcopy(MRI_REGION *rsrc, MRI_REGION *rdst) {
+MRI_REGION *REGIONcopy(MRI_REGION *rsrc, MRI_REGION *rdst)
+{
   if (!rdst) rdst = REGIONalloc();
 
   memmove(rdst, rsrc, sizeof(*rsrc));
@@ -140,7 +144,8 @@ MRI_REGION *REGIONcopy(MRI_REGION *rsrc, MRI_REGION *rdst) {
 
         Description
 ------------------------------------------------------*/
-MRI_REGION *REGIONintersect(MRI_REGION *reg1, MRI_REGION *reg2, MRI_REGION *rdst) {
+MRI_REGION *REGIONintersect(MRI_REGION *reg1, MRI_REGION *reg2, MRI_REGION *rdst)
+{
   int x2, y2, z2;
 
   rdst->x = MAX(reg1->x, reg2->x);
@@ -170,7 +175,8 @@ MRI_REGION *REGIONunion(MRI_REGION *reg1, MRI_REGION *reg2, MRI_REGION *rdst) { 
 
         Description
 ------------------------------------------------------*/
-int REGIONinside(MRI_REGION *reg, int x, int y, int z) {
+int REGIONinside(MRI_REGION *reg, int x, int y, int z)
+{
   int x1, y1, z1;
 
   x1 = reg->x + reg->dx - 1;
@@ -190,7 +196,8 @@ int REGIONinside(MRI_REGION *reg, int x, int y, int z) {
 
         Description
 ------------------------------------------------------*/
-MRI_REGION *REGIONexpand(MRI_REGION *rsrc, MRI_REGION *rdst, int n) {
+MRI_REGION *REGIONexpand(MRI_REGION *rsrc, MRI_REGION *rdst, int n)
+{
   rdst->x = rsrc->x - n;
   rdst->y = rsrc->y - n;
   rdst->z = rsrc->z - n;
@@ -206,7 +213,8 @@ MRI_REGION *REGIONexpand(MRI_REGION *rsrc, MRI_REGION *rdst, int n) {
 
         Description
 ------------------------------------------------------*/
-float REGIONminCornerDistance(MRI_REGION *r1, MRI_REGION *r2) {
+float REGIONminCornerDistance(MRI_REGION *r1, MRI_REGION *r2)
+{
   float min_dist = 10000.0f, dist, dx, dy, dz;
   int i, j, x0 = 0, y0 = 0, z0 = 0, x1 = 0, y1 = 0, z1 = 0;
   MRI_REGION r3;
@@ -236,7 +244,8 @@ float REGIONminCornerDistance(MRI_REGION *r1, MRI_REGION *r2) {
 
         Description
 ------------------------------------------------------*/
-static int regionCornerCoords(MRI_REGION *r, int which_corner, int *px, int *py, int *pz) {
+static int regionCornerCoords(MRI_REGION *r, int which_corner, int *px, int *py, int *pz)
+{
   switch (which_corner) {
     case 0:
       *px = r->x;
@@ -290,7 +299,8 @@ static int regionCornerCoords(MRI_REGION *r, int which_corner, int *px, int *py,
   region->{dx,dy,dz} is the size of the box such that a loop would run
   for(c=region->x; c < region->x+region->dx; c++)
 */
-MRI_REGION *REGIONgetBoundingBox(MRI *mask, int npad) {
+MRI_REGION *REGIONgetBoundingBox(MRI *mask, int npad)
+{
   int c, r, s;
   int cmin, cmax, rmin, rmax, smin, smax;
   MRI_REGION *region;
@@ -328,7 +338,8 @@ MRI_REGION *REGIONgetBoundingBox(MRI *mask, int npad) {
   \fn int REGIONprint(FILE *fp, MRI_REGION *r)
   \brief Prints REGION struct.
 */
-int REGIONprint(FILE *fp, MRI_REGION *r) {
+int REGIONprint(FILE *fp, MRI_REGION *r)
+{
   fprintf(fp, "%d %d %d  %d %d %d\n", r->x, r->y, r->z, r->dx, r->dy, r->dz);
   return (0);
 }

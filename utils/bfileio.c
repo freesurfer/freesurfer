@@ -51,7 +51,8 @@
 extern int errno;
 
 /* ------------------------- */
-int byteswapbufdouble(void *buf, long int nbufbytes) {
+int byteswapbufdouble(void *buf, long int nbufbytes)
+{
   register char *cbuf, c;
   register long int n, nmax;
 
@@ -80,7 +81,8 @@ int byteswapbufdouble(void *buf, long int nbufbytes) {
 }
 
 /* ------------------------- */
-int byteswapbuffloat(void *buf, long int nbufbytes) {
+int byteswapbuffloat(void *buf, long int nbufbytes)
+{
   register char *cbuf, c;
   register long int n, nmax;
 
@@ -101,7 +103,8 @@ int byteswapbuffloat(void *buf, long int nbufbytes) {
 }
 
 /* ------------------------- */
-int byteswapbufshort(void *buf, long int nbufbytes) {
+int byteswapbufshort(void *buf, long int nbufbytes)
+{
   register char *cbuf, c;
   register long int n, nmax;
 
@@ -121,7 +124,8 @@ int byteswapbufshort(void *buf, long int nbufbytes) {
   architecture designated by either a 0 or 1, compatible with
   the designation in the .hdr file 0 = non-PC, 1 = PC.
   --------------------------------------------------------*/
-int bf_getarchendian(void) {
+int bf_getarchendian(void)
+{
   int endian;
   short tmp = 1;
   char *ctmp;
@@ -134,7 +138,8 @@ int bf_getarchendian(void) {
   return (endian);
 }
 /*---------------------------------------------*/
-char *bf_getstemfromname(char *bfname) {
+char *bf_getstemfromname(char *bfname)
+{
   extern int bferr;
   extern char bfmsg[BFMSGLEN];
   int len, stemlen;
@@ -162,7 +167,8 @@ char *bf_getstemfromname(char *bfname) {
   return (stem);
 }
 /*---------------------------------------------*/
-int bf_gettypefromname(char *bfname) {
+int bf_gettypefromname(char *bfname)
+{
   extern int bferr;
   extern char bfmsg[BFMSGLEN];
   int len;
@@ -192,7 +198,8 @@ int bf_gettypefromname(char *bfname) {
 }
 
 /*---------------------------------------------*/
-int bf_readheader(char *hdrfile, int *nrows, int *ncols, int *nfrms, int *endian) {
+int bf_readheader(char *hdrfile, int *nrows, int *ncols, int *nfrms, int *endian)
+{
   extern int bferr;
   extern char bfmsg[BFMSGLEN];
   FILE *fp;
@@ -218,7 +225,8 @@ int bf_readheader(char *hdrfile, int *nrows, int *ncols, int *nfrms, int *endian
   return (0);
 }
 /*---------------------------------------------*/
-int bf_writeheader(char *hdrfile, int nrows, int ncols, int nfrms, int endian) {
+int bf_writeheader(char *hdrfile, int nrows, int ncols, int nfrms, int endian)
+{
   extern int bferr;
   extern char bfmsg[BFMSGLEN];
   FILE *fp;
@@ -241,7 +249,8 @@ int bf_writeheader(char *hdrfile, int nrows, int ncols, int nfrms, int endian) {
   return (0);
 }
 /*---------------------------------------------*/
-int bf_getbfiledim(char *bfname, int *nrows, int *ncols, int *nfrms, int *endian, int *type) {
+int bf_getbfiledim(char *bfname, int *nrows, int *ncols, int *nfrms, int *endian, int *type)
+{
   char *stem = NULL;
   char hdrfile[1000];
   int err;
@@ -263,7 +272,8 @@ int bf_getbfiledim(char *bfname, int *nrows, int *ncols, int *nfrms, int *endian
   return (0);
 }
 /*---------------------------------------------*/
-float *bf_ldbfile(char *bfname, int *nrows, int *ncols, int *nfrms) {
+float *bf_ldbfile(char *bfname, int *nrows, int *ncols, int *nfrms)
+{
   extern int bferr;
   extern char bfmsg[BFMSGLEN];
   short *sdata = NULL;
@@ -355,7 +365,8 @@ float *bf_ldbfile(char *bfname, int *nrows, int *ncols, int *nfrms) {
   return (fdata);
 }
 /*---------------------------------------------*/
-int bf_svbfile(float *bfdata, char *bfname, int nrows, int ncols, int nfrms, int svendian) {
+int bf_svbfile(float *bfdata, char *bfname, int nrows, int ncols, int nfrms, int svendian)
+{
   extern int bferr;
   extern char bfmsg[BFMSGLEN];
   char *stem = NULL;
@@ -411,7 +422,8 @@ int bf_svbfile(float *bfdata, char *bfname, int nrows, int ncols, int nfrms, int
       fdatadealloc = 1;
       memmove(fdata, bfdata, ntot * sizeof(float));
       byteswapbuffloat(fdata, ntot * sizeof(float));
-    } else
+    }
+    else
       fdata = bfdata;
 
     /* write the data to the named file */
@@ -469,7 +481,8 @@ int bf_svbfile(float *bfdata, char *bfname, int nrows, int ncols, int nfrms, int
   counting the number of stem_%03d.hdr files, starting
   with 0.
   ---------------------------------------------------*/
-int bf_getnslices(char *stem) {
+int bf_getnslices(char *stem)
+{
   FILE *fp;
   int nslices;
   char bfile[1000];
@@ -494,7 +507,8 @@ int bf_getnslices(char *stem) {
   based on the extension of stem_000. Returns 0 if the
   file does not exist.
   --------------------------------------------------------*/
-int bf_getvoltype(char *stem) {
+int bf_getvoltype(char *stem)
+{
   FILE *fp;
   char bfile[1000], *ext;
 
@@ -520,7 +534,8 @@ int bf_getvoltype(char *stem) {
   return (0);
 }
 /* -------------------------------------------------------- */
-int bf_getvoldim(char *stem, int *nrows, int *ncols, int *nslcs, int *nfrms, int *endian, int *type) {
+int bf_getvoldim(char *stem, int *nrows, int *ncols, int *nslcs, int *nfrms, int *endian, int *type)
+{
   char hdrfile[1000];
   int err;
 
@@ -539,7 +554,8 @@ int bf_getvoldim(char *stem, int *nrows, int *ncols, int *nslcs, int *nfrms, int
 }
 
 /*-----------------------------------------------*/
-int bf_dumpvolinfo(FILE *fp, BF_DATA *bfd) {
+int bf_dumpvolinfo(FILE *fp, BF_DATA *bfd)
+{
   fprintf(fp, "nrows  %d \n", bfd->nrows);
   fprintf(fp, "ncols  %d \n", bfd->ncols);
   fprintf(fp, "nslcs  %d \n", bfd->nslcs);
@@ -548,7 +564,8 @@ int bf_dumpvolinfo(FILE *fp, BF_DATA *bfd) {
 }
 
 /* ------------------------------------------------- */
-int bf_freebfd(BF_DATA **bfd) {
+int bf_freebfd(BF_DATA **bfd)
+{
   int n;
 
   /* Free the data */
@@ -571,7 +588,8 @@ int bf_freebfd(BF_DATA **bfd) {
 }
 
 /* -----------------------------------------------------------*/
-BF_DATA *bf_preallocbfd(int nrows, int ncols, int nslcs, int nfrms) {
+BF_DATA *bf_preallocbfd(int nrows, int ncols, int nslcs, int nfrms)
+{
   BF_DATA *bfd;
 
   if (nrows == 0 || ncols == 0 || nslcs == 0 || nfrms == 0) {
@@ -602,7 +620,8 @@ BF_DATA *bf_preallocbfd(int nrows, int ncols, int nslcs, int nfrms) {
   return (bfd);
 }
 /* -----------------------------------------------------------*/
-int bf_iswritable(char *fname) {
+int bf_iswritable(char *fname)
+{
   extern int bferr;
   FILE *fp;
   char tmpstr[2000];
@@ -616,7 +635,8 @@ int bf_iswritable(char *fname) {
   return (1);
 }
 /* -----------------------------------------------------------*/
-int bf_volume_exists(char *stem) {
+int bf_volume_exists(char *stem)
+{
   char fname[1000];
   FILE *fp;
 
@@ -628,7 +648,8 @@ int bf_volume_exists(char *stem) {
   return (1);
 }
 /* -----------------------------------------------------------*/
-int bf_delete_volume(char *stem) {
+int bf_delete_volume(char *stem)
+{
   char fname[1000];
   int nrows, ncols, nslcs, nfrms, endian, type;
   int err, slice;
@@ -654,7 +675,8 @@ int bf_delete_volume(char *stem) {
   return (0);
 }
 /* -----------------------------------------------------------*/
-BF_DATA *bf_allocbfd(int nrows, int ncols, int nslcs, int nfrms) {
+BF_DATA *bf_allocbfd(int nrows, int ncols, int nslcs, int nfrms)
+{
   int slice, nperslice;
   BF_DATA *bfd;
 
@@ -677,7 +699,8 @@ BF_DATA *bf_allocbfd(int nrows, int ncols, int nslcs, int nfrms) {
   return (bfd);
 }
 /*---------------------------------------------------------*/
-BF_DATA *bf_ldvolume(char *stem) {
+BF_DATA *bf_ldvolume(char *stem)
+{
   BF_DATA *bfd;
   int nrows, ncols, nslcs, nfrms, endian, type;
   int err, slice;
@@ -709,7 +732,8 @@ BF_DATA *bf_ldvolume(char *stem) {
   return (bfd);
 }
 /*---------------------------------------------------------*/
-BF_DATA *bf_ldslice(char *stem, int slice) {
+BF_DATA *bf_ldslice(char *stem, int slice)
+{
   BF_DATA *bfd;
   int nrows, ncols, nfrms, endian, type;
   int err;
@@ -742,7 +766,8 @@ BF_DATA *bf_ldslice(char *stem, int slice) {
   return (bfd);
 }
 /*---------------------------------------------------------*/
-int bf_svvolume(BF_DATA *bfd, char *stem, int svendian, int svtype) {
+int bf_svvolume(BF_DATA *bfd, char *stem, int svendian, int svtype)
+{
   int err, slice;
   char bfname[1000], *ext;
   float *fdata;
@@ -769,7 +794,8 @@ int bf_svvolume(BF_DATA *bfd, char *stem, int svendian, int svtype) {
   return (0);
 }
 /*---------------------------------------------------------*/
-int bf_svslice(BF_DATA *bfd, char *stem, int slice, int svendian, int svtype) {
+int bf_svslice(BF_DATA *bfd, char *stem, int slice, int svendian, int svtype)
+{
   int err;
   char bfname[1000], *ext;
   float *fdata;
@@ -803,7 +829,8 @@ int bf_svslice(BF_DATA *bfd, char *stem, int slice, int svendian, int svtype) {
   macro, define the macro BF_DEBUG; this will cause BF_GETVAL
   to point to bf_getval for easier debugging.
   -------------------------------------------------------------*/
-float bf_getval(BF_DATA *bfd, int r, int c, int s, int f) {
+float bf_getval(BF_DATA *bfd, int r, int c, int s, int f)
+{
   float val;
   int i;
 
@@ -844,7 +871,8 @@ float bf_getval(BF_DATA *bfd, int r, int c, int s, int f) {
   macro, define the macro BF_DEBUG; this will cause BF_SETVAL
   to point to bf_setval for easier debugging.
   -------------------------------------------------------------*/
-int bf_setval(float val, BF_DATA *bfd, int r, int c, int s, int f) {
+int bf_setval(float val, BF_DATA *bfd, int r, int c, int s, int f)
+{
   int i;
 
   if (s < 0 || s >= bfd->nslcs) {
@@ -878,7 +906,8 @@ int bf_setval(float val, BF_DATA *bfd, int r, int c, int s, int f) {
   Computes the index in a slice corresonding to row r, column c,
   and frame f.
   -------------------------------------------------------------*/
-int bf_rcf2index(BF_DATA *bfd, int r, int c, int f) {
+int bf_rcf2index(BF_DATA *bfd, int r, int c, int f)
+{
   int index;
 
   index = c + r * bfd->ncols + f * bfd->nrowcols;
@@ -907,7 +936,8 @@ int bf_index2rcf(BF_DATA *bfd, int index, int *r, int *c, int *f)
 /* ----------------------------------------------------------
    bf_get_minmax() - finds the global minimum and maximum.
   ----------------------------------------------------------*/
-int bf_get_minmax(BF_DATA *bfd, float *bfdmin, float *bfdmax) {
+int bf_get_minmax(BF_DATA *bfd, float *bfdmin, float *bfdmax)
+{
   int r, c, s, f;
   float val;
 
@@ -931,7 +961,8 @@ int bf_get_minmax(BF_DATA *bfd, float *bfdmin, float *bfdmax) {
    bf_rescale() - rescales the data in a bfile data structure
    to the new min and max.
   ----------------------------------------------------------*/
-int bf_rescale(BF_DATA *bfd, float min, float max) {
+int bf_rescale(BF_DATA *bfd, float min, float max)
+{
   int r, c, s, f;
   float val, bfdmin, bfdmax, bfdrange, range;
 

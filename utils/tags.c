@@ -31,7 +31,8 @@
 #include "machine.h"
 #include "tags.h"
 
-int TAGskip(FILE *fp, int tag, long long len) {
+int TAGskip(FILE *fp, int tag, long long len)
+{
 #if 1
   unsigned char *buf;
   int ret;
@@ -46,7 +47,8 @@ int TAGskip(FILE *fp, int tag, long long len) {
 #endif
 }
 
-int TAGreadStart(FILE *fp, long long *plen) {
+int TAGreadStart(FILE *fp, long long *plen)
+{
   int tag;
 
   tag = freadInt(fp);
@@ -69,7 +71,8 @@ int TAGreadStart(FILE *fp, long long *plen) {
   return (tag);
 }
 
-int TAGwriteStart(FILE *fp, int tag, long long *phere, long long len) {
+int TAGwriteStart(FILE *fp, int tag, long long *phere, long long len)
+{
   long here;
 
   fwriteInt(tag, fp);
@@ -81,7 +84,8 @@ int TAGwriteStart(FILE *fp, int tag, long long *phere, long long len) {
   return (NO_ERROR);
 }
 
-int TAGwrite(FILE *fp, int tag, void *buf, long long len) {
+int TAGwrite(FILE *fp, int tag, void *buf, long long len)
+{
   long long here;
 
   TAGwriteStart(fp, tag, &here, len);
@@ -90,7 +94,8 @@ int TAGwrite(FILE *fp, int tag, void *buf, long long len) {
   return (NO_ERROR);
 }
 
-int TAGwriteEnd(FILE *fp, long long there) {
+int TAGwriteEnd(FILE *fp, long long there)
+{
   long long here;
 
   here = ftell(fp);
@@ -103,7 +108,8 @@ int TAGwriteEnd(FILE *fp, long long there) {
   return (NO_ERROR);
 }
 
-int TAGmakeCommandLineString(int argc, char **argv, char *cmd_line) {
+int TAGmakeCommandLineString(int argc, char **argv, char *cmd_line)
+{
   int i;
 
   cmd_line[0] = 0;
@@ -114,7 +120,8 @@ int TAGmakeCommandLineString(int argc, char **argv, char *cmd_line) {
   return (NO_ERROR);
 }
 
-int TAGwriteCommandLine(FILE *fp, char *cmd_line) {
+int TAGwriteCommandLine(FILE *fp, char *cmd_line)
+{
   long long here;
 
   TAGwriteStart(fp, TAG_CMDLINE, &here, strlen(cmd_line) + 1);
@@ -123,7 +130,8 @@ int TAGwriteCommandLine(FILE *fp, char *cmd_line) {
   return (NO_ERROR);
 }
 
-int TAGwriteAutoAlign(FILE *fp, MATRIX *M) {
+int TAGwriteAutoAlign(FILE *fp, MATRIX *M)
+{
   long long here;
   char buf[16 * 100];
   long long len;
@@ -155,7 +163,8 @@ int TAGwriteAutoAlign(FILE *fp, MATRIX *M) {
   return (NO_ERROR);
 }
 
-MATRIX *TAGreadAutoAlign(FILE *fp) {
+MATRIX *TAGreadAutoAlign(FILE *fp)
+{
   int c, r;
   char buf[1000];
   MATRIX *M;
@@ -172,7 +181,8 @@ MATRIX *TAGreadAutoAlign(FILE *fp) {
 
 /* zlib support */
 
-int znzTAGskip(znzFile fp, int tag, long long len) {
+int znzTAGskip(znzFile fp, int tag, long long len)
+{
 #if 1
   unsigned char *buf;
   int ret;
@@ -187,7 +197,8 @@ int znzTAGskip(znzFile fp, int tag, long long len) {
 #endif
 }
 
-int znzTAGreadStart(znzFile fp, long long *plen) {
+int znzTAGreadStart(znzFile fp, long long *plen)
+{
   int tag;
 
   tag = znzreadInt(fp);
@@ -211,7 +222,8 @@ int znzTAGreadStart(znzFile fp, long long *plen) {
   return (tag);
 }
 
-int znzTAGwriteStart(znzFile fp, int tag, long long *phere, long long len) {
+int znzTAGwriteStart(znzFile fp, int tag, long long *phere, long long len)
+{
   long here;
 
   znzwriteInt(tag, fp);
@@ -228,7 +240,8 @@ int znzTAGwriteStart(znzFile fp, int tag, long long *phere, long long len) {
   because TAGwrite() does not do a byte order swap. Use
   znzTAGreadFloat() instead of znzreadFloatEx().
  */
-int znzTAGwrite(znzFile fp, int tag, void *buf, long long len) {
+int znzTAGwrite(znzFile fp, int tag, void *buf, long long len)
+{
   long long here;
   znzTAGwriteStart(fp, tag, &here, len);
   znzwrite(buf, sizeof(char), len, fp);
@@ -236,7 +249,8 @@ int znzTAGwrite(znzFile fp, int tag, void *buf, long long len) {
   return (NO_ERROR);
 }
 
-int znzTAGwriteEnd(znzFile fp, long long there) {
+int znzTAGwriteEnd(znzFile fp, long long there)
+{
   long long here;
 
   here = znztell(fp);
@@ -249,7 +263,8 @@ int znzTAGwriteEnd(znzFile fp, long long there) {
   return (NO_ERROR);
 }
 
-int znzTAGwriteCommandLine(znzFile fp, char *cmd_line) {
+int znzTAGwriteCommandLine(znzFile fp, char *cmd_line)
+{
   long long here;
 
   znzTAGwriteStart(fp, TAG_CMDLINE, &here, strlen(cmd_line) + 1);
@@ -259,7 +274,8 @@ int znzTAGwriteCommandLine(znzFile fp, char *cmd_line) {
 }
 
 #define MATRIX_STRLEN (4 * 4 * 100)
-int znzWriteMatrix(znzFile fp, MATRIX *M) {
+int znzWriteMatrix(znzFile fp, MATRIX *M)
+{
   long long here, len;
   char buf[MATRIX_STRLEN];
 
@@ -297,7 +313,8 @@ int znzWriteMatrix(znzFile fp, MATRIX *M) {
   because it performs a byte order swap. Use znzTAGreadFloat() instead
   of znzreadFloatEx().
  */
-int znzTAGreadFloat(float *pf, znzFile fp) {
+int znzTAGreadFloat(float *pf, znzFile fp)
+{
   int ret;
   ret = znzreadFloatEx(pf, fp);
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -313,7 +330,8 @@ int znzTAGreadFloat(float *pf, znzFile fp) {
   this function includes a znzTAGreadStart() which is not
   included in znzReadAutoAlignMatrix()
  */
-MATRIX *znzReadMatrix(znzFile fp) {
+MATRIX *znzReadMatrix(znzFile fp)
+{
   char buf[MATRIX_STRLEN];
   MATRIX *M;
   char ch[100];
@@ -349,7 +367,8 @@ MATRIX *znzReadMatrix(znzFile fp) {
   return (M);
 }
 
-int znzWriteAutoAlignMatrix(znzFile fp, MATRIX *M) {
+int znzWriteAutoAlignMatrix(znzFile fp, MATRIX *M)
+{
   // This does not appear to be used
   long long here;
   char buf[16 * 100];
@@ -386,7 +405,8 @@ int znzWriteAutoAlignMatrix(znzFile fp, MATRIX *M) {
  \fn MATRIX *znzReadAutoAlignMatrix(znzFile fp)
  Compatible with znzWriteMatrix(znzFile fp, MATRIX *M)
 */
-MATRIX *znzReadAutoAlignMatrix(znzFile fp) {
+MATRIX *znzReadAutoAlignMatrix(znzFile fp)
+{
   MATRIX *M;
   char buf[MATRIX_STRLEN];
 

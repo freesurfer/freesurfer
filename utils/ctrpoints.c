@@ -38,7 +38,8 @@
 
 extern char *cuserid(char *);
 
-MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS) {
+MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS)
+{
   FILE *fp;
   char *cp, line[STRLEN];
   int i = 0;
@@ -88,12 +89,14 @@ MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS) {
       i = sscanf(cp, "%f %f %f", &xw, &yw, &zw);
       if (i == 3) {
         num_control_points++;
-      } else  // new format
+      }
+      else  // new format
       {
         i = sscanf(cp, "%s %d", text, &val);
         if (strcmp("numpoints", text) == 0 && i == 2) {
           numpoints = val;
-        } else if (strcmp("useRealRAS", text) == 0 && i == 2) {
+        }
+        else if (strcmp("useRealRAS", text) == 0 && i == 2) {
           *useRealRAS = val;
         }
       }
@@ -124,7 +127,8 @@ MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS) {
   return pointArray;
 }
 
-int MRIwriteControlPoints(const MPoint *pointArray, int count, int useRealRAS, const char *fname) {
+int MRIwriteControlPoints(const MPoint *pointArray, int count, int useRealRAS, const char *fname)
+{
   FILE *fp;
   int i;
   int res;
@@ -165,7 +169,8 @@ int MRIwriteControlPoints(const MPoint *pointArray, int count, int useRealRAS, c
 }
 
 // (mr) uses LTA to map point array:
-MPoint *MRImapControlPoints(const MPoint *pointArray, int count, int useRealRAS, MPoint *trgArray, LTA *lta) {
+MPoint *MRImapControlPoints(const MPoint *pointArray, int count, int useRealRAS, MPoint *trgArray, LTA *lta)
+{
   if (trgArray == NULL) trgArray = (MPoint *)malloc(count * sizeof(MPoint));
 
   if (!lta->xforms[0].src.valid) ErrorExit(ERROR_BADPARM, "MRImapControlPoints LTA src geometry not valid!\n");
@@ -244,7 +249,8 @@ MPoint *MRImapControlPoints(const MPoint *pointArray, int count, int useRealRAS,
   in the given volume. The col, row slice remain floating point.
   Note: UseRealRAS has not really been tested.
  */
-MPoint *ControlPoints2Vox(MPoint *ras, int npoints, int UseRealRAS, MRI *vol) {
+MPoint *ControlPoints2Vox(MPoint *ras, int npoints, int UseRealRAS, MRI *vol)
+{
   MPoint *crs;
   int n;
   MATRIX *vox2ras, *ras2vox, *vras, *vcrs = NULL;
@@ -285,7 +291,8 @@ MPoint *ControlPoints2Vox(MPoint *ras, int npoints, int UseRealRAS, MRI *vol) {
   *M, MPoint *outctr)
   \brief Multiplies the xyz of the control points by the given matrix
  */
-MPoint *ControlPointsApplyMatrix(MPoint *srcctr, int nctrpoints, MATRIX *M, MPoint *outctr) {
+MPoint *ControlPointsApplyMatrix(MPoint *srcctr, int nctrpoints, MATRIX *M, MPoint *outctr)
+{
   int n;
   MATRIX *srcras = NULL, *outras = NULL;
 
@@ -316,7 +323,8 @@ MPoint *ControlPointsApplyMatrix(MPoint *srcctr, int nctrpoints, MATRIX *M, MPoi
   points in control.dat bring the contol points into the "talairach"
   (ie, fsaverage) space.
  */
-MATRIX *ControlPoints2TalMatrix(char *subject) {
+MATRIX *ControlPoints2TalMatrix(char *subject)
+{
   MATRIX *Ta, *Na, *Tv, *Nv, *invNa, *invTv, *XFM, *M;
   char *SUBJECTS_DIR, tmpstr[2000];
   MRI *fsa, *vol;
@@ -376,7 +384,8 @@ MATRIX *ControlPoints2TalMatrix(char *subject) {
   converts them to talairach (fsaverage) space. If a subject does not
   have a control.dat then it is skipped.
  */
-MPoint *GetTalControlPoints(char **subjectlist, int nsubjects, int *pnctrtot) {
+MPoint *GetTalControlPoints(char **subjectlist, int nsubjects, int *pnctrtot)
+{
   int nthsubject, nc, nctot, CPUseRealRAS, k;
   MPoint *subjctr, *fsactr, *ctr = NULL;
   char *SUBJECTS_DIR, tmpstr[2000];
@@ -430,7 +439,8 @@ MPoint *GetTalControlPoints(char **subjectlist, int nsubjects, int *pnctrtot) {
   converts them to talairach (fsaverage) space. If a subject does not
   have a control.dat then it is skipped.
  */
-MPoint *GetTalControlPointsSFile(const char *subjectlistfile, int *pnctrtot) {
+MPoint *GetTalControlPointsSFile(const char *subjectlistfile, int *pnctrtot)
+{
   MPoint *ctr;
   FILE *fp;
   int nsubjects, r;

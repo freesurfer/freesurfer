@@ -56,7 +56,8 @@ int regio_read_register(const char *regfile,
                         float *betplaneres,
                         float *intensity,
                         MATRIX **R,
-                        int *float2int) {
+                        int *float2int)
+{
   FILE *fp;
   char tmp[1000];
   int r, c, n;
@@ -167,13 +168,9 @@ int regio_read_register(const char *regfile,
   return (0);
 }
 /* -------------------------------------------------------------- */
-int regio_print_register(FILE *fp,
-                         const char *subject,
-                         float inplaneres,
-                         float betplaneres,
-                         float intensity,
-                         const MATRIX *R,
-                         int float2int) {
+int regio_print_register(
+    FILE *fp, const char *subject, float inplaneres, float betplaneres, float intensity, const MATRIX *R, int float2int)
+{
   int r, c;
   char *f2imethod;
 
@@ -223,7 +220,8 @@ int regio_write_register(const char *regfile,
                          float betplaneres,
                          float intensity,
                          const MATRIX *R,
-                         int float2int) {
+                         int float2int)
+{
   FILE *fp;
 
   fp = fopen(regfile, "w");
@@ -252,7 +250,8 @@ int regio_write_register(const char *regfile,
    argument. If one is not going to write out the xfm, then
    simply set fileinfo to NULL.
    -------------------------------------------------------------- */
-int regio_read_mincxfm(const char *xfmfile, MATRIX **R, char **fileinfo) {
+int regio_read_mincxfm(const char *xfmfile, MATRIX **R, char **fileinfo)
+{
   FILE *fp;
   char tmpstr[1000];
   int r, c, n, nlines;
@@ -277,7 +276,8 @@ int regio_read_mincxfm(const char *xfmfile, MATRIX **R, char **fileinfo) {
   if (fileinfo != NULL) {
     *fileinfo = strcpyalloc(tmpstr);
     printf("\n%s\n\n", *fileinfo);
-  } else
+  }
+  else
     printf("Not reading in xfm fileinfo\n");
 
   // Close it and open it up again to rewind it
@@ -329,7 +329,8 @@ int regio_read_mincxfm(const char *xfmfile, MATRIX **R, char **fileinfo) {
    like a minc xfm file. See regio_read_mincxfm() for docs on
    fileinfo.
    -------------------------------------------------------------- */
-int regio_write_mincxfm(const char *xfmfile, const MATRIX *R, const char *fileinfo) {
+int regio_write_mincxfm(const char *xfmfile, const MATRIX *R, const char *fileinfo)
+{
   FILE *fp;
   int r, c;
   time_t time_now;
@@ -364,7 +365,8 @@ int regio_write_mincxfm(const char *xfmfile, const MATRIX *R, const char *filein
    regio_read_xfm4() - reads a 4x4 transform as the last four
    lines of the xfmfile. Blank lines at the end will defeat it.
    -------------------------------------------------------------- */
-int regio_read_xfm4(const char *xfmfile, MATRIX **R) {
+int regio_read_xfm4(const char *xfmfile, MATRIX **R)
+{
   FILE *fp;
   char tmpstr[1000];
   int r, c, n, nlines;
@@ -426,7 +428,8 @@ int regio_read_xfm4(const char *xfmfile, MATRIX **R) {
    are read. Blank lines at the end will defeat it. This should
    be able to read tlas properly.
    -------------------------------------------------------------- */
-int regio_read_xfm(const char *xfmfile, MATRIX **R) {
+int regio_read_xfm(const char *xfmfile, MATRIX **R)
+{
   char *ext, *fileinfo;
   int err = 0;
 
@@ -435,7 +438,8 @@ int regio_read_xfm(const char *xfmfile, MATRIX **R) {
   if (strcmp(ext, "xfm") == 0) {
     err = regio_read_mincxfm(xfmfile, R, &fileinfo);
     free(fileinfo);
-  } else
+  }
+  else
     err = regio_read_xfm4(xfmfile, R);
 
   free(ext);
@@ -450,7 +454,8 @@ int regio_read_xfm(const char *xfmfile, MATRIX **R) {
 #include "error.h"
 #include "mri_circulars.h"
 int regio_write_surfacexform_to_register_dat(
-    const MATRIX *B, const char *fname, const MRI_SURFACE *mris, const MRI *mri, const char *subject, int float2int) {
+    const MATRIX *B, const char *fname, const MRI_SURFACE *mris, const MRI *mri, const char *subject, int float2int)
+{
   MATRIX *Ta, *Sa, *invTa, *A, *R, *S, *invS, *T, *m1, *m2;
   MRI *mri_surf = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR, 1);
 
@@ -485,7 +490,8 @@ int regio_write_surfacexform_to_register_dat(
 MATRIX *regio_read_surfacexform_from_register_dat(const char *fname,
                                                   const MRI_SURFACE *mris,
                                                   const MRI *mri,
-                                                  char **subject) {
+                                                  char **subject)
+{
   MATRIX *Ta, *Sa, *invT, *A, *R, *S, *invSa, *T, *m1, *m2, *B;
   float pres, bres, intensity;
   int float2int;
@@ -526,7 +532,8 @@ MATRIX *regio_read_surfacexform_from_register_dat(const char *fname,
   Just reads in the matrix and leaves the rest of the
   crap in the file.
 */
-MATRIX *regio_read_registermat(const char *regfile) {
+MATRIX *regio_read_registermat(const char *regfile)
+{
   char *subject;
   float inplaneres, betplaneres, intensity;
   int float2int, err;
@@ -537,7 +544,8 @@ MATRIX *regio_read_registermat(const char *regfile) {
   return (R);
 }
 
-char *regio_read_subject(const char *regfile) {
+char *regio_read_subject(const char *regfile)
+{
   float inplaneres, betplaneres, intensity;
   int float2int;
   MATRIX *R;

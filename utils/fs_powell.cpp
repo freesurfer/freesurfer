@@ -48,7 +48,8 @@ extern "C" {
 #include <vnl/vnl_matlab_print.h>
 #endif
 
-class fs_powell_1dfun : public vnl_cost_function {
+class fs_powell_1dfun : public vnl_cost_function
+{
  public:
   fs_powell *powell_;
   vnl_cost_function *f_;
@@ -57,23 +58,28 @@ class fs_powell_1dfun : public vnl_cost_function {
   vnl_vector< double > dx_;
   vnl_vector< double > tmpx_;
   fs_powell_1dfun(int n, vnl_cost_function *f, fs_powell *p)
-      : vnl_cost_function(1), powell_(p), f_(f), n_(n), x0_(n), dx_(n), tmpx_(n) {}
+      : vnl_cost_function(1), powell_(p), f_(f), n_(n), x0_(n), dx_(n), tmpx_(n)
+  {
+  }
 
-  void init(vnl_vector< double > const &x0, vnl_vector< double > const &dx) {
+  void init(vnl_vector< double > const &x0, vnl_vector< double > const &dx)
+  {
     x0_ = x0;
     dx_ = dx;
     assert(x0.size() == n_);
     assert(dx.size() == n_);
   }
 
-  double f(const vnl_vector< double > &x) {
+  double f(const vnl_vector< double > &x)
+  {
     uninit(x[0], tmpx_);
     double e = f_->f(tmpx_);
     powell_->pub_report_eval(e);
     return e;
   }
 
-  void uninit(double lambda, vnl_vector< double > &out) {
+  void uninit(double lambda, vnl_vector< double > &out)
+  {
     for (unsigned int i = 0; i < n_; ++i) out[i] = x0_[i] + lambda * dx_[i];
   }
 };

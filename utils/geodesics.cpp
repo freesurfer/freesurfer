@@ -23,20 +23,23 @@ extern "C" {
 }
 
 // Vertex
-struct Vertex {
+struct Vertex
+{
   float x, y;
   int id;
 };
 
 // StackItem
-struct StackItem {
+struct StackItem
+{
   Vertex a, b, c;
   int idx;
   float mina, maxa;
 };
 
 // Triangle
-struct Triangle {
+struct Triangle
+{
   float length[3];
   float angle[3];
   int vert[3];
@@ -51,7 +54,8 @@ static Vertex extendedPoint(Vertex A, Vertex B, float dA, float dB, float dAB);
 static std::pair< int, int > makeKey(int a, int b);
 static void progressBar(float progress);
 
-extern "C" Geodesics *computeGeodesics(MRIS *surf, float maxdist) {
+extern "C" Geodesics *computeGeodesics(MRIS *surf, float maxdist)
+{
   int msec;
   struct timeb mytimer;
   TimerStart(&mytimer);
@@ -208,15 +212,18 @@ extern "C" Geodesics *computeGeodesics(MRIS *surf, float maxdist) {
           if ((current_angle < min_angle)) {
             C = A;
             A = D;
-          } else if ((current_angle > max_angle)) {
+          }
+          else if ((current_angle > max_angle)) {
             C = B;
             B = D;
-          } else if (((current_angle <= max_angle) && (current_angle >= min_angle))) {
+          }
+          else if (((current_angle <= max_angle) && (current_angle >= min_angle))) {
             // add geodesic to path map if shorter than the previous distance:
             edge = pathmap.find(makeKey(vertexID, D.id));
             if (edge != pathmap.end()) {
               if ((distance < edge->second) || (edge->second < 0.0)) edge->second = distance;
-            } else {
+            }
+            else {
               pathmap.insert(make_pair(makeKey(vertexID, D.id), distance));
             }
             // push triangle to the stack:
@@ -334,7 +341,8 @@ extern "C" Geodesics *computeGeodesics(MRIS *surf, float maxdist) {
   return geo;
 }
 
-extern "C" void geodesicsWrite(Geodesics *geo, int nvertices, char *fname) {
+extern "C" void geodesicsWrite(Geodesics *geo, int nvertices, char *fname)
+{
   int vtxno;
   FILE *fp;
   int msec;
@@ -361,7 +369,8 @@ extern "C" void geodesicsWrite(Geodesics *geo, int nvertices, char *fname) {
   fclose(fp);
 }
 
-extern "C" Geodesics *geodesicsRead(char *fname, int *pnvertices) {
+extern "C" Geodesics *geodesicsRead(char *fname, int *pnvertices)
+{
   int magic, nthvtx;
   char tmpstr[1000];
   FILE *fp;
@@ -408,7 +417,8 @@ extern "C" Geodesics *geodesicsRead(char *fname, int *pnvertices) {
 \fn int geodesicsUniquify(Geodesics *geod)
 \brief Removes relicants from the v (and dist) lists; vnum is updated.
 */
-extern "C" int geodesicsUniquify(Geodesics *geod) {
+extern "C" int geodesicsUniquify(Geodesics *geod)
+{
   int nthnbr, *vlist, nunique, k, *vuniq;
   float *dist;
 
@@ -446,7 +456,8 @@ extern "C" int geodesicsUniquify(Geodesics *geod) {
   return (nunique);
 }
 
-static int getIndex(int *arr, int vid) {
+static int getIndex(int *arr, int vid)
+{
   int idx = std::distance(arr, std::find(arr, arr + 3, vid));
   // this can be removed:
   if (idx > 2) {
@@ -456,14 +467,16 @@ static int getIndex(int *arr, int vid) {
   return idx;
 }
 
-static float distanceBetween(int v1, int v2, MRIS *surf) {
+static float distanceBetween(int v1, int v2, MRIS *surf)
+{
   VERTEX *vert = &surf->vertices[v1];
   int *ns = vert->v;
   int idx = std::distance(ns, std::find(ns, ns + vert->vnum, v2));
   return vert->dist[idx];
 }
 
-static int findNeighbor(int faceidx, int v1, int v2, MRIS *surf) {
+static int findNeighbor(int faceidx, int v1, int v2, MRIS *surf)
+{
   VERTEX *vert = &surf->vertices[v1];
   int f;
   for (int nf = 0; nf < vert->num; nf++) {
@@ -476,7 +489,8 @@ static int findNeighbor(int faceidx, int v1, int v2, MRIS *surf) {
   return -1;
 }
 
-static Vertex extendedPoint(Vertex A, Vertex B, float dA, float dB, float dAB) {
+static Vertex extendedPoint(Vertex A, Vertex B, float dA, float dB, float dAB)
+{
   Vertex D;
   float a, h, px, py;
   a = (dA * dA - dB * dB + dAB * dAB) / (2 * dAB);
@@ -488,14 +502,16 @@ static Vertex extendedPoint(Vertex A, Vertex B, float dA, float dB, float dAB) {
   return D;
 }
 
-static std::pair< int, int > makeKey(int a, int b) {
+static std::pair< int, int > makeKey(int a, int b)
+{
   if (a < b)
     return std::pair< int, int >(a, b);
   else
     return std::pair< int, int >(b, a);
 }
 
-static void progressBar(float progress) {
+static void progressBar(float progress)
+{
   if (!isatty(fileno(stdout))) return;
   int barwidth = 25;
   std::cout << "  [";

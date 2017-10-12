@@ -68,17 +68,22 @@
     /* here we know that D0D2<=0.0 */                                            \
     /* that is D0, D1 are on the same side, D2 on the other or on the plane */   \
     ISECT(VV2, VV0, VV1, D2, D0, D1, isect0, isect1);                            \
-  } else if (D0D2 > 0.0f) {                                                      \
+  }                                                                              \
+  else if (D0D2 > 0.0f) {                                                        \
     /* here we know that d0d1<=0.0 */                                            \
     ISECT(VV1, VV0, VV2, D1, D0, D2, isect0, isect1);                            \
-  } else if (D1 * D2 > 0.0f || D0 != 0.0f) {                                     \
+  }                                                                              \
+  else if (D1 * D2 > 0.0f || D0 != 0.0f) {                                       \
     /* here we know that d0d1<=0.0 or that D0!=0.0 */                            \
     ISECT(VV0, VV1, VV2, D0, D1, D2, isect0, isect1);                            \
-  } else if (D1 != 0.0f) {                                                       \
+  }                                                                              \
+  else if (D1 != 0.0f) {                                                         \
     ISECT(VV1, VV0, VV2, D1, D0, D2, isect0, isect1);                            \
-  } else if (D2 != 0.0f) {                                                       \
+  }                                                                              \
+  else if (D2 != 0.0f) {                                                         \
     ISECT(VV2, VV0, VV1, D2, D0, D1, isect0, isect1);                            \
-  } else {                                                                       \
+  }                                                                              \
+  else {                                                                         \
     /* triangles are coplanar */                                                 \
     return coplanar_tri_tri(N1, V0, V1, V2, U0, U1, U2);                         \
   }
@@ -97,7 +102,8 @@
     e = Ax * Cy - Ay * Cx;                                          \
     if (f > 0) {                                                    \
       if (e >= 0 && e <= f) return 1;                               \
-    } else {                                                        \
+    }                                                               \
+    else {                                                          \
       if (e <= 0 && e >= f) return 1;                               \
     }                                                               \
   }
@@ -141,7 +147,8 @@
 
 int coplanar_tri_tri(double N[3], double V0[3], double V1[3], double V2[3], double U0[3], double U1[3], double U2[3]);
 
-int coplanar_tri_tri(double N[3], double V0[3], double V1[3], double V2[3], double U0[3], double U1[3], double U2[3]) {
+int coplanar_tri_tri(double N[3], double V0[3], double V1[3], double V2[3], double U0[3], double U1[3], double U2[3])
+{
   double A[3];
   short i0, i1;
   /* first project onto an axis-aligned plane, that maximizes the area */
@@ -153,16 +160,19 @@ int coplanar_tri_tri(double N[3], double V0[3], double V1[3], double V2[3], doub
     if (A[0] > A[2]) {
       i0 = 1; /* A[0] is greatest */
       i1 = 2;
-    } else {
+    }
+    else {
       i0 = 0; /* A[2] is greatest */
       i1 = 1;
     }
-  } else /* A[0]<=A[1] */
+  }
+  else /* A[0]<=A[1] */
   {
     if (A[2] > A[1]) {
       i0 = 0; /* A[2] is greatest */
       i1 = 1;
-    } else {
+    }
+    else {
       i0 = 0; /* A[1] is greatest */
       i1 = 2;
     }
@@ -180,7 +190,8 @@ int coplanar_tri_tri(double N[3], double V0[3], double V1[3], double V2[3], doub
   return 0;
 }
 
-int tri_tri_intersect(double V0[3], double V1[3], double V2[3], double U0[3], double U1[3], double U2[3]) {
+int tri_tri_intersect(double V0[3], double V1[3], double V2[3], double U0[3], double U1[3], double U2[3])
+{
   double E1[3], E2[3];
   double N1[3], N2[3], d1, d2;
   double du0, du1, du2, dv0, dv1, dv2, fdu0, fdu1, fdu2, fdv0, fdv1, fdv2;
@@ -312,8 +323,8 @@ int tri_tri_intersect(double V0[3], double V1[3], double V2[3], double U0[3], do
   coordinates of the vertices, and D is the direction of the ray.
 */
 #include "matrix.h"
-int triangle_ray_intersect(
-    double orig_pt[3], double dir[3], double U0[3], double U1[3], double U2[3], double int_pt[3]) {
+int triangle_ray_intersect(double orig_pt[3], double dir[3], double U0[3], double U1[3], double U2[3], double int_pt[3])
+{
   double basis1[3], basis2[3], tmp[3], L0[3], L1[3], len, t, dot, norm_proj[3], *V0, *V1, *V2, desc[3], Point[3];
   // douoble a, b;
   MATRIX *m_U, *m_inv;
@@ -441,7 +452,8 @@ int triangle_ray_intersect(
 //             0 = disjoint (no intersect)
 //             1 = intersect in unique point I1
 //             2 = are in the same plane
-int intersect_RayTriangle(double ray[2][3], double V0[3], double V1[3], double V2[3], double I[3]) {
+int intersect_RayTriangle(double ray[2][3], double V0[3], double V1[3], double V2[3], double I[3])
+{
   double u[3], v[3], n[3];     // triangle vectors
   double dir[3], w0[3], w[3];  // ray vectors
   float r, a, b;               // params to calc ray-plane intersect
@@ -496,7 +508,8 @@ int intersect_RayTriangle(double ray[2][3], double V0[3], double V1[3], double V
   return 1;  // I is in T
 }
 int project_point_to_plane(
-    double point[3], double V0[3], double V1[3], double V2[3], double proj[3], double pe1[3], double pe2[3]) {
+    double point[3], double V0[3], double V1[3], double V2[3], double proj[3], double pe1[3], double pe2[3])
+{
   double e1[3], e2[3], norm, d1, d2, tmp[3];
 
   // first basis vector

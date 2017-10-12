@@ -47,7 +47,8 @@ extern int errno;
    sv_sxadat_by_stem() - save selxavg.dat structure using
    volid as base. volid can be either a stem or stem.ext
    ---------------------------------------------------- */
-int sv_sxadat_by_stem(SXADAT *sxadat, const char *volid) {
+int sv_sxadat_by_stem(SXADAT *sxadat, const char *volid)
+{
   char tmpstr[1000];
   int err;
   char *stem;
@@ -63,7 +64,8 @@ int sv_sxadat_by_stem(SXADAT *sxadat, const char *volid) {
   return (err);
 }
 /* ---------------------------------------------------- */
-SXADAT *ld_sxadat_from_stem(const char *volid) {
+SXADAT *ld_sxadat_from_stem(const char *volid)
+{
   char tmpstr[1000];
   char *stem;
   SXADAT *sxa;
@@ -83,7 +85,8 @@ SXADAT *ld_sxadat_from_stem(const char *volid) {
 }
 
 /* ---------------------------------------------------- */
-float *sxa_framepower(SXADAT *sxa, int *nframes) {
+float *sxa_framepower(SXADAT *sxa, int *nframes)
+{
   int frame;
   int h, statid, condition;
   float *framepower;
@@ -105,7 +108,8 @@ float *sxa_framepower(SXADAT *sxa, int *nframes) {
 }
 
 /* ---------------------------------------------------- */
-int is_sxa_volume(const char *volid) {
+int is_sxa_volume(const char *volid)
+{
   char tmpstr[1000];
   FILE *fp;
   char *stem;
@@ -127,7 +131,8 @@ int is_sxa_volume(const char *volid) {
 }
 
 /* ---------------------------------------------------- */
-SXADAT *ld_sxadat(const char *sxadatfile) {
+SXADAT *ld_sxadat(const char *sxadatfile)
+{
   FILE *fp;
   SXADAT *sxa;
   int n, r, c, Nch;
@@ -216,7 +221,8 @@ SXADAT *ld_sxadat(const char *sxadatfile) {
 }
 
 /* ---------------------------------------------------- */
-int sv_sxadat(SXADAT *sxa, const char *sxadatfile) {
+int sv_sxadat(SXADAT *sxa, const char *sxadatfile)
+{
   FILE *fp;
   int n, r, c, Nch;
 

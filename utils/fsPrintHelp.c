@@ -79,7 +79,8 @@ int outputHelpDoc(const xmlDocPtr doc)
               if (tagNameIs("intro", argumentElement) || tagNameIs("argument", argumentElement)) {
                 if (first == 1) {
                   first = 0;
-                } else {
+                }
+                else {
                   printf("\n");
                 }
               }
@@ -107,7 +108,8 @@ int outputHelpDoc(const xmlDocPtr doc)
             if (tagNameIs("intro", outputElement) || tagNameIs("output", outputElement)) {
               if (first == 1) {
                 first = 0;
-              } else {
+              }
+              else {
                 printf("\n");
               }
             }
@@ -115,7 +117,8 @@ int outputHelpDoc(const xmlDocPtr doc)
           }
           outputElement = outputElement->next;
         }
-      } else {
+      }
+      else {
         printContents(doc, cur);
       }
     }
@@ -127,7 +130,8 @@ int outputHelpDoc(const xmlDocPtr doc)
   return 0;  // success
 }
 
-static int FileExists(const char *fname) {
+static int FileExists(const char *fname)
+{
   FILE *fp = fopen(fname, "r");
   if (fp) {
     fclose(fp);
@@ -196,7 +200,8 @@ int outputHelpXml(const unsigned char *text, unsigned int size)
 }
 
 // Changes a string to upper case
-static void toUpperCase(char *c) {
+static void toUpperCase(char *c)
+{
   int i;
   for (i = 0; *(c + i) != '\0'; i++) {
     *(c + i) = toupper(*(c + i));
@@ -204,7 +209,8 @@ static void toUpperCase(char *c) {
 }
 
 // Replaces the first underscore or dash in a string with a space
-static void replaceUnderscore(char *c) {
+static void replaceUnderscore(char *c)
+{
   char *pos = strchr(c, '_');
   if (pos != NULL) {
     *pos = ' ';
@@ -216,7 +222,8 @@ static void replaceUnderscore(char *c) {
 }
 
 // Prints the name of a tag in the correct format
-static void printName(xmlNodePtr cur) {
+static void printName(xmlNodePtr cur)
+{
   char *n = malloc(strlen((char *)cur->name) + 1);
   strcpy(n, (char *)cur->name);
   toUpperCase(n);
@@ -227,7 +234,8 @@ static void printName(xmlNodePtr cur) {
 // Prints the text of a tag in the correct format
 // at most FSPRINT_MAX_CHARS characters per line with the correct number of tabs
 #define FSPRINT_MAX_CHARS 78
-static void printContents(xmlDocPtr doc, xmlNodePtr cur) {
+static void printContents(xmlDocPtr doc, xmlNodePtr cur)
+{
   xmlChar *contents;
   contents = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
   int i = 0, j;
@@ -248,11 +256,13 @@ static void printContents(xmlDocPtr doc, xmlNodePtr cur) {
       if (*(contents + j) == '\n') {
         j++;
         break;
-      } else if (wrdLen((char *)(contents + j)) > FSPRINT_MAX_CHARS - tabNum * 8) {
+      }
+      else if (wrdLen((char *)(contents + j)) > FSPRINT_MAX_CHARS - tabNum * 8) {
         for (j = j; j < FSPRINT_MAX_CHARS - tabNum * 8 + i; j++) {
           printf("%c", *(contents + j));
         }
-      } else {
+      }
+      else {
         printf("%c", *(contents + j));
       }
     }
@@ -267,7 +277,8 @@ static int tagNameIs(char *c, xmlNodePtr cur) { return !(xmlStrcasecmp(cur->name
 // Counts the number of chars until the next space, dash, underscore, slash,
 // or end of the string
 // Used to keep a word from running on two lines
-static int wrdLen(char *c) {
+static int wrdLen(char *c)
+{
   int i;
   for (i = 0; i < strlen(c); i++) {
     if (*(c + i) == ' ' || *(c + i) == '_' || *(c + i) == '/') {
@@ -279,7 +290,8 @@ static int wrdLen(char *c) {
 
 #ifdef BUILD_MAIN
 //-------------------------------------------------------------------
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   if (argv[1] == NULL) {
     // assuming input is being piped (ie 'cat somefile.help.xml | fsPrintHelp')
     argv[1] = "/dev/stdin";

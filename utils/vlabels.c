@@ -34,7 +34,8 @@
 
 extern const char *Progname;
 
-VOXEL_LABELS_IMAGE *VLalloc(int width, int height, int depth, float resolution) {
+VOXEL_LABELS_IMAGE *VLalloc(int width, int height, int depth, float resolution)
+{
   VOXEL_LABELS_IMAGE *vli;
   VOXEL_LABELS ***vl;
   int x, y, z;
@@ -69,7 +70,8 @@ VOXEL_LABELS_IMAGE *VLalloc(int width, int height, int depth, float resolution) 
   return (vli);
 }
 
-int VLfree(VLI **pvli) {
+int VLfree(VLI **pvli)
+{
   VLI *vli;
   int x, y, z;
   VL ***vl;
@@ -100,7 +102,8 @@ int VLfree(VLI **pvli) {
   return (NO_ERROR);
 }
 
-int VLwrite(VLI *vli, char *fname) {
+int VLwrite(VLI *vli, char *fname)
+{
   FILE *fp;
   int x, y, z, n;
   long here, there;
@@ -138,7 +141,8 @@ int VLwrite(VLI *vli, char *fname) {
   fclose(fp);
   return (NO_ERROR);
 }
-VLI *VLread(char *fname) {
+VLI *VLread(char *fname)
+{
   FILE *fp;
   int x, y, z, n, width, height, depth, magic;
   float resolution;
@@ -185,7 +189,8 @@ VLI *VLread(char *fname) {
 
 VL *VLreadVoxel(char *fname, int x, int y, int z, VL *vl) { return (vl); }
 
-int VLnormalize(VLI *vli) {
+int VLnormalize(VLI *vli)
+{
   int x, y, z, n;
   VL *vl;
   float pct, total;

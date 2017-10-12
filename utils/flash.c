@@ -36,7 +36,8 @@ extern const char *Progname;
 #define T1_STEP_SIZE 5
 #define T1_TO_INDEX(T1) (nint((T1 - MIN_T1) / T1_STEP_SIZE))
 
-typedef struct {
+typedef struct
+{
   double *flash; /* forward model f(T1,TR,alpha) */
   double TR;
   double alpha;
@@ -55,7 +56,8 @@ static int ntables = 0;
 
 static double FLASHforwardModelLookup(double T1, double PD, double TR, double flip_angle);
 
-double dFlash_dT1(double T1, double PD, double TR, double flip_angle, double TE) {
+double dFlash_dT1(double T1, double PD, double TR, double flip_angle, double TE)
+{
   double e1, numer, denom;
 
   e1 = exp(TR / T1);
@@ -66,7 +68,8 @@ double dFlash_dT1(double T1, double PD, double TR, double flip_angle, double TE)
   return (numer / denom);
 }
 
-double dFlash_dPD(double T1, double PD, double TR, double flip_angle, double TE) {
+double dFlash_dPD(double T1, double PD, double TR, double flip_angle, double TE)
+{
   double e1, numer, denom;
 
   e1 = exp(TR / T1);
@@ -76,7 +79,8 @@ double dFlash_dPD(double T1, double PD, double TR, double flip_angle, double TE)
   return (numer / denom);
 }
 
-double FLASHforwardModel(double T1, double PD, double TR, double flip_angle, double TE) {
+double FLASHforwardModel(double T1, double PD, double TR, double flip_angle, double TE)
+{
   double FLASH, E1;
   double CFA, SFA;
 
@@ -88,7 +92,8 @@ double FLASHforwardModel(double T1, double PD, double TR, double flip_angle, dou
   if (!DZERO(T1)) FLASH *= (1 - E1) / (1 - CFA * E1);
   return (FLASH);
 }
-MRI *MRIparameterMapsToFlash(MRI *mri_src, MRI *mri_dst, double *TRs, double *TEs, double *FAs, int nflash) {
+MRI *MRIparameterMapsToFlash(MRI *mri_src, MRI *mri_dst, double *TRs, double *TEs, double *FAs, int nflash)
+{
   int x, y, z, n;
   double T1, PD;
   double val;
@@ -114,7 +119,8 @@ MRI *MRIparameterMapsToFlash(MRI *mri_src, MRI *mri_dst, double *TRs, double *TE
   return (mri_dst);
 }
 
-int compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, double *TEs, double *pT1, double *pPD) {
+int compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, double *TEs, double *pT1, double *pPD)
+{
   double best_T1, best_PD, norm_im, norm_pred, sse, best_sse, T1, pred_vals[MAX_FLASH_VOLUMES], error, upper_T1,
       lower_T1, mid_T1, upper_sse, lower_sse, mid_sse, upper_norm, mid_norm, lower_norm, range;
   int i, j, upper_j, lower_j, mid_j, niter;
@@ -207,7 +213,8 @@ int compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, dou
       best_T1 = lower_T1;
       best_PD = norm_im / lower_norm;
       best_sse = lower_sse;
-    } else if (upper_sse < mid_sse) /* make upper new mid */
+    }
+    else if (upper_sse < mid_sse) /* make upper new mid */
     {
       mid_sse = upper_sse;
       mid_j = upper_j;
@@ -238,14 +245,16 @@ int compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, dou
   *pPD = best_PD;
   return (NO_ERROR);
 }
-static double FLASHforwardModelLookup(double T1, double PD, double TR, double flip_angle) {
+static double FLASHforwardModelLookup(double T1, double PD, double TR, double flip_angle)
+{
   double FLASH;
 
   FLASH = lookup_flash_value(TR, flip_angle, PD, T1);
   return (FLASH);
 }
 
-static int build_lookup_table(double tr, double flip_angle, double te, double min_T1, double max_T1, double step) {
+static int build_lookup_table(double tr, double flip_angle, double te, double min_T1, double max_T1, double step)
+{
   FLT *flt;
   int i;
   double T1;
@@ -273,7 +282,8 @@ static int build_lookup_table(double tr, double flip_angle, double te, double mi
   return (NO_ERROR);
 }
 
-static FLT *find_lookup_table(double TR, double flip_angle) {
+static FLT *find_lookup_table(double TR, double flip_angle)
+{
   int i;
 
   for (i = 0; i < ntables; i++)
@@ -283,13 +293,15 @@ static FLT *find_lookup_table(double TR, double flip_angle) {
   return (&lookup_tables[i]);
 }
 
-int FlashBuildLookupTables(int nvolumes, double *TRs, double *FAs, double *TEs) {
+int FlashBuildLookupTables(int nvolumes, double *TRs, double *FAs, double *TEs)
+{
   int n;
 
   for (n = 0; n < nvolumes; n++) build_lookup_table(TRs[n], FAs[n], TEs[n], MIN_T1, MAX_T1, T1_STEP_SIZE);
   return (NO_ERROR);
 }
-static double lookup_flash_value(double TR, double flip_angle, double PD, double T1) {
+static double lookup_flash_value(double TR, double flip_angle, double PD, double T1)
+{
   int index;
   FLT *flt;
   double FLASH;
@@ -304,7 +316,8 @@ static double lookup_flash_value(double TR, double flip_angle, double PD, double
   FLASH = PD * flt->flash[index];
   return (FLASH);
 }
-double FLASHforwardModelT2star(double T1, double PD, double T2star, double TR, double flip_angle, double TE) {
+double FLASHforwardModelT2star(double T1, double PD, double T2star, double TR, double flip_angle, double TE)
+{
   double FLASH, E1;
   double CFA, SFA;
 

@@ -34,7 +34,8 @@
 #include "proto.h"  // nint
 #include "utils.h"  // fgetl
 
-DENSITY *DensityHistogramEstimate(MRI *mri1, MRI *mri2, int nbins, float sigma, int *valid1, int *valid2) {
+DENSITY *DensityHistogramEstimate(MRI *mri1, MRI *mri2, int nbins, float sigma, int *valid1, int *valid2)
+{
   DENSITY *pdf;
   int x, y, bin1, bin2, nvox, n1, n2, n;
   float val1, val2, scale1, scale2;
@@ -64,12 +65,14 @@ DENSITY *DensityHistogramEstimate(MRI *mri1, MRI *mri2, int nbins, float sigma, 
     ErrorExit(ERROR_NOMEMORY, "DensityHistogramEstimate: could not allocate lookup tables (%d, %d)\n", n1, n2);
   if (valid1) {
     for (n = 0; n < n1; n++) pdf->valid1[n] = valid1[n];
-  } else
+  }
+  else
     memset(pdf->valid1, 1, n1 * sizeof(int));
 
   if (valid2) {
     for (n = 0; n < n2; n++) pdf->valid2[n] = valid2[n];
-  } else
+  }
+  else
     memset(pdf->valid2, 1, n2 * sizeof(int));
 
   for (nvox = 0, x = 0; x < mri1->width; x++) {
@@ -112,7 +115,8 @@ DENSITY *DensityHistogramEstimate(MRI *mri1, MRI *mri2, int nbins, float sigma, 
   printf("histogram computed with %d dofs\n", nvox);
   return (pdf);
 }
-int DensityWrite(DENSITY *pdf, char *fname) {
+int DensityWrite(DENSITY *pdf, char *fname)
+{
   FILE *fp;
   int i, j, n;
 #if 0
@@ -150,7 +154,8 @@ int DensityWrite(DENSITY *pdf, char *fname) {
 
   return (NO_ERROR);
 }
-DENSITY *DensityRead(char *fname) {
+DENSITY *DensityRead(char *fname)
+{
   DENSITY *pdf;
   FILE *fp;
   int i, j, nbins, n;
@@ -220,7 +225,8 @@ DENSITY *DensityRead(char *fname) {
   return (pdf);
 }
 #define BIG_AND_NEGATIVE -1000000
-double DensityLogLikelihood(DENSITY *pdf, float val1, float val2) {
+double DensityLogLikelihood(DENSITY *pdf, float val1, float val2)
+{
   int bin1, bin2, nbins;
   double p;
 
@@ -238,7 +244,8 @@ double DensityLogLikelihood(DENSITY *pdf, float val1, float val2) {
   return (log(p));
 }
 
-MRI *DensityLikelihoodImage(MRI *mri1, MRI *mri2, MRI *mri_ll, MATRIX *m, DENSITY *pdf, MRI *mri_seg, int inverse) {
+MRI *DensityLikelihoodImage(MRI *mri1, MRI *mri2, MRI *mri_ll, MATRIX *m, DENSITY *pdf, MRI *mri_seg, int inverse)
+{
   double val_src, val_dst, xs, ys, thick, ll;
   int x, y;
   VECTOR *v_src, *v_dst;
@@ -269,7 +276,8 @@ MRI *DensityLikelihoodImage(MRI *mri1, MRI *mri2, MRI *mri_ll, MATRIX *m, DENSIT
       if (MRIindexNotInVolume(mri1, xs, ys, 0) == 0) {
         val_dst = MRIvox(mri2, x, y, 0);
         MRIsampleVolumeSlice(mri1, xs, ys, 0, &val_src, MRI_CORONAL);
-      } else {
+      }
+      else {
         val_src = val_dst = -1000000;
       }
       if (inverse)

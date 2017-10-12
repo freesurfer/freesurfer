@@ -29,11 +29,13 @@
 extern "C" {
 #include "error.h"
 #include "mri.h"
-MRI *mriNrrdReadDiffusion(char *fname, int read_volume) {
+MRI *mriNrrdReadDiffusion(char *fname, int read_volume)
+{
   ErrorReturn(NULL, (ERROR_UNSUPPORTED, "mriNrrdReadDiffusion(): Nrrd input of diffusion data not supported!"));
   return NULL;
 }
-int mriNrrdWriteDiffusion(MRI *mri, char *fname) {
+int mriNrrdWriteDiffusion(MRI *mri, char *fname)
+{
   ErrorReturn(ERROR_UNSUPPORTED,
               (ERROR_UNSUPPORTED, "mriNrrdWriteDiffusion(): Nrrd diffusion data output not supported!"));
 }
@@ -104,7 +106,8 @@ MRI *mriNrrdReadDiffusion(char *fname, int read_volume);
 int mriNrrdWriteDiffusion(MRI *mri, char *fname);
 }
 
-MRI *mriNrrdReadDiffusion(char *fname, int read_volume) {
+MRI *mriNrrdReadDiffusion(char *fname, int read_volume)
+{
   typedef itk::DiffusionTensor3D< float > PixelType;
   typedef itk::Image< PixelType, 3 > DiffusionImageType;
   typedef itk::ImageFileReader< DiffusionImageType > ReaderType;
@@ -246,7 +249,8 @@ MRI *mriNrrdReadDiffusion(char *fname, int read_volume) {
   return mri;
 }
 
-int mriNrrdWriteDiffusion(MRI *mri, char *fname) {
+int mriNrrdWriteDiffusion(MRI *mri, char *fname)
+{
   // just give an error until write function is complete and tested
   ErrorReturn(ERROR_UNSUPPORTED,
               (ERROR_UNSUPPORTED,

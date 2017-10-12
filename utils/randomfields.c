@@ -46,7 +46,8 @@
 const char *RFSrcVersion(void) { return ("$Id: randomfields.c,v 1.18 2016/12/06 20:25:48 greve Exp $"); }
 
 /*-------------------------------------------------------------------*/
-int RFname2Code(RFS *rfs) {
+int RFname2Code(RFS *rfs)
+{
   int code = -1;
   if (!strcmp(rfs->name, "uniform")) code = RF_UNIFORM;
   if (!strcmp(rfs->name, "gaussian")) code = RF_GAUSSIAN;
@@ -58,7 +59,8 @@ int RFname2Code(RFS *rfs) {
   return (code);
 }
 /*-------------------------------------------------------------------*/
-const char *RFcode2Name(RFS *rfs) {
+const char *RFcode2Name(RFS *rfs)
+{
   switch (rfs->code) {
     case RF_UNIFORM:
       return ("uniform");
@@ -83,7 +85,8 @@ const char *RFcode2Name(RFS *rfs) {
 }
 
 /*-------------------------------------------------------------------*/
-RFS *RFspecInit(unsigned long int seed, sc_rng_type *rngtype) {
+RFS *RFspecInit(unsigned long int seed, sc_rng_type *rngtype)
+{
   RFS *rfs;
   const sc_rng_type *sc_rng_intern_type = &intern_rng_type;
 
@@ -99,7 +102,8 @@ RFS *RFspecInit(unsigned long int seed, sc_rng_type *rngtype) {
 }
 
 /*-------------------------------------------------------------------*/
-int RFspecFree(RFS **prfs) {
+int RFspecFree(RFS **prfs)
+{
   sc_rng_free((*prfs)->rng);
   free((*prfs)->name);
   free(*prfs);
@@ -108,7 +112,8 @@ int RFspecFree(RFS **prfs) {
 }
 
 /*-------------------------------------------------------------------*/
-int RFspecSetSeed(RFS *rfs, unsigned long int seed) {
+int RFspecSetSeed(RFS *rfs, unsigned long int seed)
+{
   if (seed == 0)
     rfs->seed = PDFtodSeed();
   else
@@ -118,7 +123,8 @@ int RFspecSetSeed(RFS *rfs, unsigned long int seed) {
 }
 
 /*-------------------------------------------------------------------*/
-int RFprint(FILE *fp, RFS *rfs) {
+int RFprint(FILE *fp, RFS *rfs)
+{
   int n;
   fprintf(fp, "field %s\n", rfs->name);
   fprintf(fp, "code  %d\n", rfs->code);
@@ -131,7 +137,8 @@ int RFprint(FILE *fp, RFS *rfs) {
 }
 
 /*-------------------------------------------------------------------*/
-int RFnparams(RFS *rfs) {
+int RFnparams(RFS *rfs)
+{
   int nparams = -1;
   switch (rfs->code) {
     case RF_UNIFORM:
@@ -158,7 +165,8 @@ int RFnparams(RFS *rfs) {
 }
 
 /*-------------------------------------------------------------------*/
-int RFexpectedMeanStddev(RFS *rfs) {
+int RFexpectedMeanStddev(RFS *rfs)
+{
   if (!strcmp(rfs->name, "uniform")) return (RFexpectedMeanStddevUniform(rfs));
   if (!strcmp(rfs->name, "gaussian")) return (RFexpectedMeanStddevGaussian(rfs));
   if (!strcmp(rfs->name, "t")) return (RFexpectedMeanStddevt(rfs));
@@ -169,7 +177,8 @@ int RFexpectedMeanStddev(RFS *rfs) {
 }
 
 /*-------------------------------------------------------------------*/
-int RFsynth(MRI *rf, RFS *rfs, MRI *binmask) {
+int RFsynth(MRI *rf, RFS *rfs, MRI *binmask)
+{
   int c, r, s, f;
   double v, m;
 
@@ -196,7 +205,8 @@ int RFsynth(MRI *rf, RFS *rfs, MRI *binmask) {
   \brief Converts a stat to a p value. If TwoSided, then computes a p value
       based on an unsigned stat, but the sign is still passed to p.
 */
-MRI *RFstat2P(MRI *rf, RFS *rfs, MRI *binmask, int TwoSided, MRI *p) {
+MRI *RFstat2P(MRI *rf, RFS *rfs, MRI *binmask, int TwoSided, MRI *p)
+{
   int c, r, s, f = 0, m;
   double v, pval;
 
@@ -228,7 +238,8 @@ MRI *RFstat2P(MRI *rf, RFS *rfs, MRI *binmask, int TwoSided, MRI *p) {
   \brief Converts z to p. If TwoSided, then computes the unsigned p,
          but p keeps the sign of z.
 */
-MRI *RFz2p(MRI *z, MRI *mask, int TwoSided, MRI *p) {
+MRI *RFz2p(MRI *z, MRI *mask, int TwoSided, MRI *p)
+{
   RFS *rfs;
   rfs = RFspecInit(0, NULL);
   rfs->name = strcpyalloc("gaussian");
@@ -239,7 +250,8 @@ MRI *RFz2p(MRI *z, MRI *mask, int TwoSided, MRI *p) {
 }
 
 /*-------------------------------------------------------------------*/
-MRI *RFp2Stat(MRI *p, RFS *rfs, MRI *binmask, MRI *rf) {
+MRI *RFp2Stat(MRI *p, RFS *rfs, MRI *binmask, MRI *rf)
+{
   int c, r, s, f, m;
   double v, pval;
 
@@ -269,7 +281,8 @@ MRI *RFp2Stat(MRI *p, RFS *rfs, MRI *binmask, MRI *rf) {
 }
 
 /*--------------------------------------------------------------------------*/
-MRI *RFstat2Stat(MRI *rfin, RFS *rfsin, RFS *rfsout, MRI *binmask, MRI *rfout) {
+MRI *RFstat2Stat(MRI *rfin, RFS *rfsin, RFS *rfsout, MRI *binmask, MRI *rfout)
+{
   MRI *p = NULL;
 
   if (RFname2Code(rfsin) == -1) return (NULL);
@@ -282,7 +295,8 @@ MRI *RFstat2Stat(MRI *rfin, RFS *rfsin, RFS *rfsout, MRI *binmask, MRI *rfout) {
 }
 
 /*-------------------------------------------------------------------*/
-MRI *RFrescale(MRI *rf, RFS *rfs, MRI *binmask, MRI *rfout) {
+MRI *RFrescale(MRI *rf, RFS *rfs, MRI *binmask, MRI *rfout)
+{
   int c, r, s, f, m;
   double v, gmean, gstddev, gmax;
 
@@ -311,7 +325,8 @@ MRI *RFrescale(MRI *rf, RFS *rfs, MRI *binmask, MRI *rfout) {
 }
 
 /*-------------------------------------------------------------------*/
-int RFglobalStats(MRI *rf, MRI *binmask, double *gmean, double *gstddev, double *max) {
+int RFglobalStats(MRI *rf, MRI *binmask, double *gmean, double *gstddev, double *max)
+{
   int c, r, s, f, m;
   double v;
   double sum, sumsq;
@@ -345,7 +360,8 @@ int RFglobalStats(MRI *rf, MRI *binmask, double *gmean, double *gstddev, double 
 }
 
 /*-------------------------------------------------------------------*/
-double RFdrawVal(RFS *rfs) {
+double RFdrawVal(RFS *rfs)
+{
   if (!strcmp(rfs->name, "uniform")) {
     // params[0] = min
     // params[1] = max
@@ -382,7 +398,8 @@ double RFdrawVal(RFS *rfs) {
   or greater from a random draw from the given distribution. Note:
   this is a one-sided test (where sidedness makes sense).
   -------------------------------------------------------------------*/
-double RFstat2PVal(RFS *rfs, double stat) {
+double RFstat2PVal(RFS *rfs, double stat)
+{
   double p = -1;
   if (!strcmp(rfs->name, "uniform")) {
     // params[0] = min
@@ -422,7 +439,8 @@ double RFstat2PVal(RFS *rfs, double stat) {
 /*-------------------------------------------------------------------
   RFp2StatVal() -
   -------------------------------------------------------------------*/
-double RFp2StatVal(RFS *rfs, double p) {
+double RFp2StatVal(RFS *rfs, double p)
+{
   if (!strcmp(rfs->name, "uniform")) {
     // params[0] = min
     // params[1] = max
@@ -458,7 +476,8 @@ double RFp2StatVal(RFS *rfs, double p) {
 
 /*-------------------------------------------------------------------*/
 /*-------------------------------------------------------------------*/
-int RFexpectedMeanStddevUniform(RFS *rfs) {
+int RFexpectedMeanStddevUniform(RFS *rfs)
+{
   double min, max, d;
   min = rfs->params[0];
   max = rfs->params[1];
@@ -470,7 +489,8 @@ int RFexpectedMeanStddevUniform(RFS *rfs) {
 
 /*-------------------------------------------------------------------*/
 /*-------------------------------------------------------------------*/
-int RFexpectedMeanStddevGaussian(RFS *rfs) {
+int RFexpectedMeanStddevGaussian(RFS *rfs)
+{
   rfs->mean = rfs->params[0];
   rfs->stddev = rfs->params[1];
   return (0);
@@ -478,7 +498,8 @@ int RFexpectedMeanStddevGaussian(RFS *rfs) {
 
 /*-------------------------------------------------------------------*/
 /*-------------------------------------------------------------------*/
-int RFexpectedMeanStddevt(RFS *rfs) {
+int RFexpectedMeanStddevt(RFS *rfs)
+{
   double dof;
   dof = rfs->params[0];
   rfs->mean = 0;
@@ -488,7 +509,8 @@ int RFexpectedMeanStddevt(RFS *rfs) {
 
 /*-------------------------------------------------------------------*/
 /*-------------------------------------------------------------------*/
-int RFexpectedMeanStddevF(RFS *rfs) {
+int RFexpectedMeanStddevF(RFS *rfs)
+{
   double ndof, ddof;
   ndof = rfs->params[0];  // numerator dof (rows in C)
   ddof = rfs->params[1];  // dof
@@ -498,7 +520,8 @@ int RFexpectedMeanStddevF(RFS *rfs) {
 }
 
 /*-------------------------------------------------------------------*/
-int RFexpectedMeanStddevChi2(RFS *rfs) {
+int RFexpectedMeanStddevChi2(RFS *rfs)
+{
   double dof;
   dof = rfs->params[0];
   rfs->mean = dof;
@@ -513,7 +536,8 @@ int RFexpectedMeanStddevChi2(RFS *rfs) {
   AR1 value is measured between two voxels a distance d appart. GStd
   will have the same units as d.
   -----------------------------------------------------------------*/
-double RFar1ToGStd(double ar1, double d) {
+double RFar1ToGStd(double ar1, double d)
+{
   double gstd;
   if (ar1 <= 0.0) return (0.0);
   gstd = d / sqrt(-4 * log(ar1));
@@ -526,7 +550,8 @@ double RFar1ToGStd(double ar1, double d) {
   would result in the given AR1.  The AR1 value is measured between
   two voxels a distance d appart. FWHM will have the same units as d.
   ------------------------------------------------------*/
-double RFar1ToFWHM(double ar1, double d) {
+double RFar1ToFWHM(double ar1, double d)
+{
   double gstd, fwhm;
   gstd = RFar1ToGStd(ar1, d);
   fwhm = gstd * sqrt(log(256.0));
@@ -551,7 +576,8 @@ double RFar1ToFWHM(double ar1, double d) {
   the FSFAST toolbox.
 
  */
-double RFprobZCluster(double clustersize, double vzthresh, double fwhm, double searchsize, int dim) {
+double RFprobZCluster(double clustersize, double vzthresh, double fwhm, double searchsize, int dim)
+{
   double u, phiu, k, S, W, Em, beta, Pnk, pcluster, D, pi;
 
   pi = M_PI;
@@ -573,7 +599,8 @@ double RFprobZCluster(double clustersize, double vzthresh, double fwhm, double s
   // This form appears to go back to Hasofer 1978
   if (dim != 3) {
     Em = exp(-(u * u) / 2) * pow(u, (D - 1)) * pow(2 * pi, -(D + 1) / 2) * S / pow(W, D);
-  } else {
+  }
+  else {
     // This form with (pow(u,(D-1))-1) for D=3 found in
     // Worsley, et al, 1996, HBM 4:58-73, Table II. This is what
     // FSL and KJW's stat_threshold.m use. In simulations, it seems
@@ -623,7 +650,8 @@ double RFprobZCluster(double clustersize, double vzthresh, double fwhm, double s
  RFprobZCluster(). Note that the cluster are the set of voxels
  *below* the pvthresh.
  */
-double RFprobZClusterPThresh(double clustersize, double vpthresh, double fwhm, double searchsize, int dim) {
+double RFprobZClusterPThresh(double clustersize, double vpthresh, double fwhm, double searchsize, int dim)
+{
   double vzthresh, pcluster;
   vzthresh = sc_cdf_gaussian_Qinv(vpthresh, 1.0);
   pcluster = RFprobZCluster(clustersize, vzthresh, fwhm, searchsize, dim);
@@ -644,7 +672,8 @@ double RFprobZClusterPThresh(double clustersize, double vpthresh, double fwhm, d
  z-field. This function just computes the equivalenet z-threshold and
  calls RFprobZCluster().
  */
-double RFprobZClusterSigThresh(double clustersize, double vsigthresh, double fwhm, double searchsize, int dim) {
+double RFprobZClusterSigThresh(double clustersize, double vsigthresh, double fwhm, double searchsize, int dim)
+{
   double vzthresh, pcluster, vpthresh;
   vpthresh = pow(10.0, -fabs(vsigthresh));
   vzthresh = sc_cdf_gaussian_Qinv(vpthresh, 1.0);
@@ -656,7 +685,8 @@ double RFprobZClusterSigThresh(double clustersize, double vsigthresh, double fwh
  \fn MRI *RFp2z(MRI *p, MRI *mask, MRI *z)
  \brief Converts a p-value to a two-sided z
  */
-MRI *RFp2z(MRI *p, MRI *mask, MRI *z) {
+MRI *RFp2z(MRI *p, MRI *mask, MRI *z)
+{
   RFS *rfs;
   rfs = RFspecInit(0, NULL);
   rfs->name = strcpyalloc("gaussian");
@@ -670,7 +700,8 @@ MRI *RFp2z(MRI *p, MRI *mask, MRI *z) {
  \fn MRI *RFz1toz2(MRI *z1, MRI *mask, MRI *z2)
  \brief Converts a one-sided z-map to a two-sided z-map
  */
-MRI *RFz1toz2(MRI *z1, MRI *mask, MRI *z2) {
+MRI *RFz1toz2(MRI *z1, MRI *mask, MRI *z2)
+{
   MRI *p;
   int TwoSidedFlag = 1;
 

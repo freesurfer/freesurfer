@@ -48,7 +48,8 @@ static double svm_linear_dot(int ninputs, float *xi, float *xj);
 #if !USE_SVM_LIB
 static double SVMlagrangian(SVM *svm, int ntraining, float **x, float *y, double **dot_matrix);
 #endif
-SVM *SVMalloc(int ninputs, char *c1_name, char *c2_name) {
+SVM *SVMalloc(int ninputs, char *c1_name, char *c2_name)
+{
   SVM *svm;
 
   svm = (SVM *)calloc(1, sizeof(SVM));
@@ -65,7 +66,8 @@ SVM *SVMalloc(int ninputs, char *c1_name, char *c2_name) {
 }
 
 #if USE_SVM_LIB
-int SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C, double tol, int max_iter) {
+int SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C, double tol, int max_iter)
+{
   SVMparam *svmp;
   SVMreal **data, *alpha;
   int posCount, negCount, i, j, *indices, k;
@@ -165,7 +167,8 @@ int SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C, double tol,
 }
 
 #else
-int SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C, double tol, int max_iter) {
+int SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C, double tol, int max_iter)
+{
   int iter, i, j, k, Nsupport, *permutation, *moved, *failed, nmoved, dir, keep_alpha;
   double **dot_matrix, dot, step_size, L, Lold, Lprev, *da_old, da, b, constraint, ai, aj, dai, daj, min_step_size;
 
@@ -267,7 +270,8 @@ int SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C, double tol,
               break;
           }
         }
-      } else /* search from end */
+      }
+      else /* search from end */
       {
         for (j = ntraining - 1; j >= 0; j--) {
           if (failed[j] || moved[j]) continue;
@@ -400,7 +404,8 @@ int SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C, double tol,
   return (NO_ERROR);
 }
 
-static double SVMlagrangian(SVM *svm, int ntraining, float **x, float *y, double **dot_matrix) {
+static double SVMlagrangian(SVM *svm, int ntraining, float **x, float *y, double **dot_matrix)
+{
   int i, j;
   double L;
 
@@ -415,7 +420,8 @@ static double SVMlagrangian(SVM *svm, int ntraining, float **x, float *y, double
 }
 
 #endif
-int SVMwrite(SVM *svm, char *fname) {
+int SVMwrite(SVM *svm, char *fname)
+{
   FILE *fp;
   int i, j;
 
@@ -457,7 +463,8 @@ int SVMwrite(SVM *svm, char *fname) {
   return (NO_ERROR);
 }
 
-SVM *SVMread(char *fname) {
+SVM *SVMread(char *fname)
+{
   FILE *fp;
   int i, ninputs, retval, j, ntraining;
   SVM *svm;
@@ -482,13 +489,17 @@ SVM *SVMread(char *fname) {
     retval = sscanf(cp, "%s", token);
     if (stricmp(token, "C") == 0) {
       retval = sscanf(cp, "%*s\t%lf", &svm->C);
-    } else if (stricmp(token, "SIGMA") == 0) {
+    }
+    else if (stricmp(token, "SIGMA") == 0) {
       retval = sscanf(cp, "%*s\t%lf", &svm->sigma);
-    } else if (stricmp(token, "NTRAINING") == 0) {
+    }
+    else if (stricmp(token, "NTRAINING") == 0) {
       retval = sscanf(cp, "%*s\t%d", &svm->ntraining);
-    } else if (stricmp(token, "TYPE") == 0) {
+    }
+    else if (stricmp(token, "TYPE") == 0) {
       retval = sscanf(cp, "%*s\t%d", &svm->type);
-    } else if (stricmp(token, "ALPHA") == 0) {
+    }
+    else if (stricmp(token, "ALPHA") == 0) {
       svm->alpha = (double *)calloc(svm->ntraining, sizeof(double));
       if (svm->alpha == NULL) ErrorExit(ERROR_NOMEMORY, "SVMread(%s) - %d calloc failed", fname, svm->ntraining);
 
@@ -496,7 +507,8 @@ SVM *SVMread(char *fname) {
         cp = fgetl(line, STRLEN - 1, fp);
         retval = sscanf(cp, "%le\n", &svm->alpha[i]);
       }
-    } else if (stricmp(token, "NEXTRA") == 0) {
+    }
+    else if (stricmp(token, "NEXTRA") == 0) {
       retval = sscanf(cp, "%*s\t%d", &svm->extra_args);
       svm->args = (char **)calloc(svm->extra_args, sizeof(char *));
       if (!svm->args) ErrorExit(ERROR_BADPARM, "SVMread(%s): could not allocate %d extra args", svm->extra_args);
@@ -508,9 +520,11 @@ SVM *SVMread(char *fname) {
         if (!svm->args[i]) ErrorExit(ERROR_BADPARM, "SVMread(%s): could not allocate %dth extra arg", i);
         strcpy(svm->args[i], cp);
       }
-    } else if (stricmp(token, "THRESHOLD") == 0) {
+    }
+    else if (stricmp(token, "THRESHOLD") == 0) {
       retval = sscanf(cp, "%*s\t%le", &svm->threshold);
-    } else if (stricmp(token, "NSUPPORT") == 0) {
+    }
+    else if (stricmp(token, "NSUPPORT") == 0) {
       retval = sscanf(cp, "%*s\t%d", &svm->nsupport);
       svm->asupport = (double *)calloc(svm->nsupport, sizeof(double));
       svm->ysupport = (float *)calloc(svm->nsupport, sizeof(double));
@@ -521,11 +535,13 @@ SVM *SVMread(char *fname) {
         svm->xsupport[i] = (float *)calloc(svm->ninputs, sizeof(float));
         for (j = 0; j < svm->ninputs; j++) retval = fscanf(fp, "%f\n", &svm->xsupport[i][j]);
       }
-    } else if (stricmp(token, "WEIGHTS") == 0) {
+    }
+    else if (stricmp(token, "WEIGHTS") == 0) {
       for (i = 0; i < svm->ninputs; i++) {
         retval = fscanf(fp, "%le\n", &svm->w[i]);
       }
-    } else if (stricmp(token, "SVM") == 0) {
+    }
+    else if (stricmp(token, "SVM") == 0) {
 #if USE_SVM_LIB
       SVMreadClassifierFromFile(fp, 0);
 #endif
@@ -535,7 +551,8 @@ SVM *SVMread(char *fname) {
   fclose(fp);
   return (svm);
 }
-int SVMfree(SVM **psvm) {
+int SVMfree(SVM **psvm)
+{
   SVM *svm;
   int i;
 
@@ -554,7 +571,8 @@ int SVMfree(SVM **psvm) {
   return (NO_ERROR);
 }
 
-double SVMclassify(SVM *svm, float *x) {
+double SVMclassify(SVM *svm, float *x)
+{
   int i;
   double classification, dot;
 #if USE_SMV_LIB
@@ -587,7 +605,8 @@ double SVMclassify(SVM *svm, float *x) {
   return (classification);
 }
 
-static double svm_linear_dot(int ninputs, float *xi, float *xj) {
+static double svm_linear_dot(int ninputs, float *xi, float *xj)
+{
   int k;
   double dot;
 
@@ -598,7 +617,8 @@ static double svm_linear_dot(int ninputs, float *xi, float *xj) {
   return (1 + dot);
 }
 
-static double svm_rbf_dot(int ninputs, float *xi, float *xj, double sigma) {
+static double svm_rbf_dot(int ninputs, float *xi, float *xj, double sigma)
+{
   int k;
   double norm, two_sigma_squared, xdiff, dot;
 
@@ -611,7 +631,8 @@ static double svm_rbf_dot(int ninputs, float *xi, float *xj, double sigma) {
   dot = exp(-norm / two_sigma_squared);
   return (dot);
 }
-double SVMconstraint(SVM *svm, float *y, int ntraining) {
+double SVMconstraint(SVM *svm, float *y, int ntraining)
+{
   double constraint;
   int i;
 

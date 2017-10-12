@@ -55,7 +55,8 @@ float **CAbuildTrainingData(VOXEL_LIST *vl_total,
                             MRI **mri_2nd_deriv_s,
                             int wsize,
                             int nscales,
-                            int which_inputs) {
+                            int which_inputs)
+{
   float **ca_inputs;
   int i, ninputs;
   MRI *mri_dtrans_grad;
@@ -100,7 +101,8 @@ float *CAbuildInputsAtVoxel(VOXEL_LIST *vl,
                             int wsize,
                             int nscales,
                             float *svm_inputs,
-                            int which_inputs) {
+                            int which_inputs)
+{
   int s, xk, yk, zk, xi, yi, zi, x, y, z, ninputs, whalf, input;
 
   whalf = (wsize - 1) / 2;
@@ -165,7 +167,8 @@ float **CAbuildInputs(VOXEL_LIST *vl_total,
                       int which_inputs,
                       int wsize,
                       int nscales,
-                      float *sigmas) {
+                      float *sigmas)
+{
   float **svm_inputs;
   MRI *mri_grad[MAX_SCALES], *mri_kernel, *mri_smooth[MAX_SCALES], *mri_laplacian[MAX_SCALES], *mri_dtrans,
       *mri_2nd_deriv_s[MAX_SCALES];
@@ -206,7 +209,8 @@ float **CAbuildInputs(VOXEL_LIST *vl_total,
   return (svm_inputs);
 }
 
-int ca_ninputs(int which_inputs) {
+int ca_ninputs(int which_inputs)
+{
   int num = 0;
 
   if (which_inputs & CA_INPUT_INTENSITY) num++;
@@ -229,7 +233,8 @@ CA *CAalloc(int width,
             int nscales,
             char *c1_name,
             char *c2_name,
-            float *sigmas) {
+            float *sigmas)
+{
   CLASSIFIER_ATLAS *ca;
   int x, y, z, o, ninputs;
 
@@ -288,7 +293,8 @@ CA *CAalloc(int width,
   return (ca);
 }
 
-int CAtrain(CA *ca, VOXEL_LIST *vl, MRI *mri_norm, MRI *mri_aseg, int source_label, int target_label) {
+int CAtrain(CA *ca, VOXEL_LIST *vl, MRI *mri_norm, MRI *mri_aseg, int source_label, int target_label)
+{
   float *classes, **inputs, nx, ny, nz, mag;
   int i, xi, yi, zi, o, vertices[3], v;
   MRI *mri_normals;
@@ -355,13 +361,15 @@ int CAtrain(CA *ca, VOXEL_LIST *vl, MRI *mri_norm, MRI *mri_aseg, int source_lab
   return (NO_ERROR);
 }
 
-int CAsetSVMparms(CA *ca, double svm_C, double svm_tol, int svm_max_iter) {
+int CAsetSVMparms(CA *ca, double svm_C, double svm_tol, int svm_max_iter)
+{
   ca->svm_C = svm_C;
   ca->tol = svm_tol;
   ca->max_iter = svm_max_iter;
   return (NO_ERROR);
 }
-int CAvoxelToIndex(CA *ca, double x, double y, double z, double *pxd, double *pyd, double *pzd) {
+int CAvoxelToIndex(CA *ca, double x, double y, double z, double *pxd, double *pyd, double *pzd)
+{
   static VECTOR *v1 = NULL, *v2;
 
   if (v1 == NULL) {
@@ -380,7 +388,8 @@ int CAvoxelToIndex(CA *ca, double x, double y, double z, double *pxd, double *py
   return (NO_ERROR);
 }
 
-static int clUpdateStatistics(CA *ca, CLASSIFIER *cl, float *inputs, int output) {
+static int clUpdateStatistics(CA *ca, CLASSIFIER *cl, float *inputs, int output)
+{
   int i;
 
   if (cl->c1_means == NULL) {
@@ -397,7 +406,8 @@ static int clUpdateStatistics(CA *ca, CLASSIFIER *cl, float *inputs, int output)
     if (output >= 0) {
       cl->c1_means[i] += inputs[i];
       cl->c1_vars[i] += (inputs[i] * inputs[i]);
-    } else {
+    }
+    else {
       cl->c2_means[i] += inputs[i];
       cl->c2_vars[i] += (inputs[i] * inputs[i]);
     }
@@ -410,7 +420,8 @@ static int clUpdateStatistics(CA *ca, CLASSIFIER *cl, float *inputs, int output)
   return (NO_ERROR);
 }
 
-static int clCompleteTraining(CA *ca, CLASSIFIER *cl) {
+static int clCompleteTraining(CA *ca, CLASSIFIER *cl)
+{
   int i;
 
   if (cl->c1_ntraining > 0) {
@@ -430,7 +441,8 @@ static int clCompleteTraining(CA *ca, CLASSIFIER *cl) {
 }
 
 #define MAX_INPUTS 10000
-int CAcompleteTraining(CA *ca) {
+int CAcompleteTraining(CA *ca)
+{
   int x, y, z, o, i, nvars;
   double vars[MAX_INPUTS];
   CLASSIFIER *cl;
@@ -487,7 +499,8 @@ int CAcompleteTraining(CA *ca) {
   }
   return (NO_ERROR);
 }
-int CAwrite(CA *ca, char *fname) {
+int CAwrite(CA *ca, char *fname)
+{
   FILE *fp;
   int i, x, y, z, o;
   CLASSIFIER *cl;
@@ -539,7 +552,8 @@ int CAwrite(CA *ca, char *fname) {
   fclose(fp);
   return (NO_ERROR);
 }
-CA *CAread(char *fname) {
+CA *CAread(char *fname)
+{
   CA *ca = NULL;
 #if 0
   float  sigmas[MAX_SCALES] ;
@@ -552,7 +566,8 @@ CA *CAread(char *fname) {
   return (ca);
 }
 
-MRI *CAclassifyBorder(CA *ca, MRI *mri_norm, MRI *mri_aseg, MRI *mri_output, int border, int label) {
+MRI *CAclassifyBorder(CA *ca, MRI *mri_norm, MRI *mri_aseg, MRI *mri_output, int border, int label)
+{
   MRI *mri_border, *mri_tmp = NULL, *mri_normals;
   int i;
   VOXEL_LIST *vl;
@@ -586,7 +601,8 @@ MRI *CAclassifyBorder(CA *ca, MRI *mri_norm, MRI *mri_aseg, MRI *mri_output, int
   return (mri_output);
 }
 
-float CAclassifyVoxel(CA *ca, MRI *mri_normals, int x, int y, int z, float *inputs) {
+float CAclassifyVoxel(CA *ca, MRI *mri_normals, int x, int y, int z, float *inputs)
+{
   double xd, yd, zd, nx, ny, nz, mag, output, c1d, c2d;
   int xi, yi, zi, o, i;
   CLASSIFIER *cl;
@@ -630,7 +646,8 @@ float CAclassifyVoxel(CA *ca, MRI *mri_normals, int x, int y, int z, float *inpu
   }
   return (output);
 }
-static MRI *caComputeSurfaceNormals(MRI *mri_aseg, MRI *mri_normals, int label) {
+static MRI *caComputeSurfaceNormals(MRI *mri_aseg, MRI *mri_normals, int label)
+{
   MRI *mri_tmp, *mri_tmp2, *mri_ctrl;
   int i;
 
@@ -654,7 +671,8 @@ static MRI *caComputeSurfaceNormals(MRI *mri_aseg, MRI *mri_normals, int label) 
   return (mri_normals);
 }
 static MATRIX *compute_ras_basis_vectors(
-    MRI *mri_aseg_orig, MRI *mri_aseg_edit, int label, int width, int height, int depth, int pad) {
+    MRI *mri_aseg_orig, MRI *mri_aseg_edit, int label, int width, int height, int depth, int pad)
+{
   MRI_REGION box1, box2, box;
   MRI *mri_aligned, *mri_tmp;
   MATRIX *m_xform, *m_trans, *m_tmp, *m_id, *m_inv, *m_targ, *m_src, *m_tmp2, *m_evectors;

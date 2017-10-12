@@ -67,7 +67,8 @@ MATRIX *MatrixCalculateEigenSystemHelper(MATRIX *m, float *evalues, MATRIX *m_ev
  */
 int MatrixIsSymmetric(MATRIX *matrix);
 
-MATRIX *MatrixCopy(const MATRIX *mIn, MATRIX *mOut) {
+MATRIX *MatrixCopy(const MATRIX *mIn, MATRIX *mOut)
+{
   int row, rows, cols, col;
 
   if (mIn == NULL) {
@@ -95,7 +96,8 @@ MATRIX *MatrixCopy(const MATRIX *mIn, MATRIX *mOut) {
   return (mOut);
 }
 
-MATRIX *MatrixInverse(const MATRIX *mIn, MATRIX *mOut) {
+MATRIX *MatrixInverse(const MATRIX *mIn, MATRIX *mOut)
+{
   float **a, **y;
   int isError, i, j, rows, cols, alloced = 0;
   MATRIX *mTmp;
@@ -161,7 +163,8 @@ MATRIX *MatrixInverse(const MATRIX *mIn, MATRIX *mOut) {
     MatrixFree(&mQuad);
     MatrixFree(&mReal);
     MatrixFree(&mImag);
-  } else {
+  }
+  else {
     mTmp = MatrixCopy(mIn, NULL);
 
     a = mTmp->rptr;
@@ -200,7 +203,8 @@ MATRIX *MatrixInverse(const MATRIX *mIn, MATRIX *mOut) {
   return (mOut);
 }
 
-MATRIX *MatrixAlloc(const int rows, const int cols, const int type) {
+MATRIX *MatrixAlloc(const int rows, const int cols, const int type)
+{
   MATRIX *mat;
   int row, nelts;
 #ifdef _POSIX_MAPPED_FILES
@@ -294,7 +298,8 @@ MATRIX *MatrixAlloc(const int rows, const int cols, const int type) {
   return (mat);
 }
 
-int MatrixFree(MATRIX **pmat) {
+int MatrixFree(MATRIX **pmat)
+{
   MATRIX *mat;
 
   if (!pmat) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MatrixFree: NULL pmat POINTER!\n"));
@@ -316,7 +321,8 @@ int MatrixFree(MATRIX **pmat) {
     munmap((void *)mat->data, (nelts + 2) * sizeof(float));
 #endif
     fclose(mat->mmapfile);
-  } else {
+  }
+  else {
     free(mat->data);
   }
 
@@ -331,7 +337,8 @@ int MatrixFree(MATRIX **pmat) {
   \brief Multiplies two matrices. The accumulation is done with double,
    which is more accurate than MatrixMultiplyD() which uses float.
 */
-MATRIX *MatrixMultiplyD(const MATRIX *m1, const MATRIX *m2, MATRIX *m3) {
+MATRIX *MatrixMultiplyD(const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
+{
   int col, row, i, rows, cols, m1_cols;
   float *r3;
   register float *r1, *r2;
@@ -364,7 +371,8 @@ MATRIX *MatrixMultiplyD(const MATRIX *m1, const MATRIX *m2, MATRIX *m3) {
     else
       m3 = MatrixAlloc(m1->rows, m2->cols, m1->type);
     if (!m3) return (NULL);
-  } else if ((m3->rows != m1->rows) || (m3->cols != m2->cols)) {
+  }
+  else if ((m3->rows != m1->rows) || (m3->cols != m2->cols)) {
     printf("MatrixMultiplyD(): m1/m2 dim mismatch\n break %s:%d\n", __FILE__, __LINE__);
     ErrorReturn(NULL,
                 (ERROR_BADPARM,
@@ -402,7 +410,8 @@ MATRIX *MatrixMultiplyD(const MATRIX *m1, const MATRIX *m2, MATRIX *m3) {
         *r3++ = val;
       }
     }
-  } else if ((m1->type == MATRIX_COMPLEX) && (m2->type == MATRIX_COMPLEX)) {
+  }
+  else if ((m1->type == MATRIX_COMPLEX) && (m2->type == MATRIX_COMPLEX)) {
     for (row = 1; row <= rows; row++) {
       for (col = 1; col <= cols; col++) {
         for (i = 1; i <= m1->cols; i++) {
@@ -417,7 +426,8 @@ MATRIX *MatrixMultiplyD(const MATRIX *m1, const MATRIX *m2, MATRIX *m3) {
         }
       }
     }
-  } else if ((m1->type == MATRIX_REAL) && (m2->type == MATRIX_COMPLEX)) {
+  }
+  else if ((m1->type == MATRIX_REAL) && (m2->type == MATRIX_COMPLEX)) {
     for (row = 1; row <= rows; row++) {
       for (col = 1; col <= cols; col++) {
         for (i = 1; i <= m1->cols; i++) {
@@ -431,7 +441,8 @@ MATRIX *MatrixMultiplyD(const MATRIX *m1, const MATRIX *m2, MATRIX *m3) {
         }
       }
     }
-  } else if ((m1->type == MATRIX_COMPLEX) && (m2->type == MATRIX_REAL)) {
+  }
+  else if ((m1->type == MATRIX_COMPLEX) && (m2->type == MATRIX_REAL)) {
     for (row = 1; row <= rows; row++) {
       for (col = 1; col <= cols; col++) {
         for (i = 1; i <= m1->cols; i++) {
@@ -456,7 +467,8 @@ MATRIX *MatrixMultiplyD(const MATRIX *m1, const MATRIX *m2, MATRIX *m3) {
   \brief Multiplies two matrices. The accumulation is done with float.
    Consider using MatrixMultiplyD() which uses double.
 */
-MATRIX *MatrixMultiply(const MATRIX *m1, const MATRIX *m2, MATRIX *m3) {
+MATRIX *MatrixMultiply(const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
+{
   int col, row, i, rows, cols, m1_cols;
   float *r3;
   register float val, *r1, *r2;
@@ -477,7 +489,8 @@ MATRIX *MatrixMultiply(const MATRIX *m1, const MATRIX *m2, MATRIX *m3) {
     else
       m3 = MatrixAlloc(m1->rows, m2->cols, m1->type);
     if (!m3) return (NULL);
-  } else if ((m3->rows != m1->rows) || (m3->cols != m2->cols)) {
+  }
+  else if ((m3->rows != m1->rows) || (m3->cols != m2->cols)) {
     printf("MatrixMultiply(): m3 dim mismatch\n break %s:%d\n", __FILE__, __LINE__);
     ErrorReturn(NULL,
                 (ERROR_BADPARM,
@@ -522,7 +535,8 @@ MATRIX *MatrixMultiply(const MATRIX *m1, const MATRIX *m2, MATRIX *m3) {
         *r3++ = val;
       }
     }
-  } else if ((m1->type == MATRIX_COMPLEX) && (m2->type == MATRIX_COMPLEX)) {
+  }
+  else if ((m1->type == MATRIX_COMPLEX) && (m2->type == MATRIX_COMPLEX)) {
     for (row = 1; row <= rows; row++) {
       for (col = 1; col <= cols; col++) {
         for (i = 1; i <= m1->cols; i++) {
@@ -537,7 +551,8 @@ MATRIX *MatrixMultiply(const MATRIX *m1, const MATRIX *m2, MATRIX *m3) {
         }
       }
     }
-  } else if ((m1->type == MATRIX_REAL) && (m2->type == MATRIX_COMPLEX)) {
+  }
+  else if ((m1->type == MATRIX_REAL) && (m2->type == MATRIX_COMPLEX)) {
     for (row = 1; row <= rows; row++) {
       for (col = 1; col <= cols; col++) {
         for (i = 1; i <= m1->cols; i++) {
@@ -551,7 +566,8 @@ MATRIX *MatrixMultiply(const MATRIX *m1, const MATRIX *m2, MATRIX *m3) {
         }
       }
     }
-  } else if ((m1->type == MATRIX_COMPLEX) && (m2->type == MATRIX_REAL)) {
+  }
+  else if ((m1->type == MATRIX_COMPLEX) && (m2->type == MATRIX_REAL)) {
     for (row = 1; row <= rows; row++) {
       for (col = 1; col <= cols; col++) {
         for (i = 1; i <= m1->cols; i++) {
@@ -571,7 +587,8 @@ MATRIX *MatrixMultiply(const MATRIX *m1, const MATRIX *m2, MATRIX *m3) {
   return (m3);
 }
 
-int MatrixPrint(FILE *fp, const MATRIX *mat) {
+int MatrixPrint(FILE *fp, const MATRIX *mat)
+{
   int row, col, rows, cols;
 
   if (fp == NULL) {
@@ -608,7 +625,8 @@ int MatrixPrint(FILE *fp, const MATRIX *mat) {
   return (NO_ERROR);
 }
 
-int MatrixPrintWithString(FILE *fp, MATRIX *m, char *Pre, char *Post) {
+int MatrixPrintWithString(FILE *fp, MATRIX *m, char *Pre, char *Post)
+{
   int err;
   fprintf(fp, "%s", Pre);
   err = MatrixPrint(fp, m);
@@ -617,7 +635,8 @@ int MatrixPrintWithString(FILE *fp, MATRIX *m, char *Pre, char *Post) {
   return (err);
 }
 
-int MatrixPrintFmt(FILE *fp, const char *fmt, MATRIX *mat) {
+int MatrixPrintFmt(FILE *fp, const char *fmt, MATRIX *mat)
+{
   int row, col, rows, cols;
 
   if (fp == NULL) {
@@ -652,7 +671,8 @@ int MatrixPrintFmt(FILE *fp, const char *fmt, MATRIX *mat) {
   return (NO_ERROR);
 }
 
-int MatrixPrintOneLine(FILE *fp, MATRIX *mat) {
+int MatrixPrintOneLine(FILE *fp, MATRIX *mat)
+{
   int row, col, rows, cols;
 
   rows = mat->rows;
@@ -682,7 +702,8 @@ int MatrixPrintOneLine(FILE *fp, MATRIX *mat) {
   return (NO_ERROR);
 }
 
-int MatrixPrintTranspose(FILE *fp, MATRIX *mat) {
+int MatrixPrintTranspose(FILE *fp, MATRIX *mat)
+{
   int row, col, rows, cols;
 
   rows = mat->rows;
@@ -713,7 +734,8 @@ int MatrixPrintTranspose(FILE *fp, MATRIX *mat) {
   return (NO_ERROR);
 }
 
-MATRIX *MatrixReadTxt(const char *fname, MATRIX *mat) {
+MATRIX *MatrixReadTxt(const char *fname, MATRIX *mat)
+{
   FILE *fp;
   int rows, cols, row, col, nlinemax, nread;
   char line[1000];
@@ -787,12 +809,14 @@ MATRIX *MatrixReadTxt(const char *fname, MATRIX *mat) {
 #endif
 MATRIX *MatrixRead(const char *fname) { return (MatlabRead(fname)); }
 
-int MatrixWrite(MATRIX *mat, const char *fname, const char *name) {
+int MatrixWrite(MATRIX *mat, const char *fname, const char *name)
+{
   if (!name) return (MatlabWrite(mat, fname, fname)); /* name of matrix in .mat file */
   return (MatlabWrite(mat, fname, name));
 }
 
-MATRIX *MatrixIdentity(int n, MATRIX *mat) {
+MATRIX *MatrixIdentity(int n, MATRIX *mat)
+{
   int i;
 
   if (!mat)
@@ -805,7 +829,8 @@ MATRIX *MatrixIdentity(int n, MATRIX *mat) {
   return (mat);
 }
 
-MATRIX *MatrixTranspose(MATRIX *mIn, MATRIX *mOut) {
+MATRIX *MatrixTranspose(MATRIX *mIn, MATRIX *mOut)
+{
   int row, col, rows, cols;
 
   if (!mOut) {
@@ -826,7 +851,8 @@ MATRIX *MatrixTranspose(MATRIX *mIn, MATRIX *mOut) {
   return (mOut);
 }
 
-MATRIX *MatrixAdd(const MATRIX *m1, const MATRIX *m2, MATRIX *mOut) {
+MATRIX *MatrixAdd(const MATRIX *m1, const MATRIX *m2, MATRIX *mOut)
+{
   int row, col, rows, cols;
 
   rows = m1->rows;
@@ -855,7 +881,8 @@ MATRIX *MatrixAdd(const MATRIX *m1, const MATRIX *m2, MATRIX *mOut) {
   return (mOut);
 }
 
-MATRIX *MatrixSubtract(const MATRIX *m1, const MATRIX *m2, MATRIX *mOut) {
+MATRIX *MatrixSubtract(const MATRIX *m1, const MATRIX *m2, MATRIX *mOut)
+{
   int row, col, rows, cols;
 
   rows = m1->rows;
@@ -887,7 +914,8 @@ MATRIX *MatrixSubtract(const MATRIX *m1, const MATRIX *m2, MATRIX *mOut) {
   return (mOut);
 }
 
-MATRIX *MatrixScalarMul(const MATRIX *mIn, const float val, MATRIX *mOut) {
+MATRIX *MatrixScalarMul(const MATRIX *mIn, const float val, MATRIX *mOut)
+{
   int row, col, rows, cols;
 
   if (!mOut) {
@@ -912,14 +940,16 @@ MATRIX *MatrixScalarMul(const MATRIX *mIn, const float val, MATRIX *mOut) {
   }
   return (mOut);
 }
-MATRIX *VectorZeroMean(const MATRIX *mIn, MATRIX *mOut) {
+MATRIX *VectorZeroMean(const MATRIX *mIn, MATRIX *mOut)
+{
   double mean;
 
   mean = VectorMean(mIn);
   return (MatrixScalarAdd(mIn, -mean, mOut));
 }
 
-MATRIX *MatrixScalarAdd(const MATRIX *mIn, const float val, MATRIX *mOut) {
+MATRIX *MatrixScalarAdd(const MATRIX *mIn, const float val, MATRIX *mOut)
+{
   int row, col, rows, cols;
 
   if (!mOut) {
@@ -945,7 +975,8 @@ MATRIX *MatrixScalarAdd(const MATRIX *mIn, const float val, MATRIX *mOut) {
   return (mOut);
 }
 
-MATRIX *MatrixClear(MATRIX *mat) {
+MATRIX *MatrixClear(MATRIX *mat)
+{
   int rows, row, cols;
 
   rows = mat->rows;
@@ -955,7 +986,8 @@ MATRIX *MatrixClear(MATRIX *mat) {
   return (mat);
 }
 
-MATRIX *MatrixSquareElts(MATRIX *mIn, MATRIX *mOut) {
+MATRIX *MatrixSquareElts(MATRIX *mIn, MATRIX *mOut)
+{
   int row, col, rows, cols;
   float val;
 
@@ -985,7 +1017,8 @@ MATRIX *MatrixSquareElts(MATRIX *mIn, MATRIX *mOut) {
   return (mOut);
 }
 
-MATRIX *MatrixSqrtElts(MATRIX *mIn, MATRIX *mOut) {
+MATRIX *MatrixSqrtElts(MATRIX *mIn, MATRIX *mOut)
+{
   int row, col, rows, cols;
   float val;
 
@@ -1015,7 +1048,8 @@ MATRIX *MatrixSqrtElts(MATRIX *mIn, MATRIX *mOut) {
   return (mOut);
 }
 
-MATRIX *MatrixSignedSquareElts(MATRIX *mIn, MATRIX *mOut) {
+MATRIX *MatrixSignedSquareElts(MATRIX *mIn, MATRIX *mOut)
+{
   int row, col, rows, cols;
   float val;
 
@@ -1045,7 +1079,8 @@ MATRIX *MatrixSignedSquareElts(MATRIX *mIn, MATRIX *mOut) {
   return (mOut);
 }
 
-MATRIX *MatrixMakeDiagonal(MATRIX *mSrc, MATRIX *mDst) {
+MATRIX *MatrixMakeDiagonal(MATRIX *mSrc, MATRIX *mDst)
+{
   int row, rows, col, cols;
 
   if (!mDst) mDst = MatrixClone(mSrc);
@@ -1067,7 +1102,8 @@ MATRIX *MatrixMakeDiagonal(MATRIX *mSrc, MATRIX *mDst) {
 /*
   mDiag is a column vector.
 */
-MATRIX *MatrixDiag(MATRIX *mDiag, MATRIX *mOut) {
+MATRIX *MatrixDiag(MATRIX *mDiag, MATRIX *mOut)
+{
   int row, rows, col, cols, nout;
 
   rows = mDiag->rows;
@@ -1077,7 +1113,8 @@ MATRIX *MatrixDiag(MATRIX *mDiag, MATRIX *mOut) {
   if (!mOut) {
     mOut = MatrixAlloc(nout, nout, mDiag->type);
     if (!mOut) return (NULL);
-  } else
+  }
+  else
     MatrixClear(mOut);
 
   if ((nout != mOut->rows) || (nout != mOut->cols))
@@ -1088,7 +1125,8 @@ MATRIX *MatrixDiag(MATRIX *mDiag, MATRIX *mOut) {
   if (rows != 1) {
     // column vector
     for (row = 1; row <= rows; row++) mOut->rptr[row][row] = mDiag->rptr[row][1];
-  } else {
+  }
+  else {
     // row vector
     for (col = 1; col <= cols; col++) mOut->rptr[col][col] = mDiag->rptr[1][col];
   }
@@ -1103,7 +1141,8 @@ MATRIX *MatrixCopyRegion(const MATRIX *mSrc,
                          const int rows,
                          const int cols,
                          const int dest_row,
-                         const int dest_col) {
+                         const int dest_col)
+{
   int srow, scol, drow, dcol, srows, scols, drows, dcols, end_row, end_col;
 
   if ((dest_col < 1) || (dest_row < 1))
@@ -1152,7 +1191,8 @@ MATRIX *MatrixCopyRealRegion(const MATRIX *mSrc,
                              const int rows,
                              const int cols,
                              const int dest_row,
-                             const int dest_col) {
+                             const int dest_col)
+{
   int srow, scol, drow, dcol, srows, scols, drows, dcols, end_row, end_col;
 
   if ((dest_col < 1) || (dest_row < 1))
@@ -1202,7 +1242,8 @@ MATRIX *MatrixCopyImagRegion(const MATRIX *mSrc,
                              const int rows,
                              const int cols,
                              const int dest_row,
-                             const int dest_col) {
+                             const int dest_col)
+{
   int srow, scol, drow, dcol, srows, scols, drows, dcols, end_row, end_col;
 
   if ((dest_col < 1) || (dest_row < 1))
@@ -1246,7 +1287,8 @@ MATRIX *MatrixCopyImagRegion(const MATRIX *mSrc,
 }
 
 /*--------------------------------------------------------------------*/
-MATRIX *MatrixSetRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, int start_col, int rows, int cols, float val) {
+MATRIX *MatrixSetRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, int start_col, int rows, int cols, float val)
+{
   int r, c, end_row, end_col;
 
   end_row = start_row + rows - 1;
@@ -1287,7 +1329,8 @@ MATRIX *MatrixSetRegion(MATRIX *mSrc, MATRIX *mDst, int start_row, int start_col
 }
 
 /*--------------------------------------------------------------------*/
-MATRIX *MatrixRealToComplex(MATRIX *mReal, MATRIX *mImag, MATRIX *mOut) {
+MATRIX *MatrixRealToComplex(MATRIX *mReal, MATRIX *mImag, MATRIX *mOut)
+{
   int rows, cols, row, col;
 
   rows = mReal->rows;
@@ -1314,12 +1357,14 @@ float MatrixDeterminant(MATRIX *mIn) { return OpenMatrixDeterminant(mIn); }
 
 static int compare_evalues(const void *l1, const void *l2);
 
-typedef struct {
+typedef struct
+{
   int eno;
   float evalue;
 } EIGEN_VALUE, EVALUE;
 
-static int compare_evalues(const void *l1, const void *l2) {
+static int compare_evalues(const void *l1, const void *l2)
+{
   EVALUE *e1, *e2;
 
   e1 = (EVALUE *)l1;
@@ -1327,7 +1372,8 @@ static int compare_evalues(const void *l1, const void *l2) {
   return (fabs(e1->evalue) < fabs(e2->evalue) ? 1 : -1);
 }
 
-MATRIX *MatrixCalculateEigenSystemHelper(MATRIX *m, float *evalues, MATRIX *m_evectors, int isSymmetric) {
+MATRIX *MatrixCalculateEigenSystemHelper(MATRIX *m, float *evalues, MATRIX *m_evectors, int isSymmetric)
+{
   int col, i, nevalues, row;
   EVALUE *eigen_values;
   MATRIX *mTmp;
@@ -1343,7 +1389,8 @@ MATRIX *MatrixCalculateEigenSystemHelper(MATRIX *m, float *evalues, MATRIX *m_ev
 
   if (isSymmetric) {
     if (OpenEigenSystem(m->data, m->rows, evalues, mTmp->data) != NO_ERROR) return (NULL);
-  } else {
+  }
+  else {
     if (OpenNonSymmetricEigenSystem(m->data, m->rows, evalues, mTmp->data) != NO_ERROR) return (NULL);
   }
 
@@ -1369,7 +1416,8 @@ MATRIX *MatrixCalculateEigenSystemHelper(MATRIX *m, float *evalues, MATRIX *m_ev
   return (m_evectors);
 }
 
-int MatrixIsSymmetric(MATRIX *matrix) {
+int MatrixIsSymmetric(MATRIX *matrix)
+{
   int row;
   int col;
   int isSymmetric = 1;
@@ -1387,7 +1435,8 @@ int MatrixIsSymmetric(MATRIX *matrix) {
   return isSymmetric;
 }
 
-MATRIX *MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_evectors) {
+MATRIX *MatrixEigenSystem(MATRIX *m, float *evalues, MATRIX *m_evectors)
+{
   int isSymmetric = MatrixIsSymmetric(m);
 
   return MatrixCalculateEigenSystemHelper(m, evalues, m_evectors, isSymmetric);
@@ -1473,7 +1522,8 @@ static void svd(float **A, float **V, float *z, int m, int n)
 */
 /* This looks to be the same as [u s v] = svd(mA), where
    v = mV, and s = diag(v_z) */
-MATRIX *MatrixSVD(MATRIX *mA, VECTOR *v_z, MATRIX *mV) {
+MATRIX *MatrixSVD(MATRIX *mA, VECTOR *v_z, MATRIX *mV)
+{
   // mV = MatrixIdentity(mA->rows, mV) ;
   // svd(mA->rptr, mV->rptr, v_z->data, mA->rows, mA->cols) ;
 
@@ -1483,7 +1533,8 @@ MATRIX *MatrixSVD(MATRIX *mA, VECTOR *v_z, MATRIX *mV) {
   return (mV);
 }
 
-float MatrixSVDEigenValues(MATRIX *m, float *evalues) {
+float MatrixSVDEigenValues(MATRIX *m, float *evalues)
+{
   float cond;
   VECTOR *v_w;
   MATRIX *m_U, *m_V;
@@ -1536,7 +1587,8 @@ float MatrixSVDEigenValues(MATRIX *m, float *evalues) {
 */
 #define TOO_SMALL 1e-4
 
-MATRIX *MatrixSVDInverse(MATRIX *m, MATRIX *m_inverse) {
+MATRIX *MatrixSVDInverse(MATRIX *m, MATRIX *m_inverse)
+{
   VECTOR *v_w;
   MATRIX *m_U, *m_V, *m_w, *m_Ut, *m_tmp;
   int row, rows, cols;
@@ -1583,7 +1635,8 @@ MATRIX *MatrixSVDInverse(MATRIX *m, MATRIX *m_inverse) {
   return (m_inverse);
 }
 
-MATRIX *MatrixAllocTranslation(int n, double *trans) {
+MATRIX *MatrixAllocTranslation(int n, double *trans)
+{
   MATRIX *mat;
   int i;
 
@@ -1592,7 +1645,8 @@ MATRIX *MatrixAllocTranslation(int n, double *trans) {
   return (mat);
 }
 
-MATRIX *MatrixReallocRotation(int n, float angle, int which, MATRIX *m) {
+MATRIX *MatrixReallocRotation(int n, float angle, int which, MATRIX *m)
+{
   float s, c;
 
   if (!m) m = MatrixIdentity(n, NULL);
@@ -1625,7 +1679,8 @@ MATRIX *MatrixReallocRotation(int n, float angle, int which, MATRIX *m) {
 
 MATRIX *MatrixAllocRotation(int n, float angle, int which) { return (MatrixReallocRotation(n, angle, which, NULL)); }
 
-MATRIX *MatrixCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mMeans) {
+MATRIX *MatrixCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mMeans)
+{
   int ninputs, nvars, input, var, var2;
   float *means, covariance, obs1, obs2;
 
@@ -1679,7 +1734,8 @@ MATRIX *MatrixCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mMeans) {
   must be called with the means and total # of inputs before the covariance
   matrix is valid.
 */
-MATRIX *MatrixUpdateCovariance(MATRIX *mInputs, MATRIX *mCov, MATRIX *mMeans) {
+MATRIX *MatrixUpdateCovariance(MATRIX *mInputs, MATRIX *mCov, MATRIX *mMeans)
+{
   int ninputs, nvars, input, var, var2;
   float covariance, obs1, obs2, mean1, mean2;
 
@@ -1734,7 +1790,8 @@ MATRIX *MatrixUpdateCovariance(MATRIX *mInputs, MATRIX *mCov, MATRIX *mMeans) {
   update the means based on a new set of observation vectors. Notet that
   the user must keep track of the total # observations
 */
-MATRIX *MatrixUpdateMeans(MATRIX *mInputs, MATRIX *mMeans, VECTOR *mNobs) {
+MATRIX *MatrixUpdateMeans(MATRIX *mInputs, MATRIX *mMeans, VECTOR *mNobs)
+{
   int ninputs, nvars, input, var;
   float *means;
 
@@ -1754,7 +1811,8 @@ MATRIX *MatrixUpdateMeans(MATRIX *mInputs, MATRIX *mMeans, VECTOR *mNobs) {
   MatrixUpdateMeans. The user must supply a vector containing
   the # of observations of each variable.
 */
-MATRIX *MatrixFinalMeans(VECTOR *mMeans, VECTOR *mNobs) {
+MATRIX *MatrixFinalMeans(VECTOR *mMeans, VECTOR *mNobs)
+{
   int nvars, var, n;
   float *means;
 
@@ -1775,7 +1833,8 @@ MATRIX *MatrixFinalMeans(VECTOR *mMeans, VECTOR *mNobs) {
   MatrixUpdateCovariance. The user must supply a vector containing
   the # of observations per variable.
 */
-MATRIX *MatrixFinalCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mNobs) {
+MATRIX *MatrixFinalCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mNobs)
+{
   int ninputs, nvars, var, var2;
   float covariance;
 
@@ -1811,7 +1870,8 @@ MATRIX *MatrixFinalCovariance(MATRIX *mInputs, MATRIX *mCov, VECTOR *mNobs) {
   return (mCov);
 }
 
-int MatrixAsciiWrite(const char *fname, MATRIX *m) {
+int MatrixAsciiWrite(const char *fname, MATRIX *m)
+{
   FILE *fp;
   int ret;
 
@@ -1822,7 +1882,8 @@ int MatrixAsciiWrite(const char *fname, MATRIX *m) {
   return (ret);
 }
 
-MATRIX *MatrixAsciiRead(const char *fname, MATRIX *m) {
+MATRIX *MatrixAsciiRead(const char *fname, MATRIX *m)
+{
   FILE *fp;
 
   fp = fopen(fname, "r");
@@ -1832,7 +1893,8 @@ MATRIX *MatrixAsciiRead(const char *fname, MATRIX *m) {
   return (m);
 }
 
-int MatrixAsciiWriteInto(FILE *fp, MATRIX *m) {
+int MatrixAsciiWriteInto(FILE *fp, MATRIX *m)
+{
   int row, col;
 
   fprintf(fp, "%d %d %d\n", m->type, m->rows, m->cols);
@@ -1848,7 +1910,8 @@ int MatrixAsciiWriteInto(FILE *fp, MATRIX *m) {
   return (NO_ERROR);
 }
 
-MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m) {
+MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m)
+{
   int type, rows, cols, row, col;
   char *cp, line[200];
 
@@ -1860,7 +1923,8 @@ MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m) {
   if (!m) {
     m = MatrixAlloc(rows, cols, type);
     if (!m) ErrorReturn(NULL, (ERROR_BADFILE, "MatrixAsciiReadFrom: could not allocate matrix"));
-  } else {
+  }
+  else {
     if (m->rows != rows || m->cols != cols || m->type != type)
       ErrorReturn(m, (ERROR_BADFILE, "MatrixAsciiReadFrom: specified matrix does not match file"));
   }
@@ -1869,7 +1933,8 @@ MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m) {
       if (m->type == MATRIX_COMPLEX) {
         if (fscanf(fp, "%f %f   ", &MATRIX_CELT_REAL(m, row, col), &MATRIX_CELT_IMAG(m, row, col)) != 2)
           ErrorReturn(NULL, (ERROR_BADFILE, "MatrixAsciiReadFrom: could not scan element (%d, %d)", row, col));
-      } else if (fscanf(fp, "%f  ", &m->rptr[row][col]) != 1)
+      }
+      else if (fscanf(fp, "%f  ", &m->rptr[row][col]) != 1)
         ErrorReturn(NULL, (ERROR_BADFILE, "MatrixAsciiReadFrom: could not scan element (%d, %d)", row, col));
     }
     fscanf(fp, "\n");
@@ -1878,7 +1943,8 @@ MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m) {
   return (m);
 }
 
-int MatrixWriteInto(FILE *fp, MATRIX *m) {
+int MatrixWriteInto(FILE *fp, MATRIX *m)
+{
   int row, col;
 
   fwriteInt(m->type, fp);
@@ -1890,14 +1956,16 @@ int MatrixWriteInto(FILE *fp, MATRIX *m) {
       if (m->type == MATRIX_COMPLEX) {
         fwriteDouble(MATRIX_CELT_REAL(m, row, col), fp);
         fwriteDouble(MATRIX_CELT_IMAG(m, row, col), fp);
-      } else
+      }
+      else
         fwriteDouble(m->rptr[row][col], fp);
     }
   }
   return (NO_ERROR);
 }
 
-MATRIX *MatrixReadFrom(FILE *fp, MATRIX *m) {
+MATRIX *MatrixReadFrom(FILE *fp, MATRIX *m)
+{
   int row, col, rows, cols, type;
 
   type = freadInt(fp);
@@ -1907,7 +1975,8 @@ MATRIX *MatrixReadFrom(FILE *fp, MATRIX *m) {
   if (!m) {
     m = MatrixAlloc(rows, cols, type);
     if (!m) ErrorReturn(NULL, (ERROR_BADFILE, "MatrixReadFrom: could not allocate matrix"));
-  } else {
+  }
+  else {
     if (m->rows != rows || m->cols != cols || m->type != type)
       ErrorReturn(m, (ERROR_BADFILE, "MatrixReadFrom: specified matrix does not match file"));
   }
@@ -1917,7 +1986,8 @@ MATRIX *MatrixReadFrom(FILE *fp, MATRIX *m) {
       if (m->type == MATRIX_COMPLEX) {
         MATRIX_CELT_REAL(m, row, col) = freadDouble(fp);
         MATRIX_CELT_IMAG(m, row, col) = freadDouble(fp);
-      } else
+      }
+      else
         m->rptr[row][col] = freadDouble(fp);
     }
   }
@@ -1928,7 +1998,8 @@ MATRIX *MatrixReadFrom(FILE *fp, MATRIX *m) {
 /*
   calculate and return the Euclidean norm of the vector v.
 */
-float VectorLen(const VECTOR *v) {
+float VectorLen(const VECTOR *v)
+{
   int i;
   float len, vi;
 
@@ -1941,7 +2012,8 @@ float VectorLen(const VECTOR *v) {
 }
 
 /*  compute the dot product of 2 vectors */
-float VectorDot(const VECTOR *v1, const VECTOR *v2) {
+float VectorDot(const VECTOR *v1, const VECTOR *v2)
+{
   int i;
   float dot;
 
@@ -1952,7 +2024,8 @@ float VectorDot(const VECTOR *v1, const VECTOR *v2) {
 }
 
 /*  compute the dot product of 2 vectors */
-float VectorNormalizedDot(VECTOR *v1, VECTOR *v2) {
+float VectorNormalizedDot(VECTOR *v1, VECTOR *v2)
+{
   float dot, l1, l2;
 
   l1 = VectorLen(v1);
@@ -1967,7 +2040,8 @@ float VectorNormalizedDot(VECTOR *v1, VECTOR *v2) {
   extract a column of the matrix m and return it in the
   vector v.
 */
-VECTOR *MatrixColumn(MATRIX *m, VECTOR *v, int col) {
+VECTOR *MatrixColumn(MATRIX *m, VECTOR *v, int col)
+{
   int row;
 
   if (!v) v = VectorAlloc(m->rows, MATRIX_REAL);
@@ -1977,7 +2051,8 @@ VECTOR *MatrixColumn(MATRIX *m, VECTOR *v, int col) {
 }
 
 /* calcuate and return the Euclidean distance between two vectors */
-float VectorDistance(VECTOR *v1, VECTOR *v2) {
+float VectorDistance(VECTOR *v1, VECTOR *v2)
+{
   int row;
   float dist, d;
 
@@ -1992,7 +2067,8 @@ float VectorDistance(VECTOR *v1, VECTOR *v2) {
 /*
   compute the outer product of the vectors v1 and v2.
 */
-MATRIX *VectorOuterProduct(VECTOR *v1, VECTOR *v2, MATRIX *m) {
+MATRIX *VectorOuterProduct(VECTOR *v1, VECTOR *v2, MATRIX *m)
+{
   int row, col, rows, cols;
   float r;
 
@@ -2016,7 +2092,8 @@ MATRIX *VectorOuterProduct(VECTOR *v1, VECTOR *v2, MATRIX *m) {
   non-singular.
 */
 #define SMALL 1e-4
-MATRIX *MatrixRegularize(MATRIX *mIn, MATRIX *mOut) {
+MATRIX *MatrixRegularize(MATRIX *mIn, MATRIX *mOut)
+{
   int rows, cols, row;
   float ran_num;
 
@@ -2038,7 +2115,8 @@ MATRIX *MatrixRegularize(MATRIX *mIn, MATRIX *mOut) {
 }
 
 /* see if a matrix is singular */
-int MatrixSingular(MATRIX *m) {
+int MatrixSingular(MATRIX *m)
+{
 #if 1
   VECTOR *v_w;
   MATRIX *m_U, *m_V;
@@ -2075,7 +2153,8 @@ int MatrixSingular(MATRIX *m) {
 #endif
 }
 
-int MatrixIsZero(MATRIX *m) {
+int MatrixIsZero(MATRIX *m)
+{
   int row, col;
   double val;
 
@@ -2094,7 +2173,8 @@ int MatrixIsZero(MATRIX *m) {
 /*
   calcluate the condition # of a matrix using svd
 */
-float MatrixConditionNumber(MATRIX *m) {
+float MatrixConditionNumber(MATRIX *m)
+{
   float cond;
   VECTOR *v_w;
   MATRIX *m_U, *m_V;
@@ -2133,7 +2213,8 @@ float MatrixConditionNumber(MATRIX *m) {
   MatrixNSConditionNumber() - condition of a non-square matrix.
   Works for square matrices as well.
   -----------------------------------------------------------*/
-float MatrixNSConditionNumber(MATRIX *m) {
+float MatrixNSConditionNumber(MATRIX *m)
+{
   float cond;
   MATRIX *mt, *p;
 
@@ -2158,7 +2239,8 @@ float MatrixNSConditionNumber(MATRIX *m) {
   calculate the cross product of two vectors and return the result
   in vdst, allocating it if necessary.
 */
-VECTOR *VectorCrossProduct(const VECTOR *v1, const VECTOR *v2, VECTOR *vdst) {
+VECTOR *VectorCrossProduct(const VECTOR *v1, const VECTOR *v2, VECTOR *vdst)
+{
   float x1, x2, y1, y2, z1, z2;
 
   if (v1->rows != 3 && v1->cols != 1) ErrorReturn(NULL, (ERROR_BADPARM, "VectorCrossProduct: must be 3-vectors"));
@@ -2181,7 +2263,8 @@ VECTOR *VectorCrossProduct(const VECTOR *v1, const VECTOR *v2, VECTOR *vdst) {
 /*
   compute the triple scalar product v1 x v2 . v3
 */
-float VectorTripleProduct(const VECTOR *v1, const VECTOR *v2, const VECTOR *v3) {
+float VectorTripleProduct(const VECTOR *v1, const VECTOR *v2, const VECTOR *v3)
+{
   float x1, x2, y1, y2, z1, z2, x3, y3, z3, total;
 
   if (v1->rows != 3 && v1->cols != 1) ErrorReturn(0.0f, (ERROR_BADPARM, "VectorCrossProduct: must be 3-vectors"));
@@ -2202,7 +2285,8 @@ float VectorTripleProduct(const VECTOR *v1, const VECTOR *v2, const VECTOR *v3) 
   return (total);
 }
 
-VECTOR *VectorNormalize(const VECTOR *vin, VECTOR *vout) {
+VECTOR *VectorNormalize(const VECTOR *vin, VECTOR *vout)
+{
   float len;
   int row, col, rows, cols;
 
@@ -2219,7 +2303,8 @@ VECTOR *VectorNormalize(const VECTOR *vin, VECTOR *vout) {
   return (vout);
 }
 
-float VectorAngle(const VECTOR *v1, const VECTOR *v2) {
+float VectorAngle(const VECTOR *v1, const VECTOR *v2)
+{
   float angle, l1, l2, dot, norm;
 
   l1 = VectorLen(v1);
@@ -2234,7 +2319,8 @@ float VectorAngle(const VECTOR *v1, const VECTOR *v2) {
   return (angle);
 }
 
-double Vector3Angle(VECTOR *v1, VECTOR *v2) {
+double Vector3Angle(VECTOR *v1, VECTOR *v2)
+{
   double angle, l1, l2, dot, norm, x, y, z;
 
   x = V3_X(v1);
@@ -2256,16 +2342,16 @@ double Vector3Angle(VECTOR *v1, VECTOR *v2) {
   return (angle);
 }
 
-void XYZ_NORMALIZED_LOAD(XYZ *xyz, float *xyz_length, float x, float y, float z) {
-  float len = *xyz_length = sqrt((double)x*(double)x +
-                                 (double)y*(double)y +
-                                 (double)z*(double)z);
-                               
+void XYZ_NORMALIZED_LOAD(XYZ *xyz, float *xyz_length, float x, float y, float z)
+{
+  float len = *xyz_length = sqrt((double)x * (double)x + (double)y * (double)y + (double)z * (double)z);
+
   if (len == 0.0f) {
     xyz->x = 1.0f;
     xyz->y = 0.0f;
     xyz->z = 0.0f;
-  } else {
+  }
+  else {
     float len_inv = 1.0f / len;
     xyz->x = x * len_inv;
     xyz->y = y * len_inv;
@@ -2273,7 +2359,8 @@ void XYZ_NORMALIZED_LOAD(XYZ *xyz, float *xyz_length, float x, float y, float z)
   }
 }
 
-float XYZApproxAngle(XYZ const *normalizedXYZ, float x2, float y2, float z2) {
+float XYZApproxAngle(XYZ const *normalizedXYZ, float x2, float y2, float z2)
+{
   double x1 = normalizedXYZ->x;
   double y1 = normalizedXYZ->y;
   double z1 = normalizedXYZ->z;
@@ -2344,7 +2431,8 @@ float XYZApproxAngle(XYZ const *normalizedXYZ, float x2, float y2, float z2) {
   return (angle);
 }
 
-int MatrixWriteTxt(const char *fname, MATRIX *mat) {
+int MatrixWriteTxt(const char *fname, MATRIX *mat)
+{
   FILE *fp;
   int row, col;
 
@@ -2360,7 +2448,8 @@ int MatrixWriteTxt(const char *fname, MATRIX *mat) {
   return (NO_ERROR);
 }
 
-MATRIX *MatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) {
+MATRIX *MatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
+{
   MATRIX *mT, *mTm, *mTm_inv;
 
   if (m->rows < m->cols) {
@@ -2394,7 +2483,8 @@ MATRIX *MatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) {
   return (m_pseudo_inv);
 }
 
-MATRIX *MatrixRightPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) {
+MATRIX *MatrixRightPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
+{
   MATRIX *mT, *mmT, *mmT_inv;
 
   /* build mT (m mT)-1 */
@@ -2414,7 +2504,8 @@ MATRIX *MatrixRightPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) {
   return (m_pseudo_inv);
 }
 
-int MatrixCheck(MATRIX *m) {
+int MatrixCheck(MATRIX *m)
+{
   int rows, cols, r, c;
 
   rows = m->rows;
@@ -2427,7 +2518,8 @@ int MatrixCheck(MATRIX *m) {
   return (NO_ERROR);
 }
 
-MATRIX *MatrixReshape(MATRIX *m_src, MATRIX *m_dst, int rows, int cols) {
+MATRIX *MatrixReshape(MATRIX *m_src, MATRIX *m_dst, int rows, int cols)
+{
   int r1, c1, r2, c2;
 
   if (m_dst) {
@@ -2460,7 +2552,8 @@ MATRIX *MatrixReshape(MATRIX *m_src, MATRIX *m_dst, int rows, int cols) {
 }
 
 /*------------------------------------------------------------*/
-float MatrixTrace(MATRIX *M) {
+float MatrixTrace(MATRIX *M)
+{
   int n, nmax;
   float trace;
 
@@ -2481,7 +2574,8 @@ float MatrixTrace(MATRIX *M) {
   pointer to mcat (or the new matrix) is returned.  If m1 is NULL, m2
   is copied into mcat. If m2 is NULL, m1 is copied into mcat.
   -------------------------------------------------------------------*/
-MATRIX *MatrixHorCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat) {
+MATRIX *MatrixHorCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat)
+{
   int r, c1, c2, c;
 
   if (m1 == NULL && m2 == NULL) {
@@ -2539,7 +2633,8 @@ MATRIX *MatrixHorCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat) {
   pointer to mcat (or the new matrix) is returned.  If m1 is NULL, m2
   is copied into mcat. If m2 is NULL, m1 is copied into mcat.
   -------------------------------------------------------------------*/
-MATRIX *MatrixVertCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat) {
+MATRIX *MatrixVertCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat)
+{
   int r, r1, r2, c;
 
   if (m1 == NULL && m2 == NULL) {
@@ -2600,7 +2695,8 @@ MATRIX *MatrixVertCat(MATRIX *m1, MATRIX *m2, MATRIX *mcat) {
   If X is NULL, then a matrix rows-by-cols is alloced. If X
   is non-NULL, then rows and cols are ignored.
   -------------------------------------------------------------*/
-MATRIX *MatrixConstVal(float val, int rows, int cols, MATRIX *X) {
+MATRIX *MatrixConstVal(float val, int rows, int cols, MATRIX *X)
+{
   int r, c;
 
   if (X == NULL) X = MatrixAlloc(rows, cols, MATRIX_REAL);
@@ -2619,7 +2715,8 @@ MATRIX *MatrixConstVal(float val, int rows, int cols, MATRIX *X) {
   matrix rows-by-cols is alloced. If X is non-NULL, then rows and cols
   are ignored.
   ------------------------------------------------------------------*/
-MATRIX *MatrixZero(int rows, int cols, MATRIX *X) {
+MATRIX *MatrixZero(int rows, int cols, MATRIX *X)
+{
   X = MatrixConstVal(0, rows, cols, X);
   return (X);
 }
@@ -2629,14 +2726,16 @@ MATRIX *MatrixZero(int rows, int cols, MATRIX *X) {
   \fn MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum)
   \brief Computes the sum given matrix
  */
-MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum) {
+MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum)
+{
   int outrows, outcols;
   int r, c;
 
   if (dim == 1) { /* sum over the rows */
     outrows = 1;
     outcols = m->cols;
-  } else { /* sum over the cols */
+  }
+  else { /* sum over the cols */
     outrows = m->rows;
     outcols = 1;
   }
@@ -2660,7 +2759,8 @@ MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum) {
           msum->rptr[r][1] += m->rptr[r][c];
       }
     }
-  } else { /* Just copy vector to output */
+  }
+  else { /* Just copy vector to output */
     if (dim == 1)
       for (c = 1; c <= m->cols; c++) msum->rptr[1][c] = m->rptr[1][c];
     else
@@ -2674,14 +2774,16 @@ MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum) {
   \fn MATRIX *MatrixSumSquare(MATRIX *m, int dim, MATRIX *msumsq)
   \brief Computes the sum of the squares of the given matrix
  */
-MATRIX *MatrixSumSquare(MATRIX *m, int dim, MATRIX *msumsq) {
+MATRIX *MatrixSumSquare(MATRIX *m, int dim, MATRIX *msumsq)
+{
   int outrows, outcols;
   int r, c;
 
   if (dim == 1) { /* sum over the rows */
     outrows = 1;
     outcols = m->cols;
-  } else { /* sum over the cols */
+  }
+  else { /* sum over the cols */
     outrows = m->rows;
     outcols = 1;
   }
@@ -2705,7 +2807,8 @@ MATRIX *MatrixSumSquare(MATRIX *m, int dim, MATRIX *msumsq) {
           msumsq->rptr[r][1] += (m->rptr[r][c] * m->rptr[r][c]);
       }
     }
-  } else { /* Just copy vector to output */
+  }
+  else { /* Just copy vector to output */
     if (dim == 1)
       for (c = 1; c <= m->cols; c++) msumsq->rptr[1][c] = (m->rptr[1][c] * m->rptr[1][c]);
     else
@@ -2715,7 +2818,8 @@ MATRIX *MatrixSumSquare(MATRIX *m, int dim, MATRIX *msumsq) {
   return (msumsq);
 }
 /*----------------------------------------------------------------*/
-double MatrixSumElts(MATRIX *m) {
+double MatrixSumElts(MATRIX *m)
+{
   int r, c;
   double msum;
 
@@ -2726,7 +2830,8 @@ double MatrixSumElts(MATRIX *m) {
 }
 
 /*----------------------------------------------------------------*/
-double VectorRange(MATRIX *v, double *pVmin, double *pVmax) {
+double VectorRange(MATRIX *v, double *pVmin, double *pVmax)
+{
   double min, max, val;
   int r, c;
 
@@ -2747,7 +2852,8 @@ double VectorRange(MATRIX *v, double *pVmin, double *pVmax) {
 }
 
 /*----------------------------------------------------------------*/
-double VectorSum(const MATRIX *v) {
+double VectorSum(const MATRIX *v)
+{
   double sum;
   int r, c;
 
@@ -2758,7 +2864,8 @@ double VectorSum(const MATRIX *v) {
 }
 
 /*----------------------------------------------------------------*/
-double VectorMean(const MATRIX *v) {
+double VectorMean(const MATRIX *v)
+{
   double sum, mean;
 
   sum = VectorSum(v);
@@ -2768,7 +2875,8 @@ double VectorMean(const MATRIX *v) {
 }
 
 /*----------------------------------------------------------------*/
-double VectorVar(MATRIX *v, double *pMean) {
+double VectorVar(MATRIX *v, double *pMean)
+{
   double f, mean, sum2, var;
   int r, c;
 
@@ -2789,14 +2897,16 @@ double VectorVar(MATRIX *v, double *pMean) {
 }
 
 /*----------------------------------------------------------------*/
-double VectorStdDev(MATRIX *v, double *pMean) {
+double VectorStdDev(MATRIX *v, double *pMean)
+{
   double var;
   var = VectorVar(v, pMean);
   return (sqrt(var));
 }
 
 /*----------------------------------------------------------------*/
-MATRIX *MatrixDRand48(int rows, int cols, MATRIX *m) {
+MATRIX *MatrixDRand48(int rows, int cols, MATRIX *m)
+{
   int r, c;
 
   if (m == NULL) m = MatrixAlloc(rows, cols, MATRIX_REAL);
@@ -2812,7 +2922,8 @@ MATRIX *MatrixDRand48(int rows, int cols, MATRIX *m) {
 }
 
 /*----------------------------------------------------------------*/
-MATRIX *MatrixDRand48ZeroMean(int rows, int cols, MATRIX *m) {
+MATRIX *MatrixDRand48ZeroMean(int rows, int cols, MATRIX *m)
+{
   int r, c;
 
   if (m == NULL) m = MatrixAlloc(rows, cols, MATRIX_REAL);
@@ -2841,7 +2952,8 @@ MATRIX *MatrixDRand48ZeroMean(int rows, int cols, MATRIX *m) {
 
   Return: D
   -----------------------------------------------------------------*/
-MATRIX *MatrixFactorSqrSVD(MATRIX *M, int Invert, MATRIX *D) {
+MATRIX *MatrixFactorSqrSVD(MATRIX *M, int Invert, MATRIX *D)
+{
   static int matalloc = 1;
   static VECTOR *S = NULL;
   static MATRIX *U = NULL, *V = NULL, *Vt = NULL;
@@ -2931,7 +3043,8 @@ MATRIX *MatrixFactorSqrSVD(MATRIX *M, int Invert, MATRIX *D) {
   above and including the main, and (3) Symetric: both upper
   and lower.
   ---------------------------------------------------------*/
-MATRIX *MatrixToeplitz(VECTOR *v, MATRIX *T, int Type) {
+MATRIX *MatrixToeplitz(VECTOR *v, MATRIX *T, int Type)
+{
   int r, c;
 
   if (Type != MATRIX_SYM && Type != MATRIX_UPPER && Type != MATRIX_LOWER) {
@@ -2942,7 +3055,8 @@ MATRIX *MatrixToeplitz(VECTOR *v, MATRIX *T, int Type) {
   if (T == NULL) {
     T = MatrixAlloc(v->rows, v->rows, MATRIX_REAL);
     if (T == NULL) return (NULL);
-  } else {
+  }
+  else {
     if (T->rows != v->rows || T->cols != v->rows) {
       printf("ERROR: dimension mismatch\n");
       return (NULL);
@@ -2970,7 +3084,8 @@ MATRIX *MatrixToeplitz(VECTOR *v, MATRIX *T, int Type) {
 \fn MATRIX *MatrixNormalizeColScale(MATRIX *m, MATRIX *scale)
 \brief Computes the scaling used for MatrixNormalizeCol()
 */
-MATRIX *MatrixNormalizeColScale(MATRIX *m, MATRIX *scale) {
+MATRIX *MatrixNormalizeColScale(MATRIX *m, MATRIX *scale)
+{
   int r, c;
   double sum2, v;
 
@@ -2993,7 +3108,8 @@ MATRIX *MatrixNormalizeColScale(MATRIX *m, MATRIX *scale) {
 \fn MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm)
 \brief Rescales m so that sum(col^2)=1
 */
-MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm, MATRIX *scale) {
+MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm, MATRIX *scale)
+{
   int r, c, FreeScale = 1;
   double v;
 
@@ -3003,7 +3119,8 @@ MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm, MATRIX *scale) {
       printf("ERROR: MatrixNormalizeCol: could not alloc\n");
       return (NULL);
     }
-  } else {
+  }
+  else {
     if (mcnorm->rows != m->rows || mcnorm->cols != m->cols) {
       printf("ERROR: MatrixNormalizeCol: dimension mismatch\n");
       return (NULL);
@@ -3029,7 +3146,8 @@ MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm, MATRIX *scale) {
   return (mcnorm);
 }
 
-MATRIX *MatrixSimilarityTransform(MATRIX *m_src, MATRIX *m_mul, MATRIX *m_dst) {
+MATRIX *MatrixSimilarityTransform(MATRIX *m_src, MATRIX *m_mul, MATRIX *m_dst)
+{
   MATRIX *m_mul_T, *m_tmp;
 
   m_mul_T = MatrixTranspose(m_mul, NULL);
@@ -3045,7 +3163,8 @@ MATRIX *MatrixSimilarityTransform(MATRIX *m_src, MATRIX *m_mul, MATRIX *m_dst) {
   curve is centered at the meanth row and has std. The mean can
   be non-integer. If norm == 1, then the sum is adjusted to be 1.
   ---------------------------------------------------------------*/
-MATRIX *GaussianVector(int len, float mean, float std, int norm, MATRIX *g) {
+MATRIX *GaussianVector(int len, float mean, float std, int norm, MATRIX *g)
+{
   int n;
   float v, sum, var, f;
 
@@ -3082,7 +3201,8 @@ MATRIX *GaussianVector(int len, float mean, float std, int norm, MATRIX *g) {
   deviation std.  If norm == 1, then the sum of each row is adjusted
   to be 1. The matrix will be len-by-len.
   ---------------------------------------------------------------*/
-MATRIX *GaussianMatrix(int len, float std, int norm, MATRIX *G) {
+MATRIX *GaussianMatrix(int len, float std, int norm, MATRIX *G)
+{
   int r, c;
   float d, v, sum, var, f;
 
@@ -3124,7 +3244,8 @@ MATRIX *GaussianMatrix(int len, float std, int norm, MATRIX *G) {
   return (G);
 }
 
-MATRIX *MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) {
+MATRIX *MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
+{
   int rows = m->rows;
   int cols = m->cols;
   if (rows < cols) {
@@ -3133,7 +3254,8 @@ MATRIX *MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) {
     MatrixFree(&mT);
     mT = m_pseudo_inv;
     m_pseudo_inv = MatrixTranspose(mT, NULL);
-  } else {
+  }
+  else {
     int r, c;
     MATRIX *m_U, *m_V, *m_Ur, *m_Vr, *m_Sr, *m_tmp, *m_S;
     VECTOR *v_S;
@@ -3178,7 +3300,8 @@ MATRIX *MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) {
   3rd row of X. The rows in NewRowOrder are 1-based. See also
   RandPermList() in evschutils.c. CANNOT be done in-place.
   -----------------------------------------------------------------*/
-MATRIX *MatrixReorderRows(MATRIX *X, int *NewRowOrder, MATRIX *XRO) {
+MATRIX *MatrixReorderRows(MATRIX *X, int *NewRowOrder, MATRIX *XRO)
+{
   int r, c;
   if (XRO == NULL) XRO = MatrixAlloc(X->rows, X->cols, MATRIX_REAL);
   for (r = 1; r <= X->rows; r++) {
@@ -3193,7 +3316,8 @@ MATRIX *MatrixReorderRows(MATRIX *X, int *NewRowOrder, MATRIX *XRO) {
   MatrixRandPermRows() - randomly reorders the rows of the input
   matrix.
   -----------------------------------------------------------------*/
-int MatrixRandPermRows(MATRIX *X) {
+int MatrixRandPermRows(MATRIX *X)
+{
   int *NewRowOrder, r;
   MATRIX *X0;
 
@@ -3211,7 +3335,8 @@ int MatrixRandPermRows(MATRIX *X) {
   orthogonal. Computes X'*X and examines the off diagonals. If any
   are greater than 2*FLT_MIN, then returns 1.
   --------------------------------------------------------------------*/
-int MatrixColsAreNotOrthog(MATRIX *X) {
+int MatrixColsAreNotOrthog(MATRIX *X)
+{
   MATRIX *Xt, *XtX;
   int r, c;
 
@@ -3231,7 +3356,8 @@ int MatrixColsAreNotOrthog(MATRIX *X) {
   return (0);
 }
 
-double MatrixMahalanobisDistance(VECTOR *v_mean, MATRIX *m_inv_cov, VECTOR *v) {
+double MatrixMahalanobisDistance(VECTOR *v_mean, MATRIX *m_inv_cov, VECTOR *v)
+{
   VECTOR *v_dif, *v_tmp;
   double dist;
 
@@ -3255,7 +3381,8 @@ should include the head (100 in RAS coord)
 \param m2     4x4 affine transformation (may be NULL)
 \param radius of the ball to be considered
 */
-double MatrixTransformDistance(MATRIX *m1, MATRIX *m2, double radius) {
+double MatrixTransformDistance(MATRIX *m1, MATRIX *m2, double radius)
+{
   MATRIX *drigid = MatrixCopy(m1, NULL);
   if (m2)
     drigid = MatrixSubtract(drigid, m2, drigid);
@@ -3300,7 +3427,8 @@ double MatrixTransformDistance(MATRIX *m1, MATRIX *m2, double radius) {
 
 /* for 3d vector macros */
 #include "tritri.h"
-int MatrixOrthonormalizeTransform(MATRIX *m_L) {
+int MatrixOrthonormalizeTransform(MATRIX *m_L)
+{
   double dot, c1[3], c2[3], c3[3], len;
   int i;
 
@@ -3351,7 +3479,8 @@ int MatrixOrthonormalizeTransform(MATRIX *m_L) {
   return (NO_ERROR);
 }
 
-MATRIX *MatrixAsciiReadRaw(const char *fname, MATRIX *m) {
+MATRIX *MatrixAsciiReadRaw(const char *fname, MATRIX *m)
+{
   FILE *fp;
   int rows, cols, row, col;
   char line[10 * STRLEN], *cp;
@@ -3387,7 +3516,8 @@ MATRIX *MatrixAsciiReadRaw(const char *fname, MATRIX *m) {
   return (m);
 }
 
-int MatrixToRigidParameters(MATRIX *m, double *pxr, double *pyr, double *pzr, double *pxt, double *pyt, double *pzt) {
+int MatrixToRigidParameters(MATRIX *m, double *pxr, double *pyr, double *pzr, double *pxt, double *pyt, double *pzt)
+{
   // M = Mx * My * Mz
   *pxr = atan2(*MATRIX_RELT(m, 2, 3), *MATRIX_RELT(m, 3, 3));
   *pyr = asin(-*MATRIX_RELT(m, 1, 3));
@@ -3397,7 +3527,8 @@ int MatrixToRigidParameters(MATRIX *m, double *pxr, double *pyr, double *pzr, do
   *pzt = *MATRIX_RELT(m, 3, 4);
   return (NO_ERROR);
 }
-MATRIX *MatrixFromRigidParameters(MATRIX *m, double xr, double yr, double zr, double xt, double yt, double zt) {
+MATRIX *MatrixFromRigidParameters(MATRIX *m, double xr, double yr, double zr, double xt, double yt, double zt)
+{
   if (m == NULL) m = MatrixAlloc(4, 4, MATRIX_REAL);
 
   *MATRIX_RELT(m, 1, 1) = cos(yr) * cos(zr);
@@ -3420,7 +3551,8 @@ MATRIX *MatrixFromRigidParameters(MATRIX *m, double xr, double yr, double zr, do
   return (m);
 }
 
-int MatrixCheckFinite(MATRIX *m) {
+int MatrixCheckFinite(MATRIX *m)
+{
   int r, c, retval = NO_ERROR;
 
   for (r = 1; r < m->rows; r++)
@@ -3437,7 +3569,8 @@ int MatrixCheckFinite(MATRIX *m) {
   \fn MATRIX *MatrixKron(MATRIX *m1, MATRIX *m2, MATRIX *k)
   \brief Kronecker tensor product.
 */
-MATRIX *MatrixKron(MATRIX *m1, MATRIX *m2, MATRIX *k) {
+MATRIX *MatrixKron(MATRIX *m1, MATRIX *m2, MATRIX *k)
+{
   int rows, cols;
   int r1, c1, r2, c2, r, c;
   double v1, v2;
@@ -3451,7 +3584,8 @@ MATRIX *MatrixKron(MATRIX *m1, MATRIX *m2, MATRIX *k) {
       printf("ERROR: MatrixKron: could not alloc %d %d\n", rows, cols);
       return (NULL);
     }
-  } else {
+  }
+  else {
     if (k->rows != rows || k->cols != cols) {
       printf("ERROR: MatrixKron: dimension mismatch %d %d vs %d %d\n", rows, cols, k->rows, k->cols);
       return (NULL);
@@ -3479,7 +3613,8 @@ MATRIX *MatrixKron(MATRIX *m1, MATRIX *m2, MATRIX *k) {
   \fn double MatrixRowDotProduct(MATRIX *m, int row, VECTOR *v)
   \brief dot product of a vector with the row of a matrix
 */
-double MatrixRowDotProduct(MATRIX *m, int row, VECTOR *v) {
+double MatrixRowDotProduct(MATRIX *m, int row, VECTOR *v)
+{
   double dot;
   int col;
 
@@ -3491,7 +3626,8 @@ double MatrixRowDotProduct(MATRIX *m, int row, VECTOR *v) {
   \fn MATRIX *MatrixDemean(MATRIX *M, MATRIX *Mdm)
   \brief Removes the mean from each column
 */
-MATRIX *MatrixDemean(MATRIX *M, MATRIX *Mdm) {
+MATRIX *MatrixDemean(MATRIX *M, MATRIX *Mdm)
+{
   int r, c;
   double vsum, vmean;
 
@@ -3517,7 +3653,8 @@ MATRIX *MatrixDemean(MATRIX *M, MATRIX *Mdm) {
   \brief Creates a new matrix by excluding the given set of rows.
   \param Src - source matrix.
 */
-MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude) {
+MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude)
+{
   MATRIX *Trg = NULL;
   int q, n, skip, m, c, nframesNew;
 
@@ -3542,14 +3679,16 @@ MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude) {
   \fn int MatrixIsIdentity(MATRIX *m)
   \brief returns 1 if matrix m is the identity matrix, 0 otherwise
 */
-int MatrixIsIdentity(MATRIX *m) {
+int MatrixIsIdentity(MATRIX *m)
+{
   int r, c;
 
   for (r = 1; r < m->rows; r++)
     for (c = 1; c < m->cols; c++) {
       if (r == c) {
         if (FEQUAL(*MATRIX_RELT(m, r, c), 1) == 0) return (0);
-      } else if (FEQUAL(*MATRIX_RELT(m, r, c), 0.0) == 0)
+      }
+      else if (FEQUAL(*MATRIX_RELT(m, r, c), 0.0) == 0)
         return (0);
     }
   return (1);
@@ -3559,7 +3698,8 @@ int MatrixIsIdentity(MATRIX *m) {
   \fn MATRIX *MatrixCumTrapZ(MATRIX *y, MATRIX *t, MATRIX *yz)
   \brief Computes trapezoidal integration (like matlab cumtrapz)
 */
-MATRIX *MatrixCumTrapZ(MATRIX *y, MATRIX *t, MATRIX *yz) {
+MATRIX *MatrixCumTrapZ(MATRIX *y, MATRIX *t, MATRIX *yz)
+{
   if (yz == NULL) yz = MatrixAlloc(y->rows, y->cols, MATRIX_REAL);
 
   int c, f;
@@ -3610,7 +3750,8 @@ MATRIX *MatrixCumTrapZ(MATRIX *y, MATRIX *t, MATRIX *yz) {
    Brace Jovanovich.
 
 */
-MATRIX *ANOVAContrast(int *FLevels, int nFactors, int *FactorList, int nFactorList) {
+MATRIX *ANOVAContrast(int *FLevels, int nFactors, int *FactorList, int nFactorList)
+{
   int n, nthFactor, InList;
   MATRIX *M, *Mf, *K;
 
@@ -3660,7 +3801,8 @@ MATRIX *ANOVAContrast(int *FLevels, int nFactors, int *FactorList, int nFactorLi
   \brief Summing vector for main effect of a factor. nLevels = number
   of levels in the factor.
 */
-MATRIX *ANOVASummingVector(int nLevels) {
+MATRIX *ANOVASummingVector(int nLevels)
+{
   MATRIX *S;
   S = MatrixConstVal(1, 1, nLevels, NULL);
   return (S);
@@ -3672,14 +3814,16 @@ MATRIX *ANOVASummingVector(int nLevels) {
   levels in the factor, Level is the one-based level number to select.
   Used to create a Simple Main Effect ANOVA matrix.
 */
-MATRIX *ANOVASelectionVector(int nLevels, int Level) {
+MATRIX *ANOVASelectionVector(int nLevels, int Level)
+{
   MATRIX *S;
   S = MatrixConstVal(0, 1, nLevels, NULL);
   S->rptr[1][Level] = 1;
   return (S);
 }
 //---------------------------------------------------------
-MATRIX *ANOVAOmnibus(int nLevels) {
+MATRIX *ANOVAOmnibus(int nLevels)
+{
   MATRIX *O;
   int r;
   O = MatrixAlloc(nLevels - 1, nLevels, MATRIX_REAL);
@@ -3689,7 +3833,8 @@ MATRIX *ANOVAOmnibus(int nLevels) {
   }
   return (O);
 }
-double MatrixSSE(MATRIX *m1, MATRIX *m2) {
+double MatrixSSE(MATRIX *m1, MATRIX *m2)
+{
   int r, c;
   double sse, error;
 
@@ -3701,7 +3846,8 @@ double MatrixSSE(MATRIX *m1, MATRIX *m2) {
   return (sse);
 }
 
-double MatrixRMS(MATRIX *m1, MATRIX *m2) {
+double MatrixRMS(MATRIX *m1, MATRIX *m2)
+{
   double sse;
 
   sse = MatrixSSE(m1, m2);
@@ -3715,7 +3861,8 @@ double MatrixRMS(MATRIX *m1, MATRIX *m2) {
   load balancing when parallelizing with Open MP (makes it almost 2x
   faster).
  */
-MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout) {
+MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
+{
   int c1, c2, n, rows, cols;
   static int *c1list = NULL, *c2list = NULL, ntot = 0;
 
@@ -3805,7 +3952,8 @@ MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout) {
   \brief Computes the skew (3rd moment) of the values in each column
   of y. If y has multiple columns, a skew is computed for each one.xx
 */
-MATRIX *MatrixSkew(MATRIX *y, MATRIX *s) {
+MATRIX *MatrixSkew(MATRIX *y, MATRIX *s)
+{
   int c, r;
   double mn, m2, m3, g1, delta, n, adj;
 
@@ -3842,7 +3990,8 @@ MATRIX *MatrixSkew(MATRIX *y, MATRIX *s) {
   in each column of y. If y has multiple columns, a kurtosis is
   computed for each one.x
 */
-MATRIX *MatrixKurtosis(MATRIX *y, MATRIX *k) {
+MATRIX *MatrixKurtosis(MATRIX *y, MATRIX *k)
+{
   int c, r;
   double mn, m4 = 0, m2 = 0, g2, delta, b1, b2, n;
 
@@ -3882,7 +4031,8 @@ MATRIX *MatrixKurtosis(MATRIX *y, MATRIX *k) {
   explicitly. This can be helpful whan A is a large matrix.
   Accumlates using double. OpenMP capable.
  */
-MATRIX *MatrixAtB(MATRIX *A, MATRIX *B, MATRIX *mout) {
+MATRIX *MatrixAtB(MATRIX *A, MATRIX *B, MATRIX *mout)
+{
   int colA;
 
   if (A->rows != B->rows) {
@@ -3939,7 +4089,8 @@ MATRIX *MatrixAtB(MATRIX *A, MATRIX *B, MATRIX *mout) {
   between two matrices. If dthresh is > 0, then prints more info about
   each element whose diff is > dthresh
 */
-double MatrixMaxAbsDiff(MATRIX *m1, MATRIX *m2, double dthresh) {
+double MatrixMaxAbsDiff(MATRIX *m1, MATRIX *m2, double dthresh)
+{
   int r, c;
   double d, dmax;
   if (m1->rows != m2->rows || m1->cols != m2->cols) {
@@ -3965,7 +4116,8 @@ double MatrixMaxAbsDiff(MATRIX *m1, MATRIX *m2, double dthresh) {
   number of columns or else a null matrix is returned and
   err=1. Otherwise err=0.
  */
-MATRIX *MatrixColNullSpace(MATRIX *M, int *err) {
+MATRIX *MatrixColNullSpace(MATRIX *M, int *err)
+{
   MATRIX *u, *s, *v, *M2;
   int dim, r, c, dimmax, ndim;
   double thresh = 0;
@@ -3990,7 +4142,8 @@ MATRIX *MatrixColNullSpace(MATRIX *M, int *err) {
         M2->rptr[r][c] = M->rptr[r][c];
       }
     }
-  } else
+  }
+  else
     M2 = MatrixCopy(M, NULL);
 
   // Compute SVD M2 = u*s*v'
@@ -4006,7 +4159,8 @@ MATRIX *MatrixColNullSpace(MATRIX *M, int *err) {
     for (dim = 1; dim <= s->cols; dim++)
       if (s->rptr[1][dim] < thresh) break;
     dim--;
-  } else
+  }
+  else
     dim = 0;
 
   ndim = M->rows - dim;  //  dim of the null space
@@ -4059,7 +4213,8 @@ MATRIX *MatrixColNullSpace(MATRIX *M, int *err) {
   \brief Computes the residual forming matrix
     R = I - X*inv(X'*X)*X';
  */
-MATRIX *MatrixResidualForming(MATRIX *X, MATRIX *R) {
+MATRIX *MatrixResidualForming(MATRIX *X, MATRIX *R)
+{
   MATRIX *Xt, *XtX, *iXtX, *I, *XiXtX, *XiXtXXt;
 
   Xt = MatrixTranspose(X, NULL);
