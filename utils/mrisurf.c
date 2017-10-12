@@ -21,6 +21,8 @@
  *
  */
 
+#define BEVIN_MRISURF
+
 #include <ctype.h>
 #include <math.h>
 #include <stdio.h>
@@ -9370,6 +9372,15 @@ int MRISupdateEllipsoidSurface(MRI_SURFACE *mris)
   using num_avgs nearest-neighbor averages. See also
   MRISaverageGradientsFast()
   ------------------------------------------------------*/
+#ifdef BEVIN_MRISURF
+static int closeEnough(float a, float b) {
+  float mag = fabs(a) > fabs(b) ? fabs(a) : fabs(b);
+  if (mag < 1.0e-6) return 1;
+  if (fabs(a-b) < mag*1.0e-2) return 1;
+  return 0; 
+}
+#endif
+
 int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
 {
   int i, vno;
@@ -9403,8 +9414,8 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
     v = &mris->vertices[Gdiag_no];
     fprintf(stdout, "before averaging %d times dot = %2.2f ", num_avgs, v->dx * v->nx + v->dy * v->ny + v->dz * v->nz);
   }
-  if (0 && mris->status == MRIS_PARAMETERIZED_SPHERE) /* use convolution */
-  {
+  // use convolution
+  if (0 && mris->status == MRIS_PARAMETERIZED_SPHERE) {
     sigma = sqrt((float)num_avgs) / 4.0;
     mrisp = MRISgradientToParameterization(mris, NULL, 1.0);
     mrisp_blur = MRISPblur(mrisp, NULL, sigma, -1);
@@ -9413,10 +9424,180 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
     MRISPfree(&mrisp_blur);
   }
   else
-    for (i = 0; i < num_avgs; i++) {
+#ifdef BEVIN_MRISURF
+  {
+    // This code shows the num_avgs typically is repeated 1-4 times as 1024, 256, 64, 16, 4, and then 1
+    if (0) {
+      static int num_avgs_being_counted = 0;
+      static int count = 0;
+      static int limit = 1;
+      int changing = (num_avgs_being_counted != num_avgs);
+      if (changing || count == limit) {
+        if (count > 0) {
+          fprintf(stderr,"%s:%d num_avgs:%d count:%d\n",__FILE__,__LINE__,num_avgs_being_counted,count);
+          fprintf(stdout,"%s:%d num_avgs:%d count:%d\n",__FILE__,__LINE__,num_avgs_being_counted,count);
+        }
+        if (!changing) limit *= 2;
+        else {
+          num_avgs_being_counted = num_avgs;
+          count = 0;
+          limit = 1;
+        }
+      }
+      count++;
+    }
+
+    // Since the num_avgs is so high there are far more efficient ways to iterate.
+    // The following implementation is one of them.
+
+    // The following code supports three ways of doing the two algorithms
+    // - only the old algorithm
+    // - only the new algorithm
+    // - both algorithms, and compare them
+    
+    static const int BEVIN_SERIAL_doNew = 1;
+    static const int BEVIN_SERIAL_doOld = 0;
+    
+    // This is the new algorithm
+    int *vno_to_index = NULL;
+    int *index_to_vno = NULL;
+    int  index_to_vno_size = 0;
+    
+    typedef struct Data {
+      float dx,dy,dz;
+    } Data;
+    Data *datas_inp = NULL;
+    Data *datas_out = NULL;
+
+    typedef struct Control {    
+      int numNeighbors;
+      int firstNeighbor;
+    } Control;
+    Control *controls = NULL;
+
+    int  neighbors_capacity = 0;
+    int  neighbors_size     = 0;
+    int *neighbors          = NULL;
+    
+    if (BEVIN_SERIAL_doNew) {
+    
+      // Malloc the needed storage
+      vno_to_index = (int*)    malloc(sizeof(int)     * mris->nvertices) ;
+      index_to_vno = (int*)    malloc(sizeof(int)     * mris->nvertices) ;
+      datas_inp    = (Data*)   malloc(sizeof(Data)    * mris->nvertices) ;
+      datas_out    = (Data*)   malloc(sizeof(Data)    * mris->nvertices) ;
+      controls     = (Control*)malloc(sizeof(Control) * mris->nvertices) ;
+    
+      // Find all the vertices that will change
+      // Ripped ones, and those whose neighbors are all ripped,
+      // will not change and hence are not entered
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+        VERTEX *v = &mris->vertices[vno];
+        
+        int num = 0;
+        if (!v->ripflag) {
+          num = 1;
+          // At this stage the neighbors with higher vno's will not have 
+          // been entered into the vno_to_index table
+          int  vnum = v->vnum;
+          int *pnb  = v->v;
+          int  vnb;
+          for (vnb = 0; vnb < vnum; vnb++) {
+            int neighborVno = *pnb++;
+            VERTEX* vn = &mris->vertices[neighborVno]; // neighboring vertex pointer
+            if (vn->ripflag) continue;
+            num++;
+          }
+        }
+        
+        if (num <= 1) {
+          vno_to_index[vno] = -1;
+        } else {
+          vno_to_index[vno] = index_to_vno_size;
+          index_to_vno[index_to_vno_size] = vno;
+          Data *d = datas_inp + index_to_vno_size;
+          d->dx = v->dx;
+          d->dy = v->dy;
+          d->dz = v->dz;
+          Control *c = controls + index_to_vno_size;
+          c->numNeighbors = num - 1;
+          index_to_vno_size++;
+        }
+      }
+      
+      // For each vertex that will change, fill in the index of the vertices it must average with.
+      // There could be many of them, so this array vector grows as needed.
+      neighbors_capacity = 6 * index_to_vno_size;
+      neighbors_size     = 0;
+      neighbors          = (int*)malloc(sizeof(int) * neighbors_capacity);
+      
+      int index;
+      for (index = 0; index < index_to_vno_size; index++) {
+        const int vno = index_to_vno[index];
+        Control *const c = controls + index;
+        c->firstNeighbor = neighbors_size;
+        VERTEX *const v  = &mris->vertices[vno];
+        int const vnum = v->vnum;
+        int *pnb = v->v;
+        int vnb;
+        for (vnb = 0; vnb < vnum; vnb++) {
+          int const neighborVno = *pnb++;
+          int const neighborIndex = vno_to_index[neighborVno];
+          if (neighborIndex < 0) continue;  // ripflag must be set
+          if (neighbors_size == neighbors_capacity) {
+            int  const new_neighbors_capacity = neighbors_capacity + neighbors_capacity/2;
+            int* const new_neighbors = (int*)malloc(sizeof(int) * new_neighbors_capacity);
+            int i; 
+            for (i = 0; i < neighbors_size; i++) new_neighbors[i] = neighbors[i];
+            free(neighbors);
+            neighbors = new_neighbors ;
+            neighbors_capacity = new_neighbors_capacity ;
+          }
+          neighbors[neighbors_size++] = neighborIndex ;
+        }      
+      }
+      
+      // Do all the iterations
+      for (i = 0 ; i < num_avgs ; i++) {
+        int index;
+      
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+        #pragma omp parallel for
 #endif
+        for (index = 0; index < index_to_vno_size ; index++ ) {
+          Data *d = datas_inp + index;
+          Control *c = controls  + index;
+          float dx = d->dx, dy = d->dy, dz = d->dz;
+          int *nearby = neighbors + c->firstNeighbor;
+          int n;
+          for (n = 0; n < c->numNeighbors; n++) {
+            int neighborIndex = nearby[n];
+            Data *neighborData = datas_inp + neighborIndex;
+            dx += neighborData->dx; dy += neighborData->dy; dz += neighborData->dz;
+          }
+          d = datas_out + index;
+          float inv_num = 1.0f/(c->numNeighbors + 1);
+          d->dx = dx*inv_num ; d->dy = dy*inv_num ; d->dz = dz*inv_num; 
+        }
+  
+        // swap the output and the input going into the next round
+        Data* tmp = datas_inp ; datas_inp = datas_out ; datas_out = tmp;
+      }
+    }
+
+    // Only perform the old algorithm when needed
+    if (BEVIN_SERIAL_doOld) {
+
+#endif
+    
+    // This is the old algorithm
+    for (i = 0 ; i < num_avgs ; i++) {
+
+#ifdef HAVE_OPENMP
+      #pragma omp parallel for
+#endif
+
       for (vno = 0; vno < mris->nvertices; vno++) {
         VERTEX *v, *vn;
         float dx, dy, dz, num;
@@ -9425,14 +9606,14 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
         v = &mris->vertices[vno];
         if (v->ripflag) continue;
 
-        dx = v->dx;
-        dy = v->dy;
-        dz = v->dz;
+        dx  = v->dx;
+        dy  = v->dy;
+        dz  = v->dz;
         pnb = v->v;
-        /*      vnum = v->v2num ? v->v2num : v->vnum ;*/
+        // vnum = v->v2num ? v->v2num : v->vnum;
         vnum = v->vnum;
         for (num = 0.0f, vnb = 0; vnb < vnum; vnb++) {
-          vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+          vn = &mris->vertices[*pnb++]; // neighboring vertex pointer
           if (vn->ripflag) continue;
 
           num++;
@@ -9458,26 +9639,68 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
         v->dy = v->tdy;
         v->dz = v->tdz;
       }
+    }  // end of one of the num_avgs iterations
+
+#ifdef BEVIN_MRISURF
+    }  // if (BEVIN_SERIAL_doOld) 
+    
+    // Compare the new algorithm and old algorithm answers
+    if (BEVIN_SERIAL_doOld && BEVIN_SERIAL_doNew) {
+      int errors = 0;
+      for (vno = 0 ; vno < mris->nvertices ; vno++) {
+        VERTEX *v = &mris->vertices[vno];
+        int index = vno_to_index[vno];
+        if (index == -1) {
+          // check has not changed - but this is not currently possible
+          // but could be enabled by making all these nodes go into the high end of the initial datas_inp vector
+        } else {
+          Data *d = datas_inp + index;
+          if (!closeEnough(d->dx,v->dx) || !closeEnough(d->dy,v->dy) || !closeEnough(d->dz,v->dz)) {
+            errors++;
+            if (errors < 10) {
+              fprintf(stderr,"%s:%d vno:%d d->dx:%g v->dx:%g d->dy:%g v->dy:%g d->dz:%g v->dz:%g\n",__FILE__,__LINE__,
+                      vno, d->dx, v->dx, d->dy, v->dy, d->dz, v->dz);
+            }
+          }
+        }
+      }
+      fprintf(stderr,"%s:%d errors:%d\n",__FILE__,__LINE__,errors);
+      if (errors > 0) exit (103);
     }
+
+    // Put the results where they belong
+    // Note: this code does not set tdx, etc. - I believe they are temporaries   
+    if (BEVIN_SERIAL_doNew) {
+      int index;
+      for (index = 0 ; index < index_to_vno_size; index++) {
+        VERTEX *v = &mris->vertices[index_to_vno[index]];
+        Data   *d = datas_inp + index;
+        v->dx = d->dx;
+        v->dy = d->dy;
+        v->dz = d->dz;
+      }
+    
+      free(neighbors); 
+      free(controls);
+      free(datas_out); 
+      free(datas_inp);
+      free(index_to_vno);
+      free(vno_to_index);
+    }
+  }
+#endif
+
   if (Gdiag_no >= 0) {
     float dot;
-    v = &mris->vertices[Gdiag_no];
+    v = &mris->vertices[Gdiag_no] ;
     dot = v->nx * v->dx + v->ny * v->dy + v->nz * v->dz;
-    fprintf(stdout,
-            " after dot = %2.2f D = (%2.2f, %2.2f, %2.2f), N = (%2.1f, %2.1f, %2.1f)\n",
-            dot,
-            v->dx,
-            v->dy,
-            v->dz,
-            v->nx,
-            v->ny,
-            v->nz);
-    if (fabs(dot) > 50) {
-      DiagBreak();
-    }
+    fprintf(stdout, " after dot = %2.2f D = (%2.2f, %2.2f, %2.2f), N = (%2.1f, %2.1f, %2.1f)\n",
+            dot,v->dx, v->dy, v->dz, v->nx, v->ny, v->nz);
+    if (fabs(dot) > 50) DiagBreak();
   }
   return (NO_ERROR);
 }
+
 /*-----------------------------------------------------
   MRISaverageGradientsFast() - spatially smooths gradients (dx,dy,dz)
   using num_avgs nearest-neighbor averages. This is a faster version
@@ -14799,9 +15022,9 @@ static int mrisComputeSurfaceNormalIntersectionTerm(MRI_SURFACE *mris, MHT *mht,
 #define MAX_SCALE 3
           scale = MIN(MAX_SCALE, l_norm * exp(1.0 / (20 * (1 - scale))));
 #if 0
-	  dx = (d-max_dist)/max_dist*l_norm*v->nx ;
-	  dy = (d-max_dist)/max_dist*l_norm*v->ny ;
-	  dz = (d-max_dist)/max_dist*l_norm*v->nz ;
+      dx = (d-max_dist)/max_dist*l_norm*v->nx ;
+      dy = (d-max_dist)/max_dist*l_norm*v->ny ;
+      dz = (d-max_dist)/max_dist*l_norm*v->nz ;
 #else
           dx = -scale * v->nx;
           dy = -scale * v->ny;
@@ -31062,8 +31285,8 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
         int nvox;
         MRISsaveVertexPositions(mris, PIAL_VERTICES);
 #if 0
-	if (parms->h2d != NULL)
-	  HISTO2Dfree(&parms->h2d) ;
+    if (parms->h2d != NULL)
+      HISTO2Dfree(&parms->h2d) ;
 #endif
         if (parms->mri_volume_fractions) MRIfree(&parms->mri_volume_fractions);
         if (parms->mri_dtrans) MRIfree(&parms->mri_dtrans);
@@ -37645,7 +37868,7 @@ static double mrisComputeSphereError(MRI_SURFACE *mris, double l_sphere, double 
   // But typical results are
   //  sse:4.33023e+09
   // I tried summing in groups of 1024 numbers then summing the sums, and got the same answer in %g format
-  //		/Bevin
+  //        /Bevin
   //
   sse = 0.0;
 #pragma omp parallel for reduction(+ : sse)
@@ -40000,7 +40223,7 @@ static int mrisUpdateTargetLocations(MRI_SURFACE *mris, MRI *mri, double target_
         v->targy = v->y;
         v->targz = v->z;
         v->marked = 1;
-        //	v->ripflag = 1 ;
+        //    v->ripflag = 1 ;
         v->val2 = val0;
       }
       v->val = val;
@@ -40261,7 +40484,7 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
 
           if (parms->mri_brain && parms->target_intensity >= 0)
             mrisUpdateTargetLocations(mris, parms->mri_brain, parms->target_intensity);
-          //	  MRISsmoothSurfaceNormals(mris, avgs) ;
+          //      MRISsmoothSurfaceNormals(mris, avgs) ;
           MRISclearGradient(mris);
           mrisComputeTargetLocationTerm(mris, parms->l_location, parms);
           {
@@ -70216,8 +70439,8 @@ int MRISremoveIntersections(MRI_SURFACE *mris)
       else {
         // disable this code as it was causing the surface to do wacky things. Just try smoothing
         // vertices that are actually intersecting
-        //	nbrs++ ;
-        //	printf("expanding nbhd size to %d\n", nbrs);
+        //    nbrs++ ;
+        //    printf("expanding nbhd size to %d\n", nbrs);
         if (no_progress > 15) break;
       }
     }
@@ -75530,18 +75753,18 @@ vlst_loglikelihood2D(MRI_SURFACE *mris, MRI *mri, int vno, double displacement, 
     {
       if (dot > 0)
       {
-	out_frac = dist+.5 ;
-	gm_frac = 1-out_frac ;
+    out_frac = dist+.5 ;
+    gm_frac = 1-out_frac ;
       }
       else
       {
-	gm_frac = dist+.5 ;
-	out_frac = 1-gm_frac ;
+    gm_frac = dist+.5 ;
+    out_frac = 1-gm_frac ;
       }
       for (pval = 0.0, Ig = 0 ; Ig <= 256 ; Ig++)
       {
-	Ic = (val - gm_frac*Ig) / out_frac ;
-	pval += HISTO2DgetCount(hout, Ic, dot) * HISTO2DgetCount(hin, Ig, dot) ;
+    Ic = (val - gm_frac*Ig) / out_frac ;
+    pval += HISTO2DgetCount(hout, Ic, dot) * HISTO2DgetCount(hin, Ig, dot) ;
       }
     }
     else if (dot > 0)  // outside surface
@@ -76757,29 +76980,29 @@ mrisComputeNegativeLogPosterior2D(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, i
     // build histogram estimates of PDFs of interior and exterior of ribbon
     for (x = 0 ; x < mri->width; x++)
       for (y = 0 ; y < mri->height; y++)
-	for (z = 0 ; z < mri->depth; z++)
-	{
-	  if (Gx == x && Gy == y && Gz == z)
-	    DiagBreak() ;
-	  if (Gx2 == x && Gy2 == y && Gz2 == z)
-	    DiagBreak() ;
-	  val = MRIgetVoxVal(mri, x, y, z, 0) ;
-	  if (FZERO(val))
-	    continue ;
+    for (z = 0 ; z < mri->depth; z++)
+    {
+      if (Gx == x && Gy == y && Gz == z)
+        DiagBreak() ;
+      if (Gx2 == x && Gy2 == y && Gz2 == z)
+        DiagBreak() ;
+      val = MRIgetVoxVal(mri, x, y, z, 0) ;
+      if (FZERO(val))
+        continue ;
 
-	  dist = MRIgetVoxVal(parms->mri_dtrans, x, y, z, 0) ;
-	  wm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 0) ;
-	  gm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 1) ;
-	  out_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 2) ;
-	  if (parms->mri_aseg)
-	  {
-	    label = MRIgetVoxVal(parms->mri_aseg, x, y, z, 0) ;
-	    if (FZERO(gm_frac) && IS_CORTEX(label))  // aseg thinks it is but outside ribbon - ambiguous
-	      continue ;
-	  }
-	  HISTO2DaddFractionalSample(hout, val, dist, 0, 0, 0, 0, out_frac) ;
-	  HISTO2DaddFractionalSample(hin, val, dist, 0, 0, 0, 0, gm_frac) ;
-	}
+      dist = MRIgetVoxVal(parms->mri_dtrans, x, y, z, 0) ;
+      wm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 0) ;
+      gm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 1) ;
+      out_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 2) ;
+      if (parms->mri_aseg)
+      {
+        label = MRIgetVoxVal(parms->mri_aseg, x, y, z, 0) ;
+        if (FZERO(gm_frac) && IS_CORTEX(label))  // aseg thinks it is but outside ribbon - ambiguous
+          continue ;
+      }
+      HISTO2DaddFractionalSample(hout, val, dist, 0, 0, 0, 0, out_frac) ;
+      HISTO2DaddFractionalSample(hin, val, dist, 0, 0, 0, 0, gm_frac) ;
+    }
     if (Gdiag & DIAG_WRITE)
     {
       char fname[STRLEN] ;
@@ -76839,7 +77062,7 @@ mrisComputeNegativeLogPosterior2D(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, i
       cin = HISTO2DgetCount(hin, val, dist) ;
       cout = HISTO2DgetCount(hout, val, dist) ;
       printf("voxel (%d, %d, %d) - vfracts (%2.1f, %2.1f, %2.1f) = %2.0f, dist=%2.1f, bin=%d,%d, cin=%f, cout=%f\n",
-	     Gx, Gy, Gz, wm_frac, gm_frac, out_frac, val, dist, b1, b2, cin, cout) ;
+         Gx, Gy, Gz, wm_frac, gm_frac, out_frac, val, dist, b1, b2, cin, cout) ;
       
       DiagBreak() ;
     }
@@ -76854,46 +77077,46 @@ mrisComputeNegativeLogPosterior2D(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, i
     for (y = 0 ; y < mri->height; y++)
       for (z = 0 ; z < mri->depth; z++)
       {
-	if (Gx == x && Gy == y && Gz == z)
-	  DiagBreak() ;
-	if (Gx2 == x && Gy2 == y && Gz2 == z)
-	  DiagBreak() ;
-	val = MRIgetVoxVal(mri, x, y, z, 0) ;
-	if (FZERO(val))
-	  continue ;
-	wm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 0) ;
-	if (wm_frac > 0)
-	  continue ;
+    if (Gx == x && Gy == y && Gz == z)
+      DiagBreak() ;
+    if (Gx2 == x && Gy2 == y && Gz2 == z)
+      DiagBreak() ;
+    val = MRIgetVoxVal(mri, x, y, z, 0) ;
+    if (FZERO(val))
+      continue ;
+    wm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 0) ;
+    if (wm_frac > 0)
+      continue ;
 
-	gm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 1) ;
-	out_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 2) ;
-	dist = MRIgetVoxVal(parms->mri_dtrans, x, y, z, 0) ;
+    gm_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 1) ;
+    out_frac = MRIgetVoxVal(parms->mri_volume_fractions, x, y, z, 2) ;
+    dist = MRIgetVoxVal(parms->mri_dtrans, x, y, z, 0) ;
 
-	if (FZERO(out_frac))   // all gm
-	  pval = HISTO2DgetCount(hin, val, dist) ;
-	else if (FZERO(gm_frac))
-	  pval = HISTO2DgetCount(hout, val, dist) ;
-	else  // partial volume voxel
-	{
-	  for (pval = 0.0, Ig = 0 ; Ig <= 256 ; Ig++)
-	  {
-	    Ic = (val - gm_frac*Ig) / out_frac ;
-	    pval += HISTO2DgetCount(hout, Ic, dist) * HISTO2DgetCount(hin, Ig, dist) ;
-	  }
-	}
-	
-	if (pval > 1 || pval < 0)
-	  DiagBreak() ;
-	if (DZERO(pval))
-	  pval = 1e-20 ;
-	ll = -log10(pval) ;
-	sse += ll ;
-	nvox++ ;
-	if (mri_ll)
-	  MRIsetVoxVal(mri_ll, x, y, z, 0, ll) ;
-	if (Gx == x && Gy == y && Gz == z)
-	  printf("voxel(%d, %d, %d) = %d, vfracs = (%2.1f, %2.1f, %2.1f), ll = %2.1f\n",
-		 x, y, z, nint(val), wm_frac, gm_frac, out_frac, ll) ;
+    if (FZERO(out_frac))   // all gm
+      pval = HISTO2DgetCount(hin, val, dist) ;
+    else if (FZERO(gm_frac))
+      pval = HISTO2DgetCount(hout, val, dist) ;
+    else  // partial volume voxel
+    {
+      for (pval = 0.0, Ig = 0 ; Ig <= 256 ; Ig++)
+      {
+        Ic = (val - gm_frac*Ig) / out_frac ;
+        pval += HISTO2DgetCount(hout, Ic, dist) * HISTO2DgetCount(hin, Ig, dist) ;
+      }
+    }
+    
+    if (pval > 1 || pval < 0)
+      DiagBreak() ;
+    if (DZERO(pval))
+      pval = 1e-20 ;
+    ll = -log10(pval) ;
+    sse += ll ;
+    nvox++ ;
+    if (mri_ll)
+      MRIsetVoxVal(mri_ll, x, y, z, 0, ll) ;
+    if (Gx == x && Gy == y && Gz == z)
+      printf("voxel(%d, %d, %d) = %d, vfracs = (%2.1f, %2.1f, %2.1f), ll = %2.1f\n",
+         x, y, z, nint(val), wm_frac, gm_frac, out_frac, ll) ;
       }
 
   if (!FZERO(last_sse) && sse > last_sse)
@@ -76967,27 +77190,27 @@ mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     for (y = 0 ; y < mri->height; y++)
       for (z = 0 ; z < mri->depth; z++)
       {
-	val = MRIgetVoxVal(mri, x, y, z, 0) ;
-	if (FZERO(val))
-	  continue ;
-	V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
-	MatrixMultiply(m_vox2vox, v1, v2) ;
+    val = MRIgetVoxVal(mri, x, y, z, 0) ;
+    if (FZERO(val))
+      continue ;
+    V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+    MatrixMultiply(m_vox2vox, v1, v2) ;
 
-	if (MRIindexNotInVolume(mri_white_dist, V3_X(v2), V3_Y(v2), V3_Z(v2)))
-	  continue ;
-	wdist = MRIgetVoxVal(mri_white_dist, V3_X(v2), V3_Y(v2), V3_Z(v2), 0) ;
-	if (wdist < 0)
-	  continue ;
+    if (MRIindexNotInVolume(mri_white_dist, V3_X(v2), V3_Y(v2), V3_Z(v2)))
+      continue ;
+    wdist = MRIgetVoxVal(mri_white_dist, V3_X(v2), V3_Y(v2), V3_Z(v2), 0) ;
+    if (wdist < 0)
+      continue ;
 
-	// add this voxel to the list of voxels of the vertex it is closest to
-	MRIvoxelToSurfaceRAS(mri, x, y, z, &xs, &ys, &zs) ;
-	MHTfindClosestVertexGeneric(mht, mris,  xs, ys, zs, 10, 4, &v, &vno, &dist) ;
-	if (v == NULL)
-	  continue ;
-	if (vno == Gdiag_no)
-	  DiagBreak() ;
-	v->marked++ ;
-	VLSTadd(vl[vno], x, y, z, xs, ys, zs) ;
+    // add this voxel to the list of voxels of the vertex it is closest to
+    MRIvoxelToSurfaceRAS(mri, x, y, z, &xs, &ys, &zs) ;
+    MHTfindClosestVertexGeneric(mht, mris,  xs, ys, zs, 10, 4, &v, &vno, &dist) ;
+    if (v == NULL)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    v->marked++ ;
+    VLSTadd(vl[vno], x, y, z, xs, ys, zs) ;
       }
 
   // find vertices that don't have enough data and pool across nbrs
@@ -77002,7 +77225,7 @@ mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     for (n = 0; n < v->vnum ; n++)
     {
       if (vl2[vno]->nvox + vl[v->v[n]]->nvox >= vl2[vno]->max_vox)
-	break ;
+    break ;
       vlst_add_to_list(vl[v->v[n]], vl2[vno]) ;
     }
     v->marked = vl[vno]->nvox ;
@@ -77035,18 +77258,18 @@ mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     for (dn = -MAX_DISPLACEMENT ; dn <= MAX_DISPLACEMENT ; dn += DISPLACEMENT_DELTA)
     {
       if (fp)
-	fprintf(fp, "%f ", dn) ;
+    fprintf(fp, "%f ", dn) ;
       ll = -vlst_loglikelihood2D(mris, mri, vno, dn, vl[vno], hin, hout, fp) ;
       if (fp)
-	fprintf(fp, "\n") ;
+    fprintf(fp, "\n") ;
       if (devIsnan(ll))
-	DiagBreak() ;
+    DiagBreak() ;
       if (fp)
-	fprintf(fp, "%f %f\n", dn, ll) ;
+    fprintf(fp, "%f %f\n", dn, ll) ;
       if (ll > best_ll)
       {
-	best_dn = dn ;
-	best_ll = ll ;
+    best_dn = dn ;
+    best_ll = ll ;
       }
     }
     if (fp)
@@ -77070,23 +77293,23 @@ mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
       for (i = 0 ; i < vl[vno]->nvox ; i++)
       {
-	val = MRIgetVoxVal(mri, vl[vno]->xi[i], vl[vno]->yi[i], vl[vno]->zi[i], 0) ;
-	dx = vl[vno]->xd[i]-v->x ; dy = vl[vno]->yd[i]-v->y ; dz = vl[vno]->zd[i]-v->z ;
-	dist = dx*dx + dy*dy + dz*dz ;
-	dot = dx*v->nx + dy*v->ny + dz*v->nz ;
-	if (dot <0)
-	  dist *= -1 ;
-	pin = HISTO2DgetCount(hin, val, dot) ; pout = HISTO2DgetCount(hout, val, dot) ;
-	fprintf(fp, "%d %d %d %d %d %f %f %f %f\n",
-		vno, i, vl[vno]->xi[i], vl[vno]->yi[i], vl[vno]->zi[i], val, dist, pin, pout) ;
+    val = MRIgetVoxVal(mri, vl[vno]->xi[i], vl[vno]->yi[i], vl[vno]->zi[i], 0) ;
+    dx = vl[vno]->xd[i]-v->x ; dy = vl[vno]->yd[i]-v->y ; dz = vl[vno]->zd[i]-v->z ;
+    dist = dx*dx + dy*dy + dz*dz ;
+    dot = dx*v->nx + dy*v->ny + dz*v->nz ;
+    if (dot <0)
+      dist *= -1 ;
+    pin = HISTO2DgetCount(hin, val, dot) ; pout = HISTO2DgetCount(hout, val, dot) ;
+    fprintf(fp, "%d %d %d %d %d %f %f %f %f\n",
+        vno, i, vl[vno]->xi[i], vl[vno]->yi[i], vl[vno]->zi[i], val, dist, pin, pout) ;
       }
       fclose(fp) ;
 
       printf("l_map: vno %d, best displacement %2.3f, ll = %2.3f, D = (%2.3f, %2.3f, %2.3f)\n",  
-	     vno, best_dn, best_ll, 
-	     best_dn * v->nx * parms->l_map2d,
-	     best_dn * v->ny * parms->l_map2d,
-	     best_dn * v->nz * parms->l_map2d) ;
+         vno, best_dn, best_ll, 
+         best_dn * v->nx * parms->l_map2d,
+         best_dn * v->ny * parms->l_map2d,
+         best_dn * v->nz * parms->l_map2d) ;
       DiagBreak() ;
     }
     v->dx += best_dn * v->nx * parms->l_map2d ;
@@ -77108,7 +77331,7 @@ mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     {
       vn = &mris->vertices[v->v[n]] ;
       if (vn->marked == 0)
-	continue ;
+    continue ;
       num++ ;
       dn += vn->d ;
     }
@@ -77120,9 +77343,9 @@ mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       v->dz += dn * v->nz * parms->l_map2d ;
       v->d = dn ;
       if (vno == Gdiag_no)
-	printf("l_map: vno %d, soap bubble displacement %2.3f, D = (%2.3f, %2.3f, %2.3f)\n",  
-	       vno, dn, dn * v->nx * parms->l_map2d, dn * v->ny * parms->l_map2d,
-	       dn * v->nz * parms->l_map2d) ;
+    printf("l_map: vno %d, soap bubble displacement %2.3f, D = (%2.3f, %2.3f, %2.3f)\n",  
+           vno, dn, dn * v->nx * parms->l_map2d, dn * v->ny * parms->l_map2d,
+           dn * v->nz * parms->l_map2d) ;
     }
   }
 
@@ -77132,7 +77355,7 @@ mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
     FileNamePath(mris->fname, path) ;
     sprintf(fname, "%s/%s.%d.dist.mgz", path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : 
-	    mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh", parms->t) ;
+        mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh", parms->t) ;
     MRISwriteD(mris, fname) ;
     DiagBreak() ;
   }
