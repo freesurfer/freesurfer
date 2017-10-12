@@ -166,7 +166,7 @@ COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold,const char *name);
 // returns name of annotation (or "NOT_FOUND")
 const char* CTABgetAnnotationName(COLOR_TABLE *ct, int annotation);
 
-int CTABcountRepeats(COLOR_TABLE *ct);
+int CTABcountRepeats(COLOR_TABLE *ct, int break_after_found);
 int CTABrandom(COLOR_TABLE *ct);
 int CTABunique(COLOR_TABLE *ct, int nmax);
 
