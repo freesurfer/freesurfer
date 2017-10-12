@@ -16840,10 +16840,10 @@ MRI *MRIcombineDistanceTransforms(MRI *mri_src1, MRI *mri_src2, MRI *mri_dst)
 MRI *
 MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int target_label)
 {
-  MRI     *mri_interior, *mri_laplace, *mri_control, *mri_tmp = NULL ;
+  MRI     *mri_laplace, *mri_control, *mri_tmp = NULL ;
   int     x, y, z, ncontrol, nribbon, v, i, xm1, xp1, ym1, yp1, zm1, zp1, label; 
   VOXLIST *vl ;
-  float   wval, pval, max_change, change, val, oval ;
+  float   max_change, change, val, oval ;
 
   mri_laplace = MRIcloneDifferentType(mri_interior,MRI_FLOAT) ;
   mri_control = MRIcloneDifferentType(mri_interior,MRI_UCHAR) ;
@@ -16876,8 +16876,6 @@ MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int t
     for (y = 0 ; y < mri_interior->height ; y++)
       for (z = 0 ; z < mri_interior->depth ; z++)
       {
-        wval = MRIgetVoxVal(mri_interior, x, y, z, 0) ;
-        pval = MRIgetVoxVal(mri_pial, x, y, z, 0) ;
         if (FZERO(MRIgetVoxVal(mri_control, x, y, z, 0)))
         {
           vl->xi[nribbon] = x ;
@@ -16918,16 +16916,11 @@ MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int t
       printf("iter %d complete, max change %f\n", i, max_change) ;
   } while (max_change > 1e-3) ;
 
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-  {
-    MRIwrite(mri_interior, "w.mgz") ;
-    MRIwrite(mri_pial, "p.mgz") ;
-  }
   {
     char fname[STRLEN] ;
     sprintf(fname, "laplace.%2.2f.mgz", mri_laplace->xsize) ;
     MRIwrite(mri_laplace, fname) ;
   }
-  MRIfree(&mri_interior) ; MRIfree(&mri_pial) ; VLSTfree(&vl) ;
+  MRIfree(&mri_interior) ; VLSTfree(&vl) ;
   return(mri_laplace) ;
 }
