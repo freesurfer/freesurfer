@@ -16432,3 +16432,98 @@ MRI *MRIcombineDistanceTransforms(MRI *mri_src1, MRI *mri_src2, MRI *mri_dst) {
         }
   return (mri_dst);
 }
+#include "mrinorm.h"
+MRI *
+MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int target_label)
+{
+  MRI     *mri_interior, *mri_laplace, *mri_control, *mri_tmp = NULL ;
+  int     x, y, z, ncontrol, nribbon, v, i, xm1, xp1, ym1, yp1, zm1, zp1, label; 
+  VOXLIST *vl ;
+  float   wval, pval, max_change, change, val, oval ;
+
+  mri_laplace = MRIcloneDifferentType(mri_interior,MRI_FLOAT) ;
+  mri_control = MRIcloneDifferentType(mri_interior,MRI_UCHAR) ;
+  ncontrol = nribbon = 0 ;
+  for (x = 0 ; x < mri_interior->width ; x++)
+    for (y = 0 ; y < mri_interior->height ; y++)
+      for (z = 0 ; z < mri_interior->depth ; z++)
+      {
+        label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
+        if (label == source_label)
+        {
+          MRIsetVoxVal(mri_control, x, y, z, 0, CONTROL_MARKED) ;
+          MRIsetVoxVal(mri_laplace, x, y, z, 0, -1.0) ;
+          ncontrol++ ;
+        }
+        else if (label == target_label)
+        {
+          MRIsetVoxVal(mri_control, x, y, z, 0, CONTROL_MARKED) ;
+          MRIsetVoxVal(mri_laplace, x, y, z, 0, 1.0) ;
+          ncontrol++ ;
+        }
+        else 
+          nribbon++ ;
+      }
+
+  vl = VLSTalloc(nribbon) ;
+  vl->mri = mri_laplace ;
+  nribbon = 0 ;
+  for (x = 0 ; x < mri_interior->width ; x++)
+    for (y = 0 ; y < mri_interior->height ; y++)
+      for (z = 0 ; z < mri_interior->depth ; z++)
+      {
+        wval = MRIgetVoxVal(mri_interior, x, y, z, 0) ;
+        pval = MRIgetVoxVal(mri_pial, x, y, z, 0) ;
+        if (FZERO(MRIgetVoxVal(mri_control, x, y, z, 0)))
+        {
+          vl->xi[nribbon] = x ;
+          vl->yi[nribbon] = y ;
+          vl->zi[nribbon] = z ;
+          nribbon++ ;
+        }
+      }
+
+  i = 0 ;
+  do
+  {
+    max_change = 0.0 ;
+    mri_tmp = MRIcopy(mri_laplace, mri_tmp) ;
+    for (v = 0 ; v < vl->nvox  ; v++)
+    {
+      x = vl->xi[v] ; y = vl->yi[v] ; z = vl->zi[v] ;
+      xm1 = mri_laplace->xi[x-1] ; xp1 = mri_laplace->xi[x+1] ;
+      ym1 = mri_laplace->yi[y-1] ; yp1 = mri_laplace->yi[y+1] ;
+      zm1 = mri_laplace->zi[z-1] ; zp1 = mri_laplace->zi[z+1] ;
+      oval = MRIgetVoxVal(mri_laplace, x, y, z, 0) ;
+      val = 
+        (MRIgetVoxVal(mri_laplace, xm1, y, z, 0) +
+         MRIgetVoxVal(mri_laplace, xp1, y, z, 0) +
+         MRIgetVoxVal(mri_laplace, x, ym1, z, 0) +
+         MRIgetVoxVal(mri_laplace, x, yp1, z, 0) +
+         MRIgetVoxVal(mri_laplace, x, y, zm1, 0) +
+         MRIgetVoxVal(mri_laplace, x, y, zp1, 0)) *
+        1.0/6.0;
+      change = fabs(val-oval) ;
+      if (change > max_change)
+        max_change = change ;
+      MRIsetVoxVal(mri_tmp, x, y, z, 0, val);
+    }
+    MRIcopy(mri_tmp, mri_laplace) ;
+    i++ ;
+    if (i%10 == 0)
+      printf("iter %d complete, max change %f\n", i, max_change) ;
+  } while (max_change > 1e-3) ;
+
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    MRIwrite(mri_interior, "w.mgz") ;
+    MRIwrite(mri_pial, "p.mgz") ;
+  }
+  {
+    char fname[STRLEN] ;
+    sprintf(fname, "laplace.%2.2f.mgz", mri_laplace->xsize) ;
+    MRIwrite(mri_laplace, fname) ;
+  }
+  MRIfree(&mri_interior) ; MRIfree(&mri_pial) ; VLSTfree(&vl) ;
+  return(mri_laplace) ;
+}

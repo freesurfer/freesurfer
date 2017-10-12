@@ -1551,6 +1551,7 @@ int MRIcomputeVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox,
 			      MRI *mri_seg, MRI *mri_fractions) ;
 
 MRI *MRInbrThresholdLabel(MRI *mri_src, MRI *mri_dst,  int label, int out_label, int whalf,  float thresh) ;
+  MRI *MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int target_label);
 
 #ifdef FS_CUDA
   void MRImarkLabelBorderVoxelsGPU( const MRI* mri_src,
