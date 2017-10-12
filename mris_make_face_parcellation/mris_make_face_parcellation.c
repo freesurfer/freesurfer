@@ -356,7 +356,7 @@ main(int argc, char *argv[]) {
   mris->ct = CTABalloc(do_vertices ? mris_ico->nvertices : mris_ico->nfaces) ;
   // Search an additional 100 times for a unique set of RGBs
   CTABunique(mris->ct, 100);
-  if(CTABcountRepeats(mris->ct) != 0){
+  if(CTABcountRepeats(mris->ct, 1) != 0){
     printf("ERROR: could not find a unique color table\n");
     exit(1);
   }
