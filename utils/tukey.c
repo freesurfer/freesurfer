@@ -5,7 +5,7 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
  * CVS Revision Info:
  *    $Author: nicks $
  *    $Date: 2011/03/02 00:04:55 $
@@ -23,23 +23,19 @@
  *
  */
 
-
-#include <stdlib.h>
 #include "tukey.h"
+#include <stdlib.h>
 
-double
-tukey_biweight(double residual, double C)
-{
-  double p ;
+double tukey_biweight(double residual, double C) {
+  double p;
 
   if (abs(residual) > C)
-    return(C*C/2) ;
-  else
-  {
-    p = residual/C ;
-    p *= p ;
-    p = 1-p ;
-    p = p*p*p ;
-    return(((C*C)/2)*(1-p)) ;
+    return (C * C / 2);
+  else {
+    p = residual / C;
+    p *= p;
+    p = 1 - p;
+    p = p * p * p;
+    return (((C * C) / 2) * (1 - p));
   }
 }

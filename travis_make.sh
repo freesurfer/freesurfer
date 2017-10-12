@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-set -ex
+#set -ex
 
 make -j4 >& build.log
-
+EXITSTATUS=$?
+tail -n 20 build.log
+exit $EXITSTATUS

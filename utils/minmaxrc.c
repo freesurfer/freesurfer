@@ -5,7 +5,7 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
  * CVS Revision Info:
  *    $Author: nicks $
  *    $Date: 2011/03/02 00:04:45 $
@@ -23,7 +23,6 @@
  *
  */
 
-
 /**************************************************************
  * Name:    minmaxrc.c
  * Author:  Douglas N. Greve, 5/14/96
@@ -35,40 +34,29 @@
  ***************************************************************/
 
 #include <hips.h>
+
 #include "minmaxrc.h"
 
 /************************************************************/
-int h_minmaxrc(struct header *phdSrc,
-               Pixelval *Min, int MinPoint[2],
-               Pixelval *Max, int MaxPoint[2])
-{
-  switch (phdSrc->pixel_format)
-  {
-  case PFBYTE:
-    return(h_minmaxrc_b(phdSrc,(byte *)   Min, MinPoint,
-                        (byte *)   Max, MaxPoint));
-  case PFSHORT:
-    return(h_minmaxrc_s(phdSrc, (short *) Min, MinPoint,
-                        (short *) Max, MaxPoint));
-  case PFINT:
-    return(h_minmaxrc_i(phdSrc, (int *)    Min, MinPoint,
-                        (int * )  Max, MaxPoint));
-  case PFFLOAT:
-    return(h_minmaxrc_f(phdSrc, (float *) Min, MinPoint,
-                        (float *) Max, MaxPoint));
-  default:
-    return(perr(HE_FMTSUBR,"h_minmaxrc:",
-                hformatname(phdSrc->pixel_format)));
+int h_minmaxrc(struct header *phdSrc, Pixelval *Min, int MinPoint[2], Pixelval *Max, int MaxPoint[2]) {
+  switch (phdSrc->pixel_format) {
+    case PFBYTE:
+      return (h_minmaxrc_b(phdSrc, (byte *)Min, MinPoint, (byte *)Max, MaxPoint));
+    case PFSHORT:
+      return (h_minmaxrc_s(phdSrc, (short *)Min, MinPoint, (short *)Max, MaxPoint));
+    case PFINT:
+      return (h_minmaxrc_i(phdSrc, (int *)Min, MinPoint, (int *)Max, MaxPoint));
+    case PFFLOAT:
+      return (h_minmaxrc_f(phdSrc, (float *)Min, MinPoint, (float *)Max, MaxPoint));
+    default:
+      return (perr(HE_FMTSUBR, "h_minmaxrc:", hformatname(phdSrc->pixel_format)));
   }
 }
 
 /************************************************************/
-int h_minmaxrc_b(struct header *phdSrc,
-                 byte *Min, int MinPoint[2],
-                 byte *Max, int MaxPoint[2])
-{
-  register int r,c;
-  register byte x,*p;
+int h_minmaxrc_b(struct header *phdSrc, byte *Min, int MinPoint[2], byte *Max, int MaxPoint[2]) {
+  register int r, c;
+  register byte x, *p;
 
   p = phdSrc->image;
 
@@ -79,34 +67,26 @@ int h_minmaxrc_b(struct header *phdSrc,
   MaxPoint[0] = 0;
   MaxPoint[1] = 0;
 
-  for (r=0;r<phdSrc->rows;r++)
-  {
-    for (c=0;c<phdSrc->cols;c++)
-    {
+  for (r = 0; r < phdSrc->rows; r++) {
+    for (c = 0; c < phdSrc->cols; c++) {
       x = *p++;
-      if (x > *Max)
-      {
+      if (x > *Max) {
         *Max = x;
         MaxPoint[0] = r;
         MaxPoint[1] = c;
-      }
-      else if (x < *Min)
-      {
+      } else if (x < *Min) {
         *Min = x;
         MinPoint[0] = r;
         MinPoint[1] = c;
       }
     }
   }
-  return(HIPS_OK);
+  return (HIPS_OK);
 }
 /************************************************************/
-int h_minmaxrc_s(struct header *phdSrc,
-                 short *Min, int MinPoint[2],
-                 short *Max, int MaxPoint[2])
-{
-  register int r,c;
-  register short x,*p;
+int h_minmaxrc_s(struct header *phdSrc, short *Min, int MinPoint[2], short *Max, int MaxPoint[2]) {
+  register int r, c;
+  register short x, *p;
 
   p = (short *)phdSrc->image;
 
@@ -117,34 +97,26 @@ int h_minmaxrc_s(struct header *phdSrc,
   MaxPoint[0] = 0;
   MaxPoint[1] = 0;
 
-  for (r=0;r<phdSrc->rows;r++)
-  {
-    for (c=0;c<phdSrc->cols;c++)
-    {
+  for (r = 0; r < phdSrc->rows; r++) {
+    for (c = 0; c < phdSrc->cols; c++) {
       x = *p++;
-      if (x > *Max)
-      {
+      if (x > *Max) {
         *Max = x;
         MaxPoint[0] = r;
         MaxPoint[1] = c;
-      }
-      else if (x < *Min)
-      {
+      } else if (x < *Min) {
         *Min = x;
         MinPoint[0] = r;
         MinPoint[1] = c;
       }
     }
   }
-  return(HIPS_OK);
+  return (HIPS_OK);
 }
 /************************************************************/
-int h_minmaxrc_i(struct header *phdSrc,
-                 int *Min, int MinPoint[2],
-                 int *Max, int MaxPoint[2])
-{
-  register int r,c;
-  register int x,*p;
+int h_minmaxrc_i(struct header *phdSrc, int *Min, int MinPoint[2], int *Max, int MaxPoint[2]) {
+  register int r, c;
+  register int x, *p;
 
   p = (int *)phdSrc->image;
 
@@ -155,34 +127,26 @@ int h_minmaxrc_i(struct header *phdSrc,
   MaxPoint[0] = 0;
   MaxPoint[1] = 0;
 
-  for (r=0;r<phdSrc->rows;r++)
-  {
-    for (c=0;c<phdSrc->cols;c++)
-    {
+  for (r = 0; r < phdSrc->rows; r++) {
+    for (c = 0; c < phdSrc->cols; c++) {
       x = *p++;
-      if (x > *Max)
-      {
+      if (x > *Max) {
         *Max = x;
         MaxPoint[0] = r;
         MaxPoint[1] = c;
-      }
-      else if (x < *Min)
-      {
+      } else if (x < *Min) {
         *Min = x;
         MinPoint[0] = r;
         MinPoint[1] = c;
       }
     }
   }
-  return(HIPS_OK);
+  return (HIPS_OK);
 }
 /************************************************************/
-int h_minmaxrc_f(struct header *phdSrc,
-                 float *Min, int MinPoint[2],
-                 float *Max, int MaxPoint[2])
-{
-  register int r,c;
-  register float x,*p;
+int h_minmaxrc_f(struct header *phdSrc, float *Min, int MinPoint[2], float *Max, int MaxPoint[2]) {
+  register int r, c;
+  register float x, *p;
 
   p = (float *)phdSrc->image;
 
@@ -193,24 +157,19 @@ int h_minmaxrc_f(struct header *phdSrc,
   MaxPoint[0] = 0;
   MaxPoint[1] = 0;
 
-  for (r=0;r<phdSrc->rows;r++)
-  {
-    for (c=0;c<phdSrc->cols;c++)
-    {
+  for (r = 0; r < phdSrc->rows; r++) {
+    for (c = 0; c < phdSrc->cols; c++) {
       x = *p++;
-      if (x > *Max)
-      {
+      if (x > *Max) {
         *Max = x;
         MaxPoint[0] = r;
         MaxPoint[1] = c;
-      }
-      else if (x < *Min)
-      {
+      } else if (x < *Min) {
         *Min = x;
         MinPoint[0] = r;
         MinPoint[1] = c;
       }
     }
   }
-  return(HIPS_OK);
+  return (HIPS_OK);
 }

@@ -5,7 +5,7 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
  * CVS Revision Info:
  *    $Author: nicks $
  *    $Date: 2011/03/02 00:04:45 $
@@ -23,44 +23,41 @@
  *
  */
 
-
 #include <stdio.h>
 
 #include "machine.h"
 
-double swapDouble(double d)
-{
+double swapDouble(double d) {
   size_t typeSize = sizeof(double);
-  char *pVar = (char *) (&d);
+  char *pVar = (char *)(&d);
   char tmp;
   double w;
   size_t i;
-  for (i=0; i < typeSize/2; ++i) // typeSize must be even
+  for (i = 0; i < typeSize / 2; ++i)  // typeSize must be even
   {
     // swap front and back
-    tmp = *(pVar+2*i);
-    *(pVar+2*i) = *(pVar+typeSize-1-2*i);
-    *(pVar+typeSize-1-2*i) = tmp;
+    tmp = *(pVar + 2 * i);
+    *(pVar + 2 * i) = *(pVar + typeSize - 1 - 2 * i);
+    *(pVar + typeSize - 1 - 2 * i) = tmp;
   }
-  w = *((double *)(pVar)); // copy
+  w = *((double *)(pVar));  // copy
   return w;
 }
 
-long64 swapLong64(long64 l)
-{
+long64 swapLong64(long64 l) {
   size_t typeSize = sizeof(long64);
-  char *pVar = (char *) (&l);
+  char *pVar = (char *)(&l);
   char tmp;
   double w;
   size_t i;
-  for (i=0; i < typeSize/2; ++i) // typeSize must be even
+  for (i = 0; i < typeSize / 2; ++i)  // typeSize must be even
   {
     // swap front and back
-    tmp = *(pVar+2*i);
-    *(pVar+2*i) = *(pVar+typeSize-1-2*i);
-    *(pVar+typeSize-1-2*i) = tmp;
+    tmp = *(pVar + 2 * i);
+    *(pVar + 2 * i) = *(pVar + typeSize - 1 - 2 * i);
+    *(pVar + typeSize - 1 - 2 * i) = tmp;
   }
-  w = *((long64 *)(pVar)); // copy
+  w = *((long64 *)(pVar));  // copy
   return w;
 }
 
@@ -68,81 +65,71 @@ long64 swapLong64(long64 l)
 //           64 bit architecture long is 64 bit!!!!!
 // the following works only for 32 bit architecture
 // double is always 64 bit and float is always 32 bit
-typedef union
-{
-  long32  l ;
-  float f ;
-  int   i ;
-  char  buf[4] ;
-  short s[2] ;
-} SWAP_LONG32 ;
+typedef union {
+  long32 l;
+  float f;
+  int i;
+  char buf[4];
+  short s[2];
+} SWAP_LONG32;
 
 /* does not work for 64 bit OS */
-long32
-swapLong32(long32 l)
-{
-  SWAP_LONG32  sl ;
-  short      s ;
+long32 swapLong32(long32 l) {
+  SWAP_LONG32 sl;
+  short s;
 
   /* first swap bytes in each word */
-  sl.l = l ;
-  sl.s[0] = swapShort(sl.s[0]) ;
-  sl.s[1] = swapShort(sl.s[1]) ;
+  sl.l = l;
+  sl.s[0] = swapShort(sl.s[0]);
+  sl.s[1] = swapShort(sl.s[1]);
 
   /* now swap words */
-  s = sl.s[0] ;
-  sl.s[0] = sl.s[1] ;
-  sl.s[1] = s ;
+  s = sl.s[0];
+  sl.s[0] = sl.s[1];
+  sl.s[1] = s;
 
-  return(sl.l) ;
+  return (sl.l);
 }
 
-float
-swapFloat(float f)
-{
-  SWAP_LONG32  sl ;
-  short      s ;
+float swapFloat(float f) {
+  SWAP_LONG32 sl;
+  short s;
 
   /* first swap bytes in each word */
-  sl.f = f ;
-  sl.s[0] = swapShort(sl.s[0]) ;
-  sl.s[1] = swapShort(sl.s[1]) ;
+  sl.f = f;
+  sl.s[0] = swapShort(sl.s[0]);
+  sl.s[1] = swapShort(sl.s[1]);
 
   /* now swap words */
-  s = sl.s[0] ;
-  sl.s[0] = sl.s[1] ;
-  sl.s[1] = s ;
+  s = sl.s[0];
+  sl.s[0] = sl.s[1];
+  sl.s[1] = s;
 
-  return(sl.f) ;
+  return (sl.f);
 }
 
-typedef union
-{
-  short  s ;
-  char   buf[sizeof(short)] ;
-} SWAP_SHORT ;
+typedef union {
+  short s;
+  char buf[sizeof(short)];
+} SWAP_SHORT;
 
-short
-swapShort(short s)
-{
-  SWAP_SHORT ss ;
-  char       c ;
+short swapShort(short s) {
+  SWAP_SHORT ss;
+  char c;
 
   /* first swap bytes in word */
-  ss.s = s ;
-  c = ss.buf[0] ;
-  ss.buf[0] = ss.buf[1] ;
-  ss.buf[1] = c ;
+  ss.s = s;
+  c = ss.buf[0];
+  ss.buf[0] = ss.buf[1];
+  ss.buf[1] = c;
 
-  return(ss.s) ;
+  return (ss.s);
 }
 
-typedef union
-{
-  double  d ;
-  long    l[sizeof(double) / sizeof(long)] ;
-} SWAP_DOUBLE ;
-
+typedef union {
+  double d;
+  long l[sizeof(double) / sizeof(long)];
+} SWAP_DOUBLE;
 
 /* the following does not work for 64 bit
 double
@@ -163,23 +150,21 @@ swapDouble(double d)
 }
 */
 
-int
-swapInt(int i)
-{
-  SWAP_LONG32  sl ;
-  short      s ;
+int swapInt(int i) {
+  SWAP_LONG32 sl;
+  short s;
 
   /* first swap bytes in each word */
-  sl.i = i ;
-  sl.s[0] = swapShort(sl.s[0]) ;
-  sl.s[1] = swapShort(sl.s[1]) ;
+  sl.i = i;
+  sl.s[0] = swapShort(sl.s[0]);
+  sl.s[1] = swapShort(sl.s[1]);
 
   /* now swap words */
-  s = sl.s[0] ;
-  sl.s[0] = sl.s[1] ;
-  sl.s[1] = s ;
+  s = sl.s[0];
+  sl.s[0] = sl.s[1];
+  sl.s[1] = s;
 
-  return(sl.i) ;
+  return (sl.i);
 }
 /*---------------------------------------------------------
   Name: int Arch486(void)
@@ -191,16 +176,17 @@ swapInt(int i)
     3. This is consistent with the endianness flag in the
        bshort/bfloat format.
   --------------------------------------------------------*/
-int Arch486(void)
-{
+int Arch486(void) {
   int endian;
   short tmp = 1;
   char *ctmp;
 
   ctmp = (char *)(&tmp);
-  if (*(ctmp+1) == 1) endian = 0;
-  else               endian = 1;
-  return(endian);
+  if (*(ctmp + 1) == 1)
+    endian = 0;
+  else
+    endian = 1;
+  return (endian);
 }
 /*---------------------------------------------------------
   Name: ByteSwapBuf()
@@ -208,114 +194,102 @@ int Arch486(void)
   in Buf. nitems is the number of nBytesPerItem-byte items
   in Buf.
   ---------------------------------------------------------*/
-int ByteSwapBuf(void *Buf, long int nItems, int nBytesPerItem)
-{
-  switch (nBytesPerItem)
-  {
-  case 1:
-    break;
-  case 2:
-    ByteSwap2(Buf, nItems);
-    break;
-  case 4:
-    ByteSwap4(Buf, nItems);
-    break;
-  case 8:
-    ByteSwap8(Buf, nItems);
-    break;
-  default:
-    printf("ERROR: ByteSwapBuf: nBytesPerItem = %d not supported\n",
-           nBytesPerItem);
-    return(1);
+int ByteSwapBuf(void *Buf, long int nItems, int nBytesPerItem) {
+  switch (nBytesPerItem) {
+    case 1:
+      break;
+    case 2:
+      ByteSwap2(Buf, nItems);
+      break;
+    case 4:
+      ByteSwap4(Buf, nItems);
+      break;
+    case 8:
+      ByteSwap8(Buf, nItems);
+      break;
+    default:
+      printf("ERROR: ByteSwapBuf: nBytesPerItem = %d not supported\n", nBytesPerItem);
+      return (1);
   }
-  return(0);
+  return (0);
 }
 /*---------------------------------------------------------
   Name: ByteSwap2()
   Reverses the byte order of each 2-byte buffer of buf2.
   nitems is the number of 2-byte items in buf2;
   ---------------------------------------------------------*/
-int ByteSwap2(void *buf2, long int nitems)
-{
+int ByteSwap2(void *buf2, long int nitems) {
   register char *cbuf, ctmp;
   register long int n;
 
-  cbuf = (char *) buf2;
-  for (n=0; n < nitems ; n+=2)
-  {
+  cbuf = (char *)buf2;
+  for (n = 0; n < nitems; n += 2) {
     ctmp = *cbuf;
-    *cbuf = *(cbuf+1);
-    *(cbuf+1) = ctmp;
+    *cbuf = *(cbuf + 1);
+    *(cbuf + 1) = ctmp;
     cbuf += 2;
   }
-  return(0);
+  return (0);
 }
 /*---------------------------------------------------------
   Name: ByteSwap4()
   Reverses the byte order of each 4-byte buffer of buf4.
   nitems is the number of 4-byte items in buf4;
   ---------------------------------------------------------*/
-int ByteSwap4(void *buf4, long int nitems)
-{
+int ByteSwap4(void *buf4, long int nitems) {
   register char *cbuf, ctmp;
   register long int n;
 
-  cbuf = (char *) buf4;
-  for (n=0; n < nitems ; n+=4)
-  {
-
+  cbuf = (char *)buf4;
+  for (n = 0; n < nitems; n += 4) {
     /* swap the first and fourth */
     ctmp = *cbuf;
-    *cbuf = *(cbuf+3);
-    *(cbuf+3) = ctmp;
+    *cbuf = *(cbuf + 3);
+    *(cbuf + 3) = ctmp;
 
     /* swap the second and third */
-    ctmp = *(cbuf+1);
-    *(cbuf+1) = *(cbuf+2);
-    *(cbuf+2) = ctmp;
+    ctmp = *(cbuf + 1);
+    *(cbuf + 1) = *(cbuf + 2);
+    *(cbuf + 2) = ctmp;
 
     cbuf += 4;
   }
 
-  return(0);
+  return (0);
 }
 /*---------------------------------------------------------
   Name: ByteSwap8()
   Reverses the byte order of each 8-byte buffer of buf8.
   nitems is the number of 8-byte items in buf8;
   ---------------------------------------------------------*/
-int ByteSwap8(void *buf8, long int nitems)
-{
+int ByteSwap8(void *buf8, long int nitems) {
   register char *cbuf, ctmp;
   register long int n;
 
-  cbuf = (char *) buf8;
-  for (n=0; n < nitems ; n+=8)
-  {
-
+  cbuf = (char *)buf8;
+  for (n = 0; n < nitems; n += 8) {
     /* swap the first and eigth */
     ctmp = *cbuf;
-    *cbuf = *(cbuf+7);
-    *(cbuf+7) = ctmp;
+    *cbuf = *(cbuf + 7);
+    *(cbuf + 7) = ctmp;
 
     /* swap the second and seventh */
-    ctmp = *(cbuf+1);
-    *(cbuf+1) = *(cbuf+6);
-    *(cbuf+6) = ctmp;
+    ctmp = *(cbuf + 1);
+    *(cbuf + 1) = *(cbuf + 6);
+    *(cbuf + 6) = ctmp;
 
     /* swap the third and sixth */
-    ctmp = *(cbuf+2);
-    *(cbuf+2) = *(cbuf+5);
-    *(cbuf+5) = ctmp;
+    ctmp = *(cbuf + 2);
+    *(cbuf + 2) = *(cbuf + 5);
+    *(cbuf + 5) = ctmp;
 
     /* swap the fourth and fifth */
-    ctmp = *(cbuf+3);
-    *(cbuf+3) = *(cbuf+4);
-    *(cbuf+4) = ctmp;
+    ctmp = *(cbuf + 3);
+    *(cbuf + 3) = *(cbuf + 4);
+    *(cbuf + 4) = ctmp;
 
     cbuf += 8;
   }
 
-  return(0);
+  return (0);
 }
-

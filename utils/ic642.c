@@ -5,7 +5,7 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
  * CVS Revision Info:
  *    $Author: nicks $
  *    $Date: 2011/03/02 00:04:45 $
@@ -23,17 +23,15 @@
  *
  */
 
-
 #include <stdio.h>
-#include "mrisurf.h"
-#include "error.h"
 #include "diag.h"
+#include "error.h"
 #include "icosahedron.h"
-
+#include "mrisurf.h"
 
 #define ICO_NVERTICES 642
 
-
+// clang-format off
 IC_VERTEX ic642_vertices[642] =
   {
     { +0.000000, +0.000000, +1.000000 },
@@ -1965,134 +1963,116 @@ IC_FACE  ic642_faces[1280] =
     {{ 634, 642, 607 }},
     {{ 634, 607,  12 }}
   } ;
-MRI_SURFACE *
-ic642_make_surface(int max_vertices, int max_faces)
-{
-  MRI_SURFACE *mris ;
-  int         vno, fno, n, vn, n1, n2 ;
-  VERTEX      *v ;
-  FACE        *f ;
-  static int first_time = 1 ;
+// clang-format on
+MRI_SURFACE *ic642_make_surface(int max_vertices, int max_faces) {
+  MRI_SURFACE *mris;
+  int vno, fno, n, vn, n1, n2;
+  VERTEX *v;
+  FACE *f;
+  static int first_time = 1;
 
-  if (first_time)
-  {
-    first_time = 0 ;
-    for (fno = 0 ; fno < ICO_NFACES ; fno++)
-    {
-      vno = ic642_faces[fno].vno[1] ;
-      ic642_faces[fno].vno[1] = ic642_faces[fno].vno[2] ;
-      ic642_faces[fno].vno[2] = vno ;
+  if (first_time) {
+    first_time = 0;
+    for (fno = 0; fno < ICO_NFACES; fno++) {
+      vno = ic642_faces[fno].vno[1];
+      ic642_faces[fno].vno[1] = ic642_faces[fno].vno[2];
+      ic642_faces[fno].vno[2] = vno;
     }
   }
 
-  mris = MRISoverAlloc(max_vertices, max_faces, ICO_NVERTICES, ICO_NFACES) ;
+  mris = MRISoverAlloc(max_vertices, max_faces, ICO_NVERTICES, ICO_NFACES);
 
   /* position vertices */
-  for (vno = 0 ; vno < ICO_NVERTICES ; vno++)
-  {
-    v = &mris->vertices[vno] ;
+  for (vno = 0; vno < ICO_NVERTICES; vno++) {
+    v = &mris->vertices[vno];
 
-    v->x = 100.0*ic642_vertices[vno].x ;
-    v->y = 100.0*ic642_vertices[vno].y ;
-    v->z = 100.0*ic642_vertices[vno].z ;
+    v->x = 100.0 * ic642_vertices[vno].x;
+    v->y = 100.0 * ic642_vertices[vno].y;
+    v->z = 100.0 * ic642_vertices[vno].z;
   }
 
   /* fill in faces, and count # of faces each vertex is part of */
-  for (fno = 0 ; fno < ICO_NFACES ; fno++)
-  {
-    f = &mris->faces[fno] ;
-    if (fno == 15)
-      DiagBreak() ;
-    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-    {
-      f->v[n] = ic642_faces[fno].vno[n]-1 ;  /* make it zero-based */
-      v = &mris->vertices[f->v[n]] ;
-      v->num++ ;
-      v->vnum += 2 ;   /* will remove duplicates later */
+  for (fno = 0; fno < ICO_NFACES; fno++) {
+    f = &mris->faces[fno];
+    if (fno == 15) DiagBreak();
+    for (n = 0; n < VERTICES_PER_FACE; n++) {
+      f->v[n] = ic642_faces[fno].vno[n] - 1; /* make it zero-based */
+      v = &mris->vertices[f->v[n]];
+      v->num++;
+      v->vnum += 2; /* will remove duplicates later */
     }
   }
 
-  for (vno = 0 ; vno < ICO_NVERTICES ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    v->v = (int *)calloc(v->vnum/2, sizeof(int)) ;
-    if (!v->v)
-      ErrorExit(ERROR_NOMEMORY, "ic642: could not allocate %dth vertex list.",
-                vno) ;
-    v->vnum = 0 ;
+  for (vno = 0; vno < ICO_NVERTICES; vno++) {
+    v = &mris->vertices[vno];
+    v->v = (int *)calloc(v->vnum / 2, sizeof(int));
+    if (!v->v) ErrorExit(ERROR_NOMEMORY, "ic642: could not allocate %dth vertex list.", vno);
+    v->vnum = 0;
   }
 
   /* now build list of neighbors */
-  for (fno = 0 ; fno < ICO_NFACES ; fno++)
-  {
-    f = &mris->faces[fno] ;
-    if (fno == 3)
-      DiagBreak() ;
-    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-    {
-      v = &mris->vertices[f->v[n]] ;
+  for (fno = 0; fno < ICO_NFACES; fno++) {
+    f = &mris->faces[fno];
+    if (fno == 3) DiagBreak();
+    for (n = 0; n < VERTICES_PER_FACE; n++) {
+      v = &mris->vertices[f->v[n]];
 
       /* now add an edge to other 2 vertices if not already in list */
-      for (n1 = 0 ; n1 < VERTICES_PER_FACE ; n1++)
-      {
-        if (n1 == n)   /* don't connect vertex to itself */
-          continue ;
-        vn = ic642_faces[fno].vno[n1]-1 ;  /* make it zero-based */
+      for (n1 = 0; n1 < VERTICES_PER_FACE; n1++) {
+        if (n1 == n) /* don't connect vertex to itself */
+          continue;
+        vn = ic642_faces[fno].vno[n1] - 1; /* make it zero-based */
 
         /* now check to make sure it's not a duplicate */
-        for (n2 = 0 ; n2 < v->vnum ; n2++)
-        {
-          if (v->v[n2] == vn)
-          {
-            vn = -1 ; /* mark it as a duplicate */
-            break ;
+        for (n2 = 0; n2 < v->vnum; n2++) {
+          if (v->v[n2] == vn) {
+            vn = -1; /* mark it as a duplicate */
+            break;
           }
         }
-        if (vn >= 0)
-          v->v[v->vnum++] = vn ;
+        if (vn >= 0) v->v[v->vnum++] = vn;
       }
     }
   }
 
   /* now allocate face arrays in vertices */
-  for (vno = 0 ; vno < ICO_NVERTICES ; vno++)
-  {
-    v->vtotal = v->vnum ;
-    v = &mris->vertices[vno] ;
-    v->f = (int *)calloc(v->num, sizeof(int)) ;
-    if (!v->f)
-      ErrorExit(ERROR_NO_MEMORY,"ic642: could not allocate %d faces",v->num);
-    v->n = (uchar *)calloc(v->num,sizeof(uchar));
-    if (!v->n)
-      ErrorExit(ERROR_NO_MEMORY, "ic642: could not allocate %d nbrs", v->n);
-    v->num = 0 ;   /* for use as counter in next section */
-    v->dist = (float *)calloc(v->vnum, sizeof(float)) ;
+  for (vno = 0; vno < ICO_NVERTICES; vno++) {
+    v->vtotal = v->vnum;
+    v = &mris->vertices[vno];
+    v->f = (int *)calloc(v->num, sizeof(int));
+    if (!v->f) ErrorExit(ERROR_NO_MEMORY, "ic642: could not allocate %d faces", v->num);
+    v->n = (uchar *)calloc(v->num, sizeof(uchar));
+    if (!v->n) ErrorExit(ERROR_NO_MEMORY, "ic642: could not allocate %d nbrs", v->n);
+    v->num = 0; /* for use as counter in next section */
+    v->dist = (float *)calloc(v->vnum, sizeof(float));
     if (!v->dist)
       ErrorExit(ERROR_NOMEMORY,
                 "mrisFindNeighbors: could not allocate list of %d "
-                "dists at v=%d", v->vnum, vno) ;
-    v->dist_orig = (float *)calloc(v->vnum, sizeof(float)) ;
+                "dists at v=%d",
+                v->vnum,
+                vno);
+    v->dist_orig = (float *)calloc(v->vnum, sizeof(float));
     if (!v->dist_orig)
       ErrorExit(ERROR_NOMEMORY,
                 "mrisFindNeighbors: could not allocate list of %d "
-                "dists at v=%d", v->vnum, vno) ;
-    v->nsize = 1 ;
-    v->vtotal = v->vnum ;
+                "dists at v=%d",
+                v->vnum,
+                vno);
+    v->nsize = 1;
+    v->vtotal = v->vnum;
   }
 
   /* fill in face indices in vertex structures */
-  for (fno = 0 ; fno < ICO_NFACES ; fno++)
-  {
-    f = &mris->faces[fno] ;
-    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
-    {
-      v = &mris->vertices[f->v[n]] ;
-      v->n[v->num] = n ;
-      v->f[v->num++] = fno ;
+  for (fno = 0; fno < ICO_NFACES; fno++) {
+    f = &mris->faces[fno];
+    for (n = 0; n < VERTICES_PER_FACE; n++) {
+      v = &mris->vertices[f->v[n]];
+      v->n[v->num] = n;
+      v->f[v->num++] = fno;
     }
   }
 
-  MRIScomputeMetricProperties(mris) ;
+  MRIScomputeMetricProperties(mris);
 #if 0
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
@@ -2119,7 +2099,7 @@ ic642_make_surface(int max_vertices, int max_faces)
     }
   }
 #endif
-  mris->type = MRIS_ICO_SURFACE ;
-  MRISsetNeighborhoodSize(mris, 1) ;
-  return(mris) ;
+  mris->type = MRIS_ICO_SURFACE;
+  MRISsetNeighborhoodSize(mris, 1);
+  return (mris);
 }
