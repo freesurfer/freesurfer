@@ -83,6 +83,7 @@ static double max_wm_dist = -2.5 ;
 
 //static VOXEL_LIST *MRIfindBestSpline(MRI *mri_aseg, MRI *mri_wm_dist, int label1_target, int label2_target, int ncontrol) ;
 
+static int hemi = 0 ;
 static int label1_target = -1 ;
 static int label2_target = -1 ;
 static int ncontrol = 5 ;
@@ -94,7 +95,7 @@ static double acceptance_sigma = 6 ;
 static double compute_spline_energy(VOXEL_LIST *vl, MRI *mri_wm_dist, int flags, double spline_length_penalty, double spline_interior_penalty) ;
 static VOXEL_LIST *find_optimal_spline(VOXEL_LIST *vl, MRI *mri_aseg, MRI *mri_wm_dist, int mcmc_samples, double spline_length_penalty, double spline_interior_penalty) ;
 
-static MRI *MRIinteriorDistanceTransform(MRI *mri_aseg, MRI *mri_wm_interior, MRI *mri_paths, int label) ;
+static MRI *MRIinteriorDistanceTransform(MRI *mri_aseg, MRI *mri_wm_interior, MRI *mri_paths, int label, int hemi) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 static VOXEL_LIST *compute_spline_initialization(MRI *mri_aseg, MRI *mri_wm, MRI *mri_wm_dist, MRI *mri_label1_dist, MRI *mri_dist_grad, int label1, int label2, int min_spline_control_points) ;
@@ -119,8 +120,8 @@ static int xhemi = 0 ;  // if 1, only do homologous ROIs across the hemis
 
 int
 main(int argc, char *argv[]) {
-  char         **av, fname[STRLEN], *subject, base_name[STRLEN] ;
-  int          ac, nargs, x, y, z, labels[MAX_LABELS], label_found[MAX_LABELS], nlabels ;
+  char         fname[STRLEN], *subject, base_name[STRLEN] ;
+  int          nargs, x, y, z, labels[MAX_LABELS], label_found[MAX_LABELS], nlabels ;
   int          msec, minutes, seconds, label, label2 ;
   struct timeb start ;
   MRI          *mri_aseg, *mri_wm, *mri_label1_dist, *mri_dist_grad, *mri_smooth, *mri_wm_dist ;
@@ -141,8 +142,6 @@ main(int argc, char *argv[]) {
   TimerStart(&start) ;
 
   setRandomSeed(0L) ;
-  ac = argc ;
-  av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
@@ -212,6 +211,10 @@ main(int argc, char *argv[]) {
   if (label1_target > 0)  // operate in two-label mode
   {
     VOXEL_LIST *vl_spline ;
+    MRI        *mri_laplace ;
+
+    mri_laplace = MRIsolveLaplaceEquation(mri_wm_only, mri_aseg, label1_target, label2_target) ;
+    MRIwrite(mri_laplace, "lap.mgz");
 
     mri_tmp = MRIclone(mri_aseg, NULL) ;
     MRIcopyLabel(mri_aseg, mri_tmp, label1_target) ;
@@ -221,7 +224,7 @@ main(int argc, char *argv[]) {
 
     MRIcopy(mri_wm_only, mri_wm) ;
     mri_tmp = MRInbrThresholdLabel(mri_aseg, NULL, label1_target, 0, 1, 5) ;  // remove isolated voxels in label
-    mri_label1_dist = MRIinteriorDistanceTransform(mri_tmp, mri_wm, NULL, label1_target) ;
+    mri_label1_dist = MRIinteriorDistanceTransform(mri_tmp, mri_wm, NULL, label1_target, hemi) ;
     MRIfree(&mri_tmp) ;
 
     mri_smooth = MRIsmoothLabel6Connected(mri_label1_dist, mri_wm, NULL, 500, 1, 2, .5) ;
@@ -280,7 +283,7 @@ main(int argc, char *argv[]) {
     if (label == 16)
       DiagBreak() ;
     mri_tmp = MRInbrThresholdLabel(mri_aseg, NULL, labels[label], 0, 1, 5) ;  // remove isolated voxels in label
-    mri_label1_dist = MRIinteriorDistanceTransform(mri_tmp, mri_wm, NULL, labels[label]) ;
+    mri_label1_dist = MRIinteriorDistanceTransform(mri_tmp, mri_wm, NULL, labels[label], hemi) ;
     MRIfree(&mri_tmp) ;
 
     // temporarily add target label to wm so it affects smoothing
@@ -419,6 +422,18 @@ get_option(int argc, char *argv[]) {
     printf("using %s as SUBJECTS_DIR\n", sdir) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "LH"))
+  {
+    hemi = LEFT_HEMISPHERE ;
+    nargs = 1 ;
+    printf("assuming label is left hemisphere\n") ;
+  }
+  else if (!stricmp(option, "RH"))
+  {
+    hemi = RIGHT_HEMISPHERE ;
+    nargs = 1 ;
+    printf("assuming label is right hemisphere\n") ;
+  }
   else if (!stricmp(option, "XHEMI"))
   {
     xhemi = 1 ;
@@ -485,7 +500,7 @@ usage_exit(int code) {
 #define MAX_THICKNESS 5
 
 static MRI *
-MRIinteriorDistanceTransform(MRI *mri_aseg, MRI *mri_wm_interior, MRI *mri_paths, int target_label)
+MRIinteriorDistanceTransform(MRI *mri_aseg, MRI *mri_wm_interior, MRI *mri_paths, int target_label, int hemi)
 {
   int         x, y,z, nadded, n, max_thick_vox, i, xi, yi, zi, xk, yk, zk, label, nbr_label ;
   VOXEL_LIST  *vl_current, *vl_next ;
@@ -526,7 +541,9 @@ MRIinteriorDistanceTransform(MRI *mri_aseg, MRI *mri_wm_interior, MRI *mri_paths
 	      continue ;
 	    if (label >= MIN_CORTEX)  //  make first step from gm into wm of the correct hemi
 	    {
-	      if (label >= MIN_LH_CORTEX && label <= MAX_LH_CORTEX)  // in the left hemi
+	      // user might use a label that needs to be explicitly identified
+	      if ((label >= MIN_LH_CORTEX && label <= MAX_LH_CORTEX) ||
+		  ((label == target_label) && (hemi == LEFT_HEMISPHERE))) // in the left hemi
 	      {
 		if (MRIgetVoxVal(mri_aseg, xi, yi, zi, 0) == Right_Cerebral_White_Matter)
 		  continue ;
@@ -1119,7 +1136,7 @@ compute_path_to_label(MRI *mri_aseg, MRI *mri_wm, MRI *mri_dist_grad, MRI *mri_d
 {
   double     step, xc, yc, zc, dist, min_dist ;
   VOXEL_LIST *vl ;
-  int        label = 0, max_steps, nvox, xk, yk, zk, xi, yi, zi, xm, ym, zm, pno, odx, ody, odz, dx, dy, dz, xv, yv, zv, found,
+  int        label = 0, max_steps, nvox, xk, yk, zk, xi, yi, zi, xm, ym, zm, odx, ody, odz, dx, dy, dz, xv, yv, zv, found,
     backtrack_steps = 10, current_label, restarted = 0 ;
   MRI        *mri_path ;
   char        fname[STRLEN] ;
@@ -1253,7 +1270,6 @@ compute_path_to_label(MRI *mri_aseg, MRI *mri_wm, MRI *mri_dist_grad, MRI *mri_d
       VLSTfree(&vl) ; MRIfree(&mri_path) ;
       ErrorReturn(NULL, (ERROR_BADPARM, "!!!!!!!!!!!!!! path to label %d from label %d left volume !!!!!!!!!!!", label1, label2)) ;
     }
-    pno = MRIgetVoxVal(mri_path, xv, yv, zv, 0) ;
     odx = dx ; ody = dy ; odz = dz ;
     VLSTadd(vl, nint(xv), nint(yv), nint(zv), xv, yv, zv);
     MRIsetVoxVal(mri_path, xv, yv, zv, 0, vl->nvox+1) ;
