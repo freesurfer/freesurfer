@@ -492,11 +492,7 @@ int CTABunique(COLOR_TABLE *ct, int nmax)
   while (n < nmax) {
     n++;
     CTABrandom(ct);
-<<<<<<< HEAD
     if(CTABcountRepeats(ct,1)==0) break;
-=======
-    if (CTABcountRepeats(ct) == 0) break;
->>>>>>> bc9a574b6c2584ffe456f2c4fdc4f3950e011331
   }
   if (n == nmax) {
     printf("INFO: CTABunique() could not find a unique set in %d tries\n", nmax);
@@ -511,8 +507,6 @@ int CTABunique(COLOR_TABLE *ct, int nmax)
   \param if break_after_found !=0 will stop after finding the first
          repeat (as in call from CTABunique to prevent N^2 search
 */
-<<<<<<< HEAD
-<<<<<<< HEAD
 int CTABcountRepeats(COLOR_TABLE *ct, int break_after_found)
 {
   int i,j,nrepeats;
@@ -527,22 +521,6 @@ int CTABcountRepeats(COLOR_TABLE *ct, int break_after_found)
 	nrepeats++;
 	if (break_after_found)
 	  break ;
-=======
-int CTABcountRepeats(COLOR_TABLE *ct) {
-=======
-int CTABcountRepeats(COLOR_TABLE *ct)
-{
->>>>>>> 5cb50794483a79ae4823389f660211e8047eed35
-  int i, j, nrepeats;
-  nrepeats = 0;
-  for (i = 0; i < ct->nentries; i++) {
-    for (j = i + 1; j < ct->nentries; j++) {
-      if (i == j) continue;
-      if (ct->entries[i]->rf == ct->entries[j]->rf && ct->entries[i]->gf == ct->entries[j]->gf &&
-          ct->entries[i]->bf == ct->entries[j]->bf) {
-        // printf("Entries %d and %d have the same RGB\n",i,j);
-        nrepeats++;
->>>>>>> bc9a574b6c2584ffe456f2c4fdc4f3950e011331
       }
     }
   }
