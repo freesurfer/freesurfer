@@ -502,7 +502,7 @@ int CTABunique(COLOR_TABLE *ct, int nmax)
 }
 /*------------------------------------------------------------------------*/
 /*!
-  \fn int CTABcountRepeats(COLOR_TABLE *ct)
+  \fn int CTABcountRepeats(COLOR_TABLE *ct, int break_after_found)
   \brief Returns the number of pairs of entries that have the same RGB
   \param if break_after_found !=0 will stop after finding the first
          repeat (as in call from CTABunique to prevent N^2 search
