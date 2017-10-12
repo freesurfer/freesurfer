@@ -41440,14 +41440,17 @@ int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico)
   return (NO_ERROR);
 }
 #endif
+#define VERTEX_DIF(leg, v0, v1) leg[0] = v1->x - v0->x, leg[1] = v1->y - v0->y, leg[2] = v1->z - v0->z;
+
+#if 0
+// defined in tritri.h
 #define CROSS(dest, v1, v2)                \
   dest[0] = v1[1] * v2[2] - v1[2] * v2[1]; \
   dest[1] = v1[2] * v2[0] - v1[0] * v2[2]; \
   dest[2] = v1[0] * v2[1] - v1[1] * v2[0];
 
-#define VERTEX_DIF(leg, v0, v1) leg[0] = v1->x - v0->x, leg[1] = v1->y - v0->y, leg[2] = v1->z - v0->z;
-
 #define DOT(v1, v2) (v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2])
+#endif
 #if 0
 static float mrisComputeFaceStretch(MRI_SURFACE *mris, int fno) ;
 /*-----------------------------------------------------
