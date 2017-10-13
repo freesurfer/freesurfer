@@ -6356,7 +6356,7 @@ static void E0000(int IENTRY,
 #define qxmon(zx, zy, zz) (int)((zx) <= (zy) && (zy) <= (zz))
   static double absstp, abstol, big, fbig, fsmall, relstp, reltol, small, step, stpmul, xhi, xlb, xlo, xsave, xub, yy;
   static int i99999;
-  static unsigned long qbdd, qcond, qdum1, qdum2, qincr, qlim, qok, qup;
+  static unsigned long qbdd, qcond, qdum1, qdum2, qincr, qlim, qup;
   switch (IENTRY) {
     case 0:
       goto DINVR;

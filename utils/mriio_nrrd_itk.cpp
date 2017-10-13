@@ -88,8 +88,10 @@ extern "C" {
 #undef ULONG
 #endif
 
+#if GCC_VERSION > 40408
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
+#endif
 
 #include "itkImage.h"
 //#include "itkExceptionObject.h"

@@ -5400,7 +5400,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   char **FileNames, *dcmdir;
   DICOMInfo RefDCMInfo, TmpDCMInfo, **dcminfo;
   int nfiles, nframes, nslices, r, c, s, f, err, fid;
-  int ndcmfiles, nthfile, mritype = 0, nvox, IsDWI, IsPhilipsDWI;
+  int ndcmfiles, nthfile, mritype = 0, IsDWI, IsPhilipsDWI;
   unsigned short *v16 = NULL;
   unsigned char *v08 = NULL;
   DCM_ELEMENT *element;
