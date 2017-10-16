@@ -1551,7 +1551,10 @@ int MRIcomputeVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox,
 			      MRI *mri_seg, MRI *mri_fractions) ;
 
 MRI *MRInbrThresholdLabel(MRI *mri_src, MRI *mri_dst,  int label, int out_label, int whalf,  float thresh) ;
-  MRI *MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int target_label);
+MRI *MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int target_label,
+			       float source_val,float target_val, float outside_val);
+
+  int MRIsampleVolumeFrameMasked(const MRI *mri, const MRI *mri_mask, double x, double y, double z, const int frame, double *pval);
 
 #ifdef FS_CUDA
   void MRImarkLabelBorderVoxelsGPU( const MRI* mri_src,
@@ -1570,5 +1573,6 @@ MRI *MRInbrThresholdLabel(MRI *mri_src, MRI *mri_dst,  int label, int out_label,
 #if defined(__cplusplus)
 };
 #endif
+
 
 #endif

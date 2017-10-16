@@ -66,6 +66,9 @@
 #define MAX_LABELS  (MAX_CORTEX-MIN_CORTEX+1)
 #define XHEMI_OFFSET  1000
 
+#define LAPLACE_SOURCE  -1
+#define LAPLACE_TARGET  1
+#define LAPLACE_OUTSIDE 2
 #if 0
 static VOXEL_LIST *compute_path_to_ventricles(MRI_SURFACE *mris, int vno, MRI *mri_ventricle_dist_grad, MRI *mri_aseg) ;
 static MRI *compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri, MRI *mri_aseg, TRANSFORM *xform, MRI *mri_pvals, int spline_control_points, int mcmc_samples, int read_flag) ;
@@ -83,6 +86,7 @@ static double max_wm_dist = -2.5 ;
 
 //static VOXEL_LIST *MRIfindBestSpline(MRI *mri_aseg, MRI *mri_wm_dist, int label1_target, int label2_target, int ncontrol) ;
 
+static int use_laplace = 0 ;
 static int hemi = 0 ;
 static int label1_target = -1 ;
 static int label2_target = -1 ;
@@ -110,6 +114,10 @@ static double noise = .1 ;
 static double spline_interior_penalty = 100 ;
 
 static int vol_thresh = 75 ;
+
+extern VOXLIST *MRIcomputeLaplaceStreamline(MRI *mri_laplace, int max_steps, float x0, float y0, float z0,
+					    float source_val,float target_val, float outside_val);
+
 
 char *Progname ;
 static void usage_exit(int code) ;
@@ -203,6 +211,9 @@ main(int argc, char *argv[]) {
   MRIcopyLabel(mri_aseg, mri_wm, CC_Mid_Anterior) ;
   MRIcopyLabel(mri_aseg, mri_wm, CC_Anterior) ;
   MRIcopyLabel(mri_aseg, mri_wm, WM_hypointensities) ;
+  MRIcopyLabel(mri_aseg, mri_wm, Left_VentralDC) ;
+  MRIcopyLabel(mri_aseg, mri_wm, Right_VentralDC) ;
+  MRIcopyLabel(mri_aseg, mri_wm, Brain_Stem) ;
   MRIbinarize(mri_wm, mri_wm, 1, 0, 1) ;
   mri_wm_dist = MRIdistanceTransform(mri_wm, NULL, 1, 25, DTRANS_MODE_SIGNED, NULL);
   mri_wm_only = MRIcopy(mri_wm, NULL) ; // target label will be added to mri_wm later
@@ -211,10 +222,53 @@ main(int argc, char *argv[]) {
   if (label1_target > 0)  // operate in two-label mode
   {
     VOXEL_LIST *vl_spline ;
-    MRI        *mri_laplace ;
 
-    mri_laplace = MRIsolveLaplaceEquation(mri_wm_only, mri_aseg, label1_target, label2_target) ;
-    MRIwrite(mri_laplace, "lap.mgz");
+    if (use_laplace)
+    {
+      MRI        *mri_laplace ;
+      int xm, ym, zm, xv, yv, zv, xk, yk, zk, xi, yi, zi ;
+      double dist, min_dist ;
+      VOXLIST *vl ;
+
+      mri_laplace = MRIsolveLaplaceEquation(mri_wm_only, mri_aseg, label1_target, label2_target,LAPLACE_SOURCE,LAPLACE_TARGET,LAPLACE_OUTSIDE) ;
+      
+      min_dist = 1e10;
+      xm = ym = zm = 0 ;
+      for (xv = 0 ; xv < mri_aseg->width ; xv++)
+	for (yv = 0 ; yv < mri_aseg->height ; yv++) 
+	  for (zv = 0 ; zv < mri_aseg->depth ; zv++) 
+	  {
+	    if (MRIgetVoxVal(mri_aseg, xv, yv, zv,0) == label2_target)
+	      DiagBreak() ;
+	    if (MRIgetVoxVal(mri_aseg, xv, yv, zv,0) == label2_target && MRIlabelsInNbhd6(mri_wm,xv,yv,zv,1))
+	    {
+	      for (xk = -1 ; xk <= 1 ; xk++)
+		for (yk = -1 ; yk <= 1 ; yk++)
+		  for (zk = -1 ; zk <= 1 ; zk++)
+		  {
+		    if (abs(xk) + abs(yk) + abs(zk) != 1)
+		      continue ;  // enforce 6-connectivity
+		    xi = mri_laplace->xi[(xv+xk)] ; yi = mri_laplace->yi[(yv+yk)] ; zi = mri_laplace->zi[(zv+zk)] ;
+		    if (MRIgetVoxVal(mri_wm,xi,yi,zi,0) == 0)
+		      continue ;
+		    dist = MRIgetVoxVal(mri_laplace, xi, yi, zi, 0) ;
+		    if (dist < min_dist)
+		    {
+		      xm = xi ; ym = yi ; zm = zi ; min_dist = dist ;
+		    }
+		  }
+	    }
+	  }
+      vl = MRIcomputeLaplaceStreamline(mri_laplace, 1500, xm, ym, zm, LAPLACE_SOURCE,LAPLACE_TARGET,LAPLACE_OUTSIDE) ;
+      if (vl == NULL)
+	ErrorExit(Gerror, "") ;
+      
+      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+	MRIwrite(mri_laplace, "lap.mgz");
+      printf("writing label to %s\n", argv[3]);
+      VLSTwriteLabel(vl, argv[3], NULL, mri_aseg) ;
+      exit(1) ;
+    }
 
     mri_tmp = MRIclone(mri_aseg, NULL) ;
     MRIcopyLabel(mri_aseg, mri_tmp, label1_target) ;
@@ -258,6 +312,7 @@ main(int argc, char *argv[]) {
     }
 
     MRIfree(&mri_label1_dist) ; mri_label1_dist = mri_smooth ;
+//    mri_label1_dist = mri_laplace ;
     mri_dist_grad = MRIsobel(mri_label1_dist, NULL, NULL) ;
     MRInormalizeSequence(mri_dist_grad, 1.0) ;
     vl_spline = compute_spline_initialization(mri_aseg, mri_wm, 
@@ -265,6 +320,10 @@ main(int argc, char *argv[]) {
 					      mri_dist_grad,
 					      label1_target, label2_target,
 					      min_spline_control_points) ;
+    if (vl_spline == NULL)
+      ErrorExit(ERROR_BADPARM, "%s: could not find path between labels", Progname) ;
+
+    printf("writing label to %s\n", argv[3]);
     VLSTwriteLabel(vl_spline, argv[3], NULL, mri_aseg) ;
     
     exit(0) ;
@@ -416,6 +475,11 @@ get_option(int argc, char *argv[]) {
     randomize_data = 1 ;
     printf("randomizing input intensities\n") ;
   }
+  else if (!stricmp(option, "LAPLACE"))
+  {
+    use_laplace = 1 ;
+    printf("using Laplace equation to compute initialization\n") ;
+  }
   else if (!stricmp(option, "SDIR"))
   {
     strcpy(sdir, argv[2]) ;
@@ -425,13 +489,11 @@ get_option(int argc, char *argv[]) {
   else if (!stricmp(option, "LH"))
   {
     hemi = LEFT_HEMISPHERE ;
-    nargs = 1 ;
     printf("assuming label is left hemisphere\n") ;
   }
   else if (!stricmp(option, "RH"))
   {
     hemi = RIGHT_HEMISPHERE ;
-    nargs = 1 ;
     printf("assuming label is right hemisphere\n") ;
   }
   else if (!stricmp(option, "XHEMI"))
@@ -1171,12 +1233,22 @@ compute_path_to_label(MRI *mri_aseg, MRI *mri_wm, MRI *mri_dist_grad, MRI *mri_d
       {
 	if (MRIgetVoxVal(mri_aseg, xv, yv, zv,0) == label2 && MRIlabelsInNbhd6(mri_wm,xv,yv,zv,1))
 	{
-	  dist = SQR(xv-xc) + SQR(yv-yc) + SQR(zv-zc) ;
-	  dist = MRIgetVoxVal(mri_dist, xv, yv, zv, 0) ;
-	  if (dist < min_dist)
-	  {
-	    xm = xv ; ym = yv ; zm = zv ; min_dist = dist ;
-	  }
+
+	  for (xk = -1 ; xk <= 1 ; xk++)
+	    for (yk = -1 ; yk <= 1 ; yk++)
+	      for (zk = -1 ; zk <= 1 ; zk++)
+	      {
+		if (abs(xk) + abs(yk) + abs(zk) != 1)
+		  continue ;  // enforce 6-connectivity
+		xi = mri_dist->xi[(xv+xk)] ; yi = mri_dist->yi[(yv+yk)] ; zi = mri_dist->zi[(zv+zk)] ;
+		if (MRIgetVoxVal(mri_wm,xi,yi,zi,0) == 0)
+		  continue ;
+		dist = MRIgetVoxVal(mri_dist, xi, yi, zi, 0) ;
+		if (dist < min_dist)
+		{
+		  xm = xi ; ym = yi ; zm = zi ; min_dist = dist ;
+		}
+	      }
 	}
       }
 //  printf("initial spline anchor set to (%d, %d, %d)\n", xm, ym, zm) ;
@@ -1185,7 +1257,8 @@ compute_path_to_label(MRI *mri_aseg, MRI *mri_wm, MRI *mri_dist_grad, MRI *mri_d
   xv = xm ; yv = ym ; zv = zm ;
   MRIsetVoxVal(mri_path, xv, yv, zv, 0, vl->nvox+1) ;
   dx = dy = dz = odx = ody = odz = 0 ;
-  VLSTadd(vl, nint(xv), nint(yv), nint(zv), xv, yv, zv);
+  VLSTaddWithValue(vl, nint(xv), nint(yv), nint(zv), xv, yv, zv, MRIgetVoxVal(mri_dist,xv,yv,zv,0), 
+		   MRIgetVoxVal(mri_aseg,xv,yv,zv,0)); 
   do
   {
     if (vl->nvox == Gdiag_no)
@@ -1271,7 +1344,8 @@ compute_path_to_label(MRI *mri_aseg, MRI *mri_wm, MRI *mri_dist_grad, MRI *mri_d
       ErrorReturn(NULL, (ERROR_BADPARM, "!!!!!!!!!!!!!! path to label %d from label %d left volume !!!!!!!!!!!", label1, label2)) ;
     }
     odx = dx ; ody = dy ; odz = dz ;
-    VLSTadd(vl, nint(xv), nint(yv), nint(zv), xv, yv, zv);
+    VLSTaddWithValue(vl, nint(xv), nint(yv), nint(zv), xv, yv, zv, MRIgetVoxVal(mri_dist,xv,yv,zv,0), 
+		     MRIgetVoxVal(mri_aseg,xv,yv,zv,0)); 
     MRIsetVoxVal(mri_path, xv, yv, zv, 0, vl->nvox+1) ;
     label = MRIgetVoxVal(mri_aseg, xv, yv, zv, 0) ;
   } while (label != label1) ;

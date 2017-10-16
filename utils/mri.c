@@ -8883,6 +8883,112 @@ int MRIsampleVolumeFrame(const MRI *mri, double x, double y, double z, const int
   return (NO_ERROR);
 }
 
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+int MRIsampleVolumeFrameMasked(const MRI *mri, const MRI *mri_mask, double x, double y, double z, const int frame, double *pval)
+{
+  int OutOfBounds;
+  int xm, xp, ym, yp, zm, zp, width, height, depth;
+  double val, wt, xmd, ymd, zmd, xpd, ypd, zpd, norm; /* d's are distances */
+
+  if (FEQUAL((int)x, x) && FEQUAL((int)y, y) && FEQUAL((int)z, z))
+    return (MRIsampleVolumeFrameType(mri, x, y, z, frame, SAMPLE_NEAREST, pval));
+
+  if (frame >= mri->nframes) {
+    *pval = mri->outside_val;
+    return (NO_ERROR);
+  }
+
+  OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
+  if (OutOfBounds == 1) {
+    /* unambiguoulsy out of bounds */
+    *pval = mri->outside_val;
+    return (NO_ERROR);
+  }
+
+  width = mri->width; height = mri->height; depth = mri->depth;
+  if (x >= width) x = width - 1.0;
+  if (y >= height) y = height - 1.0;
+  if (z >= depth) z = depth - 1.0;
+  if (x < 0.0) x = 0.0;
+  if (y < 0.0) y = 0.0;
+  if (z < 0.0) z = 0.0;
+
+  xm = MAX((int)x, 0);
+  xp = MIN(width - 1, xm + 1);
+  ym = MAX((int)y, 0);
+  yp = MIN(height - 1, ym + 1);
+  zm = MAX((int)z, 0);
+  zp = MIN(depth - 1, zm + 1);
+
+  xmd = x - (float)xm;
+  ymd = y - (float)ym;
+  zmd = z - (float)zm;
+  xpd = (1.0f - xmd);
+  ypd = (1.0f - ymd);
+  zpd = (1.0f - zmd);
+
+  val = norm = 0 ;
+  if (MRIgetVoxVal(mri_mask, xm, ym, zm, frame))
+  {
+    wt = xpd * ypd * zpd ;
+    val += wt *(double)MRIgetVoxVal(mri, xm, ym, zm, frame) ;
+    norm += wt ;
+  }
+  if (MRIgetVoxVal(mri_mask, xm, ym, zp, frame))
+  {
+    wt = xpd * ypd * zmd  ;
+    val +=  wt * (double)MRIgetVoxVal(mri, xm, ym, zp, frame) ;
+    norm += wt ;
+  }
+  if (MRIgetVoxVal(mri_mask, xm, yp, zm, frame))
+  {
+    wt = xpd * ymd * zpd ;
+    val +=  wt * (double)MRIgetVoxVal(mri, xm, yp, zm, frame) ;
+    norm += wt ;
+  }
+  if (MRIgetVoxVal(mri_mask, xm, yp, zp, frame))
+  {
+    wt = xpd * ymd * zmd ;
+    val +=  wt * (double)MRIgetVoxVal(mri, xm, yp, zp, frame) ;
+    norm += wt ;
+  }
+  if (MRIgetVoxVal(mri_mask, xp, ym, zm, frame))
+  {
+    wt = xmd * ypd * zpd ;
+    val +=  wt * (double)MRIgetVoxVal(mri, xp, ym, zm, frame) ;
+    norm += wt ;
+  }
+  if (MRIgetVoxVal(mri_mask, xp, ym, zp, frame))
+  {
+    wt = xmd * ypd * zmd ;
+    val +=  wt * (double)MRIgetVoxVal(mri, xp, ym, zp, frame) ;
+    norm += wt ;
+  }
+  if (MRIgetVoxVal(mri_mask, xp, yp, zm, frame))
+  {
+    wt = xmd * ymd * zpd ;
+    val +=  wt * (double)MRIgetVoxVal(mri, xp, yp, zm, frame) ;
+    norm += wt ;
+  }
+  if (MRIgetVoxVal(mri_mask, xp, yp, zp, frame))
+  {
+    wt = xmd * ymd * zmd ;
+    val +=  wt * (double)MRIgetVoxVal(mri, xp, yp, zp, frame) ;
+    norm += wt ;
+  }
+
+  if (norm > 0)
+    val /= norm ;
+  *pval = val ;
+  return (NO_ERROR);
+}
+
 /*---------------------------------------------------------------------------
   Purpose: to return the approximate fraction of a voxel centered
   at the given point
@@ -16837,37 +16943,134 @@ MRI *MRIcombineDistanceTransforms(MRI *mri_src1, MRI *mri_src2, MRI *mri_dst)
   return (mri_dst);
 }
 #include "mrinorm.h"
+
+#include "voxlist.h"
+VOXLIST *MRIcomputeLaplaceStreamline(MRI *mri_laplace, int max_steps, float x0, float y0, float z0,
+				     float source_val,float target_val, float outside_val);
+/*
+  solve the laplace equation with voxels==source_label clamped to -1 and voxels==target_label clamped to 1, 
+  constrained the solution to be in the region specified in mri_interior==1. Voxels that are not in either label and not 
+  in the interior will be set to 2.
+*/
 MRI *
-MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int target_label)
+MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int target_label, float source_val,
+			  float target_val, float outside_val)
 {
   MRI     *mri_laplace, *mri_control, *mri_tmp = NULL ;
-  int     x, y, z, ncontrol, nribbon, v, i, xm1, xp1, ym1, yp1, zm1, zp1, label; 
+  int     x, y, z, ncontrol, nribbon, v, xm1, xp1, ym1, yp1, zm1, zp1, label, nsource, ntarget, nchanged,npasses ; 
   VOXLIST *vl ;
-  float   max_change, change, val, oval ;
+  float   max_change, change, val, oval, xcs, ycs, zcs, xct, yct, zct ;
 
-  mri_laplace = MRIcloneDifferentType(mri_interior,MRI_FLOAT) ;
-  mri_control = MRIcloneDifferentType(mri_interior,MRI_UCHAR) ;
-  ncontrol = nribbon = 0 ;
+  // compute the centroid and number of voxels in each label (source and target)
+  nsource = ntarget = 0 ;  xcs = ycs = zcs = xct = yct = zct = 0 ;
   for (x = 0 ; x < mri_interior->width ; x++)
     for (y = 0 ; y < mri_interior->height ; y++)
       for (z = 0 ; z < mri_interior->depth ; z++)
       {
         label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
         if (label == source_label)
+	{
+	  nsource++ ;
+	  xcs += x ; ycs += y ; zcs += z ;
+	}
+	else if (label == target_label)
+	{
+	  ntarget++ ;
+	  xct += x ; yct += y ; zct += z ;
+	}
+      }
+
+  if (nsource > 0)
+  {
+    xcs /= (float)nsource ; ycs /= (float)nsource ; zcs /= (float)nsource ;
+  }
+  if (ntarget > 0)
+  {
+    xct /= (float)ntarget ; yct /= (float)ntarget ; zct /= (float)ntarget ;
+  }
+  printf("Laplace source: %d voxels, centroid (%2.1f, %2.1f, %2.1f)\n",nsource, xcs, ycs, zcs) ;
+  printf("Laplace target: %d voxels, centroid (%2.1f, %2.1f, %2.1f)\n",ntarget, xct, yct, zct) ;
+
+  mri_laplace = MRIcloneDifferentType(mri_interior,MRI_FLOAT) ;
+  mri_control = MRIcloneDifferentType(mri_interior,MRI_UCHAR) ;
+  ncontrol = nribbon = 0 ;
+
+  // initialize  every point in control and laplace volumes
+  for (x = 0 ; x < mri_interior->width ; x++)
+    for (y = 0 ; y < mri_interior->height ; y++)
+      for (z = 0 ; z < mri_interior->depth ; z++)
+      {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+        label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
+        if (label == source_label)
         {
           MRIsetVoxVal(mri_control, x, y, z, 0, CONTROL_MARKED) ;
-          MRIsetVoxVal(mri_laplace, x, y, z, 0, -1.0) ;
+          MRIsetVoxVal(mri_laplace, x, y, z, 0, source_val) ;
           ncontrol++ ;
         }
         else if (label == target_label)
         {
           MRIsetVoxVal(mri_control, x, y, z, 0, CONTROL_MARKED) ;
-          MRIsetVoxVal(mri_laplace, x, y, z, 0, 1.0) ;
+          MRIsetVoxVal(mri_laplace, x, y, z, 0, target_val) ;
           ncontrol++ ;
         }
         else 
-          nribbon++ ;
+	{
+	  if (MRIgetVoxVal(mri_interior, x, y, z, 0) == 0)
+	  {
+	    MRIsetVoxVal(mri_laplace, x, y, z, 0, outside_val) ;
+	    MRIsetVoxVal(mri_control, x, y, z, 0, CONTROL_NBR) ;
+	  }
+	  else
+	  {
+	    MRIsetVoxVal(mri_laplace, x, y, z, 0, 0) ;
+	    nribbon++ ;
+	  }
+	}
       }
+
+  // now create two traveling waves starting from the two labels to initialize
+  // the interior of the region to either -1 or 1 with a gradient between them
+  npasses = 0 ;
+  do
+  {
+    int xi, yi, zi, xk, yk, zk ;
+    double val ;
+
+    nchanged = 0 ;
+
+    for (x = 0 ; x < mri_interior->width ; x++)
+      for (y = 0 ; y < mri_interior->height ; y++)
+	for (z = 0 ; z < mri_interior->depth ; z++)
+	{
+	  if (Gx == x && Gy == y && Gz == z)
+	    DiagBreak() ;
+	  val = MRIgetVoxVal(mri_laplace, x, y, z, 0) ;
+          if (FEQUAL(val,outside_val) || FEQUAL(val, 0))  // either out of the domain or not yet assigned
+	    continue ;
+
+	  for (xk = -1 ; xk <= 1 ; xk++)
+	    for (yk = -1 ; yk <= 1 ; yk++)
+	      for (zk = -1 ; zk <= 1 ; zk++)
+	      {
+		if (abs(xk) + abs(yk) + abs(zk) != 1)
+		  continue ;   // only 6-connected
+		xi = mri_laplace->xi[x+xk] ;
+		yi = mri_laplace->yi[y+yk] ;
+		zi = mri_laplace->zi[z+zk] ;
+		if (FZERO(MRIgetVoxVal(mri_control, xi, yi, zi, 0)) && FZERO(MRIgetVoxVal(mri_laplace, xi, yi, zi, 0)))
+		{
+		  if (Gx == xi && Gy == yi && Gz == zi)
+		    DiagBreak() ;
+		  MRIsetVoxVal(mri_laplace, xi, yi, zi, 0, val*.99) ; // propagate value to neighbor
+		  nchanged++ ;
+		}
+	  }
+	}
+    if (npasses++ > 10000)
+      ErrorExit(ERROR_BADPARM, "MRIsolveLaplaceEquation failed to converge") ;
+  } while (nchanged > 0) ;
 
   vl = VLSTalloc(nribbon) ;
   vl->mri = mri_laplace ;
@@ -16885,42 +17088,164 @@ MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int t
         }
       }
 
-  i = 0 ;
+  npasses = 0 ;
   do
   {
+    int nvox ;
     max_change = 0.0 ;
     mri_tmp = MRIcopy(mri_laplace, mri_tmp) ;
     for (v = 0 ; v < vl->nvox  ; v++)
     {
       x = vl->xi[v] ; y = vl->yi[v] ; z = vl->zi[v] ;
+      if (x == Gx && y == Gy && z == Gz)
+	DiagBreak() ;
       xm1 = mri_laplace->xi[x-1] ; xp1 = mri_laplace->xi[x+1] ;
       ym1 = mri_laplace->yi[y-1] ; yp1 = mri_laplace->yi[y+1] ;
       zm1 = mri_laplace->zi[z-1] ; zp1 = mri_laplace->zi[z+1] ;
       oval = MRIgetVoxVal(mri_laplace, x, y, z, 0) ;
-      val = 
-        (MRIgetVoxVal(mri_laplace, xm1, y, z, 0) +
-         MRIgetVoxVal(mri_laplace, xp1, y, z, 0) +
-         MRIgetVoxVal(mri_laplace, x, ym1, z, 0) +
-         MRIgetVoxVal(mri_laplace, x, yp1, z, 0) +
-         MRIgetVoxVal(mri_laplace, x, y, zm1, 0) +
-         MRIgetVoxVal(mri_laplace, x, y, zp1, 0)) *
-        1.0/6.0;
+      nvox = 1 ; val = oval ;
+      if (MRIgetVoxVal(mri_control, xm1, y, z, 0) != CONTROL_NBR)
+      {
+	val += MRIgetVoxVal(mri_laplace, xm1, y, z, 0) ;
+	nvox++ ;
+      }
+      if (MRIgetVoxVal(mri_control, xp1, y, z, 0) != CONTROL_NBR)
+      {
+	val += MRIgetVoxVal(mri_laplace, xp1, y, z, 0) ;
+	nvox++ ;
+      }
+      if (MRIgetVoxVal(mri_control, x, ym1, z, 0) != CONTROL_NBR)
+      {
+	val += MRIgetVoxVal(mri_laplace, x, ym1, z, 0) ;
+	nvox++ ;
+      }
+      if (MRIgetVoxVal(mri_control, x, yp1, z, 0) != CONTROL_NBR)
+      {
+	val += MRIgetVoxVal(mri_laplace, x, yp1, z, 0) ;
+	nvox++ ;
+      }
+      if( MRIgetVoxVal(mri_control, x, y, zm1, 0) != CONTROL_NBR)
+      {
+	val += MRIgetVoxVal(mri_laplace, x, y, zm1, 0) ;
+	nvox++ ;
+      }
+      if (MRIgetVoxVal(mri_control, x, y, zp1, 0) != CONTROL_NBR)
+      {
+	val += MRIgetVoxVal(mri_laplace, x, y, zp1, 0) ;
+	nvox++ ;
+      }
+      if (nvox > 0)
+	val /= (float)nvox ;
       change = fabs(val-oval) ;
       if (change > max_change)
         max_change = change ;
       MRIsetVoxVal(mri_tmp, x, y, z, 0, val);
     }
     MRIcopy(mri_tmp, mri_laplace) ;
-    i++ ;
-    if (i%10 == 0)
-      printf("iter %d complete, max change %f\n", i, max_change) ;
+    npasses++ ;
+    if (npasses%10 == 0)
+      printf("iter %d complete, max change %f\n", npasses, max_change) ;
+    if (npasses > 10000)
+      ErrorExit(ERROR_BADPARM, "MRIsolveLaplaceEquation failed to converge (2)") ;
   } while (max_change > 1e-3) ;
-
+  
+  if (Gdiag & DIAG_WRITE)
   {
     char fname[STRLEN] ;
     sprintf(fname, "laplace.%2.2f.mgz", mri_laplace->xsize) ;
+    printf("writing laplace volume to %s\n", fname) ;
     MRIwrite(mri_laplace, fname) ;
   }
-  MRIfree(&mri_interior) ; VLSTfree(&vl) ;
+  VLSTfree(&vl) ;
   return(mri_laplace) ;
+}
+
+VOXLIST *
+MRIcomputeLaplaceStreamline(MRI *mri_laplace, int max_steps, float x0, float y0, float z0, 
+			    float source_val,float target_val, float outside_val)
+{
+  int     x, y, z, npoints;
+  double  dx, dy, dz, xv, yv, zv, voxsize;
+  double  val, norm, val0, val1, dt = 0.25, dist;  // dt is in voxels
+  VOXLIST *vl ;
+  MRI     *mri_mask ;
+
+  mri_mask = MRIcloneDifferentType(mri_laplace, MRI_UCHAR);
+
+  // normalize the gradient to be unit vectors
+  for (z = 0; z < mri_laplace->depth; z++)
+    for (y = 0; y < mri_laplace->height; y++)
+      for (x = 0; x < mri_laplace->width; x++) 
+      {
+         val = MRIgetVoxVal(mri_laplace, x, y, z, 0);
+	 if (FEQUAL(val,outside_val) == 0)
+	   MRIsetVoxVal(mri_mask, x, y, z, 0, 1) ;
+      }
+  voxsize = (mri_laplace->xsize + mri_laplace->ysize + mri_laplace->zsize) / 3;
+
+  // first count number of points in streamline
+  dist = 0.0;
+  npoints = 0;
+  xv = x0 ; yv = y0 ; zv = z0 ;
+  do {
+    MRIsampleVolumeFrameMasked(mri_laplace, mri_mask, xv-dt, yv, zv, 0, &val0);
+    MRIsampleVolumeFrameMasked(mri_laplace, mri_mask, xv+dt, yv, zv, 0, &val1);
+    dx = (val1 - val0) / (2*dt) ;
+    MRIsampleVolumeFrameMasked(mri_laplace, mri_mask, xv, yv-dt, zv, 0, &val0);
+    MRIsampleVolumeFrameMasked(mri_laplace, mri_mask, xv, yv+dt, zv, 0, &val1);
+    dy = (val1 - val0) / (2*dt) ;
+    MRIsampleVolumeFrameMasked(mri_laplace, mri_mask, xv, yv, zv-dt, 0, &val0);
+    MRIsampleVolumeFrameMasked(mri_laplace, mri_mask, xv, yv, zv+dt, 0, &val1);
+    dz = (val1 - val0) / (2*dt) ;
+    
+    norm = sqrt(dx * dx + dy * dy + dz * dz);
+    npoints++;
+    if (FZERO(norm) || dist > 1000) {
+      if (val < .9) DiagBreak();
+      if (dist > 1000) DiagBreak();
+      break;
+    }
+    dx /= norm; dy /= norm; dz /= norm;
+    xv -= dx * dt;  yv -= dy * dt; zv -= dz * dt;
+    dist += dt * voxsize;
+    MRIsampleVolumeFrameMasked(mri_laplace, mri_mask, xv, yv, zv, 0, &val);
+  } while (val > -1);
+  
+  vl = VLSTalloc(2*npoints) ; vl->nvox = 0 ;  // allocate extra just for paranoia
+
+  // now go back through and build voxlist of streamline
+  xv = x0 ; yv = y0 ; zv = z0 ;
+  VLSTadd(vl, xv, yv, zv, nint(xv), nint(yv), nint(zv)) ;
+  do {
+    MRIsampleVolumeFrameMasked(mri_laplace, mri_mask, xv-dt, yv, zv, 0, &val0);
+    MRIsampleVolumeFrameMasked(mri_laplace, mri_mask, xv+dt, yv, zv, 0, &val1);
+    dx = (val1 - val0) / (2*dt) ;
+    MRIsampleVolumeFrameMasked(mri_laplace, mri_mask, xv, yv-dt, zv, 0, &val0);
+    MRIsampleVolumeFrameMasked(mri_laplace, mri_mask, xv, yv+dt, zv, 0, &val1);
+    dy = (val1 - val0) / (2*dt) ;
+    MRIsampleVolumeFrameMasked(mri_laplace, mri_mask, xv, yv, zv-dt, 0, &val0);
+    MRIsampleVolumeFrameMasked(mri_laplace, mri_mask, xv, yv, zv+dt, 0, &val1);
+    dz = (val1 - val0) / (2*dt) ;
+    
+    norm = sqrt(dx * dx + dy * dy + dz * dz);
+    if (FZERO(norm) || dist > 1000) {
+      if (val < .9) DiagBreak();
+      if (dist > 1000) DiagBreak();
+      break;
+    }
+    dx /= norm; dy /= norm; dz /= norm;
+    xv -= dx * dt;  yv -= dy * dt; zv -= dz * dt;
+    dist += dt * voxsize;
+    MRIsampleVolumeFrameMasked(mri_laplace, mri_mask, xv, yv, zv, 0, &val);
+    if ((xv != nint(vl->xi[vl->nvox-1])) || (yv != nint(vl->yi[vl->nvox-1])) || (zv != nint(vl->zi[vl->nvox-1])))
+    {
+      // entered a new voxel - add it to list
+      VLSTadd(vl, xv, yv, zv, nint(xv), nint(yv), nint(zv)) ;
+      if (vl->nvox >= max_steps-1)
+	break ;
+    }
+  } while (val > -1);
+
+  MRIfree(&mri_mask) ;
+  return (vl);
 }
