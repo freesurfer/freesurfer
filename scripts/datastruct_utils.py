@@ -1,6 +1,6 @@
 # Original author - Krish Subramaniam
 # $Id: datastruct_utils.py,v 1.6 2014/11/21 23:07:41 greve Exp $
-from __future__ import generators
+from __future__ import generators, print_function
 
 __all__ = ['Ddict', 'TableWriter', 'StableDict', 'unique_union',
            'intersect_order']

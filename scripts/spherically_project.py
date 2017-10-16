@@ -1,4 +1,5 @@
 #!/autofs/space/vermis_001/users/ltirrell/anaconda/bin/python
+from __future__ import print_function
 
 import optparse
 import os
@@ -262,7 +263,7 @@ if __name__=="__main__":
 
     print("Reading in surface: {} ...".format(surf_to_project))
     spherically_project_surface(surf_to_project, projected_surf)
-    print ("Outputing spherically projected surface: {}".format(projected_surf))
+    print("Outputing spherically projected surface: {}".format(projected_surf))
 
     sys.exit(0)
 

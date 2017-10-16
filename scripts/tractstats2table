@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import warnings
 warnings.filterwarnings('ignore', '.*negative int.*')
 import os
@@ -135,7 +136,7 @@ def options_parse():
      # extensive error checks
     if options.inputs is not None:
         if len(options.inputs) < 1:
-            print 'ERROR: inputs are not specified'
+            print('ERROR: inputs are not specified')
             sys.exit(1)
         else:
             options.dodirect = True
@@ -144,45 +145,45 @@ def options_parse():
         options.dodirect = False
 
     if  options.inputs is None and options.pathstatsfile is None: 
-        print 'ERROR: Specify one of --inputs or --load-pathstats-from-file'
-        print '       or run with --help for help.'
+        print('ERROR: Specify one of --inputs or --load-pathstats-from-file')
+        print('       or run with --help for help.')
         sys.exit(1)
     
     if options.inputs is not None and options.pathstatsfile is not None:
-        print 'ERROR: Both pathstatsfile and inputs are specified. Please specify just one '
+        print('ERROR: Both pathstatsfile and inputs are specified. Please specify just one ')
         sys.exit(1)
  
     if not options.outputfile:
-        print 'ERROR: output table name should be specified (use --tablefile FILE)'
+        print('ERROR: output table name should be specified (use --tablefile FILE)')
         sys.exit(1)
 
     if options.overall is None and options.byvoxel is None:
-        print 'ERROR: Specify one of --overall or --byvoxel'
+        print('ERROR: Specify one of --overall or --byvoxel')
         sys.exit(1)
 
     if options.overall is not None and options.byvoxel is not None:
-        print 'ERROR: Specify only one of --overall or --byvoxel. Not both'
+        print('ERROR: Specify only one of --overall or --byvoxel. Not both')
         sys.exit(1)
 
     if options.overall is not None:
         if options.byvoxel_measure is not None:
-            print 'ERROR: --byvoxel-measure cannot be specified with --overall'
+            print('ERROR: --byvoxel-measure cannot be specified with --overall')
             sys.exit(1)
 
     if options.byvoxel is not None:
         if options.incl_overall is not None:
-            print 'ERROR: --only-measures should not be specified with --byvoxel'
+            print('ERROR: --only-measures should not be specified with --byvoxel')
             sys.exit(1)
         if options.excl_overall is not None:
-            print 'ERROR: --excl-measures should not be specified with --byvoxel'
+            print('ERROR: --excl-measures should not be specified with --byvoxel')
             sys.exit(1)
 
     if options.byvoxel is not None:
         if options.byvoxel_measure is None:
-            print 'ERROR: should spec --byvoxel-measure with --byvoxel'
+            print('ERROR: should spec --byvoxel-measure with --byvoxel')
             sys.exit(1)
         if options.byvoxel_measure not in ['AD', 'RD', 'MD', 'FA']:
-            print 'ERROR: byvoxel measure should be one of AD, RD, MD, DA'
+            print('ERROR: byvoxel measure should be one of AD, RD, MD, DA')
             sys.exit(1)
 
     if options.verboseflag:
@@ -220,7 +221,7 @@ def assemble_inputs(o):
                 sf = open(o.pathstatsfile)
                 [o.pathfiles.append(subfromfile.strip()) for subfromfile in sf]
             except IOError:
-                print 'ERROR: the file %s doesnt exist'%o.pathstatsfile
+                print('ERROR: the file %s doesnt exist'%o.pathstatsfile)
                 sys.exit(1)
         for path in o.pathfiles:
             if path != '':
@@ -254,11 +255,11 @@ def sanitize_table(options, disorganized_table):
         try:
             pthwyset[pthwy_subj['pathway']] = 1
         except KeyError:
-            print 'ERROR: cannot find a proper pathwayname in '+ filepath
+            print('ERROR: cannot find a proper pathwayname in '+ filepath)
             sys.exit(1)
     if not 1 == len(pthwyset.keys()):
-        print 'ERROR: all stats files need to have the same pathwayname. try verbose option'
-        print 'These are the pathwaynames found: ' + str(pthwyset.keys())
+        print('ERROR: all stats files need to have the same pathwayname. try verbose option')
+        print('These are the pathwaynames found: ' + str(pthwyset.keys()))
         sys.exit(1)
     
     # find the union and the intersection of the measures
@@ -282,7 +283,7 @@ def sanitize_table(options, disorganized_table):
     l.debug(union)
 
     if not union == intersection:
-        print 'ERROR: One of the files have different measure than others. try verbose option'
+        print('ERROR: One of the files have different measure than others. try verbose option')
         sys.exit(1)
         
 
@@ -296,7 +297,7 @@ def sanitize_table(options, disorganized_table):
             for measure in intersection:
                 table[subj][measure] = measure_value_map[measure]
         except KeyError:
-                print 'ERROR" cannot find a proper subject name in '+filepath
+                print('ERROR" cannot find a proper subject name in '+filepath)
 
     return pthwyset.keys()[0], subjlist, intersection, table
 
@@ -328,7 +329,7 @@ if __name__=="__main__": # Command Line options and error checking done here
     pretable = []
     
     # Parse the parc.stats files 
-    print 'Parsing the .stats files'
+    print('Parsing the .stats files')
     for filepath in listoftuples:
         try:
             l.debug('-'*20)
@@ -356,18 +357,18 @@ if __name__=="__main__": # Command Line options and error checking done here
 
 
         except BadFileError, e:
-            print 'ERROR: The stats file '+str(e)+' is not found or is too small to be a valid statsfile'
+            print('ERROR: The stats file '+str(e)+' is not found or is too small to be a valid statsfile')
             sys.exit(1)
             
         pretable.append( (filepath, pathway_subj, measure_value_map)) 
 
     # Make sure the table has the same number of cols for all stats files
     # and merge them up, clean them up etc. More in the documentation of the fn.
-    print 'Building the table..'
+    print('Building the table..')
     r1c1, rows, columns, table = sanitize_table(options, pretable)
 
     # Write this table ( in memory ) to disk.. function uses TableWriter class
-    print 'Writing the table to %s' %options.outputfile
+    print('Writing the table to %s' %options.outputfile)
     if options.overall:
         write_table(options, rows, columns, table, r1c1)
     else:
