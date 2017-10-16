@@ -53,6 +53,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
   m_bShowExistingLabelsOnly(false)
 {
   ui->setupUi(this);
+  ui->treeWidgetColorTable->setContextMenuPolicy(Qt::CustomContextMenu);
+  connect(ui->treeWidgetColorTable, SIGNAL(customContextMenuRequested(QPoint)), SLOT(OnCustomContextMenu(QPoint)));
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   if ( !mainwnd )
@@ -668,8 +670,11 @@ void PanelVolume::OnColorTableCurrentItemChanged( QTreeWidgetItem* item )
   }
 }
 
-void PanelVolume::OnColorTableItemDoubleClicked(QTreeWidgetItem *item)
+void PanelVolume::OnColorTableItemDoubleClicked(QTreeWidgetItem *item_in)
 {
+  QTreeWidgetItem* item = item_in;
+  if (!item)
+    item = ui->treeWidgetColorTable->currentItem();
   if (item)
   {
     QStringList strglist = item->text( 0 ).split(" ");
@@ -682,6 +687,10 @@ void PanelVolume::OnColorTableItemDoubleClicked(QTreeWidgetItem *item)
       {
         MainWindow::GetMainWindow()->SetSlicePosition(pos);
         MainWindow::GetMainWindow()->CenterAtWorldPosition(pos);
+      }
+      else
+      {
+        qDebug() << tr("Label %1 does not exist").arg(item->text(0));
       }
     }
   }
@@ -1567,6 +1576,35 @@ void PanelVolume::OnLineEditMaskThreshold( const QString& text )
     if ( bOK )
     {
       layer->SetMaskThreshold(dVal);
+    }
+  }
+}
+
+void PanelVolume::OnCustomContextMenu(const QPoint &pt)
+{
+  if (sender() == ui->treeWidgetColorTable)
+  {
+    QMenu menu;
+    QAction* act = new QAction(this);
+    QTreeWidgetItem* item = ui->treeWidgetColorTable->itemAt(pt);
+    if (item)
+    {
+      QStringList strglist = item->text( 0 ).split(" ");
+      double val = strglist[0].toDouble();
+      LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+      if ( layer )
+      {
+        double pos[3];
+        if (layer->GetLayerLabelCenter(val, pos))
+        {
+          act->setText("Go to Centroid");
+          connect(act, SIGNAL(triggered()), SLOT(OnColorTableItemDoubleClicked()));
+        }
+        else
+          act->setText("Label does not exist in volume");
+        menu.addAction(act);
+        menu.exec(ui->treeWidgetColorTable->mapToGlobal(pt));
+      }
     }
   }
 }
