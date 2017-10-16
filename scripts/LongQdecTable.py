@@ -1,5 +1,6 @@
 # Original author - Martin Reuter
 # $Id: LongQdecTable.py,v 1.5 2012/05/30 22:50:21 mreuter Exp $
+from __future__ import print_function
 import os
 import logging
 import sys
@@ -41,10 +42,10 @@ class LongQdecTable:
     # append a new subject (base)
     def append(self,bid,alltpdata,varlist):
         if self.variables != varlist:
-            print '\nERROR: append: variables do not agree\n'
+            print('\nERROR: append: variables do not agree\n')
             sys.exit(1)        
         if bid in self.subjects_tp_map:
-            print '\nERROR: append: subject '+bid+' seems to exists already?\n'
+            print('\nERROR: append: subject '+bid+' seems to exists already?\n')
             sys.exit(1)        
         self.subjects_tp_map[bid] = alltpdata
         #later maybe if base exists, append tpdata?: self.subjects_tp_map[bid].append( alltpdata  )
@@ -75,7 +76,7 @@ class LongQdecTable:
                 continue
 
             strlst = line.split()
-            #print strlst[0].upper()
+            #print(strlst[0].upper())
             if strlst[0].upper() == 'SUBJECTS_DIR':
                 self.subjectsdir = strlst[1]
                 
@@ -83,29 +84,29 @@ class LongQdecTable:
                 gotheaders = True
                 if not strlst[1].upper() == 'FSID-BASE':
                     if warncross:
-                        print '\nWarning: second column is not \'fsid-base\' assuming cross sectional qdec table\n'
-                    #print '\nERROR: Make sure second column is \'fsid-base\' to specify the subject tempate (base)\n'
+                        print('\nWarning: second column is not \'fsid-base\' assuming cross sectional qdec table\n')
+                    #print('\nERROR: Make sure second column is \'fsid-base\' to specify the subject tempate (base)\n')
                     #sys.exit(1)
                     self.variables= strlst[1:]  # 0 is tpid, 1 is templateid
                 else:
                     self.cross = False
                     self.variables= strlst[2:]  # 0 is tpid, 1 is templateid
             elif strlst[0].startswith('Measure:') or strlst[0].startswith('h.aparc',1,):
-                print 'Input is probably stats table, reading it as cross sectional...\n'
+                print('Input is probably stats table, reading it as cross sectional...\n')
                 self.cross = True
                 self.variables = strlst[1:] # 0 is subject id
                 gotheaders = True
                 
             else:
                 if not gotheaders:
-                    print '\nERROR: qdec table missing correct column headers?'
-                    print '       Make sure first column is labeled \'fsid\' for the time point and'
-                    print '       second column is \'fsid-base\' to specify the subject tempate (base), e.g.:\n'
-                    print ' fsid    fsid-base   age '
-                    print ' me1     me          22.3 '
-                    print ' me2     me          23.2 '
-                    print ' you1    you         21.6 '
-                    print ' you2    you         22.5\n'                
+                    print('\nERROR: qdec table missing correct column headers?')
+                    print('       Make sure first column is labeled \'fsid\' for the time point and')
+                    print('       second column is \'fsid-base\' to specify the subject tempate (base), e.g.:\n')
+                    print(' fsid    fsid-base   age ')
+                    print(' me1     me          22.3 ')
+                    print(' me2     me          23.2 ')
+                    print(' you1    you         21.6 ')
+                    print(' you2    you         22.5\n'                )
                     sys.exit(1)
                     
                 # check if time point already exists:
@@ -120,12 +121,12 @@ class LongQdecTable:
                 if key in self.subjects_tp_map:
                     # if cross, make sure fsid does not have duplicates
                     if self.cross:
-                        print '\nERROR: no fsid-base in header, but fsid '+key+' seems to exists multiple times?\n'
+                        print('\nERROR: no fsid-base in header, but fsid '+key+' seems to exists multiple times?\n')
                         sys.exit(1)
                     # check if tp is already in this base
                     for tpdata in self.subjects_tp_map[key]:
                         if tpdata[0] == tp:
-                            print 'ERROR: Multiple occurence of time point (fsid) \''+tp+'\' in (fsid-base) '+key+'!'
+                            print('ERROR: Multiple occurence of time point (fsid) \''+tp+'\' in (fsid-base) '+key+'!')
                             sys.exit(1)
                 else:
                     self.subjects_tp_map[key] = []
@@ -149,7 +150,7 @@ class LongQdecTable:
         alltables = []
         
         if col == 'fsid':
-            print 'ERROR: cannot split fsid (one timepoint per file)?'
+            print('ERROR: cannot split fsid (one timepoint per file)?')
             sys.exit(1)        
         
         if col == 'fsid-base':
@@ -162,16 +163,16 @@ class LongQdecTable:
             allasdict = StableDict()
             poscols = [i for i,x in enumerate(self.variables) if x == col]
             if len(poscols) != 1:
-                print 'ERROR: did not find '+col+' or found it in several columns!'
+                print('ERROR: did not find '+col+' or found it in several columns!')
                 sys.exit(1)
             colnum = poscols[0] + 1
               
             for bid,value in self.subjects_tp_map.items():
                 key = value[0][colnum]
-                print 'Key: '+str(key)+'\n'
+                print('Key: '+str(key)+'\n')
                 for tpdata in value:
                     if tpdata[colnum] != key:
-                        print 'ERROR: split: '+col+' value needs to be the same within each subject ('+bid+')!'
+                        print('ERROR: split: '+col+' value needs to be the same within each subject ('+bid+')!')
                         sys.exit(1)
                 if key not in allasdict:
                     stpmap = StableDict()
@@ -184,7 +185,7 @@ class LongQdecTable:
                alltables.append(allasdict[key]) 
             
         else:
-            print 'ERROR: column "'+col+'" unknown!\n'
+            print('ERROR: column "'+col+'" unknown!\n')
             sys.exit(1)
         
         return alltables
@@ -218,28 +219,28 @@ class LongQdecTable:
         else:
             poscols = [i for i,x in enumerate(self.variables) if x == col]
             if len(poscols) != 1:
-               print 'ERROR: did not find '+col+' or found it in several columns!'
+               print('ERROR: did not find '+col+' or found it in several columns!')
                sys.exit(1)
             colnum = poscols[0]   
         
         for key,value in self.subjects_tp_map.items():
-            #print 'Key before: '+key+'  ->  '+str(value)+'\n'
+            #print('Key before: '+key+'  ->  '+str(value)+'\n')
             #a = sorted(value, key=lambda tpdata: tpdata[colnum])
-            #print 'Key after : '+key+'  ->  '+str(a)+'\n'
+            #print('Key after : '+key+'  ->  '+str(a)+'\n')
            
             self.subjects_tp_map[key] = sorted(value, key=lambda tpdata: tpdata[colnum])
     
     def append_table(self,filename):
         if self.cross:
-            print 'ERROR: append_table not supported for type cross!'
+            print('ERROR: append_table not supported for type cross!')
             sys.exit(1)
         
         # append columns from another table (read it from disk) to this
         # it is assumed that a row exists for each subject.tp in this table
-        print 'Parsing the qdec table: '+filename
+        print('Parsing the qdec table: '+filename)
         statstable = LongQdecTable()
         statstable.parse(filename,False) #don't warn about being cross sectional table
-        #print statstable.variables
+        #print(statstable.variables)
         
         self.variables = list(itertools.chain(*[self.variables, statstable.variables]))
         first = True
@@ -249,11 +250,11 @@ class LongQdecTable:
             
         
             if not statstable.cross:
-                print 'statstable is not corss (= long)\n'
+                print('statstable is not corss (= long)\n')
                 # table to append is in long format
                 #  check if subject is here
                 if subjectid not in statstable.subjects_tp_map:
-                    print 'ERROR: did not find '+subjectid+' in table '+filename+'!'
+                    print('ERROR: did not find '+subjectid+' in table '+filename+'!')
                     sys.exit(1)
                     
                 # get that data
@@ -262,7 +263,7 @@ class LongQdecTable:
                 # check if all time points are in same order
                 for i,tpdata,addtpdata in itertools.izip(itertools.count(),tplist,addtplist):
                     if tpdata[0] != addtpdata[0]:
-                        print 'ERROR: time point id'+tpdata[0]+' not found in other table!'
+                        print('ERROR: time point id'+tpdata[0]+' not found in other table!')
                         sys.exit(1)
                     # append all columns (except the id)
                     self.subjects_tp_map[subjectid][i] = list(itertools.chain(*[self.subjects_tp_map[subjectid][i], addtplist[i][1:]]))
@@ -278,7 +279,7 @@ class LongQdecTable:
                         elif tpid+'.long.'+subjectid in statstable.subjects_tp_map:
                             crossnames = False
                         else:
-                            print 'ERROR: time point id'+tpid+' not found in other table!'
+                            print('ERROR: time point id'+tpid+' not found in other table!')
                             sys.exit(1)
                     # get the name
                     tpid = tpdata[0]

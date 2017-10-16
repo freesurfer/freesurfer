@@ -19,6 +19,7 @@
 # 06 December 2011
 # o Clean-up the socket communication
 #
+from __future__ import print_function
 import socket
 
 class C_dgmsocket :
@@ -61,12 +62,12 @@ class C_dgmsocket :
 		self.m_verbosity	= a_verbosity
 		self.m_warnings		= a_warnings
 	def __str__(self):
-		print 'mstr_obj\t\t= %s' 	% self.mstr_obj
-		print 'mstr_name\t\t= %s' 	% self.mstr_name
-		print 'm_id\t\t\t= %d' 		% self.m_id
-		print 'm_iter\t\t\t= %d'	% self.m_iter
-		print 'm_verbosity\t\t= %d'	% self.m_verbosity
-		print 'm_warnings\t\t= %d'	% self.m_warnings
+		print('mstr_obj\t\t= %s' 	% self.mstr_obj)
+		print('mstr_name\t\t= %s' 	% self.mstr_name)
+		print('m_id\t\t\t= %d' 		% self.m_id)
+		print('m_iter\t\t\t= %d'	% self.m_iter)
+		print('m_verbosity\t\t= %d'	% self.m_verbosity)
+		print('m_warnings\t\t= %d'	% self.m_warnings)
 		return 'This class provides a *very* simple wrapper framework about datagram sockets.'
 	def __init__(self, astr_hostname = 'localhost', a_port = 1701):
 		self.core_construct()

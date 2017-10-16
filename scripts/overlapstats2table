@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+from __future__ import print_function
 import warnings
 warnings.filterwarnings('ignore', '.*negative int.*')
 import os, sys, optparse
@@ -90,16 +90,16 @@ def options_parse():
     # error check
     if options.filenames is not None:
         if len(options.filenames) < 1:
-            print 'ERROR: at least 1 filename must be provided'
+            print('ERROR: at least 1 filename must be provided')
             sys.exit(1)
         
     if options.filenames is None: 
-        print 'ERROR: Specify --filenames to indicate the input files'
-        print '       or run with --help for help.'
+        print('ERROR: Specify --filenames to indicate the input files')
+        print('       or run with --help for help.')
         sys.exit(1)
 
     if not options.outputfile:
-        print 'ERROR: output table name should be specified'
+        print('ERROR: output table name should be specified')
         sys.exit(1)
         
     if options.verboseflag:
@@ -118,7 +118,7 @@ Returns:
 #    specs_paths = []
 #    # check the subjects dir
 #    subjdir = fsutils.check_subjdirs()
-#    print 'SUBJECTS_DIR : %s' %subjdir
+#    print('SUBJECTS_DIR : %s' %subjdir)
 #        # in case the user gave --subjectsfile argument
 #    if o.subjectsfile is not None:
 #        o.subjects=[]
@@ -127,7 +127,7 @@ Returns:
 #            [o.subjects.append(subfromfile.strip()) for subfromfile in sf]
 #            sf.close()
 #        except IOError:
-#            print 'ERROR: the file %s doesnt exist'%o.subjectsfile
+#            print('ERROR: the file %s doesnt exist'%o.subjectsfile)
 #            sys.exit(1)            
 #    for sub in o.subjects:
 #        specs_paths.append( (sub,  os.path.join(subjdir, sub, 'stats',
@@ -237,7 +237,7 @@ if __name__=="__main__":
     pretable = []
     
     # Parse the stats files 
-    print 'Parsing the .stats files '
+    print('Parsing the .stats files ')
     # for specifier, filepath in subj_listoftuples:
     for filepath in subj_listoftuples:
         try:
@@ -249,20 +249,20 @@ if __name__=="__main__":
             l.debug('-- Parsed Labels and Measures --')
             l.debug(label_measure_map)
         except BadFileError, e:
-                print 'ERROR: The input file '+str(e)+' is not found or is too small to be a valid statsfile'
+                print('ERROR: The input file '+str(e)+' is not found or is too small to be a valid statsfile')
                 sys.exit(1)
         
         # pretable.append( (specifier, label_measure_map)) 
-        # print 'filepath' filepath
+        # print('filepath' filepath)
         pretable.append( (filepath, label_measure_map)) 
 
     # Make sure the table has the same number of cols for all stats files
     # and merge them up, clean them up etc. More in the documentation of the fn.
-    print 'Building the table..'
+    print('Building the table..')
     rows, columns, table = sanitize_table(options, pretable)
 
     # Write this table ( in memory ) to disk.. function uses TableWriter class
-    print 'Writing the table to %s' %options.outputfile
+    print('Writing the table to %s' %options.outputfile)
     write_table(options, rows, columns, table)
 
     # always exit with 0 exit code

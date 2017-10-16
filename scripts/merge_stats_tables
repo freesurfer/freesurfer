@@ -23,7 +23,7 @@
 # Reporting: freesurfer@nmr.mgh.harvard.edu
 #
 #
-
+from __future__ import print_function
 import warnings
 warnings.filterwarnings('ignore', '.*negative int.*')
 import os
@@ -184,14 +184,14 @@ def options_parse():
     # extensive error checks
     if options.subjects is not None:
         if len(options.subjects) < 1:
-            print 'ERROR: subjects are not specified (use --subjects SUBJECTS)'
+            print('ERROR: subjects are not specified (use --subjects SUBJECTS)')
             sys.exit(1)
         else:
             options.dodirect = False
     
     if options.inputs is not None:
         if len(options.inputs) < 1:
-            print 'ERROR: inputs are not specified'
+            print('ERROR: inputs are not specified')
             sys.exit(1)
         else:
             options.dodirect = True
@@ -200,52 +200,52 @@ def options_parse():
         options.dodirect = False
 
     if options.subjects is None and options.inputs is None and options.subjectsfile is None: 
-        print 'ERROR: Specify one of --subjects, --inputs or --subjectsfile'
-        print '       or run with --help for help.'
+        print('ERROR: Specify one of --subjects, --inputs or --subjectsfile')
+        print('       or run with --help for help.')
         sys.exit(1)
     
     if options.subjects is not None and options.inputs is not None:
-        print 'ERROR: Both subjects and inputs are specified. Please specify just one '
+        print('ERROR: Both subjects and inputs are specified. Please specify just one ')
         sys.exit(1)
 
     if options.subjects is not None and options.subjectsfile is not None:
-        print 'ERROR: Both subjectsfile and subjects are specified. Please specify just one '
+        print('ERROR: Both subjectsfile and subjects are specified. Please specify just one ')
         sys.exit(1)
     
     if options.inputs is not None and options.subjectsfile is not None:
-        print 'ERROR: Both subjectsfile and inputs are specified. Please specify just one '
+        print('ERROR: Both subjectsfile and inputs are specified. Please specify just one ')
         sys.exit(1)
     
     if not options.outputfile:
-        print 'ERROR: output table name should be specified (use --tablefile FILE)'
+        print('ERROR: output table name should be specified (use --tablefile FILE)')
         sys.exit(1)
 
     if not options.meas:
-        print 'ERROR: output measure should be specified (use --meas STRING)'
+        print('ERROR: output measure should be specified (use --meas STRING)')
         sys.exit(1)
         
     if (options.subjects is not None or options.subjectsfile is not None) and options.intable is None:
-        print 'ERROR: input filename should be specified when passing subject ids (use --intable NAME)'
+        print('ERROR: input filename should be specified when passing subject ids (use --intable NAME)')
         sys.exit(1)
     
     if options.all_flag and options.common_flag:
-        print 'ERROR: specify either --all-segs or --common-segs'
+        print('ERROR: specify either --all-segs or --common-segs')
         sys.exit(1)
 
 #    if options.segidsfile is not None and options.segnos is not None:
-#        print 'ERROR: cannot spec both --segids-from-file and --segnos. Spec just one'
+#        print('ERROR: cannot spec both --segids-from-file and --segnos. Spec just one')
 #        sys.exit(1)
 
 #    if options.maxsegno and int(options.maxsegno) < 1:
-#        print 'ERROR: maximum number of segs reported shouldn''t be less than 1'
+#        print('ERROR: maximum number of segs reported shouldn''t be less than 1')
 #        sys.exit(1)
     
 #    if options.segnos is not None  and len(options.segnos) < 1 :
-#        print 'ERROR: segmentation numbers should be specified with that option'
+#        print('ERROR: segmentation numbers should be specified with that option')
 #        sys.exit(1)
     
 #    if options.no_segnos is not None and len(options.no_segnos) < 1:
-#        print 'ERROR: to be excluded segmentation numbers should be specified with that option'
+#        print('ERROR: to be excluded segmentation numbers should be specified with that option')
 #        sys.exit(1)
 
 #    # parse the segids file
@@ -254,7 +254,7 @@ def options_parse():
 #            f = open(options.segidsfile, 'r')
 #            options.segnos = [line.strip() for line in f]
 #        except IOError:
-#            print 'ERROR: cannot read '+ options.segidsfile
+#            print('ERROR: cannot read '+ options.segidsfile)
 #            sys.exit(1)
 
     if options.verboseflag:
@@ -280,7 +280,7 @@ def assemble_inputs(o):
     else:
         # check subjects dir
         subjdir = fsutils.check_subjdirs()
-        print 'SUBJECTS_DIR : %s' %subjdir
+        print('SUBJECTS_DIR : %s' %subjdir)
         if o.subdir is None:
             o.subdir = 'stats'
         # in case the user gave --subjectsfile argument
@@ -290,7 +290,7 @@ def assemble_inputs(o):
                 sf = open(o.subjectsfile)
                 [o.subjects.append(subfromfile.strip()) for subfromfile in sf]
             except IOError:
-                print 'ERROR: the file %s doesnt exist'%o.subjectsfile
+                print('ERROR: the file %s doesnt exist'%o.subjectsfile)
                 sys.exit(1)
         for sub in o.subjects:
             specs_paths.append( os.path.join(subjdir, sub, o.subdir, o.intable) )
@@ -377,7 +377,7 @@ def sanitize_table(options, disorganized_table):
     row_ids = fsutils.StableDict()
     for row,junk1,junk2 in disorganized_table:
         if row in row_ids:
-            print "ERROR: duplicate row found: "+row+", not sure if identical data, therefore stopping!"
+            print("ERROR: duplicate row found: "+row+", not sure if identical data, therefore stopping!")
             sys.exit(1)
             # future: check if rows are the same, if so, drop one of them, else exit
             #  difficulty, columns can be in different order, so they need to reorderd based on col headers   
@@ -409,10 +409,10 @@ def sanitize_table(options, disorganized_table):
         firstcols = sorted(all_cols[0])
         for cols in all_cols[1:]:
             if not firstcols == sorted(cols):
-                print 'ERROR: All stat files should have the same segmentations'
-                print 'If one or more stats file have different segs from others,'
-                print 'use --common-segs or --all-segs flag depending on the need.'
-                print '(see help)'
+                print('ERROR: All stat files should have the same segmentations')
+                print('If one or more stats file have different segs from others,')
+                print('use --common-segs or --all-segs flag depending on the need.')
+                print('(see help)')
                 sys.exit(1)
         all_cols = all_cols[0]
             
@@ -430,7 +430,7 @@ def sanitize_table(options, disorganized_table):
         # fill existing elements form disorganized table
         for i in range(0,len(cols)):
            all_data[rowid][cols[i]] = data[i]
-        #print "all data : " + str(all_data)
+        #print("all data : " + str(all_data))
         #raw_input("Press Enter to continue...")
   
 
@@ -455,7 +455,7 @@ def write_table(outfile,measure, rows, cols, table,delimiter,transposeflag):
 def parse_stats_table(intable):
 
     if not os.path.exists(intable):
-        print 'ERROR: '+str(intable)+' not found!'
+        print('ERROR: '+str(intable)+' not found!')
         raise BadFileError(filename)
         
     fp = open(intable,'r')
@@ -490,7 +490,7 @@ if __name__=="__main__":
     pretable = []
 
     # Parse the stats files 
-    print 'Parsing the stats table files'
+    print('Parsing the stats table files')
     for filepath in subj_listofpaths:
         try:
             l.debug('-'*20)
@@ -498,7 +498,7 @@ if __name__=="__main__":
 
             # read in table (later also check segnos, no_segnos, maxsegnos etc)
             measure,cols,rows,data = parse_stats_table(filepath)
-            #print 'cols in '+filepath+' : \n'+str(cols)
+            #print('cols in '+filepath+' : \n'+str(cols))
             #print
             
 
@@ -518,11 +518,11 @@ if __name__=="__main__":
 #            l.debug(measurelist)
         except BadFileError, e:
             if options.skipflag:
-                print 'Skipping ' + str(e)
+                print('Skipping ' + str(e))
                 continue
             else:
-                print 'ERROR: The stats table '+str(e)+' is not found or is too small to be a valid stats table'
-                print 'Use --skip flag to automatically skip bad stats tables'
+                print('ERROR: The stats table '+str(e)+' is not found or is too small to be a valid stats table')
+                print('Use --skip flag to automatically skip bad stats tables')
                 sys.exit(1)
         
         # each row gets a copy of the cols header:
@@ -531,18 +531,18 @@ if __name__=="__main__":
 
     # Make sure the table has the same number of cols for all stats files
     # and merge them up, clean them up etc. More in the documentation of the fn.
-    print 'Building the table..'
+    print('Building the table..')
     rows, columns, table = sanitize_table(options, pretable)
     
-    #print "rows: "+str(rows)
+    #print("rows: "+str(rows))
     #print
-    #print "columns: "+str(columns)
+    #print("columns: "+str(columns))
     #print
-    #print "table: " +str(table)
+    #print("table: " +str(table))
     #print
 
     # Write this table ( in memory ) to disk.. function uses TableWriter class
-    print 'Writing the table to %s' %options.outputfile
+    print('Writing the table to %s' %options.outputfile)
     write_table(options.outputfile, options.meas, rows, columns, table, options.delimiter, options.transposeflag)
 
     # always exit with 0 exit code
