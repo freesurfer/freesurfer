@@ -1,5 +1,6 @@
 # Original author - Krish Subramaniam
 # $Id: fsutils.py,v 1.19 2015/03/27 16:40:35 greve Exp $
+from __future__ import print_function
 import os
 import logging
 import sys
@@ -303,8 +304,8 @@ class TractOverallStatsParser(StatsParser):
                 if omeasure in measurelist:
                     tmp_measure_value_map[omeasure] = self.measure_value_map[omeasure] 
                 else:
-                    print 'ERROR: The measure you requested: '+ omeasure + ' is not valid'
-                    print 'It is not found one of the overall statistics file'
+                    print('ERROR: The measure you requested: '+ omeasure + ' is not valid')
+                    print('It is not found one of the overall statistics file')
                     sys.exit(1)
             self.measure_value_map = tmp_measure_value_map
         

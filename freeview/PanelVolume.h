@@ -54,7 +54,7 @@ protected slots:
   void OnComboColorMap( int nSel );
   void OnComboLookupTable( int nSel );
   void OnColorTableCurrentItemChanged( QTreeWidgetItem* item );
-  void OnColorTableItemDoubleClicked( QTreeWidgetItem* item );
+  void OnColorTableItemDoubleClicked( QTreeWidgetItem* item = NULL );
   void OnLineEditBrushValue( const QString& strg = NULL );
   void OnCheckBoxSelectAllLabels(int nState);
   void OnColorTableItemChanged( QTreeWidgetItem* item );
@@ -103,6 +103,8 @@ protected slots:
   void OnComboProjectionMapType(int nType);
 
   void OnLineEditMaskThreshold(const QString& text);
+
+  void OnCustomContextMenu(const QPoint& pt);
 
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab );

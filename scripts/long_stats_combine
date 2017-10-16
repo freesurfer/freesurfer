@@ -23,7 +23,7 @@
 # Reporting: freesurfer@nmr.mgh.harvard.edu
 #
 #
-
+from __future__ import print_function
 import warnings
 warnings.filterwarnings('ignore', '.*negative int.*')
 import os
@@ -163,32 +163,32 @@ def options_parse():
     # extensive error checks
     if options.qdec is None:
         parser.print_help() 
-        print
-        print 'ERROR: Specify --qedc'
-        print 
+        print()
+        print('ERROR: Specify --qedc')
+        print() 
         sys.exit(1)
         
     if options.instats is None:
         if options.stats is None :
-            print 'ERROR: Specify --stats (e.g. \'aseg.stats\')'
+            print('ERROR: Specify --stats (e.g. \'aseg.stats\')')
             sys.exit(1)
         if options.meas is None :
-            print 'ERROR: Specify --meas (e.g. \'volume\')'
+            print('ERROR: Specify --meas (e.g. \'volume\')')
             sys.exit(1)
         if options.sd is None :
-            print 'ERROR: Specify the subject dir with --sd <fullpath>'
+            print('ERROR: Specify the subject dir with --sd <fullpath>')
             sys.exit(1)
     else:
         if options.stats is not None or options.meas is not None:
-            print '\nERROR: Do not pass --stats or --meas when passing --instats\n'        
+            print('\nERROR: Do not pass --stats or --meas when passing --instats\n'        )
             sys.exit(1)
         if options.outstats is not None:
-            print '\nERROR: Do not pass --outstats when passing --instats (just make a copy yourself)\n'
+            print('\nERROR: Do not pass --outstats when passing --instats (just make a copy yourself)\n')
             sys.exit(1)
             
     
     if options.outqdec is None and options.outstats is None:
-        print 'ERROR: Specify the output file name with --outqdec <name> or --outstats <name>'
+        print('ERROR: Specify the output file name with --outqdec <name> or --outstats <name>')
         sys.exit(1)   
  
     crosslong = 'long.'
@@ -203,13 +203,13 @@ def run_cmd(cmd,err_msg):
     """
     execute the comand
     """
-    print cmd+'\n'
+    print(cmd+'\n')
     args = shlex.split(cmd)
     retcode = subprocess.call(args)
     if retcode != 0 :
-        print 'ERROR: '+err_msg
+        print('ERROR: '+err_msg)
         sys.exit(1)
-    print '\n'
+    print('\n')
 
 
 if __name__=="__main__":
@@ -220,19 +220,19 @@ if __name__=="__main__":
 
     subjectsdir = ''
     # Parse the stats files 
-    print 'Parsing the qdec table: '+options.qdec
+    print('Parsing the qdec table: '+options.qdec)
     try:
         slopelogger.debug('Processing file ' + options.qdec)
         qdectable = LongQdecTable(options.qdec)
         #subjects_tp_map, variables, subjectdir = qdecparse.parse()
     except BadFileError, e:
-        print 'ERROR: qdec table '+str(e)+' not found!'
+        print('ERROR: qdec table '+str(e)+' not found!')
         sys.exit(1)
     
     
     # make sure we have a long table containing the bases
     if qdectable.cross:
-        print '\nERROR: qdec table '+options.qdec+' is cross sectional\n       (2nd column not \'fsid-base\')!\n'
+        print('\nERROR: qdec table '+options.qdec+' is cross sectional\n       (2nd column not \'fsid-base\')!\n')
         sys.exit(1)
         
     # get other variables:
@@ -241,7 +241,7 @@ if __name__=="__main__":
     # overwrite environment with passed subjects dir:
     if options.sd is not None:
         subjectsdir = options.sd
-        print '\nWorking in SUBJECTS_DIR: '+subjectsdir+'\n'
+        print('\nWorking in SUBJECTS_DIR: '+subjectsdir+'\n')
         os.environ['SUBJECTS_DIR'] =  subjectsdir
     
     # process
@@ -252,7 +252,7 @@ if __name__=="__main__":
         all = ""
         slist = []
         for subjectid, tplist in qdectable.subjects_tp_map.items():
-            print '\nSubject-Template: '+subjectid
+            print('\nSubject-Template: '+subjectid)
                     
             # extract ids:
             if options.cross:

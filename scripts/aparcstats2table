@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import warnings
 warnings.filterwarnings('ignore', '.*negative int.*')
 import os, sys, optparse
@@ -153,12 +154,12 @@ def options_parse():
     # error check
     if options.subjects is not None:
         if len(options.subjects) < 1:
-            print 'ERROR: atleast 1 subject must be provided'
+            print('ERROR: atleast 1 subject must be provided')
             sys.exit(1)
         
     if options.subjects is None and options.subjectsfile is None and options.qdec is None and options.qdeclong is None: 
-        print 'ERROR: Specify one of --subjects, --subjectsfile --qdec or --qdec-long'
-        print '       or run with --help for help.'
+        print('ERROR: Specify one of --subjects, --subjectsfile --qdec or --qdec-long')
+        print('       or run with --help for help.')
         sys.exit(1)
 
     count=0
@@ -171,14 +172,14 @@ def options_parse():
     if options.qdeclong is not None:
         count = count+1;
     if count >1:
-        print 'ERROR: Please specify just one of  --subjects, --subjectsfile --qdec or --qdec-long.'
+        print('ERROR: Please specify just one of  --subjects, --subjectsfile --qdec or --qdec-long.')
         sys.exit(1)
 
     if not options.outputfile:
-        print 'ERROR: output table name should be specified'
+        print('ERROR: output table name should be specified')
         sys.exit(1)
     if not options.hemi:
-        print 'ERROR: hemisphere should be provided (lh or rh)'
+        print('ERROR: hemisphere should be provided (lh or rh)')
         sys.exit(1)
         
     # parse the parcs file
@@ -188,10 +189,10 @@ def options_parse():
             f = open(options.parcsfile, 'r')
             options.parcs = [line.strip() for line in f]
         except IOError:
-            print 'ERROR: cannot read '+ options.parcsfile
+            print('ERROR: cannot read '+ options.parcsfile)
 
     if options.reportroiflag:
-        print 'WARNING: --report-rois deprecated. Use -v instead'
+        print('WARNING: --report-rois deprecated. Use -v instead')
 
     if options.verboseflag:
         l.setLevel(logging.DEBUG)
@@ -210,7 +211,7 @@ def assemble_inputs(options):
     specs_paths = []
     # check the subjects dir
     subjdir = fsutils.check_subjdirs()
-    print 'SUBJECTS_DIR : %s' %subjdir
+    print('SUBJECTS_DIR : %s' %subjdir)
         # in case the user gave --subjectsfile argument
     if o.subjectsfile is not None:
         o.subjects=[]
@@ -219,7 +220,7 @@ def assemble_inputs(options):
             [o.subjects.append(subfromfile.strip()) for subfromfile in sf]
             sf.close()
         except IOError:
-            print 'ERROR: the file %s doesnt exist'%o.subjectsfile
+            print('ERROR: the file %s doesnt exist'%o.subjectsfile)
             sys.exit(1)
     if o.qdec is not None:
         o.subjects=[]
@@ -233,10 +234,10 @@ def assemble_inputs(options):
                 fsid=row['fsid'].strip()
                 if fsid[0] != '#':
                     o.subjects.append(fsid)
-            #print o.subjects
+            #print(o.subjects)
             f.close()
         except IOError:
-            print 'ERROR: the file %s doesnt exist'%o.qdec
+            print('ERROR: the file %s doesnt exist'%o.qdec)
             sys.exit(1)
     if o.qdeclong is not None:
         o.subjects=[]
@@ -252,7 +253,7 @@ def assemble_inputs(options):
                     o.subjects.append(fsid+'.long.'+row['fsid-base'].strip())
             f.close()
         except IOError:
-            print 'ERROR: the file %s doesnt exist'%o.qdeclong
+            print('ERROR: the file %s doesnt exist'%o.qdeclong)
             sys.exit(1)
             
     for sub in o.subjects:
@@ -363,7 +364,7 @@ if __name__=="__main__":
     pretable = []
     
     # Parse the parc.stats files 
-    print 'Parsing the .stats files'
+    print('Parsing the .stats files')
     for specifier, filepath in subj_listoftuples:
         try:
             l.debug('-'*20)
@@ -378,23 +379,23 @@ if __name__=="__main__":
             l.debug(parc_measure_map)
         except BadFileError, e:
             if options.skipflag:
-                print 'Skipping ' + str(e)
+                print('Skipping ' + str(e))
                 continue
             else:
-                print "";
+                print("");
                 if(not os.path.exists(str(e))):
-                    print 'ERROR: Cannot find stats file '+str(e);
+                    print('ERROR: Cannot find stats file '+str(e);)
                 else:
-                    print 'ERROR: The stats file '+str(e)+' is too small to be a valid statsfile'
-                    print 'Use --skip flag to automatically skip bad stats files'
-                print "";
+                    print('ERROR: The stats file '+str(e)+' is too small to be a valid statsfile')
+                    print('Use --skip flag to automatically skip bad stats files')
+                print("");
                 sys.exit(1)
         
         pretable.append( (specifier, parc_measure_map)) 
 
     # Make sure the table has the same number of cols for all stats files
     # and merge them up, clean them up etc. More in the documentation of the fn.
-    print 'Building the table..'
+    print('Building the table..')
     rows, columns, table = sanitize_table(options, pretable)
 
     if(options.etivflag):
@@ -410,11 +411,11 @@ if __name__=="__main__":
                     v = table[row][col];
                     table[row][col] = 100*v/etiv;
         except:
-            print "ERROR: --etiv, cannot find eTIV in measure list"
+            print("ERROR: --etiv, cannot find eTIV in measure list")
             sys.exit(1)
                     
     # Write this table ( in memory ) to disk.. function uses TableWriter class
-    print 'Writing the table to %s' % options.outputfile
+    print('Writing the table to %s' % options.outputfile)
     write_table(options, rows, columns, table)
 
     # always exit with 0 exit code

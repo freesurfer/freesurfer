@@ -5,6 +5,7 @@
 This module essentially contains useful classes and functions that don't fit
 elsewhere. 
 """
+from __future__ import print_function
 __all__ = ['callback_var']
 
 # optparse can't handle variable number of arguments for an option.

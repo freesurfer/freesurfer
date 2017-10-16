@@ -69,8 +69,12 @@ void TreeDataLoader::DoLoad(const QString &dirPath, BinaryTreeView *view)
   }
 
   QVariantMap data;
-  data["tree_map"] = tract_map;
-  data["max_level"] = max_level;
+  if (!tract_map.isEmpty())
+  {
+    data["tree_map"] = tract_map;
+    data["max_level"] = max_level;
+    data["path"] = dirPath;
+  }
   emit DataLoaded(data);
 }
 
@@ -102,7 +106,6 @@ BinaryTreeView::~BinaryTreeView()
 void BinaryTreeView::Load(const QString &dirName)
 {
   m_dataLoader->Load(dirName, this);
-  m_strDataDir = dirName;
 }
 
 void BinaryTreeView::mousePressEvent(QMouseEvent *event)
@@ -228,8 +231,8 @@ void BinaryTreeView::ZoomOut()
 
 void BinaryTreeView::OnDataLoaded(const QVariantMap& data)
 {
-  SetData(data);
-
+  if (!data.isEmpty())
+    SetData(data);
   QStringList list = data.value("tree_map").toMap().value("1").toStringList();
   QStringList filenames;
   if (!list.isEmpty())
@@ -250,8 +253,6 @@ void BinaryTreeView::SetData(const QVariantMap &data)
   m_mapData = data;
   if (m_mapData.contains("path"))
     m_strDataDir = m_mapData["path"].toString();
-  else
-    m_mapData["path"] = m_strDataDir;
   QVariantMap mapTract = data["tree_map"].toMap();
   int max_level = data["max_level"].toInt();
 

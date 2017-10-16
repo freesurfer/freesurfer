@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: latin-1 -*-
-
+from __future__ import print_function
 import sys
 import os
 import platform
@@ -285,7 +285,7 @@ class Params:
     if not VERBOSE: return
     string = ""
     if self.last_param != paramtype: string = paramtype + ": "
-    print "%*s" % (9, string) + info
+    print("%*s" % (9, string) + info)
     self.last_param = paramtype
 
 
@@ -296,7 +296,7 @@ class Params:
 
 # ------------------ errorExit ------------------------ #
 def errorExit(msg):
-  print col("error:", "r*"), msg + '\n'
+  print(col("error:", "r*"), msg + '\n')
   sys.exit(1)
 
 
@@ -489,7 +489,7 @@ def parseCommandLine(argv):
 
     # OPTION: show help
     elif key in ('-h', '-help', '--help'):
-      print HELPTEXT
+      print(HELPTEXT)
       sys.exit(0)
 
     # OPTION: simulate for testing purposes
@@ -630,10 +630,10 @@ def main(argv):
   if params.nvols == params.nsurfs == 0:
     if params.subj_name:
       # if nothing but subject name is provided, load orig.mgz:
-      print "no volumes specified - loading orig.mgz as default"
+      print("no volumes specified - loading orig.mgz as default")
       params.addVol(["orig.mgz"], SUBJVOL=True)
     else:
-      print HELPTEXT
+      print(HELPTEXT)
       exit(1)
 
   fvcommand = "freeview"
@@ -663,10 +663,10 @@ def main(argv):
 
   # print the freeview command:
   if VERBOSE:
-    print "\nfreeview command:"
-    print col('-' * TERMW, 'b')  # blue line
-    print fvcommand
-    print col('-' * TERMW, 'b') + '\n'  # blue line
+    print("\nfreeview command:")
+    print(col('-' * TERMW, 'b'))  # blue line
+    print(fvcommand)
+    print(col('-' * TERMW, 'b') + '\n')  # blue line
 
   # run fv command:
   fvargs = shlex.split(fvcommand)
