@@ -346,7 +346,7 @@ if __name__=="__main__":
         slopelogger.debug('Processing file ' + options.qdec)
         qdectable = LongQdecTable(options.qdec)
         #subjects_tp_map, variables, subjectdir = qdecparse.parse()
-    except BadFileError, e:
+    except BadFileError as e:
         print('ERROR: qdec table '+str(e)+' not found!')
         sys.exit(1)
         
