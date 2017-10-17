@@ -230,7 +230,7 @@ main(int argc, char *argv[]) {
       double dist, min_dist ;
       VOXLIST *vl ;
 
-      mri_laplace = MRIsolveLaplaceEquation(mri_wm_only, mri_aseg, label1_target, label2_target,LAPLACE_SOURCE,LAPLACE_TARGET,LAPLACE_OUTSIDE) ;
+      mri_laplace = MRIsolveLaplaceEquation(mri_wm_only, mri_aseg, label2_target,label1_target,LAPLACE_SOURCE,LAPLACE_TARGET,LAPLACE_OUTSIDE) ;
       
       min_dist = 1e10;
       xm = ym = zm = 0 ;
@@ -238,9 +238,9 @@ main(int argc, char *argv[]) {
 	for (yv = 0 ; yv < mri_aseg->height ; yv++) 
 	  for (zv = 0 ; zv < mri_aseg->depth ; zv++) 
 	  {
-	    if (MRIgetVoxVal(mri_aseg, xv, yv, zv,0) == label2_target)
+	    if (MRIgetVoxVal(mri_aseg, xv, yv, zv,0) == label1_target)
 	      DiagBreak() ;
-	    if (MRIgetVoxVal(mri_aseg, xv, yv, zv,0) == label2_target && MRIlabelsInNbhd6(mri_wm,xv,yv,zv,1))
+	    if (MRIgetVoxVal(mri_aseg, xv, yv, zv,0) == label1_target && MRIlabelsInNbhd6(mri_wm,xv,yv,zv,1))
 	    {
 	      for (xk = -1 ; xk <= 1 ; xk++)
 		for (yk = -1 ; yk <= 1 ; yk++)
@@ -271,14 +271,14 @@ main(int argc, char *argv[]) {
     }
 
     mri_tmp = MRIclone(mri_aseg, NULL) ;
-    MRIcopyLabel(mri_aseg, mri_tmp, label1_target) ;
+    MRIcopyLabel(mri_aseg, mri_tmp, label2_target) ;
     MRIbinarize(mri_tmp, mri_tmp, 1, 0, 2) ;
     MRIcopyLabel(mri_tmp, mri_wm, 2) ;  // this label will be a fixed point in the smoothing
     MRIfree(&mri_tmp) ;
 
     MRIcopy(mri_wm_only, mri_wm) ;
-    mri_tmp = MRInbrThresholdLabel(mri_aseg, NULL, label1_target, 0, 1, 5) ;  // remove isolated voxels in label
-    mri_label1_dist = MRIinteriorDistanceTransform(mri_tmp, mri_wm, NULL, label1_target, hemi) ;
+    mri_tmp = MRInbrThresholdLabel(mri_aseg, NULL, label2_target, 0, 1, 5) ;  // remove isolated voxels in label
+    mri_label1_dist = MRIinteriorDistanceTransform(mri_tmp, mri_wm, NULL, label2_target, hemi) ;
     MRIfree(&mri_tmp) ;
 
     mri_smooth = MRIsmoothLabel6Connected(mri_label1_dist, mri_wm, NULL, 500, 1, 2, .5) ;
@@ -301,7 +301,7 @@ main(int argc, char *argv[]) {
 	    for (z = 0 ; z < mri_aseg->depth ; z++)
 	    {
 	      l = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
-	      if (IS_WMH(l) || l == label1_target)
+	      if (IS_WMH(l) || l == label2_target)
 		continue ;
 	      val = MRImaxInRegion(mri_smooth, x, y, z, 1)  + 1 ;  // one greater than max
 	      MRIsetVoxVal(mri_tmp, x, y, z, 0, val) ;
@@ -318,7 +318,7 @@ main(int argc, char *argv[]) {
     vl_spline = compute_spline_initialization(mri_aseg, mri_wm, 
 					      mri_wm_dist, mri_label1_dist,
 					      mri_dist_grad,
-					      label1_target, label2_target,
+					      label2_target, label1_target,
 					      min_spline_control_points) ;
     if (vl_spline == NULL)
       ErrorExit(ERROR_BADPARM, "%s: could not find path between labels", Progname) ;
