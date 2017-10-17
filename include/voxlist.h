@@ -86,6 +86,7 @@ VOXEL_LIST *VLSTsort(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst) ;
 int         VLSTaddUnique(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, float zd);
 int         VLSTinList(VOXEL_LIST *vl, int x, int y, int z);
 int         VLSTadd(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, float zd) ;
+int         VLSTaddWithValue(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, float zd, float vsrc, float vdst) ;
 
 int         VLmostCommonLabel(VOXEL_LIST *vl) ;
 int         VLSTwriteLabel(VOXEL_LIST *vl, char *fname, MRI_SURFACE *mris, MRI *mri) ;

@@ -701,6 +701,21 @@ int VLSTaddUnique(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, float
   VLSTadd(vl, x, y, z, xd, yd, zd);
   return (1);
 }
+int
+VLSTaddWithValue(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, float zd, float vsrc, float vdst) 
+{
+  if (VLSTadd(vl,x,y,z,xd,yd,zd) == NO_ERROR)
+  {
+    int ind ;
+    ind = vl->nvox-1 ;
+    vl->vdst[ind] = vdst ;
+    vl->vsrc[ind] = vsrc ;
+  }
+  else
+    return(Gerror) ;
+  return(NO_ERROR) ;
+}
+
 int VLSTadd(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, float zd)
 {
   if (vl->nvox >= vl->max_vox)
