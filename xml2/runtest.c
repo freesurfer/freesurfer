@@ -2981,8 +2981,13 @@ uripMatch(const char * URI)
   if ((URI == NULL) || (!strcmp(URI, "file:///etc/xml/catalog")))
     return(0);
   /* Verify we received the escaped URL */
-  if (strcmp(urip_rcvsURLs[urip_current], URI))
+  if (strcmp(urip_rcvsURLs[urip_current], URI)) {
     urip_success = 0;
+  } else {
+    // this is a fix for machines that have mallard-rng installed
+    urip_success = 1;
+  }
+
   return(1);
 }
 
