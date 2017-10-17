@@ -431,14 +431,14 @@ def sanitize_table(options, disorganized_table):
     if pl_ids:
         tmp_pl_ids = pl_ids.copy()
         itmp_pl_ids = tmp_pl_ids.iteritems()
-        plid,plname = itmp_pl_ids.next()
+        plid,plname = next(itmp_pl_ids)
         try:
             for _spec, _id_name_map, _measl in _t:
                 for _id in _id_name_map.keys():
                     if _id == plid:
                         if _id_name_map[plid] != 'Placeholder_Segmentation':
                             pl_ids[plid] = _id_name_map[plid]
-                            plid,plname = itmp_pl_ids.next()
+                            plid,plname = next(itmp_pl_ids)
         except StopIteration:
             pass
 
@@ -551,7 +551,7 @@ if __name__=="__main__":
             l.debug(id_name_map)
             l.debug('-- Measures --')
             l.debug(measurelist)
-        except BadFileError, e:
+        except BadFileError as e:
             if options.skipflag:
                 print('Skipping ' + str(e))
                 continue

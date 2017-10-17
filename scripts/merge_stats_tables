@@ -516,7 +516,7 @@ if __name__=="__main__":
 #            l.debug(id_name_map)
 #            l.debug('-- Measures --')
 #            l.debug(measurelist)
-        except BadFileError, e:
+        except BadFileError as e:
             if options.skipflag:
                 print('Skipping ' + str(e))
                 continue

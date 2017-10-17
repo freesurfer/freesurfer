@@ -377,14 +377,14 @@ if __name__=="__main__":
             parc_measure_map = parsed.parse(options.meas)
             l.debug('-- Parsed Parcs and Measures --')
             l.debug(parc_measure_map)
-        except BadFileError, e:
+        except BadFileError as e:
             if options.skipflag:
                 print('Skipping ' + str(e))
                 continue
             else:
                 print("");
                 if(not os.path.exists(str(e))):
-                    print('ERROR: Cannot find stats file '+str(e);)
+                    print('ERROR: Cannot find stats file '+str(e))
                 else:
                     print('ERROR: The stats file '+str(e)+' is too small to be a valid statsfile')
                     print('Use --skip flag to automatically skip bad stats files')
