@@ -93,7 +93,7 @@ def submit(fname,nodes,queue):
     args = shlex.split(pbcmd)
     try:
         retcode = subprocess.call(args)
-    except OSError, e:
+    except OSError as e:
         print("job submission failed:", e )
         sys.exit(1)
         
@@ -122,7 +122,7 @@ def wait_jobs(maxjobs):
         #  first try if qstat can be run:
         try:
             p1 = subprocess.Popen(["qstat"], stdout=subprocess.PIPE)
-        except OSError, e:
+        except OSError as e:
             print("qstat execution failed:", e )
             return
         # concat with grep
@@ -306,7 +306,7 @@ if __name__=="__main__":
         logger.debug('Processing file ' + options.qdec)
         qdectable = LongQdecTable(options.qdec)
         #subjects_tp_map, variables, subjectdir = qdecparse.parse()
-    except BadFileError, e:
+    except BadFileError as e:
         print('ERROR: qdec table '+options.qdec+' not found!')
         sys.exit(1)
 

@@ -658,7 +658,7 @@ if __name__=="__main__":
         slopelogger.debug('Processing file ' + options.qdec)
         qdectable = LongQdecTable(options.qdec)
         #subjects_tp_map, variables, subjectdir = qdecparse.parse()
-    except BadFileError, e:
+    except BadFileError as e:
         print('ERROR: qdec table '+options.qdec+' not found or empty?')
         sys.exit(1)
     
@@ -704,7 +704,7 @@ if __name__=="__main__":
     if subjectsdir is None:
         subjectsdir = qdectable.subjectsdir
     if subjectsdir is None:
-        print'\nERROR: no subjects dir specified, use --sd <fullpath>'
+        print('\nERROR: no subjects dir specified, use --sd <fullpath>')
         sys.exit(1)
     print('\nWorking in SUBJECTS_DIR: '+subjectsdir+'\n')
     os.environ['SUBJECTS_DIR'] =  subjectsdir

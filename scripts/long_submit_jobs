@@ -99,7 +99,7 @@ def submit(fname,nodes,mem,queue):
     args = shlex.split(pbcmd)
     try:
         retcode = subprocess.call(args)
-    except OSError, e:
+    except OSError as e:
         print("job submission failed:", e )
         sys.exit(1)
         
@@ -128,7 +128,7 @@ def wait_jobs(maxjobs):
         #  first try if qstat can be run:
         try:
             p1 = subprocess.Popen(["qstat"], stdout=subprocess.PIPE)
-        except OSError, e:
+        except OSError as e:
             print("qstat execution failed:", e )
             return
         # concat with grep
@@ -548,7 +548,7 @@ def run_cross(qdectable,options):
                         
             # check if cross dir exists:
             if not os.path.exists(os.path.join(options.cdir,tpid)):
-                print("ERROR [cross]: "+tpid+" does not exist in "+options.cdir+"\n";)
+                print("ERROR [cross]: "+tpid+" does not exist in "+options.cdir+"\n")
                 notexist.append( (subjectid,tpid) )
                 if options.simulate:
                     continue
@@ -578,7 +578,7 @@ def run_cross(qdectable,options):
             # check if read/write access:
             tpcdir = os.path.join(options.cdir,tpid)
             if not os.access(tpcdir,os.R_OK) or not os.access(tpcdir,os.X_OK) or not os.access(tpcdir,os.W_OK):
-                print("ERROR [cross]: "+tpid+" no rwx rights "+options.cdir+"\n";)
+                print("ERROR [cross]: "+tpid+" no rwx rights "+options.cdir+"\n")
                 norights.append( (subjectid,tpid) )
                 if options.simulate:
                     continue
@@ -655,7 +655,7 @@ def run_base(qdectable,options):
 
         basedir   = os.path.join(options.bdir,subjectid)
         if os.path.exists(basedir) and not ( os.access(basedir,os.R_OK) and os.access(basedir,os.X_OK)and os.access(basedir,os.W_OK)):
-            print("ERROR [base]: "+subjid+" missing rwx rights in "+options.bdir+"\n";)
+            print("ERROR [base]: "+subjid+" missing rwx rights in "+options.bdir+"\n")
             norightsB.append( subjectid )
             if options.simulate:
                 continue
@@ -693,8 +693,8 @@ def run_base(qdectable,options):
             status = check_file(options.cdir,tpid,requirement)
             
             if status >= 2: # not there and not running:
-                print("ERROR [base]: "+tpid+" ("+crossdepend+") does not exist or not readable in "+options.cdir;)
-                print("               and no IsRunning.lh+rh found!\n";)
+                print("ERROR [base]: "+tpid+" ("+crossdepend+") does not exist or not readable in "+options.cdir)
+                print("               and no IsRunning.lh+rh found!\n")
                 notexist.append( (subjectid,tpid) )
                 if options.simulate:
                     continue # check other time points
@@ -716,14 +716,14 @@ def run_base(qdectable,options):
     
             #if simulate don't wait or create links
             if options.simulate:
-                continue;
+                continue
 
             # wait for crossdepend in cross dirs
             tpincdir =  os.path.join(options.cdir,tpid)
             status = wait_file(options.cdir,tpid,requirement,60)
             if status >= 2: # not there and not running:
-                print("ERROR [base]: "+tpid+" ("+crossdepend+") does not exist or not readable in "+options.cdir;)
-                print("               and no IsRunning.lh+rh found!\n";)
+                print("ERROR [base]: "+tpid+" ("+crossdepend+") does not exist or not readable in "+options.cdir)
+                print("               and no IsRunning.lh+rh found!\n")
                 notexist.append( (subjectid,tpid) )
                 if options.simulate:
                     continue # check other time points
@@ -826,8 +826,8 @@ def run_long(qdectable,options):
         status = check_file(options.bdir,subjectid,requirement)
             
         if status >= 2: # not there and not running:
-            print("ERROR [long]: "+subjectid+" not complete (or not readable) in "+options.bdir;)
-            print("               and no IsRunning.lh+rh found!\n";)
+            print("ERROR [long]: "+subjectid+" not complete (or not readable) in "+options.bdir)
+            print("               and no IsRunning.lh+rh found!\n")
             nobase.append( subjectid )
             if options.skip > 0:
                 print("  ... skipping instead of exit ...")
@@ -845,8 +845,8 @@ def run_long(qdectable,options):
             if not options.simulate:
                 status = wait_file(options.bdir,subjectid,requirement,60)
                 if status >= 2: # not there and not running anymore:
-                    print("ERROR [long]: "+subjectid+" not complete (or not readable) in "+options.bdir;)
-                    print("               and no IsRunning.lh+rh found!\n";)
+                    print("ERROR [long]: "+subjectid+" not complete (or not readable) in "+options.bdir)
+                    print("               and no IsRunning.lh+rh found!\n")
                     nobase.append( subjectid )
                     if options.skip > 0:
                         print("  ... skipping instead of exit ...")
@@ -874,8 +874,8 @@ def run_long(qdectable,options):
             status = check_file(options.cdir,tpid,requirement)
 
             if status >= 2: # not there and not running:
-                print("ERROR [long]: "+tpid+" ("+crossdepend+") does not exist or not readable in "+options.cdir;)
-                print("               and no IsRunning.lh+rh found!\n";)
+                print("ERROR [long]: "+tpid+" ("+crossdepend+") does not exist or not readable in "+options.cdir)
+                print("               and no IsRunning.lh+rh found!\n")
                 notexist.append( (subjectid,tpid) )
                 if options.simulate:
                     continue # check other time points
@@ -896,13 +896,13 @@ def run_long(qdectable,options):
                 
             #if simulate don't wait or create links
             if options.simulate:
-                continue;
+                continue
 
             # wait for requirement in cross dirs
             status = wait_file(options.cdir,tpid,requirement,60)
             if status >= 2: # not there and not running:
-                print("ERROR [long]: "+tpid+" ("+crossdepend+") does not exist or not readable in "+options.cdir;)
-                print("               and no IsRunning.lh+rh found!\n";)
+                print("ERROR [long]: "+tpid+" ("+crossdepend+") does not exist or not readable in "+options.cdir)
+                print("               and no IsRunning.lh+rh found!\n")
                 notexist.append( (subjectid,tpid) )
                 if options.simulate:
                     continue # check other time points
@@ -950,7 +950,7 @@ def run_long(qdectable,options):
                 
             tpiddir = os.path.join(options.ldir,tpid+".long."+subjectid)
             if os.path.exists(tpiddir) and not (os.access(tpiddir,os.R_OK) and os.access(tpiddir,os.X_OK) and os.access(tpiddir,os.W_OK)):
-                print("ERROR [long]: "+tpid+".long."+subjectid+" missing rwx rights in "+options.ldir+"\n";)
+                print("ERROR [long]: "+tpid+".long."+subjectid+" missing rwx rights in "+options.ldir+"\n")
                 norights.append( (subjectid,tpid) )
                 if options.simulate:
                     continue
@@ -1012,10 +1012,10 @@ def check_long(qdectable,options):
         print('[CHECK] Subject: '+subjectid+'\n')
 
         # check / wait for ALL norm.mgz in cross tps
-        done = 0;
+        done = 0
         for tp in tplist:
             tpid = tp[0]
-            print('CHECK TP id (long): '+tpid,  #no newline here)
+            print('CHECK TP id (long): '+tpid,)
                 
             tpdir=tpid+".long."+subjectid
             requirement = os.path.join("scripts","recon-all.done")
@@ -1028,8 +1028,8 @@ def check_long(qdectable,options):
                 continue
 
             if status == 2: # not there and not running:
-                print("\nERROR [check]: "+tpdir+" not done in "+options.ldir;)
-                print("               and no IsRunning.lh+rh found!\n";)
+                print("\nERROR [check]: "+tpdir+" not done in "+options.ldir)
+                print("               and no IsRunning.lh+rh found!\n")
                 notexist.append( (subjectid,tpid) )
                 if options.skip > 0:
                     print("  ... skipping instead of exit ...\n")
@@ -1041,16 +1041,16 @@ def check_long(qdectable,options):
                 
             #if simulate don't wait
             if not wait:
-                print("\nWarning [check]: "+tpdir+" not done in "+options.ldir;            )
-                print("               but IsRunning.lh+rh found!\n";)
+                print("\nWarning [check]: "+tpdir+" not done in "+options.ldir)
+                print("               but IsRunning.lh+rh found!\n")
                 running.append( (subjectid,tpid) )
-                continue;
+                continue
 
             # wait for requirement in longidr dirs
             status = wait_file(options.ldir,tpdir,requirement,60)
             if status == 2: # not there and not running:
-                print("\nERROR [check]: "+tpdir+" not done in "+options.cdir;)
-                print("               and no IsRunning.lh+rh found!\n";)
+                print("\nERROR [check]: "+tpdir+" not done in "+options.cdir)
+                print("               and no IsRunning.lh+rh found!\n")
                 notexist.append( (subjectid,tpid) )
                 if options.skip > 0:
                     print("  ... skipping instead of exit ...\n")
@@ -1106,7 +1106,7 @@ if __name__=="__main__":
         logger.debug('Processing file ' + options.qdec)
         qdectable = LongQdecTable(options.qdec)
         #subjects_tp_map, variables, subjectdir = qdecparse.parse()
-    except BadFileError, e:
+    except BadFileError as e:
         print('ERROR: qdec table '+options.qdec+' not found!')
         sys.exit(1)
 

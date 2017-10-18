@@ -356,7 +356,7 @@ if __name__=="__main__": # Command Line options and error checking done here
                 l.debug(measure_value_map)
 
 
-        except BadFileError, e:
+        except BadFileError as e:
             print('ERROR: The stats file '+str(e)+' is not found or is too small to be a valid statsfile')
             sys.exit(1)
             
