@@ -5,6 +5,7 @@ language: cpp
 compiler: gcc
 
 os: linux
+dist: precise
 
 addons:
   apt:

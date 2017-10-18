@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/03/01 01:13:32 $
- *    $Revision: 1.24 $
+ *    $Author: ah221 $
+ *    $Date: 2017/02/07 19:19:50 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,6 +54,8 @@ static const char* licmsg =
 "  get a valid license file (it's free).\n"
 "  If you are inside the NMR-Martinos Center,\n"
 "  make sure to source the standard environment.\n"
+"  A path to an alternative license file can also be\n"
+"  specified with the FS_LICENSE environmental variable.\n"
 "--------------------------------------------------------------------------\n";
 
 static const char* licmsg2 =
@@ -66,10 +68,19 @@ static const char* licmsg2 =
 "  make sure to source the standard environment.\n"
 "--------------------------------------------------------------------------\n";
 
+static const char* permission_msg =
+"---------------------------------------------------------------------------\n"
+"ERROR: FreeSurfer license file %s exists "
+"but you do not have read permission.\n"
+"Try running:\n\n"
+"  chmod a+r %s\n"
+"---------------------------------------------------------------------------\n";
+
+
 void chklc(void)
 {
-  char  dirname[STRLEN], *cp ;
-  FILE* lfile;
+  char  dirname[STRLEN], *cp, *alt;
+  FILE* lfile = NULL;
   char* email;
   char* magic;
   char* key;
@@ -107,27 +118,45 @@ void chklc(void)
   key2  = (char*)calloc(1,512);
   gkey  = (char*)calloc(1,1024);
 
-  sprintf(lfilename,"%s/.lic%s",dirname, "ense");
-
-  if(Gdiag_no > 0 && first_time) printf("Trying licence file %s\n",lfilename);
-
-  lfile = fopen(lfilename,"r");
-  if (lfile == NULL)
+  // check if alternative license path is provided:
+  alt = getenv("FS_LICENSE");
+  if (alt != NULL)
   {
-    if(errno == EACCES){
-      printf("\n\nERROR: FreeSurfer license file %s exists but you do not have read permission\n",lfilename);
-      printf("   Try running chmod a+r %s\n\n\n",lfilename);
+    sprintf(lfilename, alt);
+    if(Gdiag_no > 0 && first_time) printf("Trying license file %s\n",lfilename);
+    lfile = fopen(lfilename,"r");
+    if (lfile == NULL)
+    {
+      if(errno == EACCES){
+        printf(permission_msg,lfilename,lfilename);
+        exit(-1);
+      }
+      fprintf(stderr,licmsg,lfilename);
       exit(-1);
     }
-    sprintf(lfilename,"%s/lic%s",dirname, "ense.txt");
-    if(Gdiag_no > 0 && first_time) printf("Now trying licence file %s\n",lfilename);
+  }
+
+  // check for license in FREESURFER_HOME:
+  if (lfile == NULL)
+  {
+    sprintf(lfilename,"%s/.lic%s",dirname, "ense");
+    if(Gdiag_no > 0 && first_time) printf("Trying license file %s\n",lfilename);
     lfile = fopen(lfilename,"r");
   }
   if (lfile == NULL)
   {
     if(errno == EACCES){
-      printf("\n\nERROR: FreeSurfer license file %s exists but you do not have read permission\n",lfilename);
-      printf("   Try running chmod a+r %s\n\n\n",lfilename);
+      printf(permission_msg,lfilename,lfilename);
+      exit(-1);
+    }
+    sprintf(lfilename,"%s/lic%s",dirname, "ense.txt");
+    if(Gdiag_no > 0 && first_time) printf("Now trying license file %s\n",lfilename);
+    lfile = fopen(lfilename,"r");
+  }
+  if (lfile == NULL)
+  {
+    if(errno == EACCES){
+      printf(permission_msg,lfilename,lfilename);
       exit(-1);
     }
     fprintf(stderr,licmsg,lfilename);
@@ -222,8 +251,8 @@ void chklc(void)
 int chklc2(char* msg)
 {
 
-  char  dirname[STRLEN], *cp;
-  FILE* lfile;
+  char  dirname[STRLEN], *cp, *alt;
+  FILE* lfile = NULL;
   char* email;
   char* magic;
   char* key;
@@ -252,23 +281,41 @@ int chklc2(char* msg)
   {
     strncpy(dirname, cp, STRLEN) ;
   }
- 
+
   lfilename = (char*)calloc(1,512);
   email = (char*)calloc(1,512);
   magic = (char*)calloc(1,512);
   key   = (char*)calloc(1,512);
   key2  = (char*)calloc(1,512);
   gkey  = (char*)calloc(1,1024);
+  
+  // check if alternative license path is provided:
+  alt = getenv("FS_LICENSE");
+  if (alt != NULL)
+  {
+    sprintf(lfilename, alt);
+    lfile = fopen(lfilename,"r");
+    if (lfile == NULL)
+    {
+      if(errno == EACCES){
+        fprintf(stderr,permission_msg,lfilename,lfilename);
+        if (msg)
+          sprintf(msg,permission_msg,lfilename,lfilename);
+        return 0;
+      }
+      fprintf(stderr,licmsg,lfilename);
+      if (msg)
+        sprintf(msg,licmsg,lfilename);
+      return 0;
+    }
+  }
 
-  sprintf(lfilename,"%s/.lic%s",dirname, "ense");
-
-  lfile = fopen(lfilename,"r");
-  char permission_msg[] =
-    "---------------------------------------------------------------------------\n"
-    "ERROR: FreeSurfer license file %s exists \n"
-    "but you do not have read permission. Try running\n\n"
-    "  chmod a+r %s\n"
-    "---------------------------------------------------------------------------\n";
+  // check for license in FREESURFER_HOME:
+  if (lfile == NULL)
+  {
+    sprintf(lfilename,"%s/.lic%s",dirname, "ense");
+    lfile = fopen(lfilename,"r");
+  }
   if (lfile == NULL)
   {
     if(errno == EACCES){
