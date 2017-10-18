@@ -16957,9 +16957,9 @@ MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int t
 			  float target_val, float outside_val)
 {
   MRI     *mri_laplace, *mri_control, *mri_tmp = NULL ;
-  int     x, y, z, ncontrol, nribbon, v, xm1, xp1, ym1, yp1, zm1, zp1, label, nsource, ntarget, nchanged,npasses ; 
+  int     x, y, z, ncontrol, nribbon, v, label, nsource, ntarget, nchanged,npasses ; 
   VOXLIST *vl ;
-  float   max_change, change, val, oval, xcs, ycs, zcs, xct, yct, zct ;
+  float   max_change, xcs, ycs, zcs, xct, yct, zct ;
 
   // compute the centroid and number of voxels in each label (source and target)
   nsource = ntarget = 0 ;  xcs = ycs = zcs = xct = yct = zct = 0 ;
@@ -17091,11 +17091,16 @@ MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int t
   npasses = 0 ;
   do
   {
-    int nvox ;
     max_change = 0.0 ;
     mri_tmp = MRIcopy(mri_laplace, mri_tmp) ;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(max: max_change)
+#endif
     for (v = 0 ; v < vl->nvox  ; v++)
     {
+      int    x, y, z, xm1, ym1, zm1, xp1, yp1, zp1, nvox ;
+      float  change, val, oval ;
+
       x = vl->xi[v] ; y = vl->yi[v] ; z = vl->zi[v] ;
       if (x == Gx && y == Gy && z == Gz)
 	DiagBreak() ;
@@ -17145,9 +17150,9 @@ MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int t
     npasses++ ;
     if (npasses%10 == 0)
       printf("iter %d complete, max change %f\n", npasses, max_change) ;
-    if (npasses > 10000)
+    if (npasses > 100000)
       ErrorExit(ERROR_BADPARM, "MRIsolveLaplaceEquation failed to converge (2)") ;
-  } while (max_change > 1e-3) ;
+  } while (max_change > 2e-5) ;
   
   if (Gdiag & DIAG_WRITE)
   {
