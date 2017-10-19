@@ -17093,7 +17093,7 @@ MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int t
   {
     max_change = 0.0 ;
     mri_tmp = MRIcopy(mri_laplace, mri_tmp) ;
-#ifdef HAVE_OPENMP
+#if defined(HAVE_OPENMP) && GCC_VERSION > 40408
 #pragma omp parallel for reduction(max: max_change)
 #endif
     for (v = 0 ; v < vl->nvox  ; v++)
