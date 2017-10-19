@@ -2230,6 +2230,7 @@ MRI *MRIapplyRASlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst,
   return (mri_dst);
 }
 
+#ifdef BEVIN_MRI_BSPLINE_LTA
 MRI *LTAtransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, LTA *lta)
 // mainly copied from transform.c
 {
@@ -2420,6 +2421,7 @@ MRI *LTAtransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, LTA *lta)
 
   return (mri_dst);
 }
+#endif
 
 // -------------------------------------------------------------------------------
 //

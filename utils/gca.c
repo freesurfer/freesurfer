@@ -1276,7 +1276,7 @@ int GCAsourceVoxelToPrior(
 */
 #if USE_ROUND
   {
-    Real xpf, ypf, zpf;
+    double xpf, ypf, zpf;
     GCAvoxelToPriorReal(gca, gca->mri_tal__, xt, yt, zt, &xpf, &ypf, &zpf);
     *pxp = nint(xpf);
     *pyp = nint(ypf);
@@ -24328,7 +24328,7 @@ static int gcaScale(GCA *gca, int *labels, int *contra_labels, float *scales, in
 int GCAgetMaxPriorLabelAtVoxel(GCA *gca, MRI *mri, int x, int y, int z, TRANSFORM *transform, double *p_prior)
 {
   int xp, yp, zp;
-  Real xpf, ypf, zpf;
+  double xpf, ypf, zpf;
 
   if (!GCAsourceVoxelToPrior(gca, mri, transform, x, y, z, &xp, &yp, &zp)) {
     xpf = xp;
@@ -26713,7 +26713,7 @@ int MRIwmsaHalo2(WMSA *wmsa)
 
   // For each ref tissue, compute the means for each modality and covariance matrix across all modalities
   // 0 = dont use any neighbors
-  print("size %d\n", (int)sizeof(llabel));
+  printf("size %d\n", (int)sizeof(llabel));
   for (i = 0; i < nreftissues; i++) {
     llabel[0] = wmsa->reftissues[i];
     MRIcomputeLabelMeansandCovariances2(

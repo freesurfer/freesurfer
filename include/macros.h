@@ -50,6 +50,14 @@
 #define UINT         unsigned int
 #endif
 
+#ifndef FALSE
+#define FALSE  	     0
+#endif
+
+#ifndef TRUE
+#define TRUE         1
+#endif
+
 #define ISOPTION(c)  ((c) == '-')
 
 /* these are defined in hipl_format.h */

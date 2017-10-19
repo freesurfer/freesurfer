@@ -2475,6 +2475,7 @@ int MRIcheckSize(MRI *mri_src, MRI *mri_check, int width, int height, int depth)
 }
 /*-----------------------------------------------------
   ------------------------------------------------------*/
+#if !defined(BEVIN_EXCLUDE_MINC)
 int MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region, MRI_REGION *dst_region)
 {
   double xw, yw, zw, xt, yt, zt, xv, yv, zv;
@@ -2527,11 +2528,12 @@ int MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region, MRI_R
 
   return (NO_ERROR);
 }
+#endif
 /*-----------------------------------------------------
   ------------------------------------------------------*/
 int MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, double xv, double yv, double zv, double *pxt, double *pyt, double *pzt)
 {
-  double xw, yw, zw, xt, yt, zt;
+  double xw, yw, zw;
 
 #if 0
   if (!mri_src->linear_transform)
@@ -2559,7 +2561,10 @@ int MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, double xv, double yv, double zv,
                  getSliceDirection(mri_src))) ;
   }
 #endif
-  if (!mri_src->linear_transform || !mri_dst->inverse_linear_transform) {
+#if !defined(BEVIN_EXCLUDE_MINC)
+  if (!mri_src->linear_transform || !mri_dst->inverse_linear_transform) 
+#endif
+  {
     /*
       if either doesn't have a transform defined, assume they are in
       the same coordinate system.
@@ -2574,7 +2579,9 @@ int MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, double xv, double yv, double zv,
       *pzt = zv;
     }
   }
+#if !defined(BEVIN_EXCLUDE_MINC)
   else {
+    double xt, yt, zt;
     MRIvoxelToWorld(mri_src, xv, yv, zv, &xw, &yw, &zw);
     if (mri_src->linear_transform)
       transform_point(mri_src->linear_transform, xw, yw, zw, &xt, &yt, &zt);
@@ -2592,6 +2599,7 @@ int MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, double xv, double yv, double zv,
     }
     MRIworldToVoxel(mri_dst, xw, yw, zw, pxt, pyt, pzt);
   }
+#endif
 
   return (NO_ERROR);
 }
@@ -2624,9 +2632,12 @@ int MRIvoxelToTalairachVoxel(MRI *mri, double xv, double yv, double zv, double *
   }
 
   MRIvoxelToWorld(mri, xv, yv, zv, &xw, &yw, &zw);
+#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri->linear_transform)
     transform_point(mri->linear_transform, xw, yw, zw, &xt, &yt, &zt);
-  else {
+  else 
+#endif
+  {
     xt = xw;
     yt = yw;
     zt = zw;
@@ -2665,9 +2676,12 @@ int MRIvoxelToTalairach(MRI *mri, double xv, double yv, double zv, double *pxt, 
   }
 
   MRIvoxelToWorld(mri, xv, yv, zv, &xw, &yw, &zw);
+#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri->linear_transform)
     transform_point(mri->linear_transform, xw, yw, zw, pxt, pyt, pzt);
-  else {
+  else 
+#endif
+  {
     *pxt = xw;
     *pyt = yw;
     *pzt = zw;
@@ -2704,9 +2718,12 @@ int MRItalairachToVoxel(MRI *mri, double xt, double yt, double zt, double *pxv, 
           (ERROR_UNSUPPORTED, "MRIvoxelToTalairachVoxel: unsupported slice direction %d", getSliceDirection(mri)));
   }
 
+#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri->inverse_linear_transform)
     transform_point(mri->inverse_linear_transform, xt, yt, zt, &xw, &yw, &zw);
-  else {
+  else 
+#endif
+  {
     xw = xt;
     yw = yt;
     zw = zt;
@@ -2745,9 +2762,12 @@ int MRItalairachVoxelToVoxel(MRI *mri, double xtv, double ytv, double ztv, doubl
   }
 
   MRIvoxelToWorld(mri, xtv, ytv, ztv, &xt, &yt, &zt);
+#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri->inverse_linear_transform)
     transform_point(mri->inverse_linear_transform, xt, yt, zt, &xw, &yw, &zw);
-  else {
+  else 
+#endif
+  {
     xw = xt;
     yw = yt;
     zw = zt;
@@ -2786,9 +2806,12 @@ int MRItalairachVoxelToWorld(MRI *mri, double xtv, double ytv, double ztv, doubl
   }
 
   MRIvoxelToWorld(mri, xtv, ytv, ztv, &xt, &yt, &zt);
+#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri->inverse_linear_transform)
     transform_point(mri->inverse_linear_transform, xt, yt, zt, &xw, &yw, &zw);
-  else {
+  else 
+#endif
+  {
     xw = xt;
     yw = yt;
     zw = zt;
@@ -2833,6 +2856,7 @@ int MRIvoxelToWorld(MRI *mri, double xv, double yv, double zv, double *pxw, doub
 
   return (NO_ERROR);
 }
+#if !defined(BEVIN_EXCLUDE_MINC)
 /*-----------------------------------------------------
   ------------------------------------------------------*/
 int MRIworldToTalairachVoxel(MRI *mri, double xw, double yw, double zw, double *pxv, double *pyv, double *pzv)
@@ -2850,6 +2874,7 @@ int MRIworldToTalairachVoxel(MRI *mri, double xw, double yw, double zw, double *
   MRIworldToVoxel(mri, xt, yt, zt, pxv, pyv, pzv);
   return (NO_ERROR);
 }
+#endif
 /*-----------------------------------------------------
   ------------------------------------------------------*/
 int MRIworldToVoxelIndex(MRI *mri, double xw, double yw, double zw, int *pxv, int *pyv, int *pzv)
@@ -5756,7 +5781,9 @@ int MRIfree(MRI **pmri)
     free(mri->slices);
   }
 
+#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri->free_transform) delete_general_transform(&mri->transform);
+#endif
 
   if (mri->register_mat != NULL) MatrixFree(&(mri->register_mat));
 
@@ -6021,6 +6048,7 @@ MRI *MRIcopyHeader(const MRI *mri_src, MRI *mri_dst)
   mri_dst->ysize = mri_src->ysize;
   mri_dst->zsize = mri_src->zsize;
 
+#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri_dst->free_transform) delete_general_transform(&mri_dst->transform);
   if (mri_src->linear_transform) {
     copy_general_transform(&(((MRI *)mri_src)->transform), &mri_dst->transform);
@@ -6030,6 +6058,7 @@ MRI *MRIcopyHeader(const MRI *mri_src, MRI *mri_dst)
     mri_dst->inverse_linear_transform = get_inverse_linear_transform_ptr(&mri_dst->transform);
     mri_dst->free_transform = 1;
   }
+#endif
   strcpy(mri_dst->transform_fname, mri_src->transform_fname);
   if (mri_dst->depth == mri_src->depth) {
     mri_dst->imnr0 = mri_src->imnr0;
@@ -8104,6 +8133,7 @@ int MRIsetResolution(MRI *mri, float xres, float yres, float zres)
   MRIreInitCache(mri);
   return (NO_ERROR);
 }
+#if !defined(BEVIN_EXCLUDE_MINC)
 /*-----------------------------------------------------
   Parameters:
 
@@ -8119,6 +8149,7 @@ int MRIsetTransform(MRI *mri, General_transform *transform)
 
   return (NO_ERROR);
 }
+#endif
 /*-----------------------------------------------------
   Parameters:
 
@@ -16400,8 +16431,8 @@ int MRIcomputeNbhdMeansandCovariances(
           xi = mri_labeled->xi[x + xk];
           if (nint(MRIgetVoxVal(mri_labeled, xi, yi, zi, 0)) == label) {
             if (a >= size) {
-              printf("ERROR: a %d is greater than the number of neighbors: %d\n", a, size);
-              return (ERROR);
+              printf("ERROR_OUT_OF_BOUNDS: a %d is greater than the number of neighbors: %d\n", a, size);
+              return (ERROR_OUT_OF_BOUNDS);
             }
             m_data->rptr[a + 1][n + 1] = MRIgetVoxVal(mri_inputs, xi, yi, zi, n);
             mean += m_data->rptr[a + 1][n + 1];
@@ -16412,8 +16443,8 @@ int MRIcomputeNbhdMeansandCovariances(
     }
 
     if (a != size) {
-      printf("ERROR: a %d is not equal to the number of neighbors: %d\n", a, size);
-      return (ERROR);
+      printf("ERROR_OUT_OF_BOUNDS: a %d is not equal to the number of neighbors: %d\n", a, size);
+      return (ERROR_OUT_OF_BOUNDS);
     }
     mean = mean / a;
     VECTOR_ELT(v_means, n + 1) = (float)mean;

@@ -120,7 +120,7 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
                   int *px, int *py, int *pz)
 {
   int       x, y, z, which, depth, frame, xi, yi, zi, xk, yk, zk ;
-  Real      xr, yr, zr, xt, yt, zt, xv, yv, zv, xtv, ytv, ztv ;
+  double    xr, yr, zr, xt, yt, zt, xv, yv, zv, xtv, ytv, ztv ;
   float     xf, yf, zf, xft, yft, zft ;
   MRI       *mri ;
   char      fname[100] ;
@@ -195,12 +195,14 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
     repaint_needed = 0 ;
     XVMRIredisplayFrame(xvf, mri, which, mri_depths[which], mri_frames[which]);
   }
+#if !defined(BEVIN_EXCLUDE_MINC)
   if (talairach)
   {
-    MRIvoxelToTalairach(mri, (Real)x, (Real)y, (Real)z, &xt, &yt, &zt) ;
-    MRIvoxelToTalairachVoxel(mri, (Real)x, (Real)y, (Real)z, &xtv,&ytv,&ztv);
+    MRIvoxelToTalairach(mri, (double)x, (double)y, (double)z, &xt, &yt, &zt) ;
+    MRIvoxelToTalairachVoxel(mri, (double)x, (double)y, (double)z, &xtv,&ytv,&ztv);
   }
-  MRIvoxelToWorld(mri, (Real)x, (Real)y, (Real)z, &xr, &yr, &zr) ;
+#endif
+  MRIvoxelToWorld(mri, (double)x, (double)y, (double)z, &xr, &yr, &zr) ;
 
   if (px)
     *px = x ;
@@ -352,10 +354,12 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
             return(ERROR_BAD_FILE) ;
           }
           fclose(fp) ;
+#if !defined(BEVIN_EXCLUDE_MINC)
           if (talairach)
-            MRItalairachToVoxel(mri, (Real)xft,(Real)yft,(Real)zft,&xv,&yv,&zv);
+            MRItalairachToVoxel(mri, (double)xft,(double)yft,(double)zft,&xv,&yv,&zv);
           else
-            MRIworldToVoxel(mri, (Real)xf, (Real)yf, (Real)zf, &xv, &yv, &zv) ;
+#endif
+            MRIworldToVoxel(mri, (double)xf, (double)yf, (double)zf, &xv, &yv, &zv) ;
           XVMRIsetPoint(xvf, which, nint(xv), nint(yv), nint(zv)) ;
           XVprintf(xvf, 0, "current point: (%d, %d, %d) --> (%d, %d, %d)",
                    nint(xf), nint(yf), nint(zf), nint(xv), nint(yv), nint(zv)) ;
@@ -389,12 +393,14 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
             }
           }
           fp = fopen(fname, "w") ;
-          MRIvoxelToWorld(mri, (Real)x_click, (Real)y_click, (Real)z_click,
+          MRIvoxelToWorld(mri, (double)x_click, (double)y_click, (double)z_click,
                           &xr, &yr, &zr) ;
-          MRIvoxelToTalairach(mri, (Real)x_click, (Real)y_click, (Real)z_click,
-                              &xt, &yt, &zt) ;
           fprintf(fp, "%f %f %f\n", (float)xr, (float)yr, (float)zr) ;
+#if !defined(BEVIN_EXCLUDE_MINC)
+          MRIvoxelToTalairach(mri, (double)x_click, (double)y_click, (double)z_click,
+                              &xt, &yt, &zt) ;
           fprintf(fp, "%f %f %f\n", (float)xt, (float)yt, (float)zt) ;
+#endif
           fclose(fp) ;
 #if 0
           fprintf(stderr, "wrote (%2.3f, %2.3f, %2.3f) and (%2.3f, %2.3f, %2.3f)\n",
@@ -949,7 +955,7 @@ repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
   {
     VERTEX  *v, *vn ;
     int     vno, n ;
-    Real    xv, yv, zv, slice, xv2, yv2, zv2, dx, dy ;
+    double  xv, yv, zv, slice, xv2, yv2, zv2, dx, dy ;
 
     for (vno = 0 ; vno < mri_surface->nvertices ; vno++)
     {
@@ -1209,7 +1215,7 @@ XVMRIsetPoint(XV_FRAME *xvf, int which, int x, int y, int z)
   int      which2, x2, y2, z2, slice, old_redraw = dont_redraw ;
   MRI      *mri, *mri2 ;
   char     fmt[150], title[50], buf[100] ;
-  Real     xr, yr, zr ;
+  double   xr, yr, zr ;
 
   if (which != which_click)   /* erase old point */
   {
@@ -1256,7 +1262,7 @@ XVMRIsetPoint(XV_FRAME *xvf, int which, int x, int y, int z)
       mri2 = mris[which2] ;
       if (dimage2 /* && (which2 != which) */ && mri2)
       {
-        MRIvoxelToVoxel(mri, mri2, (Real)x, (Real)y, (Real)z, &xr, &yr, &zr);
+        MRIvoxelToVoxel(mri, mri2, (double)x, (double)y, (double)z, &xr, &yr, &zr);
         x2 = nint(xr) ;
         y2 = nint(yr) ;
         z2 = nint(zr) ;

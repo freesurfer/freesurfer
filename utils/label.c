@@ -51,8 +51,9 @@ static int labelGetSurfaceRasCoords(LABEL *area, LABEL_VERTEX *lv, float *px, fl
 static int update_vertex_indices(LABEL *area);
 ;
 static LABEL_VERTEX *labelFindVertexNumber(LABEL *area, int vno);
+#if !defined(BEVIN_EXCLUDE_MINC)
 static Transform *labelLoadTransform(const char *subject_name, const char *sdir, General_transform *transform);
-
+#endif
 #define MAX_VERTICES 500000
 /*-----------------------------------------------------
 ------------------------------------------------------*/
@@ -116,8 +117,10 @@ LABEL *LabelReadFrom(const char *subject_name, FILE *fp)
                 Progname);
     strncpy(subjects_dir, cp, STRLEN - 1);
     strncpy(area->subject_name, subject_name, STRLEN - 1);
+#if !defined(BEVIN_EXCLUDE_MINC)
     area->linear_transform = labelLoadTransform(subject_name, subjects_dir, &area->transform);
     area->inverse_linear_transform = get_inverse_linear_transform_ptr(&area->transform);
+#endif
   }
   return (area);
 }
@@ -1081,6 +1084,7 @@ int LabelFillAll(LABEL *area, int *vertex_list, int nvertices, int max_vertices,
   fprintf(stderr, "%d vertices in label %s\n", area->n_points, area->name);
   return (NO_ERROR);
 }
+#if !defined(BEVIN_EXCLUDE_MINC)
 /*-----------------------------------------------------
         Parameters:
 
@@ -1126,6 +1130,7 @@ int LabelTalairachTransform(LABEL *area, MRI_SURFACE *mris)
   }
   return (NO_ERROR);
 }
+#endif
 /*-----------------------------------------------------
         Parameters:
 

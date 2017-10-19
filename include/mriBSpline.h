@@ -38,7 +38,7 @@ extern "C" {
 #endif
 
 #include "mri.h"
-#include "transform.h"
+//BEVIN #include "transform.h"
 
 /** BSpline structure has degree, coefficient image (float), source type and
     if the source had negative values */
@@ -77,9 +77,11 @@ MRI *MRIlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX 
 /** Based on pre-computed B-spline coefficients interpolate image using RAS map MATRIX*/
 MRI *MRIapplyRASlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX *mA) ;
 
+
+#ifdef BEVIN_MRI_BSPLINE_LTA
 /** Based on pre-computed B-spline coefficients interpolate image using LTA*/
 MRI *LTAtransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, LTA *lta) ;
-
+#endif
 
 
 /** Direct methods for downsample (based on simplified algorithm) */

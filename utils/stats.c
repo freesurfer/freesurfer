@@ -683,7 +683,9 @@ int StatFree(SV **psv)
     if (sv->mri_std_dofs[event]) MRIfree(&sv->mri_std_dofs[event]);
   }
 
+#if !defined(BEVIN_EXCLUDE_MINC)
   delete_general_transform(&sv->transform);
+#endif
   StatFreeRegistration(&sv->reg);
   free(sv);
 
@@ -1078,8 +1080,10 @@ int StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
     sv_tal->std_dofs[event] += sv->std_dofs[event];
     mri_avg = sv_tal->mri_avgs[event];
     mri_std = sv_tal->mri_stds[event];
+#if !defined(BEVIN_EXCLUDE_MINC)
     mri_avg->linear_transform = sv->mri_avgs[event]->linear_transform;
     mri_avg->inverse_linear_transform = sv->mri_avgs[event]->inverse_linear_transform;
+#endif
 
     /* Go through each col, row, and slice in the tal volume */
     for (z = 0; z < depth; z++) {
@@ -1356,6 +1360,7 @@ int StatWriteRegistration(fMRI_REG *reg, const char *fname)
 }
 /*-------------------------------------------------------------------
   -------------------------------------------------------------------*/
+#if !defined(BEVIN_EXCLUDE_MINC)
 int StatReadTransform(STAT_VOLUME *sv, const char *name)
 {
   char *sd, subjects[STRLEN], fname[STRLEN];
@@ -1381,6 +1386,7 @@ int StatReadTransform(STAT_VOLUME *sv, const char *name)
   }
   return (NO_ERROR);
 }
+#endif
 /*------------------------------------------------------------------------
   ------------------------------------------------------------------------*/
 int StatVolumeExists(const char *prefix)

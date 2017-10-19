@@ -27,7 +27,10 @@
 #ifndef STATS_H
 #define STATS_H
 
+#if !defined(BEVIN_EXCLUDE_MINC)
 #include "minc_volume_io.h"
+#endif
+
 #include "matrix.h"
 #include "mri.h"
 
@@ -126,9 +129,11 @@ typedef struct
   MRI       *mri_avg_dofs[MAX_EVENTS] ;
   MRI       *mri_std_dofs[MAX_EVENTS] ;
 
+#if !defined(BEVIN_EXCLUDE_MINC)
   General_transform transform ;
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
+#endif
 }
 STAT_VOLUME, SV  ;
 
