@@ -373,10 +373,10 @@ void writeVolGeom(FILE *fp, const VOL_GEOM *vg)
 
 void readVolGeom(FILE *fp, VOL_GEOM *vg)
 {
-  char line[256];
+  char line[STRLEN + 16];
   char param[64];
   char eq[2];
-  char buf[256];
+  char buf[STRLEN];
   int vgRead = 0;
   char *p = 0;
   int counter = 0;
@@ -391,7 +391,8 @@ void readVolGeom(FILE *fp, VOL_GEOM *vg)
       counter++;
     }
     else if (!strcmp(param, "filename")) {
-      if (sscanf(line, "%s %s %s\n", param, eq, buf) >= 3) {
+      // 1023 = STRLEN - 1
+      if (sscanf(line, "%s %s %1023s%*s\n", param, eq, buf) >= 3) {
         strcpy(vg->fname, buf);
       }
       counter++;
@@ -422,7 +423,7 @@ void readVolGeom(FILE *fp, VOL_GEOM *vg)
       sscanf(line, "%s %s %f %f %f\n", param, eq, &vg->c_r, &vg->c_a, &vg->c_s);
       counter++;
     }
-    // rememver the current position
+    // remember the current position
     pos = ftell(fp);  // if fail = 0, then ok
   };
   if (p)  // we read one more line
