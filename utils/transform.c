@@ -391,7 +391,8 @@ void readVolGeom(FILE *fp, VOL_GEOM *vg)
       counter++;
     }
     else if (!strcmp(param, "filename")) {
-      if (sscanf(line, "%s %s %s\n", param, eq, buf) >= 3) {
+      // 1023 = STRLEN - 1
+      if (sscanf(line, "%s %s %1023s%*s\n", param, eq, buf) >= 3) {
         strcpy(vg->fname, buf);
       }
       counter++;
