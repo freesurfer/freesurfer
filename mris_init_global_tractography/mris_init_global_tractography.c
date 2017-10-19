@@ -47,6 +47,7 @@
 #include "pdf.h"
 #include "tritri.h"
 #include "cmat.h"
+#include "fsinit.h"
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
@@ -147,6 +148,7 @@ main(int argc, char *argv[]) {
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
+  FSinit() ;
   TimerStart(&start) ;
 
   setRandomSeed(0L) ;
@@ -214,6 +216,10 @@ main(int argc, char *argv[]) {
   MRIcopyLabel(mri_aseg, mri_wm, Left_VentralDC) ;
   MRIcopyLabel(mri_aseg, mri_wm, Right_VentralDC) ;
   MRIcopyLabel(mri_aseg, mri_wm, Brain_Stem) ;
+  if (label1_target > 0)  // operate in two-label mode
+    MRIcopyLabel(mri_aseg, mri_wm, label1_target) ;
+  if (label2_target > 0)  // operate in two-label mode
+    MRIcopyLabel(mri_aseg, mri_wm, label2_target) ;
   MRIbinarize(mri_wm, mri_wm, 1, 0, 1) ;
   mri_wm_dist = MRIdistanceTransform(mri_wm, NULL, 1, 25, DTRANS_MODE_SIGNED, NULL);
   mri_wm_only = MRIcopy(mri_wm, NULL) ; // target label will be added to mri_wm later
@@ -267,7 +273,7 @@ main(int argc, char *argv[]) {
 	MRIwrite(mri_laplace, "lap.mgz");
       printf("writing label to %s\n", argv[3]);
       VLSTwriteLabel(vl, argv[3], NULL, mri_aseg) ;
-      exit(1) ;
+      exit(0) ;
     }
 
     mri_tmp = MRIclone(mri_aseg, NULL) ;
@@ -506,6 +512,14 @@ get_option(int argc, char *argv[]) {
     ncontrol = atoi(argv[2]) ;
     nargs = 1 ;
     printf("using %d control points in spline fit\n", ncontrol) ;
+  }
+  else if (!stricmp(option, "openmp")) {
+    char str[STRLEN] ;
+    sprintf(str, "OMP_NUM_THREADS=%d", atoi(argv[2]));
+    putenv(str) ;
+    omp_set_num_threads(atoi(argv[2]));
+    nargs = 1 ;
+    fprintf(stderr, "Setting %s\n", str) ;
   }
   else if (!stricmp(option, "LABELS"))
   {
