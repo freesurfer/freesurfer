@@ -31,6 +31,7 @@
 #include <sys/utsname.h>
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
 
 #include "MRIio_old.h"
 #include "error.h"
