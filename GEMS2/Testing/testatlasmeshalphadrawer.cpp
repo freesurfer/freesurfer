@@ -128,6 +128,7 @@ BOOST_DATA_TEST_CASE( ContainedLargeCube,  boost::unit_test::data::xrange(nAlpha
 }
 
 #ifdef CUDA_FOUND
+// Working on debugging the alpha drawer on the GPU
 #if 0
 BOOST_AUTO_TEST_CASE( ContainedUnitCubeGPU )
 {
