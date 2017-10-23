@@ -184,8 +184,10 @@ int       StatAccumulateTalairachVolume(SV *sv_tal,
 int       StatAccumulateSurfaceVolume(SV *sv_tal,
                                       SV *sv,
                                       MRI_SURFACE *mris) ;
+#if !defined(BEVIN_EXCLUDE_MINC)
 int       StatReadTransform(STAT_VOLUME *sv,
                             const char *name) ;
+#endif
 int       StatVolumeExists(const char *prefix) ;
 
 STAT_TABLE *LoadStatTable(const char *statfile);

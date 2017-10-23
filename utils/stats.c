@@ -420,7 +420,12 @@ SV *StatReadVolume(const char *prefix)
   StatAllocVolume(sv, sv->nevents, width, height, nslices, sv->time_per_event, which_alloc);
 
   /* read it after nevents */
-  if (stricmp(sv->reg->name, "talairach") && stricmp(sv->reg->name, "spherical")) StatReadTransform(sv, sv->reg->name);
+  if (stricmp(sv->reg->name, "talairach") && stricmp(sv->reg->name, "spherical")) 
+#if !defined(BEVIN_EXCLUDE_MINC)
+    StatReadTransform(sv, sv->reg->name);
+#else
+    ErrorReturn(NULL, (ERROR_NOFILE, "StatReadVolume: does not support %s", sv->reg->name));
+#endif
 
   /* read in the actual data */
   nitems = width * height;
@@ -622,7 +627,14 @@ SV *StatReadVolume2(const char *prefix)
   StatAllocVolume(sv, sv->nevents, h->width, h->height, h->depth, sv->time_per_event, which_alloc);
 
   /* read it after nevents */
-  if (stricmp(sv->reg->name, "talairach") && stricmp(sv->reg->name, "spherical")) StatReadTransform(sv, sv->reg->name);
+  if (stricmp(sv->reg->name, "talairach") && stricmp(sv->reg->name, "spherical")) {
+#if !defined(BEVIN_EXCLUDE_MINC)
+    StatReadTransform(sv, sv->reg->name);
+#else
+    fprintf(stderr, "ERROR: %s, StatReadVolume(): does not support talairach\n", Progname);
+    exit(1);
+#endif
+  }
 
   f = 0;
   for (event = 0; event < sv->nevents; event++) {
