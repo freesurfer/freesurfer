@@ -1099,7 +1099,7 @@ compute_distance_transform_sse(VOXEL_LIST *vl_lowres,
   VECTOR  *v1, *v2 ;
   MRI     *mri_lowres, *mri_hires ;
   double  sse, error ;
-  Real    d1, d2, xd, yd, zd ;
+  double  d1, d2, xd, yd, zd ;
   MATRIX  *m_L_inv ;
 
   m_L_inv = MatrixInverse(m_L, NULL) ;

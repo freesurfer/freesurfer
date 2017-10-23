@@ -506,7 +506,7 @@ relabel_hypointensities(MRI *mri, MRI *mri_inputs,
   MRIS_HASH_TABLE *mht ;
   VERTEX           *v ;
   float            dx, dy, dz, dot, dist, temp_x, temp_y, temp_z;
-  Real             xw, yw, zw ;
+  double           xw, yw, zw ;
  
   mri_inside = MRIclone(mri, NULL) ;
   MRISeraseOutsideOfSurface(0.5, mri_inside, mris, 128) ;
@@ -1752,7 +1752,7 @@ MRIlabelMean(MRI *mri,
 {
   int    xi, yi, zi, xk, yk, zk, nvox ;
   double mean ;
-  Real   val ;
+  double val ;
 
   mean = 0.0 ;
   nvox = 0 ;

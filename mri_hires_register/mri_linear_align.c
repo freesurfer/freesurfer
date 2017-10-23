@@ -592,7 +592,7 @@ compute_likelihood(VOXEL_LIST *vl_target,
   VECTOR  *v1, *v2 ;
   MRI     *mri_target, *mri_source ;
   double  sse, error ;
-  Real    d1, d2, xd, yd, zd ;
+  double  d1, d2, xd, yd, zd ;
   MATRIX  *m_L_inv ;
 
   m_L_inv = MatrixInverse(m_L, NULL) ;
@@ -696,7 +696,7 @@ compute_trimmed_likelihood(VOXEL_LIST *vl_target,
   count_thresh ;
   MRI       *mri_target, *mri_source ;
   double    sse, error, min_error, max_error, bin_size ;
-  Real      d1, d2 ;
+  double    d1, d2 ;
   MATRIX    *m_L_inv ;
   HISTOGRAM *h ;
 
@@ -1396,7 +1396,7 @@ compute_gradient_match(VOXEL_LIST *vl_target,
   VECTOR  *v1, *v2 ;
   MRI     *mri_target, *mri_source, *mri_grad_source, *mri_grad_target ;
   double  match ;
-  Real    num, xd, yd, zd, dxs, dys, dzs, dxt, dyt, dzt, dens,dx,dy,dz, 
+  double  num, xd, yd, zd, dxs, dys, dzs, dxt, dyt, dzt, dens,dx,dy,dz, 
 		      dent, ctheta, dot, norms, normt, den, e1x, e1y,e1z,e2x,e2y,e2z,
           e3x, e3y, e3z;
   MATRIX  *m_L_inv, *m_I, *m_basis ;
