@@ -1030,8 +1030,8 @@ lateralize_hypointensities(MRI *mri_seg)
 static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
 {
   int x, y, z, label, errors=0;
-  Real xw=0.0, yw=0.0, zw=0.0; // RAS coords
-  Real xmt=0.0, ymt=0.0, zmt=0.0; // MNI tal coords
+  double xw=0.0, yw=0.0, zw=0.0; // RAS coords
+  double xmt=0.0, ymt=0.0, zmt=0.0; // MNI tal coords
   float xt=0.0, yt=0.0, zt=0.0; // 'real' tal coords
   MRI *mri_fixed = NULL;
 
@@ -1053,6 +1053,12 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
     mri_fixed = MRIcopy(mri_seg,NULL);
   }
 
+#if defined(BEVIN_EXCLUDE_MINC)
+    ErrorExit(ERROR_BADFILE,
+              "ERROR: mri_ca_train: talairach not supported,  processing %s!\n"
+              "Run mri_add_xform_to_header to add to volume.\n",
+              seg_dir);
+#else
   if (NULL == mri_seg->linear_transform)
   {
     ErrorExit(ERROR_BADFILE,
@@ -1255,6 +1261,7 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
   printf("min_xtal_r_amygdala = %4.1f\n",min_xtal_r_amygdala);
   printf("min_xtal_r_putamen  = %4.1f\n",min_xtal_r_putamen);
   printf("min_xtal_r_pallidum = %4.1f\n",min_xtal_r_pallidum);
+#endif
   
   if ( do_fix_badsubjs && errors)
   {
