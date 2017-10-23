@@ -47,7 +47,7 @@ namespace kvl {
       for( unsigned short k=0; k<dims[0]; k++ ) {
 	for( unsigned short j=0; j<dims[1]; j++ ) {
 	  for( unsigned short i=0; i<dims[2]; i++ ) {
-	    float result = tmp.at(dims.GetLinearIndex(k,j,i));
+	    auto result = tmp.at(dims.GetLinearIndex(k,j,i));
 	    ImageType::IndexType idx;
 	    idx[0] = i;
 	    idx[1] = j;
