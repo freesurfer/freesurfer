@@ -115,7 +115,7 @@ BOOST_AUTO_TEST_SUITE( AtlasMeshAlphaDrawer )
 
 BOOST_AUTO_TEST_SUITE( SingleTetrahedron )
 
-const int nAlphas = 5;
+const int nAlphas = 11;
 
 BOOST_DATA_TEST_CASE( ContainedUnitCube,  boost::unit_test::data::xrange(nAlphas), classNumber )
 {
