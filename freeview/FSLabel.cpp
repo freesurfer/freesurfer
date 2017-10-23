@@ -282,6 +282,7 @@ void FSLabel::FillUnassignedVertices(FSSurface* surf, FSVolume* mri_template, in
 
 void FSLabel::Initialize(FSVolume* ref_vol, FSSurface* surf, int coords)
 {
+  /*
   if (surf)
   {
     if (m_l2s)
@@ -297,6 +298,7 @@ void FSLabel::Initialize(FSVolume* ref_vol, FSSurface* surf, int coords)
     L2SimportLabel(m_l2s, m_label, 1);
   }
   else
+  */
     ::LabelInit(m_label, ref_vol->GetMRI(), surf?surf->GetMRIS():NULL, coords);
 }
 
