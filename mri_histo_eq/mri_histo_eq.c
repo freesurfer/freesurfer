@@ -132,8 +132,13 @@ main(int argc, char *argv[]) {
   }
 
   if (adaptive_normalize)
+#if !defined(BEVIN_EXCLUDE_MINC)
     mri_eq = MRIadaptiveHistoNormalize(mri_src, NULL, mri_template,
                                        8, 32, 30) ;
+#else
+    ErrorExit(ERROR_BADPARM, "%s: adaptive_normalize not supported",
+                Progname) ;
+#endif
   else
     mri_eq = MRIhistoNormalize(mri_src, NULL, mri_template, 30, 170) ;
   MRIwrite(mri_eq, out_fname) ;

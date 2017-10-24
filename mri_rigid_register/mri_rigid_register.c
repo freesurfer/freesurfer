@@ -841,7 +841,7 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg, MRI *m
 
                       /* ignore background voxels when doing fine alignment */
                       if (noskull) {
-                        Real b1, b2, xf1, yf1, zf1 ;
+                        double b1, b2, xf1, yf1, zf1 ;
 
                         MRIsampleVolume(mri_target_edge, xf, yf, zf, &b2) ;
                         xf1 = voxmat1->rptr[1][indx];
@@ -1647,7 +1647,7 @@ apply_transform(MRI *mri_in, MRI *mri_target, MATRIX *M_reg, MRI *mri_xformed) {
   MATRIX   *m, *m_tmp;
   VECTOR   *v_in, *v_target ;
   int      x, y, z, width, height, depth ;
-  Real     xs, ys, zs, val ;
+  double   xs, ys, zs, val ;
 
   vox2ras_source = MRIgetVoxelToRasXform(mri_in) ;
   vox2ras_target = MRIgetVoxelToRasXform(mri_target) ;

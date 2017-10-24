@@ -53,7 +53,7 @@
 #include "mri.h"
 #include "macros.h"
 #include "diag.h"
-#include "volume_io.h"
+#include "minc_volume_io.h"
 #include "fio.h"
 #include "mrisurf.h"
 #include "fsenv.h"

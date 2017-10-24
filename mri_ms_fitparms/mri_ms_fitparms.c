@@ -2830,7 +2830,7 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD,
   z, different_te, width, depth, height, unique_te ;
   MRI    *mri_T2star = NULL ;
   double T2star ;
-  Real   PD = 10 ;
+  double PD = 10 ;
 
   /* first decide whether T2* can be estimated at all */
   different_te = 0 ;
@@ -3000,7 +3000,7 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types,
   int    x, y, z, e, width, height, depth, nscans, i ;
   MRI    *mri_T2star ;
   float  T2star, cond ;
-  Real   val, xf, yf, zf ;
+  double val, xf, yf, zf ;
 
   if (lta)
   {
