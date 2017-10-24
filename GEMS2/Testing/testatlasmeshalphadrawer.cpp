@@ -33,7 +33,8 @@ typedef kvl::AtlasMesh Mesh;
 void CheckAlphaDrawer( kvl::interfaces::AtlasMeshAlphaDrawer* ad,
 		       TestFileLoader::ImageType::ConstPointer targetImage,
 		       kvl::AtlasMesh::ConstPointer targetMesh,
-		       const int classNumber ) {
+		       const int classNumber,
+		       const float percentTolerance ) {
   kvl::AtlasMeshAlphaDrawer::Pointer originalAD = kvl::AtlasMeshAlphaDrawer::New();
 
   originalAD->SetRegions( targetImage->GetLargestPossibleRegion() );
@@ -54,7 +55,14 @@ void CheckAlphaDrawer( kvl::interfaces::AtlasMeshAlphaDrawer* ad,
   
   for( ; !it.IsAtEnd(); ++it, ++itOrig ) {
     BOOST_TEST_CONTEXT( "Voxel Index: " << it.GetIndex() ) {
-      BOOST_CHECK_EQUAL( it.Value(), itOrig.Value() );
+      // Crude test for small values
+      if( fabs(itOrig.Value()) > percentTolerance ) {
+	// If 'large' do a regular 'percentage' check
+	BOOST_CHECK_CLOSE( it.Value(), itOrig.Value(), percentTolerance );
+      } else {
+	// Otherwise do absolute size, re-using the percentTolerance
+	BOOST_CHECK_SMALL( it.Value(), percentTolerance );
+      }
     }
   }
 }
@@ -158,31 +166,37 @@ BOOST_AUTO_TEST_CASE( ReferenceImpl )
   kvl::AtlasMeshAlphaDrawerCPUWrapper ad;
   const int classNumber = 1;
 
+  // Set floating point tolerance as a percentage
+  // A value of 1.0 means 1%
+  const float percentTolerance = 0;
+
   // Note that image and mesh are supplied by TestFileLoader
-  CheckAlphaDrawer( &ad, image, mesh, classNumber );
+  CheckAlphaDrawer( &ad, image, mesh, classNumber, percentTolerance );
   
   BOOST_TEST_MESSAGE( "SetRegions Time           : " << ad.tSetRegions );
   BOOST_TEST_MESSAGE( "Interpolate Time          : " << ad.tInterpolate );
   ad.tInterpolate.Reset();
 
-  CheckAlphaDrawer( &ad, image, mesh, classNumber );
+  CheckAlphaDrawer( &ad, image, mesh, classNumber, percentTolerance );
   BOOST_TEST_MESSAGE( "Interpolate Time (repeat) : " << ad.tInterpolate );
 }
 
 #ifdef CUDA_FOUND
-#if 0
 BOOST_AUTO_TEST_CASE( CudaImpl )
 {
   kvl::cuda::AtlasMeshAlphaDrawerCUDA ad;
   const int classNumber = 1;
 
+  // Set floating point tolerance as a percentage
+  // A value of 1.0 means 1%
+  const float percentTolerance = 0.0001;
+
   // Note that image and mesh are supplied by TestFileLoader
-  CheckAlphaDrawer( &ad, image, mesh, classNumber );
+  CheckAlphaDrawer( &ad, image, mesh, classNumber, percentTolerance );
   
   BOOST_TEST_MESSAGE( "SetRegions Time           : " << ad.tSetRegions );
   BOOST_TEST_MESSAGE( "Interpolate Time          : " << ad.tInterpolate );
 }
-#endif
 #endif
 
 BOOST_AUTO_TEST_CASE( MeshInformation )
