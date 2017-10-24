@@ -1349,9 +1349,10 @@ int FSVolume::RASToOriginalIndex ( float iRASX, float iRASY, float iRASZ,
 
 bool FSVolume::RASToTalairachVoxel(const double *pos_in, double *pos_out)
 {
-  double x, y, z;
+#if !defined(BEVIN_EXCLUDE_MINC)
   if (m_MRI->linear_transform)
   {
+    double x, y, z;
     ::MRIworldToTalairachVoxel(m_MRI, pos_in[0], pos_in[1], pos_in[2], &x, &y, &z);
     pos_out[0] = x;
     pos_out[1] = y;
@@ -1359,6 +1360,7 @@ bool FSVolume::RASToTalairachVoxel(const double *pos_in, double *pos_out)
     return true;
   }
   else
+#endif
     return false;
 }
 

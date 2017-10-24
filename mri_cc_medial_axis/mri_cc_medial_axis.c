@@ -55,7 +55,7 @@
 #include "cma.h"
 #include "version.h"
 #include "error.h"
-#include "volume_io/geom_structs.h"
+//#include "volume_io/geom_structs.h"
 #include "transform.h"
 #include "talairachex.h"
 #include "matrix.h"

@@ -44,13 +44,6 @@
 #include "cma.h"
 #include "version.h"
 #include "error.h"
-
-#if !defined(BEVIN_EXCLUDE_MINC)
-#include "volume_io/geom_structs.h"
-#else
-#info this is probably the wrong fix
-#endif
-
 #include "transform.h"
 #include "talairachex.h"
 #include "matrix.h"
@@ -249,7 +242,7 @@ main(int argc, char *argv[])
     MRI *mri_norm ;
 
     sprintf(ifname,"%s/%s/mri/%s",data_dir,argv[1], aseg_fname) ;
-    print("reading aseg from %s\n", ifname);
+    printf("reading aseg from %s\n", ifname);
     mri_aseg = MRIread(ifname) ;
     if (mri_aseg == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read aseg volume from %s",
@@ -277,7 +270,7 @@ main(int argc, char *argv[])
     }
 
     sprintf(ifname,"%s/%s/mri/norm.mgz",data_dir,argv[1]) ;
-    print("reading norm from %s\n", ifname);
+    printf("reading norm from %s\n", ifname);
     mri_norm = MRIread(ifname) ;
     if (mri_norm == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read aseg volume from %s",
@@ -292,7 +285,7 @@ main(int argc, char *argv[])
   else
   {
     sprintf(ifname,"%s/%s/%s",data_dir,argv[1],wmvolume) ;
-    print("reading white matter volume from %s\n", ifname);
+    printf("reading white matter volume from %s\n", ifname);
     mri_wm = MRIread(ifname) ;
 
     sprintf(ifname,"%s/%s/mri/transforms/talairach.xfm",data_dir,argv[1]) ;
@@ -753,8 +746,11 @@ find_corpus_callosum(MRI *mri_tal,
 
   // this function is called with mri being talairached volume
   // get the talairach coords (0,0,0) in the voxel space
+  if (
 #if !defined(BEVIN_EXCLUDE_MINC)
-  if (mri_tal->linear_transform || lta)
+  mri_tal->linear_transform || 
+#endif
+  lta)
   {
     MRIworldToVoxel(mri_tal, 0.0, 0.0, 0.0,
                     &xr, &yr, &zr);   /* everything is now in tal coords */
@@ -763,7 +759,6 @@ find_corpus_callosum(MRI *mri_tal,
     zv = nint(zr) ;
   }
   else
-#endif
   {
     xv = x0;
     yv = region.y+region.dy/2;

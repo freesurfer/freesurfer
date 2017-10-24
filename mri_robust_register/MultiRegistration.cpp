@@ -1468,8 +1468,10 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
 #if !defined(BEVIN_EXCLUDE_MINC)
         warped = LTAtransformBSpline(mri_bsplines[j], NULL, ltas[j]);
 #else
-	fprintf(stderr, "%s:%d LTAtransformBSpline not supported without minc\n", __FILE__, __LINE__);
-	exit(1);
+	{
+	  fprintf(stderr, "%s:%d LTAtransformBSpline not supported without minc\n", __FILE__, __LINE__);
+	  exit(1);
+	}
 #endif
       else
         warped = LTAtransformInterp(mri_mov[j], NULL, ltas[j], sampletype);
@@ -1734,8 +1736,10 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
 #if !defined(BEVIN_EXCLUDE_MINC)
         warped = LTAtransformBSpline(mri_bsplines[j], NULL, ltas[j]);
 #else
-	fprintf(stderr, "%s:%d LTAtransformBSpline not supported without minc\n", __FILE__, __LINE__);
-	exit(1);
+	{
+	  fprintf(stderr, "%s:%d LTAtransformBSpline not supported without minc\n", __FILE__, __LINE__);
+	  exit(1);
+	}
 #endif
       else
         warped = LTAtransformInterp(mri_mov[j], NULL, ltas[j], sampletype);

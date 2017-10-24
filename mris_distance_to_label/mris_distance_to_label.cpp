@@ -93,7 +93,7 @@ static void mrisExtractMRIvalues(MRIS * mris,
                                  float distance,
                                  int mode) {
   int n;
-  Real xw,yw,zw,xv,yv,zv,val;
+  double xw,yw,zw,xv,yv,zv,val;
   VERTEX *v;
 
   MRISclearCurvature(mris);
@@ -132,7 +132,7 @@ static void mrisExtractMidGrayValues(MRIS *mris, MRI *mri) {
 
   int n;
   float th;
-  Real xw,yw,zw,xv,yv,zv,val;
+  double xw,yw,zw,xv,yv,zv,val;
   VERTEX *v;
 
   for (n=0;n<mris->nvertices;n++) {

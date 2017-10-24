@@ -32,6 +32,8 @@ char *MRI_INFO_VERSION = "$Revision$";
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
+#include <errno.h>
+
 #include "macros.h"
 #include "const.h"
 #include "machine.h"
