@@ -579,9 +579,9 @@ MRIthresholdPosterior(MRI *mri_src, MRI *mri_dst, float posterior_dist)
 static float
 remove_csf_from_paths(MRI *mri_distance, MRI *mri_area, MRI *mri_csf)
 {
-  int   x, y, z, steps, xk, yk, zk, xi, yi, zi, csf_nbr,total_label_vox;
-  float xf, yf, zf, mean_csf_len, csf_len, total_csf_len ;
-  Real  dx, dy, dz, distance ;
+  int    x, y, z, steps, xk, yk, zk, xi, yi, zi, csf_nbr,total_label_vox;
+  float  xf, yf, zf, mean_csf_len, csf_len, total_csf_len ;
+  double dx, dy, dz, distance ;
   MRI   *mri_orig_csf ;
 
   mri_orig_csf = MRIcopy(mri_csf, NULL) ;

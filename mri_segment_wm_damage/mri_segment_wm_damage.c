@@ -193,7 +193,7 @@ main(int argc, char *argv[]) {
                            &v_means[Right_Lateral_Ventricle], &m_inv_covariances[Right_Lateral_Ventricle],2) ;
 
   mri_damaged_wm = label_damaged_wm(mri_T1, mri_PD, mri_T2, mri_aseg, v_means, m_inv_covariances, transform, gca) ;
-  print("writing output to %s...\n", out_fname) ;
+  printf("writing output to %s...\n", out_fname) ;
   MRIwrite(mri_damaged_wm, out_fname) ;
 
   msec = TimerStop(&start) ;

@@ -31,7 +31,7 @@
 
 #include "mri.h"
 #include "macros.h"
-#include "volume_io.h"
+#include "minc_volume_io.h"
 #include "error.h"
 #include "diag.h"
 #include "proto.h"

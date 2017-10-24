@@ -14,7 +14,7 @@ extern "C" {
 #include "mri.h"
 #include "macros.h"
 #include "diag.h"
-#include "volume_io.h"
+#include "minc_volume_io.h"
 #include "region.h"
 #include "machine.h"
 #include "fio.h"

@@ -44,7 +44,13 @@
 #include "cma.h"
 #include "version.h"
 #include "error.h"
+
+#if !defined(BEVIN_EXCLUDE_MINC)
 #include "volume_io/geom_structs.h"
+#else
+#info this is probably the wrong fix
+#endif
+
 #include "transform.h"
 #include "talairachex.h"
 #include "matrix.h"
@@ -235,7 +241,7 @@ main(int argc, char *argv[])
         "could not open cc volume measurement file %s",
         ifname));
     }
-    print("writing results to %s\n",ifname);
+    printf("writing results to %s\n",ifname);
   }
 
   if (use_aseg)
@@ -747,6 +753,7 @@ find_corpus_callosum(MRI *mri_tal,
 
   // this function is called with mri being talairached volume
   // get the talairach coords (0,0,0) in the voxel space
+#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri_tal->linear_transform || lta)
   {
     MRIworldToVoxel(mri_tal, 0.0, 0.0, 0.0,
@@ -756,6 +763,7 @@ find_corpus_callosum(MRI *mri_tal,
     zv = nint(zr) ;
   }
   else
+#endif
   {
     xv = x0;
     yv = region.y+region.dy/2;
