@@ -196,6 +196,8 @@ BOOST_AUTO_TEST_CASE( CudaImpl )
   
   BOOST_TEST_MESSAGE( "SetRegions Time           : " << ad.tSetRegions );
   BOOST_TEST_MESSAGE( "Interpolate Time          : " << ad.tInterpolate );
+  BOOST_TEST_MESSAGE( "   Send Mesh Time         : " << ad.tSendMesh );
+  BOOST_TEST_MESSAGE( "   Kernel Time            : " << ad.tKernel );
 }
 #endif
 

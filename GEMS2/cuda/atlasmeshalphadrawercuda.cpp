@@ -26,10 +26,17 @@ namespace kvl {
 
     void AtlasMeshAlphaDrawerCUDA::Interpolate( const kvl::AtlasMesh* mesh ) {
       CudaTetrahedralMesh<double,unsigned long,float> ctm;
-      
-      ctm.Send(mesh);
+      this->tInterpolate.Start();
 
+      this->tSendMesh.Start();
+      ctm.Send(mesh);
+      this->tSendMesh.Stop();
+
+      this->tKernel.Start();
       RunAtlasMeshAlphaDrawerCUDA( this->d_Output, ctm, this->classNumber );
+      this->tKernel.Stop();
+
+      this->tInterpolate.Stop();
     }
 
     const AtlasMeshAlphaDrawerCUDA::ImageType* AtlasMeshAlphaDrawerCUDA::GetImage() const {

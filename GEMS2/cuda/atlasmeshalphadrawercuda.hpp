@@ -20,7 +20,7 @@ namespace kvl {
 
       mutable Stopwatch tGetImage, tGetImageTransfer, tGetImageUnpack;
       
-      mutable Stopwatch tInterpolate;
+      mutable Stopwatch tInterpolate, tSendMesh, tKernel;
     private:
       int classNumber;
 
