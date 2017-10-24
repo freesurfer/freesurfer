@@ -101,7 +101,7 @@ void CoverageTest() {
   int rslt;
   int  xsi, ysi, zsi, xvi, yvi, zvi;
   int intens, halfscansize, closest_vertnum, vno;
-  Real xs,  ys,  zs,  xv,  yv,  zv;  // WTF is Real?
+  double xs,  ys,  zs,  xv,  yv,  zv;
   VERTEX vtx, *v;
   double ddist;
 

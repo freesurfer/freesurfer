@@ -1238,13 +1238,13 @@ MRIScomputeBorderValues_MEF_WHITE(MRI_SURFACE *mris,
                                   float gm_mean[2], float gm_std[2],
                                   double sigma,
                                   float max_thickness, FILE *log_fp) {
-  Real    val30, val5, x, y, z, max_mag_val30, 
+  double  val30, val5, x, y, z, max_mag_val30, 
     max_mag_val5, xw, yw, zw,mag,max_mag, max_mag_dist=0.0f,
     min_val30, min_val5, inward_dist,outward_dist,xw1,yw1,zw1,
     min_val_dist, orig_dist, dx, dy, dz;
-  Real previous_mag, next_mag, previous_mag30, 
+  double previous_mag, next_mag, previous_mag30, 
     previous_mag5, next_mag30, next_mag5;
-  Real mag30, mag5, previous_val30, next_val30;
+  double mag30, mag5, previous_val30, next_val30;
   int     total_vertices, vno, nmissing = 0, nout = 0, nin = 0, nfound = 0,
     nalways_missing = 0, local_max_found, 
     ngrad_max, ngrad, nmin, num_changed=0 ;
@@ -1617,13 +1617,13 @@ MRIScomputeBorderValues_MEF_PIAL(MRI_SURFACE *mris,
   // original images, really need to use the membership functions
   //or equivalently, the EM_combined
   //dura may be still low at both flash30 and flash5, but not that low
-  Real  val,  val30, val5, x, y, z, max_mag_val30, 
+  double  val,  val30, val5, x, y, z, max_mag_val30, 
     max_mag_val5, xw, yw, zw,mag,max_mag, max_mag_dist=0.0f,
     min_val30, min_val5, inward_dist,outward_dist,xw1,yw1,zw1,
       min_val_dist, orig_dist, dx, dy, dz;
-  Real previous_mag, next_mag, previous_mag30, 
+  double previous_mag, next_mag, previous_mag30, 
     previous_mag5, next_mag30, next_mag5;
-  Real mag30, mag5, previous_val30, previous_val5, next_val30, next_val5;
+  double mag30, mag5, previous_val30, previous_val5, next_val30, next_val5;
   int     total_vertices, vno, 
     nmissing = 0, nout = 0, nin = 0, nfound = 0,
     nalways_missing = 0, local_max_found, 
@@ -2224,7 +2224,7 @@ static double
 mrisRmsValError_mef(MRI_SURFACE *mris,
                     MRI *mri_30, MRI *mri_5, float weight30, float weight5) {
   int     vno, n; //, xv, yv, zv ;
-  Real    val30, val5, total, delta, x, y, z ;
+  double  val30, val5, total, delta, x, y, z ;
   VERTEX  *v ;
 
   for (total = 0.0, n = vno = 0 ; vno < mris->nvertices ; vno++) {
@@ -2257,7 +2257,7 @@ mrisComputeIntensityTerm_mef(MRI_SURFACE *mris,
   int     vno ;
   VERTEX  *v ;
   float   x, y, z, nx, ny, nz, dx, dy, dz ;
-  Real    val0, xw, yw, zw, del, val_outside, val_inside, delI, delV, k,
+  double  val0, xw, yw, zw, del, val_outside, val_inside, delI, delV, k,
   ktotal ;
   double  sigma ;
 
@@ -2288,7 +2288,7 @@ mrisComputeIntensityTerm_mef(MRI_SURFACE *mris,
     /* compute intensity gradient using smoothed volume */
 
     {
-      Real dist, val, step_size ;
+      double dist, val, step_size ;
       int  n ;
 
       step_size = MIN(sigma/2, 
@@ -2347,7 +2347,7 @@ mrisComputeIntensityTerm_mef(MRI_SURFACE *mris,
     MRISsurfaceRASToVoxel(mris, mri_5, x, y, z, &xw, &yw, &zw);
     MRIsampleVolume(mri_5, xw, yw, zw, &val0) ;
     {
-      Real dist, val, step_size ;
+      double dist, val, step_size ;
       int  n ;
 
       step_size = MIN(sigma/2, 

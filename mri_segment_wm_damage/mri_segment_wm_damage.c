@@ -242,7 +242,7 @@ compute_damaged_wm_statistics(MRI *mri_T1, MRI *mri_PD, MRI *mri_T2, LABEL *l_da
                               MATRIX **pm_cov) {
   MATRIX *m_cov, *m_T1_ras2vox, *m_T2_ras2vox, *m_tmp ;
   VECTOR *v_mean, *v_T1, *v_T2, *v_ras, *v_X, *v_XT ;
-  Real    xv, yv, zv, val_T1, val_T2, val_PD ;
+  double  xv, yv, zv, val_T1, val_T2, val_PD ;
   int     i, dofs_T1, dofs_T2 ;
 
   m_cov = MatrixAlloc(3, 3, MATRIX_REAL) ;
@@ -346,7 +346,7 @@ compute_label_statistics(MRI *mri_T1, MRI *mri_PD, MRI *mri_T2, MRI *mri_aseg, i
                          MATRIX **pm_inv_cov, int erode) {
   MATRIX *m_cov, *m_T1_to_T2, *m_tmp ;
   VECTOR *v_mean, *v_T1, *v_T2, *v_X, *v_XT ;
-  Real    xv, yv, zv, val_T1, val_T2, val_PD ;
+  double  xv, yv, zv, val_T1, val_T2, val_PD ;
   int     dofs_T1, dofs_T2, x, y, z ;
   MRI     *mri_label ;
 
@@ -464,7 +464,7 @@ label_damaged_wm(MRI *mri_T1, MRI *mri_PD, MRI *mri_T2, MRI *mri_aseg,
   MATRIX    *m_T2_to_T1 ;
   VECTOR    *v_T1, *v_T2, *v_vals, *v_vals_minus_means, *v_tmp ;
   GCA_PRIOR *gcap ;
-  Real      val ;
+  double    val ;
 
   for (l = 0 ; l < MAX_CMA_LABELS ; l++) {
     if (m_inv_covariances[l]  != NULL) {

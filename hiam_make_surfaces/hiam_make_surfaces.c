@@ -452,7 +452,7 @@ mrisFindneighborlabel(MRI_SURFACE *mris, char surftype[10], MRI *mri_label[5], M
   int           vno, type=0, tt;
   VERTEX        *v;
   float         x, y, z, step;
-  Real          xw, yw, zw, val=0;
+  double        xw, yw, zw, val=0;
 
   for (tt=0; tt<4; tt++) {
     if ( !strcmp(surftype,surf[tt]) ) type = tt;
@@ -560,7 +560,7 @@ mrisFindneighborlabel(MRI_SURFACE *mris, char surftype[10], MRI *mri_label[5], M
   int           vno, type=0, tt;
   VERTEX        *v;
   float         x, y, z, step;
-  Real          xw, yw, zw, val=0;
+  double        xw, yw, zw, val=0;
 
   for (tt=0; tt<4; tt++) {
     if ( !strcmp(surftype,surf[tt]) ) type = tt;
@@ -621,7 +621,7 @@ mrisComputeLabelTerm1(MRI_SURFACE *mris, double weight_label, MRI *mri_smooth[5]
   int     vno;
   VERTEX  *v ;
   float   x, y, z, dx=0, dy=0, dz=0, nx=0, ny=0, nz=0;
-  Real    xw, yw, zw, dn, xw1, yw1, zw1, outlabel=0, inlabel=0;
+  double  xw, yw, zw, dn, xw1, yw1, zw1, outlabel=0, inlabel=0;
 
   if (FZERO(weight_label))
     return(NO_ERROR) ;
@@ -910,7 +910,7 @@ mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris) {
 static double
 mrisComputeLabelEnergy(MRI_SURFACE *mris, MRI *mri_smooth[5],MRI *mri_label[5], MRI *mri_orig) {
   int           vno ;
-  Real          xw, yw, zw, inval=0, outval=0;
+  double        xw, yw, zw, inval=0, outval=0;
   float         x, y, z;
   //float         target_I = 0.5;
   VERTEX        *v;

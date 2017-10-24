@@ -65,7 +65,7 @@ main(int argc, char *argv[]) {
   VERTEX* v;
   int structure;
   float dx, dy, dz, len, d;
-  Real idxx, idxy, idxz;
+  double idxx, idxy, idxz;
 
 
   /* rkt: check for and handle version tag */

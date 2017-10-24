@@ -2408,7 +2408,7 @@ remove_bright_stuff(MRI *mri, GCA *gca, TRANSFORM *transform)
   int              peak, num, end, x, y, z, xi, yi, zi,
                    xk, yk, zk, i, n, erase, five_mm ;
   float            thresh ;
-  Real             val, new_val ;
+  double           val, new_val ;
   MRI              *mri_tmp, *mri_nonbrain, *mri_tmp2 ;
   GCA_PRIOR        *gcap ;
   MRI_SEGMENTATION *mriseg ;

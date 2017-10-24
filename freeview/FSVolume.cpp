@@ -787,8 +787,8 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
     {
       // find out the output voxel bounds
       float cornerFactor[3];
-      Real RAS[4] = {0, 0, 0, 1}, index[3];
-      Real indexBounds[6];
+      double RAS[4] = {0, 0, 0, 1}, index[3];
+      double indexBounds[6];
       indexBounds[0] = indexBounds[2] = indexBounds[4] = 1e10;
       indexBounds[1] = indexBounds[3] = indexBounds[5] = -1e10;
       for ( cornerFactor[2] = 0; cornerFactor[2] <= 1; cornerFactor[2]++ )
@@ -869,7 +869,7 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
 
       if (!m_bCropToOriginal)
       {
-        Real p0[3];
+        double p0[3];
         ::MRIvoxelToWorld( m_MRITemp,
                            (int)indexBounds[0],
             (int)indexBounds[2],
@@ -903,7 +903,7 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
       // no resample, just modify the header
       MATRIX* old_v2r = extract_i_to_r(m_MRITemp);
       /*
-      Real p0[4] = {0, 0, 0, 1};
+      double p0[4] = {0, 0, 0, 1};
       ::MRIvoxelToWorld( m_MRITemp,
                          0, 0, 0,
                          &p0[0], &p0[1], &p0[2] );
@@ -1247,7 +1247,7 @@ int FSVolume::OriginalIndexToRAS( float iIdxX, float iIdxY, float iIdxZ,
     return 1;
   }
 
-  Real ix, iy, iz, wx, wy, wz;
+  double ix, iy, iz, wx, wy, wz;
   int r;
 
   ix = iIdxX;
@@ -1270,12 +1270,12 @@ int FSVolume::RASToOriginalIndex ( float iRASX, float iRASY, float iRASZ,
     return 1;
   }
 
-  Real ix, iy, iz, wx, wy, wz;
+  double ix, iy, iz, wx, wy, wz;
   int r;
 
   if (m_matReg)
   {
-    Real v[4] = {iRASX, iRASY, iRASZ, 1};
+    double v[4] = {iRASX, iRASY, iRASZ, 1};
     MATRIX* matNative = MRItkReg2Native(this->m_MRIRef, m_MRI, m_matReg);
     double m[16];
     for ( int i = 0; i < 16; i++ )
@@ -1317,12 +1317,12 @@ int FSVolume::RASToOriginalIndex ( float iRASX, float iRASY, float iRASZ,
   }
   return r;
   */
-  Real wx, wy, wz;
+  double wx, wy, wz;
   int r;
 
   if (m_matReg)
   {
-    Real v[4] = {iRASX, iRASY, iRASZ, 1};
+    double v[4] = {iRASX, iRASY, iRASZ, 1};
     MATRIX* matNative = MRItkReg2Native(this->m_MRIRef, m_MRI, m_matReg);
     double m[16];
     for ( int i = 0; i < 16; i++ )
@@ -1349,7 +1349,7 @@ int FSVolume::RASToOriginalIndex ( float iRASX, float iRASY, float iRASZ,
 
 bool FSVolume::RASToTalairachVoxel(const double *pos_in, double *pos_out)
 {
-  Real x, y, z;
+  double x, y, z;
   if (m_MRI->linear_transform)
   {
     ::MRIworldToTalairachVoxel(m_MRI, pos_in[0], pos_in[1], pos_in[2], &x, &y, &z);
@@ -1364,7 +1364,7 @@ bool FSVolume::RASToTalairachVoxel(const double *pos_in, double *pos_out)
 
 void FSVolume::TalairachVoxelToRAS(const double *pos_in, double *pos_out)
 {
-  Real x, y, z;
+  double x, y, z;
   ::MRItalairachVoxelToWorld(m_MRI, pos_in[0], pos_in[1], pos_in[2], &x, &y, &z);
   pos_out[0] = x;
   pos_out[1] = y;
@@ -1375,8 +1375,8 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
 {
   MRI* mri = NULL;
   float cornerFactor[3];
-  Real RAS[3], index[3];
-  Real indexBounds[6];
+  double RAS[3], index[3];
+  double indexBounds[6];
   indexBounds[0] = indexBounds[2] = indexBounds[4] = 1e10;
   indexBounds[1] = indexBounds[3] = indexBounds[5] = -1e10;
   for ( cornerFactor[2] = 0; cornerFactor[2] <= 1; cornerFactor[2]++ )
@@ -1449,7 +1449,7 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
 
     MRIcopyHeader( refTarget, mri );
 
-    //    Real p0[3];
+    //    double p0[3];
     //    ::MRIvoxelToWorld( refTarget,
     //                       (int)(indexBounds[0]),
     //                       (int)(indexBounds[2]),
@@ -1540,7 +1540,7 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
 
     MRIcopyHeader( refTarget, mri );
     MRIsetResolution( mri, pixelSize[0], pixelSize[1], pixelSize[2] );
-    Real p0[3];
+    double p0[3];
     ::MRIvoxelToWorld( refTarget,
                        indexBounds[0]+0.5*pixelSize[0]/refTarget->xsize,
         indexBounds[2]+0.5*pixelSize[1]/refTarget->ysize,
@@ -1551,7 +1551,7 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
     if (true)
     {
       // make sure voxel boundaries are aligned
-      Real cpt[3], cpt_ext[3];
+      double cpt[3], cpt_ext[3];
       ::MRIworldToVoxel(mri, refTarget->c_r, refTarget->c_a, refTarget->c_s, &cpt[0], &cpt[1], &cpt[2]);
       ::MRIworldToVoxel(mri, mri->c_r, mri->c_a, mri->c_s, &cpt_ext[0], &cpt_ext[1], &cpt_ext[2]);
       //        double vs[3] = { mri->xsize, mri->ysize, mri->zsize };
@@ -1926,7 +1926,7 @@ bool FSVolume::CreateImage( MRI* rasMRI )
   }
   else if ( m_volumeRef )
   {
-    Real ras[3], cindex[3];
+    double ras[3], cindex[3];
 
     ::MRIvoxelToWorld( rasMRI, 0., 0., 0., &ras[0], &ras[1], &ras[2] );
     ::MRIworldToVoxel( m_volumeRef->m_MRITarget,
@@ -1955,7 +1955,7 @@ bool FSVolume::CreateImage( MRI* rasMRI )
     //    qDebug() << cindex[0] << cindex[1] << cindex[2];
 
     /*
-    Real ras[3], ras2[3];
+    double ras[3], ras2[3];
     ::MRIvoxelToWorld( rasMRI, 0., 0., 0., &ras[0], &ras[1], &ras[2] );
     ::MRIvoxelToWorld( m_volumeRef->m_MRITarget, 0., 0., 0., &ras2[0], &ras2[1], &ras2[2] );
     m_volumeRef->GetImageOutput()->GetOrigin( origin );
@@ -2067,8 +2067,8 @@ bool FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
 
   /*
   float cornerFactor[3];
-  Real RAS[3], index[3];
-  Real indexBounds[6];
+  double RAS[3], index[3];
+  double indexBounds[6];
   indexBounds[0] = indexBounds[2] = indexBounds[4] = 1e10;
   indexBounds[1] = indexBounds[3] = indexBounds[5] = -1e10;
   for ( cornerFactor[2] = 0; cornerFactor[2] <= 1; cornerFactor[2]++ )
@@ -2101,7 +2101,7 @@ bool FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
   origin[2] += indexBounds[4] * refTarget->zsize;
   */
 
-  Real vox[3], tvox[3];
+  double vox[3], tvox[3];
   ::MRIworldToVoxel( rasMRI,
                      rasPoint[0], rasPoint[1], rasPoint[2],
       &vox[0], &vox[1], &vox[2] );
@@ -2595,7 +2595,7 @@ void FSVolume::GetBounds( MRI* mri, float oRASBounds[6] )
 
   // For each corner, convert to RAS, and get the bounds.
   float cornerFactor[3];
-  Real RAS[3];
+  double RAS[3];
   for ( cornerFactor[2] = 0; cornerFactor[2] <= 1; cornerFactor[2]++ )
   {
     for ( cornerFactor[1] = 0; cornerFactor[1] <= 1; cornerFactor[1]++ )
@@ -2770,7 +2770,7 @@ void FSVolume::TargetToRAS( const double* pos_in, double* pos_out )
     pos[i] = ( pos_in[i] - origin[i] ) / vs[i];
   }
 
-  Real fpos[3];
+  double fpos[3];
   ::MRIvoxelToWorld( m_MRITarget,
                      (float)pos[0], (float)pos[1], (float)pos[2],
       &fpos[0], &fpos[1], &fpos[2] );
@@ -2820,7 +2820,7 @@ void FSVolume::TargetToRAS( const float* pos_in, float* pos_out )
 
 void FSVolume::RASToTarget( const double* pos_in, double* pos_out )
 {
-  Real pos[4] = { 0 };
+  double pos[4] = { 0 };
   ::MRIworldToVoxel( m_MRITarget,
                      (float)pos_in[0],
       (float)pos_in[1],

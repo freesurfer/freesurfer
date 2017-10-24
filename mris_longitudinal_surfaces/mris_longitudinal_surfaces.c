@@ -1874,7 +1874,7 @@ check_contrast_direction(MRI_SURFACE *mris,MRI *mri_T1)
 {
   int     vno, n ;
   VERTEX  *v ;
-  Real    x, y, z, xw, yw, zw, val, mean_inside, mean_outside ;
+  double  x, y, z, xw, yw, zw, val, mean_inside, mean_outside ;
 
   mean_inside = mean_outside = 0.0 ;
   for (n = vno = 0 ; vno < mris->nvertices ; vno++)

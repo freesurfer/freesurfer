@@ -1900,7 +1900,7 @@ MRIsynthesizeWeightedVolume(MRI *mri_T1, MRI *mri_PD, float w5, float TR5,
   int        mri_peak, n, min_real_bin, x, y, z, width, height, depth ;
   MRI       *mri30, *mri5 ;
   double    mean_PD ;
-  Real      val30, val5, val ;
+  double    val30, val5, val ;
 
   mean_PD = MRImeanFrame(mri_PD, 0) ;
   /*  MRIscalarMul(mri_PD, mri_PD, 1000.0f/mean_PD) ;*/

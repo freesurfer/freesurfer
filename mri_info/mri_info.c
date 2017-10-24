@@ -560,7 +560,7 @@ int PrettyMatrixPrint(MATRIX *mat)
 
   if (mat->type != MATRIX_REAL)
   {
-    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM, "mat is not Real type")) ;
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM, "mat is not MATRIX_REAL type")) ;
   }
 
   if (mat->rows != 4 || mat->cols != 4)
