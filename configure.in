@@ -1757,7 +1757,8 @@ itk_apps="NO"
 kww_apps="NO"
 AC_ARG_ENABLE(GUI-build,
  [  --disable-GUI-build     disable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
- [ tcltk_apps="NO"
+ [ disable_gui_build="YES"
+   tcltk_apps="NO"
    itk_apps="NO"
    vtk_apps="NO"
    kww_apps="NO"
@@ -2752,7 +2753,25 @@ fi
 AC_ARG_ENABLE(itk-apps,
  [  --disable-itk-apps      disable building ITK-based apps],
  [ itk_apps="NO"
+   ac_itk_includes="NO"
+   ac_itk_libraries="NO"
+   ITK_CFLAGS=""
+   ITK_LIBS=""
+   ITK_LIB=""
+   LIBS_ITK=""
+   ITK_DIR=""
  ])
+
+if test "$disable_gui_build" = "YES"; then
+  itk_apps="NO"
+  ac_itk_includes="NO"
+  ac_itk_libraries="NO"
+  ITK_CFLAGS=""
+  ITK_LIBS=""
+  ITK_LIB=""
+  LIBS_ITK=""
+  ITK_DIR=""
+fi
 
 if test "$itk_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of ITK apps.])
@@ -3594,14 +3613,18 @@ fi
 
 
 ########################################################################
-# Indicate whether we have OpenGL (HAVE_OPENGL is undefined if not)
+# Indicate whether we have OpenGL or we don't need it in the build
+# (HAVE_OPENGL is undefined if not)
 ########################################################################
 HAVE_OPENGL="-DHAVE_OPENGL"
 if test "x$GL_LIBS" = "x"; then
   HAVE_OPENGL=""
 fi
+if test "x$disable_gui_build" = "xYES"; then
+  HAVE_OPENGL=""
+fi
 AC_SUBST(HAVE_OPENGL)
-AM_CONDITIONAL(HAVE_OPENGL_LIBS, ! test "X$GL_LIBS" = "X")
+AM_CONDITIONAL(HAVE_OPENGL_LIBS, ! test "X$HAVE_OPENGL" = "X")
 
 
 #########################################################################
