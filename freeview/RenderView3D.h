@@ -136,6 +136,8 @@ public slots:
   void UpdateSliceFrames();
   bool UpdateBounds();
   void SnapToNearestAxis();
+  void Rotate90();
+  void Rotate180();
   void UpdateSurfaceCorrelationData();
   void SetShowAllSlices(bool bShow);
   void OnShowSlice(bool bShow = true);
@@ -148,6 +150,8 @@ public slots:
   void ResetViewPosterior();
   void ShowCursor(bool bshow);
   void OnLayerVisibilityChanged();
+  void Azimuth(double degrees);
+  void Elevation(double degrees);
 
 protected:
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false );
