@@ -36,6 +36,7 @@
 #include "CostFunctions.h"
 #include "MyMatrix.h"
 #include "MyMRI.h"
+#include "mriBSpline.h"
 
 #include <cassert>
 #include <iostream>
