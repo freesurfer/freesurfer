@@ -841,7 +841,7 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg, MRI *m
 
                       /* ignore background voxels when doing fine alignment */
                       if (noskull) {
-                        Real b1, b2, xf1, yf1, zf1 ;
+                        double b1, b2, xf1, yf1, zf1 ;
 
                         MRIsampleVolume(mri_target_edge, xf, yf, zf, &b2) ;
                         xf1 = voxmat1->rptr[1][indx];
@@ -1647,7 +1647,7 @@ apply_transform(MRI *mri_in, MRI *mri_target, MATRIX *M_reg, MRI *mri_xformed) {
   MATRIX   *m, *m_tmp;
   VECTOR   *v_in, *v_target ;
   int      x, y, z, width, height, depth ;
-  Real     xs, ys, zs, val ;
+  double   xs, ys, zs, val ;
 
   vox2ras_source = MRIgetVoxelToRasXform(mri_in) ;
   vox2ras_target = MRIgetVoxelToRasXform(mri_target) ;
@@ -1900,7 +1900,7 @@ MRIsynthesizeWeightedVolume(MRI *mri_T1, MRI *mri_PD, float w5, float TR5,
   int        mri_peak, n, min_real_bin, x, y, z, width, height, depth ;
   MRI       *mri30, *mri5 ;
   double    mean_PD ;
-  Real      val30, val5, val ;
+  double    val30, val5, val ;
 
   mean_PD = MRImeanFrame(mri_PD, 0) ;
   /*  MRIscalarMul(mri_PD, mri_PD, 1000.0f/mean_PD) ;*/

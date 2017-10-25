@@ -3640,7 +3640,7 @@ check_contrast_direction(MRI_SURFACE *mris,MRI *mri_T1)
 {
   int     vno, n ;
   VERTEX  *v ;
-  Real    x, y, z, xw, yw, zw, val, mean_inside, mean_outside ;
+  double  x, y, z, xw, yw, zw, val, mean_inside, mean_outside ;
 
   mean_inside = mean_outside = 0.0 ;
   for (n = vno = 0 ; vno < mris->nvertices ; vno++)
@@ -4230,7 +4230,7 @@ static double
 mark_dura(MRI_SURFACE *mris, MRI *mri_ratio, MRI *mri_brain, double sigma)
 {
   HISTOGRAM *h, *hsmooth ;
-  Real      val, xs, ys, zs, xv, yv, zv, d, mean, std ;
+  double    val, xs, ys, zs, xv, yv, zv, d, mean, std ;
   int       vno, bin, num, found ;
   float     mn, mx ;
   VERTEX    *v ;
@@ -4376,7 +4376,7 @@ compute_T2star_map(MRI **mri_echos, int nvolumes)
   int    x, y, z, e, width, height, depth ;
   MRI    *mri_T2star ;
   float  T2star, cond ;
-  Real   val ;
+  double val ;
 
   mD = MatrixAlloc(nvolumes, 1, MATRIX_REAL) ;
   mT = MatrixAlloc(nvolumes, 2, MATRIX_REAL) ;
@@ -4456,7 +4456,7 @@ compute_T2star_map(MRI **mri_echos, int nvolumes)
 static double
 compute_brain_thresh(MRI_SURFACE *mris, MRI *mri_ratio, float nstd)
 {
-  Real      val, xs, ys, zs, xv, yv, zv, d, mean, std ;
+  double    val, xs, ys, zs, xv, yv, zv, d, mean, std ;
   int       vno, num ;
   VERTEX    *v ;
   double    thresh ;
@@ -4528,7 +4528,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
 			      double wm_weight,
                               MRI *mri_T1)
 {
-  Real      val, xs, ys, zs, xv, yv, zv, d, xvf, yvf, zvf, xp, yp, zp ;
+  double    val, xs, ys, zs, xv, yv, zv, d, xvf, yvf, zvf, xp, yp, zp ;
   int       vno, num_in, num_out, found_bad_intensity, found ;
   int       outside_of_white, n, outside_of_pial, near_cerebellum ;
   VERTEX    *v ;
@@ -4818,7 +4818,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       if (mri_aseg != NULL)
       {
 	int label, xv, yv, zv ;
-	Real xvf, yvf, zvf ;
+	double xvf, yvf, zvf ;
 	
 	MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xvf, &yvf, &zvf);
 	xv = nint(xvf) ; yv = nint(yvf) ; zv = nint(zvf) ;
@@ -4958,7 +4958,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
 	if (mri_aseg != NULL)
 	{
 	  int label, xv, yv, zv ;
-	  Real xvf, yvf, zvf ;
+	  double xvf, yvf, zvf ;
 	  
 	  MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xvf, &yvf, &zvf);
 	  xv = nint(xvf) ; yv = nint(yvf) ; zv = nint(zvf) ;
@@ -5832,7 +5832,7 @@ compute_white_target_locations(MRI_SURFACE *mris,
 			       int contrast_type, float T2_min_inside, float T2_max_inside, 
 			       int below_set, int above_set, double wsigma)
 {
-  Real      val, xs, ys, zs, xv, yv, zv, d, mean, std, xvf, yvf, zvf ;
+  double    val, xs, ys, zs, xv, yv, zv, d, mean, std, xvf, yvf, zvf ;
   int       vno, num_in, num_out, label ;
   int       done, bin, niter, histo_nbins, in_white ;
   VERTEX    *v ;
@@ -6063,7 +6063,7 @@ compute_white_matter_intensities(MRI_SURFACE *mris,
 				 float nstd_below,
 				 MRI *mri_dst)
 {
-  Real      val, xs, ys, zs, xv, yv, zv, d, mean, std, xvf, yvf, zvf, sum, dist,means[2][2],
+  double    val, xs, ys, zs, xv, yv, zv, d, mean, std, xvf, yvf, zvf, sum, dist,means[2][2],
     stds[2][2], counts[2];
   int       vno, num, label, xk, yk, zk, xi, yi, zi, whalf ;
   int       done, bin, niter, histo_nbins, in_white, count, filled_wm, filled_pial ;
@@ -6371,7 +6371,7 @@ find_and_mark_pinched_regions(MRI_SURFACE *mris,
                               float nstd_below,
                               float nstd_above)
 {
-  Real      val, xs, ys, zs, xv, yv, zv, d, mean, std ;
+  double    val, xs, ys, zs, xv, yv, zv, d, mean, std ;
   int       vno, num_in, num_out, found_bad_intensity, done, bin, niter ;
   VERTEX    *v ;
   double    min_gray, max_gray, thickness, nx, ny, nz, mn, mx, sig, sample_dist ;
@@ -6703,7 +6703,7 @@ find_and_mark_pinched_regions(MRI_SURFACE *mris,
     v->val = mn-sig ;   // a mildly CSF intensity in a flair image to seek
     if (vno == Gdiag_no)
     {
-      Real xv, yv, zv, xv0, yv0, zv0 ;
+      double xv, yv, zv, xv0, yv0, zv0 ;
       MRISsurfaceRASToVoxelCached(mris, mri_T2,
                                   v->x, v->y, v->z,
                                   &xv0, &yv0, &zv0);

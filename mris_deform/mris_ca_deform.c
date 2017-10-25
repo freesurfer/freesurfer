@@ -541,7 +541,7 @@ compute_target_intensities(MRI_SURFACE *mris, MRI *mri_labels, MRI *mri_intensit
                            HISTOGRAM **histograms, VERTEX_INFO *vi,float sigma, 
                            TRANSFORM *transform, GCA *gca, int target_label, float resolution) {
   int      nin, nout ;
-  Real     val, nx, ny, nz, xi, yi, zi, d, e1x, e2x, e1y, e2y, e1z, e2z, d1, d2, mag ;
+  double   val, nx, ny, nz, xi, yi, zi, d, e1x, e2x, e1y, e2y, e1z, e2z, d1, d2, mag ;
   MRI      *mri_ll ;
   MRI      *mri_grad, *mri_dx, *mri_dy, *mri_dz, *mri_mask, 
            *mri_tmp, *mri_dist, *mri_pin, *mri_pout, *mri_pmap ;
@@ -715,7 +715,7 @@ compute_target_intensities_with_gcab(MRI_SURFACE *mris, MRI *mri_labels, MRI *mr
                                      TRANSFORM *transform, GCA *gca, int target_label, float resolution,
                                      GCAB *gcab) {
   int      nin, nout ;
-  Real     val, nx, ny, nz, xi, yi, zi, d, e1x, e2x, e1y, e2y, e1z, e2z, d1, d2, mag ;
+  double   val, nx, ny, nz, xi, yi, zi, d, e1x, e2x, e1y, e2y, e1z, e2z, d1, d2, mag ;
   MRI      *mri_ll ;
   MRI      *mri_grad, *mri_dx, *mri_dy, *mri_dz, *mri_mask, 
            *mri_tmp, *mri_dist, *mri_pin, *mri_pout, *mri_pmap ;
@@ -888,7 +888,7 @@ static int
 compute_target_labels(MRI_SURFACE *mris, MRI *mri_labels, MRI *mri_intensities, HISTOGRAM **histograms, VERTEX_INFO *vi) {
   VERTEX   *v ;
   int      vno, l_out, l_in ;
-  Real     xv, yv, zv, val, nx, ny, nz ;
+  double   xv, yv, zv, val, nx, ny, nz ;
   HISTOGRAM *h_in, *h_out ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
@@ -937,7 +937,7 @@ externalLLSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   int         vno ;
   VERTEX      *v ;
   double      sse/*, error*/, d ;
-  Real        val, xv, yv, zv, nx, ny, nz, max_d, max_ll, x2, y2, z2, dist, 
+  double      val, xv, yv, zv, nx, ny, nz, max_d, max_ll, x2, y2, z2, dist, 
               prev_dist, xvd, yvd, zvd, nxd, nyd, nzd, mag, sigma=4.0 ;
   MRI         *mri_ll = parms->mri_ll, *mri_dist ;
 
@@ -1036,7 +1036,7 @@ externalLLGradient(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   int         vno ;
   VERTEX      *v ;
   double      sse, error, d ;
-  Real        val, xv, yv, zv, nx, ny, nz, max_d, max_ll, x2, y2, z2, dist, 
+  double      val, xv, yv, zv, nx, ny, nz, max_d, max_ll, x2, y2, z2, dist, 
               prev_dist, xvd, yvd, zvd, nxd, nyd, nzd, mag, sigma = 4.0 ;
   MRI         *mri_ll = parms->mri_ll, *mri_dist ;
 

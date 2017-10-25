@@ -1103,7 +1103,7 @@ find_control_points
 
 	    if (gca->ninputs > 1)  // 1st input is norm.mgz and we can depend on its intensities
 	    {
-	      Real val_T1 ;
+	      double val_T1 ;
 	      MRIsampleVolumeFrame(mri_in, xv, yv, zv, 0, &val_T1) ;
 	      if (val_T1 < MIN_WM_BIAS_PCT * DEFAULT_DESIRED_WHITE_MATTER_VALUE  ||
 		  val_T1 > MAX_WM_BIAS_PCT  * DEFAULT_DESIRED_WHITE_MATTER_VALUE )
@@ -1115,7 +1115,7 @@ find_control_points
 	    }
 	    else  // be more conservative
 	    {
-	      Real val_T1 ;
+	      double val_T1 ;
 	      MRIsampleVolumeFrame(mri_in, xv, yv, zv, 0, &val_T1) ;
 	      if (val_T1 < .75*MIN_WM_BIAS_PCT * DEFAULT_DESIRED_WHITE_MATTER_VALUE  ||
 		  val_T1 > 1.25*MAX_WM_BIAS_PCT  * DEFAULT_DESIRED_WHITE_MATTER_VALUE )
@@ -1516,7 +1516,7 @@ uniform_region(GCA *gca, MRI *mri, TRANSFORM *transform,
                float nsigma)
 {
   int   xk, yk, zk, whalf, xi, yi, zi, n ;
-  Real   val0, val, sigma, min_val,max_val, thresh ;
+  double val0, val, sigma, min_val,max_val, thresh ;
   MATRIX *m ;
   GC1D   *gc ;
 
@@ -1531,7 +1531,7 @@ uniform_region(GCA *gca, MRI *mri, TRANSFORM *transform,
   for (n = 0 ; n < gca->ninputs ; n++)
   {
     sigma = sqrt(*MATRIX_RELT(m, n+1, n+1)) ;
-    MRIsampleVolumeFrame(mri, (Real)x, (Real)y, (Real)z, n, &val0) ;
+    MRIsampleVolumeFrame(mri, (double)x, (double)y, (double)z, n, &val0) ;
     if (sigma < 0.05*val0)   /* don't let it be too small */
     {
       sigma = 0.05*val0 ;
@@ -1553,7 +1553,7 @@ uniform_region(GCA *gca, MRI *mri, TRANSFORM *transform,
         {
           zi = mri->zi[z+zk] ;
           MRIsampleVolumeFrame
-          (mri, (Real)xi, (Real)yi, (Real)zi, n, &val) ;
+          (mri, (double)xi, (double)yi, (double)zi, n, &val) ;
           if (val < min_val)
           {
             min_val = val ;
@@ -1584,7 +1584,7 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   int    i, xv, yv, zv, n, peak, start, end, num ;
   HISTO *h, *hsmooth ;
   float  fmin, fmax ;
-  Real   val,  mean_ratio, min_T1, max_T1 ;
+  double val,  mean_ratio, min_T1, max_T1 ;
 
   if (nsamples == 0)
     return(NO_ERROR) ;
@@ -1609,7 +1609,7 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 
       if (n >= 1)
       {
-	Real val_T1 ;
+	double val_T1 ;
 	MRIsampleVolumeFrame(mri_in, gcas[i].x,gcas[i].y,gcas[i].z, 0, &val_T1) ;
 	if (val_T1 < min_T1 || val_T1 > max_T1)
 	  continue ;
@@ -1636,7 +1636,7 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
       {
         mean_ratio += hsmooth->bins[peak] / gcas[i].means[n];
       }
-      mean_ratio /= (Real)nsamples ;
+      mean_ratio /= (double)nsamples ;
       HISTOclearBins(hsmooth, hsmooth, hsmooth->bins[start], hsmooth->bins[end])  ;
       if (niter++ > 5)
       {
@@ -1775,7 +1775,7 @@ normalizeFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas)
   int    x, y, z, width, height, depth, num, total, input, T1_index, i ;
   float   bias ;
   double  mean, sigma, max_fa ;
-  Real    val ;
+  double  val ;
 
   max_fa = fas[T1_index = 0] ;
   for (i = 1 ; i < mri_in->nframes ; i++)
@@ -1983,7 +1983,7 @@ normalizeChannelFromLabel(MRI *mri_in, MRI *mri_dst, MRI *mri_seg,
   int    x, y, z, width, height, depth, num, total;
   float   bias ;
   double  mean, sigma;
-  Real    val ;
+  double  val ;
 
   width = mri_in->width ;
   height = mri_in->height ;

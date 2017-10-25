@@ -108,8 +108,8 @@ main(int argc, char *argv[]) {
   VERTEX *vertex;
   int index, i, j, vno;
   double cx, cy, cz;
-  Real  vx, vy, vz;
-  Real value_in, value_out;
+  double vx, vy, vz;
+  double value_in, value_out;
   double cnr;
   MATRIX *SW1, *SW2, *SW, *InvSW;
   float *weight, weight_norm;

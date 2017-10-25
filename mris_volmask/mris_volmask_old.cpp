@@ -880,7 +880,7 @@ ConvertSurfaceVertexCoordinates(MRI_SURFACE* mris,
                                 MRI* vol)
 {
   double cx, cy, cz;
-  Real vx, vy, vz;
+  double vx, vy, vz;
 
   VERTEX* pvtx = &( mris->vertices[0] );
   unsigned int nvertices = (unsigned int)mris->nvertices;

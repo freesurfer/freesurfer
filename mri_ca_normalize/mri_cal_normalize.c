@@ -996,7 +996,7 @@ uniform_region(GCA *gca, MRI *mri, TRANSFORM *transform,
                float nsigma)
 {
   int   xk, yk, zk, whalf, xi, yi, zi, n, frame ;
-  Real   val0, val, sigma, min_val,max_val, thresh ;
+  double val0, val, sigma, min_val,max_val, thresh ;
   MATRIX *m ;
   GC1D   *gc ;
 
@@ -1009,7 +1009,7 @@ uniform_region(GCA *gca, MRI *mri, TRANSFORM *transform,
   for (n = 0 ; n < gca->ninputs ; n++)
   {
     sigma = sqrt(*MATRIX_RELT(m, n+1, n+1)) ;
-    MRIsampleVolumeFrame(mri, (Real)x, (Real)y, (Real)z, n, &val0) ;
+    MRIsampleVolumeFrame(mri, (double)x, (double)y, (double)z, n, &val0) ;
     if (sigma < 0.05*val0)   /* don't let it be too small */
       sigma = 0.05*val0 ;
     if (sigma > 0.1*val0)    /* don't let it be too big */
@@ -1028,7 +1028,7 @@ uniform_region(GCA *gca, MRI *mri, TRANSFORM *transform,
         {
           zi = mri->zi[z+zk] ;
           MRIsampleVolumeFrame
-            (mri, (Real)xi, (Real)yi, (Real)zi, frame, &val) ;
+            (mri, (double)xi, (double)yi, (double)zi, frame, &val) ;
           if (val < min_val)
             min_val = val ;
           if (val > max_val)
@@ -1052,7 +1052,7 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   int    i, xv, yv, zv, n, peak, start, end, num ;
   HISTO *h, *hsmooth ;
   float  fmin, fmax ;
-  Real   val,  mean_ratio ;
+  double val,  mean_ratio ;
 
   if (nsamples == 0)
     return(NO_ERROR) ;
@@ -1102,7 +1102,7 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
       {
         mean_ratio += hsmooth->bins[peak] / gcas[i].means[0];
       }
-      mean_ratio /= (Real)nsamples ;
+      mean_ratio /= (double)nsamples ;
       HISTOclearBins
         (hsmooth, hsmooth, hsmooth->bins[start], hsmooth->bins[end])  ;
       if (niter++ > 5)

@@ -277,7 +277,7 @@ static double
 compute_volume_cnr(MRI_SURFACE *mris, MRI *mri, char *log_fname) {
   double  gray_white_cnr, gray_csf_cnr, gray_var, white_var, csf_var, gray_mean, white_mean, csf_mean ;
   float   thickness ;
-  Real    x, y, z, gray, white, csf ;
+  double  x, y, z, gray, white, csf ;
   int     vno ;
   VERTEX  *v ;
 

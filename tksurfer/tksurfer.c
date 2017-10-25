@@ -7239,7 +7239,7 @@ void read_image_info(char *fpref)
      Also, the fovs of standard brains like bert and fsaverage are 256 */
   if (fabs(fov) < 0.00001)
   {
-    print ("surfer: WARNING: fov was ~0, setting to 256\n");
+    printf("surfer: WARNING: fov was ~0, setting to 256\n");
     fov = 256;
   }
 
@@ -23124,7 +23124,7 @@ read_and_smooth_parcellation(char *parc_name, char *lut_name,
   FILE   *fp ;
   char   r[256], g[256], b[256], line[STRLEN] ;
   VERTEX *v ;
-  Real   x, y, z ;
+  double x, y, z ;
 
   MRISclearMarks(mris) ;
   cp = strchr(parc_name, '/') ;
@@ -24792,7 +24792,7 @@ int conv_initialize()
 int conv_ras_to_mnital(float srasx, float srasy, float srasz,
                        float* mnix, float* mniy, float* mniz)
 {
-  Real rasx, rasy, rasz;
+  double rasx, rasy, rasz;
 
   /* If we have the original MRI volume and this surface doesn't have
      the useRealRAS flag, use it to go from surface RAS coords to
@@ -24853,7 +24853,7 @@ int conv_mnital_to_ras(float mnix, float mniy, float mniz,
 {
 
   float rasx, rasy, rasz;
-  Real srasx, srasy, srasz;
+  double srasx, srasy, srasz;
 
   /* Run the talairach transformation. */
   if (transform_loaded &&

@@ -47,7 +47,6 @@
 #include "cma.h"
 #include "version.h"
 #include "error.h"
-#include "volume_io/geom_structs.h"
 #include "tags.h"
 #include "transform.h"
 #include "talairachex.h"
@@ -135,25 +134,25 @@ static int fill_holes_flag = TRUE;
 
 /* corpus callosum seed point in Talairach coords */
 
-static Real cc_tal_x = 0.0 ;
-static Real cc_tal_y = 0.0 ;
-static Real cc_tal_z = 27.0 ;
+static double cc_tal_x = 0.0 ;
+static double cc_tal_y = 0.0 ;
+static double cc_tal_z = 27.0 ;
 
-static Real pons_tal_x = -2.0 ;
-static Real pons_tal_y = -15.0 /* -22.0 */ ;
-static Real pons_tal_z = -17.0 ;
+static double pons_tal_x = -2.0 ;
+static double pons_tal_y = -15.0 /* -22.0 */ ;
+static double pons_tal_z = -17.0 ;
 
 static int cc_seed_set = 0 ;
 static int pons_seed_set = 0 ;
 
 // seed specified in volume position ///////////////
-static Real cc_vol_x = 0;
-static Real cc_vol_y = 0;
-static Real cc_vol_z = 0;
+static double cc_vol_x = 0;
+static double cc_vol_y = 0;
+static double cc_vol_z = 0;
 
-static Real pons_vol_x = 0;
-static Real pons_vol_y = 0;
-static Real pons_vol_z = 0;
+static double pons_vol_x = 0;
+static double pons_vol_y = 0;
+static double pons_vol_z = 0;
 
 static int cc_seed_vol_set = 0;
 static int pons_seed_vol_set = 0;
@@ -162,13 +161,13 @@ static int pons_seed_vol_set = 0;
 static int lh_seed_set = 0 ;
 static int rh_seed_set = 0 ;
 
-static Real lh_tal_x ;
-static Real lh_tal_y ;
-static Real lh_tal_z ;
+static double lh_tal_x ;
+static double lh_tal_y ;
+static double lh_tal_z ;
 
-static Real rh_tal_x ;
-static Real rh_tal_y ;
-static Real rh_tal_z ;
+static double rh_tal_x ;
+static double rh_tal_y ;
+static double rh_tal_z ;
 
 static int rh_vol_x ;
 static int rh_vol_y ;
@@ -1877,11 +1876,11 @@ double findMinSize(MRI *mri)
 
 int verifyLRSplit(MRI *mri_fill,
                   LTA *lta,
-                  Real cc_tal_x,
+                  double cc_tal_x,
                   int *pbadRH, int *pbadLH, int *ptotRH, int *ptotLH)
 {
   int x, y, z;
-  Real tal_x, tal_y, tal_z;
+  double tal_x, tal_y, tal_z;
   unsigned char val;
   // gets linear transform and thus fill val
   // may have non rh_fill_val or lh_fill_val
@@ -1963,18 +1962,18 @@ int main(int argc, char *argv[]) ;
 
 static int fill_holes(MRI *mri_fill) ;
 static int fill_brain(MRI *mri_fill, MRI *mri_im, int threshold) ;
-static MRI *find_cutting_plane(MRI *mri, Real x_tal, Real y_tal,Real z_tal,
+static MRI *find_cutting_plane(MRI *mri, double x_tal, double y_tal,double z_tal,
                                int orientation, int *pxv, int *pvy, int *pzv,
                                int seed_set, const LTA *lta) ;
 static int find_slice_center(MRI *mri,  int *pxo, int *pyo) ;
 static int find_cc_seed_with_segmentation
-(MRI *mri_tal, MRI *mri_seg, Real *pcc_tal_x, Real *cc_tal_y, Real *cc_tal_z) ;
+(MRI *mri_tal, MRI *mri_seg, double *pcc_tal_x, double *cc_tal_y, double *cc_tal_z) ;
 static int find_corpus_callosum
-(MRI *mri, Real *ccx, Real *ccy, Real *ccz, const LTA *lta) ;
-static int find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
+(MRI *mri, double *ccx, double *ccy, double *ccz, const LTA *lta) ;
+static int find_pons(MRI *mri, double *p_ponsx, double *p_ponsy, double *p_ponsz,
                      int x_cc, int y_cc, int z_cc, int which) ;
 static int find_cc_slice
-(MRI *mri, Real *pccx, Real *pccy, Real *pccz, const LTA *lta) ;
+(MRI *mri, double *pccx, double *pccy, double *pccz, const LTA *lta) ;
 static int neighbors_on(MRI *mri, int x0, int y0, int z0) ;
 static int MRIfillVolume(MRI *mri_fill, MRI *mri_im, int x_seed, int y_seed,
                          int z_seed, int fill_val) ;
@@ -2002,7 +2001,7 @@ main(int argc, char *argv[])
   int     x, y, z, xd, yd, zd, xnew, ynew, znew, msec, i, found ;
   int     nargs, wm_rh_x, wm_rh_y, wm_rh_z, wm_lh_x, wm_lh_y, wm_lh_z ;
   char    input_fname[STRLEN],out_fname[STRLEN], fname[STRLEN] ;
-  Real    xr, yr, zr, dist, min_dist ;
+  double  xr, yr, zr, dist, min_dist ;
   MRI     *mri_cc = NULL, *mri_pons = NULL, *mri_norm = NULL,
            *mri_lh_fill, *mri_rh_fill, *mri_lh_im,
            *mri_rh_im /*, *mri_blur*/, *mri_labels, *mri_tal, *mri_tmp, *mri_tmp2,
@@ -2226,6 +2225,7 @@ main(int argc, char *argv[])
     lta->type = LINEAR_RAS_TO_RAS;
     // try getting from mri
     // transform is MNI transform (only COR volume reads transform)
+#if !defined(BEVIN_EXCLUDE_MINC)
     if (mri_im->linear_transform)
     {
       // linear_transform is zero based column-major array
@@ -2263,6 +2263,7 @@ main(int argc, char *argv[])
       }
     }
     else
+#endif
     {
       printf("INFO: volume does not have linear_transform "
              "set nor lta is given by option.-xform.\n") ;
@@ -2339,7 +2340,7 @@ main(int argc, char *argv[])
   // cc_seed is given by tal position
   if (cc_seed_set)
   {
-    Real xv, yv, zv;
+    double xv, yv, zv;
     printf("Using the seed to calculate the cutting plane\n");
     printf("Verify whether the seed point is inside the volume first\n");
     MRItalairachToVoxelEx
@@ -2495,12 +2496,12 @@ main(int argc, char *argv[])
 
   /* update tal coords of CC based on data (BUG FIX - BRF) */
   // the following is wrong:
-  // MRIvoxelToTalairachEx(mri_im, (Real)x_cc, (Real)y_cc, (Real)z_cc,
+  // MRIvoxelToTalairachEx(mri_im, (double)x_cc, (double)y_cc, (double)z_cc,
   //                  &cc_tal_x, &cc_tal_y, &cc_tal_z, lta) ;
 
   // find_cutting_plane returns talairach voxel position
   // change them to talairach RAS position
-  MRIvoxelToWorld(mri_tal, (Real) x_cc, (Real) y_cc, (Real) z_cc,
+  MRIvoxelToWorld(mri_tal, (double) x_cc, (double) y_cc, (double) z_cc,
                   &cc_tal_x, &cc_tal_y, &cc_tal_z);
   printf("talairach cc position changed to (%.2f, %.2f, %.2f)\n",
          cc_tal_x, cc_tal_y, cc_tal_z);
@@ -2557,7 +2558,7 @@ main(int argc, char *argv[])
     }
     else if (pons_seed_set)
     {
-      Real xv, yv, zv;
+      double xv, yv, zv;
       printf("Verify whether the seed point is inside the volume first\n");
       MRItalairachToVoxelEx
       (mri_im, pons_tal_x, pons_tal_y, pons_tal_z, &xv, &yv, &zv, lta);
@@ -3044,7 +3045,7 @@ main(int argc, char *argv[])
   {
     //    printf("x_cc = %g, y_cc = %g, z_cc = %g\n",
     // (float)x_cc, (float)y_cc, (float) z_cc);
-    Real x_cc_img, y_cc_img, z_cc_img;
+    double x_cc_img, y_cc_img, z_cc_img;
     //x_cc, y_cc, z_cc is still in the transformed space -xh
     //transform them into image space
     //note mri_cc was transformed into image space
@@ -3162,10 +3163,10 @@ main(int argc, char *argv[])
 
     fprintf(stderr, "combining hemispheres...\n") ;
     MRIvoxelToTalairachEx
-    (mri_lh_fill, (Real)wm_lh_x, (Real)wm_lh_y, (Real)wm_lh_z,
+    (mri_lh_fill, (double)wm_lh_x, (double)wm_lh_y, (double)wm_lh_z,
      &xr, &yr, &zr, lta) ;
     MRIvoxelToTalairachEx
-    (mri_rh_fill, (Real)wm_rh_x, (Real)wm_rh_y, (Real)wm_rh_z,
+    (mri_rh_fill, (double)wm_rh_x, (double)wm_rh_y, (double)wm_rh_z,
      &xr, &yr, &zr, lta) ;
 
     mri_fill = MRIcombineHemispheres(mri_lh_fill, mri_rh_fill, NULL,
@@ -3833,13 +3834,13 @@ print_help(void)
 
 static MRI *
 find_cutting_plane
-(MRI *mri_tal, Real x_tal, Real y_tal,Real z_tal,int orientation,
+(MRI *mri_tal, double x_tal, double y_tal,double z_tal,int orientation,
  int *pxv, int *pyv, int *pzv, int seed_set, const LTA *lta)
 {
   // here is the limitation on the voxsize being up to .5 mm
   MRI        *mri_slices[MAX_SLICES*2], *mri_filled[MAX_SLICES*2],
              *mri_cut=NULL, *mri_cut_vol ;
-  Real       dx, dy, dz, x, y, z, aspect,MIN_ASPECT,MAX_ASPECT,
+  double     dx, dy, dz, x, y, z, aspect,MIN_ASPECT,MAX_ASPECT,
              aspects[MAX_SLICES*2] ;
   int        slice, offset, area[MAX_SLICES*2],
              min_area0, min_slice,xo,yo,found,
@@ -3858,7 +3859,11 @@ find_cutting_plane
 
   // mri coming is a talairached volume
   /* search for valid seed point */
-  if (mri_tal->linear_transform || lta)
+  if (
+#if !defined(BEVIN_EXCLUDE_MINC)  
+  mri_tal->linear_transform || 
+#endif
+  lta)
   {
     MRIworldToVoxel(mri_tal, x_tal, y_tal,  z_tal, &x, &y, &z) ;
     // talairach volume voxel position
@@ -3988,7 +3993,7 @@ find_cutting_plane
      2) the connected component is completely contained in the slice.
   */
   slice_size = mri_filled[0]->width;
-  aspect = (Real)region.dy / (Real)region.dx ;
+  aspect = (double)region.dy / (double)region.dx ;
   done =
     ((area[0] >= min_area) &&
      (area[0] <= max_area) &&
@@ -4093,9 +4098,9 @@ find_cutting_plane
       yv += yi - yo ;
       break ; // xv remain the same
     }
-    x = (Real)xv ;
-    y = (Real)yv ;
-    z = (Real)zv ;
+    x = (double)xv ;
+    y = (double)yv ;
+    z = (double)zv ;
     MRIvoxelToWorld(mri_tal, x, y, z, &x_tal, &y_tal, &z_tal) ;
     // got the new slice center position in talairach space
     // instead of original talairach space position
@@ -4181,7 +4186,7 @@ find_cutting_plane
                completely contained in the slice.
             */
 
-            aspect = (Real)region.dy / (Real)region.dx ;
+            aspect = (double)region.dy / (double)region.dx ;
 
             // fprintf(stderr, "area[0] = %d (min = %d, max = %d),
             // aspect = %.2f (min = %.2f, max = %.2f)\n",
@@ -4226,9 +4231,9 @@ find_cutting_plane
                 break ; // xi remains (slice value)
               }
 
-              x = (Real)xi ;
-              y = (Real)yi ;
-              z = (Real)zi ;
+              x = (double)xi ;
+              y = (double)yi ;
+              z = (double)zi ;
               // get the talairach RAS position
               MRIvoxelToWorld
               (mri_tal, x, y, z, &x_tal, &y_tal, &z_tal) ;
@@ -4245,7 +4250,7 @@ find_cutting_plane
     }
   if (Gdiag & DIAG_SHOW)
   {
-    // Real  xnv, ynv, znv ;
+    // double  xnv, ynv, znv ;
 
     MRIvoxelToWorld(mri_tal, xv, yv, zv, &x, &y, &z) ;
     // cannot use the following without knowing the src volume
@@ -4289,7 +4294,7 @@ find_cutting_plane
         MRIfillFG
         (mri_slices[slice],NULL,xo,yo,0,WM_MIN_VAL,127,&area[slice]);
       MRIboundingBox(mri_filled[slice], 1, &region) ;
-      aspects[slice] = (Real)region.dy / (Real)region.dx ;
+      aspects[slice] = (double)region.dy / (double)region.dx ;
 
 #if 0
       /* don't trust slices that extend to the border of the image */
@@ -4589,10 +4594,10 @@ find_slice_center(MRI *mri,  int *pxo, int *pyo)
 // i.e. x axis is along LR axis and y axis is along IS axis
 static int
 find_corpus_callosum
-(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta)
+(MRI *mri_tal, double *pccx, double *pccy, double *pccz, const LTA *lta)
 {
   int         xv, yv, zv, max_y, thickness, y1, xcc, ycc, x, y,x0 ;
-  Real        xr, yr, zr ;
+  double      xr, yr, zr ;
   MRI_REGION  region ;
   int cc_spread, min_thickness, max_thickness, slice_size;
   double voxsize=findMinSize(mri_tal);
@@ -4608,7 +4613,11 @@ find_corpus_callosum
 
   // this function is called with mri being talairached volume
   // get the talairach coords (0,0,0) in the voxel space
-  if (mri_tal->linear_transform || lta)
+  if (
+#if !defined(BEVIN_EXCLUDE_MINC)
+      mri_tal->linear_transform || 
+#endif
+      lta)
   {
     MRIworldToVoxel
     (mri_tal, 0.0, 0.0, 0.0, &xr, &yr, &zr);   /* everything is
@@ -4686,11 +4695,11 @@ find_corpus_callosum
 #define MIN_CONT_BRAINSTEM_HEIGHT       3
 
 static int
-find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
+find_pons(MRI *mri, double *p_ponsx, double *p_ponsy, double *p_ponsz,
           int x_cc, int y_cc, int z_cc, int method)
 {
   MRI   *mri_slice, *mri_filled, *mri_closed ;
-  Real  xr, yr, zr ;
+  double  xr, yr, zr ;
   int   xv, yv, zv, x, y, width, height, thickness, xstart, area,xmax,
         bheight ;
   MRI_REGION region ;
@@ -4718,9 +4727,9 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
   thickness = xstart = -1 ;
 
   MRIboundingBox(mri, 10, &region) ;
-  xr = (Real)(region.x+region.dx/2) ;
-  yr = (Real)(region.y+region.dy/2) ;
-  zr = (Real)(region.z+region.dz/2) ;
+  xr = (double)(region.x+region.dx/2) ;
+  yr = (double)(region.y+region.dy/2) ;
+  zr = (double)(region.z+region.dz/2) ;
 
   xv = (int)xr ;
   yv = (int)yr ;
@@ -4926,9 +4935,9 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
   // we were working on the sagittal slice i.e. x -> z, y-> y
   zv = x ;
   yv = y ;  /* convert to voxel coordinates */
-  xr = (Real)xv ;
-  yr = (Real)yv ;
-  zr = (Real)zv ;
+  xr = (double)xv ;
+  yr = (double)yv ;
+  zr = (double)zv ;
   MRIvoxelToWorld(mri, xr, yr, zr, p_ponsx, p_ponsy, p_ponsz) ;
   if (Gdiag & DIAG_SHOW)
     fprintf
@@ -4947,14 +4956,14 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
 */
 static int
 find_cc_slice(MRI *mri_tal,
-              Real *pccx, Real *pccy, Real *pccz,
+              double *pccx, double *pccy, double *pccz,
               const LTA *lta)
 {
   // here we can handle only up to .5 mm voxel size
   int         area[MAX_SLICES*2], min_area, min_slice, slice, offset,xv,yv,zv,
               xo, yo ;
   MRI         *mri_slice, *mri_filled ;
-  Real        aspect, x_tal, y_tal, z_tal, x, y, z, xvv, yvv, zvv;
+  double      aspect, x_tal, y_tal, z_tal, x, y, z, xvv, yvv, zvv;
   MRI_REGION  region ;
   char        fname[STRLEN] ;
   int half_slices;
@@ -4989,7 +4998,7 @@ find_cc_slice(MRI *mri_tal,
     mri_filled =
       MRIfillFG(mri_slice, NULL, zv, yv,0,WM_MIN_VAL,127,&area[slice]);
     MRIboundingBox(mri_filled, 1, &region) ;
-    aspect = (Real)region.dy / (Real)region.dx ;
+    aspect = (double)region.dy / (double)region.dx ;
 
     /* don't trust slices that extend to the border of the image */
     if (!region.x || !region.y || region.x+region.dx >= slice_size -1 ||
@@ -5040,7 +5049,7 @@ find_cc_slice(MRI *mri_tal,
   MRIworldToVoxel(mri_tal, x, y,  z, &xvv, &yvv, &zvv) ;
   if (Gdiag & DIAG_SHOW)
   {
-    // Real xv, yv, zv ;
+    // double xv, yv, zv ;
     // you cannot call this function without knowing the src volume
     // MRItalairachVoxelToVoxelEx(mri_tal, x, y, z, &xv, &yv, &zv, lta) ;
     // fprintf(stderr,
@@ -6259,10 +6268,10 @@ extend_to_lateral_borders(MRI *mri_src, MRI *mri_dst, int mask)
 #define WHALF ((11-1)/2)
 static int
 find_cc_seed_with_segmentation
-(MRI *mri, MRI *mri_seg, Real *pcc_tal_x, Real *pcc_tal_y, Real *pcc_tal_z)
+(MRI *mri, MRI *mri_seg, double *pcc_tal_x, double *pcc_tal_y, double *pcc_tal_z)
 {
   int  x,  y, z, label, yi, zi, yk, zk, xl, xr, rlabel, llabel, num, max_num;
-  Real xcc, ycc,  zcc ;
+  double xcc, ycc,  zcc ;
 
   xcc = ycc = zcc = 0.0  ;
   max_num = 0 ;

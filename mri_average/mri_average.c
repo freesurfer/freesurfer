@@ -79,8 +79,8 @@ MRI  *MRIsumSquare(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 int
 MRIsqrtAndNormalize(MRI *mri, float num)
 {
-  int   x, y, z ;
-  Real  val ;
+  int    x, y, z ;
+  double val ;
 
   for (x = 0 ; x < mri->width ; x++)
   {
@@ -103,8 +103,8 @@ MRIsqrtAndNormalize(MRI *mri, float num)
 MRI  *
 MRIsumSquare(MRI *mri1, MRI *mri2, MRI *mri_dst)
 {
-  int   x, y, z, f ;
-  Real  val1, val2, val_dst ;
+  int    x, y, z, f ;
+  double val1, val2, val_dst ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri1, NULL) ;

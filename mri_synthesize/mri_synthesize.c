@@ -434,7 +434,7 @@ FLASHforwardModel(double flip_angle, double TR, double PD, double T1) {
 static MRI *
 MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_T2star, MRI *mri_dst, double TR, double alpha, double TE) {
   int   x, y, z, width, height, depth ;
-  Real flash, T1, PD ;
+  double flash, T1, PD ;
 
 
   if (!mri_dst)
@@ -459,7 +459,7 @@ MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_T2star, MRI *mri_dst, double TR
           DiagBreak() ;
         MRIsampleVolume(mri_PD, x, y, z, &PD) ;
         if (mri_T2star) {
-          Real T2star ;
+          double T2star ;
           MRIsampleVolume(mri_T2star, x, y, z, &T2star) ;
           flash = FLASHforwardModelT2star(T1, PD, T2star, TR, alpha, TE) ;
         } else
@@ -546,7 +546,7 @@ MRIsynthesizeWeightedVolume(MRI *mri_T1, MRI *mri_PD, float w5, float TR5,
   MRI        *mri_dst ;
   int        x, y, z, width, height, depth ;
   MRI        *mri30, *mri5 ;
-  Real       val30, val5, val, min_val ;
+  double     val30, val5, val, min_val ;
 #if 0
   int        mri_peak, n, min_real_bin ;
   double    mean_PD ;
@@ -643,7 +643,7 @@ MRIsynthesizeWeightedVolume(MRI *mri_T1, MRI *mri_PD, float w5, float TR5,
 static int
 transform_T1_values_using_joint_pdf(MRI *mri_T1, char *jpdf_name, int invert) {
   int   x, y, z, nbins, i, j, **jpdf, max_j, max_count ;
-  Real  T1 ;
+  double  T1 ;
   FILE  *fp ;
   float fstep, fmin, fmax, val ;
   char  line[STRLEN], *cp, var_name[STRLEN] ;
@@ -770,7 +770,7 @@ static MRI *
 MRIsynthesizeWithFAF(MRI *mri_T1, MRI *mri_PD, MRI *mri_dst, double TR, double alpha, double TE, int nfaf,
                      float *faf_coefs[3][2]) {
   int   x, y, z, width, height, depth, n ;
-  Real flash, T1, PD ;
+  double flash, T1, PD ;
   double xb, yb, zb, x0, y0, z0, w0x, w0y, w0z ;
 
   x0 = mri_T1->width/2 ;
