@@ -38,6 +38,20 @@ class PanelVolume;
 }
 
 class LUTDataHolder;
+class QTreeWidget;
+
+class ColorTableItem : public QTreeWidgetItem
+{
+public:
+  ColorTableItem(QTreeWidget* tree) : QTreeWidgetItem(tree) {}
+
+  enum SORT_TYPE  { ST_VALUE = 0, ST_NAME };
+
+  virtual bool operator < ( const QTreeWidgetItem& other ) const;
+
+  static int  SortType;
+  static bool SortAscending;
+};
 
 class PanelVolume : public PanelLayer
 {
@@ -58,6 +72,7 @@ protected slots:
   void OnLineEditBrushValue( const QString& strg = NULL );
   void OnCheckBoxSelectAllLabels(int nState);
   void OnColorTableItemChanged( QTreeWidgetItem* item );
+  void OnColorTableSortingChanged();
 
   void OnSliderWindow( int );
   void OnSliderLevel( int );

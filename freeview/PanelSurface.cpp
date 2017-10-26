@@ -48,7 +48,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
   ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionLoadSurface);
   ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionCloseSurface);
   ui->toolbar->insertSeparator(ui->actionShowOverlay);
-  ui->toolbar2->hide();
+//  ui->toolbar2->hide();
 
   //  ui->treeWidgetLabels->hide();
 

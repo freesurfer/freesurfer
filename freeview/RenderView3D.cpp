@@ -253,77 +253,6 @@ void RenderView3D::UpdateSliceFrames()
 
 void RenderView3D::UpdateViewByWorldCoordinate()
 {
-  ResetViewLeft();
-  m_renderer->GetActiveCamera()->SetViewAngle(30);
-  m_renderer->ResetCameraClippingRange();
-}
-
-void RenderView3D::ResetViewAnterior()
-{
-  vtkCamera* cam = m_renderer->GetActiveCamera();
-  double wcenter[3];
-  for ( int i = 0; i < 3; i++ )
-  {
-    wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
-  }
-  cam->SetFocalPoint( wcenter );
-  cam->SetPosition( wcenter[0],
-      wcenter[1] + qMax(m_dWorldSize[0], m_dWorldSize[2]) * 2.5,
-      wcenter[2]);
-  cam->SetViewUp( 0, 0, 1 );
-  m_renderer->ResetCameraClippingRange();
-}
-
-void RenderView3D::ResetViewPosterior()
-{
-  vtkCamera* cam = m_renderer->GetActiveCamera();
-  double wcenter[3];
-  for ( int i = 0; i < 3; i++ )
-  {
-    wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
-  }
-  cam->SetFocalPoint( wcenter );
-  cam->SetPosition( wcenter[0],
-      wcenter[1] - qMax(m_dWorldSize[0], m_dWorldSize[2]) * 2.5,
-      wcenter[2]);
-  cam->SetViewUp( 0, 0, 1 );
-  m_renderer->ResetCameraClippingRange();
-}
-
-void RenderView3D::ResetViewInferior()
-{
-  vtkCamera* cam = m_renderer->GetActiveCamera();
-  double wcenter[3];
-  for ( int i = 0; i < 3; i++ )
-  {
-    wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
-  }
-  cam->SetFocalPoint( wcenter );
-  cam->SetPosition( wcenter[0],
-      wcenter[1],
-      wcenter[2] - qMax(m_dWorldSize[0], m_dWorldSize[1]) * 2.5);
-  cam->SetViewUp( 0, 1, 0 );
-  m_renderer->ResetCameraClippingRange();
-}
-
-void RenderView3D::ResetViewSuperior()
-{
-  vtkCamera* cam = m_renderer->GetActiveCamera();
-  double wcenter[3];
-  for ( int i = 0; i < 3; i++ )
-  {
-    wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
-  }
-  cam->SetFocalPoint( wcenter );
-  cam->SetPosition( wcenter[0],
-      wcenter[1],
-      wcenter[2] + qMax(m_dWorldSize[0], m_dWorldSize[1]) * 2.5);
-  cam->SetViewUp( 0, 1, 0 );
-  m_renderer->ResetCameraClippingRange();
-}
-
-void RenderView3D::ResetViewLeft()
-{
   vtkCamera* cam = m_renderer->GetActiveCamera();
   double wcenter[3];
   for ( int i = 0; i < 3; i++ )
@@ -335,25 +264,44 @@ void RenderView3D::ResetViewLeft()
       wcenter[1],
       wcenter[2]);
   cam->SetViewUp( 0, 0, 1 );
+  m_renderer->GetActiveCamera()->SetViewAngle(30);
   m_renderer->ResetCameraClippingRange();
+}
+
+void RenderView3D::ResetViewAnterior()
+{
+  Reset();
+  Azimuth(-90);
+}
+
+void RenderView3D::ResetViewPosterior()
+{
+  Reset();
+  Azimuth(90);
+}
+
+void RenderView3D::ResetViewInferior()
+{
+  ResetViewAnterior();
+  Elevation(-90);
+}
+
+void RenderView3D::ResetViewSuperior()
+{
+  ResetViewPosterior();
+  Elevation(90);
+}
+
+void RenderView3D::ResetViewLeft()
+{
+  Reset();
 }
 
 void RenderView3D::ResetViewRight()
 {
-  vtkCamera* cam = m_renderer->GetActiveCamera();
-  double wcenter[3];
-  for ( int i = 0; i < 3; i++ )
-  {
-    wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
-  }
-  cam->SetFocalPoint( wcenter );
-  cam->SetPosition( wcenter[0] + qMax(m_dWorldSize[1], m_dWorldSize[2]) *2.5,
-      wcenter[1],
-      wcenter[2]);
-  cam->SetViewUp( 0, 0, 1 );
-  m_renderer->ResetCameraClippingRange();
+  Reset();
+  Azimuth(180);
 }
-
 
 void RenderView3D::RefreshAllActors(bool bForScreenShot)
 {
@@ -1270,6 +1218,35 @@ void RenderView3D::SnapToNearestAxis()
   RequestRedraw();
 }
 
+void RenderView3D::Azimuth(double degrees)
+{
+  vtkCamera* cam = m_renderer->GetActiveCamera();
+  cam->OrthogonalizeViewUp();
+  cam->Azimuth(degrees);
+  m_renderer->ResetCameraClippingRange();
+  RequestRedraw();
+}
+
+void RenderView3D::Elevation(double degrees)
+{
+  vtkCamera* cam = m_renderer->GetActiveCamera();
+  cam->OrthogonalizeViewUp();
+  cam->Elevation(degrees);
+  cam->OrthogonalizeViewUp();
+  m_renderer->ResetCameraClippingRange();
+  RequestRedraw();
+}
+
+void RenderView3D::Rotate90()
+{
+  Azimuth(90);
+}
+
+void RenderView3D::Rotate180()
+{
+  Azimuth(180);
+}
+
 void RenderView3D::UpdateScalarBar()
 {
   //    LayerSurface* surf = (LayerSurface*) MainWindow::GetMainWindow()->GetActiveLayer( "Surface" );
@@ -1293,27 +1270,33 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
   layers << mainwnd->GetLayers("PointSet");
 
   QMenu* submenu = menu->addMenu("Reset View");
-  QAction* act = new QAction("Right", this);
-  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewRight()));
-  submenu->addAction(act);
-  act = new QAction("Left", this);
-  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewLeft()));
-  submenu->addAction(act);
-  act = new QAction("Anterior", this);
-  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewAnterior()));
-  submenu->addAction(act);
-  act = new QAction("Posterior", this);
-  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewPosterior()));
-  submenu->addAction(act);
-  act = new QAction("Superior", this);
-  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewSuperior()));
-  submenu->addAction(act);
-  act = new QAction("Inferior", this);
-  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewInferior()));
-  submenu->addAction(act);
+//  QAction* act = new QAction("Right", this);
+//  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewRight()));
+//  submenu->addAction(act);
+//  act = new QAction("Left", this);
+//  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewLeft()));
+//  submenu->addAction(act);
+//  act = new QAction("Anterior", this);
+//  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewAnterior()));
+//  submenu->addAction(act);
+//  act = new QAction("Posterior", this);
+//  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewPosterior()));
+//  submenu->addAction(act);
+//  act = new QAction("Superior", this);
+//  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewSuperior()));
+//  submenu->addAction(act);
+//  act = new QAction("Inferior", this);
+//  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewInferior()));
+//  submenu->addAction(act);
+  submenu->addAction(mainwnd->ui->actionResetViewLeft);
+  submenu->addAction(mainwnd->ui->actionResetViewRight);
+  submenu->addAction(mainwnd->ui->actionResetViewAnterior);
+  submenu->addAction(mainwnd->ui->actionResetViewPosterior);
+  submenu->addAction(mainwnd->ui->actionResetViewSuperior);
+  submenu->addAction(mainwnd->ui->actionResetViewInferior);
   menu->addSeparator();
 
-  act = new QAction("Show All Slices", this);
+  QAction* act = new QAction("Show All Slices", this);
   act->setData(3);
   menu->addAction(act);
   connect(act, SIGNAL(triggered()), this, SLOT(OnShowSlice()));

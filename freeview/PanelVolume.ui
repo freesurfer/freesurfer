@@ -28,7 +28,7 @@
      <x>0</x>
      <y>0</y>
      <width>312</width>
-     <height>1759</height>
+     <height>1709</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -917,7 +917,13 @@ of each frame</string>
       <property name="uniformRowHeights">
        <bool>true</bool>
       </property>
+      <property name="sortingEnabled">
+       <bool>true</bool>
+      </property>
       <attribute name="headerVisible">
+       <bool>false</bool>
+      </attribute>
+      <attribute name="headerShowSortIndicator" stdset="0">
        <bool>false</bool>
       </attribute>
       <column>

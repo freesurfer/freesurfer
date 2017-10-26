@@ -28,6 +28,7 @@
 #include <QStringList>
 #include "Track.h"
 #include <QPair>
+#include <QColor>
 
 class TrackData : public QObject
 {
@@ -43,6 +44,11 @@ public:
   int GetNumberOfTracks()
   {
     return m_nNumberOfTracks;
+  }
+
+  bool HasEmbeddedColor()
+  {
+    return m_bHasEmbeddedColor;
   }
 
 signals:
@@ -65,6 +71,7 @@ protected:
   int     m_nNumberOfSegs;
 
   bool    m_bValidVoxToRas;
+  bool    m_bHasEmbeddedColor;
 
   QList<Track>    m_tracks;
   QList< QPair<double, double> > m_rangeScalar;

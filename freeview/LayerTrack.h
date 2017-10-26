@@ -73,6 +73,8 @@ public:
     return m_mapCluster;
   }
 
+  bool HasEmbeddedColor();
+
 signals:
   void Progress(int n);
 

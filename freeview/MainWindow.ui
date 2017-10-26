@@ -346,8 +346,10 @@
     <addaction name="menuViewport_Layout"/>
     <addaction name="actionShowControlPanel"/>
     <addaction name="actionShowCommandConsole"/>
+    <addaction name="separator"/>
     <addaction name="actionResetView"/>
     <addaction name="actionResetViewNearestAxis"/>
+    <addaction name="actionRotateView90"/>
     <addaction name="actionSetCamera"/>
     <addaction name="separator"/>
     <addaction name="actionShowCoordinateAnnotation"/>
@@ -357,7 +359,6 @@
     <addaction name="actionShowSlices"/>
     <addaction name="actionShowSliceFrames"/>
     <addaction name="separator"/>
-    <addaction name="actionToggleSurfaceSpline"/>
    </widget>
    <widget class="QMenu" name="menuLayer">
     <property name="title">
@@ -1561,6 +1562,67 @@
     <string>Load Tract Cluster...</string>
    </property>
   </action>
+  <action name="actionRotateView90">
+   <property name="text">
+    <string>Rotate View 90 Degree</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+9</string>
+   </property>
+  </action>
+  <action name="actionRotateView180">
+   <property name="text">
+    <string>Rotate View 180 Degree</string>
+   </property>
+  </action>
+  <action name="actionResetViewLeft">
+   <property name="text">
+    <string>Left</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+1</string>
+   </property>
+  </action>
+  <action name="actionResetViewRight">
+   <property name="text">
+    <string>Right</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+2</string>
+   </property>
+  </action>
+  <action name="actionResetViewAnterior">
+   <property name="text">
+    <string>Anterior</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+3</string>
+   </property>
+  </action>
+  <action name="actionResetViewPosterior">
+   <property name="text">
+    <string>Posterior</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+4</string>
+   </property>
+  </action>
+  <action name="actionResetViewSuperior">
+   <property name="text">
+    <string>Superior</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+5</string>
+   </property>
+  </action>
+  <action name="actionResetViewInferior">
+   <property name="text">
+    <string>Inferior</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+6</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -1572,6 +1634,14 @@
    <slots>
     <slot>SnapToNearestAxis()</slot>
     <slot>SetShowSliceFrames(bool)</slot>
+    <slot>Rotate90()</slot>
+    <slot>Rotate180()</slot>
+    <slot>ResetViewLeft()</slot>
+    <slot>ResetViewRight()</slot>
+    <slot>ResetViewSuperior()</slot>
+    <slot>ResetViewInferior()</slot>
+    <slot>ResetViewAnterior()</slot>
+    <slot>ResetViewPosterior()</slot>
    </slots>
   </customwidget>
   <customwidget>
@@ -3133,6 +3203,134 @@
     <hint type="destinationlabel">
      <x>606</x>
      <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionRotateView90</sender>
+   <signal>triggered()</signal>
+   <receiver>view3D</receiver>
+   <slot>Rotate90()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>936</x>
+     <y>520</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionRotateView180</sender>
+   <signal>triggered()</signal>
+   <receiver>view3D</receiver>
+   <slot>Rotate180()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>936</x>
+     <y>520</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionResetViewLeft</sender>
+   <signal>triggered()</signal>
+   <receiver>view3D</receiver>
+   <slot>ResetViewLeft()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>936</x>
+     <y>520</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionResetViewInferior</sender>
+   <signal>triggered()</signal>
+   <receiver>view3D</receiver>
+   <slot>ResetViewInferior()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>936</x>
+     <y>520</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionResetViewRight</sender>
+   <signal>triggered()</signal>
+   <receiver>view3D</receiver>
+   <slot>ResetViewRight()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>936</x>
+     <y>520</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionResetViewSuperior</sender>
+   <signal>triggered()</signal>
+   <receiver>view3D</receiver>
+   <slot>ResetViewSuperior()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>936</x>
+     <y>520</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionResetViewPosterior</sender>
+   <signal>triggered()</signal>
+   <receiver>view3D</receiver>
+   <slot>ResetViewPosterior()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>936</x>
+     <y>520</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionResetViewAnterior</sender>
+   <signal>triggered()</signal>
+   <receiver>view3D</receiver>
+   <slot>ResetViewAnterior()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>936</x>
+     <y>520</y>
     </hint>
    </hints>
   </connection>

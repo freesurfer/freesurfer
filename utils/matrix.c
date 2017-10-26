@@ -4240,3 +4240,78 @@ MATRIX *MatrixResidualForming(MATRIX *X, MATRIX *R)
 
   return (R);
 }
+
+/*!
+  MATRIX *MatrixMultiplyElts(MATRIX *m1, MATRIX *m2, MATRIX *m12)
+  Multiply each element in each matrix (same as m1.*m2 in matlab)
+ */
+MATRIX *MatrixMultiplyElts(MATRIX *m1, MATRIX *m2, MATRIX *m12)
+{
+  int c,r;
+  if(m1->rows != m2->rows){
+    printf("ERROR: MatrixMultiplyElts(): rows not equal %d %d\n",m1->rows,m2->rows);
+    printf("  break %s:%d\n", __FILE__, __LINE__);
+    return(NULL);
+  }
+  if(m1->cols != m2->cols){
+    printf("ERROR: MatrixMultiplyElts(): cols not equal %d %d\n",m1->cols,m2->cols);
+    printf("  break %s:%d\n", __FILE__, __LINE__);
+    return(NULL);
+  }
+  if(m12 == NULL) 
+    m12 = MatrixAlloc(m1->rows,m1->cols,MATRIX_REAL);
+  if(m12->rows != m2->rows){
+    printf("ERROR: MatrixMultiplyElts(): m12 rows not equal %d %d\n",m12->rows,m2->rows);
+    printf("  break %s:%d\n", __FILE__, __LINE__);
+    return(NULL);
+  }
+  if(m12->cols != m2->cols){
+    printf("ERROR: MatrixMultiplyElts(): m12 cols not equal %d %d\n",m12->cols,m2->cols);
+    printf("  break %s:%d\n", __FILE__, __LINE__);
+    return(NULL);
+  }
+
+  for(c=0; c < m1->cols; c++){
+    for(r=0; r < m1->rows; r++){
+      m12->rptr[r+1][c+1] = (double)m1->rptr[r+1][c+1] * (double)m2->rptr[r+1][c+1];
+    }
+  }
+
+  return(m12);
+}
+
+/*!
+  MATRIX *MatrixReplicate(MATRIX *mIn, int nr, int nc, MATRIX *mOut)
+  Replicate the input matrix nr times in the row direction and nc times 
+  in the col direction (same as repmat(mIn,[nr nc]) in matlab)
+ */
+MATRIX *MatrixReplicate(MATRIX *mIn, int nr, int nc, MATRIX *mOut)
+{
+  int c,r,cc,rr,cout,rout;
+  if(mOut == NULL) mOut = MatrixAlloc(nr*mIn->rows,nc*mIn->cols,MATRIX_REAL);    
+  if(mOut->rows != nr*mIn->rows){
+    printf("ERROR: MatrixReplicate(): mOut rows not equal %d %d\n",mOut->rows,nr*mIn->rows);
+    printf("  break %s:%d\n", __FILE__, __LINE__);
+    return(NULL);
+  }
+  if(mOut->cols != nc*mIn->cols){
+    printf("ERROR: MatrixReplicate(): mOut cols not equal %d %d\n",mOut->cols,nc*mIn->cols);
+    printf("  break %s:%d\n", __FILE__, __LINE__);
+    return(NULL);
+  }
+
+  for(cc=0; cc < nc; cc++){
+    for(rr=0; rr < nr; rr++){{
+	for(c=0; c < mIn->cols; c++){
+	  for(r=0; r < mIn->rows; r++){
+	    cout = cc*mIn->cols + c;
+	    rout = rr*mIn->rows + r;
+	    mOut->rptr[rout+1][cout+1] = mIn->rptr[r+1][c+1];
+	  }
+	}
+      }
+    }
+  }
+
+  return(mOut);
+}

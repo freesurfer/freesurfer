@@ -108,6 +108,7 @@ void PanelTrack::DoUpdateWidgets()
     ui->lineEditFileName->setText(fn);
     ui->lineEditFileName->setCursorPosition( ui->lineEditFileName->text().size() );
     ui->comboBoxColorCode->setCurrentIndex(layer->GetProperty()->GetColorCode());
+    ui->comboBoxColorCode->setItemData(LayerPropertyTrack::EmbeddedColor, layer->HasEmbeddedColor()?33:0, Qt::UserRole-1);
     ui->comboBoxDirectionMapping->setCurrentIndex(layer->GetProperty()->GetDirectionMapping());
     ui->comboBoxDirectionScheme->setCurrentIndex(layer->GetProperty()->GetDirectionScheme());
     ui->colorPickerSolidColor->setCurrentColor(layer->GetProperty()->GetSolidColor());

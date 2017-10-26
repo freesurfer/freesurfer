@@ -162,9 +162,19 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
   ui->treeWidgetCursorInfo->SetForCursor(true);
 
-  this->addAction(ui->actionIncreaseOpacity);
-  this->addAction(ui->actionDecreaseOpacity);
-  this->addAction(ui->actionCycleSurfaceLabel);
+  addAction(ui->actionIncreaseOpacity);
+  addAction(ui->actionDecreaseOpacity);
+  addAction(ui->actionCycleSurfaceLabel);
+
+  addAction(ui->actionIncreaseOpacity);
+  addAction(ui->actionDecreaseOpacity);
+  addAction(ui->actionCycleSurfaceLabel);
+  addAction(ui->actionResetViewAnterior);
+  addAction(ui->actionResetViewPosterior);
+  addAction(ui->actionResetViewLeft);
+  addAction(ui->actionResetViewRight);
+  addAction(ui->actionResetViewSuperior);
+  addAction(ui->actionResetViewInferior);
 
   m_statusBar = new FloatingStatusBar(this);
   m_statusBar->hide();
@@ -1344,6 +1354,8 @@ void MainWindow::OnIdle()
   ui->actionRemoveIntersectionsSurface->setEnabled(layerSurface);
   ui->actionResetView       ->setEnabled( bHasLayer );
   ui->actionResetViewNearestAxis->setEnabled( bHasLayer && ui->view3D->isVisible() );
+  ui->actionRotateView90    ->setEnabled( bHasLayer && ui->view3D->isVisible() );
+  ui->actionRotateView180   ->setEnabled( bHasLayer && ui->view3D->isVisible() );
   ui->actionSaveMovieFrames ->setEnabled( bHasLayer );
   ui->actionSaveScreenshot  ->setEnabled( bHasLayer );
   ui->actionSavePoint       ->setEnabled( bHasLayer );
@@ -2805,7 +2817,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
     QStringList sa_fn = overlay_list[nOverlay].split(":");
     if (nOverlay == 0)    // first one is not overlay file but actually surface file
       surface_fn = sa_fn[0];
-//    bool bLoadAll = false;
+    bool bLoadAll = false;
 //    bool bLabelOutline = false;
 //    QString labelColor;
     QString overlay_reg;
@@ -3053,11 +3065,11 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         {
           m_scripts.insert( 0, QStringList("setsurfaceoffset") << subArgu.split(",") );
         }
-//        else if ( subOption == "all")
-//        {
-//          if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
-//            bLoadAll = true;
-//        }
+        else if ( subOption == "all")
+        {
+          if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
+            bLoadAll = true;
+        }
         else if (subOption == "sup_files")
         {
           sup_files = subArgu.split(",",  QString::SkipEmptyParts);
@@ -3072,6 +3084,10 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           return;
         }
       }
+    }
+    if (bLoadAll)
+    {
+      sup_files << "white" << "inflated" << "pial" << "orig";
     }
   }
   LoadSurfaceFile( surface_fn, fn_patch, fn_target, sup_files );
