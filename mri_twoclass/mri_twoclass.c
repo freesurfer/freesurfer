@@ -898,7 +898,7 @@ compute_white_matter_density(MRI *mri, MRI *mri_atlas_wm, float resolution,
   MRI          *mri_filled ;
   float        xvf, yvf, zvf ;
   int          xm, xp, ym, yp, zm, zp, xv, yv, zv ;
-  Real         xmd, ymd, zmd, xpd, ypd, zpd,label ;  /* d's are distances */
+  double       xmd, ymd, zmd, xpd, ypd, zpd,label ;  /* d's are distances */
 
   mri_filled = MRIalloc(mri_atlas_wm->width, mri_atlas_wm->height,
                         mri_atlas_wm->depth, MRI_UCHAR) ;

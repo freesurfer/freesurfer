@@ -28,6 +28,7 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include "macros.h"
 #include "error.h"

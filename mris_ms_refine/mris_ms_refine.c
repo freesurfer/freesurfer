@@ -128,10 +128,10 @@ static int  build_lookup_table(double tr, double flip_angle,
 
 static double    scale_all_images(MRI **mri_flash, int nvolumes, MRI_SURFACE *mris,
                                   float target_pd_wm, EXTRA_PARMS *ep) ;
-static int    compute_T1_PD(Real *image_vals, MRI **mri_flash, int nvolumes,
+static int    compute_T1_PD(double *image_vals, MRI **mri_flash, int nvolumes,
                             double *pT1, double *pPD);
 #if 0
-static int    compute_T1_PD_slow(Real *image_vals, MRI **mri_flash, int nvolumes,
+static int    compute_T1_PD_slow(double *image_vals, MRI **mri_flash, int nvolumes,
                                  double *pT1, double *pPD);
 #endif
 static double lookup_flash_value(double TR, double flip_angle, double PD, double T1) ;
@@ -248,11 +248,11 @@ static double FLASHforwardModel(double flip_angle, double TR, double PD,
 static double FLASHforwardModelLookup(double flip_angle, double TR, double PD,
                                       double T1) ;
 
-static double compute_vertex_sse(EXTRA_PARMS *ep, Real image_vals[MAX_FLASH_VOLUMES][MAX_SAMPLES],
+static double compute_vertex_sse(EXTRA_PARMS *ep, double image_vals[MAX_FLASH_VOLUMES][MAX_SAMPLES],
                                  int max_j,
                                  double white_dist, double cortical_dist, double T1_wm, double PD_wm,
                                  double T1_gm, double PD_gm, double T1_csf, double PD_csf, int debug,
-                                 Real *T1_vals, Real *PD_vals, int vno) ;
+                                 double *T1_vals, double *PD_vals, int vno) ;
 char *Progname ;
 static char *gSdir = NULL ;
 
@@ -1372,7 +1372,7 @@ vertex_error(MRI_SURFACE *mris, int vno, EXTRA_PARMS *ep, double *prms) {
   VERTEX  *v_white, *v_pial ;
   double  dist, dx, dy, dz, cortical_dist, sigma,
   T1_wm, T1_gm, T1_csf, PD_wm, PD_gm, PD_csf, sse, inward_dist, outward_dist ;
-  Real    xp, yp, zp, xw, yw, zw, x, y, z,
+  double  xp, yp, zp, xw, yw, zw, x, y, z,
   image_vals[MAX_FLASH_VOLUMES][MAX_SAMPLES] ;
   MRI     *mri ;
   int     i, j, max_j ;
@@ -1623,9 +1623,9 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
   MRI    *mri ;
   float  nx, ny, nz, min_inward_dist, min_outward_dist, dist,
   min_parm_dist, parm_dist ;
-  Real   xw, yw, zw, xp, yp, zp, xo, yo, zo, cortical_dist,
+  double xw, yw, zw, xp, yp, zp, xo, yo, zo, cortical_dist,
   image_vals[MAX_FLASH_VOLUMES][MAX_SAMPLES] ;
-  Real   T1_vals[MAX_SAMPLES], PD_vals[MAX_SAMPLES] ;
+  double T1_vals[MAX_SAMPLES], PD_vals[MAX_SAMPLES] ;
   /*  double dIdN_start[MAX_FLASH_VOLUMES], dIdN ;*/
 
 
@@ -1774,7 +1774,7 @@ compute_maximal_distances(MRI_SURFACE *mris, float sigma, MRI **mri_flash, int n
       nz = zp - zw ;
       cortical_dist = dist = sqrt(nx*nx + ny*ny + nz*nz) ;
       if (TOO_SMALL(dist)) {
-        Real xpn, ypn, zpn ;
+        double xpn, ypn, zpn ;
 
         // MRIworldToVoxel(mri,
         //                 v_pial->pialx+v_white->nx,
@@ -2561,7 +2561,7 @@ compute_optimal_parameters(MRI_SURFACE *mris, int vno,
   best_pial_index, pial_index, white_index, max_white_index, best_csf_len;
   VERTEX       *v_white, *v_pial ;
   MRI          *mri, *mri_T1, *mri_PD ;
-  Real         image_vals[MAX_FLASH_VOLUMES][MAX_SAMPLES], xw, yw, zw, xp, yp, zp,
+  double       image_vals[MAX_FLASH_VOLUMES][MAX_SAMPLES], xw, yw, zw, xp, yp, zp,
   x, y, z, T1_vals[MAX_SAMPLES], PD_vals[MAX_SAMPLES],
   best_image_vals[MAX_FLASH_VOLUMES][MAX_SAMPLES] ;
 
@@ -2958,7 +2958,7 @@ compute_optimal_parameters(MRI_SURFACE *mris, int vno,
 
 
 static double
-compute_vertex_sse(EXTRA_PARMS *ep, Real image_vals[MAX_FLASH_VOLUMES][MAX_SAMPLES], int max_j,
+compute_vertex_sse(EXTRA_PARMS *ep, double image_vals[MAX_FLASH_VOLUMES][MAX_SAMPLES], int max_j,
                    double white_dist, double cortical_dist, double T1_wm, double PD_wm,
                    double T1_gm, double PD_gm, double T1_csf, double PD_csf, int debug,
                    double *T1_vals, double *PD_vals, int vno) {
@@ -3033,7 +3033,7 @@ sample_parameter_map(MRI_SURFACE *mris, MRI *mri, MRI *mri_res,
   VERTEX    *v ;
   int       vno, bpeak, bsmooth_peak, bno ;
   float     dist, max_dist, len, dist1, dist2 ;
-  Real      dx, dy, dz, res, parm_sample, total_wt, wt, x0, y0, z0, x1, y1, z1,
+  double    dx, dy, dz, res, parm_sample, total_wt, wt, x0, y0, z0, x1, y1, z1,
   parm, xs, ys, zs, xe, ye, ze, tx1, ty1, tz1, tx2, ty2, tz2 ;
   HISTOGRAM *histo, *hsmooth ;
 
@@ -3328,7 +3328,7 @@ compute_optimal_vertex_positions(MRI_SURFACE *mris, int vno, EXTRA_PARMS *ep,
   best_pial_index, pial_index, white_index, max_white_index, nwm, npial  ;
   VERTEX       *v_white, *v_pial ;
   MRI          *mri ;
-  Real         image_vals[MAX_FLASH_VOLUMES][MAX_SAMPLES], xw, yw, zw, xp, yp, zp, x, y, z ;
+  double       image_vals[MAX_FLASH_VOLUMES][MAX_SAMPLES], xw, yw, zw, xp, yp, zp, x, y, z ;
   double       pwhite[MAX_FLASH_VOLUMES], pgray[MAX_FLASH_VOLUMES], pcsf[MAX_FLASH_VOLUMES],
   T1_vals[MAX_SAMPLES], PD_vals[MAX_SAMPLES] ;
 
@@ -3668,7 +3668,7 @@ compute_optimal_vertex_positions(MRI_SURFACE *mris, int vno, EXTRA_PARMS *ep,
 
 #if 0
 static int
-compute_T1_PD_slow(Real *image_vals, MRI **mri_flash, int nvolumes,
+compute_T1_PD_slow(double *image_vals, MRI **mri_flash, int nvolumes,
                    double *pT1, double *pPD) {
   double    sse, best_sse, best_T1, best_PD, pred, PD, T1, error ;
   int       i ;
@@ -3702,7 +3702,7 @@ compute_T1_PD_slow(Real *image_vals, MRI **mri_flash, int nvolumes,
 }
 #endif
 static int
-compute_T1_PD(Real *image_vals, MRI **mri_flash, int nvolumes,
+compute_T1_PD(double *image_vals, MRI **mri_flash, int nvolumes,
               double *pT1, double *pPD) {
   double    best_T1, best_PD, norm_im, norm_pred, sse, best_sse, T1,
   pred_vals[MAX_FLASH_VOLUMES], error, upper_T1, lower_T1, mid_T1,
@@ -3847,8 +3847,8 @@ scale_all_images(MRI **mri_flash, int nvolumes, MRI_SURFACE *mris, float target_
                  EXTRA_PARMS *ep) {
   int    vno, i ;
   VERTEX *v ;
-  Real   xw, yw, zw, T1, PD, T1_wm_total, PD_wm_total, T1_gm_total, PD_gm_total ;
-  Real   mean_wm[MAX_FLASH_VOLUMES], scale ;
+  double xw, yw, zw, T1, PD, T1_wm_total, PD_wm_total, T1_gm_total, PD_gm_total ;
+  double mean_wm[MAX_FLASH_VOLUMES], scale ;
 
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
@@ -4079,7 +4079,7 @@ static int
 compute_parameter_maps(MRI **mri_flash, int nvolumes, MRI **pmri_T1,
                        MRI **pmri_PD) {
   int   i, x, y, z, width, height, depth ;
-  Real  image_vals[MAX_FLASH_VOLUMES] ;
+  double image_vals[MAX_FLASH_VOLUMES] ;
   MRI   *mri_T1, *mri_PD ;
   double T1, PD ;
 
@@ -4190,7 +4190,7 @@ static int
 compute_PD_T1_limits(MRI_SURFACE *mris, EXTRA_PARMS *ep, int navgs) {
   int    vno, found ;
   VERTEX *v, *v_white,  *v_pial ;
-  Real   x, y, z, T1, PD, PD_min, PD_max, T1_min, T1_max,  n, cortical_dist,
+  double x, y, z, T1, PD, PD_min, PD_max, T1_min, T1_max,  n, cortical_dist,
   xp, yp, zp, xw, yw, zw, dx, dy,  dz ;
 
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;

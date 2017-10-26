@@ -64,7 +64,7 @@ main(int argc, char *argv[]) {
   MRI          *mri_in, *mri_ctrl, *mri_out;
   int          ac, nargs=0, x, y, z ;
   char         cmdline[CMD_LINE_LEN] ;
-  Real         val;
+  double       val;
 
   make_cmd_version_string
     (argc, argv,

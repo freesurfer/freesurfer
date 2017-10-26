@@ -976,9 +976,9 @@ glutCreateMenu(GLUTselectCB selectFunc)
      CWSaveUnder, ie. using Mesa 3D.  See earlier comments. */
   wa.save_under = True;
   menu->win = XCreateWindow(__glutDisplay, __glutRoot,
-                            /* Real position determined when mapped. */
+                            /* actual position determined when mapped. */
                             0, 0,
-                            /* Real size will be determined when menu is manged. */
+                            /* actual size will be determined when menu is manged. */
                             1, 1,
                             MENU_BORDER, menuDepth, InputOutput, menuVisual,
                             CWOverrideRedirect | CWBackPixel | CWBorderPixel |

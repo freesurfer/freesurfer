@@ -1,3 +1,4 @@
+#if !defined(BEVIN_EXCLUDE_MINC)
 /**
  * @file  gcamorphtestutils.cpp
  * @brief Utilities to help with testing GCAmorph routines
@@ -486,3 +487,4 @@ static GCAMorphUtils myGCAMutils;
 // ======================================================================
 
 void WriteGCAMoneInput(const GCAM *src, const char *fName) { myGCAMutils.Write(src, fName); }
+#endif

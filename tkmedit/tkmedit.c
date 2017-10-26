@@ -107,7 +107,7 @@ int Tix_SafeInit ( Tcl_Interp* interp );
 #include <string.h>
 #include <sys/time.h>
 #include "MRIio_old.h"
-#include "volume_io.h"
+#include "minc_volume_io.h"
 #include "rgb_image.h"
 #include "fio.h"
 #include "mri_conform.h"
@@ -3545,8 +3545,6 @@ void WriteVoxelToEditFile ( xVoxelRef iAnaIdx ) {
   FILE*     file            = NULL;
   xVoxel    MRIIdx;
   xVoxel    ras;
-  xVoxel    tal;
-  tBoolean  bHasTransform;
 
   DebugEnterFunction( ("WriteVoxelToEditFile ( iAnaIdx=%d,%d,%d )",
                        xVoxl_ExpandInt( iAnaIdx )) );
@@ -3584,6 +3582,9 @@ void WriteVoxelToEditFile ( xVoxelRef iAnaIdx ) {
   fprintf( file,"%f %f %f\n", xVoxl_ExpandFloat( &ras ) );
 
   /* convert to tal and write that. */
+#if !defined(BEVIN_EXCLUDE_MINC)
+  xVoxel    tal;
+  tBoolean  bHasTransform;
   Volm_HasTalTransform( gAnatomicalVolume[tkm_tVolumeType_Main],
                         &bHasTransform );
   if ( bHasTransform ) {
@@ -3596,6 +3597,7 @@ void WriteVoxelToEditFile ( xVoxelRef iAnaIdx ) {
                 xVoxl_ExpandFloat( &tal ) ));
     fprintf( file,"%f %f %f\n", xVoxl_ExpandFloat( &tal ) );
   }
+#endif
 
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -8457,12 +8459,15 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   gAnatomicalVolume[iType] = newVolume;
 
   /* show the tal coords and hide the ras coords */
+#if !defined(BEVIN_EXCLUDE_MINC)
   if (NULL != gAnatomicalVolume[iType]->mpMriValues->linear_transform) {
     DebugNote( ("Showing Tal coords") );
     tkm_SendTclCommand( tkm_tTclCommand_ShowTalCoords, "1" );
     DebugNote( ("Hiding RAS coords") );
     tkm_SendTclCommand( tkm_tTclCommand_ShowRASCoords, "0" );
-  } else {
+  } else 
+#endif
+  {
     DebugNote( ("Hiding Tal coords") );
     tkm_SendTclCommand( tkm_tTclCommand_ShowTalCoords, "0" );
     DebugNote( ("Showing RAS coords") );

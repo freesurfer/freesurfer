@@ -1244,7 +1244,7 @@ static float
 check_contrast_direction(MRI_SURFACE *mris,MRI *mri_hires) {
   int     vno, n ;
   VERTEX  *v ;
-  Real    x, y, z, xw, yw, zw, val, mean_inside, mean_outside ;
+  double  x, y, z, xw, yw, zw, val, mean_inside, mean_outside ;
 
   mean_inside = mean_outside = 0.0 ;
   for (n = vno = 0 ; vno < mris->nvertices ; vno++) {
@@ -1299,10 +1299,10 @@ MRIScomputeClassStatistics(MRI_SURFACE *mris,
                            float *pgray_mean, 
                            float *pgray_std) 
 {
-  Real    val, x, y, z, xw, yw, zw ;
+  double  val, x, y, z, xw, yw, zw ;
   int     total_vertices, vno ;
   VERTEX  *v ;
-  Real    mean_white, mean_gray, std_white, std_gray, nsigma, gw_thresh  ;
+  double  mean_white, mean_gray, std_white, std_gray, nsigma, gw_thresh  ;
   FILE    *fpwm, *fpgm ;
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
@@ -1402,7 +1402,7 @@ find_wm(MRI_SURFACE *mris, MRI *mri, MRI *mri_wm)
   MRI       *mri_interior, *mri_ctrl, *mri_kernel ;
   int       vno, x, y, z ;
   VERTEX    *v ;
-  Real      xv, yv, zv, val ;
+  double    xv, yv, zv, val ;
   
   return(NULL) ;
 #define SDIST 0.5

@@ -173,7 +173,7 @@ int main(int argc, char *argv[]) {
       printf("\n");
       exit(1);
     }
-    print((char*)"%s has the same number of vertices as %s\n",
+    printf((char*)"%s has the same number of vertices as %s\n",
           curvfile,surffile);
   }
 
@@ -198,7 +198,7 @@ int main(int argc, char *argv[]) {
              annotfile, numVertices, surffile, mris->nvertices);
       exit(1);
     }
-    print((char*)"%s has the same number of vertices as %s\n",
+    printf((char*)"%s has the same number of vertices as %s\n",
           annotfile,surffile);
 
     // also dump the colortable

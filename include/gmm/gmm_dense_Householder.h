@@ -272,7 +272,7 @@ namespace gmm {
   }
 
   /* ********************************************************************* */
-  /*    Real and complex Givens rotations                                  */
+  /*    real and complex Givens rotations                                  */
   /* ********************************************************************* */
 
   template <typename T> void Givens_rotation(T a, T b, T &c, T &s) {

@@ -39,7 +39,7 @@ char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.14 $";
 #include "utils.h"
 #include "mri.h"
 #include "gcamorph.h"
-#include "volume_io.h"
+#include "minc_volume_io.h"
 #include "analyze.h"
 #include "mri_identify.h"
 #include "error.h"

@@ -654,7 +654,7 @@ MRIfillBasalGanglia(MRI *mri_src, MRI *mri_dst)
   int    total_filled, depth, height, width, x, y, z,
          xi, yi, zi, xk, yk, zk, fill, val0, val, i ;
   MRI    *mri_bg ;
-  Real   tx, ty, tz ;
+  double tx, ty, tz ;
   MRI_SEGMENTATION  *mriseg ;
   MRI_SEGMENT       *mseg ;
   float  dx_left, dx_right, dy, dz, dist_left, dist_right ;
@@ -1069,7 +1069,7 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_dst)
   MRI     *mri_filled, *mri_ventricles = NULL ;
   MRI_SEGMENTATION *mriseg ;
   MRI_SEGMENT      *mseg ;
-  Real    xt, yt, zt ;
+  double  xt, yt, zt ;
 
   if (!mri_dst)
   {

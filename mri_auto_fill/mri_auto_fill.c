@@ -501,15 +501,15 @@ static int neighbors_on(MRI *mri, int x0, int y0, int z0, int label) ;
 static int
 MRIfillVolume(MRI *mri)
 {
-  Real     wm_rh_tal_x = 29.0 ;
-  Real     wm_rh_tal_y = -12.0 ;
-  Real     wm_rh_tal_z = 28.0 ;
-  Real     wm_lh_tal_x = -29.0 ;
-  Real     wm_lh_tal_y = -12.0 ;
-  Real     wm_lh_tal_z = 28.0 ;
+  double   wm_rh_tal_x = 29.0 ;
+  double   wm_rh_tal_y = -12.0 ;
+  double   wm_rh_tal_z = 28.0 ;
+  double   wm_lh_tal_x = -29.0 ;
+  double   wm_lh_tal_y = -12.0 ;
+  double   wm_lh_tal_z = 28.0 ;
   int      wm_lh_x, wm_lh_y, wm_lh_z, wm_rh_x, wm_rh_y, wm_rh_z,xi,yi,zi,
   x, y, z, xnew, ynew,znew;
-  Real     xr, yr, zr, dist, min_dist, xd, yd, zd ;
+  double   xr, yr, zr, dist, min_dist, xd, yd, zd ;
   MRI      *mri_fg, *mri_bg ;
 #if 0
   BUFTYPE  val ;

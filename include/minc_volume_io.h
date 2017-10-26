@@ -26,6 +26,12 @@
 #ifndef MINC_VOLUME_IO_H
 #define MINC_VOLUME_IO_H
 
+#if defined(BEVIN_EXCLUDE_MINC)
+
+
+#else
+
+
 /*
  * Wrapper for MNI's volume_io.h, which has some annoyances which
  * must be circumvented.
@@ -52,9 +58,13 @@
 #ifdef Windows_NT
 #undef ERROR
 #endif // Windows_NT
+
 #include <volume_io.h> //from MNI
+
 /* remove unwanted warnings between hips_basic.h vs. volume_io/basic.h */
 #undef ABS
 #undef SIGN
+
+#endif
 
 #endif // MINC_VOLUME_IO_H

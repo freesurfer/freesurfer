@@ -61,6 +61,7 @@
 #include <math.h>
 #include <sys/utsname.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "macros.h"
 #include "mrisurf.h"

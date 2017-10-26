@@ -245,6 +245,7 @@ static MRI *mriSplineNormalizeShort(
   }
   return (mri_dst);
 }
+#if !defined(BEVIN_EXCLUDE_MINC)
 /*-----------------------------------------------------
   Parameters:
 
@@ -317,6 +318,7 @@ MRI *MRIadaptiveHistoNormalize(MRI *mri_src, MRI *mri_norm, MRI *mri_template, i
 
   return (mri_norm);
 }
+#endif
 /*-----------------------------------------------------
   Parameters:
 
@@ -431,6 +433,7 @@ int MRInormInit(
     mni->smooth_sigma = smooth_sigma;
   }
   // look for talairach.xfm
+#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri->inverse_linear_transform) {
     // create lta
     lta = LTAalloc(1, NULL);
@@ -488,6 +491,7 @@ int MRInormInit(
     LTAfree(&lta);
   }
   else /* no Talairach information available */
+#endif
   {
     MRI_REGION bbox;
 

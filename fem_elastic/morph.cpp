@@ -416,7 +416,7 @@ DeltaTransform3d::tCoords
 DeltaTransform3d::doOwnImg(const tCoords& pt) const
 {
 
-  Real val;
+  double val;
   tCoords retVal;
 
   // sample the mask first - do this on a nearest neighbor method

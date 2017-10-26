@@ -55,7 +55,7 @@
 #include "cma.h"
 #include "version.h"
 #include "error.h"
-#include "volume_io/geom_structs.h"
+//#include "volume_io/geom_structs.h"
 #include "transform.h"
 #include "talairachex.h"
 #include "matrix.h"
@@ -90,9 +90,9 @@ typedef struct medial_axis_type_ {
 atom_type, MEDATOM ;
 
 
-static Real cc_tal_x = 64 ;
-static Real cc_tal_y = 55 ;
-static Real cc_tal_z = 64 ;
+static double cc_tal_x = 64 ;
+static double cc_tal_y = 55 ;
+static double cc_tal_z = 64 ;
 static LTA *lta = 0;
 static int rotatevolume();
 static int find_mid_plane_wm(char *subject) ;
@@ -112,8 +112,8 @@ static MEDATOM *compute_normal(MEDATOM *medial_axis, int length) ;
 static MEDATOM *medial_axis_refine_leaf(MEDATOM *medial_axis, MRI *cc_boundary, MRI *cc_smoothed, int length);
 static float    compute_error(MEDATOM *medial_axis,MRI *cc_boundary, MRI *cc_smoothed, int length, int new_length, int flag);
 static float    sample_distance_map(MRI *cc_boundary, MRI *cc_smoothed, float x, float y) ;
-static int      find_cc_slice(MRI *mri, Real *pccx, Real *pccy, Real *pccz, const LTA *lta) ;
-static int      find_corpus_callosum(MRI *mri, Real *ccx, Real *ccy, Real *ccz, const LTA *lta) ;
+static int      find_cc_slice(MRI *mri, double *pccx, double *pccy, double *pccz, const LTA *lta) ;
+static int      find_corpus_callosum(MRI *mri, double *ccx, double *ccy, double *ccz, const LTA *lta) ;
 static MRI     *cc_slice_correction(MRI *mri_filled, int xv, int yv, int zv);
 static int      edge_detection(MRI *mri_temp, int edge_count,int signal);
 
@@ -222,11 +222,11 @@ main(int argc, char *argv[]) {
 static int find_mid_plane_wm(char *subject) {
   char        ifname[200], ofname[200],  data_dir[400], *cp ;
   int         y, z, xi, yi_low=256, yi_high=0, zi_low=256, zi_high=0, temp;
-  Real        xc,yc,zc;
+  double      xc,yc,zc;
   MATRIX      *mrot, *mtrans;
   int         i, j, k;
   MRI         *mri_talheader, *mri_header, *mri_cc, *mri_tal;
-  Real        xv, yv, zv;
+  double      xv, yv, zv;
   FILE        *fp;
   LTA         *lta2 = 0;
   float       volume[5];
@@ -482,7 +482,7 @@ rotatevolume() {
   int   y_rotate, z_rotate, x, y_alpha, z_alpha, xi, yi, zi, yk, zk ;
   int  whalf, p_x, p_y, p_z;
   int   x_center, y_center, z_center, xshift, i, j, k ;
-  Real        val=0;
+  double      val=0;
   float       ey_x, ey_y, ey_z, ez_x, ez_y, ez_z, x1_x, x1_y, x1_z, xbase, ybase, zbase;
   /*  BUFTYPE     *pdst, *pptr ; */
   MRI   *mri_temp, *mri_tal;
@@ -621,10 +621,10 @@ rotatevolume() {
 #define MAX_THICKNESS   20
 
 static int
-find_corpus_callosum(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta) {
+find_corpus_callosum(MRI *mri_tal, double *pccx, double *pccy, double *pccz, const LTA *lta) {
   int         xv, yv, zv, max_y, max_thick=0, thickness=0, y1, xcc, ycc, x, y,x0, extension=50 ;
   int         flag=0, counts=0;
-  Real        xr, yr, zr ;
+  double      xr, yr, zr ;
   MRI_REGION  region ;
   int cc_spread, min_thickness, max_thickness, slice_size;
   double voxsize=findMinSize(mri_tal);
@@ -709,12 +709,12 @@ find_corpus_callosum(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA
 
 
 static int
-find_cc_slice(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta) {
+find_cc_slice(MRI *mri_tal, double *pccx, double *pccy, double *pccz, const LTA *lta) {
   // here we can handle only up to .5 mm voxel size
   int         area[MAX_SLICES*2], flag[MAX_SLICES*2], min_area, min_slice, slice, offset,xv,yv,zv,
   xo, yo ,i, total_area=0, left=0, right=0;
   MRI         *mri_slice, *mri_filled ;
-  Real        aspect, x_tal, y_tal, z_tal, x, y, z, xvv, yvv, zvv;
+  double      aspect, x_tal, y_tal, z_tal, x, y, z, xvv, yvv, zvv;
   MRI_REGION  region ;
   char        fname[STRLEN] ;
   int         half_slices, ii, jj;
@@ -749,7 +749,7 @@ find_cc_slice(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta) 
       mri_slice = MRIextractPlane(mri_tal, NULL, MRI_SAGITTAL, xv);
       mri_filled =  MRIfillFG(mri_slice, NULL, zv, yv,0,WM_MIN_VAL,CC_VAL,&area[slice]);
       MRIboundingBox(mri_filled, 1, &region) ;
-      aspect = (Real)region.dy / (Real)region.dx ;
+      aspect = (double)region.dy / (double)region.dx ;
       if (i++) fprintf(stdout,"moved %d in slice %d \n", i-1, slice);
     }
     /* don't trust slices that extend to the border of the image */
@@ -1232,7 +1232,7 @@ static MEDATOM *find_medial_axis(MEDATOM *medial_axis, int length, int n_sample,
   float x1, x2, y1, y2, x, y, dx, dy ;
   FILE  *fp;
   double  dist, space, fraction;
-  Real   val = 0, mean_val=0;
+  double val = 0, mean_val=0;
 
   cc_smoothed = MRIextractPlane(mri_cc_tal, NULL, MRI_SAGITTAL, cc_tal_x);
   cc_smoothed = smooth_cc(cc_smoothed);
@@ -1304,7 +1304,7 @@ static MEDATOM *find_medial_axis(MEDATOM *medial_axis, int length, int n_sample,
 #endif
 
   if (0) {
-    Real xw,yw,zw;
+    double xw,yw,zw;
     for (j=0; j<length; j++) {
       MRIvoxelToWorld(mri_cc_tal, cc_tal_x, medial_axis[j].y, medial_axis[j].x, &xw, &yw, &zw) ;
       fprintf(stdout, "0 %.2f %.2f %.2f 0\n", xw,yw,zw);
@@ -1364,7 +1364,7 @@ static MEDATOM *find_medial_axis(MEDATOM *medial_axis, int length, int n_sample,
   space = dist/(n_sample+1);
   j=0;
   for (n=1; n<=n_sample; n++) {
-    Real upmid, downmid;
+    double upmid, downmid;
     float radius;
     dist = n*space;
     for (;medial_axis[j].odx<dist&&j<length;j++) {
@@ -2149,9 +2149,9 @@ get_option(int argc, char *argv[]) {
     TAL = 1 ;
     fprintf(stdout,"read in talairach transformed volume\n");
   } else if (!stricmp(option, "seed")) {
-    cc_tal_x = (Real)atof(argv[2]) ;
-    cc_tal_y = (Real)atof(argv[3]) ;
-    cc_tal_z = (Real)atof(argv[4]) ;
+    cc_tal_x = atof(argv[2]) ;
+    cc_tal_y = atof(argv[3]) ;
+    cc_tal_z = atof(argv[4]) ;
     nargs = 3 ;
     ROT = 0;
     fprintf(stderr, "T1 volume: cc seed at (%f %f %f)\n",

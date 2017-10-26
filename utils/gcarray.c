@@ -575,6 +575,7 @@ int GCarrayVoxelToClass(GCARRAY *gcarray, int xv, int yv, int zv, int *pxc, int 
   *pzc = nint((float)(zv - scale / 2) / (float)scale + .99f);
   return (NO_ERROR);
 }
+#if !defined(BEVIN_EXCLUDE_MINC)
 /*-----------------------------------------------------
         Parameters:
 
@@ -589,6 +590,7 @@ int GCarraySetTransform(GCARRAY *gcarray, Transform *transform, Transform *inver
   gcarray->inverse_transform = inverse_transform;
   return (NO_ERROR);
 }
+#endif
 /*-----------------------------------------------------
         Parameters:
 

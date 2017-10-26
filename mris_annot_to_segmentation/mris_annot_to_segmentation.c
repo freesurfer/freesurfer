@@ -31,7 +31,7 @@
 
 #include "mri.h"
 #include "macros.h"
-#include "volume_io.h"
+#include "minc_volume_io.h"
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
@@ -65,7 +65,7 @@ main(int argc, char *argv[]) {
   VERTEX* v;
   int structure;
   float dx, dy, dz, len, d;
-  Real idxx, idxy, idxz;
+  double idxx, idxy, idxz;
 
 
   /* rkt: check for and handle version tag */

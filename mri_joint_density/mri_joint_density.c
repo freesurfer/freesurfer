@@ -60,7 +60,7 @@ main(int argc, char *argv[]) {
   MRI          *mri1, *mri2, *mri_nonbrain, *mri_tmp ;
   FILE         *fp ;
   float        fmin1, fmax1, fmin2, fmax2 ;
-  Real         val1, val2 ;
+  double       val1, val2 ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, "$Id: mri_joint_density.c,v 1.6 2011/03/02 00:04:20 nicks Exp $", "$Name:  $");
