@@ -46,6 +46,37 @@
 
 #define FS_VOLUME_SETTING_ID    "freesurfer/volume-setting"
 
+int ColorTableItem::SortType = ColorTableItem::ST_VALUE;
+bool ColorTableItem::SortAscending = true;
+
+bool ColorTableItem::operator<(const QTreeWidgetItem &other) const
+{
+  QString txt = text(0);
+  QString other_txt = other.text(0);
+  bool bRet = false;
+  if (SortType == ColorTableItem::ST_VALUE)
+  {
+    bRet = (txt.split(" ", QString::SkipEmptyParts).first().toInt() >
+        other_txt.split(" ", QString::SkipEmptyParts).first().toInt());
+  }
+  else
+  {
+    if (txt.trimmed().contains(" "))
+      txt = txt.split(" ", QString::SkipEmptyParts).at(1);
+    if (other_txt.trimmed().contains(" "))
+      other_txt = other_txt.split(" ", QString::SkipEmptyParts).at(1);
+    if (txt.toLower() != other_txt.toLower())
+    {
+      txt = txt.toLower();
+      other_txt = other_txt.toLower();
+    }
+    bRet = (txt > other_txt);
+  }
+  if (!SortAscending)
+    bRet = !bRet;
+  return bRet;
+}
+
 PanelVolume::PanelVolume(QWidget *parent) :
   PanelLayer("MRI", parent),
   ui(new Ui::PanelVolume),
@@ -696,6 +727,22 @@ void PanelVolume::OnColorTableItemDoubleClicked(QTreeWidgetItem *item_in)
   }
 }
 
+void PanelVolume::OnColorTableSortingChanged()
+{
+  if (sender())
+  {
+//    if (sender()->property("sort_by").toInt() == ColorTableItem::SortType)
+//      ColorTableItem::SortAscending = !ColorTableItem::SortAscending;
+//    else
+      ColorTableItem::SortType = sender()->property("sort_by").toInt();
+    BlockAllSignals(true);
+    COLOR_TABLE* t = m_curCTAB;
+    m_curCTAB = NULL;
+    PopulateColorTable(t);
+    BlockAllSignals(false);
+  }
+}
+
 void PanelVolume::UpdateColorLabel()
 {
   QTreeWidgetItem* item = ui->treeWidgetColorTable->currentItem();
@@ -769,7 +816,7 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
       if ( nValid )
       {
         CTABcopyName( ct, i, name, 1000 );
-        QTreeWidgetItem* item = new QTreeWidgetItem( ui->treeWidgetColorTable );
+        ColorTableItem* item = new ColorTableItem( ui->treeWidgetColorTable );
         item->setText( 0, QString("%1 %2").arg(i).arg(name) );
         item->setToolTip( 0, name );
         int nr, ng, nb;
@@ -1603,8 +1650,23 @@ void PanelVolume::OnCustomContextMenu(const QPoint &pt)
         else
           act->setText("Label does not exist in volume");
         menu.addAction(act);
-        menu.exec(ui->treeWidgetColorTable->mapToGlobal(pt));
+        menu.addSeparator();
       }
     }
+    act = new QAction(this);
+    act->setText("Sort By Index");
+    act->setCheckable(true);
+    act->setChecked(ColorTableItem::SortType == ColorTableItem::ST_VALUE);
+    act->setProperty("sort_by", ColorTableItem::ST_VALUE);
+    connect(act, SIGNAL(triggered(bool)), SLOT(OnColorTableSortingChanged()));
+    menu.addAction(act);
+    act = new QAction(this);
+    act->setCheckable(true);
+    act->setChecked(ColorTableItem::SortType == ColorTableItem::ST_NAME);
+    act->setText("Sort by Name");
+    act->setProperty("sort_by", ColorTableItem::ST_NAME);
+    connect(act, SIGNAL(triggered(bool)), SLOT(OnColorTableSortingChanged()));
+    menu.addAction(act);
+    menu.exec(ui->treeWidgetColorTable->mapToGlobal(pt));
   }
 }

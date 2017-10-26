@@ -165,6 +165,10 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   addAction(ui->actionIncreaseOpacity);
   addAction(ui->actionDecreaseOpacity);
   addAction(ui->actionCycleSurfaceLabel);
+
+  addAction(ui->actionIncreaseOpacity);
+  addAction(ui->actionDecreaseOpacity);
+  addAction(ui->actionCycleSurfaceLabel);
   addAction(ui->actionResetViewAnterior);
   addAction(ui->actionResetViewPosterior);
   addAction(ui->actionResetViewLeft);

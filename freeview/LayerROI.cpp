@@ -445,7 +445,6 @@ void LayerROI::SetMappedSurface(LayerSurface *s)
   {
     s->AddMappedLabel(this);
     m_label->Initialize(m_layerSource->GetSourceVolume(), s->GetSourceSurface(), s->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
-    qDebug() << m_label->GetRawLabel()->n_points;
     OnUpdateLabelRequested();
     SetModified();
   }
