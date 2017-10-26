@@ -440,12 +440,16 @@ double znzreadDouble(znzFile fp)
   return (d);
 }
 
+#include "diag.h"
 int znzreadInt(znzFile fp)
 {
-  int i;
+  int i, err;
 
-  if (znzread(&i, sizeof(int), 1, fp) != 1) {
-    ErrorPrintf(ERROR_BADFILE, "znzreadInt: znzread failed");
+  if ((err = znzread(&i, sizeof(int), 1, fp)) != 1) {
+    extern int Gdiag_no ;
+
+    if (Gdiag_no >= 0 || DIAG_VERBOSE_ON)
+      ErrorPrintf(ERROR_BADFILE, "znzreadInt: znzread failed (%d)", err);
   }
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   i = swapInt(i);
