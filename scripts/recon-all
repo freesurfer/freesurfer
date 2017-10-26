@@ -4318,7 +4318,7 @@ if($DoT2pial || $DoFLAIRpial) then
     # this creates ${t2flair}.mgz
     set maskcmd = (mri_mask \
         $mdir/${t2flair}.norm.mgz \
-        $mdir/brainmask.mgz \
+        $mdir/brain.finalsurfs.mgz \
         $mdir/${t2flair}.mgz)
     echo "\n $maskcmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $maskcmd |& tee -a $LF
