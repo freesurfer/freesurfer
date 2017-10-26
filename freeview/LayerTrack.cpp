@@ -50,7 +50,7 @@ LayerTrack::LayerTrack(LayerMRI* ref, QObject* parent, bool bCluster) : Layer(pa
   this->m_strTypeNames << "Tract";
 
   mProperty = new LayerPropertyTrack( this );
-  connect(mProperty, SIGNAL(ColorCodeChanged(int)), this, SLOT(UpdateColor()));
+  connect(mProperty, SIGNAL(ColorCodeChanged(int)), this, SLOT(RebuildActors()));
   connect(mProperty, SIGNAL(DirectionSchemeChanged(int)), this, SLOT(RebuildActors()));
   connect(mProperty, SIGNAL(DirectionMappingChanged(int)), this, SLOT(RebuildActors()));
   connect(mProperty, SIGNAL(SolidColorChanged(QColor)), this, SLOT(UpdateColor()));
@@ -93,7 +93,15 @@ bool LayerTrack::LoadTrackFromFiles()
   else
     SetName(QFileInfo(m_sFilename).completeBaseName());
 
+  if (m_trackData->HasEmbeddedColor())
+  {
+    GetProperty()->blockSignals(true);
+    GetProperty()->SetColorCode(LayerPropertyTrack::EmbeddedColor);
+    GetProperty()->blockSignals(false);
+  }
+
   RebuildActors();
+
   double dval[6];
   m_trackData->GetRASBounds(dval);
   m_dWorldOrigin[0] = dval[0];
@@ -150,13 +158,19 @@ void LayerTrack::RebuildActors()
   scalars->SetNumberOfComponents(4);
   int nLimit = 1000000;
   int nCount = 0;
-  float vals[4] = { 0,0,0,255 };//  qDebug() << m_actors.size();
+  float vals[4] = { 0,0,0,255 };
   LayerPropertyTrack* p = GetProperty();
   for (int i = 0; i < m_trackData->m_tracks.size(); i++)
   {
     Track& t = m_trackData->m_tracks[i];
     lines->InsertNextCell(t.nNum);
-    if (p->GetDirectionScheme() == LayerPropertyTrack::EndPoints)
+    if (p->GetColorCode() == LayerPropertyTrack::EmbeddedColor)
+    {
+      vals[0] = t.charColor[1];
+      vals[1] = t.charColor[2];
+      vals[2] = t.charColor[3];
+    }
+    else if (p->GetDirectionScheme() == LayerPropertyTrack::EndPoints)
       VectorToColor(t.fPts, t.fPts + (t.nNum-1)*3, vals, p->GetDirectionMapping());
     else if (p->GetDirectionScheme() == LayerPropertyTrack::MidSegment)
       VectorToColor(t.fPts+t.nNum/2*3, t.fPts+(t.nNum/2-1)*3, vals, p->GetDirectionMapping());
@@ -318,4 +332,9 @@ void LayerTrack::SetClusterData(const QVariantMap &data)
 bool LayerTrack::IsCluster()
 {
   return !m_mapCluster.isEmpty();
+}
+
+bool LayerTrack::HasEmbeddedColor()
+{
+  return (m_trackData && m_trackData->HasEmbeddedColor());
 }

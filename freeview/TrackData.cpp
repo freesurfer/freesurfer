@@ -26,7 +26,7 @@
 #include <QDebug>
 
 TrackData::TrackData(QObject *parent) :
-  QObject(parent)
+  QObject(parent), m_bHasEmbeddedColor(false)
 {
 }
 
@@ -110,7 +110,10 @@ bool TrackData::LoadFromFiles(const QStringList &filenames)
       }
       m_nNumberOfPoints = 0;
       m_nNumberOfSegs = 0;
+      if (header.reserved[0] == 'C')
+        m_bHasEmbeddedColor = true;
     }
+
     int nScalars = m_nNumberOfScalars;
     int nProperties = m_nNumberOfProperties;
     short dim[3] = {(short)m_nDim[0], (short)m_nDim[1], (short)m_nDim[2]};
@@ -177,6 +180,9 @@ bool TrackData::LoadFromFiles(const QStringList &filenames)
           m_rangeProperty[i].second = track.fProperty[i];
         }
       }
+
+      if (m_bHasEmbeddedColor)
+        memcpy(track.charColor, header.reserved+1, 3);
 
       track.Update(dim, m_dVoxelSize);
       m_tracks.push_back(track);
