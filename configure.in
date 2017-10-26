@@ -54,11 +54,17 @@ AC_ARG_WITH(pkgs-dir,
   [  pkgs_dir="$withval"
   ])
 
-if test -e "$pkgs_dir"; then
-  PACKAGES_DIR=${pkgs_dir}
-  AC_MSG_RESULT([using '${PACKAGES_DIR}'])
+if test "x$pkgs_dir" = "xno"; then
+  # triggered if --without-pkgs-dir is used
+  AC_MSG_RESULT([Assuming empty packages root dir])
+  pkgs_dir=""
 else
-  AC_MSG_ERROR([FATAL: ${pkgs_dir} not found])
+  if test -e "$pkgs_dir"; then
+    PACKAGES_DIR=${pkgs_dir}
+    AC_MSG_RESULT([using '${PACKAGES_DIR}'])
+  else
+    AC_MSG_ERROR([FATAL: ${pkgs_dir} not found])
+  fi
 fi
 
 ################################################################
@@ -74,7 +80,7 @@ LIBS_OPEN64=""
 AC_MSG_CHECKING(AMD Open64 compiler directories)
 
 AC_ARG_WITH(open64-dir,
-  [  --with-open64-dir=DIR    where the root of Open64 is installed.],
+  [  --with-open64-dir=DIR   where the root of Open64 is installed.],
   [  ac_open64_binaries="$withval/bin"
      CC="${ac_open64_binaries}/opencc"
      CFLAGS="-Wno-uninitialized -OPT:Olimit=0"
@@ -1279,11 +1285,12 @@ AC_MSG_NOTICE([Checking for directory specification of 3rd-party libraries...])
 #############################################################
 # MNI
 #############################################################
-ac_mni_includes=NO
-ac_mni_libraries=NO
+ac_mni_includes=no
+ac_mni_libraries=no
 MNI_CFLAGS=""
 MNI_LIBS=""
 MNI_DIR=""
+LIBS_MNI=""
 AC_MSG_CHECKING(MNI directory)
 
 AC_ARG_WITH(mni-dir,
@@ -1304,40 +1311,52 @@ if test "x$MNI_DIR" = "x"; then
   fi
 fi
 
-if test ! "$ac_mni_includes" = "NO"; then
+if test "x$MNI_DIR" = "xno"; then
+  # MNI_DIR is set to 'no' only if --without-mni-dir is used,
+  # which indicates that no MNI libs should be used in the build
+  ac_mni_includes=no
+  ac_mni_libraries=no
+  MNI_CFLAGS=""
+  MNI_LIBS=""
+  MNI_DIR="no" # indicates --without-mni-dir was used
+  LIBS_MNI=""
+fi
+
+if test ! "$ac_mni_includes" = "no"; then
   AC_MSG_RESULT(MNI directory is $withval)
   MNI_CFLAGS=-I$ac_mni_includes
 else
   AC_MSG_RESULT(MNI directory is not supplied)
 fi
 
-if test ! "$ac_mni_libraries" = "NO"; then
+if test ! "$ac_mni_libraries" = "no"; then
   MNI_LIBS=-L$ac_mni_libraries
 fi
 
+if test ! "$ac_mni_libraries" = "no"; then
+  LIB_VOLUME_IO=""
+  if test -e ${PACKAGES_DIR}/mni/current/lib/libvolume_io.a ; then
+    LIB_VOLUME_IO="${PACKAGES_DIR}/mni/current/lib/libvolume_io.a"
+  else
+    LIB_VOLUME_IO="-lvolume_io"
+  fi
 
-LIB_VOLUME_IO=""
-if test -e ${PACKAGES_DIR}/mni/current/lib/libvolume_io.a ; then
-  LIB_VOLUME_IO="${PACKAGES_DIR}/mni/current/lib/libvolume_io.a"
-else
-  LIB_VOLUME_IO="-lvolume_io"
-fi
+  LIB_MINC=""
+  if test -e ${PACKAGES_DIR}/mni/current/lib/libminc.a ; then
+    LIB_MINC="${PACKAGES_DIR}/mni/current/lib/libminc.a"
+  else
+    LIB_MINC="-lminc"
+  fi
 
-LIB_MINC=""
-if test -e ${PACKAGES_DIR}/mni/current/lib/libminc.a ; then
-  LIB_MINC="${PACKAGES_DIR}/mni/current/lib/libminc.a"
-else
-  LIB_MINC="-lminc"
-fi
-
-# these are the libs used by freesurfer:
-MINC2=NO
-if test -e "$ac_mni_libraries/libminc2.a" ; then
-  # newer build of the MNI tools
-  LIBS_MNI="$LIB_NETCDF -lhdf5 -lvolume_io2 -lminc2"
-  MINC2=YES
-else
-  LIBS_MNI="$LIB_VOLUME_IO $LIB_MINC $LIB_NETCDF"
+  # these are the libs used by freesurfer:
+  MINC2=NO
+  if test -e "$ac_mni_libraries/libminc2.a" ; then
+    # newer build of the MNI tools
+    LIBS_MNI="$LIB_NETCDF -lhdf5 -lvolume_io2 -lminc2"
+    MINC2=YES
+  else
+    LIBS_MNI="$LIB_VOLUME_IO $LIB_MINC $LIB_NETCDF"
+  fi
 fi
 
 AC_SUBST(MNI_CFLAGS)
@@ -1345,6 +1364,7 @@ AC_SUBST(MNI_LIBS)
 AC_SUBST(MNI_DIR)
 AC_SUBST(LIBS_MNI)
 
+AM_CONDITIONAL(HAVE_MINC_LIBS, ! test "x$ac_mni_libraries" = "xno")
 
 ################################################################
 # NIfTI
@@ -3126,24 +3146,26 @@ if test ! "$ac_jpeg_libraries" = "NO"; then
 fi
 
 # three mni libs
-AC_CHECK_LIB([netcdf], [nccreate],[],
-  [AC_MSG_ERROR([FATAL: netcdf lib not found. \
-Set LDFLAGS or --with-mni-dir.])] )
-if test "x$MINC2" = "xYES"; then
-  # check for newer build of mni tools
-  AC_CHECK_LIB([minc2 -lhdf5], [miopen], [],
-    [AC_MSG_ERROR([FATAL: minc2 lib not found. \
+if test ! "x$MNI_DIR" = "xno"; then
+  AC_CHECK_LIB([netcdf], [nccreate],[],
+    [AC_MSG_ERROR([FATAL: netcdf lib not found. \
   Set LDFLAGS or --with-mni-dir.])] )
-  AC_CHECK_LIB([volume_io2], [transform_point],[],
-    [AC_MSG_ERROR([FATAL: volume_io2 lib not found. \
-  Set LDFLAGS or --with-mni-dir.])] )
-else
-  AC_CHECK_LIB([minc], [miopen], [],
-    [AC_MSG_ERROR([FATAL: minc lib not found. \
-  Set LDFLAGS or --with-mni-dir.])] )
-  AC_CHECK_LIB([volume_io], [transform_point],[],
-    [AC_MSG_ERROR([FATAL: volume_io lib not found. \
-  Set LDFLAGS or --with-mni-dir.])] )
+  if test "x$MINC2" = "xYES"; then
+    # check for newer build of mni tools
+    AC_CHECK_LIB([minc2 -lhdf5], [miopen], [],
+      [AC_MSG_ERROR([FATAL: minc2 lib not found. \
+    Set LDFLAGS or --with-mni-dir.])] )
+    AC_CHECK_LIB([volume_io2], [transform_point],[],
+      [AC_MSG_ERROR([FATAL: volume_io2 lib not found. \
+    Set LDFLAGS or --with-mni-dir.])] )
+  else
+    AC_CHECK_LIB([minc], [miopen], [],
+      [AC_MSG_ERROR([FATAL: minc lib not found. \
+    Set LDFLAGS or --with-mni-dir.])] )
+    AC_CHECK_LIB([volume_io], [transform_point],[],
+      [AC_MSG_ERROR([FATAL: volume_io lib not found. \
+    Set LDFLAGS or --with-mni-dir.])] )
+  fi
 fi
 
 # VXL check
