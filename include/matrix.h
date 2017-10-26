@@ -96,6 +96,8 @@ MATRIX  *MatrixAlloc( const int rows, const int cols, const int type);
 int     MatrixFree(MATRIX **pmat) ;
 MATRIX  *MatrixMultiplyD( const MATRIX *m1, const MATRIX *m2, MATRIX *m3); // use this one
 MATRIX  *MatrixMultiply( const MATRIX *m1, const MATRIX *m2, MATRIX *m3) ;
+MATRIX *MatrixMultiplyElts(MATRIX *m1, MATRIX *m2, MATRIX *m12); // like matlab m1.*m2
+MATRIX *MatrixReplicate(MATRIX *mIn, int nr, int nc, MATRIX *mOut); // like matlab repmat()
 MATRIX  *MatrixCopy( const MATRIX *mIn, MATRIX *mOut );
 int     MatrixWriteTxt(const char *fname, MATRIX *mat) ;
 MATRIX  *MatrixReadTxt(const char *fname, MATRIX *mat) ;
