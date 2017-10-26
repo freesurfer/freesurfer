@@ -67,9 +67,9 @@ int             main(int argc, char *argv[]) ;
 static int      get_option(int argc, char *argv[]) ;
 char            *Progname ;
 
-static Real cc_tal_x = 126 ;
-static Real cc_tal_y = 107 ;
-static Real cc_tal_z = 96 ;
+static double cc_tal_x = 126 ;
+static double cc_tal_y = 107 ;
+static double cc_tal_z = 96 ;
 
 int
 main(int argc, char *argv[]) {
@@ -78,7 +78,7 @@ main(int argc, char *argv[]) {
   MRI         *mri_pd, *mri_t1;
   FILE        *fp_in, *fp_out;
   float       x, y, radius, val=0;
-  Real        val_pd=0, val_t1=0;
+  double      val_pd=0, val_t1=0;
 
   Progname = argv[0] ;
   DiagInit(NULL, NULL, NULL) ;
@@ -147,9 +147,9 @@ get_option(int argc, char *argv[]) {
   option = argv[1] + 1 ;            /* past '-' */
 
   if (!stricmp(option, "seed")) {
-    cc_tal_x = (Real)atof(argv[2]) ;
-    cc_tal_y = (Real)atof(argv[3]) ;
-    cc_tal_z = (Real)atof(argv[4]) ;
+    cc_tal_x = atof(argv[2]) ;
+    cc_tal_y = atof(argv[3]) ;
+    cc_tal_z = atof(argv[4]) ;
     nargs = 3 ;
     fprintf(stderr, "cc seed at (%f %f %f)\n",
             cc_tal_x, cc_tal_y, cc_tal_z) ;

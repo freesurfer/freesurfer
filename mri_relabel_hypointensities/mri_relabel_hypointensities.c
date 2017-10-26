@@ -219,7 +219,7 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
   MRIS_HASH_TABLE *mht ;
   VERTEX           *v ;
   float            dx, dy, dz, dot, dist ;
-  Real             xw, yw, zw ;
+  double           xw, yw, zw ;
   MRI              *mri_dist ;
 
   mri_dist = MRIcloneDifferentType(mri, MRI_FLOAT) ;

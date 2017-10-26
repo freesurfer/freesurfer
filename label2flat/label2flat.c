@@ -31,7 +31,7 @@
 
 #include "mri.h"
 #include "macros.h"
-#include "volume_io.h"
+#include "minc_volume_io.h"
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
@@ -42,7 +42,10 @@
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
+
+#if !defined(BEVIN_EXCLUDE_MINC)
 static Transform *load_transform(char *subject_name, General_transform *xform);
+#endif
 
 static void print_usage(void) ;
 void print_help(void) ;
@@ -62,9 +65,10 @@ static int nclose = 0 ;
 
 static char subjects_dir[NAME_LEN] = "" ;
 
+#if !defined(BEVIN_EXCLUDE_MINC)
 static General_transform    transform ;
 static Transform            *linear_transform ;
-
+#endif
 
 static char *output_subject = NULL ;
 
@@ -135,7 +139,9 @@ main(int argc, char *argv[]) {
   sprintf(label_fname, "%s/%s/label/%s.label",
           subjects_dir, subject_name, label_name) ;
 
+#if !defined(BEVIN_EXCLUDE_MINC)
   linear_transform = load_transform(subject_name, &transform) ;
+#endif
 
   cp = strrchr(patch_name, '.') ;
   if (!cp)
@@ -269,6 +275,8 @@ get_option(int argc, char *argv[]) {
 
   return(nargs) ;
 }
+
+#if !defined(BEVIN_EXCLUDE_MINC)
 static Transform *
 load_transform(char *subject_name, General_transform *transform) {
   char xform_fname[100] ;
@@ -283,6 +291,7 @@ load_transform(char *subject_name, General_transform *transform) {
     fprintf(stderr, "transform read successfully from %s\n", xform_fname) ;
   return(get_linear_transform_ptr(transform)) ;
 }
+#endif
 
 static void
 print_usage(void) {

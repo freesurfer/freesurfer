@@ -610,7 +610,7 @@ compute_alignment_error(MRI *mri_src, MRI *mri_dst, MRI *mri_seg, DENSITY *pdf, 
 static double
 compute_ml_alignment_error(MRI *mri_src, MRI *mri_dst, MRI *mri_seg, DENSITY *pdf, MATRIX *m_total, int skip, int level) {
   double sse, num, error ;
-  Real   val_src, val_dst, xs, ys, thick ;
+  double val_src, val_dst, xs, ys, thick ;
   int    x, y, oob, nseg ;
   VECTOR *v_src, *v_dst ;
   MATRIX *m_inv ;
@@ -809,7 +809,7 @@ write_snapshot(MRI *mri, MRI *mri1, MRI *mri2, MATRIX *m, char *base, int n, int
 
 static MRI *
 mri_apply_slice_xform(MRI *mri_src, MRI *mri_dst, MATRIX *m, int slice) {
-  Real   val, xs, ys ;
+  double val, xs, ys ;
   int    x, y ;
   VECTOR *v_src, *v_dst ;
 
@@ -890,7 +890,7 @@ compute_optimal_translation(MRI *mri_src, MRI *mri_dst, MRI *mri_seg, MATRIX *m_
 static double
 compute_cr_alignment_error(MRI *mri_src, MRI *mri_dst, MRI *mri_seg, DENSITY *pdf,
                            MATRIX *m_total, int skip, int level) {
-  Real   val_src, val_dst, xs, ys, thick ;
+  double val_src, val_dst, xs, ys, thick ;
   int    x, y, oob, i ;
   VECTOR *v_src, *v_dst ;
   MATRIX *m_inv ;
@@ -1020,7 +1020,7 @@ rotate_image(MRI *mri_src, MRI *mri_dst, double rotate_radians) {
   MATRIX   *m_rot, *m_total, *m_origin, *m_origin_inv ;
   VECTOR   *v_src, *v_dst ;
   float    xs, ys ;
-  Real     val_src ;
+  double   val_src ;
   int      x, y ;
 
   if (!mri_dst)
@@ -1089,7 +1089,7 @@ MRIeraseImageBorder(MRI *mri, int width) {
 }
 static double
 compute_overlap(MRI *mri_src, MRI *mri_dst, MATRIX *m_total) {
-  Real   xs, ys, thick ;
+  double xs, ys, thick ;
   int    x, y, nvox, ntotal ;
   VECTOR *v_src, *v_dst ;
   MATRIX *m_inv ;

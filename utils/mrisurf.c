@@ -22,9 +22,9 @@
  */
 
 #define _MRISURF_SRC
-#define BEVIN_MRISURF
 
 #include <ctype.h>
+#include <errno.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -9381,14 +9381,13 @@ int MRISupdateEllipsoidSurface(MRI_SURFACE *mris)
   using num_avgs nearest-neighbor averages. See also
   MRISaverageGradientsFast()
   ------------------------------------------------------*/
-#ifdef BEVIN_MRISURF
 static int closeEnough(float a, float b) {
   float mag = fabs(a) > fabs(b) ? fabs(a) : fabs(b);
   if (mag < 1.0e-6) return 1;
   if (fabs(a-b) < mag*1.0e-2) return 1;
   return 0; 
 }
-#endif
+
 
 int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
 {
@@ -9433,7 +9432,6 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
     MRISPfree(&mrisp_blur);
   }
   else
-#ifdef BEVIN_MRISURF
   {
     // This code shows the num_avgs typically is repeated 1-4 times as 1024, 256, 64, 16, 4, and then 1
     if (0) {
@@ -9464,8 +9462,8 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
     // - only the new algorithm
     // - both algorithms, and compare them
     
-    static const int BEVIN_SERIAL_doNew = 1;
-    static const int BEVIN_SERIAL_doOld = 0;
+    static const int doNew = 1;
+    static const int doOld = 0;
     
     // This is the new algorithm
     int *vno_to_index = NULL;
@@ -9488,7 +9486,7 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
     int  neighbors_size     = 0;
     int *neighbors          = NULL;
     
-    if (BEVIN_SERIAL_doNew) {
+    if (doNew) {
     
       // Malloc the needed storage
       vno_to_index = (int*)    malloc(sizeof(int)     * mris->nvertices) ;
@@ -9596,65 +9594,62 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
     }
 
     // Only perform the old algorithm when needed
-    if (BEVIN_SERIAL_doOld) {
-
-#endif
+    if (doOld) {
     
-    // This is the old algorithm
-    for (i = 0 ; i < num_avgs ; i++) {
-
+      // This is the old algorithm
+      for (i = 0 ; i < num_avgs ; i++) {
+  
 #ifdef HAVE_OPENMP
-      #pragma omp parallel for
+        #pragma omp parallel for
 #endif
-
-      for (vno = 0; vno < mris->nvertices; vno++) {
-        VERTEX *v, *vn;
-        float dx, dy, dz, num;
-        int vnb, *pnb, vnum;
-
-        v = &mris->vertices[vno];
-        if (v->ripflag) continue;
-
-        dx  = v->dx;
-        dy  = v->dy;
-        dz  = v->dz;
-        pnb = v->v;
-        // vnum = v->v2num ? v->v2num : v->vnum;
-        vnum = v->vnum;
-        for (num = 0.0f, vnb = 0; vnb < vnum; vnb++) {
-          vn = &mris->vertices[*pnb++]; // neighboring vertex pointer
-          if (vn->ripflag) continue;
-
+  
+        for (vno = 0; vno < mris->nvertices; vno++) {
+          VERTEX *v, *vn;
+          float dx, dy, dz, num;
+          int vnb, *pnb, vnum;
+  
+          v = &mris->vertices[vno];
+          if (v->ripflag) continue;
+  
+          dx  = v->dx;
+          dy  = v->dy;
+          dz  = v->dz;
+          pnb = v->v;
+          // vnum = v->v2num ? v->v2num : v->vnum;
+          vnum = v->vnum;
+          for (num = 0.0f, vnb = 0; vnb < vnum; vnb++) {
+            vn = &mris->vertices[*pnb++]; // neighboring vertex pointer
+            if (vn->ripflag) continue;
+  
+            num++;
+            dx += vn->dx;
+            dy += vn->dy;
+            dz += vn->dz;
+          }
           num++;
-          dx += vn->dx;
-          dy += vn->dy;
-          dz += vn->dz;
+          v->tdx = dx / num;
+          v->tdy = dy / num;
+          v->tdz = dz / num;
         }
-        num++;
-        v->tdx = dx / num;
-        v->tdy = dy / num;
-        v->tdz = dz / num;
-      }
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static, 1)
 #endif
-      for (vno = 0; vno < mris->nvertices; vno++) {
-        VERTEX *v;
+        for (vno = 0; vno < mris->nvertices; vno++) {
+          VERTEX *v;
+  
+          v = &mris->vertices[vno];
+          if (v->ripflag) continue;
+  
+          v->dx = v->tdx;
+          v->dy = v->tdy;
+          v->dz = v->tdz;
+        }
+      }  // end of one of the num_avgs iterations
 
-        v = &mris->vertices[vno];
-        if (v->ripflag) continue;
-
-        v->dx = v->tdx;
-        v->dy = v->tdy;
-        v->dz = v->tdz;
-      }
-    }  // end of one of the num_avgs iterations
-
-#ifdef BEVIN_MRISURF
-    }  // if (BEVIN_SERIAL_doOld) 
+    }  // if (doOld) 
     
     // Compare the new algorithm and old algorithm answers
-    if (BEVIN_SERIAL_doOld && BEVIN_SERIAL_doNew) {
+    if (doOld && doNew) {
       int errors = 0;
       for (vno = 0 ; vno < mris->nvertices ; vno++) {
         VERTEX *v = &mris->vertices[vno];
@@ -9679,7 +9674,7 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
 
     // Put the results where they belong
     // Note: this code does not set tdx, etc. - I believe they are temporaries   
-    if (BEVIN_SERIAL_doNew) {
+    if (doNew) {
       int index;
       for (index = 0 ; index < index_to_vno_size; index++) {
         VERTEX *v = &mris->vertices[index_to_vno[index]];
@@ -9697,7 +9692,6 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
       free(vno_to_index);
     }
   }
-#endif
 
   if (Gdiag_no >= 0) {
     float dot;
@@ -31409,7 +31403,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
       MRISprintTessellationStats(mris, stderr);
     }
     if (Gdiag_no >= 0) {
-      Real xv, yv, zv;
+      double xv, yv, zv;
       VERTEX *v;
       v = &mris->vertices[Gdiag_no];
       MRISvertexToVoxel(mris, v, mri_brain, &xv, &yv, &zv);

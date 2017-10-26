@@ -35,7 +35,7 @@
 #include "fio.h"
 #include "utils.h"
 #include "mri.h"
-#include "volume_io.h"
+#include "minc_volume_io.h"
 #include "analyze.h"
 #include "mri_identify.h"
 #include "matrix.h"

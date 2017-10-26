@@ -44,8 +44,10 @@ typedef struct
   int       sdepth ;
   int       nvars ;     /* # of inputs */
   GCLASSIFY ****gcs ;
+#if !defined(BEVIN_EXCLUDE_MINC)
   Transform *transform ;
   Transform *inverse_transform ;
+#endif
   double    xstart ;     /* coord. of (0,0,0) in Talairach space */
   double    ystart ;
   double    zstart ;
@@ -56,8 +58,10 @@ GCARRAY ;
 GCARRAY    *GCarrayAlloc(MRI *mri_template, int scale, int nvars);
 GCARRAY    *GCarrayTrainAll(GCARRAY *gcarray, char *training_file_name,
                             int scale, int nvars) ;
+#if !defined(BEVIN_EXCLUDE_MINC)
 int     GCarraySetTransform(GCARRAY *gcarray, Transform *transform,
                             Transform *inverse_transform) ;
+#endif
 int     GCarrayFree(GCARRAY **pgcarray) ;
 int     GCarrayTrain(GCARRAY *gcarray, MRI *mri_src,MRI *mri_norm,
                      MRI *mri_target);

@@ -148,9 +148,9 @@ void SurfaceSpline::RebuildActors()
     double pos[3];
     for (int i = 0; i < m_mri->height; i++)
     {
-      Real x = ::MRIgetVoxVal(m_mri, m_nActiveVertex, i, 0, 0);
-      Real y = ::MRIgetVoxVal(m_mri, m_nActiveVertex, i, 1, 0);
-      Real z = ::MRIgetVoxVal(m_mri, m_nActiveVertex, i, 2, 0);
+      double x = ::MRIgetVoxVal(m_mri, m_nActiveVertex, i, 0, 0);
+      double y = ::MRIgetVoxVal(m_mri, m_nActiveVertex, i, 1, 0);
+      double z = ::MRIgetVoxVal(m_mri, m_nActiveVertex, i, 2, 0);
       if (i == 0 && x == 0 && y == 0 && z == 0)
       {
         emit SplineChanged();

@@ -864,7 +864,7 @@ int MRIvol2VolR(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param, 
   float fcs, frs, fss;
   float *valvect;
   int sinchw;
-  Real rval;
+  double rval;
   MATRIX *V2Rsrc = NULL, *invV2Rsrc = NULL, *V2Rtarg = NULL;
   int FreeMats = 0;
 
@@ -2064,14 +2064,14 @@ int MRImakeVox2VoxReg(MRI *targ, MRI *mov, int regtype, char *regname, mriTransf
   /* Create the targ A->RAS matrix. */
   targ_idx_to_tkregras = MRIxfmCRS2XYZtkreg(targ);
   if (NULL == targ_idx_to_tkregras) {
-    print("ERROR: MRImakeVox2VoxReg: Couldn't create targ_idx_to_tkregras\n");
+    printf("ERROR: MRImakeVox2VoxReg: Couldn't create targ_idx_to_tkregras\n");
     goto error;
   }
 
   /* Create the mov B->RAS matrix. */
   mov_idx_to_tkregras = MRIxfmCRS2XYZtkreg(mov);
   if (NULL == mov_idx_to_tkregras) {
-    print("ERROR: MRImakeVox2VoxReg: Couldn't create mov_idx_to_tkregras\n");
+    printf("ERROR: MRImakeVox2VoxReg: Couldn't create mov_idx_to_tkregras\n");
     goto error;
   }
 

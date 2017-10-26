@@ -1134,7 +1134,7 @@ MRISfindNearestVerticesAndMeasureCorticalIntensityProfiles(MRI_SURFACE *mris, MR
   VERTEX  *v, *vn, *vn2 ;
   float   d, dx, dy, dz, dist, min_dist, nx, ny, nz, dot, sample_dist, thick,
   white_mode, gray_mode, min_gray, max_gray, csf_mode, min_gray_at_wm ;
-  Real    x, y, z, xv, yv, zv, val ;
+  double  x, y, z, xv, yv, zv, val ;
   MRI     *mri_profiles ;
   float   scale = 1 ;
 
@@ -1522,7 +1522,7 @@ static int
 remove_bad_profiles(MRI_SURFACE *mris, MRI *mri_profiles, MRI *mri, float border_mm) {
   int     nvox, vno, i, good, unknown_index, med_index  ;
   VERTEX  *v ;
-  Real    xv, yv, zv ;
+  double  xv, yv, zv ;
   int     annot_index;
 
   if (MRISreadAnnotation(mris, "ad_aparc") != NO_ERROR) {
@@ -1576,7 +1576,7 @@ mrisComputeWhiteMatterIntensities(MRI_SURFACE *mris, MRI *mri, float wsize_mm, f
   VECTOR  *v1, *v2 ;
   MATRIX  *m_vox2vox_aseg, *m_vox2vox ;
   float   avg_wm, res ;
-  Real    xv, yv, zv, xi, yi, zi, val ;
+  double  xv, yv, zv, xi, yi, zi, val ;
 
   MRISsaveVertexPositions(mris, TMP_VERTICES) ;
   MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;

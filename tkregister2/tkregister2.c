@@ -2357,7 +2357,7 @@ void draw_image2(int imc,int ic,int jc) {
   unsigned char* lvidbuf;
   float f=0;
   int NcFunc, NrFunc, NsFunc;
-  Real rVoxVal;
+  double rVoxVal;
   double dVoxVal;
   float targimgmax, movimgmax;
   float targimgmin, movimgmin;

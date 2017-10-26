@@ -65,7 +65,7 @@ main(int argc, char *argv[]) {
   LABEL  *area ;
   struct timeb start ;
   MRI    *mri,  *mri_seg ;
-  Real   xw, yw, zw, xv, yv, zv, val;
+  double xw, yw, zw, xv, yv, zv, val;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.16 2015/08/24 18:22:05 fischl Exp $", "$Name:  $");
@@ -192,7 +192,7 @@ main(int argc, char *argv[]) {
 #define MAX_ANNOT 10000
         int   vno, annot_counts[MAX_ANNOT], index ;
         VERTEX *v ;
-        Real  xw, yw, zw, xv, yv, zv, val ;
+        double xw, yw, zw, xv, yv, zv, val ;
         float annot_means[MAX_ANNOT] ;
         FILE  *fp ;
 

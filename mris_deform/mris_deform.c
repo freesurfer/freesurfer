@@ -1107,7 +1107,7 @@ compute_intensity_offsets(MRI_SURFACE *mris, MRI *mri, MRI *mri_dist, DP *dp)
   VERTEX_PARMS *vp = NULL ;
   int       vno, nfound, nmissed, peak, wsize ;
   HISTOGRAM *h, *hs ;
-  Real      xv, yv, zv, mean_white_border, inward_dist, outward_dist ;
+  double    xv, yv, zv, mean_white_border, inward_dist, outward_dist ;
 
 #define WSIZE_MM  5 // diameter of region to histogram within
   wsize = WSIZE_MM / mri->xsize ;  
@@ -1182,7 +1182,7 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
   MRI     *mri_white = MRIclone(mri, NULL) ;
   MRI     *mri_pial = MRIclone(mri, NULL) ;
   MRI     *mri_l4 = MRIclone(mri, NULL) ;
-  Real    xv, yv, zv, d, target_val, xr, yr, zr, grad, max_grad, 
+  double  xv, yv, zv, d, target_val, xr, yr, zr, grad, max_grad, 
     target_dist,mean_white_border, mean_pial_border, mean_l4_border,
     mean_dist, inward_dist, outward_dist, mean_abs_dist ;
 
@@ -1262,7 +1262,7 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
           grad = 0 ;
         if (grad > max_grad)
         {
-          Real val_inside, val_outside, xs, ys, zs ;
+          double val_inside, val_outside, xs, ys, zs ;
           xs = xr-0.5*vp->nx ; ys = yr-0.5*vp->ny ; zs = zr-0.5*vp->nz ;
           MRISsurfaceRASToVoxelCached(mris, mri, xs, ys, zs, &xv, &yv, &zv);
           MRIsampleVolume(mri, xv, yv, zv, &val_inside) ;
@@ -1325,7 +1325,7 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
             grad = 0 ;
           if (grad > max_grad)
           {
-            Real val_inside, val_outside, xs, ys, zs ;
+            double val_inside, val_outside, xs, ys, zs ;
             xs = xr-0.5*vp->nx ; ys = yr-0.5*vp->ny ; zs = zr-0.5*vp->nz ;
             MRISsurfaceRASToVoxelCached(mris, mri, xs, ys, zs, &xv, &yv, &zv);
             MRIsampleVolume(mri, xv, yv, zv, &val_inside) ;
@@ -4646,7 +4646,7 @@ static int
 rip_dark_vertices(MRI_SURFACE *mris, MRI *mri, float threshold)
 {
   int    vno, ripped ;
-  Real   xv, yv, zv ;
+  double xv, yv, zv ;
   VERTEX *v ;
   float  val ;
 

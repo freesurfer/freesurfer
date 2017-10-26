@@ -1037,7 +1037,7 @@ glutMotionFunc(GLUTmotionCB motionFunc)
         ButtonPressMask | ButtonReleaseMask, True);
     }
   }
-  /* Real work of selecting for passive mouse motion.  */
+  /* actual work of selecting for passive mouse motion.  */
   __glutChangeWindowEventMask(
     Button1MotionMask | Button2MotionMask | Button3MotionMask,
     motionFunc != NULL);

@@ -36,6 +36,7 @@
 #include "CostFunctions.h"
 #include "MyMatrix.h"
 #include "MyMRI.h"
+#include "mriBSpline.h"
 
 #include <cassert>
 #include <iostream>
@@ -436,7 +437,13 @@ bool MultiRegistration::mapAndAverageMov(int itdebug)
       // use geometry from ltas
       // (if initXforms was called, this is the center of mass of all tps)
       if (sampletype == SAMPLE_CUBIC_BSPLINE)
+#if !defined(BEVIN_EXCLUDE_MINC)
         mri_warps[i] = LTAtransformBSpline(mri_bsplines[i], NULL, ltas[i]);
+#else
+	{ fprintf(stderr, "%s:%d SAMPLE_CUBIC_BSPLINE not supported without minc", __FILE__, __LINE__); 
+	  exit(1); 
+	}
+#endif
       else
         mri_warps[i] = LTAtransformInterp(mri_mov[i], NULL, ltas[i], sampletype);
       MRIcopyPulseParameters(mri_mov[i], mri_warps[i]);
@@ -726,8 +733,13 @@ bool MultiRegistration::computeTemplate(int itmax, double eps, int iterate,
 #endif  
         cout << " - mapping tp " << i + 1 << " to template (cubic bspline) ..."
             << endl;
+#if !defined(BEVIN_EXCLUDE_MINC)
         mri_warps[i] = LTAtransformBSpline(mri_bsplines[i], mri_warps[i],
             ltas[i]);
+#else
+	fprintf(stderr, "%s:%d LTAtransformBSpline not supported without minc\n", __FILE__, __LINE__);
+	exit(1);
+#endif
       }
       else
       {
@@ -1454,7 +1466,14 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
       LTAwriteEx(ltas[j], (oss.str() + ".lta").c_str());
       MRI * warped = NULL;
       if (sampletype == SAMPLE_CUBIC_BSPLINE)
+#if !defined(BEVIN_EXCLUDE_MINC)
         warped = LTAtransformBSpline(mri_bsplines[j], NULL, ltas[j]);
+#else
+	{
+	  fprintf(stderr, "%s:%d LTAtransformBSpline not supported without minc\n", __FILE__, __LINE__);
+	  exit(1);
+	}
+#endif
       else
         warped = LTAtransformInterp(mri_mov[j], NULL, ltas[j], sampletype);
 
@@ -1715,7 +1734,14 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
       LTAwriteEx(ltas[j], (oss.str() + ".lta").c_str());
       MRI * warped = NULL;
       if (sampletype == SAMPLE_CUBIC_BSPLINE)
+#if !defined(BEVIN_EXCLUDE_MINC)
         warped = LTAtransformBSpline(mri_bsplines[j], NULL, ltas[j]);
+#else
+	{
+	  fprintf(stderr, "%s:%d LTAtransformBSpline not supported without minc\n", __FILE__, __LINE__);
+	  exit(1);
+	}
+#endif
       else
         warped = LTAtransformInterp(mri_mov[j], NULL, ltas[j], sampletype);
       if (iscale)

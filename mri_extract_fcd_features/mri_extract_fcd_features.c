@@ -523,7 +523,7 @@ MRIcomputeSurfaceDistanceIntensities(MRI_SURFACE *mris,  MRI *mri_ribbon, MRI *m
 	  {
 	    nx /= thickness ; ny /= thickness ; nz /= thickness ;
 	    dot = nx*snx + ny*sny + nz*snz ; angle = acos(dot) ;
-	    if (FABS(angle) > angle_threshold)
+	    if (fabs(angle) > angle_threshold)
 	      assignable = 0 ;
 	    outside_of_ribbon = 0 ;
 	    for (dist = 0 ; assignable && dist <= thickness ; dist += step_size) 
