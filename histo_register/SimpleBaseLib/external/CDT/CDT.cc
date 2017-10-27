@@ -196,10 +196,10 @@ Point2d snap(const Point2d& x, const Point2d& a, const Point2d& b)
 	    return a;
 	if (x == b)
 	    return b;
-	Real t1 = (x-a) | (b-a);
-	Real t2 = (x-b) | (a-b);
+	double t1 = (x-a) | (b-a);
+	double t2 = (x-b) | (a-b);
 	
-	Real t = MAX( t1, t2 ) / (t1 + t2);
+	double t = MAX( t1, t2 ) / (t1 + t2);
 	
 	// preserve x's tag info
 	if (t1 > t2)	{
@@ -236,7 +236,7 @@ void Mesh::SplitEdge(Edge *e, const Point2d& x)
 
 /*************** Geometric Predicates for Delaunay Diagrams *****************/
 
-inline Real TriArea(const Point2d& a, const Point2d& b, const Point2d& c)
+inline double TriArea(const Point2d& a, const Point2d& b, const Point2d& c)
 // Returns twice the area of the oriented triangle (a, b, c), i.e., the
 // area is positive if the triangle is oriented counterclockwise.
 {
@@ -248,12 +248,12 @@ Boolean InCircle(const Point2d& a, const Point2d& b,
 // Returns TRUE if the point d is inside the circle defined by the
 // points a, b, c. See Guibas and Stolfi (1985) p.107.
 {
-	Real az = a | a;
-	Real bz = b | b;
-	Real cz = c | c;
-	Real dz = d | d;
+	double az = a | a;
+	double bz = b | b;
+	double cz = c | c;
+	double dz = d | d;
 
-	Real det = (az * TriArea(b, c, d) - bz * TriArea(a, c, d) +
+	double det = (az * TriArea(b, c, d) - bz * TriArea(a, c, d) +
 				cz * TriArea(a, b, d) - dz * TriArea(a, b, c));
 
 	return (det > 0);
@@ -262,13 +262,13 @@ Boolean InCircle(const Point2d& a, const Point2d& b,
 Boolean ccw(const Point2d& a, const Point2d& b, const Point2d& c)
 // Returns TRUE if the points a, b, c are in a counterclockwise order
 {
-	Real det = TriArea(a, b, c);
+	double det = TriArea(a, b, c);
 	return (det > 0);
 }
 
 Boolean cw(const Point2d& a, const Point2d& b, const Point2d& c)
 {
-	Real det = TriArea(a, b, c);
+	double det = TriArea(a, b, c);
 	return (det < 0);
 }
 
@@ -288,7 +288,7 @@ Boolean OnEdge(const Point2d& x, Edge* e)
 // of the edge.
 {
 	Point2d a = e->Org2d(), b = e->Dest2d();
-	Real t1 = (x - a).norm(), t2 = (x - b).norm(), t3;
+	double t1 = (x - a).norm(), t2 = (x - b).norm(), t3;
 	if (t1 <= EPS || t2 <= EPS)
 		return TRUE;
 	t3 = (a - b).norm();
@@ -306,7 +306,7 @@ Point2d Intersect(Edge *e, const Line& l)
 Point2d CircumCenter(const Point2d& a, const Point2d& b, const Point2d& c)
 // From Graphics Gems I, p.22
 {
-	Real d1, d2, d3, c1, c2, c3;
+	double d1, d2, d3, c1, c2, c3;
 
 	d1 = (b - a) | (c - a);
 	d2 = (b - c) | (a - c);
@@ -395,7 +395,7 @@ void Mesh::Triangulate(Edge *first)
 	FixEdge(last);
 }
 
-static Boolean coincide(const Point2d& a, const Point2d& b, Real dist)
+static Boolean coincide(const Point2d& a, const Point2d& b, double dist)
 // Returns TRUE if the points a and b are closer than dist to each other.
 // This is useful for creating nicer meshes, by preventing points from
 // being too close to each other.
@@ -408,7 +408,7 @@ static Boolean coincide(const Point2d& a, const Point2d& b, Real dist)
 	return ((d|d) <= dist*dist);
 }
 
-Edge *Mesh::InsertSite(const Point2d& x, Real dist /* = EPS */)
+Edge *Mesh::InsertSite(const Point2d& x, double dist /* = EPS */)
 // Inserts a new site into a CDT. This is basically the Guibas-Stolfi
 // incremental site insertion algorithm, except that is does not flip
 // constraining edges (in fact, it does not even test them.)
