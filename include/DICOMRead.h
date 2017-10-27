@@ -46,8 +46,19 @@
 typedef unsigned short int BOOL;
 // typedef unsigned short int bool;
 
+// BEVIN
+#ifndef true
+
+// These two lines are the original lines
 #define true 1
 #define false 0
+
+#elif true != 1 || false != 0
+
+#error "Incompatible definitions of true or false"
+
+#endif
+// END OF BEVIN'S CHANGES
 
 #ifdef _DICOMRead_SRC
 char *SDCMStatusFile = 0;
