@@ -185,10 +185,12 @@ double freadDouble(FILE *fp)
 
 int freadInt(FILE *fp)
 {
-  int i;
+  int i, err;
 
-  if (fread(&i, sizeof(int), 1, fp) != 1) {
-    ErrorPrintf(ERROR_BADFILE, "freadInt: fread failed");
+  if ((err = fread(&i, sizeof(int), 1, fp)) != 1) {
+    extern int Gdiag_no ;
+    if (err < 0 || Gdiag_no >= 0)
+      ErrorPrintf(ERROR_BADFILE, "freadInt: fread failed %d", err);
   }
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   i = swapInt(i);
