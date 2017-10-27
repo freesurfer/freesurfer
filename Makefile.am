@@ -432,13 +432,13 @@ fastbuild:
 	done
 	@list='$(OTHERDIRS)'; \
 	for d in $$list; do \
-		cd "$$d"; (make -j --max-load $(FS_FASTBUILD_THREADS) &) ; sleep 0.1; cd - ; \
+		cd "$$d"; (make -j --max-load $(FS_FASTBUILD_THREADS) &) ; sleep 0.2; cd - ; \
 	done
 	@list='$(BIGDIRS)'; \
 	for d in $$list; do \
 		cd "$$d"; (make -j --max-load $(FS_FASTBUILD_THREADS) ); cd - ; \
 	done
-	sleep 10
+	sleep 30
 	make
 
 # build stamp and symlinks to necessary 3rd-party packages.

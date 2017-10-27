@@ -14,7 +14,7 @@
  *    $Date: 2015/07/27 20:52:08 $
  *    $Revision: 1.70 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -1618,11 +1618,16 @@ lateralize_hypointensities(MRI *mri_seg)
  */
 static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
 {
-  int x, y, z, label, errors=0;
+  MRI *mri_fixed = NULL;
+  int errors=0;
+#if defined(BEVIN_EXCLUDE_MINC)
+    ErrorExit(ERROR_BADFILE,
+              "ERROR: mri_ca_train: talairach not supported!\n");
+#else
+  int x, y, z, label=0;
   double xw=0.0, yw=0.0, zw=0.0; // RAS coords
   double xmt=0.0, ymt=0.0, zmt=0.0; // MNI tal coords
   float xt=0.0, yt=0.0, zt=0.0; // 'real' tal coords
-  MRI *mri_fixed = NULL;
 
   float max_xtal_l_hippo    = -1000;
   float max_xtal_l_caudate  = -1000;
@@ -1642,10 +1647,6 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
     mri_fixed = MRIcopy(mri_seg,NULL);
   }
 
-#if defined(BEVIN_EXCLUDE_MINC)
-    ErrorExit(ERROR_BADFILE,
-              "ERROR: mri_ca_train: talairach not supported!\n");
-#else
   if (NULL == mri_seg->linear_transform)
   {
     ErrorExit(ERROR_BADFILE,

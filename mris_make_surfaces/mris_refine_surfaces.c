@@ -16,7 +16,7 @@
  *    $Date: 2016/12/10 22:57:53 $
  *    $Revision: 1.23 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -1433,16 +1433,16 @@ find_wm(MRI_SURFACE *mris, MRI *mri, MRI *mri_wm)
         }
   }
 
-  print("writing 1...\n") ;
+  printf("writing 1...\n") ;
   MRIwrite(mri_interior, "i1.mgz") ;
   MRIbuildVoronoiDiagram(mri, mri_ctrl, mri_interior) ;
-  print("writing 2...\n") ;
+  printf("writing 2...\n") ;
   MRIwrite(mri_interior, "i2.mgz") ;
   MRIwrite(mri_ctrl, "c.mgz") ;
   mri_kernel = MRIgaussian1d(.25/mri->xsize, 0) ;
   mri_wm = MRIconvolveGaussian(mri_interior, NULL, mri_kernel) ;
   //  MRIsoapBubble(mri_interior, mri_ctrl, mri_interior, 5) ;
-  print("writing 3...\n") ;
+  printf("writing 3...\n") ;
   MRIwrite(mri_wm, "i3.mgz") ;
 
   MRIfree(&mri_interior) ; MRIfree(&mri_ctrl) ; MRIfree(&mri_kernel) ;
