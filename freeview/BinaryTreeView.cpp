@@ -21,7 +21,13 @@ void TreeDataLoader::DoLoad(const QString &dirPath, BinaryTreeView *view)
   mDir.setNameFilters(QStringList()<<"*.trk");
   mDir.setSorting(QDir::Name);
 
-  QStringList tract_list = mDir.entryList();
+  QFileInfoList info_list = mDir.entryInfoList();
+  QStringList tract_list;
+  foreach (QFileInfo fn, info_list)
+  {
+    if (!fn.baseName().contains(QRegExp("[^0-1]")))
+      tract_list << fn.fileName();
+  }
 
   //read tract files
   QVariantMap tract_map;
