@@ -31,6 +31,8 @@
 
 #if defined(BEVIN_EXCLUDE_MINC) || defined(BEVIN_REPLACE_MINC)
 
+typedef bool BOOLEAN;
+
 // The following is a replacement for some portions of
 // mni/1.5/include/minc.h
 //
@@ -187,6 +189,56 @@ void transform_point(
     double	*y_trans,
     double	*z_trans );
 
+// The following is a replacement for some portions of
+// mni/1.5/include/volume_io/volume.h
+// As such, it needs the following Copyright notice
+/*
+@COPYRIGHT  :
+              Copyright 1993,1994,1995 David MacDonald,
+              McConnell Brain Imaging Centre,
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+*/
+
+typedef struct VolumeInternals
+{
+//      VIO_BOOL                is_cached_volume;
+//      VIO_volume_cache_struct cache;
+//  
+//      VIO_multidim_array      array;
+//  
+//      VIO_STR                 dimension_names[VIO_MAX_DIMENSIONS];
+//      int                     spatial_axes[VIO_N_DIMENSIONS];
+//      nc_type                 nc_data_type;
+//      VIO_BOOL                signed_flag;
+//      VIO_BOOL                is_rgba_data;
+//  
+//      VIO_Real                voxel_min;
+//      VIO_Real                voxel_max;
+//      VIO_BOOL                real_range_set;
+//      VIO_Real                real_value_scale;
+//      VIO_Real                real_value_translation;
+//  
+//      VIO_Real                separations[VIO_MAX_DIMENSIONS];
+//      VIO_Real                starts[VIO_MAX_DIMENSIONS];
+//      VIO_Real                direction_cosines[VIO_MAX_DIMENSIONS][VIO_N_DIMENSIONS];
+//  
+//      VIO_BOOL                voxel_to_world_transform_uptodate;
+//      VIO_General_transform   voxel_to_world_transform;
+//  
+//      VIO_STR                 coordinate_system_name;
+//  
+//      VIO_Real               *irregular_starts[VIO_MAX_DIMENSIONS];
+//      VIO_Real               *irregular_widths[VIO_MAX_DIMENSIONS];
+} VolumeImpl;
+
+typedef VolumeInternals* Volume;
 
 #else
 
