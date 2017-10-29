@@ -4078,6 +4078,7 @@ AC_OUTPUT([Makefile
            utils/test/mriSoapBubbleFloat/Makefile
            utilscpp/Makefile
            utilscpp/test/Makefile
+           utils_test/Makefile
            qdec_glmfit/Makefile
            qdecproject/Makefile
            vtkfsio/Makefile
