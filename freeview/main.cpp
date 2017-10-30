@@ -165,6 +165,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_OPTION, "f", "surface", "<FILE>...", "Load one or multiple surface files. Available sub-options are:\n\n"
     "':curvature=curvature_filename' Load curvature data from the given curvature file. By default .curv file will be loaded if available.\n\n"
     "':curvature_method=method' method to display curvature. available options are 'off', 'binary' or 'threshold'. default is 'threshold'.\n\n"
+    "':curvature_setting=midpoint,slope' method to set curvature midpoint and slope.\n\n"
     "':overlay=overlay_filename' Load overlay data from file.\n\n"
     "':overlay_reg=overlay_registration_filename' Apply registration when loading overlay data.\n\n"
     "':overlay_method=method_name' Set overlay method. Valid names are 'linear', 'linearopaque' and 'piecewise'.\n\n"

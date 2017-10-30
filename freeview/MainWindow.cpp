@@ -2901,7 +2901,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         {
           m_scripts.insert( 0, QStringList("loadsurfacecurvature") << subArgu );
         }
-        else if ( subOption == "curvature_method" || subOption == "curvature_map")
+        else if ( subOption == "curvature_method" || subOption == "curvature_map" || subOption == "curvature_setting")
         {
           m_scripts.insert(0, QStringList("setsurfacecurvaturemap") << subArgu);
         }
@@ -3583,12 +3583,28 @@ void MainWindow::CommandSetSurfaceCurvatureMap(const QStringList &cmd)
   LayerSurface* layer = qobject_cast<LayerSurface*>(GetActiveLayer("Surface"));
   if ( layer )
   {
-    int nMap = LayerPropertySurface::CM_Threshold;
-    if (cmd[1].toLower() == "off")
-      nMap = LayerPropertySurface::CM_Off;
-    else if (cmd[1].toLower() == "binary")
-      nMap = LayerPropertySurface::CM_Binary;
-    layer->GetProperty()->SetCurvatureMap(nMap);
+    bool bOK;
+    QStringList list = cmd[1].split(",");
+    double val = list[0].toDouble(&bOK);
+    if (!bOK)
+    {
+      int nMap = LayerPropertySurface::CM_Threshold;
+      if (cmd[1].toLower() == "off")
+        nMap = LayerPropertySurface::CM_Off;
+      else if (cmd[1].toLower() == "binary")
+        nMap = LayerPropertySurface::CM_Binary;
+      layer->GetProperty()->SetCurvatureMap(nMap);
+    }
+    else
+    {
+      layer->GetProperty()->SetThresholdMidPoint(val);
+      if (list.size() > 1)
+      {
+        val = list[1].toDouble(&bOK);
+        if (bOK)
+          layer->GetProperty()->SetThresholdSlope(val);
+      }
+    }
   }
 }
 
