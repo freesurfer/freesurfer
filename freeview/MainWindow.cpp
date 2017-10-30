@@ -1071,7 +1071,7 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     this->AddScript( QStringList("loadconnectome") << sa[0] << sa[1] );
   }
 
-  if (parser->Found("tc"), &sa)
+  if (parser->Found("tc", &sa))
   {
     this->AddScript(QStringList("loadtractcluster") << sa[0]);
   }
@@ -7524,7 +7524,7 @@ void MainWindow::OnLoadTractCluster()
 
 void MainWindow::CommandLoadTractCluster(const QStringList &cmd)
 {
-//  m_wndTractCluster->Load(cmd[1]);
+  m_wndTractCluster->Load(cmd[1]);
 }
 
 void MainWindow::OnTractClusterLoaded(const QVariantMap& data)
