@@ -37,6 +37,7 @@
 #include "mghendian.h"
 #include "proto.h"
 #include "utils.h"  // strcpyalloc
+#include "diag.h"
 
 #define FIO_NPUSHES_MAX 100
 int fio_npushes = -1;
@@ -187,9 +188,7 @@ int freadInt(FILE *fp)
 {
   int i, err;
 
-  if ((err = fread(&i, sizeof(int), 1, fp)) != 1) {
-    extern int Gdiag_no ;
-    if (err < 0 || Gdiag_no >= 0)
+  if ((err = fread(&i, sizeof(int), 1, fp)) < 0 && Gdiag_no >= 0) {
       ErrorPrintf(ERROR_BADFILE, "freadInt: fread failed %d", err);
   }
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -332,6 +331,11 @@ int fwriteDouble(double d, FILE *fp)
 }
 
 /*------ znzlib support ------------*/
+/* Note: an mgz file has a variable number of fields that get written at the
+  end of the file. The reader keeps reading until it gets an EOF at which
+  time it knows that it is done. This EOF may be interpreted as some kind
+  of error, but it is not in this case.
+*/
 int znzread1(int *v, znzFile fp)
 {
   unsigned char c;
@@ -438,20 +442,20 @@ double znzreadDouble(znzFile fp)
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   d = swapDouble(d);
 #endif
-  if (ret != 1) ErrorPrintf(ERROR_BADFILE, "znzreadDouble: znzread failed");
+  if(ret != 1 && Gdiag_no >= 0) {
+    // see note above about reading mgz files
+    ErrorPrintf(ERROR_BADFILE, "znzreadDouble: znzread failed");
+  }
   return (d);
 }
 
-#include "diag.h"
 int znzreadInt(znzFile fp)
 {
-  int i, err;
-
-  if ((err = znzread(&i, sizeof(int), 1, fp)) != 1) {
-    extern int Gdiag_no ;
-
-    if (Gdiag_no >= 0 || DIAG_VERBOSE_ON)
-      ErrorPrintf(ERROR_BADFILE, "znzreadInt: znzread failed (%d)", err);
+  int i, ret;
+  ret = znzread(&i, sizeof(int), 1, fp);
+  if (ret != 1 && Gdiag_no >= 0){
+    // see note above about reading mgz files
+    ErrorPrintf(ERROR_BADFILE, "znzreadInt: znzread failed");
   }
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   i = swapInt(i);
@@ -462,8 +466,10 @@ int znzreadInt(znzFile fp)
 long long znzreadLong(znzFile fp)
 {
   long long i;
-
-  if (znzread(&i, sizeof(long long), 1, fp) != 1) {
+  int ret;
+  ret = znzread(&i, sizeof(long long), 1, fp);
+  if (ret != 1 && Gdiag_no >= 0) {
+    // see note above about reading mgz files
     ErrorPrintf(ERROR_BADFILE, "znzreadLong: znzread failed");
   }
 #if (BYTE_ORDER == LITTLE_ENDIAN)
@@ -481,7 +487,10 @@ short znzreadShort(znzFile fp)
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   s = swapShort(s);
 #endif
-  if (nread != 1) ErrorPrintf(ERROR_BADFILE, "znzreadShort: znzread failed");
+  if(nread != 1 && Gdiag_no >= 0) {
+    // see note above about reading mgz files
+    ErrorPrintf(ERROR_BADFILE, "znzreadShort: znzread failed");
+  }
   return (s);
 }
 
