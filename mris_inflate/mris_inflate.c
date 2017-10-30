@@ -201,9 +201,19 @@ main(int argc, char *argv[])
   MRISstoreMetricProperties(mris) ;  /* use current surface as reference */
   MRISaverageVertexPositions(mris, navgs) ;
   MRISscaleBrainArea(mris) ;  /* current properties will be stored again */
-  if (FZERO(parms.l_sphere))
+  if (FZERO(parms.l_sphere) || parms.explode_flag > 0)
   {
+    int curvature_avgs = 10 ;
 #if 1
+    if (parms.explode_flag)
+    {
+      mris->patch = 1 ;
+      MRIScomputeMetricProperties(mris) ;
+      MRIScomputeSecondFundamentalForm(mris) ;
+      MRISuseMeanCurvature(mris) ;
+      MRISaverageCurvatures(mris, curvature_avgs) ;
+      MRIScurvToD(mris) ;  // for writing curvature in mrisWriteSnapshot
+    }
     MRISinflateBrain(mris, &parms) ;
 #else
     parms.n_averages = 32 ;
@@ -287,6 +297,14 @@ get_option(int argc, char *argv[])
   {
     // resource usage
     rusage_file = argv[2] ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "explode"))
+  {
+    // resource usage
+    parms.explode_flag = 1 ;
+    parms.stressthresh = atof(argv[2]) ;
+    printf("exploding with stress threshold %2.3f\n", parms.stressthresh) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "sulc"))

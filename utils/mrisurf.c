@@ -3195,7 +3195,7 @@ int MRISremoveRippedFaces(MRI_SURFACE *mris)
 	DiagBreak() ;
       if (fno < 0 || mris->faces[fno].ripflag == 1)
 	continue ;
-      
+
       v->f[v->num++] = out_faces[v->f[n]] ;
     }
   }
@@ -3544,7 +3544,33 @@ int MRISremoveRipped(MRI_SURFACE *mris)
     if (v->ripflag)
     {
       for (n = 0 ; n < v->num ; n++)
-	mris->faces[v->f[n]].ripflag = 1 ;
+      {
+	int  n2, fno ;
+	FACE *face ;
+
+	fno = v->f[n] ;
+	if (fno == Gdiag_no)
+	  DiagBreak() ;
+	face = &mris->faces[fno] ;
+	face->ripflag = 1 ;
+	// find the other vertices that have this face in their
+	// face list and remove it
+	for (n2 = 0 ; n2 < VERTICES_PER_FACE ; n2++)
+	  if (face->v[n2] != vno)
+	  {
+	    int n3 ;
+
+	    VERTEX *vn = &mris->vertices[face->v[n2]] ;
+	    for (n3 = 0 ; n3 < vn->num ; n3++)
+	      if (vn->f[n3] == fno)  // found the ripped face - remove it
+	      {
+		memmove(vn->f+n3, vn->f+n3+1, (vn->num-n3-1) * sizeof(*(vn->f)));
+		memmove(vn->n+n3, vn->n+n3+1, (vn->num-n3-1) * sizeof(*(vn->n)));
+		vn->num-- ;
+		n3-- ;
+	      }
+	  }
+      }
     }
   }
   mrisCheckSurface(mris) ;
@@ -17085,9 +17111,9 @@ mrisTearStressedRegions(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
           {
             nrip++;
 	    mris->patch = 1 ;
-            v->ripflag = TRUE;
-//	    for (m = 0 ; m < v->vnum ; m++)
-//	      mrisRemoveLink(mris, vno, v->v[m]);
+//            v->ripflag = TRUE;
+	    for (m = 0 ; m < v->vnum ; m++)
+	      mrisRemoveLink(mris, vno, v->v[m]);
           }
 #endif
 	}
@@ -17213,7 +17239,6 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       mrisTearStressedRegions(mris, parms)  ;
       if (parms->explode_flag)
       {
-//	MRISremoveRipped(mris) ;
 	MRISremoveRippedFaces(mris) ;
 	MRISremoveRippedVertices(mris) ;
       }
@@ -63765,6 +63790,8 @@ static int mrisCheckSurface(MRI_SURFACE *mris)
   for (fno = 0; fno < mris->nfaces; fno++) 
   {
     f = &mris->faces[fno];
+    if (f->ripflag)
+      continue ;
     for (m = 0; m < VERTICES_PER_FACE; m++) 
     {
       v = &mris->vertices[f->v[m]];
