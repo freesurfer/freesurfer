@@ -2,7 +2,7 @@ SUBDIRS =
 
 AM_CFLAGS=-I$(top_srcdir)/include $(BOOST_CFLAGS)
 
-AM_CXXFLAGS=-I$(top_srcdir)/include $(BOOST_CFLAGS) -Wall -Wextra
+AM_CXXFLAGS=-I$(top_srcdir)/include $(BOOST_CFLAGS) -Wall -Wextra -std=c++11
 
 AM_LDFLAGS=
 
