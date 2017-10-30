@@ -26743,8 +26743,348 @@ mrisReadAsciiPatchFile(char *fname)
                  and face normals into an MRIS_SURFACE
                  structure.
   ------------------------------------------------------*/
-static MRI_SURFACE *mrisReadSTLfile(const char *fname)
-{
+
+#ifdef BEVIN
+#define ACCELERATE_ORIGINAL
+#else
+#define ACCELERATE_ORIGINAL	// NOTE - THIS IS CHANGING THE not-BEVIN CASE TO EASE TESTING
+#endif
+
+
+#if defined(ACCELERATE_ORIGINAL) || defined(BEVIN)
+
+#define mrisReadSTLfile_hashTableSize (1024*1024)
+static int mrisReadSTLfile_hash(float x, float y, float z) {
+  int hx = (int)( 1000.0f*logf(abs(x)+1.0f) );	// a hashing function that preserves many of the bits in the float
+  int hy = (int)( 1000.0f*logf(abs(y)+1.0f) ); 	// and doesn't care much about their range
+  int hz = (int)( 1000.0f*logf(abs(z)+1.0f) );	// Cost is not very important compared to all the other work done
+  int hash = (hx*2017) ^ (hy*1029) ^ (hz*1159);	// No good reason behind these multipliers
+  return hash % mrisReadSTLfile_hashTableSize;
+}
+
+#endif
+
+    
+#ifdef BEVIN
+static MRI_SURFACE *mrisReadSTLfile_bevin   (const char *fname);
+static MRI_SURFACE *mrisReadSTLfile_original(const char *fname);
+
+static const int mrisReadSTLfile_debugging = 0;
+
+static MRI_SURFACE *mrisReadSTLfile(const char *fname) {
+  // struct timeb start;
+  // TimerStart(&start);
+  MRI_SURFACE *result = 1 ? mrisReadSTLfile_bevin(fname) : mrisReadSTLfile_original(fname);
+  // int msec = TimerStop(&start);
+  // fprintf(stdout, "mrisReadSTLfile(%s) took %4.4f secs\n", fname, (float)msec / (1000.0f));
+  return result;
+}
+
+static MRI_SURFACE *mrisReadSTLfile_bevin(const char *fname) {
+  MRI_SURFACE *mris = NULL;
+
+  {
+    // Scanning them twice is 2x cost of scanning them once, because there is so little other work.
+    // Instead scan them once into the hashTable and into the vector of vertices, checking there is
+    // only one solid with 3 vertices per facet
+    //
+    typedef struct Key  { struct Key*  next; float x,y,z; int vertexNo; } Key;
+    Key** const hashTable = (Key**)calloc(mrisReadSTLfile_hashTableSize,sizeof(Key*));
+    if (!hashTable) ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: could not calloc hash table"));
+
+#define mrisReadSTLfile_bevin_someKeysSize 100000
+    typedef struct Keys { struct Keys* next; Key someKeys[mrisReadSTLfile_bevin_someKeysSize]; } Keys;
+    Keys* keys = NULL;
+    int keysInUse = mrisReadSTLfile_bevin_someKeysSize;
+
+    size_t verticesCapacity 	  = 500000;
+    size_t verticesSize     	  =      0;
+    Key**  vertices         	  = (Key**)malloc(sizeof(Key*)*verticesCapacity);
+        
+    typedef struct XYZ { float x,y,z; } XYZ;
+    size_t faceNormalXYZsCapacity = 150000;
+    size_t faceNormalXYZsSize     =      0;
+    XYZ* faceNormalXYZs           = (XYZ*)malloc(sizeof(XYZ)*faceNormalXYZsCapacity);
+
+    {
+      FILE *fp = fopen(fname, "r");
+      if (!fp) ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: could not open file %s", fname));
+
+      char line[STRLEN], *cp;
+      int lineNo       = 0;
+      int solidNo      = 0;
+      int nextVertexNo = 0;
+      int faceVertexNo = 3; 
+      
+      while ((cp = fgetl(line, STRLEN, fp))) {
+      
+        lineNo++;
+        if (lineNo == 2 && solidNo != 1) {
+          ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: file %s does not appear to be an STL file",    fname));
+        }
+	
+        switch (*cp) {	// avoid unnecessary strncmp's
+          
+	  case 's': {
+    	    if (strncmp(cp, "solid", 5) == 0) { 
+	      solidNo++; 
+              if (solidNo > 1) {
+	        ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: file %s at line %d contains a second solid\n",
+                  fname,
+                  lineNo));
+	      }
+	      continue; 
+	    }
+          } break;
+          
+	  case 'f': {
+      	    if (strncmp(cp, "facet ", 6) == 0) {
+  	      if (faceNormalXYZsSize == faceNormalXYZsCapacity) {
+	        faceNormalXYZsCapacity *= 2;
+                faceNormalXYZs = (XYZ*)realloc(faceNormalXYZs, sizeof(XYZ)*faceNormalXYZsCapacity);
+	      }
+              sscanf(cp, "facet normal %f %f %f", 
+	        &faceNormalXYZs[faceNormalXYZsSize].x, 
+	      	&faceNormalXYZs[faceNormalXYZsSize].y,
+		&faceNormalXYZs[faceNormalXYZsSize].z);
+	      faceNormalXYZsSize++;
+  	      faceVertexNo = 0;			// checking 3 vertices per face
+  	      continue;	// endfacet increments facetNo
+  	    }
+          } break;
+          
+	  case 'o': {
+            if (strncmp(cp, "outer loop", 10) == 0) continue;
+          } break;
+	  
+          case 'v': {
+      	    if (strncmp(cp, "vertex ", 7) == 0) {
+	    
+  	      float x,y,z;
+   	      sscanf(cp, "vertex %f %f %f", &x, &y, &z);
+	      
+  	      // allocate a vertexNo - those already seen reuse their previously assigned number
+	      int hash = mrisReadSTLfile_hash(x,y,z);
+  	      Key** keyPtrPtr = &hashTable[hash];
+  	      Key* keyPtr;
+  	      for (; (keyPtr = *keyPtrPtr); keyPtrPtr=&keyPtr->next) {
+  	        if (keyPtr->x == x && keyPtr->y == y && keyPtr->z == z) break;
+  	      }
+  	      if (!keyPtr) {
+	        if (mrisReadSTLfile_bevin_someKeysSize == keysInUse) {
+		  Keys* moreKeys = (Keys*)malloc(sizeof(Keys));
+		  moreKeys->next = keys;
+		  keys = moreKeys;
+		  keysInUse = 0;
+		}
+  	        keyPtr = &keys->someKeys[keysInUse++];
+  	        keyPtr->next = NULL;
+  	        keyPtr->x = x; keyPtr->y = y; keyPtr->z = z;
+  	        keyPtr->vertexNo = nextVertexNo++;
+  	        *keyPtrPtr = keyPtr;
+  	      }
+	      
+	      if (faceVertexNo > 2) {
+      	        ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: file %s at line %d contains more than 3 vertices for the face\n",
+                  fname,
+                  lineNo));
+  	      }
+	      faceVertexNo++;
+
+	      // store it	    
+  	      if (verticesSize == verticesCapacity) {
+	        verticesCapacity *= 2;
+                vertices = (Key**)realloc(vertices, sizeof(Key*)*verticesCapacity);
+	      }
+	      vertices[verticesSize++] = keyPtr;
+	      
+  	      continue;
+  	    }
+          } break;
+	  
+          case 'e': {
+            switch (cp[3]) {        
+      	    case 'f': {
+  	      if (strncmp(cp, "endfacet", 8) == 0) { 
+  	        if (faceVertexNo != 3) {
+      	          ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: file %s at line %d contains less than 3 vertices for the face\n",
+                      fname,
+                      lineNo));
+  	        }
+  		continue; 
+  	       }
+              } break;
+              case 'l': {
+      	      if (strncmp(cp, "endloop", 7) == 0) continue;
+              } break;
+              case 's': {
+      	      if (strncmp(cp, "endsolid", 8) == 0) continue;
+              } break;
+            } // switch
+          } break;
+        } // switch
+	
+        ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: file %s at line %d contains bad line %s\n",
+          fname,
+          lineNo,
+          cp));
+      } // while getl
+  
+      fclose(fp);
+      
+      printf("\nFound %d unique vertices and %d faces\n", nextVertexNo, (int)faceNormalXYZsSize);
+      mris = MRISalloc(nextVertexNo, faceNormalXYZsSize);
+      if (!mris) {
+        ErrorReturn(NULL, (ERROR_NOMEMORY, "MRISreadSTLfile: could not alloc memory for mris"));
+      }
+      mris->type      = MRIS_TRIANGULAR_SURFACE;
+      mris->nvertices = nextVertexNo;
+      mris->nfaces    = faceNormalXYZsSize;
+      
+    } // scanned the file and made the mris
+
+    { // fill in the mris
+      int nfaces = mris->nfaces;
+      int faceNo;
+      int nextVertexNo = 0;
+      for (faceNo = 0; faceNo < nfaces; faceNo++) {
+	
+         FACE* face = &mris->faces   [faceNo];
+	 XYZ*  xyz  = &faceNormalXYZs[faceNo];
+	 
+	 face->nx = xyz->x; face->ny = xyz->y; face->nz = xyz->z;
+
+	 int faceVertexNo;
+	 for (faceVertexNo = 0; faceVertexNo < 3; faceVertexNo++) {
+	   int undupVertexNo = 3*faceNo + faceVertexNo;
+	   Key* keyPtr = vertices[undupVertexNo];
+           int vertexNo = keyPtr->vertexNo;
+  	   if (vertexNo == nextVertexNo) { 
+  	     VERTEX* v = &mris->vertices[vertexNo];
+  	     v->x = keyPtr->x; v->y = keyPtr->y; v->z = keyPtr->z;
+  	     nextVertexNo++;
+	   }
+       	   face->v[faceVertexNo] = vertexNo;
+  	   if (mrisReadSTLfile_debugging && undupVertexNo < 10) {
+	     fprintf(stdout, "Mapping undupVertexNo:%d to vertexNo:%d (%f, %f, %f)\n",
+	        undupVertexNo, vertexNo, keyPtr->x, keyPtr->y, keyPtr->z);
+	   }
+         }	  
+      } // for
+    } // filled in the mris
+
+    free(faceNormalXYZs);
+    free(vertices);
+    free(hashTable);
+    while (keys) {
+      Keys* next = keys->next;
+      free(keys);
+      keys = next;
+    }
+#undef mrisReadSTLfile_bevin_someKeysSize
+  }
+  
+#if 1
+  {
+    int fno, vno;
+
+    /* count # of faces each vertex is part of */
+    for (fno = 0; fno < mris->nfaces; fno++) {
+      FACE* face = &mris->faces[fno];
+      int fvno;
+      for (fvno = 0; fvno < VERTICES_PER_FACE; fvno++) {
+        VERTEX* v = &mris->vertices[face->v[fvno]];
+        v->num++;
+        v->vnum += 2;
+      }
+    }
+
+    // alloc mem for neighbor list for each vertex
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX* v = &mris->vertices[vno];
+      v->v = (int *)calloc(v->vnum, sizeof(int));
+      if (!v->v) ErrorExit(ERROR_NOMEMORY, "MRISreadSTLfile: could not allocate %dth vertex list.", vno);
+      v->vnum = 0;
+    }
+
+    /* now build list of neighbors */
+    for (fno = 0; fno < mris->nfaces; fno++) {
+      FACE* face = &mris->faces[fno];
+      int fvno;
+      for (fvno = 0; fvno < VERTICES_PER_FACE; fvno++) {
+        VERTEX* v = &mris->vertices[face->v[fvno]];
+
+        /* now add an edge to other 2 vertices if not already in list */
+	int fvno2;
+        for (fvno2 = 0; fvno2 < VERTICES_PER_FACE; fvno2++) {
+          if (fvno2 == fvno) /* don't connect vertex to itself */
+          {
+            continue;
+          }
+
+          int vn = mris->faces[fno].v[fvno2];
+
+          /* now check to make sure it's not a duplicate */
+	  int n2;
+          for (n2 = 0; n2 < v->vnum; n2++) {
+            if (v->v[n2] == vn) {
+              vn = -1; /* mark it as a duplicate */
+              break;
+            }
+          }
+          if (vn >= 0) {
+            v->v[v->vnum++] = vn;
+          }
+        }
+      }
+    }
+
+    /* now allocate face arrays in vertices */
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX* v = &mris->vertices[vno];
+      v->f = (int *)calloc(v->num, sizeof(int));
+      if (!v->f) ErrorExit(ERROR_NO_MEMORY, "MRISreadSTLfileICOread: could not allocate %d faces", v->num);
+      v->n = (unsigned char *)calloc(v->num, sizeof(unsigned char));
+      if (!v->n) ErrorExit(ERROR_NO_MEMORY, "MRISreadSTLfile: could not allocate %d nbrs", v->n);
+      v->num = 0; /* for use as counter in next section */
+      v->dist = (float *)calloc(v->vnum, sizeof(float));
+      if (!v->dist)
+        ErrorExit(ERROR_NOMEMORY,
+                  "MRISreadSTLfile: could not allocate list of %d "
+                  "dists at v=%d",
+                  v->vnum,
+                  vno);
+      v->dist_orig = (float *)calloc(v->vnum, sizeof(float));
+      if (!v->dist_orig)
+        ErrorExit(ERROR_NOMEMORY,
+                  "MRISreadSTLfile: could not allocate list of %d "
+                  "dists at v=%d",
+                  v->vnum,
+                  vno);
+      v->vtotal = v->vnum;
+    }
+
+    /* fill in face indices in vertex structures */
+    for (fno = 0; fno < mris->nfaces; fno++) {
+      FACE* face = &mris->faces[fno];
+      int fvno;
+      for (fvno = 0; fvno < VERTICES_PER_FACE; fvno++) {
+        VERTEX* v = &mris->vertices[face->v[fvno]];
+        v->n[v->num] = fvno;
+        v->f[v->num++] = fno;
+      }
+    }
+  }
+#endif
+
+  return (mris);
+}
+
+static MRI_SURFACE *mrisReadSTLfile_original(const char *fname) {
+#else
+static MRI_SURFACE *mrisReadSTLfile(const char *fname) {
+#endif // BEVIN
+
   MRI_SURFACE *mris;
   char line[STRLEN], *cp;
   int nfaces, fno, vno, fvno, n2;
@@ -26862,10 +27202,53 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
 
     // make note of duplicates in vnums array...
     nduplicates = 0;
+
+#ifdef ACCELERATE_ORIGINAL
+    typedef struct Key { struct Key* next; float x,y,z; int vertexNo; } Key;
+    Key** const hashTable = (Key**)calloc(mrisReadSTLfile_hashTableSize,sizeof(Key*));
+    if (!hashTable) ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile_original: could not calloc hash table"));
+
+#undef mrisReadSTLfile_hashTableSize
+    
+    // Put all the vertices that hash to a bucket into the chain in that bucket
+    // The chain is prepended to in descending n order, so that final chains are in ascending order
+    //
+    for (n = mris->nvertices - 1; n >= 0; n--) {
+
+      v = &mris->vertices[n];
+      float x = v->x, y = v->y, z = v->z;
+      
+      int hash = mrisReadSTLfile_hash(x,y,z);
+
+      Key* keyPtr = (Key*)malloc(sizeof(Key));
+      keyPtr->next = hashTable[hash];
+      keyPtr->x = x; keyPtr->y = y; keyPtr->z = z;
+      keyPtr->vertexNo = n;
+      hashTable[hash] = keyPtr;
+    }
+#endif
+
+#ifdef BEVIN
+    int nduplicatesBeforeN = 0;
+    vnums2 = (int *)calloc(mris->nvertices, sizeof(int));
+#endif
+
     for (n = 0; n < mris->nvertices - 1; n++) {
+#ifdef BEVIN
+      if (mrisReadSTLfile_debugging)
+#endif
       printf("Checking vertex %d (found %d duplicates)\r", n, nduplicates);
       v = &mris->vertices[n];
+#ifdef ACCELERATE_ORIGINAL
+      // This is a big acceleration of the old code, skipping all the ones it can't possibly be...
+      int hash = mrisReadSTLfile_hash(v->x,v->y,v->z);
+      Key* n2Ptr = hashTable[hash];
+      for (; n2Ptr; n2Ptr = n2Ptr->next) {
+        n2 = n2Ptr->vertexNo;
+	if (n2 < n + 1) continue;
+#else
       for (n2 = n + 1; n2 < mris->nvertices; n2++) {
+#endif
         if (vnums[n2] == vnums[n]) {
           continue;  // already caught this one
         }
@@ -26876,9 +27259,31 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
           nduplicates++;
         }
       }
+#ifdef BEVIN
+      // vnums  maps from the duplicated to the first duplicated
+      // vnums2 maps from the first duplicated to the unique vertexNo
+      // It turns out vnums2 can be filled in here rather than later...
+      if (vnums[n] != n) {
+        nduplicatesBeforeN++;
+	vnums2[n] = -1;
+      }
+      else {
+        vnums2[n] = n - nduplicatesBeforeN;
+      }
+      if (mrisReadSTLfile_debugging && n < 10) {
+        fprintf(stdout, "Predict mapping undupVertexNo:%d to vertexNo:%d (%f, %f, %f)\n",
+	  n, vnums2[vnums[n]], v->x, v->y, v->z);
+      }
+#endif
     }
 
     // create old to new mapping table
+#ifdef BEVIN
+    free(vnums2);
+#endif
+#ifdef ACCELERATE_ORIGINAL
+    free(hashTable);
+#endif
     vnums2 = (int *)calloc(mris->nvertices, sizeof(int));
     nduplicates = 0;
     for (n = 0; n < mris->nvertices; n++) {
@@ -26888,6 +27293,12 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
       }
       else {
         vnums2[n] = n - nduplicates;
+#ifdef BEVIN
+        if (mrisReadSTLfile_debugging && n < 10) {
+	  fprintf(stdout, "Mapping undupVertexNo:%d to vertexNo:%d\n",
+	    n, n - nduplicates);
+	}
+#endif
       }
     }
 

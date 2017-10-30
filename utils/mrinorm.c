@@ -408,6 +408,7 @@ int MRInormInit(
   int i, x, y, z, dx, dy, dz, nup, z_offset, nwindows;
   int x0_tal, y0_tal, z0_tal;
   float size_mod;
+#if !defined(BEVIN_EXCLUDE_MINC)
   double x0, y0, z0;
 
   LTA *lta = 0;       // need to be freeed
@@ -416,6 +417,7 @@ int MRInormInit(
   VOL_GEOM *dst = 0;  // just a reference pointer (no need to free)
   VOL_GEOM *src = 0;  // just a reference pointer (no need to free)
   int row;
+#endif
 
   if (wsize <= 0) {
     wsize = nint(DEFAULT_WINDOW_SIZE / mri->ysize);

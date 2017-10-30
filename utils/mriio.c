@@ -11251,8 +11251,10 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
   // tag reading
   if (getenv("FS_SKIP_TAGS") == NULL) {
     long long len;
+#if !defined(BEVIN_EXCLUDE_MINC)
     char *fnamedir;
     char tmpstr[1000];
+#endif
 
     while (1) {
       tag = znzTAGreadStart(fp, &len);
