@@ -107,6 +107,8 @@ public:
 
   void BuildCurvatureLUT( vtkRGBAColorTransferFunction* lut, int nMap );
 
+  void RebuildCurvatureLUT();
+
   int GetCurvatureMap()
   {
     return m_nCurvatureMap;
