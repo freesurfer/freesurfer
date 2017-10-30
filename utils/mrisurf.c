@@ -26745,7 +26745,7 @@ mrisReadAsciiPatchFile(char *fname)
   ------------------------------------------------------*/
 
 #ifndef BEVIN
-#define BEVIN
+#define BEVIN	// TURN ON THE FOLLOWING ALL THE TIME, REMOVE THESE CONDITIONALS ONCE ACCEPTED AND TESTED
 #endif
 
 #ifdef BEVIN
