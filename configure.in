@@ -1316,7 +1316,7 @@ if test "x$MNI_DIR" = "xno"; then
   # which indicates that no MNI libs should be used in the build
   ac_mni_includes=no
   ac_mni_libraries=no
-  MNI_CFLAGS=""
+  MNI_CFLAGS="-DBEVIN_EXCLUDE_MINC"
   MNI_LIBS=""
   MNI_DIR="no" # indicates --without-mni-dir was used
   LIBS_MNI=""

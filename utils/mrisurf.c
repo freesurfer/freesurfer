@@ -439,7 +439,7 @@ static int mrisComputeIntensityTerm(
     MRI_SURFACE *mris, double l_intensity, MRI *mri_brain, MRI *mri_smooth, double sigma, INTEGRATION_PARMS *parms);
 static int mrisComputeTargetLocationTerm(MRI_SURFACE *mris, double l_location, INTEGRATION_PARMS *parms);
 static int mrisComputeIntensityGradientTerm(MRI_SURFACE *mris, double l_grad, MRI *mri_brain, MRI *mri_smooth);
-static int mrisComputeSphereTerm(MRI_SURFACE *mris, double l_sphere, float radius);
+static int mrisComputeSphereTerm(MRI_SURFACE *mris, double l_sphere, float radius, int explode_flag);
 static int mrisComputeConvexityTerm(MRI_SURFACE *mris, double l_convex);
 static int mrisComputeExpansionTerm(MRI_SURFACE *mris, double l_expand);
 static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
@@ -3143,6 +3143,167 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
   return (NO_ERROR);
 }
 
+
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  Remove ripped vertices and faces from the v->v and the
+  v->f arrays respectively.
+  ------------------------------------------------------*/
+int MRISremoveRippedFaces(MRI_SURFACE *mris)
+{
+  int    vno, n, fno, *out_faces, out_fno, nfaces;
+  VERTEX *v;
+  FACE   *face;
+
+  out_faces = (int *)calloc(mris->nfaces, sizeof(int)) ;
+  nfaces = mris->nfaces ;
+  for (out_fno = fno = 0; fno < mris->nfaces; fno++) 
+  {
+    face = &mris->faces[fno];
+    if (fno == Gdiag_no)
+      DiagBreak() ;
+    if (face->ripflag) 
+    {
+      out_faces[fno] = -1 ;
+      nfaces-- ;
+    }
+    else
+    {
+      out_faces[fno] = out_fno ;
+      if (out_fno == Gdiag_no)
+	DiagBreak() ;
+      if (fno != out_fno)  // at least one compressed out already
+	*(mris->faces+out_fno) = *(mris->faces+fno) ;   // should free memory here
+      out_fno++ ;
+    }
+  }
+
+  mris->nfaces = nfaces ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    int num ;
+    v = &mris->vertices[vno] ;
+    num = v->num ; v->num = 0 ;
+    for (n = 0 ; n < num ; n++)
+    {
+      int fno = out_faces[v->f[n]] ;
+      if (fno == Gdiag_no)
+	DiagBreak() ;
+      if (fno < 0 || mris->faces[fno].ripflag == 1)
+	continue ;
+
+      v->f[v->num++] = out_faces[v->f[n]] ;
+    }
+  }
+
+  free(out_faces) ;
+
+  /* now recompute total original area for scaling */
+  mris->orig_area = 0.0f;
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    face = &mris->faces[fno];
+    if (face->ripflag) {
+      continue;
+    }
+    mris->orig_area += face->orig_area;
+  }
+  return (NO_ERROR);
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  Remove ripped vertices and faces from the v->v and the
+  v->f arrays respectively.
+  ------------------------------------------------------*/
+int MRISremoveRippedVertices(MRI_SURFACE *mris)
+{
+  int    vno, n, fno, *out_vnos, out_vno, nvertices;
+  VERTEX *v;
+  FACE   *face;
+
+  out_vnos = (int *)calloc(mris->nvertices, sizeof(int)) ;
+  nvertices = mris->nvertices ;
+  for (out_vno = vno = 0; vno < mris->nvertices; vno++) 
+  {
+    v = &mris->vertices[vno];
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    if (v->ripflag) 
+    {
+      nvertices-- ;
+      out_vnos[vno] = -1 ;  // mark it as ripped - fixes boundary condition when coming to end of array
+    }
+    else
+    {
+      if (out_vno == Gdiag_no)
+	DiagBreak() ;
+      out_vnos[vno] = out_vno ;
+      if (vno != out_vno)  // at least one compressed out already
+	*(mris->vertices+out_vno) = *(mris->vertices+vno) ;
+      out_vno++ ;
+    }
+  }
+  mris->nvertices = nvertices ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    int vnum, v2num, v3num ;
+
+    v = &mris->vertices[vno] ;
+    vnum = v->vnum ; v2num = v->v2num ; v3num = v->v3num ;
+    v->v3num = v->v2num = v->vnum = 0 ;
+    for (n = 0 ; n < v->vtotal ; n++)
+    {
+      int vno2 = v->v[n] ;
+      if (vno2 < 0 || mris->vertices[vno2].ripflag == 1)
+	continue ;
+
+      v->v[v->v3num++] = out_vnos[v->v[n]] ;
+      if (n < v2num)
+	v->v2num++ ;
+      if (n < vnum)
+	v->vnum++ ;
+    }
+    switch (mris->nsize) {
+    default:
+    case 1:
+      v->vtotal = v->vnum;
+      break;
+    case 2:
+      v->vtotal = v->v2num;
+      break;
+    case 3:
+      v->vtotal = v->v3num;
+      break;
+    }
+  }
+
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+      face->v[n] = out_vnos[face->v[n]] ;
+  }
+
+  free(out_vnos) ;
+
+  /* now recompute total original area for scaling */
+  mris->orig_area = 0.0f;
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    face = &mris->faces[fno];
+    if (face->ripflag) {
+      continue;
+    }
+    mris->orig_area += face->orig_area;
+  }
+  return (NO_ERROR);
+}
 /*-----------------------------------------------------
   Parameters:
 
@@ -3166,6 +3327,8 @@ int MRISremoveRipped(MRI_SURFACE *mris)
     // go through all vertices
     for (vno = 0; vno < mris->nvertices; vno++) {
       v = &mris->vertices[vno];
+      if (vno == Gdiag_no)
+	DiagBreak() ;
       // if rip flag set
       if (v->ripflag) {
 // remove it
@@ -3274,7 +3437,7 @@ int MRISremoveRipped(MRI_SURFACE *mris)
         vn = &mris->vertices[vno2];
         for (n2 = 0; n2 < vn->vnum; n2++)  // 1-nbrs of the central node
         {
-          vn2 = &mris->vertices[v->v[n2]];
+          vn2 = &mris->vertices[vn->v[n2]];
           for (n3 = 0; remove && n3 < vn2->vnum; n3++)  // 1 nbrs of nbr
             if (vn2->v[n3] == vno2) {
               remove = 0;  // they still share a 1-nbr, keep it
@@ -3319,7 +3482,7 @@ int MRISremoveRipped(MRI_SURFACE *mris)
         vn = &mris->vertices[vno2];
         for (n2 = vn->vnum; n2 < vn->v2num; n2++)  // 2-nbrs of the central node
         {
-          vn2 = &mris->vertices[v->v[n2]];
+          vn2 = &mris->vertices[vn->v[n2]];
           for (n3 = 0; remove && n3 < vn2->vnum; n3++)  // 1 nbrs of nbr
             if (vn2->v[n3] == vno2) {
               remove = 0;  // they still share a 1- or 2-nbr, keep it
@@ -3374,15 +3537,44 @@ int MRISremoveRipped(MRI_SURFACE *mris)
     }
   } while (nripped > 0);
 
-  /* now recompute total original area for scaling */
-  mris->orig_area = 0.0f;
-  for (fno = 0; fno < mris->nfaces; fno++) {
-    face = &mris->faces[fno];
-    if (face->ripflag) {
-      continue;
+  // rip all faces that each ripped vertex is part of
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+    {
+      for (n = 0 ; n < v->num ; n++)
+      {
+	int  n2, fno ;
+	FACE *face ;
+
+	fno = v->f[n] ;
+	if (fno == Gdiag_no)
+	  DiagBreak() ;
+	face = &mris->faces[fno] ;
+	face->ripflag = 1 ;
+	// find the other vertices that have this face in their
+	// face list and remove it
+	for (n2 = 0 ; n2 < VERTICES_PER_FACE ; n2++)
+	  if (face->v[n2] != vno)
+	  {
+	    int n3 ;
+
+	    VERTEX *vn = &mris->vertices[face->v[n2]] ;
+	    for (n3 = 0 ; n3 < vn->num ; n3++)
+	      if (vn->f[n3] == fno)  // found the ripped face - remove it
+	      {
+		memmove(vn->f+n3, vn->f+n3+1, (vn->num-n3-1) * sizeof(*(vn->f)));
+		memmove(vn->n+n3, vn->n+n3+1, (vn->num-n3-1) * sizeof(*(vn->n)));
+		vn->num-- ;
+		n3-- ;
+	      }
+	  }
+      }
     }
-    mris->orig_area += face->orig_area;
   }
+  mrisCheckSurface(mris) ;
+//  mrisCheckSurfaceNbrs(mris) ;
   return (NO_ERROR);
 }
 
@@ -11613,7 +11805,7 @@ MRI_SURFACE *MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float 
   for (k = 0; k < mris_dst->nvertices; k++) {
     v = &mris_dst->vertices[k];
     if (v->ripflag) {
-      continue;
+//      continue;
     }
     if (v->x > xhi) {
       xhi = v->x;
@@ -11642,7 +11834,7 @@ MRI_SURFACE *MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float 
   for (k = 0; k < mris_dst->nvertices; k++) {
     v = &mris_dst->vertices[k];
     if (v->ripflag) {
-      continue;
+//      continue;
     }
     v->x = (v->x - x0) * scale + x0;
     v->y = (v->y - y0) * scale + y0;
@@ -11673,7 +11865,7 @@ MRI_SURFACE *MRISscaleBrain(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float 
   for (k = 0; k < mris_dst->nvertices; k++) {
     v = &mris_dst->vertices[k];
     if (v->ripflag) {
-      continue;
+//      continue;
     }
     if (v->x > xhi) {
       xhi = v->x;
@@ -15579,7 +15771,7 @@ static int mrisRemoveLink(MRI_SURFACE *mris, int vno1, int vno2)
       {
         face->ripflag = 1;
       }
-    if (face->ripflag) {
+    if (face->ripflag  >= 2) {
       mrisRemoveFace(mris, v1->f[fno]);
     }
   }
@@ -16847,6 +17039,106 @@ double MRISaverageCanonicalRadius(MRI_SURFACE *mris)
 
   Description
   ------------------------------------------------------*/
+#define EXPLODE_ITER 1
+static int
+mrisTearStressedRegions(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) 
+{
+  int    vno, nrip = 0 ;
+  double max_stress = 0 ;
+  static int ncalls = 0 ;
+  ncalls++ ;
+
+  MRISsaveVertexPositions(mris, TMP_VERTICES);
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    VERTEX *v ;
+
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      nrip++ ;
+    v->oripflag = v->ripflag ;
+  }
+//  printf("starting with %d of %d ripped\n", nrip, mris->nvertices) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    VERTEX *v ;
+
+    v = &mris->vertices[vno] ;
+
+    if (!v->oripflag)
+    {
+      double x, y, z, nx, ny, nz, sd, sx, sy, sz, dx, dy, dz, stress ;
+      int    n, m ;
+
+      x = v->tx;  y = v->ty; z = v->tz;
+      nx = v->nx;  ny = v->ny; nz = v->nz;
+      sx=sy=sz=sd=0;
+      n=0;
+      for (m = 0 ; m < v->vnum ; m++)
+	if (!mris->vertices[v->v[m]].oripflag)
+          {
+	    double d ;
+            sx += dx = mris->vertices[v->v[m]].tx - x;
+            sy += dy = mris->vertices[v->v[m]].ty - y;
+            sz += dz = mris->vertices[v->v[m]].tz - z;
+            d = sqrt(dx*dx+dy*dy+dz*dz);
+	    sd += d ;
+#if 0
+	    d = sqrt(d) ;
+	    if (d> max_stress)
+	      max_stress = d ;
+	    if (d > parms->stressthresh && parms->explode_flag && ncalls>EXPLODE_ITER)
+	    {
+	      nrip++ ;
+	      mrisRemoveLink(mris, vno, v->v[m]);
+	      mris->patch = 1 ;
+	    }
+#endif	      
+            n++;
+          }
+        if (n>0)
+        {
+          sx = sx/n;
+          sy = sy/n;
+          sz = sz/n;
+          sd = sd/n;
+          stress = sd;
+#if 1
+	  if (stress > max_stress)
+	    max_stress = stress ;
+          if (parms->explode_flag && stress>=parms->stressthresh)
+          {
+            nrip++;
+	    mris->patch = 1 ;
+//            v->ripflag = TRUE;
+	    for (m = 0 ; m < v->vnum ; m++)
+	      mrisRemoveLink(mris, vno, v->v[m]);
+          }
+#endif
+	}
+    }
+  }
+
+  MRISremoveRipped(mris) ;
+  printf("max stress = %2.2f, nrip = %d, nv = %d, nf = %d\n", max_stress, nrip, mris->nvertices, mris->nfaces) ;
+  if (ncalls == EXPLODE_ITER && parms->stressthresh < 0)
+  {
+    parms->stressthresh = max_stress ;
+    printf("!!!!!!!!! setting thresh flag to %2.2f\n", parms->stressthresh) ;
+  }
+  if (ncalls >= EXPLODE_ITER)
+  {
+    int eno, nvertices, nfaces, nedges ;
+
+    eno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    fprintf(stdout, "euler # = v-e+f = 2g-2: %d - %d + %d = %d --> %d holes\n",
+            nvertices, nedges, nfaces, eno, 2-eno) ;
+    if (nedges < 300000)
+      DiagBreak() ;
+  }
+  return(NO_ERROR) ;
+}
 int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   int n_averages, n, write_iterations, niterations;
@@ -16857,6 +17149,44 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   if (IS_QUADRANGULAR(mris)) {
     MRISremoveTriangleLinks(mris);
   }
+
+#if 0
+  {
+    FACE *face ;
+    int eno, nvertices, nfaces, nedges, v0, v1, v2 ;
+
+    
+    eno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    fprintf(stdout, "euler # = v-e+f = 2g-2: %d - %d + %d = %d --> %d holes\n",
+            nvertices, nedges, nfaces, eno, 2-eno) ;
+    face = &mris->faces[0] ;
+
+    v0 = face->v[0] ;
+    v1 = face->v[1] ;
+    v2 = face->v[2] ;
+    mrisRemoveLink(mris, v0, v1) ;
+    MRISremoveRipped(mris) ;
+    eno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    fprintf(stdout, "after removing %d --> %d, euler # = v-e+f = 2g-2: %d - %d + %d = %d --> %d holes\n",
+            v0, v1, nvertices, nedges, nfaces, eno, 2-eno) ;
+    mrisRemoveLink(mris, v0, v2) ;
+    eno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    fprintf(stdout, "after removing %d --> %d, euler # = v-e+f = 2g-2: %d - %d + %d = %d --> %d holes\n",
+            v0, v2, nvertices, nedges, nfaces, eno, 2-eno) ;
+    MRISremoveRipped(mris) ;
+    eno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    fprintf(stdout, "after removing %d --> %d, euler # = v-e+f = 2g-2: %d - %d + %d = %d --> %d holes\n",
+            v0, v2, nvertices, nedges, nfaces, eno, 2-eno) ;
+
+    mrisRemoveLink(mris, v1, v2) ;
+    MRISremoveRipped(mris) ;
+    eno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+    fprintf(stdout, "after removing %d --> %d, euler # = v-e+f = 2g-2: %d - %d + %d = %d --> %d holes\n",
+            v1, v2, nvertices, nedges, nfaces, eno, 2-eno) ;
+    DiagBreak() ;
+  }
+#endif
+
   if (Gdiag & DIAG_WRITE) {
     char fname[STRLEN];
 
@@ -16906,9 +17236,24 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   for (n_averages = parms->n_averages; n_averages >= 0; n_averages /= 2) {
     parms->l_dist = l_dist * sqrt(n_averages);
     for (n = parms->start_t; n < parms->start_t + niterations; n++) {
+      mrisTearStressedRegions(mris, parms)  ;
+      if (parms->explode_flag)
+      {
+	MRISremoveRippedFaces(mris) ;
+	MRISremoveRippedVertices(mris) ;
+      }
+  
+#if 0
+      {
+	MRI_SURFACE *mris_tmp ;
+	mris_tmp = MRISremoveRippedSurfaceElements(mris) ;
+	MRISfree(&mris) ;
+	mris = mris_tmp ;
+      }
+#endif
       MRISclearGradient(mris);
       mrisComputeDistanceTerm(mris, parms);
-      mrisComputeSphereTerm(mris, parms->l_sphere, parms->a);
+      mrisComputeSphereTerm(mris, parms->l_sphere, parms->a, parms->explode_flag);
       mrisComputeExpansionTerm(mris, parms->l_expand);
 
       MRISaverageGradients(mris, n_averages);
@@ -16969,10 +17314,13 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         MRIScomputeMetricProperties(mris);
         printf(
             "rescaling brain to retain original "
-            "surface area %2.0f (%2.2f)\n",
+            "surface area %2.0f (%2.2f), current %2.1f\n",
             mris->orig_area,
-            sqrt(mris->orig_area / (mris->total_area + mris->neg_area)));
+            sqrt(mris->orig_area / (mris->total_area + mris->neg_area)), mris->total_area);
         MRISscaleBrainArea(mris);
+        MRIScomputeMetricProperties(mris);
+//	printf("after rescaling, surface area %2.1f\n", mris->total_area);
+	MRISprintTessellationStats(mris, stderr);
       }
       if ((parms->write_iterations > 0) && !((n + 1) % write_iterations) && (Gdiag & DIAG_WRITE)) {
         mrisWriteSnapshot(mris, parms, n + 1);
@@ -17089,7 +17437,7 @@ int MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         mht_v_current = MHTfillVertexTableRes(mris, mht_v_current, CURRENT_VERTICES, 3.0f);
       MRISclearGradient(mris);
       mrisComputeDistanceTerm(mris, parms);
-      mrisComputeSphereTerm(mris, parms->l_sphere, parms->a);
+      mrisComputeSphereTerm(mris, parms->l_sphere, parms->a, parms->explode_flag);
       mrisComputeExpansionTerm(mris, parms->l_expand);
       mrisComputeRepulsiveRatioTerm(mris, parms->l_repulse_ratio, mht_v_current);
       mrisComputeConvexityTerm(mris, parms->l_convex);
@@ -19620,7 +19968,7 @@ static int mrisComputeIntensityGradientTerm(MRI_SURFACE *mris, double l_grad, MR
   Description
   Apply a uniform outward expansion force.
   ------------------------------------------------------*/
-static int mrisComputeSphereTerm(MRI_SURFACE *mris, double l_sphere, float radius)
+static int mrisComputeSphereTerm(MRI_SURFACE *mris, double l_sphere, float radius, int explode_flag)
 {
   int vno;
   VERTEX *v;
@@ -19727,6 +20075,9 @@ static int mrisComputeSphereTerm(MRI_SURFACE *mris, double l_sphere, float radiu
     z /= r; /* normal direction */
     //    x = v->nx ; y = v->ny ; z = v->nz ;
     r = (radius - r) / radius;
+    if (explode_flag)
+      r = 1 ;
+
     if (vno == Gdiag_no && (r * l_sphere * x * v->nx + r * l_sphere * y * v->ny + r * l_sphere * z * v->nz < 0)) {
       DiagBreak();
     }
@@ -20975,10 +21326,20 @@ static int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
   }
 #if 1
   if (Gdiag & DIAG_SHOW) {
-    fprintf(stdout, "writing %s...", fname);
+    fprintf(stdout, "writing %s", fname);
   }
   if (mris->patch) {
-    MRISwritePatch(mris, fname);
+    char fname2[STRLEN] ;
+    MRISwrite(mris, fname);
+    strcpy(fname2, fname) ;
+    strcat(fname2, ".patch") ;
+    printf("\nwriting patch to %s\n", fname2) ;
+    MRISwritePatch(mris, fname2);
+    strcpy(fname2, fname) ;
+    strcat(fname2, ".curv") ;
+    MRISdToCurv(mris) ;
+    printf("\nwriting curvature to %s\n", fname2) ;
+    MRISwriteCurvature(mris, fname2);
   }
   else {
     if (parms->l_thick_normal > 0 || parms->l_thick_parallel > 0 || parms->l_thick_min > 0 || parms->l_thick_spring) {
@@ -63647,9 +64008,49 @@ static int mrisFindDefectConvexHull(MRI_SURFACE *mris, DEFECT *defect)
   ------------------------------------------------------*/
 static int mrisCheckSurface(MRI_SURFACE *mris)
 {
-  int vno, n, nfaces, m, vno2, nbad, flist[100];
+  int    fno, vno, n, nfaces, m, vno2, nbad, flist[100];
   VERTEX *v;
+  FACE   *f ;
 
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    for (n = 0; n < v->num; n++) 
+      if (v->f[n] >= mris->nfaces)
+	DiagBreak() ;
+    for (n = 0; n < v->vtotal; n++) 
+      if (v->v[n] >= mris->nvertices)
+	DiagBreak() ;
+  }
+
+  for (fno = 0; fno < mris->nfaces; fno++) 
+  {
+    f = &mris->faces[fno];
+    if (f->ripflag)
+      continue ;
+    for (m = 0; m < VERTICES_PER_FACE; m++) 
+    {
+      v = &mris->vertices[f->v[m]];
+      for (n = 0; n < v->num && fno != v->f[n]; n++) 
+      {
+        ;
+      }
+      if (n == v->num) /* face has vertex, but vertex doesn't have face */
+      {
+        printf("mrisCheckSurface: %s: face[%d].v[%d] = %d, "
+                  "but face %d not in vertex %d "
+                  "face list\n",
+                  mris->fname,
+                  fno,
+                  m,
+                  f->v[m],
+                  fno,
+                  f->v[m]);
+	DiagBreak() ;
+      }
+    }
+  }
+  return(NO_ERROR) ;
   /*  fprintf(stdout, "\n") ;*/
   for (nbad = vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
@@ -63673,7 +64074,7 @@ static int mrisCheckSurface(MRI_SURFACE *mris)
           nfaces++;
         }
       }
-      if (nfaces != 2) {
+      if (((mris->patch == 0) && (nfaces != 2)) || (mris->patch && (nfaces < 1 || nfaces > 2))) {
         int i;
 
         nbad++;

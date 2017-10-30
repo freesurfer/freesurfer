@@ -384,6 +384,7 @@ protected:
   void CommandSaveLayer         ( const QStringList& cmd );
   void CommandSetTrackColor     ( const QStringList& cmd );
   void CommandSetTrackRender    ( const QStringList& cmd );
+  void CommandLoadTractCluster  ( const QStringList& cmd );
 
 public:
   void CommandSetCamera         ( const QStringList& cmd );

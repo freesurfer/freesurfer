@@ -120,11 +120,7 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
                   int *px, int *py, int *pz)
 {
   int       x, y, z, which, depth, frame, xi, yi, zi, xk, yk, zk ;
-#if !defined(BEVIN_EXCLUDE_MINC)
-  double    xr, yr, zr, xt, yt, zt, xv, yv, zv, xtv, ytv, ztv ;
-#else
-  double    xr, yr, zr, xv, yv, zv ;
-#endif
+  double    xr, yr, zr, xt=0.0, yt=0.0, zt=0.0, xv, yv, zv, xtv=0.0, ytv=0.0, ztv=0.0 ;
   float     xf, yf, zf, xft, yft, zft ;
   MRI       *mri ;
   char      fname[100] ;

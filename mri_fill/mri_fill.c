@@ -13,7 +13,7 @@
  *    $Date: 2011/10/25 14:09:58 $
  *    $Revision: 1.119 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -2017,7 +2017,6 @@ main(int argc, char *argv[])
   MRI *mri_talheader;
   LT *lt;
   MATRIX *m_L;
-  int row;
   VOL_GEOM *dst=0;
   VOL_GEOM *src=0;
   char cmdline[CMD_LINE_LEN] ;
@@ -2228,6 +2227,7 @@ main(int argc, char *argv[])
 #if !defined(BEVIN_EXCLUDE_MINC)
     if (mri_im->linear_transform)
     {
+      int row;
       // linear_transform is zero based column-major array
       for (row = 1 ; row <= 3 ; row++)
       {

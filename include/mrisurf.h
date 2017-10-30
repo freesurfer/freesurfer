@@ -645,6 +645,8 @@ typedef struct
   MRI          *mri_dtrans ;   // distance to surface
   float        resolution ;  // at which to compute distance transforms and such
   double       target_intensity ;
+  double       stressthresh ;
+  int          explode_flag ;
 }
 INTEGRATION_PARMS ;
 
@@ -1313,6 +1315,8 @@ int  MRISsetAllMarks(MRI_SURFACE *mris, int mark) ;
 int  MRISscaleCurvature(MRI_SURFACE *mris, float scale) ;
 int  MRISwriteTriangularSurface(MRI_SURFACE *mris,const char *fname) ;
 int  MRISripFaces(MRI_SURFACE *mris) ;
+int  MRISremoveRippedFaces(MRI_SURFACE *mris) ;
+int  MRISremoveRippedVertices(MRI_SURFACE *mris);
 int  MRISremoveRipped(MRI_SURFACE *mris) ;
 int  MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname) ;
 int  MRISsmoothSurfaceNormals(MRI_SURFACE *mris, int niter) ;

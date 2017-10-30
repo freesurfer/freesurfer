@@ -12,7 +12,7 @@
  *    $Date: 2016/10/14 19:13:08 $
  *    $Revision: 1.425 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -11251,10 +11251,6 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
   // tag reading
   if (getenv("FS_SKIP_TAGS") == NULL) {
     long long len;
-#if !defined(BEVIN_EXCLUDE_MINC)
-    char *fnamedir;
-    char tmpstr[1000];
-#endif
 
     while (1) {
       tag = znzTAGreadStart(fp, &len);
@@ -11277,10 +11273,13 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
           break;
 
         case TAG_OLD_MGH_XFORM:
-        case TAG_MGH_XFORM:
+        case TAG_MGH_XFORM: {
 #if defined(BEVIN_EXCLUDE_MINC)
 	  ErrorPrintf(ERROR_BAD_FILE, "talairach xform files not supported\n");
 #else
+          char *fnamedir;
+          char tmpstr[1000];
+
           // First, try a path relative to fname (not the abs path)
           fnamedir = fio_dirname(fname);
           sprintf(tmpstr, "%s/transforms/talairach.xfm", fnamedir);
@@ -11308,7 +11307,7 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
           }
 #endif
           break;
-
+        }
         case TAG_CMDLINE:
           if (mri->ncmds >= MAX_CMDS)
             ErrorExit(ERROR_NOMEMORY, "mghRead(%s): too many commands (%d) in file", fname, mri->ncmds);
