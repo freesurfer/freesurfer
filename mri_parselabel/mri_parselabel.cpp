@@ -147,8 +147,8 @@ static int get_option(int argc, char *argv[]) ;
 MRI *erodeRegion(MRI *mri, MRI *cur, unsigned char val);
 int selectAddedRegion(MRI *mri, MRI *orig, unsigned char val);
 
-int (*voxToRAS)(MRI *mri, Real x, Real y, Real z, Real *xs, Real *ys, Real *zs);
-int (*rasToVox)(MRI *mri, Real x, Real y, Real z, Real *xs, Real *ys, Real *zs);
+int (*voxToRAS)(MRI *mri, double x, double y, double z, double *xs, double *ys, double *zs);
+int (*rasToVox)(MRI *mri, double x, double y, double z, double *xs, double *ys, double *zs);
 
 #define V4_LOAD(v, x, y, z, r)  (VECTOR_ELT(v,1)=x, VECTOR_ELT(v,2)=y, \
                                   VECTOR_ELT(v,3)=z, VECTOR_ELT(v,4)=r) ;
@@ -366,7 +366,7 @@ int main(int argc, char *argv[]) {
   MRIcopyHeader(mriIn, mriOut);
 
   // set voxToRAS and rasToVox transform function
-  Real xv, yv, zv;
+  double xv, yv, zv;
   if (useRealRAS) {
     voxToRAS = MRIvoxelToWorld;
     rasToVox = MRIworldToVoxel;
@@ -403,7 +403,7 @@ int main(int argc, char *argv[]) {
             int x = nint(xv) + x0;
             int y = nint(yv) + y0;
             int z = nint(zv) + z0;
-            Real xr, yr, zr;
+            double xr, yr, zr;
             // go back to RAS to see whether the point is close enough
             voxToRAS(mriIn, x, y, z, &xr, &yr, &zr);
             // if the difference is 1/2 voxel size mm then equal
@@ -454,7 +454,7 @@ int main(int argc, char *argv[]) {
     int addedcount=0;
     int totcount = 0;
     int percentage = 0;
-    Real xl, yl, zl;
+    double xl, yl, zl;
     for (int z = 0; z < mriOut->depth; z++) {
       for (int y = 0; y < mriOut->height; y++) {
         for (int x = 0; x < mriOut->width; x++) {

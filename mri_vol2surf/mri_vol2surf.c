@@ -1608,7 +1608,7 @@ MRI *MRIvol2surf(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
   float frow, fcol, fslc; /* float row, col, slc in source */
   float srcval, *valvect, rshift;
   int frm, vtx,nhits, err;
-  Real rval;
+  double rval;
   float Tx, Ty, Tz;
 
   if(vsm){
@@ -1749,7 +1749,7 @@ estimate_gm_values(MRI *mri_wm, MRI *mri_gm, MRI *mri_csf,
   int frm, FreeQsrc=0;
   int vtx,nhits;
   float *valvect;
-  Real rval;
+  double rval;
   int  ProjDistFlag = 1, nskip = 1 ;
   float ProjFrac = 0.5 ;
 

@@ -92,6 +92,11 @@ void LayerPropertySurface::SetColorMapChanged()
   emit ColorMapChanged();
 }
 
+void LayerPropertySurface::RebuildCurvatureLUT()
+{
+  SetColorMapChanged();
+}
+
 QVariantMap LayerPropertySurface::GetFullSettings()
 {
   QVariantMap map;

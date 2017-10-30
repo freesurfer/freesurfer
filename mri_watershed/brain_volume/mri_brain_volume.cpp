@@ -288,10 +288,10 @@ void MRISchangeCoordinates(MRI_SURFACE *mris,MRI_SURFACE *mris_orig);
 /*mri->type correction*/
 
 // declare function pointer
-int  (*MyvoxelToWorld)(MRI *mri, Real xv, Real yv, Real zv,
-                       Real *xw, Real *yw, Real *zw) ;
-int  (*MyworldToVoxel)(MRI *mri, Real xw, Real yw, Real zw,
-                       Real *pxv, Real *pyv, Real *pzv) ;
+int  (*MyvoxelToWorld)(MRI *mri, double xv, double yv, double zv,
+                       double *xw, double *yw, double *zw) ;
+int  (*MyworldToVoxel)(MRI *mri, double xw, double yw, double zw,
+                       double *pxv, double *pyv, double *pzv) ;
 
 void getTimeString(char *buf) {
   time_t t;

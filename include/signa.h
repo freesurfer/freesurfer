@@ -196,9 +196,9 @@
 #define IHDR_WINDOW     143  /* Default Window*/
 #define IHDR_LEVEL      144  /* Default Level*/
 #define IHDR_IFBLKS     145  /* Number of Blocks in File*/
-#define IHDR_NEX        146  /* Number of excitations (Real .*/
-#define IHDR_PSAR       148  /* Value of peak SAR (Real .*/
-#define IHDR_ASAR       150  /* Value of average SAR (Real .*/
+#define IHDR_NEX        146  /* Number of excitations - real*/
+#define IHDR_PSAR       148  /* Value of peak SAR - real*/
+#define IHDR_ASAR       150  /* Value of average SAR - real*/
 #define IHDR_MONITOR    152  /* SAR monitored ?*/
 #define IHDR_CONTIG     153  /* Contiguous slices ?*/
 #define IHDR_HRT_RT     154  /* Cardiac Heart Rate*/

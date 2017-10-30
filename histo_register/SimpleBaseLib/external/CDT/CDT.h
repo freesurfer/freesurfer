@@ -120,27 +120,27 @@ inline Llist::~Llist()
 #define Y 1
 #define Z 2
 
-typedef double Real;
+typedef double CDT_real;
 typedef bool Boolean;
 
 class Vector2d {
 public:
-	Real x, y;
+	CDT_real x, y;
 	void *tag;
 	Vector2d()				{ x = 0; y = 0; tag = 0; }
-	Vector2d(Real a, Real b)		{ x = a; y = b; tag = 0; }
-	Vector2d(Real a, Real b, void *t)	{ x = a; y = b; tag = t; }
+	Vector2d(CDT_real a, CDT_real b)		{ x = a; y = b; tag = 0; }
+	Vector2d(CDT_real a, CDT_real b, void *t)	{ x = a; y = b; tag = t; }
 	Vector2d(const Vector2d &v)		{ x = v.x; y = v.y; tag = v.tag; }
-	Real& operator[](int i)			{ return ((Real *)this)[i]; }
-	const Real& operator[](int i) const	{ return ((Real *)this)[i]; }
-	Real norm() const;
+	CDT_real& operator[](int i)			{ return ((CDT_real *)this)[i]; }
+	const CDT_real& operator[](int i) const	{ return ((CDT_real *)this)[i]; }
+	CDT_real norm() const;
 	void normalize();
 	bool operator==(const Vector2d&) const;
 	Vector2d operator+(const Vector2d&) const;
 	Vector2d operator-(const Vector2d&) const;
-	Real     operator|(const Vector2d&) const;
-	friend Vector2d operator*(Real, const Vector2d&);
-	friend Vector2d operator/(const Vector2d&, Real);
+	CDT_real     operator|(const Vector2d&) const;
+	friend Vector2d operator*(CDT_real, const Vector2d&);
+	friend Vector2d operator/(const Vector2d&, CDT_real);
 //	friend istream& operator>>(istream&, Vector2d&);
 //	friend ostream& operator<<(ostream&, const Vector2d&);
 };
@@ -152,23 +152,23 @@ public:
 	Line()	{}
 	Line(const Point2d&, const Point2d&);
 	void set(const Point2d&, const Point2d&);
-	Real eval(const Point2d&) const;
+	CDT_real eval(const Point2d&) const;
 	int classify(const Point2d&) const;
 	Point2d intersect(const Point2d&, const Point2d&) const;
 private:
-	Real a, b, c;
+	CDT_real a, b, c;
 };
 
 // Vector2d:
 
-inline Real Vector2d::norm() const
+inline CDT_real Vector2d::norm() const
 {
 	return sqrt(x * x + y * y);
 }
 
 inline void Vector2d::normalize()
 {
-	Real len;
+	CDT_real len;
 
 	if ((len = sqrt(x * x + y * y)) == 0.0)
 		printf( "Vector2d::normalize: Division by 0\n" );
@@ -193,17 +193,17 @@ inline bool Vector2d::operator==(const Vector2d& v) const
 	return (*this - v).norm() <= EPS;
 }
 
-inline Real Vector2d::operator|(const Vector2d& v) const
+inline CDT_real Vector2d::operator|(const Vector2d& v) const
 {
 	return x * v.x + y * v.y;
 }
 
-inline Vector2d operator*(Real c, const Vector2d& v)
+inline Vector2d operator*(CDT_real c, const Vector2d& v)
 {
 	return Vector2d(c * v.x, c * v.y);
 }
 
-inline Vector2d operator/(const Vector2d& v, Real c)
+inline Vector2d operator/(const Vector2d& v, CDT_real c)
 {
 	return Vector2d(v.x / c, v.y / c);
 }
@@ -215,7 +215,7 @@ inline Line::Line(const Point2d& p, const Point2d& q)
 // points p and q.
 {
 	Vector2d t = q - p;
-	Real len = t.norm();
+	CDT_real len = t.norm();
 
 	a =   t.y / len;
 	b = - t.x / len;
@@ -230,7 +230,7 @@ inline void Line::set(const Point2d& p, const Point2d& q)
 	*this = Line(p, q);
 }
 
-inline Real Line::eval(const Point2d& p) const
+inline CDT_real Line::eval(const Point2d& p) const
 // Plugs point p into the line equation.
 {
 	return (a * p.x + b* p.y + c);
@@ -241,7 +241,7 @@ inline Point2d Line::intersect(const Point2d& p1, const Point2d& p2) const
 {
         // assumes that segment (p1,p2) crosses the line
         Vector2d d = p2 - p1;
-        Real t = - eval(p1) / (a*d[X] + b*d[Y]);
+        CDT_real t = - eval(p1) / (a*d[X] + b*d[Y]);
         return (p1 + t*d);
 }
 
@@ -249,7 +249,7 @@ inline int Line::classify(const Point2d& p) const
 // Returns -1, 0, or 1, if p is to the left of, on,
 // or right of the line, respectively.
 {
-	Real d = eval(p);
+	CDT_real d = eval(p);
 	return (d < -EPS) ? -1 : (d > EPS ? 1 : 0);
 }
 
@@ -257,7 +257,7 @@ inline Boolean operator==(const Point2d& point, const Line& line)
 // Returns TRUE if point is on the line (actually, on the EPS-slab
 // around the line).
 {
-	Real tmp = line.eval(point);
+	CDT_real tmp = line.eval(point);
 	return(fabs(tmp) <= EPS);
 }
 
@@ -355,7 +355,7 @@ class Mesh {
 	Mesh(const Point2d&, const Point2d&, const Point2d&, const Point2d&);
 	Edge *MakeEdge(Boolean);
 	Edge *MakeEdge(Point2d*, Point2d*, Boolean);
-	Edge *InsertSite(const Point2d&, Real dist = EPS);
+	Edge *InsertSite(const Point2d&, CDT_real dist = EPS);
 	void InsertEdge(const Point2d&, const Point2d&);
 	int  numEdges() const	{ return edges.length(); }
 	void Draw() const;

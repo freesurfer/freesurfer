@@ -12,7 +12,7 @@
  *    $Date: 2016/10/14 19:13:08 $
  *    $Revision: 1.425 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -116,8 +116,10 @@ static int corWrite(MRI *mri, const char *fname);
 static MRI *siemensRead(const char *fname, int read_volume);
 static MRI *readGCA(const char *fname, int start_frame, int end_frame);
 
+#if !defined(BEVIN_EXCLUDE_MINC)
 static MRI *mincRead(const char *fname, int read_volume);
 static int mincWrite(MRI *mri, const char *fname);
+#endif
 static int bvolumeWrite(MRI *vol, const char *fname_passed, int type);
 // static int bshortWrite(MRI *mri, const char *fname_passed);
 // static int bfloatWrite(MRI *mri, const char *stem);
@@ -687,10 +689,12 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
   else if (type == BRIK_FILE) {
     mri = afniRead(fname_copy, volume_flag);
   }
+#if !defined(BEVIN_EXCLUDE_MINC)
   else if (type == MRI_MINC_FILE) {
     // mri = mincRead2(fname_copy, volume_flag);
     mri = mincRead(fname_copy, volume_flag);
   }
+#endif
   else if (type == SDT_FILE) {
     mri = sdtRead(fname_copy, volume_flag);
   }
@@ -1080,10 +1084,13 @@ int MRIwriteType(MRI *mri, const char *fname, int type)
 
   /* ----- continue file writing... ----- */
 
+#if !defined(BEVIN_EXCLUDE_MINC)
   if (type == MRI_MINC_FILE) {
     error = mincWrite(mri, fname);
   }
-  else if (type == IMAGE_FILE) {
+  else 
+#endif
+  if (type == IMAGE_FILE) {
     IMAGE *image;
     if (mri->depth != 1) ErrorExit(ERROR_BADPARM, "MRIwriteType(%s): image files cannnot have depth > 1\n", fname);
     image = MRItoImage(mri, NULL, 0);
@@ -1304,7 +1311,6 @@ static MRI *corRead(const char *fname, int read_volume)
   float c_r, c_a, c_s;
   char xform[STRLEN];
   long gotten;
-  char xform_use[STRLEN];
   char *cur_char;
   char *last_slash;
 
@@ -1595,6 +1601,10 @@ static MRI *corRead(const char *fname, int read_volume)
   mri->c_s = c_s;
 
   if (strlen(xform) > 0) {
+#if defined(BEVIN_EXCLUDE_MINC)
+    ErrorPrintf(ERROR_BAD_FILE, "code does not support use of talairach transforms\n");
+#else
+    char xform_use[STRLEN];
     if (xform[0] == '/')
       strcpy(mri->transform_fname, xform);
     else
@@ -1625,6 +1635,7 @@ static MRI *corRead(const char *fname, int read_volume)
         (mri->transform_fname)[0] = '\0';
       }
     }
+#endif
   }
 
   if (!read_volume) return (mri);
@@ -2218,6 +2229,7 @@ static MRI *siemensRead(const char *fname, int read_volume_flag)
 
 } /* end siemensRead() */
 /*-----------------------------------------------------------*/
+#if !defined(BEVIN_EXCLUDE_MINC)
 static MRI *mincRead(const char *fname, int read_volume)
 {
   // double wx, wy, wz;
@@ -2437,6 +2449,8 @@ static MRI *mincRead(const char *fname, int read_volume)
   return (mri);
 
 } /* end mincRead() */
+#endif
+
 #if 0
 /*-----------------------------------------------------------*/
 static MRI *mincRead2(const char *fname, int read_volume)
@@ -3028,6 +3042,7 @@ static int NormalizeVector(float *v, int n)
 #endif
 /*----------------------------------------------------------*/
 /* time course clean */
+#if !defined(BEVIN_EXCLUDE_MINC)
 static int mincWrite(MRI *mri, const char *fname)
 {
   Volume minc_volume;
@@ -3308,6 +3323,7 @@ static int mincWrite(MRI *mri, const char *fname)
   return (NO_ERROR);
 
 } /* end mincWrite() */
+#endif
 
 /*----------------------------------------------------------------
   bvolumeWrite() - replaces bshortWrite and bfloatWrite.
@@ -11235,8 +11251,6 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
   // tag reading
   if (getenv("FS_SKIP_TAGS") == NULL) {
     long long len;
-    char *fnamedir;
-    char tmpstr[1000];
 
     while (1) {
       tag = znzTAGreadStart(fp, &len);
@@ -11259,7 +11273,13 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
           break;
 
         case TAG_OLD_MGH_XFORM:
-        case TAG_MGH_XFORM:
+        case TAG_MGH_XFORM: {
+#if defined(BEVIN_EXCLUDE_MINC)
+	  ErrorPrintf(ERROR_BAD_FILE, "talairach xform files not supported\n");
+#else
+          char *fnamedir;
+          char tmpstr[1000];
+
           // First, try a path relative to fname (not the abs path)
           fnamedir = fio_dirname(fname);
           sprintf(tmpstr, "%s/transforms/talairach.xfm", fnamedir);
@@ -11285,8 +11305,9 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
               (mri->transform_fname)[0] = '\0';
             }
           }
+#endif
           break;
-
+        }
         case TAG_CMDLINE:
           if (mri->ncmds >= MAX_CMDS)
             ErrorExit(ERROR_NOMEMORY, "mghRead(%s): too many commands (%d) in file", fname, mri->ncmds);
@@ -11877,6 +11898,7 @@ int MRIwriteInfo(MRI *mri, const char *fpref)
   fprintf(fp, "%s %f\n", "tr", mri->tr);
   fprintf(fp, "%s %f\n", "te", mri->te);
   fprintf(fp, "%s %f\n", "ti", mri->ti);
+#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri->linear_transform) {
     char fname[STRLEN];
 
@@ -11897,6 +11919,7 @@ int MRIwriteInfo(MRI *mri, const char *fpref)
     }
 #endif
   }
+#endif
 
   fprintf(fp, "%s %d\n", "ras_good_flag", mri->ras_good_flag);
   fprintf(fp, "%s %f %f %f\n", "x_ras", mri->x_r, mri->x_a, mri->x_s);

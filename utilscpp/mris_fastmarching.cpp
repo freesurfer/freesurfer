@@ -39,8 +39,8 @@
 static MRI_REGION*mriFindLabel(MRI *mri,int label,int offset) {
   MRI_REGION *region;
   int i,j,k,nlabels;
-  Real xmin,ymax,zmin,xmax,ymin,zmax;
-  Real xw,yw,zw;
+  double xmin,ymax,zmin,xmax,ymin,zmax;
+  double xw,yw,zw;
 
   region=(MRI_REGION*)calloc(1,sizeof(MRI_REGION));
 

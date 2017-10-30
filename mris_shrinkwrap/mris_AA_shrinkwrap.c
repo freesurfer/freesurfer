@@ -448,7 +448,7 @@ initialize_surface_position(MRI_SURFACE *mris, MRI *mri_masked, int outside, INT
   MRI    *mri_dilated ;
   int    x, y, z, vno ;
   double x0, y0, z0, radius = 0, dist, num ;
-  Real   xs, ys, zs ;
+  double xs, ys, zs ;
   VERTEX *v ;
 
   if (outside) {
@@ -675,7 +675,7 @@ compute_surface_sse(MRI_SURFACE *mris, MRI *mri, float sample_dist) {
   int       vno, nsamples ;
   VERTEX    *v ;
   float     sse, dist ;
-  Real      val, xw, yw, zw, x, y, z, nx, ny, nz, error ;
+  double    val, xw, yw, zw, x, y, z, nx, ny, nz, error ;
 
   for (nsamples = 0, sse = 0.0, vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
@@ -916,7 +916,7 @@ compute_surface_dist_sse(MRI_SURFACE *mris, MRI *mri) {
   double sse = 0.0 ;
   int    vno ;
   VERTEX *v ;
-  Real   val, error, xw, yw, zw ;
+  double val, error, xw, yw, zw ;
 
   for (vno = 0, sse = 0.0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
@@ -938,7 +938,7 @@ static int
 compute_rigid_gradient(MRI_SURFACE *mris, MRI *mri, double *pdx, double *pdy, double *pdz) {
   int    vno ;
   VERTEX *v ;
-  Real   val, xw, yw, zw, dx, dy, dz, delV, x, y, z, Ix, Iy, Iz, xv, yv, zv ;
+  double val, xw, yw, zw, dx, dy, dz, delV, x, y, z, Ix, Iy, Iz, xv, yv, zv ;
 
   dx = dy = dz = 0.0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++) {

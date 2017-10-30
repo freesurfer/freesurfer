@@ -98,7 +98,7 @@ main(int argc, char *argv[]) {
   MRI           *mri_parc ;
   VERTEX        *v ;
   double        d ;
-  Real          x, y, z, xw, yw, zw ;
+  double        x, y, z, xw, yw, zw ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
@@ -857,7 +857,7 @@ MRIsampleParcellationToSurface(MRI_SURFACE *mris, MRI *mri_parc) {
   float           fmin, fmax, max_count, d ;
   MRIS_HASH_TABLE *mht ;
   VERTEX          *v ;
-  Real            xs, ys, zs, xv, yv, zv, val ;
+  double          xs, ys, zs, xv, yv, zv, val ;
   MRI             *mri_parc_unused ;
 
   mri_parc_unused = MRIcopy(mri_parc, NULL) ;

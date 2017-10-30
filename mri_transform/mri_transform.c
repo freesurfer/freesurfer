@@ -606,7 +606,7 @@ double
 MRIcomputeLinearTransformLabelDist(MRI *mri_src, MATRIX *mA, int label) {
   int    x1, x2, x3, width, height, depth, nvox ;
   VECTOR *v_X, *v_Y ;   /* original and transformed coordinate systems */
-  Real   y1, y2, y3, total_dist, dist ;
+  double y1, y2, y3, total_dist, dist ;
 
   width = mri_src->width ;
   height = mri_src->height ;

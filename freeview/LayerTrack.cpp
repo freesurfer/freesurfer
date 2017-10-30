@@ -166,9 +166,9 @@ void LayerTrack::RebuildActors()
     lines->InsertNextCell(t.nNum);
     if (p->GetColorCode() == LayerPropertyTrack::EmbeddedColor)
     {
-      vals[0] = t.charColor[1];
-      vals[1] = t.charColor[2];
-      vals[2] = t.charColor[3];
+      vals[0] = t.charColor[0];
+      vals[1] = t.charColor[1];
+      vals[2] = t.charColor[2];
     }
     else if (p->GetDirectionScheme() == LayerPropertyTrack::EndPoints)
       VectorToColor(t.fPts, t.fPts + (t.nNum-1)*3, vals, p->GetDirectionMapping());

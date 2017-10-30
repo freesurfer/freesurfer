@@ -11,7 +11,7 @@
  *    $Date: 2011/03/02 00:04:18 $
  *    $Revision: 1.6 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -57,7 +57,7 @@ main(int argc, char *argv[]) {
   int    ac, nargs ;
   int          msec, minutes, seconds ;
   struct timeb start ;
-  MRI    *mri_src, *mri_template, *mri_eq ;
+  MRI    *mri_src, *mri_template ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, "$Id: mri_histo_eq.c,v 1.6 2011/03/02 00:04:18 nicks Exp $", "$Name:  $");
@@ -131,9 +131,15 @@ main(int argc, char *argv[]) {
     MatrixFree(&m_L);
   }
 
+  MRI *mri_eq=NULL;
   if (adaptive_normalize)
+#if !defined(BEVIN_EXCLUDE_MINC)
     mri_eq = MRIadaptiveHistoNormalize(mri_src, NULL, mri_template,
                                        8, 32, 30) ;
+#else
+    ErrorExit(ERROR_BADPARM, "%s: adaptive_normalize not supported",
+                Progname) ;
+#endif
   else
     mri_eq = MRIhistoNormalize(mri_src, NULL, mri_template, 30, 170) ;
   MRIwrite(mri_eq, out_fname) ;

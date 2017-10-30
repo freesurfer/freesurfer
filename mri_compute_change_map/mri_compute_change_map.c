@@ -361,7 +361,7 @@ MRImaskRegisteredPair(MRI *mri1, MRI *mri2, TRANSFORM *transform, MRI *mri_mask)
 {
   int       x1, y1, z1, x2, y2, z2 ;
   float     xf, yf, zf;
-  Real      val ;
+  double    val ;
 
   for (x1 = 0 ; x1 < mri1->width ; x1++)
     for (y1 = 0 ; y1 < mri1->height ; y1++)
@@ -393,7 +393,7 @@ MRIcomputeChangeMap(MRI *mri1, MRI *mri2, TRANSFORM *transform, MRI *mri_change,
   int       x1, y1, z1, nvox ;
   float     x2, y2, z2, val1, min1, max1, min2, max2, min_change, 
     max_change, dif, mask1 ;
-  Real      val2, p, logp, mask2, sigma, mean ;
+  double    val2, p, logp, mask2, sigma, mean ;
   MRI       *mri_dif, *mri_mean, *mri_used, *mri_mask1, *mri_mask2, *mri_big ;
   HISTOGRAM *h, *hs, *hg ;
   MRI       *mri_xformed ;

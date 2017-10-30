@@ -1247,14 +1247,14 @@ MRIScomputeBorderValues_MEF_WHITE(MRI_SURFACE *mris,
                                   float gm_mean[2], float gm_std[2],
                                   double sigma,
                                   float max_thickness, FILE *log_fp) {
-  Real    val30, val5, x, y, z, max_mag_val30, 
+  double  val30, val5, x, y, z, max_mag_val30, 
     max_mag_val5, xw, yw, zw,mag,max_mag, max_mag_dist=0.0f,
     min_val30, min_val5, inward_dist,outward_dist,xw1,yw1,zw1,
     min_val_dist, orig_dist, dx, dy, dz;
-  Real low30, high30, low5, high5;
-  Real previous_mag, next_mag, previous_mag30, 
+  double low30, high30, low5, high5;
+  double previous_mag, next_mag, previous_mag30, 
     previous_mag5, next_mag30, next_mag5;
-  Real mag30, mag5, previous_val30, previous_val5, next_val30;
+  double mag30, mag5, previous_val30, previous_val5, next_val30;
   int     total_vertices, vno, nmissing = 0, 
     nout = 0, nin = 0, nfound = 0,
     nalways_missing = 0, local_max_found, 
@@ -1652,11 +1652,11 @@ MRIScomputeBorderValues_PD_WHITE(MRI_SURFACE *mris,
                                  float PD_gm_mean, float PD_gm_std,
                                  double sigma,
                                  float max_thickness, FILE *log_fp) {
-  Real    val, x, y, z, 
+  double  val, x, y, z, 
     max_mag_val, xw, yw, zw,mag,max_mag, max_mag_dist=0.0f,
     min_val, inward_dist,outward_dist,xw1,yw1,zw1,
     min_val_dist, orig_dist, dx, dy, dz;
-  Real low, high, previous_mag, next_mag, next_val, previous_val;
+  double low, high, previous_mag, next_mag, next_val, previous_val;
   int     total_vertices, vno, nmissing = 0, 
     nout = 0, nin = 0, nfound = 0,
     nalways_missing = 0, local_max_found, 
@@ -2010,13 +2010,13 @@ MRIScomputeBorderValues_MEF_PIAL(MRI_SURFACE *mris,
   //original images, really need to use the membership functions
   //or equivalently, the EM_combined
   //dura may be still low at both flash30 and flash5, but not that low
-  Real  val,  val30, val5, x, y, z, 
+  double  val,  val30, val5, x, y, z, 
     max_mag_val30, max_mag_val5, xw, yw, zw,mag,max_mag, max_mag_dist=0.0f,
     min_val30, min_val5, inward_dist,outward_dist,xw1,yw1,zw1,
     min_val_dist, orig_dist, dx, dy, dz;
-  Real previous_mag, next_mag, 
+  double previous_mag, next_mag, 
     previous_mag30, previous_mag5, next_mag30, next_mag5;
-  Real mag30, mag5, previous_val30, next_val30;
+  double mag30, mag5, previous_val30, next_val30;
   int     total_vertices, vno, 
     nmissing = 0, nout = 0, nin = 0, nfound = 0,
     nalways_missing = 0, local_max_found, 
@@ -2656,11 +2656,11 @@ MRIScomputeBorderValues_PD_PIAL(MRI_SURFACE *mris,
   //original images, really need to use the membership functions
   //or equivalently, the EM_combined
   //dura may be still low at both flash30 and flash5, but not that low
-   Real  val, x, y, z, next_val,
+   double  val, x, y, z, next_val,
      max_mag_val, xw, yw, zw, mag, max_mag, max_mag_dist=0.0f,
     max_PD, inward_dist,outward_dist,xw1,yw1,zw1,
     max_val_dist, orig_dist, dx, dy, dz;
-  Real previous_mag, next_mag, previous_val;
+  double previous_mag, next_mag, previous_val;
   int     total_vertices, vno, was_negative, 
     nmissing = 0, nout = 0, nin = 0, nfound = 0,
     nalways_missing = 0, local_max_found, 
@@ -3038,11 +3038,11 @@ MRIScomputeBorderValues_T1_PIAL(MRI_SURFACE *mris,
   //original images, really need to use the membership functions
   //or equivalently, the EM_combined
   //dura may be still low at both flash30 and flash5, but not that low
-   Real  val, x, y, z, next_val,
+   double  val, x, y, z, next_val,
      max_mag_val, xw, yw, zw, mag, max_mag, max_mag_dist=0.0f,
     max_T1, inward_dist,outward_dist,xw1,yw1,zw1,
     max_val_dist, orig_dist, dx, dy, dz;
-  Real previous_mag, next_mag, previous_val;
+  double previous_mag, next_mag, previous_val;
   int     total_vertices, vno, was_negative, 
     nmissing = 0, nout = 0, nin = 0, nfound = 0,
     nalways_missing = 0, local_max_found, 

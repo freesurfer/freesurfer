@@ -95,7 +95,7 @@ namespace gmm {
       FOM and GMRES, numerical applied mathematics,
       (30) 2-3 (1999) pp191-212.
       
-      @param A Real or complex unsymmetric matrix.
+      @param A real or complex unsymmetric matrix.
       @param x initial guess vector and final result.
       @param b right hand side
       @param M preconditionner

@@ -2319,7 +2319,7 @@ static int
 recompute_labels(MRI *mri, GCA *gca, GCA_SAMPLE *gcas,
                  int nsamples, MATRIX *m_L) {
   int            xp,yp,zp,x, y, z, label, n, i, nchanged = 0 ;
-  Real           val ;
+  double         val ;
   GCA_PRIOR      *gcap ;
   float          log_p ;
   GC1D           *gc ;

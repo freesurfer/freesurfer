@@ -16,7 +16,7 @@
  *    $Date: 2016/12/10 22:57:53 $
  *    $Revision: 1.23 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -1244,7 +1244,7 @@ static float
 check_contrast_direction(MRI_SURFACE *mris,MRI *mri_hires) {
   int     vno, n ;
   VERTEX  *v ;
-  Real    x, y, z, xw, yw, zw, val, mean_inside, mean_outside ;
+  double  x, y, z, xw, yw, zw, val, mean_inside, mean_outside ;
 
   mean_inside = mean_outside = 0.0 ;
   for (n = vno = 0 ; vno < mris->nvertices ; vno++) {
@@ -1299,10 +1299,10 @@ MRIScomputeClassStatistics(MRI_SURFACE *mris,
                            float *pgray_mean, 
                            float *pgray_std) 
 {
-  Real    val, x, y, z, xw, yw, zw ;
+  double  val, x, y, z, xw, yw, zw ;
   int     total_vertices, vno ;
   VERTEX  *v ;
-  Real    mean_white, mean_gray, std_white, std_gray, nsigma, gw_thresh  ;
+  double  mean_white, mean_gray, std_white, std_gray, nsigma, gw_thresh  ;
   FILE    *fpwm, *fpgm ;
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
@@ -1402,7 +1402,7 @@ find_wm(MRI_SURFACE *mris, MRI *mri, MRI *mri_wm)
   MRI       *mri_interior, *mri_ctrl, *mri_kernel ;
   int       vno, x, y, z ;
   VERTEX    *v ;
-  Real      xv, yv, zv, val ;
+  double    xv, yv, zv, val ;
   
   return(NULL) ;
 #define SDIST 0.5
@@ -1433,16 +1433,16 @@ find_wm(MRI_SURFACE *mris, MRI *mri, MRI *mri_wm)
         }
   }
 
-  print("writing 1...\n") ;
+  printf("writing 1...\n") ;
   MRIwrite(mri_interior, "i1.mgz") ;
   MRIbuildVoronoiDiagram(mri, mri_ctrl, mri_interior) ;
-  print("writing 2...\n") ;
+  printf("writing 2...\n") ;
   MRIwrite(mri_interior, "i2.mgz") ;
   MRIwrite(mri_ctrl, "c.mgz") ;
   mri_kernel = MRIgaussian1d(.25/mri->xsize, 0) ;
   mri_wm = MRIconvolveGaussian(mri_interior, NULL, mri_kernel) ;
   //  MRIsoapBubble(mri_interior, mri_ctrl, mri_interior, 5) ;
-  print("writing 3...\n") ;
+  printf("writing 3...\n") ;
   MRIwrite(mri_wm, "i3.mgz") ;
 
   MRIfree(&mri_interior) ; MRIfree(&mri_ctrl) ; MRIfree(&mri_kernel) ;

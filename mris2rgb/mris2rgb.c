@@ -193,7 +193,7 @@ static int soap_bubble_iterations = 0 ;
 static char *output_name = NULL ;
 
 #define MAX_POINTS 100
-static Real x_tpoint[MAX_POINTS], y_tpoint[MAX_POINTS], z_tpoint[MAX_POINTS] ;
+static double x_tpoint[MAX_POINTS], y_tpoint[MAX_POINTS], z_tpoint[MAX_POINTS] ;
 static int num_tpoints = 0 ;
 
 static float phi_spoint[MAX_POINTS], theta_spoint[MAX_POINTS] ;
@@ -798,9 +798,9 @@ get_option(int argc, char *argv[]) {
     if (num_tpoints >= MAX_POINTS)
       ErrorExit(ERROR_NOMEMORY, "%s: too many points defined (%d)\n",
                 Progname, MAX_POINTS+1) ;
-    x_tpoint[num_tpoints] = (Real)atof(argv[2]) ;
-    y_tpoint[num_tpoints] = (Real)atof(argv[3]) ;
-    z_tpoint[num_tpoints] = (Real)atof(argv[4]) ;
+    x_tpoint[num_tpoints] = atof(argv[2]) ;
+    y_tpoint[num_tpoints] = atof(argv[3]) ;
+    z_tpoint[num_tpoints] = atof(argv[4]) ;
     fprintf(stderr, "marking Talairach point (%2.1f, %2.1f, %2.1f)\n",
             (float)x_tpoint[num_tpoints], (float)y_tpoint[num_tpoints],
             (float)z_tpoint[num_tpoints]) ;

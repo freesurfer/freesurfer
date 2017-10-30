@@ -506,7 +506,7 @@ relabel_hypointensities(MRI *mri, MRI *mri_inputs,
   MRIS_HASH_TABLE *mht ;
   VERTEX           *v ;
   float            dx, dy, dz, dot, dist, temp_x, temp_y, temp_z;
-  Real             xw, yw, zw ;
+  double           xw, yw, zw ;
  
   mri_inside = MRIclone(mri, NULL) ;
   MRISeraseOutsideOfSurface(0.5, mri_inside, mris, 128) ;
@@ -1074,7 +1074,7 @@ edit_hippocampal_complex(MRI *mri,
   MRIS_HASH_TABLE *mht ;
   int              x, y, z, label, changed, index, total_changed;
   int              i, vno, yi, dont_use, ystart, ind ;
-  Real             xw, yw, zw, xv, yv, zv ;
+  double           xw, yw, zw, xv, yv, zv ;
   VERTEX           *v ;
   float            dx, dy, dz, dot, dist ;
   MRI              *mri_changed, *mri_above_para, *mri_below_para,\
@@ -1607,7 +1607,7 @@ edit_unknowns(MRI *mri_aseg, MRI *mri)
 {
   int    x, y, z, label, right ;
   double mean_wm, mean_vent ;
-  Real   val ;
+  double val ;
 
   /*  find unknown voxels that border both wm and 
       inf_lat_vent, and change them to one
@@ -1752,7 +1752,7 @@ MRIlabelMean(MRI *mri,
 {
   int    xi, yi, zi, xk, yk, zk, nvox ;
   double mean ;
-  Real   val ;
+  double val ;
 
   mean = 0.0 ;
   nvox = 0 ;
@@ -1789,7 +1789,7 @@ edit_calcarine(MRI *mri, MRI_SURFACE *mris, int right)
   int     vno, changed, label, index, x, y, z ;
   VERTEX  *v ;
   double  d ;
-  Real    xv, yv, zv, xs, ys, zs ;
+  double  xv, yv, zv, xs, ys, zs ;
 
   mri_calc = MRIclone(mri, NULL) ;
 

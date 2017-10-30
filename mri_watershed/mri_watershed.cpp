@@ -443,11 +443,11 @@ void MRIScomputeCloserLabel(STRIP_PARMS *parms,MRI_variables *MRI_var);
 // declare global function pointers
 // initialized at init_parms(). reset when -useSRAS is set
 int (*myWorldToVoxel)(MRI *mri,
-                      Real xw, Real yw, Real zw,
-                      Real *xv, Real *yv, Real *zv);
+                      double xw, double yw, double zw,
+                      double *xv, double *yv, double *zv);
 int (*myVoxelToWorld)(MRI *mri,
-                      Real xv, Real yv, Real zv,
-                      Real *xw, Real *yw, Real *zw);
+                      double xv, double yv, double zv,
+                      double *xw, double *yw, double *zw);
 ///////////////////////////////////////////////////////////////////
 
 #include "mri_watershed.help.xml.h"

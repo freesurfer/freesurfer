@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
   FACE *face;
   VERTEX *vertex;
   double cx, cy, cz;
-  Real  vx, vy, vz;
+  double vx, vy, vz;
 
   MRI *mri_map = NULL;
   int fno, vno0, vno1, vno2;

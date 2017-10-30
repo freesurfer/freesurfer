@@ -13,7 +13,7 @@
  *    $Date: 2016/11/30 15:46:42 $
  *    $Revision: 1.120 $
  *
- * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2017 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -245,6 +245,7 @@ static MRI *mriSplineNormalizeShort(
   }
   return (mri_dst);
 }
+#if !defined(BEVIN_EXCLUDE_MINC)
 /*-----------------------------------------------------
   Parameters:
 
@@ -317,6 +318,7 @@ MRI *MRIadaptiveHistoNormalize(MRI *mri_src, MRI *mri_norm, MRI *mri_template, i
 
   return (mri_norm);
 }
+#endif
 /*-----------------------------------------------------
   Parameters:
 
@@ -406,14 +408,6 @@ int MRInormInit(
   int i, x, y, z, dx, dy, dz, nup, z_offset, nwindows;
   int x0_tal, y0_tal, z0_tal;
   float size_mod;
-  double x0, y0, z0;
-
-  LTA *lta = 0;       // need to be freeed
-  LT *lt;             // just a reference pointer (no need to free)
-  MATRIX *m_L;        // just a reference pointer (no need to free)
-  VOL_GEOM *dst = 0;  // just a reference pointer (no need to free)
-  VOL_GEOM *src = 0;  // just a reference pointer (no need to free)
-  int row;
 
   if (wsize <= 0) {
     wsize = nint(DEFAULT_WINDOW_SIZE / mri->ysize);
@@ -431,7 +425,16 @@ int MRInormInit(
     mni->smooth_sigma = smooth_sigma;
   }
   // look for talairach.xfm
+#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri->inverse_linear_transform) {
+    double x0, y0, z0;
+    LTA *lta = 0;       // need to be freeed
+    LT *lt;             // just a reference pointer (no need to free)
+    MATRIX *m_L;        // just a reference pointer (no need to free)
+    VOL_GEOM *dst = 0;  // just a reference pointer (no need to free)
+    VOL_GEOM *src = 0;  // just a reference pointer (no need to free)
+    int row;
+
     // create lta
     lta = LTAalloc(1, NULL);
     // this will allocate lta->xforms[0].m_L = MatrixIdentity(4, NULL)
@@ -488,6 +491,7 @@ int MRInormInit(
     LTAfree(&lta);
   }
   else /* no Talairach information available */
+#endif
   {
     MRI_REGION bbox;
 

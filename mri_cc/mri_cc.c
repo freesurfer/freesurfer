@@ -44,7 +44,6 @@
 #include "cma.h"
 #include "version.h"
 #include "error.h"
-#include "volume_io/geom_structs.h"
 #include "transform.h"
 #include "talairachex.h"
 #include "matrix.h"
@@ -73,9 +72,9 @@ char            *Progname ;
 static int      dxi=2;  // thickness on either side of midline
 static int      x_edge=0, y_edge=0;
 static int      write_cc = 0 ;
-static Real cc_tal_x = 0.0 ;
-static Real cc_tal_y = 0.0 ;
-static Real cc_tal_z = 27.0 ;
+static double cc_tal_x = 0.0 ;
+static double cc_tal_y = 0.0 ;
+static double cc_tal_z = 27.0 ;
 static int fornix = 0 ;
 static int lh_only = 0 ;
 static int rh_only = 0 ;
@@ -91,13 +90,13 @@ static int cc_cutting_plane_correct(MRI *mri_aseg,
                                     VOXEL_LIST *vl_left_wm,
                                     VOXEL_LIST *vl_right_wm, int debug);
 static MRI *find_cc_with_aseg(MRI *mri_aseg, MRI *mri_cc, LTA **plta,
-                              Real *pxc, Real *pyc, Real *pzc, int thick,
+                              double *pxc, double *pyc, double *pzc, int thick,
                               MRI *mri_norm, MRI *mri_fornix) ;
 static int find_cc_slice(MRI *mri,
-                         Real *pccx, Real *pccy, Real *pccz,
+                         double *pccx, double *pccy, double *pccz,
                          const LTA *lta, MRI *mri_tal_cc) ;
 static int find_corpus_callosum(MRI *mri,
-                                Real *ccx, Real *ccy, Real *ccz,
+                                double *ccx, double *ccy, double *ccz,
                                 const LTA *lta, MRI *mri_tal_cc) ;
 static MRI *remove_fornix(MRI *mri_filled, int xv, int yv, int zv);
 static int edge_detection(MRI *mri_temp, int edge_count,int signal);
@@ -163,7 +162,7 @@ main(int argc, char *argv[])
 {
   char        ifname[STRLEN], ofname[STRLEN],  data_dir[STRLEN], *cp ;
   int         nargs, msec, y, z, xi, temp, i, j, k ;
-  Real        xc,yc,zc, xv, yv, zv;
+  double      xc,yc,zc, xv, yv, zv;
   MATRIX      *mrot = NULL, *mtrans = NULL;
   struct timeb  then ;
   MRI         *mri_tal=NULL, *mri_talheader=NULL, *mri_header=NULL, *mri_cc;
@@ -235,7 +234,7 @@ main(int argc, char *argv[])
         "could not open cc volume measurement file %s",
         ifname));
     }
-    print("writing results to %s\n",ifname);
+    printf("writing results to %s\n",ifname);
   }
 
   if (use_aseg)
@@ -243,7 +242,7 @@ main(int argc, char *argv[])
     MRI *mri_norm ;
 
     sprintf(ifname,"%s/%s/mri/%s",data_dir,argv[1], aseg_fname) ;
-    print("reading aseg from %s\n", ifname);
+    printf("reading aseg from %s\n", ifname);
     mri_aseg = MRIread(ifname) ;
     if (mri_aseg == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read aseg volume from %s",
@@ -271,7 +270,7 @@ main(int argc, char *argv[])
     }
 
     sprintf(ifname,"%s/%s/mri/norm.mgz",data_dir,argv[1]) ;
-    print("reading norm from %s\n", ifname);
+    printf("reading norm from %s\n", ifname);
     mri_norm = MRIread(ifname) ;
     if (mri_norm == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read aseg volume from %s",
@@ -286,7 +285,7 @@ main(int argc, char *argv[])
   else
   {
     sprintf(ifname,"%s/%s/%s",data_dir,argv[1],wmvolume) ;
-    print("reading white matter volume from %s\n", ifname);
+    printf("reading white matter volume from %s\n", ifname);
     mri_wm = MRIread(ifname) ;
 
     sprintf(ifname,"%s/%s/mri/transforms/talairach.xfm",data_dir,argv[1]) ;
@@ -725,13 +724,13 @@ main(int argc, char *argv[])
 
 static int
 find_corpus_callosum(MRI *mri_tal,
-                     Real *pccx, Real *pccy, Real *pccz,
+                     double *pccx, double *pccy, double *pccz,
                      const LTA *lta, MRI *mri_cc_tal)
 {
   int         xv, yv, zv, max_y, max_thick=0, thickness=0,
                                  y1, xcc, ycc, x, y,x0, extension=50 ;
   int         flag=0, counts=0;
-  Real        xr, yr, zr ;
+  double      xr, yr, zr ;
   MRI_REGION  region ;
   int cc_spread, min_thickness, max_thickness, slice_size;
   double voxsize=findMinSize(mri_tal);
@@ -747,7 +746,11 @@ find_corpus_callosum(MRI *mri_tal,
 
   // this function is called with mri being talairached volume
   // get the talairach coords (0,0,0) in the voxel space
-  if (mri_tal->linear_transform || lta)
+  if (
+#if !defined(BEVIN_EXCLUDE_MINC)
+  mri_tal->linear_transform || 
+#endif
+  lta)
   {
     MRIworldToVoxel(mri_tal, 0.0, 0.0, 0.0,
                     &xr, &yr, &zr);   /* everything is now in tal coords */
@@ -841,7 +844,7 @@ find_corpus_callosum(MRI *mri_tal,
 
 static int
 find_cc_slice(MRI *mri_tal,
-              Real *pccx, Real *pccy, Real *pccz,
+              double *pccx, double *pccy, double *pccz,
               const LTA *lta, MRI *mri_cc_tal)
 {
   // here we can handle only up to .5 mm voxel size
@@ -849,7 +852,7 @@ find_cc_slice(MRI *mri_tal,
               min_area, min_slice, slice, offset,xv,yv,zv,
               i, total_area=0, left=0, right=0;
   MRI         *mri_slice, *mri_filled ;
-  Real        x_tal, y_tal, z_tal, x, y, z, xvv, yvv, zvv;
+  double      x_tal, y_tal, z_tal, x, y, z, xvv, yvv, zvv;
   MRI_REGION  region ;
   char        fname[STRLEN] ;
   int         half_slices, ii, jj;
@@ -1510,7 +1513,7 @@ get_option(int argc, char *argv[])
 
 static MRI *
 find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
-                  Real *pxc, Real *pyc, Real *pzc,
+                  double *pxc, double *pyc, double *pzc,
                   int thick, MRI *mri_norm, MRI *mri_fornix)
 {
   LTA         *lta ;
@@ -1982,9 +1985,9 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
   VectorFree(&v1) ;
   VectorFree(&v2) ;
   *plta = lta ;
-  *pxc = (Real)best_slice ;
-  *pyc = (Real)y0_best ;
-  *pzc = (Real)z0_best ;
+  *pxc = (double)best_slice ;
+  *pyc = (double)y0_best ;
+  *pzc = (double)z0_best ;
 
   mri_tmp = MRIclone(mri_cc, NULL) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)

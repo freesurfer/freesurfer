@@ -1170,7 +1170,7 @@ MRISfillSurface(MRI_SURFACE *mris) {
 
 static int
 mrisFillFace(MRI_SURFACE *mris, int fno) {
-  Real   x, y, z, xa, ya, za, xc, yc, zc, t0, t1, adx, ady, adz, dx, dy, dz,
+  double   x, y, z, xa, ya, za, xc, yc, zc, t0, t1, adx, ady, adz, dx, dy, dz,
   cdx, cdy, cdz, alen, clen, delta_t0, delta_t1, len ;
   VERTEX *v0, *v1, *v2 ;
   FACE   *face ;

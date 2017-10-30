@@ -149,7 +149,7 @@ vtkFSVolumeSource::SetVoxelToRASMatrix ( vtkMatrix4x4& iMatrix ) {
   MATRIX* m = MatrixIdentity( 4, NULL );
   for ( int r = 0; r < 4; r++ )
     for ( int c = 0; c < 4; c++ )
-      *MATRIX_RELT((m),r+1,c+1) = (Real) iMatrix[r][c];
+      *MATRIX_RELT((m),r+1,c+1) = (float) iMatrix[r][c];
 
   MRIsetVoxelToRasXform( mMRI, m );
 
@@ -168,7 +168,7 @@ vtkFSVolumeSource::ConvertIndexToRAS ( float iIdxX, float iIdxY, float iIdxZ,
     return -1;
   }
 
-  Real ix, iy, iz, wx, wy, wz;
+  double ix, iy, iz, wx, wy, wz;
   int r;
 
   ix = iIdxX;
@@ -191,7 +191,7 @@ vtkFSVolumeSource::ConvertRASToIndex( float iRASX, float iRASY, float iRASZ,
     return -1;
   }
 
-  Real ix, iy, iz, wx, wy, wz;
+  double ix, iy, iz, wx, wy, wz;
   int r;
 
   wx = iRASX;
@@ -214,7 +214,7 @@ vtkFSVolumeSource::ConvertRASToIndex( float iRASX, float iRASY, float iRASZ,
     return -1;
   }
 
-  Real wx, wy, wz;
+  double wx, wy, wz;
   int ix, iy, iz;
   int r;
 

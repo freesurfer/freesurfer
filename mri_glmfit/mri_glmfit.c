@@ -525,6 +525,7 @@ double round(double x);
 #include <sys/utsname.h>
 #include <unistd.h>
 #include <float.h>
+#include <errno.h>
 
 #include "macros.h"
 #include "utils.h"

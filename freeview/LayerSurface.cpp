@@ -362,6 +362,7 @@ bool LayerSurface::LoadCurvatureFromFile( const QString& filename )
     return false;
   }
 
+  GetProperty()->RebuildCurvatureLUT();
   UpdateOverlay(false);
   emit Modified();
   emit SurfaceCurvatureLoaded();
