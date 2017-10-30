@@ -15,7 +15,7 @@ BOOST_AUTO_TEST_SUITE( MRIstruct )
 
 BOOST_AUTO_TEST_SUITE( Runtime )
 
-BOOST_AUTO_TEST_CASE( SimpleAllocate )
+BOOST_AUTO_TEST_CASE( AllocSequence )
 {
   MRI* target = NULL;
 
@@ -34,6 +34,27 @@ BOOST_AUTO_TEST_CASE( SimpleAllocate )
   // Deallocate
   BOOST_CHECK( NO_ERROR == MRIfree( &target ) );
   BOOST_CHECK( target == NULL );
+}
+
+BOOST_AUTO_TEST_CASE( AllocSequenceErrors )
+{
+  const int size = 128;
+  const int nFrames = 1;
+
+  BOOST_REQUIRE_EQUAL( Gerror, NO_ERROR );
+  BOOST_CHECK( NULL == MRIallocSequence( -1, size, size, MRI_UCHAR, nFrames ) );
+  BOOST_CHECK_EQUAL( Gerror, ERROR_BADPARM );
+
+  Gerror = NO_ERROR;
+  BOOST_CHECK( NULL == MRIallocSequence( size, -1, size, MRI_UCHAR, nFrames ) );
+  BOOST_CHECK_EQUAL( Gerror, ERROR_BADPARM );
+
+  Gerror = NO_ERROR;
+  BOOST_CHECK( NULL == MRIallocSequence( size, size, -1, MRI_UCHAR, nFrames ) );
+  BOOST_CHECK_EQUAL( Gerror, ERROR_BADPARM );
+
+  // Following will crash program in way Boost::Test cannot stop
+  // BOOST_CHECK( NULL == MRIallocSequence( size, size, size, MRI_UCHAR, -1 ) );
 }
 
 BOOST_DATA_TEST_CASE( ValueFill, boost::unit_test::data::make( mriTypes ), mriType )
@@ -75,6 +96,8 @@ BOOST_DATA_TEST_CASE( ValueFill, boost::unit_test::data::make( mriTypes ), mriTy
       }
     }
   }
+
+  MRIfree( &target );
 }
 
 BOOST_AUTO_TEST_SUITE_END() // Runtime
