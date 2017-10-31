@@ -29,9 +29,59 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#if defined(BEVIN_EXCLUDE_MINC) || defined(BEVIN_REPLACE_MINC)
+#if defined(BEVIN_EXCLUDE_MINC)
 
 typedef bool BOOLEAN;
+
+
+// The following is a replacement for some portions of
+// mni/1.5/include/volume_io/basic.h
+//
+// As such, it needs the following Copyright notice
+/*
+@COPYRIGHT  :
+              Copyright 1993,1994,1995 David MacDonald,
+              McConnell Brain Imaging Centre,
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+*/
+typedef enum { 
+               OK,
+               ERROR,
+               INTERNAL_ERROR,
+               END_OF_FILE,
+               QUIT
+             } VIO_Status;
+
+typedef double VIO_Real;
+
+
+// The following is a replacement for some portions of
+// mni/1.5/include/volume_io/multidim.h
+//
+// As such, it needs the following Copyright notice
+/*
+@COPYRIGHT  :
+              Copyright 1993,1994,1995 David MacDonald,
+              McConnell Brain Imaging Centre,
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+*/
+
+#define  VIO_MAX_DIMENSIONS     5
+
 
 // The following is a replacement for some portions of
 // mni/1.5/include/minc.h
@@ -55,6 +105,8 @@ typedef bool BOOLEAN;
 #define MIyspace "yspace"
 #define MIzspace "zspace"
 
+#define MItime             "time"
+
 
 // The following is a replacement for some portions of
 // mni/1.5/include/volume_io/geom_structs.h
@@ -75,6 +127,8 @@ typedef bool BOOLEAN;
               express or implied warranty.
 @VERSION    : $Header: /private-cvsroot/minc/volume_io/Include/volume_io/geom_structs.h,v 1.20.2.3 2006/11/30 09:15:13 rotor Exp $
 ---------------------------------------------------------------------------- */
+
+#define VIO_N_DIMENSIONS 3
 
 typedef struct
 {
@@ -174,9 +228,7 @@ void copy_general_transform(
 void  delete_general_transform(
     General_transform   *transform );
 
-static const int OK = 0;
-
-int input_transform_file(			// returns OK or <what?>
+VIO_Status input_transform_file(
     const char* filename,
     General_transform   *transform );
 
@@ -206,7 +258,7 @@ void transform_point(
               express or implied warranty.
 */
 
-typedef struct VolumeInternals
+typedef struct volume_struct
 {
 //      VIO_BOOL                is_cached_volume;
 //      VIO_volume_cache_struct cache;
@@ -227,7 +279,7 @@ typedef struct VolumeInternals
 //  
 //      VIO_Real                separations[VIO_MAX_DIMENSIONS];
 //      VIO_Real                starts[VIO_MAX_DIMENSIONS];
-//      VIO_Real                direction_cosines[VIO_MAX_DIMENSIONS][VIO_N_DIMENSIONS];
+        VIO_Real                direction_cosines[VIO_MAX_DIMENSIONS][VIO_N_DIMENSIONS];
 //  
 //      VIO_BOOL                voxel_to_world_transform_uptodate;
 //      VIO_General_transform   voxel_to_world_transform;
@@ -236,9 +288,31 @@ typedef struct VolumeInternals
 //  
 //      VIO_Real               *irregular_starts[VIO_MAX_DIMENSIONS];
 //      VIO_Real               *irregular_widths[VIO_MAX_DIMENSIONS];
-} VolumeImpl;
+} volume_struct;
 
-typedef VolumeInternals* Volume;
+typedef volume_struct* Volume;
+
+typedef struct
+{
+//    Volume_file_formats  file_format;
+//
+//    Minc_file            minc_file;
+//
+//    /* for free format files only */
+//
+//    FILE                 *volume_file;
+//    int                  slice_index;
+//    long                 sizes_in_file[VIO_MAX_DIMENSIONS];
+//    int                  axis_index_from_file[VIO_MAX_DIMENSIONS];
+//    VIO_Data_types       file_data_type;
+//    VIO_BOOL             one_file_per_slice;
+//    VIO_STR              directory;
+//    VIO_STR              *slice_filenames;
+//    int                  *slice_byte_offsets;
+//    unsigned char        *byte_slice_buffer;
+//    unsigned short       *short_slice_buffer;
+
+} volume_input_struct;
 
 #else
 
