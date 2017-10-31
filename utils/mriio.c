@@ -3034,7 +3034,7 @@ static int NormalizeVector(float *v, int n)
 static int mincWrite(MRI *mri, const char *fname)
 {
   Volume minc_volume;
-  STRING dimension_names[4] = {"xspace", "yspace", "zspace", "time"};
+  char* dimension_names[4] = {"xspace", "yspace", "zspace", "time"};
   nc_type nc_data_type;
   double min, max;
   float fmin, fmax;
@@ -3300,7 +3300,7 @@ static int mincWrite(MRI *mri, const char *fname)
     }
   }
 
-  status = output_volume((STRING)fname, nc_data_type, signed_flag, min, max, minc_volume, (STRING) "", NULL);
+  status = output_volume(fname, nc_data_type, signed_flag, min, max, minc_volume, "", NULL);
   delete_volume(minc_volume);
 
   if (status) {

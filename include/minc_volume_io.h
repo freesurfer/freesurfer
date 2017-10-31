@@ -34,6 +34,22 @@
 typedef bool BOOLEAN;
 
 
+// The following replacement for nc_type
+// was written by Bevin R Brett
+// without reading the sources that minc included to get them defined
+//
+typedef enum nc_type {
+  NC_UNSPECIFIED,
+  NC_CHAR,
+  NC_BYTE,
+  NC_SHORT,
+  NC_LONG,
+  NC_FLOAT,
+  NC_DOUBLE,
+  nc_type__end
+} nc_type;
+
+
 // The following is a replacement for some portions of
 // mni/1.5/include/volume_io/basic.h
 //
@@ -58,8 +74,6 @@ typedef enum {
                END_OF_FILE,
                QUIT
              } VIO_Status;
-
-typedef double VIO_Real;
 
 
 // The following is a replacement for some portions of
@@ -212,36 +226,6 @@ typedef struct General_transform
 
 
 // The following is a replacement for some portions of
-// mni/1.5/include/volume_io/vol_io_prototypes.h
-// which did not have its own Copyright notice
-//
-Transform* get_linear_transform_ptr(
-    General_transform   *transform );
-
-Transform* get_inverse_linear_transform_ptr(
-    General_transform   *transform );
-
-void copy_general_transform(
-    General_transform   *transform,
-    General_transform   *copy );
-
-void  delete_general_transform(
-    General_transform   *transform );
-
-VIO_Status input_transform_file(
-    const char* filename,
-    General_transform   *transform );
-
-void transform_point(
-    Transform  *transform,
-    double 	x,
-    double	y,
-    double 	z,
-    double	*x_trans,
-    double	*y_trans,
-    double	*z_trans );
-
-// The following is a replacement for some portions of
 // mni/1.5/include/volume_io/volume.h
 // As such, it needs the following Copyright notice
 /*
@@ -267,7 +251,7 @@ typedef struct volume_struct
 //  
 //      VIO_STR                 dimension_names[VIO_MAX_DIMENSIONS];
 //      int                     spatial_axes[VIO_N_DIMENSIONS];
-//      nc_type                 nc_data_type;
+        nc_type                 nc_data_type;
 //      VIO_BOOL                signed_flag;
 //      VIO_BOOL                is_rgba_data;
 //  
@@ -279,7 +263,7 @@ typedef struct volume_struct
 //  
 //      VIO_Real                separations[VIO_MAX_DIMENSIONS];
 //      VIO_Real                starts[VIO_MAX_DIMENSIONS];
-        VIO_Real                direction_cosines[VIO_MAX_DIMENSIONS][VIO_N_DIMENSIONS];
+        double                  direction_cosines[VIO_MAX_DIMENSIONS][VIO_N_DIMENSIONS];
 //  
 //      VIO_BOOL                voxel_to_world_transform_uptodate;
 //      VIO_General_transform   voxel_to_world_transform;
@@ -313,6 +297,161 @@ typedef struct
 //    unsigned short       *short_slice_buffer;
 
 } volume_input_struct;
+
+typedef struct
+{
+    bool        promote_invalid_to_zero_flag;
+    bool        convert_vector_to_scalar_flag;
+    bool        convert_vector_to_colour_flag;
+    int         dimension_size_for_colour_data;
+    int         max_dimension_size_for_colour_data;
+    int         rgba_indices[4];
+    double      user_real_range[2];
+} minc_input_options;
+
+
+typedef struct
+{
+    double global_image_range[2];
+    char*  dimension_names[VIO_MAX_DIMENSIONS];
+    bool   use_starts_set;
+    bool   use_volume_starts_and_steps;
+} minc_output_options;
+
+// The following is a replacement for some portions of
+// mni/1.5/include/volume_io/vol_io_prototypes.h
+// which did not have its own Copyright notice
+//
+Transform* get_linear_transform_ptr(
+    General_transform   *transform );
+
+Transform* get_inverse_linear_transform_ptr(
+    General_transform   *transform );
+
+void copy_general_transform(
+    General_transform   *transform,
+    General_transform   *copy );
+
+void delete_general_transform(
+    General_transform   *transform );
+
+VIO_Status input_transform_file(
+    const char* filename,
+    General_transform   *transform );
+
+void transform_point(
+    Transform  *transform,
+    double 	x,
+    double	y,
+    double 	z,
+    double	*x_trans,
+    double	*y_trans,
+    double	*z_trans );
+
+Volume create_volume(
+    int          n_dimensions,
+    char*        dimension_names[],
+    nc_type      nc_data_type,
+    bool         signed_flag,
+    double	 voxel_min,
+    double       voxel_max );
+
+void delete_volume(
+    Volume volume );
+
+void delete_volume_input(
+    volume_input_struct   *input_info );
+
+void set_volume_sizes(
+    Volume   	volume,
+    int         sizes[] );
+
+void alloc_volume_data(
+    Volume      volume );
+
+void set_volume_separations(
+    Volume      volume,
+    double      separations[] );
+
+void set_volume_direction_cosine(
+    Volume   	volume,
+    int      	axis,
+    double	dir[] );
+
+void set_volume_translation(
+    Volume  	volume,
+    double    	voxel[],
+    double    	world_space_voxel_maps_to[] );
+
+void set_volume_voxel_value(
+    Volume      volume,
+    int         v0,
+    int         v1,
+    int         v2,
+    int         v3,
+    int         v4,
+    double      voxel );
+
+VIO_Status  output_volume(
+    const char*		  filename,
+    nc_type		  file_nc_data_type,
+    bool              	  file_signed_flag,
+    double                file_voxel_min,
+    double                file_voxel_max,
+    Volume                volume,
+    const char*	  	  history,
+    minc_output_options  *options );
+
+VIO_Status start_volume_input(
+    char*                filename,
+    int                  n_dimensions,
+    char*                dim_names[],
+    nc_type              volume_nc_data_type,
+    bool                 volume_signed_flag,
+    double               volume_voxel_min,
+    double               volume_voxel_max,
+    bool                 create_volume_flag,
+    Volume              *volume,
+    minc_input_options  *options,
+    volume_input_struct *input_info );
+
+bool input_more_of_volume(
+    Volume                volume,
+    volume_input_struct  *input_info,
+    double               *fraction_done );
+
+int get_volume_n_dimensions(
+    Volume volume );
+
+void get_volume_sizes(
+    Volume 	volume,
+    int      	sizes[] );
+
+nc_type get_volume_nc_data_type(
+    Volume      volume,
+    bool*	signed_flag );
+
+General_transform* get_voxel_to_world_transform(
+    Volume   volume );
+
+double get_volume_voxel_value(
+    Volume   volume,
+    int      v0,
+    int      v1,
+    int      v2,
+    int      v3,
+    int      v4 );
+    
+void get_volume_separations(
+    Volume   	volume,
+    double 	separations[] );
+
+void convert_voxel_to_world(
+    Volume   	volume,
+    double     	voxel[],
+    double     *x_world,
+    double     *y_world,
+    double     *z_world );
 
 #else
 
