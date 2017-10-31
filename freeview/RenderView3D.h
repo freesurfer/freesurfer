@@ -186,6 +186,7 @@ private:
 
   bool    m_bShowSliceFrames;
   bool    m_bShowAxes;
+  bool    m_bShowCursor;
 
   double  m_dIntersectPoint[3];
   Interactor3DNavigate*   m_interactorNavigate;

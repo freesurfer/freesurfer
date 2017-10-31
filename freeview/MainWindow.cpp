@@ -1071,6 +1071,11 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     this->AddScript( QStringList("loadconnectome") << sa[0] << sa[1] );
   }
 
+  if (parser->Found("tc", &sa))
+  {
+    this->AddScript(QStringList("loadtractcluster") << sa[0]);
+  }
+
   if ( parser->Found( "ras", &sa ) )
   {
     bool bOK = true;
@@ -1564,6 +1569,10 @@ void MainWindow::RunScript()
   else if ( cmd == "loadconnectome" )
   {
     CommandLoadConnectomeMatrix( sa );
+  }
+  else if (cmd == "loadtractcluster")
+  {
+    CommandLoadTractCluster(sa);
   }
   else if ( cmd == "loadfcd")
   {
@@ -2892,7 +2901,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         {
           m_scripts.insert( 0, QStringList("loadsurfacecurvature") << subArgu );
         }
-        else if ( subOption == "curvature_method" || subOption == "curvature_map")
+        else if ( subOption == "curvature_method" || subOption == "curvature_map" || subOption == "curvature_setting")
         {
           m_scripts.insert(0, QStringList("setsurfacecurvaturemap") << subArgu);
         }
@@ -3574,12 +3583,28 @@ void MainWindow::CommandSetSurfaceCurvatureMap(const QStringList &cmd)
   LayerSurface* layer = qobject_cast<LayerSurface*>(GetActiveLayer("Surface"));
   if ( layer )
   {
-    int nMap = LayerPropertySurface::CM_Threshold;
-    if (cmd[1].toLower() == "off")
-      nMap = LayerPropertySurface::CM_Off;
-    else if (cmd[1].toLower() == "binary")
-      nMap = LayerPropertySurface::CM_Binary;
-    layer->GetProperty()->SetCurvatureMap(nMap);
+    bool bOK;
+    QStringList list = cmd[1].split(",");
+    double val = list[0].toDouble(&bOK);
+    if (!bOK)
+    {
+      int nMap = LayerPropertySurface::CM_Threshold;
+      if (cmd[1].toLower() == "off")
+        nMap = LayerPropertySurface::CM_Off;
+      else if (cmd[1].toLower() == "binary")
+        nMap = LayerPropertySurface::CM_Binary;
+      layer->GetProperty()->SetCurvatureMap(nMap);
+    }
+    else
+    {
+      layer->GetProperty()->SetThresholdMidPoint(val);
+      if (list.size() > 1)
+      {
+        val = list[1].toDouble(&bOK);
+        if (bOK)
+          layer->GetProperty()->SetThresholdSlope(val);
+      }
+    }
   }
 }
 
@@ -7511,6 +7536,11 @@ void MainWindow::OnLoadTractCluster()
   {
     m_wndTractCluster->Load(dirPath);
   }
+}
+
+void MainWindow::CommandLoadTractCluster(const QStringList &cmd)
+{
+  m_wndTractCluster->Load(cmd[1]);
 }
 
 void MainWindow::OnTractClusterLoaded(const QVariantMap& data)

@@ -21,7 +21,13 @@ void TreeDataLoader::DoLoad(const QString &dirPath, BinaryTreeView *view)
   mDir.setNameFilters(QStringList()<<"*.trk");
   mDir.setSorting(QDir::Name);
 
-  QStringList tract_list = mDir.entryList();
+  QFileInfoList info_list = mDir.entryInfoList();
+  QStringList tract_list;
+  foreach (QFileInfo fn, info_list)
+  {
+    if (!fn.baseName().contains(QRegExp("[^0-1]")))
+      tract_list << fn.fileName();
+  }
 
   //read tract files
   QVariantMap tract_map;
@@ -110,7 +116,10 @@ void BinaryTreeView::Load(const QString &dirName)
 
 void BinaryTreeView::mousePressEvent(QMouseEvent *event)
 {
-  BinaryTreeNode *item = (BinaryTreeNode*)itemAt(event->pos()); //Get the node at the position
+  QGraphicsItem* gitem = itemAt(event->pos());
+  if (!gitem || gitem->type() != (QGraphicsItem::UserType+1))
+    return;
+  BinaryTreeNode *item = (BinaryTreeNode*)gitem; //Get the node at the position
   if (item) //if there is a node at that position
   {
     QString tract_name = m_mapNode.key(item);

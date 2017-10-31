@@ -110,8 +110,7 @@ bool TrackData::LoadFromFiles(const QStringList &filenames)
       }
       m_nNumberOfPoints = 0;
       m_nNumberOfSegs = 0;
-      if (header.reserved[0] == 'C')
-        m_bHasEmbeddedColor = true;
+      m_bHasEmbeddedColor = (header.reserved[0] == 'C');
     }
 
     int nScalars = m_nNumberOfScalars;

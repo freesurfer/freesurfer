@@ -81,6 +81,7 @@ RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
 
   m_bShowSliceFrames = true;
   m_bShowAxes = true;
+  m_bShowCursor = true;
   for ( int i = 0; i < 3; i++ )
   {
     m_actorSliceFrames[i] = vtkSmartPointer<vtkActor>::New();
@@ -1485,6 +1486,7 @@ void RenderView3D::ShowCursor(bool bshow)
 {
   m_cursor3D->Show(bshow);
   m_cursorInflatedSurf->Show(bshow);
+  m_bShowCursor = bshow;
 }
 
 void RenderView3D::OnLayerVisibilityChanged()
@@ -1502,9 +1504,9 @@ void RenderView3D::OnLayerVisibilityChanged()
     foreach (Layer* layer, list)
     {
       LayerSurface* surf = (LayerSurface*)layer;
-      if (!surf->IsInflated() && surf->IsVisible() && surf->GetVisibleIn3D())
+      if (!surf->IsInflated() && surf->IsVisible() && surf->GetVisibleIn3D() && m_bShowCursor)
         m_cursor3D->Show();
-      else if (surf->IsInflated() && surf->IsVisible() && surf->GetVisibleIn3D())
+      else if (surf->IsInflated() && surf->IsVisible() && surf->GetVisibleIn3D() && m_bShowCursor)
         m_cursorInflatedSurf->Show();
     }
   }

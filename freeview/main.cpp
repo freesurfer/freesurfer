@@ -165,6 +165,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_OPTION, "f", "surface", "<FILE>...", "Load one or multiple surface files. Available sub-options are:\n\n"
     "':curvature=curvature_filename' Load curvature data from the given curvature file. By default .curv file will be loaded if available.\n\n"
     "':curvature_method=method' method to display curvature. available options are 'off', 'binary' or 'threshold'. default is 'threshold'.\n\n"
+    "':curvature_setting=midpoint,slope' method to set curvature midpoint and slope.\n\n"
     "':overlay=overlay_filename' Load overlay data from file.\n\n"
     "':overlay_reg=overlay_registration_filename' Apply registration when loading overlay data.\n\n"
     "':overlay_method=method_name' Set overlay method. Valid names are 'linear', 'linearopaque' and 'piecewise'.\n\n"
@@ -218,6 +219,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_OPTION, "cmat", "connectome-matrix", "<CMAT_FILE> <PARCELLATION_FILE>", "Load connectome matrix data files. Requires a cmat file and a parcellation volume file. Available sub-options are:\n\n'lut=color_table' Enter the name or file name of the color table to be used. Default is the FreeSurfer default LUT.\n", 2, 2 ),
     CmdLineEntry( CMD_LINE_OPTION, "fcd", "fcd", "<SUBJECT_DIR> <SUBJECT> [SUFFIX]", "Load FCD data. Requires subject directory and subject. Suffix is optional.\n", 2, 3 ),
     CmdLineEntry( CMD_LINE_OPTION, "t", "tract", "<FILE>...", "Load one or more tract files.\n", 1, 1000 ),
+    CmdLineEntry( CMD_LINE_OPTION, "tc", "tract-cluster", "<DIRECTORY>", "Load tract cluster data from given directory.\n", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "recon", "recon", "<SUBJECT_NAME>...", "Load a series of pre-defined volumes and surfaces of given subject(s).\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "ss", "screenshot", "<FILE> <MAGIFICATION_FACTOR>", "Take a screen shot of the main viewport and then quit the program. Default value for magnification factor is 1", 1, 2 ),
     //    CmdLineEntry( CMD_LINE_OPTION, "fly", "fly-through", "<START_SLICE_NUMBER> <END_SLICE_NUMBER> <PREFIX>", "Fly through slices and take screenshot of each slice", 1, 3 ),
