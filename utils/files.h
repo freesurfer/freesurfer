@@ -61,9 +61,19 @@ typedef int VIO_BOOL;	// Note - this is written to and read from files, so can't
 typedef  enum  { ASCII_FORMAT, BINARY_FORMAT }          VIO_File_formats;
 typedef  enum  { READ_FILE, WRITE_FILE, APPEND_FILE }   VIO_IO_types;
 
+VIO_Status  input_character(
+    FILE *file,
+    char *ch );
+   
+VIO_Status  input_newline(
+    FILE *file );
+     
 const char*  expand_filename(
     const char*  filename );
-    
+
+const char*  extract_directory(
+    const char*    filename );
+
 VIO_Status open_file_with_default_suffix(
     const char*       filename,
     const char*       default_suffix,
@@ -73,7 +83,14 @@ VIO_Status open_file_with_default_suffix(
     
 VIO_Status  close_file(
     FILE     *file );
-    
+
+VIO_Status  copy_file(
+    const char*  src,
+    const char*  dest );
+
+void  remove_file(
+    const char*  filename );
+
 #endif /* DEF_FILES */
 
 #endif // BEVIN_EXCLUDE_MINC

@@ -38,34 +38,74 @@
 #if HAVE_PWD_H
 #include  <pwd.h>
 #endif /* HAVE_PWD_H */
+
 #include  <stdlib.h>
+
 #if HAVE_UNISTD_H
 #include  <unistd.h>
+#else
+#error "not HAVE_UNISTD_H"
 #endif /* HAVE_UNISTD_H */
 #include  <errno.h>
 
+#include  <string.h>
 
-static void delete_string(STRING s) {
-    free(s);
+#if TIME_WITH_SYS_TIME
+#include  <sys/time.h>
+#include  <time.h>
+#else
+#if HAVE_SYS_TIME_H
+#include  <sys/time.h>
+#else
+#include  <time.h>
+#endif
+#endif
+
+#if HAVE_UNISTD_H
+#include  <unistd.h>
+#endif
+
+static void delete_string(const char* s) {
+    free((void*)s);
 }
 
+static int string_length(const char* s) {
+    return s ? (int)strlen(s) : 0;
+}
+
+static void concat_to_string(
+    const char* *lhs,
+    const char*  rhs) {
+    if (!rhs) return;
+    size_t rhs_strlen = strlen(rhs);
+    if (!*lhs) *lhs = (const char*)malloc(rhs_strlen + 1);
+    size_t lhs_strlen = strlen(*lhs);
+    *lhs = (const char*)realloc((void*)*lhs, lhs_strlen + rhs_strlen + 1);
+    memcpy((void*)(*lhs + lhs_strlen), (void*)rhs, rhs_strlen + 1);
+}
+
+const char* create_string(const char* s) {
+    const char* p = NULL;
+    concat_to_string(&p, s);
+    return p;
+}
+
+const char* get_date() {
+
+    time_t currentTime;
+    time( &currentTime );
+
+    struct tm  localtimeBuffer;
+    struct tm* localTime = localtime_r(&currentTime, &localtimeBuffer);
+
+    char   asctimeBuffer[32];
+    char * ascTime = asctime_r(localTime, asctimeBuffer);
+
+    return create_string(ascTime);
+}
 
 static  bool          has_no_extension( const char* );
 static  const char*   compressed_endings[] = { ".z", ".Z", ".gz" };
-
-
-#if !HAVE_STRERROR
-static const char *strerror(int errnum)
-{
-
-    if( errnum < 0 || errnum >= sys_nerr )
-    {
-       return( "" );
-    }
-
-    return( sys_errlist[errnum] );
-}
-#endif /* !HAVE_STRERROR */
 
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -182,7 +222,7 @@ VIO_BOOL  check_clobber_file(
     {
         expanded = expand_filename( filename );
 
-        print( "File <%s> exists, do you wish to overwrite (y or n): ",
+        printf( "File <%s> exists, do you wish to overwrite (y or n): ",
                expanded );
 
         delete_string( expanded );
@@ -191,7 +231,7 @@ VIO_BOOL  check_clobber_file(
                ch != 'N' && ch != 'Y' )
         {
             if( ch == '\n' )
-                print( "  Please type y or n: " );
+                printf( "  Please type y or n: " );
         }
 
         (void) input_newline( stdin );
@@ -258,18 +298,12 @@ VIO_BOOL  check_clobber_file_default_suffix(
 static  const char*  create_backup_filename(
     const char*   filename )
 {
-    int      i, len, count;
-    const char*   expanded, backup_filename, date;
+    const char * const expanded = expand_filename( filename );
+    const char * const date     = get_date();
 
+    char* const backup_filename = (char*)malloc( string_length( expanded ) + string_length( date ) + 100 );
 
-    expanded = expand_filename( filename );
-    date = get_date();
-
-    len = string_length( expanded ) + string_length( date ) + 100;
-
-    ALLOC( backup_filename, len );
-
-    count = 0;
+    int count = 0;
     do
     {
         if( count == 0 )
@@ -283,7 +317,7 @@ static  const char*  create_backup_filename(
                             expanded, date, count );
         }
 
-        len = string_length( backup_filename );
+        int len = string_length( backup_filename );
         while( len > 0 && 
                (backup_filename[len-1] == ' ' ||
                 backup_filename[len-1] == '\t' ||
@@ -293,17 +327,17 @@ static  const char*  create_backup_filename(
         }
         backup_filename[len] = (char) 0;
 
-        for_less( i, 0, len )
+        int i;
+        for (i = 0; i < len; i++)
         {
-            if( backup_filename[i] == ' ' || backup_filename[i] == '\t' ||
+            if( backup_filename[i] == ' ' || 
+	        backup_filename[i] == '\t' ||
                 backup_filename[i] == '\n' )
                 backup_filename[i] = '_';
 
             /* remove ':' for windows */
-            if( backup_filename[i] == ':'){
+            if( backup_filename[i] == ':')
                backup_filename[i] = '-';
-               }
-            
         }
 
         ++count;
@@ -347,7 +381,7 @@ VIO_Status  make_backup_file(
 
         if( status != OK )
         {
-            print_error( "Error making backup file for: %s\n", filename );
+            fprintf(stderr, "Error making backup file for: %s\n", filename );
             *backup_filename = NULL;
         }
     }
@@ -388,9 +422,9 @@ void  cleanup_backup_file(
         {
             if( copy_file( backup_filename, filename ) != OK )
             {
-                print_error( "File %s was corrupted during a failed write,\n",
+                fprintf(stderr, "File %s was corrupted during a failed write,\n",
                              filename );
-                print_error(
+                fprintf(stderr,
                    "File %s contains the state prior to the write attempt.\n",
                   backup_filename );
                 can_remove = VIO_FALSE;
@@ -424,7 +458,7 @@ void  remove_file(
 
     if( unlink( expanded ) != 0 )
     {
-        print_error( "Error removing %s.  ", expanded );
+        fprintf(stderr, "Error removing %s.  ", expanded );
         print_system_error();
     }
 
@@ -461,7 +495,7 @@ VIO_Status  copy_file(
 
     if( system( command ) != 0 )
     {
-        print_error( "Error copying file %s to %s: ",
+        fprintf(stderr, "Error copying file %s to %s: ",
                      src_expanded, dest_expanded );
         print_system_error();
         status = ERROR;
@@ -506,7 +540,7 @@ VIO_Status  move_file(
 
     if( system( command ) != 0 )
     {
-        print_error( "Error moving file %s to %s: ",
+        fprintf(stderr, "Error moving file %s to %s: ",
                      src_expanded, dest_expanded );
         print_system_error();
         status = ERROR;
@@ -922,7 +956,7 @@ VIO_Status  open_file(
         /* Check for failure */
         if( command_status != 0 )
         {
-            print_error( "Error uncompressing %s into %s using gunzip and bunzip2\n",
+            fprintf(stderr, "Error uncompressing %s into %s using gunzip and bunzip2\n",
                         expanded, tmp_name );
             status = ERROR;
         }
@@ -940,7 +974,7 @@ VIO_Status  open_file(
 
         if( *file == NULL )          /* --- print error message if needed */
         {
-            print_error( "Error:  could not open file \"%s\".  ", expanded );
+            fprintf(stderr, "Error:  could not open file \"%s\".  ", expanded );
             print_system_error();
             status = ERROR;
         }
@@ -1077,7 +1111,7 @@ VIO_Status  set_file_position(
     }
     else
     {
-        print_error( "Error setting the file position.  " );
+        fprintf(stderr, "Error setting the file position.  " );
         print_system_error();
         status = ERROR;
     }
@@ -1226,7 +1260,7 @@ VIO_Status  flush_file(
     }
     else
     {
-        print_error( "Error flushing file.  " );
+        fprintf(stderr, "Error flushing file.  " );
         print_system_error();
         status = ERROR;
     }
@@ -1416,7 +1450,7 @@ VIO_Status  output_string(
         status = OK;
     else
     {
-        print_error( "Error outputting string.  " );
+        fprintf(stderr, "Error outputting string.  " );
         print_system_error();
         status = ERROR;
     }
@@ -1640,8 +1674,8 @@ VIO_Status  input_binary_data(
     n_done = (int) fread( data, element_size, (size_t) n, file );
     if( n_done != n )
     {
-        print_error( "Error inputting binary data.\n" );
-        print_error( "     (%d out of %d items of size %ld).  ", n_done, n,
+        fprintf(stderr, "Error inputting binary data.\n" );
+        fprintf(stderr, "     (%d out of %d items of size %ld).  ", n_done, n,
                      element_size );
         print_system_error();
         status = ERROR;
@@ -1680,8 +1714,8 @@ VIO_Status  output_binary_data(
     n_done = (int) fwrite( data, element_size, (size_t) n, file );
     if( n_done != n )
     {
-        print_error( "Error outputting binary data.\n" );
-        print_error( "     (%d out of %d items of size %ld).  ", n_done, n,
+        fprintf(stderr, "Error outputting binary data.\n" );
+        fprintf(stderr, "     (%d out of %d items of size %ld).  ", n_done, n,
                      element_size );
         print_system_error();
         status = ERROR;
@@ -1712,7 +1746,7 @@ VIO_Status  input_newline(
 
     if( status != OK )
     {
-        print_error( "Error inputting newline.  " );
+        fprintf(stderr, "Error inputting newline.  " );
         print_system_error();
         status = ERROR;
     }
@@ -1742,7 +1776,7 @@ VIO_Status  output_newline(
         status = OK;
     else
     {
-        print_error( "Error outputting newline.  " );
+        fprintf(stderr, "Error outputting newline.  " );
         print_system_error();
         status = ERROR;
     }
@@ -1856,7 +1890,7 @@ VIO_Status  output_boolean(
 
     if( fprintf( file, " %s", str ) <= 0 )
     {
-        print_error( "Error outputting VIO_BOOL.  " );
+        fprintf(stderr, "Error outputting VIO_BOOL.  " );
         print_system_error();
         status = ERROR;
     }
@@ -1915,7 +1949,7 @@ VIO_Status  output_short(
         status = OK;
     else
     {
-        print_error( "Error outputting short.  " );
+        fprintf(stderr, "Error outputting short.  " );
         print_system_error();
         status = ERROR;
     }
@@ -1978,7 +2012,7 @@ VIO_Status  output_unsigned_short(
         status = OK;
     else
     {
-        print_error( "Error outputting unsigned short.  " );
+        fprintf(stderr, "Error outputting unsigned short.  " );
         print_system_error();
         status = ERROR;
     }
@@ -2037,7 +2071,7 @@ VIO_Status  output_int(
         status = OK;
     else
     {
-        print_error( "Error outputting int.  " );
+        fprintf(stderr, "Error outputting int.  " );
         print_system_error();
         status = ERROR;
     }
@@ -2098,7 +2132,7 @@ VIO_Status  output_float(
         status = OK;
     else
     {
-        print_error( "Error outputting float.  " );
+        fprintf(stderr, "Error outputting float.  " );
         print_system_error();
         status = ERROR;
     }
@@ -2159,7 +2193,7 @@ VIO_Status  output_double(
         status = OK;
     else
     {
-        print_error( "Error outputting double.  " );
+        fprintf(stderr, "Error outputting double.  " );
         print_system_error();
         status = ERROR;
     }
@@ -2291,7 +2325,7 @@ VIO_Status  io_quoted_string(
     }
 
     if( status != OK )
-        print_error( "Error in quoted string in file.\n" );
+        fprintf(stderr, "Error in quoted string in file.\n" );
 
     return( status );
 }
@@ -2450,7 +2484,7 @@ VIO_Status  io_unsigned_char(
                 *c = (unsigned char) i;
             else
             {
-                print_error( "Error inputting unsigned char.  " );
+                fprintf(stderr, "Error inputting unsigned char.  " );
                 print_system_error();
                 status = ERROR;
             }
@@ -2459,7 +2493,7 @@ VIO_Status  io_unsigned_char(
         {
             if( fprintf( file, "%d", (int) *c ) != 1 )
             {
-                print_error( "Error outputting unsigned char.  " );
+                fprintf(stderr, "Error outputting unsigned char.  " );
                 print_system_error();
                 status = ERROR;
             }
