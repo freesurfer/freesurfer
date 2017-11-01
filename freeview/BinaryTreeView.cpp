@@ -116,7 +116,10 @@ void BinaryTreeView::Load(const QString &dirName)
 
 void BinaryTreeView::mousePressEvent(QMouseEvent *event)
 {
-  BinaryTreeNode *item = (BinaryTreeNode*)itemAt(event->pos()); //Get the node at the position
+  QGraphicsItem* gitem = itemAt(event->pos());
+  if (!gitem || gitem->type() != (QGraphicsItem::UserType+1))
+    return;
+  BinaryTreeNode *item = (BinaryTreeNode*)gitem; //Get the node at the position
   if (item) //if there is a node at that position
   {
     QString tract_name = m_mapNode.key(item);
@@ -132,11 +135,6 @@ void BinaryTreeView::mousePressEvent(QMouseEvent *event)
       }
       emit TreeNodeActivated(filenames);
     }
-//    foreach (BinaryTreeNode* node, m_listSelectedNodes)
-//      node->SetSelected(false);
-//    m_listSelectedNodes = item->GetAllChildNodes();
-//    foreach (BinaryTreeNode* node, m_listSelectedNodes)
-//      node->SetSelected(true);
     if (m_selectedNode)
       m_selectedNode->SetHighlighted(false, true);
     m_selectedNode = item;
@@ -178,7 +176,6 @@ void BinaryTreeView::wheelEvent(QWheelEvent *event)
 {
   ScaleView(pow((double)2, -event->delta() / 240.0));
 }
-
 
 void BinaryTreeView::drawBackground(QPainter *painter, const QRectF &rect)
 {

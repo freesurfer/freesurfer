@@ -1406,6 +1406,7 @@ void LayerPropertyMRI::UpdateMinMaxValues()
     mMinVoxelValue = mSource->GetMinValue();
     mMaxVoxelValue = mSource->GetMaxValue();
   }
+
   mMinGrayscaleWindow = mMinVoxelValue;
   mMaxGrayscaleWindow = mMaxVoxelValue;
   if (mSource->HasValidHistogram())

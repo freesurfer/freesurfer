@@ -120,7 +120,10 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
                   int *px, int *py, int *pz)
 {
   int       x, y, z, which, depth, frame, xi, yi, zi, xk, yk, zk ;
-  double    xr, yr, zr, xt=0.0, yt=0.0, zt=0.0, xv, yv, zv, xtv=0.0, ytv=0.0, ztv=0.0 ;
+  double    xr, yr, zr, xv, yv, zv;
+#if !defined(BEVIN_EXCLUDE_MINC)
+  double    xt=0.0, yt=0.0, zt=0.0, xtv=0.0, ytv=0.0, ztv=0.0;
+#endif
   float     xf, yf, zf, xft, yft, zft ;
   MRI       *mri ;
   char      fname[100] ;
@@ -256,20 +259,24 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
       switch (mri->type)
       {
       case MRI_UCHAR:
+#if !defined(BEVIN_EXCLUDE_MINC)
         if (talairach)
           XVprintf(xvf, 0, "T: (%d,%d,%d) --> %d",
                    nint(xt),nint(yt),nint(zt),
                    MRIseq_vox(mri, nint(xtv), nint(ytv), nint(ztv),frame));
         else
+#endif
           XVprintf(xvf, 0, "(%d,%d,%d) --> %d",x,y,z,
                    MRIseq_vox(mri,x,y,z,frame));
         break ;
       case MRI_FLOAT:
+#if !defined(BEVIN_EXCLUDE_MINC)
         if (talairach)
           XVprintf(xvf, 0, "T: (%d,%d,%d) --> %2.3f",
                    nint(xt),nint(yt),nint(zt),
                    MRIFseq_vox(mri, nint(xtv), nint(ytv), nint(ztv),frame));
         else
+#endif
           XVprintf(xvf, 0, "(%d,%d,%d) --> %2.3f",x,y,z,
                    MRIFseq_vox(mri, x, y, z,frame));
         break ;

@@ -1,4 +1,4 @@
-#!/autofs/space/vermis_001/users/ltirrell/anaconda/bin/python
+#!/usr/bin/env python
 from __future__ import print_function
 
 import optparse
