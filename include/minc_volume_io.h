@@ -72,9 +72,10 @@ typedef enum {
                ERROR,
                INTERNAL_ERROR,
                END_OF_FILE,
-               QUIT
+               QUIT,
+	       VIO_Status__end
              } VIO_Status;
-
+char* statusToString(VIO_Status status);
 
 // The following is a replacement for some portions of
 // mni/1.5/include/volume_io/multidim.h
