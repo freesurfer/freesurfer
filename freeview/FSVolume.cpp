@@ -218,9 +218,13 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
     if (m_fMaxValue > 10*val)
     {
       // abnormally high voxel value
-      UpdateHistoCDF(0, val);
-      val = GetHistoValueFromPercentile(0.95)*1.1; //+m_histoCDF->bin_size/2;
-      m_fMaxValue = val;
+      m_fMaxValue = val+m_fMaxValue/NUM_OF_HISTO_BINS/2;
+      if (m_fMaxValue > 10*val)
+      {
+        UpdateHistoCDF(0, m_fMaxValue, true);
+        val = GetHistoValueFromPercentile(0.99)*1.1;
+        m_fMaxValue = val+m_fMaxValue/NUM_OF_HISTO_BINS;
+      }
     }
   }
 
@@ -1132,7 +1136,7 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
         {
           for ( int nFrame = 0; nFrame < mri->nframes; nFrame++ )
           {
-//            float val = rasImage->GetScalarComponentAsFloat(i, j, k, nFrame);
+            //            float val = rasImage->GetScalarComponentAsFloat(i, j, k, nFrame);
             float val = (float)MyVTKUtils::GetImageDataComponent(ptr, dim, nNumberOfFrames, i, j, k, nFrame, scalar_type);
             switch ( mri->type )
             {
@@ -1898,7 +1902,7 @@ bool FSVolume::CreateImage( MRI* rasMRI )
   vtkLongArray          *longScalars = NULL;
   vtkFloatArray         *floatScalars = NULL;
   vtkIdType cValues;
-//  int zElement=0;
+  //  int zElement=0;
 
   if ( m_MRI == NULL )
   {
@@ -2699,7 +2703,7 @@ void FSVolume::GetPixelSize( double* pixelSize )
   {
     delta0[i] = ras0[i]-ras_orig[i];
     delta1[i] = ras1[i]-ras_orig[i];
-//    delta2[i] = ras2[i]-ras_orig[i];
+    //    delta2[i] = ras2[i]-ras_orig[i];
   }
   double vs[3] = { m_MRI->xsize, m_MRI->ysize, m_MRI->zsize };
   if ( fabs( delta0[0] ) >= fabs( delta0[1] ) &&
@@ -2942,7 +2946,105 @@ void FSVolume::SetCroppingBounds( double* bounds )
   m_bCrop = true;
 }
 
-void FSVolume::UpdateHistoCDF(int frame, float threshold)
+HISTOGRAM *MRIhistogramWithHighThreshold(
+    MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION* region, float thresh, int frame)
+{
+  int width, height, depth, z, x0, y0, z0, tid;
+  float fmin, fmax;
+#ifdef HAVE_OPENMP
+  HISTOGRAM *histos[_MAX_FS_THREADS];
+#else
+  HISTOGRAM *histos[1];
+#endif
+
+  width = mri->width;
+  height = mri->height;
+  depth = mri->depth;
+
+  width = region->x + region->dx;
+  if (width > mri->width) width = mri->width;
+  height = region->y + region->dy;
+  if (height > mri->height) height = mri->height;
+  depth = region->z + region->dz;
+  if (depth > mri->depth) depth = mri->depth;
+  x0 = region->x;
+  if (x0 < 0) x0 = 0;
+  y0 = region->y;
+  if (y0 < 0) y0 = 0;
+  z0 = region->z;
+  if (z0 < 0) z0 = 0;
+
+  fmin = 1e10;
+  fmax = -fmin;
+  for (z = z0; z < depth; z++) {
+    int y, x;
+    float val;
+    for (y = y0; y < height; y++) {
+      for (x = x0; x < width; x++) {
+        val = MRIgetVoxVal(mri, x, y, z, frame);
+        if (val > thresh) continue;
+        val = MRIgetVoxVal(mri, x, y, z, frame);
+        if (val < fmin) fmin = val;
+        if (val > fmax) fmax = val;
+      }
+    }
+  }
+
+  if (!nbins) nbins = nint(fmax - fmin + 1.0);
+
+  if (!histo)
+    histo = HISTOalloc(nbins);
+  else {
+    if (histo->nbins < nbins)
+      HISTOrealloc(histo, nbins);
+    else
+      histo->nbins = nbins;
+  }
+
+#ifdef HAVE_OPENMP
+  for (tid = 0; tid < _MAX_FS_THREADS; tid++) {
+    histos[tid] = HISTOalloc(nbins);
+    HISTOclear(histos[tid], histos[tid]);
+    HISTOinit(histos[tid], nbins, fmin, fmax);
+  }
+#else
+  histos[0] = histo;
+#endif
+  HISTOclear(histo, histo);
+  HISTOinit(histo, nbins, fmin, fmax);
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for shared(histos, width, height, depth, fmin, fmax, frame, x0, y0, z0, histo)
+#endif
+  for (z = z0; z < depth; z++) {
+    int y, x, tid;
+    float val;
+    for (y = y0; y < height; y++) {
+      for (x = x0; x < width; x++) {
+        val = MRIgetVoxVal(mri, x, y, z, frame);
+        if (val > thresh) continue;
+        val = MRIgetVoxVal(mri, x, y, z, frame);
+#ifdef HAVE_OPENMP
+        tid = omp_get_thread_num();
+#else
+        tid = 0;
+#endif
+        HISTOaddSample(histos[tid], val, fmin, fmax);
+      }
+    }
+  }
+
+#ifdef HAVE_OPENMP
+  for (tid = 0; tid < _MAX_FS_THREADS; tid++) {
+    HISTOadd(histos[tid], histo, histo);
+    HISTOfree(&histos[tid]);
+  }
+#endif
+
+  return (histo);
+}
+
+void FSVolume::UpdateHistoCDF(int frame, float threshold, bool highThresh)
 {
   float fMinValue, fMaxValue;
   MRInonzeroValRange(m_MRI, &fMinValue, &fMaxValue);
@@ -2961,7 +3063,11 @@ void FSVolume::UpdateHistoCDF(int frame, float threshold)
   region.dx = m_MRI->width;
   region.dy = m_MRI->height;
   region.dz = m_MRI->depth;
-  HISTO *histo = MRIhistogramRegionWithThreshold(m_MRI, NUM_OF_HISTO_BINS, NULL, &region, m_MRI, threshold, frame);
+  HISTO *histo;
+  if (highThresh)
+    histo = MRIhistogramWithHighThreshold(m_MRI, NUM_OF_HISTO_BINS, NULL, &region, threshold, frame);
+  else
+    histo = MRIhistogramRegionWithThreshold(m_MRI, NUM_OF_HISTO_BINS, NULL, &region, m_MRI, threshold, frame);
   if (!histo)
   {
     qDebug() << "Could not create HISTO";

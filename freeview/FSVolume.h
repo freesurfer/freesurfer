@@ -227,7 +227,7 @@ public slots:
 protected:
   bool LoadMRI( const QString& filename, const QString& reg_filename );
   bool LoadRegistrationMatrix( const QString& filename );
-  void UpdateHistoCDF(int frame = 0, float threshold = -1);
+  void UpdateHistoCDF(int frame = 0, float threshold = -1, bool bHighThreshold = false);
   void CopyMRIDataToImage( MRI* mri, vtkImageData* image );
   void CopyMatricesFromMRI();
   bool CreateImage( MRI* mri );

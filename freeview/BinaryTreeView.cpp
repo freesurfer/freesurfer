@@ -135,11 +135,6 @@ void BinaryTreeView::mousePressEvent(QMouseEvent *event)
       }
       emit TreeNodeActivated(filenames);
     }
-//    foreach (BinaryTreeNode* node, m_listSelectedNodes)
-//      node->SetSelected(false);
-//    m_listSelectedNodes = item->GetAllChildNodes();
-//    foreach (BinaryTreeNode* node, m_listSelectedNodes)
-//      node->SetSelected(true);
     if (m_selectedNode)
       m_selectedNode->SetHighlighted(false, true);
     m_selectedNode = item;
@@ -181,7 +176,6 @@ void BinaryTreeView::wheelEvent(QWheelEvent *event)
 {
   ScaleView(pow((double)2, -event->delta() / 240.0));
 }
-
 
 void BinaryTreeView::drawBackground(QPainter *painter, const QRectF &rect)
 {
