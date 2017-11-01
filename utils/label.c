@@ -785,6 +785,7 @@ LABEL *LabelAlloc(int max_points, char *subject_name, char *label_name)
 {
   LABEL *area;
   char *cp, subjects_dir[STRLEN];
+  int  n ;
 
   area = (LABEL *)calloc(1, sizeof(LABEL));
   if (!area) {
@@ -815,6 +816,8 @@ LABEL *LabelAlloc(int max_points, char *subject_name, char *label_name)
               Progname,
               label_name ? label_name : "",
               sizeof(LV) * area->n_points);
+  for (n = 0 ; n < area->max_points ; n++)
+    area->lv[n].vno = -1 ;   // mark them as unassigned (0 is a valid vertex index)
   strcpy(area->space, "TkReg");
   area->coords = LABEL_COORDS_TKREG_RAS;  // would like to use scanner RAS, but need an volume or header
   return (area);
@@ -3047,6 +3050,7 @@ LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
     ldst->lv[i].y = V3_Y(v2);
     ldst->lv[i].z = V3_Z(v2);
     ldst->lv[i].stat = lsrc->lv[i].stat;
+    ldst->lv[i].vno = lsrc->lv[i].vno ;
   }
   strncpy(ldst->space, "scanner", sizeof(ldst->space));
   ldst->coords = LABEL_COORDS_SCANNER_RAS;
@@ -3126,6 +3130,7 @@ LABEL *LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst)
     ldst->lv[i].y = V3_Y(v2);
     ldst->lv[i].z = V3_Z(v2);
     ldst->lv[i].stat = lsrc->lv[i].stat;
+    ldst->lv[i].vno = lsrc->lv[i].vno ;
   }
   strncpy(ldst->space, "voxel", sizeof(ldst->space));
   ldst->coords = LABEL_COORDS_VOXEL;
