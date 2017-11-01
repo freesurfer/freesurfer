@@ -35,43 +35,29 @@
 
 #include  "files.h"
 
-#if HAVE_PWD_H
-#include  <pwd.h>
-#endif /* HAVE_PWD_H */
-
-#include  <stdlib.h>
-
-#if HAVE_UNISTD_H
-#include  <unistd.h>
-#else
-#error "not HAVE_UNISTD_H"
-#endif /* HAVE_UNISTD_H */
 #include  <errno.h>
-
+#include  <pwd.h>
+#include  <stdlib.h>
 #include  <string.h>
-
-#if TIME_WITH_SYS_TIME
 #include  <sys/time.h>
 #include  <time.h>
-#else
-#if HAVE_SYS_TIME_H
-#include  <sys/time.h>
-#else
-#include  <time.h>
-#endif
-#endif
-
-#if HAVE_UNISTD_H
 #include  <unistd.h>
-#endif
+
 
 static void delete_string(const char* s) {
-    free((void*)s);
+    if (!!s) free((void*)s);
 }
 
 static int string_length(const char* s) {
     return s ? (int)strlen(s) : 0;
 }
+
+bool string_ends_in( const char* whole, const char* tail ) {
+    int tailLen  = string_length(tail);
+    int wholeLen = string_length(whole);
+    return (tailLen <= wholeLen) && (0 == memcmp(whole + wholeLen - tailLen, tail, tailLen));
+}
+
 
 static void concat_to_string(
     const char* *lhs,
@@ -90,6 +76,13 @@ const char* create_string(const char* s) {
     return p;
 }
 
+const char* concat_strings(const char* s1, const char* s2) {
+    const char* p = create_string(s1);
+    concat_to_string(&p, s2);
+    return p;
+}
+
+
 const char* get_date() {
 
     time_t currentTime;
@@ -105,7 +98,9 @@ const char* get_date() {
 }
 
 static  bool          has_no_extension( const char* );
-static  const char*   compressed_endings[] = { ".z", ".Z", ".gz" };
+
+#define compressed_endings_size 3 
+static  const char*   compressed_endings[compressed_endings_size] = { ".z", ".Z", ".gz" };
 
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -483,16 +478,14 @@ VIO_Status  copy_file(
     const char*  src,
     const char*  dest )
 {
-    VIO_Status   status;
-    const char*   src_expanded, dest_expanded, command;
+    const char   * src_expanded  = expand_filename( src );
+    const char   * dest_expanded = expand_filename( dest );
 
-    src_expanded = expand_filename( src );
-    dest_expanded = expand_filename( dest );
-
-    command = concat_strings( "/bin/cp ", src_expanded );
+    const char   * command = concat_strings( "/bin/cp ", src_expanded );
     concat_to_string( &command, " " );
     concat_to_string( &command, dest_expanded );
 
+    VIO_Status   status = OK;
     if( system( command ) != 0 )
     {
         fprintf(stderr, "Error copying file %s to %s: ",
@@ -500,8 +493,6 @@ VIO_Status  copy_file(
         print_system_error();
         status = ERROR;
     }
-    else
-        status = OK;
 
     delete_string( src_expanded );
     delete_string( dest_expanded );
@@ -529,12 +520,10 @@ VIO_Status  move_file(
     const char*  dest )
 {
     VIO_Status   status;
-    const char*   src_expanded, dest_expanded, command;
+    const char*  src_expanded  = expand_filename( src );
+    const char*  dest_expanded = expand_filename( dest );
 
-    src_expanded = expand_filename( src );
-    dest_expanded = expand_filename( dest );
-
-    command = concat_strings( "/bin/cp -f ", src_expanded );
+    const char*  command = concat_strings( "/bin/cp -f ", src_expanded );
     concat_to_string( &command, " " );
     concat_to_string( &command, dest_expanded );
 
@@ -607,90 +596,86 @@ static  const char*  get_user_home_directory(
 const char*  expand_filename(
     const char*  filename )
 {
-    int      i, new_i, dest, len, env_index;
-    VIO_BOOL  tilde_found, prev_was_backslash;
-    char     *expand_value;
-    int      n_alloced, n_env_alloced;
-    const char*   env, expanded;
-
-    /* --- copy from filename to expanded_filename, changing environment
+    /* --- copy from filename to expanded_filename, substituting environment
            variables and home directories */
 
-    len = string_length( filename );
+    size_t temp_capacity     = 1024;
+    char*  temp              = (char*)malloc(temp_capacity);
+    
+    size_t expanded_capacity = 1024;
+    char*  expanded          = (char*)malloc(expanded_capacity);
+    int    expanded_size     = 0;
 
-    prev_was_backslash = VIO_FALSE;
-    i = 0;
-    dest = 0;
+    VIO_BOOL prev_was_backslash = VIO_FALSE;
 
-    n_alloced = 0;
-
-    n_env_alloced = 0;
-    env = NULL;
-    expanded = NULL;
-
-    while( i < len+1 )
+    const int len = string_length( filename ) + 1;	// includings the trailing 0
+    int i = 0;
+    while( i < len )	
     {
         /* --- if not escaped by backslash, and is either a '~' at the
                beginning or a '$' anywhere, expand it */
 
+        size_t rhs_size = 0;
+	const char* rhs = NULL;
+	    
         if( !prev_was_backslash &&
             ((i == 0 && filename[i] == '~') || filename[i] == '$') )
         {
             /* --- pick up the environment variable name or user name, by
                    searching until the next '/' or a '.' or end of string */
 
-            new_i = i;
-            tilde_found = (filename[new_i] == '~');
+            int new_i = i;
+            VIO_BOOL tilde_found = (filename[new_i] == '~');
             ++new_i;
 
-            env_index = 0;
+            int temp_size = 0;
             while( filename[new_i] != '/' &&
                    filename[new_i] != '.' &&
-                   filename[new_i] != END_OF_STRING )
+                   filename[new_i] != 0 )
             {
-                ADD_ELEMENT_TO_ARRAY_WITH_SIZE( env, n_env_alloced, env_index,
-                                                filename[new_i],
-                                                DEFAULT_CHUNK_SIZE );
+                if( temp_size == temp_capacity ) 
+		{
+		    temp_capacity += temp_capacity/2;
+		    temp = (char*)realloc(temp, temp_capacity);
+		}
+		temp[temp_size++] = filename[new_i];
                 ++new_i;
             }
-
-            ADD_ELEMENT_TO_ARRAY_WITH_SIZE( env, n_env_alloced, env_index,
-                                            END_OF_STRING, DEFAULT_CHUNK_SIZE );
+            if( temp_size == temp_capacity ) 
+	    {
+		temp_capacity += temp_capacity/2;
+		temp = (char*)realloc(temp, temp_capacity);
+	    }
+	    temp[temp_size++] = 0;	// end of string
 
             /* --- if expanding a '~', find the corresponding home directory */
 
+    	    const char* expand_value = NULL;
             if( tilde_found )
             {
-                if( string_length( env ) == 0 )
+                if( string_length( temp ) == 0 )
                     expand_value = getenv( "HOME" );
                 else
-                    expand_value = get_user_home_directory( env );
+                    expand_value = get_user_home_directory( temp );
             }
             else               /* --- get the environment variable value */
-                expand_value = getenv( env );
+                expand_value = getenv( temp );
 
             /* --- if an expansion is found, copy it, otherwise just copy char*/
 
             if( expand_value != NULL )
             {
-                SET_ARRAY_SIZE( expanded, n_alloced,
-                                n_alloced + string_length(expand_value),
-                                DEFAULT_CHUNK_SIZE );
-                n_alloced += string_length(expand_value);
-                (void) strcpy( &expanded[dest], expand_value );
-                dest += string_length( expand_value );
-                i = new_i;
-            }
-            else
-            {
-                SET_ARRAY_SIZE( expanded, n_alloced, n_alloced + 1,
-                                DEFAULT_CHUNK_SIZE );
-                ++n_alloced;
-                expanded[dest] = filename[i];
-                ++dest;
-                ++i;
-            }
-
+	    	rhs_size = string_length(expand_value);
+		rhs      = expand_value;
+		i        = new_i;
+	    } 
+	    else 
+	    {
+	        rhs_size = 1;
+		rhs      = filename + i;
+		i        = i + 1;
+	    }
+   
             prev_was_backslash = VIO_FALSE;
         }
         else
@@ -699,21 +684,27 @@ const char*  expand_filename(
 
             if( filename[i] != '\\' || prev_was_backslash )
             {
-                SET_ARRAY_SIZE( expanded, n_alloced, n_alloced + 1,
-                                DEFAULT_CHUNK_SIZE );
-                ++n_alloced;
-                expanded[dest] = filename[i];
-                ++dest;
+	        rhs_size = 1;
+		rhs      = filename + i;
                 prev_was_backslash = VIO_FALSE;
             }
             else
+	    {
+	        rhs_size = 0;
                 prev_was_backslash = VIO_TRUE;
+	    }
             ++i;
         }
+
+        if( expanded_size + rhs_size > expanded_capacity ) {
+	    expanded_capacity += expanded_capacity/2;
+	    expanded = (char*)realloc(expanded, expanded_capacity);
+	}
+	(void) memcpy( expanded + expanded_size, rhs, rhs_size );
+	expanded_size += rhs_size;
     }
 
-    if( n_env_alloced > 0 )
-        delete_string( env );
+    delete_string( temp );
 
     return( expanded );
 }
@@ -747,12 +738,11 @@ VIO_BOOL  filename_extension_matches(
 
     len = string_length( filename_no_z );
 
-    for_less( i, 0, SIZEOF_STATIC_ARRAY(compressed_endings) )
+    for( i = 0; i < compressed_endings_size; i++ )
     {
         if( string_ends_in( filename_no_z, compressed_endings[i] ) )
         {
-            filename_no_z[len-string_length(compressed_endings[i])] =
-                                   END_OF_STRING;
+            filename_no_z[len-string_length(compressed_endings[i])] = 0;
         }
     }
 
