@@ -3037,6 +3037,15 @@ LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
     ldst->n_points = lsrc->n_points;
   }
 
+  if (lsrc->coords == LABEL_COORDS_SCANNER_RAS) // already in the right space
+  {
+    LabelCopy(lsrc, ldst) ;
+    return(ldst) ;
+  }
+  if (lsrc->coords == LABEL_COORDS_VOXEL)  // not supported yet
+    ErrorExit(ERROR_UNSUPPORTED, "LabelToScannerRAS: conversion from voxel space not supported yet");
+
+  M_surface_to_RAS = RASFromSurfaceRAS_(mri);
   v1 = VectorAlloc(4, MATRIX_REAL);
   v2 = VectorAlloc(4, MATRIX_REAL);
   VECTOR_ELT(v1, 4) = 1.0;
@@ -3106,8 +3115,14 @@ LABEL *LabelFromScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
 LABEL *LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst)
 {
   int i;
-  MATRIX *M_surface_to_vox = RASFromSurfaceRAS_(mri);
+  MATRIX *M_surface_to_vox ;
   VECTOR *v1, *v2;
+
+  if (lsrc->coords == LABEL_COORDS_VOXEL)  // alread done
+    return(LabelCopy(lsrc, NULL)) ;
+
+  if (lsrc->coords == LABEL_COORDS_SCANNER_RAS) // already in the right space
+    ErrorExit(ERROR_UNSUPPORTED, "LabelToVoxel:  from ScannerRAS not supported yet");
 
   if (strstr(lsrc->space, "scanner") != NULL) ldst = LabelFromScannerRAS(lsrc, mri, ldst);
 
