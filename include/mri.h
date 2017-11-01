@@ -207,11 +207,9 @@ typedef struct
   BUFTYPE       ***slices ;
   int           scale ;
   char          transform_fname[STR_LEN] ;
-#if !defined(BEVIN_EXCLUDE_MINC)
   General_transform transform ;   /* the next two are from this struct */
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
-#endif
   int           free_transform ;   /* are we responsible for freeing it? */
   int           nframes ;          /* # of concatenated images */
 
