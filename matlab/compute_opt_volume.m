@@ -209,28 +209,42 @@ end
 % keep track of zero locations and reset them to 0 later after we scale
 %zind = find(opt_vol == 0);  
 
-gm_label = read_label('', sprintf('%s/gm.label',ldir));
+[gm_label,coords] = read_label('', sprintf('%s/gm.label',ldir));
 ras = gm_label(:,2:5)';
 ras(4,:) = ones(size(ras(4,:)));
-Mr2v = inv(mri.tkrvox2ras);
+if (strcmp(coords, 'scanner'))
+  Mr2v = inv(mri.vox2ras);   % for scanner ras labels (new as of 11/1/2017)
+else
+  Mr2v = inv(mri.tkrvox2ras);   % for tkreg ras labels (old)
+end
+
 vox = Mr2v*ras;
 gsub =  [vox(2,:)+1; vox(1,:)+1; vox(3,:)+1];
 gsub =  round([vox(1,:)+1; vox(2,:)+1; vox(3,:)+1]);
 gind = sub2ind(size(v), gsub(1,:), gsub(2,:),gsub(3,:)) ;
 
-wm_label = read_label('', sprintf('%s/wm.label', ldir));
+[wm_label,coords] = read_label('', sprintf('%s/wm.label', ldir));
 ras = wm_label(:,2:5)';
 ras(4,:) = ones(size(ras(4,:)));
-Mr2v = inv(mri.tkrvox2ras);
+if (strcmp(coords, 'scanner'))
+  Mr2v = inv(mri.vox2ras);
+else
+  Mr2v = inv(mri.tkrvox2ras);
+end
+
 vox = Mr2v*ras;
 wsub =  [vox(2,:)+1; vox(1,:)+1; vox(3,:)+1];
 wsub =  round([vox(1,:)+1; vox(2,:)+1; vox(3,:)+1]);
 wind = sub2ind(size(v), wsub(1,:), wsub(2,:),wsub(3,:)) ;
 
-fluid_label = read_label('', sprintf('%s/fluid.label',ldir));
+[fluid_label,coords] = read_label('', sprintf('%s/fluid.label',ldir));
 ras = fluid_label(:,2:5)';
 ras(4,:) = ones(size(ras(4,:)));
-Mr2v = inv(mri.tkrvox2ras);
+if (strcmp(coords, 'scanner'))
+  Mr2v = inv(mri.vox2ras);
+else
+  Mr2v = inv(mri.tkrvox2ras);
+end
 vox = Mr2v*ras;
 flsub =  [vox(2,:)+1; vox(1,:)+1; vox(3,:)+1];
 flsub =  round([vox(1,:)+1; vox(2,:)+1; vox(3,:)+1]);
