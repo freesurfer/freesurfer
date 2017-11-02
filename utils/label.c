@@ -3076,7 +3076,7 @@ LABEL *LabelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
   {
   case LABEL_COORDS_TKREG_RAS:
     return(ldst) ;  // already done
-  case LABEL_VOXEL_COORDS:
+  case LABEL_COORDS_VOXEL:
     return(LabelVoxelToSurfaceRAS(lsrc, mri, ldst)) ;
   case LABEL_COORDS_SCANNER_RAS:
     break ; // will be done below
