@@ -3037,8 +3037,8 @@ LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
 
   if (lsrc->coords == LABEL_COORDS_SCANNER_RAS) // already in the right space
     return(ldst) ;
-  if (lsrc->coords == LABEL_COORDS_VOXEL)  // not supported yet
-    ErrorExit(ERROR_UNSUPPORTED, "LabelToScannerRAS: conversion from voxel space not supported yet");
+  if (lsrc->coords == LABEL_COORDS_VOXEL) 
+    LabelToSurfaceRAS(lsrc, mri, ldst) ;
 
   M_surface_to_RAS = RASFromSurfaceRAS_(mri);
   v1 = VectorAlloc(4, MATRIX_REAL);
@@ -3046,9 +3046,9 @@ LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
   VECTOR_ELT(v1, 4) = 1.0;
   VECTOR_ELT(v2, 4) = 1.0;
   for (i = 0; i < lsrc->n_points; i++) {
-    V3_X(v1) = lsrc->lv[i].x;
-    V3_Y(v1) = lsrc->lv[i].y;
-    V3_Z(v1) = lsrc->lv[i].z;
+    V3_X(v1) = ldst->lv[i].x;
+    V3_Y(v1) = ldst->lv[i].y;
+    V3_Z(v1) = ldst->lv[i].z;
     MatrixMultiply(M_surface_to_RAS, v1, v2);
     ldst->lv[i].x = V3_X(v2);
     ldst->lv[i].y = V3_Y(v2);
@@ -3071,7 +3071,8 @@ LABEL *LabelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
   MATRIX *M_surface_to_RAS = RASFromSurfaceRAS_(mri), *M_surface_from_RAS;
   VECTOR *v1, *v2;
 
-  ldst = LabelCopy(lsrc, ldst) ;
+  if (ldst != lsrc)
+    ldst = LabelCopy(lsrc, ldst) ;
   switch (lsrc->coords)
   {
   case LABEL_COORDS_TKREG_RAS:
@@ -3081,7 +3082,7 @@ LABEL *LabelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
   case LABEL_COORDS_SCANNER_RAS:
     break ; // will be done below
   default: 
-    ErrorExit(ERROR_UNSUPPORTED, "LabelFromScannerRAS: unsupported coords (was %d)",lsrc->coords) ;
+    ErrorExit(ERROR_UNSUPPORTED, "LabelToSurfaceRAS: unsupported coords (was %d)",lsrc->coords) ;
     break ;
   }
   M_surface_from_RAS = MatrixInverse(M_surface_to_RAS, NULL);
@@ -3091,9 +3092,9 @@ LABEL *LabelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
   VECTOR_ELT(v1, 4) = 1.0;
   VECTOR_ELT(v2, 4) = 1.0;
   for (i = 0; i < lsrc->n_points; i++) {
-    V3_X(v1) = lsrc->lv[i].x;
-    V3_Y(v1) = lsrc->lv[i].y;
-    V3_Z(v1) = lsrc->lv[i].z;
+    V3_X(v1) = ldst->lv[i].x;
+    V3_Y(v1) = ldst->lv[i].y;
+    V3_Z(v1) = ldst->lv[i].z;
     MatrixMultiply(M_surface_from_RAS, v1, v2);
     ldst->lv[i].x = V3_X(v2);
     ldst->lv[i].y = V3_Y(v2);
@@ -3118,7 +3119,8 @@ LABEL *LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst)
   MATRIX *M_surface_to_vox ;
   VECTOR *v1, *v2;
 
-  ldst = LabelCopy(lsrc, ldst) ;
+  if (ldst != lsrc)
+    ldst = LabelCopy(lsrc, ldst) ;
   if (lsrc->coords == LABEL_COORDS_VOXEL)  // alread done
     return(ldst) ;
 
@@ -3132,9 +3134,9 @@ LABEL *LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst)
   VECTOR_ELT(v1, 4) = 1.0;
   VECTOR_ELT(v2, 4) = 1.0;
   for (i = 0; i < lsrc->n_points; i++) {
-    V3_X(v1) = lsrc->lv[i].x;
-    V3_Y(v1) = lsrc->lv[i].y;
-    V3_Z(v1) = lsrc->lv[i].z;
+    V3_X(v1) = ldst->lv[i].x;
+    V3_Y(v1) = ldst->lv[i].y;
+    V3_Z(v1) = ldst->lv[i].z;
     MatrixMultiply(M_surface_to_vox, v1, v2);
     ldst->lv[i].x = V3_X(v2);
     ldst->lv[i].y = V3_Y(v2);
@@ -3166,10 +3168,8 @@ LABEL *LabelTransform(LABEL *lsrc, TRANSFORM *xform, MRI *mri, LABEL *ldst)
   MATRIX *M;
   VECTOR *v1, *v2;
 
-  if (ldst == NULL) {
-    ldst = LabelClone(lsrc);
-    ldst->n_points = lsrc->n_points;
-  }
+  if (ldst != lsrc)
+    ldst = LabelCopy(lsrc, ldst) ;
 
   if (xform->type != LINEAR_RAS_TO_RAS)
     ErrorExit(ERROR_NOFILE, "LabelTransform: unsupported type %d. Must be RAS->RAS", xform->type);
@@ -3177,26 +3177,22 @@ LABEL *LabelTransform(LABEL *lsrc, TRANSFORM *xform, MRI *mri, LABEL *ldst)
     ErrorExit(ERROR_NOFILE, "LabelTransform: label must be in scanner RAS not %s", ldst->space);
 
   M = ((LTA *)(xform->xform))->xforms[0].m_L;
-  if (ldst == NULL) {
-    ldst = LabelClone(lsrc);
-    ldst->n_points = lsrc->n_points;
-  }
 
   v1 = VectorAlloc(4, MATRIX_REAL);
   v2 = VectorAlloc(4, MATRIX_REAL);
   VECTOR_ELT(v1, 4) = 1.0;
   VECTOR_ELT(v2, 4) = 1.0;
   for (i = 0; i < lsrc->n_points; i++) {
-    V3_X(v1) = lsrc->lv[i].x;
-    V3_Y(v1) = lsrc->lv[i].y;
-    V3_Z(v1) = lsrc->lv[i].z;
+    V3_X(v1) = ldst->lv[i].x;
+    V3_Y(v1) = ldst->lv[i].y;
+    V3_Z(v1) = ldst->lv[i].z;
     MatrixMultiply(M, v1, v2);
     ldst->lv[i].x = V3_X(v2);
     ldst->lv[i].y = V3_Y(v2);
     ldst->lv[i].z = V3_Z(v2);
-    ldst->lv[i].stat = lsrc->lv[i].stat;
   }
   strncpy(ldst->space, "scanner", sizeof(ldst->space));
+  ldst->coords = LABEL_COORDS_SCANNER_RAS ;
 
   return (ldst);
 }
@@ -3206,7 +3202,8 @@ LABEL *LabelVoxelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
   int i;
   double xs, ys, zs;
 
-  ldst = LabelCopy(lsrc, ldst) ;
+  if (ldst != lsrc)
+    ldst = LabelCopy(lsrc, ldst) ;
     
   for (i = 0; i < lsrc->n_points; i++) {
     if (lsrc->mris)
@@ -3862,15 +3859,13 @@ LABEL *LabelApplyMatrix(LABEL *lsrc, MATRIX *m, LABEL *ldst)
   v1->rptr[4][1] = 1.0f;
   v2->rptr[4][1] = 1.0f;
 
-  if (ldst == NULL) {
-    ldst = LabelClone(lsrc);
-    ldst->n_points = lsrc->n_points;
-  }
+  if (lsrc != ldst) 
+    ldst = LabelCopy(lsrc, ldst) ;
 
   for (n = 0; n < lsrc->n_points; n++) {
-    V3_X(v1) = lsrc->lv[n].x;
-    V3_Y(v1) = lsrc->lv[n].y;
-    V3_Z(v1) = lsrc->lv[n].z;
+    V3_X(v1) = ldst->lv[n].x;
+    V3_Y(v1) = ldst->lv[n].y;
+    V3_Z(v1) = ldst->lv[n].z;
     MatrixMultiply(m, v1, v2);
     ldst->lv[n].x = V3_X(v2);
     ldst->lv[n].y = V3_Y(v2);
