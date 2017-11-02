@@ -3032,16 +3032,11 @@ LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
   MATRIX *M_surface_to_RAS = RASFromSurfaceRAS_(mri);
   VECTOR *v1, *v2;
 
-  if (ldst == NULL) {
-    ldst = LabelClone(lsrc);
-    ldst->n_points = lsrc->n_points;
-  }
+  if (ldst != lsrc)
+    ldst = LabelCopy(lsrc, ldst) ;
 
   if (lsrc->coords == LABEL_COORDS_SCANNER_RAS) // already in the right space
-  {
-    LabelCopy(lsrc, ldst) ;
     return(ldst) ;
-  }
   if (lsrc->coords == LABEL_COORDS_VOXEL)  // not supported yet
     ErrorExit(ERROR_UNSUPPORTED, "LabelToScannerRAS: conversion from voxel space not supported yet");
 
@@ -3058,8 +3053,6 @@ LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
     ldst->lv[i].x = V3_X(v2);
     ldst->lv[i].y = V3_Y(v2);
     ldst->lv[i].z = V3_Z(v2);
-    ldst->lv[i].stat = lsrc->lv[i].stat;
-    ldst->lv[i].vno = lsrc->lv[i].vno ;
   }
   strncpy(ldst->space, "scanner", sizeof(ldst->space));
   ldst->coords = LABEL_COORDS_SCANNER_RAS;
@@ -3118,8 +3111,9 @@ LABEL *LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst)
   MATRIX *M_surface_to_vox ;
   VECTOR *v1, *v2;
 
+  ldst = LabelCopy(lsrc, ldst) ;
   if (lsrc->coords == LABEL_COORDS_VOXEL)  // alread done
-    return(LabelCopy(lsrc, NULL)) ;
+    return(ldst) ;
 
   if (lsrc->coords == LABEL_COORDS_SCANNER_RAS) // already in the right space
     ErrorExit(ERROR_UNSUPPORTED, "LabelToVoxel:  from ScannerRAS not supported yet");
@@ -3127,10 +3121,6 @@ LABEL *LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst)
   if (strstr(lsrc->space, "scanner") != NULL) ldst = LabelFromScannerRAS(lsrc, mri, ldst);
 
   M_surface_to_vox = voxelFromSurfaceRAS_(mri);
-  if (ldst == NULL) {
-    ldst = LabelClone(lsrc);
-    ldst->n_points = lsrc->n_points;
-  }
 
   v1 = VectorAlloc(4, MATRIX_REAL);
   v2 = VectorAlloc(4, MATRIX_REAL);
@@ -3144,8 +3134,6 @@ LABEL *LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst)
     ldst->lv[i].x = V3_X(v2);
     ldst->lv[i].y = V3_Y(v2);
     ldst->lv[i].z = V3_Z(v2);
-    ldst->lv[i].stat = lsrc->lv[i].stat;
-    ldst->lv[i].vno = lsrc->lv[i].vno ;
   }
   strncpy(ldst->space, "voxel", sizeof(ldst->space));
   ldst->coords = LABEL_COORDS_VOXEL;
