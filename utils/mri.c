@@ -3131,6 +3131,26 @@ int MRIsurfaceRASToVoxel(MRI *mri, double xr, double yr, double zr, double *xv, 
 
   return (NO_ERROR);
 }
+int MRIscannerRASToVoxel(MRI *mri, double xr, double yr, double zr, double *xv, double *yv, double *zv)
+{
+  MATRIX *voxelFromRAS, *rasFromVoxel;
+  static VECTOR *sr = NULL, *vv = NULL;
+
+  rasFromVoxel = MRIxfmCRS2XYZ( mri, 0 ); 
+  voxelFromRAS = MatrixInverse(rasFromVoxel, NULL) ; MatrixFree(&rasFromVoxel) ;
+  if (sr == NULL) sr = VectorAlloc(4, MATRIX_REAL);
+  V4_LOAD(sr, xr, yr, zr, 1.);
+  vv = MatrixMultiply(voxelFromRAS, sr, vv);
+  *xv = V3_X(vv);
+  *yv = V3_Y(vv);
+  *zv = V3_Z(vv);
+
+  MatrixFree(&voxelFromRAS);
+  //  VectorFree(&sr);
+  //  VectorFree(&vv);
+
+  return (NO_ERROR);
+}
 
 // same as above, but don't free matrix. Won't work if mri is changing
 int MRIsurfaceRASToVoxelCached(MRI *mri, double xr, double yr, double zr, double *xv, double *yv, double *zv)
