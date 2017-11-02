@@ -4989,7 +4989,10 @@ void MainWindow::OnSaveROI()
     }
     layer_roi->SetFileName( fn );
     layer_roi->ResetModified();
-    layer_roi->SaveROI();
+    if (!layer_roi->SaveROI())
+    {
+      QMessageBox::warning( this, "Error", "Could not save ROI at " + fn);
+    }
   }
 }
 
