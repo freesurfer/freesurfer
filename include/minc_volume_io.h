@@ -329,6 +329,11 @@ Transform* get_linear_transform_ptr(
 Transform* get_inverse_linear_transform_ptr(
     General_transform   *transform );
 
+void concat_general_transforms(
+    General_transform   *first,
+    General_transform   *second,
+    General_transform   *result );
+    
 void copy_general_transform(
     General_transform   *transform,
     General_transform   *copy );
