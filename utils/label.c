@@ -3141,6 +3141,9 @@ LABEL *LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst)
     ldst->lv[i].x = V3_X(v2);
     ldst->lv[i].y = V3_Y(v2);
     ldst->lv[i].z = V3_Z(v2);
+    ldst->lv[i].xv = nint(V3_X(v2));
+    ldst->lv[i].yv = nint(V3_Y(v2));
+    ldst->lv[i].zv = nint(V3_Z(v2));
   }
   strncpy(ldst->space, "voxel", sizeof(ldst->space));
   ldst->coords = LABEL_COORDS_VOXEL;
