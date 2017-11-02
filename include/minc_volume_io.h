@@ -150,6 +150,8 @@ typedef struct
     double m[4][4];
 } Transform;
 
+#define  Transform_elem( t, i, j ) ((t).m[j][i])
+
 
 // The following is a replacement for some portions of
 // mni/1.5/include/volume_io/transforms.h
@@ -180,12 +182,16 @@ typedef  void   (*User_transform_function)( void  *user_data,
                                             double  *z_trans );
 
 typedef enum { 
-	LINEAR
-	//, 
-	//THIN_PLATE_SPLINE, 
-	//USER_TRANSFORM,
-        //CONCATENATED_TRANSFORM, 
-	//GRID_TRANSFORM 
+	LINEAR,
+#if defined(BEVIN_ALL_TYPES_SUPPORTED)
+	THIN_PLATE_SPLINE, 
+	USER_TRANSFORM,
+#endif
+        CONCATENATED_TRANSFORM
+#if defined(BEVIN_ALL_TYPES_SUPPORTED)
+	,
+	GRID_TRANSFORM 
+#endif
 } Transform_types;
 
 

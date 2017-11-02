@@ -64,7 +64,7 @@ typedef  enum  { READ_FILE, WRITE_FILE, APPEND_FILE }   VIO_IO_types;
 VIO_Status  input_character(
     FILE *file,
     char *ch );
-   
+
 VIO_Status  input_newline(
     FILE *file );
 
@@ -73,7 +73,12 @@ VIO_Status  io_int(
     VIO_IO_types    io_flag,
     VIO_File_formats format,
     int             *i );
-   
+
+VIO_Status  unget_character(
+    FILE  *file,
+    char  ch );
+    
+
 char*  expand_filename(
     const char*  filename );
 
