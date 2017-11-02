@@ -3062,21 +3062,29 @@ LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
   return (ldst);
 }
 /*
-  convert the label coords from tkreg (surface) RAS to scanner RAS. Note that this assumes that the
-  label coords are in tkreg space
+  convert the label coords to tkreg (surface) RAS 
+
 */
-LABEL *LabelFromScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
+LABEL *LabelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
 {
   int i;
   MATRIX *M_surface_to_RAS = RASFromSurfaceRAS_(mri), *M_surface_from_RAS;
   VECTOR *v1, *v2;
 
-  M_surface_from_RAS = MatrixInverse(M_surface_to_RAS, NULL);
-
-  if (ldst == NULL) {
-    ldst = LabelClone(lsrc);
-    ldst->n_points = lsrc->n_points;
+  ldst = LabelCopy(lsrc, ldst) ;
+  switch (lsrc->coords)
+  {
+  case LABEL_COORDS_TKREG_RAS:
+    return(ldst) ;  // already done
+  case LABEL_VOXEL_COORDS:
+    return(LabelVoxelToSurfaceRAS(lsrc, mri, ldst)) ;
+  case LABEL_COORDS_SCANNER_RAS:
+    break ; // will be done below
+  default: 
+    ErrorExit(ERROR_UNSUPPORTED, "LabelFromScannerRAS: unsupported coords (was %d)",lsrc->coords) ;
+    break ;
   }
+  M_surface_from_RAS = MatrixInverse(M_surface_to_RAS, NULL);
 
   v1 = VectorAlloc(4, MATRIX_REAL);
   v2 = VectorAlloc(4, MATRIX_REAL);
@@ -3090,7 +3098,6 @@ LABEL *LabelFromScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
     ldst->lv[i].x = V3_X(v2);
     ldst->lv[i].y = V3_Y(v2);
     ldst->lv[i].z = V3_Z(v2);
-    ldst->lv[i].stat = lsrc->lv[i].stat;
   }
   strcpy(ldst->space, "TkReg");
   ldst->coords = LABEL_COORDS_TKREG_RAS;
@@ -3116,9 +3123,7 @@ LABEL *LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst)
     return(ldst) ;
 
   if (lsrc->coords == LABEL_COORDS_SCANNER_RAS) // already in the right space
-    ErrorExit(ERROR_UNSUPPORTED, "LabelToVoxel:  from ScannerRAS not supported yet");
-
-  if (strstr(lsrc->space, "scanner") != NULL) ldst = LabelFromScannerRAS(lsrc, mri, ldst);
+    LabelFromScannerRAS(lsrc, mri, ldst);  // make sure it starts as tkreg ras
 
   M_surface_to_vox = voxelFromSurfaceRAS_(mri);
 
@@ -3201,6 +3206,8 @@ LABEL *LabelVoxelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
   int i;
   double xs, ys, zs;
 
+  ldst = LabelCopy(lsrc, ldst) ;
+    
   for (i = 0; i < lsrc->n_points; i++) {
     if (lsrc->mris)
       MRISsurfaceRASToVoxel(lsrc->mris, mri, lsrc->lv[i].x, lsrc->lv[i].y, lsrc->lv[i].z, &xs, &ys, &zs);
@@ -3209,8 +3216,6 @@ LABEL *LabelVoxelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
     ldst->lv[i].x = xs;
     ldst->lv[i].y = ys;
     ldst->lv[i].z = zs;
-    ldst->lv[i].stat = lsrc->lv[i].stat;
-    ldst->lv[i].vno = lsrc->lv[i].vno;
   }
 
   ldst->coords = LABEL_COORDS_TKREG_RAS;

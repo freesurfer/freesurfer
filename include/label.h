@@ -83,6 +83,8 @@ LABEL ;
 LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst) ;
 LABEL *LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst) ;
 LABEL *LabelVoxelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst) ;
+LABEL *LabelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst) ;
+#define LabelFromScannerRAS LabelToSurfaceRAS   
 
 int     LabelIsCompletelyUnassigned(LABEL *area, int *unassigned);
 int     LabelFillUnassignedVertices(MRI_SURFACE *mris,
