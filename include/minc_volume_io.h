@@ -32,7 +32,11 @@
 #if defined(BEVIN_EXCLUDE_MINC)
 
 typedef bool BOOLEAN;
-
+typedef double Double4x4[4*4];
+#define Index4x4(I,J) (4*(I)+(J))
+bool invert_4x4_matrix( 
+	Double4x4 * t, 		// doubles are modified
+	Double4x4 * inv );	// doubles are written
 
 // The following replacement for nc_type
 // was written by Bevin R Brett
@@ -329,6 +333,16 @@ typedef struct
 // mni/1.5/include/volume_io/vol_io_prototypes.h
 // which did not have its own Copyright notice
 //
+void  make_identity_transform( Transform   *transform );
+
+bool close_to_identity(
+    Transform   *transform );
+    
+void   concat_transforms(
+    Transform   *result,
+    Transform   *t1,
+    Transform   *t2 );
+
 Transform* get_linear_transform_ptr(
     General_transform   *transform );
 

@@ -1,252 +1,147 @@
-/**
- * @file  inverse.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
-/*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.4 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
+/* ----------------------------------------------------------------------------
+@COPYRIGHT  :
+              Copyright 1993,1994,1995 David MacDonald,
+              McConnell Brain Imaging Centre,
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+---------------------------------------------------------------------------- */
 
+#if defined(BEVIN_EXCLUDE_MINC)
+
+#include  "minc_volume_io.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
-#include "const.h"
-#include "error.h"
-#include "inverse.h"
-#include "macros.h"
-#include "matrix.h"
-
-IOP *IOPRead(char *fname, int hemi)
+bool compute_transform_inverse(
+    Transform  *transform,
+    Transform  *inverse )
 {
-  IOP *iop;
-  int i, j, k, jc, d, dipoles_in_decimation;
-  FILE *fp;
-  char c, str[STRLEN];
-  float f;
-  int z;
+    Double4x4 t, inv;
 
-  printf("read_iop(%s,%d)\n", fname, hemi);
-
-  fp = fopen(fname, "r");
-  if (fp == NULL) ErrorReturn(NULL, (ERROR_NOFILE, "IOPRead: can't open file %s\n", fname));
-  iop = calloc(1, sizeof(IOP));
-  if (!iop) ErrorReturn(NULL, (ERROR_NOMEMORY, "IOPRead: can't allocate struct\n"));
-  iop->pthresh = 1000;
-  c = getc(fp);
-  if (c == '#') {
-    if (fscanf(fp, "%s", str) != 1) {
-      ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
-    }
-    if (!strcmp(str, "version")) {
-      if (fscanf(fp, "%d", &iop->version) != 1) {
-        ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
-      }
-    }
-    printf("iop version = %d\n", iop->version);
-    if (fscanf(fp,
-               "%d %d %d %d",
-               &iop->neeg_channels,
-               &iop->nmeg_channels,
-               &iop->ndipoles_per_location,
-               &iop->ndipole_files) != 4) {
-      ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
+    {
+        int i; 
+	for( i=0; i < 4; i++ ) {
+           int j; 
+	   for( j = 0; j < 4; j++ ) {
+              t[Index4x4(i,j)] = Transform_elem(*transform,i,j);
+	   }
+	}
     }
 
-    iop->nchan = iop->neeg_channels + iop->nmeg_channels;
-    for (i = 1; i <= hemi; i++) {
-      if (fscanf(fp, "%d %d", &dipoles_in_decimation, &iop->ndipoles) != 2) {
-        ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
-      }
-      if (i == hemi) {
-#if 0
-        if (iop->ndipoles_per_location != sol_ndec)
+    bool success = invert_4x4_matrix( &t, &inv );
+
+    if( success )
+    {
+        int i; 
+	for( i=0; i < 4; i++ ) {
+           int j; 
+	   for( j = 0; j < 4; j++ ) {
+                Transform_elem(*inverse,i,j) = inv[Index4x4(i,j)];
+           }
+        }
+
+        static int count = 0;
+	if (count++ == 0) {
+            Transform  ident;
+
+            concat_transforms( &ident, transform, inverse );
+
+            if( !close_to_identity(&ident) )
+            {
+                fprintf(stderr, "Error in compute_transform_inverse\n" );
+		exit(1);
+            }
+        }
+    }
+    else
+        make_identity_transform( inverse );
+
+    return( success );
+}
+
+
+#else
+#include  <internal_volume_io.h>
+
+
+#ifndef lint
+static char rcsid[] = "$Header: /private-cvsroot/minc/volume_io/Geometry/inverse.c,v 1.8.2.1 2004/10/04 20:18:40 bert Exp $";
+#endif
+
+/* ----------------------------- MNI Header -----------------------------------
+@NAME       : compute_transform_inverse
+@INPUT      : transform
+@OUTPUT     : inverse
+@RETURNS    : TRUE if successful
+@DESCRIPTION: Computes the inverse of the given transformation matrix.
+@METHOD     : 
+@GLOBALS    : 
+@CALLS      : 
+@CREATED    : 1993            David MacDonald
+@MODIFIED   : 
+---------------------------------------------------------------------------- */
+
+VIOAPI  BOOLEAN   compute_transform_inverse(
+    Transform  *transform,
+    Transform  *inverse )
+{
+    int        i, j;
+    Real       **t, **inv;
+    BOOLEAN    success;
+
+    /* --- copy the transform to a numerical recipes type matrix */
+
+    ALLOC2D( t, 4, 4 );
+    ALLOC2D( inv, 4, 4 );
+
+    for_less( i, 0, 4 )
+    {
+        for_less( j, 0, 4 )
+            t[i][j] = Transform_elem(*transform,i,j);
+    }
+
+    success = invert_square_matrix( 4, t, inv );
+
+    if( success )
+    {
+        /* --- copy the resulting numerical recipes matrix to the
+               output argument */
+
+        for_less( i, 0, 4 )
         {
-          fclose(fp);
-          IOPFree(&iop) ;
-          ErrorReturn(NULL,
-                      (ERROR_BADFILE,
-                       "IOPRead: .dec and .iop file mismatch (%d!=%d)\n",
-                       sol_ndec,iop->ndipoles_per_location));
+            for_less( j, 0, 4 )
+            {
+                Transform_elem(*inverse,i,j) = inv[i][j];
+            }
+        }
+
+#ifdef  DEBUG
+        /* --- check if this really is an inverse, by multiplying */
+
+        {
+            Transform  ident;
+
+            concat_transforms( &ident, transform, inverse );
+
+            if( !close_to_identity(&ident) )
+            {
+                print_error( "Error in compute_transform_inverse\n" );
+            }
         }
 #endif
-        iop->m_iop = MatrixAlloc(iop->ndipoles * iop->ndipoles_per_location, iop->nchan, MATRIX_REAL);
-        if (iop->version == 1)
-          iop->m_forward = MatrixAlloc(iop->nchan, iop->ndipoles * iop->ndipoles_per_location, MATRIX_REAL);
-
-#if 0
-        sol_M = matrix(iop->nchan,iop->nchan); /* temporary space for xtalk */
-        sol_Mi = matrix(iop->nchan,iop->nchan);
-        sol_sensvec1 = vector(iop->nchan);
-        sol_sensvec2 = vector(iop->nchan);
-        sol_sensval = vector(iop->nchan);
-#endif
-
-        iop->dipole_normalization = calloc(iop->ndipoles, sizeof(float));
-        iop->dipole_vertices = calloc(iop->ndipoles, sizeof(int));
-        if (!iop->dipole_vertices)
-          ErrorReturn(NULL, (ERROR_NOMEMORY, "IOPRead: could not allocated %d v indices", iop->ndipoles));
-        iop->pvals = VectorAlloc(iop->ndipoles, MATRIX_REAL);
-        iop->spatial_priors = VectorAlloc(iop->ndipoles, MATRIX_REAL);
-
-        iop->bad_sensors = calloc(iop->nchan, sizeof(int));
-        if (!iop->bad_sensors)
-          ErrorReturn(NULL, (ERROR_NOMEMORY, "IOPRead: could not allocate bad sensor array", iop->nchan));
-
-        /* initialize bad sensor locations*/
-        for (z = 0; z < iop->nchan; z++) iop->bad_sensors[z] = 0;
-      }
-      for (j = 0; j < iop->ndipoles; j++) {
-        if (i == hemi) {
-          if (fscanf(fp, "%d", &d) != 1) {
-            ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
-          }
-          iop->dipole_vertices[j] = d;
-        }
-        else {
-          if (fscanf(fp, "%*d") != 0) {
-            ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
-          }
-        }
-      }
-      for (j = 0; j < iop->ndipoles; j++) {
-        if (i == hemi) {
-          if (fscanf(fp, "%f", &f) != 1) {
-            ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
-          }
-          *MATRIX_RELT(iop->pvals, j + 1, 1) = f;
-          f = fabs(f);
-          if (f < iop->pthresh) iop->pthresh = f;
-        }
-        else {
-          if (fscanf(fp, "%*f") != 0) {
-            ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
-          }
-        }
-      }
-      for (j = 0; j < iop->ndipoles; j++) {
-        if (i == hemi) {
-          if (fscanf(fp, "%f", &f) != 1) {
-            ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
-          }
-          *MATRIX_RELT(iop->spatial_priors, j + 1, 1) = f;
-#if 0
-          vertex[iop->dipole_vertices[j]].val = f;
-#endif
-        }
-        else {
-          if (fscanf(fp, "%*f") != 0) {
-            ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
-          }
-        }
-      }
-      for (j = 0; j < iop->ndipoles; j++) {
-        for (jc = 0; jc < iop->ndipoles_per_location; jc++) {
-          for (k = 0; k < iop->nchan; k++) {
-            if (i == hemi) {
-              if (fscanf(fp, "%f", &f) != 1) {
-                ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
-              }
-              *MATRIX_RELT(iop->m_iop, j * iop->ndipoles_per_location + jc + 1, k + 1) = f;
-            }
-            else {
-              if (fscanf(fp, "%*f") != 0) {
-                ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
-              }
-            }
-          }
-        }
-      }
-      if (iop->version == 1) {
-        for (j = 0; j < iop->ndipoles; j++) {
-          for (jc = 0; jc < iop->ndipoles_per_location; jc++) {
-            for (k = 0; k < iop->nchan; k++) {
-              if (i == hemi) {
-                if (fscanf(fp, "%f", &f) != 1) {
-                  ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
-                }
-                *MATRIX_RELT(iop->m_forward, k + 1, j * iop->ndipoles_per_location + jc + 1) = f;
-              }
-              else {
-                if (fscanf(fp, "%*f") != 0) {
-                  ErrorPrintf(ERROR_BAD_FILE, "IOPRead: can't read parameter\n");
-                }
-              }
-            }
-          }
-        }
-      }
     }
-  }
-  else {
-    printf("Can't read binary .iop files\n");
-  }
-  fclose(fp);
-  printf(
-      "neeg_channels=%d, nmeg_channels=%d, iop->ndipoles_per_location=%d, "
-      "iop->ndipole_files=%d\n",
-      iop->neeg_channels,
-      iop->nmeg_channels,
-      iop->ndipoles_per_location,
-      iop->ndipole_files);
-  return (iop);
-}
-int IOPWrite(IOP *iop, char *fname) { return (NO_ERROR); }
-int IOPFree(IOP **piop)
-{
-  IOP *iop;
+    else
+        make_identity_transform( inverse );
 
-  iop = *piop;
-  *piop = NULL;
-  if (iop->dipole_vertices) free(iop->dipole_vertices);
-  if (iop->spatial_priors) free(iop->spatial_priors);
-  if (iop->pvals) free(iop->pvals);
-  if (iop->m_iop) MatrixFree(&iop->m_iop);
-  if (iop->m_forward) MatrixFree(&iop->m_forward);
-  if (iop->bad_sensors) free(iop->bad_sensors);
-  return (NO_ERROR);
+    FREE2D( t );
+    FREE2D( inv );
+
+    return( success );
 }
 
-int IOPNormalize(IOP *iop)
-{
-  int j, k, jc;
-  double sum, val;
-
-  for (j = 0; j < iop->ndipoles; j++) {
-    sum = 0;
-    for (jc = 0; jc < iop->ndipoles_per_location; jc++)
-      for (k = 0; k < iop->nchan; k++) {
-        val = *MATRIX_RELT(iop->m_iop, j * iop->ndipoles_per_location + jc + 1, k + 1);
-        sum += SQR(val);
-      }
-
-    sum = sqrt(sum);
-    if (!DZERO(sum)) {
-      for (jc = 0; jc < iop->ndipoles_per_location; jc++)
-        for (k = 0; k < iop->nchan; k++)
-          *MATRIX_RELT(iop->m_iop, j * iop->ndipoles_per_location + jc + 1, k + 1) /= sum;
-    }
-  }
-  return (NO_ERROR);
-}
-MATRIX *IOPapplyInverseOperator(IOP *iop, REC *rec, MATRIX *m_sol)
-{
-  m_sol = MatrixMultiply(iop->m_iop, rec->m_data, NULL);
-  return (m_sol);
-}
+#endif

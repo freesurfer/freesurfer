@@ -96,6 +96,23 @@ void  make_identity_transform( Transform   *transform )
     Transform_elem( *transform, 3, 3 ) = 1.0;
 }
 
+bool close_to_identity(
+    Transform   *transform )
+{
+    int i,j;
+    for( i = 0; i < 4; i++ )
+    {
+        for( j = 0; j < 4; j++ )
+        {
+            double expected = ( i == j ) ? 1.0 : 0.0;
+	    double actual   = Transform_elem(*transform,i,j);
+            if( fabsf(expected - actual) > 0.001 ) return false;
+        }
+    }
+
+    return( true );
+}
+
 void   concat_transforms(
     Transform   *result,
     Transform   *t1,
@@ -137,6 +154,81 @@ void   concat_transforms(
 
     if( result_is_also_an_arg )
         *result = tmp;
+}
+
+
+// Based on minc-1.5.1/volume_io/Geometry/inverse.c
+// which requires the following...
+//
+/* ----------------------------------------------------------------------------
+@COPYRIGHT  :
+              Copyright 1993,1994,1995 David MacDonald,
+              McConnell Brain Imaging Centre,
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+---------------------------------------------------------------------------- */
+static bool compute_transform_inverse(
+    Transform  *transform,
+    Transform  *inverse )
+{
+    int        i, j;
+    Real       **t, **inv;
+    BOOLEAN    success;
+
+    /* --- copy the transform to a numerical recipes type matrix */
+
+    ALLOC2D( t, 4, 4 );
+    ALLOC2D( inv, 4, 4 );
+
+    for_less( i, 0, 4 )
+    {
+        for_less( j, 0, 4 )
+            t[i][j] = Transform_elem(*transform,i,j);
+    }
+
+    success = invert_square_matrix( 4, t, inv );
+
+    if( success )
+    {
+        /* --- copy the resulting numerical recipes matrix to the
+               output argument */
+
+        for_less( i, 0, 4 )
+        {
+            for_less( j, 0, 4 )
+            {
+                Transform_elem(*inverse,i,j) = inv[i][j];
+            }
+        }
+
+#ifdef  DEBUG
+        /* --- check if this really is an inverse, by multiplying */
+
+        {
+            Transform  ident;
+
+            concat_transforms( &ident, transform, inverse );
+
+            if( !close_to_identity(&ident) )
+            {
+                print_error( "Error in compute_transform_inverse\n" );
+            }
+        }
+#endif
+    }
+    else
+        make_identity_transform( inverse );
+
+    FREE2D( t );
+    FREE2D( inv );
+
+    return( success );
 }
 
 
