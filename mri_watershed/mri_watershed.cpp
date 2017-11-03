@@ -3590,7 +3590,7 @@ int Lookat( int i, int j, int k,
 /*tests a voxel, merges it or creates a new basin*/
 int Test(Coord crd,STRIP_PARMS *parms,MRI_variables *MRI_var)
 {
-  int n,nb=0,dpt=-1,tst[6];
+  int n,nb=0,dpt=-1;
   unsigned char val;
   int mean,var,tp=0;
   int a,b,c;
@@ -3601,12 +3601,12 @@ int Test(Coord crd,STRIP_PARMS *parms,MRI_variables *MRI_var)
 
   val=MRIvox(MRI_var->mri_src,i,j,k);
 
-  tst[0]=Lookat(i,j,k-1,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
-  tst[1]=Lookat(i,j,k+1,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
-  tst[2]=Lookat(i,j-1,k,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
-  tst[3]=Lookat(i,j+1,k,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
-  tst[4]=Lookat(i-1,j,k,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
-  tst[5]=Lookat(i+1,j,k,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
+  Lookat(i,j,k-1,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
+  Lookat(i,j,k+1,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
+  Lookat(i,j-1,k,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
+  Lookat(i,j+1,k,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
+  Lookat(i-1,j,k,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
+  Lookat(i+1,j,k,val,&dpt,&admax,&nb,adtab,parms,MRI_var);
 
   if (parms->watershed_analyze)
   {
@@ -4752,7 +4752,7 @@ void brain_params(MRI_variables *MRI_var)
   int i,j,k,xmin,xmax,ymin,zmin,zmax;
   unsigned long n;
   // BUFTYPE *pb;
-  double x,y,z,rad_buff;
+  double x,y,z;
 
   x=y=z=0;
   n=0;
@@ -4779,7 +4779,6 @@ void brain_params(MRI_variables *MRI_var)
   MRI_var->yCOG=y/n;
   MRI_var->zCOG=z/n;
 
-  rad_buff=0;
   n=0;
   xmin = MRI_var->width;
   xmax = 0;
@@ -5114,7 +5113,6 @@ void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
   int kv,h,i,j,k,rp;
   int val,val_buff,ninside=30;
   float tmp;
-  int stop;
   float n1[3],n2[3];
   float var;
   int a,b,c=0;
@@ -5128,7 +5126,7 @@ void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
   /////////////////////////////////////////////////////////////////////////
   /*Determination of CSF_intensity*/
   /////////////////////////////////////////////////////////////////////////
-  stop=MRI_var->CSF_intensity*3;
+//  stop=MRI_var->CSF_intensity*3;
 
   // initialize working tmp
   for (j=0; j<6; j++)
@@ -6479,7 +6477,6 @@ void MRIShighlyTesselatedSmoothedSurface(MRI_variables *MRI_var)
 
   double tx,ty,tz;
 
-  double ml;
   double lm,d10m[3],d10,f1m,f2m,dm,dbuff;
   float ***dist;
   float cout,pcout=0,coutbuff,varbuff,mean_sd[10],mean_dist[10];
@@ -6529,7 +6526,6 @@ void MRIShighlyTesselatedSmoothedSurface(MRI_variables *MRI_var)
 
   // iteration starts here
   /////////////////////////////////////////////////////////////////////////////
-  ml=2;
   for (iter=0; niter; iter++)
   {
     cout = lm = d10 = f1m = f2m = dm = 0;
@@ -6680,7 +6676,6 @@ void MRIShighlyTesselatedSmoothedSurface(MRI_variables *MRI_var)
     d10 /=mris->nvertices;
 
 
-    ml=lm;
 
     mean_sd[iter%10]=lm;
     mean_dist[iter%10]=d10;
@@ -8453,7 +8448,7 @@ int mrisAverageGradients(MRIS *mris,int niter)
 void MRISCorrectSurface(MRI_variables *MRI_var)
 {
   float x,y,z,sx,sy,sz,sd,sxn,syn,szn,sxt,syt,szt,nc;
-  float force,force1,force3;
+  float force1,force3;
   float ct;
 
   float d,dx,dy,dz,nx,ny,nz;
@@ -8466,7 +8461,6 @@ void MRISCorrectSurface(MRI_variables *MRI_var)
 
   MRIS *mris;
 
-  double ml;
   double lm,d10m[3],d10,f1m,f2m,f3m,dm,dbuff;
   float ***dist;
   float cout,pcout=0,coutbuff,varbuff,mean_sd[10],mean_dist[10];
@@ -8520,7 +8514,6 @@ void MRISCorrectSurface(MRI_variables *MRI_var)
   }
 
   niter =int_smooth;
-  force = 0.0f ;
   pcout=0;
 
   for (k=0; k<mris->nvertices; k++)
@@ -8531,7 +8524,6 @@ void MRISCorrectSurface(MRI_variables *MRI_var)
     v->odz = 0;
   }
 
-  ml=2;
   ////////////////////////////////////////////////////////////////////////
   // iteration starts here
   for (iter=0; niter; iter++)
@@ -8742,7 +8734,6 @@ void MRISCorrectSurface(MRI_variables *MRI_var)
     dm /=mris->nvertices;
     d10 /=mris->nvertices;
 
-    ml=lm;
 
     mean_sd[iter%10]=lm;
     mean_dist[iter%10]=d10;
@@ -9628,7 +9619,6 @@ void MRISFineSegmentation(MRI_variables *MRI_var)
   int it,jt,kt,h,niter;
   float r,F,E,rmin=3.33,rmax=10.;
   float decay=0.8,update=0.9;
-  float fzero;
   float fmax; /*"dangerous" if artifact(s)*/
 
   float val,prev_val;
@@ -9643,7 +9633,6 @@ void MRISFineSegmentation(MRI_variables *MRI_var)
   double xw,yw,zw,xw1,yw1,zw1;
   double IntVal,GradVal;
 
-  double ml;
   double lm,d10m[3],d10,f1m,f2m,f3m,f4m,dm,dbuff;
   float ***dist;
   int nb_GM,nb_TR,nb_GTM;
@@ -9730,8 +9719,6 @@ void MRISFineSegmentation(MRI_variables *MRI_var)
   E=(1/rmin+1/rmax)/2;
   F=6/(1/rmin-1/rmax);
 
-  fzero=MRI_var->CSF_intensity;
-
   for (k=0; k<mris->nvertices; k++)
     for (m=0; m<4; m++)
       for (n=0; n<3; n++)
@@ -9757,7 +9744,6 @@ void MRISFineSegmentation(MRI_variables *MRI_var)
     v->odz = 0;
   }
 
-  ml=2;
   // iterations
   for (iter=0; niter; iter++)
   {
@@ -10169,7 +10155,6 @@ void MRISFineSegmentation(MRI_variables *MRI_var)
     dm /=mris->nvertices;
     d10 /=mris->nvertices;
 
-    ml=lm;
 
     mean_sd[iter%10]=lm;
     mean_dist[iter%10]=d10;
@@ -10697,7 +10682,7 @@ void calcForce2(double &force0, double &force1, double &force,
                 const double &nx, const double &ny, const double &nz,
                 MRI_variables *MRI_var,  STRIP_PARMS *parms, int kv)
 {
-  int it, jt, kt, i=-1, j=-1, k=-1, label;
+  int it, jt, kt, label;
   double tx, ty, tz;
   double r,F,E,rmin=3.33,rmax=10.;
   int h, a, b;
@@ -10743,13 +10728,6 @@ void calcForce2(double &force0, double &force1, double &force,
         kt=(int)(tz+0.5);
         jt=(int)(ty+0.5);
         it=(int)(tx+0.5);
-
-        if (h==0 && a==0 && b==0)
-        {
-          i=it;
-          j=jt;
-          k=kt;
-        }
 
         // outside the bounding box
         if ((kt<0||kt>=MRI_var->depth||
