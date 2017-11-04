@@ -63,7 +63,7 @@ static void concat_char_to_string(
     char    rhs) 
 {
     if (!*lhs) { *lhs = (char*)malloc(2); *lhs = 0; }
-    size_t lhs_strlen = strlen(*lhs);
+    size_t lhs_strlen = string_length(*lhs);
     *lhs = (char*)realloc(*lhs, lhs_strlen + 64);
     (*lhs)[lhs_strlen  ] = rhs;
     (*lhs)[lhs_strlen+1] = 0;
@@ -73,9 +73,9 @@ static void concat_to_string(
     char*     * lhs,
     const char* rhs) {
     if (!rhs) return;
-    size_t rhs_strlen = strlen(rhs);
+    size_t rhs_strlen = string_length(rhs);
     if (!*lhs) { *lhs = (char*)malloc(rhs_strlen + 1); lhs[0] = 0; }
-    size_t lhs_strlen = strlen(*lhs);
+    size_t lhs_strlen = string_length(*lhs);
     *lhs = (char*)realloc(*lhs, lhs_strlen + rhs_strlen + 64);
     memcpy((void*)(*lhs + lhs_strlen), (void*)rhs, rhs_strlen + 1);
 }
@@ -217,7 +217,6 @@ VIO_BOOL  file_directory_exists(
 VIO_BOOL  check_clobber_file(
     const char*   filename )
 {
-    char     ch;
     VIO_BOOL  okay;
     const char*   expanded;
 
@@ -232,6 +231,7 @@ VIO_BOOL  check_clobber_file(
 
         delete_string( expanded );
 
+        char ch = 0;
         while( input_character( stdin, &ch ) == OK && ch != 'y' && ch != 'n' &&
                ch != 'N' && ch != 'Y' )
         {
@@ -1441,10 +1441,8 @@ VIO_Status  input_string(
     char*   *str,
     char    termination_char )
 {
-    char    ch;
-    VIO_Status  status;
-
-    status = input_nonwhite_character( file, &ch );
+    char    ch = 0;
+    VIO_Status status = input_nonwhite_character( file, &ch );
 
     *str = create_string( NULL );
 
@@ -1537,22 +1535,21 @@ VIO_Status  input_possibly_quoted_string(
     FILE  *file,
     char* *str )
 {
-    VIO_BOOL   quoted;
-    char       ch, quote;
-    VIO_Status status;
+    char       quote;
+    VIO_Status status = input_nonwhite_character( file, &quote );
 
-    status = input_nonwhite_character( file, &quote );
-
+    bool       quoted = false;
+    char       ch = 0;
     if( status == OK )
     {
         if( quote == '"' || quote == '\'' || quote == '`' )
         {
-            quoted = VIO_TRUE;
+            quoted = true;
             status = input_character( file, &ch );
         }
         else
         {
-            quoted = VIO_FALSE;
+            quoted = false;
             ch = quote;
         }
     }

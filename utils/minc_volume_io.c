@@ -419,7 +419,10 @@ static VIO_Status  mni_get_nonwhite_character(
     {
         status = input_character( file, ch );
         if( status == OK ) {
-            in_comment = ( *ch == COMMENT_CHAR1 || *ch == COMMENT_CHAR2 );
+            if ( *ch == COMMENT_CHAR1 || *ch == COMMENT_CHAR2 ) 
+	        in_comment = true;
+	    else if( *ch == '\n' )
+                in_comment = false;
 	}
     }
     while( status == OK &&
@@ -534,7 +537,7 @@ static VIO_Status  mni_input_keyword_and_equal_sign(
     bool         print_error_message )
 {
     char* str;
-    VIO_Status  status = mni_input_string( file, &str, (char) '=', (char) 0 );
+    VIO_Status status = mni_input_string( file, &str, (char) '=', (char) 0 );
 
     if( status == END_OF_FILE )
         return( status );
@@ -543,7 +546,7 @@ static VIO_Status  mni_input_keyword_and_equal_sign(
         mni_skip_expected_character( file, (char) '=' ) != OK )
     {
         if( print_error_message )
-            fprintf(stderr, "Expected \"%s =\"\n", keyword );
+            fprintf(stderr, "Expected \"%s =\" got str:%s\n", keyword, str );
         status = ERROR;
     }
 
@@ -773,7 +776,7 @@ static VIO_Status input_one_transform(
 
     /* --- read the type of transform */
 
-    status = mni_input_keyword_and_equal_sign( file, TYPE_STRING, false );
+    status = mni_input_keyword_and_equal_sign( file, TYPE_STRING, true );
 
     if( status != OK )
         return( status );
