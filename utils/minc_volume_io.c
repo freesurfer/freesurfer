@@ -1145,7 +1145,7 @@ VIO_Status input_transform_file(
     General_transform   *transform ) {
 
 	    
-    printf("%s:%d input_transform_file %s\n", __FILE__, __LINE__,
+    if (false) printf("%s:%d input_transform_file %s\n", __FILE__, __LINE__,
       filename);
       
     VIO_Status status = ERROR;
@@ -1159,7 +1159,7 @@ VIO_Status input_transform_file(
     if( status == OK )
         status = close_file( file );
 
-    printf("%s:%d input_transform_file %s returning %s\n", __FILE__, __LINE__,
+    if (false) printf("%s:%d input_transform_file %s returning %s\n", __FILE__, __LINE__,
       filename, statusToString(status));
     return( status );
 }
