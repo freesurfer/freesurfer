@@ -2187,11 +2187,15 @@ bright stuff 'outside' of brain */
       done = 0;
       means[1] -= 10;
       printf("left/right detection failed, moving y coord to %d from %d\n", nint(means[1]) + 10, nint(means[1]));
+      if (means[1] < 0)
+	done = -1 ;
     }
     else
       done = 1;
   } while (!done);
 
+  if (done < 0)
+    ErrorExit(ERROR_BADPARM, "MRIfindApproximateSkullBoundingBox failed: check input volume") ;
   /* search for superior edge */
   nlight = ndark = max_dark = max_light = 0;
   x = MAX(0, nint(means[0]) - 20);  // avoid inter-hemispheric fissure
