@@ -265,6 +265,42 @@ General_transform  *get_nth_general_transform(
         return( transform );
 }
 
+Transform  *get_linear_transform_ptr(
+    General_transform   *transform )
+{
+    if( transform->type == LINEAR )
+    {
+        if( transform->inverse_flag )
+            return( transform->inverse_linear_transform );
+        else
+            return( transform->linear_transform );
+    }
+    else
+    {
+        fprintf(stderr, "get_linear_transform_ptr\n" );
+	exit(1);
+        return( (Transform *) NULL );
+    }
+}
+
+Transform  *get_inverse_linear_transform_ptr(
+    General_transform   *transform )
+{
+    if( transform->type == LINEAR )
+    {
+        if( transform->inverse_flag )
+            return( transform->linear_transform );
+        else
+            return( transform->inverse_linear_transform );
+    }
+    else
+    {
+        fprintf(stderr, "get_inverse_linear_transform_ptr\n" );
+	exit(1);
+        return( (Transform *) NULL );
+    }
+}
+
 static  void  alloc_linear_transform(
     General_transform   *transform )
 {
@@ -580,12 +616,6 @@ static void nyi(const char* file, int line, const char* name) {
 }
 
 #define NYI(NAME, VALUE) { nyi(__FILE__, __LINE__, NAME); return VALUE; }
-
-Transform* get_linear_transform_ptr(
-    General_transform   *transform ) NYI("get_linear_transform_ptr",NULL)
-
-Transform* get_inverse_linear_transform_ptr(
-    General_transform   *transform ) NYI("get_inverse_linear_transform_ptr",NULL)
 
 void concat_general_transforms(
     General_transform   *first,
