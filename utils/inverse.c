@@ -33,7 +33,7 @@ bool compute_transform_inverse(
 	}
     }
 
-    bool success = invert_4x4_matrix( &t, &inv );
+    bool success = invert_4x4_matrix( (Double4x4 const *)&t, &inv );
 
     if( success )
     {

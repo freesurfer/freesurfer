@@ -35,8 +35,8 @@ typedef bool BOOLEAN;
 typedef double Double4x4[4*4];
 #define Index4x4(I,J) (4*(I)+(J))
 bool invert_4x4_matrix( 
-	Double4x4 * t, 		// doubles are modified
-	Double4x4 * inv );	// doubles are written
+	const Double4x4 * mat, 		// doubles are read, not changed
+	Double4x4 * 	  inv );	// doubles are written
 
 // The following replacement for nc_type
 // was written by Bevin R Brett

@@ -178,32 +178,27 @@ static bool compute_transform_inverse(
     Transform  *inverse )
 {
     int        i, j;
-    Real       **t, **inv;
-    BOOLEAN    success;
 
-    /* --- copy the transform to a numerical recipes type matrix */
+    Double4x4  t, inv;
 
-    ALLOC2D( t, 4, 4 );
-    ALLOC2D( inv, 4, 4 );
-
-    for_less( i, 0, 4 )
+    for( i = 0; i < 4; i++ )
     {
-        for_less( j, 0, 4 )
-            t[i][j] = Transform_elem(*transform,i,j);
+        for( j = 0; j < 4; j++ )
+            t[Index4x4(i,j)] = Transform_elem(*transform,i,j);
     }
 
-    success = invert_square_matrix( 4, t, inv );
+    bool success = invert_4x4_matrix( (Double4x4 const*)&t, &inv );
 
     if( success )
     {
         /* --- copy the resulting numerical recipes matrix to the
                output argument */
 
-        for_less( i, 0, 4 )
+        for( i = 0; i < 4; i++ )
         {
-            for_less( j, 0, 4 )
+            for( j = 0; j < 4; j++ )
             {
-                Transform_elem(*inverse,i,j) = inv[i][j];
+                Transform_elem(*inverse,i,j) = inv[Index4x4(i,j)];
             }
         }
 
@@ -224,9 +219,6 @@ static bool compute_transform_inverse(
     }
     else
         make_identity_transform( inverse );
-
-    FREE2D( t );
-    FREE2D( inv );
 
     return( success );
 }
@@ -301,6 +293,7 @@ static void create_linear_transform(
         make_identity_transform( transform->inverse_linear_transform );
     }
 }
+
 
 static  void  copy_and_invert_transform(
     General_transform  *transform,
@@ -388,6 +381,12 @@ static  void  copy_and_invert_transform(
     }
 }
 
+static void create_inverse_general_transform(
+    General_transform   *transform,
+    General_transform   *inverse )
+{
+    copy_and_invert_transform( transform, true, inverse );
+}
 
 // Based on minc-1.5.1/volume_io/MNI_formats/mni_io.c
 // which requires the following...
