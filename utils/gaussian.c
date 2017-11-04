@@ -45,27 +45,24 @@ typedef double Double4x4[4*4];
 #include <math.h>
 #include <stdio.h>
 
-static void print(const char* heading, double* mat) {
+static void print(const char* heading, double* mat, int* mapI) {
     printf("%s\n",heading);
     int i,j;
     for (i = 0; i < 4; i++) {
+        int mi = mapI ? mapI[i] : i;
         for (j = 0; j < 4; j++) 
-            printf("%lf ",mat[Index4x4(i,j)]);
+            printf("%lf ",mat[Index4x4(mi,j)]);
         printf("\n");
     }
 }
 
-static bool invert_4x4_matrix_wkr( double* mat, double* inv )
+static const char* invert_4x4_matrix_wkr_simple( double* mat, double* inv, int* mapI )
 {
-    static const int DoSimpleWay = 1;
+    printf("doing inversion simply\n");
     
-    print("mat being inverted", mat);
     int i, i2, j;
 
-    int mapI[4];
-    for( i = 0; i < 4; i++ ) {
-        mapI[i] = i;
-    }
+    print("mat being inverted", mat, mapI);
 
     double scaleRow[4];
     for( i = 0; i < 4; i++ ) {
@@ -74,7 +71,7 @@ static bool invert_4x4_matrix_wkr( double* mat, double* inv )
 	    double d = fabs(mat[Index4x4(i,j)]);
 	    if (max < d) max = d;
         }
-	if (max == 0.0) return false;
+	if (max == 0.0) return "Some row is all zeros";
 	scaleRow[i] = 1.0 / max;
     }
 
@@ -82,9 +79,10 @@ static bool invert_4x4_matrix_wkr( double* mat, double* inv )
         for( j = 0; j < 4; j++ ) inv[Index4x4(i,j)] = 0.0;
         inv[Index4x4(i,i)] = 1.0;
     }
-    print("inv set to id", inv);
+    print("inv set to id", inv, mapI);
 
-    for( i = 0; i < DoSimpleWay?4:3; i++ ) {
+    for( i = 0; i < 4; i++ ) {
+        printf("\n\ndoing col %d\n",i);
     
         // choose the best of the remaining rows to use
 	//
@@ -100,7 +98,7 @@ static bool invert_4x4_matrix_wkr( double* mat, double* inv )
 		maxI = i2; 
 	    }
         }
-        if (max == 0.0) return false;
+        if (max == 0.0) return "Some col is all zeros";
 
         // swap the best row to be the i'th entry in the map
 	//
@@ -119,38 +117,118 @@ static bool invert_4x4_matrix_wkr( double* mat, double* inv )
 	double scale = 1.0 / mat[Index4x4(mi,i)];
 	    // max is the fabs of mat[...] and is known > 0
 	
-	if (DoSimpleWay)
-        for( i2 = i; i2 < i+1; i2++ ) {
-	    const int mi2 = mapI[i2];
-	    
-            double m = mat[Index4x4(mi2,i)] * scale;
-            for( j = 0; 
+        {
+	    for( j = 0; 
 	        j < 4; j++ )
-                mat[Index4x4(mi2,j)] *= scale;
+                mat[Index4x4(mi,j)] *= scale;
 		
             for( j =   0; j < 4; j++ )
-                inv[Index4x4(mi2,j)] *= scale;
+                inv[Index4x4(mi,j)] *= scale;
         }
 
+        for( i2 = 0; i2 < 4; i2++ ) {
+	    if (i2 == i) continue;
+	    const int mi2 = mapI[i2];
+	    
+            double m = mat[Index4x4(mi2,i)];
+            for( j = 0; j < 4; j++ )
+                mat[Index4x4(mi2,j)] -= m * mat[Index4x4(mi,j)];
+		
+            for( j = 0; j < 4; j++ )
+                inv[Index4x4(mi2,j)] -= m * inv[Index4x4(mi,j)];
+        }
+	printf("After elimination:\n");
+        print("    mat", mat, NULL);
+        print("    inv", inv, NULL);
+        print("    mat reordered", mat, mapI);
+        print("    inv reordered", inv, mapI);
+    }
+
+    return NULL;
+}
+
+
+static const char* invert_4x4_matrix_wkr_fast( double* mat, double* inv, int* mapI )
+{
+    printf("doing inversion optimized\n");
+    
+    int i, i2, j;
+
+    print("mat being inverted", mat, mapI);
+
+    double scaleRow[4];
+    for( i = 0; i < 4; i++ ) {
+        double max   = fabs(mat[Index4x4(i,0)]);
+        for( j = 1; j < 4; j++ ) {
+	    double d = fabs(mat[Index4x4(i,j)]);
+	    if (max < d) max = d;
+        }
+	if (max == 0.0) return "Some row is all zeros";
+	scaleRow[i] = 1.0 / max;
+    }
+
+    for( i = 0; i < 4; i++ ) {
+        for( j = 0; j < 4; j++ ) inv[Index4x4(i,j)] = 0.0;
+        inv[Index4x4(i,i)] = 1.0;
+    }
+    print("inv set to id", inv, mapI);
+
+    for( i = 0; i < 3; i++ ) {
+        printf("\n\ndoing col %d\n");
+    
+        // choose the best of the remaining rows to use
+	//
+    	int    mi    = mapI[i];
+        int    maxI  = i;
+        double max   = fabs(mat[Index4x4(mi, i)] * scaleRow[mi ]);
+        for( i2 = i+1; i2 < 4; i2++) {
+	    const int mi2 = mapI[i2];
+            double d = fabs(mat[Index4x4(mi2,i)] * scaleRow[mi2]);
+            if (max < d) {
+	        printf("max:%f maxI:%d replaced by %f %d\n", max,maxI, d, i2); 
+	        max = d; 
+		maxI = i2; 
+	    }
+        }
+        if (max == 0.0) return "Some col is all zeros";
+
+        // swap the best row to be the i'th entry in the map
+	//
+        {   // it is better to swap than mispredict a test-and-branch
+            int tmp    = mapI[maxI];
+            mapI[maxI] = mapI[i];
+            mapI[i]    = tmp;
+        }
+		
+	// apply the elimination step to all the later rows
+	// and to all the rows of the inv
+	//
+	mi = mapI[i];
+        printf("row %d chosen\n",mi);
+	
+	double scale = 1.0 / mat[Index4x4(mi,i)];
+	    // max is the fabs of mat[...] and is known > 0
+	
         for( i2 = i+1; i2 < 4; i2++ ) {
 	    const int mi2 = mapI[i2];
 	    
             double m = mat[Index4x4(mi2,i)] * scale;
-            for( j = DoSimpleWay ? 0 : i+1; 
-	        j < 4; j++ )
+            for( j = i+1; j < 4; j++ )
                 mat[Index4x4(mi2,j)] -= m * mat[Index4x4(mi,j)];
 		
             for( j =   0; j < 4; j++ )
                 inv[Index4x4(mi2,j)] -= m * inv[Index4x4(mi,j)];
         }
-        print("next row eliminated. mat", mat);
-        print("next row eliminated. inv", inv);
+	printf("After elimination:\n");
+        print("    mat", mat, NULL);
+        print("    inv", inv, NULL);
+        print("    mat reordered", mat, mapI);
+        print("    inv reordered", inv, mapI);
     }
 
     if( mat[Index4x4(mapI[3],3)] == 0.0 )
-        return false;
+        return "last col all zeros";
 
-    if (!DoSimpleWay)
     for( i = 3; i >= 0; --i ) {
         int mi = mapI[i];
         for( i2 = i+1; i2 < 4; i2++ ) {
@@ -165,17 +243,35 @@ static bool invert_4x4_matrix_wkr( double* mat, double* inv )
             inv[Index4x4(mi,j)] *= scale;
     }
 
-    return true;
+    return NULL;
 }
 
 
 bool invert_4x4_matrix( const Double4x4* mat, Double4x4* inv ) {
     Double4x4 copyToBeDestroyed;
+    Double4x4 permutedInv;
+
     int i,j;
     for (i = 0; i < 4; i++) 
         for (j = 0; j < 4; j++) 
             copyToBeDestroyed[Index4x4(i,j)] = (*mat)[Index4x4(i,j)];
-    return invert_4x4_matrix_wkr(&copyToBeDestroyed[0], &(*inv)[0] );
+
+    int mapI[4];
+    for( i = 0; i < 4; i++ ) {
+        mapI[i] = i;
+    }
+
+    const char* errorMessage = 
+        invert_4x4_matrix_wkr_fast(&copyToBeDestroyed[0], &permutedInv[0], &mapI[0] );
+    if (errorMessage) {
+        printf("invert_4x4_matrix failed, %s\n",errorMessage);
+    }
+    for (i = 0; i < 4; i++) {
+        int mi = mapI[i];
+        for (j = 0; j < 4; j++) 
+            (*inv)[Index4x4(i,j)] = permutedInv[Index4x4(mi,j)];
+    }
+    return errorMessage == NULL;
 }
 
 
@@ -188,7 +284,7 @@ int main() {
 
     for (i = 0; i < 4; i++) 
         for (j = 0; j < 4; j++) 
-            mat[Index4x4(i,j)] = 2.0*(i==(3-j));
+            mat[Index4x4(i,j)] = (double)(i != j) + (i < j);
 	    
     if (!invert_4x4_matrix((const Double4x4*)&mat, &inv)) {
         printf("inv failed\n");
@@ -202,8 +298,8 @@ int main() {
 	    }
         }
     }
-    print("Final inv",&inv[0]);
-    print("Final mul",&mul[0]);
+    print("Final inv",&inv[0],NULL);
+    print("Final mul",&mul[0],NULL);
     return 0;
 }
 
