@@ -818,16 +818,17 @@ int EVSdesignMtxStats(MATRIX *Xtask, MATRIX *Xnuis, EVSCH *EvSch, MATRIX *C, MAT
 {
   MATRIX *X = NULL, *Xt = NULL, *XtX = NULL;
   MATRIX *iXtX = NULL, *VRF = NULL, *Ct = NULL, *CiXtX = NULL, *CiXtXCt = NULL;
-  int r, m, nTaskAvgs, nNuisAvgs, nAvgs, Cfree, J;
+  int r, m, nTaskAvgs, nAvgs, Cfree, J;
+  // int nNuisAvgs;
   float diagsum;
   double dtmp, dtmp1, dtmp2;
 
   X = MatrixHorCat(Xtask, Xnuis, NULL);
   nTaskAvgs = Xtask->cols;
-  if (Xnuis != NULL)
-    nNuisAvgs = Xnuis->cols;
-  else
-    nNuisAvgs = 0;
+  // if (Xnuis != NULL)
+  //   nNuisAvgs = Xnuis->cols;
+  // else
+  //   nNuisAvgs = 0;
   nAvgs = X->cols;
 
   if (W != NULL) X = MatrixMultiply(W, X, NULL);
