@@ -1421,6 +1421,40 @@ VIO_Status input_transform_file(
     return( status );
 }
 
+
+// Based on minc-1.5.1/volume_io/Volumes/input_volume.c
+// which requires the following...
+//
+/* ----------------------------------------------------------------------------
+@COPYRIGHT  :
+              Copyright 1993,1994,1995 David MacDonald,
+              McConnell Brain Imaging Centre,
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+---------------------------------------------------------------------------- */
+void  delete_volume_input(
+    volume_input_struct   *input_info )
+{
+#if defined(BEVIN_ALL_VOLUME_INPUT_STRUCT_MEMBERS)
+    switch( input_info->file_format )
+    {
+    case  MNC_FORMAT:
+        (void) close_minc_input( input_info->minc_file );
+        break;
+
+    case  FREE_FORMAT:
+        delete_free_format_input( input_info );
+        break;
+    }
+#endif
+}
+
 // Based on minc-1.5.1/volume_io/Volumes/volumes.c
 // which requires the following...
 //
@@ -1646,23 +1680,223 @@ void  check_recompute_world_transform(
     }
 }
 
+static bool convert_dim_name_to_spatial_axis(
+    const char* name,
+    int     *axis )
+{
+    *axis = -1;
+
+    if( !strcmp( name, MIxspace ) )
+        *axis = X;
+    else if( !strcmp( name, MIyspace ) )
+        *axis = Y;
+    else if( !strcmp( name, MIzspace ) )
+        *axis = Z;
+
+    return( *axis >= 0 );
+}
+
+static const char* default_dimension_names[VIO_MAX_DIMENSIONS][VIO_MAX_DIMENSIONS] =
+{
+    { MIxspace },
+    { MIyspace, MIxspace },
+    { MIzspace, MIyspace, MIxspace },
+    { "", MIzspace, MIyspace, MIxspace },
+    { "", "", MIzspace, MIyspace, MIxspace }
+};
+
+
+static void  set_volume_type(
+    Volume       volume,
+    nc_type      nc_data_type,
+    bool         signed_flag,
+    double       voxel_min,
+    double       voxel_max )
+{
+#if defined(BEVIN_ALL_VOLUME_MEMBERS)
+    Data_types      data_type;
+
+    if( nc_data_type != MI_ORIGINAL_TYPE )
+    {
+        switch( nc_data_type )
+        {
+        case  NC_BYTE:
+            if( signed_flag )
+                data_type = SIGNED_BYTE;
+            else
+                data_type = UNSIGNED_BYTE;
+            break;
+
+        case  NC_SHORT:
+            if( signed_flag )
+                data_type = SIGNED_SHORT;
+            else
+                data_type = UNSIGNED_SHORT;
+            break;
+
+        case  NC_INT:
+            if( signed_flag )
+                data_type = SIGNED_INT;
+            else
+                data_type = UNSIGNED_INT;
+            break;
+
+        case  NC_FLOAT:
+            data_type = FLOAT;
+            break;
+
+        case  NC_DOUBLE:
+            data_type = DOUBLE;
+            break;
+        }
+
+        set_multidim_data_type( &volume->array, data_type );
+        volume->signed_flag = signed_flag;
+
+        set_volume_voxel_range( volume, voxel_min, voxel_max );
+    }
+
+    volume->nc_data_type = nc_data_type;
+#endif
+}
+
+
 Volume create_volume(
     int          n_dimensions,
     char*        dimension_names[],
     nc_type      nc_data_type,
     bool         signed_flag,
     double	 voxel_min,
-    double       voxel_max ) NYI("create_volume",NULL)
+    double       voxel_max ) 
+{
+    int             i;
+    VIO_Status      status;
+    volume_struct   *volume;
+    Transform       identity;
+
+    status = OK;
+
+    if( n_dimensions < 1 || n_dimensions > VIO_MAX_DIMENSIONS )
+    {
+        fprintf(stderr,
+            "create_volume(): n_dimensions (%d) not in range 1 to %d.\n",
+               n_dimensions, VIO_MAX_DIMENSIONS );
+        status = ERROR;
+    }
+
+    if( status == ERROR )
+    {
+        return( (Volume) NULL );
+    }
+
+    volume = (volume_struct*)malloc(sizeof(volume_struct));
+
+#if defined(BEVIN_ALL_VOLUME_MEMBERS)
+    volume->is_rgba_data     = FALSE;
+    volume->is_cached_volume = FALSE;
+
+    volume->real_range_set         = FALSE;
+    volume->real_value_scale       = 1.0;
+    volume->real_value_translation = 0.0;
+#endif
+
+    for( i = 0; i < VIO_N_DIMENSIONS; i++ )
+        volume->spatial_axes[i] = -1;
+
+    int sizes[VIO_MAX_DIMENSIONS];
+    for( i = 0; i < n_dimensions; i++ )
+    {
+        volume->starts[i] = 0.0;
+        volume->separations[i] = 1.0;
+        volume->direction_cosines[i][X] = 0.0;
+        volume->direction_cosines[i][Y] = 0.0;
+        volume->direction_cosines[i][Z] = 0.0;
+#if defined(BEVIN_ALL_VOLUME_MEMBERS)
+        volume->irregular_starts[i]     = NULL;
+        volume->irregular_widths[i]     = NULL;
+#endif
+
+        sizes[i] = 0;
+
+        const char* name;
+        if( dimension_names != (char **) NULL )
+            name = dimension_names[i];
+        else
+            name = default_dimension_names[n_dimensions-1][i];
+
+#if defined(BEVIN_ALL_VOLUME_MEMBERS)
+        volume->dimension_names[i] = create_string( name );
+#endif
+
+        int axis;
+        if( convert_dim_name_to_spatial_axis( name, &axis ) )
+        {
+            volume->spatial_axes        [axis] = i;
+            volume->direction_cosines[i][axis] = 1.0;
+        }
+
+    }
+
+#if defined(BEVIN_ALL_VOLUME_MEMBERS)
+    create_empty_multidim_array( &volume->array, n_dimensions, NO_DATA_TYPE );
+#endif
+
+    set_volume_type( volume, nc_data_type, signed_flag, voxel_min, voxel_max );
+    set_volume_sizes( volume, sizes );
+
+    make_identity_transform( &identity );
+    create_linear_transform( &volume->voxel_to_world_transform, &identity );
+    volume->voxel_to_world_transform_uptodate = true;
+
+#if defined(BEVIN_ALL_VOLUME_MEMBERS)
+    volume->coordinate_system_name = create_string( MI_UNKNOWN_SPACE );
+#endif
+
+    return( volume );
+}
+
+static void  free_volume_data(
+    Volume   volume )
+{
+#if defined(BEVIN_ALL_VOLUME_MEMBERS)
+    if( volume->is_cached_volume )
+        delete_volume_cache( &volume->cache, volume );
+    else if( volume_is_alloced( volume ) )
+        delete_multidim_array( &volume->array );
+#endif
+}
 
 void delete_volume(
-    Volume volume ) NYI("",)
+    Volume volume ) {
 
-void delete_volume_input(
-    volume_input_struct   *input_info ) NYI("delete_volume",)
+    if( volume == (Volume) NULL )
+    {
+        fprintf(stderr, "delete_volume():  cannot delete a null volume.\n" );
+	exit(1);
+        return;
+    }
 
-void set_volume_sizes(
-    Volume   	volume,
-    int         sizes[] ) NYI("set_volume_sizes",)
+    free_volume_data( volume );
+
+    delete_general_transform( &volume->voxel_to_world_transform );
+
+#if defined(BEVIN_ALL_VOLUME_MEMBERS)
+    int   d;
+    for( d = 0; d < get_volume_n_dimensions(volume); d++ )
+        free( volume->dimension_names[d] );
+
+    free( volume->coordinate_system_name );
+#endif
+
+    free( volume );
+}
+
+void  set_volume_sizes(
+    Volume       volume,
+    int          sizes[] )
+{
+    set_multidim_sizes( &volume->array, sizes );
+}
 
 void alloc_volume_data(
     Volume      volume ) NYI("alloc_volume_data",)

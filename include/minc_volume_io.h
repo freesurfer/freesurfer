@@ -255,58 +255,65 @@ typedef struct General_transform
 
 typedef struct volume_struct
 {
-//      VIO_BOOL                is_cached_volume;
-//      VIO_volume_cache_struct cache;
-//  
-//      VIO_multidim_array      array;
-//  
-//      VIO_STR                 dimension_names[VIO_MAX_DIMENSIONS];
         int                     spatial_axes[VIO_N_DIMENSIONS];
         nc_type                 nc_data_type;
-//      VIO_BOOL                signed_flag;
-//      VIO_BOOL                is_rgba_data;
-//  
-//      VIO_Real                voxel_min;
-//      VIO_Real                voxel_max;
-//      VIO_BOOL                real_range_set;
-//      VIO_Real                real_value_scale;
-//      VIO_Real                real_value_translation;
-//  
         double                  separations[VIO_MAX_DIMENSIONS];
 	double			starts[VIO_MAX_DIMENSIONS];
         double                  direction_cosines[VIO_MAX_DIMENSIONS][VIO_N_DIMENSIONS];
-//  
+
         bool                    voxel_to_world_transform_uptodate;
 	General_transform       voxel_to_world_transform;
-//  
-//      VIO_STR                 coordinate_system_name;
-//  
-//      VIO_Real               *irregular_starts[VIO_MAX_DIMENSIONS];
-//      VIO_Real               *irregular_widths[VIO_MAX_DIMENSIONS];
+
+#if defined(BEVIN_ALL_VOLUME_MEMBERS)
+	//
+	// When moving one of these out, make sure the current conditionalized uses
+	// have the condition removed!
+	//
+        VIO_BOOL                is_cached_volume;
+        VIO_volume_cache_struct cache;
+  
+        VIO_multidim_array      array;
+  
+        VIO_STR                 dimension_names[VIO_MAX_DIMENSIONS];
+        VIO_BOOL                signed_flag;
+        VIO_BOOL                is_rgba_data;
+  
+        VIO_Real                voxel_min;
+        VIO_Real                voxel_max;
+        VIO_BOOL                real_range_set;
+        VIO_Real                real_value_scale;
+        VIO_Real                real_value_translation;
+        VIO_STR                 coordinate_system_name;
+  
+        VIO_Real               *irregular_starts[VIO_MAX_DIMENSIONS];
+        VIO_Real               *irregular_widths[VIO_MAX_DIMENSIONS];
+#endif
+
 } volume_struct;
 
 typedef volume_struct* Volume;
 
 typedef struct
 {
-//    Volume_file_formats  file_format;
-//
-//    Minc_file            minc_file;
-//
-//    /* for free format files only */
-//
-//    FILE                 *volume_file;
-//    int                  slice_index;
-//    long                 sizes_in_file[VIO_MAX_DIMENSIONS];
-//    int                  axis_index_from_file[VIO_MAX_DIMENSIONS];
-//    VIO_Data_types       file_data_type;
-//    VIO_BOOL             one_file_per_slice;
-//    VIO_STR              directory;
-//    VIO_STR              *slice_filenames;
-//    int                  *slice_byte_offsets;
-//    unsigned char        *byte_slice_buffer;
-//    unsigned short       *short_slice_buffer;
-
+#if defined(BEVIN_ALL_VOLUME_INPUT_STRUCT_MEMBERS)
+      Volume_file_formats  file_format;
+  
+      Minc_file            minc_file;
+  
+      /* for free format files only */
+  
+      FILE                 *volume_file;
+      int                  slice_index;
+      long                 sizes_in_file[VIO_MAX_DIMENSIONS];
+      int                  axis_index_from_file[VIO_MAX_DIMENSIONS];
+      VIO_Data_types       file_data_type;
+      VIO_BOOL             one_file_per_slice;
+      VIO_STR              directory;
+      VIO_STR              *slice_filenames;
+      int                  *slice_byte_offsets;
+      unsigned char        *byte_slice_buffer;
+      unsigned short       *short_slice_buffer;
+#endif
 } volume_input_struct;
 
 typedef struct

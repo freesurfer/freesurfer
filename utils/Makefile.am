@@ -153,6 +153,7 @@ libutils_main_SOURCES=\
 	minc_files.c \
 	minc_gaussian.c \
 	minc_inverse.c \
+	minc_multidim_arrays.c \
 	minc_volume_io.c \
 	mincutils.c \
 	minmaxrc.c \
