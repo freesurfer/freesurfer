@@ -9405,7 +9405,7 @@ int gcamMapTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_map)
   v_grad[tid] = VectorAlloc(3, MATRIX_REAL);
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(tid, i, y, z, gcamn, gcan, gcap, n, norm, dx, dy, dz, gc, node_prob, prob) \
+#pragma omp parallel for firstprivate(tid, i, y, z, gcamn, gcap, n, norm, dx, dy, dz, gc, node_prob, prob) \
     shared(gcam, Gx, Gy, Gz, mri_smooth, l_map) schedule(static, 1)
 #endif
   for (x = 0; x < gcam->width; x++)
