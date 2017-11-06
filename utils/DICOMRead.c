@@ -594,7 +594,8 @@ MRI *sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly)
   char *tmpstring, *pc = NULL, *pc2 = NULL;
   int Maj, Min, MinMin;
   double xs, ys, zs, xe, ye, ze, d, val;
-  int nnlist, nthdir;
+  int nnlist;
+  // int nthdir;
   DTI *dti;
   int TryDTI = 1, DoDTI = 1;
   extern int sliceDirCosPresent;  // set when no ascii header
@@ -836,7 +837,7 @@ MRI *sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly)
       // Go thru all the files in order to get all the directions
       sdfi = sdfi_list[nthfile];
       DTIparsePulseSeqName(sdfi->PulseSequence, &sdfi->bValue, &sdfi->nthDirection);
-      nthdir = sdfi->nthDirection;
+      // nthdir = sdfi->nthDirection;
       vol->bvals->rptr[nthfile + 1][1] = sdfi->bValue;
       printf("%d %s %lf %d\n", nthfile, sdfi->PulseSequence, sdfi->bValue, sdfi->nthDirection);
     }
