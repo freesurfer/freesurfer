@@ -2376,6 +2376,13 @@ float XYZApproxAngle(XYZ const *normalizedXYZ, float x2, float y2, float z2)
 
   float acosInput = dot / norm;
 
+  // disabling this warning because the code below fails when -fopenmp is not used during compile. 
+  // This is an ongoing issue in gcc 4.9.4 - clarsen
+  #if GCC_VERSION > 40408
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wunknown-pragmas"
+  #endif
+
   // left the following here for debugging or other investigation
   if (0)
 #pragma omp critical
@@ -2427,6 +2434,8 @@ float XYZApproxAngle(XYZ const *normalizedXYZ, float x2, float y2, float z2)
       if (count++ < 100) printf("acos approx inp:%g approx:%g correct:%g\n", acosInput, angle, acos(acosInput));
     }
   }
+
+  #pragma GCC diagnostic pop
 
   return (angle);
 }
