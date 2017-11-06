@@ -686,7 +686,7 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
   int cudaReturn;
 #else
   int ct, show_progress_thread;
-  int tid;
+  int tid = 0;
   float *valvects[_MAX_FS_THREADS];
 #endif
   int sinchw;
