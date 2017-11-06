@@ -18711,8 +18711,7 @@ GCA_MORPH *GCAMfillInverse(GCA_MORPH *gcam)
   GCA_MORPH *inv_gcam;
 
   printf("Allocating inv_gcam...(%d, %d, %d)\n", gcam->width, gcam->height, gcam->depth);
-  inv_gcam =
-      GCAMalloc(gcam->width, gcam->height, gcam->depth);  // NOTE: forces same moving and target coordinate spaces!!
+  inv_gcam = GCAMalloc(gcam->width, gcam->height, gcam->depth);  // NOTE: forces same moving and target coordinate spaces!!
   inv_gcam->image = gcam->atlas;
   inv_gcam->atlas = gcam->image;
 
@@ -18764,7 +18763,7 @@ GCA_MORPH *GCAMfillInverse(GCA_MORPH *gcam)
 }
 GCA_MORPH *GCAMdownsample2(GCA_MORPH *gcam)
 {
-  int xs, ys, zs, xd, yd, zd, labels[MAX_CMA_LABEL + 1], l, max_l, max_count;
+  int xs, ys, zs, xd, yd, zd, labels[MAX_CMA_LABELS], l, max_l, max_count;
   GCA_MORPH_NODE *gcamn_src, *gcamn_dst;
   GCA_MORPH *gcam_dst;
 
@@ -18851,7 +18850,7 @@ GCA_MORPH *GCAMdownsample2(GCA_MORPH *gcam)
 
         max_count = labels[0];
         max_l = 0;
-        for (l = 1; l <= MAX_CMA_LABELS; l++)
+        for (l = 1; l < MAX_CMA_LABELS; l++)
           if (labels[l] > max_count) {
             max_count = labels[l];
             max_l = l;
