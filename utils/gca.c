@@ -8835,7 +8835,7 @@ MRI *GCAconstrainLabelTopology(GCA *gca,
                                            mriseg->segments[j].voxels[0].z,
                                            0) > 0))) {
         if (mriseg->segments[j].nvoxels * voxel_volume > vent_topo_volume_thresh2)
-          printf(" !!!!!!!!! ventrice segment %d with volume %2.0f above threshold %2.0f - not erasing !!!!!!!!!!\n",
+          printf(" !!!!!!!!! ventricle segment %d with volume %2.0f above threshold %2.0f - not erasing !!!!!!!!!!\n",
                  j,
                  mriseg->segments[j].nvoxels * voxel_volume,
                  vent_topo_volume_thresh2);

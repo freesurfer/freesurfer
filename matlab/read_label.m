@@ -1,10 +1,14 @@
-function [l] = read_label(sname, lname)
-% l = read_label(<sname>, lname)
+function [l, coords] = read_label(sname, lname)
+% [l, coords] = read_label(<sname>, lname)
 %
 % reads the label file 'lname' from the subject 'sname' 
 % in the subject's label directory into the vector l
 % l will be nvertices-by-5, where each column means:
 % (1) vertex number, (2-4) xyz at each vertex, (5) stat
+%
+% coords is an optional output argument that returns
+% the string at the end of vox2ras=%s on the
+% first line of the label (should be scanner, voxel, or tkreg)
 %
 % IMPORTANT: the vertex number is 0-based.
 % 
@@ -57,11 +61,10 @@ if(fid == -1)
   return;
 end
 
-fgets(fid) ;
-if(fid == -1)
-  fprintf('ERROR: could not open %s\n',fname);
-  return;
-end
+line = fgets(fid) ;
+ind = strfind(line, 'vox2ras=');
+coords = sscanf(line(ind:end), 'vox2ras=%s');
+
 
 line = fgets(fid) ;
 nv = sscanf(line, '%d') ;
