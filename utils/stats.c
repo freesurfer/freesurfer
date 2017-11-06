@@ -421,11 +421,7 @@ SV *StatReadVolume(const char *prefix)
 
   /* read it after nevents */
   if (stricmp(sv->reg->name, "talairach") && stricmp(sv->reg->name, "spherical")) 
-#if !defined(BEVIN_EXCLUDE_MINC)
     StatReadTransform(sv, sv->reg->name);
-#else
-    ErrorReturn(NULL, (ERROR_NOFILE, "StatReadVolume: does not support %s", sv->reg->name));
-#endif
 
   /* read in the actual data */
   nitems = width * height;
@@ -628,12 +624,7 @@ SV *StatReadVolume2(const char *prefix)
 
   /* read it after nevents */
   if (stricmp(sv->reg->name, "talairach") && stricmp(sv->reg->name, "spherical")) {
-#if !defined(BEVIN_EXCLUDE_MINC)
     StatReadTransform(sv, sv->reg->name);
-#else
-    fprintf(stderr, "ERROR: %s, StatReadVolume(): does not support talairach\n", Progname);
-    exit(1);
-#endif
   }
 
   f = 0;
@@ -695,9 +686,7 @@ int StatFree(SV **psv)
     if (sv->mri_std_dofs[event]) MRIfree(&sv->mri_std_dofs[event]);
   }
 
-#if !defined(BEVIN_EXCLUDE_MINC)
   delete_general_transform(&sv->transform);
-#endif
   StatFreeRegistration(&sv->reg);
   free(sv);
 
@@ -1092,10 +1081,8 @@ int StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
     sv_tal->std_dofs[event] += sv->std_dofs[event];
     mri_avg = sv_tal->mri_avgs[event];
     mri_std = sv_tal->mri_stds[event];
-#if !defined(BEVIN_EXCLUDE_MINC)
     mri_avg->linear_transform = sv->mri_avgs[event]->linear_transform;
     mri_avg->inverse_linear_transform = sv->mri_avgs[event]->inverse_linear_transform;
-#endif
 
     /* Go through each col, row, and slice in the tal volume */
     for (z = 0; z < depth; z++) {
@@ -1372,7 +1359,6 @@ int StatWriteRegistration(fMRI_REG *reg, const char *fname)
 }
 /*-------------------------------------------------------------------
   -------------------------------------------------------------------*/
-#if !defined(BEVIN_EXCLUDE_MINC)
 int StatReadTransform(STAT_VOLUME *sv, const char *name)
 {
   char *sd, subjects[STRLEN], fname[STRLEN];
@@ -1398,7 +1384,6 @@ int StatReadTransform(STAT_VOLUME *sv, const char *name)
   }
   return (NO_ERROR);
 }
-#endif
 /*------------------------------------------------------------------------
   ------------------------------------------------------------------------*/
 int StatVolumeExists(const char *prefix)

@@ -386,9 +386,7 @@ MRI   *MRIallocSequence(int width, int height,int depth,int type,int nframes);
 MRI   *MRIallocHeader(int width, int height, int depth, int type, int nframes) ;
 int   MRIallocIndices(MRI *mri) ;
 int   MRIsetResolution(MRI *mri, float xres, float yres, float zres) ;
-#if !defined(BEVIN_EXCLUDE_MINC)
 int   MRIsetTransform(MRI *mri,   General_transform *transform) ;
-#endif
 MRI * MRIallocChunk(int width, int height, int depth, int type, int nframes);
 int   MRIchunk(MRI **pmri);
 
