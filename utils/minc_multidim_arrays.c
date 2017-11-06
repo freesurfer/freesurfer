@@ -1,3 +1,29 @@
+#if defined(BEVIN_EXCLUDE_MINC)
+/**
+ * @file  minc_multidim_arrays.c
+ * @substitutes for the needed functionality previously obtained from minc
+ */
+/*
+ * Overhaul Author: Bevin Brett
+ * CVS Revision Info:
+ *    $Author: Brett $
+ *    $Date: 2017/11/07 12:46:00 $
+ *    $Revision: 1.00 $
+ *
+ * Copyright © 2017 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
+// HEAVILY BASED on minc-1.5.1/volume_io/Volumes/multidim_arrays.c
+
 /* ----------------------------------------------------------------------------
 @COPYRIGHT  :
               Copyright 1993,1994,1995 David MacDonald,
@@ -12,13 +38,17 @@
               express or implied warranty.
 ---------------------------------------------------------------------------- */
 
-#include  <internal_volume_io.h>
+#include "minc_multidim_arrays.h"
+
 #include  <limits.h>
 #include  <float.h>
-
-#ifndef lint
-static char rcsid[] = "$Header: /private-cvsroot/minc/volume_io/Volumes/multidim_arrays.c,v 1.15.2.1 2004/10/04 20:20:14 bert Exp $";
-#endif
+#include  <stdio.h>
+#include  <stdbool.h>
+#include  <string.h>
+#include "minc_volume_io.h"
+	// various prototypes
+	
+#define for_less(VAR,INIT,LIM) for (VAR=INIT; VAR < LIM; VAR++)
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : create_empty_multidim_array
@@ -34,21 +64,21 @@ static char rcsid[] = "$Header: /private-cvsroot/minc/volume_io/Volumes/multidim
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-VIOAPI   void   create_empty_multidim_array(
-    multidim_array  *array,
+void   create_empty_multidim_array(
+    VIO_multidim_array  *array,
     int             n_dimensions,
-    Data_types      data_type )
+    VIO_Data_types  data_type )
 {
-    if( n_dimensions < 1 || n_dimensions > MAX_DIMENSIONS )
+    if( n_dimensions < 1 || n_dimensions > VIO_MAX_DIMENSIONS )
     {
-        print_error(
+        fprintf(stderr,
      "create_empty_multidim_array(): n_dimensions (%d) not in range 1 to %d.\n",
-               n_dimensions, MAX_DIMENSIONS );
+               n_dimensions, VIO_MAX_DIMENSIONS );
     }
 
     array->n_dimensions = n_dimensions;
     array->data_type = data_type;
-    array->data = (void *) NULL;
+    array->data = (void *) 0;
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -64,8 +94,8 @@ VIOAPI   void   create_empty_multidim_array(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-VIOAPI  Data_types  get_multidim_data_type(
-    multidim_array       *array )
+VIO_Data_types  get_multidim_data_type(
+    VIO_multidim_array       *array )
 {
     return( array->data_type );
 }
@@ -84,9 +114,9 @@ VIOAPI  Data_types  get_multidim_data_type(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-VIOAPI  void  set_multidim_data_type(
-    multidim_array       *array,
-    Data_types           data_type )
+void  set_multidim_data_type(
+    VIO_multidim_array       *array,
+    VIO_Data_types        data_type )
 {
     array->data_type = data_type;
 }
@@ -104,8 +134,8 @@ VIOAPI  void  set_multidim_data_type(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-VIOAPI  int  get_type_size(
-    Data_types   type )
+int  get_type_size(
+    VIO_Data_types   type )
 {
     int   size;
 
@@ -119,42 +149,44 @@ VIOAPI  int  get_type_size(
     case  SIGNED_INT:       size = sizeof( signed   int );    break;
     case  FLOAT:            size = sizeof( float );           break;
     case  DOUBLE:           size = sizeof( double );          break;
+    default: size = 0; fprintf(stderr, "%s:%d no default\n", __FILE__,__LINE__); exit(1);
     }
 
     return( size );
 }
 
-VIOAPI  void  get_type_range(
-    Data_types   type,
-    Real         *min_value,
-    Real         *max_value )
+void  get_type_range(
+    VIO_Data_types   type,
+    double         *min_value,
+    double         *max_value )
 {
     switch( type )
     {
     case UNSIGNED_BYTE:
         *min_value = 0.0;
-        *max_value = (Real) UCHAR_MAX;     break;
+        *max_value = (double) UCHAR_MAX;     break;
     case SIGNED_BYTE:
-        *min_value = (Real) SCHAR_MIN;
-        *max_value = (Real) SCHAR_MAX;     break;
+        *min_value = (double) SCHAR_MIN;
+        *max_value = (double) SCHAR_MAX;     break;
     case UNSIGNED_SHORT:
         *min_value = 0.0;
-        *max_value = (Real) USHRT_MAX;     break;
+        *max_value = (double) USHRT_MAX;     break;
     case SIGNED_SHORT:
-        *min_value = (Real) SHRT_MIN;
-        *max_value = (Real) SHRT_MAX;      break;
+        *min_value = (double) SHRT_MIN;
+        *max_value = (double) SHRT_MAX;      break;
     case UNSIGNED_INT:
         *min_value = 0.0;
-        *max_value = (Real) UINT_MAX;     break;
+        *max_value = (double) UINT_MAX;     break;
     case SIGNED_INT:
-        *min_value = (Real) INT_MIN;
-        *max_value = (Real) INT_MAX;      break;
+        *min_value = (double) INT_MIN;
+        *max_value = (double) INT_MAX;      break;
     case FLOAT:
-        *min_value = (Real) -FLT_MAX;
-        *max_value = (Real) FLT_MAX;       break;
+        *min_value = (double) -FLT_MAX;
+        *max_value = (double) FLT_MAX;       break;
     case DOUBLE:
-        *min_value = (Real) -DBL_MAX;
-        *max_value = (Real) DBL_MAX;       break;
+        *min_value = (double) -DBL_MAX;
+        *max_value = (double) DBL_MAX;       break;
+    default: fprintf(stderr, "%s:%d no default\n", __FILE__,__LINE__); exit(1);
     }
 }
 
@@ -172,8 +204,8 @@ VIOAPI  void  get_type_range(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-VIOAPI  void  set_multidim_sizes(
-    multidim_array   *array,
+void  set_multidim_sizes(
+    VIO_multidim_array   *array,
     int              sizes[] )
 {
     int    dim;
@@ -195,8 +227,8 @@ VIOAPI  void  set_multidim_sizes(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-VIOAPI  void  get_multidim_sizes(
-    multidim_array   *array,
+void  get_multidim_sizes(
+    VIO_multidim_array   *array,
     int              sizes[] )
 {
     int   i;
@@ -218,8 +250,8 @@ VIOAPI  void  get_multidim_sizes(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-VIOAPI  BOOLEAN  multidim_array_is_alloced(
-    multidim_array   *array )
+bool  multidim_array_is_alloced(
+    VIO_multidim_array   *array )
 {
     return( array->data != NULL );
 }
@@ -237,8 +269,8 @@ VIOAPI  BOOLEAN  multidim_array_is_alloced(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-VIOAPI  void  alloc_multidim_array(
-    multidim_array   *array )
+void  alloc_multidim_array(
+    VIO_multidim_array   *array )
 {
     int     dim;
     size_t  type_size, sizes[5];
@@ -249,8 +281,9 @@ VIOAPI  void  alloc_multidim_array(
 
     if( array->data_type == NO_DATA_TYPE )
     {
-        print_error(
-           "Error: cannot allocate array data until size specified.\n" );
+       fprintf(stderr,
+           "Error: cannot allocate array data until size specified at %s:%d.\n",__FILE__,__LINE__ );
+	exit(1);
         return;
     }
 
@@ -262,31 +295,28 @@ VIOAPI  void  alloc_multidim_array(
     switch( array->n_dimensions )
     {
     case  1:
-        ASSIGN_PTR(p1) = alloc_memory_1d( sizes[0], type_size
-                                          _ALLOC_SOURCE_LINE );
-        array->data = (void *) p1;
+        p1 = malloc(sizes[0] * type_size);
+        array->data = p1;
         break;
     case  2:
-        ASSIGN_PTR(p2) = alloc_memory_2d( sizes[0], sizes[1], type_size
-                                          _ALLOC_SOURCE_LINE);
-        array->data = (void *) p2;
+        p2 = malloc( sizes[0]*sizes[1] * type_size);
+        array->data = p2;
         break;
     case  3:
-        ASSIGN_PTR(p3) = alloc_memory_3d( sizes[0], sizes[1], sizes[2],
-                                          type_size _ALLOC_SOURCE_LINE );
-        array->data = (void *) p3;
+        p3 = malloc( sizes[0]*sizes[1]*sizes[2] * type_size);
+        array->data = p3;
         break;
     case  4:
-        ASSIGN_PTR(p4) = alloc_memory_4d( sizes[0], sizes[1],
-                             sizes[2], sizes[3], type_size _ALLOC_SOURCE_LINE );
-        array->data = (void *) p4;
+        p4 = malloc( sizes[0]*sizes[1]*sizes[2]*sizes[3] * type_size);
+        array->data = p4;
         break;
     case  5:
-        ASSIGN_PTR(p5) = alloc_memory_5d( sizes[0], sizes[1],
-                              sizes[2], sizes[3], sizes[4], type_size
-                              _ALLOC_SOURCE_LINE );
-        array->data = (void *) p5;
+        p5 = malloc( sizes[0]*sizes[1]*sizes[2]*sizes[3]*sizes[4] * type_size);
+        array->data = p5;
         break;
+    default:
+        fprintf(stderr,"%s:%d no default\n", __FILE__, __LINE__);
+	exit(1);
     }
 }
 
@@ -306,11 +336,11 @@ VIOAPI  void  alloc_multidim_array(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-VIOAPI   void   create_multidim_array(
-    multidim_array  *array,
+void   create_multidim_array(
+    VIO_multidim_array  *array,
     int             n_dimensions,
     int             sizes[],
-    Data_types      data_type )
+    VIO_Data_types      data_type )
 {
     create_empty_multidim_array( array, n_dimensions, data_type );
     set_multidim_sizes( array, sizes );
@@ -330,28 +360,17 @@ VIOAPI   void   create_multidim_array(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-VIOAPI  void  delete_multidim_array(
-    multidim_array   *array )
+void  delete_multidim_array(
+    VIO_multidim_array   *array )
 {
     if( array->data == NULL )
     {
-        print_error( "Warning: cannot free NULL multidim data.\n" );
+        fprintf(stderr, "Cannot free NULL multidim data.\n" );
+	exit(1);
         return;
     }
 
-    switch( array->n_dimensions )
-    {
-    case  1:  free_memory_1d( (void **) &array->data _ALLOC_SOURCE_LINE );
-              break;
-    case  2:  free_memory_2d( (void ***) &array->data _ALLOC_SOURCE_LINE );
-              break;
-    case  3:  free_memory_3d( (void ****) &array->data _ALLOC_SOURCE_LINE );
-              break;
-    case  4:  free_memory_4d( (void *****) &array->data _ALLOC_SOURCE_LINE );
-              break;
-    case  5:  free_memory_5d( (void ******) &array->data _ALLOC_SOURCE_LINE );
-              break;
-    }
+    free( array->data );
 
     array->data = NULL;
 }
@@ -369,8 +388,8 @@ VIOAPI  void  delete_multidim_array(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-VIOAPI  int  get_multidim_n_dimensions(
-    multidim_array   *array )
+int  get_multidim_n_dimensions(
+    VIO_multidim_array   *array )
 {
     return( array->n_dimensions );
 }
@@ -401,7 +420,7 @@ VIOAPI  int  get_multidim_n_dimensions(
 @MODIFIED   : Feb. 27, 1996   D. MacDonald  - made more efficient
 ---------------------------------------------------------------------------- */
 
-VIOAPI  void  copy_multidim_data_reordered(
+void  copy_multidim_data_reordered(
     int                 type_size,
     void                *void_dest_ptr,
     int                 n_dest_dims,
@@ -415,16 +434,16 @@ VIOAPI  void  copy_multidim_data_reordered(
 {
     char      *src_ptr, *dest_ptr;
     int       d;
-    int       dest_offsets[MAX_DIMENSIONS], src_offsets[MAX_DIMENSIONS];
+    int       dest_offsets[VIO_MAX_DIMENSIONS], src_offsets[VIO_MAX_DIMENSIONS];
     int       dest_offset0, dest_offset1, dest_offset2, dest_offset3;
     int       dest_offset4;
     int       src_offset0, src_offset1, src_offset2, src_offset3;
     int       src_offset4;
-    int       dest_steps[MAX_DIMENSIONS], src_steps[MAX_DIMENSIONS];
+    int       dest_steps[VIO_MAX_DIMENSIONS], src_steps[VIO_MAX_DIMENSIONS];
     int       dest_index;
     int       n_transfer_dims;
-    int       src_axis[MAX_DIMENSIONS], dest_axis[MAX_DIMENSIONS];
-    int       transfer_counts[MAX_DIMENSIONS];
+    int       src_axis[VIO_MAX_DIMENSIONS], dest_axis[VIO_MAX_DIMENSIONS];
+    int       transfer_counts[VIO_MAX_DIMENSIONS];
     int       v0, v1, v2, v3, v4;
     int       size0, size1, size2, size3, size4;
     BOOLEAN   full_count_used;
@@ -433,22 +452,22 @@ VIOAPI  void  copy_multidim_data_reordered(
 
     dest_ptr = (char *) void_dest_ptr;
     dest_steps[n_dest_dims-1] = type_size;
-    for_down( d, n_dest_dims-2, 0 )
+    for( d = n_dest_dims-2 ; d >= 0; d-- )
         dest_steps[d] = dest_steps[d+1] * dest_sizes[d+1];
 
     /*--- initialize src */
 
     src_ptr = (char *) void_src_ptr;
     src_steps[n_src_dims-1] = type_size;
-    for_down( d, n_src_dims-2, 0 )
+    for( d = n_src_dims-2; d >= 0; d-- )
         src_steps[d] = src_steps[d+1] * src_sizes[d+1];
 
     n_transfer_dims = 0;
 
     if( getenv( "VOLUME_IO_SRC_ORDER" ) )
-        use_src_order = TRUE;
+        use_src_order = true;
     else if( getenv( "VOLUME_IO_DEST_ORDER" ) )
-        use_src_order = FALSE;
+        use_src_order = false;
 
     if( use_src_order )
     {
@@ -488,7 +507,7 @@ VIOAPI  void  copy_multidim_data_reordered(
 
     /*--- check if we can transfer more than one at once */
 
-    full_count_used = TRUE;
+    full_count_used = true;
 
     while( n_transfer_dims > 0 &&
            src_axis[n_transfer_dims-1] == n_src_dims-1 &&
@@ -497,7 +516,7 @@ VIOAPI  void  copy_multidim_data_reordered(
         if( transfer_counts[n_transfer_dims-1] != src_sizes[n_src_dims-1] ||
             transfer_counts[n_transfer_dims-1] != dest_sizes[n_dest_dims-1] )
         {
-            full_count_used = FALSE;
+            full_count_used = false;
         }
 
         type_size *= transfer_counts[n_transfer_dims-1];
@@ -514,14 +533,14 @@ VIOAPI  void  copy_multidim_data_reordered(
 
     /*--- slide the transfer dims to the last of the 5 dimensions */
 
-    for_down( d, n_transfer_dims-1, 0 )
+    for( d = n_transfer_dims-1; d >= 0; d-- )
     {
-        src_offsets[d+MAX_DIMENSIONS-n_transfer_dims] = src_offsets[d];
-        dest_offsets[d+MAX_DIMENSIONS-n_transfer_dims] = dest_offsets[d];
-        transfer_counts[d+MAX_DIMENSIONS-n_transfer_dims] = transfer_counts[d];
+        src_offsets    [d+VIO_MAX_DIMENSIONS-n_transfer_dims] = src_offsets    [d];
+        dest_offsets   [d+VIO_MAX_DIMENSIONS-n_transfer_dims] = dest_offsets   [d];
+        transfer_counts[d+VIO_MAX_DIMENSIONS-n_transfer_dims] = transfer_counts[d];
     }
 
-    for_less( d, 0, MAX_DIMENSIONS-n_transfer_dims )
+    for_less( d, 0, VIO_MAX_DIMENSIONS-n_transfer_dims )
     {
         transfer_counts[d] = 1;
         src_offsets[d] = 0;
@@ -593,16 +612,16 @@ VIOAPI  void  copy_multidim_data_reordered(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-VIOAPI  void  copy_multidim_reordered(
-    multidim_array      *dest,
+void  copy_multidim_reordered(
+    VIO_multidim_array      *dest,
     int                 dest_ind[],
-    multidim_array      *src,
+    VIO_multidim_array      *src,
     int                 src_ind[],
     int                 counts[],
     int                 to_dest_index[] )
 {
     int       n_src_dims, n_dest_dims, type_size;
-    int       src_sizes[MAX_DIMENSIONS], dest_sizes[MAX_DIMENSIONS];
+    int       src_sizes[VIO_MAX_DIMENSIONS], dest_sizes[VIO_MAX_DIMENSIONS];
     char      *dest_ptr, *src_ptr;
     void      *void_ptr;
 
@@ -614,7 +633,7 @@ VIOAPI  void  copy_multidim_reordered(
     get_multidim_sizes( dest, dest_sizes );
     GET_MULTIDIM_PTR( void_ptr, *dest, dest_ind[0], dest_ind[1], dest_ind[2],
                       dest_ind[3], dest_ind[4] );
-    ASSIGN_PTR( dest_ptr ) = void_ptr;
+    dest_ptr = void_ptr;
 
     /*--- initialize src */
 
@@ -622,10 +641,12 @@ VIOAPI  void  copy_multidim_reordered(
     get_multidim_sizes( src, src_sizes );
     GET_MULTIDIM_PTR( void_ptr, *src, src_ind[0], src_ind[1], src_ind[2],
                       src_ind[3], src_ind[4] );
-    ASSIGN_PTR( src_ptr ) = void_ptr;
+    src_ptr = void_ptr;
 
     copy_multidim_data_reordered( type_size,
                                   dest_ptr, n_dest_dims, dest_sizes,
                                   src_ptr, n_src_dims, src_sizes,
-                                  counts, to_dest_index, TRUE );
+                                  counts, to_dest_index, true );
 }
+
+#endif

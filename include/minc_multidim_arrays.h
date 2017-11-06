@@ -1,5 +1,32 @@
+#if defined(BEVIN_EXCLUDE_MINC)
+
 #ifndef  DEF_MULTI_DIM
 #define  DEF_MULTI_DIM
+
+/**
+ * @file  minc_multidim_arrays.h
+ * @substitutes for the needed functionality previously obtained from minc
+ */
+/*
+ * Overhaul Author: Bevin Brett
+ * CVS Revision Info:
+ *    $Author: Brett $
+ *    $Date: 2017/11/07 12:46:00 $
+ *    $Revision: 1.00 $
+ *
+ * Copyright © 2017 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
+// HEAVILY BASED on minc-1.5.1/volume_io/Volumes/multidim.h
 
 /* ----------------------------------------------------------------------------
 @COPYRIGHT  :
@@ -17,7 +44,7 @@
 ---------------------------------------------------------------------------- */
 
 /* ----------------------------- MNI Header -----------------------------------
-@NAME       : multidim.h
+@NAME       : minc_multidim.h
 @INPUT      : 
 @OUTPUT     : 
 @RETURNS    : 
@@ -28,6 +55,8 @@
 @CREATED    : Aug. 14, 1995   David MacDonald
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
+
+#include <stdlib.h>
 
 #define  VIO_MAX_DIMENSIONS     5
 
@@ -246,6 +275,7 @@ typedef  struct
          case DOUBLE:  \
              GET_ONE_PTR( ptr, array, double, asterisks, subscripts );\
              break;  \
+	 default: fprintf(stderr,"%s:%d no default",__FILE__,__LINE__); exit(1); \
          }
 
 /* --- public macros to return a pointer to the [x][y]'th voxel of the
@@ -276,12 +306,9 @@ typedef  struct
          case 3:  GET_MULTIDIM_PTR_3D( ptr, array, x, y, z );        break; \
          case 4:  GET_MULTIDIM_PTR_4D( ptr, array, x, y, z, t );     break; \
          case 5:  GET_MULTIDIM_PTR_5D( ptr, array, x, y, z, t, v );  break; \
+	 default: fprintf(stderr,"%s:%d no default",__FILE__,__LINE__); exit(1); \
          }
 
-#if !VIO_PREFIX_NAMES
-typedef VIO_multidim_array multidim_array;
-typedef VIO_Data_types Data_types;
-#define MAX_DIMENSIONS VIO_MAX_DIMENSIONS
-#endif /* !VIO_PREFIX_NAMES */
+#endif
 
 #endif

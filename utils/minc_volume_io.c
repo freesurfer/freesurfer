@@ -27,6 +27,7 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1421,6 +1422,33 @@ VIO_Status input_transform_file(
     return( status );
 }
 
+// Based on minc-1.5.1/volume_io/Volumes/evaluate.c
+// which requires the following...
+//
+/* ----------------------------------------------------------------------------
+@COPYRIGHT  :
+              Copyright 1993,1994,1995 David MacDonald,
+              McConnell Brain Imaging Centre,
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+---------------------------------------------------------------------------- */
+static double convert_voxel_to_value(
+    Volume  volume,
+    double  voxel )
+{
+    if( volume->real_range_set )
+        return( volume->real_value_scale * voxel +
+                volume->real_value_translation );
+    else
+        return( voxel );
+}
+
 
 // Based on minc-1.5.1/volume_io/Volumes/input_volume.c
 // which requires the following...
@@ -1705,6 +1733,147 @@ static const char* default_dimension_names[VIO_MAX_DIMENSIONS][VIO_MAX_DIMENSION
     { "", "", MIzspace, MIyspace, MIxspace }
 };
 
+static double  get_volume_real_min(
+    Volume     volume )
+{
+    double   real_min = volume->voxel_min;
+
+    if( volume->real_range_set )
+        real_min = convert_voxel_to_value( volume, real_min );
+
+    return( real_min );
+}
+
+static double  get_volume_real_max(
+    Volume     volume )
+{
+    double   real_max = volume->voxel_max;
+
+    if( volume->real_range_set )
+        real_max = convert_voxel_to_value( volume, real_max );
+
+    return( real_max );
+}
+
+static void  set_volume_voxel_range(
+    Volume volume,
+    double voxel_min,
+    double voxel_max );
+    
+static void  get_volume_voxel_range(
+    Volume volume,
+    double *voxel_min,
+    double *voxel_max )
+{
+    *voxel_min = volume->voxel_min;
+    *voxel_max = volume->voxel_max;
+}
+
+static void  set_volume_real_range(
+    Volume volume,
+    double real_min,
+    double real_max )
+{
+    double    voxel_min, voxel_max;
+
+    if( get_volume_data_type(volume) == FLOAT ||
+        get_volume_data_type(volume) == DOUBLE )
+    {
+        set_volume_voxel_range( volume, real_min, real_max );
+        volume->real_value_scale = 1.0;
+        volume->real_value_translation = 0.0;
+    }
+    else
+    {
+        get_volume_voxel_range( volume, &voxel_min, &voxel_max );
+
+        if( voxel_min < voxel_max )
+        {
+            volume->real_value_scale = (real_max - real_min) /
+                                       (voxel_max - voxel_min);
+            volume->real_value_translation = real_min -
+                                       voxel_min * volume->real_value_scale;
+        }
+        else
+        {
+	    // FIXME: is scale = 0 correct??
+            volume->real_value_scale = 0.0;
+            volume->real_value_translation = real_min;
+        }
+
+        volume->real_range_set = true;
+    }
+
+#if 0	// cache_volume_range_has_changed is basically NYI in minc
+    if( volume->is_cached_volume )
+        cache_volume_range_has_changed( volume );
+#endif
+}
+
+static void  get_volume_real_range(
+    Volume     volume,
+    double       *min_value,
+    double       *max_value )
+{
+    *min_value = get_volume_real_min( volume );
+    *max_value = get_volume_real_max( volume );
+}
+
+
+static void  set_volume_voxel_range(
+    Volume   volume,
+    double   voxel_min,
+    double  voxel_max )
+{
+    double real_min, real_max;
+
+    if( voxel_min >= voxel_max )
+    {
+        switch( get_volume_data_type( volume ) )
+        {
+        case UNSIGNED_BYTE:
+            voxel_min = 0.0;
+            voxel_max = (double) UCHAR_MAX;     break;
+        case SIGNED_BYTE:
+            voxel_min = (double) SCHAR_MIN;
+            voxel_max = (double) SCHAR_MAX;     break;
+        case UNSIGNED_SHORT:
+            voxel_min = 0.0;
+            voxel_max = (double) USHRT_MAX;     break;
+        case SIGNED_SHORT:
+            voxel_min = (double) SHRT_MIN;
+            voxel_max = (double) SHRT_MAX;      break;
+        case UNSIGNED_INT:
+            voxel_min = 0.0;
+            voxel_max = (double) UINT_MAX;     break;
+        case SIGNED_INT:
+            voxel_min = (double) INT_MIN;
+            voxel_max = (double) INT_MAX;      break;
+        case FLOAT:
+            voxel_min = (double) -FLT_MAX;
+            voxel_max = (double) FLT_MAX;       break;
+        case DOUBLE:
+            voxel_min = (double) -DBL_MAX;
+            voxel_max = (double) DBL_MAX;       break;
+	default:
+	    fprintf(stderr, "%s:%d no default\n",__FILE__,__LINE__);
+	    exit(1);
+        }
+    }
+
+    if( volume->real_range_set )
+        get_volume_real_range( volume, &real_min, &real_max );
+
+    volume->voxel_min = voxel_min;
+    volume->voxel_max = voxel_max;
+
+    if( volume->real_range_set )
+        set_volume_real_range( volume, real_min, real_max );
+#if 0	// cache_volume_range_has_changed is basically NYI in minc
+    else
+        cache_volume_range_has_changed( volume );
+#endif
+}
 
 static void  set_volume_type(
     Volume       volume,
@@ -1713,10 +1882,9 @@ static void  set_volume_type(
     double       voxel_min,
     double       voxel_max )
 {
-#if defined(BEVIN_ALL_VOLUME_MEMBERS)
-    Data_types      data_type;
+    VIO_Data_types      data_type;
 
-    if( nc_data_type != MI_ORIGINAL_TYPE )
+    if( nc_data_type != (nc_type)0 /* MI_ORIGINAL_TYPE */ )
     {
         switch( nc_data_type )
         {
@@ -1734,7 +1902,7 @@ static void  set_volume_type(
                 data_type = UNSIGNED_SHORT;
             break;
 
-        case  NC_INT:
+        case  NC_LONG:
             if( signed_flag )
                 data_type = SIGNED_INT;
             else
@@ -1748,18 +1916,28 @@ static void  set_volume_type(
         case  NC_DOUBLE:
             data_type = DOUBLE;
             break;
+	    
+	default:
+	    fprintf(stderr, "%s:%d bad nc_data_type\n", __FILE__, __LINE__);
         }
 
         set_multidim_data_type( &volume->array, data_type );
+
+#if defined(BEVIN_ALL_VOLUME_MEMBERS)
         volume->signed_flag = signed_flag;
+#endif
 
         set_volume_voxel_range( volume, voxel_min, voxel_max );
     }
 
     volume->nc_data_type = nc_data_type;
-#endif
 }
 
+VIO_Data_types  get_volume_data_type(
+    Volume       volume )
+{
+    return( get_multidim_data_type( &volume->array ) );
+}
 
 Volume create_volume(
     int          n_dimensions,
@@ -1794,11 +1972,11 @@ Volume create_volume(
 #if defined(BEVIN_ALL_VOLUME_MEMBERS)
     volume->is_rgba_data     = FALSE;
     volume->is_cached_volume = FALSE;
+#endif
 
-    volume->real_range_set         = FALSE;
+    volume->real_range_set         = false;
     volume->real_value_scale       = 1.0;
     volume->real_value_translation = 0.0;
-#endif
 
     for( i = 0; i < VIO_N_DIMENSIONS; i++ )
         volume->spatial_axes[i] = -1;
@@ -1837,9 +2015,7 @@ Volume create_volume(
 
     }
 
-#if defined(BEVIN_ALL_VOLUME_MEMBERS)
     create_empty_multidim_array( &volume->array, n_dimensions, NO_DATA_TYPE );
-#endif
 
     set_volume_type( volume, nc_data_type, signed_flag, voxel_min, voxel_max );
     set_volume_sizes( volume, sizes );
@@ -1855,15 +2031,28 @@ Volume create_volume(
     return( volume );
 }
 
+static bool volume_is_alloced(
+    Volume   volume )
+{
+    return( 
+#if defined(BEVIN_ALL_VOLUME_MEMBERS)
+            volume->is_cached_volume &&
+            volume_cache_is_alloced( &volume->cache ) ||
+            !volume->is_cached_volume &&
+#endif
+            multidim_array_is_alloced( &volume->array ) );
+}
+
 static void  free_volume_data(
     Volume   volume )
 {
 #if defined(BEVIN_ALL_VOLUME_MEMBERS)
     if( volume->is_cached_volume )
         delete_volume_cache( &volume->cache, volume );
-    else if( volume_is_alloced( volume ) )
-        delete_multidim_array( &volume->array );
+    else 
 #endif
+    if( volume_is_alloced( volume ) )
+        delete_multidim_array( &volume->array );
 }
 
 void delete_volume(
@@ -1883,9 +2072,9 @@ void delete_volume(
 #if defined(BEVIN_ALL_VOLUME_MEMBERS)
     int   d;
     for( d = 0; d < get_volume_n_dimensions(volume); d++ )
-        free( volume->dimension_names[d] );
+        free( (void*)volume->dimension_names[d] );
 
-    free( volume->coordinate_system_name );
+    free( (void*)volume->coordinate_system_name );
 #endif
 
     free( volume );

@@ -31,6 +31,8 @@
 
 #if defined(BEVIN_EXCLUDE_MINC)
 
+#include "minc_multidim_arrays.h"
+
 typedef bool BOOLEAN;
 typedef double Double4x4[4*4];
 #define Index4x4(I,J) (4*(I)+(J))
@@ -256,7 +258,15 @@ typedef struct General_transform
 typedef struct volume_struct
 {
         int                     spatial_axes[VIO_N_DIMENSIONS];
+
         nc_type                 nc_data_type;
+        double                  voxel_min;
+        double                  voxel_max;
+
+        bool                    real_range_set;
+        double                  real_value_scale;
+        double                  real_value_translation;
+	
         double                  separations[VIO_MAX_DIMENSIONS];
 	double			starts[VIO_MAX_DIMENSIONS];
         double                  direction_cosines[VIO_MAX_DIMENSIONS][VIO_N_DIMENSIONS];
@@ -264,29 +274,24 @@ typedef struct volume_struct
         bool                    voxel_to_world_transform_uptodate;
 	General_transform       voxel_to_world_transform;
 
+        VIO_multidim_array      array;
+  
 #if defined(BEVIN_ALL_VOLUME_MEMBERS)
 	//
 	// When moving one of these out, make sure the current conditionalized uses
 	// have the condition removed!
 	//
-        VIO_BOOL                is_cached_volume;
-        VIO_volume_cache_struct cache;
+        bool                    is_cached_volume;
+        //VIO_volume_cache_struct cache;
   
-        VIO_multidim_array      array;
+        const char*             dimension_names[VIO_MAX_DIMENSIONS];
+        bool                    signed_flag;
+        bool                    is_rgba_data;
   
-        VIO_STR                 dimension_names[VIO_MAX_DIMENSIONS];
-        VIO_BOOL                signed_flag;
-        VIO_BOOL                is_rgba_data;
+        const char*             coordinate_system_name;
   
-        VIO_Real                voxel_min;
-        VIO_Real                voxel_max;
-        VIO_BOOL                real_range_set;
-        VIO_Real                real_value_scale;
-        VIO_Real                real_value_translation;
-        VIO_STR                 coordinate_system_name;
-  
-        VIO_Real               *irregular_starts[VIO_MAX_DIMENSIONS];
-        VIO_Real               *irregular_widths[VIO_MAX_DIMENSIONS];
+        double                 *irregular_starts[VIO_MAX_DIMENSIONS];
+        double                 *irregular_widths[VIO_MAX_DIMENSIONS];
 #endif
 
 } volume_struct;
@@ -340,6 +345,28 @@ typedef struct
 // mni/1.5/include/volume_io/vol_io_prototypes.h
 // which did not have its own Copyright notice
 //
+void   create_empty_multidim_array(
+    VIO_multidim_array* array,
+    int                 n_dimensions,
+    VIO_Data_types      data_type );
+    
+void  delete_multidim_array(
+    VIO_multidim_array   *array );
+
+bool multidim_array_is_alloced(
+    VIO_multidim_array   *array );
+
+void  set_multidim_data_type(
+    VIO_multidim_array       *array,
+    VIO_Data_types        data_type );
+
+VIO_Data_types  get_multidim_data_type(
+    VIO_multidim_array       *array );
+
+void  set_multidim_sizes(
+    VIO_multidim_array   *array,
+    int              sizes[] );
+    
 void  make_identity_transform( Transform   *transform );
 
 bool close_to_identity(
@@ -455,6 +482,9 @@ bool input_more_of_volume(
 
 int get_volume_n_dimensions(
     Volume volume );
+
+VIO_Data_types  get_volume_data_type(
+    Volume       volume );
 
 void get_volume_sizes(
     Volume 	volume,
