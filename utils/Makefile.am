@@ -99,7 +99,6 @@ libutils_main_SOURCES=\
 	fcd.c \
 	fftutils.c \
 	field_code.c \
-	files.c \
 	filter.c \
 	fio.c \
 	flash.c \
@@ -152,6 +151,8 @@ libutils_main_SOURCES=\
 	mgh_filter.c \
 	mgh_matrix.c \
 	min_heap.c \
+	minc_files.c \
+	minc_gaussian.c \
 	minc_volume_io.c \
 	mincutils.c \
 	minmaxrc.c \

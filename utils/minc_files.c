@@ -33,62 +33,65 @@
               express or implied warranty.
 ---------------------------------------------------------------------------- */
 
-#include  "files.h"
+#include  "minc_files.h"
 
-#if HAVE_PWD_H
-#include  <pwd.h>
-#endif /* HAVE_PWD_H */
-
-#include  <stdlib.h>
-
-#if HAVE_UNISTD_H
-#include  <unistd.h>
-#else
-#error "not HAVE_UNISTD_H"
-#endif /* HAVE_UNISTD_H */
 #include  <errno.h>
-
+#include  <pwd.h>
+#include  <stdlib.h>
 #include  <string.h>
-
-#if TIME_WITH_SYS_TIME
 #include  <sys/time.h>
 #include  <time.h>
-#else
-#if HAVE_SYS_TIME_H
-#include  <sys/time.h>
-#else
-#include  <time.h>
-#endif
-#endif
-
-#if HAVE_UNISTD_H
 #include  <unistd.h>
-#endif
+
 
 static void delete_string(const char* s) {
-    free((void*)s);
+    if (!!s) free((void*)s);
 }
 
 static int string_length(const char* s) {
     return s ? (int)strlen(s) : 0;
 }
 
+static bool string_ends_in( const char* whole, const char* tail ) {
+    int tailLen  = string_length(tail);
+    int wholeLen = string_length(whole);
+    return (tailLen <= wholeLen) && (0 == memcmp(whole + wholeLen - tailLen, tail, tailLen));
+}
+
+static void concat_char_to_string(
+    char* * lhs,
+    char    rhs) 
+{
+    if (!*lhs) { *lhs = (char*)malloc(2); *lhs = 0; }
+    size_t lhs_strlen = string_length(*lhs);
+    *lhs = (char*)realloc(*lhs, lhs_strlen + 64);
+    (*lhs)[lhs_strlen  ] = rhs;
+    (*lhs)[lhs_strlen+1] = 0;
+}
+
 static void concat_to_string(
-    const char* *lhs,
-    const char*  rhs) {
+    char*     * lhs,
+    const char* rhs) {
     if (!rhs) return;
-    size_t rhs_strlen = strlen(rhs);
-    if (!*lhs) *lhs = (const char*)malloc(rhs_strlen + 1);
-    size_t lhs_strlen = strlen(*lhs);
-    *lhs = (const char*)realloc((void*)*lhs, lhs_strlen + rhs_strlen + 1);
+    size_t rhs_strlen = string_length(rhs);
+    if (!*lhs) { *lhs = (char*)malloc(rhs_strlen + 1); lhs[0] = 0; }
+    size_t lhs_strlen = string_length(*lhs);
+    *lhs = (char*)realloc(*lhs, lhs_strlen + rhs_strlen + 64);
     memcpy((void*)(*lhs + lhs_strlen), (void*)rhs, rhs_strlen + 1);
 }
 
-const char* create_string(const char* s) {
-    const char* p = NULL;
+char* create_string(const char* s) {
+    char* p = NULL;
     concat_to_string(&p, s);
     return p;
 }
+
+char* concat_strings(const char* s1, const char* s2) {
+    char* p = create_string(s1);
+    concat_to_string(&p, s2);
+    return p;
+}
+
 
 const char* get_date() {
 
@@ -105,7 +108,9 @@ const char* get_date() {
 }
 
 static  bool          has_no_extension( const char* );
-static  const char*   compressed_endings[] = { ".z", ".Z", ".gz" };
+
+#define compressed_endings_size 3 
+static  const char*   compressed_endings[compressed_endings_size] = { ".z", ".Z", ".gz" };
 
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -212,7 +217,6 @@ VIO_BOOL  file_directory_exists(
 VIO_BOOL  check_clobber_file(
     const char*   filename )
 {
-    char     ch;
     VIO_BOOL  okay;
     const char*   expanded;
 
@@ -227,6 +231,7 @@ VIO_BOOL  check_clobber_file(
 
         delete_string( expanded );
 
+        char ch = 0;
         while( input_character( stdin, &ch ) == OK && ch != 'y' && ch != 'n' &&
                ch != 'N' && ch != 'Y' )
         {
@@ -262,10 +267,7 @@ VIO_BOOL  check_clobber_file_default_suffix(
     const char*   filename,
     const char*   default_suffix )
 {
-    const char*   expanded;
-    VIO_BOOL  can_write;
-
-    expanded = expand_filename( filename );
+    char* expanded = expand_filename( filename );
 
     if( has_no_extension( expanded ) )
     {
@@ -273,7 +275,7 @@ VIO_BOOL  check_clobber_file_default_suffix(
         concat_to_string( &expanded, default_suffix );
     }
 
-    can_write = check_clobber_file( expanded );
+    VIO_BOOL can_write = check_clobber_file( expanded );
 
     delete_string( expanded );
 
@@ -483,16 +485,14 @@ VIO_Status  copy_file(
     const char*  src,
     const char*  dest )
 {
-    VIO_Status   status;
-    const char*   src_expanded, dest_expanded, command;
+    const char   * src_expanded  = expand_filename( src );
+    const char   * dest_expanded = expand_filename( dest );
 
-    src_expanded = expand_filename( src );
-    dest_expanded = expand_filename( dest );
-
-    command = concat_strings( "/bin/cp ", src_expanded );
+    char* command = concat_strings( "/bin/cp ", src_expanded );
     concat_to_string( &command, " " );
     concat_to_string( &command, dest_expanded );
 
+    VIO_Status   status = OK;
     if( system( command ) != 0 )
     {
         fprintf(stderr, "Error copying file %s to %s: ",
@@ -500,8 +500,6 @@ VIO_Status  copy_file(
         print_system_error();
         status = ERROR;
     }
-    else
-        status = OK;
 
     delete_string( src_expanded );
     delete_string( dest_expanded );
@@ -529,12 +527,10 @@ VIO_Status  move_file(
     const char*  dest )
 {
     VIO_Status   status;
-    const char*   src_expanded, dest_expanded, command;
+    const char*  src_expanded  = expand_filename( src );
+    const char*  dest_expanded = expand_filename( dest );
 
-    src_expanded = expand_filename( src );
-    dest_expanded = expand_filename( dest );
-
-    command = concat_strings( "/bin/cp -f ", src_expanded );
+    char* command = concat_strings( "/bin/cp -f ", src_expanded );
     concat_to_string( &command, " " );
     concat_to_string( &command, dest_expanded );
 
@@ -604,93 +600,89 @@ static  const char*  get_user_home_directory(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-const char*  expand_filename(
+char*  expand_filename(
     const char*  filename )
 {
-    int      i, new_i, dest, len, env_index;
-    VIO_BOOL  tilde_found, prev_was_backslash;
-    char     *expand_value;
-    int      n_alloced, n_env_alloced;
-    const char*   env, expanded;
-
-    /* --- copy from filename to expanded_filename, changing environment
+    /* --- copy from filename to expanded_filename, substituting environment
            variables and home directories */
 
-    len = string_length( filename );
+    size_t temp_capacity     = 1024;
+    char*  temp              = (char*)malloc(temp_capacity);
+    
+    size_t expanded_capacity = 1024;
+    char*  expanded          = (char*)malloc(expanded_capacity);
+    int    expanded_size     = 0;
 
-    prev_was_backslash = VIO_FALSE;
-    i = 0;
-    dest = 0;
+    VIO_BOOL prev_was_backslash = VIO_FALSE;
 
-    n_alloced = 0;
-
-    n_env_alloced = 0;
-    env = NULL;
-    expanded = NULL;
-
-    while( i < len+1 )
+    const int len = string_length( filename ) + 1;	// includings the trailing 0
+    int i = 0;
+    while( i < len )	
     {
         /* --- if not escaped by backslash, and is either a '~' at the
                beginning or a '$' anywhere, expand it */
 
+        size_t rhs_size = 0;
+	const char* rhs = NULL;
+	    
         if( !prev_was_backslash &&
             ((i == 0 && filename[i] == '~') || filename[i] == '$') )
         {
             /* --- pick up the environment variable name or user name, by
                    searching until the next '/' or a '.' or end of string */
 
-            new_i = i;
-            tilde_found = (filename[new_i] == '~');
+            int new_i = i;
+            VIO_BOOL tilde_found = (filename[new_i] == '~');
             ++new_i;
 
-            env_index = 0;
+            int temp_size = 0;
             while( filename[new_i] != '/' &&
                    filename[new_i] != '.' &&
-                   filename[new_i] != END_OF_STRING )
+                   filename[new_i] != 0 )
             {
-                ADD_ELEMENT_TO_ARRAY_WITH_SIZE( env, n_env_alloced, env_index,
-                                                filename[new_i],
-                                                DEFAULT_CHUNK_SIZE );
+                if( temp_size == temp_capacity ) 
+		{
+		    temp_capacity += temp_capacity/2;
+		    temp = (char*)realloc(temp, temp_capacity);
+		}
+		temp[temp_size++] = filename[new_i];
                 ++new_i;
             }
-
-            ADD_ELEMENT_TO_ARRAY_WITH_SIZE( env, n_env_alloced, env_index,
-                                            END_OF_STRING, DEFAULT_CHUNK_SIZE );
+            if( temp_size == temp_capacity ) 
+	    {
+		temp_capacity += temp_capacity/2;
+		temp = (char*)realloc(temp, temp_capacity);
+	    }
+	    temp[temp_size++] = 0;	// end of string
 
             /* --- if expanding a '~', find the corresponding home directory */
 
+    	    const char* expand_value = NULL;
             if( tilde_found )
             {
-                if( string_length( env ) == 0 )
+                if( string_length( temp ) == 0 )
                     expand_value = getenv( "HOME" );
                 else
-                    expand_value = get_user_home_directory( env );
+                    expand_value = get_user_home_directory( temp );
             }
             else               /* --- get the environment variable value */
-                expand_value = getenv( env );
+                expand_value = getenv( temp );
 
             /* --- if an expansion is found, copy it, otherwise just copy char*/
 
             if( expand_value != NULL )
             {
-                SET_ARRAY_SIZE( expanded, n_alloced,
-                                n_alloced + string_length(expand_value),
-                                DEFAULT_CHUNK_SIZE );
-                n_alloced += string_length(expand_value);
-                (void) strcpy( &expanded[dest], expand_value );
-                dest += string_length( expand_value );
-                i = new_i;
-            }
-            else
-            {
-                SET_ARRAY_SIZE( expanded, n_alloced, n_alloced + 1,
-                                DEFAULT_CHUNK_SIZE );
-                ++n_alloced;
-                expanded[dest] = filename[i];
-                ++dest;
-                ++i;
-            }
-
+	    	rhs_size = string_length(expand_value);
+		rhs      = expand_value;
+		i        = new_i;
+	    } 
+	    else 
+	    {
+	        rhs_size = 1;
+		rhs      = filename + i;
+		i        = i + 1;
+	    }
+   
             prev_was_backslash = VIO_FALSE;
         }
         else
@@ -699,21 +691,27 @@ const char*  expand_filename(
 
             if( filename[i] != '\\' || prev_was_backslash )
             {
-                SET_ARRAY_SIZE( expanded, n_alloced, n_alloced + 1,
-                                DEFAULT_CHUNK_SIZE );
-                ++n_alloced;
-                expanded[dest] = filename[i];
-                ++dest;
+	        rhs_size = 1;
+		rhs      = filename + i;
                 prev_was_backslash = VIO_FALSE;
             }
             else
+	    {
+	        rhs_size = 0;
                 prev_was_backslash = VIO_TRUE;
+	    }
             ++i;
         }
+
+        if( expanded_size + rhs_size > expanded_capacity ) {
+	    expanded_capacity += expanded_capacity/2;
+	    expanded = (char*)realloc(expanded, expanded_capacity);
+	}
+	(void) memcpy( expanded + expanded_size, rhs, rhs_size );
+	expanded_size += rhs_size;
     }
 
-    if( n_env_alloced > 0 )
-        delete_string( env );
+    delete_string( temp );
 
     return( expanded );
 }
@@ -739,26 +737,21 @@ VIO_BOOL  filename_extension_matches(
     const char*   filename,
     const char*   extension )
 {
-    int       len, i;
-    const char*    filename_no_z, ending;
-    VIO_BOOL   matches;
+    char* const filename_no_z = expand_filename( filename );
+    int   const len           = string_length( filename_no_z );
 
-    filename_no_z = expand_filename( filename );
-
-    len = string_length( filename_no_z );
-
-    for_less( i, 0, SIZEOF_STATIC_ARRAY(compressed_endings) )
+    int i;
+    for( i = 0; i < compressed_endings_size; i++ )
     {
         if( string_ends_in( filename_no_z, compressed_endings[i] ) )
         {
-            filename_no_z[len-string_length(compressed_endings[i])] =
-                                   END_OF_STRING;
+            filename_no_z[len-string_length(compressed_endings[i])] = 0;
         }
     }
 
-    ending = concat_strings( ".", extension );
+    const char* ending = concat_strings( ".", extension );
 
-    matches = string_ends_in( filename_no_z, ending );
+    VIO_BOOL matches = string_ends_in( filename_no_z, ending );
 
     delete_string( filename_no_z );
     delete_string( ending );
@@ -781,22 +774,18 @@ VIO_BOOL  filename_extension_matches(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-const char*  remove_directories_from_filename(
+char*  remove_directories_from_filename(
     const char*  filename )
 {
-    const char*   expanded, no_directories;
-    int      i;
+    const char* expanded = expand_filename( filename );
 
-    expanded = expand_filename( filename );
-
-    i = string_length( expanded );
-
+    int i = string_length( expanded );
     while( i >= 0 && expanded[i] != '/' )
         --i;
 
     ++i;
 
-    no_directories = create_string( &expanded[i] );
+    char* no_directories = create_string( &expanded[i] );
 
     delete_string( expanded );
 
@@ -807,7 +796,7 @@ const char*  remove_directories_from_filename(
 @NAME       : file_exists_as_compressed
 @INPUT      : filename
 @OUTPUT     : compressed_filename
-@RETURNS    : VIO_TRUE if a compressed file exists
+@RETURNS    : nothing
 @DESCRIPTION: Checks to see if a compressed version of the file exists.  If so,
               passes back the name of the compressed file.
 @METHOD     : 
@@ -817,45 +806,36 @@ const char*  remove_directories_from_filename(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-VIO_BOOL  file_exists_as_compressed(
-    const char*       filename,
-    const char*       *compressed_filename )
+static char* file_exists_as_compressed(
+    const char* expanded )				// don't expand twice!
 {
-    int      i;
-    const char*   compressed, expanded;
-    VIO_BOOL  gzipped;
-
-    gzipped = VIO_FALSE;
-
-    expanded = expand_filename( filename );
-
-    /* --- check to see if file.z or file.Z, etc, exists */
-
-    for_less( i, 0, SIZEOF_STATIC_ARRAY( compressed_endings ) )
+    int i;
+    for( i = 0; i < compressed_endings_size; i++ )
     {
-        compressed = concat_strings( expanded, compressed_endings[i] );
+        char* compressed = concat_strings( expanded, compressed_endings[i] );
 
         if( file_exists( compressed ) )
-        {
-            if( *compressed_filename == filename )
-                delete_string( filename );
-
-            *compressed_filename = compressed;
-            gzipped = VIO_TRUE;
-            break;
-        }
+            return compressed;
 
         delete_string( compressed );
     }
-
-    delete_string( expanded );
-
-    return( gzipped );
+    
+    return NULL;
 }
 
-const char*  get_temporary_filename( void )
+
+static char* get_temporary_filename( void )
 {
-    return micreate_tempfile();
+    const char* tmpdir = getenv("TMPDIR");			// may return NULL
+    char* name = concat_strings(tmpdir, "/minc-XXXXXX");	// NULL supported
+    int fd = mkstemp(name);					// Creates if possible
+    if (fd == -1) {
+    	fprintf(stderr, "Unable to create temporary file %s\n", name);
+	free(name);
+	return NULL;
+    }
+    close(fd);
+    return name;
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -874,53 +854,40 @@ const char*  get_temporary_filename( void )
 ---------------------------------------------------------------------------- */
 
 VIO_Status  open_file(
-    const char*             filename,
-    IO_types           io_type,
-    File_formats       file_format,
-    FILE               **file )
+    const char*        filename,
+    VIO_IO_types       io_type,
+    VIO_File_formats   file_format,
+    FILE             **file )
 {
-    VIO_Status   status;
-    int      i;
-    char     *tmp_name;
-    char     command[EXTREMELY_LARGE_STRING_SIZE];
-    const char*   access_str, expanded;
-    VIO_BOOL  gzipped;
-    int      command_status;
-
     /* --- determine what mode of file access */
-
+    char* access_str;
     switch( io_type )
     {
     case APPEND_FILE:   access_str = create_string( "a" );  break;
-
     case WRITE_FILE:    access_str = create_string( "w" );  break;
-
     case READ_FILE:
     default:            access_str = create_string( "r" );  break;
     }
 
     /* --- check if ascii or binary */
-
     if( file_format == BINARY_FORMAT )
         concat_to_string( &access_str, "b" );
 
     /* --- expand ~ and $ in filename */
-
-    expanded = expand_filename( filename );
-
-    gzipped = VIO_FALSE;
-
+    char* expanded   = expand_filename( filename );
+    
     /* --- if reading the file, check if it is in compressed format */
 
+    char* compressed = NULL;
     if( io_type == READ_FILE )
     {
         /* --- check if the filename ends in one of the compressed suffixes */
-
-        for_less( i, 0, SIZEOF_STATIC_ARRAY( compressed_endings ) )
+	int i;
+        for( i=0; i < compressed_endings_size; i++)
         {
             if( string_ends_in( expanded, compressed_endings[i] ) )
             {
-                gzipped = VIO_TRUE;
+                compressed = expanded;
                 break;
             }
         }
@@ -929,41 +896,56 @@ VIO_Status  open_file(
                the file does not exist, check to see if file.z or file.Z, etc,
                exists */
 
-        if( !gzipped && !file_exists( expanded ) )
-            gzipped = file_exists_as_compressed( expanded, &expanded );
+        if( expanded && !file_exists( expanded ) ) {
+            compressed = file_exists_as_compressed( expanded );
+	}
     }
 
     /* --- if reading from a compressed file, decompress it to a temp file */
 
-    status = OK;
+    VIO_Status status = OK;
+    char* tmp_name = NULL;
 
-    if( gzipped )
+    if( compressed )
     {
         /* --- uncompress to a temporary file */
 
         tmp_name = get_temporary_filename();
 
-        (void) sprintf( command, "gunzip -c %s > %s", expanded, tmp_name );
-        command_status = system( command );
+    	char* command = concat_strings("gunzip -c ", compressed);
+	concat_to_string(&command, " > ");
+	concat_to_string(&command, tmp_name);
 
+        int command_status = system( command );
+	delete_string( command );
+	command = NULL;
+	
         /* Try again, using bzip2 */
         if( command_status != 0 )
         {
-            (void) sprintf( command, "bunzip2 -c %s > %s", expanded, tmp_name );
-            command_status = system( command );
+            command = concat_strings("bunzip2 -c ", compressed);
+	    concat_to_string(&command, " > ");
+	    concat_to_string(&command, tmp_name);
+
+	    command_status = system( command );
+	    delete_string( command );
+	    command = NULL;
         }
 
         /* Check for failure */
-        if( command_status != 0 )
-        {
-            fprintf(stderr, "Error uncompressing %s into %s using gunzip and bunzip2\n",
-                        expanded, tmp_name );
-            status = ERROR;
-        }
+        if( command_status == 0 )
+	{
+	    delete_string( expanded );
+	    expanded = create_string( tmp_name );
+	}
         else
-            replace_string( &expanded, create_string(tmp_name) );
+        {
+            status = ERROR;
+            fprintf(stderr, "Error uncompressing %s into %s using gunzip and bunzip2\n",
+                        compressed, tmp_name );
+        }
 
-        free(tmp_name);
+	free(compressed);	
     }
 
     /* --- finally, open the file */
@@ -978,12 +960,14 @@ VIO_Status  open_file(
             print_system_error();
             status = ERROR;
         }
-        else if( gzipped )           /* if reading a decompressed temp file, */
-            remove_file( expanded ); /* unlink it, so that when the program  */
-                                     /* closes the file or dies, the file is */
-                                     /* removed                              */
     }
 
+    if( tmp_name )          		/* note: might have died during unzip   */
+    {					/* If tried to make a tmp file          */
+        remove_file( tmp_name ); 	/* unlink it, so that when the program  */
+        delete_string( tmp_name );     	/* closes the file or dies, the file is */
+    }                                 	/* removed                              */
+    
     delete_string( access_str );
     delete_string( expanded );
 
@@ -1010,22 +994,19 @@ VIO_Status  open_file(
 ---------------------------------------------------------------------------- */
 
 VIO_Status  open_file_with_default_suffix(
-    const char*             filename,
-    const char*             default_suffix,
-    IO_types           io_type,
-    File_formats       file_format,
+    const char*          filename,
+    const char*          default_suffix,
+    VIO_IO_types         io_type,
+    VIO_File_formats     file_format,
     FILE               **file )
 {
-    VIO_Status   status;
-    VIO_BOOL  suffix_added;
-    const char*   used_filename, expanded;
+    char*    expanded = expand_filename( filename );
 
-    expanded = expand_filename( filename );
+    char*    used_filename = NULL;
 
     if( io_type == READ_FILE )
     {
-        suffix_added = VIO_FALSE;
-
+        VIO_BOOL suffix_added = VIO_FALSE;
         if( !file_exists(expanded) && has_no_extension( expanded ) )
         {
             used_filename = concat_strings( expanded, "." );
@@ -1049,10 +1030,10 @@ VIO_Status  open_file_with_default_suffix(
         used_filename = create_string( expanded );
     }
 
-    status = open_file( used_filename, io_type, file_format, file );
+    VIO_Status status = open_file( used_filename, io_type, file_format, file );
 
-    delete_string( expanded );
     delete_string( used_filename );
+    delete_string( expanded );
 
     return( status );
 }
@@ -1070,18 +1051,12 @@ VIO_Status  open_file_with_default_suffix(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-static  VIO_BOOL  has_no_extension(
+static  bool  has_no_extension(
     const char*   filename )
 {
-    const char*   base_name;
-    VIO_BOOL  dot_found;
-
-    base_name = remove_directories_from_filename( filename );
-
-    dot_found = (find_character( base_name, '.' ) >= 0);
-
+    const char*   base_name = remove_directories_from_filename( filename );
+    bool dot_found = (strchr( base_name, '.' ) != NULL);
     delete_string( base_name  );
-
     return( !dot_found );
 }
 
@@ -1158,31 +1133,19 @@ VIO_Status  close_file(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-const char*  extract_directory(
+char*  extract_directory(
     const char*    filename )
 {
-    int     i, slash_index;
-    const char*  expanded, directory;
+    char* expanded  = expand_filename( filename );
+    char* lastSlash = strrchr( expanded, '/' );
 
-    expanded = expand_filename( filename );
-
-    slash_index = string_length(expanded) - 1;
-
-    while( slash_index >= 0 && expanded[slash_index] != '/' )
-        --slash_index;
-
-    if( slash_index < 0 )
+    char* directory;
+    if( !lastSlash)
         directory = create_string( "." );
     else
     {
-        ++slash_index;
-
-        directory = alloc_string( slash_index );
-
-        for_less( i, 0, slash_index )
-            directory[i] = expanded[i];
-
-        directory[slash_index] = END_OF_STRING;
+        *lastSlash = 0;
+        directory = create_string( expanded );
     }
 
     delete_string( expanded );
@@ -1210,13 +1173,13 @@ const char*  get_absolute_filename(
     const char*    filename,
     const char*    directory )
 {
-    const char*  abs_filename, expanded;
 
     /* if the directory is non-null and the filename is not already
        absolute (begins with '/'), then prefix the directory to the filename */
 
-    expanded = expand_filename( filename );
+    const char*  expanded = expand_filename( filename );
 
+    char*  abs_filename = NULL;
     if( string_length( directory ) > 0 && expanded[0] != '/' )
     {
         if( directory[string_length(directory)-1] == '/' )
@@ -1475,13 +1438,11 @@ VIO_Status  output_string(
 
 VIO_Status  input_string(
     FILE    *file,
-    const char*  *str,
+    char*   *str,
     char    termination_char )
 {
-    char    ch;
-    VIO_Status  status;
-
-    status = input_nonwhite_character( file, &ch );
+    char    ch = 0;
+    VIO_Status status = input_nonwhite_character( file, &ch );
 
     *str = create_string( NULL );
 
@@ -1520,8 +1481,8 @@ VIO_Status  input_string(
 ---------------------------------------------------------------------------- */
 
 VIO_Status  input_quoted_string(
-    FILE            *file,
-    const char*          *str )
+    FILE  *file,
+    char* *str )
 {
     char     ch, quote;
     VIO_Status   status;
@@ -1571,25 +1532,24 @@ VIO_Status  input_quoted_string(
 ---------------------------------------------------------------------------- */
 
 VIO_Status  input_possibly_quoted_string(
-    FILE            *file,
-    const char*          *str )
+    FILE  *file,
+    char* *str )
 {
-    VIO_BOOL  quoted;
-    char     ch, quote;
-    VIO_Status   status;
+    char       quote;
+    VIO_Status status = input_nonwhite_character( file, &quote );
 
-    status = input_nonwhite_character( file, &quote );
-
+    bool       quoted = false;
+    char       ch = 0;
     if( status == OK )
     {
         if( quote == '"' || quote == '\'' || quote == '`' )
         {
-            quoted = VIO_TRUE;
+            quoted = true;
             status = input_character( file, &ch );
         }
         else
         {
-            quoted = VIO_FALSE;
+            quoted = false;
             ch = quote;
         }
     }
@@ -1597,8 +1557,10 @@ VIO_Status  input_possibly_quoted_string(
     *str = create_string( NULL );
 
     while( status == OK &&
-           (quoted && ch != quote ||
-            !quoted && ch != ' ' && ch != '\t' && ch != '\n') )
+           (  ( quoted && (ch != quote)) 
+	   || (!quoted && (ch != ' ' && ch != '\t' && ch != '\n')) 
+	   )
+	 )
     {
         concat_char_to_string( str, ch );
 
@@ -1799,11 +1761,11 @@ VIO_Status  output_newline(
 ---------------------------------------------------------------------------- */
 
 VIO_Status  input_line(
-    FILE    *file,
-    const char*  *line )
+    FILE  *file,
+    char* *line )
 {
-    VIO_Status   status;
-    char     ch;
+    VIO_Status status;
+    char       ch;
 
     *line = create_string( NULL );
 
@@ -2220,10 +2182,10 @@ VIO_Status  output_double(
 
 VIO_Status  io_binary_data(
     FILE            *file,
-    IO_types        io_flag,
+    VIO_IO_types     io_flag,
     void            *data,
-    size_t          element_size,
-    int             n )
+    size_t           element_size,
+    int              n )
 {
     VIO_Status   status;
 
@@ -2252,8 +2214,8 @@ VIO_Status  io_binary_data(
 
 VIO_Status  io_newline(
     FILE            *file,
-    IO_types        io_flag,
-    File_formats    format )
+    VIO_IO_types     io_flag,
+    VIO_File_formats format )
 {
     VIO_Status   status;
 
@@ -2288,10 +2250,10 @@ VIO_Status  io_newline(
 ---------------------------------------------------------------------------- */
 
 VIO_Status  io_quoted_string(
-    FILE           *file,
-    IO_types        io_flag,
-    File_formats    format,
-    const char*    *str )
+    FILE             *file,
+    VIO_IO_types      io_flag,
+    VIO_File_formats  format,
+    char*            *str )
 {
     int          length;
     VIO_Status   status;
@@ -2313,7 +2275,7 @@ VIO_Status  io_quoted_string(
         status = io_int( file, io_flag, format, &length );
 
         if( io_flag == READ_FILE )
-            *str = alloc_string( length );
+            *str = (char*)malloc( length + 1 );
 
         if( status == OK )
         {
@@ -2321,7 +2283,7 @@ VIO_Status  io_quoted_string(
                                      sizeof((*str)[0]), length );
         }
 
-        str[length] = END_OF_STRING;
+        str[length] = 0;
     }
 
     if( status != OK )
@@ -2348,8 +2310,8 @@ VIO_Status  io_quoted_string(
 
 VIO_Status  io_boolean(
     FILE            *file,
-    IO_types        io_flag,
-    File_formats    format,
+    VIO_IO_types    io_flag,
+    VIO_File_formats format,
     VIO_BOOL         *b )
 {
     VIO_Status   status;
@@ -2387,8 +2349,8 @@ VIO_Status  io_boolean(
 
 VIO_Status  io_short(
     FILE            *file,
-    IO_types        io_flag,
-    File_formats    format,
+    VIO_IO_types    io_flag,
+    VIO_File_formats format,
     short           *short_int )
 {
     VIO_Status   status;
@@ -2427,8 +2389,8 @@ VIO_Status  io_short(
 
 VIO_Status  io_unsigned_short(
     FILE            *file,
-    IO_types        io_flag,
-    File_formats    format,
+    VIO_IO_types    io_flag,
+    VIO_File_formats format,
     unsigned short  *unsigned_short )
 {
     VIO_Status   status;
@@ -2467,8 +2429,8 @@ VIO_Status  io_unsigned_short(
 
 VIO_Status  io_unsigned_char(
     FILE            *file,
-    IO_types        io_flag,
-    File_formats    format,
+    VIO_IO_types    io_flag,
+    VIO_File_formats format,
     unsigned  char  *c )
 {
     int      i;
@@ -2523,8 +2485,8 @@ VIO_Status  io_unsigned_char(
 
 VIO_Status  io_int(
     FILE            *file,
-    IO_types        io_flag,
-    File_formats    format,
+    VIO_IO_types    io_flag,
+    VIO_File_formats format,
     int             *i )
 {
     VIO_Status   status;
@@ -2562,8 +2524,8 @@ VIO_Status  io_int(
 
 VIO_Status  io_double(
     FILE            *file,
-    IO_types        io_flag,
-    File_formats    format,
+    VIO_IO_types    io_flag,
+    VIO_File_formats format,
     double          *d )
 {
     VIO_Status   status;
@@ -2602,8 +2564,8 @@ VIO_Status  io_double(
 
 VIO_Status  io_ints(
     FILE            *file,
-    IO_types        io_flag,
-    File_formats    format,
+    VIO_IO_types    io_flag,
+    VIO_File_formats format,
     int             n,
     int             *ints[] )
 {
@@ -2615,12 +2577,12 @@ VIO_Status  io_ints(
 
     if( io_flag == READ_FILE )
     {
-        ALLOC( *ints, n );
+        *ints = (int*)malloc(sizeof(int)*n );
     }
 
     if( format == ASCII_FORMAT )
     {
-        for_less( i, 0, n )
+        for( i = 0; i < n; i++ )
         {
             status = io_int( file, io_flag, format, &(*ints)[i] );
 
@@ -2662,8 +2624,8 @@ VIO_Status  io_ints(
 
 VIO_Status  io_unsigned_chars(
     FILE            *file,
-    IO_types        io_flag,
-    File_formats    format,
+    VIO_IO_types    io_flag,
+    VIO_File_formats format,
     int             n,
     unsigned char   *unsigned_chars[] )
 {
@@ -2673,11 +2635,11 @@ VIO_Status  io_unsigned_chars(
     status = OK;
 
     if( io_flag == READ_FILE )
-        ALLOC( *unsigned_chars, n );
+        *unsigned_chars = (unsigned char*)malloc( sizeof(unsigned char)*n );
 
     if( format == ASCII_FORMAT )
     {
-        for_less( i, 0, n )
+        for( i = 0; i < n; i++ )
         {
             status = io_unsigned_char( file, io_flag, format,
                                        &(*unsigned_chars)[i] );

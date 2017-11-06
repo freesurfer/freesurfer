@@ -32,7 +32,11 @@
 #if defined(BEVIN_EXCLUDE_MINC)
 
 typedef bool BOOLEAN;
-
+typedef double Double4x4[4*4];
+#define Index4x4(I,J) (4*(I)+(J))
+bool invert_4x4_matrix( 
+	const Double4x4 * mat, 		// doubles are read, not changed
+	Double4x4 * 	  inv );	// doubles are written
 
 // The following replacement for nc_type
 // was written by Bevin R Brett
@@ -150,6 +154,8 @@ typedef struct
     double m[4][4];
 } Transform;
 
+#define  Transform_elem( t, i, j ) ((t).m[j][i])
+
 
 // The following is a replacement for some portions of
 // mni/1.5/include/volume_io/transforms.h
@@ -180,12 +186,16 @@ typedef  void   (*User_transform_function)( void  *user_data,
                                             double  *z_trans );
 
 typedef enum { 
-	LINEAR
-	//, 
-	//THIN_PLATE_SPLINE, 
-	//USER_TRANSFORM,
-        //CONCATENATED_TRANSFORM, 
-	//GRID_TRANSFORM 
+	LINEAR,
+#if defined(BEVIN_ALL_TYPES_SUPPORTED)
+	THIN_PLATE_SPLINE, 
+	USER_TRANSFORM,
+#endif
+        CONCATENATED_TRANSFORM
+#if defined(BEVIN_ALL_TYPES_SUPPORTED)
+	,
+	GRID_TRANSFORM 
+#endif
 } Transform_types;
 
 
@@ -323,12 +333,27 @@ typedef struct
 // mni/1.5/include/volume_io/vol_io_prototypes.h
 // which did not have its own Copyright notice
 //
+void  make_identity_transform( Transform   *transform );
+
+bool close_to_identity(
+    Transform   *transform );
+    
+void   concat_transforms(
+    Transform   *result,
+    Transform   *t1,
+    Transform   *t2 );
+
 Transform* get_linear_transform_ptr(
     General_transform   *transform );
 
 Transform* get_inverse_linear_transform_ptr(
     General_transform   *transform );
 
+void concat_general_transforms(
+    General_transform   *first,
+    General_transform   *second,
+    General_transform   *result );
+    
 void copy_general_transform(
     General_transform   *transform,
     General_transform   *copy );
