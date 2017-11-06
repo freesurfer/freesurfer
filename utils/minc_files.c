@@ -33,7 +33,7 @@
               express or implied warranty.
 ---------------------------------------------------------------------------- */
 
-#include  "files.h"
+#include  "minc_files.h"
 
 #include  <errno.h>
 #include  <pwd.h>

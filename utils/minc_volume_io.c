@@ -38,7 +38,7 @@
 #include <unistd.h>
 
 #include "minc_volume_io.h"
-#include "files.h"
+#include "minc_files.h"
 
 
 static VIO_Status  input_transform(
