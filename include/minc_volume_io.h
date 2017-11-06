@@ -261,7 +261,7 @@ typedef struct volume_struct
 //      VIO_multidim_array      array;
 //  
 //      VIO_STR                 dimension_names[VIO_MAX_DIMENSIONS];
-//      int                     spatial_axes[VIO_N_DIMENSIONS];
+        int                     spatial_axes[VIO_N_DIMENSIONS];
         nc_type                 nc_data_type;
 //      VIO_BOOL                signed_flag;
 //      VIO_BOOL                is_rgba_data;
@@ -272,12 +272,12 @@ typedef struct volume_struct
 //      VIO_Real                real_value_scale;
 //      VIO_Real                real_value_translation;
 //  
-//      VIO_Real                separations[VIO_MAX_DIMENSIONS];
-//      VIO_Real                starts[VIO_MAX_DIMENSIONS];
+        double                  separations[VIO_MAX_DIMENSIONS];
+	double			starts[VIO_MAX_DIMENSIONS];
         double                  direction_cosines[VIO_MAX_DIMENSIONS][VIO_N_DIMENSIONS];
 //  
-//      VIO_BOOL                voxel_to_world_transform_uptodate;
-//      VIO_General_transform   voxel_to_world_transform;
+        bool                    voxel_to_world_transform_uptodate;
+	General_transform       voxel_to_world_transform;
 //  
 //      VIO_STR                 coordinate_system_name;
 //  

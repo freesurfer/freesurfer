@@ -156,6 +156,58 @@ void   concat_transforms(
         *result = tmp;
 }
 
+static void  homogenous_transform_point(
+    Transform  *transform,
+    double     x,
+    double     y,
+    double     z,
+    double     w,
+    double     *x_trans,
+    double     *y_trans,
+    double     *z_trans )
+{
+    double     w_trans;
+
+    *x_trans = Transform_elem(*transform,0,0) * x +
+               Transform_elem(*transform,0,1) * y +
+               Transform_elem(*transform,0,2) * z +
+               Transform_elem(*transform,0,3) * w;
+
+    *y_trans = Transform_elem(*transform,1,0) * x +
+               Transform_elem(*transform,1,1) * y +
+               Transform_elem(*transform,1,2) * z +
+               Transform_elem(*transform,1,3) * w;
+
+    *z_trans = Transform_elem(*transform,2,0) * x +
+               Transform_elem(*transform,2,1) * y +
+               Transform_elem(*transform,2,2) * z +
+               Transform_elem(*transform,2,3) * w;
+
+    w_trans =  Transform_elem(*transform,3,0) * x +
+               Transform_elem(*transform,3,1) * y +
+               Transform_elem(*transform,3,2) * z +
+               Transform_elem(*transform,3,3) * w;
+
+    if( w_trans != 0.0 && w_trans != 1.0 )
+    {
+        *x_trans /= w_trans;
+        *y_trans /= w_trans;
+        *z_trans /= w_trans;
+    }
+}
+
+void  transform_point(
+    Transform  *transform,
+    double     x,
+    double     y,
+    double     z,
+    double     *x_trans,
+    double     *y_trans,
+    double     *z_trans )
+{
+    homogenous_transform_point( transform, x, y, z, 1.0,
+                                x_trans, y_trans, z_trans );
+}
 
 // Based on minc-1.5.1/volume_io/Geometry/inverse.c
 // which requires the following...
@@ -301,6 +353,166 @@ Transform  *get_inverse_linear_transform_ptr(
     }
 }
 
+static void  general_transform_point(
+    General_transform   *transform,
+    double              x,
+    double              y,
+    double              z,
+    double              *x_transformed,
+    double              *y_transformed,
+    double              *z_transformed );
+    
+static void  general_inverse_transform_point(
+    General_transform   *transform,
+    double              x,
+    double              y,
+    double              z,
+    double              *x_transformed,
+    double              *y_transformed,
+    double              *z_transformed );
+    
+static  void  transform_or_invert_point(
+    General_transform   *transform,
+    bool                inverse_flag,
+    double              x,
+    double              y,
+    double              z,
+    double              *x_transformed,
+    double              *y_transformed,
+    double              *z_transformed )
+{
+    switch( transform->type )
+    {
+    case LINEAR:
+        if( inverse_flag )
+            transform_point( transform->inverse_linear_transform,
+                             x, y, z,
+                             x_transformed, y_transformed, z_transformed );
+        else
+            transform_point( transform->linear_transform,
+                             x, y, z,
+                             x_transformed, y_transformed, z_transformed );
+        break;
+
+#if defined(BEVIN_ALL_TYPES_SUPPORTED)
+    case THIN_PLATE_SPLINE:
+        if( inverse_flag )
+        {
+            thin_plate_spline_inverse_transform( transform->n_dimensions,
+                                                 transform->n_points,
+                                                 transform->points,
+                                                 transform->displacements,
+                                                 x, y, z,
+                                                 x_transformed, y_transformed,
+                                                 z_transformed );
+        }
+        else
+        {
+            thin_plate_spline_transform( transform->n_dimensions,
+                                         transform->n_points,
+                                         transform->points,
+                                         transform->displacements,
+                                         x, y, z,
+                                         x_transformed, y_transformed,
+                                         z_transformed );
+        }
+        break;
+
+    case GRID_TRANSFORM:
+        if( inverse_flag )
+        {
+            grid_inverse_transform_point( transform,
+                                          x, y, z,
+                                          x_transformed, y_transformed,
+                                          z_transformed );
+        }
+        else
+        {
+            grid_transform_point( transform,
+                                  x, y, z,
+                                  x_transformed, y_transformed,
+                                  z_transformed );
+        }
+        break;
+
+    case USER_TRANSFORM:
+        if( inverse_flag )
+        {
+            transform->user_inverse_transform_function(
+                           transform->user_data, x, y, z,
+                           x_transformed, y_transformed, z_transformed );
+        }
+        else
+        {
+            transform->user_transform_function(
+                           transform->user_data, x, y, z,
+                           x_transformed, y_transformed, z_transformed );
+        }
+        break;
+#endif
+
+    case CONCATENATED_TRANSFORM:
+        *x_transformed = x;
+        *y_transformed = y;
+        *z_transformed = z;
+
+        if( inverse_flag )
+        {
+    	    int trans;
+            for( trans = transform->n_transforms-1;  trans >= 0;  --trans )
+            {
+                general_inverse_transform_point( &transform->transforms[trans],
+                             *x_transformed, *y_transformed, *z_transformed,
+                             x_transformed, y_transformed, z_transformed );
+            }
+        }
+        else
+        {
+    	    int trans;
+            for( trans = 0; trans < transform->n_transforms; trans++ )
+            {
+                general_transform_point( &transform->transforms[trans],
+                             *x_transformed, *y_transformed, *z_transformed,
+                             x_transformed, y_transformed, z_transformed );
+            }
+        }
+        break;
+
+    default:
+        fprintf(stderr, "%s:%d transform_or_invert_point type NYI\n", __FILE__,__LINE__ );
+	exit(1);
+        break;
+    }
+}
+
+static void  general_transform_point(
+    General_transform   *transform,
+    double              x,
+    double              y,
+    double              z,
+    double              *x_transformed,
+    double              *y_transformed,
+    double              *z_transformed )
+{
+
+    transform_or_invert_point( transform, transform->inverse_flag, x, y, z,
+                               x_transformed, y_transformed, z_transformed );
+}
+
+static void  general_inverse_transform_point(
+    General_transform   *transform,
+    double              x,
+    double              y,
+    double              z,
+    double              *x_transformed,
+    double              *y_transformed,
+    double              *z_transformed )
+{
+
+    transform_or_invert_point( transform, !transform->inverse_flag, x, y, z,
+                               x_transformed, y_transformed, z_transformed );
+}
+
 static  void  alloc_linear_transform(
     General_transform   *transform )
 {
@@ -361,7 +573,7 @@ static  void  copy_and_invert_transform(
         copy->inverse_flag = false;
         break;
 
-#if 0
+#if defined(BEVIN_ALL_TYPES_SUPPORTED)
     case THIN_PLATE_SPLINE:
         ALLOC2D( copy->points, copy->n_points, copy->n_dimensions);
         ALLOC2D( copy->displacements, copy->n_points + copy->n_dimensions + 1,
@@ -423,6 +635,58 @@ static void create_inverse_general_transform(
 {
     copy_and_invert_transform( transform, true, inverse );
 }
+
+void  copy_general_transform(
+    General_transform   *transform,
+    General_transform   *copy )
+{
+    copy_and_invert_transform( transform, false, copy );
+}
+
+void  delete_general_transform(
+    General_transform   *transform )
+{
+
+    switch( transform->type )
+    {
+    case LINEAR:
+        free( transform->linear_transform );
+        free( transform->inverse_linear_transform );
+        break;
+#if defined(BEVIN_ALL_TYPES_SUPPORTED)
+    case THIN_PLATE_SPLINE:
+        if( transform->n_points > 0 && transform->n_dimensions > 0 )
+        {
+            FREE2D( transform->points );
+            FREE2D( transform->displacements );
+        }
+        break;
+
+    case GRID_TRANSFORM:
+        delete_volume( (Volume) transform->displacement_volume );
+        break;
+
+    case USER_TRANSFORM:
+        if( transform->size_user_data )
+            FREE( transform->user_data );
+        break;
+#endif
+    case CONCATENATED_TRANSFORM: {
+        int   trans;
+        for( trans = 0; transform->n_transforms > 0; trans++)
+            delete_general_transform( &transform->transforms[trans] );
+
+        if( transform->n_transforms > 0 )
+            free( transform->transforms );
+    }   break;
+
+    default:
+        fprintf(stderr, "delete_general_transform\n" );
+	exit(1);
+        break;
+    }
+}
+
 
 // Based on minc-1.5.1/volume_io/MNI_formats/mni_io.c
 // which requires the following...
@@ -758,13 +1022,6 @@ void concat_general_transforms(
     if( result == first || result == second )
         *result = *result_ptr;
 }
-
-void copy_general_transform(
-    General_transform   *transform,
-    General_transform   *copy ) NYI("copy_general_transform",)
-
-void delete_general_transform(
-    General_transform   *transform ) NYI("delete_general_transform",)
 
 
 // input_transform_file
@@ -1164,15 +1421,230 @@ VIO_Status input_transform_file(
     return( status );
 }
 
+// Based on minc-1.5.1/volume_io/Volumes/volumes.c
+// which requires the following...
+//
+/* ----------------------------------------------------------------------------
+@COPYRIGHT  :
+              Copyright 1993,1994,1995 David MacDonald,
+              McConnell Brain Imaging Centre,
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+---------------------------------------------------------------------------- */
+enum {X=0, Y=1, Z=2};
 
-void transform_point(
-    Transform  *transform,
-    double 	x,
-    double	y,
-    double 	z,
-    double	*x_trans,
-    double	*y_trans,
-    double	*z_trans ) NYI("transform_point",)
+static double dot_vectors(
+    int    n,
+    double   v1[],
+    double   v2[] )
+{
+    int   i;
+    double  d;
+
+    d = 0.0;
+    for( i = 0; i <  n; i++ )
+        d += v1[i] * v2[i];
+
+    return( d );
+}
+
+
+static  void   cross_3D_vector(
+    double   v1[],
+    double   v2[],
+    double   cross[] )
+{
+    cross[0] = v1[1] * v2[2] - v1[2] * v2[1];
+    cross[1] = v1[2] * v2[0] - v1[0] * v2[2];
+    cross[2] = v1[0] * v2[1] - v1[1] * v2[0];
+}
+
+static  void   normalize_vector(
+    double   v1[],
+    double   v1_normalized[] )
+{
+    int    d;
+    double   mag;
+
+    mag = dot_vectors( VIO_N_DIMENSIONS, v1, v1 );
+    if( mag <= 0.0 )
+        mag = 1.0;
+
+    mag = sqrt( mag );
+
+    for( d = 0; d < VIO_N_DIMENSIONS; d++ )
+        v1_normalized[d] = v1[d] / mag;
+}
+
+static  void  assign_voxel_to_world_transform(
+    Volume             volume,
+    General_transform  *transform )
+{
+    delete_general_transform( &volume->voxel_to_world_transform );
+
+    volume->voxel_to_world_transform = *transform;
+}
+
+static void  reorder_voxel_to_xyz(
+    Volume   volume,
+    double   voxel[],
+    double   xyz[] )
+{
+    int   c;
+    for( c = 0; c < VIO_N_DIMENSIONS; c++ )
+    {
+        int axis = volume->spatial_axes[c];
+        if( axis >= 0 )
+            xyz[c] = voxel[axis];
+        else
+            xyz[c] = 0.0;
+    }
+}
+
+static void compute_world_transform(
+    int                 spatial_axes[VIO_N_DIMENSIONS],
+    double              separations[],
+    double              direction_cosines[][VIO_N_DIMENSIONS],
+    double              starts[],
+    General_transform   *world_transform )
+{
+    Transform           transform;
+    double              separations_3D[VIO_N_DIMENSIONS];
+    double              directions[VIO_N_DIMENSIONS][VIO_N_DIMENSIONS];
+    double              starts_3D[VIO_N_DIMENSIONS];
+    double              normal[VIO_N_DIMENSIONS];
+    int                 dim, c, a1, a2, axis, n_axes;
+    int                 axis_list[VIO_N_DIMENSIONS];
+
+    /*--- find how many direction cosines are specified, and set the
+          3d separations and starts */
+
+    n_axes = 0;
+
+    for( c = 0; c < VIO_N_DIMENSIONS; c++ )
+    {
+        axis = spatial_axes[c];
+        if( axis >= 0 )
+        {
+            separations_3D[c] = separations[axis];
+            starts_3D[c] = starts[axis];
+            directions[c][X] = direction_cosines[axis][X];
+            directions[c][Y] = direction_cosines[axis][Y];
+            directions[c][Z] = direction_cosines[axis][Z];
+            axis_list[n_axes] = c;
+            ++n_axes;
+        }
+        else
+        {
+            separations_3D[c] = 1.0;
+            starts_3D[c] = 0.0;
+        }
+    }
+
+    if( n_axes == 0 )
+    {
+        fprintf(stderr, "error compute_world_transform:  no axes.\n" );
+        return;
+    }
+
+    /*--- convert 1 or 2 axes to 3 axes */
+
+    if( n_axes == 1 )
+    {
+        a1 = (axis_list[0] + 1) % VIO_N_DIMENSIONS;
+        a2 = (axis_list[0] + 2) % VIO_N_DIMENSIONS;
+
+        /*--- create an orthogonal vector */
+
+        directions[a1][X] = directions[axis_list[0]][Y] +
+                            directions[axis_list[0]][Z];
+        directions[a1][Y] = -directions[axis_list[0]][X] -
+                            directions[axis_list[0]][Z];
+        directions[a1][Z] = directions[axis_list[0]][Y] -
+                            directions[axis_list[0]][X];
+
+        cross_3D_vector( directions[axis_list[0]], directions[a1],
+                         directions[a2] );
+        normalize_vector( directions[a1], directions[a1] );
+        normalize_vector( directions[a2], directions[a2] );
+    }
+    else if( n_axes == 2 )
+    {
+        a2 = VIO_N_DIMENSIONS - axis_list[0] - axis_list[1];
+
+        cross_3D_vector( directions[axis_list[0]], directions[axis_list[1]],
+               directions[a2] );
+
+        normalize_vector( directions[a2], directions[a2] );
+    }
+
+    /*--- check to make sure that 3 axes are not a singular system */
+
+    for( dim = 0; dim < VIO_N_DIMENSIONS ; dim++)
+    {
+        cross_3D_vector( directions[dim], directions[(dim+1)%VIO_N_DIMENSIONS],
+                         normal );
+        if( normal[0] == 0.0 && normal[1] == 0.0 && normal[2] == 0.0 )
+            break;
+    }
+
+    if( dim < VIO_N_DIMENSIONS )
+    {
+        directions[0][0] = 1.0;
+        directions[0][1] = 0.0;
+        directions[0][2] = 0.0;
+        directions[1][0] = 0.0;
+        directions[1][1] = 1.0;
+        directions[1][2] = 0.0;
+        directions[2][0] = 0.0;
+        directions[2][1] = 0.0;
+        directions[2][2] = 1.0;
+    }
+
+    /*--- make the linear transformation */
+
+    make_identity_transform( &transform );
+
+    for( c = 0; c < VIO_N_DIMENSIONS; c++ )
+    {
+        for( dim = 0; dim < VIO_N_DIMENSIONS; dim ++ )
+        {
+            Transform_elem(transform,dim,c) = directions[c][dim] *
+                                              separations_3D[c];
+
+            Transform_elem(transform,dim,3) += directions[c][dim] *
+                                               starts_3D[c];
+        }
+    }
+
+    create_linear_transform( world_transform, &transform );
+}
+
+
+void  check_recompute_world_transform(
+    Volume  volume )
+{
+    General_transform        world_transform;
+
+    if( !volume->voxel_to_world_transform_uptodate )
+    {
+        volume->voxel_to_world_transform_uptodate = true;
+
+        compute_world_transform( volume->spatial_axes,
+                                 volume->separations,
+                                 volume->direction_cosines,
+                                 volume->starts,
+                                 &world_transform );
+
+        assign_voxel_to_world_transform( volume, &world_transform );
+    }
+}
 
 Volume create_volume(
     int          n_dimensions,
@@ -1272,10 +1744,23 @@ void get_volume_separations(
     Volume   	volume,
     double 	separations[] ) NYI("get_volume_separations",)
 
-void convert_voxel_to_world(
-    Volume   	volume,
-    double     	voxel[],
-    double     *x_world,
-    double     *y_world,
-    double     *z_world ) NYI("convert_voxel_to_world",)
+void  convert_voxel_to_world(
+    Volume   volume,
+    double   voxel[],
+    double  *x_world,
+    double  *y_world,
+    double  *z_world )
+{
+    double xyz[VIO_N_DIMENSIONS];
+
+    check_recompute_world_transform( volume );
+
+    reorder_voxel_to_xyz( volume, voxel, xyz );
+
+    /* apply linear transform */
+
+    general_transform_point( &volume->voxel_to_world_transform,
+                             xyz[X], xyz[Y], xyz[Z],
+                             x_world, y_world, z_world );
+}
 
