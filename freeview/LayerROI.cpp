@@ -483,10 +483,10 @@ void LayerROI::MapLabelColorData( unsigned char* colordata, int nVertexCount )
       else
         opacity = 0;
       double rgb[4] = { rgbColor[0], rgbColor[1], rgbColor[2], 1 };
-      //      if (m_nColorCode == Heatscale)
-      //      {
-      //        m_lut->GetColor(m_label->lv[i].stat, rgb);
-      //      }
+      if (GetProperty()->GetColorCode() == LayerPropertyROI::Heatscale)
+      {
+        GetProperty()->GetLookupTable()->GetColor(label->lv[i].stat, rgb);
+      }
       colordata[vno*4]    = ( int )( colordata[vno*4]   * ( 1 - opacity ) + rgb[0] * 255 * opacity );
       colordata[vno*4+1]  = ( int )( colordata[vno*4+1] * ( 1 - opacity ) + rgb[1] * 255 * opacity );
       colordata[vno*4+2]  = ( int )( colordata[vno*4+2] * ( 1 - opacity ) + rgb[2] * 255 * opacity );
@@ -623,9 +623,6 @@ void LayerROI::Resample()
                                           m_layerMappedSurface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
     if (label)
     {
-      
-//      old_label->n_points = label->n_points ;
-//      memmove(old_label->lv, label->lv, label->n_points*sizeof(LABEL_VERTEX));
       LabelCopy(label, old_label) ;
       LabelFree(&label);
     }
