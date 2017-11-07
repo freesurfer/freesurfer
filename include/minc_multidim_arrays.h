@@ -115,6 +115,7 @@ typedef  struct
          case DOUBLE:  \
              SET_ONE( array, double, asterisks, subscripts, value);\
              break;  \
+	 default: fprintf(stderr, "%s:%d No default",__FILE__,__LINE__); exit(1); \
          }
 
 #define  GET_MULTIDIM_TYPE_1D( array, type, v0 )   \
@@ -174,6 +175,7 @@ typedef  struct
          case 3:  SET_MULTIDIM_3D( array, x, y, z, value );        break; \
          case 4:  SET_MULTIDIM_4D( array, x, y, z, t, value );     break; \
          case 5:  SET_MULTIDIM_5D( array, x, y, z, t, v, value );  break; \
+	 default: fprintf(stderr, "%s:%d No default",__FILE__,__LINE__); exit(1); \
          }
 
 /* ------------------------- get multidim value ------------------------ */
@@ -210,6 +212,7 @@ typedef  struct
          case DOUBLE:  \
              GET_ONE( value, vtype, array, double, asterisks, subscripts );\
              break;  \
+	 default: fprintf(stderr, "%s:%d No default",__FILE__,__LINE__); exit(1); \
          }
 
 /* --- public macros to place the [x][y]...'th voxel of 'array' in 'value' */
@@ -239,6 +242,7 @@ typedef  struct
          case 3:  GET_MULTIDIM_3D( value, vtype, array, x, y, z );        break; \
          case 4:  GET_MULTIDIM_4D( value, vtype, array, x, y, z, t );     break; \
          case 5:  GET_MULTIDIM_5D( value, vtype, array, x, y, z, t, v );  break; \
+	 default: fprintf(stderr, "%s:%d No default",__FILE__,__LINE__); exit(1); \
          }
 
 /* ------------------------- get multidim ptr ------------------------ */

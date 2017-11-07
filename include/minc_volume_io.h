@@ -275,7 +275,9 @@ typedef struct volume_struct
 	General_transform       voxel_to_world_transform;
 
         VIO_multidim_array      array;
-  
+        bool                    signed_flag;
+
+//#define   BEVIN_ALL_VOLUME_MEMBERS
 #if defined(BEVIN_ALL_VOLUME_MEMBERS)
 	//
 	// When moving one of these out, make sure the current conditionalized uses
@@ -285,7 +287,6 @@ typedef struct volume_struct
         //VIO_volume_cache_struct cache;
   
         const char*             dimension_names[VIO_MAX_DIMENSIONS];
-        bool                    signed_flag;
         bool                    is_rgba_data;
   
         const char*             coordinate_system_name;
@@ -349,10 +350,20 @@ void   create_empty_multidim_array(
     VIO_multidim_array* array,
     int                 n_dimensions,
     VIO_Data_types      data_type );
-    
+
+int  get_multidim_n_dimensions(
+    VIO_multidim_array   *array );
+
+void  get_multidim_sizes(
+    VIO_multidim_array   *array,
+    int              sizes[] );
+       
 void  delete_multidim_array(
     VIO_multidim_array   *array );
 
+void  alloc_multidim_array(
+    VIO_multidim_array   *array );
+    
 bool multidim_array_is_alloced(
     VIO_multidim_array   *array );
 

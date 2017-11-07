@@ -1450,6 +1450,45 @@ static double convert_voxel_to_value(
 }
 
 
+void set_volume_voxel_value(
+    Volume   volume,
+    int      x,
+    int      y,
+    int      z,
+    int      t,
+    int      v,
+    double   voxel )
+{
+//     SET_VOXEL( volume, v0, v1, v2, v3, v4, voxel );
+#if defined(BEVIN_ALL_VOLUME_MEMBERS)
+    if( (volume)->is_cached_volume )
+        set_cached_volume_voxel( volume, x, y, z, t, v, voxel );
+    else
+#endif
+      	SET_MULTIDIM( (volume)->array, x, y, z, t, v, voxel );
+}
+
+double get_volume_voxel_value(
+    Volume   volume,
+    int      x,
+    int      y,
+    int      z,
+    int      t,
+    int      v ) 
+{
+    double voxel;
+
+#if defined(BEVIN_ALL_VOLUME_MEMBERS)
+    if( (volume)->is_cached_volume )
+        voxel = (double) get_cached_volume_voxel( volume, x, y, z, t, v );
+    else
+#endif
+        GET_MULTIDIM( voxel, (double), (volume)->array, x, y, z, t, v );
+
+    return( voxel );
+}
+
+
 // Based on minc-1.5.1/volume_io/Volumes/input_volume.c
 // which requires the following...
 //
@@ -1923,9 +1962,7 @@ static void  set_volume_type(
 
         set_multidim_data_type( &volume->array, data_type );
 
-#if defined(BEVIN_ALL_VOLUME_MEMBERS)
         volume->signed_flag = signed_flag;
-#endif
 
         set_volume_voxel_range( volume, voxel_min, voxel_max );
     }
@@ -1938,6 +1975,30 @@ VIO_Data_types  get_volume_data_type(
 {
     return( get_multidim_data_type( &volume->array ) );
 }
+
+int get_volume_n_dimensions(
+    Volume volume )
+{
+    return( get_multidim_n_dimensions( &volume->array ) );
+}
+
+void get_volume_sizes(
+    Volume 	volume,
+    int      	sizes[] )
+{
+    get_multidim_sizes( &volume->array, sizes );
+}
+
+
+nc_type get_volume_nc_data_type(
+    Volume      volume,
+    bool*	signed_flag ) 
+{
+    if( signed_flag != (BOOLEAN *) NULL )
+        *signed_flag = volume->signed_flag;
+    return( volume->nc_data_type );
+}
+
 
 Volume create_volume(
     int          n_dimensions,
@@ -1970,8 +2031,8 @@ Volume create_volume(
     volume = (volume_struct*)malloc(sizeof(volume_struct));
 
 #if defined(BEVIN_ALL_VOLUME_MEMBERS)
-    volume->is_rgba_data     = FALSE;
-    volume->is_cached_volume = FALSE;
+    volume->is_rgba_data     = false;
+    volume->is_cached_volume = false;
 #endif
 
     volume->real_range_set         = false;
@@ -2088,30 +2149,274 @@ void  set_volume_sizes(
 }
 
 void alloc_volume_data(
-    Volume      volume ) NYI("alloc_volume_data",)
+    Volume      volume ) 
+{
+#if defined(BEVIN_ALL_VOLUME_MEMBERS)
+    unsigned long   data_size;
+
+    data_size = (unsigned long) get_volume_total_n_voxels( volume ) *
+                (unsigned long) get_type_size( get_volume_data_type( volume ) );
+
+    if( get_n_bytes_cache_threshold() >= 0 &&
+        data_size > (unsigned long) get_n_bytes_cache_threshold() )
+    {
+        volume->is_cached_volume = true;
+        initialize_volume_cache( &volume->cache, volume );
+    }
+    else
+#endif
+    {
+#if defined(BEVIN_ALL_VOLUME_MEMBERS)
+        volume->is_cached_volume = false;
+#endif
+        alloc_multidim_array( &volume->array );
+    }
+}
+
 
 void set_volume_separations(
     Volume      volume,
-    double      separations[] ) NYI("set_volume_separations",)
+    double      separations[] ) 
+{
+    int i;
+    for( i = 0; i < get_volume_n_dimensions( volume ); i++ )
+        volume->separations[i] = separations[i];
+
+    volume->voxel_to_world_transform_uptodate = false;
+}
+
+static void  set_volume_direction_unit_cosine(
+    Volume   volume,
+    int      axis,
+    double   dir[] )
+{
+    if( axis < 0 || axis >= get_volume_n_dimensions(volume) )
+    {
+        fprintf(stderr,
+         "set_volume_direction_cosine:  cannot set dir cosine for axis %d\n",
+          axis );
+	exit(1);
+        return;
+    }
+
+    /*--- check if this is a spatial axis */
+
+    int    dim;
+
+    for( dim = 0; dim < VIO_N_DIMENSIONS; dim++ )
+    {
+        if( volume->spatial_axes[dim] == axis )
+            break;
+    }
+
+    if( dim == VIO_N_DIMENSIONS )   /* this is not a spatial axis, ignore the dir */
+        return;
+
+    volume->direction_cosines[axis][X] = dir[X];
+    volume->direction_cosines[axis][Y] = dir[Y];
+    volume->direction_cosines[axis][Z] = dir[Z];
+
+    volume->voxel_to_world_transform_uptodate = false;
+}
 
 void set_volume_direction_cosine(
     Volume   	volume,
     int      	axis,
-    double	dir[] ) NYI("set_volume_direction_cosine",)
+    double	dir[] )
+{
+    double len, unit_vector[VIO_N_DIMENSIONS];
+
+    len = dir[X] * dir[X] + dir[Y] * dir[Y] + dir[Z] * dir[Z];
+
+    if( len == 0.0 )
+    {
+        fprintf(stderr, "Warning: zero length direction cosine in set_volume_direction_cosine()\n" );
+	exit(1);
+        return;
+    }
+
+    if( len <= 0.0 )
+        len = 1.0;
+
+    len = sqrt( len );
+
+    unit_vector[X] = dir[X] / len;
+    unit_vector[Y] = dir[Y] / len;
+    unit_vector[Z] = dir[Z] / len;
+
+    set_volume_direction_unit_cosine( volume, axis, unit_vector );
+}
+
+
+static void set_volume_starts(
+    Volume  volume,
+    double  starts[] )
+{
+    int  c;
+    for( c =  0; c < get_volume_n_dimensions( volume ); c++ )
+        volume->starts[c] = starts[c];
+    volume->voxel_to_world_transform_uptodate = false;
+}
 
 void set_volume_translation(
     Volume  	volume,
     double    	voxel[],
-    double    	world_space_voxel_maps_to[] ) NYI("set_volume_translation",)
+    double    	world_space_voxel_maps_to[] )
+{
+    int         dim, dim2, axis, n_axes, a1, a2;
+    double      world_space_origin[VIO_N_DIMENSIONS], len;
+    double      starts[VIO_MAX_DIMENSIONS], starts_3d[VIO_N_DIMENSIONS];
+    Transform   transform, inverse;
 
-void set_volume_voxel_value(
-    Volume      volume,
-    int         v0,
-    int         v1,
-    int         v2,
-    int         v3,
-    int         v4,
-    double      voxel ) NYI("set_volume_voxel_value",)
+    /*--- find the world position where ( 0, 0, 0 ) maps to by taking
+          the world position - voxel[x_axis] * Xaxis - voxel[y_axis] * Yaxis
+          ..., and fill in the transform defined by Xaxis, Yaxis, Zaxis */
+
+    make_identity_transform( &transform );
+
+    for( dim = 0; dim < VIO_N_DIMENSIONS; dim++ )
+    {
+        world_space_origin[dim] = world_space_voxel_maps_to[dim];
+
+        for( dim2 = 0; dim2 < VIO_N_DIMENSIONS; dim2++ )
+        {
+            axis = volume->spatial_axes[dim2];
+            if( axis >= 0 )
+            {
+                world_space_origin[dim] -= volume->separations[axis] *
+                           volume->direction_cosines[axis][dim] * voxel[axis];
+
+                Transform_elem( transform, dim, dim2 ) =
+                                           volume->direction_cosines[axis][dim];
+            }
+        }
+    }
+
+    n_axes = 0;
+
+    for( dim = 0; dim < VIO_N_DIMENSIONS; dim++ )
+    {
+        axis = volume->spatial_axes[dim];
+        if( axis >= 0 )
+            ++n_axes;
+    }
+
+    /*--- if only one spatial axis, make a second orthogonal vector */
+
+    if( n_axes == 1 )
+    {
+        /*--- set dim to the spatial axis */
+
+        if( volume->spatial_axes[0] >= 0 )
+            dim = 0;
+        else if( volume->spatial_axes[1] >= 0 )
+            dim = 1;
+        else if( volume->spatial_axes[2] >= 0 )
+            dim = 2;
+
+        /*--- set a1 to the lowest occuring non-spatial axis, and create
+              a unit vector normal to that of the spatial axis */
+
+        if( dim == 0 )
+            a1 = 1;
+        else
+            a1 = 0;
+
+        Transform_elem( transform, 0, a1 ) = Transform_elem(transform,1,dim) +
+                                             Transform_elem(transform,2,dim);
+        Transform_elem( transform, 1, a1 ) = -Transform_elem(transform,0,dim) -
+                                              Transform_elem(transform,2,dim);
+        Transform_elem( transform, 2, a1 ) = Transform_elem(transform,1,dim) -
+                                             Transform_elem(transform,0,dim);
+
+        len = Transform_elem(transform,0,a1)*Transform_elem(transform,0,a1) +
+              Transform_elem(transform,1,a1)*Transform_elem(transform,1,a1) +
+              Transform_elem(transform,2,a1)*Transform_elem(transform,2,a1);
+
+        if( len == 0.0 )
+            len = 1.0;
+        else
+            len = sqrt( len );
+
+        Transform_elem(transform,0,a1) /= len;
+        Transform_elem(transform,1,a1) /= len;
+        Transform_elem(transform,2,a1) /= len;
+    }
+
+    /*--- if only two spatial axis, make a third orthogonal vector */
+
+    if( n_axes == 1 || n_axes == 2 )
+    {
+        /*--- set dim to the one axis that does not have a vector associated
+              with it yet, and make one that is the unit cross product of 
+              the other two */
+
+        if( volume->spatial_axes[2] < 0 )
+            dim = 2;
+        else if( volume->spatial_axes[1] < 0 )
+            dim = 1;
+        else if( volume->spatial_axes[0] < 0 )
+            dim = 0;
+
+        a1 = (dim + 1) % VIO_N_DIMENSIONS;
+        a2 = (dim + 2) % VIO_N_DIMENSIONS;
+
+        /*--- take cross product */
+
+        Transform_elem( transform, 0, dim ) = Transform_elem(transform,1,a1) *
+                                              Transform_elem(transform,2,a2) -
+                                              Transform_elem(transform,1,a2) *
+                                              Transform_elem(transform,2,a1);
+        Transform_elem( transform, 1, dim ) = Transform_elem(transform,2,a1) *
+                                              Transform_elem(transform,0,a2) -
+                                              Transform_elem(transform,2,a2) *
+                                              Transform_elem(transform,0,a1);
+        Transform_elem( transform, 2, dim ) = Transform_elem(transform,0,a1) *
+                                              Transform_elem(transform,1,a2) -
+                                              Transform_elem(transform,0,a2) *
+                                              Transform_elem(transform,1,a1);
+
+        /*--- normalize vector */
+
+        len = Transform_elem(transform,0,dim)*Transform_elem(transform,0,dim) +
+              Transform_elem(transform,1,dim)*Transform_elem(transform,1,dim) +
+              Transform_elem(transform,2,dim)*Transform_elem(transform,2,dim);
+
+        if( len == 0.0 )
+            len = 1.0;
+        else
+            len = sqrt( len );
+
+        Transform_elem(transform,0,dim) /= len;
+        Transform_elem(transform,1,dim) /= len;
+        Transform_elem(transform,2,dim) /= len;
+    }
+
+    /*--- find the voxel that maps to the world space origin, when there is
+          no translation, and this is the starts */
+
+    compute_transform_inverse( &transform, &inverse );
+
+    transform_point( &inverse, world_space_origin[X],
+                               world_space_origin[Y],
+                               world_space_origin[Z],
+                               &starts_3d[X], &starts_3d[Y], &starts_3d[Z] );
+
+    /*--- map the X Y Z starts into the arbitrary axis ordering of the volume */
+
+    for( dim = 0; dim < get_volume_n_dimensions(volume); dim++ )
+        starts[dim] = 0.0;
+
+    for( dim = 0; dim < VIO_N_DIMENSIONS; dim++ )
+    {
+        axis = volume->spatial_axes[dim];
+        if( axis >= 0 )
+            starts[axis] = starts_3d[dim];
+    }
+
+    set_volume_starts( volume, starts );
+}
+
 
 VIO_Status  output_volume(
     const char*		  filename,
@@ -2141,31 +2446,24 @@ bool input_more_of_volume(
     volume_input_struct  *input_info,
     double               *fraction_done ) NYI("input_more_of_volume",0)
 
-int get_volume_n_dimensions(
-    Volume volume ) NYI("get_volume_n_dimensions",0)
+General_transform  *get_voxel_to_world_transform(
+    Volume   volume )
+{
+    check_recompute_world_transform( volume );
 
-void get_volume_sizes(
-    Volume 	volume,
-    int      	sizes[] ) NYI("get_volume_sizes",)
+    return( &volume->voxel_to_world_transform );
+}
 
-nc_type get_volume_nc_data_type(
-    Volume      volume,
-    bool*	signed_flag ) NYI("get_volume_nc_data_type",NC_UNSPECIFIED)
-
-General_transform* get_voxel_to_world_transform(
-    Volume   volume ) NYI("get_voxel_to_world_transform",NULL)
-
-double get_volume_voxel_value(
-    Volume   volume,
-    int      v0,
-    int      v1,
-    int      v2,
-    int      v3,
-    int      v4 ) NYI("get_volume_voxel_value",0)
-    
 void get_volume_separations(
     Volume   	volume,
-    double 	separations[] ) NYI("get_volume_separations",)
+    double 	separations[] )
+{
+    int   i;
+
+    for( i = 0; i < get_volume_n_dimensions( volume ); i++ )
+        separations[i] = volume->separations[i];
+}
+
 
 void  convert_voxel_to_world(
     Volume   volume,
