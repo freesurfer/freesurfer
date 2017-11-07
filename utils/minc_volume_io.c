@@ -1864,7 +1864,7 @@ static void  set_volume_voxel_range(
     double   voxel_min,
     double  voxel_max )
 {
-    double real_min, real_max;
+    double real_min = 0.0, real_max = 0.0;
 
     if( voxel_min >= voxel_max )
     {
