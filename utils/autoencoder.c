@@ -1936,7 +1936,7 @@ double CSAEtrainLayerFromVoxlist(CSAE *csae, int layer, VOXEL_LIST *vl, MRI **mr
 MRI *CSAElayerWeightsToMRI(CSAE *csae, int layer)
 {
   MRI *mri = NULL, *mri_prev, *mri_counts;
-  int width, whalf, whalf_prev, x, y, xk, yk, v, h, count, xp, yp, hp;
+  int width, whalf_prev, x, y, xk, yk, v, h, count, xp, yp, hp;
   AE *ae, *ae_prev;
   float val, val_prev;
 
@@ -1949,7 +1949,6 @@ MRI *CSAElayerWeightsToMRI(CSAE *csae, int layer)
     ae = csae->aes[layer];
     ae_prev = csae->aes[layer - 1];
     whalf_prev = (ae_prev->ksize - 1) / 2;
-    whalf = (ae->ksize - 1) / 2;
     width = ae->ksize + 2 * whalf_prev;
     mri_prev = CSAElayerWeightsToMRI(csae, layer - 1);
     mri = MRIallocSequence(width, width, 1, MRI_FLOAT, ae->v_hidden->rows);
