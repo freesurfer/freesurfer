@@ -2435,8 +2435,10 @@ float XYZApproxAngle(XYZ const *normalizedXYZ, float x2, float y2, float z2)
     }
   }
 
+  #if GCC_VERSION > 40408
   #pragma GCC diagnostic pop
-
+  #endif
+  
   return (angle);
 }
 
