@@ -2108,8 +2108,8 @@ IMAGE *ImageCorrelate(IMAGE *Itemplate, IMAGE *Isrc, int zeropad, IMAGE *Icorr)
 ------------------------------------------------------*/
 IMAGE *ImageCorrelateRegion(IMAGE *Isrc, IMAGE *Ikernel, IMAGE *Idst, int row0, int col0, int wsize)
 {
-  int col_offset, row_offset, row, col, rows, cols, whalf, krow0, kcol0, rowstart, rowend, colstart, colend, krow, kcol,
-      drow, dcol;
+  int col_offset, row_offset, row, col, rows, cols, whalf, krow0, kcol0, krow, kcol, drow, dcol;
+  // int rowstart, rowend, colstart, colend;
   CPIX *src, *kernel;
   float sreal, simag, kreal, kimag, val, *dst, total;
 
@@ -2122,10 +2122,10 @@ IMAGE *ImageCorrelateRegion(IMAGE *Isrc, IMAGE *Ikernel, IMAGE *Idst, int row0, 
   krow0 = row0 - Isrc->rows / 2;
 
   whalf = (wsize - 1) / 2;
-  rowstart = MAX(row0 - whalf, 0);
-  colstart = MAX(col0 - whalf, 0);
-  rowend = MIN(rows - 1, row0 + wsize);
-  colend = MIN(cols - 1, col0 + wsize);
+  // rowstart = MAX(row0 - whalf, 0);
+  // colstart = MAX(col0 - whalf, 0);
+  // rowend = MIN(rows - 1, row0 + wsize);
+  // colend = MIN(cols - 1, col0 + wsize);
 
   for (row_offset = -whalf; row_offset <= whalf; row_offset++) {
     drow = row0 + row_offset;

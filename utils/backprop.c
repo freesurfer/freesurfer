@@ -1153,7 +1153,8 @@ static void bpFreeLayer(LAYER *layer)
 
 float BackpropError(BACKPROP *bp, float *targets)
 {
-  float bpError, total, error;
+  float bpError, error;
+  // float total;
   int i, nunits;
   LAYER *output;
 
@@ -1177,7 +1178,8 @@ float BackpropError(BACKPROP *bp, float *targets)
 
   bpError /= total ;
 #else
-  for (i = 0, total = bpError = 0.0f; i < nunits; i++) {
+  // for (i = 0, total = bpError = 0.0f; i < nunits; i++) {
+  for (i = 0, bpError = 0.0f; i < nunits; i++) {
     error = targets[i] - output->x[i];
     error *= error;
 

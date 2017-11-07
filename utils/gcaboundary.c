@@ -218,9 +218,15 @@ double GCABgetProbability(GCAB *gcab,
                           float ny,
                           float nz)
 {
-  float xn, yn, zn, xi, yi, zi, xo, yo, zo, xd, yd, zd, xi0, yi0, zi0, d, dx, dy, dz, xo0, yo0, zo0;
-  int vno, oob, xb, yb, zb, xu, yu, zu, x, y, z, num;
-  double grad, p, pdelI, mag, pI_total, val1, val2, pI_in, pI_out, e1x, e2x, e1y, e2y, e1z, e2z, d1, d2;
+
+  // Note: warnings fix: commented out variables should be refactored into the #else below if ever used again - clarsen
+
+  float xn, yn, zn, xi, yi, zi, xo, yo, zo, xi0, yi0, zi0, d, dx, dy, dz, xo0, yo0, zo0;
+  // float  xd, yd, zd;
+  int vno, oob,  x, y, z, num;
+  // int xu, yu, zu, xb, yb, zb;
+  double grad, p, pdelI, mag, val1, val2, pI_in, pI_out, e1x, e2x, e1y, e2y, e1z, e2z, d1, d2;
+  // double pI_total;
   GCABS *gcabs;
 
   oob = GCABsourceVoxelToNode(gcab, mri_int, transform, x0, y0, z0, &xn, &yn, &zn);
@@ -251,17 +257,17 @@ double GCABgetProbability(GCAB *gcab,
   vno = gcabFindClosestIcoVertex(gcab, transform, x0, y0, z0, nx, ny, nz);
   if (vno < 0) return (0);
 
-  xb = (int)xn;
-  yb = (int)yn;
-  zb = (int)zn;
-  xd = xn - xb;
-  yd = yn - yb;
-  zd = zn - zb;
-  xu = xb + 1;
-  yu = yb + 1;
-  zu = zb + 1;
+  // xb = (int)xn;
+  // yb = (int)yn;
+  // zb = (int)zn;
+  // xd = xn - xb;
+  // yd = yn - yb;
+  // zd = zn - zb;
+  // xu = xb + 1;
+  // yu = yb + 1;
+  // zu = zb + 1;
 
-  pI_total = pdelI = 0;
+  // pI_total = pdelI = 0;
 #if 1
   x = nint(xn);
   y = nint(yn);
@@ -437,9 +443,13 @@ double GCABgetPin(GCAB *gcab,
                   float ny,
                   float nz)
 {
-  float xn, yn, zn, xi, yi, zi, xo, yo, zo, xd, yd, zd, xi0, yi0, zi0, d, dx, dy, dz, xo0, yo0, zo0;
-  int vno, oob, xb, yb, zb, xu, yu, zu, x, y, z, num;
-  double grad, p, pdelI, mag, pI_total, val1, val2, pI_in, pI_out, e1x, e2x, e1y, e2y, e1z, e2z, d1, d2;
+
+  float xn, yn, zn, xi, yi, zi, xo, yo, zo, xi0, yi0, zi0, d, dx, dy, dz, xo0, yo0, zo0;
+  // float xd, yd, zd;
+  int vno, oob,  x, y, z, num;
+  // int xb, yb, zb, xu, yu, zu;
+  double grad, p, pdelI, mag, val1, val2, pI_in, pI_out, e1x, e2x, e1y, e2y, e1z, e2z, d1, d2;
+  // double pI_total;
   GCABS *gcabs;
 
   oob = GCABsourceVoxelToNode(gcab, mri_int, transform, x0, y0, z0, &xn, &yn, &zn);
@@ -470,17 +480,17 @@ double GCABgetPin(GCAB *gcab,
   vno = gcabFindClosestIcoVertex(gcab, transform, x0, y0, z0, nx, ny, nz);
   if (vno < 0) return (0);
 
-  xb = (int)xn;
-  yb = (int)yn;
-  zb = (int)zn;
-  xd = xn - xb;
-  yd = yn - yb;
-  zd = zn - zb;
-  xu = xb + 1;
-  yu = yb + 1;
-  zu = zb + 1;
+  // xb = (int)xn;
+  // yb = (int)yn;
+  // zb = (int)zn;
+  // xd = xn - xb;
+  // yd = yn - yb;
+  // zd = zn - zb;
+  // xu = xb + 1;
+  // yu = yb + 1;
+  // zu = zb + 1;
 
-  pI_total = pdelI = 0;
+  // pI_total = pdelI = 0;
 #if 1
   x = nint(xn);
   y = nint(yn);
@@ -656,9 +666,12 @@ double GCABgetPout(GCAB *gcab,
                    float ny,
                    float nz)
 {
-  float xn, yn, zn, xi, yi, zi, xo, yo, zo, xd, yd, zd, xi0, yi0, zi0, d, dx, dy, dz, xo0, yo0, zo0;
-  int vno, oob, xb, yb, zb, xu, yu, zu, x, y, z, num;
-  double grad, p, pdelI, mag, pI_total, val1, val2, pI_in, pI_out, e1x, e2x, e1y, e2y, e1z, e2z, d1, d2;
+  float xn, yn, zn, xi, yi, zi, xo, yo, zo, xi0, yi0, zi0, d, dx, dy, dz, xo0, yo0, zo0;
+  // float xd, yd, zd;
+  int vno, oob, x, y, z, num;
+  // int xb, yb, zb, xu, yu, zu;
+  double grad, p, pdelI, mag, val1, val2, pI_in, pI_out, e1x, e2x, e1y, e2y, e1z, e2z, d1, d2;
+  // double pI_total;
   GCABS *gcabs;
 
   oob = GCABsourceVoxelToNode(gcab, mri_int, transform, x0, y0, z0, &xn, &yn, &zn);
@@ -689,17 +702,17 @@ double GCABgetPout(GCAB *gcab,
   vno = gcabFindClosestIcoVertex(gcab, transform, x0, y0, z0, nx, ny, nz);
   if (vno < 0) return (0);
 
-  xb = (int)xn;
-  yb = (int)yn;
-  zb = (int)zn;
-  xd = xn - xb;
-  yd = yn - yb;
-  zd = zn - zb;
-  xu = xb + 1;
-  yu = yb + 1;
-  zu = zb + 1;
+  // xb = (int)xn;
+  // yb = (int)yn;
+  // zb = (int)zn;
+  // xd = xn - xb;
+  // yd = yn - yb;
+  // zd = zn - zb;
+  // xu = xb + 1;
+  // yu = yb + 1;
+  // zu = zb + 1;
 
-  pI_total = pdelI = 0;
+  // pI_total = pdelI = 0;
 #if 1
   x = nint(xn);
   y = nint(yn);
@@ -875,9 +888,12 @@ double GCABgetPgrad(GCAB *gcab,
                     float ny,
                     float nz)
 {
-  float xn, yn, zn, xi, yi, zi, xo, yo, zo, xd, yd, zd, xi0, yi0, zi0, d, dx, dy, dz, xo0, yo0, zo0;
-  int vno, oob, xb, yb, zb, xu, yu, zu, x, y, z, num;
-  double grad, p, pdelI, mag, pI_total, val1, val2, pI_in, pI_out, e1x, e2x, e1y, e2y, e1z, e2z, d1, d2;
+  float xn, yn, zn, xi, yi, zi, xo, yo, zo, xi0, yi0, zi0, d, dx, dy, dz, xo0, yo0, zo0;
+  // float xd, yd, zd;
+  int vno, oob, x, y, z, num;
+  // int xb, yb, zb, xu, yu, zu;
+  double grad, p, pdelI, mag, val1, val2, pI_in, pI_out, e1x, e2x, e1y, e2y, e1z, e2z, d1, d2;
+  // double pI_total;
   GCABS *gcabs;
 
   oob = GCABsourceVoxelToNode(gcab, mri_int, transform, x0, y0, z0, &xn, &yn, &zn);
@@ -908,17 +924,17 @@ double GCABgetPgrad(GCAB *gcab,
   vno = gcabFindClosestIcoVertex(gcab, transform, x0, y0, z0, nx, ny, nz);
   if (vno < 0) return (0);
 
-  xb = (int)xn;
-  yb = (int)yn;
-  zb = (int)zn;
-  xd = xn - xb;
-  yd = yn - yb;
-  zd = zn - zb;
-  xu = xb + 1;
-  yu = yb + 1;
-  zu = zb + 1;
+  // xb = (int)xn;
+  // yb = (int)yn;
+  // zb = (int)zn;
+  // xd = xn - xb;
+  // yd = yn - yb;
+  // zd = zn - zb;
+  // xu = xb + 1;
+  // yu = yb + 1;
+  // zu = zb + 1;
 
-  pI_total = pdelI = 0;
+  // pI_total = pdelI = 0;
 #if 1
   x = nint(xn);
   y = nint(yn);
@@ -1173,7 +1189,7 @@ int GCABwrite(GCAB *gcab, char *fname)
   FILE *fp;
   int x, y, z, vno, i1, i2;
   GCABS *gcabs;
-  long where;
+  // long where;
 
   strcpy(gcab->fname, fname);
 
@@ -1182,7 +1198,8 @@ int GCABwrite(GCAB *gcab, char *fname)
 
   fwriteFloat(GCAB_VERSION, fp);
   fwrite(gcab->gca_fname, sizeof(char), STRLEN - 1, fp);
-  where = ftell(fp);
+  // where = 
+  ftell(fp);
   fwriteInt(gcab->target_label, fp);
   fwriteInt(gcab->spacing, fp);
   fwriteInt(gcab->nvertices, fp);
@@ -1250,12 +1267,13 @@ int GCABwrite(GCAB *gcab, char *fname)
 GCAB *GCABread(char *fname, GCA *gca)
 {
   FILE *fp;
-  int x, y, z, vno, i1, i2, spacing, ico_order, nibins, ngbins, label, nvertices;
+  int x, y, z, vno, i1, i2, spacing, ico_order, nibins, ngbins, label;
+  // int nvertices;
   float version;
   GCABS *gcabs;
   GCAB *gcab;
   char gca_fname[STRLEN];
-  long where;
+  // long where;
 
   fp = fopen(fname, "rb");
   if (fp == NULL) ErrorReturn(NULL, (ERROR_BADFILE, "GCABread(%s) fopen failed", fname));
@@ -1273,10 +1291,12 @@ GCAB *GCABread(char *fname, GCA *gca)
     gca = GCAread(gca_fname);
     if (gca == NULL) ErrorReturn(NULL, (ERROR_BADFILE, "GCABread(%s): could not read gca from %s", fname, gca_fname));
   }
-  where = ftell(fp);
+  // where = 
+  ftell(fp);
   label = freadInt(fp);
   spacing = freadInt(fp);
-  nvertices = freadInt(fp);
+  // nvertices = 
+  freadInt(fp);
   ico_order = freadInt(fp);
   nibins = freadInt(fp);
   ngbins = freadInt(fp);
@@ -1338,8 +1358,10 @@ static int gcabUpdateDistributions(GCAB *gcab,
                                    float zn,
                                    int target_label)
 {
-  float nx, ny, nz, xi, yi, zi, xo, yo, zo, xd, yd, zd, dx, dy, dz, d, xi0, yi0, zi0, xo0, yo0, zo0, x0, y0, z0;
-  int vno, label, xb, yb, zb, xu, yu, zu;
+  float nx, ny, nz, xi, yi, zi, xo, yo, zo, dx, dy, dz, d, xi0, yi0, zi0, xo0, yo0, zo0, x0, y0, z0;
+  // float xd, yd, zd;
+  int vno, label;
+  // int xb, yb, zb, xu, yu, zu;
   double grad, mag, val1, val2, e1x, e2x, e1y, e2y, e1z, e2z, d1, d2;
 
   vno = gcabComputeBorderNormal(gcab, mri_seg, transform, x, y, z, &nx, &ny, &nz, target_label);
@@ -1428,15 +1450,15 @@ static int gcabUpdateDistributions(GCAB *gcab,
     }
 
   // update all  nearest bins
-  xb = (int)xn;
-  yb = (int)yn;
-  zb = (int)zn;
-  xd = xn - xb;
-  yd = yn - yb;
-  zd = zn - zb;
-  xu = xb + 1;
-  yu = yb + 1;
-  zu = zb + 1;
+  // xb = (int)xn;
+  // yb = (int)yn;
+  // zb = (int)zn;
+  // xd = xn - xb;
+  // yd = yn - yb;
+  // zd = zn - zb;
+  // xu = xb + 1;
+  // yu = yb + 1;
+  // zu = zb + 1;
   xi0 = xi;
   yi0 = yi;
   zi0 = zi;
@@ -1469,8 +1491,9 @@ static int gcabUpdateDistributions(GCAB *gcab,
 }
 static int gcabUpdateNodeIout(GCAB *gcab, int xn, int yn, int zn, double val2, int vno, float wt)
 {
-  float i1f, i2f, i2d, gbinf;
-  int i2b, i2u;
+  float i1f, i2f, gbinf;
+  // float i2d;
+  // int i2b, i2u;
   GCABS *gcabs;
 
   if (xn < 0 || xn >= gcab->width || yn < 0 || yn >= gcab->height || zn < 0 || zn >= gcab->depth) return (NO_ERROR);
@@ -1478,9 +1501,9 @@ static int gcabUpdateNodeIout(GCAB *gcab, int xn, int yn, int zn, double val2, i
   gcabValsToBins(gcab, 0, val2, 0, &i1f, &i2f, &gbinf);
 
   // do linear interpolation
-  i2b = (int)i2f;
-  i2u = i2b + 1;
-  i2d = i2f - i2b;
+  // i2b = (int)i2f;
+  // i2u = i2b + 1;
+  // i2d = i2f - i2b;
 
   gcabs = &gcab->bs[xn][yn][zn];
 
@@ -1506,8 +1529,9 @@ static int gcabUpdateNodeIout(GCAB *gcab, int xn, int yn, int zn, double val2, i
 
 static int gcabUpdateNodeIin(GCAB *gcab, int xn, int yn, int zn, double val1, int vno, float wt)
 {
-  float i1f, i2f, i1d, gbinf;
-  int i1b, i1u;
+  float i1f, i2f, gbinf;
+  // float i1d;
+  // int i1b, i1u;
   GCABS *gcabs;
 
   if (xn < 0 || xn >= gcab->width || yn < 0 || yn >= gcab->height || zn < 0 || zn >= gcab->depth) return (NO_ERROR);
@@ -1515,9 +1539,9 @@ static int gcabUpdateNodeIin(GCAB *gcab, int xn, int yn, int zn, double val1, in
   gcabValsToBins(gcab, val1, 0, 0, &i1f, &i2f, &gbinf);
 
   // do linear interpolation
-  i1b = (int)i2f;
-  i1u = i1b + 1;
-  i1d = i1f - i1b;
+  // i1b = (int)i2f;
+  // i1u = i1b + 1;
+  // i1d = i1f - i1b;
 
   gcabs = &gcab->bs[xn][yn][zn];
 
@@ -1543,8 +1567,10 @@ static int gcabUpdateNodeIin(GCAB *gcab, int xn, int yn, int zn, double val1, in
 
 static int gcabUpdateNode(GCAB *gcab, int xn, int yn, int zn, double val1, double val2, float grad, int vno, float wt)
 {
-  float i1f, i2f, i1d, i2d, gbinf, gbind;
-  int i1b, i2b, i1u, i2u, gbinb, gbinu;
+  float i1f, i2f,  gbinf;
+  // float i1d, i2d, gbind;
+  // int i1b, i2b;
+  // int i1u, i2u, gbinu, gbinb;
   GCABS *gcabs;
 
   if (xn < 0 || xn >= gcab->width || yn < 0 || yn >= gcab->height || zn < 0 || zn >= gcab->depth) return (NO_ERROR);
@@ -1552,15 +1578,15 @@ static int gcabUpdateNode(GCAB *gcab, int xn, int yn, int zn, double val1, doubl
   gcabValsToBins(gcab, val1, val2, grad, &i1f, &i2f, &gbinf);
 
   // do linear interpolation
-  gbinb = (int)gbinf;
-  gbinu = gbinb + 1;
-  i1b = (int)i1f;
-  i1u = i1b + 1;
-  i2b = (int)i2f;
-  i2u = i2b + 1;
-  i1d = i1f - i1b;
-  i2d = i2f - i2b;
-  gbind = gbinf - gbinb;
+  // gbinb = (int)gbinf;
+  // gbinu = gbinb + 1;
+  // i1b = (int)i1f;
+  // i1u = i1b + 1;
+  // i2b = (int)i2f;
+  // i2u = i2b + 1;
+  // i1d = i1f - i1b;
+  // i2d = i2f - i2b;
+  // gbind = gbinf - gbinb;
 
   gcabs = &gcab->bs[xn][yn][zn];
 
@@ -1744,7 +1770,8 @@ int GCABsmoothPDFs(GCAB *gcab, float sigma)
 static int gcabSmoothPDF(GCAB *gcab, int x, int y, int z, MRI *mri_kernel)
 {
   MRI *mri_pdf, *mri_tmp;
-  int width, height, depth, klen;
+  // int width, height, depth
+  int klen;
   float *kernel;
 
   kernel = &MRIFvox(mri_kernel, 0, 0, 0);
@@ -1752,9 +1779,9 @@ static int gcabSmoothPDF(GCAB *gcab, int x, int y, int z, MRI *mri_kernel)
 
   mri_pdf = gcabWritePDFToMRI(gcab, NULL, x, y, z);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) MRIwrite(mri_pdf, "pdf_before.mgz");
-  width = mri_pdf->width;
-  height = mri_pdf->height;
-  depth = mri_pdf->depth;
+  // width = mri_pdf->width;
+  // height = mri_pdf->height;
+  // depth = mri_pdf->depth;
   mri_tmp = MRIclone(mri_pdf, NULL);
   MRIconvolve1d(mri_pdf, mri_tmp, kernel, klen, MRI_HEIGHT, 0, 0);
   MRIconvolve1d(mri_tmp, mri_pdf, kernel, klen, MRI_DEPTH, 0, 0);

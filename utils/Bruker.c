@@ -309,7 +309,7 @@ int readBrukerD3proc(char *d3procFile, int *px, int *py, int *pz, int *ptype, in
   char line[512];
   char Value[128];
   char Parameter[256];
-  int lRead;
+  // int lRead;
 
   fp = fopen(d3procFile, "r");
   if (fp == 0) {
@@ -323,11 +323,14 @@ int readBrukerD3proc(char *d3procFile, int *px, int *py, int *pz, int *ptype, in
     if (!strcmp(Parameter, "END")) break;
     // get volume size
     else if (!strcmp(Parameter, "$IM_SIX"))
-      lRead = sscanf(Value, "%d", px);
+      // lRead = 
+      sscanf(Value, "%d", px);
     else if (!strcmp(Parameter, "$IM_SIY"))
-      lRead = sscanf(Value, "%d", py);
+      // lRead = 
+      sscanf(Value, "%d", py);
     else if (!strcmp(Parameter, "$IM_SIZ"))
-      lRead = sscanf(Value, "%d", pz);
+      // lRead = 
+      sscanf(Value, "%d", pz);
     else if (!strcmp(Parameter, "$IM_SIT")) {
       sscanf(Value, "%d", pz);
     }
