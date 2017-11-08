@@ -1,29 +1,111 @@
-
 # K = 1e-7; % Mesh stiffness -- compared to normal models, the entropy cost function is normalized
 #           % (i.e., measures an average *per voxel*), so that this needs to be scaled down by the
 #           % number of voxels that are covered
+#   scaling = 0.9 * ones( 1, 3 );
+#   K = K / prod( scaling );
+from samseg.color_scheme import ColorScheme
+
 MESH_STIFFNESS = 1e-7
+SCALING_FACTOR = 0.9
+SCALED_MESH_STIFFNESS = MESH_STIFFNESS * SCALING_FACTOR * SCALING_FACTOR * SCALING_FACTOR
 
 # targetDownsampledVoxelSpacing = 3.0; % In mm
 TARGET_DOWNSAMPLE_VOXEL_SPACING = 3.0
 
-def samsseg_registerAtlas(imageFileName, meshCollectionFileName, templateFileName, savePath,showFigures):
-    pass
+USE_SIMPLE_MESH_POSITIONING = True
+ELIMINATE_BACKGROUND_CLASS = False
 
+# priorVisualizationAlpha = 0.4;
+PRIOR_VISUALIZATION_ALPHA = 0.4
+
+
+def samsseg_registerAtlas(
+        image_file_name,
+        mesh_collection_file_name,
+        template_file_name,
+        save_path,
+        show_figures
+):
     # function worldToWorldTransformMatrix = samseg_registerAtlas( imageFileName, meshCollectionFileName, templateFileName, savePath, showFigures )
     #
     # %
     #
-    # maximalDeformationStopCriterion = 0.005; % Measured in voxels
-    # lineSearchMaximalDeformationIntervalStopCriterion = maximalDeformationStopCriterion; % Doesn't seem to matter very much
+    [original_image, original_image_to_world_transform] = read_input_image_with_transform(image_file_name)
+    [template, template_image_to_world_transform] = read_input_image_with_transform(template_file_name)
+
+    initial_world_to_world_transform_matrix = determine_initial_world_to_world_transform_matrix()
+    initial_image_to_image_transform_matrix = determine_initial_image_to_image_transform_matrix(
+        initial_world_to_world_transform_matrix,
+        template_image_to_world_transform
+    )
+
+    down_sampling_factors = determine_down_sampling_factors(original_image_to_world_transform)
+
+    mesh = determine_mesh(
+        down_sampling_factors,
+        mesh_collection_file_name,
+        initial_image_to_image_transform_matrix,
+        original_image_to_world_transform,
+        template_image_to_world_transform
+    )
+
+    [image, image_buffer] = acquire_and_downsample_image(original_image, down_sampling_factors, show_figures)
+
+    color_scheme = handle_background_class_and_determine_color_scheme(mesh)
+    if show_figures:
+        show_mesh(mesh, image_buffer, color_scheme)
+
+    calculator = create_calculator(mesh)
+
+    initial_image_to_image_transform_matrix = find_low_cost_initial_mesh_position(
+        calculator,
+        mesh,
+        image_buffer,
+        initial_image_to_image_transform_matrix
+    )
+
+    # %
+    # originalNodePositions = kvlGetMeshNodePositions( mesh );
     #
-    # % Read in image, and figure out where the mesh is located
+    original_node_positions = extract_node_positions(mesh)
+
+    if show_figures:
+        show_starting_situation(mesh, image_buffer, color_scheme)
+
+    optimizer = get_optimizer(mesh, calculator)
+
+    # tic
+    number_of_iterations = perform_optimization(
+        optimizer,
+        mesh,
+        original_node_positions,
+        color_scheme,
+        show_figures
+    )
+    # toc
+
+    world_to_world_transform_matrix = save_results(
+        down_sampling_factors,
+        image_buffer,
+        image_file_name,
+        initial_image_to_image_transform_matrix,
+        mesh,
+        original_node_positions,
+        save_path,
+        template_file_name
+    )
+    return world_to_world_transform_matrix
+
+
+def read_input_image_with_transform(image_file_name):
     # [ image, imageToWorldTransform ] = kvlReadImage( imageFileName );
     # imageToWorldTransformMatrix = double( kvlGetTransformMatrix( imageToWorldTransform ) );
-    #
     # [ template, templateImageToWorldTransform ] = kvlReadImage( templateFileName );
     # templateImageToWorldTransformMatrix = double( kvlGetTransformMatrix( templateImageToWorldTransform ) );
-    #
+    pass
+
+
+def determine_initial_world_to_world_transform_matrix():
     # initialWorldToWorldTransformMatrix = eye( 4 );
     # if true
     #   % Provide an initial (non-identity) affine transform guestimate
@@ -42,22 +124,70 @@ def samsseg_registerAtlas(imageFileName, meshCollectionFileName, templateFileNam
     #
     #   K = K / prod( scaling );
     # end
+    pass
+
+
+def determine_initial_image_to_image_transform_matrix(
+        initial_world_to_world_transform_matrix, template_image_to_world_transform):
+    # % Read in image, and figure out where the mesh is located
+    #
+    #
     # initialImageToImageTransformMatrix = imageToWorldTransformMatrix \ ...
     #                   ( initialWorldToWorldTransformMatrix * templateImageToWorldTransformMatrix );
-    #
-    #
+    pass
+
+
+def determine_down_sampling_factors(original_image_to_world_transform):
     # % Figure out how much to downsample (depends on voxel size)
     # voxelSpacing = sum( imageToWorldTransformMatrix( 1 : 3, 1 : 3 ).^2 ).^( 1/2 );
     # downSamplingFactors = max( round( targetDownsampledVoxelSpacing ./ voxelSpacing ), [ 1 1 1 ] )
-    #
-    # if 1
+    pass
+
+
+def determine_mesh(
+        down_sampling_factors,
+        mesh_collection_file_name,
+        initial_image_to_image_transform_matrix,
+        original_image_to_world_transform,
+        template_image_to_world_transform
+):
+    if USE_SIMPLE_MESH_POSITIONING:
+        mesh = determine_mesh_simply(
+            down_sampling_factors,
+            mesh_collection_file_name,
+            initial_image_to_image_transform_matrix
+        )
+    else:
+        mesh = determine_mesh_properly(
+            down_sampling_factors,
+            mesh_collection_file_name,
+            original_image_to_world_transform,
+            template_image_to_world_transform
+        )
+    # kvlScaleMesh( mesh, 1 ./ downSamplingFactors );
+    return mesh
+
+
+def determine_mesh_simply(
+        down_sampling_factors,
+        mesh_collection_file_name,
+        initial_image_to_image_transform_matrix
+):
     #   % Use initial transform to define the reference (rest) position of the mesh (i.e., the one
     #   % where the log-prior term is zero)
     #   meshCollection = kvlReadMeshCollection( meshCollectionFileName, ...
     #                                           kvlCreateTransform( initialImageToImageTransformMatrix ), ...
     #                                           K * prod( downSamplingFactors ) );
     #   mesh = kvlGetMesh( meshCollection, -1 );
-    # else
+    pass
+
+
+def determine_mesh_properly(
+        down_sampling_factors,
+        mesh_collection_file_name,
+        image_to_world_transform_matrix,
+        template_image_to_world_transform_matrix
+):
     #   % "Proper" initialization: apply the initial transform but don't let it affect the deformation
     #   % prior
     #   meshCollection = kvlReadMeshCollection( meshCollectionFileName, ...
@@ -71,9 +201,10 @@ def samsseg_registerAtlas(imageFileName, meshCollectionFileName, templateFileNam
     #           ( initialWorldToWorldTransformMatrix * imageToWorldTransformMatrix ) ) * tmp';
     #   nodePositions = tmp( 1:3, : )';
     #   kvlSetMeshNodePositions( mesh, nodePositions );
-    #
-    # end
-    #
+    pass
+
+
+def acquire_and_downsample_image(original_image, down_sampling_factors, show_figures):
     # % Get image data
     # imageBuffer = kvlGetImageBuffer( image );
     # if showFigures
@@ -86,10 +217,14 @@ def samsseg_registerAtlas(imageFileName, meshCollectionFileName, templateFileNam
     #                            1 : downSamplingFactors( 2 ) : end, ...
     #                            1 : downSamplingFactors( 3 ) : end );
     # image = kvlCreateImage( imageBuffer );
-    # kvlScaleMesh( mesh, 1 ./ downSamplingFactors );
+    pass
+
+
+def handle_background_class_and_determine_color_scheme(mesh):
     #
     # alphas = kvlGetAlphasInMeshNodes( mesh );
     # gmClassNumber = 3;  % Needed for displaying purposes
+    gm_class_number = 3
     # if 0
     #   % Get rid of the background class
     #   alphas = alphas( :, 2 : end );
@@ -99,6 +234,12 @@ def samsseg_registerAtlas(imageFileName, meshCollectionFileName, templateFileNam
     # numberOfClasses = size( alphas, 2 );
     # colors = 255 * [ hsv( numberOfClasses ) ones( numberOfClasses, 1 ) ];
     #
+    number_of_classes = None
+    return ColorScheme(number_of_classes, gm_class_number)
+
+
+def show_mesh(mesh, image_buffer, color_scheme):
+    #
     # if showFigures
     #   figure
     #   priors = kvlRasterizeAtlasMesh( mesh, size( imageBuffer ) );
@@ -107,11 +248,24 @@ def samsseg_registerAtlas(imageFileName, meshCollectionFileName, templateFileNam
     #     showImage( priors( :, :, :, classNumber ) )
     #   end
     # end
+    pass
+
+
+def create_calculator(mesh):
     #
     # %
     # % Get a registration cost and use it to evaluate some promising starting point proposals
     # calculator = kvlGetCostAndGradientCalculator( 'MutualInformation', ...
     #                                                image, 'Affine' );
+    pass
+
+
+def find_low_cost_initial_mesh_position(
+        calculator,
+        mesh,
+        image_buffer,
+        initial_image_to_image_transform_matrix
+):
     # [ cost gradient ] = kvlEvaluateMeshPosition( calculator, mesh );
     # if true
     #   %
@@ -142,9 +296,15 @@ def samsseg_registerAtlas(imageFileName, meshCollectionFileName, templateFileNam
     #
     # end
     #
-    # %
-    # originalNodePositions = kvlGetMeshNodePositions( mesh );
-    #
+    pass
+
+
+def extract_node_positions(mesh):
+    #   nodePositions = kvlGetMeshNodePositions( mesh );
+    pass
+
+
+def show_starting_situation(mesh, image_buffer, color_scheme):
     # % Visualize starting situation
     # priorVisualizationAlpha = 0.4;
     # if showFigures
@@ -168,6 +328,12 @@ def samsseg_registerAtlas(imageFileName, meshCollectionFileName, templateFileNam
     #
     #   drawnow
     # end
+    pass
+
+
+def get_optimizer(mesh, calculator):
+    # maximalDeformationStopCriterion = 0.005; % Measured in voxels
+    # lineSearchMaximalDeformationIntervalStopCriterion = maximalDeformationStopCriterion; % Doesn't seem to matter very much
     #
     # % Get an optimizer, and stick the cost function into it
     # optimizerType = 'L-BFGS';
@@ -178,8 +344,17 @@ def samsseg_registerAtlas(imageFileName, meshCollectionFileName, templateFileNam
     #                                 lineSearchMaximalDeformationIntervalStopCriterion, ...
     #                                 'BFGS-MaximumMemoryLength', 12 ); % Affine registration only has 12 DOF
     #
-    # numberOfIterations = 0;
-    # tic
+    pass
+
+
+def perform_optimization(
+        optimizer,
+        mesh,
+        original_node_positions,
+        color_scheme,
+        show_figures
+):
+    number_of_iterations = 0
     # while true
     #   %
     #   [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer )
@@ -223,7 +398,19 @@ def samsseg_registerAtlas(imageFileName, meshCollectionFileName, templateFileNam
     #
     # end % End loop over iterations
     # numberOfIterations
-    # toc
+    return number_of_iterations
+
+
+def save_results(
+        down_sampling_factors,
+        image_buffer,
+        image_file_name,
+        initial_image_to_image_transform_matrix,
+        mesh,
+        original_node_positions,
+        save_path,
+        template_file_name
+):
     #
     # % Retrieve the implicitly applied affine matrix from any four non-colinear points before and after registration,
     # % taking into account the downsampling that we applied
@@ -238,6 +425,7 @@ def samsseg_registerAtlas(imageFileName, meshCollectionFileName, templateFileNam
     # imageToImageTransformMatrix = extraImageToImageTransformMatrix * initialImageToImageTransformMatrix;
     # worldToWorldTransformMatrix = imageToWorldTransformMatrix * imageToImageTransformMatrix * ...
     #                               inv( templateImageToWorldTransformMatrix );
+    world_to_world_transform_matrix = None
     # [ ~, templateFileNameBase, templateFileNameExtension ] = fileparts( templateFileName );
     # transformationMatricesFileName = fullfile( savePath, ...
     #                                            [ templateFileNameBase '_coregistrationMatrices.mat' ] );
@@ -302,3 +490,4 @@ def samsseg_registerAtlas(imageFileName, meshCollectionFileName, templateFileNam
     #                              [ templateFileNameBase '_coregistrationCqFigure.png' ] );
     # imwrite( qcFigure, qcFigureFileName )
     #
+    return world_to_world_transform_matrix
