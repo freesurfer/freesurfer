@@ -23,6 +23,16 @@ CONFIGURE_FILE( computePrecisionOfKroneckerProductBasisFunctions.m
   ${GEMS_LIBRARY_PATH}/computePrecisionOfKroneckerProductBasisFunctions.m COPYONLY )
 CONFIGURE_FILE( projectKroneckerProductBasisFunctions.m
   ${GEMS_LIBRARY_PATH}/projectKroneckerProductBasisFunctions.m COPYONLY )
+CONFIGURE_FILE( kvlReadSharedGMMParameters.m
+  ${GEMS_LIBRARY_PATH}/kvlReadSharedGMMParameters.m COPYONLY )
+CONFIGURE_FILE( kvlReadCompressionLookupTable.m
+  ${GEMS_LIBRARY_PATH}/kvlReadCompressionLookupTable.m COPYONLY )
+CONFIGURE_FILE( kvlWriteCompressionLookupTable.m
+  ${GEMS_LIBRARY_PATH}/kvlWriteCompressionLookupTable.m COPYONLY )
+CONFIGURE_FILE( kvlWriteSharedGMMParameters.m
+  ${GEMS_LIBRARY_PATH}/kvlWriteSharedGMMParameters.m COPYONLY )
+CONFIGURE_FILE( kvlWarpMesh.m
+  ${GEMS_LIBRARY_PATH}/kvlWarpMesh.m COPYONLY )
 
 
 

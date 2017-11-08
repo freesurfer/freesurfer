@@ -1,9 +1,8 @@
-function [ FreeSurferLabels, names, volumesInCubicMm ] = samsegment( imageFileNames, transformedTemplateFileName, meshCollectionFileName, ...
-                                                                   compressionLookupTableFileName, modelSpecifications, ...
-                                                                   optimizationOptions, savePath, showFigures )
+function [ FreeSurferLabels, names, volumesInCubicMm ] = samsegment( imageFileNames, transformedTemplateFileName, ...
+                                                                     modelSpecifications, optimizationOptions, ...
+                                                                     savePath, showFigures )
 %
 %
-
 
 
 
@@ -17,14 +16,6 @@ fprintf( '-----\n' )
 
 disp( 'transformedTemplateFileName: ' )
 disp( transformedTemplateFileName )
-fprintf( '-----\n' )
-
-disp( 'meshCollectionFileName: ' )
-disp( meshCollectionFileName )
-fprintf( '-----\n' )
-
-disp( 'compressionLookupTableFileName: ' )
-disp( compressionLookupTableFileName )
 fprintf( '-----\n' )
 
 disp( 'modelSpecifications: ' )
@@ -67,8 +58,6 @@ history = struct;
 history.input = struct;
 history.input.imageFileNames = imageFileNames;
 history.input.transformedTemplateFileName = transformedTemplateFileName;
-history.input.meshCollectionFileName = meshCollectionFileName;
-history.input.compressionLookupTableFileName = compressionLookupTableFileName;
 history.input.modelSpecifications = modelSpecifications;
 history.input.optimizationOptions = optimizationOptions;
 history.input.savePath = savePath;
@@ -117,17 +106,25 @@ voxelSpacing = sum( imageToWorldTransformMatrix( 1 : 3, 1 : 3 ).^2 ).^( 1/2 );
 % You also need to provide a value for K, which determines the flexibility of the atlas mesh, i.e., how
 % much it will typically deform. Higher values correspond to stiffer meshes.
 %
-meshCollection = kvlReadMeshCollection( meshCollectionFileName, transform, modelSpecifications.K );
+meshCollection = kvlReadMeshCollection( modelSpecifications.atlasFileName, transform, modelSpecifications.K );
 
 % Retrieve the reference mesh, i.e., the mesh representing the average shape.
 mesh = kvlGetMesh( meshCollection, -1 ); 
-% ITK mesh 
 
-% Skull strip the images
+% Get a Matlab matrix containing a copy of the probability vectors in each mesh node (size numberOfNodes x
+% numberOfLabels ). 
+alphas = kvlGetAlphasInMeshNodes( mesh );
+
+% Mask away uninteresting voxels. This is done by a poor man's implementation of a dilation operation on
+% a non-background class mask; followed by a cropping to the area covered by the mesh (needed because 
+% otherwise there will be voxels in the data with prior probability zero of belonging to any class)
 labelNumber = 0; % background label
-% Volume with background probs
-backgroundPrior = kvlRasterizeAtlasMesh( mesh, imageSize, labelNumber );
-
+backgroundPrior = kvlRasterizeAtlasMesh( mesh, imageSize, labelNumber ); % Volume with background probs
+if 1
+  % Threshold background prior at 0.5 - this helps for atlases built from imperfect (i.e., automatic) 
+  % segmentations, whereas background areas don't have zero probability for non-background structures
+  backgroundPrior( backgroundPrior > 2^8 ) = 2^16-1;
+end
 if( showFigures )
   figure
   subplot( 2, 2, 1 )
@@ -141,7 +138,29 @@ if( showFigures )
   showImage( smoothedBackgroundPrior )
 end
 % 65535 = 2^16 - 1. priors are stored as 16bit ints
+% To put the threshold in perspective: for Gaussian smoothing with a 3D isotropic kernel with variance 
+% diag( sigma^2, sigma^2, sigma^2 ) a single binary "on" voxel at distance sigma results in a value of
+% 1/( sqrt(2*pi)*sigma )^3 * exp( -1/2 ).
+% More generally, a single binary "on" voxel at some Eucledian distance d results in a value of
+% 1/( sqrt(2*pi)*sigma )^3 * exp( -1/2*d^2/sigma^2 ). Turning this around, if we threshold this at some
+% value "t", a single binary "on" voxel will cause every voxel within Eucledian distance 
+%
+%   d = sqrt( -2*log( t * ( sqrt(2*pi)*sigma )^3 ) * sigma^2 )
+%
+% of it to be included in the mask.
+%
+% As an example, for 1mm isotropic data, the choice of sigma=3 and t=0.01 yields ... complex value -> 
+% actually a single "on" voxel will then not make any voxel survive, as the normalizing constant (achieved
+% at Mahalanobis distance zero) is already < 0.01 
 brainMask = ( 1 - single( smoothedBackgroundPrior ) / 65535 ) > modelSpecifications.brainMaskingThreshold;
+
+% Crop to area covered by the mesh
+areaCoveredAlphas = [ zeros( size( alphas, 1 ), 1, 'single' ) ones( size( alphas, 1 ), 1, 'single' ) ];
+kvlSetAlphasInMeshNodes( mesh, areaCoveredAlphas );
+areaCoveredByMesh = kvlRasterizeAtlasMesh( mesh, imageSize, 1 );
+kvlSetAlphasInMeshNodes( mesh, alphas );
+brainMask = brainMask & ( areaCoveredByMesh > 0 );
+
 
 % Mask each of the inputs
 for contrastNumber = 1 : numberOfContrasts
@@ -178,47 +197,13 @@ end
 
 
 
-% FreeSurfer (http://surfer.nmr.mgh.harvard.edu) has a standardized way of representation segmentations,
-% both manual and automated, as images in which certain intensity levels correspond to well-defined
-% anatomical structures - for instance an intensity value 17 always corresponds to the left hippocampus.
-% The text file FreeSurferColorLUT.txt distributed with FreeSurfer contains all these definitions, as well 
-% as a color for each structure in
-% RGBA (Red-Green-Blue and Alpha (opaqueness)) format with which FreeSurfer will always represent segmented
-% structures in its visualization tools
-%
-% Let's read the contents of the "compressionLookupTable.txt" file, and show the names of the structures
-% being considered. The results are automatically sorted according to their "compressed label", i.e., the
-% first result corresponds to the first entry in the vector of probabilities associated with each node in
-% our atlas mesh.
-[ FreeSurferLabels, names, colors ] = kvlReadCompressionLookupTable( compressionLookupTableFileName );
-
-% Get a Matlab matrix containing a copy of the probability vectors in each mesh node (size numberOfNodes x
-% numberOfLabels ). 
-alphas = kvlGetAlphasInMeshNodes( mesh );
-
-% Remove any structures that don't exist in the data (e.g., half a
-% brain missing in ex vivo images)
-% for invivo  modelSpecifications.missingStructureSearchStrings
-% would be an empty string
-mergeOptions = struct;
-mergeOptions( 1 ).mergedName = 'Unknown';
-mergeOptions( 1 ).searchStrings = modelSpecifications.missingStructureSearchStrings;
-[ alphas, names, FreeSurferLabels, colors ] = kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels, colors );
-kvlSetAlphasInMeshNodes( mesh, alphas );
-
-
-
-% Because we have many labels to segment, and each of these labels has its own Gaussian mixture model
-% whose parameters (mean, variance, mixture weight) we have to estimate from the data, it may makes sense to restrict
-% the degrees of freedom in the model somewhat by specifying that some of these labels have the same parameters
-% governing their Gaussian mixture model. For example, we'd expect no intensity differences between the left and right 
-% part of each structure.
-% The way we implement this is by defining "super-structures" (i.e., a global white matter tissue class), and therefore
-% work with a simplied ("reduced") model during the entire parameter estimation phase. At the same time we also build 
-% an inverse lookup table (mapping from original class number onto a reduced class number (super-structure)) that we 
-% will need to compute the final segmentation.
+% Merge classes into "super-structures" that define a single Gaussian mixture model shared between the classes belonging
+% to the same super-structure
+FreeSurferLabels = modelSpecifications.FreeSurferLabels;
+names = modelSpecifications.names;
+colors = modelSpecifications.colors;
 [ reducedAlphas, reducedNames, reducedFreeSurferLabels, reducedColors, reducingLookupTable ] = ...
-                            kvlMergeAlphas( alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors );
+                        kvlMergeAlphas( alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors );
 
 
 if ( showFigures )
@@ -334,10 +319,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
   historyOfTimeTakenDeformationUpdating = [];
   fprintf('maximumNumberOfIterations %d\n',maximumNumberOfIterations);
 
-  % Setting priors in mesh to the inital values that also happen to
-  % be reduced
-  kvlSetAlphasInMeshNodes( mesh, reducedAlphas )
-
+  
   % Downsample the images, the mask, the mesh, and the bias field basis functions
   % Must be integer
   downSamplingFactors = max( round( optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).targetDownsampledVoxelSpacing ...
@@ -373,9 +355,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     
   end
 
-  % Mesh coords are in col,row,slice space. So need to change them
-  % to be the downsampled metric
-  kvlScaleMesh( mesh, 1./downSamplingFactors );
+  % 
   downSampledKroneckerProductBasisFunctions = cell( 0, 0 );
   for dimensionNumber = 1 : 3
     A = kroneckerProductBasisFunctions{ dimensionNumber };
@@ -384,16 +364,54 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
   downSampledImageSize = size( downSampledImageBuffers( :, :, :, 1 ) );
   
   
-  % Smooth the priors (alphas) on mesh using a Gaussian
-  % kernel. Requires a rasterization. Different for each resolution
-  % level 
-  smoothingSigmas = optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).meshSmoothingSigma ./ ...
-                    voxelSpacing ./ downSamplingFactors; % In voxels
-  fprintf( 'Smoothing mesh with kernel size %f %f %f...', smoothingSigmas( 1 ), smoothingSigmas( 2 ), smoothingSigmas( 3 ) )
-  kvlSmoothMesh( mesh, smoothingSigmas );
-  smoothedReducedAlphas = kvlGetAlphasInMeshNodes( mesh );
-  fprintf( 'done\n' )
+  % Read the atlas mesh to be used for this multi-resolution level, taking into account the downsampling to position it 
+  % correctly
+  downSamplingTransformMatrix = diag( [ 1./downSamplingFactors 1 ] );
+  totalTransformationMatrix = downSamplingTransformMatrix * double( kvlGetTransformMatrix( transform ) );
+  meshCollection = ...
+        kvlReadMeshCollection( optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).atlasFileName, ...
+                                kvlCreateTransform( totalTransformationMatrix ), modelSpecifications.K );
+  mesh = kvlGetMesh( meshCollection, -1 );
   
+  % Get the initial mesh node positions, also transforming them back into template space 
+  % (i.e., undoing the affine registration that we applied) for later usage 
+  initialNodePositions = kvlGetMeshNodePositions( mesh );  
+  numberOfNodes = size( initialNodePositions, 1 );
+  tmp = ( totalTransformationMatrix \ [ initialNodePositions ones( numberOfNodes, 1 ) ]' )';
+  initialNodePositionsInTemplateSpace = tmp( :, 1 : 3 );
+
+
+  % If this is not the first multi-resolution level, apply the warp computed during the previous level
+  if ( multiResolutionLevel > 1 )
+    % Get the warp in template space
+    nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = ...
+            historyWithinEachMultiResolutionLevel( multiResolutionLevel-1 ).finalNodePositionsInTemplateSpace - ...
+            historyWithinEachMultiResolutionLevel( multiResolutionLevel-1 ).initialNodePositionsInTemplateSpace;
+    initialNodeDeformationInTemplateSpace = kvlWarpMesh( ...
+                  optimizationOptions.multiResolutionSpecification( multiResolutionLevel-1 ).atlasFileName, ...
+                  nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel, ...
+                  optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).atlasFileName );
+
+    % Apply this warp on the mesh node positions in template space, and transform into current space  
+    desiredNodePositionsInTemplateSpace = initialNodePositionsInTemplateSpace + initialNodeDeformationInTemplateSpace;
+    tmp = ( totalTransformationMatrix * ...
+            [ desiredNodePositionsInTemplateSpace ones( numberOfNodes, 1 ) ]' )';
+    desiredNodePositions = tmp( :, 1 : 3 );
+
+    %
+    kvlSetMeshNodePositions( mesh, desiredNodePositions );
+
+  end    
+
+    
+  
+  % Set priors in mesh to the reduced (super-structure) ones
+  alphas = kvlGetAlphasInMeshNodes( mesh );
+  reducedAlphas = kvlMergeAlphas( alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors );
+  kvlSetAlphasInMeshNodes( mesh, reducedAlphas )
+
+  
+    
   
   % Algorithm-wise, we're just estimating sets of parameters for one given data (MR scan) that is
   % known and fixed throughout. However, in terms of bias field correction it will be computationally
@@ -553,6 +571,12 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
 
       end % End loop over classes
       normalizer = sum( posteriors, 2 ) + eps;
+      if 0
+        x = zeros( downSampledImageSize );
+        x( downSampledMaskIndices ) = -log( normalizer );
+        figure
+        showImage( x )
+      end
       posteriors = posteriors ./ repmat( normalizer, [ 1 numberOfGaussians ] );
       minLogLikelihood = -sum( log( normalizer ) );
       intensityModelParameterCost = 0;
@@ -587,7 +611,9 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
                                                   posteriors( :, gaussianNumber );
           end                                        
           figure( posteriorFigure )
-          subplot( 2, 4, classNumber )
+          subplot( floor( sqrt( numberOfClasses ) ), ...
+                   ceil( numberOfClasses / floor( sqrt( numberOfClasses ) ) ), ...
+                   classNumber )
           showImage( posterior )
         end
         clear posterior
@@ -860,13 +886,25 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
   end % End looping over global iterations for this multiresolution level
   historyOfCost = historyOfCost( 2 : end );
     
-  % Undo the down sampling on the mesh
-  kvlScaleMesh( mesh, downSamplingFactors );    
-    
+  % Get the final node positions 
+  finalNodePositions = kvlGetMeshNodePositions( mesh );
+  
+  % Transform back in template space (i.e., undoing the affine registration
+  % that we applied), and save for later usage 
+  tmp = ( totalTransformationMatrix \ [ finalNodePositions ones( numberOfNodes, 1 ) ]' )';
+  finalNodePositionsInTemplateSpace = tmp( :, 1 : 3 );
+  
+  
   % Save something about how the estimation proceeded
   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).downSamplingFactors = downSamplingFactors;
   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).downSampledImageBuffers = downSampledImageBuffers;
   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).downSampledMask = downSampledMask;
+  historyWithinEachMultiResolutionLevel( multiResolutionLevel ).initialNodePositions = initialNodePositions;
+  historyWithinEachMultiResolutionLevel( multiResolutionLevel ).finalNodePositions = finalNodePositions;
+  historyWithinEachMultiResolutionLevel( multiResolutionLevel ).initialNodePositionsInTemplateSpace = ...
+                                                                             initialNodePositionsInTemplateSpace;
+  historyWithinEachMultiResolutionLevel( multiResolutionLevel ).finalNodePositionsInTemplateSpace = ...
+                                                                             finalNodePositionsInTemplateSpace;
   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyWithinEachIteration = ...
                                                                       historyWithinEachIteration;
   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfCost = historyOfCost;
@@ -903,9 +941,37 @@ for contrastNumber = 1 : numberOfContrasts
 end
 
 
-% Undo the collapsing of several structures into "super"-structures
-kvlSetAlphasInMeshNodes( mesh, alphas )
+
+% Read the atlas, applying the affine registration transform
+meshCollection = kvlReadMeshCollection( modelSpecifications.atlasFileName, transform, modelSpecifications.K );
+mesh = kvlGetMesh( meshCollection, -1 );
+
+% Get the mesh node positions transformed back into template space (i.e., undoing the affine registration that we applied)
+nodePositions = kvlGetMeshNodePositions( mesh );  
+numberOfNodes = size( nodePositions, 1 );
+transformMatrix = double( kvlGetTransformMatrix( transform ) );
+tmp = ( transformMatrix \ [ nodePositions ones( numberOfNodes, 1 ) ]' )';
+nodePositionsInTemplateSpace = tmp( :, 1 : 3 );
+
+% Get the estimated warp in template space
+estimatedNodeDeformationInTemplateSpace = ...
+          kvlWarpMesh( optimizationOptions.multiResolutionSpecification( end ).atlasFileName, ...
+                        historyWithinEachMultiResolutionLevel( end ).finalNodePositionsInTemplateSpace ...
+                        - historyWithinEachMultiResolutionLevel( end ).initialNodePositionsInTemplateSpace, ...
+                        modelSpecifications.atlasFileName );
+
+% Apply this warp on the mesh node positions in template space, and transform into current space  
+desiredNodePositionsInTemplateSpace = nodePositionsInTemplateSpace + estimatedNodeDeformationInTemplateSpace;
+tmp = ( transformMatrix * [ desiredNodePositionsInTemplateSpace ones( numberOfNodes, 1 ) ]' )';
+desiredNodePositions = tmp( :, 1 : 3 );
+
+%
+kvlSetMeshNodePositions( mesh, desiredNodePositions );
+
+%
+alphas = kvlGetAlphasInMeshNodes( mesh );
 numberOfStructures = size( alphas, 2 );
+
 
 
 % Get the priors as dictated by the current mesh position

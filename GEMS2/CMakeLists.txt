@@ -41,16 +41,18 @@ IF( BUILD_EXECUTABLES OR BUILD_GUI )
   # 
   MESSAGE( WARNING 
            "Since you're building executables to compute meshes, ITK dynamic meshes will be used (internally using std::map instead of std::vector to store lists of points, cells, etc). Everything will still work, but anything that only uses existing meshes will be slower than it could be (up to 100% slower)" )
+           
 ENDIF( BUILD_EXECUTABLES OR BUILD_GUI )
 
 
 
-# Enable C++11 syntax
-SET(CMAKE_CXX_FLAGS "-g -std=c++11 ${CMAKE_CXX_FLAGS}")
 
 # Find CUDA
 FIND_PACKAGE( CUDA )
 IF( CUDA_FOUND )
+  # Enable C++11 syntax
+  SET(CMAKE_CXX_FLAGS "-g -std=c++11 ${CMAKE_CXX_FLAGS}")
+
   INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
   SET(CMAKE_CXX_FLAGS "-DCUDA_FOUND ${CMAKE_CXX_FLAGS}")
 
@@ -86,6 +88,7 @@ ADD_LIBRARY( kvlGEMSCommon
              kvlAtlasMeshToIntensityImageCostAndGradientCalculator.cxx
              kvlConditionalGaussianEntropyCostAndGradientCalculator.cxx
              kvlMutualInformationCostAndGradientCalculator.cxx
+             kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
              kvlHistogrammer.cxx
              kvlAtlasMeshSummaryDrawer.cxx
              itkMGHImageIO.cxx

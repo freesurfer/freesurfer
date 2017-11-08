@@ -1,85 +1,85 @@
-DataCostAndAlphaCost computations are a bit weird in kvlAtlasMeshBuilder:
-
-* function OptimizeReferencePositionFast() uses class kvlAtlasMeshCollectionFastReferencePositionCost to compute and optimize the cost (sum of data and alphas cost; kvlAtlasMeshCollectionFastReferencePositionCost first estimates mesh parameters and then measures costs with class kvlAtlasMeshCollectionModelLikelihoodCalculator)
-
-* function GetDataCostAndAlphasCost() uses class kvlAtlasMeshCollectionModelLikelihoodCalculator to compute the two cost components.
-
-Now:
-
-* For retaining edge ("TryToRetainFast"), both functions are used 
-
-* For collapsing edge ("TryToCollapseFast"), the code of the former function seems to be re-implemented (i.e., not used), and the second one is also not used (using class kvlAtlasMeshCollectionFastReferencePositionCost to do it instead).
-
-This seems all messed up in both cases: (1) kvlAtlasMeshCollectionFastReferencePositionCost is used but then final function value is not extracted but rather re-computed; and (2) seems to do it correctly but then effectively reimplements OptimizeReferencePositionFast() (?)
-
-
---
-
-Eugenio uses system calls from Matlab to the following executables:
-
-kvlApplyTransform
-kvlAutoCrop
-kvlRegister
-kvlAverageMeshes
-
-I know this by doing in directory /home/koen/software/mergedCodeEugenioAndOula/GEMSapplications/subregions
-
-  grep '/kvl' *.m | less
-
-Eugenio emailed that he has the code for replacing kvlAutoCrop and kvlApplyTransform, but that he still needs kvlAverageMeshes. Looks like he's also still using kvlRegister; both are only used in the script SegmentSubfieldsT1Longitudinal.m
-
-UPDATE: kvlAverageMeshes would be trivial to implement in Matlab
-
-
---
-
-Samseg is under 
-
-  matlab/samseg
-
-Need to write out bias field corrected image  
-
---
-
-TODO:
-
-* Fold mixture-models-for-each-class into the likelihood filter; for whole-brain segmentation this will reduce the number of classes from 17+4=21 to 6+4=10, more or less doubling the speed of the gradient-based deformation optimization (4 extra because the baricentric coordinates are always computed).
- 
-* In kvlAtlasMeshAveragingConjugateGradientOptimizerGPU, make the member variable m_Calculator point to
-  the base class, and implement the gradient-to-segmentation-image stuff (simply plug the new kvlAtlasMeshToSegmentationImageGradientCalculatorGPU in)
-  
-
---
-
-In kvlAtlasMeshDeformationOptimizer
-
-* Functionality of kvlAtlasMeshAveragingConjugateGradientOptimizer needs to be moved into just yet another gradient calculator
-
-  
---
-
-In kvlAtlasMeshBuilder.cxx, kvlParameterOrderPowellOptimizer will only see a max() value if 
-the cost function throws an exception for NaNs. I forgot to implement this - the cost function
-is set in the following locations:
-
-  * Line 704: cost function is kvlAtlasMeshCollectionReferencePositionCost in TryToCollapse()
-  * Line 891: cost function is kvlAtlasMeshCollectionFastReferencePositionCost in TryToCollapseFast()
-  * Line 1393: cost function is kvlAtlasMeshCollectionReferencePositionCost in OptimizeReferencePosition()
-  * Line 1556: cost function is kvlAtlasMeshCollectionFastReferencePositionCost in OptimizeReferencePositionFast()
-  
-But then again GetValue() in both kvlAtlasMeshCollectionReferencePositionCost and kvlAtlasMeshCollectionReferencePositionCost
-already return max() for isnans or cases where things are detected to go wrong.
-
-
---
-
-* Submit to Git 
 * Create script for synthetic image generation from segmentation result
-
-
 * Clean up Matlab interface (use dynamic_cast<>,  provided as helper function in kvlMatlabRunnerArray.cxx
-* Un-unfold Gaussians from mixture model
+* Write a proper interpolator of any floating-point scalar vector defined at the mesh nodes - can be 
+used in kvlWarpMesh.m (to compute a dense deformation field) and to color-code priors (by interpolating colors assigned a priori at the mesh nodes instead of class probabilities which are then color-coded afterwards)
 
 
 
+--
 
+The whole mesh upsampling is a mess right now. Ideally we'd have a compile option to use the "tetgen" library or not; if not then a simple regular mesh upsampling (such as the one used in kvlAtlasMeshCollection->Construc() and kvlAtlasMeshCollection->Upsample()) is used. 
+
+Right now things are a mess: 
+
+  1. kvlAtlasMeshBuilder uses kvlMultiResolutionAtlasMesher to do the interleaved mesh parameter estimation (with kvlAtlasParameterEstimator) vs. upsampling steps, whereas kvlAtlasParameterEstimationConsole implements the same directly (using kvlAtlasMeshCollection functionality to do regular mesh upsampling)
+
+  2. kvlMultiResolutionAtlasMesher replicates a lot of code from kvlAtlasMeshCollection->Construct()/Upsample() [BAD]
+  
+Ideally we'd like to clean this up by:
+  
+  * folding the complicated Construct()/Upsample() stuff directly into kvlAtlasMeshCollection, even for non-uniform meshes
+  
+  * make the being-sparse-while-upsampling not an option but an automatic thing when compiling with tetgen, which is a CMake option
+  
+  * this would make kvlMultiResolutionAtlasMesher a very trivial class. Either we remove it completely (simple but bad: we'd be reimplementing the same loop in kvlAtlasMeshBuilder and kvlAtlasParameterEstimationConsole), or we also use it in kvlAtlasParameterEstimationConsole (cleaner but will require some more thinking/programming because of event handling tied to the kvlAtlasParameterEstimator it uses internally)
+
+For now I've just made kvlMultiResolutionAtlasMesher using tetgen (sparse) or not (regular non-sparse mesh) a compile option. kvlAtlasParameterEstimationConsole still doesn't use the same class, mainly because it allows for an explicit mesh collection which explicitly uses kvlAtlasParameterEstimator with correct event/observers etc
+
+
+  
+
+Below is an overview of the functionaly as currently implemented:
+
+* kvlAtlasParameterEstimationConsole:
+    
+   meshCollection->Construct( meshSize, domainSize, initialStiffness, 
+                              numberOfClasses, numberOfMeshes );
+                                
+   for ( int upsamplingStepNumber = 0; upsamplingStepNumber <= numberOfUpsamplingSteps; upsamplingStepNumber++ )
+      {
+      m_Estimator->Estimate();
+      
+      meshCollection->GetUpsampled();
+      }
+      
+      
+      
+* kvlAtlasMeshBuilder:
+
+  kvlMultiResolutionAtlasMesher->SetUp( m_LabelImages, m_CompressionLookupTable, m_InitialSize, m_InitialStiffnesses, true );
+
+  kvlMultiResolutionAtlasMesher->Go();
+  kvlMultiResolutionAtlasMesher->GetCurrentMeshCollection();
+  
+  
+  
+* kvlMultiResolutionAtlasMesher:
+
+  - Manually builds up tetrahedra
+  
+  - Has member function
+  
+      this->Upsample()
+      
+    which subdivides the list of cubes it maintains internally (m_Hexahedra) based on 
+    some uniformity condition (if m_TryToBeSparse flag is set)
+  
+  - Has member function 
+
+      this->GetMeshCollection( referencePosition, positions, stiffness )
+    
+    which calls another member function
+  
+      cells = this->GetCells( cellGeneratingPosition )
+    
+    which calls tetgen, then loops over all tets doing
+    
+      meshSource->AddTetrahedron( point0Id,
+                                point1Id,
+                                point2Id,
+                                point3Id )
+                                
+    and finally gets the cells by doing
+    
+      meshSource->GetOutput()->GetCells();
+      

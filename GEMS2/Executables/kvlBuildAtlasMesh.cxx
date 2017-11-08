@@ -132,9 +132,9 @@ int main( int argc, char** argv )
     }
   std::istringstream  inputStream( inputParserStream.str().c_str() );
   int  numberOfUpsamplingSteps;
-  int  meshSizeX;
-  int  meshSizeY;
-  int  meshSizeZ;
+  unsigned int  meshSizeX;
+  unsigned int  meshSizeY;
+  unsigned int  meshSizeZ;
   double  stiffness;
   std::string  logDirectory;
   inputStream >> numberOfUpsamplingSteps >>  meshSizeX >> meshSizeY >> meshSizeZ >> stiffness >> logDirectory;

@@ -94,7 +94,7 @@ AtlasMeshBuilder
   m_CompressionLookupTable = compressionLookupTable;
   m_InitialSize = initialSize;
   m_InitialStiffnesses = initialStiffnesses;
-  m_Mesher->SetUp( m_LabelImages, m_CompressionLookupTable, m_InitialSize, m_InitialStiffnesses, true );
+  m_Mesher->SetUp( m_LabelImages, m_CompressionLookupTable, m_InitialSize, m_InitialStiffnesses );
 
 }
 
@@ -173,6 +173,7 @@ AtlasMeshBuilder
 
 
     // Do the job
+    m_StuckCount = 0; // Reset from previous iterations
     LoadBalancedThreadStruct  str;
     str.m_Builder = this;
     str.m_Edges = edges;
@@ -841,13 +842,19 @@ AtlasMeshBuilder
                 << " edges but they are all protected at this point" << std::endl;
       }          
 
-    m_StuckCount++;
+    m_StuckCount++; // This is not actually thread-safe, but we don't care if this count goes up a bit
+                    // slower than you'd expect (in the unlikely event that two threads try to increase 
+                    // this count at exactly the same time)
+    const double  averageNumberOfSecondsToSleep = 60.0;
+    const int  stuckCountToGiveUpAt = 30 * 20;  // If every thread sleeps 1min on average, and 20 threads
+                                                // are used, this will give up after 30min
     if ( m_StuckCount % 10 == 0 )
       {  
-      std::cout << "    m_StuckCount is at " << m_StuckCount << " (exiting at 20000)" << std::endl; 
+      std::cout << "    m_StuckCount is at " << m_StuckCount 
+                << " (exiting at " << stuckCountToGiveUpAt << ")" << std::endl; 
       }
 
-    if ( m_StuckCount >= 20000 )
+    if ( m_StuckCount >= stuckCountToGiveUpAt )
       {
       std::ostringstream  stuckStream;
       stuckStream << "threadsNeverReturning";
@@ -862,7 +869,12 @@ AtlasMeshBuilder
 #else
     helper.Unlock();
 #endif
-    usleep( rand() % 1000000 );
+    
+    // Sleep averageNumberOfSecondsToSleep (on average)
+    const int  maxRange = ( 1000000 * averageNumberOfSecondsToSleep * 2 ); // x2 because of average
+    const int  numberOfMicrosecondsToSleep = rand() % maxRange; // Integer between 0 and (maxRange-1)
+    usleep( numberOfMicrosecondsToSleep );
+    
     return true;
     }
 
