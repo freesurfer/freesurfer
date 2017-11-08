@@ -2245,6 +2245,10 @@ static int append_to_xform(gxml_data *xd, const char *cdata, int len)
    b = (b64_decode_table[x] << 4) | (b64_decode_table[y] >> 2), \
    c = (b64_decode_table[y] << 6) | b64_decode_table[z])
 
+#define GII_B64_decode4_v2(w, x, y, z, a, b)                    \
+   (a = (b64_decode_table[w] << 2) | (b64_decode_table[x] >> 4), \
+    b = (b64_decode_table[x] << 4) | (b64_decode_table[y] >> 2)) 
+
 /*  given: source pointer, length, dest loc and nbytes to set,
           (cdata is null-terminated)
     modify: needed (bytes) left for output
@@ -2288,8 +2292,10 @@ static int decode_b64(gxml_data *xd, char *cdata, int cdlen, char *dptr, long lo
 
   /* if we didn't finish, try to fill a partial block */
   if (ind < blocks) { /* so *needed < 3 */
-    unsigned char a, b, c;
-    GII_B64_decode4(din[0], din[1], din[2], din[3], a, b, c);
+    unsigned char a, b;
+    // unsigned char c;
+    // GII_B64_decode4(din[0], din[1], din[2], din[3], a, b, c);
+    GII_B64_decode4_v2(din[0], din[1], din[2], din[3], a, b);
     if (*needed >= 1) dout[0] = a;
     if (*needed >= 2) dout[1] = b;
     assigned += *needed;
