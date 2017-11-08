@@ -4,17 +4,117 @@
 
 def samsegment(
         kvl,
-        imageFileNames,
-        transformedTemplateFileName,
-        meshCollectionFileName,
-        compressionLookupTableFileName,
-        modelSpecifications,
-        optimizationOptions,
-        savePath,
-        showFigures
+        image_file_names,
+        transformed_template_file_name,
+        mesh_collection_file_name,
+        compression_lookup_table_file_name,
+        model_specifications,
+        optimization_options,
+        save_path,
+        show_figures
 ):
-    pass
+    show_options(
+        image_file_names,
+        transformed_template_file_name,
+        mesh_collection_file_name,
+        compression_lookup_table_file_name,
+        model_specifications,
+        optimization_options,
+        save_path,
+        show_figures
+    )
+    history = create_history(
+        image_file_names,
+        transformed_template_file_name,
+        mesh_collection_file_name,
+        compression_lookup_table_file_name,
+        model_specifications,
+        optimization_options,
+        save_path,
+        show_figures
+    )
 
+    # numberOfContrasts = length( imageFileNames );
+    number_of_contrasts = len(image_file_names)
+
+    [image_buffers, image_size, transform] = read_image_data(
+        kvl, number_of_contrasts, image_file_names, transformed_template_file_name)
+
+    if show_figures:
+        show_images_singly(image_buffers)
+
+    image_to_world_transform_matrix = get_image_to_world_transform_matrix(kvl, image_file_names)
+    voxel_spacing = determine_voxel_spacing(image_to_world_transform_matrix)
+    mesh_collection = read_mesh_collection(kvl, mesh_collection_file_name, model_specifications)
+    mesh = retrieve_mesh(mesh_collection)
+    strip_skull(mesh, image_size, image_buffers)
+
+    if show_figures:
+        show_image_buffers(image_buffers)
+
+    do_log_transformation_of_data(image_buffers, number_of_contrasts, image_size)
+    [free_surfer_labels, names, colors] = find_labels_names_and_colors(compression_lookup_table_file_name)
+    [
+        alphas,
+        names,
+        free_surfer_labels,
+        colors
+    ] = find_relevant_alphas(kvl, mesh, model_specifications, free_surfer_labels, colors)
+    [
+        reduced_alphas,
+        reduced_names,
+        reduced_free_surfer_labels,
+        reduced_colors,
+        reducing_lookup_table
+     ] = reduce_alphas_that_share_guassian_mixture_models(
+        alphas, names, model_specifications, free_surfer_labels, colors)
+
+    if show_figures:
+        show_current_mesh(kvl, mesh, image_size)
+
+    [
+        number_of_gaussians_per_class,
+        number_of_classes,
+        number_of_gaussians
+     ] = determine_class_and_gaussian_ordinality(model_specifications)
+
+    [
+        kronecker_product_basis_functions,
+        number_of_basis_functions
+    ] = create_bias_model(model_specifications, voxel_spacing, show_figures)
+    biasFieldCoefficients = create_initial_bias_field_coefficients(number_of_basis_functions, number_of_contrasts)
+
+    #
+    # if ( showFigures )
+    #   posteriorFigure = figure;
+    #   costFigure = figure;
+    #   deformationMovieFigure = figure;
+    #   biasFieldFigure = figure;
+    # end
+    #
+    #
+
+    [history, history_within_each_multi_resolution_level] = do_multi_resolution_optimization(kvl, history)
+    save_estimation_history(
+        save_path, history,
+        history_within_each_multi_resolution_level,
+        image_buffers)
+
+    [free_surfer_segmentation, volumes_in_cubic_mm] = do_full_estimation(kvl)
+    write_segmentation_results(kvl, save_path, free_surfer_segmentation)
+    return [ free_surfer_labels, names, volumes_in_cubic_mm ]
+
+def show_options(
+        image_file_names,
+        transformed_template_file_name,
+        mesh_collection_file_name,
+        compression_lookup_table_file_name,
+        model_specifications,
+        optimization_options,
+        save_path,
+        show_figures
+
+):
     # %
     # %
     #
@@ -75,6 +175,19 @@ def samsegment(
     # disp( showFigures )
     # fprintf( '-----\n' )
     #
+    pass
+
+
+def create_history(
+        image_file_names,
+        transformed_template_file_name,
+        mesh_collection_file_name,
+        compression_lookup_table_file_name,
+        model_specifications,
+        optimization_options,
+        save_path,
+        show_figures
+):
     #
     # % Save input variables in a "history" structure
     # history = struct;
@@ -87,12 +200,10 @@ def samsegment(
     # history.input.optimizationOptions = optimizationOptions;
     # history.input.savePath = savePath;
     # history.input.showFigures = showFigures;
-    #
-    #
-    #
-    # %
-    # numberOfContrasts = length( imageFileNames );
-    #
+    pass
+
+
+def read_image_data(kvl, number_of_contrasts, image_file_names, transformed_template_file_name):
     # % Read the image data from disk. At the same time, construct a 3-D affine transformation (i.e.,
     # % translation, rotation, scaling, and skewing) as well - this transformation will later be used
     # % to initially transform the location of the atlas mesh's nodes into the coordinate system of
@@ -107,18 +218,34 @@ def samsegment(
     # end
     # imageSize = [ size( imageBuffers, 1 ) size( imageBuffers, 2 ) size( imageBuffers, 3 ) ];
     #
+    pass
+
+
+def show_images_singly(image_buffers):
     # if ( showFigures )
     #   for contrastNumber = 1 : numberOfContrasts
     #     figure
     #     showImage( imageBuffers( :, :, :, contrastNumber ) ); % Automatically displays middle slices in each direction
     #   end
     # end
+    pass
+
+
+def get_image_to_world_transform_matrix(kvl, image_file_names):
     #
     # % Also read in the voxel spacing -- this is needed since we'll be specifying bias field smoothing kernels, downsampling
     # % steps etc in mm.
     # [ ~, imageToWorldTransform ] = kvlReadImage( imageFileNames{1} );
     # imageToWorldTransformMatrix = kvlGetTransformMatrix( imageToWorldTransform );
+    pass
+
+
+def determine_voxel_spacing(image_to_world_transform_matrix):
     # voxelSpacing = sum( imageToWorldTransformMatrix( 1 : 3, 1 : 3 ).^2 ).^( 1/2 );
+    pass
+
+
+def read_mesh_collection(kvl, mesh_collection_file_name, model_specifications):
     #
     #
     # % Read the atlas mesh from file, immediately applying the previously determined transform to the location
@@ -132,9 +259,15 @@ def samsegment(
     # % much it will typically deform. Higher values correspond to stiffer meshes.
     # %
     # meshCollection = kvlReadMeshCollection( meshCollectionFileName, transform, modelSpecifications.K );
+    pass
+
+def retrieve_mesh(mesh_collection):
     #
     # % Retrieve the reference mesh, i.e., the mesh representing the average shape.
     # mesh = kvlGetMesh( meshCollection, -1 );
+    pass
+
+def strip_skull(mesh, image_size, image_buffers):
     # % ITK mesh
     #
     # % Skull strip the images
@@ -164,11 +297,17 @@ def samsegment(
     #   imageBuffers( :, :, :, contrastNumber ) = imageBuffer;
     #   % kvlSetImageBuffer( images( contrastNumber ), imageBuffers( :, :, :, contrastNumber ) );
     # end
+    pass
+
+def show_image_buffers(image_buffers):
     #
     # if( showFigures )
     #   subplot( 2, 2, 4 )
     #   showImage( imageBuffers( :, :, :, 1 ) )
     # end
+    pass
+
+def do_log_transformation_of_data(image_buffers, number_of_contrasts, image_size):
     #
     #
     #
@@ -189,9 +328,9 @@ def samsegment(
     #   buffer = buffer .* mask;
     #   imageBuffers( :, :, :, contrastNumber ) = buffer;
     # end
-    #
-    #
-    #
+    pass
+
+def find_labels_names_and_colors(compression_lookup_table_file_name):
     # % FreeSurfer (http://surfer.nmr.mgh.harvard.edu) has a standardized way of representation segmentations,
     # % both manual and automated, as images in which certain intensity levels correspond to well-defined
     # % anatomical structures - for instance an intensity value 17 always corresponds to the left hippocampus.
@@ -205,6 +344,9 @@ def samsegment(
     # % first result corresponds to the first entry in the vector of probabilities associated with each node in
     # % our atlas mesh.
     # [ FreeSurferLabels, names, colors ] = kvlReadCompressionLookupTable( compressionLookupTableFileName );
+    pass
+
+def find_relevant_alphas(kvl, mesh, model_specifications, free_surfer_labels, colors):
     #
     # % Get a Matlab matrix containing a copy of the probability vectors in each mesh node (size numberOfNodes x
     # % numberOfLabels ).
@@ -219,6 +361,9 @@ def samsegment(
     # mergeOptions( 1 ).searchStrings = modelSpecifications.missingStructureSearchStrings;
     # [ alphas, names, FreeSurferLabels, colors ] = kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels, colors );
     # kvlSetAlphasInMeshNodes( mesh, alphas );
+    pass
+
+def reduce_alphas_that_share_guassian_mixture_models(alphas, names, model_specifications, free_surfer_labels, colors):
     #
     #
     #
@@ -233,6 +378,9 @@ def samsegment(
     # % will need to compute the final segmentation.
     # [ reducedAlphas, reducedNames, reducedFreeSurferLabels, reducedColors, reducingLookupTable ] = ...
     #                             kvlMergeAlphas( alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors );
+    pass
+
+def show_current_mesh(kvl, mesh, image_size):
     #
     #
     # if ( showFigures )
@@ -249,10 +397,9 @@ def samsegment(
     #   fprintf( 'done\n' )
     #   drawnow;
     # end
-    #
-    #
-    #
-    #
+    pass
+
+def determine_class_and_gaussian_ordinality(model_specifications):
     # % The fact that we merge several neuroanatomical structures into "super"-structures for the purpose of model
     # % parameter estimaton, but at the same time represent each of these super-structures with a mixture of Gaussians,
     # % creates something of a messy situation when implementing this stuff. To avoid confusion, let's define a few
@@ -275,6 +422,9 @@ def samsegment(
     # numberOfGaussiansPerClass = [ modelSpecifications.sharedGMMParameters.numberOfComponents ];
     # numberOfClasses = length( numberOfGaussiansPerClass );
     # numberOfGaussians = sum( numberOfGaussiansPerClass );
+    pass
+
+def create_bias_model(model_specifications, voxel_spacing, show_figures):
     #
     #
     #
@@ -318,17 +468,16 @@ def samsegment(
     #   kroneckerProductBasisFunctions{ dimensionNumber } = A;
     #   numberOfBasisFunctions( dimensionNumber ) = M;
     # end
+    #
+    pass
+
+def create_initial_bias_field_coefficients(number_of_basis_functions, number_of_contrasts):
     # biasFieldCoefficients = zeros( prod( numberOfBasisFunctions ), numberOfContrasts ); % No bias field to start with
-    #
-    #
-    # if ( showFigures )
-    #   posteriorFigure = figure;
-    #   costFigure = figure;
-    #   deformationMovieFigure = figure;
-    #   biasFieldFigure = figure;
-    # end
-    #
-    #
+    pass
+
+def do_multi_resolution_optimization(
+        kvl #, stuff
+):
     # % We do the optimization in a multi-resolution type of scheme, where large
     # % deformations are quickly found using smoothed versions of the atlas mesh, and the fine
     # % details are then found on gradually less smoothed versions until the original atlas mesh is used for the optimization.
@@ -894,6 +1043,9 @@ def samsegment(
     #   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).posteriorsAtEnd = posteriors;
     #
     # end % End loop over multiresolution levels
+    pass
+
+def save_estimation_history(save_path, history, history_within_each_multi_resolution_level, image_buffers):
     #
     #
     # % Save something about how the estimation proceeded
@@ -901,6 +1053,9 @@ def samsegment(
     # history.mask = mask;
     # history.historyWithinEachMultiResolutionLevel = historyWithinEachMultiResolutionLevel;
     # eval( [ 'save ' savePath '/history.mat history -v7.3' ] );
+    pass
+
+def do_full_estimation(kvl):
     #
     #
     # % OK, now that all the parameters have been estimated, try to segment the original, full resolution image
@@ -978,6 +1133,9 @@ def samsegment(
     #   freeSurferSegmentation( maskIndices( find( structureNumbers == structureNumber ) ) ) = FreeSurferLabels( structureNumber );
     # end
     #
+    pass
+
+def write_segmentation_results(kvl, save_path, free_surfer_segmentation):
     # % Write to file, remembering to un-crop the segmentation to the original image size
     # uncroppedFreeSurferSegmentation = zeros( nonCroppedImageSize, 'single' );
     # uncroppedFreeSurferSegmentation( croppingOffset( 1 ) + [ 1 : imageSize( 1 ) ], ...
@@ -1011,3 +1169,4 @@ def samsegment(
     #   kvlWriteImage( kvlCreateImage( biasCorrected ), outputFileName, imageToWorldTransform );
     #
     # end
+    pass
