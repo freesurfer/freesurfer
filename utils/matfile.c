@@ -77,7 +77,8 @@ MATRIX *MatlabRead(const char *fname)
   FILE *fp;
   char *name;
   double **real_matrix, **imag_matrix;
-  int file_type, nrows, ncols, row, col;
+  // int file_type;
+  int nrows, ncols, row, col;
   float *fptr = NULL;
 
   if (Gdiag_no > 0) printf("Using MatlabRead2()\n");
@@ -109,7 +110,8 @@ MATRIX *MatlabRead(const char *fname)
   else
     imag_matrix = NULL;
 
-  file_type = readMatFile(fp, &mf, real_matrix, imag_matrix);
+  // file_type = 
+  readMatFile(fp, &mf, real_matrix, imag_matrix);
   nrows = (int)mf.mrows;
   ncols = (int)mf.ncols;
 
@@ -145,10 +147,11 @@ MATFILE *MatFileRead(const char *fname, int type)
 {
   MATFILE *mf;
   FILE *fp;
-  char *name;
+  // char *name;
   double **real_matrix, **imag_matrix;
   char bval;
-  int file_type, nrows, ncols, row, col;
+  // int file_type;
+  int nrows, ncols, row, col;
   char *cptr = NULL;
   float *fptr = NULL;
 
@@ -156,7 +159,8 @@ MATFILE *MatFileRead(const char *fname, int type)
   if (!fp) return (NULL);
 
   mf = (MATFILE *)calloc(1, sizeof(MATFILE));
-  name = MatReadHeader0(fp, mf);
+  // name = 
+  MatReadHeader0(fp, mf);
 
   real_matrix = matAlloc((int)mf->mrows, (int)mf->ncols);
   if (mf->imagf)
@@ -164,7 +168,8 @@ MATFILE *MatFileRead(const char *fname, int type)
   else
     imag_matrix = NULL;
 
-  file_type = readMatFile(fp, mf, real_matrix, imag_matrix);
+  // file_type = 
+  readMatFile(fp, mf, real_matrix, imag_matrix);
 
   nrows = (int)mf->mrows;
   ncols = (int)mf->ncols;
@@ -550,7 +555,8 @@ MLFC *ReadMatlabFileContents(const char *fname)
   FILE *fp;
   char *name, c;
   double **real_matrix, **imag_matrix;
-  int file_type, nrows, ncols, row, col, len;
+  // int file_type;
+  int nrows, ncols, row, col, len;
   float *fptr = NULL;
 
   memset(&mf, 0, sizeof(MATFILE));
@@ -584,7 +590,8 @@ MLFC *ReadMatlabFileContents(const char *fname)
     else
       imag_matrix = NULL;
 
-    file_type = readMatFile(fp, &mf, real_matrix, imag_matrix);
+    // file_type = 
+    readMatFile(fp, &mf, real_matrix, imag_matrix);
     nrows = (int)mf.mrows;
     ncols = (int)mf.ncols;
 
@@ -768,7 +775,8 @@ MATRIX *MatlabRead2(const char *fname)
   FILE *fp = NULL;
   char *name;
   double **real_matrix, **imag_matrix;
-  int file_type, nrows, ncols, row, col;
+  // int file_type;
+  int nrows, ncols, row, col;
   float *fptr = NULL;
   long32 compressed = 0;
   char *unbuff = NULL;
@@ -810,10 +818,14 @@ MATRIX *MatlabRead2(const char *fname)
   else
     imag_matrix = NULL;
 
-  if (compressed)
-    file_type = znzreadMatFile(unbuff, &mf, real_matrix, imag_matrix);
-  else
-    file_type = readMatFile(fp, &mf, real_matrix, imag_matrix);
+  if (compressed){
+    // file_type = 
+    znzreadMatFile(unbuff, &mf, real_matrix, imag_matrix);
+  }
+  else{
+    // file_type = 
+    readMatFile(fp, &mf, real_matrix, imag_matrix);
+  }
 
   nrows = (int)mf.mrows;
   ncols = (int)mf.ncols;

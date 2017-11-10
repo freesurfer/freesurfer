@@ -1,18 +1,31 @@
-# Find TetGen (needed for building atlases)
-FIND_PATH( TETGEN_INCLUDE_DIR tetgen.h ../tetgen1.4.2
-           DOC "Include directory of TetGen (i.e. containing tetgen.h)" )
-FIND_LIBRARY( TETGEN_LIB tet ../tetgen1.4.2 )
+OPTION( MAKE_SPARSE_INITIAL_MESHES "Make sparse initial meshes" OFF )
 
-SET( TETGEN_FOUND "NO" )
-IF ( TETGEN_INCLUDE_DIR AND TETGEN_LIB )
-  SET( TETGEN_FOUND "YES" )
-ENDIF ( TETGEN_INCLUDE_DIR AND TETGEN_LIB )
+#
+IF( MAKE_SPARSE_INITIAL_MESHES )
+  #
+  ADD_DEFINITIONS( -DUSE_TETGEN )
+  
+  # 
+  MESSAGE( WARNING 
+           "Since you're opting to make sparse (i.e., irregular) initial meshes, the TetGen library will be included, which has a restrictive license." )
+           
+  # Find TetGen 
+  FIND_PATH( TETGEN_INCLUDE_DIR tetgen.h ../../tetgen1.4.2
+            DOC "Include directory of TetGen (i.e. containing tetgen.h)" )
+  FIND_LIBRARY( TETGEN_LIB tet ../../tetgen1.4.2 )
 
-IF ( TETGEN_FOUND )
-  INCLUDE_DIRECTORIES( ${TETGEN_INCLUDE_DIR} )
-ELSE ( TETGEN_FOUND )
-  MESSAGE( FATAL_ERROR "Cannot build without TETGEN." )
-ENDIF ( TETGEN_FOUND )
+  SET( TETGEN_FOUND "NO" )
+  IF ( TETGEN_INCLUDE_DIR AND TETGEN_LIB )
+    SET( TETGEN_FOUND "YES" )
+  ENDIF ( TETGEN_INCLUDE_DIR AND TETGEN_LIB )
+
+  IF ( TETGEN_FOUND )
+    INCLUDE_DIRECTORIES( ${TETGEN_INCLUDE_DIR} )
+  ELSE ( TETGEN_FOUND )
+    MESSAGE( FATAL_ERROR "Cannot build without TETGEN." )
+  ENDIF ( TETGEN_FOUND )           
+           
+ENDIF( MAKE_SPARSE_INITIAL_MESHES )
 
 
 # # Add an executable
@@ -35,10 +48,3 @@ TARGET_LINK_LIBRARIES( kvlBuildAtlasMesh
                        ${TETGEN_LIB} 
                        )
 
-
-# # Add an executable
-# ADD_EXECUTABLE( kvlDecimateTest
-#                 kvlDecimateTest.cxx )
-# TARGET_LINK_LIBRARIES( kvlDecimateTest
-#                        kvlGEMSCommon
-#                       )

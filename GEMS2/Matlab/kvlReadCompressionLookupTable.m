@@ -1,10 +1,11 @@
 function [ FreeSurferLabels, names, colors ] = kvlReadCompressionLookupTable( fileName )
+%  
+% function [ FreeSurferLabels, names, colors ] = kvlReadCompressionLookupTable( fileName )
 %
-
-%  function [ FreeSurferLabels, compressedLabels, names, colors ] = kvlReadCompressionLookupTable( fileName )
-%
-
 % The format is: FreeSurferLabel compressedLabel name R G B A
+%
+% Things are sorted according compressedLabels
+% 
 
 disp( [ 'Reading contexts of file ' fileName ] )
 FreeSurferLabels = [];

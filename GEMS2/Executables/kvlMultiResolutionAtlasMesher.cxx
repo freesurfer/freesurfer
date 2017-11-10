@@ -1,7 +1,10 @@
 #include "kvlMultiResolutionAtlasMesher.h"
 
 #include <fstream>
-#include "tetgen.h"
+
+#ifdef USE_TETGEN
+  #include "tetgen.h"
+#endif
 
 
 namespace kvl
@@ -17,7 +20,6 @@ MultiResolutionAtlasMesher
   m_CompressionLookupTable = 0;
   m_InitialSize.Fill( 10 );
   m_InitialStiffnesses = std::vector< double >( 1, 0.1 );
-  m_TryToBeSparse = true;
 
   m_Estimator = AtlasParameterEstimator::New();
   m_Estimator->SetPositionOptimizer( AtlasParameterEstimator::LBFGS );
@@ -28,8 +30,11 @@ MultiResolutionAtlasMesher
   m_DomainSize.Fill( 0 );
   
   m_Current = 0;
+  
+#ifdef USE_TETGEN  
   m_Hexahedra = 0;
-
+#endif
+  
 }
 
 
@@ -40,12 +45,15 @@ MultiResolutionAtlasMesher
 MultiResolutionAtlasMesher
 ::~MultiResolutionAtlasMesher()
 {
+
+#ifdef USE_TETGEN  
   // Clean up the hexahedral cells we've created
   for ( AtlasMesh::CellsContainer::Iterator  hexIt  = m_Hexahedra->Begin();
         hexIt != m_Hexahedra->End(); ++hexIt )
         {
         delete hexIt.Value();
         }
+#endif        
 
 }
 
@@ -73,15 +81,13 @@ MultiResolutionAtlasMesher
 ::SetUp( const std::vector< LabelImageType::ConstPointer >& labelImages,
          const CompressionLookupTable*  compressionLookupTable,
          const itk::Size< 3 >&  initialSize, 
-         const std::vector< double >&  initialStiffnesses,
-         bool tryToBeSparse )
+         const std::vector< double >&  initialStiffnesses )
 {
   //
   m_LabelImages = labelImages;
   m_CompressionLookupTable = compressionLookupTable;
   m_InitialSize = initialSize;
   m_InitialStiffnesses = initialStiffnesses;
-  m_TryToBeSparse = tryToBeSparse;
 
 
   // Pass the label images and mapping onto the estimator
@@ -94,6 +100,8 @@ MultiResolutionAtlasMesher
   m_NumberOfMeshes = m_Estimator->GetNumberOfLabelImages();
 
 
+#ifdef USE_TETGEN  
+  
   // Set up hexahedra and reference position
   m_Hexahedra = AtlasMesh::CellsContainer::New();
   MeshSourceType::Pointer  meshSource = MeshSourceType::New();
@@ -156,6 +164,22 @@ MultiResolutionAtlasMesher
   // Create a mesh collection according to the reference position and the positions
   m_Current = this->GetMeshCollection( referencePosition, positions, m_InitialStiffnesses[ 0 ] );
 
+#else
+  // 
+  m_Current = AtlasMeshCollection::New();
+  unsigned int  meshSize[ 3 ];
+  unsigned int  domSize[ 3 ];
+  for ( int i = 0; i < 3; i++ )
+    {
+    meshSize[ i ] = static_cast< unsigned int >( m_InitialSize[ i ] );
+    domSize[ i ] = static_cast< unsigned int >( m_DomainSize[ i ] );
+    }
+  
+  m_Current->Construct( meshSize, domSize, m_InitialStiffnesses[ 0 ], 
+                        m_NumberOfClasses, m_NumberOfMeshes );
+
+#endif  
+  
   // Now initialize the estimator with the mesh
   m_Estimator->SetInitialMeshCollection( m_Current );
 
@@ -199,6 +223,7 @@ MultiResolutionAtlasMesher
 
 
 
+#ifdef USE_TETGEN  
 
 //
 //
@@ -665,6 +690,8 @@ MultiResolutionAtlasMesher
 }
 
 
+#endif
+
 
 //
 //
@@ -673,6 +700,8 @@ void
 MultiResolutionAtlasMesher
 ::Upsample()
 {
+  
+#ifdef USE_TETGEN  
 
   // Loop over all hexahedra
   std::vector< AtlasMesh::PointsContainer::Pointer >  upsampledPositions;
@@ -723,7 +752,7 @@ MultiResolutionAtlasMesher
 
     // Decide whether or not we're gonna subdivide this hexahedron
     bool  subdivideHexahedron = true;
-    if ( m_TryToBeSparse )
+    if ( true ) // Switch off for non-sparse upsampling
       {
       // Look up the label with the highest alpha in the first corner point
       int  maximumAlphaLabelNumber = 0;
@@ -1053,18 +1082,25 @@ MultiResolutionAtlasMesher
 
   // OK, so now we have a new reference position and position. Let's generate a mesh collection from that.
   m_Current = this->GetMeshCollection( upsampledReferencePosition, upsampledPositions, m_Current->GetK() );
+  
+#else
+  m_Current = m_Current->GetUpsampled();
+  
+#endif  
 
   // Now initialize the estimator with the mesh
   m_Estimator->SetInitialMeshCollection( m_Current );
 
+#ifdef USE_TETGEN  
   // Also replace the old m_Hexahedra with the upsampeld one
   m_Hexahedra = upsampledHexahedra;
-
+#endif
+  
 }
 
 
 
-
+#if USE_TETGEN
 //
 //
 //
@@ -1264,7 +1300,7 @@ MultiResolutionAtlasMesher
 
 }
 
-
+#endif
 
 
 } // end namespace kvl
