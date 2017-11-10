@@ -18929,7 +18929,7 @@ int GCAcomputeRenormalizationWithAlignment(GCA *gca,
       fp = fopen("norm_offset.plt", "r");
       if (fp != NULL) {
         for (l = 0; l < MAX_CMA_LABELS; l++) {
-          fscanf(fp, "%d %f %f", &l, &scale, &offset);
+          (void)fscanf(fp, "%d %f %f", &l, &scale, &offset);
           label_scales[l] = scale;
           label_offsets[l] = offset;
           computed[l] = 1;
@@ -20030,7 +20030,7 @@ int GCAcomputeRenormalizationWithAlignmentLongitudinal(GCA *gca,
     fp = fopen("norm_offset.plt", "r");
     if (fp != NULL) {
       for (l = 0; l < MAX_CMA_LABELS; l++) {
-        fscanf(fp, "%d %f %f", &l, &scale, &offset);
+        (void)fscanf(fp, "%d %f %f", &l, &scale, &offset);
         label_scales[l] = scale;
         label_offsets[l] = offset;
         computed[l] = 1;
