@@ -2169,9 +2169,10 @@ void LayerSurface::AddMappedLabel(LayerROI *label)
   if (!m_mappedLabels.contains(label))
   {
     m_mappedLabels << label;
-    connect(label, SIGNAL(destroyed(QObject*)), this, SLOT(RemoveMappedLabel(QObject*)), Qt::UniqueConnection);
-    connect(label->GetProperty(), SIGNAL(ColorMapChanged()), this, SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
-    connect(label, SIGNAL(VisibilityChanged(bool)), this, SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
+    connect(label, SIGNAL(destroyed(QObject*)), SLOT(RemoveMappedLabel(QObject*)), Qt::UniqueConnection);
+    connect(label, SIGNAL(VisibilityChanged(bool)), SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
+    connect(label->GetProperty(), SIGNAL(ColorMapChanged()), SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
+    connect(label->GetProperty(), SIGNAL(ThresholdChanged(double)), SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
   }
 }
 

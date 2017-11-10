@@ -65,6 +65,12 @@ public :
     {
     return m_MinLogLikelihoodTimesPrior;
     }
+    
+  /** */
+  double&  GetMinLogLikelihoodTimesPrior()
+    {
+    return m_MinLogLikelihoodTimesPrior;  
+    }
 
   /** */  
   void Rasterize( const AtlasMesh* mesh );
@@ -117,6 +123,11 @@ protected:
                                                   AtlasPositionGradientType&  gradientInVertex1,
                                                   AtlasPositionGradientType&  gradientInVertex2,
                                                   AtlasPositionGradientType&  gradientInVertex3 );
+  
+  // Let's provide a "hook" for adding non-tetrahdron-based cost and gradient contributions
+  virtual void PostProcessCostAndGradient( const AtlasMesh* mesh )
+    {
+    }
 
   //
   void ImposeSlidingBoundaryConditions( const AtlasMesh* mesh );

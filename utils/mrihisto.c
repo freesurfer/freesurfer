@@ -1198,9 +1198,10 @@ HISTOGRAM *MRIhistogramVoxel(
 HISTOGRAM *MRIhistogramRegionWithThreshold(
     MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region, MRI *mri_thresh, float thresh, int frame)
 {
-  int width, height, depth, z, x0, y0, z0, tid;
+  int width, height, depth, z, x0, y0, z0;
   float fmin, fmax;
 #ifdef HAVE_OPENMP
+  int tid;
   HISTOGRAM *histos[_MAX_FS_THREADS];
 #else
   HISTOGRAM *histos[1];

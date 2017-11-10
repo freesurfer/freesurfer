@@ -239,7 +239,7 @@ public :
     }
 
   //
-  void  Build( AtlasMeshCollection* explicitStartCollection = 0 );
+  void  Build( AtlasMeshCollection* explicitStartCollection = 0, double edgeCollapseEncouragementFactor = 1.0 );
 
   //
   double  GetProgress() const
@@ -369,6 +369,8 @@ private :
   double  m_CollapsedDataCost;
   double  m_CollapsedAlphasCost;
   double  m_CollapsedPositionCost;
+  
+  double  m_EdgeCollapseEncouragementFactor;
 
   // Useful class for permutating edge list
   class EdgeElement

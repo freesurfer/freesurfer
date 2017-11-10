@@ -2037,7 +2037,6 @@ bool FSVolume::CreateImage( MRI* rasMRI )
   return true;
 }
 
-
 bool FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* refImageData,
                                    double* rasPoint )
 {

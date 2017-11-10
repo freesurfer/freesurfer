@@ -196,13 +196,15 @@ int DiagShowImage(unsigned long diag_bits, int win, int which, IMAGE *I, char *f
 ------------------------------------------------------*/
 int DiagDrawBox(unsigned long diag_bits, int win, int row0, int col, int rows, int cols, int color)
 {
-  int i;
-  i = win;
-  i = row0;
-  i = col;
-  i = rows;
-  i = cols;
-  i = color; /* prevent warning (dng) */
+  // int i;
+  // i = win;
+  // i = row0;
+  // i = col;
+  // i = rows;
+  // i = cols;
+  // i = color; /* prevent warning (dng) */
+
+
 
   if (diag_bits && !(diag_bits & Gdiag)) return (-1);
 

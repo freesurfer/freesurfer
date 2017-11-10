@@ -28,14 +28,17 @@ IEEE Transaction on Pattern Analysis and Machine Intelligence, 2012.
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-#include "autoencoder.h"
+
 #include <stdio.h>
+
 #include "diag.h"
 #include "error.h"
 #include "fio.h"
 #include "macros.h"
 #include "utils.h"
 #include "voxlist.h"
+
+#include "autoencoder.h"
 
 static double AEcomputeHiddenRMS(AE *ae, SAE_INTEGRATION_PARMS *parms);
 static int aeApplyGradient(AE *ae, SAE_INTEGRATION_PARMS *parms, double dt);
@@ -198,10 +201,10 @@ static AE *AEalloc(AE *prev, int ninputs, int nhidden, int noutputs)
 
   if (ninputs == 1)  // diags - set weights to correct values
   {
-    double f0, f1;
+    //    double f0, f1;
 
-    f0 = SIGMOID(0);
-    f1 = SIGMOID(1);
+    //  f0 = SIGMOID(0);
+    // f1 = SIGMOID(1);
     //    ae->v_hidden_bias->rptr[1][1] = 0 ;
     //    ae->m_input_to_hidden->rptr[1][1] = 1 ;
     //    ae->m_hidden_to_output->rptr[1][1] = 1 / (f1-f0) ;
@@ -367,11 +370,12 @@ VECTOR *SAEactivateLastHiddenLayer(SAE *sae, MRI *mri) { return (sae->first->v_o
 
 double SAEcomputeRMS(SAE *sae)
 {
-  VECTOR *v_output;
+  //  VECTOR *v_output;
   int row;
   double error, rms;
 
-  v_output = SAEactivateNetwork(sae);
+  // v_output =
+  SAEactivateNetwork(sae);
 
   if (sae->type == NORMAL_AUTOENCODER) {
     for (rms = 0.0, row = 1; row <= sae->first->v_input->rows; row++) {
@@ -417,7 +421,8 @@ double SAEtrainFromMRI(SAE *sae, MRI **mri_pyramid, SAE_INTEGRATION_PARMS *parms
   int x, y, z, iter = 0, visited, ind, nvox, calls = 0;
   short *x_ind, *y_ind, *z_ind;
   double tol;
-  double dt, acceptance_sigma, proposal_sigma;
+  // double dt,
+  double acceptance_sigma, proposal_sigma;
   char *out_fname;
   MRI *mri = mri_pyramid[0];
   AE *ae_train;  // the deepest layer - which is what we are training now
@@ -426,7 +431,7 @@ double SAEtrainFromMRI(SAE *sae, MRI **mri_pyramid, SAE_INTEGRATION_PARMS *parms
   acceptance_sigma = parms->acceptance_sigma;
   proposal_sigma = parms->proposal_sigma;
   tol = parms->tol;
-  dt = parms->dt;
+  // dt = parms->dt;
   out_fname = parms->out_fname;
 
   if (mri_pyramid[0]->type != MRI_FLOAT)
@@ -493,17 +498,17 @@ double SAEtrainFromMRI(SAE *sae, MRI **mri_pyramid, SAE_INTEGRATION_PARMS *parms
         total_rms += rms;
         if (rms > last_rms) DiagBreak();
         if (Gx >= 0) {
-          int ind;
-          float in, out;
-          ind = (sae->first->v_output->rows + 1) / 2;
+          // int ind;
+          // float in, out;
+          // ind = (sae->first->v_output->rows + 1) / 2;
 
           SAEfillInputVector(mri_pyramid, sae->nlevels, Gx, Gy, Gz, sae->whalf, sae->first->v_input);
           SAEactivateNetwork(sae);
           G_rms = SAEcomputeRMS(sae);
           if (G_rms > G_last_rms) DiagBreak();
           G_last_rms = G_rms;
-          in = sae->first->v_input->rptr[ind][1];
-          out = sae->first->v_output->rptr[ind][1];
+          // in = sae->first->v_input->rptr[ind][1];
+          // out = sae->first->v_output->rptr[ind][1];
           DiagBreak();
         }
       }
@@ -543,14 +548,17 @@ double SAEtrainFromMRI(SAE *sae, MRI **mri_pyramid, SAE_INTEGRATION_PARMS *parms
   } while (pct_decrease > tol);
 
   if (Gx >= 0) {
-    int wsize, ind, i, j;
-    float in, out, total_rms, init_total_rms;
-    wsize = sae->whalf * 2 + 1;
-    ind = (wsize * wsize * wsize) / 2 + 1;
+    // int wsize, ind,
+    int i, j;
+    // float in, out, total_rms, init_total_rms;
+    // wsize = sae->whalf * 2 + 1;
+    // ind = (wsize * wsize * wsize) / 2 + 1;
 
-    init_total_rms = SAEcomputeTotalRMS(sae, mri_pyramid);
+    // init_total_rms =
+    SAEcomputeTotalRMS(sae, mri_pyramid);
     for (j = 0; j < 10; j++) {
-      total_rms = SAEcomputeTotalRMS(sae, mri_pyramid);
+      // total_rms =
+      SAEcomputeTotalRMS(sae, mri_pyramid);
       SAEfillInputVector(mri_pyramid, sae->nlevels, Gx, Gy, Gz, sae->whalf, sae->first->v_input);
       SAEactivateNetwork(sae);
       last_rms = SAEcomputeRMS(sae);
@@ -565,8 +573,8 @@ double SAEtrainFromMRI(SAE *sae, MRI **mri_pyramid, SAE_INTEGRATION_PARMS *parms
     G_rms = SAEcomputeRMS(sae);
     if (G_rms > G_last_rms) DiagBreak();
     G_last_rms = G_rms;
-    in = sae->first->v_input->rptr[ind][1];
-    out = sae->first->v_output->rptr[ind][1];
+    // in = sae->first->v_input->rptr[ind][1];
+    // out = sae->first->v_output->rptr[ind][1];
     DiagBreak();
   }
 
@@ -585,7 +593,8 @@ double SAEtrainFromVoxlist(SAE *sae, VOXEL_LIST *vl, MRI **mri_pyramid, SAE_INTE
          G_last_rms = 1e10;
   int x, y, z, iter = 0, visited, ind, calls = 0, *indices, i;
   double tol;
-  double dt, acceptance_sigma, proposal_sigma;
+  // double dt,
+  double acceptance_sigma, proposal_sigma;
   char *out_fname;
   MRI *mri = mri_pyramid[0];
   AE *ae_train;  // the deepest layer - which is what we are training now
@@ -594,7 +603,7 @@ double SAEtrainFromVoxlist(SAE *sae, VOXEL_LIST *vl, MRI **mri_pyramid, SAE_INTE
   acceptance_sigma = parms->acceptance_sigma;
   proposal_sigma = parms->proposal_sigma;
   tol = parms->tol;
-  dt = parms->dt;
+  // dt = parms->dt;
   out_fname = parms->out_fname;
 
   if (mri_pyramid[0]->type != MRI_FLOAT)
@@ -655,17 +664,17 @@ double SAEtrainFromVoxlist(SAE *sae, VOXEL_LIST *vl, MRI **mri_pyramid, SAE_INTE
       total_rms += rms;
       if (rms > last_rms) DiagBreak();
       if (Gx >= 0) {
-        int ind;
-        float in, out;
-        ind = (sae->first->v_output->rows + 1) / 2;
+        // int ind;
+        // float in, out;
+        // ind = (sae->first->v_output->rows + 1) / 2;
 
         SAEfillInputVector(mri_pyramid, sae->nlevels, Gx, Gy, Gz, sae->whalf, sae->first->v_input);
         SAEactivateNetwork(sae);
         G_rms = SAEcomputeRMS(sae);
         if (G_rms > G_last_rms) DiagBreak();
         G_last_rms = G_rms;
-        in = sae->first->v_input->rptr[ind][1];
-        out = sae->first->v_output->rptr[ind][1];
+        // in = sae->first->v_input->rptr[ind][1];
+        // out = sae->first->v_output->rptr[ind][1];
         DiagBreak();
       }
 
@@ -705,14 +714,18 @@ double SAEtrainFromVoxlist(SAE *sae, VOXEL_LIST *vl, MRI **mri_pyramid, SAE_INTE
   } while (pct_decrease > tol);
 
   if (Gx >= 0) {
-    int wsize, ind, i, j;
-    float in, out, total_rms, init_total_rms;
-    wsize = sae->whalf * 2 + 1;
-    ind = (wsize * wsize * wsize) / 2 + 1;
+    // int wsize, ind;
+    int i, j;
 
-    init_total_rms = SAEcomputeTotalRMS(sae, mri_pyramid);
+    // float in, out, total_rms, init_total_rms;
+    // wsize = sae->whalf * 2 + 1;
+    // ind = (wsize * wsize * wsize) / 2 + 1;
+
+    // init_total_rms =
+    SAEcomputeTotalRMS(sae, mri_pyramid);
     for (j = 0; j < 10; j++) {
-      total_rms = SAEcomputeTotalRMS(sae, mri_pyramid);
+      // total_rms =
+      SAEcomputeTotalRMS(sae, mri_pyramid);
       SAEfillInputVector(mri_pyramid, sae->nlevels, Gx, Gy, Gz, sae->whalf, sae->first->v_input);
       SAEactivateNetwork(sae);
       last_rms = SAEcomputeRMS(sae);
@@ -727,8 +740,8 @@ double SAEtrainFromVoxlist(SAE *sae, VOXEL_LIST *vl, MRI **mri_pyramid, SAE_INTE
     G_rms = SAEcomputeRMS(sae);
     if (G_rms > G_last_rms) DiagBreak();
     G_last_rms = G_rms;
-    in = sae->first->v_input->rptr[ind][1];
-    out = sae->first->v_output->rptr[ind][1];
+    // in = sae->first->v_input->rptr[ind][1];
+    // out = sae->first->v_output->rptr[ind][1];
     DiagBreak();
   }
 
@@ -971,13 +984,14 @@ static double AEaccumulateGradient(AE *ae, SAE_INTEGRATION_PARMS *parms)
 static double aeApplyAccumulatedGradient(AE *ae, SAE_INTEGRATION_PARMS *parms)
 {
   double rms = 0, dt, momentum, Egrad, Erandom;
-  int ninputs, nhidden, noutputs;
+  int noutputs;
+  // int ninputs, nhidden;
 
   dt = parms->orig_dt;
   momentum = parms->momentum;
-  ninputs = ae->v_input->rows;
+  // ninputs = ae->v_input->rows;
   noutputs = ae->v_output->rows;
-  nhidden = ae->v_hidden->rows;
+  // nhidden = ae->v_hidden->rows;
 
   if (parms->integration_type != INTEGRATE_CONJUGATE_GRADIENT)  // don't scale grads by -dt for conjugate gradient
   {
@@ -1015,7 +1029,8 @@ static double aeApplyAccumulatedGradient(AE *ae, SAE_INTEGRATION_PARMS *parms)
     rms = sqrt(rms / noutputs);
   }
   else if (parms->integration_type == INTEGRATE_CONJUGATE_GRADIENT) {
-    double beta, best_dt, orig_dt, rms, best_rms;
+    double beta, best_dt, rms, best_rms;
+    // double orig_dt;
     static int callno = 0;
 
     if (++callno == Gdiag_no) DiagBreak();
@@ -1048,7 +1063,8 @@ static double aeApplyAccumulatedGradient(AE *ae, SAE_INTEGRATION_PARMS *parms)
     AEsaveState(ae);
     best_dt = 0;
     best_rms = AEcomputeRMS(ae);
-    for (orig_dt = dt, dt = dt * .1; dt <= 1000; dt *= 2) {
+    // for (orig_dt = dt, dt = dt * .1; dt <= 1000; dt *= 2) {
+    for (dt = dt * .1; dt <= 1000; dt *= 2) {
       aeApplyGradient(ae, parms, dt);
       AEactivateLayer(ae, ae->v_input);
       rms = AEcomputeRMS(ae);
@@ -1333,7 +1349,8 @@ static double AEtrain(AE *ae, SAE_INTEGRATION_PARMS *parms)
     rms = sqrt(rms / noutputs);
   }
   else if (parms->integration_type == INTEGRATE_CONJUGATE_GRADIENT) {
-    double beta, best_dt, orig_dt, rms, best_rms;
+    double beta, best_dt, rms, best_rms;
+    // double orig_dt;
     static int callno = 0;
 
     if (++callno == Gdiag_no) DiagBreak();
@@ -1366,7 +1383,8 @@ static double AEtrain(AE *ae, SAE_INTEGRATION_PARMS *parms)
     AEsaveState(ae);
     best_dt = 0;
     best_rms = AEcomputeRMS(ae);
-    for (orig_dt = dt, dt = dt * .1; dt <= 1000; dt *= 2) {
+    // for (orig_dt = dt, dt = dt * .1; dt <= 1000; dt *= 2) {
+    for (dt = dt * .1; dt <= 1000; dt *= 2) {
       aeApplyGradient(ae, parms, dt);
       AEactivateLayer(ae, ae->v_input);
       rms = AEcomputeRMS(ae);
@@ -1787,7 +1805,8 @@ double CSAEtrainLayerFromVoxlist(CSAE *csae, int layer, VOXEL_LIST *vl, MRI **mr
 {
   double total_rms, last_total_rms, pct_decrease, running_last_rms = 0, running_rms;
   int iter = 0, ind, *indices, end_index, end_mini_batch, always, never, nbad, i;
-  double dt, acceptance_sigma, proposal_sigma, tol, min_rms;
+  // double dt;
+  double acceptance_sigma, proposal_sigma, tol, min_rms;
   char *out_fname;
   AE *ae_train;  // the deepest layer - which is what we are training now
 
@@ -1796,7 +1815,7 @@ double CSAEtrainLayerFromVoxlist(CSAE *csae, int layer, VOXEL_LIST *vl, MRI **mr
   acceptance_sigma = parms->acceptance_sigma;
   proposal_sigma = parms->proposal_sigma;
   tol = parms->tol;
-  dt = parms->dt;
+  // dt = parms->dt;
   out_fname = parms->out_fname;
 
   if (mri_pyramid[0]->type != MRI_FLOAT)
@@ -1936,7 +1955,8 @@ double CSAEtrainLayerFromVoxlist(CSAE *csae, int layer, VOXEL_LIST *vl, MRI **mr
 MRI *CSAElayerWeightsToMRI(CSAE *csae, int layer)
 {
   MRI *mri = NULL, *mri_prev, *mri_counts;
-  int width, whalf, whalf_prev, x, y, xk, yk, v, h, count, xp, yp, hp;
+  int width, whalf_prev, x, y, xk, yk, v, h, count, xp, yp, hp;
+  // int  whalf;
   AE *ae, *ae_prev;
   float val, val_prev;
 
@@ -1949,7 +1969,7 @@ MRI *CSAElayerWeightsToMRI(CSAE *csae, int layer)
     ae = csae->aes[layer];
     ae_prev = csae->aes[layer - 1];
     whalf_prev = (ae_prev->ksize - 1) / 2;
-    whalf = (ae->ksize - 1) / 2;
+    // whalf = (ae->ksize - 1) / 2;
     width = ae->ksize + 2 * whalf_prev;
     mri_prev = CSAElayerWeightsToMRI(csae, layer - 1);
     mri = MRIallocSequence(width, width, 1, MRI_FLOAT, ae->v_hidden->rows);
