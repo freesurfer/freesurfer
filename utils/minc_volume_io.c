@@ -1,3 +1,5 @@
+#if defined(BEVIN_EXCLUDE_MINC)
+
 /**
  * @file  minc_volume_io.c
  * @brief substitutes for the needed functionality previously obtained from minc
@@ -2485,3 +2487,4 @@ void  convert_voxel_to_world(
                              x_world, y_world, z_world );
 }
 
+#endif
