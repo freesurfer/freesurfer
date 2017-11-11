@@ -18929,7 +18929,7 @@ int GCAcomputeRenormalizationWithAlignment(GCA *gca,
       fp = fopen("norm_offset.plt", "r");
       if (fp != NULL) {
         for (l = 0; l < MAX_CMA_LABELS; l++) {
-          if (3 != fscanf(fp, "%d %f %f", &l, &scale, &offset)) {
+          if (fscanf(fp, "%d %f %f", &l, &scale, &offset) != 3) {
 	      fprintf(stderr,"%s:%d Did not fscanf 3 items\n", __FILE__, __LINE__);
 	      exit(1);
 	  }
@@ -20033,7 +20033,7 @@ int GCAcomputeRenormalizationWithAlignmentLongitudinal(GCA *gca,
     fp = fopen("norm_offset.plt", "r");
     if (fp != NULL) {
       for (l = 0; l < MAX_CMA_LABELS; l++) {
-        if (3 != fscanf(fp, "%d %f %f", &l, &scale, &offset)) {
+        if (fscanf(fp, "%d %f %f", &l, &scale, &offset) != 3) {
            fprintf(stderr,"%s:%d Did not fscanf 3 items\n", __FILE__, __LINE__);
 	   exit(1);
 	}
