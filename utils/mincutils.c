@@ -208,11 +208,6 @@ int NameMINCAxes(MINCAXES *MA)
   if (err) return (1);
 
   /* Make final assignments */
-#if defined(BEVIN_EXCLUDE_MINC)
-  char* const MIxspace = "xspace";
-  char* const MIyspace = "yspace";
-  char* const MIzspace = "zspace";
-#endif
   space[xspaceid] = MIxspace;
   space[yspaceid] = MIyspace;
   space[zspaceid] = MIzspace;

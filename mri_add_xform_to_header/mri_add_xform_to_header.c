@@ -138,7 +138,6 @@ main(int argc, char *argv[])
 
   if (! CopyNameOnly)
   {
-#if !defined(BEVIN_EXCLUDE_MINC)
     // why do we need to load the transform at this time
     // mri is removed anyway???? -- good point, added -s for noload
     if (input_transform_file(xform_fname, &mri->transform) != OK)
@@ -150,11 +149,6 @@ main(int argc, char *argv[])
     mri->inverse_linear_transform =
       get_inverse_linear_transform_ptr(&mri->transform) ;
     mri->free_transform = 1 ;
-#else
-    ErrorPrintf(ERROR_NO_MEMORY,
-                  "%s: does not support xform files such as '%s'\n",
-                  Progname, xform_fname);
-#endif
   }
   strcpy(mri->transform_fname, xform_fname) ;
 

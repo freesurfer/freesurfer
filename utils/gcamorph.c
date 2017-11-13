@@ -7524,7 +7524,6 @@ MRI *GCAMbuildVolume(GCA_MORPH *gcam, MRI *mri)
 int GCAMinvert(GCA_MORPH *gcam, MRI *mri)
 {
   int x, y, z, width, height, depth;
-  // int xv, yv, zv;
   MRI *mri_ctrl, *mri_counts;
   GCA_MORPH_NODE *gcamn;
   double xf, yf, zf;
@@ -7635,12 +7634,6 @@ int GCAMinvert(GCA_MORPH *gcam, MRI *mri)
 
         // mark counts (how many went in)
         MRIinterpolateIntoVolume(mri_counts, (double)xf, (double)yf, (double)zf, (double)1.0);
-#ifndef __OPTIMIZE__
-        if (xv == Ggca_x && yv == Ggca_y && zv == Ggca_z) {
-          if (xv >= 0 && yv >= 0 && zv >= 0)
-            fprintf(stderr, "src (%d, %d, %d) corresponds to gcam (%d, %d, %d)\n", xv, yv, zv, x, y, z);
-        }
-#endif
       }
     }
   }
@@ -7702,20 +7695,6 @@ int GCAMinvert(GCA_MORPH *gcam, MRI *mri)
     MRIwrite(gcam->mri_yind, "yi.mgz");
     MRIwrite(gcam->mri_zind, "zi.mgz");
   }
-#ifndef __OPTIMIZE__
-  xv = Ggca_x;
-  yv = Ggca_y;
-  zv = Ggca_z;
-  if (xv >= 0 && yv >= 0 && zv >= 0)
-    fprintf(stderr,
-            "src (%d, %d, %d) corresponds to gcam (%2.1f, %2.1f, %2.1f)\n",
-            xv,
-            yv,
-            zv,
-            MRIFvox(gcam->mri_xind, xv, yv, zv),
-            MRIFvox(gcam->mri_yind, xv, yv, zv),
-            MRIFvox(gcam->mri_zind, xv, yv, zv));
-#endif
   return (NO_ERROR);
 }
 

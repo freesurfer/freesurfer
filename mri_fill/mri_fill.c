@@ -2224,7 +2224,6 @@ main(int argc, char *argv[])
     lta->type = LINEAR_RAS_TO_RAS;
     // try getting from mri
     // transform is MNI transform (only COR volume reads transform)
-#if !defined(BEVIN_EXCLUDE_MINC)
     if (mri_im->linear_transform)
     {
       int row;
@@ -2263,7 +2262,6 @@ main(int argc, char *argv[])
       }
     }
     else
-#endif
     {
       printf("INFO: volume does not have linear_transform "
              "set nor lta is given by option.-xform.\n") ;
@@ -3860,9 +3858,7 @@ find_cutting_plane
   // mri coming is a talairached volume
   /* search for valid seed point */
   if (
-#if !defined(BEVIN_EXCLUDE_MINC)  
   mri_tal->linear_transform || 
-#endif
   lta)
   {
     MRIworldToVoxel(mri_tal, x_tal, y_tal,  z_tal, &x, &y, &z) ;
@@ -4614,9 +4610,7 @@ find_corpus_callosum
   // this function is called with mri being talairached volume
   // get the talairach coords (0,0,0) in the voxel space
   if (
-#if !defined(BEVIN_EXCLUDE_MINC)
       mri_tal->linear_transform || 
-#endif
       lta)
   {
     MRIworldToVoxel
