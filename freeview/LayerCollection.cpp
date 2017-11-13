@@ -451,6 +451,27 @@ void LayerCollection::ReorderLayers(const QList<Layer*> &layers)
   emit LayersReordered();
 }
 
+void LayerCollection::UpdateLayerOrder(const QList<int> &layer_ids)
+{
+  QList<Layer*> old_layers = m_layers;
+  QList<Layer*> new_layers;
+  for (int i = 0; i < layer_ids.size(); i++)
+  {
+    for (int j = 0; j < old_layers.size(); j++)
+    {
+      if (old_layers[j]->GetID() == layer_ids[i])
+      {
+        new_layers << old_layers[j];
+        old_layers.removeAt(j);
+        break;
+      }
+    }
+  }
+
+  if (new_layers.size() == m_layers.size())
+    ReorderLayers(new_layers);
+}
+
 bool LayerCollection::Contains( Layer* layer )
 {
   for ( int i = 0; i < m_layers.size(); i++ )

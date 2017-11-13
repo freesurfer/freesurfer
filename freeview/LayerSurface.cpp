@@ -1204,6 +1204,7 @@ void LayerSurface::SetActiveSurface( int nSurface )
     }
 
     emit ActorUpdated();
+    emit ActiveSurfaceChanged(nSurface);
   }
 }
 
@@ -2006,7 +2007,7 @@ bool LayerSurface::GetCorrelationOverlayDataAtVertex(int nVert, float *output, i
 
 bool LayerSurface::IsInflated()
 {
-  return GetFileName().toLower().contains("inflated");
+  return (GetFileName().toLower().contains("inflated") || GetActiveSurface() == FSSurface::SurfaceInflated);
 }
 
 bool LayerSurface::GetActiveLabelCentroidPosition(double *pos)
@@ -2200,7 +2201,6 @@ void LayerSurface::RemoveMappedLabel(QObject *label_in)
   }
   UpdateOverlay(true, true);
 }
-
 
 QList<int> LayerSurface::FindPath(const QList<int> seeds)
 {
