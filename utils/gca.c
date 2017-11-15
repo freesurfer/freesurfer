@@ -139,8 +139,8 @@ static int gcaScale(GCA *gca, int *labels, int *contra_labels, float *scales, in
 #if 1
 static int gcaMaxPriorLabel(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z);
 #endif
-static GCA_NODE *gcaBuildNbhdGCAN(GCA *gca, int x, int y, int z, int wsize, float sigma);
-static GCA_PRIOR *gcaBuildNbhdGCAP(GCA *gca, int x, int y, int z, int wsize, float sigma, GCA *gca_smooth);
+static GCA_NODE *gcaBuildNbhdGCAN(GCA *gca, int x, int y, int z, float sigma);
+static GCA_PRIOR *gcaBuildNbhdGCAP(GCA *gca, int x, int y, int z, float sigma, GCA *gca_smooth);
 
 static HISTOGRAM *gcaGetLabelHistogram(GCA *gca, int label, int frame, int border);
 int GCAmaxLabel(GCA *gca);
@@ -3786,7 +3786,8 @@ MRI *GCAcomputeTopNProbabilities(
   for (x = 0; x < width; x++) {
     for (y = 0; y < height; y++) {
       for (z = 0; z < depth; z++) {
-        if (x == Gx && y == Gy && z == Gz) DiagBreak();
+        if (x == Gx && y == Gy && z == Gz) 
+	  DiagBreak();
         load_vals(mri_inputs, x, y, z, vals, gca->ninputs);
         if (!GCAsourceVoxelToNode(gca, mri_inputs, transform, x, y, z, &xn, &yn, &zn)) {
           label = nint(MRIgetVoxVal(mri_labels, x, y, z, 0));
@@ -14232,6 +14233,7 @@ static int gcaCheck(GCA *gca)
 {
   int x, y, z, ret = NO_ERROR, n, r, c, v;
   GCA_NODE *gcan;
+  GCA_PRIOR *gcap ;
   GC1D *gc;
 
   for (x = 0; x < gca->node_width; x++) {
@@ -14244,12 +14246,34 @@ static int gcaCheck(GCA *gca)
         for (n = 0; n < gcan->nlabels; n++) {
           gc = &gcan->gcs[n];
           for (v = r = 0; r < gca->ninputs; r++) {
-            if (gcan->labels[n] > 1 && gc->means[0] < 1 && gc->ntraining > 10) DiagBreak();
+            if (gcan->labels[n] > 1 && gc->means[0] < 1 && gc->ntraining > 10) 
+	      DiagBreak();
             for (c = r; c < gca->ninputs; c++, v++)
-              if (!isfinite(gc->means[r]) || !isfinite(gc->covars[v])) {
+              if (!check_finite("gcaCheckN1", gc->means[r]) || !check_finite("gcaCheckN2", gc->covars[v])) {
                 ret = ERROR_BADPARM;
                 DiagBreak();
               }
+          }
+        }
+      }
+    }
+  }
+  for (x = 0; x < gca->prior_width; x++) {
+    for (y = 0; y < gca->prior_height; y++) {
+      for (z = 0; z < gca->prior_depth; z++) {
+        if (x == Ggca_x && y == Ggca_y && z == Ggca_z) {
+          DiagBreak();
+        }
+        gcap = &gca->priors[x][y][z];
+	check_finite("gcaCheck1", gcap->nlabels) ;
+	check_finite("gcaCheck2", gcap->max_labels) ;
+	check_finite("gcaCheck3", gcap->total_training) ;
+        for (n = 0; n < gcap->nlabels; n++) 
+	{
+	  if (check_finite("gcaCheck4", gcap->priors[n]) == 0)
+	  {
+	    ret = ERROR_BADPARM;
+	    DiagBreak();
           }
         }
       }
@@ -24584,23 +24608,26 @@ int GCArenormalizeClass(GCA *gca, int class, float scale_to_wm)
 }
 
 static int nbr_labels[GIBBS_NEIGHBORS][MAX_CMA_LABELS][MAX_CMA_LABELS];
-static GCA_NODE *gcaBuildNbhdGCAN(GCA *gca, int x, int y, int z, int wsize, float sigma)
+static GCA_NODE *gcaBuildNbhdGCAN(GCA *gca, int x, int y, int z, float sigma)
 {
   GCA_NODE *gcan, *gcan_total;
   int labels[MAX_CMA_LABELS], n, xi, yi, zi, xk, yk, zk, whalf, nlabels, n2, n3, n4, r, c, v, i;
   GC1D *gc, *gc_total;
   double norm, wt, two_sigma_sq, dsq, total_wt, gc_training[MAX_LABELS_PER_GCAN], total_training;
   static int max_label = -1;
+  int wsize =   (int)nint(3 * 2 * sigma) + 1;
 
+  sigma /= gca->node_spacing ;  // to node vox stride
+  wsize =   1+2*(int)ceil(3 * sigma);
   total_training = 0.0;
   memset(gc_training, 0, sizeof(gc_training));
-  two_sigma_sq = sigma / gca->node_spacing;  // to node vox
-  two_sigma_sq = (2 * two_sigma_sq * two_sigma_sq);
+
+  two_sigma_sq = (2 * sigma * sigma);
   if (max_label < 0) {
     max_label = GCAmaxLabel(gca);
   }
-  sigma /= gca->node_spacing;  // to mm
-  whalf = (int)(ceil((float)(wsize - 1) / (2.0 * gca->node_spacing))) + 1;
+
+  whalf = ceil((float)(wsize - 1) / (2.0)) ;
   memset(labels, 0, sizeof(labels));
   //  memset(nbr_labels, 0, sizeof(nbr_labels)) ;
 
@@ -24861,21 +24888,23 @@ static GCA_NODE *gcaBuildNbhdGCAN(GCA *gca, int x, int y, int z, int wsize, floa
 
   return (gcan_total);
 }
-static GCA_PRIOR *gcaBuildNbhdGCAP(GCA *gca, int x, int y, int z, int wsize, float sigma, GCA *gca_smooth)
+static GCA_PRIOR *gcaBuildNbhdGCAP(GCA *gca, int x, int y, int z, float sigma, GCA *gca_smooth)
 {
   GCA_PRIOR *gcap, *gcap_total;
   int labels[MAX_CMA_LABELS], n, xi, yi, zi, xk, yk, zk, whalf, nlabels, n2;
   double norm, wt, two_sigma_sq, dsq, total_wt, total_training;
   static int max_label = -1;
+  int  wsize ;
 
+  sigma /= gca->prior_spacing ;  // into prior strides
+  wsize = 1+2*(int)ceil(3*sigma) ;  // 3 sigmas in each dir and odd
   total_training = 0.0;
   if (max_label < 0) {
     max_label = GCAmaxLabel(gca);
   }
-  two_sigma_sq = sigma / gca->prior_spacing;  // to prior vox
-  two_sigma_sq = (2 * two_sigma_sq * two_sigma_sq);
+  two_sigma_sq = (2 * sigma * sigma);
 
-  whalf = (int)(ceil((float)(wsize - 1) / (2.0 * gca->prior_spacing)));
+  whalf = (int)ceil((float)(wsize - 1) / (2.0));
   memset(labels, 0, sizeof(labels));
 
   gcap_total = (GCA_PRIOR *)calloc(1, sizeof(GCA_PRIOR));
@@ -24955,7 +24984,9 @@ static GCA_PRIOR *gcaBuildNbhdGCAP(GCA *gca, int x, int y, int z, int wsize, flo
               continue;
             }
           }
-          if (GCAfindGC(gca, xn, yn, zn, gcap->labels[n]) != NULL) {
+	  if (gcap->labels[n] == Gdiag_no && x == Gxp && y == Gyp && z == Gzp)
+	    DiagBreak() ;
+          if (1 || GCAfindGC(gca, xn, yn, zn, gcap->labels[n]) != NULL) { // DISABLED (BRF)
             labels[gcap->labels[n]]++;
           }
         }
@@ -25027,7 +25058,7 @@ static GCA_PRIOR *gcaBuildNbhdGCAP(GCA *gca, int x, int y, int z, int wsize, flo
               continue;
             }
           }
-          if (GCAfindGC(gca, xn, yn, zn, gcap->labels[n]) == NULL) {
+          if (0 && GCAfindGC(gca, xn, yn, zn, gcap->labels[n]) == NULL) {  // DISABLED (BRF)
             continue;
           }
           for (n2 = 0; n2 < gcap_total->nlabels; n2++)
@@ -25141,8 +25172,8 @@ MRI *GCAreclassifyUnlikelyVoxels(GCA *gca,
               if (x == Ggca_x && y == Ggca_y && z == Ggca_z) {
                 DiagBreak();
               }
-              gcan_total = gcaBuildNbhdGCAN(gca, xn, yn, zn, wsize, sigma);
-              gcap_total = gcaBuildNbhdGCAP(gca, xp, yp, zp, wsize, sigma, NULL);
+              gcan_total = gcaBuildNbhdGCAN(gca, xn, yn, zn, sigma);
+              gcap_total = gcaBuildNbhdGCAP(gca, xp, yp, zp, sigma, NULL);
               max_label = 0;
               max_n = -1;
               max_p = 2 * GIBBS_NEIGHBORS * BIG_AND_NEGATIVE;
@@ -25338,8 +25369,8 @@ MRI *GCAcomputeOptimalScale(GCA *gca,
           last_sigma = max_sigma;
           for (scale = max_sigma / 2; scale >= 1; scale /= 2) {
             for (sigma = first_sigma; sigma <= last_sigma; sigma += scale * delta_sigma) {
-              gcan_total = gcaBuildNbhdGCAN(gca, xn, yn, zn, wsize, sigma);
-              gcap_total = gcaBuildNbhdGCAP(gca, xp, yp, zp, wsize, sigma, NULL);
+              gcan_total = gcaBuildNbhdGCAN(gca, xn, yn, zn, sigma);
+              gcap_total = gcaBuildNbhdGCAP(gca, xp, yp, zp, sigma, NULL);
 
               // marginalize over labels
               total_p = 0;
@@ -25419,8 +25450,8 @@ MRI *GCAreclassifyVoxelsAtOptimalScale(
               DiagBreak();
             }
             sigma = MRIgetVoxVal(mri_sigma, x, y, z, 0);
-            gcan_total = gcaBuildNbhdGCAN(gca, xn, yn, zn, wsize, sigma);
-            gcap_total = gcaBuildNbhdGCAP(gca, xp, yp, zp, wsize, sigma, NULL);
+            gcan_total = gcaBuildNbhdGCAN(gca, xn, yn, zn, sigma);
+            gcap_total = gcaBuildNbhdGCAP(gca, xp, yp, zp, sigma, NULL);
             max_label = 0;
             max_n = -1;
             max_p = 2 * GIBBS_NEIGHBORS * BIG_AND_NEGATIVE;
@@ -25542,11 +25573,9 @@ GCA *GCAsmooth(GCA *gca, double sigma)
 {
   GCA_NODE *gcan_total, *gcan;
   GCA_PRIOR *gcap_total, *gcap;
-  int xp, yp, zp, xn, yn, zn, wsize, n;
+  int xp, yp, zp, xn, yn, zn, n;
   GCA *gca_smooth;
-  float node_ratio = gca->node_spacing / gca->prior_spacing;
 
-  wsize = (int)ceil(2 * 3 * sigma) + 1;  // 3 sigmas in each direction, plus central vox
   gca_smooth = GCAcopy(gca, NULL);
 
   for (xn = 0; xn < gca->node_width; xn++) {
@@ -25557,7 +25586,7 @@ GCA *GCAsmooth(GCA *gca, double sigma)
         }
 
         gcan = &gca_smooth->nodes[xn][yn][zn];
-        gcan_total = gcaBuildNbhdGCAN(gca, xn, yn, zn, wsize, node_ratio * sigma);
+        gcan_total = gcaBuildNbhdGCAN(gca, xn, yn, zn, sigma);
         if (gcan_total->nlabels == 0) {
           gcan_total->nlabels = 1;
           gcan_total->labels[0] = 0;
@@ -25606,7 +25635,7 @@ GCA *GCAsmooth(GCA *gca, double sigma)
         if (xp == Gx && yp == Gy && zp == Gz) {
           DiagBreak();
         }
-        gcap_total = gcaBuildNbhdGCAP(gca, xp, yp, zp, wsize, sigma, gca_smooth);
+        gcap_total = gcaBuildNbhdGCAP(gca, xp, yp, zp, sigma, gca_smooth);
         gcap = &gca_smooth->priors[xp][yp][zp];
         gcap->nlabels = gcap_total->nlabels;
         if (gcap_total->nlabels > gcap->max_labels) {
@@ -25661,6 +25690,7 @@ GCA *GCAsmooth(GCA *gca, double sigma)
       }
     }
   }
+  gcaCheck(gca_smooth) ;
   return (gca_smooth);
 }
 GCA *GCAnodeDownsample2(GCA *gca)
@@ -25672,7 +25702,7 @@ GCA *GCAnodeDownsample2(GCA *gca)
   float sigma;
 
   sigma = gca->node_spacing / 2;
-  wsize = (int)(4 * sigma) + 1;
+  wsize = ceil(4 * sigma) + 1;
   gca_smooth =
       GCAalloc(gca->ninputs, gca->prior_spacing, gca->node_spacing * 2, gca->width, gca->height, gca->depth, 0);
   GCAcopy(gca, gca_smooth);
@@ -25687,7 +25717,7 @@ GCA *GCAnodeDownsample2(GCA *gca)
         xn2 = xn / 2;
         yn2 = yn / 2;
         zn2 = zn / 2;
-        gcan_total = gcaBuildNbhdGCAN(gca, xn, yn, zn, wsize, sigma);
+        gcan_total = gcaBuildNbhdGCAN(gca, xn, yn, zn, sigma);
         gcan = &gca_smooth->nodes[xn2][yn2][zn2];
         if (gcan_total->nlabels == 0) {
           gcan_total->nlabels = 1;
@@ -25737,7 +25767,7 @@ GCA *GCAnodeDownsample2(GCA *gca)
         if (xp == Gx && yp == Gy && zp == Gz) {
           DiagBreak();
         }
-        gcap_total = gcaBuildNbhdGCAP(gca, xp, yp, zp, wsize, 0, gca_smooth);
+        gcap_total = gcaBuildNbhdGCAP(gca, xp, yp, zp, 0, gca_smooth);
         gcap = &gca_smooth->priors[xp][yp][zp];
         gcap->nlabels = gcap_total->nlabels;
         if (gcap_total->nlabels > gcap->max_labels) {
