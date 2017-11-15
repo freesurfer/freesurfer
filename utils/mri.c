@@ -2479,7 +2479,6 @@ int MRIcheckSize(MRI *mri_src, MRI *mri_check, int width, int height, int depth)
 }
 /*-----------------------------------------------------
   ------------------------------------------------------*/
-#if !defined(BEVIN_EXCLUDE_MINC)
 int MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region, MRI_REGION *dst_region)
 {
   double xw, yw, zw, xt, yt, zt, xv, yv, zv;
@@ -2532,7 +2531,6 @@ int MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region, MRI_R
 
   return (NO_ERROR);
 }
-#endif
 /*-----------------------------------------------------
   ------------------------------------------------------*/
 int MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, double xv, double yv, double zv, double *pxt, double *pyt, double *pzt)
@@ -2565,9 +2563,7 @@ int MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, double xv, double yv, double zv,
                  getSliceDirection(mri_src))) ;
   }
 #endif
-#if !defined(BEVIN_EXCLUDE_MINC)
   if (!mri_src->linear_transform || !mri_dst->inverse_linear_transform) 
-#endif
   {
     /*
       if either doesn't have a transform defined, assume they are in
@@ -2583,7 +2579,6 @@ int MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, double xv, double yv, double zv,
       *pzt = zv;
     }
   }
-#if !defined(BEVIN_EXCLUDE_MINC)
   else {
     double xt, yt, zt;
     MRIvoxelToWorld(mri_src, xv, yv, zv, &xw, &yw, &zw);
@@ -2603,7 +2598,6 @@ int MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, double xv, double yv, double zv,
     }
     MRIworldToVoxel(mri_dst, xw, yw, zw, pxt, pyt, pzt);
   }
-#endif
 
   return (NO_ERROR);
 }
@@ -2636,11 +2630,9 @@ int MRIvoxelToTalairachVoxel(MRI *mri, double xv, double yv, double zv, double *
   }
 
   MRIvoxelToWorld(mri, xv, yv, zv, &xw, &yw, &zw);
-#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri->linear_transform)
     transform_point(mri->linear_transform, xw, yw, zw, &xt, &yt, &zt);
   else 
-#endif
   {
     xt = xw;
     yt = yw;
@@ -2680,11 +2672,9 @@ int MRIvoxelToTalairach(MRI *mri, double xv, double yv, double zv, double *pxt, 
   }
 
   MRIvoxelToWorld(mri, xv, yv, zv, &xw, &yw, &zw);
-#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri->linear_transform)
     transform_point(mri->linear_transform, xw, yw, zw, pxt, pyt, pzt);
   else 
-#endif
   {
     *pxt = xw;
     *pyt = yw;
@@ -2722,11 +2712,9 @@ int MRItalairachToVoxel(MRI *mri, double xt, double yt, double zt, double *pxv, 
           (ERROR_UNSUPPORTED, "MRIvoxelToTalairachVoxel: unsupported slice direction %d", getSliceDirection(mri)));
   }
 
-#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri->inverse_linear_transform)
     transform_point(mri->inverse_linear_transform, xt, yt, zt, &xw, &yw, &zw);
   else 
-#endif
   {
     xw = xt;
     yw = yt;
@@ -2766,11 +2754,9 @@ int MRItalairachVoxelToVoxel(MRI *mri, double xtv, double ytv, double ztv, doubl
   }
 
   MRIvoxelToWorld(mri, xtv, ytv, ztv, &xt, &yt, &zt);
-#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri->inverse_linear_transform)
     transform_point(mri->inverse_linear_transform, xt, yt, zt, &xw, &yw, &zw);
   else 
-#endif
   {
     xw = xt;
     yw = yt;
@@ -2810,11 +2796,9 @@ int MRItalairachVoxelToWorld(MRI *mri, double xtv, double ytv, double ztv, doubl
   }
 
   MRIvoxelToWorld(mri, xtv, ytv, ztv, &xt, &yt, &zt);
-#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri->inverse_linear_transform)
     transform_point(mri->inverse_linear_transform, xt, yt, zt, &xw, &yw, &zw);
   else 
-#endif
   {
     xw = xt;
     yw = yt;
@@ -2860,7 +2844,6 @@ int MRIvoxelToWorld(MRI *mri, double xv, double yv, double zv, double *pxw, doub
 
   return (NO_ERROR);
 }
-#if !defined(BEVIN_EXCLUDE_MINC)
 /*-----------------------------------------------------
   ------------------------------------------------------*/
 int MRIworldToTalairachVoxel(MRI *mri, double xw, double yw, double zw, double *pxv, double *pyv, double *pzv)
@@ -2878,7 +2861,6 @@ int MRIworldToTalairachVoxel(MRI *mri, double xw, double yw, double zw, double *
   MRIworldToVoxel(mri, xt, yt, zt, pxv, pyv, pzv);
   return (NO_ERROR);
 }
-#endif
 /*-----------------------------------------------------
   ------------------------------------------------------*/
 int MRIworldToVoxelIndex(MRI *mri, double xw, double yw, double zw, int *pxv, int *pyv, int *pzv)
@@ -5805,9 +5787,7 @@ int MRIfree(MRI **pmri)
     free(mri->slices);
   }
 
-#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri->free_transform) delete_general_transform(&mri->transform);
-#endif
 
   if (mri->register_mat != NULL) MatrixFree(&(mri->register_mat));
 
@@ -6072,7 +6052,6 @@ MRI *MRIcopyHeader(const MRI *mri_src, MRI *mri_dst)
   mri_dst->ysize = mri_src->ysize;
   mri_dst->zsize = mri_src->zsize;
 
-#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri_dst->free_transform) delete_general_transform(&mri_dst->transform);
   if (mri_src->linear_transform) {
     copy_general_transform(&(((MRI *)mri_src)->transform), &mri_dst->transform);
@@ -6082,7 +6061,6 @@ MRI *MRIcopyHeader(const MRI *mri_src, MRI *mri_dst)
     mri_dst->inverse_linear_transform = get_inverse_linear_transform_ptr(&mri_dst->transform);
     mri_dst->free_transform = 1;
   }
-#endif
   strcpy(mri_dst->transform_fname, mri_src->transform_fname);
   if (mri_dst->depth == mri_src->depth) {
     mri_dst->imnr0 = mri_src->imnr0;
@@ -6207,12 +6185,12 @@ MRI *MRItranslate(MRI *mri_src, MRI *mri_dst, double dx, double dy, double dz)
   ------------------------------------------------------*/
 MRI *MRIrotateX(MRI *mri_src, MRI *mri_dst, float x_angle)
 {
-  int width, height, depth;
+  // int width, height, depth;
   MATRIX *m, *mO;
 
-  width = mri_src->width;
-  height = mri_src->height;
-  depth = mri_src->depth;
+    // width = mri_src->width;
+    // height = mri_src->height;
+    // depth = mri_src->depth;
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL);
   else
@@ -6245,12 +6223,12 @@ MRI *MRIrotateX(MRI *mri_src, MRI *mri_dst, float x_angle)
   ------------------------------------------------------*/
 MRI *MRIrotateY(MRI *mri_src, MRI *mri_dst, float y_angle)
 {
-  int width, height, depth;
+  // int width, height, depth;
   MATRIX *m, *mO;
 
-  width = mri_src->width;
-  height = mri_src->height;
-  depth = mri_src->depth;
+  // width = mri_src->width;
+  // height = mri_src->height;
+  // depth = mri_src->depth;
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL);
   else
@@ -6284,12 +6262,12 @@ MRI *MRIrotateY(MRI *mri_src, MRI *mri_dst, float y_angle)
   ------------------------------------------------------*/
 MRI *MRIrotateZ(MRI *mri_src, MRI *mri_dst, float z_angle)
 {
-  int width, height, depth;
+  // int width, height, depth;
   MATRIX *m, *mO;
 
-  width = mri_src->width;
-  height = mri_src->height;
-  depth = mri_src->depth;
+  // width = mri_src->width;
+  // height = mri_src->height;
+  // depth = mri_src->depth;
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL);
   else
@@ -6320,12 +6298,12 @@ MRI *MRIrotateZ(MRI *mri_src, MRI *mri_dst, float z_angle)
   ------------------------------------------------------*/
 MRI *MRIrotateX_I(MRI *mri_src, MRI *mri_dst, float x_angle)
 {
-  int width, height, depth;
+  // int width, height, depth;
   MATRIX *m;
 
-  width = mri_src->width;
-  height = mri_src->height;
-  depth = mri_src->depth;
+  // width = mri_src->width;
+  // height = mri_src->height;
+  // depth = mri_src->depth;
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL);
   else
@@ -6352,12 +6330,12 @@ MRI *MRIrotateX_I(MRI *mri_src, MRI *mri_dst, float x_angle)
   ------------------------------------------------------*/
 MRI *MRIrotateY_I(MRI *mri_src, MRI *mri_dst, float y_angle)
 {
-  int width, height, depth;
+  // int width, height, depth;
   MATRIX *m;
 
-  width = mri_src->width;
-  height = mri_src->height;
-  depth = mri_src->depth;
+  // width = mri_src->width;
+  // height = mri_src->height;
+  // depth = mri_src->depth;
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL);
   else
@@ -6384,12 +6362,12 @@ MRI *MRIrotateY_I(MRI *mri_src, MRI *mri_dst, float y_angle)
   ------------------------------------------------------*/
 MRI *MRIrotateZ_I(MRI *mri_src, MRI *mri_dst, float z_angle)
 {
-  int width, height, depth;
+  // int width, height, depth;
   MATRIX *m;
 
-  width = mri_src->width;
-  height = mri_src->height;
-  depth = mri_src->depth;
+  // width = mri_src->width;
+  // height = mri_src->height;
+  // depth = mri_src->depth;
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL);
   else
@@ -7096,13 +7074,14 @@ MRI *ImageToMRI(IMAGE *I)
         switch (mri->type) {
           case MRI_UCHAR:
             if (I->pixel_format == PFRGB) {
-              int rgb, r, g, b;
+              int rgb;
+              // int r, g, b;
 
               rgb = *(int *)IMAGERGBpix(I, x, yp) & 0x00ffffff;
               if (rgb > 0) DiagBreak();
-              r = rgb & 0x00ff;
-              g = (rgb >> 8) & 0x00ff;
-              b = (rgb >> 16) & 0x00ff;
+              // r = rgb & 0x00ff;
+              // g = (rgb >> 8) & 0x00ff;
+              // b = (rgb >> 16) & 0x00ff;
               MRIseq_vox(mri, x, y, 0, frames) = rgb;
               //	    MRIseq_vox(mri, x, y, 0, frames) = (0.299*r + 0.587*g + 0.114*b); ; // standard tv
               // conversion
@@ -7114,16 +7093,17 @@ MRI *ImageToMRI(IMAGE *I)
             MRISseq_vox(mri, x, y, 0, frames) = *IMAGESpix(I, x, yp);
             break;
           case MRI_INT: {
-            int val;
+            // int val;
 
             if (I->pixel_format == PFRGB) {
-              int rgb, r, g, b;
+              int rgb;
+              // int r, g, b;
 
               rgb = *(int *)IMAGERGBpix(I, x, yp);
               if (rgb > 0) DiagBreak();
-              r = rgb & 0x00ff;
-              g = (rgb >> 8) & 0x00ff;
-              b = (rgb >> 16) & 0x00ff;
+              // r = rgb & 0x00ff;
+              // g = (rgb >> 8) & 0x00ff;
+              // b = (rgb >> 16) & 0x00ff;
               MRIseq_vox(mri, x, y, 0, frames) = rgb;
               //	      MRIseq_vox(mri, x, y, 0, frames) = (0.299*r + 0.587*g + 0.114*b); ; // standard tv
               // conversion
@@ -7134,7 +7114,7 @@ MRI *ImageToMRI(IMAGE *I)
                 MRIIseq_vox(mri, x, y, 0, frames) = (int)((unsigned short)(*IMAGESpix(I, x, yp)));
               else
                 MRIIseq_vox(mri, x, y, 0, frames) = *IMAGEIpix(I, x, yp);
-              val = MRIIseq_vox(mri, x, y, 0, frames);
+              // val = MRIIseq_vox(mri, x, y, 0, frames);
             }
             break;
           }
@@ -8157,7 +8137,6 @@ int MRIsetResolution(MRI *mri, float xres, float yres, float zres)
   MRIreInitCache(mri);
   return (NO_ERROR);
 }
-#if !defined(BEVIN_EXCLUDE_MINC)
 /*-----------------------------------------------------
   Parameters:
 
@@ -8173,7 +8152,6 @@ int MRIsetTransform(MRI *mri, General_transform *transform)
 
   return (NO_ERROR);
 }
-#endif
 /*-----------------------------------------------------
   Parameters:
 
@@ -8185,7 +8163,8 @@ MRI *MRIextractTalairachPlane(MRI *mri_src, MRI *mri_dst, int orientation, int x
 {
   double e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase;
   int whalf, xk, yk, xi, yi, zi;
-  double ex, ey, ez, len, x0, y0, z0;
+  double ex, ey, ez, x0, y0, z0;
+  // double len;
 
   whalf = (wsize - 1) / 2;
 
@@ -8264,9 +8243,9 @@ MRI *MRIextractTalairachPlane(MRI *mri_src, MRI *mri_dst, int orientation, int x
       break;
   }
 
-  len = sqrt(e1_x * e1_x + e1_y * e1_y + e1_z * e1_z);
+  // len = sqrt(e1_x * e1_x + e1_y * e1_y + e1_z * e1_z);
   /*  e1_x /= len ; e1_y /= len ; e1_z /= len ;*/
-  len = sqrt(e2_x * e2_x + e2_y * e2_y + e2_z * e2_z);
+  // len = sqrt(e2_x * e2_x + e2_y * e2_y + e2_z * e2_z);
   /*  e2_x /= len ; e2_y /= len ; e2_z /= len ;*/
 
   for (yk = -whalf; yk <= whalf; yk++) {
@@ -8348,7 +8327,8 @@ int MRIeraseTalairachPlaneNew(MRI *mri, MRI *mri_mask, int orientation, int x, i
 {
   double e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase;
   int whalf, xk, yk, xi, yi, zi, xki, yki, x0, y0;
-  double ex, ey, ez, len, xt0, yt0, zt0;
+  double ex, ey, ez, xt0, yt0, zt0;
+  // double len;
 
   whalf = (wsize - 1) / 2;
 
@@ -8420,9 +8400,9 @@ int MRIeraseTalairachPlaneNew(MRI *mri, MRI *mri_mask, int orientation, int x, i
     don't want to normalize basis - they are orthonormal in magnet space,
     not necessarily Talairach space.
   */
-  len = sqrt(e1_x * e1_x + e1_y * e1_y + e1_z * e1_z);
+  // len = sqrt(e1_x * e1_x + e1_y * e1_y + e1_z * e1_z);
   /*  e1_x /= len ; e1_y /= len ; e1_z /= len ;*/
-  len = sqrt(e2_x * e2_x + e2_y * e2_y + e2_z * e2_z);
+  // len = sqrt(e2_x * e2_x + e2_y * e2_y + e2_z * e2_z);
   /*  e2_x /= len ; e2_y /= len ; e2_z /= len ;*/
 
   for (yk = -whalf; yk <= whalf; yk++) {
@@ -8453,7 +8433,8 @@ int MRIeraseTalairachPlane(MRI *mri, MRI *mri_mask, int orientation, int x, int 
 {
   double e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase;
   int whalf, xk, yk, xi, yi, zi;
-  double ex, ey, ez, len;
+  double ex, ey, ez;
+  // double len;
 
   whalf = (wsize - 1) / 2;
 
@@ -8522,9 +8503,9 @@ int MRIeraseTalairachPlane(MRI *mri, MRI *mri_mask, int orientation, int x, int 
     don't want to normalize basis - they are orthonormal in magnet space,
     not necessarily Talairach space.
   */
-  len = sqrt(e1_x * e1_x + e1_y * e1_y + e1_z * e1_z);
+  // len = sqrt(e1_x * e1_x + e1_y * e1_y + e1_z * e1_z);
   /*  e1_x /= len ; e1_y /= len ; e1_z /= len ;*/
-  len = sqrt(e2_x * e2_x + e2_y * e2_y + e2_z * e2_z);
+  // len = sqrt(e2_x * e2_x + e2_y * e2_y + e2_z * e2_z);
   /*  e2_x /= len ; e2_y /= len ; e2_z /= len ;*/
 
   for (yk = -whalf; yk <= whalf; yk++) {
@@ -8607,23 +8588,24 @@ MRI *MRIextractPlane(MRI *mri_src, MRI *mri_dst, int orientation, int where)
   ------------------------------------------------------*/
 MRI *MRIfillPlane(MRI *mri_mask, MRI *mri_dst, int orientation, int where, int fillval)
 {
-  int x, y, z, width, height;
+  int x, y, z;
+  // int width, height;
 
-  switch (orientation) {
-    default:
-    case MRI_CORONAL: /* basis vectors in x-y plane */
-      width = mri_mask->width;
-      height = mri_mask->height;
-      break;
-    case MRI_HORIZONTAL: /* basis vectors in x-z plane */
-      width = mri_mask->width;
-      height = mri_mask->depth;
-      break;
-    case MRI_SAGITTAL: /* basis vectors in y-z plane */
-      width = mri_mask->depth;
-      height = mri_mask->height;
-      break;
-  }
+  // switch (orientation) {
+  //   default:
+  //   case MRI_CORONAL: /* basis vectors in x-y plane */
+  //     width = mri_mask->width;
+  //     height = mri_mask->height;
+  //     break;
+  //   case MRI_HORIZONTAL: /* basis vectors in x-z plane */
+  //     width = mri_mask->width;
+  //     height = mri_mask->depth;
+  //     break;
+  //   case MRI_SAGITTAL: /* basis vectors in y-z plane */
+  //     width = mri_mask->depth;
+  //     height = mri_mask->height;
+  //     break;
+  // }
 
   switch (orientation) {
     default:
@@ -8715,7 +8697,8 @@ MRI *MRIinterpolate(MRI *mri_src, MRI *mri_dst)
   int width, height, depth, i;
   float xsmd, ysmd, zsmd, xspd, yspd, zspd, weights[8], fout;
   int xsp, xsm, ysp, ysm, zsp, zsm; /* surrounding coordinates */
-  float vals[8], outval;
+  float vals[8];
+  // float outval;
 
   width = mri_src->width;
   height = mri_src->height;
@@ -8817,7 +8800,7 @@ MRI *MRIinterpolate(MRI *mri_src, MRI *mri_dst)
             printf("%d, %f, %f\n",i,vals[i], weights[i]);
           */
           for (fout = 0.0f, i = 0; i < 8; i++) fout += (float)vals[i] * weights[i];
-          outval = (float)nint(fout);
+          // outval = (float)nint(fout);
           MRIvox(mri_dst, xd, yd, zd) = (BUFTYPE)nint(fout);
         }
       }
@@ -9731,7 +9714,8 @@ int MRIsampleSeqVolumeType(
 double *MRItrilinKernel(MRI *mri, double c, double r, double s, double *kernel)
 {
   int OutOfBounds;
-  int f, xm, xp, ym, yp, zm, zp, width, height, depth;
+  int f, xm, ym, zm, width, height, depth;
+  // int xp, yp, zp;
   double xmd, ymd, zmd, xpd, ypd, zpd; /* d's are distances */
 
   if (kernel == NULL) kernel = (double *)calloc(8, sizeof(double));
@@ -9754,11 +9738,11 @@ double *MRItrilinKernel(MRI *mri, double c, double r, double s, double *kernel)
   if (s < 0.0) s = 0.0;
 
   xm = MAX((int)c, 0);
-  xp = MIN(width - 1, xm + 1);
+  // xp = MIN(width - 1, xm + 1);
   ym = MAX((int)r, 0);
-  yp = MIN(height - 1, ym + 1);
+  // yp = MIN(height - 1, ym + 1);
   zm = MAX((int)s, 0);
-  zp = MIN(depth - 1, zm + 1);
+  // zp = MIN(depth - 1, zm + 1);
 
   xmd = c - (double)xm;
   ymd = r - (double)ym;
@@ -10063,7 +10047,7 @@ int MRIsincSampleVolume(const MRI *mri, double x, double y, double z, int hw, do
   double coeff_x[128], coeff_y[128], coeff_z[128];
   double coeff_x_sum, coeff_y_sum, coeff_z_sum;
   double sum_x, sum_y, sum_z;
-  double xsize, ysize, zsize;
+  // double xsize, ysize, zsize;
 
   OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
   if (OutOfBounds == 1) {
@@ -10072,9 +10056,9 @@ int MRIsincSampleVolume(const MRI *mri, double x, double y, double z, int hw, do
     return (NO_ERROR);
   }
 
-  xsize = mri->xsize;
-  ysize = mri->ysize;
-  zsize = mri->zsize;
+  // xsize = mri->xsize;
+  // ysize = mri->ysize;
+  // zsize = mri->zsize;
   width = mri->width;
   height = mri->height;
   depth = mri->depth;
@@ -10165,7 +10149,7 @@ int MRIsincSampleVolumeFrame(MRI *mri, double x, double y, double z, int frame, 
   double coeff_x[128], coeff_y[128], coeff_z[128];
   double coeff_x_sum, coeff_y_sum, coeff_z_sum;
   double sum_x, sum_y, sum_z;
-  double xsize, ysize, zsize;
+  // double xsize, ysize, zsize;
 
   OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
   if (OutOfBounds == 1) {
@@ -10174,9 +10158,9 @@ int MRIsincSampleVolumeFrame(MRI *mri, double x, double y, double z, int frame, 
     return (NO_ERROR);
   }
 
-  xsize = mri->xsize;
-  ysize = mri->ysize;
-  zsize = mri->zsize;
+  // xsize = mri->xsize;
+  // ysize = mri->ysize;
+  // zsize = mri->zsize;
   width = mri->width;
   height = mri->height;
   depth = mri->depth;
@@ -10556,12 +10540,12 @@ int MRIsampleVolumeDerivative(MRI *mri, double x, double y, double z, double dx,
   ------------------------------------------------------*/
 int MRIsampleVolumeGradient(MRI *mri, double x, double y, double z, double *pdx, double *pdy, double *pdz)
 {
-  int width, height, depth;
+  // int width, height, depth;
   double xp1, xm1, yp1, ym1, zp1, zm1;
 
-  width = mri->width;
-  height = mri->height;
-  depth = mri->depth;
+  // width = mri->width;
+  // height = mri->height;
+  // depth = mri->depth;
 #if 0
   if (x >= width)
     x = width - 1.0 ;
@@ -10619,12 +10603,12 @@ int MRIsampleVolumeGradient(MRI *mri, double x, double y, double z, double *pdx,
 int MRIsampleVolumeGradientFrame(
     const MRI *mri, double x, double y, double z, double *pdx, double *pdy, double *pdz, int frame)
 {
-  int width, height, depth;
+  // int width, height, depth;
   double xp1, xm1, yp1, ym1, zp1, zm1;
 
-  width = mri->width;
-  height = mri->height;
-  depth = mri->depth;
+  // width = mri->width;
+  // height = mri->height;
+  // depth = mri->depth;
 #if 0
   if (x >= width)
     x = width - 1.0 ;

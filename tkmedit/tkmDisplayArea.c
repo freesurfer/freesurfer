@@ -1326,12 +1326,10 @@ DspA_tErr DspA_ConvertAndSetCursor ( tkmDisplayAreaRef this,
     eVolume = Volm_ConvertRASToIdx( this->mpVolume[tkm_tVolumeType_Main],
                                     ipCoord, &anaIdx );
     break;
-#if !defined(BEVIN_EXCLUDE_MINC)
   case mri_tCoordSpace_Talairach:
     eVolume = Volm_ConvertTalToIdx( this->mpVolume[tkm_tVolumeType_Main],
                                     ipCoord, &anaIdx );
     break;
-#endif
   default:
     eResult = DspA_tErr_InvalidParameter;
     goto error;
@@ -7532,7 +7530,6 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
   tkm_SendTclCommand( tkm_tTclCommand_UpdateRASCursor, sTclArguments );
 
   /* also convert to mni and send those coords along. */
-#if !defined(BEVIN_EXCLUDE_MINC)
   if (NULL != 
       this->mpVolume[tkm_tVolumeType_Main]->mpMriValues->linear_transform) {
     Volm_ConvertIdxToMNITal( this->mpVolume[tkm_tVolumeType_Main],
@@ -7549,7 +7546,6 @@ DspA_tErr DspA_SendPointInformationToTcl_ ( tkmDisplayAreaRef this,
              DspA_ksaDisplaySet[iSet], xVoxl_ExpandFloat( &voxel ) );
     tkm_SendTclCommand( tkm_tTclCommand_UpdateTalCursor, sTclArguments );
   }
-#endif
 
   /* and the scanner coords. */
   Volm_ConvertIdxToScanner( this->mpVolume[tkm_tVolumeType_Main],

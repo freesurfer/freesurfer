@@ -29,6 +29,7 @@
 #include <QObject>
 #include <QString>
 #include <QList>
+#include <QMap>
 
 class Layer;
 class vtkRenderer;
@@ -53,6 +54,7 @@ public:
   bool MoveToTop( Layer* layer );
   bool CycleLayer( bool bMoveUp = true, bool bChangeActiveLayer = false );
   void ReorderLayers( const QList<Layer*>& layers);
+  void UpdateLayerOrder(const QList<int>& layer_ids);
 
   void Append2DProps( vtkRenderer* renderer, int nImagePlane );
   void Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility = NULL );

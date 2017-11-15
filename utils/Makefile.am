@@ -138,7 +138,6 @@ libutils_main_SOURCES=\
 	imageio.c \
 	imautils.c \
 	intensity_eig.c \
-	inverse.c \
 	ipmpar.c \
 	kernel.c \
 	kinput.c \
@@ -151,13 +150,18 @@ libutils_main_SOURCES=\
 	mgh_filter.c \
 	mgh_matrix.c \
 	min_heap.c \
+	minc_files.c \
+	minc_gaussian.c \
+	minc_inverse.c \
+	minc_multidim_arrays.c \
+	minc_volume_io.c \
 	mincutils.c \
 	minmaxrc.c \
 	morph.c \
 	mosaic.c \
 	mri2.c \
 	mri.c \
-  mriBSpline.c \
+	mriBSpline.c \
 	mriclass.c \
 	mri_conform.c \
 	mricurv.c \

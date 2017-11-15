@@ -207,11 +207,9 @@ typedef struct
   BUFTYPE       ***slices ;
   int           scale ;
   char          transform_fname[STR_LEN] ;
-#if !defined(BEVIN_EXCLUDE_MINC)
   General_transform transform ;   /* the next two are from this struct */
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
-#endif
   int           free_transform ;   /* are we responsible for freeing it? */
   int           nframes ;          /* # of concatenated images */
 
@@ -388,9 +386,7 @@ MRI   *MRIallocSequence(int width, int height,int depth,int type,int nframes);
 MRI   *MRIallocHeader(int width, int height, int depth, int type, int nframes) ;
 int   MRIallocIndices(MRI *mri) ;
 int   MRIsetResolution(MRI *mri, float xres, float yres, float zres) ;
-#if !defined(BEVIN_EXCLUDE_MINC)
 int   MRIsetTransform(MRI *mri,   General_transform *transform) ;
-#endif
 MRI * MRIallocChunk(int width, int height, int depth, int type, int nframes);
 int   MRIchunk(MRI **pmri);
 
