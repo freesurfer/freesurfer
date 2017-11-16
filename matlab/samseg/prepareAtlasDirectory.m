@@ -2,7 +2,7 @@ function prepareAtlasDirectory( directoryName, compressionLookupTableFileName, m
                                 FreeSurferLookupTableFileName, sharedGMMParameters, ...
                                 missingStructuresMergeOptions, affineAtlasAdditionalMergeOptions, ...
                                 smoothingSigmaForLevel1, meshCollectionFileNameForLevel1, ...
-                                meshCollectionFileNameForAffine )
+                                smoothingSigmaForAffine, meshCollectionFileNameForAffine )
 %
 %
 % 
@@ -75,20 +75,20 @@ if ( nargin == 0 )
   % Specify how a simpler mesh for affine registration purposes is obtained (estimating 12 degrees of freedom really doesn't require
   % a supe-high-quality detailed tetrahedral mesh): either by re-meshing to a regular low-resolution mesh, or by using a precomputed 
   % mesh with a simpler topology
+  smoothingSigmaForAffine = 2.0; % In voxels
   if 0
     meshCollectionFileNameForAffine = [];
   else  
     meshCollectionFileNameForAffine = '/data/testing/atlas/Buckner39AtlasWithMoreClassesAndEyeballs/atlases/10SubjectAtlasMultiresolution/scratch/koenLogDir10SubjectAtlasMultires/CurrentMeshCollection30.gz'; % 1 is a factor 1.4, 3 is factor 2, 30 is factor 3
   end
-
   
   
   % Let the beast go
   prepareAtlasDirectory( directoryName, compressionLookupTableFileName, meshCollectionFileName, templateFileName, ...
-                                FreeSurferLookupTableFileName, sharedGMMParameters, ...
-                                missingStructuresMergeOptions, affineAtlasAdditionalMergeOptions, ...
-                                smoothingSigmaForLevel1, meshCollectionFileNameForLevel1, ...
-                                meshCollectionFileNameForAffine );
+                         FreeSurferLookupTableFileName, sharedGMMParameters, ...
+                         missingStructuresMergeOptions, affineAtlasAdditionalMergeOptions, ...
+                         smoothingSigmaForLevel1, meshCollectionFileNameForLevel1, ...
+                         smoothingSigmaForAffine, meshCollectionFileNameForAffine );
   
   return
 
@@ -182,6 +182,10 @@ kvlWriteImage( template, fullfile( directoryName, 'template.nii' ), transform );
 
 
 if isempty( meshCollectionFileNameForAffine )
+  % Smooth affine atlas
+  kvlSmoothMesh( mesh, smoothingSigmaForAffine );
+  priors = kvlRasterizeAtlasMesh( mesh, size( templateImageBuffer ) );
+
   % Re-mesh the affine atlas
   affineMeshCollection = kvlCreateMeshCollection( priors,  [ 30 30 30 ] );
 else
@@ -209,6 +213,9 @@ else
         kvlMergeAlphas( affineAlphas, affineNames, affineAtlasAdditionalMergeOptions, affineFreeSurferLabels, affineColors );
   kvlSetAlphasInMeshNodes( affineMesh, affineAlphas );
 
+  % Smooth affine atlas
+  affineMeshCollection = kvlSmoothMeshCollection( affineMeshCollection, smoothingSigmaForAffine );
+    
 end
     
     
