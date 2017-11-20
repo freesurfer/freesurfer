@@ -87,6 +87,7 @@ EXTRA_DIST=\
 	gcsa.h \
 	general.h \
 	generators.hpp \
+	geos.h \
 	getdelim.h \
 	getline.h \
 	gifti_io.h \
