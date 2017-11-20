@@ -15,8 +15,8 @@ typedef struct
 VOXEL_LIST *GEOSproposeSegmentation(MRI *image, 
 				    MRI *mri_mask,
 				    MRI_REGION *box,
-				    VOXEL_LIST **interior, int num_interior, 
-				    VOXEL_LIST **exterior, int num_exterior,
+				    VOXEL_LIST *vl_interior, 
+				    VOXEL_LIST *vl_exterior,
 				    GEOS_PARMS *parms);
 
 
