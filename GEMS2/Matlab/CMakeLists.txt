@@ -223,6 +223,11 @@ SET( runnerNumberOfOutputs "1" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
 
+SET( runnerName "GetAverageAtlasMeshPositionCostAndGradientCalculator" )
+SET( runnerNumberOfOutputs "1" )
+CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
+  ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
+
 SET( runnerName "GetOptimizer" )
 SET( runnerNumberOfOutputs "1" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
