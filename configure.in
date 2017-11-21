@@ -3783,7 +3783,6 @@ AC_OUTPUT([Makefile
            mri_ca_train/Makefile
            mri_correct_segmentations/Makefile
            mri_divide_segmentation/Makefile
-           mri_exclude_minc_tests/Makefile
            mri_gtmpvc/Makefile
            mri_rf_label/Makefile
            mri_rf_train/Makefile
@@ -4074,6 +4073,7 @@ AC_OUTPUT([Makefile
            talairach_afd/Makefile
            talairach_avi/Makefile
            template/Makefile
+           test_exclude_minc/Makefile
            test_makevol/Makefile
            tetgen/Makefile
            tiff/Makefile
