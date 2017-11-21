@@ -3068,11 +3068,12 @@ AM_CONDITIONAL(NMR_INSTALL, test x$nmrinstall = xtrue)
 
 
 ################################################
-LIBDIRS_MGH="utils rgb unix dicom hipsstubs"
+LIBDIRS_MGH="minc_substitute utils rgb unix dicom hipsstubs"
 AC_SUBST(LIBDIRS_MGH)
 
 # stupid circular dependency on iopen swapInt etc.
 LIBS_MGH="\
+  minc_substitute/libminc_substitute.a \
   utils/libutils.a \
   fsgdf/libfsgdf.a \
   rgb/librgb.a \
@@ -3758,6 +3759,7 @@ AC_OUTPUT([Makefile
            log/Makefile
            lta_convert/Makefile
            matlab/Makefile
+	   minc_substitute/Makefile
            mkxsubjreg/Makefile
            mri_bias/Makefile
            mri_train_autoencoder/Makefile
