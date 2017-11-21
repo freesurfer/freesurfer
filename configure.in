@@ -427,15 +427,53 @@ if test "$host" = "powerpc64-suse-linux"; then
 fi
 AC_SUBST(LIB_LAPACK)
 
+# BEVIN MOVED THE FOLLOWING UP TO HERE
+# Need to decide MNI_DIR before deciding which netcdf to use
+#
+ac_mni_includes=no
+ac_mni_libraries=no
+MNI_DIR=""
+AC_MSG_CHECKING(MNI directory)
+
+AC_ARG_WITH(mni-dir,
+[  --with-mni-dir=DIR      where the root of MNI is installed.],
+  [  ac_mni_includes="$withval"/include
+     ac_mni_libraries="$withval"/lib
+     MNI_DIR="$withval"
+  ])
+
+if test "x$MNI_DIR" = "x"; then
+  # if an MNI root was not supplied, but one exists in the
+  # default packages path at the NMR Center, then use that:
+  if test -d "${PACKAGES_DIR}/mni/current" ; then
+    withval=${PACKAGES_DIR}/mni/current
+    MNI_DIR="$withval"
+    ac_mni_includes="$withval"/include
+    ac_mni_libraries="$withval"/lib
+  fi
+fi
+
+AC_MSG_RESULT(MNI_DIR is $MNI_DIR)
+
+
+
 # libnetcdf is now installed by default on centos6 computers
 # at the Center. We want it to compile against the static
-# version found in the mni library so that libnetcdf does
-# not become a dependancy for users outside the Center.
+# version found in the mni library or BEVIN ADDED the standalone one in the packages 
+# so that libnetcdf does not become a dependancy for users outside the Center.
 LIB_NETCDF=""
-if test -e ${PACKAGES_DIR}/mni/current/lib/libnetcdf.a ; then
-  LIB_NETCDF="${PACKAGES_DIR}/mni/current/lib/libnetcdf.a"
+if ! test "x$MNI_DIR" = "xno"; then
+  if test -e ${PACKAGES_DIR}/mni/current/lib/libnetcdf.a ; then
+    LIB_NETCDF="${PACKAGES_DIR}/mni/current/lib/libnetcdf.a"
+  fi
 else
-  LIB_NETCDF="-lnetcdf"
+  # BEVIN added
+  if test    -e ${PACKAGES_DIR}/netcdf/current/lib/libnetcdf.a ; then
+    LIB_NETCDF="${PACKAGES_DIR}/netcdf/current/lib/libnetcdf.a"
+  fi
+fi
+if test "x$LIB_NETCDF" = "x"; then
+    LIB_NETCDF="-lnetcdf"
 fi
 AC_SUBST(LIB_NETCDF)
 
@@ -1285,40 +1323,15 @@ AC_MSG_NOTICE([Checking for directory specification of 3rd-party libraries...])
 #############################################################
 # MNI
 #############################################################
-ac_mni_includes=no
-ac_mni_libraries=no
 MNI_CFLAGS=""
 MNI_LIBS=""
-MNI_DIR=""
 LIBS_MNI=""
-AC_MSG_CHECKING(MNI directory)
-
-AC_ARG_WITH(mni-dir,
-[  --with-mni-dir=DIR      where the root of MNI is installed.],
-  [  ac_mni_includes="$withval"/include
-     ac_mni_libraries="$withval"/lib
-     MNI_DIR="$withval"
-  ])
-
-if test "x$MNI_DIR" = "x"; then
-  # if an MNI root was not supplied, but one exists in the
-  # default packages path at the NMR Center, then use that:
-  if test -d "${PACKAGES_DIR}/mni/current" ; then
-    withval=${PACKAGES_DIR}/mni/current
-    MNI_DIR="$withval"
-    ac_mni_includes="$withval"/include
-    ac_mni_libraries="$withval"/lib
-  fi
-fi
 
 if test "x$MNI_DIR" = "xno"; then
   # MNI_DIR is set to 'no' only if --without-mni-dir is used,
   # which indicates that no MNI libs should be used in the build
   ac_mni_includes=no
   ac_mni_libraries=no
-  MNI_CFLAGS="-DBEVIN_EXCLUDE_MINC"
-  MNI_LIBS=""
-  MNI_DIR="no" # indicates --without-mni-dir was used
   LIBS_MNI=""
 fi
 
@@ -1327,12 +1340,15 @@ if test ! "$ac_mni_includes" = "no"; then
   MNI_CFLAGS=-I$ac_mni_includes
 else
   AC_MSG_RESULT(MNI directory is not supplied)
+  MNI_CFLAGS="-DBEVIN_EXCLUDE_MINC -I${PACKAGES_DIR}/netcdf/current/include"
 fi
 
+MNI_LIBS=""
 if test ! "$ac_mni_libraries" = "no"; then
   MNI_LIBS=-L$ac_mni_libraries
 fi
 
+LIBS_MNI="$LIB_NETCDF"
 if test ! "$ac_mni_libraries" = "no"; then
   LIB_VOLUME_IO=""
   if test -e ${PACKAGES_DIR}/mni/current/lib/libvolume_io.a ; then
@@ -3767,6 +3783,7 @@ AC_OUTPUT([Makefile
            mri_ca_train/Makefile
            mri_correct_segmentations/Makefile
            mri_divide_segmentation/Makefile
+           mri_exclude_minc_tests/Makefile
            mri_gtmpvc/Makefile
            mri_rf_label/Makefile
            mri_rf_train/Makefile

@@ -23,13 +23,12 @@
  *
  */
 
-#include <stdio.h>
-
-#include "mri.h"
-
-#include <stdio.h>
 #include "mincutils.h"
+
+#include <stdio.h>
+
 #include "mri.h"
+#include "minc_internals.h"
 
 /*-----------------------------------------------------*/
 int DumpMINCAxes(FILE *fp, MINCAXES *MA)

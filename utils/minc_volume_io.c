@@ -1,4 +1,9 @@
+#include "minc_volume_io.h"
+#include "minc_internals.h"
+
 #if defined(BEVIN_EXCLUDE_MINC)
+	// Warning - does not extend all the way to the end,  there are some unconditional parts 
+	// that are used for testing
 
 /**
  * @file  minc_volume_io.c
@@ -40,7 +45,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "minc_volume_io.h"
+#include "minc_internals.h"
 #include "minc_files.h"
 
 
@@ -61,6 +66,47 @@ char* statusToString(VIO_Status status) {
         ? table[status] 
 	: "Bad status";
 };
+
+
+// Based on minc-1.5.1/volume_io/Geometry/colour.c
+// which requires the following...
+/* ----------------------------------------------------------------------------
+              Copyright 1993,1994,1995 David MacDonald,
+              McConnell Brain Imaging Centre,
+              Montreal Neurological Institute, McGill University.
+              Permission to use, copy, modify, and distribute this
+              software and its documentation for any purpose and without
+              fee is hereby granted, provided that the above copyright
+              notice appear in all copies.  The author and McGill University
+              make no representations about the suitability of this
+              software for any purpose.  It is provided "as is" without
+              express or implied warranty.
+---------------------------------------------------------------------------- */
+static VIO_Colour make_rgba_Colour(
+    int    r,
+    int    g,
+    int    b,
+    int    a )
+{
+    return 
+       (((VIO_Colour)(unsigned char)a) <<  0)
+     + (((VIO_Colour)(unsigned char)b) <<  8)
+     + (((VIO_Colour)(unsigned char)g) << 16)
+     + (((VIO_Colour)(unsigned char)r) << 24);
+}
+
+
+VIO_Colour  make_rgba_Colour_0_1(
+    double   r,
+    double   g,
+    double   b,
+    double   a )
+{
+    return( make_rgba_Colour( (int) (r * 255.0 + 0.5),
+                              (int) (g * 255.0 + 0.5),
+                              (int) (b * 255.0 + 0.5),
+                              (int) (a * 255.0 + 0.5) ) );
+}
 
 
 // Based on minc-1.5.1/volume_io/Geometry/transforms.c
@@ -211,6 +257,43 @@ void  transform_point(
     homogenous_transform_point( transform, x, y, z, 1.0,
                                 x_trans, y_trans, z_trans );
 }
+
+void  get_transform_origin_real(
+    Transform   *transform,
+    double       origin[] )
+{
+    origin[X] = Transform_elem(*transform,0,3);
+    origin[Y] = Transform_elem(*transform,1,3);
+    origin[Z] = Transform_elem(*transform,2,3);
+}
+
+void  get_transform_x_axis_real(
+    Transform   *transform,
+    double       x_axis[] )
+{
+    x_axis[X] = Transform_elem(*transform,0,0);
+    x_axis[Y] = Transform_elem(*transform,1,0);
+    x_axis[Z] = Transform_elem(*transform,2,0);
+}
+
+void  get_transform_y_axis_real(
+    Transform   *transform,
+    double       y_axis[] )
+{
+    y_axis[X] = Transform_elem(*transform,0,1);
+    y_axis[Y] = Transform_elem(*transform,1,1);
+    y_axis[Z] = Transform_elem(*transform,2,1);
+}
+
+void  get_transform_z_axis_real(
+    Transform   *transform,
+    double       z_axis[] )
+{
+    z_axis[X] = Transform_elem(*transform,0,2);
+    z_axis[Y] = Transform_elem(*transform,1,2);
+    z_axis[Z] = Transform_elem(*transform,2,2);
+}
+
 
 // Based on minc-1.5.1/volume_io/Geometry/inverse.c
 // which requires the following...
@@ -877,13 +960,6 @@ static VIO_Status  mni_input_keyword_and_equal_sign(
 ---------------------------------------------------------------------------- */
 
 
-static void nyi(const char* file, int line, const char* name) {
-    fprintf(stderr, "%s:%d NYI %s\n", file, line, name);
-    exit(1);
-}
-
-#define NYI(NAME, VALUE) { nyi(__FILE__, __LINE__, NAME); return VALUE; }
-
 void concat_general_transforms(
     General_transform   *first,
     General_transform   *second,
@@ -1510,7 +1586,6 @@ double get_volume_voxel_value(
 void  delete_volume_input(
     volume_input_struct   *input_info )
 {
-#if defined(BEVIN_ALL_VOLUME_INPUT_STRUCT_MEMBERS)
     switch( input_info->file_format )
     {
     case  MNC_FORMAT:
@@ -1521,8 +1596,10 @@ void  delete_volume_input(
         delete_free_format_input( input_info );
         break;
     }
-#endif
 }
+
+#endif
+
 
 // Based on minc-1.5.1/volume_io/Volumes/volumes.c
 // which requires the following...
@@ -1540,8 +1617,6 @@ void  delete_volume_input(
               software for any purpose.  It is provided "as is" without
               express or implied warranty.
 ---------------------------------------------------------------------------- */
-enum {X=0, Y=1, Z=2};
-
 static double dot_vectors(
     int    n,
     double   v1[],
@@ -1557,6 +1632,8 @@ static double dot_vectors(
     return( d );
 }
 
+
+#if defined(BEVIN_EXCLUDE_MINC)
 
 static  void   cross_3D_vector(
     double   v1[],
@@ -1610,7 +1687,7 @@ static void  reorder_voxel_to_xyz(
     }
 }
 
-static void compute_world_transform(
+void compute_world_transform(
     int                 spatial_axes[VIO_N_DIMENSIONS],
     double              separations[],
     double              direction_cosines[][VIO_N_DIMENSIONS],
@@ -1749,7 +1826,7 @@ void  check_recompute_world_transform(
     }
 }
 
-static bool convert_dim_name_to_spatial_axis(
+bool convert_dim_name_to_spatial_axis(
     const char* name,
     int     *axis )
 {
@@ -1764,6 +1841,199 @@ static bool convert_dim_name_to_spatial_axis(
 
     return( *axis >= 0 );
 }
+#endif
+
+static  void  convert_transform_origin_to_starts(
+    double      origin[],
+    int       	n_volume_dimensions,
+    int         spatial_axes[],
+    double      dir_cosines[][VIO_N_DIMENSIONS],
+    double      starts[] )
+{
+    int         axis, dim, which[VIO_N_DIMENSIONS], n_axes;
+
+    for( dim = 0; dim < n_volume_dimensions; dim++ )
+        starts[dim] = 0.0;
+
+    /*--- get the list of valid axes (which) */
+
+    n_axes = 0;
+    for( dim = 0; dim < VIO_N_DIMENSIONS; dim++ )
+    {
+        axis = spatial_axes[dim];
+        if( axis >= 0 )
+        {
+            which[n_axes] = axis;
+            ++n_axes;
+        }
+    }
+
+    /*--- get the starts: computed differently for 1, 2, or 3 axes */
+
+    if( n_axes == 1 )
+    {
+        double o_dot_c = dot_vectors( VIO_N_DIMENSIONS, origin,                dir_cosines[which[0]] );
+        double c_dot_c = dot_vectors( VIO_N_DIMENSIONS, dir_cosines[which[0]], dir_cosines[which[0]] );
+
+        if( c_dot_c != 0.0 )
+            starts[which[0]] = o_dot_c / c_dot_c;
+    }
+    
+    else if( n_axes == 2 )
+    {
+        // The inverse of matrix [a b  is  1/(ad-bc) [d -b
+	//			  c d]                -c a]
+	//
+	// Set up   [ xdx xdy    [ sx    = [ xdv
+	//            ydx ydy ]    sy ]      ydv ]
+	// and solve for sx sy by multiplying by the inverse
+	//
+	//                       [ sx    = 1/(xdx*ydy - xdy*ydx) [ ydy -xdy   [ xdv
+	//                         sy ]                            -ydx xdx ]   ydv ]
+	//
+        double x_dot_v = dot_vectors( VIO_N_DIMENSIONS, dir_cosines[which[0]], origin );
+        double y_dot_v = dot_vectors( VIO_N_DIMENSIONS, dir_cosines[which[1]], origin );
+	
+        double x_dot_x = dot_vectors( VIO_N_DIMENSIONS, dir_cosines[which[0]], dir_cosines[which[0]] );
+        double y_dot_y = dot_vectors( VIO_N_DIMENSIONS, dir_cosines[which[1]], dir_cosines[which[1]] );
+	
+        double x_dot_y = dot_vectors( VIO_N_DIMENSIONS, dir_cosines[which[0]], dir_cosines[which[1]] );
+	double y_dot_x = x_dot_y;
+	
+        double bottom = x_dot_x * y_dot_y - x_dot_y * y_dot_x;
+
+        if( bottom != 0.0 )
+        {
+            starts[which[0]] = (x_dot_v * y_dot_y - x_dot_y * y_dot_v) / bottom;
+            starts[which[1]] = (y_dot_v * x_dot_x - x_dot_y * x_dot_v) / bottom;
+        }
+    }
+    else if( n_axes == 3 && VIO_N_DIMENSIONS == 3)
+    {
+        /*--- this is the usual case, solve the equations to find what
+              starts give the desired origin */
+
+    	Double4x4 matrix;	// only need 3x3 but have a 4x4
+
+	int i,j;
+        for( i = 0; i < VIO_N_DIMENSIONS; i++ )
+        for( j = 0; j < VIO_N_DIMENSIONS; j++ )
+        {
+            matrix[Index4x4(i,j)] = dir_cosines[which[j]][i];		// I don't know why this transposes the matrix
+        }
+	
+	for( i = 0; i < 4; i++ )					// Extend to 4x4
+	    matrix[Index4x4(3,i)] = matrix[Index4x4(i,3)] = 0.0;
+	matrix[Index4x4(3,3)] = 1.0;
+
+	//                                     t         t
+	// Find a solution to 	matrix solution  = origin
+	//
+    	Double4x4 inverse;	// only need 3x3 but have a 4x4
+	if (!invert_4x4_matrix((const Double4x4*)&matrix, &inverse))
+	{
+	    fprintf(stderr,"%s:%d Could not invert matrix\n", __FILE__, __LINE__);
+	    exit(1); 
+	}
+	
+        for (i = 0; i < 3; i++)
+	{
+	    double solution_i = 0;
+	    for (j = 0; j < 3; j++)
+	    {
+	        solution_i += inverse[Index4x4(i,j)] * origin[j];
+	    }
+            starts[which[i]] = solution_i;
+        }
+    }
+    else
+    {
+        fprintf(stderr,
+          "Invalid number of axes in convert_transform_origin_to_starts\n");
+	exit(1);
+    }
+}
+
+#if !defined(BEVIN_EXCLUDE_MINC)
+void  test_convert_transform_to_starts_and_steps(
+#else
+void  convert_transform_to_starts_and_steps(
+#endif
+    General_transform  *transform,
+    int                n_volume_dimensions,
+    double             step_signs[],
+    int                spatial_axes[],
+    double             starts[],
+    double             steps[],
+    double             dir_cosines[][VIO_N_DIMENSIONS] )
+{
+    double      sign, mag;
+    int         axis, dim;
+    double      axes[VIO_N_DIMENSIONS][VIO_N_DIMENSIONS];
+    double      origin[VIO_N_DIMENSIONS];
+    Transform   *linear_transform;
+
+    if( transform->type != LINEAR )
+    {
+        fprintf(stderr, "convert_transform_to_starts_and_steps(): non-linear transform found.\n" );
+        exit(1);
+    }
+
+    linear_transform = get_linear_transform_ptr( transform );
+
+    get_transform_origin_real( linear_transform, origin );
+    get_transform_x_axis_real( linear_transform, &axes[X][0] );
+    get_transform_y_axis_real( linear_transform, &axes[Y][0] );
+    get_transform_z_axis_real( linear_transform, &axes[Z][0] );
+
+    /*--- assign default steps */
+
+    for( dim = 0; dim < n_volume_dimensions; dim++ )
+        steps[dim] = 1.0;
+
+    /*--- assign the steps and dir_cosines for the spatial axes */
+
+    for( dim = 0; dim < VIO_N_DIMENSIONS; dim++ )
+    {
+        axis = spatial_axes[dim];
+        if( axis >= 0 )
+        {
+            mag = dot_vectors( VIO_N_DIMENSIONS, axes[dim], axes[dim] );
+
+            if( mag <= 0.0 )
+                mag = 1.0;
+            mag = sqrt( mag );
+
+            if( step_signs == NULL )
+            {
+                if( axes[dim][dim] < 0.0 )
+                    sign = -1.0;
+                else
+                    sign = 1.0;
+            }
+            else  /*--- make the sign of steps match the step_signs passed in */
+            {
+                if( step_signs[axis] < 0.0 )
+                    sign = -1.0;
+                else
+                    sign = 1.0;
+            }
+
+            steps[axis] = sign * mag;
+            dir_cosines[axis][X] = axes[dim][X] / steps[axis];
+            dir_cosines[axis][Y] = axes[dim][Y] / steps[axis];
+            dir_cosines[axis][Z] = axes[dim][Z] / steps[axis];
+        }
+    }
+
+    /*--- finally, get the starts */
+
+    convert_transform_origin_to_starts( origin, n_volume_dimensions,
+                                        spatial_axes, dir_cosines, starts );
+}
+
+
+#if defined(BEVIN_EXCLUDE_MINC)
 
 static const char* default_dimension_names[VIO_MAX_DIMENSIONS][VIO_MAX_DIMENSIONS] =
 {
@@ -1773,6 +2043,91 @@ static const char* default_dimension_names[VIO_MAX_DIMENSIONS][VIO_MAX_DIMENSION
     { "", MIzspace, MIyspace, MIxspace },
     { "", "", MIzspace, MIyspace, MIxspace }
 };
+
+void  set_volume_space_type(
+    Volume   volume,
+    const char*  name )
+{
+    free( (void*)volume->coordinate_system_name );
+    volume->coordinate_system_name = strdup( name );
+}
+
+int set_volume_irregular_starts(Volume volume, int idim, int count, double *starts)
+{
+#if !defined(BEVIN_ALL_VOLUME_MEMBERS)
+    fprintf(stderr, "%s:%d set_volume_irregular_starts NYI\n", __FILE__, __LINE__);
+    exit(1);
+    return 0;
+#else
+    int i;
+
+    if (idim >= volume->array.n_dimensions) {
+        return (0);
+    }
+
+    if (volume->irregular_starts[idim] != NULL) {
+        free(volume->irregular_starts[idim]);
+    }
+
+    if (starts == NULL) {
+        return (0);
+    }
+
+    if (count > volume->array.sizes[idim]) {
+        count = volume->array.sizes[idim];
+    }
+
+    volume->irregular_starts[idim] = malloc(count * sizeof (double));
+    if (volume->irregular_starts[idim] == NULL) {
+        return (0);
+    }
+
+    for (i = 0; i < count; i++) {
+        volume->irregular_starts[idim][i] = starts[i];
+    }
+
+    return (count);
+#endif
+}
+
+int set_volume_irregular_widths(Volume volume, int idim, int count, double *widths)
+{
+#if !defined(BEVIN_ALL_VOLUME_MEMBERS)
+    fprintf(stderr, "%s:%d set_volume_irregular_widths NYI\n", __FILE__, __LINE__);
+    exit(1);
+    return 0;
+#else
+    int i;
+
+    if (idim >= volume->array.n_dimensions) {
+        return (0);
+    }
+
+    if (volume->irregular_widths[idim] != NULL) {
+        free(volume->irregular_widths[idim]);
+    }
+
+    if (widths == NULL) {
+        return (0);
+    }
+
+    if (count > volume->array.sizes[idim]) {
+        count = volume->array.sizes[idim];
+    }
+
+    volume->irregular_widths[idim] = malloc(count * sizeof (double));
+    if (volume->irregular_widths[idim] == NULL) {
+        return (0);
+    }
+
+    for (i = 0; i < count; i++) {
+        volume->irregular_widths[idim][i] = widths[i];
+    }
+
+    return (count);
+#endif
+}
+
 
 static double  get_volume_real_min(
     Volume     volume )
@@ -1796,12 +2151,7 @@ static double  get_volume_real_max(
     return( real_max );
 }
 
-static void  set_volume_voxel_range(
-    Volume volume,
-    double voxel_min,
-    double voxel_max );
-    
-static void  get_volume_voxel_range(
+void  get_volume_voxel_range(
     Volume volume,
     double *voxel_min,
     double *voxel_max )
@@ -1810,7 +2160,7 @@ static void  get_volume_voxel_range(
     *voxel_max = volume->voxel_max;
 }
 
-static void  set_volume_real_range(
+void  set_volume_real_range(
     Volume volume,
     double real_min,
     double real_max )
@@ -1851,7 +2201,7 @@ static void  set_volume_real_range(
 #endif
 }
 
-static void  get_volume_real_range(
+void  get_volume_real_range(
     Volume     volume,
     double       *min_value,
     double       *max_value )
@@ -1861,7 +2211,7 @@ static void  get_volume_real_range(
 }
 
 
-static void  set_volume_voxel_range(
+void  set_volume_voxel_range(
     Volume   volume,
     double   voxel_min,
     double  voxel_max )
@@ -1916,7 +2266,7 @@ static void  set_volume_voxel_range(
 #endif
 }
 
-static void  set_volume_type(
+void  set_volume_type(
     Volume       volume,
     nc_type      nc_data_type,
     bool         signed_flag,
@@ -2001,10 +2351,17 @@ nc_type get_volume_nc_data_type(
     return( volume->nc_data_type );
 }
 
+void  set_rgb_volume_flag(
+    Volume   volume,
+    bool     flag )
+{
+    if( !flag || get_volume_data_type(volume) == UNSIGNED_INT )
+        volume->is_rgba_data = flag;
+}
 
 Volume create_volume(
     int          n_dimensions,
-    char*        dimension_names[],
+    /*const*/ char*  dimension_names[],		// need compat with minc
     nc_type      nc_data_type,
     bool         signed_flag,
     double	 voxel_min,
@@ -2032,8 +2389,8 @@ Volume create_volume(
 
     volume = (volume_struct*)malloc(sizeof(volume_struct));
 
-#if defined(BEVIN_ALL_VOLUME_MEMBERS)
     volume->is_rgba_data     = false;
+#if defined(BEVIN_ALL_VOLUME_MEMBERS)
     volume->is_cached_volume = false;
 #endif
 
@@ -2060,14 +2417,12 @@ Volume create_volume(
         sizes[i] = 0;
 
         const char* name;
-        if( dimension_names != (char **) NULL )
+        if( dimension_names != NULL )
             name = dimension_names[i];
         else
             name = default_dimension_names[n_dimensions-1][i];
 
-#if defined(BEVIN_ALL_VOLUME_MEMBERS)
-        volume->dimension_names[i] = create_string( name );
-#endif
+        volume->dimension_names[i] = strdup( name );
 
         int axis;
         if( convert_dim_name_to_spatial_axis( name, &axis ) )
@@ -2087,14 +2442,12 @@ Volume create_volume(
     create_linear_transform( &volume->voxel_to_world_transform, &identity );
     volume->voxel_to_world_transform_uptodate = true;
 
-#if defined(BEVIN_ALL_VOLUME_MEMBERS)
-    volume->coordinate_system_name = create_string( MI_UNKNOWN_SPACE );
-#endif
+    volume->coordinate_system_name = strdup( MI_UNKNOWN_SPACE );
 
     return( volume );
 }
 
-static bool volume_is_alloced(
+bool volume_is_alloced(
     Volume   volume )
 {
     return( 
@@ -2106,7 +2459,7 @@ static bool volume_is_alloced(
             multidim_array_is_alloced( &volume->array ) );
 }
 
-static void  free_volume_data(
+void  free_volume_data(
     Volume   volume )
 {
 #if defined(BEVIN_ALL_VOLUME_MEMBERS)
@@ -2132,13 +2485,11 @@ void delete_volume(
 
     delete_general_transform( &volume->voxel_to_world_transform );
 
-#if defined(BEVIN_ALL_VOLUME_MEMBERS)
     int   d;
     for( d = 0; d < get_volume_n_dimensions(volume); d++ )
         free( (void*)volume->dimension_names[d] );
 
     free( (void*)volume->coordinate_system_name );
-#endif
 
     free( volume );
 }
@@ -2187,7 +2538,7 @@ void set_volume_separations(
     volume->voxel_to_world_transform_uptodate = false;
 }
 
-static void  set_volume_direction_unit_cosine(
+void  set_volume_direction_unit_cosine(
     Volume   volume,
     int      axis,
     double   dir[] )
@@ -2250,7 +2601,7 @@ void set_volume_direction_cosine(
 }
 
 
-static void set_volume_starts(
+void set_volume_starts(
     Volume  volume,
     double  starts[] )
 {
@@ -2420,34 +2771,6 @@ void set_volume_translation(
 }
 
 
-VIO_Status  output_volume(
-    const char*		  filename,
-    nc_type		  file_nc_data_type,
-    bool              	  file_signed_flag,
-    double                file_voxel_min,
-    double                file_voxel_max,
-    Volume                volume,
-    const char*	  	  history,
-    minc_output_options  *options ) NYI("output_volume",OK)
-
-VIO_Status start_volume_input(
-    char*                filename,
-    int                  n_dimensions,
-    char*                dim_names[],
-    nc_type              volume_nc_data_type,
-    bool                 volume_signed_flag,
-    double               volume_voxel_min,
-    double               volume_voxel_max,
-    bool                 create_volume_flag,
-    Volume              *volume,
-    minc_input_options  *options,
-    volume_input_struct *input_info ) NYI("start_volume_input",OK)
-
-bool input_more_of_volume(
-    Volume                volume,
-    volume_input_struct  *input_info,
-    double               *fraction_done ) NYI("input_more_of_volume",0)
-
 General_transform  *get_voxel_to_world_transform(
     Volume   volume )
 {
@@ -2455,6 +2778,52 @@ General_transform  *get_voxel_to_world_transform(
 
     return( &volume->voxel_to_world_transform );
 }
+
+
+static const char* convert_spatial_axis_to_dim_name(
+    int   axis )
+{
+    switch( axis )
+    {
+    case X:  return( MIxspace );
+    case Y:  return( MIyspace );
+    case Z:  return( MIzspace );
+    default: 
+    	fprintf(stderr, "convert_spatial_axis_to_dim_name, bad axis\n" );
+        exit(1);
+    }
+    return( NULL );
+}
+
+char** get_volume_dimension_names(
+    Volume   volume )
+{
+    char*   *names = (char**) calloc(sizeof(char*), get_volume_n_dimensions(volume) );
+
+    int      i;
+    for( i = 0; i < get_volume_n_dimensions(volume); i++ )
+        names[i] = 
+	    strdup( 
+	    	(volume->spatial_axes[i] >= 0)
+		? convert_spatial_axis_to_dim_name(i)
+		: volume->dimension_names[i] );
+
+    return( names );
+}
+
+
+void  delete_dimension_names(
+    Volume   volume,
+    char*    dimension_names[] )
+{
+    int   i;
+    for( i = 0; i < get_volume_n_dimensions(volume); i++ )
+        free( dimension_names[i] );
+
+    free( dimension_names );
+}
+
+
 
 void get_volume_separations(
     Volume   	volume,
@@ -2485,6 +2854,109 @@ void  convert_voxel_to_world(
     general_transform_point( &volume->voxel_to_world_transform,
                              xyz[X], xyz[Y], xyz[Z],
                              x_world, y_world, z_world );
+}
+
+VIO_Status start_volume_input(
+    const char*          filename,
+    int                  n_dimensions,
+    /*const*/ char*      dim_names[],			// need compat with minc
+    nc_type              volume_nc_data_type,
+    bool                 volume_signed_flag,
+    double               volume_voxel_min,
+    double               volume_voxel_max,
+    bool                 create_volume_flag,
+    Volume              *volume,
+    minc_input_options  *options,
+    volume_input_struct *input_info ) 
+{
+    VIO_Status status = OK;
+
+    if( create_volume_flag || *volume == (Volume) NULL )
+    {
+        if( n_dimensions < 1 || n_dimensions > VIO_MAX_DIMENSIONS )
+            n_dimensions = get_minc_file_n_dimensions( filename );
+
+        if( n_dimensions < 1 )
+            return( ERROR );
+
+        if( dim_names == NULL )
+           dim_names = (char**)default_dimension_names[ n_dimensions-1 ];
+
+        *volume = create_volume( n_dimensions, dim_names, volume_nc_data_type,
+                                 volume_signed_flag,
+                                 volume_voxel_min, volume_voxel_max );
+    }
+    else if( n_dimensions != get_volume_n_dimensions( *volume ) &&
+             volume_is_alloced( *volume ) )
+        free_volume_data( *volume );
+
+    const char* expanded_filename = expand_filename( filename );
+
+    if( !filename_extension_matches( expanded_filename, "fre" ) )
+        input_info->file_format = MNC_FORMAT;
+    else
+        input_info->file_format = FREE_FORMAT;
+
+    switch( input_info->file_format )
+    {
+    case  MNC_FORMAT:
+        if( !file_exists( expanded_filename ) )
+        {
+	    const char* old_filename = expanded_filename;
+	    expanded_filename = file_exists_as_compressed( old_filename );
+	    free( (void*)old_filename );
+        }
+
+        input_info->minc_file = 
+	    initialize_minc_input( expanded_filename, *volume, options );
+	    
+        if( input_info->minc_file == (Minc_file) NULL )
+            status = ERROR;
+        else
+        {
+	    int d;
+            for( d = 0; d < VIO_MAX_DIMENSIONS; d++ )
+                input_info->axis_index_from_file[d] = d;
+        }
+
+        break;
+
+    case  FREE_FORMAT:
+        status = initialize_free_format_input( expanded_filename,
+                                               *volume, input_info );
+        break;
+    }
+
+    if( status != OK && create_volume_flag )
+        delete_volume( *volume );
+
+    free( (void*)expanded_filename );
+
+    return( status );
+}
+
+
+bool input_more_of_volume(
+    Volume                volume,
+    volume_input_struct  *input_info,
+    double               *fraction_done )
+{
+    bool more_to_do;
+
+    switch( input_info->file_format )
+    {
+    case  MNC_FORMAT:
+        more_to_do = input_more_minc_file( input_info->minc_file,
+                                           fraction_done );
+        break;
+
+    case  FREE_FORMAT:
+        more_to_do = input_more_free_format_file( volume, input_info,
+                                                  fraction_done );
+        break;
+    }
+
+    return( more_to_do );
 }
 
 #endif

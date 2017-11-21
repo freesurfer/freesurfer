@@ -67,7 +67,7 @@
 #include "math.h"
 #include "matrix.h"
 #include "mghendian.h"
-#include "minc_volume_io.h"
+#include "minc_internals.h"
 #include "mri2.h"
 #include "mri_circulars.h"
 #include "mri_identify.h"
@@ -2251,13 +2251,6 @@ static MRI *mincRead(const char *fname, int read_volume)
   dim_names[2] = MIzspace;
   dim_names[3] = MItime;
 
-#if 0
-  dim_names[0] = MIzspace;
-  dim_names[1] = MIyspace;
-  dim_names[2] = MIxspace;
-  dim_names[3] = MItime;
-#endif
-
   if (!FileExists(fname)) {
     errno = 0;
     ErrorReturn(NULL, (ERROR_BADFILE, "mincRead(): can't find file %s", fname));
@@ -3254,51 +3247,54 @@ static int mincWrite(MRI *mri, const char *fname)
       for (vi[di_y] = 0; vi[di_y] < mri->height; vi[di_y]++) {  /* rows */
         for (vi[di_z] = 0; vi[di_z] < mri->depth; vi[di_z]++) { /* slices */
 
-          if (mri->type == MRI_UCHAR)
-            set_volume_voxel_value(minc_volume,
+	  double voxel;
+	  switch (mri->type) {
+	  case MRI_UCHAR: voxel = (double)MRIseq_vox (mri, vi[di_x], vi[di_y], vi[di_z], vi[3]); break;
+	  case MRI_SHORT: voxel = (double)MRISseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]); break;
+          case MRI_INT:   voxel = (double)MRIIseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]); break;
+          case MRI_LONG:  voxel = (double)MRILseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]); break;
+          case MRI_FLOAT: voxel = (double)MRIFseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]); break;
+	  default: fprintf(stderr, "%s:%d bad type", __FILE__, __LINE__); exit(1);
+          }
+
+#if 0
+          bool show = (vi[di_x] == 0) && (vi[di_y] == 0) && (34 < vi[di_z]) && (vi[di_z] < 39);
+          if (show) {
+	      printf("%s:%d vol[%d,%d,%d,%d]:%g\n", __FILE__, __LINE__, 
+	          vi[0], vi[1], vi[2], vi[3], voxel);
+	  }
+#endif
+	  
+	  set_volume_voxel_value(minc_volume,
                                    vi[0],
                                    vi[1],
                                    vi[2],
                                    vi[3],
                                    0,
-                                   (double)MRIseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
-          if (mri->type == MRI_SHORT)
-            set_volume_voxel_value(minc_volume,
-                                   vi[0],
-                                   vi[1],
-                                   vi[2],
-                                   vi[3],
-                                   0,
-                                   (double)MRISseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
-          if (mri->type == MRI_INT)
-            set_volume_voxel_value(minc_volume,
-                                   vi[0],
-                                   vi[1],
-                                   vi[2],
-                                   vi[3],
-                                   0,
-                                   (double)MRIIseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
-          if (mri->type == MRI_LONG)
-            set_volume_voxel_value(minc_volume,
-                                   vi[0],
-                                   vi[1],
-                                   vi[2],
-                                   vi[3],
-                                   0,
-                                   (double)MRILseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
-          if (mri->type == MRI_FLOAT)
-            set_volume_voxel_value(minc_volume,
-                                   vi[0],
-                                   vi[1],
-                                   vi[2],
-                                   vi[3],
-                                   0,
-                                   (double)MRIFseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
-        }
+                                   voxel);
+#if 0
+          if (show) {
+	      double gotten = get_volume_voxel_value(minc_volume, vi[0], vi[1], vi[2], vi[3], 0);
+	      printf("%s:%d get returned vol[%d,%d,%d,%d]:%g\n", __FILE__, __LINE__, 
+	          vi[0], vi[1], vi[2], vi[3], gotten);
+	  }
+#endif
+	}
       }
       exec_progress_callback(vi[di_x], mri->width, vi[3], mri->nframes);
     }
   }
+
+#if 0
+  if (1) {
+    int z;
+    for (z = 35; z < 39; z++) {
+      double voxel = get_volume_voxel_value(minc_volume, 0, 0, z, 0, 0);
+      printf("%s:%d vol[0,0,%d,0]:%g\n", __FILE__, __LINE__, z, voxel);
+    }
+  }
+  printf("%s:%d nc_data_type:%d\n", __FILE__, __LINE__, (int)nc_data_type);
+#endif
 
   status = output_volume((char*)fname, nc_data_type, signed_flag, min, max, minc_volume, "", NULL);
   delete_volume(minc_volume);

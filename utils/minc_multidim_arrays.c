@@ -45,7 +45,7 @@
 #include  <stdio.h>
 #include  <stdbool.h>
 #include  <string.h>
-#include "minc_volume_io.h"
+#include "minc_internals.h"
 	// various prototypes
 	
 #define for_less(VAR,INIT,LIM) for (VAR=INIT; VAR < LIM; VAR++)
@@ -269,12 +269,13 @@ bool  multidim_array_is_alloced(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
+static void alloc_multidim_array_debug() {
+}
+
 void  alloc_multidim_array(
     VIO_multidim_array   *array )
 {
-    int     dim;
-    size_t  type_size, sizes[5];
-    void    *p1, **p2, ***p3, ****p4, *****p5;
+    alloc_multidim_array_debug();
 
     if( multidim_array_is_alloced( array ) )
         delete_multidim_array( array );
@@ -287,37 +288,97 @@ void  alloc_multidim_array(
         return;
     }
 
+    // One malloc call allocates both the pointers and the data
+    // The pointers are a tree, the leaves pointing to vectors of n-1 dimension number of elements
+    //
+    // For instance, a 4D array size[0] = 2, size[1] = 3, size[2] = 5, size[3] = 7
+    // is set up like this...
+    //
+    // array->data  ->  0:  -> 2:  ->  8:      -> elements  0.. 6
+    //				       9:      ->           7..
+    //				    ..12:      ->
+    //                         3:  -> 13:
+    //                              ..17:
+    //                         4:  ->
+    //
+    //                  1:  -> 5:  ->
+    //			       6:  ->
+    //			       7:  ->
+    //				    ..37:      -> elements  ..209
+    //
+    int dim;
+
+    // Calculate the number of elements needed
+    //
+    size_t numberOfElements = 1;
     for_less( dim, 0, array->n_dimensions )
-        sizes[dim] = (size_t) array->sizes[dim];
+        numberOfElements *= (size_t) array->sizes[dim];			// e.g.: 2*3*5*7 = 210
 
-    type_size = (size_t) get_type_size( array->data_type );
+    // Calculate the number of pointers needed, 
+    // not including the root pointer  
+    //
+    size_t numberOfPointers       = 0;
+    size_t numberOfPointersPerDim = 1;
+    for_less( dim, 0, array->n_dimensions - 1 )
+        numberOfPointers += (numberOfPointersPerDim *= (size_t) array->sizes[dim]);
+    									// e.g.: 2 + 6 + 30 = 38
+    
+    // Calculate the size of the pointers, rounding up to a multiple of
+    // the cache line size to keep the elements cache line aligned
+    //
+    size_t dataTypeSize    = (size_t) get_type_size( array->data_type );
+    size_t bytesOfPointers = (numberOfPointers*sizeof(void*) + 64) & ~63;
+    size_t bytesOfData     = (numberOfElements*dataTypeSize  + 64) & ~63;
+    
+    // Malloc the space, and separate it into pointers and elements
+    //
+    void* data = malloc(bytesOfPointers + bytesOfData);
+    char* elts = (char*)data + bytesOfPointers;
+    
+    // Fill in the dim 0, and get ready to fill in dim 1
+    //
+    array->data = data;    
+    size_t prevNumberOfPtrsToFillIn = 1;
+    void** ptrsToFillIn = (void**)data;
 
-    switch( array->n_dimensions )
+    // Fill in dim 1 .. n-2
+    //
+    for_less( dim, 1, array->n_dimensions - 1 ) {
+    	// e.g: dim is 1 and 2
+	
+        size_t numberOfPtrsToFillIn = prevNumberOfPtrsToFillIn*(size_t) array->sizes[dim - 1];
+		// e.g.: when dim = 1, this is 1 * 2 = 2
+		//	      dim = 2, this is 2 * 3 = 6
+		
+	void** nextLayerOfPointers  = ptrsToFillIn + numberOfPtrsToFillIn;
+		// e.g.: when dim = 1, this is data + 2
+		//	      dim = 2, this is data + 2 + 6
+	
+	size_t i;
+	for (i = 0; i < numberOfPtrsToFillIn; i++) {
+	    ptrsToFillIn[i] = nextLayerOfPointers + i*(size_t) array->sizes[dim];
+		// e.g.: when dim = 1, this is data + 2     + {0,3}
+		//	      dim = 2, this is data + 2 + 6 + {0,5,...}
+	}
+	
+	prevNumberOfPtrsToFillIn = numberOfPtrsToFillIn;
+	ptrsToFillIn             = nextLayerOfPointers;
+		// e.g.: when dim = 1, this is data + 2    
+		//	      dim = 2, this is data + 2 + 6
+    } 
+    
+    // Fill in the pointers to the elements
+    //
+    dim = array->n_dimensions - 1;
     {
-    case  1:
-        p1 = malloc(sizes[0] * type_size);
-        array->data = p1;
-        break;
-    case  2:
-        p2 = malloc( sizes[0]*sizes[1] * type_size);
-        array->data = p2;
-        break;
-    case  3:
-        p3 = malloc( sizes[0]*sizes[1]*sizes[2] * type_size);
-        array->data = p3;
-        break;
-    case  4:
-        p4 = malloc( sizes[0]*sizes[1]*sizes[2]*sizes[3] * type_size);
-        array->data = p4;
-        break;
-    case  5:
-        p5 = malloc( sizes[0]*sizes[1]*sizes[2]*sizes[3]*sizes[4] * type_size);
-        array->data = p5;
-        break;
-    default:
-        fprintf(stderr,"%s:%d no default\n", __FILE__, __LINE__);
-	exit(1);
+    	size_t numberOfPtrsToFillIn = prevNumberOfPtrsToFillIn*(size_t) array->sizes[dim - 1];
+	size_t i;
+	for (i = 0; i < numberOfPtrsToFillIn; i++) {
+	    ptrsToFillIn[i] = elts + i*(size_t) array->sizes[dim]*dataTypeSize;
+	}
     }
+
+    alloc_multidim_array_debug();
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -648,5 +709,59 @@ void  copy_multidim_reordered(
                                   src_ptr, n_src_dims, src_sizes,
                                   counts, to_dest_index, true );
 }
+
+
+#ifdef TEST_MULTIDIM_ARRAY_C
+int main() {
+    int n_dimensions = 5;
+
+    int  sizes[5] = {2,3,5,7,11};
+    long limit=1;
+    {
+        int i;
+	for (i = 0; i < 5; i++) limit *= sizes[i];
+    }
+    
+    VIO_multidim_array array;
+    create_multidim_array(&array, n_dimensions, sizes, UNSIGNED_INT);
+
+    int mode;
+    for (mode = 0; mode<2; mode++) {
+       long showLimit = 1;
+       long i;
+       size_t errors = 0;
+       for (i = 0; (i < limit) && (errors < 10); i++) {
+           int indices[5];
+	   long tmp = i;
+	   int j;
+	   for (j = 5; j > 0;) {
+	       j--;
+	       indices[j] = tmp % sizes[j];
+	       tmp             /= sizes[j];
+	   }
+	   void* voidPtr;  GET_MULTIDIM_PTR( voidPtr, array, indices[0], indices[1], indices[2], indices[3], indices[4] );
+	   unsigned int* ptr = (unsigned int*)voidPtr;
+	   if (!mode) *ptr = i; 
+	   else {
+	       bool show = (i < 32) || (i >= showLimit-1);
+	       if (i != *ptr) {
+	       	   errors++;
+	           printf("Error expected %ld != gotten %ld pointer %p at ", (long)i, (long)*ptr, ptr);
+	       } else if (i >= showLimit-1) {
+	       	   showLimit *= 2;
+	       }
+	       if (show) {
+	          printf("i:%ld ", i);
+	          const char* sep="["; 
+	          for (j = 0; j < 5; j++) { printf("%s%d", sep, indices[j]); sep = ","; }
+		  printf("]\n");
+	       }
+	   }
+       }
+    }  
+    return 0;
+}
+#endif
+
 
 #endif
