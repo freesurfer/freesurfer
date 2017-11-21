@@ -67,10 +67,10 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
 {
   RenderView2D* view = ( RenderView2D* )renderview;
 
-  if ( !view->hasFocus() )
-  {
-    return Interactor2D::ProcessMouseDownEvent( event, renderview );
-  }
+//  if ( !view->hasFocus() )
+//  {
+//    return Interactor2D::ProcessMouseDownEvent( event, renderview );
+//  }
 
   PreprocessMouseEvent(event);
 

@@ -35,6 +35,7 @@
 #include <QSettings>
 #include <QDebug>
 #include "LayerROI.h"
+#include "LayerPropertyROI.h"
 
 ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   QWidget(parent),
@@ -64,6 +65,8 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   ui->actionPolyLine->setData( Interactor2DVoxelEdit::EM_Polyline );
   ui->actionClone->setData( Interactor2DVoxelEdit::EM_Clone );
   ui->actionAutoSeg->setData( Interactor2DVoxelEdit::EM_GeoSeg);
+  ui->colorPickerGeoInside->setCurrentColor(Qt::green);
+  ui->colorPickerGeoOutside->setCurrentColor(Qt::red);
   connect( ag, SIGNAL(triggered(QAction*)), this, SLOT(OnEditMode(QAction*)) );
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   BrushProperty* bp = mainwnd->GetBrushProperty();
@@ -82,6 +85,8 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   connect(bp, SIGNAL(EraseValueChanged(double)), this, SLOT(UpdateWidgets()));
   connect(ui->pushButtonGeoClear, SIGNAL(clicked(bool)), SLOT(OnButtonGeoClear()));
   connect(ui->pushButtonGeoGo, SIGNAL(clicked(bool)), SLOT(OnButtonGeoGo()));
+  connect(ui->colorPickerGeoInside, SIGNAL(colorChanged(QColor)), SLOT(OnColorPickerGeo(QColor)));
+  connect(ui->colorPickerGeoOutside, SIGNAL(colorChanged(QColor)), SLOT(OnColorPickerGeo(QColor)));
   for (int i = 0; i < 3; i++)
   {
     RenderView2D* view = (RenderView2D*)mainwnd->GetRenderView(i);
@@ -517,4 +522,17 @@ void ToolWindowEdit::OnButtonGeoGo()
     int wsize = ui->spinBoxGeoWsize->value();
     mri->GEOSSegmentation((LayerROI*)layers[0], (LayerROI*)layers[1], lambda, wsize, max_dist, NULL);
   }
+}
+
+void ToolWindowEdit::OnColorPickerGeo(const QColor &color)
+{
+  LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("Supplement");
+  QList<Layer*> layers = lc->GetLayers("ROI");
+  if (layers.size() < 2)
+    return;
+
+  if (sender() == ui->colorPickerGeoInside)
+    ((LayerROI*)layers[0])->GetProperty()->SetColor(color);
+  else
+    ((LayerROI*)layers[1])->GetProperty()->SetColor(color);
 }

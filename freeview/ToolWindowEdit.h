@@ -63,6 +63,7 @@ protected slots:
 
   void OnButtonGeoClear();
   void OnButtonGeoGo();
+  void OnColorPickerGeo(const QColor& color);
 
 protected:
   virtual void showEvent(QShowEvent *);

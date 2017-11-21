@@ -380,7 +380,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
     connect(m_layerCollections[keys[i]], SIGNAL(LayersReordered()),
         ui->treeWidgetMouseInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
 
-    connect(m_layerCollections[keys[i]], SIGNAL(ActiveLayerChanged(Layer*)),
+    if (keys[i] != "Supplement")
+      connect(m_layerCollections[keys[i]], SIGNAL(ActiveLayerChanged(Layer*)),
         this, SLOT(OnActiveLayerChanged(Layer*)), Qt::QueuedConnection);
   }
   for ( int i = 0; i < 4; i++ )
