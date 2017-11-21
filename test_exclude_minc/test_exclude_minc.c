@@ -27,7 +27,8 @@ int main(int argc, char *argv[]) {
 
     printf("mri_exclude_minc_tests\n");
 #if defined(BEVIN_EXCLUDE_MINC)
-    printf("BEVIN_EXCLUDE_MINC is defined, hence can't compare with minc\n");
+    volatile void* deleter = delete_general_transform;
+    printf("BEVIN_EXCLUDE_MINC is defined, hence can't compare test_convert_transform_to_starts_and_steps with minc, but deleter=%p\n",deleter);
 #else
     General_transform general_transform;
 

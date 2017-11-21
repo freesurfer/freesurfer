@@ -3073,8 +3073,8 @@ AC_SUBST(LIBDIRS_MGH)
 
 # stupid circular dependency on iopen swapInt etc.
 LIBS_MGH="\
-  minc_substitute/libminc_substitute.a \
   utils/libutils.a \
+  minc_substitute/libminc_substitute.a \
   fsgdf/libfsgdf.a \
   rgb/librgb.a \
   unix/libunix.a \
