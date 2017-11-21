@@ -3669,10 +3669,10 @@ bool LayerMRI::GEOSSegmentation(LayerROI *interior, LayerROI *exterior, double l
   {
     double ras[3];
     int ind[3] = { vlist_out->xi[n], vlist_out->yi[n], vlist_out->zi[n] };
-    OriginalIndexToRAS(ind, ras);
-    GetSourceVolume()->NativeRASToRAS(ras, ras);
-    SetVoxelByRAS(ras, true, true);
     qDebug() << ind[0] << ind[1] << ind[2];
+    OriginalIndexToRAS(ind, ras);
+    GetSourceVolume()->RASToTarget(ras, ras);
+    SetVoxelByRAS(ras, 0, true, true);
   }
   qDebug() << "\n";
 
