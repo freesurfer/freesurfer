@@ -79,7 +79,7 @@ LayerVolumeBase::~LayerVolumeBase()
   delete m_livewire;
 }
 
-QList<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
+QList<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd, bool ignore_brush_size )
 {
   QList<int> indices;
   int* nDim = m_imageData->GetDimensions();
@@ -93,7 +93,7 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
   // if ( !ptr )
   //  return false;
 
-  int nBrushSize = m_propertyBrush->GetBrushSize();
+  int nBrushSize = (ignore_brush_size? 1 : m_propertyBrush->GetBrushSize());
   int n[3], nsize[3] = { nBrushSize/2+1, nBrushSize/2+1, nBrushSize/2+1 };
   nsize[nPlane] = 1;
   int nActiveComp = GetActiveFrame();
@@ -272,7 +272,7 @@ bool LayerVolumeBase::GetConnectedToOld( vtkImageData* img, int nFrame, int* n_i
   return false;
 }
 
-void LayerVolumeBase::SetVoxelByRAS( double* ras, int nPlane, bool bAdd )
+void LayerVolumeBase::SetVoxelByRAS( double* ras, int nPlane, bool bAdd, bool ignore_brush_size )
 {
   int n[3];
   double* origin = m_imageData->GetOrigin();
@@ -282,7 +282,7 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras, int nPlane, bool bAdd )
     n[i] = ( int )( ( ras[i] - origin[i] ) / voxel_size[i] + 0.5 );
   }
 
-  QList<int> list = SetVoxelByIndex( n, nPlane, bAdd );
+  QList<int> list = SetVoxelByIndex( n, nPlane, bAdd, ignore_brush_size );
   if ( !list.isEmpty() )
   {
     SetModified();
@@ -295,7 +295,7 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras, int nPlane, bool bAdd )
   }
 }
 
-void LayerVolumeBase::SetVoxelByRAS( double* ras1, double* ras2, int nPlane, bool bAdd )
+void LayerVolumeBase::SetVoxelByRAS( double* ras1, double* ras2, int nPlane, bool bAdd, bool ignore_brush_size )
 {
   int n1[3], n2[3];
   double* origin = m_imageData->GetOrigin();
@@ -306,7 +306,7 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras1, double* ras2, int nPlane, boo
     n2[i] = ( int )( ( ras2[i] - origin[i] ) / voxel_size[i] + 0.5 );
   }
 
-  QList<int> list = SetVoxelByIndex( n1, n2, nPlane, bAdd );
+  QList<int> list = SetVoxelByIndex( n1, n2, nPlane, bAdd, ignore_brush_size );
   if ( !list.isEmpty() )
   {
     SetModified();
@@ -319,7 +319,7 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras1, double* ras2, int nPlane, boo
   }
 }
 
-QList<int> LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd )
+QList<int> LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd, bool ignore_brush_size )
 {
   int nx = 1, ny = 2;
   if ( nPlane == 1 )
@@ -339,7 +339,7 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool 
   double t = 0.5;
   int n[3];
   QList<int> list;
-  list = SetVoxelByIndex( n1, nPlane, bAdd );
+  list = SetVoxelByIndex( n1, nPlane, bAdd, ignore_brush_size );
   if ( abs( dx ) > abs( dy ) )
   {
     double m = (double) dy / (double) dx;
@@ -353,7 +353,7 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool 
       n[nx] = x0;
       n[ny] = (int) t;
       n[nPlane] = n1[nPlane];
-      QList<int> list1 = SetVoxelByIndex( n, nPlane, bAdd );
+      QList<int> list1 = SetVoxelByIndex( n, nPlane, bAdd, ignore_brush_size );
       if (!list1.isEmpty())
         list << list1;
     }
@@ -371,7 +371,7 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool 
       n[nx] = (int) t;
       n[ny] = y0;
       n[nPlane] = n1[nPlane];
-      QList<int> list1 = SetVoxelByIndex( n, nPlane, bAdd );
+      QList<int> list1 = SetVoxelByIndex( n, nPlane, bAdd, ignore_brush_size );
       if (!list1.isEmpty())
         list << list1;
     }

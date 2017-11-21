@@ -34,6 +34,7 @@
 #include <QTimer>
 #include <QSettings>
 #include <QDebug>
+#include "LayerROI.h"
 
 ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   QWidget(parent),
@@ -42,6 +43,9 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
 {
   ui->setupUi(this);
   this->setWindowFlags( Qt::Tool | Qt::WindowTitleHint | Qt::CustomizeWindowHint );
+#ifndef Q_OS_MAC
+  ui->line->hide();
+#endif
   QActionGroup* ag = new QActionGroup( this );
   ag->addAction( ui->actionContour );
   ag->addAction( ui->actionFill );
@@ -50,6 +54,7 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   ag->addAction( ui->actionPolyLine );
   ag->addAction( ui->actionColorPicker );
   ag->addAction( ui->actionClone );
+  ag->addAction( ui->actionAutoSeg);
   ag->setExclusive( true );
   ui->actionContour->setData( Interactor2DVoxelEdit::EM_Contour );
   ui->actionColorPicker->setData( Interactor2DVoxelEdit::EM_ColorPicker );
@@ -58,6 +63,7 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   ui->actionLiveWire->setData( Interactor2DVoxelEdit::EM_Livewire );
   ui->actionPolyLine->setData( Interactor2DVoxelEdit::EM_Polyline );
   ui->actionClone->setData( Interactor2DVoxelEdit::EM_Clone );
+  ui->actionAutoSeg->setData( Interactor2DVoxelEdit::EM_GeoSeg);
   connect( ag, SIGNAL(triggered(QAction*)), this, SLOT(OnEditMode(QAction*)) );
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   BrushProperty* bp = mainwnd->GetBrushProperty();
@@ -74,6 +80,8 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   connect(mainwnd->GetLayerCollection("MRI"), SIGNAL(LayerRemoved(Layer*)), this, SLOT(UpdateWidgets()));
   connect(bp, SIGNAL(FillValueChanged(double)), this, SLOT(UpdateWidgets()));
   connect(bp, SIGNAL(EraseValueChanged(double)), this, SLOT(UpdateWidgets()));
+  connect(ui->pushButtonGeoClear, SIGNAL(clicked(bool)), SLOT(OnButtonGeoClear()));
+  connect(ui->pushButtonGeoGo, SIGNAL(clicked(bool)), SLOT(OnButtonGeoGo()));
   for (int i = 0; i < 3; i++)
   {
     RenderView2D* view = (RenderView2D*)mainwnd->GetRenderView(i);
@@ -112,6 +120,18 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
                    << ui->lineEditContourValue
                    << ui->colorPickerContour
                    << ui->labelTipsContour;
+
+  m_widgetsGeoSeg  << ui->labelGeoLambda
+                   << ui->labelGeoMaxDistance
+                   << ui->labelGeoWsize
+                   << ui->lineEditGeoLambda
+                   << ui->spinBoxGeoWsize
+                   << ui->lineEditGeoMaxDistance
+                   << ui->colorPickerGeoInside
+                   << ui->labelGeoInsideColor
+                   << ui->labelGeoOutsideColor
+                   << ui->colorPickerGeoOutside
+                   << ui->pushButtonGeoGo;
 
   QTimer* timer = new QTimer( this );
   connect( timer, SIGNAL(timeout()), this, SLOT(OnIdle()) );
@@ -182,6 +202,7 @@ void ToolWindowEdit::OnIdle()
   ui->actionFreeHand->setChecked( view->GetAction() == Interactor2DVoxelEdit::EM_Freehand );
   ui->actionPolyLine->setChecked( view->GetAction() == Interactor2DVoxelEdit::EM_Polyline );
   ui->actionClone->setChecked( view->GetAction() == Interactor2DVoxelEdit::EM_Clone );
+  ui->actionAutoSeg->setChecked( view->GetAction() == Interactor2DVoxelEdit::EM_GeoSeg );
 
   ui->spinBoxBrushSize->setEnabled( view->GetAction() != Interactor2DVoxelEdit::EM_Fill );
   ui->spinBoxTolerance->setEnabled( view->GetAction() == Interactor2DVoxelEdit::EM_Fill );
@@ -241,6 +262,7 @@ void ToolWindowEdit::OnIdle()
       nAction != Interactor2DVoxelEdit::EM_Contour );
   ShowWidgets( m_widgetsSmooth, nAction == Interactor2DVoxelEdit::EM_Contour );
   ShowWidgets( m_widgetsContour, nAction == Interactor2DVoxelEdit::EM_Contour );
+  ShowWidgets( m_widgetsGeoSeg, nAction == Interactor2DVoxelEdit::EM_GeoSeg);
 
   for ( int i = 0; i < allwidgets.size(); i++ )
   {
@@ -467,5 +489,32 @@ void ToolWindowEdit::OnCheckReconEditing(bool bRecon)
     bp->SetEraseValue(old_erase_value);
     bp->SetExcludeRangeEnabled(exclude_enabled);
     bp->SetExcludeRange(exclude_range[0], exclude_range[1]);
+  }
+}
+
+void ToolWindowEdit::OnButtonGeoClear()
+{
+  LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("Supplement");
+  QList<Layer*> layers = lc->GetLayers("ROI");
+  foreach (Layer* layer, layers)
+  {
+    ((LayerROI*)layer)->Clear();
+  }
+}
+
+void ToolWindowEdit::OnButtonGeoGo()
+{
+  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer("MRI");
+  if (mri)
+  {
+    LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("Supplement");
+    QList<Layer*> layers = lc->GetLayers("ROI");
+    if (layers.size() < 2)
+      return;
+
+    double lambda = ui->lineEditGeoLambda->text().trimmed().toDouble();
+    double max_dist = ui->lineEditGeoMaxDistance->text().trimmed().toDouble();
+    int wsize = ui->spinBoxGeoWsize->value();
+    mri->GEOSSegmentation((LayerROI*)layers[0], (LayerROI*)layers[1], lambda, wsize, max_dist, NULL);
   }
 }

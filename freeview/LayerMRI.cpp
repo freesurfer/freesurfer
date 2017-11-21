@@ -81,10 +81,12 @@
 #include "vtkImageExtractComponents.h"
 #include "vtkMaskPoints.h"
 #include <QVariantMap>
+#include "LayerROI.h"
 
 extern "C"
 {
 #include "utils.h"
+#include "geos.h"
 }
 
 #define IMAGE_RESAMPLE_FACTOR     4.0     // must be multiples of 2
@@ -3351,52 +3353,52 @@ void LayerMRI::Threshold(int frame, LayerMRI* src, int src_frame, double th_low,
       out_value_ptr[0] = (char)out_value;
       break;
     case VTK_SHORT:
-      {
-        short* ptr = (short*)in_value_ptr;
-        ptr[0] = (short)in_value;
-        ptr = (short*)out_value_ptr;
-        ptr[0] = (short)out_value;
-      }
+    {
+      short* ptr = (short*)in_value_ptr;
+      ptr[0] = (short)in_value;
+      ptr = (short*)out_value_ptr;
+      ptr[0] = (short)out_value;
+    }
       break;
     case VTK_UNSIGNED_SHORT:
-      {
-        unsigned short* ptr = (unsigned short*)in_value_ptr;
-        ptr[0] = (unsigned short)in_value;
-        ptr = (unsigned short*)out_value_ptr;
-        ptr[0] = (unsigned short)out_value;
-      }
+    {
+      unsigned short* ptr = (unsigned short*)in_value_ptr;
+      ptr[0] = (unsigned short)in_value;
+      ptr = (unsigned short*)out_value_ptr;
+      ptr[0] = (unsigned short)out_value;
+    }
       break;
     case VTK_INT:
-      {
-        int* ptr = (int*)in_value_ptr;
-        ptr[0] = (int)in_value;
-        ptr = (int*)out_value_ptr;
-        ptr[0] = (int)out_value;
-      }
+    {
+      int* ptr = (int*)in_value_ptr;
+      ptr[0] = (int)in_value;
+      ptr = (int*)out_value_ptr;
+      ptr[0] = (int)out_value;
+    }
       break;
     case VTK_UNSIGNED_INT:
-      {
-        unsigned int* ptr = (unsigned int*)in_value_ptr;
-        ptr[0] = (unsigned int)in_value;
-        ptr = (unsigned int*)out_value_ptr;
-        ptr[0] = (unsigned int)out_value;
-      }
+    {
+      unsigned int* ptr = (unsigned int*)in_value_ptr;
+      ptr[0] = (unsigned int)in_value;
+      ptr = (unsigned int*)out_value_ptr;
+      ptr[0] = (unsigned int)out_value;
+    }
       break;
     case VTK_FLOAT:
-      {
-        float* ptr = (float*)in_value_ptr;
-        ptr[0] = (float)in_value;
-        ptr = (float*)out_value_ptr;
-        ptr[0] = (float)out_value;
-      }
+    {
+      float* ptr = (float*)in_value_ptr;
+      ptr[0] = (float)in_value;
+      ptr = (float*)out_value_ptr;
+      ptr[0] = (float)out_value;
+    }
       break;
     case VTK_DOUBLE:
-      {
-        double* ptr = (double*)in_value_ptr;
-        ptr[0] = (double)in_value;
-        ptr = (double*)out_value_ptr;
-        ptr[0] = (double)out_value;
-      }
+    {
+      double* ptr = (double*)in_value_ptr;
+      ptr[0] = (double)in_value;
+      ptr = (double*)out_value_ptr;
+      ptr[0] = (double)out_value;
+    }
       break;
     }
     
@@ -3634,4 +3636,48 @@ void LayerMRI::SetMaskThreshold(double val)
     m_mapMaskThresholds[m_layerMask] = val;
   
   SetMaskLayer(m_layerMask);
+}
+
+VOXEL_LIST* LabelToVoxelList(MRI* mri, LABEL *area)
+{
+  double xd, yd, zd;
+
+  VOXEL_LIST* vlist = VLSTalloc(area->n_points);
+  vlist->nvox = 0;
+  for (int n = 0; n < area->n_points; n++)
+  {
+    MRIworldToVoxel(mri, area->lv[n].x, area->lv[n].y, area->lv[n].z, &xd, &yd, &zd);
+    VLSTadd(vlist, nint(xd), nint(yd), nint(zd), xd, yd, zd);
+  }
+  return vlist;
+}
+
+bool LayerMRI::GEOSSegmentation(LayerROI *interior, LayerROI *exterior, double lambda, int wsize, double max_dist, LayerMRI *mask)
+{
+  GEOS_PARMS parm;
+  parm.lambda = lambda;
+  parm.wsize = wsize;
+  parm.max_dist = max_dist;
+
+  VOXEL_LIST* vlist_interior = LabelToVoxelList(GetSourceVolume()->GetMRI(), interior->GetRawLabel());
+  VOXEL_LIST* vlist_exterior = LabelToVoxelList(GetSourceVolume()->GetMRI(), exterior->GetRawLabel());
+  VOXEL_LIST* vlist_out = GEOSproposeSegmentation(GetSourceVolume()->GetMRI(), mask ? mask->GetSourceVolume()->GetMRI() : NULL, NULL,
+                                                  vlist_interior, vlist_exterior, &parm);
+
+  qDebug() << "Number of voxels: " << vlist_out->nvox;
+  for (int n = 0; n < vlist_out->nvox; n++)
+  {
+    double ras[3];
+    int ind[3] = { vlist_out->xi[n], vlist_out->yi[n], vlist_out->zi[n] };
+    OriginalIndexToRAS(ind, ras);
+    GetSourceVolume()->NativeRASToRAS(ras, ras);
+    SetVoxelByRAS(ras, true, true);
+    qDebug() << ind[0] << ind[1] << ind[2];
+  }
+  qDebug() << "\n";
+
+  VLSTfree(&vlist_exterior);
+  VLSTfree(&vlist_interior);
+  VLSTfree(&vlist_out);
+  return true;
 }

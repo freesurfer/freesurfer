@@ -36,6 +36,8 @@
 #include "BrushProperty.h"
 #include <vtkRenderer.h>
 #include <QDebug>
+#include "LayerROI.h"
+#include "LayerPropertyROI.h"
 
 Interactor2DVolumeEdit::Interactor2DVolumeEdit( const QString& layerTypeName, QObject* parent ) :
   Interactor2D( parent ),
@@ -71,6 +73,43 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
   }
 
   PreprocessMouseEvent(event);
+
+  if (m_nAction == EM_GeoSeg)
+  {
+    if (event->button() == Qt::LeftButton)
+    {
+      BrushProperty* bp = MainWindow::GetMainWindow()->GetBrushProperty();
+      LayerMRI* mri = (LayerMRI*)bp->GetReferenceLayer();
+      if (!mri)
+      {
+        emit Error( QString("Must select a reference layer."));
+        return false;
+      }
+
+      LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("Supplement");
+      QList<Layer*> layers = lc->GetLayers("ROI");    // Get foreground/background drawing layers
+      if (layers.size() < 2)
+      {
+        LayerROI* layer = new LayerROI(mri);
+        layer->GetProperty()->SetColor(Qt::red);
+        lc->AddLayer(layer);
+        layer = new LayerROI(mri);
+        layer->GetProperty()->SetColor(Qt::green);
+        lc->AddLayer(layer);
+        layers = lc->GetLayers("ROI");
+      }
+
+      LayerROI* roi = (LayerROI*)((event->modifiers() & Qt::ShiftModifier) ? layers[1]:layers[0]);
+      double ras[3];
+      m_nMousePosX = event->x();
+      m_nMousePosY = event->y();
+      view->MousePositionToRAS( event->x(), event->y(), ras );
+      roi->SetVoxelByRAS( ras, view->GetViewPlane());
+      m_bEditing = true;
+      view->grabMouse();
+      return false;
+    }
+  }
 
   if ( event->button() == Qt::LeftButton ||
        ( event->button() == Qt::RightButton && (event->buttons() & Qt::LeftButton) ) )
@@ -336,6 +375,24 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
   RenderView2D* view = ( RenderView2D* )renderview;
 
   PreprocessMouseEvent(event);
+
+  if (m_nAction == EM_GeoSeg && m_bEditing)
+  {
+    LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("Supplement");
+    QList<Layer*> layers = lc->GetLayers("ROI");    // Get foreground/background drawing layers
+    if (layers.size() < 2)
+      return false;
+
+    LayerROI* roi = (LayerROI*)((event->modifiers() & Qt::ShiftModifier) ? layers[1]:layers[0]);
+    double ras1[3], ras2[3];
+    view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras1 );
+    view->MousePositionToRAS( event->x(), event->y(), ras2 );
+    roi->SetVoxelByRAS( ras1, ras2, view->GetViewPlane());
+
+    m_nMousePosX = event->x();
+    m_nMousePosY = event->y();
+    return false;
+  }
 
   if ( m_bEditing )
   {

@@ -455,6 +455,19 @@ void FSLabel::Redo()
   }
 }
 
+void FSLabel::Clear()
+{
+  LabelFree(&m_label);
+  m_label = ::LabelAlloc( 100, NULL, (char*)"" );
+  if (m_mri_template)
+  {
+    ::LabelInit(m_label, m_mri_template->GetMRI(), NULL, 0);
+    LABEL* l = m_label;
+    m_label = LabelToScannerRAS(l, m_mri_template->GetMRI(), NULL);
+    LabelFree(&l);
+  }
+}
+
 void FSLabel::SaveForUndo()
 {
   LABEL* l = ::LabelCopy(m_label, NULL);
