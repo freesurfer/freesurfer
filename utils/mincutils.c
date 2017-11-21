@@ -28,7 +28,7 @@
 #include <stdio.h>
 
 #include "mri.h"
-#include "minc_internals.h"
+#include "minc_volume_io.h"
 
 /*-----------------------------------------------------*/
 int DumpMINCAxes(FILE *fp, MINCAXES *MA)

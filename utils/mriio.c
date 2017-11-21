@@ -67,7 +67,6 @@
 #include "math.h"
 #include "matrix.h"
 #include "mghendian.h"
-#include "minc_internals.h"
 #include "mri2.h"
 #include "mri_circulars.h"
 #include "mri_identify.h"
