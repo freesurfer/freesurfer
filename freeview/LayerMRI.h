@@ -59,6 +59,7 @@ class SurfaceRegion;
 class SurfaceRegionGroups;
 class LayerMRIWorkerThread;
 class LayerSurface;
+class LayerROI;
 
 #ifndef IntList
 typedef QList<int> IntList;
@@ -320,6 +321,8 @@ public:
   bool IsWindowAdjustable();
   
   bool IsObscuring();
+
+  bool GEOSSegmentation(LayerROI* inside, LayerROI* outside, double lambda, int wsize, double max_dist, LayerMRI* mask);
   
 public slots:
   void SetActiveFrame( int nFrame );

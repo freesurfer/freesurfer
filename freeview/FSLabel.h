@@ -74,6 +74,7 @@ public:
   void Undo();
   void Redo();
   void SaveForUndo();
+  void Clear();
 
 protected:
   LABEL*   m_label;

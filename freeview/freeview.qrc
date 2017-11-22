@@ -108,5 +108,6 @@
         <file>resource/icons/surface_overlay.png</file>
         <file>resource/icons/reset_view.png</file>
         <file>resource/icons/surface.png</file>
+        <file>resource/icons/voxel_draw_autoseg.png</file>
     </qresource>
 </RCC>

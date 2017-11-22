@@ -43,6 +43,10 @@ class LayerMRI;
 class LayerPropertyROI;
 class LayerSurface;
 
+extern "C" {
+#include "label.h"
+}
+
 class LayerROI : public LayerVolumeBase
 {
   Q_OBJECT
@@ -91,6 +95,8 @@ public:
 
   void MapLabelColorData( unsigned char* colordata, int nVertexCount);
 
+  LABEL*  GetRawLabel();
+
 public slots:
   void UpdateOpacity();
   void UpdateColorMap();
@@ -104,6 +110,7 @@ public slots:
   void Open(int nTimes = 1);
   void Close(int nTimes = 1);
   void Resample();
+  void Clear();
 
 protected slots:
   void OnBaseVoxelEdited(const QList<int> voxel_list, bool bAdd);

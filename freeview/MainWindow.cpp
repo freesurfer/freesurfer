@@ -23,6 +23,9 @@
  */
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
+#include <QtCore>
+#include <QtGui>
+#include <QFileInfo>
 #include "LayerMRI.h"
 #include "LayerPropertyMRI.h"
 #include "LayerSurface.h"
@@ -32,9 +35,6 @@
 #include "LayerVolumeTrack.h"
 #include "LayerCollection.h"
 #include "BrushProperty.h"
-#include <QtGui>
-#include <QtCore>
-#include <QFileInfo>
 #include <QMessageBox>
 #include "LUTDataHolder.h"
 #include "DialogLoadVolume.h"
@@ -380,7 +380,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
     connect(m_layerCollections[keys[i]], SIGNAL(LayersReordered()),
         ui->treeWidgetMouseInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
 
-    connect(m_layerCollections[keys[i]], SIGNAL(ActiveLayerChanged(Layer*)),
+    if (keys[i] != "Supplement")
+      connect(m_layerCollections[keys[i]], SIGNAL(ActiveLayerChanged(Layer*)),
         this, SLOT(OnActiveLayerChanged(Layer*)), Qt::QueuedConnection);
   }
   for ( int i = 0; i < 4; i++ )
@@ -661,6 +662,7 @@ void MainWindow::closeEvent( QCloseEvent * event )
 
   QList<LayerEditable*> layers;
   QStringList keys = m_layerCollections.keys();
+  keys.removeOne("Supplement");
   for ( int i = 0; i < keys.size(); i++ )
   {
     for ( int j = 0; j < m_layerCollections[keys[i]]->GetNumberOfLayers(); j++ )

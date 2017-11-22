@@ -55,7 +55,7 @@
 
 LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( parent )
 {
-  m_strTypeNames.push_back( "ROI" );
+  m_strTypeNames << "Supplement" << "ROI";
   m_sPrimaryType = "ROI";
   m_nVertexCache = NULL;
 
@@ -674,4 +674,24 @@ void LayerROI::SaveForUndo(int nPlane)
 {
   Q_UNUSED(nPlane);
   m_label->SaveForUndo();
+}
+
+void LayerROI::Clear()
+{
+  m_label->Clear();
+  m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
+  SetModified();
+  if (m_layerMappedSurface)
+  {
+    m_label->Initialize(m_layerSource->GetSourceVolume(), m_layerMappedSurface->GetSourceSurface(),
+                        m_layerMappedSurface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
+    m_layerMappedSurface->UpdateOverlay(true, true);
+  }
+  emit ActorUpdated();
+  emit Modified();
+}
+
+LABEL* LayerROI::GetRawLabel()
+{
+  return m_label->GetRawLabel();
 }
