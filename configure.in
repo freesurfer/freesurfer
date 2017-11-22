@@ -3068,7 +3068,7 @@ AM_CONDITIONAL(NMR_INSTALL, test x$nmrinstall = xtrue)
 
 
 ################################################
-LIBDIRS_MGH="minc_substitute utils rgb unix dicom hipsstubs"
+LIBDIRS_MGH="utils minc_substitute rgb unix dicom hipsstubs"
 AC_SUBST(LIBDIRS_MGH)
 
 # stupid circular dependency on iopen swapInt etc.
