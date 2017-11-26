@@ -18262,7 +18262,7 @@ int MRISreadTetherFile(MRI_SURFACE *mris, const char *fname, float radius)
 
   for (l = 0; l < mris->nlabels; l++) {
     cp = fgetl(line, 199, fp);
-    if (!sscanf(cp, "%s %f %f %f", mris->labels[l].name, &cx, &cy, &cz) != 4) {
+    if (sscanf(cp, "%s %f %f %f", mris->labels[l].name, &cx, &cy, &cz) != 4) {
       fclose(fp);
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISreadTetherFile(%s): could not scan parms from %s", fname, line));
     }

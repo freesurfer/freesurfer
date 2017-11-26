@@ -15,7 +15,9 @@
 // \author awf@robots.ox.ac.uk
 // \date   05 Dec 00
 
+#define export // obsolete feature "export template" used in these header files
 #include <vnl/vnl_nonlinear_minimizer.h>
+#undef export
 #include "fs_vnl/fs_cost_function.h"
 
 //: The ever-popular Powell minimizer.

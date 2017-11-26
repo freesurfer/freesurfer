@@ -51,10 +51,15 @@ extern "C"
 #include <vector>
 #include <stack>
 #include <limits>
+
+#define export 	// These headers use a deprecated / obsolete "export template" feature 
+		// and gcc 5 and higher emit error messages
+		// https://stackoverflow.com/questions/5416872/using-export-keyword-with-templates
 #include <vnl/vnl_matrix.h>
 #include <vnl/vnl_vector.h>
 #include <vnl/algo/vnl_symmetric_eigensystem.h>
 #include "utilsmath.h"
+#undef export
 
 typedef Math::Point<double> Pointf;
 

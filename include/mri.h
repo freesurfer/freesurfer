@@ -307,17 +307,11 @@ float  MRIgetVoxDx(MRI *mri, int c, int r, int s, int f);
 float  MRIgetVoxDy(MRI *mri, int c, int r, int s, int f);
 float  MRIgetVoxDz(MRI *mri, int c, int r, int s, int f);
 
-#ifdef __cplusplus
 float  MRIgetVoxVal( const MRI *mri, int c, int r, int s, int f);
 int    MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval);
 void   MRIdbl2ptr(double v, void *pmric, int mritype);
 double MRIptr2dbl(void *pmric, int mritype);
-#else
-inline float  MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f);
-inline int    MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval);
-inline void   MRIdbl2ptr(double v, void *pmric, int mritype);
-inline double MRIptr2dbl(void *pmric, int mritype);
-#endif
+
 size_t MRIsizeof(int mritype);
 
 char * MRIprecisionString(int PrecisionCode);

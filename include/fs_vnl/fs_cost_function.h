@@ -1,8 +1,10 @@
 #ifndef FS_COST_FUNCTION_H_
 #define FS_COST_FUNCTION_H_
 
+#define export // obsolete feature "export template" used in these header files
 #include <vnl/vnl_cost_function.h>
 #include <vnl/vnl_vector.h>
+#undef export
 
 class fs_cost_function : public vnl_cost_function
 {

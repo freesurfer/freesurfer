@@ -18,8 +18,10 @@
 // \endverbatim
 //
 
+#define export // obsolete feature "export template" used in these header files
 #include <vnl/vnl_cost_function.h>
 #include <vnl/vnl_nonlinear_minimizer.h>
+#undef export
 
 #include "fs_vnl/fs_lbfgs_subject.h"
 

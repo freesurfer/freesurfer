@@ -229,14 +229,20 @@ if test "x$F77" = "x"; then
 fi
 
 # check for gcc 4.4 and higher which supports openmp.
-ac_have_gcc_44="no"
+ac_have_gcc_44_or_higher="no"
 if (test "${CC}" = "gcc"); then
   gcc --version | grep " 4\.@<:@4-9@:>@" >& /dev/null
   if test "$?" = "0"; then
     AC_MSG_NOTICE(Have gcc 4.x where x >= 4)
-    ac_have_gcc_44="yes"
-  else
-    AC_MSG_NOTICE(Do not have gcc 4.x where x >= 4)
+    ac_have_gcc_44_or_higher="yes"
+  fi
+  gcc --version | grep " @<:@5-9@:>@." >& /dev/null
+  if test "$?" = "0"; then
+    AC_MSG_NOTICE(Have gcc x where x >= 5)
+    ac_have_gcc_44_or_higher="yes"
+  fi
+  if test "$ac_have_gcc_44_or_higher" = "no"; then
+    AC_MSG_NOTICE(Do not have gcc 4.4 or higher)
   fi
 fi
 
@@ -765,7 +771,7 @@ AC_ARG_ENABLE(openmp,
  ])
 
 # gcc 4.4 supports openmp, so enable it by default (no harm in doing so)
-if test "$ac_have_gcc_44" = "yes"; then
+if test "$ac_have_gcc_44_or_higher" = "yes"; then
   ac_have_openmp=yes
   OPENMP_FLAG="-fopenmp"
   CPPFLAGS="$CPPFLAGS $OPENMP_FLAG -DHAVE_OPENMP"
