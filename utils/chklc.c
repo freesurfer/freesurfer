@@ -120,7 +120,7 @@ void chklc(void)
   // check if alternative license path is provided:
   alt = getenv("FS_LICENSE");
   if (alt != NULL) {
-    sprintf(lfilename, alt);
+    strncpy(lfilename, alt, 511);	// leave a nul on the end
     if (Gdiag_no > 0 && first_time) printf("Trying license file %s\n", lfilename);
     lfile = fopen(lfilename, "r");
     if (lfile == NULL) {
@@ -280,7 +280,7 @@ int chklc2(char *msg)
   // check if alternative license path is provided:
   alt = getenv("FS_LICENSE");
   if (alt != NULL) {
-    sprintf(lfilename, alt);
+    strncpy(lfilename, alt, 511);	// leave a nul on the end
     lfile = fopen(lfilename, "r");
     if (lfile == NULL) {
       if (errno == EACCES) {

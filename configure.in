@@ -570,6 +570,9 @@ if test "x$CC" = "xicc"; then
   WERROR="$WERROR -diag-disable 1268"
   # warning #1268: support for exported templates is disabled
 fi
+# There are approximately 1000 of this 'error', most caused by
+# the presence of code intending for debugging, so don't report it
+WERROR="$WERROR -Wno-unused-but-set-variable"
 
 # to strip unused code when using Linux gcc.
 # but not on cent4 because for some reason it fails
