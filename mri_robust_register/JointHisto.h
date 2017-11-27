@@ -39,8 +39,11 @@ extern "C"
 }
 #endif
 
+#define export // obsolete feature 'export template' used in these headers 
 #include <vnl/vnl_matrix_fixed.h>
 #include <vnl/vnl_matlab_print.h>
+#undef export
+
 #include <vcl_iostream.h>
 
 class JointHisto

@@ -190,6 +190,27 @@ TRIO_ARGS1((values),
 /*
  * trio_is_special_quantity
  */
+
+// gcc 4.8 compiler complains if not used
+//
+#if (defined(TRIO_COMPILER_SUPPORTS_C99) && defined(isnan)) \
+ || defined(TRIO_COMPILER_SUPPORTS_UNIX95)
+#elif defined(TRIO_COMPILER_MSVC) || defined(TRIO_COMPILER_BCB)
+#elif defined(USE_IEEE_754)
+    #ifndef NEEDS_trio_is_special_quantity
+    #define NEEDS_trio_is_special_quantity
+    #endif
+#endif
+
+#if defined(TRIO_COMPILER_SUPPORTS_C99) && defined(isfinite)
+#elif defined(TRIO_COMPILER_MSVC) || defined(TRIO_COMPILER_BCB)
+#elif defined(USE_IEEE_754)
+    #ifndef NEEDS_trio_is_special_quantity
+    #define NEEDS_trio_is_special_quantity
+    #endif
+#endif
+
+#ifdef NEEDS_trio_is_special_quantity
 TRIO_PRIVATE int
 trio_is_special_quantity
 TRIO_ARGS2((number, has_mantissa),
@@ -210,6 +231,7 @@ TRIO_ARGS2((number, has_mantissa),
   }
   return is_special_quantity;
 }
+#endif
 
 #ifndef Darwin
 #if 0 // NJS: used inline below to avoid stupid compiler warnings
