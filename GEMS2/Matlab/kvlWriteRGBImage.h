@@ -51,7 +51,8 @@ public:
     typedef itk::Image< RGBAPixelType, 3 >   RGBAImageType;
     std::cout<<"Here! "<<std::endl;
     
-    if ( typeid( *object ) != typeid( RGBAImageType ) )
+    // if ( typeid( *object ) != typeid( RGBAImageType ) )
+    if ( strcmp(typeid( *object ).name(), typeid( RGBAImageType ).name()) )  // Eugenio: MAC compatibility
       {
       mexErrMsgTxt( "image doesn't refer to the correct ITK object type" );
       }
@@ -76,7 +77,8 @@ public:
       typedef CroppedImageReader::TransformType  TransformType;
       const int transformHandle = *( static_cast< int* >( mxGetData( prhs[ 2 ] ) ) );
       object = kvl::MatlabObjectArray::GetInstance()->GetObject( transformHandle );
-      if ( typeid( *object ) != typeid( TransformType ) )
+      // if ( typeid( *object ) != typeid( TransformType ) )
+      if ( strcmp(typeid( *object ).name(), typeid( TransformType ).name()) )  // Eugenio: MAC compatibility
         {
         mexErrMsgTxt( "transform doesn't refer to the correct ITK object type" );
         }
