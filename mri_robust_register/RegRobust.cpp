@@ -82,7 +82,7 @@ void RegRobust::findSatMultiRes(const vnl_matrix<double> &mi, double scaleinit)
 
   // allow 2d case (depth == 1)
   if (gpS[0]->width < 16 || gpS[0]->height < 16
-      || (gpS[0]->depth < 16 && !gpS[0]->depth == 1))
+      || (gpS[0]->depth < 16 && gpS[0]->depth != 1))
   {
     ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n");
   }
