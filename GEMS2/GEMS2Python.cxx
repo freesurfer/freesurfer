@@ -5,11 +5,13 @@
 namespace py = pybind11;
 
 typedef itk::Image< float, 3 >  ImageType;
+typedef ImageType::Pointer ImagePointer;
 typedef kvl::CroppedImageReader::TransformType  TransformType;
+typedef TransformType::Pointer TransformPointer;
 
 class KvlImage {
-    ImageType *imageHandle;
-    TransformType::Pointer transform;
+    ImagePointer imageHandle;
+    TransformPointer transform;
 
     public:
         KvlImage(const std::string &imageFileName) {
@@ -29,11 +31,19 @@ class KvlImage {
             reader->GetWorldToImageTransform()->GetInverse( transform );
             std::cout << "Read image: " << imageFileName << std::endl;
         }
-
+        void greet() {
+            std::cout << "hello from KvlImage" << std::endl;
+        }
 };
 
+void useImage(KvlImage* image) {
+    image->greet();
+}
 
 PYBIND11_MODULE(GEMS2Python, m) {
     py::class_<KvlImage>(m, "KvlImage")
-    .def(py::init<const std::string &>());
+    .def(py::init<const std::string &>())
+    .def("greet", &KvlImage::greet);
+
+    m.def("useImage", &useImage);
 }
