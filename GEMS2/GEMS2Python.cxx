@@ -1,4 +1,5 @@
 #include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 #include "kvlCroppedImageReader.h"
 #include "itkCastImageFilter.h"
 
@@ -34,16 +35,41 @@ class KvlImage {
         void greet() {
             std::cout << "hello from KvlImage" << std::endl;
         }
+
+        py::array_t<double> getTransformMatrix() {
+            double data[16];
+            auto parameters = transform->GetParameters();
+            for ( unsigned int row = 0; row < 3; row++ )
+            {
+                for ( unsigned int col = 0; col < 3; col++ )
+                {
+                    data[ col * 4 + row ] = parameters[ row * 3 + col ];
+                }
+                data[ 12 + row ] = parameters[ 9 + row ];
+            }
+            for ( unsigned int col = 0; col < 3; col++ )
+            {
+                data[ col * 4 + 3 ] = 0.0f;
+            }
+            data[ 15 ] = 1.0f;
+            auto result = py::array_t<double>(16, data);
+            result.resize({4, 4});
+            return result;
+        }
+
 };
 
 void useImage(KvlImage* image) {
     image->greet();
 }
 
+
+
 PYBIND11_MODULE(GEMS2Python, m) {
     py::class_<KvlImage>(m, "KvlImage")
     .def(py::init<const std::string &>())
-    .def("greet", &KvlImage::greet);
+    .def("greet", &KvlImage::greet)
+    .def("getTransformMatrix", &KvlImage::getTransformMatrix);
 
     m.def("useImage", &useImage);
 }
