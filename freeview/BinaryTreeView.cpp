@@ -124,8 +124,8 @@ void BinaryTreeView::mousePressEvent(QMouseEvent *event)
   {
     QString tract_name = m_mapNode.key(item);
     QStringList list = m_mapData.value("tree_map").toMap().value(tract_name).toStringList();
-//    qDebug() << tract_name; //print the tract name for the node
-//    qDebug() << list; //print list of all children tracts to show for this node
+    qDebug() << "\nNode" << tract_name; //print the tract name for the node
+    qDebug() << "Leaves" << list; //print list of all children tracts to show for this node
     if (!list.isEmpty())
     {
       QStringList filenames;
