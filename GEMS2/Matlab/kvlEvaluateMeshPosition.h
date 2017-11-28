@@ -64,7 +64,8 @@ public:
     // Retrieve mesh
     const int meshHandle = *( static_cast< int* >( mxGetData( prhs[ 1 ] ) ) );
     object = kvl::MatlabObjectArray::GetInstance()->GetObject( meshHandle );
-    if ( typeid( *object ) != typeid( kvl::AtlasMesh ) )
+    // if ( typeid( *object ) != typeid( kvl::AtlasMesh ) )
+    if ( strcmp(typeid( *object ).name(), typeid( kvl::AtlasMesh ).name()) )  // Eugenio: MAC compatibility
       {
       mexErrMsgTxt( "mesh doesn't refer to the correct ITK object type" );
       }

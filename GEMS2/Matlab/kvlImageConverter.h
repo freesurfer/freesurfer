@@ -69,7 +69,8 @@ public:
   static mxArray*  Convert( const itk::Object*  itkObject )
     {
     // Check if we can handle this object
-    if ( typeid( *itkObject ) != typeid( ImageType ) )
+    // if ( typeid( *itkObject ) != typeid( ImageType ) )
+     if ( strcmp(typeid( *itkObject ).name(), typeid( ImageType ).name()) )  // Eugenio: MAC compatibility
       {
       return 0;
       }
