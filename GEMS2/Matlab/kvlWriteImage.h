@@ -46,7 +46,8 @@ public:
     // Retrieve the image
     itk::Object::Pointer object = kvl::MatlabObjectArray::GetInstance()->GetObject( imageHandle );
     typedef itk::Image< float, 3 >   FloatImageType;
-    if ( typeid( *object ) != typeid( FloatImageType ) )
+    // if ( typeid( *object ) != typeid( FloatImageType ) )
+    if ( strcmp(typeid( *object ).name(), typeid( FloatImageType ).name()) )  // Eugenio: MAC compatibility
       {
       mexErrMsgTxt( "image doesn't refer to the correct ITK object type" );
       }
@@ -65,7 +66,8 @@ public:
       typedef CroppedImageReader::TransformType  TransformType;
       const int transformHandle = *( static_cast< int* >( mxGetData( prhs[ 2 ] ) ) );
       object = kvl::MatlabObjectArray::GetInstance()->GetObject( transformHandle );
-      if ( typeid( *object ) != typeid( TransformType ) )
+      // if ( typeid( *object ) != typeid( TransformType ) )
+      if ( strcmp(typeid( *object ).name(), typeid( TransformType ).name()) )  // Eugenio: MAC compatibility
         {
         mexErrMsgTxt( "transform doesn't refer to the correct ITK object type" );
         }
