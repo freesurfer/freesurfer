@@ -119,9 +119,9 @@ int main(int argc, char *argv[])
   if (getenv("FS_DISABLE_LANG") == NULL)
     putenv((char*)"LANG=en_US");
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-  qInstallMessageHandler(myMessageOutput);
+//  qInstallMessageHandler(myMessageOutput);
 #else
-  qInstallMsgHandler(myMessageOutput);
+//  qInstallMsgHandler(myMessageOutput);
 #endif
 
   LineProf::InitializePetsc(true);
