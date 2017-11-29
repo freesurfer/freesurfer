@@ -1074,16 +1074,16 @@ char *znzMatReadHeader(FILE *fp, MATFILE *mf, char **data)
   //   14 if matrix
   //   15 if the element is compressed
   // Must be 15 to get here
-  fread(&dt, sizeof(long), 1, fp);
+  fread(&dt, sizeof(long32), 1, fp);
   if (DIFFERENT_ENDIAN(mf)) dt = swapLong32(dt);
 
   // size = size(elementheader) + size(compresseddata)
-  fread(&size, sizeof(long), 1, fp);
+  fread(&size, sizeof(long32), 1, fp);
   if (DIFFERENT_ENDIAN(mf)) size = swapLong32(size);
 
   // buff holds the compressed data
-  buff = (char *)calloc(size, sizeof(char));
-  fread(buff, sizeof(char), size, fp);
+  buff = (char *)malloc(sizeof(char)*size);
+  fread(buff, 1,        sizeof(char)*size, fp);
 
   // dont know the size of the data after it has been uncompressed,
   // so just assume that it is no more than a factor of 100 larger

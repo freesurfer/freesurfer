@@ -1960,6 +1960,7 @@ static void  set_volume_type(
 	    
 	default:
 	    fprintf(stderr, "%s:%d bad nc_data_type\n", __FILE__, __LINE__);
+            exit(1);
         }
 
         set_multidim_data_type( &volume->array, data_type );

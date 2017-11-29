@@ -60207,8 +60207,8 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
         if (last_euthanasia < 0) {
           last_euthanasia = ngenerations;
           last_fitness = best_fitness;
-        }
-        if (last_euthanasia + NEXT <= ngenerations) {
+        } 
+	else if (last_euthanasia + NEXT <= ngenerations) {
           break;
         }
         if (last_fitness < best_fitness) {

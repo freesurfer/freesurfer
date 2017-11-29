@@ -541,6 +541,9 @@ fi
 # There are approximately 1000 of this 'error', most caused by
 # the presence of code intending for debugging, so don't report it
 WERROR="$WERROR -Wno-unused-but-set-variable"
+# There are approximately 600 of this 'error', most caused by
+# the presence of code ignoring status from write, fgets and similar functions
+WERROR="$WERROR -Wno-unused-result"
 
 # to strip unused code when using Linux gcc.
 # but not on cent4 because for some reason it fails
