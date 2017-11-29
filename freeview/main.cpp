@@ -52,7 +52,7 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 {
   Q_UNUSED(context);
 
-  if (msg.contains("sRGB profile") || msg.contains("QWidget::create"))
+  if (msg.contains("sRGB profile") || msg.contains("QWidget::create") || msg.contains("unregister timer"))
     return;
 
   switch ((int)type)
@@ -86,7 +86,7 @@ void myMessageOutput(QtMsgType type, const char *msg)
   {
   case QtDebugMsg:
     fprintf(stdout, "%s\n", msg);
-    fflush(0);
+    fflush(stdout);
     break;
   case QtWarningMsg:
     fprintf(stderr, "%s\n", msg);
@@ -119,9 +119,9 @@ int main(int argc, char *argv[])
   if (getenv("FS_DISABLE_LANG") == NULL)
     putenv((char*)"LANG=en_US");
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
-//  qInstallMessageHandler(myMessageOutput);
+  qInstallMessageHandler(myMessageOutput);
 #else
-//  qInstallMsgHandler(myMessageOutput);
+  qInstallMsgHandler(myMessageOutput);
 #endif
 
   LineProf::InitializePetsc(true);
