@@ -230,7 +230,6 @@ libutils_main_SOURCES=\
 	utils.c \
 	version.c \
 	vlabels.c \
-	vnl_missing_functions.cpp \
 	volcluster.c \
 	voxlist.c \
 	x3DList.c \

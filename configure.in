@@ -230,6 +230,7 @@ fi
 
 # check for gcc 4.4 and higher which supports openmp.
 ac_have_gcc_44_or_higher="no"
+ac_have_gcc_50_or_higher="no"
 if (test "${CC}" = "gcc"); then
   gcc --version | grep " 4\.@<:@4-9@:>@" >& /dev/null
   if test "$?" = "0"; then
@@ -240,6 +241,9 @@ if (test "${CC}" = "gcc"); then
   if test "$?" = "0"; then
     AC_MSG_NOTICE(Have gcc x where x >= 5)
     ac_have_gcc_44_or_higher="yes"
+    ac_have_gcc_50_or_higher="yes"
+    CXXFLAGS="$CXXFLAGS -fabi-version=2"
+    	# needed until vnl and maybe others can be rebuilt
   fi
   if test "$ac_have_gcc_44_or_higher" = "no"; then
     AC_MSG_NOTICE(Do not have gcc 4.4 or higher)
