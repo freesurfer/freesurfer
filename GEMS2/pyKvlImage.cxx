@@ -25,10 +25,3 @@ py::array_t<double> KvlImage::getTransformMatrix() {
 }
 
 
-void KvlImage::greet() {
-    std::cout << "hello from KvlImage" << std::endl;
-}
-
-void useImage(KvlImage* image) {
-    image->greet();
-}
