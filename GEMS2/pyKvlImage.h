@@ -17,11 +17,9 @@ class KvlImage {
 
 public:
     KvlImage(const std::string &imageFileName);
-    void Greet();
     py::array_t<double> GetTransformMatrix();
+    py::array_t<float> GetImageBuffer();
 };
-
-void UseImage(KvlImage* image);
 
 
 

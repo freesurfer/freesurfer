@@ -1,5 +1,6 @@
 #include "pyKvlImage.h"
 #include "itkCastImageFilter.h"
+#include "pyKvlNumpy.h"
 #include <pybind11/numpy.h>
 
 KvlImage::KvlImage(const std::string &imageFileName) {
@@ -24,11 +25,8 @@ py::array_t<double> KvlImage::GetTransformMatrix() {
     return TransformToNumpy(transform);
 }
 
-
-void KvlImage::Greet() {
-    std::cout << "hello from KvlImage" << std::endl;
-}
-
-void UseImage(KvlImage* image) {
-    image->Greet();
+py::array_t<float> KvlImage::GetImageBuffer() {
+    auto shape = imageHandle->GetBufferedRegion().GetSize();
+    imageHandle->GetPixelContainer()->SetContainerManageMemory(false);
+    return createNumpyArray({shape[2], shape[1], shape[0]}, imageHandle->GetPixelContainer()->GetImportPointer());
 }

@@ -7,7 +7,7 @@ namespace py = pybind11;
 
 #include "kvlCroppedImageReader.h"
 
-typedef kvl::CroppedImageReader::TransformType  TransformType;
+typedef kvl::CroppedImageReader::TransformType TransformType;
 typedef TransformType::Pointer TransformPointer;
 
 py::array_t<double> TransformToNumpy(TransformPointer transform);

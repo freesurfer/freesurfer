@@ -10,11 +10,8 @@ namespace py = pybind11;
 PYBIND11_MODULE(GEMS2Python, m) {
     py::class_<KvlImage>(m, "KvlImage")
             .def(py::init<const std::string &>())
-            .def("greet", &KvlImage::Greet)
             .def("getTransformMatrix", &KvlImage::GetTransformMatrix)
-            ;
-
-    m.def("useImage", &UseImage);
+            .def("getImageBuffer", &KvlImage::GetImageBuffer);
 
     py::class_<KvlMesh>(m, "KvlMesh")
             .def(py::init())

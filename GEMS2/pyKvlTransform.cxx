@@ -1,7 +1,9 @@
 #include "pyKvlTransform.h"
+#include "pyKvlNumpy.h"
+
 
 py::array_t<double> TransformToNumpy(TransformPointer transform) {
-    double data[16];
+    auto *data = new double[16];
     auto parameters = transform->GetParameters();
     for ( unsigned int row = 0; row < 3; row++ )
     {
@@ -16,9 +18,7 @@ py::array_t<double> TransformToNumpy(TransformPointer transform) {
         data[ col * 4 + 3 ] = 0.0f;
     }
     data[ 15 ] = 1.0f;
-    auto result = py::array_t<double>(16, data);
-    result.resize({4, 4});
-    return result;
+    return createNumpyArray({4, 4}, data);
 }
 
 TransformPointer NumpyToTransform(py::array_t<double> transform) {
