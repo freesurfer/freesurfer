@@ -548,6 +548,9 @@ WERROR="$WERROR -Wno-unused-but-set-variable"
 # There are approximately 600 of this 'error', most caused by
 # the presence of code ignoring status from write, fgets and similar functions
 WERROR="$WERROR -Wno-unused-result"
+# There are approximately 40 of this 'error', but in external packages
+# header files, hence not possible to fix, and harmless.
+WERROR="$WERROR -Wno-unused-local-typedefs"
 
 # to strip unused code when using Linux gcc.
 # but not on cent4 because for some reason it fails
