@@ -1,6 +1,6 @@
 #include "pyKvlTransform.h"
 
-py::array_t<double> transformToNumpy(TransformPointer transform) {
+py::array_t<double> TransformToNumpy(TransformPointer transform) {
     double data[16];
     auto parameters = transform->GetParameters();
     for ( unsigned int row = 0; row < 3; row++ )
@@ -19,4 +19,8 @@ py::array_t<double> transformToNumpy(TransformPointer transform) {
     auto result = py::array_t<double>(16, data);
     result.resize({4, 4});
     return result;
+}
+
+TransformPointer NumpyToTransform(py::array_t<double> transform) {
+    return NULL;
 }

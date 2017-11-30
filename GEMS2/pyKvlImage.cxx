@@ -20,15 +20,15 @@ KvlImage::KvlImage(const std::string &imageFileName) {
     std::cout << "Read image: " << imageFileName << std::endl;
 }
 
-py::array_t<double> KvlImage::getTransformMatrix() {
-    return transformToNumpy(transform);
+py::array_t<double> KvlImage::GetTransformMatrix() {
+    return TransformToNumpy(transform);
 }
 
 
-void KvlImage::greet() {
+void KvlImage::Greet() {
     std::cout << "hello from KvlImage" << std::endl;
 }
 
-void useImage(KvlImage* image) {
-    image->greet();
+void UseImage(KvlImage* image) {
+    image->Greet();
 }

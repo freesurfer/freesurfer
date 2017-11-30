@@ -4,12 +4,37 @@
 #include "itkObject.h"
 #include "kvlAtlasMeshCollection.h"
 
-class KvlMeshCollection {
-    kvl::AtlasMeshCollection::Pointer  meshCollection;
+typedef kvl::AtlasMeshCollection::Pointer MeshCollectionPointer;
+typedef kvl::AtlasMesh::ConstPointer MeshPointer;
+
+class KvlMesh {
+    MeshPointer mesh;
 public:
-    KvlMeshCollection(const std::string &meshFileName);
-    bool isEmpty() {
-        return meshCollection.IsNull();
+    // Python accessible
+    KvlMesh();
+
+    // C++ Only
+    KvlMesh(MeshPointer& aMesh);
+};
+
+class KvlMeshCollection {
+    MeshCollectionPointer  meshCollection;
+public:
+    // Python accessible
+    KvlMeshCollection();
+    void Read(const std::string &meshCollectionFileName);
+    void Write(const std::string &meshCollectionFileName);
+    double GetK() const;
+    void SetK(double k);
+    KvlMesh* GetMesh(int meshNumber);
+    KvlMesh* GetReferenceMesh();
+
+    // C++ use only
+    const char *GetNameOfClass() const {
+        return "KvlMeshCollection";
+    }
+    MeshCollectionPointer GetMeshCollection() {
+        return meshCollection;
     }
 };
 
