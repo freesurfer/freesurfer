@@ -1,11 +1,12 @@
 #include <pybind11/pybind11.h>
-#include "pyKvlMesh.h"
 #include "itkMacro.h"
+#include "pyKvlMesh.h"
+#include "pyKvlNumpy.h"
 
-KvlMesh::KvlMesh()
-{
+KvlMesh::KvlMesh() {
 
 }
+
 KvlMesh::KvlMesh(MeshPointer &aMesh) {
     mesh = aMesh;
 }
@@ -14,6 +15,9 @@ int KvlMesh::PointCount() const {
     return mesh->GetPoints()->Size();
 }
 
+py::array_t<double> KvlMesh::GetPointSet() const {
+    return PointSetToNumpy(mesh->GetPoints());
+}
 
 KvlMeshCollection::KvlMeshCollection() {
     meshCollection = kvl::AtlasMeshCollection::New();
@@ -64,11 +68,19 @@ KvlMesh *KvlMeshCollection::GetReferenceMesh() {
     return new KvlMesh(mesh);
 }
 
-unsigned int KvlMeshCollection::MeshCount() const
-{
+unsigned int KvlMeshCollection::MeshCount() const {
     return meshCollection->GetNumberOfMeshes();
 }
 
-py::array_t<double> PointSetToNumpy(PointSetPointer points) {
+#define XYZ_DIMENSIONS 3
+py::array_t<double> PointSetToNumpy(PointSetConstPointer points) {
     const int numberOfNodes = points->Size();
+    auto *data = new double[numberOfNodes * XYZ_DIMENSIONS];
+    auto dataIterator = data;
+    for (auto pointsIterator = points->Begin(); pointsIterator != points->End(); ++pointsIterator) {
+        for (int xyzAxisSelector = 0; xyzAxisSelector < XYZ_DIMENSIONS; xyzAxisSelector++) {
+            *dataIterator++ = pointsIterator.Value()[xyzAxisSelector];
+        }
+    }
+    return createNumpyArray({numberOfNodes, XYZ_DIMENSIONS}, data);
 }

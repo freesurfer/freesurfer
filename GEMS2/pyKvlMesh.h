@@ -10,7 +10,7 @@ namespace py = pybind11;
 
 typedef kvl::AtlasMeshCollection::Pointer MeshCollectionPointer;
 typedef kvl::AtlasMesh::ConstPointer MeshPointer;
-typedef kvl::AtlasMesh::PointsContainer* PointSetPointer;
+typedef kvl::AtlasMesh::PointsContainer::ConstPointer PointSetConstPointer;
 
 class KvlMesh {
     MeshPointer mesh;
@@ -18,6 +18,7 @@ public:
     // Python accessible
     KvlMesh();
     int PointCount() const;
+    py::array_t<double> GetPointSet() const;
 
     // C++ Only
     KvlMesh(MeshPointer& aMesh);
@@ -45,6 +46,6 @@ public:
     }
 };
 
-py::array_t<double> PointSetToNumpy(PointSetPointer points);
+py::array_t<double> PointSetToNumpy(PointSetConstPointer points);
 
 #endif //GEMS_PYKVLMESH_H_H

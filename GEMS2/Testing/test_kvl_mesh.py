@@ -1,5 +1,4 @@
 import GEMS2Python
-from py._path.local import LocalPath
 import pytest
 
 MESH_COLLECTION_TEST_FILE = 'Testing/test.txt'
@@ -100,3 +99,12 @@ class TestMeshCollection:
     def test_get_mesh_with_index_too_big_by_one(self):
         with pytest.raises(Exception):
             mesh = self.collection.get_mesh(MESH_COLLECTION_TEST_MESH_COUNT)
+
+    @pytest.mark.slowtest
+    def test_get_points(self):
+        mesh = self.collection.get_reference_mesh()
+        points = mesh.points
+        [point_count, point_dimensions] = points.shape
+        assert point_dimensions == 3
+        assert point_count == MESH_COLLECTION_TEST_POINT_COUNT
+

@@ -16,6 +16,7 @@ PYBIND11_MODULE(GEMS2Python, m) {
     py::class_<KvlMesh>(m, "KvlMesh")
             .def(py::init())
             .def_property_readonly("point_count", &KvlMesh::PointCount)
+            .def_property_readonly("points", &KvlMesh::GetPointSet)
             ;
 
     py::class_<KvlMeshCollection>(m, "KvlMeshCollection")
