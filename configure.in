@@ -3535,12 +3535,19 @@ fi
 # check for XawPlus lib only if xawplus app building is enabled
 if test ! "x$xawplus_apps" = "xNO"; then
   # with and without libXpm (Centos 6 doesnt have it)
-  AC_CHECK_LIB([X11 -lXt -lXpm -lXawPlus], [XawInitializeWidgetSet],
-    [LIBS_XAWPLUS="-lXt -lXpm -lXawPlus"],
-    [AC_CHECK_LIB([X11 -lXt -lXawPlus], [XawInitializeWidgetSet],
-    [LIBS_XAWPLUS="-lXt -lXawPlus"],
-    [AC_MSG_ERROR([FATAL: XawPlus lib not found. \
-  Set LDFLAGS or --with-xawplus-dir.])])])
+  AC_CHECK_LIB(
+    [XawPlus], 
+    [XawInitializeWidgetSet],
+    [LIBS_XAWPLUS="-lXawPlus -lXt -lXpm -lX11"],
+    [AC_CHECK_LIB(
+       [XawPlus],
+       [XawInitializeWidgetSet],
+       [LIBS_XAWPLUS="-lXawPlus -lXt -lX11"],
+       [AC_MSG_ERROR([FATAL: XawPlus lib not found. Set LDFLAGS or --with-xawplus-dir.])],
+       [-lXt -lX11]
+       )
+    ],
+    [-lXt -lXpm -lX11])
   AC_SUBST(LIBS_XAWPLUS)
 fi
 
