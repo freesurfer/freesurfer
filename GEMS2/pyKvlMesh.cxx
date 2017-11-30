@@ -82,5 +82,5 @@ py::array_t<double> PointSetToNumpy(PointSetConstPointer points) {
             *dataIterator++ = pointsIterator.Value()[xyzAxisSelector];
         }
     }
-    return createNumpyArrayFStyle({numberOfNodes, XYZ_DIMENSIONS}, data);
+    return createNumpyArrayCStyle({numberOfNodes, XYZ_DIMENSIONS}, data);
 }
