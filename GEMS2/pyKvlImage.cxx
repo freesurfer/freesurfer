@@ -26,9 +26,14 @@ py::array_t<double> KvlImage::GetTransformMatrix() {
 }
 
 py::array_t<float> KvlImage::GetImageBuffer() {
-    auto shape = imageHandle->GetBufferedRegion().GetSize();
-    imageHandle->GetPixelContainer()->SetContainerManageMemory(false);
-    return createNumpyArrayFStyle(
-            {shape[0], shape[1], shape[2]},
-            imageHandle->GetPixelContainer()->GetImportPointer());
+    auto region = imageHandle->GetLargestPossibleRegion();
+    auto shape = region.GetSize();
+    auto* const buffer = new float[region.GetNumberOfPixels()];
+
+    itk::ImageRegionConstIterator< ImageType > it( imageHandle, region );
+    float* buffer_p = buffer;
+    for ( ;!it.IsAtEnd(); ++it, ++buffer_p ){
+        *buffer_p = it.Value();
+    }
+    return createNumpyArrayFStyle({shape[0], shape[1], shape[2]}, buffer);
 }
