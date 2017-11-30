@@ -74,7 +74,7 @@ unsigned int KvlMeshCollection::MeshCount() const {
 
 #define XYZ_DIMENSIONS 3
 py::array_t<double> PointSetToNumpy(PointSetConstPointer points) {
-    const int numberOfNodes = points->Size();
+    const unsigned int numberOfNodes = points->Size();
     auto *data = new double[numberOfNodes * XYZ_DIMENSIONS];
     auto dataIterator = data;
     for (auto pointsIterator = points->Begin(); pointsIterator != points->End(); ++pointsIterator) {
@@ -82,5 +82,5 @@ py::array_t<double> PointSetToNumpy(PointSetConstPointer points) {
             *dataIterator++ = pointsIterator.Value()[xyzAxisSelector];
         }
     }
-    return createNumpyArray({numberOfNodes, XYZ_DIMENSIONS}, data);
+    return createNumpyArrayFStyle({numberOfNodes, XYZ_DIMENSIONS}, data);
 }
