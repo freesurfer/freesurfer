@@ -230,6 +230,7 @@ fi
 
 # check for gcc 4.4 and higher which supports openmp.
 ac_have_gcc_44_or_higher="no"
+ac_have_gcc_50_or_higher="no"
 if (test "${CC}" = "gcc"); then
   gcc --version | grep " 4\.@<:@4-9@:>@" >& /dev/null
   if test "$?" = "0"; then
@@ -240,6 +241,9 @@ if (test "${CC}" = "gcc"); then
   if test "$?" = "0"; then
     AC_MSG_NOTICE(Have gcc x where x >= 5)
     ac_have_gcc_44_or_higher="yes"
+    ac_have_gcc_50_or_higher="yes"
+    CXXFLAGS="$CXXFLAGS -fabi-version=2"
+    	# needed until vnl and maybe others can be rebuilt
   fi
   if test "$ac_have_gcc_44_or_higher" = "no"; then
     AC_MSG_NOTICE(Do not have gcc 4.4 or higher)
@@ -579,6 +583,12 @@ fi
 # There are approximately 1000 of this 'error', most caused by
 # the presence of code intending for debugging, so don't report it
 WERROR="$WERROR -Wno-unused-but-set-variable"
+# There are approximately 600 of this 'error', most caused by
+# the presence of code ignoring status from write, fgets and similar functions
+WERROR="$WERROR -Wno-unused-result"
+# There are approximately 40 of this 'error', but in external packages
+# header files, hence not possible to fix, and harmless.
+WERROR="$WERROR -Wno-unused-local-typedefs"
 
 # to strip unused code when using Linux gcc.
 # but not on cent4 because for some reason it fails
@@ -3125,6 +3135,19 @@ CPPFLAGS="$CPPFLAGS -D$OS -DANSI $OS_CPPFLAGS"
 LDFLAGS="$LDFLAGS $OS_LDFLAGS"
 
 #####################################################
+# link map
+#####################################################
+LDFLAGS="$LDFLAGS -Wl,-Map,ld_map.txt -Wl,--no-demangle"
+
+#####################################################
+# for now, turn off link time optimization
+# at least until we get a clean build
+#####################################################
+CFLAGS="$CFLAGS -fno-lto"
+CPPFLAGS="$CPPFLAGS -fno-lto"
+
+
+#####################################################
 # Checks for libraries.
 # the order is important
 #####################################################
@@ -3545,12 +3568,19 @@ fi
 # check for XawPlus lib only if xawplus app building is enabled
 if test ! "x$xawplus_apps" = "xNO"; then
   # with and without libXpm (Centos 6 doesnt have it)
-  AC_CHECK_LIB([X11 -lXt -lXpm -lXawPlus], [XawInitializeWidgetSet],
-    [LIBS_XAWPLUS="-lXt -lXpm -lXawPlus"],
-    [AC_CHECK_LIB([X11 -lXt -lXawPlus], [XawInitializeWidgetSet],
-    [LIBS_XAWPLUS="-lXt -lXawPlus"],
-    [AC_MSG_ERROR([FATAL: XawPlus lib not found. \
-  Set LDFLAGS or --with-xawplus-dir.])])])
+  AC_CHECK_LIB(
+    [XawPlus], 
+    [XawInitializeWidgetSet],
+    [LIBS_XAWPLUS="-lXawPlus -lXt -lXpm -lX11"],
+    [AC_CHECK_LIB(
+       [XawPlus],
+       [XawInitializeWidgetSet],
+       [LIBS_XAWPLUS="-lXawPlus -lXt -lX11"],
+       [AC_MSG_ERROR([FATAL: XawPlus lib not found. Set LDFLAGS or --with-xawplus-dir.])],
+       [-lXt -lX11]
+       )
+    ],
+    [-lXt -lXpm -lX11])
   AC_SUBST(LIBS_XAWPLUS)
 fi
 
