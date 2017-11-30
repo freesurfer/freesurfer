@@ -15,15 +15,16 @@ PYBIND11_MODULE(GEMS2Python, m) {
 
     py::class_<KvlMesh>(m, "KvlMesh")
             .def(py::init())
+            .def_property_readonly("point_count", &KvlMesh::PointCount)
             ;
 
     py::class_<KvlMeshCollection>(m, "KvlMeshCollection")
             .def(py::init())
+            .def_property_readonly("mesh_count", &KvlMeshCollection::MeshCount)
+            .def_property("k", &KvlMeshCollection::GetK, &KvlMeshCollection::SetK)
+            .def("get_reference_mesh", &KvlMeshCollection::GetReferenceMesh)
+            .def("get_mesh", &KvlMeshCollection::GetMesh)
             .def("read", &KvlMeshCollection::Read)
             .def("write", &KvlMeshCollection::Write)
-            .def("get_k", &KvlMeshCollection::GetK)
-            .def("set_k", &KvlMeshCollection::SetK)
-            .def("get_mesh", &KvlMeshCollection::GetMesh)
-            .def("get_reference_mesh", &KvlMeshCollection::GetReferenceMesh)
             ;
 }
