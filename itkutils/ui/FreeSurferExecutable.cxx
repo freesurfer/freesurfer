@@ -323,7 +323,7 @@ FreeSurferExecutable::ReadData( const char* fileName,
   double value = 0.0;
   
   // row of data
-  double *dataRow;
+  double *dataRow = NULL;
 
   // current index of the data
   int nData = 0;
