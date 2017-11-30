@@ -3118,6 +3118,11 @@ CPPFLAGS="$CPPFLAGS -D$OS -DANSI $OS_CPPFLAGS"
 LDFLAGS="$LDFLAGS $OS_LDFLAGS"
 
 #####################################################
+# link map
+#####################################################
+LDFLAGS="$LDFLAGS -Wl,-Map,ld_map.txt"
+
+#####################################################
 # Checks for libraries.
 # the order is important
 #####################################################
