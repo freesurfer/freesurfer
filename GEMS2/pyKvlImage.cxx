@@ -28,5 +28,7 @@ py::array_t<double> KvlImage::GetTransformMatrix() {
 py::array_t<float> KvlImage::GetImageBuffer() {
     auto shape = imageHandle->GetBufferedRegion().GetSize();
     imageHandle->GetPixelContainer()->SetContainerManageMemory(false);
-    return createNumpyArray({shape[2], shape[1], shape[0]}, imageHandle->GetPixelContainer()->GetImportPointer());
+    return createNumpyArrayFStyle(
+            {shape[0], shape[1], shape[2]},
+            imageHandle->GetPixelContainer()->GetImportPointer());
 }

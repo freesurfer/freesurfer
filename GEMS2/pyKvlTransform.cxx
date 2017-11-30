@@ -18,7 +18,7 @@ py::array_t<double> TransformToNumpy(TransformPointer transform) {
         data[ col * 4 + 3 ] = 0.0f;
     }
     data[ 15 ] = 1.0f;
-    return createNumpyArray({4, 4}, data);
+    return createNumpyArrayFStyle({4, 4}, data);
 }
 
 TransformPointer NumpyToTransform(py::array_t<double> transform) {
