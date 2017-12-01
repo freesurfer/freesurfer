@@ -15,6 +15,7 @@ typedef kvl::AtlasMeshCollection::Pointer MeshCollectionPointer;
 typedef kvl::AtlasMesh::ConstPointer MeshPointer;
 typedef kvl::AtlasMesh::PointsContainer* PointSetPointer;
 typedef kvl::AtlasMesh::PointsContainer::ConstPointer PointSetConstPointer;
+typedef kvl::AtlasMesh::PointDataContainer* PointDataPointer;
 typedef kvl::AtlasMesh::PointDataContainer::ConstPointer PointDataConstPointer;
 typedef std::vector<unsigned int> SHAPE_3D;
 
@@ -27,7 +28,7 @@ public:
     py::array_t<double> GetPointSet() const;
     void SetPointSet(const py::array_t<double> &source);
     py::array_t<double> GetAlphas() const;
-    void SetAlphas(py::array_t<double>);
+    void SetAlphas(const py::array_t<double> &source);
 
     // C++ Only
     KvlMesh(MeshPointer& aMesh);
@@ -62,5 +63,6 @@ public:
 py::array_t<double> PointSetToNumpy(PointSetConstPointer points);
 void CopyNumpyToPointSet(PointSetPointer points, const py::array_t<double> &source);
 py::array_t<double> AlphasToNumpy(PointDataConstPointer alphas);
+void CopyNumpyToPointDataSet(PointDataPointer alphas, const py::array_t<double> &source);
 
 #endif //GEMS_PYKVLMESH_H_H

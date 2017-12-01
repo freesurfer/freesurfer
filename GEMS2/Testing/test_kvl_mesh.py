@@ -146,22 +146,14 @@ class TestMeshCollection:
         assert label_count == CONSTRUCTED_NUMBER_OF_CLASSES
         assert point_count == CONSTRUCTED_POINT_COUNT
 
-    def test_mesh_set_points(self):
-        mesh_collection = GEMS2Python.KvlMeshCollection()
-        mesh_size = (3, 5, 7)
-        domain_size = (10, 11, 13)
-        stiffness = 0.25
-        number_of_classes = 6
-        number_of_meshes = 1
-        mesh_collection.construct(mesh_size, domain_size, stiffness, number_of_classes, number_of_meshes)
-        mesh = mesh_collection.reference_mesh
-        points = mesh.points
+    def test_mesh_set_points(self, simple_mesh):
+        points = simple_mesh.points
         [x, y, z] = points[77]
         assert x != 99
         assert y != 100
         assert z != 101
         points[77] = [99, 100, 101]  # Change local points
-        refetched_points = mesh.points
+        refetched_points = simple_mesh.points
 
         # refetched points are same as before
         [xx, yy, zz] = refetched_points[77]
@@ -170,12 +162,44 @@ class TestMeshCollection:
         assert z == zz
 
         # save back, however, will change the points
-        mesh.points = points
-        again_points = mesh.points
+        simple_mesh.points = points
+        again_points = simple_mesh.points
         [xxx, yyy, zzz] = again_points[77]
         assert xxx == 99
         assert yyy == 100
         assert zzz == 101
+
+    def test_set_alphas(self, simple_mesh):
+        alphas = simple_mesh.alphas
+        [a, b, c, d, e, f] = alphas[33]
+        assert a != 99
+        assert b != 100
+        assert c != 101
+        assert d != 102
+        assert e != 104
+        assert f != 105
+        alphas[33] = [99, 100, 101, 102, 103, 104]  # Change local alphas
+        refetched_alphas = simple_mesh.alphas
+
+        # refetched alphas are same as before
+        [aa, bb, cc, dd, ee, ff] = refetched_alphas[33]
+        assert aa == a
+        assert bb == b
+        assert cc == c
+        assert dd == d
+        assert ee == e
+        assert ff == f
+
+        # save back, however, will change the alphas
+        simple_mesh.alphas = alphas
+        again_alphas = simple_mesh.alphas
+        [aaa, bbb, ccc, ddd, eee, fff] = again_alphas[33]
+        assert aaa == 99
+        assert bbb == 100
+        assert ccc == 101
+        assert ddd == 102
+        assert eee == 103
+        assert fff == 104
 
     @pytest.mark.slowtest
     def test_read(self):

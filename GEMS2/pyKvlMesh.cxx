@@ -1,3 +1,4 @@
+#include "kvlAtlasMesh.h"
 #include <pybind11/pybind11.h>
 #include "itkMacro.h"
 #include "pyKvlMesh.h"
@@ -30,8 +31,11 @@ void KvlMesh::SetPointSet(const py::array_t<double> &source) {
     CopyNumpyToPointSet(points, source);
 }
 
-void KvlMesh::SetAlphas(py::array_t<double>) {
-
+void KvlMesh::SetAlphas(const py::array_t<double> &source) {
+    // TODO: why does the matlab code in kvlSetMeshNodePosition.h not require such a cast?
+    // This cast removes `const` from pointer, allowing write access
+    PointDataPointer alphas = (PointDataPointer) mesh->GetPointData();
+    CopyNumpyToPointDataSet(alphas, source);
 }
 
 KvlMeshCollection::KvlMeshCollection() {
@@ -122,7 +126,7 @@ py::array_t<double> PointSetToNumpy(PointSetConstPointer points) {
 
 void CopyNumpyToPointSet(PointSetPointer points, const py::array_t<double> &source) {
     if (source.ndim() != 2) {
-        itkGenericExceptionMacro("source must have two dimensions");
+        itkGenericExceptionMacro("point source shape must have two dimensions");
     }
     const unsigned int currentNumberOfNodes = points->Size();
     auto sourceShape = source.shape();
@@ -145,7 +149,6 @@ void CopyNumpyToPointSet(PointSetPointer points, const py::array_t<double> &sour
             pointsIterator.Value()[xyzAxisSelector] = *source.data(pointIndex, xyzAxisSelector);
         }
     }
-
 }
 
 py::array_t<double> AlphasToNumpy(PointDataConstPointer alphas) {
@@ -161,3 +164,32 @@ py::array_t<double> AlphasToNumpy(PointDataConstPointer alphas) {
     return createNumpyArrayCStyle({numberOfNodes, numberOfLabels}, data);
 }
 
+void CopyNumpyToPointDataSet(PointDataPointer destinationAlphas, const py::array_t<double> &source)
+{
+    if (source.ndim() != 2) {
+        itkGenericExceptionMacro("data point source shape must have two dimensions");
+    }
+    const unsigned int currentNumberOfNodes = destinationAlphas->Size();
+    auto sourceShape = source.shape();
+    const unsigned int sourceNumberOfNodes = *sourceShape++;
+    const unsigned int numberOfLabels = *sourceShape++;
+    if (sourceNumberOfNodes != currentNumberOfNodes) {
+        itkGenericExceptionMacro(
+                "source data point count of "
+                        << sourceNumberOfNodes
+                        << " not equal to mesh point count of "
+                        << currentNumberOfNodes
+        );
+    }
+    if (numberOfLabels <= 0) {
+        itkGenericExceptionMacro("source data have positive number of labels not " << numberOfLabels);
+    }
+    unsigned int pointIndex = 0;
+    for (auto alphasIterator = destinationAlphas->Begin(); alphasIterator != destinationAlphas->End(); ++alphasIterator, ++pointIndex) {
+        kvl::AtlasAlphasType  alphas( numberOfLabels );
+        for (int label = 0; label < numberOfLabels; label++) {
+            alphas[label] = *source.data(pointIndex, label);
+        }
+        alphasIterator.Value().m_Alphas = alphas;
+    }
+}
