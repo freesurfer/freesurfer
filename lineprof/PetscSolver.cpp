@@ -1,6 +1,8 @@
 
 // ITK includes
+#define export // obsolete feature "export template" used in these header files
 #include <itkImageRegionConstIterator.h>
+#undef export
 
 #include "PetscSolver.h"
 

@@ -7,6 +7,7 @@
 #include <cstddef>
 
 // ITK includes
+#define export // obsolete feature "export template" used in these header files
 #include "itkImageIOBase.h"
 #include "itkIOCommon.h"
 #include "itkExceptionObject.h"
@@ -17,6 +18,7 @@
 #include <vnl/vnl_matrix.h>
 #include <vnl/vnl_vector.h>
 #include <vnl/vnl_cross.h>
+#undef export
 
 
 #include <zlib.h>

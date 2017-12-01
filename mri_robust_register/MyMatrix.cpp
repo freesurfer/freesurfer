@@ -27,6 +27,8 @@
 #include "MyMatrix.h"
 #include "Quaternion.h"
 #include "utils.h" //nint
+
+#define export // obsolete feature 'export template' used in these headers 
 #include <vnl/vnl_inverse.h>
 #include <vnl/algo/vnl_matrix_inverse.h>
 #include <vnl/algo/vnl_determinant.h>
@@ -40,6 +42,7 @@
 #include <vnl/vnl_complexify.h>
 #include <vcl_iostream.h>
 #include <vnl/vnl_matlab_print.h>
+#undef export
 
 #ifdef __cplusplus
 extern "C"

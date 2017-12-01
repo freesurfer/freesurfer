@@ -6037,10 +6037,11 @@ int main ( int argc, char** argv ) {
     SetVolumeDirty( volume, FALSE );
   }
 
-  for ( volume = 0; volume < tkm_knNumSegTypes; volume++ ) {
-    gPreviousSegmentationVolume[volume] = NULL;
-    gSegmentationVolume[volume] = NULL;
-    gSegmentationChangedVolume[volume] = NULL;
+  tkm_tSegType segType;
+  for ( segType = 0; segType < tkm_knNumSegTypes; segType++ ) {
+    gPreviousSegmentationVolume[segType] = NULL;
+    gSegmentationVolume        [segType] = NULL;
+    gSegmentationChangedVolume [segType] = NULL;
   }
 
   /* find the user's home directory, or where the program is running from */
@@ -10251,8 +10252,8 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
   else /* Try to load the color table. */
   {
     DebugNote( ("Loading color table.") );
-    eResult = LoadSegmentationColorTable( iVolume, isColorFileName );
-    DebugAssertThrowX( (Volm_tErr_NoErr == eResult),
+    tkm_tErr eResult = LoadSegmentationColorTable( iVolume, isColorFileName );
+    DebugAssertThrowX( (tkm_tErr_NoErr == eResult),
                        eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
   }
 
@@ -10530,7 +10531,7 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
   /* Try to load the color table. */
   DebugNote( ("Loading color table.") );
   eResult = LoadSegmentationColorTable( iVolume, isColorFileName );
-  DebugAssertThrowX( (Volm_tErr_NoErr == eResult),
+  DebugAssertThrowX( (tkm_tErr_NoErr == eResult),
                      eResult, tkm_tErr_CouldntLoadColorTable );
 
   /* Read the annotation into the surface. */

@@ -1063,7 +1063,7 @@ size_t MRIsizeof(int mritype)
  to the pixel data (instead of an MRI struct), which makes
  it several times faster but less general.
 */
-inline double MRIptr2dbl(void *pmric, int mritype)
+double MRIptr2dbl(void *pmric, int mritype)
 {
   double v = 0;
   switch (mritype) {
@@ -1096,7 +1096,7 @@ inline double MRIptr2dbl(void *pmric, int mritype)
  to the pixel data (instead of an MRI struct), which makes
  it several times faster but less general.
 */
-inline void MRIdbl2ptr(double v, void *pmric, int mritype)
+void MRIdbl2ptr(double v, void *pmric, int mritype)
 {
   switch (mritype) {
     case MRI_UCHAR:
@@ -1187,7 +1187,7 @@ float MRIgetVoxDz(MRI *mri, int c, int r, int s, int f)
   \return float value at the given col, row, slice, frame
   This function is general but slow. See also MRIptr2dbl().
 */
-inline float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
+float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
 {
   // bounds checks:
   if (c < 0) return mri->outside_val;
@@ -1248,7 +1248,7 @@ inline float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
   \return int - 0 if ok, 1 if mri->type is unrecognized.
   This function is general but slow. See also MRIdbl2ptr().
 */
-inline int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
+int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
 {
   // clipping
   switch (mri->type) {

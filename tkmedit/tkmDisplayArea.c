@@ -2430,7 +2430,7 @@ DspA_tErr DspA_SetSegBrushInfo ( tkmDisplayAreaRef        this,
   if ( DspA_tErr_NoErr != eResult )
     goto error;
 
-  if ( iSettings->mSrc < tkm_tVolumeType_Main ||
+  if ( iSettings->mSrc < tkm_tVolumeTarget_MainAna ||
        iSettings->mSrc >= tkm_knNumVolumeTargets ) {
     eResult = DspA_tErr_InvalidParameter;
     goto error;
