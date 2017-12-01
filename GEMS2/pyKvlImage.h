@@ -12,10 +12,9 @@ typedef itk::Image< float, 3 >  ImageType;
 typedef ImageType::Pointer ImagePointer;
 
 class KvlImage {
+public:
     ImagePointer imageHandle;
     TransformPointer transform;
-
-public:
     KvlImage(const std::string &imageFileName);
     py::array_t<double> GetTransformMatrix();
     py::array_t<float> GetImageBuffer();

@@ -18,7 +18,7 @@ py::array_t<T> createNumpyArray(std::vector<size_t> shape, std::vector<size_t> s
 }
 
 template<class T>
-py::array_t<T> createNumpyArrayCStyle(std::vector<size_t> shape, T *data){
+py::array_t<T> createNumpyArrayCStyle(std::vector<size_t> shape, const T* const data){
     size_t size = sizeof(T);
     std::vector<size_t> strides = {1};
     for(size_t d = shape.size()-1; d > 0; d--){
@@ -32,7 +32,7 @@ py::array_t<T> createNumpyArrayCStyle(std::vector<size_t> shape, T *data){
 }
 
 template<class T>
-py::array_t<T> createNumpyArrayFStyle(std::vector<size_t> shape, T *data){
+py::array_t<T> createNumpyArrayFStyle(std::vector<size_t> shape, const T* const data){
     size_t size = sizeof(T);
     std::vector<size_t> strides = {1};
     for(size_t d = 0; d < shape.size()-1; d++){

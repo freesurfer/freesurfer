@@ -18,7 +18,7 @@ typedef kvl::AtlasMesh::PointDataContainer::ConstPointer PointDataConstPointer;
 typedef std::vector<unsigned int> SHAPE_3D;
 
 class KvlMesh {
-    MeshPointer mesh;
+
 public:
     // Python accessible
     KvlMesh();
@@ -30,6 +30,7 @@ public:
 
     // C++ Only
     KvlMesh(MeshPointer& aMesh);
+    MeshPointer mesh;
 };
 
 class KvlMeshCollection {
