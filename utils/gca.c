@@ -155,6 +155,11 @@ static double sample_covariance_determinant(GCA_SAMPLE *gcas, int ninputs);
 static GC1D *gcanGetGC(GCA_NODE *gcan, int label);
 static GC1D *findGCInWindow(GCA *gca, int x, int y, int z, int label, int wsize);
 
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+static double gcaComputeSampleConditionalLogDensity_1_input(GCA_SAMPLE *gcas, float val, int label);
+static double GCAsampleMahDist_1_input(GCA_SAMPLE *gcas, float val);
+#endif
+
 static int gcaCheck(GCA *gca);
 double gcaVoxelLogPosterior(GCA *gca, MRI *mri_labels, MRI *mri_inputs, int x, int y, int z, TRANSFORM *transform);
 static double gcaGibbsImpossibleConfiguration(GCA *gca, MRI *mri_labels, int x, int y, int z, TRANSFORM *transform);
@@ -15218,6 +15223,16 @@ static double gcaComputeSampleConditionalLogDensity(GCA_SAMPLE *gcas, float *val
   }
   return (log_p);
 }
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+static double gcaComputeSampleConditionalLogDensity_1_input(GCA_SAMPLE *gcas, float val, int label)
+{
+  double log_p, det;
+  det = gcas->covars[0];
+  log_p = -log(sqrt(det)) - .5 * GCAsampleMahDist_1_input(gcas, val);
+  return (log_p);
+}
+#endif
+
 static VECTOR *load_sample_mean_vector(GCA_SAMPLE *gcas, VECTOR *v_means, int ninputs)
 {
   int n;
@@ -15264,6 +15279,15 @@ static double sample_covariance_determinant(GCA_SAMPLE *gcas, int ninputs)
   det = MatrixDeterminant(m_cov);
   return (det);
 }
+
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+static double GCAsampleMahDist_1_input(GCA_SAMPLE *gcas, float val) 
+{
+    float v = val - gcas->means[0];
+    return v * v / gcas->covars[0];
+}
+#endif
+
 double GCAsampleMahDist(GCA_SAMPLE *gcas, float *vals, int ninputs)
 {
   static VECTOR *v_means = NULL, *v_vals = NULL;

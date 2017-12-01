@@ -9278,8 +9278,21 @@ int   MRIsampleVolumeFrameType_xyzInt_nRange_SAMPLE_NEAREST_floats(const MRI *mr
                             int xv, int yv, int zv, 
 			    const int frameBegin,
 			    const int frameEnd,		// [frameBegin] .. [frameEnd-1] done
-			    float *valForEachFrame) {	// vals loaded into [0] .. [frameEnd-1 - frameBegin]
-
+			    float *valForEachFrame) 	// vals loaded into [0] .. [frameEnd-1 - frameBegin]
+{
+  if (1) {
+      static int limit = 1;
+      static int calls = 0;
+      static int nFrames = 0;
+      nFrames += (frameEnd - frameBegin);
+      if (++calls >= limit) 
+      {
+          limit *= 2;
+	  fprintf(stderr, "MRIsampleVolumeFrameType_xyzInt_nRange_SAMPLE_NEAREST_floats calls:%d averageNFrames:%f\n",
+	      calls, (float)(nFrames)/calls);
+      }
+  }
+  
   int frame;
   
   int OutOfBounds = MRIindexNotInVolume(mri, xv, yv, zv);

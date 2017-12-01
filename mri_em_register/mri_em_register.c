@@ -231,7 +231,20 @@ char *rusage_file=NULL;
 
 int
 main(int argc, char *argv[])
-{
+{  
+  if (0) 
+  {
+      int i;
+      const char* sep = "";
+      for (i = 0; i < argc; i++) 
+      {
+	fputs(sep, stderr);
+        fputs(argv[i], stderr);
+	sep = " ";
+      }
+      fputs("\n", stderr);
+  }
+
   char         *gca_fname, *in_fname, *out_fname, fname[STRLEN], **av ;
   MRI          *mri_in, *mri_tmp, *mri_dst ;
   GCA          *gca /*, *gca_tmp, *gca_reduced*/ ;
