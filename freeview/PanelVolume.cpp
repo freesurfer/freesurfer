@@ -708,7 +708,7 @@ void PanelVolume::OnColorTableItemDoubleClicked(QTreeWidgetItem *item_in)
     item = ui->treeWidgetColorTable->currentItem();
   if (item)
   {
-    QStringList strglist = item->text( 0 ).split(" ");
+    QStringList strglist = item->text( 0 ).split(" ", QString::SkipEmptyParts);
     double val = strglist[0].toDouble();
     LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
     if ( layer )
