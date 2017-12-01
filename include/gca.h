@@ -105,7 +105,12 @@ typedef struct
   int    yp ;
   int    zp ;
   int    label ;
+#ifndef BEVIN_FASTER_MRI_EM_REGISTER
   float  prior ;
+#else
+  float  prior_access_via_setGetPrior;
+  double prior_log;
+#endif
   float  *covars ;
   float  *means ;
   float  log_p ;      /* current log probability of this sample */
@@ -115,6 +120,16 @@ typedef struct
   int    tissue_class ;
 }
 GCA_SAMPLE, GCAS ;
+
+#ifndef BEVIN_FASTER_MRI_EM_REGISTER
+#define gcas_setPrior(GCAS,TO) {((GCAS).prior = (TO); }
+#define gcas_getPrior(GCAS)    ((GCAS).prior)
+#define gcas_getPriorLog(GCAS) log((GCAS).prior)
+#else
+#define gcas_setPrior(GCAS,TO) {((GCAS).prior_access_via_setGetPrior) = (TO); (GCAS).prior_log = log((GCAS).prior_access_via_setGetPrior); }
+#define gcas_getPrior(GCAS)     ((GCAS).prior_access_via_setGetPrior)
+#define gcas_getPriorLog(GCAS)  ((GCAS).prior_log)
+#endif
 
 #define GIBBS_NEIGHBORHOOD   6
 #define GIBBS_NEIGHBORS      GIBBS_NEIGHBORHOOD

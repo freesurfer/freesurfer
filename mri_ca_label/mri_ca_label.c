@@ -3142,7 +3142,7 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
               gcas[i].yp = yp ;
               gcas[i].zp = zp ;
               gcas[i].label = gcap->labels[n] ;
-              gcas[i].prior = getPrior(gcap, gcap->labels[n]) ;
+              gcas_setPrior(gcas[i], getPrior(gcap, gcap->labels[n]));
               for (r = v = 0 ; r < gca->ninputs ; r++)
               {
                 gcas[i].means[r] = gc->means[r] ;

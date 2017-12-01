@@ -736,7 +736,7 @@ find_control_points(GCA *gca, GCA_SAMPLE *gcas_total,
               DiagBreak() ;
             xv = gcas[i].x ; yv = gcas[i].y ; zv = gcas[i].z ;
             if (xi != x || yi != y || zi != z
-                || gcas[i].prior < min_prior)
+                || gcas_getPrior(gcas[i]) < min_prior)
               continue ;
 
             if (xv == Gx && yv == Gy && zv == Gz)
