@@ -1,11 +1,15 @@
 #include "kvlAtlasMesh.h"
 #include <pybind11/pybind11.h>
+#include <itkImageRegionConstIterator.h>
 #include "itkMacro.h"
 #include "pyKvlMesh.h"
 #include "pyKvlTransform.h"
 #include "pyKvlNumpy.h"
 #include "vnl/vnl_det.h"
 #include "itkCellInterface.h"
+#include "kvlAtlasMeshAlphaDrawer.h"
+#include "kvlAtlasMeshMultiAlphaDrawer.h"
+
 #define XYZ_DIMENSIONS 3
 
 KvlMesh::KvlMesh() {
@@ -229,6 +233,141 @@ unsigned int KvlMeshCollection::MeshCount() const {
     return meshCollection->GetNumberOfMeshes();
 }
 
+py::array_t<uint16_t> KvlMesh::RasterizeMesh(std::vector<size_t> size) {
+    // Some typedefs
+    typedef kvl::AtlasMeshAlphaDrawer::ImageType  AlphaImageType;
+    typedef AlphaImageType::SizeType  SizeType;
+    typedef kvl::AtlasMeshMultiAlphaDrawer::ImageType  MultiAlphasImageType;
+
+    // Retrieve input arguments
+    kvl::AtlasMesh::ConstPointer constMesh = static_cast< const kvl::AtlasMesh* >( mesh );
+    SizeType imageSize;
+    for ( int i = 0; i < 3; i++ )
+    {
+        imageSize[ i ] = size[i];
+    }
+
+    int classNumber = -1;
+//    if ( nrhs > 2 )
+//    {
+//        TODO: implement optional classNumber parameter (not needed for atlas registration)
+//        double* tmp = mxGetPr( prhs[ 2 ] );
+//        classNumber = static_cast< int >( *tmp );
+//    }
+
+//std::cout << "mesh: " << mesh.GetPointer() << std::endl;
+    //std::cout << "imageSize: " << imageSize << std::endl;
+    //std::cout << "classNumber: " << classNumber << std::endl;
+
+
+    if ( classNumber >= 0 )
+    {
+        // TODO
+//        // Rasterize the specified prior. If the class number is 0, then pre-fill everything
+//        // so that parts not overlayed by the mesh are still considered to the background
+//        kvl::AtlasMeshAlphaDrawer::Pointer  alphaDrawer = kvl::AtlasMeshAlphaDrawer::New();
+//        alphaDrawer->SetRegions( imageSize );
+//        alphaDrawer->SetClassNumber( classNumber );
+//        if ( classNumber == 0 )
+//        {
+//            ( const_cast< AlphaImageType* >( alphaDrawer->GetImage() ) )->FillBuffer( 1.0 );
+//        }
+//        alphaDrawer->Rasterize( mesh );
+//
+//
+//        // Finally, copy the buffer contents into a Matlab matrix
+//        mwSize  dims[ 3 ];
+//        for ( int i = 0; i < 3; i++ )
+//        {
+//            dims[ i ] = imageSize[ i ];
+//        }
+//        //plhs[ 0 ] = mxCreateNumericArray( 3, dims, mxSINGLE_CLASS, mxREAL );
+//        //float*  data = static_cast< float* >( mxGetData( plhs[ 0 ] ) );
+//        plhs[ 0 ] = mxCreateNumericArray( 3, dims, mxUINT16_CLASS, mxREAL );
+//        unsigned short*  data = static_cast< unsigned short* >( mxGetData( plhs[ 0 ] ) );
+//
+//        itk::ImageRegionConstIterator< AlphaImageType >
+//                it( alphaDrawer->GetImage(),
+//                    alphaDrawer->GetImage()->GetBufferedRegion() );
+//        for ( ;!it.IsAtEnd(); ++it, ++data )
+//        {
+//            float  probability = it.Value();
+//            if ( probability < 0 )
+//            {
+//                probability = 0.0f;
+//            }
+//            else if ( probability > 1 )
+//            {
+//                probability = 1.0f;
+//            }
+//            *data = static_cast< unsigned short >( probability * 65535 + .5 );
+//        }
+
+    }
+    else
+    {
+        // Rasterize all priors simultaneously
+        const unsigned int  numberOfClasses = mesh->GetPointData()->Begin().Value().m_Alphas.Size();
+        //std::cout << "numberOfClasses: " << numberOfClasses << std::endl;
+
+        //std::cout << "Rasterizing mesh..." << std::flush;
+        kvl::AtlasMeshMultiAlphaDrawer::Pointer  drawer = kvl::AtlasMeshMultiAlphaDrawer::New();
+        drawer->SetRegions( imageSize );
+        //std::cout << "here: " << numberOfClasses << std::endl;
+        drawer->Rasterize( mesh );
+        MultiAlphasImageType::ConstPointer  alphasImage = drawer->GetImage();
+        //std::cout << "done" << std::endl;
+
+
+        // Convert into 4-D Matlab matrix
+        //std::cout << "Converting into Matlab format..." << std::flush;
+
+        std::vector<size_t> shape = {imageSize[ 0 ], imageSize[ 1 ], imageSize[ 2 ], numberOfClasses};
+
+        auto const buffer = new uint16_t[shape[0]*shape[1]*shape[2]*shape[3]];
+        auto data = buffer;
+
+        for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
+        {
+            // Loop over all voxels
+            itk::ImageRegionConstIterator< MultiAlphasImageType >  alphasIt( alphasImage,
+                                                                             alphasImage->GetBufferedRegion() );
+            for ( ;!alphasIt.IsAtEnd(); ++alphasIt, ++data )
+            {
+                float  probability = 0.0f;
+                if ( alphasIt.Value().sum() == 0 )
+                {
+                    // Outside of mesh so not computed. Let's put that to background
+                    if ( classNumber == 0 )
+                    {
+                        //probability = 1.0f;
+                    }
+                }
+                else
+                {
+                    //*data = alphasIt.Value()[ classNumber ];
+                    probability = alphasIt.Value()[ classNumber ];
+                    if ( probability < 0 )
+                    {
+                        probability = 0.0f;
+                    }
+                    else if ( probability > 1 )
+                    {
+                        probability = 1.0f;
+                    }
+                } // End test if outside mesh area
+
+                *data = static_cast< uint16_t >( probability * 65535 + .5 );
+            }
+
+            //std::cout << "Done" << std::endl;
+        } // End loop over all labels
+        //std::cout << "done" << std::endl;
+        return createNumpyArrayFStyle(shape, buffer);
+    }  // End test if rasterizing one prior or all priors simultaneously
+
+}
+
 
 py::array_t<double> PointSetToNumpy(PointSetConstPointer points) {
     const unsigned int numberOfNodes = points->Size();
@@ -311,3 +450,4 @@ void CopyNumpyToPointDataSet(PointDataPointer destinationAlphas, const py::array
         alphasIterator.Value().m_Alphas = alphas;
     }
 }
+

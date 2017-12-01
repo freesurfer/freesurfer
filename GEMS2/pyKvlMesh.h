@@ -31,6 +31,7 @@ public:
     py::array_t<double> GetAlphas() const;
     void SetAlphas(const py::array_t<double> &source);
     void Scale(const SCALE_3D &scaling);
+    py::array_t<uint16_t> RasterizeMesh(std::vector<size_t> size);
 
     // C++ Only
     KvlMesh(MeshPointer& aMesh);
