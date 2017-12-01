@@ -10,19 +10,19 @@ namespace py = pybind11;
 typedef kvl::CroppedImageReader::TransformType TransformType;
 typedef TransformType::Pointer TransformPointer;
 
-py::array_t<double> TransformToNumpy(TransformPointer transform);
-TransformPointer NumpyToTransform(py::array_t<double> transform);
 
 class KvlTransform {
     TransformPointer m_transform;
 public:
     // Python accessible
     KvlTransform(const py::array_t<double> &transformMatrix);
-    py::array_t<double> GetTransformMatrix() const;
+    py::array_t<double> AsNumpyArray() const;
 
     // C++ use only
-    const TransformPointer GetTransform() {
+    KvlTransform(TransformPointer transform) : m_transform(transform) {};
+    const TransformPointer GetTransform() const {
         return m_transform;
     }
+
 };
 #endif //GEMS_PYKVLTRANSFORM_H
