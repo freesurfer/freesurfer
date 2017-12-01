@@ -236,6 +236,11 @@ static int boundsCheck(int *pix, int *piy, int *piz, MRI *mri);
 
 static void set_equilavent_classes(int *equivalent_classes);
 
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+static void load_vals_xyzInt(const MRI *mri_inputs, int x, int y, int z, float *vals, int ninputs);
+#endif
+
+
 double GCAimageLikelihoodAtNode(GCA *gca, GCA_NODE *gcan, float *vals, int label)
 {
   GC1D *gc;
@@ -4569,10 +4574,7 @@ float GCAcomputeLogSampleProbability(
  multimodal inputs. Removing did not seem to slow it down much.
 */
 #ifdef HAVE_OPENMP
-#pragma omp parallel
-  {
-    nthreads = omp_get_num_threads();
-  }
+  nthreads = omp_get_max_threads();
 #else
   nthreads = 1;
 #endif
@@ -4633,7 +4635,11 @@ float GCAcomputeLogSampleProbability(
       gcas[i].z = z;
 
       // get values from all inputs
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+      load_vals_xyzInt(mri_inputs, x, y, z, vals, gca->ninputs);
+#else
       load_vals(mri_inputs, x, y, z, vals, gca->ninputs);
+#endif
       log_p = gcaComputeSampleLogDensity(&gcas[i], vals, gca->ninputs);
       if (FZERO(vals[0]) && gcas[i].label == Gdiag_no) {
         if (fabs(log_p) < 5) DiagBreak();
@@ -14942,16 +14948,22 @@ int GCArenormalizeFromAtlas(GCA *gca, GCA *gca_template)
 
 void load_vals(const MRI *mri_inputs, float x, float y, float z, float *vals, int ninputs)
 {
-  int n;
-  double val;
-
   // go through all inputs and get values from inputs
+  int n;
   for (n = 0; n < ninputs; n++) {
     // trilinear value at float x, y, z
+    double val;
     MRIsampleVolumeFrame(mri_inputs, x, y, z, n, &val);
     vals[n] = val;
   }
 }
+
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+static void load_vals_xyzInt(const MRI *mri_inputs, int x, int y, int z, float *vals, int ninputs)
+{
+  MRIsampleVolumeFrame_xyzInt_nRange_floats(mri_inputs, x, y, z, 0, ninputs, vals);
+}
+#endif
 
 double GCAmahDist(const GC1D *gc, const float *vals, const int ninputs)
 {

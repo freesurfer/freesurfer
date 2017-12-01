@@ -297,10 +297,7 @@ main(int argc, char *argv[])
   }
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel
-  { 
-    n_omp_threads = omp_get_num_threads(); 
-  }
+  n_omp_threads = omp_get_max_threads(); 
   printf("\n== Number of threads available to %s for OpenMP = %d == \n",
          Progname, n_omp_threads);
 #endif
@@ -330,7 +327,17 @@ main(int argc, char *argv[])
   ///////////  read GCA //////////////////////////////////////////////////
   printf("reading '%s'...\n", gca_fname) ;
   fflush(stdout) ;
-  gca = GCAread(gca_fname) ;
+
+  {
+      struct timeb start ;
+      TimerStart(&start) ;
+      gca = GCAread(gca_fname) ;
+      int msec = TimerStop(&start) ;
+      int seconds = nint((float)msec/1000.0f) ;
+      printf("GCAread took %d minutes and %d seconds.\n",
+         seconds / 60, seconds % 60) ;    
+  }
+  
   if (gca == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
               Progname, gca_fname) ;
@@ -1562,6 +1569,9 @@ find_optimal_transform
   done = 0 ;
   do
   {
+    struct timeb start ;
+    TimerStart(&start) ;
+
     old_max = max_log_p ;
     printf("****************************************\n");
     printf("Nine parameter search.  iteration %d nscales = %d ...\n",
@@ -1637,6 +1647,11 @@ find_optimal_transform
       good_step = 1 ;  /* took at least one good step at this scale */
     }
 
+    int msec    = TimerStop(&start) ;
+    int seconds = nint((float)msec/1000.0f) ;
+    printf("iteration took %d minutes and %d seconds.\n", 
+    	seconds / 60, seconds % 60) ;
+	    
     niter++ ;
   }
   while (nscales < MIN_SCALES || (done == FALSE)) ;
