@@ -36,7 +36,7 @@ PYBIND11_MODULE(GEMS2Python, m) {
             .def(py::init())
             .def_property_readonly("mesh_count", &KvlMeshCollection::MeshCount)
             .def_property("k", &KvlMeshCollection::GetK, &KvlMeshCollection::SetK)
-            .def("get_reference_mesh", &KvlMeshCollection::GetReferenceMesh)
+            .def_property_readonly("reference_mesh", &KvlMeshCollection::GetReferenceMesh)
             .def("get_mesh", &KvlMeshCollection::GetMesh)
             .def("construct", &KvlMeshCollection::Construct)
             .def("read", &KvlMeshCollection::Read)

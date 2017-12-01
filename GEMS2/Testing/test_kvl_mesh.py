@@ -45,6 +45,8 @@ class TestMeshCollection:
         mesh_collection.construct(mesh_size, domain_size, stiffness, number_of_classes, number_of_meshes)
         mesh_count = mesh_collection.mesh_count
         assert mesh_count == number_of_meshes
+        point_count = mesh_collection.reference_mesh.point_count
+        assert point_count == 105
 
     def test_bad_construction_mesh_size(self):
         mesh_collection = GEMS2Python.KvlMeshCollection()
@@ -79,13 +81,12 @@ class TestMeshCollection:
 
     @pytest.mark.slowtest
     def test_get_mesh_count(self):
-        reference_mesh = self.collection.get_reference_mesh()
         actual_count = self.collection.mesh_count
         assert actual_count == MESH_COLLECTION_TEST_MESH_COUNT
 
     @pytest.mark.slowtest
-    def test_get_reference_mesh(self):
-        reference_mesh = self.collection.get_reference_mesh()
+    def test_reference_mesh(self):
+        reference_mesh = self.collection.reference_mesh
         actual_count = reference_mesh.point_count
         assert actual_count == MESH_COLLECTION_TEST_POINT_COUNT
 
@@ -123,7 +124,7 @@ class TestMeshCollection:
 
     @pytest.mark.slowtest
     def test_get_points(self):
-        mesh = self.collection.get_reference_mesh()
+        mesh = self.collection.reference_mesh
         points = mesh.points
         [point_count, point_dimensions] = points.shape
         assert point_dimensions == 3
@@ -131,7 +132,7 @@ class TestMeshCollection:
 
     @pytest.mark.slowtest
     def test_get_alphas(self):
-        mesh = self.collection.get_reference_mesh()
+        mesh = self.collection.reference_mesh
         alphas = mesh.alphas
         [point_count, label_count] = alphas.shape
         assert label_count == MESH_COLLECTION_TEST_LABEL_COUNT
@@ -147,3 +148,35 @@ class TestMeshCollection:
         empty_collection = GEMS2Python.KvlMeshCollection()
         with pytest.raises(Exception):
             empty_collection.write(mesh_file_name)
+
+    def test_mesh_set_points(self):
+        mesh_collection = GEMS2Python.KvlMeshCollection()
+        mesh_size = (3, 5, 7)
+        domain_size = (10, 11, 13)
+        stiffness = 0.25
+        number_of_classes = 6
+        number_of_meshes = 1
+        mesh_collection.construct(mesh_size, domain_size, stiffness, number_of_classes, number_of_meshes)
+        mesh = mesh_collection.reference_mesh
+        points = mesh.points
+        [x, y, z] = points[77]
+        assert x != 99
+        assert y != 100
+        assert z != 101
+        points[77] = [99,100,101] # Change local points
+        refetched_points = mesh.points
+
+        # refetched points are same as before
+        [xx, yy, zz] = refetched_points[77]
+        assert x == xx
+        assert y == yy
+        assert z == zz
+
+        # save back, however, will change the points
+        mesh.points = points
+        again_points = mesh.points
+        [xxx, yyy, zzz] = again_points[77]
+        assert xxx == 99
+        assert yyy == 100
+        assert zzz == 101
+

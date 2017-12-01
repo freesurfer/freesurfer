@@ -13,6 +13,7 @@ namespace py = pybind11;
 
 typedef kvl::AtlasMeshCollection::Pointer MeshCollectionPointer;
 typedef kvl::AtlasMesh::ConstPointer MeshPointer;
+typedef kvl::AtlasMesh::PointsContainer* PointSetPointer;
 typedef kvl::AtlasMesh::PointsContainer::ConstPointer PointSetConstPointer;
 typedef kvl::AtlasMesh::PointDataContainer::ConstPointer PointDataConstPointer;
 typedef std::vector<unsigned int> SHAPE_3D;
@@ -24,7 +25,7 @@ public:
     KvlMesh();
     int PointCount() const;
     py::array_t<double> GetPointSet() const;
-    void SetPointSet(py::array_t<double>);
+    void SetPointSet(const py::array_t<double> &source);
     py::array_t<double> GetAlphas() const;
     void SetAlphas(py::array_t<double>);
 
@@ -59,6 +60,7 @@ public:
 };
 
 py::array_t<double> PointSetToNumpy(PointSetConstPointer points);
+void CopyNumpyToPointSet(PointSetPointer points, const py::array_t<double> &source);
 py::array_t<double> AlphasToNumpy(PointDataConstPointer alphas);
 
 #endif //GEMS_PYKVLMESH_H_H
