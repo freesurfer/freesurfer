@@ -24,3 +24,19 @@ py::array_t<double> TransformToNumpy(TransformPointer transform) {
 TransformPointer NumpyToTransform(py::array_t<double> transform) {
     return NULL;
 }
+
+KvlTransform::KvlTransform(const py::array_t<double> &transformMatrix) {
+    // Create the ITK transform object and fill in its elements
+    m_transform = TransformType::New();
+    TransformType::ParametersType  parameters( 12 );
+    for ( unsigned int row = 0; row < 3; row++ )
+    {
+        for ( unsigned int col = 0; col < 3; col++ )
+        {
+            std::cout << transformMatrix.at(row, col);
+            parameters[ row * 3 + col ] = transformMatrix.at(row, col);
+        }
+        parameters[ 9 + row ] =  transformMatrix.at(row, 4);
+    }
+    m_transform->SetParameters( parameters );
+}

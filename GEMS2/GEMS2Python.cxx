@@ -25,6 +25,11 @@ PYBIND11_MODULE(GEMS2Python, m) {
             .def("step_optimizer", &KvlOptimizer::StepOptimizer)
             ;
 
+    py::class_<KvlTransform>(m, "KvlTransform")
+            .def(py::init<const py::array_t<double> &>())
+            .def_property_readonly("transform_matrix", &KvlTransform::GetTransformMatrix)
+            ;
+
     py::class_<KvlMesh>(m, "KvlMesh")
             .def(py::init())
             .def_property_readonly("point_count", &KvlMesh::PointCount)

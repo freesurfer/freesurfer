@@ -14,13 +14,15 @@ py::array_t<double> TransformToNumpy(TransformPointer transform);
 TransformPointer NumpyToTransform(py::array_t<double> transform);
 
 class KvlTransform {
-    TransformPointer transform;
+    TransformPointer m_transform;
 public:
     // Python accessible
+    KvlTransform(const py::array_t<double> &transformMatrix);
+    py::array_t<double> GetTransformMatrix() const;
 
     // C++ use only
     const TransformPointer GetTransform() {
-        return transform;
+        return m_transform;
     }
 };
 #endif //GEMS_PYKVLTRANSFORM_H
