@@ -4,7 +4,8 @@
 #include "pyKvlMesh.h"
 #include "pyKvlTransform.h"
 #include "pyKvlNumpy.h"
-
+#include "vnl/vnl_det.h"
+#include "itkCellInterface.h"
 #define XYZ_DIMENSIONS 3
 
 KvlMesh::KvlMesh() {
@@ -105,9 +106,6 @@ void KvlMesh::Scale(const SCALE_3D &scaling) {
     TransformCellData(mesh, scaleFactor);
 }
 
-void KvlMesh::Transform(const KvlTransform &transform) {
-}
-
 KvlMeshCollection::KvlMeshCollection() {
     meshCollection = kvl::AtlasMeshCollection::New();
 }
@@ -138,7 +136,54 @@ void KvlMeshCollection::Read(const std::string &meshCollectionFileName) {
     std::cout << "Read mesh collection: " << meshCollectionFileName << std::endl;
 }
 
-void KvlMeshCollection::Transform(const KvlTransform &transform) {
+void ApplyTransformToMeshes(MeshCollectionPointer meshCollection, const TransformPointer transform)
+{
+    meshCollection->Transform( -1, transform );
+    for ( unsigned int i = 0; i < meshCollection->GetNumberOfMeshes(); i++ )
+    {
+        meshCollection->Transform( i, transform );
+    }
+}
+
+void ReverseTetrahedronSidedness(MeshCollectionPointer meshCollection) {
+    //std::cout << "Careful here: the applied transformation will turn positive tetrahedra into negative ones." << std::endl;
+    //std::cout << transform->GetMatrix().GetVnlMatrix() << std::endl;
+    //std::cout << " determinant: " << determinant << std::endl;
+    //std::cout << "Starting to swap the point assignments of each tetrahedron..." << std::endl;
+    kvl::AtlasMesh::CellsContainer* cells = meshCollection-> GetCells();
+
+    for ( kvl::AtlasMesh::CellsContainer::Iterator  cellIt = cells->Begin();
+          cellIt != meshCollection->GetCells()->End(); ++cellIt )
+    {
+        kvl::AtlasMesh::CellType*  cell = cellIt.Value();
+
+        if( cell->GetType() != kvl::AtlasMesh::CellType::TETRAHEDRON_CELL )
+        {
+            continue;
+        }
+
+        // Swap points assigned to first two vertices. This will readily turn negative tetrahedra
+        //into positives ones.
+        kvl::AtlasMesh::CellType::PointIdIterator  pit = cell->PointIdsBegin();
+        const kvl::AtlasMesh::PointIdentifier  p0Id = *pit;
+        ++pit;
+        const kvl::AtlasMesh::PointIdentifier  p1Id = *pit;
+
+        pit = cell->PointIdsBegin();
+        *pit = p1Id;
+        ++pit;
+        *pit = p0Id;
+    } // End loop over all tetrahedra
+
+}
+
+void KvlMeshCollection::Transform(const KvlTransform &kvlTransform) {
+    auto transform = kvlTransform.GetTransform();
+    ApplyTransformToMeshes(meshCollection, transform);
+    const float  determinant = vnl_det( transform->GetMatrix().GetVnlMatrix() );
+    if (determinant < 0) {
+        ReverseTetrahedronSidedness(meshCollection);
+    }
 }
 
 

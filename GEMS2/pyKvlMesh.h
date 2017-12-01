@@ -30,7 +30,6 @@ public:
     void SetPointSet(const py::array_t<double> &source);
     py::array_t<double> GetAlphas() const;
     void SetAlphas(const py::array_t<double> &source);
-    void Transform(const KvlTransform &transform);
     void Scale(const SCALE_3D &scaling);
 
     // C++ Only

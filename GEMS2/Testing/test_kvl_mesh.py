@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 import GEMS2Python
 
 MESH_COLLECTION_TEST_FILE_NAME = 'Testing/test.txt'
@@ -167,6 +168,24 @@ class TestMeshCollection:
         with pytest.raises(Exception):
             empty_collection.write(writeable_mesh_file_name)
 
+    def test_transform_mesh_collection(self, single_mesh_collection):
+        initial_transform = np.array([
+            [2, 0, 0, 20],
+            [0, 3, 0, 30],
+            [0, 0, 5, 40],
+            [0, 0, 0, 1],
+        ], dtype=np.double, order='F')
+        kvl_transform = GEMS2Python.KvlTransform(initial_transform)
+
+        current_points = single_mesh_collection.reference_mesh.points;
+        [x, y, z] = current_points[13]
+        single_mesh_collection.transform(kvl_transform)
+
+        transformed_points = single_mesh_collection.reference_mesh.points;
+        [sx, sy, sz] = transformed_points[13]
+        assert 20 + x * 2 == sx
+        assert 30 + y * 3 == sy
+        assert 40 + z * 5 == sz
 
 class TestMesh:
 
@@ -247,3 +266,4 @@ class TestMesh:
         assert y * 3 == sy
         assert z * 5 == sz
         # TODO: test cell data content (inverted matrix) has scaled
+
