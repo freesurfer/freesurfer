@@ -18,6 +18,7 @@ typedef kvl::AtlasMesh::PointsContainer::ConstPointer PointSetConstPointer;
 typedef kvl::AtlasMesh::PointDataContainer* PointDataPointer;
 typedef kvl::AtlasMesh::PointDataContainer::ConstPointer PointDataConstPointer;
 typedef std::vector<unsigned int> SHAPE_3D;
+typedef std::vector<double> SCALE_3D;
 
 class KvlMesh {
 
@@ -29,9 +30,13 @@ public:
     void SetPointSet(const py::array_t<double> &source);
     py::array_t<double> GetAlphas() const;
     void SetAlphas(const py::array_t<double> &source);
+    void Scale(const SCALE_3D &scaling);
 
     // C++ Only
     KvlMesh(MeshPointer& aMesh);
+    const char *GetNameOfClass() const {
+        return "KvlMesh";
+    }
     MeshPointer mesh;
 };
 

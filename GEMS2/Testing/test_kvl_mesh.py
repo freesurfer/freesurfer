@@ -233,3 +233,14 @@ class TestMeshCollection:
         empty_collection = GEMS2Python.KvlMeshCollection()
         with pytest.raises(Exception):
             empty_collection.write(writeable_mesh_file_name)
+
+    def test_scale_mesh(self, simple_mesh):
+        current_points = simple_mesh.points;
+        [x, y, z] = current_points[13]
+        simple_mesh.scale([2,3,5])
+        scaled_points = simple_mesh.points;
+        [sx, sy, sz] = scaled_points[13]
+        assert x * 2 == sx
+        assert y * 3 == sy
+        assert z * 5 == sz
+        # TODO: test cell data content (inverted matrix) has scaled
