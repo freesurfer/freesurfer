@@ -2,6 +2,7 @@
 #include <pybind11/pybind11.h>
 #include "itkMacro.h"
 #include "pyKvlMesh.h"
+#include "pyKvlTransform.h"
 #include "pyKvlNumpy.h"
 
 #define XYZ_DIMENSIONS 3
@@ -104,6 +105,9 @@ void KvlMesh::Scale(const SCALE_3D &scaling) {
     TransformCellData(mesh, scaleFactor);
 }
 
+void KvlMesh::Transform(const py::array_t<double> &transformMatrix) {
+}
+
 KvlMeshCollection::KvlMeshCollection() {
     meshCollection = kvl::AtlasMeshCollection::New();
 }
@@ -133,6 +137,11 @@ void KvlMeshCollection::Read(const std::string &meshCollectionFileName) {
     }
     std::cout << "Read mesh collection: " << meshCollectionFileName << std::endl;
 }
+
+void KvlMeshCollection::Transform(const py::array_t<double> &transformData) {
+    TransformPointer transform = NumpyTo
+}
+
 
 void KvlMeshCollection::Write(const std::string &meshCollectionFileName) {
     if (!meshCollection->Write(meshCollectionFileName.c_str())) {

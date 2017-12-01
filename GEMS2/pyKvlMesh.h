@@ -30,6 +30,7 @@ public:
     void SetPointSet(const py::array_t<double> &source);
     py::array_t<double> GetAlphas() const;
     void SetAlphas(const py::array_t<double> &source);
+    void Transform(const py::array_t<double> &transform);
     void Scale(const SCALE_3D &scaling);
 
     // C++ Only
@@ -54,6 +55,7 @@ public:
     void Construct(const SHAPE_3D &meshSize, const SHAPE_3D &domainSize,
                    double initialStiffness,
                    unsigned int numberOfClasses, unsigned int numberOfMeshes);
+    void Transform(const py::array_t<double> &transform);
 
     // C++ use only
     KvlMeshCollection();

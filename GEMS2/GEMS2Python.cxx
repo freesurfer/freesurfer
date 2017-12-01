@@ -31,6 +31,7 @@ PYBIND11_MODULE(GEMS2Python, m) {
             .def_property("points", &KvlMesh::GetPointSet, &KvlMesh::SetPointSet)
             .def_property("alphas", &KvlMesh::GetAlphas, &KvlMesh::SetAlphas)
             .def("scale", &KvlMesh::Scale)
+            .def("transform", &KvlMesh::Transform)
             ;
 
     py::class_<KvlMeshCollection>(m, "KvlMeshCollection")
@@ -41,6 +42,7 @@ PYBIND11_MODULE(GEMS2Python, m) {
             .def("get_mesh", &KvlMeshCollection::GetMesh)
             .def("construct", &KvlMeshCollection::Construct)
             .def("read", &KvlMeshCollection::Read)
+            .def("transform", &KvlMeshCollection::Transform)
             .def("write", &KvlMeshCollection::Write)
             ;
 }
