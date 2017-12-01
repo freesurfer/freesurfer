@@ -1222,8 +1222,6 @@ static  void  output_slab(
         ind = to_volume[file_ind];
         if( ind != INVALID_AXIS )
             volume_start[ind] = int_file_start[file_ind];
-        else
-            volume_start[ind] = 0;
     }
 
 #if defined(BEVIN_ALL_VOLUME_MEMBERS)

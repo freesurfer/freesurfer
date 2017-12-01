@@ -596,6 +596,7 @@ VIOAPI  Minc_file  initialize_minc_input_from_minc_id(
 
     if( file->converting_to_colour )
     {
+    	no_volume_data_type = true;
         converted_type = NC_FLOAT;
         converted_sign = FALSE;
     }
@@ -1200,6 +1201,7 @@ VIOAPI  Status  input_minc_hyperslab(
     }
     else
     {
+    	n_tmp_dims = 0;
         void_ptr = array_data_ptr;
     }
 
@@ -1315,8 +1317,6 @@ static  void  input_slab(
         ind = to_volume[file_ind];
         if( ind != INVALID_AXIS )
             volume_start[ind] = file_start[file_ind];
-        else
-            volume_start[ind] = 0;
     }
 
     get_multidim_sizes( &volume->array, array_sizes );

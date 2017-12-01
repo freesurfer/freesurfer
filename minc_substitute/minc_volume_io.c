@@ -2942,7 +2942,7 @@ bool input_more_of_volume(
     volume_input_struct  *input_info,
     double               *fraction_done )
 {
-    bool more_to_do;
+    bool more_to_do = false;
 
     switch( input_info->file_format )
     {

@@ -2079,7 +2079,7 @@ PRIVATE int MI_icv_dimconvert(int operation, mi_icv_type *icvp,
    mi_icv_dimconv_type dim_conv_struct;
    mi_icv_dimconv_type *dcp;
    double sum0, sum1;           /* Counters for averaging values */
-   double dvalue;               /* Pixel value */
+   double dvalue = 0.0;         /* Pixel value */
    long counter[MAX_VAR_DIMS];  /* Dimension loop counter */
    void *ptr, *iptr, *optr;     /* Pointers for looping through fastest dim */
    void *ivecptr[MAX_VAR_DIMS]; /* Pointers to start of each dimension */

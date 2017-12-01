@@ -118,6 +118,7 @@ VIO_Status  initialize_free_format_input(
         status = ERROR;
     }
 
+    desired_data_type = NC_BYTE;
     if( status == OK )
     {
         /* decide what type of data is in image file */
@@ -134,9 +135,7 @@ VIO_Status  initialize_free_format_input(
 
         /* decide how to store data in memory */
 
-        if( get_volume_data_type(volume) == NO_DATA_TYPE )
-            desired_data_type = NC_BYTE;
-        else
+        if( get_volume_data_type(volume) != NO_DATA_TYPE )
             desired_data_type = volume->nc_data_type;
     }
 
