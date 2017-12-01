@@ -13,11 +13,12 @@ typedef ImageType::Pointer ImagePointer;
 
 class KvlImage {
 public:
-    ImagePointer imageHandle;
+    ImagePointer m_image;
     TransformPointer transform;
     KvlImage(const std::string &imageFileName);
-    std::unique_ptr<KvlTransform> GetTransformMatrix();
+    std::unique_ptr<KvlTransform> GetTransform();
     py::array_t<float> GetImageBuffer();
+    void Write(std::string, KvlTransform &);
 };
 
 

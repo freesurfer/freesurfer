@@ -45,7 +45,7 @@ public:
                 std::cout << "MutualInformation" << std::endl;
                 kvl::MutualInformationCostAndGradientCalculator::Pointer  myCalculator
                         = kvl::MutualInformationCostAndGradientCalculator::New();
-                myCalculator->SetImage( images[ 0 ].imageHandle );
+                myCalculator->SetImage( images[ 0 ].m_image );
                 calculator = myCalculator;
                 break;
             }
