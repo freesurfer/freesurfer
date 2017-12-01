@@ -25,16 +25,12 @@ py::array_t<double> KvlMesh::GetAlphas() const {
 }
 
 void KvlMesh::SetPointSet(const py::array_t<double> &source) {
-    // TODO: why does the matlab code in kvlSetMeshNodePosition.h not require such a cast?
-    // This cast removes `const` from pointer, allowing write access
-    PointSetPointer points = (PointSetPointer) mesh->GetPoints();
+    PointSetPointer points = const_cast<PointSetPointer>(mesh->GetPoints());
     CopyNumpyToPointSet(points, source);
 }
 
 void KvlMesh::SetAlphas(const py::array_t<double> &source) {
-    // TODO: why does the matlab code in kvlSetMeshNodePosition.h not require such a cast?
-    // This cast removes `const` from pointer, allowing write access
-    PointDataPointer alphas = (PointDataPointer) mesh->GetPointData();
+    PointDataPointer alphas = const_cast<PointDataPointer>(mesh->GetPointData());
     CopyNumpyToPointDataSet(alphas, source);
 }
 
