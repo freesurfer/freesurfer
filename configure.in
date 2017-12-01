@@ -1,3 +1,4 @@
+
 ########################################################################
 #
 #                          -*- Autoconf -*-
@@ -3138,14 +3139,6 @@ LDFLAGS="$LDFLAGS $OS_LDFLAGS"
 # link map
 #####################################################
 LDFLAGS="$LDFLAGS -Wl,-Map,ld_map.txt -Wl,--no-demangle"
-
-#####################################################
-# for now, turn off link time optimization
-# at least until we get a clean build
-#####################################################
-CFLAGS="$CFLAGS -fno-lto"
-CPPFLAGS="$CPPFLAGS -fno-lto"
-
 
 #####################################################
 # Checks for libraries.
