@@ -1,5 +1,5 @@
-import GEMS2Python
 import pytest
+import GEMS2Python
 
 MESH_COLLECTION_TEST_FILE_NAME = 'Testing/test.txt'
 TEST_FILE_POINT_COUNT = 58307
@@ -134,6 +134,42 @@ class TestMeshCollection:
         with pytest.raises(Exception):
             mesh = triple_mesh_collection.get_mesh(3)
 
+    @pytest.mark.slowtest
+    def test_read(self):
+        collection = self.collection
+        mesh_count = collection.mesh_count
+        assert mesh_count == TEST_FILE_MESH_COUNT
+        mesh = collection.reference_mesh
+        points = mesh.points
+        [point_count, point_dimensions] = points.shape
+        assert point_dimensions == 3
+        assert point_count == TEST_FILE_POINT_COUNT
+        alphas = mesh.alphas
+        [point_count, label_count] = alphas.shape
+        assert label_count == TEST_FILE_LABEL_COUNT
+        assert point_count == TEST_FILE_POINT_COUNT
+        first_mesh = self.collection.get_mesh(0)
+        assert first_mesh.point_count == TEST_FILE_POINT_COUNT
+
+    def test_bad_read(self):
+        with pytest.raises(Exception):
+            bad_collection = GEMS2Python.KvlMeshCollection()
+            bad_collection.read('nada_nada_nada')
+
+    @pytest.mark.slowtest
+    def test_write(self, writeable_mesh_file_name):
+        print('writing mesh collection...')
+        self.collection.write(writeable_mesh_file_name)
+        print('...done writing mesh collection')
+
+    def test_empty_write(self, writeable_mesh_file_name):
+        empty_collection = GEMS2Python.KvlMeshCollection()
+        with pytest.raises(Exception):
+            empty_collection.write(writeable_mesh_file_name)
+
+
+class TestMesh:
+
     def test_get_points(self, simple_mesh):
         points = simple_mesh.points
         [point_count, point_dimensions] = points.shape
@@ -201,43 +237,10 @@ class TestMeshCollection:
         assert eee == 103
         assert fff == 104
 
-    @pytest.mark.slowtest
-    def test_read(self):
-        collection = self.collection
-        mesh_count = collection.mesh_count
-        assert mesh_count == TEST_FILE_MESH_COUNT
-        mesh = collection.reference_mesh
-        points = mesh.points
-        [point_count, point_dimensions] = points.shape
-        assert point_dimensions == 3
-        assert point_count == TEST_FILE_POINT_COUNT
-        alphas = mesh.alphas
-        [point_count, label_count] = alphas.shape
-        assert label_count == TEST_FILE_LABEL_COUNT
-        assert point_count == TEST_FILE_POINT_COUNT
-        first_mesh = self.collection.get_mesh(0)
-        assert first_mesh.point_count == TEST_FILE_POINT_COUNT
-
-    def test_bad_read(self):
-        with pytest.raises(Exception):
-            bad_collection = GEMS2Python.KvlMeshCollection()
-            bad_collection.read('nada_nada_nada')
-
-    @pytest.mark.slowtest
-    def test_write(self, writeable_mesh_file_name):
-        print('writing mesh collection...')
-        self.collection.write(writeable_mesh_file_name)
-        print('...done writing mesh collection')
-
-    def test_empty_write(self, writeable_mesh_file_name):
-        empty_collection = GEMS2Python.KvlMeshCollection()
-        with pytest.raises(Exception):
-            empty_collection.write(writeable_mesh_file_name)
-
     def test_scale_mesh(self, simple_mesh):
         current_points = simple_mesh.points;
         [x, y, z] = current_points[13]
-        simple_mesh.scale([2,3,5])
+        simple_mesh.scale([2, 3, 5])
         scaled_points = simple_mesh.points;
         [sx, sy, sz] = scaled_points[13]
         assert x * 2 == sx
