@@ -16,7 +16,7 @@ public:
     ImagePointer imageHandle;
     TransformPointer transform;
     KvlImage(const std::string &imageFileName);
-    py::array_t<double> GetTransformMatrix();
+    std::unique_ptr<KvlTransform> GetTransformMatrix();
     py::array_t<float> GetImageBuffer();
 };
 
