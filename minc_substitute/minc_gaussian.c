@@ -1,4 +1,3 @@
-#if defined(BEVIN_EXCLUDE_MINC) || defined(TESTING_GAUSSIAN_C)
 /*
  * Overhaul Author: Bevin Brett
  * CVS Revision Info:
@@ -34,9 +33,13 @@
               express or implied warranty.
 ---------------------------------------------------------------------------- */
 
+#include  "minc_internals.h"
+
+#if !(defined(BEVIN_EXCLUDE_MINC) || defined(TESTING_GAUSSIAN_C))
+static const bool doPrint = false;
+#else
 #if !defined(TESTING_GAUSSIAN_C)
 
-#include  "minc_volume_io.h"
 static const bool doPrint = false;
     
 #else
@@ -157,6 +160,9 @@ static const char* invert_4x4_matrix_wkr_simple( double* mat, double* inv, int* 
 }
 #endif
 
+#endif
+
+
 static const char* invert_4x4_matrix_wkr_fast( double* mat, double* inv, int* mapI )
 {
     if (doPrint) printf("doing inversion optimized\n");
@@ -257,8 +263,10 @@ static const char* invert_4x4_matrix_wkr_fast( double* mat, double* inv, int* ma
     return NULL;
 }
 
-
-bool invert_4x4_matrix( const Double4x4* mat, Double4x4* inv ) {
+bool invert_4x4_matrix( 
+	const Double4x4* mat, 
+	Double4x4* inv ) 
+{
     Double4x4 copyToBeDestroyed;
     Double4x4 permutedInv;
 
@@ -315,7 +323,5 @@ int main() {
     print("Final mul",&mul[0],NULL);
     return 0;
 }
-
-#endif
 
 #endif

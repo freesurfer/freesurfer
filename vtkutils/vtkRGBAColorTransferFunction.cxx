@@ -1171,6 +1171,13 @@ int vtkRGBAColorTransferFunction::GetNodeValue( int index, double val[7] )
   if ( index < 0 || index >= size )
     {
     vtkErrorMacro("Index out of range!");
+    val[0] = 0;	// initialize in case caller uses - detected as error by gcc4.5 on
+    val[1] = 0;
+    val[2] = 0;
+    val[3] = 0;
+    val[4] = 0;
+    val[5] = 0;
+    val[6] = 0;
     return -1;
     }
   

@@ -1,9 +1,11 @@
 
 #include <iostream>
 
+#define export // obsolete feature "export template" used in these header files
 #include <itkImageRegionConstIteratorWithIndex.h>
 #include <itkImageRegionConstIterator.h>
 #include <itkDerivativeImageFilter.h>
+#undef export
 
 #include "Tracer.h"
 

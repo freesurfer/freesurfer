@@ -46,11 +46,14 @@ extern "C"
 #include <typeinfo>
 #include <iostream>
 #include <sstream>
+
+#define export // obsolete feature 'export template' used in these headers 
 #include <vnl/vnl_vector.h>
 #include <vnl/vnl_matrix.h>
 #include <vnl/vnl_matrix_fixed.h>
 #include <vnl/vnl_inverse.h>
 #include <vnl/vnl_matlab_print.h>
+#undef export
 
 #include "MyMatrix.h"
 #include "MyMRI.h"

@@ -30,9 +30,12 @@
 #include <cassert>
 #include <limits>
 #include <vcl_iostream.h>
+
+#define export // obsolete feature 'export template' used in these headers 
 #include <vnl/vnl_matrix.h>
 #include <vnl/algo/vnl_determinant.h>
 #include <vnl/vnl_matlab_print.h>
+#undef export
 
 #include "Registration.h"
 #include "MyMatrix.h"

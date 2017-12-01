@@ -34,11 +34,14 @@
 #include <cassert>
 
 #include <vcl_iostream.h>
+
+#define export // obsolete feature 'export template' used in these headers 
 #include <vnl/vnl_inverse.h>
 #include <vnl/vnl_matrix_fixed.h>
 #include <vnl/algo/vnl_determinant.h>
 #include <vnl/algo/vnl_svd.h>
 #include <vnl/vnl_matlab_print.h>
+#undef export
 
 #include "Registration.h"
 #include "RegistrationStep.h"

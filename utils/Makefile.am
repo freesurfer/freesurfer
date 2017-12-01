@@ -151,11 +151,6 @@ libutils_main_SOURCES=\
 	mgh_filter.c \
 	mgh_matrix.c \
 	min_heap.c \
-	minc_files.c \
-	minc_gaussian.c \
-	minc_inverse.c \
-	minc_multidim_arrays.c \
-	minc_volume_io.c \
 	mincutils.c \
 	minmaxrc.c \
 	morph.c \

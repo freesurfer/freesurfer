@@ -229,14 +229,24 @@ if test "x$F77" = "x"; then
 fi
 
 # check for gcc 4.4 and higher which supports openmp.
-ac_have_gcc_44="no"
+ac_have_gcc_44_or_higher="no"
+ac_have_gcc_50_or_higher="no"
 if (test "${CC}" = "gcc"); then
   gcc --version | grep " 4\.@<:@4-9@:>@" >& /dev/null
   if test "$?" = "0"; then
     AC_MSG_NOTICE(Have gcc 4.x where x >= 4)
-    ac_have_gcc_44="yes"
-  else
-    AC_MSG_NOTICE(Do not have gcc 4.x where x >= 4)
+    ac_have_gcc_44_or_higher="yes"
+  fi
+  gcc --version | grep " @<:@5-9@:>@." >& /dev/null
+  if test "$?" = "0"; then
+    AC_MSG_NOTICE(Have gcc x where x >= 5)
+    ac_have_gcc_44_or_higher="yes"
+    ac_have_gcc_50_or_higher="yes"
+    CXXFLAGS="$CXXFLAGS -fabi-version=2"
+    	# needed until vnl and maybe others can be rebuilt
+  fi
+  if test "$ac_have_gcc_44_or_higher" = "no"; then
+    AC_MSG_NOTICE(Do not have gcc 4.4 or higher)
   fi
 fi
 
@@ -427,15 +437,53 @@ if test "$host" = "powerpc64-suse-linux"; then
 fi
 AC_SUBST(LIB_LAPACK)
 
+# BEVIN MOVED THE FOLLOWING UP TO HERE
+# Need to decide MNI_DIR before deciding which netcdf to use
+#
+ac_mni_includes=no
+ac_mni_libraries=no
+MNI_DIR=""
+AC_MSG_CHECKING(MNI directory)
+
+AC_ARG_WITH(mni-dir,
+[  --with-mni-dir=DIR      where the root of MNI is installed.],
+  [  ac_mni_includes="$withval"/include
+     ac_mni_libraries="$withval"/lib
+     MNI_DIR="$withval"
+  ])
+
+if test "x$MNI_DIR" = "x"; then
+  # if an MNI root was not supplied, but one exists in the
+  # default packages path at the NMR Center, then use that:
+  if test -d "${PACKAGES_DIR}/mni/current" ; then
+    withval=${PACKAGES_DIR}/mni/current
+    MNI_DIR="$withval"
+    ac_mni_includes="$withval"/include
+    ac_mni_libraries="$withval"/lib
+  fi
+fi
+
+AC_MSG_RESULT(MNI_DIR is $MNI_DIR)
+
+
+
 # libnetcdf is now installed by default on centos6 computers
 # at the Center. We want it to compile against the static
-# version found in the mni library so that libnetcdf does
-# not become a dependancy for users outside the Center.
+# version found in the mni library or BEVIN ADDED the standalone one in the packages 
+# so that libnetcdf does not become a dependancy for users outside the Center.
 LIB_NETCDF=""
-if test -e ${PACKAGES_DIR}/mni/current/lib/libnetcdf.a ; then
-  LIB_NETCDF="${PACKAGES_DIR}/mni/current/lib/libnetcdf.a"
+if ! test "x$MNI_DIR" = "xno"; then
+  if test -e ${PACKAGES_DIR}/mni/current/lib/libnetcdf.a ; then
+    LIB_NETCDF="${PACKAGES_DIR}/mni/current/lib/libnetcdf.a"
+  fi
 else
-  LIB_NETCDF="-lnetcdf"
+  # BEVIN added
+  if test    -e ${PACKAGES_DIR}/netcdf/current/lib/libnetcdf.a ; then
+    LIB_NETCDF="${PACKAGES_DIR}/netcdf/current/lib/libnetcdf.a"
+  fi
+fi
+if test "x$LIB_NETCDF" = "x"; then
+    LIB_NETCDF="-lnetcdf"
 fi
 AC_SUBST(LIB_NETCDF)
 
@@ -535,6 +583,12 @@ fi
 # There are approximately 1000 of this 'error', most caused by
 # the presence of code intending for debugging, so don't report it
 WERROR="$WERROR -Wno-unused-but-set-variable"
+# There are approximately 600 of this 'error', most caused by
+# the presence of code ignoring status from write, fgets and similar functions
+WERROR="$WERROR -Wno-unused-result"
+# There are approximately 40 of this 'error', but in external packages
+# header files, hence not possible to fix, and harmless.
+WERROR="$WERROR -Wno-unused-local-typedefs"
 
 # to strip unused code when using Linux gcc.
 # but not on cent4 because for some reason it fails
@@ -765,7 +819,7 @@ AC_ARG_ENABLE(openmp,
  ])
 
 # gcc 4.4 supports openmp, so enable it by default (no harm in doing so)
-if test "$ac_have_gcc_44" = "yes"; then
+if test "$ac_have_gcc_44_or_higher" = "yes"; then
   ac_have_openmp=yes
   OPENMP_FLAG="-fopenmp"
   CPPFLAGS="$CPPFLAGS $OPENMP_FLAG -DHAVE_OPENMP"
@@ -1288,40 +1342,15 @@ AC_MSG_NOTICE([Checking for directory specification of 3rd-party libraries...])
 #############################################################
 # MNI
 #############################################################
-ac_mni_includes=no
-ac_mni_libraries=no
 MNI_CFLAGS=""
 MNI_LIBS=""
-MNI_DIR=""
 LIBS_MNI=""
-AC_MSG_CHECKING(MNI directory)
-
-AC_ARG_WITH(mni-dir,
-[  --with-mni-dir=DIR      where the root of MNI is installed.],
-  [  ac_mni_includes="$withval"/include
-     ac_mni_libraries="$withval"/lib
-     MNI_DIR="$withval"
-  ])
-
-if test "x$MNI_DIR" = "x"; then
-  # if an MNI root was not supplied, but one exists in the
-  # default packages path at the NMR Center, then use that:
-  if test -d "${PACKAGES_DIR}/mni/current" ; then
-    withval=${PACKAGES_DIR}/mni/current
-    MNI_DIR="$withval"
-    ac_mni_includes="$withval"/include
-    ac_mni_libraries="$withval"/lib
-  fi
-fi
 
 if test "x$MNI_DIR" = "xno"; then
   # MNI_DIR is set to 'no' only if --without-mni-dir is used,
   # which indicates that no MNI libs should be used in the build
   ac_mni_includes=no
   ac_mni_libraries=no
-  MNI_CFLAGS="-DBEVIN_EXCLUDE_MINC"
-  MNI_LIBS=""
-  MNI_DIR="no" # indicates --without-mni-dir was used
   LIBS_MNI=""
 fi
 
@@ -1330,12 +1359,15 @@ if test ! "$ac_mni_includes" = "no"; then
   MNI_CFLAGS=-I$ac_mni_includes
 else
   AC_MSG_RESULT(MNI directory is not supplied)
+  MNI_CFLAGS="-DBEVIN_EXCLUDE_MINC -I${PACKAGES_DIR}/netcdf/current/include"
 fi
 
+MNI_LIBS=""
 if test ! "$ac_mni_libraries" = "no"; then
   MNI_LIBS=-L$ac_mni_libraries
 fi
 
+LIBS_MNI="$LIB_NETCDF"
 if test ! "$ac_mni_libraries" = "no"; then
   LIB_VOLUME_IO=""
   if test -e ${PACKAGES_DIR}/mni/current/lib/libvolume_io.a ; then
@@ -3055,12 +3087,13 @@ AM_CONDITIONAL(NMR_INSTALL, test x$nmrinstall = xtrue)
 
 
 ################################################
-LIBDIRS_MGH="utils rgb unix dicom hipsstubs"
+LIBDIRS_MGH="utils minc_substitute rgb unix dicom hipsstubs"
 AC_SUBST(LIBDIRS_MGH)
 
 # stupid circular dependency on iopen swapInt etc.
 LIBS_MGH="\
   utils/libutils.a \
+  minc_substitute/libminc_substitute.a \
   fsgdf/libfsgdf.a \
   rgb/librgb.a \
   unix/libunix.a \
@@ -3100,6 +3133,19 @@ AC_SUBST(LIB_EXPAT)
 #####################################################
 CPPFLAGS="$CPPFLAGS -D$OS -DANSI $OS_CPPFLAGS"
 LDFLAGS="$LDFLAGS $OS_LDFLAGS"
+
+#####################################################
+# link map
+#####################################################
+LDFLAGS="$LDFLAGS -Wl,-Map,ld_map.txt -Wl,--no-demangle"
+
+#####################################################
+# for now, turn off link time optimization
+# at least until we get a clean build
+#####################################################
+CFLAGS="$CFLAGS -fno-lto"
+CPPFLAGS="$CPPFLAGS -fno-lto"
+
 
 #####################################################
 # Checks for libraries.
@@ -3522,12 +3568,19 @@ fi
 # check for XawPlus lib only if xawplus app building is enabled
 if test ! "x$xawplus_apps" = "xNO"; then
   # with and without libXpm (Centos 6 doesnt have it)
-  AC_CHECK_LIB([X11 -lXt -lXpm -lXawPlus], [XawInitializeWidgetSet],
-    [LIBS_XAWPLUS="-lXt -lXpm -lXawPlus"],
-    [AC_CHECK_LIB([X11 -lXt -lXawPlus], [XawInitializeWidgetSet],
-    [LIBS_XAWPLUS="-lXt -lXawPlus"],
-    [AC_MSG_ERROR([FATAL: XawPlus lib not found. \
-  Set LDFLAGS or --with-xawplus-dir.])])])
+  AC_CHECK_LIB(
+    [XawPlus], 
+    [XawInitializeWidgetSet],
+    [LIBS_XAWPLUS="-lXawPlus -lXt -lXpm -lX11"],
+    [AC_CHECK_LIB(
+       [XawPlus],
+       [XawInitializeWidgetSet],
+       [LIBS_XAWPLUS="-lXawPlus -lXt -lX11"],
+       [AC_MSG_ERROR([FATAL: XawPlus lib not found. Set LDFLAGS or --with-xawplus-dir.])],
+       [-lXt -lX11]
+       )
+    ],
+    [-lXt -lXpm -lX11])
   AC_SUBST(LIBS_XAWPLUS)
 fi
 
@@ -3745,6 +3798,7 @@ AC_OUTPUT([Makefile
            log/Makefile
            lta_convert/Makefile
            matlab/Makefile
+	   minc_substitute/Makefile
            mkxsubjreg/Makefile
            mri_bias/Makefile
            mri_train_autoencoder/Makefile
@@ -4060,6 +4114,7 @@ AC_OUTPUT([Makefile
            talairach_afd/Makefile
            talairach_avi/Makefile
            template/Makefile
+           test_exclude_minc/Makefile
            test_makevol/Makefile
            tetgen/Makefile
            tiff/Makefile

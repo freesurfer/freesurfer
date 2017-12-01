@@ -14,7 +14,7 @@
 
 #if defined(BEVIN_EXCLUDE_MINC)
 
-#include  "minc_volume_io.h"
+#include  "minc_internals.h"
 #include <stdio.h>
 
 bool compute_transform_inverse(
