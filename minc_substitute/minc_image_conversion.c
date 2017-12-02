@@ -1432,8 +1432,18 @@ PRIVATE int MI_icv_access(int operation, mi_icv_type *icvp, long start[],
 ---------------------------------------------------------------------------- */
 PRIVATE int MI_icv_zero_buffer(mi_icv_type *icvp, long count[], void *values)
 {
-   double zeroval, zerobuf;
-   void *zerostart;
+   double zeroval;
+   union {
+   	unsigned char  uc;
+	signed char    sc;
+	unsigned short us;
+	signed short   ss;
+	unsigned int   ui;
+	signed int     si;
+	float          f;
+	double         d;
+   } volatile zerobuf;
+   volatile char *zerostart;
    int zerolen, idim, ndims;
    char *bufptr, *bufend, *zeroptr, *zeroend;
    long buflen;
@@ -1441,12 +1451,12 @@ PRIVATE int MI_icv_zero_buffer(mi_icv_type *icvp, long count[], void *values)
    MI_SAVE_ROUTINE_NAME("MI_icv_zero_buffer");
 
    /* Create a zero pixel and get its size */
-   zerostart = (void *) (&zerobuf);
+   zerostart = (volatile char *) (&zerobuf);
    if (icvp->do_scale)
       zeroval = icvp->offset;
    else
       zeroval = 0.0;
-   {MI_FROM_DOUBLE(zeroval, icvp->user_type, icvp->user_sign, zerostart)}
+
    zerolen = icvp->user_typelen;
    
    /* Get the buffer size */
