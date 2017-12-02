@@ -122,7 +122,7 @@ typedef struct
 GCA_SAMPLE, GCAS ;
 
 #ifndef BEVIN_FASTER_MRI_EM_REGISTER
-#define gcas_setPrior(GCAS,TO) {((GCAS).prior = (TO); }
+#define gcas_setPrior(GCAS,TO) {(GCAS).prior = (TO); }
 #define gcas_getPrior(GCAS)    ((GCAS).prior)
 #define gcas_getPriorLog(GCAS) log((GCAS).prior)
 #else
