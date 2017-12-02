@@ -14,8 +14,9 @@ typedef ImageType::Pointer ImagePointer;
 class KvlImage {
 public:
     ImagePointer m_image;
-    TransformPointer transform;
+    TransformPointer m_transform;
     KvlImage(const std::string &imageFileName);
+    KvlImage(const py::array_t<float> &buffer);
     std::unique_ptr<KvlTransform> GetTransform();
     py::array_t<float> GetImageBuffer();
     void Write(std::string, KvlTransform &);

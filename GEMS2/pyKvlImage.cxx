@@ -18,13 +18,40 @@ KvlImage::KvlImage(const std::string &imageFileName) {
 
     // Store the image and transform in persistent memory
     m_image = caster->GetOutput();
-    transform = TransformType::New();
-    reader->GetWorldToImageTransform()->GetInverse( transform );
+    m_transform = TransformType::New();
+    reader->GetWorldToImageTransform()->GetInverse( m_transform );
     std::cout << "Read image: " << imageFileName << std::endl;
 }
 
+KvlImage::KvlImage(const py::array_t<float> &buffer) {
+    typedef typename ImageType::PixelType  PixelType;
+
+    // Determine the size of the image to be created
+    typedef typename ImageType::SizeType  SizeType;
+    SizeType  imageSize;
+    for ( int i = 0; i < 3; i++ )
+    {
+        imageSize[ i ] = buffer.shape( i );
+        //std::cout << "imageSize[ i ]: " << imageSize[ i ] << std::endl;
+    }
+
+    // Construct an ITK image
+    m_image = ImageType::New();
+    m_image->SetRegions( imageSize );
+    m_image->Allocate();
+    m_transform = TransformType::New();
+    // Loop over all voxels and copy contents
+    itk::ImageRegionIterator< ImageType >  it( m_image,
+                                               m_image->GetBufferedRegion() );
+    const float *bufferPointer = buffer.data(0);
+    for ( ;!it.IsAtEnd(); ++it, ++bufferPointer )
+    {
+        it.Value() = *bufferPointer;
+    }
+}
+
 std::unique_ptr<KvlTransform> KvlImage::GetTransform() {
-    return std::unique_ptr<KvlTransform>(new KvlTransform(transform));
+    return std::unique_ptr<KvlTransform>(new KvlTransform(m_transform));
 }
 
 py::array_t<float> KvlImage::GetImageBuffer() {
