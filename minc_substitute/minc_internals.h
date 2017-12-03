@@ -377,7 +377,7 @@ void  terminate_progress_report(
 #define MI_ICV_ANYSIZE        (-1)
 
 
-#define MI_MAX_NUM_ICV 		MAX_NC_OPEN
+#define MI_MAX_NUM_ICV 		32
 #define MI_ICV_NUM_IMGDIMS      24
 
 int miicv_attach(int icvid, int cdfid, int varid);
