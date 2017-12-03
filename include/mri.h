@@ -26,6 +26,8 @@
 #ifndef MRI_H
 #define MRI_H
 
+#define BEVIN_FASTER_MRI_EM_REGISTER
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -815,11 +817,25 @@ int   MRIsampleVolumeFrame( const MRI *mri,
 			    double x, double y, double z,
 			    const int frame,
 			    double *pval);
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+int   MRIsampleVolumeFrame_xyzInt_nRange_floats(const MRI *mri,
+                            int x, int y, int z, 
+			    const int frameBegin,
+			    const int frameEnd,		// [frameBegin] .. [frameEnd-1] done
+			    float *valForEachFrame);	// vals loaded into [0] .. [frameEnd-1 - frameBegin]
+#endif
 int   MRIsampleVolumeFrameType( const MRI *mri,
 				const double x, const double y, const double z,
 				const int frame,
 				int interp_type,
 				double *pval );
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+int   MRIsampleVolumeFrameType_xyzInt_nRange_SAMPLE_NEAREST_floats(const MRI *mri,
+                            int x, int y, int z, 
+			    const int frameBegin,
+			    const int frameEnd,		// [frameBegin] .. [frameEnd-1] done
+			    float *valForEachFrame);	// vals loaded into [0] .. [frameEnd-1 - frameBegin]
+#endif
 int   MRIsampleVolumeGradient(MRI *mri, double x, double y, double z,
                               double *pdx, double *pdy, double *pdz) ;
 int   MRIsampleVolumeGradientFrame( const MRI *mri,

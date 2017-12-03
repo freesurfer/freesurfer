@@ -519,7 +519,7 @@ VIOAPI  BOOLEAN  input_more_free_format_file(
     long            i;
     Status          status;
     BOOLEAN         more_to_do, scaling_flag;
-    Real            value_translation, value_scale;
+    Real            value_translation = 0.0, value_scale = 1.0;
     Real            original_min_voxel, original_max_voxel;
     int             *inner_index, indices[MAX_DIMENSIONS];
     unsigned char   *byte_buffer_ptr;
