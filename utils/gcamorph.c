@@ -10165,31 +10165,110 @@ int zero_vals(float *vals, int nvals)
 
 int different_neighbor_labels(const GCA_MORPH *gcam, const int x, const int y, const int z, const int whalf)
 {
-  int label, num, i, j, k;
+  if (gcam->height != gcam->depth) {
+    fprintf(stderr, "The old code incorrectly assumed the height and depth were the same!\n");
+    exit(1);
+  }
+  
+  if (0) {
+    fprintf(stderr, "x:%d y:%d z:%d whalf:%d gcam->width:%d gcam->height:%d gcam->depth:%d\n",
+      x, y, z, whalf, gcam->width, gcam->height, gcam->depth);
+  }
+  
+  static const bool old_code = false; 
+  static const bool new_code = true; 
 
-  label = gcam->nodes[x][y][z].label;
-  for (num = 0, i = x - whalf; i <= x + whalf; i++) {
-    if (i < 0 || i >= gcam->width) {
-      continue;
+  const int cx = x, cy = y, cz = z;		// SURELY THIS SHOULD BE x y z, but the old code had 0 0 0
+
+  int const label = gcam->nodes[x][y][z].label;
+  
+  int new_tests = 0;
+  int new_num = 0;
+  if (new_code) {
+    // The old code has too many tests in the loops to run fast
+    // This new code does not have these tests
+    // Instead it breaks the searched brick into upto subbricks bricks and then searches them rapidly
+
+    int xLo = MAX(0           , x - whalf    ),	// First impose the bounds the if statements below induce 
+        xHi = MIN(gcam->width , x + whalf + 1), 
+	yLo = MAX(0           , y - whalf    ), 
+	yHi = MIN(gcam->height, y + whalf + 1), 
+	zLo = MAX(0           , z - whalf    ),
+	zHi = MIN(gcam->depth , z + whalf + 1);
+
+    if (cx < xLo || xHi <= cx || cy < yLo || yHi <= cy || cz < zLo || zHi <= cz) {
+      fprintf(stderr, "Code incorrectly assumes center is tested\n");
     }
-    for (j = y - whalf; j <= y + whalf; j++) {
-      if (j < 0 || j >= gcam->height) {
-        continue;
+    
+    new_num = 0;
+    int i,j,k;
+    for (i = xLo; i < xHi; i++) {
+      for (j = yLo; j < yHi; j++) {
+        for (k = zLo; k < zHi; k++) {
+          if (new_code && old_code) {
+	    new_tests++;
+	  }
+          if (label != gcam->nodes[i][j][k].label) {
+            new_num++;
+          }
+        }
       }
-      for (k = z - whalf; k <= z + whalf; k++) {
-        if (k < 0 || k >= gcam->height) {
-          continue;
-        }
-        if (i == 0 && j == 0 && k == 0) {
-          continue;
-        }
-        if (label != gcam->nodes[i][j][k].label) {
-          num++;
-        }
-      }
+    }
+    
+    new_tests--;
+    if (label != gcam->nodes[cx][cy][cz].label) {
+      new_num--;
     }
   }
-  return (num);
+  
+  int old_tests = 0;
+  int old_num = new_num;
+  if (old_code) {
+    int num, i, j, k;
+    for (num = 0, i = x - whalf; i <= x + whalf; i++) {
+      if (i < 0 || i >= gcam->width) {
+        continue;
+      }
+      for (j = y - whalf; j <= y + whalf; j++) {
+        if (j < 0 || j >= gcam->height) {
+          continue;
+        }
+        for (k = z - whalf; k <= z + whalf; k++) {
+          if (k < 0 || k >= gcam->height) {			// SHOULDN'T THIS BE depth?
+            continue;
+          }
+          if (i == cx && j == cy && k == cz) {			// THIS IS WAS 0,0,0 WHICH MUST BE WRONG
+            continue;
+          }
+    	  if (new_code && old_code) old_tests++;
+          if (label != gcam->nodes[i][j][k].label) {
+            num++;
+          }
+        }
+      }
+    }
+    old_num = num;
+  }
+  
+  if (new_code && old_code) {
+    if (new_tests != old_tests) {
+      fprintf(stderr, "%s:%d new and old code do a different number of tests new:%d old:%d\n", 
+        __FILE__, __LINE__, new_tests, old_tests);
+      exit(1);
+    }
+    if (new_num != old_num) {
+      fprintf(stderr, "%s:%d new and old code get different answers\n", __FILE__, __LINE__);
+      exit(1);
+    }
+    static int count = 0, limit = 1, highest_new_tests=0;
+    if (count++ >= limit || highest_new_tests < new_tests) {
+      if (count-1 >= limit) limit *= 10;
+      if (highest_new_tests < new_tests) highest_new_tests = new_tests;
+      fprintf(stderr, "%s:%d new and old code get same answer:%d after %d tests\n", __FILE__, __LINE__, 
+        new_num, new_tests);
+    }
+  }
+  return (new_code ? new_num : old_num) ;
 }
 
 MRI *gcamCreateJacobianImage(GCA_MORPH *gcam)
