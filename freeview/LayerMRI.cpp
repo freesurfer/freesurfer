@@ -2617,7 +2617,7 @@ bool LayerMRI::FloodFillByContour2D( double* ras, Contour2D* c2d )
       {
         if ( mask[j*nx+i] == nFillValue )
         {
-          MyVTKUtils::SetImageDataComponent(ptr, nDim, n_frames, n[nPlane], i, j, nActiveComp, m_fFillValue, scalar_type );
+          MyVTKUtils::SetImageDataComponent(ptr, nDim, n_frames, n[nPlane], i, j, nActiveComp, scalar_type, m_fFillValue );
           cnt++;
         }
       }
@@ -2630,7 +2630,7 @@ bool LayerMRI::FloodFillByContour2D( double* ras, Contour2D* c2d )
       {
         if ( mask[j*nx+i] == nFillValue )
         {
-          MyVTKUtils::SetImageDataComponent(ptr, nDim, n_frames, i, n[nPlane], j, nActiveComp, m_fFillValue, scalar_type );
+          MyVTKUtils::SetImageDataComponent(ptr, nDim, n_frames, i, n[nPlane], j, nActiveComp, scalar_type, m_fFillValue );
           cnt++;
         }
       }
@@ -2643,7 +2643,7 @@ bool LayerMRI::FloodFillByContour2D( double* ras, Contour2D* c2d )
       {
         if ( mask[j*nx+i] == nFillValue )
         {
-          MyVTKUtils::SetImageDataComponent(ptr, nDim, n_frames, i, j, n[nPlane], nActiveComp, m_fFillValue, scalar_type);
+          MyVTKUtils::SetImageDataComponent(ptr, nDim, n_frames, i, j, n[nPlane], nActiveComp, scalar_type, m_fFillValue);
           cnt++;
         }
       }
@@ -3059,7 +3059,7 @@ void LayerMRI::ReplaceVoxelValue(double orig_value, double new_value, int nPlane
 {
   this->SaveForUndo(-1);
   int* dim = m_imageData->GetDimensions();
-  int range[3][2];
+  size_t range[3][2];
   range[0][0] = range[1][0] = range[2][0] = 0;
   range[0][1] = dim[0]-1;
   range[1][1] = dim[1]-1;
@@ -3084,15 +3084,17 @@ void LayerMRI::ReplaceVoxelValue(double orig_value, double new_value, int nPlane
   char* ptr = (char*)m_imageData->GetScalarPointer();
   int scalar_type = m_imageData->GetScalarType();
   int n_frames = m_imageData->GetNumberOfScalarComponents();
-  for (int i = range[0][0]; i <= range[0][1]; i++)
+  for (size_t i = range[0][0]; i <= range[0][1]; i++)
   {
-    for (int j = range[1][0]; j <= range[1][1]; j++)
+    for (size_t j = range[1][0]; j <= range[1][1]; j++)
     {
-      for (int k = range[2][0]; k <= range[2][1]; k++)
+      for (size_t k = range[2][0]; k <= range[2][1]; k++)
       {
         double val = MyVTKUtils::GetImageDataComponent(ptr, dim, n_frames, i, j, k, m_nActiveFrame, scalar_type);
         if (val == orig_value)
-          MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, i, j, k, m_nActiveFrame, new_value, scalar_type);
+        {
+          MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, i, j, k, m_nActiveFrame, scalar_type, new_value);
+        }
       }
     }
   }

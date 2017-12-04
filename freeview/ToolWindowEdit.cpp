@@ -136,7 +136,8 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
                    << ui->labelGeoInsideColor
                    << ui->labelGeoOutsideColor
                    << ui->colorPickerGeoOutside
-                   << ui->pushButtonGeoGo;
+                   << ui->pushButtonGeoGo
+                   << ui->pushButtonGeoClear;
 
   QTimer* timer = new QTimer( this );
   connect( timer, SIGNAL(timeout()), this, SLOT(OnIdle()) );
