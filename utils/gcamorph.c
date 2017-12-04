@@ -1778,6 +1778,177 @@ int GCAMfreeContents(GCA_MORPH *gcam)
   return (NO_ERROR);
 }
 
+
+// different_neighbor_labels is very hot.
+//
+// It is always called with whalf of 1
+// It is either used to compare the count against 0 or >0
+// It is always called in a loop over xyz
+//
+//	parallel_for (x = 0; x < gcam->width; x++) {
+//	    for (y = 0; y < gcam->height; y++) {
+//		for (z = 0; z < gcam->depth; z++) {
+//
+//	parallel_for (x = 0; x < gcam->width; x++) {
+//	    for (y = 0; y < gcam->height; y++) {
+//      	for (z = 0; z < gcam->depth; z++) {
+//
+//  	for (x = 0; x < gcam->width; x++)
+//    	    for (y = 0; y < gcam->height; y++)
+//      	for (z = 0; z < gcam->depth; z++) {
+//
+// The loops do NOT apply it to all the points
+// I don't know how often the label is different
+// 
+//
+struct different_neighbor_labels_context {
+    int xLo,xHi,yLo,yHi;
+};
+static void init_different_neighbor_labels_context(struct different_neighbor_labels_context * ctx, const GCA_MORPH *gcam, const int x, const int y) {
+  static const int whalf = 1;
+  ctx->xLo = MAX(0           , x - whalf    ); 
+  ctx->xHi = MIN(gcam->width , x + whalf + 1);
+  ctx->yLo = MAX(0           , y - whalf    ); 
+  ctx->yHi = MIN(gcam->height, y + whalf + 1); 
+  if (x < ctx->xLo || ctx->xHi <= x || y < ctx->yLo || ctx->yHi <= y) {
+    fprintf(stderr, "Code incorrectly assumes center is tested\n");
+  }
+}
+
+static int different_neighbor_labels(struct different_neighbor_labels_context * ctx, int const label, const GCA_MORPH *gcam, const int x, const int y, const int z)
+{
+  static const int whalf = 1;
+
+  static const bool debugging = false;
+//Restart:
+
+  if (debugging && (gcam->height != gcam->depth)) {
+    fprintf(stderr, "The old code incorrectly assumed the height and depth were the same!\n");
+    exit(1);
+  }
+  
+  if (debugging) {
+    fprintf(stderr, "label:%d gcam->nodes[x:%d][y:%d][z:%d]:%d whalf:%d gcam->width:%d gcam->height:%d gcam->depth:%d\n",
+      label, x, y, z, gcam->nodes[x][y][z].label, whalf, gcam->width, gcam->height, gcam->depth);
+  }
+  
+  static const bool old_code = false;
+  static const bool new_code = true; 
+
+  const int cx = x, cy = y, cz = z;		// SURELY THIS IS RIGHT, but the old code had 0 0 0
+
+  int new_num = 0;
+  if (new_code) {
+    // The old code has too many tests in the loops to run fast
+    // This new code does not have these tests
+    // Instead it breaks the searched brick into upto subbricks bricks and then searches them rapidly
+
+    int xLo = ctx->xLo,	// First impose the bounds the if statements in the old code induce 
+        xHi = ctx->xHi, 
+	yLo = ctx->yLo, 
+	yHi = ctx->yHi, 
+	zLo = MAX(0           , z - whalf    ),
+	zHi = MIN(gcam->depth , z + whalf + 1);
+
+    if (debugging && (cz < zLo || zHi <= cz)) {
+      fprintf(stderr, "Code incorrectly assumes center is tested\n");
+    }
+    
+    int i,j,k;
+    if (1 && (zHi == zLo + 3)) { // VERY common case
+      for (i = xLo; i < xHi; i++) {
+        for (j = yLo; j < yHi; j++) {
+	  GMN const * const ptr = &gcam->nodes[i][j][zLo];
+          for (k = 0; k < 3; k++) {	// The compiler should unroll this
+            if (debugging) {
+              fprintf(stderr, "n3w i:%d j:%d k:%d\n",
+                i,j,k);
+            }
+            if (label != (ptr+k)->label) {
+              if (debugging) {
+                fprintf(stderr, "  hit\n");
+              }
+              new_num++;
+            }
+          }
+        }
+      }
+    } 
+    else 
+    {
+      for (i = xLo; i < xHi; i++) {
+        for (j = yLo; j < yHi; j++) {
+          for (k = zLo; k < zHi; k++) {
+            if (debugging) {
+              fprintf(stderr, "new gcam->nodes[i:%d][j:%d][k:%d]:%d\n",
+                i,j,k,gcam->nodes[i][j][k].label);
+            }
+            if (label != gcam->nodes[i][j][k].label) {
+              if (debugging) {
+                fprintf(stderr, "  hit\n");
+              }
+              new_num++;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  int old_num = new_num;
+  if (old_code) {
+    int num, i, j, k;
+    for (num = 0, i = x - whalf; i <= x + whalf; i++) {
+      if (i < 0 || i >= gcam->width) {
+        continue;
+      }
+      for (j = y - whalf; j <= y + whalf; j++) {
+        if (j < 0 || j >= gcam->height) {
+          continue;
+        }
+        for (k = z - whalf; k <= z + whalf; k++) {
+          if (k < 0 || k >= gcam->height) {			// SHOULDN'T THIS BE depth?
+            continue;
+          }
+          if (i == cx && j == cy && k == cz) {			// THIS IS WAS 0,0,0 WHICH MUST BE WRONG
+            continue;
+          }
+          if (debugging) {
+            fprintf(stderr, "old i:%d j:%d k:%d\n",
+              i,j,k);
+          }
+          if (label != gcam->nodes[i][j][k].label) {
+            if (debugging) {
+              fprintf(stderr, "  hit\n");
+            }
+            num++;
+          }
+        }
+      }
+    }
+    old_num = num;
+  }
+  
+  if (new_code && old_code) {
+    if (new_num != old_num) {
+      fprintf(stderr, "%s:%d new and old code get different answers new:%d old:%d\n", 
+        __FILE__, __LINE__, new_num, old_num);
+//      if (debugging) 
+        exit(1);
+//      debugging = true;
+///     goto Restart;
+    }
+    static int count = 0, limit = 1;
+    if (count++ >= limit) {
+      limit *= 10;
+      fprintf(stderr, "%s:%d new and old code get same answer:%d\n", __FILE__, __LINE__, 
+        new_num);
+    }
+  }
+  return (new_code ? new_num : old_num) ;
+}
+
+
 /*
   Note:  d [ I(r)' C I(r), r] = delI * C * I(r)
   where delI(r) = 3xn, C=nxn, and I(r)=nx1
@@ -1858,6 +2029,8 @@ int gcamLogLikelihoodTerm(GCA_MORPH *gcam, const MRI *mri, const MRI *mri_smooth
     tid = 0;
 #endif
     for (y = 0; y < gcam->height; y++) {
+      struct different_neighbor_labels_context different_neighbor_labels_context;
+      init_different_neighbor_labels_context(&different_neighbor_labels_context,gcam,x,y);
       for (z = 0; z < gcam->depth; z++) {
         if (x == Gx && y == Gy && z == Gz) DiagBreak();
 
@@ -1871,7 +2044,7 @@ int gcamLogLikelihoodTerm(GCA_MORPH *gcam, const MRI *mri, const MRI *mri_smooth
 
         /* don't use unkown nodes unless they border
            something that's not unknown */
-        if (IS_UNKNOWN(gcamn->label) && different_neighbor_labels(gcam, x, y, z, 1) == 0) continue;
+        if (IS_UNKNOWN(gcamn->label) && different_neighbor_labels(&different_neighbor_labels_context, gcamn->label, gcam, x, y, z) == 0) continue;
 
         load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals[tid], gcam->ninputs);
 
@@ -2161,6 +2334,8 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
 #endif
   for (x = 0; x < gcam->width; x++) {
     for (y = 0; y < gcam->height; y++) {
+      struct different_neighbor_labels_context different_neighbor_labels_context;
+      init_different_neighbor_labels_context(&different_neighbor_labels_context,gcam,x,y);
       float vals[MAX_GCA_INPUTS];
       for (z = 0; z < gcam->depth; z++) {
         // Debugging breakpoint
@@ -2184,7 +2359,7 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
 
         /* don't use unkown nodes unless they border
            something that's not unknown */
-        if (IS_UNKNOWN(gcamn->label) && (different_neighbor_labels(gcam, x, y, z, 1) == 0)) {
+        if (IS_UNKNOWN(gcamn->label) && (different_neighbor_labels(&different_neighbor_labels_context, gcamn->label, gcam, x, y, z) == 0)) {
           continue;
         }
 
@@ -10161,114 +10336,6 @@ int zero_vals(float *vals, int nvals)
     }
 
   return (z);
-}
-
-int different_neighbor_labels(const GCA_MORPH *gcam, const int x, const int y, const int z, const int whalf)
-{
-  if (gcam->height != gcam->depth) {
-    fprintf(stderr, "The old code incorrectly assumed the height and depth were the same!\n");
-    exit(1);
-  }
-  
-  if (0) {
-    fprintf(stderr, "x:%d y:%d z:%d whalf:%d gcam->width:%d gcam->height:%d gcam->depth:%d\n",
-      x, y, z, whalf, gcam->width, gcam->height, gcam->depth);
-  }
-  
-  static const bool old_code = false; 
-  static const bool new_code = true; 
-
-  const int cx = x, cy = y, cz = z;		// SURELY THIS SHOULD BE x y z, but the old code had 0 0 0
-
-  int const label = gcam->nodes[x][y][z].label;
-  
-  int new_tests = 0;
-  int new_num = 0;
-  if (new_code) {
-    // The old code has too many tests in the loops to run fast
-    // This new code does not have these tests
-    // Instead it breaks the searched brick into upto subbricks bricks and then searches them rapidly
-
-    int xLo = MAX(0           , x - whalf    ),	// First impose the bounds the if statements below induce 
-        xHi = MIN(gcam->width , x + whalf + 1), 
-	yLo = MAX(0           , y - whalf    ), 
-	yHi = MIN(gcam->height, y + whalf + 1), 
-	zLo = MAX(0           , z - whalf    ),
-	zHi = MIN(gcam->depth , z + whalf + 1);
-
-    if (cx < xLo || xHi <= cx || cy < yLo || yHi <= cy || cz < zLo || zHi <= cz) {
-      fprintf(stderr, "Code incorrectly assumes center is tested\n");
-    }
-    
-    new_num = 0;
-    int i,j,k;
-    for (i = xLo; i < xHi; i++) {
-      for (j = yLo; j < yHi; j++) {
-        for (k = zLo; k < zHi; k++) {
-          if (new_code && old_code) {
-	    new_tests++;
-	  }
-          if (label != gcam->nodes[i][j][k].label) {
-            new_num++;
-          }
-        }
-      }
-    }
-    
-    new_tests--;
-    if (label != gcam->nodes[cx][cy][cz].label) {
-      new_num--;
-    }
-  }
-  
-  int old_tests = 0;
-  int old_num = new_num;
-  if (old_code) {
-    int num, i, j, k;
-    for (num = 0, i = x - whalf; i <= x + whalf; i++) {
-      if (i < 0 || i >= gcam->width) {
-        continue;
-      }
-      for (j = y - whalf; j <= y + whalf; j++) {
-        if (j < 0 || j >= gcam->height) {
-          continue;
-        }
-        for (k = z - whalf; k <= z + whalf; k++) {
-          if (k < 0 || k >= gcam->height) {			// SHOULDN'T THIS BE depth?
-            continue;
-          }
-          if (i == cx && j == cy && k == cz) {			// THIS IS WAS 0,0,0 WHICH MUST BE WRONG
-            continue;
-          }
-    	  if (new_code && old_code) old_tests++;
-          if (label != gcam->nodes[i][j][k].label) {
-            num++;
-          }
-        }
-      }
-    }
-    old_num = num;
-  }
-  
-  if (new_code && old_code) {
-    if (new_tests != old_tests) {
-      fprintf(stderr, "%s:%d new and old code do a different number of tests new:%d old:%d\n", 
-        __FILE__, __LINE__, new_tests, old_tests);
-      exit(1);
-    }
-    if (new_num != old_num) {
-      fprintf(stderr, "%s:%d new and old code get different answers\n", __FILE__, __LINE__);
-      exit(1);
-    }
-    static int count = 0, limit = 1, highest_new_tests=0;
-    if (count++ >= limit || highest_new_tests < new_tests) {
-      if (count-1 >= limit) limit *= 10;
-      if (highest_new_tests < new_tests) highest_new_tests = new_tests;
-      fprintf(stderr, "%s:%d new and old code get same answer:%d after %d tests\n", __FILE__, __LINE__, 
-        new_num, new_tests);
-    }
-  }
-  return (new_code ? new_num : old_num) ;
 }
 
 MRI *gcamCreateJacobianImage(GCA_MORPH *gcam)
@@ -19080,8 +19147,10 @@ int GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_ve
 
 #define MAX_DIST_FROM_VENTS 35
 #define IS_VENT_NBR(l) (IS_CAUDATE(l) || IS_WHITE_CLASS(l) || IS_THALAMUS(l) || IS_WMSA(l) || IS_HIPPO(l))
-  for (x = 0; x < gcam->width; x++)
-    for (y = 0; y < gcam->height; y++)
+  for (x = 0; x < gcam->width; x++) {
+    for (y = 0; y < gcam->height; y++) {
+      struct different_neighbor_labels_context different_neighbor_labels_context;
+      init_different_neighbor_labels_context(&different_neighbor_labels_context,gcam,x,y);
       for (z = 0; z < gcam->depth; z++) {
         if (x == Gx && y == Gy && z == Gz) {
           DiagBreak();
@@ -19109,7 +19178,7 @@ int GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_ve
             }
           }
         }
-        else if (IS_UNKNOWN(gcamn->label) && (different_neighbor_labels(gcam, x, y, z, 1) >
+        else if (IS_UNKNOWN(gcamn->label) && (different_neighbor_labels(&different_neighbor_labels_context, gcamn->label, gcam, x, y, z) >
                                               0)) {  // use a ring of unknowns outside brain to prevent surface of
                                                      // brain from moving too far  inward
 #if 0
@@ -19119,7 +19188,8 @@ int GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_ve
 #endif
         }
       }
-
+    }
+  }
   if (++i == Gdiag_no) DiagBreak();
 
   if ((Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) || (gcam_write_grad && i < 20) || (gcam_write_grad > 1)) {

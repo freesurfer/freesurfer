@@ -622,11 +622,6 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 
   int zero_vals(float *vals, int nvals) ;
 
-  int different_neighbor_labels( const GCA_MORPH *gcam, 
-				 const int x, const int y, const int z,
-				 const int whalf);
-
-
   int gcamComputeGradient( GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
 			   GCA_MORPH_PARMS *parms );
 
