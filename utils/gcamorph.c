@@ -877,7 +877,37 @@ void GCAMregister_pctLoop(GCA_MORPH *gcam,
   } while (*pct_change > parms->tol);
 }
 
+static int GCAMregister_wkr(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms);
+
 int GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
+{
+#ifdef HAVE_OPENMP
+  // This code was previously found in mri_ca_register
+  // where it incorrectly also left the max threads at 1
+  //
+  // I assume it is working around a threading bug in GCAMregister  
+  // /Bevin
+  //
+  int nthreads = -1;
+  if (getenv("FS_FAST_CAREG") == NULL) {
+    nthreads = omp_get_max_threads();
+    omp_set_num_threads(1);
+  }
+#endif 
+
+  int result = GCAMregister_wkr(gcam, mri, parms);
+  
+#ifdef HAVE_OPENMP
+  if (nthreads > 0)
+  {
+    omp_set_num_threads(nthreads);
+  }
+#endif
+
+  return result;
+}
+
+static int GCAMregister_wkr(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 {
   char fname[STRLEN];
   int level, navgs, l2, relabel, orig_relabel, start_t = 0, passno;
@@ -2005,10 +2035,7 @@ int gcamLogLikelihoodTerm(GCA_MORPH *gcam, const MRI *mri, const MRI *mri_smooth
 #endif
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel
-  {
-    nthreads = omp_get_num_threads();
-  }
+  nthreads = omp_get_max_threads();
 #else
   nthreads = 1;
 #endif
@@ -7112,7 +7139,7 @@ static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
     int thread_num;
     bool show = (++count >= limit);
     if (show) { 
-      limit = (limit < 100) ? count+1 : MIN(limit*2,limit+10000); 
+      limit = (limit < 100) ? count+1 : limit+100; 
       fprintf(stderr, "thread workload "); 
     }
     for (thread_num = 0; thread_num < nt; thread_num++) {

@@ -267,10 +267,7 @@ main(int argc, char *argv[])
   }
 
 #ifdef HAVE_OPENMP
-  #pragma omp parallel
-  {
-    n_omp_threads = omp_get_num_threads();
-  }
+  n_omp_threads = omp_get_max_threads();
   printf("\n== Number of threads available to %s for OpenMP = %d == \n",
          Progname, n_omp_threads);
 #else
@@ -1531,30 +1528,18 @@ main(int argc, char *argv[])
     }
     if (parms.noneg < 2)
     {
-      int nthreads ;
-#if 1
       parms.tol /= 5 ;  // reset parameters to previous level
       parms.l_smoothness /= 20 ;
-#ifdef HAVE_OPENMP
-      if (getenv("FS_FAST_CAREG") == NULL)
-	omp_set_num_threads(1);
-#endif 
+      
       GCAMregister(gcam, mri_inputs, &parms) ;
-#ifdef HAVE_OPENMP
-      if (getenv("FS_FAST_CAREG") == NULL)
-      {
-	nthreads = omp_get_max_threads();
-	omp_set_num_threads(nthreads);
-      }
-#endif 
-#endif
+
       printf("********************* ALLOWING NEGATIVE NODES IN DEFORMATION"
              "********************************\n") ;
       parms.noneg = 0 ;
       parms.tol = 0.25 ;
       parms.orig_dt = 1e-6 ;
       parms.navgs = 256 ;
-//      omp_set_num_threads(1);  this doesn't fix it
+
       GCAMregister(gcam, mri_inputs, &parms) ;
     }
   }
