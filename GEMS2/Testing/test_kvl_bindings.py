@@ -29,11 +29,13 @@ def mesh_fixture(mesh_collection_fixture):
     return mesh_collection_fixture.get_mesh(-1)
 
 
+@pytest.mark.slowtest
 def test_image_bindings(matlab_fixture, image_fixture):
     np.testing.assert_allclose(matlab_fixture['imageBuffer'], image_fixture.getImageBuffer())
     np.testing.assert_allclose(matlab_fixture['imageToWorldTransformMatrix'], image_fixture.getTransform().as_numpy_array)
 
 
+@pytest.mark.slowtest
 def test_mesh_binding(matlab_fixture, image_fixture, mesh_fixture):
     buffer = image_fixture.getImageBuffer()
     np.testing.assert_allclose(matlab_fixture['nodePositions'], mesh_fixture.points)
@@ -45,6 +47,7 @@ def test_mesh_binding(matlab_fixture, image_fixture, mesh_fixture):
     np.testing.assert_allclose(matlab_fixture['nodePositions_after_scaling'], mesh_fixture.points)
 
 
+@pytest.mark.slowtest
 def test_calculator_and_optimzer_bindings(matlab_fixture, image_fixture, mesh_fixture):
     calculator = GEMS2Python.KvlCostAndGradientCalculator( 'MutualInformation', [image_fixture], 'Affine')
     mutualInformation_cost, mutualInformation_gradient = calculator.evaluate_mesh_position(mesh_fixture)
