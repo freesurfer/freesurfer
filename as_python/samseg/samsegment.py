@@ -2,12 +2,21 @@
 #                                                                    compressionLookupTableFileName, modelSpecifications, ...
 #                                                                    optimizationOptions, savePath, showFigures )
 
+SKIP_SAMSEGMENT = True
+
 def samsegment(
         recipe,
         transformed_template_filename,
         model_specifications,
         optimization_options,
 ):
+    if SKIP_SAMSEGMENT:
+        return [
+            ['free', 'surfer', 'labels'],
+            ['apple', 'banana', 'cherry'],
+            [1.2, 3.4, 5.6],
+        ]
+    return
     show_options(
         recipe,
         model_specifications,

@@ -5,40 +5,21 @@ import logging
 from as_python.samseg.command_arguments import parse_args
 from as_python.samseg.process_timer import ProcessTimer
 from as_python.samseg.run_utilities import update_recipe_with_calculated_paths, determine_transformed_template_filename, \
-    exvivo_shared_gmm_parameters, standard_shared_gmm_parameters, determine_optimization_options, specify_model
+    determine_optimization_options, specify_model, \
+    determine_shared_gmm_parameters, use_standard_affine_registration_atlas
 from as_python.samseg.samsegment import samsegment
 
 logger = logging.getLogger(__name__)
-
-BAD_RESULT = 1  # retval = 1;
-GOOD_RESULT = 0
-
+logging.basicConfig(level=logging.INFO) # TODO: configurable logging
 
 def run_samseg(recipe):
-    process_timer = ProcessTimer()
-    update_recipe_with_calculated_paths(recipe)
+    process_timer = ProcessTimer('samseg begin')
+    recipe = update_recipe_with_calculated_paths(recipe)
+    display_recipe(recipe)
     shared_gmm_parameters = run_or_retrieve_registration_process(recipe)
     process_timer.mark_time('registration done')
     run_segmentation_process(recipe, shared_gmm_parameters)
     process_timer.mark_time('samseg done')
-
-
-def run_or_retrieve_registration_process(recipe):
-    display_recipe(recipe)
-    if recipe.exvivo:
-        shared_gmm_parameters = exvivo_shared_gmm_parameters()
-        recipe.affine_file_names = build_tailored_affine_registration_atlas(recipe)
-    else:
-        shared_gmm_parameters = standard_shared_gmm_parameters()
-        recipe.affine_file_names = build_standard_affine_registration_atlas(recipe)
-
-    if recipe.regmat:
-        retrieve_registration_process(recipe)
-    else:
-        run_registration_process(recipe)
-
-    create_and_write_transformations(recipe)
-    return shared_gmm_parameters
 
 
 def display_recipe(recipe):
@@ -48,6 +29,7 @@ def display_recipe(recipe):
     log_mode('exvivo', recipe.exvivo)
     log_mode('verbose', recipe.verbose)
     log_missing_structures(recipe.missing_structures)
+
 
 def log_image_file_names(image_file_names, title='image file names'):
     logger.info('%s:', title)
@@ -63,11 +45,29 @@ def log_missing_structures(missing_structures):
     else:
         logger.info("no missing structures")
 
+
 def log_mode(name, is_on):
     value = 'on' if is_on else 'off'
     logger.info('%s is %s', name, value)
 
-def build_tailored_affine_registration_atlas(recipe):
+def run_or_retrieve_registration_process(recipe):
+    shared_gmm_parameters = determine_shared_gmm_parameters(recipe.exvivo)
+    if recipe.exvivo:
+        recipe.affine_file_names = create_tailored_affine_registration_atlas(recipe)
+    else:
+        recipe.affine_file_names = use_standard_affine_registration_atlas(recipe.avg_data_dir)
+
+    if recipe.regmat:
+        retrieve_registration_process(recipe)
+    else:
+        run_registration_process(recipe)
+
+    create_and_write_transformations(recipe)
+    return shared_gmm_parameters
+
+
+
+def create_tailored_affine_registration_atlas(recipe):
     #   % Create a tailor-made atlas for affine registration purposes
     #
     #   % Read mesh
@@ -105,12 +105,6 @@ def build_tailored_affine_registration_atlas(recipe):
     pass
 
 
-def build_standard_affine_registration_atlas(recipe):
-    #   affineRegistrationMeshCollectionFileName = sprintf( '%s/SPM12_6classes_30x30x30_meshCollection.txt.gz', AvgDataDir );
-    #   affineRegistrationTemplateFileName = sprintf( '%s/SPM12_6classes_30x30x30_template.nii', AvgDataDir );
-    pass
-
-
 def retrieve_registration_process():
     #   fprintf('Not performing registration:\n');
     #   fprintf('  Loading reg file %s\n',RegMatFile);
@@ -120,13 +114,13 @@ def retrieve_registration_process():
     pass
 
 
-def run_registration_process(
-        affine_registration_mesh_collection_file_name,
-        affine_registration_template_file_name,
-        image_file_names,
-        save_path,
-        show_figures
-):
+def run_registration_process(recipe):
+#         affine_registration_mesh_collection_file_name,
+#         affine_registration_template_file_name,
+#         image_file_names,
+#         save_path,
+#         show_figures
+# ):
     #   fprintf('entering registerAtlas\n');
     #   showFigures = false;
     #   worldToWorldTransformMatrix = samseg_registerAtlas( imageFileNames{ 1 }, ...
@@ -137,7 +131,7 @@ def run_registration_process(
     pass
 
 
-def create_and_write_transformations(kvl, template_file_name):
+def create_and_write_transformations(recipe):
     # % For historical reasons the samsegment script figures out the affine transformation from
     # % a transformed MNI template (where before transformation this template defines the segmentation
     # % mesh atlas domain). This is a bit silly really, but for now let's just play along and make
@@ -175,7 +169,6 @@ def run_segmentation_process(recipe, shared_gmm_parameters):
     )
 
     show_segmentation_results(names, volumes_in_cubic_mm)
-
 
 
 def show_segmentation_results(names, volumes_in_cubic_mm):

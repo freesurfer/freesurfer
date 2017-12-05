@@ -3,7 +3,8 @@ import numpy as np
 
 from as_python.samseg.run_utilities import find_or_create_save_path, determine_mesh_collection_file_name, \
     determine_compression_lookup_table_file_name, determine_transformed_template_filename, determine_template_file_name, \
-    exvivo_shared_gmm_parameters, standard_shared_gmm_parameters, determine_optimization_options, specify_model
+    exvivo_shared_gmm_parameters, standard_shared_gmm_parameters, determine_optimization_options, specify_model, \
+    determine_shared_gmm_parameters, update_recipe_with_calculated_paths, use_standard_affine_registration_atlas
 
 EXPECTED_NAMES = {name for name in [
     'Unknown', 'Ventricle', 'Inf-Lat-Vent', 'CSF', 'vessel', 'choroid-plexus',
@@ -41,6 +42,18 @@ def test_determine_transformed_template_filename():
     actual = determine_transformed_template_filename('polar')
     expected = 'polar/mni305_masked_autoCropped_coregistered.mgz'
     assert expected == actual
+
+def test_update_recipe_with_calculated_paths():
+    recipe = EasyDict({'output':'write_here', 'exvivo': True})
+    actual = update_recipe_with_calculated_paths(recipe, 'bears')
+    assert 'bears' == actual.avg_data_dir
+
+def test_use_standard_affine_registration_atlas():
+    actual = use_standard_affine_registration_atlas('affine')
+    assert 'affine/SPM12_6classes_30x30x30_meshCollection.txt.gz' == \
+           actual.mesh_collection_file_name
+    assert 'affine/SPM12_6classes_30x30x30_template.nii' == \
+           actual.template_file_name
 
 class TestFindOrCreateSavePath:
     def setup(self):
@@ -104,6 +117,10 @@ def test_standard_shared_gmm_parameters():
         assert actual_number_of_components == 2 or index == 3
         assert len(item.search_strings) > 0
     assert EXPECTED_NAMES == name_set(actual)
+
+def test_determine_shared_gmm_parameters():
+    assert 7 == len(determine_shared_gmm_parameters(False))
+    assert 5 == len(determine_shared_gmm_parameters(True))
 
 def test_determine_optimization_options():
     for verbose in [True, False]:

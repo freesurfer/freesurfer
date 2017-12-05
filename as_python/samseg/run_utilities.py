@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def update_recipe_with_calculated_paths(recipe, avg_data_dir=None):
+    recipe = EasyDict(recipe)
     if avg_data_dir is None:
         avg_data_dir = os.environ.get('SAMSEG_DATA_DIR')
     recipe.save_path = find_or_create_save_path(recipe)
@@ -16,6 +17,8 @@ def update_recipe_with_calculated_paths(recipe, avg_data_dir=None):
     recipe.show_segmentation_figures = recipe.exvivo
     recipe.show_registration_figures = False
     recipe.template_file_name = determine_template_file_name(avg_data_dir)
+    recipe.avg_data_dir = avg_data_dir
+    return recipe
 
 
 def determine_compression_lookup_table_file_name(avg_data_dir):
@@ -38,6 +41,13 @@ def find_or_create_save_path(recipe, makedirs=os.makedirs):
     save_path = recipe.output
     makedirs(save_path, exist_ok=True)
     return save_path
+
+
+def determine_shared_gmm_parameters(exvivo):
+    if exvivo:
+        return exvivo_shared_gmm_parameters()
+    else:
+        return standard_shared_gmm_parameters()
 
 
 def exvivo_shared_gmm_parameters():
@@ -221,4 +231,15 @@ def specify_model(exvivo, missing_structures, shared_gmm_parameters):
         #   modelSpecifications.brainMaskingThreshold = -Inf; % Disable brain masking
         #   modelSpecifications.useDiagonalCovarianceMatrices = true;
         # end
+    })
+
+
+def use_standard_affine_registration_atlas(avg_data_dir):
+    #   affineRegistrationMeshCollectionFileName = sprintf( '%s/SPM12_6classes_30x30x30_meshCollection.txt.gz', AvgDataDir );
+    #   affineRegistrationTemplateFileName = sprintf( '%s/SPM12_6classes_30x30x30_template.nii', AvgDataDir );
+    return EasyDict({
+        'mesh_collection_file_name':
+            '{0}/SPM12_6classes_30x30x30_meshCollection.txt.gz'.format(avg_data_dir),
+        'template_file_name':
+            '{0}/SPM12_6classes_30x30x30_template.nii'.format(avg_data_dir),
     })
