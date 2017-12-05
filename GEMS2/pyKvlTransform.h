@@ -12,13 +12,14 @@ typedef TransformType::Pointer TransformPointer;
 
 
 class KvlTransform {
-    TransformPointer m_transform;
 public:
     // Python accessible
     KvlTransform(const py::array_t<double> &transformMatrix);
     py::array_t<double> AsNumpyArray() const;
 
     // C++ use only
+    TransformPointer m_transform;
+
     KvlTransform(TransformPointer transform) : m_transform(transform) {};
     const TransformPointer GetTransform() const {
         return m_transform;
