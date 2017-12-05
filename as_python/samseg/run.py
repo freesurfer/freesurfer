@@ -5,7 +5,7 @@ import logging
 from as_python.samseg.command_arguments import parse_args
 from as_python.samseg.process_timer import ProcessTimer
 from as_python.samseg.run_utilities import update_recipe_with_calculated_paths, determine_transformed_template_filename, \
-    exvivo_shared_gmm_parameters, standard_shared_gmm_parameters
+    exvivo_shared_gmm_parameters, standard_shared_gmm_parameters, determine_optimization_options, specify_model
 from as_python.samseg.samsegment import samsegment
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ def run_samseg(recipe):
 
 
 def run_or_retrieve_registration_process(recipe):
-    display_registration_input(recipe)
+    display_recipe(recipe)
     if recipe.exvivo:
         shared_gmm_parameters = exvivo_shared_gmm_parameters()
         recipe.affine_file_names = build_tailored_affine_registration_atlas(recipe)
@@ -41,23 +41,31 @@ def run_or_retrieve_registration_process(recipe):
     return shared_gmm_parameters
 
 
-def display_registration_input(recipe):
-    logger.info("inputs:")
-    for image_file_name in recipe.image_file_names:
-        logger.info('    %s', image_file_name)
+def display_recipe(recipe):
+    log_image_file_names(recipe.image_file_names)
     logger.info("output to %s", recipe.save_path)
     logger.info("threads=%d", recipe.threads)
-    if recipe.exvivo:
-        logger.info("exvivo mode is on")
-    else:
-        logger.info("exvivo mode is off")
-    if recipe.missing_structures:
+    log_mode('exvivo', recipe.exvivo)
+    log_mode('verbose', recipe.verbose)
+    log_missing_structures(recipe.missing_structures)
+
+def log_image_file_names(image_file_names, title='image file names'):
+    logger.info('%s:', title)
+    for image_file_name in image_file_names:
+        logger.info('    %s', image_file_name)
+
+
+def log_missing_structures(missing_structures):
+    if missing_structures:
         logger.info("missing structures:")
-        for missing_structure in recipe.missing_structures:
+        for missing_structure in missing_structures:
             logger.info("    %s", missing_structure)
     else:
         logger.info("no missing structures")
 
+def log_mode(name, is_on):
+    value = 'on' if is_on else 'off'
+    logger.info('%s is %s', name, value)
 
 def build_tailored_affine_registration_atlas(recipe):
     #   % Create a tailor-made atlas for affine registration purposes
@@ -154,67 +162,26 @@ def run_segmentation_process(recipe, shared_gmm_parameters):
     transformed_template_filename = determine_transformed_template_filename(recipe.save_path)
 
     model_specifications = specify_model(recipe.exvivo, recipe.missing_structures, shared_gmm_parameters)
-    optimization_options = determine_optimization_options()
+    optimization_options = determine_optimization_options(recipe.verbose)
 
     # [ FreeSurferLabels, names, volumesInCubicMm ] = samsegment( imageFileNames, transformedTemplateFileName, meshCollectionFileName, ...
     #                                                             compressionLookupTableFileName, modelSpecifications, ...
     #                                                             optimizationOptions, savePath, showFigures );
-    [FreeSurferLabels, names, volumesInCubicMm] = samsegment(
+    [free_surfer_labels, names, volumes_in_cubic_mm] = samsegment(
         recipe,
         transformed_template_filename,
         model_specifications,
         optimization_options,
     )
 
-    show_segmentation_results(names, volumesInCubicMm)
+    show_segmentation_results(names, volumes_in_cubic_mm)
 
 
-def specify_model(exvivo, missing_structure_search_strings, shared_gmm_parameters):
-    # exvivo = cmdargs.exvivo;
-    # % Set various model specifications
-    # modelSpecifications = struct;
-    # modelSpecifications.missingStructureSearchStrings = missingStructureSearchStrings;
-    # modelSpecifications.sharedGMMParameters = sharedGMMParameters;
-    # modelSpecifications.useDiagonalCovarianceMatrices = false;
-    # modelSpecifications.brainMaskingSmoothingSigma = 3; % sqrt of the variance of a Gaussian blurring kernel
-    # modelSpecifications.brainMaskingThreshold = 0.01;
-    # modelSpecifications.K = 0.1; % Stiffness of the mesh
-    # modelSpecifications.biasFieldSmoothingKernelSize = 50.0;  % Distance in mm of sinc function center to first zero crossing
-    # if exvivo
-    #   modelSpecifications.brainMaskingThreshold = -Inf; % Disable brain masking
-    #   modelSpecifications.useDiagonalCovarianceMatrices = true;
-    # end
-    pass
 
-
-def determine_optimization_options():
-    # % Set various optimization options
-    # optimizationOptions = struct;
-    # optimizationOptions.multiResolutionSpecification = struct;
-    # optimizationOptions.multiResolutionSpecification( 1 ).meshSmoothingSigma = 2.0; % In mm
-    # optimizationOptions.multiResolutionSpecification( 1 ).targetDownsampledVoxelSpacing = 2.0; % In mm
-    # optimizationOptions.multiResolutionSpecification( 1 ).maximumNumberOfIterations = 100;
-    # optimizationOptions.multiResolutionSpecification( 1 ).estimateBiasField = true;
-    # optimizationOptions.multiResolutionSpecification( 2 ).meshSmoothingSigma = 0.0; % In mm
-    # optimizationOptions.multiResolutionSpecification( 2 ).targetDownsampledVoxelSpacing = 1.0; % In mm
-    # optimizationOptions.multiResolutionSpecification( 2 ).maximumNumberOfIterations = 100;
-    # optimizationOptions.multiResolutionSpecification( 2 ).estimateBiasField = true; % Switching this off will use the bias field estimated
-    #                                                                                 % at lower resolution(s)
-    # optimizationOptions.maximumNumberOfDeformationIterations = 20;
-    # optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion = 1e-4;
-    # optimizationOptions.verbose = 0;
-    # optimizationOptions.maximalDeformationStopCriterion = 0.001; % Measured in pixels
-    # optimizationOptions.lineSearchMaximalDeformationIntervalStopCriterion = optimizationOptions.maximalDeformationStopCriterion; % Idem
-    # % optimizationOptions.relativeCostDecreaseStopCriterion = 1e-6;
-    # optimizationOptions.maximalDeformationAppliedStopCriterion = 0.0;
-    # optimizationOptions.BFGSMaximumMemoryLength = 12;
-    pass
-
-
-def show_segmentation_results(names, volumesInCubicMm):
-    # names
-    # volumesInCubicMm
-    pass
+def show_segmentation_results(names, volumes_in_cubic_mm):
+    logger.info('volumes in cubic meters:')
+    for name, volume in zip(names, volumes_in_cubic_mm):
+        logger.info('   %s=%f', name, volume)
 
 
 if __name__ == '__main__':

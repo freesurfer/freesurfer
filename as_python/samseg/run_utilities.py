@@ -1,5 +1,6 @@
 import logging
 import os
+import numpy as np
 
 from easydict import EasyDict
 
@@ -148,3 +149,76 @@ def standard_shared_gmm_parameters():
             'number_of_components': 2,
         }),
     ]
+
+
+def determine_optimization_options(verbose=False):
+    return EasyDict({
+        'multi_resolution_specification': [
+            # % Set various optimization options
+            # optimizationOptions = struct;
+            # optimizationOptions.multiResolutionSpecification = struct;
+            # optimizationOptions.multiResolutionSpecification( 1 ).meshSmoothingSigma = 2.0; % In mm
+            # optimizationOptions.multiResolutionSpecification( 1 ).targetDownsampledVoxelSpacing = 2.0; % In mm
+            # optimizationOptions.multiResolutionSpecification( 1 ).maximumNumberOfIterations = 100;
+            # optimizationOptions.multiResolutionSpecification( 1 ).estimateBiasField = true;
+            {
+                'mesh_smoothing_sigma': 2.0,
+                'target_downsampling_voxel_spacing': 2.0,
+                'maximum_number_of_iterations': 100,
+                'estimate_bias_field': True,
+            },
+            # optimizationOptions.multiResolutionSpecification( 2 ).meshSmoothingSigma = 0.0; % In mm
+            # optimizationOptions.multiResolutionSpecification( 2 ).targetDownsampledVoxelSpacing = 1.0; % In mm
+            # optimizationOptions.multiResolutionSpecification( 2 ).maximumNumberOfIterations = 100;
+            # optimizationOptions.multiResolutionSpecification( 2 ).estimateBiasField = true; % Switching this off will use the bias field estimated
+            #                                                                                 % at lower resolution(s)
+            {
+                'mesh_smoothing_sigma': 0.0,
+                'target_downsampling_voxel_spacing': 1.0,
+                'maximum_number_of_iterations': 100,
+                'estimate_bias_field': True,
+            },
+        ],
+        # optimizationOptions.maximumNumberOfDeformationIterations = 20;
+        'maximum_number_of_deformation_iterations': 20,
+        # optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion = 1e-4;
+        'absolute_cost_per_voxel_decreases_stop_criterion': 1e-4,
+        # optimizationOptions.verbose = 0;
+        'verbose': verbose,
+        # optimizationOptions.maximalDeformationStopCriterion = 0.001; % Measured in pixels
+        'maximal_deformation_stop_criterion': 0.001,
+        # optimizationOptions.lineSearchMaximalDeformationIntervalStopCriterion = optimizationOptions.maximalDeformationStopCriterion; % Idem
+        'line_search_maximal_deformation_interval_stop_criterion': 0.001,
+        # % optimizationOptions.relativeCostDecreaseStopCriterion = 1e-6;
+        'relative_cost_decrease_stop_criterion': 1e-6,
+        # optimizationOptions.maximalDeformationAppliedStopCriterion = 0.0;
+        'maximal_deformation_applied_stop_criterion': 0.0,
+        # optimizationOptions.BFGSMaximumMemoryLength = 12;
+        'bfgs_maximum_memory_length': 12,
+    })
+
+
+def specify_model(exvivo, missing_structures, shared_gmm_parameters):
+    return EasyDict({
+        # exvivo = cmdargs.exvivo;
+        # % Set various model specifications
+        # modelSpecifications = struct;
+        # modelSpecifications.missingStructureSearchStrings = missingStructureSearchStrings;
+        'missing_structures': missing_structures,
+        # modelSpecifications.sharedGMMParameters = sharedGMMParameters;
+        'shared_gmm_parameters': shared_gmm_parameters,
+        # modelSpecifications.useDiagonalCovarianceMatrices = false;
+        'use_diagonal_covariance_matrices': exvivo,
+        # modelSpecifications.brainMaskingSmoothingSigma = 3; % sqrt of the variance of a Gaussian blurring kernel
+        'brain_masking_smoothing_sigma': 3.0,
+        # modelSpecifications.brainMaskingThreshold = 0.01;
+        'brain_masking_threshold': -np.inf if exvivo else 0.01,
+        # modelSpecifications.K = 0.1; % Stiffness of the mesh
+        'k': 0.1,
+        # modelSpecifications.biasFieldSmoothingKernelSize = 50.0;  % Distance in mm of sinc function center to first zero crossing
+        'bias_field_smoothing_kernel_size': 50,
+        # if exvivo
+        #   modelSpecifications.brainMaskingThreshold = -Inf; % Disable brain masking
+        #   modelSpecifications.useDiagonalCovarianceMatrices = true;
+        # end
+    })
