@@ -1,9 +1,9 @@
-from optparse import OptionParser
+import argparse
 
 from as_python.samseg.command_arguments import parse_args
 
 
-class MockingParser(OptionParser):
+class MockingParser(argparse.ArgumentParser):
     def __init__(self):
         super().__init__()
         self.error_message_received = None
