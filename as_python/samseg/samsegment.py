@@ -3,63 +3,48 @@
 #                                                                    optimizationOptions, savePath, showFigures )
 
 def samsegment(
-        kvl,
-        image_file_names,
-        transformed_template_file_name,
-        mesh_collection_file_name,
-        compression_lookup_table_file_name,
+        recipe,
+        transformed_template_filename,
         model_specifications,
         optimization_options,
-        save_path,
-        show_figures
 ):
     show_options(
-        image_file_names,
-        transformed_template_file_name,
-        mesh_collection_file_name,
-        compression_lookup_table_file_name,
+        recipe,
         model_specifications,
         optimization_options,
-        save_path,
-        show_figures
     )
     history = create_history(
-        image_file_names,
-        transformed_template_file_name,
-        mesh_collection_file_name,
-        compression_lookup_table_file_name,
+        recipe,
         model_specifications,
         optimization_options,
-        save_path,
-        show_figures
     )
 
     # numberOfContrasts = length( imageFileNames );
-    number_of_contrasts = len(image_file_names)
+    number_of_contrasts = len(recipe.image_file_names)
 
     [image_buffers, image_size, transform] = read_image_data(
-        kvl, number_of_contrasts, image_file_names, transformed_template_file_name)
+        number_of_contrasts, recipe.image_file_names, recipe.transformed_template_file_name)
 
-    if show_figures:
+    if recipe.show_figures:
         show_images_singly(image_buffers)
 
-    image_to_world_transform_matrix = get_image_to_world_transform_matrix(kvl, image_file_names)
+    image_to_world_transform_matrix = get_image_to_world_transform_matrix(recipe.image_file_names)
     voxel_spacing = determine_voxel_spacing(image_to_world_transform_matrix)
-    mesh_collection = read_mesh_collection(kvl, mesh_collection_file_name, model_specifications)
+    mesh_collection = read_mesh_collection(recipe.mesh_collection_file_name, model_specifications)
     mesh = retrieve_mesh(mesh_collection)
     strip_skull(mesh, image_size, image_buffers)
 
-    if show_figures:
+    if recipe.show_figures:
         show_image_buffers(image_buffers)
 
     do_log_transformation_of_data(image_buffers, number_of_contrasts, image_size)
-    [free_surfer_labels, names, colors] = find_labels_names_and_colors(compression_lookup_table_file_name)
+    [free_surfer_labels, names, colors] = find_labels_names_and_colors(recipe.compression_lookup_table_file_name)
     [
         alphas,
         names,
         free_surfer_labels,
         colors
-    ] = find_relevant_alphas(kvl, mesh, model_specifications, free_surfer_labels, colors)
+    ] = find_relevant_alphas(mesh, model_specifications, free_surfer_labels, colors)
     [
         reduced_alphas,
         reduced_names,
@@ -69,8 +54,8 @@ def samsegment(
      ] = reduce_alphas_that_share_guassian_mixture_models(
         alphas, names, model_specifications, free_surfer_labels, colors)
 
-    if show_figures:
-        show_current_mesh(kvl, mesh, image_size)
+    if recipe.show_figures:
+        show_current_mesh(mesh, image_size)
 
     [
         number_of_gaussians_per_class,
@@ -81,7 +66,7 @@ def samsegment(
     [
         kronecker_product_basis_functions,
         number_of_basis_functions
-    ] = create_bias_model(model_specifications, voxel_spacing, show_figures)
+    ] = create_bias_model(model_specifications, voxel_spacing, recipe.show_figures)
     biasFieldCoefficients = create_initial_bias_field_coefficients(number_of_basis_functions, number_of_contrasts)
 
     #
@@ -94,14 +79,14 @@ def samsegment(
     #
     #
 
-    [history, history_within_each_multi_resolution_level] = do_multi_resolution_optimization(kvl, history)
+    [history, history_within_each_multi_resolution_level] = do_multi_resolution_optimization(history)
     save_estimation_history(
-        save_path, history,
+        recipe.save_path, history,
         history_within_each_multi_resolution_level,
         image_buffers)
 
-    [free_surfer_segmentation, volumes_in_cubic_mm] = do_full_estimation(kvl)
-    write_segmentation_results(kvl, save_path, free_surfer_segmentation)
+    [free_surfer_segmentation, volumes_in_cubic_mm] = do_full_estimation()
+    write_segmentation_results(recipe.save_path, free_surfer_segmentation)
     return [ free_surfer_labels, names, volumes_in_cubic_mm ]
 
 def show_options(

@@ -19,13 +19,13 @@ ELIMINATE_BACKGROUND_CLASS = False
 PRIOR_VISUALIZATION_ALPHA = 0.4
 
 
-def samsseg_registerAtlas(
-        image_file_name,
-        mesh_collection_file_name,
-        template_file_name,
-        save_path,
-        show_figures
-):
+def samsseg_registerAtlas(recipe):
+#         image_file_name,
+#         mesh_collection_file_name,
+#         template_file_name,
+#         save_path,
+#         show_figures
+# ):
     # function worldToWorldTransformMatrix = samseg_registerAtlas( imageFileName, meshCollectionFileName, templateFileName, savePath, showFigures )
     #
     # %

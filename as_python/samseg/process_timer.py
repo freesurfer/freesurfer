@@ -1,8 +1,12 @@
+import datetime
+import logging
+
+logger = logging.getLogger(__name__)
+
 class ProcessTimer:
     def __init__(self):
-        # samsegStartTime = tic;
-        pass
+        self.start_time = datetime.datetime.now()
 
     def mark_time(self, message):
-        # fprintf('#@# samseg done %6.4f min\n',toc( samsegStartTime )/60);
-        pass
+        elapsed_time = datetime.datetime.now() - self.start_time
+        logger.info('%s:%s', message, str(elapsed_time))
