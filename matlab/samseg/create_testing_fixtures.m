@@ -7,50 +7,31 @@ imageToWorldTransformMatrix = double( kvlGetTransformMatrix( imageToWorldTransfo
 createdTransform = kvlCreateTransform( imageToWorldTransformMatrix );
 imageBuffer = kvlGetImageBuffer( image );
 image = kvlCreateImage( imageBuffer );
-save('test_kvlImage.mat', 'imageToWorldTransformMatrix', 'imageBuffer');
-
-% test case: write the same image out to disk and asser the file is created
-% and when read in again we get the same thing.
-kvlWriteImage( image, '/home/ys/freesurfer/GEMS2/Testing/test_written.nii', imageToWorldTransform );
 
 % given a mesh collection file assert we get the same node positions and
 % alphas and rasterization result.
-meshCollection = kvlReadMeshCollection( '/usr/local/freesurfer/data/GEMS/CurrentMeshCollection30.gz' );
+meshCollection = kvlReadMeshCollection( '/home/ys/freesurfer/GEMS2/Testing/test.txt.gz' );
 mesh = kvlGetMesh( meshCollection, -1 );
 nodePositions = kvlGetMeshNodePositions( mesh );
 alphas = kvlGetAlphasInMeshNodes( mesh );
 priors = kvlRasterizeAtlasMesh( mesh, size( imageBuffer ) );
-save('test_kvlMesh.mat', 'nodePositions', 'alphas', 'priors');
 
-% Test mesh mutator kvlScaleMesh
-meshCollection = kvlReadMeshCollection( '/usr/local/freesurfer/data/GEMS/CurrentMeshCollection30.gz' );
-mesh = kvlGetMesh( meshCollection, -1 );
+
 kvlScaleMesh(mesh, 1/10);
-nodePositions = kvlGetMeshNodePositions( mesh );
-save('test_kvlScaleMesh.mat', 'nodePositions');
+nodePositions_after_scaling = kvlGetMeshNodePositions( mesh );
 
-% Test mesh mutator kvlSetAlphasInMeshNodes
-meshCollection = kvlReadMeshCollection( '/usr/local/freesurfer/data/GEMS/CurrentMeshCollection30.gz' );
-mesh = kvlGetMesh( meshCollection, -1 );
-alphas = kvlGetAlphasInMeshNodes( mesh );
 kvlSetAlphasInMeshNodes(mesh, alphas+1);
-alphas = kvlGetAlphasInMeshNodes( mesh );
-save('test_kvlSetAlphasInMeshNodes.mat', 'alphas');
+alphas_after_modification = kvlGetAlphasInMeshNodes( mesh );
+
 
 % Test mesh mutator kvlSetMeshNodePositions
-meshCollection = kvlReadMeshCollection( '/usr/local/freesurfer/data/GEMS/CurrentMeshCollection30.gz' );
-mesh = kvlGetMesh( meshCollection, -1 );
-nodePositions = kvlGetMeshNodePositions( mesh );
 kvlSetMeshNodePositions(mesh, nodePositions+1);
-nodePositions = kvlGetMeshNodePositions( mesh );
-save('test_kvlSetMeshNodePositions.mat', 'nodePositions');
-
+nodePositions_after_modification = kvlGetMeshNodePositions( mesh );
 
 % cost and gradient calculator tests. Assert we get the same cost and
 % gradient values.
 calculator = kvlGetCostAndGradientCalculator( 'MutualInformation', image, 'Affine' );
-[ cost gradient ] = kvlEvaluateMeshPosition( calculator, mesh );
-save('test_kvlCostAndGradientMutualInformation.mat', 'cost', 'gradient')
+[ mutualInformation_cost mutualInformation_gradient ] = kvlEvaluateMeshPosition( calculator, mesh );
 
 % optimizer test. Run a few steps and write intermediate results to disk
 history = []
@@ -64,4 +45,18 @@ optimizer = kvlGetOptimizer( optimizerType, mesh, calculator, ...
                                 lineSearchMaximalDeformationIntervalStopCriterion, ...
                                 'BFGS-MaximumMemoryLength', 12 ); % Affine registration only has 12 DOF
 [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer );
-save('test_kvlGetOptimizer.mat', 'minLogLikelihoodTimesPrior', 'maximalDeformation')
+
+save('/media/sf_matlab_data/integration.mat', ...
+    'imageToWorldTransformMatrix', ...
+    'imageBuffer', ...
+    'nodePositions', ...
+    'alphas', ...
+    'priors', ...
+    'nodePositions_after_scaling', ...
+    'nodePositions_after_modification', ...
+    'mutualInformation_cost', ...
+    'mutualInformation_gradient', ...
+    'minLogLikelihoodTimesPrior', ...
+    'maximalDeformation')
+
+

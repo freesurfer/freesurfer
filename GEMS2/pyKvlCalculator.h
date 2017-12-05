@@ -102,7 +102,7 @@ public:
         auto const data = new double[numberOfNodes*3];
         auto data_it = data;
         for ( kvl::AtlasPositionGradientContainerType::ConstIterator  it = gradient->Begin();
-              it != gradient->End(); ++it, ++data_it )
+              it != gradient->End(); ++it )
         {
             *data_it++ = it.Value()[0];
             *data_it++ = it.Value()[1];
