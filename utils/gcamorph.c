@@ -6914,6 +6914,7 @@ static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
   struct buffer {
     BufferElt* vec_vxyz;
     char*   vec_valid;
+    int     validCount;
   } * buffers = (struct buffer*)calloc(nt, sizeof(struct buffer));
 
   const int xStride = (width + nt-1) / nt;
@@ -7045,7 +7046,8 @@ static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
           int const index_xyz = INDEX(x,y,z);
                 
           if (!vec_valid[index_xyz]) continue;
-  
+	  buf->validCount++;
+	    
           // Get the differences from original
           //
           BufferElt const vx = vec_vxyz[index_xyz*3+0];
@@ -7098,19 +7100,35 @@ static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
         }
       }
     } // compute the contribution for the slice
-
-    if (0 == thread_num) {
-    }
-    
   } // over all the slices
-#endif
 
-  int i;
-  for (i = 0; i < nt; i++) {
-     free(buffers[i].vec_vxyz);
-     free(buffers[i].vec_valid);
-  };
-  free (buffers);
+  // Show the stats
+  // Free the buffers
+  // It may be better to reuse the buffer across calls...
+  //
+  {
+    static int count;
+    static int limit = 1;
+    int thread_num;
+    bool show = (++count >= limit);
+    if (show) { 
+      limit = (limit < 100) ? count+1 : MIN(limit*2,limit+10000); 
+      fprintf(stderr, "thread workload "); 
+    }
+    for (thread_num = 0; thread_num < nt; thread_num++) {
+      struct buffer* buf = &buffers[thread_num];
+      free(buf->vec_vxyz);
+      free(buf->vec_valid);
+      if (show) {
+    	fprintf(stderr, "%d:%d ", thread_num, buf->validCount);
+      }
+    }
+    if (show) fprintf(stderr, "freeing buffers for %d threads...\n",nt);
+    free(buffers);
+    if (show) fprintf(stderr, "...freed buffers\n");
+  }
+
+#endif
 
   return (sse);
 }
