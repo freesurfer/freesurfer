@@ -2,15 +2,19 @@
 # % Run with no arguments to get help
 import logging
 
+from easydict import EasyDict
+
 from as_python.samseg.command_arguments import parse_args
 from as_python.samseg.process_timer import ProcessTimer
+from as_python.samseg.register_atlas import samseg_register_atlas
 from as_python.samseg.run_utilities import update_recipe_with_calculated_paths, determine_transformed_template_filename, \
     determine_optimization_options, specify_model, \
     determine_shared_gmm_parameters, use_standard_affine_registration_atlas
 from as_python.samseg.samsegment import samsegment
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO) # TODO: configurable logging
+logging.basicConfig(level=logging.INFO)  # TODO: configurable logging
+
 
 def run_samseg(recipe):
     process_timer = ProcessTimer('samseg begin')
@@ -50,6 +54,7 @@ def log_mode(name, is_on):
     value = 'on' if is_on else 'off'
     logger.info('%s is %s', name, value)
 
+
 def run_or_retrieve_registration_process(recipe):
     shared_gmm_parameters = determine_shared_gmm_parameters(recipe.exvivo)
     if recipe.exvivo:
@@ -58,13 +63,12 @@ def run_or_retrieve_registration_process(recipe):
         recipe.affine_file_names = use_standard_affine_registration_atlas(recipe.avg_data_dir)
 
     if recipe.regmat:
-        retrieve_registration_process(recipe)
+        world_to_world_transform_matrix = retrieve_registration_process(recipe)
     else:
-        run_registration_process(recipe)
+        world_to_world_transform_matrix = run_registration_process(recipe)
 
-    create_and_write_transformations(recipe)
+    create_and_write_transformations(recipe, world_to_world_transform_matrix)
     return shared_gmm_parameters
-
 
 
 def create_tailored_affine_registration_atlas(recipe):
@@ -115,12 +119,24 @@ def retrieve_registration_process():
 
 
 def run_registration_process(recipe):
-#         affine_registration_mesh_collection_file_name,
-#         affine_registration_template_file_name,
-#         image_file_names,
-#         save_path,
-#         show_figures
-# ):
+    registration_recipe = EasyDict()
+    registration_recipe.verbose = recipe.verbose
+    registration_recipe.image_file_name = recipe.image_file_names[0]
+    registration_recipe.affine_registration_mesh_collection_file_name = \
+        recipe.affine_file_names.mesh_collection_file_name
+    registration_recipe.affine_registration_template_file_name = \
+        recipe.affine_file_names.mesh_collection_file_name
+    registration_recipe.save_path = recipe.save_path
+    registration_recipe.show_figures = recipe.show_registration_figures
+
+    world_to_world_transform_matrix = samseg_register_atlas(registration_recipe)
+
+    #         affine_registration_mesh_collection_file_name,
+    #         affine_registration_template_file_name,
+    #         image_file_names,
+    #         save_path,
+    #         show_figures
+    # ):
     #   fprintf('entering registerAtlas\n');
     #   showFigures = false;
     #   worldToWorldTransformMatrix = samseg_registerAtlas( imageFileNames{ 1 }, ...
@@ -128,10 +144,10 @@ def run_registration_process(recipe):
     #                                                       affineRegistrationTemplateFileName, ...
     #                                                       savePath, ...
     #                                                       showFigures );
-    pass
+    return world_to_world_transform_matrix
 
 
-def create_and_write_transformations(recipe):
+def create_and_write_transformations(recipe, world_to_world_transform_matrix):
     # % For historical reasons the samsegment script figures out the affine transformation from
     # % a transformed MNI template (where before transformation this template defines the segmentation
     # % mesh atlas domain). This is a bit silly really, but for now let's just play along and make

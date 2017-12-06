@@ -1,9 +1,13 @@
+import logging
+from as_python.samseg.color_scheme import ColorScheme
+
+logger = logging.getLogger(__name__)
+
 # K = 1e-7; % Mesh stiffness -- compared to normal models, the entropy cost function is normalized
 #           % (i.e., measures an average *per voxel*), so that this needs to be scaled down by the
 #           % number of voxels that are covered
 #   scaling = 0.9 * ones( 1, 3 );
 #   K = K / prod( scaling );
-from samseg.color_scheme import ColorScheme
 
 MESH_STIFFNESS = 1e-7
 SCALING_FACTOR = 0.9
@@ -19,19 +23,20 @@ ELIMINATE_BACKGROUND_CLASS = False
 PRIOR_VISUALIZATION_ALPHA = 0.4
 
 
-def samsseg_registerAtlas(recipe):
-#         image_file_name,
-#         mesh_collection_file_name,
-#         template_file_name,
-#         save_path,
-#         show_figures
-# ):
+def samseg_register_atlas(recipe):
+    #         image_file_name,
+    #         mesh_collection_file_name,
+    #         template_file_name,
+    #         save_path,
+    #         show_figures
+    # ):
     # function worldToWorldTransformMatrix = samseg_registerAtlas( imageFileName, meshCollectionFileName, templateFileName, savePath, showFigures )
     #
     # %
     #
-    [original_image, original_image_to_world_transform] = read_input_image_with_transform(image_file_name)
-    [template, template_image_to_world_transform] = read_input_image_with_transform(template_file_name)
+    logger.info('Begin atlas registration')
+    [original_image, original_image_to_world_transform] = read_input_image_with_transform(recipe.image_file_name)
+    [template, template_image_to_world_transform] = read_input_image_with_transform(recipe.template_file_name)
 
     initial_world_to_world_transform_matrix = determine_initial_world_to_world_transform_matrix()
     initial_image_to_image_transform_matrix = determine_initial_image_to_image_transform_matrix(
@@ -43,16 +48,16 @@ def samsseg_registerAtlas(recipe):
 
     mesh = determine_mesh(
         down_sampling_factors,
-        mesh_collection_file_name,
+        recipe.mesh_collection_file_name,
         initial_image_to_image_transform_matrix,
         original_image_to_world_transform,
         template_image_to_world_transform
     )
 
-    [image, image_buffer] = acquire_and_downsample_image(original_image, down_sampling_factors, show_figures)
+    [image, image_buffer] = acquire_and_downsample_image(original_image, down_sampling_factors, recipe.show_figures)
 
     color_scheme = handle_background_class_and_determine_color_scheme(mesh)
-    if show_figures:
+    if recipe.show_figures:
         show_mesh(mesh, image_buffer, color_scheme)
 
     calculator = create_calculator(mesh)
@@ -69,7 +74,7 @@ def samsseg_registerAtlas(recipe):
     #
     original_node_positions = extract_node_positions(mesh)
 
-    if show_figures:
+    if recipe.show_figures:
         show_starting_situation(mesh, image_buffer, color_scheme)
 
     optimizer = get_optimizer(mesh, calculator)
@@ -80,20 +85,21 @@ def samsseg_registerAtlas(recipe):
         mesh,
         original_node_positions,
         color_scheme,
-        show_figures
+        recipe.show_figures
     )
     # toc
 
     world_to_world_transform_matrix = save_results(
         down_sampling_factors,
         image_buffer,
-        image_file_name,
+        recipe.image_file_name,
         initial_image_to_image_transform_matrix,
         mesh,
         original_node_positions,
-        save_path,
-        template_file_name
+        recipe.save_path,
+        recipe.template_file_name
     )
+    logger.info('Completed atlas registration')
     return world_to_world_transform_matrix
 
 
