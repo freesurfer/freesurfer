@@ -11,10 +11,12 @@
 #include <vtkPointLocator.h>
 
 // ITK
+#define export // obsolete feature "export template" used in these header files
 #include <itkImage.h>
 #include <itkImageSpatialObject.h>
 #include <itkImageMaskSpatialObject.h>
 #include <itkLinearInterpolateImageFunction.h>
+#undef export
 
 class Tracer
 {

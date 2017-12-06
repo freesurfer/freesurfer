@@ -1882,7 +1882,7 @@ FunV_tErr FunV_TranslateOverlayRegistration ( tkmFunctionalVolumeRef this,
   /* translate the overlay registration */
   eVolume = FunD_TranslateRegistration( this->mpOverlayVolume,
                                         ifDistance, iAxis );
-  if ( FunV_tErr_NoError != eVolume ) {
+  if ( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorAccessingInternalVolume;
     goto error;
   }
@@ -1928,7 +1928,7 @@ FunV_tErr FunV_RotateOverlayRegistration ( tkmFunctionalVolumeRef this,
   eVolume = FunD_RotateRegistration( this->mpOverlayVolume,
                                      ifDegrees, iAxis, &centerFuncRAS );
 
-  if ( FunV_tErr_NoError != eVolume ) {
+  if ( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorAccessingInternalVolume;
     goto error;
   }
@@ -1968,7 +1968,7 @@ FunV_tErr FunV_ScaleOverlayRegistration ( tkmFunctionalVolumeRef this,
   /* scale the overlay registration */
   eVolume = FunD_ScaleRegistration( this->mpOverlayVolume,
                                     ifFactor, iAxis );
-  if ( FunV_tErr_NoError != eVolume ) {
+  if ( FunD_tErr_NoError != eVolume ) {
     eResult = FunV_tErr_ErrorAccessingInternalVolume;
     goto error;
   }

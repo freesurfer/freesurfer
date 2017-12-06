@@ -43,7 +43,8 @@ public:
     // Retrieve mesh collection
     const int meshCollectionHandle = *( static_cast< int* >( mxGetData( prhs[ 0 ] ) ) );
     itk::Object::ConstPointer object = kvl::MatlabObjectArray::GetInstance()->GetObject( meshCollectionHandle );
-    if ( typeid( *object ) != typeid( kvl::AtlasMeshCollection ) )
+    // if ( typeid( *object ) != typeid( kvl::AtlasMeshCollection ) )
+    if ( strcmp(typeid( *object ).name(), typeid( kvl::AtlasMeshCollection ).name()) )  // Eugenio: MAC compatibility
       {
       mexErrMsgTxt( "Not an atlas mesh collection object" );
       }
@@ -63,7 +64,8 @@ public:
     typedef CroppedImageReader::TransformType  TransformType;
     const int transformHandle = *( static_cast< int* >( mxGetData( prhs[ 3 ] ) ) );
     object = kvl::MatlabObjectArray::GetInstance()->GetObject( transformHandle );
-    if ( typeid( *object ) != typeid( TransformType ) )
+    // if ( typeid( *object ) != typeid( TransformType ) )
+    if ( strcmp(typeid( *object ).name(), typeid( TransformType ).name()) )  // Eugenio: MAC compatibility
       {
       mexErrMsgTxt( "transform doesn't refer to the correct ITK object type" );
       }

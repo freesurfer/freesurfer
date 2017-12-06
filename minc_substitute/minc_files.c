@@ -34,6 +34,7 @@
 ---------------------------------------------------------------------------- */
 
 #include  "minc_files.h"
+#include  "minc_internals.h"
 
 #include  <errno.h>
 #include  <pwd.h>
@@ -93,20 +94,6 @@ char* concat_strings(const char* s1, const char* s2) {
 }
 
 
-const char* get_date() {
-
-    time_t currentTime;
-    time( &currentTime );
-
-    struct tm  localtimeBuffer;
-    struct tm* localTime = localtime_r(&currentTime, &localtimeBuffer);
-
-    char   asctimeBuffer[32];
-    char * ascTime = asctime_r(localTime, asctimeBuffer);
-
-    return create_string(ascTime);
-}
-
 static  bool          has_no_extension( const char* );
 
 #define compressed_endings_size 3 
@@ -145,27 +132,19 @@ static  void  print_system_error( void )
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-VIO_BOOL  file_exists(
+bool file_exists(
     const char*        filename )
 {
-    VIO_BOOL  exists;
-    FILE     *file;
-    const char*   expanded;
+    const char* expanded = expand_filename( filename );
 
-    expanded = expand_filename( filename );
-
-    file = fopen( expanded, "r" );
-
-    if( file != NULL )
-    {
+    bool exists = false;
+    FILE *file = fopen( expanded, "r" );
+    if( file != NULL ) {
         (void) fclose( file );
-        exists = VIO_TRUE;
+        exists = true;
     }
-    else
-        exists = VIO_FALSE;
 
-    delete_string( expanded );
-
+    free( (void*)expanded );
     return( exists );
 }
 
@@ -723,9 +702,7 @@ char*  expand_filename(
 @OUTPUT     : 
 @RETURNS    : VIO_TRUE if filename extension matches
 @DESCRIPTION: Checks if the filename ends in a period, then the given
-              extension.  Note that the filename first undergoes expansion
-              for home directories and environment variables, and any
-              ending of ".z", ".Z", or ".gz" is first removed.
+              extension.  Any ending of ".z", ".Z", or ".gz" is first removed.
 @METHOD     : 
 @GLOBALS    : 
 @CALLS      : 
@@ -733,28 +710,29 @@ char*  expand_filename(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-VIO_BOOL  filename_extension_matches(
-    const char*   filename,
+bool filename_extension_matches(
+    const char*   expanded_filename_possibly_with_z,
     const char*   extension )
 {
-    char* const filename_no_z = expand_filename( filename );
-    int   const len           = string_length( filename_no_z );
+    char* const expanded_filename_no_z = strdup( expanded_filename_possibly_with_z );
 
+    int   const len = string_length( expanded_filename_no_z );
     int i;
     for( i = 0; i < compressed_endings_size; i++ )
     {
-        if( string_ends_in( filename_no_z, compressed_endings[i] ) )
+        if( string_ends_in( expanded_filename_no_z, compressed_endings[i] ) )
         {
-            filename_no_z[len-string_length(compressed_endings[i])] = 0;
+            expanded_filename_no_z[len-string_length(compressed_endings[i])] = 0;
+	    break;
         }
     }
 
     const char* ending = concat_strings( ".", extension );
 
-    VIO_BOOL matches = string_ends_in( filename_no_z, ending );
+    VIO_BOOL matches = string_ends_in( expanded_filename_no_z, ending );
 
-    delete_string( filename_no_z );
     delete_string( ending );
+    delete_string( expanded_filename_no_z );
 
     return( matches );
 }
@@ -806,7 +784,7 @@ char*  remove_directories_from_filename(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-static char* file_exists_as_compressed(
+char* file_exists_as_compressed(
     const char* expanded )				// don't expand twice!
 {
     int i;
@@ -1169,7 +1147,7 @@ char*  extract_directory(
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-const char*  get_absolute_filename(
+char*  get_absolute_filename(
     const char*    filename,
     const char*    directory )
 {
@@ -1177,7 +1155,7 @@ const char*  get_absolute_filename(
     /* if the directory is non-null and the filename is not already
        absolute (begins with '/'), then prefix the directory to the filename */
 
-    const char*  expanded = expand_filename( filename );
+    char*  expanded = expand_filename( filename );
 
     char*  abs_filename = NULL;
     if( string_length( directory ) > 0 && expanded[0] != '/' )

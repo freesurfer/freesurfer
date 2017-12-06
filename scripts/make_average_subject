@@ -107,10 +107,14 @@ if($DoVolumes) then
 endif
 
 if($DoSurfaces && $DoVolumes) then
+  set xopts = /tmp/make_average_subject.$$.xopts
   set cmd = (recon-all -s $average_subject -cortribbon -aparc2aseg)
+  echo "mri_aparc2aseg --no-relabel" > $xopts
+  set cmd = ($cmd -expert $xopts -xopts-overwrite)
   echo $cmd
   $cmd
   if($status) exit 1;
+  rm $xopts
 endif
 
 date | tee -a $LF

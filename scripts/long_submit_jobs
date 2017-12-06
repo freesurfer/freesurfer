@@ -78,9 +78,9 @@ def submit(fname,nodes,mem,queue):
     hostname = os.getenv('HOSTNAME')
         
     # assemble the command (maybe modify to your needs):
-    if hostname == "launchpad":
+    if hostname.split('.')[0] == "launchpad":
         pbcmd = launchpad % {'command':fname,'username':user,'nodes':nodes,'mem':mem}
-    elif hostname == "seychelles":
+    elif hostname.split('.')[0] == "seychelles":
         pbcmd = seychelles % {'command':fname,'username':user}
     else:
         pbcmd = mycluster % {'command':fname,'username':user}

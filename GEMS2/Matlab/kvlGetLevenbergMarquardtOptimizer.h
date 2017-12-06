@@ -42,7 +42,8 @@ public:
     // Retrieve input mesh
     const int meshHandle = *( static_cast< int* >( mxGetData( prhs[ 0 ] ) ) );
     itk::Object::ConstPointer object = kvl::MatlabObjectArray::GetInstance()->GetObject( meshHandle );
-    if ( typeid( *object ) != typeid( kvl::AtlasMesh ) )
+    // if ( typeid( *object ) != typeid( kvl::AtlasMesh ) )
+    if ( strcmp(typeid( *object ).name(), typeid( kvl::AtlasMesh ).name()) )  // Eugenio: MAC compatibility
       {
       mexErrMsgTxt( "mesh doesn't refer to the correct ITK object type" );
       }
@@ -75,7 +76,8 @@ public:
 	 const int handle = *(imagesHandle);
 	 std::cout<<"Image: "<<handle<<std::endl;
 	 itk::Object::ConstPointer object = kvl::MatlabObjectArray::GetInstance()->GetObject( handle );
-	 if ( typeid(*(object)  ) != typeid( ImageType ) )
+	 // if ( typeid(*(object)  ) != typeid( ImageType ) )
+	 if ( strcmp(typeid( *object ).name(), typeid( ImageType ).name()) )  // Eugenio: MAC compatibility
 	   {
 	     mexErrMsgTxt( "image doesn't refer to the correct ITK object type" );
 	   }
@@ -90,7 +92,8 @@ public:
     typedef CroppedImageReader::TransformType  TransformType;
     const int transformHandle = *( static_cast< int* >( mxGetData( prhs[ 2 ] ) ) );
     object = kvl::MatlabObjectArray::GetInstance()->GetObject( transformHandle );
-    if ( typeid( *object ) != typeid( TransformType ) )
+    // if ( typeid( *object ) != typeid( TransformType ) )
+    if ( strcmp(typeid( *object ).name(), typeid( TransformType ).name()) )  // Eugenio: MAC compatibility
       {
       mexErrMsgTxt( "transform doesn't refer to the correct ITK object type" );
       }

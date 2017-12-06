@@ -1,7 +1,7 @@
 #if defined(BEVIN_EXCLUDE_MINC)
 
-#ifndef  DEF_FILES
-#define  DEF_FILES
+#ifndef  DEF_MINC_FILES
+#define  DEF_MINC_FILES
 
 /*
  * Original Author: David MacDonald, modified to compile within freesurfer/utils by Bevin Brett
@@ -65,6 +65,23 @@ VIO_Status  input_character(
     FILE *file,
     char *ch );
 
+VIO_Status  input_nonwhite_character(
+    FILE   *file,
+    char   *ch );
+
+VIO_Status  input_string(
+    FILE    *file,
+    char*   *str,
+    char    termination_char );
+   
+VIO_Status  input_double(
+    FILE   *file,
+    double *d );
+
+VIO_Status  input_int(
+    FILE  *file,
+    int   *i );
+    
 VIO_Status  input_newline(
     FILE *file );
 
@@ -78,6 +95,12 @@ VIO_Status  unget_character(
     FILE  *file,
     char  ch );
     
+VIO_Status  io_binary_data(
+    FILE            *file,
+    VIO_IO_types     io_flag,
+    void            *data,
+    size_t           element_size,
+    int              n );
 
 char*  expand_filename(
     const char*  filename );
@@ -85,12 +108,26 @@ char*  expand_filename(
 char*  extract_directory(
     const char*    filename );
 
+char*  get_absolute_filename(
+    const char*    filename,		// expands and prepends path if necessary
+    const char*    directory );
+    
+VIO_Status  open_file(
+    const char*        filename,
+    VIO_IO_types       io_type,
+    VIO_File_formats   file_format,
+    FILE             **file );
+    
 VIO_Status open_file_with_default_suffix(
-    const char*       filename,
-    const char*       default_suffix,
-    VIO_IO_types      io_type,
-    VIO_File_formats  file_format,
-    FILE              **file );
+    const char*        filename,
+    const char*        default_suffix,
+    VIO_IO_types       io_type,
+    VIO_File_formats   file_format,
+    FILE             **file );
+
+VIO_Status  set_file_position(
+    FILE     *file,
+    long     byte_position );
     
 VIO_Status  close_file(
     FILE     *file );

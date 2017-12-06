@@ -1,7 +1,9 @@
 #ifndef FS_LBFGS_OBSERVER_H_
 #define FS_LBFGS_OBSERVER_H_
 
+#define export // obsolete feature "export template" used in these header files
 #include <vnl/vnl_vector.h>
+#undef export
 
 class fs_lbfgs_observer
 {

@@ -155,6 +155,7 @@ static double sample_covariance_determinant(GCA_SAMPLE *gcas, int ninputs);
 static GC1D *gcanGetGC(GCA_NODE *gcan, int label);
 static GC1D *findGCInWindow(GCA *gca, int x, int y, int z, int label, int wsize);
 
+
 static int gcaCheck(GCA *gca);
 double gcaVoxelLogPosterior(GCA *gca, MRI *mri_labels, MRI *mri_inputs, int x, int y, int z, TRANSFORM *transform);
 static double gcaGibbsImpossibleConfiguration(GCA *gca, MRI *mri_labels, int x, int y, int z, TRANSFORM *transform);
@@ -235,6 +236,14 @@ int check_finite(char *where, double what);
 static int boundsCheck(int *pix, int *piy, int *piz, MRI *mri);
 
 static void set_equilavent_classes(int *equivalent_classes);
+
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+static void load_vals_xyzInt(const MRI *mri_inputs, int x, int y, int z, float *vals, int ninputs);
+static double gcaComputeSampleLogDensity_1_input(GCA_SAMPLE *gcas, float val);
+static double gcaComputeSampleConditionalLogDensity_1_input(GCA_SAMPLE *gcas, float val, int label);
+static double GCAsampleMahDist_1_input(GCA_SAMPLE *gcas, float val);
+#endif
+
 
 double GCAimageLikelihoodAtNode(GCA *gca, GCA_NODE *gcan, float *vals, int label)
 {
@@ -4400,7 +4409,7 @@ float GCAnormalizedLogSampleProbability(
         if (log_p < -clamp) {
           log_p = -clamp;
         }
-        log_p = log(log_p) + log(gcas[i].prior);
+        log_p = log(log_p) + gcas_getPriorLog(gcas[i]);
         log_p -= norm_log_p;
         total_log_p += log_p;
         gcas[i].log_p = log_p;
@@ -4569,10 +4578,7 @@ float GCAcomputeLogSampleProbability(
  multimodal inputs. Removing did not seem to slow it down much.
 */
 #ifdef HAVE_OPENMP
-#pragma omp parallel
-  {
-    nthreads = omp_get_num_threads();
-  }
+  nthreads = omp_get_max_threads();
 #else
   nthreads = 1;
 #endif
@@ -4633,8 +4639,21 @@ float GCAcomputeLogSampleProbability(
       gcas[i].z = z;
 
       // get values from all inputs
-      load_vals(mri_inputs, x, y, z, vals, gca->ninputs);
-      log_p = gcaComputeSampleLogDensity(&gcas[i], vals, gca->ninputs);
+
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+      if (gca->ninputs > 1) 
+        load_vals_xyzInt(mri_inputs, x, y, z, vals, gca->ninputs);
+      else
+#endif
+        load_vals(mri_inputs, x, y, z, vals, gca->ninputs);
+
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+      if (gca->ninputs == 1)
+        log_p = gcaComputeSampleLogDensity_1_input(&gcas[i], vals[0]);
+      else 
+#endif
+        log_p = gcaComputeSampleLogDensity(&gcas[i], vals, gca->ninputs);
+
       if (FZERO(vals[0]) && gcas[i].label == Gdiag_no) {
         if (fabs(log_p) < 5) DiagBreak();
         DiagBreak();
@@ -5058,7 +5077,7 @@ static int compare_gca_samples(const void *pgcas1, const void *pgcas2)
   gcas2 = (GCA_SAMPLE *)pgcas2;
 
   /*  return(c1 > c2 ? 1 : c1 == c2 ? 0 : -1) ;*/
-  if (FEQUAL(gcas1->prior, gcas2->prior)) {
+  if (FEQUAL(gcas_getPrior(*gcas1), gcas_getPrior(*gcas2))) {
 #if 0
     if (FEQUAL(gcas1->var, gcas2->var))
     {
@@ -5094,10 +5113,10 @@ static int compare_gca_samples(const void *pgcas1, const void *pgcas2)
 #endif
   }
 
-  if (gcas1->prior > gcas2->prior) {
+  if (gcas_getPrior(*gcas1) > gcas_getPrior(*gcas2)) {
     return (-1);
   }
-  else if (gcas1->prior < gcas2->prior) {
+  else if (gcas_getPrior(*gcas1) < gcas_getPrior(*gcas2)) {
     return (1);
   }
 
@@ -5277,7 +5296,7 @@ GCA_SAMPLE *GCAfindStableSamplesByLabel(GCA *gca, int nsamples, float min_prior)
         ordered_labels[label][i].yp = y;
         ordered_labels[label][i].zp = z;
         ordered_labels[label][i].label = label;
-        ordered_labels[label][i].prior = getPrior(gcap, label);
+        gcas_setPrior(ordered_labels[label][i], getPrior(gcap, label));
         if (!gc) {
           int r, c, v;
           for (v = r = 0; r < gca->ninputs; r++) {
@@ -6597,7 +6616,7 @@ static int gcaFindBestSample(GCA *gca, int x, int y, int z, int label, int wsize
       gcas->covars[v] = best_gc->covars[v];
     }
   }
-  gcas->prior = max_prior;
+  gcas_setPrior(*gcas, max_prior);
 
   return (NO_ERROR);
 }
@@ -12213,8 +12232,8 @@ static GCA_SAMPLE *gcaExtractThresholdedRegionLabelAsSamples(GCA *gca,
               gcas[i].covars[v] = gc->covars[v];
             }
           }
-          gcas[i].prior = prior;
-          if (FZERO(gcas[i].prior)) {
+          gcas_setPrior(gcas[i],prior);
+          if (FZERO(prior)) {
             DiagBreak();
           }
           i++;
@@ -12289,8 +12308,8 @@ static GCA_SAMPLE *gcaExtractLabelAsSamples(GCA *gca, MRI *mri_labeled, TRANSFOR
               gcas[i].covars[v] = gc->covars[v];
             }
           }
-          gcas[i].prior = getPrior(gcap, label);
-          if (FZERO(gcas[i].prior)) {
+          gcas_setPrior(gcas[i], getPrior(gcap, label));
+          if (FZERO(gcas_getPrior(gcas[i]))) {
             DiagBreak();
           }
           i++;  // this i is never used??????
@@ -14557,7 +14576,7 @@ GCA_SAMPLE *GCAfindAllSamples(GCA *gca, int *pnsamples, int *exclude_list, int u
         gcas[i].z = z * gca->prior_spacing / gca->zsize;
         //////////////////////////////////////
         gcas[i].label = max_label;
-        gcas[i].prior = max_p;
+        gcas_setPrior(gcas[i], max_p);
         gcas[i].means = (float *)calloc(gca->ninputs, sizeof(float));
         gcas[i].covars = (float *)calloc((gca->ninputs * (gca->ninputs + 1)) / 2, sizeof(float));
         if (!gcas[i].means || !gcas[i].covars)
@@ -14942,16 +14961,22 @@ int GCArenormalizeFromAtlas(GCA *gca, GCA *gca_template)
 
 void load_vals(const MRI *mri_inputs, float x, float y, float z, float *vals, int ninputs)
 {
-  int n;
-  double val;
-
   // go through all inputs and get values from inputs
+  int n;
   for (n = 0; n < ninputs; n++) {
     // trilinear value at float x, y, z
+    double val;
     MRIsampleVolumeFrame(mri_inputs, x, y, z, n, &val);
     vals[n] = val;
   }
 }
+
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+static void load_vals_xyzInt(const MRI *mri_inputs, int x, int y, int z, float *vals, int ninputs)
+{
+  MRIsampleVolumeFrame_xyzInt_nRange_floats(mri_inputs, x, y, z, 0, ninputs, vals);
+}
+#endif
 
 double GCAmahDist(const GC1D *gc, const float *vals, const int ninputs)
 {
@@ -15185,9 +15210,21 @@ static double gcaComputeSampleLogDensity(GCA_SAMPLE *gcas, float *vals, int ninp
   double log_p;
 
   log_p = gcaComputeSampleConditionalLogDensity(gcas, vals, ninputs, gcas->label);
-  log_p += log(gcas->prior);
+  log_p += gcas_getPriorLog(*gcas);
   return (log_p);
 }
+
+
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+static double gcaComputeSampleLogDensity_1_input(GCA_SAMPLE *gcas, float val)
+{
+  double log_p;
+
+  log_p = gcaComputeSampleConditionalLogDensity_1_input(gcas, val, gcas->label);
+  log_p += gcas_getPriorLog(*gcas);
+  return (log_p);
+}
+#endif
 
 static double gcaComputeSampleConditionalLogDensity(GCA_SAMPLE *gcas, float *vals, int ninputs, int label)
 {
@@ -15206,6 +15243,16 @@ static double gcaComputeSampleConditionalLogDensity(GCA_SAMPLE *gcas, float *val
   }
   return (log_p);
 }
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+static double gcaComputeSampleConditionalLogDensity_1_input(GCA_SAMPLE *gcas, float val, int label)
+{
+  double log_p, det;
+  det = gcas->covars[0];
+  log_p = -log(sqrt(det)) - .5 * GCAsampleMahDist_1_input(gcas, val);
+  return (log_p);
+}
+#endif
+
 static VECTOR *load_sample_mean_vector(GCA_SAMPLE *gcas, VECTOR *v_means, int ninputs)
 {
   int n;
@@ -15252,6 +15299,15 @@ static double sample_covariance_determinant(GCA_SAMPLE *gcas, int ninputs)
   det = MatrixDeterminant(m_cov);
   return (det);
 }
+
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+static double GCAsampleMahDist_1_input(GCA_SAMPLE *gcas, float val) 
+{
+    float v = val - gcas->means[0];
+    return v * v / gcas->covars[0];
+}
+#endif
+
 double GCAsampleMahDist(GCA_SAMPLE *gcas, float *vals, int ninputs)
 {
   static VECTOR *v_means = NULL, *v_vals = NULL;

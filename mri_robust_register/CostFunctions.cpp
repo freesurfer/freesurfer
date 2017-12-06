@@ -43,10 +43,13 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
+
+#define export // obsolete feature
 #include <vnl/vnl_matrix_fixed.h>
 #include <vnl/vnl_matrix.h>
 #include <vnl/algo/vnl_symmetric_eigensystem.h>
 #include <vnl/vnl_det.h>
+#undef export
 
 using namespace std;
 

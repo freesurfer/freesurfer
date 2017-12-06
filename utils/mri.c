@@ -1063,7 +1063,7 @@ size_t MRIsizeof(int mritype)
  to the pixel data (instead of an MRI struct), which makes
  it several times faster but less general.
 */
-inline double MRIptr2dbl(void *pmric, int mritype)
+double MRIptr2dbl(void *pmric, int mritype)
 {
   double v = 0;
   switch (mritype) {
@@ -1096,7 +1096,7 @@ inline double MRIptr2dbl(void *pmric, int mritype)
  to the pixel data (instead of an MRI struct), which makes
  it several times faster but less general.
 */
-inline void MRIdbl2ptr(double v, void *pmric, int mritype)
+void MRIdbl2ptr(double v, void *pmric, int mritype)
 {
   switch (mritype) {
     case MRI_UCHAR:
@@ -1187,7 +1187,7 @@ float MRIgetVoxDz(MRI *mri, int c, int r, int s, int f)
   \return float value at the given col, row, slice, frame
   This function is general but slow. See also MRIptr2dbl().
 */
-inline float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
+float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
 {
   // bounds checks:
   if (c < 0) return mri->outside_val;
@@ -1248,7 +1248,7 @@ inline float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
   \return int - 0 if ok, 1 if mri->type is unrecognized.
   This function is general but slow. See also MRIdbl2ptr().
 */
-inline int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
+int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
 {
   // clipping
   switch (mri->type) {
@@ -8921,6 +8921,17 @@ int MRIsampleVolumeFrame(const MRI *mri, double x, double y, double z, const int
   return (NO_ERROR);
 }
 
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+int   MRIsampleVolumeFrame_xyzInt_nRange_floats(const MRI *mri,
+                            int x, int y, int z, 
+			    const int frameBegin,
+			    const int frameEnd,		// [frameBegin] .. [frameEnd-1] done
+			    float *valForEachFrame)	// vals loaded into [0] .. [frameEnd-1 - frameBegin]
+{
+  return MRIsampleVolumeFrameType_xyzInt_nRange_SAMPLE_NEAREST_floats(mri, x, y, z, frameBegin, frameEnd, valForEachFrame);
+}
+#endif
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -9261,6 +9272,71 @@ int MRIsampleVolumeFrameType(
   }
   return (NO_ERROR);
 }
+
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+int   MRIsampleVolumeFrameType_xyzInt_nRange_SAMPLE_NEAREST_floats(const MRI *mri,
+                            int xv, int yv, int zv, 
+			    const int frameBegin,
+			    const int frameEnd,		// [frameBegin] .. [frameEnd-1] done
+			    float *valForEachFrame) 	// vals loaded into [0] .. [frameEnd-1 - frameBegin]
+{
+  if (1) {
+      static int limit = 1;
+      static int calls = 0;
+      static int nFrames = 0;
+      nFrames += (frameEnd - frameBegin);
+      if (++calls >= limit) 
+      {
+          limit *= 2;
+	  fprintf(stderr, "MRIsampleVolumeFrameType_xyzInt_nRange_SAMPLE_NEAREST_floats calls:%d averageNFrames:%f\n",
+	      calls, (float)(nFrames)/calls);
+      }
+  }
+  
+  int frame;
+  
+  int OutOfBounds = MRIindexNotInVolume(mri, xv, yv, zv);
+  if (OutOfBounds == 1) {
+    /* unambiguously out of bounds */
+    for (frame = frameBegin; frame < frameEnd; frame++)
+        valForEachFrame[frame - frameBegin] = (float)(mri->outside_val);
+    return (NO_ERROR);
+  }
+
+  if (xv < 0) xv = 0;
+  if (xv >= mri->width) xv = mri->width - 1;
+  if (yv < 0) yv = 0;
+  if (yv >= mri->height) yv = mri->height - 1;
+  if (zv < 0) zv = 0;
+  if (zv >= mri->depth) zv = mri->depth - 1;
+  
+  switch (mri->type) {
+    case MRI_UCHAR:
+      for (frame = frameBegin; frame < frameEnd; frame++)
+        valForEachFrame[frame - frameBegin] = (float)MRIseq_vox(mri, xv, yv, zv, frame);
+      break;
+    case MRI_SHORT:
+      for (frame = frameBegin; frame < frameEnd; frame++)
+        valForEachFrame[frame - frameBegin] = (float)MRISseq_vox(mri, xv, yv, zv, frame);
+      break;
+    case MRI_INT:
+      for (frame = frameBegin; frame < frameEnd; frame++)
+        valForEachFrame[frame - frameBegin] = (float)MRIIseq_vox(mri, xv, yv, zv, frame);
+      break;
+    case MRI_FLOAT:
+      for (frame = frameBegin; frame < frameEnd; frame++)
+        valForEachFrame[frame - frameBegin] = MRIFseq_vox(mri, xv, yv, zv, frame);
+      break;
+    default:
+      for (frame = frameBegin; frame < frameEnd; frame++)
+        valForEachFrame[frame - frameBegin] = 0;
+      ErrorReturn(ERROR_UNSUPPORTED,
+                  (ERROR_UNSUPPORTED, "MRIsampleVolumeFrameType: unsupported volume type %d", mri->type));
+  }
+
+  return (NO_ERROR);
+}
+#endif
 
 int MRIinterpolateIntoVolume(MRI *mri, double x, double y, double z, double val)
 {

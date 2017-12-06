@@ -10177,10 +10177,10 @@ int different_neighbor_labels(const GCA_MORPH *gcam, const int x, const int y, c
         continue;
       }
       for (k = z - whalf; k <= z + whalf; k++) {
-        if (k < 0 || k >= gcam->height) {
+        if (k < 0 || k >= gcam->depth) {
           continue;
         }
-        if (i == 0 && j == 0 && k == 0) {
+        if (i == x && j == y && k == z) {
           continue;
         }
         if (label != gcam->nodes[i][j][k].label) {

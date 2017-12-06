@@ -46,11 +46,15 @@ extern "C"
 #include <string>
 #include <vector>
 #include <iostream>
+
+#define export // obsolete feature 'export template' used in these headers 
 #include <vnl/vnl_vector.h>
 #include <vnl/vnl_matrix.h>
 #include <vnl/vnl_diag_matrix.h>
 #include <vnl/vnl_vector_fixed.h>
 #include <vnl/vnl_matrix_fixed.h>
+#undef export
+
 #include <vcl_complex.h>
 
 /** \class MyMatrix
