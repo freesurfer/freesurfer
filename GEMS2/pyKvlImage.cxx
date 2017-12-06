@@ -1,11 +1,17 @@
 #include "pyKvlImage.h"
 #include "itkCastImageFilter.h"
+#include "itkMGHImageIOFactory.h"
 #include "pyKvlNumpy.h"
 #include "pyKvlTransform.h"
 #include <pybind11/numpy.h>
 #include <itkImageFileWriter.h>
 
+
 KvlImage::KvlImage(const std::string &imageFileName) {
+    // Add support for MGH file format to ITK. An alternative way to add this by default would be
+    // to edit ITK's itkImageIOFactory.cxx and explicitly adding it in the code there.
+    itk::ObjectFactoryBase::RegisterFactory( itk::MGHImageIOFactory::New() );
+
     // Read the image
     kvl::CroppedImageReader::Pointer reader = kvl::CroppedImageReader::New();
     reader->Read( imageFileName.c_str() );
