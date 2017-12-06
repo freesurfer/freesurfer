@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>338</width>
-    <height>693</height>
+    <width>348</width>
+    <height>820</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -48,12 +48,14 @@
      </property>
      <addaction name="actionFreeHand"/>
      <addaction name="actionPolyLine"/>
-     <addaction name="actionLiveWire"/>
      <addaction name="actionFill"/>
-     <addaction name="actionClone"/>
-     <addaction name="actionContour"/>
      <addaction name="actionColorPicker"/>
      <addaction name="separator"/>
+     <addaction name="actionAutoSeg"/>
+     <addaction name="actionLiveWire"/>
+     <addaction name="actionContour"/>
+     <addaction name="separator"/>
+     <addaction name="actionClone"/>
      <addaction name="actionReplaceLabel"/>
     </widget>
    </item>
@@ -89,54 +91,133 @@
        <property name="spacing">
         <number>6</number>
        </property>
-       <item row="0" column="0">
-        <widget class="QLabel" name="labelBrushSize">
+       <item row="0" column="2" colspan="4">
+        <layout class="QHBoxLayout" name="horizontalLayout_4">
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>1</width>
+             <height>1</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBoxReconEditing">
+           <property name="text">
+            <string>Recon editing</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="7" column="3" colspan="2">
+        <widget class="QLabel" name="labelGeoOutsideColor">
          <property name="text">
-          <string>Brush size</string>
+          <string>Outside color</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
         </widget>
        </item>
-       <item row="0" column="1">
-        <widget class="QSpinBox" name="spinBoxBrushSize">
-         <property name="minimum">
-          <number>1</number>
-         </property>
-         <property name="maximum">
-          <number>512</number>
+       <item row="5" column="0">
+        <widget class="QLabel" name="labelContourValue">
+         <property name="text">
+          <string>Contour value</string>
          </property>
         </widget>
        </item>
-       <item row="2" column="0">
+       <item row="3" column="0">
         <widget class="QLabel" name="labelReference">
          <property name="text">
           <string>Reference</string>
          </property>
         </widget>
        </item>
-       <item row="2" column="1" colspan="5">
-        <widget class="QComboBox" name="comboBoxReference">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-           <horstretch>1</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>200</width>
-           <height>16777215</height>
-          </size>
+       <item row="8" column="0">
+        <widget class="QLabel" name="labelGeoMaxDistance">
+         <property name="text">
+          <string>Max distance</string>
          </property>
         </widget>
        </item>
-       <item row="3" column="0">
+       <item row="5" column="3" colspan="2">
+        <widget class="QLabel" name="labelContourColor">
+         <property name="text">
+          <string>Contour color</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="8" column="1">
+        <widget class="QLineEdit" name="lineEditGeoMaxDistance">
+         <property name="minimumSize">
+          <size>
+           <width>65</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>70</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="baseSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>3</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="3" colspan="2">
+        <widget class="QLabel" name="labelGeoInsideColor">
+         <property name="text">
+          <string>Inside color</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="5">
+        <widget class="QtColorPicker" name="colorPickerGeoOutside" native="true"/>
+       </item>
+       <item row="4" column="0">
         <widget class="QLabel" name="labelTolerance">
          <property name="text">
           <string>Tolerance</string>
          </property>
         </widget>
        </item>
-       <item row="4" column="1">
+       <item row="4" column="2" colspan="4">
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="6" column="5">
+        <widget class="QtColorPicker" name="colorPickerGeoInside" native="true"/>
+       </item>
+       <item row="5" column="1">
         <widget class="QLineEdit" name="lineEditContourValue">
          <property name="minimumSize">
           <size>
@@ -158,61 +239,7 @@
          </property>
         </widget>
        </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="labelContourValue">
-         <property name="text">
-          <string>Contour value</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="1">
-        <widget class="QSpinBox" name="spinBoxTolerance">
-         <property name="suffix">
-          <string>%</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="2" colspan="4">
-        <spacer name="horizontalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="4" column="2" colspan="4">
-        <spacer name="horizontalSpacer_3">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="0" column="3" colspan="3">
-        <widget class="QCheckBox" name="checkBoxReconEditing">
-         <property name="text">
-          <string>Recon editing</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="labelBrushValue">
-         <property name="text">
-          <string>Brush value</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="2" colspan="3">
+       <item row="2" column="2" colspan="3">
         <widget class="QLabel" name="labelEraseValue">
          <property name="text">
           <string>Eraser value</string>
@@ -222,7 +249,134 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="1">
+       <item row="7" column="0">
+        <widget class="QLabel" name="labelGeoWsize">
+         <property name="text">
+          <string>WSize</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1">
+        <widget class="QLineEdit" name="lineEditGeoLambda">
+         <property name="minimumSize">
+          <size>
+           <width>65</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>70</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="baseSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>0</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="5">
+        <widget class="QtColorPicker" name="colorPickerContour" native="true"/>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="labelBrushSize">
+         <property name="text">
+          <string>Brush size</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="labelGeoLambda">
+         <property name="text">
+          <string>Lambda</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="5">
+        <widget class="QLineEdit" name="lineEditEraseValue">
+         <property name="minimumSize">
+          <size>
+           <width>50</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>50</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="baseSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>0</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="labelBrushValue">
+         <property name="text">
+          <string>Brush value</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QSpinBox" name="spinBoxTolerance">
+         <property name="suffix">
+          <string>%</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QSpinBox" name="spinBoxBrushSize">
+         <property name="minimum">
+          <number>1</number>
+         </property>
+         <property name="maximum">
+          <number>512</number>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1" colspan="5">
+        <widget class="QComboBox" name="comboBoxReference">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>1</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>200</width>
+           <height>16777215</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="1">
+        <widget class="QSpinBox" name="spinBoxGeoWsize">
+         <property name="suffix">
+          <string/>
+         </property>
+         <property name="minimum">
+          <number>3</number>
+         </property>
+         <property name="maximum">
+          <number>100</number>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
         <widget class="QLineEdit" name="lineEditBrushValue">
          <property name="minimumSize">
           <size>
@@ -247,43 +401,36 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="5">
-        <widget class="QLineEdit" name="lineEditEraseValue">
-         <property name="minimumSize">
-          <size>
-           <width>65</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>70</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="baseSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>0</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="2">
-        <spacer name="horizontalSpacer">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>1</width>
-           <height>1</height>
-          </size>
-         </property>
-        </spacer>
+       <item row="9" column="0" colspan="6">
+        <layout class="QHBoxLayout" name="horizontalLayout_7">
+         <item>
+          <spacer name="horizontalSpacer_3">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButtonGeoClear">
+           <property name="text">
+            <string>Clear</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButtonGeoGo">
+           <property name="text">
+            <string>Go</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
       </layout>
      </item>
@@ -721,40 +868,6 @@ connected to existing labels</string>
       </layout>
      </item>
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_4">
-       <item>
-        <widget class="QLabel" name="labelContourColor">
-         <property name="text">
-          <string>Contour color</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QtColorPicker" name="colorPickerContour" native="true">
-         <property name="minimumSize">
-          <size>
-           <width>60</width>
-           <height>0</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="horizontalSpacer_4">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-      </layout>
-     </item>
-     <item>
       <widget class="QCheckBox" name="checkBoxFill3D">
        <property name="text">
         <string>Flood fill multiple slices at a time</string>
@@ -930,6 +1043,21 @@ Alt + H to show/hide contour.
    </property>
    <property name="toolTip">
     <string>Clone Voxel</string>
+   </property>
+  </action>
+  <action name="actionAutoSeg">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/voxel_draw_autoseg.png</normaloff>:/resource/icons/voxel_draw_autoseg.png</iconset>
+   </property>
+   <property name="text">
+    <string>GEOS Segmentation</string>
+   </property>
+   <property name="toolTip">
+    <string>GEOS Segmentation</string>
    </property>
   </action>
  </widget>

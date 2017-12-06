@@ -77,13 +77,11 @@ private:
   //! Indicies into small arrays defining the dimensions
   enum dimIndices { iX, iY, iZ };
 
-#if !defined(BEVIN_EXCLUDE_MINC)
   //! Map of variable names and types
   std::map<std::string,nc_type> varTypeMap;
 
   //! Map of the scalar names and types
   std::map<std::string,nc_type> scalarTypeMap;
-#endif
 
   //! Number of dimensions we will store
   static const unsigned int nDims = 3;

@@ -132,9 +132,9 @@ int main( int argc, char** argv )
     }
   std::istringstream  inputStream( inputParserStream.str().c_str() );
   int  numberOfUpsamplingSteps;
-  int  meshSizeX;
-  int  meshSizeY;
-  int  meshSizeZ;
+  unsigned int  meshSizeX;
+  unsigned int  meshSizeY;
+  unsigned int  meshSizeZ;
   double  stiffness;
   std::string  logDirectory;
   inputStream >> numberOfUpsamplingSteps >>  meshSizeX >> meshSizeY >> meshSizeZ >> stiffness >> logDirectory;
@@ -254,8 +254,40 @@ int main( int argc, char** argv )
       }
     }
 
+  // If edgeCollapseEncouragmentFactor.txt exists in the current directory, read it's content
+  double  edgeCollapseEncouragmentFactor = 1.0;
+  const std::string  edgeCollapseEncouragmentFactorFileName = "edgeCollapseEncouragmentFactor.txt";
+  //if ( itksys::SystemTools::FileExists( edgeCollapseEncouragmentFactorFileName.c_str(), true ) )
+  //  {
+    std::ifstream  fs( edgeCollapseEncouragmentFactorFileName.c_str() );
+    if ( !( fs.fail() ) )
+      {
+      std::cout << "Reading " << edgeCollapseEncouragmentFactorFileName << std::endl;
+
+      std::string line;
+      if ( std::getline( fs, line ) )
+        {
+        //std::ostringstream  inputParserStream;
+        //inputParserStream << line;
+        //std::istringstream  inputStream( inputParserStream.str().c_str() );
+        std::istringstream  inputStream( line.c_str() );
+        inputStream >> edgeCollapseEncouragmentFactor;
+        std::cout << "Using edgeCollapseEncouragmentFactor: " << edgeCollapseEncouragmentFactor << std::endl;
+        }
+      else
+        {
+        std::cerr << "Couldn't read edgeCollapseEncouragmentFactor from file: " 
+                  << edgeCollapseEncouragmentFactorFileName << std::endl;
+        return -1;
+        }
+        
+      }  
+   
+  //  }
+    
+    
   // Let the beast go
-  builder->Build( explicitStartCollection );
+  builder->Build( explicitStartCollection, edgeCollapseEncouragmentFactor );
 
   
   return 0;

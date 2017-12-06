@@ -475,9 +475,9 @@ xmlXPtrNewRangeNodePoint(xmlNodePtr start, xmlXPathObjectPtr end)
     return(NULL);
   if (end == NULL)
     return(NULL);
-  if (start->type != XPATH_POINT)
-    return(NULL);
-  if (end->type != XPATH_POINT)
+  if (start->type != XML_ENTITY_REF_NODE)	// was XPATH_POINT
+    return(NULL);				// both have value 5,
+  if (end->type != XPATH_POINT)			// but REF_NODE is the right type
     return(NULL);
 
   ret = (xmlXPathObjectPtr) xmlMalloc(sizeof(xmlXPathObject));

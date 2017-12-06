@@ -93,6 +93,7 @@ extern "C" {
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
 #endif
 
+#define export // obsolete feature 'export template' used in these headers
 #include "itkImage.h"
 //#include "itkExceptionObject.h"
 #include "itkDiffusionTensor3D.h"
@@ -100,6 +101,7 @@ extern "C" {
 #include "itkImageFileWriter.h"
 #include "itkMetaDataObject.h"
 #include "itkNrrdImageIO.h"
+#undef export
 
 using namespace std;
 

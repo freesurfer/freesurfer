@@ -98,7 +98,7 @@ MATRIX *MatrixCopy(const MATRIX *mIn, MATRIX *mOut)
 
 MATRIX *MatrixInverse(const MATRIX *mIn, MATRIX *mOut)
 {
-  float **a, **y;
+  // float **a, **y;
   int isError, i, j, rows, cols, alloced = 0;
   MATRIX *mTmp;
 
@@ -167,8 +167,8 @@ MATRIX *MatrixInverse(const MATRIX *mIn, MATRIX *mOut)
   else {
     mTmp = MatrixCopy(mIn, NULL);
 
-    a = mTmp->rptr;
-    y = mOut->rptr;
+    // a = mTmp->rptr;
+    // y = mOut->rptr;
 
     isError = OpenLUMatrixInverse(mTmp, mOut);
 
@@ -977,9 +977,9 @@ MATRIX *MatrixScalarAdd(const MATRIX *mIn, const float val, MATRIX *mOut)
 
 MATRIX *MatrixClear(MATRIX *mat)
 {
-  int rows, row, cols;
-
-  rows = mat->rows;
+  int row, cols;
+  // int rows;
+  // rows = mat->rows;
   cols = mat->cols;
   for (row = 1; row <= mat->rows; row++) memset((char *)mat->rptr[row], 0, (cols + 1) * sizeof(float));
 
@@ -2376,6 +2376,13 @@ float XYZApproxAngle(XYZ const *normalizedXYZ, float x2, float y2, float z2)
 
   float acosInput = dot / norm;
 
+  // disabling this warning because the code below fails when -fopenmp is not used during compile. 
+  // This is an ongoing issue in gcc 4.9.4 - clarsen
+  #if GCC_VERSION > 40408
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wunknown-pragmas"
+  #endif
+
   // left the following here for debugging or other investigation
   if (0)
 #pragma omp critical
@@ -2428,6 +2435,10 @@ float XYZApproxAngle(XYZ const *normalizedXYZ, float x2, float y2, float z2)
     }
   }
 
+  #if GCC_VERSION > 40408
+  #pragma GCC diagnostic pop
+  #endif
+  
   return (angle);
 }
 

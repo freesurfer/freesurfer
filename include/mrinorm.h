@@ -99,10 +99,8 @@ MRI *MRIhistoNormalize(MRI *mri_src,MRI *mri_norm, MRI *mri_template, int low,
                        int high);
 MRI *MRIsplineNormalize(MRI *mri_src, MRI *mri_dst, MRI **pmri_bias,
                         float *inputs, float *outputs, int npoints) ;
-#if !defined(BEVIN_EXCLUDE_MINC)
 MRI *MRIadaptiveHistoNormalize(MRI *mri_src, MRI *mri_norm, MRI *mri_template,
                                int wsize, int hsize, int low) ;
-#endif
 MRI *MRIhistoNormalizeRegion(MRI *mri_src, MRI *mri_norm, MRI *mri_template,
                              int low, MRI_REGION *wreg, MRI_REGION *h_src_reg,
                              MRI_REGION *h_tmp_reg) ;

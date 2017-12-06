@@ -50,6 +50,7 @@ AtlasMeshBuilder
   m_CollapsedAlphasCost = 0;
   m_CollapsedPositionCost = 0;
 
+  m_EdgeCollapseEncouragementFactor = 1.0;
 }
 
 
@@ -93,7 +94,7 @@ AtlasMeshBuilder
   m_CompressionLookupTable = compressionLookupTable;
   m_InitialSize = initialSize;
   m_InitialStiffnesses = initialStiffnesses;
-  m_Mesher->SetUp( m_LabelImages, m_CompressionLookupTable, m_InitialSize, m_InitialStiffnesses, true );
+  m_Mesher->SetUp( m_LabelImages, m_CompressionLookupTable, m_InitialSize, m_InitialStiffnesses );
 
 }
 
@@ -105,9 +106,12 @@ AtlasMeshBuilder
 //
 void
 AtlasMeshBuilder
-::Build( AtlasMeshCollection* explicitStartCollection )
+::Build( AtlasMeshCollection* explicitStartCollection, double edgeCollapseEncouragementFactor )
 {
 
+  //
+  m_EdgeCollapseEncouragementFactor = edgeCollapseEncouragementFactor;
+  
   // Estimate high-resolution mesh first
   if ( explicitStartCollection == 0 )
     {
@@ -116,7 +120,26 @@ AtlasMeshBuilder
     }
   else
     {
-    m_Current = explicitStartCollection;
+    if ( fabs( explicitStartCollection->GetK() - m_InitialStiffnesses.back() ) < 1e-2 )
+      {
+      m_Current = explicitStartCollection;
+      }
+    else
+      {
+      // 
+      std::cout << "Got an explicitStartCollection, but it's stiffness does not match: " 
+                << explicitStartCollection->GetK() << " vs. " << m_InitialStiffnesses.back() << std::endl;
+      std::cout << "    difference is " << explicitStartCollection->GetK() - m_InitialStiffnesses.back() << std::endl;          
+      std::cout << "So re-estimating that collection first" << std::endl;
+      explicitStartCollection->SetK( m_InitialStiffnesses.back() );
+      AtlasParameterEstimator::Pointer  estimator = AtlasParameterEstimator::New();
+      estimator->SetLabelImages( m_LabelImages, m_CompressionLookupTable );
+      estimator->SetInitialMeshCollection( explicitStartCollection );
+      estimator->SetPositionOptimizer( AtlasParameterEstimator::LBFGS );    
+      estimator->Estimate( true );
+      m_Current = const_cast< AtlasMeshCollection* >( estimator->GetCurrentMeshCollection() );
+      m_Current->Write( "debug_explicit_after_estimating.txt" );
+      }
     }
 
 
@@ -150,6 +173,7 @@ AtlasMeshBuilder
 
 
     // Do the job
+    m_StuckCount = 0; // Reset from previous iterations
     LoadBalancedThreadStruct  str;
     str.m_Builder = this;
     str.m_Edges = edges;
@@ -818,13 +842,19 @@ AtlasMeshBuilder
                 << " edges but they are all protected at this point" << std::endl;
       }          
 
-    m_StuckCount++;
+    m_StuckCount++; // This is not actually thread-safe, but we don't care if this count goes up a bit
+                    // slower than you'd expect (in the unlikely event that two threads try to increase 
+                    // this count at exactly the same time)
+    const double  averageNumberOfSecondsToSleep = 60.0;
+    const int  stuckCountToGiveUpAt = 30 * 20;  // If every thread sleeps 1min on average, and 20 threads
+                                                // are used, this will give up after 30min
     if ( m_StuckCount % 10 == 0 )
       {  
-      std::cout << "    m_StuckCount is at " << m_StuckCount << " (exiting at 20000)" << std::endl; 
+      std::cout << "    m_StuckCount is at " << m_StuckCount 
+                << " (exiting at " << stuckCountToGiveUpAt << ")" << std::endl; 
       }
 
-    if ( m_StuckCount >= 20000 )
+    if ( m_StuckCount >= stuckCountToGiveUpAt )
       {
       std::ostringstream  stuckStream;
       stuckStream << "threadsNeverReturning";
@@ -839,7 +869,12 @@ AtlasMeshBuilder
 #else
     helper.Unlock();
 #endif
-    usleep( rand() % 1000000 );
+    
+    // Sleep averageNumberOfSecondsToSleep (on average)
+    const int  maxRange = ( 1000000 * averageNumberOfSecondsToSleep * 2 ); // x2 because of average
+    const int  numberOfMicrosecondsToSleep = rand() % maxRange; // Integer between 0 and (maxRange-1)
+    usleep( numberOfMicrosecondsToSleep );
+    
     return true;
     }
 
@@ -960,7 +995,7 @@ AtlasMeshBuilder
               << " + " << collapsedPositionCost <<") " << std::endl;
     }          
   std::vector< double >  totalCosts;
-  totalCosts.push_back( retainedCost );
+  totalCosts.push_back( retainedCost * m_EdgeCollapseEncouragementFactor );
   totalCosts.push_back( collapsedCost );
   double  minTotalCost = itk::NumericTraits< double >::max();
   int minTotalCostIndex = -1;

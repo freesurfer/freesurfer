@@ -905,7 +905,6 @@ void Surface::CutLoop(Loop &loop, int very_small_patch) {
     int v1,v2,v3,v4;
     Vertex *vnew;
     //and 3 new faces
-    int f1, f2,f3;
     Face *fnew;
     //intermediate variables
     double a;
@@ -975,7 +974,7 @@ void Surface::CutLoop(Loop &loop, int very_small_patch) {
 
     //modify face v0,v1,v2 (this face is the current one!!!)
     int novel_face = fn;
-    f1 = novel_face;
+
     fnew = &faces[fn];
     fnew->v[0] = vn0;
     for (int p = 0 ; p < vertices[vn0].fnum ; p++)
@@ -1058,7 +1057,7 @@ void Surface::CutLoop(Loop &loop, int very_small_patch) {
     //create new faces!!!
     //new face vn1,vn2,v3
     novel_face = nfaces;
-    f2= novel_face;
+
     fnew = &faces[nfaces++];
     fnew->v[0] = vn1;
     for (int p = 0 ; p < vertices[vn1].fnum ; p++)
@@ -1077,7 +1076,7 @@ void Surface::CutLoop(Loop &loop, int very_small_patch) {
     vertices[v3].n[vertices[v3].fnum++] = 2;
     //new face vn2,v4,v3
     novel_face = nfaces;
-    f3= novel_face;
+
     fnew = &faces[nfaces++];
     fnew->v[0] = vn2;
     //add an edge and one face to vn2
@@ -1276,8 +1275,7 @@ void Surface::IncreaseEuler(int nloops,int maxinitface) {
   FL.SetDefectList(nfaces,defectfaces);
 
   Surface *best_patch = 0 ;
-  double best_fitness;
-  best_fitness = 0.0;
+
   for (int n = 0 ; n < nloops ; n++) {
 
     int nattemptstofinaloop=10;

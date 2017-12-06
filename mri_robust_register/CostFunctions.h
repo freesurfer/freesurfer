@@ -45,7 +45,11 @@ extern "C"
 //#include <string>
 #include <vector>
 #include <iostream>
+
+#define export // obsolete feature 'export template' used in these headers 
 #include <vnl/vnl_matrix_fixed.h>
+#undef export
+
 #include "JointHisto.h"
 
 /** \class CostFunctions

@@ -44,7 +44,8 @@ public:
     typedef itk::AffineTransform< double, 3 >  TransformType; //double here!
     const int transformHandle = *( static_cast< int* >( mxGetData( prhs[ 0 ] ) ) );
     itk::Object::ConstPointer object = kvl::MatlabObjectArray::GetInstance()->GetObject( transformHandle );
-    if ( typeid( *object ) != typeid( TransformType ) )
+    // if ( typeid( *object ) != typeid( TransformType ) )
+    if ( strcmp(typeid( *object ).name(), typeid(  TransformType ).name()) )  // Eugenio: MAC compatibility
       {
       mexErrMsgTxt( "transform doesn't refer to the correct ITK object type" );
       }

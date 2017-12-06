@@ -38,9 +38,7 @@ extern "C" {
 #endif
 
 #include "mri.h"
-#if !defined(BEVIN_EXCLUDE_MINC)
 #include "transform.h"
-#endif
 
 /** BSpline structure has degree, coefficient image (float), source type and
     if the source had negative values */
@@ -80,10 +78,8 @@ MRI *MRIlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX 
 MRI *MRIapplyRASlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX *mA) ;
 
 
-#if !defined(BEVIN_EXCLUDE_MINC)
 /** Based on pre-computed B-spline coefficients interpolate image using LTA*/
 MRI *LTAtransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, LTA *lta) ;
-#endif
 
 
 /** Direct methods for downsample (based on simplified algorithm) */

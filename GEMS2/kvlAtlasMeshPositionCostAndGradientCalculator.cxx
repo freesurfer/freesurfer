@@ -163,6 +163,9 @@ AtlasMeshPositionCostAndGradientCalculator
   clock.Start();
 #endif
   
+  //
+  this->PostProcessCostAndGradient( mesh );
+  
   // Take care of the desired boundary conditions
   switch( m_BoundaryCondition ) 
     {

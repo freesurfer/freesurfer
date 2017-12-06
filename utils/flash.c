@@ -121,8 +121,9 @@ MRI *MRIparameterMapsToFlash(MRI *mri_src, MRI *mri_dst, double *TRs, double *TE
 
 int compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, double *TEs, double *pT1, double *pPD)
 {
-  double best_T1, best_PD, norm_im, norm_pred, sse, best_sse, T1, pred_vals[MAX_FLASH_VOLUMES], error, upper_T1,
+  double best_T1, best_PD, norm_im, norm_pred, sse, T1, pred_vals[MAX_FLASH_VOLUMES], error, upper_T1,
       lower_T1, mid_T1, upper_sse, lower_sse, mid_sse, upper_norm, mid_norm, lower_norm, range;
+  // double best_sse;
   int i, j, upper_j, lower_j, mid_j, niter;
 
   if (!norms) {
@@ -166,7 +167,7 @@ int compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, dou
 
   best_T1 = mid_T1;
   best_PD = norm_im / mid_norm;
-  best_sse = mid_sse;
+  // best_sse = mid_sse;
   niter = 0;
   if (FZERO(mid_norm)) {
     printf("mid norm=0 at %d (%2.1f)\n", mid_j, mid_T1);
@@ -212,7 +213,7 @@ int compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, dou
       mid_T1 = lower_T1;
       best_T1 = lower_T1;
       best_PD = norm_im / lower_norm;
-      best_sse = lower_sse;
+      // best_sse = lower_sse;
     }
     else if (upper_sse < mid_sse) /* make upper new mid */
     {
@@ -222,7 +223,7 @@ int compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, dou
       mid_T1 = upper_T1;
       best_T1 = upper_T1;
       best_PD = norm_im / upper_norm;
-      best_sse = upper_sse;
+      // best_sse = upper_sse;
     }
     if (!isfinite(best_PD)) {
       printf("best_PD is not finite at %d (%2.1f)\n", mid_j, mid_T1);

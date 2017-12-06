@@ -18262,7 +18262,7 @@ int MRISreadTetherFile(MRI_SURFACE *mris, const char *fname, float radius)
 
   for (l = 0; l < mris->nlabels; l++) {
     cp = fgetl(line, 199, fp);
-    if (!sscanf(cp, "%s %f %f %f", mris->labels[l].name, &cx, &cy, &cz) != 4) {
+    if (sscanf(cp, "%s %f %f %f", mris->labels[l].name, &cx, &cy, &cz) != 4) {
       fclose(fp);
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "MRISreadTetherFile(%s): could not scan parms from %s", fname, line));
     }
@@ -60207,8 +60207,8 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
         if (last_euthanasia < 0) {
           last_euthanasia = ngenerations;
           last_fitness = best_fitness;
-        }
-        if (last_euthanasia + NEXT <= ngenerations) {
+        } 
+	else if (last_euthanasia + NEXT <= ngenerations) {
           break;
         }
         if (last_fitness < best_fitness) {

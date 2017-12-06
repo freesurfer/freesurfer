@@ -1155,8 +1155,6 @@ double FastLoop::_GetLoopLength(Loop &loop) {
 
 void FastLoop::FindMinimalLoop(Loop & minimal_loop, int max_init_face , int nattempts) {
 
-  int minimal_seed=-1,wloop=-1,nfound=-1;
-
   double minimal_length=_GetLoopLength(minimal_loop);
 
   if (max_init_face == -1) max_init_face = surface->nfaces;
@@ -1175,12 +1173,11 @@ void FastLoop::FindMinimalLoop(Loop & minimal_loop, int max_init_face , int natt
 
     if (loop==0) continue; //next attempt
 
-    int which_loop = 0 , npoints = loop[0].npoints;
+    int which_loop = 0 ;
     double length = _GetLoopLength(loop[0]), olength;
     if (loop[1].npoints) {
       olength = _GetLoopLength(loop[1]);
       if (olength < length) {
-        npoints=loop[1].npoints;
         which_loop=1;
         length=olength;
       }
@@ -1188,9 +1185,6 @@ void FastLoop::FindMinimalLoop(Loop & minimal_loop, int max_init_face , int natt
 
     if (minimal_loop.npoints == 0 || //loop[which_loop].npoints < minimal_loop.npoints){
         length < minimal_length) {
-      minimal_seed=seed_face;
-      wloop=which_loop;
-      nfound=n;
       minimal_length = length;
       minimal_loop = loop[which_loop];
     }

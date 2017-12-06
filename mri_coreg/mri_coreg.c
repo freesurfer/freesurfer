@@ -422,8 +422,9 @@ int main(int argc, char *argv[]) {
   MATRIX *invV2V;
   invV2V = MatrixInverse(coreg->V2V,NULL);
   lta = LTAcreate(coreg->mov, coreg->ref, invV2V, LINEAR_VOX_TO_VOX);
-  if(cmdargs->subject)  sprintf(lta->subject,cmdargs->subject);
-  else                  sprintf(lta->subject,"unknown");
+  if(cmdargs->subject)  strncpy(lta->subject,cmdargs->subject,sizeof(lta->subject)-1);
+  else                  strncpy(lta->subject,"unknown",       sizeof(lta->subject)-1);
+  lta->subject[sizeof(lta->subject)-1] = 0;
   err = LTAwrite(lta,cmdargs->outreg);
   if(err) exit(1);
 

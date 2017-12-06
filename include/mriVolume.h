@@ -311,7 +311,6 @@ Volm_tErr Volm_ConvertIdxToRAS     ( mriVolumeRef this,
 Volm_tErr Volm_ConvertRASToIdx     ( mriVolumeRef this,
                                      xVoxelRef    iRAS,
                                      xVoxelRef    oIdx );
-#if !defined(BEVIN_EXCLUDE_MINC)
 Volm_tErr Volm_ConvertIdxToMNITal  ( mriVolumeRef this,
                                      xVoxelRef    iIdx,
                                      xVoxelRef    oMNITal );
@@ -321,7 +320,6 @@ Volm_tErr Volm_ConvertIdxToTal     ( mriVolumeRef this,
 Volm_tErr Volm_ConvertTalToIdx     ( mriVolumeRef this,
                                      xVoxelRef    iTal,
                                      xVoxelRef    oIdx );
-#endif
 Volm_tErr Volm_ConvertIdxToScanner ( mriVolumeRef this,
                                      xVoxelRef    iIdx,
                                      xVoxelRef    oScanner );

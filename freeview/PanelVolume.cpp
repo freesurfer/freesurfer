@@ -61,10 +61,10 @@ bool ColorTableItem::operator<(const QTreeWidgetItem &other) const
   }
   else
   {
-    if (txt.trimmed().contains(" "))
-      txt = txt.split(" ", QString::SkipEmptyParts).at(1);
-    if (other_txt.trimmed().contains(" "))
-      other_txt = other_txt.split(" ", QString::SkipEmptyParts).at(1);
+//    if (txt.trimmed().contains(" "))
+//      txt = txt.split(" ", QString::SkipEmptyParts).at(1);
+//    if (other_txt.trimmed().contains(" "))
+//      other_txt = other_txt.split(" ", QString::SkipEmptyParts).at(1);
     if (txt.toLower() != other_txt.toLower())
     {
       txt = txt.toLower();
@@ -303,14 +303,6 @@ void PanelVolume::DoIdle()
   // update action status
   BlockAllSignals( true );
   LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  /*
-  int nItemIndex = treeWidgetLayers->indexOfTopLevelItem(item);
-
-  ui->actionMoveLayerUp->setEnabled( item && treeWidgetLayers->topLevelItemCount() > 1 &&
-                                     nItemIndex != 0 );
-  ui->actionMoveLayerDown->setEnabled( item && treeWidgetLayers->topLevelItemCount() > 1 &&
-                                       nItemIndex < treeWidgetLayers->topLevelItemCount()-1 );
-                                       */
   ui->actionMoveLayerUp->setEnabled(layer && m_layerCollection
                                     && m_layerCollection->GetLayerIndex(layer) > 0);
   ui->actionMoveLayerDown->setEnabled(layer && m_layerCollection
@@ -685,8 +677,7 @@ void PanelVolume::OnColorTableCurrentItemChanged( QTreeWidgetItem* item )
 {
   if ( item )
   {
-    QStringList strglist = item->text( 0 ).split(" ");
-    double val = strglist[0].toDouble();
+    double val = item->data(0, Qt::UserRole+1).toDouble();
     LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
     if ( layer->IsTypeOf("VolumeTrack") )
     {
@@ -708,7 +699,7 @@ void PanelVolume::OnColorTableItemDoubleClicked(QTreeWidgetItem *item_in)
     item = ui->treeWidgetColorTable->currentItem();
   if (item)
   {
-    QStringList strglist = item->text( 0 ).split(" ");
+    QStringList strglist = item->text( 0 ).split(" ", QString::SkipEmptyParts);
     double val = strglist[0].toDouble();
     LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
     if ( layer )
@@ -817,7 +808,10 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
       {
         CTABcopyName( ct, i, name, 1000 );
         ColorTableItem* item = new ColorTableItem( ui->treeWidgetColorTable );
-        item->setText( 0, QString("%1 %2").arg(i).arg(name) );
+        if (ColorTableItem::SortType == ColorTableItem::ST_VALUE)
+          item->setText( 0, QString("%1 %2").arg(i).arg(name) );
+        else
+          item->setText(0, QString("%1 (%2)").arg(name).arg(i));
         item->setToolTip( 0, name );
         int nr, ng, nb;
         CTABrgbAtIndexi( ct, i, &nr, &ng, &nb );
@@ -885,26 +879,17 @@ void PanelVolume::OnLineEditBrushValue( const QString& strg )
   }
   else if ( bOK )
   {
-    /*
-    if ( layer )
-    {
-      layer->SetFillValue( nVal );
-    }
-    */
     MainWindow::GetMainWindow()->GetBrushProperty()->SetFillValue(nVal);
     bool bFound = false;
     for ( int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++ )
     {
       QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem( i );
+      int n = item->data(0, Qt::UserRole+1).toInt();
       if (m_bShowExistingLabelsOnly)
-      {
-        int n = item->data(0, Qt::UserRole+1).toInt();
         item->setHidden(!labels.contains(n));
-      }
       else
         item->setHidden( false );
-      QStringList strglist = item->text(0).split( " " );
-      if ( strglist[0].toDouble() == layer->GetFillValue() )
+      if ( n == layer->GetFillValue() )
       {
         ui->treeWidgetColorTable->setCurrentItem( item );
         bFound = true;
@@ -918,10 +903,21 @@ void PanelVolume::OnLineEditBrushValue( const QString& strg )
   }
   else
   {
+    QStringList keywords = text.split(" ", QString::SkipEmptyParts);
     for ( int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++ )
     {
       QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem( i );
-      if ( item->text(0).contains( text, Qt::CaseInsensitive ) )
+      bool bFound = true;
+      QString item_text = item->text(0);
+      foreach (QString key, keywords)
+      {
+        if (!item_text.contains(key))
+        {
+          bFound = false;
+          break;
+        }
+      }
+      if (bFound)
       {
         if (m_bShowExistingLabelsOnly)
         {

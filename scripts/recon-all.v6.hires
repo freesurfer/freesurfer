@@ -207,6 +207,8 @@ set UseCPsWithCaNorm = 0 # -canorm-usecps enable control points with ca_norm
 set DoT2pial = 0; # if 1, mris_make_surfaces refines pial using T2
 set T2max = ();
 set DoFLAIRpial = 0; # if 1, mris_make_surfaces refines pial using FLAIR
+set EMRegMaskArg = () ; # MOD: HCP: mask passed when running mri_em_reg, default is 
+set EMRegMask = brainmask.mgz ; # MOD: HCP: mask when running mri_em_reg, default is 
 
 # set multi-threaded stuff to single-threaded/cpu for cluster politeness.
 # various binaries (em_reg, ca_reg, mris_sphere) have OpenMP enabled code.
@@ -1314,7 +1316,6 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
   touch $touchdir/base.touch
 endif
 
-
 #-----------             -------------#
 ##---------- AUTORECON 1 -------------#
 #-----------             -------------#
@@ -1673,6 +1674,19 @@ if($DoMotionCor) then
 
 endif # Motion Correction
 
+
+# MOD: this takes the externally supplied mask and resamples it into the
+# orig space so that it can be used with mri_em_register
+if($#EMRegMaskArg != 0) then
+  set cmd = (mri_vol2vol --mov $EMRegMaskArg --targ ${subjdir}/mri/orig.mgz\
+    --regheader --interp nearest --o ${subjdir}/mri/extern.emreg.mask.mgz)
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+  set EMRegMask = extern.emreg.mask.mgz
+endif
 
 #-----------          -----------#
 ##----------  -deface -----------#
@@ -2506,7 +2520,7 @@ if($DoGCAReg) then
         # default processing:
         set lta = transforms/talairach.lta
         if($#GCAOutputName) set lta = transforms/talairach.$GCAOutputName.lta
-        set cmd = ($cmd -uns 3 -mask brainmask.mgz $xopts \
+        set cmd = ($cmd -uns 3 -mask $EMRegMask $xopts \
                     nu.mgz ${GCADIR}/$GCA $lta)
       endif
     else
@@ -6182,6 +6196,17 @@ while( $#argv != 0 )
       breaksw
     case "-nogcareg":
       set DoGCAReg = 0;
+      breaksw
+
+    case "-emregmask":
+      # MOD HCP: mask when running mri_em_reg, default is brainmask.mgz
+      if ( $#argv < 1) goto arg1err;
+      set EMRegMaskArg = $argv[1]; shift
+      if(! -e $EMRegMaskArg) then
+        echo "ERROR: cannot find $EMRegMaskArg"
+        exit 1;
+      endif
+      set EMRegMaskArg = `getfullpath $EMRegMaskArg`
       breaksw
 
     case "-careginv":

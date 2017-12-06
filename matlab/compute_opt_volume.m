@@ -285,6 +285,11 @@ ind = find(mask_opened ==0);
 fmask(ind) = zeros(size(ind));
 ind = find(fmask < 30) ;
 fmask(ind) = zeros(size(ind));
+
+% don't let things get too bright and compress the rest of the values
+hi_thresh = 300 ;
+ind = find(fmask > hi_thresh) ;
+fmask(ind) = hi_thresh*ones(size(ind));
 ind = find(fmask == 0) ;
 opt_vol(ind) = zeros(size(ind)) ;
 

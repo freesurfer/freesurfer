@@ -115,6 +115,7 @@ libutils_main_SOURCES=\
 	gclass.c \
 	gcsa.c \
 	getdelim.c \
+	geos.c \
 	getline.c \
 	geodesics.cpp \
 	gifti_io.c \
@@ -138,7 +139,6 @@ libutils_main_SOURCES=\
 	imageio.c \
 	imautils.c \
 	intensity_eig.c \
-	inverse.c \
 	ipmpar.c \
 	kernel.c \
 	kinput.c \
@@ -157,7 +157,7 @@ libutils_main_SOURCES=\
 	mosaic.c \
 	mri2.c \
 	mri.c \
-  mriBSpline.c \
+	mriBSpline.c \
 	mriclass.c \
 	mri_conform.c \
 	mricurv.c \

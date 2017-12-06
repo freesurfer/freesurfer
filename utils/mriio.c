@@ -67,7 +67,6 @@
 #include "math.h"
 #include "matrix.h"
 #include "mghendian.h"
-#include "minc_volume_io.h"
 #include "mri2.h"
 #include "mri_circulars.h"
 #include "mri_identify.h"
@@ -116,10 +115,9 @@ static int corWrite(MRI *mri, const char *fname);
 static MRI *siemensRead(const char *fname, int read_volume);
 static MRI *readGCA(const char *fname, int start_frame, int end_frame);
 
-#if !defined(BEVIN_EXCLUDE_MINC)
 static MRI *mincRead(const char *fname, int read_volume);
 static int mincWrite(MRI *mri, const char *fname);
-#endif
+
 static int bvolumeWrite(MRI *vol, const char *fname_passed, int type);
 // static int bshortWrite(MRI *mri, const char *fname_passed);
 // static int bfloatWrite(MRI *mri, const char *stem);
@@ -689,12 +687,10 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
   else if (type == BRIK_FILE) {
     mri = afniRead(fname_copy, volume_flag);
   }
-#if !defined(BEVIN_EXCLUDE_MINC)
   else if (type == MRI_MINC_FILE) {
     // mri = mincRead2(fname_copy, volume_flag);
     mri = mincRead(fname_copy, volume_flag);
   }
-#endif
   else if (type == SDT_FILE) {
     mri = sdtRead(fname_copy, volume_flag);
   }
@@ -1084,12 +1080,10 @@ int MRIwriteType(MRI *mri, const char *fname, int type)
 
   /* ----- continue file writing... ----- */
 
-#if !defined(BEVIN_EXCLUDE_MINC)
   if (type == MRI_MINC_FILE) {
     error = mincWrite(mri, fname);
   }
   else 
-#endif
   if (type == IMAGE_FILE) {
     IMAGE *image;
     if (mri->depth != 1) ErrorExit(ERROR_BADPARM, "MRIwriteType(%s): image files cannnot have depth > 1\n", fname);
@@ -1601,9 +1595,6 @@ static MRI *corRead(const char *fname, int read_volume)
   mri->c_s = c_s;
 
   if (strlen(xform) > 0) {
-#if defined(BEVIN_EXCLUDE_MINC)
-    ErrorPrintf(ERROR_BAD_FILE, "code does not support use of talairach transforms\n");
-#else
     char xform_use[STRLEN];
     if (xform[0] == '/')
       strcpy(mri->transform_fname, xform);
@@ -1635,7 +1626,6 @@ static MRI *corRead(const char *fname, int read_volume)
         (mri->transform_fname)[0] = '\0';
       }
     }
-#endif
   }
 
   if (!read_volume) return (mri);
@@ -2229,7 +2219,6 @@ static MRI *siemensRead(const char *fname, int read_volume_flag)
 
 } /* end siemensRead() */
 /*-----------------------------------------------------------*/
-#if !defined(BEVIN_EXCLUDE_MINC)
 static MRI *mincRead(const char *fname, int read_volume)
 {
   // double wx, wy, wz;
@@ -2260,13 +2249,6 @@ static MRI *mincRead(const char *fname, int read_volume)
   dim_names[1] = MIyspace;
   dim_names[2] = MIzspace;
   dim_names[3] = MItime;
-
-#if 0
-  dim_names[0] = MIzspace;
-  dim_names[1] = MIyspace;
-  dim_names[2] = MIxspace;
-  dim_names[3] = MItime;
-#endif
 
   if (!FileExists(fname)) {
     errno = 0;
@@ -2449,7 +2431,6 @@ static MRI *mincRead(const char *fname, int read_volume)
   return (mri);
 
 } /* end mincRead() */
-#endif
 
 #if 0
 /*-----------------------------------------------------------*/
@@ -3042,11 +3023,10 @@ static int NormalizeVector(float *v, int n)
 #endif
 /*----------------------------------------------------------*/
 /* time course clean */
-#if !defined(BEVIN_EXCLUDE_MINC)
 static int mincWrite(MRI *mri, const char *fname)
 {
   Volume minc_volume;
-  STRING dimension_names[4] = {"xspace", "yspace", "zspace", "time"};
+  char* dimension_names[4] = {"xspace", "yspace", "zspace", "time"};
   nc_type nc_data_type;
   double min, max;
   float fmin, fmax;
@@ -3266,53 +3246,56 @@ static int mincWrite(MRI *mri, const char *fname)
       for (vi[di_y] = 0; vi[di_y] < mri->height; vi[di_y]++) {  /* rows */
         for (vi[di_z] = 0; vi[di_z] < mri->depth; vi[di_z]++) { /* slices */
 
-          if (mri->type == MRI_UCHAR)
-            set_volume_voxel_value(minc_volume,
+	  double voxel;
+	  switch (mri->type) {
+	  case MRI_UCHAR: voxel = (double)MRIseq_vox (mri, vi[di_x], vi[di_y], vi[di_z], vi[3]); break;
+	  case MRI_SHORT: voxel = (double)MRISseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]); break;
+          case MRI_INT:   voxel = (double)MRIIseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]); break;
+          case MRI_LONG:  voxel = (double)MRILseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]); break;
+          case MRI_FLOAT: voxel = (double)MRIFseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]); break;
+	  default: fprintf(stderr, "%s:%d bad type", __FILE__, __LINE__); exit(1);
+          }
+
+#if 0
+          bool show = (vi[di_x] == 0) && (vi[di_y] == 0) && (34 < vi[di_z]) && (vi[di_z] < 39);
+          if (show) {
+	      printf("%s:%d vol[%d,%d,%d,%d]:%g\n", __FILE__, __LINE__, 
+	          vi[0], vi[1], vi[2], vi[3], voxel);
+	  }
+#endif
+	  
+	  set_volume_voxel_value(minc_volume,
                                    vi[0],
                                    vi[1],
                                    vi[2],
                                    vi[3],
                                    0,
-                                   (double)MRIseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
-          if (mri->type == MRI_SHORT)
-            set_volume_voxel_value(minc_volume,
-                                   vi[0],
-                                   vi[1],
-                                   vi[2],
-                                   vi[3],
-                                   0,
-                                   (double)MRISseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
-          if (mri->type == MRI_INT)
-            set_volume_voxel_value(minc_volume,
-                                   vi[0],
-                                   vi[1],
-                                   vi[2],
-                                   vi[3],
-                                   0,
-                                   (double)MRIIseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
-          if (mri->type == MRI_LONG)
-            set_volume_voxel_value(minc_volume,
-                                   vi[0],
-                                   vi[1],
-                                   vi[2],
-                                   vi[3],
-                                   0,
-                                   (double)MRILseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
-          if (mri->type == MRI_FLOAT)
-            set_volume_voxel_value(minc_volume,
-                                   vi[0],
-                                   vi[1],
-                                   vi[2],
-                                   vi[3],
-                                   0,
-                                   (double)MRIFseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
-        }
+                                   voxel);
+#if 0
+          if (show) {
+	      double gotten = get_volume_voxel_value(minc_volume, vi[0], vi[1], vi[2], vi[3], 0);
+	      printf("%s:%d get returned vol[%d,%d,%d,%d]:%g\n", __FILE__, __LINE__, 
+	          vi[0], vi[1], vi[2], vi[3], gotten);
+	  }
+#endif
+	}
       }
       exec_progress_callback(vi[di_x], mri->width, vi[3], mri->nframes);
     }
   }
 
-  status = output_volume((STRING)fname, nc_data_type, signed_flag, min, max, minc_volume, (STRING) "", NULL);
+#if 0
+  if (1) {
+    int z;
+    for (z = 35; z < 39; z++) {
+      double voxel = get_volume_voxel_value(minc_volume, 0, 0, z, 0, 0);
+      printf("%s:%d vol[0,0,%d,0]:%g\n", __FILE__, __LINE__, z, voxel);
+    }
+  }
+  printf("%s:%d nc_data_type:%d\n", __FILE__, __LINE__, (int)nc_data_type);
+#endif
+
+  status = output_volume((char*)fname, nc_data_type, signed_flag, min, max, minc_volume, "", NULL);
   delete_volume(minc_volume);
 
   if (status) {
@@ -3323,7 +3306,6 @@ static int mincWrite(MRI *mri, const char *fname)
   return (NO_ERROR);
 
 } /* end mincWrite() */
-#endif
 
 /*----------------------------------------------------------------
   bvolumeWrite() - replaces bshortWrite and bfloatWrite.
@@ -11274,9 +11256,6 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
 
         case TAG_OLD_MGH_XFORM:
         case TAG_MGH_XFORM: {
-#if defined(BEVIN_EXCLUDE_MINC)
-	  ErrorPrintf(ERROR_BAD_FILE, "talairach xform files not supported\n");
-#else
           char *fnamedir;
           char tmpstr[1000];
 
@@ -11305,7 +11284,6 @@ static MRI *mghRead(const char *fname, int read_volume, int frame)
               (mri->transform_fname)[0] = '\0';
             }
           }
-#endif
           break;
         }
         case TAG_CMDLINE:
@@ -11898,7 +11876,6 @@ int MRIwriteInfo(MRI *mri, const char *fpref)
   fprintf(fp, "%s %f\n", "tr", mri->tr);
   fprintf(fp, "%s %f\n", "te", mri->te);
   fprintf(fp, "%s %f\n", "ti", mri->ti);
-#if !defined(BEVIN_EXCLUDE_MINC)
   if (mri->linear_transform) {
     char fname[STRLEN];
 
@@ -11919,7 +11896,6 @@ int MRIwriteInfo(MRI *mri, const char *fpref)
     }
 #endif
   }
-#endif
 
   fprintf(fp, "%s %d\n", "ras_good_flag", mri->ras_good_flag);
   fprintf(fp, "%s %f %f %f\n", "x_ras", mri->x_r, mri->x_a, mri->x_s);

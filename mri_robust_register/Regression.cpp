@@ -35,8 +35,11 @@
 #include <vector>
 #include <fstream>
 #include "RobustGaussian.h"
+
+#define export // obsolete feature 'export template' used in these headers 
 #include <vnl/algo/vnl_svd.h>
 #include <vnl/algo/vnl_qr.h>
+#undef export
 
 #ifdef __cplusplus
 extern "C"
