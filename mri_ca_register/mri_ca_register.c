@@ -1530,7 +1530,7 @@ main(int argc, char *argv[])
     {
       parms.tol /= 5 ;  // reset parameters to previous level
       parms.l_smoothness /= 20 ;
-      
+
       GCAMregister(gcam, mri_inputs, &parms) ;
 
       printf("********************* ALLOWING NEGATIVE NODES IN DEFORMATION"
