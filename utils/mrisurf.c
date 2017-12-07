@@ -43858,9 +43858,9 @@ static float mrisDefectVertexMRILogLikelihood(
     MRI_SURFACE *mris, MRI *mri, TP *tp, HISTOGRAM *h_white, HISTOGRAM *h_gray, HISTOGRAM *h_grad, MRI *mri_gray_white);
 static double mrisComputeDefectMRILogLikelihood(
     MRI_SURFACE *mris, MRI *mri, TP *tp, HISTOGRAM *h_white, HISTOGRAM *h_gray, HISTOGRAM *h_grad, MRI *mri_gray_white);
-static int findOtherEdgeFace(MRIS *mris, int fno, int vno, int vn1);
+static int findOtherEdgeFace(MRIS const *mris, int fno, int vno, int vn1);
 static void vertexPseudoNormal(MRIS *mris1, int vn1, MRIS *mris2, int vn2, float norm[3]);
-static void computeVertexPseudoNormal(MRIS *mris, int vno, float norm[3], int verbose);
+static void computeVertexPseudoNormal(MRIS const *mris, int vno, float norm[3], int verbose);
 static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DP *dp, HISTOGRAM *h_border);
 static double mrisComputeDefectCurvatureLogLikelihood(
     MRI_SURFACE *mris, TP *tp, HISTOGRAM *h_k1, HISTOGRAM *h_k2, MRI *mri_k1_k2);
@@ -54326,11 +54326,11 @@ static double mrisComputeDefectMRILogLikelihood(
   return mll;
 }
 
-static int findOtherEdgeFace(MRIS *mris, int fno, int vno, int vn1)
+static int findOtherEdgeFace(MRIS const *mris, int fno, int vno, int vn1)
 {
   int n, m;
 
-  VERTEX *v1, *v2;
+  VERTEX const *v1, *v2;
   v1 = &mris->vertices[vno];
   v2 = &mris->vertices[vn1];
   for (n = 0; n < v1->num; n++) {
@@ -54477,12 +54477,12 @@ static void vertexPseudoNormal(MRIS *mris1, int vn1, MRIS *mris2, int vn2, float
   }
 }
 
-static void computeVertexPseudoNormal(MRIS *mris, int vno, float norm[3], int verbose)
+static void computeVertexPseudoNormal(MRIS const *mris, int vno, float norm[3], int verbose)
 {
   int n, n0, n1, n2;
   float v1[3], v2[3], alpha;
-  VERTEX *v;
-  FACE *face;
+  VERTEX const *v;
+  FACE   const *face;
   v = &mris->vertices[vno];
 
   norm[0] = norm[1] = norm[2] = 0;
@@ -55133,7 +55133,51 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
 
 #define DEBUG_UL 0
 
-static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATCH *dp, HISTOGRAM *h_border)
+#define BEVIN
+
+static double mrisComputeDefectMRILogUnlikelihood_old(MRI_SURFACE *mris, DEFECT_PATCH *dp, HISTOGRAM *h_border);
+static double mrisComputeDefectMRILogUnlikelihood_new(MRI_SURFACE *mris, DEFECT_PATCH *dp, HISTOGRAM *h_border);
+
+static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATCH *dp, HISTOGRAM *h_border) {
+    double result_new = 0;
+    double result_old = 0;
+    static const int do_old = 1;
+    static const int do_new = 1;
+    
+    float* save_vertices_curvbak = NULL;
+    float  save_dp_tp_unmri_ll   = dp_nonconst->tp.unmri_ll;
+    float* save_mri_distances    = NULL;
+    // don't bother saving face normals, since they are recomputed
+    
+    if (do_new && do_old) {
+      fprintf(stderr,"mrisComputeDefectMRILogUnlikelihood testing started\n");
+    }
+    if (do_old) {
+      if (do_new) TBD; // save
+      TIMER_INTERVAL_BEGIN(old)
+      result_old = mrisComputeDefectMRILogUnlikelihood_old(mris, dp, h_border);
+      TIMER_INTERVAL_END(old)
+    }
+    if (do_new) {
+      if (do_old) TBD; // swap the saved and the new values
+      TIMER_INTERVAL_BEGIN(new)
+      result_new = mrisComputeDefectMRILogUnlikelihood_new(mris, dp, h_border);
+      TIMER_INTERVAL_END(new)
+    }
+    if (do_new && do_old) {
+      double diff = fabs(result_new - result_old);
+      double max  = MAX(fabs(result_new), fabs(result_old));
+      if ((max > 1e-6) && (diff/max > 1e-6)) {
+        fprintf(stderr,"mrisComputeDefectMRILogUnlikelihood %g != %g\n", result_old, result_new);
+	exit(1);  
+      }
+      // compare the saved and the new values
+      TBD;
+    }
+    return do_old ? result_old : result_new;
+}
+
+static double mrisComputeDefectMRILogUnlikelihood_old(MRI_SURFACE *mris, DEFECT_PATCH *dp, HISTOGRAM *h_border)
 {
 #if 0
   int u,v,numu,numv;
@@ -55219,18 +55263,18 @@ static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATC
 #endif
 
     // calculate three vertices
-    x0 = mris->vertices[face->v[0]].origx;
+    x0 = mris->vertices[face->v[0]].origx;			// BEVIN HOT 12000
     y0 = mris->vertices[face->v[0]].origy;
     z0 = mris->vertices[face->v[0]].origz;
     x1 = mris->vertices[face->v[1]].origx;
     y1 = mris->vertices[face->v[1]].origy;
     z1 = mris->vertices[face->v[1]].origz;
-    x2 = mris->vertices[face->v[2]].origx;
+    x2 = mris->vertices[face->v[2]].origx;			// BEVIN HOT 11000
     y2 = mris->vertices[face->v[2]].origy;
     z2 = mris->vertices[face->v[2]].origz;
 
     /* find the bounding box */
-    imin = iVOL(mri_defect, MIN3(x0, x1, x2)) - delta;
+    imin = iVOL(mri_defect, MIN3(x0, x1, x2)) - delta;		// BEVIN HOT  2000
     imax = iVOL(mri_defect, MAX3(x0, x1, x2)) + delta;
 
     jmin = jVOL(mri_defect, MIN3(y0, y1, y2)) - delta;
@@ -55758,6 +55802,373 @@ static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATC
 
   return (white_ll + gray_ll);
 }
+
+
+
+
+static double mrisComputeDefectMRILogUnlikelihood_new(
+    MRI_SURFACE  * const mris_nonconst, 			// various subcomponents of these structures get updated
+    DEFECT_PATCH * const dp_nonconst, 
+    HISTOGRAM    * const h_border_nonconst)
+{
+  MRI_SURFACE  const * const mris     = mris_nonconst;			// find where the modifiers are
+  DEFECT_PATCH const * const dp       = dp_nonconst;
+  //HISTOGRAM  const * const h_border = h_border_nonconst;		// unused
+
+  MRI          * const mri_distance_nonconst = dp->mri_defect_sign;
+  MRI    const * const mri_distance = dp->mri_defect_sign;
+  MRI    const * const mri_defect   = dp->mri_defect;
+  DEFECT const * const dp_defect    = dp->defect;
+
+  { int k,j,i;
+    for (k = 0; k < mri_distance->depth; k++) {
+      for (j = 0; j < mri_distance->height; j++) {
+        for (i = 0; i < mri_distance->width; i++) {
+          MRIFvox(mri_distance_nonconst, i, j, k) = NPY;		// MODIFIER THAT WASN'T DETECTED
+        }
+      }
+    }
+  }
+
+  { int p;  
+    for (p = 0; p < mris->nfaces; p++) {
+      computeDefectFaceNormal(mris_nonconst, &mris_nonconst->faces[p]);	// MODIFIER
+    }
+  }
+
+
+  /* look at approximately +/- 2mm */
+  int const delta = 2.0 * mri_defect->xsize;
+
+/* optimize by listing the concerned faces */
+
+  /* find the distance to each surface voxels */
+  {int p;
+  for (p = 0; p < mris->nfaces; p++) {
+    int  const         fno  = p;
+    FACE const * const face = &mris->faces[fno];
+
+    // calculate three vertices
+    float const
+      x0 = mris->vertices[face->v[0]].origx,			// BEVIN HOT 12000
+      y0 = mris->vertices[face->v[0]].origy,
+      z0 = mris->vertices[face->v[0]].origz,
+      x1 = mris->vertices[face->v[1]].origx,
+      y1 = mris->vertices[face->v[1]].origy,
+      z1 = mris->vertices[face->v[1]].origz,
+      x2 = mris->vertices[face->v[2]].origx,			// BEVIN HOT 11000
+      y2 = mris->vertices[face->v[2]].origy,
+      z2 = mris->vertices[face->v[2]].origz;
+    
+    /* find the bounding box */
+    int const imin_nobnd = iVOL(mri_defect, MIN3(x0, x1, x2)) - delta;		// BEVIN HOT  2000
+    int const imax_nobnd = iVOL(mri_defect, MAX3(x0, x1, x2)) + delta;
+
+    int const jmin_nobnd = jVOL(mri_defect, MIN3(y0, y1, y2)) - delta;
+    int const jmax_nobnd = jVOL(mri_defect, MAX3(y0, y1, y2)) + delta;
+
+    int const kmin_nobnd = kVOL(mri_defect, MIN3(z0, z1, z2)) - delta;
+    int const kmax_nobnd = kVOL(mri_defect, MAX3(z0, z1, z2)) + delta;
+
+    // TO BE CHECKED
+    /* we don't count faces that extend outside the volume -
+       should not change the sign */
+    // TO BE CHECKED it some defects are close from each other!
+    if (imin_nobnd > mri_defect->width  - 1 
+     || jmin_nobnd > mri_defect->height - 1 
+     || kmin_nobnd > mri_defect->depth  - 1 
+     || imax_nobnd < 0 
+     || jmax_nobnd < 0 
+     || kmax_nobnd < 0) {
+      continue;
+    }
+
+    int const imin = MAX(imin_nobnd, 0);
+    int const imax = MIN(imax_nobnd, mri_defect->width - 1);
+
+    int const jmin = MAX(jmin_nobnd, 0);
+    int const jmax = MIN(jmax_nobnd, mri_defect->height - 1);
+
+    int const kmin = MAX(kmin_nobnd, 0);
+    int const kmax = MIN(kmax_nobnd, mri_defect->depth - 1);
+
+    /* generating the pseudo-normals for edges and vertices */
+    float n_f [3];
+    float   n0[3],   n1[3],   n2[3];
+    float   e0[3],   e1[3],   e2[3];
+    float n_e0[3], n_e1[3], n_e2[3];
+    {
+      int fn1;
+    
+      n_f[0] = face->nx;
+      n_f[1] = face->ny;
+      n_f[2] = face->nz;
+
+      /* edge0: x0 <--> x1 */
+      e0[0] = x1 - x0;
+      e0[1] = y1 - y0;
+      e0[2] = z1 - z0;
+    
+      F_CROSS(n_f, e0, n0);
+      fn1 = findOtherEdgeFace(mris, fno, face->v[0], face->v[1]);
+      n_e0[0] = face->nx + mris->faces[fn1].nx;
+      n_e0[1] = face->ny + mris->faces[fn1].ny;
+      n_e0[2] = face->nz + mris->faces[fn1].nz;
+
+      /* edge1: x1 <--> x2 */
+      e1[0] = x2 - x1;
+      e1[1] = y2 - y1;
+      e1[2] = z2 - z1;
+
+      F_CROSS(n_f, e1, n1);
+      fn1 = findOtherEdgeFace(mris, fno, face->v[1], face->v[2]);
+      n_e1[0] = face->nx + mris->faces[fn1].nx;
+      n_e1[1] = face->ny + mris->faces[fn1].ny;
+      n_e1[2] = face->nz + mris->faces[fn1].nz;
+
+      /* edge2: x2 <--> x0 */
+      e2[0] = x0 - x2;
+      e2[1] = y0 - y2;
+      e2[2] = z0 - z2;
+
+      F_CROSS(n_f, e2, n2);
+      fn1 = findOtherEdgeFace(mris, fno, face->v[2], face->v[0]);
+      n_e2[0] = face->nx + mris->faces[fn1].nx;
+      n_e2[1] = face->ny + mris->faces[fn1].ny;
+      n_e2[2] = face->nz + mris->faces[fn1].nz;
+    }
+
+    /* vertex pseudo-normals */
+    float n_v0[3], n_v1[3], n_v2[3];
+    computeVertexPseudoNormal(mris, face->v[0], n_v0, dp->verbose_mode);
+    computeVertexPseudoNormal(mris, face->v[1], n_v1, dp->verbose_mode);
+    computeVertexPseudoNormal(mris, face->v[2], n_v2, dp->verbose_mode);
+
+/* finding distance to surface */
+    int k,j,i;
+#ifdef HAVE_OPENMP
+    #pragma omp parallel for collapse(3)
+#endif
+    for (k = kmin; k <= kmax; k++) {
+      for (j = jmin; j <= jmax; j++) {
+        for (i = imin; i <= imax; i++) {
+
+          float const 
+	    x = xSURF(mri_defect, i),
+            y = ySURF(mri_defect, j),
+            z = zSURF(mri_defect, k);
+
+  	  float vec[3], vec0[3], vec1[3], vec2[3];
+
+          vec0[0] = x - x0;
+          vec0[1] = y - y0;
+          vec0[2] = z - z0;
+          vec1[0] = x - x1;
+          vec1[1] = y - y1;
+          vec1[2] = z - z1;
+          vec2[0] = x - x2;
+          vec2[1] = y - y2;
+          vec2[2] = z - z2;
+          vec[0] = (vec0[0] + vec1[0] + vec2[0]) / 3.0;
+          vec[1] = (vec0[1] + vec1[1] + vec2[1]) / 3.0;
+          vec[2] = (vec0[2] + vec1[2] + vec2[2]) / 3.0;
+
+          /* compute distance to face */
+          /* where is the point */
+          float const
+	    val0 = F_DOT(vec0, n0),
+            val1 = F_DOT(vec1, n1),
+            val2 = F_DOT(vec2, n2);
+
+	  float val, valu, sign, distance;
+	  
+          if ((val0 >= 0) && (val1 >= 0) && (val2 >= 0)) {
+            /* the projection of the vertex is inside */
+            val = F_DOT(n_f, vec);
+            valu     = 1;
+            sign     = val;
+            distance = val; /* n_f is already normalized */
+          }
+          else {
+            distance = NPY;
+            sign = 0;
+            valu = 0;
+
+            if (val0 <= 0) {
+              /* compute distance to edge0 */
+              val = F_DOT(vec0, e0);
+              if (val < 0) {
+                /* closer to x0 */
+                sign = F_DOT(n_v0, vec0);
+                valu = 2;
+                distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec0));
+              }
+              else if (val < SQR3(e0)) {
+                /* closer to edge0 */
+                sign = F_DOT(n_e0, vec0);
+                valu = 3;
+                distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec0) - SQR(val) / SQR3(e0))));
+              }
+              else {
+                /* closer to x1 */
+                sign = F_DOT(n_v1, vec1);
+                valu = 2;
+                distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec1));
+              }
+            };
+            if (val1 <= 0) {
+              val = F_DOT(vec1, e1);
+              if (val < 0) {
+                /* closer to x1 */
+                sign = F_DOT(n_v1, vec1);
+                valu = 2;
+                distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec1));
+              }
+              else if (val < SQR3(e1)) {
+                /* closer to edge1 */
+                sign = F_DOT(n_e1, vec1);
+                valu = 3;
+                distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec1) - SQR(val) / SQR3(e1))));
+              }
+              else {
+                /* closer to x2 */
+                sign = F_DOT(n_v2, vec2);
+                valu = 2;
+                distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec2));
+              }
+            };
+            if (val2 <= 0) {
+              val = F_DOT(vec2, e2);
+              if (val < 0) {
+                /* closer to x2 */
+                sign = F_DOT(n_v2, vec2);
+                valu = 2;
+                distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec2));
+              }
+              else if (val < SQR3(e2)) {
+                /* closer to edge2 */
+                sign = F_DOT(n_e2, vec2);
+                valu = 3;
+                distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec2) - SQR(val) / SQR3(e2))));
+              }
+              else {
+                /* closer to x0 */
+                sign = F_DOT(n_v0, vec0);
+                valu = 2;
+                distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec0));
+              }
+            };
+          }
+
+          /* update distance map */
+          if (fabs(distance) < fabs(MRIFvox(mri_distance, i, j, k))) {
+            MRIFvox(mri_distance_nonconst, i, j, k) = distance;			// MODIFIER NOT CAUGHT BY COMPILER
+          }
+        }
+      }
+    }
+  }} // int p;
+
+  /* compute the volumeLikelihood */
+  /* init log values */
+  MRI const * const mri_white = dp->mri_defect_white;
+  MRI const * const mri_gray  = dp->mri_defect_gray;
+
+    
+  float white_ll = dp_defect->white_mean_ll;
+  float gray_ll  = dp_defect->gray_mean_ll;
+  int   nwhite   = 1;
+  int   ngray    = 1;
+  
+  float int_g = dp_defect->gray_mean;
+  float int_w = dp_defect->white_mean;
+
+  float max_distance = 0.0;
+
+  int k;
+  for (k = 3; k < mri_distance->depth - 3; k++) {
+    int j;
+    for (j = 3; j < mri_distance->height - 3; j++) {
+      int i;
+      for (i = 3; i < mri_distance->width - 3; i++) {
+        if (!MRIvox(mri_defect, i, j, k)) {
+          continue;
+        }
+        float val = MRIFvox(mri_distance, i, j, k);
+        if (val == NPY) {
+          continue;
+        }
+        if (fabs(val) > max_distance) {
+          max_distance = fabs(val);
+        }
+
+        if (val > 0.5) {
+          /* gray matter */
+          gray_ll  += MRIFvox(mri_gray,   i, j, k);
+          int_g    += MRIvox (mri_defect, i, j, k);
+          ngray++;
+        }
+        if (val < -0.5) {
+          white_ll += MRIFvox(mri_white,  i, j, k);
+          int_w    += MRIvox (mri_defect, i, j, k);
+          nwhite++; 
+        }
+      }
+    }
+  }
+  
+  if (nwhite) {
+    white_ll /= nwhite;
+    int_w    /= nwhite;
+  }
+  if (ngray) {
+    gray_ll /= ngray;
+    int_g   /= ngray;
+  }
+
+  {
+    max_distance = MIN(2.0f, MAX(1.0f, max_distance));
+
+    int p;
+    for (p = 0; p < dp_defect->nvertices; p++) {
+      if (dp_defect->status[p] == DISCARD_VERTEX) {
+        continue;
+      }
+      int const vno = dp_defect->vertex_trans[dp_defect->vertices[p]];
+      VERTEX * vertex_nonconst = &mris_nonconst->vertices[vno];
+
+      int const i = iVOL(mri_defect, vertex_nonconst->fx);
+      int const j = jVOL(mri_defect, vertex_nonconst->fy);
+      int const k = kVOL(mri_defect, vertex_nonconst->fz);
+
+      if ((i < 0) || (i >= mri_defect->width) || (j < 0) || (j >= mri_defect->height) || (k < 0) ||
+          (k >= mri_defect->depth)) {
+        continue;
+      }
+
+      // fprintf(WHICH_OUTPUT,"*%d-%d-%d");
+      float val = MRIFvox(mri_distance, i, j, k);
+
+      // FLO : max_distance=MIN(2.0f, max_distance) ?
+      if (val == NPY) {
+        val = 1.0f;
+      }
+      else {
+        val = fabs(val) / max_distance;
+      }
+
+      val = MIN(1.0f, val);
+
+      vertex_nonconst->curvbak *= val;			// MODIFIER
+    }
+  }
+
+  dp_nonconst->tp.unmri_ll = (white_ll + gray_ll);	// MODIFIER
+
+  return (white_ll + gray_ll);
+}
+
+
 
 static double mrisComputeDefectCurvatureLogLikelihood(
     MRI_SURFACE *mris, TP *tp, HISTOGRAM *h_k1, HISTOGRAM *h_k2, MRI *mri_k1_k2)
