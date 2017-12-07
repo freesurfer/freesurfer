@@ -58531,12 +58531,12 @@ static int mrisTessellateDefect(MRI_SURFACE *mris,
           defect->nchull,
           defect->vertices[0]);
 
-  TIMER_INTERVAL_BEGIN(old);
+  // TIMER_INTERVAL_BEGIN(old);
   
   int result = mrisTessellateDefect_wkr(
     mris,mris_corrected,defect,vertex_trans,mri,h_k1,h_k2,mri_k1_k2,h_white,h_gray,h_border,h_grad,mri_gray_white,h_dot,parms);
 
-  TIMER_INTERVAL_END(old);
+  // TIMER_INTERVAL_END(old);
   
   return result;
 }
