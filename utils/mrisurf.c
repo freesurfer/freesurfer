@@ -1,3 +1,5 @@
+#define BEVIN
+
 /*
  * @file utilities operating on Original
  *
@@ -27105,12 +27107,6 @@ mrisReadAsciiPatchFile(char *fname)
                  structure.
   ------------------------------------------------------*/
 
-#ifndef BEVIN
-#define BEVIN	// TURN ON THE FOLLOWING ALL THE TIME, REMOVE THESE CONDITIONALS ONCE ACCEPTED AND TESTED
-#endif
-
-#ifdef BEVIN
-
 #define mrisReadSTLfile_hashTableSize (1024*1024)
 static int mrisReadSTLfile_hash(float x, float y, float z) {
   int hx = (int)( 1000.0f*logf(abs(x)+1.0f) );	// a hashing function that preserves many of the bits in the float
@@ -27122,13 +27118,10 @@ static int mrisReadSTLfile_hash(float x, float y, float z) {
 
 static const int mrisReadSTLfile_debugging = 0;
 
-#endif
-
 
 static MRI_SURFACE *mrisReadSTLfile(const char *fname) 
 {
 
-#ifdef BEVIN
   MRI_SURFACE *mris = NULL;
 
   {
@@ -27336,200 +27329,6 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
   VERTEX *v;
   FACE *face = NULL;
   
-#else
-
-  MRI_SURFACE *mris;
-  char line[STRLEN], *cp;
-  int nfaces, fno, vno, fvno, n2;
-  VERTEX *v;
-  FACE *face = NULL;
-  FILE *fp;
-
-  fp = fopen(fname, "r");
-  if (!fp) ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: could not open file %s", fname));
-
-  // confirm that this is an STL file.
-  // the first word on the first line should be 'solid'
-  cp = fgetl(line, STRLEN, fp);
-  if (!cp) ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: error reading file %s", fname));
-  if (strncmp(cp, "solid", 5))
-    ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: file %s does not appear to be an STL file", fname));
-
-  // now count the number of faces in the file, so that we can alloc
-  nfaces = 0;
-  while ((cp = fgetl(line, STRLEN, fp))) {
-    if (strncmp(cp, "endfacet", 8) == 0) {
-      nfaces++;
-    }
-    if (strncmp(cp, "endsolid", 8) == 0) {
-      break;
-    }
-  }
-  if (!cp) {
-    ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: error reading file %s", fname));
-  }
-
-  // start from the beginning of the file...
-  fclose(fp);
-  fp = fopen(fname, "r");
-  if (!fp) ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: could not open file %s", fname));
-
-  // the STL file format does not account for vertices shared by faces,
-  // so we must alloc the max number of vertices
-  mris = MRISalloc(nfaces * 3, nfaces);
-  if (mris == NULL) {
-    ErrorReturn(NULL, (ERROR_NOMEMORY, "MRISreadSTLfile: could not alloc memory for mris"));
-  }
-  else {
-    mris->type = MRIS_TRIANGULAR_SURFACE;
-  }
-
-  fno = 0;
-  vno = 0;
-  fvno = 0;
-  while ((cp = fgetl(line, STRLEN, fp))) {
-    // start of file indicator
-    if (strncmp(cp, "solid", 5) == 0) {
-      continue;
-    }
-
-    if (strncmp(cp, "facet ", 6) == 0) {
-      face = &mris->faces[fno];
-      sscanf(cp, "facet normal %f %f %f", &face->nx, &face->ny, &face->nz);
-    }
-
-    if (strncmp(cp, "outer loop", 10) == 0) {
-      continue;
-    }
-
-    if (strncmp(cp, "vertex ", 7) == 0) {
-      v = &mris->vertices[vno];
-      sscanf(cp, "vertex %f %f %f", &v->x, &v->y, &v->z);
-      face->v[fvno] = vno;
-      vno++;
-      if (++fvno >= 3) {
-        fvno = 0;
-      }
-    }
-
-    if (strncmp(cp, "endloop", 7) == 0) {
-      continue;
-    }
-
-    if (strncmp(cp, "endfacet", 8) == 0) {
-      fno++;
-    }
-
-    // end of file indicator
-    if (strncmp(cp, "endsolid", 8) == 0) {
-      break;
-    }
-  }
-  if (!cp) {
-    ErrorReturn(NULL, (ERROR_NOFILE, "MRISreadSTLfile: error reading file %s", fname));
-  }
-  else {
-    printf("Found %d faces and %d vertices in STL file\n", fno, vno);
-  }
-
-  mris->nvertices = vno;
-  mris->nfaces = fno;
-  nfaces = fno;
-
-#if 1  // code checking for duplicate vertices takes forever to execute!
-  {
-    MRI_SURFACE *mris_new;
-    int nduplicates, nvertices, n;
-    VERTEX *v2;
-    int *vnums, *vnums2;
-    FACE *face_new;
-
-    // check for duplicate vertices.
-    // the STL format does not account for these.
-    vnums = (int *)calloc(mris->nvertices, sizeof(int));
-
-    // assume no duplicates:
-    for (n = 0; n < mris->nvertices; n++) {
-      vnums[n] = n;
-    }
-
-    // make note of duplicates in vnums array...
-    nduplicates = 0;
-
-    for (n = 0; n < mris->nvertices - 1; n++) {
-      printf("Checking vertex %d (found %d duplicates)\r", n, nduplicates);
-      v = &mris->vertices[n];
-      for (n2 = n + 1; n2 < mris->nvertices; n2++) {
-        if (vnums[n2] == vnums[n]) {
-          continue;  // already caught this one
-        }
-        v2 = &mris->vertices[n2];
-        if ((fabs(v->x - v2->x) == 0) && (fabs(v->y - v2->y) == 0) && (fabs(v->z - v2->z) == 0)) {
-          // its a duplicate, so save the existing vertex number
-          vnums[n2] = n;
-          nduplicates++;
-        }
-      }
-    }
-
-    // create old to new mapping table
-    vnums2 = (int *)calloc(mris->nvertices, sizeof(int));
-    nduplicates = 0;
-    for (n = 0; n < mris->nvertices; n++) {
-      if (vnums[n] != n) {
-        nduplicates++;
-        vnums2[n] = -1;
-      }
-      else {
-        vnums2[n] = n - nduplicates;
-      }
-    }
-
-    // count unique vertices
-    nvertices = 0;
-    for (n = 0; n < mris->nvertices; n++) {
-      if (vnums[n] == n) {
-        nvertices++;
-      }
-    }
-    printf("\nFound %d unique vertices\n", nvertices);
-
-    // now create new data structure, absent the duplicates
-    mris_new = MRISalloc(nvertices, nfaces);
-    if (mris_new == NULL) {
-      ErrorReturn(NULL, (ERROR_NOMEMORY, "MRISreadSTLfile: could not alloc memory for mris_new"));
-    }
-    mris_new->type = MRIS_TRIANGULAR_SURFACE;
-    mris_new->nvertices = nvertices;
-    mris_new->nfaces = nfaces;
-    for (n = 0, n2 = 0; n < mris->nvertices; n++) {
-      if (vnums[n] == n) {
-        v = &mris->vertices[n];
-        v2 = &mris_new->vertices[n2];
-        v2->x = v->x;
-        v2->y = v->y;
-        v2->z = v->z;
-        n2++;
-      }
-    }
-    if (n2 != nvertices)  // sanity check
-    {
-      ErrorReturn(NULL, (ERROR_BADPARM, "MRISreadSTLfile: nvertices != n2"));
-    }
-
-    for (fno = 0; fno < mris->nfaces; fno++) {
-      face = &mris->faces[fno];
-      face_new = &mris_new->faces[fno];
-      for (fvno = 0; fvno < VERTICES_PER_FACE; fvno++) {
-        face_new->v[fvno] = vnums2[vnums[face->v[fvno]]];
-      }
-    }
-    mris = mris_new;
-  }
-#endif  // end of duplicate checking code
-
-#endif	// ifdef BEVIN
-
 #if 1
   {
     int fvno2, vn;
@@ -27616,10 +27415,6 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
       }
     }
   }
-#endif
-
-#ifndef BEVIN
-  fclose(fp);
 #endif
 
   return (mris);
@@ -55133,51 +54928,122 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
 
 #define DEBUG_UL 0
 
-#define BEVIN
 
+#ifdef BEVIN
 static double mrisComputeDefectMRILogUnlikelihood_old(MRI_SURFACE *mris, DEFECT_PATCH *dp, HISTOGRAM *h_border);
 static double mrisComputeDefectMRILogUnlikelihood_new(MRI_SURFACE *mris, DEFECT_PATCH *dp, HISTOGRAM *h_border);
+#endif
 
-static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATCH *dp, HISTOGRAM *h_border) {
-    double result_new = 0;
-    double result_old = 0;
-    static const int do_old = 1;
-    static const int do_new = 1;
+static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATCH *dp, HISTOGRAM *h_border) 
+
+#ifdef BEVIN
+{
+  double result_new = 0;
+  double result_old = 0;
+  static const int do_old = 0;
+  static const int do_new = 1;
     
-    float* save_vertices_curvbak = NULL;
-    float  save_dp_tp_unmri_ll   = dp_nonconst->tp.unmri_ll;
-    float* save_mri_distances    = NULL;
-    // don't bother saving face normals, since they are recomputed
+  MRI const * const mri_distance = dp->mri_defect_sign;
+  float* save_vertices_curvbak = NULL;
+  float  save_dp_tp_unmri_ll   = 0.0;
+  float* save_mri_distances    = NULL;
+  // don't bother saving face normals, since they are recomputed
     
-    if (do_new && do_old) {
-      fprintf(stderr,"mrisComputeDefectMRILogUnlikelihood testing started\n");
-    }
-    if (do_old) {
-      if (do_new) TBD; // save
-      TIMER_INTERVAL_BEGIN(old)
-      result_old = mrisComputeDefectMRILogUnlikelihood_old(mris, dp, h_border);
-      TIMER_INTERVAL_END(old)
-    }
-    if (do_new) {
-      if (do_old) TBD; // swap the saved and the new values
-      TIMER_INTERVAL_BEGIN(new)
-      result_new = mrisComputeDefectMRILogUnlikelihood_new(mris, dp, h_border);
-      TIMER_INTERVAL_END(new)
-    }
-    if (do_new && do_old) {
-      double diff = fabs(result_new - result_old);
-      double max  = MAX(fabs(result_new), fabs(result_old));
-      if ((max > 1e-6) && (diff/max > 1e-6)) {
-        fprintf(stderr,"mrisComputeDefectMRILogUnlikelihood %g != %g\n", result_old, result_new);
-	exit(1);  
+  if (do_new && do_old) {
+    fprintf(stderr,"mrisComputeDefectMRILogUnlikelihood testing started\n");
+  }
+
+  if (do_old) {
+    if (do_old && do_new) {
+      // save
+      save_vertices_curvbak = (float*)malloc(       mris->nvertices * sizeof(float));
+      int vno; for (vno = 0; vno < mris->nvertices; vno++) save_vertices_curvbak[vno] = mris->vertices[vno].curvbak;
+      save_dp_tp_unmri_ll = dp->tp.unmri_ll;
+      save_mri_distances = (float*)malloc( mri_distance->depth*mri_distance->height*mri_distance->width * sizeof(float));
+      { int k,j,i;
+        for (i = 0; i < mri_distance->width; i++) {	// THIS ORDER SEEMS WRONG
+          for (j = 0; j < mri_distance->height; j++) {
+    	    for (k = 0; k < mri_distance->depth; k++) {
+              save_mri_distances[
+	        i*mri_distance->height*mri_distance->depth + 
+		j*mri_distance->depth + 
+		k] = MRIFvox(mri_distance, i, j, k);
+            }
+          }
+        }
       }
-      // compare the saved and the new values
-      TBD;
     }
-    return do_old ? result_old : result_new;
+
+    TIMER_INTERVAL_BEGIN(old)
+    result_old = mrisComputeDefectMRILogUnlikelihood_old(mris, dp, h_border);
+    if (do_old && do_new) TIMER_INTERVAL_END(old)
+
+  }
+
+  if (do_new) {
+    if (do_old && do_new) {
+      // swap
+#define SWAPF(X,Y) { float t = X; X = Y; Y = t; }
+      int vno; for (vno = 0; vno < mris->nvertices; vno++) SWAPF(save_vertices_curvbak[vno], mris->vertices[vno].curvbak);
+      SWAPF(save_dp_tp_unmri_ll,dp->tp.unmri_ll);
+      { int k,j,i;
+        for (i = 0; i < mri_distance->width; i++) {	// THIS ORDER SEEMS WRONG
+          for (j = 0; j < mri_distance->height; j++) {
+    	    for (k = 0; k < mri_distance->depth; k++) {
+              SWAPF(
+	        save_mri_distances[
+		  i*mri_distance->height*mri_distance->depth + 
+		  j*mri_distance->depth + 
+		  k], MRIFvox(mri_distance, i, j, k));
+            }
+          }
+        }
+      }
+#undef SWAPF
+    }
+
+    TIMER_INTERVAL_BEGIN(new)
+    result_new = mrisComputeDefectMRILogUnlikelihood_new(mris, dp, h_border);
+    if (do_old && do_new) TIMER_INTERVAL_END(new)
+	
+    if (do_old && do_new) {
+      // compare
+#define COMP(X,Y) \
+      { \
+        double diff = fabs(X - Y); \
+        double max  = MAX(fabs(X), fabs(Y)); \
+        if ((max > 1e-6) && (diff/max > 1e-6)) { \
+          fprintf(stderr,"mrisComputeDefectMRILogUnlikelihood %s %g != %g\n", #X, X, Y); \
+	  exit(1); \
+        } \
+      } // end of macro
+      COMP(result_new,result_old)
+      int vno; for (vno = 0; vno < mris->nvertices; vno++) COMP(save_vertices_curvbak[vno],mris->vertices[vno].curvbak);
+      COMP(save_dp_tp_unmri_ll,dp->tp.unmri_ll);
+      { int k,j,i;
+        for (i = 0; i < mri_distance->width; i++) {	// THIS ORDER SEEMS WRONG
+          for (j = 0; j < mri_distance->height; j++) {
+    	    for (k = 0; k < mri_distance->depth; k++) {
+              COMP(
+	        save_mri_distances[
+		  i*mri_distance->height*mri_distance->depth + 
+		  j*mri_distance->depth + 
+		  k], MRIFvox(mri_distance, i, j, k));
+            }
+          }
+        }
+      }
+#undef COMP
+      fprintf(stderr, "mrisComputeDefectMRILogUnlikelihood compared good\n");
+    }
+  }
+
+  return do_old ? result_old : result_new;
 }
 
 static double mrisComputeDefectMRILogUnlikelihood_old(MRI_SURFACE *mris, DEFECT_PATCH *dp, HISTOGRAM *h_border)
+#endif
+
 {
 #if 0
   int u,v,numu,numv;
@@ -55805,7 +55671,7 @@ static double mrisComputeDefectMRILogUnlikelihood_old(MRI_SURFACE *mris, DEFECT_
 
 
 
-
+#ifdef BEVIN
 static double mrisComputeDefectMRILogUnlikelihood_new(
     MRI_SURFACE  * const mris_nonconst, 			// various subcomponents of these structures get updated
     DEFECT_PATCH * const dp_nonconst, 
@@ -55820,10 +55686,10 @@ static double mrisComputeDefectMRILogUnlikelihood_new(
   MRI    const * const mri_defect   = dp->mri_defect;
   DEFECT const * const dp_defect    = dp->defect;
 
-  { int k,j,i;
-    for (k = 0; k < mri_distance->depth; k++) {
+  { int i,j,k;
+    for (i = 0; i < mri_distance->width; i++) {
       for (j = 0; j < mri_distance->height; j++) {
-        for (i = 0; i < mri_distance->width; i++) {
+        for (k = 0; k < mri_distance->depth; k++) {
           MRIFvox(mri_distance_nonconst, i, j, k) = NPY;		// MODIFIER THAT WASN'T DETECTED
         }
       }
@@ -55844,44 +55710,81 @@ static double mrisComputeDefectMRILogUnlikelihood_new(
 
   /* find the distance to each surface voxels */
   {int p;
+//#define BEVIN_COUNT_EXITS
+#ifdef BEVIN_COUNT_EXITS
+  int noexits = 0;
+  int exit_counters[6]; { int i; for (i = 0; i < 6; i++) exit_counters[i] = 0; }
+#endif
+
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for
+#endif
   for (p = 0; p < mris->nfaces; p++) {
     int  const         fno  = p;
     FACE const * const face = &mris->faces[fno];
 
     // calculate three vertices
     float const
-      x0 = mris->vertices[face->v[0]].origx,			// BEVIN HOT 12000
       y0 = mris->vertices[face->v[0]].origy,
-      z0 = mris->vertices[face->v[0]].origz,
-      x1 = mris->vertices[face->v[1]].origx,
       y1 = mris->vertices[face->v[1]].origy,
+      y2 = mris->vertices[face->v[2]].origy;
+    int const jmin_nobnd = jVOL(mri_defect, MIN3(y0, y1, y2)) - delta;
+#ifndef BEVIN_COUNT_EXITS
+    if (jmin_nobnd > mri_defect->height - 1) continue;			// hottest
+#endif      
+    float const
+      z0 = mris->vertices[face->v[0]].origz,
       z1 = mris->vertices[face->v[1]].origz,
-      x2 = mris->vertices[face->v[2]].origx,			// BEVIN HOT 11000
-      y2 = mris->vertices[face->v[2]].origy,
       z2 = mris->vertices[face->v[2]].origz;
+    int const kmin_nobnd = kVOL(mri_defect, MIN3(z0, z1, z2)) - delta;
+#ifndef BEVIN_COUNT_EXITS
+    if (kmin_nobnd > mri_defect->depth  - 1) continue;			// hot
+#endif
+    float const
+      x0 = mris->vertices[face->v[0]].origx,
+      x1 = mris->vertices[face->v[1]].origx,
+      x2 = mris->vertices[face->v[2]].origx;
+    int const imax_nobnd = iVOL(mri_defect, MAX3(x0, x1, x2)) + delta;
+#ifndef BEVIN_COUNT_EXITS
+    if (imax_nobnd < 0)                     continue;			// hot
+#endif
+
+    int const jmax_nobnd = jVOL(mri_defect, MAX3(y0, y1, y2)) + delta;
+    int const kmax_nobnd = kVOL(mri_defect, MAX3(z0, z1, z2)) + delta;
+    int const imin_nobnd = iVOL(mri_defect, MIN3(x0, x1, x2)) - delta;
+      
     
     /* find the bounding box */
-    int const imin_nobnd = iVOL(mri_defect, MIN3(x0, x1, x2)) - delta;		// BEVIN HOT  2000
-    int const imax_nobnd = iVOL(mri_defect, MAX3(x0, x1, x2)) + delta;
 
-    int const jmin_nobnd = jVOL(mri_defect, MIN3(y0, y1, y2)) - delta;
-    int const jmax_nobnd = jVOL(mri_defect, MAX3(y0, y1, y2)) + delta;
-
-    int const kmin_nobnd = kVOL(mri_defect, MIN3(z0, z1, z2)) - delta;
-    int const kmax_nobnd = kVOL(mri_defect, MAX3(z0, z1, z2)) + delta;
 
     // TO BE CHECKED
     /* we don't count faces that extend outside the volume -
        should not change the sign */
     // TO BE CHECKED it some defects are close from each other!
+    
+#ifdef BEVIN_COUNT_EXITS
+    if (imin_nobnd > mri_defect->width  - 1) exit_counters[0]++;
+    if (jmin_nobnd > mri_defect->height - 1) exit_counters[1]++;	// hottest
+    if (kmin_nobnd > mri_defect->depth  - 1) exit_counters[2]++;	// hot
+    if (imax_nobnd < 0) exit_counters[3]++;				// hot
+    if (jmax_nobnd < 0) exit_counters[4]++;
+    if (kmax_nobnd < 0) exit_counters[5]++;
+#endif
+    
     if (imin_nobnd > mri_defect->width  - 1 
+#ifndef BEVIN_COUNT_EXITS
      || jmin_nobnd > mri_defect->height - 1 
      || kmin_nobnd > mri_defect->depth  - 1 
      || imax_nobnd < 0 
+#endif
      || jmax_nobnd < 0 
      || kmax_nobnd < 0) {
       continue;
     }
+
+#ifdef BEVIN_COUNT_EXITS
+    noexits++;
+#endif
 
     int const imin = MAX(imin_nobnd, 0);
     int const imax = MIN(imax_nobnd, mri_defect->width - 1);
@@ -55944,14 +55847,22 @@ static double mrisComputeDefectMRILogUnlikelihood_new(
     computeVertexPseudoNormal(mris, face->v[1], n_v1, dp->verbose_mode);
     computeVertexPseudoNormal(mris, face->v[2], n_v2, dp->verbose_mode);
 
-/* finding distance to surface */
+    if (0) {
+      static int count, limit = 1;
+      bool show = (++count > limit);
+      if (show) {
+        limit *= 2;
+        fprintf(stderr, "mris->nfaces:%d imin:%d imax:%d jmin:%d jmax:%d kmin:%d kmax:%d \n", 
+          mris->nfaces, imin, imax, jmin, jmax, kmin, kmax);
+      }
+    }
+
+    /* finding distance to surface */
+    /* the above shows that typically there are only about 20 iterations */
     int k,j,i;
-#ifdef HAVE_OPENMP
-    #pragma omp parallel for collapse(3)
-#endif
-    for (k = kmin; k <= kmax; k++) {
+    for (i = imin; i <= imax; i++) {
       for (j = jmin; j <= jmax; j++) {
-        for (i = imin; i <= imax; i++) {
+        for (k = kmin; k <= kmax; k++) {
 
           float const 
 	    x = xSURF(mri_defect, i),
@@ -56061,13 +55972,28 @@ static double mrisComputeDefectMRILogUnlikelihood_new(
           }
 
           /* update distance map */
-          if (fabs(distance) < fabs(MRIFvox(mri_distance, i, j, k))) {
+	  volatile float * f = &MRIFvox(mri_distance, i, j, k);
+#ifdef HAVE_OPENMP
+          if (fabs(distance) < fabs(*f))					// avoid the lock if possible
+	  #pragma omp critical
+#endif
+          if (fabs(distance) < fabs(*f)) {
             MRIFvox(mri_distance_nonconst, i, j, k) = distance;			// MODIFIER NOT CAUGHT BY COMPILER
           }
         }
       }
     }
-  }} // int p;
+  }
+  
+#ifdef BEVIN_COUNT_EXITS
+  if (1) { 
+    fprintf(stderr, "exit counters: ");
+    int i; for (i= 0; i < 6; i++) fprintf(stderr,"%d:%d ", i, exit_counters[i]);
+    fprintf(stderr," noexits:%d\n",noexits);
+  }
+#endif
+
+  } // int p;
 
   /* compute the volumeLikelihood */
   /* init log values */
@@ -56085,12 +56011,12 @@ static double mrisComputeDefectMRILogUnlikelihood_new(
 
   float max_distance = 0.0;
 
-  int k;
-  for (k = 3; k < mri_distance->depth - 3; k++) {
+  int i;
+  for (i = 3; i < mri_distance->width - 3; i++) {
     int j;
     for (j = 3; j < mri_distance->height - 3; j++) {
-      int i;
-      for (i = 3; i < mri_distance->width - 3; i++) {
+      int k;
+      for (k = 3; k < mri_distance->depth - 3; k++) {
         if (!MRIvox(mri_defect, i, j, k)) {
           continue;
         }
@@ -56167,7 +56093,7 @@ static double mrisComputeDefectMRILogUnlikelihood_new(
 
   return (white_ll + gray_ll);
 }
-
+#endif
 
 
 static double mrisComputeDefectCurvatureLogLikelihood(
@@ -58510,7 +58436,55 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
   return o_d_m;
 }
 
+static int mrisTessellateDefect_wkr(MRI_SURFACE *mris,
+                                MRI_SURFACE *mris_corrected,
+                                DEFECT *defect,
+                                int *vertex_trans,
+                                MRI *mri,
+                                HISTOGRAM *h_k1,
+                                HISTOGRAM *h_k2,
+                                MRI *mri_k1_k2,
+                                HISTOGRAM *h_white,
+                                HISTOGRAM *h_gray,
+                                HISTOGRAM *h_border,
+                                HISTOGRAM *h_grad,
+                                MRI *mri_gray_white,
+                                HISTOGRAM *h_dot,
+                                TOPOLOGY_PARMS *parms);
+				
 static int mrisTessellateDefect(MRI_SURFACE *mris,
+                                MRI_SURFACE *mris_corrected,
+                                DEFECT *defect,
+                                int *vertex_trans,
+                                MRI *mri,
+                                HISTOGRAM *h_k1,
+                                HISTOGRAM *h_k2,
+                                MRI *mri_k1_k2,
+                                HISTOGRAM *h_white,
+                                HISTOGRAM *h_gray,
+                                HISTOGRAM *h_border,
+                                HISTOGRAM *h_grad,
+                                MRI *mri_gray_white,
+                                HISTOGRAM *h_dot,
+                                TOPOLOGY_PARMS *parms) {
+  fprintf(stderr,
+          "\nCORRECTING DEFECT %d (vertices=%d, convex hull=%d, v0=%d)\n",
+          defect->defect_number,
+          defect->nvertices,
+          defect->nchull,
+          defect->vertices[0]);
+
+  TIMER_INTERVAL_BEGIN(old);
+  
+  int result = mrisTessellateDefect_wkr(
+    mris,mris_corrected,defect,vertex_trans,mri,h_k1,h_k2,mri_k1_k2,h_white,h_gray,h_border,h_grad,mri_gray_white,h_dot,parms);
+
+  TIMER_INTERVAL_END(old);
+  
+  return result;
+}
+				
+static int mrisTessellateDefect_wkr(MRI_SURFACE *mris,
                                 MRI_SURFACE *mris_corrected,
                                 DEFECT *defect,
                                 int *vertex_trans,
@@ -58541,13 +58515,6 @@ static int mrisTessellateDefect(MRI_SURFACE *mris,
   /* first build table of all possible edges among vertices in the defect
      and on its border.
   */
-  fprintf(stderr,
-          "\nCORRECTING DEFECT %d (vertices=%d, convex hull=%d, v0=%d)\n",
-          defect->defect_number,
-          defect->nvertices,
-          defect->nchull,
-          defect->vertices[0]);
-
   if (parms->search_mode != GREEDY_SEARCH)
     computeDefectStatistics(mri, mris, defect, h_white, h_gray, mri_gray_white, h_k1, h_k2, mri_k1_k2, 0);
 
