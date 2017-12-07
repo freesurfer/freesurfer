@@ -32,7 +32,7 @@ ELIMINATE_BACKGROUND_CLASS = False
 # priorVisualizationAlpha = 0.4;
 PRIOR_VISUALIZATION_ALPHA = 0.4
 
-MAX_ITERATIONS = 10
+MAX_ITERATIONS = 100
 
 MAXIMAL_DEFORMATION_STOP_CRITERIA = 0.005  # Measured in voxels
 
@@ -74,6 +74,8 @@ def samseg_register_atlas(recipe):
     )
 
     down_sampled_image = down_sample_image(original_image, down_sampling_factors, recipe.show_figures)
+    mesh_down_scaling_factor = [1.0 / down_sample_factor for down_sample_factor in down_sampling_factors]
+    mesh.scale(mesh_down_scaling_factor)
 
     color_scheme = handle_background_class_and_determine_color_scheme(mesh)
     if recipe.show_figures:
@@ -364,7 +366,7 @@ def find_low_cost_initial_mesh_position(
         logger.info('updating position via center of gravity matching')
         transform_matrix = initial_image_to_image_transform_matrix.as_numpy_array
         for axis in range(3):
-            transform_matrix[4, axis] += down_sampling_factors[axis] * translated_positions[axis]
+            transform_matrix[3, axis] += down_sampling_factors[axis] * translation[axis]
         return GEMS2Python.KvlTransform(transform_matrix)
 
 
@@ -497,7 +499,7 @@ def perform_optimization(
     while maximal_defomation and number_of_iterations < MAX_ITERATIONS:
         number_of_iterations += 1
         min_log_likelihood_times_prior, maximal_defomation = optimizer.step_optimizer()
-        logger.info("%f log prior at step %d", min_log_likelihood_times_prior, number_of_iterations)
+        logger.info("at step %d maximal_defomation=%f log prior=%f", number_of_iterations, maximal_defomation, min_log_likelihood_times_prior)
     return number_of_iterations
 
 

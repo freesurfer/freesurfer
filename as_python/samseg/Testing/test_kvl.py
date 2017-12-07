@@ -1,6 +1,7 @@
 import GEMS2Python
 import numpy as np
 from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_almost_equal
 
 from as_python.samseg.kvl import transform_product, voxel_spacing_of_transform, calculate_down_sampling_factors
 
@@ -31,25 +32,26 @@ def test_transform_product():
 
 def test_voxel_spacing_of_transform():
     test_matrix = GEMS2Python.KvlTransform(np.array([
-        [10, 10, 10, 999],
-        [2, 2, 2, 999],
-        [3, 3, 3, 999],
+        [200, 300, 500, 999],
+        [20, 30, 50, 999],
+        [2, 3, 5, 999],
         [0, 0, 0, 1],
     ], dtype=np.double, order='F'))
-    actual = voxel_spacing_of_transform(test_matrix)
-    actual_squared = actual * actual
-    assert 338.999 < actual_squared
-    assert 339.001 > actual_squared
+    actual_spacing = voxel_spacing_of_transform(test_matrix)
+    assert 3 == len(actual_spacing)
+    actual_spacing_squared = [v*v for v in actual_spacing]
+    expected_spacing_squared = [(1*1 + 10*10 + 100*100)*v for v in [2*2, 3*3, 5*5]]
+    assert_array_almost_equal(expected_spacing_squared, actual_spacing_squared)
 
 
 def test_calculate_down_sampling_factors():
     test_matrix = GEMS2Python.KvlTransform(np.array([
         [10, 0, 0, 0],
-        [0, 10, 0, 0],
-        [0, 0, 10, 0],
+        [0, 20, 0, 0],
+        [0, 0, 30, 0],
         [0, 0, 0, 1],
     ], dtype=np.double, order='F'))
     actual_small = calculate_down_sampling_factors(test_matrix, 10)
-    assert [1, 1, 1] == actual_small
+    assert_array_equal([1, 1, 1], actual_small)
     actual_big = calculate_down_sampling_factors(test_matrix, 135)
-    assert [8, 8, 8] == actual_big
+    assert_array_equal([14, 7, 4], actual_big)
