@@ -33,6 +33,7 @@ def display_recipe(recipe):
     log_mode('exvivo', recipe.exvivo)
     log_mode('verbose', recipe.verbose)
     log_missing_structures(recipe.missing_structures)
+    logger.info('atlas_directory is %s', recipe.avg_data_dir)
 
 
 def log_image_file_names(image_file_names, title='image file names'):
@@ -122,10 +123,10 @@ def run_registration_process(recipe):
     registration_recipe = EasyDict()
     registration_recipe.verbose = recipe.verbose
     registration_recipe.image_file_name = recipe.image_file_names[0]
-    registration_recipe.affine_registration_mesh_collection_file_name = \
+    registration_recipe.mesh_collection_file_name = \
         recipe.affine_file_names.mesh_collection_file_name
-    registration_recipe.affine_registration_template_file_name = \
-        recipe.affine_file_names.mesh_collection_file_name
+    registration_recipe.template_file_name = \
+        recipe.affine_file_names.template_file_name
     registration_recipe.save_path = recipe.save_path
     registration_recipe.show_figures = recipe.show_registration_figures
 

@@ -1,7 +1,7 @@
 import logging
 import os
-import numpy as np
 
+import numpy as np
 from easydict import EasyDict
 
 logger = logging.getLogger(__name__)
@@ -239,7 +239,7 @@ def use_standard_affine_registration_atlas(avg_data_dir):
     #   affineRegistrationTemplateFileName = sprintf( '%s/SPM12_6classes_30x30x30_template.nii', AvgDataDir );
     return EasyDict({
         'mesh_collection_file_name':
-            '{0}/SPM12_6classes_30x30x30_meshCollection.txt.gz'.format(avg_data_dir),
+            '{0}/atlasForAffineRegistration.txt.gz'.format(avg_data_dir),
         'template_file_name':
-            '{0}/SPM12_6classes_30x30x30_template.nii'.format(avg_data_dir),
+            '{0}/template.nii'.format(avg_data_dir),
     })

@@ -1,5 +1,11 @@
 import logging
+import math
+
+import GEMS2Python
+import numpy as np
+
 from as_python.samseg.color_scheme import ColorScheme
+from as_python.samseg.kvl import transform_product, calculate_down_sampling_factors
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +17,8 @@ logger = logging.getLogger(__name__)
 
 MESH_STIFFNESS = 1e-7
 SCALING_FACTOR = 0.9
-SCALED_MESH_STIFFNESS = MESH_STIFFNESS * SCALING_FACTOR * SCALING_FACTOR * SCALING_FACTOR
+SCALING_FACTOR_CUBED = SCALING_FACTOR * SCALING_FACTOR * SCALING_FACTOR
+SCALED_MESH_STIFFNESS = MESH_STIFFNESS * SCALING_FACTOR_CUBED
 
 # targetDownsampledVoxelSpacing = 3.0; % In mm
 TARGET_DOWNSAMPLE_VOXEL_SPACING = 3.0
@@ -35,8 +42,11 @@ def samseg_register_atlas(recipe):
     # %
     #
     logger.info('Begin atlas registration')
-    [original_image, original_image_to_world_transform] = read_input_image_with_transform(recipe.image_file_name)
-    [template, template_image_to_world_transform] = read_input_image_with_transform(recipe.template_file_name)
+    original_image = read_input_image_with_transform(recipe.image_file_name)
+    original_image_to_world_transform = original_image.transform_matrix
+
+    template = read_input_image_with_transform(recipe.template_file_name)
+    template_image_to_world_transform = template.transform_matrix
 
     initial_world_to_world_transform_matrix = determine_initial_world_to_world_transform_matrix()
     initial_image_to_image_transform_matrix = determine_initial_image_to_image_transform_matrix(
@@ -44,7 +54,8 @@ def samseg_register_atlas(recipe):
         template_image_to_world_transform
     )
 
-    down_sampling_factors = determine_down_sampling_factors(original_image_to_world_transform)
+    down_sampling_factors = calculate_down_sampling_factors(
+        original_image_to_world_transform, TARGET_DOWNSAMPLE_VOXEL_SPACING)
 
     mesh = determine_mesh(
         down_sampling_factors,
@@ -108,7 +119,8 @@ def read_input_image_with_transform(image_file_name):
     # imageToWorldTransformMatrix = double( kvlGetTransformMatrix( imageToWorldTransform ) );
     # [ template, templateImageToWorldTransform ] = kvlReadImage( templateFileName );
     # templateImageToWorldTransformMatrix = double( kvlGetTransformMatrix( templateImageToWorldTransform ) );
-    pass
+    logger.info("reading image %s", image_file_name)
+    return GEMS2Python.KvlImage(image_file_name)
 
 
 def determine_initial_world_to_world_transform_matrix():
@@ -130,7 +142,23 @@ def determine_initial_world_to_world_transform_matrix():
     #
     #   K = K / prod( scaling );
     # end
-    pass
+
+    #   % Rotation around X-axis (direction from left to right ear)
+    theta = math.pi / 180 * 10.0
+    cos_theta = math.cos(theta)
+    sin_theta = math.sin(theta)
+    rotation_matrix = np.identity(4, dtype=np.double)
+    rotation_matrix[2, 2] = cos_theta
+    rotation_matrix[2, 3] = -sin_theta
+    rotation_matrix[3, 2] = sin_theta
+    rotation_matrix[3, 3] = cos_theta
+
+    scaling_matrix = np.diag([SCALING_FACTOR, SCALING_FACTOR, SCALING_FACTOR, 1.0])
+
+    scaled_and_rotated = np.dot(scaling_matrix, rotation_matrix)
+
+    initial_world_transformation_matrix = GEMS2Python.KvlTransform(scaled_and_rotated)
+    return initial_world_transformation_matrix
 
 
 def determine_initial_image_to_image_transform_matrix(
@@ -140,14 +168,7 @@ def determine_initial_image_to_image_transform_matrix(
     #
     # initialImageToImageTransformMatrix = imageToWorldTransformMatrix \ ...
     #                   ( initialWorldToWorldTransformMatrix * templateImageToWorldTransformMatrix );
-    pass
-
-
-def determine_down_sampling_factors(original_image_to_world_transform):
-    # % Figure out how much to downsample (depends on voxel size)
-    # voxelSpacing = sum( imageToWorldTransformMatrix( 1 : 3, 1 : 3 ).^2 ).^( 1/2 );
-    # downSamplingFactors = max( round( targetDownsampledVoxelSpacing ./ voxelSpacing ), [ 1 1 1 ] )
-    pass
+    return transform_product(initial_world_to_world_transform_matrix, template_image_to_world_transform)
 
 
 def determine_mesh(
@@ -211,6 +232,7 @@ def determine_mesh_properly(
 
 
 def acquire_and_downsample_image(original_image, down_sampling_factors, show_figures):
+    image_buffer = original_image.getImageBuffer()
     # % Get image data
     # imageBuffer = kvlGetImageBuffer( image );
     # if showFigures

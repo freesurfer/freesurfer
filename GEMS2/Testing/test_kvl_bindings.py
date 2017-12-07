@@ -32,7 +32,7 @@ def mesh_fixture(mesh_collection_fixture):
 @pytest.mark.slowtest
 def test_image_bindings(matlab_fixture, image_fixture):
     np.testing.assert_allclose(matlab_fixture['imageBuffer'], image_fixture.getImageBuffer())
-    np.testing.assert_allclose(matlab_fixture['imageToWorldTransformMatrix'], image_fixture.getTransform().as_numpy_array)
+    np.testing.assert_allclose(matlab_fixture['imageToWorldTransformMatrix'], image_fixture.transform_matrix.as_numpy_array)
 
 
 @pytest.mark.slowtest

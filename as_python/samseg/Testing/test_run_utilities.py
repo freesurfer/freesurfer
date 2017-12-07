@@ -50,9 +50,9 @@ def test_update_recipe_with_calculated_paths():
 
 def test_use_standard_affine_registration_atlas():
     actual = use_standard_affine_registration_atlas('affine')
-    assert 'affine/SPM12_6classes_30x30x30_meshCollection.txt.gz' == \
+    assert 'affine/atlasForAffineRegistration.txt.gz' == \
            actual.mesh_collection_file_name
-    assert 'affine/SPM12_6classes_30x30x30_template.nii' == \
+    assert 'affine/template.nii' == \
            actual.template_file_name
 
 class TestFindOrCreateSavePath:

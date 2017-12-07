@@ -1,6 +1,6 @@
-import pytest
-import numpy as np
 import GEMS2Python
+import numpy as np
+
 
 class TestKvlTransform:
     def test_numpy_create(self):
@@ -12,7 +12,7 @@ class TestKvlTransform:
         ], dtype=np.double, order='F')
         kvl_transform = GEMS2Python.KvlTransform(initial_transform)
         returned_transform = kvl_transform.as_numpy_array
-        for row in range(4) :
+        for row in range(4):
             for column in range(4):
                 expected = initial_transform[row][column]
                 actual = returned_transform[row][column]

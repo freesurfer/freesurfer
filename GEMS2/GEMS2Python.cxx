@@ -12,7 +12,7 @@ PYBIND11_MODULE(GEMS2Python, m) {
     py::class_<KvlImage>(m, "KvlImage")
             .def(py::init<const std::string &>())
             .def(py::init<const py::array_t<float> &>())
-            .def("getTransform", &KvlImage::GetTransform)
+            .def_property_readonly("transform_matrix", &KvlImage::GetTransform)
             .def("getImageBuffer", &KvlImage::GetImageBuffer)
             .def("write", &KvlImage::Write)
             ;
