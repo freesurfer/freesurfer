@@ -54949,7 +54949,7 @@ static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATC
   float* save_mri_distances    = NULL;
   // don't bother saving face normals, since they are recomputed
     
-  if (do_new && do_old) {
+  if (0 && do_new && do_old) {
     fprintf(stderr,"mrisComputeDefectMRILogUnlikelihood testing started\n");
   }
 
@@ -54976,7 +54976,7 @@ static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATC
 
     TIMER_INTERVAL_BEGIN(old)
     result_old = mrisComputeDefectMRILogUnlikelihood_old(mris, dp, h_border);
-    if (do_old && do_new) TIMER_INTERVAL_END(old)
+    if (0 && do_old && do_new) TIMER_INTERVAL_END(old)
 
   }
 
@@ -55004,10 +55004,22 @@ static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATC
 
     TIMER_INTERVAL_BEGIN(new)
     result_new = mrisComputeDefectMRILogUnlikelihood_new(mris, dp, h_border);
-    if (do_old && do_new) TIMER_INTERVAL_END(new)
+    if (0 && do_old && do_new) TIMER_INTERVAL_END(new)
 	
     if (do_old && do_new) {
       // compare
+#if 1
+
+#define COMP(X,Y) \
+      { \
+        if ((X) != (Y)) { \
+          fprintf(stderr,"mrisComputeDefectMRILogUnlikelihood %s %g != %g\n", #X, X, Y); \
+	  exit(1); \
+        } \
+      } // end of macro
+
+#else
+
 #define COMP(X,Y) \
       { \
         double diff = fabs(X - Y); \
@@ -55017,6 +55029,9 @@ static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATC
 	  exit(1); \
         } \
       } // end of macro
+
+#endif
+
       COMP(result_new,result_old)
       int vno; for (vno = 0; vno < mris->nvertices; vno++) COMP(save_vertices_curvbak[vno],mris->vertices[vno].curvbak);
       COMP(save_dp_tp_unmri_ll,dp->tp.unmri_ll);
@@ -55034,7 +55049,11 @@ static double mrisComputeDefectMRILogUnlikelihood(MRI_SURFACE *mris, DEFECT_PATC
         }
       }
 #undef COMP
-      fprintf(stderr, "mrisComputeDefectMRILogUnlikelihood compared good\n");
+      static int count, limit = 1;
+      if (++count >= limit) {
+        limit *= 2;
+        fprintf(stderr, "mrisComputeDefectMRILogUnlikelihood compared good %d times, no bads\n", count);
+      }
     }
   }
 
@@ -56068,12 +56087,15 @@ static double mrisComputeDefectMRILogUnlikelihood_new(
 
   float max_distance = 0.0;
 
-  int i;
-  for (i = 3; i < mri_distance->width - 3; i++) {
+  int k;
+  for (k = 3; k < mri_distance->depth - 3; k++) {
     int j;
     for (j = 3; j < mri_distance->height - 3; j++) {
-      int k;
-      for (k = 3; k < mri_distance->depth - 3; k++) {
+      int i;
+      for (i = 3; i < mri_distance->width - 3; i++) {
+      	// Note: The above order is how the _old code does it
+	//       even though it is inefficient.
+      
         if (!MRIvox(mri_defect, i, j, k)) {
           continue;
         }
