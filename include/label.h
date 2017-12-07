@@ -28,9 +28,7 @@
 #ifndef LABEL_H
 #define LABEL_H
 
-#if !defined(BEVIN_EXCLUDE_MINC)
 #include "minc_volume_io.h"
-#endif
 
 #include "matrix.h"
 #include "const.h"
@@ -58,11 +56,9 @@ typedef struct
   char   name[STRLEN] ;       /* name of label file */
   char   subject_name[STRLEN] ;  /* name of subject */
   LV     *lv ;                /* labeled vertices */
-#if !defined(BEVIN_EXCLUDE_MINC)
   General_transform transform ;   /* the next two are from this struct */
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
-#endif
   char   space[100];          /* space description of the coords */
   double avg_stat ;
   int    *vertex_label_ind ; // mris->nvertices long - < 0 means it isn't in the label
@@ -106,9 +102,7 @@ int     LabelAddToSurfaceMark(LABEL *area, MRI_SURFACE *mris, int mark_to_add)  
 int     LabelToOriginal(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelToWhite(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelFromCanonical(LABEL *area, MRI_SURFACE *mris) ;
-#if !defined(BEVIN_EXCLUDE_MINC)
 int     LabelFromTalairach(LABEL *area, MRI_SURFACE *mris) ;
-#endif
 int     LabelToFlat(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris) ;
 int     LabelRipRestOfSurfaceWithThreshold(LABEL *area,

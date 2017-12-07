@@ -1204,6 +1204,7 @@ void LayerSurface::SetActiveSurface( int nSurface )
     }
 
     emit ActorUpdated();
+    emit ActiveSurfaceChanged(nSurface);
   }
 }
 
@@ -2006,7 +2007,7 @@ bool LayerSurface::GetCorrelationOverlayDataAtVertex(int nVert, float *output, i
 
 bool LayerSurface::IsInflated()
 {
-  return GetFileName().toLower().contains("inflated");
+  return (GetFileName().toLower().contains("inflated") || GetActiveSurface() == FSSurface::SurfaceInflated);
 }
 
 bool LayerSurface::GetActiveLabelCentroidPosition(double *pos)
@@ -2169,9 +2170,10 @@ void LayerSurface::AddMappedLabel(LayerROI *label)
   if (!m_mappedLabels.contains(label))
   {
     m_mappedLabels << label;
-    connect(label, SIGNAL(destroyed(QObject*)), this, SLOT(RemoveMappedLabel(QObject*)), Qt::UniqueConnection);
-    connect(label->GetProperty(), SIGNAL(ColorMapChanged()), this, SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
-    connect(label, SIGNAL(VisibilityChanged(bool)), this, SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
+    connect(label, SIGNAL(destroyed(QObject*)), SLOT(RemoveMappedLabel(QObject*)), Qt::UniqueConnection);
+    connect(label, SIGNAL(VisibilityChanged(bool)), SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
+    connect(label->GetProperty(), SIGNAL(ColorMapChanged()), SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
+    connect(label->GetProperty(), SIGNAL(ThresholdChanged(double)), SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
   }
 }
 
@@ -2199,7 +2201,6 @@ void LayerSurface::RemoveMappedLabel(QObject *label_in)
   }
   UpdateOverlay(true, true);
 }
-
 
 QList<int> LayerSurface::FindPath(const QList<int> seeds)
 {

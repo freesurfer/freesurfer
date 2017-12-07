@@ -28,10 +28,10 @@
 
 #include "joint_histo.h"
 
-inline int min(int a, int b) { return (a < b) ? a : b; }
-inline int max(int a, int b) { return (a > b) ? a : b; }
-inline float flmin(float a, float b) { return (a < b) ? a : b; }
-inline float flmax(float a, float b) { return (a > b) ? a : b; }
+static int min(int a, int b) { return (a < b) ? a : b; }
+static int max(int a, int b) { return (a > b) ? a : b; }
+static float flmin(float a, float b) { return (a < b) ? a : b; }
+static float flmax(float a, float b) { return (a > b) ? a : b; }
 
 /*-----------------------------------------------------
   Parameters:

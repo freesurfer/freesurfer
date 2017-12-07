@@ -25,6 +25,8 @@
 #include <stdlib.h>
 #include <iostream>
 
+#define export // obsolete feature "export template" used in these header files
+
 #include <vnl/vnl_det.h>
 #include <vnl/vnl_matrix.h>
 #include <vnl/vnl_matrix_fixed.h>
@@ -40,6 +42,8 @@
 #include <vnl/algo/vnl_symmetric_eigensystem.h>
 #include <vnl/vnl_inverse.h>
 #include <vnl/vnl_nonlinear_minimizer.h>
+
+#undef export
 
 #include "fs_vnl/fs_cost_function.h"
 #include "fs_vnl/fs_lbfgs.h"

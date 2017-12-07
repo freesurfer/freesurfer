@@ -44,7 +44,7 @@ mfiles_DATA=\
 	fwrite3.m \
 	fs_ranksum.m \
 	fs_signrank.m \
-        fsgettmppath.m \
+	fsgettmppath.m \
 	irepierr.m \
 	irepifit.m \
 	irepifitvol.m \
@@ -265,8 +265,7 @@ samsegfiles_DATA=\
 	samseg/getCollage.m \
 	samseg/inspectHistory.m \
 	samseg/prepareExVivoImages.m \
-	samseg/samseg_registerAtlas.m \
-	samseg/samseg_writeOutFreeSurferSeg.m
+	samseg/samseg_registerAtlas.m
 
 samseg_binfiles=\
 	samseg/samseg

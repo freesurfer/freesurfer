@@ -3142,7 +3142,7 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
               gcas[i].yp = yp ;
               gcas[i].zp = zp ;
               gcas[i].label = gcap->labels[n] ;
-              gcas[i].prior = getPrior(gcap, gcap->labels[n]) ;
+              gcas_setPrior(gcas[i], getPrior(gcap, gcap->labels[n]));
               for (r = v = 0 ; r < gca->ninputs ; r++)
               {
                 gcas[i].means[r] = gc->means[r] ;
@@ -5037,13 +5037,13 @@ GCArelabelUnlikely(GCA *gca,
       vl = find_unlikely_voxels_in_region
         (gca, transform, mri_dst_labeled, prior_thresh, 
          mri_prior_labels, mri_priors, x, y, z, whalf) ;
+
       if (vl == NULL)
         continue;
-
       if (Ggca_x >= 0)
 	old_label = MRIgetVoxVal(mri_src_labeled, Ggca_x, Ggca_y, Ggca_z, 0) ;
 	
-      if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+      if (Ggca_x >= 0 && VLSTinList(vl, Ggca_x, Ggca_y, Ggca_z))
       {
         MRI *mri ;
         mri = VLSTtoMri(vl, NULL) ;
@@ -5051,6 +5051,7 @@ GCArelabelUnlikely(GCA *gca,
         MRIfree(&mri) ;
         DiagBreak() ;
       }
+
       nchanged_tmp = 
         change_unlikely_voxels
         (gca, mri_dst_labeled, mri_inputs, transform, 

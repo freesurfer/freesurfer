@@ -133,6 +133,9 @@ extern "C" {
 #define Left_Amygdala_Anterior        96
 #define Right_Amygdala_Anterior       97
 
+#define Left_Claustrum                138  //                          65  135 20  0
+#define Right_Claustrum               139 //                          65  135 20  0
+
 #define IS_FUTURE_WMSA(l) (((l) == Left_future_WMSA) || ((l) == Right_future_WMSA) || ((l) == future_WMSA))
 
 /*
@@ -470,6 +473,7 @@ extern "C" {
 #define IS_VENTRICLE(l)  (IS_LAT_VENT(l) || IS_INF_LAT_VENT(l) || ((l) == Third_Ventricle) || ((l) == Fourth_Ventricle))
 #define IS_CAUDATE(l) (((l) == Left_Caudate) || ((l) == Right_Caudate))
 #define IS_PUTAMEN(l) (((l) == Left_Putamen) || ((l) == Right_Putamen))
+#define IS_CLAUSTRUM(l) (((l) == Left_Claustrum) || ((l) == Right_Claustrum))
 #define IS_ACCUMBENS(l) (((l) == Left_Accumbens_area) || ((l) == Right_Accumbens_area))
 #define IS_PALLIDUM(l) (((l) == Left_Pallidum) || ((l) == Right_Pallidum))
 

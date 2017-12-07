@@ -46,7 +46,8 @@ MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS)
   float xw, yw, zw;
   char text[256];
   int val;
-  int numpoints, num_control_points, nargs;
+  // int numpoints;
+  int num_control_points, nargs;
   MPoint *pointArray = 0;
   char extension[STRLEN];
 
@@ -93,10 +94,11 @@ MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS)
       else  // new format
       {
         i = sscanf(cp, "%s %d", text, &val);
-        if (strcmp("numpoints", text) == 0 && i == 2) {
-          numpoints = val;
-        }
-        else if (strcmp("useRealRAS", text) == 0 && i == 2) {
+        // if (strcmp("numpoints", text) == 0 && i == 2) {
+          // numpoints = val;
+        // }
+        // else 
+        if (strcmp("useRealRAS", text) == 0 && i == 2) {
           *useRealRAS = val;
         }
       }

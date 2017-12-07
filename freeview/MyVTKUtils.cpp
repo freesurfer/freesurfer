@@ -612,10 +612,10 @@ void MyVTKUtils::SetImageDataComponent(char* ptr, int* dim, size_t nNumberOfFram
   switch (data_type)
   {
   case VTK_UNSIGNED_CHAR:
-    ((unsigned char*)ptr)[(k*dim[0]*dim[1]+j*dim[0]+i)*nNumberOfFrames + nframe] = (unsigned char)val;
+    ((unsigned char*)ptr)[(k*dim[0]*dim[1]+j*dim[0]+i)*nNumberOfFrames + nframe] = ((unsigned char)val);
     break;
   case VTK_INT:
-    ((int*)ptr)[(k*dim[0]*dim[1]+j*dim[0]+i)*nNumberOfFrames + nframe] = (int)val;
+    ((int*)ptr)[(k*dim[0]*dim[1]+j*dim[0]+i)*nNumberOfFrames + nframe] = ((int)val);
     break;
   case VTK_LONG:
     ((long*)ptr)[(k*dim[0]*dim[1]+j*dim[0]+i)*nNumberOfFrames + nframe] = (long)val;

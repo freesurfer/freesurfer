@@ -302,7 +302,7 @@ protected:
   void LoadSurfaceFile( const QString& filename,
                         const QString& fn_patch = "",
                         const QString& fn_target = "",
-                        const QStringList& sup_files = QStringList());
+                        const QStringList& sup_files = QStringList(), int layer_id = -1);
   void LoadPVolumeFiles( const QStringList& filenames, const QString& prefix, const QString& lut );
   void LoadROIFile( const QString& fn, const QString& ref_vol, const QColor& color = Qt::yellow, double opacity = 1, double threshold = 0 );
   void LoadWayPointsFile        ( const QString& fn );
@@ -385,6 +385,7 @@ protected:
   void CommandSetTrackColor     ( const QStringList& cmd );
   void CommandSetTrackRender    ( const QStringList& cmd );
   void CommandLoadTractCluster  ( const QStringList& cmd );
+  void CommandReorderLayers  ( const QStringList& cmd );
 
 public:
   void CommandSetCamera         ( const QStringList& cmd );
@@ -607,8 +608,8 @@ private:
   QPoint                m_ptBackUpPos;      // for X11 geometry hack
   QMessageBox*          m_dlgMessage;
 
-  QVariantMap           m_volumeSettings;
-  QVariantMap           m_surfaceSettings;
+  QMap<int, QVariantMap>  m_volumeSettings;
+  QMap<int, QVariantMap>  m_surfaceSettings;
   QVariantMap           m_defaultSettings;
   bool                  m_bShowTransformWindow;
 

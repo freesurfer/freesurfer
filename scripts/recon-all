@@ -4313,18 +4313,19 @@ if($DoT2pial || $DoFLAIRpial) then
     if($RunIt) $fs_time $normcmd |& tee -a $LF
     if($status) goto error_exit;
     
-    # then mask the T2/FLAIR 
-    # note: post-normalized file remains for debug, with .norm in name
-    # this creates ${t2flair}.mgz
-    set maskcmd = (mri_mask \
-        $mdir/${t2flair}.norm.mgz \
-        $mdir/brain.finalsurfs.mgz \
-        $mdir/${t2flair}.mgz)
-    echo "\n $maskcmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $maskcmd |& tee -a $LF
-    if($status) goto error_exit;
-    
   endif
+
+  # then mask the T2/FLAIR 
+  # note: post-normalized file remains for debug, with .norm in name
+  # this creates ${t2flair}.mgz
+  set maskcmd = (mri_mask \
+      -transfer 255 -keep_mask_deletion_edits \
+      $mdir/${t2flair}.norm.mgz \
+      $mdir/brain.finalsurfs.mgz \
+      $mdir/${t2flair}.mgz)
+  echo "\n $maskcmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $maskcmd |& tee -a $LF
+  if($status) goto error_exit;
 
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
@@ -4708,7 +4709,11 @@ if($DoRelabelHypos) then
   set cmd = (mri_relabel_hypointensities $xopts)
   if ($LHonly) set cmd = ($cmd -lh )
   if ($RHonly) set cmd = ($cmd -rh )
-  set cmd = ($cmd aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz)
+  if ($NoWMSA) then
+    set cmd = (cp aseg.presurf.mgz  aseg.presurf.hypos.mgz)
+  else
+    set cmd = ($cmd aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz)
+  endif
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;

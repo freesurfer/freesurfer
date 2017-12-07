@@ -26,6 +26,8 @@
 #ifndef MRI_H
 #define MRI_H
 
+#define BEVIN_FASTER_MRI_EM_REGISTER
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -207,11 +209,9 @@ typedef struct
   BUFTYPE       ***slices ;
   int           scale ;
   char          transform_fname[STR_LEN] ;
-#if !defined(BEVIN_EXCLUDE_MINC)
   General_transform transform ;   /* the next two are from this struct */
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
-#endif
   int           free_transform ;   /* are we responsible for freeing it? */
   int           nframes ;          /* # of concatenated images */
 
@@ -309,17 +309,11 @@ float  MRIgetVoxDx(MRI *mri, int c, int r, int s, int f);
 float  MRIgetVoxDy(MRI *mri, int c, int r, int s, int f);
 float  MRIgetVoxDz(MRI *mri, int c, int r, int s, int f);
 
-#ifdef __cplusplus
 float  MRIgetVoxVal( const MRI *mri, int c, int r, int s, int f);
 int    MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval);
 void   MRIdbl2ptr(double v, void *pmric, int mritype);
 double MRIptr2dbl(void *pmric, int mritype);
-#else
-inline float  MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f);
-inline int    MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval);
-inline void   MRIdbl2ptr(double v, void *pmric, int mritype);
-inline double MRIptr2dbl(void *pmric, int mritype);
-#endif
+
 size_t MRIsizeof(int mritype);
 
 char * MRIprecisionString(int PrecisionCode);
@@ -388,9 +382,7 @@ MRI   *MRIallocSequence(int width, int height,int depth,int type,int nframes);
 MRI   *MRIallocHeader(int width, int height, int depth, int type, int nframes) ;
 int   MRIallocIndices(MRI *mri) ;
 int   MRIsetResolution(MRI *mri, float xres, float yres, float zres) ;
-#if !defined(BEVIN_EXCLUDE_MINC)
 int   MRIsetTransform(MRI *mri,   General_transform *transform) ;
-#endif
 MRI * MRIallocChunk(int width, int height, int depth, int type, int nframes);
 int   MRIchunk(MRI **pmri);
 
@@ -825,11 +817,25 @@ int   MRIsampleVolumeFrame( const MRI *mri,
 			    double x, double y, double z,
 			    const int frame,
 			    double *pval);
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+int   MRIsampleVolumeFrame_xyzInt_nRange_floats(const MRI *mri,
+                            int x, int y, int z, 
+			    const int frameBegin,
+			    const int frameEnd,		// [frameBegin] .. [frameEnd-1] done
+			    float *valForEachFrame);	// vals loaded into [0] .. [frameEnd-1 - frameBegin]
+#endif
 int   MRIsampleVolumeFrameType( const MRI *mri,
 				const double x, const double y, const double z,
 				const int frame,
 				int interp_type,
 				double *pval );
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+int   MRIsampleVolumeFrameType_xyzInt_nRange_SAMPLE_NEAREST_floats(const MRI *mri,
+                            int x, int y, int z, 
+			    const int frameBegin,
+			    const int frameEnd,		// [frameBegin] .. [frameEnd-1] done
+			    float *valForEachFrame);	// vals loaded into [0] .. [frameEnd-1 - frameBegin]
+#endif
 int   MRIsampleVolumeGradient(MRI *mri, double x, double y, double z,
                               double *pdx, double *pdy, double *pdz) ;
 int   MRIsampleVolumeGradientFrame( const MRI *mri,

@@ -3582,7 +3582,6 @@ void WriteVoxelToEditFile ( xVoxelRef iAnaIdx ) {
   fprintf( file,"%f %f %f\n", xVoxl_ExpandFloat( &ras ) );
 
   /* convert to tal and write that. */
-#if !defined(BEVIN_EXCLUDE_MINC)
   xVoxel    tal;
   tBoolean  bHasTransform;
   Volm_HasTalTransform( gAnatomicalVolume[tkm_tVolumeType_Main],
@@ -3597,7 +3596,6 @@ void WriteVoxelToEditFile ( xVoxelRef iAnaIdx ) {
                 xVoxl_ExpandFloat( &tal ) ));
     fprintf( file,"%f %f %f\n", xVoxl_ExpandFloat( &tal ) );
   }
-#endif
 
   DebugCatch;
   DebugCatchError( eResult, tkm_tErr_NoErr, tkm_GetErrorString );
@@ -6039,10 +6037,11 @@ int main ( int argc, char** argv ) {
     SetVolumeDirty( volume, FALSE );
   }
 
-  for ( volume = 0; volume < tkm_knNumSegTypes; volume++ ) {
-    gPreviousSegmentationVolume[volume] = NULL;
-    gSegmentationVolume[volume] = NULL;
-    gSegmentationChangedVolume[volume] = NULL;
+  tkm_tSegType segType;
+  for ( segType = 0; segType < tkm_knNumSegTypes; segType++ ) {
+    gPreviousSegmentationVolume[segType] = NULL;
+    gSegmentationVolume        [segType] = NULL;
+    gSegmentationChangedVolume [segType] = NULL;
   }
 
   /* find the user's home directory, or where the program is running from */
@@ -8459,14 +8458,12 @@ tkm_tErr LoadVolume ( tkm_tVolumeType iType,
   gAnatomicalVolume[iType] = newVolume;
 
   /* show the tal coords and hide the ras coords */
-#if !defined(BEVIN_EXCLUDE_MINC)
   if (NULL != gAnatomicalVolume[iType]->mpMriValues->linear_transform) {
     DebugNote( ("Showing Tal coords") );
     tkm_SendTclCommand( tkm_tTclCommand_ShowTalCoords, "1" );
     DebugNote( ("Hiding RAS coords") );
     tkm_SendTclCommand( tkm_tTclCommand_ShowRASCoords, "0" );
   } else 
-#endif
   {
     DebugNote( ("Hiding Tal coords") );
     tkm_SendTclCommand( tkm_tTclCommand_ShowTalCoords, "0" );
@@ -10255,8 +10252,8 @@ tkm_tErr LoadSegmentationVolume ( tkm_tSegType iVolume,
   else /* Try to load the color table. */
   {
     DebugNote( ("Loading color table.") );
-    eResult = LoadSegmentationColorTable( iVolume, isColorFileName );
-    DebugAssertThrowX( (Volm_tErr_NoErr == eResult),
+    tkm_tErr eResult = LoadSegmentationColorTable( iVolume, isColorFileName );
+    DebugAssertThrowX( (tkm_tErr_NoErr == eResult),
                        eResult, tkm_tErr_ErrorAccessingSegmentationVolume );
   }
 
@@ -10534,7 +10531,7 @@ tkm_tErr ImportSurfaceAnnotationToSegmentation ( tkm_tSegType iVolume,
   /* Try to load the color table. */
   DebugNote( ("Loading color table.") );
   eResult = LoadSegmentationColorTable( iVolume, isColorFileName );
-  DebugAssertThrowX( (Volm_tErr_NoErr == eResult),
+  DebugAssertThrowX( (tkm_tErr_NoErr == eResult),
                      eResult, tkm_tErr_CouldntLoadColorTable );
 
   /* Read the annotation into the surface. */

@@ -3957,7 +3957,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
 	if (d < 1 && (label == Left_Lesion || label == Right_Lesion || IS_WMSA(label)))
 	  v->marked = v->marked2 = 1 ;
 
-        if (IS_PUTAMEN(label) || IS_ACCUMBENS(label))
+        if (IS_PUTAMEN(label) || IS_ACCUMBENS(label) || IS_CLAUSTRUM(label))
         {
           compute_label_normal(mri_aseg, xv, yv, zv, label, 3,
                                &nx, &ny, &nz, 1) ;
@@ -3985,7 +3985,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
 	      v->marked = 1 ;
 	      if (Gdiag & DIAG_SHOW && vno == Gdiag_no)
 	      {
-		printf("marking vertex %d as adjacent to putamen in insula\n", vno);
+		printf("marking vertex %d as adjacent to putamen/claustrum in insula\n", vno);
 	      }
 	    }
 	    break ;

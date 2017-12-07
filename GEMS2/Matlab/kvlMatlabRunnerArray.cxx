@@ -31,6 +31,7 @@
 #include "kvlWriteRGBImage.h"
 #include "kvlGetCroppedRegion.h"
 #include "kvlGetCostAndGradientCalculator.h"
+#include "kvlGetAverageAtlasMeshPositionCostAndGradientCalculator.h"
 #include "kvlEvaluateMeshPosition.h"
 #include "kvlGetOptimizer.h"
 #include "kvlStepOptimizer.h"
@@ -80,6 +81,7 @@ MatlabRunnerArray
   m_Array.push_back( WriteRGBImage::New().GetPointer() );
   m_Array.push_back( GetCroppedRegion::New().GetPointer() );
   m_Array.push_back( GetCostAndGradientCalculator::New().GetPointer() );
+  m_Array.push_back( GetAverageAtlasMeshPositionCostAndGradientCalculator::New().GetPointer() );
   m_Array.push_back( EvaluateMeshPosition::New().GetPointer() );
   m_Array.push_back( GetOptimizer::New().GetPointer() );
   m_Array.push_back( StepOptimizer::New().GetPointer() );

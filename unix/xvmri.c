@@ -121,9 +121,7 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
 {
   int       x, y, z, which, depth, frame, xi, yi, zi, xk, yk, zk ;
   double    xr, yr, zr, xv, yv, zv;
-#if !defined(BEVIN_EXCLUDE_MINC)
   double    xt=0.0, yt=0.0, zt=0.0, xtv=0.0, ytv=0.0, ztv=0.0;
-#endif
   float     xf, yf, zf, xft, yft, zft ;
   MRI       *mri ;
   char      fname[100] ;
@@ -198,13 +196,11 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
     repaint_needed = 0 ;
     XVMRIredisplayFrame(xvf, mri, which, mri_depths[which], mri_frames[which]);
   }
-#if !defined(BEVIN_EXCLUDE_MINC)
   if (talairach)
   {
     MRIvoxelToTalairach(mri, (double)x, (double)y, (double)z, &xt, &yt, &zt) ;
     MRIvoxelToTalairachVoxel(mri, (double)x, (double)y, (double)z, &xtv,&ytv,&ztv);
   }
-#endif
   MRIvoxelToWorld(mri, (double)x, (double)y, (double)z, &xr, &yr, &zr) ;
 
   if (px)
@@ -259,24 +255,20 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
       switch (mri->type)
       {
       case MRI_UCHAR:
-#if !defined(BEVIN_EXCLUDE_MINC)
         if (talairach)
           XVprintf(xvf, 0, "T: (%d,%d,%d) --> %d",
                    nint(xt),nint(yt),nint(zt),
                    MRIseq_vox(mri, nint(xtv), nint(ytv), nint(ztv),frame));
         else
-#endif
           XVprintf(xvf, 0, "(%d,%d,%d) --> %d",x,y,z,
                    MRIseq_vox(mri,x,y,z,frame));
         break ;
       case MRI_FLOAT:
-#if !defined(BEVIN_EXCLUDE_MINC)
         if (talairach)
           XVprintf(xvf, 0, "T: (%d,%d,%d) --> %2.3f",
                    nint(xt),nint(yt),nint(zt),
                    MRIFseq_vox(mri, nint(xtv), nint(ytv), nint(ztv),frame));
         else
-#endif
           XVprintf(xvf, 0, "(%d,%d,%d) --> %2.3f",x,y,z,
                    MRIFseq_vox(mri, x, y, z,frame));
         break ;
@@ -361,11 +353,9 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
             return(ERROR_BAD_FILE) ;
           }
           fclose(fp) ;
-#if !defined(BEVIN_EXCLUDE_MINC)
           if (talairach)
             MRItalairachToVoxel(mri, (double)xft,(double)yft,(double)zft,&xv,&yv,&zv);
           else
-#endif
             MRIworldToVoxel(mri, (double)xf, (double)yf, (double)zf, &xv, &yv, &zv) ;
           XVMRIsetPoint(xvf, which, nint(xv), nint(yv), nint(zv)) ;
           XVprintf(xvf, 0, "current point: (%d, %d, %d) --> (%d, %d, %d)",
@@ -403,11 +393,9 @@ mri_event_handler(XV_FRAME *xvf, Event *event,DIMAGE *dimage,
           MRIvoxelToWorld(mri, (double)x_click, (double)y_click, (double)z_click,
                           &xr, &yr, &zr) ;
           fprintf(fp, "%f %f %f\n", (float)xr, (float)yr, (float)zr) ;
-#if !defined(BEVIN_EXCLUDE_MINC)
           MRIvoxelToTalairach(mri, (double)x_click, (double)y_click, (double)z_click,
                               &xt, &yt, &zt) ;
           fprintf(fp, "%f %f %f\n", (float)xt, (float)yt, (float)zt) ;
-#endif
           fclose(fp) ;
 #if 0
           fprintf(stderr, "wrote (%2.3f, %2.3f, %2.3f) and (%2.3f, %2.3f, %2.3f)\n",

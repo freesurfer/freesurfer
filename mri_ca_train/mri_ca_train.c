@@ -1620,10 +1620,6 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
 {
   MRI *mri_fixed = NULL;
   int errors=0;
-#if defined(BEVIN_EXCLUDE_MINC)
-    ErrorExit(ERROR_BADFILE,
-              "ERROR: mri_ca_train: talairach not supported!\n");
-#else
   int x, y, z, label=0;
   double xw=0.0, yw=0.0, zw=0.0; // RAS coords
   double xmt=0.0, ymt=0.0, zmt=0.0; // MNI tal coords
@@ -1849,7 +1845,6 @@ static int check(MRI *mri_seg, char *subjects_dir, char *subject_name)
   printf("min_xtal_r_amygdala = %4.1f\n",min_xtal_r_amygdala);
   printf("min_xtal_r_putamen  = %4.1f\n",min_xtal_r_putamen);
   printf("min_xtal_r_pallidum = %4.1f\n",min_xtal_r_pallidum);
-#endif
   
   if ( do_fix_badsubjs && errors)
   {

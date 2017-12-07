@@ -222,6 +222,11 @@ public:
     return m_nID;
   }
 
+  void SetID(int n)
+  {
+    m_nID = n;
+  }
+
   void CopyTransformation(Layer* layer);
 
 Q_SIGNALS:

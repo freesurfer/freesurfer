@@ -672,7 +672,6 @@ void LayerFCD::UpdateRASImage( vtkImageData* rasImage)
   }
 }
 
-
 void LayerFCD::InitializeActors()
 {
   if ( m_layerSource == NULL )
