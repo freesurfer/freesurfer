@@ -55710,11 +55710,43 @@ static double mrisComputeDefectMRILogUnlikelihood_new(
 
   /* find the distance to each surface voxels */
   {int p;
+  
+
 //#define BEVIN_COUNT_EXITS
 #ifdef BEVIN_COUNT_EXITS
   int noexits = 0;
   int exit_counters[6]; { int i; for (i = 0; i < 6; i++) exit_counters[i] = 0; }
 #endif
+
+
+  // calculate the tasks to do
+  //
+  typedef struct Entry {
+#define ENTRY_MEMBERS \
+	ELT(int, fno) \
+	ELT(FACE const *, face) \
+	ELT(int, imin_nobnd) \
+	ELT(int, imax_nobnd) \
+	ELT(int, jmin_nobnd) \
+	ELT(int, jmax_nobnd) \
+	ELT(int, kmin_nobnd) \
+	ELT(int, kmax_nobnd) \
+	ELT(float, x0) \
+	ELT(float, x1) \
+	ELT(float, x2) \
+	ELT(float, y0) \
+	ELT(float, y1) \
+	ELT(float, y2) \
+	ELT(float, z0) \
+	ELT(float, z1) \
+	ELT(float, z2) \
+	// end of macro
+#define ELT(T,X) T X; 
+    ENTRY_MEMBERS
+#undef ELT
+  } Entry;
+  Entry* buffer  = (Entry*)malloc(mris->nfaces * sizeof(Entry));
+  int bufferSize = 0; 
 
 #ifdef HAVE_OPENMP
   #pragma omp parallel for
@@ -55785,6 +55817,38 @@ static double mrisComputeDefectMRILogUnlikelihood_new(
 #ifdef BEVIN_COUNT_EXITS
     noexits++;
 #endif
+
+    Entry* entry;
+    #pragma omp critical
+    entry = &buffer[bufferSize++];
+
+#define ELT(T,X) entry->X = X; 
+    ENTRY_MEMBERS
+#undef ELT
+  }
+  
+#ifdef BEVIN_COUNT_EXITS
+  if (1) { 
+    fprintf(stderr, "exit counters: ");
+    int i; for (i= 0; i < 6; i++) fprintf(stderr,"%d:%d ", i, exit_counters[i]);
+    fprintf(stderr," noexits:%d\n",noexits);
+  }
+#endif
+
+
+  // do the tasks
+  //
+  int bufferIndex = 0;
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for
+#endif
+  for (bufferIndex = 0; bufferIndex < bufferSize; bufferIndex++) {
+    typedef void p;	// poison p
+    Entry const * entry = &buffer[bufferIndex];
+
+#define ELT(T,X) T const X = entry->X;
+    ENTRY_MEMBERS
+#undef ELT
 
     int const imin = MAX(imin_nobnd, 0);
     int const imax = MIN(imax_nobnd, mri_defect->width - 1);
@@ -55985,14 +56049,7 @@ static double mrisComputeDefectMRILogUnlikelihood_new(
     }
   }
   
-#ifdef BEVIN_COUNT_EXITS
-  if (1) { 
-    fprintf(stderr, "exit counters: ");
-    int i; for (i= 0; i < 6; i++) fprintf(stderr,"%d:%d ", i, exit_counters[i]);
-    fprintf(stderr," noexits:%d\n",noexits);
-  }
-#endif
-
+  free(buffer);
   } // int p;
 
   /* compute the volumeLikelihood */
