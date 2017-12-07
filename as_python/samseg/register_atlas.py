@@ -32,6 +32,10 @@ ELIMINATE_BACKGROUND_CLASS = False
 # priorVisualizationAlpha = 0.4;
 PRIOR_VISUALIZATION_ALPHA = 0.4
 
+MAX_ITERATIONS = 10
+
+MAXIMAL_DEFORMATION_STOP_CRITERIA = 0.005  # Measured in voxels
+
 
 def samseg_register_atlas(recipe):
     #         image_file_name,
@@ -59,6 +63,7 @@ def samseg_register_atlas(recipe):
 
     down_sampling_factors = calculate_down_sampling_factors(
         original_image_to_world_transform, TARGET_DOWNSAMPLE_VOXEL_SPACING)
+    logger.info('down sampling is %s', str(down_sampling_factors))
 
     mesh = determine_mesh(
         down_sampling_factors,
@@ -366,7 +371,9 @@ def find_low_cost_initial_mesh_position(
 def center_of_gravity_adjusted_translation(mesh, image_buffer):
     shape = image_buffer.shape
     [image_x, image_y, image_z] = ndimage.measurements.center_of_mass(image_buffer)
+    logger.info("center of gravity for image = [%f, %f, %f]", image_x, image_y, image_z)
     [atlas_x, atlas_y, atlas_z] = center_of_gravity_of_mesh(mesh, shape)
+    logger.info("center of gravity for mesh = [%f, %f, %f]", atlas_x, atlas_y, atlas_z)
     return [
         image_x - atlas_x,
         image_y - atlas_y,
@@ -378,7 +385,6 @@ def center_of_gravity_of_mesh(mesh, shape):
     priors_buffer = mesh.rasterize(shape)
     non_background_summation = priors_buffer[:, :, :, 2:].sum(axis=3)
     result = ndimage.measurements.center_of_mass(non_background_summation)
-    print(result)
     return result
 
 
@@ -410,7 +416,6 @@ def show_starting_situation(mesh, image_buffer, color_scheme):
 
 
 def get_optimizer(mesh, calculator):
-    # maximalDeformationStopCriterion = 0.005; % Measured in voxels
     # lineSearchMaximalDeformationIntervalStopCriterion = maximalDeformationStopCriterion; % Doesn't seem to matter very much
     #
     # % Get an optimizer, and stick the cost function into it
@@ -422,7 +427,19 @@ def get_optimizer(mesh, calculator):
     #                                 lineSearchMaximalDeformationIntervalStopCriterion, ...
     #                                 'BFGS-MaximumMemoryLength', 12 ); % Affine registration only has 12 DOF
     #
-    pass
+    optimization_parameters = {
+        'Verbose': 1.0,
+        'MaximalDeformationStopCriterion': MAXIMAL_DEFORMATION_STOP_CRITERIA,
+        'LineSearchMaximalDeformationIntervalStopCriterion': MAXIMAL_DEFORMATION_STOP_CRITERIA,
+        'BFGS-MaximumMemoryLength': 12.0  # Affine registration only has 12 DOF
+    }
+    logger.info("optimization parameters = %s", str(optimization_parameters))
+    return GEMS2Python.KvlOptimizer(
+        'L-BFGS',
+        mesh,
+        calculator,
+        optimization_parameters
+    )
 
 
 def perform_optimization(
@@ -432,7 +449,6 @@ def perform_optimization(
         color_scheme,
         show_figures
 ):
-    number_of_iterations = 0
     # while true
     #   %
     #   [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer )
@@ -476,7 +492,45 @@ def perform_optimization(
     #
     # end % End loop over iterations
     # numberOfIterations
+    number_of_iterations = 0
+    maximal_defomation = True
+    while maximal_defomation and number_of_iterations < MAX_ITERATIONS:
+        number_of_iterations += 1
+        min_log_likelihood_times_prior, maximal_defomation = optimizer.step_optimizer()
+        logger.info("%f log prior at step %d", min_log_likelihood_times_prior, number_of_iterations)
     return number_of_iterations
+
+
+def show_optimization_figures():
+    #   if showFigures
+    #     % Show figure
+    #     priors = kvlRasterizeAtlasMesh( mesh, size( imageBuffer ) );
+    #     colorCodedPriors = kvlColorCodeProbabilityImages( priors, colors );
+    #     mask = ( sum( double( priors ), 4 ) / (2^16-1) ) > .5;
+    #     subplot( 2, 2, 1 )
+    #     showImage( imageBuffer );
+    #     subplot( 2, 2, 2 )
+    #     showImage( imageBuffer .* mask );
+    #     subplot( 2, 2, 3 )
+    #     imageToShow = ( imageBuffer - min( imageBuffer(:) ) ) / ( max( imageBuffer(:) ) - min( imageBuffer(:) ) );
+    #     imageToShow = ( 1 - priorVisualizationAlpha ) * repmat( imageToShow, [ 1 1 1 3 ] ) + ...
+    #                   priorVisualizationAlpha * colorCodedPriors;
+    #     showImage( imageToShow )
+    #     subplot( 2, 2, 4 )
+    #     tmp = double( priors( :, :, :, gmClassNumber ) ) / ( 2^16-1 );
+    #     showImage( mosaicImages( tmp, imageBuffer .* mask, 2 ) );
+    #     drawnow
+    #
+    #     % Show affine matrix, retrieved from any four non-colinear points before and after registration
+    #     nodePositions = kvlGetMeshNodePositions( mesh );
+    #     pointNumbers = [ 1 111 202 303 ];
+    #     originalY = [ originalNodePositions( pointNumbers, : )'; 1 1 1 1 ];
+    #     Y = [ nodePositions( pointNumbers, : )'; 1 1 1 1 ];
+    #     extraImageToImageTransformMatrix = Y * inv( originalY );
+    #     scaling = svd( extraImageToImageTransformMatrix( 1 : 3, 1 : 3 ) );
+    #     disp( [ 'scaling: ' num2str( scaling' ) ] )
+    #   end
+    pass
 
 
 def save_results(
