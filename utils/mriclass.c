@@ -953,9 +953,7 @@ MRI *MRICupdatePriors(MRI *mri_target, MRI *mri_priors, int scale)
     mri_priors->xsize *= scale;
     mri_priors->ysize *= scale;
     mri_priors->zsize *= scale;
-#if !defined(BEVIN_EXCLUDE_MINC)
     mri_priors->linear_transform = mri_priors->inverse_linear_transform = NULL;
-#endif
   }
 
   for (z = 0; z < depth; z++) {

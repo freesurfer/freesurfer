@@ -333,6 +333,7 @@ MRISfindMostSimilarBasin(MRI_SURFACE *mris, MRI *mri, int min_basin)
   }
 
   min_grad = 1e10 ;
+  best_basin = -1 ;
   for (basin = 1 ; basin <= max_basin ; basin++)
   {
     if (nbr_vertices[basin] <= 0)
@@ -359,6 +360,7 @@ MRISfindMostSimilarBasins(MRI_SURFACE *mris, MRI *mri, int *pb2)
   nbr_vertices = (int *)calloc(nbasins, sizeof(*nbr_vertices)) ;
   avg_grad = (double *)calloc(nbasins, sizeof(*avg_grad)) ;
   best_grad = 1e20;
+  best_b1 = best_b2 = best_basin = -1;
   for (basin1 = 1 ; basin1 < nbasins ; basin1++)
   {
     memset(nbr_vertices, 0, nbasins*sizeof(*nbr_vertices)) ;

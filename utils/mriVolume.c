@@ -1447,12 +1447,10 @@ Volm_tErr Volm_HasTalTransform(mriVolumeRef this, tBoolean *obHasTransform)
   DebugAssertThrowX((obHasTransform != NULL), eResult, Volm_tErr_InvalidParamater);
 
   /* Return true if we have a tal transform, false if not. */
-#if !defined(BEVIN_EXCLUDE_MINC)
   if (NULL != this->mpMriValues->linear_transform) {
     *obHasTransform = TRUE;
   }
   else 
-#endif
   {
     *obHasTransform = FALSE;
   }
@@ -1544,7 +1542,6 @@ Volm_tErr Volm_ConvertRASToIdx(mriVolumeRef this, xVoxelRef iRAS, xVoxelRef oIdx
   return eResult;
 }
 
-#if !defined(BEVIN_EXCLUDE_MINC)
 Volm_tErr Volm_ConvertIdxToMNITal(mriVolumeRef this, xVoxelRef iIdx, xVoxelRef oMNITal)
 {
   Volm_tErr eResult = Volm_tErr_NoErr;
@@ -1698,7 +1695,6 @@ Volm_tErr Volm_ConvertTalToIdx(mriVolumeRef this, xVoxelRef iTal, xVoxelRef oIdx
 
   return eResult;
 }
-#endif
 
 Volm_tErr Volm_ConvertIdxToScanner(mriVolumeRef this, xVoxelRef iIdx, xVoxelRef oScanner)
 {

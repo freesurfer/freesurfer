@@ -747,9 +747,7 @@ find_corpus_callosum(MRI *mri_tal,
   // this function is called with mri being talairached volume
   // get the talairach coords (0,0,0) in the voxel space
   if (
-#if !defined(BEVIN_EXCLUDE_MINC)
   mri_tal->linear_transform || 
-#endif
   lta)
   {
     MRIworldToVoxel(mri_tal, 0.0, 0.0, 0.0,

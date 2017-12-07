@@ -61,6 +61,10 @@ protected slots:
   void OnEraseRangeChanged(const QString& strg);
   void OnEraseExcludeRangeChanged(const QString& strg);
 
+  void OnButtonGeoClear();
+  void OnButtonGeoGo();
+  void OnColorPickerGeo(const QColor& color);
+
 protected:
   virtual void showEvent(QShowEvent *);
 
@@ -74,6 +78,7 @@ private:
   QList<QWidget*>  m_widgetsConstrain;
   QList<QWidget*>  m_widgetsSmooth;
   QList<QWidget*>  m_widgetsContour;
+  QList<QWidget*>  m_widgetsGeoSeg;
 };
 
 #endif // TOOLWINDOWEDIT_H

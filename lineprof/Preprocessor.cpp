@@ -3,11 +3,13 @@
 #include <cmath>
 
 // ITK
+#define export // obsolete feature "export template" used in these header files
 #include <itkPointSetToImageFilter.h>
 #include <itkNeighborhoodConnectedImageFilter.h>
 #include <itkImageRegionIteratorWithIndex.h>
 #include <itkImageRegionIterator.h>
 #include <itkImageRegionConstIterator.h>
+#undef export
 
 // VTK
 #include <vtkPointData.h>

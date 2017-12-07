@@ -10,12 +10,15 @@ mfileversion = '$Id$';
 % the arg value. For clarity, do not reference this structure
 % outside of this mfile.
 cmdargs.involfiles = '';
-cmdargs.missingStructures = '';
 cmdargs.outdir = '';
 cmdargs.regmatfile = '';
 cmdargs.nthreads = 1;
+cmdargs.showfigs = 0;
+cmdargs.nobrainmask = 0;
+cmdargs.diagcovs = 0;
 cmdargs.debug = 0;
-cmdargs.exvivo = 0;
+
+
 %% Print useage if there are no arguments %%
 if(nargin == 0)
   print_usage(cmdargs)
@@ -33,8 +36,10 @@ fprintf('Matlab version %s\n',version);
 
 savePath = cmdargs.outdir;
 numberOfThreads = cmdargs.nthreads;
+showFigures = cmdargs.showfigs;
+noBrainMasking = cmdargs.nobrainmask;
+useDiagonalCovarianceMatrices = cmdargs.diagcovs;
 RegMatFile = cmdargs.regmatfile;
-exvivo = cmdargs.exvivo;
 
 ninvolfiles = size(cmdargs.involfiles,1);
 imageFileNames = cell(0,0);
@@ -42,18 +47,10 @@ for n = 1:ninvolfiles
   imageFileNames{n} = deblank(cmdargs.involfiles(n,:));
 end
 
-numMissing = size(cmdargs.missingStructures,1);
-missingStructureSearchStrings = cell(0,0);
-for n = 1:numMissing
-  missingStructureSearchStrings{n} = deblank(cmdargs.missingStructures(n,:));
-end
-
 % Display input
 imageFileNames
 savePath
 numberOfThreads
-exvivo
-missingStructureSearchStrings
 
 % Create the output folder
 if ~exist(savePath, 'dir')
@@ -62,10 +59,8 @@ end
 
 % set SAMSEG_DATA_DIR as an environment variable, eg,
 % setenv SAMSEG_DATA_DIR /autofs/cluster/koen/koen/GEMSapplications/wholeBrain
-AvgDataDir = getenv( 'SAMSEG_DATA_DIR' );
-templateFileName = sprintf('%s/mni305_masked_autoCropped.mgz',AvgDataDir);
-meshCollectionFileName = sprintf('%s/CurrentMeshCollection30New.txt.gz',AvgDataDir);
-compressionLookupTableFileName = sprintf('%s/namedCompressionLookupTable.txt',AvgDataDir);
+samsegDataDir = getenv( 'SAMSEG_DATA_DIR' );
+
 
 samsegStartTime = tic;
 
@@ -79,154 +74,83 @@ close all;
 % If the following command is not provided, the number of cores on your system will be used
 kvlSetMaximumNumberOfThreads( numberOfThreads );
 
-% 
-if exvivo
 
-  % Specify which classes share the same intensity Gaussian mixture model (and the number of components within each model)
-  sharedGMMParameters = struct;
-  sharedGMMParameters( 1 ).mergedName = 'Unknown'; % Background and what is normally CSF
-  sharedGMMParameters( 1 ).searchStrings = { 'Unknown', 'Ventricle', 'Inf-Lat-Vent', 'CSF', 'vessel', 'choroid-plexus' };
-  sharedGMMParameters( 1 ).numberOfComponents = 1;
-  sharedGMMParameters( 2 ).mergedName = 'Global WM'; % WM
-  sharedGMMParameters( 2 ).searchStrings = { 'White', 'Brain-Stem', 'VentralDC', 'Optic-Chiasm' };
-  sharedGMMParameters( 2 ).numberOfComponents = 1;
-  sharedGMMParameters( 3 ).mergedName = 'Global GM'; % GM
-  sharedGMMParameters( 3 ).searchStrings = { 'Cortex', 'Caudate', 'Hippocampus', 'Amygdala', 'Accumbens', 'hypointensities', 'Putamen' };
-  sharedGMMParameters( 3 ).numberOfComponents = 1;
-  sharedGMMParameters( 4 ).mergedName = 'Thalamus'; % Thalamus
-  sharedGMMParameters( 4 ).searchStrings = { 'Thalamus' };
-  sharedGMMParameters( 4 ).numberOfComponents = 1;
-  sharedGMMParameters( 5 ).mergedName = 'Pallidum'; % Pallidum
-  sharedGMMParameters( 5 ).searchStrings = { 'Pallidum' };
-  sharedGMMParameters( 5 ).numberOfComponents = 1;
 
-  buildTailoredAffineRegistrationAtlas = true;
-  
-else
-  
-  % Specify which classes share the same intensity Gaussian mixture model (and the number of components within each model)
-  sharedGMMParameters = struct;
-  sharedGMMParameters( 1 ).mergedName = 'Unknown'; % Background
-  sharedGMMParameters( 1 ).searchStrings = { 'Unknown'};
-  sharedGMMParameters( 1 ).numberOfComponents = 3;
-  sharedGMMParameters( 2 ).mergedName = 'Global WM'; % WM
-  sharedGMMParameters( 2 ).searchStrings = { 'White', 'Brain-Stem', 'VentralDC', 'Optic-Chiasm' };
-  sharedGMMParameters( 2 ).numberOfComponents = 2;
-  sharedGMMParameters( 3 ).mergedName = 'Global GM'; % GM
-  sharedGMMParameters( 3 ).searchStrings = { 'Cortex', 'Caudate', 'Hippocampus', 'Amygdala', 'Accumbens', 'hypointensities' };
-  sharedGMMParameters( 3 ).numberOfComponents = 3;
-  sharedGMMParameters( 4 ).mergedName = 'Global CSF'; % CSF
-  sharedGMMParameters( 4 ).searchStrings = { 'Ventricle', 'Inf-Lat-Vent', 'CSF', 'vessel', 'choroid-plexus' };
-  sharedGMMParameters( 4 ).numberOfComponents = 3;
-  sharedGMMParameters( 5 ).mergedName = 'Thalamus'; % Thalamus
-  sharedGMMParameters( 5 ).searchStrings = { 'Thalamus' };
-  sharedGMMParameters( 5 ).numberOfComponents = 2;
-  sharedGMMParameters( 6 ).mergedName = 'Pallidum'; % Pallidum
-  sharedGMMParameters( 6 ).searchStrings = { 'Pallidum' };
-  sharedGMMParameters( 6 ).numberOfComponents = 2;
-  sharedGMMParameters( 7 ).mergedName = 'Putamen'; % Putamen
-  sharedGMMParameters( 7 ).searchStrings = { 'Putamen' };
-  sharedGMMParameters( 7 ).numberOfComponents = 2;
-  
-  buildTailoredAffineRegistrationAtlas = false;
-
+% Affine registration
+templateFileName = fullfile( samsegDataDir, 'template.nii' );
+affineRegistrationMeshCollectionFileName = fullfile( samsegDataDir, 'atlasForAffineRegistration.txt.gz' );
+worldToWorldTransformMatrix = [];
+if ( ~isempty( RegMatFile ) )
+  load( RegMatFile, 'worldToWorldTransformMatrix' );
 end
 
+[ worldToWorldTransformMatrix, transformedTemplateFileName ] = ...
+          samseg_registerAtlas( imageFileNames{ 1 }, ...
+                                affineRegistrationMeshCollectionFileName, ...
+                                templateFileName, ...
+                                savePath, ...
+                                showFigures, ...
+                                worldToWorldTransformMatrix );
+                                                    
+               
+               
+               
+% FreeSurfer (http://surfer.nmr.mgh.harvard.edu) has a standardized way of representation segmentations,
+% both manual and automated, as images in which certain intensity levels correspond to well-defined
+% anatomical structures - for instance an intensity value 17 always corresponds to the left hippocampus.
+% The text file FreeSurferColorLUT.txt distributed with FreeSurfer contains all these definitions, as well 
+% as a color for each structure in
+% RGBA (Red-Green-Blue and Alpha (opaqueness)) format with which FreeSurfer will always represent segmented
+% structures in its visualization tools
 %
-if buildTailoredAffineRegistrationAtlas
-  % Create a tailor-made atlas for affine registration purposes
+% Let's read the contents of the "compressionLookupTable.txt" file, and show the names of the structures
+% being considered. The results are automatically sorted according to their "compressed label", i.e., the
+% first result corresponds to the first entry in the vector of probabilities associated with each node in
+% our atlas mesh.
+compressionLookupTableFileName = fullfile( samsegDataDir, 'compressionLookupTable.txt' );
+[ FreeSurferLabels, names, colors ] = kvlReadCompressionLookupTable( compressionLookupTableFileName );
+               
 
-  % Read mesh 
-  meshCollection = kvlReadMeshCollection( meshCollectionFileName );
-  mesh = kvlGetMesh( meshCollection, -1 );
-  [ FreeSurferLabels, names, colors ] = kvlReadCompressionLookupTable( compressionLookupTableFileName );
-
-  % Get a Matlab matrix containing a copy of the probability vectors in each mesh node (size numberOfNodes x
-  % numberOfLabels ). 
-  alphas = kvlGetAlphasInMeshNodes( mesh );
-
-  % Remove non-existing structures
-  mergeOptions = struct;
-  mergeOptions( 1 ).mergedName = 'Unknown';
-  mergeOptions( 1 ).searchStrings = missingStructureSearchStrings;
-  [ alphas, names, FreeSurferLabels, colors ] = kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels, colors );
-
-  % Get global tissue types
-  [ alphas, names, FreeSurferLabels, colors ] = kvlMergeAlphas( alphas, names, sharedGMMParameters, FreeSurferLabels, colors );
-  
-  % Additionally move some deep gray matter structures into global GM
-  mergeOptions = struct;
-  mergeOptions( 1 ).mergedName = 'Global GM';
-  mergeOptions( 1 ).searchStrings = { 'Thalamus', 'Pallidum', 'Putamen' };
-  [ alphas, names, FreeSurferLabels, colors ] = kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels, colors );
-  
-  % Create tailored atlas
-  kvlSetAlphasInMeshNodes( mesh, alphas ); 
-  [ template, transform ] = kvlReadImage( templateFileName ); 
-  templateImageBuffer = kvlGetImageBuffer( template );
-  priors = kvlRasterizeAtlasMesh( mesh, size( templateImageBuffer ) );
-  transformMatrix = kvlGetTransformMatrix( transform );
-  [ affineRegistrationMeshCollectionFileName, affineRegistrationTemplateFileName ] = ...
-                                                createAtlasMeshForAffineRegistration( priors, transformMatrix, savePath );
-
-else
-
-  %
-  affineRegistrationMeshCollectionFileName = sprintf( '%s/SPM12_6classes_30x30x30_meshCollection.txt.gz', AvgDataDir );
-  affineRegistrationTemplateFileName = sprintf( '%s/SPM12_6classes_30x30x30_template.nii', AvgDataDir );
-
-
-end % End test build tailored atlas for affine registration
-
-
+% Because we have many labels to segment, and each of these labels has its own Gaussian mixture model
+% whose parameters (mean, variance, mixture weight) we have to estimate from the data, it may makes sense to restrict
+% the degrees of freedom in the model somewhat by specifying that some of these labels have the same parameters
+% governing their Gaussian mixture model. For example, we'd expect no intensity differences between the left and right 
+% part of each structure.
+% The way we implement this is by defining "super-structures" (i.e., a global white matter tissue class), and therefore
+% work with a simplied ("reduced") model during the entire parameter estimation phase. At the same time we also build 
+% an inverse lookup table (mapping from original class number onto a reduced class number (super-structure)) that we 
+% will need to compute the final segmentation.
 %  
-if(isempty(RegMatFile))
-  fprintf('entering registerAtlas\n');
-  showFigures = false;
-  worldToWorldTransformMatrix = samseg_registerAtlas( imageFileNames{ 1 }, ...
-                                                      affineRegistrationMeshCollectionFileName, ...
-                                                      affineRegistrationTemplateFileName, ...
-                                                      savePath, ...
-                                                      showFigures );
-else
-  fprintf('Not performing registration:\n');
-  fprintf('  Loading reg file %s\n',RegMatFile);
-  load(RegMatFile);
-  fname = sprintf('%s/SPM12_6classes_30x30x30_template_coregistrationMatrices.mat',savePath);
-  save(fname,'worldToWorldTransformMatrix','imageToImageTransformMatrix');
-end
-
-% For historical reasons the samsegment script figures out the affine transformation from
-% a transformed MNI template (where before transformation this template defines the segmentation
-% mesh atlas domain). This is a bit silly really, but for now let's just play along and make
-% sure we generate it
-[ origTemplate, origTemplateTransform ] = kvlReadImage( templateFileName );  
-transformedTemplateFileName = sprintf( '%s/mni305_masked_autoCropped_coregistered.mgz', savePath );
-kvlWriteImage( origTemplate, transformedTemplateFileName, ...
-               kvlCreateTransform( double( worldToWorldTransformMatrix * kvlGetTransformMatrix( origTemplateTransform ) ) ) );
+sharedGMMParametersFileName = fullfile( samsegDataDir, 'sharedGMMParameters.txt' );
+sharedGMMParameters = kvlReadSharedGMMParameters( sharedGMMParametersFileName );
+               
+               
 
 % Set various model specifications
 modelSpecifications = struct;
-modelSpecifications.missingStructureSearchStrings = missingStructureSearchStrings;
+modelSpecifications.atlasFileName = fullfile( samsegDataDir, 'atlas_level2.txt.gz' );
+modelSpecifications.FreeSurferLabels = FreeSurferLabels;
+modelSpecifications.names = names;
+modelSpecifications.colors = colors;
 modelSpecifications.sharedGMMParameters = sharedGMMParameters;
-modelSpecifications.useDiagonalCovarianceMatrices = false;
-modelSpecifications.brainMaskingSmoothingSigma = 3; % sqrt of the variance of a Gaussian blurring kernel 
-modelSpecifications.brainMaskingThreshold = 0.01;
+modelSpecifications.useDiagonalCovarianceMatrices = useDiagonalCovarianceMatrices;
+modelSpecifications.brainMaskingSmoothingSigma = 3; % sqrt of the variance of a Gaussian blurring kernel
+if noBrainMasking
+  modelSpecifications.brainMaskingThreshold = -Inf;
+else
+  modelSpecifications.brainMaskingThreshold = 0.01;
+end
 modelSpecifications.K = 0.1; % Stiffness of the mesh
 modelSpecifications.biasFieldSmoothingKernelSize = 50.0;  % Distance in mm of sinc function center to first zero crossing
-if exvivo
-  modelSpecifications.brainMaskingThreshold = -Inf; % Disable brain masking
-  modelSpecifications.useDiagonalCovarianceMatrices = true;
-end
 
 % Set various optimization options
 optimizationOptions = struct;
 optimizationOptions.multiResolutionSpecification = struct;
-optimizationOptions.multiResolutionSpecification( 1 ).meshSmoothingSigma = 2.0; % In mm
+optimizationOptions.multiResolutionSpecification( 1 ).atlasFileName = fullfile( samsegDataDir, 'atlas_level1.txt.gz' );
 optimizationOptions.multiResolutionSpecification( 1 ).targetDownsampledVoxelSpacing = 2.0; % In mm
 optimizationOptions.multiResolutionSpecification( 1 ).maximumNumberOfIterations = 100;
 optimizationOptions.multiResolutionSpecification( 1 ).estimateBiasField = true;
-optimizationOptions.multiResolutionSpecification( 2 ).meshSmoothingSigma = 0.0; % In mm
+optimizationOptions.multiResolutionSpecification( 2 ).atlasFileName = fullfile( samsegDataDir, 'atlas_level2.txt.gz' );
 optimizationOptions.multiResolutionSpecification( 2 ).targetDownsampledVoxelSpacing = 1.0; % In mm
 optimizationOptions.multiResolutionSpecification( 2 ).maximumNumberOfIterations = 100;
 optimizationOptions.multiResolutionSpecification( 2 ).estimateBiasField = true; % Switching this off will use the bias field estimated 
@@ -240,14 +164,9 @@ optimizationOptions.lineSearchMaximalDeformationIntervalStopCriterion = optimiza
 optimizationOptions.maximalDeformationAppliedStopCriterion = 0.0;
 optimizationOptions.BFGSMaximumMemoryLength = 12;
 
-showFigures = false; % Set this to true if you want to see some figures during the run.
-if exvivo
-  showFigures = true;
-end
-
-[ FreeSurferLabels, names, volumesInCubicMm ] = samsegment( imageFileNames, transformedTemplateFileName, meshCollectionFileName, ...
-                                                            compressionLookupTableFileName, modelSpecifications, ...
-                                                            optimizationOptions, savePath, showFigures );
+[ FreeSurferLabels, names, volumesInCubicMm ] = samsegment( imageFileNames, transformedTemplateFileName, ...
+                                                            modelSpecifications, optimizationOptions, ...
+                                                            savePath, showFigures );
 names
 volumesInCubicMm
 
@@ -297,17 +216,18 @@ while(narg <= ninputargs)
     cmdargs.regmatfile = inputargs{narg};
     narg = narg + 1;
     
-   case '--missing',
-    arg1check(flag,narg,ninputargs);
-    cmdargs.missingStructures = strvcat(cmdargs.missingStructures,inputargs{narg});
-    narg = narg + 1;
+   case '--showfigs',
+    cmdargs.showfigs = 1;
 
+   case '--nobrainmask'
+    cmdargs.nobrainmask = 1;
+  
+   case 'diagcovs'
+    cmdarg.diagcovs = 1;
+    
    case '--debug',
     cmdargs.debug = 1;
    
-   case '--exvivo',
-    cmdargs.exvivo = 1;
-    
    otherwise
     fprintf(2,'ERROR: Flag %s unrecognized\n',flag);
     cmdargs = [];
@@ -358,8 +278,9 @@ function print_usage(cmdargs)
   fprintf(' --i <input>           : input volume (add --i input for more)\n');
   fprintf(' --threads <nthreads>  : number of threads\n');
   fprintf(' --regmat <regmat>     : regmat from previous run\n');
-  fprintf(' --missing <struct>    : specify a missing structure\n');
-  fprintf(' --exvivo              : run samseg exvivo');
+  fprintf(' --showfigs            : show figures during run\n');
+  fprintf(' --nobrainmask         : no initial brain masking based on affine atlas registration\n' );
+  fprintf(' --diagcovs            : use diagonal covariance matrices (only affect multi-contrast case)\n' );
 return
 
 %------------- Dump Args ---------------------%
@@ -372,5 +293,8 @@ function dump_args(cmdargs)
   if(~isempty(cmdargs.regmatfile))
     fprintf('regmatfile %s\n',cmdargs.regmatfile)
   end
+  fprintf('showfigs %d\n',cmdargs.showfigs );
+  fprintf('nobrainmask %d\n',cmdargs.nobrainmask );
+  fprintf('diagcovs %d\n',cmdargs.diagcovs );
     
 return

@@ -44,8 +44,8 @@ public:
   LayerVolumeBase( QObject* parent = NULL );
   virtual ~LayerVolumeBase();
 
-  void SetVoxelByRAS( double* ras, int nPlane, bool bAdd = true );
-  void SetVoxelByRAS( double* ras1, double* ras2, int nPlane, bool bAdd = true );
+  void SetVoxelByRAS( double* ras, int nPlane, bool bAdd = true, bool ignore_brush_size = false );
+  void SetVoxelByRAS( double* ras1, double* ras2, int nPlane, bool bAdd = true, bool ignore_brush_size = false  );
   bool FloodFillByRAS( double* ras, int nPlane, bool bAdd = true, bool b3D = false, char* mask_out = 0, bool ignore_exclusion = false );
   void CloneVoxelByRAS( double* ras, int nPlane );
   void CloneVoxelByRAS( double* ras1, double* ras2, int nPlane );
@@ -116,8 +116,8 @@ public slots:
   void SetBrushRadius( int nRadius );
 
 protected:
-  QList<int> SetVoxelByIndex( int* n, int nPlane, bool bAdd = true ); // true is to add, false is to remove
-  QList<int> SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true );
+  QList<int> SetVoxelByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_brush_size = false ); // true is to add, false is to remove
+  QList<int> SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true, bool ignore_brush_size = false  );
   QList<int> FloodFillByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_overflow = true, char* mask_out = NULL, bool ignore_exclusion = false );
   bool SetLiveWireByIndex( int* n1, int* n2, int nPlane );
   bool CloneVoxelByIndex( int* n, int nPlane );

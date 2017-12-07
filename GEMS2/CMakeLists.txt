@@ -6,12 +6,12 @@ INCLUDE_DIRECTORIES(${GEMS_SOURCE_DIR})
 
 # Find ITK
 FIND_PACKAGE(ITK)
-IF (ITK_FOUND)
-    INCLUDE(${ITK_USE_FILE})
-ELSE (ITK_FOUND)
-    MESSAGE(FATAL_ERROR
-            "Cannot build without ITK.  Please set ITK_DIR.")
-ENDIF (ITK_FOUND)
+IF(ITK_FOUND)
+   INCLUDE(${ITK_USE_FILE})
+ELSE(ITK_FOUND)
+   MESSAGE(FATAL_ERROR
+           "Cannot build without ITK.  Please set ITK_DIR.")
+ENDIF(ITK_FOUND)
 
 # Enable C++11 syntax
 set(CMAKE_CXX_STANDARD 11)
@@ -50,6 +50,8 @@ pybind11_add_module(GEMS2Python
         kvlAtlasMeshToIntensityImageCostAndGradientCalculator.cxx
         kvlConditionalGaussianEntropyCostAndGradientCalculator.cxx
         kvlMutualInformationCostAndGradientCalculator.cxx
+        kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
+        kvlAverageAtlasMeshPositionCostAndGradientCalculator.cxx
         kvlHistogrammer.cxx
         kvlAtlasMeshSummaryDrawer.cxx
         itkMGHImageIO.cxx

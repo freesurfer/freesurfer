@@ -23,13 +23,12 @@
  *
  */
 
-#include <stdio.h>
-
-#include "mri.h"
-
-#include <stdio.h>
 #include "mincutils.h"
+
+#include <stdio.h>
+
 #include "mri.h"
+#include "minc_volume_io.h"
 
 /*-----------------------------------------------------*/
 int DumpMINCAxes(FILE *fp, MINCAXES *MA)
@@ -208,11 +207,6 @@ int NameMINCAxes(MINCAXES *MA)
   if (err) return (1);
 
   /* Make final assignments */
-#if defined(BEVIN_EXCLUDE_MINC)
-  char* const MIxspace = "xspace";
-  char* const MIyspace = "yspace";
-  char* const MIzspace = "zspace";
-#endif
   space[xspaceid] = MIxspace;
   space[yspaceid] = MIyspace;
   space[zspaceid] = MIzspace;

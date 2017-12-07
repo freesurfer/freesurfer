@@ -42,7 +42,10 @@ extern "C"
 #include <utility>
 #include <string>
 #include <vector>
+
+#define export // obsolete feature 'export template' used in these headers 
 #include <vnl/vnl_matrix_fixed.h>
+#undef export
 
 /** \class MyMRI
  * \brief Static class for some MRI operations

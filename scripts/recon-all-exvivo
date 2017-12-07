@@ -180,7 +180,7 @@ if ($run_bet) then
   mri_mask $odir/opt.mgz $odir/brainmask.mgz $odir/opt.mgz
 endif
 cp $odir/opt.mgz $odir/001.mgz
-mri_convert --conform $odir/brainmask.mgz $mdir/brainmask.mgz
+mri_convert -ns 1 --conform $odir/brainmask.mgz $mdir/brainmask.mgz
 cp  $mdir/brainmask.mgz $mdir/brainmask.auto.mgz
 
 

@@ -13408,7 +13408,13 @@ xmlXPathNodeCollectAndTest(xmlXPathParserContextPtr ctxt,
         *  xmlXPathNodeSetAddNs() for namespace nodes here?
         *  Surprisingly, some c14n tests fail, if we do this.
         */
-        if (type == NODE_TYPE_NODE)
+
+        switch (type) {
+	//
+	// This was a cascaded if that included an type-violating (cur->type == type)
+	// and (type == XML_NAMESPACE_DECL).
+	// 
+	case NODE_TYPE_NODE:
         {
           switch (cur->type)
           {
@@ -13429,20 +13435,26 @@ xmlXPathNodeCollectAndTest(xmlXPathParserContextPtr ctxt,
           default:
             break;
           }
-        }
-        else if (cur->type == type)
+        } break;
+	
+        case NODE_TYPE_COMMENT:
         {
-          if (type == XML_NAMESPACE_DECL)
-            XP_TEST_HIT_NS
-            else
-              XP_TEST_HIT
-            }
-        else if ((type == NODE_TYPE_TEXT) &&
-                 (cur->type == XML_CDATA_SECTION_NODE))
+	} break;
+	
+        case NODE_TYPE_TEXT: {
+	  if (cur->type == XML_CDATA_SECTION_NODE)
+          {
+            XP_TEST_HIT
+          }
+	} break;
+	
+        case NODE_TYPE_PI:
         {
-          XP_TEST_HIT
-        }
+	} break;
+	
+	} // switch (type)
         break;
+
       case NODE_TEST_PI:
         if ((cur->type == XML_PI_NODE) &&
             ((name == NULL) || xmlStrEqual(name, cur->name)))
@@ -13450,6 +13462,7 @@ xmlXPathNodeCollectAndTest(xmlXPathParserContextPtr ctxt,
           XP_TEST_HIT
         }
         break;
+
       case NODE_TEST_ALL:
         if (axis == AXIS_ATTRIBUTE)
         {
@@ -13482,11 +13495,13 @@ xmlXPathNodeCollectAndTest(xmlXPathParserContextPtr ctxt,
           }
         }
         break;
+
       case NODE_TEST_NS:
       {
         TODO;
         break;
       }
+
       case NODE_TEST_NAME:
         if (axis == AXIS_ATTRIBUTE)
         {

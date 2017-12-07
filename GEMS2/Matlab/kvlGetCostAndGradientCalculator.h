@@ -4,6 +4,7 @@
 #include "kvlAtlasMeshToIntensityImageCostAndGradientCalculator.h"
 #include "kvlConditionalGaussianEntropyCostAndGradientCalculator.h"
 #include "kvlMutualInformationCostAndGradientCalculator.h"
+#include "kvlAtlasMeshToPointSetCostAndGradientCalculator.h"
 
 
 namespace kvl
@@ -34,7 +35,7 @@ public:
     // calculator = kvlGetCostAndGradientCalculator( typeName, image(s), boundaryCondition, transform )
   
     // Make sure input arguments are correct
-    const  std::string  usageString = "Usage: calculator = kvlGetCostAndGradientCalculator( typeName, image(s), boundaryCondition, [ transform ], [ means ], [ variances ], [ mixtureWeights ], [ numberOfGaussiansPerClass ] )\n where typeName = {'AtlasMeshToIntensityImage','ConditionalGaussianEntropy','MutualInformation'}\n and boundaryCondition = {'Sliding', 'Affine', 'Translation', 'None'}";
+    const  std::string  usageString = "Usage: calculator = kvlGetCostAndGradientCalculator( typeName, image(s), boundaryCondition, [ transform ], [ means ], [ variances ], [ mixtureWeights ], [ numberOfGaussiansPerClass ], [ targetPoints ] )\n where typeName = {'AtlasMeshToIntensityImage','ConditionalGaussianEntropy','MutualInformation','PointSet'}\n and boundaryCondition = {'Sliding', 'Affine', 'Translation', 'None'}";
     if ( ( nrhs < 3 ) || 
          !mxIsChar( prhs[ 0 ] ) || 
          !mxIsInt64( prhs[ 1 ] ) || 
@@ -67,7 +68,8 @@ public:
        const int handle = *(imagesHandle);
        std::cout << "Image: " << handle << std::endl;
        itk::Object::ConstPointer object = kvl::MatlabObjectArray::GetInstance()->GetObject( handle );
-       if ( typeid( *(object) ) != typeid( ImageType ) )
+       // if ( typeid( *(object) ) != typeid( ImageType ) )
+       if ( strcmp(typeid( *object ).name(), typeid( ImageType ).name()) )  // Eugenio: MAC compatibility
          {
          mexErrMsgTxt( "image doesn't refer to the correct ITK object type" );
          }
@@ -90,7 +92,8 @@ public:
         
       const int transformHandle = *( static_cast< int* >( mxGetData( prhs[ 3 ] ) ) );
       itk::Object::ConstPointer  object = kvl::MatlabObjectArray::GetInstance()->GetObject( transformHandle );
-      if ( typeid( *object ) != typeid( TransformType ) )
+      // if ( typeid( *object ) != typeid( TransformType ) )
+      if ( strcmp(typeid( *object ).name(), typeid( TransformType ).name()) )  // Eugenio: MAC compatibility
         {
         mexErrMsgTxt( "transform doesn't refer to the correct ITK object type" );
         }
@@ -252,6 +255,43 @@ public:
       } // End test if numberOfGaussiansPerClass are provided
         
         
+    // Retrieve targetPoints if they are provided
+    AtlasMesh::PointsContainer::Pointer  targetPoints = AtlasMesh::PointsContainer::New();
+    if ( nrhs > 8 )
+      {
+      // Sanity check
+      if ( ( !mxIsDouble( prhs[ 8 ] ) ) || ( mxGetDimensions( prhs[ 8 ] )[ 1 ] != 3 ) )
+        {
+        mexErrMsgTxt( usageString.c_str() ); 
+        }
+        
+      //
+      const int  numberOfPoints = mxGetDimensions( prhs[ 8 ] )[ 0 ];
+      mexPrintf("numberOfPoints = %d\n",numberOfPoints );
+      for ( int pointNumber = 0; pointNumber < numberOfPoints; pointNumber++ )
+        {
+        AtlasMesh::PointType  point;
+        for ( int dimensionNumber = 0; dimensionNumber < 3; dimensionNumber++ )
+          {
+          point[ dimensionNumber ] =  (mxGetPr( prhs[ 8 ] ))[ pointNumber + numberOfPoints*dimensionNumber ]; 
+          }
+          
+        targetPoints->InsertElement( targetPoints->Size(), point );
+        } // End loop over all points  
+
+      if ( true )  
+        {
+        // Print what we recovered
+        for ( AtlasMesh::PointsContainer::ConstIterator  it = targetPoints->Begin(); 
+              it != targetPoints->End(); ++it )
+          {
+          std::cout << it.Value() << std::endl; 
+          }
+          
+        } // End test if printing  
+
+      } // End test if targetPoints are provided 
+        
         
     // Construct the correct type of calculator
     AtlasMeshPositionCostAndGradientCalculator::Pointer  calculator = 0; 
@@ -283,6 +323,15 @@ public:
         MutualInformationCostAndGradientCalculator::Pointer  myCalculator 
                           = MutualInformationCostAndGradientCalculator::New();
         myCalculator->SetImage( images[ 0 ] );
+        calculator = myCalculator;
+        break;
+        } 
+      case 'P': 
+        {
+        std::cout << "PointSet" << std::endl;
+        AtlasMeshToPointSetCostAndGradientCalculator::Pointer  myCalculator 
+                          = AtlasMeshToPointSetCostAndGradientCalculator::New();
+        myCalculator->SetTargetPoints( targetPoints );
         calculator = myCalculator;
         break;
         } 

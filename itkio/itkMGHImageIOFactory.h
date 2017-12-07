@@ -3,9 +3,10 @@
 #define H_ITK_MGH_IMAGE_IO_FACTORY_H
 
 #include <cstddef>
+#define export // obsolete feature "export template" used in these header files
 #include "itkObjectFactoryBase.h"
 #include "itkImageIOBase.h"
-
+#undef export
 
 namespace itk
 {

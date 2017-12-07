@@ -31,8 +31,7 @@ public :
   void SetUp( const std::vector< LabelImageType::ConstPointer >& labelImages,
               const CompressionLookupTable*  compressionLookupTable,
               const itk::Size< 3 >&  initialSize, 
-              const std::vector< double >&  initialStiffnesses,
-              bool tryToBeSparse = true );
+              const std::vector< double >&  initialStiffnesse );
 
   //
   const AtlasMeshCollection*  GetCurrentMeshCollection() const
@@ -55,6 +54,8 @@ protected :
   // Print
   void PrintSelf( std::ostream& os, itk::Indent indent ) const;  
 
+  
+#ifdef USE_TETGEN
   //
   typedef itk::AutomaticTopologyMeshSource< kvl::AtlasMesh >  MeshSourceType;
   static void AddHexahedron( MeshSourceType* meshSource,
@@ -135,6 +136,7 @@ protected :
                                             AtlasMesh::PointType&  p0145,
                                             AtlasMesh::PointType&  p4567,
                                             AtlasMesh::PointType&  pMiddle );
+#endif  
 
 
 private :
@@ -142,6 +144,7 @@ private :
   MultiResolutionAtlasMesher(const Self&); //purposely not implemented
   void operator=(const Self&); //purposely not implemented
 
+#ifdef USE_TETGEN  
   //
   AtlasMesh::CellsContainer::Pointer  GetCells( const AtlasMesh::PointsContainer* position ) const;
 
@@ -149,6 +152,7 @@ private :
   AtlasMeshCollection::Pointer  GetMeshCollection( AtlasMesh::PointsContainer* referencePosition,
                                                    std::vector< AtlasMesh::PointsContainer::Pointer >& positions,
                                                    double  stiffness ) const;
+#endif                                                   
 
   //
   void Upsample();
@@ -158,7 +162,6 @@ private :
   CompressionLookupTable::ConstPointer  m_CompressionLookupTable;
   itk::Size< 3 >  m_InitialSize;
   std::vector< double >  m_InitialStiffnesses;
-  bool  m_TryToBeSparse;
   
   AtlasParameterEstimator::Pointer  m_Estimator;
   int  m_NumberOfClasses;
@@ -167,8 +170,9 @@ private :
 
   AtlasMeshCollection::Pointer  m_Current;
 
+#ifdef USE_TETGEN  
   AtlasMesh::CellsContainer::Pointer  m_Hexahedra;
-
+#endif
 
 };
 

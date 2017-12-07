@@ -1089,7 +1089,7 @@ find_control_points
               DiagBreak() ;
 
             if (xi != x || yi != y || zi != z
-                || gcas[i].prior < min_prior)
+                || gcas_getPrior(gcas[i]) < min_prior)
               continue ;
 
             if (min_region_prior
