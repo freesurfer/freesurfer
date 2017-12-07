@@ -32,8 +32,6 @@ ELIMINATE_BACKGROUND_CLASS = False
 # priorVisualizationAlpha = 0.4;
 PRIOR_VISUALIZATION_ALPHA = 0.4
 
-MAX_ITERATIONS = 100
-
 MAXIMAL_DEFORMATION_STOP_CRITERIA = 0.005  # Measured in voxels
 
 
@@ -496,10 +494,12 @@ def perform_optimization(
     # numberOfIterations
     number_of_iterations = 0
     maximal_defomation = True
-    while maximal_defomation and number_of_iterations < MAX_ITERATIONS:
+    while maximal_defomation:
         number_of_iterations += 1
         min_log_likelihood_times_prior, maximal_defomation = optimizer.step_optimizer()
         logger.info("at step %d maximal_defomation=%f log prior=%f", number_of_iterations, maximal_defomation, min_log_likelihood_times_prior)
+        if show_figures:
+            show_optimization_figures()
     return number_of_iterations
 
 
