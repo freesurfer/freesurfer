@@ -1,8 +1,11 @@
 import logging
 import math
+import operator
+from functools import reduce
 
 import GEMS2Python
 import numpy as np
+from scipy import ndimage
 
 from as_python.samseg.color_scheme import ColorScheme
 from as_python.samseg.kvl import transform_product, calculate_down_sampling_factors
@@ -18,7 +21,7 @@ logger = logging.getLogger(__name__)
 MESH_STIFFNESS = 1e-7
 SCALING_FACTOR = 0.9
 SCALING_FACTOR_CUBED = SCALING_FACTOR * SCALING_FACTOR * SCALING_FACTOR
-SCALED_MESH_STIFFNESS = MESH_STIFFNESS * SCALING_FACTOR_CUBED
+SCALED_MESH_STIFFNESS = MESH_STIFFNESS / SCALING_FACTOR_CUBED
 
 # targetDownsampledVoxelSpacing = 3.0; % In mm
 TARGET_DOWNSAMPLE_VOXEL_SPACING = 3.0
@@ -65,28 +68,29 @@ def samseg_register_atlas(recipe):
         template_image_to_world_transform
     )
 
-    [image, image_buffer] = acquire_and_downsample_image(original_image, down_sampling_factors, recipe.show_figures)
+    down_sampled_image = down_sample_image(original_image, down_sampling_factors, recipe.show_figures)
 
     color_scheme = handle_background_class_and_determine_color_scheme(mesh)
     if recipe.show_figures:
-        show_mesh(mesh, image_buffer, color_scheme)
+        show_mesh(mesh, down_sampled_image, color_scheme)
 
-    calculator = create_calculator(mesh)
+    calculator = create_calculator(down_sampled_image)
 
     initial_image_to_image_transform_matrix = find_low_cost_initial_mesh_position(
         calculator,
         mesh,
-        image_buffer,
-        initial_image_to_image_transform_matrix
+        down_sampled_image,
+        initial_image_to_image_transform_matrix,
+        down_sampling_factors
     )
 
     # %
     # originalNodePositions = kvlGetMeshNodePositions( mesh );
     #
-    original_node_positions = extract_node_positions(mesh)
+    original_node_positions = mesh.points
 
     if recipe.show_figures:
-        show_starting_situation(mesh, image_buffer, color_scheme)
+        show_starting_situation(mesh, down_sampled_image, color_scheme)
 
     optimizer = get_optimizer(mesh, calculator)
 
@@ -102,7 +106,7 @@ def samseg_register_atlas(recipe):
 
     world_to_world_transform_matrix = save_results(
         down_sampling_factors,
-        image_buffer,
+        down_sampled_image,
         recipe.image_file_name,
         initial_image_to_image_transform_matrix,
         mesh,
@@ -206,7 +210,12 @@ def determine_mesh_simply(
     #                                           kvlCreateTransform( initialImageToImageTransformMatrix ), ...
     #                                           K * prod( downSamplingFactors ) );
     #   mesh = kvlGetMesh( meshCollection, -1 );
-    pass
+    mesh_collection = GEMS2Python.KvlMeshCollection()
+    mesh_collection.read(mesh_collection_file_name)
+    mesh_collection.k = reduce(operator.mul, down_sampling_factors, SCALED_MESH_STIFFNESS)
+    mesh_collection.transform(initial_image_to_image_transform_matrix)
+    mesh = mesh_collection.reference_mesh
+    return mesh
 
 
 def determine_mesh_properly(
@@ -231,8 +240,7 @@ def determine_mesh_properly(
     pass
 
 
-def acquire_and_downsample_image(original_image, down_sampling_factors, show_figures):
-    image_buffer = original_image.getImageBuffer()
+def down_sample_image(original_image, down_sampling_factors, show_figures):
     # % Get image data
     # imageBuffer = kvlGetImageBuffer( image );
     # if showFigures
@@ -245,12 +253,17 @@ def acquire_and_downsample_image(original_image, down_sampling_factors, show_fig
     #                            1 : downSamplingFactors( 2 ) : end, ...
     #                            1 : downSamplingFactors( 3 ) : end );
     # image = kvlCreateImage( imageBuffer );
-    pass
+    image_buffer = original_image.getImageBuffer()
+    [down_x, down_y, down_z] = down_sampling_factors
+    down_sampled_image_buffer = np.asfortranarray(image_buffer[::down_x, ::down_y, ::down_z])
+    return GEMS2Python.KvlImage(down_sampled_image_buffer)
 
 
 def handle_background_class_and_determine_color_scheme(mesh):
     #
     # alphas = kvlGetAlphasInMeshNodes( mesh );
+    alphas = mesh.alphas
+    [number_of_classes, _] = alphas.shape
     # gmClassNumber = 3;  % Needed for displaying purposes
     gm_class_number = 3
     # if 0
@@ -262,11 +275,10 @@ def handle_background_class_and_determine_color_scheme(mesh):
     # numberOfClasses = size( alphas, 2 );
     # colors = 255 * [ hsv( numberOfClasses ) ones( numberOfClasses, 1 ) ];
     #
-    number_of_classes = None
     return ColorScheme(number_of_classes, gm_class_number)
 
 
-def show_mesh(mesh, image_buffer, color_scheme):
+def show_mesh(mesh, image, color_scheme):
     #
     # if showFigures
     #   figure
@@ -279,20 +291,21 @@ def show_mesh(mesh, image_buffer, color_scheme):
     pass
 
 
-def create_calculator(mesh):
+def create_calculator(image):
     #
     # %
     # % Get a registration cost and use it to evaluate some promising starting point proposals
     # calculator = kvlGetCostAndGradientCalculator( 'MutualInformation', ...
     #                                                image, 'Affine' );
-    pass
+    return GEMS2Python.KvlCostAndGradientCalculator('MutualInformation', [image], 'Affine')
 
 
 def find_low_cost_initial_mesh_position(
         calculator,
         mesh,
-        image_buffer,
-        initial_image_to_image_transform_matrix
+        image,
+        initial_image_to_image_transform_matrix,
+        down_sampling_factors
 ):
     # [ cost gradient ] = kvlEvaluateMeshPosition( calculator, mesh );
     # if true
@@ -324,12 +337,49 @@ def find_low_cost_initial_mesh_position(
     #
     # end
     #
-    pass
+    image_buffer = image.getImageBuffer()
+    initial_positions = mesh.points
+    initial_cost, _ = calculator.evaluate_mesh_position(mesh)
+    logger.info("initial_cost=%f", initial_cost)
+
+    translation = center_of_gravity_adjusted_translation(mesh, image_buffer)
+    translated_positions = initial_positions + translation
+    mesh.points = translated_positions
+
+    trial_cost, _ = calculator.evaluate_mesh_position(mesh)
+    logger.info("trial_cost=%f", trial_cost)
+
+    if trial_cost > initial_cost:
+        # revert positions and return unchanged transform
+        logger.info('keeping original position')
+        mesh.points = initial_positions
+        return initial_image_to_image_transform_matrix
+    else:
+        # Keep this better postion and remember that we applied it
+        logger.info('updating position via center of gravity matching')
+        transform_matrix = initial_image_to_image_transform_matrix.as_numpy_array
+        for axis in range(3):
+            transform_matrix[4, axis] += down_sampling_factors[axis] * translated_positions[axis]
+        return GEMS2Python.KvlTransform(transform_matrix)
 
 
-def extract_node_positions(mesh):
-    #   nodePositions = kvlGetMeshNodePositions( mesh );
-    pass
+def center_of_gravity_adjusted_translation(mesh, image_buffer):
+    shape = image_buffer.shape
+    [image_x, image_y, image_z] = ndimage.measurements.center_of_mass(image_buffer)
+    [atlas_x, atlas_y, atlas_z] = center_of_gravity_of_mesh(mesh, shape)
+    return [
+        image_x - atlas_x,
+        image_y - atlas_y,
+        image_z - atlas_z,
+    ]
+
+
+def center_of_gravity_of_mesh(mesh, shape):
+    priors_buffer = mesh.rasterize(shape)
+    non_background_summation = priors_buffer[:, :, :, 2:].sum(axis=3)
+    result = ndimage.measurements.center_of_mass(non_background_summation)
+    print(result)
+    return result
 
 
 def show_starting_situation(mesh, image_buffer, color_scheme):

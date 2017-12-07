@@ -4,6 +4,8 @@ class ColorScheme:
         self.number_of_classes = number_of_classes
         self.colors = generate_colors(number_of_classes)
 
+
 def generate_colors(number_of_classes):
+    # TODO: implement generate_colors
     # colors = 255 * [ hsv( numberOfClasses ) ones( numberOfClasses, 1 ) ];
     pass
