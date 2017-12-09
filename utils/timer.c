@@ -65,3 +65,19 @@ int TimerStop(struct timeb *then)
   msec = 1000 * (tvnow.tv_sec - tvthen.tv_sec) + (tvnow.tv_usec - tvthen.tv_usec + 500) / 1000;
   return msec;
 }
+
+
+void TimerStartNanosecs(struct NanosecsTimer * nst)
+{
+  clock_gettime(CLOCK_REALTIME, &nst->now);
+}
+
+struct Nanosecs TimerElapsedNanosecs(struct NanosecsTimer * nst) // returns delta in nanosecs
+{
+  struct timespec now;
+  clock_gettime(CLOCK_REALTIME, &now);
+  struct timespec * then = &nst->now;
+  struct Nanosecs result;
+  result.ns = (long)(now.tv_sec - then->tv_sec)*1000000000 + (long)(now.tv_nsec - then->tv_nsec);
+  return result;
+}
