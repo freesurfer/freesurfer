@@ -37,10 +37,10 @@ extern "C" {
 struct timeb *TimerStart(struct timeb *then) ;
 int TimerStop(struct timeb *then) ;
 
-struct NanosecsTimer {  struct timespec now; };
-struct Nanosecs { long ns; };
-void            TimerStartNanosecs  (struct NanosecsTimer * now) ;
-struct Nanosecs TimerElapsedNanosecs(struct NanosecsTimer * then) ;	// returns delta in nanosecs
+typedef struct NanosecsTimer {  struct timespec now; } NanosecsTimer;
+typedef struct Nanosecs { long ns; } Nanosecs;
+void     TimerStartNanosecs  (NanosecsTimer * now) ;
+Nanosecs TimerElapsedNanosecs(NanosecsTimer * then) ;	// returns delta in nanosecs
 
 #ifdef Linux
 /* don't know why this doesn't work on linux, but.... */

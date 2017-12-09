@@ -3,18 +3,32 @@
 
 void ROMP_show_stats(FILE*);
 
+// Conditionalize a parallel for with
+//
+typedef enum ROMP_level { 
+    ROMP_serial,                // always run this code serially
+    ROMP_experimental,          // hasn't even been tested for correctness yet
+    ROMP_fast,                  // is known to get differing results parallel and serial
+    ROMP_assume_reproducible,   // is suspected of getting same results
+    ROMP_shown_reproducible,    // is tested and shown to get same results 
+    ROMP__size
+    } ROMP_level;
+extern ROMP_level romp_level;
+
+#define if_ROMP(LEVEL) if (ROMP_##LEVEL <= romp_level)
+
 // Surround a parallel for
-struct ROMP_pf_static_struct { 
+typedef struct ROMP_pf_static_struct { 
     void * volatile ptr; 
     const char*     file; 
     unsigned int    line; 
-};
-
-struct ROMP_pf_stack_struct  { 
-    ROMP_pf_static_struct * staticInfo; 
-    Nanosecs beginTime;
+} ROMP_pf_static_struct;
+ 
+typedef struct ROMP_pf_stack_struct  { 
+    struct ROMP_pf_static_struct * staticInfo; 
+    NanosecsTimer beginTime;
     int tid;
-};
+} ROMP_pf_stack_struct;
 
 #define ROMP_PF_begin \
     { \
@@ -37,11 +51,11 @@ void ROMP_pf_end(
 // Note: continue does need to be annotated
 //       break and return and similar exits are illegal
 //
-struct ROMP_pflb_stack_struct  {
+typedef struct ROMP_pflb_stack_struct {
     ROMP_pf_stack_struct * pf_stack;
-    Nanosecs beginTime;
+    NanosecsTimer beginTime;
     int tid;
-};
+} ROMP_pflb_stack_struct;
 
 #define ROMP_PFLB_begin \
     ROMP_pflb_stack_struct  ROMP_pflb_stack;  \

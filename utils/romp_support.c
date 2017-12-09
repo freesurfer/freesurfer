@@ -1,11 +1,16 @@
 #include "romp_support.h"
+#include <omp.h>
+#include <malloc.h>
 
-struct StaticData {
-    struct ROMP_pf_static_struct* next;
-    Tick ticks_in_pf, ticks_in_pflb;
-};
+ROMP_level romp_level = ROMP_shown_reproducible;
 
-struct ROMP_pf_static_struct* known_ROMP_pf;
+
+typedef struct StaticData {
+    ROMP_pf_static_struct* next;
+    Nanosecs in_pf, in_pflb;
+} StaticData;
+
+ROMP_pf_static_struct* known_ROMP_pf;
 
 static StaticData* init(ROMP_pf_static_struct * pf_static)
 {
@@ -31,7 +36,7 @@ void ROMP_pf_begin(
     pf_stack->staticInfo = pf_static;
     StaticData* staticData = init(pf_static);
     if (!staticData) return;
-    pf_stack->beginTime = now();
+    TimerStartNanosecs(&pf_stack->beginTime);
     pf_stack->tid = omp_get_thread_num();
 }
 
@@ -40,11 +45,10 @@ void ROMP_pf_end(
 {
     ROMP_pf_static_struct * pf_static = pf_stack->staticInfo;
     if (!pf_static) return;
-    Nanosecs endTime = now();
-    Tick deltaTicks = endTime.t - pf_stack->beginTime.t;
+    Nanosecs delta = TimerElapsedNanosecs(&pf_stack->beginTime);
     StaticData* staticData = (StaticData*)(pf_static->ptr);
     #pragma omp atomic
-    staticData->ticks_in_pf += deltaTicks;
+    staticData->in_pf.ns += delta.ns;
 }
 
 void ROMP_pflb_begin(
@@ -53,8 +57,8 @@ void ROMP_pflb_begin(
 {
     pflb_stack->pf_stack = pf_stack;
     ROMP_pf_static_struct * pf_static = pf_stack->staticInfo;
-    if (!pf_static) { pflb_stack->pf_stack = nullptr; return; }
-    pflb_stack->beginTime = now();
+    if (!pf_static) { pflb_stack->pf_stack = NULL; return; }
+    TimerStartNanosecs(&pflb_stack->beginTime);
     pflb_stack->tid = omp_get_thread_num();
 }
 
@@ -64,20 +68,19 @@ void ROMP_pflb_end(
     if (!pflb_stack->pf_stack) return;
     ROMP_pf_stack_struct  * pf_stack = pflb_stack->pf_stack;
     ROMP_pf_static_struct * pf_static = pf_stack->staticInfo;
-    Nanosecs endTime = now();
-    Tick deltaTicks = endTime.t - pflb_stack->beginTime.t;
+    Nanosecs delta = TimerElapsedNanosecs(&pf_stack->beginTime);
     StaticData* staticData = (StaticData*)(pf_static->ptr);
     #pragma omp atomic
-    staticData->ticks_in_pflb += deltaTicks;
+    staticData->in_pflb.ns += delta.ns;
 }
 
 void ROMP_show_stats(FILE* file)
 {
     fprintf(file, "ROMP_show_stats\n");
-    struct ROMP_pf_static_struct* pf;
+    ROMP_pf_static_struct* pf;
     for (pf = known_ROMP_pf; pf; ) {
     	StaticData* sd = (StaticData*)(pf->ptr);
-    	fprintf(file, "%s:%d %d %d\n", pf->file, pf->line, sd->ticks_in_pf, sd->ticks_in_pflb);
+    	fprintf(file, "%s:%d %ld %ld\n", pf->file, pf->line, sd->in_pf.ns, sd->in_pflb.ns);
     	pf = sd->next;
     }
 }
