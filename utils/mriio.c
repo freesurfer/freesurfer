@@ -13532,9 +13532,12 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst)
   width = mri_dst->width;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental) firstprivate(width) shared(mri_dst) reduction(+ : nans)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) firstprivate(width) shared(mri_dst) reduction(+ : nans)
 #endif
   for (x = 0; x < mri_dst->width; x++) {
+    ROMP_PFLB_begin
+    
     int y, z, f, height, depth, nframes;
     float val;
 
@@ -13553,7 +13556,11 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst)
       }
     }
     exec_progress_callback(x, mri_dst->width, 0, 1);
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   if (nans > 0) ErrorPrintf(ERROR_BADPARM, "WARNING: %d NaNs found in volume %s...\n", nans, mri_src->fname);
   return (mri_dst);
 }
