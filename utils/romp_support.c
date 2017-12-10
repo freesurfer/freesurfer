@@ -1,7 +1,7 @@
 #include "romp_support.h"
 #include "romp_support.h"
 #include <malloc.h>
-
+#include <stdlib.h>
 
 ROMP_level romp_level = ROMP_shown_reproducible;
 
@@ -63,7 +63,7 @@ void ROMP_pflb_begin(
     TimerStartNanosecs(&pflb_stack->beginTime);
     int tid = omp_get_thread_num();
     pflb_stack->tid = tid;
-    if (tid >= 8*sizeof(int) return;
+    if (tid >= 8*sizeof(int)) return;
     int tidMask = 1<<tid;
     if (pf_stack->tids_active & tidMask) {
         fprintf(stderr, "Acitive tid in ROMP_pflb_begin\n");
@@ -89,7 +89,7 @@ void ROMP_pflb_end(
 	    pf_static->file, pf_static->line);
         exit(1);
     }
-    if (tid >= 8*sizeof(int) return;
+    if (tid >= 8*sizeof(int)) return;
     int tidMask = 1<<tid;
     if (!(pf_stack->tids_active & tidMask)) {
         fprintf(stderr, "Inactive tid in ROMP_pflb_end %s:%d\n",
