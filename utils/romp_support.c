@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
     fprintf(stdout, "#threads:%d\n", omp_get_max_threads());
 
     ROMP_PF_begin
-    #pragma omp parallel for reduction(+:sum) if_ROMP(shown_reproducible)
+    #pragma omp parallel for if_ROMP(experimental) reduction(+:sum) if_ROMP(shown_reproducible)
     for (i = 0; i < v_size; i++) {
     	ROMP_PFLB_begin
     	sum += 1.0 / i;

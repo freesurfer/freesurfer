@@ -3,6 +3,25 @@
 
 void ROMP_show_stats(FILE*);
 
+// An annotated omp for loop looks like this...
+//
+#if 0
+	#ifdef HAVE_OPENMP
+	ROMP_PF_begin
+	#pragma omp parallel for if_ROMP(experimental) ...
+	#endif
+  	for (n=0; n < nsegid; n++)
+	{
+	    ROMP_PFLB_begin
+	    ...
+	    ROMP_PFLB_continue
+	    ...
+	    ROMP_PFLB_end
+	}
+	ROMP_PF_end
+    
+#endif
+
 // Conditionalize a parallel for with
 //
 typedef enum ROMP_level { 
@@ -15,7 +34,7 @@ typedef enum ROMP_level {
     } ROMP_level;
 extern ROMP_level romp_level;
 
-#define if_ROMP(LEVEL) if (ROMP_##LEVEL <= romp_level)
+#define if_ROMP(LEVEL) if (pf_stack->staticInfo && (ROMP_##LEVEL <= romp_level))
 
 // Surround a parallel for
 typedef struct ROMP_pf_static_struct { 
@@ -27,7 +46,7 @@ typedef struct ROMP_pf_static_struct {
 typedef struct ROMP_pf_stack_struct  { 
     struct ROMP_pf_static_struct * staticInfo; 
     NanosecsTimer beginTime;
-    int tid;
+    int tids_active;
 } ROMP_pf_stack_struct;
 
 #define ROMP_PF_begin \
