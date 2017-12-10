@@ -4595,9 +4595,12 @@ float GCAcomputeLogSampleProbability(
     m_prior2source_voxel = GCAgetPriorToSourceVoxelMatrix(gca, mri_inputs, transform);
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental) firstprivate(gcas, tid, m_prior2source_voxel) reduction(+ : total_log_p)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) firstprivate(gcas, tid, m_prior2source_voxel) reduction(+ : total_log_p)
 #endif
   for (i = 0; i < nsamples; i++) {
+    ROMP_PFLB_begin
+    
     int x, y, z, xp, yp, zp;
     double log_p;
     float vals[MAX_GCA_INPUTS];
@@ -4667,7 +4670,11 @@ float GCAcomputeLogSampleProbability(
     }
     gcas[i].log_p = log_p;
     total_log_p += log_p;
+
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   fflush(stdout);
 
   for (tid = 0; tid < nthreads; tid++) {

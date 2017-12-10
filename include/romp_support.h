@@ -37,7 +37,7 @@ typedef enum ROMP_level {
     } ROMP_level;
 extern ROMP_level romp_level;
 
-#define if_ROMP(LEVEL) if (pf_stack->staticInfo && (ROMP_##LEVEL <= romp_level))
+#define if_ROMP(LEVEL) if (ROMP_pf_stack.staticInfo && (ROMP_##LEVEL <= romp_level))
 
 // Surround a parallel for
 typedef struct ROMP_pf_static_struct { 

@@ -30,6 +30,7 @@ IEEE Transaction on Pattern Analysis and Machine Intelligence, 2012.
  */
 
 #include <stdio.h>
+#include "romp_support.h"
 
 #include "diag.h"
 #include "error.h"
