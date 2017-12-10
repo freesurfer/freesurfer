@@ -2,6 +2,7 @@
 #include <omp.h>
 #include <malloc.h>
 
+
 ROMP_level romp_level = ROMP_shown_reproducible;
 
 
@@ -12,11 +13,12 @@ typedef struct StaticData {
 
 ROMP_pf_static_struct* known_ROMP_pf;
 
-static StaticData* init(ROMP_pf_static_struct * pf_static)
+
+static StaticData* initStaticData(ROMP_pf_static_struct * pf_static)
 {
     StaticData* ptr = (StaticData*)pf_static->ptr;
     if (ptr) return ptr;
-#pragma omp critical
+    #pragma omp critical
     {	// Might have been made by another thread
     	ptr = (StaticData*)pf_static->ptr;
     	if (!ptr) {
@@ -34,7 +36,7 @@ void ROMP_pf_begin(
     ROMP_pf_stack_struct  * pf_stack) 
 {
     pf_stack->staticInfo = pf_static;
-    StaticData* staticData = init(pf_static);
+    StaticData* staticData = initStaticData(pf_static);
     if (!staticData) return;
     TimerStartNanosecs(&pf_stack->beginTime);
     pf_stack->tid = omp_get_thread_num();
@@ -84,3 +86,35 @@ void ROMP_show_stats(FILE* file)
     	pf = sd->next;
     }
 }
+
+
+
+#if 0
+
+// example
+//
+int main(int argc, char* argv[])
+{
+    fprintf(stdout, "%s:%d main()\n", __FILE__, __LINE__);
+    static const int v_size = 1000;
+    int* v = (int*)malloc(sizeof(int)*v_size);
+    int i;
+    double sum = 0;
+
+    omp_set_num_threads(1);
+    fprintf(stdout, "#threads:%d\n", omp_get_max_threads());
+
+    ROMP_PF_begin
+    #pragma omp parallel for reduction(+:sum) if_ROMP(shown_reproducible)
+    for (i = 0; i < v_size; i++) {
+    	ROMP_PFLB_begin
+    	sum += 1.0 / i;
+    	ROMP_PFLB_end;
+    }
+    ROMP_PF_end
+
+    ROMP_show_stats(stdout);
+    return 0;
+}
+
+#endif

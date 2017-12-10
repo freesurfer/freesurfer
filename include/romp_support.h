@@ -32,7 +32,7 @@ typedef struct ROMP_pf_stack_struct  {
 
 #define ROMP_PF_begin \
     { \
-    static ROMP_pf_static_struct ROMP_pf_static = { nullptr, __FILE__, __LINE__ }; \
+    static ROMP_pf_static_struct ROMP_pf_static = { 0L, __FILE__, __LINE__ }; \
     ROMP_pf_stack_struct  ROMP_pf_stack;  \
     ROMP_pf_begin(&ROMP_pf_static, &ROMP_pf_stack);
 
@@ -75,32 +75,3 @@ void ROMP_pflb_end(
     ROMP_pflb_stack_struct  * pflb_stack);
 
 
-#if 0
-
-// example
-//
-#include <malloc.h>
-int _tmain(int argc, _TCHAR* argv[])
-{
-    static const int v_size = 1000;
-    int* v = (int*)malloc(sizeof(int)*v_size);
-    int i;
-    double sum = 0;
-
-    omp_set_num_threads(1);
-    fprintf(stdout, "#threads:%d\n", omp_get_max_threads());
-
-    ROMP_PF_begin
-    #pragma omp parallel for reduction(+:sum)
-    for (i = 0; i < v_size; i++) {
-    	ROMP_PFLB_begin
-    	sum += 1.0 / i;
-    	ROMP_PFLB_end;
-    }
-    ROMP_PF_end
-
-    ROMP_show_stats(stdout);
-    return 0;
-}
-
-#endif
