@@ -1731,7 +1731,7 @@ MRI_SP *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno)
   const IMAGE *const Ip_src = Ip_src_init;
 
   int u;
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for if_ROMP(experimental) collapse(2)
   for (fno = f0; fno <= f1; fno++) /* for each frame */
   {
     for (u = 0; u < U_DIM(mrisp_src); u++) {

@@ -28,7 +28,7 @@
 #include <stdio.h>
 #include <string.h>
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #include "gcamorph.h"

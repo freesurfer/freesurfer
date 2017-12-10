@@ -33,7 +33,7 @@
 #include <stdlib.h>
 
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #include "cma.h"
@@ -3556,7 +3556,7 @@ MRI *GCAlabel(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *transform)
   num_pv = 0;
   // if 0
   // ifdef HAVE_OPENMP
-  // pragma omp parallel for reduction(+: num_pv)
+  // pragma omp parallel for if_ROMP(experimental) reduction(+: num_pv)
   // endif
   for (x = 0; x < width; x++) {
     int y, z, n, label, xn, yn, zn;
@@ -3726,7 +3726,7 @@ MRI *GCAlabelProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *t
      classifiers statistics based on this voxel's intensity and label.
   */
   //#ifdef HAVE_OPENMP
-  //#pragma omp parallel for
+  //#pragma omp parallel for if_ROMP(experimental)
   //#endif
   for (x = 0; x < width; x++) {
     int y, z, xn, yn, zn, n;
@@ -4471,7 +4471,7 @@ float GCAcomputeLabelIntensityVariance(GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inpu
   max_label = 0;
   total_var = 0.0;
   // ifdef HAVE_OPENMP
-  // pragma omp parallel for firstprivate(gcas, tid, m_prior2source_voxel) reduction(max:max_label)
+  // pragma omp parallel for if_ROMP(experimental) firstprivate(gcas, tid, m_prior2source_voxel) reduction(max:max_label)
   // endif
   for (i = 0; i < nsamples; i++) {
     int x, y, z, xp, yp, zp;
@@ -4595,7 +4595,7 @@ float GCAcomputeLogSampleProbability(
     m_prior2source_voxel = GCAgetPriorToSourceVoxelMatrix(gca, mri_inputs, transform);
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(gcas, tid, m_prior2source_voxel) reduction(+ : total_log_p)
+#pragma omp parallel for if_ROMP(experimental) firstprivate(gcas, tid, m_prior2source_voxel) reduction(+ : total_log_p)
 #endif
   for (i = 0; i < nsamples; i++) {
     int x, y, z, xp, yp, zp;
@@ -7702,7 +7702,7 @@ MRI *GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
   */
   // mark changed location
   // ifdef HAVE_OPENMP
-  // pragma omp parallel for
+  // pragma omp parallel for if_ROMP(experimental)
   // endif
   for (x = 0; x < width; x++) {
     int y, z;
@@ -7804,7 +7804,7 @@ MRI *GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
     }
 
     //#ifdef HAVE_OPENMP
-    // pragma omp parallel for reduction(+: nchanged)
+    // pragma omp parallel for if_ROMP(experimental) reduction(+: nchanged)
     //#endif
     for (index = 0; index < nindices; index++) {
       int x, y, z, n, label, old_label;
@@ -8196,7 +8196,7 @@ double GCAgibbsImageLogPosterior(GCA *gca, MRI *mri_labels, MRI *mri_inputs, TRA
 
   total_log_posterior = 0.0;
   // ifdef HAVE_OPENMP
-  // pragma omp parallel for reduction(+: total_log_posterior)
+  // pragma omp parallel for if_ROMP(experimental) reduction(+: total_log_posterior)
   // endif
   for (x = 0; x < width; x++) {
     int y, z;
@@ -16783,7 +16783,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
       }
       GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, border, transform,mri_labels) ;
 //#ifdef HAVE_OPENMP
-//#pragma omp parallel for
+//#pragma omp parallel for if_ROMP(experimental)
 //#endif
       for (x = 0 ; x < mri_labels->width ; x++)
       {
@@ -17043,7 +17043,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
       }
 
 //ifdef HAVE_OPENMP
-//pragma omp parallel for reduction(+:num)
+//pragma omp parallel for if_ROMP(experimental) reduction(+:num)
 //endif
       for (num = x = 0 ; x < mri_aligned->width ; x++)
       {
@@ -22387,7 +22387,7 @@ MRI *GCAbuildMostLikelyVolumeForStructure(
   depth = mri->depth;
   height = mri->height;
   //#ifdef HAVE_OPENMP
-  //#pragma omp parallel for
+  //#pragma omp parallel for if_ROMP(experimental)
   //#endif
   for (z = 0; z < depth; z++) {
     int x, y, xn, yn, zn, max_label, n, r, xp, yp, zp;
@@ -22498,7 +22498,7 @@ MRI *GCAbuildMostLikelyVolumeForStructure(
     mri_tmp = MRIcopy(mri, NULL);
 
     //#ifdef HAVE_OPENMP
-    //#pragma omp parallel for
+    //#pragma omp parallel for if_ROMP(experimental)
     //#endif
     for (z = 0; z < depth; z++) {
       int y, xn, yn, zn, max_label, n, r, xp, yp, zp, x;
@@ -22713,7 +22713,7 @@ static HISTOGRAM *gcaGetLabelHistogram(GCA *gca, int label, int frame, int borde
   // but perhaps h_gca->counts[b] += prior is not thread-safe.
   // parallelizing this loop only trimmed two seconds from em_reg.
   // ifdef HAVE_OPENMP
-  // pragma omp parallel for
+  // pragma omp parallel for if_ROMP(experimental)
   // endif
   for (zn = 0; zn < gca->node_depth; zn++) {
     GCA_NODE *gcan;

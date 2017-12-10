@@ -779,10 +779,12 @@ int main(int argc, char **argv)
 
   DoContinue=0;nx=0;skip=0;n0=0;vol=0;nhits=0;c=0;min=0.0;max=0.0;range=0.0;mean=0.0;std=0.0;snr=0.0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(DoContinue,nx,skip,n0,vol,nhits,c,min,max,range,mean,std,snr)  schedule(guided)
+ROMP_PF_begin
+#pragma omp parallel for if_ROMP(experimental) firstprivate(DoContinue,nx,skip,n0,vol,nhits,c,min,max,range,mean,std,snr)  schedule(guided)
 #endif
   for (n=0; n < nsegid; n++)
   {
+    ROMP_PFLB_begin
     if(DoExclSegId)
     {
       DoContinue = 0;
@@ -796,7 +798,7 @@ int main(int argc, char **argv)
       }
       if(DoContinue)
       {
-        continue;
+        ROMP_PFLB_continue;
       }
     }
 
@@ -809,7 +811,7 @@ int main(int argc, char **argv)
       }
     if (skip)
     {
-      continue;
+      ROMP_PFLB_continue;
     }
 
     if (!dontrun)
@@ -887,7 +889,10 @@ int main(int argc, char **argv)
       StatSumTable[n].std   = std;
       StatSumTable[n].snr   = snr;
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   /* print results ordered */
   for (n=0; n < nsegid; n++)
   {

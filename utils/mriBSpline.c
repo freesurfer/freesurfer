@@ -37,7 +37,7 @@
 #include <stdlib.h>
 
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #include "error.h"
@@ -1768,7 +1768,7 @@ extern MRI_BSPLINE *MRItoBSpline(const MRI *mri_src, MRI_BSPLINE *bspline, int d
   y = 0;
   f = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(tid, y, f, Lines) shared(Depth, Height, Width, Frames, Pole, NbPoles, bspline) \
+#pragma omp parallel for if_ROMP(experimental) firstprivate(tid, y, f, Lines) shared(Depth, Height, Width, Frames, Pole, NbPoles, bspline) \
     schedule(static, 1)
 #endif
   for (z = 0; z < Depth; z++) {
@@ -1814,7 +1814,7 @@ extern MRI_BSPLINE *MRItoBSpline(const MRI *mri_src, MRI_BSPLINE *bspline, int d
     x = 0;
     f = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(tid, x, f, Lines) shared(Depth, Height, Width, Frames, Pole, NbPoles, bspline) \
+#pragma omp parallel for if_ROMP(experimental) firstprivate(tid, x, f, Lines) shared(Depth, Height, Width, Frames, Pole, NbPoles, bspline) \
     schedule(static, 1)
 #endif
     for (z = 0; z < Depth; z++) {
@@ -1847,7 +1847,7 @@ extern MRI_BSPLINE *MRItoBSpline(const MRI *mri_src, MRI_BSPLINE *bspline, int d
     x = 0;
     f = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(tid, x, f, Lines) shared(Depth, Height, Width, Frames, Pole, NbPoles, bspline) \
+#pragma omp parallel for if_ROMP(experimental) firstprivate(tid, x, f, Lines) shared(Depth, Height, Width, Frames, Pole, NbPoles, bspline) \
     schedule(static, 1)
 #endif
     for (y = 0; y < Height; y++) {
@@ -2176,7 +2176,7 @@ MRI *MRIlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX 
   frame = 0;
   val = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(tid, y2, y1, x1, x2, x3, frame, val, v_X, v_Y) \
+#pragma omp parallel for if_ROMP(experimental) firstprivate(tid, y2, y1, x1, x2, x3, frame, val, v_X, v_Y) \
     shared(depth, height, width, mAinv, bspline, mri_dst) schedule(static, 1)
 #endif
   for (y3 = 0; y3 < depth; y3++) {

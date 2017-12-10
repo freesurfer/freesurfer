@@ -1,5 +1,5 @@
 #include "romp_support.h"
-#include <omp.h>
+#include "romp_support.h"
 #include <malloc.h>
 
 
@@ -39,7 +39,7 @@ void ROMP_pf_begin(
     StaticData* staticData = initStaticData(pf_static);
     if (!staticData) return;
     TimerStartNanosecs(&pf_stack->beginTime);
-    pf_stack->tid = omp_get_thread_num();
+    pf_stack->tids_active = 0;
 }
 
 void ROMP_pf_end(
@@ -61,7 +61,16 @@ void ROMP_pflb_begin(
     ROMP_pf_static_struct * pf_static = pf_stack->staticInfo;
     if (!pf_static) { pflb_stack->pf_stack = NULL; return; }
     TimerStartNanosecs(&pflb_stack->beginTime);
-    pflb_stack->tid = omp_get_thread_num();
+    int tid = omp_get_thread_num();
+    pflb_stack->tid = tid;
+    if (tid >= 8*sizeof(int) return;
+    int tidMask = 1<<tid;
+    if (pf_stack->tids_active & tidMask) {
+        fprintf(stderr, "Acitive tid in ROMP_pflb_begin\n");
+        exit(1);
+    }
+    #pragma omp atomic
+    pf_stack->tids_active ^= tidMask;
 }
 
 void ROMP_pflb_end(
@@ -74,6 +83,22 @@ void ROMP_pflb_end(
     StaticData* staticData = (StaticData*)(pf_static->ptr);
     #pragma omp atomic
     staticData->in_pflb.ns += delta.ns;
+    int tid = omp_get_thread_num();
+    if (pflb_stack->tid != tid) {
+        fprintf(stderr, "Bad tid in ROMP_pflb_end %s:%d\n",
+	    pf_static->file, pf_static->line);
+        exit(1);
+    }
+    if (tid >= 8*sizeof(int) return;
+    int tidMask = 1<<tid;
+    if (!(pf_stack->tids_active & tidMask)) {
+        fprintf(stderr, "Inactive tid in ROMP_pflb_end %s:%d\n",
+	    pf_static->file, pf_static->line);
+        exit(1);
+    }
+    #pragma omp atomic
+    pf_stack->tids_active ^= tidMask;
+    
 }
 
 void ROMP_show_stats(FILE* file)

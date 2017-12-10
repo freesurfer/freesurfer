@@ -38,7 +38,7 @@
 #include "utils.h"
 #include "annotation.h"
 #ifdef _OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 typedef struct {
@@ -228,7 +228,7 @@ MRI *GeoSmooth(MRI *src, double fwhm, MRIS *surf, Geodesics *geod, MRI *volindex
   printf("fwhm %g gstd %g %g %g, nv=%d\n",fwhm,gstd,gvar,gf,surf->nvertices);
 
 #ifdef _OPENMP
-#pragma omp parallel for 
+#pragma omp parallel for if_ROMP(experimental) 
 #endif
   for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
     int nthnbr,nbrvtxno,frame;

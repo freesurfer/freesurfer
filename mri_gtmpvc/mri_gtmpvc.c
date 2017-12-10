@@ -81,7 +81,7 @@
 #include "pdf.h"
 
 #ifdef _OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 static int  parse_commandline(int argc, char **argv);

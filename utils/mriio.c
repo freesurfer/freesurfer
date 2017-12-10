@@ -80,7 +80,7 @@
 #include "znzlib.h"
 
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
@@ -13532,7 +13532,7 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst)
   width = mri_dst->width;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(width) shared(mri_dst) reduction(+ : nans)
+#pragma omp parallel for if_ROMP(experimental) firstprivate(width) shared(mri_dst) reduction(+ : nans)
 #endif
   for (x = 0; x < mri_dst->width; x++) {
     int y, z, f, height, depth, nframes;

@@ -30,7 +30,7 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
-#include <omp.h>
+#include "romp_support.h"
 
 #include "macros.h"
 #include "error.h"

@@ -51,7 +51,7 @@
 #include "timer.h"
 #include "mri_identify.h"
 #ifdef _OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #include "gtm.h"
@@ -429,9 +429,11 @@ MRI *MRIErodeWMSeg(MRI *seg, int nErode3d, MRI *outseg)
 
   wm = MRIallocSequence(seg->width, seg->height, seg->depth, MRI_INT, 1);
 #ifdef HAVE_OPENMP
-#pragma omp parallel for 
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
   for(c=0; c < seg->width; c++) {
+    ROMP_PFLB_begin
     int r,s;
     int val;
     for(r=0; r < seg->height; r++) {
@@ -441,16 +443,20 @@ MRI *MRIErodeWMSeg(MRI *seg, int nErode3d, MRI *outseg)
 	MRIsetVoxVal(wm,c,r,s,0,1);
       }
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
   MRIwrite(wm,"wm0.mgh");
 
   for(n=0; n<nErode3d; n++) MRIerode(wm,wm);
   MRIwrite(wm,"wm.erode.mgh");
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for 
+  ROMP_PFLB_begin
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
   for(c=0; c < seg->width; c++) {
+    ROMP_PFLB_begin
     int r,s;
     int val;
     for(r=0; r < seg->height; r++) {
@@ -462,8 +468,10 @@ MRI *MRIErodeWMSeg(MRI *seg, int nErode3d, MRI *outseg)
 	if(val == 41) MRIsetVoxVal(outseg,c,r,s,0,5002);
       }
     }
+    ROMP_PFLB_end
   }
-
+  ROMP_PF_end
+  
   MRIfree(&wm);
   return(outseg);
 }

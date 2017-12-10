@@ -32,7 +32,7 @@
 #include "mrisegment.h"
 #include "utils.h"
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 static int sort_labels(FCD_DATA *fcd);
@@ -381,7 +381,7 @@ int FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sig
 // process left hemisphere
 #if 1
 #ifdef HAVE_OPENMP
-#pragma omp parallel for shared(fcd, mri_lh_diff, Gdiag_no, thickness_thresh) schedule(static, 1)
+#pragma omp parallel for if_ROMP(experimental) shared(fcd, mri_lh_diff, Gdiag_no, thickness_thresh) schedule(static, 1)
 #endif
 #endif
   for (vno = 0; vno < fcd->mris_lh->nvertices; vno++) {
@@ -445,7 +445,7 @@ int FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sig
 // now do right hemisphere
 #if 1
 #ifdef HAVE_OPENMP
-#pragma omp parallel for shared(fcd, mri_rh_diff, Gdiag_no, thickness_thresh) schedule(static, 1)
+#pragma omp parallel for if_ROMP(experimental) shared(fcd, mri_rh_diff, Gdiag_no, thickness_thresh) schedule(static, 1)
 #endif
 #endif
   for (vno = 0; vno < fcd->mris_rh->nvertices; vno++) {

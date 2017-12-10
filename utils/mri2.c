@@ -55,7 +55,7 @@
 #include "mrivol2vol_cuda.h"
 #endif
 #ifdef _OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 /* overwrite generic nint to speed up execution
@@ -762,7 +762,7 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
 #endif
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for shared(show_progress_thread, targ, bspline, src, Vt2s, InterpCode)
+#pragma omp parallel for if_ROMP(experimental) shared(show_progress_thread, targ, bspline, src, Vt2s, InterpCode)
 #endif
   for (ct = 0; ct < targ->width; ct++) {
     int rt, st, f;
@@ -4263,7 +4263,7 @@ int MRIcountMatches(const MRI *seg, const int MatchVal, const int frame, const M
   int c;
 
 #ifdef _OPENMP
-#pragma omp parallel for reduction(+ : nMatches)
+#pragma omp parallel for if_ROMP(experimental) reduction(+ : nMatches)
 #endif
   for (c = 0; c < seg->width; c++) {
     int r, s;
@@ -4439,7 +4439,7 @@ MRI *MRIannot2CorticalSeg(MRI *seg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, 
   nunknown = 0;
 #ifdef _OPENMP
   printf("     nthreads = %d\n", omp_get_max_threads());
-#pragma omp parallel for reduction(+ : nunknown)
+#pragma omp parallel for if_ROMP(experimental) reduction(+ : nunknown)
 #endif
   for (c = 0; c < seg->width; c++) {
     int r, s, asegv, annot, annotid, vtxno, wvtxno, pvtxno, segv;
@@ -4601,7 +4601,7 @@ MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, L
   fflush(stdout);
 #ifdef _OPENMP
   printf("     nthreads = %d\n", omp_get_max_threads());
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
   for (c = 0; c < seg->width; c++) {
     int r, s, asegv, annot, annotid, wvtxno, segv, wmunknown;
@@ -4735,7 +4735,7 @@ MRI *MRIunsegmentWM(MRI *seg, MRIS *lhw, MRIS *rhw, int *segidlist, int nlist, L
   fflush(stdout);
 #ifdef _OPENMP
   printf("     nthreads = %d\n", omp_get_max_threads());
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
   for (c = 0; c < seg->width; c++) {
     int n, r, s, asegv, segv, hit, lhvtxno, rhvtxno;
@@ -4856,7 +4856,7 @@ MRI *MRIrelabelHypoHemi(MRI *seg, MRIS *lhw, MRIS *rhw, LTA *anat2seg, MRI *wmse
   fflush(stdout);
 #ifdef _OPENMP
   printf("     nthreads = %d\n", omp_get_max_threads());
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
   for (c = 0; c < seg->width; c++) {
     int r, s, asegv, segv, lhvtxno, rhvtxno;
@@ -4932,7 +4932,7 @@ MRI *MRIunsegmentCortex(MRI *seg, int lhmin, int lhmax, int rhmin, int rhmax, MR
   }
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
   for (c = 0; c < seg->width; c++) {
     int r, s, segid;

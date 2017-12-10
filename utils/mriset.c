@@ -34,7 +34,7 @@ double round(double x);
 #include <memory.h>
 #include <string.h>
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #include "box.h"
@@ -444,7 +444,7 @@ MRI *MRIerode(MRI *mri_src, MRI *mri_dst)
 
   if (mri_src->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
     for (z = 0; z < depth; z++) {
       int x, y, z0, zi, y0, yi, x0, xi;
@@ -470,7 +470,7 @@ MRI *MRIerode(MRI *mri_src, MRI *mri_dst)
   }
   else {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
     for (z = 0; z < depth; z++) {
       int x, y, z0, zi, y0, yi, x0, xi;
@@ -1622,7 +1622,7 @@ MRI *MRIdilate(MRI *mri_src, MRI *mri_dst)
 #endif
   for (f = 0; f < mri_src->nframes; f++) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
     for (z = zmin; z <= zmax; z++) {
       int y, x, xi, yi, zi, z0, y0, x0;
@@ -2107,7 +2107,7 @@ MRI *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
   if (mri_src->type == MRI_UCHAR && mri_dst->type == MRI_UCHAR)
     return (MRIreplaceValuesUchar(mri_src, mri_dst, (BUFTYPE)nint(in_val), (BUFTYPE)nint(out_val)));
 #ifdef HAVE_OPENMP
-#pragma omp parallel for shared(mri_src, mri_dst, out_val, width, height, depth)
+#pragma omp parallel for if_ROMP(experimental) shared(mri_src, mri_dst, out_val, width, height, depth)
 #endif
   for (z = 0; z < depth; z++) {
     int x, y, frame;

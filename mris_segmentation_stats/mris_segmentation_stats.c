@@ -262,7 +262,7 @@ write_roc_curve(MRI_SURFACE *mris[MAX_SUBJECTS], LABEL *labels[MAX_SUBJECTS],
     fpos = fneg = tpos = tneg = 0 ;
     i = 0 ;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(i, thresh, dilate, erode, nlabels, segments, min_area) shared(mris, labels) schedule(static,1)
+#pragma omp parallel for if_ROMP(experimental) firstprivate(i, thresh, dilate, erode, nlabels, segments, min_area) shared(mris, labels) schedule(static,1)
 #endif
     for (n = 0 ; n < nsubjects ; n++)
     {

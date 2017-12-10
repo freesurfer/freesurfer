@@ -51,7 +51,7 @@
 #include "utils.h"
 #include "version.h"
 #ifdef _OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 /*------------------------------------------------------------------------------------*/
@@ -1750,7 +1750,7 @@ int GTMbuildX(GTM *gtm)
 
   err = 0;
 #ifdef _OPENMP
-#pragma omp parallel for reduction(+ : err)
+#pragma omp parallel for if_ROMP(experimental) reduction(+ : err)
 #endif
   for (nthseg = 0; nthseg < gtm->nsegs; nthseg++) {
     int segid, k, c, r, s;
@@ -2499,7 +2499,7 @@ MRI **GTMlocal(GTM *gtm, MRI **pvc)
 
 #ifdef _OPENMP
   printf("     nthreads = %d\n", omp_get_max_threads());
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
   for (c = 0; c < gtm->yvol->width; c++) {
     MATRIX *X, *y, *beta = NULL, *Xt = NULL, *XtX = NULL, *Xty = NULL, *iXtX = NULL, *Xsum, *ytmp, *Xtmp;

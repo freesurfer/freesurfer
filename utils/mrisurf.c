@@ -67,7 +67,7 @@
 #include "annotation.h"
 
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #ifdef HAVE_OPENMP
@@ -2965,7 +2965,7 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 
   if (nsize <= mris->max_nsize) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
     for (vno = 0; vno < mris->nvertices; vno++) {
       VERTEX *v;
@@ -2996,7 +2996,7 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
   for (niter = 0; niter < nsize - mris->nsize; niter++) {
 // this can't be parallelized due to the marking of neighbors
 #ifdef HAVE_OPENMP
-//#pragma omp parallel for
+//#pragma omp parallel for if_ROMP(experimental)
 #endif
     for (vno = 0; vno < mris->nvertices; vno++) {
       int i, n, neighbors, j, vnum, nb_vnum;
@@ -3101,7 +3101,7 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 
   ntotal = vtotal = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+ : ntotal, vtotal)
+#pragma omp parallel for if_ROMP(experimental) reduction(+ : ntotal, vtotal)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX *v;
@@ -3610,7 +3610,7 @@ int MRIScomputeNormals(MRI_SURFACE *mris)
 #endif
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
   for (k = 0; k < mris->nfaces; k++) {
     FACE *f;
@@ -3624,7 +3624,7 @@ int MRIScomputeNormals(MRI_SURFACE *mris)
   }
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+ : i) schedule(static, 1)
+#pragma omp parallel for if_ROMP(experimental) reduction(+ : i) schedule(static, 1)
 #endif
   for (k = 0; k < mris->nvertices; k++) {
     VERTEX *v;
@@ -3728,7 +3728,7 @@ static int mrisComputeVertexDistances(MRI_SURFACE *mris)
 
 #ifdef HAVE_OPENMP
 // have to  make v1 and v2 arrays and use tids for this to work
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -3883,7 +3883,7 @@ static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
   N = 0;
 
   int VtxNo;
-#pragma omp parallel for reduction(+ : Sum) reduction(+ : Sum2) reduction(+ : N)
+#pragma omp parallel for if_ROMP(experimental) reduction(+ : Sum) reduction(+ : Sum2) reduction(+ : N)
   for (VtxNo = 0; VtxNo < Surf->nvertices; VtxNo++) {
     VERTEX *vtx1, *vtx2;
     int nNNbrs, nthNNbr, NbrVtxNo;
@@ -8810,7 +8810,7 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   if (!FZERO(parms->l_angle) || !FZERO(parms->l_area) || (!FZERO(parms->l_parea))) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+ : sse_angle, sse_neg_area, sse_area)
+#pragma omp parallel for if_ROMP(experimental) reduction(+ : sse_angle, sse_neg_area, sse_area)
 #endif
     for (fno = 0; fno < mris->nfaces; fno++) {
       FACE *face;
@@ -9164,7 +9164,7 @@ static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris)
 
   double sse = 0.0;
   int fno;
-#pragma omp parallel for reduction(+ : sse)
+#pragma omp parallel for if_ROMP(experimental) reduction(+ : sse)
   for (fno = 0; fno < mris->nfaces; fno++) {
     double error, ratio;
     FACE *face;
@@ -9375,7 +9375,7 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
 {
   int fno;
 
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
   for (fno = 0; fno < mris->nfaces; fno++) {
     int ano;
     VERTEX *v0, *v1, *v2;
@@ -9420,7 +9420,7 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
     mris->total_area = mris->neg_orig_area = mris->neg_area = 0.0f;
 
     double total_area = 0.0, neg_area = 0.0, neg_orig_area = 0.0;
-#pragma omp parallel for reduction(+ : total_area) reduction(+ : neg_area) reduction(+ : neg_orig_area)
+#pragma omp parallel for if_ROMP(experimental) reduction(+ : total_area) reduction(+ : neg_area) reduction(+ : neg_orig_area)
     for (fno = 0; fno < mris->nfaces; fno++) {
       FACE *face;
 
@@ -9762,7 +9762,7 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
         int index;
       
 #ifdef HAVE_OPENMP
-        #pragma omp parallel for
+        #pragma omp parallel for if_ROMP(experimental)
 #endif
         for (index = 0; index < index_to_vno_size ; index++ ) {
           Data *d = datas_inp + index;
@@ -9792,7 +9792,7 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
       for (i = 0 ; i < num_avgs ; i++) {
   
 #ifdef HAVE_OPENMP
-        #pragma omp parallel for
+        #pragma omp parallel for if_ROMP(experimental)
 #endif
   
         for (vno = 0; vno < mris->nvertices; vno++) {
@@ -9824,7 +9824,7 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
           v->tdz = dz / num;
         }
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static, 1)
+#pragma omp parallel for if_ROMP(experimental) schedule(static, 1)
 #endif
         for (vno = 0; vno < mris->nvertices; vno++) {
           VERTEX *v;
@@ -10394,7 +10394,7 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
   }
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+ : total_area)
+#pragma omp parallel for if_ROMP(experimental) reduction(+ : total_area)
 #endif
   for (fno = 0; fno < mris->nfaces; fno++) {
     VERTEX *v0, *v1, *v2, *va, *vb, *vo;
@@ -10491,7 +10491,7 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
 
 /* calculate the "area" of the vertices */
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX *v;
@@ -15198,7 +15198,7 @@ static int mrisComputeSurfaceNormalIntersectionTerm(MRI_SURFACE *mris, MHT *mht,
 
   step = mht->vres / 2;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX *v;
@@ -17776,7 +17776,7 @@ int MRISapplyGradient(MRI_SURFACE *mris, double dt)
   }
   else {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static, 1)
+#pragma omp parallel for if_ROMP(experimental) schedule(static, 1)
 #endif
     for (vno = 0; vno < nvertices; vno++) {
       VERTEX *v;
@@ -18739,7 +18739,7 @@ static int mrisComputeConvexityTerm(MRI_SURFACE *mris, double l_convex)
     return (NO_ERROR);
   }
 
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
   for (vno = 0; vno < mris->nvertices; vno++) {
     int n, m;
     VERTEX *vertex, *vn;
@@ -20649,7 +20649,7 @@ static int mrisComputeNormalizedSpringTerm(MRI_SURFACE *const mris, double const
 
   double dot_total = 0.0;
   int vno;
-#pragma omp parallel for reduction(+ : dot_total)
+#pragma omp parallel for if_ROMP(experimental) reduction(+ : dot_total)
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX *v = &mris->vertices[vno];
     if (v->ripflag) {
@@ -20694,7 +20694,7 @@ static int mrisComputeNormalizedSpringTerm(MRI_SURFACE *const mris, double const
 
   float const dot_avg = dot_total / num;
 
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX *v = &mris->vertices[vno];
     if (v->ripflag) {
@@ -20808,7 +20808,7 @@ static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   }
 // need to make v_n etc. into arrays and use tids
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static, 1)
+#pragma omp parallel for if_ROMP(experimental) schedule(static, 1)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX *v, *vn;
@@ -21445,7 +21445,7 @@ static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *par
 
   sse_dist = 0.0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+ : sse_dist) schedule(static, 1)
+#pragma omp parallel for if_ROMP(experimental) reduction(+ : sse_dist) schedule(static, 1)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX *v, *vn;
@@ -22339,7 +22339,7 @@ static double mrisComputeThicknessMinimizationEnergy(MRI_SURFACE *mris, double l
 
   sse_tmin = 0.0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+ : sse_tmin)
+#pragma omp parallel for if_ROMP(experimental) reduction(+ : sse_tmin)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     float thick_sq;
@@ -22388,7 +22388,7 @@ static double mrisComputeThicknessNormalEnergy(MRI_SURFACE *mris, double l_thick
 
   sse_tnormal = 0.0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+ : sse_tnormal)
+#pragma omp parallel for if_ROMP(experimental) reduction(+ : sse_tnormal)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     double sse;
@@ -22506,7 +22506,7 @@ static int mrisAssignFaces(MRI_SURFACE *mris, MHT *mht, int which_vertices)
   int vno;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     int fno;
@@ -22556,7 +22556,7 @@ static double mrisComputeThicknessParallelEnergy(MRI_SURFACE *mris, double l_thi
   max_vno = 0;
   sse_tparallel = 0.0;
   // ifdef HAVE_OPENMP
-  // pragma omp parallel for reduction(+:sse_tparallel)
+  // pragma omp parallel for if_ROMP(experimental) reduction(+:sse_tparallel)
   // endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX *v;
@@ -22606,7 +22606,7 @@ static double mrisComputeAshburnerTriangleEnergy(MRI_SURFACE *mris,
   sse_ashburner = 0.0;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+ : sse_ashburner)
+#pragma omp parallel for if_ROMP(experimental) reduction(+ : sse_ashburner)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     double sse;
@@ -22714,7 +22714,7 @@ static int mrisComputeThicknessMinimizationTerm(MRI_SURFACE *mris, double l_thic
   if (FZERO(l_thick_min)) return (0.0);
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     float dE_de1, dE_de2, e1p, e1m, e2p, e2m;
@@ -22819,7 +22819,7 @@ static int mrisComputeThicknessParallelTerm(MRI_SURFACE *mris, double l_thick_pa
   mrisAssignFaces(mris, (MHT *)(parms->mht), CANONICAL_VERTICES);  // don't look it up every time
 
   // ifdef HAVE_OPENMP
-  // pragma omp parallel for
+  // pragma omp parallel for if_ROMP(experimental)
   // endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     float dE_de1, dE_de2, e1p, e1m, e2p, e2m, dx, dy, dz;
@@ -23058,7 +23058,7 @@ static int mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_norm
   if (FZERO(l_thick_normal)) return (0.0);
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     float dE_de1, dE_de2, e1p, e1m, e2p, e2m, cx, cy, cz;
@@ -23325,7 +23325,7 @@ static int mrisComputeAshburnerTriangleTerm(MRI_SURFACE *mris, double l_ashburne
   }
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     float dE_de1, dE_de2, e1p, e1m, e2p, e2m, cx, cy, cz;
@@ -27660,7 +27660,7 @@ double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
 
   int vno;
   double sse = 0.0;
-#pragma omp parallel for reduction(+ : sse)
+#pragma omp parallel for if_ROMP(experimental) reduction(+ : sse)
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX *v = &mris->vertices[vno];
     if (vno == Gdiag_no) {
@@ -29108,7 +29108,7 @@ int MRISaverageVals(MRI_SURFACE *mris, int navgs)
 
   for (i = 0; i < navgs; i++) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for shared(mris, i) schedule(static, 1)
+#pragma omp parallel for if_ROMP(experimental) shared(mris, i) schedule(static, 1)
 #endif
     for (vno = 0; vno < mris->nvertices; vno++) {
       int vnb, *pnb, vnum;
@@ -29132,7 +29132,7 @@ int MRISaverageVals(MRI_SURFACE *mris, int navgs)
       v->tdx = val / num;
     }
 #ifdef HAVE_OPENMP
-#pragma omp parallel for shared(mris, i) schedule(static, 1)
+#pragma omp parallel for if_ROMP(experimental) shared(mris, i) schedule(static, 1)
 #endif
     for (vno = 0; vno < mris->nvertices; vno++) {
       VERTEX *v;
@@ -38472,7 +38472,7 @@ static double mrisComputeSphereError(MRI_SURFACE *mris, double l_sphere, double 
   //        /Bevin
   //
   sse = 0.0;
-#pragma omp parallel for reduction(+ : sse)
+#pragma omp parallel for if_ROMP(experimental) reduction(+ : sse)
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX *v;
     double del, x, y, z, r;
@@ -40964,7 +40964,7 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
     for (surf_no = 0; surf_no < nsurfaces; surf_no++) {
       // compute target locations for each vertex
       // ifdef HAVE_OPENMP
-      // pragma omp parallel for
+      // pragma omp parallel for if_ROMP(experimental)
       // endif
       for (vno = 0; vno < mris->nvertices; vno++) {
         v = &mris->vertices[vno];
@@ -41637,7 +41637,7 @@ int MRISmatrixMultiply(MRIS *mris, MATRIX *M)
   int vno;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX *v;
@@ -68065,7 +68065,7 @@ MRI *MRISarN(MRIS *surf, MRI *src, MRI *mask, MRI *arN, int N)
   crslut = MRIScrsLUT(surf, src);
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
   for (vtx = 0; vtx < surf->nvertices; vtx++) {
     int nnbrs, frame, nbrvtx, nthnbr, c, r, s;
@@ -68190,7 +68190,7 @@ MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *glo
     printf("Allocating shl %d\n", surf->nvertices);
     shl = (SURFHOPLIST **)calloc(sizeof(SURFHOPLIST *), surf->nvertices);
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
     for (vtx = 0; vtx < surf->nvertices; vtx++) {
       // Create structure to manage the multiple hops for this vertex
@@ -68206,7 +68206,7 @@ MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *glo
   printf("Starting loop over %d vertices\n", surf->nvertices);
   TimerStart(&mytimer);
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
   for (vtx = 0; vtx < surf->nvertices; vtx++) {
     int nnbrs, frame, nbrvtx, nthnbr, c, r, s;
@@ -68858,7 +68858,7 @@ static int mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs)
   else
     for (i = 0; i < num_avgs; i++) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
       for (vno = 0; vno < mris->nvertices; vno++) {
         VERTEX *v, *vn;
@@ -68907,7 +68907,7 @@ static int mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs)
         v->tdz = dz / (float)num;
       }
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
       for (vno = 0; vno < mris->nvertices; vno++) {
         VERTEX *v;
@@ -74183,7 +74183,7 @@ int MRIScomputeAllDistances(MRI_SURFACE *mris)
   nvalid = MRISvalidVertices(mris);
 #if 0
   // this for loop can't be parallelized due to the use of MRISdistanceTransform
-//#pragma omp parallel for reduction(+:done)
+//#pragma omp parallel for if_ROMP(experimental) reduction(+:done)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX *v, *vn;

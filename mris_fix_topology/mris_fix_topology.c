@@ -37,7 +37,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #include "macros.h"

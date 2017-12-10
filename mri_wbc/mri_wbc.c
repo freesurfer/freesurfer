@@ -49,7 +49,7 @@
 #include "mri2.h"
 #include "mrisurf.h"
 #ifdef _OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 #include "timer.h"
 #include "mrimorph.h"
@@ -727,7 +727,7 @@ MRI *WholeBrainCon(WBC *wbc)
   printf("Starting WBC loop\n"); fflush(stdout);
   TimerStart(&timer);
   #ifdef _OPENMP
-  #pragma omp parallel for 
+  #pragma omp parallel for if_ROMP(experimental) 
   #endif
   for(threadno = 0; threadno < nthreads; threadno ++){
     int  k1, k2, t, n, thno, q, ct1, ct2;

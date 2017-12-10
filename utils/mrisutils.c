@@ -2470,7 +2470,7 @@ int MRISsetPialUnknownToWhite(const MRIS *white, MRIS *pial)
     UseWhite = 0;
 
 #ifdef _OPENMP
-#pragma omp parallel for firstprivate(annot, annotid)
+#pragma omp parallel for if_ROMP(experimental) firstprivate(annot, annotid)
 #endif
   for (vtxno = 0; vtxno < white->nvertices; vtxno++) {
     // Convert annotation number to an entry number

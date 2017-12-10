@@ -38,7 +38,7 @@ const char *MRI_C_VERSION = "$Revision: 1.575 $";
 #include <stdlib.h>
 #include <string.h>
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #include "box.h"
@@ -4383,7 +4383,7 @@ MRI *MRIbinarizeNoThreshold(MRI *mri_src, MRI *mri_dst)
 
   for (f = 0; f < mri_src->nframes; f++) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
     for (z = 0; z < depth; z++) {
       double val;
@@ -4422,7 +4422,7 @@ MRI *MRIbinarize(MRI *mri_src, MRI *mri_dst, float threshold, float low_val, flo
 
   for (f = 0; f < mri_src->nframes; f++) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
     for (z = 0; z < depth; z++) {
       double val;
@@ -17209,7 +17209,7 @@ MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int t
     max_change = 0.0 ;
     mri_tmp = MRIcopy(mri_laplace, mri_tmp) ;
 #if defined(HAVE_OPENMP) && GCC_VERSION > 40408
-#pragma omp parallel for reduction(max: max_change)
+#pragma omp parallel for if_ROMP(experimental) reduction(max: max_change)
 #endif
     for (v = 0 ; v < vl->nvox  ; v++)
     {

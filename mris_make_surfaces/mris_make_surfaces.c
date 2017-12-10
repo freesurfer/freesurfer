@@ -35,7 +35,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #include "macros.h"
@@ -5410,7 +5410,7 @@ compute_white_gradient_histo(MRI_SURFACE *mris, MRI *mri_T2, MRI *mri_aseg, doub
     max_intensity_change = 5 ;
     nadded = 0 ;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+:nadded)
+#pragma omp parallel for if_ROMP(experimental) reduction(+:nadded)
 #endif
     for (i = 0 ; i < vl->nvox ; i++)
     {
@@ -5478,7 +5478,7 @@ compute_white_gradient_histo(MRI_SURFACE *mris, MRI *mri_T2, MRI *mri_aseg, doub
       passno++  ;
     }
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
     for (i = 0 ; i < vl->nvox ; i++)
     {

@@ -505,7 +505,7 @@ int RFtrain(RANDOM_FOREST *rf,
   index = 0;
   n = 0;
   ii = 0;
-#pragma omp parallel for firstprivate(tree, start_no, end_no, ii, index) \
+#pragma omp parallel for if_ROMP(experimental) firstprivate(tree, start_no, end_no, ii, index) \
     shared(rf, nfeatures_per_tree, Gdiag, training_classes, training_data) schedule(static, 1)
 #endif
   for (n = 0; n < rf->ntrees; n++)  // train each tree

@@ -56,7 +56,7 @@
 #include "proto.h"
 #include "utils.h"
 #ifdef _OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 // private functions
@@ -3913,7 +3913,7 @@ MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
 /* Loop over the number of distinct elements in the symetric matrix. Using
    the LUT created above is better for load balancing.  */
 #ifdef _OPENMP
-#pragma omp parallel for default(none) shared(c1list, c2list, ntot, cols, rows, mout, m)
+#pragma omp parallel for if_ROMP(experimental) default(none) shared(c1list, c2list, ntot, cols, rows, mout, m)
 #endif
   for (n = 0; n < ntot; n++) {
     double v, v1, v2;
@@ -4059,7 +4059,7 @@ MATRIX *MatrixAtB(MATRIX *A, MATRIX *B, MATRIX *mout)
   }
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
   for (colA = 0; colA < A->cols; colA++) {
     int row, colB;

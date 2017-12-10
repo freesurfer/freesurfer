@@ -232,7 +232,7 @@ main(int argc, char *argv[])
   transform = NULL ;
   tp1_name = tp2_name = NULL ;
   mri_tmp = mri_seg = NULL ;
-#pragma omp parallel for firstprivate(tp1_name, tp2_name, mri_in,mri_tmp, input, xform_name, transform, subjects_dir, force_inputs, conform, Progname, mri_seg, subject_name, s1_name, s2_name, sname, t, fname) shared(mri_inputs, transforms, mri_segs,argv) schedule(static,1)
+#pragma omp parallel for if_ROMP(experimental) firstprivate(tp1_name, tp2_name, mri_in,mri_tmp, input, xform_name, transform, subjects_dir, force_inputs, conform, Progname, mri_seg, subject_name, s1_name, s2_name, sname, t, fname) shared(mri_inputs, transforms, mri_segs,argv) schedule(static,1)
 #endif
   for (i = 0 ; i < max_index ; i++)
   {

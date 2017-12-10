@@ -114,7 +114,7 @@ ENDHELP --------------------------------------------------------------
 #include "numerics.h"
 #include "mri_circulars.h"
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #ifdef X
@@ -635,7 +635,7 @@ compute_error(MRI *mri_dist, MATRIX *R0, MATRIX *Mras2vox, LABEL *lras, LABEL *l
   {
   case COST_MAX:
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(val, mri_dist) shared(lvol) schedule(static,1) 
+#pragma omp parallel for if_ROMP(experimental) firstprivate(val, mri_dist) shared(lvol) schedule(static,1) 
 #endif
     for (i = 0 ; i < lvol->n_points ; i++)
     {
@@ -665,7 +665,7 @@ compute_error(MRI *mri_dist, MATRIX *R0, MATRIX *Mras2vox, LABEL *lras, LABEL *l
   case COST_RMS:
 #if 1
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(val, mri_dist) shared(lvol) schedule(static,1) reduction(+: sse)
+#pragma omp parallel for if_ROMP(experimental) firstprivate(val, mri_dist) shared(lvol) schedule(static,1) reduction(+: sse)
 #endif
 #endif
     for (i = 0 ; i < lvol->n_points ; i++)
@@ -679,7 +679,7 @@ compute_error(MRI *mri_dist, MATRIX *R0, MATRIX *Mras2vox, LABEL *lras, LABEL *l
   case COST_L1:
 #if 1
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(val, mri_dist) shared(lvol) schedule(static,1) reduction(+: sse)
+#pragma omp parallel for if_ROMP(experimental) firstprivate(val, mri_dist) shared(lvol) schedule(static,1) reduction(+: sse)
 #endif
 #endif
     for (i = 0 ; i < lvol->n_points ; i++)

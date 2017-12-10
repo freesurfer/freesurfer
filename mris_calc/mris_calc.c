@@ -55,7 +55,7 @@
 #include "mri_identify.h"
 #include "label.h"
 #ifdef _OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #define  STRBUF         65536
@@ -2562,7 +2562,7 @@ CURV_functionRunABC( double (*F)(float f_A, float f_B) )
   int   i;
 
   #ifdef _OPENMP
-  #pragma omp parallel for 
+  #pragma omp parallel for if_ROMP(experimental) 
   #endif
   for(i=0; i<G_sizeCurv1; i++)
   {
