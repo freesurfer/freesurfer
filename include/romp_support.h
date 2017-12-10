@@ -90,6 +90,8 @@ typedef struct ROMP_pflb_stack_struct {
 
 #define ROMP_PFLB_continue \
     { ROMP_PFLB_end; continue; }
+#define ROMP_PF_continue \
+    { ROMP_PFLB_end; continue; }
 
 void ROMP_pflb_begin(
     ROMP_pf_stack_struct   * pf_stack,

@@ -68,6 +68,8 @@
 
 #ifdef HAVE_OPENMP
 #include "romp_support.h"
+#else
+#error "HAVE_OPENMP undefined"
 #endif
 
 #ifdef HAVE_OPENMP
@@ -2965,9 +2967,11 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 
   if (nsize <= mris->max_nsize) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental)
+    ROMP_PF_begin
+    #pragma omp parallel for if_ROMP(experimental)
 #endif
     for (vno = 0; vno < mris->nvertices; vno++) {
+      ROMP_PFLB_begin
       VERTEX *v;
 
       v = &mris->vertices[vno];
@@ -2986,18 +2990,17 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
         default:
           break;
       }
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
     mris->nsize = nsize;
     return (NO_ERROR);
   }
-
+  
   // setting neighborhood size to a value larger than it has been in the past
   mris->max_nsize = nsize;
   for (niter = 0; niter < nsize - mris->nsize; niter++) {
-// this can't be parallelized due to the marking of neighbors
-#ifdef HAVE_OPENMP
-//#pragma omp parallel for if_ROMP(experimental)
-#endif
+    // this can't be parallelized due to the marking of neighbors
     for (vno = 0; vno < mris->nvertices; vno++) {
       int i, n, neighbors, j, vnum, nb_vnum;
       VERTEX *v, *vnb, *vnb2;
@@ -3101,9 +3104,11 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 
   ntotal = vtotal = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental) reduction(+ : ntotal, vtotal)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) reduction(+ : ntotal, vtotal)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
     VERTEX *v;
 
     v = &mris->vertices[vno];
@@ -3132,8 +3137,10 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 
     vtotal += v->vtotal;
     ntotal++;
+    ROMP_PFLB_end
   }
-
+  ROMP_PF_end
+  
   mris->avg_nbrs = (float)vtotal / (float)ntotal;
   mris->nsize = nsize;
   if (Gdiag & DIAG_SHOW && mris->nsize > 1 && DIAG_VERBOSE_ON) fprintf(stdout, "avg_nbrs = %2.1f\n", mris->avg_nbrs);
@@ -3610,9 +3617,11 @@ int MRIScomputeNormals(MRI_SURFACE *mris)
 #endif
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (k = 0; k < mris->nfaces; k++) {
+    ROMP_PFLB_begin
     FACE *f;
     int n;
     if (mris->faces[k].ripflag) {
@@ -3621,12 +3630,16 @@ int MRIScomputeNormals(MRI_SURFACE *mris)
         mris->vertices[f->v[n]].border = TRUE;
       }
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental) reduction(+ : i) schedule(static, 1)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) reduction(+ : i) schedule(static, 1)
 #endif
   for (k = 0; k < mris->nvertices; k++) {
+    ROMP_PFLB_begin
     VERTEX *v;
     float norm[3], snorm[3], len;
     int n, num;
@@ -3708,7 +3721,10 @@ int MRIScomputeNormals(MRI_SURFACE *mris)
         k--; /* recalculate the normal for this vertex */
       }
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
 #if 0
   mris->vertices[0].nx = mris->vertices[0].ny = 0 ;
   mris->vertices[0].nz = mris->vertices[0].nz / fabs(mris->vertices[0].nz) ;
@@ -3728,10 +3744,12 @@ static int mrisComputeVertexDistances(MRI_SURFACE *mris)
 
 #ifdef HAVE_OPENMP
 // have to  make v1 and v2 arrays and use tids for this to work
-#pragma omp parallel for if_ROMP(experimental)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
-
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     int n, vtotal, *pv;
     VERTEX *v, *vn;
     float d, xd, yd, zd, circumference = 0.0f, angle;
@@ -3788,8 +3806,11 @@ static int mrisComputeVertexDistances(MRI_SURFACE *mris)
         break;
       }
     }
+    
+    ROMP_PFLB_end
   }
-
+  ROMP_PF_end
+  
   return (NO_ERROR);
 }
 
@@ -3883,8 +3904,13 @@ static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
   N = 0;
 
   int VtxNo;
-#pragma omp parallel for if_ROMP(experimental) reduction(+ : Sum) reduction(+ : Sum2) reduction(+ : N)
+#ifdef HAVE_OPENMP
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) reduction(+ : Sum) reduction(+ : Sum2) reduction(+ : N)
+#endif
   for (VtxNo = 0; VtxNo < Surf->nvertices; VtxNo++) {
+    ROMP_PFLB_begin
+    
     VERTEX *vtx1, *vtx2;
     int nNNbrs, nthNNbr, NbrVtxNo;
     vtx1 = &Surf->vertices[VtxNo];
@@ -3907,7 +3933,10 @@ static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
       Sum2 += (d * d);
       N++;
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   // NOTE - This is a poor algorithm for computing the std dev because of how the floating point errors accumulate
   // but it seems to work for us because the double has enough accuracy to sum the few hundred thousand small but not
   // too small floats that we have
@@ -8810,14 +8839,17 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   if (!FZERO(parms->l_angle) || !FZERO(parms->l_area) || (!FZERO(parms->l_parea))) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental) reduction(+ : sse_angle, sse_neg_area, sse_area)
+    ROMP_PF_begin
+    #pragma omp parallel for if_ROMP(experimental) reduction(+ : sse_angle, sse_neg_area, sse_area)
 #endif
     for (fno = 0; fno < mris->nfaces; fno++) {
+      ROMP_PFLB_begin
+      
       FACE *face;
       double delta;
 
       face = &mris->faces[fno];
-      if (face->ripflag) continue;
+      if (face->ripflag) ROMP_PF_continue;
 
       delta = (double)(area_scale * face->area - face->orig_area);
 #if ONLY_NEG_AREA_TERM
@@ -8836,7 +8868,9 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       if (!isfinite(sse_area) || !isfinite(sse_angle)) {
         ErrorExit(ERROR_BADPARM, "sse not finite at face %d!\n", fno);
       }
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
   }
   if (parms->l_repulse > 0)
     sse_repulse = mrisComputeRepulsiveEnergy(mris, parms->l_repulse, mht_v_current, mht_f_current);
@@ -9164,14 +9198,19 @@ static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris)
 
   double sse = 0.0;
   int fno;
-#pragma omp parallel for if_ROMP(experimental) reduction(+ : sse)
+#ifdef HAVE_OPENMP
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) reduction(+ : sse)
+#endif
   for (fno = 0; fno < mris->nfaces; fno++) {
+    ROMP_PFLB_begin
+    
     double error, ratio;
     FACE *face;
 
     face = &mris->faces[fno];
     if (face->ripflag) {
-      continue;
+      ROMP_PF_continue;
     }
 #define SCALE_NONLINEAR_AREA 0
 #if SCALE_NONLINEAR_AREA
@@ -9200,7 +9239,11 @@ static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris)
     if (!isfinite(sse) || !isfinite(error)) {
       ErrorExit(ERROR_BADPARM, "nlin area sse not finite at face %d!\n", fno);
     }
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   return (sse);
 }
 
@@ -9366,7 +9409,7 @@ mrisFindPoles(MRIS *mris)
 
 /*-----------------------------------------------------
   Parameters:
-
+;
   Returns value:
 
   Description
@@ -9375,8 +9418,13 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
 {
   int fno;
 
-#pragma omp parallel for if_ROMP(experimental)
+#ifdef HAVE_OPENMP
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental)
+#endif
   for (fno = 0; fno < mris->nfaces; fno++) {
+    ROMP_PFLB_begin
+    
     int ano;
     VERTEX *v0, *v1, *v2;
     FACE *face;
@@ -9384,7 +9432,7 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
 
     face = &mris->faces[fno];
     if (face->ripflag) {
-      continue;
+      ROMP_PFLB_continue;
     }
     if (fno == Gdiag_no) {
       DiagBreak();
@@ -9410,7 +9458,10 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
         face->angle[ano] *= -1.0f;
       }
     }
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
 /* now recompute the total surface area, ignoring negative areas */
 #if 0
@@ -9420,13 +9471,18 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
     mris->total_area = mris->neg_orig_area = mris->neg_area = 0.0f;
 
     double total_area = 0.0, neg_area = 0.0, neg_orig_area = 0.0;
-#pragma omp parallel for if_ROMP(experimental) reduction(+ : total_area) reduction(+ : neg_area) reduction(+ : neg_orig_area)
+#ifdef HAVE_OPENMP
+    ROMP_PF_begin
+    #pragma omp parallel for if_ROMP(experimental) reduction(+ : total_area) reduction(+ : neg_area) reduction(+ : neg_orig_area)
+#endif
     for (fno = 0; fno < mris->nfaces; fno++) {
+      ROMP_PFLB_begin
+      
       FACE *face;
 
       face = &mris->faces[fno];
       if (face->ripflag) {
-        continue;
+        ROMP_PF_continue;
       }
       if (face->area >= 0.0f) {
         total_area += face->area;
@@ -9435,7 +9491,10 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
         neg_area += -face->area;
         neg_orig_area += face->orig_area;
       }
+      
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
 
     mris->total_area = total_area;
     mris->neg_orig_area = neg_orig_area;
@@ -9762,9 +9821,12 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
         int index;
       
 #ifdef HAVE_OPENMP
+        ROMP_PF_begin
         #pragma omp parallel for if_ROMP(experimental)
 #endif
         for (index = 0; index < index_to_vno_size ; index++ ) {
+	  ROMP_PFLB_begin
+	  
           Data *d = datas_inp + index;
           Control *c = controls  + index;
           float dx = d->dx, dy = d->dy, dz = d->dz;
@@ -9778,7 +9840,10 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
           d = datas_out + index;
           float inv_num = 1.0f/(c->numNeighbors + 1);
           d->dx = dx*inv_num ; d->dy = dy*inv_num ; d->dz = dz*inv_num; 
+	  
+	  ROMP_PFLB_end
         }
+	ROMP_PF_end
   
         // swap the output and the input going into the next round
         Data* tmp = datas_inp ; datas_inp = datas_out ; datas_out = tmp;
@@ -9792,16 +9857,19 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
       for (i = 0 ; i < num_avgs ; i++) {
   
 #ifdef HAVE_OPENMP
+        ROMP_PF_begin
         #pragma omp parallel for if_ROMP(experimental)
 #endif
   
         for (vno = 0; vno < mris->nvertices; vno++) {
+	  ROMP_PFLB_begin
+	  
           VERTEX *v, *vn;
           float dx, dy, dz, num;
           int vnb, *pnb, vnum;
   
           v = &mris->vertices[vno];
-          if (v->ripflag) continue;
+          if (v->ripflag) ROMP_PF_continue;
   
           dx  = v->dx;
           dy  = v->dy;
@@ -9822,20 +9890,30 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
           v->tdx = dx / num;
           v->tdy = dy / num;
           v->tdz = dz / num;
+	  ROMP_PFLB_end
         }
+	ROMP_PF_end
+	
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental) schedule(static, 1)
+	ROMP_PF_begin
+	#pragma omp parallel for if_ROMP(experimental) schedule(static, 1)
 #endif
         for (vno = 0; vno < mris->nvertices; vno++) {
+	  ROMP_PFLB_begin
+	  
           VERTEX *v;
   
           v = &mris->vertices[vno];
-          if (v->ripflag) continue;
+          if (v->ripflag) ROMP_PF_continue;
   
           v->dx = v->tdx;
           v->dy = v->tdy;
           v->dz = v->tdz;
+	  
+	  ROMP_PFLB_end
         }
+	ROMP_PF_end
+	
       }  // end of one of the num_avgs iterations
 
     }  // if (doOld) 
@@ -10394,9 +10472,12 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
   }
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental) reduction(+ : total_area)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) reduction(+ : total_area)
 #endif
   for (fno = 0; fno < mris->nfaces; fno++) {
+    ROMP_PFLB_begin
+    
     VERTEX *v0, *v1, *v2, *va, *vb, *vo;
     FACE *face;
     int ano;
@@ -10480,7 +10561,9 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
                 fno,ano,(float)DEGREES(angle)) ;
 #endif
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   for (tno = 0; tno < _MAX_FS_THREADS; tno++) {
     VectorFree(&v_a[tno]);
@@ -10491,9 +10574,12 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
 
 /* calculate the "area" of the vertices */
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     VERTEX *v;
     FACE *face;
     int fno;
@@ -10510,7 +10596,10 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
       v->area /= 3.0;
     else
       v->area /= 2.0;
+      
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   return (NO_ERROR);
 }
@@ -15198,9 +15287,12 @@ static int mrisComputeSurfaceNormalIntersectionTerm(MRI_SURFACE *mris, MHT *mht,
 
   step = mht->vres / 2;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     VERTEX *v;
     double d, dist, dx, dy, dz, scale;
 
@@ -15233,7 +15325,9 @@ static int mrisComputeSurfaceNormalIntersectionTerm(MRI_SURFACE *mris, MHT *mht,
         }
       }
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   return (NO_ERROR);
 }
@@ -17776,12 +17870,15 @@ int MRISapplyGradient(MRI_SURFACE *mris, double dt)
   }
   else {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental) schedule(static, 1)
+    ROMP_PF_begin
+    #pragma omp parallel for if_ROMP(experimental) schedule(static, 1)
 #endif
     for (vno = 0; vno < nvertices; vno++) {
+      ROMP_PFLB_begin
+      
       VERTEX *v;
       v = &mris->vertices[vno];
-      if (v->ripflag) continue;
+      if (v->ripflag) ROMP_PF_continue;
 
       if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z))
         ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n", vno);
@@ -17790,7 +17887,10 @@ int MRISapplyGradient(MRI_SURFACE *mris, double dt)
       v->x += dt * v->dx;
       v->y += dt * v->dy;
       v->z += dt * v->dz;
+      
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
   }
   return (NO_ERROR);
 }
@@ -18739,8 +18839,13 @@ static int mrisComputeConvexityTerm(MRI_SURFACE *mris, double l_convex)
     return (NO_ERROR);
   }
 
-#pragma omp parallel for if_ROMP(experimental)
+#ifdef HAVE_OPENMP
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental)
+#endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     int n, m;
     VERTEX *vertex, *vn;
     float sx, sy, sz, nx, ny, nz, nc, x, y, z;
@@ -18789,8 +18894,11 @@ static int mrisComputeConvexityTerm(MRI_SURFACE *mris, double l_convex)
     vertex->dz += l_convex * sz;
     if (vno == Gdiag_no)
       fprintf(stdout, "v %d convexity term: (%2.3f, %2.3f, %2.3f)\n", vno, l_convex * sx, l_convex * sy, l_convex * sz);
+      
+    ROMP_PFLB_end
   }
-
+  ROMP_PF_end
+  
   return (NO_ERROR);
 }
 
@@ -20649,8 +20757,13 @@ static int mrisComputeNormalizedSpringTerm(MRI_SURFACE *const mris, double const
 
   double dot_total = 0.0;
   int vno;
-#pragma omp parallel for if_ROMP(experimental) reduction(+ : dot_total)
+#ifdef HAVE_OPENMP
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) reduction(+ : dot_total)
+#endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     VERTEX *v = &mris->vertices[vno];
     if (v->ripflag) {
       continue;
@@ -20690,12 +20803,20 @@ static int mrisComputeNormalizedSpringTerm(MRI_SURFACE *const mris, double const
     if (vno == Gdiag_no)
       fprintf(
           stdout, "v %d spring norm term: (%2.3f, %2.3f, %2.3f)\n", vno, l_spring * sx, l_spring * sy, l_spring * sz);
+
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   float const dot_avg = dot_total / num;
 
-#pragma omp parallel for if_ROMP(experimental)
+#ifdef HAVE_OPENMP
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental)
+#endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     VERTEX *v = &mris->vertices[vno];
     if (v->ripflag) {
       continue;
@@ -20707,8 +20828,11 @@ static int mrisComputeNormalizedSpringTerm(MRI_SURFACE *const mris, double const
     v->dx -= dot_avg * v->nx;
     v->dy -= dot_avg * v->ny;
     v->dz -= dot_avg * v->nz;
+    
+    ROMP_PFLB_end
   }
-
+  ROMP_PF_end
+  
   return (NO_ERROR);
 }
 
@@ -20808,9 +20932,12 @@ static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   }
 // need to make v_n etc. into arrays and use tids
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental) schedule(static, 1)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) schedule(static, 1)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     VERTEX *v, *vn;
     int vnum, n;
     float d0, dt, delta, nc, vsmooth = 1.0;
@@ -20933,7 +21060,10 @@ static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
                 v->dist[i] - v->dist_orig[i] / scale);
       fclose(fp);
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   for (tno = 0; tno < _MAX_FS_THREADS; tno++) {
     VectorFree(&v_n[tno]);
     VectorFree(&v_y[tno]);
@@ -21445,20 +21575,23 @@ static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *par
 
   sse_dist = 0.0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental) reduction(+ : sse_dist) schedule(static, 1)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) reduction(+ : sse_dist) schedule(static, 1)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     VERTEX *v, *vn;
     int n, vn_vno;
     double delta, v_sse;
 
     v = &mris->vertices[vno];
-    if (v->ripflag) continue;
+    if (v->ripflag) ROMP_PF_continue;
 
     if (vno == Gdiag_no) DiagBreak();
 
 #if NO_NEG_DISTANCE_TERM
-    if (v->neg) continue;
+    if (v->neg) ROMP_PF_continue;
 #endif
 
     for (v_sse = 0.0, n = 0; n < v->vtotal; n++) {
@@ -21509,7 +21642,10 @@ static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *par
 
     sse_dist += v_sse;
     if (!isfinite(sse_dist) || !isfinite(v_sse)) DiagBreak();
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
 #ifdef FS_CUDA
   /* investigate some of the flags. Neither being true would help
@@ -22339,9 +22475,12 @@ static double mrisComputeThicknessMinimizationEnergy(MRI_SURFACE *mris, double l
 
   sse_tmin = 0.0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental) reduction(+ : sse_tmin)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) reduction(+ : sse_tmin)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     float thick_sq;
     VERTEX *v;
     v = &mris->vertices[vno];
@@ -22361,7 +22500,10 @@ static double mrisComputeThicknessMinimizationEnergy(MRI_SURFACE *mris, double l
     if (Gdiag_no == vno) {
       printf("E_thick_min:  v %d @ (%2.2f, %2.2f, %2.2f): thick = %2.5f\n", vno, v->x, v->y, v->z, v->curv);
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+
   sse_tmin /= 2;
   return (sse_tmin);
 }
@@ -22388,9 +22530,12 @@ static double mrisComputeThicknessNormalEnergy(MRI_SURFACE *mris, double l_thick
 
   sse_tnormal = 0.0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental) reduction(+ : sse_tnormal)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) reduction(+ : sse_tnormal)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     double sse;
     VERTEX *v;
 
@@ -22437,7 +22582,10 @@ static double mrisComputeThicknessNormalEnergy(MRI_SURFACE *mris, double l_thick
              dz,
              v->wnx * dx + v->wny * dy + v->wnz * dz);
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+
   sse_tnormal /= 2;
   return (sse_tnormal);
 }
@@ -22506,9 +22654,12 @@ static int mrisAssignFaces(MRI_SURFACE *mris, MHT *mht, int which_vertices)
   int vno;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin 
+    
     int fno;
     VERTEX *v;
     double fdist;
@@ -22524,8 +22675,11 @@ static int mrisAssignFaces(MRI_SURFACE *mris, MHT *mht, int which_vertices)
     if (fno < 0) MHTfindClosestFaceGeneric(mht, mris, v->x, v->y, v->z, 1000, -1, -1, &face, &fno, &fdist);
 
     v->fno = fno;
+    
+    ROMP_PFLB_end
   }
-
+  ROMP_PF_end
+  
   return (NO_ERROR);
 }
 /*-----------------------------------------------------
@@ -22556,9 +22710,12 @@ static double mrisComputeThicknessParallelEnergy(MRI_SURFACE *mris, double l_thi
   max_vno = 0;
   sse_tparallel = 0.0;
   // ifdef HAVE_OPENMP
+  ROMP_PF_begin
   // pragma omp parallel for if_ROMP(experimental) reduction(+:sse_tparallel)
   // endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     VERTEX *v;
     double sse;
 
@@ -22582,7 +22739,10 @@ static double mrisComputeThicknessParallelEnergy(MRI_SURFACE *mris, double l_thi
     if (vno == Gdiag_no) {
       printf("E_parallel: vno = %d, E = %f\n", vno, sse);
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   sse_tparallel /= 2;
   return (sse_tparallel);
 }
@@ -22606,26 +22766,33 @@ static double mrisComputeAshburnerTriangleEnergy(MRI_SURFACE *mris,
   sse_ashburner = 0.0;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental) reduction(+ : sse_ashburner)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) reduction(+ : sse_ashburner)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     double sse;
     VERTEX *v;
 
     v = &mris->vertices[vno];
     if (vno == Gdiag_no) DiagBreak();
 
-    if (v->ripflag) continue;
+    if (v->ripflag) ROMP_PF_continue;
 
     sse = mrisSampleAshburnerTriangleEnergy(mris, v, parms, v->x, v->y, v->z);
     if (sse < 0) DiagBreak();
 
     sse_ashburner += sse;
     if (vno == Gdiag_no) printf("E_ash_triangle: vno = %d, E = %f\n", vno, sse);
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   sse_ashburner /= 2;
   return (sse_ashburner);
 }
+
 #if 1
 // debugged and working, but not needed at the moment
 static int get_face_axes(
@@ -22714,16 +22881,19 @@ static int mrisComputeThicknessMinimizationTerm(MRI_SURFACE *mris, double l_thic
   if (FZERO(l_thick_min)) return (0.0);
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     float dE_de1, dE_de2, e1p, e1m, e2p, e2m;
     float e1x, e1y, e1z, e2x, e2y, e2z, norm, dx, dy, dz, E0, E1;
     VERTEX *v;
     double d_dist = D_DIST * mris->avg_vertex_dist;
 
     v = &mris->vertices[vno];
-    if (v->ripflag) continue;
+    if (v->ripflag) ROMP_PF_continue;
 
     if (vno == Gdiag_no) DiagBreak();
 
@@ -22799,8 +22969,10 @@ static int mrisComputeThicknessMinimizationTerm(MRI_SURFACE *mris, double l_thic
           l_thick_min * (dE_de1 * e1y + dE_de2 * e2y),
           l_thick_min * (dE_de1 * e1z + dE_de2 * e2z));
     }
+    ROMP_PFLB_end
   }
-
+  ROMP_PF_end
+  
   return (NO_ERROR);
 }
 /*-----------------------------------------------------
@@ -22819,9 +22991,12 @@ static int mrisComputeThicknessParallelTerm(MRI_SURFACE *mris, double l_thick_pa
   mrisAssignFaces(mris, (MHT *)(parms->mht), CANONICAL_VERTICES);  // don't look it up every time
 
   // ifdef HAVE_OPENMP
+  ROMP_PF_begin
   // pragma omp parallel for if_ROMP(experimental)
   // endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     float dE_de1, dE_de2, e1p, e1m, e2p, e2m, dx, dy, dz;
     float e1x, e1y, e1z, e2x, e2y, e2z, norm, E0, E1;
     VERTEX *v;
@@ -22899,7 +23074,10 @@ static int mrisComputeThicknessParallelTerm(MRI_SURFACE *mris, double l_thick_pa
           parms->dt * dy,
           parms->dt * dz);
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   return (NO_ERROR);
 }
 /*-----------------------------------------------------
@@ -23058,9 +23236,12 @@ static int mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_norm
   if (FZERO(l_thick_normal)) return (0.0);
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     float dE_de1, dE_de2, e1p, e1m, e2p, e2m, cx, cy, cz;
     float E0, E1, dx, dy, dz;
     float e1x, e1y, e1z, e2x, e2y, e2z, norm;
@@ -23164,7 +23345,9 @@ static int mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_norm
              dz,
              v->wnx * dx + v->wny * dy + v->wnz * dz);
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   return (NO_ERROR);
 }
@@ -23325,9 +23508,12 @@ static int mrisComputeAshburnerTriangleTerm(MRI_SURFACE *mris, double l_ashburne
   }
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     float dE_de1, dE_de2, e1p, e1m, e2p, e2m, cx, cy, cz;
     float E0, E1, dx, dy, dz;
     float e1x, e1y, e1z, e2x, e2y, e2z, norm;
@@ -23337,7 +23523,7 @@ static int mrisComputeAshburnerTriangleTerm(MRI_SURFACE *mris, double l_ashburne
     v = &mris->vertices[vno];
     if (vno == Gdiag_no) DiagBreak();
 
-    if (v->ripflag) continue;
+    if (v->ripflag) ROMP_PF_continue;
 
     e1x = v->e1x;
     e1y = v->e1y;
@@ -23414,7 +23600,10 @@ static int mrisComputeAshburnerTriangleTerm(MRI_SURFACE *mris, double l_ashburne
           l_ashburner_triangle * (dE_de1 * e1y + dE_de2 * e2y),
           l_ashburner_triangle * (dE_de1 * e1z + dE_de2 * e2z));
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   return (NO_ERROR);
 }
 /*-----------------------------------------------------
@@ -27660,14 +27849,17 @@ double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
 
   int vno;
   double sse = 0.0;
-#pragma omp parallel for if_ROMP(experimental) reduction(+ : sse)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) reduction(+ : sse)
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     VERTEX *v = &mris->vertices[vno];
     if (vno == Gdiag_no) {
       DiagBreak();
     }
     if (v->ripflag) {
-      continue;
+      ROMP_PF_continue;
     }
 
     double src, target, delta, std;
@@ -27709,7 +27901,10 @@ double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
     else {
       sse += delta * delta;
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   return (sse);
 }
 
@@ -29108,15 +29303,18 @@ int MRISaverageVals(MRI_SURFACE *mris, int navgs)
 
   for (i = 0; i < navgs; i++) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental) shared(mris, i) schedule(static, 1)
+    ROMP_PF_begin
+    #pragma omp parallel for if_ROMP(experimental) shared(mris, i) schedule(static, 1)
 #endif
     for (vno = 0; vno < mris->nvertices; vno++) {
+      ROMP_PFLB_begin
+      
       int vnb, *pnb, vnum;
       float val, num;
       VERTEX *v, *vn;
 
       v = &mris->vertices[vno];
-      if (v->ripflag) continue;
+      if (v->ripflag) ROMP_PF_continue;
 
       val = v->val;
       pnb = v->v;
@@ -29130,18 +29328,25 @@ int MRISaverageVals(MRI_SURFACE *mris, int navgs)
       }
       num++; /*  account for central vertex */
       v->tdx = val / num;
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental) shared(mris, i) schedule(static, 1)
+    ROMP_PF_begin
+    #pragma omp parallel for if_ROMP(experimental) shared(mris, i) schedule(static, 1)
 #endif
     for (vno = 0; vno < mris->nvertices; vno++) {
+      ROMP_PFLB_begin
       VERTEX *v;
       v = &mris->vertices[vno];
-      if (v->ripflag) continue;
+      if (v->ripflag) ROMP_PF_continue;
 
       v->val = v->tdx;
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
   }
+
   return (NO_ERROR);
 }
 /*-----------------------------------------------------
@@ -38472,8 +38677,13 @@ static double mrisComputeSphereError(MRI_SURFACE *mris, double l_sphere, double 
   //        /Bevin
   //
   sse = 0.0;
-#pragma omp parallel for if_ROMP(experimental) reduction(+ : sse)
+#ifdef HAVE_OPENMP
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) reduction(+ : sse)
+#endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     VERTEX *v;
     double del, x, y, z, r;
 
@@ -38497,8 +38707,10 @@ static double mrisComputeSphereError(MRI_SURFACE *mris, double l_sphere, double 
       fprintf(stdout, "v %d sphere term: (%2.3f, %2.3f, %2.3f)\n",
               vno, v->dx, v->dy, v->dz) ;
 #endif
+    ROMP_PFLB_end
   }
-
+  ROMP_PF_end
+  
   return (sse);
 }
 /*-----------------------------------------------------
@@ -40964,12 +41176,15 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
     for (surf_no = 0; surf_no < nsurfaces; surf_no++) {
       // compute target locations for each vertex
       // ifdef HAVE_OPENMP
+      ROMP_PF_begin
       // pragma omp parallel for if_ROMP(experimental)
       // endif
       for (vno = 0; vno < mris->nvertices; vno++) {
+        ROMP_PFLB_begin
+	
         v = &mris->vertices[vno];
         if (v->ripflag) {
-          continue;
+          ROMP_PF_continue;
         }
         if (vno == Gdiag_no) {
           DiagBreak();
@@ -41025,7 +41240,10 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
           v->targy = v->origy + v->ny * d;
           v->targz = v->origz + v->nz * d;
         }
+	ROMP_PFLB_end
       }
+      ROMP_PF_end
+      
       if (Gdiag_no >= 0)
         printf("v%d, target - %2.1f %2.1f %2.1f\n",
                Gdiag_no,
@@ -41637,9 +41855,12 @@ int MRISmatrixMultiply(MRIS *mris, MATRIX *M)
   int vno;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     VERTEX *v;
     MATRIX *xyz, *Mxyz;
     xyz = MatrixAlloc(4, 1, MATRIX_REAL);
@@ -41656,8 +41877,11 @@ int MRISmatrixMultiply(MRIS *mris, MATRIX *M)
     v->z = Mxyz->rptr[3][1];
     MatrixFree(&xyz);
     MatrixFree(&Mxyz);
+    
+    ROMP_PFLB_end
   }
-
+  ROMP_PF_end
+  
   return (0);
 }
 
@@ -68065,9 +68289,12 @@ MRI *MRISarN(MRIS *surf, MRI *src, MRI *mask, MRI *arN, int N)
   crslut = MRIScrsLUT(surf, src);
 
 #ifdef _OPENMP
-#pragma omp parallel for if_ROMP(experimental)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (vtx = 0; vtx < surf->nvertices; vtx++) {
+    ROMP_PFLB_begin
+    
     int nnbrs, frame, nbrvtx, nthnbr, c, r, s;
     int cnbr, rnbr, snbr, nnbrs_actual;
     double valvtx, valnbr, arsum, sumsqvtx, vtxvar, sumsqnbr, sumsqx, nbrvar;
@@ -68128,9 +68355,11 @@ MRI *MRISarN(MRIS *surf, MRI *src, MRI *mask, MRI *arN, int N)
     } /* end loop over hop */
 
     SurfHopListFree(&shl);
-
+    
+    ROMP_PFLB_end
   } /* end loop over vertex */
-
+  ROMP_PF_end
+  
   MRIScrsLUTFree(crslut);
 
   return (arN);
@@ -68190,12 +68419,19 @@ MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *glo
     printf("Allocating shl %d\n", surf->nvertices);
     shl = (SURFHOPLIST **)calloc(sizeof(SURFHOPLIST *), surf->nvertices);
 #ifdef _OPENMP
-#pragma omp parallel for if_ROMP(experimental)
+    ROMP_PF_begin
+    #pragma omp parallel for if_ROMP(experimental)
 #endif
     for (vtx = 0; vtx < surf->nvertices; vtx++) {
+      ROMP_PFLB_begin
+      
       // Create structure to manage the multiple hops for this vertex
       shl[vtx] = SetSurfHopList(vtx, surf, nhops);
+      
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
+    
     *pshl = shl;
     msecTime = TimerStop(&mytimer);
     printf("Done allocating shl %d, %g sec\n", surf->nvertices, msecTime / 1000.0);
@@ -68206,9 +68442,12 @@ MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *glo
   printf("Starting loop over %d vertices\n", surf->nvertices);
   TimerStart(&mytimer);
 #ifdef _OPENMP
-#pragma omp parallel for if_ROMP(experimental)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (vtx = 0; vtx < surf->nvertices; vtx++) {
+    ROMP_PFLB_begin
+    
     int nnbrs, frame, nbrvtx, nthnbr, c, r, s;
     int cnbr, rnbr, snbr, nnbrs_actual;
     double vtxval = 0, *vkern, ksum, kvsum;
@@ -68262,7 +68501,10 @@ MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *glo
     // SurfHopListFree(&shl[vtx]);
 
     if (mrikern) free(vkern);
+    ROMP_PFLB_end
   } /* end loop over vertex */
+  ROMP_PF_end
+  
   printf("\n");
   msecTime = TimerStop(&mytimer);
   printf("Finished loop over %d vertices, %d hops, t=%g sec\n", surf->nvertices, nhops, msecTime / 1000.0);
@@ -68858,9 +69100,12 @@ static int mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs)
   else
     for (i = 0; i < num_avgs; i++) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental)
+      ROMP_PF_begin
+      #pragma omp parallel for if_ROMP(experimental)
 #endif
       for (vno = 0; vno < mris->nvertices; vno++) {
+        ROMP_PFLB_begin
+	
         VERTEX *v, *vn;
         double dx, dy, dz, dot;
         int *pnb, vnum, num, vnb;
@@ -68905,20 +69150,28 @@ static int mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs)
         v->tdx = dx / (float)num;
         v->tdy = dy / (float)num;
         v->tdz = dz / (float)num;
+	ROMP_PFLB_end
       }
+      ROMP_PF_end
+      
 #ifdef HAVE_OPENMP
-#pragma omp parallel for if_ROMP(experimental)
+      ROMP_PF_begin
+      #pragma omp parallel for if_ROMP(experimental)
 #endif
       for (vno = 0; vno < mris->nvertices; vno++) {
+        ROMP_PFLB_begin
+	
         VERTEX *v;
 
         v = &mris->vertices[vno];
-        if (v->ripflag) continue;
+        if (v->ripflag) ROMP_PF_continue;
 
         v->dx = v->tdx;
         v->dy = v->tdy;
         v->dz = v->tdz;
+	ROMP_PFLB_end
       }
+      ROMP_PF_end
     }
   if (Gdiag_no >= 0) {
     float dot;
@@ -74183,7 +74436,6 @@ int MRIScomputeAllDistances(MRI_SURFACE *mris)
   nvalid = MRISvalidVertices(mris);
 #if 0
   // this for loop can't be parallelized due to the use of MRISdistanceTransform
-//#pragma omp parallel for if_ROMP(experimental) reduction(+:done)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX *v, *vn;
