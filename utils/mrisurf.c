@@ -3608,14 +3608,15 @@ int MRIScomputeNormals(MRI_SURFACE *mris)
   }
 #endif
 
+  int k;
+
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+  #pragma omp parallel for
 #endif
   for (k = 0; k < mris->nfaces; k++) {
-    FACE *f;
-    int n;
     if (mris->faces[k].ripflag) {
-      f = &mris->faces[k];
+      FACE* f = &mris->faces[k];
+      int n;
       for (n = 0; n < VERTICES_PER_FACE; n++) {
         mris->vertices[f->v[n]].border = TRUE;
       }
@@ -3624,22 +3625,19 @@ int MRIScomputeNormals(MRI_SURFACE *mris)
 
   int i = 0;
 
-  int k;
-
 #ifdef HAVE_OPENMP
 #pragma omp parallel for reduction(+ : i) schedule(static, 1)
 #endif
   for (k = 0; k < mris->nvertices; k++) {
-    VERTEX *v;
-    float norm[3], snorm[3], len;
-    int n, num;
-    FACE *face;
 
-    v = &mris->vertices[k];
+    float norm[3], snorm[3], len;
+
+    VERTEX* v = &mris->vertices[k];
     if (!v->ripflag) {
       snorm[0] = snorm[1] = snorm[2] = 0;
       v->area = 0;
 
+      int n, num;
       for (num = n = 0; n < v->num; n++)
         if (!mris->faces[v->f[n]].ripflag) {
           num++;
@@ -3649,7 +3647,7 @@ int MRIScomputeNormals(MRI_SURFACE *mris)
           snorm[2] += norm[2];
 
           // DNG: 6/7/2016 update the face normals
-          face = &mris->faces[v->f[n]];
+          FACE * face = &mris->faces[v->f[n]];
           face->nx = norm[0];
           face->ny = norm[1];
           face->nz = norm[2];
@@ -9389,13 +9387,13 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
     /* now give the area an orientation: if the unit normal is pointing
        inwards on the ellipsoid then the area should be negative.
     */
-    float const v0 = &mris->vertices[face->v[0]];
-    float const v1 = &mris->vertices[face->v[1]];
-    float const v2 = &mris->vertices[face->v[2]];
-    float const xc = (v0->x + v1->x + v2->x) / 3;
-    float const yc = (v0->y + v1->y + v2->y) / 3;
-    float const zc = (v0->z + v1->z + v2->z) / 3;
-    float const dot = xc * face->nx + yc * face->ny + zc * face->nz;
+    VERTEX* const v0 = &mris->vertices[face->v[0]];
+    VERTEX* const v1 = &mris->vertices[face->v[1]];
+    VERTEX* const v2 = &mris->vertices[face->v[2]];
+    float   const xc = (v0->x + v1->x + v2->x) / 3;
+    float   const yc = (v0->y + v1->y + v2->y) / 3;
+    float   const zc = (v0->z + v1->z + v2->z) / 3;
+    float   const dot = xc * face->nx + yc * face->ny + zc * face->nz;
     
     if (dot < 0.0f) /* not in same direction, area < 0 and reverse n */
     {
