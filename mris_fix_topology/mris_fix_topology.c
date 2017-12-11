@@ -98,6 +98,8 @@ char *rusage_file=NULL;
 int
 main(int argc, char *argv[])
 {
+  ROMP_main
+  
   char          **av, *hemi, *sname, *cp, fname[STRLEN] ;
   int           ac, nargs ;
   MRI_SURFACE   *mris, *mris_corrected ;

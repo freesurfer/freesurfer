@@ -39,7 +39,7 @@ typedef enum ROMP_level {
     } ROMP_level;
 extern ROMP_level romp_level;
 
-#define if_ROMP(LEVEL) if (ROMP_pf_stack.staticInfo && (ROMP_##LEVEL <= romp_level))
+#define if_ROMP(LEVEL) if (ROMP_pf_stack.staticInfo && (ROMP_##LEVEL >= romp_level))
 
 // Surround a parallel for
 typedef struct ROMP_pf_static_struct { 
@@ -54,6 +54,8 @@ typedef struct ROMP_pf_stack_struct  {
     int tids_active;
 } ROMP_pf_stack_struct;
 
+#define ROMP_main ROMP_main_started(__FILE__, __LINE__);
+    
 #define ROMP_PF_begin \
     { \
     static ROMP_pf_static_struct ROMP_pf_static = { 0L, __FILE__, __LINE__ }; \
@@ -63,6 +65,8 @@ typedef struct ROMP_pf_stack_struct  {
 #define ROMP_PF_end \
     ROMP_pf_end(&ROMP_pf_stack); \
     }
+
+void ROMP_main_started(const char* file, int line);
 
 void ROMP_pf_begin(
     ROMP_pf_static_struct * pf_static,

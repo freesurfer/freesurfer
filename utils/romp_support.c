@@ -3,8 +3,9 @@
 #include <malloc.h>
 #include <stdlib.h>
 
-ROMP_level romp_level = ROMP_shown_reproducible;
-
+ROMP_level romp_level = 
+	ROMP_shown_reproducible;
+	// should not be set ro ROMP_serial
 
 typedef struct StaticData {
     ROMP_pf_static_struct* next;
@@ -13,6 +14,14 @@ typedef struct StaticData {
 
 ROMP_pf_static_struct* known_ROMP_pf;
 
+
+static void rompExitHandler(void)
+{
+  static int count;
+  if (count++ > 0) return;
+  fprintf(stderr, "ROMP staticExitHandler called\n");
+  ROMP_show_stats(stderr);
+}
 
 static StaticData* initStaticData(ROMP_pf_static_struct * pf_static)
 {
@@ -27,6 +36,9 @@ static StaticData* initStaticData(ROMP_pf_static_struct * pf_static)
     	    ptr->next = known_ROMP_pf;
     	    known_ROMP_pf = pf_static;
     	}
+	
+	static int atExitCount;
+	if (atExitCount++ == 0) atexit(rompExitHandler);
     }
     return ptr;
 }
@@ -66,7 +78,7 @@ void ROMP_pflb_begin(
     if (tid >= 8*sizeof(int)) return;
     int tidMask = 1<<tid;
     if (pf_stack->tids_active & tidMask) {
-        fprintf(stderr, "Acitive tid in ROMP_pflb_begin\n");
+        fprintf(stderr, "Active tid in ROMP_pflb_begin\n");
         exit(1);
     }
     #pragma omp atomic
@@ -79,7 +91,7 @@ void ROMP_pflb_end(
     if (!pflb_stack->pf_stack) return;
     ROMP_pf_stack_struct  * pf_stack = pflb_stack->pf_stack;
     ROMP_pf_static_struct * pf_static = pf_stack->staticInfo;
-    Nanosecs delta = TimerElapsedNanosecs(&pf_stack->beginTime);
+    Nanosecs delta = TimerElapsedNanosecs(&pflb_stack->beginTime);
     StaticData* staticData = (StaticData*)(pf_static->ptr);
     #pragma omp atomic
     staticData->in_pflb.ns += delta.ns;
@@ -98,21 +110,33 @@ void ROMP_pflb_end(
     }
     #pragma omp atomic
     pf_stack->tids_active ^= tidMask;
-    
 }
 
+static const char* mainFile = NULL;
+static int mainLine = 0;
+static NanosecsTimer mainTimer;
 void ROMP_show_stats(FILE* file)
 {
     fprintf(file, "ROMP_show_stats\n");
+    fprintf(file, "file, line, in pf, in pflb, body/elapsed\n");
+    if (mainFile)  {
+      Nanosecs mainDuration = TimerElapsedNanosecs(&mainTimer);
+      fprintf(file, "%s, %d, %12ld, %12ld, 1.0\n", mainFile, mainLine, mainDuration.ns, mainDuration.ns);
+    }
     ROMP_pf_static_struct* pf;
     for (pf = known_ROMP_pf; pf; ) {
     	StaticData* sd = (StaticData*)(pf->ptr);
-    	fprintf(file, "%s:%d %ld %ld\n", pf->file, pf->line, sd->in_pf.ns, sd->in_pflb.ns);
+    	fprintf(file, "%s, %d, %12ld, %12ld, %6.3g\n", pf->file, pf->line, sd->in_pf.ns, sd->in_pflb.ns,
+	  (double)sd->in_pflb.ns/(double)sd->in_pf.ns);
     	pf = sd->next;
     }
 }
 
-
+void ROMP_main_started(const char* file, int line) {
+    TimerStartNanosecs(&mainTimer);
+    mainFile = file;
+    mainLine = line;
+}
 
 #if 0
 
@@ -122,7 +146,6 @@ int main(int argc, char* argv[])
 {
     fprintf(stdout, "%s:%d main()\n", __FILE__, __LINE__);
     static const int v_size = 1000;
-    int* v = (int*)malloc(sizeof(int)*v_size);
     int i;
     double sum = 0;
 
@@ -130,7 +153,7 @@ int main(int argc, char* argv[])
     fprintf(stdout, "#threads:%d\n", omp_get_max_threads());
 
     ROMP_PF_begin
-    #pragma omp parallel for if_ROMP(experimental) reduction(+:sum) if_ROMP(shown_reproducible)
+    #pragma omp parallel for if_ROMP(experimental) reduction(+:sum)
     for (i = 0; i < v_size; i++) {
     	ROMP_PFLB_begin
     	sum += 1.0 / i;
