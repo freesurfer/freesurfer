@@ -34,7 +34,7 @@ typedef enum ROMP_level {
     ROMP_experimental,          // hasn't even been tested for correctness yet
     ROMP_fast,                  // is known to get differing results parallel and serial
     ROMP_assume_reproducible,   // is suspected of getting same results
-    ROMP_shown_reproducible,    // is tested and shown to get same results 
+    ROMP_shown_reproducible,    // is tested or inspected closely and shown to get same results 
     ROMP__size
     } ROMP_level;
 extern ROMP_level romp_level;
