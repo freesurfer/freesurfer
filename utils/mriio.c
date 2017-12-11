@@ -13538,9 +13538,6 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI * mri_dst)
   for (x = 0; x < mri_dst->width; x++) {
     ROMP_PFLB_begin
     
-    int y, z, f, height, depth, nframes;
-    float val;
-
     int const height  = mri_dst->height;
     int const depth   = mri_dst->depth;
     int const nframes = mri_dst->nframes;
