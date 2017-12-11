@@ -275,20 +275,27 @@ foreach hemi ($hemilist)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
-    set MW = $tmpdir/$hemi.Unknown.label
-    if(! -e $MW) set MW = $tmpdir/$hemi.Medial_wall.label
-    if(! -e $MW) then
+    # Create the medial wall label
+    set tmpmwdir = $ddir/make_mw_label.tmp.$$
+    set unknown_label = $tmpdir/$hemi.Unknown.label
+    if(-e $unknown_label) mv $unknown_label $tmpmwdir
+    set mw_label = $tmpdir/$hemi.Medial_wall.label
+    if(-e $mw_label) mv $mw_label $tmpmwdir
+    if(! -e $unknown_label && ! -e $mw_label) then
       echo "ERROR: cannot find $hemi.Unknown.label or $hemi.Medial_wall.label"
       exit 1;
     endif
-    mv $MW $ddir/label/$hemi.Medial_wall.label # Move medial wall out of dir
+    set cmd = (mri_mergelabels -o $ddir/label/$hemi.Medial_wall.label -d $tmpmwdir)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1
     # Create the cortex label with all the remaining labels
     set ctxlabel = $ddir/label/$hemi.cortex.label
     set cmd = (mri_mergelabels -o $ctxlabel -d $tmpdir)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
-    rm -rf $tmpdir; # Cleanup
+    rm -rf $tmpdir $tmpmwdir; # Cleanup
   endif
 
   # Create average surface measures
