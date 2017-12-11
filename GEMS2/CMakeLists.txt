@@ -13,6 +13,8 @@ ELSE(ITK_FOUND)
            "Cannot build without ITK.  Please set ITK_DIR.")
 ENDIF(ITK_FOUND)
 
+OPTION( BUILD_MATLAB "Build Matlab wrappers" OFF )
+
 # Enable C++11 syntax
 set(CMAKE_CXX_STANDARD 11)
 
@@ -63,3 +65,10 @@ TARGET_LINK_LIBRARIES(GEMS2Python
         PRIVATE ${ZLIB_LIBRARIES}
         )
 
+# Build Matlab wrappers
+IF(BUILD_MATLAB)
+  FIND_PACKAGE( Matlab REQUIRED )
+
+  SUBDIRS( Matlab )
+
+ENDIF(BUILD_MATLAB)
