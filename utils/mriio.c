@@ -13524,16 +13524,16 @@ static MRI *readGCA(const char *fname, int start_frame, int end_frame)
   return (mri);
 }
 
-MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst)
+MRI *MRIremoveNaNs(MRI *mri_src, MRI * mri_dst)
 {
-  int x, nans = 0, width;
-
   if (mri_dst != mri_src) mri_dst = MRIcopy(mri_src, mri_dst);
-  width = mri_dst->width;
+
+  int x;
+  int nans = 0;
 
 #ifdef HAVE_OPENMP
   ROMP_PF_begin
-  #pragma omp parallel for if_ROMP(experimental) firstprivate(width) shared(mri_dst) reduction(+ : nans)
+  #pragma omp parallel for if_ROMP(shown_reproducible) shared(mri_dst) reduction(+ : nans)
 #endif
   for (x = 0; x < mri_dst->width; x++) {
     ROMP_PFLB_begin
@@ -13541,13 +13541,15 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst)
     int y, z, f, height, depth, nframes;
     float val;
 
-    height = mri_dst->height;
-    depth = mri_dst->depth;
-    nframes = mri_dst->nframes;
+    int const height  = mri_dst->height;
+    int const depth   = mri_dst->depth;
+    int const nframes = mri_dst->nframes;
+
+    int y, z, f;
     for (y = 0; y < height; y++) {
       for (z = 0; z < depth; z++) {
         for (f = 0; f < nframes; f++) {
-          val = MRIgetVoxVal(mri_dst, x, y, z, f);
+          float val = MRIgetVoxVal(mri_dst, x, y, z, f);
           if (!isfinite(val)) {
             nans++;
             MRIsetVoxVal(mri_dst, x, y, z, f, 0);
@@ -13560,7 +13562,7 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst)
     ROMP_PFLB_end
   }
   ROMP_PF_end
-  
+
   if (nans > 0) ErrorPrintf(ERROR_BADPARM, "WARNING: %d NaNs found in volume %s...\n", nans, mri_src->fname);
   return (mri_dst);
 }
