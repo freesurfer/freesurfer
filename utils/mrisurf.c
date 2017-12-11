@@ -3101,7 +3101,7 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 
   ntotal = vtotal = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+ : ntotal, vtotal)
+#pragma omp parallel for reduction(+ : ntotal, vtotal) /* shown_reproducible */
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX *v;
@@ -3591,15 +3591,12 @@ int MRISremoveRipped(MRI_SURFACE *mris)
 int MRIScomputeNormals(MRI_SURFACE *mris)
 {
   long seed;
-  int k, i;
 
   /* Control the random seed so that MRIScomputeNormals() always does
      the same thing, otherwise it changes the xyz of the surface if
      it finds degenerate normals. */
   seed = getRandomSeed();
   setRandomSeed(1234);
-
-  i = 0;
 
 #if 0
   if (mris->status == MRIS_PLANE)
@@ -3622,6 +3619,10 @@ int MRIScomputeNormals(MRI_SURFACE *mris)
       }
     }
   }
+
+  int i = 0;
+
+  int k;
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for reduction(+ : i) schedule(static, 1)
@@ -9377,35 +9378,31 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
 
 #pragma omp parallel for
   for (fno = 0; fno < mris->nfaces; fno++) {
-    int ano;
-    VERTEX *v0, *v1, *v2;
-    FACE *face;
-    float dot, xc, yc, zc;
-
-    face = &mris->faces[fno];
+    FACE* const face = &mris->faces[fno];
+    
     if (face->ripflag) {
       continue;
-    }
-    if (fno == Gdiag_no) {
-      DiagBreak();
     }
 
     /* now give the area an orientation: if the unit normal is pointing
        inwards on the ellipsoid then the area should be negative.
     */
-    v0 = &mris->vertices[face->v[0]];
-    v1 = &mris->vertices[face->v[1]];
-    v2 = &mris->vertices[face->v[2]];
-    xc = (v0->x + v1->x + v2->x) / 3;
-    yc = (v0->y + v1->y + v2->y) / 3;
-    zc = (v0->z + v1->z + v2->z) / 3;
-    dot = xc * face->nx + yc * face->ny + zc * face->nz;
+    float const v0 = &mris->vertices[face->v[0]];
+    float const v1 = &mris->vertices[face->v[1]];
+    float const v2 = &mris->vertices[face->v[2]];
+    float const xc = (v0->x + v1->x + v2->x) / 3;
+    float const yc = (v0->y + v1->y + v2->y) / 3;
+    float const zc = (v0->z + v1->z + v2->z) / 3;
+    float const dot = xc * face->nx + yc * face->ny + zc * face->nz;
+    
     if (dot < 0.0f) /* not in same direction, area < 0 and reverse n */
     {
       face->area *= -1.0f;
       face->nx *= -1.0f;
       face->ny *= -1.0f;
       face->nz *= -1.0f;
+
+      int ano;
       for (ano = 0; ano < ANGLES_PER_TRIANGLE; ano++) {
         face->angle[ano] *= -1.0f;
       }
@@ -10394,7 +10391,7 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
   }
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+ : total_area)
+#pragma omp parallel for reduction(+ : total_area) /* unstable */
 #endif
   for (fno = 0; fno < mris->nfaces; fno++) {
     VERTEX *v0, *v1, *v2, *va, *vb, *vo;
@@ -10491,25 +10488,23 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
 
 /* calculate the "area" of the vertices */
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+  #pragma omp parallel for /* shown_reproducible */
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
-    VERTEX *v;
-    FACE *face;
-    int fno;
-
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag) continue;
 
-    v->area = 0.0;
+    float area = 0.0;
+    int fno;
     for (fno = 0; fno < v->num; fno++) {
-      face = &mris->faces[v->f[fno]];
-      if (face->ripflag == 0) v->area += face->area;
+      FACE * const face = &mris->faces[v->f[fno]];
+      if (face->ripflag == 0) area += face->area;
     }
     if (fix_vertex_area)
-      v->area /= 3.0;
+      area /= 3.0;
     else
-      v->area /= 2.0;
+      area /= 2.0;
+    v->area = area;
   }
 
   return (NO_ERROR);
