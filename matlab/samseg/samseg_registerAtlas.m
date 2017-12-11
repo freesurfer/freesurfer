@@ -1,4 +1,4 @@
-function [ worldToWorldTransformMatrix, transformedTemplateFileName ] = samseg_registerAtlas( imageFileName, meshCollectionFileName, templateFileName, savePath, showFigures, worldToWorldTransformMatrix )
+﻿﻿function [ worldToWorldTransformMatrix, transformedTemplateFileName ] = samseg_registerAtlas( imageFileName, meshCollectionFileName, templateFileName, savePath, showFigures, worldToWorldTransformMatrix )
 %
 fixture = struct;
 if ( nargin < 6 )
@@ -13,10 +13,10 @@ templateFileName
 savePath
 showFigures
 worldToWorldTransformMatrix
-  
 
 
-% Read in image and template, as well as their coordinates in world (mm) space 
+
+% Read in image and template, as well as their coordinates in world (mm) space
 [ image, imageToWorldTransform ] = kvlReadImage( imageFileName );
 imageToWorldTransformMatrix = double( kvlGetTransformMatrix( imageToWorldTransform ) );
 fixture.sourceImageToWorldTransformMatrix = imageToWorldTransformMatrix;
@@ -30,13 +30,13 @@ fixture.templateImageToWorldTransformMatrix = templateImageToWorldTransformMatri
 
 %
 if ( isempty( worldToWorldTransformMatrix ) )
-  % 
+  %
   % The solution is not externally (secretly) given, so we need to compute it
-  % 
+  %
 
   % Some hard-coded parameter settings first
   targetDownsampledVoxelSpacing = 3.0; % In mm
-  K = 1e-7; % Mesh stiffness -- compared to normal models, the entropy cost function is normalized 
+  K = 1e-7; % Mesh stiffness -- compared to normal models, the entropy cost function is normalized
             % (i.e., measures an average *per voxel*), so that this needs to be scaled down by the
             % number of voxels that are covered
   maximalDeformationStopCriterion = 0.005; % Measured in voxels
@@ -47,29 +47,33 @@ if ( isempty( worldToWorldTransformMatrix ) )
   initialWorldToWorldTransformMatrix = eye( 4 );
   if true
     % Provide an initial (non-identity) affine transform guestimate
-    
+
     % Rotation around X-axis (direction from left to right ear)
     theta = pi/180 * -10.0;
     rotationMatrix = eye( 4 );
-    rotationMatrix( 2 : 3, 2 : 3 ) = [ cos( theta ) -sin(theta); sin(theta) cos( theta ) ]; 
+    rotationMatrix( 2 : 3, 2 : 3 ) = [ cos( theta ) -sin(theta); sin(theta) cos( theta ) ];
     initialWorldToWorldTransformMatrix = rotationMatrix * initialWorldToWorldTransformMatrix;
-    
+
     % Isotropic scaling
-    scaling = 0.9 * ones( 1, 3 ); 
+    scaling = 0.9 * ones( 1, 3 );
     scalingMatrix = diag( [ scaling 1 ] );
-    
+
     initialWorldToWorldTransformMatrix = scalingMatrix * initialWorldToWorldTransformMatrix;
-    
+
     K = K / prod( scaling );
   end
   initialImageToImageTransformMatrix = imageToWorldTransformMatrix \ ...
                     ( initialWorldToWorldTransformMatrix * templateImageToWorldTransformMatrix );
-  fixture.initialImageToImageTransformMatrix = initialImageToImageTransformMatrix;
-                    
+        fixture.imageToWorldTransformMatrix = imageToWorldTransformMatrix;
+        fixture.multiplied = initialWorldToWorldTransformMatrix * templateImageToWorldTransformMatrix;
+        fixture.templateImageToWorldTransformMatrix = templateImageToWorldTransformMatrix;
+        fixture.initialWorldToWorldTransformMatrix = initialWorldToWorldTransformMatrix;
+        fixture.initialImageToImageTransformMatrix = initialImageToImageTransformMatrix;
+
   % Figure out how much to downsample (depends on voxel size)
   voxelSpacing = sum( imageToWorldTransformMatrix( 1 : 3, 1 : 3 ).^2 ).^( 1/2 );
   downSamplingFactors = max( round( targetDownsampledVoxelSpacing ./ voxelSpacing ), [ 1 1 1 ] )
-                    
+  fixture.downSamplingFactors = downSamplingFactors;
   if 1
     % Use initial transform to define the reference (rest) position of the mesh (i.e., the one
     % where the log-prior term is zero)
@@ -108,8 +112,9 @@ if ( isempty( worldToWorldTransformMatrix ) )
                              1 : downSamplingFactors( 3 ) : end );
   fixture.downsampledImageBuffer = imageBuffer;
   image = kvlCreateImage( imageBuffer );
+  fixture.preScaleMesh =  kvlGetMeshNodePositions( mesh );
   kvlScaleMesh( mesh, 1 ./ downSamplingFactors );
-
+  fixture.postScaleMesh =  kvlGetMeshNodePositions( mesh );
   alphas = kvlGetAlphasInMeshNodes( mesh );
   fixture.downsampledAlphas = alphas;
   gmClassNumber = 3;  % Needed for displaying purposes
@@ -120,7 +125,7 @@ if ( isempty( worldToWorldTransformMatrix ) )
     gmClassNumber = gmClassNumber-1;
   end
   numberOfClasses = size( alphas, 2 );
-  colors = 255 * [ hsv( numberOfClasses ) ones( numberOfClasses, 1 ) ]; 
+  colors = 255 * [ hsv( numberOfClasses ) ones( numberOfClasses, 1 ) ];
 
   if showFigures
     figure
@@ -131,30 +136,32 @@ if ( isempty( worldToWorldTransformMatrix ) )
     end
   end
 
-  % 
+  %
   % Get a registration cost and use it to evaluate some promising starting point proposals
   calculator = kvlGetCostAndGradientCalculator( 'MutualInformation', ...
                                                 image, 'Affine' );
+
   [ cost gradient ] = kvlEvaluateMeshPosition( calculator, mesh );
   fixture.initialCost = cost;
   fixture.initialGradient = gradient;
-  if true 
+  if true
     %
     [ xtmp, ytmp, ztmp ] = ndgrid( 1 : size( imageBuffer, 1 ), ...
                                    1 : size( imageBuffer, 2 ), ...
                                    1 : size( imageBuffer, 3 ) );
     centerOfGravityImage = [ xtmp(:) ytmp(:) ztmp(:) ]' * imageBuffer(:) / sum( imageBuffer(:) );
-    
+    fixture.centerOfGravityImage = centerOfGravityImage;
     priors = kvlRasterizeAtlasMesh( mesh, size( imageBuffer ) );
     %tmp = sum( priors, 4 );
     tmp = sum( priors( :, :, :, 2 : end ), 4 );
-    centerOfGravityAtlas = [ xtmp(:) ytmp(:) ztmp(:) ]' * tmp(:) / sum( tmp(:) ); 
-
+    centerOfGravityAtlas = [ xtmp(:) ytmp(:) ztmp(:) ]' * tmp(:) / sum( tmp(:) );
+    fixture.centerOfGravityAtlas = centerOfGravityAtlas;
     %
     initialTranslation = double( centerOfGravityImage - centerOfGravityAtlas );
     nodePositions = kvlGetMeshNodePositions( mesh );
     trialNodePositions = nodePositions + repmat( initialTranslation', [ size( nodePositions, 1 ) 1 ] );
     kvlSetMeshNodePositions( mesh, trialNodePositions );
+    fixture.trialNodePositions = trialNodePositions;
     [ trialCost trialGradient ] = kvlEvaluateMeshPosition( calculator, mesh );
     if ( trialCost >= cost )
       % Center of gravity was not a success; revert to what we had before
@@ -166,7 +173,6 @@ if ( isempty( worldToWorldTransformMatrix ) )
     end
 
   end
-
   %
   originalNodePositions = kvlGetMeshNodePositions( mesh );
   fixture.originalNodePositions = originalNodePositions;
@@ -198,17 +204,26 @@ if ( isempty( worldToWorldTransformMatrix ) )
   optimizerType = 'L-BFGS';
   optimizer = kvlGetOptimizer( optimizerType, mesh, calculator, ...
                                   'Verbose', 1, ...
-                                  'MaximalDeformationStopCriterion', maximalDeformationStopCriterion, ... 
+                                  'MaximalDeformationStopCriterion', maximalDeformationStopCriterion, ...
                                   'LineSearchMaximalDeformationIntervalStopCriterion', ...
                                   lineSearchMaximalDeformationIntervalStopCriterion, ...
                                   'BFGS-MaximumMemoryLength', 12 ); % Affine registration only has 12 DOF
-                                  
+
   numberOfIterations = 0;
   tic
   fixture.minLogLikelihoodTimesPriors = [];
   fixture.maximalDeformations = [];
+  fixture.costs = [];
+  fixture.gradients = [];
+  fixture.nodePositions = [];
+  fixture.alphas = [];
   while true
     %
+    fixture.nodePositions = [fixture.nodePositions, kvlGetMeshNodePositions( mesh )];
+    fixture.alphas = [fixture.alphas, kvlGetAlphasInMeshNodes( mesh )];
+    [ cost gradient ] = kvlEvaluateMeshPosition( calculator, mesh );
+    fixture.costs = [fixture.costs, cost];
+    fixture.gradients = [fixture.gradients, gradient];
     [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer )
     fixture.minLogLikelihoodTimesPriors = [fixture.minLogLikelihoodTimesPriors, minLogLikelihoodTimesPrior];
     fixture.maximalDeformations = [fixture.maximalDeformations, maximalDeformation];
@@ -246,15 +261,15 @@ if ( isempty( worldToWorldTransformMatrix ) )
       originalY = [ originalNodePositions( pointNumbers, : )'; 1 1 1 1 ];
       Y = [ nodePositions( pointNumbers, : )'; 1 1 1 1 ];
       extraImageToImageTransformMatrix = Y * inv( originalY );
-      scaling = svd( extraImageToImageTransformMatrix( 1 : 3, 1 : 3 ) ); 
+      scaling = svd( extraImageToImageTransformMatrix( 1 : 3, 1 : 3 ) );
       disp( [ 'scaling: ' num2str( scaling' ) ] )
-    end  
+    end
 
   end % End loop over iterations
   numberOfIterations
   toc
 
-  
+
   % For debugging and/or quality control purposes, save a picture of the registration result to file
   priors = kvlRasterizeAtlasMesh( mesh, size( imageBuffer ) );
   colorCodedPriors = kvlColorCodeProbabilityImages( priors, colors );
@@ -262,7 +277,7 @@ if ( isempty( worldToWorldTransformMatrix ) )
   overlayQcImage = ( imageBuffer - min( imageBuffer(:) ) ) / ( max( imageBuffer(:) ) - min( imageBuffer(:) ) );
   overlayQcImage = ( 1 - priorVisualizationAlpha ) * repmat( overlayQcImage, [ 1 1 1 3 ] ) + ...
                 priorVisualizationAlpha * colorCodedPriors;
-                
+
   tmp = double( priors( :, :, :, gmClassNumber ) ) / ( 2^16-1 );
   mosaicQcImage = mosaicImages( tmp, imageBuffer .* mask, 2 );
 
@@ -277,12 +292,13 @@ if ( isempty( worldToWorldTransformMatrix ) )
             2 * borderSize + DIM( 2 ) + [ 1 : DIM( 2 ) ], : ) = mosaicCollage;
   qcFigureFileName = fullfile( savePath, ...
                               [ templateFileNameBase '_coregistrationCqFigure.png' ] );
-  imwrite( qcFigure, qcFigureFileName ) 
-    
-    
+  imwrite( qcFigure, qcFigureFileName )
+
+
   % Retrieve the implicitly applied affine matrix from any four non-colinear points before and after registration,
   % taking into account the downsampling that we applied
   nodePositions = kvlGetMeshNodePositions( mesh );
+  fixture.finalNodePositions = nodePositions;
   pointNumbers = [ 1 111 202 303 ];
   originalY = [ diag( downSamplingFactors ) * originalNodePositions( pointNumbers, : )'; 1 1 1 1 ];
   Y = [ diag( downSamplingFactors ) * nodePositions( pointNumbers, : )'; 1 1 1 1 ];
@@ -295,17 +311,17 @@ if ( isempty( worldToWorldTransformMatrix ) )
                                 inv( templateImageToWorldTransformMatrix );
   fixture.imageToImageTransformMatrix = imageToImageTransformMatrix;
   fixture.worldToWorldTransformMatrix = worldToWorldTransformMatrix;
-                                                  
+
 else
   % The world-to-world transfrom is externally given, so let's just compute the corresponding image-to-image
   % transform (needed for subsequent computations) and be done
   imageToImageTransformMatrix = inv( imageToWorldTransformMatrix ) * worldToWorldTransformMatrix * ...
-                                templateImageToWorldTransformMatrix 
-  
+                                templateImageToWorldTransformMatrix
+
 end % End test if the solution is externally given
 
 
-% Save the image-to-image and the world-to-world affine registration matrices                                
+% Save the image-to-image and the world-to-world affine registration matrices
 transformationMatricesFileName = fullfile( savePath, ...
                                            [ templateFileNameBase '_coregistrationMatrices.mat' ] );
 eval( [ 'save ' transformationMatricesFileName ' imageToImageTransformMatrix worldToWorldTransformMatrix;' ] )
@@ -340,12 +356,11 @@ fprintf('Done computng and writing out LTA %s\n',ltaFileName);
 
 
 % For historical reasons, we applied the estimated transformation to the template; let's do that now
-desiredTemplateImageToWorldTransformMatrix = imageToWorldTransformMatrix * imageToImageTransformMatrix                   
+desiredTemplateImageToWorldTransformMatrix = imageToWorldTransformMatrix * imageToImageTransformMatrix
 transformedTemplateFileName = fullfile( savePath, ...
                                         [ templateFileNameBase '_coregistered' templateFileNameExtension ] );
 kvlWriteImage( template, transformedTemplateFileName, ...
                kvlCreateTransform( desiredTemplateImageToWorldTransformMatrix ) );
 fixture.desiredTemplateImageToWorldTransformMatrix = desiredTemplateImageToWorldTransformMatrix;
-
 save('/media/sf_matlab_data/register_atlas_fixture.mat', 'fixture')
 
