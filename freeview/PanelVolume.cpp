@@ -303,14 +303,6 @@ void PanelVolume::DoIdle()
   // update action status
   BlockAllSignals( true );
   LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  /*
-  int nItemIndex = treeWidgetLayers->indexOfTopLevelItem(item);
-
-  ui->actionMoveLayerUp->setEnabled( item && treeWidgetLayers->topLevelItemCount() > 1 &&
-                                     nItemIndex != 0 );
-  ui->actionMoveLayerDown->setEnabled( item && treeWidgetLayers->topLevelItemCount() > 1 &&
-                                       nItemIndex < treeWidgetLayers->topLevelItemCount()-1 );
-                                       */
   ui->actionMoveLayerUp->setEnabled(layer && m_layerCollection
                                     && m_layerCollection->GetLayerIndex(layer) > 0);
   ui->actionMoveLayerDown->setEnabled(layer && m_layerCollection
@@ -911,10 +903,21 @@ void PanelVolume::OnLineEditBrushValue( const QString& strg )
   }
   else
   {
+    QStringList keywords = text.split(" ", QString::SkipEmptyParts);
     for ( int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++ )
     {
       QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem( i );
-      if ( item->text(0).contains( text, Qt::CaseInsensitive ) )
+      bool bFound = true;
+      QString item_text = item->text(0);
+      foreach (QString key, keywords)
+      {
+        if (!item_text.contains(key))
+        {
+          bFound = false;
+          break;
+        }
+      }
+      if (bFound)
       {
         if (m_bShowExistingLabelsOnly)
         {
