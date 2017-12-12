@@ -86,6 +86,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
   ui->setupUi(this);
   ui->treeWidgetColorTable->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(ui->treeWidgetColorTable, SIGNAL(customContextMenuRequested(QPoint)), SLOT(OnCustomContextMenu(QPoint)));
+  ui->labelBrushValueWarning->hide();
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   if ( !mainwnd )
@@ -277,7 +278,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
              qobject_cast<LayerDTI*>(layer)->GetProperty(), SLOT(SetDirectionCode(int)) );
   connect( layer, SIGNAL(ActiveFrameChanged(int)), this, SLOT(UpdateWidgets()) );
   connect( layer, SIGNAL(ActiveFrameChanged(int)), this, SLOT(OnActiveFrameChanged(int)));
-  connect( layer, SIGNAL(FillValueChanged(double)), this, SLOT(UpdateWidgets()) );
+  connect( layer, SIGNAL(FillValueChanged(double)), this, SLOT(UpdateWidgets()));
   connect( layer, SIGNAL(LabelStatsReady()), this, SLOT(UpdateWidgets()));
   connect( layer, SIGNAL(LabelStatsReady()), this, SLOT(OnLineEditBrushValue()));
   connect( ui->checkBoxClearBackground, SIGNAL(toggled(bool)), p, SLOT(SetClearZero(bool)) );
@@ -657,12 +658,22 @@ void PanelVolume::DoUpdateWidgets()
       UpdateColorLabel();
     }
   }
-  if (layer && layer->GetProperty()->GetColorMap() == LayerPropertyMRI::Heat)
+  if (layer && nColorMap == LayerPropertyMRI::Heat)
   {
     bool bAutoMid = layer->GetProperty()->GetHeatScaleAutoMid();
     ui->labelMid->setEnabled(!bAutoMid);
     ui->sliderMid->setEnabled(!bAutoMid);
     ui->lineEditMid->setEnabled(!bAutoMid);
+  }
+
+  if (layer && nColorMap == LayerPropertyMRI::LUT && !layer->GetProperty()->IsValueInColorTable(layer->GetFillValue()))
+  {
+    ui->colorLabelBrushValue->hide();
+    ui->labelBrushValueWarning->show();
+  }
+  else
+  {
+    ui->labelBrushValueWarning->hide();
   }
 
   UpdateTrackVolumeThreshold();
@@ -688,6 +699,7 @@ void PanelVolume::OnColorTableCurrentItemChanged( QTreeWidgetItem* item )
       layer->SetFillValue( val );
     }
     ChangeLineEditNumber( ui->lineEditBrushValue, val );
+    MainWindow::GetMainWindow()->GetBrushProperty()->SetFillValue(val);
     UpdateColorLabel();
   }
 }
@@ -745,11 +757,17 @@ void PanelVolume::UpdateColorLabel()
       QPixmap pix( 30, 20 );
       pix.fill( color );
       ui->colorLabelBrushValue->setPixmap( pix );
+      ui->colorLabelBrushValue->show();
+      ui->labelBrushValueWarning->hide();
     }
   }
   else
   {
-    ui->colorLabelBrushValue->setPixmap( QPixmap() );
+  //  ui->colorLabelBrushValue->setPixmap( QPixmap() );
+    ui->colorLabelBrushValue->hide();
+    bool bOK;
+    ui->lineEditBrushValue->text().trimmed().toInt(&bOK);
+    ui->labelBrushValueWarning->setVisible(bOK);
   }
 }
 
@@ -876,6 +894,7 @@ void PanelVolume::OnLineEditBrushValue( const QString& strg )
       else
         item->setHidden( false );
     }
+    ui->labelBrushValueWarning->hide();
   }
   else if ( bOK )
   {
@@ -903,6 +922,7 @@ void PanelVolume::OnLineEditBrushValue( const QString& strg )
   }
   else
   {
+    ui->labelBrushValueWarning->hide();
     QStringList keywords = text.split(" ", QString::SkipEmptyParts);
     for ( int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++ )
     {
@@ -911,7 +931,7 @@ void PanelVolume::OnLineEditBrushValue( const QString& strg )
       QString item_text = item->text(0);
       foreach (QString key, keywords)
       {
-        if (!item_text.contains(key))
+        if (!item_text.contains(key, Qt::CaseInsensitive))
         {
           bFound = false;
           break;

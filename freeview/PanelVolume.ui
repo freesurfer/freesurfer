@@ -28,7 +28,7 @@
      <x>0</x>
      <y>0</y>
      <width>312</width>
-     <height>1709</height>
+     <height>1713</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -194,6 +194,34 @@
            </size>
           </property>
          </spacer>
+        </item>
+        <item>
+         <widget class="QLabel" name="labelBrushValueWarning">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+            <horstretch>1</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="font">
+           <font>
+            <family>DejaVu Sans</family>
+            <pointsize>8</pointsize>
+           </font>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">color: rgb(240,0,0);</string>
+          </property>
+          <property name="text">
+           <string>Label value not in color table!</string>
+          </property>
+          <property name="scaledContents">
+           <bool>true</bool>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>
