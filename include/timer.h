@@ -47,6 +47,14 @@ Nanosecs TimerElapsedNanosecs(NanosecsTimer * then) ;	// returns delta in nanose
 extern int ftime (struct timeb *__timebuf);
 #endif
 
+#define TIMER_INTERVAL_BEGIN(NAME) 		\
+      	struct timeb NAME;			\
+      	TimerStart(&NAME);
+ 
+#define TIMER_INTERVAL_END(NAME)		\
+	fprintf(stderr, "%s:%d interval took %d msec\n", __FILE__, __LINE__, TimerStop(&NAME));
+	
+
 #if defined(__cplusplus)
 };
 #endif
