@@ -17121,13 +17121,14 @@ mrisTearStressedRegions(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   }
 
   MRISremoveRipped(mris) ;
-  printf("max stress = %2.2f, nrip = %d, nv = %d, nf = %d\n", max_stress, nrip, mris->nvertices, mris->nfaces) ;
-  if (ncalls == EXPLODE_ITER && parms->stressthresh < 0)
+  if (parms->explode_flag)
+    printf("max stress = %2.2f, nrip = %d, nv = %d, nf = %d\n", max_stress, nrip, mris->nvertices, mris->nfaces) ;
+  if (parms->explode_flag && ncalls == EXPLODE_ITER && parms->stressthresh < 0)
   {
     parms->stressthresh = max_stress ;
     printf("!!!!!!!!! setting thresh flag to %2.2f\n", parms->stressthresh) ;
   }
-  if (ncalls >= EXPLODE_ITER)
+  if (parms->explode_flag && ncalls >= EXPLODE_ITER)
   {
     int eno, nvertices, nfaces, nedges ;
 
