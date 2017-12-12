@@ -1,3 +1,5 @@
+#define BEVIN_FASTER_gcamSmoothnessEnergy
+
 /**
  * @file  gcamorph.c
  * @brief Utilities to morph the Gaussian Classifier Atlas (gca) data
@@ -93,6 +95,7 @@
 #include "mrinorm.h"
 #include "proto.h"
 #include "tags.h"
+#include "timer.h"
 #include "transform.h"
 #include "utils.h"
 
@@ -1778,6 +1781,177 @@ int GCAMfreeContents(GCA_MORPH *gcam)
   return (NO_ERROR);
 }
 
+
+// different_neighbor_labels is very hot.
+//
+// It is always called with whalf of 1
+// It is either used to compare the count against 0 or >0
+// It is always called in a loop over xyz
+//
+//	parallel_for (x = 0; x < gcam->width; x++) {
+//	    for (y = 0; y < gcam->height; y++) {
+//		for (z = 0; z < gcam->depth; z++) {
+//
+//	parallel_for (x = 0; x < gcam->width; x++) {
+//	    for (y = 0; y < gcam->height; y++) {
+//      	for (z = 0; z < gcam->depth; z++) {
+//
+//  	for (x = 0; x < gcam->width; x++)
+//    	    for (y = 0; y < gcam->height; y++)
+//      	for (z = 0; z < gcam->depth; z++) {
+//
+// The loops do NOT apply it to all the points
+// I don't know how often the label is different
+// 
+//
+struct different_neighbor_labels_context {
+    int xLo,xHi,yLo,yHi;
+};
+static void init_different_neighbor_labels_context(struct different_neighbor_labels_context * ctx, const GCA_MORPH *gcam, const int x, const int y) {
+  static const int whalf = 1;
+  ctx->xLo = MAX(0           , x - whalf    ); 
+  ctx->xHi = MIN(gcam->width , x + whalf + 1);
+  ctx->yLo = MAX(0           , y - whalf    ); 
+  ctx->yHi = MIN(gcam->height, y + whalf + 1); 
+  if (x < ctx->xLo || ctx->xHi <= x || y < ctx->yLo || ctx->yHi <= y) {
+    fprintf(stderr, "Code incorrectly assumes center is tested\n");
+  }
+}
+
+static int different_neighbor_labels(struct different_neighbor_labels_context * ctx, int const label, const GCA_MORPH *gcam, const int x, const int y, const int z)
+{
+  static const int whalf = 1;
+
+  static const bool debugging = false;
+//Restart:
+
+  if (debugging && (gcam->height != gcam->depth)) {
+    fprintf(stderr, "The old code incorrectly assumed the height and depth were the same!\n");
+    exit(1);
+  }
+  
+  if (debugging) {
+    fprintf(stderr, "label:%d gcam->nodes[x:%d][y:%d][z:%d]:%d whalf:%d gcam->width:%d gcam->height:%d gcam->depth:%d\n",
+      label, x, y, z, gcam->nodes[x][y][z].label, whalf, gcam->width, gcam->height, gcam->depth);
+  }
+  
+  static const bool old_code = false;
+  static const bool new_code = true; 
+
+  const int cx = x, cy = y, cz = z;		// SURELY THIS IS RIGHT, but the old code had 0 0 0
+
+  int new_num = 0;
+  if (new_code) {
+    // The old code has too many tests in the loops to run fast
+    // This new code does not have these tests
+    // Instead it breaks the searched brick into upto subbricks bricks and then searches them rapidly
+
+    int xLo = ctx->xLo,	// First impose the bounds the if statements in the old code induce 
+        xHi = ctx->xHi, 
+	yLo = ctx->yLo, 
+	yHi = ctx->yHi, 
+	zLo = MAX(0           , z - whalf    ),
+	zHi = MIN(gcam->depth , z + whalf + 1);
+
+    if (debugging && (cz < zLo || zHi <= cz)) {
+      fprintf(stderr, "Code incorrectly assumes center is tested\n");
+    }
+    
+    int i,j,k;
+    if (1 && (zHi == zLo + 3)) { // VERY common case
+      for (i = xLo; i < xHi; i++) {
+        for (j = yLo; j < yHi; j++) {
+	  GMN const * const ptr = &gcam->nodes[i][j][zLo];
+          for (k = 0; k < 3; k++) {	// The compiler should unroll this
+            if (debugging) {
+              fprintf(stderr, "n3w i:%d j:%d k:%d\n",
+                i,j,k);
+            }
+            if (label != (ptr+k)->label) {
+              if (debugging) {
+                fprintf(stderr, "  hit\n");
+              }
+              new_num++;
+            }
+          }
+        }
+      }
+    } 
+    else 
+    {
+      for (i = xLo; i < xHi; i++) {
+        for (j = yLo; j < yHi; j++) {
+          for (k = zLo; k < zHi; k++) {
+            if (debugging) {
+              fprintf(stderr, "new gcam->nodes[i:%d][j:%d][k:%d]:%d\n",
+                i,j,k,gcam->nodes[i][j][k].label);
+            }
+            if (label != gcam->nodes[i][j][k].label) {
+              if (debugging) {
+                fprintf(stderr, "  hit\n");
+              }
+              new_num++;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  int old_num = new_num;
+  if (old_code) {
+    int num, i, j, k;
+    for (num = 0, i = x - whalf; i <= x + whalf; i++) {
+      if (i < 0 || i >= gcam->width) {
+        continue;
+      }
+      for (j = y - whalf; j <= y + whalf; j++) {
+        if (j < 0 || j >= gcam->height) {
+          continue;
+        }
+        for (k = z - whalf; k <= z + whalf; k++) {
+          if (k < 0 || k >= gcam->height) {			// SHOULDN'T THIS BE depth?
+            continue;
+          }
+          if (i == cx && j == cy && k == cz) {			// THIS IS WAS 0,0,0 WHICH MUST BE WRONG
+            continue;
+          }
+          if (debugging) {
+            fprintf(stderr, "old i:%d j:%d k:%d\n",
+              i,j,k);
+          }
+          if (label != gcam->nodes[i][j][k].label) {
+            if (debugging) {
+              fprintf(stderr, "  hit\n");
+            }
+            num++;
+          }
+        }
+      }
+    }
+    old_num = num;
+  }
+  
+  if (new_code && old_code) {
+    if (new_num != old_num) {
+      fprintf(stderr, "%s:%d new and old code get different answers new:%d old:%d\n", 
+        __FILE__, __LINE__, new_num, old_num);
+//      if (debugging) 
+        exit(1);
+//      debugging = true;
+///     goto Restart;
+    }
+    static int count = 0, limit = 1;
+    if (count++ >= limit) {
+      limit *= 10;
+      fprintf(stderr, "%s:%d new and old code get same answer:%d\n", __FILE__, __LINE__, 
+        new_num);
+    }
+  }
+  return (new_code ? new_num : old_num) ;
+}
+
+
 /*
   Note:  d [ I(r)' C I(r), r] = delI * C * I(r)
   where delI(r) = 3xn, C=nxn, and I(r)=nx1
@@ -1831,10 +2005,7 @@ int gcamLogLikelihoodTerm(GCA_MORPH *gcam, const MRI *mri, const MRI *mri_smooth
 #endif
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel
-  {
-    nthreads = omp_get_num_threads();
-  }
+  nthreads = omp_get_max_threads();
 #else
   nthreads = 1;
 #endif
@@ -1846,6 +2017,8 @@ int gcamLogLikelihoodTerm(GCA_MORPH *gcam, const MRI *mri, const MRI *mri_smooth
     v_grad[i] = VectorAlloc(3, MATRIX_REAL);
   }
 
+//  TIMER_INTERVAL_BEGIN(loop)
+  
 #ifdef HAVE_OPENMP
 #pragma omp parallel for firstprivate(tid, y, z, gcamn, n, norm, dx, dy, dz, vals, m_delI, m_inv_cov, v_means, v_grad) \
     shared(gcam, mri, Gx, Gy, Gz, Gvx, Gvy, Gvz) schedule(static, 1)
@@ -1858,6 +2031,8 @@ int gcamLogLikelihoodTerm(GCA_MORPH *gcam, const MRI *mri, const MRI *mri_smooth
     tid = 0;
 #endif
     for (y = 0; y < gcam->height; y++) {
+      struct different_neighbor_labels_context different_neighbor_labels_context;
+      init_different_neighbor_labels_context(&different_neighbor_labels_context,gcam,x,y);
       for (z = 0; z < gcam->depth; z++) {
         if (x == Gx && y == Gy && z == Gz) DiagBreak();
 
@@ -1871,7 +2046,7 @@ int gcamLogLikelihoodTerm(GCA_MORPH *gcam, const MRI *mri, const MRI *mri_smooth
 
         /* don't use unkown nodes unless they border
            something that's not unknown */
-        if (IS_UNKNOWN(gcamn->label) && different_neighbor_labels(gcam, x, y, z, 1) == 0) continue;
+        if (IS_UNKNOWN(gcamn->label) && different_neighbor_labels(&different_neighbor_labels_context, gcamn->label, gcam, x, y, z) == 0) continue;
 
         load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals[tid], gcam->ninputs);
 
@@ -1973,6 +2148,8 @@ int gcamLogLikelihoodTerm(GCA_MORPH *gcam, const MRI *mri, const MRI *mri_smooth
       }
     }
   }
+
+//  TIMER_INTERVAL_END(loop)
 
   for (i = 0; i < nthreads; i++) {
     MatrixFree(&m_delI[i]);
@@ -2147,6 +2324,8 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
   }
 #endif
 
+// TIMER_INTERVAL_BEGIN(loop)
+
 #ifdef GCAM_LLENERGY_GPU
 #if SHOW_EXEC_LOC
   printf("%s: CUDA call\n", __FUNCTION__);
@@ -2161,6 +2340,8 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
 #endif
   for (x = 0; x < gcam->width; x++) {
     for (y = 0; y < gcam->height; y++) {
+      struct different_neighbor_labels_context different_neighbor_labels_context;
+      init_different_neighbor_labels_context(&different_neighbor_labels_context,gcam,x,y);
       float vals[MAX_GCA_INPUTS];
       for (z = 0; z < gcam->depth; z++) {
         // Debugging breakpoint
@@ -2184,7 +2365,7 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
 
         /* don't use unkown nodes unless they border
            something that's not unknown */
-        if (IS_UNKNOWN(gcamn->label) && (different_neighbor_labels(gcam, x, y, z, 1) == 0)) {
+        if (IS_UNKNOWN(gcamn->label) && (different_neighbor_labels(&different_neighbor_labels_context, gcamn->label, gcam, x, y, z) == 0)) {
           continue;
         }
 
@@ -2249,6 +2430,8 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
     }
   }
 #endif
+
+//  TIMER_INTERVAL_END(loop)
 
 #if DEBUG_LL_SSE
   if (Gdiag & DIAG_SHOW) printf("max increase %2.2f at (%d, %d, %d)\n", max_increase, max_x, max_y, max_z);
@@ -2521,10 +2704,7 @@ int gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, double l_jacobian, double 
   max_norm = 0.0;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel
-  {
-    n_omp_threads = omp_get_num_threads();
-  }
+  n_omp_threads = omp_get_max_threads();
 #else
   n_omp_threads = 1;
 #endif
@@ -2533,6 +2713,16 @@ int gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, double l_jacobian, double 
   for (i = 0; i < _MAX_FS_THREADS; i++) {
     mn[i] = 0.0;
   }
+
+  if (gcam->width < 4) {
+      static bool reported = false;
+      if (!reported) {
+        reported = true;
+	fprintf(stderr,"%s:%d width:%d too small for parallelism\n", 
+	  __FILE__, __LINE__, gcam->width);
+      }
+  }
+  
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for firstprivate(j, k, gcamn, dx, dy, dz, norm, tid, mn) shared(gcam) schedule(static, 1)
@@ -3538,10 +3728,7 @@ int gcamComputeMetricProperties(GCA_MORPH *gcam)
   // Ginvalid has file scope and static storage.....
   Ginvalid = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel
-  {
-    nthreads = omp_get_num_threads();
-  }
+  nthreads = omp_get_max_threads();
 #else
   nthreads = 1;
 #endif
@@ -3558,6 +3745,15 @@ int gcamComputeMetricProperties(GCA_MORPH *gcam)
   depth = gcam->depth;
   gcam->neg = 0;
 
+  if (width < 4) {
+      static bool reported = false;
+      if (!reported) {
+        reported = true;
+	fprintf(stderr,"%s:%d width:%d too small for parallelism\n", 
+	  __FILE__, __LINE__, width);
+      }
+  }
+  
 #ifdef HAVE_OPENMP
 #pragma omp parallel for firstprivate(tid, j, k, gcamn, neg, num, gcamni, gcamnj, gcamnk, area1, area2) \
     shared(gcam, Gx, Gy, Gz, v_i, v_j, v_k, gcam_neg_counter, Ginvalid_counter) schedule(static, 1)
@@ -6508,7 +6704,40 @@ int gcamElasticTerm(const GCA_MORPH *gcam, GCA_MORPH_PARMS *parms)
   return (NO_ERROR);
 }
 
-double gcamSmoothnessEnergy(const GCA_MORPH *gcam, const MRI *mri)
+#ifdef BEVIN_FASTER_gcamSmoothnessEnergy
+static double gcamSmoothnessEnergy_old(const GCA_MORPH *gcam, const MRI *mri);
+static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri);
+#endif
+
+double gcamSmoothnessEnergy(const GCA_MORPH *gcam, const MRI *mri) 
+#ifdef BEVIN_FASTER_gcamSmoothnessEnergy
+{
+    static bool const do_old = false;
+    static bool const do_new = true;
+    double old_result = 0.0;
+    double new_result = 0.0;
+    if (do_new && do_old) fprintf(stderr,"\n\n\n");
+    if (do_new) {
+        if (do_old) fprintf(stderr,"Doing new way\n");
+        new_result = gcamSmoothnessEnergy_new(gcam, mri);
+    }
+    if (do_old) {
+        if (do_new) fprintf(stderr,"Doing old way\n");
+        old_result = gcamSmoothnessEnergy_old(gcam, mri);
+    }
+    if (do_old && do_new) {
+        double diff = fabs(old_result - new_result);
+        double max  = MAX(fabs(old_result), fabs(new_result));
+	if ((diff > 1e-6) && (diff/max > 1e-6)) {
+	    fprintf(stderr, "%s:%d gcamSmoothnessEnergy big diff old:%g new:%g\n", __FILE__, __LINE__, old_result, new_result);
+	    exit(1);
+	}
+    }
+    return do_old ? old_result : new_result;
+}
+
+static double gcamSmoothnessEnergy_old(const GCA_MORPH *gcam, const MRI *mri)
+#endif
 {
   /*!
     Computes a load of derivatives (of some description).
@@ -6636,6 +6865,277 @@ double gcamSmoothnessEnergy(const GCA_MORPH *gcam, const MRI *mri)
 
   return (sse);
 }
+
+#ifdef BEVIN_FASTER_gcamSmoothnessEnergy
+static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
+{
+  /*!
+    Computes a load of derivatives (of some description).
+    I don't know the purpose of the MRI argument, since it's
+    not actually used by anything
+  */
+#if GCAM_SMOOTHNESS_OUTPUT
+  const unsigned int gcamSmoothnessOutputFreq = 10;
+  static unsigned int nCalls = 0;
+  if ((nCalls % gcamSmoothnessOutputFreq) == 0) {
+    char fname[STRLEN];
+    snprintf(fname, STRLEN - 1, "gcamSmoothInput%04u", nCalls / gcamSmoothnessOutputFreq);
+    fname[STRLEN - 1] = '\0';
+    WriteGCAMoneInput(gcam, fname);
+  }
+  nCalls++;
+#endif
+
+#ifdef GCAM_SMOOTHNESS_ENERGY_GPU
+
+#if SHOW_EXEC_LOC
+  printf("%s: CUDA call\n", __FUNCTION__);
+#endif
+  double sse = gcamSmoothnessEnergyGPU(gcam);
+
+#else
+
+#if SHOW_EXEC_LOC
+  printf("%s: CPU call\n", __FUNCTION__);
+#endif
+
+  int const width  = gcam->width;
+  int const height = gcam->height;
+  int const depth  = gcam->depth;
+
+  double sse = 0.0;
+
+  int const nt = omp_get_max_threads();
+  
+  typedef float BufferElt;
+  struct buffer {
+    BufferElt* vec_vxyz;
+    char*   vec_valid;
+    int     validCount;
+  } * buffers = (struct buffer*)calloc(nt, sizeof(struct buffer));
+
+  const int xStride = (width + nt-1) / nt;
+  int xLo;
+
+  if (width < 4) {
+      static bool reported = false;
+      if (!reported) {
+        reported = true;
+	fprintf(stderr,"%s:%d width:%d too small for parallelism\n", 
+	  __FILE__, __LINE__, width);
+      }
+  }
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+:sse) shared(gcam,Gx,Gy,Gz) schedule(static,1)
+#endif
+  for (xLo = 0; xLo < width; xLo += xStride) {
+    int const xHi = MIN(xLo + xStride, width);
+
+    // Compute all the (gcamn->x - gcamn->origx) for the valid nodes
+    // This avoids the recomputation and makes all the accessed reasonably dense.
+    // Add frontiers so we don't have to test for them.
+    //
+    int const paddedHeight = height + 2;
+    int const paddedDepth  = depth  + 2;
+    int const paddedArea   = paddedHeight * paddedDepth;
+    int const paddedVolume = (xStride+2)  * paddedArea;
+  
+    // To index [xStride+2, paddedHeight, paddedDepth]
+    // use        (x-least x) * paddedHeight * paddedDepth
+    //          + (y-least y) * paddedDepth
+    //          +  z-least z
+    //
+#define INDEX(XM,YM,ZM)             \
+    (  ((XM)-(xLo-1))*paddedArea  + \
+       ((YM)-(   -1))*paddedDepth + \
+     + ((ZM)+1)                     \
+    ) // end of macro
+
+    int const thread_num = omp_get_thread_num();
+    struct buffer* buf = &buffers[thread_num];
+    BufferElt* vec_vxyz  = buf->vec_vxyz;
+    char*      vec_valid = buf->vec_valid;
+      
+    // Make the vectors for this thread unless already made
+    //
+    if (!vec_vxyz) {
+  
+      vec_vxyz = buf->vec_vxyz = (BufferElt*)malloc(
+        paddedVolume *
+        3 *                     // xyz
+        sizeof(BufferElt));     // the stored data  
+  
+      vec_valid = buf->vec_valid = (char*)malloc(
+        paddedVolume *
+        sizeof(char));          // the stored       gcamn->invalid == GCAM_POSITION_INVALID
+    }
+
+    bzero(vec_valid, paddedVolume * sizeof(char));
+	
+    // Fill the entries in and decide
+    // how important it is to skip the invalid ones
+    //
+    {
+      int xm,ym,zm;
+      for (xm = xLo-1; xm < xHi+1; xm++) {
+        int xn = xm;
+        xn = MAX(0, xn);
+        xn = MIN(width - 1, xn);
+    
+        for (ym = -1; ym < height+1; ym++) {
+          int yn = ym;
+          yn = MAX(0, yn);
+          yn = MIN(height - 1, yn);
+    
+          GMN * gcam_nodes_xn_yn = gcam->nodes[xn][yn];
+    
+#define INNER_LOOP_BODY_1 \
+            const GCA_MORPH_NODE * const gcamn = &gcam_nodes_xn_yn[zn]; \
+            if (gcamn->invalid == GCAM_POSITION_INVALID) {  \
+              continue;                                     \
+            }                                               \
+            // end of macro
+              
+#define INNER_LOOP_BODY_2                                   \
+            int const index = INDEX(xm,ym,zm);              \
+            vec_valid[index] = 1;                           \
+            double const vx = gcamn->x - gcamn->origx;      \
+            double const vy = gcamn->y - gcamn->origy;      \
+            double const vz = gcamn->z - gcamn->origz;      \
+            vec_vxyz[index*3+0] = (BufferElt)vx;            \
+            vec_vxyz[index*3+1] = (BufferElt)vy;            \
+            vec_vxyz[index*3+2] = (BufferElt)vz;            \
+            // end of macro
+  
+          zm = -1; {
+            int zn = 0;
+            INNER_LOOP_BODY_1
+            INNER_LOOP_BODY_2
+          }
+  
+          for (zm = 0; zm < depth; zm++) {
+            int zn = zm;
+            INNER_LOOP_BODY_1
+            INNER_LOOP_BODY_2
+          }
+            
+          zm = depth; {
+            int zn = depth - 1;
+            INNER_LOOP_BODY_1
+            INNER_LOOP_BODY_2
+          }
+  
+#undef INNER_LOOP_BODY
+  
+        }
+      }
+    } // filling in the entries
+  
+    // Compute the contribution from the slices voxels
+    //
+    int x;
+    for (x = xLo; x < xHi; x++) {
+      int y,z;    
+      for (y = 0; y < height; y++) {
+        for (z = 0; z < depth; z++) {
+  
+          int const index_xyz = INDEX(x,y,z);
+                
+          if (!vec_valid[index_xyz]) continue;
+	  buf->validCount++;
+	    
+          // Get the differences from original
+          //
+          BufferElt const vx = vec_vxyz[index_xyz*3+0];
+          BufferElt const vy = vec_vxyz[index_xyz*3+1];
+          BufferElt const vz = vec_vxyz[index_xyz*3+2];
+  
+          int    num = -1;        // account for counting self below
+          double node_sse = 0.0;
+  
+          // Loop over 3^3 voxels centred on xyz
+          // 
+          int xm,ym,zm;
+          for (xm = x-1; xm < x+2; xm++) {
+            for (ym = y-1; ym < y+2; ym++) {
+              for (zm = z-1; zm < z+2; zm++) {
+  
+                // Using self is ok, because 
+                // (a) dx, dy, and dz will be zero, and (b) num started at -1
+  
+                int const index_xmymzm = INDEX(xm,ym,zm);
+                
+                if (!vec_valid[index_xmymzm]) { // this test is almost always true
+                  continue;                     // if actually_valid is close to possibly_valid
+                }
+  
+                BufferElt const vnx = vec_vxyz[index_xmymzm*3+0];
+                BufferElt const vny = vec_vxyz[index_xmymzm*3+1];
+                BufferElt const vnz = vec_vxyz[index_xmymzm*3+2];
+  
+                double const dx = (double)(vnx - vx);
+                double const dy = (double)(vny - vy);
+                double const dz = (double)(vnz - vz);
+  
+                double const error = dx*dx + dy*dy + dz*dz;
+  
+                num++;
+                node_sse += error;
+              }
+            }
+          }
+  
+          /*        num = 1 ;*/
+          if (num > 0) {
+            sse += node_sse / num;
+          }
+  
+          if (x == Gx && y == Gy && z == Gz) {
+            printf("E_smoo: node(%d,%d,%d) smoothness sse %2.3f (%d nbrs)\n", x, y, z, node_sse / num, num);
+          }
+        }
+      }
+    } // compute the contribution for the slice
+  } // over all the slices
+
+  // Show the stats
+  // Free the buffers
+  // It may be better to reuse the buffer across calls...
+  //
+  if (0) {
+    static int count;
+    static int limit = 1;
+    int thread_num;
+    bool show = (++count >= limit);
+    if (show) { 
+      limit = (limit < 100) ? count+1 : limit+100; 
+      fprintf(stderr, "thread workload "); 
+    }
+    for (thread_num = 0; thread_num < nt; thread_num++) {
+      struct buffer* buf = &buffers[thread_num];
+      if (show) {
+    	fprintf(stderr, "%d:%d ", thread_num, buf->validCount);
+      }
+    }
+    if (show) fprintf(stderr, "freeing buffers for %d threads...\n",nt);
+  }
+
+  {
+    int thread_num;
+    for (thread_num = 0; thread_num < nt; thread_num++) {
+      struct buffer* buf = &buffers[thread_num];
+      free(buf->vec_vxyz);
+      free(buf->vec_valid);
+    }
+    free(buffers);
+  }
+
+#endif
+
+  return (sse);
+}
+#endif
 
 int gcamLSmoothnessTerm(GCA_MORPH *gcam, MRI *mri, double l_smoothness)
 {
@@ -10161,35 +10661,6 @@ int zero_vals(float *vals, int nvals)
     }
 
   return (z);
-}
-
-int different_neighbor_labels(const GCA_MORPH *gcam, const int x, const int y, const int z, const int whalf)
-{
-  int label, num, i, j, k;
-
-  label = gcam->nodes[x][y][z].label;
-  for (num = 0, i = x - whalf; i <= x + whalf; i++) {
-    if (i < 0 || i >= gcam->width) {
-      continue;
-    }
-    for (j = y - whalf; j <= y + whalf; j++) {
-      if (j < 0 || j >= gcam->height) {
-        continue;
-      }
-      for (k = z - whalf; k <= z + whalf; k++) {
-        if (k < 0 || k >= gcam->depth) {
-          continue;
-        }
-        if (i == x && j == y && k == z) {
-          continue;
-        }
-        if (label != gcam->nodes[i][j][k].label) {
-          num++;
-        }
-      }
-    }
-  }
-  return (num);
 }
 
 MRI *gcamCreateJacobianImage(GCA_MORPH *gcam)
@@ -18999,10 +19470,14 @@ int GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_ve
 
   MRIfree(&mri_vent_atlas);
 
+TIMER_INTERVAL_BEGIN(loop)
+
 #define MAX_DIST_FROM_VENTS 35
 #define IS_VENT_NBR(l) (IS_CAUDATE(l) || IS_WHITE_CLASS(l) || IS_THALAMUS(l) || IS_WMSA(l) || IS_HIPPO(l))
-  for (x = 0; x < gcam->width; x++)
-    for (y = 0; y < gcam->height; y++)
+  for (x = 0; x < gcam->width; x++) {
+    for (y = 0; y < gcam->height; y++) {
+      struct different_neighbor_labels_context different_neighbor_labels_context;
+      init_different_neighbor_labels_context(&different_neighbor_labels_context,gcam,x,y);
       for (z = 0; z < gcam->depth; z++) {
         if (x == Gx && y == Gy && z == Gz) {
           DiagBreak();
@@ -19030,7 +19505,7 @@ int GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_ve
             }
           }
         }
-        else if (IS_UNKNOWN(gcamn->label) && (different_neighbor_labels(gcam, x, y, z, 1) >
+        else if (IS_UNKNOWN(gcamn->label) && (different_neighbor_labels(&different_neighbor_labels_context, gcamn->label, gcam, x, y, z) >
                                               0)) {  // use a ring of unknowns outside brain to prevent surface of
                                                      // brain from moving too far  inward
 #if 0
@@ -19040,8 +19515,11 @@ int GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_ve
 #endif
         }
       }
-
+    }
+  }
   if (++i == Gdiag_no) DiagBreak();
+
+TIMER_INTERVAL_END(loop)
 
   if ((Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) || (gcam_write_grad && i < 20) || (gcam_write_grad > 1)) {
     MRI *mri;
