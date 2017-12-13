@@ -240,8 +240,6 @@ main(int argc, char *argv[]) {
     case Right_Putamen:
     case Left_Thalamus:
     case Right_Thalamus:
-    case Left_Thalamus_Proper:
-    case Right_Thalamus_Proper:
     case Left_Accumbens_area:
     case Right_Accumbens_area:
       exclude_list[i] = 1 ;

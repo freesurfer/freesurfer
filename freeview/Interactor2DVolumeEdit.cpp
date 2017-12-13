@@ -76,7 +76,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
 
   if (m_nAction == EM_GeoSeg)
   {
-    if (event->button() == Qt::LeftButton)
+    if (event->button() == Qt::LeftButton && !(event->modifiers() & CONTROL_MODIFIER))
     {
       BrushProperty* bp = MainWindow::GetMainWindow()->GetBrushProperty();
       LayerMRI* mri = (LayerMRI*)bp->GetReferenceLayer();
@@ -160,6 +160,16 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
         double ras[3];
         view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras );
         bool bCondition = !(event->modifiers() & Qt::ShiftModifier) && !(event->buttons() & Qt::RightButton);
+        if (bCondition && (m_nAction == EM_Freehand || m_nAction == EM_Fill || m_nAction == EM_Polyline))
+        {
+          if (mri->IsTypeOf("MRI") && ((LayerMRI*)mri)->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT
+              && !((LayerMRI*)mri)->GetProperty()->IsValueInColorTable(mri->GetFillValue()))
+          {
+            emit Error("Brush value is not in the current color table. I don't know what color to use. Drawing cannot continue.");
+            return false;
+          }
+        }
+
         if ( (m_nAction == EM_ColorPicker || m_bColorPicking ) && mri->IsTypeOf( "MRI" ) )
         {
           if ( event->modifiers() & CONTROL_MODIFIER )
@@ -587,7 +597,7 @@ void Interactor2DVolumeEdit::UpdateCursor( QEvent* event, QWidget* wnd )
         }
       }
     }
-    else
+    else if (m_nAction != EM_GeoSeg)
     {
       wnd->setCursor( CursorFactory::CursorFill );
     }
