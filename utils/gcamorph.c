@@ -137,8 +137,8 @@ int gcam_write_neg = 0;
 
 #if 1
 int dtrans_labels[] = {
-    Left_Thalamus_Proper,
-    Right_Thalamus_Proper,
+    Left_Thalamus,
+    Right_Thalamus,
     Left_Putamen,
     Right_Putamen,
     Left_Pallidum,
@@ -16287,10 +16287,10 @@ int dtrans_label_to_frame(GCA_MORPH_PARMS *mp, int label)
   return (-1);
 #else
   switch (label) {
-    case Left_Thalamus_Proper:
+    case Left_Thalamus:
       frame = 0;
       break;
-    case Right_Thalamus_Proper:
+    case Right_Thalamus:
       frame = 1;
       break;
     case Left_Putamen:

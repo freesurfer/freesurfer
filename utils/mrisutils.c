@@ -1806,8 +1806,8 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)
           label == Right_Lateral_Ventricle || label == Third_Ventricle || label == Left_Accumbens_area ||
           label == Right_Accumbens_area || label == Left_Caudate || label == Right_Caudate || IS_CC(label) ||
           label == Left_Pallidum || label == Right_Pallidum || IS_HIPPO(label) || IS_AMYGDALA(label) ||
-          IS_LAT_VENT(label) || label == Third_Ventricle || label == Right_Thalamus_Proper ||
-          label == Left_Thalamus_Proper || label == Brain_Stem || label == Left_VentralDC || label == Right_VentralDC) {
+          IS_LAT_VENT(label) || label == Third_Ventricle || label == Right_Thalamus ||
+          label == Left_Thalamus || label == Brain_Stem || label == Left_VentralDC || label == Right_VentralDC) {
         if (label == Left_Putamen || label == Right_Putamen) DiagBreak();
         if (vno == Gdiag_no) DiagBreak();
         v->marked = 0;
@@ -1819,8 +1819,8 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)
     x = nint(xv);
     y = nint(yv);
     z = nint(zv);
-    left = MRIlabelsInNbhd(mri_aseg, x, y, z, 2, Left_Thalamus_Proper);
-    right = MRIlabelsInNbhd(mri_aseg, x, y, z, 2, Right_Thalamus_Proper);
+    left = MRIlabelsInNbhd(mri_aseg, x, y, z, 2, Left_Thalamus);
+    right = MRIlabelsInNbhd(mri_aseg, x, y, z, 2, Right_Thalamus);
     if (left && left >= right)  // near left thalamus
     {
       if (MRIlabelsInNbhd(mri_aseg, x, y, z, 2, Left_Lateral_Ventricle) > 0) {

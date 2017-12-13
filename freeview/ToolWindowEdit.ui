@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>348</width>
-    <height>820</height>
+    <height>886</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -908,6 +908,15 @@ Left button to add pixels to contour.
 Shift + Left button to break contour.
 Ctrl + Left button to fill isolated contour.
 Alt + H to show/hide contour.
+</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="labelTipsGeoS">
+       <property name="text">
+        <string>Left button to draw foreground.
+Shift + Left button to draw background.
 </string>
        </property>
       </widget>

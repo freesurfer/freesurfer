@@ -514,6 +514,15 @@ void LayerPropertyMRI::SetLUTCTAB( COLOR_TABLE* ct )
   }
 }
 
+bool LayerPropertyMRI::IsValueInColorTable(double nVal)
+{
+  int bValid = 0;
+  if (mFreeSurferCTAB)
+    CTABisEntryValid( mFreeSurferCTAB, (int)nVal, &bValid );
+
+  return bValid;
+}
+
 void LayerPropertyMRI::UpdateLUTTable()
 {
   if ( mFreeSurferCTAB )
