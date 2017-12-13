@@ -98,9 +98,9 @@ typedef struct ROMP_pflb_stack_struct {
     if (!ROMP_pf_stack.skip_pflb_timing) ROMP_pflb_end(&ROMP_pflb_stack);
 
 #define ROMP_PFLB_continue \
-    { ROMP_PFLB_end; continue; }
+    { if (!ROMP_pf_stack.skip_pflb_timing) ROMP_PFLB_end; continue; }
 #define ROMP_PF_continue \
-    { ROMP_PFLB_end; continue; }
+    ROMP_PFLB_continue
 
 void ROMP_pflb_begin(
     ROMP_pf_stack_struct   * pf_stack,

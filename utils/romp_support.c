@@ -11,6 +11,7 @@ ROMP_level romp_level =
 
 typedef struct StaticData {
     ROMP_pf_static_struct* next;
+    int skip_pflb_timing;
     Nanosecs in_pf, in_pfThread, in_pflb;
 } StaticData;
 
@@ -77,7 +78,7 @@ void ROMP_pf_begin(
     }
     
     TimerStartNanosecs(&pf_stack->beginTime);
-    pf_stack->skip_pflb_timing = 0;
+    pf_stack->skip_pflb_timing = staticData->skip_pflb_timing;
     pf_stack->tids_active = 0;
 }
 
@@ -143,7 +144,8 @@ void ROMP_pflb_begin(
     if (tid >= 8*sizeof(int)) return;
     int tidMask = 1<<tid;
     if (pf_stack->tids_active & tidMask) {
-        fprintf(stderr, "Active tid in ROMP_pflb_begin\n");
+        fprintf(stderr, "Active tid in ROMP_pflb_begin %s:%d\n",
+	    pf_static->file, pf_static->line);
         exit(1);
     }
     #pragma omp atomic
@@ -158,11 +160,6 @@ void ROMP_pflb_end(
     ROMP_pf_static_struct * pf_static = pf_stack->staticInfo;
     Nanosecs delta = TimerElapsedNanosecs(&pflb_stack->beginTime);
     StaticData* staticData = (StaticData*)(pf_static->ptr);
-    
-    if (delta.ns < 1000) {	// loop body is too small to time this way...
-      pf_stack->skip_pflb_timing = 1;
-      return;
-    }
     
     #pragma omp atomic
     staticData->in_pflb.ns += delta.ns;
@@ -181,6 +178,11 @@ void ROMP_pflb_end(
     }
     #pragma omp atomic
     pf_stack->tids_active ^= tidMask;
+
+    if (delta.ns < 1000) {	// loop body is too small to time this way...
+      staticData->skip_pflb_timing = pf_stack->skip_pflb_timing = 1;
+      return;
+    }
 }
 
 static const char* mainFile = NULL;
@@ -201,6 +203,7 @@ void ROMP_show_stats(FILE* file)
     ROMP_pf_static_struct* pf;
     for (pf = known_ROMP_pf; pf; ) {
     	StaticData* sd = (StaticData*)(pf->ptr);
+	if (sd->skip_pflb_timing) sd->in_pflb.ns = 0;
     	fprintf(file, "%s, %d, %12ld, %12ld, %12ld, %6.3g, %6.3g\n", 
 	    pf->file, pf->line,
 	    sd->in_pf.ns, sd->in_pflb.ns, sd->in_pfThread.ns,
