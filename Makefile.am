@@ -155,6 +155,7 @@ MRISUBDIRS=\
 	mri_rigid_register \
 	mri_robust_register \
 	mri_seg_diff \
+	mri_segcentroids \
 	mri_segment \
 	mri_segment_tumor \
 	mri_seghead \
