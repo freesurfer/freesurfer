@@ -34,6 +34,10 @@ static void rompExitHandler(void)
       if (commFile) {
           commSize = fread(commBuffer, 1, 1023, commFile);
 	  if (commSize > 0) commSize-=1; // drop the \n
+	  int i = 0;
+	  for (i = 0; i < commSize; i++) {
+	    if (commBuffer[i] == '/') commBuffer[i] = "@";
+	  }
           fclose(commFile);
       }
       fprintf(stderr, "commSize:%d commBuff[commSize]:%d\n", commSize, commBuffer[commSize]);
