@@ -72597,8 +72597,8 @@ MRI *MRISfillWhiteMatterInterior(
           case Right_Pallidum:
           case Left_Caudate:
           case Right_Caudate:
-          case Left_Thalamus_Proper:
-          case Right_Thalamus_Proper:
+          case Left_Thalamus:
+          case Right_Thalamus:
           case Left_Accumbens_area:
           case Right_Accumbens_area:
             MRIsetVoxVal(mri_filled, x, y, z, 0, gm_val);  // gray matter
