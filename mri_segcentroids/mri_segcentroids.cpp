@@ -3,16 +3,11 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <algorithm>
-#include <iterator>
 #include <iomanip>
-#include <cstdlib>
 
-extern "C"
-{
-#include "mri.h"
-#include "mri2.h"
-#include "transform.h"
+extern "C" {
+  #include "mri.h"
+  #include "mri2.h"
 }
 
 
@@ -167,7 +162,7 @@ int main(int argc, char **argv) {
   // load weights volume
   MRI *weights = NULL;
   if (!input.weightsfile.empty()) {
-    std::cerr << "using weights from  " << input.ltafile << std::endl;
+    std::cerr << "using weights from  " << input.weightsfile << std::endl;
     weighted = true;
     weights = MRIread(input.weightsfile.c_str());
     if (!weights) {
