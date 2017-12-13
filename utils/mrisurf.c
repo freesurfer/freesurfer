@@ -3106,7 +3106,7 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 
   ntotal = vtotal = 0;
 #ifdef HAVE_OPENMP
-  ROMP_PF_begin
+  ROMP_PF_begin		// mris_fix_topology
   #pragma omp parallel for if_ROMP(shown_reproducible) reduction(+ : ntotal, vtotal)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -3618,7 +3618,7 @@ int MRIScomputeNormals(MRI_SURFACE *mris)
   int k;
 
 #ifdef HAVE_OPENMP
-  ROMP_PF_begin
+  ROMP_PF_begin		// mris_fix_topology
   #pragma omp parallel for if_ROMP(shown_reproducible)
 #endif
   for (k = 0; k < mris->nfaces; k++) {
@@ -3637,7 +3637,7 @@ int MRIScomputeNormals(MRI_SURFACE *mris)
   int i = 0;
 
 #ifdef HAVE_OPENMP
-  ROMP_PF_begin
+  ROMP_PF_begin		// mris_fix_topology
   #pragma omp parallel for if_ROMP(fast) reduction(+ : i) schedule(static, 1)
 #endif
   for (k = 0; k < mris->nvertices; k++) {
@@ -3745,8 +3745,8 @@ static int mrisComputeVertexDistances(MRI_SURFACE *mris)
 
 #ifdef HAVE_OPENMP
 // have to  make v1 and v2 arrays and use tids for this to work
-  ROMP_PF_begin
-  #pragma omp parallel for if_ROMP(experimental)
+  ROMP_PF_begin		// mris_fix_topology
+  #pragma omp parallel for if_ROMP(fast)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
@@ -3906,8 +3906,8 @@ static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
 
   int VtxNo;
 #ifdef HAVE_OPENMP
-  ROMP_PF_begin
-  #pragma omp parallel for if_ROMP(experimental) reduction(+ : Sum) reduction(+ : Sum2) reduction(+ : N)
+  ROMP_PF_begin		// mris_fix_topology
+  #pragma omp parallel for if_ROMP(fast) reduction(+ : Sum) reduction(+ : Sum2) reduction(+ : N)
 #endif
   for (VtxNo = 0; VtxNo < Surf->nvertices; VtxNo++) {
     ROMP_PFLB_begin
@@ -9420,8 +9420,8 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
   int fno;
 
 #ifdef HAVE_OPENMP
-  ROMP_PF_begin
-  #pragma omp parallel for if_ROMP(experimental)
+  ROMP_PF_begin		// mris_fix_topology
+  #pragma omp parallel for if_ROMP(fast)
 #endif
   for (fno = 0; fno < mris->nfaces; fno++) {
     ROMP_PFLB_begin
@@ -9469,8 +9469,8 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
 
     double total_area = 0.0, neg_area = 0.0, neg_orig_area = 0.0;
 #ifdef HAVE_OPENMP
-    ROMP_PF_begin
-    #pragma omp parallel for if_ROMP(experimental) reduction(+ : total_area) reduction(+ : neg_area) reduction(+ : neg_orig_area)
+    ROMP_PF_begin		// mris_fix_topology
+    #pragma omp parallel for if_ROMP(fast) reduction(+ : total_area) reduction(+ : neg_area) reduction(+ : neg_orig_area)
 #endif
     for (fno = 0; fno < mris->nfaces; fno++) {
       ROMP_PFLB_begin
@@ -10469,7 +10469,7 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
   }
 
 #ifdef HAVE_OPENMP
-  ROMP_PF_begin
+  ROMP_PF_begin		// mris_fix_topology
   #pragma omp parallel for if_ROMP(fast) reduction(+ : total_area)
 #endif
   for (fno = 0; fno < mris->nfaces; fno++) {
@@ -10571,7 +10571,7 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
 
 /* calculate the "area" of the vertices */
 #ifdef HAVE_OPENMP
-  ROMP_PF_begin
+  ROMP_PF_begin		// mris_fix_topology
   #pragma omp parallel for if_ROMP(shown_reproducible)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
