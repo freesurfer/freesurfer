@@ -299,12 +299,10 @@ main(int argc, char *argv[]) {
 #if 0
 #ifdef HAVE_OPENMP
         val = 0 ; l = 0 ;
-	ROMP_PF_begin
 #pragma omp parallel for if_ROMP(experimental) firstprivate(val, l) shared(mri_aseg, mri_tmp, labels, y, z) schedule(static,1)
 #endif
 #endif
 	for (x = 0 ; x < mri_aseg->width ; x++) {
-	  ROMP_PFLB_begin
 	  for (y = 0 ; y < mri_aseg->height ; y++) {
 	    for (z = 0 ; z < mri_aseg->depth ; z++) {
 	      l = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
@@ -314,9 +312,7 @@ main(int argc, char *argv[]) {
 	      MRIsetVoxVal(mri_tmp, x, y, z, 0, val) ;
 	    }
 	  }
-	  ROMP_PFLB_end
 	}
-	ROMP_PF_end
 	MRIcopy(mri_tmp, mri_smooth) ;
       }
       MRIfree(&mri_tmp) ;
@@ -379,7 +375,6 @@ main(int argc, char *argv[]) {
 #endif
 #endif
 	for (x = 0 ; x < mri_aseg->width ; x++) {
-	  ROMP_PFLB_begin
 	  for (y = 0 ; y < mri_aseg->height ; y++) {
 	    for (z = 0 ; z < mri_aseg->depth ; z++)
 	    {
@@ -390,9 +385,7 @@ main(int argc, char *argv[]) {
 	      MRIsetVoxVal(mri_tmp, x, y, z, 0, val) ;
 	    }
 	  }
-	  ROMP_PFLB_end
 	}
-	ROMP_PF_end
 	MRIcopy(mri_tmp, mri_smooth) ;
       }
       MRIfree(&mri_tmp) ;

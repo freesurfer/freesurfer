@@ -36,7 +36,7 @@ static void rompExitHandler(void)
 	  if (commSize > 0) commSize-=1; // drop the \n
 	  int i = 0;
 	  for (i = 0; i < commSize; i++) {
-	    if (commBuffer[i] == '/') commBuffer[i] = "@";
+	    if (commBuffer[i] == '/') commBuffer[i] = '@';
 	  }
           fclose(commFile);
       }
