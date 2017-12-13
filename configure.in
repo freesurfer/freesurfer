@@ -3929,6 +3929,7 @@ AC_OUTPUT([Makefile
            mri_rigid_register/Makefile
            mri_robust_register/Makefile
            mri_seg_diff/Makefile
+           mri_segcentroids/Makefile
            mri_seghead/Makefile
            mri_segment/Makefile
            mri_segment_tumor/Makefile
