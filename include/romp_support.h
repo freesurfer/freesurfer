@@ -42,6 +42,9 @@ extern ROMP_level romp_level;
 #define if_ROMP(LEVEL) if (ROMP_pf_stack.staticInfo && (ROMP_##LEVEL >= romp_level))
 
 // Surround a parallel for
+
+#define ROMP_maxWatchedThreadNum 4
+
 typedef struct ROMP_pf_static_struct { 
     void * volatile ptr; 
     const char*     file; 
@@ -51,7 +54,9 @@ typedef struct ROMP_pf_static_struct {
 typedef struct ROMP_pf_stack_struct  { 
     struct ROMP_pf_static_struct * staticInfo; 
     NanosecsTimer beginTime;
+    Nanosecs      watchedThreadBeginCPUTimes[ROMP_maxWatchedThreadNum];
     int tids_active;
+    int skip_pflb_timing;
 } ROMP_pf_stack_struct;
 
 #define ROMP_main ROMP_main_started(__FILE__, __LINE__);
@@ -87,10 +92,10 @@ typedef struct ROMP_pflb_stack_struct {
 
 #define ROMP_PFLB_begin \
     ROMP_pflb_stack_struct  ROMP_pflb_stack;  \
-    ROMP_pflb_begin(&ROMP_pf_stack, &ROMP_pflb_stack);
+    if (!ROMP_pf_stack.skip_pflb_timing) ROMP_pflb_begin(&ROMP_pf_stack, &ROMP_pflb_stack);
 
 #define ROMP_PFLB_end \
-    ROMP_pflb_end(&ROMP_pflb_stack);
+    if (!ROMP_pf_stack.skip_pflb_timing) ROMP_pflb_end(&ROMP_pflb_stack);
 
 #define ROMP_PFLB_continue \
     { ROMP_PFLB_end; continue; }

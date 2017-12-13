@@ -2,14 +2,16 @@
 #include "romp_support.h"
 #include <malloc.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 ROMP_level romp_level = 
-	ROMP_shown_reproducible;
+	ROMP_fast;
 	// should not be set ro ROMP_serial
+
 
 typedef struct StaticData {
     ROMP_pf_static_struct* next;
-    Nanosecs in_pf, in_pflb;
+    Nanosecs in_pf, in_pfThread, in_pflb;
 } StaticData;
 
 ROMP_pf_static_struct* known_ROMP_pf;
@@ -50,7 +52,32 @@ void ROMP_pf_begin(
     pf_stack->staticInfo = pf_static;
     StaticData* staticData = initStaticData(pf_static);
     if (!staticData) return;
+    
+    int i;
+    for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
+        pf_stack->watchedThreadBeginCPUTimes[i].ns = 0;
+    }
+    #pragma omp parallel for schedule(static,1)
+    for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
+        int tid = omp_get_thread_num();
+	if (tid >= ROMP_maxWatchedThreadNum) continue;
+	clockid_t clockid;
+	int s = pthread_getcpuclockid(pthread_self(), &clockid);
+	if (s != 0) {
+	    fprintf(stderr, "%s:%d pthread_getcpuclockid failed", __FILE__, __LINE__);
+	    exit(1);
+	}
+	struct timespec timespec;
+        if (clock_gettime(clockid, &timespec) != 0) {
+	    fprintf(stderr, "%s:%d clock_gettime failed", __FILE__, __LINE__);
+	    exit(1);
+	}
+	pf_stack->watchedThreadBeginCPUTimes[tid].ns =
+    	    timespec.tv_sec * 1000000000L + timespec.tv_nsec;
+    }
+    
     TimerStartNanosecs(&pf_stack->beginTime);
+    pf_stack->skip_pflb_timing = 0;
     pf_stack->tids_active = 0;
 }
 
@@ -63,6 +90,44 @@ void ROMP_pf_end(
     StaticData* staticData = (StaticData*)(pf_static->ptr);
     #pragma omp atomic
     staticData->in_pf.ns += delta.ns;
+
+    int i;
+    #pragma omp parallel for schedule(static,1)
+    for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
+        int tid = omp_get_thread_num();
+	if (tid >= ROMP_maxWatchedThreadNum) continue;
+	
+	Nanosecs* startCPUTime = &pf_stack->watchedThreadBeginCPUTimes[tid];
+	if (startCPUTime->ns == 0) {
+	    fprintf(stderr, "%s:%d no start time for %d\n", __FILE__, __LINE__, tid);
+	    continue;
+	}
+	if (startCPUTime->ns == -1) {
+	    continue;
+	}
+	clockid_t clockid;
+	int s = pthread_getcpuclockid(pthread_self(), &clockid);
+	if (s != 0) {
+	    fprintf(stderr, "%s:%d pthread_getcpuclockid failed", __FILE__, __LINE__);
+	    exit(1);
+	}
+	struct timespec timespec;
+        if (clock_gettime(clockid, &timespec) != 0) {
+	    fprintf(stderr, "%s:%d clock_gettime failed", __FILE__, __LINE__);
+	    exit(1);
+	}
+	Nanosecs threadCpuTime;
+	threadCpuTime.ns = timespec.tv_sec * 1000000000L + timespec.tv_nsec - startCPUTime->ns;
+	startCPUTime->ns = -1;
+    
+    	#pragma omp atomic
+    	staticData->in_pfThread.ns += threadCpuTime.ns;
+    }
+    
+    for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
+        pf_stack->watchedThreadBeginCPUTimes[i].ns = 0;
+    }
+    
 }
 
 void ROMP_pflb_begin(
@@ -93,6 +158,12 @@ void ROMP_pflb_end(
     ROMP_pf_static_struct * pf_static = pf_stack->staticInfo;
     Nanosecs delta = TimerElapsedNanosecs(&pflb_stack->beginTime);
     StaticData* staticData = (StaticData*)(pf_static->ptr);
+    
+    if (delta.ns < 1000) {	// loop body is too small to time this way...
+      pf_stack->skip_pflb_timing = 1;
+      return;
+    }
+    
     #pragma omp atomic
     staticData->in_pflb.ns += delta.ns;
     int tid = omp_get_thread_num();
@@ -118,16 +189,23 @@ static NanosecsTimer mainTimer;
 void ROMP_show_stats(FILE* file)
 {
     fprintf(file, "ROMP_show_stats\n");
-    fprintf(file, "file, line, in pf, in pflb, body/elapsed\n");
+    fprintf(file, "file, line, in pf, in pflb, in_pfThread, pflb/elapsed, pft/elapsed\n");
     if (mainFile)  {
-      Nanosecs mainDuration = TimerElapsedNanosecs(&mainTimer);
-      fprintf(file, "%s, %d, %12ld, %12ld, 1.0\n", mainFile, mainLine, mainDuration.ns, mainDuration.ns);
+      	Nanosecs mainDuration = TimerElapsedNanosecs(&mainTimer);
+      	fprintf(file, "%s, %d, %12ld, %12ld, %12ld, %6.3g, %6.3g\n", 
+      	    mainFile, mainLine, 
+	    mainDuration.ns, mainDuration.ns, mainDuration.ns,
+	    1.0,
+	    1.0);
     }
     ROMP_pf_static_struct* pf;
     for (pf = known_ROMP_pf; pf; ) {
     	StaticData* sd = (StaticData*)(pf->ptr);
-    	fprintf(file, "%s, %d, %12ld, %12ld, %6.3g\n", pf->file, pf->line, sd->in_pf.ns, sd->in_pflb.ns,
-	  (double)sd->in_pflb.ns/(double)sd->in_pf.ns);
+    	fprintf(file, "%s, %d, %12ld, %12ld, %12ld, %6.3g, %6.3g\n", 
+	    pf->file, pf->line,
+	    sd->in_pf.ns, sd->in_pflb.ns, sd->in_pfThread.ns,
+	    (double)sd->in_pflb.ns    /(double)sd->in_pf.ns,
+	    (double)sd->in_pfThread.ns/(double)sd->in_pf.ns);
     	pf = sd->next;
     }
 }
