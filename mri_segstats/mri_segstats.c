@@ -83,6 +83,8 @@
 #include "stats.h"
 #include "gtm.h"
 
+#include "romp_support.h"
+
 #ifdef FS_CUDA
 #include "devicemanagement.h"
 #endif
