@@ -140,8 +140,6 @@ int main(int argc, char **argv) {
 
   InputParser input(argc, argv);
 
-  bool weighted = false;
-
   // load segmentation
   if (input.segfile.empty()) {
     std::cerr << "ERROR: must specify path to input segmentation with '--i'\n";
@@ -163,7 +161,6 @@ int main(int argc, char **argv) {
   MRI *weights = NULL;
   if (!input.weightsfile.empty()) {
     std::cerr << "using weights from  " << input.weightsfile << std::endl;
-    weighted = true;
     weights = MRIread(input.weightsfile.c_str());
     if (!weights) {
       std::cerr << "ERROR: loading volume " << input.weightsfile << std::endl;
@@ -244,7 +241,7 @@ int main(int argc, char **argv) {
         if (centroids.find(voxid) != centroids.end()) {
           MRIvoxelToWorld(seg, col, row, slice, &x, &y, &z);
           // apply voxel weighting if provided
-          if (weighted) {
+          if (weights) {
             MRIworldToVoxel(weights, x, y, z, &wx, &wy,& wz);
             MRIsampleVolume(weights, wx, wy, wz, &weight);
           } else {
