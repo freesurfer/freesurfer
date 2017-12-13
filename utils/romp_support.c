@@ -18,12 +18,43 @@ typedef struct StaticData {
 ROMP_pf_static_struct* known_ROMP_pf;
 
 
+static const char* mainFile = NULL;
+static int mainLine = 0;
+
+
 static void rompExitHandler(void)
 {
   static int count;
   if (count++ > 0) return;
   fprintf(stderr, "ROMP staticExitHandler called\n");
+  if (!mainFile) {    
+      static char commBuffer[1024];
+      FILE* commFile = fopen("/proc/self/comm", "r");
+      int commSize = 0;
+      if (commFile) {
+          commSize = fread(commBuffer, 1, 1023, commFile);
+	  if (commSize > 0) commSize-=1; // drop the \n
+          fclose(commFile);
+      }
+      fprintf(stderr, "commSize:%d commBuff[commSize]:%d\n", commSize, commBuffer[commSize]);
+      commBuffer[commSize] = 0;
+      if (commSize) mainFile = commBuffer;
+  }
+    
   ROMP_show_stats(stderr);
+  
+  if (mainFile) {
+    char ROMP_statsFileName[1024];
+    ROMP_statsFileName[0] = 0;
+    snprintf(ROMP_statsFileName, 1024, "./ROMP_statsFiles/%s.csv", mainFile);
+    FILE* comFile = fopen(ROMP_statsFileName, "a");
+    if (!comFile) {
+      fprintf(stderr, "Could not create %s\n", ROMP_statsFileName);
+    } else {
+      ROMP_show_stats(comFile);
+      fclose(comFile);
+    }
+  }
 }
 
 static StaticData* initStaticData(ROMP_pf_static_struct * pf_static)
@@ -185,13 +216,12 @@ void ROMP_pflb_end(
     }
 }
 
-static const char* mainFile = NULL;
-static int mainLine = 0;
 static NanosecsTimer mainTimer;
 void ROMP_show_stats(FILE* file)
 {
     fprintf(file, "ROMP_show_stats\n");
     fprintf(file, "file, line, in pf, in pflb, in_pfThread, pflb/elapsed, pft/elapsed\n");
+
     if (mainFile)  {
       	Nanosecs mainDuration = TimerElapsedNanosecs(&mainTimer);
       	fprintf(file, "%s, %d, %12ld, %12ld, %12ld, %6.3g, %6.3g\n", 
@@ -225,7 +255,15 @@ void ROMP_main_started(const char* file, int line) {
 //
 int main(int argc, char* argv[])
 {
-    fprintf(stdout, "%s:%d main()\n", __FILE__, __LINE__);
+    FILE* comFile = fopen("/proc/self/comm", "r");
+    char comBuffer[1024];
+    int comSize = 0;
+    if (comFile) {
+        comSize = fread(comBuffer, 1, 1023, comFile);
+        fclose(comFile);
+    }
+    comBuffer[comSize] = 0;
+    fprintf(stdout, "%s:%d main() of %s\n", __FILE__, __LINE__, comBuffer);
     static const int v_size = 1000;
     int i;
     double sum = 0;
