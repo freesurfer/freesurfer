@@ -4,6 +4,7 @@ function [ FreeSurferLabels, names, volumesInCubicMm ] = samsegment( imageFileNa
 %
 %
 
+save('/media/sf_matlab_data/part1.mat')
 
 
 % Print input options
@@ -300,6 +301,7 @@ if ( showFigures )
 end
 
 
+save('/media/sf_matlab_data/part2.mat')
 % We do the optimization in a multi-resolution type of scheme, where large
 % deformations are quickly found using smoothed versions of the atlas mesh, and the fine
 % details are then found on gradually less smoothed versions until the original atlas mesh is used for the optimization.
@@ -920,6 +922,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
 end % End loop over multiresolution levels
 
 
+save('/media/sf_matlab_data/part3.mat')
 % Save something about how the estimation proceeded
 history.imageBuffers = imageBuffers;
 history.mask = mask;
