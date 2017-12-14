@@ -1829,6 +1829,10 @@ void MainWindow::RunScript()
   {
     CommandReorderLayers(sa);
   }
+  else if (cmd == "setactiveframe")
+  {
+    CommandSetActiveFrame(sa);
+  }
   else
   {
     cerr << "Command '" << qPrintable(cmd) << "' is not recognized." << endl;
@@ -2122,6 +2126,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       else if (subOption == "id")
       {
         sup_data["ID"] = subArgu.toInt();
+      }
+      else if ( subOption == "frame")
+      {
+        m_scripts.insert( 0, QStringList() << "setactiveframe" << subArgu );
       }
       else if (!subOption.isEmpty())
       {
@@ -2469,6 +2477,24 @@ void MainWindow::CommandSetOpacity( const QStringList& sa )
     else
     {
       cerr << "Opacity value is not valid.\n";
+    }
+  }
+}
+
+void MainWindow::CommandSetActiveFrame( const QStringList& sa )
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {
+    bool bOK;
+    int val = sa[1].toInt(&bOK);
+    if ( bOK && val >= 0 && val < mri->GetNumberOfFrames())
+    {
+      mri->SetActiveFrame(val);
+    }
+    else
+    {
+      cerr << "Frame value is not valid.\n";
     }
   }
 }

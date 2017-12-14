@@ -320,8 +320,6 @@ public:
     return this->m_bContourUpsample;
   }
 
-  void SetActiveFrame(int nFrame);
-
   QString GetLabelContourRange()
   {
     return m_sLabelContourRange;
@@ -383,6 +381,8 @@ public:
   {
     return m_listVisibleLabels;
   }
+
+  void UpdateActiveFrame(int nFrame);
 
 public slots:
   void SetOpacity( double opacity );

@@ -153,6 +153,7 @@ int main(int argc, char *argv[])
     "':visible=visibility' Set the initial visibility of the volume. Visibility can be '1' or '0' or 'true' or 'false'.\n\n"
     "':smoothed=flag' Set smoothed display for the volume. Flag can be '1' or '0' or 'true' or 'false'.\n\n"
     "':structure=name_or_value' Move the slice in the main viewport to where it has the most of the given structure.\n\n"
+    "':frame=number' Set active frame (0 based).\n\n"
     "Example:\nfreeview -v T1.mgz:colormap=heatscale:heatscale=10,100,200\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_SWITCH, "r", "resample", "", "Resample oblique data to standard RAS." ),
     CmdLineEntry( CMD_LINE_SWITCH, "conform", "conform", "", "Conform the volume to the first loaded volume." ),
