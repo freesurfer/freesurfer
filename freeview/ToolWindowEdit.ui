@@ -916,7 +916,8 @@ Alt + H to show/hide contour.
       <widget class="QLabel" name="labelTipsGeoS">
        <property name="text">
         <string>Left button to draw foreground.
-Shift + Left button to draw background.
+Right button to draw background.
+Shift + Left button to erase.
 </string>
        </property>
       </widget>

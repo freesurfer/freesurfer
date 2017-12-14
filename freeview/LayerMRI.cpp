@@ -1412,7 +1412,7 @@ void LayerMRI::SetActiveFrame( int nFrame )
   if ( nFrame != m_nActiveFrame && nFrame >= 0 && nFrame < this->GetNumberOfFrames() )
   {
     m_nActiveFrame = nFrame;
-    GetProperty()->SetActiveFrame(nFrame);
+    GetProperty()->UpdateActiveFrame(nFrame);
     UpdateColorMap();
     emit ActiveFrameChanged( nFrame );
     emit ActorUpdated();

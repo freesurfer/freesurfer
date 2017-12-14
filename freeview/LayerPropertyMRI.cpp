@@ -1737,7 +1737,7 @@ void LayerPropertyMRI::SetRememberFrameSettings(bool bFlag)
   }
 }
 
-void LayerPropertyMRI::SetActiveFrame(int nFrame)
+void LayerPropertyMRI::UpdateActiveFrame(int nFrame)
 {
   if (nFrame != m_nActiveFrame)
   {
