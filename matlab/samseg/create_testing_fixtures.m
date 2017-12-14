@@ -1,8 +1,10 @@
-﻿﻿
+﻿affineRegistrationMeshCollectionFileName = '/media/sf_Downloads/innolitics_testing/atlas/20Subjects_smoothing2_down2_smoothingForAffine2/atlasForAffineRegistration.txt.gz';
+templateFileName = '/media/sf_Downloads/innolitics_testing/atlas/20Subjects_smoothing2_down2_smoothingForAffine2/template.nii';
+imageFileName = '/media/sf_Downloads/innolitics_testing/buckner40/004/orig.mgz';
 % Read in image, and figure out where the mesh is located
 % test cases: read in the same image and assert transform and image buffer
 % is the same
-[ image, imageToWorldTransform ] = kvlReadImage( '/home/ys/freesurfer/GEMS2/Testing/test.nii' );
+[ image, imageToWorldTransform ] = kvlReadImage( imageFileName );
 imageToWorldTransformMatrix = double( kvlGetTransformMatrix( imageToWorldTransform ) );
 createdTransform = kvlCreateTransform( imageToWorldTransformMatrix );
 imageBuffer = kvlGetImageBuffer( image );
@@ -10,7 +12,7 @@ image = kvlCreateImage( imageBuffer );
 
 % given a mesh collection file assert we get the same node positions and
 % alphas and rasterization result.
-meshCollection = kvlReadMeshCollection( '/home/ys/freesurfer/GEMS2/Testing/test.txt.gz' );
+meshCollection = kvlReadMeshCollection( affineRegistrationMeshCollectionFileName );
 mesh = kvlGetMesh( meshCollection, -1 );
 nodePositions = kvlGetMeshNodePositions( mesh );
 alphas = kvlGetAlphasInMeshNodes( mesh );
@@ -28,6 +30,9 @@ alphas_after_modification = kvlGetAlphasInMeshNodes( mesh );
 kvlSetMeshNodePositions(mesh, nodePositions+1);
 nodePositions_after_modification = kvlGetMeshNodePositions( mesh );
 
+[ image, imageToWorldTransform ] = kvlReadImage( imageFileName );
+meshCollection = kvlReadMeshCollection( affineRegistrationMeshCollectionFileName );
+mesh = kvlGetMesh( meshCollection, -1 );
 % cost and gradient calculator tests. Assert we get the same cost and
 % gradient values.
 calculator = kvlGetCostAndGradientCalculator( 'MutualInformation', image, 'Affine' );
@@ -44,7 +49,17 @@ optimizer = kvlGetOptimizer( optimizerType, mesh, calculator, ...
                                 'LineSearchMaximalDeformationIntervalStopCriterion', ...
                                 lineSearchMaximalDeformationIntervalStopCriterion, ...
                                 'BFGS-MaximumMemoryLength', 12 ); % Affine registration only has 12 DOF
+
+
 [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer );
+
+minLogLikelihoodTimesPriors = [];
+maximalDeformations = [];
+  for m=1:5
+    [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer )
+    minLogLikelihoodTimesPriors = [minLogLikelihoodTimesPriors, minLogLikelihoodTimesPrior]
+    maximalDeformations = [maximalDeformations, maximalDeformation]
+  end
 
 save('/media/sf_matlab_data/integration.mat', ...
     'imageToWorldTransformMatrix', ...
@@ -56,7 +71,5 @@ save('/media/sf_matlab_data/integration.mat', ...
     'nodePositions_after_modification', ...
     'mutualInformation_cost', ...
     'mutualInformation_gradient', ...
-    'minLogLikelihoodTimesPrior', ...
-    'maximalDeformation')
-
-
+    'minLogLikelihoodTimesPriors', ...
+    'maximalDeformations')
