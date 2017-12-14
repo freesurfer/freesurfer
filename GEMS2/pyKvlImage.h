@@ -15,10 +15,18 @@ class KvlImage {
 public:
     ImagePointer m_image;
     TransformPointer m_transform;
+    std::vector<double> m_non_cropped_image_size;
+    std::vector<double> m_cropping_offset;
+
+    // Implements kvlReadImage
     KvlImage(const std::string &imageFileName);
+    // Implements kvlReadCroppedImage
+    KvlImage(const std::string &imageFileName, const std::string &boundingFileName);
     KvlImage(const py::array_t<float> &buffer);
     std::unique_ptr<KvlTransform> GetTransform();
     py::array_t<float> GetImageBuffer();
+    std::vector<double> GetNonCroppedImageSize();
+    std::vector<double> GetCroppingOffset();
     void Write(std::string, KvlTransform &);
 };
 

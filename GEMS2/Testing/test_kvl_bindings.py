@@ -16,6 +16,11 @@ def matlab_fixture():
 def image_fixture():
     return GEMS2Python.KvlImage(TEST_IMAGE_PATH)
 
+@pytest.fixture()
+def cropped_image_fixture():
+    # Two different images would be a better test
+    return GEMS2Python.KvlImage(TEST_IMAGE_PATH, TEST_IMAGE_PATH)
+
 
 @pytest.fixture()
 def mesh_collection_fixture():
@@ -28,7 +33,16 @@ def mesh_collection_fixture():
 def mesh_fixture(mesh_collection_fixture):
     return mesh_collection_fixture.get_mesh(-1)
 
+@pytest.mark.images
+@pytest.mark.slowtest
+def test_cropped_image_image_bindings(matlab_fixture, cropped_image_fixture):
+    np.testing.assert_allclose(matlab_fixture['imageBuffer'], cropped_image_fixture.getImageBuffer())
+    expected_transform = matlab_fixture['imageToWorldTransformMatrix']
+    np.testing.assert_allclose(expected_transform, cropped_image_fixture.transform_matrix.as_numpy_array)
+    assert [189.0, 200.0, 283.0] == cropped_image_fixture.non_cropped_image_size
+    assert [0.0, 0.0, 0.0] == cropped_image_fixture.cropping_offset
 
+@pytest.mark.images
 @pytest.mark.slowtest
 def test_image_bindings(matlab_fixture, image_fixture):
     np.testing.assert_allclose(matlab_fixture['imageBuffer'], image_fixture.getImageBuffer())

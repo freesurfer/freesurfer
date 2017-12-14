@@ -6,11 +6,18 @@
 #include <pybind11/numpy.h>
 #include <itkImageFileWriter.h>
 
+static bool mgh_factory_is_loaded;
+void load_mgh_factory() {
+    if (!mgh_factory_is_loaded) {
+        mgh_factory_is_loaded = true;
+        // Add support for MGH file format to ITK. An alternative way to add this by default would be
+        // to edit ITK's itkImageIOFactory.cxx and explicitly adding it in the code there.
+        itk::ObjectFactoryBase::RegisterFactory( itk::MGHImageIOFactory::New() );
+    }
+}
 
 KvlImage::KvlImage(const std::string &imageFileName) {
-    // Add support for MGH file format to ITK. An alternative way to add this by default would be
-    // to edit ITK's itkImageIOFactory.cxx and explicitly adding it in the code there.
-    itk::ObjectFactoryBase::RegisterFactory( itk::MGHImageIOFactory::New() );
+    load_mgh_factory();
 
     // Read the image
     kvl::CroppedImageReader::Pointer reader = kvl::CroppedImageReader::New();
@@ -27,6 +34,35 @@ KvlImage::KvlImage(const std::string &imageFileName) {
     m_transform = TransformType::New();
     reader->GetWorldToImageTransform()->GetInverse( m_transform );
     std::cout << "Read image: " << imageFileName << std::endl;
+}
+
+KvlImage::KvlImage(const std::string &imageFileName, const std::string &boundingFileName):
+        m_non_cropped_image_size(3), m_cropping_offset(3) {
+    load_mgh_factory();
+
+    // Read the image
+    kvl::CroppedImageReader::Pointer reader = kvl::CroppedImageReader::New();
+    reader->SetExtraFraction(0.0);
+    reader->Read(imageFileName.c_str(), boundingFileName.c_str());
+
+    // Convert the image to float
+    typedef itk::Image<float, 3> ImageType;
+    typedef itk::CastImageFilter<kvl::CroppedImageReader::ImageType, ImageType> CasterType;
+    CasterType::Pointer caster = CasterType::New();
+    caster->SetInput(reader->GetImage());
+    caster->Update();
+
+    // Store the image and transform in persistent memory
+    m_image = caster->GetOutput();
+    m_transform = reader->GetTransform()->Clone();
+
+    for ( int index = 0; index < 3; index++ )
+    {
+        m_non_cropped_image_size[index] = reader->GetOriginalImageOriginalRegion().GetSize( index );
+        m_cropping_offset[index] = reader->GetOriginalImageRegion().GetIndex( index )
+                                   - reader->GetCroppedImageRegion().GetIndex( index );
+    }
+    std::cout << "Read image: " << imageFileName << " cropped by " << boundingFileName << std::endl;
 }
 
 KvlImage::KvlImage(const py::array_t<float> &buffer) {
@@ -54,6 +90,13 @@ KvlImage::KvlImage(const py::array_t<float> &buffer) {
     {
         it.Value() = *bufferPointer;
     }
+}
+
+std::vector<double> KvlImage::GetNonCroppedImageSize() {
+    return m_non_cropped_image_size;
+}
+std::vector<double> KvlImage::GetCroppingOffset() {
+    return m_cropping_offset;
 }
 
 std::unique_ptr<KvlTransform> KvlImage::GetTransform() {
