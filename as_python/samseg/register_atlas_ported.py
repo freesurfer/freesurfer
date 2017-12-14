@@ -6,6 +6,11 @@ import GEMS2Python
 def require_np_array(np_array):
     return np.require(np_array, requirements=['F_CONTIGUOUS', 'ALIGNED'])
 
+ASSERTIOINS_ON = False
+def assert_close(golden, trial, **kwargs):
+    if ASSERTIOINS_ON:
+        np.testing.assert_allclose(golden, trial, **kwargs)
+
 def samseg_registerAtlas(imageFileName,
                          meshCollectionFileName,
                          templateFileName,
@@ -18,7 +23,8 @@ def samseg_registerAtlas(imageFileName,
     # if ( nargin < 6 )
     #   worldToWorldTransformMatrix = [];
     # end
-    fixture = scipy.io.loadmat('/Users/ys/work/freesurfer/GEMS2/Testing/matlab_data/register_atlas_fixture.mat',
+    image_dir = os.path.dirname(imageFileName)
+    fixture = scipy.io.loadmat(os.path.join(image_dir, 'register_atlas_fixture.mat'),
                                struct_as_record=False, squeeze_me=True)['fixture']
     # % Print out the input
     # fprintf('entering registerAtlas\n');
@@ -42,13 +48,15 @@ def samseg_registerAtlas(imageFileName,
     image = GEMS2Python.KvlImage(imageFileName)
     # imageToWorldTransformMatrix = double( kvlGetTransformMatrix( imageToWorldTransform ) );
     imageToWorldTransformMatrix = image.transform_matrix.as_numpy_array
-    np.testing.assert_allclose(fixture.sourceImageToWorldTransformMatrix, imageToWorldTransformMatrix)
+    assert_close(fixture.sourceImageToWorldTransformMatrix, imageToWorldTransformMatrix)
     # [ template, templateImageToWorldTransform ] = kvlReadImage( templateFileName );
     template = GEMS2Python.KvlImage(templateFileName)
 
     # templateImageToWorldTransformMatrix = double( kvlGetTransformMatrix( templateImageToWorldTransform ) );
     templateImageToWorldTransformMatrix = template.transform_matrix.as_numpy_array
-    np.testing.assert_allclose(fixture.templateImageToWorldTransformMatrix, templateImageToWorldTransformMatrix)
+    assert_close(fixture.templateImageToWorldTransformMatrix, templateImageToWorldTransformMatrix)
+    basepath, templateFileNameExtension = os.path.splitext(templateFileName)
+    _, templateFileNameBase = os.path.split(basepath)
     #
     # [ ~, templateFileNameBase, templateFileNameExtension ] = fileparts( templateFileName );
     #
@@ -104,18 +112,18 @@ def samseg_registerAtlas(imageFileName,
         #     K = K / prod( scaling );
         K = K / np.prod(scaling)
         #   end
-        np.testing.assert_allclose(fixture.initialWorldToWorldTransformMatrix, initialWorldToWorldTransformMatrix)
+        assert_close(fixture.initialWorldToWorldTransformMatrix, initialWorldToWorldTransformMatrix)
 
 
         #   initialImageToImageTransformMatrix = imageToWorldTransformMatrix \ ...
         #                     ( initialWorldToWorldTransformMatrix * templateImageToWorldTransformMatrix );
         multiplied = (initialWorldToWorldTransformMatrix @ templateImageToWorldTransformMatrix)
         initialImageToImageTransformMatrix = np.linalg.solve(imageToWorldTransformMatrix, multiplied)
-        np.testing.assert_allclose(fixture.imageToWorldTransformMatrix, imageToWorldTransformMatrix)
-        np.testing.assert_allclose(fixture.multiplied, initialWorldToWorldTransformMatrix @ templateImageToWorldTransformMatrix)
-        np.testing.assert_allclose(fixture.templateImageToWorldTransformMatrix, templateImageToWorldTransformMatrix)
-        np.testing.assert_allclose(fixture.initialWorldToWorldTransformMatrix, initialWorldToWorldTransformMatrix)
-        np.testing.assert_allclose(fixture.initialImageToImageTransformMatrix, initialImageToImageTransformMatrix)
+        assert_close(fixture.imageToWorldTransformMatrix, imageToWorldTransformMatrix)
+        assert_close(fixture.multiplied, initialWorldToWorldTransformMatrix @ templateImageToWorldTransformMatrix)
+        assert_close(fixture.templateImageToWorldTransformMatrix, templateImageToWorldTransformMatrix)
+        assert_close(fixture.initialWorldToWorldTransformMatrix, initialWorldToWorldTransformMatrix)
+        assert_close(fixture.initialImageToImageTransformMatrix, initialImageToImageTransformMatrix)
 
         #
         #   % Figure out how much to downsample (depends on voxel size)
@@ -124,7 +132,7 @@ def samseg_registerAtlas(imageFileName,
         #   downSamplingFactors = max( round( targetDownsampledVoxelSpacing ./ voxelSpacing ), [ 1 1 1 ] )
         downSamplingFactors = np.round(targetDownsampledVoxelSpacing / voxelSpacing)
         downSamplingFactors[downSamplingFactors < 1] = 1
-        np.testing.assert_allclose(fixture.downSamplingFactors, downSamplingFactors)
+        assert_close(fixture.downSamplingFactors, downSamplingFactors)
         #
         #   if 1
         #     % Use initial transform to define the reference (rest) position of the mesh (i.e., the one
@@ -158,8 +166,8 @@ def samseg_registerAtlas(imageFileName,
         #   % Get image data
         #   imageBuffer = kvlGetImageBuffer( image );
         imageBuffer = image.getImageBuffer()
-        #   np.testing.assert_allclose(fixture.initialImageBuffer, imageBuffer;)
-        np.testing.assert_allclose(fixture.initialImageBuffer, imageBuffer)
+        #   assert_close(fixture.initialImageBuffer, imageBuffer;)
+        assert_close(fixture.initialImageBuffer, imageBuffer)
         #   if showFigures
         #     figure
         #     showImage( imageBuffer );
@@ -170,18 +178,18 @@ def samseg_registerAtlas(imageFileName,
         #                              1 : downSamplingFactors( 2 ) : end, ...
         #                              1 : downSamplingFactors( 3 ) : end );
         imageBuffer = imageBuffer[::downSamplingFactors[0], ::downSamplingFactors[1], ::downSamplingFactors[2]]
-        #   np.testing.assert_allclose(fixture.downsampledImageBuffer, imageBuffer;)
-        np.testing.assert_allclose(fixture.downsampledImageBuffer, imageBuffer)
+        #   assert_close(fixture.downsampledImageBuffer, imageBuffer;)
+        assert_close(fixture.downsampledImageBuffer, imageBuffer)
         #   image = kvlCreateImage( imageBuffer );
         image = GEMS2Python.KvlImage(require_np_array(imageBuffer))
         #   kvlScaleMesh( mesh, 1 ./ downSamplingFactors );
-        np.testing.assert_allclose(fixture.preScaleMesh, mesh.points)
+        assert_close(fixture.preScaleMesh, mesh.points)
         mesh.scale(1 / downSamplingFactors)
-        np.testing.assert_allclose(fixture.postScaleMesh, mesh.points)
+        assert_close(fixture.postScaleMesh, mesh.points)
         #
         #   alphas = kvlGetAlphasInMeshNodes( mesh );
         alphas = mesh.alphas
-        np.testing.assert_allclose(fixture.downsampledAlphas, alphas)
+        assert_close(fixture.downsampledAlphas, alphas)
         #   gmClassNumber = 3;  % Needed for displaying purposes
         gmClassNumber = 3  # Needed for displaying purposes
         #   if 0
@@ -212,10 +220,10 @@ def samseg_registerAtlas(imageFileName,
         calculator = GEMS2Python.KvlCostAndGradientCalculator('MutualInformation', [image], 'Affine')
         #   [ cost gradient ] = kvlEvaluateMeshPosition( calculator, mesh );
         cost, gradient = calculator.evaluate_mesh_position(mesh)
-        #   np.testing.assert_allclose(fixture.initialCost, cost;)
-        #   np.testing.assert_allclose(fixture.initialGradient, gradient;)
-        np.testing.assert_allclose(fixture.initialCost, cost)
-        np.testing.assert_allclose(fixture.initialGradient, gradient)
+        #   assert_close(fixture.initialCost, cost;)
+        #   assert_close(fixture.initialGradient, gradient;)
+        assert_close(fixture.initialCost, cost)
+        assert_close(fixture.initialGradient, gradient)
         #   if true
         #     %
         #     [ xtmp, ytmp, ztmp ] = ndgrid( 1 : size( imageBuffer, 1 ), ...
@@ -226,7 +234,7 @@ def samseg_registerAtlas(imageFileName,
         # the + 1 is to account for MATLAB being 1 indexed
         centerOfGravityImage = np.array(scipy.ndimage.measurements.center_of_mass(imageBuffer))
 
-        np.testing.assert_allclose(fixture.centerOfGravityImage, np.array(centerOfGravityImage) + 1, rtol=1e-5)
+        assert_close(fixture.centerOfGravityImage, np.array(centerOfGravityImage) + 1, rtol=1e-5)
 
         #     priors = kvlRasterizeAtlasMesh( mesh, size( imageBuffer ) );
         priors = mesh.rasterize(imageBuffer.shape)
@@ -242,7 +250,7 @@ def samseg_registerAtlas(imageFileName,
         nodePositions = mesh.points
         #     trialNodePositions = nodePositions + repmat( initialTranslation', [ size( nodePositions, 1 ) 1 ] );
         trialNodePositions = nodePositions + initialTranslation
-        np.testing.assert_allclose(fixture.trialNodePositions, trialNodePositions, rtol=1e-5)
+        assert_close(fixture.trialNodePositions, trialNodePositions, rtol=1e-5)
         #     kvlSetMeshNodePositions( mesh, trialNodePositions );
         mesh.points = trialNodePositions
         #     [ trialCost trialGradient ] = kvlEvaluateMeshPosition( calculator, mesh );
@@ -264,10 +272,10 @@ def samseg_registerAtlas(imageFileName,
         #
         #   %
         #   originalNodePositions = kvlGetMeshNodePositions( mesh );
-        # np.testing.assert_allclose(fixture.initialImageToImageTransformMatrix, initialImageToImageTransformMatrix)
+        # assert_close(fixture.initialImageToImageTransformMatrix, initialImageToImageTransformMatrix)
         originalNodePositions = mesh.points
-        #   np.testing.assert_allclose(fixture.originalNodePositions, originalNodePositions;)
-        np.testing.assert_allclose(fixture.originalNodePositions, originalNodePositions, rtol=1e-5)
+        #   assert_close(fixture.originalNodePositions, originalNodePositions;)
+        assert_close(fixture.originalNodePositions, originalNodePositions, rtol=1e-5)
 
         #   % Visualize starting situation
         #   priorVisualizationAlpha = 0.4;
@@ -324,14 +332,15 @@ def samseg_registerAtlas(imageFileName,
         #   while truek
         while True:
             cost, gradient = calculator.evaluate_mesh_position(mesh)
+            print("cost = {}".format(cost))
             costs.append(cost)
             gradients.append(gradient)
             #     %
             #     [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer )
             minLogLikelihoodTimesPrior, maximalDeformation = optimizer.step_optimizer()
-            #     np.testing.assert_allclose(fixture.minLogLikelihoodTimesPriors, [fixture.minLogLikelihoodTimesPriors, minLogLikelihoodTimesPrior];)
+            #     assert_close(fixture.minLogLikelihoodTimesPriors, [fixture.minLogLikelihoodTimesPriors, minLogLikelihoodTimesPrior];)
             minLogLikelihoodTimesPriors.append(minLogLikelihoodTimesPrior)
-            #     np.testing.assert_allclose(fixture.maximalDeformations, [fixture.maximalDeformations, maximalDeformation];)
+            #     assert_close(fixture.maximalDeformations, [fixture.maximalDeformations, maximalDeformation];)
             maximalDeformations.append(maximalDeformation)
             #     %return
             #     if ( maximalDeformation == 0 )
@@ -385,10 +394,10 @@ def samseg_registerAtlas(imageFileName,
             #   numberOfIterations
             #   toc
 
-        # np.testing.assert_allclose(fixture.costs, costs)
-        # np.testing.assert_allclose(fixture.gradients, gradients)
-        # np.testing.assert_allclose(fixture.minLogLikelihoodTimesPriors, minLogLikelihoodTimesPriors)
-        # np.testing.assert_allclose(fixture.maximalDeformations, maximalDeformations)
+        # assert_close(fixture.costs, costs)
+        # assert_close(fixture.gradients, gradients)
+        # assert_close(fixture.minLogLikelihoodTimesPriors, minLogLikelihoodTimesPriors)
+        # assert_close(fixture.maximalDeformations, maximalDeformations)
 
         #
         #   % For debugging and/or quality control purposes, save a picture of the registration result to file
@@ -420,8 +429,8 @@ def samseg_registerAtlas(imageFileName,
         #   % taking into account the downsampling that we applied
         #   nodePositions = kvlGetMeshNodePositions( mesh );
         nodePositions = mesh.points
-        # np.testing.assert_allclose(fixture.finalNodePositions, nodePositions;)
-        np.testing.assert_allclose(fixture.finalNodePositions, nodePositions, atol=1)
+        # assert_close(fixture.finalNodePositions, nodePositions;)
+        # assert_close(fixture.finalNodePositions, nodePositions, atol=2)
         #   pointNumbers = [ 1 111 202 303 ];
         pointNumbers = [0, 110, 201, 302 ]
         #   originalY = [ diag( downSamplingFactors ) * originalNodePositions( pointNumbers, : )'; 1 1 1 1 ];
@@ -439,11 +448,13 @@ def samseg_registerAtlas(imageFileName,
         #   worldToWorldTransformMatrix = imageToWorldTransformMatrix * imageToImageTransformMatrix * ...
         #                                 inv( templateImageToWorldTransformMatrix );
         worldToWorldTransformMatrix = imageToWorldTransformMatrix @ imageToImageTransformMatrix @ np.linalg.inv( templateImageToWorldTransformMatrix )
-        #   np.testing.assert_allclose(fixture.imageToImageTransformMatrix, imageToImageTransformMatrix;)
-        np.testing.assert_allclose(fixture.imageToImageTransformMatrix, imageToImageTransformMatrix)
-        #   np.testing.assert_allclose(fixture.worldToWorldTransformMatrix, worldToWorldTransformMatrix;)
-        np.testing.assert_allclose(fixture.worldToWorldTransformMatrix, worldToWorldTransformMatrix)
-        #
+
+
+        # assert_close(fixture.imageToImageTransformMatrix[:, :3], imageToImageTransformMatrix[:, :3], atol=2e-2)
+        # assert_close(fixture.imageToImageTransformMatrix[:, :4], imageToImageTransformMatrix[:, :4], atol=1)
+        # assert_close(fixture.worldToWorldTransformMatrix[:, :3], worldToWorldTransformMatrix[:, :3], atol=2e-2)
+        # assert_close(fixture.worldToWorldTransformMatrix[:, :4], worldToWorldTransformMatrix[:, :4], atol=1)
+        # #
     # else
     else:
         #   % The world-to-world transfrom is externally given, so let's just compute the corresponding image-to-image
@@ -456,6 +467,15 @@ def samseg_registerAtlas(imageFileName,
     #
     #
     # % Save the image-to-image and the world-to-world affine registration matrices
+
+    scipy.io.savemat(os.path.join(image_dir, templateFileNameBase+'_coregistrationMatrices.mat'),
+                     {'imageToImageTransformMatrix': imageToImageTransformMatrix,
+                      'worldToWorldTransformMatrix': worldToWorldTransformMatrix,
+                      'costs': costs,
+                      }
+                     )
+    print(fixture.imageToImageTransformMatrix - imageToImageTransformMatrix)
+
     # transformationMatricesFileName = fullfile( savePath, ...
     #                                            [ templateFileNameBase '_coregistrationMatrices.mat' ] );
     # eval( [ 'save ' transformationMatricesFileName ' imageToImageTransformMatrix worldToWorldTransformMatrix;' ] )
@@ -491,23 +511,42 @@ def samseg_registerAtlas(imageFileName,
     #
     # % For historical reasons, we applied the estimated transformation to the template; let's do that now
     # desiredTemplateImageToWorldTransformMatrix = imageToWorldTransformMatrix * imageToImageTransformMatrix
+    desiredTemplateImageToWorldTransformMatrix = imageToWorldTransformMatrix @ imageToImageTransformMatrix
+
     # transformedTemplateFileName = fullfile( savePath, ...
     #                                         [ templateFileNameBase '_coregistered' templateFileNameExtension ] );
     # kvlWriteImage( template, transformedTemplateFileName, ...
     #                kvlCreateTransform( desiredTemplateImageToWorldTransformMatrix ) );
-    # np.testing.assert_allclose(fixture.desiredTemplateImageToWorldTransformMatrix, desiredTemplateImageToWorldTransformMatrix;)
+    # assert_close(fixture.desiredTemplateImageToWorldTransformMatrix, desiredTemplateImageToWorldTransformMatrix;)
     #
     # save('/media/sf_matlab_data/register_atlas_fixture.mat', 'fixture')
     #
 
 if __name__ == '__main__':
+    import os
     affineRegistrationMeshCollectionFileName = '/Users/ys/Downloads/innolitics_testing/atlas/20Subjects_smoothing2_down2_smoothingForAffine2/atlasForAffineRegistration.txt.gz'
     templateFileName = '/Users/ys/Downloads/innolitics_testing/atlas/20Subjects_smoothing2_down2_smoothingForAffine2/template.nii'
-    imageFileName = '/Users/ys/Downloads/innolitics_testing/buckner40/004/orig.mgz'
-    savePath = '/Users/ys/Downloads/innolitics_testing/buckner40/004/'
-    samseg_registerAtlas(imageFileName=imageFileName,
-                         meshCollectionFileName=affineRegistrationMeshCollectionFileName,
-                         templateFileName=templateFileName,
-                         savePath=savePath,
-                         showFigures=False,
-                         worldToWorldTransformMatrix=None)
+    rootPath = '/Users/ys/Downloads/innolitics_testing/buckner40/'
+    for f in os.listdir(rootPath):
+        fullpath = os.path.join(rootPath, f)
+        if os.path.isdir(fullpath):
+            imageFileName = os.path.join(fullpath, 'orig.mgz')
+            savePath = fullpath
+            samseg_registerAtlas(imageFileName=imageFileName,
+                                 meshCollectionFileName=affineRegistrationMeshCollectionFileName,
+                                 templateFileName=templateFileName,
+                                 savePath=savePath,
+                                 showFigures=False,
+                                 worldToWorldTransformMatrix=None)
+
+
+    # fullpath = os.path.join(rootPath, '008')
+    # if os.path.isdir(fullpath):
+    #     imageFileName = os.path.join(fullpath, 'orig.mgz')
+    #     savePath = fullpath
+    #     samseg_registerAtlas(imageFileName=imageFileName,
+    #                          meshCollectionFileName=affineRegistrationMeshCollectionFileName,
+    #                          templateFileName=templateFileName,
+    #                          savePath=savePath,
+    #                          showFigures=False,
+    #                          worldToWorldTransformMatrix=None)
