@@ -6,10 +6,9 @@
 #include <map>
 #include <iomanip>
 
-extern "C"
-{
-#include "mri.h"
-#include "mri2.h"
+extern "C" {
+  #include "mri.h"
+  #include "mri2.h"
 }
 
 
@@ -142,7 +141,6 @@ int main(int argc, char **argv) {
 
 
   InputParser input(argc, argv);
-
 
   // load segmentation
   if (input.segfile.empty()) {

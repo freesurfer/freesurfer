@@ -28,7 +28,7 @@ set missingstructs = ()
 set computedice = 0;
 set diceseg = none
 if($?SAMSEG_DATA_DIR == 0) then
-  setenv SAMSEG_DATA_DIR /autofs/cluster/koen/koen/GEMSapplications/wholeBrain
+  setenv SAMSEG_DATA_DIR /autofs/cluster/koen/koen/koenAtlases/20Subjects_smoothing2_down2_smoothingForAffine2
 endif
 
 # Matlab (must be 8.0)

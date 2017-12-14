@@ -1104,7 +1104,7 @@ int HemisphereVote(MRI *mri_cma, int i, int j, int k, int halfside)
           if ((vox == Left_Cerebral_Cortex) || (vox == Left_Cerebral_White_Matter) || (vox == Left_Cerebral_Exterior) ||
               (vox == Left_Lateral_Ventricle) || (vox == Left_Inf_Lat_Vent) || (vox == Left_Cerebellum_Exterior) ||
               (vox == Left_Cerebellum_White_Matter) || (vox == Left_Cerebellum_Cortex) || (vox == Left_Thalamus) ||
-              (vox == Left_Thalamus_Proper) || (vox == Left_Caudate) || (vox == Left_Putamen) ||
+              (vox == Left_Caudate) || (vox == Left_Putamen) ||
               (vox == Left_Pallidum) || (vox == Left_Hippocampus) || (vox == Left_Amygdala) || (vox == Left_Insula) ||
               (vox == Left_Operculum) || (vox == Left_Lesion) || (vox == Left_Accumbens_area) ||
               (vox == Left_Substancia_Nigra) || (vox == Left_VentralDC) || (vox == Left_undetermined) ||
@@ -1115,7 +1115,7 @@ int HemisphereVote(MRI *mri_cma, int i, int j, int k, int halfside)
           if ((vox == Right_Cerebral_Cortex) || (vox == Right_Cerebral_White_Matter) ||
               (vox == Right_Cerebral_Exterior) || (vox == Right_Lateral_Ventricle) || (vox == Right_Inf_Lat_Vent) ||
               (vox == Right_Cerebellum_Exterior) || (vox == Right_Cerebellum_White_Matter) ||
-              (vox == Right_Cerebellum_Cortex) || (vox == Right_Thalamus) || (vox == Right_Thalamus_Proper) ||
+              (vox == Right_Cerebellum_Cortex) || (vox == Right_Thalamus) ||
               (vox == Right_Caudate) || (vox == Right_Putamen) || (vox == Right_Pallidum) ||
               (vox == Right_Hippocampus) || (vox == Right_Amygdala) || (vox == Right_Insula) ||
               (vox == Right_Operculum) || (vox == Right_Lesion) || (vox == Right_Accumbens_area) ||
@@ -1227,8 +1227,8 @@ int IllegalCorticalNeighbour(MRI *mri_masked, MRI *mri_white, int i, int j, int 
              lateral ventricles:
              Left_Lateral_Ventricle; Right_Lateral_Ventricle
              inferior lateral ventricle: Left_Inf_Lat_Vent; Right_Inf_Lat_Vent
-             thalamus: Left_Thalamus; Left_Thalamus_Proper;
-             Right_Thalamus; Right_Thalamus_Proper */
+             thalamus: Left_Thalamus;
+             Right_Thalamus */
           if ((vox == Left_Lateral_Ventricle) || (vox == Right_Lateral_Ventricle) || (vox == Left_Inf_Lat_Vent) ||
               (vox == Right_Inf_Lat_Vent)) {
             int dfx = abs(i - x);
@@ -1278,7 +1278,7 @@ int IllegalCorticalNeighbour(MRI *mri_masked, MRI *mri_white, int i, int j, int 
               illegalflag++;
           }
           else if ((vox == Left_Caudate) || (vox == Right_Caudate) || (vox == Left_Thalamus) ||
-                   (vox == Left_Thalamus_Proper) || (vox == Right_Thalamus) || (vox == Right_Thalamus_Proper)) {
+                   (vox == Right_Thalamus)) {
             illegalflag++;
           }
           // debug illegal check voxel values for voxels near i,j,k

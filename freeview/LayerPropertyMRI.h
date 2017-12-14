@@ -107,6 +107,7 @@ public:
 
   COLOR_TABLE*  GetLUTCTAB () const;
   void          SetLUTCTAB ( COLOR_TABLE* ct );
+  bool          IsValueInColorTable (double nVal);
 
   virtual vtkScalarsToColors* GetActiveLookupTable();
 

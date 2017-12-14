@@ -6478,7 +6478,6 @@ MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg)
         case Left_Lateral_Ventricle:
         case Left_Inf_Lat_Vent:
         case Left_Thalamus:
-        case Left_Thalamus_Proper:
         case Left_Caudate:
         case Left_Putamen:
         case Left_Pallidum:
@@ -6509,7 +6508,6 @@ MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg)
         case Right_Lateral_Ventricle:
         case Right_Inf_Lat_Vent:
         case Right_Thalamus:
-        case Right_Thalamus_Proper:
         case Right_Caudate:
         case Right_Putamen:
         case Right_Pallidum:
