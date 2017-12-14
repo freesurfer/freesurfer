@@ -2,7 +2,8 @@
 ## Makefile.am 
 ##
 
-AM_CXXFLAGS=-std=c++11 -I$(top_srcdir)/include -D$(target_cpu)
+#AM_CXXFLAGS=-std=c++11 -I$(top_srcdir)/include -D$(target_cpu)
+AM_CXXFLAGS=-std=c++0x -I$(top_srcdir)/include -D$(target_cpu)
 AM_LDFLAGS=
 
 bin_PROGRAMS=mri_segcentroids
