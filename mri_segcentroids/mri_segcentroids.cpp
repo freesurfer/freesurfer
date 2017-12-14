@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <map>
 #include <iomanip>
@@ -23,7 +24,7 @@ static void printHelp(int exit_val)
 struct Centroid {
   int id;
   std::string labelname;
-  float mass, x, y, z = 0;
+  float mass, x, y, z;
 };
 
 
@@ -31,10 +32,11 @@ struct Centroid {
 class InputParser {
 public:
   std::string segfile, weightsfile, ltafile, outfile, ctabfile;
-  bool include_zero = false;
+  bool include_zero;
   int precision;
 
   InputParser(int &argc, char **argv) {
+    include_zero = false;
     int i = 1;
     std::string opt;
     while (i < argc) {
@@ -223,9 +225,14 @@ int main(int argc, char **argv) {
     }
 
     // this is also for table column formatting
-    id_chars = (std::to_string(centroid.id).length());
+    std::ostringstream ss;
+    ss << centroid.id;
+    id_chars = ss.str().length();
+    // the line below is only c++11 compatible :(
+    // id_chars = (std::to_string(centroid.id).length());
     if (id_chars > max_id_chars) max_id_chars = id_chars;
 
+    centroid.mass = 0;
     centroids[centroid.id] = centroid;
   }
 
@@ -266,15 +273,16 @@ int main(int argc, char **argv) {
   if (lta) LTAfree(&lta);
 
   // compute centers of mass
-  for (auto& kv: centroids) {
-    Centroid *c = &kv.second;
+  std::map<int, Centroid>::iterator it;
+  for (it = centroids.begin(); it != centroids.end(); it++) {
+    Centroid *c = &it->second;
     c->x /= c->mass;
     c->y /= c->mass;
     c->z /= c->mass;
   }
 
 
-  // -------------------- compute center and write table --------------------
+  // -------------------- write table --------------------
 
 
   std::ofstream tablefile(input.outfile);
@@ -307,8 +315,8 @@ int main(int argc, char **argv) {
   // table body
 
   tablefile << std::fixed << std::setprecision(precision);
-  for (const auto& kv: centroids) {
-    Centroid c = kv.second;
+  for (it = centroids.begin(); it != centroids.end(); it++) {
+    Centroid c = it->second;
 
     tablefile << std::setw(max_id_chars) << c.id;
     if (ctab) {
