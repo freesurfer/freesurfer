@@ -668,14 +668,14 @@ void PanelVolume::DoUpdateWidgets()
     ui->lineEditMid->setEnabled(!bAutoMid);
   }
 
-  if (layer && nColorMap == LayerPropertyMRI::LUT && !layer->GetProperty()->IsValueInColorTable(layer->GetFillValue()))
+  ui->labelBrushValueWarning->hide();
+  if (layer)
   {
-    ui->colorLabelBrushValue->hide();
-    ui->labelBrushValueWarning->show();
-  }
-  else
-  {
-    ui->labelBrushValueWarning->hide();
+    if (nColorMap == LayerPropertyMRI::LUT && !layer->GetProperty()->IsValueInColorTable(layer->GetFillValue()))
+    {
+      ui->colorLabelBrushValue->hide();
+      ui->labelBrushValueWarning->show();
+    }
   }
 
   UpdateTrackVolumeThreshold();
@@ -751,6 +751,10 @@ void PanelVolume::OnColorTableSortingChanged()
 void PanelVolume::UpdateColorLabel()
 {
   QTreeWidgetItem* item = ui->treeWidgetColorTable->currentItem();
+  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  if (!layer || layer->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT)
+    return;
+
   if ( item )
   {
     QColor color = item->data( 0, Qt::UserRole ).value<QColor>();
@@ -765,7 +769,6 @@ void PanelVolume::UpdateColorLabel()
   }
   else
   {
-  //  ui->colorLabelBrushValue->setPixmap( QPixmap() );
     ui->colorLabelBrushValue->hide();
     bool bOK;
     ui->lineEditBrushValue->text().trimmed().toInt(&bOK);
