@@ -18,6 +18,7 @@ PYBIND11_MODULE(GEMS2Python, m) {
             .def_property_readonly("cropping_offset", &KvlImage::GetCroppingOffset)
             .def("getImageBuffer", &KvlImage::GetImageBuffer)
             .def("write", &KvlImage::Write)
+            .def_static("smooth_image_buffer", &KvlImage::smoothImageBuffer)
             ;
 
     py::class_<KvlTransform>(m, "KvlTransform")

@@ -5,6 +5,7 @@
 #include "pyKvlTransform.h"
 #include <pybind11/numpy.h>
 #include <itkImageFileWriter.h>
+#include "itkDiscreteGaussianImageFilter.h"
 
 static bool mgh_factory_is_loaded;
 void load_mgh_factory() {
@@ -15,6 +16,48 @@ void load_mgh_factory() {
         itk::ObjectFactoryBase::RegisterFactory( itk::MGHImageIOFactory::New() );
     }
 }
+
+py::array_t<float> KvlImage::image_to_numpy(ImagePointer image) {
+    auto region = image->GetLargestPossibleRegion();
+    auto shape = region.GetSize();
+    auto* const buffer = new float[region.GetNumberOfPixels()];
+
+    itk::ImageRegionConstIterator< ImageType > it( image, region );
+    float* buffer_p = buffer;
+    for ( ;!it.IsAtEnd(); ++it, ++buffer_p ){
+        *buffer_p = it.Value();
+    }
+    return createNumpyArrayFStyle({shape[0], shape[1], shape[2]}, buffer);
+}
+
+ImagePointer KvlImage::numpy_to_image(const py::array_t<float> &buffer) {
+    typedef typename ImageType::PixelType  PixelType;
+
+    // Determine the size of the image to be created
+    typedef typename ImageType::SizeType  SizeType;
+    SizeType  imageSize;
+    for ( int i = 0; i < 3; i++ )
+    {
+        imageSize[ i ] = buffer.shape( i );
+        //std::cout << "imageSize[ i ]: " << imageSize[ i ] << std::endl;
+    }
+
+    // Construct an ITK image
+    ImagePointer image = ImageType::New();
+    image->SetRegions( imageSize );
+    image->Allocate();
+
+    // Loop over all voxels and copy contents
+    itk::ImageRegionIterator< ImageType >  it( image,
+                                               image->GetBufferedRegion() );
+    const float *bufferPointer = buffer.data(0);
+    for ( ;!it.IsAtEnd(); ++it, ++bufferPointer )
+    {
+        it.Value() = *bufferPointer;
+    }
+    return image;
+}
+
 
 KvlImage::KvlImage(const std::string &imageFileName) {
     load_mgh_factory();
@@ -66,30 +109,8 @@ KvlImage::KvlImage(const std::string &imageFileName, const std::string &bounding
 }
 
 KvlImage::KvlImage(const py::array_t<float> &buffer) {
-    typedef typename ImageType::PixelType  PixelType;
-
-    // Determine the size of the image to be created
-    typedef typename ImageType::SizeType  SizeType;
-    SizeType  imageSize;
-    for ( int i = 0; i < 3; i++ )
-    {
-        imageSize[ i ] = buffer.shape( i );
-        //std::cout << "imageSize[ i ]: " << imageSize[ i ] << std::endl;
-    }
-
-    // Construct an ITK image
-    m_image = ImageType::New();
-    m_image->SetRegions( imageSize );
-    m_image->Allocate();
+    m_image = numpy_to_image(buffer);
     m_transform = TransformType::New();
-    // Loop over all voxels and copy contents
-    itk::ImageRegionIterator< ImageType >  it( m_image,
-                                               m_image->GetBufferedRegion() );
-    const float *bufferPointer = buffer.data(0);
-    for ( ;!it.IsAtEnd(); ++it, ++bufferPointer )
-    {
-        it.Value() = *bufferPointer;
-    }
 }
 
 std::vector<double> KvlImage::GetNonCroppedImageSize() {
@@ -104,16 +125,7 @@ std::unique_ptr<KvlTransform> KvlImage::GetTransform() {
 }
 
 py::array_t<float> KvlImage::GetImageBuffer() {
-    auto region = m_image->GetLargestPossibleRegion();
-    auto shape = region.GetSize();
-    auto* const buffer = new float[region.GetNumberOfPixels()];
-
-    itk::ImageRegionConstIterator< ImageType > it( m_image, region );
-    float* buffer_p = buffer;
-    for ( ;!it.IsAtEnd(); ++it, ++buffer_p ){
-        *buffer_p = it.Value();
-    }
-    return createNumpyArrayFStyle({shape[0], shape[1], shape[2]}, buffer);
+    return image_to_numpy(m_image);
 }
 
 void KvlImage::Write(std::string fileName, KvlTransform &transform) {
@@ -170,4 +182,34 @@ void KvlImage::Write(std::string fileName, KvlTransform &transform) {
     writer->Update();
     std::cout << "Wrote image to file " << fileName << std::endl;
 
+}
+
+py::array_t<float> KvlImage::smoothImageBuffer(const py::array_t<float>& imageBuffer, std::vector<double> sigmas)
+{
+    ImagePointer image = numpy_to_image(imageBuffer);
+
+    // Do the actual work in ITK
+    typedef itk::Image< float, 3 >  InternalImageType;
+    typedef itk::CastImageFilter< ImageType, InternalImageType >   CasterType;
+    typedef itk::DiscreteGaussianImageFilter< InternalImageType, InternalImageType >  SmootherType;
+    typedef itk::CastImageFilter< InternalImageType, ImageType >  BackCasterType;
+
+    typename CasterType::Pointer caster = CasterType::New();
+    caster->SetInput( image );
+    SmootherType::Pointer smoother = SmootherType::New();
+    smoother->SetInput( caster->GetOutput() );
+    smoother->SetMaximumError( 0.1 );
+    smoother->SetUseImageSpacingOff();
+    double  variances[ 3 ];
+    for ( int i = 0; i < 3; i++ )
+    {
+        variances[ i ] = sigmas[ i ] * sigmas[ i ];
+    }
+    smoother->SetVariance( variances );
+    typename BackCasterType::Pointer  backCaster = BackCasterType::New();
+    backCaster->SetInput( smoother->GetOutput() );
+    backCaster->Update();
+    auto smoothedImage = backCaster->GetOutput();
+
+    return image_to_numpy(smoothedImage);
 }

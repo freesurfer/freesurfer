@@ -28,6 +28,11 @@ public:
     std::vector<double> GetNonCroppedImageSize();
     std::vector<double> GetCroppingOffset();
     void Write(std::string, KvlTransform &);
+    static py::array_t<float> smoothImageBuffer(const py::array_t<float>& imageBuffer, std::vector<double> sigmas);
+
+private:
+    static ImagePointer numpy_to_image(const py::array_t<float> &buffer);
+    static py::array_t<float> image_to_numpy(ImagePointer image);
 };
 
 
