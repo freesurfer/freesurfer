@@ -1,4 +1,44 @@
-# ﻿
+import scipy.io
+import numpy as np
+import os
+import GEMS2Python
+
+def require_np_array(np_array):
+    return np.require(np_array, requirements=['F_CONTIGUOUS', 'ALIGNED'])
+
+def load_mat_file(filename):
+    return scipy.io.loadmat(filename, struct_as_record=False, squeeze_me=True)
+
+MATLAB_FIXTURE_PATH = '/Users/ys/work/freesurfer/GEMS2/Testing/matlab_data/'
+
+fixture = scipy.io.loadmat(os.path.join(MATLAB_FIXTURE_PATH, 'part2.mat'), struct_as_record=False, squeeze_me=True)
+locals().update(fixture)
+
+# function Y = backprojectKroneckerProductBasisFunctions( kroneckerProductBasisFunctions, coefficients )
+def backprojectKroneckerProductBasisFunctions(kroneckerProductBasisFunctions, coefficients):
+    #
+    # numberOfDimensions = length( kroneckerProductBasisFunctions );
+    numberOfDimensions = len(kroneckerProductBasisFunctions)
+    # Ms = zeros( 1, numberOfDimensions ); % Number of basis functions in each dimension
+    Ms = np.zeros((1, numberOfDimensions))  # Number of basis functions in each dimension
+    # Ns = zeros( 1, numberOfDimensions ); % Number of data points in each dimension
+    Ns = np.zeros((1, numberOfDimensions))  # Number of basis functions in each dimension
+    # transposedKroneckerProductBasisFunctions = cell( 0, 0 );
+    transposedKroneckerProductBasisFunctions = []
+    # for dimensionNumber = 1 : numberOfDimensions
+    for dimensionNumber in range(numberOfDimensions):
+        pass
+        #   Ms( dimensionNumber ) = size( kroneckerProductBasisFunctions{ dimensionNumber }, 2 );
+        #   Ns( dimensionNumber ) = size( kroneckerProductBasisFunctions{ dimensionNumber }, 1 );
+        #   transposedKroneckerProductBasisFunctions{ dimensionNumber } = kroneckerProductBasisFunctions{ dimensionNumber }';
+        # end
+        #
+        #
+        # y = projectKroneckerProductBasisFunctions( transposedKroneckerProductBasisFunctions, reshape( coefficients, Ms ) );
+        # Y = reshape( y, Ns );
+        #
+
+
 # % We do the optimization in a multi-resolution type of scheme, where large
 # % deformations are quickly found using smoothed versions of the atlas mesh, and the fine
 # % details are then found on gradually less smoothed versions until the original atlas mesh is used for the optimization.
@@ -6,53 +46,72 @@
 # % blurring avoids getting stuck in the first local optimum of the search space, and get the rough major
 # % deformations right instead.
 # numberOfMultiResolutionLevels = length( optimizationOptions.multiResolutionSpecification );
+numberOfMultiResolutionLevels = len(optimizationOptions.multiResolutionSpecification)
 # historyWithinEachMultiResolutionLevel = struct( [] );
+historyWithinEachMultiResolutionLevel = []
 # for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
-#
-#   %
-#   maximumNumberOfIterations = optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).maximumNumberOfIterations;
-#   estimateBiasField = optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).estimateBiasField;
-#   historyOfCost = [ 1/eps ];
-#   historyOfMaximalDeformationApplied = [];
-#   historyOfTimeTakenIntensityParameterUpdating = [];
-#   historyOfTimeTakenDeformationUpdating = [];
-#   fprintf('maximumNumberOfIterations %d\n',maximumNumberOfIterations);
-#
-#
-#   % Downsample the images, the mask, the mesh, and the bias field basis functions
-#   % Must be integer
-#   downSamplingFactors = max( round( optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).targetDownsampledVoxelSpacing ...
-#                                     ./ voxelSpacing ), [ 1 1 1 ] )
-#   downSampledMask = mask(  1 : downSamplingFactors( 1 ) : end, ...
-#                            1 : downSamplingFactors( 2 ) : end, ...
-#                            1 : downSamplingFactors( 3 ) : end );
-#   downSampledMaskIndices = find( downSampledMask );
-#   downSampledImageBuffers = [];
-#   for contrastNumber = 1 : numberOfContrasts
-#     % if ( multiResolutionLevel == numberOfMultiResolutionLevels )
-#     if true
-#       % No image smoothing
-#       downSampledImageBuffers( :, :, :, contrastNumber ) = imageBuffers( 1 : downSamplingFactors( 1 ) : end, ...
-#                                                                          1 : downSamplingFactors( 2 ) : end, ...
-#                                                                          1 : downSamplingFactors( 3 ) : end, ...
-#                                                                          contrastNumber );
-#     else
-#       % Try image smoothing
-#       buffer = imageBuffers( 1 : downSamplingFactors( 1 ) : end, ...
-#                              1 : downSamplingFactors( 2 ) : end, ...
-#                              1 : downSamplingFactors( 3 ) : end, ...
-#                              contrastNumber );
-#       smoothingSigmas = downSamplingFactors / 2 / sqrt( 2 * log( 2 ) ); % Variance chosen to approximately
-#                                                                         % match normalized binomial filter
-#                                                                         % (1/4, 1/2, 1/4) for downsampling
-#                                                                         % factor of 2
-#       smoothingSigmas( find( downSamplingFactors == 1 ) ) = 0.0;
-#       smoothedBuffer = kvlSmoothImageBuffer( single( buffer ), smoothingSigmas );
-#       smoothedMask = kvlSmoothImageBuffer( single( downSampledMask ), smoothingSigmas );
-#       downSampledImageBuffers( :, :, :, contrastNumber ) = downSampledMask .* ( smoothedBuffer ./ ( smoothedMask + eps ) );
-#     end
-#
-#   end
+for multiResolutionLevel in range(numberOfMultiResolutionLevels):
+    #
+    #   %
+    #   maximumNumberOfIterations = optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).maximumNumberOfIterations;
+    maximumNumberOfIterations = optimizationOptions.multiResolutionSpecification[multiResolutionLevel].maximumNumberOfIterations
+    #   estimateBiasField = optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).estimateBiasField;
+    estimateBiasField = optimizationOptions.multiResolutionSpecification[multiResolutionLevel].estimateBiasField
+    #   historyOfCost = [ 1/eps ];
+    #   historyOfMaximalDeformationApplied = [];
+    #   historyOfTimeTakenIntensityParameterUpdating = [];
+    #   historyOfTimeTakenDeformationUpdating = [];
+    #   fprintf('maximumNumberOfIterations %d\n',maximumNumberOfIterations);
+    print('maximumNumberOfIterations: {}', maximumNumberOfIterations)
+    #
+    #
+    #   % Downsample the images, the mask, the mesh, and the bias field basis functions
+    #   % Must be integer
+    #   downSamplingFactors = max( round( optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).targetDownsampledVoxelSpacing ...
+    #                                     ./ voxelSpacing ), [ 1 1 1 ] )
+    downSamplingFactors = np.round(optimizationOptions.multiResolutionSpecification[multiResolutionLevel].targetDownsampledVoxelSpacing / voxelSpacing)
+    downSamplingFactors[downSamplingFactors < 1] = 1
+    #   downSampledMask = mask(  1 : downSamplingFactors( 1 ) : end, ...
+    #                            1 : downSamplingFactors( 2 ) : end, ...
+    #                            1 : downSamplingFactors( 3 ) : end );
+    downSampledMask = mask[::downSamplingFactors[0], ::downSamplingFactors[1], ::downSamplingFactors[2]]
+    #   downSampledMaskIndices = find( downSampledMask );
+    downSampledMaskIndices = np.where(downSampledMask)
+    #   downSampledImageBuffers = [];
+    downSampledImageBuffers = np.zeros(downSampledMask.shape + (numberOfMultiResolutionLevels,))
+    #   for contrastNumber = 1 : numberOfContrasts
+    for contrastNumber in range(numberOfContrasts):
+        #     if true
+        #       % No image smoothing
+        #       downSampledImageBuffers( :, :, :, contrastNumber ) = imageBuffers( 1 : downSamplingFactors( 1 ) : end, ...
+        #                                                                          1 : downSamplingFactors( 2 ) : end, ...
+        #                                                                          1 : downSamplingFactors( 3 ) : end, ...
+        #                                                                          contrastNumber );
+        # TODO: Remove need to check this. Matlab implicitly lets you expand one dim, our python code should have the shape (x, y, z, numberOfContrasts)
+        if imageBuffers.ndim == 3:
+            imageBuffers = np.expand_dims(imageBuffers, axis=3)
+
+        downSampledImageBuffers[:, :, :, contrastNumber] = imageBuffers[::downSamplingFactors[0],
+                                                                        ::downSamplingFactors[1],
+                                                                        ::downSamplingFactors[2],
+                                                                        contrastNumber]
+        #     else
+        #       % Try image smoothing
+        #       buffer = imageBuffers( 1 : downSamplingFactors( 1 ) : end, ...
+        #                              1 : downSamplingFactors( 2 ) : end, ...
+        #                              1 : downSamplingFactors( 3 ) : end, ...
+        #                              contrastNumber );
+        #       smoothingSigmas = downSamplingFactors / 2 / sqrt( 2 * log( 2 ) ); % Variance chosen to approximately
+        #                                                                         % match normalized binomial filter
+        #                                                                         % (1/4, 1/2, 1/4) for downsampling
+        #                                                                         % factor of 2
+        #       smoothingSigmas( find( downSamplingFactors == 1 ) ) = 0.0;
+        #       smoothedBuffer = kvlSmoothImageBuffer( single( buffer ), smoothingSigmas );
+        #       smoothedMask = kvlSmoothImageBuffer( single( downSampledMask ), smoothingSigmas );
+        #       downSampledImageBuffers( :, :, :, contrastNumber ) = downSampledMask .* ( smoothedBuffer ./ ( smoothedMask + eps ) );
+        #     end
+        #
+        #   end
 #
 #   %
 #   downSampledKroneckerProductBasisFunctions = cell( 0, 0 );
@@ -60,37 +119,65 @@
 #     A = kroneckerProductBasisFunctions{ dimensionNumber };
 #     downSampledKroneckerProductBasisFunctions{ dimensionNumber } = A( 1 : downSamplingFactors( dimensionNumber ) : end, : );
 #   end
+    downSampledKroneckerProductBasisFunctions = [kroneckerProductBasisFunction[::downSamplingFactor]
+                                                 for kroneckerProductBasisFunction, downSamplingFactor in
+                                                 zip(kroneckerProductBasisFunctions, downSamplingFactors)]
 #   downSampledImageSize = size( downSampledImageBuffers( :, :, :, 1 ) );
+    downSampledImageSize = downSampledImageBuffers[:, :, :, 0].shape
 #
 #
 #   % Read the atlas mesh to be used for this multi-resolution level, taking into account the downsampling to position it
 #   % correctly
 #   downSamplingTransformMatrix = diag( [ 1./downSamplingFactors 1 ] );
-#   totalTransformationMatrix = downSamplingTransformMatrix * double( kvlGetTransformMatrix( transform ) );
+    downSamplingTransformMatrix = np.diag(1./downSamplingFactors)
+    downSamplingTransformMatrix = np.pad(downSamplingTransformMatrix, (0,1), mode='constant', constant_values=0)
+    downSamplingTransformMatrix[3][3] = 1
+
+    # totalTransformationMatrix = downSamplingTransformMatrix @ kvlGetTransformMatrix( transform )
+    # TODO: remove this guy once we port part 1
+    totalTransformationMatrix = load_mat_file('/Users/ys/work/freesurfer/GEMS2/Testing/matlab_data/totalTransformationMatrix.mat')['totalTransformationMatrix']
+
+
 #   meshCollection = ...
 #         kvlReadMeshCollection( optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).atlasFileName, ...
 #                                 kvlCreateTransform( totalTransformationMatrix ), modelSpecifications.K );
+    mesh_collection = GEMS2Python.KvlMeshCollection()
+    mesh_collection.read(optimizationOptions.multiResolutionSpecification[multiResolutionLevel].atlasFileName)
+    mesh_collection.k = modelSpecifications.K
+    mesh_collection.transform(GEMS2Python.KvlTransform(require_np_array(totalTransformationMatrix)))
+
 #   mesh = kvlGetMesh( meshCollection, -1 );
+    mesh = mesh_collection.reference_mesh
+
 #
 #   % Get the initial mesh node positions, also transforming them back into template space
 #   % (i.e., undoing the affine registration that we applied) for later usage
 #   initialNodePositions = kvlGetMeshNodePositions( mesh );
+    initialNodePositions = mesh.points
 #   numberOfNodes = size( initialNodePositions, 1 );
+    numberOfNodes = len(initialNodePositions)
 #   tmp = ( totalTransformationMatrix \ [ initialNodePositions ones( numberOfNodes, 1 ) ]' )';
+    tmp = np.linalg.solve(totalTransformationMatrix,
+                          np.pad(initialNodePositions, (0, 1), mode='constant', constant_values=1).T).T
 #   initialNodePositionsInTemplateSpace = tmp( :, 1 : 3 );
+    initialNodePositionsInTemplateSpace = tmp[:, 0:2]
 #
 #
 #   % If this is not the first multi-resolution level, apply the warp computed during the previous level
 #   if ( multiResolutionLevel > 1 )
+    if multiResolutionLevel > 0:
 #     % Get the warp in template space
 #     nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = ...
 #             historyWithinEachMultiResolutionLevel( multiResolutionLevel-1 ).finalNodePositionsInTemplateSpace - ...
 #             historyWithinEachMultiResolutionLevel( multiResolutionLevel-1 ).initialNodePositionsInTemplateSpace;
+        nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = \
+            historyWithinEachMultiResolutionLevel[-1].finalNodePositionsInTemplateSpace - historyWithinEachMultiResolutionLevel[-1].initialNodePositionsInTemplateSpace
 #     initialNodeDeformationInTemplateSpace = kvlWarpMesh( ...
 #                   optimizationOptions.multiResolutionSpecification( multiResolutionLevel-1 ).atlasFileName, ...
 #                   nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel, ...
 #                   optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).atlasFileName );
-#
+        # TODO: Remove this once part 1 is done
+        initialNodeDeformationInTemplateSpace = load_mat_file('/Users/ys/work/freesurfer/GEMS2/Testing/matlab_data/initialNodeDeformationInTemplateSpace.mat')['initialNodeDeformationInTemplateSpace']
 #     % Apply this warp on the mesh node positions in template space, and transform into current space
 #     desiredNodePositionsInTemplateSpace = initialNodePositionsInTemplateSpace + initialNodeDeformationInTemplateSpace;
 #     tmp = ( totalTransformationMatrix * ...
@@ -106,8 +193,11 @@
 #
 #   % Set priors in mesh to the reduced (super-structure) ones
 #   alphas = kvlGetAlphasInMeshNodes( mesh );
+    alphas = mesh.alphas
 #   reducedAlphas = kvlMergeAlphas( alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors );
+    reducedAlphas = load_mat_file('/Users/ys/work/freesurfer/GEMS2/Testing/matlab_data/reducedAlphas.mat')['reducedAlphas']
 #   kvlSetAlphasInMeshNodes( mesh, reducedAlphas )
+    mesh.alphas = reducedAlphas
 #
 #
 #
@@ -123,13 +213,18 @@
 #   % that really just encode the variable "biasFieldCoefficients" and so need to be meticiously updated each time
 #   % "biasFieldCoefficients" is updated (!)
 #   downSampledBiasCorrectedImageBuffers = zeros( [ downSampledImageSize numberOfContrasts ] );
+    downSampledBiasCorrectedImageBuffers = np.zeros(downSampledImageSize + (numberOfContrasts,))
 #   biasCorrectedData = zeros( [ length( downSampledMaskIndices ) numberOfContrasts ] );
+    biasCorrectedData = np.zeros( (len(downSampledMaskIndices[0]), numberOfContrasts) )
+
 #   for contrastNumber = 1 : numberOfContrasts
-#     downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, biasFieldCoefficients( :, contrastNumber ) );
-#     tmp = downSampledImageBuffers( :, :, :, contrastNumber ) - downSampledBiasField .* downSampledMask;
-#     downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) = tmp;
-#     biasCorrectedData( :, contrastNumber ) = tmp( downSampledMaskIndices );
-#   end
+    for contrastNumber in range(numberOfContrasts):
+        #     downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, biasFieldCoefficients( :, contrastNumber ) );
+        downSampledBiasField = backprojectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions,  biasFieldCoefficients[:, contrastNumber])
+        #     tmp = downSampledImageBuffers( :, :, :, contrastNumber ) - downSampledBiasField .* downSampledMask;
+        #     downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) = tmp;
+        #     biasCorrectedData( :, contrastNumber ) = tmp( downSampledMaskIndices );
+        #   end
 #
 #
 #   % Compute a color coded version of the atlas prior in the atlas's current pose, i.e., *before*
