@@ -127,7 +127,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
                               << ui->sliderMin
                               << ui->sliderMax
                               << ui->labelMin
-                              << ui->labelMax;
+                              << ui->labelMax
+                              << ui->pushButtonResetWindowLevel;
 
   m_widgetlistLUT << ui->treeWidgetColorTable
                   << ui->labelLookUpTable
@@ -297,6 +298,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->lineEditProjectionMapRange, SIGNAL(returnPressed()), this, SLOT(OnLineEditProjectionMapRangeChanged()));
   connect( layer, SIGNAL(IsoSurfaceUpdating()), ui->progressBarWorking, SLOT(show()));
   connect( layer, SIGNAL(IsoSurfaceUpdated()), ui->progressBarWorking, SLOT(hide()));
+  connect( ui->pushButtonResetWindowLevel, SIGNAL(clicked(bool)), p, SLOT(ResetWindowLevel()));
 }
 
 void PanelVolume::DoIdle()
