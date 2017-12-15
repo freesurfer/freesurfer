@@ -50,7 +50,7 @@ static void rompExitHandler(void)
   if (mainFile) {
     char ROMP_statsFileName[1024];
     ROMP_statsFileName[0] = 0;
-    snprintf(ROMP_statsFileName, 1024, "./ROMP_statsFiles/%s.csv", mainFile);
+    snprintf(ROMP_statsFileName, 1024, "/tmp/ROMP_statsFiles/%s.csv", mainFile);
     FILE* comFile = fopen(ROMP_statsFileName, "a");
     if (!comFile) {
       fprintf(stderr, "Could not create %s\n", ROMP_statsFileName);
@@ -69,6 +69,7 @@ static StaticData* initStaticData(ROMP_pf_static_struct * pf_static)
     {	// Might have been made by another thread
     	ptr = (StaticData*)pf_static->ptr;
     	if (!ptr) {
+	    ROMP_main_started("some ROMP_PF_begin", 0);
     	    ptr = (StaticData*)calloc(1, sizeof(StaticData));
     	    pf_static->ptr = ptr;
     	    ptr->next = known_ROMP_pf;
@@ -248,6 +249,8 @@ void ROMP_show_stats(FILE* file)
 }
 
 void ROMP_main_started(const char* file, int line) {
+    static int once;
+    if (once++) return;
     TimerStartNanosecs(&mainTimer);
     mainFile = file;
     mainLine = line;
