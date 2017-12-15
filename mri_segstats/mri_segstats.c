@@ -782,7 +782,7 @@ int main(int argc, char **argv)
   DoContinue=0;nx=0;skip=0;n0=0;vol=0;nhits=0;c=0;min=0.0;max=0.0;range=0.0;mean=0.0;std=0.0;snr=0.0;
 #ifdef HAVE_OPENMP
 ROMP_PF_begin
-#pragma omp parallel for if_ROMP(experimental) firstprivate(DoContinue,nx,skip,n0,vol,nhits,c,min,max,range,mean,std,snr)  schedule(guided)
+#pragma omp parallel for if_ROMP(assume_reproducible) firstprivate(DoContinue,nx,skip,n0,vol,nhits,c,min,max,range,mean,std,snr)  schedule(guided)
 #endif
   for (n=0; n < nsegid; n++)
   {

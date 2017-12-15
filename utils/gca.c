@@ -4596,7 +4596,7 @@ float GCAcomputeLogSampleProbability(
 
 #ifdef HAVE_OPENMP
   ROMP_PF_begin
-  #pragma omp parallel for if_ROMP(experimental) firstprivate(gcas, tid, m_prior2source_voxel) reduction(+ : total_log_p)
+  #pragma omp parallel for if_ROMP(fast) firstprivate(gcas, tid, m_prior2source_voxel) reduction(+ : total_log_p)
 #endif
   for (i = 0; i < nsamples; i++) {
     ROMP_PFLB_begin
