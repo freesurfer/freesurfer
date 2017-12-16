@@ -39,7 +39,7 @@ typedef enum ROMP_level {
     } ROMP_level;
 extern ROMP_level romp_level;
 
-#define if_ROMP(LEVEL) if (ROMP_pf_stack.staticInfo && (ROMP_##LEVEL >= romp_level))
+#define if_ROMP(LEVEL) if (ROMP_pf_stack.staticInfo && (ROMP_note_pf_level(ROMP_##LEVEL,&ROMP_pf_static) >= romp_level))
 
 // Surround a parallel for
 
@@ -50,6 +50,9 @@ typedef struct ROMP_pf_static_struct {
     const char*     file; 
     unsigned int    line; 
 } ROMP_pf_static_struct;
+
+ROMP_level ROMP_note_pf_level(ROMP_level, ROMP_pf_static_struct*);
+
  
 typedef struct ROMP_pf_stack_struct  { 
     struct ROMP_pf_static_struct * staticInfo; 
@@ -90,6 +93,17 @@ typedef struct ROMP_pflb_stack_struct {
     int tid;
 } ROMP_pflb_stack_struct;
 
+#if 1
+
+#define ROMP_PFLB_begin
+#define ROMP_PFLB_end
+#define ROMP_PFLB_continue \
+    { continue; }
+#define ROMP_PF_continue \
+    ROMP_PFLB_continue
+    
+#else
+
 #define ROMP_PFLB_begin \
     ROMP_pflb_stack_struct  ROMP_pflb_stack;  \
     if (!ROMP_pf_stack.skip_pflb_timing) ROMP_pflb_begin(&ROMP_pf_stack, &ROMP_pflb_stack);
@@ -101,6 +115,8 @@ typedef struct ROMP_pflb_stack_struct {
     { if (!ROMP_pf_stack.skip_pflb_timing) ROMP_PFLB_end; continue; }
 #define ROMP_PF_continue \
     ROMP_PFLB_continue
+
+#endif
 
 void ROMP_pflb_begin(
     ROMP_pf_stack_struct   * pf_stack,

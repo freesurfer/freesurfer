@@ -8841,7 +8841,7 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   if (!FZERO(parms->l_angle) || !FZERO(parms->l_area) || (!FZERO(parms->l_parea))) {
 #ifdef HAVE_OPENMP
     ROMP_PF_begin
-    #pragma omp parallel for if_ROMP(experimental) reduction(+ : sse_angle, sse_neg_area, sse_area)
+    #pragma omp parallel for if_ROMP(fast) reduction(+ : sse_angle, sse_neg_area, sse_area)
 #endif
     for (fno = 0; fno < mris->nfaces; fno++) {
       ROMP_PFLB_begin
@@ -9201,7 +9201,7 @@ static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris)
   int fno;
 #ifdef HAVE_OPENMP
   ROMP_PF_begin
-  #pragma omp parallel for if_ROMP(experimental) reduction(+ : sse)
+  #pragma omp parallel for if_ROMP(fast) reduction(+ : sse)
 #endif
   for (fno = 0; fno < mris->nfaces; fno++) {
     ROMP_PFLB_begin
@@ -9819,7 +9819,7 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
       
 #ifdef HAVE_OPENMP
         ROMP_PF_begin
-        #pragma omp parallel for if_ROMP(experimental)
+        #pragma omp parallel for if_ROMP(assume_reproducible)
 #endif
         for (index = 0; index < index_to_vno_size ; index++ ) {
 	  ROMP_PFLB_begin
@@ -17866,7 +17866,7 @@ int MRISapplyGradient(MRI_SURFACE *mris, double dt)
   else {
 #ifdef HAVE_OPENMP
     ROMP_PF_begin
-    #pragma omp parallel for if_ROMP(experimental) schedule(static, 1)
+    #pragma omp parallel for if_ROMP(assume_reproducible) schedule(static, 1)
 #endif
     for (vno = 0; vno < nvertices; vno++) {
       ROMP_PFLB_begin
@@ -20872,9 +20872,8 @@ double MRIScomputeFolding(MRI_SURFACE *mris)
   ------------------------------------------------------*/
 static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  float l_dist, scale, max_del, norm;
+  float l_dist, scale, norm;
   int vno, tno;
-  //  int     max_n, max_v ;
   int diag_vno1, diag_vno2;
   char *cp;
   VECTOR *v_y[_MAX_FS_THREADS], *v_delta[_MAX_FS_THREADS], *v_n[_MAX_FS_THREADS];
@@ -20916,10 +20915,10 @@ static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #else
   scale = 1.0f;
 #endif
+
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
     fprintf(stdout, "distance scale = %2.3f\n", scale);
   }
-  max_del = 10000.0f;
   for (tno = 0; tno < _MAX_FS_THREADS; tno++) {
     v_n[tno] = VectorAlloc(3, MATRIX_REAL);
     v_y[tno] = VectorAlloc(3, MATRIX_REAL);
@@ -20928,7 +20927,7 @@ static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 // need to make v_n etc. into arrays and use tids
 #ifdef HAVE_OPENMP
   ROMP_PF_begin
-  #pragma omp parallel for if_ROMP(experimental) schedule(static, 1)
+  #pragma omp parallel for if_ROMP(assume_reproducible) schedule(static, 1)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
@@ -20963,21 +20962,6 @@ static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       d0 = v->dist_orig[n] / scale;
       dt = v->dist[n];
       delta = dt - d0;
-#if 0
-#if 0
-#ifdef HAVE_OPENMP
-//#pragma omp critical (max_delta)
-#endif
-#endif
-      {
-      if (fabs(delta) > max_del)
-      {
-        max_del = delta ;
-        max_v = vno ;
-        max_n = n ;
-      }
-      }
-#endif
       VECTOR_LOAD(v_y[tid], vn->x - v->x, vn->y - v->y, vn->z - v->z);
       if ((V3_LEN_IS_ZERO(v_y[tid]))) continue;
 
@@ -21571,7 +21555,7 @@ static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *par
   sse_dist = 0.0;
 #ifdef HAVE_OPENMP
   ROMP_PF_begin
-  #pragma omp parallel for if_ROMP(experimental) reduction(+ : sse_dist) schedule(static, 1)
+  #pragma omp parallel for if_ROMP(fast) reduction(+ : sse_dist) schedule(static, 1)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
@@ -27638,7 +27622,7 @@ double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
   int vno;
   double sse = 0.0;
   ROMP_PF_begin
-  #pragma omp parallel for if_ROMP(experimental) reduction(+ : sse)
+  #pragma omp parallel for if_ROMP(fast) reduction(+ : sse)
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
     

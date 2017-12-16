@@ -6,28 +6,29 @@
 
 ROMP_level romp_level = 
 	ROMP_fast;
-	// should not be set ro ROMP_serial
+	// should not be set to ROMP_serial
 
 
 typedef struct StaticData {
     ROMP_pf_static_struct* next;
     int skip_pflb_timing;
     Nanosecs in_pf, in_pfThread, in_pflb;
+    ROMP_level level;
 } StaticData;
 
 ROMP_pf_static_struct* known_ROMP_pf;
 
+ROMP_level ROMP_note_pf_level(ROMP_level level, ROMP_pf_static_struct* pf_static) {
+    StaticData* ptr = (StaticData*)pf_static->ptr;
+    return ptr ? (ptr->level = level) : level;
+}
 
 static const char* mainFile = NULL;
 static int mainLine = 0;
 
-
-static void rompExitHandler(void)
+static const char* getMainFile() 
 {
-  static int count;
-  if (count++ > 0) return;
-  fprintf(stderr, "ROMP staticExitHandler called\n");
-  if (!mainFile) {    
+ if (!mainFile) {    
       static char commBuffer[1024];
       FILE* commFile = fopen("/proc/self/comm", "r");
       int commSize = 0;
@@ -44,10 +45,18 @@ static void rompExitHandler(void)
       commBuffer[commSize] = 0;
       if (commSize) mainFile = commBuffer;
   }
-    
+  return mainFile;
+}
+
+static void rompExitHandler(void)
+{
+  static int count;
+  if (count++ > 0) return;
+  fprintf(stderr, "ROMP staticExitHandler called\n");
+     
   ROMP_show_stats(stderr);
   
-  if (mainFile) {
+  if (getMainFile()) {
     char ROMP_statsFileName[1024];
     ROMP_statsFileName[0] = 0;
     snprintf(ROMP_statsFileName, 1024, "/tmp/ROMP_statsFiles/%s.csv", mainFile);
@@ -225,11 +234,11 @@ static NanosecsTimer mainTimer;
 void ROMP_show_stats(FILE* file)
 {
     fprintf(file, "ROMP_show_stats\n");
-    fprintf(file, "file, line, in pf, in pflb, in_pfThread, pflb/elapsed, pft/elapsed\n");
+    fprintf(file, "file, line, level, in pf, in pflb, in_pfThread, pflb/elapsed, pft/elapsed\n");
 
-    if (mainFile)  {
+    if (getMainFile())  {
       	Nanosecs mainDuration = TimerElapsedNanosecs(&mainTimer);
-      	fprintf(file, "%s, %d, %12ld, %12ld, %12ld, %6.3g, %6.3g\n", 
+      	fprintf(file, "%s, %d, 0, %12ld, %12ld, %12ld, %6.3g, %6.3g\n", 
       	    mainFile, mainLine, 
 	    mainDuration.ns, mainDuration.ns, mainDuration.ns,
 	    1.0,
@@ -239,13 +248,15 @@ void ROMP_show_stats(FILE* file)
     for (pf = known_ROMP_pf; pf; ) {
     	StaticData* sd = (StaticData*)(pf->ptr);
 	if (sd->skip_pflb_timing) sd->in_pflb.ns = 0;
-    	fprintf(file, "%s, %d, %12ld, %12ld, %12ld, %6.3g, %6.3g\n", 
+    	fprintf(file, "%s, %d, %d, %12ld, %12ld, %12ld, %6.3g, %6.3g\n", 
 	    pf->file, pf->line,
+	    sd->level,
 	    sd->in_pf.ns, sd->in_pflb.ns, sd->in_pfThread.ns,
 	    (double)sd->in_pflb.ns    /(double)sd->in_pf.ns,
 	    (double)sd->in_pfThread.ns/(double)sd->in_pf.ns);
     	pf = sd->next;
     }
+    fprintf(file, "ROMP_show_stats end\n");
 }
 
 void ROMP_main_started(const char* file, int line) {
