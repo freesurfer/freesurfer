@@ -110,6 +110,12 @@ void ROMP_pf_begin(
     pf_stack->staticInfo = pf_static;
     StaticData* staticData = initStaticData(pf_static);
     if (!staticData) return;
+
+    if (romp_level == ROMP_level__size) {
+    	// ignore nested parallel so the loop body times are not added to more than one scope
+	pf_stack->staticInfo = NULL;
+	return;
+    }
     
     int i;
     for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
@@ -136,7 +142,9 @@ void ROMP_pf_begin(
     
     TimerStartNanosecs(&pf_stack->beginTime);
     pf_stack->skip_pflb_timing = staticData->skip_pflb_timing;
-    pf_stack->tids_active = 0;
+    pf_stack->tids_active      = 0;
+    pf_stack->saved_ROMP_level = romp_level;
+    romp_level = ROMP_level__size;		// don't support nested parallelism for now
 }
 
 void ROMP_pf_end(
@@ -144,6 +152,7 @@ void ROMP_pf_end(
 {
     ROMP_pf_static_struct * pf_static = pf_stack->staticInfo;
     if (!pf_static) return;
+
     Nanosecs delta = TimerElapsedNanosecs(&pf_stack->beginTime);
     StaticData* staticData = (StaticData*)(pf_static->ptr);
     #pragma omp atomic
@@ -185,6 +194,11 @@ void ROMP_pf_end(
     for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
         pf_stack->watchedThreadBeginCPUTimes[i].ns = 0;
     }
+
+    if (pf_stack->saved_ROMP_level != ROMP_level__size) {
+    	// exiting a non-nested parallel for
+        romp_level = pf_stack->saved_ROMP_level;
+    }
     
 }
 
@@ -224,7 +238,7 @@ void ROMP_pflb_end(
     if (pflb_stack->tid != tid) {
         fprintf(stderr, "Bad tid in ROMP_pflb_end %s:%d\n",
 	    pf_static->file, pf_static->line);
-        exit(1);
+ls -l         exit(1);
     }
     if (tid >= 8*sizeof(int)) return;
     int tidMask = 1<<tid;
@@ -251,7 +265,7 @@ void ROMP_show_stats(FILE* file)
       	Nanosecs mainDuration = TimerElapsedNanosecs(&mainTimer);
       	fprintf(file, "%s, %d, 0, %12ld, %12ld, %12ld, %6.3g, %6.3g\n", 
       	    mainFile, mainLine, 
-	    mainDuration.ns, mainDuration.ns, mainDuration.ns,
+	    mainDuration.ns, 0, 0,
 	    1.0,
 	    1.0);
     }

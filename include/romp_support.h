@@ -39,7 +39,10 @@ typedef enum ROMP_level {
     } ROMP_level;
 extern ROMP_level romp_level;
 
-#define if_ROMP(LEVEL) if (ROMP_pf_stack.staticInfo && (ROMP_note_pf_level(ROMP_##LEVEL,&ROMP_pf_static) >= romp_level))
+#define if_ROMP(LEVEL) \
+    if (ROMP_pf_stack.staticInfo && \
+        (ROMP_note_pf_level(ROMP_##LEVEL,&ROMP_pf_static) >= romp_level)) \
+    // end of macro
 
 // Surround a parallel for
 
@@ -58,8 +61,9 @@ typedef struct ROMP_pf_stack_struct  {
     struct ROMP_pf_static_struct * staticInfo; 
     NanosecsTimer beginTime;
     Nanosecs      watchedThreadBeginCPUTimes[ROMP_maxWatchedThreadNum];
-    int tids_active;
-    int skip_pflb_timing;
+    int 	  tids_active;
+    int 	  skip_pflb_timing;
+    ROMP_level    saved_ROMP_level;
 } ROMP_pf_stack_struct;
 
 #define ROMP_main ROMP_main_started(__FILE__, __LINE__);
