@@ -5,8 +5,7 @@
 #include <pthread.h>
 
 ROMP_level romp_level = 
-	ROMP_fast;
-	// should not be set to ROMP_serial
+    ROMP_fast;              // should not be set to ROMP_serial
 
 
 typedef struct StaticData {
@@ -24,50 +23,66 @@ ROMP_level ROMP_note_pf_level(ROMP_level level, ROMP_pf_static_struct* pf_static
 }
 
 static const char* mainFile = NULL;
-static int mainLine = 0;
+static int         mainLine = 0;
 
 static const char* getMainFile() 
 {
- if (!mainFile) {    
-      static char commBuffer[1024];
-      FILE* commFile = fopen("/proc/self/comm", "r");
-      int commSize = 0;
-      if (commFile) {
-          commSize = fread(commBuffer, 1, 1023, commFile);
-	  if (commSize > 0) commSize-=1; // drop the \n
-	  int i = 0;
-	  for (i = 0; i < commSize; i++) {
-	    if (commBuffer[i] == '/') commBuffer[i] = '@';
-	  }
-          fclose(commFile);
-      }
-      fprintf(stderr, "commSize:%d commBuff[commSize]:%d\n", commSize, commBuffer[commSize]);
-      commBuffer[commSize] = 0;
-      if (commSize) mainFile = commBuffer;
-  }
-  return mainFile;
+    if (!mainFile) {    
+        static char commBuffer[1024];
+        FILE* commFile = fopen("/proc/self/comm", "r");
+        int commSize = 0;
+        if (commFile) {
+            commSize = fread(commBuffer, 1, 1023, commFile);
+	    if (commSize > 0) commSize-=1; // drop the \n
+	    int i = 0;
+	    for (i = 0; i < commSize; i++) {
+	        if (commBuffer[i] == '/') commBuffer[i] = '@';
+	    }
+            fclose(commFile);
+        }
+        fprintf(stderr, "commSize:%d commBuff[commSize]:%d\n", commSize, commBuffer[commSize]);
+        commBuffer[commSize] = 0;
+        if (commSize) mainFile = commBuffer;
+    }
+    return mainFile;
 }
 
 static void rompExitHandler(void)
 {
-  static int count;
-  if (count++ > 0) return;
-  fprintf(stderr, "ROMP staticExitHandler called\n");
+    static int once;
+    if (once++ > 0) return;
+    fprintf(stderr, "ROMP staticExitHandler called\n");
      
-  ROMP_show_stats(stderr);
+    ROMP_show_stats(stderr);
   
-  if (getMainFile()) {
-    char ROMP_statsFileName[1024];
-    ROMP_statsFileName[0] = 0;
-    snprintf(ROMP_statsFileName, 1024, "/tmp/ROMP_statsFiles/%s.csv", mainFile);
-    FILE* comFile = fopen(ROMP_statsFileName, "a");
-    if (!comFile) {
-      fprintf(stderr, "Could not create %s\n", ROMP_statsFileName);
-    } else {
-      ROMP_show_stats(comFile);
-      fclose(comFile);
+    if (getMainFile()) {
+        char ROMP_statsFileName[1024];
+        ROMP_statsFileName[0] = 0;
+        snprintf(ROMP_statsFileName, 1024, "/tmp/ROMP_statsFiles/%s.csv", mainFile);
+        FILE* comFile = fopen(ROMP_statsFileName, "a");
+        if (!comFile) {
+            fprintf(stderr, "Could not create %s\n", ROMP_statsFileName);
+        } else {
+            ROMP_show_stats(comFile);
+            fclose(comFile);
+        }
     }
-  }
+}
+
+static NanosecsTimer mainTimer;
+
+static void initMainTimer() {
+    static int once;
+    if (once++ == 0) {
+        TimerStartNanosecs(&mainTimer);
+	atexit(rompExitHandler);
+    }
+}
+
+void ROMP_main_started(const char* file, int line) {
+    initMainTimer();
+    mainFile = file;
+    mainLine = line;
 }
 
 static StaticData* initStaticData(ROMP_pf_static_struct * pf_static)
@@ -78,15 +93,12 @@ static StaticData* initStaticData(ROMP_pf_static_struct * pf_static)
     {	// Might have been made by another thread
     	ptr = (StaticData*)pf_static->ptr;
     	if (!ptr) {
-	    ROMP_main_started("some ROMP_PF_begin", 0);
+	    initMainTimer();
     	    ptr = (StaticData*)calloc(1, sizeof(StaticData));
     	    pf_static->ptr = ptr;
     	    ptr->next = known_ROMP_pf;
     	    known_ROMP_pf = pf_static;
-    	}
-	
-	static int atExitCount;
-	if (atExitCount++ == 0) atexit(rompExitHandler);
+    	}	
     }
     return ptr;
 }
@@ -230,7 +242,6 @@ void ROMP_pflb_end(
     }
 }
 
-static NanosecsTimer mainTimer;
 void ROMP_show_stats(FILE* file)
 {
     fprintf(file, "ROMP_show_stats\n");
@@ -257,14 +268,6 @@ void ROMP_show_stats(FILE* file)
     	pf = sd->next;
     }
     fprintf(file, "ROMP_show_stats end\n");
-}
-
-void ROMP_main_started(const char* file, int line) {
-    static int once;
-    if (once++) return;
-    TimerStartNanosecs(&mainTimer);
-    mainFile = file;
-    mainLine = line;
 }
 
 #if 0
