@@ -5,7 +5,7 @@
 #include <pthread.h>
 
 ROMP_level romp_level = 
-    ROMP_fast;              // should not be set to ROMP_serial
+    ROMP_level_fast;              	// should not be set to ROMP_serial
 
 
 typedef struct StaticData {
@@ -238,7 +238,7 @@ void ROMP_pflb_end(
     if (pflb_stack->tid != tid) {
         fprintf(stderr, "Bad tid in ROMP_pflb_end %s:%d\n",
 	    pf_static->file, pf_static->line);
-ls -l         exit(1);
+        exit(1);
     }
     if (tid >= 8*sizeof(int)) return;
     int tidMask = 1<<tid;
@@ -265,7 +265,7 @@ void ROMP_show_stats(FILE* file)
       	Nanosecs mainDuration = TimerElapsedNanosecs(&mainTimer);
       	fprintf(file, "%s, %d, 0, %12ld, %12ld, %12ld, %6.3g, %6.3g\n", 
       	    mainFile, mainLine, 
-	    mainDuration.ns, 0, 0,
+	    mainDuration.ns, 0L, 0L,
 	    1.0,
 	    1.0);
     }

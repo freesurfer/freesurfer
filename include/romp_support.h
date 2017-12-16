@@ -30,18 +30,18 @@ void ROMP_show_stats(FILE*);
 // Conditionalize a parallel for with
 //
 typedef enum ROMP_level { 
-    ROMP_serial,                // always run this code serially
-    ROMP_experimental,          // hasn't even been tested for correctness yet
-    ROMP_fast,                  // is known to get differing results parallel and serial
-    ROMP_assume_reproducible,   // is suspected of getting same results
-    ROMP_shown_reproducible,    // is tested and shown to get same results 
-    ROMP__size
+    ROMP_level_serial,                // always run this code serially
+    ROMP_level_experimental,          // hasn't even been tested for correctness yet
+    ROMP_level_fast,                  // is known to get differing results parallel and serial
+    ROMP_level_assume_reproducible,   // is suspected of getting same results
+    ROMP_level_shown_reproducible,    // is tested and shown to get same results 
+    ROMP_level__size
     } ROMP_level;
 extern ROMP_level romp_level;
 
 #define if_ROMP(LEVEL) \
     if (ROMP_pf_stack.staticInfo && \
-        (ROMP_note_pf_level(ROMP_##LEVEL,&ROMP_pf_static) >= romp_level)) \
+        (ROMP_note_pf_level(ROMP_level_##LEVEL,&ROMP_pf_static) >= romp_level)) \
     // end of macro
 
 // Surround a parallel for
