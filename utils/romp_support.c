@@ -17,9 +17,17 @@ typedef struct StaticData {
 
 ROMP_pf_static_struct* known_ROMP_pf;
 
-ROMP_level ROMP_note_pf_level(ROMP_level level, ROMP_pf_static_struct* pf_static) {
+int ROMP_if_parallel(ROMP_level level, ROMP_pf_static_struct* pf_static) 
+{
     StaticData* ptr = (StaticData*)pf_static->ptr;
-    return ptr ? (ptr->level = level) : level;
+    if (ptr) ptr->level = level;
+    
+    ROMP_level current_level = romp_level;
+    int result = level >= current_level;
+
+    if (result) romp_level = ROMP_level__size;	// disable nested parallelism
+    
+    return result;
 }
 
 static const char* mainFile = NULL;
@@ -40,7 +48,6 @@ static const char* getMainFile()
 	    }
             fclose(commFile);
         }
-        fprintf(stderr, "commSize:%d commBuff[commSize]:%d\n", commSize, commBuffer[commSize]);
         commBuffer[commSize] = 0;
         if (commSize) mainFile = commBuffer;
     }
@@ -144,7 +151,6 @@ void ROMP_pf_begin(
     pf_stack->skip_pflb_timing = staticData->skip_pflb_timing;
     pf_stack->tids_active      = 0;
     pf_stack->saved_ROMP_level = romp_level;
-    romp_level = ROMP_level__size;		// don't support nested parallelism for now
 }
 
 void ROMP_pf_end(
@@ -299,22 +305,41 @@ int main(int argc, char* argv[])
     }
     comBuffer[comSize] = 0;
     fprintf(stdout, "%s:%d main() of %s\n", __FILE__, __LINE__, comBuffer);
-    static const int v_size = 1000;
+    
+    static const int v_size = 30000;
     int i;
     double sum = 0;
 
-    omp_set_num_threads(1);
     fprintf(stdout, "#threads:%d\n", omp_get_max_threads());
 
+    long threadMask = 0;
     ROMP_PF_begin
-    #pragma omp parallel for if_ROMP(experimental) reduction(+:sum)
+    #pragma omp parallel for if_ROMP(fast) reduction(+:sum)
     for (i = 0; i < v_size; i++) {
     	ROMP_PFLB_begin
+	
+	threadMask |= 1 << omp_get_thread_num();
+	
     	sum += 1.0 / i;
+	
+	int j;
+	ROMP_PF_begin
+    	#pragma omp parallel for if_ROMP(fast) reduction(+:sum)
+    	for (j = 0; j < i; j++) {
+    	    //ROMP_PFLB_begin
+	    
+	    sum += 1.0 / j;
+	    
+    	    ROMP_PFLB_end;
+        }
+        ROMP_PF_end
+	
     	ROMP_PFLB_end;
     }
     ROMP_PF_end
 
+    fprintf(stdout, "ThreadMask:%p\n", (void*)threadMask);
+    
     ROMP_show_stats(stdout);
     return 0;
 }

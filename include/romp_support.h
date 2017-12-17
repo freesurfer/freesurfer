@@ -41,7 +41,7 @@ extern ROMP_level romp_level;
 
 #define if_ROMP(LEVEL) \
     if (ROMP_pf_stack.staticInfo && \
-        (ROMP_note_pf_level(ROMP_level_##LEVEL,&ROMP_pf_static) >= romp_level)) \
+        (ROMP_if_parallel(ROMP_level_##LEVEL,&ROMP_pf_static))) \
     // end of macro
 
 // Surround a parallel for
@@ -54,7 +54,7 @@ typedef struct ROMP_pf_static_struct {
     unsigned int    line; 
 } ROMP_pf_static_struct;
 
-ROMP_level ROMP_note_pf_level(ROMP_level, ROMP_pf_static_struct*);
+int ROMP_if_parallel(ROMP_level, ROMP_pf_static_struct*);
 
  
 typedef struct ROMP_pf_stack_struct  { 
@@ -109,14 +109,18 @@ typedef struct ROMP_pflb_stack_struct {
 #else
 
 #define ROMP_PFLB_begin \
-    ROMP_pflb_stack_struct  ROMP_pflb_stack;  \
-    if (!ROMP_pf_stack.skip_pflb_timing) ROMP_pflb_begin(&ROMP_pf_stack, &ROMP_pflb_stack);
+    /* ROMP_pflb_stack_struct  ROMP_pflb_stack;  \
+    if (!ROMP_pf_stack.skip_pflb_timing) ROMP_pflb_begin(&ROMP_pf_stack, &ROMP_pflb_stack); */ \
+    // end of macro
 
 #define ROMP_PFLB_end \
-    if (!ROMP_pf_stack.skip_pflb_timing) ROMP_pflb_end(&ROMP_pflb_stack);
+    /* if (!ROMP_pf_stack.skip_pflb_timing) ROMP_pflb_end(&ROMP_pflb_stack); */ \
+    // end of macro
 
 #define ROMP_PFLB_continue \
-    { if (!ROMP_pf_stack.skip_pflb_timing) ROMP_PFLB_end; continue; }
+    { /* if (!ROMP_pf_stack.skip_pflb_timing) ROMP_PFLB_end; */ continue; } \
+    // end of macro
+    
 #define ROMP_PF_continue \
     ROMP_PFLB_continue
 
