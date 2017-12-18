@@ -9,6 +9,12 @@ def require_np_array(np_array):
 def load_mat_file(filename):
     return scipy.io.loadmat(filename, struct_as_record=False, squeeze_me=True)
 
+def ensure_dims(np_array, dims):
+    if np_array.ndim < dims:
+        return np.expand_dims(np_array, axis=dims)
+    elif np_array.ndim == dims:
+        return np_array
+
 MATLAB_FIXTURE_PATH = '/Users/ys/work/freesurfer/GEMS2/Testing/matlab_data/'
 
 fixture = scipy.io.loadmat(os.path.join(MATLAB_FIXTURE_PATH, 'part2.mat'), struct_as_record=False, squeeze_me=True)
@@ -20,23 +26,65 @@ def backprojectKroneckerProductBasisFunctions(kroneckerProductBasisFunctions, co
     # numberOfDimensions = length( kroneckerProductBasisFunctions );
     numberOfDimensions = len(kroneckerProductBasisFunctions)
     # Ms = zeros( 1, numberOfDimensions ); % Number of basis functions in each dimension
-    Ms = np.zeros((1, numberOfDimensions))  # Number of basis functions in each dimension
+    Ms = np.zeros(numberOfDimensions)  # Number of basis functions in each dimension
     # Ns = zeros( 1, numberOfDimensions ); % Number of data points in each dimension
-    Ns = np.zeros((1, numberOfDimensions))  # Number of basis functions in each dimension
+    Ns = np.zeros(numberOfDimensions)  # Number of basis functions in each dimension
     # transposedKroneckerProductBasisFunctions = cell( 0, 0 );
     transposedKroneckerProductBasisFunctions = []
     # for dimensionNumber = 1 : numberOfDimensions
     for dimensionNumber in range(numberOfDimensions):
-        pass
         #   Ms( dimensionNumber ) = size( kroneckerProductBasisFunctions{ dimensionNumber }, 2 );
+        Ms[dimensionNumber] = kroneckerProductBasisFunctions[dimensionNumber].shape[1]
         #   Ns( dimensionNumber ) = size( kroneckerProductBasisFunctions{ dimensionNumber }, 1 );
+        Ns[dimensionNumber] = kroneckerProductBasisFunctions[dimensionNumber].shape[0]
         #   transposedKroneckerProductBasisFunctions{ dimensionNumber } = kroneckerProductBasisFunctions{ dimensionNumber }';
+        transposedKroneckerProductBasisFunctions.append(kroneckerProductBasisFunctions[dimensionNumber].T)
         # end
         #
         #
-        # y = projectKroneckerProductBasisFunctions( transposedKroneckerProductBasisFunctions, reshape( coefficients, Ms ) );
-        # Y = reshape( y, Ns );
+    # y = projectKroneckerProductBasisFunctions( transposedKroneckerProductBasisFunctions, reshape( coefficients, Ms ) );
+    y = projectKroneckerProductBasisFunctions(transposedKroneckerProductBasisFunctions, coefficients.reshape(Ms) )
+    # Y = reshape( y, Ns );
+    Y = y.reshape(Ns)
+    return Y
+
+
+# function coefficients = projectKroneckerProductBasisFunctions( kroneckerProductBasisFunctions, T )
+def projectKroneckerProductBasisFunctions(kroneckerProductBasisFunctions, T):
+    # %
+    # % Compute
+    # %   c = W' * t
+    # % where
+    # %   W = W{ numberOfDimensions } \kron W{ numberOfDimensions-1 } \kron ... W{ 1 }
+    # % and
+    # %   t = T( : )
+    #
+    numberOfDimensions = len(kroneckerProductBasisFunctions)
+    # currentSizeOfT = size( T );
+    currentSizeOfT = list(T.shape)
+    # for dimensionNumber = 1 : numberOfDimensions
+    for dimensionNumber in range(numberOfDimensions):
+        #   % Reshape into 2-D, do the work in the first dimension, and shape into N-D
+        #   T = reshape( T, currentSizeOfT( 1 ), [] );
+        T = T.reshape((currentSizeOfT[0], -1))
+        #   T = ( kroneckerProductBasisFunctions{ dimensionNumber } )' * T;
+        T = ( kroneckerProductBasisFunctions[dimensionNumber] ).T @ T
+        #   currentSizeOfT( 1 ) = size( kroneckerProductBasisFunctions{ dimensionNumber }, 2 );
+        currentSizeOfT[0] = kroneckerProductBasisFunctions[dimensionNumber].shape[1]
+        #   T = reshape( T, currentSizeOfT );
+        T = T.reshape(currentSizeOfT)
         #
+        #   % Shift dimension
+        #   currentSizeOfT = [ currentSizeOfT( 2 : end ) currentSizeOfT( 1 ) ];
+        currentSizeOfT = currentSizeOfT[1:] + [currentSizeOfT[0]]
+        #   T = shiftdim( T, 1 );
+        T = np.rollaxis(T, 0, 3)
+        # end
+    #
+    # % Return result as vector
+    # coefficients = T(:);
+    coefficients = T.flatten()
+    return coefficients
 
 
 # % We do the optimization in a multi-resolution type of scheme, where large
@@ -218,12 +266,17 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
     biasCorrectedData = np.zeros( (len(downSampledMaskIndices[0]), numberOfContrasts) )
 
 #   for contrastNumber = 1 : numberOfContrasts
+    # TODO: remove this ensure_dims when part 1 is done
+    biasFieldCoefficients = ensure_dims(biasFieldCoefficients, 2)
     for contrastNumber in range(numberOfContrasts):
         #     downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, biasFieldCoefficients( :, contrastNumber ) );
         downSampledBiasField = backprojectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions,  biasFieldCoefficients[:, contrastNumber])
         #     tmp = downSampledImageBuffers( :, :, :, contrastNumber ) - downSampledBiasField .* downSampledMask;
+        tmp = downSampledImageBuffers[:, :, :, contrastNumber] - downSampledBiasField * downSampledMask
         #     downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) = tmp;
+        downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber] = tmp
         #     biasCorrectedData( :, contrastNumber ) = tmp( downSampledMaskIndices );
+        biasCorrectedData[:, contrastNumber] = tmp[downSampledMaskIndices]
         #   end
 #
 #
@@ -236,445 +289,454 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
 #
 #
 #   historyWithinEachIteration = struct( [] );
+    historyWithinEachIteration = []
 #   priors = zeros( length( downSampledMaskIndices ), numberOfClasses );
+    priors = np.zeros( (len( downSampledMaskIndices ), numberOfClasses) )
 #   posteriors = zeros( length( downSampledMaskIndices ), numberOfGaussians ); % Gaussian mixture models burst out into
 #                                                                              % individual Gaussian components
+    posteriors = np.zeros((len( downSampledMaskIndices ), numberOfGaussians ))
 #
 #   % Easier to work with vector notation in the EM computations
 #   % reshape into a matrix
 #   data = zeros( [ length( downSampledMaskIndices ) numberOfContrasts ] );
+    data = np.zeros( (len( downSampledMaskIndices ), numberOfContrasts ) )
 #   for contrastNumber = 1:numberOfContrasts
+    for contrastNumber  in range(numberOfContrasts):
 #     tmp = reshape( downSampledImageBuffers( :, :, :, contrastNumber ), [ prod(downSampledImageSize) 1 ] );
+      tmp = downSampledImageBuffers[:, :, :, contrastNumber].reshape( (np.prod(downSampledImageSize), 1) )
 #     data( :, contrastNumber ) = tmp( downSampledMaskIndices );
+      data[:, contrastNumber] = tmp[downSampledMaskIndices]
 #   end
 #
 #   % Main iteration loop over both EM and deformation
 #   for iterationNumber = 1 : maximumNumberOfIterations
-#
-#     %
-#     startTimeIntensityParameterUpdating = tic;
-#
-#     %
-#     % Part I: estimate Gaussian mixture model parameters, as well as bias field parameters using EM.
-#     %
-#
-#     % Get the priors at the current mesh position
-#     tmp = reshape( kvlRasterizeAtlasMesh( mesh, downSampledImageSize ), [ prod( downSampledImageSize ) numberOfClasses ] );
-#     priors( : ) = double( tmp( downSampledMaskIndices, : ) ) / 65535;
-#
-#     if ( iterationNumber == 1 )
-#       historyWithinEachMultiResolutionLevel( multiResolutionLevel ).priorsAtStart = priors;
-#     end
-#
-#
-#     % Start EM iterations.
-#     if ( ( multiResolutionLevel == 1 ) && ( iterationNumber == 1 ) )
-#
-#       % Initialize the mixture parameters if this is the first time ever you run this
-#       means = zeros( numberOfGaussians, numberOfContrasts );
-#       variances = zeros( numberOfGaussians, numberOfContrasts, numberOfContrasts );
-#       mixtureWeights = zeros( numberOfGaussians, 1 );
-#       for classNumber = 1 : numberOfClasses
-#
-#         % Calculate the global weighted mean and variance of this class, where the weights are given by the prior
-#         prior = priors( :, classNumber );
-#         mean = data' * prior / sum( prior );
-#         tmp = data - repmat( mean', [ size( data, 1 ) 1 ] );
-#         variance = tmp' * ( tmp .* repmat( prior, [ 1 numberOfContrasts ] ) ) / sum( prior );
-#         if modelSpecifications.useDiagonalCovarianceMatrices
-#           % Force diagonal covariance matrices
-#           variance = diag( diag( variance ) );
-#         end
-#
-#
-#         % Based on this, initialize the mean and variance of the individual Gaussian components in this class'
-#         % mixture model: variances are simply copied from the global class variance, whereas the means are
-#         % determined by splitting the [ mean-sqrt( variance ) mean+sqrt( variance ) ] domain into equal intervals,
-#         % the middle of which are taken to be the means of the Gaussians. Mixture weights are initialized to be
-#         % all equal.
-#         %
-#         % This actually creates a mixture model that mimics the single Gaussian quite OK-ish: to visualize this
-#         % do e.g.,
-#         %
-#         %  for numberOfComponents = 1 : 7
-#         %    intervalSize = 2 / numberOfComponents;
-#         %    means = -1 + intervalSize/2 + [ 0 : numberOfComponents-1 ] * intervalSize;
-#         %    figure
-#         %    x = [ -6 : .1 : 6 ];
-#         %    gauss = exp( -x.^2/2 );
-#         %    plot( gauss )
-#         %    hold on
-#         %    mixture = zeros( size( x ) );
-#         %    for i = 1 : numberOfComponents
-#         %      gauss = exp( -( x - means( i ) ).^2/2 );
-#         %      plot( gauss / numberOfComponents, 'g' )
-#         %      mixture = mixture + gauss / numberOfComponents;
-#         %    end
-#         %    plot( mixture, 'r' )
-#         %    grid
-#         %    title( [ num2str( numberOfComponents ) ' components' ] )
-#         %  end
-#         %
-#         numberOfComponents = numberOfGaussiansPerClass( classNumber );
-#         for componentNumber = 1 : numberOfComponents
-#           gaussianNumber = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + componentNumber;
-#
-#           variances( gaussianNumber, :, : ) = variance;
-#           intervalSize = 2 * sqrt( diag( variance ) ) / numberOfComponents;
-#           means( gaussianNumber, : ) = ( mean - sqrt( diag( variance ) ) + intervalSize/2 + ( componentNumber - 1 ) * intervalSize )';
-#           mixtureWeights( gaussianNumber ) = 1 / numberOfComponents;
-#         end
-#
-#       end % End loop over classes
-#
-#
-#       % Also remember the overall data variance for later usage in a conjugate prior on the variances
-#       dataMean = sum( data )' / size( data, 1 );
-#       tmp = data - repmat( dataMean', [ size( data, 1 ) 1 ] );
-#       dataVariance = diag( diag( tmp' * tmp ) ) / size( data, 1 );
-#       numberOfPseudoMeasurementsOfWishartPrior = 1; % In Oula's code this was effectively 2 * ( numberOfContrasts + 2 )
-#                                                     % although I have no clue why
-#       pseudoVarianceOfWishartPrior = dataVariance / numberOfPseudoMeasurementsOfWishartPrior;
-#
-#     end % End test need for initialization
-#
-#     % stopCriterionEM = 1e-5;
-#     historyOfEMCost = [ 1/eps ];
-#     for EMIterationNumber = 1 : 100
-#       %
-#       % E-step: compute the posteriors based on the current parameters.
-#       %
-#       for classNumber = 1 : numberOfClasses
-#         prior = priors( :, classNumber );
-#
-#         numberOfComponents = numberOfGaussiansPerClass( classNumber );
-#         for componentNumber = 1 : numberOfComponents
-#           gaussianNumber = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + componentNumber;
-#
-#           mean = means( gaussianNumber, : )';
-#           variance = squeeze( variances( gaussianNumber, :, : ) );
-#           L = chol( variance, 'lower' );  % variance = L * L'
-#           tmp = L \ ( biasCorrectedData' - repmat( mean, [ 1 size( biasCorrectedData, 1 ) ] ) );
-#           squaredMahalanobisDistances = ( sum( tmp.^2, 1 ) )';
-#           sqrtDeterminantOfVariance = prod( diag( L ) ); % Same as sqrt( det( variance ) )
-#           gaussianLikelihoods = exp( -squaredMahalanobisDistances / 2 ) / ( 2 * pi )^( numberOfContrasts / 2 ) / sqrtDeterminantOfVariance;
-#
-#           posteriors( :, gaussianNumber ) = gaussianLikelihoods .* ( mixtureWeights( gaussianNumber ) * prior );
-#
-#         end % End loop over mixture components
-#
-#       end % End loop over classes
-#       normalizer = sum( posteriors, 2 ) + eps;
-#       if 0
-#         x = zeros( downSampledImageSize );
-#         x( downSampledMaskIndices ) = -log( normalizer );
-#         figure
-#         showImage( x )
-#       end
-#       posteriors = posteriors ./ repmat( normalizer, [ 1 numberOfGaussians ] );
-#       minLogLikelihood = -sum( log( normalizer ) );
-#       intensityModelParameterCost = 0;
-#       for gaussianNumber = 1 : numberOfGaussians
-#         variance = squeeze( variances( gaussianNumber, :, : ) );
-#
-#         % Evaluate unnormalized Wishart distribution (conjugate prior on precisions) with parameters
-#         %
-#         %   scale matrix V = inv( pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior )
-#         %
-#         % and
-#         %
-#         %   degrees of freedom n = numberOfPseudoMeasurementsOfWishartPrior + numberOfContrasts + 1
-#         %
-#         % which has pseudoVarianceOfWishartPrior as the MAP solution in the absence of any data
-#         %
-#         minLogUnnormalizedWishart = ...
-#             trace( variance \ pseudoVarianceOfWishartPrior ) * numberOfPseudoMeasurementsOfWishartPrior / 2 + ...
-#             numberOfPseudoMeasurementsOfWishartPrior / 2 * log( det( variance ) );
-#         intensityModelParameterCost = intensityModelParameterCost + minLogUnnormalizedWishart;
-#       end
-#       historyOfEMCost = [ historyOfEMCost; minLogLikelihood + intensityModelParameterCost ];
-#
-#       % Show some figures
-#       if ( showFigures )
-#         for classNumber = 1 : numberOfClasses
-#           posterior = zeros( downSampledImageSize );
-#           numberOfComponents = numberOfGaussiansPerClass( classNumber );
-#           for componentNumber = 1 : numberOfComponents
-#             gaussianNumber = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + componentNumber;
-#             posterior( downSampledMaskIndices ) = posterior( downSampledMaskIndices ) + ...
-#                                                   posteriors( :, gaussianNumber );
-#           end
-#           figure( posteriorFigure )
-#           subplot( floor( sqrt( numberOfClasses ) ), ...
-#                    ceil( numberOfClasses / floor( sqrt( numberOfClasses ) ) ), ...
-#                    classNumber )
-#           showImage( posterior )
-#         end
-#         clear posterior
-#
-#         figure( costFigure )
-#         subplot( 2, 1, 1 )
-#         plot( historyOfEMCost( 2 : end ) )
-#         title( 'EM cost' )
-#         subplot(2, 1, 2 )
-#         plot( historyOfCost( 2 : end ) )
-#         title( 'Cost' )
-#
-#         figure( biasFieldFigure )
-#         for contrastNumber = 1 : numberOfContrasts
-#           subplot( numberOfContrasts, 2, ( contrastNumber - 1 ) * numberOfContrasts + 1 )
-#           showImage( exp( downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) ) );
-#           subplot( numberOfContrasts, 2, ( contrastNumber - 1 ) * numberOfContrasts + 2 )
-#           downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, ...
-#                                                                             biasFieldCoefficients( :, contrastNumber ) );
-#           showImage( exp( downSampledBiasField ) .* downSampledMask )
-#         end
-#         drawnow
-#
-#       end % End test if we need to show some figures
-#
-#
-#       % Check for convergence
-#       % relativeChangeCost = ( historyOfEMCost(end-1) - historyOfEMCost(end) ) /  historyOfEMCost(end)
-#       % if ( relativeChangeCost < stopCriterionEM )
-#       changeCostPerVoxel = ( historyOfEMCost(end-1) - historyOfEMCost(end) ) / length( downSampledMaskIndices );
-#       if ( changeCostPerVoxel < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion )
-#         % Converged
-#         disp( 'EM converged!' )
-#         break;
-#       end
-#
-#
-#
-#
-#       %
-#       % M-step: update the model parameters based on the current posterior
-#       %
-#       % First the mixture model parameters
-#       for gaussianNumber = 1 : numberOfGaussians
-#         posterior = posteriors( :, gaussianNumber );
-#
-#         mean = biasCorrectedData' * posterior ./ sum( posterior );
-#         tmp = biasCorrectedData - repmat( mean', [ size( biasCorrectedData, 1 ) 1 ] );
-#         %variance = ( tmp' * ( tmp .* repmat( posterior, [ 1 numberOfContrasts ] ) ) + dataVariance ) ...
-#         %            / ( 2 * ( numberOfContrasts + 2 ) + sum( posterior ) );
-#         variance = ( tmp' * ( tmp .* repmat( posterior, [ 1 numberOfContrasts ] ) ) + ...
-#                                 pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior ) ...
-#                     / ( sum( posterior ) + numberOfPseudoMeasurementsOfWishartPrior );
-#         if modelSpecifications.useDiagonalCovarianceMatrices
-#           % Force diagonal covariance matrices
-#           variance = diag( diag( variance ) );
-#         end
-#
-#         variances( gaussianNumber, :, : ) = variance;
-#         means( gaussianNumber, : ) = mean';
-#
-#       end
-#       mixtureWeights = sum( posteriors + eps )';
-#       for classNumber = 1 : numberOfClasses
-#         % mixture weights are normalized (those belonging to one mixture sum to one)
-#         numberOfComponents = numberOfGaussiansPerClass( classNumber );
-#         gaussianNumbers = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + [ 1 : numberOfComponents ];
-#
-#         mixtureWeights( gaussianNumbers ) = mixtureWeights( gaussianNumbers ) / sum( mixtureWeights( gaussianNumbers ) );
-#       end
-#
-#
-#       % Now update the parameters of the bias field model.
-#       %  if ( ( multiResolutionLevel == 1 ) && ( iterationNumber ~= 1 ) ) % Don't attempt bias field correction until
-#       %                                                                    % decent mixture model parameters are available
-#       if ( estimateBiasField && ( iterationNumber > 1 ) ) % Don't attempt bias field correction until
-#                                                           % decent mixture model parameters are available
-#
-#
-#         %
-#         % Bias field correction: implements Eq. 8 in the paper
-#         %
-#         %    Van Leemput, "Automated Model-based Bias Field Correction of MR Images of the Brain", IEEE TMI 1999
-#         %
-#         precisions = zeros( size( variances ) );
-#         for classNumber = 1 : numberOfGaussians
-#           precisions( classNumber, :, : ) = reshape( inv( squeeze( variances( classNumber, :, : ) ) ), ...
-#                                                      [ 1 numberOfContrasts numberOfContrasts ] );
-#         end
-#
-#         lhs = zeros( prod( numberOfBasisFunctions ) * numberOfContrasts ); % left-hand side of linear system
-#         rhs = zeros( prod( numberOfBasisFunctions ) * numberOfContrasts, 1 ); % right-hand side of linear system
-#         weightsImageBuffer = zeros( downSampledImageSize );
-#         tmpImageBuffer = zeros( downSampledImageSize );
-#         for contrastNumber1 = 1 : numberOfContrasts
-#           tmp = zeros( size( data, 1 ), 1 );
-#           for contrastNumber2 = 1 : numberOfContrasts
-#             classSpecificWeights = posteriors .* repmat( squeeze( precisions( :, contrastNumber1, contrastNumber2 ) )', ...
-#                                                          [ size( posteriors, 1 ) 1 ] );
-#             weights = sum( classSpecificWeights, 2 );
-#
-#             % Build up stuff needed for rhs
-#             predicted = sum( classSpecificWeights .* repmat( means( :, contrastNumber2 )', [ size( posteriors, 1 ) 1 ] ), 2 ) ...
-#                         ./ ( weights + eps );
-#             residue = data( :, contrastNumber2 ) - predicted;
-#             tmp = tmp + weights .* residue;
-#
-#             % Fill in submatrix of lhs
-#             weightsImageBuffer( downSampledMaskIndices ) = weights;
-#             lhs( ( contrastNumber1 - 1 ) * prod( numberOfBasisFunctions ) + [ 1 : prod( numberOfBasisFunctions ) ], ...
-#                  ( contrastNumber2 - 1 ) * prod( numberOfBasisFunctions ) + [ 1 : prod( numberOfBasisFunctions ) ] ) = ...
-#                   computePrecisionOfKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, weightsImageBuffer );
-#
-#           end % End loop over contrastNumber2
-#
-#           tmpImageBuffer( downSampledMaskIndices ) = tmp;
-#           rhs( ( contrastNumber1 - 1 ) * prod( numberOfBasisFunctions ) + [ 1 : prod( numberOfBasisFunctions ) ] ) = ...
-#                           projectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, tmpImageBuffer );
-#
-#         end % End loop over contrastNumber1
-#
-#         % lhs = lhs + diag( 0.001 * diag( lhs ) );
-#
-#         biasFieldCoefficients = reshape( lhs \ rhs, [ prod( numberOfBasisFunctions ) numberOfContrasts ] );
-#         for contrastNumber = 1 : numberOfContrasts
-#           downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, biasFieldCoefficients( :, contrastNumber ) );
-#           tmp = downSampledImageBuffers( :, :, :, contrastNumber ) - downSampledBiasField .* downSampledMask;
-#           downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) = tmp;
-#           biasCorrectedData( :, contrastNumber ) = tmp( downSampledMaskIndices );
-#         end
-#
-#       end % End test if multiResolutionLevel == 1
-#
-#
-#     end % End EM iterations
-#     historyOfEMCost = historyOfEMCost( 2 : end );
-#     timeTakenIntensityParameterUpdating = toc( startTimeIntensityParameterUpdating );
-#     historyOfTimeTakenIntensityParameterUpdating = [ historyOfTimeTakenIntensityParameterUpdating; ...
-#                                                      timeTakenIntensityParameterUpdating ];
-#
-#
-#     %
-#     % Part II: update the position of the mesh nodes for the current mixture model and bias field parameter estimates
-#     %
-#
-#     %
-#     startTimeDeformationUpdating = tic;
-#
-#     % Create ITK images to pass on to the mesh node position cost calculator
-#     if ( exist( 'downSampledBiasCorrectedImages' ) == 1 )
-#       % Clean up mess from any previous iteration
-#       for contrastNumber = 1 : numberOfContrasts
-#         kvlClear( downSampledBiasCorrectedImages( contrastNumber ) );
-#       end
-#     end
-#     for contrastNumber = 1 : numberOfContrasts
-#       downSampledBiasCorrectedImages( contrastNumber ) = ...
-#              kvlCreateImage( single( downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) ) );
-#     end
-#
-#     % Set up cost calculator
-#     calculator = kvlGetCostAndGradientCalculator( 'AtlasMeshToIntensityImage', ...
-#                                                    downSampledBiasCorrectedImages, ...
-#                                                    'Sliding', ...
-#                                                    transform, ...
-#                                                    means, variances, mixtureWeights, numberOfGaussiansPerClass );
-#
-#     %optimizerType = 'ConjugateGradient';
-#     optimizerType = 'L-BFGS';
-#     optimizer = kvlGetOptimizer( optimizerType, mesh, calculator, ...
-#                                     'Verbose', optimizationOptions.verbose, ...
-#                                     'MaximalDeformationStopCriterion', optimizationOptions.maximalDeformationStopCriterion, ...
-#                                     'LineSearchMaximalDeformationIntervalStopCriterion', ...
-#                                       optimizationOptions.lineSearchMaximalDeformationIntervalStopCriterion, ...
-#                                     'MaximumNumberOfIterations', optimizationOptions.maximumNumberOfDeformationIterations, ...
-#                                     'BFGS-MaximumMemoryLength', optimizationOptions.BFGSMaximumMemoryLength );
-#
-#     historyOfDeformationCost = [];
-#     historyOfMaximalDeformation = [];
-#     nodePositionsBeforeDeformation = kvlGetMeshNodePositions( mesh );
-#     deformationStartTime = tic;
-#     while true
-#       %
-#       stepStartTime = tic;
-#       [ minLogLikelihoodTimesDeformationPrior, maximalDeformation ] = kvlStepOptimizer( optimizer );
-#       disp( [ 'maximalDeformation ' num2str( maximalDeformation ) ' took ' num2str( toc( stepStartTime ) ) ' sec' ] )
-#
-#       if ( maximalDeformation == 0 )
-#         break;
-#       end
-#
-#       %
-#       historyOfDeformationCost = [ historyOfDeformationCost; minLogLikelihoodTimesDeformationPrior ];
-#       historyOfMaximalDeformation = [ historyOfMaximalDeformation; maximalDeformation ];
-#
-#     end % End loop over iterations
-#     kvlClear( calculator );
-#     kvlClear( optimizer );
-#     % haveMoved = ( length( historyOfDeformationCost ) > 0 );
-#     nodePositionsAfterDeformation = kvlGetMeshNodePositions( mesh );
-#     maximalDeformationApplied = sqrt( max( sum( ...
-#                 ( nodePositionsAfterDeformation - nodePositionsBeforeDeformation ).^2, 2 ) ) );
-#     disp( '==============================' )
-#     disp( [ 'iterationNumber: ' num2str( iterationNumber ) ] )
-#     disp( [ '    maximalDeformationApplied: ' num2str( maximalDeformationApplied ) ] )
-#     disp( [ '  ' num2str( toc( deformationStartTime ) ) ' sec' ] )
-#     disp( '==============================' )
-#
-#
-#     % Show a little movie comparing before and after deformation so far...
-#     if ( showFigures )
-#       figure( deformationMovieFigure )
-#       newColorCodedPriors = kvlColorCodeProbabilityImages( kvlRasterizeAtlasMesh( mesh, downSampledImageSize ), reducedColors );
-#
-#       set( deformationMovieFigure, 'position', get( 0, 'ScreenSize' ) );
-#       for i = 1 : 10
-#         priorVisualizationAlpha = 0.4;
-#         backgroundImage = exp( downSampledImageBuffers( :, :, :, 1 ) );
-#         backgroundImage = backgroundImage - min( backgroundImage(:) );
-#         backgroundImage = backgroundImage / max( backgroundImage(:) );
-#
-#         % showImage( oldColorCodedPriors )
-#         imageToShow = ( 1 - priorVisualizationAlpha ) * repmat( backgroundImage, [ 1 1 1 3 ] ) + ...
-#                       priorVisualizationAlpha * oldColorCodedPriors;
-#         showImage( imageToShow )
-#         drawnow
-#         pause( 0.1 )
-#         % showImage( newColorCodedPriors )
-#         imageToShow = ( 1 - priorVisualizationAlpha ) * repmat( backgroundImage, [ 1 1 1 3 ] ) + ...
-#                       priorVisualizationAlpha * newColorCodedPriors;
-#         showImage( imageToShow )
-#         drawnow
-#         pause( 0.1 )
-#       end
-#     end
-#
-#     % Keep track of the cost function we're optimizing
-#     historyOfCost = [ historyOfCost; minLogLikelihoodTimesDeformationPrior + intensityModelParameterCost ];
-#     historyOfMaximalDeformationApplied = [ historyOfMaximalDeformationApplied; maximalDeformationApplied ];
-#     timeTakenDeformationUpdating = toc( startTimeDeformationUpdating );
-#     historyOfTimeTakenDeformationUpdating = [ historyOfTimeTakenDeformationUpdating; ...
-#                                               timeTakenDeformationUpdating ];
-#
-#
-#     % Save something about how the estimation proceeded
-#     %historyWithinEachIteration( iterationNumber ).priors = priors;
-#     %historyWithinEachIteration( iterationNumber ).posteriors = posteriors;
-#     historyWithinEachIteration( iterationNumber ).historyOfEMCost = historyOfEMCost;
-#     historyWithinEachIteration( iterationNumber ).mixtureWeights = mixtureWeights;
-#     historyWithinEachIteration( iterationNumber ).means = means;
-#     historyWithinEachIteration( iterationNumber ).variances = variances;
-#     historyWithinEachIteration( iterationNumber ).biasFieldCoefficients = biasFieldCoefficients;
-#     historyWithinEachIteration( iterationNumber ).historyOfDeformationCost = historyOfDeformationCost;
-#     historyWithinEachIteration( iterationNumber ).historyOfMaximalDeformation = historyOfMaximalDeformation;
-#     historyWithinEachIteration( iterationNumber ).maximalDeformationApplied = maximalDeformationApplied;
-#
-#     % Determine if we should stop the overall iterations over the two set of parameters
-#     %  if ( ( ~haveMoved ) || ...
-#     %        ( ( ( historyOfCost( end-1 ) - historyOfCost( end ) ) / historyOfCost( end ) ) ...
-#     %          < relativeCostDecreaseStopCriterion ) || ...
-#     %        ( maximalDeformationApplied < maximalDeformationAppliedStopCriterion ) )
-#     if ( ( ( ( historyOfCost( end-1 ) - historyOfCost( end ) ) / length( downSampledMaskIndices ) ) ...
-#            < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion ) ) % If EM converges in one iteration and mesh node optimization doesn't do anything
-#
-#       % Converged
-#       break;
-#     end
+    for iterationNumber in range(maximumNumberOfIterations):
+    #     %
+    #     startTimeIntensityParameterUpdating = tic;
+    #
+    #     %
+    #     % Part I: estimate Gaussian mixture model parameters, as well as bias field parameters using EM.
+    #     %
+    #
+    #     % Get the priors at the current mesh position
+    #     tmp = reshape( kvlRasterizeAtlasMesh( mesh, downSampledImageSize ), [ prod( downSampledImageSize ) numberOfClasses ] );
+          tmp = mesh.rasterize(downSampledImageSize).reshape(( np.prod(downSampledImageSize), numberOfClasses ))
+    #     priors( : ) = double( tmp( downSampledMaskIndices, : ) ) / 65535;
+          priors[:] = tmp[downSampledMaskIndices, :] / 65535
+    #
+    #     if ( iterationNumber == 1 )
+    #       historyWithinEachMultiResolutionLevel( multiResolutionLevel ).priorsAtStart = priors;
+    #     end
+    #
+    #
+    #     % Start EM iterations.
+    #     if ( ( multiResolutionLevel == 1 ) && ( iterationNumber == 1 ) )
+    #
+    #       % Initialize the mixture parameters if this is the first time ever you run this
+    #       means = zeros( numberOfGaussians, numberOfContrasts );
+    #       variances = zeros( numberOfGaussians, numberOfContrasts, numberOfContrasts );
+    #       mixtureWeights = zeros( numberOfGaussians, 1 );
+    #       for classNumber = 1 : numberOfClasses
+    #
+    #         % Calculate the global weighted mean and variance of this class, where the weights are given by the prior
+    #         prior = priors( :, classNumber );
+    #         mean = data' * prior / sum( prior );
+    #         tmp = data - repmat( mean', [ size( data, 1 ) 1 ] );
+    #         variance = tmp' * ( tmp .* repmat( prior, [ 1 numberOfContrasts ] ) ) / sum( prior );
+    #         if modelSpecifications.useDiagonalCovarianceMatrices
+    #           % Force diagonal covariance matrices
+    #           variance = diag( diag( variance ) );
+    #         end
+    #
+    #
+    #         % Based on this, initialize the mean and variance of the individual Gaussian components in this class'
+    #         % mixture model: variances are simply copied from the global class variance, whereas the means are
+    #         % determined by splitting the [ mean-sqrt( variance ) mean+sqrt( variance ) ] domain into equal intervals,
+    #         % the middle of which are taken to be the means of the Gaussians. Mixture weights are initialized to be
+    #         % all equal.
+    #         %
+    #         % This actually creates a mixture model that mimics the single Gaussian quite OK-ish: to visualize this
+    #         % do e.g.,
+    #         %
+    #         %  for numberOfComponents = 1 : 7
+    #         %    intervalSize = 2 / numberOfComponents;
+    #         %    means = -1 + intervalSize/2 + [ 0 : numberOfComponents-1 ] * intervalSize;
+    #         %    figure
+    #         %    x = [ -6 : .1 : 6 ];
+    #         %    gauss = exp( -x.^2/2 );
+    #         %    plot( gauss )
+    #         %    hold on
+    #         %    mixture = zeros( size( x ) );
+    #         %    for i = 1 : numberOfComponents
+    #         %      gauss = exp( -( x - means( i ) ).^2/2 );
+    #         %      plot( gauss / numberOfComponents, 'g' )
+    #         %      mixture = mixture + gauss / numberOfComponents;
+    #         %    end
+    #         %    plot( mixture, 'r' )
+    #         %    grid
+    #         %    title( [ num2str( numberOfComponents ) ' components' ] )
+    #         %  end
+    #         %
+    #         numberOfComponents = numberOfGaussiansPerClass( classNumber );
+    #         for componentNumber = 1 : numberOfComponents
+    #           gaussianNumber = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + componentNumber;
+    #
+    #           variances( gaussianNumber, :, : ) = variance;
+    #           intervalSize = 2 * sqrt( diag( variance ) ) / numberOfComponents;
+    #           means( gaussianNumber, : ) = ( mean - sqrt( diag( variance ) ) + intervalSize/2 + ( componentNumber - 1 ) * intervalSize )';
+    #           mixtureWeights( gaussianNumber ) = 1 / numberOfComponents;
+    #         end
+    #
+    #       end % End loop over classes
+    #
+    #
+    #       % Also remember the overall data variance for later usage in a conjugate prior on the variances
+    #       dataMean = sum( data )' / size( data, 1 );
+    #       tmp = data - repmat( dataMean', [ size( data, 1 ) 1 ] );
+    #       dataVariance = diag( diag( tmp' * tmp ) ) / size( data, 1 );
+    #       numberOfPseudoMeasurementsOfWishartPrior = 1; % In Oula's code this was effectively 2 * ( numberOfContrasts + 2 )
+    #                                                     % although I have no clue why
+    #       pseudoVarianceOfWishartPrior = dataVariance / numberOfPseudoMeasurementsOfWishartPrior;
+    #
+    #     end % End test need for initialization
+    #
+    #     % stopCriterionEM = 1e-5;
+    #     historyOfEMCost = [ 1/eps ];
+    #     for EMIterationNumber = 1 : 100
+    #       %
+    #       % E-step: compute the posteriors based on the current parameters.
+    #       %
+    #       for classNumber = 1 : numberOfClasses
+    #         prior = priors( :, classNumber );
+    #
+    #         numberOfComponents = numberOfGaussiansPerClass( classNumber );
+    #         for componentNumber = 1 : numberOfComponents
+    #           gaussianNumber = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + componentNumber;
+    #
+    #           mean = means( gaussianNumber, : )';
+    #           variance = squeeze( variances( gaussianNumber, :, : ) );
+    #           L = chol( variance, 'lower' );  % variance = L * L'
+    #           tmp = L \ ( biasCorrectedData' - repmat( mean, [ 1 size( biasCorrectedData, 1 ) ] ) );
+    #           squaredMahalanobisDistances = ( sum( tmp.^2, 1 ) )';
+    #           sqrtDeterminantOfVariance = prod( diag( L ) ); % Same as sqrt( det( variance ) )
+    #           gaussianLikelihoods = exp( -squaredMahalanobisDistances / 2 ) / ( 2 * pi )^( numberOfContrasts / 2 ) / sqrtDeterminantOfVariance;
+    #
+    #           posteriors( :, gaussianNumber ) = gaussianLikelihoods .* ( mixtureWeights( gaussianNumber ) * prior );
+    #
+    #         end % End loop over mixture components
+    #
+    #       end % End loop over classes
+    #       normalizer = sum( posteriors, 2 ) + eps;
+    #       if 0
+    #         x = zeros( downSampledImageSize );
+    #         x( downSampledMaskIndices ) = -log( normalizer );
+    #         figure
+    #         showImage( x )
+    #       end
+    #       posteriors = posteriors ./ repmat( normalizer, [ 1 numberOfGaussians ] );
+    #       minLogLikelihood = -sum( log( normalizer ) );
+    #       intensityModelParameterCost = 0;
+    #       for gaussianNumber = 1 : numberOfGaussians
+    #         variance = squeeze( variances( gaussianNumber, :, : ) );
+    #
+    #         % Evaluate unnormalized Wishart distribution (conjugate prior on precisions) with parameters
+    #         %
+    #         %   scale matrix V = inv( pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior )
+    #         %
+    #         % and
+    #         %
+    #         %   degrees of freedom n = numberOfPseudoMeasurementsOfWishartPrior + numberOfContrasts + 1
+    #         %
+    #         % which has pseudoVarianceOfWishartPrior as the MAP solution in the absence of any data
+    #         %
+    #         minLogUnnormalizedWishart = ...
+    #             trace( variance \ pseudoVarianceOfWishartPrior ) * numberOfPseudoMeasurementsOfWishartPrior / 2 + ...
+    #             numberOfPseudoMeasurementsOfWishartPrior / 2 * log( det( variance ) );
+    #         intensityModelParameterCost = intensityModelParameterCost + minLogUnnormalizedWishart;
+    #       end
+    #       historyOfEMCost = [ historyOfEMCost; minLogLikelihood + intensityModelParameterCost ];
+    #
+    #       % Show some figures
+    #       if ( showFigures )
+    #         for classNumber = 1 : numberOfClasses
+    #           posterior = zeros( downSampledImageSize );
+    #           numberOfComponents = numberOfGaussiansPerClass( classNumber );
+    #           for componentNumber = 1 : numberOfComponents
+    #             gaussianNumber = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + componentNumber;
+    #             posterior( downSampledMaskIndices ) = posterior( downSampledMaskIndices ) + ...
+    #                                                   posteriors( :, gaussianNumber );
+    #           end
+    #           figure( posteriorFigure )
+    #           subplot( floor( sqrt( numberOfClasses ) ), ...
+    #                    ceil( numberOfClasses / floor( sqrt( numberOfClasses ) ) ), ...
+    #                    classNumber )
+    #           showImage( posterior )
+    #         end
+    #         clear posterior
+    #
+    #         figure( costFigure )
+    #         subplot( 2, 1, 1 )
+    #         plot( historyOfEMCost( 2 : end ) )
+    #         title( 'EM cost' )
+    #         subplot(2, 1, 2 )
+    #         plot( historyOfCost( 2 : end ) )
+    #         title( 'Cost' )
+    #
+    #         figure( biasFieldFigure )
+    #         for contrastNumber = 1 : numberOfContrasts
+    #           subplot( numberOfContrasts, 2, ( contrastNumber - 1 ) * numberOfContrasts + 1 )
+    #           showImage( exp( downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) ) );
+    #           subplot( numberOfContrasts, 2, ( contrastNumber - 1 ) * numberOfContrasts + 2 )
+    #           downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, ...
+    #                                                                             biasFieldCoefficients( :, contrastNumber ) );
+    #           showImage( exp( downSampledBiasField ) .* downSampledMask )
+    #         end
+    #         drawnow
+    #
+    #       end % End test if we need to show some figures
+    #
+    #
+    #       % Check for convergence
+    #       % relativeChangeCost = ( historyOfEMCost(end-1) - historyOfEMCost(end) ) /  historyOfEMCost(end)
+    #       % if ( relativeChangeCost < stopCriterionEM )
+    #       changeCostPerVoxel = ( historyOfEMCost(end-1) - historyOfEMCost(end) ) / length( downSampledMaskIndices );
+    #       if ( changeCostPerVoxel < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion )
+    #         % Converged
+    #         disp( 'EM converged!' )
+    #         break;
+    #       end
+    #
+    #
+    #
+    #
+    #       %
+    #       % M-step: update the model parameters based on the current posterior
+    #       %
+    #       % First the mixture model parameters
+    #       for gaussianNumber = 1 : numberOfGaussians
+    #         posterior = posteriors( :, gaussianNumber );
+    #
+    #         mean = biasCorrectedData' * posterior ./ sum( posterior );
+    #         tmp = biasCorrectedData - repmat( mean', [ size( biasCorrectedData, 1 ) 1 ] );
+    #         %variance = ( tmp' * ( tmp .* repmat( posterior, [ 1 numberOfContrasts ] ) ) + dataVariance ) ...
+    #         %            / ( 2 * ( numberOfContrasts + 2 ) + sum( posterior ) );
+    #         variance = ( tmp' * ( tmp .* repmat( posterior, [ 1 numberOfContrasts ] ) ) + ...
+    #                                 pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior ) ...
+    #                     / ( sum( posterior ) + numberOfPseudoMeasurementsOfWishartPrior );
+    #         if modelSpecifications.useDiagonalCovarianceMatrices
+    #           % Force diagonal covariance matrices
+    #           variance = diag( diag( variance ) );
+    #         end
+    #
+    #         variances( gaussianNumber, :, : ) = variance;
+    #         means( gaussianNumber, : ) = mean';
+    #
+    #       end
+    #       mixtureWeights = sum( posteriors + eps )';
+    #       for classNumber = 1 : numberOfClasses
+    #         % mixture weights are normalized (those belonging to one mixture sum to one)
+    #         numberOfComponents = numberOfGaussiansPerClass( classNumber );
+    #         gaussianNumbers = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + [ 1 : numberOfComponents ];
+    #
+    #         mixtureWeights( gaussianNumbers ) = mixtureWeights( gaussianNumbers ) / sum( mixtureWeights( gaussianNumbers ) );
+    #       end
+    #
+    #
+    #       % Now update the parameters of the bias field model.
+    #       %  if ( ( multiResolutionLevel == 1 ) && ( iterationNumber ~= 1 ) ) % Don't attempt bias field correction until
+    #       %                                                                    % decent mixture model parameters are available
+    #       if ( estimateBiasField && ( iterationNumber > 1 ) ) % Don't attempt bias field correction until
+    #                                                           % decent mixture model parameters are available
+    #
+    #
+    #         %
+    #         % Bias field correction: implements Eq. 8 in the paper
+    #         %
+    #         %    Van Leemput, "Automated Model-based Bias Field Correction of MR Images of the Brain", IEEE TMI 1999
+    #         %
+    #         precisions = zeros( size( variances ) );
+    #         for classNumber = 1 : numberOfGaussians
+    #           precisions( classNumber, :, : ) = reshape( inv( squeeze( variances( classNumber, :, : ) ) ), ...
+    #                                                      [ 1 numberOfContrasts numberOfContrasts ] );
+    #         end
+    #
+    #         lhs = zeros( prod( numberOfBasisFunctions ) * numberOfContrasts ); % left-hand side of linear system
+    #         rhs = zeros( prod( numberOfBasisFunctions ) * numberOfContrasts, 1 ); % right-hand side of linear system
+    #         weightsImageBuffer = zeros( downSampledImageSize );
+    #         tmpImageBuffer = zeros( downSampledImageSize );
+    #         for contrastNumber1 = 1 : numberOfContrasts
+    #           tmp = zeros( size( data, 1 ), 1 );
+    #           for contrastNumber2 = 1 : numberOfContrasts
+    #             classSpecificWeights = posteriors .* repmat( squeeze( precisions( :, contrastNumber1, contrastNumber2 ) )', ...
+    #                                                          [ size( posteriors, 1 ) 1 ] );
+    #             weights = sum( classSpecificWeights, 2 );
+    #
+    #             % Build up stuff needed for rhs
+    #             predicted = sum( classSpecificWeights .* repmat( means( :, contrastNumber2 )', [ size( posteriors, 1 ) 1 ] ), 2 ) ...
+    #                         ./ ( weights + eps );
+    #             residue = data( :, contrastNumber2 ) - predicted;
+    #             tmp = tmp + weights .* residue;
+    #
+    #             % Fill in submatrix of lhs
+    #             weightsImageBuffer( downSampledMaskIndices ) = weights;
+    #             lhs( ( contrastNumber1 - 1 ) * prod( numberOfBasisFunctions ) + [ 1 : prod( numberOfBasisFunctions ) ], ...
+    #                  ( contrastNumber2 - 1 ) * prod( numberOfBasisFunctions ) + [ 1 : prod( numberOfBasisFunctions ) ] ) = ...
+    #                   computePrecisionOfKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, weightsImageBuffer );
+    #
+    #           end % End loop over contrastNumber2
+    #
+    #           tmpImageBuffer( downSampledMaskIndices ) = tmp;
+    #           rhs( ( contrastNumber1 - 1 ) * prod( numberOfBasisFunctions ) + [ 1 : prod( numberOfBasisFunctions ) ] ) = ...
+    #                           projectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, tmpImageBuffer );
+    #
+    #         end % End loop over contrastNumber1
+    #
+    #         % lhs = lhs + diag( 0.001 * diag( lhs ) );
+    #
+    #         biasFieldCoefficients = reshape( lhs \ rhs, [ prod( numberOfBasisFunctions ) numberOfContrasts ] );
+    #         for contrastNumber = 1 : numberOfContrasts
+    #           downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, biasFieldCoefficients( :, contrastNumber ) );
+    #           tmp = downSampledImageBuffers( :, :, :, contrastNumber ) - downSampledBiasField .* downSampledMask;
+    #           downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) = tmp;
+    #           biasCorrectedData( :, contrastNumber ) = tmp( downSampledMaskIndices );
+    #         end
+    #
+    #       end % End test if multiResolutionLevel == 1
+    #
+    #
+    #     end % End EM iterations
+    #     historyOfEMCost = historyOfEMCost( 2 : end );
+    #     timeTakenIntensityParameterUpdating = toc( startTimeIntensityParameterUpdating );
+    #     historyOfTimeTakenIntensityParameterUpdating = [ historyOfTimeTakenIntensityParameterUpdating; ...
+    #                                                      timeTakenIntensityParameterUpdating ];
+    #
+    #
+    #     %
+    #     % Part II: update the position of the mesh nodes for the current mixture model and bias field parameter estimates
+    #     %
+    #
+    #     %
+    #     startTimeDeformationUpdating = tic;
+    #
+    #     % Create ITK images to pass on to the mesh node position cost calculator
+    #     if ( exist( 'downSampledBiasCorrectedImages' ) == 1 )
+    #       % Clean up mess from any previous iteration
+    #       for contrastNumber = 1 : numberOfContrasts
+    #         kvlClear( downSampledBiasCorrectedImages( contrastNumber ) );
+    #       end
+    #     end
+    #     for contrastNumber = 1 : numberOfContrasts
+    #       downSampledBiasCorrectedImages( contrastNumber ) = ...
+    #              kvlCreateImage( single( downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) ) );
+    #     end
+    #
+    #     % Set up cost calculator
+    #     calculator = kvlGetCostAndGradientCalculator( 'AtlasMeshToIntensityImage', ...
+    #                                                    downSampledBiasCorrectedImages, ...
+    #                                                    'Sliding', ...
+    #                                                    transform, ...
+    #                                                    means, variances, mixtureWeights, numberOfGaussiansPerClass );
+    #
+    #     %optimizerType = 'ConjugateGradient';
+    #     optimizerType = 'L-BFGS';
+    #     optimizer = kvlGetOptimizer( optimizerType, mesh, calculator, ...
+    #                                     'Verbose', optimizationOptions.verbose, ...
+    #                                     'MaximalDeformationStopCriterion', optimizationOptions.maximalDeformationStopCriterion, ...
+    #                                     'LineSearchMaximalDeformationIntervalStopCriterion', ...
+    #                                       optimizationOptions.lineSearchMaximalDeformationIntervalStopCriterion, ...
+    #                                     'MaximumNumberOfIterations', optimizationOptions.maximumNumberOfDeformationIterations, ...
+    #                                     'BFGS-MaximumMemoryLength', optimizationOptions.BFGSMaximumMemoryLength );
+    #
+    #     historyOfDeformationCost = [];
+    #     historyOfMaximalDeformation = [];
+    #     nodePositionsBeforeDeformation = kvlGetMeshNodePositions( mesh );
+    #     deformationStartTime = tic;
+    #     while true
+    #       %
+    #       stepStartTime = tic;
+    #       [ minLogLikelihoodTimesDeformationPrior, maximalDeformation ] = kvlStepOptimizer( optimizer );
+    #       disp( [ 'maximalDeformation ' num2str( maximalDeformation ) ' took ' num2str( toc( stepStartTime ) ) ' sec' ] )
+    #
+    #       if ( maximalDeformation == 0 )
+    #         break;
+    #       end
+    #
+    #       %
+    #       historyOfDeformationCost = [ historyOfDeformationCost; minLogLikelihoodTimesDeformationPrior ];
+    #       historyOfMaximalDeformation = [ historyOfMaximalDeformation; maximalDeformation ];
+    #
+    #     end % End loop over iterations
+    #     kvlClear( calculator );
+    #     kvlClear( optimizer );
+    #     % haveMoved = ( length( historyOfDeformationCost ) > 0 );
+    #     nodePositionsAfterDeformation = kvlGetMeshNodePositions( mesh );
+    #     maximalDeformationApplied = sqrt( max( sum( ...
+    #                 ( nodePositionsAfterDeformation - nodePositionsBeforeDeformation ).^2, 2 ) ) );
+    #     disp( '==============================' )
+    #     disp( [ 'iterationNumber: ' num2str( iterationNumber ) ] )
+    #     disp( [ '    maximalDeformationApplied: ' num2str( maximalDeformationApplied ) ] )
+    #     disp( [ '  ' num2str( toc( deformationStartTime ) ) ' sec' ] )
+    #     disp( '==============================' )
+    #
+    #
+    #     % Show a little movie comparing before and after deformation so far...
+    #     if ( showFigures )
+    #       figure( deformationMovieFigure )
+    #       newColorCodedPriors = kvlColorCodeProbabilityImages( kvlRasterizeAtlasMesh( mesh, downSampledImageSize ), reducedColors );
+    #
+    #       set( deformationMovieFigure, 'position', get( 0, 'ScreenSize' ) );
+    #       for i = 1 : 10
+    #         priorVisualizationAlpha = 0.4;
+    #         backgroundImage = exp( downSampledImageBuffers( :, :, :, 1 ) );
+    #         backgroundImage = backgroundImage - min( backgroundImage(:) );
+    #         backgroundImage = backgroundImage / max( backgroundImage(:) );
+    #
+    #         % showImage( oldColorCodedPriors )
+    #         imageToShow = ( 1 - priorVisualizationAlpha ) * repmat( backgroundImage, [ 1 1 1 3 ] ) + ...
+    #                       priorVisualizationAlpha * oldColorCodedPriors;
+    #         showImage( imageToShow )
+    #         drawnow
+    #         pause( 0.1 )
+    #         % showImage( newColorCodedPriors )
+    #         imageToShow = ( 1 - priorVisualizationAlpha ) * repmat( backgroundImage, [ 1 1 1 3 ] ) + ...
+    #                       priorVisualizationAlpha * newColorCodedPriors;
+    #         showImage( imageToShow )
+    #         drawnow
+    #         pause( 0.1 )
+    #       end
+    #     end
+    #
+    #     % Keep track of the cost function we're optimizing
+    #     historyOfCost = [ historyOfCost; minLogLikelihoodTimesDeformationPrior + intensityModelParameterCost ];
+    #     historyOfMaximalDeformationApplied = [ historyOfMaximalDeformationApplied; maximalDeformationApplied ];
+    #     timeTakenDeformationUpdating = toc( startTimeDeformationUpdating );
+    #     historyOfTimeTakenDeformationUpdating = [ historyOfTimeTakenDeformationUpdating; ...
+    #                                               timeTakenDeformationUpdating ];
+    #
+    #
+    #     % Save something about how the estimation proceeded
+    #     %historyWithinEachIteration( iterationNumber ).priors = priors;
+    #     %historyWithinEachIteration( iterationNumber ).posteriors = posteriors;
+    #     historyWithinEachIteration( iterationNumber ).historyOfEMCost = historyOfEMCost;
+    #     historyWithinEachIteration( iterationNumber ).mixtureWeights = mixtureWeights;
+    #     historyWithinEachIteration( iterationNumber ).means = means;
+    #     historyWithinEachIteration( iterationNumber ).variances = variances;
+    #     historyWithinEachIteration( iterationNumber ).biasFieldCoefficients = biasFieldCoefficients;
+    #     historyWithinEachIteration( iterationNumber ).historyOfDeformationCost = historyOfDeformationCost;
+    #     historyWithinEachIteration( iterationNumber ).historyOfMaximalDeformation = historyOfMaximalDeformation;
+    #     historyWithinEachIteration( iterationNumber ).maximalDeformationApplied = maximalDeformationApplied;
+    #
+    #     % Determine if we should stop the overall iterations over the two set of parameters
+    #     %  if ( ( ~haveMoved ) || ...
+    #     %        ( ( ( historyOfCost( end-1 ) - historyOfCost( end ) ) / historyOfCost( end ) ) ...
+    #     %          < relativeCostDecreaseStopCriterion ) || ...
+    #     %        ( maximalDeformationApplied < maximalDeformationAppliedStopCriterion ) )
+    #     if ( ( ( ( historyOfCost( end-1 ) - historyOfCost( end ) ) / length( downSampledMaskIndices ) ) ...
+    #            < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion ) ) % If EM converges in one iteration and mesh node optimization doesn't do anything
+    #
+    #       % Converged
+    #       break;
+    #     end
 #
 #
 #   end % End looping over global iterations for this multiresolution level
