@@ -3623,8 +3623,6 @@ int MRIScomputeNormals(MRI_SURFACE *mris)
 #endif
   for (k = 0; k < mris->nfaces; k++) {
     ROMP_PFLB_begin
-    FACE *f;
-    int n;
     if (mris->faces[k].ripflag) {
       FACE* f = &mris->faces[k];
       int n;
