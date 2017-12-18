@@ -50,7 +50,7 @@
 #include "diag.h"
 #include "timer.h"
 #include "mri_identify.h"
-#ifdef _OPENMP
+#ifdef HAVE_OPENMP
 #include "romp_support.h"
 #endif
 
@@ -296,21 +296,21 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--threads")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nthreads);
-      #ifdef _OPENMP
+      #ifdef HAVE_OPENMP
       omp_set_num_threads(nthreads);
       #endif
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--max-threads")){
       nthreads = 1;
-      #ifdef _OPENMP
+      #ifdef HAVE_OPENMP
       nthreads = omp_get_max_threads();
       omp_set_num_threads(nthreads);
       #endif
     } 
     else if (!strcasecmp(option, "--max-threads-1")){
       nthreads = 1;
-      #ifdef _OPENMP
+      #ifdef HAVE_OPENMP
       nthreads = omp_get_max_threads()-1;
       if(nthreads < 0) nthreads = 1;
       omp_set_num_threads(nthreads);
@@ -366,7 +366,7 @@ static void print_usage(void) {
   printf("   --rhminmax rhmin rhmax : for defining ribbon in apas (default: %d %d) \n",gtmseg->rhmin,gtmseg->rhmax);
   printf("   --output-usf OutputUSF : set actual output resolution. Default is to be the same as the --internal-usf");
   printf("\n");
-  #ifdef _OPENMP
+  #ifdef HAVE_OPENMP
   printf("   --threads N : use N threads (with Open MP)\n");
   printf("   --threads-max : use the maximum allowable number of threads for this computer\n");
   printf("   --threads-max-1 : use one less than the maximum allowable number of threads for this computer\n");
@@ -452,7 +452,7 @@ MRI *MRIErodeWMSeg(MRI *seg, int nErode3d, MRI *outseg)
   MRIwrite(wm,"wm.erode.mgh");
 
 #ifdef HAVE_OPENMP
-  ROMP_PFLB_begin
+  ROMP_PF_begin
   #pragma omp parallel for if_ROMP(experimental)
 #endif
   for(c=0; c < seg->width; c++) {

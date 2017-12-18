@@ -107,6 +107,7 @@ public:
 
   COLOR_TABLE*  GetLUTCTAB () const;
   void          SetLUTCTAB ( COLOR_TABLE* ct );
+  bool          IsValueInColorTable (double nVal);
 
   virtual vtkScalarsToColors* GetActiveLookupTable();
 
@@ -319,8 +320,6 @@ public:
     return this->m_bContourUpsample;
   }
 
-  void SetActiveFrame(int nFrame);
-
   QString GetLabelContourRange()
   {
     return m_sLabelContourRange;
@@ -382,6 +381,8 @@ public:
   {
     return m_listVisibleLabels;
   }
+
+  void UpdateActiveFrame(int nFrame);
 
 public slots:
   void SetOpacity( double opacity );

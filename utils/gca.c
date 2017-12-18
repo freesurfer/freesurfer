@@ -4596,7 +4596,7 @@ float GCAcomputeLogSampleProbability(
 
 #ifdef HAVE_OPENMP
   ROMP_PF_begin
-  #pragma omp parallel for if_ROMP(experimental) firstprivate(gcas, tid, m_prior2source_voxel) reduction(+ : total_log_p)
+  #pragma omp parallel for if_ROMP(fast) firstprivate(gcas, tid, m_prior2source_voxel) reduction(+ : total_log_p)
 #endif
   for (i = 0; i < nsamples; i++) {
     ROMP_PFLB_begin
@@ -11098,9 +11098,6 @@ char *cma_label_to_name(int label)
   if (label == Left_Thalamus) {
     return ("Left_Thalamus");
   }
-  if (label == Left_Thalamus_Proper) {
-    return ("Left_Thalamus_Proper");
-  }
   if (label == Left_Caudate) {
     return ("Left_Caudate");
   }
@@ -11217,9 +11214,6 @@ char *cma_label_to_name(int label)
   }
   if (label == Right_Thalamus) {
     return ("Right_Thalamus");
-  }
-  if (label == Right_Thalamus_Proper) {
-    return ("Right_Thalamus_Proper");
   }
   if (label == Right_Caudate) {
     return ("Right_Caudate");
@@ -16672,8 +16666,8 @@ static int align_labels[] = {Left_Lateral_Ventricle,
                              Right_Cerebellum_White_Matter,
                              Left_Amygdala,
                              Right_Amygdala,
-                             Left_Thalamus_Proper,
-                             Right_Thalamus_Proper,
+                             Left_Thalamus,
+                             Right_Thalamus,
                              Left_Putamen,
                              Right_Putamen,
                              Brain_Stem,
@@ -17570,7 +17564,7 @@ static int lh_labels[] = {
     Left_Cerebellum_Cortex,
     Left_Cerebellum_White_Matter,
     Left_Amygdala,
-    Left_Thalamus_Proper,
+    Left_Thalamus,
     Left_Putamen,
     Left_Pallidum,
     Left_VentralDC,
@@ -17584,7 +17578,7 @@ static int rh_labels[] = {
     Right_Cerebellum_Cortex,
     Right_Cerebellum_White_Matter,
     Right_Amygdala,
-    Right_Thalamus_Proper,
+    Right_Thalamus,
     Right_Putamen,
     Right_Pallidum,
     Right_VentralDC,
@@ -18115,8 +18109,8 @@ int GCAmapRenormalizeWithHistograms(GCA *gca,
       //     lower_thresh = 75;
       //     upper_thresh = 135;
       //     break;
-      //   case Left_Thalamus_Proper:
-      //   case Right_Thalamus_Proper:
+      //   case Left_Thalamus:
+      //   case Right_Thalamus:
       //     lower_thresh = 75;
       //     upper_thresh = 120;
       //     break;
@@ -18641,8 +18635,8 @@ int GCAcomputeRenormalizationWithAlignment(GCA *gca,
           lower_thresh = 75;
           upper_thresh = 135;
           break;
-        case Left_Thalamus_Proper:
-        case Right_Thalamus_Proper:
+        case Left_Thalamus:
+        case Right_Thalamus:
           lower_thresh = 75;
           upper_thresh = 120;
           break;
@@ -19760,8 +19754,8 @@ int GCAcomputeRenormalizationWithAlignmentLongitudinal(GCA *gca,
         lower_thresh = 75;
         upper_thresh = 135;
         break;
-      case Left_Thalamus_Proper:
-      case Right_Thalamus_Proper:
+      case Left_Thalamus:
+      case Right_Thalamus:
         lower_thresh = 75;
         upper_thresh = 120;
         break;
@@ -21411,8 +21405,6 @@ int GCAmapRenormalizeByClass(GCA *gca, MRI *mri, TRANSFORM *transform)
             break;
           case Left_Thalamus:
           case Right_Thalamus:
-          case Left_Thalamus_Proper:
-          case Right_Thalamus_Proper:
             //      GCAlabelMean(gca, Left_Thalamus, means) ;
             //      GCAlabelMean(gca, Right_Thalamus, rmeans) ;
             //      means[frame] = (means[frame] + rmeans[frame]) / 2 ;
@@ -21846,7 +21838,6 @@ int GCAreplaceRightWithLeft(GCA *gca)
   GCAreplaceLabels(gca, Right_Cerebellum_White_Matter, Left_Cerebellum_White_Matter);
   GCAreplaceLabels(gca, Right_Cerebellum_Cortex, Left_Cerebellum_Cortex);
   GCAreplaceLabels(gca, Right_Thalamus, Left_Thalamus);
-  GCAreplaceLabels(gca, Right_Thalamus_Proper, Left_Thalamus_Proper);
   GCAreplaceLabels(gca, Right_Caudate, Left_Caudate);
   GCAreplaceLabels(gca, Right_Putamen, Left_Putamen);
   GCAreplaceLabels(gca, Right_Pallidum, Left_Pallidum);
@@ -24009,7 +24000,7 @@ static int entropy_labels[] = {
     Left_Cerebellum_Cortex,
     Left_Amygdala,
     Left_Hippocampus,
-    Left_Thalamus_Proper,
+    Left_Thalamus,
     Left_Pallidum,
     Left_Caudate,
     Left_Putamen,
@@ -24028,7 +24019,7 @@ static int contra_entropy_labels[] = {
     Right_Cerebellum_Cortex,
     Right_Amygdala,
     Right_Hippocampus,
-    Right_Thalamus_Proper,
+    Right_Thalamus,
     Right_Pallidum,
     Right_Caudate,
     Right_Putamen,

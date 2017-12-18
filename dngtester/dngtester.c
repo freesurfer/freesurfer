@@ -228,9 +228,11 @@ MRI *GeoSmooth(MRI *src, double fwhm, MRIS *surf, Geodesics *geod, MRI *volindex
   printf("fwhm %g gstd %g %g %g, nv=%d\n",fwhm,gstd,gvar,gf,surf->nvertices);
 
 #ifdef _OPENMP
-#pragma omp parallel for if_ROMP(experimental) 
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) 
 #endif
   for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
+    ROMP_PFLB_begin
     int nthnbr,nbrvtxno,frame;
     double ksum, *sum, d, vkern;
     Geodesics *vtxgeod;
@@ -266,7 +268,9 @@ MRI *GeoSmooth(MRI *src, double fwhm, MRIS *surf, Geodesics *geod, MRI *volindex
     surf->vertices[vtxno].val2bak = vtxgeod->vnum;
     free(sum);
     if(volindex) free(vtxgeod);
+    ROMP_PFLB_end
   } // vtxno
+  ROMP_PF_end
 
   return(out);
 }

@@ -137,8 +137,8 @@ int gcam_write_neg = 0;
 
 #if 1
 int dtrans_labels[] = {
-    Left_Thalamus_Proper,
-    Right_Thalamus_Proper,
+    Left_Thalamus,
+    Right_Thalamus,
     Left_Putamen,
     Right_Putamen,
     Left_Pallidum,
@@ -2021,7 +2021,7 @@ int gcamLogLikelihoodTerm(GCA_MORPH *gcam, const MRI *mri, const MRI *mri_smooth
   
 #ifdef HAVE_OPENMP
   ROMP_PF_begin
-  #pragma omp parallel for if_ROMP(experimental) firstprivate(tid, y, z, gcamn, n, norm, dx, dy, dz, vals, m_delI, m_inv_cov, v_means, v_grad) \
+  #pragma omp parallel for if_ROMP(assume_reproducible) firstprivate(tid, y, z, gcamn, n, norm, dx, dy, dz, vals, m_delI, m_inv_cov, v_means, v_grad) \
     shared(gcam, mri, Gx, Gy, Gz, Gvx, Gvy, Gvz) schedule(static, 1)
 #endif
 
@@ -2341,7 +2341,7 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
 #endif
 #ifdef HAVE_OPENMP
   ROMP_PF_begin
-  #pragma omp parallel for if_ROMP(experimental) reduction(+ : sse) firstprivate(y, z, error) shared(gcam, mri) schedule(static, 1)
+  #pragma omp parallel for if_ROMP(fast) reduction(+ : sse) firstprivate(y, z, error) shared(gcam, mri) schedule(static, 1)
 #endif
   for (x = 0; x < gcam->width; x++) {
     ROMP_PFLB_begin
@@ -2641,7 +2641,7 @@ int gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, double l_jacobian, double 
   num = 0;
 #ifdef HAVE_OPENMP
   ROMP_PF_begin
-  #pragma omp parallel for if_ROMP(experimental) reduction (+:num) firstprivate (j,k,gcamn,ratio,orig_area,ratio_thresh) shared(gcam) schedule(static,1)
+  #pragma omp parallel for if_ROMP(assume_reproducible) reduction (+:num) firstprivate (j,k,gcamn,ratio,orig_area,ratio_thresh) shared(gcam) schedule(static,1)
 #endif
   for (i = 0; i < gcam->width; i++) {
     ROMP_PFLB_begin
@@ -2741,7 +2741,7 @@ int gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, double l_jacobian, double 
 
 #ifdef HAVE_OPENMP
   ROMP_PF_begin
-  #pragma omp parallel for if_ROMP(experimental) firstprivate(j, k, gcamn, dx, dy, dz, norm, tid, mn) shared(gcam) schedule(static, 1)
+  #pragma omp parallel for if_ROMP(assume_reproducible) firstprivate(j, k, gcamn, dx, dy, dz, norm, tid, mn) shared(gcam) schedule(static, 1)
 #endif
   for (i = 0; i < gcam->width; i++) {
     ROMP_PFLB_begin
@@ -2775,7 +2775,7 @@ int gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, double l_jacobian, double 
 
 #ifdef HAVE_OPENMP
   ROMP_PF_begin
-  #pragma omp parallel for if_ROMP(experimental) firstprivate(j, k, gcamn, dx, dy, dz, norm) \
+  #pragma omp parallel for if_ROMP(assume_reproducible) firstprivate(j, k, gcamn, dx, dy, dz, norm) \
     shared(gcam, mri, l_jacobian, Gx, Gy, Gz, max_norm) schedule(static, 1)
 #endif
   for (i = 0; i < gcam->width; i++) {
@@ -3782,7 +3782,7 @@ int gcamComputeMetricProperties(GCA_MORPH *gcam)
   
 #ifdef HAVE_OPENMP
   ROMP_PF_begin
-  #pragma omp parallel for if_ROMP(experimental) firstprivate(tid, j, k, gcamn, neg, num, gcamni, gcamnj, gcamnk, area1, area2) \
+  #pragma omp parallel for if_ROMP(assume_reproducible) firstprivate(tid, j, k, gcamn, neg, num, gcamni, gcamnj, gcamnk, area1, area2) \
     shared(gcam, Gx, Gy, Gz, v_i, v_j, v_k, gcam_neg_counter, Ginvalid_counter) schedule(static, 1)
 #endif
   for (i = 0; i < width; i++) {
@@ -4158,7 +4158,7 @@ double gcamJacobianEnergy(const GCA_MORPH *gcam, MRI *mri)
   sse = 0.0f;
 #ifdef HAVE_OPENMP
   ROMP_PF_begin
-  #pragma omp parallel for if_ROMP(experimental) firstprivate(j,k,gcamn,ratio,exponent,delta) shared(width,height,depth,gcam) reduction(+:sse) schedule(static,1)
+  #pragma omp parallel for if_ROMP(fast) firstprivate(j,k,gcamn,ratio,exponent,delta) shared(width,height,depth,gcam) reduction(+:sse) schedule(static,1)
 #endif
   for (i = 0; i < width; i++) {
     ROMP_PFLB_begin
@@ -6537,7 +6537,7 @@ int gcamSmoothnessTerm(GCA_MORPH *gcam, const MRI *mri, const double l_smoothnes
   depth = gcam->depth;
 #ifdef HAVE_OPENMP
   ROMP_PF_begin
-  #pragma omp parallel for if_ROMP(experimental) firstprivate(                                                          \
+  #pragma omp parallel for if_ROMP(assume_reproducible) firstprivate(                                                          \
     y, z, gcamn, vx, vy, vz, dx, dy, dz, num, xk, xn, yk, yn, zk, zn, gcamn_nbr, vnx, vny, vnz) \
     shared(gcam, Gx, Gy, Gz) schedule(static, 1)
 #endif
@@ -16287,10 +16287,10 @@ int dtrans_label_to_frame(GCA_MORPH_PARMS *mp, int label)
   return (-1);
 #else
   switch (label) {
-    case Left_Thalamus_Proper:
+    case Left_Thalamus:
       frame = 0;
       break;
-    case Right_Thalamus_Proper:
+    case Right_Thalamus:
       frame = 1;
       break;
     case Left_Putamen:

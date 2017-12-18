@@ -30,28 +30,40 @@ void ROMP_show_stats(FILE*);
 // Conditionalize a parallel for with
 //
 typedef enum ROMP_level { 
-    ROMP_serial,                // always run this code serially
-    ROMP_experimental,          // hasn't even been tested for correctness yet
-    ROMP_fast,                  // is known to get differing results parallel and serial
-    ROMP_assume_reproducible,   // is suspected of getting same results
-    ROMP_shown_reproducible,    // is tested and shown to get same results 
-    ROMP__size
+    ROMP_level_serial,                // always run this code serially
+    ROMP_level_experimental,          // hasn't even been tested for correctness yet
+    ROMP_level_fast,                  // is known to get differing results parallel and serial
+    ROMP_level_assume_reproducible,   // is suspected of getting same results
+    ROMP_level_shown_reproducible,    // is tested and shown to get same results 
+    ROMP_level__size
     } ROMP_level;
 extern ROMP_level romp_level;
 
-#define if_ROMP(LEVEL) if (ROMP_pf_stack.staticInfo && (ROMP_##LEVEL >= romp_level))
+#define if_ROMP(LEVEL) \
+    if (ROMP_pf_stack.staticInfo && \
+        (ROMP_if_parallel(ROMP_level_##LEVEL,&ROMP_pf_static))) \
+    // end of macro
 
 // Surround a parallel for
+
+#define ROMP_maxWatchedThreadNum 4
+
 typedef struct ROMP_pf_static_struct { 
     void * volatile ptr; 
     const char*     file; 
     unsigned int    line; 
 } ROMP_pf_static_struct;
+
+int ROMP_if_parallel(ROMP_level, ROMP_pf_static_struct*);
+
  
 typedef struct ROMP_pf_stack_struct  { 
     struct ROMP_pf_static_struct * staticInfo; 
     NanosecsTimer beginTime;
-    int tids_active;
+    Nanosecs      watchedThreadBeginCPUTimes[ROMP_maxWatchedThreadNum];
+    int 	  tids_active;
+    int 	  skip_pflb_timing;
+    ROMP_level    saved_ROMP_level;
 } ROMP_pf_stack_struct;
 
 #define ROMP_main ROMP_main_started(__FILE__, __LINE__);
@@ -85,17 +97,34 @@ typedef struct ROMP_pflb_stack_struct {
     int tid;
 } ROMP_pflb_stack_struct;
 
+#if 1
+
+#define ROMP_PFLB_begin
+#define ROMP_PFLB_end
+#define ROMP_PFLB_continue \
+    { continue; }
+#define ROMP_PF_continue \
+    ROMP_PFLB_continue
+    
+#else
+
 #define ROMP_PFLB_begin \
-    ROMP_pflb_stack_struct  ROMP_pflb_stack;  \
-    ROMP_pflb_begin(&ROMP_pf_stack, &ROMP_pflb_stack);
+    /* ROMP_pflb_stack_struct  ROMP_pflb_stack;  \
+    if (!ROMP_pf_stack.skip_pflb_timing) ROMP_pflb_begin(&ROMP_pf_stack, &ROMP_pflb_stack); */ \
+    // end of macro
 
 #define ROMP_PFLB_end \
-    ROMP_pflb_end(&ROMP_pflb_stack);
+    /* if (!ROMP_pf_stack.skip_pflb_timing) ROMP_pflb_end(&ROMP_pflb_stack); */ \
+    // end of macro
 
 #define ROMP_PFLB_continue \
-    { ROMP_PFLB_end; continue; }
+    { /* if (!ROMP_pf_stack.skip_pflb_timing) ROMP_PFLB_end; */ continue; } \
+    // end of macro
+    
 #define ROMP_PF_continue \
-    { ROMP_PFLB_end; continue; }
+    ROMP_PFLB_continue
+
+#endif
 
 void ROMP_pflb_begin(
     ROMP_pf_stack_struct   * pf_stack,

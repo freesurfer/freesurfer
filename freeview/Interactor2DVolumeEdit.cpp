@@ -76,7 +76,8 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
 
   if (m_nAction == EM_GeoSeg)
   {
-    if (event->button() == Qt::LeftButton)
+    if ( (event->button() == Qt::LeftButton || event->button() == Qt::RightButton)
+         && !(event->modifiers() & CONTROL_MODIFIER))
     {
       BrushProperty* bp = MainWindow::GetMainWindow()->GetBrushProperty();
       LayerMRI* mri = (LayerMRI*)bp->GetReferenceLayer();
@@ -99,12 +100,18 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
         layers = lc->GetLayers("ROI");
       }
 
-      LayerROI* roi = (LayerROI*)((event->modifiers() & Qt::ShiftModifier) ? layers[1]:layers[0]);
+      LayerROI* roi = (LayerROI*)((event->button() == Qt::RightButton) ? layers[1]:layers[0]);
       double ras[3];
       m_nMousePosX = event->x();
       m_nMousePosY = event->y();
       view->MousePositionToRAS( event->x(), event->y(), ras );
-      roi->SetVoxelByRAS( ras, view->GetViewPlane());
+      if (event->modifiers() & Qt::ShiftModifier)
+      {
+        ((LayerROI*)layers[0])->SetVoxelByRAS(ras, view->GetViewPlane(), false);
+        ((LayerROI*)layers[1])->SetVoxelByRAS(ras, view->GetViewPlane(), false);
+      }
+      else
+        roi->SetVoxelByRAS( ras, view->GetViewPlane() );
       m_bEditing = true;
       view->grabMouse();
       return false;
@@ -160,6 +167,16 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
         double ras[3];
         view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras );
         bool bCondition = !(event->modifiers() & Qt::ShiftModifier) && !(event->buttons() & Qt::RightButton);
+        if (bCondition && (m_nAction == EM_Freehand || m_nAction == EM_Fill || m_nAction == EM_Polyline))
+        {
+          if (mri->IsTypeOf("MRI") && ((LayerMRI*)mri)->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT
+              && !((LayerMRI*)mri)->GetProperty()->IsValueInColorTable(mri->GetFillValue()))
+          {
+            emit Error("Brush value is not in the current color table. I don't know what color to use. Drawing cannot continue.");
+            return false;
+          }
+        }
+
         if ( (m_nAction == EM_ColorPicker || m_bColorPicking ) && mri->IsTypeOf( "MRI" ) )
         {
           if ( event->modifiers() & CONTROL_MODIFIER )
@@ -188,7 +205,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
           {
             mri->SaveForUndo( view->GetViewPlane() );
             m_bEditing = true;
-            mri->SetVoxelByRAS( ras, view->GetViewPlane(),bCondition );
+            mri->SetVoxelByRAS( ras, view->GetViewPlane(), bCondition );
           }
           view->grabMouse();
         }
@@ -383,11 +400,17 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
     if (layers.size() < 2)
       return false;
 
-    LayerROI* roi = (LayerROI*)((event->modifiers() & Qt::ShiftModifier) ? layers[1]:layers[0]);
+    LayerROI* roi = (LayerROI*)((event->buttons() & Qt::RightButton) ? layers[1]:layers[0]);
     double ras1[3], ras2[3];
     view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras1 );
     view->MousePositionToRAS( event->x(), event->y(), ras2 );
-    roi->SetVoxelByRAS( ras1, ras2, view->GetViewPlane());
+    if (event->modifiers() & Qt::ShiftModifier)
+    {
+      ((LayerROI*)layers[0])->SetVoxelByRAS(ras1, ras2, view->GetViewPlane(), false);
+      ((LayerROI*)layers[1])->SetVoxelByRAS(ras1, ras2, view->GetViewPlane(), false);
+    }
+    else
+      roi->SetVoxelByRAS( ras1, ras2, view->GetViewPlane());
 
     m_nMousePosX = event->x();
     m_nMousePosY = event->y();
@@ -587,7 +610,7 @@ void Interactor2DVolumeEdit::UpdateCursor( QEvent* event, QWidget* wnd )
         }
       }
     }
-    else
+    else if (m_nAction != EM_GeoSeg)
     {
       wnd->setCursor( CursorFactory::CursorFill );
     }

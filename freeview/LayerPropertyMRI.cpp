@@ -514,6 +514,15 @@ void LayerPropertyMRI::SetLUTCTAB( COLOR_TABLE* ct )
   }
 }
 
+bool LayerPropertyMRI::IsValueInColorTable(double nVal)
+{
+  int bValid = 0;
+  if (mFreeSurferCTAB)
+    CTABisEntryValid( mFreeSurferCTAB, (int)nVal, &bValid );
+
+  return bValid;
+}
+
 void LayerPropertyMRI::UpdateLUTTable()
 {
   if ( mFreeSurferCTAB )
@@ -1728,7 +1737,7 @@ void LayerPropertyMRI::SetRememberFrameSettings(bool bFlag)
   }
 }
 
-void LayerPropertyMRI::SetActiveFrame(int nFrame)
+void LayerPropertyMRI::UpdateActiveFrame(int nFrame)
 {
   if (nFrame != m_nActiveFrame)
   {

@@ -477,7 +477,7 @@ MRI *MRIerode(MRI *mri_src, MRI *mri_dst)
   else {
 #ifdef HAVE_OPENMP
     ROMP_PF_begin
-    #pragma omp parallel for if_ROMP(experimental)
+    #pragma omp parallel for if_ROMP(assume_reproducible)
 #endif
     for (z = 0; z < depth; z++) {
       ROMP_PFLB_begin
@@ -1635,7 +1635,7 @@ MRI *MRIdilate(MRI *mri_src, MRI *mri_dst)
   for (f = 0; f < mri_src->nframes; f++) {
 #ifdef HAVE_OPENMP
     ROMP_PF_begin
-    #pragma omp parallel for if_ROMP(experimental)
+    #pragma omp parallel for if_ROMP(assume_reproducible)
 #endif
     for (z = zmin; z <= zmax; z++) {
       ROMP_PFLB_begin
