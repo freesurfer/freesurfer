@@ -89,9 +89,13 @@ $cmd | tee -a $LF
 if($status) goto error_exit;
 popd
 
+# Remove extra cerebral stuff from samseg seg
 # Have to change seg to uchar or things break downstream
-set cmd = (mri_convert -odt uchar --no_scale 1 \
-  $samsegdir/crispSegmentation.nii $mdir/aseg.auto_noCCseg.mgz)
+#set cmd = (mri_convert -odt uchar --no_scale 1 \
+#  $samsegdir/crispSegmentation.nii $mdir/aseg.auto_noCCseg.mgz)
+set cmd = (mri_binarize  --uchar --i $samsegdir/crispSegmentation.nii \
+  --replaceonly 258 0 --replaceonly 259 0 --replaceonly 165 0 \
+  --o $mdir/aseg.auto_noCCseg.mgz)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
@@ -139,8 +143,16 @@ echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
 
+# Remove extracerebral stuff
+# Could just use aseg created above
+set mask = $tmpdir/mask.mgh
+set cmd = (mri_binarize --i $samsegdir/crispSegmentation.nii --match 0 165 258 259 --inv --o $mask)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
 # Create the norm by just masking nu with the aseg
-set cmd = (mri_mask $nu $mdir/aseg.auto_noCCseg.mgz $mdir/norm.mgz)
+set cmd = (mri_mask $nu $mask $mdir/norm.mgz)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
