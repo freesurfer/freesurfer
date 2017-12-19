@@ -3630,7 +3630,7 @@ AC_SUBST(LIBS_TCL_OPENGL)
 # this is done here because if added earlier -ipo breaks the OpenGL check
 if test "x$CC" = "xicc"; then
   AC_MSG_NOTICE(Setting Intel Compiler optimizations...)
-  CPPFLAGS="$CPPFLAGS -ip -axCORE-AVX2"
+  CPPFLAGS="$CPPFLAGS -ip"
   if test "x$ac_have_avx2" = "xyes"; then
     CPPFLAGS="$CPPFLAGS -axCORE-AVX2"
   fi

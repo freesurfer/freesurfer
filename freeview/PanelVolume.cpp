@@ -127,7 +127,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
                               << ui->sliderMin
                               << ui->sliderMax
                               << ui->labelMin
-                              << ui->labelMax;
+                              << ui->labelMax
+                              << ui->pushButtonResetWindowLevel;
 
   m_widgetlistLUT << ui->treeWidgetColorTable
                   << ui->labelLookUpTable
@@ -297,6 +298,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->lineEditProjectionMapRange, SIGNAL(returnPressed()), this, SLOT(OnLineEditProjectionMapRangeChanged()));
   connect( layer, SIGNAL(IsoSurfaceUpdating()), ui->progressBarWorking, SLOT(show()));
   connect( layer, SIGNAL(IsoSurfaceUpdated()), ui->progressBarWorking, SLOT(hide()));
+  connect( ui->pushButtonResetWindowLevel, SIGNAL(clicked(bool)), p, SLOT(ResetWindowLevel()));
 }
 
 void PanelVolume::DoIdle()
@@ -666,14 +668,14 @@ void PanelVolume::DoUpdateWidgets()
     ui->lineEditMid->setEnabled(!bAutoMid);
   }
 
-  if (layer && nColorMap == LayerPropertyMRI::LUT && !layer->GetProperty()->IsValueInColorTable(layer->GetFillValue()))
+  ui->labelBrushValueWarning->hide();
+  if (layer)
   {
-    ui->colorLabelBrushValue->hide();
-    ui->labelBrushValueWarning->show();
-  }
-  else
-  {
-    ui->labelBrushValueWarning->hide();
+    if (nColorMap == LayerPropertyMRI::LUT && !layer->GetProperty()->IsValueInColorTable(layer->GetFillValue()))
+    {
+      ui->colorLabelBrushValue->hide();
+      ui->labelBrushValueWarning->show();
+    }
   }
 
   UpdateTrackVolumeThreshold();
@@ -749,6 +751,10 @@ void PanelVolume::OnColorTableSortingChanged()
 void PanelVolume::UpdateColorLabel()
 {
   QTreeWidgetItem* item = ui->treeWidgetColorTable->currentItem();
+  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  if (!layer || layer->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT)
+    return;
+
   if ( item )
   {
     QColor color = item->data( 0, Qt::UserRole ).value<QColor>();
@@ -763,7 +769,6 @@ void PanelVolume::UpdateColorLabel()
   }
   else
   {
-  //  ui->colorLabelBrushValue->setPixmap( QPixmap() );
     ui->colorLabelBrushValue->hide();
     bool bOK;
     ui->lineEditBrushValue->text().trimmed().toInt(&bOK);
