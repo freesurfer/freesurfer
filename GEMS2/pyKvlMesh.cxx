@@ -233,7 +233,7 @@ unsigned int KvlMeshCollection::MeshCount() const {
     return meshCollection->GetNumberOfMeshes();
 }
 
-py::array_t<uint16_t> KvlMesh::RasterizeMesh(std::vector<size_t> size) {
+py::array_t<uint16_t> KvlMesh::RasterizeMesh(std::vector<size_t> size, int classNumber) {
     // Some typedefs
     typedef kvl::AtlasMeshAlphaDrawer::ImageType  AlphaImageType;
     typedef AlphaImageType::SizeType  SizeType;
@@ -247,10 +247,8 @@ py::array_t<uint16_t> KvlMesh::RasterizeMesh(std::vector<size_t> size) {
         imageSize[ i ] = size[i];
     }
 
-    int classNumber = -1;
 //    if ( nrhs > 2 )
 //    {
-//        TODO: implement optional classNumber parameter (not needed for atlas registration)
 //        double* tmp = mxGetPr( prhs[ 2 ] );
 //        classNumber = static_cast< int >( *tmp );
 //    }
@@ -262,17 +260,17 @@ py::array_t<uint16_t> KvlMesh::RasterizeMesh(std::vector<size_t> size) {
 
     if ( classNumber >= 0 )
     {
-        // TODO
 //        // Rasterize the specified prior. If the class number is 0, then pre-fill everything
 //        // so that parts not overlayed by the mesh are still considered to the background
-//        kvl::AtlasMeshAlphaDrawer::Pointer  alphaDrawer = kvl::AtlasMeshAlphaDrawer::New();
-//        alphaDrawer->SetRegions( imageSize );
-//        alphaDrawer->SetClassNumber( classNumber );
-//        if ( classNumber == 0 )
-//        {
-//            ( const_cast< AlphaImageType* >( alphaDrawer->GetImage() ) )->FillBuffer( 1.0 );
-//        }
-//        alphaDrawer->Rasterize( mesh );
+        kvl::AtlasMeshAlphaDrawer::Pointer  alphaDrawer = kvl::AtlasMeshAlphaDrawer::New();
+        alphaDrawer->SetRegions( imageSize );
+        alphaDrawer->SetClassNumber( classNumber );
+        if ( classNumber == 0 )
+        {
+            ( const_cast< AlphaImageType* >( alphaDrawer->GetImage() ) )->FillBuffer( 1.0 );
+        }
+        alphaDrawer->Rasterize( mesh );
+
 //
 //
 //        // Finally, copy the buffer contents into a Matlab matrix
@@ -282,26 +280,30 @@ py::array_t<uint16_t> KvlMesh::RasterizeMesh(std::vector<size_t> size) {
 //            dims[ i ] = imageSize[ i ];
 //        }
 //        //plhs[ 0 ] = mxCreateNumericArray( 3, dims, mxSINGLE_CLASS, mxREAL );
+        std::vector<size_t> shape = {imageSize[ 0 ], imageSize[ 1 ], imageSize[ 2 ]};
 //        //float*  data = static_cast< float* >( mxGetData( plhs[ 0 ] ) );
 //        plhs[ 0 ] = mxCreateNumericArray( 3, dims, mxUINT16_CLASS, mxREAL );
 //        unsigned short*  data = static_cast< unsigned short* >( mxGetData( plhs[ 0 ] ) );
+        auto const buffer = new uint16_t[shape[0]*shape[1]*shape[2]];
+        auto data = buffer;
 //
-//        itk::ImageRegionConstIterator< AlphaImageType >
-//                it( alphaDrawer->GetImage(),
-//                    alphaDrawer->GetImage()->GetBufferedRegion() );
-//        for ( ;!it.IsAtEnd(); ++it, ++data )
-//        {
-//            float  probability = it.Value();
-//            if ( probability < 0 )
-//            {
-//                probability = 0.0f;
-//            }
-//            else if ( probability > 1 )
-//            {
-//                probability = 1.0f;
-//            }
-//            *data = static_cast< unsigned short >( probability * 65535 + .5 );
-//        }
+        itk::ImageRegionConstIterator< AlphaImageType >
+                it( alphaDrawer->GetImage(),
+                    alphaDrawer->GetImage()->GetBufferedRegion() );
+        for ( ;!it.IsAtEnd(); ++it, ++data )
+        {
+            float  probability = it.Value();
+            if ( probability < 0 )
+            {
+                probability = 0.0f;
+            }
+            else if ( probability > 1 )
+            {
+                probability = 1.0f;
+            }
+            *data = static_cast< unsigned short >( probability * 65535 + .5 );
+        }
+        return createNumpyArrayFStyle(shape, buffer);
 
     }
     else

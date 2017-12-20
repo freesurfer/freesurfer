@@ -70,10 +70,17 @@ def test_mesh_binding(matlab_fixture, image_fixture, mesh_fixture):
     np.testing.assert_allclose(matlab_fixture['nodePositions'], mesh_fixture.points)
     np.testing.assert_allclose(matlab_fixture['alphas'], mesh_fixture.alphas)
     rasterized_priors = mesh_fixture.rasterize(buffer.shape)
+    assert (189.0, 200.0, 283.0, 17) == rasterized_priors.shape
     np.testing.assert_allclose(matlab_fixture['priors'], rasterized_priors)
     np.testing.assert_allclose(matlab_fixture['nodePositions_after_modification'], mesh_fixture.points + 1)
     mesh_fixture.scale([1 / 10])
     np.testing.assert_allclose(matlab_fixture['nodePositions_after_scaling'], mesh_fixture.points)
+
+@pytest.mark.slowtest
+def test_mesh_binding_with_class_name(matlab_fixture, image_fixture, mesh_fixture):
+    buffer = image_fixture.getImageBuffer()
+    rasterized_priors = mesh_fixture.rasterize(buffer.shape, 0)
+    assert (189.0, 200.0, 283.0) == rasterized_priors.shape
 
 
 @pytest.mark.slowtest

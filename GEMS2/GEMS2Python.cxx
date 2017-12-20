@@ -42,7 +42,7 @@ PYBIND11_MODULE(GEMS2Python, m) {
             .def_property("points", &KvlMesh::GetPointSet, &KvlMesh::SetPointSet)
             .def_property("alphas", &KvlMesh::GetAlphas, &KvlMesh::SetAlphas)
             .def("scale", &KvlMesh::Scale)
-            .def("rasterize", &KvlMesh::RasterizeMesh)
+            .def("rasterize", &KvlMesh::RasterizeMesh, py::arg("shape"), py::arg("classNumber") = -1)
             ;
 
     py::class_<KvlMeshCollection>(m, "KvlMeshCollection")
