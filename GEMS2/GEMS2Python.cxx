@@ -38,11 +38,11 @@ PYBIND11_MODULE(GEMS2Python, m) {
             py::arg("typeName"),
             py::arg("images"),
             py::arg("boundaryCondition"),
-            py::arg("transform"),
-            py::arg("means"),
-            py::arg("variances"),
-            py::arg("mixtureWeights"),
-            py::arg("numberOfGaussiansPerClass"))
+            py::arg("transform")=KvlTransform(nullptr),
+            py::arg("means")=py::array_t<double>(),
+            py::arg("variances")=py::array_t<double>(),
+            py::arg("mixtureWeights")=py::array_t<float>(),
+            py::arg("numberOfGaussiansPerClass")=py::array_t<int>())
             .def("evaluate_mesh_position", &KvlCostAndGradientCalculator::EvaluateMeshPosition)
             ;
 

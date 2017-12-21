@@ -20,11 +20,11 @@ public:
     KvlCostAndGradientCalculator(std::string typeName,
                                  std::vector<KvlImage> images,
                                  std::string boundaryCondition,
-                                 KvlTransform transform,
-                                 py::array_t<double> means,
-                                 py::array_t<double> variances,
-                                 py::array_t<double> mixtureWeights,
-                                 py::array_t<int> numberOfGaussiansPerClass
+                                 KvlTransform transform=KvlTransform(nullptr),
+                                 py::array_t<double> means=py::array_t<double>(),
+                                 py::array_t<double> variances=py::array_t<double>(),
+                                 py::array_t<float> mixtureWeights=py::array_t<float>(),
+                                 py::array_t<int> numberOfGaussiansPerClass=py::array_t<int>()
 ){
         std::cout << "1" << std::endl;
         switch( typeName[ 0 ] )
