@@ -255,22 +255,39 @@ def kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshColl
     #
     # % Now deform the target mesh to try and bring the position of its mesh nodes close(r) to their target positions
     # image = kvlCreateImage( zeros( 10, 10, 10, 'single' ) ); % Dummy but we need it with the current interface
+    image = GEMS2Python.KvlImage(np.zeros((10,10,10), dtype=np.single))
     # transform = kvlCreateTransform( eye( 4 ) );
+    transform = GEMS2Python.KvlTransform(np.diag([1.0] * 4))
     # calculator = kvlGetCostAndGradientCalculator( 'PointSet', image, 'Sliding', transform, [], [], [], [], ...
     #                                               desiredTargetNodePosition );
+    calculator = GEMS2Python.KvlCostAndGradientCalculator('PointSet', image, 'Sliding',
+                                                        ## TODO: need full calculator
+                                                        transform, [], [], [], [],
+                                                        desiredTargetNodePosition
+                                                        )
     #
     # % Get an optimizer, and stick the cost function into it
     # optimizerType = 'L-BFGS'; % 'FixedStepGradientDescent','GradientDescent','ConjugateGradient', or 'L-BFGS'
+    optimizerType = 'L-BFGS'
     # maximalDeformationStopCriterion = 0.005; % Measured in voxels
+    maximalDeformationStopCriterion = 0.005
     # lineSearchMaximalDeformationIntervalStopCriterion = maximalDeformationStopCriterion; % Doesn't seem to matter very much
+    lineSearchMaximalDeformationIntervalStopCriterion = maximalDeformationStopCriterion
     # optimizer = kvlGetOptimizer( optimizerType, targetReferenceMesh, calculator, ...
     #                                 'Verbose', 1, ...
     #                                 'MaximalDeformationStopCriterion', maximalDeformationStopCriterion, ...
     #                                 'LineSearchMaximalDeformationIntervalStopCriterion', ...
     #                                 lineSearchMaximalDeformationIntervalStopCriterion, ...
     #                                 'BFGS-MaximumMemoryLength', 12 ); % Affine registration only has 12 DOF
+    optimizer = GEMS2Python.KblOptimizer( optimizerType, targetReferenceMesh, calculator,
+                                    'Verbose', 1,
+                                    'MaximalDeformationStopCriterion', maximalDeformationStopCriterion,
+                                    'LineSearchMaximalDeformationIntervalStopCriterion',
+                                    lineSearchMaximalDeformationIntervalStopCriterion,
+                                    'BFGS-MaximumMemoryLength', 12 )
     #
     # numberOfIterations = 0;
+    numberOfIterations = 0
     # startTime = tic;
     # if showFigures
     #   historyOfAverageDistance = [];
@@ -278,45 +295,56 @@ def kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshColl
     #   iterationFigure = figure;
     # end
     # while true
-    #
-    #   %
-    #   if showFigures
-    #     targetNodePositions = kvlGetMeshNodePositions( targetReferenceMesh );
-    #     distances = sqrt( sum( ( targetNodePositions - desiredTargetNodePosition ).^2, 2 ) );
-    #     averageDistance = sum( distances ) / length( distances )
-    #     maximumDistance = max( distances );
-    #     historyOfAverageDistance = [ historyOfAverageDistance; averageDistance ];
-    #     historyOfMaximumDistance = [ historyOfMaximumDistance; maximumDistance ];
-    #
-    #     figure( iterationFigure )
-    #     subplot( 2, 1, 1 )
-    #     plot( historyOfAverageDistance )
-    #     grid
-    #     title( [ 'average distance: ' num2str( historyOfAverageDistance( end ) ) ] )
-    #     subplot( 2, 1, 2 )
-    #     plot( historyOfMaximumDistance )
-    #     grid
-    #     title( [ 'max distance: ' num2str( historyOfMaximumDistance( end ) ) ] )
-    #     drawnow
-    #   end
-    #
-    #   %
-    #   [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer )
-    #   %return
-    #   if ( maximalDeformation == 0 )
-    #     break;
-    #   end
-    #   numberOfIterations = numberOfIterations + 1;
-    #
-    # end
+    while True:
+        #
+        #   %
+        #   if showFigures
+        #     targetNodePositions = kvlGetMeshNodePositions( targetReferenceMesh );
+        #     distances = sqrt( sum( ( targetNodePositions - desiredTargetNodePosition ).^2, 2 ) );
+        #     averageDistance = sum( distances ) / length( distances )
+        #     maximumDistance = max( distances );
+        #     historyOfAverageDistance = [ historyOfAverageDistance; averageDistance ];
+        #     historyOfMaximumDistance = [ historyOfMaximumDistance; maximumDistance ];
+        #
+        #     figure( iterationFigure )
+        #     subplot( 2, 1, 1 )
+        #     plot( historyOfAverageDistance )
+        #     grid
+        #     title( [ 'average distance: ' num2str( historyOfAverageDistance( end ) ) ] )
+        #     subplot( 2, 1, 2 )
+        #     plot( historyOfMaximumDistance )
+        #     grid
+        #     title( [ 'max distance: ' num2str( historyOfMaximumDistance( end ) ) ] )
+        #     drawnow
+        #   end
+        #
+        #   %
+        #   [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer )
+        minLogLikelihoodTimesPrior, maximalDeformation = optimizer.step_optimizer()
+        #   %return
+        #   if ( maximalDeformation == 0 )
+        #     break;
+        #   end
+        if maximalDeformation == 0:
+            break;
+        #   numberOfIterations = numberOfIterations + 1;
+        numberOfIterations += 1
+        #
+        # end
     # toc( startTime )
     #
     # %
     # targetNodePositions = kvlGetMeshNodePositions( targetReferenceMesh );
+    targetNodePositions = targetReferencePosition.points
     # targetDeformation = targetNodePositions - targetReferencePosition;
+    targetDeformation = targetNodePositions - targetReferencePosition
     # distances = sqrt( sum( ( targetNodePositions - desiredTargetNodePosition ).^2, 2 ) );
+    targetDiscrepancy = targetNodePositions - desiredTargetNodePosition
+    distances = np.sqrt(sum(targetDiscrepancy * targetDiscrepancy, axis=1))
     # averageDistance = sum( distances ) / length( distances );
+    averageDistance = sum( distances ) / distances.shape[0]
     # maximumDistance = max( distances );
+    maximumDistance = np.max(distances )
     #
     # if showFigures
     #   figure
@@ -344,3 +372,4 @@ def kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshColl
     #
     #
     #
+    return targetDeformation, averageDistance, maximumDistance
