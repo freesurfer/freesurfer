@@ -434,6 +434,7 @@ public slots:
   void SetSelectLabel(int nVal, bool bSelected);
   void SetSelectAllLabels();
   void SetUnselectAllLabels();
+  void ResetWindowLevel();
 
 signals:
   void ColorMapChanged();

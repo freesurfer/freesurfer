@@ -1463,6 +1463,7 @@ void LayerPropertyMRI::UpdateMinMaxValues()
     mHeatScaleMinThreshold = 0;
   mHeatScaleMidThreshold = highestAbsValue / 2.0;
   mHeatScaleMaxThreshold = highestAbsValue - oneTenth;
+  mHeatScaleOffset = 0;
 
   // Init the colors in the heat scale. The editor will handle the
   // editing from here.
@@ -1471,6 +1472,12 @@ void LayerPropertyMRI::UpdateMinMaxValues()
   mMaxGenericThreshold = mMaxGrayscaleWindow;
   mMinContourThreshold = mHeatScaleMidThreshold;
   mMaxContourThreshold = mMaxGrayscaleWindow;
+}
+
+void LayerPropertyMRI::ResetWindowLevel()
+{
+  UpdateMinMaxValues();
+  this->OnColorMapChanged();
 }
 
 void LayerPropertyMRI::SetMinMaxGenericThreshold ( double iMin, double iMax )
@@ -1501,7 +1508,6 @@ void LayerPropertyMRI::SetMinMaxGenericThreshold ( double iMin, double iMax )
       mMaxGenericThreshold = iMax;
     }
     this->OnColorMapChanged();
-    emit GenericWindowLevelChanged();
   }
 }
 
