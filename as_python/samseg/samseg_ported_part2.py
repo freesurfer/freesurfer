@@ -702,10 +702,11 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
         #       end
         #     end
         #     for contrastNumber = 1 : numberOfContrasts
+        downSampledBiasCorrectedImages = []
         for contrastNumber in range(numberOfContrasts):
         #       downSampledBiasCorrectedImages( contrastNumber ) = ...
         #              kvlCreateImage( single( downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) ) );
-            downSampledBiasCorrectedImages[contrastNumber] = GEMS2Python.KvlImage(require_np_array(downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber]))
+            downSampledBiasCorrectedImages.append(GEMS2Python.KvlImage(require_np_array(downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber])))
 
         #     end
         #
@@ -715,7 +716,19 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
         #                                                    'Sliding', ...
         #                                                    transform, ...
         #                                                    means, variances, mixtureWeights, numberOfGaussiansPerClass );
-        #
+        ## TODO: Remove shim
+        transformMatrix = load_mat_file('/Users/ys/work/freesurfer/GEMS2/Testing/matlab_data/transformMatrix.mat')['transformMatrix']
+        transform = GEMS2Python.KvlTransform(transformMatrix)
+        calculator = GEMS2Python.KvlCostAndGradientCalculator(
+                typeName='AtlasMeshToIntensityImage',
+                images=downSampledBiasCorrectedImages,
+                boundaryCondition='Sliding',
+                transform=transform,
+                means=means,
+                variances=variances,
+                mixtureWeights=mixtureWeights,
+                numberOfGaussiansPerClass=numberOfGaussiansPerClass)
+
         #     %optimizerType = 'ConjugateGradient';
         #     optimizerType = 'L-BFGS';
         #     optimizer = kvlGetOptimizer( optimizerType, mesh, calculator, ...
@@ -725,10 +738,22 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
         #                                       optimizationOptions.lineSearchMaximalDeformationIntervalStopCriterion, ...
         #                                     'MaximumNumberOfIterations', optimizationOptions.maximumNumberOfDeformationIterations, ...
         #                                     'BFGS-MaximumMemoryLength', optimizationOptions.BFGSMaximumMemoryLength );
+        optimizerType = 'L-BFGS';
+        optimization_parameters = {
+            'Verbose': optimizationOptions.verbose,
+            'MaximalDeformationStopCriterion': optimizationOptions.maximalDeformationStopCriterion,
+            'LineSearchMaximalDeformationIntervalStopCriterion': optimizationOptions.lineSearchMaximalDeformationIntervalStopCriterion,
+            'MaximumNumberOfIterations': optimizationOptions.maximumNumberOfDeformationIterations,
+            'BFGS-MaximumMemoryLength': optimizationOptions.BFGSMaximumMemoryLength
+        }
+        optimizer = GEMS2Python.KvlOptimizer( optimizerType, mesh, calculator, optimization_parameters )
         #
         #     historyOfDeformationCost = [];
+        historyOfDeformationCost = [];
         #     historyOfMaximalDeformation = [];
+        historyOfMaximalDeformation = [];
         #     nodePositionsBeforeDeformation = kvlGetMeshNodePositions( mesh );
+        nodePositionsBeforeDeformation = kvlGetMeshNodePositions( mesh );
         #     deformationStartTime = tic;
         #     while true
         #       %
