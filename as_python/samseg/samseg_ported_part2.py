@@ -4,6 +4,8 @@ import os
 import GEMS2Python
 from dotdict import DotDict
 
+from as_python.kvlWarpMesh import kvlWarpMesh
+
 eps = np.finfo(float).eps
 
 def require_np_array(np_array):
@@ -211,34 +213,34 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
     tmp = np.linalg.solve(totalTransformationMatrix,
                           np.pad(initialNodePositions, (0, 1), mode='constant', constant_values=1).T).T
 #   initialNodePositionsInTemplateSpace = tmp( :, 1 : 3 );
-    initialNodePositionsInTemplateSpace = tmp[:, 0:2]
+    initialNodePositionsInTemplateSpace = tmp[:, 0:3]
 #
 #
 #   % If this is not the first multi-resolution level, apply the warp computed during the previous level
 #   if ( multiResolutionLevel > 1 )
     if multiResolutionLevel > 0:
-#     % Get the warp in template space
-#     nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = ...
-#             historyWithinEachMultiResolutionLevel( multiResolutionLevel-1 ).finalNodePositionsInTemplateSpace - ...
-#             historyWithinEachMultiResolutionLevel( multiResolutionLevel-1 ).initialNodePositionsInTemplateSpace;
-        nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = \
-            historyWithinEachMultiResolutionLevel[-1].finalNodePositionsInTemplateSpace - historyWithinEachMultiResolutionLevel[-1].initialNodePositionsInTemplateSpace
-#     initialNodeDeformationInTemplateSpace = kvlWarpMesh( ...
-#                   optimizationOptions.multiResolutionSpecification( multiResolutionLevel-1 ).atlasFileName, ...
-#                   nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel, ...
-#                   optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).atlasFileName );
-        # TODO: Remove this once part 1 is done
-        initialNodeDeformationInTemplateSpace = load_mat_file('/Users/ys/work/freesurfer/GEMS2/Testing/matlab_data/initialNodeDeformationInTemplateSpace.mat')['initialNodeDeformationInTemplateSpace']
-#     % Apply this warp on the mesh node positions in template space, and transform into current space
-#     desiredNodePositionsInTemplateSpace = initialNodePositionsInTemplateSpace + initialNodeDeformationInTemplateSpace;
-#     tmp = ( totalTransformationMatrix * ...
-#             [ desiredNodePositionsInTemplateSpace ones( numberOfNodes, 1 ) ]' )';
-#     desiredNodePositions = tmp( :, 1 : 3 );
-#
-#     %
-#     kvlSetMeshNodePositions( mesh, desiredNodePositions );
-#
-#   end
+        #     % Get the warp in template space
+        #     nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = ...
+        #             historyWithinEachMultiResolutionLevel( multiResolutionLevel-1 ).finalNodePositionsInTemplateSpace - ...
+        #             historyWithinEachMultiResolutionLevel( multiResolutionLevel-1 ).initialNodePositionsInTemplateSpace;
+        #     initialNodeDeformationInTemplateSpace = kvlWarpMesh( ...
+        #                   optimizationOptions.multiResolutionSpecification( multiResolutionLevel-1 ).atlasFileName, ...
+        #                   nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel, ...
+        #                   optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).atlasFileName );
+        initialNodeDeformationInTemplateSpace = kvlWarpMesh(
+                           optimizationOptions.multiResolutionSpecification[multiResolutionLevel-1].atlasFileName,
+                           nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel,
+                           optimizationOptions.multiResolutionSpecification[multiResolutionLevel].atlasFileName )
+        #     % Apply this warp on the mesh node positions in template space, and transform into current space
+        #     desiredNodePositionsInTemplateSpace = initialNodePositionsInTemplateSpace + initialNodeDeformationInTemplateSpace;
+        #     tmp = ( totalTransformationMatrix * ...
+        #             [ desiredNodePositionsInTemplateSpace ones( numberOfNodes, 1 ) ]' )';
+        #     desiredNodePositions = tmp( :, 1 : 3 );
+        #
+        #     %
+        #     kvlSetMeshNodePositions( mesh, desiredNodePositions );
+        #
+        #   end
 #
 #
 #
@@ -814,41 +816,45 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
         #       % Converged
         #       break;
         #     end
-#
-#
-#   end % End looping over global iterations for this multiresolution level
-#   historyOfCost = historyOfCost( 2 : end );
-#
-#   % Get the final node positions
-#   finalNodePositions = kvlGetMeshNodePositions( mesh );
-#
-#   % Transform back in template space (i.e., undoing the affine registration
-#   % that we applied), and save for later usage
-#   tmp = ( totalTransformationMatrix \ [ finalNodePositions ones( numberOfNodes, 1 ) ]' )';
-#   finalNodePositionsInTemplateSpace = tmp( :, 1 : 3 );
-#
-#
-#   % Save something about how the estimation proceeded
-#   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).downSamplingFactors = downSamplingFactors;
-#   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).downSampledImageBuffers = downSampledImageBuffers;
-#   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).downSampledMask = downSampledMask;
-#   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).initialNodePositions = initialNodePositions;
-#   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).finalNodePositions = finalNodePositions;
-#   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).initialNodePositionsInTemplateSpace = ...
-#                                                                              initialNodePositionsInTemplateSpace;
-#   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).finalNodePositionsInTemplateSpace = ...
-#                                                                              finalNodePositionsInTemplateSpace;
-#   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyWithinEachIteration = ...
-#                                                                       historyWithinEachIteration;
-#   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfCost = historyOfCost;
-#   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfMaximalDeformationApplied = ...
-#                                                                       historyOfMaximalDeformationApplied;
-#   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfTimeTakenIntensityParameterUpdating = ...
-#                                                                       historyOfTimeTakenIntensityParameterUpdating;
-#   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfTimeTakenDeformationUpdating = ...
-#                                                                       historyOfTimeTakenDeformationUpdating;
-#   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).priorsAtEnd = priors;
-#   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).posteriorsAtEnd = posteriors;
-#
-# end % End loop over multiresolution levels
-#
+        #
+        #
+        #   end % End looping over global iterations for this multiresolution level
+        #   historyOfCost = historyOfCost( 2 : end );
+        #
+        #   % Get the final node positions
+        #   finalNodePositions = kvlGetMeshNodePositions( mesh );
+        #
+        #   % Transform back in template space (i.e., undoing the affine registration
+        #   % that we applied), and save for later usage
+        #   tmp = ( totalTransformationMatrix \ [ finalNodePositions ones( numberOfNodes, 1 ) ]' )';
+        #   finalNodePositionsInTemplateSpace = tmp( :, 1 : 3 );
+        finalNodePositionsInTemplateSpace = tmp[:, 0 : 3 ]
+        #
+        #
+        #   % Save something about how the estimation proceeded
+        #   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).downSamplingFactors = downSamplingFactors;
+        #   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).downSampledImageBuffers = downSampledImageBuffers;
+        #   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).downSampledMask = downSampledMask;
+        #   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).initialNodePositions = initialNodePositions;
+        #   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).finalNodePositions = finalNodePositions;
+        #   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).initialNodePositionsInTemplateSpace = ...
+        #                                                                              initialNodePositionsInTemplateSpace;
+        #   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).finalNodePositionsInTemplateSpace = ...
+        #                                                                              finalNodePositionsInTemplateSpace;
+        #   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyWithinEachIteration = ...
+        #                                                                       historyWithinEachIteration;
+        #   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfCost = historyOfCost;
+        #   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfMaximalDeformationApplied = ...
+        #                                                                       historyOfMaximalDeformationApplied;
+        #   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfTimeTakenIntensityParameterUpdating = ...
+        #                                                                       historyOfTimeTakenIntensityParameterUpdating;
+        #   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfTimeTakenDeformationUpdating = ...
+        #                                                                       historyOfTimeTakenDeformationUpdating;
+        #   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).priorsAtEnd = priors;
+        #   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).posteriorsAtEnd = posteriors;
+        ## Record deformation delta here in lieu of maintaining history
+        nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = \
+            finalNodePositionsInTemplateSpace - initialNodePositionsInTemplateSpace
+        #
+        # end % End loop over multiresolution levels
+        #

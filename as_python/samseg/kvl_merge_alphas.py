@@ -73,7 +73,7 @@ def kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels=None, colors=N
     # %
     # numberOfMergingTasks = length( mergeOptions );
     # for mergingTaskNumber = 1 : numberOfMergingTasks
-    zeroes_for_appending = np.zeros((alpha_count, 1), dtype=np.float64)
+    zeroes_for_appending = np.zeros((alpha_count, 1), dtype=np.double)
     for mergeOption in mergeOptions:
         print('starting shape = {0}'.format(mergedAlphas.shape))
         #
@@ -134,7 +134,7 @@ def kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels=None, colors=N
         #
         #   % Now merge (i.e., add the probabilities) of those class numbers to that of classNumberOfMerged
         #   mergedAlphas( :, classNumberOfMerged ) = sum( mergedAlphas( :, mergingClassNumbers ), 2 );
-        alphaValuesToMerge = np.zeros((alpha_count, ), dtype=np.float64)
+        alphaValuesToMerge = np.zeros((alpha_count, ), dtype=np.double)
         #   mergingTable{ classNumberOfMerged } = [ mergingTable{ mergingClassNumbers' } ];
         for mergeIndex in mergingClassNumbers:
             alphaValuesToMerge += mergedAlphas[:, mergeIndex]
