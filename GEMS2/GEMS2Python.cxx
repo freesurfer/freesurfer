@@ -27,7 +27,22 @@ PYBIND11_MODULE(GEMS2Python, m) {
             ;
 
     py::class_<KvlCostAndGradientCalculator>(m, "KvlCostAndGradientCalculator")
-            .def(py::init<const std::string &, const std::vector<KvlImage> &, const std::string &>())
+            .def(py::init<const std::string &,
+            const std::vector<KvlImage> &,
+            const std::string &,
+            const KvlTransform &,
+            const py::array_t<double> &,
+            const py::array_t<double> &,
+            const py::array_t<float> &,
+            const py::array_t< int >& >(),
+            py::arg("typeName"),
+            py::arg("images"),
+            py::arg("boundaryCondition"),
+            py::arg("transform"),
+            py::arg("means"),
+            py::arg("variances"),
+            py::arg("mixtureWeights"),
+            py::arg("numberOfGaussiansPerClass"))
             .def("evaluate_mesh_position", &KvlCostAndGradientCalculator::EvaluateMeshPosition)
             ;
 

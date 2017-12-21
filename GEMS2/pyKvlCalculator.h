@@ -17,20 +17,73 @@ class KvlCostAndGradientCalculator {
 public:
     kvl::AtlasMeshPositionCostAndGradientCalculator::Pointer calculator;
 
-    KvlCostAndGradientCalculator(std::string typeName, std::vector<KvlImage> images, std::string boundaryCondition){
+    KvlCostAndGradientCalculator(std::string typeName,
+                                 std::vector<KvlImage> images,
+                                 std::string boundaryCondition,
+                                 KvlTransform transform,
+                                 py::array_t<double> means,
+                                 py::array_t<double> variances,
+                                 py::array_t<double> mixtureWeights,
+                                 py::array_t<int> numberOfGaussiansPerClass
+){
+        std::cout << "1" << std::endl;
         switch( typeName[ 0 ] )
         {
             // TODO: implement AtlasMeshToIntensityImage as needed for samseg
-//            case 'A':
-//            {
-//                std::cout << "AtlasMeshToIntensityImage" << std::endl;
-//                kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::Pointer  myCalculator
-//                        = kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::New();
-//                myCalculator->SetImages( images );
-//                myCalculator->SetParameters( means, variances, mixtureWeights, numberOfGaussiansPerClass );
-//                calculator = myCalculator;
-//                break;
-//            }
+            case 'A':
+            {
+                
+                py::buffer_info means_info  = means.request();
+
+//                 Retrieve means if they are provided
+                const int  numberOfGaussians = means_info.shape[0];
+                const int  numberOfContrasts  = means_info.shape[1];
+
+                std::vector< vnl_vector< double > >  means_converted;
+
+                for ( int gaussianNumber = 0; gaussianNumber < numberOfGaussians; gaussianNumber++ ) {
+                    vnl_vector< double >  mean_converted( numberOfContrasts, 0.0f );
+
+                    for ( int contrastNumber = 0; contrastNumber < numberOfContrasts; contrastNumber++ ) {
+                        mean_converted[ contrastNumber ] = means.at(gaussianNumber, contrastNumber);
+                    }
+                    means_converted.push_back( mean_converted );
+                }
+                // Retrieve variances if they are provided
+                std::vector< vnl_matrix< double > >  variances_converted;
+                for ( unsigned int gaussianNumber = 0; gaussianNumber < numberOfGaussians; gaussianNumber++ ) {
+                    vnl_matrix< double >  variance( numberOfContrasts, numberOfContrasts, 0.0f );
+                    for ( unsigned int row = 0; row < numberOfContrasts; row++ ) {
+                      for ( unsigned int col = 0; col < numberOfContrasts; col++ ) {
+                        variance[ row ][ col ] = variances.at(gaussianNumber, row, col);
+                        }
+                      }
+                      variances_converted.push_back( variance );
+                }
+                // Retrieve mixtureWeights if they are provided
+                std::vector< double >  mixtureWeights_converted  = std::vector< double >( numberOfGaussians, 0.0f );
+                for ( int gaussianNumber = 0; gaussianNumber < numberOfGaussians; gaussianNumber++ ) {
+                    mixtureWeights_converted[gaussianNumber] = ( mixtureWeights.at(gaussianNumber));
+                }
+                // Retrieve numberOfGaussiansPerClass if they are provided
+                const int  numberOfClasses = numberOfGaussiansPerClass.request().shape[0];
+                std::vector< int >  numberOfGaussiansPerClass_converted = std::vector< int >( numberOfClasses, 0 );
+                for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ ) {
+                    numberOfGaussiansPerClass_converted[ classNumber ] = numberOfGaussiansPerClass.at(classNumber);
+                }
+
+                kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::Pointer myCalculator
+                        = kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::New();
+                std::vector< ImageType::ConstPointer> images_converted;
+                for(auto image: images){
+                    ImageType::ConstPointer constImage = static_cast< const ImageType* >( image.m_image.GetPointer() );
+                    images_converted.push_back( constImage );
+                }
+                myCalculator->SetImages( images_converted );
+                myCalculator->SetParameters( means_converted, variances_converted, mixtureWeights_converted, numberOfGaussiansPerClass_converted );
+                calculator = myCalculator;
+                break;
+            }
 //            case 'C':
 //            {
 //                std::cout << "ConditionalGaussianEntropy" << std::endl;
@@ -59,16 +112,21 @@ public:
         // Specify the correct type of boundary condition
         switch( boundaryCondition[ 0 ] )
         {
-//            case 'S':
-//            {
-//                std::cout << "SLIDING" << std::endl;
-//                calculator->SetBoundaryCondition( kvl::AtlasMeshPositionCostAndGradientCalculator::SLIDING );
-//                if ( constTransform.GetPointer() )
-//                {
-//                    calculator->SetMeshToImageTransform( constTransform );
-//                }
-//                break;
-//            }
+            case 'S':
+            {
+                std::cout << "SLIDING" << std::endl;
+                calculator->SetBoundaryCondition( kvl::AtlasMeshPositionCostAndGradientCalculator::SLIDING );
+
+                // Retrieve transform if one is provided
+                TransformType::ConstPointer  constTransform = 0;
+                constTransform = static_cast< const TransformType* >( transform.m_transform.GetPointer() );
+
+                if ( constTransform.GetPointer() )
+                {
+                    calculator->SetMeshToImageTransform( constTransform );
+                }
+                break;
+            }
             case 'A':
             {
                 std::cout << "AFFINE" << std::endl;
