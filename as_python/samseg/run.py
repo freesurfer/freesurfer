@@ -179,10 +179,12 @@ def run_segmentation_process(recipe, shared_gmm_parameters):
     #                                                             compressionLookupTableFileName, modelSpecifications, ...
     #                                                             optimizationOptions, savePath, showFigures );
     [free_surfer_labels, names, volumes_in_cubic_mm] = samsegment(
-        recipe,
+        recipe.image_file_names,
         transformed_template_filename,
         model_specifications,
         optimization_options,
+        recipe.save_path,
+        recipe.show_figures
     )
 
     show_segmentation_results(names, volumes_in_cubic_mm)
