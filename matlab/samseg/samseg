@@ -23,7 +23,9 @@ set tmpdir = ();
 set cleanup = 1;
 set LF = ();
 set regmat = ()
+set initlta = ()
 set inputlist = ()
+set regonly = 0;
 set missingstructs = ()
 set computedice = 0;
 set diceseg = none
@@ -113,7 +115,9 @@ endif
 #========================================================
 if($usebin) then
   set cmd0 = (run_samseg --o $outdir --threads $threads)
-  if($#regmat) set cmd0 = ($cmd0 --regmat $regmat)
+  if($#regmat)  set cmd0 = ($cmd0 --regmat $regmat)
+  if($#initlta) set cmd0 = ($cmd0 --initlta $regmat)
+  if($regonly) set cmd0 = ($cmd0 --regonly);
   foreach input ($inputlist)
     set cmd0 = ($cmd0 --i $input)
   end
@@ -139,7 +143,9 @@ else
   echo "which samseg_registerAtlas"  >> $MLF
   echo -n "run_samseg('--o','$outdir','--threads','$threads'" >> $MLF
   if($#regmat) echo -n ",'--regmat','$regmat'" >> $MLF; # note leading comma
+  if($#initlta) echo -n ",'--initlta','$initlta'" >> $MLF; # note leading comma
   if($exvivo == 1) echo -n ",'--exvivo'" >> $MLF; # note leading comma
+  if($regonly == 1) echo -n ",'--regonly'" >> $MLF; # note leading comma
   foreach input ($inputlist)
     echo -n ",'--i','$input'" >> $MLF
   end
@@ -160,7 +166,7 @@ date | tee -a $LF
 
 # ========================================================
 # Compute dice:
-if($computedice) then
+if($computedice && ! $regonly) then
   set logfile = $outdir/dice.log
   set tablefile = $outdir/dice.table.dat
   rm -f $logfile # need to rm because it just appends
@@ -173,12 +179,14 @@ if($computedice) then
   endif
 endif
 
-# Compute segstats
-set sumfile = $outdir/crispSegmentation.stats 
-set cmd = (mri_segstats --ctab-default --seg $outdir/crispSegmentation.nii --sum $sumfile)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
+if(! $regonly) then
+  # Compute segstats
+  set sumfile = $outdir/crispSegmentation.stats 
+  set cmd = (mri_segstats --ctab-default --seg $outdir/crispSegmentation.nii --sum $sumfile)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
 
 # Prep for recon
 if($#subject != 0) then
@@ -262,6 +270,15 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "--initlta":
+      if($#argv < 1) goto arg1err;
+      set initlta = $argv[1]; shift;
+      if(! -e $initlta) then
+        echo "ERROR: cannot find $initlta"
+        exit 1
+      endif
+      breaksw
+
     case "--i":
       if($#argv < 1) goto arg1err;
       set inputlist = ($inputlist $argv[1]); shift;
@@ -300,6 +317,11 @@ while( $#argv != 0 )
     case "--sdd":
       if($#argv < 1) goto arg1err;
       setenv SAMSEG_DATA_DIR $argv[1]; shift;
+      breaksw
+
+    case "--regonly":
+    case "--reg-only":
+      set regonly = 1;
       breaksw
 
     case "--monly":
@@ -436,6 +458,11 @@ if($#outdir == 0) then
   exit 1;
 endif
 
+if($#regmat && $#initlta) then
+  echo "ERROR: cannot specify both --regmat and --initlta"
+  exit 1
+endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -461,6 +488,8 @@ usage_exit:
   echo ""
   echo " --regmat reg.mat : registration file (as output by samseg)"
   echo "    allows using the reg from one run with another run"
+  echo " --initlta init.lta : initial registration"
+  echo " --reg-only : only perform registration"
   echo ""
 
   if(! $PrintHelp) exit 1;
