@@ -1,7 +1,5 @@
 import argparse
 
-from easydict import EasyDict
-
 
 def parse_args(argv=None, parser=argparse.ArgumentParser()):
     parser.add_argument("-o", "--output", metavar="FOLDER", help="output to FOLDER")
@@ -18,7 +16,7 @@ def parse_args(argv=None, parser=argparse.ArgumentParser()):
     args = parser.parse_args(args=argv)
     if not args.image_file_names:
         parser.error("must specify at least one input")
-    return EasyDict(args.__dict__)
+    return args
 
 if __name__ == '__main__':
     print(parse_args())

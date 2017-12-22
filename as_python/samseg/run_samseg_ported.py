@@ -6,7 +6,8 @@ from as_python.samseg.kvl_read_compression_lookup_table import kvlReadCompressio
 from as_python.samseg.kvl_read_shared_gmm_parameters import kvlReadSharedGMMParameters
 from as_python.samseg.process_timer import ProcessTimer
 from as_python.samseg.register_atlas_ported import samseg_registerAtlas
-from as_python.samseg.run_utilities import find_or_create_save_path, specify_model, determine_optimization_options
+from as_python.samseg.run_utilities import find_or_create_save_path, specify_model, determine_optimization_options, \
+    find_samseg_data_dir
 from as_python.samseg.samseg_ported import samsegment
 
 logger = logging.getLogger(__name__)
@@ -84,7 +85,7 @@ def run_samseg(cmdargs):
     # % set SAMSEG_DATA_DIR as an environment variable, eg,
     # % setenv SAMSEG_DATA_DIR /autofs/cluster/koen/koen/GEMSapplications/wholeBrain
     # samsegDataDir = getenv( 'SAMSEG_DATA_DIR' );
-    samsegDataDir = os.environ.get('SAMSEG_DATA_DIR')
+    samsegDataDir = find_samseg_data_dir()
     #
     #
     verbose = cmdargs.verbose
