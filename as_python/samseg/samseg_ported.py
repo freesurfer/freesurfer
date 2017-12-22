@@ -31,11 +31,6 @@ def samsegment(
     # %
     #
     #
-    # TODO: change upstream code to always pass imageFileNames as list, even if only one.
-    # Meanwhile fix it with this bit of funk:
-    if imageFileNames[0] == '/':
-        imageFileNames = [imageFileNames]
-
     #
     # % Print input options
     # disp( '==========================' );
@@ -431,13 +426,11 @@ def print_optimization_options(options):
     print('    verbose={0}'.format(options.verbose))
     print('    maximalDeformationStopCriterion={0}'.format(options.maximalDeformationStopCriterion))
     print('    lineSearchMaximalDeformationIntervalStopCriterion={0}'.format(options.lineSearchMaximalDeformationIntervalStopCriterion))
-    print('    relativeCostDecreaseStopCriterion={0}'.format(options.relativeCostDecreaseStopCriterion))
     print('    maximalDeformationAppliedStopCriterion={0}'.format(options.maximalDeformationAppliedStopCriterion))
     print('    BFGSMaximumMemoryLength={0}'.format(options.BFGSMaximumMemoryLength))
     print('    multiResolutionSpecification:')
     for spec in options.multiResolutionSpecification:
         print('        atlasFileName={0}'.format(spec.atlasFileName))
-        print('        meshSmoothingSigma={0}'.format(spec.meshSmoothingSigma))
         print('        targetDownsampledVoxelSpacing={0}'.format(spec.targetDownsampledVoxelSpacing))
         print('        maximumNumberOfIterations={0}'.format(spec.maximumNumberOfIterations))
         print('        estimateBiasField={0}'.format(spec.estimateBiasField))
@@ -468,8 +461,14 @@ def print_show_figures(showFigures):
 if __name__ == '__main__':
     print("MATLAB_FIXTURE_PATH", MATLAB_FIXTURE_PATH)
     fixture = load_mat_data_file('part1.mat')
+    # matlab fixture sometimes returns imageFileNames as string not list of strings.
+    # Fix it with this bit of funk:
+    imageFileNames = fixture['imageFileNames']
+    if imageFileNames[0] == '/':
+        imageFileNames = [imageFileNames]
+
     results = samsegment(
-        fixture['imageFileNames'],
+        imageFileNames,
         fixture['transformedTemplateFileName'],
         fixture['modelSpecifications'],
         fixture['optimizationOptions'],

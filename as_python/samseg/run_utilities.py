@@ -48,26 +48,22 @@ def determine_optimization_options(verbose=False, avg_data_dir=None):
             # optimizationOptions = struct;
             # optimizationOptions.multiResolutionSpecification = struct;
             # optimizationOptions.multiResolutionSpecification(1).atlasFileName = fullfile(samsegDataDir, 'atlas_level1.txt.gz');
-            # optimizationOptions.multiResolutionSpecification( 1 ).meshSmoothingSigma = 2.0; % In mm
             # optimizationOptions.multiResolutionSpecification( 1 ).targetDownsampledVoxelSpacing = 2.0; % In mm
             # optimizationOptions.multiResolutionSpecification( 1 ).maximumNumberOfIterations = 100;
             # optimizationOptions.multiResolutionSpecification( 1 ).estimateBiasField = true;
             ResolutionSpecification({
                 'atlasFileName': os.path.join(avg_data_dir, 'atlas_level1.txt.gz'),
-                'meshSmoothingSigma': 2.0,
                 'targetDownsampledVoxelSpacing': 2.0,
                 'maximumNumberOfIterations': 100,
                 'estimateBiasField': True,
             }),
             # optimizationOptions.multiResolutionSpecification( 2 ).atlasFileName = fullfile( samsegDataDir, 'atlas_level2.txt.gz' );
-            # optimizationOptions.multiResolutionSpecification( 2 ).meshSmoothingSigma = 0.0; % In mm
             # optimizationOptions.multiResolutionSpecification( 2 ).targetDownsampledVoxelSpacing = 1.0; % In mm
             # optimizationOptions.multiResolutionSpecification( 2 ).maximumNumberOfIterations = 100;
             # optimizationOptions.multiResolutionSpecification( 2 ).estimateBiasField = true; % Switching this off will use the bias field estimated
             #                                                                                 % at lower resolution(s)
             ResolutionSpecification({
                 'atlasFileName': os.path.join(avg_data_dir, 'atlas_level2.txt.gz'),
-                'meshSmoothingSigma': 0.0,
                 'targetDownsampledVoxelSpacing': 1.0,
                 'maximumNumberOfIterations': 100,
                 'estimateBiasField': True,
@@ -84,7 +80,6 @@ def determine_optimization_options(verbose=False, avg_data_dir=None):
         # optimizationOptions.lineSearchMaximalDeformationIntervalStopCriterion = optimizationOptions.maximalDeformationStopCriterion; % Idem
         'lineSearchMaximalDeformationIntervalStopCriterion': 0.001,
         # % optimizationOptions.relativeCostDecreaseStopCriterion = 1e-6;
-        'relativeCostDecreaseStopCriterion': 1e-6,
         # optimizationOptions.maximalDeformationAppliedStopCriterion = 0.0;
         'maximalDeformationAppliedStopCriterion': 0.0,
         # optimizationOptions.BFGSMaximumMemoryLength = 12;

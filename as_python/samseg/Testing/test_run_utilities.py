@@ -51,8 +51,6 @@ def test_determine_optimization_options():
             assert 'yogi/atlas_level{0}.txt.gz'.format(index + 1) == spec.atlasFileName
             assert 100 == spec.maximumNumberOfIterations
             assert spec.estimateBiasField
-            assert 2.0 == spec.meshSmoothingSigma or index != 0
-            assert 0.0 == spec.meshSmoothingSigma or index != 1
             assert 2.0 == spec.targetDownsampledVoxelSpacing or index != 0
             assert 1.0 == spec.targetDownsampledVoxelSpacing or index != 1
         assert 20 == actual.maximumNumberOfDeformationIterations
@@ -61,7 +59,6 @@ def test_determine_optimization_options():
         assert 0.001 == actual.maximalDeformationStopCriterion
         assert actual.maximalDeformationStopCriterion == \
                actual.lineSearchMaximalDeformationIntervalStopCriterion
-        assert 1e-6 == actual.relativeCostDecreaseStopCriterion
         assert 0.0 == actual.maximalDeformationAppliedStopCriterion
         assert 12 == actual.BFGSMaximumMemoryLength
 

@@ -6,9 +6,9 @@ import os
 def require_np_array(np_array):
     return np.require(np_array, requirements=['F_CONTIGUOUS', 'ALIGNED'])
 
-ASSERTIOINS_ON = False
+ASSERTIONS_ON = False
 def assert_close(golden, trial, **kwargs):
-    if ASSERTIOINS_ON:
+    if ASSERTIONS_ON:
         np.testing.assert_allclose(golden, trial, **kwargs)
 
 def samseg_registerAtlas(imageFileName,
