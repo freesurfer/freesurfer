@@ -448,6 +448,12 @@ class MRISOBBTree
           }
         } //end insert points
       } // for each face
+
+      // check area of face
+      if (iszero(tot_mass)) {
+        printf("error: triangle face defined by vertices %d, %d, and %d has no area!\n", face->v[0], face->v[2], face->v[2]);
+        exit(1);
+      }
       
       //normalize data
       for (i=0; i<3; i++)
@@ -500,7 +506,7 @@ class MRISOBBTree
         pOBB->axes[1][i] = (tMax[1] - tMin[1]) * mid[i];
         pOBB->axes[2][i] = (tMax[2] - tMin[2]) * min[i];
       }
-     
+    
     } // end ComputeOBB method 
 
     //! Check whether the given point is inside or outside
