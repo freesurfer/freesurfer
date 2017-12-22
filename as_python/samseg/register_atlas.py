@@ -35,7 +35,7 @@ PRIOR_VISUALIZATION_ALPHA = 0.4
 MAXIMAL_DEFORMATION_STOP_CRITERIA = 0.005  # Measured in voxels
 
 
-def samseg_register_atlas(recipe):
+def DEPRECATED_samseg_register_atlas(recipe):
     #         image_file_name,
     #         mesh_collection_file_name,
     #         template_file_name,

@@ -39,14 +39,6 @@ class TestParseArgs:
         recipe = self.parse_command_line('--verbose')
         assert recipe.verbose
 
-    def test_no_exvivo_arg(self):
-        recipe = self.parse_minimum_command_line()
-        assert not recipe.exvivo
-
-    def test_exvivo_arg(self):
-        recipe = self.parse_command_line('--exvivo')
-        assert recipe.exvivo
-
     def test_default_thread_count(self):
         recipe = self.parse_minimum_command_line()
         assert 1 == recipe.threads
@@ -74,22 +66,6 @@ class TestParseArgs:
     def test_output_folder_long_flag(self):
         recipe = self.parse_command_line('--output some_folder')
         assert 'some_folder' == recipe.output
-
-    def test_no_missing_structures(self):
-        recipe = self.parse_minimum_command_line()
-        assert [] == recipe.missing_structures
-
-    def test_one_missing_structure_short(self):
-        recipe = self.parse_command_line('-mapple')
-        assert ['apple'] == recipe.missing_structures
-
-    def test_one_missing_structure_long(self):
-        recipe = self.parse_command_line('--missing apple')
-        assert ['apple'] == recipe.missing_structures
-
-    def test_three_missing_structures(self):
-        recipe = self.parse_command_line('--missing apple -mbanana --missing cherry')
-        assert ['apple', 'banana', 'cherry'] == recipe.missing_structures
 
     def test_no_regmat(self):
         recipe = self.parse_minimum_command_line()

@@ -1,11 +1,15 @@
-from functools import reduce
 import math
-import scipy.io
-import numpy as np
 import os
-import GEMS2Python
+from functools import reduce
 from operator import mul
+
+import GEMS2Python
+import numpy as np
+import scipy.io
+
 from as_python.samseg.kvl_merge_alphas import kvlMergeAlphas
+
+MATLAB_FIXTURE_PATH = os.path.dirname(os.path.dirname(os.path.dirname(__file__))) + '/GEMS2/Testing/matlab_data/'
 
 
 # function [ FreeSurferLabels, names, volumesInCubicMm ] = samsegment( imageFileNames, transformedTemplateFileName, meshCollectionFileName, ...
@@ -20,11 +24,6 @@ def samsegment(
         savePath,
         showFigures
 ):
-    # TODO: change upstream code to always pass imageFileNames as list, even if only one.
-    # Meanwhile fix it with this bit of funk:
-    if imageFileNames[0] == '/':
-        imageFileNames = [imageFileNames]
-
     # ﻿function [ FreeSurferLabels, names, volumesInCubicMm ] = samsegment( imageFileNames, transformedTemplateFileName, ...
     #                                                                      modelSpecifications, optimizationOptions, ...
     #                                                                      savePath, showFigures )
@@ -32,111 +31,21 @@ def samsegment(
     # %
     #
     #
+    # TODO: change upstream code to always pass imageFileNames as list, even if only one.
+    # Meanwhile fix it with this bit of funk:
+    if imageFileNames[0] == '/':
+        imageFileNames = [imageFileNames]
+
     #
     # % Print input options
     # disp( '==========================' );
     print('==========================')
-    # disp( 'imageFileNames: ' )
-    print('imageFileNames: ')
-    # for i = 1 : length( imageFileNames )
-    for imageFileName in imageFileNames:
-        #   disp( imageFileNames{ i } )
-        print(imageFileName)
-    # end
-    # fprintf( '-----\n' )
-    print('-----')
-
-    #
-    # disp( 'transformedTemplateFileName: ' )
-    print('transformedTemplateFileName: ')
-    # disp( transformedTemplateFileName )
-    print(transformedTemplateFileName)
-    # fprintf( '-----\n' )
-    print('-----')
-
-    #
-    # disp( 'modelSpecifications: ' )
-    print('modelSpecifications: ')
-    # fieldNames = fieldnames( modelSpecifications );
-    fieldNames = modelSpecifications._fieldnames
-    # for i = 1 : length( fieldNames )
-    for fieldName in fieldNames:
-        #   fieldName = fieldNames{ i };
-        #   disp( fieldName )
-        print(fieldName)
-        #   fields = getfield( modelSpecifications, fieldName );
-        fields = getattr(modelSpecifications, fieldName)
-        #   for j = 1 : length( fields )
-        if fieldName == 'atlasFileName':
-            print(fields)
-        elif fieldName == 'sharedGMMParameters':
-            for param in fields:
-                print("", "mergedName", param.mergedName)
-                print("", "number of components", param.numberOfComponents)
-                print("", "searchStrings", param.searchStrings)
-        elif fieldName in [
-            'useDiagonalCovarianceMatrices',
-            'brainMaskingSmoothingSigma',
-            'brainMaskingThreshold',
-            'K',
-            'biasFieldSmoothingKernelSize',
-        ]:
-            print(str(fields))
-        else:
-            for field in fields:
-                #     disp( fields(j) )
-                print('', str(field))
-            #   end
-            #   disp( ' ' )
-    # end
-    # fprintf( '-----\n' )
-    print('-----')
-
-    #
-    # disp( 'optimizationOptions:' )
-    print('optimizationOptions:')
-    # fieldNames = fieldnames( optimizationOptions );
-    for fieldName in optimizationOptions._fieldnames:
-        # for i = 1 : length( fieldNames )
-        #   fieldName = fieldNames{ i };
-        #   disp( fieldName )
-        print(fieldName)
-        field = getattr(optimizationOptions, fieldName)
-        #   fields = getfield( optimizationOptions, fieldName );
-        #   for j = 1 : length( fields )
-        if fieldName in [
-            'multiResolutionSpecification',
-            'maximumNumberOfDeformationIterations',
-            'absoluteCostPerVoxelDecreaseStopCriterion',
-            'verbose',
-            'maximalDeformationStopCriterion',
-            'lineSearchMaximalDeformationIntervalStopCriterion',
-            'maximalDeformationAppliedStopCriterion',
-            'BFGSMaximumMemoryLength',
-        ]:
-            print("", str(fields))
-        else:
-            for param in fields:
-                print("", "", param)
-                #     disp( fields(j) )
-            #   end
-    #   disp( ' ' )
-    # end
-    # fprintf( '-----\n' )
-    print('-----')
-    #
-    # disp( 'savePath: ' )
-    # disp( savePath )
-    print('savePath:', savePath)
-    # fprintf( '-----\n' )
-    #
-    # disp( 'showFigures: ' )
-    # disp( showFigures )
-    print('showFigures:', showFigures)
-    # fprintf( '-----\n' )
-    print('-----')
-    #
-    #
+    print_image_file_names(imageFileNames)
+    print_transformed_template_file_name(transformedTemplateFileName)
+    print_model_specifications(modelSpecifications)
+    print_optimization_options(optimizationOptions)
+    print_save_path(savePath)
+    print_show_figures(showFigures)
     # % Save input variables in a "history" structure
     # history = struct;
     # history.input = struct;
@@ -470,8 +379,93 @@ def load_mat_data_file(leaf_name):
     return load_mat_file(os.path.join(MATLAB_FIXTURE_PATH, leaf_name))
 
 
+def print_image_file_names(imageFileNames):
+    # disp( 'imageFileNames: ' )
+    print('imageFileNames: ')
+    # for i = 1 : length( imageFileNames )
+    for imageFileName in imageFileNames:
+        #   disp( imageFileNames{ i } )
+        print('    '.format(imageFileName))
+    # end
+    # fprintf( '-----\n' )
+    print('-----')
+
+
+def print_transformed_template_file_name(transformedTemplateFileName):
+    #
+    # disp( 'transformedTemplateFileName: ' )
+    print('transformedTemplateFileName: {0}'.format(transformedTemplateFileName))
+    # disp( transformedTemplateFileName )
+    print()
+    # fprintf( '-----\n' )
+    print('-----')
+
+
+def print_model_specifications(modelSpecifications):
+    #
+    # disp( 'modelSpecifications: ' )
+    print('modelSpecifications: ')
+    print('    atlasFileName={0}'.format(modelSpecifications.atlasFileName))
+    print('    useDiagonalCovarianceMatrices={0}'.format(modelSpecifications.useDiagonalCovarianceMatrices))
+    print('    brainMaskingSmoothingSigma={0}'.format(modelSpecifications.brainMaskingSmoothingSigma))
+    print('    brainMaskingThreshold={0}'.format(modelSpecifications.brainMaskingThreshold))
+    print('    K={0}'.format(modelSpecifications.K))
+    print('    biasFieldSmoothingKernelSize={0}'.format(modelSpecifications.biasFieldSmoothingKernelSize))
+    print('    sharedGMMParameters:')
+    for params in modelSpecifications.sharedGMMParameters:
+        print('        mergedName={0}'.format(params.mergedName))
+        print('        number of components={0}'.format(params.numberOfComponents))
+        print('        searchStrings={0}'.format(params.searchStrings))
+        print('        ---')
+
+    # fprintf( '-----\n' )
+    print('-----')
+
+
+def print_optimization_options(options):
+    #
+    # disp( 'optimizationOptions:' )
+    print('optimizationOptions:')
+    print('    maximumNumberOfDeformationIterations={0}'.format(options.maximumNumberOfDeformationIterations))
+    print('    absoluteCostPerVoxelDecreaseStopCriterion={0}'.format(options.absoluteCostPerVoxelDecreaseStopCriterion))
+    print('    verbose={0}'.format(options.verbose))
+    print('    maximalDeformationStopCriterion={0}'.format(options.maximalDeformationStopCriterion))
+    print('    lineSearchMaximalDeformationIntervalStopCriterion={0}'.format(options.lineSearchMaximalDeformationIntervalStopCriterion))
+    print('    relativeCostDecreaseStopCriterion={0}'.format(options.relativeCostDecreaseStopCriterion))
+    print('    maximalDeformationAppliedStopCriterion={0}'.format(options.maximalDeformationAppliedStopCriterion))
+    print('    BFGSMaximumMemoryLength={0}'.format(options.BFGSMaximumMemoryLength))
+    print('    multiResolutionSpecification:')
+    for spec in options.multiResolutionSpecification:
+        print('        atlasFileName={0}'.format(spec.atlasFileName))
+        print('        meshSmoothingSigma={0}'.format(spec.meshSmoothingSigma))
+        print('        targetDownsampledVoxelSpacing={0}'.format(spec.targetDownsampledVoxelSpacing))
+        print('        maximumNumberOfIterations={0}'.format(spec.maximumNumberOfIterations))
+        print('        estimateBiasField={0}'.format(spec.estimateBiasField))
+        print('        ---')
+    # fprintf( '-----\n' )
+    print('-----')
+
+
+def print_save_path(savePath):
+    #
+    # disp( 'savePath: ' )
+    # disp( savePath )
+    print('savePath:', savePath)
+    # fprintf( '-----\n' )
+    #
+
+
+def print_show_figures(showFigures):
+    # disp( 'showFigures: ' )
+    # disp( showFigures )
+    print('showFigures:', showFigures)
+    # fprintf( '-----\n' )
+    print('-----')
+    #
+    #
+
+
 if __name__ == '__main__':
-    MATLAB_FIXTURE_PATH = os.path.dirname(os.path.dirname(os.path.dirname(__file__))) + '/GEMS2/Testing/matlab_data/'
     print("MATLAB_FIXTURE_PATH", MATLAB_FIXTURE_PATH)
     fixture = load_mat_data_file('part1.mat')
     results = samsegment(

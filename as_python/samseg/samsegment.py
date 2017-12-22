@@ -4,7 +4,7 @@
 
 SKIP_SAMSEGMENT = True
 
-def samsegment(
+def DEPRECATED_samsegment(
         recipe,
         transformed_template_filename,
         model_specifications,

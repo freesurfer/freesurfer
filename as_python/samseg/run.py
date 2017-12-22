@@ -1,16 +1,17 @@
 # function retval = run_samseg(varargin)
 # % Run with no arguments to get help
 import logging
+import GEMS2Python
 
 from easydict import EasyDict
 
 from as_python.samseg.command_arguments import parse_args
 from as_python.samseg.process_timer import ProcessTimer
-from as_python.samseg.register_atlas import samseg_register_atlas
+from as_python.samseg.register_atlas_ported import samseg_registerAtlas
 from as_python.samseg.run_utilities import update_recipe_with_calculated_paths, determine_transformed_template_filename, \
     determine_optimization_options, specify_model, \
     determine_shared_gmm_parameters, use_standard_affine_registration_atlas
-from as_python.samseg.samsegment import samsegment
+from as_python.samseg.samseg_ported import samsegment
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)  # TODO: configurable logging
@@ -20,9 +21,9 @@ def run_samseg(recipe):
     process_timer = ProcessTimer('samseg begin')
     recipe = update_recipe_with_calculated_paths(recipe)
     display_recipe(recipe)
-    shared_gmm_parameters = run_or_retrieve_registration_process(recipe)
+    shared_gmm_parameters, transformedTemplateFileName = run_or_retrieve_registration_process(recipe)
     process_timer.mark_time('registration done')
-    run_segmentation_process(recipe, shared_gmm_parameters)
+    run_segmentation_process(recipe, shared_gmm_parameters, transformedTemplateFileName)
     process_timer.mark_time('samseg done')
 
 
@@ -64,12 +65,12 @@ def run_or_retrieve_registration_process(recipe):
         recipe.affine_file_names = use_standard_affine_registration_atlas(recipe.avg_data_dir)
 
     if recipe.regmat:
-        world_to_world_transform_matrix = retrieve_registration_process(recipe)
+        world_to_world_transform_matrix, transformedTemplateFileName = retrieve_registration_process(recipe)
     else:
-        world_to_world_transform_matrix = run_registration_process(recipe)
+        world_to_world_transform_matrix, transformedTemplateFileName = run_registration_process(recipe)
 
     create_and_write_transformations(recipe, world_to_world_transform_matrix)
-    return shared_gmm_parameters
+    return shared_gmm_parameters, transformedTemplateFileName
 
 
 def create_tailored_affine_registration_atlas(recipe):
@@ -77,7 +78,9 @@ def create_tailored_affine_registration_atlas(recipe):
     #
     #   % Read mesh
     #   meshCollection = kvlReadMeshCollection( meshCollectionFileName );
+    mesh_collection = GEMS2Python.KvlMeshCollection(recipe.mesh_collection_file_name)
     #   mesh = kvlGetMesh( meshCollection, -1 );
+    mesh = mesh_collection.reference_mesh
     #   [ FreeSurferLabels, names, colors ] = kvlReadCompressionLookupTable( compressionLookupTableFileName );
     #
     #   % Get a Matlab matrix containing a copy of the probability vectors in each mesh node (size numberOfNodes x
@@ -120,18 +123,13 @@ def retrieve_registration_process():
 
 
 def run_registration_process(recipe):
-    registration_recipe = EasyDict()
-    registration_recipe.verbose = recipe.verbose
-    registration_recipe.image_file_name = recipe.image_file_names[0]
-    registration_recipe.mesh_collection_file_name = \
-        recipe.affine_file_names.mesh_collection_file_name
-    registration_recipe.template_file_name = \
-        recipe.affine_file_names.template_file_name
-    registration_recipe.save_path = recipe.save_path
-    registration_recipe.show_figures = recipe.show_registration_figures
-
-    world_to_world_transform_matrix = samseg_register_atlas(registration_recipe)
-
+    world_to_world_transform_matrix, transformedTemplateFileName = samseg_registerAtlas(
+        recipe.image_file_names[0],
+        recipe.affine_file_names.mesh_collection_file_name,
+        recipe.affine_file_names.template_file_name,
+        recipe.save_path,
+        recipe.show_registration_figures,
+    )
     #         affine_registration_mesh_collection_file_name,
     #         affine_registration_template_file_name,
     #         image_file_names,
@@ -145,7 +143,7 @@ def run_registration_process(recipe):
     #                                                       affineRegistrationTemplateFileName, ...
     #                                                       savePath, ...
     #                                                       showFigures );
-    return world_to_world_transform_matrix
+    return world_to_world_transform_matrix, transformedTemplateFileName
 
 
 def create_and_write_transformations(recipe, world_to_world_transform_matrix):
@@ -159,7 +157,7 @@ def create_and_write_transformations(recipe, world_to_world_transform_matrix):
     pass
 
 
-def run_segmentation_process(recipe, shared_gmm_parameters):
+def run_segmentation_process(recipe, shared_gmm_parameters, transformedTemplateFileName):
     #         compression_lookup_table_file_name,
     #         exvivo,
     #         kvl,
@@ -170,7 +168,6 @@ def run_segmentation_process(recipe, shared_gmm_parameters):
     #         shared_gmm_parameters,
     #         show_figures
     # ):
-    transformed_template_filename = determine_transformed_template_filename(recipe.save_path)
 
     model_specifications = specify_model(recipe.exvivo, recipe.missing_structures, shared_gmm_parameters)
     optimization_options = determine_optimization_options(recipe.verbose)
@@ -180,11 +177,11 @@ def run_segmentation_process(recipe, shared_gmm_parameters):
     #                                                             optimizationOptions, savePath, showFigures );
     [free_surfer_labels, names, volumes_in_cubic_mm] = samsegment(
         recipe.image_file_names,
-        transformed_template_filename,
+        transformedTemplateFileName,
         model_specifications,
         optimization_options,
         recipe.save_path,
-        recipe.show_figures
+        recipe.show_segmentation_figures
     )
 
     show_segmentation_results(names, volumes_in_cubic_mm)

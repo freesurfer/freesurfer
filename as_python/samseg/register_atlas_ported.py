@@ -2,7 +2,7 @@ import numpy as np
 import scipy.ndimage
 import scipy.io
 import GEMS2Python
-
+import os
 def require_np_array(np_array):
     return np.require(np_array, requirements=['F_CONTIGUOUS', 'ALIGNED'])
 
@@ -177,7 +177,10 @@ def samseg_registerAtlas(imageFileName,
         #   imageBuffer = imageBuffer( 1 : downSamplingFactors( 1 ) : end, ...
         #                              1 : downSamplingFactors( 2 ) : end, ...
         #                              1 : downSamplingFactors( 3 ) : end );
-        imageBuffer = imageBuffer[::downSamplingFactors[0], ::downSamplingFactors[1], ::downSamplingFactors[2]]
+        imageBuffer = imageBuffer[
+                      ::int(downSamplingFactors[0]),
+                      ::int(downSamplingFactors[1]),
+                      ::int(downSamplingFactors[2])]
         #   assert_close(fixture.downsampledImageBuffer, imageBuffer;)
         assert_close(fixture.downsampledImageBuffer, imageBuffer)
         #   image = kvlCreateImage( imageBuffer );
@@ -515,12 +518,15 @@ def samseg_registerAtlas(imageFileName,
 
     # transformedTemplateFileName = fullfile( savePath, ...
     #                                         [ templateFileNameBase '_coregistered' templateFileNameExtension ] );
+    transformedTemplateFileName = os.path.join(savePath, templateFileNameBase, '_coregistered' + templateFileNameExtension)
     # kvlWriteImage( template, transformedTemplateFileName, ...
     #                kvlCreateTransform( desiredTemplateImageToWorldTransformMatrix ) );
+    template.write(transformedTemplateFileName, GEMS2Python.KvlTransform(desiredTemplateImageToWorldTransformMatrix))
     # assert_close(fixture.desiredTemplateImageToWorldTransformMatrix, desiredTemplateImageToWorldTransformMatrix;)
     #
     # save('/media/sf_matlab_data/register_atlas_fixture.mat', 'fixture')
     #
+    return worldToWorldTransformMatrix, transformedTemplateFileName
 
 if __name__ == '__main__':
     import os
