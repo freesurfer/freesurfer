@@ -250,9 +250,6 @@ int main(int argc, char *argv[])
 
   for (i=0; i < MAX_CLASSES; i++)
   {
-    if (i == 17) {
-      // printf("overlap: %d\ntotal1: %d\ntotal2: %d\n", Volume_overlap[i], Volume_from1[i], Volume_from2[i]);
-    }
     correct_ratio[i] =
       (double)Volume_overlap[i]/((double)Volume_union[i] + 1e-10);
     correct_ratio2[i] =
