@@ -17,7 +17,7 @@ def request_var(varname):
         os.remove(mat_filename)
     request_file = os.path.join(MATLAB_DUMP_DIR, varname + '.request')
     open(request_file, 'w')
-    for i in range(20):
+    for i in range(200):
         if not os.path.exists(request_file):
             var = scipy.io.loadmat(mat_filename, struct_as_record=False, squeeze_me=True)[varname]
             os.remove(mat_filename)
