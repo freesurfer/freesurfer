@@ -5,6 +5,7 @@ import GEMS2Python
 from dotdict import DotDict
 
 from as_python.kvlWarpMesh import kvlWarpMesh
+from as_python.samseg.dev_utils.debug_client import request_var, compare_vars
 
 eps = np.finfo(float).eps
 
@@ -90,6 +91,66 @@ def projectKroneckerProductBasisFunctions(kroneckerProductBasisFunctions, T):
     # coefficients = T(:);
     coefficients = T.flatten()
     return coefficients
+# computePrecisionOfKroneckerProductBasisFunctions( kroneckerProductBasisFunctions, B )
+def computePrecisionOfKroneckerProductBasisFunctions(kroneckerProductBasisFunctions, B):
+    # %
+    # % Compute
+    # %   H = W' * diag( B ) * W
+    # % where
+    # %   W = W{ numberOfDimensions } \kron W{ numberOfDimensions-1 } \kron ... W{ 1 }
+    # % and B is a weight matrix
+    #
+    #
+    # numberOfDimensions = length( kroneckerProductBasisFunctions );
+    numberOfDimensions = len( kroneckerProductBasisFunctions )
+    #
+    # % Compute a new set of basis functions (point-wise product of each combination of pairs) so that we can
+    # % easily compute a mangled version of the result
+    # Ms = zeros( 1, numberOfDimensions ); % Number of basis functions in each dimension
+    Ms = np.zeros( numberOfDimensions ) # % Number of basis functions in each dimension
+    # hessianKroneckerProductBasisFunctions = cell( 0, 0 );
+    hessianKroneckerProductBasisFunctions = {}
+    # for dimensionNumber = 1 : numberOfDimensions
+    for dimensionNumber in range(numberOfDimensions):
+        #   M = size( kroneckerProductBasisFunctions{ dimensionNumber }, 2 );
+        M = kroneckerProductBasisFunctions[dimensionNumber].shape[1]
+        #
+        #   if 0
+        #     N = size( kroneckerProductBasisFunctions{ dimensionNumber }, 1 );
+        #
+        #     A = kroneckerProductBasisFunctions{ dimensionNumber };
+        #     A2 = zeros( N, M^2 );
+        #     for i = 1 : M
+        #       shapeI = A( :, i );
+        #       for j = 1 : M
+        #         shapeJ = A( :, j );
+        #         A2( :, i + (j-1) * M ) = shapeI .* shapeJ;
+        #       end
+        #     end
+        #
+        #     hessianKroneckerProductBasisFunctions{ dimensionNumber } = A2;
+        #   else
+        #     A = kroneckerProductBasisFunctions{ dimensionNumber };
+        A = kroneckerProductBasisFunctions[dimensionNumber]
+        #     hessianKroneckerProductBasisFunctions{ dimensionNumber } = kron( ones( 1, M ), A ) .* kron( A, ones( 1, M ) );
+        hessianKroneckerProductBasisFunctions[dimensionNumber] = np.kron( np.ones( (1, M )), A ) * np.kron( A, np.ones( (1, M) ) )
+        #   end
+        #
+        #   Ms( dimensionNumber ) = M;
+        Ms[dimensionNumber] = M
+    #
+    # end
+    # result = projectKroneckerProductBasisFunctions( hessianKroneckerProductBasisFunctions, B );
+    result = projectKroneckerProductBasisFunctions( hessianKroneckerProductBasisFunctions, B );
+    # %result = reshape( result, [ Ms.^2 ] );
+    result = result.reshape(np.kron( Ms, [ 1, 1 ] ) )
+    # permutationIndices = [ 2 * [ 1 : numberOfDimensions ]-1 2 * [ 1 : numberOfDimensions ] ];
+    permutationIndices = np.hstack((2 * np.r_[: numberOfDimensions ], 2 * np.r_[: numberOfDimensions ] +1))
+    # result = permute( result, permutationIndices );
+    result = np.transpose(result, permutationIndices)
+    # precisionMatrix = reshape( result, [ prod( Ms ) prod( Ms ) ] );
+    precisionMatrix = result.reshape( ( np.prod( Ms ), np.prod( Ms ) ) )
+    return precisionMatrix
 
 
 # % We do the optimization in a multi-resolution type of scheme, where large
@@ -325,7 +386,7 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
         #
         #     % Get the priors at the current mesh position
         #     tmp = reshape( kvlRasterizeAtlasMesh( mesh, downSampledImageSize ), [ prod( downSampledImageSize ) numberOfClasses ] );
-        tmp = mesh.rasterize(downSampledImageSize)
+        tmp = mesh.rasterize(downSampledImageSize, -1)
         #     priors( : ) = double( tmp( downSampledMaskIndices, : ) ) / 65535;
         priors = tmp[downSampledMaskIndices] / 65535
         #
@@ -593,11 +654,11 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
                     #           variance = diag( diag( variance ) );
                     variance = np.diag( np.diag( variance ) );
                     #         end
-            #
-            #         variances( gaussianNumber, :, : ) = variance;
-            variances[gaussianNumber, :, : ] = variance
-            #         means( gaussianNumber, : ) = mean';
-            means[gaussianNumber, : ] = mean.T
+                #
+                #         variances( gaussianNumber, :, : ) = variance;
+                variances[gaussianNumber, :, : ] = variance
+                #         means( gaussianNumber, : ) = mean';
+                means[gaussianNumber, : ] = mean.T
             #
             #       end
             #       mixtureWeights = sum( posteriors + eps )';
@@ -620,7 +681,7 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
             #       %                                                                    % decent mixture model parameters are available
             #       if ( estimateBiasField && ( iterationNumber > 1 ) ) % Don't attempt bias field correction until
             #                                                           % decent mixture model parameters are available
-            if ( estimateBiasField and ( iterationNumber > 1 ) ):
+            if ( estimateBiasField and ( iterationNumber > 0 ) ):
                 #         %
                 #         % Bias field correction: implements Eq. 8 in the paper
                 #         %
@@ -636,45 +697,74 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
                     #         end
                 #
                 #         lhs = zeros( prod( numberOfBasisFunctions ) * numberOfContrasts ); % left-hand side of linear system
-                #         rhs = zeros( prod( numberOfBasisFunctions ) * numberOfContrasts, 1 ); % right-hand side of linear system
+                lhs = np.zeros( (np.prod( numberOfBasisFunctions ) * numberOfContrasts, np.prod( numberOfBasisFunctions ) * numberOfContrasts) ) # left-hand side of linear system
+                #         rhs = zeros( prod( numberOfBasisFunctions ) * numberOfContrasts, 1 ); % right-hand side of linear system                #
+                rhs = np.zeros( (np.prod( numberOfBasisFunctions ) * numberOfContrasts, 1) ) # right-hand side of linear system
                 #         weightsImageBuffer = zeros( downSampledImageSize );
+                weightsImageBuffer = np.zeros( downSampledImageSize )
                 #         tmpImageBuffer = zeros( downSampledImageSize );
+                tmpImageBuffer = np.zeros( downSampledImageSize )
                 #         for contrastNumber1 = 1 : numberOfContrasts
-                #           tmp = zeros( size( data, 1 ), 1 );
-                #           for contrastNumber2 = 1 : numberOfContrasts
-                #             classSpecificWeights = posteriors .* repmat( squeeze( precisions( :, contrastNumber1, contrastNumber2 ) )', ...
-                #                                                          [ size( posteriors, 1 ) 1 ] );
-                #             weights = sum( classSpecificWeights, 2 );
-                #
-                #             % Build up stuff needed for rhs
-                #             predicted = sum( classSpecificWeights .* repmat( means( :, contrastNumber2 )', [ size( posteriors, 1 ) 1 ] ), 2 ) ...
-                #                         ./ ( weights + eps );
-                #             residue = data( :, contrastNumber2 ) - predicted;
-                #             tmp = tmp + weights .* residue;
-                #
-                #             % Fill in submatrix of lhs
-                #             weightsImageBuffer( downSampledMaskIndices ) = weights;
-                #             lhs( ( contrastNumber1 - 1 ) * prod( numberOfBasisFunctions ) + [ 1 : prod( numberOfBasisFunctions ) ], ...
-                #                  ( contrastNumber2 - 1 ) * prod( numberOfBasisFunctions ) + [ 1 : prod( numberOfBasisFunctions ) ] ) = ...
-                #                   computePrecisionOfKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, weightsImageBuffer );
-                #
-                #           end % End loop over contrastNumber2
-                #
-                #           tmpImageBuffer( downSampledMaskIndices ) = tmp;
-                #           rhs( ( contrastNumber1 - 1 ) * prod( numberOfBasisFunctions ) + [ 1 : prod( numberOfBasisFunctions ) ] ) = ...
-                #                           projectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, tmpImageBuffer );
-                #
-                #         end % End loop over contrastNumber1
+                numberOfBasisFunctions_prod = np.prod(numberOfBasisFunctions)
+                for contrastNumber1 in range(numberOfContrasts):
+                    #           tmp = zeros( size( data, 1 ), 1 );
+                    tmp = np.zeros( (data.shape[0], 1) )
+                    #           for contrastNumber2 = 1 : numberOfContrasts
+                    for contrastNumber2 in range(numberOfContrasts):
+                        #             classSpecificWeights = posteriors .* repmat( squeeze( precisions( :, contrastNumber1, contrastNumber2 ) )', ...
+                        #                                                          [ size( posteriors, 1 ) 1 ] );
+                        classSpecificWeights = posteriors * precisions[ :, contrastNumber1, contrastNumber2 ].T
+                        #             weights = sum( classSpecificWeights, 2 );
+                        weights = np.sum( classSpecificWeights, 1 );
+                        #
+                        #             % Build up stuff needed for rhs
+                        #             predicted = sum( classSpecificWeights .* repmat( means( :, contrastNumber2 )', [ size( posteriors, 1 ) 1 ] ), 2 ) ...
+                        #                         ./ ( weights + eps );
+                        predicted = np.sum( classSpecificWeights *  np.expand_dims(means[ :, contrastNumber2], 2).T / ( np.expand_dims(weights, 1) + eps ), 1)
+                        #             residue = data( :, contrastNumber2 ) - predicted;
+                        residue = data[ :, contrastNumber2 ] - predicted
+                        #             tmp = tmp + weights .* residue;
+                        tmp = tmp + weights.reshape(-1,1)*residue.reshape(-1,1)
+                        #
+                        #             % Fill in submatrix of lhs
+                        #             weightsImageBuffer( downSampledMaskIndices ) = weights;
+                        #             lhs( ( contrastNumber1 - 1 ) * prod( numberOfBasisFunctions ) + [ 1 : prod( numberOfBasisFunctions ) ], ...
+                        #                  ( contrastNumber2 - 1 ) * prod( numberOfBasisFunctions ) + [ 1 : prod( numberOfBasisFunctions ) ] ) = ...
+                        #                   computePrecisionOfKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, weightsImageBuffer );
+                        #
+                        #             % Fill in submatrix of lhs
+                        weightsImageBuffer[downSampledMaskIndices] = weights
+                        precisions = computePrecisionOfKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, weightsImageBuffer )
+                        lhs[contrastNumber1 * numberOfBasisFunctions_prod : contrastNumber1 * numberOfBasisFunctions_prod + numberOfBasisFunctions_prod,
+                        contrastNumber2 * numberOfBasisFunctions_prod:contrastNumber2 * numberOfBasisFunctions_prod+numberOfBasisFunctions_prod] = precisions
+
+                        #           end % End loop over contrastNumber2
+                        #
+                    #           tmpImageBuffer( downSampledMaskIndices ) = tmp;
+                    tmpImageBuffer[ downSampledMaskIndices ] = tmp.squeeze()
+                    #           rhs( ( contrastNumber1 - 1 ) * prod( numberOfBasisFunctions ) + [ 1 : prod( numberOfBasisFunctions ) ] ) = ...
+                    #
+                    rhs[contrastNumber1 * numberOfBasisFunctions_prod : contrastNumber1 * numberOfBasisFunctions_prod + numberOfBasisFunctions_prod] \
+                        = projectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, tmpImageBuffer ).reshape(-1,1)
+
+                    #         end % End loop over contrastNumber1
                 #
                 #         % lhs = lhs + diag( 0.001 * diag( lhs ) );
                 #
                 #         biasFieldCoefficients = reshape( lhs \ rhs, [ prod( numberOfBasisFunctions ) numberOfContrasts ] );
+                ## TODO: There may a striding error somewhere here
+                biasFieldCoefficients = np.linalg.solve(lhs, rhs).reshape( (np.prod( numberOfBasisFunctions ), numberOfContrasts ))
                 #         for contrastNumber = 1 : numberOfContrasts
-                #           downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, biasFieldCoefficients( :, contrastNumber ) );
-                #           tmp = downSampledImageBuffers( :, :, :, contrastNumber ) - downSampledBiasField .* downSampledMask;
-                #           downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) = tmp;
-                #           biasCorrectedData( :, contrastNumber ) = tmp( downSampledMaskIndices );
-                #         end
+                for contrastNumber in range(numberOfContrasts):
+                    #           downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, biasFieldCoefficients( :, contrastNumber ) );
+                    downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, biasFieldCoefficients[ :, contrastNumber ] )
+                    #           tmp = downSampledImageBuffers( :, :, :, contrastNumber ) - downSampledBiasField .* downSampledMask;
+                    tmp = downSampledImageBuffers[ :, :, :, contrastNumber ] - downSampledBiasField * downSampledMask
+                    #           downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) = tmp;
+                    downSampledBiasCorrectedImageBuffers[ :, :, :, contrastNumber ] = tmp
+                    #           biasCorrectedData( :, contrastNumber ) = tmp( downSampledMaskIndices );
+                    biasCorrectedData[ :, contrastNumber ] = tmp[ downSampledMaskIndices ]
+                    #         end
                 #
                 #       end % End test if multiResolutionLevel == 1
                 #
@@ -753,34 +843,48 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
         #     historyOfMaximalDeformation = [];
         historyOfMaximalDeformation = [];
         #     nodePositionsBeforeDeformation = kvlGetMeshNodePositions( mesh );
-        nodePositionsBeforeDeformation = kvlGetMeshNodePositions( mesh );
+        nodePositionsBeforeDeformation = mesh.points
         #     deformationStartTime = tic;
         #     while true
-        #       %
-        #       stepStartTime = tic;
-        #       [ minLogLikelihoodTimesDeformationPrior, maximalDeformation ] = kvlStepOptimizer( optimizer );
-        #       disp( [ 'maximalDeformation ' num2str( maximalDeformation ) ' took ' num2str( toc( stepStartTime ) ) ' sec' ] )
-        #
-        #       if ( maximalDeformation == 0 )
-        #         break;
-        #       end
-        #
-        #       %
-        #       historyOfDeformationCost = [ historyOfDeformationCost; minLogLikelihoodTimesDeformationPrior ];
-        #       historyOfMaximalDeformation = [ historyOfMaximalDeformation; maximalDeformation ];
-        #
-        #     end % End loop over iterations
+        while True:
+            #       %
+            #       stepStartTime = tic;
+            #       [ minLogLikelihoodTimesDeformationPrior, maximalDeformation ] = kvlStepOptimizer( optimizer );
+            minLogLikelihoodTimesDeformationPrior, maximalDeformation = optimizer.step_optimizer()
+            #       disp( [ 'maximalDeformation ' num2str( maximalDeformation ) ' took ' num2str( toc( stepStartTime ) ) ' sec' ] )
+            print("maximalDeformation  {}".format(maximalDeformation))
+            #
+            #       if ( maximalDeformation == 0 )
+            #         break;
+            #       end
+            if  maximalDeformation == 0:
+                break
+            #
+            #       %
+            #       historyOfDeformationCost = [ historyOfDeformationCost; minLogLikelihoodTimesDeformationPrior ];
+            historyOfDeformationCost.append(minLogLikelihoodTimesDeformationPrior)
+            #       historyOfMaximalDeformation = [ historyOfMaximalDeformation; maximalDeformation ];
+            historyOfMaximalDeformation.append(maximalDeformation)
+            #
+            #     end % End loop over iterations
         #     kvlClear( calculator );
         #     kvlClear( optimizer );
         #     % haveMoved = ( length( historyOfDeformationCost ) > 0 );
         #     nodePositionsAfterDeformation = kvlGetMeshNodePositions( mesh );
+        nodePositionsAfterDeformation = mesh.points
         #     maximalDeformationApplied = sqrt( max( sum( ...
         #                 ( nodePositionsAfterDeformation - nodePositionsBeforeDeformation ).^2, 2 ) ) );
+        maximalDeformationApplied = np.sqrt( np.max( np.sum( ( nodePositionsAfterDeformation - nodePositionsBeforeDeformation )**2, 1 ) ) )
         #     disp( '==============================' )
         #     disp( [ 'iterationNumber: ' num2str( iterationNumber ) ] )
         #     disp( [ '    maximalDeformationApplied: ' num2str( maximalDeformationApplied ) ] )
         #     disp( [ '  ' num2str( toc( deformationStartTime ) ) ' sec' ] )
         #     disp( '==============================' )
+        print( '==============================' )
+        print( [ 'iterationNumber: ',  iterationNumber ] )
+        print( [ '    maximalDeformationApplied: ',  maximalDeformationApplied ] )
+        # print( [ '  ' num2str( toc( deformationStartTime ) ) ' sec' ] )
+        print( '==============================' )
         #
         #
         #     % Show a little movie comparing before and after deformation so far...
