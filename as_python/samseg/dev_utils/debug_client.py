@@ -26,3 +26,13 @@ def request_var(varname):
             time.sleep(0.1)
     else:
         raise Exception("Timed out waiting for matlab. Are you at a breakpoint and have the debug server running?")
+
+
+def compare_vars(varname):
+    import inspect
+    frame = inspect.currentframe()
+    try:
+        return {'python': frame.f_back.f_locals[varname],
+                'matlab': request_var(varname)}
+    finally:
+        del frame
