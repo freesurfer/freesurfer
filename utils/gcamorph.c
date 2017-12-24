@@ -6975,9 +6975,12 @@ static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
   }
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+:sse) shared(gcam,Gx,Gy,Gz) schedule(static,1)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(fast) reduction(+:sse) shared(gcam,Gx,Gy,Gz) schedule(static,1)
 #endif
   for (xLo = 0; xLo < width; xLo += xStride) {
+    ROMP_PFLB_begin
+    
     int const xHi = MIN(xLo + xStride, width);
 
     // Compute all the (gcamn->x - gcamn->origx) for the valid nodes
@@ -7145,7 +7148,9 @@ static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
         }
       }
     } // compute the contribution for the slice
+    ROMP_PFLB_end
   } // over all the slices
+  ROMP_PF_end
 
   // Show the stats
   // Free the buffers
