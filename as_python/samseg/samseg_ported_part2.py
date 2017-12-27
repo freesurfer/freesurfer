@@ -948,7 +948,7 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
         #     %          < relativeCostDecreaseStopCriterion ) || ...
         #     %        ( maximalDeformationApplied < maximalDeformationAppliedStopCriterion ) )
         #     if ( ( ( ( historyOfCost( end-1 ) - historyOfCost( end ) ) / length( downSampledMaskIndices ) ) ...
-        if ( ( ( ( historyOfCost[-2] - historyOfCost[-1] ) / len( downSampledMaskIndices ) )
+        if ( ( ( ( historyOfCost[-2] - historyOfCost[-1] ) / len( downSampledMaskIndices[0] ) )
         #            < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion ) ) % If EM converges in one iteration and mesh node optimization doesn't do anything
                    < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion ) ): # If EM converges in one iteration and mesh node optimization doesn't do anything
             #       % Converged
