@@ -35,7 +35,7 @@
 #endif
 
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 #include "mri.h"
 #include "macros.h"
@@ -504,10 +504,12 @@ HISTOsynthesize(MRI *mri, MRI *histo, int test_slice, int train_slice, MRI *hsyn
     width = crop_width > 0 ? crop_width : hsynth->width ;
 #ifdef HAVE_OPENMP
     xm = ym = zm = 0 ;
-#pragma omp parallel for firstprivate(m_histo2mri, m_mri2histo, xind, yind, zind, hsynth, y, val, histo, test_slice, Gx, Gy, xm, ym, zm, identity, mri_mask, mri, train_slice, min_training_dist, tol, num_notfound, xh, yh, zh, xd, yd, zd, f, farray) shared(v1, v2) schedule(static,1)
+    ROMP_PF_begin
+#pragma omp parallel for if_ROMP(experimental) firstprivate(m_histo2mri, m_mri2histo, xind, yind, zind, hsynth, y, val, histo, test_slice, Gx, Gy, xm, ym, zm, identity, mri_mask, mri, train_slice, min_training_dist, tol, num_notfound, xh, yh, zh, xd, yd, zd, f, farray) shared(v1, v2) schedule(static,1)
 #endif
   for (x = 0 ; x < width ; x++)   // synth is in histo coords
   {
+    ROMP_PFLB_begin
 #ifdef HAVE_OPENMP
     tid = omp_get_thread_num();
     f = &farray[tid] ;
@@ -573,7 +575,10 @@ HISTOsynthesize(MRI *mri, MRI *histo, int test_slice, int train_slice, MRI *hsyn
 	DiagBreak() ;
       MRIsetVoxVal(hsynth, x, y, test_slice, 0, val) ;
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+
   }
   printf("\n") ;
 
@@ -636,7 +641,7 @@ find_most_similar_location(MRI *mri, FEATURE *fsrc, int z, int *pxd, int *pyd, i
 #if 0
 #ifdef HAVE_OPENMP
   dist = 0 ; x = y = 0 ;
-#pragma omp parallel for firstprivate(nind, x, y, x1, y1, Gx, Gy, Gz, box, x0, y0, fsrc, f, flags, min_training_dist, dist, num_notfound) shared(min_dist, num) schedule(static,1)
+#pragma omp parallel for if_ROMP(experimental) firstprivate(nind, x, y, x1, y1, Gx, Gy, Gz, box, x0, y0, fsrc, f, flags, min_training_dist, dist, num_notfound) shared(min_dist, num) schedule(static,1)
 #endif
 #endif
   for (ind = 0 ; ind < nind ; ind++)

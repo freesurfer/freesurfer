@@ -33,7 +33,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #ifdef HAVE_OPENMP // mrisurf.c has numerous parallelized functions
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #include "macros.h"

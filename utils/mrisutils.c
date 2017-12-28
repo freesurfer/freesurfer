@@ -31,6 +31,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "romp_support.h"
+
 #include "mri.h"
 #include "mrisurf.h"
 
@@ -2469,10 +2471,13 @@ int MRISsetPialUnknownToWhite(const MRIS *white, MRIS *pial)
   else
     UseWhite = 0;
 
-#ifdef _OPENMP
-#pragma omp parallel for firstprivate(annot, annotid)
+#ifdef HAVE_OPENMP
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) firstprivate(annot, annotid)
 #endif
   for (vtxno = 0; vtxno < white->nvertices; vtxno++) {
+    ROMP_PFLB_begin
+    
     // Convert annotation number to an entry number
     if (UseWhite) {
       annot = white->vertices[vtxno].annotation;
@@ -2487,7 +2492,11 @@ int MRISsetPialUnknownToWhite(const MRIS *white, MRIS *pial)
       pial->vertices[vtxno].y = white->vertices[vtxno].y;
       pial->vertices[vtxno].z = white->vertices[vtxno].z;
     }
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+
   MRIScomputeMetricProperties(pial);
   return (0);
 }

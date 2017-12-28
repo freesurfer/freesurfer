@@ -53,7 +53,7 @@
 #include <unistd.h>
 #include <sys/utsname.h>
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #include "macros.h"
@@ -1697,10 +1697,12 @@ compute_weight_functional(VECTOR **v_D, MATRIX **m_I, VECTOR *v_weights, int nsu
   total_error = 0.0 ;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate (v_D, v_weight_T) reduction(+:total_error) schedule(static,1)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) firstprivate (v_D, v_weight_T) reduction(+:total_error) schedule(static,1)
 #endif
   for (n = 0 ; n < nsubjects ; n++)
   {
+    ROMP_PFLB_begin
     VECTOR *I_weighted, *I_weighted_T ;
     double error ;
 
@@ -1710,7 +1712,9 @@ compute_weight_functional(VECTOR **v_D, MATRIX **m_I, VECTOR *v_weights, int nsu
     error = VectorSSE(v_D[n], I_weighted_T) ;
     total_error += error ;
     VectorFree(&I_weighted) ;  VectorFree(&I_weighted_T) ; 
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
   VectorFree(&v_weight_T) ;
   return(total_error) ;
 }
@@ -1726,25 +1730,31 @@ compute_gradient_wrt_weights(VECTOR **v_D, MATRIX **m_I, VECTOR *v_weights, int 
     VectorClear(v_gradient) ;
   nvertices = v_D[0]->rows ; nvox = v_weights->rows ;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate (v_D) shared(v_diff)  schedule(static,1)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) firstprivate (v_D) shared(v_diff)  schedule(static,1)
 #endif
   for (n = 0 ; n < nsubjects ; n++)
   {
+    ROMP_PFLB_begin
     VECTOR *I_weighted, *I_weighted_T ;
     I_weighted = MatrixMultiply(v_weight_T, m_I[n], NULL) ;
     I_weighted_T = VectorTranspose(I_weighted, NULL) ;
     v_diff[n] = MatrixSubtract(v_D[n], I_weighted_T, NULL) ;
     VectorFree(&I_weighted) ; VectorFree(&I_weighted_T) ; 
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
   VectorFree(&v_weight_T) ;
 
   for (l = 0 ; l < nvox ; l++)
   {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate (l, v_gradient, nvertices) schedule(static,1)
+    ROMP_PF_begin
+    #pragma omp parallel for if_ROMP(experimental) firstprivate (l, v_gradient, nvertices) schedule(static,1)
 #endif
     for (n = 0 ; n < nsubjects ; n++)
     {
+      ROMP_PFLB_begin
       int i ;
       for (i = 0 ; i < nvertices ; i++)
       {
@@ -1753,7 +1763,9 @@ compute_gradient_wrt_weights(VECTOR **v_D, MATRIX **m_I, VECTOR *v_weights, int 
 	In = *MATRIX_RELT(m_I[n], l+1, i+1) ;
 	VECTOR_ELT(v_gradient, l+1) += vd * (-In) ;
       }
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
   }
   for (n = 0 ; n < nsubjects ; n++)
     VectorFree(&v_diff[n]) ;
@@ -1860,10 +1872,12 @@ compute_subcortical_map_weights(MRI_SURFACE *mris, MRI *mri_fvol[MAX_SUBJECTS][M
   printf("reading timeseries and creating correlations\n") ;
 #ifdef HAVE_OPENMP
   mri_cmat = NULL ;
-#pragma omp parallel for firstprivate (mri_cmat) shared(m_I, vl, mri_fvol, mri_fsurf, runs) schedule(static,1)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) firstprivate (mri_cmat) shared(m_I, vl, mri_fvol, mri_fsurf, runs) schedule(static,1)
 #endif
   for (n = 0 ; n <= nsubjects ; n++)
   {
+    ROMP_PFLB_begin
     mri_cmat = compute_voxlist_surface_correlations_across_runs(vl, vl->nvox, mri_fvol[n], mri_fsurf[n], runs, NULL) ;
     m_I[n] = MRIcopyFramesToMatrixRows(mri_cmat, NULL, 0, vl->nvox, 1) ;
     if (write_diags)
@@ -1875,7 +1889,9 @@ compute_subcortical_map_weights(MRI_SURFACE *mris, MRI *mri_fvol[MAX_SUBJECTS][M
       MRIwrite(mri_cmat, fname) ;
     }
     MRIfree(&mri_cmat) ;
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   if (create_only)
     exit(0) ;

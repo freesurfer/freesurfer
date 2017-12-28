@@ -36,6 +36,8 @@
 #include "proto.h"
 #include "utils.h"
 
+#include "romp_support.h"
+
 /*---------------------------- STRUCTURES -------------------------*/
 
 /*---------------------------- CONSTANTS -------------------------*/
@@ -1731,10 +1733,15 @@ MRI_SP *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno)
   const IMAGE *const Ip_src = Ip_src_init;
 
   int u;
-#pragma omp parallel for collapse(2)
+
+#if HAVE_OPENMP  
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(assume_reproducible) collapse(2)
+#endif
   for (fno = f0; fno <= f1; fno++) /* for each frame */
   {
     for (u = 0; u < U_DIM(mrisp_src); u++) {
+      ROMP_PFLB_begin
       int k, klen, khalf;
       double phi, sin_sq_u;
 
@@ -1805,8 +1812,10 @@ MRI_SP *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno)
         total /= ktotal; /* normalize weights to 1 */
         *IMAGEFseq_pix(mrisp_dst->Ip, u, v, fno) = total;
       }
+      ROMP_PFLB_end
     }
   }
+  ROMP_PF_end
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) fprintf(stderr, "done.\n");
 

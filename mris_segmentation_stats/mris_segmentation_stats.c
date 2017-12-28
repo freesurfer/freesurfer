@@ -40,6 +40,7 @@
 #include "const.h"
 #include "timer.h"
 #include "version.h"
+#include "romp_support.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -262,10 +263,12 @@ write_roc_curve(MRI_SURFACE *mris[MAX_SUBJECTS], LABEL *labels[MAX_SUBJECTS],
     fpos = fneg = tpos = tneg = 0 ;
     i = 0 ;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(i, thresh, dilate, erode, nlabels, segments, min_area) shared(mris, labels) schedule(static,1)
+    ROMP_PF_begin
+    #pragma omp parallel for if_ROMP(experimental) firstprivate(i, thresh, dilate, erode, nlabels, segments, min_area) shared(mris, labels) schedule(static,1)
 #endif
     for (n = 0 ; n < nsubjects ; n++)
     {
+      ROMP_PFLB_begin
       MRISthresholdValIntoMarked(mris[n], thresh) ;
       MRISdilateMarked(mris[n], dilate) ;
       MRISerodeMarked(mris[n], erode) ;
@@ -274,7 +277,9 @@ write_roc_curve(MRI_SURFACE *mris[MAX_SUBJECTS], LABEL *labels[MAX_SUBJECTS],
 				 &tps[n], &tns[n], &fps[n], &fns[n]);
       for (i = 0 ; i < nlabels ; i++)
 	LabelFree(&segments[i]) ;
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
     for (n = 0 ; n < nsubjects ; n++)
     {
       fpos += fps[n] ; fneg += fns[n] ; tpos += tps[n] ; tneg += tns[n] ;

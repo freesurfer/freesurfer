@@ -49,6 +49,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "romp_support.h"
 
 #define MAX_RFA_INPUTS 1000
 #define MAX_TIMEPOINTS 20
@@ -232,10 +233,12 @@ main(int argc, char *argv[])
   transform = NULL ;
   tp1_name = tp2_name = NULL ;
   mri_tmp = mri_seg = NULL ;
-#pragma omp parallel for firstprivate(tp1_name, tp2_name, mri_in,mri_tmp, input, xform_name, transform, subjects_dir, force_inputs, conform, Progname, mri_seg, subject_name, s1_name, s2_name, sname, t, fname) shared(mri_inputs, transforms, mri_segs,argv) schedule(static,1)
+  ROMP_PF_begin
+#pragma omp parallel for if_ROMP(experimental) firstprivate(tp1_name, tp2_name, mri_in,mri_tmp, input, xform_name, transform, subjects_dir, force_inputs, conform, Progname, mri_seg, subject_name, s1_name, s2_name, sname, t, fname) shared(mri_inputs, transforms, mri_segs,argv) schedule(static,1)
 #endif
   for (i = 0 ; i < max_index ; i++)
   {
+    ROMP_PFLB_begin
     subject_name = argv[3*i+1] ;
     tp1_name = argv[3*i+2] ;
     tp2_name = argv[3*i+3] ;
@@ -475,7 +478,10 @@ main(int argc, char *argv[])
       mri_inputs[i][t] = mri_in ;
       transforms[i][t] = transform ;
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   rf = train_rforest(mri_inputs, mri_segs, transforms, nsubjects, gca, &parms, wm_thresh,wmsa_whalf, 2) ;
   printf("writing random forest to %s\n", out_fname) ;
   if (RFwrite(rf, out_fname) != NO_ERROR)

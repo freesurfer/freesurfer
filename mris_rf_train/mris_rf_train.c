@@ -42,7 +42,7 @@
 #include "rforest.h"
 #include "rfutils.h"
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 static char *class_names[] = 

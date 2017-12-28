@@ -19,7 +19,7 @@ S. Beucher and F. Meyer introduced an algorithmic inter-pixel implementation of 
 #include <math.h>
 #include <string.h>
 #include <ctype.h>
-#include <omp.h>
+#include "romp_support.h"
 
 #include "macros.h"
 #include "error.h"
@@ -368,10 +368,12 @@ MRISfindMostSimilarBasins(MRI_SURFACE *mris, MRI *mri, int *pb2)
     max_basin = 0 ;
 // reductions for min and max aren't available in earlier openmp
 #if defined(HAVE_OPENMP) && GCC_VERSION > 40408
-#pragma omp parallel for reduction(max:max_basin)
+    ROMP_PF_begin
+    #pragma omp parallel for if_ROMP(experimental) reduction(max:max_basin)
 #endif
     for (vno = 0 ;  vno < mris->nvertices ; vno++)
     {
+      ROMP_PFLB_begin
       VERTEX *v, *vn ;
       int    n, nbr_basin ;
 
@@ -389,7 +391,9 @@ MRISfindMostSimilarBasins(MRI_SURFACE *mris, MRI *mri, int *pb2)
 	if (nbr_basin > max_basin)
 	  max_basin = nbr_basin ;
       }
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
     
     min_grad = 1e10 ;
     for (basin = 1 ; basin <= max_basin ; basin++)
@@ -509,7 +513,7 @@ MRISwatershed(MRI_SURFACE *mris, MRI *mri, int max_clusters, int merge_type)
     vv = MRISgetSortedVertexValues(mris, mri, vv, &nvert) ;
     max_val = 0 ;
 //ifdef HAVE_OPENMP
-//pragma omp parallel for reduction(max:max_val)
+//pragma omp parallel for if_ROMP(experimental) reduction(max:max_val)
 //endif
     for (vno = 0 ; vno < nvert ; vno++)
     {

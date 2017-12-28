@@ -49,8 +49,8 @@
 #include "mrisurf.h"
 #include <sys/time.h>
 #include <sys/resource.h>
-#ifdef _OPENMP
-#include <omp.h>
+#ifdef HAVE_OPENMP
+#include "romp_support.h"
 #endif
 #include "timer.h"
 #include "mrimorph.h"
@@ -688,7 +688,7 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) CMDargNErr(option,1);
       int nthreads;
       sscanf(pargv[0],"%d",&nthreads);
-      #ifdef _OPENMP
+      #ifdef HAVE_OPENMP
       omp_set_num_threads(nthreads);
       #endif
       nargsused = 1;
@@ -912,7 +912,7 @@ int COREGhist(COREG *coreg)
   V2V[15] = 0;
 
   nthreads = 1;
-  #ifdef _OPENMP
+  #ifdef HAVE_OPENMP
   nthreads = omp_get_max_threads();
   #endif
   HH = (double **)calloc(sizeof(double*),nthreads);
@@ -920,10 +920,12 @@ int COREGhist(COREG *coreg)
     HH[n] = (double *)calloc(sizeof(double),256*256);
 
   nhits = 0;
-  #ifdef _OPENMP
-  #pragma omp parallel for reduction(+:nhits)
+  #ifdef HAVE_OPENMP
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) reduction(+:nhits)
   #endif
   for(cref=0; cref < coreg->ref->width; cref += coreg->sep){
+    ROMP_PFLB_begin
     int rref,sref;
     double dcref,drref,dsref;
     double dcmov,drmov,dsmov;
@@ -933,7 +935,7 @@ int COREGhist(COREG *coreg)
     int threadno = 1;
     //int iran;
 
-    #ifdef _OPENMP
+    #ifdef HAVE_OPENMP
     threadno = omp_get_thread_num(); 
     #endif
     H = HH[threadno];
@@ -985,7 +987,9 @@ int COREGhist(COREG *coreg)
 	if(ivf<255) H[ivf+1+ivg*256] += (vf-ivf);
       }
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   // Collect the threads
   for(k=0; k < 256*256; k++){
@@ -1739,7 +1743,7 @@ int COREGprint(FILE *fp, COREG *coreg)
   fprintf(fp,"linmintol %5.3le\n",coreg->linmintol);
   fprintf(fp,"SatPct %lf\n",coreg->SatPct);
   fprintf(fp,"Hist FWHM %lf %lf\n",coreg->histfwhm[0],coreg->histfwhm[1]);
-#ifdef _OPENMP
+#ifdef HAVE_OPENMP
   fprintf(fp,"nthreads %d\n",omp_get_max_threads());
 #else
   fprintf(fp,"nthreads %d\n",1);

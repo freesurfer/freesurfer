@@ -65,7 +65,7 @@
 #include "timer.h"
 
 #ifdef _OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #include "bfileio.h"
@@ -2110,10 +2110,13 @@ MRI *MRIseg2SegPVF(
      thread-safe because each voxel is handled separately. */
   nhits = 0;  // keep track of the total number of hits
 #ifdef _OPENMP
-// note: removing reduction(+:nhits) slows the speed to that of 1 thread
-#pragma omp parallel for shared(nperfth, m13, m23, m33) reduction(+ : nhits)
+  ROMP_PF_begin
+  // note: removing reduction(+:nhits) slows the speed to that of 1 thread
+  #pragma omp parallel for if_ROMP(experimental) shared(nperfth, m13, m23, m33) reduction(+ : nhits)
 #endif
   for (nthvox = 0; nthvox < nvox; nthvox++) {
+    ROMP_PFLB_begin
+    
     int c, r, s, i, j, k, ca, ra, sa, segid, f, threadno;
     double cf, rf, sf;
     double m11cf, m21cf, m31cf, m12rf, m22rf, m32rf;
@@ -2179,8 +2182,11 @@ MRI *MRIseg2SegPVF(
       segid = VOXsegPVF2Seg(nperf, segidlist, nsegs, ct);
       MRIsetVoxVal(out, c, r, s, 0, segid);
     }
+    
+    ROMP_PFLB_end
   }  // nthvox
-
+  ROMP_PF_end
+  
   for (f = 0; f < nthreads; f++) free(nperfth[f]);
   free(nperfth);
 

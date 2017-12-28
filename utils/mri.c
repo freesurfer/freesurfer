@@ -38,7 +38,7 @@ const char *MRI_C_VERSION = "$Revision: 1.575 $";
 #include <stdlib.h>
 #include <string.h>
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #include "box.h"
@@ -4383,9 +4383,12 @@ MRI *MRIbinarizeNoThreshold(MRI *mri_src, MRI *mri_dst)
 
   for (f = 0; f < mri_src->nframes; f++) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+    ROMP_PF_begin
+    #pragma omp parallel for if_ROMP(experimental)
 #endif
     for (z = 0; z < depth; z++) {
+      ROMP_PFLB_begin
+      
       double val;
       int x, y;
 
@@ -4396,7 +4399,10 @@ MRI *MRIbinarizeNoThreshold(MRI *mri_src, MRI *mri_dst)
           MRIsetVoxVal(mri_dst, x, y, z, f, val);
         }
       }
+      
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
   }
 
   return (mri_dst);
@@ -4422,9 +4428,12 @@ MRI *MRIbinarize(MRI *mri_src, MRI *mri_dst, float threshold, float low_val, flo
 
   for (f = 0; f < mri_src->nframes; f++) {
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+    ROMP_PF_begin
+    #pragma omp parallel for if_ROMP(experimental)
 #endif
     for (z = 0; z < depth; z++) {
+      ROMP_PFLB_begin
+      
       double val;
       int x, y;
 
@@ -4442,7 +4451,10 @@ MRI *MRIbinarize(MRI *mri_src, MRI *mri_dst, float threshold, float low_val, flo
           MRIsetVoxVal(mri_dst, x, y, z, f, val);
         }
       }
+      
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
   }
 
   return (mri_dst);
@@ -17209,10 +17221,13 @@ MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int t
     max_change = 0.0 ;
     mri_tmp = MRIcopy(mri_laplace, mri_tmp) ;
 #if defined(HAVE_OPENMP) && GCC_VERSION > 40408
-#pragma omp parallel for reduction(max: max_change)
+    ROMP_PF_begin
+    #pragma omp parallel for if_ROMP(experimental) reduction(max: max_change)
 #endif
     for (v = 0 ; v < vl->nvox  ; v++)
     {
+      ROMP_PFLB_begin
+      
       int    x, y, z, xm1, ym1, zm1, xp1, yp1, zp1, nvox ;
       float  change, val, oval ;
 
@@ -17260,7 +17275,11 @@ MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int t
       if (change > max_change)
         max_change = change ;
       MRIsetVoxVal(mri_tmp, x, y, z, 0, val);
+      
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
+    
     MRIcopy(mri_tmp, mri_laplace) ;
     npasses++ ;
     if (npasses%10 == 0)

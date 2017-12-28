@@ -31,10 +31,16 @@
 extern "C" {
 #endif
 
+
 #include <sys/timeb.h>
 
 struct timeb *TimerStart(struct timeb *then) ;
 int TimerStop(struct timeb *then) ;
+
+typedef struct NanosecsTimer {  struct timespec now; } NanosecsTimer;
+typedef struct Nanosecs { long ns; } Nanosecs;
+void     TimerStartNanosecs  (NanosecsTimer * now) ;
+Nanosecs TimerElapsedNanosecs(NanosecsTimer * then) ;	// returns delta in nanosecs
 
 #ifdef Linux
 /* don't know why this doesn't work on linux, but.... */
