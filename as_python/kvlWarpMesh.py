@@ -135,7 +135,7 @@ def kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshColl
         #   % denseDeformation = double( kvlRasterizeAtlasMesh( sourceReferenceMesh, imageSize ) ) / ( 2^16 -1 ) ...
         #   %                               * ( maxDeformation - minDeformation ) + minDeformation;
         #   tmp = kvlRasterizeAtlasMesh( sourceReferenceMesh, imageSize );
-        tmp = sourceReferenceMesh.rasterize(imageSize)
+        tmp = sourceReferenceMesh.rasterize(list(imageSize.astype(np.int32)), -1)
         #
         #   % Unvisited voxels are marked by zeroes in all three coordinates - except possibly for the origin
         #   % which has all three coordinates zero as its natural state
@@ -151,10 +151,7 @@ def kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshColl
         #
         #   %
         #   denseDeformation = double( tmp ) / ( 2^16 -1 ) * ( maxDeformation - minDeformation ) + minDeformation;
-        denseDeformation = np.copy(tmp, dtype=np.double)
-        denseDeformation /= 65535.0
-        denseDeformation *= deltaDeformation
-        denseDeformation += minDeformation
+        denseDeformation = ( tmp ) / ( 2**16 -1 ) * ( maxDeformation - minDeformation ) + minDeformation
         #
         #   % Due to tetrahedral inside/outside checking performed in the rasterizer, some voxels on the boundary of the
         #   % image grid are never visited. There also seems to be non-visited voxels inside the image grid (bug in rasterizer).
