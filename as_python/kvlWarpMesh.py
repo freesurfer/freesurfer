@@ -192,19 +192,28 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
         ## Missed voxels with all 3 values at zero will map from nearest (euclidean) non-missed voxel
         # TODO: make this efficient
         # newDenseDeformation = denseDeformation[closestIndices]
-        if False:
+        if True:
             x_map = closestIndices[0]
             y_map = closestIndices[1]
             z_map = closestIndices[2]
             x_limit, y_limit, z_limit, should_be_three = denseDeformation.shape
+            print('closestIndices...')
+            voxel_count = 0
+            change_count = 0
             for x in range(x_limit):
                 for y in range(y_limit):
                     for z in range(z_limit):
+                        voxel_count += 1
                         close_x = x_map[x, y, z]
                         close_y = y_map[x, y, z]
                         close_z = z_map[x, y, z]
                         if x != close_x or y != close_y or z != close_z:
+                            change_count += 1
+                            # new_value = denseDeformation[close_x, close_y, close_z] - minDeformation
+                            # old_value = denseDeformation[x, y, z] - minDeformation
+                            # print([[x,y,z, old_value],[close_x, close_y, close_z, new_value], ])
                             denseDeformation[x, y, z] = denseDeformation[close_x, close_y, close_z]
+            print('... done closestIndices changed {0} of {1}'.format(change_count, voxel_count))
     #
     # %
     # if showFigures
