@@ -34,7 +34,8 @@ PYBIND11_MODULE(GEMS2Python, m) {
             const py::array_t<double> &,
             const py::array_t<double> &,
             const py::array_t<float> &,
-            const py::array_t< int >& >(),
+            const py::array_t< int > &,
+            const py::array_t<double> &>(),
             py::arg("typeName"),
             py::arg("images"),
             py::arg("boundaryCondition"),
@@ -42,7 +43,8 @@ PYBIND11_MODULE(GEMS2Python, m) {
             py::arg("means")=py::array_t<double>(),
             py::arg("variances")=py::array_t<double>(),
             py::arg("mixtureWeights")=py::array_t<float>(),
-            py::arg("numberOfGaussiansPerClass")=py::array_t<int>())
+            py::arg("numberOfGaussiansPerClass")=py::array_t<int>(),
+            py::arg("targetPoints")=py::array_t<double>())
             .def("evaluate_mesh_position", &KvlCostAndGradientCalculator::EvaluateMeshPosition)
             ;
 

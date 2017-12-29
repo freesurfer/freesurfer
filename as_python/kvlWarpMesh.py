@@ -1,11 +1,15 @@
+import traceback
+
 from scipy import ndimage
 
 import GEMS2Python
 import numpy as np
 import scipy.ndimage
+import scipy.io
+
 
 # function [ targetDeformation, averageDistance, maximumDistance ] = kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshCollectionFileName, showFigures )
-def kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshCollectionFileName, showFigures=False ):
+def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshCollectionFileName, showFigures=False):
     # %
     # % Applies sourceDeformation to the reference node positions of the sourceMeshCollection given by
     # % sourceMeshCollectionFileName, and computes a targetDeformation on the reference node positions of the
@@ -85,6 +89,7 @@ def kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshColl
     targetMeshCollection = GEMS2Python.KvlMeshCollection()
     targetMeshCollection.read(targetMeshCollectionFileName)
     targetMeshCollection.transform(identityTransform)
+    targetMeshCollection.k = K
     # targetReferenceMesh = kvlGetMesh( targetReferenceMesh, -1 );
     targetReferenceMesh = targetMeshCollection.reference_mesh
     # targetReferencePosition = kvlGetMeshNodePositions( targetReferenceMesh );
@@ -112,14 +117,14 @@ def kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshColl
     #
     # %
     # imageSize = max( sourceReferencePosition ) + 1;
-    imageSize = 1 + np.max(sourceReferencePosition, axis=0)
+    imageSize = [int(1 + dim) for dim in np.max(sourceReferencePosition, axis=0)]
     #
     #
     # % Rasterize the deformation by abusing alpha drawer
     # deformation = sourceDeformation;
     deformation = np.copy(sourceDeformation)
     # denseDeformation = zeros( [ imageSize 3 ] );
-    denseDeformation = np.zeros(imageSize, dtype=np.double)
+    denseDeformation = np.zeros(imageSize + [3], dtype=np.double)
     # if ( max( abs( deformation(:) ) ) > 0 )
     if np.max(np.absolute(deformation)) > 0:
         #   %
@@ -135,15 +140,15 @@ def kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshColl
         #   % denseDeformation = double( kvlRasterizeAtlasMesh( sourceReferenceMesh, imageSize ) ) / ( 2^16 -1 ) ...
         #   %                               * ( maxDeformation - minDeformation ) + minDeformation;
         #   tmp = kvlRasterizeAtlasMesh( sourceReferenceMesh, imageSize );
-        tmp = sourceReferenceMesh.rasterize(list(imageSize.astype(np.int32)), -1)
+        tmp = sourceReferenceMesh.rasterize(imageSize, -1)
         #
         #   % Unvisited voxels are marked by zeroes in all three coordinates - except possibly for the origin
         #   % which has all three coordinates zero as its natural state
         #   validMask = ( sum( tmp ~= 0, 4 ) ~= 0 );
         validMask = np.absolute(tmp)
-        validMask = np.sum(validMask, axis=3) ## only zero where all three coordinates are zero
+        validMask = np.sum(validMask, axis=3)  ## only zero where all three coordinates are zero
         #   validMask( 1, 1, 1 ) = 1;
-        validMask[0,0,0] = 1 ## origin is allowed to be zero
+        validMask[0, 0, 0] = 1  ## origin is allowed to be zero
         #   if showFigures
         #     figure
         #     showImage( validMask );
@@ -151,7 +156,7 @@ def kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshColl
         #
         #   %
         #   denseDeformation = double( tmp ) / ( 2^16 -1 ) * ( maxDeformation - minDeformation ) + minDeformation;
-        denseDeformation = ( tmp ) / ( 2**16 -1 ) * ( maxDeformation - minDeformation ) + minDeformation
+        denseDeformation = (tmp) / (2 ** 16 - 1) * (maxDeformation - minDeformation) + minDeformation
         #
         #   % Due to tetrahedral inside/outside checking performed in the rasterizer, some voxels on the boundary of the
         #   % image grid are never visited. There also seems to be non-visited voxels inside the image grid (bug in rasterizer).
@@ -161,7 +166,7 @@ def kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshColl
         #
         #   [ distances, closestIndices ] = bwdist( validMask );
         closestIndices = scipy.ndimage.morphology.distance_transform_edt(
-            validMask==0, return_indices=True, return_distances=False)
+            validMask == 0, return_indices=True, return_distances=False)
         #   for directionNumber = 1 : 3
         #     corrected = denseDeformation( :, :, :, directionNumber );
         #     corrected( find( ~validMask ) ) =  corrected( closestIndices( ~validMask ) );
@@ -185,7 +190,21 @@ def kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshColl
         # end % End test if there is deformation at all
         ## Non zero values will have closestIndices pointing to themselves, so will not change
         ## Missed voxels with all 3 values at zero will map from nearest (euclidean) non-missed voxel
-        denseDeformation = denseDeformation[closestIndices]
+        # TODO: make this efficient
+        # newDenseDeformation = denseDeformation[closestIndices]
+        if False:
+            x_map = closestIndices[0]
+            y_map = closestIndices[1]
+            z_map = closestIndices[2]
+            x_limit, y_limit, z_limit, should_be_three = denseDeformation.shape
+            for x in range(x_limit):
+                for y in range(y_limit):
+                    for z in range(z_limit):
+                        close_x = x_map[x, y, z]
+                        close_y = y_map[x, y, z]
+                        close_z = z_map[x, y, z]
+                        if x != close_x or y != close_y or z != close_z:
+                            denseDeformation[x, y, z] = denseDeformation[close_x, close_y, close_z]
     #
     # %
     # if showFigures
@@ -226,15 +245,16 @@ def kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshColl
     #                      targetReferencePosition( :, 2 )+1, ...
     #                      targetReferencePosition( :, 3 )+1 );
     # end
-    desiredTargetNodePosition = ndimage.map_coordinates(
-        denseDeformation, [
-            targetReferencePosition[:,0],
-            targetReferencePosition[:,1],
-            targetReferencePosition[:,2],
-        ],
-        mode='nearest',
-        output=np.double
-    )
+    targetReferencePositionMap = np.transpose(targetReferencePosition)
+    desiredTargetNodePosition = [
+        ndimage.map_coordinates(denseDeformation[:, :, :, 0],
+                                targetReferencePositionMap, mode='nearest', output=np.double),
+        ndimage.map_coordinates(denseDeformation[:, :, :, 1],
+                                targetReferencePositionMap, mode='nearest', output=np.double),
+        ndimage.map_coordinates(denseDeformation[:, :, :, 2],
+                                targetReferencePositionMap, mode='nearest', output=np.double),
+    ]
+    desiredTargetNodePosition = np.transpose(desiredTargetNodePosition)
     #
     # %
     # if showFigures
@@ -252,16 +272,16 @@ def kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshColl
     #
     # % Now deform the target mesh to try and bring the position of its mesh nodes close(r) to their target positions
     # image = kvlCreateImage( zeros( 10, 10, 10, 'single' ) ); % Dummy but we need it with the current interface
-    image = GEMS2Python.KvlImage(np.zeros((10,10,10), dtype=np.single))
+    image = GEMS2Python.KvlImage(np.zeros((10, 10, 10), dtype=np.single))
     # transform = kvlCreateTransform( eye( 4 ) );
     transform = GEMS2Python.KvlTransform(np.diag([1.0] * 4))
     # calculator = kvlGetCostAndGradientCalculator( 'PointSet', image, 'Sliding', transform, [], [], [], [], ...
     #                                               desiredTargetNodePosition );
-    calculator = GEMS2Python.KvlCostAndGradientCalculator('PointSet', image, 'Sliding',
-                                                        ## TODO: need full calculator
-                                                        transform, [], [], [], [],
-                                                        desiredTargetNodePosition
-                                                        )
+    calculator = GEMS2Python.KvlCostAndGradientCalculator('PointSet', [image], 'Sliding',
+                                                          ## TODO: need full calculator
+                                                          transform, [], [], [], [],
+                                                          desiredTargetNodePosition
+                                                          )
     #
     # % Get an optimizer, and stick the cost function into it
     # optimizerType = 'L-BFGS'; % 'FixedStepGradientDescent','GradientDescent','ConjugateGradient', or 'L-BFGS'
@@ -276,12 +296,12 @@ def kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshColl
     #                                 'LineSearchMaximalDeformationIntervalStopCriterion', ...
     #                                 lineSearchMaximalDeformationIntervalStopCriterion, ...
     #                                 'BFGS-MaximumMemoryLength', 12 ); % Affine registration only has 12 DOF
-    optimizer = GEMS2Python.KblOptimizer( optimizerType, targetReferenceMesh, calculator,
-                                    'Verbose', 1,
-                                    'MaximalDeformationStopCriterion', maximalDeformationStopCriterion,
-                                    'LineSearchMaximalDeformationIntervalStopCriterion',
-                                    lineSearchMaximalDeformationIntervalStopCriterion,
-                                    'BFGS-MaximumMemoryLength', 12 )
+    optimizer = GEMS2Python.KvlOptimizer(optimizerType, targetReferenceMesh, calculator, {
+        'Verbose': 1.0,
+        'MaximalDeformationStopCriterion': maximalDeformationStopCriterion,
+        'LineSearchMaximalDeformationIntervalStopCriterion': lineSearchMaximalDeformationIntervalStopCriterion,
+        'BFGS-MaximumMemoryLength': 12,
+    })
     #
     # numberOfIterations = 0;
     numberOfIterations = 0
@@ -332,16 +352,16 @@ def kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshColl
     #
     # %
     # targetNodePositions = kvlGetMeshNodePositions( targetReferenceMesh );
-    targetNodePositions = targetReferencePosition.points
+    targetNodePositions = targetReferenceMesh.points
     # targetDeformation = targetNodePositions - targetReferencePosition;
     targetDeformation = targetNodePositions - targetReferencePosition
     # distances = sqrt( sum( ( targetNodePositions - desiredTargetNodePosition ).^2, 2 ) );
     targetDiscrepancy = targetNodePositions - desiredTargetNodePosition
-    distances = np.sqrt(sum(targetDiscrepancy * targetDiscrepancy, axis=1))
+    distances = np.sqrt(np.sum(targetDiscrepancy * targetDiscrepancy, axis=1))
     # averageDistance = sum( distances ) / length( distances );
-    averageDistance = sum( distances ) / distances.shape[0]
+    averageDistance = np.sum(distances) / distances.shape[0]
     # maximumDistance = max( distances );
-    maximumDistance = np.max(distances )
+    maximumDistance = np.max(distances)
     #
     # if showFigures
     #   figure
@@ -370,3 +390,22 @@ def kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshColl
     #
     #
     return targetDeformation, averageDistance, maximumDistance
+
+
+if __name__ == '__main__':
+    try:
+        TEST_PATH = '/home/willy/work/cm/my_tests/kvlWarpMesh/kvlWarpMesh_'
+        INPUT_PATH = TEST_PATH + 'input.mat'
+        OUTPUT_PATH = TEST_PATH + 'output.mat'
+        input_fixture = scipy.io.loadmat(INPUT_PATH, struct_as_record=False, squeeze_me=True)
+        output_fixture = scipy.io.loadmat(OUTPUT_PATH, struct_as_record=False, squeeze_me=True)
+        sourceDeformation = input_fixture['sourceDeformation']
+        sourceMeshCollectionFileName = '/home/willy/work/cm/innolitics_testing/atlas/20Subjects_smoothing2_down2_smoothingForAffine2/atlas_level1.txt.gz'
+        targetMeshCollectionFileName = '/home/willy/work/cm/innolitics_testing/atlas/20Subjects_smoothing2_down2_smoothingForAffine2/atlas_level2.txt.gz'
+        targetDeformation, averageDistance, maximumDistance = kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshCollectionFileName)
+        print("averageDistance = {0}".format(averageDistance))
+        print("maximumDistance = {0}".format(maximumDistance))
+        print("targetDeformation.shape = {0}".format(targetDeformation.shape))
+    except Exception as flaw:
+        print('flaw = {0}'.format(str(flaw)))
+        traceback.print_exc()

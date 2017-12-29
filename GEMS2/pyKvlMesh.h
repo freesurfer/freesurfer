@@ -71,5 +71,6 @@ py::array_t<double> PointSetToNumpy(PointSetConstPointer points);
 void CopyNumpyToPointSet(PointSetPointer points, const py::array_t<double> &source);
 py::array_t<double> AlphasToNumpy(PointDataConstPointer alphas);
 void CopyNumpyToPointDataSet(PointDataPointer alphas, const py::array_t<double> &source);
+void CreatePointSetFromNumpy(PointSetPointer targetPoints, const py::array_t<double> &source);
 
 #endif //GEMS_PYKVLMESH_H_H

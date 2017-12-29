@@ -5,6 +5,7 @@
 #include "kvlAtlasMeshToIntensityImageCostAndGradientCalculator.h"
 #include "kvlConditionalGaussianEntropyCostAndGradientCalculator.h"
 #include "kvlMutualInformationCostAndGradientCalculator.h"
+#include "kvlAtlasMeshToPointSetCostAndGradientCalculator.h"
 
 #include "kvlAtlasMeshCollection.h"
 #include "pyKvlImage.h"
@@ -24,7 +25,8 @@ public:
                                  py::array_t<double> means=py::array_t<double>(),
                                  py::array_t<double> variances=py::array_t<double>(),
                                  py::array_t<float> mixtureWeights=py::array_t<float>(),
-                                 py::array_t<int> numberOfGaussiansPerClass=py::array_t<int>()
+                                 py::array_t<int> numberOfGaussiansPerClass=py::array_t<int>(),
+                                 py::array_t<double> targetPoints=py::array_t<double>()
 ){
         std::cout << "1" << std::endl;
         switch( typeName[ 0 ] )
@@ -99,6 +101,16 @@ public:
                 kvl::MutualInformationCostAndGradientCalculator::Pointer  myCalculator
                         = kvl::MutualInformationCostAndGradientCalculator::New();
                 myCalculator->SetImage( images[ 0 ].m_image );
+                calculator = myCalculator;
+                break;
+            }
+            case 'P':
+            {
+                kvl::AtlasMeshToPointSetCostAndGradientCalculator::Pointer  myCalculator
+                        = kvl::AtlasMeshToPointSetCostAndGradientCalculator::New();
+                kvl::AtlasMesh::PointsContainer::Pointer  alphaTargetPoints = kvl::AtlasMesh::PointsContainer::New();
+                CreatePointSetFromNumpy(alphaTargetPoints, targetPoints);
+                myCalculator->SetTargetPoints( alphaTargetPoints );
                 calculator = myCalculator;
                 break;
             }

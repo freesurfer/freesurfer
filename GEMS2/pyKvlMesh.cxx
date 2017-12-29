@@ -410,6 +410,26 @@ void CopyNumpyToPointSet(PointSetPointer points, const py::array_t<double> &sour
     }
 }
 
+void CreatePointSetFromNumpy(PointSetPointer targetPoints, const py::array_t<double> &source) {
+
+    if (source.ndim() != 2) {
+        itkGenericExceptionMacro("point source shape must have two dimensions");
+    }
+    auto sourceShape = source.shape();
+    const unsigned int sourceNumberOfNodes = *sourceShape++;
+    const unsigned int sourceXYZDimensions = *sourceShape++;
+    if (sourceXYZDimensions != 3) {
+        itkGenericExceptionMacro("source points must have 3 coordinates not " << sourceXYZDimensions);
+    }
+    for (unsigned int pointIndex = 0; pointIndex < sourceNumberOfNodes; ++pointIndex) {
+        kvl::AtlasMesh::PointType  point;
+        for (int xyzAxisSelector = 0; xyzAxisSelector < XYZ_DIMENSIONS; xyzAxisSelector++) {
+            point[xyzAxisSelector] = *source.data(pointIndex, xyzAxisSelector);
+        }
+        targetPoints->InsertElement( targetPoints->Size(), point );
+    }
+}
+
 py::array_t<double> AlphasToNumpy(PointDataConstPointer alphas) {
     const unsigned int numberOfNodes = alphas->Size();
     const unsigned int numberOfLabels = alphas->Begin().Value().m_Alphas.Size();
