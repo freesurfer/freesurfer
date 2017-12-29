@@ -14,10 +14,10 @@ while true
             filename = listing(i).name;
             varname = filename(1:length(filename)-length('request')-1);
             if( eval(['exist(''' varname ''')']) == 1)
-                disp ['Wrote ' varname]
+                disp(['Wrote ' varname])
                 save([matlabDumpDir '/' varname '.mat'], varname)
             else
-                disp ['Wrote ' varname ' as undefined']
+                disp(['Wrote ' varname ' as undefined'])
                 eval([varname ' = ''undefined''']);
                 save([matlabDumpDir '/' varname '.mat'], varname);
                 eval(['clear ' varname]);
