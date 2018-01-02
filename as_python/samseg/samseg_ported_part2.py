@@ -1,11 +1,13 @@
-import scipy.io
-import numpy as np
 import os
-import GEMS2Python
-from dotdict import DotDict
 
-from as_python.kvlWarpMesh import kvlWarpMesh
-from as_python.samseg.dev_utils.debug_client import request_var, compare_vars, CheckpointManager
+import GEMS2Python
+import numpy as np
+import scipy.io
+
+from as_python.samseg.bias_correction import backprojectKroneckerProductBasisFunctions, \
+    projectKroneckerProductBasisFunctions, computePrecisionOfKroneckerProductBasisFunctions
+from as_python.samseg.dev_utils.debug_client import CheckpointManager
+from as_python.samseg.kvl_merge_alphas import kvlMergeAlphas
 
 checkpoint_manager = CheckpointManager()
 
@@ -29,130 +31,10 @@ fixture = scipy.io.loadmat(os.path.join(MATLAB_FIXTURE_PATH, 'part2.mat'), struc
 locals().update(fixture)
 
 # function Y = backprojectKroneckerProductBasisFunctions( kroneckerProductBasisFunctions, coefficients )
-def backprojectKroneckerProductBasisFunctions(kroneckerProductBasisFunctions, coefficients):
-    #
-    # numberOfDimensions = length( kroneckerProductBasisFunctions );
-    numberOfDimensions = len(kroneckerProductBasisFunctions)
-    # Ms = zeros( 1, numberOfDimensions ); % Number of basis functions in each dimension
-    Ms = np.zeros(numberOfDimensions)  # Number of basis functions in each dimension
-    # Ns = zeros( 1, numberOfDimensions ); % Number of data points in each dimension
-    Ns = np.zeros(numberOfDimensions)  # Number of basis functions in each dimension
-    # transposedKroneckerProductBasisFunctions = cell( 0, 0 );
-    transposedKroneckerProductBasisFunctions = []
-    # for dimensionNumber = 1 : numberOfDimensions
-    for dimensionNumber in range(numberOfDimensions):
-        #   Ms( dimensionNumber ) = size( kroneckerProductBasisFunctions{ dimensionNumber }, 2 );
-        Ms[dimensionNumber] = kroneckerProductBasisFunctions[dimensionNumber].shape[1]
-        #   Ns( dimensionNumber ) = size( kroneckerProductBasisFunctions{ dimensionNumber }, 1 );
-        Ns[dimensionNumber] = kroneckerProductBasisFunctions[dimensionNumber].shape[0]
-        #   transposedKroneckerProductBasisFunctions{ dimensionNumber } = kroneckerProductBasisFunctions{ dimensionNumber }';
-        transposedKroneckerProductBasisFunctions.append(kroneckerProductBasisFunctions[dimensionNumber].T)
-        # end
-        #
-        #
-    # y = projectKroneckerProductBasisFunctions( transposedKroneckerProductBasisFunctions, reshape( coefficients, Ms ) );
-    y = projectKroneckerProductBasisFunctions(transposedKroneckerProductBasisFunctions, coefficients.reshape(Ms) )
-    # Y = reshape( y, Ns );
-    Y = y.reshape(Ns)
-    return Y
 
 
 # function coefficients = projectKroneckerProductBasisFunctions( kroneckerProductBasisFunctions, T )
-def projectKroneckerProductBasisFunctions(kroneckerProductBasisFunctions, T):
-    # %
-    # % Compute
-    # %   c = W' * t
-    # % where
-    # %   W = W{ numberOfDimensions } \kron W{ numberOfDimensions-1 } \kron ... W{ 1 }
-    # % and
-    # %   t = T( : )
-    #
-    numberOfDimensions = len(kroneckerProductBasisFunctions)
-    # currentSizeOfT = size( T );
-    currentSizeOfT = list(T.shape)
-    # for dimensionNumber = 1 : numberOfDimensions
-    for dimensionNumber in range(numberOfDimensions):
-        #   % Reshape into 2-D, do the work in the first dimension, and shape into N-D
-        #   T = reshape( T, currentSizeOfT( 1 ), [] );
-        T = T.reshape((currentSizeOfT[0], -1))
-        #   T = ( kroneckerProductBasisFunctions{ dimensionNumber } )' * T;
-        T = ( kroneckerProductBasisFunctions[dimensionNumber] ).T @ T
-        #   currentSizeOfT( 1 ) = size( kroneckerProductBasisFunctions{ dimensionNumber }, 2 );
-        currentSizeOfT[0] = kroneckerProductBasisFunctions[dimensionNumber].shape[1]
-        #   T = reshape( T, currentSizeOfT );
-        T = T.reshape(currentSizeOfT)
-        #
-        #   % Shift dimension
-        #   currentSizeOfT = [ currentSizeOfT( 2 : end ) currentSizeOfT( 1 ) ];
-        currentSizeOfT = currentSizeOfT[1:] + [currentSizeOfT[0]]
-        #   T = shiftdim( T, 1 );
-        T = np.rollaxis(T, 0, 3)
-        # end
-    #
-    # % Return result as vector
-    # coefficients = T(:);
-    coefficients = T.flatten()
-    return coefficients
 # computePrecisionOfKroneckerProductBasisFunctions( kroneckerProductBasisFunctions, B )
-def computePrecisionOfKroneckerProductBasisFunctions(kroneckerProductBasisFunctions, B):
-    # %
-    # % Compute
-    # %   H = W' * diag( B ) * W
-    # % where
-    # %   W = W{ numberOfDimensions } \kron W{ numberOfDimensions-1 } \kron ... W{ 1 }
-    # % and B is a weight matrix
-    #
-    #
-    # numberOfDimensions = length( kroneckerProductBasisFunctions );
-    numberOfDimensions = len( kroneckerProductBasisFunctions )
-    #
-    # % Compute a new set of basis functions (point-wise product of each combination of pairs) so that we can
-    # % easily compute a mangled version of the result
-    # Ms = zeros( 1, numberOfDimensions ); % Number of basis functions in each dimension
-    Ms = np.zeros( numberOfDimensions ) # % Number of basis functions in each dimension
-    # hessianKroneckerProductBasisFunctions = cell( 0, 0 );
-    hessianKroneckerProductBasisFunctions = {}
-    # for dimensionNumber = 1 : numberOfDimensions
-    for dimensionNumber in range(numberOfDimensions):
-        #   M = size( kroneckerProductBasisFunctions{ dimensionNumber }, 2 );
-        M = kroneckerProductBasisFunctions[dimensionNumber].shape[1]
-        #
-        #   if 0
-        #     N = size( kroneckerProductBasisFunctions{ dimensionNumber }, 1 );
-        #
-        #     A = kroneckerProductBasisFunctions{ dimensionNumber };
-        #     A2 = zeros( N, M^2 );
-        #     for i = 1 : M
-        #       shapeI = A( :, i );
-        #       for j = 1 : M
-        #         shapeJ = A( :, j );
-        #         A2( :, i + (j-1) * M ) = shapeI .* shapeJ;
-        #       end
-        #     end
-        #
-        #     hessianKroneckerProductBasisFunctions{ dimensionNumber } = A2;
-        #   else
-        #     A = kroneckerProductBasisFunctions{ dimensionNumber };
-        A = kroneckerProductBasisFunctions[dimensionNumber]
-        #     hessianKroneckerProductBasisFunctions{ dimensionNumber } = kron( ones( 1, M ), A ) .* kron( A, ones( 1, M ) );
-        hessianKroneckerProductBasisFunctions[dimensionNumber] = np.kron( np.ones( (1, M )), A ) * np.kron( A, np.ones( (1, M) ) )
-        #   end
-        #
-        #   Ms( dimensionNumber ) = M;
-        Ms[dimensionNumber] = M
-    #
-    # end
-    # result = projectKroneckerProductBasisFunctions( hessianKroneckerProductBasisFunctions, B );
-    result = projectKroneckerProductBasisFunctions( hessianKroneckerProductBasisFunctions, B );
-    # %result = reshape( result, [ Ms.^2 ] );
-    result = result.reshape(np.kron( Ms, [ 1, 1 ] ) )
-    # permutationIndices = [ 2 * [ 1 : numberOfDimensions ]-1 2 * [ 1 : numberOfDimensions ] ];
-    permutationIndices = np.hstack((2 * np.r_[: numberOfDimensions ], 2 * np.r_[: numberOfDimensions ] +1))
-    # result = permute( result, permutationIndices );
-    result = np.transpose(result, permutationIndices)
-    # precisionMatrix = reshape( result, [ prod( Ms ) prod( Ms ) ] );
-    precisionMatrix = result.reshape( ( np.prod( Ms ), np.prod( Ms ) ) )
-    return precisionMatrix
 
 
 # % We do the optimization in a multi-resolution type of scheme, where large
@@ -252,8 +134,8 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
 
     # totalTransformationMatrix = downSamplingTransformMatrix @ kvlGetTransformMatrix( transform )
     # TODO: remove this guy once we port part 1
-    totalTransformationMatrix = load_mat_file('/Users/ys/work/freesurfer/GEMS2/Testing/matlab_data/totalTransformationMatrix.mat')['totalTransformationMatrix']
-
+    transformMatrix = checkpoint_manager.load('transformMatrix', 1)['transformMatrix']
+    totalTransformationMatrix = downSamplingTransformMatrix @ transformMatrix
 
     #   meshCollection = ...
     #         kvlReadMeshCollection( optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).atlasFileName, ...
@@ -275,7 +157,7 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
     numberOfNodes = len(initialNodePositions)
     #   tmp = ( totalTransformationMatrix \ [ initialNodePositions ones( numberOfNodes, 1 ) ]' )';
     tmp = np.linalg.solve(totalTransformationMatrix,
-                          np.pad(initialNodePositions, (0, 1), mode='constant', constant_values=1).T).T
+                          np.pad(initialNodePositions, ((0,0),(0,1)), mode='constant', constant_values=1).T).T
     #   initialNodePositionsInTemplateSpace = tmp( :, 1 : 3 );
     initialNodePositionsInTemplateSpace = tmp[:, 0:3]
     #
@@ -291,10 +173,15 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
         #                   optimizationOptions.multiResolutionSpecification( multiResolutionLevel-1 ).atlasFileName, ...
         #                   nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel, ...
         #                   optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).atlasFileName );
-        initialNodeDeformationInTemplateSpace = kvlWarpMesh(
-                           optimizationOptions.multiResolutionSpecification[multiResolutionLevel-1].atlasFileName,
-                           nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel,
-                           optimizationOptions.multiResolutionSpecification[multiResolutionLevel].atlasFileName )
+
+        # initialNodeDeformationInTemplateSpace = kvlWarpMesh(
+        #                    optimizationOptions.multiResolutionSpecification[multiResolutionLevel-1].atlasFileName,
+        #                    nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel,
+        #                    optimizationOptions.multiResolutionSpecification[multiResolutionLevel].atlasFileName )
+
+        checkpoint_manager.increment('multiresWarp')
+        fixture = checkpoint_manager.load('multiresWarp')
+
         #     % Apply this warp on the mesh node positions in template space, and transform into current space
         #     desiredNodePositionsInTemplateSpace = initialNodePositionsInTemplateSpace + initialNodeDeformationInTemplateSpace;
         desiredNodePositionsInTemplateSpace = initialNodePositionsInTemplateSpace + initialNodeDeformationInTemplateSpace
@@ -307,7 +194,7 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
         #
         #     %
         #     kvlSetMeshNodePositions( mesh, desiredNodePositions );
-        mesh.points = desiredNodePositions
+        mesh.points = require_np_array(desiredNodePositions)
         #
         #   end
     #
@@ -317,7 +204,9 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
     #   alphas = kvlGetAlphasInMeshNodes( mesh );
     alphas = mesh.alphas
     #   reducedAlphas = kvlMergeAlphas( alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors );
-    reducedAlphas = load_mat_file('/Users/ys/work/freesurfer/GEMS2/Testing/matlab_data/reducedAlphas.mat')['reducedAlphas']
+    reducedAlphas, _, _, _, _ = kvlMergeAlphas( alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors );
+    # checkpoint_manager.increment('reducedAlphas')
+    # reducedAlphas = checkpoint_manager.load('reducedAlphas')['reducedAlphas']
     #   kvlSetAlphasInMeshNodes( mesh, reducedAlphas )
     mesh.alphas = reducedAlphas
 
@@ -341,7 +230,7 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
     biasFieldCoefficients = ensure_dims(biasFieldCoefficients, 2)
     for contrastNumber in range(numberOfContrasts):
         #     downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, biasFieldCoefficients( :, contrastNumber ) );
-        downSampledBiasField = backprojectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions,  biasFieldCoefficients[:, contrastNumber])
+        downSampledBiasField = backprojectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions, biasFieldCoefficients[:, contrastNumber])
         #     tmp = downSampledImageBuffers( :, :, :, contrastNumber ) - downSampledBiasField .* downSampledMask;
         tmp = downSampledImageBuffers[:, :, :, contrastNumber] - downSampledBiasField * downSampledMask
         #     downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) = tmp;
@@ -739,7 +628,7 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
                         #
                         #             % Fill in submatrix of lhs
                         weightsImageBuffer[downSampledMaskIndices] = weights
-                        computedPrecisionOfKroneckerProductBasisFunctions = computePrecisionOfKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, weightsImageBuffer )
+                        computedPrecisionOfKroneckerProductBasisFunctions = computePrecisionOfKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions, weightsImageBuffer)
                         checkpoint_manager.increment('bias_field_inner_loop')
                         lhs[contrastNumber1 * numberOfBasisFunctions_prod : contrastNumber1 * numberOfBasisFunctions_prod + numberOfBasisFunctions_prod,
                         contrastNumber2 * numberOfBasisFunctions_prod:contrastNumber2 * numberOfBasisFunctions_prod+numberOfBasisFunctions_prod] = computedPrecisionOfKroneckerProductBasisFunctions
@@ -751,7 +640,7 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
                     #           rhs( ( contrastNumber1 - 1 ) * prod( numberOfBasisFunctions ) + [ 1 : prod( numberOfBasisFunctions ) ] ) = ...
                     #
                     rhs[contrastNumber1 * numberOfBasisFunctions_prod : contrastNumber1 * numberOfBasisFunctions_prod + numberOfBasisFunctions_prod] \
-                        = projectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, tmpImageBuffer ).reshape(-1,1)
+                        = projectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions, tmpImageBuffer).reshape(-1, 1)
 
                     #         end % End loop over contrastNumber1
                 #
@@ -763,7 +652,7 @@ for multiResolutionLevel in range(numberOfMultiResolutionLevels):
                 #         for contrastNumber = 1 : numberOfContrasts
                 for contrastNumber in range(numberOfContrasts):
                     #           downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, biasFieldCoefficients( :, contrastNumber ) );
-                    downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, biasFieldCoefficients[ :, contrastNumber ] )
+                    downSampledBiasField = backprojectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions, biasFieldCoefficients[:, contrastNumber])
                     #           tmp = downSampledImageBuffers( :, :, :, contrastNumber ) - downSampledBiasField .* downSampledMask;
                     tmp = downSampledImageBuffers[ :, :, :, contrastNumber ] - downSampledBiasField * downSampledMask
                     #           downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) = tmp;
