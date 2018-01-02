@@ -530,7 +530,7 @@ if test ! "$HAVE_XXD" = "1"; then
  AC_MSG_ERROR([FATAL: xxd is required in creating help files etc. \
 Put it in the path, or add vim-common package.])
 fi
-AM_CONDITIONAL(HAVE_XXD, ! test -z "$XXD”)
+AM_CONDITIONAL(HAVE_XXD, ! test -z "$XXD")
 
 #
 # xmllint is optionally used to check the help.xml files for correctness
