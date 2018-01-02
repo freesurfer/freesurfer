@@ -524,9 +524,13 @@ AC_CHECK_PROG(LATEX, latex, latex)
 AM_CONDITIONAL(HAVE_LATEX, ! test -z "$LATEX")
 
 #
-# xxd is optionally used to convert .xml to a .h, for .c data incorporation
-AC_CHECK_PROG(XXD, xxd, xxd)
-AM_CONDITIONAL(HAVE_XXD, ! test -z "$XXD")
+# xxd is used to convert .xml to a .h, for .c data incorporation                                                                                          
+AC_CHECK_PROG([HAVE_XXD], [xxd], [1], [])
+if test ! "$HAVE_XXD" = "1"; then
+ AC_MSG_ERROR([FATAL: xxd is required in creating help files etc. \
+Put it in the path, or add vim-common package.])
+fi
+AM_CONDITIONAL(HAVE_XXD, ! test -z "$XXD”)
 
 #
 # xmllint is optionally used to check the help.xml files for correctness
