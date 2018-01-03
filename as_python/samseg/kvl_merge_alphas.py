@@ -206,4 +206,4 @@ def kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels=None, colors=N
         for mergingTableValue in mergingTableValueSet:
             mergingLookupTable[mergingTableValue] = 1 + mergedClassNumber # 1 based index
         # end
-    return [ mergedAlphas, mergedNames, mergedFreeSurferLabels, mergedColors, mergingLookupTable ]
+    return mergedAlphas, mergedNames, mergedFreeSurferLabels, mergedColors, mergingLookupTable
