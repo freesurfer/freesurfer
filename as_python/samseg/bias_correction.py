@@ -23,9 +23,9 @@ def backprojectKroneckerProductBasisFunctions(kroneckerProductBasisFunctions, co
         #
         #
     # y = projectKroneckerProductBasisFunctions( transposedKroneckerProductBasisFunctions, reshape( coefficients, Ms ) );
-    y = projectKroneckerProductBasisFunctions(transposedKroneckerProductBasisFunctions, coefficients.reshape(Ms) )
+    y = projectKroneckerProductBasisFunctions(transposedKroneckerProductBasisFunctions, coefficients.reshape(Ms, order='F') )
     # Y = reshape( y, Ns );
-    Y = y.reshape(Ns)
+    Y = y.reshape(Ns, order='F')
     return Y
 
 
@@ -45,13 +45,13 @@ def projectKroneckerProductBasisFunctions(kroneckerProductBasisFunctions, T):
     for dimensionNumber in range(numberOfDimensions):
         #   % Reshape into 2-D, do the work in the first dimension, and shape into N-D
         #   T = reshape( T, currentSizeOfT( 1 ), [] );
-        T = T.reshape((currentSizeOfT[0], -1))
+        T = T.reshape((currentSizeOfT[0], -1), order='F')
         #   T = ( kroneckerProductBasisFunctions{ dimensionNumber } )' * T;
         T = ( kroneckerProductBasisFunctions[dimensionNumber] ).T @ T
         #   currentSizeOfT( 1 ) = size( kroneckerProductBasisFunctions{ dimensionNumber }, 2 );
         currentSizeOfT[0] = kroneckerProductBasisFunctions[dimensionNumber].shape[1]
         #   T = reshape( T, currentSizeOfT );
-        T = T.reshape(currentSizeOfT)
+        T = T.reshape(currentSizeOfT, order='F')
         #
         #   % Shift dimension
         #   currentSizeOfT = [ currentSizeOfT( 2 : end ) currentSizeOfT( 1 ) ];
@@ -62,7 +62,7 @@ def projectKroneckerProductBasisFunctions(kroneckerProductBasisFunctions, T):
     #
     # % Return result as vector
     # coefficients = T(:);
-    coefficients = T.flatten()
+    coefficients = T.flatten(order='F')
     return coefficients
 
 
