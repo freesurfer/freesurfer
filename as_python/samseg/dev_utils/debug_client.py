@@ -51,7 +51,7 @@ class CheckpointManager:
         self.counts[checkpoint_name] += 1
 
     def load(self, checkpoint_name, checkpoint_number=None):
-        if checkpoint_name not in self.counts:
+        if checkpoint_number is None and checkpoint_name not in self.counts:
             raise Exception('You must either specify the checkpoint number or call '
                             'increment in the same logical location as in the MATLAB code.')
         checkpoint_number = checkpoint_number or self.counts[checkpoint_name]
