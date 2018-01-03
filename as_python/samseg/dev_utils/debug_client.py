@@ -7,8 +7,12 @@ at a breakpoint to easily compare the values of variables for equality.
 import scipy.io
 import os
 import time
+import traceback
+import numpy as np
 
-MATLAB_DUMP_DIR = "/Users/ys/work/freesurfer/matlab_dumps" #os.getenv('MATLAB_DUMP_DIR')
+# MATLAB_DUMP_DIR = "/Users/ys/work/freesurfer/matlab_dumps"
+# MATLAB_DUMP_DIR = '/home/willy/work/cm/my_tests/matlab_dump_dir'
+MATLAB_DUMP_DIR = os.getenv('MATLAB_DUMP_DIR')
 
 
 def request_var(varname):
@@ -40,6 +44,44 @@ def compare_vars(varname):
                 'matlab': request_var(varname)}
     finally:
         del frame
+
+def measure_closeness(ref, item, name=''):
+
+    def show(message):
+        print("{0}: {1}".format(name, message))
+    if not hasattr(ref, 'shape'):
+        show("ref has no shape")
+        return
+    ref_shape = ref.shape
+    if not hasattr(item, 'shape'):
+        show('ref.shape={0} but item has no shape'.format(ref_shape))
+        return
+    item_shape = item.shape
+    if item.shape != ref.shape:
+        show('shapes differ ref={0} item={1}'.format(ref_shape, item_shape))
+        return
+    try:
+        total_size = np.prod(ref_shape)
+        ref_max = np.max(ref)
+        ref_min = np.min(ref)
+        item_max = np.max(item)
+        item_min = np.min(item)
+        difference = np.double(item) - np.double(ref)
+        max_difference = np.max(difference)
+        max_location = np.argmax(difference)
+        min_difference = np.min(difference)
+        min_location = np.argmin(difference)
+        total_difference = np.sum(np.abs(difference))
+        average_difference = total_difference / total_size
+        ref_total = np.sum(np.abs(ref))
+        relative_difference = total_difference / ref_total
+        show('ref_max={0} ref_min={1} item_max={2} item_min={3}'.format(ref_max, ref_min, item_max, item_min))
+        show('max_diff={0} min_diff={1}'.format(max_difference, min_difference))
+        show('max_location={0} min_location={1}'.format(max_location, min_location))
+        show('average difference={0} relative_difference={1}'.format(average_difference, relative_difference))
+    except Exception as flaw:
+        show('flaw = {0}'.format(str(flaw)))
+        traceback.print_exc()
 
 
 class CheckpointManager:

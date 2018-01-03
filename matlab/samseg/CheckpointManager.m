@@ -1,4 +1,4 @@
-﻿ classdef CheckpointManager < handle
+classdef CheckpointManager < handle
    properties
       checkpoint_state
    end

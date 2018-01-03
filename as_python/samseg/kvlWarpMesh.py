@@ -7,6 +7,8 @@ import numpy as np
 import scipy.ndimage
 import scipy.io
 
+from as_python.samseg.dev_utils.debug_client import CheckpointManager, measure_closeness
+
 
 # function [ targetDeformation, averageDistance, maximumDistance ] = kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshCollectionFileName, showFigures )
 def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshCollectionFileName, showFigures=False):
@@ -90,7 +92,7 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
     targetMeshCollection.read(targetMeshCollectionFileName)
     targetMeshCollection.transform(identityTransform)
     targetMeshCollection.k = K
-    # targetReferenceMesh = kvlGetMesh( targetReferenceMesh, -1 );
+    # targetReferenceMesh = kvlGetMesh( targetMeshCollection, -1 );
     targetReferenceMesh = targetMeshCollection.reference_mesh
     # targetReferencePosition = kvlGetMeshNodePositions( targetReferenceMesh );
     targetReferencePosition = targetReferenceMesh.points
@@ -129,9 +131,9 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
     if np.max(np.absolute(deformation)) > 0:
         #   %
         #   maxDeformation = max( deformation(:) );
-        maxDeformation = np.max(deformation, axis=0)
+        maxDeformation = np.max(deformation)
         #   minDeformation = min( deformation(:) );
-        minDeformation = np.min(deformation, axis=0)
+        minDeformation = np.min(deformation)
         #
         #   kvlSetAlphasInMeshNodes( sourceReferenceMesh, single( deformation - minDeformation ) ./ ...
         #                                                 repmat( maxDeformation - minDeformation, [ sourceNumberOfNodes 3 ] ) );
@@ -148,7 +150,7 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
         validMask = np.absolute(tmp)
         validMask = np.sum(validMask, axis=3)  ## only zero where all three coordinates are zero
         #   validMask( 1, 1, 1 ) = 1;
-        validMask[0, 0, 0] = 1  ## origin is allowed to be zero
+        # validMask[0, 0, 0] = 1  ## origin is allowed to be zero
         #   if showFigures
         #     figure
         #     showImage( validMask );
@@ -167,6 +169,7 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
         #   [ distances, closestIndices ] = bwdist( validMask );
         closestIndices = scipy.ndimage.morphology.distance_transform_edt(
             validMask == 0, return_indices=True, return_distances=False)
+        denseDeformation = denseDeformation[closestIndices[0], closestIndices[1], closestIndices[2]]
         #   for directionNumber = 1 : 3
         #     corrected = denseDeformation( :, :, :, directionNumber );
         #     corrected( find( ~validMask ) ) =  corrected( closestIndices( ~validMask ) );
@@ -174,13 +177,19 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
         #     % Boundaries are known a priori
         #     if ( directionNumber == 1 )
         #       corrected( 1, :, : ) = 0;
+        denseDeformation[0,:,:,0] = 0
         #       corrected( end, :, : ) = 0;
+        denseDeformation[-1,:,:,0] = 0
         #     elseif ( directionNumber == 2 )
         #       corrected( :, 1, : ) = 0;
+        denseDeformation[:,0,:,1] = 0
         #       corrected( :, end, : ) = 0;
+        denseDeformation[:,-1,:,1] = 0
         #     else
         #       corrected( :, :, 1 ) = 0;
+        denseDeformation[:,:,0,2] = 0
         #       corrected( :, :, end ) = 0;
+        denseDeformation[:,:,-1,2] = 0
         #     end
         #
         #     denseDeformation( :, :, :, directionNumber ) = corrected;
@@ -190,30 +199,6 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
         # end % End test if there is deformation at all
         ## Non zero values will have closestIndices pointing to themselves, so will not change
         ## Missed voxels with all 3 values at zero will map from nearest (euclidean) non-missed voxel
-        # TODO: make this efficient
-        # newDenseDeformation = denseDeformation[closestIndices]
-        if True:
-            x_map = closestIndices[0]
-            y_map = closestIndices[1]
-            z_map = closestIndices[2]
-            x_limit, y_limit, z_limit, should_be_three = denseDeformation.shape
-            print('closestIndices...')
-            voxel_count = 0
-            change_count = 0
-            for x in range(x_limit):
-                for y in range(y_limit):
-                    for z in range(z_limit):
-                        voxel_count += 1
-                        close_x = x_map[x, y, z]
-                        close_y = y_map[x, y, z]
-                        close_z = z_map[x, y, z]
-                        if x != close_x or y != close_y or z != close_z:
-                            change_count += 1
-                            # new_value = denseDeformation[close_x, close_y, close_z] - minDeformation
-                            # old_value = denseDeformation[x, y, z] - minDeformation
-                            # print([[x,y,z, old_value],[close_x, close_y, close_z, new_value], ])
-                            denseDeformation[x, y, z] = denseDeformation[close_x, close_y, close_z]
-            print('... done closestIndices changed {0} of {1}'.format(change_count, voxel_count))
     #
     # %
     # if showFigures
@@ -257,12 +242,13 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
     targetReferencePositionMap = np.transpose(targetReferencePosition)
     desiredTargetNodePosition = [
         ndimage.map_coordinates(denseDeformation[:, :, :, 0],
-                                targetReferencePositionMap, mode='nearest', output=np.double),
+                                targetReferencePositionMap, mode='nearest', order=1, output=np.double),
         ndimage.map_coordinates(denseDeformation[:, :, :, 1],
-                                targetReferencePositionMap, mode='nearest', output=np.double),
+                                targetReferencePositionMap, mode='nearest', order=1, output=np.double),
         ndimage.map_coordinates(denseDeformation[:, :, :, 2],
-                                targetReferencePositionMap, mode='nearest', output=np.double),
+                                targetReferencePositionMap, mode='nearest', order=1, output=np.double),
     ]
+    desiredTargetNodePosition += targetReferencePositionMap
     desiredTargetNodePosition = np.transpose(desiredTargetNodePosition)
     #
     # %
@@ -403,6 +389,7 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
 
 if __name__ == '__main__':
     try:
+        checkpoint_manager = CheckpointManager()
         TEST_PATH = '/home/willy/work/cm/my_tests/kvlWarpMesh/kvlWarpMesh_'
         INPUT_PATH = TEST_PATH + 'input.mat'
         OUTPUT_PATH = TEST_PATH + 'output.mat'
@@ -415,6 +402,9 @@ if __name__ == '__main__':
         print("averageDistance = {0}".format(averageDistance))
         print("maximumDistance = {0}".format(maximumDistance))
         print("targetDeformation.shape = {0}".format(targetDeformation.shape))
+        checkpoint_manager.increment('all_done')
+        checking = checkpoint_manager.load('all_done')
+        measure_closeness(checking['targetDeformation'], targetDeformation, 'targetDeformation')
     except Exception as flaw:
         print('flaw = {0}'.format(str(flaw)))
         traceback.print_exc()
