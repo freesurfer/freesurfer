@@ -19,7 +19,7 @@ checkpoint_manager = CheckpointManager()
 
 def ensure_dims(np_array, dims):
     if np_array.ndim < dims:
-        return np.expand_dims(np_array, axis=dims)
+        return ensure_dims(np.expand_dims(np_array, axis=dims), dims)
     elif np_array.ndim == dims:
         return np_array
 
@@ -114,23 +114,23 @@ numberOfStructures = alphas.shape[1]
 #
 # % Get the priors as dictated by the current mesh position
 # data = reshape( biasCorrectedImageBuffers, [ prod( imageSize ) numberOfContrasts ] );
-data = biasCorrectedImageBuffers.reshape( [np.prod( imageSize ), numberOfContrasts ], order='F' )
+data = biasCorrectedImageBuffers
 # priors = kvlRasterizeAtlasMesh( mesh, imageSize );
 priors = mesh.rasterize(imageSize, -1)
 # priors = reshape( priors, [ prod( imageSize ) numberOfStructures ] );
-priors = priors.reshape([ np.prod( imageSize ), numberOfStructures ] , order='F' )
+# NOT GOING TO RESHAPE, WILL USE MASK INDEXING
 #
 #
 # % Ignore everything that's has zero intensity
 # priors = priors( maskIndices, : );
-priors = priors[maskIndices, :]
+priors = priors[mask == 1, :]
 # data = data( maskIndices, : );
-data = data[maskIndices, :]
+data = data[mask == 1, :]
 #
 #
 # % Calculate the posteriors
 # posteriors = zeros( size( priors ), 'double' );
-posteriors = np.zeros_like(priors)
+posteriors = np.zeros_like(priors, dtype=np.float64)
 # for structureNumber = 1 : numberOfStructures
 for structureNumber in range(numberOfStructures):
     #   prior = single( priors( :, structureNumber ) ) / 65535;
@@ -141,16 +141,16 @@ for structureNumber in range(numberOfStructures):
     #   likelihoods = zeros( length( maskIndices ), 1 );
     likelihoods = np.zeros(( len( maskIndices ), 1 ))
     #   numberOfComponents = numberOfGaussiansPerClass( classNumber );
-    numberOfComponents = numberOfGaussiansPerClass[classNumber]
+    numberOfComponents = numberOfGaussiansPerClass[classNumber-1]
     #   for componentNumber = 1 : numberOfComponents
     for componentNumber in range(numberOfComponents):
         #     gaussianNumber = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + componentNumber;
         gaussianNumber = np.sum( numberOfGaussiansPerClass[: classNumber-1 ] ) + componentNumber
         #
         #     mean = means( gaussianNumber, : )';v
-        mean = means[gaussianNumber, : ].T
+        mean = ensure_dims(means, 2)[gaussianNumber, :].T
         #     variance = squeeze( variances( gaussianNumber, :, : ) );
-        variance = np.squeeze( variances[gaussianNumber, :, : ] )
+        variance = ensure_dims(variances, 3)[gaussianNumber, :, : ]
         #     mixtureWeight = mixtureWeights( gaussianNumber );
         mixtureWeight = mixtureWeights[gaussianNumber]
         #
@@ -166,50 +166,59 @@ for structureNumber in range(numberOfStructures):
         gaussianLikelihoods = np.exp( -squaredMahalanobisDistances / 2 ) / ( 2 * np.pi )**( numberOfContrasts / 2 ) / sqrtDeterminantOfVariance
         #
         #     likelihoods = likelihoods + gaussianLikelihoods * mixtureWeight;
-        likelihoods = likelihoods + gaussianLikelihoods * mixtureWeight
+        likelihoods = likelihoods + ensure_dims(gaussianLikelihoods, 2) * mixtureWeight
     #   end
     #
     #   posteriors( :, structureNumber ) = likelihoods .* prior;
-    posteriors[:, structureNumber] = likelihoods * prior
+    posteriors[:, structureNumber] = np.squeeze(likelihoods) * prior
     #
     # end % End loop over structures
 #
 # normalizer = sum( posteriors, 2 ) + eps;
-normalizer = np.sum( posteriors, 2 ) + eps
+normalizer = np.sum( posteriors, 1 ) + eps
 # posteriors = posteriors ./ repmat( normalizer, [ 1 numberOfStructures ] );
-posteriors = posteriors / normalizer
+posteriors = posteriors / ensure_dims(normalizer, 2)
 #
 #
 # % Compute volumes in mm^3
 # volumeOfOneVoxel = abs( det( imageToWorldTransformMatrix( 1:3, 1:3 ) ) );
-volumeOfOneVoxel = np.abs( np.det( imageToWorldTransformMatrix[0:3, 0:3] ) )
+volumeOfOneVoxel = np.abs( np.linalg.det( imageToWorldTransformMatrix[0:3, 0:3] ) )
 # volumesInCubicMm = ( sum( posteriors ) )' * volumeOfOneVoxel;
-volumesInCubicMm = ( np.sum( posteriors ) ).T @ volumeOfOneVoxel
+volumesInCubicMm = ( np.sum( posteriors ) ).T * volumeOfOneVoxel
 #
 #
 # % Convert into a crisp, winner-take-all segmentation, labeled according to the FreeSurfer labeling/naming convention
 # [ ~, structureNumbers ] = max( posteriors, [], 2 );
-structureNumbers = np.max( posteriors, [], 2 )
+structureNumbers = np.argmax(posteriors, 1)
 # freeSurferSegmentation = zeros( imageSize, 'uint16' );
 freeSurferSegmentation = np.zeros( imageSize, dtype=np.uint16 )
 # for structureNumber = 1 : numberOfStructures
-for structureNumber in range(numberOfStructures):
-    freeSurferSegmentation[maskIndices[structureNumbers == structureNumber]] = FreeSurferLabels( structureNumber )
     #   freeSurferSegmentation( maskIndices( find( structureNumbers == structureNumber ) ) ) = FreeSurferLabels( structureNumber );
 # end
-#
+freeSurferSegmentation[mask == 1] = FreeSurferLabels[structureNumbers]
+
 # % Write to file, remembering to un-crop the segmentation to the original image size
 # uncroppedFreeSurferSegmentation = zeros( nonCroppedImageSize, 'single' );
+uncroppedFreeSurferSegmentation = np.zeros( nonCroppedImageSize, dtype=np.float32)
 # uncroppedFreeSurferSegmentation( croppingOffset( 1 ) + [ 1 : imageSize( 1 ) ], ...
 #                                  croppingOffset( 2 ) + [ 1 : imageSize( 2 ) ], ...
 #                                  croppingOffset( 3 ) + [ 1 : imageSize( 3 ) ] ) = freeSurferSegmentation;
+uncroppedFreeSurferSegmentation[ croppingOffset[0]: imageSize[0]+croppingOffset[0],
+                                 croppingOffset[1]: imageSize[1]+croppingOffset[1],
+                                 croppingOffset[2]: imageSize[2]+croppingOffset[2]] = freeSurferSegmentation
 # fprintf( 'Writing out freesurfer segmentation\n' );
+print('Writing out freesurfer segmentation')
 # kvlWriteImage( kvlCreateImage( uncroppedFreeSurferSegmentation ), ...
 #                fullfile( savePath, 'crispSegmentation.nii' ), ...
 #                imageToWorldTransform );
+GEMS2Python.KvlImage(require_np_array(uncroppedFreeSurferSegmentation)).write(
+        os.path.join( savePath, 'crispSegmentation.nii' ),
+        GEMS2Python.KvlTransform(require_np_array(imageToWorldTransformMatrix))
+)
 #
 #
 # % Also write out the bias field and the bias corrected image, each time remembering to un-crop the images
+# TODO: Are these bias field files even used other than debugging purposes?
 # for contrastNumber = 1 : numberOfContrasts
 #   [ dataPath, scanName, ext ] = fileparts( imageFileNames{ contrastNumber } );
 #
