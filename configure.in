@@ -225,22 +225,33 @@ if test "x$CC" = "xicc"; then
 fi
 AC_PROG_F77
 if test "x$F77" = "x"; then
-	AC_MSG_ERROR([FATAL: A Fortran 77 compiler is required!])
+  AC_MSG_ERROR([FATAL: A Fortran 77 compiler is required!])
 fi
 
 # check for gcc 4.4 and higher which supports openmp.
 ac_have_gcc_44_or_higher="no"
+ac_have_gcc_48_or_higher="no"
 ac_have_gcc_50_or_higher="no"
 if (test "${CC}" = "gcc"); then
+  # gcc4.4
   gcc --version | grep " 4\.@<:@4-9@:>@" >& /dev/null
   if test "$?" = "0"; then
     AC_MSG_NOTICE(Have gcc 4.x where x >= 4)
     ac_have_gcc_44_or_higher="yes"
   fi
+  # gcc4.8
+  gcc --version | grep " 4\.@<:@8-9@:>@" >& /dev/null
+  if test "$?" = "0"; then
+    AC_MSG_NOTICE(Have gcc 4.x where x >= 8)
+    ac_have_gcc_44_or_higher="yes"
+    ac_have_gcc_48_or_higher="yes"
+  fi
+  # gcc5.0
   gcc --version | grep " @<:@5-9@:>@." >& /dev/null
   if test "$?" = "0"; then
     AC_MSG_NOTICE(Have gcc x where x >= 5)
     ac_have_gcc_44_or_higher="yes"
+    ac_have_gcc_48_or_higher="yes"
     ac_have_gcc_50_or_higher="yes"
     CXXFLAGS="$CXXFLAGS -fabi-version=2"
     	# needed until vnl and maybe others can be rebuilt
@@ -524,9 +535,13 @@ AC_CHECK_PROG(LATEX, latex, latex)
 AM_CONDITIONAL(HAVE_LATEX, ! test -z "$LATEX")
 
 #
-# xxd is optionally used to convert .xml to a .h, for .c data incorporation
-AC_CHECK_PROG(XXD, xxd, xxd)
-AM_CONDITIONAL(HAVE_XXD, ! test -z "$XXD")
+# xxd is used to convert .xml to a .h, for .c data incorporation                                                                                          
+AC_CHECK_PROG([XXD], [xxd], [1], [])
+if test ! "$XXD" = "1"; then
+ AC_MSG_ERROR([FATAL: xxd is required in creating help files etc. \
+Put it in the path, or add vim-common package.])
+fi
+AM_CONDITIONAL(HAVE_XXD, test "$XXD" = "1")
 
 #
 # xmllint is optionally used to check the help.xml files for correctness
@@ -577,19 +592,27 @@ AC_ARG_ENABLE(Werror,
 # so that escalating warnings to errors (which stops the build) is still
 # possible.
 if test "x$CC" = "xicc"; then
-  WERROR="$WERROR -diag-disable 1268"
+  WERROR="$WERROR -diag-disable 1268 -diag-disable 279"
   # warning #1268: support for exported templates is disabled
+  # error #279: controlling expression is constant
+  #   assert(!"Cannot invert 2x2 matrix with zero determinant");
 fi
- [ WERROR="-Wno-unused-parameter -Werror -Wno-unused-variable -Wno-narrowing -Wno-aggressive-loop-optimizations -Wno-switch -Wno-enum-compare -Wno-unused-local-typedefs -Wno-unused-but-set-variable -fno-strict-overflow -Wno-maybe-uninitialized -Wno-uninitialized" ]
+# so that --disable-Werror is no longer needed
+if test "$ac_have_gcc_48_or_higher" = "yes"; then
+  [ WERROR="-Wno-unused-parameter -Werror -Wno-unused-variable -Wno-narrowing -Wno-aggressive-loop-optimizations -Wno-switch -Wno-enum-compare -Wno-unused-local-typedefs -Wno-unused-but-set-variable -fno-strict-overflow -Wno-maybe-uninitialized -Wno-uninitialized" ]
+fi
 # There are approximately 1000 of this 'error', most caused by
 # the presence of code intending for debugging, so don't report it
 WERROR="$WERROR -Wno-unused-but-set-variable"
-# There are approximately 600 of this 'error', most caused by
-# the presence of code ignoring status from write, fgets and similar functions
-WERROR="$WERROR -Wno-unused-result"
-# There are approximately 40 of this 'error', but in external packages
-# header files, hence not possible to fix, and harmless.
-WERROR="$WERROR -Wno-unused-local-typedefs"
+
+# if (test "${CC}" = "gcc"); then
+  # There are approximately 600 of this 'error', most caused by
+  # the presence of code ignoring status from write, fgets and similar functions
+  # WERROR="$WERROR -Wno-unused-result"
+  # There are approximately 40 of this 'error', but in external packages
+  # header files, hence not possible to fix, and harmless.
+  # WERROR="$WERROR -Wno-unused-local-typedefs"
+# fi
 
 # to strip unused code when using Linux gcc.
 # but not on cent4 because for some reason it fails
@@ -926,7 +949,7 @@ AM_CONDITIONAL(BUILDOPENCL, test x$use_opencl = xyes)
 
 if( test ! "x$use_opencl" = "xno" )
 then
-	AC_DEFINE([FS_OPENCL],[1],[Defined if OPENCL should be used])
+  AC_DEFINE([FS_OPENCL],[1],[Defined if OPENCL should be used])
 fi
 
 #############################################################
@@ -1124,6 +1147,7 @@ AC_SUBST(CPUTYPE)
 case "$CPUTYPE" in
   intel_haswell)
      #CPUFLAGS="-march=core-avx2 -m64"
+     ac_have_avx2=yes
      CPUFLAGS="-m64"
      ;;
   pentium3)
@@ -2631,18 +2655,18 @@ if test ! "x$WXWIDGETS_DIR" = "x"; then
   # except wx-config isn't so handy in including some header paths on Linux:
   if test -d /usr/include/gtk-2.0 ; then
   WXWIDGETS_GTK_CFLAGS="-D__WXGTK20__"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/gtk-2.0"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/lib/gtk-2.0/include"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/gdk-pixbuf-2.0"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/lib64/gtk-2.0/include"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/glib-2.0"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/lib/glib-2.0/include"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/lib64/glib-2.0/include"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/pango-1.0"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/cairo"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/atk-1.0"
-  WXWIDGETS_CFLAGS="$WXWIDGETS_CFLAGS	$WXWIDGETS_GTK_CFLAGS"
-  WXWIDGETS_CXXFLAGS="$WXWIDGETS_CXXFLAGS	$WXWIDGETS_GTK_CFLAGS"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/include/gtk-2.0"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/lib/gtk-2.0/include"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/include/gdk-pixbuf-2.0"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/lib64/gtk-2.0/include"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/include/glib-2.0"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/lib/glib-2.0/include"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/lib64/glib-2.0/include"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/include/pango-1.0"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/include/cairo"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/include/atk-1.0"
+  WXWIDGETS_CFLAGS="$WXWIDGETS_CFLAGS $WXWIDGETS_GTK_CFLAGS"
+  WXWIDGETS_CXXFLAGS="$WXWIDGETS_CXXFLAGS $WXWIDGETS_GTK_CFLAGS"
   fi
 
   # seems like we gotta manually check for these...
@@ -3141,14 +3165,6 @@ LDFLAGS="$LDFLAGS $OS_LDFLAGS"
 LDFLAGS="$LDFLAGS -Wl,-Map,ld_map.txt -Wl,--no-demangle"
 
 #####################################################
-# for now, turn off link time optimization
-# at least until we get a clean build
-#####################################################
-CFLAGS="$CFLAGS -fno-lto"
-CPPFLAGS="$CPPFLAGS -fno-lto"
-
-
-#####################################################
 # Checks for libraries.
 # the order is important
 #####################################################
@@ -3634,13 +3650,18 @@ AC_SUBST(LIBS_TCL_OPENGL)
 # this is done here because if added earlier -ipo breaks the OpenGL check
 if test "x$CC" = "xicc"; then
   AC_MSG_NOTICE(Setting Intel Compiler optimizations...)
-  CPPFLAGS="$CPPFLAGS -ip -axCORE-AVX2"
+  CPPFLAGS="$CPPFLAGS -ip"
+  if test "x$ac_have_avx2" = "xyes"; then
+    CPPFLAGS="$CPPFLAGS -axCORE-AVX2"
+  fi
   CPPFLAGS="$CPPFLAGS -parallel"
   CPPFLAGS="$CPPFLAGS -qopt-report=5" # -guide-par
   LDFLAGS="$LDFLAGS -ip"
 fi
 if test "x$F77" = "xifort"; then
-  FFLAGS="$FFLAGS -xCORE-AVX2"
+  if test "x$ac_have_avx2" = "xyes"; then
+    FFLAGS="$FFLAGS -xCORE-AVX2"
+  fi
 fi
 
 ###########################################################
@@ -3799,7 +3820,7 @@ AC_OUTPUT([Makefile
            log/Makefile
            lta_convert/Makefile
            matlab/Makefile
-	   minc_substitute/Makefile
+           minc_substitute/Makefile
            mkxsubjreg/Makefile
            mri_bias/Makefile
            mri_train_autoencoder/Makefile
@@ -3937,6 +3958,7 @@ AC_OUTPUT([Makefile
            mri_rigid_register/Makefile
            mri_robust_register/Makefile
            mri_seg_diff/Makefile
+           mri_segcentroids/Makefile
            mri_seghead/Makefile
            mri_segment/Makefile
            mri_segment_tumor/Makefile
