@@ -3,9 +3,8 @@ function [ FreeSurferLabels, names, volumesInCubicMm ] = samsegment( imageFileNa
                                                                      savePath, showFigures )
 %
 %
-
-save('/home/willy/junkola/part1.mat')
-
+checkpoint_manager = CheckpointManager();
+checkpoint_manager.save('part1', '')
 
 % Print input options
 disp( '==========================' );
@@ -300,8 +299,7 @@ if ( showFigures )
   biasFieldFigure = figure;
 end
 
-
-save('/home/willy/junkola/part2.mat')
+checkpoint_manager.save('part2', '')
 % We do the optimization in a multi-resolution type of scheme, where large
 % deformations are quickly found using smoothed versions of the atlas mesh, and the fine
 % details are then found on gradually less smoothed versions until the original atlas mesh is used for the optimization.
@@ -369,6 +367,8 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
   % Read the atlas mesh to be used for this multi-resolution level, taking into account the downsampling to position it 
   % correctly
   downSamplingTransformMatrix = diag( [ 1./downSamplingFactors 1 ] );
+  transformMatrix = kvlGetTransformMatrix( transform );
+  checkpoint_manager.save('transformMatrix', 'transformMatrix');
   totalTransformationMatrix = downSamplingTransformMatrix * double( kvlGetTransformMatrix( transform ) );
   meshCollection = ...
         kvlReadMeshCollection( optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).atlasFileName, ...
@@ -393,7 +393,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
                   optimizationOptions.multiResolutionSpecification( multiResolutionLevel-1 ).atlasFileName, ...
                   nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel, ...
                   optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).atlasFileName );
-
+             
     % Apply this warp on the mesh node positions in template space, and transform into current space  
     desiredNodePositionsInTemplateSpace = initialNodePositionsInTemplateSpace + initialNodeDeformationInTemplateSpace;
     tmp = ( totalTransformationMatrix * ...
@@ -402,14 +402,15 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
 
     %
     kvlSetMeshNodePositions( mesh, desiredNodePositions );
-
+    checkpoint_manager.save('multiresWarp', 'desiredNodePositions tmp desiredNodePositionsInTemplateSpace nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel initialNodeDeformationInTemplateSpace');
   end    
 
     
   
   % Set priors in mesh to the reduced (super-structure) ones
   alphas = kvlGetAlphasInMeshNodes( mesh );
-  reducedAlphas = kvlMergeAlphas( alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors );
+  reducedAlphas = kvlMergeAlphas( alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors ); 
+  checkpoint_manager.save('reducedAlphas', 'reducedAlphas');
   kvlSetAlphasInMeshNodes( mesh, reducedAlphas )
 
   
@@ -728,7 +729,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
             lhs( ( contrastNumber1 - 1 ) * prod( numberOfBasisFunctions ) + [ 1 : prod( numberOfBasisFunctions ) ], ...
                  ( contrastNumber2 - 1 ) * prod( numberOfBasisFunctions ) + [ 1 : prod( numberOfBasisFunctions ) ] ) = ... 
                   computePrecisionOfKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, weightsImageBuffer );
-            
+
           end % End loop over contrastNumber2
           
           tmpImageBuffer( downSampledMaskIndices ) = tmp;
@@ -823,7 +824,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     disp( [ '    maximalDeformationApplied: ' num2str( maximalDeformationApplied ) ] )
     disp( [ '  ' num2str( toc( deformationStartTime ) ) ' sec' ] )
     disp( '==============================' )
-    
+    checkpoint_manager.save('optimizer', 'historyOfDeformationCost historyOfMaximalDeformation maximalDeformationApplied nodePositionsAfterDeformation')
     
     % Show a little movie comparing before and after deformation so far...
     if ( showFigures )
@@ -921,8 +922,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     
 end % End loop over multiresolution levels
 
-
-save('/home/willy/junkola/part3.mat')
+checkpoint_manager.save('part3', '')
 % Save something about how the estimation proceeded
 history.imageBuffers = imageBuffers;
 history.mask = mask;
@@ -962,7 +962,7 @@ estimatedNodeDeformationInTemplateSpace = ...
                         historyWithinEachMultiResolutionLevel( end ).finalNodePositionsInTemplateSpace ...
                         - historyWithinEachMultiResolutionLevel( end ).initialNodePositionsInTemplateSpace, ...
                         modelSpecifications.atlasFileName );
-
+checkpoint_manager.save('estimatedNodeDeformationInTemplateSpace', 'estimatedNodeDeformationInTemplateSpace')
 % Apply this warp on the mesh node positions in template space, and transform into current space  
 desiredNodePositionsInTemplateSpace = nodePositionsInTemplateSpace + estimatedNodeDeformationInTemplateSpace;
 tmp = ( transformMatrix * [ desiredNodePositionsInTemplateSpace ones( numberOfNodes, 1 ) ]' )';

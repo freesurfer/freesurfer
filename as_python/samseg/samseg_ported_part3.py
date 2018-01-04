@@ -8,14 +8,12 @@ from as_python.samseg.dev_utils.debug_client import request_var, compare_vars, C
 from as_python.samseg.kvl_merge_alphas import kvlMergeAlphas
 from as_python.samseg.bias_correction import backprojectKroneckerProductBasisFunctions
 
-MATLAB_FIXTURE_PATH = '/Users/ys/work/freesurfer/GEMS2/Testing/matlab_data/'
+checkpoint_manager = CheckpointManager()
 
-fixture = scipy.io.loadmat(os.path.join(MATLAB_FIXTURE_PATH, 'part3.mat'), struct_as_record=False, squeeze_me=True)
-locals().update(fixture)
+locals().update(checkpoint_manager.load('part3', 1))
 
 eps = np.finfo(float).eps
 
-checkpoint_manager = CheckpointManager()
 
 def ensure_dims(np_array, dims):
     if np_array.ndim < dims:
@@ -199,7 +197,7 @@ freeSurferSegmentation[mask == 1] = FreeSurferLabels[structureNumbers]
 
 # % Write to file, remembering to un-crop the segmentation to the original image size
 # uncroppedFreeSurferSegmentation = zeros( nonCroppedImageSize, 'single' );
-uncroppedFreeSurferSegmentation = np.zeros( nonCroppedImageSize, dtype=np.float32)
+uncroppedFreeSurferSegmentation = np.zeros(nonCroppedImageSize, dtype=np.float32)
 # uncroppedFreeSurferSegmentation( croppingOffset( 1 ) + [ 1 : imageSize( 1 ) ], ...
 #                                  croppingOffset( 2 ) + [ 1 : imageSize( 2 ) ], ...
 #                                  croppingOffset( 3 ) + [ 1 : imageSize( 3 ) ] ) = freeSurferSegmentation;

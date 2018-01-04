@@ -25,10 +25,8 @@ def ensure_dims(np_array, dims):
     elif np_array.ndim == dims:
         return np_array
 
-MATLAB_FIXTURE_PATH = '/Users/ys/work/freesurfer/GEMS2/Testing/matlab_data/'
+locals().update(checkpoint_manager.load('part2', 1))
 
-fixture = scipy.io.loadmat(os.path.join(MATLAB_FIXTURE_PATH, 'part2.mat'), struct_as_record=False, squeeze_me=True)
-locals().update(fixture)
 
 # function Y = backprojectKroneckerProductBasisFunctions( kroneckerProductBasisFunctions, coefficients )
 
