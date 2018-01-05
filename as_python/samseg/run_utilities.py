@@ -2,8 +2,30 @@ import logging
 import os
 
 import numpy as np
+import scipy.io
+
 
 logger = logging.getLogger(__name__)
+
+MATLAB_FIXTURE_PATH = os.path.dirname(os.path.dirname(os.path.dirname(__file__))) + '/GEMS2/Testing/matlab_data/'
+
+def load_mat_file(filename):
+    return scipy.io.loadmat(filename, struct_as_record=False, squeeze_me=True)
+
+
+def load_mat_data_file(leaf_name):
+    return load_mat_file(os.path.join(MATLAB_FIXTURE_PATH, leaf_name))
+
+
+def load_starting_fixture():
+    print("MATLAB_FIXTURE_PATH", MATLAB_FIXTURE_PATH)
+    fixture = load_mat_data_file('part1.mat')
+    # matlab fixture sometimes returns imageFileNames as string not list of strings.
+    # Fix it with this bit of funk:
+    imageFileNames = fixture['imageFileNames']
+    if imageFileNames[0] == '/':
+        fixture['imageFileNames'] = [imageFileNames]
+    return fixture
 
 
 def find_samseg_data_dir(samseg_data_dir=None):

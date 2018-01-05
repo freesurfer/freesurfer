@@ -6,9 +6,9 @@ def backprojectKroneckerProductBasisFunctions(kroneckerProductBasisFunctions, co
     # numberOfDimensions = length( kroneckerProductBasisFunctions );
     numberOfDimensions = len(kroneckerProductBasisFunctions)
     # Ms = zeros( 1, numberOfDimensions ); % Number of basis functions in each dimension
-    Ms = np.zeros(numberOfDimensions)  # Number of basis functions in each dimension
+    Ms = np.zeros(numberOfDimensions, dtype=np.uint32)  # Number of basis functions in each dimension
     # Ns = zeros( 1, numberOfDimensions ); % Number of data points in each dimension
-    Ns = np.zeros(numberOfDimensions)  # Number of basis functions in each dimension
+    Ns = np.zeros(numberOfDimensions, dtype=np.uint32)  # Number of basis functions in each dimension
     # transposedKroneckerProductBasisFunctions = cell( 0, 0 );
     transposedKroneckerProductBasisFunctions = []
     # for dimensionNumber = 1 : numberOfDimensions
@@ -81,7 +81,7 @@ def computePrecisionOfKroneckerProductBasisFunctions(kroneckerProductBasisFuncti
     # % Compute a new set of basis functions (point-wise product of each combination of pairs) so that we can
     # % easily compute a mangled version of the result
     # Ms = zeros( 1, numberOfDimensions ); % Number of basis functions in each dimension
-    Ms = np.zeros( numberOfDimensions ) # % Number of basis functions in each dimension
+    Ms = np.zeros( numberOfDimensions , dtype=np.uint32) # % Number of basis functions in each dimension
     # hessianKroneckerProductBasisFunctions = cell( 0, 0 );
     hessianKroneckerProductBasisFunctions = {}
     # for dimensionNumber = 1 : numberOfDimensions
@@ -115,7 +115,7 @@ def computePrecisionOfKroneckerProductBasisFunctions(kroneckerProductBasisFuncti
     #
     # end
     # result = projectKroneckerProductBasisFunctions( hessianKroneckerProductBasisFunctions, B );
-    result = projectKroneckerProductBasisFunctions( hessianKroneckerProductBasisFunctions, B );
+    result = projectKroneckerProductBasisFunctions( hessianKroneckerProductBasisFunctions, B )
     # %result = reshape( result, [ Ms.^2 ] );
     result = result.reshape(np.kron( Ms, [ 1, 1 ] ) )
     # permutationIndices = [ 2 * [ 1 : numberOfDimensions ]-1 2 * [ 1 : numberOfDimensions ] ];

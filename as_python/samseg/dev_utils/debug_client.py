@@ -85,17 +85,32 @@ def measure_closeness(ref, item, name=''):
 
 
 class CheckpointManager:
-    def __init__(self):
+    def __init__(self, matlab_dump_dir=None, python_dump_dir=None):
+        if matlab_dump_dir is None:
+            matlab_dump_dir = MATLAB_DUMP_DIR
+        if python_dump_dir is None:
+            python_dump_dir = matlab_dump_dir
+        self.matlab_dump_dir = matlab_dump_dir
+        self.python_dump_dir = python_dump_dir
         self.counts = {}
 
     def increment(self, checkpoint_name):
         self.counts.setdefault(checkpoint_name, 0)
         self.counts[checkpoint_name] += 1
 
-    def load(self, checkpoint_name, checkpoint_number=None):
+    def file_name_for_checkpoint(self, dump_dir, checkpoint_name, checkpoint_number=None):
         if checkpoint_number is None and checkpoint_name not in self.counts:
             raise Exception('You must either specify the checkpoint number or call '
                             'increment in the same logical location as in the MATLAB code.')
         checkpoint_number = checkpoint_number or self.counts[checkpoint_name]
-        mat_path = os.path.join(MATLAB_DUMP_DIR, '{}_{}.mat'.format(checkpoint_name, checkpoint_number))
+        return os.path.join(dump_dir, '{}_{}.mat'.format(checkpoint_name, checkpoint_number))
+
+    def load(self, checkpoint_name, checkpoint_number=None):
+        mat_path = self.file_name_for_checkpoint(self.matlab_dump_dir, checkpoint_name, checkpoint_number)
         return scipy.io.loadmat(mat_path, struct_as_record=False, squeeze_me=True)
+
+    def save(self, value_dict, checkpoint_name, checkpoint_number=None):
+        mat_path = self.file_name_for_checkpoint(self.python_dump_dir, checkpoint_name, checkpoint_number)
+        return scipy.io.savemat(mat_path, value_dict)
+
+

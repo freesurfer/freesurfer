@@ -5,11 +5,12 @@ from operator import mul
 
 import GEMS2Python
 import numpy as np
-import scipy.io
 
+from as_python.samseg.dev_utils.debug_client import CheckpointManager
 from as_python.samseg.kvl_merge_alphas import kvlMergeAlphas
-
-MATLAB_FIXTURE_PATH = os.path.dirname(os.path.dirname(os.path.dirname(__file__))) + '/GEMS2/Testing/matlab_data/'
+from as_python.samseg.run_utilities import load_starting_fixture, load_mat_data_file
+from as_python.samseg.samseg_ported_part2 import samsegment_part2
+from as_python.samseg.samseg_ported_part3 import samsegment_part3
 
 
 # function [ FreeSurferLabels, names, volumesInCubicMm ] = samsegment( imageFileNames, transformedTemplateFileName, meshCollectionFileName, ...
@@ -22,7 +23,8 @@ def samsegment(
         modelSpecifications,
         optimizationOptions,
         savePath,
-        showFigures
+        showFigures,
+        checkpoint_manager=None
 ):
     # ﻿function [ FreeSurferLabels, names, volumesInCubicMm ] = samsegment( imageFileNames, transformedTemplateFileName, ...
     #                                                                      modelSpecifications, optimizationOptions, ...
@@ -32,6 +34,54 @@ def samsegment(
     #
     #
     #
+    print('calling part1...')
+    part1_results_dict = samsegment_part1(
+        imageFileNames,
+        transformedTemplateFileName,
+        modelSpecifications,
+        optimizationOptions,
+        savePath,
+        showFigures,
+        checkpoint_manager
+    )
+    if checkpoint_manager:
+        checkpoint_manager.increment('part1')
+        checkpoint_manager.save(part1_results_dict, 'part1')
+    print('calling part2...')
+    part2_results_dict = samsegment_part2(
+        modelSpecifications,
+        optimizationOptions,
+        part1_results_dict,
+        checkpoint_manager
+    )
+    if checkpoint_manager:
+        checkpoint_manager.increment('part2')
+        checkpoint_manager.save(part2_results_dict, 'part2')
+    print('calling part3...')
+    part3_results_dict = samsegment_part3(
+        modelSpecifications,
+        optimizationOptions,
+        part1_results_dict,
+        part2_results_dict,
+        checkpoint_manager
+    )
+    if checkpoint_manager:
+        checkpoint_manager.increment('part3')
+        checkpoint_manager.save(part3_results_dict, 'part3')
+    names = part1_results_dict['names']
+    FreeSurferLabels = part3_results_dict['FreeSurferLabels']
+    volumesInCubicMm = part3_results_dict['volumesInCubicMm']
+    return  [ FreeSurferLabels, names, volumesInCubicMm ]
+
+def samsegment_part1(
+        imageFileNames,
+        transformedTemplateFileName,
+        modelSpecifications,
+        optimizationOptions,
+        savePath,
+        showFigures,
+        checkpoint_manager=None
+):
     # % Print input options
     # disp( '==========================' );
     print('==========================')
@@ -72,13 +122,18 @@ def samsegment(
         #                                     kvlReadCroppedImage( imageFileNames{ contrastNumber }, transformedTemplateFileName );
         image = GEMS2Python.KvlImage(imageFileName, transformedTemplateFileName)
         transform = image.transform_matrix
+        nonCroppedImageSize = image.non_cropped_image_size
+        croppingOffset = image.cropping_offset
         images.append(image)
         #   imageBuffers( :, :, :, contrastNumber ) = kvlGetImageBuffer( images( contrastNumber ) ); % Get the actual imageBuffer
         imageBuffers.append(image.getImageBuffer())
+    nonCroppedImageSize = [int(dim) for dim in nonCroppedImageSize]
+    croppingOffset = [int(offset) for offset in croppingOffset]
     # end
     # imageSize = [ size( imageBuffers, 1 ) size( imageBuffers, 2 ) size( imageBuffers, 3 ) ];
-    imageSize = imageBuffers[0].shape
 
+    imageSize = imageBuffers[0].shape
+    imageBuffers = np.transpose(imageBuffers, axes=[1,2,3,0])
     #
     # if ( showFigures )
     #   for contrastNumber = 1 : numberOfContrasts
@@ -189,12 +244,13 @@ def samsegment(
     #
     # % Mask each of the inputs
     # for contrastNumber = 1 : numberOfContrasts
-    #   imageBuffer = imageBuffers( :, :, :, contrastNumber );
-    #   imageBuffer( find( ~brainMask ) ) = 0;
-    #   imageBuffers( :, :, :, contrastNumber ) = imageBuffer;
-    #   % kvlSetImageBuffer( images( contrastNumber ), imageBuffers( :, :, :, contrastNumber ) );
+    for contrastNumber in range(numberOfContrasts):
+        #   imageBuffer = imageBuffers( :, :, :, contrastNumber );
+        #   imageBuffer( find( ~brainMask ) ) = 0;
+        #   imageBuffers( :, :, :, contrastNumber ) = imageBuffer;
+        #   % kvlSetImageBuffer( images( contrastNumber ), imageBuffers( :, :, :, contrastNumber ) );
+        imageBuffers[:, :, :, contrastNumber] *= brainMask
     # end
-    imageBuffers *= brainMask
     #
     # if( showFigures )
     #   subplot( 2, 2, 4 )
@@ -209,10 +265,14 @@ def samsegment(
     # % the images.
     # % This removes any voxel where any contrast has a zero value
     # % (messes up log)
+    # TODO: calculate mask and maskIndices
     # mask = true( imageSize ); % volume of ones within the mask
+    mask = np.full(imageSize, True, dtype=np.bool)
     # for contrastNumber = 1 : numberOfContrasts
-    #   mask = mask .* ( imageBuffers( :, :, :, contrastNumber ) > 0 );
-    # end
+    for contrastNumber in range(numberOfContrasts):
+        #   mask = mask .* ( imageBuffers( :, :, :, contrastNumber ) > 0 );
+        mask = mask * (imageBuffers[:, :, :, contrastNumber] > 0)
+        # end
     # maskIndices = find( mask );
     # for contrastNumber = 1 : numberOfContrasts
     #   buffer = imageBuffers( :, :, :, contrastNumber );
@@ -223,7 +283,10 @@ def samsegment(
     with np.warnings.catch_warnings():
         np.warnings.filterwarnings('ignore')
         log_buffers = np.log(imageBuffers)
+
     imageBuffers = np.ma.fix_invalid(log_buffers).filled(0)
+    for contrastNumber in range(numberOfContrasts):
+        imageBuffers[np.logical_not(mask), contrastNumber] = 0
     log_buffers = None
 
     #
@@ -317,7 +380,7 @@ def samsegment(
         #   A( :, 1 ) = A( :, 1 ) / sqrt( 2 );
         scaling = [math.sqrt(2 / Nvirtual)] * M
         scaling[0] /= math.sqrt(2)
-        A = [[math.cos(freq * m) * scaling[m] for m in range(M)] for freq in js]
+        A = np.array([[math.cos(freq * m) * scaling[m] for m in range(M)] for freq in js])
         #
         #   if showFigures
         #     % Show smoothing kernel
@@ -357,21 +420,31 @@ def samsegment(
     #   biasFieldFigure = figure;
     # end
     #
+    return {
+        'biasFieldCoefficients': biasFieldCoefficients,
+        'colors': colors,
+        'croppingOffset': croppingOffset,
+        'FreeSurferLabels': FreeSurferLabels,
+        'imageBuffers': imageBuffers,
+        'imageSize': imageSize,
+        'imageToWorldTransformMatrix': imageToWorldTransformMatrix,
+        'kroneckerProductBasisFunctions': kroneckerProductBasisFunctions,
+        # TODO: calculate mask and maskIndices
+        'mask': mask,
+        # 'maskIndices': maskIndices,
+        'names': names,
+        'nonCroppedImageSize': nonCroppedImageSize,
+        'numberOfBasisFunctions': numberOfBasisFunctions,
+        'numberOfClasses': numberOfClasses,
+        'numberOfContrasts': numberOfContrasts,
+        'numberOfGaussians': numberOfGaussians,
+        'numberOfGaussiansPerClass': numberOfGaussiansPerClass,
+        'reducingLookupTable': reducingLookupTable,
+        'savePath': savePath,
+        'transformMatrix': transform.as_numpy_array,
+        'voxelSpacing': voxelSpacing,
+    }
 
-    ## TODO: when part3 is done, return proper results
-    return [
-        [1, 2, 3],
-        ['apple', 'banana', 'cherry'],
-        [1.2, 3.4, 5.6],
-    ]
-
-
-def load_mat_file(filename):
-    return scipy.io.loadmat(filename, struct_as_record=False, squeeze_me=True)
-
-
-def load_mat_data_file(leaf_name):
-    return load_mat_file(os.path.join(MATLAB_FIXTURE_PATH, leaf_name))
 
 
 def print_image_file_names(imageFileNames):
@@ -458,21 +531,17 @@ def print_show_figures(showFigures):
     #
 
 
-if __name__ == '__main__':
-    print("MATLAB_FIXTURE_PATH", MATLAB_FIXTURE_PATH)
-    fixture = load_mat_data_file('part1.mat')
-    # matlab fixture sometimes returns imageFileNames as string not list of strings.
-    # Fix it with this bit of funk:
-    imageFileNames = fixture['imageFileNames']
-    if imageFileNames[0] == '/':
-        imageFileNames = [imageFileNames]
 
+if __name__ == '__main__':
+    checkpoint_manager = CheckpointManager()
+    fixture = load_starting_fixture()
     results = samsegment(
-        imageFileNames,
+        fixture['imageFileNames'],
         fixture['transformedTemplateFileName'],
         fixture['modelSpecifications'],
         fixture['optimizationOptions'],
         fixture['savePath'],
-        fixture['showFigures']
+        fixture['showFigures'],
+        # checkpoint_manager
     )
     print(results)
