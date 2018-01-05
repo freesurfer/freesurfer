@@ -387,7 +387,7 @@ class MRISOBBTree
       vnl_matrix<double> a(3,3);
       VERTEX *v, *vertex;
       Pointf vp;
-      FACE *face;
+      FACE *face = NULL;
 
       tot_mass = 0.0;
       this->OBBcount++;
