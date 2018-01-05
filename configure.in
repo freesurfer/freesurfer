@@ -598,9 +598,9 @@ if test "x$CC" = "xicc"; then
   #   assert(!"Cannot invert 2x2 matrix with zero determinant");
 fi
 # so that --disable-Werror is no longer needed
-if test "$ac_have_gcc_48_or_higher" = "yes"; then
-  [ WERROR="-Wno-unused-parameter -Werror -Wno-unused-variable -Wno-narrowing -Wno-aggressive-loop-optimizations -Wno-switch -Wno-enum-compare -Wno-unused-local-typedefs -Wno-unused-but-set-variable -fno-strict-overflow -Wno-maybe-uninitialized -Wno-uninitialized" ]
-fi
+# if test "$ac_have_gcc_48_or_higher" = "yes"; then
+#  [ WERROR="-Wno-unused-parameter -Werror -Wno-unused-variable -Wno-narrowing -Wno-aggressive-loop-optimizations -Wno-switch -Wno-enum-compare -Wno-unused-local-typedefs -Wno-unused-but-set-variable -fno-strict-overflow -Wno-maybe-uninitialized -Wno-uninitialized" ]
+# fi
 # There are approximately 1000 of this 'error', most caused by
 # the presence of code intending for debugging, so don't report it
 WERROR="$WERROR -Wno-unused-but-set-variable"
