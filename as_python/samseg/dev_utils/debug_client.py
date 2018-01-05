@@ -111,6 +111,6 @@ class CheckpointManager:
 
     def save(self, value_dict, checkpoint_name, checkpoint_number=None):
         mat_path = self.file_name_for_checkpoint(self.python_dump_dir, checkpoint_name, checkpoint_number)
-        return scipy.io.savemat(mat_path, value_dict)
+        return scipy.io.savemat(mat_path, value_dict, long_field_names=True)
 
 

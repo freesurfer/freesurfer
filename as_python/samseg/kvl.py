@@ -30,7 +30,7 @@ def calculate_down_sampling_factors(transform, target_voxel_spacing):
     voxel_spacing = voxel_spacing_of_transform(transform)
     tentative_spacing = np.rint(target_voxel_spacing / voxel_spacing)
     limited_spacing = np.maximum([1, 1, 1], tentative_spacing)
-    print(limited_spacing)
+    logger.debug('limited_spacing = %s', str(limited_spacing))
     return [int(factor) for factor in limited_spacing]
 
 

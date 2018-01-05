@@ -273,7 +273,6 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
     # calculator = kvlGetCostAndGradientCalculator( 'PointSet', image, 'Sliding', transform, [], [], [], [], ...
     #                                               desiredTargetNodePosition );
     calculator = GEMS2Python.KvlCostAndGradientCalculator('PointSet', [image], 'Sliding',
-                                                          ## TODO: need full calculator
                                                           transform, [], [], [], [],
                                                           desiredTargetNodePosition
                                                           )

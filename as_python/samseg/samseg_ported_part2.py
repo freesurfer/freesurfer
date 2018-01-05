@@ -1,4 +1,4 @@
-import os
+import logging
 
 import GEMS2Python
 import numpy as np
@@ -10,6 +10,7 @@ from as_python.samseg.dev_utils.debug_client import CheckpointManager
 from as_python.samseg.kvlWarpMesh import kvlWarpMesh
 from as_python.samseg.kvl_merge_alphas import kvlMergeAlphas
 
+logger = logging.getLogger(__name__)
 
 eps = np.finfo(float).eps
 
@@ -66,7 +67,7 @@ def samsegment_part2(
     historyWithinEachMultiResolutionLevel = []
     # for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     for multiResolutionLevel in range(numberOfMultiResolutionLevels):
-        print('multiResolutionLevel={0}'.format(multiResolutionLevel))
+        logger.debug('multiResolutionLevel=%d',multiResolutionLevel)
         #
         #   %
         #   maximumNumberOfIterations = optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).maximumNumberOfIterations;
@@ -74,12 +75,12 @@ def samsegment_part2(
         #   estimateBiasField = optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).estimateBiasField;
         estimateBiasField = optimizationOptions.multiResolutionSpecification[multiResolutionLevel].estimateBiasField
         #   historyOfCost = [ 1/eps ];
-        historyOfCost = [ 1/eps ];
+        historyOfCost = [ 1/eps ]
         #   historyOfMaximalDeformationApplied = [];
         #   historyOfTimeTakenIntensityParameterUpdating = [];
         #   historyOfTimeTakenDeformationUpdating = [];
         #   fprintf('maximumNumberOfIterations %d\n',maximumNumberOfIterations);
-        print('maximumNumberOfIterations: {}', maximumNumberOfIterations)
+        logger.debug('maximumNumberOfIterations: %d', maximumNumberOfIterations)
         #
         #
         #   % Downsample the images, the mask, the mesh, and the bias field basis functions
@@ -98,7 +99,7 @@ def samsegment_part2(
         downSampledImageBuffers = np.zeros(downSampledMask.shape + (numberOfContrasts,))
         #   for contrastNumber = 1 : numberOfContrasts
         for contrastNumber in range(numberOfContrasts):
-            print('first time contrastNumber={0}'.format(contrastNumber))
+            logger.debug('first time contrastNumber=%d',contrastNumber)
             #     if true
             #       % No image smoothing
             #       downSampledImageBuffers( :, :, :, contrastNumber ) = imageBuffers( 1 : downSamplingFactors( 1 ) : end, ...
@@ -182,7 +183,7 @@ def samsegment_part2(
         #   % If this is not the first multi-resolution level, apply the warp computed during the previous level
         #   if ( multiResolutionLevel > 1 )
         if multiResolutionLevel > 0:
-            print('starting multiResolutionLevel={0}'.format(multiResolutionLevel))
+            logger.debug('starting multiResolutionLevel=%d',multiResolutionLevel)
             #     % Get the warp in template space
             #     nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = ...
             #             historyWithinEachMultiResolutionLevel( multiResolutionLevel-1 ).finalNodePositionsInTemplateSpace - ...
@@ -197,29 +198,29 @@ def samsegment_part2(
                                nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel,
                                optimizationOptions.multiResolutionSpecification[multiResolutionLevel].atlasFileName )
 
-            print('alpha multiResolutionLevel={0}'.format(multiResolutionLevel))
+            logger.debug('alpha multiResolutionLevel={0}'.format(multiResolutionLevel))
             if checkpoint_manager:
                 checkpoint_manager.increment('multiresWarp')
                 # fixture = checkpoint_manager.load('multiresWarp')
 
             #     % Apply this warp on the mesh node positions in template space, and transform into current space
             #     desiredNodePositionsInTemplateSpace = initialNodePositionsInTemplateSpace + initialNodeDeformationInTemplateSpace;
-            print('beta multiResolutionLevel={0}'.format(multiResolutionLevel))
+            logger.debug('beta multiResolutionLevel=%d', multiResolutionLevel)
             desiredNodePositionsInTemplateSpace = initialNodePositionsInTemplateSpace + initialNodeDeformationInTemplateSpace
             #     tmp = ( totalTransformationMatrix * ...
             #             [ desiredNodePositionsInTemplateSpace ones( numberOfNodes, 1 ) ]' )';
 
-            print('gamma multiResolutionLevel={0}'.format(multiResolutionLevel))
+            logger.debug('gamma multiResolutionLevel=%d', multiResolutionLevel)
             tmp = ( totalTransformationMatrix @ np.pad(desiredNodePositionsInTemplateSpace, ((0,0),(0,1)), 'constant', constant_values=1).T ).T
             #     desiredNodePositions = tmp( :, 1 : 3 );
-            print('delta multiResolutionLevel={0}'.format(multiResolutionLevel))
+            logger.debug('delta multiResolutionLevel=%d}', multiResolutionLevel)
             desiredNodePositions = tmp[:, 0:3]
-            print('epsilot multiResolutionLevel={0}'.format(multiResolutionLevel))
+            logger.debug('epsilon multiResolutionLevel=%d', multiResolutionLevel)
             #
             #     %
             #     kvlSetMeshNodePositions( mesh, desiredNodePositions );
             mesh.points = require_np_array(desiredNodePositions)
-            print('finish multiResolutionLevel={0}'.format(multiResolutionLevel))
+            logger.debug('finish multiResolutionLevel=%d', multiResolutionLevel)
             #
             #   end
         #
@@ -254,7 +255,7 @@ def samsegment_part2(
         # TODO: remove this ensure_dims when part 1 is done
         biasFieldCoefficients = ensure_dims(biasFieldCoefficients, 2)
         for contrastNumber in range(numberOfContrasts):
-            print('second time contrastNumber={0}'.format(contrastNumber))
+            logger.debug('second time contrastNumber=%d', contrastNumber)
             #     downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, biasFieldCoefficients( :, contrastNumber ) );
             downSampledBiasField = backprojectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions, biasFieldCoefficients[:, contrastNumber])
             #     tmp = downSampledImageBuffers( :, :, :, contrastNumber ) - downSampledBiasField .* downSampledMask;
@@ -297,7 +298,7 @@ def samsegment_part2(
         #   % Main iteration loop over both EM and deformation
         #   for iterationNumber = 1 : maximumNumberOfIterations
         for iterationNumber in range(maximumNumberOfIterations):
-            print('iterationNumber={0}'.format(iterationNumber))
+            logger.debug('iterationNumber=%d', iterationNumber)
             #     %
             #     startTimeIntensityParameterUpdating = tic;
             #
@@ -416,7 +417,7 @@ def samsegment_part2(
             historyOfEMCost = [ 1/eps ]
             #     for EMIterationNumber = 1 : 100
             for EMIterationNumber in range(100):
-                print('EMIterationNumber={0}'.format(EMIterationNumber))
+                logger.debug('EMIterationNumber=%d', EMIterationNumber)
                 #       %
                 #       % E-step: compute the posteriors based on the current parameters.
                 #       %
@@ -629,7 +630,7 @@ def samsegment_part2(
                     #         for contrastNumber1 = 1 : numberOfContrasts
                     numberOfBasisFunctions_prod = np.prod(numberOfBasisFunctions)
                     for contrastNumber1 in range(numberOfContrasts):
-                        print('third time contrastNumber={0}'.format(contrastNumber))
+                        logger.debug('third time contrastNumber=%d', contrastNumber)
                         #           tmp = zeros( size( data, 1 ), 1 );
                         tmp = np.zeros( (data.shape[0], 1) )
                         #           for contrastNumber2 = 1 : numberOfContrasts
@@ -731,7 +732,6 @@ def samsegment_part2(
             #                                                    'Sliding', ...
             #                                                    transform, ...
             #                                                    means, variances, mixtureWeights, numberOfGaussiansPerClass );
-            ## TODO: Remove shim
             calculator = GEMS2Python.KvlCostAndGradientCalculator(
                     typeName='AtlasMeshToIntensityImage',
                     images=downSampledBiasCorrectedImages,

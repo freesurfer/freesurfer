@@ -18,7 +18,7 @@ def load_mat_data_file(leaf_name):
 
 
 def load_starting_fixture():
-    print("MATLAB_FIXTURE_PATH", MATLAB_FIXTURE_PATH)
+    logger.info("MATLAB_FIXTURE_PATH = %s", MATLAB_FIXTURE_PATH)
     fixture = load_mat_data_file('part1.mat')
     # matlab fixture sometimes returns imageFileNames as string not list of strings.
     # Fix it with this bit of funk:

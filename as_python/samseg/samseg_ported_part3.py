@@ -111,7 +111,6 @@ def samsegment_part3(
     nodePositionsInTemplateSpace = tmp[:, 0 : 3 ]
     #
     # % Get the estimated warp in template space
-    # TODO: Need to remove this fixture once kvlWarpMesh
     # estimatedNodeDeformationInTemplateSpace = ...
     #           kvlWarpMesh( optimizationOptions.multiResolutionSpecification( end ).atlasFileName, ...
     #                         historyWithinEachMultiResolutionLevel( end ).finalNodePositionsInTemplateSpace ...
@@ -295,8 +294,7 @@ if __name__ == '__main__':
         checkpoint_manager
     )
     if checkpoint_manager:
-        checkpoint_manager.increment('part3')
-        checkpoint_manager.save(part3_results_dict, 'part3')
+        checkpoint_manager.save(part3_results_dict, 'part3', 1)
     names = part1_results_dict['names']
     FreeSurferLabels = part3_results_dict['FreeSurferLabels']
     volumesInCubicMm = part3_results_dict['volumesInCubicMm']

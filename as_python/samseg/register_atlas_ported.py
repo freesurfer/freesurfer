@@ -1,8 +1,12 @@
+import logging
 import numpy as np
 import scipy.ndimage
 import scipy.io
 import GEMS2Python
 import os
+
+logger = logging.getLogger(__name__)
+
 def require_np_array(np_array):
     return np.require(np_array, requirements=['F_CONTIGUOUS', 'ALIGNED'])
 
@@ -335,7 +339,7 @@ def samseg_registerAtlas(imageFileName,
         #   while truek
         while True:
             cost, gradient = calculator.evaluate_mesh_position(mesh)
-            print("cost = {}".format(cost))
+            logger.info("cost = %f", cost)
             costs.append(cost)
             gradients.append(gradient)
             #     %
@@ -477,8 +481,6 @@ def samseg_registerAtlas(imageFileName,
                       'costs': costs,
                       }
                      )
-    print(fixture.imageToImageTransformMatrix - imageToImageTransformMatrix)
-
     # transformationMatricesFileName = fullfile( savePath, ...
     #                                            [ templateFileNameBase '_coregistrationMatrices.mat' ] );
     # eval( [ 'save ' transformationMatricesFileName ' imageToImageTransformMatrix worldToWorldTransformMatrix;' ] )

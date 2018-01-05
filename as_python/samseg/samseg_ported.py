@@ -1,5 +1,5 @@
+import logging
 import math
-import os
 from functools import reduce
 from operator import mul
 
@@ -12,6 +12,7 @@ from as_python.samseg.run_utilities import load_starting_fixture, load_mat_data_
 from as_python.samseg.samseg_ported_part2 import samsegment_part2
 from as_python.samseg.samseg_ported_part3 import samsegment_part3
 
+logger = logging.getLogger(__name__)
 
 # function [ FreeSurferLabels, names, volumesInCubicMm ] = samsegment( imageFileNames, transformedTemplateFileName, meshCollectionFileName, ...
 #                                                                    compressionLookupTableFileName, modelSpecifications, ...
@@ -34,7 +35,17 @@ def samsegment(
     #
     #
     #
-    print('calling part1...')
+    part0_results_dict = {
+        'imageFileNames': imageFileNames,
+        'transformedTemplateFileName': transformedTemplateFileName,
+        'modelSpecifications': modelSpecifications,
+        'optimizationOptions': optimizationOptions,
+        'savePath': savePath,
+        'showFigures': showFigures,
+    }
+    if checkpoint_manager:
+        checkpoint_manager.save(part0_results_dict, 'part0', 1)
+    logger.info('calling part1...')
     part1_results_dict = samsegment_part1(
         imageFileNames,
         transformedTemplateFileName,
@@ -45,9 +56,8 @@ def samsegment(
         checkpoint_manager
     )
     if checkpoint_manager:
-        checkpoint_manager.increment('part1')
-        checkpoint_manager.save(part1_results_dict, 'part1')
-    print('calling part2...')
+        checkpoint_manager.save(part1_results_dict, 'part1', 1)
+    logger.info('calling part2...')
     part2_results_dict = samsegment_part2(
         modelSpecifications,
         optimizationOptions,
@@ -55,9 +65,8 @@ def samsegment(
         checkpoint_manager
     )
     if checkpoint_manager:
-        checkpoint_manager.increment('part2')
-        checkpoint_manager.save(part2_results_dict, 'part2')
-    print('calling part3...')
+        checkpoint_manager.save(part2_results_dict, 'part2, 1')
+        logger.info('calling part3...')
     part3_results_dict = samsegment_part3(
         modelSpecifications,
         optimizationOptions,
@@ -66,8 +75,8 @@ def samsegment(
         checkpoint_manager
     )
     if checkpoint_manager:
-        checkpoint_manager.increment('part3')
-        checkpoint_manager.save(part3_results_dict, 'part3')
+        checkpoint_manager.save(part3_results_dict, 'part3', 1)
+    logger.info('...all parts completed')
     names = part1_results_dict['names']
     FreeSurferLabels = part3_results_dict['FreeSurferLabels']
     volumesInCubicMm = part3_results_dict['volumesInCubicMm']
@@ -265,7 +274,6 @@ def samsegment_part1(
     # % the images.
     # % This removes any voxel where any contrast has a zero value
     # % (messes up log)
-    # TODO: calculate mask and maskIndices
     # mask = true( imageSize ); % volume of ones within the mask
     mask = np.full(imageSize, True, dtype=np.bool)
     # for contrastNumber = 1 : numberOfContrasts
@@ -274,6 +282,7 @@ def samsegment_part1(
         mask = mask * (imageBuffers[:, :, :, contrastNumber] > 0)
         # end
     # maskIndices = find( mask );
+    ## Note maskIndices not needed for python port.
     # for contrastNumber = 1 : numberOfContrasts
     #   buffer = imageBuffers( :, :, :, contrastNumber );
     #   buffer( maskIndices ) = log( buffer( maskIndices ) );
@@ -429,9 +438,7 @@ def samsegment_part1(
         'imageSize': imageSize,
         'imageToWorldTransformMatrix': imageToWorldTransformMatrix,
         'kroneckerProductBasisFunctions': kroneckerProductBasisFunctions,
-        # TODO: calculate mask and maskIndices
         'mask': mask,
-        # 'maskIndices': maskIndices,
         'names': names,
         'nonCroppedImageSize': nonCroppedImageSize,
         'numberOfBasisFunctions': numberOfBasisFunctions,
@@ -542,6 +549,6 @@ if __name__ == '__main__':
         fixture['optimizationOptions'],
         fixture['savePath'],
         fixture['showFigures'],
-        # checkpoint_manager
+        checkpoint_manager
     )
     print(results)

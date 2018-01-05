@@ -1,7 +1,10 @@
 # function [ mergedAlphas, mergedNames, mergedFreeSurferLabels, mergedColors, mergingLookupTable ] = kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels, colors );
+import logging
 import math
 import numpy as np
 import colorsys
+
+logger = logging.getLogger(__name__)
 
 def mesh_validity_test(alphas, name):
     probability_discrepancy = np.max(np.abs(np.sum(alphas, axis=1) - 1))
@@ -75,7 +78,7 @@ def kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels=None, colors=N
     # for mergingTaskNumber = 1 : numberOfMergingTasks
     zeroes_for_appending = np.zeros((alpha_count, 1), dtype=np.double)
     for mergeOption in mergeOptions:
-        print('starting shape = {0}'.format(mergedAlphas.shape))
+        logger.debug('starting shape = %s', str(mergedAlphas.shape))
         #
         #   %
         #   mergedName = mergeOptions( mergingTaskNumber ).mergedName;
@@ -90,7 +93,7 @@ def kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels=None, colors=N
                 if pattern in candidate:
                     return True
             return False
-        print('searching for {0}'.format(searchStrings))
+            logger.debug('searching for %s', searchStrings)
         #
         #   % Retrieve the class number corresponding to the merged label. If it doesn't exist yet,
         #   % create a new class
@@ -99,11 +102,11 @@ def kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels=None, colors=N
         #   if ( length( classNumberOfMerged ) ~= 1 )
         if len(matching_name_indices) == 1:
             classNumberOfMerged = matching_name_indices[0]
-            print('keeping class number {0}'.format(classNumberOfMerged))
+            logger.debug('keeping class number %d', classNumberOfMerged)
         else:
             #     classNumberOfMerged = size( mergedAlphas, 2 ) + 1;
             classNumberOfMerged = mergedAlphas.shape[1]
-            print('adding class number {0}'.format(classNumberOfMerged))
+            logger.debug('adding class number %d', classNumberOfMerged)
             #
             #     mergedAlphas = [ mergedAlphas zeros( size( mergedAlphas, 1 ), 1 ) ];
             mergedAlphas = np.append(mergedAlphas, zeroes_for_appending, axis=1)
@@ -129,7 +132,7 @@ def kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels=None, colors=N
         #   end
         #   mergingClassNumbers = find( ~classIsNotMerging );
         mergingClassNumbers = [index for index, name in enumerate(mergedNames) if is_target_string(name)]
-        print('merging from {0}'.format(mergingClassNumbers))
+        logger.debug('merging from %s', str(mergingClassNumbers))
         #
         #
         #   % Now merge (i.e., add the probabilities) of those class numbers to that of classNumberOfMerged
@@ -152,7 +155,7 @@ def kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels=None, colors=N
         disappearingClassNumbers = [number for number in mergingClassNumbers if number != classNumberOfMerged]
         disappearingClassNumbers.sort()
         disappearingClassNumbers.reverse()
-        print('removing these {0}'.format(disappearingClassNumbers))
+        logger.debug('removing these %s', str(disappearingClassNumbers))
         #
         #   mergedAlphas( :, disappearingClassNumbers ) = [];
         for disappearingClassNumber in disappearingClassNumbers:
@@ -168,7 +171,7 @@ def kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels=None, colors=N
         mergingTable = [sources for index, sources in enumerate(mergingTable) if not index in disappearingClassNumbers]
         #
         # end % End loop over all merging tasks
-        print('ending shape = {0}'.format(mergedAlphas.shape))
+        logger.debug('ending shape = %s', str(mergedAlphas.shape))
     #
     #
     # % Make sure we still have a valid mesh
