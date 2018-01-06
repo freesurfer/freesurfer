@@ -4,11 +4,15 @@ Then call `request_var` and pass in the name of the variable you want to auto-ma
 transfer from MATLAB to Python. This is intended to be called with both Python and MATLAB
 at a breakpoint to easily compare the values of variables for equality.
 '''
+import logging
 import scipy.io
 import os
 import time
 import traceback
 import numpy as np
+import json
+
+logger = logging.getLogger(__name__)
 
 # MATLAB_DUMP_DIR = "/Users/ys/work/freesurfer/matlab_dumps"
 # MATLAB_DUMP_DIR = '/home/willy/work/cm/my_tests/matlab_dump_dir'
@@ -98,19 +102,32 @@ class CheckpointManager:
         self.counts.setdefault(checkpoint_name, 0)
         self.counts[checkpoint_name] += 1
 
-    def file_name_for_checkpoint(self, dump_dir, checkpoint_name, checkpoint_number=None):
+    def file_name_for_checkpoint(self, dump_dir, checkpoint_name, checkpoint_number=None, suffix='.mat'):
         if checkpoint_number is None and checkpoint_name not in self.counts:
             raise Exception('You must either specify the checkpoint number or call '
                             'increment in the same logical location as in the MATLAB code.')
         checkpoint_number = checkpoint_number or self.counts[checkpoint_name]
-        return os.path.join(dump_dir, '{}_{}.mat'.format(checkpoint_name, checkpoint_number))
+        return os.path.join(dump_dir, '{}_{}{}'.format(checkpoint_name, checkpoint_number, suffix))
 
     def load(self, checkpoint_name, checkpoint_number=None):
         mat_path = self.file_name_for_checkpoint(self.matlab_dump_dir, checkpoint_name, checkpoint_number)
+        logger.info('loading from %s', mat_path)
         return scipy.io.loadmat(mat_path, struct_as_record=False, squeeze_me=True)
 
     def save(self, value_dict, checkpoint_name, checkpoint_number=None):
         mat_path = self.file_name_for_checkpoint(self.python_dump_dir, checkpoint_name, checkpoint_number)
-        return scipy.io.savemat(mat_path, value_dict, long_field_names=True)
+        logger.info('saving at %s', mat_path)
+        scipy.io.savemat(mat_path, value_dict, long_field_names=True)
+
+    def save_specification(self, specification, checkpoint_name, checkpoint_number=None):
+        json_path = self.file_name_for_checkpoint(
+            self.python_dump_dir,
+            checkpoint_name,
+            checkpoint_number,
+            suffix='.json'
+        )
+        logger.info('saving specification at %s', json_path)
+        with open(json_path, 'w') as outfile:
+            outfile.write(specification.toJSON())
 
 

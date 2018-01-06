@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)  # TODO: configurable logging
 
 
-def run_samseg(cmdargs):
+def run_samseg_from_cmdargs(cmdargs):
     # function retval = run_samseg(varargin)
     # % Run with no arguments to get help
     # retval = 1;
@@ -51,7 +51,9 @@ def run_samseg(cmdargs):
     # fprintf('%s\n',mfileversion);
     # fprintf('Matlab version %s\n',version);
     #
+    verbose = cmdargs.verbose
     # savePath = cmdargs.outdir;
+    savePath = cmdargs.output
     # numberOfThreads = cmdargs.nthreads;
     numberOfThreads = cmdargs.threads
     # showFigures = cmdargs.showfigs;
@@ -75,12 +77,32 @@ def run_samseg(cmdargs):
     # savePath
     # numberOfThreads
     display_cmdargs(cmdargs)
+
+    return run_samseg(
+            imageFileNames,
+            savePath,
+            showFigures,
+            noBrainMasking,
+            useDiagonalCovarianceMatrices,
+            verbose
+    )
+
+
+def run_samseg(
+    imageFileNames,
+    savePath,
+    showFigures=False,
+    noBrainMasking=False,
+    useDiagonalCovarianceMatrices=False,
+    verbose=False,
+    checkpoint_manager=None
+):
     #
     # % Create the output folder
     # if ~exist(savePath, 'dir')
     #   mkdir(savePath);
     # end
-    savePath = find_or_create_save_path(cmdargs)
+    savePath = find_or_create_save_path(savePath)
     #
     # % set SAMSEG_DATA_DIR as an environment variable, eg,
     # % setenv SAMSEG_DATA_DIR /autofs/cluster/koen/koen/GEMSapplications/wholeBrain
@@ -88,7 +110,6 @@ def run_samseg(cmdargs):
     samsegDataDir = find_samseg_data_dir()
     #
     #
-    verbose = cmdargs.verbose
     # samsegStartTime = tic;
     process_timer = ProcessTimer('samseg begin')
     #
@@ -130,7 +151,8 @@ def run_samseg(cmdargs):
         templateFileName,
         savePath,
         showFigures,
-        worldToWorldTransformMatrix
+        worldToWorldTransformMatrix,
+        checkpoint_manager
     )
     process_timer.mark_time('registration done')
     #
@@ -218,7 +240,8 @@ def run_samseg(cmdargs):
     #                                                             savePath, showFigures );
     FreeSurferLabels, names, volumesInCubicMm = samsegment(imageFileNames, transformedTemplateFileName,
                                                            modelSpecifications, optimizationOptions,
-                                                           savePath, showFigures)
+                                                           savePath, showFigures,
+                                                           checkpoint_manager)
     # names
     print('names', names)
     # volumesInCubicMm
@@ -374,4 +397,4 @@ def log_mode(name, is_on):
 
 
 if __name__ == '__main__':
-    run_samseg(parse_args())
+    run_samseg_from_cmdargs(parse_args())

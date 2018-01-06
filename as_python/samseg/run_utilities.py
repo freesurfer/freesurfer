@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 import scipy.io
-
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -38,17 +38,35 @@ def determine_compression_lookup_table_file_name(avg_data_dir):
     return '{0}/compressionLookupTable.txt'.format(avg_data_dir)
 
 
-def find_or_create_save_path(recipe, makedirs=os.makedirs):
-    save_path = recipe.output
+def find_or_create_save_path(save_path, makedirs=os.makedirs):
     makedirs(save_path, exist_ok=True)
     return save_path
 
+# def find_or_create_save_path(recipe, makedirs=os.makedirs):
+#     save_path = recipe.output
+#     makedirs(save_path, exist_ok=True)
+#     return save_path
+
+
+def dump_dict(value):
+    return getattr(value, 'dump_dict', getattr(value, '__dict__', value))
 
 class Specification:
     def __init__(self, params):
         for key, value in params.items():
             self.__setattr__(key, value)
 
+    @property
+    def dump_dict(self):
+        return {key: dump_dict(value) for key, value in self.__dict__.items()}
+
+    def toJSON(self):
+        return json.dumps(self, default=dump_dict,
+                          sort_keys=True)
+
+# TODO: recreate specification from JSON
+def createSpecificationFromJSON(json_string):
+    pass
 
 class ResolutionSpecification(Specification):
     pass

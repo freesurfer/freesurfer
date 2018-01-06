@@ -8,7 +8,7 @@ import numpy as np
 
 from as_python.samseg.dev_utils.debug_client import CheckpointManager
 from as_python.samseg.kvl_merge_alphas import kvlMergeAlphas
-from as_python.samseg.run_utilities import load_starting_fixture, load_mat_data_file
+from as_python.samseg.run_utilities import load_starting_fixture, load_mat_data_file, Specification
 from as_python.samseg.samseg_ported_part2 import samsegment_part2
 from as_python.samseg.samseg_ported_part3 import samsegment_part3
 
@@ -35,16 +35,16 @@ def samsegment(
     #
     #
     #
-    part0_results_dict = {
+    part0_results_dict = Specification({
         'imageFileNames': imageFileNames,
         'transformedTemplateFileName': transformedTemplateFileName,
         'modelSpecifications': modelSpecifications,
         'optimizationOptions': optimizationOptions,
         'savePath': savePath,
         'showFigures': showFigures,
-    }
+    })
     if checkpoint_manager:
-        checkpoint_manager.save(part0_results_dict, 'part0', 1)
+        checkpoint_manager.save_specification(part0_results_dict, 'part0', 1)
     logger.info('calling part1...')
     part1_results_dict = samsegment_part1(
         imageFileNames,
@@ -65,7 +65,7 @@ def samsegment(
         checkpoint_manager
     )
     if checkpoint_manager:
-        checkpoint_manager.save(part2_results_dict, 'part2, 1')
+        checkpoint_manager.save(part2_results_dict, 'part2', 1)
         logger.info('calling part3...')
     part3_results_dict = samsegment_part3(
         modelSpecifications,

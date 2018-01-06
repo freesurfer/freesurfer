@@ -221,13 +221,16 @@ def samsegment_part3(
     #
     # % Convert into a crisp, winner-take-all segmentation, labeled according to the FreeSurfer labeling/naming convention
     # [ ~, structureNumbers ] = max( posteriors, [], 2 );
-    structureNumbers = np.argmax(posteriors, 1)
+    structureNumbers = np.array(np.argmax(posteriors, 1), dtype=np.uint32)
     # freeSurferSegmentation = zeros( imageSize, 'uint16' );
     freeSurferSegmentation = np.zeros( imageSize, dtype=np.uint16 )
     # for structureNumber = 1 : numberOfStructures
         #   freeSurferSegmentation( maskIndices( find( structureNumbers == structureNumber ) ) ) = FreeSurferLabels( structureNumber );
     # end
-    freeSurferSegmentation[mask == 1] = FreeSurferLabels[structureNumbers]
+    # TODO: Fails here with "TypeError: only integer scalar arrays can be converted to a scalar index"
+    free_surfer_labels = FreeSurferLabels[structureNumbers]
+    freeSurferSegmentation[mask == 1] = free_surfer_labels
+    # freeSurferSegmentation[mask == 1] = FreeSurferLabels[structureNumbers]
 
     # % Write to file, remembering to un-crop the segmentation to the original image size
     # uncroppedFreeSurferSegmentation = zeros( nonCroppedImageSize, 'single' );

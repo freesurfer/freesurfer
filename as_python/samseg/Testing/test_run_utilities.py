@@ -36,7 +36,7 @@ class TestFindOrCreateSavePath:
             self.okay = exist_ok
             return path
 
-        save_path = find_or_create_save_path(recipe, makedirs=makedirs)
+        save_path = find_or_create_save_path(recipe.output, makedirs=makedirs)
         assert 'write_here' == save_path
         assert 'write_here' == self.made_at
         assert self.okay
