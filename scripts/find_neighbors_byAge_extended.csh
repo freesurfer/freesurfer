@@ -159,7 +159,7 @@ if($k >= $N) then
   if ($writeout) then 
     echo ${trainingsubjects} > $outfile
   endif
-  exit 0;
+  exit 1;
 endif
 
 ##
