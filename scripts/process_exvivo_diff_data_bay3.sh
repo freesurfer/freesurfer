@@ -196,7 +196,6 @@ if ($dodrift) then
   #
   # Normalize images to compensate for temperature drift
   #
-  set cmd = "addpath('/autofs/space/vault_006/exvivo/rock/4/users/hires/scripts/benner_diffusion_scripts/');" # TODO: change this to FS dir
   set cmd = "$cmd fix_exvivo_dwi_drift("
   set cmd = "$cmd '$dwidir/dwi_drift.nii.gz', "
   set cmd = "$cmd '$dwidir/drift', "
