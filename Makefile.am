@@ -17,7 +17,6 @@ DMRISUBDIRS=\
 GLSUBDIRS=\
 	glut \
 	nmovie \
-	mris_show \
 	stim_polar \
 	tkmedit \
 	tkregister2 \

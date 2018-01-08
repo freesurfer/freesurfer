@@ -4088,7 +4088,6 @@ AC_OUTPUT([Makefile
            mris_segment/Makefile
            mris_seg2annot/Makefile
            mris_shrinkwrap/Makefile
-           mris_show/Makefile
            mris_smooth/Makefile
            mris_parcellate_connectivity/Makefile
            mris_make_face_parcellation/Makefile
