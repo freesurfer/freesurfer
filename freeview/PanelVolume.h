@@ -121,6 +121,8 @@ protected slots:
 
   void OnCustomContextMenu(const QPoint& pt);
 
+  void OnButtonResetWindowLevel();
+
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab );
   void DoUpdateWidgets();

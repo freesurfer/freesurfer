@@ -586,6 +586,9 @@ void MainWindow::LoadSettings()
     m_settings["AutoReorientView"] = false;
   }
 
+  OnPreferences();
+  m_dlgPreferences->hide();
+
   for (int i = 0; i < 4; i++)
   {
     m_views[i]->SetBackgroundColor(m_settings["BackgroundColor"].value<QColor>());
