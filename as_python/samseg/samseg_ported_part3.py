@@ -227,9 +227,8 @@ def samsegment_part3(
     # for structureNumber = 1 : numberOfStructures
         #   freeSurferSegmentation( maskIndices( find( structureNumbers == structureNumber ) ) ) = FreeSurferLabels( structureNumber );
     # end
-    # TODO: Fails here with "TypeError: only integer scalar arrays can be converted to a scalar index"
-    free_surfer_labels = FreeSurferLabels[structureNumbers]
-    freeSurferSegmentation[mask == 1] = free_surfer_labels
+    FreeSurferLabels = np.array(FreeSurferLabels, dtype=np.uint16)
+    freeSurferSegmentation[mask == 1] = FreeSurferLabels[structureNumbers]
     # freeSurferSegmentation[mask == 1] = FreeSurferLabels[structureNumbers]
 
     # % Write to file, remembering to un-crop the segmentation to the original image size
