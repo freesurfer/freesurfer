@@ -6,8 +6,7 @@ set f = $1
 # labels of interest: 2, 41
 
 set fname = ${f:r:r}.count.txt
-#set cmd = (mri_binarize --match 2 41 --count $fname --i $f)
-set cmd = (/autofs/space/turan_001/users/lzollei/dev/mri_binarize/mri_binarize --match 2 41 --count $fname --i $f --noverbose)
+set cmd = (mri_binarize --match 2 41 --count $fname --i $f --noverbose)
 eval $cmd
 #more $fname
 set nums = `cat $fname`
