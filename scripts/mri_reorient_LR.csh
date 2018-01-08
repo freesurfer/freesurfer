@@ -124,7 +124,7 @@ endif
 ### SAVE
 if ($#outreg > 0) then
   if (${outreg:e} == lta) then
-    set cmd = (tkregister2_cmdl --mov $inputvol --targ $inputvolLR --ltaout $outreg --fsl $newtransformation --reg ~lzollei/bogus.reg)
+    set cmd = (tkregister2_cmdl --mov $inputvol --targ $inputvolLR --ltaout $outreg --fsl $newtransformation --reg bogus.reg)
   else # assume fslmat
     set cmd = (cp $newtransformation $outreg)
   endif
