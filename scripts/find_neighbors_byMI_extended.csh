@@ -129,9 +129,9 @@ foreach ts ($trainingsubjects)
     set cmd = (mri_robust_register --mov $mov --dst $fixed --mapmov $out --lta $outlta --affine --satit) # --cost NMI 
     eval $cmd
   endif
-  set cmd = (/homes/3/lzollei/my_fs/dev/mri_mi/mri_mi --silent $fixed $out)
+  set cmd = (mri_mi --silent $fixed $out)
   eval $cmd
-  set miscores = ($miscores `/homes/3/lzollei/my_fs/dev/mri_mi/mri_mi --silent $fixed $out`)
+  set miscores = ($miscores `mri_mi --silent $fixed $out`)
   echo MI scores $miscores
 end
 ## (3) sort the scores -- descending 
