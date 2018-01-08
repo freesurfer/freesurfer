@@ -487,7 +487,7 @@
           <item>
            <widget class="QLabel" name="label_13">
             <property name="text">
-             <string>Set the shortcuts of following actions to Function keys.</string>
+             <string>Customize the shortcuts of the following actions to Function keys.</string>
             </property>
             <property name="wordWrap">
              <bool>true</bool>

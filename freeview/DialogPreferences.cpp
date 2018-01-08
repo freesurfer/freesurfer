@@ -101,9 +101,23 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   connect(ui->radioButtonThemeDark, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->checkBoxAutoReorientView, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->checkBoxDecimalVoxelCoord, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
-  connect(ui->comboBoxShortcutCycleLayer, SIGNAL(currentIndexChanged(QString)), this, SLOT(OnComboShortcutChanged(QString)));
-  connect(ui->comboBoxShortcutToggleSurface, SIGNAL(currentIndexChanged(QString)), this, SLOT(OnComboShortcutChanged(QString)));
-  connect(ui->comboBoxShortcutToggleVolume, SIGNAL(currentIndexChanged(QString)), this, SLOT(OnComboShortcutChanged(QString)));
+
+  QList<QComboBox*> list_combos;
+  list_combos << ui->comboBoxShortcutCycleLayer << ui->comboBoxShortcutToggleSurface
+              << ui->comboBoxShortcutToggleVolume;
+  foreach (QComboBox* combo, list_combos)
+  {
+    combo->clear();
+    QAction* act = qobject_cast<QAction*>(combo->property("action").value<QObject*>());
+    if (act)
+    {
+      combo->addItem(act->shortcut().toString());
+      for (int i = 1; i <= 10; i++)
+        combo->addItem(tr("F%1").arg(i));
+      combo->setCurrentIndex(0);
+    }
+    connect(combo, SIGNAL(currentIndexChanged(QString)), this, SLOT(OnComboShortcutChanged(QString)));
+  }
 }
 
 DialogPreferences::~DialogPreferences()
@@ -133,21 +147,21 @@ void DialogPreferences::SetSettings(const QVariantMap &map)
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   QString val = map.value("ShortcutCycleLayer").toString();
-  if (!val.isEmpty())
+  if (!val.isEmpty() && val != "Default")
   {
     SetActionShortcut(mainwnd->ui->actionCycleLayer, val);
     ui->comboBoxShortcutCycleLayer->setProperty("shortcut_text", val);
     SetCurrentComboText(ui->comboBoxShortcutCycleLayer, val);
   }
   val = map.value("ShortcutToggleVolume").toString();
-  if (!val.isEmpty())
+  if (!val.isEmpty() && val != "Default")
   {
     SetActionShortcut(mainwnd->ui->actionToggleVolumeVisibility, val);
     ui->comboBoxShortcutToggleVolume->setProperty("shortcut_text", val);
     SetCurrentComboText(ui->comboBoxShortcutToggleVolume, val);
   }
   val = map.value("ShortcutToggleSurface").toString();
-  if (!val.isEmpty())
+  if (!val.isEmpty() && val != "Default")
   {
     SetActionShortcut(mainwnd->ui->actionToggleSurfaceVisibility, val);
     ui->comboBoxShortcutToggleSurface->setProperty("shortcut_text", val);
@@ -224,7 +238,7 @@ void DialogPreferences::OnComboShortcutChanged(const QString& text)
           ui->comboBoxShortcutToggleSurface->currentText() <<
           ui->comboBoxShortcutToggleVolume->currentText();
   list.removeOne(text);
-  if (text != "Default" && list.contains(text))
+  if (list.contains(text))
   {
     QMessageBox::warning(this, "Shortcut", "Conflict shortcut. Please select another one.");
     SetCurrentComboText(qobject_cast<QComboBox*>(sender()), sender()->property("shortcut_text").toString());
@@ -243,7 +257,7 @@ void DialogPreferences::SetActionShortcut(QAction *act, const QString &text)
   for (int i = 1; i < 12; i++)
     list.removeAll(QKeySequence(tr("F%1").arg(i)));
 
-  if (text.toLower() != "default")
+  if (!list.contains(QKeySequence(text)))
     list << QKeySequence(text);
 
   act->setShortcuts(list);
