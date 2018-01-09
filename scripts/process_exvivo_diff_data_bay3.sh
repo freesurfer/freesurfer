@@ -196,7 +196,8 @@ if ($dodrift) then
   #
   # Normalize images to compensate for temperature drift
   #
-  set cmd = "fix_exvivo_dwi_drift("
+  set cmd = "addpath $FREESURFER_HOME/matlab"
+  set cmd = "$cmd; fix_exvivo_dwi_drift("
   set cmd = "$cmd '$dwidir/dwi_drift.nii.gz', "
   set cmd = "$cmd '$dwidir/drift', "
   set cmd = "$cmd '$dwidir/dwi_orig.nii.gz');"
