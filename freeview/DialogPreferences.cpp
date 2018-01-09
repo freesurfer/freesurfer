@@ -254,7 +254,7 @@ void DialogPreferences::OnComboShortcutChanged(const QString& text)
 void DialogPreferences::SetActionShortcut(QAction *act, const QString &text)
 {
   QList<QKeySequence> list = act->shortcuts();
-  for (int i = 1; i < 12; i++)
+  for (int i = 1; i <= 12; i++)
     list.removeAll(QKeySequence(tr("F%1").arg(i)));
 
   if (!list.contains(QKeySequence(text)))
