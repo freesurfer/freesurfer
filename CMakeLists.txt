@@ -1,5 +1,10 @@
 project(freesurfer)
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.8)
 
-SET(FS_CORE utils rgb dicom hipsstubs log image unix utilscpp svm-lib)
-SET(FS_LIBS ${FS_AUX_LIBS} ${FS_CORE})
+include_directories(${CMAKE_SOURCE_DIR}/include
+                    ${CMAKE_SOURCE_DIR}/include/dicom
+                    ${CMAKE_SOURCE_DIR}/xml2
+                    /Users/andrew/dev/freesurfer/osx-packages/mni/1.5/include)
+
+# create utils library
+add_subdirectory(utils)
