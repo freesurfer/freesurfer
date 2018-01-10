@@ -422,7 +422,7 @@ IoParams::parse(int ac,
 
       items.push_back(item);
     }
-    else if ( *cit == "point_list" )
+    else if ( *cit == "point_list" ) // This needs to be in data coordinates (and results are in data coordinates as well!)
     {
 
       if ( ++cit == container.end() )
