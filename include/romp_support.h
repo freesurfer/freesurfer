@@ -39,11 +39,6 @@ typedef enum ROMP_level {
     } ROMP_level;
 extern ROMP_level romp_level;
 
-#define if_ROMP(LEVEL) \
-    if (ROMP_pf_stack.staticInfo && \
-        (ROMP_if_parallel(ROMP_level_##LEVEL,&ROMP_pf_static))) \
-    // end of macro
-
 // Surround a parallel for
 
 #define ROMP_maxWatchedThreadNum 4
@@ -68,16 +63,6 @@ typedef struct ROMP_pf_stack_struct  {
 
 #define ROMP_main ROMP_main_started(__FILE__, __LINE__);
     
-#define ROMP_PF_begin \
-    { \
-    static ROMP_pf_static_struct ROMP_pf_static = { 0L, __FILE__, __LINE__ }; \
-    ROMP_pf_stack_struct  ROMP_pf_stack;  \
-    ROMP_pf_begin(&ROMP_pf_static, &ROMP_pf_stack);
-
-#define ROMP_PF_end \
-    ROMP_pf_end(&ROMP_pf_stack); \
-    }
-
 void ROMP_main_started(const char* file, int line);
 
 void ROMP_pf_begin(
@@ -99,6 +84,14 @@ typedef struct ROMP_pflb_stack_struct {
 
 #if 1
 
+#define if_ROMP(LEVEL)
+
+#define ROMP_PF_begin \
+    {
+
+#define ROMP_PF_end \
+    }
+
 #define ROMP_PFLB_begin
 #define ROMP_PFLB_end
 #define ROMP_PFLB_continue \
@@ -107,6 +100,21 @@ typedef struct ROMP_pflb_stack_struct {
     ROMP_PFLB_continue
     
 #else
+
+#define if_ROMP(LEVEL) \
+    if (ROMP_pf_stack.staticInfo && \
+        (ROMP_if_parallel(ROMP_level_##LEVEL,&ROMP_pf_static))) \
+    // end of macro
+
+#define ROMP_PF_begin \
+    { \
+    static ROMP_pf_static_struct ROMP_pf_static = { 0L, __FILE__, __LINE__ }; \
+    ROMP_pf_stack_struct  ROMP_pf_stack;  \
+    ROMP_pf_begin(&ROMP_pf_static, &ROMP_pf_stack);
+
+#define ROMP_PF_end \
+    ROMP_pf_end(&ROMP_pf_stack); \
+    }
 
 #define ROMP_PFLB_begin \
     /* ROMP_pflb_stack_struct  ROMP_pflb_stack;  \
