@@ -367,8 +367,8 @@ MRISfindMostSimilarBasins(MRI_SURFACE *mris, MRI *mri, int *pb2)
     memset(avg_grad, 0, nbasins*sizeof(*avg_grad)) ;
     max_basin = 0 ;
 // reductions for min and max aren't available in earlier openmp
-#if defined(HAVE_OPENMP) && GCC_VERSION > 40408
     ROMP_PF_begin
+#if defined(HAVE_OPENMP) && GCC_VERSION > 40408
     #pragma omp parallel for if_ROMP(experimental) reduction(max:max_basin)
 #endif
     for (vno = 0 ;  vno < mris->nvertices ; vno++)
