@@ -131,7 +131,7 @@ py::array_t<float> KvlImage::GetImageBuffer() {
 void KvlImage::Write(std::string fileName, KvlTransform &transform) {
 
     // If transform is given, retrieve and apply it
-    ImageType *image = m_image;
+    ImagePointer image = m_image;
     if ( true )
     {
         typedef kvl::CroppedImageReader::TransformType  TransformType;
@@ -142,7 +142,7 @@ void KvlImage::Write(std::string fileName, KvlTransform &transform) {
         CasterType::Pointer  caster = CasterType::New();
         caster->SetInput( m_image );
         caster->Update();
-        ImageType *image = caster->GetOutput();
+        image = caster->GetOutput();
 
 
         // Apply the transform
@@ -180,7 +180,7 @@ void KvlImage::Write(std::string fileName, KvlTransform &transform) {
     writer->SetFileName( fileName.c_str() );
     writer->SetInput( image );
     writer->Update();
-    std::cout << "Wrote image to file " << fileName << std::endl;
+    std::cout << "Wrote image and transform to file " << fileName << std::endl;
 
 }
 
