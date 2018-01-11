@@ -6372,7 +6372,6 @@ void MainWindow::OnVolumeFilterErode()
   }
 }
 
-
 void MainWindow::OnVolumeFilterDilate()
 {
   LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
@@ -6383,7 +6382,6 @@ void MainWindow::OnVolumeFilterDilate()
     mri->ResetWindowLevel();
   }
 }
-
 
 void MainWindow::OnVolumeFilterOpen()
 {

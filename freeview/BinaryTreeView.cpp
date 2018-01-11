@@ -58,7 +58,7 @@ void TreeDataLoader::DoLoad(const QString &dirPath, BinaryTreeView *view)
         {
           QString possible_child = tract_list.at(k);
           possible_child.remove(-4,4);
-          if (current_tract.size()<possible_child.size())
+          if (current_tract.size()<=possible_child.size())
           {
             if (possible_child.startsWith(current_tract))
             {
