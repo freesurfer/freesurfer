@@ -5,12 +5,12 @@ transfer from MATLAB to Python. This is intended to be called with both Python a
 at a breakpoint to easily compare the values of variables for equality.
 '''
 import logging
-import scipy.io
 import os
 import time
 import traceback
+
 import numpy as np
-import json
+import scipy.io
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +49,25 @@ def compare_vars(varname):
     finally:
         del frame
 
-def measure_closeness(ref, item, name=''):
 
+def measure_list(ref, item, name=''):
+    if all(ref == item):
+        print('{0}: matches at {1}'.format(name, ref))
+    else:
+        print('{0}: {1} != {2}'.format(name, ref, item))
+
+
+def measure_scalar(ref, item, name=''):
+    if ref == item:
+        print('{0}: matches at {1}'.format(name, ref))
+    else:
+        print('{0}: {1} != {2}'.format(name, ref, item))
+
+
+def measure_closeness(ref, item, name=''):
     def show(message):
         print("{0}: {1}".format(name, message))
+
     if not hasattr(ref, 'shape'):
         show("ref has no shape")
         return
@@ -63,7 +78,10 @@ def measure_closeness(ref, item, name=''):
     item_shape = item.shape
     if item.shape != ref.shape:
         show('shapes differ ref={0} item={1}'.format(ref_shape, item_shape))
-        return
+        if (len(item_shape) == len(ref_shape)):
+            ref, item = match_on_overlap(ref, item, ref_shape, item_shape)
+        else:
+            return
     try:
         total_size = np.prod(ref_shape)
         ref_max = np.max(ref)
@@ -78,7 +96,7 @@ def measure_closeness(ref, item, name=''):
         total_difference = np.sum(np.abs(difference))
         average_difference = total_difference / total_size
         ref_total = np.sum(np.abs(ref))
-        relative_difference = total_difference / ref_total
+        relative_difference = total_difference / ref_total if ref_total != 0 else total_difference
         show('ref_max={0} ref_min={1} item_max={2} item_min={3}'.format(ref_max, ref_min, item_max, item_min))
         show('max_diff={0} min_diff={1}'.format(max_difference, min_difference))
         show('max_location={0} min_location={1}'.format(max_location, min_location))
@@ -86,6 +104,13 @@ def measure_closeness(ref, item, name=''):
     except Exception as flaw:
         show('flaw = {0}'.format(str(flaw)))
         traceback.print_exc()
+
+
+def match_on_overlap(ref, item, ref_shape, item_shape):
+    overlap_slices = [slice(0, min(ref_dim, item_dim)) for ref_dim, item_dim in zip(ref_shape, item_shape)]
+    ref = ref[overlap_slices]
+    item = item[overlap_slices]
+    return ref, item
 
 
 class CheckpointManager:
@@ -110,9 +135,14 @@ class CheckpointManager:
         return os.path.join(dump_dir, '{}_{}{}'.format(checkpoint_name, checkpoint_number, suffix))
 
     def load(self, checkpoint_name, checkpoint_number=None):
-        mat_path = self.file_name_for_checkpoint(self.matlab_dump_dir, checkpoint_name, checkpoint_number)
-        logger.info('loading from %s', mat_path)
-        return scipy.io.loadmat(mat_path, struct_as_record=False, squeeze_me=True)
+        matlab_load_path = self.file_name_for_checkpoint(self.matlab_dump_dir, checkpoint_name, checkpoint_number)
+        logger.info('loading from %s', matlab_load_path)
+        return scipy.io.loadmat(matlab_load_path, struct_as_record=False, squeeze_me=True)
+
+    def load_python(self, checkpoint_name, checkpoint_number=None):
+        python_load_path = self.file_name_for_checkpoint(self.python_dump_dir, checkpoint_name, checkpoint_number)
+        logger.info('loading from %s', python_load_path)
+        return scipy.io.loadmat(python_load_path, struct_as_record=False, squeeze_me=True)
 
     def save(self, value_dict, checkpoint_name, checkpoint_number=None):
         mat_path = self.file_name_for_checkpoint(self.python_dump_dir, checkpoint_name, checkpoint_number)
@@ -129,5 +159,3 @@ class CheckpointManager:
         logger.info('saving specification at %s', json_path)
         with open(json_path, 'w') as outfile:
             outfile.write(specification.toJSON())
-
-
