@@ -107,6 +107,9 @@ foo_otherdatafiles=fsaverage.tar.gz fsaverage_sym.tar.gz \
 	EC_average.tar.gz mult-comp-cor.tar.gz Yeo_Brainmap_MNI152.tar.gz \
 	build_gcs_morph.csh cvs_avg35.tar.gz cvs_avg35_inMNI152.tar.gz
 
+if INCLUDE_INFANTFS
+foo_otherdatafiles += CNYBCH.tar.gz
+endif
 
 install:
 	test -z $(DESTDIR)$(foodir) || $(mkdir_p) $(DESTDIR)$(foodir)
@@ -179,6 +182,12 @@ install:
 	mv $(top_builddir)/distribution/average/mult-comp-cor \
 		$(DESTDIR)$(prefix)/average
 	chmod -R 775 $(DESTDIR)$(prefix)/average/mult-comp-cor
+	rm -Rf $(DESTDIR)$(prefix)/average/CNYBCH
+	rm -Rf $(top_builddir)/distribution/average/CNYBCH
+	gunzip -c $(top_srcdir)/distribution/average/CNYBCH.tar.gz | tar xvf -
+	pwd
+	mv $(top_builddir)/distribution/average/CNYBCH $(DESTDIR)$(prefix)/average
+	chmod -R 775 $(DESTDIR)$(prefix)/average/CNYBCH
 	rm -Rf $(DESTDIR)$(prefix)/average/Yeo_Brainmap_MNI152
 	rm -Rf $(top_builddir)/distribution/average/Yeo_Brainmap_MNI152
 	gunzip -c $(top_srcdir)/distribution/average/Yeo_Brainmap_MNI152.tar.gz | tar xvf -
