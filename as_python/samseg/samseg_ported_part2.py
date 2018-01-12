@@ -46,7 +46,7 @@ def samsegment_part2(
     numberOfGaussiansPerClass = part1_results_dict['numberOfGaussiansPerClass']
     transformMatrix = part1_results_dict['transformMatrix']
     voxelSpacing = part1_results_dict['voxelSpacing']
-    transform = GEMS2Python.KvlTransform(transformMatrix)
+    transform = GEMS2Python.KvlTransform(np.asfortranarray(transformMatrix))
 
     # function Y = backprojectKroneckerProductBasisFunctions( kroneckerProductBasisFunctions, coefficients )
 

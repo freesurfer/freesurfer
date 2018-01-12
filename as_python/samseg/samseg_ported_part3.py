@@ -48,7 +48,7 @@ def samsegment_part3(
     nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = \
         part2_results_dict['nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel']
     variances = part2_results_dict['variances']
-    transform = GEMS2Python.KvlTransform(part2_results_dict['transformMatrix'])
+    transform = GEMS2Python.KvlTransform(np.asfortranarray(part2_results_dict['transformMatrix']))
 
     nonCroppedImageSize = [int(dim) for dim in nonCroppedImageSize]
     croppingOffset = [int(offset) for offset in croppingOffset]

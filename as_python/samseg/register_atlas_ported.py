@@ -110,7 +110,7 @@ def samseg_registerAtlas(imageFileName,
         initialWorldToWorldTransformMatrix = scalingMatrix @ rotationMatrix
 
         #     K = K / prod( scaling );
-        K = K / np.prod(scaling)
+        K = K / (scaling * scaling * scaling)
         #   end
 
 
@@ -434,7 +434,7 @@ def samseg_registerAtlas(imageFileName,
     #
     # % Save the image-to-image and the world-to-world affine registration matrices
 
-    scipy.io.savemat(os.path.join(image_dir, templateFileNameBase+'_coregistrationMatrices.mat'),
+    scipy.io.savemat(os.path.join(savePath, templateFileNameBase+'_coregistrationMatrices.mat'),
                      {'imageToImageTransformMatrix': imageToImageTransformMatrix,
                       'worldToWorldTransformMatrix': worldToWorldTransformMatrix,
                       'costs': costs,
@@ -475,7 +475,7 @@ def samseg_registerAtlas(imageFileName,
     #
     # % For historical reasons, we applied the estimated transformation to the template; let's do that now
     # desiredTemplateImageToWorldTransformMatrix = imageToWorldTransformMatrix * imageToImageTransformMatrix
-    desiredTemplateImageToWorldTransformMatrix = imageToWorldTransformMatrix @ imageToImageTransformMatrix
+    desiredTemplateImageToWorldTransformMatrix = np.asfortranarray(imageToWorldTransformMatrix @ imageToImageTransformMatrix)
 
     # transformedTemplateFileName = fullfile( savePath, ...
     #                                         [ templateFileNameBase '_coregistered' templateFileNameExtension ] );
