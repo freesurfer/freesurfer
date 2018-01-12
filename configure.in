@@ -3773,7 +3773,6 @@ AC_OUTPUT([Makefile
            distribution/average/Yeo_JNeurophysiol11_MNI152/Makefile
            distribution/average/Buckner_JNeurophysiol11_MNI152/Makefile
            distribution/average/Choi_JNeurophysiol12_MNI152/Makefile
-           distribution/average/CNYBCH/Makefile
            distribution/docs/Makefile
            distribution/diffusion/Makefile
            distribution/diffusion/mgh-dti-seqpack/Makefile
