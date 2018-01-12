@@ -1,6 +1,8 @@
 function [ worldToWorldTransformMatrix, transformedTemplateFileName ] = samseg_registerAtlas( imageFileName, meshCollectionFileName, templateFileName, savePath, showFigures, worldToWorldTransformMatrix )
 %
-fixture = struct;
+checkpoint_manager = CheckpointManager();
+checkpoint_manager.save('part0', '')
+
 if ( nargin < 6 )
   worldToWorldTransformMatrix = [];
 end
@@ -24,7 +26,7 @@ fixture.sourceImageToWorldTransformMatrix = imageToWorldTransformMatrix;
 [ template, templateImageToWorldTransform ] = kvlReadImage( templateFileName );
 templateImageToWorldTransformMatrix = double( kvlGetTransformMatrix( templateImageToWorldTransform ) );
 fixture.templateImageToWorldTransformMatrix = templateImageToWorldTransformMatrix;
-
+fixture.templateImageBuffer = kvlGetImageBuffer( template )
 [ ~, templateFileNameBase, templateFileNameExtension ] = fileparts( templateFileName );
 
 
@@ -362,5 +364,5 @@ transformedTemplateFileName = fullfile( savePath, ...
 kvlWriteImage( template, transformedTemplateFileName, ...
                kvlCreateTransform( desiredTemplateImageToWorldTransformMatrix ) );
 fixture.desiredTemplateImageToWorldTransformMatrix = desiredTemplateImageToWorldTransformMatrix;
-save('/media/sf_matlab_data/register_atlas_fixture.mat', 'fixture')
+% save('/home/willy/work/cm/innolitics_testing/buckner40/matlab_temp_data/register_atlas_fixture_1.mat', 'fixture')
 

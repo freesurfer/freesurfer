@@ -4,7 +4,9 @@ function [ FreeSurferLabels, names, volumesInCubicMm ] = samsegment( imageFileNa
 %
 %
 checkpoint_manager = CheckpointManager();
-checkpoint_manager.save('part1', '')
+checkpoint_manager.save('part0', '')
+
+% transformedTemplateFileName = '/home/willy/work/cm/innolitics_testing/buckner40/python_temp_data/004/template_coregistered.nii'
 
 % Print input options
 disp( '==========================' );
@@ -299,7 +301,7 @@ if ( showFigures )
   biasFieldFigure = figure;
 end
 
-checkpoint_manager.save('part2', '')
+checkpoint_manager.save('part1', '')
 % We do the optimization in a multi-resolution type of scheme, where large
 % deformations are quickly found using smoothed versions of the atlas mesh, and the fine
 % details are then found on gradually less smoothed versions until the original atlas mesh is used for the optimization.
@@ -922,7 +924,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     
 end % End loop over multiresolution levels
 
-checkpoint_manager.save('part3', '')
+checkpoint_manager.save('part2', '')
 % Save something about how the estimation proceeded
 history.imageBuffers = imageBuffers;
 history.mask = mask;
@@ -1067,4 +1069,5 @@ for contrastNumber = 1 : numberOfContrasts
 
 end
 
+checkpoint_manager.save('part3', '')
 
