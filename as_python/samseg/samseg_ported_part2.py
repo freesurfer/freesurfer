@@ -6,7 +6,6 @@ import scipy.io
 
 from as_python.samseg.bias_correction import backprojectKroneckerProductBasisFunctions, \
     projectKroneckerProductBasisFunctions, computePrecisionOfKroneckerProductBasisFunctions
-from as_python.samseg.dev_utils.debug_client import CheckpointManager
 from as_python.samseg.kvlWarpMesh import kvlWarpMesh
 from as_python.samseg.kvl_merge_alphas import kvlMergeAlphas
 
@@ -14,11 +13,14 @@ logger = logging.getLogger(__name__)
 
 eps = np.finfo(float).eps
 
+
 def require_np_array(np_array):
     return np.require(np_array, requirements=['F_CONTIGUOUS', 'ALIGNED'])
 
+
 def load_mat_file(filename):
     return scipy.io.loadmat(filename, struct_as_record=False, squeeze_me=True)
+
 
 def ensure_dims(np_array, dims):
     if np_array.ndim < dims:
@@ -26,11 +28,12 @@ def ensure_dims(np_array, dims):
     elif np_array.ndim == dims:
         return np_array
 
+
 def samsegment_part2(
-    modelSpecifications,
-    optimizationOptions,
-    part1_results_dict,
-    checkpoint_manager=None
+        modelSpecifications,
+        optimizationOptions,
+        part1_results_dict,
+        checkpoint_manager=None
 ):
     biasFieldCoefficients = part1_results_dict['biasFieldCoefficients']
     colors = part1_results_dict['colors']
@@ -50,10 +53,8 @@ def samsegment_part2(
 
     # function Y = backprojectKroneckerProductBasisFunctions( kroneckerProductBasisFunctions, coefficients )
 
-
     # function coefficients = projectKroneckerProductBasisFunctions( kroneckerProductBasisFunctions, T )
     # computePrecisionOfKroneckerProductBasisFunctions( kroneckerProductBasisFunctions, B )
-
 
     # % We do the optimization in a multi-resolution type of scheme, where large
     # % deformations are quickly found using smoothed versions of the atlas mesh, and the fine
@@ -67,15 +68,16 @@ def samsegment_part2(
     historyWithinEachMultiResolutionLevel = []
     # for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     for multiResolutionLevel in range(numberOfMultiResolutionLevels):
-        logger.debug('multiResolutionLevel=%d',multiResolutionLevel)
+        logger.debug('multiResolutionLevel=%d', multiResolutionLevel)
         #
         #   %
         #   maximumNumberOfIterations = optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).maximumNumberOfIterations;
-        maximumNumberOfIterations = optimizationOptions.multiResolutionSpecification[multiResolutionLevel].maximumNumberOfIterations
+        maximumNumberOfIterations = optimizationOptions.multiResolutionSpecification[
+            multiResolutionLevel].maximumNumberOfIterations
         #   estimateBiasField = optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).estimateBiasField;
         estimateBiasField = optimizationOptions.multiResolutionSpecification[multiResolutionLevel].estimateBiasField
         #   historyOfCost = [ 1/eps ];
-        historyOfCost = [ 1/eps ]
+        historyOfCost = [1 / eps]
         #   historyOfMaximalDeformationApplied = [];
         #   historyOfTimeTakenIntensityParameterUpdating = [];
         #   historyOfTimeTakenDeformationUpdating = [];
@@ -87,7 +89,8 @@ def samsegment_part2(
         #   % Must be integer
         #   downSamplingFactors = max( round( optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).targetDownsampledVoxelSpacing ...
         #                                     ./ voxelSpacing ), [ 1 1 1 ] )
-        downSamplingFactors = np.uint32(np.round(optimizationOptions.multiResolutionSpecification[multiResolutionLevel].targetDownsampledVoxelSpacing / voxelSpacing))
+        downSamplingFactors = np.uint32(np.round(optimizationOptions.multiResolutionSpecification[
+                                                     multiResolutionLevel].targetDownsampledVoxelSpacing / voxelSpacing))
         downSamplingFactors[downSamplingFactors < 1] = 1
         #   downSampledMask = mask(  1 : downSamplingFactors( 1 ) : end, ...
         #                            1 : downSamplingFactors( 2 ) : end, ...
@@ -99,7 +102,7 @@ def samsegment_part2(
         downSampledImageBuffers = np.zeros(downSampledMask.shape + (numberOfContrasts,))
         #   for contrastNumber = 1 : numberOfContrasts
         for contrastNumber in range(numberOfContrasts):
-            logger.debug('first time contrastNumber=%d',contrastNumber)
+            logger.debug('first time contrastNumber=%d', contrastNumber)
             #     if true
             #       % No image smoothing
             #       downSampledImageBuffers( :, :, :, contrastNumber ) = imageBuffers( 1 : downSamplingFactors( 1 ) : end, ...
@@ -111,9 +114,9 @@ def samsegment_part2(
                 imageBuffers = np.expand_dims(imageBuffers, axis=3)
 
             downSampledImageBuffers[:, :, :, contrastNumber] = imageBuffers[::downSamplingFactors[0],
-                                                                            ::downSamplingFactors[1],
-                                                                            ::downSamplingFactors[2],
-                                                                            contrastNumber]
+                                                               ::downSamplingFactors[1],
+                                                               ::downSamplingFactors[2],
+                                                               contrastNumber]
             #     else
             #       % Try image smoothing
             #       buffer = imageBuffers( 1 : downSamplingFactors( 1 ) : end, ...
@@ -148,8 +151,8 @@ def samsegment_part2(
         #   % Read the atlas mesh to be used for this multi-resolution level, taking into account the downsampling to position it
         #   % correctly
         #   downSamplingTransformMatrix = diag( [ 1./downSamplingFactors 1 ] );
-        downSamplingTransformMatrix = np.diag(1./downSamplingFactors)
-        downSamplingTransformMatrix = np.pad(downSamplingTransformMatrix, (0,1), mode='constant', constant_values=0)
+        downSamplingTransformMatrix = np.diag(1. / downSamplingFactors)
+        downSamplingTransformMatrix = np.pad(downSamplingTransformMatrix, (0, 1), mode='constant', constant_values=0)
         downSamplingTransformMatrix[3][3] = 1
 
         # totalTransformationMatrix = downSamplingTransformMatrix @ kvlGetTransformMatrix( transform )
@@ -175,7 +178,7 @@ def samsegment_part2(
         numberOfNodes = len(initialNodePositions)
         #   tmp = ( totalTransformationMatrix \ [ initialNodePositions ones( numberOfNodes, 1 ) ]' )';
         tmp = np.linalg.solve(totalTransformationMatrix,
-                              np.pad(initialNodePositions, ((0,0),(0,1)), mode='constant', constant_values=1).T).T
+                              np.pad(initialNodePositions, ((0, 0), (0, 1)), mode='constant', constant_values=1).T).T
         #   initialNodePositionsInTemplateSpace = tmp( :, 1 : 3 );
         initialNodePositionsInTemplateSpace = tmp[:, 0:3]
         #
@@ -183,7 +186,7 @@ def samsegment_part2(
         #   % If this is not the first multi-resolution level, apply the warp computed during the previous level
         #   if ( multiResolutionLevel > 1 )
         if multiResolutionLevel > 0:
-            logger.debug('starting multiResolutionLevel=%d',multiResolutionLevel)
+            logger.debug('starting multiResolutionLevel=%d', multiResolutionLevel)
             #     % Get the warp in template space
             #     nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = ...
             #             historyWithinEachMultiResolutionLevel( multiResolutionLevel-1 ).finalNodePositionsInTemplateSpace - ...
@@ -194,14 +197,11 @@ def samsegment_part2(
             #                   optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).atlasFileName );
 
             [initialNodeDeformationInTemplateSpace, initial_averageDistance, initial_maximumDistance] = kvlWarpMesh(
-                               optimizationOptions.multiResolutionSpecification[multiResolutionLevel-1].atlasFileName,
-                               nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel,
-                               optimizationOptions.multiResolutionSpecification[multiResolutionLevel].atlasFileName )
+                optimizationOptions.multiResolutionSpecification[multiResolutionLevel - 1].atlasFileName,
+                nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel,
+                optimizationOptions.multiResolutionSpecification[multiResolutionLevel].atlasFileName)
 
             logger.debug('alpha multiResolutionLevel={0}'.format(multiResolutionLevel))
-            if checkpoint_manager:
-                checkpoint_manager.increment('multiresWarp')
-                # fixture = checkpoint_manager.load('multiresWarp')
 
             #     % Apply this warp on the mesh node positions in template space, and transform into current space
             #     desiredNodePositionsInTemplateSpace = initialNodePositionsInTemplateSpace + initialNodeDeformationInTemplateSpace;
@@ -211,7 +211,8 @@ def samsegment_part2(
             #             [ desiredNodePositionsInTemplateSpace ones( numberOfNodes, 1 ) ]' )';
 
             logger.debug('gamma multiResolutionLevel=%d', multiResolutionLevel)
-            tmp = ( totalTransformationMatrix @ np.pad(desiredNodePositionsInTemplateSpace, ((0,0),(0,1)), 'constant', constant_values=1).T ).T
+            tmp = (totalTransformationMatrix @ np.pad(desiredNodePositionsInTemplateSpace, ((0, 0), (0, 1)), 'constant',
+                                                      constant_values=1).T).T
             #     desiredNodePositions = tmp( :, 1 : 3 );
             logger.debug('delta multiResolutionLevel=%d}', multiResolutionLevel)
             desiredNodePositions = tmp[:, 0:3]
@@ -221,6 +222,15 @@ def samsegment_part2(
             #     kvlSetMeshNodePositions( mesh, desiredNodePositions );
             mesh.points = require_np_array(desiredNodePositions)
             logger.debug('finish multiResolutionLevel=%d', multiResolutionLevel)
+            if checkpoint_manager:
+                checkpoint_manager.increment_and_save({
+                    'desiredNodePositions': desiredNodePositions,
+                    'tmp': tmp,
+                    'desiredNodePositionsInTemplateSpace': desiredNodePositionsInTemplateSpace,
+                    'nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel': nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel,
+                    'initialNodeDeformationInTemplateSpace': initialNodeDeformationInTemplateSpace,
+                }, 'multiresWarp')
+                # fixture = checkpoint_manager.load('multiresWarp')
             #
             #   end
         #
@@ -230,8 +240,10 @@ def samsegment_part2(
         #   alphas = kvlGetAlphasInMeshNodes( mesh );
         alphas = mesh.alphas
         #   reducedAlphas = kvlMergeAlphas( alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors );
-        reducedAlphas, _, _, _, _ = kvlMergeAlphas( alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors );
-        # checkpoint_manager.increment('reducedAlphas')
+        reducedAlphas, _, _, _, _ = kvlMergeAlphas(alphas, names, modelSpecifications.sharedGMMParameters,
+                                                   FreeSurferLabels, colors);
+        if checkpoint_manager:
+            checkpoint_manager.increment_and_save({'reducedAlphas': reducedAlphas}, 'reducedAlphas')
         # reducedAlphas = checkpoint_manager.load('reducedAlphas')['reducedAlphas']
         #   kvlSetAlphasInMeshNodes( mesh, reducedAlphas )
         mesh.alphas = reducedAlphas
@@ -249,7 +261,7 @@ def samsegment_part2(
         #   downSampledBiasCorrectedImageBuffers = zeros( [ downSampledImageSize numberOfContrasts ] );
         downSampledBiasCorrectedImageBuffers = np.zeros(downSampledImageSize + (numberOfContrasts,))
         #   biasCorrectedData = zeros( [ length( downSampledMaskIndices ) numberOfContrasts ] );
-        biasCorrectedData = np.zeros( (len(downSampledMaskIndices[0]), numberOfContrasts) )
+        biasCorrectedData = np.zeros((len(downSampledMaskIndices[0]), numberOfContrasts))
 
         #   for contrastNumber = 1 : numberOfContrasts
         # TODO: remove this ensure_dims when part 1 is done
@@ -257,7 +269,8 @@ def samsegment_part2(
         for contrastNumber in range(numberOfContrasts):
             logger.debug('second time contrastNumber=%d', contrastNumber)
             #     downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, biasFieldCoefficients( :, contrastNumber ) );
-            downSampledBiasField = backprojectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions, biasFieldCoefficients[:, contrastNumber])
+            downSampledBiasField = backprojectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions,
+                                                                             biasFieldCoefficients[:, contrastNumber])
             #     tmp = downSampledImageBuffers( :, :, :, contrastNumber ) - downSampledBiasField .* downSampledMask;
             tmp = downSampledImageBuffers[:, :, :, contrastNumber] - downSampledBiasField * downSampledMask
             #     downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) = tmp;
@@ -278,21 +291,21 @@ def samsegment_part2(
         #   historyWithinEachIteration = struct( [] );
         historyWithinEachIteration = []
         #   priors = zeros( length( downSampledMaskIndices ), numberOfClasses );
-        priors = np.zeros( (len( downSampledMaskIndices[0] ), numberOfClasses) )
+        priors = np.zeros((len(downSampledMaskIndices[0]), numberOfClasses))
         #   posteriors = zeros( length( downSampledMaskIndices ), numberOfGaussians ); % Gaussian mixture models burst out into
         #                                                                              % individual Gaussian components
-        posteriors = np.zeros((len( downSampledMaskIndices[0] ), numberOfGaussians ))
+        posteriors = np.zeros((len(downSampledMaskIndices[0]), numberOfGaussians))
         #
         #   % Easier to work with vector notation in the EM computations
         #   % reshape into a matrix
         #   data = zeros( [ length( downSampledMaskIndices ) numberOfContrasts ] );
-        data = np.zeros( (len( downSampledMaskIndices[0] ), numberOfContrasts ) )
+        data = np.zeros((len(downSampledMaskIndices[0]), numberOfContrasts))
         #   for contrastNumber = 1:numberOfContrasts
-        for contrastNumber  in range(numberOfContrasts):
+        for contrastNumber in range(numberOfContrasts):
             #     tmp = reshape( downSampledImageBuffers( :, :, :, contrastNumber ), [ prod(downSampledImageSize) 1 ] );
-          tmp = downSampledImageBuffers[:, :, :, contrastNumber]
+            tmp = downSampledImageBuffers[:, :, :, contrastNumber]
             #     data( :, contrastNumber ) = tmp( downSampledMaskIndices );
-          data[:, contrastNumber] = tmp[downSampledMaskIndices]
+            data[:, contrastNumber] = tmp[downSampledMaskIndices]
             #   end
         #
         #   % Main iteration loop over both EM and deformation
@@ -319,32 +332,32 @@ def samsegment_part2(
             #
             #     % Start EM iterations.
             #     if ( ( multiResolutionLevel == 1 ) && ( iterationNumber == 1 ) )
-            if ( ( multiResolutionLevel == 0 ) and ( iterationNumber == 0 ) ):
+            if ((multiResolutionLevel == 0) and (iterationNumber == 0)):
                 #
                 #       % Initialize the mixture parameters if this is the first time ever you run this
                 #       means = zeros( numberOfGaussians, numberOfContrasts );
-                means = np.zeros( (numberOfGaussians, numberOfContrasts ))
+                means = np.zeros((numberOfGaussians, numberOfContrasts))
                 #       variances = zeros( numberOfGaussians, numberOfContrasts, numberOfContrasts );
-                variances = np.zeros( (numberOfGaussians, numberOfContrasts, numberOfContrasts) )
+                variances = np.zeros((numberOfGaussians, numberOfContrasts, numberOfContrasts))
                 #       mixtureWeights = zeros( numberOfGaussians, 1 );
-                mixtureWeights = np.zeros(( numberOfGaussians, 1 ))
+                mixtureWeights = np.zeros((numberOfGaussians, 1))
                 #       for classNumber = 1 : numberOfClasses
                 for classNumber in range(numberOfClasses):
                     #         % Calculate the global weighted mean and variance of this class, where the weights are given by the prior
                     #         prior = priors( :, classNumber );
                     prior = priors[:, classNumber]
                     #         mean = data' * prior / sum( prior );
-                    mean = data.T @ prior / np.sum( prior )
+                    mean = data.T @ prior / np.sum(prior)
                     #         tmp = data - repmat( mean', [ size( data, 1 ) 1 ] );
                     tmp = data - mean
                     #         variance = tmp' * ( tmp .* repmat( prior, [ 1 numberOfContrasts ] ) ) / sum( prior );
                     prior = np.expand_dims(prior, 1)
-                    variance = tmp.T @ ( tmp * prior) / np.sum( prior )
+                    variance = tmp.T @ (tmp * prior) / np.sum(prior)
                     #         if modelSpecifications.useDiagonalCovarianceMatrices
                     if modelSpecifications.useDiagonalCovarianceMatrices:
                         #           % Force diagonal covariance matrices
                         #           variance = diag( diag( variance ) );
-                        variance = np.diag( np.diag( variance ) )
+                        variance = np.diag(np.diag(variance))
                         #         end
                     #
                     #
@@ -382,14 +395,15 @@ def samsegment_part2(
                     #         for componentNumber = 1 : numberOfComponents
                     for componentNumber in range(numberOfComponents):
                         #           gaussianNumber = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + componentNumber;
-                        gaussianNumber = sum( numberOfGaussiansPerClass[: classNumber]) + componentNumber
+                        gaussianNumber = sum(numberOfGaussiansPerClass[: classNumber]) + componentNumber
                         #
                         #           variances( gaussianNumber, :, : ) = variance;
-                        variances[gaussianNumber, :, : ] = variance
+                        variances[gaussianNumber, :, :] = variance
                         #           intervalSize = 2 * sqrt( diag( variance ) ) / numberOfComponents;
-                        intervalSize = 2 * np.sqrt( np.diag( variance ) ) / numberOfComponents
+                        intervalSize = 2 * np.sqrt(np.diag(variance)) / numberOfComponents
                         #           means( gaussianNumber, : ) = ( mean - sqrt( diag( variance ) ) + intervalSize/2 + ( componentNumber - 1 ) * intervalSize )';
-                        means[gaussianNumber, : ] = ( mean - np.sqrt( np.diag( variance ) ) + intervalSize/2 + ( componentNumber ) * intervalSize ).T
+                        means[gaussianNumber, :] = (mean - np.sqrt(np.diag(variance)) + intervalSize / 2 + (
+                            componentNumber) * intervalSize).T
                         #           mixtureWeights( gaussianNumber ) = 1 / numberOfComponents;
                         mixtureWeights[gaussianNumber] = 1 / numberOfComponents
                         #         end
@@ -399,7 +413,7 @@ def samsegment_part2(
             #
             #       % Also remember the overall data variance for later usage in a conjugate prior on the variances
             #       dataMean = sum( data )' / size( data, 1 );
-            dataMean = np.mean( data )
+            dataMean = np.mean(data)
             #       tmp = data - repmat( dataMean', [ size( data, 1 ) 1 ] );
             tmp = data - dataMean
             #       dataVariance = diag( diag( tmp' * tmp ) ) / size( data, 1 );
@@ -414,7 +428,7 @@ def samsegment_part2(
             #
             #     % stopCriterionEM = 1e-5;
             #     historyOfEMCost = [ 1/eps ];
-            historyOfEMCost = [ 1/eps ]
+            historyOfEMCost = [1 / eps]
             #     for EMIterationNumber = 1 : 100
             for EMIterationNumber in range(100):
                 logger.debug('EMIterationNumber=%d', EMIterationNumber)
@@ -431,31 +445,32 @@ def samsegment_part2(
                     #         for componentNumber = 1 : numberOfComponents
                     for componentNumber in range(numberOfComponents):
                         #           gaussianNumber = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + componentNumber;
-                        gaussianNumber = sum( numberOfGaussiansPerClass[:classNumber] ) + componentNumber
+                        gaussianNumber = sum(numberOfGaussiansPerClass[:classNumber]) + componentNumber
                         #
                         #           mean = means( gaussianNumber, : )';
-                        mean = means[gaussianNumber, : ].T
+                        mean = means[gaussianNumber, :].T
                         #           variance = squeeze( variances( gaussianNumber, :, : ) );
-                        variance = variances[gaussianNumber, :, : ]
+                        variance = variances[gaussianNumber, :, :]
                         #           L = chol( variance, 'lower' );  % variance = L * L'
                         L = np.linalg.cholesky(variance)
                         #           tmp = L \ ( biasCorrectedData' - repmat( mean, [ 1 size( biasCorrectedData, 1 ) ] ) );
                         tmp = np.linalg.solve(L, biasCorrectedData.T - mean)
                         #           squaredMahalanobisDistances = ( sum( tmp.^2, 1 ) )';
-                        squaredMahalanobisDistances = (np.sum( tmp**2, axis=0)).T
+                        squaredMahalanobisDistances = (np.sum(tmp ** 2, axis=0)).T
                         #           sqrtDeterminantOfVariance = prod( diag( L ) ); % Same as sqrt( det( variance ) )
-                        sqrtDeterminantOfVariance = np.prod( np.diag( L ) )
+                        sqrtDeterminantOfVariance = np.prod(np.diag(L))
                         #           gaussianLikelihoods = exp( -squaredMahalanobisDistances / 2 ) / ( 2 * pi )^( numberOfContrasts / 2 ) / sqrtDeterminantOfVariance;
-                        gaussianLikelihoods = np.exp( -squaredMahalanobisDistances / 2 ) / ( 2 * np.pi )**( numberOfContrasts / 2 ) / sqrtDeterminantOfVariance
+                        gaussianLikelihoods = np.exp(-squaredMahalanobisDistances / 2) / (2 * np.pi) ** (
+                                numberOfContrasts / 2) / sqrtDeterminantOfVariance
                         #
                         #           posteriors( :, gaussianNumber ) = gaussianLikelihoods .* ( mixtureWeights( gaussianNumber ) * prior );
-                        posteriors[:, gaussianNumber] = gaussianLikelihoods * ( mixtureWeights[gaussianNumber] * prior )
+                        posteriors[:, gaussianNumber] = gaussianLikelihoods * (mixtureWeights[gaussianNumber] * prior)
                         #
                         #         end % End loop over mixture components
                     #
                     #       end % End loop over classes
                 #       normalizer = sum( posteriors, 2 ) + eps;
-                normalizer = np.sum( posteriors, axis=1 ) + eps
+                normalizer = np.sum(posteriors, axis=1) + eps
                 #       if 0
                 #         x = zeros( downSampledImageSize );
                 #         x( downSampledMaskIndices ) = -log( normalizer );
@@ -466,7 +481,7 @@ def samsegment_part2(
                 posteriors = posteriors / np.expand_dims(normalizer, 1)
 
                 #       minLogLikelihood = -sum( log( normalizer ) );
-                minLogLikelihood = -np.sum( np.log( normalizer ) )
+                minLogLikelihood = -np.sum(np.log(normalizer))
                 #       intensityModelParameterCost = 0;
                 intensityModelParameterCost = 0
                 #       for gaussianNumber = 1 : numberOfGaussians
@@ -488,13 +503,14 @@ def samsegment_part2(
                     #             trace( variance \ pseudoVarianceOfWishartPrior ) * numberOfPseudoMeasurementsOfWishartPrior / 2 + ...
                     #             numberOfPseudoMeasurementsOfWishartPrior / 2 * log( det( variance ) );
                     minLogUnnormalizedWishart = \
-                        np.trace( np.linalg.solve(variance, np.array(pseudoVarianceOfWishartPrior).reshape(1,1) )) * numberOfPseudoMeasurementsOfWishartPrior / 2 + \
-                        numberOfPseudoMeasurementsOfWishartPrior / 2 * np.log( np.linalg.det( variance ) )
+                        np.trace(np.linalg.solve(variance, np.array(pseudoVarianceOfWishartPrior).reshape(1,
+                                                                                                          1))) * numberOfPseudoMeasurementsOfWishartPrior / 2 + \
+                        numberOfPseudoMeasurementsOfWishartPrior / 2 * np.log(np.linalg.det(variance))
                     #         intensityModelParameterCost = intensityModelParameterCost + minLogUnnormalizedWishart;
                     intensityModelParameterCost = intensityModelParameterCost + minLogUnnormalizedWishart
                     #       end
                 #       historyOfEMCost = [ historyOfEMCost; minLogLikelihood + intensityModelParameterCost ];
-                historyOfEMCost.append( minLogLikelihood + intensityModelParameterCost )
+                historyOfEMCost.append(minLogLikelihood + intensityModelParameterCost)
                 #
                 #       % Show some figures
                 #       if ( showFigures )
@@ -540,12 +556,12 @@ def samsegment_part2(
                 #       % relativeChangeCost = ( historyOfEMCost(end-1) - historyOfEMCost(end) ) /  historyOfEMCost(end)
                 #       % if ( relativeChangeCost < stopCriterionEM )
                 #       changeCostPerVoxel = ( historyOfEMCost(end-1) - historyOfEMCost(end) ) / length( downSampledMaskIndices );
-                changeCostPerVoxel = ( historyOfEMCost[-2] - historyOfEMCost[-1] ) / len( downSampledMaskIndices[0] )
+                changeCostPerVoxel = (historyOfEMCost[-2] - historyOfEMCost[-1]) / len(downSampledMaskIndices[0])
                 #       if ( changeCostPerVoxel < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion )
                 if changeCostPerVoxel < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion:
                     #         % Converged
                     #         disp( 'EM converged!' )
-                    print( 'EM converged!' )
+                    print('EM converged!')
                     #         break;
                     break
                     #       end
@@ -560,7 +576,7 @@ def samsegment_part2(
                     posterior = posterior.reshape(-1, 1)
                     #
                     #         mean = biasCorrectedData' * posterior ./ sum( posterior );
-                    mean = biasCorrectedData.T @ posterior / np.sum( posterior )
+                    mean = biasCorrectedData.T @ posterior / np.sum(posterior)
                     #         tmp = biasCorrectedData - repmat( mean', [ size( biasCorrectedData, 1 ) 1 ] );
                     tmp = biasCorrectedData - mean.T
                     #         %variance = ( tmp' * ( tmp .* repmat( posterior, [ 1 numberOfContrasts ] ) ) + dataVariance ) ...
@@ -568,34 +584,37 @@ def samsegment_part2(
                     #         variance = ( tmp' * ( tmp .* repmat( posterior, [ 1 numberOfContrasts ] ) ) + ...
                     #                                 pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior ) ...
                     #                     / ( sum( posterior ) + numberOfPseudoMeasurementsOfWishartPrior );
-                    variance = ( tmp.T @ ( tmp * posterior ) + \
-                                 pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior ) \
-                               / ( np.sum( posterior ) + numberOfPseudoMeasurementsOfWishartPrior )
+                    variance = (tmp.T @ (tmp * posterior) + \
+                                pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior) \
+                               / (np.sum(posterior) + numberOfPseudoMeasurementsOfWishartPrior)
                     #         if modelSpecifications.useDiagonalCovarianceMatrices
                     if modelSpecifications.useDiagonalCovarianceMatrices:
                         #           % Force diagonal covariance matrices
                         #           variance = diag( diag( variance ) );
-                        variance = np.diag( np.diag( variance ) );
+                        variance = np.diag(np.diag(variance));
                         #         end
                     #
                     #         variances( gaussianNumber, :, : ) = variance;
-                    variances[gaussianNumber, :, : ] = variance
+                    variances[gaussianNumber, :, :] = variance
                     #         means( gaussianNumber, : ) = mean';
-                    means[gaussianNumber, : ] = mean.T
+                    means[gaussianNumber, :] = mean.T
                 #
                 #       end
                 #       mixtureWeights = sum( posteriors + eps )';
-                mixtureWeights = np.sum( posteriors + eps, axis=0 ).T
+                mixtureWeights = np.sum(posteriors + eps, axis=0).T
                 #       for classNumber = 1 : numberOfClasses
                 for classNumber in range(numberOfClasses):
                     #         % mixture weights are normalized (those belonging to one mixture sum to one)
                     #         numberOfComponents = numberOfGaussiansPerClass( classNumber );
                     numberOfComponents = numberOfGaussiansPerClass[classNumber]
                     #         gaussianNumbers = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + [ 1 : numberOfComponents ];
-                    gaussianNumbers = np.array(np.sum( numberOfGaussiansPerClass[:classNumber] ) + np.array(range(numberOfComponents)), dtype=np.uint32)
+                    gaussianNumbers = np.array(
+                        np.sum(numberOfGaussiansPerClass[:classNumber]) + np.array(range(numberOfComponents)),
+                        dtype=np.uint32)
                     #
                     #         mixtureWeights( gaussianNumbers ) = mixtureWeights( gaussianNumbers ) / sum( mixtureWeights( gaussianNumbers ) );
-                    mixtureWeights[gaussianNumbers] = mixtureWeights[gaussianNumbers] / np.sum( mixtureWeights[gaussianNumbers] )
+                    mixtureWeights[gaussianNumbers] = mixtureWeights[gaussianNumbers] / np.sum(
+                        mixtureWeights[gaussianNumbers])
                     #       end
                     #
                 #
@@ -604,7 +623,7 @@ def samsegment_part2(
                 #       %                                                                    % decent mixture model parameters are available
                 #       if ( estimateBiasField && ( iterationNumber > 1 ) ) % Don't attempt bias field correction until
                 #                                                           % decent mixture model parameters are available
-                if ( estimateBiasField and ( iterationNumber > 0 ) ):
+                if (estimateBiasField and (iterationNumber > 0)):
                     #         %
                     #         % Bias field correction: implements Eq. 8 in the paper
                     #         %
@@ -616,39 +635,43 @@ def samsegment_part2(
                     for classNumber in range(numberOfGaussians):
                         #           precisions( classNumber, :, : ) = reshape( inv( squeeze( variances( classNumber, :, : ) ) ), ...
                         #                                                      [ 1 numberOfContrasts numberOfContrasts ] );
-                        precisions[classNumber, :, :] = np.linalg.inv(  variances[classNumber, :, :] ).reshape((1, numberOfContrasts, numberOfContrasts))
+                        precisions[classNumber, :, :] = np.linalg.inv(variances[classNumber, :, :]).reshape(
+                            (1, numberOfContrasts, numberOfContrasts))
                         #         end
                     #
                     #         lhs = zeros( prod( numberOfBasisFunctions ) * numberOfContrasts ); % left-hand side of linear system
-                    lhs = np.zeros( (np.prod( numberOfBasisFunctions ) * numberOfContrasts, np.prod( numberOfBasisFunctions ) * numberOfContrasts) ) # left-hand side of linear system
+                    lhs = np.zeros((np.prod(numberOfBasisFunctions) * numberOfContrasts, np.prod(
+                        numberOfBasisFunctions) * numberOfContrasts))  # left-hand side of linear system
                     #         rhs = zeros( prod( numberOfBasisFunctions ) * numberOfContrasts, 1 ); % right-hand side of linear system                #
-                    rhs = np.zeros( (np.prod( numberOfBasisFunctions ) * numberOfContrasts, 1) ) # right-hand side of linear system
+                    rhs = np.zeros(
+                        (np.prod(numberOfBasisFunctions) * numberOfContrasts, 1))  # right-hand side of linear system
                     #         weightsImageBuffer = zeros( downSampledImageSize );
-                    weightsImageBuffer = np.zeros( downSampledImageSize )
+                    weightsImageBuffer = np.zeros(downSampledImageSize)
                     #         tmpImageBuffer = zeros( downSampledImageSize );
-                    tmpImageBuffer = np.zeros( downSampledImageSize )
+                    tmpImageBuffer = np.zeros(downSampledImageSize)
                     #         for contrastNumber1 = 1 : numberOfContrasts
                     numberOfBasisFunctions_prod = np.prod(numberOfBasisFunctions)
                     for contrastNumber1 in range(numberOfContrasts):
                         logger.debug('third time contrastNumber=%d', contrastNumber)
                         #           tmp = zeros( size( data, 1 ), 1 );
-                        tmp = np.zeros( (data.shape[0], 1) )
+                        tmp = np.zeros((data.shape[0], 1))
                         #           for contrastNumber2 = 1 : numberOfContrasts
                         for contrastNumber2 in range(numberOfContrasts):
                             #             classSpecificWeights = posteriors .* repmat( squeeze( precisions( :, contrastNumber1, contrastNumber2 ) )', ...
                             #                                                          [ size( posteriors, 1 ) 1 ] );
-                            classSpecificWeights = posteriors * precisions[ :, contrastNumber1, contrastNumber2 ].T
+                            classSpecificWeights = posteriors * precisions[:, contrastNumber1, contrastNumber2].T
                             #             weights = sum( classSpecificWeights, 2 );
-                            weights = np.sum( classSpecificWeights, 1 );
+                            weights = np.sum(classSpecificWeights, 1);
                             #
                             #             % Build up stuff needed for rhs
                             #             predicted = sum( classSpecificWeights .* repmat( means( :, contrastNumber2 )', [ size( posteriors, 1 ) 1 ] ), 2 ) ...
                             #                         ./ ( weights + eps );
-                            predicted = np.sum( classSpecificWeights *  np.expand_dims(means[ :, contrastNumber2], 2).T / ( np.expand_dims(weights, 1) + eps ), 1)
+                            predicted = np.sum(classSpecificWeights * np.expand_dims(means[:, contrastNumber2], 2).T / (
+                                    np.expand_dims(weights, 1) + eps), 1)
                             #             residue = data( :, contrastNumber2 ) - predicted;
-                            residue = data[ :, contrastNumber2 ] - predicted
+                            residue = data[:, contrastNumber2] - predicted
                             #             tmp = tmp + weights .* residue;
-                            tmp = tmp + weights.reshape(-1,1)*residue.reshape(-1,1)
+                            tmp = tmp + weights.reshape(-1, 1) * residue.reshape(-1, 1)
                             #
                             #             % Fill in submatrix of lhs
                             #             weightsImageBuffer( downSampledMaskIndices ) = weights;
@@ -658,20 +681,24 @@ def samsegment_part2(
                             #
                             #             % Fill in submatrix of lhs
                             weightsImageBuffer[downSampledMaskIndices] = weights
-                            computedPrecisionOfKroneckerProductBasisFunctions = computePrecisionOfKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions, weightsImageBuffer)
+                            computedPrecisionOfKroneckerProductBasisFunctions = computePrecisionOfKroneckerProductBasisFunctions(
+                                downSampledKroneckerProductBasisFunctions, weightsImageBuffer)
                             if checkpoint_manager:
                                 checkpoint_manager.increment('bias_field_inner_loop')
-                            lhs[contrastNumber1 * numberOfBasisFunctions_prod : contrastNumber1 * numberOfBasisFunctions_prod + numberOfBasisFunctions_prod,
-                            contrastNumber2 * numberOfBasisFunctions_prod:contrastNumber2 * numberOfBasisFunctions_prod+numberOfBasisFunctions_prod] = computedPrecisionOfKroneckerProductBasisFunctions
+                            lhs[
+                            contrastNumber1 * numberOfBasisFunctions_prod: contrastNumber1 * numberOfBasisFunctions_prod + numberOfBasisFunctions_prod,
+                            contrastNumber2 * numberOfBasisFunctions_prod:contrastNumber2 * numberOfBasisFunctions_prod + numberOfBasisFunctions_prod] = computedPrecisionOfKroneckerProductBasisFunctions
 
                             #           end % End loop over contrastNumber2
                             #
                         #           tmpImageBuffer( downSampledMaskIndices ) = tmp;
-                        tmpImageBuffer[ downSampledMaskIndices ] = tmp.squeeze()
+                        tmpImageBuffer[downSampledMaskIndices] = tmp.squeeze()
                         #           rhs( ( contrastNumber1 - 1 ) * prod( numberOfBasisFunctions ) + [ 1 : prod( numberOfBasisFunctions ) ] ) = ...
                         #
-                        rhs[contrastNumber1 * numberOfBasisFunctions_prod : contrastNumber1 * numberOfBasisFunctions_prod + numberOfBasisFunctions_prod] \
-                            = projectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions, tmpImageBuffer).reshape(-1, 1)
+                        rhs[
+                        contrastNumber1 * numberOfBasisFunctions_prod: contrastNumber1 * numberOfBasisFunctions_prod + numberOfBasisFunctions_prod] \
+                            = projectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions,
+                                                                    tmpImageBuffer).reshape(-1, 1)
 
                         #         end % End loop over contrastNumber1
                     #
@@ -679,17 +706,19 @@ def samsegment_part2(
                     #
                     #         biasFieldCoefficients = reshape( lhs \ rhs, [ prod( numberOfBasisFunctions ) numberOfContrasts ] );
                     ## TODO: There may a striding error somewhere here
-                    biasFieldCoefficients = np.linalg.solve(lhs, rhs).reshape( (np.prod( numberOfBasisFunctions ), numberOfContrasts ))
+                    biasFieldCoefficients = np.linalg.solve(lhs, rhs).reshape(
+                        (np.prod(numberOfBasisFunctions), numberOfContrasts))
                     #         for contrastNumber = 1 : numberOfContrasts
                     for contrastNumber in range(numberOfContrasts):
                         #           downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, biasFieldCoefficients( :, contrastNumber ) );
-                        downSampledBiasField = backprojectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions, biasFieldCoefficients[:, contrastNumber])
+                        downSampledBiasField = backprojectKroneckerProductBasisFunctions(
+                            downSampledKroneckerProductBasisFunctions, biasFieldCoefficients[:, contrastNumber])
                         #           tmp = downSampledImageBuffers( :, :, :, contrastNumber ) - downSampledBiasField .* downSampledMask;
-                        tmp = downSampledImageBuffers[ :, :, :, contrastNumber ] - downSampledBiasField * downSampledMask
+                        tmp = downSampledImageBuffers[:, :, :, contrastNumber] - downSampledBiasField * downSampledMask
                         #           downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) = tmp;
-                        downSampledBiasCorrectedImageBuffers[ :, :, :, contrastNumber ] = tmp
+                        downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber] = tmp
                         #           biasCorrectedData( :, contrastNumber ) = tmp( downSampledMaskIndices );
-                        biasCorrectedData[ :, contrastNumber ] = tmp[ downSampledMaskIndices ]
+                        biasCorrectedData[:, contrastNumber] = tmp[downSampledMaskIndices]
                         #         end
                     #
                     #       end % End test if multiResolutionLevel == 1
@@ -720,9 +749,10 @@ def samsegment_part2(
             #     for contrastNumber = 1 : numberOfContrasts
             downSampledBiasCorrectedImages = []
             for contrastNumber in range(numberOfContrasts):
-            #       downSampledBiasCorrectedImages( contrastNumber ) = ...
-            #              kvlCreateImage( single( downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) ) );
-                downSampledBiasCorrectedImages.append(GEMS2Python.KvlImage(require_np_array(downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber])))
+                #       downSampledBiasCorrectedImages( contrastNumber ) = ...
+                #              kvlCreateImage( single( downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) ) );
+                downSampledBiasCorrectedImages.append(GEMS2Python.KvlImage(
+                    require_np_array(downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber])))
 
             #     end
             #
@@ -733,14 +763,14 @@ def samsegment_part2(
             #                                                    transform, ...
             #                                                    means, variances, mixtureWeights, numberOfGaussiansPerClass );
             calculator = GEMS2Python.KvlCostAndGradientCalculator(
-                    typeName='AtlasMeshToIntensityImage',
-                    images=downSampledBiasCorrectedImages,
-                    boundaryCondition='Sliding',
-                    transform=transform,
-                    means=means,
-                    variances=variances,
-                    mixtureWeights=mixtureWeights,
-                    numberOfGaussiansPerClass=numberOfGaussiansPerClass)
+                typeName='AtlasMeshToIntensityImage',
+                images=downSampledBiasCorrectedImages,
+                boundaryCondition='Sliding',
+                transform=transform,
+                means=means,
+                variances=variances,
+                mixtureWeights=mixtureWeights,
+                numberOfGaussiansPerClass=numberOfGaussiansPerClass)
 
             #     %optimizerType = 'ConjugateGradient';
             #     optimizerType = 'L-BFGS';
@@ -759,7 +789,7 @@ def samsegment_part2(
                 'MaximumNumberOfIterations': optimizationOptions.maximumNumberOfDeformationIterations,
                 'BFGS-MaximumMemoryLength': optimizationOptions.BFGSMaximumMemoryLength
             }
-            optimizer = GEMS2Python.KvlOptimizer( optimizerType, mesh, calculator, optimization_parameters )
+            optimizer = GEMS2Python.KvlOptimizer(optimizerType, mesh, calculator, optimization_parameters)
             #
             #     historyOfDeformationCost = [];
             historyOfDeformationCost = [];
@@ -780,7 +810,7 @@ def samsegment_part2(
                 #       if ( maximalDeformation == 0 )
                 #         break;
                 #       end
-                if  maximalDeformation == 0:
+                if maximalDeformation == 0:
                     break
                 #
                 #       %
@@ -797,19 +827,24 @@ def samsegment_part2(
             nodePositionsAfterDeformation = mesh.points
             #     maximalDeformationApplied = sqrt( max( sum( ...
             #                 ( nodePositionsAfterDeformation - nodePositionsBeforeDeformation ).^2, 2 ) ) );
-            maximalDeformationApplied = np.sqrt( np.max( np.sum( ( nodePositionsAfterDeformation - nodePositionsBeforeDeformation )**2, 1 ) ) )
+            maximalDeformationApplied = np.sqrt(
+                np.max(np.sum((nodePositionsAfterDeformation - nodePositionsBeforeDeformation) ** 2, 1)))
             #     disp( '==============================' )
             #     disp( [ 'iterationNumber: ' num2str( iterationNumber ) ] )
             #     disp( [ '    maximalDeformationApplied: ' num2str( maximalDeformationApplied ) ] )
             #     disp( [ '  ' num2str( toc( deformationStartTime ) ) ' sec' ] )
             #     disp( '==============================' )
-            print( '==============================' )
-            print( [ 'iterationNumber: ',  iterationNumber ] )
-            print( [ '    maximalDeformationApplied: ',  maximalDeformationApplied ] )
+            print('==============================')
+            print(['iterationNumber: ', iterationNumber])
+            print(['    maximalDeformationApplied: ', maximalDeformationApplied])
             # print( [ '  ' num2str( toc( deformationStartTime ) ) ' sec' ] )
-            print( '==============================' )
+            print('==============================')
             if checkpoint_manager:
-                checkpoint_manager.increment('optimizer')
+                checkpoint_manager.increment_and_save(
+                    {
+                        'maximalDeformationApplied': maximalDeformationApplied,
+                        'nodePositionsAfterDeformation': nodePositionsAfterDeformation,
+                    }, 'optimizer')
             #
             #
             #     % Show a little movie comparing before and after deformation so far...
@@ -866,9 +901,9 @@ def samsegment_part2(
             #     %          < relativeCostDecreaseStopCriterion ) || ...
             #     %        ( maximalDeformationApplied < maximalDeformationAppliedStopCriterion ) )
             #     if ( ( ( ( historyOfCost( end-1 ) - historyOfCost( end ) ) / length( downSampledMaskIndices ) ) ...
-            if ( ( ( ( historyOfCost[-2] - historyOfCost[-1] ) / len( downSampledMaskIndices[0] ) )
-            #            < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion ) ) % If EM converges in one iteration and mesh node optimization doesn't do anything
-                       < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion ) ): # If EM converges in one iteration and mesh node optimization doesn't do anything
+            if ((((historyOfCost[-2] - historyOfCost[-1]) / len(downSampledMaskIndices[0]))
+                 #            < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion ) ) % If EM converges in one iteration and mesh node optimization doesn't do anything
+                 < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion)):  # If EM converges in one iteration and mesh node optimization doesn't do anything
                 #       % Converged
                 #       break;
                 break
@@ -886,9 +921,10 @@ def samsegment_part2(
         #   % that we applied), and save for later usage
         #   tmp = ( totalTransformationMatrix \ [ finalNodePositions ones( numberOfNodes, 1 ) ]' )';
 
-        tmp = np.linalg.solve(totalTransformationMatrix, np.pad(finalNodePositions, ((0,0),(0,1)), 'constant', constant_values=1).T).T
+        tmp = np.linalg.solve(totalTransformationMatrix,
+                              np.pad(finalNodePositions, ((0, 0), (0, 1)), 'constant', constant_values=1).T).T
         #   finalNodePositionsInTemplateSpace = tmp( :, 1 : 3 );
-        finalNodePositionsInTemplateSpace = tmp[:, 0 : 3 ]
+        finalNodePositionsInTemplateSpace = tmp[:, 0: 3]
         #
         #
         #   % Save something about how the estimation proceeded

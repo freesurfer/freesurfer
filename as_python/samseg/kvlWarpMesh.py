@@ -7,7 +7,7 @@ import numpy as np
 import scipy.ndimage
 import scipy.io
 
-from as_python.samseg.dev_utils.debug_client import CheckpointManager, measure_closeness
+from as_python.samseg.dev_utils.debug_client import CheckpointManager, compare_ndarray_closeness
 
 
 # function [ targetDeformation, averageDistance, maximumDistance ] = kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshCollectionFileName, showFigures )
@@ -403,7 +403,7 @@ if __name__ == '__main__':
         print("targetDeformation.shape = {0}".format(targetDeformation.shape))
         checkpoint_manager.increment('all_done')
         checking = checkpoint_manager.load('all_done')
-        measure_closeness(checking['targetDeformation'], targetDeformation, 'targetDeformation')
+        compare_ndarray_closeness(checking['targetDeformation'], targetDeformation, 'targetDeformation')
     except Exception as flaw:
         print('flaw = {0}'.format(str(flaw)))
         traceback.print_exc()

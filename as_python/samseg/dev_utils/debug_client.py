@@ -50,21 +50,21 @@ def compare_vars(varname):
         del frame
 
 
-def measure_list(ref, item, name=''):
+def compare_lists(ref, item, name=''):
     if all(ref == item):
         print('{0}: matches at {1}'.format(name, ref))
     else:
         print('{0}: {1} != {2}'.format(name, ref, item))
 
 
-def measure_scalar(ref, item, name=''):
+def compare_scalars(ref, item, name=''):
     if ref == item:
         print('{0}: matches at {1}'.format(name, ref))
     else:
         print('{0}: {1} != {2}'.format(name, ref, item))
 
 
-def measure_closeness(ref, item, name=''):
+def compare_ndarray_closeness(ref, item, name=''):
     def show(message):
         print("{0}: {1}".format(name, message))
 
@@ -126,6 +126,7 @@ class CheckpointManager:
     def increment(self, checkpoint_name):
         self.counts.setdefault(checkpoint_name, 0)
         self.counts[checkpoint_name] += 1
+        return self.counts[checkpoint_name]
 
     def file_name_for_checkpoint(self, dump_dir, checkpoint_name, checkpoint_number=None, suffix='.mat'):
         if checkpoint_number is None and checkpoint_name not in self.counts:
@@ -149,6 +150,10 @@ class CheckpointManager:
         logger.info('saving at %s', mat_path)
         scipy.io.savemat(mat_path, value_dict, long_field_names=True)
 
+    def increment_and_save(self, value_dict, checkpoint_name):
+        self.increment(checkpoint_name)
+        self.save(value_dict, checkpoint_name)
+
     def save_specification(self, specification, checkpoint_name, checkpoint_number=None):
         json_path = self.file_name_for_checkpoint(
             self.python_dump_dir,
@@ -159,3 +164,142 @@ class CheckpointManager:
         logger.info('saving specification at %s', json_path)
         with open(json_path, 'w') as outfile:
             outfile.write(specification.toJSON())
+
+
+class Inspector:
+    def __init__(self, target_names):
+        self.target_names = target_names
+
+    def inspect(self, prefix, reference_dictionary, target_dictionary):
+        for name in self.target_names:
+            message = ':'.join((prefix, name))
+            reference_value = reference_dictionary.get(name)
+            if reference_value is None:
+                print('could not find {0}[{1}] in matlab'.format(prefix, name))
+                continue
+            target_value = target_dictionary.get(name)
+            if target_value is None:
+                print('could not find {0}[{1}] in python'.format(prefix, name))
+                continue
+            self.compare(reference_value, target_value, message)
+
+
+class InspectionTeam:
+    def __init__(self, checkpoint_name, inspectors):
+        self.checkpoint_name = checkpoint_name
+        self.inspectors = inspectors
+
+    def inspect(self, checkpoint_manager, target_dictionary=None):
+        if checkpoint_manager is None:
+            return
+        prefix = ":".join((self.checkpoint_name, str(checkpoint_manager.increment(self.checkpoint_name))))
+        try:
+            reference_dictionary = checkpoint_manager.load(self.checkpoint_name)
+        except Exception as flaw:
+            print('no matlab checkpoint {0} for {1}'.format(prefix, checkpoint_manager.matlab_dump_dir))
+            return False
+        if target_dictionary is None:
+            try:
+                target_dictionary = checkpoint_manager.load_python(self.checkpoint_name)
+            except Exception as flaw:
+                print('no python checkpoint {0} for {1}'.format(prefix, checkpoint_manager.python_dump_dir))
+                return False
+        for inspector in self.inspectors:
+            inspector.inspect(prefix, reference_dictionary, target_dictionary)
+        return True
+
+    def inspect_all(self, checkpoint_manager):
+        while (self.inspect(checkpoint_manager)):
+            pass
+
+
+class NdArrayInspector(Inspector):
+    def compare(self, reference_value, target_value, message):
+        compare_ndarray_closeness(reference_value, target_value, message)
+
+
+class ScalarInspector(Inspector):
+    def compare(self, reference_value, target_value, message):
+        compare_scalars(reference_value, target_value, message)
+
+
+class ListInspector(Inspector):
+    def compare(self, reference_value, target_value, message):
+        compare_lists(reference_value, target_value, message)
+
+
+def create_part1_inspection_team():
+    return InspectionTeam('part1', [
+        NdArrayInspector([
+            'biasFieldCoefficients',
+            'colors',
+            'croppingOffset',
+            'FreeSurferLabels',
+            'imageBuffers',
+            'imageSize',
+            'imageToWorldTransformMatrix',
+            # 'kroneckerProductBasisFunctions',
+            'mask',
+            # 'names',
+            'nonCroppedImageSize',
+            'reducingLookupTable',
+            # 'savePath',
+            'transformMatrix',
+            'voxelSpacing',
+        ]),
+        ScalarInspector([
+            'numberOfClasses',
+            'numberOfContrasts',
+            'numberOfGaussians',
+        ]),
+        ListInspector([
+            'numberOfGaussiansPerClass',
+        ]),
+    ])
+
+
+def create_part2_inspection_team():
+    return InspectionTeam('part2', [
+        NdArrayInspector([
+            'biasFieldCoefficients',
+            'imageBuffers',
+            'means',
+            'mixtureWeights',
+            'transformMatrix',
+            'variances',
+        ]),
+    ])
+
+
+def create_part3_inspection_team():
+    return InspectionTeam('part3', [
+        NdArrayInspector([
+            'FreeSurferLabels',
+            'freeSurferSegmentation',
+            'uncroppedFreeSurferSegmentation',
+            'volumesInCubicMm',
+        ]),
+    ])
+
+
+def create_multiresWarp_inspection_team():
+    return InspectionTeam('multiresWarp', [
+        NdArrayInspector([
+            'desiredNodePositions',
+            'tmp',
+            'desiredNodePositionsInTemplateSpace',
+            'nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel',
+            'initialNodeDeformationInTemplateSpace',
+        ]),
+    ])
+
+
+def create_reduced_alphas_inspection_team():
+    return InspectionTeam('reducedAlphas', [NdArrayInspector(['reducedAlphas'])])
+
+
+def create_optimizer_inspection_team():
+    return InspectionTeam('optimizer', [
+        NdArrayInspector(['nodePositionsAfterDeformation']),
+        ScalarInspector(['maximalDeformationApplied']),
+    ])
