@@ -216,7 +216,7 @@ def samsegment_part3(
     # volumeOfOneVoxel = abs( det( imageToWorldTransformMatrix( 1:3, 1:3 ) ) );
     volumeOfOneVoxel = np.abs( np.linalg.det( imageToWorldTransformMatrix[0:3, 0:3] ) )
     # volumesInCubicMm = ( sum( posteriors ) )' * volumeOfOneVoxel;
-    volumesInCubicMm = ( np.sum( posteriors ) ).T * volumeOfOneVoxel
+    volumesInCubicMm = ( np.sum( posteriors, axis=0 ) ) * volumeOfOneVoxel
     #
     #
     # % Convert into a crisp, winner-take-all segmentation, labeled according to the FreeSurfer labeling/naming convention
