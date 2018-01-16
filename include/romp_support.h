@@ -135,10 +135,12 @@ typedef struct ROMP_pflb_stack_struct {
     
 #else
 
-#define if_ROMP(LEVEL) \
+#define if_ROMPLEVEL(LEVEL) \
     if (ROMP_pf_stack.staticInfo && \
-        (ROMP_if_parallel(ROMP_level_##LEVEL,&ROMP_pf_static))) \
+        (ROMP_if_parallel(LEVEL,&ROMP_pf_static))) \
     // end of macro
+
+#define if_ROMP(LEVEL) if_ROMPLEVEL(ROMP_level_##LEVEL)
 
 #define ROMP_PF_begin \
     { \

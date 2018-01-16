@@ -10453,8 +10453,58 @@ int MRISwriteTriangleProperties(MRI_SURFACE *mris, const char *mris_fname)
 
 
   ------------------------------------------------------*/
+#define BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_REPRODUCIBLE
+
+#ifdef BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_REPRODUCIBLE
+static int MRIScomputeTriangleProperties_old(MRI_SURFACE *mris, bool old_done);
+static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done);
+// #define BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_CHECK
+#endif
+
 int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
+#ifdef BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_REPRODUCIBLE
 {
+    static const bool do_old = 
+#ifdef BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_CHECK
+      true;
+#else
+      false;
+#endif
+    
+    int result_old = do_old ? MRIScomputeTriangleProperties_old(mris, false) : 0;
+
+    int result_new =          MRIScomputeTriangleProperties_new(mris, do_old);
+    
+    if (do_old) {
+        if (result_old != result_new) {
+            fprintf(stderr, "%s:%d MRIScomputeTriangleProperties diff results %d:%d\n",
+                result_old, result_new);
+            exit(1);
+        }
+    }
+    
+    return result_new;
+}
+
+
+#ifdef BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_CHECK
+static void MRIScomputeTriangleProperties_check(double cell, double val, int line, int* count) 
+{
+    (*count)++;
+    if (cell == val) return;
+    fprintf(stderr, "MRIScomputeTriangleProperties_new %s:%d diff %g:%g %g using %d threads, count:%d\n",
+        __FILE__, line, cell, val, cell-val, omp_get_max_threads(), *count);
+    exit(1);
+}
+#endif
+
+static int MRIScomputeTriangleProperties_old(MRI_SURFACE *mris, bool old_done)
+#endif
+{
+  // This is the old code
+  // It does a double reduction, which may give different results depending on the openmp partitioning of the loop
+  // It is kept here in the serial form to provide the reproducible answer that the new code should always get
+  //
   int fno, vno, tno;
   double total_area;
   VECTOR *v_a[_MAX_FS_THREADS], *v_b[_MAX_FS_THREADS], *v_n[_MAX_FS_THREADS];
@@ -10467,7 +10517,7 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
   }
 
 #ifdef HAVE_OPENMP
-  ROMP_PF_begin		// mris_fix_topology    MUST FIX
+  ROMP_PF_begin
   #pragma omp parallel for if_ROMP(fast) reduction(+ : total_area)
 #endif
   for (fno = 0; fno < mris->nfaces; fno++) {
@@ -10499,8 +10549,8 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
     /* compute metric properties of first triangle */
     V3_CROSS_PRODUCT(v_a[tid], v_b[tid], v_n[tid]);
     area = V3_LEN(v_n[tid]) * 0.5f;
-    dot = V3_DOT(v_a[tid], v_b[tid]);
-    face->area = area;
+    dot  = V3_DOT(v_a[tid], v_b[tid]);
+    SET_OR_CHECK(face->area, area);
     if (area < 0) DiagBreak();
 
     V3_NORMALIZE(v_n[tid], v_n[tid]); /* make it a unit vector */
@@ -10546,7 +10596,7 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
       VERTEX_EDGE(v_a[tid], vo, va);
       VERTEX_EDGE(v_b[tid], vo, vb);
       cross = VectorTripleProduct(v_b[tid], v_a[tid], v_n[tid]);
-      dot = V3_DOT(v_a[tid], v_b[tid]);
+      dot   = V3_DOT(v_a[tid], v_b[tid]);
       angle = atan2(cross, dot);
       face->angle[ano] = angle;
 
@@ -10595,6 +10645,219 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
 
   return (NO_ERROR);
 }
+
+#ifdef BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_REPRODUCIBLE
+static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
+{
+  // This is the new code, that can compare its answers with the old code
+  //
+#ifdef BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_CHECK
+
+  static int countChecks = 0;
+
+#define SET_OR_CHECK(CELL, VAL)                                                     \
+  if (!old_done) (CELL) = (VAL);                                                    \
+  else MRIScomputeTriangleProperties_check((CELL),(VAL), __LINE__, &countChecks);   \
+  // end of macro
+
+#else
+
+#define SET_OR_CHECK(CELL, VAL)                                                     \
+  (CELL) = (VAL);                                                                   \
+  // end of macro
+  
+#endif
+  
+  VECTOR *v_a[_MAX_FS_THREADS], *v_b[_MAX_FS_THREADS], *v_n[_MAX_FS_THREADS];
+
+  int tno;
+  for (tno = 0; tno < _MAX_FS_THREADS; tno++) {
+    v_a[tno] = VectorAlloc(3, MATRIX_REAL);
+    v_b[tno] = VectorAlloc(3, MATRIX_REAL);
+    v_n[tno] = VectorAlloc(3, MATRIX_REAL); /* normal vector */
+  }
+
+  double reduction_total_area = 0.0f;
+
+#if 0
+
+  int fno;
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(fast) reduction(+ : reduction_total_area)
+#endif
+  for (fno = 0; fno < mris->nfaces; fno++) {
+    ROMP_PFLB_begin
+  
+#else
+
+  #define ROMP_VARIABLE       fno
+  #define ROMP_LO             0
+  #define ROMP_HI             mris->nfaces
+    
+  #define ROMP_SUMREDUCTION0  reduction_total_area
+    
+  #define ROMP_FOR_LEVEL      ROMP_level_shown_reproducible
+    
+  #include "romp_for_begin.h"
+    
+    #define reduction_total_area ROMP_PARTIALSUM(0)
+
+#endif
+  
+    // these are done in the loop to allow parallelization
+    FACE *face = &mris->faces[fno];
+    if (face->ripflag) continue;
+
+    if (fno == Gx) DiagBreak();
+
+    VERTEX const 
+      *v0 = &mris->vertices[face->v[0]], 
+      *v1 = &mris->vertices[face->v[1]], 
+      *v2 = &mris->vertices[face->v[2]];
+
+#ifdef HAVE_OPENMP
+    int const tid = omp_get_thread_num();
+#else
+    int const tid = 0;
+#endif
+
+    VERTEX_EDGE(v_a[tid], v0, v1);
+    VERTEX_EDGE(v_b[tid], v0, v2);
+
+    /* compute metric properties of first triangle */
+    {
+      V3_CROSS_PRODUCT(v_a[tid], v_b[tid], v_n[tid]);
+
+      float const area = V3_LEN(v_n[tid]) * 0.5f;
+      // float const dot  = V3_DOT(v_a[tid], v_b[tid]);
+    
+      SET_OR_CHECK(face->area,area);
+      if (area < 0) DiagBreak();
+
+      if (!devFinite(area)) DiagBreak();
+
+      reduction_total_area += area;
+    }
+    
+    V3_NORMALIZE(v_n[tid], v_n[tid]); /* make it a unit vector */
+    SET_OR_CHECK(face->nx, V3_X(v_n[tid]));
+    SET_OR_CHECK(face->ny, V3_Y(v_n[tid]));
+    SET_OR_CHECK(face->nz, V3_Z(v_n[tid]));
+    
+
+    /* now compute angles */
+    VECTOR_LOAD(v_n[tid], face->nx, face->ny, face->nz);
+
+    float dz;
+    if ((V3_X(v_n[tid]) < V3_Y(v_n[tid])) && (V3_X(v_n[tid]) < V3_Z(v_n[tid]))) {
+      dz = fabs(V3_X(v_n[tid]));
+    }
+    else if (V3_Y(v_n[tid]) < V3_Z(v_n[tid])) {
+      dz = fabs(V3_Y(v_n[tid]));
+    }
+    else {
+      dz = fabs(V3_Z(v_n[tid]));
+    }
+    
+    int ano;
+    for (ano = 0; ano < ANGLES_PER_TRIANGLE; ano++) {
+      
+      VERTEX const
+        *va, 
+        *vb, 
+        *vo;
+
+      switch (ano) /* vertices for triangle 1 */
+      {
+        default:
+        case 0:
+          vo = v0;
+          va = v2;
+          vb = v1;
+          break;
+        case 1:
+          vo = v1;
+          va = v0;
+          vb = v2;
+          break;
+        case 2:
+          vo = v2;
+          va = v1;
+          vb = v0;
+          break;
+      }
+
+      VERTEX_EDGE(v_a[tid], vo, va);
+      VERTEX_EDGE(v_b[tid], vo, vb);
+      float cross = VectorTripleProduct(v_b[tid], v_a[tid], v_n[tid]);
+      float dot   = V3_DOT(v_a[tid], v_b[tid]);
+      float angle = atan2(cross, dot);
+      SET_OR_CHECK(face->angle[ano], angle);
+
+#if 0
+      if (angle < 0.0f || angle >= M_PI)
+        fprintf(stdout, "angle [%d][%d] = %2.1f\n",
+                fno,ano,(float)DEGREES(angle)) ;
+#endif
+    }
+
+#if 0
+    ROMP_PFLB_end
+  }
+  ROMP_PF_end
+#else
+
+     #undef reduction_total_area       
+   #include "romp_for_end.h"
+
+#endif
+
+  for (tno = 0; tno < _MAX_FS_THREADS; tno++) {
+    VectorFree(&v_a[tno]);
+    VectorFree(&v_b[tno]);
+    VectorFree(&v_n[tno]);
+  }
+  
+  SET_OR_CHECK(mris->total_area, (float)reduction_total_area);
+
+/* calculate the "area" of the vertices */
+  int vno;
+#ifdef HAVE_OPENMP
+  ROMP_PF_begin		// mris_fix_topology
+  #pragma omp parallel for if_ROMP(shown_reproducible)
+#endif
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    VERTEX * const v = &mris->vertices[vno];
+
+    if (v->ripflag) continue;
+
+    float area = 0.0;
+    int fno;
+    for (fno = 0; fno < v->num; fno++) {
+      FACE * const face = &mris->faces[v->f[fno]];
+      if (face->ripflag == 0) area += face->area;
+    }
+    if (fix_vertex_area)
+      area /= 3.0;
+    else
+      area /= 2.0;
+    SET_OR_CHECK(v->area,area);
+    ROMP_PFLB_end
+  }
+  ROMP_PF_end
+
+  return (NO_ERROR);
+
+#ifdef BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_CHECK
+#undef SET_OR_CHECK
+#endif
+
+}
+#endif
+
+
 /*-----------------------------------------------------
   Parameters:
 

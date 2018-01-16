@@ -34,6 +34,10 @@
 #undef ROMP_LO
 #undef ROMP_HI
 
+#ifdef ROMP_FOR_LEVEL
+#undef ROMP_FOR_LEVEL
+#endif
+
 #ifdef ROMP_SUMREDUCTION0
 #undef ROMP_SUMREDUCTION0
 #endif

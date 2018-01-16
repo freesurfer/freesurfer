@@ -70,7 +70,12 @@
 	ROMP_PF_begin
 
 #ifdef HAVE_OPENMP
-	#pragma omp parallel for if_ROMP(assume_reproducible)
+#ifdef ROMP_FOR_LEVEL 
+    #pragma omp parallel for if_ROMPLEVEL(ROMP_FOR_LEVEL)
+#else
+    shown_reproducible
+    #pragma omp parallel for if_ROMP(assume_reproducible)
+#endif
 #endif
   	for (ROMP_index = 0; ROMP_index < ROMP_distributor.partialSize; ROMP_index++) {
         
