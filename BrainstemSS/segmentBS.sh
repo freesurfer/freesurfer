@@ -161,15 +161,15 @@ if($?PBS_JOBID) then
 endif
 
 # Parameters
-set RUNTIME="$FREESURFER_HOME/MCRv80/";
+set RUNTIME="$FREESURFER_HOME/MCRv84/";
 set RESOLUTION="0.5";
 set ATLASMESH="$FREESURFER_HOME/average/BrainstemSS/atlas/AtlasMesh.gz";
 set ATLASDUMP="$FREESURFER_HOME/average/BrainstemSS/atlas/AtlasDump.mgz";
 set LUT="$FREESURFER_HOME/average/BrainstemSS/atlas/compressionLookupTable.txt";
 set K="0.05";
-set OPTIMIZER="ConjGrad";
+set OPTIMIZER="L-BFGS";
 set MRFCONSTANT="0";
-set SUFFIX="v11";
+set SUFFIX="v12";
 
 
 # Now the real job
@@ -200,11 +200,13 @@ set cmd="run_SegmentSubject.sh $RUNTIME $SUBJECTNAME $SUBJECTS_DIR $RESOLUTION $
 fs_time ls >& /dev/null
 if ($status) then
   $cmd |& tee -a $BSSLOG 
+  set returnVal=$status
 else
   fs_time $cmd |& tee -a $BSSLOG
+  set returnVal=$status
 endif
 
-if ($status) then
+if ($returnVal) then
   uname -a | tee -a $BSSLOG
   echo "" |& tee -a $BSSLOG
   echo "T1 Brainstem Substructures exited with ERRORS at `date`" \
