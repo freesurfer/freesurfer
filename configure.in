@@ -3173,7 +3173,10 @@ LDFLAGS="$LDFLAGS $OS_LDFLAGS"
 #####################################################
 # link map
 #####################################################
-LDFLAGS="$LDFLAGS -Wl,-Map,ld_map.txt -Wl,--no-demangle"
+# this produces errors on os x
+if test ! "$OS" = "Darwin"; then
+  LDFLAGS="$LDFLAGS -Wl,-Map,ld_map.txt -Wl,--no-demangle"
+fi
 
 #####################################################
 # Checks for libraries.
