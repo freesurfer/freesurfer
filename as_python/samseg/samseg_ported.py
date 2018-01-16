@@ -155,7 +155,8 @@ def samsegment_part1(
     # % steps etc in mm.
     # [ ~, imageToWorldTransform ] = kvlReadImage( imageFileNames{1} );
     # imageToWorldTransformMatrix = kvlGetTransformMatrix( imageToWorldTransform );
-    imageToWorldTransformMatrix = images[0].transform_matrix.as_numpy_array
+    nonCroppedImage = GEMS2Python.KvlImage(imageFileNames[0])
+    imageToWorldTransformMatrix = nonCroppedImage.transform_matrix.as_numpy_array
     # voxelSpacing = sum( imageToWorldTransformMatrix( 1 : 3, 1 : 3 ).^2 ).^( 1/2 );
     voxelSpacing = np.sum(imageToWorldTransformMatrix[0:3, 0:3] ** 2, axis=0) ** (1 / 2)
     #
