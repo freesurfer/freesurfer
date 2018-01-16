@@ -61,8 +61,11 @@ def compare_scalars(ref, item, name=''):
     if ref == item:
         print('{0}: matches at {1}'.format(name, ref))
     else:
-        print('{0}: {1} != {2}'.format(name, ref, item))
-
+        absolute_difference = abs(ref - item)
+        ref_absolute_value = abs(ref)
+        relative_difference = absolute_difference / ref_absolute_value if ref_absolute_value > 0 else absolute_difference
+        print('{0}: {1} != {2} absolute difference={3} relative_difference={4}'.format(
+            name, ref, item, absolute_difference, relative_difference))
 
 def compare_ndarray_closeness(ref, item, name=''):
     def show(message):
@@ -82,6 +85,8 @@ def compare_ndarray_closeness(ref, item, name=''):
             ref, item = match_on_overlap(ref, item, ref_shape, item_shape)
         else:
             return
+    else:
+        show('shapes identical {0}'.format(ref_shape))
     try:
         total_size = np.prod(ref_shape)
         ref_max = np.max(ref)
@@ -286,10 +291,10 @@ def create_multiresWarp_inspection_team():
     return InspectionTeam('multiresWarp', [
         NdArrayInspector([
             'desiredNodePositions',
-            'tmp',
             'desiredNodePositionsInTemplateSpace',
-            'nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel',
             'initialNodeDeformationInTemplateSpace',
+            'nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel',
+            'tmp',
         ]),
     ])
 
