@@ -29,6 +29,12 @@
 #include "sys/timeb.h"
 #include "timer.h"
 
+#ifdef __APPLE__
+#include <mach/clock.h>
+#include <mach/mach.h>
+#endif
+
+
 struct timeb *TimerStart(struct timeb *then)
 {
 /* according to the header ftime() is obsolete */
@@ -69,13 +75,33 @@ int TimerStop(struct timeb *then)
 
 void TimerStartNanosecs(struct NanosecsTimer * nst)
 {
+#ifdef __APPLE__
+  clock_serv_t cclock;
+  mach_timespec_t mts;
+  host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+  clock_get_time(cclock, &mts);
+  mach_port_deallocate(mach_task_self(), cclock);
+  nst->now.tv_sec = mts.tv_sec;
+  nst->now.tv_nsec = mts.tv_nsec;
+#else
   clock_gettime(CLOCK_REALTIME, &nst->now);
+#endif
 }
 
 struct Nanosecs TimerElapsedNanosecs(struct NanosecsTimer * nst) // returns delta in nanosecs
 {
   struct timespec now;
+#ifdef __APPLE__
+  clock_serv_t cclock;
+  mach_timespec_t mts;
+  host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+  clock_get_time(cclock, &mts);
+  mach_port_deallocate(mach_task_self(), cclock);
+  now.tv_sec = mts.tv_sec;
+  now.tv_nsec = mts.tv_nsec;
+#else
   clock_gettime(CLOCK_REALTIME, &now);
+#endif
   struct timespec * then = &nst->now;
   struct Nanosecs result;
   result.ns = (long)(now.tv_sec - then->tv_sec)*1000000000 + (long)(now.tv_nsec - then->tv_nsec);
