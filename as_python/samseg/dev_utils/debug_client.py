@@ -67,9 +67,10 @@ def compare_scalars(ref, item, name=''):
         print('{0}: {1} != {2} absolute difference={3} relative_difference={4}'.format(
             name, ref, item, absolute_difference, relative_difference))
 
+
 def compare_ndarray_closeness(ref, item, name=''):
-    def show(message):
-        print("{0}: {1}".format(name, message))
+    def show(message, prefix=''):
+        print("{2}{0}: {1}".format(name, message, prefix))
 
     if not hasattr(ref, 'shape'):
         show("ref has no shape")
@@ -99,13 +100,23 @@ def compare_ndarray_closeness(ref, item, name=''):
         min_difference = np.min(difference)
         min_location = np.argmin(difference)
         total_difference = np.sum(np.abs(difference))
+        if total_difference == 0 and ref_shape == item_shape:
+            show('are identical', '    ')
+            return
         average_difference = total_difference / total_size
         ref_total = np.sum(np.abs(ref))
         relative_difference = total_difference / ref_total if ref_total != 0 else total_difference
-        show('ref_max={0} ref_min={1} item_max={2} item_min={3}'.format(ref_max, ref_min, item_max, item_min))
-        show('max_diff={0} min_diff={1}'.format(max_difference, min_difference))
-        show('max_location={0} min_location={1}'.format(max_location, min_location))
-        show('average difference={0} relative_difference={1}'.format(average_difference, relative_difference))
+        if relative_difference < 0.001:
+            show('small differences...', '    ')
+        elif relative_difference > 0.1:
+            show('LARGE DIFFERENCES...', '    ')
+        else:
+            show('differences...', '    ')
+
+        show('ref_max={0} ref_min={1} item_max={2} item_min={3}'.format(ref_max, ref_min, item_max, item_min), '    ')
+        show('max_diff={0} min_diff={1}'.format(max_difference, min_difference), '    ')
+        show('max_location={0} min_location={1}'.format(max_location, min_location), '    ')
+        show('average difference={0} relative_difference={1}'.format(average_difference, relative_difference), '    ')
     except Exception as flaw:
         show('flaw = {0}'.format(str(flaw)))
         traceback.print_exc()
@@ -215,7 +226,9 @@ class InspectionTeam:
 
     def inspect_all(self, checkpoint_manager):
         while (self.inspect(checkpoint_manager)):
-            pass
+            print('')
+        print('')
+        print('')
 
 
 class NdArrayInspector(Inspector):
@@ -307,4 +320,34 @@ def create_optimizer_inspection_team():
     return InspectionTeam('optimizer', [
         NdArrayInspector(['nodePositionsAfterDeformation']),
         ScalarInspector(['maximalDeformationApplied']),
+    ])
+
+
+def create_optimizer_exit_inspection_team():
+    return InspectionTeam('optimizerPerVoxelExit', [
+        ScalarInspector([
+            'activeVoxelCount',
+            'priorCost',
+            'currentCost',
+            'costChange',
+            'perVoxelDecrease',
+            'perVoxelDecreaseThreshold',
+            'minLogLikelihoodTimesDeformationPrior',
+            'intensityModelParameterCost',
+        ]),
+    ])
+
+
+def create_optimizer_em_exit_inspection_team():
+    return InspectionTeam('optimizerEmExit', [
+        ScalarInspector([
+            'activeVoxelCount',
+            'priorEMCost',
+            'currentEMCost',
+            'costChangeEM',
+            'changeCostEMPerVoxel',
+            'changeCostEMPerVoxelThreshold',
+            'minLogLikelihood',
+            'intensityModelParameterCost',
+        ]),
     ])
