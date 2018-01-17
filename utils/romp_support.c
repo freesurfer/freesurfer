@@ -1,6 +1,8 @@
 #include "romp_support.h"
 #include "romp_support.h"
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#endif
 #include <stdlib.h>
 #include <pthread.h>
 
@@ -139,8 +141,14 @@ void ROMP_pf_begin(
 	    exit(1);
 	}
 	struct timespec timespec;
-        if (clock_gettime(clockid, &timespec) != 0) {
-	    fprintf(stderr, "%s:%d clock_gettime failed", __FILE__, __LINE__);
+    int ret;
+#ifdef __APPLE__
+    ret = mach_gettime(clockid, &timespec);
+#else
+    ret = clock_gettime(clockid, &timespec);
+#endif
+    if (ret != 0) {
+	    fprintf(stderr, "%s:%d gettime failed", __FILE__, __LINE__);
 	    exit(1);
 	}
 	pf_stack->watchedThreadBeginCPUTimes[tid].ns =
@@ -185,8 +193,14 @@ void ROMP_pf_end(
 	    exit(1);
 	}
 	struct timespec timespec;
-        if (clock_gettime(clockid, &timespec) != 0) {
-	    fprintf(stderr, "%s:%d clock_gettime failed", __FILE__, __LINE__);
+    int ret;
+#ifdef __APPLE__
+    ret = mach_gettime(clockid, &timespec);
+#else
+    ret = clock_gettime(clockid, &timespec);
+#endif
+    if (ret != 0) {
+	    fprintf(stderr, "%s:%d gettime failed", __FILE__, __LINE__);
 	    exit(1);
 	}
 	Nanosecs threadCpuTime;
