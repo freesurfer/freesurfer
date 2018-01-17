@@ -43,6 +43,7 @@ def samsegment(
         'savePath': savePath,
         'showFigures': showFigures,
     })
+    # transformedTemplateFileName = transformedTemplateFileName.replace('python_','matlab_')
     if checkpoint_manager:
         checkpoint_manager.save_specification(part0_results_dict, 'part0', 1)
     logger.info('calling part1...')

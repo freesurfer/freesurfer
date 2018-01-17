@@ -98,6 +98,7 @@ def samsegment_part2(
         downSampledMask = mask[::downSamplingFactors[0], ::downSamplingFactors[1], ::downSamplingFactors[2]]
         #   downSampledMaskIndices = find( downSampledMask );
         downSampledMaskIndices = np.where(downSampledMask)
+        activeVoxelCount = len(downSampledMaskIndices[0])
         #   downSampledImageBuffers = [];
         downSampledImageBuffers = np.zeros(downSampledMask.shape + (numberOfContrasts,))
         #   for contrastNumber = 1 : numberOfContrasts
@@ -261,7 +262,7 @@ def samsegment_part2(
         #   downSampledBiasCorrectedImageBuffers = zeros( [ downSampledImageSize numberOfContrasts ] );
         downSampledBiasCorrectedImageBuffers = np.zeros(downSampledImageSize + (numberOfContrasts,))
         #   biasCorrectedData = zeros( [ length( downSampledMaskIndices ) numberOfContrasts ] );
-        biasCorrectedData = np.zeros((len(downSampledMaskIndices[0]), numberOfContrasts))
+        biasCorrectedData = np.zeros((activeVoxelCount, numberOfContrasts))
 
         #   for contrastNumber = 1 : numberOfContrasts
         # TODO: remove this ensure_dims when part 1 is done
@@ -291,15 +292,15 @@ def samsegment_part2(
         #   historyWithinEachIteration = struct( [] );
         historyWithinEachIteration = []
         #   priors = zeros( length( downSampledMaskIndices ), numberOfClasses );
-        priors = np.zeros((len(downSampledMaskIndices[0]), numberOfClasses))
+        priors = np.zeros((activeVoxelCount, numberOfClasses))
         #   posteriors = zeros( length( downSampledMaskIndices ), numberOfGaussians ); % Gaussian mixture models burst out into
         #                                                                              % individual Gaussian components
-        posteriors = np.zeros((len(downSampledMaskIndices[0]), numberOfGaussians))
+        posteriors = np.zeros((activeVoxelCount, numberOfGaussians))
         #
         #   % Easier to work with vector notation in the EM computations
         #   % reshape into a matrix
         #   data = zeros( [ length( downSampledMaskIndices ) numberOfContrasts ] );
-        data = np.zeros((len(downSampledMaskIndices[0]), numberOfContrasts))
+        data = np.zeros((activeVoxelCount, numberOfContrasts))
         #   for contrastNumber = 1:numberOfContrasts
         for contrastNumber in range(numberOfContrasts):
             #     tmp = reshape( downSampledImageBuffers( :, :, :, contrastNumber ), [ prod(downSampledImageSize) 1 ] );
@@ -556,13 +557,29 @@ def samsegment_part2(
                 #       % relativeChangeCost = ( historyOfEMCost(end-1) - historyOfEMCost(end) ) /  historyOfEMCost(end)
                 #       % if ( relativeChangeCost < stopCriterionEM )
                 #       changeCostPerVoxel = ( historyOfEMCost(end-1) - historyOfEMCost(end) ) / length( downSampledMaskIndices );
-                changeCostPerVoxel = (historyOfEMCost[-2] - historyOfEMCost[-1]) / len(downSampledMaskIndices[0])
                 #       if ( changeCostPerVoxel < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion )
-                if changeCostPerVoxel < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion:
+                # if changeCostPerVoxel < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion:
+                priorEMCost = historyOfEMCost[-2]
+                currentEMCost = historyOfEMCost[-1]
+                costChangeEM = priorEMCost - currentEMCost
+                changeCostEMPerVoxel = costChangeEM / activeVoxelCount
+                changeCostEMPerVoxelThreshold = optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion
+                if changeCostEMPerVoxel < changeCostEMPerVoxelThreshold:
                     #         % Converged
                     #         disp( 'EM converged!' )
                     print('EM converged!')
                     #         break;
+                    if checkpoint_manager:
+                        checkpoint_manager.increment_and_save({
+                            'activeVoxelCount': activeVoxelCount,
+                            'priorEMCost': priorEMCost,
+                            'currentEMCost': currentEMCost,
+                            'costChangeEM': costChangeEM,
+                            'changeCostEMPerVoxel': changeCostEMPerVoxel,
+                            'changeCostEMPerVoxelThreshold': changeCostEMPerVoxelThreshold,
+                            'minLogLikelihood': minLogLikelihood,
+                            'intensityModelParameterCost': intensityModelParameterCost,
+                        }, 'optimizerEmExit')
                     break
                     #       end
                 #       %
@@ -805,7 +822,7 @@ def samsegment_part2(
                 #       [ minLogLikelihoodTimesDeformationPrior, maximalDeformation ] = kvlStepOptimizer( optimizer );
                 minLogLikelihoodTimesDeformationPrior, maximalDeformation = optimizer.step_optimizer()
                 #       disp( [ 'maximalDeformation ' num2str( maximalDeformation ) ' took ' num2str( toc( stepStartTime ) ) ' sec' ] )
-                print("maximalDeformation  {}".format(maximalDeformation))
+                print("maximalDeformation={} minLogLikelihood={}".format(maximalDeformation, minLogLikelihoodTimesDeformationPrior))
                 #
                 #       if ( maximalDeformation == 0 )
                 #         break;
@@ -901,11 +918,29 @@ def samsegment_part2(
             #     %          < relativeCostDecreaseStopCriterion ) || ...
             #     %        ( maximalDeformationApplied < maximalDeformationAppliedStopCriterion ) )
             #     if ( ( ( ( historyOfCost( end-1 ) - historyOfCost( end ) ) / length( downSampledMaskIndices ) ) ...
-            if ((((historyOfCost[-2] - historyOfCost[-1]) / len(downSampledMaskIndices[0]))
-                 #            < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion ) ) % If EM converges in one iteration and mesh node optimization doesn't do anything
-                 < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion)):  # If EM converges in one iteration and mesh node optimization doesn't do anything
+            priorCost = historyOfCost[-2]
+            currentCost = historyOfCost[-1]
+            costChange = priorCost - currentCost
+            activeVoxelCount = len(downSampledMaskIndices[0])
+            perVoxelDecrease = costChange / activeVoxelCount
+            perVoxelDecreaseThreshold = optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion
+            # if ((((historyOfCost[-2] - historyOfCost[-1]) / len(downSampledMaskIndices[0]))
+            #      #            < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion ) ) % If EM converges in one iteration and mesh node optimization doesn't do anything
+            #      < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion)):  # If EM converges in one iteration and mesh node optimization doesn't do anything
                 #       % Converged
+            if perVoxelDecrease < perVoxelDecreaseThreshold:
                 #       break;
+                if checkpoint_manager:
+                    checkpoint_manager.increment_and_save({
+                        'activeVoxelCount': activeVoxelCount,
+                        'priorCost': priorCost,
+                        'currentCost': currentCost,
+                        'costChange': costChange,
+                        'perVoxelDecrease': perVoxelDecrease,
+                        'perVoxelDecreaseThreshold': perVoxelDecreaseThreshold,
+                        'minLogLikelihoodTimesDeformationPrior': minLogLikelihoodTimesDeformationPrior,
+                        'intensityModelParameterCost': intensityModelParameterCost,
+                    }, 'optimizerPerVoxelExit')
                 break
                 #     end
             #
