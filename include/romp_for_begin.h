@@ -67,6 +67,7 @@
         //       
         int ROMP_index;
 
+        ROMP_PF_begin
 #ifdef HAVE_OPENMP
 #ifdef ROMP_FOR_LEVEL 
     #pragma omp parallel for if_ROMPLEVEL(ROMP_FOR_LEVEL)
@@ -76,7 +77,8 @@
 #endif
 #endif
   	for (ROMP_index = 0; ROMP_index < ROMP_distributor.partialSize; ROMP_index++) {
-        
+            ROMP_PFLB_begin
+            
             // Serial iteration reproducing each partial sum
             //
             int const ROMP_lo = ROMP_distributor.partials[ROMP_index].lo; 

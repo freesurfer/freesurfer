@@ -25,7 +25,10 @@
 
 	    }           // serial loop
         
+            ROMP_PFLB_end
         }               // parallel loop
+        ROMP_PF_end
+        
     } // poison ROMP_SUMREDUCTION0 etc.
     
 #undef ROMP_VARIABLE

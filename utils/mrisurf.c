@@ -38,6 +38,13 @@
 
 #endif
 
+
+// Configurable support for enabling the new code that does get reproducible results
+//
+#define BEVIN_MRISCOMPUTENORMALS_REPRODUCIBLE
+#define BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_REPRODUCIBLE
+
+
 // Includes
 //
 #include <ctype.h>
@@ -357,7 +364,7 @@ static int   mrisClipMomentumGradient(MRI_SURFACE *mris, float max_len) ;
 #endif
 static int mrisComputeSurfaceDimensions(MRI_SURFACE *mris);
 // static int   mrisFindNeighbors(MRI_SURFACE *mris) ;
-static void mrisNormalize(float v[3]);
+static float mrisNormalize(float v[3]);
 static float mrisTriangleArea(MRIS *mris, int fac, int n);
 static int mrisNormalFace(MRIS *mris, int fac, int n, float norm[]);
 static int mrisComputeOrigNormal(MRIS *mris, int vno, float norm[]);
@@ -686,7 +693,7 @@ static void reproducible_check(double cell, double val, int line, int* count)
 {
     (*count)++;
     if (cell == val) return;
-    fprintf(stderr, "MRIScomputeTriangleProperties_new %s:%d diff %g:%g %g using %d threads, count:%d\n",
+    fprintf(stderr, "reproducible_check %s:%d diff %g:%g %g using %d threads, count:%d\n",
         __FILE__, line, cell, val, cell-val, omp_get_max_threads(), *count);
     exit(1);
 }
@@ -3616,6 +3623,7 @@ int MRISremoveRipped(MRI_SURFACE *mris)
   return (NO_ERROR);
 }
 
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -3624,60 +3632,105 @@ int MRISremoveRipped(MRI_SURFACE *mris)
   Description
   no triangle area in msurfer, no explodeflag here
   ------------------------------------------------------*/
-#define BEVIN_MRISCOMPUTENORMALS_REPRODUCIBLE
-
 #ifdef BEVIN_MRISCOMPUTENORMALS_REPRODUCIBLE
-static int MRIScomputeNormals_old(MRI_SURFACE *mris, bool old_done);
-static int MRIScomputeNormals_new(MRI_SURFACE *mris, bool old_done);
+static int MRIScomputeNormals_old(MRI_SURFACE *mris);
+static int MRIScomputeNormals_new(MRI_SURFACE *mris);
 #define BEVIN_MRISCOMPUTENORMALS_CHECK
+#endif
+
+#ifdef BEVIN_MRISCOMPUTENORMALS_CHECK
+    
+    // The old algorithm has severe non-reproducible behavior
+    // so comparing the old and new algorithm must allow for these differences
+    //
+    // Sadly both algorithms change their inputs, so the only way to check is the take and compare
+    // snapshots of the modified data.  That is what this code does.
+    //
+    typedef struct MRIScomputeNormals_Snapshot {
+        FACE*   faces;
+        VERTEX* vertices;
+    } MRIScomputeNormals_Snapshot;
+    
+    static void MRIScomputeNormals_Snapshot_init(
+        MRIScomputeNormals_Snapshot* lhs,
+        MRI_SURFACE*                 mris) {
+        int FC = mris->nfaces    * sizeof(FACE);   memcpy(lhs->faces    = (FACE*  )malloc(FC), mris->faces,    FC); 
+        int VC = mris->nvertices * sizeof(VERTEX); memcpy(lhs->vertices = (VERTEX*)malloc(VC), mris->vertices, VC); 
+    }
+
+    static void MRIScomputeNormals_Snapshot_undo(
+        MRIScomputeNormals_Snapshot* lhs,
+        MRI_SURFACE*                 mris) {
+        int FC = mris->nfaces    * sizeof(FACE);   memcpy(mris->faces,    lhs->faces,    FC); 
+        int VC = mris->nvertices * sizeof(VERTEX); memcpy(mris->vertices, lhs->vertices, VC); 
+    }
+
+    static void MRIScomputeNormals_Snapshot_fini(
+        MRIScomputeNormals_Snapshot* lhs) {
+        free(lhs->faces   ); lhs->faces    = NULL;
+        free(lhs->vertices); lhs->vertices = NULL;
+    }
+    
+    static void MRIScomputeNormals_Snapshot_compare(
+        MRIScomputeNormals_Snapshot* lhs,
+        MRIScomputeNormals_Snapshot* rhs,
+        MRI_SURFACE*                 mris) {
+        int count = 0;
+        int i;
+        for (i = 0; i < mris->nfaces; i++) {
+            #define CHECK(M) reproducible_check(lhs->faces[i].M , rhs->faces[i].M, __LINE__, &count);
+            CHECK(nx);
+            CHECK(ny);
+            CHECK(nz);
+            #undef CHECK
+        }
+        for (i = 0; i < mris->nvertices; i++) {
+            #define CHECK(M) reproducible_check(lhs->vertices[i].M , rhs->vertices[i].M, __LINE__, &count);
+            CHECK(border)
+            CHECK(area)
+            CHECK(origarea)
+            CHECK(x)
+            CHECK(y)
+            CHECK(z)
+            CHECK(nx)
+            CHECK(ny)
+            CHECK(nz)
+            #undef CHECK
+        }
+    }
+
 #endif
 
 int MRIScomputeNormals(MRI_SURFACE *mris)
 #ifdef BEVIN_MRISCOMPUTENORMALS_REPRODUCIBLE
 {
-    static const bool do_old = 
+
 #ifdef BEVIN_MRISCOMPUTENORMALS_CHECK
-      true;
-#else
-      false;
+    printf("MRIScomputeNormals comparing\n");
+    MRIScomputeNormals_Snapshot before; MRIScomputeNormals_Snapshot_init(&before, mris);
+    MRIScomputeNormals_old(mris);
+    MRIScomputeNormals_Snapshot after0; MRIScomputeNormals_Snapshot_init(&after0, mris);
+
+    MRIScomputeNormals_Snapshot_undo(&before, mris);
 #endif
     
-    int result_old = do_old ? MRIScomputeNormals_old(mris, false) : 0;
+    int result = MRIScomputeNormals_old(mris);
 
-    int result_new =          MRIScomputeNormals_new(mris, do_old);
+#ifdef BEVIN_MRISCOMPUTENORMALS_CHECK
+    MRIScomputeNormals_Snapshot after1; MRIScomputeNormals_Snapshot_init(&after1, mris);
+    MRIScomputeNormals_Snapshot_compare(&after0, &after1, mris);
     
-    if (do_old) {
-        if (result_old != result_new) {
-            fprintf(stderr, "%s:%d MRIScomputeNormals diff results %d:%d\n",
-                result_old, result_new);
-            exit(1);
-        }
-    }
+    MRIScomputeNormals_Snapshot_fini(&after1);
+    MRIScomputeNormals_Snapshot_fini(&after0);
+#endif
     
-    return result_new;
+    return result;
 }
 
-#ifdef BEVIN_MRISCOMPUTENORMALS_REPRODUCIBLE
-
-    #define randomNumber(LO,HI) fnv_hash(i, k, &random_counter, LO, HI)
-    
-
-#endif
-
-
-static int MRIScomputeNormals_old(MRI_SURFACE *mris, bool old_done)
+static int MRIScomputeNormals_old(MRI_SURFACE *mris)
 #endif
 {
-  // This is the old code
-  //
-  // It generates random numbers instead a parallel loop, which gives different results
-  // It is kept here in the serial form to provide the reproducible answer that the new
-  // code should always get
-  //
-  // Sadly the number of random numbers generated for each vertex depends also on the
-  // calculation itself, which makes it impossible to deterministically parallelize!
-  //
-  // To avoid this problem, the _new code instead hashes the vertex number etc
+  // This is the old code.  It has several parallelization problems, as noted in the code
   //
   static const double RAN = 0.001; /* one thousandth of a millimeter */
 
@@ -3720,7 +3773,7 @@ static int MRIScomputeNormals_old(MRI_SURFACE *mris, bool old_done)
 
 #ifdef HAVE_OPENMP
   ROMP_PF_begin		// mris_fix_topology
-  #pragma omp parallel for if_ROMP2(!do_old,fast) reduction(+ : i) schedule(static, 1)
+  #pragma omp parallel for if_ROMP(fast) reduction(+ : i) schedule(static, 1)
 #endif
   for (k = 0; k < mris->nvertices; k++) {
     ROMP_PFLB_begin
@@ -3741,6 +3794,8 @@ static int MRIScomputeNormals_old(MRI_SURFACE *mris, bool old_done)
           snorm[1] += norm[1];
           snorm[2] += norm[2];
 
+          // BUG: Parallel non-deterministic, this is writing shared faces
+          //
           // DNG: 6/7/2016 update the face normals
           FACE * face = &mris->faces[v->f[n]];
           face->nx = norm[0];
@@ -3784,7 +3839,7 @@ static int MRIScomputeNormals_old(MRI_SURFACE *mris, bool old_done)
             DIAG_VERBOSE_ON)
           fprintf(stderr, "vertex %d: degenerate normal\n", k);
 
-        v->x += (float)randomNumber(-RAN, RAN);
+        v->x += (float)randomNumber(-RAN, RAN);         // BUG: Parallel non-deterministic, the order that these are called will vary
         v->y += (float)randomNumber(-RAN, RAN);
         /* normal is always (0,0,+-1) anyway */
         if (mris->status == MRIS_PLANE || mris->status == MRIS_CUT) {
@@ -3793,6 +3848,8 @@ static int MRIScomputeNormals_old(MRI_SURFACE *mris, bool old_done)
           continue;
         }
 
+        // BUG: Parallel non-deterministic, this is writing shared vertices
+        //
         v->z += (float)randomNumber(-RAN, RAN);
         for (n = 0; n < v->vnum; n++) /*if (!mris->faces[v->f[n]].ripflag)*/
         {
@@ -3818,164 +3875,212 @@ static int MRIScomputeNormals_old(MRI_SURFACE *mris, bool old_done)
 }
 
 #ifdef BEVIN_MRISCOMPUTENORMALS_REPRODUCIBLE
-static int MRIScomputeNormals_new(MRI_SURFACE *mris, bool old_done)
+
+static int int_compare(const void* lhs_ptr, const void* rhs_ptr) {
+   int lhs = *(int*)lhs_ptr;
+   int rhs = *(int*)rhs_ptr;
+   return lhs < rhs;
+}
+
+static int MRIScomputeNormals_new(MRI_SURFACE *mris)
 {
-  // This is the new code, that can compare its answers with the old code
-  //
-#ifdef BEVIN_MRISCOMPUTENORMALS_CHECK
-
-  static int countChecks = 0;
-
-#define SET_OR_CHECK(CELL, VAL)                                                     \
-  if (!old_done) (CELL) = (VAL);                                                    \
-  else reproducible_check((CELL),(VAL), __LINE__, &countChecks);                    \
-  // end of macro
-
-#else
-
-#define SET_OR_CHECK(CELL, VAL)                                                     \
-  (CELL) = (VAL);                                                                   \
-  // end of macro
-  
-#endif
-  
   static const double RAN = 0.001; /* one thousandth of a millimeter */
-
-  /* Control the random seed so that MRIScomputeNormals() always does
-     the same thing, otherwise it changes the xyz of the surface if
-     it finds degenerate normals. */
-  long saved_seed = getRandomSeed();
-  setRandomSeed(1234);
 
 
   int k;
 
+  // For every face, 
+  // if   it is ripped then mark its vertices as .border
+  // else compute its norm so we don't have to compute it later
+  //
 #ifdef HAVE_OPENMP
   ROMP_PF_begin		// mris_fix_topology
   #pragma omp parallel for if_ROMP(shown_reproducible)
 #endif
   for (k = 0; k < mris->nfaces; k++) {
     ROMP_PFLB_begin
-    if (mris->faces[k].ripflag) {
-      FACE* f = &mris->faces[k];
+    FACE* f = &mris->faces[k];
+    if (f->ripflag) {
       int n;
       for (n = 0; n < VERTICES_PER_FACE; n++) {
-        SET_OR_CHECK(mris->vertices[f->v[n]].border, TRUE);
+        #pragma omp critical
+        {
+          mris->vertices[f->v[n]].border = TRUE;
+        }
       }
+    } else {
+      float norm[3];
+      mrisNormalFace(mris, k, 0, norm);
+      f->nx = norm[0];
+      f->ny = norm[1];
+      f->nz = norm[2];
     }
     ROMP_PFLB_end
   }
   ROMP_PF_end
 
+  // Build the initial pending list
+  //
+  int  pendingCapacity = mris->nvertices;
+  int* pending         = (int*)malloc(pendingCapacity * sizeof(int));
+  int* nextPending     = (int*)malloc(pendingCapacity * sizeof(int));
+  int  pendingSize     = 0;
 
-  int i = 0;
-
-#ifdef HAVE_OPENMP
-  ROMP_PF_begin		// mris_fix_topology    MUST FIX
-  #pragma omp parallel for if_ROMP(shown_reproducible) reduction(+ : i)
-#endif
   for (k = 0; k < mris->nvertices; k++) {
-    ROMP_PFLB_begin
-
     VERTEX* v = &mris->vertices[k];
-    if (v->ripflag) ROMP_PFLB_continue;
+    if (v->ripflag) continue;
+    pending[pendingSize++] = k;
+  }
+     
+  // Process the pending vertices, keeping those that need more work on the nextPending list
+  // Try only a few times, because the problem might be insoluable
+  //
+  int trial = 0;
+  for (trial = 0; (trial < 5) && (pendingSize > 0); trial++) {
 
-    float norm[3], snorm[3], len;
+    int nextPendingSize = 0;
+  
+    int p;
+    ROMP_PF_begin		// mris_fix_topology
+#ifdef HAVE_OPENMP
+    #pragma omp parallel for if_ROMP(shown_reproducible)
+#endif
+    for (p = 0; p < pendingSize; p++) {
+      ROMP_PFLB_begin
 
-    snorm[0] = snorm[1] = snorm[2] = 0;
+      int const     k = pending[p];
+      VERTEX* const v = &mris->vertices[k];
 
-    float area = 0;
+      // calculate the vertex area (sum of the face areas)
+      // and       the average of the face normals
+      //
+      float snorm[3];
+      snorm[0] = snorm[1] = snorm[2] = 0;
 
-    int n, num;
-    for (num = n = 0; n < v->num; n++) {
-      if (mris->faces[v->f[n]].ripflag) continue;
+      float area = 0;
+
+      int count = 0;
+
+      int n;
+      for (n = 0; n < v->num; n++) {
+        FACE* face = &mris->faces[v->f[n]];
+        if (face->ripflag) continue;
         
-      num++;
+        count++;
         
-      mrisNormalFace(mris, v->f[n], (int)v->n[n], norm);
-      snorm[0] += norm[0];
-      snorm[1] += norm[1];
-      snorm[2] += norm[2];
+        snorm[0] += face->nx;
+        snorm[1] += face->ny;
+        snorm[2] += face->nz;
 
-      // DNG: 6/7/2016 update the face normals
-      FACE * face = &mris->faces[v->f[n]];
-      SET_OR_CHECK(face->nx, norm[0]);
-      SET_OR_CHECK(face->ny, norm[1]);
-      SET_OR_CHECK(face->nz, norm[2]);
-
-      /* Note: overestimates area by *2 !! */
-      area += mrisTriangleArea(mris, v->f[n], (int)v->n[n]);
-    }
+        area += mrisTriangleArea(mris, v->f[n], (int)v->n[n]);
+      }
       
-    if (fix_vertex_area)
-      SET_OR_CHECK(v->area, area / 3.0);
-    else
-      SET_OR_CHECK(v->area, area / 2.0);
+      if (!count || mrisNormalize(snorm) > 0.0) {       // Success?
 
-    if (!num) {
-      ROMP_PFLB_continue;
-    }
-      
-    if (v->origarea < 0) /* has never been set */
-      v->origarea = v->area;
+        if (fix_vertex_area)
+          v->area = area / 3.0;            // Since each face is added to three vertices...
+        else
+          v->area = area / 2.0;
 
-    mrisNormalize(snorm);
+        if (v->origarea < 0)                            // has never been set
+          v->origarea = v->area;
 
-    len = sqrt(snorm[0] * snorm[0] + snorm[1] * snorm[1] + snorm[2] * snorm[2]);
-    if (!FZERO(len)) {
-      v->nx = snorm[0];
-      v->ny = snorm[1];
-      v->nz = snorm[2];
-      i = 0;
-    } else {
-      if (i++ > 5) ROMP_PFLB_continue;
-
-      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-        printf("vertex %d: i=%d, degenerate normal, seed=%ld, nc=%ld, fixing\n",
-               k,
-               i,
-               getRandomSeed(),
-               getRandomCalls());
-
-      if ((mris->status == MRIS_SPHERICAL_PATCH || 
-           mris->status == MRIS_PARAMETERIZED_SPHERE ||
-           mris->status == MRIS_SPHERE) &&
-          DIAG_VERBOSE_ON)
-        fprintf(stderr, "vertex %d: degenerate normal\n", k);
-
-      v->x += (float)randomNumber(-RAN, RAN);
-      v->y += (float)randomNumber(-RAN, RAN);
-      /* normal is always (0,0,+-1) anyway */
-      if (mris->status == MRIS_PLANE || mris->status == MRIS_CUT) {
-        v->nx = v->ny = 0.0f;
-        v->nz = 1.0f;
+        v->nx = snorm[0];
+        v->ny = snorm[1];
+        v->nz = snorm[2];
+        
         ROMP_PFLB_continue;
       }
-
-      v->z += (float)randomNumber(-RAN, RAN);
-      for (n = 0; n < v->vnum; n++) /*if (!mris->faces[v->f[n]].ripflag)*/
+      
+      #pragma omp critical                              // Retry after various adjustments below
       {
-        if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) printf("   k=%5d %d nbr = %5d / %d\n", k, n, v->v[n], v->vnum);
-        mris->vertices[v->v[n]].x += (float)randomNumber(-RAN, RAN);
-        mris->vertices[v->v[n]].y += (float)randomNumber(-RAN, RAN);
-        mris->vertices[v->v[n]].z += (float)randomNumber(-RAN, RAN);
+        nextPending[nextPendingSize++] = k;
       }
-
-      k--; /* recalculate the normal for this vertex */
+      
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
 
-    ROMP_PFLB_end
-  }
-  ROMP_PF_end
+    // Sort the nextPending list because the above appends are not in order
+    //
+    qsort(nextPending, nextPendingSize, sizeof(int), int_compare);
+    
+    // Randomly move nextPending vertices and their neighbors
+    //
+    // This can not be done easily in parallel because they share faces
+    // If this is a performance problem, can be fixed, but I doubt it will be
+    //
+    for (p = 0; p < nextPendingSize; p++) {
+      int     const k = nextPending[p];
+      VERTEX* const v = &mris->vertices[k];
+
+      // Warn
+      //      
+      if ((mris->status == MRIS_SPHERICAL_PATCH      || 
+           mris->status == MRIS_PARAMETERIZED_SPHERE ||
+           mris->status == MRIS_SPHERE) &&
+          DIAG_VERBOSE_ON) {
+        fprintf(stderr, "vertex %d: degenerate normal\n", k);
+      }
+    
+      // randomly move x and y
+      // When written, assumed being done in parallel, hence fnv_hash giving reproducible movement
+      //
+      int random_counter = 0;
+
+      v->x += fnv_hash(trial, k, &random_counter, -RAN, RAN);
+      v->y += fnv_hash(trial, k, &random_counter, -RAN, RAN);
+      
+      if (mris->status == MRIS_PLANE || mris->status == MRIS_CUT) {
+        // nothing
+      } else {
+        v->z += fnv_hash(trial, k, &random_counter, -RAN, RAN);
+        
+        // I don't know why this was not done for the MRIS_PLANE and _CUT
+        //
+        int n;
+        for (n = 0; n < v->vnum; n++) { /* if (!mris->faces[v->f[n]].ripflag) */
+          VERTEX* vn = &mris->vertices[v->v[n]];
+          if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) 
+            printf("   k=%5d %d nbr = %5d / %d\n", k, n, v->v[n], v->vnum);
+          vn->x += fnv_hash(trial, k, &random_counter, -RAN, RAN);
+          vn->y += fnv_hash(trial, k, &random_counter, -RAN, RAN);
+          vn->z += fnv_hash(trial, k, &random_counter, -RAN, RAN);
+        }
+        
+        // Recompute the face norms for these faces
+        //
+        for (n = 0; n < v->num; n++) {
+          FACE* f = &mris->faces[v->f[n]];
+          if (f->ripflag) continue;
+          float norm[3];
+          mrisNormalFace(mris, v->f[n], 0, norm);
+          f->nx = norm[0];
+          f->ny = norm[1];
+          f->nz = norm[2];
+        }
+      }
+    }
+    
+    // Try the moved ones again - although not their moved neighbors, weirdly enough
+    //
+    int* tempPending = pending; pending = nextPending; nextPending = tempPending;
+    pendingSize = nextPendingSize;
+
+  } // trials
   
-  setRandomSeed(saved_seed);  // restore
+  if (pendingSize > 0) {
+    fprintf(stderr, "%s:%d MRIScomputeNormals_new could not do all vertices after %d attempts, %d remain\n",
+      __FILE__, __LINE__, trial, pendingSize);
+  }
+
   return (NO_ERROR);
+
 }
 
 #undef randomNumber
 
 #endif
-
 
 /*-----------------------------------------------------------------
   Calculate distances between each vertex and all of its neighbors.
@@ -4229,16 +4334,17 @@ double MRISavgVetexRadius(MRIS *Surf, double *StdDev)
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
-static void mrisNormalize(float v[3])
+static float mrisNormalize(float v[3])
 {
-  float d;
-
-  d = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+  float d = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
+  
   if (d > 0) {
     v[0] /= d;
     v[1] /= d;
     v[2] /= d;
   }
+  
+  return d;
 }
 
 /*-----------------------------------------------------
@@ -10697,16 +10803,15 @@ int MRISwriteTriangleProperties(MRI_SURFACE *mris, const char *mris_fname)
 
 
   ------------------------------------------------------*/
-#define BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_REPRODUCIBLE
+
 
 #ifdef BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_REPRODUCIBLE
 static int MRIScomputeTriangleProperties_old(MRI_SURFACE *mris, bool old_done);
 static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done);
-#endif
 
 int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
-#ifdef BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_REPRODUCIBLE
 {
+
     static const bool do_old = 
 #ifdef BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_CHECK
       true;
@@ -10721,7 +10826,7 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
     if (do_old) {
         if (result_old != result_new) {
             fprintf(stderr, "%s:%d MRIScomputeTriangleProperties diff results %d:%d\n",
-                result_old, result_new);
+                __FILE__, __LINE__, result_old, result_new);
             exit(1);
         }
     }
@@ -10729,10 +10834,16 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
     return result_new;
 }
 
-
 static int MRIScomputeTriangleProperties_old(MRI_SURFACE *mris, bool old_done)
+
+#else
+
+int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
+
 #endif
+
 {
+
   // This is the old code
   // It does a double reduction, which may give different results depending on the openmp partitioning of the loop
   // It is kept here in the serial form to provide the reproducible answer that the new code should always get
@@ -10748,8 +10859,8 @@ static int MRIScomputeTriangleProperties_old(MRI_SURFACE *mris, bool old_done)
     v_n[tno] = VectorAlloc(3, MATRIX_REAL); /* normal vector */
   }
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(fast) reduction(+ : total_area)
 #endif
   for (fno = 0; fno < mris->nfaces; fno++) {
@@ -10760,7 +10871,6 @@ static int MRIScomputeTriangleProperties_old(MRI_SURFACE *mris, bool old_done)
     int ano;
     float area, angle, dot, cross, dz;
 #ifdef HAVE_OPENMP
-    // thread ID
     int tid = omp_get_thread_num();
 #else
     int tid = 0;
@@ -10782,7 +10892,7 @@ static int MRIScomputeTriangleProperties_old(MRI_SURFACE *mris, bool old_done)
     V3_CROSS_PRODUCT(v_a[tid], v_b[tid], v_n[tid]);
     area = V3_LEN(v_n[tid]) * 0.5f;
     dot  = V3_DOT(v_a[tid], v_b[tid]);
-    SET_OR_CHECK(face->area, area);
+    face->area = area;
     if (area < 0) DiagBreak();
 
     V3_NORMALIZE(v_n[tid], v_n[tid]); /* make it a unit vector */
@@ -10850,8 +10960,8 @@ static int MRIScomputeTriangleProperties_old(MRI_SURFACE *mris, bool old_done)
   mris->total_area = total_area;
 
 /* calculate the "area" of the vertices */
-#ifdef HAVE_OPENMP
   ROMP_PF_begin		// mris_fix_topology
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(shown_reproducible)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -10877,6 +10987,7 @@ static int MRIScomputeTriangleProperties_old(MRI_SURFACE *mris, bool old_done)
 
   return (NO_ERROR);
 }
+
 
 #ifdef BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_REPRODUCIBLE
 static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
@@ -10931,7 +11042,6 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
     
   #define ROMP_FOR_LEVEL      ROMP_level_shown_reproducible
     
-  ROMP_PF_begin
   #include "romp_for_begin.h"
     
     #define reduction_total_area ROMP_PARTIALSUM(0)
@@ -11027,12 +11137,6 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
       float dot   = V3_DOT(v_a[tid], v_b[tid]);
       float angle = atan2(cross, dot);
       SET_OR_CHECK(face->angle[ano], angle);
-
-#if 0
-      if (angle < 0.0f || angle >= M_PI)
-        fprintf(stdout, "angle [%d][%d] = %2.1f\n",
-                fno,ano,(float)DEGREES(angle)) ;
-#endif
     }
 
 #if 0
