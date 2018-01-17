@@ -134,7 +134,7 @@ void ROMP_pf_begin(
     for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
         int tid = omp_get_thread_num();
 	if (tid >= ROMP_maxWatchedThreadNum) continue;
-	clock_t clockid;
+	clockid_t clockid;
 	int s = pthread_getcpuclockid(pthread_self(), &clockid);
 	if (s != 0) {
 	    fprintf(stderr, "%s:%d pthread_getcpuclockid failed", __FILE__, __LINE__);
@@ -186,7 +186,7 @@ void ROMP_pf_end(
 	if (startCPUTime->ns == -1) {
 	    continue;
 	}
-	clock_t clockid;
+	clockid_t clockid;
 	int s = pthread_getcpuclockid(pthread_self(), &clockid);
 	if (s != 0) {
 	    fprintf(stderr, "%s:%d pthread_getcpuclockid failed", __FILE__, __LINE__);

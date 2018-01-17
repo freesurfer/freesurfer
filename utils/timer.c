@@ -36,12 +36,12 @@
 #include <mach/clock.h>
 #include <mach/mach.h>
 
-int mach_gettime(clock_t clk_id, struct timespec *tp)
+int mach_gettime(clockid_t clk_id, struct timespec *tp)
 {
   int ret;
   clock_serv_t cclock;
   mach_timespec_t mts;
-  host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);  // todo: calendar time should be clk_id I think
+  host_get_clock_service(mach_host_self(), clk_id, &cclock);  // todo: calendar time should be clk_id I think
   ret = clock_get_time(cclock, &mts);
   mach_port_deallocate(mach_task_self(), cclock);
   tp->tv_sec = mts.tv_sec;
