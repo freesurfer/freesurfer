@@ -329,7 +329,8 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
   downSampledMask = mask(  1 : downSamplingFactors( 1 ) : end, ...
                            1 : downSamplingFactors( 2 ) : end, ...
                            1 : downSamplingFactors( 3 ) : end );
-  downSampledMaskIndices = find( downSampledMask );                         
+  downSampledMaskIndices = find( downSampledMask );
+  activeVoxelCount = length( downSampledMaskIndices )
   downSampledImageBuffers = [];
   for contrastNumber = 1 : numberOfContrasts
     % if ( multiResolutionLevel == numberOfMultiResolutionLevels )
@@ -648,11 +649,16 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
       % Check for convergence
       % relativeChangeCost = ( historyOfEMCost(end-1) - historyOfEMCost(end) ) /  historyOfEMCost(end)
       % if ( relativeChangeCost < stopCriterionEM )
-      changeCostPerVoxel = ( historyOfEMCost(end-1) - historyOfEMCost(end) ) / length( downSampledMaskIndices );
-      if ( changeCostPerVoxel < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion )
+      priorEMCost = historyOfEMCost(end-1);
+      currentEMCost = historyOfEMCost(end);
+      costChangeEM = priorEMCost - currentEMCost;
+      changeCostEMPerVoxel = costChangeEM / activeVoxelCount;
+      changeCostEMPerVoxelThreshold = optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion;
+      if ( changeCostEMPerVoxel < changeCostEMPerVoxelThreshold )
         % Converged
         disp( 'EM converged!' )
-        break;
+        checkpoint_manager.save('optimizerEmExit', 'activeVoxelCount priorEMCost currentEMCost costChangeEM changeCostEMPerVoxel changeCostEMPerVoxelThreshold minLogLikelihood intensityModelParameterCost');
+                break;
       end 
       
 
@@ -880,10 +886,15 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     %        ( ( ( historyOfCost( end-1 ) - historyOfCost( end ) ) / historyOfCost( end ) ) ...
     %          < relativeCostDecreaseStopCriterion ) || ...
     %        ( maximalDeformationApplied < maximalDeformationAppliedStopCriterion ) )
-    if ( ( ( ( historyOfCost( end-1 ) - historyOfCost( end ) ) / length( downSampledMaskIndices ) ) ...
-           < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion ) ) % If EM converges in one iteration and mesh node optimization doesn't do anything
+    priorCost = historyOfCost( end-1 );
+    currentCost = historyOfCost( end );
+    costChange = priorCost - currentCost;
+    perVoxelDecrease = costChange / activeVoxelCount;
+    perVoxelDecreaseThreshold = optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion;
+    if (perVoxelDecrease < perVoxelDecreaseThreshold ) % If EM converges in one iteration and mesh node optimization doesn't do anything
          
       % Converged
+      checkpoint_manager.save('optimizerPerVoxelExit', 'activeVoxelCount priorCost currentCost costChange perVoxelDecrease perVoxelDecreaseThreshold minLogLikelihoodTimesDeformationPrior intensityModelParameterCost');
       break;
     end
     
