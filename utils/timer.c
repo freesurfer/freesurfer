@@ -29,9 +29,25 @@
 #include "sys/timeb.h"
 #include "timer.h"
 
-#ifdef __APPLE__
+
+// clock_gettime is not available on osx < 10.12 sierra
+// mach_gettime is a custom replacement for that
+#ifdef __APPLE__  // todo: maybe create a HAVE_CLOCK_GETTIME macro
 #include <mach/clock.h>
 #include <mach/mach.h>
+
+int mach_gettime(clock_t clk_id, struct timespec *tp)
+{
+  int ret;
+  clock_serv_t cclock;
+  mach_timespec_t mts;
+  host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);  // todo: calendar time should be clk_id I think
+  ret = clock_get_time(cclock, &mts);
+  mach_port_deallocate(mach_task_self(), cclock);
+  tp->tv_sec = mts.tv_sec;
+  tp->tv_nsec = mts.tv_nsec;
+  return ret;
+}
 #endif
 
 
@@ -50,6 +66,7 @@ struct timeb *TimerStart(struct timeb *then)
   then->dstflag = 0;
   return then;
 }
+
 
 int TimerStop(struct timeb *then)
 {
@@ -76,29 +93,18 @@ int TimerStop(struct timeb *then)
 void TimerStartNanosecs(struct NanosecsTimer * nst)
 {
 #ifdef __APPLE__
-  clock_serv_t cclock;
-  mach_timespec_t mts;
-  host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
-  clock_get_time(cclock, &mts);
-  mach_port_deallocate(mach_task_self(), cclock);
-  nst->now.tv_sec = mts.tv_sec;
-  nst->now.tv_nsec = mts.tv_nsec;
+  mach_gettime(CALENDAR_CLOCK, &nst->now);
 #else
   clock_gettime(CLOCK_REALTIME, &nst->now);
 #endif
 }
 
+
 struct Nanosecs TimerElapsedNanosecs(struct NanosecsTimer * nst) // returns delta in nanosecs
 {
   struct timespec now;
 #ifdef __APPLE__
-  clock_serv_t cclock;
-  mach_timespec_t mts;
-  host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
-  clock_get_time(cclock, &mts);
-  mach_port_deallocate(mach_task_self(), cclock);
-  now.tv_sec = mts.tv_sec;
-  now.tv_nsec = mts.tv_nsec;
+  mach_gettime(CALENDAR_CLOCK, &now);
 #else
   clock_gettime(CLOCK_REALTIME, &now);
 #endif
