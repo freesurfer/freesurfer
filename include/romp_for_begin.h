@@ -67,8 +67,6 @@
         //       
         int ROMP_index;
 
-	ROMP_PF_begin
-
 #ifdef HAVE_OPENMP
 #ifdef ROMP_FOR_LEVEL 
     #pragma omp parallel for if_ROMPLEVEL(ROMP_FOR_LEVEL)

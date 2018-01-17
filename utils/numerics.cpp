@@ -1213,6 +1213,11 @@ extern "C" int OpenSvdcmp(MATRIX *ioA, VECTOR *oW, MATRIX *oV)
  */
 extern "C" float OpenRan1(long *iSeed)
 {
+  if (omp_get_thread_num() != 0) {
+    fprintf(stderr, "%s:%d OpenRan1 called from non-0 thread but this is not conducive to reproducible behavior\n", __FILE__, __LINE__);
+    exit(1);
+  }
+  
   static const double MIN = 0.0;
   static const double MAX = 1.0;
 
