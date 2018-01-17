@@ -1,6 +1,8 @@
 #include "romp_support.h"
 #include "romp_support.h"
+#ifdef HAVE_MALLOC_H
 #include <malloc.h>
+#endif
 #include <stdlib.h>
 #include <pthread.h>
 
@@ -132,7 +134,7 @@ void ROMP_pf_begin(
     for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
         int tid = omp_get_thread_num();
 	if (tid >= ROMP_maxWatchedThreadNum) continue;
-	clockid_t clockid;
+	clock_t clockid;
 	int s = pthread_getcpuclockid(pthread_self(), &clockid);
 	if (s != 0) {
 	    fprintf(stderr, "%s:%d pthread_getcpuclockid failed", __FILE__, __LINE__);
@@ -178,7 +180,7 @@ void ROMP_pf_end(
 	if (startCPUTime->ns == -1) {
 	    continue;
 	}
-	clockid_t clockid;
+	clock_t clockid;
 	int s = pthread_getcpuclockid(pthread_self(), &clockid);
 	if (s != 0) {
 	    fprintf(stderr, "%s:%d pthread_getcpuclockid failed", __FILE__, __LINE__);
