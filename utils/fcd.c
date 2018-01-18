@@ -31,9 +31,8 @@
 #include "macros.h"
 #include "mrisegment.h"
 #include "utils.h"
-#ifdef HAVE_OPENMP
+
 #include "romp_support.h"
-#endif
 
 static int sort_labels(FCD_DATA *fcd);
 static int most_frequent_label(MRI *mri_seg, MRI_SEGMENT *mseg);

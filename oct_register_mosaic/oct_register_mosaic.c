@@ -29,9 +29,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
-#ifdef HAVE_OPENMP
+
 #include "romp_support.h"
-#endif
+
 
 #include "mri.h"
 #include "macros.h"

@@ -32,9 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef HAVE_OPENMP
 #include "romp_support.h"
-#endif
 
 #include "cma.h"
 #include "diag.h"

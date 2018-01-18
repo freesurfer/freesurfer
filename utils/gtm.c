@@ -52,9 +52,9 @@
 #include "timer.h"
 #include "utils.h"
 #include "version.h"
-#ifdef HAVE_OPENMP
+
 #include "romp_support.h"
-#endif
+
 
 /*------------------------------------------------------------------------------------*/
 int GTMSEGprint(GTMSEG *gtmseg, FILE *fp)

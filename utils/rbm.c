@@ -34,9 +34,7 @@
 #include "utils.h"
 #include "voxlist.h"
 
-#ifdef HAVE_OPENMP
 #include "romp_support.h"
-#endif
 
 int dump_hidden(RBM *rbm, char *fname);
 int dump_visible(RBM *rbm, char *fname);

@@ -54,9 +54,9 @@
 #include "fio.h"
 #include "mri_identify.h"
 #include "label.h"
-#ifdef _OPENMP
+
 #include "romp_support.h"
-#endif
+
 
 #define  STRBUF         65536
 #define  MAX_FILES      1000

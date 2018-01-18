@@ -33,9 +33,8 @@
 double round(double x);
 #include <memory.h>
 #include <string.h>
-#ifdef HAVE_OPENMP
+
 #include "romp_support.h"
-#endif
 
 #include "box.h"
 #include "diag.h"

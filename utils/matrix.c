@@ -56,11 +56,7 @@
 #include "proto.h"
 #include "utils.h"
 
-#ifdef HAVE_OPENMP
 #include "romp_support.h"
-#else 
-#error "undef HAVE_OPENMP"
-#endif
 
 // private functions
 MATRIX *MatrixCalculateEigenSystemHelper(MATRIX *m, float *evalues, MATRIX *m_evectors, int isSymmetric);

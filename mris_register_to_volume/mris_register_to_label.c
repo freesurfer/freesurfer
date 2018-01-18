@@ -113,9 +113,7 @@ ENDHELP --------------------------------------------------------------
 #include "timer.h"
 #include "numerics.h"
 #include "mri_circulars.h"
-#ifdef HAVE_OPENMP
 #include "romp_support.h"
-#endif
 
 #ifdef X
 #undef X

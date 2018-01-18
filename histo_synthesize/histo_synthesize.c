@@ -30,13 +30,8 @@
 #include <ctype.h>
 
 
-#if 0
-#undef HAVE_OPENMP
-#endif
-
-#ifdef HAVE_OPENMP
 #include "romp_support.h"
-#endif
+
 #include "mri.h"
 #include "macros.h"
 #include "error.h"

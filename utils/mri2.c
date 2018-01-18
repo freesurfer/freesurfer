@@ -55,9 +55,7 @@
 #include "mrivol2vol_cuda.h"
 #endif
 
-#ifdef HAVE_OPENMP
 #include "romp_support.h"
-#endif
 
 /* overwrite generic nint to speed up execution
   Make sure NOT use calls like nint(f++) in this file!

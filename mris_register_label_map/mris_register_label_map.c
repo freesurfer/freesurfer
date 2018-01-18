@@ -52,9 +52,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/utsname.h>
-#ifdef HAVE_OPENMP
+
 #include "romp_support.h"
-#endif
 
 #include "macros.h"
 #include "utils.h"

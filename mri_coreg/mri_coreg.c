@@ -49,9 +49,9 @@
 #include "mrisurf.h"
 #include <sys/time.h>
 #include <sys/resource.h>
-#ifdef HAVE_OPENMP
+
 #include "romp_support.h"
-#endif
+
 #include "timer.h"
 #include "mrimorph.h"
 #include "fmriutils.h"

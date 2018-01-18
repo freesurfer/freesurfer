@@ -76,9 +76,8 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#ifdef HAVE_OPENMP
+
 #include "romp_support.h"
-#endif
 
 #include "cma.h"
 #include "diag.h"
@@ -6953,8 +6952,13 @@ static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
 
   double sse = 0.0;
 
-  int const nt = omp_get_max_threads();
-  
+  int const nt = 
+#ifdef HAVE_OPENMP
+    omp_get_max_threads();
+#else
+    1;
+#endif
+
   typedef float BufferElt;
   struct buffer {
     BufferElt* vec_vxyz;
@@ -7003,7 +7007,12 @@ static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
      + ((ZM)+1)                     \
     ) // end of macro
 
-    int const thread_num = omp_get_thread_num();
+    int const thread_num =
+#ifdef HAVE_OPENMP
+        omp_get_thread_num();
+#else
+        0;
+#endif
     struct buffer* buf = &buffers[thread_num];
     BufferElt* vec_vxyz  = buf->vec_vxyz;
     char*      vec_valid = buf->vec_valid;

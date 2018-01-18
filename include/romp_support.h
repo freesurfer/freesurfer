@@ -1,6 +1,8 @@
 #pragma once
 
+#ifdef HAVE_OPENMP
 #include <omp.h>
+#endif
 
 #include "timer.h"
 #include <stdio.h>

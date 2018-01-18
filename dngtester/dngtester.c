@@ -37,9 +37,9 @@
 #include "timer.h"
 #include "utils.h"
 #include "annotation.h"
-#ifdef _OPENMP
+
 #include "romp_support.h"
-#endif
+
 
 typedef struct {
   int vtxno; // surface vertex no

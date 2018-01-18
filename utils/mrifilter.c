@@ -45,9 +45,7 @@
 #include "talairachex.h"
 #include "timer.h"
 
-#ifdef HAVE_OPENMP
 #include "romp_support.h"
-#endif
 
 #include "chronometer.h"
 #ifdef FS_CUDA

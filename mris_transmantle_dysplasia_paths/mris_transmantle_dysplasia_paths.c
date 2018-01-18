@@ -46,9 +46,9 @@
 #include "voxlist.h"
 #include "pdf.h"
 #include "tritri.h"
-#ifdef HAVE_OPENMP
+
 #include "romp_support.h"
-#endif
+
 
 int main(int argc, char *argv[]) ;
 static VOXEL_LIST *compute_path_to_ventricles(MRI_SURFACE *mris, int vno, MRI *mri_ventricle_dist_grad, MRI *mri_aseg) ;

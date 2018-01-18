@@ -79,9 +79,7 @@
 #include "utils.h"
 #include "znzlib.h"
 
-#ifdef HAVE_OPENMP
 #include "romp_support.h"
-#endif
 
 static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 

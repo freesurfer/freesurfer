@@ -30,9 +30,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef HAVE_OPENMP
+
 #include "romp_support.h"
-#endif
 
 #include "box.h"
 #include "diag.h"

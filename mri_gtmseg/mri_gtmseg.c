@@ -50,9 +50,8 @@
 #include "diag.h"
 #include "timer.h"
 #include "mri_identify.h"
-#ifdef HAVE_OPENMP
+
 #include "romp_support.h"
-#endif
 
 #include "gtm.h"
 #include "resample.h"

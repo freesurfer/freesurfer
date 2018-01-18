@@ -67,10 +67,7 @@
 #include "resample.h"
 #include "volcluster.h"
 #include "numerics.h"
-
-#ifdef _OPENMP
 #include "romp_support.h"
-#endif
 
 typedef struct {
   char *movfile;

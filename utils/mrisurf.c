@@ -68,17 +68,8 @@
 
 #include "annotation.h"
 
-#ifdef HAVE_OPENMP
 #include "romp_support.h"
-#else
-#error "HAVE_OPENMP undefined"
-#endif
 
-#ifdef HAVE_OPENMP
-#if 0
-#undef HAVE_OPENMP
-#endif
-#endif
 
 #define DMALLOC 0
 
