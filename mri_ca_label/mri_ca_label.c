@@ -538,45 +538,6 @@ int main(int argc, char *argv[])
   {
     GCAapplyRenormalization(gca, Glabel_scales, Glabel_offsets, 0) ;
   }
-  if (renormalization_fname)
-  {
-    FILE   *fp ;
-    int    *labels, nlines, i ;
-    float  *intensities, f1, f2 ;
-    char   *cp, line[STRLEN] ;
-
-    fp = fopen(renormalization_fname, "r") ;
-    if (!fp)
-      ErrorExit(ERROR_NOFILE, "%s: could not read %s",
-                Progname, renormalization_fname) ;
-
-    cp = fgetl(line, 199, fp) ;
-    nlines = 0 ;
-    while (cp)
-    {
-      nlines++ ;
-      cp = fgetl(line, 199, fp) ;
-    }
-    rewind(fp) ;
-    printf("reading %d labels from %s\n", nlines,renormalization_fname) ;
-    labels = (int *)calloc(nlines, sizeof(int)) ;
-    intensities = (float *)calloc(nlines, sizeof(float)) ;
-    cp = fgetl(line, 199, fp) ;
-    for (i = 0 ; i < nlines ; i++)
-    {
-      sscanf(cp, "%e  %e", &f1, &f2) ;
-      labels[i] = (int)f1 ;
-      intensities[i] = f2 ;
-      if (labels[i] == Left_Cerebral_White_Matter)
-      {
-        DiagBreak() ;
-      }
-      cp = fgetl(line, 199, fp) ;
-    }
-    GCArenormalizeIntensities(gca, labels, intensities, nlines) ;
-    free(labels) ;
-    free(intensities) ;
-  }
   fflush(stdout);
   fflush(stderr);
   //
@@ -735,11 +696,6 @@ int main(int argc, char *argv[])
     transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
   }
 
-  if (norm_PD)
-  {
-    GCAnormalizePD(gca, mri_inputs, transform) ;
-  }
-
   if (Ggca_x >= 0 && Gx < 0)
   {
     GCAsourceVoxelToNode(gca, mri_inputs, transform, 
@@ -749,6 +705,50 @@ int main(int argc, char *argv[])
            Ggca_x, Ggca_y, Ggca_z, Gx, Gy, Gz) ;
     GCAdump(gca, mri_inputs, Ggca_x, Ggca_y, Ggca_z, transform, stdout, 0) ;
   }
+  if (renormalization_fname)
+  {
+    FILE   *fp ;
+    int    *labels, nlines, i ;
+    float  *intensities, f1, f2 ;
+    char   *cp, line[STRLEN] ;
+
+    fp = fopen(renormalization_fname, "r") ;
+    if (!fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not read %s",
+                Progname, renormalization_fname) ;
+
+    cp = fgetl(line, 199, fp) ;
+    nlines = 0 ;
+    while (cp)
+    {
+      nlines++ ;
+      cp = fgetl(line, 199, fp) ;
+    }
+    rewind(fp) ;
+    printf("reading %d labels from %s\n", nlines,renormalization_fname) ;
+    labels = (int *)calloc(nlines, sizeof(int)) ;
+    intensities = (float *)calloc(nlines, sizeof(float)) ;
+    cp = fgetl(line, 199, fp) ;
+    for (i = 0 ; i < nlines ; i++)
+    {
+      sscanf(cp, "%e  %e", &f1, &f2) ;
+      labels[i] = (int)f1 ;
+      intensities[i] = f2 ;
+      if (labels[i] == Left_Cerebral_White_Matter)
+      {
+        DiagBreak() ;
+      }
+      cp = fgetl(line, 199, fp) ;
+    }
+    GCArenormalizeIntensities(gca, labels, intensities, nlines) ;
+    free(labels) ;
+    free(intensities) ;
+  }
+  if (norm_PD)
+  {
+    GCAnormalizePD(gca, mri_inputs, transform) ;
+  }
+
   if (nreads > 0)
   {
     float label_scales[MAX_CMA_LABELS], label_offsets[MAX_CMA_LABELS] ;
