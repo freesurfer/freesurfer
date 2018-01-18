@@ -24,6 +24,7 @@
  */
 
 #include "gtm.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -31,6 +32,7 @@
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <unistd.h>
+
 #include "cma.h"
 #include "cmdargs.h"
 #include "diag.h"
@@ -50,8 +52,8 @@
 #include "timer.h"
 #include "utils.h"
 #include "version.h"
-#ifdef _OPENMP
-#include <omp.h>
+#ifdef HAVE_OPENMP
+#include "romp_support.h"
 #endif
 
 /*------------------------------------------------------------------------------------*/
@@ -1749,10 +1751,13 @@ int GTMbuildX(GTM *gtm)
   TimerStart(&timer);
 
   err = 0;
-#ifdef _OPENMP
-#pragma omp parallel for reduction(+ : err)
+#ifdef HAVE_OPENMP
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) reduction(+ : err)
 #endif
   for (nthseg = 0; nthseg < gtm->nsegs; nthseg++) {
+    ROMP_PFLB_begin
+    
     int segid, k, c, r, s;
     MRI *nthsegpvf = NULL, *nthsegpvfbb = NULL, *nthsegpvfbbsm = NULL, *nthsegpvfbbsmmb = NULL;
     MRI_REGION *region;
@@ -1828,7 +1833,11 @@ int GTMbuildX(GTM *gtm)
     MRIfree(&nthsegpvf);
     MRIfree(&nthsegpvfbb);
     MRIfree(&nthsegpvfbbsm);
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   if (!gtm->Optimizing) printf(" Build time %6.4f, err = %d\n", TimerStop(&timer) / 1000.0, err);
   fflush(stdout);
   if (err) gtm->X = NULL;
@@ -2497,11 +2506,14 @@ MRI **GTMlocal(GTM *gtm, MRI **pvc)
   printf("GTMlocal(): nrad = %d, nvmax = %d, nTT=%d, Xthresh %f\n", gtm->lgtm->nrad, nvmax, nTT, gtm->lgtm->Xthresh);
   TimerStart(&timer);
 
-#ifdef _OPENMP
+#ifdef HAVE_OPENMP
   printf("     nthreads = %d\n", omp_get_max_threads());
-#pragma omp parallel for
+  ROMP_PF_begin
+#pragma omp parallel for if_ROMP(experimental)
 #endif
   for (c = 0; c < gtm->yvol->width; c++) {
+    ROMP_PFLB_begin
+    
     MATRIX *X, *y, *beta = NULL, *Xt = NULL, *XtX = NULL, *Xty = NULL, *iXtX = NULL, *Xsum, *ytmp, *Xtmp;
     MATRIX *yhat, *eres;
     int r, s, f, dc, dr, ds, tt, nth, nv, nkeep, indkeep[100], nthbeta;
@@ -2622,8 +2634,10 @@ MRI **GTMlocal(GTM *gtm, MRI **pvc)
         MatrixFree(&iXtX);
       }  // s
     }    // r
+    ROMP_PFLB_end
   }      // c
-
+  ROMP_PF_end
+  
   MRIfree(&pvfpsf);
   printf("\n");
   // printf("nNull=%d\n",nNull);

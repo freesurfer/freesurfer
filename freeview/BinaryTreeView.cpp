@@ -31,9 +31,8 @@ void TreeDataLoader::DoLoad(const QString &dirPath, BinaryTreeView *view)
 
   //read tract files
   QVariantMap tract_map;
-  for (int i = 1; i <tract_list.size();i++)
+  for (int i = 0; i <tract_list.size();i++)
   {
-
     QString current_key;
     current_key = tract_list.at(i);
     //remove ".trk"
@@ -45,7 +44,7 @@ void TreeDataLoader::DoLoad(const QString &dirPath, BinaryTreeView *view)
 
     //read each character of tract
     //populate dictionary with tract lists for each key
-    for (int j = current_key.size()+1; j-->1;)
+    for (int j = current_key.size()+1; (j--)>1;)
     {
       QString current_tract;
       current_tract = current_key.left(j);
@@ -55,7 +54,7 @@ void TreeDataLoader::DoLoad(const QString &dirPath, BinaryTreeView *view)
         QStringList list_of_children;
 
         //find all children and insert into tract map
-        for (int k = 1; k <tract_list.size();k++)
+        for (int k = 0; k <tract_list.size();k++)
         {
           QString possible_child = tract_list.at(k);
           possible_child.remove(-4,4);

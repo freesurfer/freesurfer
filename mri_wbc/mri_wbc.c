@@ -48,8 +48,8 @@
 #include "mri.h"
 #include "mri2.h"
 #include "mrisurf.h"
-#ifdef _OPENMP
-#include <omp.h>
+#ifdef HAVE_OPENMP
+#include "romp_support.h"
 #endif
 #include "timer.h"
 #include "mrimorph.h"
@@ -495,7 +495,7 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) CMDargNErr(option,1);
       int nthreads;
       sscanf(pargv[0],"%d",&nthreads);
-      #ifdef _OPENMP
+      #ifdef HAVE_OPENMP
       omp_set_num_threads(nthreads);
       #endif
       nargsused = 1;
@@ -663,7 +663,7 @@ MRI *WholeBrainCon(WBC *wbc)
   if(wbc->DoMat) wbc->M = MatrixAlloc(wbc->ntot,wbc->ntot,MATRIX_REAL);
 
   nthreads = 1;
-  #ifdef _OPENMP
+  #ifdef HAVE_OPENMP
   nthreads = omp_get_max_threads();
   #endif
   npairs = (long)wbc->ntot*(wbc->ntot-1)/2;
@@ -726,10 +726,12 @@ MRI *WholeBrainCon(WBC *wbc)
   
   printf("Starting WBC loop\n"); fflush(stdout);
   TimerStart(&timer);
-  #ifdef _OPENMP
-  #pragma omp parallel for 
+  #ifdef HAVE_OPENMP
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) 
   #endif
   for(threadno = 0; threadno < nthreads; threadno ++){
+    ROMP_PFLB_begin
     int  k1, k2, t, n, thno, q, ct1, ct2;
     int k1start,k1stop,k2start,k2stop,k2min,k2max,nthrho;
     long nthpair;
@@ -737,7 +739,7 @@ MRI *WholeBrainCon(WBC *wbc)
     double rhothresh;
     MRI *conDth;
     thno = threadno;
-    #ifdef _OPENMP
+    #ifdef HAVE_OPENMP
     thno = omp_get_thread_num(); // actual thread number
     #endif
 
@@ -846,7 +848,9 @@ MRI *WholeBrainCon(WBC *wbc)
 
       } // k2
     } // k1
+    ROMP_PFLB_end
   } // thread
+  ROMP_PF_end
 
   // Sum up the threads
   for(threadno=0; threadno < nthreads; threadno++){

@@ -49,7 +49,7 @@
 #include "flash.h"
 #include "version.h"
 #ifdef _OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 

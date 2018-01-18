@@ -47,7 +47,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #include "mri.h"
@@ -185,6 +185,8 @@ char *rusage_file=NULL;
 int
 main(int argc, char *argv[])
 {
+  ROMP_main
+  
   char         *gca_fname, *in_fname, *out_fname, fname[STRLEN], **av ;
   MRI          *mri_inputs, *mri_tmp ;
   GCA          *gca /*, *gca_tmp, *gca_reduced*/ ;

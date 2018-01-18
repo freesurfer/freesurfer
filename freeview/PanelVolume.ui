@@ -28,7 +28,7 @@
      <x>0</x>
      <y>0</y>
      <width>312</width>
-     <height>1713</height>
+     <height>1741</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -664,6 +664,13 @@ of each frame</string>
          <widget class="QCheckBox" name="checkBoxSetMidToMin">
           <property name="text">
            <string>Autoset Mid</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0">
+         <widget class="QPushButton" name="pushButtonResetWindowLevel">
+          <property name="text">
+           <string>Reset</string>
           </property>
          </widget>
         </item>

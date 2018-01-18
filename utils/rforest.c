@@ -29,6 +29,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "romp_support.h"
+
 #include "const.h"
 #include "diag.h"
 #include "error.h"
@@ -505,11 +507,14 @@ int RFtrain(RANDOM_FOREST *rf,
   index = 0;
   n = 0;
   ii = 0;
-#pragma omp parallel for firstprivate(tree, start_no, end_no, ii, index) \
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) firstprivate(tree, start_no, end_no, ii, index) \
     shared(rf, nfeatures_per_tree, Gdiag, training_classes, training_data) schedule(static, 1)
 #endif
   for (n = 0; n < rf->ntrees; n++)  // train each tree
   {
+    ROMP_PFLB_begin
+    
 #ifdef HAVE_OPENMP
 #pragma omp critical
 #endif
@@ -561,7 +566,10 @@ int RFtrain(RANDOM_FOREST *rf,
 #pragma omp critical
 #endif
     printf("\ttraining complete, depth %d, nleaves %d.\n", tree->depth, tree->nleaves);
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   if (total_to_remove > 0) {
     for (n = 0; n < ntraining; n++) free(training_data[n]);

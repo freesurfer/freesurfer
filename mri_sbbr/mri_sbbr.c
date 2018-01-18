@@ -69,7 +69,7 @@
 #include "numerics.h"
 
 #ifdef _OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 typedef struct {
@@ -578,9 +578,12 @@ double SBBRcost(SBBR *sbbr)
   nhits = 0;
   sumcost = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+:nhits,sumcost)
+  ROMP_PF_begin
+#pragma omp parallel for if_ROMP(experimental) reduction(+:nhits,sumcost)
 #endif
   for(faceno=0; faceno < surf->nfaces; faceno += sbbr->inc) {
+    ROMP_PFLB_begin
+    
     FACE *face;
     VERTEX *vtx;
     int npos,vtxno,skip,i0=0,i1=0,i2=0,m,oob,n;
@@ -688,9 +691,10 @@ double SBBRcost(SBBR *sbbr)
     //	      faceno,uc,ur,uval,lc,lr,lval,fcost);
      //    fprintf(fp,"%7d   %7.4lf %7.4lf %7.4f    %7.4lf %7.4lf %7.4f   %7.4f   %6.4f %6.4f %6.4f %6.4f  %6.4f %6.4f  %6.4f %6.4f  %6.4f\n",
     //	    faceno,uc,ur,uval,lc,lr,lval,0.0,c0[0],r0[0],c0[1],r0[1],c0mn,r0mn,snc,snr,fcost);
-
+    ROMP_PFLB_end
   } // end face loop
-
+  ROMP_PF_end
+  
   //fclose(fp);
 
   sbbr->nhits = nhits;

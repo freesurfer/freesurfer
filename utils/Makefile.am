@@ -208,6 +208,7 @@ libutils_main_SOURCES=\
 	rfa.c \
 	rfutils.c \
 	rforest.c \
+	romp_support.c \
 	selxavgio.c \
 	sig.c \
 	signa.c \

@@ -1,5 +1,8 @@
-function [ worldToWorldTransformMatrix, transformedTemplateFileName ] = samseg_registerAtlas( imageFileName, meshCollectionFileName, templateFileName, savePath, showFigures, worldToWorldTransformMatrix )
+function [ worldToWorldTransformMatrix, transformedTemplateFileName ] = samseg_registerAtlas( imageFileName, meshCollectionFileName, templateFileName, savePath, showFigures, worldToWorldTransformMatrix,InitLTAFile )
 %
+
+% For converting from RAS to LPS. Itk/GEMS/SAMSEG uses LPS internally
+RAS2LPS = diag([-1 -1 1 1]);
 
 if ( nargin < 6 )
   worldToWorldTransformMatrix = [];
@@ -13,7 +16,7 @@ templateFileName
 savePath
 showFigures
 worldToWorldTransformMatrix
-  
+InitLTAFile  
 
 
 % Read in image and template, as well as their coordinates in world (mm) space 
@@ -42,7 +45,20 @@ if ( isempty( worldToWorldTransformMatrix ) )
 
 
   % Initialization
-  initialWorldToWorldTransformMatrix = eye( 4 );
+  if(isempty(InitLTAFile))
+    initialWorldToWorldTransformMatrix = eye( 4 );
+  else
+    [~,InitLTA] = lta_read(InitLTAFile);
+    if(InitLTA.type == 0)
+      % The LTA is vox2vox
+      initialWorldToWorldTransformMatrix = ...
+	  RAS2LPS * InitLTA.dstmri.vox2ras0 * InitLTA.xform * inv(InitLTA.srcmri.vox2ras0) * inv(RAS2LPS);
+    else
+      % The LTA is ras2ras
+      initialWorldToWorldTransformMatrix = RAS2LPS * InitLTA.xform * inv(RAS2LPS);      
+    end
+  end
+
   if true
     % Provide an initial (non-identity) affine transform guestimate
     
@@ -289,7 +305,6 @@ else
   % transform (needed for subsequent computations) and be done
   imageToImageTransformMatrix = inv( imageToWorldTransformMatrix ) * worldToWorldTransformMatrix * ...
                                 templateImageToWorldTransformMatrix 
-  
 end % End test if the solution is externally given
 
 

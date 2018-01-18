@@ -13,7 +13,7 @@
 % - compressionLUTfileName: corresponding compressionLUT.txt
 % - K: stiffness of the mesh in the segmentation (around 0.05)
 % - side: 'left' or 'right'
-% - optimizerType: must be 'LM' or 'ConjGrad'
+% - optimizerType: 'FixedStepGradientDescent','GradientDescent','ConjugateGradient','L-BFGS'
 % - suffix: for output directory, e.g. 'T1based_GGAWLnoSimil','v10',...
 % - suffixUser: for the user to identify outputs from different T2s
 % - FSpath: path to FreeSurfer executables
@@ -34,10 +34,9 @@ function segmentSubjectT2_autoEstimateAlveusML(subjectName,subjectDir,T2volumeFi
 % compressionLUTfileName='/autofs/homes/002/iglesias/matlab/code/Atlas3dFreeSurferJuly2017newAtlas/code/compressionLookupTable.txt';
 % K=0.05;
 % side='left';
-% % optimizerType='LM';
-% optimizerType='ConjGrad';
+% optimizerType='L_BFGS';
 % suffix='T2';
-% suffixUser='TestHippoAmygBodyHeadManySegs';
+% suffixUser='GEMS2';
 % FSpath='/usr/local/freesurfer/dev/bin/';
 % MRFconstant=0;
 % ByPassBF=1;
@@ -46,14 +45,22 @@ function segmentSubjectT2_autoEstimateAlveusML(subjectName,subjectDir,T2volumeFi
 
 
 
-
+% Eugenio November 2017: added option to write meshes and smoother resampling
 DEBUG=0;
 FAST=0; % set it to one to optimize just a bit (go through code fast)
 WRITE_POSTERIORS=0;
+WRITE_MESHES=0;
+SMOOTH_LABEL_RESAMPLE=0;
 aux=getenv('WRITE_POSTERIORS');
 if ~isempty(aux)
     if str2double(aux)>0
         WRITE_POSTERIORS=1;
+    end
+end
+aux=getenv('WRITE_MESHES');
+if ~isempty(aux)
+    if str2double(aux)>0
+        WRITE_MESHES=1;
     end
 end
 
@@ -67,8 +74,8 @@ if nargin<12
     error('Not enough input arguments');
 elseif strcmp(side,'left')==0 && strcmp(side,'right')==0
     error('Side must be ''left'' or ''right''');
-elseif strcmp(optimizerType,'LM')==0 && strcmp(optimizerType,'ConjGrad')==0
-    error('Optimizer type must be ''LM'' or ''ConjGrad''');
+elseif optimizerType(1)~='F' && optimizerType(1)~='G' && optimizerType(1)~='C' && optimizerType(1)~='L'
+    error('Optimizer type must be ''FixedStepGradientDescent'',''GradientDescent'',''ConjugateGradient'',''L-BFGS''');
 elseif exist([subjectDir '/' subjectName],'dir')==0
     error('Subject directory does not exist');
 elseif ~isdeployed && (~isnumeric(resolution))
@@ -121,10 +128,10 @@ else
     end
     addpath([pwd() '/functions']);
     addpath('/usr/local/freesurfer/stable6_0_0/matlab')
-    if isunix
-        addpath('/cluster/koen/eugenio/GEMS-Release-linux/bin')
-    elseif ismac
-        addpath('/cluster/koen/eugenio/GEMS-Release-mac/bin')
+    if ismac
+        addpath('/autofs/space/panamint_005/users/iglesias/software/freesurfer.GEMS2.MAC/bin')
+    elseif isunix
+        addpath('/autofs/space/panamint_005/users/iglesias/software/freesurfer.GEMS2/bin')
     else
         error('Neither Linux nor Mac');
     end
@@ -150,6 +157,8 @@ end
 if exist(tempdir,'dir')==0
     mkdir(tempdir);
 end
+
+T2volumeFileName=getFullPath(T2volumeFileName); % Eugenio November 2017: before we cd
 
 cd(tempdir);
 
@@ -380,8 +389,8 @@ myMRIwrite(ASEG,'asegMod.mgz','float',tempdir);
 % Eugenio July 2017
 % We now merge hippo, amygdala and cortex in cheating image
 ASEGcha=ASEG;
-ASEGcha.vol(ASEGcha.vol==17)=3; 
-ASEGcha.vol(ASEGcha.vol==18)=3; 
+ASEGcha.vol(ASEGcha.vol==17)=3;
+ASEGcha.vol(ASEGcha.vol==18)=3;
 myMRIwrite(ASEGcha,'asegModCHA.mgz','float',tempdir);
 
 
@@ -521,7 +530,7 @@ for l = 1 : size(reducedAlphas,2)
     end
 end
 MASK=imerode(sum(single( sumpriors / 65535 ),4)>0.99,createSphericalStrel(3));
-    
+
 
 if ~isdeployed && DEBUG>0
     priors = kvlRasterizeAtlasMesh( mesh, synSize );
@@ -547,11 +556,8 @@ end
 
 % We use a multiscale approach here (Koen had a single one with sigma=3)
 meshSmoothingSigmas = [ 3.0 2.0]';
-if strcmp(optimizerType,'LM')>0
-    maxIt=[100,50];
-else
-    maxIt=[200,100];
-end
+% Eugenio November 2017: increased number of iterations by 50%
+maxIt=[300,150];
 
 
 numberOfMultiResolutionLevels = length( meshSmoothingSigmas );
@@ -583,27 +589,38 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         title('Smoothed priors')
     end
     
+    % Eugenio November 2017: GEMS2
     % Set up the black box optimizer for the mesh nodes
-    if ( exist( 'optimizer', 'var' ) == 1 )
+    if ( exist( 'cheatingOptimizer', 'var' ) == 1 )
         % The optimizer is very memory hungry when run in multithreaded mode.
         % Let's clear any old ones we may have lying around
-        kvlClear( optimizer );
+        % Eugenio November 2017: GEMS2
+        kvlClear( cheatingOptimizer );
+        kvlClear( cheatingCalculator );
     end
     
+    % Eugenio November 2017: GEMS2 (note that it uses variances instead of precisions)
     % Now the optimization per-se
-    % [ cost gradient ] = kvlEvaluateMeshPosition( mesh,cheatingImage, transform, cheatingMeans, cheatingVariances );
-    if strcmp(optimizerType,'LM')>0
-        cheatingOptimizer = kvlGetLevenbergMarquardtOptimizer( mesh, cheatingImage, transform );
-        maximalDeformationStopCriterion = 0.001;
-        relativeChangeInCostStopCriterion = 1e-7;
-    else
-        cheatingOptimizer = kvlGetConjugateGradientOptimizer( mesh, cheatingImage, transform );
-        maximalDeformationStopCriterion = 1e-10;  % worth it to be precise, this is fast compared to the latter optimization anyway...
-        relativeChangeInCostStopCriterion = 1e-10;
-    end
-    maxpuin=maxIt(multiResolutionLevel);
-    kvlSetOptimizerProperties( cheatingOptimizer, cheatingMeans, 1./reshape(cheatingVariances,[1 1 length(cheatingVariances)]) );
+    cheatingCalculator = kvlGetCostAndGradientCalculator('AtlasMeshToIntensityImage',...
+        cheatingImage, 'Sliding',transform,cheatingMeans,cheatingVariances,ones(size(cheatingMeans)),ones(size(cheatingMeans)));
     
+    verbose=0;
+    maximalDeformationStopCriterion=1e-10;
+    lineSearchMaximalDeformationIntervalStopCriterion=1e-10;
+    maximumNumberOfDeformationIterations=1000;
+    BFGSMaximumMemoryLength=12;
+    
+    % optimizer = kvlGetOptimizer( optimizerType, mesh, calculator);
+    cheatingOptimizer = kvlGetOptimizer( optimizerType, mesh, cheatingCalculator, ...
+        'Verbose', verbose, ...
+        'MaximalDeformationStopCriterion', maximalDeformationStopCriterion, ...
+        'LineSearchMaximalDeformationIntervalStopCriterion', ...
+        lineSearchMaximalDeformationIntervalStopCriterion, ...
+        'MaximumNumberOfIterations', maximumNumberOfDeformationIterations, ...
+        'BFGS-MaximumMemoryLength', BFGSMaximumMemoryLength );
+    
+    relativeChangeInCostStopCriterion = 1e-10;
+    maxpuin=maxIt(multiResolutionLevel);
     if FAST>0
         maxpuin=20;
     end
@@ -612,7 +629,8 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         disp(['Resolution ' num2str(multiResolutionLevel) ', iteration ' num2str(positionUpdatingIterationNumber)]);
         % Calculate a good step. The first one is very slow because of various set-up issues
         tic
-        [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlDeformOneStep( cheatingOptimizer , 1);
+        % Eugenio November 2017: GEMS2
+        [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( cheatingOptimizer );
         elapsedTime = toc;
         disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
         minLogLikelihoodTimesPrior
@@ -641,7 +659,9 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         end
     end
 end
+% Eugenio November 2017: GEMS2
 kvlClear( cheatingOptimizer )
+kvlClear( cheatingCalculator )
 
 disp(['Fitting mesh to synthetic image from ASEG took ' num2str(etime(clock,time_ref_cheat_optimization)) ' seconds']);
 
@@ -940,9 +960,9 @@ nlabels = size(alphas,2);
 for l = 1 : nlabels
     
     if l==1
-       % This is a bit annoying, but the call to kvlRasterize with a single
-       % label fills in the voxels outside the cuboid with p=1 (whereas the
-       % call with multiple labels does not)
+        % This is a bit annoying, but the call to kvlRasterize with a single
+        % label fills in the voxels outside the cuboid with p=1 (whereas the
+        % call with multiple labels does not)
         sillyAlphas=zeros([size(originalAlphas,1),2],'single');
         sillyAlphas(:,1)=originalAlphas(:,1);
         sillyAlphas(:,2)=1-sillyAlphas(:,1);
@@ -950,9 +970,9 @@ for l = 1 : nlabels
         prior = kvlRasterizeAtlasMesh( mesh, imageSize);
         kvlSetAlphasInMeshNodes( mesh, originalAlphas )
         sumpriors=prior(:,:,:,1);
-
+        
     else
-       
+        
         prior = kvlRasterizeAtlasMesh( mesh, imageSize, l-1 );
         sumpriors=sumpriors+prior;
         
@@ -1217,13 +1237,13 @@ ss=[];
 ss.Type='twister';
 ss.Seed=58059898;
 ss.State=uint32([3410437968 493000191 3937088844 2855859649 2055488253 4097603571 1434441578 3002745787 2261240414 2987560210 638430850 3764563185 4024560358 2845954880 1312077213 99046256 724219742 1509071479 2238342804 1354188848 562641151 3308086931 1111208124 3097183433 564927124 1520449620 929509102 859043821 3494335064 30251652 3274900264 633992030 12663028 2368225825 2382998372 4270645069 3706517678 1240495411 4109670805 1688366278 1985578320 3694255828 1103116839 3623746828 2370170267 3356379455 3812986031 3962487973 1117093995 1832124552 730164038 2688373380 1304038691 1133279105 1552678960 3485771784 2067203224 2672129996 2962006980 3811688264 2717503765 4253343185 531441539 1854060530 1488760948 1950262546 3699662348 2197811004 257371645 2932604825 432317016 1665242145 1342657666 510145158 4159693820 3167963749 2582698127 646844076 4224883034 3794533477 1714572503 2220104276 1818580560 2569089347 2486634147 149318545 1710902182 2913078558 1833836366 1230877566 2203621072 510333940 4218667072 2003694149 3899147439 3809686201 2691577592 2278093501 2776020136 3049065324 902390906 4248357917 2091592233 2920425164 2147920508 3195775060 1291700508 379824627 3244040512 281860832 1476677340 1862926681 2143256170 1511616358 3986711235 1472605582 3153067138 1406970208 1041278349 2464407436 2019913624 113009395 3926758644 3581575268 3854073575 840774617 2288814655 998711104 704513897 3965592645 581434087 644907376 264697324 1793526872 3075839507 2835430148 1107661823 1218930003 712025076 3593284091 1484105012 3932223704 2855162513 3994338726 784103664 814417492 1391485041 1602528562 2553133262 2346940117 732289055 1460085355 682492132 965862542 592114344 531690530 2964784340 1540752198 509261826 1465593050 1368541007 1119754638 3933145889 3409194796 1151629249 2543096396 1162952254 120686071 1072796031 1635344410 806990539 1949240388 2401163536 193410941 572929815 1826115942 1709368906 3823569594 3697467021 2606037820 3460208313 3093265774 1210164444 2422290984 1298978291 1597052602 2965991289 3328760101 169935670 3323761361 1034344567 3516510303 1016628606 4066423238 4067124643 3930184562 4104336116 1608506064 2207906500 812669751 1229667590 662572360 433350103 1284930189 953736903 3740888124 1279257809 2785226672 2413884704 1146523319 306943635 522178216 1644263167 4178778721 2407862653 3744063202 714083124 2677063966 4084664585 1903195336 1111708054 1750521315 1651027149 2095369713 96224378 1230846433 2255416769 283958389 848108856 1921761083 2263229615 3918442926 2278922043 2153996993 3053108311 3239184297 860769316 3265577964 1430072418 3870511250 205440931 106415127 2234205764 3974853631 1538962068 2749692830 1026086325 3882157666 2248910349 1703623791 4083086019 69088996 2089223477 3734553120 2288528134 2432850993 3775495635 2584140198 2597747462 886813745 3456528552 4126479183 2665494661 2056877935 2985474899 3334840693 1281194334 2805210650 2541614153 1608904543 1418149132 434633073 3450315291 2544246669 2337360302 3129734298 2591899202 956047506 571391348 4229678133 3339475591 2949518232 1541551447 2820896354 2634046742 3181523285 2013225811 1377073713 1421226137 428907431 3800857064 2742201395 2748902434 1645914435 611390336 113587038 1354467128 1554559976 3466792955 1787621901 1598573513 3157490081 1626593369 826436489 3671892643 3296344051 2643159537 2353297949 2087399669 108248550 3793060546 1667342514 3373407241 2948473492 2295503311 3095880945 648763624 634116976 4006007422 3125045892 2732167107 850138491 2594167551 1505554032 1687909106 2207354331 3265559100 2233507139 730839813 2829260419 3347277264 638525895 1736140020 3934299063 2335726919 1325176590 1863169739 4168059729 2705917166 2321630844 2657034283 961648448 381928833 2265082133 2083664274 2995096459 2848411249 2316887691 2591369222 1788138968 2311732152 2700483846 2576503411 3163343589 682564134 2055292476 824192588 3910582528 892349198 2130497059 1750018378 4175911463 1649173829 3717354654 1351865356 121532870 3453639903 1111023320 70709822 3953205824 1437739351 98337808 1615459686 159735467 2842564047 3273421125 1219401764 3904863290 876248348 3895207109 399482665 2638589731 4224607413 2288927228 1979741565 3083924839 3957274918 1296279006 3108756163 3081916387 89252673 3512991406 2866816427 2795366356 2516904582 3189375678 1380240981 2933642160 1251619690 42023279 263914470 436372455 1597753674 3365407821 1162660455 3135443575 2878706972 840746981 712563146 3586177285 4070568555 3488466883 1530585718 2961550898 769570043 2125673190 3205355305 3401304424 1724485905 693603705 223043625 3173316491 1308457270 2711024482 2804374120 3421132247 2728580540 3263618421 1102717826 3173417011 2724946155 1871187383 2079031531 769248695 4253236639 3311615520 3892062642 770082126 1357814258 1869469601 197863657 2900487501 3255380578 1458605047 3588007173 2501664808 150350842 3021307640 3976191881 2244533893 3946113114 2737382653 2623823297 147068974 347282931 965676538 2275342135 3512707344 1842292017 953709884 1882522525 3606021990 2306000931 826732670 1125648729 3616888784 3556707343 2345214961 1921304782 959778465 795295762 2991903222 1449749849 28980688 2946684790 4282850618 1450192187 1475726809 3938786168 1795023466 410052089 1589871039 3326940022 3818994470 2013723215 3044376647 958995322 3248307235 956083958 2072225296 3448052119 2447195658 2588071956 526006921 1983505568 1674635144 3264951886 2643183237 1318057102 3101414955 2151502608 3755605801 382470011 2878244912 1611623580 706493943 2025110342 1058251689 10454356 1861420073 3013200906 3729580155 738956171 3570317972 4203775383 1334062118 4257296000 3231017523 2818007598 2704948055 2817133652 2642265792 4104267226 1126945493 2596352021 1308859143 252889897 2689131845 344501177 1675665621 3259490044 4094531007 2795650781 1055448013 1035228504 1893552699 2769041259 3983042469 3425284573 3771000695 2741194467 3648153682 211324206 1165361053 1836003831 3002789777 1495668652 2831482182 2519660847 3363669882 2504184968 4141605892 2660518191 3741135717 1154098513 4194132382 2963865630 2547715443 2622625150 538064975 1338423991 2519859283 3951446572 149485389 3462323962 1975074798 4238312472 1812337747 4293462789 2706554319 150102680 2693831106 4288739420 3294196988 3330354565 4256435469 400255261 119744491 4224275315 4021312149 3322490141 2623776852 3053382684 3712861343 815139994 2482144449 3173066022 3288937807 560434293 3486803424 1917193992 1050249372 1487181270 2306492417 3814024376 903907259 3699798550 2757533368 2990388180 1902458037 2611644959 610140678 3632137931 269691837 548141251 2921620252 3314105880 3511432536 4205862093 1004944964 4042395795 3997534221 3892804844 2293573507 1720224801 1691692800 3886465211 1427362579 1214103038 1996640154 2630509595 833738701 1269966945 2011651581 2]);
-rng(ss); 
+rng(ss);
 aux=rand(imageSize);
-for l = 1 : size(reducedAlphas,2)    
+for l = 1 : size(reducedAlphas,2)
     if l==1
-       % This is a bit annoying, but the call to kvlRasterize with a single
-       % label fills in the voxels outside the cuboid with p=1 (whereas the
-       % call with multiple labels does not)
+        % This is a bit annoying, but the call to kvlRasterize with a single
+        % label fills in the voxels outside the cuboid with p=1 (whereas the
+        % call with multiple labels does not)
         sillyAlphas=zeros([size(reducedAlphas,1),2],'single');
         sillyAlphas(:,1)=reducedAlphas(:,1);
         sillyAlphas(:,2)=1-reducedAlphas(:,1);
@@ -1351,31 +1371,15 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     % is provided as a black box type of thing as it's implemented in C++ using complicated code - the other
     % set is much much better to experiment with in Matlab.
     
-    % Set up the black box optimizer for the mesh nodes
-    if ( exist( 'optimizer', 'var' ) == 1 )
-        % The optimizer is very memory hungry when run in multithreaded mode.
-        % Let's clear any old ones we may have lying around
-        try
-            kvlClear( optimizer );
-        catch ME
-        end
-    end
     
     
-    % Now the optimization per-se
-    if strcmp(optimizerType,'LM')>0
-        optimizer = kvlGetLevenbergMarquardtOptimizer( mesh, image, transform );
-        maximalDeformationStopCriterion = 0.01;
-        positionUpdatingMaximumNumberOfIterations = 20;
-    else
-        optimizer = kvlGetConjugateGradientOptimizer( mesh, image, transform );
-        maximalDeformationStopCriterion = 1e-10;
-        positionUpdatingMaximumNumberOfIterations = 20;
-    end
     
-    
+    % Iterations
+    % Eugenio November 2017: we now do 30 instead of 20, since it's a bit faster
     maximumNumberOfIterations = maxItNos(multiResolutionLevel);  % Maximum number of iterations (includes one imaging model parameter estimation and
-    % one deformation optimization; the latter always does 20 steps).
+    positionUpdatingMaximumNumberOfIterations = 30;
+    
+    
     
     if FAST>0, maximumNumberOfIterations = 2; end  % in case we just wanna cruise throught it :-)
     
@@ -1420,11 +1424,11 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
             prior = kvlRasterizeAtlasMesh( mesh, imageSize, l-1 );
             priors(:,l)=prior(maskIndices);
         end
-%         priors = kvlRasterizeAtlasMesh( mesh, imageSize );
-%         priors = reshape( priors, [ prod( imageSize ) numberOfClasses ] ); % Easier to work with vector notation in the computations
-%         % Ignore everything that's has zero intensity
-%         priors = priors( maskIndices, : );
-
+        %         priors = kvlRasterizeAtlasMesh( mesh, imageSize );
+        %         priors = reshape( priors, [ prod( imageSize ) numberOfClasses ] ); % Easier to work with vector notation in the computations
+        %         % Ignore everything that's has zero intensity
+        %         priors = priors( maskIndices, : );
+        
         data = data( maskIndices );
         
         % Start EM iterations. Initialize the parameters if this is the
@@ -1480,7 +1484,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
             % Eugenio July 2017
             % posteriors = posteriors ./ repmat( normalizer, [ 1 numberOfClasses ] );
             posteriors = bsxfun(@rdivide,posteriors, normalizer);
-             
+            
             minLogLikelihood = minLogLikelihood - sum( log( normalizer ) ) % This is what we're optimizing with EM
             if isnan(minLogLikelihood)
                 error('lhood is nan');
@@ -1590,13 +1594,46 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         % sense to re-estimate the imaging model parameters frequently after a partial (not full)
         % optimization of the mesh nodes.
         %
+        
+        % Eugenio November 2017: GEMS2
+        if ( exist( 'optimizer', 'var' ) == 1 )
+            % The optimizer is very memory hungry when run in multithreaded mode.
+            % Let's clear any old ones we may have lying around
+            try
+                % Eugenio November 2017: GEMS2
+                kvlClear( optimizer );
+                kvlClear( calculator );
+            catch ME
+            end
+        end
+        
         haveMoved = false; % Keep track if we've ever moved or not
-        kvlSetOptimizerProperties( optimizer, means', reshape(1./variances,[1 1 length(variances)]));
+        
+        %  (note that it uses variances instead of precisions)
+        calculator = kvlGetCostAndGradientCalculator('AtlasMeshToIntensityImage',...
+            image, 'Sliding',transform,means',variances',ones(size(means')),ones(size(means')));
+        
+        verbose=0;
+        maximalDeformationStopCriterion=1e-10;
+        lineSearchMaximalDeformationIntervalStopCriterion=1e-10;
+        maximumNumberOfDeformationIterations=1000;
+        BFGSMaximumMemoryLength=12;
+        
+        optimizer = kvlGetOptimizer( optimizerType, mesh, calculator, ...
+            'Verbose', verbose, ...
+            'MaximalDeformationStopCriterion', maximalDeformationStopCriterion, ...
+            'LineSearchMaximalDeformationIntervalStopCriterion', ...
+            lineSearchMaximalDeformationIntervalStopCriterion, ...
+            'MaximumNumberOfIterations', maximumNumberOfDeformationIterations, ...
+            'BFGS-MaximumMemoryLength', BFGSMaximumMemoryLength );
+        
+        
         for positionUpdatingIterationNumber = 1 : positionUpdatingMaximumNumberOfIterations
             % Calculate a good step. The first one is very slow because of various set-up issues
             disp(['Resolution level ' num2str(multiResolutionLevel) ' iteration ' num2str(iterationNumber) ' deformation iterations ' num2str(positionUpdatingIterationNumber)]);
             tic
-            [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlDeformOneStep( optimizer, 1 );
+            % Eugenio November 2017: GEMS2
+            [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer );
             elapsedTime = toc;
             disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
             minLogLikelihoodTimesPrior
@@ -1656,10 +1693,10 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     
     
     
-end % End loop over multiresolution levels 
+end % End loop over multiresolution levels
 
 disp(['Fitting mesh to image data mask took ' num2str(etime(clock,time_ref_optimization)) ' seconds']);
-  
+
 % Restore original image buffer
 kvlSetImageBuffer(image,imageBufferOrig);
 
@@ -1667,7 +1704,11 @@ kvlSetImageBuffer(image,imageBufferOrig);
 % labels instead of the reduced "super"-structure labels we created.
 
 % Clear some memory
-kvlClear( optimizer )
+% Eugenio November 2017: GEMS2
+try
+    kvlClear( optimizer )
+    kvlClear( calculator )
+end
 
 %
 if  ~isdeployed && DEBUG>0
@@ -1699,17 +1740,17 @@ for classNumber = 1 : numberOfClasses
 end
 normalizer = sum( posteriors, 2 ) + eps;
 posteriors = bsxfun(@rdivide,posteriors, normalizer);
-posteriors = uint16( round( posteriors * 65535 ) ); 
+posteriors = uint16( round( posteriors * 65535 ) );
 
 % % Get the priors as dictated by the current mesh position
 % data = double( reshape( imageBuffer, [ prod( imageSize ) 1 ] ) ); % Easier to work with vector notation in the computations
 % priors = kvlRasterizeAtlasMesh( mesh, imageSize );
 % priors = reshape( priors, [ prod( imageSize ) numberOfClasses ] );  % Easier to work with vector notation in the computations
-% 
+%
 % % Ignore everything that's has zero intensity
 % priors = priors( maskIndices, : );
 % data = data( maskIndices );
-% 
+%
 % % Calculate the posteriors
 % posteriors = zeros( size( priors ), 'double' );
 % for classNumber = 1 : numberOfClasses
@@ -1717,7 +1758,7 @@ posteriors = uint16( round( posteriors * 65535 ) );
 %     mu = means( reducingLookupTable( classNumber ) );
 %     variance = variances( reducingLookupTable( classNumber ) );
 %     prior = single( priors( :, classNumber ) ) / 65535;
-%     
+%
 %     posteriors( :, classNumber ) = ( exp( -( data - mu ).^2 / 2 / variance ) .* prior ) ...
 %         / sqrt( 2 * pi * variance);
 % end
@@ -1728,7 +1769,7 @@ posteriors = uint16( round( posteriors * 65535 ) );
 % Display the posteriors
 if  ~isdeployed && DEBUG>0
     
-      priors = kvlRasterizeAtlasMesh( mesh, imageSize );
+    priors = kvlRasterizeAtlasMesh( mesh, imageSize );
     priors = reshape( priors, [ prod( imageSize ) numberOfClasses ] );  % Easier to work with vector notation in the computations
     priors = priors( maskIndices, : );
     
@@ -1965,7 +2006,7 @@ for i=1:numberOfClasses
 end
 if sum(foundHP>0)>1
     fprintf(fidHP,'Whole_hippocampal_body %f\n',totVolHPbody);
-    fprintf(fidHP,'Whole_hippocampal_head %f\n',totVolHPhead);    
+    fprintf(fidHP,'Whole_hippocampal_head %f\n',totVolHPhead);
     fprintf(fidHP,'Whole_hippocampus %f\n',totVolHP);
     fclose(fidHP);
 else
@@ -2040,7 +2081,7 @@ for c=1:numberOfClasses
 end
 tmp4.vol(tmp4.vol==215)=0; % kill the fissure
 myMRIwrite(tmp4,'discreteLabelsWholeBodyHead.mgz','float',tempdir);
-    
+
 % Second: head+body of each subfield
 tmp4=tmp3;
 tmp4.vol(tmp3.vol==233 | tmp3.vol==234)=204; % presubiculum
@@ -2054,7 +2095,7 @@ tmp4.vol(tmp3.vol==245 | tmp3.vol==246)=214; % ML
 myMRIwrite(tmp4,'discreteLabelsMergedBodyHead.mgz','float',tempdir);
 
 % Third: same as above, but getting rid of internal labels
-tmp4.vol(tmp4.vol==210)=209;  % GC-DG -> CA4 
+tmp4.vol(tmp4.vol==210)=209;  % GC-DG -> CA4
 
 % Molecular layer: replace by nearest label that is not background or
 % fissure
@@ -2064,17 +2105,17 @@ llist=unique(VOL);
 llist=llist(llist~=0 & llist~=215 & llist~=214);
 mask=VOL==214;
 for l=1:length(llist)
-   label=llist(l);
-   dmap=bwdist(VOL==label);
-   if l==1
-       mini=dmap(mask);
-       seg=label;
-   else
-       dist=dmap(mask);
-       m=dist<mini;
-       mini(m)=dist(m);
-       seg(m)=label;
-   end   
+    label=llist(l);
+    dmap=bwdist(VOL==label);
+    if l==1
+        mini=dmap(mask);
+        seg=label;
+    else
+        dist=dmap(mask);
+        m=dist<mini;
+        mini(m)=dist(m);
+        seg(m)=label;
+    end
 end
 VOL(mask)=seg;
 tmp4.vol(cropping(1):cropping(4),cropping(2):cropping(5),cropping(3):cropping(6))=VOL;
@@ -2090,33 +2131,33 @@ if  MRFconstant>0
     % Eugenio July 2017
     error('MRF smoothing disabled for now');
     
-%     disp('Markov random field label "smoothing"...')
-%     unaryTermWeight=MRFconstant;
-%     [~,inds]=max(posteriorsFull,[],4);
-%     tmp=FreeSurferLabels(inds);
-%     kk=zeros(size(tmp)); kk(maskIndices)=1; tmp=tmp.*kk;
-%     tmp(tmp<200)=0; tmp(tmp>226 & tmp<7000)=0;
-%     [~,cropping]=cropLabelVol(tmp);
-%     Ct=zeros([cropping(4)-cropping(1)+1,cropping(5)-cropping(2)+1,cropping(6)-cropping(3)+1,numberOfClasses]);
-%     for c=1:numberOfClasses
-%         Ct(:,:,:,c)=-log(1e-12+(double(posteriorsFull(cropping(1):cropping(4),cropping(2):cropping(5),cropping(3):cropping(6),c))/65535)*(1-1e-12))*unaryTermWeight;
-%     end
-%     varParas = [size(Ct,1); size(Ct,2); size(Ct,3); size(Ct,4); 100; 1e-3; 0.25; 0.11];
-%     penalty = ones([size(Ct,1),size(Ct,2),size(Ct,3)]);
-%     u = CMF3D_ML_mex(single(penalty), single(Ct), single(varParas));
-%     [~,ind] = max(u, [], 4);
-%     SEG=FreeSurferLabels(ind);
-%     SEG(SEG>226 & SEG<7000)=0; SEG(SEG<200)=0;
-%     
-%     data=zeros(size(inds));
-%     data(cropping(1):cropping(4),cropping(2):cropping(5),cropping(3):cropping(6))=SEG;
-%     aux=zeros(size(tmp2.vol)+shiftNeg);
-%     aux(1+shiftNeg(1):shiftNeg(1)+size(tmp2.vol,1),1+shiftNeg(2):shiftNeg(2)+size(tmp2.vol,2),1+shiftNeg(3):shiftNeg(3)+size(tmp2.vol,3))=permute(data,[2 1 3]);
-%     aux=aux(1+shiftPos(1):end,1+shiftPos(2):end,1+shiftPos(3):end);
-%     tmp3.vol=aux;
-%     tmp3Mask=getLargestCC(tmp3.vol>0);
-%     tmp3.vol(~tmp3Mask)=0;
-%     myMRIwrite(tmp3,'discreteLabels_MRF.mgz','float',tempdir);
+    %     disp('Markov random field label "smoothing"...')
+    %     unaryTermWeight=MRFconstant;
+    %     [~,inds]=max(posteriorsFull,[],4);
+    %     tmp=FreeSurferLabels(inds);
+    %     kk=zeros(size(tmp)); kk(maskIndices)=1; tmp=tmp.*kk;
+    %     tmp(tmp<200)=0; tmp(tmp>226 & tmp<7000)=0;
+    %     [~,cropping]=cropLabelVol(tmp);
+    %     Ct=zeros([cropping(4)-cropping(1)+1,cropping(5)-cropping(2)+1,cropping(6)-cropping(3)+1,numberOfClasses]);
+    %     for c=1:numberOfClasses
+    %         Ct(:,:,:,c)=-log(1e-12+(double(posteriorsFull(cropping(1):cropping(4),cropping(2):cropping(5),cropping(3):cropping(6),c))/65535)*(1-1e-12))*unaryTermWeight;
+    %     end
+    %     varParas = [size(Ct,1); size(Ct,2); size(Ct,3); size(Ct,4); 100; 1e-3; 0.25; 0.11];
+    %     penalty = ones([size(Ct,1),size(Ct,2),size(Ct,3)]);
+    %     u = CMF3D_ML_mex(single(penalty), single(Ct), single(varParas));
+    %     [~,ind] = max(u, [], 4);
+    %     SEG=FreeSurferLabels(ind);
+    %     SEG(SEG>226 & SEG<7000)=0; SEG(SEG<200)=0;
+    %
+    %     data=zeros(size(inds));
+    %     data(cropping(1):cropping(4),cropping(2):cropping(5),cropping(3):cropping(6))=SEG;
+    %     aux=zeros(size(tmp2.vol)+shiftNeg);
+    %     aux(1+shiftNeg(1):shiftNeg(1)+size(tmp2.vol,1),1+shiftNeg(2):shiftNeg(2)+size(tmp2.vol,2),1+shiftNeg(3):shiftNeg(3)+size(tmp2.vol,3))=permute(data,[2 1 3]);
+    %     aux=aux(1+shiftPos(1):end,1+shiftPos(2):end,1+shiftPos(3):end);
+    %     tmp3.vol=aux;
+    %     tmp3Mask=getLargestCC(tmp3.vol>0);
+    %     tmp3.vol(~tmp3Mask)=0;
+    %     myMRIwrite(tmp3,'discreteLabels_MRF.mgz','float',tempdir);
 end
 
 if DEBUG>0
@@ -2155,14 +2196,24 @@ end
 
 % Convert segmentation to 1 mm FreeSurfer Space (with and withoutresampling)
 % Also, convert T2 scans (withoutresampling)
-system([FSpath '/mri_convert  discreteLabels.mgz  discreteLabelsResampledT1.mgz -rt nearest -odt float ' ...
-    ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz -ait ' T2transform]);
-system([FSpath '/mri_convert  discreteLabelsWholeBodyHead.mgz  discreteLabelsWholeBodyHeadResampledT1.mgz -rt nearest -odt float ' ...
-    ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz -ait ' T2transform]);
-system([FSpath '/mri_convert  discreteLabelsMergedBodyHead.mgz  discreteLabelsMergedBodyHeadResampledT1.mgz -rt nearest -odt float ' ...
-    ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz -ait ' T2transform]);
-system([FSpath '/mri_convert  discreteLabelsMergedBodyHeadNoMLorGCDG.mgz  discreteLabelsMergedBodyHeadNoMLorGCDGResampledT1.mgz -rt nearest -odt float ' ...
-    ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz -ait ' T2transform]);
+% Convert to 1 mm FreeSurfer Space
+% Eugenio November 2017: smarter/smoother resampling
+if SMOOTH_LABEL_RESAMPLE>0
+    refFile=[subjectDir '/' subjectName '/mri/norm.mgz'];
+    applyLTAsmoothLabels('discreteLabels.mgz',T2transform,'discreteLabelsResampledT1.mgz',refFile,1,FSpath,tempdir);
+    applyLTAsmoothLabels('discreteLabelsWholeBodyHead.mgz',T2transform,'discreteLabelsWholeBodyHeadResampledT1.mgz',refFile,1,FSpath,tempdir);
+    applyLTAsmoothLabels('discreteLabelsMergedBodyHead.mgz',T2transform,'discreteLabelsMergedBodyHeadResampledT1.mgz',refFile,1,FSpath,tempdir);
+    applyLTAsmoothLabels('discreteLabelsMergedBodyHeadNoMLorGCDG.mgz',T2transform,'discreteLabelsMergedBodyHeadNoMLorGCDGResampledT1.mgz',refFile,1,FSpath,tempdir);
+else
+    system([FSpath '/mri_convert  discreteLabels.mgz  discreteLabelsResampledT1.mgz -rt nearest -odt float ' ...
+        ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz -ait ' T2transform]);
+    system([FSpath '/mri_convert  discreteLabelsWholeBodyHead.mgz  discreteLabelsWholeBodyHeadResampledT1.mgz -rt nearest -odt float ' ...
+        ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz -ait ' T2transform]);
+    system([FSpath '/mri_convert  discreteLabelsMergedBodyHead.mgz  discreteLabelsMergedBodyHeadResampledT1.mgz -rt nearest -odt float ' ...
+        ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz -ait ' T2transform]);
+    system([FSpath '/mri_convert  discreteLabelsMergedBodyHeadNoMLorGCDG.mgz  discreteLabelsMergedBodyHeadNoMLorGCDGResampledT1.mgz -rt nearest -odt float ' ...
+        ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz -ait ' T2transform]);
+end
 
 system([FSpath '/mri_vol2vol --mov discreteLabels.mgz  --o discreteLabelsT1space.mgz --no-resample ' ...
     ' --targ ' subjectDir '/' subjectName '/mri/norm.mgz --lta-inv ' T2transform]);
@@ -2216,6 +2267,18 @@ end
 %     system(['mv T2corrected.mgz ' subjectDir '/' subjectName]);
 % end
 
+
+if WRITE_MESHES>0
+    system(['mv warpedMesh.txt.gz   ' subjectDir '/' subjectName '/mri/' side(1) 'h.hippoAmygMesh-' suffixUser '.' suffix '.txt.gz']);
+    system(['mv warpedMeshNoAffine.txt.gz   ' subjectDir '/' subjectName '/mri/' side(1) 'h.hippoAmygMeshAtlasSpace-' suffixUser '.' suffix '.txt.gz']);
+    system(['mv image2.mgz   ' subjectDir '/' subjectName '/mri/' side(1) 'h.imageForMesh-' suffixUser '.' suffix '.mgz']);
+    fid=fopen([subjectDir '/' subjectName '/mri/' side(1) 'h.affineTransformMesh-' suffixUser '.' suffix '.txt'],'w');
+    fprintf(fid,'%f %f %f %f \n',transformMatrix(1,1),transformMatrix(1,2),transformMatrix(1,3),transformMatrix(1,4));
+    fprintf(fid,'%f %f %f %f \n',transformMatrix(2,1),transformMatrix(2,2),transformMatrix(2,3),transformMatrix(2,4));
+    fprintf(fid,'%f %f %f %f \n',transformMatrix(3,1),transformMatrix(3,2),transformMatrix(3,3),transformMatrix(3,4));
+    fprintf(fid,'%f %f %f %f \n',0,0,0,1);
+    fclose(fid);
+end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

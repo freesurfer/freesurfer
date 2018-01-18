@@ -35,7 +35,7 @@
 #include "voxlist.h"
 
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 int dump_hidden(RBM *rbm, char *fname);
@@ -417,12 +417,13 @@ int RBMactivateForward(RBM *rbm, double *visible)
 
   if (visible) memcpy(rbm->visible, visible, rbm->nvisible * sizeof(visible[0]));
 
-#if 1
 #ifdef HAVE_OPENMP
-#pragma omp parallel for shared(rbm, visible) schedule(static, 1)
-#endif
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) shared(rbm, visible) schedule(static, 1)
 #endif
   for (h = 0; h < rbm->nhidden; h++) {
+    ROMP_PFLB_begin
+    
     double act, r, var, delta;
     int v;
 
@@ -453,7 +454,11 @@ int RBMactivateForward(RBM *rbm, double *visible)
     else
       act = 0;
     rbm->hidden_state[h] = (double)nint(act);
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   return (NO_ERROR);
 }
 
@@ -462,12 +467,14 @@ int RBMactivateBackward(RBM *rbm)
   int v;
 
   if (rbm->type == RBM_TYPE_CONTINUOUS_INPUTS) {
-#if 1
+
 #ifdef HAVE_OPENMP
-#pragma omp parallel for shared(rbm) schedule(static, 1)
-#endif
+    ROMP_PF_begin
+    #pragma omp parallel for if_ROMP(experimental) shared(rbm) schedule(static, 1)
 #endif
     for (v = 0; v < rbm->nvisible; v++) {
+      ROMP_PFLB_begin
+      
       double act;
       int h;
       // double var;
@@ -477,16 +484,20 @@ int RBMactivateBackward(RBM *rbm)
       for (h = 0; h < rbm->nhidden; h++) act += rbm->weights[v][h] * rbm->hidden_state[h];
 
       rbm->visible[v] = act;
+      
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
   }
   else  // inputs are binary
   {
-#if 1
 #ifdef HAVE_OPENMP
-#pragma omp parallel for shared(rbm) schedule(static, 1)
-#endif
+    ROMP_PF_begin
+    #pragma omp parallel for if_ROMP(experimental) shared(rbm) schedule(static, 1)
 #endif
     for (v = 0; v < rbm->nvisible; v++) {
+      ROMP_PFLB_begin
+      
       double act, r;
       int h;
 
@@ -500,15 +511,21 @@ int RBMactivateBackward(RBM *rbm)
       else
         act = 0;
       rbm->visible[v] = act;
+      
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
   }
   if (rbm->nlabels > 0) {
     double r, total;
     int label;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for shared(rbm) schedule(static, 1)
+    ROMP_PF_begin
+    #pragma omp parallel for if_ROMP(experimental) shared(rbm) schedule(static, 1)
 #endif
     for (v = 0; v < rbm->nlabels; v++) {
+      ROMP_PFLB_begin
+      
       double act;
       int h;
 
@@ -519,7 +536,11 @@ int RBMactivateBackward(RBM *rbm)
       rbm->lact[v] = act;
       rbm->labels[v] = exp(act);
       if (!devFinite(rbm->labels[v])) rbm->labels[v] = 100;
+      
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
+    
     for (total = 0.0, v = 0; v < rbm->nlabels; v++) total += rbm->labels[v];
 
     if (total > 0)

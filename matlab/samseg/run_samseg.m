@@ -12,6 +12,8 @@ mfileversion = '$Id$';
 cmdargs.involfiles = '';
 cmdargs.outdir = '';
 cmdargs.regmatfile = '';
+cmdargs.initltafile = '';
+cmdargs.regonly = 0;
 cmdargs.nthreads = 1;
 cmdargs.showfigs = 0;
 cmdargs.nobrainmask = 0;
@@ -40,6 +42,7 @@ showFigures = cmdargs.showfigs;
 noBrainMasking = cmdargs.nobrainmask;
 useDiagonalCovarianceMatrices = cmdargs.diagcovs;
 RegMatFile = cmdargs.regmatfile;
+InitLTAFile = cmdargs.initltafile;
 
 ninvolfiles = size(cmdargs.involfiles,1);
 imageFileNames = cell(0,0);
@@ -90,10 +93,14 @@ end
                                 templateFileName, ...
                                 savePath, ...
                                 showFigures, ...
-                                worldToWorldTransformMatrix );
+                                worldToWorldTransformMatrix,...
+				InitLTAFile);
                                                     
-               
-               
+if(cmdargs.regonly) 
+  fprintf('Registration-only requested, so quiting now)');
+  retval = 0;
+  return;
+end
                
 % FreeSurfer (http://surfer.nmr.mgh.harvard.edu) has a standardized way of representation segmentations,
 % both manual and automated, as images in which certain intensity levels correspond to well-defined
@@ -214,6 +221,16 @@ while(narg <= ninputargs)
    case '--regmat',
     arg1check(flag,narg,ninputargs);
     cmdargs.regmatfile = inputargs{narg};
+    narg = narg + 1;
+    
+   case '--regonly',
+    cmdargs.regonly = 1;
+   case '--reg-only',
+    cmdargs.regonly = 1;
+    
+   case '--initlta',
+    arg1check(flag,narg,ninputargs);
+    cmdargs.initltafile = inputargs{narg};
     narg = narg + 1;
     
    case '--showfigs',

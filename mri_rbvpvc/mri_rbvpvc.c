@@ -84,7 +84,7 @@
 #include "gtm.h"
 
 #ifdef _OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 static int  parse_commandline(int argc, char **argv);
@@ -1968,7 +1968,7 @@ int GTMbuildX(GTM *gtm)
 
 
   #ifdef _OPENMP
-  #pragma omp parallel for 
+  #pragma omp parallel for if_ROMP(experimental) 
   #endif
   for(nthseg = 0; nthseg < gtm->nsegs; nthseg++){
     int segid,k,c,r,s;

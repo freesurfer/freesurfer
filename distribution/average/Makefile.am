@@ -107,6 +107,10 @@ foo_otherdatafiles=fsaverage.tar.gz fsaverage_sym.tar.gz \
 	EC_average.tar.gz mult-comp-cor.tar.gz Yeo_Brainmap_MNI152.tar.gz \
 	build_gcs_morph.csh cvs_avg35.tar.gz cvs_avg35_inMNI152.tar.gz
 
+if INCLUDE_INFANTFS
+install_CNYBCH=true
+foo_otherdatafiles += CNYBCH.tar.gz
+endif
 
 install:
 	test -z $(DESTDIR)$(foodir) || $(mkdir_p) $(DESTDIR)$(foodir)
@@ -190,6 +194,14 @@ install:
 	cd Yeo_JNeurophysiol11_MNI152; make install
 	cd Buckner_JNeurophysiol11_MNI152; make install
 	cd Choi_JNeurophysiol12_MNI152; make install
+	if [ "$(install_CNYBCH)" = "true" ]; then \
+	  rm -Rf $(DESTDIR)$(prefix)/average/CNYBCH ;\
+	  rm -Rf $(top_builddir)/distribution/average/CNYBCH ;\
+	  gunzip -c $(top_srcdir)/distribution/average/CNYBCH.tar.gz | tar xvf - ;\
+	  pwd ;\
+	  mv $(top_builddir)/distribution/average/CNYBCH $(DESTDIR)$(prefix)/average ;\
+	  chmod -R 775 $(DESTDIR)$(prefix)/average/CNYBCH ;\
+	fi
 
 uninstall-hook:
 	rm -Rf $(DESTDIR)$(prefix)/subjects/cvs_avg35

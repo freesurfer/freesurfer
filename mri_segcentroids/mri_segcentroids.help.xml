@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+  <name>mri_segcentroids</name>
+  <synopsis>mri_segcentroids [options] --i &lt;segvol&gt; --o &lt;outfile&gt;</synopsis>
+  <description>computes the center of mass for individual structures in a segmentation</description>
+  <arguments>
+    <required-flagged>
+      <argument>--i segvol</argument>
+      <explanation>input segmentation</explanation>
+      <argument>--o outfile</argument>
+      <explanation>output text file</explanation>
+    </required-flagged>
+    <optional-flagged>
+      <argument>--reg lta</argument>
+      <explanation>apply a linear registration (lta)</explanation>
+      <argument>--weights vol</argument>
+      <explanation>compute weighted centroid with provided voxel weights</explanation>
+      <argument>--ctab lut</argument>
+      <explanation>specify label lookup table</explanation>
+      <argument>--ctab-default</argument>
+      <explanation>use default FreeSurferColorLUT.txt for lookup table</explanation>
+    </optional-flagged>
+  </arguments>
+
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+</help>

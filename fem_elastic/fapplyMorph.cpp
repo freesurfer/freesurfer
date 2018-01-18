@@ -295,7 +295,7 @@ main(int argc,
     img = pmorph->image(pt);
     std::cout << " computing image for point " << pt << std::endl
     << "\t = " << img << std::endl
-    << (img.isValid()?"not valid":"") << std::endl;
+    << (img.isValid() ? "valid": "not valid") << std::endl;
   }
   return 0;
 }
@@ -422,7 +422,7 @@ IoParams::parse(int ac,
 
       items.push_back(item);
     }
-    else if ( *cit == "point_list" )
+    else if ( *cit == "point_list" ) // This needs to be in data coordinates (and results are in data coordinates as well!)
     {
 
       if ( ++cit == container.end() )
@@ -710,17 +710,31 @@ PointListProbeFilter::Execute()
   std::vector<Coords3d> outputImages;
   Coords3d pt, img; 
 
-  //int counter = 0;
+  // int counter = 0;
 
-  if (tractPointList) 
-    this->pmorph->invert();
-  
+  //if (tractPointList) 
+  this->pmorph->invert();
+
+  int numLines = 0;
+  std::string unused;
+  while ( std::getline(ifs, unused) )
+   ++numLines;
+  std::cout << " The number of lines in the input file is " << numLines << std::endl;
+  // to rewind the file
+  ifs.clear();
+  ifs.seekg(0);
+
   //unsigned int voxInvalid(0);
-  while ( ifs )
+  // while ( ifs )
+  while ( numLines > 0 )
     {
       ifs >> pt(0) >> pt(1) >> pt(2);
       
+      img.validate(); // LZ
       img = this->pmorph->image(pt);
+      std::cout << " computing image for point " << pt << std::endl
+                << "\t = " << img << std::endl
+                << (img.isValid() ? "valid" : "not valid") << std::endl;
       /*  if ( !img.isValid() )
 	  {
 	  if (img.status()==cInvalid)
@@ -729,26 +743,29 @@ PointListProbeFilter::Execute()
 	  }*/
       
       outputImages.push_back( img );
-      //counter ++;
+      numLines --;
+      // counter ++;
     }
 
   ifs.close();
-  //std::cout << "In counter :" <<  counter << "\n";
+  // std::cout << "In counter :" <<  counter << "\n";
 
   std::ofstream ofs( this->strOutput.c_str() );
   if ( !ofs ) throw " Failed to open output stream while applying PointListProbeFilter";
 
-  //counter = 0;
+  // counter = 0;
   for ( std::vector<Coords3d>::const_iterator cit = outputImages.begin();
         cit != outputImages.end(); ++cit )
     {
+
+      std::cout << " Computed image point " << (*cit)(0) << " " << (*cit)(1) << " " << (*cit)(2) << std::endl;
       if ( cit->isValid() )
         ofs << (*cit)(0) << " " << (*cit)(1) << " " << (*cit)(2) << std::endl;
       else
 	ofs << 10000 << " "<< 10000 << " " << 10000 << std::endl; // hack not to lose order
-      //  counter ++;
+      // counter ++;
     } // next cit
   ofs.close();
-  //  std::cout << "Out counter :" <<  counter << "\n";
-  }
+  // std::cout << "Out counter :" <<  counter << "\n";
+}
 

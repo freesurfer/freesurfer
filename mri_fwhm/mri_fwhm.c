@@ -243,7 +243,7 @@ double round(double x);
 #include "pdf.h"
 #include "matfile.h"
 #ifdef _OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM,

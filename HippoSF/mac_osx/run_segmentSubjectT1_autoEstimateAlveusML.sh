@@ -16,11 +16,9 @@ else
   echo ---
 
   DYLD_LIBRARY_PATH=.:${MCRROOT}/runtime/maci64:${MCRROOT}/bin/maci64:${MCRROOT}/sys/os/maci64:${DYLD_LIBRARY_PATH} ;
-  XAPPLRESDIR=${MCRROOT}/X11/app-defaults ;
-
   export DYLD_LIBRARY_PATH;
-  export XAPPLRESDIR;
   echo DYLD_LIBRARY_PATH is ${DYLD_LIBRARY_PATH};
+
   shift 1
   args=
   while [ $# -gt 0 ]; do
@@ -39,3 +37,4 @@ else
 fi
 
 exit $returnVal
+

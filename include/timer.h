@@ -31,10 +31,22 @@
 extern "C" {
 #endif
 
+
 #include <sys/timeb.h>
 
 struct timeb *TimerStart(struct timeb *then) ;
 int TimerStop(struct timeb *then) ;
+
+typedef struct NanosecsTimer {  struct timespec now; } NanosecsTimer;
+typedef struct Nanosecs { long ns; } Nanosecs;
+void     TimerStartNanosecs  (NanosecsTimer * now) ;
+Nanosecs TimerElapsedNanosecs(NanosecsTimer * then) ;	// returns delta in nanosecs
+
+// mach_gettime is a replacement for clock_gettime (not available on osx < 10.12)
+#ifdef __APPLE__
+typedef int clockid_t;
+int mach_gettime(clockid_t clk_id, struct timespec *tp);
+#endif
 
 #ifdef Linux
 /* don't know why this doesn't work on linux, but.... */

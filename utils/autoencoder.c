@@ -30,6 +30,7 @@ IEEE Transaction on Pattern Analysis and Machine Intelligence, 2012.
  */
 
 #include <stdio.h>
+#include "romp_support.h"
 
 #include "diag.h"
 #include "error.h"
@@ -883,9 +884,11 @@ static double AEaccumulateGradient(AE *ae, SAE_INTEGRATION_PARMS *parms)
 
 //  compute output weights grad
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(noutputs, nhidden) shared(ae) schedule(static, 1)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) firstprivate(noutputs, nhidden) shared(ae) schedule(static, 1)
 #endif
   for (k = 1; k <= noutputs; k++) {
+    ROMP_PFLB_begin
     double error, hidden;
     int j;
 
@@ -896,13 +899,18 @@ static double AEaccumulateGradient(AE *ae, SAE_INTEGRATION_PARMS *parms)
       hidden = VECTOR_ELT(ae->v_hidden, j);
       *MATRIX_RELT(ae->m_grad_hidden_to_output, k, j) += error * hidden;
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
 // compute hidden bias grad
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(noutputs, nhidden) shared(ae) schedule(static, 1)
+  ROMP_PF_begin
+#pragma omp parallel for if_ROMP(experimental) firstprivate(noutputs, nhidden) shared(ae) schedule(static, 1)
 #endif
   for (j = 1; j <= nhidden; j++) {
+    ROMP_PFLB_begin
+    
     double dE_dbj, fprime, error, wjk, hidden;
     int k;
 
@@ -914,13 +922,18 @@ static double AEaccumulateGradient(AE *ae, SAE_INTEGRATION_PARMS *parms)
       dE_dbj += error * wjk * fprime;
     }
     VECTOR_ELT(ae->v_grad_hidden_bias, j) += wt * dE_dbj;
+    ROMP_PFLB_end
   }
-
+  ROMP_PF_end
+  
 // compute hidden weight grad
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(noutputs, nhidden) shared(ae) schedule(static, 1)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) firstprivate(noutputs, nhidden) shared(ae) schedule(static, 1)
 #endif
   for (i = 1; i <= noutputs; i++) {
+    ROMP_PFLB_begin
+    
     int j;
     double Ii;
 
@@ -940,8 +953,11 @@ static double AEaccumulateGradient(AE *ae, SAE_INTEGRATION_PARMS *parms)
       dE_dwij *= Ii * fprimej;
       *MATRIX_RELT(ae->m_grad_input_to_hidden, j, i) += wt * dE_dwij;
     }
+    
+    ROMP_PFLB_end
   }
-
+  ROMP_PF_end
+  
   if (parms->class_label >= 0) {
     if (parms->class_label == Gdiag_no) DiagBreak();
 
@@ -1195,9 +1211,12 @@ static double AEtrain(AE *ae, SAE_INTEGRATION_PARMS *parms)
 
 // update compute output weights grad
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(noutputs, nhidden, dt) shared(ae) schedule(static, 1)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) firstprivate(noutputs, nhidden, dt) shared(ae) schedule(static, 1)
 #endif
   for (k = 1; k <= noutputs; k++) {
+    ROMP_PFLB_begin
+    
     double error, hidden;
     int j;
 
@@ -1209,13 +1228,19 @@ static double AEtrain(AE *ae, SAE_INTEGRATION_PARMS *parms)
       *MATRIX_RELT(ae->m_grad_hidden_to_output, k, j) += error * hidden;  // *fprime fprime?
       if (!devFinite(*MATRIX_RELT(ae->m_grad_hidden_to_output, k, j))) DiagBreak();
     }
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
 // compute hidden bias grad
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(noutputs, nhidden, dt) shared(ae) schedule(static, 1)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) firstprivate(noutputs, nhidden, dt) shared(ae) schedule(static, 1)
 #endif
   for (j = 1; j <= nhidden; j++) {
+    ROMP_PFLB_begin
+    
     double dE_dbj, fprime, error, wjk, hidden;
     int k;
 
@@ -1230,13 +1255,19 @@ static double AEtrain(AE *ae, SAE_INTEGRATION_PARMS *parms)
     }
     VECTOR_ELT(ae->v_grad_hidden_bias, j) += wt * dE_dbj;  // XXX added division by noutputs
     if (!devFinite(VECTOR_ELT(ae->v_grad_hidden_bias, j))) DiagBreak();
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
 // compute hidden weight grad
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(noutputs, nhidden, dt) shared(ae) schedule(static, 1)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(experimental) firstprivate(noutputs, nhidden, dt) shared(ae) schedule(static, 1)
 #endif
   for (i = 1; i <= noutputs; i++) {
+    ROMP_PFLB_begin
+    
     int j;
     double Ii;
 
@@ -1260,7 +1291,10 @@ static double AEtrain(AE *ae, SAE_INTEGRATION_PARMS *parms)
       *MATRIX_RELT(ae->m_grad_input_to_hidden, j, i) += wt * dE_dwij;  // XXX added division by noutputs
       if (!devFinite(*MATRIX_RELT(ae->m_grad_input_to_hidden, j, i))) DiagBreak();
     }
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   if (parms->class_label >= 0) {
     if (parms->class_label == 3)

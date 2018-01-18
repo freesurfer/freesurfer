@@ -285,7 +285,8 @@ foreach hemi ($hemilist)
       set cmd = (mri_mergelabels -i $unknown_label -i $mw_label -o $ddir/label/$hemi.Medial_wall.label)
       echo $cmd |& tee -a $LF
       $cmd |& tee -a $LF
-      if($status) exit 1
+      if($status) exit 1;
+      rm -f $unknown_label $mw_label
     else if(-e $unknown_label) mv $unknown_label $ddir/label/$hemi.Medial_wall.label
     else if(-e $mw_label) mv $mw_label $ddir/label/$hemi.Medial_wall.label
     endif

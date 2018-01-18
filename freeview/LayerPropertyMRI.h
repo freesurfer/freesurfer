@@ -320,8 +320,6 @@ public:
     return this->m_bContourUpsample;
   }
 
-  void SetActiveFrame(int nFrame);
-
   QString GetLabelContourRange()
   {
     return m_sLabelContourRange;
@@ -384,6 +382,8 @@ public:
     return m_listVisibleLabels;
   }
 
+  void UpdateActiveFrame(int nFrame);
+
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -434,6 +434,7 @@ public slots:
   void SetSelectLabel(int nVal, bool bSelected);
   void SetSelectAllLabels();
   void SetUnselectAllLabels();
+  void ResetWindowLevel();
 
 signals:
   void ColorMapChanged();

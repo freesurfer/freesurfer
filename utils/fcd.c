@@ -32,7 +32,7 @@
 #include "mrisegment.h"
 #include "utils.h"
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 static int sort_labels(FCD_DATA *fcd);
@@ -381,10 +381,12 @@ int FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sig
 // process left hemisphere
 #if 1
 #ifdef HAVE_OPENMP
-#pragma omp parallel for shared(fcd, mri_lh_diff, Gdiag_no, thickness_thresh) schedule(static, 1)
+ROMP_PF_begin
+#pragma omp parallel for if_ROMP(experimental) shared(fcd, mri_lh_diff, Gdiag_no, thickness_thresh) schedule(static, 1)
 #endif
 #endif
   for (vno = 0; vno < fcd->mris_lh->nvertices; vno++) {
+    ROMP_PFLB_begin
     double d;
     float val, val2, thickness;
     int base_label;
@@ -392,7 +394,7 @@ int FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sig
 
     v = &fcd->mris_lh->vertices[vno];
     if (v->ripflag) {
-      continue;
+      ROMP_PFLB_continue;
     }
     thickness = MRIgetVoxVal(fcd->lh_thickness_on_lh, vno, 0, 0, 0);
     if (vno == Gdiag_no) {
@@ -400,7 +402,7 @@ int FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sig
     }
     val = MRIgetVoxVal(mri_lh_diff, vno, 0, 0, 0);
     if (fabs(val) < thickness_thresh) {
-      continue;
+      ROMP_PFLB_continue;
     }
 
     for (d = 0, base_label = 0; d < thickness; d += 0.25) {
@@ -438,17 +440,21 @@ int FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sig
         }
       }
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   exec_progress_callback(6, 8, 0, 1);
 
 // now do right hemisphere
 #if 1
 #ifdef HAVE_OPENMP
-#pragma omp parallel for shared(fcd, mri_rh_diff, Gdiag_no, thickness_thresh) schedule(static, 1)
+  ROMP_PF_begin
+#pragma omp parallel for if_ROMP(experimental) shared(fcd, mri_rh_diff, Gdiag_no, thickness_thresh) schedule(static, 1)
 #endif
 #endif
   for (vno = 0; vno < fcd->mris_rh->nvertices; vno++) {
+    ROMP_PFLB_begin
     double d;
     float val, val2, thickness;
     int base_label;
@@ -456,14 +462,14 @@ int FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sig
 
     v = &fcd->mris_rh->vertices[vno];
     if (v->ripflag) {
-      continue;
+      ROMP_PFLB_continue;
     }
     if (vno == Gdiag_no) {
       DiagBreak();
     }
     val = MRIgetVoxVal(mri_rh_diff, vno, 0, 0, 0);
     if (fabs(val) < thickness_thresh) {
-      continue;
+      ROMP_PFLB_continue;
     }
     thickness = MRIgetVoxVal(fcd->rh_thickness_on_rh, vno, 0, 0, 0);
 
@@ -501,8 +507,10 @@ int FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sig
         }
       }
     }
+    ROMP_PFLB_end
   }
-
+  ROMP_PF_end
+  
   exec_progress_callback(7, 8, 0, 1);
   mriseg = MRIsegment(fcd->mri_thickness_increase, thickness_thresh, 1e10);
   MRIeraseSmallSegments(mriseg, fcd->mri_thickness_increase, thickness_thresh);

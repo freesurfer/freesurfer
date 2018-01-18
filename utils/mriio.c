@@ -80,7 +80,7 @@
 #include "znzlib.h"
 
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
@@ -13532,10 +13532,12 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI * mri_dst)
   int nans = 0;
 
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for shared(mri_dst) reduction(+ : nans)
+  ROMP_PF_begin
+  #pragma omp parallel for if_ROMP(shown_reproducible) shared(mri_dst) reduction(+ : nans)
 #endif
   for (x = 0; x < mri_dst->width; x++) {
-
+    ROMP_PFLB_begin
+    
     int const height  = mri_dst->height;
     int const depth   = mri_dst->depth;
     int const nframes = mri_dst->nframes;
@@ -13553,7 +13555,10 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI * mri_dst)
       }
     }
     exec_progress_callback(x, mri_dst->width, 0, 1);
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   if (nans > 0) ErrorPrintf(ERROR_BADPARM, "WARNING: %d NaNs found in volume %s...\n", nans, mri_src->fname);
   return (mri_dst);

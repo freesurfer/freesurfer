@@ -124,7 +124,7 @@ double round(double x);
 #include <sys/utsname.h>
 #include <unistd.h>
 #ifdef _OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #include "macros.h"

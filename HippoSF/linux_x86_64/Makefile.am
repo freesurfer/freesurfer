@@ -17,7 +17,6 @@ dist_bin_SCRIPTS = \
 foodir=$(prefix)/bin
 
 foo_binaryfiles = \
-    kvlAverageMeshes \
 	SegmentSubfieldsT1Longitudinal \
 	segmentSubjectT1_autoEstimateAlveusML \
 	segmentSubjectT1T2_autoEstimateAlveusML \

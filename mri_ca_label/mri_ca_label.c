@@ -35,7 +35,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #ifdef HAVE_OPENMP // mrisurf.c has numerous parallelized functions
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #include "mri.h"
@@ -4989,7 +4989,7 @@ GCArelabelUnlikely(GCA *gca,
     nchanged = 0 ;
     MRIcomputeVoxelPermutation(mri_inputs, x_indices, y_indices, z_indices) ;
 #if 0 //def HAVE_OPENMP   doesn't work
-#pragma omp parallel for firstprivate(mri_independent_posterior, mri_inputs, gca, mri_prior_labels, whalf, prior_thresh, Ggca_x, Ggca_y, Ggca_z) shared(mri_unchanged, mri_priors,transform, x_indices,y_indices,z_indices, mri_dst_labeled) reduction(+:nchanged)
+#pragma omp parallel for if_ROMP(experimental) firstprivate(mri_independent_posterior, mri_inputs, gca, mri_prior_labels, whalf, prior_thresh, Ggca_x, Ggca_y, Ggca_z) shared(mri_unchanged, mri_priors,transform, x_indices,y_indices,z_indices, mri_dst_labeled) reduction(+:nchanged)
 #endif
     for (index = 0 ; index < nindices ; index++)
     {
