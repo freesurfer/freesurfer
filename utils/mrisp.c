@@ -1734,8 +1734,8 @@ MRI_SP *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno)
 
   int u;
 
-#if HAVE_OPENMP  
   ROMP_PF_begin
+#if HAVE_OPENMP  
   #pragma omp parallel for if_ROMP(assume_reproducible) collapse(2)
 #endif
   for (fno = f0; fno <= f1; fno++) /* for each frame */

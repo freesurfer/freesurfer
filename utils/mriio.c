@@ -13531,8 +13531,8 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI * mri_dst)
   int x;
   int nans = 0;
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(shown_reproducible) shared(mri_dst) reduction(+ : nans)
 #endif
   for (x = 0; x < mri_dst->width; x++) {

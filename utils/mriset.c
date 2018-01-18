@@ -443,8 +443,8 @@ MRI *MRIerode(MRI *mri_src, MRI *mri_dst)
     same = 0;
 
   if (mri_src->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR) {
-#ifdef HAVE_OPENMP
     ROMP_PF_begin
+#ifdef HAVE_OPENMP
     #pragma omp parallel for if_ROMP(experimental)
 #endif
     for (z = 0; z < depth; z++) {
@@ -475,8 +475,8 @@ MRI *MRIerode(MRI *mri_src, MRI *mri_dst)
     ROMP_PF_end
   }
   else {
-#ifdef HAVE_OPENMP
     ROMP_PF_begin
+#ifdef HAVE_OPENMP
     #pragma omp parallel for if_ROMP(assume_reproducible)
 #endif
     for (z = 0; z < depth; z++) {
@@ -1633,8 +1633,8 @@ MRI *MRIdilate(MRI *mri_src, MRI *mri_dst)
   zmax = depth - 1;
 #endif
   for (f = 0; f < mri_src->nframes; f++) {
-#ifdef HAVE_OPENMP
     ROMP_PF_begin
+#ifdef HAVE_OPENMP
     #pragma omp parallel for if_ROMP(assume_reproducible)
 #endif
     for (z = zmin; z <= zmax; z++) {
@@ -2124,8 +2124,8 @@ MRI *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
 
   if (mri_src->type == MRI_UCHAR && mri_dst->type == MRI_UCHAR)
     return (MRIreplaceValuesUchar(mri_src, mri_dst, (BUFTYPE)nint(in_val), (BUFTYPE)nint(out_val)));
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) shared(mri_src, mri_dst, out_val, width, height, depth)
 #endif
   for (z = 0; z < depth; z++) {

@@ -2066,8 +2066,8 @@ MRI *MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
     int frame, z;
 
     for (frame = 0; frame < mri_src->nframes; frame++) {
-#ifdef HAVE_OPENMP
       ROMP_PF_begin
+#ifdef HAVE_OPENMP
       #pragma omp parallel for if_ROMP(experimental)
 #endif
       for (z = 0; z < depth; z++) {
@@ -3081,8 +3081,8 @@ MRI *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int 
     case MRI_UCHAR:
       switch (axis) {
         case MRI_WIDTH:
-#ifdef HAVE_OPENMP
           ROMP_PF_begin
+#ifdef HAVE_OPENMP
 	  #pragma omp parallel for if_ROMP(experimental) firstprivate(y, x, inBase, foutPix, ki, i, total) \
     shared(depth, height, width, len, halflen, mri_src, mri_dst, src_frame, dst_frame, xi, yi, zi) schedule(static, 1)
 #endif
@@ -3110,8 +3110,8 @@ MRI *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int 
 	  
           break;
         case MRI_HEIGHT:
-#ifdef HAVE_OPENMP
           ROMP_PF_begin
+#ifdef HAVE_OPENMP
 	  #pragma omp parallel for if_ROMP(experimental) firstprivate(y, x, foutPix, ki, i, total) \
     shared(depth, height, width, len, halflen, mri_dst, src_frame, dst_frame, xi, yi, zi) schedule(static, 1)
 #endif
@@ -3138,8 +3138,8 @@ MRI *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int 
 	  ROMP_PF_end
           break;
         case MRI_DEPTH:
-#ifdef HAVE_OPENMP
           ROMP_PF_begin
+#ifdef HAVE_OPENMP
 	  #pragma omp parallel for if_ROMP(experimental) firstprivate(y, x, foutPix, ki, i, total) \
     shared(depth, height, width, len, halflen, mri_dst, src_frame, dst_frame, xi, yi, zi) schedule(static, 1)
 #endif
@@ -3166,8 +3166,8 @@ MRI *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int 
     case MRI_FLOAT:
       switch (axis) {
         case MRI_WIDTH:
-#ifdef HAVE_OPENMP
           ROMP_PF_begin
+#ifdef HAVE_OPENMP
 	  #pragma omp parallel for if_ROMP(assume_reproducible) firstprivate(y, x, inBase_f, foutPix, ki, i, total) \
     shared(depth, height, width, len, halflen, mri_dst, src_frame, dst_frame, xi, yi, zi) schedule(static, 1)
 #endif
@@ -3197,8 +3197,8 @@ MRI *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int 
 	  ROMP_PF_end
           break;
         case MRI_HEIGHT:
-#ifdef HAVE_OPENMP
           ROMP_PF_begin
+#ifdef HAVE_OPENMP
 	  #pragma omp parallel for if_ROMP(assume_reproducible) firstprivate(y, x, foutPix, ki, i, total) \
     shared(depth, height, width, len, halflen, mri_dst, src_frame, dst_frame, xi, yi, zi) schedule(static, 1)
 #endif
@@ -3225,8 +3225,8 @@ MRI *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int 
 	  ROMP_PF_end
           break;
         case MRI_DEPTH:
-#ifdef HAVE_OPENMP
           ROMP_PF_begin
+#ifdef HAVE_OPENMP
 	  #pragma omp parallel for if_ROMP(assume_reproducible) firstprivate(y, x, foutPix, ki, i, total) \
     shared(depth, height, width, len, halflen, mri_dst, src_frame, dst_frame, xi, yi, zi) schedule(static, 1)
 #endif
@@ -3253,8 +3253,8 @@ MRI *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int 
     default:
       switch (axis) {
         case MRI_WIDTH:
-#ifdef HAVE_OPENMP
           ROMP_PF_begin
+#ifdef HAVE_OPENMP
 	  #pragma omp parallel for if_ROMP(experimental) firstprivate(y, x, foutPix, ki, i, val, total) \
     shared(depth, height, width, len, halflen, mri_dst, src_frame, dst_frame, xi, yi, zi) schedule(static, 1)
 #endif
@@ -3281,8 +3281,8 @@ MRI *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int 
 	  ROMP_PF_end
           break;
         case MRI_HEIGHT:
-#ifdef HAVE_OPENMP
           ROMP_PF_begin
+#ifdef HAVE_OPENMP
 	  #pragma omp parallel for if_ROMP(experimental) firstprivate(y, x, foutPix, ki, i, val, total) \
     shared(depth, height, width, len, halflen, mri_dst, src_frame, dst_frame, xi, yi, zi) schedule(static, 1)
 #endif
@@ -3311,8 +3311,8 @@ MRI *MRIconvolve1d(MRI *mri_src, MRI *mri_dst, float *k, int len, int axis, int 
 	  ROMP_PF_end
           break;
         case MRI_DEPTH:
-#ifdef HAVE_OPENMP
           ROMP_PF_begin
+#ifdef HAVE_OPENMP
 	  #pragma omp parallel for if_ROMP(experimental) firstprivate(y, x, foutPix, ki, i, val, total) \
     shared(depth, height, width, len, halflen, mri_dst, src_frame, dst_frame, xi, yi, zi) schedule(static, 1)
 #endif
@@ -5499,8 +5499,8 @@ MRI *MRIsmoothLabel6Connected(
 
   for (i = 0; i < niter; i++) {
     memset(max_change, 0, sizeof(max_change));
-#ifdef HAVE_OPENMP
     ROMP_PF_begin
+#ifdef HAVE_OPENMP
     #pragma omp parallel for if_ROMP(experimental) firstprivate(max_change) shared(mri_tmp, mri_label, Gx, Gy, Gz) schedule(static, 1)
 #endif
     for (x = 0; x < mri_tmp->width; x++) {
@@ -6178,8 +6178,8 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
   /* -----------------Smooth the columns -----------------------------*/
   if (cstd > 0) {
     G = GaussianMatrix(src->width, cstd / src->xsize, 1, NULL);
-#ifdef HAVE_OPENMP
     ROMP_PF_begin
+#ifdef HAVE_OPENMP
     #pragma omp parallel for if_ROMP(experimental)
 #endif
     for (r = 0; r < src->height; r++) {
@@ -6217,8 +6217,8 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
   if (rstd > 0) {
     if (Gdiag_no > 0 && DIAG_VERBOSE_ON) printf("Smoothing rows\n");
     G = GaussianMatrix(src->height, (double)rstd / src->ysize, 1, NULL);
-#ifdef HAVE_OPENMP
     ROMP_PF_begin
+#ifdef HAVE_OPENMP
     #pragma omp parallel for if_ROMP(experimental)
 #endif
     for (c = 0; c < src->width; c++) {
@@ -6260,8 +6260,8 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
   if (sstd > 0) {
     // printf("Smoothing slices by std=%g\n",sstd);
     G = GaussianMatrix(src->depth, sstd / src->zsize, 1, NULL);
-#ifdef HAVE_OPENMP
     ROMP_PF_begin
+#ifdef HAVE_OPENMP
     #pragma omp parallel for if_ROMP(experimental)
 #endif
     for (c = 0; c < src->width; c++) {
@@ -6314,8 +6314,9 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
     sstop = src->depth;
   else
     sstop = 1;
-#ifdef HAVE_OPENMP
+
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) reduction(+ : scale, vmf)
 #endif
   for (c = 0; c < cstop; c++) {
@@ -6343,8 +6344,8 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, MRI *t
 
 // Divide by the sum of the kernel so that a smoothed delta function
 // will sum to one and so that a constant input yields const output.
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (c = 0; c < src->width; c++) {
@@ -6635,8 +6636,8 @@ MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out)
   TimerStart(&timer);
 
 // Fill the slice-based parameters
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (c = 0; c < out->width; c++) {
@@ -6670,8 +6671,8 @@ MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out)
   ROMP_PF_end
 
 // Apply the smoothing
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (c = 0; c < out->width; c++) {

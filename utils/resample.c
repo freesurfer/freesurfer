@@ -2109,8 +2109,8 @@ MRI *MRIseg2SegPVF(
   /* The main loop goes over each voxel in the output/mask. This is
      thread-safe because each voxel is handled separately. */
   nhits = 0;  // keep track of the total number of hits
-#ifdef _OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   // note: removing reduction(+:nhits) slows the speed to that of 1 thread
   #pragma omp parallel for if_ROMP(experimental) shared(nperfth, m13, m23, m33) reduction(+ : nhits)
 #endif

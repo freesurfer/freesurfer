@@ -1751,8 +1751,8 @@ int GTMbuildX(GTM *gtm)
   TimerStart(&timer);
 
   err = 0;
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) reduction(+ : err)
 #endif
   for (nthseg = 0; nthseg < gtm->nsegs; nthseg++) {
@@ -2506,9 +2506,9 @@ MRI **GTMlocal(GTM *gtm, MRI **pvc)
   printf("GTMlocal(): nrad = %d, nvmax = %d, nTT=%d, Xthresh %f\n", gtm->lgtm->nrad, nvmax, nTT, gtm->lgtm->Xthresh);
   TimerStart(&timer);
 
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
   printf("     nthreads = %d\n", omp_get_max_threads());
-  ROMP_PF_begin
 #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (c = 0; c < gtm->yvol->width; c++) {

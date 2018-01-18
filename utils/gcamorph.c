@@ -2019,8 +2019,8 @@ int gcamLogLikelihoodTerm(GCA_MORPH *gcam, const MRI *mri, const MRI *mri_smooth
 
 //  TIMER_INTERVAL_BEGIN(loop)
   
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(assume_reproducible) firstprivate(tid, y, z, gcamn, n, norm, dx, dy, dz, vals, m_delI, m_inv_cov, v_means, v_grad) \
     shared(gcam, mri, Gx, Gy, Gz, Gvx, Gvy, Gvz) schedule(static, 1)
 #endif
@@ -2339,8 +2339,8 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
 #if SHOW_EXEC_LOC
   printf("%s: CPU call\n", __FUNCTION__);
 #endif
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(fast) reduction(+ : sse) firstprivate(y, z, error) shared(gcam, mri) schedule(static, 1)
 #endif
   for (x = 0; x < gcam->width; x++) {
@@ -2639,8 +2639,8 @@ int gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, double l_jacobian, double 
   }
 
   num = 0;
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(assume_reproducible) reduction (+:num) firstprivate (j,k,gcamn,ratio,orig_area,ratio_thresh) shared(gcam) schedule(static,1)
 #endif
   for (i = 0; i < gcam->width; i++) {
@@ -2739,8 +2739,8 @@ int gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, double l_jacobian, double 
   }
   
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(assume_reproducible) firstprivate(j, k, gcamn, dx, dy, dz, norm, tid, mn) shared(gcam) schedule(static, 1)
 #endif
   for (i = 0; i < gcam->width; i++) {
@@ -2773,8 +2773,8 @@ int gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, double l_jacobian, double 
       max_norm = mn[tid];
     }
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(assume_reproducible) firstprivate(j, k, gcamn, dx, dy, dz, norm) \
     shared(gcam, mri, l_jacobian, Gx, Gy, Gz, max_norm) schedule(static, 1)
 #endif
@@ -3780,8 +3780,8 @@ int gcamComputeMetricProperties(GCA_MORPH *gcam)
       }
   }
   
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(assume_reproducible) firstprivate(tid, j, k, gcamn, neg, num, gcamni, gcamnj, gcamnk, area1, area2) \
     shared(gcam, Gx, Gy, Gz, v_i, v_j, v_k, gcam_neg_counter, Ginvalid_counter) schedule(static, 1)
 #endif
@@ -4156,8 +4156,8 @@ double gcamJacobianEnergy(const GCA_MORPH *gcam, MRI *mri)
 
   // Note sse initialised to zero here
   sse = 0.0f;
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(fast) firstprivate(j,k,gcamn,ratio,exponent,delta) shared(width,height,depth,gcam) reduction(+:sse) schedule(static,1)
 #endif
   for (i = 0; i < width; i++) {
@@ -6535,8 +6535,8 @@ int gcamSmoothnessTerm(GCA_MORPH *gcam, const MRI *mri, const double l_smoothnes
   width = gcam->width;
   height = gcam->height;
   depth = gcam->depth;
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(assume_reproducible) firstprivate(                                                          \
     y, z, gcamn, vx, vy, vz, dx, dy, dz, num, xk, xn, yk, yn, zk, zn, gcamn_nbr, vnx, vny, vnz) \
     shared(gcam, Gx, Gy, Gz) schedule(static, 1)
@@ -6821,8 +6821,8 @@ static double gcamSmoothnessEnergy_old(const GCA_MORPH *gcam, const MRI *mri)
   height = gcam->height;
   depth = gcam->depth;
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) firstprivate(y,z,vx,vy,vz,vnx,vny,vnz,error,node_sse,dx,dy,dz,xk,yk,zk,xn,yn,zn,num,gcamn,gcamn_nbr) reduction(+:sse) shared(gcam,Gx,Gy,Gz) schedule(static,1)
 #endif
   // Loop over all voxels
@@ -6974,8 +6974,8 @@ static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
       }
   }
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(fast) reduction(+:sse) shared(gcam,Gx,Gy,Gz) schedule(static,1)
 #endif
   for (xLo = 0; xLo < width; xLo += xStride) {
@@ -9936,8 +9936,8 @@ int gcamMapTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_map)
   // 3 x 1
   v_grad[tid] = VectorAlloc(3, MATRIX_REAL);
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) firstprivate(tid, i, y, z, gcamn, gcap, n, norm, dx, dy, dz, gc, node_prob, prob) \
     shared(gcam, Gx, Gy, Gz, mri_smooth, l_map) schedule(static, 1)
 #endif
@@ -17218,10 +17218,10 @@ MRI *GCAMcreateDistanceTransforms(
 
   MRIcopyHeader(mri_target, mri_all_dtrans);
 
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
   label = 0;
   mri_atlas_dtrans = mri_dtrans = NULL;
-  ROMP_PF_begin
   #pragma omp parallel for if_ROMP(experimental) firstprivate(                                                                            \
     label, fname, mri_atlas_dtrans, mri_source, mri_target, mri_all_dtrans, mri_dtrans, max_dist, Gdiag_no, gcam) \
     schedule(static, 1)
@@ -17284,8 +17284,8 @@ GCAMcreateDistanceTransforms(GCA_MORPH *gcam, MRI *mri, MRI *mri_all_dtrans,
   mri_labels = MRIcloneDifferentType(mri, MRI_FLOAT) ;
   GCAMbuildLabelVolume(gcam, mri_labels) ;
   MRIwrite(mri_labels, "labels.mgz") ;
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) firstprivate( \
     fname, mri_labels, mri_all_dtrans, dtrans_labels, mri_dtrans, mri, max_dist, Gdiag_no, gcam) schedule(static, 1)
 #endif

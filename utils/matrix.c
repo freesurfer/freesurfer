@@ -3915,8 +3915,8 @@ MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
 
 /* Loop over the number of distinct elements in the symetric matrix. Using
    the LUT created above is better for load balancing.  */
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) shared(c1list, c2list, ntot, cols, rows, mout, m)
 #endif
   for (n = 0; n < ntot; n++) {
@@ -4066,8 +4066,8 @@ MATRIX *MatrixAtB(MATRIX *A, MATRIX *B, MATRIX *mout)
     }
   }
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (colA = 0; colA < A->cols; colA++) {

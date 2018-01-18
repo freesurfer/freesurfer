@@ -2561,8 +2561,8 @@ CURV_functionRunABC( double (*F)(float f_A, float f_B) )
   //
   int   i;
 
-  #ifdef _OPENMP
   ROMP_PF_begin
+  #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) 
   #endif
   for(i=0; i<G_sizeCurv1; i++)

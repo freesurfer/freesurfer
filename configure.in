@@ -828,37 +828,35 @@ AM_CONDITIONAL(USE_SSE_MATHFUN, test "x$ac_have_sse_mathfun" = "xyes")
 ##############################################################
 # OpenMP
 ##############################################################
+
+# decide on the default
 ac_have_openmp=no
-OPENMP_FLAG=""
-AC_ARG_ENABLE(openmp,
- [  --enable-openmp         enable OpenMP multi-core support],
- [ ac_have_openmp=yes
-   AC_MSG_NOTICE(Using OpenMP)
-   if test "${CC}" = "icc"; then
-     OPENMP_FLAG="-qopenmp"
-     CPPFLAGS="-D_OPENMP $OPENMP_FLAG $CPPFLAGS"
-   else
-     OPENMP_FLAG="-fopenmp"
-     CPPFLAGS="-D_OPENMP $OPENMP_FLAG $CPPFLAGS"
-   fi
- ])
-
-# gcc 4.4 supports openmp, so enable it by default (no harm in doing so)
-if test "$ac_have_gcc_44_or_higher" = "yes"; then
+if test "x$ac_have_gcc_44_or_higher" = "xyes"; then
   ac_have_openmp=yes
-  OPENMP_FLAG="-fopenmp"
-  CPPFLAGS="$CPPFLAGS $OPENMP_FLAG -DHAVE_OPENMP"
-  LDFLAGS="$LDFLAGS $OPENMP_FLAG"
-  AC_MSG_NOTICE(Using OpenMP with gcc 4.x)
 fi
-
-# Intel icc supports openmp, so enable it by default (no harm in doing so)
 if test "x$CC" = "xicc"; then
   ac_have_openmp=yes
-  OPENMP_FLAG="-qopenmp"
-  CPPFLAGS="$CPPFLAGS $OPENMP_FLAG -DHAVE_OPENMP"
+fi
+
+# force on or off based on --enable-openmp[=yes,=no] or --disable-openmp
+AC_ARG_ENABLE(openmp,
+ [  --enable-openmp         enable OpenMP multi-core support],
+ [case "${enableval}" in
+  yes)  ac_have_openmp=yes ;;
+  no)   ac_have_openmp=no  ;;
+  *) AC_MSG_ERROR([bad value ${enableval} for --enable-openmp]) ;;
+  esac])
+
+# do the right thing
+if test "x$ac_have_openmp" = "xyes"; then
+  AC_MSG_NOTICE(Using OpenMP)
+  if test "x${CC}" = "xicc"; then
+    OPENMP_FLAG="-qopenmp"
+  else
+    OPENMP_FLAG="-fopenmp"
+  fi
+  CPPFLAGS="-DHAVE_OPENMP -D_OPENMP $OPENMP_FLAG $CPPFLAGS"
   LDFLAGS="$LDFLAGS $OPENMP_FLAG"
-  AC_MSG_NOTICE(Using OpenMP with Intel Compiler)
 fi
 
 AM_CONDITIONAL(HAVE_OPENMP, test "x$ac_have_openmp" = "xyes")

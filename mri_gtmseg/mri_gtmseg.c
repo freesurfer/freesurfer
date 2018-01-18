@@ -428,8 +428,8 @@ MRI *MRIErodeWMSeg(MRI *seg, int nErode3d, MRI *outseg)
   MRIcopy(seg,outseg);
 
   wm = MRIallocSequence(seg->width, seg->height, seg->depth, MRI_INT, 1);
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental)
 #endif
   for(c=0; c < seg->width; c++) {
@@ -451,8 +451,8 @@ MRI *MRIErodeWMSeg(MRI *seg, int nErode3d, MRI *outseg)
   for(n=0; n<nErode3d; n++) MRIerode(wm,wm);
   MRIwrite(wm,"wm.erode.mgh");
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental)
 #endif
   for(c=0; c < seg->width; c++) {

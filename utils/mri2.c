@@ -762,8 +762,8 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
   valvects[0] = (float *)calloc(sizeof(float), src->nframes);
 #endif
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) shared(show_progress_thread, targ, bspline, src, Vt2s, InterpCode)
 #endif
   for (ct = 0; ct < targ->width; ct++) {
@@ -4268,8 +4268,8 @@ int MRIcountMatches(const MRI *seg, const int MatchVal, const int frame, const M
   int nMatches = 0;
   int c;
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) reduction(+ : nMatches)
 #endif
   for (c = 0; c < seg->width; c++) {
@@ -4450,9 +4450,9 @@ MRI *MRIannot2CorticalSeg(MRI *seg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, 
   printf("  MRIannot2CorticalSeg(): looping over volume\n");
   fflush(stdout);
   nunknown = 0;
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
   printf("     nthreads = %d\n", omp_get_max_threads());
-  ROMP_PF_begin
   #pragma omp parallel for if_ROMP(experimental) reduction(+ : nunknown)
 #endif
   for (c = 0; c < seg->width; c++) {
@@ -4619,9 +4619,9 @@ MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, L
 
   printf("  MRIannot2CerebralWMSeg(): looping over volume\n");
   fflush(stdout);
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
   printf("     nthreads = %d\n", omp_get_max_threads());
-  ROMP_PF_begin
   #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (c = 0; c < seg->width; c++) {
@@ -4758,9 +4758,9 @@ MRI *MRIunsegmentWM(MRI *seg, MRIS *lhw, MRIS *rhw, int *segidlist, int nlist, L
 
   printf("  MRIunsegmentWM(): looping over volume\n");
   fflush(stdout);
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
   printf("     nthreads = %d\n", omp_get_max_threads());
-  ROMP_PF_begin
   #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (c = 0; c < seg->width; c++) {
@@ -4885,9 +4885,9 @@ MRI *MRIrelabelHypoHemi(MRI *seg, MRIS *lhw, MRIS *rhw, LTA *anat2seg, MRI *wmse
 
   printf("  MRIrelabelHypoHemi(): looping over volume\n");
   fflush(stdout);
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
   printf("     nthreads = %d\n", omp_get_max_threads());
-  ROMP_PF_begin
   #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (c = 0; c < seg->width; c++) {
@@ -4968,8 +4968,8 @@ MRI *MRIunsegmentCortex(MRI *seg, int lhmin, int lhmax, int rhmin, int rhmax, MR
     return (NULL);
   }
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (c = 0; c < seg->width; c++) {

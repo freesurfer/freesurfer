@@ -1263,8 +1263,8 @@ HISTOGRAM *MRIhistogramRegionWithThreshold(
   HISTOclear(histo, histo);
   HISTOinit(histo, nbins, fmin, fmax);
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) shared(histos, width, height, depth, fmin, fmax, frame, x0, y0, z0, histo)
 #endif
   for (z = z0; z < depth; z++) {

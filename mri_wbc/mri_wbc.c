@@ -726,8 +726,8 @@ MRI *WholeBrainCon(WBC *wbc)
   
   printf("Starting WBC loop\n"); fflush(stdout);
   TimerStart(&timer);
-  #ifdef HAVE_OPENMP
   ROMP_PF_begin
+  #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) 
   #endif
   for(threadno = 0; threadno < nthreads; threadno ++){

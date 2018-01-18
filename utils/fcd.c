@@ -379,11 +379,9 @@ int FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sig
   exec_progress_callback(5, 8, 0, 1);
 
 // process left hemisphere
-#if 1
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-ROMP_PF_begin
-#pragma omp parallel for if_ROMP(experimental) shared(fcd, mri_lh_diff, Gdiag_no, thickness_thresh) schedule(static, 1)
-#endif
+  #pragma omp parallel for if_ROMP(experimental) shared(fcd, mri_lh_diff, Gdiag_no, thickness_thresh) schedule(static, 1)
 #endif
   for (vno = 0; vno < fcd->mris_lh->nvertices; vno++) {
     ROMP_PFLB_begin
@@ -447,11 +445,10 @@ ROMP_PF_begin
   exec_progress_callback(6, 8, 0, 1);
 
 // now do right hemisphere
-#if 1
-#ifdef HAVE_OPENMP
+
   ROMP_PF_begin
-#pragma omp parallel for if_ROMP(experimental) shared(fcd, mri_rh_diff, Gdiag_no, thickness_thresh) schedule(static, 1)
-#endif
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(experimental) shared(fcd, mri_rh_diff, Gdiag_no, thickness_thresh) schedule(static, 1)
 #endif
   for (vno = 0; vno < fcd->mris_rh->nvertices; vno++) {
     ROMP_PFLB_begin

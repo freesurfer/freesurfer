@@ -920,8 +920,8 @@ int COREGhist(COREG *coreg)
     HH[n] = (double *)calloc(sizeof(double),256*256);
 
   nhits = 0;
-  #ifdef HAVE_OPENMP
   ROMP_PF_begin
+  #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) reduction(+:nhits)
   #endif
   for(cref=0; cref < coreg->ref->width; cref += coreg->sep){
