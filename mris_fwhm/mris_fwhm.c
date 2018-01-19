@@ -123,9 +123,8 @@ double round(double x);
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <unistd.h>
-#ifdef _OPENMP
+
 #include "romp_support.h"
-#endif
 
 #include "macros.h"
 #include "utils.h"
