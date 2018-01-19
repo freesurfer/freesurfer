@@ -131,7 +131,7 @@ def match_on_overlap(ref, item, ref_shape, item_shape):
 
 
 class CheckpointManager:
-    def __init__(self, matlab_dump_dir=None, python_dump_dir=None):
+    def __init__(self, matlab_dump_dir=None, python_dump_dir=None, detailed=False):
         if matlab_dump_dir is None:
             matlab_dump_dir = MATLAB_DUMP_DIR
         if python_dump_dir is None:
@@ -139,6 +139,7 @@ class CheckpointManager:
         self.matlab_dump_dir = matlab_dump_dir
         self.python_dump_dir = python_dump_dir
         self.counts = {}
+        self.detailed = detailed
 
     def increment(self, checkpoint_name):
         self.counts.setdefault(checkpoint_name, 0)
@@ -237,6 +238,44 @@ class NdArrayInspector(Inspector):
         compare_ndarray_closeness(reference_value, target_value, message)
 
 
+def compare_ndarray_dice(reference_value, target_value, name):
+    def show(message, prefix=''):
+        print("{2}{0}: {1}".format(name, message, prefix))
+
+    if not hasattr(reference_value, 'shape'):
+        show("ref has no shape")
+        return
+    ref_shape = reference_value.shape
+    if not hasattr(target_value, 'shape'):
+        show('ref.shape={0} but item has no shape'.format(ref_shape))
+        return
+    item_shape = target_value.shape
+    if target_value.shape != reference_value.shape:
+        show('shapes differ ref={0} item={1}'.format(ref_shape, item_shape))
+        if (len(item_shape) == len(ref_shape)):
+            reference_value, target_value = match_on_overlap(reference_value, target_value, ref_shape, item_shape)
+        else:
+            return
+    else:
+        show('shapes identical {0}'.format(ref_shape))
+    try:
+        total_size = np.prod(ref_shape)
+        matches = target_value == reference_value
+        total_matches = np.sum(matches)
+        dice = total_matches / total_size
+        if total_matches == total_size and ref_shape == item_shape:
+            show('are identical', '    ')
+        show('dice={0} = {1}/{2}'.format(dice, total_matches, total_size), '    ')
+    except Exception as flaw:
+        show('flaw = {0}'.format(str(flaw)))
+        traceback.print_exc()
+
+
+class DiceInspector(Inspector):
+    def compare(self, reference_value, target_value, message):
+        compare_ndarray_dice(reference_value, target_value, message)
+
+
 class ScalarInspector(Inspector):
     def compare(self, reference_value, target_value, message):
         compare_scalars(reference_value, target_value, message)
@@ -246,14 +285,15 @@ class ListInspector(Inspector):
     def compare(self, reference_value, target_value, message):
         compare_lists(reference_value, target_value, message)
 
+
 class ScrambleInspector(Inspector):
     def compare(self, reference_value, target_value, message):
         sorted_ref = sorted_index_array(reference_value)
         sorted_target = sorted_index_array(target_value)
         how_many = min(25, reference_value.shape[0])
         width, height = reference_value.shape
-        mapping = [[[0,0] for i in range(width)] for j in range(height)]
-        unmapping = [[[0,0] for i in range(width)] for j in range(height)]
+        mapping = [[[0, 0] for i in range(width)] for j in range(height)]
+        unmapping = [[[0, 0] for i in range(width)] for j in range(height)]
         for index in range(how_many):
             print('    {0} {1} {2}'.format(message, sorted_ref[index], sorted_target[index]))
         for index in range(how_many):
@@ -281,55 +321,62 @@ class ScrambleInspector(Inspector):
         for k in range(width):
             t_i, t_j = mapping[0][k]
             r_i, r_j = unmapping[0][k]
-            print('    {0} [0,{1}] => [{2},{3}]  [{4},{5}] => [0,{1}] {11}:{12} {10} {13:14} {6}<->{7} {8}<->{9}'.format(
-                message, k,
-                t_i, t_j,
-                r_i, r_j,
-                reference_value[0][k],
-                target_value[t_i][t_j],
-                reference_value[r_i][r_j],
-                target_value[0][k],
-                basis(k),
-                basis(r_i),
-                basis(r_j),
-                basis(t_i),
-                basis(t_j),
-            ))
+            print(
+                '    {0} [0,{1}] => [{2},{3}]  [{4},{5}] => [0,{1}] {11}:{12} {10} {13:14} {6}<->{7} {8}<->{9}'.format(
+                    message, k,
+                    t_i, t_j,
+                    r_i, r_j,
+                    reference_value[0][k],
+                    target_value[t_i][t_j],
+                    reference_value[r_i][r_j],
+                    target_value[0][k],
+                    basis(k),
+                    basis(r_i),
+                    basis(r_j),
+                    basis(t_i),
+                    basis(t_j),
+                ))
         for k in range(width):
             t_i, t_j = mapping[k][0]
             r_i, r_j = unmapping[k][0]
-            print('    {0} [{1},0] => [{2},{3}]  [{4},{5}] => [{1},0] {11}:{12} {10} {13}:{14} {6}<->{7} {8}<->{9}'.format(
-                message, k,
-                t_i, t_j,
-                r_i, r_j,
-                reference_value[k][0],
-                target_value[t_i][t_j],
-                reference_value[r_i][r_j],
-                target_value[k][0],
-                basis(k),
-                basis(r_i),
-                basis(r_j),
-                basis(t_i),
-                basis(t_j),
-            ))
+            print(
+                '    {0} [{1},0] => [{2},{3}]  [{4},{5}] => [{1},0] {11}:{12} {10} {13}:{14} {6}<->{7} {8}<->{9}'.format(
+                    message, k,
+                    t_i, t_j,
+                    r_i, r_j,
+                    reference_value[k][0],
+                    target_value[t_i][t_j],
+                    reference_value[r_i][r_j],
+                    target_value[k][0],
+                    basis(k),
+                    basis(r_i),
+                    basis(r_j),
+                    basis(t_i),
+                    basis(t_j),
+                ))
         pass
+
 
 def basis(i):
     a = i % 5
     i = i // 5
     b = i % 5
     c = i // 5
-    return str([a, b , c])
+    return str([a, b, c])
+
 
 def indexed_array(data):
     width, height = data.shape
-    return[ (data[i,j], i, j, width*j + 1, height*i+ j) for i in range(width)  for j in range(height)]
+    return [(data[i, j], i, j, width * j + 1, height * i + j) for i in range(width) for j in range(height)]
+
 
 def take_first(a):
     return a[0]
 
+
 def sorted_index_array(data):
     return sorted(indexed_array(data), key=take_first)
+
 
 def create_part1_inspection_team():
     return InspectionTeam('part1', [
@@ -358,6 +405,7 @@ def create_part1_inspection_team():
         ListInspector([
             'numberOfGaussiansPerClass',
         ]),
+        DiceInspector(['mask']),
     ])
 
 
@@ -381,6 +429,10 @@ def create_part3_inspection_team():
             'freeSurferSegmentation',
             'uncroppedFreeSurferSegmentation',
             'volumesInCubicMm',
+        ]),
+        DiceInspector([
+            'freeSurferSegmentation',
+            'uncroppedFreeSurferSegmentation',
         ]),
     ])
 
@@ -437,6 +489,7 @@ def create_optimizer_em_exit_inspection_team():
         ]),
     ])
 
+
 def create_bias_correction_inspection_team():
     return InspectionTeam('estimateBiasField', [
         NdArrayInspector([
@@ -484,7 +537,8 @@ def possible_shapes():
             permutation = [5 for k in range(6)]
             permutation[5 - i] = 6
             permutation[5 - j] = 6
-            yield  permutation
+            yield permutation
+
 
 if __name__ == '__main__':
     x = [5, 5, 6]

@@ -740,7 +740,7 @@ def samsegment_part2(
                     #
                     #       end % End test if multiResolutionLevel == 1
                     #
-                    if checkpoint_manager:
+                    if checkpoint_manager and checkpoint_manager.detailed:
                         checkpoint_manager.increment_and_save(
                             {
                                 'biasFieldCoefficients': biasFieldCoefficients,
