@@ -262,10 +262,17 @@ def compare_ndarray_dice(reference_value, target_value, name):
         total_size = np.prod(ref_shape)
         matches = target_value == reference_value
         total_matches = np.sum(matches)
-        dice = total_matches / total_size
         if total_matches == total_size and ref_shape == item_shape:
             show('are identical', '    ')
-        show('dice={0} = {1}/{2}'.format(dice, total_matches, total_size), '    ')
+        matching_rate = total_matches / total_size
+        show('matching rate={0} = {1}/{2}'.format(matching_rate, total_matches, total_size), '    ')
+        ref_interior = reference_value != 0
+        ref_interior_count = np.sum(ref_interior)
+        target_interior_count = np.sum(target_value != 0)
+        interior_match_count = np.sum(np.logical_and(ref_interior, matches))
+        dice = 2 * interior_match_count / (target_interior_count + ref_interior_count)
+        show('dice={0} = 2*{1}/({2} + {3})'.format(
+            dice, interior_match_count, ref_interior_count, target_interior_count), '    ')
     except Exception as flaw:
         show('flaw = {0}'.format(str(flaw)))
         traceback.print_exc()
