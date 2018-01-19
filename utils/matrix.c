@@ -2384,7 +2384,9 @@ float XYZApproxAngle(XYZ const *normalizedXYZ, float x2, float y2, float z2)
 
   // left the following here for debugging or other investigation
   if (0)
+#ifdef HAVE_OPENMP
 #pragma omp critical
+#endif
   {
 #define HL 1024
     static long histogram[HL];
@@ -2427,7 +2429,9 @@ float XYZApproxAngle(XYZ const *normalizedXYZ, float x2, float y2, float z2)
     angle = sqrt(2.0f * (1.0f - acosInput));
     // left the following here for debugging or other investigation
     if (0)
+#ifdef HAVE_OPENMP
 #pragma omp critical
+#endif
     {
       static int count;
       if (count++ < 100) printf("acos approx inp:%g approx:%g correct:%g\n", acosInput, angle, acos(acosInput));

@@ -98,7 +98,9 @@ static StaticData* initStaticData(ROMP_pf_static_struct * pf_static)
 {
     StaticData* ptr = (StaticData*)pf_static->ptr;
     if (ptr) return ptr;
+#ifdef HAVE_OPENMP
     #pragma omp critical
+#endif
     {	// Might have been made by another thread
     	ptr = (StaticData*)pf_static->ptr;
     	if (!ptr) {
@@ -130,9 +132,16 @@ void ROMP_pf_begin(
     for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
         pf_stack->watchedThreadBeginCPUTimes[i].ns = 0;
     }
+#ifdef HAVE_OPENMP
     #pragma omp parallel for schedule(static,1)
+#endif
     for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
-        int tid = omp_get_thread_num();
+        int tid = 
+#ifdef HAVE_OPENMP
+	    omp_get_thread_num();
+#else
+	    0;
+#endif
 	if (tid >= ROMP_maxWatchedThreadNum) continue;
 	clockid_t clockid;
 	int s = pthread_getcpuclockid(pthread_self(), &clockid);
@@ -169,13 +178,22 @@ void ROMP_pf_end(
 
     Nanosecs delta = TimerElapsedNanosecs(&pf_stack->beginTime);
     StaticData* staticData = (StaticData*)(pf_static->ptr);
+#ifdef HAVE_OPENMP
     #pragma omp atomic
+#endif
     staticData->in_pf.ns += delta.ns;
 
     int i;
+#ifdef HAVE_OPENMP
     #pragma omp parallel for schedule(static,1)
+#endif
     for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
-        int tid = omp_get_thread_num();
+        int tid = 
+#ifdef HAVE_OPENMP
+	    omp_get_thread_num();
+#else
+	    0;
+#endif
 	if (tid >= ROMP_maxWatchedThreadNum) continue;
 	
 	Nanosecs* startCPUTime = &pf_stack->watchedThreadBeginCPUTimes[tid];
@@ -207,7 +225,9 @@ void ROMP_pf_end(
 	threadCpuTime.ns = timespec.tv_sec * 1000000000L + timespec.tv_nsec - startCPUTime->ns;
 	startCPUTime->ns = -1;
     
+#ifdef HAVE_OPENMP
     	#pragma omp atomic
+#endif
     	staticData->in_pfThread.ns += threadCpuTime.ns;
     }
     
@@ -230,7 +250,12 @@ void ROMP_pflb_begin(
     ROMP_pf_static_struct * pf_static = pf_stack->staticInfo;
     if (!pf_static) { pflb_stack->pf_stack = NULL; return; }
     TimerStartNanosecs(&pflb_stack->beginTime);
-    int tid = omp_get_thread_num();
+    int tid = 
+#ifdef HAVE_OPENMP
+        omp_get_thread_num();
+#else
+	0;
+#endif
     pflb_stack->tid = tid;
     if (tid >= 8*sizeof(int)) return;
     int tidMask = 1<<tid;
@@ -239,7 +264,9 @@ void ROMP_pflb_begin(
 	    pf_static->file, pf_static->line);
         exit(1);
     }
+#ifdef HAVE_OPENMP
     #pragma omp atomic
+#endif
     pf_stack->tids_active ^= tidMask;
 }
 
@@ -252,9 +279,16 @@ void ROMP_pflb_end(
     Nanosecs delta = TimerElapsedNanosecs(&pflb_stack->beginTime);
     StaticData* staticData = (StaticData*)(pf_static->ptr);
     
+#ifdef HAVE_OPENMP
     #pragma omp atomic
+#endif
     staticData->in_pflb.ns += delta.ns;
-    int tid = omp_get_thread_num();
+    int tid = 
+#ifdef HAVE_OPENMP
+        omp_get_thread_num();
+#else
+	0;
+#endif
     if (pflb_stack->tid != tid) {
         fprintf(stderr, "Bad tid in ROMP_pflb_end %s:%d\n",
 	    pf_static->file, pf_static->line);
@@ -267,7 +301,9 @@ void ROMP_pflb_end(
 	    pf_static->file, pf_static->line);
         exit(1);
     }
+#ifdef HAVE_OPENMP
     #pragma omp atomic
+#endif
     pf_stack->tids_active ^= tidMask;
 
     if (delta.ns < 1000) {	// loop body is too small to time this way...
@@ -332,8 +368,12 @@ int main(int argc, char* argv[])
     for (i = 0; i < v_size; i++) {
     	ROMP_PFLB_begin
 	
-	threadMask |= 1 << omp_get_thread_num();
-	
+	threadMask |= 1 << 
+#ifdef HAVE_OPENMP
+		omp_get_thread_num();
+#else
+		0;
+#endif	
     	sum += 1.0 / i;
 	
 	int j;

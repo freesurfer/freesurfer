@@ -56034,7 +56034,9 @@ static double mrisComputeDefectMRILogUnlikelihood_new(
 #endif
 
     Entry* entry;
+#ifdef HAVE_OPENMP
     #pragma omp critical
+#endif
     entry = &buffer[bufferSize++];
 
 #define ELT(T,X) entry->X = X; 
@@ -68833,6 +68835,7 @@ MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *glo
     // Zero the output
   }
 
+  nhops = 0;
   if (mrikern) nhops = mrikern->nframes;
   if (globkern) nhops = globkern->rows;
   printf("nhops = %d\n", nhops);

@@ -138,7 +138,6 @@ int main(int argc, char **argv)
 
 
   // good vertex on the lateral side 108489
-  omp_set_num_threads(10);
 
   // apply smoothing: 5 args: surf geod input index output
   surf = MRISread(argv[1]);
