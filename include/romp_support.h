@@ -24,7 +24,9 @@
 
 #pragma once
 
+#ifdef HAVE_OPENMP
 #include <omp.h>
+#endif
 
 #include "timer.h"
 #include <stdio.h>
@@ -35,8 +37,8 @@ void ROMP_show_stats(FILE*);
 // An annotated omp for loop looks like this...
 //
 #if 0
-	#ifdef HAVE_OPENMP
 	ROMP_PF_begin
+	#ifdef HAVE_OPENMP
 	#pragma omp parallel for if_ROMP(experimental) ...
 	#endif
   	for (n=0; n < nsegid; n++)

@@ -500,6 +500,7 @@ int RFtrain(RANDOM_FOREST *rf,
   feature_permutation = compute_permutation(rf->nfeatures, NULL);
   training_permutation = compute_permutation(ntraining, NULL);
 
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
   tree = NULL;
   start_no = 0;  // only 1 tree
@@ -507,7 +508,6 @@ int RFtrain(RANDOM_FOREST *rf,
   index = 0;
   n = 0;
   ii = 0;
-  ROMP_PF_begin
   #pragma omp parallel for if_ROMP(experimental) firstprivate(tree, start_no, end_no, ii, index) \
     shared(rf, nfeatures_per_tree, Gdiag, training_classes, training_data) schedule(static, 1)
 #endif

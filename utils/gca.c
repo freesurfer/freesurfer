@@ -32,9 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef HAVE_OPENMP
 #include "romp_support.h"
-#endif
 
 #include "cma.h"
 #include "diag.h"
@@ -4594,8 +4592,8 @@ float GCAcomputeLogSampleProbability(
   else
     m_prior2source_voxel = GCAgetPriorToSourceVoxelMatrix(gca, mri_inputs, transform);
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(fast) firstprivate(gcas, tid, m_prior2source_voxel) reduction(+ : total_log_p)
 #endif
   for (i = 0; i < nsamples; i++) {
@@ -13003,8 +13001,14 @@ int GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities, int num
             gc->means[0] = intensities[i] / 3;
           }
           else
+	  {
+            if ((xn == Gx && yn == Gy && zn == Gz) &&
+                (Ggca_label == gcan->labels[i] || Ggca_label < 0))
+	      printf("scaling gc for %s at (%d %d %d) from %2.1f --> %2.1f\n",
+		     cma_label_to_name(label), xn, yn, zn, gc->means[0], scales[i] * gc->means[0]);
             gc->means[0] = scales[i] * gc->means[0];
-        }
+	  }
+	}
       }
     }
   }

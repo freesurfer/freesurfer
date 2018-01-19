@@ -27,9 +27,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#ifdef HAVE_OPENMP
+
 #include "romp_support.h"
-#endif
+
 
 #include "gcamorph.h"
 #include "mri.h"

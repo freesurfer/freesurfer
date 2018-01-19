@@ -36,10 +36,8 @@
 #include <ctype.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-#ifdef HAVE_OPENMP
-#include "romp_support.h"
-#endif
 
+#include "romp_support.h"
 #include "macros.h"
 #include "error.h"
 #include "tags.h"

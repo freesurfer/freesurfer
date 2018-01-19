@@ -3138,7 +3138,11 @@ get_option(int argc, char *argv[])
     char str[STRLEN] ;
     sprintf(str, "OMP_NUM_THREADS=%d", atoi(argv[2]));
     putenv(str) ;
+#ifdef HAVE_OPENMP
     omp_set_num_threads(atoi(argv[2]));
+#else
+    fprintf(stderr, "Warning - built without openmp support\n");
+#endif
     nargs = 1 ;
     fprintf(stderr, "Setting %s\n", str) ;
   }

@@ -37,9 +37,9 @@
 #include "timer.h"
 #include "utils.h"
 #include "annotation.h"
-#ifdef _OPENMP
+
 #include "romp_support.h"
-#endif
+
 
 typedef struct {
   int vtxno; // surface vertex no
@@ -138,7 +138,6 @@ int main(int argc, char **argv)
 
 
   // good vertex on the lateral side 108489
-  omp_set_num_threads(10);
 
   // apply smoothing: 5 args: surf geod input index output
   surf = MRISread(argv[1]);
@@ -227,8 +226,8 @@ MRI *GeoSmooth(MRI *src, double fwhm, MRIS *surf, Geodesics *geod, MRI *volindex
   gf = sqrt(pow(2*M_PI,2)*gvar*gvar); // = 2*M_PI*gvar
   printf("fwhm %g gstd %g %g %g, nv=%d\n",fwhm,gstd,gvar,gf,surf->nvertices);
 
-#ifdef _OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) 
 #endif
   for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
