@@ -741,13 +741,11 @@ AC_MSG_NOTICE(OS is $OS)
 
 AM_CONDITIONAL(HAVE_MAC_OSX, test "x$OS" = "xDarwin" )
 
-
 ############################################################
 # Catch-all flag to disable OpenGL, Tcl/Tk, ITK and KWW apps
 ############################################################
 needs_opengl=""
  # space separated list of why it is needed, empty if none
-
 disable_gui_build=no
 AC_ARG_ENABLE(GUI-build,
  [  --disable-GUI-build     disable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
@@ -757,7 +755,6 @@ AC_ARG_ENABLE(GUI-build,
   *) AC_MSG_ERROR([bad value ${enableval} for --disable-GUI-build]) ;;
   esac
  ])
-
 build_gl_apps="yes"
 AC_ARG_ENABLE(gl-apps,
  [  --disable-gl-apps       disable building OpenGL-based apps],
@@ -767,9 +764,6 @@ AC_ARG_ENABLE(gl-apps,
   *) AC_MSG_ERROR([bad value ${enableval} for --enable-gl-apps]) ;;
   esac]
  ])
-
-
-
 ################################################################
 # Mac 64-bit 32-bit concerns
 ################################################################
@@ -786,8 +780,8 @@ if test x$MAC_64 = xYES; then
    install_Mac32_GUIs="YES"
 fi
 
-AM_CONDITIONAL(INSTALL_MAC32_GUIS, test "x$install_Mac32_GUIs" = "xYES" )
 
+AM_CONDITIONAL(INSTALL_MAC32_GUIS, test "x$install_Mac32_GUIs" = "xYES" )
 
 ################################################################
 # gfortran
@@ -852,7 +846,6 @@ AM_CONDITIONAL(USE_SSE_MATHFUN, test "x$ac_have_sse_mathfun" = "xyes")
 ##############################################################
 # OpenMP
 ##############################################################
-
 # decide on the default
 ac_have_openmp=no
 if test "x$ac_have_gcc_44_or_higher" = "xyes"; then
@@ -861,6 +854,8 @@ fi
 if test "x$CC" = "xicc"; then
   ac_have_openmp=yes
 fi
+AC_MSG_NOTICE([openmp available? $ac_have_openmp])
+
 
 # force on or off based on --enable-openmp[=yes,=no] or --disable-openmp
 AC_ARG_ENABLE(openmp,
@@ -870,19 +865,22 @@ AC_ARG_ENABLE(openmp,
   no)   ac_have_openmp=no  ;;
   *) AC_MSG_ERROR([bad value ${enableval} for --enable-openmp]) ;;
   esac])
+AC_MSG_NOTICE([openmp being used? $ac_have_openmp])
 
 # do the right thing
 if test "x$ac_have_openmp" = "xyes"; then
-  AC_MSG_NOTICE(Using OpenMP)
-  if test "x${CC}" = "xicc"; then
-    OPENMP_FLAG="-qopenmp"
-  else
-    OPENMP_FLAG="-fopenmp"
-  fi
-  CPPFLAGS="-DHAVE_OPENMP -D_OPENMP $OPENMP_FLAG $CPPFLAGS"
-  LDFLAGS="$LDFLAGS $OPENMP_FLAG"
+   AC_MSG_NOTICE(Using OpenMP)
+   if test "x${CC}" = "xicc"; then
+     OPENMP_FLAG="-qopenmp"
+   else
+     OPENMP_FLAG="-fopenmp"
+   fi
+   CPPFLAGS="$CPPFLAGS $OPENMP_FLAG -DHAVE_OPENMP"
+     # Note: Adding -D_OPENMP causes the ./configure command to fail!
+   LDFLAGS="$LDFLAGS $OPENMP_FLAG"
 fi
 
+AC_MSG_NOTICE([openmp used? $ac_have_openmp])
 AM_CONDITIONAL(HAVE_OPENMP, test "x$ac_have_openmp" = "xyes")
 AC_SUBST(OPENMP_FLAG)
 
@@ -1852,6 +1850,9 @@ AC_SUBST(ANN_DIR)
 AM_CONDITIONAL(HAVE_ANN_LIBS, ! test "x$ac_ann_libraries" = "xNO")
 
 
+
+
+
 ####################################################
 # Tcl/Tk
 ####################################################
@@ -2694,7 +2695,6 @@ AC_ARG_ENABLE(wxw-apps,
 if test "$disable_gui_build" = "YES"; then
   wxw_apps="NO"
 fi
-
 if test "$wxw_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of wxWidgets apps.])
   # enable testing for OpenGL libs:
