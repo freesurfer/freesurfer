@@ -8,6 +8,7 @@ import logging
 import os
 import time
 import traceback
+from itertools import permutations
 
 import numpy as np
 import scipy.io
@@ -245,6 +246,90 @@ class ListInspector(Inspector):
     def compare(self, reference_value, target_value, message):
         compare_lists(reference_value, target_value, message)
 
+class ScrambleInspector(Inspector):
+    def compare(self, reference_value, target_value, message):
+        sorted_ref = sorted_index_array(reference_value)
+        sorted_target = sorted_index_array(target_value)
+        how_many = min(25, reference_value.shape[0])
+        width, height = reference_value.shape
+        mapping = [[[0,0] for i in range(width)] for j in range(height)]
+        unmapping = [[[0,0] for i in range(width)] for j in range(height)]
+        for index in range(how_many):
+            print('    {0} {1} {2}'.format(message, sorted_ref[index], sorted_target[index]))
+        for index in range(how_many):
+            print('    {0} {1} {2}'.format(message, sorted_ref[-1 - index], sorted_target[-1 - index]))
+        for index, ref_val in enumerate(sorted_ref):
+            tar_val = sorted_target[index]
+            r_i = ref_val[1]
+            r_j = ref_val[2]
+            t_i = tar_val[1]
+            t_j = tar_val[2]
+            mapping[r_i][r_j] = [t_i, t_j]
+            unmapping[t_i][t_j] = [r_i, r_j]
+        for k in range(width):
+            t_i, t_j = mapping[k][k]
+            r_i, r_j = unmapping[k][k]
+            print('    {0} [{1},{1}] => [{2},{3}]={7}  [{4},{5}] => [{1},{1}]{6}<->{7} {8}<->{9}'.format(
+                message, k,
+                t_i, t_j,
+                r_i, r_j,
+                reference_value[k][k],
+                target_value[t_i][t_j],
+                reference_value[r_i][r_j],
+                target_value[k][k],
+            ))
+        for k in range(width):
+            t_i, t_j = mapping[0][k]
+            r_i, r_j = unmapping[0][k]
+            print('    {0} [0,{1}] => [{2},{3}]  [{4},{5}] => [0,{1}] {11}:{12} {10} {13:14} {6}<->{7} {8}<->{9}'.format(
+                message, k,
+                t_i, t_j,
+                r_i, r_j,
+                reference_value[0][k],
+                target_value[t_i][t_j],
+                reference_value[r_i][r_j],
+                target_value[0][k],
+                basis(k),
+                basis(r_i),
+                basis(r_j),
+                basis(t_i),
+                basis(t_j),
+            ))
+        for k in range(width):
+            t_i, t_j = mapping[k][0]
+            r_i, r_j = unmapping[k][0]
+            print('    {0} [{1},0] => [{2},{3}]  [{4},{5}] => [{1},0] {11}:{12} {10} {13}:{14} {6}<->{7} {8}<->{9}'.format(
+                message, k,
+                t_i, t_j,
+                r_i, r_j,
+                reference_value[k][0],
+                target_value[t_i][t_j],
+                reference_value[r_i][r_j],
+                target_value[k][0],
+                basis(k),
+                basis(r_i),
+                basis(r_j),
+                basis(t_i),
+                basis(t_j),
+            ))
+        pass
+
+def basis(i):
+    a = i % 5
+    i = i // 5
+    b = i % 5
+    c = i // 5
+    return str([a, b , c])
+
+def indexed_array(data):
+    width, height = data.shape
+    return[ (data[i,j], i, j, width*j + 1, height*i+ j) for i in range(width)  for j in range(height)]
+
+def take_first(a):
+    return a[0]
+
+def sorted_index_array(data):
+    return sorted(indexed_array(data), key=take_first)
 
 def create_part1_inspection_team():
     return InspectionTeam('part1', [
@@ -351,3 +436,60 @@ def create_optimizer_em_exit_inspection_team():
             'intensityModelParameterCost',
         ]),
     ])
+
+def create_bias_correction_inspection_team():
+    return InspectionTeam('estimateBiasField', [
+        NdArrayInspector([
+            'biasFieldCoefficients',
+            'lhs',
+            'rhs',
+            'downSampledBiasField',
+            'downSampledBiasCorrectedImageBuffers',
+            'biasCorrectedData',
+        ]),
+        # ScrambleInspector(['lhs']),
+        # UnScrambleInspector(['lhs']),
+    ])
+
+
+def distance(ref, item):
+    difference = np.double(item) - np.double(ref)
+    return np.sum(np.abs(difference))
+
+
+class UnScrambleInspector(Inspector):
+    def compare(self, reference_value, target_value, message):
+        lowest_distance = 150 * 150 * 10000000
+        for new_shape in possible_shapes():
+            for permutation in permutations(range(6)):
+                target_array = np.reshape(target_value, new_shape)
+                permuted_target = np.transpose(target_array, permutation)
+                reshaped_target = permuted_target.reshape((150, 150))
+                permuted_distance = distance(reference_value, reshaped_target) / (150 * 150)
+                if permuted_distance <= lowest_distance:
+                    best_permutation = permutation
+                    lowest_distance = permuted_distance
+                    best_shape = new_shape
+                if permuted_distance < 0.01:
+                    print('perm={1} shape={0} has distance {2}'.format(
+                        str(new_shape), str(permutation), permuted_distance))
+        print('*** perm={1} shape={0} has distance {2}'.format(
+            str(best_shape), str(best_permutation), lowest_distance))
+
+
+def possible_shapes():
+    for recipe in permutations(range(6), 2):
+        i, j = recipe
+        if i < j:
+            permutation = [5 for k in range(6)]
+            permutation[5 - i] = 6
+            permutation[5 - j] = 6
+            yield  permutation
+
+if __name__ == '__main__':
+    x = [5, 5, 6]
+    y = [1, 1]
+    z = list(np.kron(x, y))
+    print(z)
+    z.reverse()
+    print(z)

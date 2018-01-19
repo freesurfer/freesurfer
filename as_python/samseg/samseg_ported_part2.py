@@ -740,6 +740,18 @@ def samsegment_part2(
                     #
                     #       end % End test if multiResolutionLevel == 1
                     #
+                    if checkpoint_manager:
+                        checkpoint_manager.increment_and_save(
+                            {
+                                'biasFieldCoefficients': biasFieldCoefficients,
+                                'lhs': lhs,
+                                'rhs': rhs,
+                                'downSampledBiasField': downSampledBiasField,
+                                'downSampledBiasCorrectedImageBuffers': downSampledBiasCorrectedImageBuffers,
+                                'biasCorrectedData': biasCorrectedData,
+                                'computedPrecisionOfKroneckerProductBasisFunctions': computedPrecisionOfKroneckerProductBasisFunctions,
+                            }, 'estimateBiasField')
+                    pass
                 #
                 #     end % End EM iterations
             #     historyOfEMCost = historyOfEMCost( 2 : end );

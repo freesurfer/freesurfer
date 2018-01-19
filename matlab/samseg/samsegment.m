@@ -755,7 +755,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
           downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) = tmp;
           biasCorrectedData( :, contrastNumber ) = tmp( downSampledMaskIndices );
         end
-
+        checkpoint_manager.save('estimateBiasField', 'biasFieldCoefficients lhs rhs downSampledBiasField downSampledBiasCorrectedImageBuffers biasCorrectedData');
       end % End test if multiResolutionLevel == 1
     
       

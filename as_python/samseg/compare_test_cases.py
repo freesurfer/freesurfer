@@ -5,7 +5,7 @@ import GEMS2Python
 from as_python.samseg.dev_utils.debug_client import create_part1_inspection_team, \
     create_part2_inspection_team, create_part3_inspection_team, create_reduced_alphas_inspection_team, \
     create_optimizer_inspection_team, create_multiresWarp_inspection_team, create_optimizer_exit_inspection_team, \
-    create_optimizer_em_exit_inspection_team
+    create_optimizer_em_exit_inspection_team, create_bias_correction_inspection_team
 from as_python.samseg.run_samseg_test_case import run_samseg_test_cases, create_checkpoint_manager
 
 
@@ -15,6 +15,7 @@ def compare_single_case(case_file_folder, savePath):
     # register_atlas_checkpoint = checkpoint_manager.load('register_atlas_fixture', 1)
     for team in [
         create_part1_inspection_team(),
+        create_bias_correction_inspection_team(),
         create_reduced_alphas_inspection_team(),
         create_optimizer_inspection_team(),
         create_multiresWarp_inspection_team(),
