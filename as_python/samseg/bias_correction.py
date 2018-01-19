@@ -117,7 +117,9 @@ def computePrecisionOfKroneckerProductBasisFunctions(kroneckerProductBasisFuncti
     # result = projectKroneckerProductBasisFunctions( hessianKroneckerProductBasisFunctions, B );
     result = projectKroneckerProductBasisFunctions( hessianKroneckerProductBasisFunctions, B )
     # %result = reshape( result, [ Ms.^2 ] );
-    result = result.reshape(np.kron( Ms, [ 1, 1 ] ) )
+    new_shape = list(np.kron( Ms, [ 1, 1 ] ))
+    new_shape.reverse()
+    result = result.reshape(new_shape)
     # permutationIndices = [ 2 * [ 1 : numberOfDimensions ]-1 2 * [ 1 : numberOfDimensions ] ];
     permutationIndices = np.hstack((2 * np.r_[: numberOfDimensions ], 2 * np.r_[: numberOfDimensions ] +1))
     # result = permute( result, permutationIndices );
