@@ -170,15 +170,15 @@ if($?PBS_JOBID) then
 endif
 
 # Parameters
-set RUNTIME="$FREESURFER_HOME/MCRv80/";
+set RUNTIME="$FREESURFER_HOME/MCRv84/";
 set RESOLUTION="0.333333333333333333333333333333333333";
 set ATLASMESH="$FREESURFER_HOME/average/HippoSF/atlas/AtlasMesh.gz";
 set ATLASDUMP="$FREESURFER_HOME/average/HippoSF/atlas/AtlasDump.mgz";
 set LUT="$FREESURFER_HOME/average/HippoSF/atlas/compressionLookupTable.txt";
 set K="0.05";
-set OPTIMIZER="ConjGrad";
+set OPTIMIZER="L-BFGS";
 set MRFCONSTANT="0";
-set SUFFIX="v20";
+set SUFFIX="v21";
 
 # Now the real job
 set hippohemilist=(left right)
@@ -210,11 +210,13 @@ foreach hemi ($hippohemilist)
   fs_time ls >& /dev/null
   if ($status) then
     $cmd |& tee -a $HSFLOG 
+    set returnVal=$status
   else
     fs_time $cmd |& tee -a $HSFLOG
+    set returnVal=$status
   endif
 
-  if ($status) then
+  if ($returnVal) then
 
     uname -a | tee -a $HSFLOG
     echo "" |& tee -a $HSFLOG

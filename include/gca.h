@@ -109,7 +109,7 @@ typedef struct
   float  prior ;
 #else
   float  prior_access_via_setGetPrior;
-  double prior_log;
+  double prior_log;   			/* the log of prior_access_via_setGetPrior */
 #endif
   float  *covars ;
   float  *means ;
@@ -122,13 +122,23 @@ typedef struct
 GCA_SAMPLE, GCAS ;
 
 #ifndef BEVIN_FASTER_MRI_EM_REGISTER
+
 #define gcas_setPrior(GCAS,TO) {(GCAS).prior = (TO); }
 #define gcas_getPrior(GCAS)    ((GCAS).prior)
 #define gcas_getPriorLog(GCAS) log((GCAS).prior)
+
 #else
+
+// Calculating log(prior) was a major part of the execution time in mri_em_register
+// and it was being repeatedly calculated for the same GCA_SAMPLE, so it is more efficient 
+// to calculate it when the prior is set rather than later.  These macros, and the change of name
+// from 'prior' to 'prior_access_via_setGetPrior', make sure that the places where it is being set
+// also set the prior_log.
+//
 #define gcas_setPrior(GCAS,TO) {((GCAS).prior_access_via_setGetPrior) = (TO); (GCAS).prior_log = log((GCAS).prior_access_via_setGetPrior); }
 #define gcas_getPrior(GCAS)     ((GCAS).prior_access_via_setGetPrior)
 #define gcas_getPriorLog(GCAS)  ((GCAS).prior_log)
+
 #endif
 
 #define GIBBS_NEIGHBORHOOD   6

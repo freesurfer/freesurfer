@@ -2613,8 +2613,8 @@ MRI *MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
   }
 
 #ifdef FS_CUDA
-  if (width <= 1 || height <= 1 || depth <= 1)
-    ErrorExit(ERROR_BADPARM, "MRIconvolveGaussian: (cuda) insufficient dimension (%d, %d, %d)", width, height, depth);
+  if (mri_src->width <= 1 || mri_src->height <= 1 || mri_src->depth <= 1)
+    ErrorExit(ERROR_BADPARM, "MRIconvolveGaussian: (cuda) insufficient dimension (%d, %d, %d)", mri_src->width, mri_src->height, mri_src->depth);
 
   mri_dst = MRIconvolveGaussian_cuda(mri_src, mri_dst, kernel, klen);
 #else

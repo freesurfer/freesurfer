@@ -13001,8 +13001,14 @@ int GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities, int num
             gc->means[0] = intensities[i] / 3;
           }
           else
+	  {
+            if ((xn == Gx && yn == Gy && zn == Gz) &&
+                (Ggca_label == gcan->labels[i] || Ggca_label < 0))
+	      printf("scaling gc for %s at (%d %d %d) from %2.1f --> %2.1f\n",
+		     cma_label_to_name(label), xn, yn, zn, gc->means[0], scales[i] * gc->means[0]);
             gc->means[0] = scales[i] * gc->means[0];
-        }
+	  }
+	}
       }
     }
   }
