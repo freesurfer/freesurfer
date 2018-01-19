@@ -3697,7 +3697,7 @@ if test "x$CC" = "xicc"; then
 else
   MATH_LIBS="-lm"
 fi
-LIBS="-lz $MATH_LIBS $LIB_CRYPT -ldl -lpthread $LIBS"
+LIBS="-lrt -lz $MATH_LIBS $LIB_CRYPT -ldl -lpthread $LIBS"
 LIBS="$LIBS $LIB_JPEG"
 LIBS="$LIBS $LIB_TIFF"
 LIBS="$LIBS $LIB_EXPAT"
