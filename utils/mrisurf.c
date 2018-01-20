@@ -43,7 +43,8 @@
 //
 #define BEVIN_MRISCOMPUTENORMALS_REPRODUCIBLE
 #define BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_REPRODUCIBLE
-
+#define BEVIN_MRISAVGINTERVERTEXDIST_REPRODUCIBLE
+#define BEVIN_MRISORIENTELLIPSOID_REPRODUCIBLE
 
 // Includes
 //
@@ -4157,75 +4158,86 @@ static int mrisComputeVertexDistances(MRI_SURFACE *mris)
 {
   int vno;
 
-  ROMP_PF_begin		// mris_fix_topology
+  switch (mris->status) {
+    default: /* don't really know what to do in other cases */
+
+    case MRIS_PLANE:
+
+      ROMP_PF_begin		// mris_fix_topology
 #ifdef HAVE_OPENMP
-// have to  make v1 and v2 arrays and use tids for this to work
-  #pragma omp parallel for if_ROMP(fast)
+      #pragma omp parallel for if_ROMP(assume_reproducible)
 #endif
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    ROMP_PFLB_begin
+      for (vno = 0; vno < mris->nvertices; vno++) {
+        ROMP_PFLB_begin
     
-    int n, vtotal, *pv;
-    VERTEX *v, *vn;
-    float d, xd, yd, zd, circumference = 0.0f, angle;
-    float circumference_divided_by_2PI;
+        if (vno == Gdiag_no) DiagBreak();
 
-    v = &mris->vertices[vno];
-    if (v->ripflag || v->dist == NULL) continue;
+        VERTEX const * const v = &mris->vertices[vno];
+        if (v->ripflag || v->dist == NULL) continue;
 
-    if (vno == Gdiag_no) DiagBreak();
-
-    vtotal = v->vtotal;
-    switch (mris->status) {
-      default: /* don't really know what to do in other cases */
-      case MRIS_PLANE:
+        int *pv;
+        int const vtotal = v->vtotal;
+        int n;
         for (pv = v->v, n = 0; n < vtotal; n++) {
-          vn = &mris->vertices[*pv++];
+          VERTEX const * const vn = &mris->vertices[*pv++];
           // if (vn->ripflag) continue;
-          xd = v->x - vn->x;
-          yd = v->y - vn->y;
-          zd = v->z - vn->z;
-          d = xd * xd + yd * yd + zd * zd;
+          float xd = v->x - vn->x;
+          float yd = v->y - vn->y;
+          float zd = v->z - vn->z;
+          float d = xd * xd + yd * yd + zd * zd;
           v->dist[n] = sqrt(d);
         }
-        DiagBreak();
-        break;
-      case MRIS_PARAMETERIZED_SPHERE:
-      case MRIS_SPHERE: {
+
+        ROMP_PFLB_end
+      }
+      ROMP_PF_end
+  
+      break;
+
+    case MRIS_PARAMETERIZED_SPHERE:
+    case MRIS_SPHERE: {
+
+      ROMP_PF_begin		// mris_fix_topology
+#ifdef HAVE_OPENMP
+      #pragma omp parallel for if_ROMP(assume_reproducible)
+#endif
+      for (vno = 0; vno < mris->nvertices; vno++) {
+        ROMP_PFLB_begin
+    
+        if (vno == Gdiag_no) DiagBreak();
+
+        VERTEX const * const v = &mris->vertices[vno];
+        if (v->ripflag || v->dist == NULL) continue;
+
         XYZ xyz1_normalized;
         float xyz1_length;
         XYZ_NORMALIZED_LOAD(&xyz1_normalized, &xyz1_length, v->x, v->y, v->z);  // length 1 along radius vector
 
-        // only calculate once
-        if (FZERO(circumference)) {
-          circumference = M_PI * 2.0 * xyz1_length;
-          circumference_divided_by_2PI = circumference / (2.0 * M_PI);
-        }
+        float const radius = xyz1_length;
 
+        int *pv;
+        int const vtotal = v->vtotal;
+        int n;
         for (pv = v->v, n = 0; n < vtotal; n++) {
-          vn = &mris->vertices[*pv++];
+          VERTEX const * const vn = &mris->vertices[*pv++];
           if (vn->ripflag) continue;
-          angle = fabs(XYZApproxAngle(&xyz1_normalized, vn->x, vn->y, vn->z));
+          
+          float angle = fabs(XYZApproxAngle(&xyz1_normalized, vn->x, vn->y, vn->z));
+            // radians, so 2pi around the circumference
 
-#if 0
-          xd = v->x - vn->x;
-          yd = v->y - vn->y;
-          zd = v->z - vn->z;
-          d = sqrt(xd*xd + yd*yd + zd*zd);
-#endif
+          float d = angle * radius;
+            // the length of the arc, rather than the straight line distance
 
-          d = angle * circumference_divided_by_2PI;
-          if (angle > M_PI || angle < -M_PI || d > circumference / 2 || angle < 0) DiagBreak();
           v->dist[n] = d;
         }
-        break;
+        ROMP_PFLB_end
       }
+      ROMP_PF_end
+
+      break;
     }
-    
-    ROMP_PFLB_end
   }
-  ROMP_PF_end
-  
+    
   return (NO_ERROR);
 }
 
@@ -4312,20 +4324,44 @@ static int mrisComputeOriginalVertexDistances(MRI_SURFACE *mris)
 static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
 {
   double Sum, Sum2;
-  long N;
 
   Sum = 0;
   Sum2 = 0;
-  N = 0;
 
   int VtxNo;
+
+#ifdef BEVIN_MRISAVGINTERVERTEXDIST_REPRODUCIBLE
+
+  double N = 0.0;
+
+  #define ROMP_VARIABLE       VtxNo
+  #define ROMP_LO             0
+  #define ROMP_HI             Surf->nvertices
+    
+  #define ROMP_SUMREDUCTION0  Sum
+  #define ROMP_SUMREDUCTION1  Sum2
+  #define ROMP_SUMREDUCTION2  N
+    
+  #define ROMP_FOR_LEVEL      ROMP_level_shown_reproducible
+    
+  #include "romp_for_begin.h"
+    
+    #define Sum  ROMP_PARTIALSUM(0)
+    #define Sum2 ROMP_PARTIALSUM(1)
+    #define N    ROMP_PARTIALSUM(2)
+
+#else
+
+  long N = 0;
 
   ROMP_PF_begin		// mris_fix_topology
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(fast) reduction(+ : Sum) reduction(+ : Sum2) reduction(+ : N)
 #endif
+
   for (VtxNo = 0; VtxNo < Surf->nvertices; VtxNo++) {
     ROMP_PFLB_begin
+#endif
     
     VERTEX *vtx1, *vtx2;
     int nNNbrs, nthNNbr, NbrVtxNo;
@@ -4345,13 +4381,23 @@ static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
       /*d = sqrt( (vtx1->x-vtx2->x)*(vtx1->x-vtx2->x) +
         (vtx1->y-vtx2->y)*(vtx1->y-vtx2->y) +
         (vtx1->z-vtx2->z)*(vtx1->z-vtx2->z) );*/
-      Sum += d;
+      Sum  += d;
       Sum2 += (d * d);
-      N++;
+      N    += 1;
     }
+
+#ifdef BEVIN_MRISAVGINTERVERTEXDIST_REPRODUCIBLE
+    
+    #undef Sum
+    #undef Sum2
+    #undef N
+
+  #include "romp_for_end.h"
+#else
     ROMP_PFLB_end
   }
   ROMP_PF_end
+#endif
   
   // NOTE - This is a poor algorithm for computing the std dev because of how the floating point errors accumulate
   // but it seems to work for us because the double has enough accuracy to sum the few hundred thousand small but not
@@ -9865,7 +9911,7 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
 
   ROMP_PF_begin		// mris_fix_topology
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(fast)
+  #pragma omp parallel for if_ROMP(assume_reproducible)
 #endif
   for (fno = 0; fno < mris->nfaces; fno++) {
     ROMP_PFLB_begin
@@ -9879,12 +9925,14 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
     /* now give the area an orientation: if the unit normal is pointing
        inwards on the ellipsoid then the area should be negative.
     */
-    VERTEX* const v0 = &mris->vertices[face->v[0]];
-    VERTEX* const v1 = &mris->vertices[face->v[1]];
-    VERTEX* const v2 = &mris->vertices[face->v[2]];
-    float   const xc = (v0->x + v1->x + v2->x) / 3;
-    float   const yc = (v0->y + v1->y + v2->y) / 3;
-    float   const zc = (v0->z + v1->z + v2->z) / 3;
+    VERTEX const * const v0 = &mris->vertices[face->v[0]];
+    VERTEX const * const v1 = &mris->vertices[face->v[1]];
+    VERTEX const * const v2 = &mris->vertices[face->v[2]];
+
+    float   const xc = (v0->x + v1->x + v2->x) /* / 3 */;   // These divides by three are a waste of time
+    float   const yc = (v0->y + v1->y + v2->y) /* / 3 */;   // since we only use the magnitude of the dot product
+    float   const zc = (v0->z + v1->z + v2->z) /* / 3 */;
+
     float   const dot = xc * face->nx + yc * face->ny + zc * face->nz;
     
     if (dot < 0.0f) /* not in same direction, area < 0 and reverse n */
@@ -9912,16 +9960,37 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
     mris->total_area = mris->neg_orig_area = mris->neg_area = 0.0f;
 
     double total_area = 0.0, neg_area = 0.0, neg_orig_area = 0.0;
+
+#ifdef BEVIN_MRISORIENTELLIPSOID_REPRODUCIBLE
+
+    #define ROMP_VARIABLE       fno
+    #define ROMP_LO             0
+    #define ROMP_HI             mris->nfaces
+    
+    #define ROMP_SUMREDUCTION0  total_area
+    #define ROMP_SUMREDUCTION1  neg_area
+    #define ROMP_SUMREDUCTION2  neg_orig_area
+    
+    #define ROMP_FOR_LEVEL      ROMP_level_shown_reproducible
+    
+    #include "romp_for_begin.h"
+    
+      #define total_area      ROMP_PARTIALSUM(0)
+      #define neg_area        ROMP_PARTIALSUM(1)
+      #define neg_orig_area   ROMP_PARTIALSUM(2)
+
+#else
+
     ROMP_PF_begin		// mris_fix_topology
 #ifdef HAVE_OPENMP
     #pragma omp parallel for if_ROMP(fast) reduction(+ : total_area) reduction(+ : neg_area) reduction(+ : neg_orig_area)
 #endif
     for (fno = 0; fno < mris->nfaces; fno++) {
       ROMP_PFLB_begin
-      
-      FACE *face;
 
-      face = &mris->faces[fno];
+#endif
+      
+      FACE const * const face = &mris->faces[fno];
       if (face->ripflag) {
         ROMP_PF_continue;
       }
@@ -9929,17 +9998,27 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
         total_area += face->area;
       }
       else {
-        neg_area += -face->area;
-        neg_orig_area += face->orig_area;
+        neg_area      += -face->area;
+        neg_orig_area +=  face->orig_area;
       }
       
+#ifdef BEVIN_MRISORIENTELLIPSOID_REPRODUCIBLE
+
+      #undef total_area
+      #undef neg_area
+      #undef neg_orig_area
+
+    #include "romp_for_end.h"
+
+#else
       ROMP_PFLB_end
     }
     ROMP_PF_end
+#endif
 
-    mris->total_area = total_area;
+    mris->total_area    = total_area;
     mris->neg_orig_area = neg_orig_area;
-    mris->neg_area = neg_area;
+    mris->neg_area      = neg_area;
   }
 
   return (NO_ERROR);
