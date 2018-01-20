@@ -1748,10 +1748,7 @@ extern MRI_BSPLINE *MRItoBSpline(const MRI *mri_src, MRI_BSPLINE *bspline, int d
 
 /* convert the image samples into interpolation coefficients */
 #ifdef HAVE_OPENMP
-#pragma omp parallel
-  {
-    nthreads = omp_get_num_threads();
-  }
+  nthreads = omp_get_max_threads();
 #else
   nthreads = 1;
 #endif
@@ -2162,10 +2159,7 @@ MRI *MRIlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX 
   double val, x1, x2, x3;
   int nthreads = 1, tid = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel
-  {
-    nthreads = omp_get_num_threads();
-  }
+  nthreads = omp_get_max_threads();
 #endif
 
   mAinv = MatrixInverse(mA, NULL); /* will sample from dst back to src */

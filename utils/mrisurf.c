@@ -55980,10 +55980,13 @@ static double mrisComputeDefectMRILogUnlikelihood(
   Entry* buffer  = (Entry*)malloc(mris->nfaces * sizeof(Entry));
   int bufferSize = 0; 
 
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for
+  #pragma omp parallel for if_ROMP(assume_reproducible) 
 #endif
   for (p = 0; p < mris->nfaces; p++) {
+    ROMP_PFLB_begin
+
     int  const         fno  = p;
     FACE const * const face = &mris->faces[fno];
 
@@ -56043,7 +56046,7 @@ static double mrisComputeDefectMRILogUnlikelihood(
 #endif
      || jmax_nobnd < 0 
      || kmax_nobnd < 0) {
-      continue;
+      ROMP_continue;
     }
 
 #ifdef BEVIN_COUNT_EXITS
@@ -56059,7 +56062,10 @@ static double mrisComputeDefectMRILogUnlikelihood(
 #define ELT(T,X) entry->X = X; 
     ENTRY_MEMBERS
 #undef ELT
+
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
   
 #ifdef BEVIN_COUNT_EXITS
   if (1) { 
@@ -56073,10 +56079,14 @@ static double mrisComputeDefectMRILogUnlikelihood(
   // do the tasks
   //
   int bufferIndex = 0;
+
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for
+  #pragma omp parallel for if_ROMP(assume_reproducible)
 #endif
   for (bufferIndex = 0; bufferIndex < bufferSize; bufferIndex++) {
+    ROMP_PFLB_begin
+    
     typedef void p;	// poison p
     Entry const * entry = &buffer[bufferIndex];
 
@@ -56281,7 +56291,9 @@ static double mrisComputeDefectMRILogUnlikelihood(
         }
       }
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
   
   free(buffer);
   } // int p;

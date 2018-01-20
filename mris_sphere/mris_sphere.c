@@ -205,13 +205,12 @@ main(int argc, char *argv[])
   fflush(stdout);
 
 #ifdef HAVE_OPENMP
-  int n_omp_threads = 1;
-#pragma omp parallel
-  { 
+  {
+    int n_omp_threads = 1;
     n_omp_threads = omp_get_max_threads(); 
+    printf("\n== Number of threads available to %s for OpenMP = %d == \n",
+      Progname, n_omp_threads);
   }
-  printf("\n== Number of threads available to %s for OpenMP = %d == \n",
-         Progname, n_omp_threads);
 #endif
 
   if (parms.base_name[0] == 0)

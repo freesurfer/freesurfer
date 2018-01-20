@@ -4447,10 +4447,7 @@ float GCAcomputeLabelIntensityVariance(GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inpu
  multimodal inputs. Removing did not seem to slow it down much.
 */
 #ifdef HAVE_OPENMP
-#pragma omp parallel
-  {
-    nthreads = omp_get_num_threads();
-  }
+  nthreads = omp_get_max_threads();
 #else
   nthreads = 1;
 #endif
