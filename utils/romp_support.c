@@ -32,7 +32,8 @@
 
 ROMP_level romp_level = 
     ROMP_level_fast;              	// should not be set to ROMP_serial
-
+    //ROMP_level_assume_reproducible;
+    //ROMP_level_shown_reproducible;
 
 typedef struct StaticData {
     ROMP_pf_static_struct* next;

@@ -1,14 +1,14 @@
 #!/bin/bash
 
 cd ~/freesurfer_repo_root/freesurfer/mris_fix_topology_test
-rm -rf results{4,2,1} subjects{4,2,1}
+rm -rf results{8,4,2,1} subjects{8,4,2,1}
 
 export FREESURFER_HOME=/home/rheticus/freesurfer_repo_root/freesurfer/distribution
 export FS_LICENSE=~/license.txt
 export SUBJECTS_DIR=subjects
 export FREESURFER_REPLACEMENT_FOR_CREATION_TIME_STRING="Day Mon 00 00:00:00 0000"
 
-for numThreads in 4 2 1 ; do
+for numThreads in 8 4 2 1 ; do
 
     rm -rf results subjects
     tar xzf 000_results_subjects.tgz
@@ -31,4 +31,4 @@ for numThreads in 4 2 1 ; do
 
 done
 
-cksum ./subjects{4,2,1}/bert/surf/lh.orig 
+find . -type f -exec cksum {} \; | sort 

@@ -4165,7 +4165,7 @@ static int mrisComputeVertexDistances(MRI_SURFACE *mris)
 
       ROMP_PF_begin		// mris_fix_topology
 #ifdef HAVE_OPENMP
-      #pragma omp parallel for if_ROMP(assume_reproducible)
+      #pragma omp parallel for if_ROMP(shown_reproducible)
 #endif
       for (vno = 0; vno < mris->nvertices; vno++) {
         ROMP_PFLB_begin
@@ -4199,7 +4199,7 @@ static int mrisComputeVertexDistances(MRI_SURFACE *mris)
 
       ROMP_PF_begin		// mris_fix_topology
 #ifdef HAVE_OPENMP
-      #pragma omp parallel for if_ROMP(assume_reproducible)
+      #pragma omp parallel for if_ROMP(shown_reproducible)
 #endif
       for (vno = 0; vno < mris->nvertices; vno++) {
         ROMP_PFLB_begin
@@ -9911,7 +9911,7 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
 
   ROMP_PF_begin		// mris_fix_topology
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(assume_reproducible)
+  #pragma omp parallel for if_ROMP(shown_reproducible)
 #endif
   for (fno = 0; fno < mris->nfaces; fno++) {
     ROMP_PFLB_begin
@@ -55982,7 +55982,7 @@ static double mrisComputeDefectMRILogUnlikelihood(
 
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(assume_reproducible) 
+  #pragma omp parallel for if_ROMP(shown_reproducible) 
 #endif
   for (p = 0; p < mris->nfaces; p++) {
     ROMP_PFLB_begin
@@ -56046,7 +56046,7 @@ static double mrisComputeDefectMRILogUnlikelihood(
 #endif
      || jmax_nobnd < 0 
      || kmax_nobnd < 0) {
-      ROMP_continue;
+      ROMP_PF_continue;
     }
 
 #ifdef BEVIN_COUNT_EXITS
@@ -56082,7 +56082,7 @@ static double mrisComputeDefectMRILogUnlikelihood(
 
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(assume_reproducible)
+  #pragma omp parallel for if_ROMP(shown_reproducible)
 #endif
   for (bufferIndex = 0; bufferIndex < bufferSize; bufferIndex++) {
     ROMP_PFLB_begin
@@ -56280,13 +56280,28 @@ static double mrisComputeDefectMRILogUnlikelihood(
           }
 
           /* update distance map */
+          //
+          // There was a reproducibility problem here.
+          // If the smallest positive distance and the smallest negative distance is the same fabs()
+          // then this code would randomly choose between them.
+          // Furthermore the sign of the distance does seem to be important, so can't just store the fabs
+          //
+          // The solution is to have the positive be the preferred of two equal values.
+          //
 	  volatile float * f = &MRIFvox(mri_distance, i, j, k);
 #ifdef HAVE_OPENMP
-          if (fabs(distance) < fabs(*f))					// avoid the lock if possible
+          if (fabs(distance) <= fabs(*f))					    // avoid the lock if possible
 	  #pragma omp critical
 #endif
-          if (fabs(distance) < fabs(*f)) {
-            MRIFvox(mri_distance_nonconst, i, j, k) = distance;			// MODIFIER NOT CAUGHT BY COMPILER
+          {
+            if (fabs(distance) < fabs(*f)) {
+              MRIFvox(mri_distance_nonconst, i, j, k) = distance;	            // MODIFIER NOT CAUGHT BY COMPILER
+            } else if (fabs(distance) == fabs(*f)) {
+              // They are equal.  Prefer the positive.
+              if (distance > 0) MRIFvox(mri_distance_nonconst, i, j, k) = distance;
+            } else {
+              // Might happen if the distance got stored between the non-critical and critical compares
+            }
           }
         }
       }
