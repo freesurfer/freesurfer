@@ -4,9 +4,9 @@ import GEMS2Python
 import numpy as np
 
 from as_python.samseg.bias_correction import backprojectKroneckerProductBasisFunctions
-from as_python.samseg.dev_utils.debug_client import CheckpointManager
+from as_python.samseg.dev_utils.debug_client import run_test_cases, create_checkpoint_manager, \
+    create_part3_inspection_team
 from as_python.samseg.kvlWarpMesh import kvlWarpMesh
-
 # from dotdict import DotDict
 from as_python.samseg.run_utilities import load_starting_fixture
 
@@ -19,17 +19,18 @@ def ensure_dims(np_array, dims):
     elif np_array.ndim == dims:
         return np_array
 
+
 def require_np_array(np_array):
     return np.require(np_array, requirements=['F_CONTIGUOUS', 'ALIGNED'])
 
+
 def samsegment_part3(
-    modelSpecifications,
-    optimizationOptions,
-    part1_results_dict,
-    part2_results_dict,
-    checkpoint_manager=None
+        modelSpecifications,
+        optimizationOptions,
+        part1_results_dict,
+        part2_results_dict,
+        checkpoint_manager=None
 ):
-    biasFieldCoefficients = part1_results_dict['biasFieldCoefficients']
     croppingOffset = part1_results_dict['croppingOffset']
     FreeSurferLabels = part1_results_dict['FreeSurferLabels']
     imageSize = part1_results_dict['imageSize']
@@ -42,6 +43,7 @@ def samsegment_part3(
     reducingLookupTable = part1_results_dict['reducingLookupTable']
     savePath = part1_results_dict['savePath']
 
+    biasFieldCoefficients = part2_results_dict['biasFieldCoefficients']
     imageBuffers = part2_results_dict['imageBuffers']
     means = part2_results_dict['means']
     mixtureWeights = part2_results_dict['mixtureWeights']
@@ -67,9 +69,9 @@ def samsegment_part3(
     # % Get bias field corrected images
     # biasCorrectedImageBuffers = zeros( [ imageSize numberOfContrasts ] );
 
-    biasCorrectedImageBuffers = np.zeros( (imageSize[0], imageSize[1], imageSize[2], numberOfContrasts) )
+    biasCorrectedImageBuffers = np.zeros((imageSize[0], imageSize[1], imageSize[2], numberOfContrasts))
     # biasFields = zeros( [ imageSize numberOfContrasts ] );
-    biasFields = np.zeros( (imageSize[0], imageSize[1], imageSize[2], numberOfContrasts) )
+    biasFields = np.zeros((imageSize[0], imageSize[1], imageSize[2], numberOfContrasts))
 
     # TODO remove these ensure_dims once merging with part 2
     biasFieldCoefficients = ensure_dims(biasFieldCoefficients, 2)
@@ -77,9 +79,10 @@ def samsegment_part3(
     # for contrastNumber = 1 : numberOfContrasts
     for contrastNumber in range(numberOfContrasts):
         #   biasField = backprojectKroneckerProductBasisFunctions( kroneckerProductBasisFunctions, biasFieldCoefficients( :, contrastNumber ) );
-        biasField = backprojectKroneckerProductBasisFunctions( kroneckerProductBasisFunctions, biasFieldCoefficients[ :, contrastNumber ] )
+        biasField = backprojectKroneckerProductBasisFunctions(kroneckerProductBasisFunctions,
+                                                              biasFieldCoefficients[:, contrastNumber])
         #   biasCorrectedImageBuffers( :, :, :, contrastNumber ) = imageBuffers( :, :, :, contrastNumber ) - biasField .* mask;
-        biasCorrectedImageBuffers[ :, :, :, contrastNumber ] = imageBuffers[:, :, :, contrastNumber] - biasField * mask
+        biasCorrectedImageBuffers[:, :, :, contrastNumber] = imageBuffers[:, :, :, contrastNumber] - biasField * mask
         #   biasFields( :, :, :, contrastNumber ) = biasField;
         biasFields[:, :, :, contrastNumber] = biasField
         # end
@@ -94,7 +97,6 @@ def samsegment_part3(
     mesh_collection.k = modelSpecifications.K
     mesh_collection.transform(transform)
 
-
     #   mesh = kvlGetMesh( meshCollection, -1 );
     mesh = mesh_collection.reference_mesh
     #
@@ -106,9 +108,10 @@ def samsegment_part3(
     # transformMatrix = double( kvlGetTransformMatrix( transform ) );
     transformMatrix = transform.as_numpy_array
     # tmp = ( transformMatrix \ [ nodePositions ones( numberOfNodes, 1 ) ]' )';
-    tmp = np.linalg.solve(transformMatrix, np.pad(nodePositions, ((0,0), (0,1)),  mode='constant', constant_values=1).T).T
+    tmp = np.linalg.solve(transformMatrix,
+                          np.pad(nodePositions, ((0, 0), (0, 1)), mode='constant', constant_values=1).T).T
     # nodePositionsInTemplateSpace = tmp( :, 1 : 3 );
-    nodePositionsInTemplateSpace = tmp[:, 0 : 3 ]
+    nodePositionsInTemplateSpace = tmp[:, 0: 3]
     #
     # % Get the estimated warp in template space
     # estimatedNodeDeformationInTemplateSpace = ...
@@ -127,9 +130,10 @@ def samsegment_part3(
     # desiredNodePositionsInTemplateSpace = nodePositionsInTemplateSpace + estimatedNodeDeformationInTemplateSpace;
     desiredNodePositionsInTemplateSpace = nodePositionsInTemplateSpace + estimatedNodeDeformationInTemplateSpace
     # tmp = ( transformMatrix * [ desiredNodePositionsInTemplateSpace ones( numberOfNodes, 1 ) ]' )';
-    tmp = ( transformMatrix @ np.pad(desiredNodePositionsInTemplateSpace, ((0,0), (0,1)),  mode='constant', constant_values=1).T).T
+    tmp = (transformMatrix @ np.pad(desiredNodePositionsInTemplateSpace, ((0, 0), (0, 1)), mode='constant',
+                                    constant_values=1).T).T
     # desiredNodePositions = tmp( :, 1 : 3 );
-    desiredNodePositions = tmp[ :, 0 : 3 ]
+    desiredNodePositions = tmp[:, 0: 3]
     #
     # %
     # kvlSetMeshNodePositions( mesh, desiredNodePositions );
@@ -171,18 +175,18 @@ def samsegment_part3(
         classNumber = reducingLookupTable[structureNumber]
         #
         #   likelihoods = zeros( length( maskIndices ), 1 );
-        likelihoods = np.zeros(( likelihood_count, 1 ))
+        likelihoods = np.zeros((likelihood_count, 1))
         #   numberOfComponents = numberOfGaussiansPerClass( classNumber );
-        numberOfComponents = numberOfGaussiansPerClass[classNumber-1]
+        numberOfComponents = numberOfGaussiansPerClass[classNumber - 1]
         #   for componentNumber = 1 : numberOfComponents
         for componentNumber in range(numberOfComponents):
             #     gaussianNumber = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + componentNumber;
-            gaussianNumber = int(np.sum( numberOfGaussiansPerClass[: classNumber-1 ] ) + componentNumber)
+            gaussianNumber = int(np.sum(numberOfGaussiansPerClass[: classNumber - 1]) + componentNumber)
             #
             #     mean = means( gaussianNumber, : )';v
             mean = ensure_dims(means, 2)[gaussianNumber, :].T
             #     variance = squeeze( variances( gaussianNumber, :, : ) );
-            variance = ensure_dims(variances, 3)[gaussianNumber, :, : ]
+            variance = ensure_dims(variances, 3)[gaussianNumber, :, :]
             #     mixtureWeight = mixtureWeights( gaussianNumber );
             mixtureWeight = mixtureWeights[gaussianNumber]
             #
@@ -191,11 +195,12 @@ def samsegment_part3(
             #     tmp = L \ ( data' - repmat( mean, [ 1 size( data, 1 ) ] ) );
             tmp = np.linalg.solve(L, data.T - mean)
             #     squaredMahalanobisDistances = ( sum( tmp.^2, 1 ) )';
-            squaredMahalanobisDistances = ( np.sum( tmp**2, axis=0 ) ).T
+            squaredMahalanobisDistances = (np.sum(tmp ** 2, axis=0)).T
             #     sqrtDeterminantOfVariance = prod( diag( L ) ); % Same as sqrt( det( variance ) )
-            sqrtDeterminantOfVariance = np.prod( np.diag( L ) )
+            sqrtDeterminantOfVariance = np.prod(np.diag(L))
             #     gaussianLikelihoods = exp( -squaredMahalanobisDistances / 2 ) / ( 2 * pi )^( numberOfContrasts / 2 ) / sqrtDeterminantOfVariance;
-            gaussianLikelihoods = np.exp( -squaredMahalanobisDistances / 2 ) / ( 2 * np.pi )**( numberOfContrasts / 2 ) / sqrtDeterminantOfVariance
+            gaussianLikelihoods = np.exp(-squaredMahalanobisDistances / 2) / (2 * np.pi) ** (
+                    numberOfContrasts / 2) / sqrtDeterminantOfVariance
             #
             #     likelihoods = likelihoods + gaussianLikelihoods * mixtureWeight;
             likelihoods = likelihoods + ensure_dims(gaussianLikelihoods, 2) * mixtureWeight
@@ -207,25 +212,25 @@ def samsegment_part3(
         # end % End loop over structures
     #
     # normalizer = sum( posteriors, 2 ) + eps;
-    normalizer = np.sum( posteriors, 1 ) + eps
+    normalizer = np.sum(posteriors, 1) + eps
     # posteriors = posteriors ./ repmat( normalizer, [ 1 numberOfStructures ] );
     posteriors = posteriors / ensure_dims(normalizer, 2)
     #
     #
     # % Compute volumes in mm^3
     # volumeOfOneVoxel = abs( det( imageToWorldTransformMatrix( 1:3, 1:3 ) ) );
-    volumeOfOneVoxel = np.abs( np.linalg.det( imageToWorldTransformMatrix[0:3, 0:3] ) )
+    volumeOfOneVoxel = np.abs(np.linalg.det(imageToWorldTransformMatrix[0:3, 0:3]))
     # volumesInCubicMm = ( sum( posteriors ) )' * volumeOfOneVoxel;
-    volumesInCubicMm = ( np.sum( posteriors, axis=0 ) ) * volumeOfOneVoxel
+    volumesInCubicMm = (np.sum(posteriors, axis=0)) * volumeOfOneVoxel
     #
     #
     # % Convert into a crisp, winner-take-all segmentation, labeled according to the FreeSurfer labeling/naming convention
     # [ ~, structureNumbers ] = max( posteriors, [], 2 );
     structureNumbers = np.array(np.argmax(posteriors, 1), dtype=np.uint32)
     # freeSurferSegmentation = zeros( imageSize, 'uint16' );
-    freeSurferSegmentation = np.zeros( imageSize, dtype=np.uint16 )
+    freeSurferSegmentation = np.zeros(imageSize, dtype=np.uint16)
     # for structureNumber = 1 : numberOfStructures
-        #   freeSurferSegmentation( maskIndices( find( structureNumbers == structureNumber ) ) ) = FreeSurferLabels( structureNumber );
+    #   freeSurferSegmentation( maskIndices( find( structureNumbers == structureNumber ) ) ) = FreeSurferLabels( structureNumber );
     # end
     FreeSurferLabels = np.array(FreeSurferLabels, dtype=np.uint16)
     freeSurferSegmentation[mask == 1] = FreeSurferLabels[structureNumbers]
@@ -237,17 +242,17 @@ def samsegment_part3(
     # uncroppedFreeSurferSegmentation( croppingOffset( 1 ) + [ 1 : imageSize( 1 ) ], ...
     #                                  croppingOffset( 2 ) + [ 1 : imageSize( 2 ) ], ...
     #                                  croppingOffset( 3 ) + [ 1 : imageSize( 3 ) ] ) = freeSurferSegmentation;
-    uncroppedFreeSurferSegmentation[ croppingOffset[0]: imageSize[0]+croppingOffset[0],
-                                     croppingOffset[1]: imageSize[1]+croppingOffset[1],
-                                     croppingOffset[2]: imageSize[2]+croppingOffset[2]] = freeSurferSegmentation
+    uncroppedFreeSurferSegmentation[croppingOffset[0]: imageSize[0] + croppingOffset[0],
+    croppingOffset[1]: imageSize[1] + croppingOffset[1],
+    croppingOffset[2]: imageSize[2] + croppingOffset[2]] = freeSurferSegmentation
     # fprintf( 'Writing out freesurfer segmentation\n' );
     print('Writing out freesurfer segmentation')
     # kvlWriteImage( kvlCreateImage( uncroppedFreeSurferSegmentation ), ...
     #                fullfile( savePath, 'crispSegmentation.nii' ), ...
     #                imageToWorldTransform );
     GEMS2Python.KvlImage(require_np_array(uncroppedFreeSurferSegmentation)).write(
-            os.path.join( savePath, 'crispSegmentation.nii' ),
-            GEMS2Python.KvlTransform(require_np_array(imageToWorldTransformMatrix))
+        os.path.join(savePath, 'crispSegmentation.nii'),
+        GEMS2Python.KvlTransform(require_np_array(imageToWorldTransformMatrix))
     )
     #
     #
@@ -283,11 +288,13 @@ def samsegment_part3(
         'volumesInCubicMm': volumesInCubicMm,
     }
 
-if __name__ == '__main__':
-    checkpoint_manager = CheckpointManager()
+
+def test_samseg_ported_part3(case_file_folder, savePath):
+    checkpoint_manager = create_checkpoint_manager(case_file_folder)
     fixture = load_starting_fixture()
-    part1_results_dict = checkpoint_manager.load('part1', 1)
-    part2_results_dict = checkpoint_manager.load('part2', 1)
+    part1_results_dict, part1_results_dict_python, part1_results_dict_matlab = checkpoint_manager.substitute('part1', 1)
+    part1_results_dict['savePath'] = savePath
+    part2_results_dict, part2_results_dict_python, part2_results_dict_matlab = checkpoint_manager.substitute('part2', 1)
     part3_results_dict = samsegment_part3(
         fixture['modelSpecifications'],
         fixture['optimizationOptions'],
@@ -295,8 +302,16 @@ if __name__ == '__main__':
         part2_results_dict,
         checkpoint_manager
     )
-    if checkpoint_manager:
-        checkpoint_manager.save(part3_results_dict, 'part3', 1)
+    checkpoint_manager.save(part3_results_dict, 'part3', 1)
     names = part1_results_dict['names']
     FreeSurferLabels = part3_results_dict['FreeSurferLabels']
     volumesInCubicMm = part3_results_dict['volumesInCubicMm']
+    print('names', names)
+    print('FreeSurferLabels', FreeSurferLabels)
+    print('volumesInCubicMm', volumesInCubicMm)
+    create_part3_inspection_team().inspect_all(checkpoint_manager)
+    pass
+
+
+if __name__ == '__main__':
+    run_test_cases(action=test_samseg_ported_part3)
