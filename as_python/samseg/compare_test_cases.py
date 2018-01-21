@@ -1,12 +1,10 @@
-import sys
-
 import GEMS2Python
 
 from as_python.samseg.dev_utils.debug_client import create_part1_inspection_team, \
     create_part2_inspection_team, create_part3_inspection_team, create_reduced_alphas_inspection_team, \
     create_optimizer_inspection_team, create_multiresWarp_inspection_team, create_optimizer_exit_inspection_team, \
-    create_optimizer_em_exit_inspection_team, create_bias_correction_inspection_team
-from as_python.samseg.run_samseg_test_case import run_samseg_test_cases, create_checkpoint_manager
+    create_optimizer_em_exit_inspection_team, create_bias_correction_inspection_team, run_test_cases
+from as_python.samseg.run_samseg_test_case import create_checkpoint_manager
 
 
 def compare_single_case(case_file_folder, savePath):
@@ -40,6 +38,5 @@ def compare_template_files():
 
 
 if __name__ == '__main__':
-    # run_samseg_test_cases(['004'], action=compare_single_case)
     # compare_template_files()
-    run_samseg_test_cases(sys.argv[1:], action=compare_single_case)
+    run_test_cases(action=compare_single_case)

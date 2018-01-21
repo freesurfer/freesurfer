@@ -6,8 +6,11 @@ import scipy.io
 
 from as_python.samseg.bias_correction import backprojectKroneckerProductBasisFunctions, \
     projectKroneckerProductBasisFunctions, computePrecisionOfKroneckerProductBasisFunctions
+from as_python.samseg.dev_utils.debug_client import create_part2_inspection_team, run_test_cases, \
+    create_checkpoint_manager
 from as_python.samseg.kvlWarpMesh import kvlWarpMesh
 from as_python.samseg.kvl_merge_alphas import kvlMergeAlphas
+from as_python.samseg.run_utilities import load_starting_fixture
 
 logger = logging.getLogger(__name__)
 
@@ -1011,3 +1014,22 @@ def samsegment_part2(
         'transformMatrix': transform.as_numpy_array,
         'variances': variances,
     }
+
+def test_samseg_ported_part2(case_file_folder, savePath):
+    checkpoint_manager = create_checkpoint_manager(case_file_folder)
+    fixture = load_starting_fixture()
+    part1_results_dict, part1_results_dict_python, part1_results_dict_matlab = checkpoint_manager.substitute('part1', 1)
+    part1_results_dict['savePath'] = savePath
+    part2_results_dict = samsegment_part2(
+        fixture['modelSpecifications'],
+        fixture['optimizationOptions'],
+        part1_results_dict,
+        checkpoint_manager
+    )
+    checkpoint_manager.save(part2_results_dict, 'part2', 1)
+    create_part2_inspection_team().inspect_all(checkpoint_manager)
+    pass
+
+
+if __name__ == '__main__':
+    run_test_cases(action=test_samseg_ported_part2)

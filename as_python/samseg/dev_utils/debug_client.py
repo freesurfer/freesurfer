@@ -4,8 +4,10 @@ Then call `request_var` and pass in the name of the variable you want to auto-ma
 transfer from MATLAB to Python. This is intended to be called with both Python and MATLAB
 at a breakpoint to easily compare the values of variables for equality.
 '''
+import json
 import logging
 import os
+import sys
 import time
 import traceback
 from itertools import permutations
@@ -130,6 +132,41 @@ def match_on_overlap(ref, item, ref_shape, item_shape):
     return ref, item
 
 
+def fixup_part1(python_dict, matlab_dict):
+    python_dict['numberOfGaussiansPerClass'] = [
+        int(number_of_gaussians)
+        for number_of_gaussians in python_dict['numberOfGaussiansPerClass']]
+    python_dict['numberOfBasisFunctions'] = [
+        int(number_of_basis_functions)
+        for number_of_basis_functions in python_dict['numberOfBasisFunctions']]
+    return python_dict
+
+def fixup_part0(python_dict, matlab_dict):
+    imageFileNames = python_dict['imageFileNames']
+    if imageFileNames[0] == '/':
+        imageFileNames = [imageFileNames]
+    python_dict['imageFileNames'] = imageFileNames
+    return python_dict
+
+
+def fixup_part2(python_dict, matlab_dict):
+    python_dict['nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel'] = \
+        matlab_dict['historyWithinEachMultiResolutionLevel'][-1].finalNodePositionsInTemplateSpace - \
+        matlab_dict['historyWithinEachMultiResolutionLevel'][-1].initialNodePositionsInTemplateSpace
+    return python_dict
+
+
+def pass_unchanged(python_dict, matlab_dict):
+    return python_dict
+
+
+FIXUPS = {
+    'part0': fixup_part0,
+    'part1': fixup_part1,
+    'part2': fixup_part2,
+}
+
+
 class CheckpointManager:
     def __init__(self, matlab_dump_dir=None, python_dump_dir=None, detailed=False):
         if matlab_dump_dir is None:
@@ -158,6 +195,16 @@ class CheckpointManager:
         logger.info('loading from %s', matlab_load_path)
         return scipy.io.loadmat(matlab_load_path, struct_as_record=False, squeeze_me=True)
 
+
+    def substitute(self, checkpoint_name, checkpoint_number=None, python_dict=None):
+        if python_dict is None:
+            python_dict = self.load_python(checkpoint_name, checkpoint_number)
+        matlab_dict = self.load(checkpoint_name, checkpoint_number)
+        result_dict = {key: matlab_dict.get(key, value) for key, value in python_dict.items()}
+        fixup = FIXUPS.get(checkpoint_name, pass_unchanged)
+        result_dict = fixup(result_dict, matlab_dict)
+        return result_dict, python_dict, matlab_dict
+
     def load_python(self, checkpoint_name, checkpoint_number=None):
         python_load_path = self.file_name_for_checkpoint(self.python_dump_dir, checkpoint_name, checkpoint_number)
         logger.info('loading from %s', python_load_path)
@@ -182,6 +229,18 @@ class CheckpointManager:
         logger.info('saving specification at %s', json_path)
         with open(json_path, 'w') as outfile:
             outfile.write(specification.toJSON())
+
+    def load_specification(self, checkpoint_name, checkpoint_number=None):
+        json_path = self.file_name_for_checkpoint(
+            self.python_dump_dir,
+            checkpoint_name,
+            checkpoint_number,
+            suffix='.json'
+        )
+        logger.info('loading specification at %s', json_path)
+        with open(json_path, 'r') as infile:
+            specification = json.load(infile)
+        return specification
 
 
 class Inspector:
@@ -545,6 +604,65 @@ def possible_shapes():
             permutation[5 - i] = 6
             permutation[5 - j] = 6
             yield permutation
+
+
+def run_test_cases(case_names=None, testing_dir=None, action=None):
+    testing_dir = find_testing_dir(testing_dir)
+    if action is None:
+        raise ValueError("Nothing to do!!")
+    if not case_names:
+        case_names = sys.argv[1:]
+    if not case_names:
+        case_names = ['004']
+    for case_file_folder, savePath in valid_case_folders_and_save_paths(case_names, testing_dir):
+        action(case_file_folder, savePath)
+
+
+def make_checkpoint_dir(case_file_folder, subdir_name):
+    checkpoint_dir = os.path.join(case_file_folder, subdir_name)
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    return checkpoint_dir
+
+
+def find_testing_dir(testing_dir=None):
+    if testing_dir is None:
+        testing_dir = os.getenv('TESTING_DIR')
+    if not testing_dir or not os.path.isdir(testing_dir):
+        raise ValueError("testing_dir={0}: must be a valid directory".format(testing_dir))
+    return testing_dir
+
+
+def valid_case_folders_and_save_paths(case_names=None, testing_dir=None):
+    testing_dir = find_testing_dir(testing_dir)
+    for case_name in valid_case_names(case_names, testing_dir):
+        case_file_folder, savePath = \
+            find_case_file_folder_and_save_path(case_name, testing_dir)
+        if os.path.isdir(case_file_folder):
+            yield (case_file_folder, savePath)
+        else:
+            print("{0} is not a folder".format(case_file_folder))
+
+
+def valid_case_names(case_names=None, testing_dir=None):
+    if not case_names:
+        testing_dir = find_testing_dir(testing_dir)
+        case_names = sorted([f for f in os.listdir(testing_dir)])
+    for case_name in case_names:
+        if not 'temp_data' in case_name:
+            yield case_name
+
+
+def find_case_file_folder_and_save_path(case_name, testing_dir=None):
+    testing_dir = find_testing_dir(testing_dir)
+    case_file_folder = os.path.join(testing_dir, case_name)
+    savePath = os.path.join(testing_dir, 'python_temp_data', case_name)
+    return case_file_folder, savePath
+
+
+def create_checkpoint_manager(case_file_folder):
+    matlab_dump_dir = make_checkpoint_dir(case_file_folder, 'matlab_checkpoints')
+    python_dump_dir = make_checkpoint_dir(case_file_folder, 'python_checkpoints')
+    return CheckpointManager(matlab_dump_dir=matlab_dump_dir, python_dump_dir=python_dump_dir)
 
 
 if __name__ == '__main__':
