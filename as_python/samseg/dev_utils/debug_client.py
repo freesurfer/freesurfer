@@ -53,62 +53,62 @@ def compare_vars(varname):
         del frame
 
 
-def compare_lists(ref, item, name=''):
-    if all(ref == item):
-        print('{0}: matches at {1}'.format(name, ref))
+def compare_lists(expected, actual, name=''):
+    if all(expected == actual):
+        print('{0}: matches at {1}'.format(name, expected))
     else:
-        print('{0}: {1} != {2}'.format(name, ref, item))
+        print('{0}: {1} != {2}'.format(name, expected, actual))
 
 
-def compare_scalars(ref, item, name=''):
-    if ref == item:
-        print('{0}: matches at {1}'.format(name, ref))
+def compare_scalars(expected, actual, name=''):
+    if expected == actual:
+        print('{0}: matches at {1}'.format(name, expected))
     else:
-        absolute_difference = abs(ref - item)
-        ref_absolute_value = abs(ref)
-        relative_difference = absolute_difference / ref_absolute_value if ref_absolute_value > 0 else absolute_difference
+        absolute_difference = abs(expected - actual)
+        expected_absolute_value = abs(expected)
+        relative_difference = absolute_difference / expected_absolute_value if expected_absolute_value > 0 else absolute_difference
         print('{0}: {1} != {2} absolute difference={3} relative_difference={4}'.format(
-            name, ref, item, absolute_difference, relative_difference))
+            name, expected, actual, absolute_difference, relative_difference))
 
 
-def compare_ndarray_closeness(ref, item, name=''):
+def compare_ndarray_closeness(expected, actual, name=''):
     def show(message, prefix=''):
         print("{2}{0}: {1}".format(name, message, prefix))
 
-    if not hasattr(ref, 'shape'):
-        show("ref has no shape")
+    if not hasattr(expected, 'shape'):
+        show("expected has no shape")
         return
-    ref_shape = ref.shape
-    if not hasattr(item, 'shape'):
-        show('ref.shape={0} but item has no shape'.format(ref_shape))
+    expected_shape = expected.shape
+    if not hasattr(actual, 'shape'):
+        show('expected.shape={0} but actual has no shape'.format(expected_shape))
         return
-    item_shape = item.shape
-    if item.shape != ref.shape:
-        show('shapes differ ref={0} item={1}'.format(ref_shape, item_shape))
-        if (len(item_shape) == len(ref_shape)):
-            ref, item = match_on_overlap(ref, item, ref_shape, item_shape)
+    actual_shape = actual.shape
+    if actual.shape != expected.shape:
+        show('shapes differ ref={0} actual={1}'.format(expected_shape, actual_shape))
+        if (len(actual_shape) == len(expected_shape)):
+            expected, actual = match_on_overlap(expected, actual, expected_shape, actual_shape)
         else:
             return
     else:
-        show('shapes identical {0}'.format(ref_shape))
+        show('shapes identical {0}'.format(expected_shape))
     try:
-        total_size = np.prod(ref_shape)
-        ref_max = np.max(ref)
-        ref_min = np.min(ref)
-        item_max = np.max(item)
-        item_min = np.min(item)
-        difference = np.double(item) - np.double(ref)
+        total_size = np.prod(expected_shape)
+        expected_max = np.max(expected)
+        expected_min = np.min(expected)
+        actual_max = np.max(actual)
+        actual_min = np.min(actual)
+        difference = np.double(actual) - np.double(expected)
         max_difference = np.max(difference)
         max_location = np.argmax(difference)
         min_difference = np.min(difference)
         min_location = np.argmin(difference)
         total_difference = np.sum(np.abs(difference))
-        if total_difference == 0 and ref_shape == item_shape:
+        if total_difference == 0 and expected_shape == actual_shape:
             show('are identical', '    ')
             return
         average_difference = total_difference / total_size
-        ref_total = np.sum(np.abs(ref))
-        relative_difference = total_difference / ref_total if ref_total != 0 else total_difference
+        expected_total = np.sum(np.abs(expected))
+        relative_difference = total_difference / expected_total if expected_total != 0 else total_difference
         if relative_difference < 0.001:
             show('small differences...', '    ')
         elif relative_difference > 0.1:
@@ -116,7 +116,7 @@ def compare_ndarray_closeness(ref, item, name=''):
         else:
             show('differences...', '    ')
 
-        show('ref_max={0} ref_min={1} item_max={2} item_min={3}'.format(ref_max, ref_min, item_max, item_min), '    ')
+        show('expected_max={0} expected_min={1} actual_max={2} actual_min={3}'.format(expected_max, expected_min, actual_max, actual_min), '    ')
         show('max_diff={0} min_diff={1}'.format(max_difference, min_difference), '    ')
         show('max_location={0} min_location={1}'.format(max_location, min_location), '    ')
         show('average difference={0} relative_difference={1}'.format(average_difference, relative_difference), '    ')
@@ -125,11 +125,11 @@ def compare_ndarray_closeness(ref, item, name=''):
         traceback.print_exc()
 
 
-def match_on_overlap(ref, item, ref_shape, item_shape):
-    overlap_slices = [slice(0, min(ref_dim, item_dim)) for ref_dim, item_dim in zip(ref_shape, item_shape)]
-    ref = ref[overlap_slices]
-    item = item[overlap_slices]
-    return ref, item
+def match_on_overlap(expected, actual, expected_shape, actual_shape):
+    overlap_slices = [slice(0, min(expected_dim, actual_dim)) for expected_dim, actual_dim in zip(expected_shape, actual_shape)]
+    expected = expected[overlap_slices]
+    actual = actual[overlap_slices]
+    return expected, actual
 
 
 def fixup_part1(python_dict, matlab_dict):
@@ -247,18 +247,18 @@ class Inspector:
     def __init__(self, target_names):
         self.target_names = target_names
 
-    def inspect(self, prefix, reference_dictionary, target_dictionary):
+    def inspect(self, prefix, expected_dictionary, actual_dictionary):
         for name in self.target_names:
             message = ':'.join((prefix, name))
-            reference_value = reference_dictionary.get(name)
-            if reference_value is None:
+            expected_value = expected_dictionary.get(name)
+            if expected_value is None:
                 print('could not find {0}[{1}] in matlab'.format(prefix, name))
                 continue
-            target_value = target_dictionary.get(name)
-            if target_value is None:
+            actual_value = actual_dictionary.get(name)
+            if actual_value is None:
                 print('could not find {0}[{1}] in python'.format(prefix, name))
                 continue
-            self.compare(reference_value, target_value, message)
+            self.compare(expected_value, actual_value, message)
 
 
 class InspectionTeam:
@@ -266,23 +266,23 @@ class InspectionTeam:
         self.checkpoint_name = checkpoint_name
         self.inspectors = inspectors
 
-    def inspect(self, checkpoint_manager, target_dictionary=None):
+    def inspect(self, checkpoint_manager, actual_dictionary=None):
         if checkpoint_manager is None:
             return
         prefix = ":".join((self.checkpoint_name, str(checkpoint_manager.increment(self.checkpoint_name))))
         try:
-            reference_dictionary = checkpoint_manager.load(self.checkpoint_name)
+            expected_dictionary = checkpoint_manager.load(self.checkpoint_name)
         except Exception as flaw:
             print('no matlab checkpoint {0} for {1}'.format(prefix, checkpoint_manager.matlab_dump_dir))
             return False
-        if target_dictionary is None:
+        if actual_dictionary is None:
             try:
-                target_dictionary = checkpoint_manager.load_python(self.checkpoint_name)
+                actual_dictionary = checkpoint_manager.load_python(self.checkpoint_name)
             except Exception as flaw:
                 print('no python checkpoint {0} for {1}'.format(prefix, checkpoint_manager.python_dump_dir))
                 return False
         for inspector in self.inspectors:
-            inspector.inspect(prefix, reference_dictionary, target_dictionary)
+            inspector.inspect(prefix, expected_dictionary, actual_dictionary)
         return True
 
     def inspect_all(self, checkpoint_manager):
@@ -293,83 +293,83 @@ class InspectionTeam:
 
 
 class NdArrayInspector(Inspector):
-    def compare(self, reference_value, target_value, message):
-        compare_ndarray_closeness(reference_value, target_value, message)
+    def compare(self, expected_value, actual_value, message):
+        compare_ndarray_closeness(expected_value, actual_value, message)
 
 
-def compare_ndarray_dice(reference_value, target_value, name):
+def compare_ndarray_dice(expected_value, actual_value, name):
     def show(message, prefix=''):
         print("{2}{0}: {1}".format(name, message, prefix))
 
-    if not hasattr(reference_value, 'shape'):
-        show("ref has no shape")
+    if not hasattr(expected_value, 'shape'):
+        show("expected has no shape")
         return
-    ref_shape = reference_value.shape
-    if not hasattr(target_value, 'shape'):
-        show('ref.shape={0} but item has no shape'.format(ref_shape))
+    ref_shape = expected_value.shape
+    if not hasattr(actual_value, 'shape'):
+        show('expected.shape={0} but actual has no shape'.format(ref_shape))
         return
-    item_shape = target_value.shape
-    if target_value.shape != reference_value.shape:
-        show('shapes differ ref={0} item={1}'.format(ref_shape, item_shape))
+    item_shape = actual_value.shape
+    if actual_value.shape != expected_value.shape:
+        show('shapes differ expected={0} actual={1}'.format(ref_shape, item_shape))
         if (len(item_shape) == len(ref_shape)):
-            reference_value, target_value = match_on_overlap(reference_value, target_value, ref_shape, item_shape)
+            expected_value, actual_value = match_on_overlap(expected_value, actual_value, ref_shape, item_shape)
         else:
             return
     else:
         show('shapes identical {0}'.format(ref_shape))
     try:
         total_size = np.prod(ref_shape)
-        matches = target_value == reference_value
+        matches = actual_value == expected_value
         total_matches = np.sum(matches)
         if total_matches == total_size and ref_shape == item_shape:
             show('are identical', '    ')
         matching_rate = total_matches / total_size
         show('matching rate={0} = {1}/{2}'.format(matching_rate, total_matches, total_size), '    ')
-        ref_interior = reference_value != 0
-        ref_interior_count = np.sum(ref_interior)
-        target_interior_count = np.sum(target_value != 0)
-        interior_match_count = np.sum(np.logical_and(ref_interior, matches))
-        dice = 2 * interior_match_count / (target_interior_count + ref_interior_count)
+        expected_interior = expected_value != 0
+        expected_interior_count = np.sum(expected_interior)
+        actual_interior_count = np.sum(actual_value != 0)
+        interior_match_count = np.sum(np.logical_and(expected_interior, matches))
+        dice = 2 * interior_match_count / (actual_interior_count + expected_interior_count)
         show('dice={0} = 2*{1}/({2} + {3})'.format(
-            dice, interior_match_count, ref_interior_count, target_interior_count), '    ')
+            dice, interior_match_count, expected_interior_count, actual_interior_count), '    ')
     except Exception as flaw:
         show('flaw = {0}'.format(str(flaw)))
         traceback.print_exc()
 
 
 class DiceInspector(Inspector):
-    def compare(self, reference_value, target_value, message):
-        compare_ndarray_dice(reference_value, target_value, message)
+    def compare(self, expected_value, actual_value, message):
+        compare_ndarray_dice(expected_value, actual_value, message)
 
 
 class ScalarInspector(Inspector):
-    def compare(self, reference_value, target_value, message):
-        compare_scalars(reference_value, target_value, message)
+    def compare(self, expected_value, actual_value, message):
+        compare_scalars(expected_value, actual_value, message)
 
 
 class ListInspector(Inspector):
-    def compare(self, reference_value, target_value, message):
-        compare_lists(reference_value, target_value, message)
+    def compare(self, expected_value, actual_value, message):
+        compare_lists(expected_value, actual_value, message)
 
 
 class ScrambleInspector(Inspector):
-    def compare(self, reference_value, target_value, message):
-        sorted_ref = sorted_index_array(reference_value)
-        sorted_target = sorted_index_array(target_value)
-        how_many = min(25, reference_value.shape[0])
-        width, height = reference_value.shape
+    def compare(self, expected_value, actual_value, message):
+        expected_sorted = sorted_index_array(expected_value)
+        actual_sorted = sorted_index_array(actual_value)
+        how_many = min(25, expected_value.shape[0])
+        width, height = expected_value.shape
         mapping = [[[0, 0] for i in range(width)] for j in range(height)]
         unmapping = [[[0, 0] for i in range(width)] for j in range(height)]
         for index in range(how_many):
-            print('    {0} {1} {2}'.format(message, sorted_ref[index], sorted_target[index]))
+            print('    {0} {1} {2}'.format(message, expected_sorted[index], actual_sorted[index]))
         for index in range(how_many):
-            print('    {0} {1} {2}'.format(message, sorted_ref[-1 - index], sorted_target[-1 - index]))
-        for index, ref_val in enumerate(sorted_ref):
-            tar_val = sorted_target[index]
+            print('    {0} {1} {2}'.format(message, expected_sorted[-1 - index], actual_sorted[-1 - index]))
+        for index, ref_val in enumerate(expected_sorted):
+            actual_sorted_value = actual_sorted[index]
             r_i = ref_val[1]
             r_j = ref_val[2]
-            t_i = tar_val[1]
-            t_j = tar_val[2]
+            t_i = actual_sorted_value[1]
+            t_j = actual_sorted_value[2]
             mapping[r_i][r_j] = [t_i, t_j]
             unmapping[t_i][t_j] = [r_i, r_j]
         for k in range(width):
@@ -379,10 +379,10 @@ class ScrambleInspector(Inspector):
                 message, k,
                 t_i, t_j,
                 r_i, r_j,
-                reference_value[k][k],
-                target_value[t_i][t_j],
-                reference_value[r_i][r_j],
-                target_value[k][k],
+                expected_value[k][k],
+                actual_value[t_i][t_j],
+                expected_value[r_i][r_j],
+                actual_value[k][k],
             ))
         for k in range(width):
             t_i, t_j = mapping[0][k]
@@ -392,10 +392,10 @@ class ScrambleInspector(Inspector):
                     message, k,
                     t_i, t_j,
                     r_i, r_j,
-                    reference_value[0][k],
-                    target_value[t_i][t_j],
-                    reference_value[r_i][r_j],
-                    target_value[0][k],
+                    expected_value[0][k],
+                    actual_value[t_i][t_j],
+                    expected_value[r_i][r_j],
+                    actual_value[0][k],
                     basis(k),
                     basis(r_i),
                     basis(r_j),
@@ -410,10 +410,10 @@ class ScrambleInspector(Inspector):
                     message, k,
                     t_i, t_j,
                     r_i, r_j,
-                    reference_value[k][0],
-                    target_value[t_i][t_j],
-                    reference_value[r_i][r_j],
-                    target_value[k][0],
+                    expected_value[k][0],
+                    actual_value[t_i][t_j],
+                    expected_value[r_i][r_j],
+                    actual_value[k][0],
                     basis(k),
                     basis(r_i),
                     basis(r_j),
@@ -577,14 +577,14 @@ def distance(ref, item):
 
 
 class UnScrambleInspector(Inspector):
-    def compare(self, reference_value, target_value, message):
+    def compare(self, expected_value, actual_value, message):
         lowest_distance = 150 * 150 * 10000000
         for new_shape in possible_shapes():
             for permutation in permutations(range(6)):
-                target_array = np.reshape(target_value, new_shape)
+                target_array = np.reshape(actual_value, new_shape)
                 permuted_target = np.transpose(target_array, permutation)
                 reshaped_target = permuted_target.reshape((150, 150))
-                permuted_distance = distance(reference_value, reshaped_target) / (150 * 150)
+                permuted_distance = distance(expected_value, reshaped_target) / (150 * 150)
                 if permuted_distance <= lowest_distance:
                     best_permutation = permutation
                     lowest_distance = permuted_distance
