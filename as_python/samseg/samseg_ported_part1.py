@@ -466,7 +466,7 @@ def print_show_figures(showFigures):
     #
     #
 
-def test_samseg_part_1(case_file_folder, savePath):
+def test_samseg_part_1(case_name, case_file_folder, savePath):
     checkpoint_manager = create_checkpoint_manager(case_file_folder)
     fixture = load_starting_fixture()
     part0_results_dict = checkpoint_manager.load_specification('part0', 1)

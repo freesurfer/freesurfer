@@ -6,7 +6,7 @@ from as_python.samseg.dev_utils.debug_client import create_checkpoint_manager, r
 from as_python.samseg.run_samseg_ported import run_samseg
 
 
-def run_single_full_case(case_file_folder, savePath):
+def run_single_full_case(case_name, case_file_folder, savePath):
     image_file_path = os.path.join(case_file_folder, 'orig.mgz')
     if os.path.isfile(image_file_path):
         print('testing with file {0}'.format(image_file_path))

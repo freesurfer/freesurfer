@@ -289,7 +289,7 @@ def samsegment_part3(
     }
 
 
-def test_samseg_ported_part3(case_file_folder, savePath):
+def test_samseg_ported_part3(case_name, case_file_folder, savePath):
     checkpoint_manager = create_checkpoint_manager(case_file_folder)
     fixture = load_starting_fixture()
     part1_results_dict, part1_results_dict_python, part1_results_dict_matlab = checkpoint_manager.substitute('part1', 1)

@@ -7,7 +7,7 @@ from as_python.samseg.dev_utils.debug_client import create_part1_inspection_team
 from as_python.samseg.run_samseg_test_case import create_checkpoint_manager
 
 
-def compare_single_case(case_file_folder, savePath):
+def compare_single_case(case_name, case_file_folder, savePath):
     checkpoint_manager = create_checkpoint_manager(case_file_folder)
     # matlab_checkpoint_0 = checkpoint_manager.load('part0', 1)
     # register_atlas_checkpoint = checkpoint_manager.load('register_atlas_fixture', 1)

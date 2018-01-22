@@ -324,14 +324,20 @@ def compare_ndarray_dice(expected_value, actual_value, name):
         if total_matches == total_size and ref_shape == item_shape:
             show('are identical', '    ')
         matching_rate = total_matches / total_size
-        show('matching rate={0} = {1}/{2}'.format(matching_rate, total_matches, total_size), '    ')
+        show('Match={0} = {1}/{2}'.format(matching_rate, total_matches, total_size), '    ')
         expected_interior = expected_value != 0
         expected_interior_count = np.sum(expected_interior)
-        actual_interior_count = np.sum(actual_value != 0)
+        actual_interior = actual_value != 0
+        actual_interior_count = np.sum(actual_interior)
+        interior_union = np.logical_or(expected_interior, actual_interior)
+        interior_union_count = np.sum(interior_union)
         interior_match_count = np.sum(np.logical_and(expected_interior, matches))
         dice = 2 * interior_match_count / (actual_interior_count + expected_interior_count)
-        show('dice={0} = 2*{1}/({2} + {3})'.format(
+        jaccard = interior_match_count / interior_union_count
+        show('Dice={0} = 2*{1}/({2} + {3})'.format(
             dice, interior_match_count, expected_interior_count, actual_interior_count), '    ')
+        show('Jaccard={0} = {1}/{2}'.format(
+            jaccard, interior_match_count, interior_union_count), '    ')
     except Exception as flaw:
         show('flaw = {0}'.format(str(flaw)))
         traceback.print_exc()
@@ -612,10 +618,8 @@ def run_test_cases(case_names=None, testing_dir=None, action=None):
         raise ValueError("Nothing to do!!")
     if not case_names:
         case_names = sys.argv[1:]
-    if not case_names:
-        case_names = ['004']
-    for case_file_folder, savePath in valid_case_folders_and_save_paths(case_names, testing_dir):
-        action(case_file_folder, savePath)
+    for case_name, case_file_folder, savePath in valid_case_folders_and_save_paths(case_names, testing_dir):
+        action(case_name, case_file_folder, savePath)
 
 
 def make_checkpoint_dir(case_file_folder, subdir_name):
@@ -638,7 +642,7 @@ def valid_case_folders_and_save_paths(case_names=None, testing_dir=None):
         case_file_folder, savePath = \
             find_case_file_folder_and_save_path(case_name, testing_dir)
         if os.path.isdir(case_file_folder):
-            yield (case_file_folder, savePath)
+            yield (case_name, case_file_folder, savePath)
         else:
             print("{0} is not a folder".format(case_file_folder))
 
@@ -655,6 +659,7 @@ def valid_case_names(case_names=None, testing_dir=None):
 def find_case_file_folder_and_save_path(case_name, testing_dir=None):
     testing_dir = find_testing_dir(testing_dir)
     case_file_folder = os.path.join(testing_dir, case_name)
+    savePath = os.path.join(testing_dir, 'python_temp_data', case_name)
     savePath = os.path.join(testing_dir, 'python_temp_data', case_name)
     return case_file_folder, savePath
 

@@ -81,7 +81,7 @@ def samsegment(
     return [FreeSurferLabels, names, volumesInCubicMm]
 
 
-def test_samseg_ported(case_file_folder, savePath):
+def test_samseg_ported(case_name, case_file_folder, savePath):
     checkpoint_manager = create_checkpoint_manager(case_file_folder)
     fixture = load_starting_fixture()
     results = samsegment(
