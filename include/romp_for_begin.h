@@ -6,11 +6,11 @@
 /*
  * Original Author: Bevin Brett
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2017/12 $
+ *    $Author: brettb $
+ *    $Date: 2018/01 $
  *    $Revision: 1.0 $
  *
- * Copyright © 2012 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2018 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained

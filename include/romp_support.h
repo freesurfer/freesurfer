@@ -6,7 +6,7 @@
 /*
  * Original Author: Bevin Brett
  * CVS Revision Info:
- *    $Author: fischl $
+ *    $Author: brettb $
  *    $Date: 2017/12 $
  *    $Revision: 1.0 $
  *
