@@ -10,7 +10,7 @@ from as_python.samseg.dev_utils.debug_client import valid_case_folders_and_save_
 
 def measure_and_report(report_save_path=None):
     if report_save_path is None:
-        report_save_path = os.path.join(find_testing_dir(), 'test_data.json')
+        report_save_path = os.path.join(find_testing_dir(), 'test_results.json')
     save_as_json(report(measure()), report_save_path)
 
 def save_as_json(measurements, report_save_path):
