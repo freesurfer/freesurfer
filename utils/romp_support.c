@@ -399,7 +399,7 @@ void ROMP_Distributor_begin(ROMP_Distributor* distributor,
     }
 }
 
-double ROMP_Distributor_end(ROMP_Distributor* distributor) {
+void ROMP_Distributor_end(ROMP_Distributor* distributor) {
     int j;
     for (j = 0; j < ROMP_DISTRIBUTOR_REDUCTION_CAPACITY; j++) {
         if (!distributor->originals[j]) continue;

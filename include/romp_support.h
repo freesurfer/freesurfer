@@ -119,7 +119,10 @@ typedef struct ROMP_pflb_stack_struct {
 } ROMP_pflb_stack_struct;
 
 
-#if defined(ROMP_SUPPORT_ENABLED)
+//#define ROMP_SUPPORT_ENABLED
+#if !defined(ROMP_SUPPORT_ENABLED)
+
+#define if_ROMPLEVEL(LEVEL)
 
 #define if_ROMP(LEVEL)
 
@@ -219,4 +222,4 @@ void ROMP_Distributor_begin(ROMP_Distributor* distributor,
     double* sumReducedDouble1, 
     double* sumReducedDouble2); 
 
-double ROMP_Distributor_end(ROMP_Distributor* distributor);
+void ROMP_Distributor_end(ROMP_Distributor* distributor);

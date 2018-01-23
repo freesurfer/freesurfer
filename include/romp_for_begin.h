@@ -72,7 +72,6 @@
 #ifdef ROMP_FOR_LEVEL 
     #pragma omp parallel for if_ROMPLEVEL(ROMP_FOR_LEVEL)
 #else
-    shown_reproducible
     #pragma omp parallel for if_ROMP(assume_reproducible)
 #endif
 #endif
