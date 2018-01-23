@@ -86,7 +86,7 @@ def compare_ndarray_closeness(expected, actual, name=''):
     if actual.shape != expected.shape:
         show('shapes differ ref={0} actual={1}'.format(expected_shape, actual_shape))
         if (len(actual_shape) == len(expected_shape)):
-            expected, actual = match_on_overlap(expected, actual, expected_shape, actual_shape)
+            expected, actual = match_on_overlap(expected, actual)
         else:
             return
     else:
@@ -125,10 +125,13 @@ def compare_ndarray_closeness(expected, actual, name=''):
         traceback.print_exc()
 
 
-def match_on_overlap(expected, actual, expected_shape, actual_shape):
-    overlap_slices = [slice(0, min(expected_dim, actual_dim)) for expected_dim, actual_dim in zip(expected_shape, actual_shape)]
-    expected = expected[overlap_slices]
-    actual = actual[overlap_slices]
+def match_on_overlap(expected, actual):
+    expected_shape = expected.shape
+    actual_shape = actual.shape
+    if expected_shape != actual_shape:
+        overlap_slices = [slice(0, min(expected_dim, actual_dim)) for expected_dim, actual_dim in zip(expected_shape, actual_shape)]
+        expected = expected[overlap_slices]
+        actual = actual[overlap_slices]
     return expected, actual
 
 
@@ -312,7 +315,7 @@ def compare_ndarray_dice(expected_value, actual_value, name):
     if actual_value.shape != expected_value.shape:
         show('shapes differ expected={0} actual={1}'.format(ref_shape, item_shape))
         if (len(item_shape) == len(ref_shape)):
-            expected_value, actual_value = match_on_overlap(expected_value, actual_value, ref_shape, item_shape)
+            expected_value, actual_value = match_on_overlap(expected_value, actual_value)
         else:
             return
     else:
@@ -341,6 +344,58 @@ def compare_ndarray_dice(expected_value, actual_value, name):
     except Exception as flaw:
         show('flaw = {0}'.format(str(flaw)))
         traceback.print_exc()
+
+def measure_label_differences(expected_value, actual_value):
+    def shape_finder(value):
+        if hasattr(value, 'shape'):
+            return list(value.shape)
+        else:
+            return None
+    metrics = {}
+    metrics['expected_shape'] = shape_finder(expected_value)
+    metrics['actual_shape'] = shape_finder(actual_value)
+    metrics['comparable'] = metrics['expected_shape'] is not None and \
+                 metrics['actual_shape'] is  not None and \
+                 len(metrics['expected_shape']) == len(metrics['actual_shape'])
+
+    if not metrics['comparable']:
+        return metrics
+    metrics['same_shape'] = actual_value.shape == expected_value.shape
+    expected_value, actual_value = match_on_overlap(expected_value, actual_value)
+    metrics['flaw'] = ''
+    try:
+        total_size = int(np.prod(expected_value.shape))
+        matches = actual_value == expected_value
+        total_matches = int(np.sum(matches))
+        matching_rate = total_matches / total_size if total_size > 0 else 0
+        metrics['total_matches'] = total_matches
+        metrics['Match'] = matching_rate
+        metrics['total_size'] = total_size
+        metrics['identical'] = total_matches == total_size and metrics['same_shape']
+
+        expected_interior = expected_value != 0
+        expected_interior_count = int(np.sum(expected_interior))
+        actual_interior = actual_value != 0
+        actual_interior_count = int(np.sum(actual_interior))
+        interior_match = np.logical_and(expected_interior, matches)
+        interior_match_count = int(np.sum(interior_match))
+
+        dice_divisor = actual_interior_count + expected_interior_count
+        dice = 2 * interior_match_count / (dice_divisor) if dice_divisor > 0 else 0
+        metrics['interior_match_count'] = interior_match_count
+        metrics['actual_interior_count'] = actual_interior_count
+        metrics['expected_interior_count'] = expected_interior_count
+        metrics['Dice'] = dice
+
+        interior_union = np.logical_or(expected_interior, actual_interior)
+        interior_union_count = int(np.sum(interior_union))
+        jaccard = interior_match_count / interior_union_count if interior_union_count > 0 else 0
+        metrics['interior_union_count'] = interior_union_count
+        metrics['Jaccard'] = jaccard
+    except Exception as flaw:
+        metrics['flaw'] = str(flaw)
+        traceback.print_exc()
+    return metrics
 
 
 class DiceInspector(Inspector):
