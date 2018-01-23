@@ -287,8 +287,10 @@ foreach hemi ($hemilist)
       $cmd |& tee -a $LF
       if($status) exit 1;
       rm -f $unknown_label $mw_label
-    else if(-e $unknown_label) mv $unknown_label $ddir/label/$hemi.Medial_wall.label
-    else if(-e $mw_label) mv $mw_label $ddir/label/$hemi.Medial_wall.label
+    else if(-e $unknown_label) then
+      mv $unknown_label $ddir/label/$hemi.Medial_wall.label
+    else if(-e $mw_label) then
+      mv $mw_label $ddir/label/$hemi.Medial_wall.label
     endif
     # Create the cortex label with all the remaining labels
     set ctxlabel = $ddir/label/$hemi.cortex.label
