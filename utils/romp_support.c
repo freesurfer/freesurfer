@@ -1,16 +1,16 @@
 /**
- * @file  romp_support.h
- * @brief prototypes and structures for getting reprodiucible results from and for timing omp loops.
+ * @file  romp_support.c
+ * @brief prototypes and structures for getting reproducible results from and for timing omp loops.
  *
  */
 /*
  * Original Author: Bevin Brett
  * CVS Revision Info:
- *    $Author: fischl $
+ *    $Author: brettb $
  *    $Date: 2017/12 $
  *    $Revision: 1.0 $
  *
- * Copyright © 2012 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2017 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
