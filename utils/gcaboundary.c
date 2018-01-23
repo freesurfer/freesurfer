@@ -1189,7 +1189,7 @@ int GCABwrite(GCAB *gcab, char *fname)
   FILE *fp;
   int x, y, z, vno, i1, i2;
   GCABS *gcabs;
-  // long where;
+  long where;
 
   strcpy(gcab->fname, fname);
 
@@ -1198,8 +1198,10 @@ int GCABwrite(GCAB *gcab, char *fname)
 
   fwriteFloat(GCAB_VERSION, fp);
   fwrite(gcab->gca_fname, sizeof(char), STRLEN - 1, fp);
-  // where = 
-  ftell(fp);
+  where = ftell(fp);
+  if (where == -1L){
+    ErrorPrintf(ERROR_BADFILE, "GCABwrite(%s) ftell returned invalid position indicator", fname);
+  }
   fwriteInt(gcab->target_label, fp);
   fwriteInt(gcab->spacing, fp);
   fwriteInt(gcab->nvertices, fp);
@@ -1273,7 +1275,7 @@ GCAB *GCABread(char *fname, GCA *gca)
   GCABS *gcabs;
   GCAB *gcab;
   char gca_fname[STRLEN];
-  // long where;
+  long where;
 
   fp = fopen(fname, "rb");
   if (fp == NULL) ErrorReturn(NULL, (ERROR_BADFILE, "GCABread(%s) fopen failed", fname));
@@ -1286,13 +1288,17 @@ GCAB *GCABread(char *fname, GCA *gca)
                  fname,
                  version,
                  GCAB_VERSION));
-  fread(gca_fname, sizeof(char), STRLEN - 1, fp);
+  if(!fread(gca_fname, sizeof(char), STRLEN - 1, fp)){
+    ErrorPrintf(ERROR_BADFILE, "GCABRead(%s) failed fread", fname);
+  }
   if (gca == NULL) {
     gca = GCAread(gca_fname);
     if (gca == NULL) ErrorReturn(NULL, (ERROR_BADFILE, "GCABread(%s): could not read gca from %s", fname, gca_fname));
   }
-  // where = 
-  ftell(fp);
+  where = ftell(fp);
+  if(where == -1L){
+    ErrorPrintf(ERROR_BADFILE, "GCABread(%s) ftell returned invalid position indicator", fname);
+  }
   label = freadInt(fp);
   spacing = freadInt(fp);
   // nvertices = 
@@ -1320,7 +1326,9 @@ GCAB *GCABread(char *fname, GCA *gca)
   gcab->bounding_box.dy = freadInt(fp);
   gcab->bounding_box.dz = freadInt(fp);
 
-  fread(gcab->fname, sizeof(char), STRLEN - 1, fp);
+  if(!fread(gcab->fname, sizeof(char), STRLEN - 1, fp)){
+    ErrorPrintf(ERROR_BADFILE, "GCABread(%s) failed fread", fname);
+  }
   strcpy(gcab->fname, fname);
 
   for (x = 0; x < gcab->width; x++) {
