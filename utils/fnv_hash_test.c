@@ -1,3 +1,27 @@
+/**
+ * @file  fnv_hash_test.c
+ * @brief Tests for the hash function that can be used to replace getting a sequence of random numbers
+ *
+ */
+/*
+ * Original Author: Bevin Brett
+ * CVS Revision Info:
+ *    $Author: ohinds $
+ *    $Date: 2018/01/16 00:00:00 $
+ *    $Revision: 1.0 $
+ *
+ * Copyright © 2018 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
 #include "fnv_hash.h"
 
 #include <stdio.h>
