@@ -2471,8 +2471,8 @@ int MRISsetPialUnknownToWhite(const MRIS *white, MRIS *pial)
   else
     UseWhite = 0;
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) firstprivate(annot, annotid)
 #endif
   for (vtxno = 0; vtxno < white->nvertices; vtxno++) {

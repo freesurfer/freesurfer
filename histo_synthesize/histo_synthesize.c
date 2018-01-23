@@ -30,13 +30,8 @@
 #include <ctype.h>
 
 
-#if 0
-#undef HAVE_OPENMP
-#endif
-
-#ifdef HAVE_OPENMP
 #include "romp_support.h"
-#endif
+
 #include "mri.h"
 #include "macros.h"
 #include "error.h"
@@ -502,9 +497,9 @@ HISTOsynthesize(MRI *mri, MRI *histo, int test_slice, int train_slice, MRI *hsyn
   else    // go through each pixel in the histo space
   {
     width = crop_width > 0 ? crop_width : hsynth->width ;
+    ROMP_PF_begin
 #ifdef HAVE_OPENMP
     xm = ym = zm = 0 ;
-    ROMP_PF_begin
 #pragma omp parallel for if_ROMP(experimental) firstprivate(m_histo2mri, m_mri2histo, xind, yind, zind, hsynth, y, val, histo, test_slice, Gx, Gy, xm, ym, zm, identity, mri_mask, mri, train_slice, min_training_dist, tol, num_notfound, xh, yh, zh, xd, yd, zd, f, farray) shared(v1, v2) schedule(static,1)
 #endif
   for (x = 0 ; x < width ; x++)   // synth is in histo coords

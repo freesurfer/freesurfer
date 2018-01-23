@@ -37,9 +37,8 @@ const char *MRI_C_VERSION = "$Revision: 1.575 $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef HAVE_OPENMP
+
 #include "romp_support.h"
-#endif
 
 #include "box.h"
 #include "cma.h"

@@ -48,9 +48,9 @@
 #include "tritri.h"
 #include "cmat.h"
 #include "fsinit.h"
-#ifdef HAVE_OPENMP
+
 #include "romp_support.h"
-#endif
+
 
 
 #define MIN_SPLINE_CONTROL_POINTS  3
@@ -367,14 +367,16 @@ main(int argc, char *argv[]) {
       mri_tmp = MRIcopy(mri_smooth, NULL) ;
       for (i = 0 ; i < 10 ; i++)
       {
+	ROMP_PF_begin
 #if 0
 #ifdef HAVE_OPENMP
 	val = 0 ; l = 0 ;
-	ROMP_PF_begin
 #pragma omp parallel for if_ROMP(experimental) firstprivate(val, l) shared(mri_aseg, mri_tmp, labels, y, z) schedule(static,1)
 #endif
 #endif
 	for (x = 0 ; x < mri_aseg->width ; x++) {
+          ROMP_PFLB_begin
+          
 	  for (y = 0 ; y < mri_aseg->height ; y++) {
 	    for (z = 0 ; z < mri_aseg->depth ; z++)
 	    {
@@ -385,7 +387,11 @@ main(int argc, char *argv[]) {
 	      MRIsetVoxVal(mri_tmp, x, y, z, 0, val) ;
 	    }
 	  }
+          
+          ROMP_PFLB_end
 	}
+        ROMP_PF_end
+
 	MRIcopy(mri_tmp, mri_smooth) ;
       }
       MRIfree(&mri_tmp) ;
@@ -521,7 +527,11 @@ get_option(int argc, char *argv[]) {
     char str[STRLEN] ;
     sprintf(str, "OMP_NUM_THREADS=%d", atoi(argv[2]));
     putenv(str) ;
+#ifdef HAVE_OPENMP
     omp_set_num_threads(atoi(argv[2]));
+#else
+    fprintf(stderr, "Warning - built without openmp support\n");
+#endif
     nargs = 1 ;
     fprintf(stderr, "Setting %s\n", str) ;
   }
@@ -834,9 +844,9 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
     MRIwrite(mri_path_grad, "pg.mgz") ;
     MRIwrite(mri_possible_migration_paths, "p.mgz") ;
   }
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
   v = NULL ; n = 0 ; vl = vl_spline = NULL ;
-  ROMP_PF_begin
 #pragma omp parallel for if_ROMP(experimental) firstprivate(n, v, vl, vl_spline, entropy, gm_mean, mcmc_samples) shared(mri_intensity, mri_aseg, mri_path_grad,mri_splines) schedule(static,1)
 #endif
   for (vno = 0 ; vno < mris->nvertices ; vno++)

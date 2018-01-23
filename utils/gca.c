@@ -32,9 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef HAVE_OPENMP
 #include "romp_support.h"
-#endif
 
 #include "cma.h"
 #include "diag.h"
@@ -4594,8 +4592,8 @@ float GCAcomputeLogSampleProbability(
   else
     m_prior2source_voxel = GCAgetPriorToSourceVoxelMatrix(gca, mri_inputs, transform);
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(fast) firstprivate(gcas, tid, m_prior2source_voxel) reduction(+ : total_log_p)
 #endif
   for (i = 0; i < nsamples; i++) {
