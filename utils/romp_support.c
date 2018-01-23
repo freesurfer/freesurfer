@@ -83,6 +83,7 @@ static const char* getMainFile()
 
 static void rompExitHandler(void)
 {
+#if defined(ROMP_SUPPORT_ENABLED)
     static int once;
     if (once++ > 0) return;
     fprintf(stderr, "ROMP staticExitHandler called\n");
@@ -101,6 +102,7 @@ static void rompExitHandler(void)
             fclose(comFile);
         }
     }
+#endif
 }
 
 static NanosecsTimer mainTimer;

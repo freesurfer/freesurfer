@@ -118,7 +118,8 @@ typedef struct ROMP_pflb_stack_struct {
     int tid;
 } ROMP_pflb_stack_struct;
 
-#if 0
+
+#if defined(ROMP_SUPPORT_ENABLED)
 
 #define if_ROMP(LEVEL)
 
