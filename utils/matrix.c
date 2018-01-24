@@ -1936,7 +1936,12 @@ MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m)
       else if (fscanf(fp, "%f  ", &m->rptr[row][col]) != 1)
         ErrorReturn(NULL, (ERROR_BADFILE, "MatrixAsciiReadFrom: could not scan element (%d, %d)", row, col));
     }
-    fscanf(fp, "\n");
+    // a non zero return value for fscanf would be odd, since the scan does not match any values
+    // but we need to handle the return value, so this seems to be the sensible way to 'contract this'
+    // even if ferror is never reached
+    if(fscanf(fp, "\n") != 0 && ferror(fp)) {
+      ErrorPrintf(ERROR_BADFILE, "MatrixAsciiReadFrom: A read error occured while scanning for newline");
+    }
   }
 
   return (m);
