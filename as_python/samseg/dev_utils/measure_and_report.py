@@ -1,8 +1,7 @@
 import json
-
 import os
 
-from as_python.samseg.compute_dice_measure import find_gold_image, find_python_image, \
+from as_python.samseg.dev_utils.compute_dice_measure import find_gold_image, find_python_image, \
     find_matlab_image
 from as_python.samseg.dev_utils.debug_client import valid_case_folders_and_save_paths, \
     measure_label_differences, find_testing_dir
@@ -12,6 +11,7 @@ def measure_and_report(report_save_path=None):
     if report_save_path is None:
         report_save_path = os.path.join(find_testing_dir(), 'test_results.json')
     save_as_json(report(measure()), report_save_path)
+
 
 def save_as_json(measurements, report_save_path):
     with open(report_save_path, mode='w') as outfile:

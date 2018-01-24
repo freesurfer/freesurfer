@@ -5,10 +5,9 @@ import numpy as np
 
 from as_python.samseg.bias_correction import backprojectKroneckerProductBasisFunctions
 from as_python.samseg.dev_utils.debug_client import run_test_cases, create_checkpoint_manager, \
-    create_part3_inspection_team
+    create_part3_inspection_team, load_starting_fixture
 from as_python.samseg.kvlWarpMesh import kvlWarpMesh
-# from dotdict import DotDict
-from as_python.samseg.run_utilities import load_starting_fixture
+
 
 eps = np.finfo(float).eps
 

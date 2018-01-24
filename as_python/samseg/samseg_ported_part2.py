@@ -7,10 +7,9 @@ import scipy.io
 from as_python.samseg.bias_correction import backprojectKroneckerProductBasisFunctions, \
     projectKroneckerProductBasisFunctions, computePrecisionOfKroneckerProductBasisFunctions
 from as_python.samseg.dev_utils.debug_client import create_part2_inspection_team, run_test_cases, \
-    create_checkpoint_manager
+    create_checkpoint_manager, load_starting_fixture
 from as_python.samseg.kvlWarpMesh import kvlWarpMesh
 from as_python.samseg.kvl_merge_alphas import kvlMergeAlphas
-from as_python.samseg.run_utilities import load_starting_fixture
 
 logger = logging.getLogger(__name__)
 
@@ -837,7 +836,8 @@ def samsegment_part2(
                 #       [ minLogLikelihoodTimesDeformationPrior, maximalDeformation ] = kvlStepOptimizer( optimizer );
                 minLogLikelihoodTimesDeformationPrior, maximalDeformation = optimizer.step_optimizer()
                 #       disp( [ 'maximalDeformation ' num2str( maximalDeformation ) ' took ' num2str( toc( stepStartTime ) ) ' sec' ] )
-                print("maximalDeformation={} minLogLikelihood={}".format(maximalDeformation, minLogLikelihoodTimesDeformationPrior))
+                print("maximalDeformation={} minLogLikelihood={}".format(maximalDeformation,
+                                                                         minLogLikelihoodTimesDeformationPrior))
                 #
                 #       if ( maximalDeformation == 0 )
                 #         break;
@@ -942,7 +942,7 @@ def samsegment_part2(
             # if ((((historyOfCost[-2] - historyOfCost[-1]) / len(downSampledMaskIndices[0]))
             #      #            < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion ) ) % If EM converges in one iteration and mesh node optimization doesn't do anything
             #      < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion)):  # If EM converges in one iteration and mesh node optimization doesn't do anything
-                #       % Converged
+            #       % Converged
             if perVoxelDecrease < perVoxelDecreaseThreshold:
                 #       break;
                 if checkpoint_manager:
@@ -1014,6 +1014,7 @@ def samsegment_part2(
         'transformMatrix': transform.as_numpy_array,
         'variances': variances,
     }
+
 
 def test_samseg_ported_part2(case_name, case_file_folder, savePath):
     checkpoint_manager = create_checkpoint_manager(case_file_folder)

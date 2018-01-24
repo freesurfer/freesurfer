@@ -1,31 +1,10 @@
+import json
 import logging
 import os
 
 import numpy as np
-import scipy.io
-import json
 
 logger = logging.getLogger(__name__)
-
-MATLAB_FIXTURE_PATH = os.path.dirname(os.path.dirname(os.path.dirname(__file__))) + '/GEMS2/Testing/matlab_data/'
-
-def load_mat_file(filename):
-    return scipy.io.loadmat(filename, struct_as_record=False, squeeze_me=True)
-
-
-def load_mat_data_file(leaf_name):
-    return load_mat_file(os.path.join(MATLAB_FIXTURE_PATH, leaf_name))
-
-
-def load_starting_fixture():
-    logger.info("MATLAB_FIXTURE_PATH = %s", MATLAB_FIXTURE_PATH)
-    fixture = load_mat_data_file('part1.mat')
-    # matlab fixture sometimes returns imageFileNames as string not list of strings.
-    # Fix it with this bit of funk:
-    imageFileNames = fixture['imageFileNames']
-    if imageFileNames[0] == '/':
-        fixture['imageFileNames'] = [imageFileNames]
-    return fixture
 
 
 def find_samseg_data_dir(samseg_data_dir=None):
@@ -42,14 +21,10 @@ def find_or_create_save_path(save_path, makedirs=os.makedirs):
     makedirs(save_path, exist_ok=True)
     return save_path
 
-# def find_or_create_save_path(recipe, makedirs=os.makedirs):
-#     save_path = recipe.output
-#     makedirs(save_path, exist_ok=True)
-#     return save_path
-
 
 def dump_dict(value):
     return getattr(value, 'dump_dict', getattr(value, '__dict__', value))
+
 
 class Specification:
     def __init__(self, params):
@@ -64,9 +39,6 @@ class Specification:
         return json.dumps(self, default=dump_dict,
                           sort_keys=True)
 
-# TODO: recreate specification from JSON
-def createSpecificationFromJSON(json_string):
-    pass
 
 class ResolutionSpecification(Specification):
     pass

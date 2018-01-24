@@ -1,7 +1,7 @@
 import logging
 
-from as_python.samseg.dev_utils.debug_client import run_test_cases, create_checkpoint_manager
-from as_python.samseg.run_utilities import load_starting_fixture, Specification
+from as_python.samseg.dev_utils.debug_client import run_test_cases, create_checkpoint_manager, load_starting_fixture
+from as_python.samseg.run_utilities import Specification
 from as_python.samseg.samseg_ported_part1 import samsegment_part1
 from as_python.samseg.samseg_ported_part2 import samsegment_part2
 from as_python.samseg.samseg_ported_part3 import samsegment_part3

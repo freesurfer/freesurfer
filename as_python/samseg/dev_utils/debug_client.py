@@ -17,9 +17,29 @@ import scipy.io
 
 logger = logging.getLogger(__name__)
 
-# MATLAB_DUMP_DIR = "/Users/ys/work/freesurfer/matlab_dumps"
-# MATLAB_DUMP_DIR = '/home/willy/work/cm/my_tests/matlab_dump_dir'
 MATLAB_DUMP_DIR = os.getenv('MATLAB_DUMP_DIR')
+
+MATLAB_FIXTURE_PATH = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__)))) + '/GEMS2/Testing/matlab_data/'
+
+
+def load_mat_file(filename):
+    return scipy.io.loadmat(filename, struct_as_record=False, squeeze_me=True)
+
+
+def load_mat_data_file(leaf_name):
+    return load_mat_file(os.path.join(MATLAB_FIXTURE_PATH, leaf_name))
+
+
+def load_starting_fixture():
+    logger.info("MATLAB_FIXTURE_PATH = %s", MATLAB_FIXTURE_PATH)
+    fixture = load_mat_data_file('part1.mat')
+    # matlab fixture sometimes returns imageFileNames as string not list of strings.
+    # Fix it with this bit of funk:
+    imageFileNames = fixture['imageFileNames']
+    if imageFileNames[0] == '/':
+        fixture['imageFileNames'] = [imageFileNames]
+    return fixture
 
 
 def request_var(varname):
@@ -116,7 +136,8 @@ def compare_ndarray_closeness(expected, actual, name=''):
         else:
             show('differences...', '    ')
 
-        show('expected_max={0} expected_min={1} actual_max={2} actual_min={3}'.format(expected_max, expected_min, actual_max, actual_min), '    ')
+        show('expected_max={0} expected_min={1} actual_max={2} actual_min={3}'.format(expected_max, expected_min,
+                                                                                      actual_max, actual_min), '    ')
         show('max_diff={0} min_diff={1}'.format(max_difference, min_difference), '    ')
         show('max_location={0} min_location={1}'.format(max_location, min_location), '    ')
         show('average difference={0} relative_difference={1}'.format(average_difference, relative_difference), '    ')
@@ -129,7 +150,8 @@ def match_on_overlap(expected, actual):
     expected_shape = expected.shape
     actual_shape = actual.shape
     if expected_shape != actual_shape:
-        overlap_slices = [slice(0, min(expected_dim, actual_dim)) for expected_dim, actual_dim in zip(expected_shape, actual_shape)]
+        overlap_slices = [slice(0, min(expected_dim, actual_dim)) for expected_dim, actual_dim in
+                          zip(expected_shape, actual_shape)]
         expected = expected[overlap_slices]
         actual = actual[overlap_slices]
     return expected, actual
@@ -143,6 +165,7 @@ def fixup_part1(python_dict, matlab_dict):
         int(number_of_basis_functions)
         for number_of_basis_functions in python_dict['numberOfBasisFunctions']]
     return python_dict
+
 
 def fixup_part0(python_dict, matlab_dict):
     imageFileNames = python_dict['imageFileNames']
@@ -197,7 +220,6 @@ class CheckpointManager:
         matlab_load_path = self.file_name_for_checkpoint(self.matlab_dump_dir, checkpoint_name, checkpoint_number)
         logger.info('loading from %s', matlab_load_path)
         return scipy.io.loadmat(matlab_load_path, struct_as_record=False, squeeze_me=True)
-
 
     def substitute(self, checkpoint_name, checkpoint_number=None, python_dict=None):
         if python_dict is None:
@@ -345,18 +367,20 @@ def compare_ndarray_dice(expected_value, actual_value, name):
         show('flaw = {0}'.format(str(flaw)))
         traceback.print_exc()
 
+
 def measure_label_differences(expected_value, actual_value):
     def shape_finder(value):
         if hasattr(value, 'shape'):
             return list(value.shape)
         else:
             return None
+
     metrics = {}
     metrics['expected_shape'] = shape_finder(expected_value)
     metrics['actual_shape'] = shape_finder(actual_value)
     metrics['comparable'] = metrics['expected_shape'] is not None and \
-                 metrics['actual_shape'] is  not None and \
-                 len(metrics['expected_shape']) == len(metrics['actual_shape'])
+                            metrics['actual_shape'] is not None and \
+                            len(metrics['expected_shape']) == len(metrics['actual_shape'])
 
     if not metrics['comparable']:
         return metrics

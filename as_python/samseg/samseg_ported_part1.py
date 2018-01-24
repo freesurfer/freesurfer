@@ -1,14 +1,13 @@
+import math
 from functools import reduce
 from operator import mul
 
 import GEMS2Python
-import math
 import numpy as np
 
 from as_python.samseg.dev_utils.debug_client import create_checkpoint_manager, run_test_cases, \
-    create_part1_inspection_team
+    create_part1_inspection_team, load_starting_fixture
 from as_python.samseg.kvl_merge_alphas import kvlMergeAlphas
-from as_python.samseg.run_utilities import load_starting_fixture
 
 
 def samsegment_part1(
@@ -466,11 +465,13 @@ def print_show_figures(showFigures):
     #
     #
 
+
 def test_samseg_part_1(case_name, case_file_folder, savePath):
     checkpoint_manager = create_checkpoint_manager(case_file_folder)
     fixture = load_starting_fixture()
     part0_results_dict = checkpoint_manager.load_specification('part0', 1)
-    part0_results_dict, part0_results_dict_python, part0_results_dict_matlab = checkpoint_manager.substitute('part0', 1, python_dict=part0_results_dict)
+    part0_results_dict, part0_results_dict_python, part0_results_dict_matlab = checkpoint_manager.substitute('part0', 1,
+                                                                                                             python_dict=part0_results_dict)
     part0_results_dict['savePath'] = savePath
 
     part1_results_dict = samsegment_part1(
@@ -484,6 +485,7 @@ def test_samseg_part_1(case_name, case_file_folder, savePath):
     )
     create_part1_inspection_team().inspect_all(checkpoint_manager)
     pass
+
 
 if __name__ == '__main__':
     run_test_cases(action=test_samseg_part_1)
