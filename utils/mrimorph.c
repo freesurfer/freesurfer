@@ -4571,7 +4571,9 @@ MORPH_3D *MRI3DreadSmall(char *fname)
   node_spacing = freadFloat(fp);
 
   /* so stuff can be added to the header in the future */
-  fread(buf, sizeof(char), UNUSED_SPACE_SIZE, fp);
+  if (fread(buf, sizeof(char), UNUSED_SPACE_SIZE, fp) != UNUSED_SPACE_SIZE && ferror(fp)) {
+    ErrorPrintf(ERROR_BADFILE, "Could not read unused space");
+  }
 
   m3d = m3dalloc(width, height, depth, node_spacing);
   for (i = 0; i < m3d->width; i++) {
