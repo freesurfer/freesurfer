@@ -9931,7 +9931,6 @@ int gcamMapTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_map)
   }
 // 3 x ninputs
 #ifdef HAVE_OPENMP
-#pragma omp parallel
   tid = omp_get_thread_num();
 #else
   tid = 0;

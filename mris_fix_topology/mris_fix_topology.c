@@ -343,7 +343,7 @@ main(int argc, char *argv[])
 
   // Output formatted so it can be easily grepped
 #ifdef HAVE_OPENMP
-  int n_omp_threads = omp_get_num_threads();
+  int n_omp_threads = omp_get_max_threads();
   printf("FSRUNTIME@ mris_fix_topology %s %7.4f hours %d threads\n",hemi,msec/(1000.0*60.0*60.0),n_omp_threads);
 #else
   printf("FSRUNTIME@ mris_fix_topology %s %7.4f hours %d threads\n",hemi,msec/(1000.0*60.0*60.0),1);

@@ -1,14 +1,39 @@
+/**
+ * @file  romp_support.c
+ * @brief prototypes and structures for getting reproducible results from and for timing omp loops.
+ *
+ */
+/*
+ * Original Author: Bevin Brett
+ * CVS Revision Info:
+ *    $Author: brettb $
+ *    $Date: 2017/12 $
+ *    $Revision: 1.0 $
+ *
+ * Copyright © 2017 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 #include "romp_support.h"
-#include "romp_support.h"
+
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
+
 #include <stdlib.h>
 #include <pthread.h>
 
 ROMP_level romp_level = 
     ROMP_level_fast;              	// should not be set to ROMP_serial
-
+    //ROMP_level_assume_reproducible;
+    //ROMP_level_shown_reproducible;
 
 typedef struct StaticData {
     ROMP_pf_static_struct* next;
@@ -58,6 +83,7 @@ static const char* getMainFile()
 
 static void rompExitHandler(void)
 {
+#if defined(ROMP_SUPPORT_ENABLED)
     static int once;
     if (once++ > 0) return;
     fprintf(stderr, "ROMP staticExitHandler called\n");
@@ -76,6 +102,7 @@ static void rompExitHandler(void)
             fclose(comFile);
         }
     }
+#endif
 }
 
 static NanosecsTimer mainTimer;
@@ -340,9 +367,58 @@ void ROMP_show_stats(FILE* file)
     fprintf(file, "ROMP_show_stats end\n");
 }
 
+
+void ROMP_Distributor_begin(ROMP_Distributor* distributor,
+    int lo, int hi, 
+    double* sumReducedDouble0, 
+    double* sumReducedDouble1, 
+    double* sumReducedDouble2) {
+    
+    distributor->originals[0] = sumReducedDouble0;
+    distributor->originals[1] = sumReducedDouble1;
+    distributor->originals[2] = sumReducedDouble2;
+
+    distributor->partialSize = (hi - lo);
+    if (distributor->partialSize <= 0) {
+        distributor->partialSize = 0;
+        return;
+    }
+    
+    if (distributor->partialSize > ROMP_DISTRIBUTOR_PARTIAL_CAPACITY)
+        distributor->partialSize = ROMP_DISTRIBUTOR_PARTIAL_CAPACITY;
+    
+    int i;
+    for (i = 0; i < distributor->partialSize; i++) {
+        int step = (hi - lo) / (distributor->partialSize - i);
+        distributor->partials[i].lo = lo;
+        distributor->partials[i].hi = (lo += step);
+        int j;
+        for (j = 0; j < ROMP_DISTRIBUTOR_REDUCTION_CAPACITY; j++) {
+            distributor->partials[i].partialSum[j] = 0.0;
+        }
+    }
+}
+
+void ROMP_Distributor_end(ROMP_Distributor* distributor) {
+    int j;
+    for (j = 0; j < ROMP_DISTRIBUTOR_REDUCTION_CAPACITY; j++) {
+        if (!distributor->originals[j]) continue;
+        double sum = *distributor->originals[j];
+        int i;
+        for (i = 0; i < distributor->partialSize; i++) {
+            sum += distributor->partials[i].partialSum[j];
+        }   
+        *distributor->originals[j] = sum;
+    }
+}
+
+
+
 #if 0
 
 // example
+//
+// pushd utils; rm -f a.out ; gcc -fopenmp -I../include romp_support.c timer.c ; ./a.out ; popd
 //
 int main(int argc, char* argv[])
 {
@@ -356,6 +432,8 @@ int main(int argc, char* argv[])
     comBuffer[comSize] = 0;
     fprintf(stdout, "%s:%d main() of %s\n", __FILE__, __LINE__, comBuffer);
     
+    // Simple timing and control example
+    //
     static const int v_size = 30000;
     int i;
     double sum = 0;
@@ -394,6 +472,56 @@ int main(int argc, char* argv[])
 
     fprintf(stdout, "ThreadMask:%p\n", (void*)threadMask);
     
+    // Reproducible reduction example
+    //
+    double doubleToSum0_0,doubleToSum1_0;
+    int numThreads;
+    for (numThreads = 1; numThreads <= 10; numThreads++) {
+    
+        omp_set_num_threads(numThreads);
+    
+        double doubleToSum0 = 0.0, doubleToSum1 = 0.0;
+        
+        // the original loop control
+        //
+        #define ROMP_VARIABLE   originalVariable
+        #define ROMP_LO         1
+        #define ROMP_HI         1000000
+    
+        // the original reductions
+        //
+        #define ROMP_SUMREDUCTION0  doubleToSum0
+        #define ROMP_SUMREDUCTION1  doubleToSum1
+        
+        #include "romp_for_begin.h"
+    
+            #define doubleToSum0 ROMP_PARTIALSUM(0)
+            #define doubleToSum1 ROMP_PARTIALSUM(1)
+    
+            // the original loop body
+            //
+            doubleToSum0 += 1.0 /             (double)(originalVariable)  ;
+            doubleToSum1 += 1.0 / ( ROMP_HI - (double)(originalVariable) );
+
+            #undef doubleToSum0
+            #undef doubleToSum1
+            
+        #include "romp_for_end.h"
+
+        if (numThreads == 1) {        
+            doubleToSum0_0 = doubleToSum0;
+            doubleToSum1_0 = doubleToSum1;
+        } else {
+            if (doubleToSum0_0 != doubleToSum0) fprintf(stderr, "diff 0\n");
+            if (doubleToSum1_0 != doubleToSum1) fprintf(stderr, "diff 1\n");
+        }
+        
+        printf("romp_for numThreads:%d doubleToSum0:%g doubleToSum1:%g\n",
+            numThreads, doubleToSum0,doubleToSum1);
+    }
+    
+    // Done
+    //
     ROMP_show_stats(stdout);
     return 0;
 }

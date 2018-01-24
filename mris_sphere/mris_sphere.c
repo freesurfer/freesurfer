@@ -205,13 +205,12 @@ main(int argc, char *argv[])
   fflush(stdout);
 
 #ifdef HAVE_OPENMP
-  int n_omp_threads = 1;
-#pragma omp parallel
-  { 
+  {
+    int n_omp_threads = 1;
     n_omp_threads = omp_get_max_threads(); 
+    printf("\n== Number of threads available to %s for OpenMP = %d == \n",
+      Progname, n_omp_threads);
   }
-  printf("\n== Number of threads available to %s for OpenMP = %d == \n",
-         Progname, n_omp_threads);
 #endif
 
   if (parms.base_name[0] == 0)
@@ -425,7 +424,7 @@ main(int argc, char *argv[])
           (float)msec/(1000.0f*60.0f*60.0f));
   // Output formatted so it can be easily grepped
 #ifdef HAVE_OPENMP
-  n_omp_threads = omp_get_max_threads();
+  int n_omp_threads = omp_get_max_threads();
   printf("FSRUNTIME@ mris_sphere %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),n_omp_threads);
 #else
   printf("FSRUNTIME@ mris_sphere %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),1);

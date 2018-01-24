@@ -1,3 +1,27 @@
+/**
+ * @file  romp_support.h
+ * @brief prototypes and structures for getting reprodiucible results from and for timing omp loops.
+ *
+ */
+/*
+ * Original Author: Bevin Brett
+ * CVS Revision Info:
+ *    $Author: brettb $
+ *    $Date: 2017/12 $
+ *    $Revision: 1.0 $
+ *
+ * Copyright © 2012 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
 #pragma once
 
 #ifdef HAVE_OPENMP
@@ -28,6 +52,16 @@ void ROMP_show_stats(FILE*);
 	ROMP_PF_end
     
 #endif
+
+// A possibly parallel for loop that has a reproducible set of reductions
+// Macros and include files simplify coding it
+//
+#if 0
+                
+    See the end of romp_support.c
+        
+#endif
+
 
 // Conditionalize a parallel for with
 //
@@ -84,9 +118,17 @@ typedef struct ROMP_pflb_stack_struct {
     int tid;
 } ROMP_pflb_stack_struct;
 
-#if 1
+
+//#define ROMP_SUPPORT_ENABLED
+#if !defined(ROMP_SUPPORT_ENABLED)
+
+#define if_ROMPLEVEL(LEVEL)
 
 #define if_ROMP(LEVEL)
+
+#define if_ROMP2(CONDITION, LEVEL) \
+    if ((CONDITION)) \
+    // end of macro
 
 #define ROMP_PF_begin \
     {
@@ -103,10 +145,18 @@ typedef struct ROMP_pflb_stack_struct {
     
 #else
 
-#define if_ROMP(LEVEL) \
+#define if_ROMPLEVEL(LEVEL) \
     if (ROMP_pf_stack.staticInfo && \
+        (ROMP_if_parallel(LEVEL,&ROMP_pf_static))) \
+    // end of macro
+
+#define if_ROMP2(CONDITION, LEVEL) \
+    if ((CONDITION) && \
+        ROMP_pf_stack.staticInfo && \
         (ROMP_if_parallel(ROMP_level_##LEVEL,&ROMP_pf_static))) \
     // end of macro
+
+#define if_ROMP(LEVEL) if_ROMPLEVEL(ROMP_level_##LEVEL)
 
 #define ROMP_PF_begin \
     { \
@@ -144,3 +194,32 @@ void ROMP_pflb_end(
     ROMP_pflb_stack_struct  * pflb_stack);
 
 
+// Reproducible reductions
+//
+typedef struct ROMP_Distributor ROMP_Distributor;
+
+struct ROMP_Distributor {
+
+    #define ROMP_DISTRIBUTOR_PARTIAL_CAPACITY   128
+    #define ROMP_DISTRIBUTOR_REDUCTION_CAPACITY   3
+
+    double* originals[ROMP_DISTRIBUTOR_REDUCTION_CAPACITY];
+
+    struct Partials {
+        int lo;
+        int hi;
+        double  partialSum[ROMP_DISTRIBUTOR_REDUCTION_CAPACITY];
+    } partials[ROMP_DISTRIBUTOR_PARTIAL_CAPACITY];
+
+    int partialSize;
+};
+
+#define ROMP_PARTIALSUM(REDUCTION_INDEX) ROMP_distributor.partials[ROMP_index].partialSum[REDUCTION_INDEX]
+ 
+void ROMP_Distributor_begin(ROMP_Distributor* distributor,
+    int lo, int hi, 
+    double* sumReducedDouble0, 
+    double* sumReducedDouble1, 
+    double* sumReducedDouble2); 
+
+void ROMP_Distributor_end(ROMP_Distributor* distributor);

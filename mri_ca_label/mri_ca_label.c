@@ -286,13 +286,11 @@ int main(int argc, char *argv[])
   Progname = argv[0];
 
 #ifdef HAVE_OPENMP
-  int n_omp_threads = 1;
-  #pragma omp parallel
   {
-    n_omp_threads = omp_get_num_threads();
+    int n_omp_threads = omp_get_max_threads();
+    printf("\n== Number of threads available to %s for OpenMP = %d == \n",
+      Progname, n_omp_threads);
   }
-  printf("\n== Number of threads available to %s for OpenMP = %d == \n",
-         Progname, n_omp_threads);
 #endif
 
   setRandomSeed(-1L) ;

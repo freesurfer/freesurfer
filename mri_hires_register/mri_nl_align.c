@@ -171,10 +171,7 @@ main(int argc, char *argv[])
   mp.niterations = 1000 ;
 
 #ifdef HAVE_OPENMP
-  #pragma omp parallel
-  {
-    n_omp_threads = omp_get_num_threads();
-  }
+  n_omp_threads = omp_get_max_threads();
   printf("\n\n ======= NUMBER OF OPENMP THREADS = %d ======= \n",
          n_omp_threads);
 #else
