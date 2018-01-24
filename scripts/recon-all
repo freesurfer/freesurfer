@@ -50,6 +50,7 @@ if($?SET_FS_CMD_TIMING) set DoTime = 1;
 set fs_time = "";
 set ErrorFile = /dev/null
 set cmd = ();
+setenv FS_LOAD_DWI 0 # turn off trying to load DWI
 
 # commands to only process single hemispheres (e.g. for ex vivo)
 set LHonly = 0 ;
