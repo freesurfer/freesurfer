@@ -1,4 +1,5 @@
 #define USE_ROUND 1
+#define BEVIN_GCACOMPUTELOGSAMPLEPROBABILITY_REPRODUCIBLE
 
 /**
  * @file  gca.c
@@ -4549,12 +4550,8 @@ float GCAcomputeLabelIntensityVariance(GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inpu
 }
 
 float GCAcomputeLogSampleProbability(
-    GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inputs, TRANSFORM *transform, int nsamples, double clamp)
+    GCA * const gca, GCA_SAMPLE * const gcas, MRI * const mri_inputs, TRANSFORM * const transform, int const nsamples, double const clamp)
 {
-  int i, tid, nthreads;
-  double total_log_p;
-  MATRIX *m_prior2source_voxel = NULL;
-  VECTOR *v_src[_MAX_FS_THREADS], *v_dst[_MAX_FS_THREADS];
 
   //  double     outside_log_p = 0.;
 
@@ -4566,45 +4563,74 @@ float GCAcomputeLogSampleProbability(
   TransformInvert(transform, mri_inputs);
 
   // go through all sample points
-  total_log_p = 0.0;
+  double total_log_p = 0.0;
 
 /* This loop used to be openmp'ed but there was something in it that
  was not thread-safe and caused unstable/nonrepeatable behavior with
  multimodal inputs. Removing did not seem to slow it down much.
 */
+  int const nthreads =
 #ifdef HAVE_OPENMP
-  nthreads = omp_get_max_threads();
+    omp_get_max_threads();
 #else
-  nthreads = 1;
+    1;
 #endif
-  for (tid = 0; tid < nthreads; tid++) {
-    v_src[tid] = VectorAlloc(4, MATRIX_REAL);
-    v_dst[tid] = VectorAlloc(4, MATRIX_REAL);
-    *MATRIX_RELT(v_src[tid], 4, 1) = 1.0;
-    *MATRIX_RELT(v_dst[tid], 4, 1) = 1.0;
+
+  MATRIX const * m_prior2source_voxel_nonconst = 
+    (transform->type == MORPH_3D_TYPE)
+    ? NULL
+    : GCAgetPriorToSourceVoxelMatrix(gca, mri_inputs, transform);
+  MATRIX const * const m_prior2source_voxel = m_prior2source_voxel_nonconst;    // just to make sure not changed below
+
+  VECTOR *v_src[_MAX_FS_THREADS], *v_dst[_MAX_FS_THREADS];
+  { int tid;
+    for (tid = 0; tid < nthreads; tid++) {
+      v_src[tid] = VectorAlloc(4, MATRIX_REAL);
+      v_dst[tid] = VectorAlloc(4, MATRIX_REAL);
+      *MATRIX_RELT(v_src[tid], 4, 1) = 1.0;
+      *MATRIX_RELT(v_dst[tid], 4, 1) = 1.0;
+    }
   }
+  
 
-  if (transform->type == MORPH_3D_TYPE)
-    m_prior2source_voxel = NULL;
-  else
-    m_prior2source_voxel = GCAgetPriorToSourceVoxelMatrix(gca, mri_inputs, transform);
 
-  ROMP_PF_begin
+  int i;
+#ifdef BEVIN_GCACOMPUTELOGSAMPLEPROBABILITY_REPRODUCIBLE
+
+  #define ROMP_VARIABLE       i
+  #define ROMP_LO             0
+  #define ROMP_HI             nsamples
+    
+  #define ROMP_SUMREDUCTION0  total_log_p
+    
+  #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
+    
+  #include "romp_for_begin.h"
+    
+    #define total_log_p  ROMP_PARTIALSUM(0)
+    
+#else
+
+  ROMP_PF_begin     // important in mri_em_register
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(fast) firstprivate(gcas, tid, m_prior2source_voxel) reduction(+ : total_log_p)
+  #pragma omp parallel for if_ROMP(fast) reduction(+ : total_log_p)
 #endif
   for (i = 0; i < nsamples; i++) {
     ROMP_PFLB_begin
+
+#endif
     
     int x, y, z, xp, yp, zp;
     double log_p;
     float vals[MAX_GCA_INPUTS];
 
+    int const tid =
 #ifdef HAVE_OPENMP
-    tid = omp_get_thread_num();
+      omp_get_thread_num();
 #else
-    tid = 0;
+      0;
 #endif
+
     /////////////////// diag code /////////////////////////////
     if (i == Gdiag_no) DiagBreak();
     if (Gdiag_no == gcas[i].label) DiagBreak();
@@ -4666,17 +4692,28 @@ float GCAcomputeLogSampleProbability(
     gcas[i].log_p = log_p;
     total_log_p += log_p;
 
+#ifdef BEVIN_GCACOMPUTELOGSAMPLEPROBABILITY_REPRODUCIBLE
+
+    #undef total_log_p
+  #include "romp_for_end.h"
+  
+#else
+
     ROMP_PFLB_end
   }
   ROMP_PF_end
-  
+
+#endif
+
   fflush(stdout);
 
-  for (tid = 0; tid < nthreads; tid++) {
-    VectorFree(&v_src[tid]);
-    VectorFree(&v_dst[tid]);
-  }
-  if (m_prior2source_voxel) MatrixFree(&m_prior2source_voxel);
+  { int tid;
+    for (tid = 0; tid < nthreads; tid++) {
+      VectorFree(&v_src[tid]);
+      VectorFree(&v_dst[tid]);
+  } }
+  
+  if (m_prior2source_voxel_nonconst) MatrixFree(&m_prior2source_voxel_nonconst);
   return ((float)total_log_p / nsamples);
 }
 

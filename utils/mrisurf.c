@@ -45,6 +45,7 @@
 #define BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_REPRODUCIBLE
 #define BEVIN_MRISAVGINTERVERTEXDIST_REPRODUCIBLE
 #define BEVIN_MRISORIENTELLIPSOID_REPRODUCIBLE
+#define BEVIN_MRISCOMPUTECORRELATIONERROR_REPRODUCIBLE
 
 // Includes
 //
@@ -28394,12 +28395,33 @@ double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
 
   int vno;
   double sse = 0.0;
-  ROMP_PF_begin
+  
+#ifdef BEVIN_MRISCOMPUTECORRELATIONERROR_REPRODUCIBLE
+
+  #define ROMP_VARIABLE       vno
+  #define ROMP_LO             0
+  #define ROMP_HI             mris->nvertices
+    
+  #define ROMP_SUMREDUCTION0  sse
+    
+  #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
+    
+  #include "romp_for_begin.h"
+    
+    #define sse  ROMP_PARTIALSUM(0)
+    
+#else
+
+  ROMP_PF_begin         // Important during mris_register
+ 
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(fast) reduction(+ : sse)
 #endif
+
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
+
+#endif
     
     VERTEX *v = &mris->vertices[vno];
     if (vno == Gdiag_no) {
@@ -28448,10 +28470,17 @@ double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
     else {
       sse += delta * delta;
     }
+#ifdef BEVIN_MRISCOMPUTECORRELATIONERROR_REPRODUCIBLE
+
+    #undef sse
+  #include "romp_for_end.h"
+
+#else
     ROMP_PFLB_end
   }
   ROMP_PF_end
-  
+#endif
+
   return (sse);
 }
 

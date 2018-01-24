@@ -119,7 +119,7 @@ typedef struct ROMP_pflb_stack_struct {
 } ROMP_pflb_stack_struct;
 
 
-//#define ROMP_SUPPORT_ENABLED
+#define ROMP_SUPPORT_ENABLED
 #if !defined(ROMP_SUPPORT_ENABLED)
 
 #define if_ROMPLEVEL(LEVEL)
