@@ -9298,7 +9298,7 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       sse_sphere, sse_thick_min, sse_thick_parallel, sse_ashburner_triangle, sse_grad, sse_nl_area, sse_nl_dist,
       sse_tspring, sse_repulse, sse_tsmooth, sse_loc, sse_thick_spring, sse_repulsive_ratio, sse_shrinkwrap,
       sse_expandwrap, sse_lap, sse_dura, sse_nlspring, sse_thick_normal, sse_histo, sse_map, sse_map2d;
-  int ano, fno;
+  int fno;
   MHT *mht_v_current = NULL;
   MHT *mht_f_current = NULL;
 
@@ -9348,6 +9348,7 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
 #endif
       sse_area += delta * delta;
+      int ano;
       for (ano = 0; ano < ANGLES_PER_TRIANGLE; ano++) {
         delta = deltaAngle(face->angle[ano], face->orig_angle[ano]);
 #if ONLY_NEG_AREA_TERM
