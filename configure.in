@@ -3697,7 +3697,11 @@ if test "x$CC" = "xicc"; then
 else
   MATH_LIBS="-lm"
 fi
-LIBS="-lrt -lz $MATH_LIBS $LIB_CRYPT -ldl -lpthread $LIBS"
+LIBS="-lz $MATH_LIBS $LIB_CRYPT -ldl -lpthread $LIBS"
+# librt is not available on osx
+if test ! "$OS" = "Darwin"; then
+  LIBS="-lrt $LIBS"
+fi
 LIBS="$LIBS $LIB_JPEG"
 LIBS="$LIBS $LIB_TIFF"
 LIBS="$LIBS $LIB_EXPAT"

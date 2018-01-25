@@ -142,7 +142,9 @@ static int *get_afni_int(FILE *fp, int count, char *name)
   buf = (int *)malloc(count * sizeof(int));
 
   for (i = 0; i < count;) {
-    fgets(line, STRLEN, fp);
+    if (!fgets(line, STRLEN, fp) && ferror(fp)) {
+      ErrorPrintf(ERROR_BADFILE, "failed reading file");
+    }
 
     blank_flag = 1;
     for (c = line; *c != '\0'; c++)
@@ -193,7 +195,9 @@ static float *get_afni_float(FILE *fp, int count, char *name)
   buf = (float *)malloc(count * sizeof(float));
 
   for (i = 0; i < count;) {
-    fgets(line, STRLEN, fp);
+    if (!fgets(line, STRLEN, fp) && ferror(fp)) {
+      ErrorPrintf(ERROR_BADFILE, "failed reading file");
+    }
 
     blank_flag = 1;
     for (c = line; *c != '\0'; c++)
@@ -296,7 +300,9 @@ int readAFNIHeader(FILE *fp, AF *pAF)
   // AFNI header attribute spec http://afni.nimh.nih.gov/afni/docREADME/README.attributes
   while (1)  // !feof(fp))
   {
-    fgets(line, STRLEN, fp);
+    if (!fgets(line, STRLEN, fp) && ferror(fp)) {
+      ErrorPrintf(ERROR_BADFILE, "failed reading file");
+    }
     if (feof(fp))  // wow.  we read too many.  get out
       break;
 

@@ -2397,7 +2397,7 @@ for i=1:numberOfClasses
             aux(1+shiftNeg(1):shiftNeg(1)+size(tmp2.vol,1),1+shiftNeg(2):shiftNeg(2)+size(tmp2.vol,2),1+shiftNeg(3):shiftNeg(3)+size(tmp2.vol,3))=permute(kk1,[2 1 3]);
             aux=aux(1+shiftPos(1):end,1+shiftPos(2):end,1+shiftPos(3):end);
             tmp3.vol=aux;
-            myMRIwrite(tmp3,['posterior_' side '_' strtrim(lower(names(i,:))) '_T1_' suffix '.mgz'],'float',tempdir);
+            myMRIwrite(tmp3,['posterior_' side '_' strtrim(lower(names(i,:))) '_T1_' suffix '_' suffixUser '.mgz'],'float',tempdir);
         end
         
     end

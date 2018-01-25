@@ -110,7 +110,7 @@ MATRIX *MatlabRead(const char *fname)
   else
     imag_matrix = NULL;
 
-  // file_type = 
+  // file_type =
   readMatFile(fp, &mf, real_matrix, imag_matrix);
   nrows = (int)mf.mrows;
   ncols = (int)mf.ncols;
@@ -159,7 +159,7 @@ MATFILE *MatFileRead(const char *fname, int type)
   if (!fp) return (NULL);
 
   mf = (MATFILE *)calloc(1, sizeof(MATFILE));
-  // name = 
+  // name =
   MatReadHeader0(fp, mf);
 
   real_matrix = matAlloc((int)mf->mrows, (int)mf->ncols);
@@ -168,7 +168,7 @@ MATFILE *MatFileRead(const char *fname, int type)
   else
     imag_matrix = NULL;
 
-  // file_type = 
+  // file_type =
   readMatFile(fp, mf, real_matrix, imag_matrix);
 
   nrows = (int)mf->mrows;
@@ -590,7 +590,7 @@ MLFC *ReadMatlabFileContents(const char *fname)
     else
       imag_matrix = NULL;
 
-    // file_type = 
+    // file_type =
     readMatFile(fp, &mf, real_matrix, imag_matrix);
     nrows = (int)mf.mrows;
     ncols = (int)mf.ncols;
@@ -818,12 +818,12 @@ MATRIX *MatlabRead2(const char *fname)
   else
     imag_matrix = NULL;
 
-  if (compressed){
-    // file_type = 
+  if (compressed) {
+    // file_type =
     znzreadMatFile(unbuff, &mf, real_matrix, imag_matrix);
   }
-  else{
-    // file_type = 
+  else {
+    // file_type =
     readMatFile(fp, &mf, real_matrix, imag_matrix);
   }
 
@@ -910,7 +910,9 @@ char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed)
     mf->endian = fgetc(fp);
 
     fseek(fp, 1, SEEK_CUR);
-    fread(&dt, fourbytes, 1, fp);
+    if (fread(&dt, fourbytes, 1, fp) != 1 && ferror(fp)) {
+      ErrorPrintf(ERROR_BADFILE, "%s: encountered error while reading Matfile\n", MatProgname);
+    }
     if (DIFFERENT_ENDIAN(mf)) dt = swapLong32(dt);
     // dt is:
     //   14 if matrix
@@ -933,14 +935,20 @@ char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed)
 
     // Not compressed
     fseek(fp, 12, SEEK_CUR);
-    fread(&tmp, fourbytes, 1, fp);
+    if (fread(&tmp, fourbytes, 1, fp) != 1 && ferror(fp)) {
+      ErrorPrintf(ERROR_BADFILE, "%s: encountered error while reading Matfile\n", MatProgname);
+    }
     if (DIFFERENT_ENDIAN(mf)) tmp = swapLong32(tmp);
     memmove(&ctmp, &tmp, 4);  // tmp is long, ctmp is char
 
     mf->imagf = (long)(m & ctmp[3]);  // 0=real, 1=imag
     fseek(fp, 12, SEEK_CUR);
-    fread(&(mf->mrows), fourbytes, 1, fp);
-    fread(&(mf->ncols), fourbytes, 1, fp);
+    if (fread(&(mf->mrows), fourbytes, 1, fp) != 1 && ferror(fp)) {
+      ErrorPrintf(ERROR_BADFILE, "%s: encountered error while reading Matfile\n", MatProgname);
+    }
+    if (fread(&(mf->ncols), fourbytes, 1, fp) != 1 && ferror(fp)) {
+      ErrorPrintf(ERROR_BADFILE, "%s: encountered error while reading Matfile\n", MatProgname);
+    }
     if (DIFFERENT_ENDIAN(mf)) {
       mf->mrows = swapLong32(mf->mrows);
       mf->ncols = swapLong32(mf->ncols);
@@ -970,28 +978,38 @@ char *MatReadHeader(FILE *fp, MATFILE *mf, long32 *compressed)
     }
     if (c == 0 && d == 0) { /*normal element*/
       fseek(fp, 4, SEEK_CUR);
-      fread(&(mf->namlen), 1, fourbytes, fp);
+      if (fread(&(mf->namlen), 1, fourbytes, fp) != fourbytes && ferror(fp)) {
+        ErrorPrintf(ERROR_BADFILE, "%s: encountered error while reading Matfile\n", MatProgname);
+      }
       if (DIFFERENT_ENDIAN(mf)) mf->namlen = swapLong32(mf->namlen);
       name = (char *)calloc((int)mf->namlen, sizeof(char));
-      fread(name, (int)mf->namlen, sizeof(char), fp);
+      if (fread(name, (int)mf->namlen, sizeof(char), fp) != sizeof(char) && ferror(fp)) {
+        ErrorPrintf(ERROR_BADFILE, "%s: encountered error while reading Matfile\n", MatProgname);
+      }
       // If name does not fill up an 8 byte segment, read past the filler
       padding = 8 - ((int)mf->namlen - (int)mf->namlen / 8 * 8);
       fseek(fp, padding, SEEK_CUR);
     }
     else { /*small data element*/
-      fread(&(mf->namlen), 1, fourbytes, fp);
+      if (fread(&(mf->namlen), 1, fourbytes, fp) != fourbytes && ferror(fp)) {
+        ErrorPrintf(ERROR_BADFILE, "%s: encountered error while reading Matfile\n", MatProgname);
+      }
       if (DIFFERENT_ENDIAN(mf)) mf->namlen = swapLong32(mf->namlen);
       memmove(&namlen_temp, &mf->namlen, sizeof(short));
       mf->namlen = (long)namlen_temp;
       name = (char *)calloc((int)mf->namlen, sizeof(char));
-      fread(name, (int)mf->namlen, sizeof(char), fp);
+      if (fread(name, (int)mf->namlen, sizeof(char), fp) != sizeof(char) && ferror(fp)) {
+        ErrorPrintf(ERROR_BADFILE, "%s: encountered error while reading Matfile\n", MatProgname);
+      }
       // If name does not fill up an 4 byte segment, read past the filler
       padding = 4 - (int)mf->namlen;
       fseek(fp, padding, SEEK_CUR);
     }
 
     // Read in precision type (int, float, etc)
-    fread(&(mf->type), 1, fourbytes, fp);
+    if (fread(&(mf->type), 1, fourbytes, fp) != fourbytes && ferror(fp)) {
+      ErrorPrintf(ERROR_BADFILE, "%s: encountered error while reading Matfile\n", MatProgname);
+    }
     if (DIFFERENT_ENDIAN(mf)) mf->type = swapLong32(mf->type);
 
     // Jump past the next 4 bytes
@@ -1074,16 +1092,22 @@ char *znzMatReadHeader(FILE *fp, MATFILE *mf, char **data)
   //   14 if matrix
   //   15 if the element is compressed
   // Must be 15 to get here
-  fread(&dt, sizeof(long32), 1, fp);
+  if (fread(&dt, sizeof(long32), 1, fp) != 1 && ferror(fp)) {
+    ErrorPrintf(ERROR_BADFILE, "Encountered error while reading Matfile\n");
+  }
   if (DIFFERENT_ENDIAN(mf)) dt = swapLong32(dt);
 
   // size = size(elementheader) + size(compresseddata)
-  fread(&size, sizeof(long32), 1, fp);
+  if (fread(&size, sizeof(long32), 1, fp) != 1 && ferror(fp)) {
+    ErrorPrintf(ERROR_BADFILE, "Encountered error while reading Matfile\n");
+  }
   if (DIFFERENT_ENDIAN(mf)) size = swapLong32(size);
 
   // buff holds the compressed data
-  buff = (char *)malloc(sizeof(char)*size);
-  fread(buff, 1,        sizeof(char)*size, fp);
+  buff = (char *)malloc(sizeof(char) * size);
+  if (fread(buff, 1, sizeof(char) * size, fp) != 1 && ferror(fp)) {
+    ErrorPrintf(ERROR_BADFILE, "Encountered error while reading Matfile\n");
+  }
 
   // dont know the size of the data after it has been uncompressed,
   // so just assume that it is no more than a factor of 100 larger
