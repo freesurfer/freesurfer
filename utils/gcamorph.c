@@ -1,6 +1,7 @@
 #define BEVIN_FASTER_gcamSmoothnessEnergy
 #define BEVIN_GCAMSMOOTHNESSENERGY_REPRODUCIBLE
 #define BEVIN_GCAMJACOBIANENERGY_REPRODUCIBLE
+#define BEVIN_GCAMLOGLIKELIHOODENERGY_REPRODUCIBLE
 
 /**
  * @file  gcamorph.c
@@ -2298,19 +2299,10 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
   }
 #endif
 
-  double sse = 0.0;
-
-#ifndef GCAM_LLENERGY_GPU
-  double error = 0.0;
-  int x = 0, y = 0, z = 0;
-#endif
-
 #if DEBUG_LL_SSE
   int max_x, max_y, max_z;
   max_x = max_y = max_z = 0;
-#endif
 
-#if DEBUG_LL_SSE
   double max_increase = 0, increase;
   if (last_sse == NULL) {
     last_sse = (float ***)calloc(gcam->width, sizeof(float *));
@@ -2323,34 +2315,62 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
   }
 #endif
 
-#ifdef GCAM_LLENERGY_GPU
-  if (gcam->ninputs != 0) {
-    printf("%s: ninputs = %i\n", __FUNCTION__, gcam->ninputs);
-  }
-#endif
 
 // TIMER_INTERVAL_BEGIN(loop)
 
+  double sse = 0.0;
+
 #ifdef GCAM_LLENERGY_GPU
+
+  if (gcam->ninputs != 0) {
+    printf("%s: ninputs = %i\n", __FUNCTION__, gcam->ninputs);
+  }
+
 #if SHOW_EXEC_LOC
   printf("%s: CUDA call\n", __FUNCTION__);
 #endif
   sse = gcamLogLikelihoodEnergyGPU(gcam, mri);
+
 #else
+
 #if SHOW_EXEC_LOC
   printf("%s: CPU call\n", __FUNCTION__);
 #endif
-  ROMP_PF_begin
+
+  int x;
+
+#ifdef BEVIN_GCAMLOGLIKELIHOODENERGY_REPRODUCIBLE
+
+  #define ROMP_VARIABLE       x
+  #define ROMP_LO             0
+  #define ROMP_HI             gcam->width
+
+  #define ROMP_SUMREDUCTION0  sse
+    
+  #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
+    
+  #include "romp_for_begin.h"
+    
+    #define sse  ROMP_PARTIALSUM(0)
+
+#else
+
+  ROMP_PF_begin     // mri_ca_register
+
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(fast) reduction(+ : sse) firstprivate(y, z, error) shared(gcam, mri) schedule(static, 1)
 #endif
   for (x = 0; x < gcam->width; x++) {
     ROMP_PFLB_begin
-    
+
+#endif
+
+    int y;    
     for (y = 0; y < gcam->height; y++) {
       struct different_neighbor_labels_context different_neighbor_labels_context;
       init_different_neighbor_labels_context(&different_neighbor_labels_context,gcam,x,y);
       float vals[MAX_GCA_INPUTS];
+      int z;
       for (z = 0; z < gcam->depth; z++) {
         // Debugging breakpoint
         if (x == Gx && y == Gy && z == Gz) {
@@ -2384,6 +2404,7 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
         check_gcam(gcam);
 
         // Compute 'error' for this node
+        double error;
         if (gcamn->gc) {
           error = GCAmahDist(gcamn->gc, vals, gcam->ninputs) + log(covariance_determinant(gcamn->gc, gcam->ninputs));
         }
@@ -2436,9 +2457,17 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
         }
       }
     }
+#ifdef BEVIN_GCAMLOGLIKELIHOODENERGY_REPRODUCIBLE
+
+    #undef sse
+  #include "romp_for_end.h"
+
+#else
     ROMP_PFLB_end
   }
   ROMP_PF_end
+#endif
+
 #endif
 
 //  TIMER_INTERVAL_END(loop)
