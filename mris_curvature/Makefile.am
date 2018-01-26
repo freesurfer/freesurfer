@@ -16,7 +16,7 @@ foo_DATA=mris_curvature.help.xml
 foo2dir=$(prefix)/docs/html
 foo2_DATA=mris_curvature.help.xml.html
 
-TESTS=$(top_builddir)/scripts/help_xml_validate
+TESTS=test_mris_curvature $(top_builddir)/scripts/help_xml_validate
 
 clean-local:
 	rm -f $(BUILT_SOURCES) 
