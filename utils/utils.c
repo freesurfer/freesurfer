@@ -34,6 +34,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/param.h>
@@ -56,6 +57,7 @@ int isblank(int c);
 #include "mghendian.h"
 #include "numerics.h"
 #include "proto.h"
+#include "romp_support.h"
 #include "utils.h"
 
 /*------------------------------------------------------------------------
@@ -66,7 +68,10 @@ int isblank(int c);
   Return Values:
   nothing.
   ------------------------------------------------------------------------*/
+static bool seedHasBeenSet = false;
+
 static long idum = 0L, nrgcalls = 0L;
+
 int setRandomSeed(long seed)
 {
   // also seed the 'standard' random number generators: rand() and random()
@@ -88,6 +93,8 @@ int setRandomSeed(long seed)
   OpenRan1(&idum);
   nrgcalls = 1;
 
+  seedHasBeenSet = true;
+  
   return (NO_ERROR);
 }
 
@@ -104,9 +111,15 @@ double randomNumber(double low, double hi)
     hi = val;
   }
 
-  if (idum == 0L) /* change seed from run to run */
-    idum = -1L * (long)(abs((int)time(NULL)));
-
+  if (!seedHasBeenSet) {
+    if (romp_level < ROMP_level_assume_reproducible)
+      setRandomSeed( -1L * (long)(abs((int)time(NULL))) );
+    else {
+      fprintf(stderr, "randomNumber in code that is supposed to be reproducible, called but seed not set\n");
+      exit(1);
+    }
+  }
+  
   range = hi - low;
   val = OpenRan1(&idum) * range + low;
   // printf("randomcall %3ld %12.10lf\n",nrgcalls,val);

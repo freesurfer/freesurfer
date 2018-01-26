@@ -3006,7 +3006,7 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
   if (nsize <= mris->max_nsize) {
     ROMP_PF_begin
 #ifdef HAVE_OPENMP
-    #pragma omp parallel for if_ROMP(experimental)
+    #pragma omp parallel for if_ROMP(shown_reproducible)
 #endif
     for (vno = 0; vno < mris->nvertices; vno++) {
       ROMP_PFLB_begin
