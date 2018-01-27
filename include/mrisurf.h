@@ -225,102 +225,153 @@ STRIP;
 
 #include "transform.h" // TRANSFORM, LTA
 
+typedef char   *MRIS_cmdlines_t[MAX_CMDS] ;
+typedef char    MRIS_subject_name_t[STRLEN] ;
+typedef char    MRIS_fname_t[STRLEN] ;
+
 typedef struct
 {
-  int          nvertices ;      /* # of vertices on surface */
-  int          nfaces ;         /* # of faces on surface */
-  int          nstrips;
-  VERTEX       *vertices ;
-  FACE         *faces ;
-  STRIP        *strips;
-  float        xctr ;
-  float        yctr ;
-  float        zctr ;
-  float        xlo ;
-  float        ylo ;
-  float        zlo ;
-  float        xhi ;
-  float        yhi ;
-  float        zhi ;
-  float        x0 ;   // center of spherical expansion
-  float        y0 ;
-  float        z0 ;
-  VERTEX       *v_temporal_pole ;
-  VERTEX       *v_frontal_pole ;
-  VERTEX       *v_occipital_pole ;
-  float        max_curv ;
-  float        min_curv ;
-  float        total_area ;
-  double       avg_vertex_area;
-  double       avg_vertex_dist;
-  double       std_vertex_dist;
-  float        orig_area ;
-  float        neg_area ;
-  float        neg_orig_area ;   /* amount of original surface in folds */
-  int          zeros ;
-  int          hemisphere ;      /* which hemisphere */
-  int          initialized ;
+// The LIST_OF_MRIS_ELTS macro used here enables the the mris_hash
+// and other algorithms to process all the elements without having to explicitly name them there and here
+//
+//      ^[ \t]*([A-Za-z0-9_]*)[ \t]*([A-Za-z0-9_]*)[ \t]*;
+//
+#define LIST_OF_MRIS_ELTS_1     \
+    \
+  ELTT(int,nvertices) SEP      /* # of vertices on surface */    \
+  ELTT(int,nfaces) SEP         /* # of faces on surface */    \
+  ELTT(int,nstrips) SEP    \
+  ELTP(VERTEX,vertices) SEP    \
+  ELTP(FACE,faces) SEP    \
+  ELTP(STRIP,strips) SEP    \
+  ELTT(float,xctr) SEP    \
+  ELTT(float,yctr) SEP    \
+  ELTT(float,zctr) SEP    \
+  ELTT(float,xlo) SEP    \
+  ELTT(float,ylo) SEP    \
+  ELTT(float,zlo) SEP    \
+  ELTT(float,xhi) SEP    \
+  ELTT(float,yhi) SEP    \
+  ELTT(float,zhi) SEP    \
+  ELTT(float,x0) SEP             /* center of spherical expansion */    \
+  ELTT(float,y0) SEP    \
+  ELTT(float,z0) SEP    \
+  ELTP(VERTEX,v_temporal_pole) SEP    \
+  ELTP(VERTEX,v_frontal_pole) SEP    \
+  ELTP(VERTEX,v_occipital_pole) SEP    \
+  ELTT(float,max_curv) SEP    \
+  ELTT(float,min_curv) SEP    \
+  ELTT(float,total_area) SEP    \
+  ELTT(double,avg_vertex_area) SEP    \
+  ELTT(double,avg_vertex_dist) SEP    \
+  ELTT(double,std_vertex_dist) SEP    \
+  ELTT(float,orig_area) SEP    \
+  ELTT(float,neg_area) SEP    \
+  ELTT(float,neg_orig_area) SEP   /* amount of original surface in folds */    \
+  ELTT(int,zeros) SEP    \
+  ELTT(int,hemisphere) SEP      /* which hemisphere */    \
+  ELTT(int,initialized) SEP \
+  // end of macro
+
 #if 0
-  General_transform transform ;   /* the next two are from
-                                             this struct (MNI transform) */
-  Transform         *linear_transform ;
-  Transform         *inverse_linear_transform ;
+
+#define LIST_OF_MRIS_ELTS_2 \
+  ELTT(General_transform,transform) SEP   /* the next two are from this struct (MNI transform) */    \
+  ELTP(Transform,linear_transform) SEP    \
+  ELTP(Transform,inverse_linear_transform) SEP \
+  // end of macro
+
+#else
+
+#define LIST_OF_MRIS_ELTS_2 \
+  // end of macro
+
 #endif
-  LTA         *lta;
-  MATRIX      *SRASToTalSRAS_;
-  MATRIX      *TalSRASToSRAS_;
-  int          free_transform ;
-  double       radius ;           /* radius (if status==MRIS_SPHERE) */
-  float        a, b, c ;          /* ellipsoid parameters */
-  char         fname[STRLEN] ;    /* file it was originally loaded from */
-  float        Hmin ;             /* min mean curvature */
-  float        Hmax ;             /* max mean curvature */
-  float        Kmin ;             /* min Gaussian curvature */
-  float        Kmax ;             /* max Gaussian curvature */
-  double       Ktotal ;           /* total Gaussian curvature */
-  int          status ;           /* type of surface (e.g. sphere, plane) */
-  int          patch ;            /* if a patch of the surface */
-  int          nlabels ;
-  MRIS_AREA_LABEL *labels ;       /* nlabels of these (may be null) */
-  int          nsize ;            /* size of neighborhoods */
-  int          max_nsize ;      // max the neighborhood size has been set to (typically 3)
-  float        avg_nbrs ;         /* mean # of vertex neighbors */
-  void         *vp ;              /* for misc. use */
-  float        alpha ;            /* rotation around z-axis */
-  float        beta ;             /* rotation around y-axis */
-  float        gamma ;            /* rotation around x-axis */
-  float        da, db, dg ;       /* old deltas */
-  int          type ;             /* what type of surface was this initially*/
-  int          max_vertices ;     /* may be bigger than nvertices */
-  int          max_faces ;        /* may be bigger than nfaces */
-  char         subject_name[STRLEN] ;/* name of the subject */
-  float        canon_area ;
-  int          noscale ;          /* don't scale by surface area if true */
-  float        *dx2 ;             /* an extra set of gradient
-                                     (not always alloced) */
-  float        *dy2 ;
-  float        *dz2 ;
-  COLOR_TABLE  *ct ;
-  int          useRealRAS;        /* if 0, vertex position is a
-                                     conformed volume RAS with c_(r,a,s)=0 */
-  /* if 1, verteix position is a
-     real RAS (volume stored RAS)         */
-  /* The default is 0.        */
-  VOL_GEOM     vg;                /* volume information from which
-                                     this surface is created.
-                                     check validity by vg.valid = 1 or not */
-  char   *cmdlines[MAX_CMDS] ;
-  int    ncmds;
-  float  group_avg_surface_area ;  // average of total surface area for group
-  int    group_avg_vtxarea_loaded; /* average vertex area for group
-                                              at each vertex */
-  int    triangle_links_removed ;  // for quad surfaces
-  void   *user_parms ;             // for whatever the user wants to hang here 
-  MATRIX *m_sras2vox ;             // for converting surface ras to voxel 
-  MRI    *mri_sras2vox ;           // volume that the above matrix is for
-  void   *mht ;
+
+#define LIST_OF_MRIS_ELTS_3     \
+  ELTP(LTA,lta) SEP    \
+  ELTP(MATRIX,SRASToTalSRAS_) SEP    \
+  ELTP(MATRIX,TalSRASToSRAS_) SEP    \
+  ELTT(int,free_transform) SEP    \
+  ELTT(double,radius) SEP           /* radius (if status==MRIS_SPHERE) */    \
+  ELTT(float,a) SEP    \
+  ELTT(float,b) SEP    \
+  ELTT(float,c) SEP                 /* ellipsoid parameters */    \
+  ELTT(MRIS_fname_t,fname) SEP      /* file it was originally loaded from */    \
+  ELTT(float,Hmin) SEP              /* min mean curvature */    \
+  ELTT(float,Hmax) SEP              /* max mean curvature */    \
+  ELTT(float,Kmin) SEP              /* min Gaussian curvature */    \
+  ELTT(float,Kmax) SEP              /* max Gaussian curvature */    \
+  ELTT(double,Ktotal) SEP           /* total Gaussian curvature */    \
+  ELTT(int,status) SEP              /* type of surface (e.g. sphere, plane) */    \
+  ELTT(int,patch) SEP               /* if a patch of the surface */    \
+  ELTT(int,nlabels) SEP    \
+  ELTP(MRIS_AREA_LABEL,labels) SEP       /* nlabels of these (may be null) */    \
+  ELTT(int,nsize) SEP            /* size of neighborhoods */    \
+  ELTT(int,max_nsize) SEP        /* max the neighborhood size has been set to (typically 3) */    \
+  ELTT(float,avg_nbrs) SEP         /* mean # of vertex neighbors */    \
+  ELTP(void,vp) SEP              /* for misc. use */    \
+  ELTT(float,alpha) SEP            /* rotation around z-axis */    \
+  ELTT(float,beta) SEP             /* rotation around y-axis */    \
+  ELTT(float,gamma) SEP            /* rotation around x-axis */    \
+  ELTT(float,da) SEP    \
+  ELTT(float,db) SEP    \
+  ELTT(float,dg) SEP       /* old deltas */    \
+  ELTT(int,type) SEP             /* what type of surface was this initially*/    \
+  ELTT(int,max_vertices) SEP     /* may be bigger than nvertices */    \
+  ELTT(int,max_faces) SEP        /* may be bigger than nfaces */    \
+  ELTT(MRIS_subject_name_t,subject_name) SEP /* name of the subject */    \
+  ELTT(float,canon_area) SEP    \
+  ELTT(int,noscale) SEP          /* don't scale by surface area if true */    \
+  ELTP(float,dx2) SEP             /* an extra set of gradient (not always alloced) */    \
+  ELTP(float,dy2) SEP    \
+  ELTP(float,dz2) SEP    \
+  ELTP(COLOR_TABLE,ct) SEP    \
+  ELTT(int,useRealRAS) SEP        /* if 0, vertex position is a conformed volume RAS with c_(r,a,s)=0       */    \
+                                  /* if 1, vertex position is a real RAS (volume stored RAS)                */    \
+                                  /* The default is 0.                                                      */    \
+  ELTT(VOL_GEOM,vg) SEP           /* volume info from which this surface is created. valid iff vg.valid = 1 */    \
+  ELTX(MRIS_cmdlines_t, cmdlines) SEP    \
+  ELTT(int,ncmds) SEP    \
+  ELTT(float,group_avg_surface_area) SEP  /* average of total surface area for group */    \
+  ELTT(int,group_avg_vtxarea_loaded) SEP /* average vertex area for group at each vertex */    \
+  ELTT(int,triangle_links_removed) SEP  /* for quad surfaces                         */    \
+  ELTP(void,user_parms) SEP             /* for whatever the user wants to hang here  */    \
+  ELTP(MATRIX,m_sras2vox) SEP             /* for converting surface ras to voxel       */    \
+  ELTP(MRI,mri_sras2vox) SEP           /* volume that the above matrix is for       */    \
+  ELTP(void,mht)     \
+  // end of macro
+  
+#define LIST_OF_MRIS_ELTS       \
+    LIST_OF_MRIS_ELTS_1         \
+    LIST_OF_MRIS_ELTS_2         \
+    LIST_OF_MRIS_ELTS_3         \
+    // end of macro
+
+#define SEP ;
+#define ELTP(TARGET, MBR)   TARGET *MBR     // pointers 
+#define ELTT(TYPE,   MBR)   TYPE    MBR     // other members that should     be included in the hash
+#define ELTX(TYPE,   MBR)   TYPE    MBR     // other members that should NOT be included in the hash
+LIST_OF_MRIS_ELTS ;
+#undef ELTX
+#undef ELTT
+#undef ELTP
+#undef SEP
+
 }
 MRI_SURFACE, MRIS ;
+
+
+// Support for writing traces that can be compared across test runs to help find where differences got introduced  
+//
+typedef struct {
+    unsigned long hash;
+} MRIS_HASH;
+
+void mris_hash_init (MRIS_HASH* hash, MRIS const * mris);
+void mris_hash_add  (MRIS_HASH* hash, MRIS const * mris);
+void mris_hash_print(MRIS_HASH const* hash, FILE* file);
+void mris_print_hash(FILE* file, MRIS const * mris, const char* prefix, const char* suffix);
 
 // This structs are used with the TESS functions
 typedef struct tface_type_

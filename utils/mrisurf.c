@@ -39808,7 +39808,7 @@ int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
 {
   int k, n;
   FILE *fp;
-  char *user, *time_str;
+  const char *user, *time_str;
 
   user = getenv("USER");
   if (!user) {
@@ -79850,3 +79850,42 @@ int MRISnotMarked(MRI_SURFACE *mris)
   }
   return (NO_ERROR);
 }
+
+
+// Support for writing traces that can be compared across test runs to help find where differences got introduced  
+//
+void mris_hash_init (MRIS_HASH* hash, MRIS const * mris)
+{
+    hash->hash = fnv_init();
+    if (mris) mris_hash_add(hash, mris);
+}
+
+void mris_hash_add(MRIS_HASH* hash, MRIS const * mris)
+{
+    #define SEP ;
+    #define ELTP(TARGET, MBR) // don't hash pointers.   Sometime may implement hashing their target
+    #define ELTT(TYPE,   MBR) hash->hash = fnv_add(hash->hash, (const unsigned char*)(&mris->MBR), sizeof(mris->MBR));
+    #define ELTX(TYPE,   MBR) 
+    LIST_OF_MRIS_ELTS
+    #undef ELTX
+    #undef ELTT
+    #undef ELTP
+    #undef SEP
+
+    // Now include some of the pointer targets
+    // TBD
+}
+
+void mris_hash_print(MRIS_HASH const* hash, FILE* file)
+{
+    fprintf(file, "%ld", hash->hash);
+}
+
+void mris_print_hash(FILE* file, MRIS const * mris, const char* prefix, const char* suffix) {
+    MRIS_HASH hash;
+    mris_hash_init(&hash, mris);
+    fprintf(file, "%sMRIS_HASH{",prefix);
+    mris_hash_print(&hash, file);
+    fprintf(file, "}%s",suffix);
+}
+
