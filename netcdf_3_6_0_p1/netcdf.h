@@ -50,7 +50,7 @@ extern "C" {
  *  The netcdf external data types
  */
 typedef enum {
-	NC_NAT =	0,	/* NAT = 'Not A Type' (c.f. NaN) */
+//	NC_NAT =	0,	/* NAT = 'Not A Type' (c.f. NaN) */
 	NC_BYTE =	1,	/* signed 1 byte integer */
 	NC_CHAR =	2,	/* ISO/ASCII character */
 	NC_SHORT =	3,	/* signed 2 byte integer */
