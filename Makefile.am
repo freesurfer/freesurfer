@@ -375,7 +375,8 @@ COREDIRS=\
 	log \
 	gpu_utils \
 	opencl_algorithms \
-	minc_substitute \
+	minc_1_5_1 \
+	netcdf_3_6_0_p1 \
 	utils \
 	utilscpp \
 	vtkfsio \
