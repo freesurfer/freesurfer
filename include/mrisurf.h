@@ -110,107 +110,231 @@ face_type, FACE ;
 
 typedef struct vertex_type_
 {
-  float x,y,z;           /* curr position */
-  float nx,ny,nz;        /* curr normal */
-  float pnx,pny,pnz;     /* pial normal */
-  float wnx,wny,wnz;     /* white normal */
-  float onx,ony,onz;     /* original normal */
-  float dx, dy, dz ;     /* current change in position */
-  float odx, ody, odz ;  /* last change of position (for momentum) */
-  float tdx, tdy, tdz ;  /* temporary storage for averaging gradient */
-  float curv;            /* curr curvature */
-  float curvbak ;
-  float val;             /* scalar data value (file: rh.val, sig2-rh.w) */
-  float imag_val ;       /* imaginary part of complex data value */
-  float cx, cy, cz ;     /* coordinates in canonical coordinate system */
-  float tx, ty, tz ;     /* tmp coordinate storage */
-  float tx2, ty2, tz2 ;  /* tmp coordinate storage */
-  float origx, origy, origz ;   /* original coordinates */
-  float targx, targy, targz ;   // target coordinates
-  float pialx, pialy, pialz ;   /* pial surface coordinates */
-  float whitex, whitey, whitez ;/* white surface coordinates */
-  float l4x, l4y, l4z ;   /* layerIV surface coordinates */
-  float infx, infy, infz; /* inflated coordinates */
-  float fx, fy, fz ;      /* flattened coordinates */
-  int   px,qx, py,qy, pz,qz; /* rational coordinates for exact calculations */
-  float e1x, e1y, e1z ;  /* 1st basis vector for the local tangent plane */
-  float e2x, e2y, e2z ;  /* 2nd basis vector for the local tangent plane */
-  float pe1x, pe1y, pe1z ;  /* 1st basis vector for the local tangent plane */
-  float pe2x, pe2y, pe2z ;  /* 2nd basis vector for the local tangent plane */
+// The LIST_OF_VERTEX_ELTS macro used here enables the the mris_hash
+// and other algorithms to process all the elements without having to explicitly name them there and here
+//
+#define LIST_OF_VERTEX_ELTS_1    \
+  ELTT(float,x) SEP    \
+  ELTT(float,y) SEP    \
+  ELTT(float,z) SEP           /* curr position */    \
+  ELTT(float,nx) SEP    \
+  ELTT(float,ny) SEP    \
+  ELTT(float,nz) SEP        /* curr normal */    \
+  ELTT(float,pnx) SEP    \
+  ELTT(float,pny) SEP    \
+  ELTT(float,pnz) SEP     /* pial normal */    \
+  ELTT(float,wnx) SEP    \
+  ELTT(float,wny) SEP    \
+  ELTT(float,wnz) SEP     /* white normal */    \
+  ELTT(float,onx) SEP    \
+  ELTT(float,ony) SEP    \
+  ELTT(float,onz) SEP     /* original normal */    \
+  ELTT(float,dx) SEP    \
+  ELTT(float,dy) SEP    \
+  ELTT(float,dz) SEP     /* current change in position */    \
+  ELTT(float,odx) SEP    \
+  ELTT(float,ody) SEP    \
+  ELTT(float,odz) SEP  /* last change of position (for momentum) */    \
+  ELTT(float,tdx) SEP    \
+  ELTT(float,tdy) SEP    \
+  ELTT(float,tdz) SEP  /* temporary storage for averaging gradient */    \
+  ELTT(float,curv) SEP            /* curr curvature */    \
+  ELTT(float,curvbak) SEP    \
+  ELTT(float,val) SEP             /* scalar data value (file: rh.val, sig2-rh.w) */    \
+  ELTT(float,imag_val) SEP       /* imaginary part of complex data value */    \
+  ELTT(float,cx) SEP    \
+  ELTT(float,cy) SEP    \
+  ELTT(float,cz) SEP     /* coordinates in canonical coordinate system */    \
+  ELTT(float,tx) SEP    \
+  ELTT(float,ty) SEP    \
+  ELTT(float,tz) SEP     /* tmp coordinate storage */    \
+  ELTT(float,tx2) SEP    \
+  ELTT(float,ty2) SEP    \
+  ELTT(float,tz2) SEP  /* tmp coordinate storage */    \
+  ELTT(float,origx) SEP    \
+  ELTT(float,origy) SEP    \
+  ELTT(float,origz) SEP   /* original coordinates */    \
+  ELTT(float,targx) SEP    \
+  ELTT(float,targy) SEP    \
+  ELTT(float,targz) SEP   /* target coordinates */    \
+  ELTT(float,pialx) SEP    \
+  ELTT(float,pialy) SEP    \
+  ELTT(float,pialz) SEP   /* pial surface coordinates */    \
+  ELTT(float,whitex) SEP    \
+  ELTT(float,whitey) SEP    \
+  ELTT(float,whitez) SEP/* white surface coordinates */    \
+  ELTT(float,l4x) SEP    \
+  ELTT(float,l4y) SEP    \
+  ELTT(float,l4z) SEP   /* layerIV surface coordinates */    \
+  ELTT(float,infx) SEP    \
+  ELTT(float,infy) SEP    \
+  ELTT(float,infz) SEP /* inflated coordinates */    \
+  ELTT(float,fx) SEP    \
+  ELTT(float,fy) SEP    \
+  ELTT(float,fz) SEP      /* flattened coordinates */    \
+  ELTT(int,px) SEP    \
+  ELTT(int,qx) SEP    \
+  ELTT(int,py) SEP    \
+  ELTT(int,qy) SEP    \
+  ELTT(int,pz) SEP    \
+  ELTT(int,qz) SEP /* rational coordinates for exact calculations */    \
+  ELTT(float,e1x) SEP    \
+  ELTT(float,e1y) SEP    \
+  ELTT(float,e1z) SEP  /* 1st basis vector for the local tangent plane */    \
+  ELTT(float,e2x) SEP    \
+  ELTT(float,e2y) SEP    \
+  ELTT(float,e2z) SEP  /* 2nd basis vector for the local tangent plane */    \
+  ELTT(float,pe1x) SEP    \
+  ELTT(float,pe1y) SEP    \
+  ELTT(float,pe1z) SEP  /* 1st basis vector for the local tangent plane */    \
+  ELTT(float,pe2x) SEP    \
+  ELTT(float,pe2y) SEP    \
+  ELTT(float,pe2z) SEP  /* 2nd basis vector for the local tangent plane */    \
+  // end of macro
+
 #if 0
-  float dipx,dipy,dipz;  /* dipole position */
-  float dipnx,dipny,dipnz; /* dipole orientation */
+#define LIST_OF_VERTEX_ELTS_2 \
+  float dipx;    \
+  float ipy;    \
+  float ipz;  /* dipole position */    \
+  float dipnx;    \
+  float ipny;    \
+  float ipnz; /* dipole orientation */    \
+  // end of macro
+#else
+#define LIST_OF_VERTEX_ELTS_2
 #endif
-  float nc;              /* curr length normal comp */
-  float val2;            /* complex comp data value (file: sig3-rh.w) */
-  float valbak;          /* scalar data stack */
-  float val2bak;         /* complex comp data stack */
-  float stat;            /* statistic */
-#if 1
-  int undefval;          /* [previously dist=0] */
-  int old_undefval;      /* for smooth_val_sparse */
-  int fixedval;          /* [previously val=0] */
-#endif
-  float fieldsign;       /* fieldsign--final: -1,0,1 (file: rh.fs) */
-  float fsmask;          /* significance mask (file: rh.fm) */
-  uchar num;             /* number neighboring faces */
-  int   *f;              /* array neighboring face numbers */
-  uchar *n;              /* [0-3, num long] */
-  uchar vnum;            /* number neighboring vertices */
-  int   *v;              /* array neighboring vertex numbers, vnum long */
-  int   *e;              /* edge state for neighboring vertices */
-  int    v2num ;         /* number of 2-connected neighbors */
-  int    v3num ;         /* number of 3-connected neighbors */
-  short  vtotal ;        /* total # of neighbors,
-                                    will be same as one of above*/
-  float d ;              /* for distance calculations */
-  uchar nsize ;          /* size of neighborhood (e.g. 1, 2, 3) */
+
+#define LIST_OF_VERTEX_ELTS_3   \
+  ELTT(float,nc) SEP              /* curr length normal comp */    \
+  ELTT(float,val2) SEP            /* complex comp data value (file: sig3-rh.w) */    \
+  ELTT(float,valbak) SEP          /* scalar data stack */    \
+  ELTT(float,val2bak) SEP         /* complex comp data stack */    \
+  ELTT(float,stat) SEP            /* statistic */    \
+    \
+  ELTT(int,undefval) SEP          /* [previously dist=0] */    \
+  ELTT(int,old_undefval) SEP      /* for smooth_val_sparse */    \
+  ELTT(int,fixedval) SEP          /* [previously val=0] */    \
+    \
+  ELTT(float,fieldsign) SEP       /* fieldsign--final: -1,0,1 (file: rh.fs) */    \
+  ELTT(float,fsmask) SEP          /* significance mask (file: rh.fm) */    \
+  ELTT(uchar,num) SEP             /* number neighboring faces */    \
+  ELTP(int,f) SEP              /* array neighboring face numbers */    \
+  ELTP(uchar,n) SEP              /* [0-3, num long] */    \
+  ELTT(uchar,vnum) SEP            /* number neighboring vertices */    \
+  ELTP(int,v) SEP              /* array neighboring vertex numbers, vnum long */    \
+  ELTP(int,e) SEP              /* edge state for neighboring vertices */    \
+  ELTT(int,v2num) SEP         /* number of 2-connected neighbors */    \
+  ELTT(int,v3num) SEP         /* number of 3-connected neighbors */    \
+  ELTT(short,vtotal) SEP        /* total # of neighbors,    \
+                                    will be same as one of above*/    \
+  ELTT(float,d) SEP              /* for distance calculations */    \
+  ELTT(uchar,nsize) SEP          /* size of neighborhood (e.g. 1, 2, 3) */    \
+  // end of macro
+  
 #if 0
-  float *tri_area ;      /* array of triangle areas - num long */
-  float *orig_tri_area ; /* array of original triangle areas - num long */
-  float dist;            /* dist from sampled point [defunct: or 1-cos(a)] */
-  float ox,oy,oz;        /* last position (for undoing time steps) */
-  float mx,my,mz;        /* last movement */
-  float onc;             /* last length normal comp */
-  float oval;            /* last scalar data (for smooth_val) */
-  float *fnx ;           /* face normal - x component */
-  float *fny ;           /* face normal - y component */
-  float *fnz ;           /* face normal - z component */
-  float bnx,bny,obnx,obny; /* boundary normal */
-  float *tri_angle ;     /* angles of each triangle this vertex belongs to */
-  float *orig_tri_angle ;/* original values of above */
-  float stress;          /* explosion */
-  float logshear,shearx,sheary,oshearx,osheary;  /* for shear term */
-  float ftmp ;           /* temporary floating pt. storage */
-  float logarat,ologarat,sqrtarat; /* for area term */
-  float smx,smy,smz,osmx,osmy,osmz;/* smoothed curr,last move */
+#define LIST_OF_VERTEX_ELTS_4 \
+  ELTP(float,tri_area) SEP      /* array of triangle areas - num long */    \
+  ELTP(float,orig_tri_area) SEP /* array of original triangle areas - num long */    \
+  ELTT(float,dist) SEP            /* dist from sampled point [defunct: or 1-cos(a)] */    \
+  ELTT(float,ox) SEP    \
+  ELTT(float,y) SEP    \
+  ELTT(float,z) SEP        /* last position (for undoing time steps) */    \
+  ELTT(float,mx) SEP    \
+  ELTT(float,y) SEP    \
+  ELTT(float,z) SEP        /* last movement */    \
+  ELTT(float,onc) SEP             /* last length normal comp */    \
+  ELTT(float,oval) SEP            /* last scalar data (for smooth_val) */    \
+  ELTP(float,fnx) SEP           /* face normal - x component */    \
+  ELTP(float,fny) SEP           /* face normal - y component */    \
+  ELTP(float,fnz) SEP           /* face normal - z component */    \
+  ELTT(float,bnx) SEP    \
+  ELTT(float,ny) SEP    \
+  ELTT(float,bnx) SEP    \
+  ELTT(float,bny) SEP /* boundary normal */    \
+  ELTP(float,tri_angle) SEP     /* angles of each triangle this vertex belongs to */    \
+  ELTP(float,orig_tri_angle) SEP/* original values of above */    \
+  ELTT(float,stress) SEP          /* explosion */    \
+  ELTT(float,logshear) SEP    \
+  ELTT(float,hearx) SEP    \
+  ELTT(float,heary) SEP    \
+  ELTT(float,shearx) SEP    \
+  ELTT(float,sheary) SEP  /* for shear term */    \
+  ELTT(float,ftmp) SEP           /* temporary floating pt. storage */    \
+  ELTT(float,logarat) SEP    \
+  ELTT(float,logarat) SEP    \
+  ELTT(float,qrtarat) SEP /* for area term */    \
+  ELTT(float,smx) SEP    \
+  ELTT(float,my) SEP    \
+  ELTT(float,mz) SEP    \
+  ELTT(float,smx) SEP    \
+  ELTT(float,smy) SEP    \
+  ELTT(float,smz) SEP/* smoothed curr,last move */    \
+  // end of macro
+#else
+#define LIST_OF_VERTEX_ELTS_4
 #endif
-  int   annotation;      /* area label (defunct--now from label file name!) */
-  char   oripflag,origripflag;  /* cuts flags */
+
+#define LIST_OF_VERTEX_ELTS_5   \
+  ELTT(int,annotation) SEP      /* area label (defunct--now from label file name!) */    \
+  ELTT(char,oripflag) SEP    \
+  ELTT(char,origripflag) SEP     /* cuts flags */    \
+  // end of macro
+
 #if 0
+#define LIST_OF_VERTEX_ELTS_6
   float coords[3];
+#else
+#define LIST_OF_VERTEX_ELTS_6
+
 #endif
-  float theta, phi ;     /* parameterization */
-  short  marked;         /* for a variety of uses */
-  short  marked2 ;
-  short  marked3 ;
-  char   ripflag ;
-  char   border;         /* flag */
-  float area, origarea, group_avg_area ;
-  float K ;              /* Gaussian curvature */
-  float H ;              /* mean curvature */
-  float k1, k2 ;         /* the principal curvatures */
-  float *dist ;          /* original distance to neighboring vertices */
-  float *dist_orig ;     /* original distance to neighboring vertices */
-  char   neg ;           /* 1 if the normal vector is inverted */
-  float mean ;
-  float mean_imag ;      /* imaginary part of complex statistic */
-  float std_error ;
-  unsigned int flags ;
-  void *vp; /* to store user's information */
-  int   linked ;         // is this vertex linked to some others?
-  int   fno ;            // face that this vertex is in
-  int   cropped ;
+
+#define LIST_OF_VERTEX_ELTS_7    \
+  ELTT(float,theta) SEP    \
+  ELTT(float,phi) SEP     /* parameterization */    \
+  ELTT(short,marked) SEP         /* for a variety of uses */    \
+  ELTT(short,marked2) SEP    \
+  ELTT(short,marked3) SEP    \
+  ELTT(char,ripflag) SEP    \
+  ELTT(char,border) SEP         /* flag */    \
+  ELTT(float,area) SEP    \
+  ELTT(float,origarea) SEP    \
+  ELTT(float,group_avg_area) SEP    \
+  ELTT(float,K) SEP              /* Gaussian curvature */    \
+  ELTT(float,H) SEP              /* mean curvature */    \
+  ELTT(float,k1) SEP    \
+  ELTT(float,k2) SEP         /* the principal curvatures */    \
+  ELTP(float,dist) SEP          /* original distance to neighboring vertices */    \
+  ELTP(float,dist_orig) SEP     /* original distance to neighboring vertices */    \
+  ELTT(char,neg) SEP           /* 1 if the normal vector is inverted */    \
+  ELTT(float,mean) SEP    \
+  ELTT(float,mean_imag) SEP      /* imaginary part of complex statistic */    \
+  ELTT(float,std_error) SEP    \
+  ELTT(unsigned int,flags) SEP    \
+  ELTP(void,vp) SEP /* to store user's information */    \
+  ELTT(int,linked) SEP         /* is this vertex linked to some others? */    \
+  ELTT(int,fno) SEP            /* face that this vertex is in */    \
+  ELTT(int,cropped)     \
+  // end of macro
+  
+#define LIST_OF_VERTEX_ELTS \
+  LIST_OF_VERTEX_ELTS_1   \
+  LIST_OF_VERTEX_ELTS_2   \
+  LIST_OF_VERTEX_ELTS_3   \
+  LIST_OF_VERTEX_ELTS_4   \
+  LIST_OF_VERTEX_ELTS_5   \
+  LIST_OF_VERTEX_ELTS_6   \
+  LIST_OF_VERTEX_ELTS_7   \
+  // end of macro
+
+#define SEP
+#define ELTT(TYPE,NAME) TYPE NAME ;
+#define ELTP(TARGET,NAME) TARGET *NAME ;
+  LIST_OF_VERTEX_ELTS
+#undef ELTP
+#undef ELTT
+#undef SEP
+
 }
 vertex_type, VERTEX ;
 
@@ -233,8 +357,6 @@ typedef struct
 {
 // The LIST_OF_MRIS_ELTS macro used here enables the the mris_hash
 // and other algorithms to process all the elements without having to explicitly name them there and here
-//
-//      ^[ \t]*([A-Za-z0-9_]*)[ \t]*([A-Za-z0-9_]*)[ \t]*;
 //
 #define LIST_OF_MRIS_ELTS_1     \
     \

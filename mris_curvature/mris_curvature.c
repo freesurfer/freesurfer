@@ -82,7 +82,7 @@ int MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm)  ;
 int
 main(int argc, char *argv[])
 {
-  const bool trace = true;
+  const bool trace = false;
   
   char         **av, *in_fname,fname[STRLEN],hemi[10], path[STRLEN],
                name[STRLEN],*cp ;
@@ -215,7 +215,12 @@ main(int argc, char *argv[])
   }
   else
   {
+    if (trace) mris_print_hash(stderr, mris, "before MRIScomputeSecondFundamentalFormThresholded ", "\n");
+
     MRIScomputeSecondFundamentalFormThresholded(mris, cthresh) ;
+
+    if (trace) mris_print_hash(stderr, mris, "after MRIScomputeSecondFundamentalFormThresholded ", "\n");
+
     nhandles = nint(1.0 - mris->Ktotal / (4.0*M_PI)) ;
     fprintf(stderr, "total integrated curvature = %2.3f*4pi (%2.3f) --> "
             "%d handles\n", (float)(mris->Ktotal/(4.0f*M_PI)),
@@ -312,6 +317,8 @@ main(int argc, char *argv[])
       }
     }
 
+    if (trace) mris_print_hash(stderr, mris, "before if (max_flag) ", "\n");
+
     if (max_flag)
     {
       MRISuseCurvatureMax(mris) ;
@@ -358,19 +365,24 @@ main(int argc, char *argv[])
     if (write_flag)
     {
       MRISuseGaussianCurvature(mris) ;
+      if (trace) mris_print_hash(stderr, mris, "after MRISuseGaussianCurvature ", "\n");
       if (cthresh > 0)
       {
         MRIShistoThresholdCurvature(mris, cthresh) ;
+        if (trace) mris_print_hash(stderr, mris, "after MRIShistoThresholdCurvature ", "\n");
       }
       MRISaverageCurvatures(mris, navgs) ;
+      if (trace) mris_print_hash(stderr, mris, "after MRISaverageCurvatures ", "\n");
       sprintf(fname, "%s/%s%s.K%s", path,name, suffix, output_type) ;
       fprintf(stderr, "writing Gaussian curvature to %s...", fname) ;
       if (normalize)
       {
         MRISnormalizeCurvature(mris,which_norm) ;
+        if (trace) mris_print_hash(stderr, mris, "after MRISnormalizeCurvature ", "\n");
       }
       MRISwriteCurvature(mris, fname) ;
       MRISuseMeanCurvature(mris) ;
+      if (trace) mris_print_hash(stderr, mris, "after MRISuseMeanCurvature ", "\n");
       if (cthresh > 0)
       {
         MRIShistoThresholdCurvature(mris, cthresh) ;
@@ -379,6 +391,7 @@ main(int argc, char *argv[])
       if (normalize)
       {
         MRISnormalizeCurvature(mris,which_norm) ;
+        if (trace) mris_print_hash(stderr, mris, "after MRISnormalizeCurvature ", "\n");
       }
       sprintf(fname, "%s/%s%s.H%s", path,name, suffix,output_type) ;
       fprintf(stderr, "done.\nwriting mean curvature to %s...", fname) ;
@@ -502,6 +515,13 @@ get_option(int argc, char *argv[])
     nbrs = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using neighborhood size=%d\n", nbrs) ;
+  }
+  else if (!stricmp(option, "seed"))
+  {
+    setRandomSeed(atol(argv[2])) ;
+    fprintf(stderr,"setting seed for random number genererator to %d\n",
+            atoi(argv[2])) ;
+    nargs = 1 ;
   }
   else switch (toupper(*option))
     {

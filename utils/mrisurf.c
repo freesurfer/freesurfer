@@ -2060,6 +2060,10 @@ int MRISsampleAtEachDistance(MRI_SURFACE *mris, int nbhd_size, int nbrs_per_dist
 #define QUADRANGLE_DISTANCE_CORRECTION ((1 + sqrt(2)) / 2) /* 1.2071  */
 int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
 {
+  const bool trace = false;
+  
+  if (trace) mris_print_hash(stderr, mris, "MRISsampleDistances called ", "\n");
+
   int i, n, vno, vnum, old_vnum, total_nbrs, max_possible, max_v, vtotal;
   VERTEX *v, *vn, *vn2;
   int *vnbrs, *vall, *vnb, found, n2, vnbrs_num, vall_num, nbhd_size, done, checks = 0;
@@ -2123,6 +2127,14 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
             (float)vtotal * MRISvalidVertices(mris) * sizeof(float) * 3.0f / (1024.0f * 1024.0f));
 
   for (vno = 0; vno < mris->nvertices; vno++) {
+  
+    bool trace_vno = (trace && vno == 0);
+
+    if (trace_vno) {
+        mris_print_hash(stderr, mris, "MRISsampleDistances first loop start ", " ");
+        fprintf(stderr, "    vno:%d\n", vno);
+    }
+    
     if ((Gdiag & DIAG_HEARTBEAT) && (!(vno % (mris->nvertices / 10))))
       fprintf(stdout, "%%%1.0f done\n", 100.0f * (float)vno / (float)mris->nvertices);
     if ((vno > 139000 || (!(vno % 100))) && 0) {
@@ -2207,6 +2219,11 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
       memmove(v->dist_orig, old_dist, v->vtotal * sizeof(v->dist_orig[0]));
     }
 
+    if (trace_vno) {
+        mris_print_hash(stderr, mris, "MRISsampleDistances first loop after memmoves ", " ");
+        fprintf(stderr, "    vno:%d\n", vno);
+    }
+
     if ((vno > 139000 || !(vno % 100)) && 0) {
       if (checks++ == 0) {
         printf("checking surface at vno %d\n", vno);
@@ -2226,6 +2243,12 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
     old_vnum = 0;
     v->marked = 1; /* a hack - it is a zero neighbor */
     for (nbhd_size = 1; vall_num < MAX_NBHD_VERTICES && nbhd_size <= max_nbhd; nbhd_size++) {
+
+      if (trace_vno) {
+        mris_print_hash(stderr, mris, "MRISsampleDistances first loop during find all the neighbors ", " ");
+        fprintf(stderr, "    vno:%d nbhd_size:%d\n", vno, nbhd_size);
+      }
+
       /* expand neighborhood outward by a ring of vertices */
       vnbrs_num = 0; /* will count neighbors in this ring */
       vnum = vall_num;
@@ -2253,6 +2276,11 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
           }
         }
       } /* done with all neighbors at previous distance */
+
+      if (trace_vno) {
+        mris_print_hash(stderr, mris, "MRISsampleDistances first loop done with all neighbors at previous distance ", " ");
+        fprintf(stderr, "    vno:%d nbhd_size:%d\n", vno, nbhd_size);
+      }
 
       /* found all neighbors at this extent - calculate distances */
       old_vnum = vall_num; /* old_vnum is index of 1st
@@ -2321,6 +2349,8 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
        the path through a 3-neighbor is shorter than that through any
        of the 2-neighbors.
       */
+      unsigned long random_hash = trace_vno ? fnv_init() : 0;
+      
       for (n = old_vnum; n < vall_num; n++) {
         vn = &mris->vertices[vall[n]];
         if (vn->ripflag) {
@@ -2396,6 +2426,7 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
           do {
             do {
               i = nint(randomNumber(0.0, (double)found - 1));
+              random_hash = trace_vno ? fnv_add(random_hash, (const unsigned char*)&i, sizeof(i)) : 0;
             } while (vnbrs[i] < 0);
             /*
              now check to make sure that the angle between this
@@ -2431,6 +2462,15 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
           vnbrs[i] = -1;
         }
       }
+      if (trace_vno) {
+        mris_print_hash(stderr, mris, "MRISsampleDistances first loop done with all neighbors at previous distance ", " ");
+        fprintf(stderr, "    vno:%d nbhd_size:%d random_hash:%ld\n", vno, nbhd_size, random_hash);
+      }
+    }
+
+    if (trace_vno) {
+      mris_print_hash(stderr, mris, "MRISsampleDistances first loop done with all neighbors at previous distance ", " ");
+      fprintf(stderr, "    vno:%d nbhd_size after loop:%d\n", vno, nbhd_size);
     }
 
     if ((vno > 9.0 * mris->nvertices / 10.0) && 0) {
@@ -2476,6 +2516,11 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
       MRISwriteCurvature(mris, fname);
     }
 
+    if (trace_vno) {
+        mris_print_hash(stderr, mris, "MRISsampleDistances first loop before marking ", " ");
+        fprintf(stderr, "    vno:%d\n", vno);
+    }
+
     /*
      done building arrays - allocate distance vectors and
      sample from the found neighbors list.
@@ -2488,6 +2533,8 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
 
     total_nbrs += v->vtotal;
   }
+
+  if (trace) mris_print_hash(stderr, mris, "MRISsampleDistances end first loop ", "\n");
 
   /* now fill in immediate neighborhood(Euclidean) distances */
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -2519,6 +2566,8 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
     }
   }
 
+  if (trace) mris_print_hash(stderr, mris, "MRISsampleDistances end second loop ", "\n");
+
   // make sure distances are symmetric
   for (vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
@@ -2545,6 +2594,8 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
       }
     }
   }
+
+  if (trace) mris_print_hash(stderr, mris, "MRISsampleDistances end third loop ", "\n");
 
   /* check reasonableness of distances */
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -2604,6 +2655,9 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
   if (Gdiag & DIAG_HEARTBEAT) {
     fprintf(stdout, " done.\n");
   }
+
+  if (trace) mris_print_hash(stderr, mris, "MRISsampleDistances returning ", "\n");
+
   return (NO_ERROR);
 }
 
@@ -16885,6 +16939,13 @@ int MRIScomputeSecondFundamentalForm(MRI_SURFACE *mris)
 
 int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_thresh)
 {
+  const bool trace = false;
+  
+  if (trace) {
+    mris_print_hash(stderr, mris, "MRIScomputeSecondFundamentalFormThresholded called with ", "");
+    fprintf(stderr, " pct_thresh:%g\n", pct_thresh);
+  }
+
   double min_k1, min_k2, max_k1, max_k2, k1_scale, k2_scale, total, thresh, orig_rsq_thresh;
   int bin, zbin1, zbin2, nthresh = 0;
   int vno, i, n, vmax, nbad = 0, niter;
@@ -16912,6 +16973,10 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
   orig_rsq_thresh = rsq_thresh;
 
   mrisComputeTangentPlanes(mris);
+  if (trace) {
+    mris_print_hash(stderr, mris, "MRIScomputeSecondFundamentalFormThresholded after mrisComputeTangentPlanes ", "\n");
+    fprintf(stderr, " pct_thresh:%g\n", pct_thresh);
+  }
 
   v_c = VectorAlloc(3, MATRIX_REAL);
   v_n = VectorAlloc(3, MATRIX_REAL);
@@ -16929,7 +16994,16 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     fp = fopen("curv.dat", "w");
   }
+  
   for (vno = 0; vno < mris->nvertices; vno++) {
+  
+    bool trace_vno = (trace && vno == 0);
+    
+    if (trace_vno) {
+        mris_print_hash(stderr, mris, "MRIScomputeSecondFundamentalFormThresholded before vno ", "\n");
+        fprintf(stderr, " vno:%d\n", vno);
+    }
+    
     vertex = &mris->vertices[vno];
     if (vertex->ripflag) {
       continue;
@@ -16956,8 +17030,19 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
     do {
       kmin = 10000.0f;
       kmax = -kmin;
+      
+      if (trace_vno) {
+        fprintf(stderr, " vno:%d start at kmax:%f kmin:%f \n", vno, kmax, kmin);
+      }
+
+      int kmaxI = -1;
       for (n = i = 0; i < vertex->vtotal; i++) {
         vnb = &mris->vertices[vertex->v[i]];
+
+        if (trace_vno && i <= 50) {
+            fprintf(stderr, " i:%d vnb:%d \n", i, vnb);
+        }
+
         if (vnb->ripflag) {
           continue;
         }
@@ -16968,15 +17053,25 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
         VECTOR_LOAD(v_yi, vnb->x - vertex->x, vnb->y - vertex->y, vnb->z - vertex->z);
         ui = V3_DOT(v_yi, v_e1);
         vi = V3_DOT(v_yi, v_e2);
+
+        if (trace_vno && i <= 50) {
+            fprintf(stderr, " i:%d ui:%g vi:%g \n", i, ui, vi);
+        }
+
         *MATRIX_RELT(m_U, n + 1, 1) = ui * ui;
         *MATRIX_RELT(m_U, n + 1, 2) = 2 * ui * vi;
         *MATRIX_RELT(m_U, n + 1, 3) = vi * vi;
         VECTOR_ELT(v_z, n + 1) = V3_DOT(v_n, v_yi); /* height above TpS */
         rsq = ui * ui + vi * vi;
         if (!FZERO(rsq) && rsq > rsq_thresh) {
+
           k = VECTOR_ELT(v_z, n + 1) / rsq;
           if (k > kmax) {
             kmax = k;
+            kmaxI = i;
+            if (trace_vno) {
+                fprintf(stderr, " i:%d change kmax:%f kmin:%f \n", i, kmax, kmin);
+            }
           }
           if (k < kmin) {
             kmin = k;
@@ -16984,6 +17079,7 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
           n++;
         }
       }
+      
       rsq_thresh *= 0.25;
       if (n < 4) {
         DiagBreak();
@@ -16993,6 +17089,14 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
       }
     } while (n < 4);
 
+    if (trace_vno) {
+        fprintf(stderr, " kmaxI:%d found kmax:%f \n", i, kmax);
+    }
+
+    if (trace_vno) {
+        fprintf(stderr, " vno:%d kmax:%f kmin:%f \n", vno, kmax, kmin);
+    }
+    
     m_Ut = MatrixTranspose(m_U, NULL);        /* Ut */
     m_tmp2 = MatrixMultiply(m_Ut, m_U, NULL); /* Ut U */
     cond_no = MatrixConditionNumber(m_tmp2);
@@ -17017,6 +17121,12 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
       *MATRIX_RELT(m_Q, 2, 2) = 2 * VECTOR_ELT(v_c, 3);
 
       if (cond_no >= ILL_CONDITIONED) {
+
+        if (trace_vno) {
+            mris_print_hash(stderr, mris, "MRIScomputeSecondFundamentalFormThresholded ILL_CONDITIONED ", "\n");
+            fprintf(stderr, " vno:%d\n", vno);
+        }
+
 #if 0
         MatrixSVDEigenValues(m_Q, evalues) ;
         vertex->k1 = k1 = evalues[0] ;
@@ -17054,6 +17164,12 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
 
       /* the columns of m_eigen will be the eigenvectors of m_Q */
       if (MatrixEigenSystem(m_Q, evalues, m_eigen) == NULL) {
+
+        if (trace_vno) {
+            mris_print_hash(stderr, mris, "MRIScomputeSecondFundamentalFormThresholded before nbad++ ", "\n");
+                fprintf(stderr, " vno:%d\n", vno);
+        }
+
         nbad++;
         MatrixSVDEigenValues(m_Q, evalues);
         vertex->k1 = k1 = evalues[0];
@@ -17066,6 +17182,7 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
         VectorFree(&v_z);
         MatrixFree(&m_tmp1);
         MatrixFree(&m_inverse);
+
         continue;
       }
 
@@ -17105,6 +17222,12 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
     if (V3_LEN(v_e1) < 0.5) {
       DiagBreak();
     }
+
+    if (trace_vno) {
+        mris_print_hash(stderr, mris, "MRIScomputeSecondFundamentalFormThresholded before vertex->e1x ", "\n");
+        fprintf(stderr, " vno:%d\n", vno);
+    }
+
     vertex->e1x = V3_X(v_e1) * a11 + V3_X(v_e2) * a21;
     vertex->e1y = V3_Y(v_e1) * a11 + V3_Y(v_e2) * a21;
     vertex->e1z = V3_Z(v_e1) * a11 + V3_Z(v_e2) * a21;
@@ -17142,6 +17265,10 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
   VectorFree(&v_n);
   VectorFree(&v_yi);
   MatrixFree(&m_Q);
+
+  if (trace) {
+    mris_print_hash(stderr, mris, "MRIScomputeSecondFundamentalFormThresholded before removing outliers ", "\n");
+  }
 
   if (pct_thresh < 0) {
     return (NO_ERROR);
@@ -17311,8 +17438,14 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
             max_k1,
             min_k2,
             max_k2);
+
+  if (trace) {
+    mris_print_hash(stderr, mris, "MRIScomputeSecondFundamentalFormThresholded returning ", "\n");
+  }
+
   return (NO_ERROR);
 }
+
 int MRIScomputeSecondFundamentalFormAtVertex(MRI_SURFACE *mris, int vno, int *vertices, int vnum)
 {
   int i, n, nbad = 0;
@@ -79860,6 +79993,19 @@ void mris_hash_init (MRIS_HASH* hash, MRIS const * mris)
     if (mris) mris_hash_add(hash, mris);
 }
 
+static void vertix_hash_add(MRIS_HASH* hash, VERTEX const * vertex)
+{
+    #define SEP ;
+    #define ELTP(TARGET, MBR) // don't hash pointers.   Sometime may implement hashing their target
+    #define ELTT(TYPE,   MBR) hash->hash = fnv_add(hash->hash, (const unsigned char*)(&vertex->MBR), sizeof(vertex->MBR));
+    LIST_OF_VERTEX_ELTS
+    #undef ELTT
+    #undef ELTP
+    #undef SEP
+    
+    hash->hash = fnv_add(hash->hash, (const unsigned char*)(vertex->v), sizeof(*(vertex->v))*vertex->vtotal );
+}
+
 void mris_hash_add(MRIS_HASH* hash, MRIS const * mris)
 {
     #define SEP ;
@@ -79874,6 +80020,10 @@ void mris_hash_add(MRIS_HASH* hash, MRIS const * mris)
 
     // Now include some of the pointer targets
     // TBD
+    int vno;
+    for (vno = 0; vno < mris->nvertices; vno++) {
+        vertix_hash_add(hash, &mris->vertices[vno]);
+    }
 }
 
 void mris_hash_print(MRIS_HASH const* hash, FILE* file)

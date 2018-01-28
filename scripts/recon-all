@@ -3638,7 +3638,9 @@ if($DoCurvHK) then
     $PWD |& tee -a $LF
     # create curvature files ?h.white.H and ?h.white.K
     set xopts = `fsr-getxopts mris_curatvure $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_curvature -w $xopts $hemi.white.preaparc)
+    set cmd = (mris_curvature -w)
+    if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+    set cmd = ($cmd $xopts $hemi.white.preaparc)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($DoParallel) then
       set CMDF = mris_curvature_white_${hemi}.cmd
@@ -3676,7 +3678,9 @@ if($DoCurvHK) then
 
     # create curvature files ?h.inflated.H and ?h.inflated.K
     set xopts = `fsr-getxopts mris_curatvure $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_curvature -thresh .999 -n -a 5 -w -distances 10 10)
+    set cmd = (mris_curvature )
+    if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+    set cmd = ($cmd -thresh .999 -n -a 5 -w -distances 10 10)
     set cmd = ($cmd $xopts $hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($DoParallel) then
