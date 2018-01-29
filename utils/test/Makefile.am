@@ -1,11 +1,14 @@
 #
 # Makefile.am
 #
-SUBDIRS=mriBuildVoronoiDiagramFloat \
+SUBDIRS=\
+	mriBuildVoronoiDiagramFloat \
 	MRIScomputeBorderValues \
-        mrishash \
-        # MRISpositionSurface \  # currently unstable
+  mrishash \
 	mriSoapBubbleFloat
+
+   # MRISpositionSurface \  # currently unstable
+
 
 AM_CPPFLAGS=-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
@@ -18,19 +21,37 @@ LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 #	$(ANN_LIBS) -lANN
 #MRISresampleOntoSphere_LDFLAGS=$(OS_LDFLAGS)
 
-CHECKS=testcolortab \
-	test_c_nr_wrapper mnitest i2rtest icotest extest \
-	mghxform inftest checkanalyze \
+CHECKS=\
+	testcolortab \
+	test_c_nr_wrapper \
+	mnitest \
+	i2rtest \
+	icotest \
+	extest \
+	mghxform \
+	inftest \
+	tiff_write_image \
+	checkanalyze \
 	test_mri_identify \
-	sc_test tiff_write_image
+	sc_test
 
-BROKEN=difftool test_mriio mri_compute_stats \
-  surftest mri_ms_LDA \
-	mri_fslmat_to_lta mri_concatenate_lta \
-	mri_transform_to_COR mri_compute_all_CNR \
-	mri_ms_compute_CNR mris_compute_thickness \
-	mri_apply_INU mri_edit_wm mri_apply_EM_mask \
-	mri_extract mri_ms_gca_EM
+BROKEN_CHECKS=\
+	difftool \
+	test_mriio \
+	mris_compute_thickness \
+	mri_compute_stats \
+  surftest \
+	mri_ms_LDA \
+	mri_fslmat_to_lta \
+	mri_concatenate_lta \
+	mri_transform_to_COR \
+	mri_compute_all_CNR \
+	mri_ms_compute_CNR \
+	mri_apply_INU \
+	mri_edit_wm \
+	mri_apply_EM_mask \
+	mri_extract \
+	mri_ms_gca_EM
 
 # trick to get test data into the build directory
 foo_SOURCES=
@@ -50,9 +71,9 @@ CPPUNIT_CHECKS=test_nr_wrapper test_matrix
 else
 CPPUNIT_CHECKS=
 endif
-#check_PROGRAMS=foo $(CHECKS) $(CPPUNIT_CHECKS)
+check_PROGRAMS=foo $(CHECKS) $(CPPUNIT_CHECKS)
 
-#TESTS=setup_test_data $(CHECKS) $(CPPUNIT_CHECKS) cleanup_test_data
+TESTS=setup_test_data $(CHECKS) $(CPPUNIT_CHECKS) cleanup_test_data
 
 testcolortab_SOURCES=testcolortab.c
 mnitest_SOURCES=mnitest.cpp
