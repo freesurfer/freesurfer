@@ -73,5 +73,5 @@ script:
   - if [[ "$TESTS" != "" ]]; then travis_wait 60 ./run_selected_tests ; fi
 
 after_failure:
-  - tail -n 200 build.log
+  - tail -n 150 build.log
   
