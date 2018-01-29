@@ -4821,7 +4821,7 @@ if($DoSegStats) then
   $PWD |& tee -a $LF
   set xopts = `fsr-getxopts mri_segstats $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_segstats)
-  if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+  if ($NoRandomness) set cmd = ($cmd --seed $RngSeed)
   set cmd = ($cmd --seg mri/aseg.mgz --sum stats/aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz --empty)
   set cmd = ($cmd --brainmask mri/brainmask.mgz --brain-vol-from-seg)
@@ -4888,7 +4888,7 @@ if($DoWMParc) then
   # Do wm segstats while we're here
   set xopts = `fsr-getxopts mri_segstats $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_segstats)
-  if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+  if ($NoRandomness) set cmd = ($cmd --seed $RngSeed)
   set cmd = ($cmd --seg mri/wmparc.mgz --sum stats/wmparc.stats \
     --pv mri/norm.mgz --excludeid 0 \
     --brainmask mri/brainmask.mgz --in mri/norm.mgz --in-intensity-name norm \
@@ -4922,7 +4922,7 @@ if($DoAParcASegStats) then
   cd $subjdir > /dev/null
   set xopts = `fsr-getxopts mri_segstats $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_segstats)
-  if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+  if ($NoRandomness) set cmd = ($cmd --seed $RngSeed)
   set cmd = ($cmd --seg mri/aparc+aseg.mgz --sum stats/aparc+aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz )
   set cmd = ($cmd --excludeid 0 --ctab-default --empty)
