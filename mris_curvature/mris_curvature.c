@@ -494,6 +494,13 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "using neighborhood size=%d\n", nbrs) ;
   }
+  else if (!stricmp(option, "seed"))
+  {
+    setRandomSeed(atol(argv[2])) ;
+    fprintf(stderr,"setting seed for random number generator to %d\n",
+            atoi(argv[2])) ;
+    nargs = 1 ;
+  }
   else switch (toupper(*option))
     {
     case 'N':

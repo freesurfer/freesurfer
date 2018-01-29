@@ -47,6 +47,8 @@
       <explanation>perform &lt;avgs&gt; iterative averages of curvature measure before saving</explanation>
       <argument>-nbrs &lt;nbrs&gt;</argument>
       <explanation>set neighborhood size to nbrs </explanation>
+      <argument>-seed N</argument>
+      <explanation>set random number generator to seed N</explanation>
     </optional-flagged>
   </arguments>
   <outputs>
