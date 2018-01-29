@@ -111,13 +111,30 @@ double randomNumber(double low, double hi)
     hi = val;
   }
 
-  if (!seedHasBeenSet) {
-    if (romp_level < ROMP_level_assume_reproducible)
-      setRandomSeed( -1L * (long)(abs((int)time(NULL))) );
-    else {
-      fprintf(stderr, "randomNumber in code that is supposed to be reproducible, called but seed not set\n");
-      exit(1);
+  if (idum == 0L) /* change seed from run to run */
+  {
+    if (0) {
+      static int laterTime = 0;
+      if (!laterTime) {
+        laterTime = 1; 
+        char commBuffer[1024];
+        FILE* commFile = fopen("/proc/self/comm", "r");
+        int commSize = 0;
+        if (commFile) {
+            commSize = fread(commBuffer, 1, 1023, commFile);
+	    if (commSize > 0) commSize-=1; // drop the \n
+	    int i = 0;
+	    for (i = 0; i < commSize; i++) {
+	        if (commBuffer[i] == '/') commBuffer[i] = '@';
+	    }
+            fclose(commFile);
+        }
+        commBuffer[commSize] = 0;
+        fprintf(stderr, "%s supposed to be reproducible but seed not set\n",
+            commBuffer);
+      }
     }
+    idum = -1L * (long)(abs((int)time(NULL)));
   }
   
   range = hi - low;

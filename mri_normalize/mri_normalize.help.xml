@@ -91,6 +91,8 @@
       <explanation>for reading</explanation>
       <argument>-surface &lt;surface&gt; &lt;xform&gt;</argument>
       <explanation>normalize based on the skelton of the interior of the transformed surface</explanation>
+      <argument>-seed N</argument>
+      <explanation>set random number generator to seed N</explanation>
       <argument>-u or -h</argument>
       <explanation>print usage</explanation>
  </optional-flagged>
