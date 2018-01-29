@@ -106,8 +106,9 @@ double randomNumber(double low, double hi)
 
   if (idum == 0L) /* change seed from run to run */
   {
-    static int laterTime = 0;
-    if (!laterTime) {
+    if (0) {
+      static int laterTime = 0;
+      if (!laterTime) {
         laterTime = 1; 
         char commBuffer[1024];
         FILE* commFile = fopen("/proc/self/comm", "r");
@@ -124,6 +125,7 @@ double randomNumber(double low, double hi)
         commBuffer[commSize] = 0;
         fprintf(stderr, "%s supposed to be reproducible but seed not set\n",
             commBuffer);
+      }
     }
     idum = -1L * (long)(abs((int)time(NULL)));
   }

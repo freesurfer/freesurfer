@@ -1451,6 +1451,11 @@ static int parse_commandline(int argc, char **argv)
     usage_exit();
   }
 
+  setRandomSeed(4321) ;
+    // It was previously using a different random sequence every time
+    // it was run, and did not have a --seed option to stop this
+    // and it appears in many scripts!
+
   nargc   = argc;
   pargv = argv;
   while (nargc > 0)
