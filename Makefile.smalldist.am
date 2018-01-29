@@ -1,0 +1,182 @@
+##
+## Makefile.smalldist.am
+##
+## This makes only the binaries needed to run recon-all -all -no-ba-labels, ie. a minimal install.
+## To use: 
+## cp Makefile.smalldist.am Makefile.am
+## include --enable-small-dist-install with configure to reduce data files installed
+## include --disable-g with configure to compile without debug symbols
+## include --disable-GUI-build with configure to disable build of GUI apps (eg. freeview)
+## then run the usual: setup_configure, configure, make, make install, make install-data-hook
+##
+
+ACLOCAL_AMFLAGS=-I m4
+
+foodir=$(prefix)
+foo_DATA=LICENSE NOTICE README AUTHORS INSTALL COPYING
+
+MRISUBDIRS=\
+	lta_convert \
+	mri_jacobian \
+	mri_add_xform_to_header \
+	mri_annotation2label \
+	mri_aparc2aseg \
+	mri_aparc2wmseg \
+	mri_binarize \
+	mri_ca_label \
+	test_exclude_minc \
+	mri_ca_normalize \
+	mri_ca_register \
+	mri_cc \
+	mri_compute_overlap \
+	mri_concat \
+	mri_convert \
+	mri_deface \
+	mri_diff \
+	mri_edit_segmentation \
+	mri_edit_segmentation_with_surfaces \
+	mri_em_register \
+	mri_fill \
+	mri_fwhm \
+	mri_info \
+	mri_and \
+	mri_label2label \
+	mri_label2vol \
+	mri_relabel_hypointensities \
+	mri_relabel_nonwm_hypos \
+	mri_remove_neck \
+	mri_robust_register \
+	mri_surf2surf \
+	mri_surf2vol \
+	mri_surfcluster \
+	mri_tessellate \
+	mri_voldiff \
+	mri_vol2vol \
+	mri_segstats \
+	mri_stats2seg \
+	mri_vol2surf \
+	mri_watershed \
+	mri_edit_wm_with_aseg \
+	mri_extract_largest_CC \
+	mri_compute_seg_overlap \
+	mri_concatenate_lta \
+	mri_log_likelihood \
+	talairach_afd \
+	talairach_avi
+
+MRISSUBDIRS=\
+	mris_calc \
+	mris_anatomical_stats \
+	mris_transmantle_dysplasia_paths \
+	mris_average_curvature \
+	mris_ca_label \
+	mris_divide_parcellation \
+	mris_convert \
+	mris_curvature \
+	mris_curvature_stats \
+	mris_euler_number \
+	mris_expand \
+	mris_fix_topology \
+	mris_topo_fixer \
+	mris_inflate \
+	mris_info \
+	mris_jacobian \
+	mris_label2annot \
+	mris_make_surfaces \
+	mris_diff \
+	mris_register \
+	mris_left_right_register \
+	mris_smooth \
+	mris_sphere \
+	mris_thickness \
+	mris_volmask \
+	mris_thickness_diff \
+	mris_surface_stats
+
+# ordering is important here for proper 'make check' and 'make distcheck' function
+COREDIRS=\
+	include \
+	unix \
+	dicom \
+	expat \
+	jpeg \
+	tiff \
+	xml2 \
+	rgb \
+	log \
+	minc_1_5_1 \
+	netcdf_3_6_0_p1 \
+	utils \
+	utilscpp \
+	scripts \
+	distribution \
+	fsgdf \
+	hipsstubs
+
+# dependent on COREDIRS
+OTHERDIRS=\
+	$(MRISUBDIRS) \
+	$(MRISSUBDIRS)
+
+
+# SUBDIRS is the automake definition of the 'all' for make
+SUBDIRS=\
+	$(COREDIRS) \
+	$(OTHERDIRS)
+
+# this target is an ad-hoc way to run the build a lot faster
+# by launching makes in parallel, after the dependencies are
+# built.  also make is run multi-threaded, which speeds the
+# build within a directory.
+# the default is to use no more than 8 threads.
+# if FS_FASTBUILD_THREADS is defined in the enviro to some
+# other number, it will use that thread count.
+fastbuild:
+	if test "x$(FS_FASTBUILD_THREADS)" = "x" ; then \
+		export FS_FASTBUILD_THREADS=8 ; \
+	fi;
+	@list='$(COREDIRS)'; \
+	for d in $$list; do \
+		cd "$$d"; make -j --max-load $(FS_FASTBUILD_THREADS) ; cd - ; \
+	done
+	@list='$(OTHERDIRS)'; \
+	for d in $$list; do \
+		cd "$$d"; (make -j --max-load $(FS_FASTBUILD_THREADS) &) ; sleep 0.2; cd - ; \
+	done
+	sleep 30
+	make
+
+# build stamp and symlinks to necessary 3rd-party packages.
+install-data-hook:
+	echo "$(PACKAGE)-$(target_triplet)-$(VERSION)-`date +%Y%m%d`" \
+		> $(DESTDIR)$(prefix)/build-stamp.txt ;
+	cp -f $(DESTDIR)$(prefix)/build-stamp.txt \
+		$(DESTDIR)$(prefix)/VERSION
+	if test ! "x$(MNI_DIR)" = "x" ; then \
+		if test ! "$(MNI_DIR)" = "$(DESTDIR)$(prefix)/mni" ; then \
+			if test -e $(MNI_DIR) ; then \
+				rm -Rf $(DESTDIR)$(prefix)/mni ; \
+				ln -s $(MNI_DIR) $(DESTDIR)$(prefix)/mni ; \
+			fi; \
+		fi; \
+	fi;
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(prefix)/build-stamp.txt
+	rm -f $(DESTDIR)$(prefix)/VERSION
+
+EXTRA_DIST=setup_configure Makefile.extra x86cpucaps \
+	doxy-file-header Doxyfile $(foo_DATA)
+
+DISTCLEANFILES=cpuflags.mak
+
+# we have files in our dist that dont and shouldnt get cleaned, like testdata.
+# this target override allows make distcheck to pass
+distcleancheck:
+	echo "Skipping target distcleancheck"
+
+# Our release target. Include files to be excluded here. They will be
+# found and removed after 'make install' is run during the 'make
+# release' target.
+EXCLUDE_FILES=CVS core
+include $(top_srcdir)/Makefile.extra
