@@ -1203,6 +1203,13 @@ get_option(int argc, char *argv[])
             control_point_fname) ;
     printf( "only using file control points...\n") ;
   }
+  else if (!stricmp(option, "seed"))
+  {
+    setRandomSeed(atol(argv[2])) ;
+    printf("setting seed for random number genererator to %d\n",
+            atoi(argv[2])) ;
+    nargs = 1 ;
+  }
   else switch (toupper(*option))
     {
     case 'D':
