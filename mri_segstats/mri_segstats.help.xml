@@ -183,6 +183,8 @@ For each segmentation, computes the average waveform across all the voxels in th
       </explanation>
       <argument>--sd SUBJECTS_DIR</argument>
       <explanation>Set SUBJECTS_DIR env var</explanation>
+      <argument>-seed N</argument>
+      <explanation>set random number generator to seed N</explanation>
     </optional-flagged>
   </arguments>
 	<example>mri_segstats --seg $SUBJECTS_DIR/bert/mri/aseg --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt --excludeid 0 --sum bert.aseg.sum

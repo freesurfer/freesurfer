@@ -2039,6 +2039,7 @@ if($DoNormalization) then
       echo "Recompute intensity norm to create $longbaseid ctrl_vol.mgz" \
         |& tee -a $LF
       set cmd = (mri_normalize)
+      if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
       if($#Norm3dIters)  set cmd = ($cmd -n $Norm3dIters)
       if($#Norm1_b)      set cmd = ($cmd -b $Norm1_b)
       if($#Norm1_n)      set cmd = ($cmd -n $Norm1_n)
@@ -2060,7 +2061,9 @@ if($DoNormalization) then
       rm -f $longbasedir/mri/T1_tmp.mgz
     endif
     # use ctrl_vol.mgz from base for normalization:
-    set cmd = (mri_normalize \
+    set cmd = (mri_normalize)
+    if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+    set cmd = ($cmd \
       -w $subjdir/mri/ctrl_vol.mgz $subjdir/mri/bias_vol.mgz \
       -l $longbasedir/mri/ctrl_vol.mgz $longbasedir/mri/bias_vol.mgz \
       $subjdir/mri/nu.mgz \
@@ -2093,6 +2096,7 @@ if($DoNormalization) then
     endif
     # for cross, base (and long if not useLongBaseCtrlVol) processing streams:
     set cmd = (mri_normalize -g $NormMaxGrad);
+    if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     if($UseControlPoints) set cmd = ($cmd -f $ControlPointsFile)
     if($#Norm3dIters)     set cmd = ($cmd -n $Norm3dIters)
     if($#Norm1_b)         set cmd = ($cmd -b $Norm1_b)
@@ -2902,6 +2906,7 @@ if($DoNormalization2) then
   cd $subjdir/mri > /dev/null
   set xopts = `fsr-getxopts mri_normalize $XOptsFile`;
   set cmd = (mri_normalize);
+  if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
   if($UseControlPoints)   set cmd = ($cmd -f $ControlPointsFile)
   if($#Norm3dIters)       set cmd = ($cmd -n $Norm3dIters)
   if($#Norm2_b)           set cmd = ($cmd -b $Norm2_b)
@@ -3665,7 +3670,9 @@ if($DoCurvHK) then
     $PWD |& tee -a $LF
     # create curvature files ?h.white.H and ?h.white.K
     set xopts = `fsr-getxopts mris_curatvure $XOptsFile`;
-    set cmd = (mris_curvature -w $xopts $hemi.white.preaparc)
+    set cmd = (mris_curvature -w)
+    if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+    set cmd = ($cmd $xopts $hemi.white.preaparc)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($DoParallel) then
       set CMDF = mris_curvature_white_${hemi}.cmd
@@ -3703,7 +3710,9 @@ if($DoCurvHK) then
 
     # create curvature files ?h.inflated.H and ?h.inflated.K
     set xopts = `fsr-getxopts mris_curatvure $XOptsFile`;
-    set cmd = (mris_curvature -thresh .999 -n -a 5 -w -distances 10 10)
+    set cmd = (mris_curvature)
+    if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+    set cmd = ($cmd -thresh .999 -n -a 5 -w -distances 10 10)
     set cmd = ($cmd $xopts $hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($DoParallel) then
@@ -4321,7 +4330,9 @@ if($DoT2pial || $DoFLAIRpial) then
       # this creates ${t2flair}.norm.mgz
       # MOD: removed -sigma 0.5 -nonmax_suppress 0 -min_dist 1 so now just
       # uses default parameters. But this does not seem to work very well, so if(0)
-      set normcmd = (mri_normalize \
+      set normcmd = (mri_normalize)
+      if ($NoRandomness) set normcmd = ($normcmd -seed $RngSeed)
+      set normcmd = ($normcmd \
           -aseg $mdir/aseg.presurf.mgz \
           -surface $sdir/rh.white identity.nofile \
           -surface $sdir/lh.white identity.nofile \
@@ -4338,7 +4349,9 @@ if($DoT2pial || $DoFLAIRpial) then
       # WM is defined as voxels in wm.mgz = 100
       set T2prenorm = $mdir/${t2flair}.prenorm.mgz \
       set T2meanfile = $mdir/${t2flair}.prenorm.mean.dat
-      set cmd = (mri_segstats --seg $mdir/wm.mgz --id 110 --i $T2prenorm --avgwf $T2meanfile)
+      set cmd = (mri_segstats)
+      if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+      set cmd = ($cmd --seg $mdir/wm.mgz --id 110 --i $T2prenorm --avgwf $T2meanfile)
       echo $cmd | tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd | tee -a $LF
       if($status) goto error_exit;
@@ -4837,7 +4850,9 @@ if($DoSegStats) then
   cd $subjdir > /dev/null
   $PWD |& tee -a $LF
   set xopts = `fsr-getxopts mri_segstats $XOptsFile`;
-  set cmd = (mri_segstats --seg mri/aseg.mgz --sum stats/aseg.stats)
+  set cmd = (mri_segstats)
+  if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+  set cmd = ($cmd --seg mri/aseg.mgz --sum stats/aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz --empty)
   set cmd = ($cmd --brainmask mri/brainmask.mgz --brain-vol-from-seg)
   set cmd = ($cmd --excludeid 0 --excl-ctxgmwm)
@@ -4899,6 +4914,7 @@ if($DoWMParc) then
   echo $cmd > $touchdir/wmaparc.touch
   # Do wm segstats while we're here
   set cmd = (mri_segstats)
+  if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
   set cmd = ($cmd --seg mri/wmparc.mgz --sum stats/wmparc.stats \
     --pv mri/norm.mgz --excludeid 0 \
     --brainmask mri/brainmask.mgz --in mri/norm.mgz --in-intensity-name norm \
@@ -4930,6 +4946,7 @@ if($DoAParcASegStats) then
   cd $subjdir > /dev/null
   set xopts = `fsr-getxopts mri_segstats $XOptsFile`;
   set cmd = (mri_segstats)
+  if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
   set cmd = ($cmd --seg mri/aparc+aseg.mgz --sum stats/aparc+aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz )
   set cmd = ($cmd --excludeid 0 --ctab-default --empty)

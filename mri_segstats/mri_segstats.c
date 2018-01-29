@@ -1970,7 +1970,7 @@ static int parse_commandline(int argc, char **argv)
       GTMdefaultSegReplacmentList(&nReplace,&(SrcReplace[0]),&(TrgReplace[0]));
     else if(!strcasecmp(option, "--gtm-default-seg-merge-choroid")){
       GTMdefaultSegReplacmentList(&nReplace,&(SrcReplace[0]),&(TrgReplace[0]));
-      nReplace -= 2;       // Last two itmes are choroid.
+      nReplace -= 2;       // Last two items are choroid.
     }
     else if(!strcmp(option, "--replace-file")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -1985,6 +1985,13 @@ static int parse_commandline(int argc, char **argv)
       nReplace++;
       nargsused = 2;
     } 
+    else if(!strcasecmp(option, "--seed")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      setRandomSeed(atol(pargv[0])) ;
+      printf("setting seed for random number genererator to %d\n",
+            atoi(pargv[0])) ;
+      nargsused = 1;
+    }
     else
     {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
