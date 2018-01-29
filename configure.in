@@ -3113,6 +3113,19 @@ fi
 AM_CONDITIONAL(NMR_INSTALL, test x$nmrinstall = xtrue)
 
 ###################################################################
+# Option to exclude a ton of files from being installed during
+# make install in the distribution directory (see Makefile.am
+# in distribution/ and distribution/average dirs for usage
+# of SMALL_DIST_INSTALL)
+###################################################################
+
+AC_ARG_ENABLE(small-dist-install,
+ [ --enable-small-dist-install      exclude install of needless gobs of data files],
+ [ AM_CONDITIONAL(SMALL_DIST_INSTALL, true) ],
+ [ AM_CONDITIONAL(SMALL_DIST_INSTALL, false) 
+])
+
+###################################################################
 # Temporary build options
 ###################################################################
 
