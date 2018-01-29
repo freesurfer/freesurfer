@@ -977,10 +977,10 @@ fi
 # Nvidia CUDA enabling
 ############################################################
 CUDA_DIR=""
-with_cuda=""
+#with_cuda=""
 AC_ARG_WITH([cuda],
    [  --with-cuda=PATH        prefix where cuda is installed [default=auto]],
-   [  with_cuda="${withval}"],[])
+   [  with_cuda="${withval}"],[with_cuda=""])
 
 if test -n "$with_cuda"; then
     CUDA_DIR="$with_cuda"
