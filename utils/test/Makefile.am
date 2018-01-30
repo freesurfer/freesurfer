@@ -26,7 +26,6 @@ CHECKS=\
 	test_c_nr_wrapper \
 	mnitest \
 	i2rtest \
-	icotest \
 	extest \
 	mghxform \
 	inftest \
@@ -36,6 +35,7 @@ CHECKS=\
 	sc_test
 
 BROKEN_CHECKS=\
+	icotest \
 	difftool \
 	test_mriio \
 	mris_compute_thickness \
@@ -59,9 +59,9 @@ foo:
 	if ! test -f "$(top_builddir)/utils/test/test_data.tar.gz"; then \
 		cp -v $(top_srcdir)/utils/test/test_data.tar.gz \
 					$(top_builddir)/utils/test/; fi;
-	if ! test -f "$(top_builddir)/distribution/lib/bem/ic0.tri"; then \
-		cp -v $(top_srcdir)/distribution/lib/bem/*.tri \
-					$(top_builddir)/distribution/lib/bem/; fi;
+#	if ! test -f "$(top_builddir)/distribution/lib/bem/ic0.tri"; then \
+#		cp -v $(top_srcdir)/distribution/lib/bem/*.tri \
+#					$(top_builddir)/distribution/lib/bem/; fi;
 	if ! test -f "$(top_builddir)/distribution/FreeSurferColorLUT.txt"; then \
 		cp -v $(top_srcdir)/distribution/FreeSurferColorLUT.txt \
 					$(top_builddir)/distribution/FreeSurferColorLUT.txt; fi;
@@ -78,7 +78,7 @@ TESTS=setup_test_data $(CHECKS) $(CPPUNIT_CHECKS) cleanup_test_data
 testcolortab_SOURCES=testcolortab.c
 mnitest_SOURCES=mnitest.cpp
 i2rtest_SOURCES=i2rtest.cpp
-icotest_SOURCES=icotest.cpp
+#icotest_SOURCES=icotest.cpp
 extest_SOURCES=extest.cpp
 mghxform_SOURCES=mghxform.cpp
 inftest_SOURCES=inftest.cpp
