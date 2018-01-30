@@ -63,7 +63,7 @@ else
     PACKAGES_DIR=${pkgs_dir}
     AC_MSG_RESULT([using '${PACKAGES_DIR}'])
   else
-    AC_MSG_ERROR([FATAL: ${pkgs_dir} not found])
+    AC_MSG_RESULT([${pkgs_dir} not found. May need to use --with-pkgs-dir (or --with-PKGNAME-dir for specific packages like vxl).])
   fi
 fi
 
@@ -646,7 +646,6 @@ case "${target}" in
  SHARED_LDFLAGS="-dynamiclib"
  CPPFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
  FFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse"
- FCLIBS="-L/usr/lib -lgcc"
  ;;
  i*86-*-solaris*)
  OS=SunOS
