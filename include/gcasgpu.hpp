@@ -29,6 +29,8 @@
 #include <cstdlib>
 #include <iostream>
 
+#include "faster_variants.h"
+
 #include "error.h"
 #include "mri.h"
 #include "matrix.h"
@@ -54,7 +56,7 @@ public:
   GCASampleGPU( void ) : nSamples(0), nSamplesAlloc(0),
 			 d_x(NULL), d_y(NULL), d_z(NULL),
 			 d_means(NULL),
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 			 d_prior_access_via_setGetPriors(NULL),
 			 d_prior_logs(NULL),
 #else
@@ -94,7 +96,7 @@ private:
 
   //! List of means
   float *d_means;
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
   float *d_prior_access_via_setGetPriors;
   float *d_prior_logs;
 #else
@@ -122,7 +124,7 @@ private:
 					    d_y(NULL),
 					    d_z(NULL),
 					    d_means(NULL),
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 					    d_prior_access_via_setGetPriors(NULL),
 					    d_prior_logs(NULL),
 #else
@@ -160,7 +162,7 @@ public:
 
   //! List of means
   float *means;
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
   float *prior_access_via_setGetPriors;
   float *prior_logs;
 #else
@@ -176,7 +178,7 @@ public:
 					 y(src.d_y),
 					 z(src.d_z),
 					 means(src.d_means),
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 					 prior_access_via_setGetPriors(src.d_prior_access_via_setGetPriors),
 					 prior_logs(src.d_prior_logs),
 #else
@@ -202,7 +204,7 @@ private:
   GCASonGPU( void ) : nSamples(0),
 		      x(NULL), y(NULL), z(NULL),
 		      means(NULL),
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 		      prior_access_via_setGetPriors(NULL),
 		      prior_logs(NULL),
 #else
