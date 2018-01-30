@@ -4576,7 +4576,7 @@ float GCAcomputeLogSampleProbability(
     1;
 #endif
 
-  MATRIX const * m_prior2source_voxel_nonconst = 
+  MATRIX * m_prior2source_voxel_nonconst = 
     (transform->type == MORPH_3D_TYPE)
     ? NULL
     : GCAgetPriorToSourceVoxelMatrix(gca, mri_inputs, transform);
