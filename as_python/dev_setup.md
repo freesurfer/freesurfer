@@ -3,7 +3,7 @@
 These instructions apply to a freshly built and upgraded machine running Ubuntu 16.04 and is intended as a reference guide. For a Linux system already set up for develpment, many of these steps can be skipped or appropriately altered.
 ## Create a dev environment:
 
-```
+```bash
 sudo apt-get install build-essential \
             tcsh \
             libtool-bin \
@@ -42,15 +42,15 @@ sudo cp -r share /usr/
 ```
 ## Acquire Source Code
 Create a working directory. This document this will refer to it as `~/work/cm`.
-```angular2html
+```bash
 cd ~/work/cm
 ```
 Get the latest ITK:
-```angular2html
+```bash
 git clone https://itk.org/ITK.git
 ```
 Get the porting branch of FreeSurfer and install pybind11:
-```angular2html
+```bash
 git clone git@github.com:innolitics/freesurfer.git
 cd freesurfer
 git checkout  nf-gems2-python-port
@@ -58,13 +58,13 @@ cd GEMS2
 git clone https://github.com/pybind/pybind11.git
 ```
 Also required is the prebuilt packages:
-```angular2html
+```bash
 wget ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/centos6_x86_64/centos6-x86_64-packages.tar.gz
 tar -xzvf centos6-x86_64-packages.tar.gz
 ```
 ## Build from Source
 ### Build ITK
-```angular2html
+```bash
 cd ~/work/cm
 mkdir ITK-build
 cd ITK-build
@@ -92,13 +92,13 @@ Check that the `PYTHON_EXECUTABLE` and `PYTHON_LIBRARY` have valid values such a
 and `/usr/lib/x86_64-linux-gnu/libpython3.5m.so` respectively.
 
 Build the GEMS2 code with:
-```angular2html
+```bash
 cmake .
 make -j4
 ```
 ## Python Setup
 Install the python virtual environment tools:
-```angular2html
+```bash
 sudo apt-get install python-pip
 sudo apt-get install python3-pip
 pip install --upgrade pip
@@ -106,7 +106,7 @@ pip install --user virtualenv
 pip install --user virtualenvwrapper
 ```
 To take full advantage add this to the end of your `.bashrc` file in your home directory:
-```angular2html
+```bash
 export ITK_DIR=$HOME/work/cm/ITK-build
 # where to store our virtual envs
 export WORKON_HOME=$HOME/virtenvs
@@ -116,18 +116,18 @@ export PROJECT_HOME=$HOME/Projects-Active
 source $HOME/.local/bin/virtualenvwrapper.sh
 ```
 Locate the python 3 interpreter executable:
-```angular2html
+```bash
 which python3
 ```
 For purposes of this document ```/usr/bin/python3``` will the presumed location.
 
 Now create a `gems2` virtual environment using the correct location of your python3:
-```angular2html
+```bash
 mkvirtualenv gems2 -p /usr/bin/python3
 ```
 The command prompt will indicate you are using this environment with a `(gems2)` prefix.
 Having created `gems2` you can enter this environment in any terminal shell by using:
-```angular2html
+```bash
 workon gems2
 ```
 At this point any python packages installed will be local to that environment 
@@ -140,17 +140,15 @@ which python
 You should see something like `~/virtenvs/gems2/bin/python3`
 
 Install the python requirements:
-```angular2html
+```bash
 pip install -r as_python/requirements.txt
 ```
 ## Test and Run
-## Running Samseg Code
-...
 ## Running Test Scripts
 Place the `innolitics_testing` data folder at `~/work/cm/`
 
 Get ready to run a test with:
-```angular2html
+```bash
 cd ~/work/cm/freesurfer
 workon gems2
 export PYTHONPATH=".:./GEMS2/bin"
@@ -158,15 +156,61 @@ export TESTING_DIR=$HOME/work/cm/innolitics_testing/buckner40
 export SAMSEG_DATA_DIR=$HOME/work/cm/innolitics_testing/atlas/20Subjects_smoothing2_down2_smoothingForAffine2
 ```
 At this point individual tests can be run with
-```angular2html
+```bash
 python ./as_python/samseg/dev_utils/run_samseg_test_case.py 004
 ```
 Multiple tests can be run by listing them on the command line:
-```angular2html
+```bash
 python ./as_python/samseg/dev_utils/run_samseg_test_case.py 004 008 140
 ```
 Or all of the tests can be run by leaving the command line arguments empty:
-```angular2html
+```bash
 python ./as_python/samseg/dev_utils/run_samseg_test_case.py
 ```
 results will appear, one folder per case, in `~/work/cm/innolitics_testing/buckner40/python_temp_data/`
+
+Dice measurements can be calculated using:
+```bash
+export GOLD_REFERENCE_DIR=$HOME/work/cm/innolitics_testing/tests/matlab_nov20/
+python ./as_python/samseg/dev_utils/measure_and_report.py 004 008 140
+```
+Leaving off case numbers will report against all cases.
+## Running Samseg Code
+The matlab script `run_samseg.m` has been ported to `run_samseg_ported.py` with the same command line arguments. 
+
+A minor difference is the use of `-i` and `-o` with single dash instead of `--i` and `--o`
+Running with `-h` for help will print a complete usage statement:
+```bash
+usage: run_samseg_ported.py [-h] [-o FOLDER] [-i FILE] [--threads THREADS]
+                            [-r FILE] [-m LABEL] [--showfigs] [--nobrainmask]
+                            [--diagcovs] [-v]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o FOLDER, --output FOLDER
+                        output to FOLDER
+  -i FILE, --input FILE
+                        input image(s) from FILE
+  --threads THREADS     number of threads
+  -r FILE, --regmat FILE
+                        skip registration and read from FILE
+  -m LABEL, --missing LABEL
+                        LABEL is a missing structure (repeat for multiple
+                        missing labels)
+  --showfigs            show figures during run
+  --nobrainmask         no initial brain masking based on affine atlas
+                        registration
+  --diagcovs            use diagonal covariance matrices (only affect multi-
+                        contrast case)
+  -v, --verbose         verbose debug output
+```
+The following will run test case 008 directly:
+```bash
+cd ~/work/cm/freesurfer
+workon gems2
+export PYTHONPATH=".:./GEMS2/bin"
+export SAMSEG_DATA_DIR=$HOME/work/cm/innolitics_testing/atlas/20Subjects_smoothing2_down2_smoothingForAffine2
+python ./as_python/samseg/run_samseg_ported.py \
+   -o $HOME/work/cm/innolitics_testing/python_temp_data/008 \
+    -i $HOME/work/cm/innolitics_testing/buckner40/008/orig.mgz
+```
