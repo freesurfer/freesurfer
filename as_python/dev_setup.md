@@ -22,7 +22,7 @@ sudo apt-get install build-essential \
             libjpeg62-dev \
             libxaw7-dev \
             liblapack-dev
-sudo apt-get install tcsh
+sudo apt-get install git
 sudo apt-get install gcc-4.8 g++-4.8 libgfortran-4.8-dev
 sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 50
 sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 50
@@ -51,7 +51,7 @@ git clone https://itk.org/ITK.git
 ```
 Get the porting branch of FreeSurfer and install pybind11:
 ```bash
-git clone git@github.com:innolitics/freesurfer.git
+git clone https://github.com/innolitics/freesurfer.git
 cd freesurfer
 git checkout  nf-gems2-python-port
 cd GEMS2
@@ -59,6 +59,7 @@ git clone https://github.com/pybind/pybind11.git
 ```
 Also required is the prebuilt packages:
 ```bash
+cd ~/work/cm
 wget ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/centos6_x86_64/centos6-x86_64-packages.tar.gz
 tar -xzvf centos6-x86_64-packages.tar.gz
 ```
@@ -72,6 +73,7 @@ cmake ../ITK
 make -j4
 ```
 ### Build FreeSurfer
+[Note that the final `make -j4` may not be strictly needed if other freesurfer code will not be used]
 ```
 export ITK_DIR=~/work/cm/ITK-build
 cd ~/work/cm/freesurfer
@@ -81,10 +83,11 @@ make -j4
 ```
 ### Build GEMS2python
 In the GEMS2 directory run the ccmake utility
-```cd ~/work/cm/freesurfer/GEMS2
+```
+cd ~/work/cm/freesurfer/GEMS2
 ccmake .
 ```
-Set the `CMAKE_CXX_FLAGS` and `CMAKE_C_FLAGS` to "`-fPIC -fpermissive`".
+Use the `t` option to see the advanced mode optiosn. Then set the `CMAKE_CXX_FLAGS` and `CMAKE_C_FLAGS` to "`-fPIC -fpermissive`".
 
 `BUILD_EXECUTABLES` `BUILD_GUI` `BUILD_MATLAB` `BUILD_SHARED_LIBS` and `BUILD_TESTING` should be `OFF`.
 
@@ -115,6 +118,8 @@ export PROJECT_HOME=$HOME/Projects-Active
 # where is the virtualenvwrapper.sh
 source $HOME/.local/bin/virtualenvwrapper.sh
 ```
+After changing `~/.bashrc` either open a new terminal or do a `source ~/.bashrc`
+
 Locate the python 3 interpreter executable:
 ```bash
 which python3
@@ -155,6 +160,8 @@ export PYTHONPATH=".:./GEMS2/bin"
 export TESTING_DIR=$HOME/work/cm/innolitics_testing/buckner40
 export SAMSEG_DATA_DIR=$HOME/work/cm/innolitics_testing/atlas/20Subjects_smoothing2_down2_smoothingForAffine2
 ```
+Again, after changing `~/.bashrc` either open a new terminal or do a `source ~/.bashrc`
+
 At this point individual tests can be run with
 ```bash
 python ./as_python/samseg/dev_utils/run_samseg_test_case.py 004
