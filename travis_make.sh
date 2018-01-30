@@ -3,5 +3,5 @@
 
 make -j4 >& build.log
 EXITSTATUS=$?
-tail -n 20 build.log
+tail -n 200 build.log
 exit $EXITSTATUS
