@@ -780,9 +780,10 @@ int main(int argc, char **argv)
   fflush(stdout);
 
   DoContinue=0;nx=0;skip=0;n0=0;vol=0;nhits=0;c=0;min=0.0;max=0.0;range=0.0;mean=0.0;std=0.0;snr=0.0;
+
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-ROMP_PF_begin
-#pragma omp parallel for if_ROMP(assume_reproducible) firstprivate(DoContinue,nx,skip,n0,vol,nhits,c,min,max,range,mean,std,snr)  schedule(guided)
+  #pragma omp parallel for if_ROMP(assume_reproducible) firstprivate(DoContinue,nx,skip,n0,vol,nhits,c,min,max,range,mean,std,snr)  schedule(guided)
 #endif
   for (n=0; n < nsegid; n++)
   {
@@ -1450,6 +1451,11 @@ static int parse_commandline(int argc, char **argv)
     usage_exit();
   }
 
+  setRandomSeed(4321) ;
+    // It was previously using a different random sequence every time
+    // it was run, and did not have a --seed option to stop this
+    // and it appears in many scripts!
+
   nargc   = argc;
   pargv = argv;
   while (nargc > 0)
@@ -1969,7 +1975,7 @@ static int parse_commandline(int argc, char **argv)
       GTMdefaultSegReplacmentList(&nReplace,&(SrcReplace[0]),&(TrgReplace[0]));
     else if(!strcasecmp(option, "--gtm-default-seg-merge-choroid")){
       GTMdefaultSegReplacmentList(&nReplace,&(SrcReplace[0]),&(TrgReplace[0]));
-      nReplace -= 2;       // Last two itmes are choroid.
+      nReplace -= 2;       // Last two items are choroid.
     }
     else if(!strcmp(option, "--replace-file")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -1984,6 +1990,13 @@ static int parse_commandline(int argc, char **argv)
       nReplace++;
       nargsused = 2;
     } 
+    else if(!strcasecmp(option, "--seed")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      setRandomSeed(atol(pargv[0])) ;
+      printf("setting seed for random number genererator to %d\n",
+            atoi(pargv[0])) ;
+      nargsused = 1;
+    }
     else
     {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);

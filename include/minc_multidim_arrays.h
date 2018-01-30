@@ -1,4 +1,4 @@
-#if defined(BEVIN_EXCLUDE_MINC)
+#if defined(USE_LOCAL_MINC)
 
 #ifndef  DEF_MULTI_DIM
 #define  DEF_MULTI_DIM

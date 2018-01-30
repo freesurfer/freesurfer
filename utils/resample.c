@@ -64,9 +64,7 @@
 #include <string.h>
 #include "timer.h"
 
-#ifdef _OPENMP
 #include "romp_support.h"
-#endif
 
 #include "bfileio.h"
 #include "corio.h"
@@ -1936,7 +1934,7 @@ MRI *MRIseg2SegPVF(
 
   // Get number of threads
   nthreads = 1;
-#ifdef _OPENMP
+#ifdef HAVE_OPENMP
   nthreads = omp_get_max_threads();  // using max should be ok
 #endif
 
@@ -2109,8 +2107,8 @@ MRI *MRIseg2SegPVF(
   /* The main loop goes over each voxel in the output/mask. This is
      thread-safe because each voxel is handled separately. */
   nhits = 0;  // keep track of the total number of hits
-#ifdef _OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   // note: removing reduction(+:nhits) slows the speed to that of 1 thread
   #pragma omp parallel for if_ROMP(experimental) shared(nperfth, m13, m23, m33) reduction(+ : nhits)
 #endif
@@ -2124,7 +2122,7 @@ MRI *MRIseg2SegPVF(
 
     // Get the thread number
     threadno = 0;
-#ifdef _OPENMP
+#ifdef HAVE_OPENMP
     threadno = omp_get_thread_num();
 #endif
     nperf = nperfth[threadno];

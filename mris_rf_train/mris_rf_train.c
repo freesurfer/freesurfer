@@ -126,10 +126,7 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: must specify at least one training overlay with -overlay <overlay>",Progname);
 
 #ifdef HAVE_OPENMP
-  #pragma omp parallel
-  {
-    n_omp_threads = omp_get_num_threads();
-  }
+  n_omp_threads = omp_get_max_threads();
   printf("\n== Number of threads available to %s for OpenMP = %d == \n",
          Progname, n_omp_threads);
 #else

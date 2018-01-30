@@ -29,9 +29,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
-#ifdef HAVE_OPENMP
+
 #include "romp_support.h"
-#endif
+
 
 #include "mri.h"
 #include "macros.h"
@@ -169,8 +169,8 @@ main(int argc, char *argv[]) {
   }
   printf("mosaicing %d images...\n", nimages) ;
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) firstprivate(downsample, blur_sigma)  shared(x0, y0, xbest, ybest, mri, mri_orig, ax, ay, mri_smooth)
 #endif
   for (i = 0 ; i < nimages ; i++)
@@ -569,8 +569,8 @@ mosaic_images(MRI **mri, int *x0, int *y0, int nimages, int pad)
   MRIcopyHeader(mri[0], mri_mosaic) ;
 
   mri_counts = MRIclone(mri_mosaic, NULL) ;
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) 
 #endif
   for (i =  0 ; i < nimages ; i++)
@@ -599,8 +599,8 @@ mosaic_images(MRI **mri, int *x0, int *y0, int nimages, int pad)
   }
   ROMP_PF_end
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) 
 #endif
   for (x = 0 ; x < mri_mosaic->width ; x++)
@@ -636,8 +636,9 @@ compute_mosaic_energy(MRI *mri_mosaic, int nimages)
 
   energy =  0.0 ;
   nonzero = overlap_voxels = 0 ;
-#ifdef HAVE_OPENMP
+
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) reduction (+:overlap_voxels,nonzero,energy)  
 #endif
   for (x = 0 ; x < mri_mosaic->width ; x++)
@@ -720,8 +721,9 @@ compute_pairwise_deformation_energy(MRI *mri1, MRI *mri2, double dx, double dy, 
     return(1e10) ;
 
   nvox = 0 ; energy = 0.0 ;
-#ifdef HAVE_OPENMP
+
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) reduction(+:energy,nvox)
 #endif
   for (x1 = xmin ; x1 <= xmax ; x1++)
@@ -992,8 +994,9 @@ undistort_and_mosaic_images(MRI **mri, double *x0, double *y0, int nimages, doub
   MRIcopyHeader(mri_mosaic, mri_vars) ;
 
   mri_counts = MRIclone(mri_mosaic, NULL) ;
-#ifdef HAVE_OPENMP
+
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (i =  0 ; i < nimages ; i++)
@@ -1051,8 +1054,9 @@ undistort_and_mosaic_images(MRI **mri, double *x0, double *y0, int nimages, doub
 //  MRIwrite(mri_jac, "jac.mgz") ;
   MRIfree(&mri_jac) ;
   energy = 0.0 ; nvoxels = 0 ;
-#ifdef HAVE_OPENMP
+
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) reduction (+:energy,nvoxels)
 #endif
   for (x = 0 ; x < mri_mosaic->width ; x++)

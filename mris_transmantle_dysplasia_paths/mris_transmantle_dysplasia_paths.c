@@ -46,9 +46,9 @@
 #include "voxlist.h"
 #include "pdf.h"
 #include "tritri.h"
-#ifdef HAVE_OPENMP
+
 #include "romp_support.h"
-#endif
+
 
 int main(int argc, char *argv[]) ;
 static VOXEL_LIST *compute_path_to_ventricles(MRI_SURFACE *mris, int vno, MRI *mri_ventricle_dist_grad, MRI *mri_aseg) ;
@@ -425,10 +425,10 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
     MRIwrite(mri_path_grad, "pg.mgz") ;
     MRIwrite(mri_possible_migration_paths, "p.mgz") ;
   }
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
   v = NULL ; n = 0 ;
   vl = vl_spline = NULL ;
-  ROMP_PF_begin
 #pragma omp parallel for if_ROMP(experimental) firstprivate(n, v, vl, vl_spline, entropy, gm_mean, mcmc_samples) shared(mri_intensity, mri_aseg, mri_path_grad,mri_splines) schedule(static,1)
 #endif
   for (vno = 0 ; vno < mris->nvertices ; vno++)

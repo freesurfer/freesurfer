@@ -63,7 +63,7 @@ else
     PACKAGES_DIR=${pkgs_dir}
     AC_MSG_RESULT([using '${PACKAGES_DIR}'])
   else
-    AC_MSG_ERROR([FATAL: ${pkgs_dir} not found])
+    AC_MSG_RESULT([${pkgs_dir} not found. May need to use --with-pkgs-dir (or --with-PKGNAME-dir for specific packages like vxl).])
   fi
 fi
 
@@ -448,55 +448,6 @@ if test "$host" = "powerpc64-suse-linux"; then
 fi
 AC_SUBST(LIB_LAPACK)
 
-# BEVIN MOVED THE FOLLOWING UP TO HERE
-# Need to decide MNI_DIR before deciding which netcdf to use
-#
-ac_mni_includes=no
-ac_mni_libraries=no
-MNI_DIR=""
-AC_MSG_CHECKING(MNI directory)
-
-AC_ARG_WITH(mni-dir,
-[  --with-mni-dir=DIR      where the root of MNI is installed.],
-  [  ac_mni_includes="$withval"/include
-     ac_mni_libraries="$withval"/lib
-     MNI_DIR="$withval"
-  ])
-
-if test "x$MNI_DIR" = "x"; then
-  # if an MNI root was not supplied, but one exists in the
-  # default packages path at the NMR Center, then use that:
-  if test -d "${PACKAGES_DIR}/mni/current" ; then
-    withval=${PACKAGES_DIR}/mni/current
-    MNI_DIR="$withval"
-    ac_mni_includes="$withval"/include
-    ac_mni_libraries="$withval"/lib
-  fi
-fi
-
-AC_MSG_RESULT(MNI_DIR is $MNI_DIR)
-
-
-
-# libnetcdf is now installed by default on centos6 computers
-# at the Center. We want it to compile against the static
-# version found in the mni library or BEVIN ADDED the standalone one in the packages 
-# so that libnetcdf does not become a dependancy for users outside the Center.
-LIB_NETCDF=""
-if ! test "x$MNI_DIR" = "xno"; then
-  if test -e ${PACKAGES_DIR}/mni/current/lib/libnetcdf.a ; then
-    LIB_NETCDF="${PACKAGES_DIR}/mni/current/lib/libnetcdf.a"
-  fi
-else
-  # BEVIN added
-  if test    -e ${PACKAGES_DIR}/netcdf/current/lib/libnetcdf.a ; then
-    LIB_NETCDF="${PACKAGES_DIR}/netcdf/current/lib/libnetcdf.a"
-  fi
-fi
-if test "x$LIB_NETCDF" = "x"; then
-    LIB_NETCDF="-lnetcdf"
-fi
-AC_SUBST(LIB_NETCDF)
 
 ################################################################
 # Most of our scripts use /bin/tcsh, so make sure it exists
@@ -574,6 +525,16 @@ LFS_CFLAGS="-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE"
 # like pragma indent
 NUPRAG="-Wno-unknown-pragmas"
 
+# -g compiles-in debugging info for use by debuggers like gdb
+# normally we want that in the build, but here we implement the
+# flag --disable-g, which removes usages of the -g flag. this
+# greatly reduces the size of a compiled binary.
+DBGFLAG="-g"
+AC_ARG_ENABLE(g,
+ [  --disable-g             do not add -g to compiler flags],
+ [ DBGFLAG="" ],
+ [ DBGFLAG="-g" ])
+
 # Freesurfer should compile with -Wall (which enables all warnings)
 # and -Werror (which escalates warnings to errors, thus stopping the
 # build), but here we allow a bypass:
@@ -637,8 +598,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
- FFLAGS="-g -O3 -msse2 -mfpmath=sse"
+ CPPFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
+ FFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse"
  ac_have_sse_mathfun=yes
  ;;
  x86_64-*linux*)
@@ -651,16 +612,16 @@ case "${target}" in
  SHARED_LDFLAGS="-shared"
  if test "x$CC" = "xicc"; then
   # Intel compiler vector options defined later
-  CPPFLAGS="-g -O3 $WALL $WERROR"
+  CPPFLAGS="$DBGFLAG -O3 $WALL $WERROR"
  else
   # note: gcc 4.4 flags -ftree-vectorize -msse4.1 dont help over just -msse2
-  CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR"
+  CPPFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse $WALL $WERROR"
  fi
  if test "x$F77" = "xifort"; then
   # Intel compiler vector options defined later
-  FFLAGS="-g -O3"
+  FFLAGS="$DBGFLAG -O3"
  else
-  FFLAGS="-g -O3 -msse2 -mfpmath=sse"
+  FFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse"
  fi
  ac_have_sse_mathfun=yes
  TEEM_32BIT=0
@@ -672,7 +633,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
- CPPFLAGS="-g -O2 $WALL $WERROR $LFS_CFLAGS"
+ CPPFLAGS="$DBGFLAG -O2 $WALL $WERROR $LFS_CFLAGS"
  TEEM_32BIT=0
  ;;
  *-apple-darwin*)
@@ -683,9 +644,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".dylib"
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
- CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
- FFLAGS="-g -O3 -msse2 -mfpmath=sse"
- FCLIBS="-L/usr/lib -lgcc"
+ CPPFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
+ FFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse"
  ;;
  i*86-*-solaris*)
  OS=SunOS
@@ -694,7 +654,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CPPFLAGS="-g -O2 $WALL $WERROR $NUPRAG"
+ CPPFLAGS="$DBGFLAG -O2 $WALL $WERROR $NUPRAG"
  ;;
  i*86-pc-cygwin)
  OS=Windows_NT
@@ -703,7 +663,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=
  SHARED_CFLAGS=
  SHARED_LDFLAGS=
- CPPFLAGS="-g -O2 $WALL $WERROR $NUPRAG"
+ CPPFLAGS="$DBGFLAG -O2 $WALL $WERROR $NUPRAG"
  ;;
  powerpc64-*-linux-gnu*)
  OS=Linux
@@ -712,7 +672,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CPPFLAGS="-g -O2 $WALL $WERROR $LFS_CFLAGS"
+ CPPFLAGS="$DBGFLAG -O2 $WALL $WERROR $LFS_CFLAGS"
  ;;
  powerpc64-suse-linux)
  OS=Linux
@@ -721,7 +681,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CPPFLAGS="-g -O2 $WALL $WERROR $LFS_CFLAGS"
+ CPPFLAGS="$DBGFLAG -O2 $WALL $WERROR $LFS_CFLAGS"
   ;;
 esac
 AC_SUBST(OS)
@@ -741,6 +701,29 @@ AC_MSG_NOTICE(OS is $OS)
 
 AM_CONDITIONAL(HAVE_MAC_OSX, test "x$OS" = "xDarwin" )
 
+############################################################
+# Catch-all flag to disable OpenGL, Tcl/Tk, ITK and KWW apps
+############################################################
+needs_opengl=""
+ # space separated list of why it is needed, empty if none
+disable_gui_build=no
+AC_ARG_ENABLE(GUI-build,
+ [  --disable-GUI-build     disable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
+ [ case "${enableval}" in
+  yes)                          ;;
+  no)  	disable_gui_build="YES" ;;
+  *) AC_MSG_ERROR([bad value ${enableval} for --disable-GUI-build]) ;;
+  esac
+ ])
+build_gl_apps="yes"
+AC_ARG_ENABLE(gl-apps,
+ [  --disable-gl-apps       disable building OpenGL-based apps],
+ [case "${enableval}" in
+  yes)  build_gl_apps=yes ;;
+  no)   build_gl_apps=no  ;;
+  *) AC_MSG_ERROR([bad value ${enableval} for --enable-gl-apps]) ;;
+  esac]
+ ])
 ################################################################
 # Mac 64-bit 32-bit concerns
 ################################################################
@@ -757,11 +740,6 @@ if test x$MAC_64 = xYES; then
    install_Mac32_GUIs="YES"
 fi
 
-disable_gui_build="NO"
-AC_ARG_ENABLE(GUI-build,
- [  --disable-GUI-build     disable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
- [ disable_gui_build="YES"
- ])
 
 AM_CONDITIONAL(INSTALL_MAC32_GUIS, test "x$install_Mac32_GUIs" = "xYES" )
 
@@ -828,39 +806,41 @@ AM_CONDITIONAL(USE_SSE_MATHFUN, test "x$ac_have_sse_mathfun" = "xyes")
 ##############################################################
 # OpenMP
 ##############################################################
+# decide on the default
 ac_have_openmp=no
-OPENMP_FLAG=""
-AC_ARG_ENABLE(openmp,
- [  --enable-openmp         enable OpenMP multi-core support],
- [ ac_have_openmp=yes
-   AC_MSG_NOTICE(Using OpenMP)
-   if test "${CC}" = "icc"; then
-     OPENMP_FLAG="-qopenmp"
-     CPPFLAGS="-D_OPENMP $OPENMP_FLAG $CPPFLAGS"
-   else
-     OPENMP_FLAG="-fopenmp"
-     CPPFLAGS="-D_OPENMP $OPENMP_FLAG $CPPFLAGS"
-   fi
- ])
-
-# gcc 4.4 supports openmp, so enable it by default (no harm in doing so)
-if test "$ac_have_gcc_44_or_higher" = "yes"; then
+if test "x$ac_have_gcc_44_or_higher" = "xyes"; then
   ac_have_openmp=yes
-  OPENMP_FLAG="-fopenmp"
-  CPPFLAGS="$CPPFLAGS $OPENMP_FLAG -DHAVE_OPENMP"
-  LDFLAGS="$LDFLAGS $OPENMP_FLAG"
-  AC_MSG_NOTICE(Using OpenMP with gcc 4.x)
 fi
-
-# Intel icc supports openmp, so enable it by default (no harm in doing so)
 if test "x$CC" = "xicc"; then
   ac_have_openmp=yes
-  OPENMP_FLAG="-qopenmp"
-  CPPFLAGS="$CPPFLAGS $OPENMP_FLAG -DHAVE_OPENMP"
-  LDFLAGS="$LDFLAGS $OPENMP_FLAG"
-  AC_MSG_NOTICE(Using OpenMP with Intel Compiler)
+fi
+AC_MSG_NOTICE([openmp available? $ac_have_openmp])
+
+
+# force on or off based on --enable-openmp[=yes,=no] or --disable-openmp
+AC_ARG_ENABLE(openmp,
+ [  --enable-openmp         enable OpenMP multi-core support],
+ [case "${enableval}" in
+  yes)  ac_have_openmp=yes ;;
+  no)   ac_have_openmp=no  ;;
+  *) AC_MSG_ERROR([bad value ${enableval} for --enable-openmp]) ;;
+  esac])
+AC_MSG_NOTICE([openmp being used? $ac_have_openmp])
+
+# do the right thing
+if test "x$ac_have_openmp" = "xyes"; then
+   AC_MSG_NOTICE(Using OpenMP)
+   if test "x${CC}" = "xicc"; then
+     OPENMP_FLAG="-qopenmp"
+   else
+     OPENMP_FLAG="-fopenmp"
+   fi
+   CPPFLAGS="$CPPFLAGS $OPENMP_FLAG -DHAVE_OPENMP"
+     # Note: Adding -D_OPENMP causes the ./configure command to fail!
+   LDFLAGS="$LDFLAGS $OPENMP_FLAG"
 fi
 
+AC_MSG_NOTICE([openmp used? $ac_have_openmp])
 AM_CONDITIONAL(HAVE_OPENMP, test "x$ac_have_openmp" = "xyes")
 AC_SUBST(OPENMP_FLAG)
 
@@ -957,10 +937,10 @@ fi
 # Nvidia CUDA enabling
 ############################################################
 CUDA_DIR=""
-with_cuda=""
+#with_cuda=""
 AC_ARG_WITH([cuda],
    [  --with-cuda=PATH        prefix where cuda is installed [default=auto]],
-   [  with_cuda="${withval}"],[])
+   [  with_cuda="${withval}"],[with_cuda=""])
 
 if test -n "$with_cuda"; then
     CUDA_DIR="$with_cuda"
@@ -1367,33 +1347,68 @@ AC_MSG_NOTICE([Checking for directory specification of 3rd-party libraries...])
 
 #############################################################
 # MNI
+#
+# When MNI_DIR="no" is set, by default the minc_1_5_1 and
+# netcdf_3_6_0_p1 libs are built locally and used. This is 
+# also the case when --without-mni-dir is specified.
+# Use --with-mni-dir="some-path" to specify external libs.
 #############################################################
+ac_mni_includes=no
+ac_mni_libraries=no
 MNI_CFLAGS=""
 MNI_LIBS=""
+# default (no) is to use local minc and netcdf:
+MNI_DIR="no"
 LIBS_MNI=""
+LIBS_MNI_LOCAL=""
+AC_MSG_CHECKING(MNI directory)
+
+AC_ARG_WITH(mni-dir,
+[  --with-mni-dir=DIR      where the root of MNI is installed.],
+  [  ac_mni_includes="$withval"/include
+     ac_mni_libraries="$withval"/lib
+     MNI_DIR="$withval"
+  ])
+
+if test "x$MNI_DIR" = "x"; then
+  # if an MNI root was not supplied, but one exists in the
+  # default packages path at the NMR Center, then use that:
+  if test -d "${PACKAGES_DIR}/mni/current" ; then
+    withval=${PACKAGES_DIR}/mni/current
+    MNI_DIR="$withval"
+    ac_mni_includes="$withval"/include
+    ac_mni_libraries="$withval"/lib
+  fi
+fi
 
 if test "x$MNI_DIR" = "xno"; then
-  # MNI_DIR is set to 'no' only if --without-mni-dir is used,
-  # which indicates that no MNI libs should be used in the build
+  # MNI_DIR is set to 'no' only if --without-mni-dir is used, or
+  # if it is initialized as the default above, which indicates that 
+  # no external MNI libs should be used in the build, but to use
+  # the local minc and netcdf source builds
   ac_mni_includes=no
   ac_mni_libraries=no
   LIBS_MNI=""
+  MNI_LIBS=""
 fi
 
 if test ! "$ac_mni_includes" = "no"; then
   AC_MSG_RESULT(MNI directory is $withval)
   MNI_CFLAGS=-I$ac_mni_includes
 else
-  AC_MSG_RESULT(MNI directory is not supplied)
-  MNI_CFLAGS="-DBEVIN_EXCLUDE_MINC -I${PACKAGES_DIR}/netcdf/current/include"
+  AC_MSG_RESULT(MNI directory is not supplied. Using local minc and netcdf.)
+  MNI_CFLAGS="-DUSE_LOCAL_MINC -I../netcdf_3_6_0_p1"
+  LIB_MINC="minc_1_5_1/libminc_1_5_1.a"
+  LIB_NETCDF="netcdf_3_6_0_p1/libnetcdf_3_6_0_p1.a"
+  LIBS_MNI=""
+  LIBS_MNI_LOCAL="$LIB_MINC $LIB_NETCDF"
+  # note: local minc and netcsf static libs declared later in LIBS_MGH.
 fi
 
-MNI_LIBS=""
 if test ! "$ac_mni_libraries" = "no"; then
   MNI_LIBS=-L$ac_mni_libraries
 fi
 
-LIBS_MNI="$LIB_NETCDF"
 if test ! "$ac_mni_libraries" = "no"; then
   LIB_VOLUME_IO=""
   if test -e ${PACKAGES_DIR}/mni/current/lib/libvolume_io.a ; then
@@ -1407,6 +1422,13 @@ if test ! "$ac_mni_libraries" = "no"; then
     LIB_MINC="${PACKAGES_DIR}/mni/current/lib/libminc.a"
   else
     LIB_MINC="-lminc"
+  fi
+
+  LIB_NETCDF=""
+  if test -e ${PACKAGES_DIR}/mni/current/lib/libnetcdf.a ; then
+    LIB_NETCDF="${PACKAGES_DIR}/mni/current/lib/libnetcdf.a"
+  else
+    LIB_NETCDF="-lnetcdf"
   fi
 
   # these are the libs used by freesurfer:
@@ -1426,6 +1448,7 @@ AC_SUBST(MNI_DIR)
 AC_SUBST(LIBS_MNI)
 
 AM_CONDITIONAL(HAVE_MINC_LIBS, ! test "x$ac_mni_libraries" = "xno")
+AM_CONDITIONAL(USE_LOCAL_MINC, ! test "x$LIBS_MNI_LOCAL" = "x")
 
 ################################################################
 # NIfTI
@@ -1830,27 +1853,7 @@ AC_SUBST(ANN_DIR)
 AM_CONDITIONAL(HAVE_ANN_LIBS, ! test "x$ac_ann_libraries" = "xNO")
 
 
-############################################################
-# Catch-all flag to disable OpenGL, Tcl/Tk, ITK and KWW apps
-############################################################
-tcltk_apps="NO"
-itk_apps="NO"
-kww_apps="NO"
-AC_ARG_ENABLE(GUI-build,
- [  --disable-GUI-build     disable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
- [ disable_gui_build="YES"
-   tcltk_apps="NO"
-   itk_apps="NO"
-   vtk_apps="NO"
-   kww_apps="NO"
-   wxw_apps="NO"
-   need_opengl="NO"
- ])
 
-AC_ARG_ENABLE(gl-apps,
- [  --disable-gl-apps       disable building OpenGL-based apps],
- [ need_opengl="NO"
- ])
 
 
 ####################################################
@@ -1924,7 +1927,7 @@ fi
 if test "$tcltk_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of Tcl/Tk apps.])
   # enable testing for OpenGL libs:
-  need_opengl=yes
+  needs_opengl="$needs_opengl tcltkapps"
 else
   AC_MSG_RESULT([Not building Tcl/Tk apps.])
 fi
@@ -2068,7 +2071,7 @@ fi
 if test "$xawplus_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of XawPlus apps.])
   # enable testing for OpenGL libs:
-  need_opengl=yes
+    needs_opengl="$needs_opengl XawPlusapps"
 fi
 
 AM_CONDITIONAL(ENABLE_XAWPLUS_APPS, test "$xawplus_apps" = "yes")
@@ -2604,7 +2607,7 @@ fi
 if test "$kww_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of KWWidgets apps.])
   # enable testing for OpenGL libs:
-  need_opengl=yes
+  needs_opengl="$needs_opengl kwwapps"
 else
   AC_MSG_RESULT([Not building KWWidgets apps.])
 fi
@@ -2692,10 +2695,13 @@ AC_ARG_ENABLE(wxw-apps,
  [ wxw_apps="NO"
  ])
 
+if test "$disable_gui_build" = "YES"; then
+  wxw_apps="NO"
+fi
 if test "$wxw_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of wxWidgets apps.])
   # enable testing for OpenGL libs:
-  need_opengl=yes
+  needs_opengl="$needs_opengl wxwapps"
 else
   AC_MSG_RESULT([Not building wxWidgets apps.])
 fi
@@ -3048,8 +3054,8 @@ fi
 LDFLAGS="$gl_libs $LDFLAGS"
 AX_CHECK_GL
 if test "X$no_gl" = "Xyes"; then
-  if test "X$need_opengl" = "Xyes"; then
-    AC_MSG_ERROR([FATAL: GL not found. Use --with-gl-dir=... to specify])
+  if test ! "X$needs_opengl" = "X"; then
+    AC_MSG_ERROR([FATAL: GL not found, but needed for $needs_opengl. Use --with-gl-dir=... to specify])
   else
     AC_MSG_RESULT([GL not found])
   fi
@@ -3075,8 +3081,8 @@ CFLAGS="$gl_cflags $CFLAGS"
 LDFLAGS="$gl_libs $LDFLAGS"
 AX_CHECK_GLU
 if test "X$no_glu" = "Xyes"; then
-  if test "X$need_opengl" = "Xyes"; then
-    AC_MSG_ERROR([FATAL: GLu not found. Use --with-gl-dir=... to specify])
+  if test ! "X$needs_opengl" = "X"; then
+    AC_MSG_ERROR([FATAL: GLu not found but needed for $needs_opengl. Use --with-gl-dir=... to specify])
   else
     AC_MSG_RESULT([GLu not found])
   fi
@@ -3112,24 +3118,36 @@ fi
 AM_CONDITIONAL(NMR_INSTALL, test x$nmrinstall = xtrue)
 
 ###################################################################
+# Option to exclude a ton of files from being installed during
+# make install in the distribution directory (see Makefile.am
+# in distribution/ and distribution/average dirs for usage
+# of SMALL_DIST_INSTALL)
+###################################################################
+
+AC_ARG_ENABLE(small-dist-install,
+ [  --enable-small-dist-install      exclude install of needless gobs of data files],
+ [ AM_CONDITIONAL(SMALL_DIST_INSTALL, true) ],
+ [ AM_CONDITIONAL(SMALL_DIST_INSTALL, false) 
+])
+
+###################################################################
 # Temporary build options
 ###################################################################
 
 # include Lilla's infant FS scripts and subjects
 AC_ARG_ENABLE(infantFS,
- [ --enable-infantFS      include infantFS in build],
+ [  --enable-infantFS      include infantFS in build],
  [ AM_CONDITIONAL(INCLUDE_INFANTFS, true) ],
  [ AM_CONDITIONAL(INCLUDE_INFANTFS, false) 
 ])
 
 ################################################
-LIBDIRS_MGH="utils minc_substitute rgb unix dicom hipsstubs"
+LIBDIRS_MGH="utils rgb unix dicom hipsstubs"
 AC_SUBST(LIBDIRS_MGH)
 
 # stupid circular dependency on iopen swapInt etc.
 LIBS_MGH="\
   utils/libutils.a \
-  minc_substitute/libminc_substitute.a \
   fsgdf/libfsgdf.a \
   rgb/librgb.a \
   unix/libunix.a \
@@ -3152,6 +3170,10 @@ fi
 if test "$ac_expat_libraries" = "NO"; then
   LIB_EXPAT=""
   LIBS_MGH="${LIBS_MGH} expat/libexpat.a"
+fi
+# use local minc and netcdf if --with-mni-dir not used:
+if test "$ac_mni_libraries" = "no"; then
+  LIBS_MGH="${LIBS_MGH} ${LIBS_MNI_LOCAL}"
 fi
 
 # to support CUDA, use libutils_cuda instead of libutils:
@@ -3695,6 +3717,10 @@ else
   MATH_LIBS="-lm"
 fi
 LIBS="-lz $MATH_LIBS $LIB_CRYPT -ldl -lpthread $LIBS"
+# librt is not available on osx
+if test ! "$OS" = "Darwin"; then
+  LIBS="-lrt $LIBS"
+fi
 LIBS="$LIBS $LIB_JPEG"
 LIBS="$LIBS $LIB_TIFF"
 LIBS="$LIBS $LIB_EXPAT"
@@ -3734,7 +3760,7 @@ HAVE_OPENGL="-DHAVE_OPENGL"
 if test "x$GL_LIBS" = "x"; then
   HAVE_OPENGL=""
 fi
-if test "x$disable_gui_build" = "xYES"; then
+if test "$disable_gui_build" = "YES"; then
   HAVE_OPENGL=""
 fi
 AC_SUBST(HAVE_OPENGL)
@@ -3834,7 +3860,8 @@ AC_OUTPUT([Makefile
            log/Makefile
            lta_convert/Makefile
            matlab/Makefile
-           minc_substitute/Makefile
+           minc_1_5_1/Makefile
+           netcdf_3_6_0_p1/Makefile
            mkxsubjreg/Makefile
            mri_bias/Makefile
            mri_train_autoencoder/Makefile
@@ -4151,7 +4178,6 @@ AC_OUTPUT([Makefile
            talairach_afd/Makefile
            talairach_avi/Makefile
            template/Makefile
-           test_exclude_minc/Makefile
            test_makevol/Makefile
            tetgen/Makefile
            tiff/Makefile

@@ -135,7 +135,7 @@ void chklc(void)
 
   // check for license in FREESURFER_HOME:
   if (lfile == NULL) {
-    sprintf(lfilename, "%s/.lic%s", dirname, "ense");
+    sprintf(lfilename, "%s/lic%s", dirname, "ense.txt");
     if (Gdiag_no > 0 && first_time) printf("Trying license file %s\n", lfilename);
     lfile = fopen(lfilename, "r");
   }
@@ -144,7 +144,7 @@ void chklc(void)
       printf(permission_msg, lfilename, lfilename);
       exit(-1);
     }
-    sprintf(lfilename, "%s/lic%s", dirname, "ense.txt");
+    sprintf(lfilename, "%s/.lic%s", dirname, "ense");
     if (Gdiag_no > 0 && first_time) printf("Now trying license file %s\n", lfilename);
     lfile = fopen(lfilename, "r");
   }

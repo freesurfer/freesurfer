@@ -79,9 +79,7 @@
 #include "utils.h"
 #include "znzlib.h"
 
-#ifdef HAVE_OPENMP
 #include "romp_support.h"
-#endif
 
 static int niiPrintHdr(FILE *fp, struct nifti_1_header *hdr);
 
@@ -1919,15 +1917,22 @@ static MRI *siemensRead(const char *fname, int read_volume_flag)
   }
 
   fseek(fp, 4994, SEEK_SET);
-  fread(&rows, 2, 1, fp);
+  if(fread(&rows, 2, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   rows = orderShortBytes(rows);
   printf("rows = %d\n", rows);
   fseek(fp, 4996, SEEK_SET);
-  fread(&cols, 2, 1, fp);
+  if (fread(&cols, 2, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   cols = orderShortBytes(cols);
   printf("cols = %d\n", cols);
   fseek(fp, 4004, SEEK_SET);
-  fread(&n_slices, 4, 1, fp);
+  if (fread(&n_slices, 4, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
+  
   n_slices = orderIntBytes(n_slices);
   if (n_slices == 0) {
     errno = 0;
@@ -1937,14 +1942,20 @@ static MRI *siemensRead(const char *fname, int read_volume_flag)
                  "The handling failed assuming the old siemens format.\n"))
   }
   fseek(fp, 2864, SEEK_SET);
-  fread(&base_raw_matrix_size, 4, 1, fp);
+  if (fread(&base_raw_matrix_size, 4, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   base_raw_matrix_size = orderIntBytes(base_raw_matrix_size);
   fseek(fp, 1584, SEEK_SET);
-  fread(&number_of_averages, 4, 1, fp);
+  if (fread(&number_of_averages, 4, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   number_of_averages = orderIntBytes(number_of_averages);
   memset(pulse_sequence_name, 0x00, STRLEN);
   fseek(fp, 3009, SEEK_SET);
-  fread(&pulse_sequence_name, 1, 65, fp);
+  if (fread(&pulse_sequence_name, 1, 65, fp) != 65){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
 
   /* --- scout --- */
   strcpy(ps2, pulse_sequence_name);
@@ -2028,31 +2039,43 @@ static MRI *siemensRead(const char *fname, int read_volume_flag)
   /* --- pixel sizes --- */
   /* --- mos_r and mos_c factors are strange, but they're there... --- */
   fseek(fp, 5000, SEEK_SET);
-  fread(&d, 8, 1, fp);
+  if (fread(&d, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   mri->xsize = mos_r * orderDoubleBytes(d);
   fseek(fp, 5008, SEEK_SET);
-  fread(&d, 8, 1, fp);
+  if (fread(&d, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   mri->ysize = mos_c * orderDoubleBytes(d);
 
   /* --- slice distance factor --- */
   fseek(fp, 4136, SEEK_SET);
-  fread(&d, 8, 1, fp);
+  if (fread(&d, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   d = orderDoubleBytes(d);
   if (d == -19222) /* undefined (Siemens code) -- I assume this to mean 0 */
     d = 0.0;
   /* --- slice thickness --- */
   fseek(fp, 1544, SEEK_SET);
-  fread(&d2, 8, 1, fp);
+  if (fread(&d2, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   d2 = orderDoubleBytes(d2);
   /* --- distance between slices --- */
   mri->zsize = (1.0 + d) * d2;
 
   /* --- field of view (larger of height, width fov) --- */
   fseek(fp, 3744, SEEK_SET);
-  fread(&d, 8, 1, fp);
+  if (fread(&d, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   d = orderDoubleBytes(d);
   fseek(fp, 3752, SEEK_SET);
-  fread(&d2, 8, 1, fp);
+  if (fread(&d2, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   d2 = orderDoubleBytes(d);
   mri->fov = (d > d2 ? d : d2);
 
@@ -2067,45 +2090,75 @@ static MRI *siemensRead(const char *fname, int read_volume_flag)
   mri->flip_angle = RADIANS(freadDouble(fp)); /* was in degrees */
 
   fseek(fp, 1560, SEEK_SET);
-  fread(&d, 8, 1, fp);
+  if (fread(&d, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   mri->tr = orderDoubleBytes(d);
   fseek(fp, 1568, SEEK_SET);
-  fread(&d, 8, 1, fp);
+  if (fread(&d, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   mri->te = orderDoubleBytes(d);
   fseek(fp, 1576, SEEK_SET);
-  fread(&d, 8, 1, fp);
+  if (fread(&d, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   mri->ti = orderDoubleBytes(d);
 
   fseek(fp, 3792, SEEK_SET);
-  fread(&d, 8, 1, fp);
+  if (fread(&d, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   mri->z_r = -orderDoubleBytes(d);
-  fread(&d, 8, 1, fp);
+  if (fread(&d, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   mri->z_a = orderDoubleBytes(d);
-  fread(&d, 8, 1, fp);
+  if (fread(&d, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   mri->z_s = -orderDoubleBytes(d);
 
   fseek(fp, 3832, SEEK_SET);
-  fread(&d, 8, 1, fp);
+  if (fread(&d, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   mri->x_r = -orderDoubleBytes(d);
-  fread(&d, 8, 1, fp);
+  if (fread(&d, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   mri->x_a = orderDoubleBytes(d);
-  fread(&d, 8, 1, fp);
+  if (fread(&d, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   mri->x_s = -orderDoubleBytes(d);
 
   fseek(fp, 3856, SEEK_SET);
-  fread(&d, 8, 1, fp);
+  if (fread(&d, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   mri->y_r = -orderDoubleBytes(d);
-  fread(&d, 8, 1, fp);
+ if (fread(&d, 8, 1, fp) != 1){
+   ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+ }
   mri->y_a = orderDoubleBytes(d);
-  fread(&d, 8, 1, fp);
+  if (fread(&d, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   mri->y_s = -orderDoubleBytes(d);
 
   fseek(fp, 3768, SEEK_SET);
-  fread(&im_c_r, 8, 1, fp);
+  if (fread(&im_c_r, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   im_c_r = -orderDoubleBytes(im_c_r);
-  fread(&im_c_a, 8, 1, fp);
+  if (fread(&im_c_a, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   im_c_a = orderDoubleBytes(im_c_a);
-  fread(&im_c_s, 8, 1, fp);
+  if (fread(&im_c_s, 8, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   im_c_s = -orderDoubleBytes(im_c_s);
 
   mri->c_r = im_c_r - (mosaic_size - 1) * mri->z_r * mri->zsize + ((mri->depth) / 2.0) * mri->z_r * mri->zsize;
@@ -2115,7 +2168,9 @@ static MRI *siemensRead(const char *fname, int read_volume_flag)
   mri->ras_good_flag = 1;
 
   fseek(fp, 3760, SEEK_SET);
-  fread(&i, 4, 1, fp);
+  if (fread(&i, 4, 1, fp) != 1){
+    ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+  }
   i = orderIntBytes(i);
 
 #if 0
@@ -2176,7 +2231,9 @@ static MRI *siemensRead(const char *fname, int read_volume_flag)
       fseek(fp, 6144, SEEK_SET);
 
       for (i = 0; i < rows; i++) {
-        fread(&MRISvox(mri_raw, 0, i, file_n - n_low), sizeof(short), cols, fp);
+        if (fread(&MRISvox(mri_raw, 0, i, file_n - n_low), sizeof(short), cols, fp) != cols){
+          ErrorPrintf(ERROR_BADFILE, "siemensRead(): could not read file");
+        }
 #if (BYTE_ORDER == LITTLE_ENDIAN)
 #if defined(SunOS)
         swab((const char *)&MRISvox(mri_raw, 0, i, file_n - n_low),
@@ -4065,7 +4122,9 @@ static MRI *get_b_info(const char *fname_passed, int read_volume, char *director
       errno = 0;
       ErrorReturn(NULL, (ERROR_BADFILE, "cannot open %s", fname));
     }
-    fscanf(fp, "%d %d %d %*d", &ny, &nx, &nt);
+    if (fscanf(fp, "%d %d %d %*d", &ny, &nx, &nt) != 3){
+      ErrorPrintf(ERROR_BADFILE, "bvolumeRead(): could not read file"); 
+    }
     mri->nframes = nt;
     free(mri->frames);
     mri->frames = (MRI_FRAME *)calloc(nt, sizeof(MRI_FRAME));
@@ -4098,7 +4157,9 @@ static MRI *get_b_info(const char *fname_passed, int read_volume, char *director
                    "bailing out on read",
                    fname));
     }
-    fscanf(fp, "%d %d %d %*d", &ny, &nx, &nt);
+    if (fscanf(fp, "%d %d %d %*d", &ny, &nx, &nt) != 3){
+      ErrorPrintf(ERROR_BADFILE, "get_b_info(): could not read file");
+    }
     fclose(fp);
 
     /* --- get the number of slices --- */
@@ -4210,7 +4271,9 @@ static MRI *bvolumeRead(const char *fname_passed, int read_volume, int type)
     swap_bytes_flag = 0;
   }
   else {
-    fscanf(fp, "%*d %*d %*d %d", &swap_bytes_flag);
+    if (fscanf(fp, "%*d %*d %*d %d", &swap_bytes_flag) != 1){
+      ErrorPrintf(ERROR_BADFILE, "bvolumeRead(): could not read file");
+    }
 #if (BYTE_ORDER == LITTLE_ENDIAN)
     swap_bytes_flag = !swap_bytes_flag;
 #endif
@@ -4688,7 +4751,9 @@ int read_bhdr(MRI *mri, FILE *fp)
   while (1) {  // don't use   "while (!feof(fp))"
 
     /* --- read the line --- */
-    fgets(line, STRLEN, fp);
+    if (!fgets(line, STRLEN, fp) && ferror(fp)){
+      ErrorPrintf(ERROR_BADFILE, "read_bhdr(): could not read file");
+    }
 
     if (feof(fp))  // wow, it was beyound the end of the file. get out.
       break;
@@ -5037,12 +5102,18 @@ static MRI *genesisRead(const char *fname, int read_volume)
   }
 
   fseek(fp, 8, SEEK_SET);
-  fread(&width, 4, 1, fp);
+  if (fread(&width, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   width = orderIntBytes(width);
-  fread(&height, 4, 1, fp);
+  if (fread(&height, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   height = orderIntBytes(height);
   fseek(fp, 148, SEEK_SET);
-  fread(&image_header_offset, 4, 1, fp);
+  if (fread(&image_header_offset, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   image_header_offset = orderIntBytes(image_header_offset);
 
   header->width = width;
@@ -5051,14 +5122,20 @@ static MRI *genesisRead(const char *fname, int read_volume)
   strcpy(header->fname, fname);
 
   fseek(fp, image_header_offset + 26, SEEK_SET);
-  fread(&(header->thick), 4, 1, fp);
+  if (fread(&(header->thick), 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   header->thick = orderFloatBytes(header->thick);
   header->zsize = header->thick;
 
   fseek(fp, image_header_offset + 50, SEEK_SET);
-  fread(&(header->xsize), 4, 1, fp);
+  if (fread(&(header->xsize), 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   header->xsize = orderFloatBytes(header->xsize);
-  fread(&(header->ysize), 4, 1, fp);
+  if (fread(&(header->ysize), 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   header->ysize = orderFloatBytes(header->ysize);
   header->ps = header->xsize;
 
@@ -5083,35 +5160,65 @@ static MRI *genesisRead(const char *fname, int read_volume)
   }
 
   fseek(fp, image_header_offset + 130, SEEK_SET);
-  fread(&c_r, 4, 1, fp);
+  if (fread(&c_r, 4, 1, fp) != 1){
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   c_r = orderFloatBytes(c_r);
-  fread(&c_a, 4, 1, fp);
+  if (fread(&c_a, 4, 1, fp) != 1){
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   c_a = orderFloatBytes(c_a);
-  fread(&c_s, 4, 1, fp);
+  if (fread(&c_s, 4, 1, fp) != 1){
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   c_s = orderFloatBytes(c_s);
-  fread(&n_r, 4, 1, fp);
+  if (fread(&n_r, 4, 1, fp) != 1){
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   n_r = orderFloatBytes(n_r);
-  fread(&n_a, 4, 1, fp);
+  if (fread(&n_a, 4, 1, fp) != 1){
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   n_a = orderFloatBytes(n_a);
-  fread(&n_s, 4, 1, fp);
+  if (fread(&n_s, 4, 1, fp) != 1){
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   n_s = orderFloatBytes(n_s);
-  fread(&tl_r, 4, 1, fp);
+  if (fread(&tl_r, 4, 1, fp) != 1){
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   tl_r = orderFloatBytes(tl_r);
-  fread(&tl_a, 4, 1, fp);
+  if (fread(&tl_a, 4, 1, fp) != 1){
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   tl_a = orderFloatBytes(tl_a);
-  fread(&tl_s, 4, 1, fp);
+  if (fread(&tl_s, 4, 1, fp) != 1){
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   tl_s = orderFloatBytes(tl_s);
-  fread(&tr_r, 4, 1, fp);
+  if (fread(&tr_r, 4, 1, fp) != 1){
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   tr_r = orderFloatBytes(tr_r);
-  fread(&tr_a, 4, 1, fp);
+  if (fread(&tr_a, 4, 1, fp) != 1){
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   tr_a = orderFloatBytes(tr_a);
-  fread(&tr_s, 4, 1, fp);
+  if (fread(&tr_s, 4, 1, fp) != 1){
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   tr_s = orderFloatBytes(tr_s);
-  fread(&br_r, 4, 1, fp);
+  if (fread(&br_r, 4, 1, fp) != 1){
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   br_r = orderFloatBytes(br_r);
-  fread(&br_a, 4, 1, fp);
+  if (fread(&br_a, 4, 1, fp) != 1){
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   br_a = orderFloatBytes(br_a);
-  fread(&br_s, 4, 1, fp);
+  if (fread(&br_s, 4, 1, fp) != 1){
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   br_s = orderFloatBytes(br_s);
 
   nlength = sqrt(n_r * n_r + n_a * n_a + n_s * n_s);
@@ -5189,7 +5296,9 @@ static MRI *genesisRead(const char *fname, int read_volume)
       }
 
       fseek(fp, 4, SEEK_SET);
-      fread(&pixel_data_offset, 4, 1, fp);
+      if (fread(&pixel_data_offset, 4, 1, fp) != 1) {
+         ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+      }
       pixel_data_offset = orderIntBytes(pixel_data_offset);
       fseek(fp, pixel_data_offset, SEEK_SET);
 
@@ -5324,9 +5433,13 @@ static MRI *gelxRead(const char *fname, int read_volume)
   }
 
   fseek(fp, 3236, SEEK_SET);
-  fread(&width, 4, 1, fp);
+  if (fread(&width, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   width = orderIntBytes(width);
-  fread(&height, 4, 1, fp);
+  if (fread(&height, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   height = orderIntBytes(height);
   header->width = width;
   header->height = height;
@@ -5334,47 +5447,83 @@ static MRI *gelxRead(const char *fname, int read_volume)
   strcpy(header->fname, fname);
 
   fseek(fp, 2184 + 28, SEEK_SET);
-  fread(&(header->thick), 4, 1, fp);
+  if (fread(&(header->thick), 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   header->thick = orderFloatBytes(header->thick);
   header->zsize = header->thick;
 
   fseek(fp, 2184 + 52, SEEK_SET);
-  fread(&(header->xsize), 4, 1, fp);
+  if (fread(&(header->xsize), 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   header->xsize = orderFloatBytes(header->xsize);
-  fread(&(header->ysize), 4, 1, fp);
+  if (fread(&(header->ysize), 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   header->ysize = orderFloatBytes(header->ysize);
   header->ps = header->xsize;
 
   fseek(fp, 2184 + 136, SEEK_SET);
-  fread(&c_r, 4, 1, fp);
+  if (fread(&c_r, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   c_r = orderFloatBytes(c_r);
-  fread(&c_a, 4, 1, fp);
+  if (fread(&c_a, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   c_a = orderFloatBytes(c_a);
-  fread(&c_s, 4, 1, fp);
+  if (fread(&c_s, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   c_s = orderFloatBytes(c_s);
-  fread(&n_r, 4, 1, fp);
+  if (fread(&n_r, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   n_r = orderFloatBytes(n_r);
-  fread(&n_a, 4, 1, fp);
+  if (fread(&n_a, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   n_a = orderFloatBytes(n_a);
-  fread(&n_s, 4, 1, fp);
+  if (fread(&n_s, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   n_s = orderFloatBytes(n_s);
-  fread(&tl_r, 4, 1, fp);
+  if (fread(&tl_r, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   tl_r = orderFloatBytes(tl_r);
-  fread(&tl_a, 4, 1, fp);
+  if (fread(&tl_a, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   tl_a = orderFloatBytes(tl_a);
-  fread(&tl_s, 4, 1, fp);
+  if (fread(&tl_s, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   tl_s = orderFloatBytes(tl_s);
-  fread(&tr_r, 4, 1, fp);
+  if (fread(&tr_r, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   tr_r = orderFloatBytes(tr_r);
-  fread(&tr_a, 4, 1, fp);
+  if (fread(&tr_a, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   tr_a = orderFloatBytes(tr_a);
-  fread(&tr_s, 4, 1, fp);
+  if (fread(&tr_s, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   tr_s = orderFloatBytes(tr_s);
-  fread(&br_r, 4, 1, fp);
+  if (fread(&br_r, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   br_r = orderFloatBytes(br_r);
-  fread(&br_a, 4, 1, fp);
+  if (fread(&br_a, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   br_a = orderFloatBytes(br_a);
-  fread(&br_s, 4, 1, fp);
+  if (fread(&br_s, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   br_s = orderFloatBytes(br_s);
 
   header->x_r = (tr_r - tl_r);
@@ -5609,7 +5758,9 @@ static dsr *ReadAnalyzeHeader(const char *hdrfile, int *swap, int *mritype, int 
 
   /* Read the header file */
   hdr = (dsr *)calloc(1, sizeof(dsr));
-  fread(hdr, sizeof(dsr), 1, fp);
+  if (fread(hdr, sizeof(dsr), 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "ReadAnalyzeHeader(): could not read file");
+  }
   fclose(fp);
 
   *swap = 0;
@@ -7494,7 +7645,9 @@ static int read_otl_file(
   int num_entries;
   char entry_name[STRLEN];
 
-  fgets(line, STRLEN, fp);
+  if (!fgets(line, STRLEN, fp) && ferror(fp)) {
+    ErrorPrintf(ERROR_BADFILE, "read_otl_file(): could not read file");
+  }
   if (strncmp(line, "GDF FILE VERSION", 15) != 0) {
     errno = 0;
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "otl slice %s does not appear to be a GDF file", slice));
@@ -7506,7 +7659,9 @@ static int read_otl_file(
       errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF () in otl file %d", slice));
     }
-    fgets(line, STRLEN, fp);
+    if (!fgets(line, STRLEN, fp) && ferror(fp)) {
+      ErrorPrintf(ERROR_BADFILE, "read_otl_file(): could not read file");
+    }
     if (strncmp(line, "START MAIN HEADER", 17) == 0) main_header_flag = TRUE;
   }
 
@@ -7519,7 +7674,9 @@ static int read_otl_file(
       errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (in main header) in otl file %d", slice));
     }
-    fgets(line, STRLEN, fp);
+    if (!fgets(line, STRLEN, fp) && ferror(fp)) {
+      ErrorPrintf(ERROR_BADFILE, "read_otl_file(): could not read file");
+    }
     if (strncmp(line, "END MAIN HEADER", 15) == 0) main_header_flag = FALSE;
     if (strncmp(line, "ONUM ", 5) == 0) sscanf(line, "%*s %d", &n_outlines);
     if (strncmp(line, "COL_NUM", 7) == 0) sscanf(line, "%*s %d", &n_cols);
@@ -7553,7 +7710,9 @@ static int read_otl_file(
         errno = 0;
         ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (searching for gdf header) in otl file %d", slice));
       }
-      fgets(line, STRLEN, fp);
+      if (!fgets(line, STRLEN, fp) && ferror(fp)) {
+        ErrorPrintf(ERROR_BADFILE, "read_otl_file(): could not read file");
+      }
       if (strncmp(line, "START GDF HEADER", 16) == 0) gdf_header_flag = TRUE;
     }
 
@@ -7570,7 +7729,9 @@ static int read_otl_file(
         errno = 0;
         ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (in gdf header) in otl file %d", slice));
       }
-      fgets(line, STRLEN, fp);
+      if (!fgets(line, STRLEN, fp) && ferror(fp)) {
+        ErrorPrintf(ERROR_BADFILE, "read_otl_file(): could not read file");
+      }
       if (strncmp(line, "END GDF HEADER", 14) == 0) gdf_header_flag = FALSE;
       // getting rows, cols, type
       if (strncmp(line, "ROW_NUM", 7) == 0) sscanf(line, "%*s %d", &n_rows);
@@ -7656,7 +7817,9 @@ static int read_otl_file(
     }
 
     do {
-      fgets(line, STRLEN, fp);
+      if (!fgets(line, STRLEN, fp) && ferror(fp)) {
+        ErrorPrintf(ERROR_BADFILE, "read_otl_file(): could not read file");
+      }
       if (feof(fp)) {
         CMAfreeOutlineField(&of);
         errno = 0;
@@ -7673,7 +7836,9 @@ static int read_otl_file(
 
     if (ascii_short_flag) {
       for (row = 0; row < n_rows; row++) {
-        fgets(line, STRLEN, fp);
+        if (!fgets(line, STRLEN, fp) && ferror(fp)) {
+          ErrorPrintf(ERROR_BADFILE, "read_otl_file(): could not read file");
+        }
         if (feof(fp)) {
           free(points);
           CMAfreeOutlineField(&of);
@@ -7704,7 +7869,9 @@ static int read_otl_file(
 #endif
     }
 
-    fgets(line, STRLEN, fp);
+    if (!fgets(line, STRLEN, fp) && ferror(fp)) {
+      ErrorPrintf(ERROR_BADFILE, "read_otl_file(): could not read file");
+    }
     if (strncmp(line, "END POINTS", 10) != 0) {
       free(points);
       CMAfreeOutlineField(&of);
@@ -7819,7 +7986,9 @@ int list_labels_in_otl_file(FILE *fp)
   int n_read;
   int empty_label_flag;
 
-  fgets(line, STRLEN, fp);
+  if (!fgets(line, STRLEN, fp) && ferror(fp)) {
+    ErrorPrintf(ERROR_BADFILE, "list_labels_in_otl_file(): could not read file");
+  }
   if (strncmp(line, "GDF FILE VERSION", 15) != 0) {
     errno = 0;
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "otl slice does not appear to be a GDF file"));
@@ -7831,7 +8000,9 @@ int list_labels_in_otl_file(FILE *fp)
       errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF () in otl file"));
     }
-    fgets(line, STRLEN, fp);
+    if (!fgets(line, STRLEN, fp) && ferror(fp)) {
+      ErrorPrintf(ERROR_BADFILE, "list_labels_in_otl_file(): could not read file");
+    }
     if (strncmp(line, "START MAIN HEADER", 17) == 0) main_header_flag = TRUE;
   }
 
@@ -7844,7 +8015,9 @@ int list_labels_in_otl_file(FILE *fp)
       errno = 0;
       ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (in main header) in otl file"));
     }
-    fgets(line, STRLEN, fp);
+    if (!fgets(line, STRLEN, fp) && ferror(fp)) {
+      ErrorPrintf(ERROR_BADFILE, "list_labels_in_otl_file(): could not read file");
+    }
     if (strncmp(line, "END MAIN HEADER", 15) == 0) main_header_flag = FALSE;
     if (strncmp(line, "ONUM ", 5) == 0) sscanf(line, "%*s %d", &n_outlines);
     if (strncmp(line, "COL_NUM", 7) == 0) sscanf(line, "%*s %d", &n_cols);
@@ -7873,7 +8046,9 @@ int list_labels_in_otl_file(FILE *fp)
         errno = 0;
         ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (searching for gdf header) in otl file"));
       }
-      fgets(line, STRLEN, fp);
+      if (!fgets(line, STRLEN, fp) && ferror(fp)){
+        ErrorPrintf(ERROR_BADFILE, "list_labels_in_otl_file(): could not read file");
+      }
       if (strncmp(line, "START GDF HEADER", 16) == 0) gdf_header_flag = TRUE;
     }
 
@@ -7889,7 +8064,9 @@ int list_labels_in_otl_file(FILE *fp)
         errno = 0;
         ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (in gdf header) in otl file"));
       }
-      fgets(line, STRLEN, fp);
+      if (!fgets(line, STRLEN, fp) && ferror(fp)) {
+        ErrorPrintf(ERROR_BADFILE, "list_labels_in_otl_file(): could not read file"); 
+      }
       if (strncmp(line, "END GDF HEADER", 14) == 0) gdf_header_flag = FALSE;
       // getting rows, cols, type
       if (strncmp(line, "ROW_NUM", 7) == 0) sscanf(line, "%*s %d", &n_rows);
@@ -7946,7 +8123,9 @@ int list_labels_in_otl_file(FILE *fp)
     }
 
     do {
-      fgets(line, STRLEN, fp);
+      if (!fgets(line, STRLEN, fp) && ferror(fp)) {
+        ErrorPrintf(ERROR_BADFILE, "list_labels_in_otl_file(): could not read file");
+      }
       if (feof(fp)) {
         errno = 0;
         ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "premature EOF (searching for points) in otl file"));
@@ -7961,7 +8140,9 @@ int list_labels_in_otl_file(FILE *fp)
 
     if (ascii_short_flag) {
       for (row = 0; row < n_rows; row++) {
-        fgets(line, STRLEN, fp);
+        if (!fgets(line, STRLEN, fp) && ferror(fp)) {
+          ErrorPrintf(ERROR_BADFILE, "list_labels_in_otl_file(): could not read file");
+        }
         if (feof(fp)) {
           free(points);
           errno = 0;
@@ -7989,7 +8170,9 @@ int list_labels_in_otl_file(FILE *fp)
 #endif
     }
 
-    fgets(line, STRLEN, fp);
+    if (!fgets(line, STRLEN, fp) && ferror(fp)) {
+      ErrorPrintf(ERROR_BADFILE, "list_labels_in_otl_file(): could not read file");
+    }
     if (strncmp(line, "END POINTS", 10) != 0) {
       free(points);
       errno = 0;
@@ -8247,20 +8430,28 @@ static MRI *ximgRead(const char *fname, int read_volume)
   }
 
   fseek(fp, 4, SEEK_SET);
-  fread(&pixel_data_offset, 4, 1, fp);
+  if (fread(&pixel_data_offset, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   pixel_data_offset = orderIntBytes(pixel_data_offset);
   printf("XIMG: pixel data offset is %d, ", pixel_data_offset);
   if (pixel_data_offset != XIMG_PIXEL_DATA_OFFSET) pixel_data_offset = XIMG_PIXEL_DATA_OFFSET;
   printf("using offset %d\n", pixel_data_offset);
 
   fseek(fp, 8, SEEK_SET);
-  fread(&width, 4, 1, fp);
+  if (fread(&width, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   width = orderIntBytes(width);
-  fread(&height, 4, 1, fp);
+  if (fread(&height, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   height = orderIntBytes(height);
 
   fseek(fp, 148, SEEK_SET);
-  fread(&image_header_offset, 4, 1, fp);
+  if (fread(&image_header_offset, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   image_header_offset = orderIntBytes(image_header_offset);
   printf("XIMG: image header offset is %d, ", image_header_offset);
   if (image_header_offset != XIMG_IMAGE_HEADER_OFFSET) image_header_offset = XIMG_IMAGE_HEADER_OFFSET;
@@ -8272,14 +8463,20 @@ static MRI *ximgRead(const char *fname, int read_volume)
   strcpy(header->fname, fname);
 
   fseek(fp, image_header_offset + 26 + 2, SEEK_SET);
-  fread(&(header->thick), 4, 1, fp);
+  if (fread(&(header->thick), 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   header->thick = orderFloatBytes(header->thick);
   header->zsize = header->thick;
 
   fseek(fp, image_header_offset + 50 + 2, SEEK_SET);
-  fread(&(header->xsize), 4, 1, fp);
+  if (fread(&(header->xsize), 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   header->xsize = orderFloatBytes(header->xsize);
-  fread(&(header->ysize), 4, 1, fp);
+  if (fread(&(header->ysize), 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   header->ysize = orderFloatBytes(header->ysize);
   header->ps = header->xsize;
 
@@ -8295,35 +8492,65 @@ static MRI *ximgRead(const char *fname, int read_volume)
   header->flip_angle = RADIANS(freadShort(fp)); /* was in degrees */
 
   fseek(fp, image_header_offset + 130 + 6, SEEK_SET);
-  fread(&c_r, 4, 1, fp);
+  if (fread(&c_r, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   c_r = orderFloatBytes(c_r);
-  fread(&c_a, 4, 1, fp);
+  if (fread(&c_a, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   c_a = orderFloatBytes(c_a);
-  fread(&c_s, 4, 1, fp);
+  if (fread(&c_s, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   c_s = orderFloatBytes(c_s);
-  fread(&n_r, 4, 1, fp);
+  if (fread(&n_r, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   n_r = orderFloatBytes(n_r);
-  fread(&n_a, 4, 1, fp);
+  if (fread(&n_a, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   n_a = orderFloatBytes(n_a);
-  fread(&n_s, 4, 1, fp);
+  if (fread(&n_s, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   n_s = orderFloatBytes(n_s);
-  fread(&tl_r, 4, 1, fp);
+  if (fread(&tl_r, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   tl_r = orderFloatBytes(tl_r);
-  fread(&tl_a, 4, 1, fp);
+  if (fread(&tl_a, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   tl_a = orderFloatBytes(tl_a);
-  fread(&tl_s, 4, 1, fp);
+  if (fread(&tl_s, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   tl_s = orderFloatBytes(tl_s);
-  fread(&tr_r, 4, 1, fp);
+  if (fread(&tr_r, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   tr_r = orderFloatBytes(tr_r);
-  fread(&tr_a, 4, 1, fp);
+  if (fread(&tr_a, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   tr_a = orderFloatBytes(tr_a);
-  fread(&tr_s, 4, 1, fp);
+  if (fread(&tr_s, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   tr_s = orderFloatBytes(tr_s);
-  fread(&br_r, 4, 1, fp);
+  if (fread(&br_r, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   br_r = orderFloatBytes(br_r);
-  fread(&br_a, 4, 1, fp);
+  if (fread(&br_a, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   br_a = orderFloatBytes(br_a);
-  fread(&br_s, 4, 1, fp);
+  if (fread(&br_s, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "genesisRead(): could not read file");
+  }
   br_s = orderFloatBytes(br_s);
 
   nlength = sqrt(n_r * n_r + n_a * n_a + n_s * n_s);
@@ -10330,9 +10557,13 @@ MRI *MRIreadGeRoi(const char *fname, int n_slices)
   }
 
   fseek(fp, 8, SEEK_SET);
-  fread(&width, 4, 1, fp);
+  if (fread(&width, 4, 1, fp) != 1) {
+    ErrorPrintf(ERROR_BADFILE, "MRIreadGeRoi(): could not read file");
+  }
   width = orderIntBytes(width);
-  fread(&height, 4, 1, fp);
+  if (fread(&height, 4, 1, fp) != 1) {
+     ErrorPrintf(ERROR_BADFILE, "MRIreadGeRoi(): could not read file");
+  }
   height = orderIntBytes(height);
 
   fclose(fp);
@@ -10379,7 +10610,9 @@ MRI *MRIreadGeRoi(const char *fname, int n_slices)
     sprintf(fname_use, "%s%03d%s", prefix, i, postfix);
     if ((fp = fopen(fname_use, "r")) != NULL) {
       fseek(fp, 4, SEEK_SET);
-      fread(&pixel_data_offset, 4, 1, fp);
+      if (fread(&pixel_data_offset, 4, 1, fp) != 1) {
+         ErrorPrintf(ERROR_BADFILE, "MRIreadGeRoi(): could not read file");
+      }
       pixel_data_offset = orderIntBytes(pixel_data_offset);
       fseek(fp, pixel_data_offset, SEEK_SET);
 
@@ -10450,7 +10683,9 @@ static MRI *sdtRead(const char *fname, int read_volume)
 
   while (1)  // !feof(fp))
   {
-    fgets(line, STR_LEN, fp);
+    if (!fgets(line, STR_LEN, fp) && ferror(fp)){
+      ErrorPrintf(ERROR_BADFILE, "stdRead(%s): could not read file", fname);
+    }
     if (feof(fp))  // wow.  we read too many.  get out
       break;
 
@@ -13531,8 +13766,8 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI * mri_dst)
   int x;
   int nans = 0;
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(shown_reproducible) shared(mri_dst) reduction(+ : nans)
 #endif
   for (x = 0; x < mri_dst->width; x++) {

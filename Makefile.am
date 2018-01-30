@@ -54,7 +54,6 @@ MRISUBDIRS=\
 	mri_correct_segmentations \
 	mri_cal_renormalize_gca \
 	mri_divide_segmentation \
-	test_exclude_minc \
 	mri_gtmpvc \
 	mri_rf_label \
 	mri_rf_train \
@@ -375,7 +374,8 @@ COREDIRS=\
 	log \
 	gpu_utils \
 	opencl_algorithms \
-	minc_substitute \
+	minc_1_5_1 \
+	netcdf_3_6_0_p1 \
 	utils \
 	utilscpp \
 	vtkfsio \

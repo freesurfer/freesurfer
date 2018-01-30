@@ -171,14 +171,24 @@ __device__ float MRIlookup( const float3 r ) {
 
 //! Computes the log_p value for a single point.
 __device__ float ComputeLogP( const float val, const float mean,
-			      const float prior, const float covar,
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+			      const float prior_log,
+#else
+			      const float prior,
+#endif
+			      const float covar,
                               const float clamp ) {
   
   float det = covar;
 
   float v = val - mean;
 
-  float log_p = - logf( sqrtf( det ) ) - 0.5f*( v*v / covar ) + logf( prior );
+  float log_p = - logf( sqrtf( det ) ) - 0.5f*( v*v / covar ) +
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+    prior_log;
+#else    
+    logf( prior );
+#endif
 
   // Assume that clamp is already -ve
   if( log_p < clamp ) {
@@ -207,7 +217,11 @@ __device__ float SumLogPs( const GPU::Classes::AffineTransShared &afTrans,
 
       myLogps[threadIdx.x] += ComputeLogP( mriVal,
 					   gcas.means[i+threadIdx.x],
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+					   gcas.prior_logs[i+threadIdx.x],
+#else
 					   gcas.priors[i+threadIdx.x],
+#endif
 					   gcas.covars[i+threadIdx.x],
                                            clamp );
     }
@@ -279,7 +293,11 @@ void ComputeAllLogP( const GPU::Classes::AffineTransformation afTrans,
 
   logps[iSample] = ComputeLogP( mriVal,
 				gcas.means[iSample],
+#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+				gcas.prior_logs[iSample],
+#else
 				gcas.priors[iSample],
+#endif
 				gcas.covars[iSample],
                                 clamp );
 }

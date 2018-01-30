@@ -39,7 +39,7 @@ foo2_DATA=mris_register.help.xml.html
 #PETSC install-exec-hook:
 #PETSC endif
 
-TESTS=$(top_builddir)/scripts/help_xml_validate
+TESTS=test_mris_register $(top_builddir)/scripts/help_xml_validate
 
 clean-local:
 	rm -f $(BUILT_SOURCES) 

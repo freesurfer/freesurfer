@@ -67,10 +67,7 @@
 #include "resample.h"
 #include "volcluster.h"
 #include "numerics.h"
-
-#ifdef _OPENMP
 #include "romp_support.h"
-#endif
 
 typedef struct {
   char *movfile;
@@ -577,8 +574,8 @@ double SBBRcost(SBBR *sbbr)
   //fp = fopen(tmpstr,"w");
   nhits = 0;
   sumcost = 0;
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
 #pragma omp parallel for if_ROMP(experimental) reduction(+:nhits,sumcost)
 #endif
   for(faceno=0; faceno < surf->nfaces; faceno += sbbr->inc) {

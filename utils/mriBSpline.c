@@ -36,9 +36,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef HAVE_OPENMP
 #include "romp_support.h"
-#endif
 
 #include "error.h"
 #include "macros.h"
@@ -1750,10 +1748,7 @@ extern MRI_BSPLINE *MRItoBSpline(const MRI *mri_src, MRI_BSPLINE *bspline, int d
 
 /* convert the image samples into interpolation coefficients */
 #ifdef HAVE_OPENMP
-#pragma omp parallel
-  {
-    nthreads = omp_get_num_threads();
-  }
+  nthreads = omp_get_max_threads();
 #else
   nthreads = 1;
 #endif
@@ -1767,8 +1762,8 @@ extern MRI_BSPLINE *MRItoBSpline(const MRI *mri_src, MRI_BSPLINE *bspline, int d
   }
   y = 0;
   f = 0;
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) firstprivate(tid, y, f, Lines) shared(Depth, Height, Width, Frames, Pole, NbPoles, bspline) \
     schedule(static, 1)
 #endif
@@ -1820,8 +1815,8 @@ extern MRI_BSPLINE *MRItoBSpline(const MRI *mri_src, MRI_BSPLINE *bspline, int d
     }
     x = 0;
     f = 0;
-#ifdef HAVE_OPENMP
     ROMP_PF_begin
+#ifdef HAVE_OPENMP
     #pragma omp parallel for if_ROMP(experimental) firstprivate(tid, x, f, Lines) shared(Depth, Height, Width, Frames, Pole, NbPoles, bspline) \
     schedule(static, 1)
 #endif
@@ -1860,8 +1855,8 @@ extern MRI_BSPLINE *MRItoBSpline(const MRI *mri_src, MRI_BSPLINE *bspline, int d
     }
     x = 0;
     f = 0;
-#ifdef HAVE_OPENMP
     ROMP_PF_begin
+#ifdef HAVE_OPENMP
     #pragma omp parallel for if_ROMP(experimental) firstprivate(tid, x, f, Lines) shared(Depth, Height, Width, Frames, Pole, NbPoles, bspline) \
     schedule(static, 1)
 #endif
@@ -2164,10 +2159,7 @@ MRI *MRIlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX 
   double val, x1, x2, x3;
   int nthreads = 1, tid = 0;
 #ifdef HAVE_OPENMP
-#pragma omp parallel
-  {
-    nthreads = omp_get_num_threads();
-  }
+  nthreads = omp_get_max_threads();
 #endif
 
   mAinv = MatrixInverse(mA, NULL); /* will sample from dst back to src */
@@ -2197,9 +2189,9 @@ MRI *MRIlinearTransformBSpline(const MRI_BSPLINE *bspline, MRI *mri_dst, MATRIX 
   x3 = 0;
   frame = 0;
   val = 0;
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-   ROMP_PF_begin
-   #pragma omp parallel for if_ROMP(experimental) firstprivate(tid, y2, y1, x1, x2, x3, frame, val, v_X, v_Y) \
+  #pragma omp parallel for if_ROMP(experimental) firstprivate(tid, y2, y1, x1, x2, x3, frame, val, v_X, v_Y) \
     shared(depth, height, width, mAinv, bspline, mri_dst) schedule(static, 1)
 #endif
   for (y3 = 0; y3 < depth; y3++) {

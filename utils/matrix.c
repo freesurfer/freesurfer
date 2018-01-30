@@ -56,11 +56,7 @@
 #include "proto.h"
 #include "utils.h"
 
-#ifdef HAVE_OPENMP
 #include "romp_support.h"
-#else 
-#error "undef HAVE_OPENMP"
-#endif
 
 // private functions
 MATRIX *MatrixCalculateEigenSystemHelper(MATRIX *m, float *evalues, MATRIX *m_evectors, int isSymmetric);
@@ -1940,7 +1936,12 @@ MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m)
       else if (fscanf(fp, "%f  ", &m->rptr[row][col]) != 1)
         ErrorReturn(NULL, (ERROR_BADFILE, "MatrixAsciiReadFrom: could not scan element (%d, %d)", row, col));
     }
-    fscanf(fp, "\n");
+    // a non zero return value for fscanf would be odd, since the scan does not match any values
+    // but we need to handle the return value, so this seems to be the sensible way to 'contract this'
+    // even if ferror is never reached
+    if(fscanf(fp, "\n") != 0 && ferror(fp)) {
+      ErrorPrintf(ERROR_BADFILE, "MatrixAsciiReadFrom: A read error occured while scanning for newline");
+    }
   }
 
   return (m);
@@ -2388,7 +2389,9 @@ float XYZApproxAngle(XYZ const *normalizedXYZ, float x2, float y2, float z2)
 
   // left the following here for debugging or other investigation
   if (0)
+#ifdef HAVE_OPENMP
 #pragma omp critical
+#endif
   {
 #define HL 1024
     static long histogram[HL];
@@ -2431,7 +2434,9 @@ float XYZApproxAngle(XYZ const *normalizedXYZ, float x2, float y2, float z2)
     angle = sqrt(2.0f * (1.0f - acosInput));
     // left the following here for debugging or other investigation
     if (0)
+#ifdef HAVE_OPENMP
 #pragma omp critical
+#endif
     {
       static int count;
       if (count++ < 100) printf("acos approx inp:%g approx:%g correct:%g\n", acosInput, angle, acos(acosInput));
@@ -3915,8 +3920,8 @@ MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
 
 /* Loop over the number of distinct elements in the symetric matrix. Using
    the LUT created above is better for load balancing.  */
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental) shared(c1list, c2list, ntot, cols, rows, mout, m)
 #endif
   for (n = 0; n < ntot; n++) {
@@ -4066,8 +4071,8 @@ MATRIX *MatrixAtB(MATRIX *A, MATRIX *B, MATRIX *mout)
     }
   }
 
-#ifdef HAVE_OPENMP
   ROMP_PF_begin
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (colA = 0; colA < A->cols; colA++) {
