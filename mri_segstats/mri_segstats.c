@@ -1451,6 +1451,11 @@ static int parse_commandline(int argc, char **argv)
     usage_exit();
   }
 
+  setRandomSeed(4321) ;
+    // It was previously using a different random sequence every time
+    // it was run, and did not have a --seed option to stop this
+    // and it appears in many scripts!
+
   nargc   = argc;
   pargv = argv;
   while (nargc > 0)
@@ -1970,7 +1975,7 @@ static int parse_commandline(int argc, char **argv)
       GTMdefaultSegReplacmentList(&nReplace,&(SrcReplace[0]),&(TrgReplace[0]));
     else if(!strcasecmp(option, "--gtm-default-seg-merge-choroid")){
       GTMdefaultSegReplacmentList(&nReplace,&(SrcReplace[0]),&(TrgReplace[0]));
-      nReplace -= 2;       // Last two itmes are choroid.
+      nReplace -= 2;       // Last two items are choroid.
     }
     else if(!strcmp(option, "--replace-file")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -1985,6 +1990,13 @@ static int parse_commandline(int argc, char **argv)
       nReplace++;
       nargsused = 2;
     } 
+    else if(!strcasecmp(option, "--seed")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      setRandomSeed(atol(pargv[0])) ;
+      printf("setting seed for random number genererator to %d\n",
+            atoi(pargv[0])) ;
+      nargsused = 1;
+    }
     else
     {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);

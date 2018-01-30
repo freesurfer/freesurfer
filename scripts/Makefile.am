@@ -286,6 +286,8 @@ xhemireg \
 xhemi-tal \
 xsanatreg
 
+if SMALL_DIST_INSTALL
+else
 tcldir = $(prefix)/lib/tcl
 tcl_SCRIPTS= \
 allisons_surfaces.tcl \
@@ -315,7 +317,10 @@ twocond-masked-views.tcl \
 twocond-views.tcl \
 wrappers.tcl \
 fsgdfPlot.tcl
+endif
 
+if SMALL_DIST_INSTALL
+else
 tktoolsdir = $(prefix)/tktools
 tktools_SCRIPTS= \
 tkanalyse.tcl \
@@ -330,6 +335,7 @@ tkregister2.tcl \
 tksurfer.tcl \
 tkUtils.tcl \
 fsgdfPlot.tcl
+endif
 
 foo_datafiles=fs_spmreg.glnxa64 irepifitvol.glnx64
 

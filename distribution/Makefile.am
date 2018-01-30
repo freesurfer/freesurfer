@@ -2,8 +2,12 @@
 # Makefile.am
 #
 
+if SMALL_DIST_INSTALL
+SUBDIRS=average lib docs fsafd subjects
+else
 SUBDIRS=average lib docs \
 	fsafd subjects sessions diffusion fsl-extra trctrain
+endif
 
 foodir=$(prefix)
 foo_DATA= \

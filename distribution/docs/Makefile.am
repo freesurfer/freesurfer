@@ -25,8 +25,11 @@ foo_DATA=\
 	license.dcmtk.txt \
 	license.lapack.txt
 
+if SMALL_DIST_INSTALL
+else
 poodir=$(prefix)/tktools
 poo_DATA=license.cortechs.txt
+endif
 
 EXTRA_DIST=$(foo_DATA) $(poo_DATA)
 
