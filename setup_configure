@@ -6,11 +6,7 @@
 # dev/ directory:
 
 set cmd1=(rm -rf autom4te.cache)
-if ( "`uname -s`" == "Darwin" ) then 
-    set cmd2=(glibtoolize --force)
-else
-    set cmd2=(libtoolize --force)
-endif
+set cmd2=(libtoolize --force)
 set cmd3=(aclocal)
 #automake --add-missing is necessary because config.sub
 # and config.guess are links, and make not be present,
@@ -41,8 +37,8 @@ $cmd6
 if ($status) exit $status
 
 # The first three commands create the platform specific 
-# tools needed by configure (use glibtoolize on the Mac 
-# in place of libtoolize). These platform specific tools 
+# tools needed by configure (on the Mac, symlink glibtoolize 
+# to libtoolize). These platform specific tools 
 # are placed in the dev/config directory. 
 # Autoreconf --force and automake create the Makefile.in 
 # files from the Makefile.am files in each directory. 
