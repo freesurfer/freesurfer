@@ -673,7 +673,7 @@ NC_check_vlens(NC *ncp)
     size_t ii;
     size_t large_vars_count;
     size_t rec_vars_count;
-    int last;
+    int last=-1;
 
     if(ncp->vars.nelems == 0) 
 	return NC_NOERR;
