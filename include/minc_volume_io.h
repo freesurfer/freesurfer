@@ -32,7 +32,7 @@
 
 #if defined(BEVIN_EXCLUDE_MINC)
 
-#include "netcdf.h"
+#include "netcdf_3_6_0_p1/netcdf.h"
 #include "minc_multidim_arrays.h"
 
 typedef bool BOOLEAN;
