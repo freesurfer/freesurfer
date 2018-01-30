@@ -1552,7 +1552,8 @@ int MRISseg2annot(MRIS *mris, MRI *surfseg, COLOR_TABLE *ctab)
     ano = index_to_annotation(segid);
     if (ano == -1) ano = 0;
     mris->vertices[vtxno].annotation = ano;
-    // printf("%5d %2d %2d %s\n",vtxno,segid,ano,index_to_name(segid));
+    if (vtxno == Gdiag_no)
+      printf("%5d %2d %2d %s\n",vtxno,segid,ano,index_to_name(segid));
   }
 
   return (0);

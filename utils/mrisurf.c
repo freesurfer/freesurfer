@@ -3736,6 +3736,8 @@ int MRIScomputeNormals(MRI_SURFACE *mris)
     MRIScomputeNormals_Snapshot after0; MRIScomputeNormals_Snapshot_init(&after0, mris);
 
     MRIScomputeNormals_Snapshot_undo(&before, mris);
+#else
+    if (0) MRIScomputeNormals_old(mris);	// otherwise complains not used    
 #endif
     
     int result = MRIScomputeNormals_new(mris);
@@ -4337,8 +4339,6 @@ static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
   Sum = 0;
   Sum2 = 0;
 
-  int VtxNo;
-
 #ifdef BEVIN_MRISAVGINTERVERTEXDIST_REPRODUCIBLE
 
   double N = 0.0;
@@ -4360,6 +4360,8 @@ static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
     #define N    ROMP_PARTIALSUM(2)
 
 #else
+
+  int VtxNo;
 
   long N = 0;
 

@@ -52,8 +52,8 @@ int main(int argc, char *argv[])
   string command;
 
   int width, height, depth;
-  Real c_r, c_a, c_s;
-  Real xsize, ysize, zsize;
+  double c_r, c_a, c_s;
+  double xsize, ysize, zsize;
 
   string filename;
   if (argc < 2)
@@ -86,9 +86,9 @@ int main(int argc, char *argv[])
 
   MATRIX *m = extract_i_to_r(mri);
   VECTOR *c = VectorAlloc(4, MATRIX_REAL);
-  c->rptr[1][1] = ((Real) width)/2.;
-  c->rptr[2][1] = ((Real) height)/2.;
-  c->rptr[3][1] = ((Real) depth)/2.;
+  c->rptr[1][1] = ((double) width)/2.;
+  c->rptr[2][1] = ((double) height)/2.;
+  c->rptr[3][1] = ((double) depth)/2.;
   c->rptr[4][1] = 1.;
 
   // check the definition
@@ -96,9 +96,9 @@ int main(int argc, char *argv[])
   cout << "--------------------------------------------------------" << endl;
   VECTOR *C = MatrixMultiply(m, c, NULL);
 
-  Real C_r = C->rptr[1][1];
-  Real C_a = C->rptr[2][1];
-  Real C_s = C->rptr[3][1];
+  double C_r = C->rptr[1][1];
+  double C_a = C->rptr[2][1];
+  double C_s = C->rptr[3][1];
   cout << "Calculated values are" << endl;
   cout << "C_r  = " << C_r   << "  C_a   = " << C_a    << "  C_s  = " << C_s << endl;
 

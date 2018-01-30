@@ -1,4 +1,4 @@
-#if defined(BEVIN_EXCLUDE_MINC)
+#if defined(USE_LOCAL_MINC)
 
 #ifndef  DEF_MINC_NETCDF_CONVENIENCE
 #define  DEF_MINC_NETCDF_CONVENIENCE
@@ -63,4 +63,4 @@ int micreate(const char *path, int cmode);
 			   
 #endif /* DEF_MINC_NETCDF_CONVENIENCE */
 
-#endif // BEVIN_EXCLUDE_MINC
+#endif // USE_LOCAL_MINC

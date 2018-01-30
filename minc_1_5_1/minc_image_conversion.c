@@ -1,4 +1,4 @@
-#if defined(BEVIN_EXCLUDE_MINC)
+#if defined(USE_LOCAL_MINC)
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : image_conversion.c
@@ -2725,4 +2725,4 @@ int miicv_attach(int icvid, int cdfid, int varid)
    return (MI_NOERROR);
 }
 
-#endif	// defined(BEVIN_EXCLUDE_MINC)
+#endif	// defined(USE_LOCAL_MINC)

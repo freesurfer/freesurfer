@@ -54,7 +54,6 @@ MRISUBDIRS=\
 	mri_correct_segmentations \
 	mri_cal_renormalize_gca \
 	mri_divide_segmentation \
-	test_exclude_minc \
 	mri_gtmpvc \
 	mri_rf_label \
 	mri_rf_train \

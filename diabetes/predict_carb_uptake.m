@@ -37,3 +37,8 @@ for t=t0:dt:t1
   end
   i = i+1;
 end
+if (ic == length(time))
+      carbs_timecourse(ic) = blood ;
+end
+
+return

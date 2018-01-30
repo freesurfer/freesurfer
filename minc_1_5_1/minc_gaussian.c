@@ -35,7 +35,7 @@
 
 #include  "minc_internals.h"
 
-#if !(defined(BEVIN_EXCLUDE_MINC) || defined(TESTING_GAUSSIAN_C))
+#if !(defined(USE_LOCAL_MINC) || defined(TESTING_GAUSSIAN_C))
 static const bool doPrint = false;
 #else
 #if !defined(TESTING_GAUSSIAN_C)

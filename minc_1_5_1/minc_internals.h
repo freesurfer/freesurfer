@@ -28,7 +28,7 @@
 
 #include "minc_volume_io.h"
 
-#if defined(BEVIN_EXCLUDE_MINC)
+#if defined(USE_LOCAL_MINC)
 
 enum {X=0, Y=1, Z=2};
 
@@ -673,7 +673,7 @@ int MI_varaccess(int operation, int cdfid, int varid,
                              nc_type datatype, int sign, void *values,
                              int *bufsize_step, mi_icv_type *icvp);
 			     						
-#endif // defined(BEVIN_EXCLUDE_MINC)
+#endif // defined(USE_LOCAL_MINC)
 
 typedef double Double4x4[4*4];
 #define Index4x4(I,J) (4*(I)+(J))

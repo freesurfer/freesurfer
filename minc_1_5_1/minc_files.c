@@ -1,4 +1,4 @@
-#if defined(BEVIN_EXCLUDE_MINC)
+#if defined(USE_LOCAL_MINC)
 
 /*
  * Original Author: David MacDonald, modified to compile within freesurfer/utils by Bevin Brett
@@ -2641,4 +2641,4 @@ VIO_Status  io_unsigned_chars(
     return( status );
 }
 
-#endif // BEVIN_EXCLUDE_MINC
+#endif // USE_LOCAL_MINC

@@ -34,10 +34,9 @@
 // between fast and assume_reproducible
 // so make the later the default 
 //
-ROMP_level romp_level = 
-    //ROMP_level_fast;                  // should not be set to ROMP_serial
-    ROMP_level_assume_reproducible;     // doesn't require the random seed to be set
-    //ROMP_level_shown_reproducible;
+ROMP_level romp_level =                 // should not be set to ROMP_serial 
+    //ROMP_level_fast;
+    ROMP_level_assume_reproducible;     // doesn't require the random seed to be     //ROMP_level_shown_reproducible;
 
 typedef struct StaticData {
     ROMP_pf_static_struct* next;
