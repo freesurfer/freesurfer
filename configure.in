@@ -1361,6 +1361,7 @@ MNI_LIBS=""
 # default (no) is to use local minc and netcdf:
 MNI_DIR="no"
 LIBS_MNI=""
+LIBS_MNI_LOCAL=""
 AC_MSG_CHECKING(MNI directory)
 
 AC_ARG_WITH(mni-dir,
@@ -1448,6 +1449,7 @@ AC_SUBST(MNI_DIR)
 AC_SUBST(LIBS_MNI)
 
 AM_CONDITIONAL(HAVE_MINC_LIBS, ! test "x$ac_mni_libraries" = "xno")
+AM_CONDITIONAL(USE_LOCAL_MINC, ! test "x$LIBS_MNI_LOCAL" = "x")
 
 ################################################################
 # NIfTI
