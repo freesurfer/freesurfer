@@ -1,11 +1,14 @@
 #
 # Makefile.am
 #
-SUBDIRS=mriBuildVoronoiDiagramFloat \
+SUBDIRS=\
+	mriBuildVoronoiDiagramFloat \
 	MRIScomputeBorderValues \
-        mrishash \
-        # MRISpositionSurface \  # currently unstable
+  mrishash \
 	mriSoapBubbleFloat
+
+   # MRISpositionSurface \  # currently unstable
+
 
 AM_CPPFLAGS=-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
@@ -18,19 +21,37 @@ LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 #	$(ANN_LIBS) -lANN
 #MRISresampleOntoSphere_LDFLAGS=$(OS_LDFLAGS)
 
-CHECKS=testcolortab \
-	test_c_nr_wrapper mnitest i2rtest icotest extest \
-	mghxform inftest checkanalyze \
-	test_mri_identify \
-	sc_test tiff_write_image
+CHECKS=\
+	testcolortab \
+	test_c_nr_wrapper \
+	extest \
+	inftest \
+	tiff_write_image \
+	sc_test
 
-BROKEN=difftool test_mriio mri_compute_stats \
-  surftest mri_ms_LDA \
-	mri_fslmat_to_lta mri_concatenate_lta \
-	mri_transform_to_COR mri_compute_all_CNR \
-	mri_ms_compute_CNR mris_compute_thickness \
-	mri_apply_INU mri_edit_wm mri_apply_EM_mask \
-	mri_extract mri_ms_gca_EM
+BROKEN_CHECKS=\
+	checkanalyze \
+	test_mri_identify \
+	mghxform \
+	i2rtest \
+	icotest \
+	mnitest \
+	difftool \
+	test_mriio \
+	mris_compute_thickness \
+	mri_compute_stats \
+  surftest \
+	mri_ms_LDA \
+	mri_fslmat_to_lta \
+	mri_concatenate_lta \
+	mri_transform_to_COR \
+	mri_compute_all_CNR \
+	mri_ms_compute_CNR \
+	mri_apply_INU \
+	mri_edit_wm \
+	mri_apply_EM_mask \
+	mri_extract \
+	mri_ms_gca_EM
 
 # trick to get test data into the build directory
 foo_SOURCES=
@@ -38,26 +59,27 @@ foo:
 	if ! test -f "$(top_builddir)/utils/test/test_data.tar.gz"; then \
 		cp -v $(top_srcdir)/utils/test/test_data.tar.gz \
 					$(top_builddir)/utils/test/; fi;
-	if ! test -f "$(top_builddir)/distribution/lib/bem/ic0.tri"; then \
-		cp -v $(top_srcdir)/distribution/lib/bem/*.tri \
-					$(top_builddir)/distribution/lib/bem/; fi;
+#	if ! test -f "$(top_builddir)/distribution/lib/bem/ic0.tri"; then \
+#		cp -v $(top_srcdir)/distribution/lib/bem/*.tri \
+#					$(top_builddir)/distribution/lib/bem/; fi;
 	if ! test -f "$(top_builddir)/distribution/FreeSurferColorLUT.txt"; then \
 		cp -v $(top_srcdir)/distribution/FreeSurferColorLUT.txt \
 					$(top_builddir)/distribution/FreeSurferColorLUT.txt; fi;
 
 if HAVE_CPPUNIT
-CPPUNIT_CHECKS=test_nr_wrapper test_matrix
+CPPUNIT_CHECKS=
+# these break on travis build: test_nr_wrapper test_matrix
 else
 CPPUNIT_CHECKS=
 endif
-#check_PROGRAMS=foo $(CHECKS) $(CPPUNIT_CHECKS)
+check_PROGRAMS=foo $(CHECKS) $(CPPUNIT_CHECKS)
 
-#TESTS=setup_test_data $(CHECKS) $(CPPUNIT_CHECKS) cleanup_test_data
+TESTS=setup_test_data $(CHECKS) $(CPPUNIT_CHECKS) cleanup_test_data
 
 testcolortab_SOURCES=testcolortab.c
 mnitest_SOURCES=mnitest.cpp
 i2rtest_SOURCES=i2rtest.cpp
-icotest_SOURCES=icotest.cpp
+#icotest_SOURCES=icotest.cpp
 extest_SOURCES=extest.cpp
 mghxform_SOURCES=mghxform.cpp
 inftest_SOURCES=inftest.cpp

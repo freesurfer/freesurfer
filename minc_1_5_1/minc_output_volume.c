@@ -1,4 +1,4 @@
-#if defined(BEVIN_EXCLUDE_MINC)
+#if defined(USE_LOCAL_MINC)
 /*
  * Original Author: David MacDonald, modified to compile within freesurfer/utils by Bevin Brett
  * CVS Revision Info:
@@ -439,4 +439,4 @@ VIOAPI  Status  output_volume(
 
 #ifdef BEVIN_UNSUPPRESS
 #endif 	// BEVIN_UNSUPPRESS
-#endif	// BEVIN_EXCLUDE_MINC
+#endif	// USE_LOCAL_MINC

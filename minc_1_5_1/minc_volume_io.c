@@ -1,7 +1,7 @@
 #include "minc_volume_io.h"
 #include "minc_internals.h"
 
-#if defined(BEVIN_EXCLUDE_MINC)
+#if defined(USE_LOCAL_MINC)
 	// Warning - does not extend all the way to the end,  there are some unconditional parts 
 	// that are used for testing
 
@@ -1633,7 +1633,7 @@ static double dot_vectors(
 }
 
 
-#if defined(BEVIN_EXCLUDE_MINC)
+#if defined(USE_LOCAL_MINC)
 
 static  void   cross_3D_vector(
     double   v1[],
@@ -1954,7 +1954,7 @@ static  void  convert_transform_origin_to_starts(
     }
 }
 
-#if !defined(BEVIN_EXCLUDE_MINC)
+#if !defined(USE_LOCAL_MINC)
 void  test_convert_transform_to_starts_and_steps(
 #else
 void  convert_transform_to_starts_and_steps(
@@ -2033,7 +2033,7 @@ void  convert_transform_to_starts_and_steps(
 }
 
 
-#if defined(BEVIN_EXCLUDE_MINC)
+#if defined(USE_LOCAL_MINC)
 
 static const char* default_dimension_names[VIO_MAX_DIMENSIONS][VIO_MAX_DIMENSIONS] =
 {

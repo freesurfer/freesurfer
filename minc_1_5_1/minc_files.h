@@ -1,4 +1,4 @@
-#if defined(BEVIN_EXCLUDE_MINC)
+#if defined(USE_LOCAL_MINC)
 
 #ifndef  DEF_MINC_FILES
 #define  DEF_MINC_FILES
@@ -141,4 +141,4 @@ void  remove_file(
 
 #endif /* DEF_FILES */
 
-#endif // BEVIN_EXCLUDE_MINC
+#endif // USE_LOCAL_MINC

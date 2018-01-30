@@ -12,7 +12,7 @@
               express or implied warranty.
 ---------------------------------------------------------------------------- */
 
-#if defined(BEVIN_EXCLUDE_MINC)
+#if defined(USE_LOCAL_MINC)
 
 #include  "minc_internals.h"
 #include <stdio.h>

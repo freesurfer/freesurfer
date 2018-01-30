@@ -1,4 +1,4 @@
-#if defined(BEVIN_EXCLUDE_MINC)
+#if defined(USE_LOCAL_MINC)
 
 /*
  * Original Author: Peter Neelin, modified to compile within freesurfer/utils by Bevin Brett
@@ -1837,4 +1837,4 @@ MNCAPI long *miset_coords(int nvals, long value, long coords[])
 //
 
 
-#endif	// defined(BEVIN_EXCLUDE_MINC)
+#endif	// defined(USE_LOCAL_MINC)
