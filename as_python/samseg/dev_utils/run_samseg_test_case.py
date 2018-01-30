@@ -3,12 +3,13 @@ import os
 from as_python.samseg.dev_utils.debug_client import create_checkpoint_manager, run_test_cases
 from as_python.samseg.run_samseg_ported import run_samseg
 
+USE_CHECKPOINT_MANAGER = False
 
 def run_single_full_case(case_name, case_file_folder, savePath):
     image_file_path = os.path.join(case_file_folder, 'orig.mgz')
     if os.path.isfile(image_file_path):
         print('testing with file {0}'.format(image_file_path))
-        checkpoint_manager = create_checkpoint_manager(case_file_folder)
+        checkpoint_manager = create_checkpoint_manager(case_file_folder) if  USE_CHECKPOINT_MANAGER else None
         run_samseg(
             imageFileNames=[image_file_path],
             savePath=savePath,
