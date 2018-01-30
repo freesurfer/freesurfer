@@ -1,4 +1,4 @@
-#if defined(BEVIN_EXCLUDE_MINC)
+#if defined(USE_LOCAL_MINC)
 
 /*
  * Original Author: (assumed to be) Peter Neelin, modified to compile within freesurfer/utils by Bevin Brett
@@ -1513,4 +1513,4 @@ const char * miget_version(void)
 
 
 #endif 	// BEVIN_UNSUPPRESS
-#endif	// BEVIN_EXCLUDE_MINC
+#endif	// USE_LOCAL_MINC

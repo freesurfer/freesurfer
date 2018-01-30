@@ -1,4 +1,4 @@
-#if defined(BEVIN_EXCLUDE_MINC)
+#if defined(USE_LOCAL_MINC)
 /**
  * @file  minc_multidim_arrays.c
  * @substitutes for the needed functionality previously obtained from minc

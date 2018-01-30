@@ -1,4 +1,4 @@
-#if defined(BEVIN_EXCLUDE_MINC)
+#if defined(USE_LOCAL_MINC)
 
 /* ----------------------------- MNI Header -----------------------------------
 @NAME       : value_conversion.c
