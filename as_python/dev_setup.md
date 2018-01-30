@@ -147,4 +147,26 @@ pip install -r as_python/requirements.txt
 ## Running Samseg Code
 ...
 ## Running Test Scripts
-...
+Place the `innolitics_testing` data folder at `~/work/cm/`
+
+Get ready to run a test with:
+```angular2html
+cd ~/work/cm/freesurfer
+workon gems2
+export PYTHONPATH=".:./GEMS2/bin"
+export TESTING_DIR=$HOME/work/cm/innolitics_testing/buckner40
+export SAMSEG_DATA_DIR=$HOME/work/cm/innolitics_testing/atlas/20Subjects_smoothing2_down2_smoothingForAffine2
+```
+At this point individual tests can be run with
+```angular2html
+python ./as_python/samseg/dev_utils/run_samseg_test_case.py 004
+```
+Multiple tests can be run by listing them on the command line:
+```angular2html
+python ./as_python/samseg/dev_utils/run_samseg_test_case.py 004 008 140
+```
+Or all of the tests can be run by leaving the command line arguments empty:
+```angular2html
+python ./as_python/samseg/dev_utils/run_samseg_test_case.py
+```
+results will appear, one folder per case, in `~/work/cm/innolitics_testing/buckner40/python_temp_data/`
