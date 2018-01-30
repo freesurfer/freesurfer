@@ -24,10 +24,7 @@ LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 CHECKS=\
 	testcolortab \
 	test_c_nr_wrapper \
-	mnitest \
-	i2rtest \
 	extest \
-	mghxform \
 	inftest \
 	tiff_write_image \
 	checkanalyze \
@@ -35,7 +32,10 @@ CHECKS=\
 	sc_test
 
 BROKEN_CHECKS=\
+	mghxform \
+	i2rtest \
 	icotest \
+	mnitest \
 	difftool \
 	test_mriio \
 	mris_compute_thickness \
