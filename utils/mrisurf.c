@@ -31062,7 +31062,7 @@ int MRISrigidBodyAlignGlobal(
         sse += (*gMRISexternalSSE)(mris, parms);
       }
       msec = TimerStop(&mytimer);
-      printf("  d=%4.2f min @ (%2.2f, %2.2f, %2.2f) sse = %2.1f, tmin=%6.4f\n",
+      printf("  d=%4.2f min @ (%2.2f, %2.2f, %2.2f) sse = %2.1f, elapsed since starting=%6.4f min\n",
              (float)DEGREES(degrees),
              (float)DEGREES(mina),
              (float)DEGREES(minb),
