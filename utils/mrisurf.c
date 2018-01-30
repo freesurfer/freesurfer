@@ -35,7 +35,9 @@
 
     #define BEVIN_MRISCOMPUTENORMALS_CHECK
     #define BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_CHECK
-
+    #define BEVIN_MRISCOMPUTEDISTANCEERROR_CHECK
+    #define BEVIN_MRISCOMPUTENONLINEARAREASSE_CHECK
+    #define BEVIN_MRISCOMPUTESSE_CHECK
 #endif
 
 
@@ -45,6 +47,10 @@
 #define BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_REPRODUCIBLE
 #define BEVIN_MRISAVGINTERVERTEXDIST_REPRODUCIBLE
 #define BEVIN_MRISORIENTELLIPSOID_REPRODUCIBLE
+#define BEVIN_MRISCOMPUTECORRELATIONERROR_REPRODUCIBLE
+#define BEVIN_MRISCOMPUTEDISTANCEERROR_REPRODUCIBLE
+#define BEVIN_MRISCOMPUTENONLINEARAREASSE_REPRODUCIBLE
+#define BEVIN_MRISCOMPUTESSE_REPRODUCIBLE
 
 // Includes
 //
@@ -2117,6 +2123,7 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
             (float)vtotal * MRISvalidVertices(mris) * sizeof(float) * 3.0f / (1024.0f * 1024.0f));
 
   for (vno = 0; vno < mris->nvertices; vno++) {
+  
     if ((Gdiag & DIAG_HEARTBEAT) && (!(vno % (mris->nvertices / 10))))
       fprintf(stdout, "%%%1.0f done\n", 100.0f * (float)vno / (float)mris->nvertices);
     if ((vno > 139000 || (!(vno % 100))) && 0) {
@@ -2220,6 +2227,7 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
     old_vnum = 0;
     v->marked = 1; /* a hack - it is a zero neighbor */
     for (nbhd_size = 1; vall_num < MAX_NBHD_VERTICES && nbhd_size <= max_nbhd; nbhd_size++) {
+
       /* expand neighborhood outward by a ring of vertices */
       vnbrs_num = 0; /* will count neighbors in this ring */
       vnum = vall_num;
@@ -2598,6 +2606,7 @@ int MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
   if (Gdiag & DIAG_HEARTBEAT) {
     fprintf(stdout, " done.\n");
   }
+
   return (NO_ERROR);
 }
 
@@ -3000,7 +3009,7 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
   if (nsize <= mris->max_nsize) {
     ROMP_PF_begin
 #ifdef HAVE_OPENMP
-    #pragma omp parallel for if_ROMP(experimental)
+    #pragma omp parallel for if_ROMP(shown_reproducible)
 #endif
     for (vno = 0; vno < mris->nvertices; vno++) {
       ROMP_PFLB_begin
@@ -9294,7 +9303,7 @@ static double mrisComputeSSE_MEF(
   ------------------------------------------------------*/
 double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  double sse, sse_area, sse_angle, sse_curv, sse_spring, sse_dist, area_scale, sse_corr, sse_neg_area, l_corr, sse_val,
+  double sse, sse_curv, sse_spring, sse_dist, area_scale, sse_corr, l_corr, sse_val,
       sse_sphere, sse_thick_min, sse_thick_parallel, sse_ashburner_triangle, sse_grad, sse_nl_area, sse_nl_dist,
       sse_tspring, sse_repulse, sse_tsmooth, sse_loc, sse_thick_spring, sse_repulsive_ratio, sse_shrinkwrap,
       sse_expandwrap, sse_lap, sse_dura, sse_nlspring, sse_thick_normal, sse_histo, sse_map, sse_map2d;
@@ -9314,8 +9323,8 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #endif
 
   sse_repulse = sse_repulsive_ratio = sse_tsmooth = sse_thick_parallel = sse_thick_normal = sse_thick_spring =
-      sse_nl_area = sse_nl_dist = sse_corr = sse_angle = sse_ashburner_triangle = sse_neg_area = sse_val = sse_sphere =
-          sse_shrinkwrap = sse_expandwrap = sse_area = sse_dura = sse_histo = sse_lap = sse_spring = sse_curv =
+      sse_nl_area = sse_nl_dist = sse_corr = sse_ashburner_triangle = sse_val = sse_sphere =
+          sse_shrinkwrap = sse_expandwrap = sse_dura = sse_histo = sse_lap = sse_spring = sse_curv =
               sse_dist = sse_tspring = sse_loc = sse_nlspring = sse_map = sse_map2d = sse_grad = 0.0;
 
   if (!FZERO(parms->l_repulse)) {
@@ -9328,14 +9337,52 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mht_f_current = MHTfillTableAtResolution(mris, mht_f_current, CURRENT_VERTICES, vmean);
   }
 
+  double sse_angle = 0, sse_neg_area = 0, sse_area = 0;
+
   if (!FZERO(parms->l_angle) || !FZERO(parms->l_area) || (!FZERO(parms->l_parea))) {
-    ROMP_PF_begin
+
+#ifdef BEVIN_MRISCOMPUTESSE_CHECK
+    int trial; 
+    double sse_angle_trial0, sse_neg_area_trial0, sse_area_trial0;
+    for (trial = 0; trial < 2; trial++) {
+
+#endif
+
+    sse_angle = 0; sse_neg_area = 0; sse_area = 0;
+
+#ifdef BEVIN_MRISCOMPUTESSE_REPRODUCIBLE
+
+  #define ROMP_VARIABLE       fno
+  #define ROMP_LO             0
+  #define ROMP_HI             mris->nfaces
+    
+  #define ROMP_SUMREDUCTION0  sse_angle
+  #define ROMP_SUMREDUCTION1  sse_neg_area
+  #define ROMP_SUMREDUCTION2  sse_area
+    
+  #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
+    
+  #include "romp_for_begin.h"
+    
+    #define sse_angle    ROMP_PARTIALSUM(0)
+    #define sse_neg_area ROMP_PARTIALSUM(1)
+    #define sse_area     ROMP_PARTIALSUM(2)
+
+#else
+
+    ROMP_PF_begin       // mris_register
+
+#ifdef BEVIN_MRISCOMPUTESSE_CHECK
+    #pragma omp parallel for if(trial==0) reduction(+ : sse_angle, sse_neg_area, sse_area)
+#else
 #ifdef HAVE_OPENMP
     #pragma omp parallel for if_ROMP(fast) reduction(+ : sse_angle, sse_neg_area, sse_area)
 #endif
+#endif
     for (fno = 0; fno < mris->nfaces; fno++) {
       ROMP_PFLB_begin
-      
+
+#endif      
       FACE *face;
       double delta;
 
@@ -9360,10 +9407,47 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       if (!isfinite(sse_area) || !isfinite(sse_angle)) {
         ErrorExit(ERROR_BADPARM, "sse not finite at face %d!\n", fno);
       }
+#ifdef BEVIN_MRISCOMPUTESSE_REPRODUCIBLE
+
+    #undef sse_angle
+    #undef sse_neg_area
+    #undef sse_area
+
+  #include "romp_for_end.h"
+
+#else
       ROMP_PFLB_end
     }
     ROMP_PF_end
+#endif
+    
+#ifdef BEVIN_MRISCOMPUTESSE_CHECK
+
+    if (trial == 0) {
+       
+      sse_angle_trial0    = sse_angle;
+      sse_neg_area_trial0 = sse_neg_area;
+      sse_area_trial0     = sse_area;
+    } else { 
+      if (sse_angle_trial0 != sse_angle) {
+        fprintf(stderr, "%s:%d diff thread count, diff result %g %g %g\n",__FILE__,__LINE__,
+           sse_angle_trial0, sse_angle, sse_angle_trial0-sse_angle);
+      }
+      if (sse_neg_area_trial0 != sse_neg_area) {
+        fprintf(stderr, "%s:%d diff thread count, diff result %g %g %g\n",__FILE__,__LINE__,
+           sse_neg_area_trial0, sse_neg_area, sse_neg_area_trial0-sse_neg_area);
+      }
+      if (sse_area_trial0 != sse_area) {
+        fprintf(stderr, "%s:%d diff thread count, diff result %g %g %g\n",__FILE__,__LINE__,
+           sse_area_trial0, sse_area, sse_area_trial0-sse_area);
+      }
+    }
+    
+    } // trial
+#endif
+
   }
+  
   if (parms->l_repulse > 0)
     sse_repulse = mrisComputeRepulsiveEnergy(mris, parms->l_repulse, mht_v_current, mht_f_current);
   sse_repulsive_ratio = mrisComputeRepulsiveRatioEnergy(mris, parms->l_repulse_ratio);
@@ -9688,14 +9772,45 @@ static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris)
   area_scale = 1.0;
 #endif
 
-  double sse = 0.0;
+  double sse;
   int fno;
-  ROMP_PF_begin
+
+#ifdef BEVIN_MRISCOMPUTENONLINEARAREASSE_CHECK
+  int trial; 
+  double sse_trial0;
+  for (trial = 0; trial < 2; trial++) {
+#endif
+
+  sse = 0;
+  
+#ifdef BEVIN_MRISCOMPUTENONLINEARAREASSE_REPRODUCIBLE
+  #define ROMP_VARIABLE       fno
+  #define ROMP_LO             0
+  #define ROMP_HI             mris->nfaces
+    
+  #define ROMP_SUMREDUCTION0  sse
+    
+  #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
+    
+  #include "romp_for_begin.h"
+    
+    #define sse  ROMP_PARTIALSUM(0)
+
+#else
+  
+  ROMP_PF_begin     // mris_register
+  
+#ifdef BEVIN_MRISCOMPUTENONLINEARAREASSE_CHECK
+  #pragma omp parallel for if(trial==0) reduction(+ : sse)
+#else
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(fast) reduction(+ : sse)
 #endif
+#endif
   for (fno = 0; fno < mris->nfaces; fno++) {
     ROMP_PFLB_begin
+
+#endif
     
     double error, ratio;
     FACE *face;
@@ -9732,10 +9847,29 @@ static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris)
       ErrorExit(ERROR_BADPARM, "nlin area sse not finite at face %d!\n", fno);
     }
     
+#ifdef BEVIN_MRISCOMPUTENONLINEARAREASSE_REPRODUCIBLE
+
+    #undef sse
+  #include "romp_for_end.h"
+#else
+  
     ROMP_PFLB_end
   }
   ROMP_PF_end
+#endif
   
+#ifdef BEVIN_MRISCOMPUTENONLINEARAREASSE_CHECK
+    if (trial == 0) {
+        sse_trial0 = sse;
+    } else { 
+        if (sse_trial0 != sse) {
+            fprintf(stderr, "%s:%d diff thread count, diff result %g %g %g\n",__FILE__,__LINE__,
+               sse_trial0, sse, sse_trial0-sse);
+        }
+    }
+  } // trial
+#endif
+
   return (sse);
 }
 
@@ -11011,10 +11145,6 @@ int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
 }
 
 static int MRIScomputeTriangleProperties_old(MRI_SURFACE *mris, bool old_done)
-
-#else
-
-int MRIScomputeTriangleProperties(MRI_SURFACE *mris)
 
 #endif
 
@@ -16802,7 +16932,9 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     fp = fopen("curv.dat", "w");
   }
+  
   for (vno = 0; vno < mris->nvertices; vno++) {
+  
     vertex = &mris->vertices[vno];
     if (vertex->ripflag) {
       continue;
@@ -16829,8 +16961,11 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
     do {
       kmin = 10000.0f;
       kmax = -kmin;
+      
+      int kmaxI = -1;
       for (n = i = 0; i < vertex->vtotal; i++) {
         vnb = &mris->vertices[vertex->v[i]];
+
         if (vnb->ripflag) {
           continue;
         }
@@ -16841,15 +16976,18 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
         VECTOR_LOAD(v_yi, vnb->x - vertex->x, vnb->y - vertex->y, vnb->z - vertex->z);
         ui = V3_DOT(v_yi, v_e1);
         vi = V3_DOT(v_yi, v_e2);
+
         *MATRIX_RELT(m_U, n + 1, 1) = ui * ui;
         *MATRIX_RELT(m_U, n + 1, 2) = 2 * ui * vi;
         *MATRIX_RELT(m_U, n + 1, 3) = vi * vi;
         VECTOR_ELT(v_z, n + 1) = V3_DOT(v_n, v_yi); /* height above TpS */
         rsq = ui * ui + vi * vi;
         if (!FZERO(rsq) && rsq > rsq_thresh) {
+
           k = VECTOR_ELT(v_z, n + 1) / rsq;
           if (k > kmax) {
             kmax = k;
+            kmaxI = i;
           }
           if (k < kmin) {
             kmin = k;
@@ -16857,6 +16995,7 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
           n++;
         }
       }
+      
       rsq_thresh *= 0.25;
       if (n < 4) {
         DiagBreak();
@@ -16890,6 +17029,7 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
       *MATRIX_RELT(m_Q, 2, 2) = 2 * VECTOR_ELT(v_c, 3);
 
       if (cond_no >= ILL_CONDITIONED) {
+
 #if 0
         MatrixSVDEigenValues(m_Q, evalues) ;
         vertex->k1 = k1 = evalues[0] ;
@@ -16927,6 +17067,7 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
 
       /* the columns of m_eigen will be the eigenvectors of m_Q */
       if (MatrixEigenSystem(m_Q, evalues, m_eigen) == NULL) {
+
         nbad++;
         MatrixSVDEigenValues(m_Q, evalues);
         vertex->k1 = k1 = evalues[0];
@@ -16939,6 +17080,7 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
         VectorFree(&v_z);
         MatrixFree(&m_tmp1);
         MatrixFree(&m_inverse);
+
         continue;
       }
 
@@ -16978,6 +17120,7 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
     if (V3_LEN(v_e1) < 0.5) {
       DiagBreak();
     }
+
     vertex->e1x = V3_X(v_e1) * a11 + V3_X(v_e2) * a21;
     vertex->e1y = V3_Y(v_e1) * a11 + V3_Y(v_e2) * a21;
     vertex->e1z = V3_Z(v_e1) * a11 + V3_Z(v_e2) * a21;
@@ -17184,8 +17327,10 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
             max_k1,
             min_k2,
             max_k2);
+
   return (NO_ERROR);
 }
+
 int MRIScomputeSecondFundamentalFormAtVertex(MRI_SURFACE *mris, int vno, int *vertices, int vnum)
 {
   int i, n, nbad = 0;
@@ -22326,14 +22471,43 @@ static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *par
   err_cnt = 0;
   max_errs = 1000;
 
+#ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_CHECK
+  int trial;
+  double sse_dist_trial0;
+  for (trial = 0; trial < 2; trial++) {
+#endif
+
   sse_dist = 0.0;
-  ROMP_PF_begin
+  
+#ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_REPRODUCIBLE
+
+  #define ROMP_VARIABLE       vno 
+  #define ROMP_LO             0
+  #define ROMP_HI             mris->nvertices
+    
+  #define ROMP_SUMREDUCTION0  sse_dist
+    
+  #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
+    
+  #include "romp_for_begin.h"
+    
+    #define sse_dist ROMP_PARTIALSUM(0)
+    
+#else
+
+  ROMP_PF_begin         // mris_register
+
+#ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_CHECK
+  #pragma omp parallel for if(trial==0) reduction(+ : sse_dist) schedule(static, 1)
+#else
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(fast) reduction(+ : sse_dist) schedule(static, 1)
 #endif
+#endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
-    
+
+#endif    
     VERTEX *v, *vn;
     int n, vn_vno;
     double delta, v_sse;
@@ -22396,9 +22570,26 @@ static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *par
     sse_dist += v_sse;
     if (!isfinite(sse_dist) || !isfinite(v_sse)) DiagBreak();
     
+#ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_REPRODUCIBLE
+    #undef sse_dist 
+  #include "romp_for_end.h"
+#else
     ROMP_PFLB_end
   }
   ROMP_PF_end
+#endif
+
+#ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_CHECK
+    if (trial == 0) {
+        sse_dist_trial0 = sse_dist;
+    } else { 
+        if (sse_dist_trial0 != sse_dist) {
+            fprintf(stderr, "%s:%d diff thread count, diff result %g %g %g\n",__FILE__,__LINE__,
+               sse_dist_trial0, sse_dist, sse_dist_trial0-sse_dist);
+        }
+    }
+  } // trial
+#endif
 
 #ifdef FS_CUDA
   /* investigate some of the flags. Neither being true would help
@@ -28395,12 +28586,33 @@ double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
 
   int vno;
   double sse = 0.0;
-  ROMP_PF_begin
+  
+#ifdef BEVIN_MRISCOMPUTECORRELATIONERROR_REPRODUCIBLE
+
+  #define ROMP_VARIABLE       vno
+  #define ROMP_LO             0
+  #define ROMP_HI             mris->nvertices
+    
+  #define ROMP_SUMREDUCTION0  sse
+    
+  #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
+    
+  #include "romp_for_begin.h"
+    
+    #define sse  ROMP_PARTIALSUM(0)
+    
+#else
+
+  ROMP_PF_begin         // Important during mris_register
+ 
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(fast) reduction(+ : sse)
 #endif
+
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
+
+#endif
     
     VERTEX *v = &mris->vertices[vno];
     if (vno == Gdiag_no) {
@@ -28449,10 +28661,17 @@ double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
     else {
       sse += delta * delta;
     }
+#ifdef BEVIN_MRISCOMPUTECORRELATIONERROR_REPRODUCIBLE
+
+    #undef sse
+  #include "romp_for_end.h"
+
+#else
     ROMP_PFLB_end
   }
   ROMP_PF_end
-  
+#endif
+
   return (sse);
 }
 
@@ -39607,7 +39826,7 @@ int MRISwriteTriangularSurface(MRI_SURFACE *mris, const char *fname)
 {
   int k, n;
   FILE *fp;
-  char *user, *time_str;
+  const char *user, *time_str;
 
   user = getenv("USER");
   if (!user) {
@@ -79649,3 +79868,59 @@ int MRISnotMarked(MRI_SURFACE *mris)
   }
   return (NO_ERROR);
 }
+
+
+// Support for writing traces that can be compared across test runs to help find where differences got introduced  
+//
+void mris_hash_init (MRIS_HASH* hash, MRIS const * mris)
+{
+    hash->hash = fnv_init();
+    if (mris) mris_hash_add(hash, mris);
+}
+
+static void vertix_hash_add(MRIS_HASH* hash, VERTEX const * vertex)
+{
+    #define SEP ;
+    #define ELTP(TARGET, MBR) // don't hash pointers.   Sometime may implement hashing their target
+    #define ELTT(TYPE,   MBR) hash->hash = fnv_add(hash->hash, (const unsigned char*)(&vertex->MBR), sizeof(vertex->MBR));
+    LIST_OF_VERTEX_ELTS
+    #undef ELTT
+    #undef ELTP
+    #undef SEP
+    
+    hash->hash = fnv_add(hash->hash, (const unsigned char*)(vertex->v), sizeof(*(vertex->v))*vertex->vtotal );
+}
+
+void mris_hash_add(MRIS_HASH* hash, MRIS const * mris)
+{
+    #define SEP ;
+    #define ELTP(TARGET, MBR) // don't hash pointers.   Sometime may implement hashing their target
+    #define ELTT(TYPE,   MBR) hash->hash = fnv_add(hash->hash, (const unsigned char*)(&mris->MBR), sizeof(mris->MBR));
+    #define ELTX(TYPE,   MBR) 
+    LIST_OF_MRIS_ELTS
+    #undef ELTX
+    #undef ELTT
+    #undef ELTP
+    #undef SEP
+
+    // Now include some of the pointer targets
+    // TBD
+    int vno;
+    for (vno = 0; vno < mris->nvertices; vno++) {
+        vertix_hash_add(hash, &mris->vertices[vno]);
+    }
+}
+
+void mris_hash_print(MRIS_HASH const* hash, FILE* file)
+{
+    fprintf(file, "%ld", hash->hash);
+}
+
+void mris_print_hash(FILE* file, MRIS const * mris, const char* prefix, const char* suffix) {
+    MRIS_HASH hash;
+    mris_hash_init(&hash, mris);
+    fprintf(file, "%sMRIS_HASH{",prefix);
+    mris_hash_print(&hash, file);
+    fprintf(file, "}%s",suffix);
+}
+

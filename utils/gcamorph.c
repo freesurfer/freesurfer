@@ -1,4 +1,7 @@
 #define BEVIN_FASTER_gcamSmoothnessEnergy
+#define BEVIN_GCAMSMOOTHNESSENERGY_REPRODUCIBLE
+#define BEVIN_GCAMJACOBIANENERGY_REPRODUCIBLE
+#define BEVIN_GCAMLOGLIKELIHOODENERGY_REPRODUCIBLE
 
 /**
  * @file  gcamorph.c
@@ -2296,19 +2299,10 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
   }
 #endif
 
-  double sse = 0.0;
-
-#ifndef GCAM_LLENERGY_GPU
-  double error = 0.0;
-  int x = 0, y = 0, z = 0;
-#endif
-
 #if DEBUG_LL_SSE
   int max_x, max_y, max_z;
   max_x = max_y = max_z = 0;
-#endif
 
-#if DEBUG_LL_SSE
   double max_increase = 0, increase;
   if (last_sse == NULL) {
     last_sse = (float ***)calloc(gcam->width, sizeof(float *));
@@ -2321,34 +2315,62 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
   }
 #endif
 
-#ifdef GCAM_LLENERGY_GPU
-  if (gcam->ninputs != 0) {
-    printf("%s: ninputs = %i\n", __FUNCTION__, gcam->ninputs);
-  }
-#endif
 
 // TIMER_INTERVAL_BEGIN(loop)
 
+  double sse = 0.0;
+
 #ifdef GCAM_LLENERGY_GPU
+
+  if (gcam->ninputs != 0) {
+    printf("%s: ninputs = %i\n", __FUNCTION__, gcam->ninputs);
+  }
+
 #if SHOW_EXEC_LOC
   printf("%s: CUDA call\n", __FUNCTION__);
 #endif
   sse = gcamLogLikelihoodEnergyGPU(gcam, mri);
+
 #else
+
 #if SHOW_EXEC_LOC
   printf("%s: CPU call\n", __FUNCTION__);
 #endif
-  ROMP_PF_begin
+
+  int x;
+
+#ifdef BEVIN_GCAMLOGLIKELIHOODENERGY_REPRODUCIBLE
+
+  #define ROMP_VARIABLE       x
+  #define ROMP_LO             0
+  #define ROMP_HI             gcam->width
+
+  #define ROMP_SUMREDUCTION0  sse
+    
+  #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
+    
+  #include "romp_for_begin.h"
+    
+    #define sse  ROMP_PARTIALSUM(0)
+
+#else
+
+  ROMP_PF_begin     // mri_ca_register
+
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(fast) reduction(+ : sse) firstprivate(y, z, error) shared(gcam, mri) schedule(static, 1)
 #endif
   for (x = 0; x < gcam->width; x++) {
     ROMP_PFLB_begin
-    
+
+#endif
+
+    int y;    
     for (y = 0; y < gcam->height; y++) {
       struct different_neighbor_labels_context different_neighbor_labels_context;
       init_different_neighbor_labels_context(&different_neighbor_labels_context,gcam,x,y);
       float vals[MAX_GCA_INPUTS];
+      int z;
       for (z = 0; z < gcam->depth; z++) {
         // Debugging breakpoint
         if (x == Gx && y == Gy && z == Gz) {
@@ -2382,6 +2404,7 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
         check_gcam(gcam);
 
         // Compute 'error' for this node
+        double error;
         if (gcamn->gc) {
           error = GCAmahDist(gcamn->gc, vals, gcam->ninputs) + log(covariance_determinant(gcamn->gc, gcam->ninputs));
         }
@@ -2434,9 +2457,17 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
         }
       }
     }
+#ifdef BEVIN_GCAMLOGLIKELIHOODENERGY_REPRODUCIBLE
+
+    #undef sse
+  #include "romp_for_end.h"
+
+#else
     ROMP_PFLB_end
   }
   ROMP_PF_end
+#endif
+
 #endif
 
 //  TIMER_INTERVAL_END(loop)
@@ -4114,7 +4145,7 @@ int gcamComputeMetricProperties(GCA_MORPH *gcam)
 
 #define GCAM_JACOBENERGY_OUTPUT 0
 
-double gcamJacobianEnergy(const GCA_MORPH *gcam, MRI *mri)
+double gcamJacobianEnergy(const GCA_MORPH * const gcam, MRI *mri)
 {
   double sse = 0;
 
@@ -4144,27 +4175,46 @@ double gcamJacobianEnergy(const GCA_MORPH *gcam, MRI *mri)
 #if SHOW_EXEC_LOC
   printf("%s: CPU call\n", __FUNCTION__);
 #endif
-  double delta = 0.0, ratio = 0.0, exponent = 0.0, thick;
-  int i = 0, j = 0, k = 0, width, height, depth;
-  GCA_MORPH_NODE *gcamn = NULL;
-
-  thick = mri ? mri->thick : 1.0;
-  width = gcam->width;
-  height = gcam->height;
-  depth = gcam->depth;
+  double const thick  = mri ? mri->thick : 1.0;
+  int    const width  = gcam->width;
+  int    const height = gcam->height;
+  int    const depth  = gcam->depth;
 
   // Note sse initialised to zero here
   sse = 0.0f;
-  ROMP_PF_begin
+
+  int i;
+
+#ifdef BEVIN_GCAMJACOBIANENERGY_REPRODUCIBLE
+
+  #define ROMP_VARIABLE       i
+  #define ROMP_LO             0
+  #define ROMP_HI             width
+    
+  #define ROMP_SUMREDUCTION0  sse
+    
+  #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
+    
+  #include "romp_for_begin.h"
+    
+    #define sse  ROMP_PARTIALSUM(0)
+    
+#else
+
+  ROMP_PF_begin     // important in mri_ca_register
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(fast) firstprivate(j,k,gcamn,ratio,exponent,delta) shared(width,height,depth,gcam) reduction(+:sse) schedule(static,1)
+  #pragma omp parallel for if_ROMP(fast) reduction(+:sse) schedule(static,1)
 #endif
   for (i = 0; i < width; i++) {
     ROMP_PFLB_begin
+
+#endif
+    
+    int j = 0, k = 0;
     
     for (j = 0; j < height; j++) {
       for (k = 0; k < depth; k++) {
-        gcamn = &gcam->nodes[i][j][k];
+        GCA_MORPH_NODE const * const gcamn = &gcam->nodes[i][j][k];
 
         if (gcamn->invalid) {
           continue;
@@ -4172,9 +4222,12 @@ double gcamJacobianEnergy(const GCA_MORPH *gcam, MRI *mri)
 
         /* scale up the area coefficient if the area of the current node is
           close to 0 or already negative */
+
         if (!FZERO(gcamn->orig_area1)) {
-          ratio = gcamn->area1 / gcamn->orig_area1;
-          exponent = -gcam->exp_k * ratio;
+          double const ratio = gcamn->area1 / gcamn->orig_area1;
+          double const exponent = -gcam->exp_k * ratio;
+
+          double delta;
           if (exponent > MAX_EXP) {
             delta = 0.0;
           }
@@ -4198,9 +4251,10 @@ double gcamJacobianEnergy(const GCA_MORPH *gcam, MRI *mri)
         }
 
         if (!FZERO(gcamn->orig_area2)) {
-          ratio = gcamn->area2 / gcamn->orig_area2;
-          exponent = -gcam->exp_k * ratio;
+          double const ratio = gcamn->area2 / gcamn->orig_area2;
+          double const exponent = -gcam->exp_k * ratio;
 
+          double delta;
           if (exponent > MAX_EXP) {
             delta = MAX_EXP;
           }
@@ -4224,9 +4278,15 @@ double gcamJacobianEnergy(const GCA_MORPH *gcam, MRI *mri)
         }
       }
     }
+#ifdef BEVIN_GCAMJACOBIANENERGY_REPRODUCIBLE
+    #undef sse
+  #include "romp_for_end.h"
+#else
     ROMP_PFLB_end
   }
   ROMP_PF_end
+#endif
+
 #endif
 
 #if GCAM_JACOBENERGY_OUTPUT
@@ -6967,7 +7027,6 @@ static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
   } * buffers = (struct buffer*)calloc(nt, sizeof(struct buffer));
 
   const int xStride = (width + nt-1) / nt;
-  int xLo;
 
   if (width < 4) {
       static bool reported = false;
@@ -6978,15 +7037,39 @@ static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
       }
   }
 
+#ifdef BEVIN_GCAMSMOOTHNESSENERGY_REPRODUCIBLE
+
+  int const numberOfStrides = (width + xStride - 1) / xStride;
+  int xLoDividedByXStride;
+  
+  #define ROMP_VARIABLE       xLoDividedByXStride
+  #define ROMP_LO             0
+  #define ROMP_HI             numberOfStrides
+    
+  #define ROMP_SUMREDUCTION0  sse
+    
+  #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
+    
+  #include "romp_for_begin.h"
+    
+    #define sse  ROMP_PARTIALSUM(0)
+
+    int const xLo = xLoDividedByXStride * xStride;
+#else
+
+  int xLo;
+
   ROMP_PF_begin
-#ifdef HAVE_OPENMP
+#ifdef HAVE_OPENMP  // Important during mri_ca_register
   #pragma omp parallel for if_ROMP(fast) reduction(+:sse) shared(gcam,Gx,Gy,Gz) schedule(static,1)
 #endif
   for (xLo = 0; xLo < width; xLo += xStride) {
     ROMP_PFLB_begin
-    
-    int const xHi = MIN(xLo + xStride, width);
 
+#endif
+
+    int const xHi = MIN(xLo + xStride, width);
+   
     // Compute all the (gcamn->x - gcamn->origx) for the valid nodes
     // This avoids the recomputation and makes all the accessed reasonably dense.
     // Add frontiers so we don't have to test for them.
@@ -7157,9 +7240,19 @@ static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
         }
       }
     } // compute the contribution for the slice
+
+#ifdef BEVIN_GCAMSMOOTHNESSENERGY_REPRODUCIBLE
+
+    #undef sse
+  #include "romp_for_end.h"
+
+#else
+
     ROMP_PFLB_end
   } // over all the slices
   ROMP_PF_end
+
+#endif
 
   // Show the stats
   // Free the buffers

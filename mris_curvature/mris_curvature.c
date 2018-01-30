@@ -207,6 +207,7 @@ main(int argc, char *argv[])
   else
   {
     MRIScomputeSecondFundamentalFormThresholded(mris, cthresh) ;
+
     nhandles = nint(1.0 - mris->Ktotal / (4.0*M_PI)) ;
     fprintf(stderr, "total integrated curvature = %2.3f*4pi (%2.3f) --> "
             "%d handles\n", (float)(mris->Ktotal/(4.0f*M_PI)),
