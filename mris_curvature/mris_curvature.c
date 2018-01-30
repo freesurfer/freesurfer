@@ -82,8 +82,6 @@ int MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm)  ;
 int
 main(int argc, char *argv[])
 {
-  const bool trace = false;
-  
   char         **av, *in_fname,fname[STRLEN],hemi[10], path[STRLEN],
                name[STRLEN],*cp ;
   int          ac, nargs, nhandles ;
@@ -154,16 +152,11 @@ main(int argc, char *argv[])
                 Progname, in_fname) ;
   }
 
-  if (trace) mris_print_hash(stderr, mris, "after read ", "\n");
-  
   MRISsetNeighborhoodSize(mris, nbrs) ;
 
-  if (trace) mris_print_hash(stderr, mris, "after MRISsetNeighborhoodSize ", "\n");
-  
   if (nbhd_size > 0)
   {
     MRISsampleAtEachDistance(mris, nbhd_size, nbrs_per_distance) ;
-    if (trace) mris_print_hash(stderr, mris, "after MRISsampleAtEachDistance ", "\n");
   }
   if (max_mm > 0)
   {
@@ -187,7 +180,6 @@ main(int argc, char *argv[])
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
     MRIScomputeMetricProperties(mris) ;
     MRIScomputeNeighbors(mris, max_mm) ;
-    if (trace) mris_print_hash(stderr, mris, "after MRIScomputeNeighbors ", "\n");
   }
 
   if (param_file)
@@ -207,7 +199,6 @@ main(int argc, char *argv[])
     {
       MRISnormalizeCurvature(mris,which_norm) ;
     }
-    if (trace) mris_print_hash(stderr, mris, "after MRISnormalizeCurvature ", "\n");
     sprintf(fname, "%s/%s%s.param", path,name,suffix) ;
     fprintf(stderr, "writing parameterized curvature to %s...", fname) ;
     MRISwriteCurvature(mris, fname) ;
@@ -215,11 +206,7 @@ main(int argc, char *argv[])
   }
   else
   {
-    if (trace) mris_print_hash(stderr, mris, "before MRIScomputeSecondFundamentalFormThresholded ", "\n");
-
     MRIScomputeSecondFundamentalFormThresholded(mris, cthresh) ;
-
-    if (trace) mris_print_hash(stderr, mris, "after MRIScomputeSecondFundamentalFormThresholded ", "\n");
 
     nhandles = nint(1.0 - mris->Ktotal / (4.0*M_PI)) ;
     fprintf(stderr, "total integrated curvature = %2.3f*4pi (%2.3f) --> "
@@ -317,8 +304,6 @@ main(int argc, char *argv[])
       }
     }
 
-    if (trace) mris_print_hash(stderr, mris, "before if (max_flag) ", "\n");
-
     if (max_flag)
     {
       MRISuseCurvatureMax(mris) ;
@@ -365,24 +350,19 @@ main(int argc, char *argv[])
     if (write_flag)
     {
       MRISuseGaussianCurvature(mris) ;
-      if (trace) mris_print_hash(stderr, mris, "after MRISuseGaussianCurvature ", "\n");
       if (cthresh > 0)
       {
         MRIShistoThresholdCurvature(mris, cthresh) ;
-        if (trace) mris_print_hash(stderr, mris, "after MRIShistoThresholdCurvature ", "\n");
       }
       MRISaverageCurvatures(mris, navgs) ;
-      if (trace) mris_print_hash(stderr, mris, "after MRISaverageCurvatures ", "\n");
       sprintf(fname, "%s/%s%s.K%s", path,name, suffix, output_type) ;
       fprintf(stderr, "writing Gaussian curvature to %s...", fname) ;
       if (normalize)
       {
         MRISnormalizeCurvature(mris,which_norm) ;
-        if (trace) mris_print_hash(stderr, mris, "after MRISnormalizeCurvature ", "\n");
       }
       MRISwriteCurvature(mris, fname) ;
       MRISuseMeanCurvature(mris) ;
-      if (trace) mris_print_hash(stderr, mris, "after MRISuseMeanCurvature ", "\n");
       if (cthresh > 0)
       {
         MRIShistoThresholdCurvature(mris, cthresh) ;
@@ -391,7 +371,6 @@ main(int argc, char *argv[])
       if (normalize)
       {
         MRISnormalizeCurvature(mris,which_norm) ;
-        if (trace) mris_print_hash(stderr, mris, "after MRISnormalizeCurvature ", "\n");
       }
       sprintf(fname, "%s/%s%s.H%s", path,name, suffix,output_type) ;
       fprintf(stderr, "done.\nwriting mean curvature to %s...", fname) ;

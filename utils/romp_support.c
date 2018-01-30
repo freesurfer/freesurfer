@@ -31,8 +31,8 @@
 #include <pthread.h>
 
 ROMP_level romp_level = 
-    //ROMP_level_fast;              	// should not be set to ROMP_serial
-    ROMP_level_assume_reproducible;     // fast also doesn't require the random seed to be set
+    ROMP_level_fast;              	// should not be set to ROMP_serial
+    //ROMP_level_assume_reproducible;   // doesn't require the random seed to be set
     //ROMP_level_shown_reproducible;
 
 typedef struct StaticData {
