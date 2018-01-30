@@ -26,7 +26,6 @@ CHECKS=\
 	test_c_nr_wrapper \
 	mnitest \
 	i2rtest \
-	icotest \
 	extest \
 	mghxform \
 	inftest \
@@ -36,6 +35,7 @@ CHECKS=\
 	sc_test
 
 BROKEN_CHECKS=\
+	icotest \
 	difftool \
 	test_mriio \
 	mris_compute_thickness \
@@ -59,9 +59,9 @@ foo:
 	if ! test -f "$(top_builddir)/utils/test/test_data.tar.gz"; then \
 		cp -v $(top_srcdir)/utils/test/test_data.tar.gz \
 					$(top_builddir)/utils/test/; fi;
-	if ! test -f "$(top_builddir)/distribution/lib/bem/ic0.tri"; then \
-		cp -v $(top_srcdir)/distribution/lib/bem/*.tri \
-					$(top_builddir)/distribution/lib/bem/; fi;
+#	if ! test -f "$(top_builddir)/distribution/lib/bem/ic0.tri"; then \
+#		cp -v $(top_srcdir)/distribution/lib/bem/*.tri \
+#					$(top_builddir)/distribution/lib/bem/; fi;
 	if ! test -f "$(top_builddir)/distribution/FreeSurferColorLUT.txt"; then \
 		cp -v $(top_srcdir)/distribution/FreeSurferColorLUT.txt \
 					$(top_builddir)/distribution/FreeSurferColorLUT.txt; fi;
