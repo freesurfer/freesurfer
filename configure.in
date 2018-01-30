@@ -543,11 +543,11 @@ WERROR="-Werror"
 AC_ARG_ENABLE(Wall,
  [  --disable-Wall          do not add -Wall to compiler flags],
  [ WALL="" ],
- [ ])
+ [ WALL="-Wall"])
 AC_ARG_ENABLE(Werror,
  [  --disable-Werror        do not add -Werror to compiler flags],
  [ WERROR="" ],
- [ ])
+ [ WERROR="-Werror"])
 # temporary: so that --disable-Werror is no longer needed
 if test "$ac_have_gcc_48_or_higher" = "yes"; then
   [ WERROR="" ]
