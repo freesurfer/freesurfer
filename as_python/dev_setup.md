@@ -133,40 +133,8 @@ Install the python requirements:
 ```bash
 pip install -r as_python/requirements.txt
 ```
+
 ## Test and Run
-## Running Test Scripts
-Place the `innolitics_testing` data folder at `~/work/cm/`
-
-Get ready to run a test with:
-```bash
-cd ~/work/cm/freesurfer
-workon gems2
-export PYTHONPATH=".:./GEMS2/bin"
-export TESTING_DIR=$HOME/work/cm/innolitics_testing/buckner40
-export SAMSEG_DATA_DIR=$HOME/work/cm/innolitics_testing/atlas/20Subjects_smoothing2_down2_smoothingForAffine2
-```
-Again, after changing `~/.bashrc` either open a new terminal or do a `source ~/.bashrc`
-
-At this point individual tests can be run with
-```bash
-python ./as_python/samseg/dev_utils/run_samseg_test_case.py 004
-```
-Multiple tests can be run by listing them on the command line:
-```bash
-python ./as_python/samseg/dev_utils/run_samseg_test_case.py 004 008 140
-```
-Or all of the tests can be run by leaving the command line arguments empty:
-```bash
-python ./as_python/samseg/dev_utils/run_samseg_test_case.py
-```
-results will appear, one folder per case, in `~/work/cm/innolitics_testing/buckner40/python_temp_data/`
-
-Dice measurements can be calculated using:
-```bash
-export GOLD_REFERENCE_DIR=$HOME/work/cm/innolitics_testing/tests/matlab_nov20/
-python ./as_python/samseg/dev_utils/measure_and_report.py 004 008 140
-```
-Leaving off case numbers will report against all cases.
 
 ## Running Samseg Code
 The matlab script `run_samseg.m` has been ported to `run_samseg_ported.py` with the same command line arguments. 
@@ -207,6 +175,40 @@ python ./as_python/samseg/run_samseg_ported.py \
    -o $HOME/work/cm/innolitics_testing/python_temp_data/008 \
     -i $HOME/work/cm/innolitics_testing/buckner40/008/orig.mgz
 ```
+
+## Running Test Scripts
+Place the `innolitics_testing` data folder at `~/work/cm/`
+
+Get ready to run a test with:
+```bash
+cd ~/work/cm/freesurfer
+workon gems2
+export PYTHONPATH=".:./GEMS2/bin"
+export TESTING_DIR=$HOME/work/cm/innolitics_testing/buckner40
+export SAMSEG_DATA_DIR=$HOME/work/cm/innolitics_testing/atlas/20Subjects_smoothing2_down2_smoothingForAffine2
+```
+Again, after changing `~/.bashrc` either open a new terminal or do a `source ~/.bashrc`
+
+At this point individual tests can be run with
+```bash
+python ./as_python/samseg/dev_utils/run_samseg_test_case.py 004
+```
+Multiple tests can be run by listing them on the command line:
+```bash
+python ./as_python/samseg/dev_utils/run_samseg_test_case.py 004 008 140
+```
+Or all of the tests can be run by leaving the command line arguments empty:
+```bash
+python ./as_python/samseg/dev_utils/run_samseg_test_case.py
+```
+results will appear, one folder per case, in `~/work/cm/innolitics_testing/buckner40/python_temp_data/`
+
+Dice measurements can be calculated using:
+```bash
+export GOLD_REFERENCE_DIR=$HOME/work/cm/innolitics_testing/tests/matlab_nov20/
+python ./as_python/samseg/dev_utils/measure_and_report.py 004 008 140
+```
+Leaving off case numbers will report against all cases.
 
 ## Development Cycle
 
