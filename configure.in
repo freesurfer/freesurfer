@@ -543,11 +543,16 @@ WERROR="-Werror"
 AC_ARG_ENABLE(Wall,
  [  --disable-Wall          do not add -Wall to compiler flags],
  [ WALL="" ],
- [ WALL="-Wall" ])
+ [ WALL="-Wall"])
 AC_ARG_ENABLE(Werror,
  [  --disable-Werror        do not add -Werror to compiler flags],
  [ WERROR="" ],
- [ WERROR="-Werror" ])
+ [ WERROR="-Werror"])
+AC_ARG_ENABLE(Werror-lax,
+ [  --enable-Werror-lax     add -Werror -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs to compiler flags],
+ [ WERROR="-Werror -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs" ],
+ [ ])
+
 # temporary: so that --disable-Werror is no longer needed
 if test "$ac_have_gcc_48_or_higher" = "yes"; then
   [ WERROR="" ]
@@ -563,18 +568,18 @@ if test "x$CC" = "xicc"; then
   # error #279: controlling expression is constant
   #   assert(!"Cannot invert 2x2 matrix with zero determinant");
 fi
-# There are approximately 1000 of this 'error', most caused by
-# the presence of code intending for debugging, so don't report it
-WERROR="$WERROR -Wno-unused-but-set-variable"
 
-# if (test "${CC}" = "gcc"); then
+if (test "${CC}" = "gcc"); then
+  # There are approximately 1000 of this 'error', most caused by
+  # the presence of code intending for debugging, so don't report it
+  WERROR="$WERROR -Wno-unused-but-set-variable"
   # There are approximately 600 of this 'error', most caused by
   # the presence of code ignoring status from write, fgets and similar functions
-  # WERROR="$WERROR -Wno-unused-result"
+  WERROR="$WERROR -Wno-unused-result"
   # There are approximately 40 of this 'error', but in external packages
   # header files, hence not possible to fix, and harmless.
-  # WERROR="$WERROR -Wno-unused-local-typedefs"
-# fi
+  WERROR="$WERROR -Wno-unused-local-typedefs"
+fi
 
 # to strip unused code when using Linux gcc.
 # but not on cent4 because for some reason it fails
