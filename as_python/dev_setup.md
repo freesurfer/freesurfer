@@ -167,6 +167,7 @@ export GOLD_REFERENCE_DIR=$HOME/work/cm/innolitics_testing/tests/matlab_nov20/
 python ./as_python/samseg/dev_utils/measure_and_report.py 004 008 140
 ```
 Leaving off case numbers will report against all cases.
+
 ## Running Samseg Code
 The matlab script `run_samseg.m` has been ported to `run_samseg_ported.py` with the same command line arguments. 
 
@@ -206,3 +207,9 @@ python ./as_python/samseg/run_samseg_ported.py \
    -o $HOME/work/cm/innolitics_testing/python_temp_data/008 \
     -i $HOME/work/cm/innolitics_testing/buckner40/008/orig.mgz
 ```
+
+## Development Cycle
+
+Changes to Python code are reflected immediately next time you invoke the Python script. Editing the C++ code 
+will require you to run `make` again in the GEMS2 directory. This should recompile the module in place and 
+you can re-run Python scripts that will load in the rebuilt module automatically.
