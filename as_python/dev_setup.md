@@ -57,12 +57,6 @@ git checkout  nf-gems2-python-port
 cd GEMS2
 git clone https://github.com/pybind/pybind11.git
 ```
-Also required is the prebuilt packages:
-```bash
-cd ~/work/cm
-wget ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/centos6_x86_64/centos6-x86_64-packages.tar.gz
-tar -xzvf centos6-x86_64-packages.tar.gz
-```
 ## Build from Source
 ### Build ITK
 ```bash
@@ -70,15 +64,6 @@ cd ~/work/cm
 mkdir ITK-build
 cd ITK-build
 cmake ../ITK
-make -j4
-```
-### Build FreeSurfer
-[Note that the final `make -j4` may not be strictly needed if other freesurfer code will not be used]
-```
-export ITK_DIR=~/work/cm/ITK-build
-cd ~/work/cm/freesurfer
-./setup_configure
-./configure --disable-Werror --with-pkgs-dir=~/work/cm/centos6-x86_64-packages --disable-xawplus-apps --disable-tcltk-apps
 make -j4
 ```
 ### Build GEMS2python
