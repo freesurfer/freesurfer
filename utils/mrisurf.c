@@ -9309,7 +9309,7 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       sse_sphere, sse_thick_min, sse_thick_parallel, sse_ashburner_triangle, sse_grad, sse_nl_area, sse_nl_dist,
       sse_tspring, sse_repulse, sse_tsmooth, sse_loc, sse_thick_spring, sse_repulsive_ratio, sse_shrinkwrap,
       sse_expandwrap, sse_lap, sse_dura, sse_nlspring, sse_thick_normal, sse_histo, sse_map, sse_map2d;
-  int fno;
+
   MHT *mht_v_current = NULL;
   MHT *mht_f_current = NULL;
 
@@ -9372,6 +9372,8 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
 #else
 
+    int fno;
+    
     ROMP_PF_begin       // mris_register
 
 #ifdef BEVIN_MRISCOMPUTESSE_CHECK
@@ -9775,7 +9777,6 @@ static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris)
 #endif
 
   double sse;
-  int fno;
 
 #ifdef BEVIN_MRISCOMPUTENONLINEARAREASSE_CHECK
   int trial; 
@@ -9799,6 +9800,7 @@ static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris)
     #define sse  ROMP_PARTIALSUM(0)
 
 #else
+  int fno;
   
   ROMP_PF_begin     // mris_register
   
@@ -11566,7 +11568,7 @@ static double mrisAdaptiveTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   Description
   ------------------------------------------------------*/
-static double mrisAsynchronousTimeStep(MRI_SURFACE *mris, float momentum, float delta_t, MHT *mht, float max_mag)
+static double mrisAsynchronousTimeStep(MRI_SURFACE *mris, float momentum, float delta_t, MHT *mht, float max_mag)   // BEVIN mris_make_surfaces
 {
   static int direction = 1;
   double mag;
@@ -11580,7 +11582,13 @@ static double mrisAsynchronousTimeStep(MRI_SURFACE *mris, float momentum, float 
     mris->dg = delta_t * mris->gamma + momentum * mris->dg;
     MRISrotate(mris, mris, mris->da, mris->db, mris->dg);
   }
-  else
+  else {
+
+    ROMP_PF_begin
+#ifdef HAVE_OPENMP
+    #pragma omp parallel for if_ROMP(serial)
+#endif
+
     for (i = 0; i < mris->nvertices; i++) {
       if (direction < 0) {
         vno = mris->nvertices - i - 1;
@@ -11669,8 +11677,12 @@ static double mrisAsynchronousTimeStep(MRI_SURFACE *mris, float momentum, float 
         MHTaddAllFaces(mht, mris, v);
       }
 #endif
-    }
 
+      ROMP_PFLB_end
+    }
+    ROMP_PF_end
+  }
+  
   direction *= -1;
   return (delta_t);
 }
@@ -15837,7 +15849,7 @@ int MRIScomputeMeanCurvature(MRI_SURFACE *mris)
   is from going through the central vertex).  Move the
   vertex in the normal direction to improve the fit.
   ------------------------------------------------------*/
-static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)
+static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)  // BEVIN mris_make_surfaces
 {
   MATRIX *m_X, *m_X_inv;
   VECTOR *v_Y, *v_n, *v_e1, *v_e2, *v_nbr, *v_P;
@@ -15856,7 +15868,14 @@ static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)
   v_e1 = VectorAlloc(3, MATRIX_REAL);
   v_e2 = VectorAlloc(3, MATRIX_REAL);
   v_nbr = VectorAlloc(3, MATRIX_REAL);
+
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(serial)
+#endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     v = &mris->vertices[vno];
     if (v->ripflag) continue;
 
@@ -15911,7 +15930,10 @@ static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)
     VectorFree(&v_Y);
     MatrixFree(&m_X);
     MatrixFree(&m_X_inv);
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   VectorFree(&v_n);
   VectorFree(&v_e1);
@@ -15930,7 +15952,7 @@ static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)
   the square of the constant term (the distance the quadratic fit surface
   is from going through the central vertex)
   ------------------------------------------------------*/
-static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
+static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)            // BEVIN mris_make_surfaces
 {
   MATRIX *m_X, *m_X_inv;
   VECTOR *v_Y, *v_n, *v_e1, *v_e2, *v_nbr, *v_P;
@@ -15949,7 +15971,14 @@ static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
   v_e1 = VectorAlloc(3, MATRIX_REAL);
   v_e2 = VectorAlloc(3, MATRIX_REAL);
   v_nbr = VectorAlloc(3, MATRIX_REAL);
+
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(serial)
+#endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     v = &mris->vertices[vno];
     if (v->ripflag) continue;
 
@@ -15990,7 +16019,10 @@ static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
     MatrixFree(&m_X);
     MatrixFree(&m_X_inv);
     VectorFree(&v_Y);
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   VectorFree(&v_n);
   VectorFree(&v_e1);
@@ -22450,7 +22482,7 @@ static int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
   ------------------------------------------------------*/
 static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  int vno, max_v, max_n, err_cnt, max_errs;
+  int max_v, max_n, err_cnt, max_errs;
   double dist_scale, sse_dist, max_del;
   static int first = 1;
 
@@ -22496,7 +22528,8 @@ static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *par
     #define sse_dist ROMP_PARTIALSUM(0)
     
 #else
-
+  int vno;
+  
   ROMP_PF_begin         // mris_register
 
 #ifdef BEVIN_MRISCOMPUTEDISTANCEERROR_CHECK
@@ -28586,7 +28619,6 @@ double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
     return (0.0);
   }
 
-  int vno;
   double sse = 0.0;
   
 #ifdef BEVIN_MRISCOMPUTECORRELATIONERROR_REPRODUCIBLE
@@ -28604,6 +28636,7 @@ double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
     #define sse  ROMP_PARTIALSUM(0)
     
 #else
+  int vno;
 
   ROMP_PF_begin         // Important during mris_register
  
@@ -35694,7 +35727,7 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
                             MRI *mri_mask,
                             double thresh,
                             int flags,
-                            MRI *mri_aseg)
+                            MRI *mri_aseg)  // BEVIN mris_make_surfaces
 {
   double val, x, y, z, max_mag_val, xw, yw, zw, mag, max_mag, max_mag_dist = 0.0f, previous_val, next_val, min_val,
                                                               inward_dist, outward_dist, xw1, yw1, zw1, min_val_dist,
@@ -35720,10 +35753,19 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
   mean_dist = mean_in = mean_out = mean_border = 0.0f;
   ngrad_max = ngrad = nmin = 0;
   MRISclearMarks(mris); /* for soap bubble smoothing later */
-  for (total_vertices = vno = 0; vno < mris->nvertices; vno++) {
+
+  total_vertices = 0;
+  
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(serial)
+#endif
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     v = &mris->vertices[vno];
     if (v->ripflag) {
-      continue;
+      ROMP_PF_continue;
     }
     if (vno == Gdiag_no) {
       DiagBreak();
@@ -36293,7 +36335,11 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
       fprintf(stdout, "v %d, target value = %2.1f, mag = %2.1f, dist=%2.2f\n",
               Gdiag_no, v->val, v->mean, v->d) ;
 #endif
+  
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   mean_dist /= (float)(total_vertices - nmissing);
   mean_border /= (float)total_vertices;
 #if 0

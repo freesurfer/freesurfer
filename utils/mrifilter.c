@@ -5069,7 +5069,7 @@ int MRIcomputeClassStatistics(MRI *mri_T1,
                               float *pmean_wm,
                               float *psigma_wm,
                               float *pmean_gm,
-                              float *psigma_gm)
+                              float *psigma_gm)     // BEVIN mris_make_surfaces
 {
   MRI *mri_border;
   int x, y, z, width, height, depth, label, border_label, ngray, nwhite, nbins, bin, peak;
@@ -5101,7 +5101,15 @@ int MRIcomputeClassStatistics(MRI *mri_T1,
   white_mean = gray_mean = white_std = gray_std = 0.0;
   white_min = gray_min = 100000;
   white_max = gray_max = -white_min;
-  for (nwhite = ngray = z = 0; z < depth; z++) {
+  nwhite = ngray = 0;
+  
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(serial)
+#endif
+  for (z = 0; z < depth; z++) {
+    ROMP_PFLB_begin
+    
     for (y = 0; y < height; y++) {
       for (x = 0; x < width; x++) {
         if (x == Gx && y == Gy && z == Gz) {
@@ -5153,7 +5161,10 @@ int MRIcomputeClassStatistics(MRI *mri_T1,
         }
       }
     }
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)  // debugging
   {
