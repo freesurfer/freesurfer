@@ -642,7 +642,7 @@ case "${target}" in
  TEEM_32BIT=0
  ;;
  *-apple-darwin*)
- # Mac OS X
+ # Mac OS X - include detection of Darwin v17.*
  OS=Darwin
  OS_CPPFLAGS=
  OS_LDFLAGS="$DEADCODE_STRIP_MAC"
@@ -651,6 +651,11 @@ case "${target}" in
  SHARED_LDFLAGS="-dynamiclib"
  CPPFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
  FFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse"
+ uname -r | grep "17" >& /dev/null
+ if test "$?" = "0"; then
+  AC_MSG_NOTICE(Have Darwin v17.*)
+ CPPFLAGS="$CPPFLAGS -DDarwin17"
+ fi
  ;;
  i*86-*-solaris*)
  OS=SunOS

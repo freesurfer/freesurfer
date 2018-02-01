@@ -44,8 +44,10 @@ Nanosecs TimerElapsedNanosecs(NanosecsTimer * then) ;	// returns delta in nanose
 
 // mach_gettime is a replacement for clock_gettime (not available on osx < 10.12)
 #ifdef __APPLE__
-  //typedef int clockid_t;
-  //int mach_gettime(clockid_t clk_id, struct timespec *tp);
+#ifndef Darwin17
+  typedef int clockid_t;
+  int mach_gettime(clockid_t clk_id, struct timespec *tp);
+#endif
 #endif
 
 #ifdef Linux
