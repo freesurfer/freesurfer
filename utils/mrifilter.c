@@ -5103,6 +5103,8 @@ int MRIcomputeClassStatistics(MRI *mri_T1,
   white_max = gray_max = -white_min;
   nwhite = ngray = 0;
   
+  // Measurement showed this not worth improving
+  //
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(serial)

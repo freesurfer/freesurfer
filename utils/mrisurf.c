@@ -11568,60 +11568,71 @@ static double mrisAdaptiveTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   Description
   ------------------------------------------------------*/
-static double mrisAsynchronousTimeStep(MRI_SURFACE *mris, float momentum, float delta_t, MHT *mht, float max_mag)   // BEVIN mris_make_surfaces
+static double mrisAsynchronousTimeStep( // BEVIN mris_make_surfaces 1
+    MRI_SURFACE * const mris, 
+    float         const momentum, 
+    float         const delta_t, 
+    MHT *         const mht, 
+    float         const max_mag)
 {
-  static int direction = 1;
-  double mag;
-  int vno, i;
-  VERTEX *v;
+  static int direction = -1;
+  direction *= -1;
 
   /* take a step in the gradient direction modulated by momentum */
+
+  // Rigid bodies are simple
+  //
   if (mris->status == MRIS_RIGID_BODY) {
     mris->da = delta_t * mris->alpha + momentum * mris->da;
-    mris->db = delta_t * mris->beta + momentum * mris->db;
+    mris->db = delta_t * mris->beta  + momentum * mris->db;
     mris->dg = delta_t * mris->gamma + momentum * mris->dg;
     MRISrotate(mris, mris, mris->da, mris->db, mris->dg);
+    return (delta_t);
   }
-  else {
+  
+  int i;
 
-    ROMP_PF_begin
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-    #pragma omp parallel for if_ROMP(serial)
+  #pragma omp parallel for if_ROMP(serial)
 #endif
+  for (i = 0; i < mris->nvertices; i++) {
 
-    for (i = 0; i < mris->nvertices; i++) {
-      if (direction < 0) {
-        vno = mris->nvertices - i - 1;
-      }
-      else {
-        vno = i;
-      }
-      v = &mris->vertices[vno];
-      if (v->ripflag) {
-        continue;
-      }
-      if (vno == Gdiag_no) {
-        DiagBreak();
-      }
-      v->odx = delta_t * v->dx + momentum * v->odx;
-      v->ody = delta_t * v->dy + momentum * v->ody;
-      v->odz = delta_t * v->dz + momentum * v->odz;
-      mag = sqrt(v->odx * v->odx + v->ody * v->ody + v->odz * v->odz);
-      if (mag > max_mag) /* don't let step get too big */
-      {
+    int const vno =                 // this strongly suggests it is NOT a parallelizable algorithm
+      (direction < 0) {             // since the direction through the nodes should not make a difference!
+      ? (mris->nvertices - i - 1)
+      : i;
+
+    VERTEX * const v = &mris->vertices[vno];
+    if (v->ripflag) {
+      ROMP_PF_continue;
+    }
+
+    if (vno == Gdiag_no) {
+      DiagBreak();
+    }
+
+    v->odx = delta_t * v->dx + momentum * v->odx;
+    v->ody = delta_t * v->dy + momentum * v->ody;
+    v->odz = delta_t * v->dz + momentum * v->odz;
+
+    double mag = sqrt(v->odx * v->odx + v->ody * v->ody + v->odz * v->odz);
+    
+    if (mag > max_mag) {        /* don't let step get too big */
         mag = max_mag / mag;
         v->odx *= mag;
         v->ody *= mag;
         v->odz *= mag;
-      }
-      if (vno == Gdiag_no) {
-        float dist, dot, dx, dy, dz;
+    }
+    
+    if (vno == Gdiag_no) {
 
-        dx = v->x - v->origx;
-        dy = v->y - v->origy;
-        dz = v->z - v->origz;
-        dist = sqrt(dx * dx + dy * dy + dz * dz);
-        dot = dx * v->nx + dy * v->ny + dz * v->nz;
+        float const dx = v->x - v->origx;
+        float const dy = v->y - v->origy;
+        float const dz = v->z - v->origz;
+        float const dist = sqrt(dx * dx + dy * dy + dz * dz);
+        float const dot  = dx * v->nx + dy * v->ny + dz * v->nz;
+        
         fprintf(stdout,
                 "moving v %d by (%2.2f, %2.2f, %2.2f) dot=%2.2f-->"
                 "(%2.1f, %2.1f, %2.1f)\n",
@@ -11635,55 +11646,45 @@ static double mrisAsynchronousTimeStep(MRI_SURFACE *mris, float momentum, float 
                 v->z);
         fprintf(
             stdout, "n = (%2.1f,%2.1f,%2.1f), total dist=%2.3f, total dot = %2.3f\n", v->nx, v->ny, v->nz, dist, dot);
-      }
-
-/* erase the faces this vertex is part of */
-#if 0
-      for (fno = 0 ; fno < v->num ; fno++)
-      {
-        mrisEraseFace(mris, mri_filled, v->f[fno]) ;
-      }
-#else
-      if (mht) {
-        MHTremoveAllFaces(mht, mris, v);
-      }
-#endif
-
-      if (mht) {
-        mrisLimitGradientDistance(mris, mht, vno);
-      }
-
-      v->x += v->odx;
-      v->y += v->ody;
-      v->z += v->odz;
-
-      if ((fabs(v->x) > 128.0f) || (fabs(v->y) > 128.0f) || (fabs(v->z) > 128.0f)) {
-        DiagBreak();
-      }
-
-      /* should this be done here????? (BRF) what about undoing step??? */
-      v->dx = v->odx; /* for mrisTrackTotalDistances */
-      v->dy = v->ody;
-      v->dz = v->odz;
-
-#if 0
-      /* write the new face positions into the filled volume */
-      for (fno = 0 ; fno < v->num ; fno++)
-      {
-        mrisFillFace(mris, mri_filled, v->f[fno]) ;
-      }
-#else
-      if (mht) {
-        MHTaddAllFaces(mht, mris, v);
-      }
-#endif
-
-      ROMP_PFLB_end
     }
-    ROMP_PF_end
+
+    /* erase the faces this vertex is part of */
+    
+    // This is probably not parallizable
+    //
+    if (mht) {
+        MHTremoveAllFaces(mht, mris, v);
+    }
+
+    // Might not be parallizable
+    //
+    if (mht) {
+        mrisLimitGradientDistance(mris, mht, vno);
+    }
+
+    v->x += v->odx;
+    v->y += v->ody;
+    v->z += v->odz;
+
+    if ((fabs(v->x) > 128.0f) || (fabs(v->y) > 128.0f) || (fabs(v->z) > 128.0f)) {
+        DiagBreak();
+    }
+
+    /* should this be done here????? (BRF) what about undoing step??? */
+    v->dx = v->odx; /* for mrisTrackTotalDistances */
+    v->dy = v->ody;
+    v->dz = v->odz;
+
+    // This is probably not parallizable
+    //
+    if (mht) {
+        MHTaddAllFaces(mht, mris, v);
+    }
+
+    ROMP_PFLB_end
   }
-  
-  direction *= -1;
+  ROMP_PF_end
+
   return (delta_t);
 }
 /*-----------------------------------------------------
@@ -11802,7 +11803,7 @@ static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, flo
         MHTaddAllFaces(mht, mris, v);
       }
 #endif
-    }
+  }
 
   direction *= -1;
   return (delta_t);
@@ -15849,7 +15850,7 @@ int MRIScomputeMeanCurvature(MRI_SURFACE *mris)
   is from going through the central vertex).  Move the
   vertex in the normal direction to improve the fit.
   ------------------------------------------------------*/
-static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)  // BEVIN mris_make_surfaces
+static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)  // BEVIN mris_make_surfaces 4
 {
   MATRIX *m_X, *m_X_inv;
   VECTOR *v_Y, *v_n, *v_e1, *v_e2, *v_nbr, *v_P;
@@ -15952,7 +15953,7 @@ static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)  
   the square of the constant term (the distance the quadratic fit surface
   is from going through the central vertex)
   ------------------------------------------------------*/
-static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)            // BEVIN mris_make_surfaces
+static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)            // BEVIN mris_make_surfaces 3
 {
   MATRIX *m_X, *m_X_inv;
   VECTOR *v_Y, *v_n, *v_e1, *v_e2, *v_nbr, *v_P;
@@ -35727,7 +35728,7 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
                             MRI *mri_mask,
                             double thresh,
                             int flags,
-                            MRI *mri_aseg)  // BEVIN mris_make_surfaces
+                            MRI *mri_aseg)  // BEVIN mris_make_surfaces 2
 {
   double val, x, y, z, max_mag_val, xw, yw, zw, mag, max_mag, max_mag_dist = 0.0f, previous_val, next_val, min_val,
                                                               inward_dist, outward_dist, xw1, yw1, zw1, min_val_dist,
