@@ -32,7 +32,7 @@
 
 // clock_gettime is not available on osx < 10.12 sierra
 // mach_gettime is a custom replacement for that
-#ifdef __APPLE__  // todo: maybe create a HAVE_CLOCK_GETTIME macro
+#ifdef Darwin17
 #include <mach/clock.h>
 #include <mach/mach.h>
 
