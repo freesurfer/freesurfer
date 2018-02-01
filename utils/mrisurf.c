@@ -11568,15 +11568,16 @@ static double mrisAdaptiveTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   Description
   ------------------------------------------------------*/
-static double mrisAsynchronousTimeStep( // BEVIN mris_make_surfaces 1
+static double mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_surfaces 1
     MRI_SURFACE * const mris, 
     float         const momentum, 
     float         const delta_t, 
     MHT *         const mht, 
-    float         const max_mag)
-{
-  static int direction = -1;
-  direction *= -1;
+    float         const max_mag,
+    int*          const directionPtr,
+    bool          const updateDxDyDz)
+    
+  *directionPtr *= -1;
 
   /* take a step in the gradient direction modulated by momentum */
 
@@ -11599,7 +11600,7 @@ static double mrisAsynchronousTimeStep( // BEVIN mris_make_surfaces 1
   for (i = 0; i < mris->nvertices; i++) {
 
     int const vno =                 // this strongly suggests it is NOT a parallelizable algorithm
-      (direction < 0) {             // since the direction through the nodes should not make a difference!
+      (*directionPtr < 0) {             // since the direction through the nodes should not make a difference!
       ? (mris->nvertices - i - 1)
       : i;
 
@@ -11650,13 +11651,13 @@ static double mrisAsynchronousTimeStep( // BEVIN mris_make_surfaces 1
 
     /* erase the faces this vertex is part of */
     
-    // This is probably not parallizable
+    // This will be a challenge to parallelize
     //
     if (mht) {
         MHTremoveAllFaces(mht, mris, v);
     }
 
-    // Might not be parallizable
+    // This will be a challenge to parallelize
     //
     if (mht) {
         mrisLimitGradientDistance(mris, mht, vno);
@@ -11670,12 +11671,16 @@ static double mrisAsynchronousTimeStep( // BEVIN mris_make_surfaces 1
         DiagBreak();
     }
 
-    /* should this be done here????? (BRF) what about undoing step??? */
-    v->dx = v->odx; /* for mrisTrackTotalDistances */
-    v->dy = v->ody;
-    v->dz = v->odz;
-
-    // This is probably not parallizable
+    // If this is done here, then the undo step needs to cope 
+    // Perhaps this is why mrisAsynchronousTimeStepNew does not do it
+    //
+    if (updateDxDyDz) {
+        v->dx = v->odx; /* for mrisTrackTotalDistances */
+        v->dy = v->ody;
+        v->dz = v->odz;
+    }
+    
+    // This will be a challenge to parallelize
     //
     if (mht) {
         MHTaddAllFaces(mht, mris, v);
@@ -11687,127 +11692,31 @@ static double mrisAsynchronousTimeStep( // BEVIN mris_make_surfaces 1
 
   return (delta_t);
 }
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
+// These functions were almost identical, but used separate "static int direction"
+// Before parallelizing the above, I have merged them
+//
+static double mrisAsynchronousTimeStep(
+    MRI_SURFACE * const mris, 
+    float         const momentum, 
+    float         const delta_t, 
+    MHT *         const mht, 
+    float         const max_mag)
+{
+    static int direction = -1;
+    return
+        mrisAsynchronousTimeStep(
+            mris, momentum, delta_t, mht, max_mag, &direction, true);
+}
 
-  Description
-  ------------------------------------------------------*/
 static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, float delta_t, MHT *mht, float max_mag)
 {
-  static int direction = 1;
-  double mag;
-  int vno, i;
-  VERTEX *v;
-
-  /* take a step in the gradient direction modulated by momentum */
-  if (mris->status == MRIS_RIGID_BODY) {
-    mris->da = delta_t * mris->alpha + momentum * mris->da;
-    mris->db = delta_t * mris->beta + momentum * mris->db;
-    mris->dg = delta_t * mris->gamma + momentum * mris->dg;
-    MRISrotate(mris, mris, mris->da, mris->db, mris->dg);
-  }
-  else
-    for (i = 0; i < mris->nvertices; i++) {
-      if (direction < 0) {
-        vno = mris->nvertices - i - 1;
-      }
-      else {
-        vno = i;
-      }
-      v = &mris->vertices[vno];
-      if (v->ripflag) {
-        continue;
-      }
-      if (vno == Gdiag_no) {
-        DiagBreak();
-      }
-      v->odx = delta_t * v->dx + momentum * v->odx;
-      v->ody = delta_t * v->dy + momentum * v->ody;
-      v->odz = delta_t * v->dz + momentum * v->odz;
-      mag = sqrt(v->odx * v->odx + v->ody * v->ody + v->odz * v->odz);
-      if (mag > max_mag) /* don't let step get too big */
-      {
-        mag = max_mag / mag;
-        v->odx *= mag;
-        v->ody *= mag;
-        v->odz *= mag;
-      }
-      if (vno == Gdiag_no) {
-        float dist, dot, dx, dy, dz;
-
-        dx = v->x - v->origx;
-        dy = v->y - v->origy;
-        dz = v->z - v->origz;
-        dist = sqrt(dx * dx + dy * dy + dz * dz);
-        dot = dx * v->nx + dy * v->ny + dz * v->nz;
-        fprintf(stdout,
-                "moving v %d by (%2.2f, %2.2f, %2.2f) dot=%2.2f-->"
-                "(%2.1f, %2.1f, %2.1f)\n",
-                vno,
-                v->odx,
-                v->ody,
-                v->odz,
-                v->odx * v->nx + v->ody * v->ny + v->odz * v->nz,
-                v->x,
-                v->y,
-                v->z);
-#if 0
-        fprintf
-        (stdout,
-         "n = (%2.1f,%2.1f,%2.1f), total dist=%2.3f, total dot = %2.3f\n",
-         v->nx, v->ny, v->nz, dist, dot) ;
-#endif
-      }
-
-/* erase the faces this vertex is part of */
-#if 0
-      for (fno = 0 ; fno < v->num ; fno++)
-      {
-        mrisEraseFace(mris, mri_filled, v->f[fno]) ;
-      }
-#else
-      if (mht) {
-        MHTremoveAllFaces(mht, mris, v);
-      }
-#endif
-
-      if (mht) {
-        mrisLimitGradientDistance(mris, mht, vno);
-      }
-
-      v->x += v->odx;
-      v->y += v->ody;
-      v->z += v->odz;
-
-      if ((fabs(v->x) > 128.0f) || (fabs(v->y) > 128.0f) || (fabs(v->z) > 128.0f)) {
-        DiagBreak();
-      }
-
-#if 0
-      /* should this be done here????? (BRF) what about undoing step??? */
-      v->dx = v->odx ;  /* for mrisTrackTotalDistances */
-      v->dy = v->ody ;
-      v->dz = v->odz ;
-#endif
-
-#if 0
-      /* write the new face positions into the filled volume */
-      for (fno = 0 ; fno < v->num ; fno++)
-      {
-        mrisFillFace(mris, mri_filled, v->f[fno]) ;
-      }
-#else
-      if (mht) {
-        MHTaddAllFaces(mht, mris, v);
-      }
-#endif
-  }
-
-  direction *= -1;
-  return (delta_t);
+    static int direction = -1;
+    return
+        mrisAsynchronousTimeStep(
+            mris, momentum, delta_t, mht, max_mag, &direction, false);
 }
+
 /*-----------------------------------------------------
   Parameters:
 
