@@ -178,7 +178,7 @@ void ROMP_pf_begin(
 	}
 	struct timespec timespec;
     int ret;
-#ifdef __APPLE__
+#ifdef Darwin17
     ret = mach_gettime(clockid, &timespec);
 #else
     ret = clock_gettime(clockid, &timespec);
@@ -239,7 +239,7 @@ void ROMP_pf_end(
 	}
 	struct timespec timespec;
     int ret;
-#ifdef __APPLE__
+#ifdef Darwin17
     ret = mach_gettime(clockid, &timespec);
 #else
     ret = clock_gettime(clockid, &timespec);
