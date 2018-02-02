@@ -384,6 +384,11 @@ public:
 
   void UpdateActiveFrame(int nFrame);
 
+  double GetVectorLineWidth()
+  {
+    return m_dVectorLineWidth;
+  }
+
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -436,6 +441,8 @@ public slots:
   void SetUnselectAllLabels();
   void ResetWindowLevel();
 
+  void SetVectorLineWidth(double val);
+
 signals:
   void ColorMapChanged();
   void ResliceInterpolationChanged();
@@ -452,6 +459,7 @@ signals:
   void ProjectionMapChanged();
   void ProjectMapTypeChanged(int nType);
   void LabelContourChanged(int n = -1);
+  void VectorLineWidthChanged(double val);
 
 private:
   void UpdateMinMaxValues();
@@ -539,6 +547,8 @@ private:
   bool    m_bUsePercentile;
   bool    m_bAutoAdjustFrameLevel;
   QMap<int, QPair<double, double> > m_mapMinMaxValues;
+
+  int     m_dVectorLineWidth;
 
   // ---------------------------------------------------------------------
 

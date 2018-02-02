@@ -159,7 +159,9 @@ PanelVolume::PanelVolume(QWidget *parent) :
                      << ui->comboBoxRenderObject
                      << ui->checkBoxNormalizeVectors
                      << ui->lineEditVectorScale
-                     << ui->labelVectorScale;
+                     << ui->labelVectorScale
+                     << ui->labelVectorLineWidth
+                     << ui->lineEditVectorLineWidth;
   //    << ui->labelMask
   //    << ui->comboBoxMask;
 
@@ -506,6 +508,7 @@ void PanelVolume::DoUpdateWidgets()
     }
     ui->checkBoxNormalizeVectors->setChecked(layer->GetProperty()->GetNormalizeVector());
     ChangeLineEditNumber( ui->lineEditVectorScale, layer->GetProperty()->GetVectorDisplayScale());
+    ChangeLineEditNumber( ui->lineEditVectorLineWidth, layer->GetProperty()->GetVectorLineWidth());
 
     ui->checkBoxShowInfo->setChecked( layer->GetProperty()->GetShowInfo() );
 
@@ -1543,6 +1546,18 @@ void PanelVolume::OnLineEditVectorDisplayScale(const QString &strg)
     double val = strg.toDouble(&ok);
     if (ok && val > 0)
       layer->GetProperty()->SetVectorDisplayScale(val);
+  }
+}
+
+void PanelVolume::OnLineEditVectorLineWidth(const QString &strg)
+{
+  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  if ( layer )
+  {
+    bool ok;
+    double val = strg.toDouble(&ok);
+    if (ok && val > 0)
+      layer->GetProperty()->SetVectorLineWidth(val);
   }
 }
 

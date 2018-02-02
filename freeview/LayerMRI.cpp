@@ -231,6 +231,7 @@ void LayerMRI::ConnectProperty()
   connect( p, SIGNAL(ProjectionMapChanged()), this, SLOT(UpdateProjectionMap()));
   connect( this, SIGNAL(ActiveFrameChanged(int)), this, SLOT(UpdateContour()));
   connect( p, SIGNAL(LabelContourChanged(int)), this, SLOT(OnLabelContourChanged(int)));
+  connect( p, SIGNAL(VectorLineWidthChanged(double)), this, SLOT(UpdateVectorLineWidth(double)));
 }
 
 void LayerMRI::SetResampleToRAS( bool bResample )
@@ -438,7 +439,6 @@ void LayerMRI::SetReorient( bool bReorient )
 {
   m_bReorient = bReorient;
 }
-
 
 bool LayerMRI::SaveVolume()
 {
@@ -1499,6 +1499,22 @@ void LayerMRI::TargetIndexToOriginalIndex(const int *n_in, int *n_out)
   RASToOriginalIndex(pos, n_out);
 }
 
+void LayerMRI::UpdateVectorLineWidth(double val)
+{
+  for ( int i = 0; i < 3; i++ )
+  {
+    m_glyphActor2D[i]->GetProperty()->SetLineWidth(val);
+  }
+  if (GetProperty()->GetVectorRepresentation() != LayerPropertyMRI::VR_Bar)
+  {
+    emit ActorUpdated();
+  }
+  else
+  {
+    UpdateVectorActor();
+  }
+}
+
 void LayerMRI::UpdateVectorActor()
 {
   this->blockSignals( true );
@@ -1555,7 +1571,7 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
     vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
     tube->SetInput( polydata );
     tube->SetNumberOfSides( 4 );
-    tube->SetRadius( qMin( qMin( voxel_size[0], voxel_size[1] ), voxel_size[2] ) / 8 );
+    tube->SetRadius( qMin( qMin( voxel_size[0], voxel_size[1] ), voxel_size[2] ) / 8 * GetProperty()->GetVectorLineWidth());
     tube->CappingOn();
     vtkPolyDataMapper::SafeDownCast( m_glyphActor2D[nPlane]->GetMapper() )->SetInput( tube->GetOutput() );
     vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[nPlane]->GetMapper() )->SetInput( tube->GetOutput() );
@@ -1600,6 +1616,10 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
     scale_dim = scaledata->GetDimensions();
     scale_scalar_type = scaledata->GetScalarType();
   }
+  double actor_pos[3] = {0,0,0};
+  actor_pos[nPlane] = voxel_size[nPlane]*(nPlane==2?-dim[nPlane]:dim[nPlane])/2;
+  m_glyphActor2D[nPlane]->SetPosition(actor_pos);
+
   switch ( nPlane )
   {
   case 0:
@@ -1615,7 +1635,7 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
         if (scaledata)
           scale = MyVTKUtils::GetImageDataComponent(scale_ptr, scale_dim, 1, n[0], i, j, 0, scale_scalar_type ) * scale_overall;
         
-        if ( !bNormalizeVector || (vtkMath::Normalize( v ) != 0) )
+        if ( /*!bNormalizeVector ||*/ (vtkMath::Normalize( v ) != 0) )
         {
           for (int k = 0; k < 3; k++)
           {
@@ -1679,7 +1699,7 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
         if (scaledata)
           scale = MyVTKUtils::GetImageDataComponent(scale_ptr, scale_dim, 1, i, n[1], j, 0, scale_scalar_type ) * scale_overall;
         
-        if ( !bNormalizeVector || vtkMath::Normalize( v ) != 0 )
+        if ( /*!bNormalizeVector ||*/ vtkMath::Normalize( v ) != 0 )
         {
           for (int k = 0; k < 3; k++)
           {
@@ -1743,7 +1763,7 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
         if (scaledata)
           scale = MyVTKUtils::GetImageDataComponent(scale_ptr, scale_dim, 1, i, j, n[2], 0, scale_scalar_type) * scale_overall;
         
-        if ( !bNormalizeVector || vtkMath::Normalize( v ) != 0 )
+        if ( /*!bNormalizeVector ||*/ vtkMath::Normalize( v ) != 0 )
         {
           for (int k = 0; k < 3; k++)
           {
