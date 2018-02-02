@@ -35650,6 +35650,7 @@ int MRIScomputeBorderValues(
     mri_tmp = MRIcopy(mri_brain, NULL);
   }
 
+
   float mean_dist = 0, mean_in = 0, mean_out = 0, mean_border = 0;
 
   int total_vertices = 0;
@@ -35662,8 +35663,8 @@ int MRIScomputeBorderValues(
   FILE *fp = NULL;
 
 
-
   /* first compute intensity of local gray/white boundary */
+
   MRISclearMarks(mris); /* for soap bubble smoothing later */
 
   int vno;
@@ -35721,6 +35722,7 @@ int MRIScomputeBorderValues(
     double current_sigma;
     for (current_sigma = sigma; current_sigma <= 10 * sigma; current_sigma *= 2) {
     
+      double mag = -1.0;
       float dist;
       for (dist = 0; dist > -max_thickness; dist -= step_size) {
 
@@ -35743,6 +35745,8 @@ int MRIScomputeBorderValues(
         if (mag >= 0.0) {
           break;
         }
+        
+        double val;
         MRIsampleVolume(mri_brain, xw, yw, zw, &val);
         if (val > border_hi) {
           break;
@@ -35862,7 +35866,8 @@ int MRIScomputeBorderValues(
     
     float dists[MAX_SAMPLES], mri[MAX_SAMPLES];
     int   numberOfSamples = 0;
-    
+
+    float dist;    
     for (dist = inward_dist; dist <= outward_dist; dist += STEP_SIZE) {
 
       double val;
@@ -35887,6 +35892,7 @@ int MRIScomputeBorderValues(
         double const x = v->x + v->nx * (dist - STEP_SIZE);
         double const y = v->y + v->ny * (dist - STEP_SIZE);
         double const z = v->z + v->nz * (dist - STEP_SIZE);
+        double xw,yw,zw;
         MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
         MRIsampleVolume(mri_brain, xw, yw, zw, &previous_val);
       }
@@ -35958,8 +35964,11 @@ int MRIScomputeBorderValues(
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &mag, sigma);
         
         // only for hires volumes - if intensities are increasing don't keep going - in gm
-        if (which == GRAY_WHITE && (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) &&
-            val > previous_val && next_val > val) {
+        if ((which == GRAY_WHITE)
+        &&  (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) 
+        &&  (val > previous_val )
+        /* && (next_val > val) */   // NOTE - the old code has this uncommented, but fails to init next_val on many of the paths leading to it!
+            ) { 
           break;
         }
         
@@ -36081,12 +36090,13 @@ int MRIScomputeBorderValues(
 
     if (vno == Gdiag_no) fclose(fp);
 
-    // doesn't appy to standard stream - only highres or if user specifies
+    // doesn't apply to standard stream - only highres or if user specifies
     if (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) {
 #ifdef WSIZE
 #undef WSIZE
 #endif
 #define WSIZE 7
+      int const whalf = WSIZE;
 
       if (vno == Gdiag_no) DiagBreak();
       {
@@ -36132,24 +36142,35 @@ int MRIScomputeBorderValues(
         }
       }
 
-      if (max_mag_val > 0 && max_mri / (1.15) > max_mag_val) {
+      if (max_mag_val > 0 && max_mri / 1.15 > max_mag_val) {
 
+        float peak = 0.0f, outside = 1.0f;
+      
         int i;
         for (i = 0; i < numberOfSamples; i++) {
           if (i == Gdiag_no2) DiagBreak();
+          
+          // Find a local maxima, where the slope changes from positive to zero or negative
           if (dm[i] > 0) continue;
 
-          float peak = dm[i];
-
-          int i1, whalf = WSIZE, num;
-          float outside = 1;
-
-          for (num = 0, outside = 0.0, i1 = MAX(0, i - whalf); i1 <= MIN(i + whalf, numberOfSamples - 1); i1++) {
+          peak    = dm[i];
+          outside = 0.0;
+          int num = 0;
+          
+          int const lo = MAX(0, i - whalf);          
+          int const hi = MIN(i + whalf + 1, numberOfSamples);
+          int i1;
+          for (i1 = lo; i1 < hi; i1++) {
             outside += dm[i1];
             num++;
-            if (dm[i1] < dm[i]) break;  // not a local maxima in the negative direction
+            if (dm[i1] < peak) break;  // not a local maxima in the negative direction
+                // If i1 <  i then dm[i1] is positive, and peak is negative, so this test is false
+                // If i1 == i then dm[i] == dm[i1], so this test fails
+                // It i1 >  i then this is searching for the first following slope that is even steeper down
           }
+          
           outside /= num;
+
           if ((peak < 0) && (i1 > i + whalf))  // found a local maximum that is not a flat region of 0
             break;
         }
@@ -36164,26 +36185,34 @@ int MRIScomputeBorderValues(
                    peak,
                    outside,
                    peak / outside);
-          max_mag_val = mri[i];
-          max_mag = fabs(dm[i]);
-          max_mag_dist = dists[i];
+          max_mag_val  = mri[i];            // beware - this is finding the highest vno that gets here
+          max_mag      = fabs(dm[i]);       // but getting here depends on the previously found max_mag_val !
+          max_mag_dist = dists[i];          // so this code can not be parallelized as is...
         }
+        
         else if (flags & IPFLAG_FIND_FIRST_WM_PEAK)  // not a local max in 1st derivative - try second */
         {
-          for (i = 0; i < len; i++) {
+          for (i = 0; i < numberOfSamples; i++) {
             if (i == Gdiag_no2) DiagBreak();
+
             if (dm2[i] >= 0) continue;
 
             peak = dm2[i];
-            for (num = 0, outside = 0.0, i1 = MAX(0, i - whalf); i1 <= MIN(i + whalf, len - 1); i1++) {
+            int num = 0;
+            outside = 0.0;
+            
+            int const lo = MAX(0, i - whalf);          
+            int const hi = MIN(i + whalf + 1, numberOfSamples);
+            int i1;
+            for (i1 = lo; i1 < hi; i1++) {
               outside += dm2[i1];
               num++;
               if (dm2[i1] < dm2[i]) break;  // not a local maxima in the negative direction
             }
-            val = mri[i];
-            next_val = mri[i + 1];
-            previous_val = mri[i - 1];
             outside /= num;
+            double val          = mri[i];
+            double next_val     = mri[i + 1];
+            double previous_val = mri[i - 1];
             // make sure it is in feasible range
             if ((previous_val > inside_hi) || (previous_val < border_low) || (next_val > outside_hi) ||
                 (next_val < outside_low) || (val > border_hi) || (val < border_low))
@@ -36192,7 +36221,8 @@ int MRIScomputeBorderValues(
             if ((peak < 0) && (i1 > i + whalf) && mri[i1])  // found a local maximum that is not a flat region of 0
               break;
           }
-          if (i < len - whalf && peak / outside > 1.5)  // it was a local max - set the target to here
+
+          if (i < numberOfSamples - whalf && peak / outside > 1.5)  // it was a local max - set the target to here
           {
             if (vno == Gdiag_no)
               printf(
@@ -36205,38 +36235,47 @@ int MRIScomputeBorderValues(
                   outside,
                   peak / outside);
 
-            max_mag = (dm[i]);
-            for (i1 = i + 1; i1 < len; i1++)  // search forward for largest (negative) derivative
+            max_mag = dm[i];
+            
+            int i1;
+            for (i1 = i + 1; i1 < numberOfSamples; i1++)  // search forward for largest (negative) derivative
               if (max_mag > dm[i1])           // previous one was largest negative one
                 break;
-            if (i1 < len) i = i1 - 1;
-            max_mag_val = mri[i];
-            max_mag = fabs(dm[i]);
+            
+            if (i1 < numberOfSamples) i = i1 - 1;
+            
+            max_mag_val  = mri[i];
+            max_mag      = fabs(dm[i]);
             max_mag_dist = dists[i];
           }
         }
+        
         if (vno == Gdiag_no) DiagBreak();
       }
     }
 
     if (which == GRAY_CSF && local_max_found == 0 && max_mag_dist > 0) {
-      float outlen;
-      int allgray = 1;
-
+      
       /* check to make sure it's not ringing near the gray white boundary,
          by seeing if there is uniform stuff outside that could be gray matter.
       */
+      int allgray = 1;
+
+      float outlen;
       for (outlen = max_mag_dist; outlen < max_mag_dist + 2; outlen += STEP_SIZE) {
-        x = v->x + v->nx * outlen;
-        y = v->y + v->ny * outlen;
-        z = v->z + v->nz * outlen;
+        double const x = v->x + v->nx * outlen;
+        double const y = v->y + v->ny * outlen;
+        double const z = v->z + v->nz * outlen;
+        double xw,yw,zw;
         MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+        double val;
         MRIsampleVolume(mri_brain, xw, yw, zw, &val);
         if ((val < outside_hi /*border_low*/) || (val > border_hi)) {
           allgray = 0;
           break;
         }
       }
+      
       if (allgray) {
         if (Gdiag_no == vno)
           printf(
@@ -36274,11 +36313,15 @@ int MRIScomputeBorderValues(
       if (max_mag_val < border_low) {
         max_mag_val = border_low;
       }
+
       mean_dist += max_mag_dist;
-      v->val = max_mag_val;
+
+      v->val  = max_mag_val;
       v->mean = max_mag;
+      
       mean_border += max_mag_val;
       total_vertices++;
+      
       v->d = max_mag_dist;
       v->marked = 1;
     }
