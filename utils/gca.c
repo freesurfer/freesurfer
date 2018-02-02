@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "faster_variants.h"
 #include "romp_support.h"
 
 #include "cma.h"
@@ -236,7 +237,7 @@ static int boundsCheck(int *pix, int *piy, int *piz, MRI *mri);
 
 static void set_equilavent_classes(int *equivalent_classes);
 
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 static void load_vals_xyzInt(const MRI *mri_inputs, int x, int y, int z, float *vals, int ninputs);
 static double gcaComputeSampleLogDensity_1_input(GCA_SAMPLE *gcas, float val);
 static double gcaComputeSampleConditionalLogDensity_1_input(GCA_SAMPLE *gcas, float val, int label);
@@ -4576,7 +4577,7 @@ float GCAcomputeLogSampleProbability(
     1;
 #endif
 
-  MATRIX const * m_prior2source_voxel_nonconst = 
+  MATRIX * m_prior2source_voxel_nonconst = 
     (transform->type == MORPH_3D_TYPE)
     ? NULL
     : GCAgetPriorToSourceVoxelMatrix(gca, mri_inputs, transform);
@@ -4664,14 +4665,14 @@ float GCAcomputeLogSampleProbability(
 
       // get values from all inputs
 
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
       if (gca->ninputs > 1) 
         load_vals_xyzInt(mri_inputs, x, y, z, vals, gca->ninputs);
       else
 #endif
         load_vals(mri_inputs, x, y, z, vals, gca->ninputs);
 
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
       if (gca->ninputs == 1)
         log_p = gcaComputeSampleLogDensity_1_input(&gcas[i], vals[0]);
       else 
@@ -15010,7 +15011,7 @@ void load_vals(const MRI *mri_inputs, float x, float y, float z, float *vals, in
   }
 }
 
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 static void load_vals_xyzInt(const MRI *mri_inputs, int x, int y, int z, float *vals, int ninputs)
 {
   MRIsampleVolumeFrame_xyzInt_nRange_floats(mri_inputs, x, y, z, 0, ninputs, vals);
@@ -15254,7 +15255,7 @@ static double gcaComputeSampleLogDensity(GCA_SAMPLE *gcas, float *vals, int ninp
 }
 
 
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 static double gcaComputeSampleLogDensity_1_input(GCA_SAMPLE *gcas, float val)
 {
   double log_p;
@@ -15282,7 +15283,7 @@ static double gcaComputeSampleConditionalLogDensity(GCA_SAMPLE *gcas, float *val
   }
   return (log_p);
 }
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 static double gcaComputeSampleConditionalLogDensity_1_input(GCA_SAMPLE *gcas, float val, int label)
 {
   double log_p, det;
@@ -15339,7 +15340,7 @@ static double sample_covariance_determinant(GCA_SAMPLE *gcas, int ninputs)
   return (det);
 }
 
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 static double GCAsampleMahDist_1_input(GCA_SAMPLE *gcas, float val) 
 {
     float v = val - gcas->means[0];

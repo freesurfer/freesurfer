@@ -1,4 +1,3 @@
-#define BEVIN_FASTER_gcamSmoothnessEnergy
 #define BEVIN_GCAMSMOOTHNESSENERGY_REPRODUCIBLE
 #define BEVIN_GCAMJACOBIANENERGY_REPRODUCIBLE
 #define BEVIN_GCAMLOGLIKELIHOODENERGY_REPRODUCIBLE
@@ -80,6 +79,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "faster_variants.h"
 #include "romp_support.h"
 
 #include "cma.h"
@@ -6806,13 +6806,13 @@ int gcamElasticTerm(const GCA_MORPH *gcam, GCA_MORPH_PARMS *parms)
   return (NO_ERROR);
 }
 
-#ifdef BEVIN_FASTER_gcamSmoothnessEnergy
+#ifdef FASTER_gcamSmoothnessEnergy
 static double gcamSmoothnessEnergy_old(const GCA_MORPH *gcam, const MRI *mri);
 static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri);
 #endif
 
 double gcamSmoothnessEnergy(const GCA_MORPH *gcam, const MRI *mri) 
-#ifdef BEVIN_FASTER_gcamSmoothnessEnergy
+#ifdef FASTER_gcamSmoothnessEnergy
 {
     static bool const do_old = false;
     static bool const do_new = true;
@@ -6973,7 +6973,7 @@ static double gcamSmoothnessEnergy_old(const GCA_MORPH *gcam, const MRI *mri)
   return (sse);
 }
 
-#ifdef BEVIN_FASTER_gcamSmoothnessEnergy
+#ifdef FASTER_gcamSmoothnessEnergy
 static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
 {
   /*!

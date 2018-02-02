@@ -30,10 +30,13 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-ROMP_level romp_level = 
-    ROMP_level_fast;              	// should not be set to ROMP_serial
-    //ROMP_level_assume_reproducible;   // doesn't require the random seed to be set
-    //ROMP_level_shown_reproducible;
+// measurement is showing there is only a few percent difference in timing
+// between fast and assume_reproducible
+// so make the later the default 
+//
+ROMP_level romp_level =                 // should not be set to ROMP_serial 
+    //ROMP_level_fast;
+    ROMP_level_assume_reproducible;     // doesn't require the random seed to be     //ROMP_level_shown_reproducible;
 
 typedef struct StaticData {
     ROMP_pf_static_struct* next;
@@ -44,15 +47,21 @@ typedef struct StaticData {
 
 ROMP_pf_static_struct* known_ROMP_pf;
 
-int ROMP_if_parallel(ROMP_level level, ROMP_pf_static_struct* pf_static) 
+
+int ROMP_if_parallel1(ROMP_level level)
+{
+    return (level >= romp_level);               // sadly this allows nested parallelism
+}                                               // sad only because it hasn't been analyzed
+
+int ROMP_if_parallel2(ROMP_level level, ROMP_pf_static_struct* pf_static) 
 {
     StaticData* ptr = (StaticData*)pf_static->ptr;
     if (ptr) ptr->level = level;
-    
+                                                // TODO detect nested parallelism
     ROMP_level current_level = romp_level;
     int result = level >= current_level;
 
-    if (result) romp_level = ROMP_level__size;	// disable nested parallelism
+    if (result) romp_level = ROMP_level__size;	// disable nested parallelism because hard to analyze
     
     return result;
 }

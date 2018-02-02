@@ -26,7 +26,7 @@
 #ifndef MRI_H
 #define MRI_H
 
-#define BEVIN_FASTER_MRI_EM_REGISTER
+#include "faster_variants.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -817,7 +817,7 @@ int   MRIsampleVolumeFrame( const MRI *mri,
 			    double x, double y, double z,
 			    const int frame,
 			    double *pval);
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 int   MRIsampleVolumeFrame_xyzInt_nRange_floats(const MRI *mri,
                             int x, int y, int z, 
 			    const int frameBegin,
@@ -829,7 +829,7 @@ int   MRIsampleVolumeFrameType( const MRI *mri,
 				const int frame,
 				int interp_type,
 				double *pval );
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 int   MRIsampleVolumeFrameType_xyzInt_nRange_SAMPLE_NEAREST_floats(const MRI *mri,
                             int x, int y, int z, 
 			    const int frameBegin,
