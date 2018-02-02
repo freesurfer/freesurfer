@@ -24,7 +24,7 @@
 
 #pragma once
 
-#define ROMP_SUPPORT_ENABLED
+//#define ROMP_SUPPORT_ENABLED
 
 #ifdef HAVE_OPENMP
 #include <omp.h>

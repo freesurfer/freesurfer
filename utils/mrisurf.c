@@ -79974,7 +79974,7 @@ void mris_hash_init (MRIS_HASH* hash, MRIS const * mris)
 
 static void vertix_hash_add(MRIS_HASH* hash, VERTEX const * vertex)
 {
-    #define SEP ;
+    #define SEP
     #define ELTP(TARGET, MBR) // don't hash pointers.   Sometime may implement hashing their target
     #define ELTT(TYPE,   MBR) hash->hash = fnv_add(hash->hash, (const unsigned char*)(&vertex->MBR), sizeof(vertex->MBR));
     LIST_OF_VERTEX_ELTS
@@ -79985,9 +79985,18 @@ static void vertix_hash_add(MRIS_HASH* hash, VERTEX const * vertex)
     hash->hash = fnv_add(hash->hash, (const unsigned char*)(vertex->v), sizeof(*(vertex->v))*vertex->vtotal );
 }
 
+static void face_hash_add(MRIS_HASH* hash, FACE const * face)
+{
+#define SEP
+#define ELTT(TYPE,       MBR) hash->hash = fnv_add(hash->hash, (const unsigned char*)(&face->MBR), sizeof(face->MBR));
+LIST_OF_FACE_ELTS
+#undef ELTT
+#undef SEP
+}
+
 void mris_hash_add(MRIS_HASH* hash, MRIS const * mris)
 {
-    #define SEP ;
+    #define SEP
     #define ELTP(TARGET, MBR) // don't hash pointers.   Sometime may implement hashing their target
     #define ELTT(TYPE,   MBR) hash->hash = fnv_add(hash->hash, (const unsigned char*)(&mris->MBR), sizeof(mris->MBR));
     #define ELTX(TYPE,   MBR) 
@@ -79998,10 +80007,15 @@ void mris_hash_add(MRIS_HASH* hash, MRIS const * mris)
     #undef SEP
 
     // Now include some of the pointer targets
-    // TBD
+    //
     int vno;
     for (vno = 0; vno < mris->nvertices; vno++) {
         vertix_hash_add(hash, &mris->vertices[vno]);
+    }
+    
+    int fno;
+    for (fno = 0; fno < mris->nfaces; fno++) {
+        face_hash_add(hash, &mris->faces[fno]);
     }
 }
 
