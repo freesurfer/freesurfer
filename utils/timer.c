@@ -32,7 +32,7 @@
 
 // clock_gettime is not available on osx < 10.12 sierra
 // mach_gettime is a custom replacement for that
-#ifdef __APPLE__  // todo: maybe create a HAVE_CLOCK_GETTIME macro
+#ifdef Darwin17
 #include <mach/clock.h>
 #include <mach/mach.h>
 
@@ -41,7 +41,7 @@ int mach_gettime(clockid_t clk_id, struct timespec *tp)
   int ret;
   clock_serv_t cclock;
   mach_timespec_t mts;
-  host_get_clock_service(mach_host_self(), clk_id, &cclock);  // todo: calendar time should be clk_id I think
+  host_get_clock_service(mach_host_self(), clk_id, &cclock);
   ret = clock_get_time(cclock, &mts);
   mach_port_deallocate(mach_task_self(), cclock);
   tp->tv_sec = mts.tv_sec;

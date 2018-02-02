@@ -25,10 +25,11 @@
 
 using namespace std;
 
+#include "faster_variants.h"
+
 #include "cudacheck.h"
 
 #include "gcasgpu.hpp"
-
 
 
 // ====================================================
@@ -75,7 +76,7 @@ void GCASampleGPU::SendGPU( GCA *gca,
 
   float* covars = new float[nSamples];
   float* means = new float[nSamples];
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
   float* prior_access_via_setGetPriors = new float[nSamples];
   float* prior_logs = new float[nSamples];
 #else
@@ -100,7 +101,7 @@ void GCASampleGPU::SendGPU( GCA *gca,
     // These lines require the check for ninputs==1
     covars[i] = gcaSample[i].covars[0];
     means[i] = gcaSample[i].means[0];
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
     prior_access_via_setGetPriors[i] = gcaSample[i].prior_access_via_setGetPrior;
     prior_logs[i] = gcaSample[i].prior_log;
 #else
@@ -126,7 +127,7 @@ void GCASampleGPU::SendGPU( GCA *gca,
                               nSamples*sizeof(float),
                               cudaMemcpyHostToDevice ) );
 
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
   CUDA_SAFE_CALL( cudaMemcpy( this->d_prior_access_via_setGetPriors, prior_access_via_setGetPriors,
 			      nSamples*sizeof(float),
 			      cudaMemcpyHostToDevice ) );
@@ -145,7 +146,7 @@ void GCASampleGPU::SendGPU( GCA *gca,
   delete[] myz;
   delete[] covars;
   delete[] means;
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
   delete[] prior_access_via_setGetPriors;
   delete[] prior_logs;
 #else
@@ -175,7 +176,7 @@ void GCASampleGPU::Allocate( const unsigned int n )
 
     CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_means),
                                 n*sizeof(float) ) );
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
     CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_prior_access_via_setGetPriors),
                                 n*sizeof(float) ) );
     CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_prior_logs),
@@ -201,7 +202,7 @@ void GCASampleGPU::Release( void )
     cudaFree( d_y );
     cudaFree( d_z );
     cudaFree( d_means );
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
     cudaFree( d_prior_access_via_setGetPriors );
     cudaFree( d_prior_logs );
 #else

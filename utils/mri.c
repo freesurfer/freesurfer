@@ -38,6 +38,7 @@ const char *MRI_C_VERSION = "$Revision: 1.575 $";
 #include <stdlib.h>
 #include <string.h>
 
+#include "faster_variants.h"
 #include "romp_support.h"
 
 #include "box.h"
@@ -8932,7 +8933,7 @@ int MRIsampleVolumeFrame(const MRI *mri, double x, double y, double z, const int
   return (NO_ERROR);
 }
 
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 int   MRIsampleVolumeFrame_xyzInt_nRange_floats(const MRI *mri,
                             int x, int y, int z, 
 			    const int frameBegin,
@@ -9284,7 +9285,7 @@ int MRIsampleVolumeFrameType(
   return (NO_ERROR);
 }
 
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 int   MRIsampleVolumeFrameType_xyzInt_nRange_SAMPLE_NEAREST_floats(const MRI *mri,
                             int xv, int yv, int zv, 
 			    const int frameBegin,
