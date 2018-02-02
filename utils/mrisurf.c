@@ -11576,7 +11576,7 @@ static double mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_
     float         const max_mag,
     int*          const directionPtr,
     bool          const updateDxDyDz)
-    
+{    
   *directionPtr *= -1;
 
   /* take a step in the gradient direction modulated by momentum */
@@ -11600,7 +11600,7 @@ static double mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_
   for (i = 0; i < mris->nvertices; i++) {
 
     int const vno =                 // this strongly suggests it is NOT a parallelizable algorithm
-      (*directionPtr < 0) {             // since the direction through the nodes should not make a difference!
+      (*directionPtr < 0)           // since the direction through the nodes should not make a difference!
       ? (mris->nvertices - i - 1)
       : i;
 
@@ -11705,7 +11705,7 @@ static double mrisAsynchronousTimeStep(
 {
     static int direction = -1;
     return
-        mrisAsynchronousTimeStep(
+        mrisAsynchronousTimeStep_optionalDxDyDzUpdate(
             mris, momentum, delta_t, mht, max_mag, &direction, true);
 }
 
@@ -11713,7 +11713,7 @@ static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, flo
 {
     static int direction = -1;
     return
-        mrisAsynchronousTimeStep(
+        mrisAsynchronousTimeStep_optionalDxDyDzUpdate(
             mris, momentum, delta_t, mht, max_mag, &direction, false);
 }
 
@@ -35622,36 +35622,27 @@ int MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm
 #endif
 
 #define MAX_SAMPLES 1000
-int MRIScomputeBorderValues(MRI_SURFACE *mris,
-                            MRI *mri_brain,
-                            MRI *mri_smooth,
-                            double inside_hi,
-                            double border_hi,
-                            double border_low,
-                            double outside_low,
-                            double outside_hi,
-                            double sigma,
-                            float max_thickness,
-                            FILE *log_fp,
-                            int which,
-                            MRI *mri_mask,
-                            double thresh,
-                            int flags,
-                            MRI *mri_aseg)  // BEVIN mris_make_surfaces 2
+int MRIScomputeBorderValues(
+    MRI_SURFACE * const mris,
+    MRI         * const mri_brain,
+    MRI         * const mri_smooth,
+    double        const inside_hi,
+    double        const border_hi,
+    double        const border_low,
+    double        const outside_low,
+    double        const outside_hi,
+    double        const sigma,
+    float         const max_thickness,
+    FILE        * const log_fp,
+    int           const which,
+    MRI *         const mri_mask,
+    double        const thresh,
+    int           const flags,
+    MRI *         const mri_aseg)  // BEVIN mris_make_surfaces 2
 {
-  double val, x, y, z, max_mag_val, xw, yw, zw, mag, max_mag, max_mag_dist = 0.0f, previous_val, next_val, min_val,
-                                                              inward_dist, outward_dist, xw1, yw1, zw1, min_val_dist,
-                                                              orig_dist, dx, dy, dz, previous_mag, next_mag;
-  int total_vertices, vno, nmissing = 0, nout = 0, nin = 0, nfound = 0, nalways_missing = 0, local_max_found, ngrad_max,
-                           ngrad, nmin, num_changed = 0, i;
-  float mean_border, mean_in, mean_out, dist, nx, ny, nz, mean_dist, step_size, dists[MAX_SAMPLES], mri[MAX_SAMPLES],
-      dm[MAX_SAMPLES], dm2[MAX_SAMPLES];
-  double current_sigma;
-  VERTEX *v;
-  FILE *fp = NULL;
+  float const step_size = mri_brain->xsize / 2;
+    
   MRI *mri_tmp;
-
-  step_size = mri_brain->xsize / 2;
   if (mri_brain->type == MRI_UCHAR) {
     mri_tmp = MRIreplaceValues(mri_brain, NULL, 255, 0);
   }
@@ -35659,13 +35650,24 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
     mri_tmp = MRIcopy(mri_brain, NULL);
   }
 
+  float mean_dist = 0, mean_in = 0, mean_out = 0, mean_border = 0;
+
+  int total_vertices = 0;
+  
+  double max_mag_dist = 0.0f;
+
+  int ngrad_max = 0, ngrad = 0, nmin = 0;
+  int nmissing  = 0, nout  = 0, nin  = 0, nfound = 0, nalways_missing = 0, num_changed = 0;
+  
+  FILE *fp = NULL;
+
+
+
   /* first compute intensity of local gray/white boundary */
-  mean_dist = mean_in = mean_out = mean_border = 0.0f;
-  ngrad_max = ngrad = nmin = 0;
   MRISclearMarks(mris); /* for soap bubble smoothing later */
 
-  total_vertices = 0;
-  
+  int vno;
+
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(serial)
@@ -35673,7 +35675,7 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
     
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag) {
       ROMP_PF_continue;
     }
@@ -35681,45 +35683,62 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
       DiagBreak();
     }
 
-    x = v->x;
-    y = v->y;
-    z = v->z;
-    MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
-    x = v->x + v->nx;
-    y = v->y + v->ny;
-    z = v->z + v->nz;
-    MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw1, &yw1, &zw1);
-    nx = xw1 - xw;
-    ny = yw1 - yw;
-    nz = zw1 - zw;
-    dist = sqrt(SQR(nx) + SQR(ny) + SQR(nz));
-    if (FZERO(dist)) {
-      dist = 1;
-    }
-    nx /= dist;
-    ny /= dist;
-    nz /= dist;
+    float nx,ny,nz;
+    {
+      double x,y,z;
+      
+      double xw, yw, zw;
+      x = v->x;
+      y = v->y;
+      z = v->z;
+      MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+      
+      double xw1, yw1, zw1;
+      x = v->x + v->nx;
+      y = v->y + v->ny;
+      z = v->z + v->nz;
+      MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw1, &yw1, &zw1);
+    
+      nx = xw1 - xw;
+      ny = yw1 - yw;
+      nz = zw1 - zw;
 
+      float dist = sqrt(SQR(nx) + SQR(ny) + SQR(nz));
+      if (FZERO(dist)) dist = 1;
+      nx /= dist;
+      ny /= dist;
+      nz /= dist;
+    }
+    
     /*
       find the distance in the directions parallel and anti-parallel to
       the surface normal in which the gradient is pointing 'inwards'.
       The border will then be constrained to be within that region.
     */
-    inward_dist = 1.0;
-    outward_dist = -1.0;
+    double inward_dist  =  1.0;
+    double outward_dist = -1.0;
+
+    double current_sigma;
     for (current_sigma = sigma; current_sigma <= 10 * sigma; current_sigma *= 2) {
+    
+      float dist;
       for (dist = 0; dist > -max_thickness; dist -= step_size) {
-        dx = v->x - v->origx;
-        dy = v->y - v->origy;
-        dz = v->z - v->origz;
-        orig_dist = fabs(dx * v->nx + dy * v->ny + dz * v->nz);
+
+        double dx = v->x - v->origx;
+        double dy = v->y - v->origy;
+        double dz = v->z - v->origz;
+        double orig_dist = fabs(dx * v->nx + dy * v->ny + dz * v->nz);
+
         if (fabs(dist) + orig_dist > max_thickness) {
           break;
         }
-        x = v->x + v->nx * dist;
-        y = v->y + v->ny * dist;
-        z = v->z + v->nz * dist;
+
+        double xw, yw, zw;
+        double const x = v->x + v->nx * dist;
+        double const y = v->y + v->ny * dist;
+        double const z = v->z + v->nz * dist;
         MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+        
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &mag, current_sigma);
         if (mag >= 0.0) {
           break;
@@ -35735,22 +35754,32 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
           }
         }
       }
+
       inward_dist = dist + step_size / 2;
 
       if (DIAG_VERBOSE_ON && mri_brain->xsize < .95 && mag >= 0.0)  // refine inward_dist for hires volumes
       {
         for (dist = inward_dist; dist > -max_thickness; dist -= step_size / 2) {
+          double x,y,z;
+          
+          double xw, yw, zw;
+
           x = v->x + v->nx * dist;
           y = v->y + v->ny * dist;
           z = v->z + v->nz * dist;
           MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+          
+          double val;
           MRIsampleVolume(mri_brain, xw, yw, zw, &val);
 
           x = v->x + v->nx * (dist + step_size / 2);
           y = v->y + v->ny * (dist + step_size / 2);
           z = v->z + v->nz * (dist + step_size / 2);
           MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+          
+          double next_val;
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
+          
           if (next_val < val)  // found max inwards intensity
           {
             break;
@@ -35760,21 +35789,25 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
       }
 
       for (dist = 0; dist < max_thickness; dist += step_size) {
-        dx = v->x - v->origx;
-        dy = v->y - v->origy;
-        dz = v->z - v->origz;
-        orig_dist = fabs(dx * v->nx + dy * v->ny + dz * v->nz);
+        double dx = v->x - v->origx;
+        double dy = v->y - v->origy;
+        double dz = v->z - v->origz;
+        double orig_dist = fabs(dx * v->nx + dy * v->ny + dz * v->nz);
         if (fabs(dist) + orig_dist > max_thickness) {
           break;
         }
-        x = v->x + v->nx * dist;
-        y = v->y + v->ny * dist;
-        z = v->z + v->nz * dist;
+
+        double xw, yw, zw;
+        double const x = v->x + v->nx * dist;
+        double const y = v->y + v->ny * dist;
+        double const z = v->z + v->nz * dist;
         MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &mag, current_sigma);
         if (mag >= 0.0) {
           break;
         }
+
+        double val;
         MRIsampleVolume(mri_brain, xw, yw, zw, &val);
         if (val < border_low) {
           break;
@@ -35786,7 +35819,9 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
           }
         }
       }
+
       outward_dist = dist - step_size / 2;
+      
       if (!isfinite(outward_dist)) {
         DiagBreak();
       }
@@ -35819,41 +35854,58 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
     */
 
     /* search in the normal direction to find the min value */
-    max_mag_val = -10.0f;
-    mag = 5.0f;
-    max_mag = 0.0f;
-    min_val = 10000.0;
-    min_val_dist = 0.0f;
-    local_max_found = 0;
-    for (i = 0, dist = inward_dist; dist <= outward_dist; dist += STEP_SIZE) {
-      x = v->x + v->nx * dist;
-      y = v->y + v->ny * dist;
-      z = v->z + v->nz * dist;
-      MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
-      MRIsampleVolume(mri_brain, xw, yw, zw, &val);
-      dists[i] = dist;
-      mri[i] = val;
-      i++;
+    double max_mag_val = -10.0f;
+    double max_mag = 0.0f;
+    double min_val = 10000.0;
+    double min_val_dist = 0.0f;
+    int    local_max_found = 0;
+    
+    float dists[MAX_SAMPLES], mri[MAX_SAMPLES];
+    int   numberOfSamples = 0;
+    
+    for (dist = inward_dist; dist <= outward_dist; dist += STEP_SIZE) {
 
+      double val;
+      {
+        double const x = v->x + v->nx * dist;
+        double const y = v->y + v->ny * dist;
+        double const z = v->z + v->nz * dist;
+
+        double xw, yw, zw;
+        MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+      
+        MRIsampleVolume(mri_brain, xw, yw, zw, &val);
+      }
+      
+      dists[numberOfSamples] = dist;
+      mri[numberOfSamples]   = val;
+      numberOfSamples++;
+
+      double previous_val;
 #if 1
-      x = v->x + v->nx * (dist - STEP_SIZE);
-      y = v->y + v->ny * (dist - STEP_SIZE);
-      z = v->z + v->nz * (dist - STEP_SIZE);
-      MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
-      MRIsampleVolume(mri_brain, xw, yw, zw, &previous_val);
+      {
+        double const x = v->x + v->nx * (dist - STEP_SIZE);
+        double const y = v->y + v->ny * (dist - STEP_SIZE);
+        double const z = v->z + v->nz * (dist - STEP_SIZE);
+        MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+        MRIsampleVolume(mri_brain, xw, yw, zw, &previous_val);
+      }
 #else
       /* find max val within 1 mm in inwards direction */
       {
+        previous_val = 0.0;
         float d;
-        double tmp_val;
-
-        previous_val = 0;
         for (d = 0.25; d <= 1.5; d += 0.25) {
-          x = v->x + v->nx * (d - 1);
-          y = v->y + v->ny * (d - 1);
-          z = v->z + v->nz * (d - 1);
+          double xw, yw, zw;
+
+          double const x = v->x + v->nx * (d - 1);
+          double const y = v->y + v->ny * (d - 1);
+          double const z = v->z + v->nz * (d - 1);
           MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+
+          double tmp_val;
           MRIsampleVolume(mri_brain, xw, yw, zw, &tmp_val);
+
           if (tmp_val > previous_val) {
             previous_val = tmp_val;
           }
@@ -35863,6 +35915,11 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
 
       /* the previous point was inside the surface */
       if (previous_val < inside_hi && previous_val >= border_low) {
+      
+        double xw, yw, zw;
+        double x,y,z;
+        double val;
+        
         /* see if we are at a local maximum in the gradient magnitude */
         x = v->x + v->nx * dist;
         y = v->y + v->ny * dist;
@@ -35874,12 +35931,16 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
         y = v->y + v->ny * (dist + STEP_SIZE);
         z = v->z + v->nz * (dist + STEP_SIZE);
         MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+        
+        double next_mag;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &next_mag, sigma);
 
         x = v->x + v->nx * (dist - STEP_SIZE);
         y = v->y + v->ny * (dist - STEP_SIZE);
         z = v->z + v->nz * (dist - STEP_SIZE);
         MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+        
+        double previous_mag;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &previous_mag, sigma);
 
         if (val < min_val) {
@@ -35892,15 +35953,20 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
         y = v->y + v->ny * dist;
         z = v->z + v->nz * dist;
         MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+
+        double mag;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &mag, sigma);
+        
         // only for hires volumes - if intensities are increasing don't keep going - in gm
         if (which == GRAY_WHITE && (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) &&
             val > previous_val && next_val > val) {
           break;
         }
+        
         if ((mri_aseg != NULL) && (MRIindexNotInVolume(mri_aseg, xw, yw, zw) == 0)) {
-          int label;
-          label = MRIgetVoxVal(mri_aseg, nint(xw), nint(yw), nint(zw), 0);
+
+          int const label = MRIgetVoxVal(mri_aseg, nint(xw), nint(yw), nint(zw), 0);
+
           if (vno == Gdiag_no)
             printf("v %d: label distance %2.2f = %s @ (%d %d %d)\n",
                    vno,
@@ -35909,8 +35975,10 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
                    nint(xw),
                    nint(yw),
                    nint(zw));
-          if ((mris->hemisphere == LEFT_HEMISPHERE && IS_RH_CLASS(label)) ||
-              (mris->hemisphere == RIGHT_HEMISPHERE && IS_LH_CLASS(label))) {
+                   
+          if ((mris->hemisphere == LEFT_HEMISPHERE  && IS_RH_CLASS(label)) ||
+              (mris->hemisphere == RIGHT_HEMISPHERE && IS_LH_CLASS(label))
+             ) {
             if (vno == Gdiag_no)
               printf("v %d: terminating search at distance %2.2f due to presence of contra tissue (%s)\n",
                      vno,
@@ -35919,6 +35987,7 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
             break;
           }
         }
+        
         if (which == GRAY_CSF) {
           /*
             sample the next val we would process.
@@ -35931,10 +36000,14 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
             as the gray/white gradient
             often continues seemlessly into the gray/csf.
           */
-          x = v->x + v->nx * (dist + STEP_SIZE);
-          y = v->y + v->ny * (dist + STEP_SIZE);
-          z = v->z + v->nz * (dist + STEP_SIZE);
+          double xw,yw,zw;
+          
+          double const x = v->x + v->nx * (dist + STEP_SIZE);
+          double const y = v->y + v->ny * (dist + STEP_SIZE);
+          double const z = v->z + v->nz * (dist + STEP_SIZE);
           MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+          
+          double next_val;
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
           if (next_val < border_low) {
             next_mag = 0;
@@ -35952,10 +36025,14 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
             /* (!local_max_found || (fabs(mag) > max_mag)) && */
             (fabs(mag) > fabs(previous_mag)) && (fabs(mag) > fabs(next_mag)) && (val <= border_hi) &&
             (val >= border_low)) {
-          x = v->x + v->nx * (dist + 1);
-          y = v->y + v->ny * (dist + 1);
-          z = v->z + v->nz * (dist + 1);
+            
+          double xw,yw,zw;
+          double const x = v->x + v->nx * (dist + 1);
+          double const y = v->y + v->ny * (dist + 1);
+          double const z = v->z + v->nz * (dist + 1);
           MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+          
+          double next_val;
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
           /*
             if next val is in the right range, and the intensity at
@@ -35963,18 +36040,18 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
             max, assume it is the correct one.
           */
           if ((next_val >= outside_low) &&
-              (next_val <= border_hi) &&
-              (next_val <= outside_hi) &&
+              (next_val <= border_hi  ) &&
+              (next_val <= outside_hi ) &&
 #if 0
               (!local_max_found || (val < max_mag_val)))
 #else
               (!local_max_found || (max_mag < fabs(mag))))
 #endif
-          {
+          {                             // beware, this is non-deterministic! if the max mag has equal fabs(), any could be chosen
             local_max_found = 1;
-            max_mag_dist = dist;
-            max_mag = fabs(mag);
-            max_mag_val = val;
+            max_mag_dist = dist; 
+            max_mag      = fabs(mag);
+            max_mag_val  = val;         
           }
         }
         else {
@@ -35983,11 +36060,15 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
             if the intensity is in the right range.
           */
           if ((local_max_found == 0) && (fabs(mag) > max_mag) && (val <= border_hi) && (val >= border_low)) {
-            x = v->x + v->nx * (dist + 1);
-            y = v->y + v->ny * (dist + 1);
-            z = v->z + v->nz * (dist + 1);
+            double const x = v->x + v->nx * (dist + 1);
+            double const y = v->y + v->ny * (dist + 1);
+            double const z = v->z + v->nz * (dist + 1);
+            double xw,yw,zw;
             MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+            
+            double next_val;
             MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
+            
             if (next_val >= outside_low && next_val <= border_hi && next_val < outside_hi) {
               max_mag_dist = dist;
               max_mag = fabs(mag);
@@ -36006,8 +36087,6 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
 #undef WSIZE
 #endif
 #define WSIZE 7
-      int len = i, i1, whalf = WSIZE, num;
-      float max_mri, peak = 0, outside = 1;
 
       if (vno == Gdiag_no) DiagBreak();
       {
@@ -36017,23 +36096,28 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
             DiagBreak();
           }
       }
+      
       // find max in range, and also compute derivative and put it in dm array
-      max_mri = 0;
-      for (i = 0; i < len; i++) {
-        if (mri[i] > max_mri) {
-          max_mri = mri[i];
-        }
-        if (i < len - 1 && i > 0) {
-          dm[i] = mri[i + 1] - mri[i - 1];
-        }
-        else {
-          dm[i] = 0;
+      float max_mri = 0;
+      float dm[MAX_SAMPLES];
+      {
+        int i;
+        for (i = 0; i < numberOfSamples; i++) {
+          if (mri[i] > max_mri) max_mri = mri[i];
+          if (i < numberOfSamples - 1 && i > 0) {
+            dm[i] = mri[i + 1] - mri[i - 1];
+          } else {
+            dm[i] = 0;
+          }
         }
       }
-      // compute second derivative and look for local max in it
+      
+      // compute second derivative
+      float dm2[MAX_SAMPLES];
       if (flags & IPFLAG_FIND_FIRST_WM_PEAK) {
-        for (i = 0; i < len; i++) {
-          if (i < len - 1 && i > 0)
+        int i;
+        for (i = 0; i < numberOfSamples; i++) {
+          if (i < numberOfSamples - 1 && i > 0)
             dm2[i] = dm[i + 1] - dm[i - 1];
           else
             dm2[i] = 0;
@@ -36042,19 +36126,25 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
           char fname[STRLEN];
           sprintf(fname, "v%d.%2.0f.dm.log", Gdiag_no, sigma * 100);
           fp = fopen(fname, "w");
-          for (i = 0; i < len; i++) fprintf(fp, "%f %f\n", dm[i], dm2[i]);
+          for (i = 0; i < numberOfSamples; i++) fprintf(fp, "%f %f\n", dm[i], dm2[i]);
           fclose(fp);
           DiagBreak();
         }
       }
 
       if (max_mag_val > 0 && max_mri / (1.15) > max_mag_val) {
-        for (i = 0; i < len; i++) {
+
+        int i;
+        for (i = 0; i < numberOfSamples; i++) {
           if (i == Gdiag_no2) DiagBreak();
           if (dm[i] > 0) continue;
 
-          peak = dm[i];
-          for (num = 0, outside = 0.0, i1 = MAX(0, i - whalf); i1 <= MIN(i + whalf, len - 1); i1++) {
+          float peak = dm[i];
+
+          int i1, whalf = WSIZE, num;
+          float outside = 1;
+
+          for (num = 0, outside = 0.0, i1 = MAX(0, i - whalf); i1 <= MIN(i + whalf, numberOfSamples - 1); i1++) {
             outside += dm[i1];
             num++;
             if (dm[i1] < dm[i]) break;  // not a local maxima in the negative direction
@@ -36063,7 +36153,8 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
           if ((peak < 0) && (i1 > i + whalf))  // found a local maximum that is not a flat region of 0
             break;
         }
-        if (i < len - whalf && peak / outside > 1.5)  // it was a local max - set the target to here
+
+        if (i < numberOfSamples - whalf && peak / outside > 1.5)  // it was a local max - set the target to here
         {
           if (vno == Gdiag_no)
             printf("v %d: resetting target to local max at %2.2f: I=%d, peak=%2.2f, outside=%2.2f, ratio=%2.2f\n",
@@ -36250,19 +36341,15 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
   }
   ROMP_PF_end
   
-  mean_dist /= (float)(total_vertices - nmissing);
+  mean_dist   /= (float)(total_vertices - nmissing);
   mean_border /= (float)total_vertices;
-#if 0
-  mean_in /= (float)total_vertices ;
-  mean_out /= (float)total_vertices ;
-#else
+
   if (nin > 0) {
     mean_in /= (float)nin;
   }
   if (nout > 0) {
     mean_out /= (float)nout;
   }
-#endif
 
 #if 0
   MRISsoapBubbleVals(mris, 100) ;
@@ -36277,17 +36364,20 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
           nalways_missing,
           mean_dist,
           mean_in,
-          100.0f * (float)nin / (float)nfound,
+          100.0f * (float)nin  / (float)nfound,
           mean_out,
           100.0f * (float)nout / (float)nfound);
+
   fprintf(stdout,
           "%%%2.0f local maxima, %%%2.0f large gradients "
           "and %%%2.0f min vals, %d gradients ignored\n",
           100.0f * (float)ngrad_max / (float)mris->nvertices,
-          100.0f * (float)ngrad / (float)mris->nvertices,
-          100.0f * (float)nmin / (float)mris->nvertices,
+          100.0f * (float)ngrad     / (float)mris->nvertices,
+          100.0f * (float)nmin      / (float)mris->nvertices,
           num_changed);
+
   if (log_fp) {
+
     fprintf(log_fp,
             "mean border=%2.1f, %d (%d) missing vertices, mean dist %2.1f "
             "[%2.1f (%%%2.1f)->%2.1f (%%%2.1f))]\n",
@@ -36296,19 +36386,22 @@ int MRIScomputeBorderValues(MRI_SURFACE *mris,
             nalways_missing,
             mean_dist,
             mean_in,
-            100.0f * (float)nin / (float)nfound,
+            100.0f * (float)nin  / (float)nfound,
             mean_out,
             100.0f * (float)nout / (float)nfound);
+
     fprintf(log_fp,
             "%%%2.0f local maxima, %%%2.0f large gradients "
             "and %%%2.0f min vals, %d gradients ignored\n",
             100.0f * (float)ngrad_max / (float)mris->nvertices,
-            100.0f * (float)ngrad / (float)mris->nvertices,
-            100.0f * (float)nmin / (float)mris->nvertices,
+            100.0f * (float)ngrad     / (float)mris->nvertices,
+            100.0f * (float)nmin      / (float)mris->nvertices,
             num_changed);
   }
+
   return (NO_ERROR);
 }
+
 #if 1
 int MRIScomputeInvertedGrayWhiteBorderValues(MRI_SURFACE *mris,
                                              MRI *mri_brain,
