@@ -32,7 +32,7 @@
 
 // clock_gettime is not available on osx < 10.12 sierra
 // mach_gettime is a custom replacement for that
-#ifdef Darwin17
+#if defined(__APPLE__) && !defined(HAVE_CLOCK_GETTIME)
 #include <mach/clock.h>
 #include <mach/mach.h>
 
@@ -92,7 +92,7 @@ int TimerStop(struct timeb *then)
 
 void TimerStartNanosecs(struct NanosecsTimer * nst)
 {
-#ifdef __APPLE__
+#if defined(__APPLE__) && !defined(HAVE_CLOCK_GETTIME)
   mach_gettime(CALENDAR_CLOCK, &nst->now);
 #else
   clock_gettime(CLOCK_REALTIME, &nst->now);
@@ -103,7 +103,7 @@ void TimerStartNanosecs(struct NanosecsTimer * nst)
 struct Nanosecs TimerElapsedNanosecs(struct NanosecsTimer * nst) // returns delta in nanosecs
 {
   struct timespec now;
-#ifdef __APPLE__
+#if defined(__APPLE__) && !defined(HAVE_CLOCK_GETTIME)
   mach_gettime(CALENDAR_CLOCK, &now);
 #else
   clock_gettime(CLOCK_REALTIME, &now);

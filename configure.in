@@ -651,10 +651,10 @@ case "${target}" in
  SHARED_LDFLAGS="-dynamiclib"
  CPPFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
  FFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse"
- uname -r | grep "17" >& /dev/null
- if test "$?" = "0"; then
-  AC_MSG_NOTICE(Have Darwin v17.*)
- CPPFLAGS="$CPPFLAGS -DDarwin17"
+ darwin_version_major=`uname -r | cut -f1 -d"."`
+ if test ! "$darwin_version_major" -lt "16"; then
+  AC_MSG_NOTICE(Have macOS 10.12+ (Darwin 16+))
+  CPPFLAGS="$CPPFLAGS -DHAVE_CLOCK_GETTIME"
  fi
  ;;
  i*86-*-solaris*)
