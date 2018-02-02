@@ -551,7 +551,7 @@ AC_ARG_ENABLE(Werror,
 AC_ARG_ENABLE(Werror-lax,
  [  --enable-Werror-lax     add -Werror -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs to compiler flags],
  [ WERROR="-Werror -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs" ],
- [ ])
+ [ WERROR="$WERROR" ])
 
 # temporary: so that --disable-Werror is no longer needed
 if test "$ac_have_gcc_48_or_higher" = "yes"; then
