@@ -187,7 +187,7 @@ void ROMP_pf_begin(
 	}
 	struct timespec timespec;
     int ret;
-#ifndef HAVE_CLOCK_GETTIME
+#if defined(__APPLE__) && !defined(HAVE_CLOCK_GETTIME)
     ret = mach_gettime(clockid, &timespec);
 #else
     ret = clock_gettime(clockid, &timespec);
@@ -248,7 +248,7 @@ void ROMP_pf_end(
 	}
 	struct timespec timespec;
     int ret;
-#ifndef HAVE_CLOCK_GETTIME
+#if defined(__APPLE__) && !defined(HAVE_CLOCK_GETTIME)
     ret = mach_gettime(clockid, &timespec);
 #else
     ret = clock_gettime(clockid, &timespec);
