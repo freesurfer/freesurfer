@@ -1504,6 +1504,7 @@ void LayerMRI::UpdateVectorLineWidth(double val)
   for ( int i = 0; i < 3; i++ )
   {
     m_glyphActor2D[i]->GetProperty()->SetLineWidth(val);
+    m_vectorDotActor2D[i]->GetProperty()->SetPointSize(val*(val>1?2:3));
   }
   if (GetProperty()->GetVectorRepresentation() != LayerPropertyMRI::VR_Bar)
   {
@@ -1601,7 +1602,7 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   
   unsigned char c[4] = { 0, 0, 0, 255 };
   double scale = scale_overall;
-  if (!bNormalizeVector)
+//  if (!bNormalizeVector)
     scale *= GetProperty()->GetVectorDisplayScale();
   scale_overall = scale;
   
@@ -1619,6 +1620,7 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   double actor_pos[3] = {0,0,0};
   actor_pos[nPlane] = voxel_size[nPlane]*(nPlane==2?-dim[nPlane]:dim[nPlane])/2;
   m_glyphActor2D[nPlane]->SetPosition(actor_pos);
+  m_vectorDotActor2D[nPlane]->SetPosition(actor_pos);
 
   switch ( nPlane )
   {
@@ -1635,8 +1637,11 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
         if (scaledata)
           scale = MyVTKUtils::GetImageDataComponent(scale_ptr, scale_dim, 1, n[0], i, j, 0, scale_scalar_type ) * scale_overall;
         
-        if ( /*!bNormalizeVector ||*/ (vtkMath::Normalize( v ) != 0) )
+        if (v[0] != 0 || v[1] != 0 || v[2] != 0)
         {
+          if (bNormalizeVector)
+            vtkMath::Normalize(v);
+
           for (int k = 0; k < 3; k++)
           {
             if (flip[k])
@@ -1699,8 +1704,11 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
         if (scaledata)
           scale = MyVTKUtils::GetImageDataComponent(scale_ptr, scale_dim, 1, i, n[1], j, 0, scale_scalar_type ) * scale_overall;
         
-        if ( /*!bNormalizeVector ||*/ vtkMath::Normalize( v ) != 0 )
+        if (v[0] != 0 || v[1] != 0 || v[2] != 0)
         {
+          if (bNormalizeVector)
+            vtkMath::Normalize(v);
+
           for (int k = 0; k < 3; k++)
           {
             if (flip[k])
@@ -1763,8 +1771,11 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
         if (scaledata)
           scale = MyVTKUtils::GetImageDataComponent(scale_ptr, scale_dim, 1, i, j, n[2], 0, scale_scalar_type) * scale_overall;
         
-        if ( /*!bNormalizeVector ||*/ vtkMath::Normalize( v ) != 0 )
+        if (v[0] != 0 || v[1] != 0 || v[2] != 0)
         {
+          if (bNormalizeVector)
+            vtkMath::Normalize(v);
+
           for (int k = 0; k < 3; k++)
           {
             if (flip[k])

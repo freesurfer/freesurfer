@@ -88,7 +88,111 @@
     </item>
     <item>
      <layout class="QGridLayout" name="gridLayout_2">
-      <item row="22" column="1">
+      <item row="10" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_8">
+        <item>
+         <spacer name="horizontalSpacer_6">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::MinimumExpanding</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>14</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QLabel" name="labelVectorScale">
+          <property name="text">
+           <string>Length scale</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+          <property name="margin">
+           <number>0</number>
+          </property>
+          <property name="indent">
+           <number>-1</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEditVectorScale">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="9" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_22">
+        <item>
+         <spacer name="horizontalSpacer_11">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::MinimumExpanding</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>14</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QLabel" name="labelVectorLineWidth">
+          <property name="text">
+           <string>Width scale</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+          </property>
+          <property name="margin">
+           <number>0</number>
+          </property>
+          <property name="indent">
+           <number>-1</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEditVectorLineWidth">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="24" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_6">
         <item>
          <widget class="QSlider" name="sliderWindow">
@@ -118,14 +222,14 @@
         </item>
        </layout>
       </item>
-      <item row="25" column="0">
+      <item row="27" column="0">
        <widget class="QLabel" name="labelMid">
         <property name="text">
          <string>Mid</string>
         </property>
        </widget>
       </item>
-      <item row="23" column="1">
+      <item row="25" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_10">
         <item>
          <widget class="QSlider" name="sliderLevel">
@@ -155,7 +259,7 @@
         </item>
        </layout>
       </item>
-      <item row="22" column="0">
+      <item row="24" column="0">
        <widget class="QLabel" name="labelWindow">
         <property name="text">
          <string>Window</string>
@@ -188,7 +292,7 @@
         </item>
        </widget>
       </item>
-      <item row="23" column="0">
+      <item row="25" column="0">
        <widget class="QLabel" name="labelLevel">
         <property name="text">
          <string>Level</string>
@@ -219,7 +323,7 @@
         </item>
        </layout>
       </item>
-      <item row="11" column="1">
+      <item row="13" column="1">
        <widget class="QComboBox" name="comboBoxMask">
         <item>
          <property name="text">
@@ -228,14 +332,14 @@
         </item>
        </widget>
       </item>
-      <item row="24" column="0">
+      <item row="26" column="0">
        <widget class="QLabel" name="labelMin">
         <property name="text">
          <string>Min</string>
         </property>
        </widget>
       </item>
-      <item row="12" column="1">
+      <item row="14" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_20">
         <item>
          <spacer name="horizontalSpacer_9">
@@ -276,7 +380,7 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>70</width>
+            <width>75</width>
             <height>16777215</height>
            </size>
           </property>
@@ -292,21 +396,21 @@ of each frame</string>
         </property>
        </widget>
       </item>
-      <item row="20" column="0">
+      <item row="22" column="0">
        <widget class="QLabel" name="labelLookUpTable">
         <property name="text">
          <string>Lookup table</string>
         </property>
        </widget>
       </item>
-      <item row="10" column="0">
+      <item row="12" column="0">
        <widget class="QLabel" name="labelInversion">
         <property name="text">
          <string>Inversion</string>
         </property>
        </widget>
       </item>
-      <item row="27" column="1">
+      <item row="29" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_14">
         <item>
          <widget class="QSlider" name="sliderOffset">
@@ -358,79 +462,14 @@ of each frame</string>
         </property>
        </widget>
       </item>
-      <item row="19" column="0">
+      <item row="21" column="0">
        <widget class="QLabel" name="labelColorMap">
         <property name="text">
          <string>Color map</string>
         </property>
        </widget>
       </item>
-      <item row="15" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_8">
-        <item>
-         <spacer name="horizontalSpacer_6">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::Fixed</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>14</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QLabel" name="labelVectorScale">
-          <property name="text">
-           <string>Scale</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-          <property name="margin">
-           <number>0</number>
-          </property>
-          <property name="indent">
-           <number>-1</number>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="lineEditVectorScale">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>75</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_5">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item row="28" column="1">
+      <item row="30" column="1">
        <layout class="QGridLayout" name="gridLayout">
         <item row="1" column="0">
          <widget class="QCheckBox" name="checkBoxTruncate">
@@ -496,24 +535,24 @@ of each frame</string>
         </item>
        </layout>
       </item>
-      <item row="26" column="0">
+      <item row="28" column="0">
        <widget class="QLabel" name="labelMax">
         <property name="text">
          <string>Max</string>
         </property>
        </widget>
       </item>
-      <item row="20" column="1">
+      <item row="22" column="1">
        <widget class="QComboBox" name="comboBoxLookUpTable"/>
       </item>
-      <item row="18" column="1">
+      <item row="20" column="1">
        <widget class="QCheckBox" name="checkBoxUpsample">
         <property name="text">
          <string>Upsample display</string>
         </property>
        </widget>
       </item>
-      <item row="21" column="1">
+      <item row="23" column="1">
        <widget class="QComboBox" name="comboBoxDirectionCode">
         <item>
          <property name="text">
@@ -587,13 +626,6 @@ of each frame</string>
         </item>
        </layout>
       </item>
-      <item row="14" column="1">
-       <widget class="QCheckBox" name="checkBoxNormalizeVectors">
-        <property name="text">
-         <string>Normalize vectors</string>
-        </property>
-       </widget>
-      </item>
       <item row="0" column="1">
        <widget class="QLineEdit" name="lineEditFileName">
         <property name="readOnly">
@@ -608,7 +640,7 @@ of each frame</string>
         </property>
        </widget>
       </item>
-      <item row="17" column="1">
+      <item row="19" column="1">
        <widget class="QCheckBox" name="checkBoxSmooth">
         <property name="text">
          <string>Smooth display</string>
@@ -625,14 +657,14 @@ of each frame</string>
         </property>
        </widget>
       </item>
-      <item row="29" column="0">
+      <item row="31" column="0">
        <widget class="QLabel" name="labelBrushValue">
         <property name="text">
          <string>Label value</string>
         </property>
        </widget>
       </item>
-      <item row="25" column="1">
+      <item row="27" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_7">
         <item>
          <widget class="QSlider" name="sliderMid">
@@ -662,14 +694,14 @@ of each frame</string>
         </item>
        </layout>
       </item>
-      <item row="21" column="0">
+      <item row="23" column="0">
        <widget class="QLabel" name="labelDirectionCode">
         <property name="text">
          <string>Color code</string>
         </property>
        </widget>
       </item>
-      <item row="10" column="1">
+      <item row="12" column="1">
        <widget class="QComboBox" name="comboBoxInversion">
         <item>
          <property name="text">
@@ -693,24 +725,24 @@ of each frame</string>
         </item>
        </widget>
       </item>
-      <item row="11" column="0">
+      <item row="13" column="0">
        <widget class="QLabel" name="labelMask">
         <property name="text">
          <string>Mask</string>
         </property>
        </widget>
       </item>
-      <item row="19" column="1">
+      <item row="21" column="1">
        <widget class="QComboBox" name="comboBoxColorMap"/>
       </item>
-      <item row="27" column="0">
+      <item row="29" column="0">
        <widget class="QLabel" name="labelOffset">
         <property name="text">
          <string>Offset</string>
         </property>
        </widget>
       </item>
-      <item row="24" column="1">
+      <item row="26" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_9">
         <item>
          <widget class="QSlider" name="sliderMin">
@@ -740,7 +772,7 @@ of each frame</string>
         </item>
        </layout>
       </item>
-      <item row="26" column="1">
+      <item row="28" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_11">
         <item>
          <widget class="QSlider" name="sliderMax">
@@ -770,7 +802,7 @@ of each frame</string>
         </item>
        </layout>
       </item>
-      <item row="29" column="1">
+      <item row="31" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_17">
         <item>
          <widget class="QLineEdit" name="lineEditBrushValue">
@@ -847,14 +879,14 @@ of each frame</string>
         </item>
        </layout>
       </item>
-      <item row="16" column="0">
+      <item row="18" column="0">
        <widget class="QLabel" name="labelOpacity">
         <property name="text">
          <string>Opacity</string>
         </property>
        </widget>
       </item>
-      <item row="16" column="1">
+      <item row="18" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
          <widget class="QSlider" name="sliderOpacity">
@@ -884,57 +916,12 @@ of each frame</string>
         </item>
        </layout>
       </item>
-      <item row="9" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_22">
-        <item>
-         <spacer name="horizontalSpacer_11">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeType">
-           <enum>QSizePolicy::MinimumExpanding</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>14</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QLabel" name="labelVectorLineWidth">
-          <property name="text">
-           <string>Width</string>
-          </property>
-          <property name="alignment">
-           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-          </property>
-          <property name="margin">
-           <number>0</number>
-          </property>
-          <property name="indent">
-           <number>-1</number>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="lineEditVectorLineWidth">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>70</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-       </layout>
+      <item row="11" column="1">
+       <widget class="QCheckBox" name="checkBoxNormalizeVectors">
+        <property name="text">
+         <string>Normalize vectors</string>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
@@ -2214,38 +2201,6 @@ of each frame</string>
     <hint type="destinationlabel">
      <x>461</x>
      <y>821</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>checkBoxNormalizeVectors</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>lineEditVectorScale</receiver>
-   <slot>setHidden(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>310</x>
-     <y>487</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>219</x>
-     <y>517</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>checkBoxNormalizeVectors</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>labelVectorScale</receiver>
-   <slot>setHidden(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>310</x>
-     <y>487</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>138</x>
-     <y>517</y>
     </hint>
    </hints>
   </connection>

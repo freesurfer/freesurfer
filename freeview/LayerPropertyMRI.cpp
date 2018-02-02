@@ -1357,9 +1357,9 @@ void LayerPropertyMRI::SetVolumeSource ( FSVolume* source )
   // Init our color scale values.
   UpdateMinMaxValues();
 
-  double dscale = qMax(fabs(mMaxVoxelValue), fabs(mMinVoxelValue));
-  if (dscale > 0)
-    m_dVectorDisplayScale = 1/dscale;
+//  double dscale = qMax(fabs(mMaxVoxelValue), fabs(mMinVoxelValue));
+//  if (dscale > 0)
+//    m_dVectorDisplayScale = 1/dscale;
 
   mColorMapTable->ClampingOn();
 

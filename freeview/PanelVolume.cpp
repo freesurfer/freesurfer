@@ -493,11 +493,6 @@ void PanelVolume::DoUpdateWidgets()
       ui->comboBoxRenderObject->addItem( "3D Bar (slow!)" );
       ui->comboBoxRenderObject->setCurrentIndex( layer->GetProperty()->GetVectorRepresentation() );
       ui->comboBoxInversion->setCurrentIndex( layer->GetProperty()->GetVectorInversion() );
-      if (layer->GetProperty()->GetNormalizeVector())
-      {
-        ui->lineEditVectorScale->setVisible(false);
-        ui->labelVectorScale->setVisible(false);
-      }
     }
     else if ( layer->GetProperty()->GetDisplayTensor() )
     {
@@ -620,14 +615,7 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxDisplayRGB->setChecked(layer && layer->GetProperty()->GetDisplayRGB());
     ShowWidgets( m_widgetlistVector, ui->checkBoxDisplayVector->isChecked() || ui->checkBoxDisplayTensor->isChecked() );
     ShowWidgets( m_widgetlistContour, ui->checkBoxShowContour->isChecked() && !layer->GetProperty()->GetDisplayRGB() );
-    if ( layer && layer->GetProperty()->GetDisplayVector() )
-    {
-      if (layer->GetProperty()->GetNormalizeVector())
-      {
-        ui->lineEditVectorScale->setVisible(false);
-        ui->labelVectorScale->setVisible(false);
-      }
-    }
+
     ui->checkBoxShowContour->setVisible( bNormalDisplay && !layer->GetProperty()->GetShowProjectionMap() );
     ui->checkBoxShowContour->setEnabled( nColorMap != LayerPropertyMRI::LUT || ui->checkBoxShowExistingLabels->isEnabled());
     if (layer && ui->checkBoxShowContour->isChecked())
