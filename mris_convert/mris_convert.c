@@ -921,7 +921,7 @@ print_help(void)
   printf( "Apply talairach xfm to white surface, save as binary:\n");
   printf( "  mris_convert -t bert lh.white lh.white.tal\n") ;
   printf( "\n");
-  printf( "Convert a scalar overlay file to ascii:\n");
+  printf( "Convert a scalar overlay file in \"curv\" format to ascii:\n");
   printf( "  mris_convert -c lh.thickness lh.white lh.thickness.asc\n") ;
   printf( "\n") ;
   printf( "Convert a .annot file to Gifti label file:\n");

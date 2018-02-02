@@ -378,6 +378,8 @@ protected slots:
 
   void OnLabelInformationReady();
 
+  void UpdateVectorLineWidth(double val);
+
 protected:
   virtual void DoTransform(double *mat, int sample_method);
   virtual bool DoRotate( std::vector<RotationElement>& rotations );

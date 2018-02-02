@@ -1964,7 +1964,8 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       vector_inversion = "none",
       vector_render = "line",
       tensor_display = "no",
-      tensor_render = "boxoid";
+      tensor_render = "boxoid",
+      vector_width = "1";
   int nSampleMethod = m_nDefaultSampleMethod;
   bool bConform = m_bDefaultConform;
   QString gotoLabelName;
@@ -2009,6 +2010,14 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
         if ( vector_display.isEmpty() )
         {
           cerr << "Missing vector display argument.\n";
+        }
+      }
+      else if ( subOption == "vector_width")
+      {
+        vector_width = subArgu;
+        if ( vector_width.isEmpty() )
+        {
+          cerr << "Missing vector width argument.\n";
         }
       }
       else if ( subOption == "tensor" )
@@ -2170,7 +2179,8 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
     QStringList script = QStringList("setdisplaytensor") <<
                                                             tensor_display <<
                                                             tensor_render <<
-                                                            vector_inversion;
+                                                            vector_inversion <<
+                                                            vector_width;
     m_scripts.insert( 0, script );
   }
   else if ( !vector_display.isEmpty() && vector_display != "no" )
@@ -2178,7 +2188,8 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
     QStringList script = QStringList("setdisplayvector") <<
                                                             vector_display <<
                                                             vector_render <<
-                                                            vector_inversion;
+                                                            vector_inversion <<
+                                                            vector_width;
     m_scripts.insert( 0, script );
   }
 
@@ -2394,6 +2405,17 @@ void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
             cerr << "Unknown inversion flag '" << cmd[2].toLatin1().constData() << "'.\n";
           }
         }
+
+        bool ok;
+        double val = cmd[4].toDouble(&ok);
+        if (ok)
+        {
+          mri->GetProperty()->SetVectorLineWidth(val);
+        }
+        else
+        {
+          cerr << "Unknown vector width value '" << cmd[4].toLatin1().constData() << "'.\n";
+        }
       }
     }
   }
@@ -2444,8 +2466,19 @@ void MainWindow::CommandSetDisplayTensor( const QStringList& cmd )
           }
           else
           {
-            cerr << "Unknown inversion flag '" << cmd[2].toLatin1().constData() << "'.\n";
+            cerr << "Unknown inversion flag '" << cmd[3].toLatin1().constData() << "'.\n";
           }
+        }
+
+        bool ok;
+        double val = cmd[4].toDouble(&ok);
+        if (ok)
+        {
+          mri->GetProperty()->SetVectorLineWidth(val);
+        }
+        else
+        {
+          cerr << "Unknown vector width value '" << cmd[4].toLatin1().constData() << "'.\n";
         }
       }
     }
