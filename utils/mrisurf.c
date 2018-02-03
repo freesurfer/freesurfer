@@ -8493,7 +8493,7 @@ int MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
   /*  mrisClearMomentum(mris) ;*/
   for (parms->t = t = parms->start_t; t < niterations; t++) {
     if (!FZERO(parms->l_repulse_ratio)) {
-      MHTfree(mht_v_current);
+      MHTfree(&mht_v_current);
       mht_v_current = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 3.0);
     }
     
@@ -66347,14 +66347,18 @@ static int mrisComputePositioningGradients(MRI_SURFACE *mris, INTEGRATION_PARMS 
   int avgs;
 
   avgs = parms->n_averages;
+
+  MHT* mht_v_orig = NULL;
   if (!FZERO(parms->l_surf_repulse)) {
     mht_v_orig = MHTcreateVertexTable(mris, ORIGINAL_VERTICES);
   }
-  MHT *mht_v_orig = NULL, *mht_v_current = NULL, *mht_f_current;
+
+  MHT *mht_v_current = NULL, *mht_f_current;
   if (!FZERO(parms->l_repulse)) {
     mht_v_current = MHTcreateVertexTable(mris, CURRENT_VERTICES);
     mht_f_current = MHTcreateFaceTable(mris);
   }
+
   mrisComputeTargetLocationTerm(mris, parms->l_location, parms);
   mrisComputeIntensityTerm(mris, parms->l_intensity, mri_brain, mri_brain, parms->sigma, parms);
   mrisComputeDuraTerm(mris, parms->l_dura, parms->mri_dura, parms->dura_thresh);

@@ -116,10 +116,20 @@ typedef struct
 // Note: Exposed API functions start with uppercase MHT prefix.
 // Static (private) functions start with lowercase mht prefix.
 
-static void mhtFaceCentroid2xyz_float(MRI_SURFACE const *mris, FACE const *face, int which, float *x, float *y, float *z);
-static void mhtStoreFaceCentroids(MRI_SURFACE const *mris, int which);
+static void mhtComputeFaceCentroid(
+                MRI_SURFACE const *mris, int which, int fno, 
+                float *x, float *y, float *z);
 
-static void mhtVertex2xyz_float(VERTEX const *vtx, int which, float *x, float *y, float *z);
+static void mhtStoreFaceCentroids(MHT* mht, 
+                MRI_SURFACE const *mris, int which);
+
+static void mhtFaceCentroid2xyz_float(MHT const *mht, 
+                int fno, 
+                float *x, float *y, float *z);
+    // Centroids are computed once and stored in the MHT_FACE
+    // They *should* be updated when the face is moved - but I suspect that they are not!
+
+static void mhtVertex2xyz_float (VERTEX const *vtx, int which, float  *x, float  *y, float  *z);
 static void mhtVertex2xyz_double(VERTEX const *vtx, int which, double *x, double *y, double *z);
 static void mhtVertex2Ptxyz_double(VERTEX const *vtx, int which, Ptdbl_t *pt);
 static void mhtVertex2array3_double(VERTEX const *vtx, int which, double *array3);
@@ -191,12 +201,13 @@ MRIS_HASH_TABLE *MHTcreateFaceTable_Resolution(
   static int ncalls = 0;
   ncalls++;
 
-  mhtStoreFaceCentroids(mris, which);
-
   MRIS_HASH_TABLE *mht = (MRIS_HASH_TABLE *)calloc(1, sizeof(MRIS_HASH_TABLE));
   if (!mht) {
     ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate hash table.\n", __MYFUNCTION__);
   }
+  mht->mris = mris;
+  
+  mhtStoreFaceCentroids(mht, mris, which);
 
   int xv, yv, zv;
   for (xv = 0; xv < TABLE_SIZE; xv++) {
@@ -564,13 +575,14 @@ MRIS_HASH_TABLE *MHTcreateVertexTable_Resolution(MRI_SURFACE const *mris, int wh
   VERTEX const *v;
   static int ncalls = 0;
 
-  mhtStoreFaceCentroids(mris, which);
   //-----------------------------
   // Allocation and initialization
   //-----------------------------
 
   MRIS_HASH_TABLE* mht = (MRIS_HASH_TABLE *)calloc(1, sizeof(MRIS_HASH_TABLE));
   if (!mht) ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate hash table.\n", __MYFUNCTION__);
+
+  mhtStoreFaceCentroids(mht, mris, which);
 
   for (xv = 0; xv < TABLE_SIZE; xv++) {
     for (yv = 0; yv < TABLE_SIZE; yv++) {
@@ -794,31 +806,29 @@ static int mhtRemoveFaceOrVertexAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, in
 int MHTisVectorFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int vtxno, float dx, float dy, float dz)
 {
   //--------------------------------------------------------------
-  VERTEX const *vtx;
-  float savex, savey, savez;
-  int intersect, fno;
-
-  intersect = 0;  // default result
+  int intersect = 0;  // assume none
 
   //----------------------------------------------------
   // Sanity check
   //----------------------------------------------------
-  if (!mht) ErrorExit(ERROR_BADPARM, "%s: mht is NULL\n", __MYFUNCTION__);
+  if (!mht)  ErrorExit(ERROR_BADPARM, "%s: mht  is NULL\n", __MYFUNCTION__);
   if (!mris) ErrorExit(ERROR_BADPARM, "%s: mris is NULL\n", __MYFUNCTION__);
   if (mht->fno_usage != MHTFNO_FACE) {
-    ErrorExit(ERROR_BADPARM, "%s: mht not initialized for vertices\n", __MYFUNCTION__);
+             ErrorExit(ERROR_BADPARM, "%s: mht not initialized for vertices\n", __MYFUNCTION__);
   }
   if (mht->which_vertices != CURRENT_VERTICES) {
-    ErrorExit(ERROR_BADPARM, "%s: mht not loaded using CURRENT_VERTICES\n", __MYFUNCTION__);
+             ErrorExit(ERROR_BADPARM, "%s: mht not loaded using CURRENT_VERTICES\n", __MYFUNCTION__);
   }
 
   //----------------------------------------------------
   // Temporarily move the CURRENT_VERTICES
   //----------------------------------------------------
-  vtx = &mris->vertices[vtxno];
-  savex = vtx->x;
-  savey = vtx->y;
-  savez = vtx->z;
+  VERTEX /* BEVIN MAKE THIS const */ * vtx = &mris->vertices[vtxno];
+
+  float const savex = vtx->x;
+  float const savey = vtx->y;
+  float const savez = vtx->z;
+
   vtx->x += dx;
   vtx->y += dy;
   vtx->z += dz;
@@ -827,6 +837,7 @@ int MHTisVectorFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int vtxno, 
   // Check whether the faces adjoining current
   // vertex will now intersect
   //-------------------------------------------
+  int fno;
   for (fno = 0; !intersect && (fno < vtx->num); fno++) {
     intersect = MHTdoesFaceIntersect(mht, mris, vtx->f[fno]);
   }
@@ -837,6 +848,7 @@ int MHTisVectorFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int vtxno, 
   vtx->x = savex;
   vtx->y = savey;
   vtx->z = savez;
+
   return (intersect);
 }
 
@@ -1197,7 +1209,7 @@ int mhtfindClosestFaceCentroidGenericInBucket(MRIS_HASH_TABLE *mht,
 
     FACE* face = &mris->faces[fno];
     float tryx = 0.0, tryy = 0.0, tryz = 0.0;
-    mhtFaceCentroid2xyz_float(mris, face, mht->which_vertices, &tryx, &tryy, &tryz);
+    mhtFaceCentroid2xyz_float(mht, fno, &tryx, &tryy, &tryz);
 
     double lambda[3];
     if (project_into_face > 0 &&
@@ -2158,56 +2170,39 @@ int mhtBruteForceClosestFace(MRI_SURFACE const *mris,
                              int which,  // which surface within mris to search
                              float *dmin)
 {
-  int fno, min_f = -1;
-  FACE const *face;
-  float dsq, min_dsq;  //  Work with squares, avoid square root operation
-  float tryx = 0.0, tryy = 0.0, tryz = 0.0, dx, dy, dz;
+  int   min_fno = -1;
+  float min_dsq = 1e8;
 
-  min_dsq = 1e8;
-
+  int fno;
   for (fno = 0; fno < mris->nfaces; fno++) {
-    face = &mris->faces[fno];
-    mhtFaceCentroid2xyz_float(mris, face, which, &tryx, &tryy, &tryz);
 
-    dx = tryx - x;
-    dy = tryy - y;
-    dz = tryz - z;
+    float tryx, tryy, tryz;
+    mhtComputeFaceCentroid(mris, which, fno, &tryx, &tryy, &tryz);
 
-    dsq = dx * dx + dy * dy + dz * dz;  // squared distance is fine for detecting min
-    if (dsq < min_dsq) {
+    float const dx = tryx - x;
+    float const dy = tryy - y;
+    float const dz = tryz - z;
+
+    float dsq = dx * dx + dy * dy + dz * dz;  // squared distance is fine for detecting min
+    if (min_dsq > dsq) {
       min_dsq = dsq;
-      min_f = fno;
+      min_fno = fno;
     }
   }
-  if (dmin != NULL) *dmin = sqrt(min_dsq);
+  
+  if (dmin) *dmin = sqrt(min_dsq);
 
-  return (min_f);
+  return (min_fno);
 }
 
-static void mhtFaceCentroid2xyz_float(MRI_SURFACE const *mris, FACE const *face, int which, float *px, float *py, float *pz)
+static void mhtFaceCentroid2xyz_float(
+    MHT const *mht, int fno, 
+    float *px, float *py, float *pz)
 {
-#if 1
+  MHT_FACE const* face = &mht->f[fno];
   *px = face->cx;
   *py = face->cy;
   *pz = face->cz;
-#else
-  float x, y, z, xt, yt, zt;
-  int n;
-
-  x = y = z = 0.0;  // for compiler warnings
-  for (xt = yt = zt = 0.0, n = 0; n < VERTICES_PER_FACE; n++) {
-    mhtVertex2xyz_float(&mris->vertices[face->v[n]], which, &x, &y, &z);
-    xt += x;
-    yt += y;
-    zt += z;
-  }
-  xt /= VERTICES_PER_FACE;
-  yt /= VERTICES_PER_FACE;
-  zt /= VERTICES_PER_FACE;
-  *px = xt;
-  *py = yt;
-  *pz = zt;
-#endif
 }
 
 //---------------------------------------------
@@ -2760,28 +2755,49 @@ VERTEX *MHTfindClosestVertexSetInDirection(
   return (v_closest);
 }
 
-static void mhtStoreFaceCentroids(MRI_SURFACE const *mris, int which)
+static void mhtComputeFaceCentroid(
+    MRI_SURFACE const *mris, int which, int fno,
+    float *px, float *py, float* pz) 
 {
+  float xt, yt, zt;
+  xt = yt = zt = 0.0;
+    
+  FACE const * face = &mris->faces[fno];
+   
+  int n;
+  for (n = 0; n < VERTICES_PER_FACE; n++) {
+    float x = 0, y = 0, z = 0;
+    mhtVertex2xyz_float(&mris->vertices[face->v[n]], which, &x, &y, &z);
+    yt += y;
+    zt += z;
+  }
+    
+  xt /= VERTICES_PER_FACE;
+  yt /= VERTICES_PER_FACE;
+  zt /= VERTICES_PER_FACE;
+  
+  *px = xt;
+  *py = yt;
+  *pz = zt;
+}
+
+static void mhtStoreFaceCentroids(MHT* mht, MRI_SURFACE const *mris, int which)
+{
+  if (mris != mht->mris || mris->nfaces || mht->f) {
+    fprintf(stderr, "%s:%d wrong initial state\n", __FILE__, __LINE__);
+    exit(1);
+  }
+
+  mht->nfaces = mris->nfaces;
+  mht->f = (MHT_FACE*)calloc(mht->nfaces, sizeof(MHT_FACE));
+  
   int fno;
   for (fno = 0; fno < mris->nfaces; fno++) {
-    FACE const *face = &mris->faces[fno];
     
-    float xt, yt, zt;
-    xt = yt = zt = 0.0;
+    float xt,yt,zt;
+    mhtComputeFaceCentroid(mris, which, fno, &xt, &yt, &zt);
     
-    int n;
-    for (n = 0; n < VERTICES_PER_FACE; n++) {
-      float x, y, z;
-      mhtVertex2xyz_float(&mris->vertices[face->v[n]], which, &x, &y, &z);
-      xt += x;
-      yt += y;
-      zt += z;
-    }
-    
-    xt /= VERTICES_PER_FACE;
-    yt /= VERTICES_PER_FACE;
-    zt /= VERTICES_PER_FACE;
-    
+    MHT_FACE *face = &mht->f[fno];
     face->cx = xt;
     face->cy = yt;
     face->cz = zt;

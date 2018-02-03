@@ -78,10 +78,18 @@ typedef struct
 #define WORLD_TO_VOXEL(mht,x)    ((int)(WORLD_TO_VOLUME(mht,x)))
 #define VOXEL_TO_WORLD(mht,x)    ((((x)*(mht)->vres)-FIELD_OF_VIEW/2))
 
+
 typedef enum {
     MHTFNO_FACE   = 0,
     MHTFNO_VERTEX = 1
 } MHTFNO_t;
+
+
+typedef struct mht_face_t {
+    // for per-vertex information that should not be stored in the MRIS FACE
+    float cx,cy,cz; // centroid
+} MHT_FACE;
+
 
 struct _mht 
 {
@@ -91,6 +99,9 @@ struct _mht
   int                nbuckets ;                         // Total # of buckets
   MRIS_HASH_BUCKET **buckets[TABLE_SIZE][TABLE_SIZE] ;
   int                which_vertices ;                   // ORIGINAL, CANONICAL, CURRENT
+
+  int                nfaces;
+  MHT_FACE*          f;
 } ;
 
 
