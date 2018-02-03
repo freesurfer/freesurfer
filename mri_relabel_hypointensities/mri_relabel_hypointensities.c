@@ -225,7 +225,7 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
   mri_dist = MRIcloneDifferentType(mri, MRI_FLOAT) ;
   MRIScomputeDistanceToSurface(mris, mri_dist, mri_dist->xsize) ;
 
-  mht = MHTfillVertexTableRes(mris,NULL, CURRENT_VERTICES, 8.0f) ;
+  mht = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 8.0f) ;
   for (changed = x = 0 ; x < mri->width ; x++) {
     for (y = 0 ; y < mri->height ; y++) {
       for (z = 0 ; z < mri->depth ; z++) {

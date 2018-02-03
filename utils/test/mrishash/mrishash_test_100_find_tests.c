@@ -113,7 +113,8 @@ int TestNearestVtxInConcentricIcos(int surfacenum,
 
   if (mris) MRISfree(&mris);
   mris = ic2562_make_two_icos(0,0,0,radius1, 0,0,0, radius2);
-  mht  = MHTfillVertexTableRes(mris, mht, CURRENT_VERTICES, mhtres);
+  MHTfree(&mht);
+  mht  = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, mhtres);
 
   for (probeix = 0; probeix < ProbeRepetitions; probeix++) {
     probedistance = radius1 + radiusdif * ((double) rand() / RAND_MAX);

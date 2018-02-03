@@ -32,6 +32,7 @@
 
 #include "error.h"
 #include "gw_utils.h"
+#include "mrishash_internals.h"
 
 /*-----------------------------------------------
   GWU_make_surface_from_lists

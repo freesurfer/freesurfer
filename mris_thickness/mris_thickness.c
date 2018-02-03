@@ -343,7 +343,7 @@ main(int argc, char *argv[]) {
 
       MRIScopyCurvatureToImagValues(mris) ; // save base thickness 
       // to lookup closest face
-      mht = MHTfillTableAtResolution(mris, NULL, CANONICAL_VERTICES, 1.0); 
+      mht = MHTcreateFaceTable_Resolution(mris, CANONICAL_VERTICES, 1.0); 
 
       fp = fopen(long_fname, "r") ;
       if (fp == NULL)

@@ -4433,10 +4433,10 @@ MRI *MRIannot2CorticalSeg(MRI *seg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, 
   SegVox2SurfRAS = MatrixMultiplyD(AnatVox2SurfRAS, lta->inv_xforms[0].m_L, NULL);
 
   // Create the hash for faster service
-  lhw_hash = MHTfillVertexTableRes(lhw, NULL, CURRENT_VERTICES, hashres);
-  lhp_hash = MHTfillVertexTableRes(lhp, NULL, CURRENT_VERTICES, hashres);
-  rhw_hash = MHTfillVertexTableRes(rhw, NULL, CURRENT_VERTICES, hashres);
-  rhp_hash = MHTfillVertexTableRes(rhp, NULL, CURRENT_VERTICES, hashres);
+  lhw_hash = MHTcreateVertexTable_Resolution(lhw, CURRENT_VERTICES, hashres);
+  lhp_hash = MHTcreateVertexTable_Resolution(lhp, CURRENT_VERTICES, hashres);
+  rhw_hash = MHTcreateVertexTable_Resolution(rhw, CURRENT_VERTICES, hashres);
+  rhp_hash = MHTcreateVertexTable_Resolution(rhp, CURRENT_VERTICES, hashres);
 
   // Check whether the seg has an extracerebral CSF segmentation
   HasXCSF = MRIcountMatches(seg, CSF_ExtraCerebral, 0, seg);
@@ -4612,8 +4612,8 @@ MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, L
   SegVox2SurfRAS = MatrixMultiplyD(AnatVox2SurfRAS, lta->inv_xforms[0].m_L, NULL);
 
   // Create the hash for faster service
-  lhw_hash = MHTfillVertexTableRes(lhw, NULL, CURRENT_VERTICES, hashres);
-  rhw_hash = MHTfillVertexTableRes(rhw, NULL, CURRENT_VERTICES, hashres);
+  lhw_hash = MHTcreateVertexTable_Resolution(lhw, CURRENT_VERTICES, hashres);
+  rhw_hash = MHTcreateVertexTable_Resolution(rhw, CURRENT_VERTICES, hashres);
 
   printf("  MRIannot2CerebralWMSeg(): looping over volume\n");
   fflush(stdout);
@@ -4751,8 +4751,8 @@ MRI *MRIunsegmentWM(MRI *seg, MRIS *lhw, MRIS *rhw, int *segidlist, int nlist, L
   SegVox2SurfRAS = MatrixMultiplyD(AnatVox2SurfRAS, lta->inv_xforms[0].m_L, NULL);
 
   // Create the hash for faster service
-  lhw_hash = MHTfillVertexTableRes(lhw, NULL, CURRENT_VERTICES, hashres);
-  rhw_hash = MHTfillVertexTableRes(rhw, NULL, CURRENT_VERTICES, hashres);
+  lhw_hash = MHTcreateVertexTable_Resolution(lhw, CURRENT_VERTICES, hashres);
+  rhw_hash = MHTcreateVertexTable_Resolution(rhw, CURRENT_VERTICES, hashres);
 
   printf("  MRIunsegmentWM(): looping over volume\n");
   fflush(stdout);
@@ -4878,8 +4878,8 @@ MRI *MRIrelabelHypoHemi(MRI *seg, MRIS *lhw, MRIS *rhw, LTA *anat2seg, MRI *wmse
   SegVox2SurfRAS = MatrixMultiplyD(AnatVox2SurfRAS, lta->inv_xforms[0].m_L, NULL);
 
   // Create the hash for faster service
-  lhw_hash = MHTfillVertexTableRes(lhw, NULL, CURRENT_VERTICES, hashres);
-  rhw_hash = MHTfillVertexTableRes(rhw, NULL, CURRENT_VERTICES, hashres);
+  lhw_hash = MHTcreateVertexTable_Resolution(lhw, CURRENT_VERTICES, hashres);
+  rhw_hash = MHTcreateVertexTable_Resolution(rhw, CURRENT_VERTICES, hashres);
 
   printf("  MRIrelabelHypoHemi(): looping over volume\n");
   fflush(stdout);
