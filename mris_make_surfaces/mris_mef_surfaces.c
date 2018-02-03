@@ -2115,8 +2115,10 @@ MRISpositionSurface_mef(MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5,
       MHTfree(&mht_v_current);
       mht_v_current = MHTcreateVertexTable(mris, CURRENT_VERTICES);
     }
-    if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
-      mht = MHTfillTable(mris, mht) ;
+    if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST)) {
+      MHTfreeTable(&mht);
+      mht = MHTcreateFaceTable(mris) ;
+    }
     MRISclearGradient(mris) ;
     mrisComputeIntensityTerm_mef(mris, l_intensity, mri_30, mri_5,
                                  parms->sigma, weight30, weight5);
