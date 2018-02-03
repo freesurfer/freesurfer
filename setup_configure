@@ -17,24 +17,52 @@ set cmd5=(autoreconf --force -Wno-portability)
 #automake Note: autoreconf --force runs automake
 set cmd6=(autoconf -Wno-portability)
 
-echo $cmd1
+echo "";echo "";echo "";echo $cmd1
 $cmd1
-if ($status) exit $status
+if ($status) then
+    echo "ERROR: $cmd1"
+    exit $status
+endif
+
+echo "";echo "";echo "";echo $cmd2
 echo $cmd2
 $cmd2
-if ($status) exit $status
+if ($status) then
+    echo "ERROR: $cmd2"
+    exit $status
+endif
+
+echo "";echo "";echo "";echo $cmd3
 echo $cmd3
 $cmd3
-if ($status) exit $status
+if ($status) then
+    echo "ERROR: $cmd3"
+    exit $status
+endif
+
+echo "";echo "";echo "";echo $cmd4
 echo $cmd4
 $cmd4
-#if ($status) exit $status
+if ($status) then
+    echo "ERROR: $cmd4"
+    exit $status
+endif
+
+echo "";echo "";echo "";echo $cmd5
 echo $cmd5
 $cmd5
-if ($status) exit $status
+if ($status) then
+    echo "ERROR: $cmd5"
+    exit $status
+endif
+
+echo "";echo "";echo "";echo $cmd6
 echo $cmd6
 $cmd6
-if ($status) exit $status
+if ($status) then
+    echo "ERROR: $cmd6"
+    exit $status
+endif
 
 # The first three commands create the platform specific 
 # tools needed by configure (on the Mac, symlink glibtoolize 
