@@ -1093,7 +1093,7 @@ MRIS *MRISmatchSurfaceToLabel(
     dt = base_dt;
     nreductions = 0;
 
-    MHTfreeTable(&mht);
+    MHTfree(&mht);
     mht = MHTcreateFaceTable(mris);
 
     mrisClearGradient(mris);
