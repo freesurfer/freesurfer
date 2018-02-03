@@ -275,7 +275,7 @@ main(int argc, char *argv[]) {
       else if (counter <= 5000) step_size = counter/5000.0;
       else step_size = 1;
 #endif
-      MHTFree(&mht_v_current);
+      MHTfree(&mht_v_current);
       mht_v_current = MHTcreateVertexTable_Resolution(mris,CURRENT_VERTICES, 1.0f);
       mrisComputeQuadraticCurvatureTerm(mris, weight_quadcur);
       mrisComputeLabelTerm1(mris,weight_label,mri_smooth,mri_label,mri_orig);

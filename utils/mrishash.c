@@ -581,6 +581,7 @@ MRIS_HASH_TABLE *MHTcreateVertexTable_Resolution(MRI_SURFACE const *mris, int wh
 
   MRIS_HASH_TABLE* mht = (MRIS_HASH_TABLE *)calloc(1, sizeof(MRIS_HASH_TABLE));
   if (!mht) ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate hash table.\n", __MYFUNCTION__);
+  mht->mris = mris;
 
   mhtStoreFaceCentroids(mht, mris, which);
 
@@ -2783,7 +2784,7 @@ static void mhtComputeFaceCentroid(
 
 static void mhtStoreFaceCentroids(MHT* mht, MRI_SURFACE const *mris, int which)
 {
-  if (mris != mht->mris || mris->nfaces || mht->f) {
+  if (mris != mht->mris || mht->nfaces || mht->f) {
     fprintf(stderr, "%s:%d wrong initial state\n", __FILE__, __LINE__);
     exit(1);
   }
