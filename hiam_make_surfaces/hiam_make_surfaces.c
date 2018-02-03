@@ -207,7 +207,7 @@ main(int argc, char *argv[]) {
   MRISupdateSurface(mris);
   
   MHTfree(&mht_v_current);
-  mht_v_current = MHTcreateVertexTable_Resolution(mris,mht_v_current,CURRENT_VERTICES, 1.0f);
+  mht_v_current = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 1.0f);
 
   //*** Find outside label and inside label for each surface vertex  ****//
   mrisFindneighborlabel(mris,surftype, mri_label, mri_orig);
