@@ -551,11 +551,11 @@ AC_ARG_ENABLE(Werror,
 AC_ARG_ENABLE(Werror-lax,
  [  --enable-Werror-lax     add -Werror -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs to compiler flags],
  [ WERROR="-Werror -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs" ],
- [ ])
+ [ WERROR="$WERROR" ])
 
 # temporary: so that --disable-Werror is no longer needed
 if test "$ac_have_gcc_48_or_higher" = "yes"; then
-  [ WERROR="" ]
+  [ WERROR="-Werror=implicit-function-declaration" ]
   #  [ WERROR="-Wno-unused-parameter -Werror -Wno-unused-variable -Wno-narrowing -Wno-aggressive-loop-optimizations -Wno-switch -Wno-enum-compare -Wno-unused-local-typedefs -Wno-unused-but-set-variable -fno-strict-overflow -Wno-maybe-uninitialized -Wno-uninitialized" ]
 fi
 # the Intel C/C++ compiler issues warnings not yet fixed in the code, so
