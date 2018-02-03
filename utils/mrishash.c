@@ -856,7 +856,7 @@ int MHTisVectorFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int vtxno, 
 /*-------------------------------------------------------------
   MHTdoesFaceIntersect
   Does a particular face intersect with any other faces in surface mris,
-  which was previously hashed into mht using MHTfillTableXxx
+  which was previously hashed into mht using MHTcreateFaceTablexxx
   Returns 1 for "yes -- intersection detected", else NO_ERROR.
   -------------------------------------------------------------*/
 int MHTdoesFaceIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno)
@@ -2527,8 +2527,6 @@ int MHTtestIsMRISselfIntersecting(MRI_SURFACE const *mris, float res)
   int fno, rslt;
 
   rslt = 0;
-
-  // mht = MHTfillTable(mris, NULL) ;
 
   MRIS_HASH_TABLE * mht = MHTcreateFaceTable_Resolution(mris, CURRENT_VERTICES, res);
   for (fno = 0; fno < mris->nfaces; fno++) {

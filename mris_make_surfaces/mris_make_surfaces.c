@@ -6925,14 +6925,15 @@ near_bright_structure(MRI *mri_aseg, int xi, int yi, int zi, int whalf)
 int
 MRISremoveSelfIntersections(MRI_SURFACE *mris)
 {
-  MRIS_HASH_TABLE  *mht ;
   int              n, vno, fno ;
   VERTEX           *v ;
 
 //  return(NO_ERROR) ;
   MRISremoveIntersections(mris);
+
   return(NO_ERROR) ;
-  mht = MHTfillTable(mris, NULL) ;
+
+  MRIS_HASH_TABLE* mht = MHTcreateFaceTable(mris) ;
   
   MRISsetMarks(mris, 1) ;  // fixed vertices
   for (fno = 0 ; fno < mris->nfaces ; fno++)
