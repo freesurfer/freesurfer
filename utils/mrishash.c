@@ -993,17 +993,11 @@ static int mhtDoesFaceVoxelListIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE const
           // Are they linked? Check facein's list of linked vertices
           if (facein_vtx->linked > 0) {
             vtxinfo = &(vtxinfos[facein_vtx_vno]);
-            for (n3 = 0; n3 < vtxinfo->nlinks; n3++) {
-              if (vtxinfo->linked_vno[n3] == facetest_vtx_vno) goto skip_this_facetest;
-            }
           }  // if
 
           // Are they linked? Check facetest's list of linked vertices
           if (facetest_vtx->linked > 0) {
             vtxinfo = &(vtxinfos[facetest_vtx_vno]);
-            for (n3 = 0; n3 < vtxinfo->nlinks; n3++) {
-              if (vtxinfo->linked_vno[n3] == facein_vtx_vno) goto skip_this_facetest;
-            }  // for
           }    // if
         }      // for facetest_vtx_ix
       }        // for facein_vtx_ix
