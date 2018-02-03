@@ -110,6 +110,11 @@ typedef struct
   double z;
 } Ptdbl_t;
 
+typedef struct mht_triangle_t {
+    Ptdbl_t corners[3];
+} MHT_TRIANGLE;
+
+
 //==================================================================
 // Static forward declarations
 //==================================================================
@@ -129,10 +134,10 @@ static void mhtFaceCentroid2xyz_float(MHT const *mht,
     // Centroids are computed once and stored in the MHT_FACE
     // They *should* be updated when the face is moved - but I suspect that they are not!
 
-static void mhtVertex2xyz_float (VERTEX const *vtx, int which, float  *x, float  *y, float  *z);
-static void mhtVertex2xyz_double(VERTEX const *vtx, int which, double *x, double *y, double *z);
-static void mhtVertex2Ptxyz_double(VERTEX const *vtx, int which, Ptdbl_t *pt);
-static void mhtVertex2array3_double(VERTEX const *vtx, int which, double *array3);
+static void mhtVertex2xyz_float    (VERTEX const *vtx, int which, float  *x, float  *y, float  *z);
+static void mhtVertex2xyz_double   (VERTEX const *vtx, int which, double *x, double *y, double *z);
+static void mhtVertex2Ptxyz_double (VERTEX const *vtx, int which, Ptdbl_t *pt);
+static void mhtVertex2array3_double(VERTEX const *vtx, int which, double  *array3);
 
 static int mhtAddFaceOrVertexAtCoords(MRIS_HASH_TABLE *mht, float x, float y, float z, int forvnum);
 static int mhtAddFaceOrVertexAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, int zv, int forvnum);
@@ -140,13 +145,30 @@ static int mhtRemoveFaceOrVertexAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, in
 
 static int mhtFaceToMHT(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno, int on);
 static int mhtVoxelList_Init(VOXEL_LISTgw *voxlist);
-static int mhtVoxelList_SampleFace(
-    float mhtres, Ptdbl_t *vpt0, Ptdbl_t *vpt1, Ptdbl_t *vpt2, int fno, VOXEL_LISTgw *voxlist);
-static int mhtVoxelList_Add(VOXEL_LISTgw *voxlist, int xv, int yv, int zv, int fno);
-static int mhtVoxelList_AddCoord(VOXEL_LISTgw *voxlist, VOXEL_COORD vc, int fno);
-static int mhtVoxelList_AddPath(VOXEL_LISTgw *voxlist, VOXEL_COORD oldvc, VOXEL_COORD newvc, int fno);
+static int mhtVoxelList_SampleTriangle(
+    float mhtres, Ptdbl_t const *vpt0, Ptdbl_t const *vpt1, Ptdbl_t const *vpt2, VOXEL_LISTgw *voxlist);
+static int mhtVoxelList_Add(VOXEL_LISTgw *voxlist, int xv, int yv, int zv);
+static int mhtVoxelList_AddCoord(VOXEL_LISTgw *voxlist, VOXEL_COORD vc);
+static int mhtVoxelList_AddPath (VOXEL_LISTgw *voxlist, VOXEL_COORD oldvc, VOXEL_COORD newvc);
 
-static int mhtDoesFaceVoxelListIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VOXEL_LISTgw *voxlist, int fno);
+static int MHTexpandToTouchingFaces(
+    MRIS_HASH_TABLE const * const mht,
+    int   const fno,
+    int   const fnoListCapacity,
+    int * const fnoList);
+    
+static int MHTdoesTriangleIntersect(
+    MRIS_HASH_TABLE const * const mht, 
+    MHT_TRIANGLE const    * const triangle,
+    int                     const nFaceToIgnore,
+    int const             * const fnoToIgnore);
+
+static int mhtDoesTriangleVoxelListIntersect(
+    MRIS_HASH_TABLE const * const mht, 
+    MHT_TRIANGLE const    * const triangle, 
+    VOXEL_LISTgw const    * const voxlistForTriangle,
+    int                     const nFaceToIgnore,
+    int const             * const fnoToIgnore);
 
 int mhtBruteForceClosestVertex(MRI_SURFACE const *mris, float x, float y, float z, int which, float *dmin);
 
@@ -286,13 +308,13 @@ MRIS_HASH_TABLE *MHTcreateFaceTable_Resolution(
 int MHTaddAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VERTEX const *v)
 //------------------------------------
 {
-  int fno;
+  int fi;
 
   if ((!mht) || (mht->fno_usage != MHTFNO_FACE)) {
     ErrorExit(ERROR_BADPARM, "%s: mht not initialized for faces\n", __MYFUNCTION__);
   }
 
-  for (fno = 0; fno < v->num; fno++) mhtFaceToMHT(mht, mris, v->f[fno], 1);
+  for (fi = 0; fi < v->num; fi++) mhtFaceToMHT(mht, mris, v->f[fi], 1);
   return (NO_ERROR);
 }
 
@@ -318,7 +340,7 @@ int MHTremoveAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VERTEX cons
 
 /*-------------------------------------------------
   mhtFaceToMHT  (was mhtHatchFace)
-  Adds face fno to mht. Calls mhtVoxelList_SampleFace to get a list
+  Adds face fno to mht. Calls mhtVoxelList_SampleTriangle to get a list
   of MHT Voxels (buckets) in which to list fno.
   -------------------------------------------------*/
 static int mhtFaceToMHT(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno, int on)
@@ -351,7 +373,7 @@ static int mhtFaceToMHT(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno, 
     dist2 = sqrt(SQR(vpt2.x - Gx) + SQR(vpt2.y - Gy) + SQR(vpt2.z - Gz));
     if (dist0 < mht->vres || dist1 < mht->vres || dist2 < mht->vres) DiagBreak();
   }
-  mhtVoxelList_SampleFace(mht->vres, &vpt0, &vpt1, &vpt2, fno, &voxlist);
+  mhtVoxelList_SampleTriangle(mht->vres, &vpt0, &vpt1, &vpt2, &voxlist);
 
   for (vlix = 0; vlix < voxlist.nused; vlix++) {
     i = voxlist.voxels[vlix][0];
@@ -367,12 +389,16 @@ static int mhtFaceToMHT(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno, 
 }
 
 /*-------------------------------------------------
-  mhtVoxelList_SampleFace
+  mhtVoxelList_SampleTriangle
   Scans edges and interior of triangle, finding all mht voxels that are
   impinged upon, listing those in voxlist.
   -------------------------------------------------*/
-static int mhtVoxelList_SampleFace(
-    float mhtres, Ptdbl_t *vptin0, Ptdbl_t *vptin1, Ptdbl_t *vptin2, int fno, VOXEL_LISTgw *voxlist)
+static int mhtVoxelList_SampleTriangle(
+    float mhtres, 
+    Ptdbl_t const *vptin0, 
+    Ptdbl_t const *vptin1, 
+    Ptdbl_t const *vptin2, 
+    VOXEL_LISTgw *voxlist)
 {
   //------------------------------------
   const float SamplesPerMHTRes = 2.0;
@@ -475,8 +501,8 @@ static int mhtVoxelList_SampleFace(
     //---------------------------------------------
     changed = false;
     if (0 == mainstep) {
-      mhtVoxelList_AddCoord(voxlist, voxco_b2a, fno);
-      mhtVoxelList_AddCoord(voxlist, voxco_c2a, fno);
+      mhtVoxelList_AddCoord(voxlist, voxco_b2a);
+      mhtVoxelList_AddCoord(voxlist, voxco_c2a);
       changed = true;
     }
     else {
@@ -484,12 +510,12 @@ static int mhtVoxelList_SampleFace(
       // If we crossed a boundary, add that "path" to voxlist
       //---------------------------------------------
       if (!SAME_VOXEL(oldvoxco_b2a, voxco_b2a)) {
-        mhtVoxelList_AddPath(voxlist, oldvoxco_b2a, voxco_b2a, fno);
+        mhtVoxelList_AddPath(voxlist, oldvoxco_b2a, voxco_b2a);
         changed = true;
       }
 
       if (!SAME_VOXEL(oldvoxco_c2a, voxco_c2a)) {
-        mhtVoxelList_AddPath(voxlist, oldvoxco_c2a, voxco_c2a, fno);
+        mhtVoxelList_AddPath(voxlist, oldvoxco_c2a, voxco_c2a);
         changed = true;
       }
     }
@@ -544,7 +570,7 @@ static int mhtVoxelList_SampleFace(
       // "path" to voxlist
       //---------------------------------------------
       if (!SAME_VOXEL(oldvoxco_b2c, voxco_b2c)) {
-        mhtVoxelList_AddPath(voxlist, oldvoxco_b2c, voxco_b2c, fno);
+        mhtVoxelList_AddPath(voxlist, oldvoxco_b2c, voxco_b2c);
         oldvoxco_b2c = voxco_b2c;
       }
     }          // for rungstep
@@ -814,6 +840,7 @@ int MHTisVectorFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int vtxno, 
   //----------------------------------------------------
   if (!mht)  ErrorExit(ERROR_BADPARM, "%s: mht  is NULL\n", __MYFUNCTION__);
   if (!mris) ErrorExit(ERROR_BADPARM, "%s: mris is NULL\n", __MYFUNCTION__);
+  if (mht->mris != mris) ErrorExit(ERROR_BADPARM, "%s: mris is wrong\n", __MYFUNCTION__);
   if (mht->fno_usage != MHTFNO_FACE) {
              ErrorExit(ERROR_BADPARM, "%s: mht not initialized for vertices\n", __MYFUNCTION__);
   }
@@ -821,34 +848,56 @@ int MHTisVectorFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int vtxno, 
              ErrorExit(ERROR_BADPARM, "%s: mht not loaded using CURRENT_VERTICES\n", __MYFUNCTION__);
   }
 
-  //----------------------------------------------------
-  // Temporarily move the CURRENT_VERTICES
-  //----------------------------------------------------
-  VERTEX /* BEVIN MAKE THIS const */ * vtx = &mris->vertices[vtxno];
-
-  float const savex = vtx->x;
-  float const savey = vtx->y;
-  float const savez = vtx->z;
-
-  vtx->x += dx;
-  vtx->y += dy;
-  vtx->z += dz;
-
-  //-------------------------------------------
-  // Check whether the faces adjoining current
-  // vertex will now intersect
-  //-------------------------------------------
-  int fno;
-  for (fno = 0; !intersect && (fno < vtx->num); fno++) {
-    intersect = MHTdoesFaceIntersect(mht, mris, vtx->f[fno]);
+  // This code moves x,y,z regardless of 'which'
+  // and that only makes sense if 'which' is CURRENT_VERTICES
+  //
+  if (mht->which_vertices != CURRENT_VERTICES) {
+    fprintf(stderr, "%s:%d MHTisVectorFilled requires a CURRENT_VERTICES MHT\n", __FILE__, __LINE__);
+    exit(1);
   }
+  
+  VERTEX const * vtx = &mris->vertices[vtxno];
+  float const moved_x = vtx->x + dx;
+  float const moved_y = vtx->y + dy;
+  float const moved_z = vtx->z + dz;
 
-  //----------------------------------------------------
-  // Restore CURRENT_VERTICES
-  //----------------------------------------------------
-  vtx->x = savex;
-  vtx->y = savey;
-  vtx->z = savez;
+  //-------------------------------------------
+  // Check whether each face adjoining vtxno will now intersect other faces
+  //
+  // There is two complications
+  //
+  // 1 - These faces are in the MHT in their pre-moved positions, and since only one vertex has moved, of course they might intersect!
+  //            When the old code had these spurious hits, it then compared the faces based on the updated vertex positions
+  //            and hence got the right answer
+  //
+  // 2 - The moved faces might intersect with each other, and their post-moved positions are not in the MHT, and so
+  //     this intersection should be calculated without regard to the MHT, which is right because it would just report
+  //     that they intersect at the shared vertex
+  //            When the old code updated the vertex position, it was relying on this claim that they intersect
+  //            before comparing the triangles built from the recorded vertex position.
+  // 
+  //-------------------------------------------
+  
+  TODO - the above
+  
+  int fi;
+  for (fi = 0; !intersect && (fi < vtx->num); fi++) {
+    MHT_TRIANGLE triangle;
+    int const fno = vtx->f[fi];
+    FACE const * face = &mris->faces[fno];
+    int corner;
+    for (corner = 0; corner < 3; corner++) {
+      Ptdbl_t* point = &triangle.corners[corner];
+      int cornerVno = face->v[corner];
+      if (cornerVno == vtxno) {
+        point->x = moved_x; point->y = moved_y; point->z = moved_z;
+      } else {
+        VERTEX const * v = &mris->vertices[cornerVno];
+        mhtVertex2Ptxyz_double(v, mht->which_vertices, point);
+      }
+    }
+    intersect = MHTdoesTriangleIntersect(mht, &triangle, vtx->num, vtx->f);
+  }
 
   return (intersect);
 }
@@ -861,95 +910,183 @@ int MHTisVectorFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int vtxno, 
   -------------------------------------------------------------*/
 int MHTdoesFaceIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno)
 {
-  //------------------------------------------------------------
-  VERTEX const *v0, *v1, *v2;
-  Ptdbl_t vpt0, vpt1, vpt2;
-  FACE const *face;
-  VOXEL_LISTgw voxlist;
-
-  int retval = 0;
-
-  //----------------------------------------------------
-  // Sanity check
-  //----------------------------------------------------
-  if (!mht) ErrorExit(ERROR_BADPARM, "%s: mht is NULL\n", __MYFUNCTION__);
+  if (!mht ) ErrorExit(ERROR_BADPARM, "%s: mht is NULL\n",  __MYFUNCTION__);
   if (!mris) ErrorExit(ERROR_BADPARM, "%s: mris is NULL\n", __MYFUNCTION__);
   if (mht->fno_usage != MHTFNO_FACE) {
     ErrorExit(ERROR_BADPARM, "%s: mht not initialized for vertices\n", __MYFUNCTION__);
   }
-
-  //--------------------------------
-  // Create a voxlist for face fno
-  //--------------------------------
-  mhtVoxelList_Init(&voxlist);
-  face = &mris->faces[fno];
-
-  if (face->ripflag) return (NO_ERROR);
-
   if (fno == Gdiag_no) DiagBreak();
 
-  v0 = &mris->vertices[face->v[0]];
-  v1 = &mris->vertices[face->v[1]];
-  v2 = &mris->vertices[face->v[2]];
+  FACE const *face = &mris->faces[fno];
 
-  mhtVertex2Ptxyz_double(v0, mht->which_vertices, &vpt0);
-  mhtVertex2Ptxyz_double(v1, mht->which_vertices, &vpt1);
-  mhtVertex2Ptxyz_double(v2, mht->which_vertices, &vpt2);
+  if (face->ripflag) return 0;
 
-  mhtVoxelList_SampleFace(mht->vres, &vpt0, &vpt1, &vpt2, fno, &voxlist);
+  MHT_TRIANGLE triangle;
+
+  int corner;
+  for (corner = 0; corner < 3; corner++) {
+    mhtVertex2Ptxyz_double(&mris->vertices[face->v[corner]], mht->which_vertices, &triangle.corners[corner]);
+  }
+
+  #define MHT_MAX_TOUCHING_FACES 10000
+  int touchingFnos[MHT_MAX_TOUCHING_FACES];
+  int touchingFnosSize = MHTexpandToTouchingFaces(mht, fno, MHT_MAX_TOUCHING_FACES, fnoList);
+  
+  return MHTdoesTriangleIntersect(mht, &triangle, touchingFnosSize, touchingFnos); 
+}
+
+static int MHTexpandToTouchingFaces(
+    MRIS_HASH_TABLE const * const mht, 
+    int   const fno,
+    int   const fnoListCapacity,
+    int * const fnoList)
+    //
+    // Puts fno in the list, and all the faces that (by intersection rules) are touching fno
+    // Returns the length of the list
+{
+  MRIS        const * const mris     = mht->mris;    
+  VERTEX_INFO const * const vtxinfos = (VERTEX_INFO *)mris->user_parms;
+  FACE        const * const face     = &mris->faces[fno];
+
+  int size = 0;
+  if (size == fnoListCapacity) { fprintf(stderr, "%s:%d exceeded fnoListCapacity\n",__FILE__,__LINE__); exit (1); }
+  fnoList[size++] = fno;
+
+  // Consider each vertex of the face
+  //
+  int vi;
+  for (vi = 0; vi < VERTICES_PER_FACE; vi++) {
+
+    int const vno = face->v[vi];
+    VERTEX      const * const vertex  = &mris->vertices[vno];
+    VERTEX_INFO const * const vtxinfo = &vtxinfos[vno];
+
+    #if VERTICES_PER_FACE != 3
+    #error assumes 3 vertices per face
+    #endif
+    int const vno_prev = (0  < vi                 ) ? face->v[vi-1] : face->v[2];
+    int const vno_next = (vi < VERTICES_PER_FACE-1) ? face->v[vi+1] : face->v[0];
+
+    // Consider each other face that this is a vertex of
+    //
+    int fi;
+    for (fi = 0; fi < v->num; fi++) {
+      int const fno2 = v->f[fi];
+      if (fno2 == fno) continue;
+      FACE const * const face2 = &mris->faces[fno2];
+
+      // Does this nearby face touch?
+      //
+      int vi2;
+      for (vi2 = 0; vi2 < VERTICES_PER_FACE; vi2++) {
+        int const vno2 = face2->v[vi2];
+
+        // Do the faces share two vertex?
+        if (vno2 == vno_prev || vno2 == vno_next) goto touches;
+
+        // Are they linked? 
+        // I don't understand this...
+        {
+          // Check face's list of linked vertices
+          if (vertex->linked > 0) {
+            int li;
+            for (li = 0; li < vtxinfo->nlinks; li++) {
+              if (vtxinfo->linked_vno[li] == vno2) goto touches;
+            }
+          }
+
+          // Check face2's list of linked vertices
+          if (facetest_vtx->linked > 0) {
+            VERTEX_INFO const * const vtxinfo2 = &vtxinfos[vno2];
+            int li;
+            for (li = 0; li < vtxinfo2->nlinks; li++) {
+              if (vtxinfo2->linked_vno[li] == vno) goto touches;
+            }
+          }
+        } // check linked
+        
+      }  // each vertex of the other face
+
+      // This face does not touch
+      //
+      continue;
+            
+      // This face does touch
+      //
+ touches:     
+      if (size == fnoListCapacity) { fprintf(stderr, "%s:%d exceeded fnoListCapacity\n",__FILE__,__LINE__); exit (1); }
+      fnoList[size++] = fno2;
+      
+    } // each other face of the vertex
+  } // each vertex of the face
+  
+  return size;
+}
+
+static int MHTdoesTriangleIntersect(
+    MRIS_HASH_TABLE const * const mht, 
+    MHT_TRIANGLE    const * const triangle,
+    int                     const nFaceToIgnore,
+    int const             * const fnoToIgnore) 
+{
+  int retval = 0;
+
+  // Find all the voxels that the triangle intersects
+  //
+  VOXEL_LISTgw voxlist;
+  mhtVoxelList_Init(&voxlist);
+  mhtVoxelList_SampleTriangle(mht->vres, &triangle->corners[0], &triangle->corners[1], &triangle->corners[2], &voxlist);
 
   //--------------------------------
   // Any intersections?
   //--------------------------------
-  if (mhtDoesFaceVoxelListIntersect(mht, mris, &voxlist, fno)) retval = 1;
+  if (mhtDoesTriangleVoxelListIntersect(mht, triangle, &voxlist, nFaceToIgnore, fnoToIgnore)) retval = 1;
 
   return (retval);
 }
 
-#define MHT_MAX_FACES 10000
 /*-------------------------------------------------------------------
-  mhtDoesFaceVoxelListIntersect
-  Subsidiary function for MHTdoesFaceIntersect, given face fno already
-  analyzed into voxlist.
+  mhtDoesTriangleVoxelListIntersect
+  Subsidiary function for MHTdoesTriangleIntersect, 
+  triangle already analyzed into voxlist.
   ------------------------------------------------------------------*/
-static int mhtDoesFaceVoxelListIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VOXEL_LISTgw *voxlist, int fno)
+static int mhtDoesTriangleVoxelListIntersect(
+    MRIS_HASH_TABLE const * const mht, 
+    MHT_TRIANGLE    const * const triangle, 
+    VOXEL_LISTgw    const * const voxlist,
+    int                     const nFaceToIgnore,
+    int const             * const fnoToIgnore)
 //------------------------------------------------------------------
 {
-  int xv, yv, zv, n3, intersect, voxnum;
-  int binix, faceix, facetestno;
-  int facelist[MHT_MAX_FACES], nfaces;
-  MHB *bin;
-  MHBT *bucket;
-  FACE const *facein, *facetest;
+  MRIS        const * const mris     = mht->mris;
+  VERTEX_INFO const * const vtxinfos = (VERTEX_INFO *)mris->user_parms;
+  
+
+  int n3, intersect, voxnum;
+  int faceix, facetestno;
+  
+  FACE const *facetest;
   VERTEX const *avtx;
   double v0[3], v1[3], v2[3], u0[3], u1[3], u2[3];
 
-  //----------------------------------------------------
-  // Pertaining to cross-checking vertices of fno versus
-  // test face
-  //----------------------------------------------------
-  int facein_vtx_ix, facetest_vtx_ix;    // indices of vertices in face's list
-  int facein_vtx_vno, facetest_vtx_vno;  // Fno of vertices in mris
-  VERTEX const *facein_vtx, *facetest_vtx;     // The vertices themselves
-  VERTEX_INFO *vtxinfos, *vtxinfo;
+  int facein_vtx_ix, facetest_vtx_ix;       // indices of vertices in face's list
+  int facein_vtx_vno, facetest_vtx_vno;     // Fno of vertices in mris
 
-  //----------------------------------------------------
-  facein = &mris->faces[fno];
-
-  if (fno == Gdiag_no) DiagBreak();
+  VERTEX     const *facein_vtx, *facetest_vtx;  // The vertices themselves
 
   //------------------------------------------------------------------------
-  // Iterate through all the voxels pertaining to face fno (ie:
-  // the voxels listed in voxlist), looking at those voxel buckets
-  // in mht to find triangles to add to list in flist for later intersection
-  // check
+  // Iterate through all the voxels pertaining to the triangle, 
+  // looking at those voxel buckets in mht to find faces to add to list in flist 
+  // for later intersection check.
   //------------------------------------------------------------------------
-  vtxinfos = (VERTEX_INFO *)mris->user_parms;
-  nfaces = 0;
+
+  int facelist[MHT_MAX_FACES];
+  int nfaces = 0;
   for (voxnum = 0; voxnum < voxlist->nused; voxnum++) {
-    xv = voxlist->voxels[voxnum][0];
-    yv = voxlist->voxels[voxnum][1];
-    zv = voxlist->voxels[voxnum][2];
+    VOXEL const * voxel = &voxlist->voxels[voxnum];
+    int const xv = voxel[0];
+    int const yv = voxel[1];
+    int const zv = voxel[2];
 
     //----------------------------------------------------------
     // Get corresponding bucket from mht. This *should* always
@@ -957,56 +1094,32 @@ static int mhtDoesFaceVoxelListIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE const
     // into voxlist as was used to put faces into mht buckets.
     //----------------------------------------------------------
     if (!mht->buckets[xv][yv]) return (0);
-    bucket = mht->buckets[xv][yv][zv];
+    
+    MHBT const * const bucket = mht->buckets[xv][yv][zv];
     if (!bucket) continue;
 
-    bin = bucket->bins;
+    // Consider all the faces that intersect this voxel
+    //
+    int binix;
+    for (binix = 0; binix < bucket->nused; binix++) {
+      MHB const * const bin = &bucket->bins[binix];
+      int const fno = bin->fno;
 
-    //-------------------------------------------------
-    // Following is one iteration per face
-    // (ie: binix is essentially facetestix)
-    //-------------------------------------------------
-    for (binix = 0; binix < bucket->nused; binix++, bin++) {
-      facetestno = bin->fno;  // get the one face from this bin
+      // Is this one of the faces to be ignored?
+      // This is used to ignore
+      //        the face that made the triangle
+      //        the faces that are moving because a vertex is moving
+      //
+      int ignoreI;
+      for (ignoreI = 0; ignoreI < nFaceToIgnore; ignoreI++) {
+        if (fno == fnoToIgnore[ignoreI])
+          goto skip_this_facetest;
+      }
+      
+      FACE const * const facetest = &mris->faces[fno];
 
-      if (facetestno == fno)  // no point comparing to same face!
-        goto skip_this_facetest;
-
-      facetest = &mris->faces[facetestno];
-
-      //-------------------------------------------------------------
-      // Tests: Several tests to see whether we should skip the
-      // actual intersection check for this face, eg because facetest
-      // adjoins facein or they are linked.
-      //------------------------------------------------------------
-      for (facein_vtx_ix = 0; facein_vtx_ix < VERTICES_PER_FACE; facein_vtx_ix++) {
-        facein_vtx_vno = facein->v[facein_vtx_ix];
-        facein_vtx = &(mris->vertices[facein_vtx_vno]);
-
-        for (facetest_vtx_ix = 0; facetest_vtx_ix < VERTICES_PER_FACE; facetest_vtx_ix++) {
-          facetest_vtx_vno = facetest->v[facetest_vtx_ix];
-          facetest_vtx = &(mris->vertices[facetest_vtx_vno]);
-
-          // Do the faces share a vertex?
-          if (facein_vtx_vno == facetest_vtx_vno) goto skip_this_facetest;
-
-          // Are they linked? Check facein's list of linked vertices
-          if (facein_vtx->linked > 0) {
-            vtxinfo = &(vtxinfos[facein_vtx_vno]);
-            for (n3 = 0; n3 < vtxinfo->nlinks; n3++) {
-              if (vtxinfo->linked_vno[n3] == facetest_vtx_vno) goto skip_this_facetest;
-            }
-          }  // if
-
-          // Are they linked? Check facetest's list of linked vertices
-          if (facetest_vtx->linked > 0) {
-            vtxinfo = &(vtxinfos[facetest_vtx_vno]);
-            for (n3 = 0; n3 < vtxinfo->nlinks; n3++) {
-              if (vtxinfo->linked_vno[n3] == facein_vtx_vno) goto skip_this_facetest;
-            }  // for
-          }    // if
-        }      // for facetest_vtx_ix
-      }        // for facein_vtx_ix
+      // The test that was here has been moved into MHTexpandToTouchingFaces
+      // because it is faster to decide up front which faces should be ignored
 
       //-----------------------------------------------------
       // If we get to here, there was no reason to reject facetest,
@@ -1020,7 +1133,7 @@ static int mhtDoesFaceVoxelListIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE const
       else
         facelist[nfaces++] = facetestno;
 
-    skip_this_facetest:;  // semicolon avoids error message
+    skip_this_facetest:;
     }                     // for binix
   }                       // for voxnum
 
@@ -2453,7 +2566,7 @@ static int mhtVoxelList_Init(VOXEL_LISTgw *voxlist)
 }
 
 //--------------------------------------------------
-static int mhtVoxelList_Add(VOXEL_LISTgw *voxlist, int xv, int yv, int zv, int fno)
+static int mhtVoxelList_Add(VOXEL_LISTgw *voxlist, int xv, int yv, int zv)
 {
   //--------------------------------------------------
   int i;
@@ -2462,9 +2575,9 @@ static int mhtVoxelList_Add(VOXEL_LISTgw *voxlist, int xv, int yv, int zv, int f
     if (voxlist->voxels[i][0] == xv && voxlist->voxels[i][1] == yv && voxlist->voxels[i][2] == zv) return (NO_ERROR);
 
   if (voxlist->nused >= MAX_VOXELS) {
-    fprintf(stderr, "%s(%d, %d, %d, %d): complete list too big!\n", __MYFUNCTION__, xv, yv, zv, fno);
+    fprintf(stderr, "%s(%d, %d, %d): complete list too big!\n", __MYFUNCTION__, xv, yv, zv);
 
-    ErrorPrintf(ERROR_NOMEMORY, "%s(%d, %d, %d, %d): complete list too big!", __MYFUNCTION__, xv, yv, zv, fno);
+    ErrorPrintf(ERROR_NOMEMORY, "%s(%d, %d, %d): complete list too big!", __MYFUNCTION__, xv, yv, zv);
     return (ERROR_NOMEMORY);
   }
   //-----------------------------
@@ -2479,14 +2592,14 @@ static int mhtVoxelList_Add(VOXEL_LISTgw *voxlist, int xv, int yv, int zv, int f
 }
 
 //--------------------------------------------------
-static int mhtVoxelList_AddCoord(VOXEL_LISTgw *voxlist, VOXEL_COORD vc, int fno)
+static int mhtVoxelList_AddCoord(VOXEL_LISTgw *voxlist, VOXEL_COORD vc)
 {
   //--------------------------------------------------
-  return mhtVoxelList_Add(voxlist, vc.xv, vc.yv, vc.zv, fno);
+  return mhtVoxelList_Add(voxlist, vc.xv, vc.yv, vc.zv);
 }
 
 //--------------------------------------------------
-static int mhtVoxelList_AddPath(VOXEL_LISTgw *voxlist, VOXEL_COORD oldvc, VOXEL_COORD newvc, int fno)
+static int mhtVoxelList_AddPath(VOXEL_LISTgw *voxlist, VOXEL_COORD oldvc, VOXEL_COORD newvc)
 {
   //--------------------------------------------------
   int xv, yv, zv, count;
@@ -2504,7 +2617,7 @@ static int mhtVoxelList_AddPath(VOXEL_LISTgw *voxlist, VOXEL_COORD oldvc, VOXEL_
         // ie: ignore the start voxel, assume that's already added
         // (which can be done with mhtVoxelList_AddCoord)
         if (count >= 1) {
-          mhtVoxelList_Add(voxlist, xv, yv, zv, fno);
+          mhtVoxelList_Add(voxlist, xv, yv, zv);
         }
       }
     }
