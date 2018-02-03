@@ -32,13 +32,13 @@
 
 #include "mri.h"
 #include "mrisurf.h"
+#include "mrishash_internals.h"
 
 #include "diag.h"
 #include "error.h"
 #include "fio.h"
 #include "macros.h"
 #include "minc_volume_io.h"
-#include "mrishash.h"
 #include "proto.h"
 #include "utils.h"
 

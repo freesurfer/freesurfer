@@ -926,7 +926,6 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
     printf("MRISapplyReg: building hash tables (res=16).\n");
     Hash = (MHT **)calloc(sizeof(MHT *), nsurfs);
     for (n = 0; n < nsurfs; n++) {
-      Hash[n] = (MHT *)calloc(sizeof(MHT), 1);
       Hash[n] = MHTfillVertexTableRes(SurfReg[n], NULL, CURRENT_VERTICES, 16);
     }
   }

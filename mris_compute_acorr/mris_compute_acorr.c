@@ -30,15 +30,15 @@
 #include <math.h>
 #include <ctype.h>
 
+#include "mrisurf.h"
+#include "mrishash_internals.h"
 
 #include "macros.h"
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
-#include "mrisurf.h"
 #include "macros.h"
 #include "fio.h"
-#include "mrishash.h"
 #include "sig.h"
 #include "version.h"
 
