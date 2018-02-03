@@ -138,52 +138,67 @@ static int mhtVoxelList_AddPath(VOXEL_LISTgw *voxlist, VOXEL_COORD oldvc, VOXEL_
 
 static int mhtDoesFaceVoxelListIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VOXEL_LISTgw *voxlist, int fno);
 
-// 2007-07-30 GW added
 int mhtBruteForceClosestVertex(MRI_SURFACE const *mris, float x, float y, float z, int which, float *dmin);
 
 //--------- test -----------
 static int checkFace(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno1);
 
+
+//=============================================================================
+// Destructor
+//=============================================================================
+
+void MHTfree(MRIS_HASH_TABLE **pmht)
+{
+  MRIS_HASH_TABLE* mht = *pmht;
+  if (!mht) return;
+
+  *pmht = NULL;  // sets pointer to null to signal free'ed
+
+  int xv, yv, zv;
+  for (xv = 0; xv < TABLE_SIZE; xv++) {
+    for (yv = 0; yv < TABLE_SIZE; yv++) {
+      if (!mht->buckets[xv][yv]) continue;
+      for (zv = 0; zv < TABLE_SIZE; zv++) {
+        if (mht->buckets[xv][yv][zv]) {
+          if (mht->buckets[xv][yv][zv]->bins) free(mht->buckets[xv][yv][zv]->bins);
+          free(mht->buckets[xv][yv][zv]);
+        }
+      }
+      free(mht->buckets[xv][yv]);
+    }
+  }
+
+  free(mht);
+}
+
+
 //=============================================================================
 // Surface --> MHT, store Face Numbers
 //=============================================================================
 
-//------------------------------------
-MRIS_HASH_TABLE *MHTfillTable(MRI_SURFACE const *mris, MRIS_HASH_TABLE *mht)
+MRIS_HASH_TABLE* MHTcreateFaceTable(
+    MRI_SURFACE const   *mris)
 {
-  //------------------------------------
-  return (MHTfillTableAtResolution(mris, mht, CURRENT_VERTICES, VOXEL_RES));
+  return MHTcreateFaceTable_Resolution(mris, CURRENT_VERTICES, VOXEL_RES);
 }
 
-/*------------------------------------------------------
-  MHTfillTableAtResolution
-  Returns new MHT (freeing old mht if it exists), and loads it
-  with FACE const NUMBERS of faces in mris.
-  Args:
-  which     Which vertices to use: CURRENT_VERTICES, WHITE_VERTICES etc
-  res       Resolution [mm]
-  -------------------------------------------------------*/
-//------------------------------------
-MRIS_HASH_TABLE *MHTfillTableAtResolution(MRI_SURFACE const *mris, MRIS_HASH_TABLE *mht, int which, float res)
-//------------------------------------
-{
-  int fno;
-  FACE const *f;
-  int xv, yv, zv;
-  MHBT *bucket;
+MRIS_HASH_TABLE *MHTcreateFaceTable_Resolution(
+    MRI_SURFACE const *mris, 
+    int   which, 
+    float res) {
+
   static int ncalls = 0;
+  ncalls++;
 
   mhtStoreFaceCentroids(mris, which);
-  //-----------------------------
-  // Allocation and initialization
-  //-----------------------------
-  if (mht) /* free old one */
-    MHTfree(&mht);
-  mht = (MRIS_HASH_TABLE *)calloc(1, sizeof(MRIS_HASH_TABLE));
+
+  MRIS_HASH_TABLE *mht = (MRIS_HASH_TABLE *)calloc(1, sizeof(MRIS_HASH_TABLE));
   if (!mht) {
     ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate hash table.\n", __MYFUNCTION__);
   }
 
+  int xv, yv, zv;
   for (xv = 0; xv < TABLE_SIZE; xv++) {
     for (yv = 0; yv < TABLE_SIZE; yv++) {
       mht->buckets[xv][yv] = NULL;
@@ -197,8 +212,9 @@ MRIS_HASH_TABLE *MHTfillTableAtResolution(MRI_SURFACE const *mris, MRIS_HASH_TAB
   mht->which_vertices = which;
   mht->fno_usage = MHTFNO_FACE;
 
+  int fno;
   for (fno = 0; fno < mris->nfaces; fno++) {
-    f = &mris->faces[fno];
+    FACE const* f = &mris->faces[fno];
     if (f->ripflag) continue;
     if (fno == Gdiag_no) DiagBreak();
     mhtFaceToMHT(mht, mris, fno, 1);
@@ -217,7 +233,8 @@ MRIS_HASH_TABLE *MHTfillTableAtResolution(MRI_SURFACE const *mris, MRIS_HASH_TAB
       for (yv = 0; yv < TABLE_SIZE; yv++) {
         for (zv = 0; zv < TABLE_SIZE; zv++) {
           if (!mht->buckets[xv][yv] || !mht->buckets[xv][yv][zv]) continue;
-          bucket = mht->buckets[xv][yv][zv];
+
+          MHBT* bucket = mht->buckets[xv][yv][zv];
           if (bucket->nused) {
             mean += bucket->nused;
             n++;
@@ -232,7 +249,7 @@ MRIS_HASH_TABLE *MHTfillTableAtResolution(MRI_SURFACE const *mris, MRIS_HASH_TAB
       for (yv = 0; yv < TABLE_SIZE; yv++) {
         if (!mht->buckets[xv][yv]) continue;
         for (zv = 0; zv < TABLE_SIZE; zv++) {
-          bucket = mht->buckets[xv][yv][zv];
+          MHBT* bucket = mht->buckets[xv][yv][zv];
           if (bucket && bucket->nused) {
             v = mean - bucket->nused;
             var += v * v;
@@ -244,7 +261,7 @@ MRIS_HASH_TABLE *MHTfillTableAtResolution(MRI_SURFACE const *mris, MRIS_HASH_TAB
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, "%s buckets: mean = %2.1f +- %2.2f, max = %d\n", __MYFUNCTION__, mean, sqrt(var), mx);
   }
-  ncalls++;
+
   return (mht);
 }
 
@@ -530,14 +547,14 @@ static int mhtVoxelList_SampleFace(
 //=============================================================================
 
 //---------------------------------------------------------
-MRIS_HASH_TABLE *MHTfillVertexTable(MRI_SURFACE const *mris, MRIS_HASH_TABLE *mht, int which)
+MRIS_HASH_TABLE *MHTcreateVertexTable(MRI_SURFACE const *mris, int which)
 //---------------------------------------------------------
 {
-  return (MHTfillVertexTableRes(mris, mht, which, VOXEL_RES));
+  return (MHTcreateVertexTable_Resolution(mris, which, VOXEL_RES));
 }
 
 //---------------------------------------------------------
-MRIS_HASH_TABLE *MHTfillVertexTableRes(MRI_SURFACE const *mris, MRIS_HASH_TABLE *mht, int which, float res)
+MRIS_HASH_TABLE *MHTcreateVertexTable_Resolution(MRI_SURFACE const *mris, int which, float res)
 //---------------------------------------------------------
 {
   int vno;
@@ -551,9 +568,8 @@ MRIS_HASH_TABLE *MHTfillVertexTableRes(MRI_SURFACE const *mris, MRIS_HASH_TABLE 
   //-----------------------------
   // Allocation and initialization
   //-----------------------------
-  if (mht) /* free old one */
-    MHTfree(&mht);
-  mht = (MRIS_HASH_TABLE *)calloc(1, sizeof(MRIS_HASH_TABLE));
+
+  MRIS_HASH_TABLE* mht = (MRIS_HASH_TABLE *)calloc(1, sizeof(MRIS_HASH_TABLE));
   if (!mht) ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate hash table.\n", __MYFUNCTION__);
 
   for (xv = 0; xv < TABLE_SIZE; xv++) {
@@ -1000,7 +1016,7 @@ static int mhtDoesFaceVoxelListIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE const
   // intersection test
   // Notes:
   // 1. Code up to v1.27 used CURRENT_VERTICES, which meant that using this
-  // code with an mht that was created with MHTfillTableAtResolution and some
+  // code with an mht that was created with MHTcreateFaceTable_Resolution and some
   // other value for "which" would lead to incorrect results.
   // Code below instead calls mhtVertex2array3_double, and selects vertex
   // set based on mht->which_vertices
@@ -2168,43 +2184,6 @@ int mhtBruteForceClosestFace(MRI_SURFACE const *mris,
   return (min_f);
 }
 
-//=================================================================
-//  Utility
-//=================================================================
-
-/*---------------------------------------------------
-  MHTfree
-  Frees and nulls an MHT pointer.
-  ----------------------------------------------------*/
-//----------------------------------
-int MHTfree(MRIS_HASH_TABLE **pmht)
-//----------------------------------
-{
-  MRIS_HASH_TABLE *mht;
-  int xv, yv, zv;
-
-  if (!(*pmht))  // avoid crash if not initialized, or nulled previously
-    return (NO_ERROR);
-
-  mht = *pmht;
-  *pmht = NULL;  // sets pointer to null to signal free'ed
-
-  for (xv = 0; xv < TABLE_SIZE; xv++) {
-    for (yv = 0; yv < TABLE_SIZE; yv++) {
-      if (!mht->buckets[xv][yv]) continue;
-      for (zv = 0; zv < TABLE_SIZE; zv++) {
-        if (mht->buckets[xv][yv][zv]) {
-          if (mht->buckets[xv][yv][zv]->bins) free(mht->buckets[xv][yv][zv]->bins);
-          free(mht->buckets[xv][yv][zv]);
-        }
-      }
-      free(mht->buckets[xv][yv]);
-    }
-  }
-  free(mht);
-  return (NO_ERROR);
-}
-
 static void mhtFaceCentroid2xyz_float(MRI_SURFACE const *mris, FACE const *face, int which, float *px, float *py, float *pz)
 {
 #if 1
@@ -2549,14 +2528,13 @@ static int mhtVoxelList_AddPath(VOXEL_LISTgw *voxlist, VOXEL_COORD oldvc, VOXEL_
 int MHTtestIsMRISselfIntersecting(MRI_SURFACE const *mris, float res)
 //--------------------------------------------------------
 {
-  MRIS_HASH_TABLE *mht;
   int fno, rslt;
 
   rslt = 0;
 
   // mht = MHTfillTable(mris, NULL) ;
 
-  mht = MHTfillTableAtResolution(mris, NULL, CURRENT_VERTICES, res);
+  MRIS_HASH_TABLE * mht = MHTcreateFaceTable_Resolution(mris, CURRENT_VERTICES, res);
   for (fno = 0; fno < mris->nfaces; fno++) {
     if (MHTdoesFaceIntersect(mht, mris, fno)) {
       rslt = 1;
@@ -2606,7 +2584,7 @@ int MHTcheckSurface(MRI_SURFACE const *mris, MRIS_HASH_TABLE *mht)
   int fno, alloced = 0;
 
   if (!mht) {
-    mht = MHTfillTable(mris, mht);
+    mht = MHTcreateFaceTable(mris);
     alloced = 1;
   }
   for (fno = 0; fno < mris->nfaces; fno++) {

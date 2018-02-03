@@ -44,15 +44,19 @@ void MHTfindReportCounts(int * BucketsChecked,
 int MHTtestIsMRISselfIntersecting(MRI_SURFACE const *mris, float res);
 
 
+void MHTfree(MRIS_HASH_TABLE**);
+
 //------------------------------------------------
 // Surface --> MHT, store Face Numbers
 //------------------------------------------------
-MRIS_HASH_TABLE *MHTfillTable(MRI_SURFACE const *mris, MRIS_HASH_TABLE *mht) ;
 
-MRIS_HASH_TABLE *MHTfillTableAtResolution(MRI_SURFACE const *mris, 
-                                          MRIS_HASH_TABLE *mht,
-                                          int which, 
-                                          float res) ;
+MRIS_HASH_TABLE* MHTcreateFaceTable(
+    MRI_SURFACE const   *mris) ;
+
+MRIS_HASH_TABLE *MHTcreateFaceTable_Resolution(
+    MRI_SURFACE const *mris, 
+    int   which, 
+    float res) ;
 
 // Add/remove the faces of which vertex V is a part
 int  MHTaddAllFaces(   MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VERTEX const *v) ;
@@ -61,14 +65,14 @@ int  MHTremoveAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VERTEX con
 //------------------------------------------------
 // Surface --> MHT, store Vertex Numbers
 //------------------------------------------------
-MRIS_HASH_TABLE *MHTfillVertexTable(MRI_SURFACE const *mris,
-                                    MRIS_HASH_TABLE *mht,       // NULL creates a new one, non-NULL reuses this one
-                                    int which) ;
+MRIS_HASH_TABLE *MHTcreateVertexTable(
+    MRI_SURFACE const *mris, 
+    int which) ;
                                     
-MRIS_HASH_TABLE *MHTfillVertexTableRes(MRI_SURFACE const *mris,
-                                       MRIS_HASH_TABLE *mht,    // NULL creates a new one, non-NULL reuses this one
-                                       int which,
-                                       float res) ;
+MRIS_HASH_TABLE *MHTcreateVertexTable_Resolution(
+    MRI_SURFACE const *mris,
+    int which,
+    float res) ;
 
 //------------------------------------------------
 // Surface self-intersection (Uses MHT initialized with FACES)
@@ -117,12 +121,6 @@ int     MHTfindClosestVertexNo(MRIS_HASH_TABLE *mht,
 VERTEX *MHTfindClosestVertexInTable(MRIS_HASH_TABLE *mht, 
                                     MRI_SURFACE const *mris,
                                     float x, float y, float z, int do_global_search) ;
-
-//------------------------------------------------
-//  Utility
-//------------------------------------------------
-
-int    MHTfree(MRIS_HASH_TABLE **pmht) ;
 
 //------------------------------------------------
 // Diagnostic

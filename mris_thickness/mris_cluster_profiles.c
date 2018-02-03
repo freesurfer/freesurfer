@@ -920,7 +920,7 @@ initialize_cluster_centers_with_ico(MRI_SURFACE *mris, MRI *mri_profiles, CLUSTE
   MRISscaleBrain(mris_ico,mris_ico, r1/r2);
 
   res = sqrt(mris->total_area/mris->nvertices) ;
-  mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 2*res) ;
+  mht = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 2*res) ;
   nsamples = mri_profiles->nframes ;
   for (i = 0 ; i < mris_ico->nvertices ; i++) {
     vico = &mris_ico->vertices[i] ;

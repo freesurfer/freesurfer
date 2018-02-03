@@ -8492,9 +8492,11 @@ int MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 
   /*  mrisClearMomentum(mris) ;*/
   for (parms->t = t = parms->start_t; t < niterations; t++) {
-    if (!FZERO(parms->l_repulse_ratio))
-      mht_v_current = MHTfillVertexTableRes(mris, mht_v_current, CURRENT_VERTICES, 3.0);
-
+    if (!FZERO(parms->l_repulse_ratio)) {
+      MHTfree(mht_v_current);
+      mht_v_current = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 3.0);
+    }
+    
     if (!FZERO(parms->l_curv)) {
       MRIScomputeSecondFundamentalForm(mris);
     }
@@ -8816,12 +8818,14 @@ int mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_average
 #ifdef FS_CUDA_TIMINGS
     gettimeofday(&tv1, NULL);
 #endif  // FS_CUDA_TIMINGS
-    if (!FZERO(parms->l_repulse_ratio))
-      mht_v_current = MHTfillVertexTableRes(mris, mht_v_current, CURRENT_VERTICES, 3.0);
+    if (!FZERO(parms->l_repulse_ratio)) {
+      MHTfree(&mht_v_current);
+      mht_v_current = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 3.0);
+    }
 #ifdef FS_CUDA_TIMINGS
     gettimeofday(&tv2, NULL);
     timeval_subtract(&result, &tv2, &tv1);
-    printf("MHTfillVertexTableRes: %ld ms\n", result.tv_sec * 1000 + result.tv_usec / 1000);
+    printf("MHTcreateVertexTable_Resolution: %ld ms\n", result.tv_sec * 1000 + result.tv_usec / 1000);
     fflush(stdout);
 
     gettimeofday(&tv1, NULL);
@@ -9329,8 +9333,8 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     double vmean, vsigma;
 
     vmean = MRIScomputeTotalVertexSpacingStats(mris, &vsigma, NULL, NULL, NULL, NULL);
-    mht_v_current = MHTfillVertexTableRes(mris, mht_v_current, CURRENT_VERTICES, vmean);
-    mht_f_current = MHTfillTableAtResolution(mris, mht_f_current, CURRENT_VERTICES, vmean);
+    mht_v_current = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, vmean);
+    mht_f_current = MHTcreateFaceTable_Resolution  (mris, CURRENT_VERTICES, vmean);
   }
 
   double sse_angle = 0, sse_neg_area = 0, sse_area = 0;
@@ -9565,8 +9569,6 @@ static double MRIScomputeSSE_CUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, IN
       sse_lap, sse_dura, sse_nlspring, sse_thick_normal, sse_thick_spring, sse_histo, sse_map = 0.0, sse_map2d = 0.0;
   int ano, fno;
   FACE *face;
-  MHT *mht_v_current = NULL;
-  MHT *mht_f_current = NULL;
 
 #if METRIC_SCALE
   if (mris->patch || mris->noscale) {
@@ -9584,9 +9586,11 @@ static double MRIScomputeSSE_CUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, IN
           sse_curv = sse_dist = sse_tspring = sse_loc = sse_nlspring = sse_thick_parallel = sse_thick_min =
               sse_thick_normal = sse_thick_spring = sse_grad = 0.0;
 
+  MHT *mht_v_current = NULL;
+  MHT *mht_f_current = NULL;
   if (!FZERO(parms->l_repulse)) {
-    mht_v_current = MHTfillVertexTable(mris, mht_v_current, CURRENT_VERTICES);
-    mht_f_current = MHTfillTable(mris, mht_f_current);
+    mht_v_current = MHTcreateVertexTable(mris, CURRENT_VERTICES);
+    mht_f_current = MHTcreateFaceTable  (mris);
   }
 
   if (!FZERO(parms->l_angle) || !FZERO(parms->l_area) || (!FZERO(parms->l_parea))) {
@@ -18385,8 +18389,10 @@ int MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     parms->n_averages = n_averages;
     parms->dt = (sqrt((float)n_averages) + 1) * base_dt;
     for (n = parms->start_t; n < parms->start_t + niterations; n++) {
-      if (!FZERO(parms->l_repulse_ratio))
-        mht_v_current = MHTfillVertexTableRes(mris, mht_v_current, CURRENT_VERTICES, 3.0f);
+      if (!FZERO(parms->l_repulse_ratio)) {
+        MHTfree(&mht_v_current);
+        mht_v_current = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 3.0f);
+      }
       MRISclearGradient(mris);
       mrisComputeDistanceTerm(mris, parms);
       mrisComputeSphereTerm(mris, parms->l_sphere, parms->a, parms->explode_flag);
@@ -22658,7 +22664,7 @@ int MRISmeasureThicknessFromCorrespondence(MRI_SURFACE *mris, MHT *mht, float ma
   float xw, yw, zw, dx, dy, dz, xp, yp, zp;
 
   if (mht == NULL) {
-    mht = MHTfillTableAtResolution(mris, NULL, CANONICAL_VERTICES, 1.0);  // to lookup closest face
+    mht = MHTcreateFaceTable_Resolution(mris, CANONICAL_VERTICES, 1.0);  // to lookup closest face
     alloced = 1;
   }
   else
@@ -32144,7 +32150,8 @@ int MRISremoveCompressedRegions(MRI_SURFACE *mris, double min_dist)
   while ((compressed > 0) && (iters++ < 500)) {
     MRISclearGradient(mris);
     if ((parms.flags & IPFLAG_NO_SELF_INT_TEST) == 0) {
-      mht = MHTfillTable(mris, mht);
+      MHTfree(&mht);
+      mht = MHTcreateFaceTable(mris);
     }
     else {
       mht = NULL;
@@ -32325,7 +32332,8 @@ int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEG
       mrisComputeLinkTerm(mris, parms->l_link, 0);
     }
     if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST)) {
-      mht = MHTfillTable(mris, mht);
+      MHTfree(&mht);
+      mht = MHTcreateFaceTable(mris);
     }
     last_wm_sse = MRIScomputeSSEExternal(mris, parms, &last_mle_sse);
 
@@ -32354,7 +32362,8 @@ int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEG
       mrisComputeLinkTerm(mris, parms->l_link, 1);
     }
     if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST)) {
-      mht = MHTfillTable(mris, mht);
+      MHTfree(&mht);
+      mht = MHTcreateFaceTable(mris);
     }
     last_pial_sse = MRIScomputeSSE(mris, parms);
     delta_t += mrisAsynchronousTimeStepNew(mris, 0, dt, mht, MAX_ASYNCH_NEW_MM);
@@ -32541,12 +32550,12 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
 
   max_mm = MIN(MAX_ASYNCH_MM, MIN(mri_smooth->xsize, MIN(mri_smooth->ysize, mri_smooth->zsize)) / 2);
   if (!FZERO(parms->l_surf_repulse)) {
-    mht_v_orig = MHTfillVertexTable(mris, NULL, ORIGINAL_VERTICES);
+    mht_v_orig = MHTcreateVertexTable(mris, ORIGINAL_VERTICES);
   }
 
   if (parms->l_osurf_repulse > 0)  // repel inwards from outer surface
   {
-    mht_pial = MHTfillVertexTableRes(mris, NULL, PIAL_VERTICES, 3.0);
+    mht_pial = MHTcreateVertexTable_Resolution(mris, PIAL_VERTICES, 3.0);
   }
   base_dt = parms->dt;
   if (IS_QUADRANGULAR(mris)) {
@@ -32653,11 +32662,12 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
   for (n = parms->start_t; n < parms->start_t + niterations; n++) {
     parms->t = n;
     if (!FZERO(parms->l_repulse)) {
-      mht_v_current = MHTfillVertexTable(mris, mht_v_current, CURRENT_VERTICES);
-      mht_f_current = MHTfillTable(mris, mht_f_current);
+      MHTfree(&mht_v_current);
+      mht_v_current = MHTcreateVertexTable(mris, CURRENT_VERTICES);
+      MHTfree(&mht_f_current); mht_f_current = MHTcreateFaceTable(mris);
     }
     if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST)) {
-      mht = MHTfillTable(mris, mht);
+      MHTfree(&mht); mht = MHTcreateFaceTable(mris);
     }
     MRISclearGradient(mris);
     mrisComputeTargetLocationTerm(mris, parms->l_location, parms);
@@ -32941,7 +32951,7 @@ int MRISpositionSurface_mef(
 
   // note that the following is for pial surface avoid intersection with white
   if (!FZERO(parms->l_surf_repulse)) {
-    mht_v_orig = MHTfillVertexTable(mris, NULL, ORIGINAL_VERTICES);
+    mht_v_orig = MHTcreateVertexTable(mris, ORIGINAL_VERTICES);
   }
 
   base_dt = parms->dt;
@@ -33004,11 +33014,12 @@ int MRISpositionSurface_mef(
   l_intensity = parms->l_intensity;
   for (n = parms->start_t; n < parms->start_t + niterations; n++) {
     if (!FZERO(parms->l_repulse)) {
-      mht_v_current = MHTfillVertexTable(mris, mht_v_current, CURRENT_VERTICES);
-      mht_f_current = MHTfillTable(mris, mht_f_current);
+      MHTfree(&mht_v_current);
+      mht_v_current = MHTcreateVertexTable(mris, CURRENT_VERTICES);
+      MHTfree(&mht_f_current); mht_f_current = MHTcreateFaceTable(mris);
     }
     if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST)) {
-      mht = MHTfillTable(mris, mht);
+      MHTfree(&mht); MHTcreateFaceTable(mris);
     }
     MRISclearGradient(mris);
     mrisComputeIntensityTerm_mef(mris, l_intensity, mri_30, mri_5, parms->sigma, weight30, weight5, parms);
@@ -33186,7 +33197,7 @@ int MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTEGRAT
   }
 
   if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST)) {
-    mht = MHTfillTable(mris, mht);
+    MHTfree(&mht); mht = MHTcreateFaceTable(mris);
   }
 
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -41008,7 +41019,7 @@ int MRISexpandSurface(MRI_SURFACE *mris, float distance, INTEGRATION_PARMS *parm
 
             vmean = MRIScomputeTotalVertexSpacingStats(mris, &vsigma, NULL, NULL, NULL, NULL);
             if (FZERO(voxel_res)) voxel_res = 1;
-            mht = MHTfillTableAtResolution(mris, mht, CURRENT_VERTICES, vmean);
+            MHTfree(&mht); mht = MHTcreateFaceTable_Resolution(mris, CURRENT_VERTICES, vmean);
           }
 
           if (parms->mri_brain && parms->target_intensity >= 0)
@@ -41636,7 +41647,6 @@ int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico)
   double r;
   int fno, vno, num_ambiguous = 0, nfound, i, max_count;
   VERTEX *v;
-  MHT *mht;
   short *vcount;
 
   vcount = (short *)calloc(mris->nfaces, sizeof(short));
@@ -41654,7 +41664,7 @@ int MRISinverseSphericalMap(MRI_SURFACE *mris, MRI_SURFACE *mris_ico)
     orig       positions are on cortical surface
     current    positions are on sphere.
   */
-  mht = MHTfillTable(mris, NULL);
+  MHT *mht = MHTcreateFaceTable(mris);
 
   /*
     for each vertex on the icosahedral surface, find what face it lies
@@ -42548,7 +42558,7 @@ int MRISripDefectiveFaces(MRI_SURFACE *mris)
   MRISclearCurvature(mris);
   r = MRISaverageRadius(mris);
   MRISscaleBrain(mris, mris, 100.0 / r);  // TO BE CHECKED
-  mht = MHTfillTable(mris, NULL);
+  mht = MHTcreateFaceTable(mris);
 
 /*
   first remove all faces with negative areas as they will be
@@ -50610,7 +50620,7 @@ MRI_SURFACE *MRIScorrectTopology(
   MRISclearMarks(mris);
 #endif
 
-  mht = MHTfillTable(mris, NULL);
+  mht = MHTcreateFaceTable(mris);
 
   for (i = 0; i < dl->ndefects; i++) {
     defect = &dl->defects[i];
@@ -51479,7 +51489,7 @@ MRI_SURFACE *MRIScorrectTopology(
     fprintf(WHICH_OUTPUT, "checking corrected surface for self-intersection...\n");
     MRISsaveVertexPositions(mris_corrected, TMP_VERTICES);
     MRISrestoreVertexPositions(mris_corrected, ORIG_VERTICES);
-    mht = MHTfillTable(mris_corrected, NULL);
+    mht = MHTcreateFaceTable(mris_corrected);
     MHTcheckSurface(mris_corrected, mht);
     MHTfree(&mht);
     MRISrestoreVertexPositions(mris_corrected, TMP_VERTICES);
@@ -51745,7 +51755,7 @@ FACE_DEFECT_LIST *MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
   MRISscaleBrain(mris, mris, 100.0/r) ;
 #endif
 
-  mht = MHTfillTable(mris, NULL);
+  mht = MHTcreateFaceTable(mris);
 
   area_scale = mris->orig_area / mris->total_area;
   // if (Gdiag & DIAG_SHOW)
@@ -65344,7 +65354,7 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE 
       if (max_len > mean + 3 * sigma) {
         max_len = mean + 3 * sigma;
       }
-      mht_src = MHTfillVertexTableRes(mris_src, NULL, CURRENT_VERTICES, 2 * max_len);
+      mht_src = MHTcreateVertexTable_Resolution(mris_src, CURRENT_VERTICES, 2 * max_len);
     }
     v = MHTfindClosestVertex(mht_src, mris_src, vdst);
     if (!v) {
@@ -65402,7 +65412,7 @@ int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TA
   }
 
   MRIScomputeVertexSpacingStats(mris_src, NULL, NULL, &max_len, NULL, NULL, CURRENT_VERTICES);
-  mht_src = MHTfillVertexTableRes(mris_src, NULL, CURRENT_VERTICES, 2 * max_len);
+  mht_src = MHTcreateVertexTable_Resolution(mris_src, CURRENT_VERTICES, 2 * max_len);
 
   /* sample from dst to source to fill holes */
   for (vno = 0; vno < mris_dst->nvertices; vno++) {
@@ -65506,7 +65516,7 @@ int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TA
     }
     if (!mht_src) {
       MRIScomputeVertexSpacingStats(mris_src, NULL, NULL, &max_len, NULL, NULL, CURRENT_VERTICES);
-      mht_src = MHTfillVertexTableRes(mris_src, NULL, CURRENT_VERTICES, 2 * max_len);
+      mht_src = MHTcreateVertexTable_Resolution(mris_src, CURRENT_VERTICES, 2 * max_len);
     }
     v = MHTfindClosestVertex(mht_src, mris_src, vdst);
     if (!v) {
@@ -66333,17 +66343,17 @@ int MRISpaintVolume(MRI_SURFACE *mris, LTA *lta, MRI *mri)
 }
 static int mrisComputePositioningGradients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  MHT *mht_v_orig = NULL, *mht_v_current = NULL, *mht_f_current;
   MRI *mri_brain = parms->mri_brain;
   int avgs;
 
   avgs = parms->n_averages;
   if (!FZERO(parms->l_surf_repulse)) {
-    mht_v_orig = MHTfillVertexTable(mris, NULL, ORIGINAL_VERTICES);
+    mht_v_orig = MHTcreateVertexTable(mris, ORIGINAL_VERTICES);
   }
+  MHT *mht_v_orig = NULL, *mht_v_current = NULL, *mht_f_current;
   if (!FZERO(parms->l_repulse)) {
-    mht_v_current = MHTfillVertexTable(mris, mht_v_current, CURRENT_VERTICES);
-    mht_f_current = MHTfillTable(mris, mht_f_current);
+    mht_v_current = MHTcreateVertexTable(mris, CURRENT_VERTICES);
+    mht_f_current = MHTcreateFaceTable(mris);
   }
   mrisComputeTargetLocationTerm(mris, parms->l_location, parms);
   mrisComputeIntensityTerm(mris, parms->l_intensity, mri_brain, mri_brain, parms->sigma, parms);
@@ -70482,7 +70492,7 @@ static int mrisMarkIntersections(MRI_SURFACE *mris)
   FACE *f;
   int fno, n, num = 0;
 
-  mht = MHTfillTable(mris, NULL);
+  mht = MHTcreateFaceTable(mris);
 
   MRISclearMarks(mris);
   for (num = fno = 0; fno < mris->nfaces; fno++) {
@@ -73791,7 +73801,7 @@ int MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris, MRI_SURFACE *mris2, in
   MRIS_HASH_TABLE *mht;
   double dx, dy, dz;
 
-  mht = MHTfillVertexTableRes(mris2, NULL, CURRENT_VERTICES, MAX_DIST);
+  mht = MHTcreateVertexTable_Resolution(mris2, CURRENT_VERTICES, MAX_DIST);
 
   for (vno = 0; vno < mris->nvertices; vno++) {
     v1 = &mris->vertices[vno];
@@ -73823,14 +73833,13 @@ int MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris, MRI_SURFACE *mris2, in
 
 int MRISwriteCoordsToIco(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, int which_vertices)
 {
-  MHT *mht;
   int vno, fno, debug;
   VERTEX *v;
   FACE *face;
   double fdist;
   float x, y, z;
 
-  mht = MHTfillTableAtResolution(mris, NULL, CANONICAL_VERTICES, 1.0);
+  MHT* mht = MHTcreateFaceTable_Resolution(mris, CANONICAL_VERTICES, 1.0);
 
   for (vno = 0; vno < mris_ico->nvertices; vno++) {
     v = &mris_ico->vertices[vno];
@@ -74374,7 +74383,7 @@ int MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   //  mris->status = MRIS_SPHERE ;
   vsize = (mris->vg.xsize + mris->vg.ysize + mris->vg.zsize) / 3;
   mris->mht = parms->mht =
-      (void *)MHTfillTableAtResolution(mris, NULL, CANONICAL_VERTICES, vsize);  // to lookup closest face
+      (void *)MHTcreateFaceTable_Resolution(mris, CANONICAL_VERTICES, vsize);  // to lookup closest face
 
   if (Gdiag & DIAG_WRITE) {
     char fname[STRLEN];
@@ -76021,7 +76030,7 @@ static int mrisComputePosteriorTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mri_white_dist = MRIScomputeDistanceToSurface(mris, NULL, 0.5);
     MRISrestoreVertexPositions(mris, TMP_VERTICES);
   }
-  mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 10);
+  mht = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 10);
 
   m_vox2vox = MRIgetVoxelToVoxelXform(mri, mri_white_dist);
   v1 = VectorAlloc(4, MATRIX_REAL);
@@ -77162,7 +77171,7 @@ mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mri_white_dist = MRIScomputeDistanceToSurface(mris, NULL, 0.5) ;
     MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   }
-  mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 10);
+  mht = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 10);
 
   m_vox2vox = MRIgetVoxelToVoxelXform(mri, mri_white_dist) ;
   v1 = VectorAlloc(4, MATRIX_REAL) ; v2 = VectorAlloc(4, MATRIX_REAL) ;
@@ -77373,7 +77382,7 @@ static double mrisComputeNegativeLogPosterior2D(MRI_SURFACE *mris, INTEGRATION_P
   MATRIX *m_vox2vox;
   VECTOR *v1, *v2;
 
-  mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 10);
+  mht = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 10);
 
   if (parms->mri_dtrans == NULL) {
     int nvox;
@@ -77607,7 +77616,7 @@ static int mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parm
     mri_white_dist = MRIScomputeDistanceToSurface(mris, NULL, 0.5);
     MRISrestoreVertexPositions(mris, TMP_VERTICES);
   }
-  mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 10);
+  mht = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 10);
 
   m_vox2vox = MRIgetVoxelToVoxelXform(mri, mri_white_dist);
   v1 = VectorAlloc(4, MATRIX_REAL);
@@ -77839,10 +77848,10 @@ static int mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parm
 MRI *MRISmapToSurface(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRI *mri_src_features, MRI *mri_dst_features)
 {
   int vno_src, vno_dst;
-  MHT *mht;
+  
   VERTEX *vdst, *vsrc;
 
-  mht = MHTfillVertexTable(mris_src, NULL, CANONICAL_VERTICES);
+  MHT *mht = MHTcreateVertexTable(mris_src, CANONICAL_VERTICES);
 
   if (mri_dst_features == NULL) mri_dst_features = MRIalloc(mris_dst->nvertices, 1, 1, MRI_FLOAT);
   for (vno_dst = 0; vno_dst < mris_dst->nvertices; vno_dst++) {
@@ -77964,7 +77973,7 @@ int IsMRISselfIntersecting(MRI_SURFACE *mris)
   MRIS_HASH_TABLE *mht;
   int fno;
 
-  mht = MHTfillTable(mris, NULL);
+  mht = MHTcreateFaceTable(mris);
 
   for (fno = 0; fno < mris->nfaces; fno++) {
     if (MHTdoesFaceIntersect(mht, mris, fno)) {

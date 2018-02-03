@@ -85,15 +85,12 @@ typedef enum {
 
 struct _mht 
 {
-  float              vres ;     /* resolution of discretization */
-  MHTFNO_t           fno_usage; /* 2007-03-20 GW Added: To enforce consistent 
-                                   use of fno:  face number or vertex number */
-  int                nbuckets ; /* total # of buckets */
+  MRI_SURFACE const *mris ;                             //
+  float              vres ;                             // Resolution of discretization
+  MHTFNO_t           fno_usage;                         // To enforce consistent use of fno:  face number or vertex number
+  int                nbuckets ;                         // Total # of buckets
   MRIS_HASH_BUCKET **buckets[TABLE_SIZE][TABLE_SIZE] ;
-  int                which_vertices ;  /* ORIGINAL, CANONICAL, CURRENT */
-  struct _mht       *mhts[MAX_SURFACES] ; // for MRI_SURFACE_ARRAYs
-  MRI_SURFACE const *mris[MAX_SURFACES] ;
-  int                ntables ;
+  int                which_vertices ;                   // ORIGINAL, CANONICAL, CURRENT
 } ;
 
 

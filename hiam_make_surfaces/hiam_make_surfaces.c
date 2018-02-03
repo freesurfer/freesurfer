@@ -205,7 +205,9 @@ main(int argc, char *argv[]) {
 #endif
   MRISsetNeighborhoodSize(mris, nbrs) ;
   MRISupdateSurface(mris);
-  mht_v_current = MHTfillVertexTableRes(mris,mht_v_current,CURRENT_VERTICES, 1.0f);
+  
+  MHTfree(&mht_v_current);
+  mht_v_current = MHTcreateVertexTable_Resolution(mris,mht_v_current,CURRENT_VERTICES, 1.0f);
 
   //*** Find outside label and inside label for each surface vertex  ****//
   mrisFindneighborlabel(mris,surftype, mri_label, mri_orig);
@@ -273,7 +275,8 @@ main(int argc, char *argv[]) {
       else if (counter <= 5000) step_size = counter/5000.0;
       else step_size = 1;
 #endif
-      mht_v_current = MHTfillVertexTableRes(mris,mht_v_current,CURRENT_VERTICES, 1.0f);
+      MHTFree(&mht_v_current);
+      mht_v_current = MHTcreateVertexTable_Resolution(mris,CURRENT_VERTICES, 1.0f);
       mrisComputeQuadraticCurvatureTerm(mris, weight_quadcur);
       mrisComputeLabelTerm1(mris,weight_label,mri_smooth,mri_label,mri_orig);
       mrisComputeRepulsiveTerm(mris,weight_repulse,mht_v_current) ;

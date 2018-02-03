@@ -2151,7 +2151,7 @@ MRI *MRIScomputeFlattenedVolume(MRI_SURFACE *mris,
 
   wm_samples = nint(wm_dist / res);
   outside_samples = nint(outside_dist / res);
-  mht = MHTfillTableAtResolution(mris, NULL, FLATTENED_VERTICES, 2.0);
+  mht = MHTcreateFaceTable_Resolution(mris, FLATTENED_VERTICES, 2.0);
   ymax = xmax = -1e10;
   ymin = xmin = 1e10;
 
@@ -2989,9 +2989,9 @@ int L2Sinit(LABEL2SURF *l2s)
 
   // initialize hashes
   for (n = 0; n < l2s->nsurfs; n++) {
-    l2s->hashes[n] = MHTfillVertexTableRes(l2s->surfs[n], NULL, CURRENT_VERTICES, l2s->hashres);
+    l2s->hashes[n] = MHTcreateVertexTable_Resolution(l2s->surfs[n], CURRENT_VERTICES, l2s->hashres);
     if (l2s->hashes[n] == NULL) {
-      printf("ERROR: L2Sinit(): MHTfillVertexTableRes() failed\n");
+      printf("ERROR: L2Sinit(): MHTcreateVertexTable_Resolution() failed\n");
       return (-1);
     }
     l2s->masks[n] = MRIalloc(l2s->surfs[n]->nvertices, 1, 1, MRI_INT);

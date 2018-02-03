@@ -496,9 +496,7 @@ int LabelToFlat(LABEL *area, MRI_SURFACE *mris)
 {
   int n, vno;
   VERTEX *v;
-  MRIS_HASH_TABLE *mht;
-
-  mht = MHTfillVertexTable(mris, NULL, CURRENT_VERTICES);
+  MRIS_HASH_TABLE* mht = MHTcreateVertexTable(mris, CURRENT_VERTICES);
 
   for (n = 0; n < area->n_points; n++) {
     vno = area->lv[n].vno;
@@ -511,14 +509,6 @@ int LabelToFlat(LABEL *area, MRI_SURFACE *mris)
     }
     else /* in canonical coordinate system - find closest vertex */
     {
-#if 0
-      vno =
-        MRISfindClosestVertex(mris,
-                              area->lv[n].x,
-                              area->lv[n].y,
-                              area->lv[n].z,
-                              &dmin);
-#endif
       v = MHTfindClosestVertexInTable(mht, mris, area->lv[n].x, area->lv[n].y, area->lv[n].z, 0);
       if (v == NULL) {
         continue;
@@ -1822,7 +1812,7 @@ int LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
   fprintf(stderr, "%d unassigned vertices in label - building spatial LUT...\n", i);
 
   /* if we can't find a vertex within 10 mm of the point, something is wrong */
-  mht = MHTfillVertexTableRes(mris, NULL, coords, 2 * max_spacing);
+  mht = MHTcreateVertexTable_Resolution(mris, coords, 2 * max_spacing);
   fprintf(stderr, "assigning vertex numbers to label...\n");
   num_not_found = 0;
   for (n = 0; n < area->n_points; n++) {
@@ -1959,7 +1949,7 @@ LABEL *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mh
   }
 
   MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_len, NULL, NULL, CURRENT_VERTICES);
-  mht_src = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 2 * max_len);
+  mht_src = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 2 * max_len);
 
   MRISclearMarks(mris);
   LabelMarkStats(asrc, mris);
@@ -3334,7 +3324,7 @@ LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, i
     MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing, NULL, &max_vno, coords);
     if (mht) MHTfree(&mht);
     mris_cached = mris;
-    mht = MHTfillVertexTableRes(mris, NULL, coords, 2 * max_spacing);
+    mht = MHTcreateVertexTable_Resolution(mris, coords, 2 * max_spacing);
   }
   fprintf(stderr, "assigning vertex numbers to label...\n");
   num_not_found = num_brute_force = 0;
@@ -3520,7 +3510,7 @@ int LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
   for (n = 0; n < mris->nvertices; n++) area->vertex_label_ind[n] = -1;  // means that this vertex is not in th elabel
 
   MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing, NULL, &max_vno, coords);
-  area->mht = (void *)MHTfillVertexTableRes(mris, NULL, coords, max_spacing);
+  area->mht = (void *)MHTcreateVertexTable_Resolution(mris, coords, max_spacing);
 
   // map unassigned vertices to surface locations
   for (n = 0; n < area->n_points; n++) {

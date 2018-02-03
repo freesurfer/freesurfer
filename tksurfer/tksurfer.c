@@ -23542,7 +23542,7 @@ deconvolve_weights(char *weight_fname, char *scale_fname)
 #define MAX_DIST  (1.0*sqrt(500))
 
   fprintf(stderr, "building spatial LUT...\n") ;
-  mht = MHTfillVertexTableRes(mris, NULL, CANONICAL_VERTICES, MAX_DIST) ;
+  mht = MHTcreateVertexTable_Resolution(mris, CANONICAL_VERTICES, MAX_DIST) ;
 
   fprintf(stderr, "deconvolving weights...\n") ;
   MRISsetVals(mris, 0.0) ;  /* clear all values */

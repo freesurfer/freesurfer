@@ -2049,7 +2049,7 @@ MRISpositionSurface_mef(MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5,
 
   //note that the following is for pial surface avoid intersection with white
   if (!FZERO(parms->l_surf_repulse))
-    mht_v_orig = MHTfillVertexTable(mris, NULL, ORIGINAL_VERTICES) ;
+    mht_v_orig = MHTcreateVertexTable(mris, ORIGINAL_VERTICES) ;
 
   base_dt = parms->dt ;
   if (IS_QUADRANGULAR(mris))
@@ -2111,8 +2111,10 @@ MRISpositionSurface_mef(MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5,
   dt = parms->dt ;
   l_intensity = parms->l_intensity ;
   for (n = parms->start_t ; n < parms->start_t+niterations ; n++) {
-    if (!FZERO(parms->l_repulse))
-      mht_v_current = MHTfillVertexTable(mris, mht_v_current,CURRENT_VERTICES);
+    if (!FZERO(parms->l_repulse)) {
+      MHTfree(&mht_v_current);
+      mht_v_current = MHTcreateVertexTable(mris, CURRENT_VERTICES);
+    }
     if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
       mht = MHTfillTable(mris, mht) ;
     MRISclearGradient(mris) ;

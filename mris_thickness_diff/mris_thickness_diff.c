@@ -1154,7 +1154,7 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1,
   MHT *SrcHash;
 	MRI *mri_resampled = MRIclone(mri_data1, NULL);
 
-  SrcHash = MHTfillVertexTableRes(Mesh2, NULL,CURRENT_VERTICES,16);
+  SrcHash = MHTcreateVertexTable_Resolution(Mesh2, CURRENT_VERTICES,16);
 
   max_distance = 0;
 
@@ -1325,7 +1325,7 @@ void register2to1(MRI_SURFACE *Surf1, MRI_SURFACE *Surf2)
   int index, k;
   MHT *SrcHash;
 
-  SrcHash = MHTfillVertexTableRes(Surf1, NULL,CURRENT_VERTICES,16);
+  SrcHash = MHTcreateVertexTable_Resolution(Surf1, CURRENT_VERTICES,16);
 
   /* This initialization is necessary */
   TR[0][0] = TR[1][1] = TR[2][2] = 1;
