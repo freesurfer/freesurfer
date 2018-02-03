@@ -1,9 +1,10 @@
 #! /bin/bash -ef
 set -eu
 
-# assumes this has been executed to get VXL:
-# git clone git@github.com:vxl/vxl.git
-# mv vxl src
+if [ ! -z src ]; then
+    git clone git@github.com:vxl/vxl.git
+    mv vxl src
+fi
 
 export CC="`which cc`"
 export CXX="`which c++`"

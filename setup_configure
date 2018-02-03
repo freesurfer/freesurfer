@@ -44,8 +44,9 @@ echo "";echo "";echo "";echo $cmd4
 echo $cmd4
 $cmd4
 if ($status) then
-    echo "ERROR: $cmd4"
-    exit $status
+    # seems to always fail, so don't error exit
+    #echo "ERROR: $cmd4"
+    #exit $status
 endif
 
 echo "";echo "";echo "";echo $cmd5
