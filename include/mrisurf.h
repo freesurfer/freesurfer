@@ -344,7 +344,6 @@ typedef struct vertex_type_
   ELTT(float,std_error) SEP    \
   ELTT(unsigned int,flags) SEP    \
   ELTP(void,vp) SEP /* to store user's information */    \
-  ELTT(int,linked) SEP         /* is this vertex linked to some others? */    \
   ELTT(int,fno) SEP            /* face that this vertex is in */    \
   ELTT(int,cropped)     \
   // end of macro
