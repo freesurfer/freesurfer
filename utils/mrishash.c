@@ -873,18 +873,19 @@ int MHTisVectorFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int vtxno, 
   // 2 - The moved faces might intersect with each other, and their post-moved positions are not in the MHT, and so
   //     this intersection should be calculated without regard to the MHT, which is right because it would just report
   //     that they intersect at the shared vertex
-  //            When the old code updated the vertex position, it was relying on this claim that they intersect
-  //            before comparing the triangles built from the recorded vertex position.
+  //            The old code updated the vertex position BUT it is comparing vno's to recognize abutting faces
+  //            and was not comparing faces that share even one vertex!
   // 
   //-------------------------------------------
   
-  TODO - the above
-  
+  // Try each changed faced in turn
+  //
   int fi;
-  for (fi = 0; !intersect && (fi < vtx->num); fi++) {
-    MHT_TRIANGLE triangle;
+  for (fi = 0; fi < vtx->num; fi++) {
     int const fno = vtx->f[fi];
     FACE const * face = &mris->faces[fno];
+
+    MHT_TRIANGLE triangle;
     int corner;
     for (corner = 0; corner < 3; corner++) {
       Ptdbl_t* point = &triangle.corners[corner];
@@ -896,7 +897,10 @@ int MHTisVectorFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int vtxno, 
         mhtVertex2Ptxyz_double(v, mht->which_vertices, point);
       }
     }
-    intersect = MHTdoesTriangleIntersect(mht, &triangle, vtx->num, vtx->f);
+
+    // Intersect with the non-changed faces
+    //
+    if (MHTdoesTriangleIntersect(mht, &triangle, vtx->num, vtx->f)) return 1;
   }
 
   return (intersect);
@@ -930,7 +934,7 @@ int MHTdoesFaceIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno)
 
   #define MHT_MAX_TOUCHING_FACES 10000
   int touchingFnos[MHT_MAX_TOUCHING_FACES];
-  int touchingFnosSize = MHTexpandToTouchingFaces(mht, fno, MHT_MAX_TOUCHING_FACES, fnoList);
+  int touchingFnosSize = MHTexpandToTouchingFaces(mht, fno, MHT_MAX_TOUCHING_FACES, touchingFnos);
   
   return MHTdoesTriangleIntersect(mht, &triangle, touchingFnosSize, touchingFnos); 
 }
@@ -944,9 +948,8 @@ static int MHTexpandToTouchingFaces(
     // Puts fno in the list, and all the faces that (by intersection rules) are touching fno
     // Returns the length of the list
 {
-  MRIS        const * const mris     = mht->mris;    
-  VERTEX_INFO const * const vtxinfos = (VERTEX_INFO *)mris->user_parms;
-  FACE        const * const face     = &mris->faces[fno];
+  MRIS const * const mris = mht->mris;    
+  FACE const * const face = &mris->faces[fno];
 
   int size = 0;
   if (size == fnoListCapacity) { fprintf(stderr, "%s:%d exceeded fnoListCapacity\n",__FILE__,__LINE__); exit (1); }
@@ -956,10 +959,8 @@ static int MHTexpandToTouchingFaces(
   //
   int vi;
   for (vi = 0; vi < VERTICES_PER_FACE; vi++) {
-
     int const vno = face->v[vi];
-    VERTEX      const * const vertex  = &mris->vertices[vno];
-    VERTEX_INFO const * const vtxinfo = &vtxinfos[vno];
+    VERTEX const * const vertex = &mris->vertices[vno];
 
     #if VERTICES_PER_FACE != 3
     #error assumes 3 vertices per face
@@ -970,48 +971,27 @@ static int MHTexpandToTouchingFaces(
     // Consider each other face that this is a vertex of
     //
     int fi;
-    for (fi = 0; fi < v->num; fi++) {
-      int const fno2 = v->f[fi];
+    for (fi = 0; fi < vertex->num; fi++) {
+      int const fno2 = vertex->f[fi];
       if (fno2 == fno) continue;
       FACE const * const face2 = &mris->faces[fno2];
 
-      // Does this nearby face touch?
+      // Does this nearby face share two vertex?
+      //
+      // Note: the previous code only checked for one vertex in common, but such faces CAN intersect...
+      // If we don't get an exact compare, this is one change to undo
       //
       int vi2;
       for (vi2 = 0; vi2 < VERTICES_PER_FACE; vi2++) {
         int const vno2 = face2->v[vi2];
-
-        // Do the faces share two vertex?
         if (vno2 == vno_prev || vno2 == vno_next) goto touches;
+      } 
 
-        // Are they linked? 
-        // I don't understand this...
-        {
-          // Check face's list of linked vertices
-          if (vertex->linked > 0) {
-            int li;
-            for (li = 0; li < vtxinfo->nlinks; li++) {
-              if (vtxinfo->linked_vno[li] == vno2) goto touches;
-            }
-          }
-
-          // Check face2's list of linked vertices
-          if (facetest_vtx->linked > 0) {
-            VERTEX_INFO const * const vtxinfo2 = &vtxinfos[vno2];
-            int li;
-            for (li = 0; li < vtxinfo2->nlinks; li++) {
-              if (vtxinfo2->linked_vno[li] == vno) goto touches;
-            }
-          }
-        } // check linked
-        
-      }  // each vertex of the other face
-
-      // This face does not touch
+      // This face does not share an edge therefore can intersect
       //
       continue;
             
-      // This face does touch
+      // This face does share an edge
       //
  touches:     
       if (size == fnoListCapacity) { fprintf(stderr, "%s:%d exceeded fnoListCapacity\n",__FILE__,__LINE__); exit (1); }
@@ -1058,35 +1038,25 @@ static int mhtDoesTriangleVoxelListIntersect(
     int const             * const fnoToIgnore)
 //------------------------------------------------------------------
 {
-  MRIS        const * const mris     = mht->mris;
-  VERTEX_INFO const * const vtxinfos = (VERTEX_INFO *)mris->user_parms;
+  MRIS const * const mris = mht->mris;
   
-
-  int n3, intersect, voxnum;
-  int faceix, facetestno;
-  
-  FACE const *facetest;
-  VERTEX const *avtx;
-  double v0[3], v1[3], v2[3], u0[3], u1[3], u2[3];
-
-  int facein_vtx_ix, facetest_vtx_ix;       // indices of vertices in face's list
-  int facein_vtx_vno, facetest_vtx_vno;     // Fno of vertices in mris
-
-  VERTEX     const *facein_vtx, *facetest_vtx;  // The vertices themselves
-
   //------------------------------------------------------------------------
   // Iterate through all the voxels pertaining to the triangle, 
   // looking at those voxel buckets in mht to find faces to add to list in flist 
   // for later intersection check.
   //------------------------------------------------------------------------
 
+#define MHT_MAX_FACES 1000
+
   int facelist[MHT_MAX_FACES];
-  int nfaces = 0;
+  int facelistSize = 0;
+
+  int voxnum;
   for (voxnum = 0; voxnum < voxlist->nused; voxnum++) {
-    VOXEL const * voxel = &voxlist->voxels[voxnum];
-    int const xv = voxel[0];
-    int const yv = voxel[1];
-    int const zv = voxel[2];
+    int const (* voxel)[3] = &voxlist->voxels[voxnum];
+    int const xv = (*voxel)[0];
+    int const yv = (*voxel)[1];
+    int const zv = (*voxel)[2];
 
     //----------------------------------------------------------
     // Get corresponding bucket from mht. This *should* always
@@ -1113,33 +1083,32 @@ static int mhtDoesTriangleVoxelListIntersect(
       int ignoreI;
       for (ignoreI = 0; ignoreI < nFaceToIgnore; ignoreI++) {
         if (fno == fnoToIgnore[ignoreI])
-          goto skip_this_facetest;
+          goto skip_this_face;
       }
       
-      FACE const * const facetest = &mris->faces[fno];
-
       // The test that was here has been moved into MHTexpandToTouchingFaces
       // because it is faster to decide up front which faces should be ignored
 
-      //-----------------------------------------------------
-      // If we get to here, there was no reason to reject facetest,
-      // so append it to faces list
-      //-----------------------------------------------------
-      for (faceix = 0; faceix < nfaces; faceix++) {
-        if (facelist[faceix] == facetestno) goto skip_this_facetest;
+      // append it if not already present
+      //
+      int fli;
+      for (fli = 0; fli < facelistSize; fli++) {
+        if (facelist[fli] == fno) goto skip_this_face;
       }
-      if (nfaces >= MHT_MAX_FACES)
+      
+      if (facelistSize >= MHT_MAX_FACES) {
         ErrorPrintf(ERROR_NO_MEMORY, "%s: MHT_MAX_FACES exceeded!", __MYFUNCTION__);
-      else
-        facelist[nfaces++] = facetestno;
+        exit (1);
+      }
+      
+      facelist[facelistSize++] = fno;
 
-    skip_this_facetest:;
+    skip_this_face:;
     }                     // for binix
   }                       // for voxnum
 
-  //-----------------------------------------------------------------------
-  // Now that we have a list of faces in facelist run the actual geometry
-  // intersection test
+  // Find the first face that intersects the triangle
+  //
   // Notes:
   // 1. Code up to v1.27 used CURRENT_VERTICES, which meant that using this
   // code with an mht that was created with MHTcreateFaceTable_Resolution and some
@@ -1148,32 +1117,34 @@ static int mhtDoesTriangleVoxelListIntersect(
   // set based on mht->which_vertices
   //-----------------------------------------------------------------------
 
-  /* set vertices of 1st triangle */
-  avtx = &(mris->vertices[facein->v[0]]);
-  mhtVertex2array3_double(avtx, mht->which_vertices, v0);
+  double v0[3], v1[3], v2[3];
 
-  avtx = &(mris->vertices[facein->v[1]]);
-  mhtVertex2array3_double(avtx, mht->which_vertices, v1);
+  // set vertices of 1st triangle
+  v0[0] = triangle->corners[0].x;  v0[1] = triangle->corners[0].y;  v0[2] = triangle->corners[0].z;
+  v1[0] = triangle->corners[1].x;  v1[1] = triangle->corners[1].y;  v1[2] = triangle->corners[1].z;
+  v2[0] = triangle->corners[2].x;  v2[1] = triangle->corners[2].y;  v2[2] = triangle->corners[2].z;
+  
+  // see if any face intersects
+  int fli;
+  for (fli = 0; fli < facelistSize; fli++) {
+    int const fno = facelist[fli];
+    FACE const * const face = &mris->faces[fno];
+    
+    int const vno0 = face->v[0];
+    int const vno1 = face->v[1];
+    int const vno2 = face->v[2];
+    
+    // set vertices of 2nd triangle
+    double u0[3], u1[3], u2[3];
+    
+    mhtVertex2array3_double(&mris->vertices[vno0], mht->which_vertices, u0);
+    mhtVertex2array3_double(&mris->vertices[vno1], mht->which_vertices, u1);
+    mhtVertex2array3_double(&mris->vertices[vno2], mht->which_vertices, u2);
 
-  avtx = &(mris->vertices[facein->v[2]]);
-  mhtVertex2array3_double(avtx, mht->which_vertices, v2);
-
-  for (faceix = 0; faceix < nfaces; faceix++) {
-    /* set vertices of 2nd triangle */
-    facetest = &mris->faces[facelist[faceix]];
-
-    avtx = &(mris->vertices[facetest->v[0]]);
-    mhtVertex2array3_double(avtx, mht->which_vertices, u0);
-
-    avtx = &(mris->vertices[facetest->v[1]]);
-    mhtVertex2array3_double(avtx, mht->which_vertices, u1);
-
-    avtx = &(mris->vertices[facetest->v[2]]);
-    mhtVertex2array3_double(avtx, mht->which_vertices, u2);
-
-    intersect = tri_tri_intersect(v0, v1, v2, u0, u1, u2);
-    if (intersect) return (1);
+    // if they intersect...
+    if (tri_tri_intersect(v0, v1, v2, u0, u1, u2)) return (1);
   }
+
   return (0);
 }
 
