@@ -550,7 +550,7 @@ static int mrisWriteSnapshots(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t
 static int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t);
 static int mrisTrackTotalDistance(MRI_SURFACE *mris);
 static int mrisTrackTotalDistanceNew(MRI_SURFACE *mris);
-static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT *mht, int vno);
+static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT const *mht, int vno);
 static int mrisFillFace(MRI_SURFACE *mris, MRI *mri, int fno);
 static int mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on);
 #if 0
@@ -11564,53 +11564,13 @@ static double mrisAdaptiveTimeStep(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   Description
   ------------------------------------------------------*/
-static double mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_surfaces 1
+static void mrisAsynchronousTimeStep_update_odxyz(
     MRI_SURFACE * const mris, 
     float         const momentum, 
     float         const delta_t, 
-    MHT *         const mht, 
     float         const max_mag,
-    int*          const directionPtr,
-    bool          const updateDxDyDz)
-{    
-  *directionPtr *= -1;
-
-  /* take a step in the gradient direction modulated by momentum */
-
-  // Rigid bodies are simple
-  //
-  if (mris->status == MRIS_RIGID_BODY) {
-    mris->da = delta_t * mris->alpha + momentum * mris->da;
-    mris->db = delta_t * mris->beta  + momentum * mris->db;
-    mris->dg = delta_t * mris->gamma + momentum * mris->dg;
-    MRISrotate(mris, mris, mris->da, mris->db, mris->dg);
-    return (delta_t);
-  }
-
-  // The following algorithm moves each face in turn, but the movement is constrained by the placement of the other faces.
-  // This makes it hard to parallelize, because deciding that two or more faces can move and then moving them could cause
-  // collisions, each moving into the same previously vacant space, not realizing the other was moving into it.
-  //
-  // The parallelization is made harder by the shared MHT cache.
-  //  
-  int i;
-
-  ROMP_PF_begin
-#ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(serial)
-#endif
-  for (i = 0; i < mris->nvertices; i++) {
-
-    int const vno =                 // this strongly suggests it is NOT a parallelizable algorithm
-      (*directionPtr < 0)           // since the direction through the nodes should not make a difference!
-      ? (mris->nvertices - i - 1)
-      : i;
-
-    VERTEX * const v = &mris->vertices[vno];
-    if (v->ripflag) {
-      ROMP_PF_continue;
-    }
-
+    VERTEX *      const v)
+{
     if (vno == Gdiag_no) {
       DiagBreak();
     }
@@ -11650,6 +11610,20 @@ static double mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_
         fprintf(
             stdout, "n = (%2.1f,%2.1f,%2.1f), total dist=%2.3f, total dot = %2.3f\n", v->nx, v->ny, v->nz, dist, dot);
     }
+}
+
+
+static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex( // BEVIN mris_make_surfaces 1
+    MRI_SURFACE * const mris, 
+    MHT *         const mht, 
+    bool          const updateDxDyDz,
+    int           const vno) 
+{
+    if (vno == Gdiag_no) {
+        DiagBreak();
+    }
+
+    VERTEX * const v = &mris->vertices[vno];
 
     /* erase the faces this vertex is part of */
     
@@ -11687,13 +11661,295 @@ static double mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_
     if (mht) {
         MHTaddAllFaces(mht, mris, v);
     }
-
-    ROMP_PFLB_end
-  }
-  ROMP_PF_end
-
-  return (delta_t);
 }
+
+static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_surfaces 1
+    MRI_SURFACE * const mris, 
+    float         const momentum, 
+    float         const delta_t, 
+    MHT *         const mht, 
+    float         const max_mag,
+    int*          const directionPtr,
+    bool          const updateDxDyDz)
+{    
+  *directionPtr *= -1;
+
+  /* take a step in the gradient direction modulated by momentum */
+
+  // Rigid bodies are simple
+  //
+  if (mris->status == MRIS_RIGID_BODY) {
+    mris->da = delta_t * mris->alpha + momentum * mris->da;
+    mris->db = delta_t * mris->beta  + momentum * mris->db;
+    mris->dg = delta_t * mris->gamma + momentum * mris->dg;
+    MRISrotate(mris, mris, mris->da, mris->db, mris->dg);
+    return (delta_t);
+  }
+
+  // The following algorithm moves each face in turn, but the movement is constrained by the placement of the other faces.
+  // This makes it hard to parallelize, because deciding that two or more faces can move and then moving them could cause
+  // collisions, each moving into the same previously vacant space, not realizing the other was moving into it.
+  //
+  // The parallelization is made harder by the shared MHT cache.
+  //
+  // The direction state stops bias in one direction during the expansion, but really indicates that any order of the 
+  // vertices is acceptable.  Indeed random may be preferable.
+  //
+  // Parallelization is done by 
+  //    partitioning the volume into subvolumes, 
+  //    moving those vertices whose faces don't cross a subvolume wall
+  //        the subvolumes can thus be done in parallel
+  //            and, if they don't share portions of the mht, sharing in it is not a problem
+  //    moving those vertices that cross the subvolume wall
+  //        if there is only a few of them, this can be done serial, otherwise we could use a different partitioning
+  //
+#ifdef HAVE_OPENMP
+  if (0)
+#endif
+  {
+
+    // This is the origin, serial, algorithm
+    //
+    int i;
+    for (i = 0; i < mris->nvertices; i++) {
+
+      int const vno =                 // this strongly suggests it is NOT a parallelizable algorithm
+        (*directionPtr < 0)           // since the direction through the nodes should not make a difference!
+        ? (mris->nvertices - i - 1)
+        : i;
+
+      VERTEX * const v = &mris->vertices[vno];
+      if (v->ripflag) {
+        ROMP_PF_continue;
+      }
+
+      mrisAsynchronousTimeStep_update_odxyz(
+        mris, momentum, delta_t, max_mag, v);
+    
+      mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex(
+        mris, mht, updateDxDyDz, vno);
+
+    }
+  } 
+  
+#ifdef HAVE_OPENMP
+
+  // This is the parallel algorithm
+
+  size_t const numThreads = omp_get_max_threads();
+  
+  // Calculate the bounding boxes
+  //
+  float xLo = 1e8, xHi=-xLo, yLo=xLo, yHi=xHi, zLo=xLo, zHi=yHi;
+    // Box that will contains all the vertices after their largest possible movement
+
+  typedef struct PerVertexInfo_t
+    float xLo, xHi, yLo, yHi, zLo, zHi;
+    int nextVnoPlus1;   // Plus1 so 0 can act as NULL
+  } PerVertexInfo;
+
+  PerVertexInfo* vertexInfos = (PerVertexInfo*)calloc(mris->nvertices, sizeof(PerVertexInfo));
+
+    // Compute the limits of each vertex's possible movement
+    { int vno;
+      ROMP_PF_begin
+      #pragma omp parallel for ROMP_if(assume_stable) reduction(max:xHi,yHi,zHi) reduction(min:xLo,yLo,zLo)
+      for (vno = 0; vno < mris->nvertices; vno++) {
+        ROMP_PFLB_begin
+        VERTEX * const v = &mris->vertices[vno];
+
+        mrisAsynchronousTimeStep_update_odxyz(
+          mris, momentum, delta_t, max_mag, v);
+
+        PerVertexInfo* pvi = vertexInfos+vno; 
+        xLo = MIN(xLo, pvi->xLo = v->x); xHi = MAX(xHi, pvi->xHi = v->x + v->odx);
+        yLo = MIN(yLo, pvi->yLo = v->y); yHi = MAX(yHi, pvi->yHi = v->y + v->ody);
+        zLo = MIN(zLo, pvi->zLo = v->z); zHi = MAX(zHi, pvi->zHi = v->z + v->odz);
+        ROMP_PFLB_end
+      }
+      ROMP_PF_end
+    }
+
+  // Create the subvolumes
+  //
+  const size_t numSubvolsPerEdge = 4;
+  const size_t numSubvolsPerThread = (numSubvolsPerEdge * numSubvolsPerEdge * numSubvolsPerEdge + 1);
+    // one extra for the faces that intersect more than one subvol
+    
+  float const xSubvolLen = (xHi - xLo) / numSubvolsPerEdge, xSubvolVerge = xSubvolLen*0.02;
+  float const ySubvolLen = (yHi - yLo) / numSubvolsPerEdge, ySubvolVerge = ySubvolLen*0.02;
+  float const zSubvolLen = (zHi - zLo) / numSubvolsPerEdge, zSubvolVerge = zSubvolLen*0.02;
+    // The verge is a safety margin.  
+    // Any face that gets this close to the surface of the subvolume is assumed might influence across it due to rounding errors.
+    
+  // Assign the faces to the subvolumes
+  //
+  typedef struct PerFaceInfo_t  
+    int svi;            // the subvolume this face is assigned to
+  } PerFaceInfo;
+  PerFaceInfo* faceInfos = (PerFaceInfo*)calloc(mris->nfaces, sizeof(PerFaceInfo));
+
+  { int fno;
+    ROMP_PF_begin
+    #pragma omp parallel for ROMP_if(assume_stable)
+    for (fno = 0; fno < mris->nvertices; fno++) {
+      ROMP_PFLB_begin
+      
+      FACE const * const face = &mris->faces[fno];
+
+      // Compute the box that will contain the face as each vertex moves through its possible values
+      //
+      int vno = face->v[fi];
+      PerVertexInfo* pvi = vertexInfos + vno; 
+
+      float fxLo = pvi->xLo, fxHi = pvi->xHi, fyLo = pvi->yLo, fyHi = pvi->yHi, fzLo = pvi->zLo, fzHi = pvi->zHi;
+
+      int fi;
+      for (fi = 1; fi < VERTICES_PER_FACE; fi++) {
+        vno = face->v[fi];
+        pvi = vertexInfos + vno; 
+        v = &mris->vertices[face->v[fi]];
+        fxLo = MIN(fxLo,pvi->xLo); fyLo = MIN(fyLo,pvi->yLo); fzLo = MIN(fzLo,pvi->zLo);
+        fxHi = MAX(fxHi,pvi->xHi); fyHi = MAX(fyHi,pvi->yHi); fzHi = MAX(fzHi,pvi->zHi);
+      }
+
+      // Assume rounding errors might make it appear slightly larger than this
+      //
+      fxLo -= xSubvolVerge; fxHi += xSubvolVerge;
+      fyLo -= ySubvolVerge; fyHi += ySubvolVerge;
+      fzLo -= zSubvolVerge; fzHi += zSubvolVerge;
+
+      // Compute the subvolumes that this face intersects
+      //
+      int const svxLo = MIN(numSubvolsPerEdge-1,(fxLo - xLo)/xSubvolLen));
+      int const svyLo = MIN(numSubvolsPerEdge-1,(fyLo - yLo)/ySubvolLen));
+      int const svzLo = MIN(numSubvolsPerEdge-1,(fzLo - zLo)/zSubvolLen));
+      int const svxHi = MIN(numSubvolsPerEdge-1,(fxHi - xHi)/xSubvolLen));
+      int const svyHi = MIN(numSubvolsPerEdge-1,(fyHi - yHi)/ySubvolLen));
+      int const svzHi = MIN(numSubvolsPerEdge-1,(fzHi - zHi)/zSubvolLen));
+      
+      // Choose the subvolume to put this face into
+      //
+      int svi = numSubvolsPerThread-1;   // assume into the shared subvol
+      if (svxLo==svxHi && svyLo==svyHi && svzLo==svzHi) {
+        svi = svxLo*numSubvolsPerEdge*numSubvolsPerEdge + svyLo*numSubvolsPerEdge + svzLo; 
+      }
+      
+      // Assign the face to the subvolume
+      //
+      PerFaceInfo* pfi = faceInfos + fno;
+      pfi->svi = svi;
+      
+      ROMP_PFLB_end
+    }
+    ROMP_PF_end
+  }
+
+  // In parallel, assign each vertex to either a subvolume or to the cross-subvolumes subvolume
+  //
+  const size_t numSubvols = numSubvolsPerThread * numThreads;
+    // allocated per thread to avoid need to lock below
+
+  typedef struct SubvolInfo_t
+    int firstVnoPlus1;   // plus1 so that 0 can act as NULL
+    int lastVnoPlus1;    // plus1 so that 0 can act as NULL
+  } SubvolInfo;
+  SubvolInfo* subvols = (SubvolInfo*)calloc(numSubvols, sizeof(SubvolInfo));
+  
+  { int i;
+    ROMP_PF_begin
+    #pragma omp parallel for ROMP_if(assume_stable)
+    for (i = 0; i < mris->nvertices; i++) {
+      ROMP_PFLB_begin
+      
+      int const vno =                       // I think this is to avoid some bias
+        (*directionPtr < 0)                 // while maintaining some semblance of good cache behavior
+        ? (mris->nvertices - i - 1)
+        : i;
+      
+      VERTEX const * const v = &mris->vertices[vno];
+      if (v->ripflag || v->num == 0) ROMP_PF_continue;
+
+      // Choose the same svi as all its faces have, 
+      // but if they disagree, use the shared subvol
+      //
+      int fi  = 0;
+      int fno = v->f[fi];
+      PerFaceInfo* pfi = faceInfos + fno;
+      int svi = pfi->svi;
+      
+      for (fi = 1; fi < v->num; fi++) {
+        int fno = v->f[fi];
+        pfi = faceInfos + fno;
+        if (svi != pfi->svi) { svi = numSubvolsPerThread-1; break; }
+      }
+
+      // Place into the subvol
+      //
+      const int tid = omp_get_thread_num();
+      SubvolInfo* subvol = subvols + tid*numSubvolsPerThread + svi;
+      PerVertexInfo* pvi = vertexInfos + vno; 
+
+      pvi->nextVnoPlus1 = subvol->firstVnoPlus1;    
+      subvol->firstVnoPlus1 = vno + 1;
+      if (!subvol->lastVnoPlus1) subvol->lastVnoPlus1 = vno + 1;
+      
+      ROMP_PFLB_end
+    }
+    ROMP_PF_end 
+  }
+
+  // Merge the per thread subvolumes into the tid==0 subvolume
+  //
+  { int svi;
+    for (svi = 0; svi < numSubvolsPerThread; svi++) {
+      SubvolInfo* subvol0 = subvols + svi;
+      int tid;
+      for (tid = 1; tid < numThreads; tid++) {
+        SubvolInfo* subvol = subvols + tid*numSubvolsPerThread + svi;
+        if (!subvol->firstVnoPlus1) continue;
+        if (!subvol0->firstVnoPlus1) {
+          *subvol0 = *subvol;
+        } else {
+          PerVertexInfo* pvi = vertexInfos + (subvol0->lastVnoPlus1 - 1);
+          pvi->nextVnoPlus1     = subvol->firstVnoPlus1;
+          subvol0->lastVnoPlus1 = subvol->lastVnoPlus1;
+        }
+      }
+    }
+  }
+  
+  // Pass 0: In parallel, process each subvolume
+  // Pass 1: In serial, process the cross-subvolume (parallel but only one hence serial)
+  { int pass;
+    for (pass=0; pass<2; pass++) {
+      int const sviLo = (pass==0) ? 0                     : numSubvolsPerThread-1;
+      int const sviHi = (pass==0) ? numSubvolsPerThread-1 : numSubvolsPerThread;
+      int svi;
+      ROMP_PF_begin
+      #pragma omp parallel for ROMP_if(serial)      // serial until the MHT is thread-safe
+      for (svi = sviLo; svi < sviHi; svi++) {
+        ROMP_PFLB_begin
+        SubvolInfo* subvol = subvols + svi;
+        int vno = subvol->firstPlus1 - 1;
+        while (vno >= 0) {
+          mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex(
+            mris, mht, updateDxDyDz, vno);
+          PerVertexInfo* pvi = vertexInfos + vno;
+          vno = pvi->nextVnoPlus1 - 1;
+        }
+        ROMP_PFLB_end
+      }
+      ROMP_PF_end
+    }
+  }
+
+  // Free the temporary data
+  free(faceInfos);
+  free(subvols);
+  free(vertexInfos);
+}
+
 
 // These functions were almost identical, but used separate "static int direction"
 // Before parallelizing the above, I have merged them
@@ -11706,17 +11962,17 @@ static double mrisAsynchronousTimeStep(
     float         const max_mag)
 {
     static int direction = -1;
-    return
-        mrisAsynchronousTimeStep_optionalDxDyDzUpdate(
-            mris, momentum, delta_t, mht, max_mag, &direction, true);
+    mrisAsynchronousTimeStep_optionalDxDyDzUpdate(
+        mris, momentum, delta_t, mht, max_mag, &direction, true);
+    return delta_t;
 }
 
 static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, float delta_t, MHT *mht, float max_mag)
 {
     static int direction = -1;
-    return
-        mrisAsynchronousTimeStep_optionalDxDyDzUpdate(
-            mris, momentum, delta_t, mht, max_mag, &direction, false);
+    mrisAsynchronousTimeStep_optionalDxDyDzUpdate(
+        mris, momentum, delta_t, mht, max_mag, &direction, false);
+    return delta_t;
 }
 
 /*-----------------------------------------------------
@@ -37331,7 +37587,7 @@ int MRISreverseFaceOrder(MRIS *mris)
 
   Description
   ------------------------------------------------------*/
-static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT *mht, int vno)
+static int mrisLimitGradientDistance(MRI_SURFACE const *mris, MHT const *mht, int vno)
 {
   VERTEX *v = &mris->vertices[vno];
 
