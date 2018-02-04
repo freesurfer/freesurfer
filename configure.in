@@ -2760,18 +2760,38 @@ ITK_DIR=""
 AC_MSG_CHECKING(ITK directory)
 
 AC_ARG_WITH(itk-dir,
-  [  --with-itk-dir=DIR      where the root of ITK is installed.],
+  [  --with-itk-dir=DIR          where the root of ITK is installed.],
   [  itk_i="$withval/include/InsightToolkit"
-     ac_itk_includes="$itk_i $itk_i/Algorithms $itk_i/BasicFilters $itk_i/Common $itk_i/IO $itk_i/Numerics $itk_i/Numerics/Statistics $itk_i/Review $itk_i/Review/Statistics $itk_i/SpatialObject $itk_i/Utilities"
+     ac_itk_includes="$itk_i $itk_i/Algorithms \
+     			     $itk_i/BasicFilters \
+			     $itk_i/Common \
+			     $itk_i/IO \
+			     $itk_i/Numerics \
+			     $itk_i/Numerics/Statistics \
+			     $itk_i/Review \
+			     $itk_i/Review/Statistics \
+			     $itk_i/SpatialObject \
+			     $itk_i/Utilities"
      ac_itk_libraries="$withval"/lib/InsightToolkit
      ITK_DIR="$withval"
      itk_apps="yes"
      AC_SUBST(ITK_DIR)
   ])
 
-# NJS: --with-itk-4.5.1 is a temporary hack to allow building against ITK v4.5.1
-AC_ARG_WITH(itk-4.5.1,
-  [  --with-itk-4.5.1        set paths to use NMR Center ITK v4.5.1.],
+# option to build against ITK v5.0
+AC_ARG_WITH(itk-5.0,
+  [  --with-itk-5.0=DIR          where the root of ITK v5.0 is installed.],
+  [  ac_itk_includes="$withval"/include/ITK-5.0
+     ac_itk_libraries="$withval"/lib
+     ITK_DIR="$withval"
+     itk_apps="yes"
+     itk_50="yes"
+     AC_SUBST(ITK_DIR)
+  ])
+
+# option to build against ITK v4.5
+AC_ARG_WITH(itk-4.5,
+  [  --with-itk-4.5=DIR          where the root of ITK v4.5 is installed.],
   [  ac_itk_includes="$withval"/include/ITK-4.5
      ac_itk_libraries="$withval"/lib
      ITK_DIR="$withval"
@@ -2779,7 +2799,6 @@ AC_ARG_WITH(itk-4.5.1,
      itk_45="yes"
      AC_SUBST(ITK_DIR)
   ])
-# end NJS HACK
 
 AC_ARG_WITH(itk-include,
   [  --with-itk-include=DIR      root of ITK include directory.],
@@ -2805,7 +2824,17 @@ if test "x$ITK_DIR" = "x"; then
   if test -d "${PACKAGES_DIR}/itk/current" ; then
     withval=${PACKAGES_DIR}/itk/current
     itk_i="$withval/include/InsightToolkit"
-    ac_itk_includes="$itk_i $itk_i/Algorithms $itk_i/BasicFilters $itk_i/Common $itk_i/IO $itk_i/Numerics $itk_i/Numerics/Statistics $itk_i/Review $itk_i/Review/Statistics $itk_i/SpatialObject $itk_i/Utilities"
+    ac_itk_includes="$itk_i \
+    $itk_i/Algorithms \
+    $itk_i/BasicFilters \
+    $itk_i/Common \
+    $itk_i/IO \
+    $itk_i/Numerics \
+    $itk_i/Numerics/Statistics \
+    $itk_i/Review \
+    $itk_i/Review/Statistics \
+    $itk_i/SpatialObject \
+    $itk_i/Utilities"
     ac_itk_libraries="$withval"/lib/InsightToolkit
     ITK_DIR="$withval"
     itk_apps="yes"
@@ -2873,7 +2902,25 @@ if test "$itk_apps" = "yes"; then
   $ac_itk_libraries/libitkjpeg16.a \
   $ac_itk_libraries/libITKDICOMParser.a"
 
-  # NJS HACK ITK 4.5.1 uses these:
+  # ITK 5.0 uses these:
+  if test "x$itk_50" = "xyes"; then
+    LIBS_ITK="\
+    $ac_itk_libraries/libITKIONRRD-5.0.a \
+    $ac_itk_libraries/libITKIOImageBase-5.0.a \
+    $ac_itk_libraries/libITKCommon-5.0.a \
+    $ac_itk_libraries/libITKMetaIO-5.0.a \
+    $ac_itk_libraries/libITKniftiio-5.0.a \
+    $ac_itk_libraries/libITKNrrdIO-5.0.a \
+    $ac_itk_libraries/libitkpng-5.0.a \
+    $ac_itk_libraries/libitksys-5.0.a \
+    $ac_itk_libraries/libitktiff-5.0.a \
+    $ac_itk_libraries/libitkv3p_netlib-5.0.a \
+    $ac_itk_libraries/libitkzlib-5.0.a \
+    $ac_itk_libraries/libitkopenjpeg-5.0.a \
+    $ac_itk_libraries/libITKDICOMParser-5.0.a"
+  fi
+
+  # ITK 4.5 uses these:
   if test "x$itk_45" = "xyes"; then
     LIBS_ITK="\
     $ac_itk_libraries/libITKIONRRD-4.5.a \
@@ -2913,6 +2960,7 @@ fi
 AM_CONDITIONAL(ENABLE_ITK_APPS, test "$itk_apps" = "yes")
 AM_CONDITIONAL(HAVE_ITK_LIBS, test "$itk_apps" = "yes")
 AM_CONDITIONAL(HAVE_ITK45, test "$itk_45" = "yes")
+AM_CONDITIONAL(HAVE_ITK50, test "$itk_50" = "yes")
 
 
 AC_SUBST(ITK_CFLAGS)
