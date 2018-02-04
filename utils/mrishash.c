@@ -159,8 +159,8 @@ static int MHTexpandToTouchingFaces(
     int * const fnoList,
     int   const trace);
 
-static int MHTdoesFaceIntersect_old(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno, int const trace);
-static int MHTdoesFaceIntersect_new(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno, int const trace);
+static int MHTdoesFaceIntersect_old(MRIS_HASH_TABLE const *mht, MRI_SURFACE const *mris, int fno, int const trace);
+static int MHTdoesFaceIntersect_new(MRIS_HASH_TABLE const *mht, MRI_SURFACE const *mris, int fno, int const trace);
     
 static int MHTdoesTriangleIntersect(
     MRIS_HASH_TABLE const * const mht, 
@@ -179,9 +179,11 @@ static int mhtDoesTriangleVoxelListIntersect(
 	
 // DELETE THIS
 static int mhtDoesFaceVoxelListIntersect(
-	MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VOXEL_LISTgw *voxlist, int fno, int const trace);
+	MRIS_HASH_TABLE const *mht, 
+        MRI_SURFACE const *mris, VOXEL_LISTgw *voxlist, int fno, int const trace);
 
-int mhtBruteForceClosestVertex(MRI_SURFACE const *mris, float x, float y, float z, int which, float *dmin);
+int mhtBruteForceClosestVertex(
+        MRI_SURFACE const *mris, float x, float y, float z, int which, float *dmin);
 
 //--------- test -----------
 static int checkFace(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno1);
@@ -842,8 +844,8 @@ static int mhtRemoveFaceOrVertexAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, in
   1. MUST be used with mht prepared for CURRENT_VERTICES
   ------------------------------------------------------*/
 int MHTisVectorFilled(
-    MRIS_HASH_TABLE   * const mht, 
-    MRI_SURFACE const * const mris, 
+    MRIS_HASH_TABLE const * const mht, 
+    MRI_SURFACE const     * const mris, 
     int   const vtxno, 
     float const dx, 
     float const dy, 
@@ -1012,7 +1014,7 @@ if (do_new) {
   which was previously hashed into mht using MHTcreateFaceTablexxx
   Returns 1 for "yes -- intersection detected", else NO_ERROR.
   -------------------------------------------------------------*/
-static int MHTdoesFaceIntersect_old(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno, int const trace)
+static int MHTdoesFaceIntersect_old(MRIS_HASH_TABLE const *mht, MRI_SURFACE const *mris, int fno, int const trace)
 {
   //------------------------------------------------------------
   VERTEX const *v0, *v1, *v2;
@@ -1059,7 +1061,7 @@ static int MHTdoesFaceIntersect_old(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mri
   return (retval);
 }
 
-static int MHTdoesFaceIntersect_new(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno, int trace)
+static int MHTdoesFaceIntersect_new(MRIS_HASH_TABLE const * const mht, MRI_SURFACE const * const mris, int const fno, int const trace)
 {
   if (!mht ) ErrorExit(ERROR_BADPARM, "%s: mht is NULL\n",  __MYFUNCTION__);
   if (!mris) ErrorExit(ERROR_BADPARM, "%s: mris is NULL\n", __MYFUNCTION__);
@@ -1217,11 +1219,11 @@ static int MHTdoesTriangleIntersect(
   analyzed into voxlist.
   ------------------------------------------------------------------*/
 static int mhtDoesFaceVoxelListIntersect(
-    MRIS_HASH_TABLE *mht, 
-    MRI_SURFACE const *mris, 
-    VOXEL_LISTgw * const voxlist, 
-    int const fno, 
-    int const trace)
+    MRIS_HASH_TABLE const * const mht, 
+    MRI_SURFACE     const * const mris, 
+    VOXEL_LISTgw          * const voxlist, 
+    int                     const fno, 
+    int                     const trace)
 //------------------------------------------------------------------
 {
   int xv, yv, zv, intersect, voxnum;

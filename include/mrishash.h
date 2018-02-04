@@ -80,7 +80,7 @@ MRIS_HASH_TABLE *MHTcreateVertexTable_Resolution(
 int MHTdoesFaceIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris,int fno);
 
 
-int MHTisVectorFilled(MRIS_HASH_TABLE *mht,    MRI_SURFACE const *mris,
+int MHTisVectorFilled(MRIS_HASH_TABLE const *mht,    MRI_SURFACE const *mris,
                          int vno,  float dx, float dy, float dz) ;
 
 //------------------------------------------------

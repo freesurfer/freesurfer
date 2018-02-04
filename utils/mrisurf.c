@@ -11571,10 +11571,6 @@ static void mrisAsynchronousTimeStep_update_odxyz(
     float         const max_mag,
     VERTEX *      const v)
 {
-    if (vno == Gdiag_no) {
-      DiagBreak();
-    }
-
     v->odx = delta_t * v->dx + momentum * v->odx;
     v->ody = delta_t * v->dy + momentum * v->ody;
     v->odz = delta_t * v->dz + momentum * v->odz;
@@ -11586,29 +11582,6 @@ static void mrisAsynchronousTimeStep_update_odxyz(
         v->odx *= mag;
         v->ody *= mag;
         v->odz *= mag;
-    }
-    
-    if (vno == Gdiag_no) {
-
-        float const dx = v->x - v->origx;
-        float const dy = v->y - v->origy;
-        float const dz = v->z - v->origz;
-        float const dist = sqrt(dx * dx + dy * dy + dz * dz);
-        float const dot  = dx * v->nx + dy * v->ny + dz * v->nz;
-        
-        fprintf(stdout,
-                "moving v %d by (%2.2f, %2.2f, %2.2f) dot=%2.2f-->"
-                "(%2.1f, %2.1f, %2.1f)\n",
-                vno,
-                v->odx,
-                v->ody,
-                v->odz,
-                v->odx * v->nx + v->ody * v->ny + v->odz * v->nz,
-                v->x,
-                v->y,
-                v->z);
-        fprintf(
-            stdout, "n = (%2.1f,%2.1f,%2.1f), total dist=%2.3f, total dot = %2.3f\n", v->nx, v->ny, v->nz, dist, dot);
     }
 }
 
@@ -11683,7 +11656,7 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
     mris->db = delta_t * mris->beta  + momentum * mris->db;
     mris->dg = delta_t * mris->gamma + momentum * mris->dg;
     MRISrotate(mris, mris, mris->da, mris->db, mris->dg);
-    return (delta_t);
+    return;
   }
 
   // The following algorithm moves each face in turn, but the movement is constrained by the placement of the other faces.
@@ -11743,7 +11716,7 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
   float xLo = 1e8, xHi=-xLo, yLo=xLo, yHi=xHi, zLo=xLo, zHi=yHi;
     // Box that will contains all the vertices after their largest possible movement
 
-  typedef struct PerVertexInfo_t
+  typedef struct PerVertexInfo_t {
     float xLo, xHi, yLo, yHi, zLo, zHi;
     int nextVnoPlus1;   // Plus1 so 0 can act as NULL
   } PerVertexInfo;
@@ -11753,7 +11726,7 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
     // Compute the limits of each vertex's possible movement
     { int vno;
       ROMP_PF_begin
-      #pragma omp parallel for ROMP_if(assume_stable) reduction(max:xHi,yHi,zHi) reduction(min:xLo,yLo,zLo)
+      #pragma omp parallel for if_ROMP(assume_reproducible) reduction(max:xHi,yHi,zHi) reduction(min:xLo,yLo,zLo)
       for (vno = 0; vno < mris->nvertices; vno++) {
         ROMP_PFLB_begin
         VERTEX * const v = &mris->vertices[vno];
@@ -11784,14 +11757,14 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
     
   // Assign the faces to the subvolumes
   //
-  typedef struct PerFaceInfo_t  
+  typedef struct PerFaceInfo_t {
     int svi;            // the subvolume this face is assigned to
   } PerFaceInfo;
   PerFaceInfo* faceInfos = (PerFaceInfo*)calloc(mris->nfaces, sizeof(PerFaceInfo));
 
   { int fno;
     ROMP_PF_begin
-    #pragma omp parallel for ROMP_if(assume_stable)
+    #pragma omp parallel for if_ROMP(assume_reproducible)
     for (fno = 0; fno < mris->nvertices; fno++) {
       ROMP_PFLB_begin
       
@@ -11799,16 +11772,15 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
 
       // Compute the box that will contain the face as each vertex moves through its possible values
       //
+      int fi = 0;
       int vno = face->v[fi];
       PerVertexInfo* pvi = vertexInfos + vno; 
 
       float fxLo = pvi->xLo, fxHi = pvi->xHi, fyLo = pvi->yLo, fyHi = pvi->yHi, fzLo = pvi->zLo, fzHi = pvi->zHi;
 
-      int fi;
       for (fi = 1; fi < VERTICES_PER_FACE; fi++) {
         vno = face->v[fi];
         pvi = vertexInfos + vno; 
-        v = &mris->vertices[face->v[fi]];
         fxLo = MIN(fxLo,pvi->xLo); fyLo = MIN(fyLo,pvi->yLo); fzLo = MIN(fzLo,pvi->zLo);
         fxHi = MAX(fxHi,pvi->xHi); fyHi = MAX(fyHi,pvi->yHi); fzHi = MAX(fzHi,pvi->zHi);
       }
@@ -11821,12 +11793,12 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
 
       // Compute the subvolumes that this face intersects
       //
-      int const svxLo = MIN(numSubvolsPerEdge-1,(fxLo - xLo)/xSubvolLen));
-      int const svyLo = MIN(numSubvolsPerEdge-1,(fyLo - yLo)/ySubvolLen));
-      int const svzLo = MIN(numSubvolsPerEdge-1,(fzLo - zLo)/zSubvolLen));
-      int const svxHi = MIN(numSubvolsPerEdge-1,(fxHi - xHi)/xSubvolLen));
-      int const svyHi = MIN(numSubvolsPerEdge-1,(fyHi - yHi)/ySubvolLen));
-      int const svzHi = MIN(numSubvolsPerEdge-1,(fzHi - zHi)/zSubvolLen));
+      int const svxLo = MIN(numSubvolsPerEdge-1,(fxLo - xLo)/xSubvolLen);
+      int const svyLo = MIN(numSubvolsPerEdge-1,(fyLo - yLo)/ySubvolLen);
+      int const svzLo = MIN(numSubvolsPerEdge-1,(fzLo - zLo)/zSubvolLen);
+      int const svxHi = MIN(numSubvolsPerEdge-1,(fxHi - xHi)/xSubvolLen);
+      int const svyHi = MIN(numSubvolsPerEdge-1,(fyHi - yHi)/ySubvolLen);
+      int const svzHi = MIN(numSubvolsPerEdge-1,(fzHi - zHi)/zSubvolLen);
       
       // Choose the subvolume to put this face into
       //
@@ -11850,7 +11822,7 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
   const size_t numSubvols = numSubvolsPerThread * numThreads;
     // allocated per thread to avoid need to lock below
 
-  typedef struct SubvolInfo_t
+  typedef struct SubvolInfo_t {
     int firstVnoPlus1;   // plus1 so that 0 can act as NULL
     int lastVnoPlus1;    // plus1 so that 0 can act as NULL
   } SubvolInfo;
@@ -11858,7 +11830,7 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
   
   { int i;
     ROMP_PF_begin
-    #pragma omp parallel for ROMP_if(assume_stable)
+    #pragma omp parallel for if_ROMP(assume_reproducible)
     for (i = 0; i < mris->nvertices; i++) {
       ROMP_PFLB_begin
       
@@ -11927,11 +11899,11 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
       int const sviHi = (pass==0) ? numSubvolsPerThread-1 : numSubvolsPerThread;
       int svi;
       ROMP_PF_begin
-      #pragma omp parallel for ROMP_if(serial)      // serial until the MHT is thread-safe
+      #pragma omp parallel for if_ROMP(serial)      // serial until the MHT is thread-safe
       for (svi = sviLo; svi < sviHi; svi++) {
         ROMP_PFLB_begin
         SubvolInfo* subvol = subvols + svi;
-        int vno = subvol->firstPlus1 - 1;
+        int vno = subvol->firstVnoPlus1 - 1;
         while (vno >= 0) {
           mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex(
             mris, mht, updateDxDyDz, vno);
@@ -11948,6 +11920,7 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
   free(faceInfos);
   free(subvols);
   free(vertexInfos);
+#endif
 }
 
 
@@ -37587,7 +37560,7 @@ int MRISreverseFaceOrder(MRIS *mris)
 
   Description
   ------------------------------------------------------*/
-static int mrisLimitGradientDistance(MRI_SURFACE const *mris, MHT const *mht, int vno)
+static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT const *mht, int vno)
 {
   VERTEX *v = &mris->vertices[vno];
 
