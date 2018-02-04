@@ -344,6 +344,7 @@ typedef struct vertex_type_
   ELTT(float,std_error) SEP    \
   ELTT(unsigned int,flags) SEP    \
   ELTP(void,vp) SEP /* to store user's information */    \
+  ELTT(int,linked) SEP         /* is this vertex linked to some others? */    \
   ELTT(int,fno) SEP            /* face that this vertex is in */    \
   ELTT(int,cropped)     \
   // end of macro
@@ -1723,6 +1724,9 @@ typedef struct
   HISTOGRAM *h_in ;         // inside label histogram
   HISTOGRAM *h_out ;        // inside label histogram
   double     mag ;          // directional derivative in normal dir initially
+  int        linked_vno[MAX_LINKS] ;   // is it the same as another vertex
+  int        linked_sno[MAX_LINKS] ;   // surface that it's linked to
+  int        nlinks ;
   double     p ;            // p-value for user to fill in
 }
 VERTEX_INFO ;

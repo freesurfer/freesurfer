@@ -287,6 +287,8 @@ static MRI_SP *MRISPiterative_blur(MRI_SURFACE *mris,
                                    MRI_SP *mrisp_dst,
                                    float sigma, int frame) ;
 #endif
+static int enforce_links(MRI_SURFACE *mris);
+static int enforce_link_positions(MRI_SURFACE *mris);
 static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev);
 static int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname);
 static double mrisComputeSSE_MEF(
@@ -32705,6 +32707,26 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     mrisComputeMaxSpringTerm(mris, parms->l_max_spring);
     mrisComputeAngleAreaTerms(mris, parms);
 
+#if 0
+    switch (parms->integration_type)
+    {
+    case INTEGRATE_LM_SEARCH:
+      delta_t = mrisLineMinimizeSearch(mris, parms) ;
+      break ;
+    default:
+    case INTEGRATE_LINE_MINIMIZE:
+      delta_t = mrisLineMinimize(mris, parms) ;
+      break ;
+    case INTEGRATE_MOMENTUM:
+      delta_t = MRISmomentumTimeStep(mris, parms->momentum, parms->dt,
+                                     parms->tol, avgs) ;
+      break ;
+    case INTEGRATE_ADAPTIVE:
+      mrisAdaptiveTimeStep(mris, parms);
+      break ;
+    }
+#else
+    enforce_links(mris);
     do {
       MRISsaveVertexPositions(mris, TMP2_VERTICES);
       mrisScaleTimeStepByCurvature(mris);
@@ -32758,7 +32780,10 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
       else if (!FZERO(parms->l_map2d)) {
         int nvox;
         MRISsaveVertexPositions(mris, PIAL_VERTICES);
-
+#if 0
+    if (parms->h2d != NULL)
+      HISTO2Dfree(&parms->h2d) ;
+#endif
         if (parms->mri_volume_fractions) MRIfree(&parms->mri_volume_fractions);
         if (parms->mri_dtrans) MRIfree(&parms->mri_dtrans);
         parms->mri_volume_fractions = MRIcomputeLaminarVolumeFractions(mris, parms->resolution, parms->mri_brain, NULL);
@@ -32791,7 +32816,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
                 MAX_REDUCTIONS + 1,
                 dt);
         mrisClearMomentum(mris);
-
+#if 1
         if ((FZERO(parms->l_location)) && (rms > last_rms)) /* error increased - reject step */
         {
           MRISrestoreVertexPositions(mris, TMP2_VERTICES);
@@ -32802,14 +32827,47 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
           */
           done = (nreductions > MAX_REDUCTIONS);
         }
+#endif
       }
       if (Gdiag_no >= 0 && DIAG_VERBOSE_ON) {
         MRISprintVertexStats(mris, Gdiag_no, Gstdout, CURRENT_VERTICES);
       }
     } while (!done);
-
+#if 0
+    last_sse = sse ;
+    last_rms = rms ;
+#endif
+#endif
+    enforce_link_positions(mris);
     mrisTrackTotalDistanceNew(mris); /* computes signed
                            deformation amount */
+#if 0
+    if (!FZERO(parms->l_histo))
+    {
+      rms = mrisComputeHistoNegativeLikelihood(mris, parms) ;
+    }
+    else if (!FZERO(parms->l_map))
+    {
+      rms = mrisComputeNegativeLogPosterior(mris, parms) ;
+    }
+    else if (!FZERO(parms->l_map2d))
+    {
+      rms = mrisComputeNegativeLogPosterior2D(mris, parms) ;
+    }
+    else if (!FZERO(parms->l_location))
+    {
+      rms = mrisRmsDistanceError(mris) ;
+    }
+    else if (DZERO(parms->l_intensity) && gMRISexternalRMS != NULL && parms->l_external > 0)
+    {
+      rms = (*gMRISexternalRMS)(mris, parms) ;
+    }
+    else
+    {
+      rms = mrisRmsValError(mris, mri_brain) ;
+    }
+    sse = MRIScomputeSSE(mris, parms) ;
+#endif
     if (Gdiag & DIAG_SHOW)
       fprintf(stdout,
               "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.3f (%2.3f%%)\n",
@@ -71018,6 +71076,124 @@ int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris, MRI *mri, int vno, double *
   *pny = ny;
   *pnz = nz;
 
+  return (NO_ERROR);
+}
+
+static int enforce_links(MRI_SURFACE *mris)
+{
+  int vno, vno2, n;
+  VERTEX *v, *v2;
+  VERTEX_INFO *vi;
+
+  vi = (VERTEX_INFO *)mris->user_parms;
+  if (vi == NULL) {
+    return (NO_ERROR);
+  }
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    if (vno == Gdiag_no) {
+      DiagBreak();
+    }
+
+    if (v->linked) {
+      double odx, dx, ody, dy, odz, dz;
+
+      // compute average of all linked vertices
+      odx = v->odx;
+      ody = v->ody;
+      odz = v->odz;
+      dx = v->dx;
+      dy = v->dy;
+      dz = v->dz;
+      for (n = 0; n < vi[vno].nlinks; n++) {
+        vno2 = vi[vno].linked_vno[n];
+        v2 = &mris->vertices[vno2];
+        odx += v2->odx;
+        ody += v2->ody;
+        odz += v2->odz;
+        dx += v2->dx;
+        dy += v2->dy;
+        dz += v2->dz;
+      }
+      dx /= (double)(n + 1);
+      dy /= (double)(n + 1);
+      dz /= (double)(n + 1);
+      odx /= (double)(n + 1);
+      ody /= (double)(n + 1);
+      odz /= (double)(n + 1);
+      v->dx = dx;
+      v->dy = dy;
+      v->dz = dz;
+      v->odx = odx;
+      v->ody = ody;
+      v->odz = odz;
+      for (n = 0; n < vi[vno].nlinks; n++) {
+        vno2 = vi[vno].linked_vno[n];
+        v2 = &mris->vertices[vno2];
+        v2->dx = dx;
+        v2->dy = dy;
+        v2->dz = dz;
+        v2->odx = odx;
+        v2->ody = ody;
+        v2->odz = odz;
+      }
+    }
+  }
+
+  return (NO_ERROR);
+}
+
+static int enforce_link_positions(MRI_SURFACE *mris)
+{
+  int vno, vno2, n;
+  VERTEX *v, *v2;
+  VERTEX_INFO *vi;
+
+  vi = (VERTEX_INFO *)mris->user_parms;
+  if (vi == NULL) {
+    return (NO_ERROR);
+  }
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->ripflag) {
+      continue;
+    }
+    if (vno == Gdiag_no) {
+      DiagBreak();
+    }
+
+    if (v->linked) {
+      double x, y, z;
+
+      // compute average of all linked vertices
+      x = v->x;
+      y = v->y;
+      z = v->z;
+      for (n = 0; n < vi[vno].nlinks; n++) {
+        vno2 = vi[vno].linked_vno[n];
+        v2 = &mris->vertices[vno2];
+        x += v2->x;
+        y += v2->y;
+        z += v2->z;
+      }
+      x /= (double)(n + 1);
+      y /= (double)(n + 1);
+      z /= (double)(n + 1);
+      v->x = x;
+      v->y = y;
+      v->z = z;
+      for (n = 0; n < vi[vno].nlinks; n++) {
+        vno2 = vi[vno].linked_vno[n];
+        v2 = &mris->vertices[vno2];
+        v2->x = x;
+        v2->y = y;
+        v2->z = z;
+      }
+    }
+  }
   return (NO_ERROR);
 }
 
