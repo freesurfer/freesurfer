@@ -287,8 +287,6 @@ static MRI_SP *MRISPiterative_blur(MRI_SURFACE *mris,
                                    MRI_SP *mrisp_dst,
                                    float sigma, int frame) ;
 #endif
-static int enforce_links(MRI_SURFACE *mris);
-static int enforce_link_positions(MRI_SURFACE *mris);
 static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev);
 static int mrisReadAsciiCurvatureFile(MRI_SURFACE *mris, const char *fname);
 static double mrisComputeSSE_MEF(
@@ -32726,7 +32724,6 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
       break ;
     }
 #else
-    enforce_links(mris);
     do {
       MRISsaveVertexPositions(mris, TMP2_VERTICES);
       mrisScaleTimeStepByCurvature(mris);
@@ -32838,7 +32835,6 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     last_rms = rms ;
 #endif
 #endif
-    enforce_link_positions(mris);
     mrisTrackTotalDistanceNew(mris); /* computes signed
                            deformation amount */
 #if 0
@@ -71076,124 +71072,6 @@ int MRISvertexNormalInVoxelCoords(MRI_SURFACE *mris, MRI *mri, int vno, double *
   *pny = ny;
   *pnz = nz;
 
-  return (NO_ERROR);
-}
-
-static int enforce_links(MRI_SURFACE *mris)
-{
-  int vno, vno2, n;
-  VERTEX *v, *v2;
-  VERTEX_INFO *vi;
-
-  vi = (VERTEX_INFO *)mris->user_parms;
-  if (vi == NULL) {
-    return (NO_ERROR);
-  }
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    if (vno == Gdiag_no) {
-      DiagBreak();
-    }
-
-    if (v->linked) {
-      double odx, dx, ody, dy, odz, dz;
-
-      // compute average of all linked vertices
-      odx = v->odx;
-      ody = v->ody;
-      odz = v->odz;
-      dx = v->dx;
-      dy = v->dy;
-      dz = v->dz;
-      for (n = 0; n < vi[vno].nlinks; n++) {
-        vno2 = vi[vno].linked_vno[n];
-        v2 = &mris->vertices[vno2];
-        odx += v2->odx;
-        ody += v2->ody;
-        odz += v2->odz;
-        dx += v2->dx;
-        dy += v2->dy;
-        dz += v2->dz;
-      }
-      dx /= (double)(n + 1);
-      dy /= (double)(n + 1);
-      dz /= (double)(n + 1);
-      odx /= (double)(n + 1);
-      ody /= (double)(n + 1);
-      odz /= (double)(n + 1);
-      v->dx = dx;
-      v->dy = dy;
-      v->dz = dz;
-      v->odx = odx;
-      v->ody = ody;
-      v->odz = odz;
-      for (n = 0; n < vi[vno].nlinks; n++) {
-        vno2 = vi[vno].linked_vno[n];
-        v2 = &mris->vertices[vno2];
-        v2->dx = dx;
-        v2->dy = dy;
-        v2->dz = dz;
-        v2->odx = odx;
-        v2->ody = ody;
-        v2->odz = odz;
-      }
-    }
-  }
-
-  return (NO_ERROR);
-}
-
-static int enforce_link_positions(MRI_SURFACE *mris)
-{
-  int vno, vno2, n;
-  VERTEX *v, *v2;
-  VERTEX_INFO *vi;
-
-  vi = (VERTEX_INFO *)mris->user_parms;
-  if (vi == NULL) {
-    return (NO_ERROR);
-  }
-  for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag) {
-      continue;
-    }
-    if (vno == Gdiag_no) {
-      DiagBreak();
-    }
-
-    if (v->linked) {
-      double x, y, z;
-
-      // compute average of all linked vertices
-      x = v->x;
-      y = v->y;
-      z = v->z;
-      for (n = 0; n < vi[vno].nlinks; n++) {
-        vno2 = vi[vno].linked_vno[n];
-        v2 = &mris->vertices[vno2];
-        x += v2->x;
-        y += v2->y;
-        z += v2->z;
-      }
-      x /= (double)(n + 1);
-      y /= (double)(n + 1);
-      z /= (double)(n + 1);
-      v->x = x;
-      v->y = y;
-      v->z = z;
-      for (n = 0; n < vi[vno].nlinks; n++) {
-        vno2 = vi[vno].linked_vno[n];
-        v2 = &mris->vertices[vno2];
-        v2->x = x;
-        v2->y = y;
-        v2->z = z;
-      }
-    }
-  }
   return (NO_ERROR);
 }
 

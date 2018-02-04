@@ -851,7 +851,7 @@ int MHTisVectorFilled(
 {
   static int count;
   count++;
-  int const trace = (count == 1);
+  int const trace = 0;
   
   //----------------------------------------------------
   // Sanity check
@@ -904,7 +904,7 @@ int MHTisVectorFilled(
 
   int old_result = 0;
   
-  static const bool do_old = true;
+  static const bool do_old = false;
   static const bool do_new = true;
   
 if (do_old) {
@@ -1095,7 +1095,7 @@ static int MHTdoesFaceIntersect_new(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mri
 }
 
 int MHTdoesFaceIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno) {
-    static const bool do_old = true;
+    static const bool do_old = false;
     static const bool do_new = true;
     static int count;
     count++;
@@ -1224,7 +1224,7 @@ static int mhtDoesFaceVoxelListIntersect(
     int const trace)
 //------------------------------------------------------------------
 {
-  int xv, yv, zv, n3, intersect, voxnum;
+  int xv, yv, zv, intersect, voxnum;
   int binix, faceix, facetestno;
   int facelist[MHT_MAX_FACES], nfaces;
   MHB *bin;
@@ -1240,7 +1240,6 @@ static int mhtDoesFaceVoxelListIntersect(
   int facein_vtx_ix, facetest_vtx_ix;    // indices of vertices in face's list
   int facein_vtx_vno, facetest_vtx_vno;  // Fno of vertices in mris
   VERTEX const *facein_vtx, *facetest_vtx;     // The vertices themselves
-  VERTEX_INFO *vtxinfos, *vtxinfo;
 
   //----------------------------------------------------
   facein = &mris->faces[fno];
@@ -1253,7 +1252,6 @@ static int mhtDoesFaceVoxelListIntersect(
   // in mht to find triangles to add to list in flist for later intersection
   // check
   //------------------------------------------------------------------------
-  vtxinfos = (VERTEX_INFO *)mris->user_parms;
   nfaces = 0;
   for (voxnum = 0; voxnum < voxlist->nused; voxnum++) {
     xv = voxlist->voxels[voxnum][0];
@@ -1294,7 +1292,7 @@ static int mhtDoesFaceVoxelListIntersect(
       //-------------------------------------------------------------
       // Tests: Several tests to see whether we should skip the
       // actual intersection check for this face, eg because facetest
-      // adjoins facein or they are linked.
+      // adjoins facein.
       //------------------------------------------------------------
       for (facein_vtx_ix = 0; facein_vtx_ix < VERTICES_PER_FACE; facein_vtx_ix++) {
         facein_vtx_vno = facein->v[facein_vtx_ix];
@@ -1310,27 +1308,6 @@ static int mhtDoesFaceVoxelListIntersect(
             goto skip_this_facetest;
           }
           
-          // Are they linked? Check facein's list of linked vertices
-          if (facein_vtx->linked > 0) {
-            vtxinfo = &(vtxinfos[facein_vtx_vno]);
-            for (n3 = 0; n3 < vtxinfo->nlinks; n3++) {
-              if (vtxinfo->linked_vno[n3] == facetest_vtx_vno) {
-                reason = "vtxinfo->linked_vno[n3] == facetest_vtx_vno";
-                goto skip_this_facetest;
-              }
-            }
-          }  // if
-
-          // Are they linked? Check facetest's list of linked vertices
-          if (facetest_vtx->linked > 0) {
-            vtxinfo = &(vtxinfos[facetest_vtx_vno]);
-            for (n3 = 0; n3 < vtxinfo->nlinks; n3++) {
-              if (vtxinfo->linked_vno[n3] == facein_vtx_vno) {
-                reason = "vtxinfo->linked_vno[n3] == facein_vtx_vno";
-                goto skip_this_facetest;
-              }
-            }  // for
-          }    // if
         }      // for facetest_vtx_ix
       }        // for facein_vtx_ix
 
