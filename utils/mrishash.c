@@ -151,6 +151,7 @@ static int mhtVoxelList_Add(VOXEL_LISTgw *voxlist, int xv, int yv, int zv);
 static int mhtVoxelList_AddCoord(VOXEL_LISTgw *voxlist, VOXEL_COORD vc);
 static int mhtVoxelList_AddPath (VOXEL_LISTgw *voxlist, VOXEL_COORD oldvc, VOXEL_COORD newvc);
 
+#define MHT_MAX_TOUCHING_FACES 10000
 static int MHTexpandToTouchingFaces(
     MRIS_HASH_TABLE const * const mht,
     int   const fno,
@@ -840,7 +841,13 @@ static int mhtRemoveFaceOrVertexAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, in
   Notes:
   1. MUST be used with mht prepared for CURRENT_VERTICES
   ------------------------------------------------------*/
-int MHTisVectorFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int vtxno, float dx, float dy, float dz)
+int MHTisVectorFilled(
+    MRIS_HASH_TABLE   * const mht, 
+    MRI_SURFACE const * const mris, 
+    int   const vtxno, 
+    float const dx, 
+    float const dy, 
+    float const dz)
 {
   static int count;
   count++;
@@ -883,7 +890,18 @@ int MHTisVectorFilled(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int vtxno, 
   //            and was not comparing faces that share even one vertex!
   // 
   //-------------------------------------------
-  
+
+  if (trace) {
+    VERTEX const * vtx = &mris->vertices[vtxno];
+    fprintf(stderr, "The faces surrounding vertex %d are ", vtxno);
+    int fi;
+    for (fi = 0; fi < vtx->num; fi++) {
+      int fno = vtx->f[fi];
+      fprintf(stderr, " %d", fno);
+    }
+    fprintf(stderr, "\n");
+  }
+
   int old_result = 0;
   
   static const bool do_old = true;
@@ -910,9 +928,14 @@ if (do_old) {
   //-------------------------------------------
   old_result = 0; // assume doesn't intersect
   
-  int fno;
-  for (fno = 0; !old_result && (fno < vtx->num); fno++) {
-    old_result = MHTdoesFaceIntersect_old(mht, mris, vtx->f[fno], trace);
+  int fi;
+  for (fi = 0; fi < vtx->num; fi++) {
+    int fno = vtx->f[fi];
+    old_result = MHTdoesFaceIntersect_old(mht, mris, fno, trace && (fno==0));
+    if (trace) {
+      fprintf(stderr, " MHTdoesFaceIntersect_old face:%d returns %d\n", fno, old_result);
+    }
+    if (old_result) break;
   }
 
   //----------------------------------------------------
@@ -954,15 +977,24 @@ if (do_new) {
       } else {
         VERTEX const * v = &mris->vertices[cornerVno];
         mhtVertex2Ptxyz_double(v, mht->which_vertices, point);
+        if (trace) {
+          fprintf(stderr, "corner:%d vertex:%d (%g,%g,%g)\n",
+            corner, cornerVno, point->x, point->y, point->z);
+        }
       }
     }
 
-    // Intersect with the non-changed faces
+    // Intersect with the non-changed faces that are not adjacent to this face
+    // The changed faces share the vertex so will be in the touchingFnos
     //
-    if (MHTdoesTriangleIntersect(mht, &triangle, vtx->num, vtx->f, trace)) {
-      new_result = 1;
-      break;
+    int touchingFnos[MHT_MAX_TOUCHING_FACES];
+    int touchingFnosSize = MHTexpandToTouchingFaces(mht, fno, MHT_MAX_TOUCHING_FACES, touchingFnos, trace);
+    
+    new_result = MHTdoesTriangleIntersect(mht, &triangle, touchingFnosSize, touchingFnos, trace);
+    if (trace) {
+      fprintf(stderr, " MHTdoesFaceIntersect_new face:%d returns %d\n", fno, new_result);
     }
+    if (new_result) break;
   }
 }
   
@@ -1047,7 +1079,6 @@ static int MHTdoesFaceIntersect_new(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mri
     mhtVertex2Ptxyz_double(&mris->vertices[face->v[corner]], mht->which_vertices, &triangle.corners[corner]);
   }
 
-  #define MHT_MAX_TOUCHING_FACES 10000
   int touchingFnos[MHT_MAX_TOUCHING_FACES];
   int touchingFnosSize = MHTexpandToTouchingFaces(mht, fno, MHT_MAX_TOUCHING_FACES, touchingFnos, trace);
   
