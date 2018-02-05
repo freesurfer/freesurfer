@@ -45,6 +45,7 @@ MRISUBDIRS=\
 	mri_and \
 	mri_label2label \
 	mri_label2vol \
+	mri_matrix_multiply \
 	mri_relabel_hypointensities \
 	mri_relabel_nonwm_hypos \
 	mri_remove_neck \
