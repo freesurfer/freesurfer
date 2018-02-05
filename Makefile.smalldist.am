@@ -45,6 +45,8 @@ MRISUBDIRS=\
 	mri_edit_wm_with_aseg \
 	mri_extract_largest_CC \
 	mri_em_register \
+	mri_fuse_segmentations \
+	mri_gcut \
 	mri_fill \
 	mri_fwhm \
 	mri_info \
@@ -52,6 +54,7 @@ MRISUBDIRS=\
 	mri_label2vol \
 	mri_log_likelihood \
 	mri_normalize \
+	mri_normalize_tp2 \
 	mri_mask \
 	mri_mc \
 	mri_matrix_multiply \
@@ -122,7 +125,8 @@ COREDIRS=\
 	distribution \
 	fsgdf \
 	hipsstubs \
-	tetgen
+	tetgen \
+	tkregister2
 
 # dependent on COREDIRS
 OTHERDIRS=\
