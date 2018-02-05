@@ -1,14 +1,18 @@
 ##
 ## Makefile.smalldist.am
 ##
-## This makes only the binaries needed to run recon-all -all -no-ba-labels, ie. a minimal install.
-## To use: 
-## cp Makefile.smalldist.am Makefile.am
-## include --enable-small-dist-install with configure to reduce data files installed
-## include --disable-g with configure to compile without debug symbols
-## include --disable-GUI-build with configure to disable build of GUI apps (eg. freeview)
-## then run the usual: setup_configure, configure, make, make install, make install-data-hook
+## This makes only the binaries needed to run recon-all -all , ie. a minimal install.
+## To use, just include the flag --enable-small-build-dist with configure.  That will
+## disable the build of the GUI apps, and enable the 'small dist' data install, and
+## replace Makefile with this Makefile.smalldist.  One could also include --disable-g 
+## with configure to compile without debug symbols.
+## For a working installation, the MNI tools (namely nu_correct) will need to be 
+## installed, so one with need to include --with-mni-dir=somepathtomnidir so that
+## during make install, the link is made in freesurfer/mni to those tools.
 ##
+
+## TODO: this list could use some trimming based on a reprozip analysis to figure-out
+## the true list of source files needed
 
 ACLOCAL_AMFLAGS=-I m4
 
@@ -168,6 +172,9 @@ EXTRA_DIST=setup_configure Makefile.extra x86cpucaps \
 	doxy-file-header Doxyfile $(foo_DATA)
 
 DISTCLEANFILES=cpuflags.mak
+
+distclean-hook:
+	rm -f Makefile
 
 # we have files in our dist that dont and shouldnt get cleaned, like testdata.
 # this target override allows make distcheck to pass

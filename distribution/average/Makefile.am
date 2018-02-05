@@ -134,6 +134,12 @@ install:
 	test -z $(DESTDIR)$(foodir) || $(mkdir_p) $(DESTDIR)$(foodir)
 	$(INSTALL_DATA) $(foo_datafiles) $(DESTDIR)$(foodir)
 	mkdir -p $(DESTDIR)$(prefix)/subjects
+	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage
+	rm -Rf $(top_builddir)/distribution/average/fsaverage
+	gunzip -c $(top_srcdir)/distribution/average/fsaverage.tar.gz | tar xvf -
+	mv $(top_builddir)/distribution/average/fsaverage \
+		$(DESTDIR)$(prefix)/subjects
+	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage
 if SMALL_DIST_INSTALL
 else
 	rm -Rf $(DESTDIR)$(prefix)/subjects/cvs_avg35
@@ -146,12 +152,6 @@ else
 	gunzip -c $(top_srcdir)/distribution/average/cvs_avg35_inMNI152.tar.gz | tar xvf -
 	mv $(top_builddir)/distribution/average/cvs_avg35_inMNI152 \
 		$(DESTDIR)$(prefix)/subjects
-	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage
-	rm -Rf $(top_builddir)/distribution/average/fsaverage
-	gunzip -c $(top_srcdir)/distribution/average/fsaverage.tar.gz | tar xvf -
-	mv $(top_builddir)/distribution/average/fsaverage \
-		$(DESTDIR)$(prefix)/subjects
-	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage_sym
 	rm -Rf $(top_builddir)/distribution/average/fsaverage_sym
 	gunzip -c $(top_srcdir)/distribution/average/fsaverage_sym.tar.gz | tar xvf -
