@@ -12003,11 +12003,15 @@ double MRISmomentumTimeStep(MRI_SURFACE *mris, float momentum, float dt, float t
 #endif
 
   /* take a step in the gradient direction modulated by momentum */
+
+  // Rigid bodies are simple
+  //
   if (mris->status == MRIS_RIGID_BODY) {
     mris->da = delta_t * mris->alpha + momentum * mris->da;
-    mris->db = delta_t * mris->beta + momentum * mris->db;
+    mris->db = delta_t * mris->beta  + momentum * mris->db;
     mris->dg = delta_t * mris->gamma + momentum * mris->dg;
     MRISrotate(mris, mris, mris->da, mris->db, mris->dg);
+    return (delta_t);
   }
   else if (mris->status == MRIS_SPHERICAL_PATCH) {
     for (vno = 0; vno < mris->nvertices; vno++) {
