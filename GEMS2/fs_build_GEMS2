@@ -9,6 +9,7 @@ export RANLIB="`which ranlib`"
 rm -Rf CMakeCache.txt CMakeFiles/ CMakeTmp/
 
 cmake . -G "Unix Makefiles" \
+-DBUILD_CUDA=OFF \
 -DBUILD_EXECUTABLES=OFF \
 -DBUILD_GUI=OFF \
 -DBUILD_MATLAB=OFF \
