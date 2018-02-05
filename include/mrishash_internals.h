@@ -31,7 +31,7 @@
 #define MRISHASH_INTERNALS_ONCE_H
 
 #include "mrishash.h"
-
+#include "romp_support.h"
 
 //--------------------------
 typedef struct
@@ -93,19 +93,24 @@ typedef struct mht_face_t {
 
 struct _mht 
 {
-  MRI_SURFACE const *mris ;                             //
-  float              vres ;                             // Resolution of discretization
-  MHTFNO_t           fno_usage;                         // To enforce consistent use of fno:  face number or vertex number
-  int                nbuckets ;                         // Total # of buckets
-  MRIS_HASH_BUCKET **buckets[TABLE_SIZE][TABLE_SIZE] ;
-  int                which_vertices ;                   // ORIGINAL, CANONICAL, CURRENT
+  MRI_SURFACE const *mris ;                                             //
+  float              vres ;                                             // Resolution of discretization
+  MHTFNO_t           fno_usage;                                         // To enforce consistent use of fno:  face number or vertex number
+  int                nbuckets ;                                         // Total # of buckets
+
+#ifdef HAVE_OPENMP
+  omp_lock_t         buckets_lock;
+#endif
+  MRIS_HASH_BUCKET **buckets_mustUseAcqRel[TABLE_SIZE][TABLE_SIZE] ;
+  int                which_vertices ;                                   // ORIGINAL, CANONICAL, CURRENT
 
   int                nfaces;
   MHT_FACE*          f;
 } ;
 
 
-MHBT * MHTgetBucketAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, int zv);
-MHBT * MHTgetBucket       (MRIS_HASH_TABLE *mht, float x, float y, float z) ;
+MHBT * MHTacqBucketAtVoxIx(MRIS_HASH_TABLE *mht, int  xv, int   yv, int   zv);
+MHBT * MHTacqBucket       (MRIS_HASH_TABLE *mht, float x, float y,  float z );
 
+void MHTrelBucket(MHBT**);
 #endif

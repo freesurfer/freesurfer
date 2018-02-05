@@ -152,4 +152,11 @@ int mhtBruteForceClosestFace(MRI_SURFACE const *mris,
                              int which,                  // which surface within mris to search
                              float *dmin);
 
+//-----
+// Support parallelism
+//-----
+
+void MHT_maybeParallel_begin();     // Note: Can be nested!
+void MHT_maybeParallel_end();
+
 #endif // END #ifndef MRISHASH_ONCE_H

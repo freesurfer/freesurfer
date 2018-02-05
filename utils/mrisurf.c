@@ -11677,7 +11677,7 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
   //        if there is only a few of them, this can be done serial, otherwise we could use a different partitioning
   //
 #ifdef HAVE_OPENMP
-  if (0)
+  if (1)
 #endif
   {
 
@@ -11686,8 +11686,11 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
     int i;
     for (i = 0; i < mris->nvertices; i++) {
 
+            // BEVIN   <   WAS THE OLD COMPARISON
+            // REVERSING IT TO SEE THE EFFECT
+            //
       int const vno =                 // this strongly suggests it is NOT a parallelizable algorithm
-        (*directionPtr < 0)           // since the direction through the nodes should not make a difference!
+        (*directionPtr > 0)           // since the direction through the nodes should not make a difference!
         ? (mris->nvertices - i - 1)
         : i;
 
@@ -11703,6 +11706,8 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
         mris, mht, updateDxDyDz, vno);
 
     }
+    
+    return;
   } 
   
 #ifdef HAVE_OPENMP
@@ -24731,60 +24736,13 @@ static int mrisComputeAshburnerTriangleTerm(MRI_SURFACE *mris, double l_ashburne
 
   Description
   ------------------------------------------------------*/
-#if 0
-static double
-mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse)
-{
-  int     vno, n ;
-  double  sse_repulse, v_sse, dist, dx, dy, dz, x, y, z ;
-  VERTEX  *v, *vn ;
 
-  if (FZERO(l_repulse))
-  {
-    return(0.0) ;
-  }
-
-  for (sse_repulse = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-    {
-      continue ;
-    }
-
-    x = v->x ;
-    y = v->y ;
-    z = v->z ;
-    for (v_sse = 0.0, n = 0 ; n < v->vnum ; n++)
-    {
-      vn = &mris->vertices[v->v[n]] ;
-      if (!vn->ripflag)
-      {
-        dx = x - vn->x ;
-        dy = y - vn->y ;
-        dz = z - vn->z ;
-        dist = sqrt(dx*dx+dy*dy+dz*dz) + REPULSE_E ;
-        v_sse += REPULSE_K / (dist*dist*dist*dist) ;
-      }
-    }
-    sse_repulse += v_sse ;
-  }
-  return(l_repulse * sse_repulse) ;
-}
-#else
 static double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht, MHT *mht_faces)
 {
   int vno, num, min_vno, i, n;
   float dist, dx, dy, dz, x, y, z, min_d;
   double sse_repulse, v_sse;
   VERTEX *v, *vn;
-  MHBT *bucket;
-  MHB *bin;
-#if 0
-  int     in_face ;
-  float   fx, fy, fz ;
-  FACE    *f ;
-#endif
 
   if (FZERO(l_repulse)) {
     return (NO_ERROR);
@@ -24800,10 +24758,13 @@ static double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MH
     x = v->x;
     y = v->y;
     z = v->z;
-    bucket = MHTgetBucket(mht, x, y, z);
+
+    MHBT *bucket = MHTacqBucket(mht, x, y, z);
     if (!bucket) {
       continue;
     }
+    
+    MHB *bin;
     for (v_sse = 0.0, bin = bucket->bins, num = i = 0; i < bucket->nused; i++, bin++) {
       if (bin->fno == vno) {
         continue; /* don't be repelled by myself */
@@ -24838,88 +24799,12 @@ static double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MH
     if (vno == Gdiag_no && !FZERO(v_sse)) {
       printf("v %d: repulse sse:    min_dist=%2.4f, v_sse %2.4f\n", vno, min_d, v_sse);
     }
+    
+    MHTrelBucket(&bucket);
   }
-
-#if 0
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-    {
-      continue ;
-    }
-    x = v->x ;
-    y = v->y ;
-    z = v->z ;
-    bucket = MHTgetBucket(mht_faces, x, y, z) ;
-    if (!bucket)
-    {
-      continue ;
-    }
-    for (v_sse = 0.0, bin = bucket->bins, num = i = 0 ;
-         i < bucket->nused ;
-         i++, bin++)
-    {
-      f = &mris->faces[bin->fno] ;
-      fx = fy = fz = 0 ;
-      for (in_face = n = 0 ; n < VERTICES_PER_FACE ; n++)
-      {
-        fx += mris->vertices[f->v[n]].x ;
-        fy += mris->vertices[f->v[n]].y ;
-        fz += mris->vertices[f->v[n]].z ;
-        if (f->v[n] == vno)
-        {
-          in_face = 1 ;
-        }
-      }
-      if (in_face)
-      {
-        continue ;  /* don't be repelled by myself */
-      }
-      fx /= VERTICES_PER_FACE ;
-      fy /= VERTICES_PER_FACE ;
-      fz /= VERTICES_PER_FACE ;
-      for (n = 0 ; n < v->vtotal ; n++)
-        if (v->f[n] == bin->fno)
-        {
-          break ;
-        }
-      if (n < v->vtotal)   /* don't be repelled by a neighbor */
-      {
-        continue ;
-      }
-      if (!f->ripflag)
-      {
-        dx = fx - x ;
-        dy = fy - y ;
-        dz = fz - z ;
-        dist = sqrt(dx*dx+dy*dy+dz*dz) + REPULSE_E ;
-        if (vno == Gdiag_no)
-        {
-          if (dist-REPULSE_E < min_d)
-          {
-            min_vno = bin->fno ;
-            min_d = dist-REPULSE_E ;
-          }
-        }
-        dist = dist*dist*dist ;
-        dist *= dist ; /* dist^6 */
-        v_sse += REPULSE_K / dist ;
-      }
-    }
-    sse_repulse += v_sse ;
-
-    if (vno == Gdiag_no && !FZERO(v_sse))
-    {
-      printf("v %d: repulse sse:    min_dist=%2.4f, v_sse %2.4f\n", vno,
-             min_d, v_sse) ;
-    }
-  }
-#endif
 
   return (l_repulse * sse_repulse);
 }
-#endif
 
 /*-----------------------------------------------------
   Parameters:
@@ -25045,8 +24930,6 @@ static int mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mh
   float dist, dx, dy, dz, x, y, z, sx, sy, sz, min_d, min_scale, norm;
   double scale;
   VERTEX *v, *vn;
-  MHBT *bucket;
-  MHB *bin;
 #if 0
   double  fx, fy, fz ;
   int     in_face ;
@@ -25071,11 +24954,14 @@ static int mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mh
     x = v->x;
     y = v->y;
     z = v->z;
-    bucket = MHTgetBucket(mht, x, y, z);
+
+    MHBT *bucket = MHTacqBucket(mht, x, y, z);
     if (!bucket) {
       continue;
     }
     sx = sy = sz = 0.0;
+
+    MHB *bin;
     for (bin = bucket->bins, num = i = 0; i < bucket->nused; i++, bin++) {
       if (bin->fno == vno) {
         continue; /* don't be repelled by myself */
@@ -25137,6 +25023,8 @@ static int mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mh
       fprintf(stdout, "v %d self repulse term:   (%2.3f, %2.3f, %2.3f)\n", vno, sx, sy, sz);
       fprintf(stdout, "min_dist @ %d = %2.2f, scale = %2.1f\n", min_vno, min_d, min_scale);
     }
+    
+    MHTrelBucket(&bucket);
   }
 
 #if 0
@@ -25259,8 +25147,6 @@ static int mrisComputeRepulsiveRatioTerm(MRI_SURFACE *mris, double l_repulse, MH
   float dist, dx, dy, dz, x, y, z, sx, sy, sz, min_d, min_scale, canon_dist, cdx, cdy, cdz;
   double scale;
   VERTEX *v, *vn;
-  MHBT *bucket;
-  MHB *bin;
 
   if (FZERO(l_repulse)) {
     return (NO_ERROR);
@@ -25277,11 +25163,12 @@ static int mrisComputeRepulsiveRatioTerm(MRI_SURFACE *mris, double l_repulse, MH
     x = v->x;
     y = v->y;
     z = v->z;
-    bucket = MHTgetBucket(mht, x, y, z);
+    MHBT *bucket = MHTacqBucket(mht, x, y, z);
     if (!bucket) {
       continue;
     }
     sx = sy = sz = 0.0;
+    MHB *bin;
     for (bin = bucket->bins, num = i = 0; i < bucket->nused; i++, bin++) {
       if (bin->fno == vno) {
         continue; /* don't be repelled by myself */
@@ -25315,6 +25202,7 @@ static int mrisComputeRepulsiveRatioTerm(MRI_SURFACE *mris, double l_repulse, MH
         sz += scale * dz;
         num++;
       }
+      MHTrelBucket(&bucket);
     }
     if (num) {
       scale = l_repulse / (double)num;
@@ -26015,8 +25903,6 @@ static int mrisComputeSurfaceRepulsionTerm(MRI_SURFACE *mris, double l_repulse, 
   float max_scale, max_dot;
   double scale;
   VERTEX *v, *vn;
-  MHBT *bucket;
-  MHB *bin;
 
   if (FZERO(l_repulse)) {
     return (NO_ERROR);
@@ -26036,14 +25922,16 @@ static int mrisComputeSurfaceRepulsionTerm(MRI_SURFACE *mris, double l_repulse, 
     x = v->x;
     y = v->y;
     z = v->z;
-    bucket = MHTgetBucket(mht, x, y, z);
+
+    MHBT *bucket = MHTacqBucket(mht, x, y, z);
     if (!bucket) {
       continue;
     }
-    bin = bucket->bins;
     sx = sy = sz = 0.0;
     max_dot = max_scale = 0.0;
     max_vno = 0;
+
+    MHB *bin = bucket->bins;
     for (i = 0; i < bucket->nused; i++, bin++) {
       vn = &mris->vertices[bin->fno];
       if (bin->fno == Gdiag_no) {
@@ -26096,6 +25984,8 @@ static int mrisComputeSurfaceRepulsionTerm(MRI_SURFACE *mris, double l_repulse, 
       fprintf(stdout, "v %d inside repulse term:  (%2.3f, %2.3f, %2.3f)\n", vno, sx, sy, sz);
       fprintf(stdout, "max_scale @ %d = %2.2f, max dot = %2.2f\n", max_vno, max_scale, max_dot);
     }
+    
+    MHTrelBucket(&bucket);
   }
   return (NO_ERROR);
 }
@@ -26115,8 +26005,6 @@ static int mrisComputeWhichSurfaceRepulsionTerm(
   float max_scale, max_dot;
   double scale, sgn;
   VERTEX *v, *vn;
-  MHBT *bucket;
-  MHB *bin;
 
   if (FZERO(l_repulse)) {
     return (NO_ERROR);
@@ -26139,14 +26027,16 @@ static int mrisComputeWhichSurfaceRepulsionTerm(
     x = v->x;
     y = v->y;
     z = v->z;
-    bucket = MHTgetBucket(mht, x, y, z);
+
+    MHBT *bucket = MHTacqBucket(mht, x, y, z);
     if (!bucket) {
       continue;
     }
-    bin = bucket->bins;
+    
     sx = sy = sz = 0.0;
     max_dot = max_scale = 0.0;
     max_vno = 0;
+    MHB *bin = bucket->bins;
     for (i = 0; i < bucket->nused; i++, bin++) {
       vn = &mris->vertices[bin->fno];
       if (bin->fno == Gdiag_no) {
@@ -26216,6 +26106,7 @@ static int mrisComputeWhichSurfaceRepulsionTerm(
       fprintf(stdout, "v %d inside repulse term:  (%2.3f, %2.3f, %2.3f)\n", vno, sx, sy, sz);
       fprintf(stdout, "max_scale @ %d = %2.2f, max dot = %2.2f\n", max_vno, max_scale, max_dot);
     }
+    MHTrelBucket(&bucket);
   }
   return (NO_ERROR);
 }
@@ -34127,12 +34018,9 @@ static int mrisDirectionTriangleIntersection(
 {
   double dist, min_dist, U0[3], U1[3], U2[3], pt[3], dir[3], int_pt[3], dot;
   float x, y, z, dx, dy, dz;
-  MHBT *bucket;
   FACE *face;
-  MHB *bin;
   int i, found, fno, ret;
-  static MHBT *last_bucket = NULL;
-  static float lastx, lasty, lastz = -1;
+  static MHBT *prev_bucket = NULL;
 
   dist = *pdist;
   dir[0] = nx;
@@ -34146,24 +34034,15 @@ static int mrisDirectionTriangleIntersection(
   z = z0 + nz * dist;
 
   min_dist = 10000.0f;
-#if 1
-  bucket = MHTgetBucket(mht, x, y, z);
+
+  MHBT *bucket = MHTacqBucket(mht, x, y, z);
   if (bucket == NULL) {
     return (0);
   }
 
-#if 0
-  if (lastx == x0 && lasty == y0 && lastz == z0 && bucket == last_bucket)
-  {
-    return(0) ;
-  }
-#endif
+  prev_bucket = bucket;
 
-  lastx = x0;
-  lasty = y0;
-  lastz = z0;
-  last_bucket = bucket;
-
+  MHB *bin;
   for (bin = bucket->bins, found = i = 0; i < bucket->nused; i++, bin++) {
     fno = bin->fno;
     face = &mris->faces[fno];
@@ -34171,9 +34050,7 @@ static int mrisDirectionTriangleIntersection(
     if (fno == 1287 || fno == 5038) {
       DiagBreak();
     }
-#else
-  for (fno = 0; fno < mris->nfaces; fno++) {
-#endif
+
     load_triangle_vertices(mris, fno, U0, U1, U2, CURRENT_VERTICES);
     ret = triangle_ray_intersect(pt, dir, U0, U1, U2, int_pt);
     if (ret) {
@@ -34188,6 +34065,8 @@ static int mrisDirectionTriangleIntersection(
       }
     }
   }
+  
+  MHTrelBucket(&bucket);
   return (found);
 }
 
@@ -34281,8 +34160,6 @@ static int mrisAllNormalDirectionCurrentTriangleIntersections(
 {
   double dist, min_dist, U0[3], U1[3], U2[3], pt[3], dir[3], int_pt[3];
   float nx, ny, nz, x, y, z, dx, dy, dz, dot;
-  MHBT *bucket;
-  MHB *bin;
   int i, found, fno, ret;
   static MHBT *last_bucket = NULL;
   static VERTEX *last_v = NULL;
@@ -34301,18 +34178,21 @@ static int mrisAllNormalDirectionCurrentTriangleIntersections(
   y = v->y + ny * dist;
   z = v->z + nz * dist;
 
-  bucket = MHTgetBucket(mht, x, y, z);
+  MHBT *bucket = MHTacqBucket(mht, x, y, z);
   if (bucket == NULL) {
     return (-1);
   }
 
   if (last_v == v && bucket == last_bucket) {
+    MHTrelBucket(&bucket);
     return (-2);
   }
+
   last_v = v;
   last_bucket = bucket;
 
   min_dist = 10000.0f;
+  MHB *bin;
   for (bin = bucket->bins, found = i = 0; i < bucket->nused; i++, bin++) {
     fno = bin->fno;
 
@@ -34341,6 +34221,9 @@ static int mrisAllNormalDirectionCurrentTriangleIntersections(
       }
     }
   }
+
+  MHTrelBucket(&bucket);
+
   return (found);
 }
 #if 0
@@ -43310,8 +43193,6 @@ static int mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht, int fno, int
 {
   double x0, x1, y0, y1, z0, z1, x, y, z;
   int i, n, m, total_found, all_faces[1000000], nfaces;
-  MHBT *bucket, *last_bucket;
-  MHB *bin;
   EDGE edge1, edge2;
   FACE *f1, *f2;
   VERTEX *v;
@@ -43337,27 +43218,39 @@ static int mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht, int fno, int
 
   nfaces = total_found = 0;
   flist[total_found++] = fno;
-  last_bucket = NULL;
-  for (x = x0; x <= x1; x += 0.5)
-    for (y = y0; y <= y1; y += 0.5)
-      for (z = z0; z <= z1; z += 0.5) {
-        bucket = MHTgetBucket(mht, x, y, z);
-        if (!bucket || bucket == last_bucket) {
-          continue;
-        }
-        last_bucket = bucket;
-        for (bin = bucket->bins, i = 0; i < bucket->nused; i++, bin++) {
-          f2 = &mris->faces[bin->fno];
-          if (!f2->ripflag) /* only add it once */
-          {
-            if (nfaces == 1000000) {
-              ErrorExit(ERROR_BADPARM, "Too many faces");
-            }
-            all_faces[nfaces++] = bin->fno;
-            f2->ripflag = 1;
+  
+  {
+    MHBT* prev_bucket = NULL;
+    for (x = x0; x <= x1; x += 0.5) {
+      for (y = y0; y <= y1; y += 0.5) {
+        for (z = z0; z <= z1; z += 0.5) {
+          MHBT *bucket = MHTacqBucket(mht, x, y, z);
+          if (!bucket) {
+            continue;
           }
+          if (bucket == prev_bucket) {
+            MHTrelBucket(&bucket);
+            continue;
+          }
+          prev_bucket = bucket;
+          MHB *bin;
+          for (bin = bucket->bins, i = 0; i < bucket->nused; i++, bin++) {
+            f2 = &mris->faces[bin->fno];
+            if (!f2->ripflag) /* only add it once */
+            {
+              if (nfaces == 1000000) {
+                ErrorExit(ERROR_BADPARM, "Too many faces");
+              }
+              all_faces[nfaces++] = bin->fno;
+              f2->ripflag = 1;
+            }
+          }
+          MHTrelBucket(&bucket);
         }
       }
+    }
+  }
+      
   for (i = 0; i < nfaces; i++) /* reset ripflag */
   {
     mris->faces[all_faces[i]].ripflag = 0;
@@ -73320,8 +73213,6 @@ static double mrisComputeSurfaceRepulsionEnergy(MRI_SURFACE *mris, double l_repu
   float max_scale, max_dot;
   double scale, sse;
   VERTEX *v, *vn;
-  MHBT *bucket;
-  MHB *bin;
 
   if (FZERO(l_repulse)) {
     return (NO_ERROR);
@@ -73338,14 +73229,14 @@ static double mrisComputeSurfaceRepulsionEnergy(MRI_SURFACE *mris, double l_repu
     x = v->x;
     y = v->y;
     z = v->z;
-    bucket = MHTgetBucket(mht, x, y, z);
+    MHBT *bucket = MHTacqBucket(mht, x, y, z);
     if (!bucket) {
       continue;
     }
-    bin = bucket->bins;
     sx = sy = sz = 0.0;
     max_dot = max_scale = 0.0;
     max_vno = 0;
+    MHB *bin = bucket->bins;
     for (i = 0; i < bucket->nused; i++, bin++) {
       vn = &mris->vertices[bin->fno];
       if (bin->fno == Gdiag_no) {
@@ -73388,6 +73279,8 @@ static double mrisComputeSurfaceRepulsionEnergy(MRI_SURFACE *mris, double l_repu
 
     sse += (sx * sx + sy * sy + sz * sz);
     if (vno == Gdiag_no) fprintf(stdout, "v %d inside repulse energy %2.3f\n", vno, (sx * sx + sy * sy + sz * sz));
+    
+    MHTrelBucket(&bucket);
   }
   return (sse);
 }
