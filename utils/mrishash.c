@@ -118,13 +118,13 @@ typedef struct mht_triangle_t {
 // Support for optional parallelism
 // since don't want to slow down the serial version with unnecessary locks
 //
-#ifdef HAVE_OMP
+#ifdef HAVE_OPENMP
 static int parallelLevel;
 #endif
 
 void MHT_maybeParallel_begin()
 {
-#ifdef HAVE_OMP
+#ifdef HAVE_OPENMP
 #pragma omp atomic
     parallelLevel++;
 #endif
@@ -132,7 +132,7 @@ void MHT_maybeParallel_begin()
 
 void MHT_maybeParallel_end()
 {
-#ifdef HAVE_OMP
+#ifdef HAVE_OPENMP
 #pragma omp atomic
     --parallelLevel;
 #endif
@@ -222,7 +222,7 @@ static MRIS_HASH_TABLE* newMHT(MRI_SURFACE const   *mris)
     ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate hash table.\n", __MYFUNCTION__);
   }
   mht->mris = mris;
-#ifdef HAVE_OMP
+#ifdef HAVE_OPENMP
   omp_init_lock(&mht->buckets_lock);
 #endif
   return mht;
@@ -240,40 +240,95 @@ void MHTfree(MRIS_HASH_TABLE **pmht)
     for (yv = 0; yv < TABLE_SIZE; yv++) {
       if (!mht->buckets_mustUseAcqRel[xv][yv]) continue;
       for (zv = 0; zv < TABLE_SIZE; zv++) {
-        if (mht->buckets_mustUseAcqRel[xv][yv][zv]) {
-          if (mht->buckets_mustUseAcqRel[xv][yv][zv]->bins) free(mht->buckets_mustUseAcqRel[xv][yv][zv]->bins);
-          free(mht->buckets_mustUseAcqRel[xv][yv][zv]);
+        MHBT *bucket = mht->buckets_mustUseAcqRel[xv][yv][zv];
+        if (bucket) {
+#ifdef HAVE_OPENMP
+          omp_destroy_lock(&bucket->bucket_lock);
+#endif
+          if (bucket->bins) free(bucket->bins);
+          free(bucket);
         }
       }
       free(mht->buckets_mustUseAcqRel[xv][yv]);
     }
   }
 
+#ifdef HAVE_OPENMP
   omp_destroy_lock(&mht->buckets_lock);
+#endif
   
   free(mht);
 }
 
+static void checkThread0() 
+{
+#ifdef HAVE_OPENMP
+  int tid = omp_get_thread_num();
+  if (tid != 0) {
+    fprintf(stderr, "lock or unlock, not thread 0, but claiming no parallelism\n");
+    *(int*)(-1) = 0;
+    exit(1);
+  }
+#endif
+}
+ 
+static void lockBuckets(const MRIS_HASH_TABLE *mhtc) {
+    MRIS_HASH_TABLE *mht = (MRIS_HASH_TABLE *)mhtc;
+#ifdef HAVE_OPENMP
+    if (parallelLevel) omp_set_lock(&mht->buckets_lock); else checkThread0();
+#endif
+}
+static void unlockBuckets(const MRIS_HASH_TABLE *mhtc) {
+    MRIS_HASH_TABLE *mht = (MRIS_HASH_TABLE *)mhtc;
+#ifdef HAVE_OPENMP
+    if (parallelLevel) omp_unset_lock(&mht->buckets_lock); else checkThread0();
+#endif
+}
+
+static void lockBucket(const MHBT *bucketc) {
+    MHBT *bucket = (MHBT *)bucketc;
+#ifdef HAVE_OPENMP
+    if (parallelLevel) omp_set_lock(&bucket->bucket_lock); else checkThread0();
+#endif
+}
+static void unlockBucket(const MHBT *bucketc) {
+    MHBT *bucket = (MHBT *)bucketc;
+#ifdef HAVE_OPENMP
+    if (parallelLevel) omp_unset_lock(&bucket->bucket_lock); else checkThread0();
+#endif
+}
 
 static MHBT* makeAndAcqBucket(MRIS_HASH_TABLE *mht, int xv, int yv, int zv) 
 {
-  #define buckets buckets_mustUseAcqRel
-  
   //-----------------------------------------------
   // Allocate space if needed
   //-----------------------------------------------
-  // 1. Allocate a 1-D array at buckets[xv][yv]
-  if (!mht->buckets[xv][yv]) {
-    mht->buckets[xv][yv] = (MHBT **)calloc(TABLE_SIZE, sizeof(MHBT *));
-    if (!mht->buckets[xv][yv]) ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate slice.", __MYFUNCTION__);
+  // 1. Allocate a 1-D array at buckets_mustUseAcqRel[xv][yv]
+  
+  lockBuckets(mht);
+  
+  if (!mht->buckets_mustUseAcqRel[xv][yv]) {
+    mht->buckets_mustUseAcqRel[xv][yv] = (MHBT **)calloc(TABLE_SIZE, sizeof(MHBT *));
+    if (!mht->buckets_mustUseAcqRel[xv][yv]) ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate slice.", __MYFUNCTION__);
   }
-  // 2. Allocate a bucket at buckets[xv][yv][zv]
-  MHBT *bucket = mht->buckets[xv][yv][zv];
+  
+  // 2. Allocate a bucket at buckets_mustUseAcqRel[xv][yv][zv]
+  MHBT *bucket = mht->buckets_mustUseAcqRel[xv][yv][zv];
+  
+  
   if (!bucket) {
-    mht->buckets[xv][yv][zv] = bucket = (MHBT *)calloc(1, sizeof(MHBT));
+    mht->buckets_mustUseAcqRel[xv][yv][zv] = bucket = (MHBT *)calloc(1, sizeof(MHBT));
     if (!bucket) ErrorExit(ERROR_NOMEMORY, "%s couldn't allocate bucket.\n", __MYFUNCTION__);
+#ifdef HAVE_OPENMP
+    omp_init_lock(&bucket->bucket_lock);
+#endif
   }
-  // 3. Allocate a bucket at buckets[xv][yv][zv]
+  
+  unlockBuckets(mht);
+  
+  lockBucket(bucket);
+  
+  // 3. Allocate bins
   if (!bucket->max_bins) /* nothing in this bucket yet - allocate bins */
   {
     bucket->max_bins = 4;
@@ -282,7 +337,7 @@ static MHBT* makeAndAcqBucket(MRIS_HASH_TABLE *mht, int xv, int yv, int zv)
       ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate %d bins.\n", __MYFUNCTION__, bucket->max_bins);
   }
 
-  #undef buckets
+  // returns with the bucket locked
   
   return bucket;
 }
@@ -291,14 +346,29 @@ static MHBT *acqBucket(MRIS_HASH_TABLE const *mht, int xv, int yv, int zv)
 {
   if (xv >= TABLE_SIZE || yv >= TABLE_SIZE || zv >= TABLE_SIZE || xv < 0 || yv < 0 || zv < 0) return (NULL);
   if (!mht) return (NULL);
-  if (!mht->buckets_mustUseAcqRel[xv][yv]) return (NULL);
-  MHBT * bucket = mht->buckets_mustUseAcqRel[xv][yv][zv];
+
+  lockBuckets(mht);
+
+  MHBT * bucket = NULL;
+  if (mht->buckets_mustUseAcqRel[xv][yv]) 
+      bucket = mht->buckets_mustUseAcqRel[xv][yv][zv];
+
+  unlockBuckets(mht);
+  
+  // returns with the bucket, if any, locked
+  //  
+  if (bucket) lockBucket(bucket);
+  
   return (bucket);
 }
 
+
 static void relBucketC(MHBT const ** bucket)
 {
-  *bucket = NULL;
+  if (*bucket) {
+    unlockBucket(*bucket);
+    *bucket = NULL;
+  }
 }
 
 static void relBucket(MHBT ** bucket)

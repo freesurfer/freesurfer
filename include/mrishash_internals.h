@@ -42,6 +42,9 @@ typedef struct
 //--------------------------
 typedef struct
 {
+#ifdef HAVE_OPENMP
+  omp_lock_t     bucket_lock;
+#endif
   MRIS_HASH_BIN  *bins ;
   int            max_bins ;
   int            nused ;
@@ -113,4 +116,5 @@ MHBT * MHTacqBucketAtVoxIx(MRIS_HASH_TABLE *mht, int  xv, int   yv, int   zv);
 MHBT * MHTacqBucket       (MRIS_HASH_TABLE *mht, float x, float y,  float z );
 
 void MHTrelBucket(MHBT**);
+void MHTrelBucketC(MHBT const **);
 #endif
