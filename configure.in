@@ -3851,6 +3851,7 @@ AC_CONFIG_FILES([
 	distribution/average/Choi_JNeurophysiol12_MNI152/Makefile
 	distribution/average/Makefile
 	distribution/average/Yeo_JNeurophysiol11_MNI152/Makefile
+  distribution/average/samseg/Makefile
 	distribution/average/surf/Makefile
 	distribution/diffusion/Makefile
 	distribution/diffusion/mgh-dti-seqpack/Makefile
