@@ -4,7 +4,8 @@
 SUBDIRS=surf \
 	Yeo_JNeurophysiol11_MNI152 \
 	Buckner_JNeurophysiol11_MNI152 \
-	Choi_JNeurophysiol12_MNI152
+	Choi_JNeurophysiol12_MNI152 \
+	samseg
 
 foodir=$(prefix)/average
 
@@ -214,6 +215,7 @@ else
 	cd Yeo_JNeurophysiol11_MNI152; make install
 	cd Buckner_JNeurophysiol11_MNI152; make install
 	cd Choi_JNeurophysiol12_MNI152; make install
+	cd samseg; make install
 	if [ "$(install_CNYBCH)" = "true" ]; then \
 	  rm -Rf $(DESTDIR)$(prefix)/average/CNYBCH ;\
 	  rm -Rf $(top_builddir)/distribution/average/CNYBCH ;\
