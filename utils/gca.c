@@ -4595,7 +4595,6 @@ float GCAcomputeLogSampleProbability(
   
 
 
-  int i;
 #ifdef BEVIN_GCACOMPUTELOGSAMPLEPROBABILITY_REPRODUCIBLE
 
   #define ROMP_VARIABLE       i
@@ -4611,6 +4610,7 @@ float GCAcomputeLogSampleProbability(
     #define total_log_p  ROMP_PARTIALSUM(0)
     
 #else
+  int i;
 
   ROMP_PF_begin     // important in mri_em_register
 #ifdef HAVE_OPENMP
