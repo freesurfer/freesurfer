@@ -13,6 +13,9 @@ export RANLIB="`which ranlib`"
 
 cd src
 
+# this test hangs at NMR Center (tries to access web), so remove it:
+sed -i '/test_url.cxx/d' core/vul/tests/CMakeLists.txt
+
 rm -Rf CMakeCache.txt CMakeFiles/ CMakeTmp/
 
 cmake -G "Unix Makefiles" \
