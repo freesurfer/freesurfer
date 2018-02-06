@@ -12,7 +12,7 @@
  * Revision Info:
  *    $Author: nicks $
  *    $Date: 2011/03/02 00:04:55 $
- *    $Id$
+ *    $Revision: 8c0544cb51c408c315be1f6cae68f38fc534b7da $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -374,7 +374,7 @@ int handle_version_option(int argc, char **argv, const char *id_string, const ch
       fprintf(stdout,
               "ProgramName: %s  ProgramArguments: %s  "
               "ProgramVersion: %s  TimeStamp: %s  "
-              "BuildTimeStamp: %s  CVS: %s  User: %s  "
+              "BuildTimeStamp: %s  Id: %s  User: %s  "
               "Machine: %s  Platform: %s  PlatformVersion: %s  "
               "CompilerName: %s  CompilerVersion: %d \n",
               program_name,

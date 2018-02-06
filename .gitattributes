@@ -1,15 +1,13 @@
 # see man gitattributes
 
-# ident does the following: When the attribute ident is set for a path, 
-# Git replaces <dollar>Id<dollar> in the blob object with <dollar>Id:, followed by the 40-character 
-# hexadecimal blob object name, followed by a <dollar> sign <dollar> upon checkout. 
-# Any byte sequence that begins with <dollar>Id: and ends with <dollar> in the worktree 
-# file is replaced with <dollar>Id<dollar> upon check-in.
+# Map file extensions to git filters
+# See .git-keywords directory and .gitconfig
 
-# expand <dollar>Id<dollar> in any of these files, to update git commit info:
-*.c ident
-*.cpp ident
-*.h ident
-*.hpp ident
-*.py ident
-*.am ident
+*.h filter=kw
+*.hpp filter=kw
+*.c filter=kw
+*.cpp filter=kw
+*.py filter=kw
+*.am filter=kw
+*.m filter=kw
+

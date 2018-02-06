@@ -1,8 +1,4 @@
-# See .git_filters/git-rcs-keywords-README
-# To add keyword expansion:
-# git init
-# cp ~/.gitconfig, <project>/.gitattributes, and <project>/.git_filters
-
-[filter "rcs-keywords"]
-	clean  = .git_filters/rcs-keywords.clean
-	smudge = .git_filters/rcs-keywords.smudge %f
+# See .git-keywords directory for README
+[filter "kw"]
+	clean  = .git-keywords/kwclean
+	smudge = .git-keywords/kwset
