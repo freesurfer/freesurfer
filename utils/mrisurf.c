@@ -683,7 +683,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris, double pct) =
 /*---------------------------------------------------------------
   MRISurfSrcVersion() - returns CVS version of this file.
   ---------------------------------------------------------------*/
-const char *MRISurfSrcVersion(void) { return ("$Id: mrisurf.c,v 1.793 2017/02/16 19:43:03 fischl Exp $"); }
+const char *MRISurfSrcVersion(void) { return ("$Id$"); }
 
 
 /*-----------------------------------------------------
