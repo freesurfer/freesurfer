@@ -82,23 +82,44 @@ MRIS_AREA_LABEL ;
   the vertices in the face structure are arranged in
   counter-clockwise fashion when viewed from the outside.
 */
+typedef int   vertices_per_face_t[VERTICES_PER_FACE];
+typedef float angles_per_triangle_t[ANGLES_PER_TRIANGLE];
+
 typedef struct face_type_
 {
-  int    v[VERTICES_PER_FACE];           /* vertex numbers of this face */
-  float  nx ;
-  float  ny ;
-  float  nz ;
-  float  area ;
-  float  orig_area ;
-  float  angle[ANGLES_PER_TRIANGLE] ;
-  float  orig_angle[ANGLES_PER_TRIANGLE]  ;
-  char   ripflag;                        /* ripped face */
-  char   oripflag;                       /* stored version */
-  int    marked;                         /* marked face */
+#define LIST_OF_FACE_ELTS_1    \
+  ELTT(vertices_per_face_t,v) SEP               /* vertex numbers of this face */    \
+  ELTT(float,nx) SEP    \
+  ELTT(float,ny) SEP    \
+  ELTT(float,nz) SEP    \
+  ELTT(float,area) SEP    \
+  ELTT(float,orig_area) SEP    \
+  ELTT(angles_per_triangle_t,angle) SEP    \
+  ELTT(angles_per_triangle_t,orig_angle) SEP    \
+  ELTT(char,ripflag) SEP                        /* ripped face */    \
+  ELTT(char,oripflag) SEP                       /* stored version */    \
+  ELTT(int,marked) SEP                         /* marked face */    \
+    // end of macro
 #if 0
   float logshear,shearx,sheary;  /* compute_shear */
 #endif
-  float  cx, cy, cz ;         // coordinates of centroid
+#define LIST_OF_FACE_ELTS_2    \
+  ELTT(float,cx) SEP    \
+  ELTT(float,cy) SEP    \
+  ELTT(float,cz) SEP         /* coordinates of centroid */   \
+    // end of macro
+
+#define LIST_OF_FACE_ELTS \
+    LIST_OF_FACE_ELTS_1 SEP \
+    LIST_OF_FACE_ELTS_2 \
+    // end of macro
+
+#define ELTT(T,N) T N;
+#define SEP
+LIST_OF_FACE_ELTS
+#undef SEP
+#undef ELTT
+
 }
 face_type, FACE ;
 

@@ -1,0 +1,34 @@
+#! /bin/bash -ef
+set -eu
+
+export CC="`which cc`"
+export CXX="`which c++`"
+export AR="`which ar`"
+export RANLIB="`which ranlib`"
+
+rm -Rf CMakeCache.txt CMakeFiles/ CMakeTmp/
+
+cmake . -G "Unix Makefiles" \
+-DBUILD_CUDA=OFF \
+-DBUILD_EXECUTABLES=OFF \
+-DBUILD_GUI=OFF \
+-DBUILD_MATLAB=OFF \
+-DBUILD_SHARED_LIBS=OFF \
+-DBUILD_TESTING=OFF \
+-DITK_DIR=../itk-5.0/build \
+-DCMAKE_BUILD_TYPE=Release \
+-DCMAKE_CXX_COMPILER=$CXX \
+-DCMAKE_CXX_COMPILER_AR=$AR \
+-DCMAKE_CXX_COMPILER_RANLIB=$RANLIB \
+-DCMAKE_CXX_FLAGS="-msse2 -mfpmath=sse -fPIC -fpermissive" \
+-DCMAKE_C_COMPILER=$CC \
+-DCMAKE_C_COMPILER_AR=$AR \
+-DCMAKE_C_COMPILER_RANLIB=$RANLIB \
+-DCMAKE_C_FLAGS="-msse2 -mfpmath=sse -fPIC -fpermissive" \
+-DCMAKE_VERBOSE_MAKEFILE=ON \
+-DCMAKE_INSTALL_PREFIX=.
+
+make clean
+make -j 8
+#make test
+#make install

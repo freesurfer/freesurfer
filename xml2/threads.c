@@ -6,6 +6,7 @@
  * Gary Pennington <Gary.Pennington@uk.sun.com>
  * daniel@veillard.com
  */
+#pragma GCC diagnostic ignored "-Waddress"
 
 #define IN_LIBXML
 #include "libxml.h"

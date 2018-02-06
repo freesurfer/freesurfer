@@ -1751,7 +1751,7 @@ MRI *MRISvolumeTH3(MRIS *w, MRIS *p, MRI *vol, MRI *mask, double *totvol)
   the search for non-cortical vertices (that is, they will be labeled
   cortex).
 */
-LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)
+LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)  // BEVIN mris_make_surfaces 5
 {
   LABEL *lcortex;
   int vno, label, nvox, total_vox, adjacent, x, y, z, target_label, l, base_label, left, right;
@@ -1780,7 +1780,14 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)
         }
   }
   MRISsetMarks(mris, 1);
+
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(serial)
+#endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+
     v = &mris->vertices[vno];
     if (v->ripflag || v->marked2 > 0)  // already must be cortex
       continue;
@@ -1872,7 +1879,10 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)
         if (vno == Gdiag_no) printf("no cortical GM found in vicinity - removing %d  vertex from cortex\n", vno);
       }
     }
+
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   // remove small holes that shouldn't be non-cortex
   {
