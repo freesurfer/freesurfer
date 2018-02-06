@@ -9,10 +9,10 @@
  */
 /*
  * Original Author: Kevin Teich
- * CVS Revision Info:
+ * Revision Info:
  *    $Author: nicks $
  *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.36 $
+ *    $Id$
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -212,7 +212,7 @@ int make_cmd_version_string(
   sprintf(return_string,
           "%s %s "
           "ProgramVersion: %s  TimeStamp: %s  "
-          "BuildTimeStamp: %s  CVS: %s  User: %s  "
+          "BuildTimeStamp: %s  Id: %s  User: %s  "
           "Machine: %s  Platform: %s  PlatformVersion: %s  "
           "CompilerName: %s  CompilerVersion: %d  ",
           program_name,
