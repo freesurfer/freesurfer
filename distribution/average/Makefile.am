@@ -128,7 +128,9 @@ foo_datafiles=\
 	mni305.cor.mgz \
 	mni305.cor.subfov1.mgz \
 	mni305.cor.subfov2.mgz \
-	mni305.mask.cor.mgz
+	mni305.mask.cor.mgz \
+	colortable_desikan_killiany.txt \
+	colortable_BA.txt 
 endif
 
 install:
