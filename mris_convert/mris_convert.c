@@ -48,7 +48,7 @@
 
 //------------------------------------------------------------------------
 static char vcid[] =
-  "$Id: mris_convert.c,v 1.47 2015/07/24 16:13:39 greve Exp $";
+  "$Id$";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 // this mini colortable is used when .label file gets converted to gifti
@@ -134,7 +134,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_convert.c,v 1.47 2015/07/24 16:13:39 greve Exp $",
+           "$Id$",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
