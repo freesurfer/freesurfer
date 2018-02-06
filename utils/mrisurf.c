@@ -11586,7 +11586,7 @@ static void mrisAsynchronousTimeStep_update_odxyz(
 }
 
 
-static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex( // BEVIN mris_make_surfaces 1
+static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex(
     MRI_SURFACE * const mris, 
     MHT *         const mht, 
     bool          const updateDxDyDz,
@@ -11677,7 +11677,7 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
   //        if there is only a few of them, this can be done serial, otherwise we could use a different partitioning
   //
 #ifdef HAVE_OPENMP
-  if (1)
+  if (0)
 #endif
   {
 
@@ -11713,9 +11713,9 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
 #ifdef HAVE_OPENMP
 
   // This is the parallel algorithm
-
+  bool   const debug      = false;
   size_t const numThreads = omp_get_max_threads();
-  
+
   // Calculate the bounding boxes
   //
   float xLo = 1e8, xHi=-xLo, yLo=xLo, yHi=xHi, zLo=xLo, zHi=yHi;
@@ -11748,6 +11748,10 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
       ROMP_PF_end
     }
 
+  if (debug) {
+    fprintf(stderr, "%s:%d vertex limits x:%g..%g y:%g..%g z:%g..%g\n", __FILE__, __LINE__, xLo,xHi,yLo,yHi,zLo,zHi);
+  }
+      
   // Create the subvolumes
   //
   const size_t numSubvolsPerEdge = 4;
@@ -11783,9 +11787,21 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
 
       float fxLo = pvi->xLo, fxHi = pvi->xHi, fyLo = pvi->yLo, fyHi = pvi->yHi, fzLo = pvi->zLo, fzHi = pvi->zHi;
 
+      if (debug && fno < 10) 
+      #pragma omp critical
+      {
+        fprintf(stderr, "%s:%d fno:%d has vertices\n", __FILE__, __LINE__, fno);
+        fprintf(stderr, " vno:%d x:%g..%g y:%g..%g z:%g..%g\n", vno, pvi->xLo,pvi->xHi,pvi->yLo,pvi->yHi,pvi->zLo,pvi->zHi);
+      }
+
       for (fi = 1; fi < VERTICES_PER_FACE; fi++) {
         vno = face->v[fi];
         pvi = vertexInfos + vno; 
+        if (debug && fno < 10) 
+        #pragma omp critical
+        {
+          fprintf(stderr, " vno:%d x:%g..%g y:%g..%g z:%g..%g\n", vno, pvi->xLo,pvi->xHi,pvi->yLo,pvi->yHi,pvi->zLo,pvi->zHi);
+        }
         fxLo = MIN(fxLo,pvi->xLo); fyLo = MIN(fyLo,pvi->yLo); fzLo = MIN(fzLo,pvi->zLo);
         fxHi = MAX(fxHi,pvi->xHi); fyHi = MAX(fyHi,pvi->yHi); fzHi = MAX(fzHi,pvi->zHi);
       }
@@ -11798,12 +11814,12 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
 
       // Compute the subvolumes that this face intersects
       //
-      int const svxLo = MIN(numSubvolsPerEdge-1,(fxLo - xLo)/xSubvolLen);
-      int const svyLo = MIN(numSubvolsPerEdge-1,(fyLo - yLo)/ySubvolLen);
-      int const svzLo = MIN(numSubvolsPerEdge-1,(fzLo - zLo)/zSubvolLen);
-      int const svxHi = MIN(numSubvolsPerEdge-1,(fxHi - xHi)/xSubvolLen);
-      int const svyHi = MIN(numSubvolsPerEdge-1,(fyHi - yHi)/ySubvolLen);
-      int const svzHi = MIN(numSubvolsPerEdge-1,(fzHi - zHi)/zSubvolLen);
+      int const svxLo = MIN(numSubvolsPerEdge-1,(int)((fxLo - xLo)/xSubvolLen));
+      int const svyLo = MIN(numSubvolsPerEdge-1,(int)((fyLo - yLo)/ySubvolLen));
+      int const svzLo = MIN(numSubvolsPerEdge-1,(int)((fzLo - zLo)/zSubvolLen));
+      int const svxHi = MIN(numSubvolsPerEdge-1,(int)((fxHi - xLo)/xSubvolLen));
+      int const svyHi = MIN(numSubvolsPerEdge-1,(int)((fyHi - yLo)/ySubvolLen));
+      int const svzHi = MIN(numSubvolsPerEdge-1,(int)((fzHi - zLo)/zSubvolLen));
       
       // Choose the subvolume to put this face into
       //
@@ -11816,6 +11832,18 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
       //
       PerFaceInfo* pfi = faceInfos + fno;
       pfi->svi = svi;
+      
+      if (debug && fno < 10) 
+      #pragma omp critical
+      {
+        fprintf(stderr, "%s:%d fno:%d assigned to svi:%d\n", __FILE__, __LINE__, fno, svi);
+        fprintf(stderr, " svxLo:%d  fxLo:%g xLo:%g xSubvolLen:%g\n",svxLo,fxLo,xLo,xSubvolLen);
+        fprintf(stderr, " svxHi:%d  fxHi:%g xHi:%g xSubvolLen:%g\n",svxHi,fxHi,xHi,xSubvolLen);
+        fprintf(stderr, " svyLo:%d  fyLo:%g yLo:%g ySubvolLen:%g\n",svyLo,fyLo,yLo,ySubvolLen);
+        fprintf(stderr, " svyHi:%d  fyHi:%g yHi:%g ySubvolLen:%g\n",svyHi,fyHi,yHi,ySubvolLen);
+        fprintf(stderr, " svzLo:%d  fzLo:%g zLo:%g zSubvolLen:%g\n",svzLo,fzLo,zLo,zSubvolLen);
+        fprintf(stderr, " svzHi:%d  fzHi:%g zHi:%g zSubvolLen:%g\n",svzHi,fzHi,zHi,zSubvolLen);
+      }
       
       ROMP_PFLB_end
     }
@@ -11858,7 +11886,7 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
       for (fi = 1; fi < v->num; fi++) {
         int fno = v->f[fi];
         pfi = faceInfos + fno;
-        if (svi != pfi->svi) { svi = numSubvolsPerThread-1; break; }
+        if (svi != pfi->svi) { svi = numSubvolsPerThread - 1; break; }
       }
 
       // Place into the subvol
@@ -11877,34 +11905,67 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
   }
 
   // Merge the per thread subvolumes into the tid==0 subvolume
+  // It is important that the order be independent of the number of threads
+  // so sort each subvols list...
   //
-  { int svi;
+  { int * temp = (int*)malloc(sizeof(int)*mris->nvertices);
+    
+    int svi;
     for (svi = 0; svi < numSubvolsPerThread; svi++) {
-      SubvolInfo* subvol0 = subvols + svi;
+    
+      // build the list in the temp
+      //
+      int tempSize = 0;
+      
       int tid;
-      for (tid = 1; tid < numThreads; tid++) {
+      for (tid = 0; tid < numThreads; tid++) {
         SubvolInfo* subvol = subvols + tid*numSubvolsPerThread + svi;
-        if (!subvol->firstVnoPlus1) continue;
-        if (!subvol0->firstVnoPlus1) {
-          *subvol0 = *subvol;
-        } else {
-          PerVertexInfo* pvi = vertexInfos + (subvol0->lastVnoPlus1 - 1);
-          pvi->nextVnoPlus1     = subvol->firstVnoPlus1;
-          subvol0->lastVnoPlus1 = subvol->lastVnoPlus1;
+        int vno = subvol->firstVnoPlus1 - 1;
+        while (vno >= 0) {
+          temp[tempSize++] = vno;
+          PerVertexInfo* pvi = vertexInfos + vno;
+          vno = pvi->nextVnoPlus1 - 1;
         }
+      }
+    
+      // sort it, so it is thread count independent
+      //
+      qsort(temp, tempSize, sizeof(int), int_compare);
+
+      // put it into the thread 0 subvolume for this svi
+      //
+      SubvolInfo* subvol0 = subvols + svi;
+      subvol0->firstVnoPlus1 = 0;
+      subvol0->lastVnoPlus1  = 0;
+      if (tempSize > 0) {
+        subvol0->firstVnoPlus1 = temp[         0] + 1;
+        subvol0->lastVnoPlus1  = temp[tempSize-1] + 1;
+        int i;
+        for (i = 0; i < tempSize-1; i++) {
+          int vno     = temp[i];
+          int nextVno = temp[i+1];
+          PerVertexInfo* pvi = vertexInfos + vno;
+          pvi->nextVnoPlus1  = nextVno + 1;
+        }
+        int vno = temp[tempSize-1];
+        PerVertexInfo* pvi = vertexInfos + vno;
+        pvi->nextVnoPlus1  = 0;
       }
     }
   }
   
   // Pass 0: In parallel, process each subvolume
   // Pass 1: In serial, process the cross-subvolume (parallel but only one hence serial)
-  { int pass;
+  { 
+    MHT_maybeParallel_begin();
+    
+    int pass;
     for (pass=0; pass<2; pass++) {
       int const sviLo = (pass==0) ? 0                     : numSubvolsPerThread-1;
       int const sviHi = (pass==0) ? numSubvolsPerThread-1 : numSubvolsPerThread;
       int svi;
       ROMP_PF_begin
-      #pragma omp parallel for if_ROMP(serial)      // serial until the MHT is thread-safe
+      #pragma omp parallel for if_ROMP(assume_reproducible)
       for (svi = sviLo; svi < sviHi; svi++) {
         ROMP_PFLB_begin
         SubvolInfo* subvol = subvols + svi;
@@ -11919,6 +11980,8 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
       }
       ROMP_PF_end
     }
+
+    MHT_maybeParallel_end();
   }
 
   // Free the temporary data
