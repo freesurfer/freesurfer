@@ -7,8 +7,9 @@
 ## replace Makefile with this Makefile.smalldist.  One could also include --disable-g 
 ## with configure to compile without debug symbols.
 ## For a working installation, the MNI tools (namely nu_correct) will need to be 
-## installed, so one with need to include --with-mni-dir=somepathtomnidir so that
-## during make install, the link is made in freesurfer/mni to those tools.
+## installed, so one with need to do this after their make install:
+## cd $FREESURFER_HOME
+## ln -s /some/path/to/mni/build mni
 ##
 
 ## TODO: this list could use some trimming based on a reprozip analysis to figure-out
