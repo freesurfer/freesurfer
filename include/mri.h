@@ -156,102 +156,143 @@ typedef struct
 }
 MRI_REGION ;
 
+typedef char char_STR_LEN[STR_LEN];
+typedef char char_STRLEN[STRLEN];
+typedef char *cmdlines_t[MAX_CMDS] ;
+typedef BUFTYPE ***slices_t;
+
 typedef struct
 {
-  int           width ;
-  int           height ;
-  int           depth ;     /* # of slices */
-  int           type ;      /* data type for slices below */
-  int           imnr0 ;     /* starting image # */
-  int           imnr1 ;     /* ending image # */
-  int           ptype ;     /* not used */
-  float         fov ;
-  float         thick ;
-  float         ps ;
-  float         location ;  /* not used */
-  float         xsize ;     /* size of a voxel in the x direction */
-  float         ysize ;     /* size of a voxel in the y direction */
-  float         zsize ;     /* size of a voxel in the z direction */
-  float         xstart ;    /* start x (in xsize units) */
-  float         xend ;      /* end x  (in xsize units) */
-  float         ystart ;    /* start y   (in ysize units) */
-  float         yend ;      /* end y (in ysize units) */
-  float         zstart ;    /* start z */
-  float         zend ;      /* end z */
-  float         tr ;        /* time to recovery */
-  float         te ;        /* time to echo */
-  float         ti ;        /* time to inversion */
-  char          fname[STR_LEN] ;
+#define LIST_OF_MRI_ELTS \
+  ELTT( int, width ) SEP    \
+  ELTT( int, height ) SEP    \
+  ELTT( int, depth ) SEP     /* # of slices */    \
+  ELTT( int, type ) SEP      /* data type for slices below */    \
+  ELTT( int, imnr0 ) SEP     /* starting image # */    \
+  ELTT( int, imnr1 ) SEP     /* ending image # */    \
+  ELTT( int, ptype ) SEP     /* not used */    \
+  ELTT( float, fov ) SEP    \
+  ELTT( float, thick ) SEP    \
+  ELTT( float, ps ) SEP    \
+  ELTT( float, location ) SEP  /* not used */    \
+  ELTT( float, xsize ) SEP     /* size of a voxel in the x direction */    \
+  ELTT( float, ysize ) SEP     /* size of a voxel in the y direction */    \
+  ELTT( float, zsize ) SEP     /* size of a voxel in the z direction */    \
+  ELTT( float, xstart ) SEP    /* start x (in xsize units) SEP */    \
+  ELTT( float, xend ) SEP      /* end x  (in xsize units) SEP */    \
+  ELTT( float, ystart ) SEP    /* start y   (in ysize units) SEP */    \
+  ELTT( float, yend ) SEP      /* end y (in ysize units) SEP */    \
+  ELTT( float, zstart ) SEP    /* start z */    \
+  ELTT( float, zend ) SEP      /* end z */    \
+  ELTT( float, tr ) SEP        /* time to recovery */    \
+  ELTT( float, te ) SEP        /* time to echo */    \
+  ELTT( float, ti ) SEP        /* time to inversion */    \
+  ELTT( char_STR_LEN, fname ) SEP    \
+    \
+  ELTT( float, x_r ) SEP    \
+  ELTT( float, x_a ) SEP    \
+  ELTT( float, x_s ) SEP        /* these are the RAS distances across the whole volume */    \
+    \
+  ELTT( float, y_r ) SEP    \
+  ELTT( float, y_a ) SEP    \
+  ELTT( float, y_s ) SEP        /* in x, y, and z */    \
+    \
+  ELTT( float, z_r ) SEP    \
+  ELTT( float, z_a ) SEP    \
+  ELTT( float, z_s ) SEP        /* c_r, c_a, and c_s are the center ras coordinates */    \
+    \
+  ELTT( float, c_r ) SEP    \
+  ELTT( float, c_a ) SEP    \
+  ELTT( float, c_s ) SEP        /* ras_good_flag tells if these coordinates are set */    \
+  ELTT( int, ras_good_flag ) SEP /* and accurate for the volume */    \
+    \
+  /*  for bshorts and bfloats */    \
+  ELTT( int, brightness ) SEP    \
+  ELTT( char_STRLEN, subject_name ) SEP    \
+  ELTP( MATRIX, register_mat ) SEP    \
+  ELTT( char_STRLEN, path_to_t1 ) SEP    \
+  ELTT( char_STRLEN, fname_format ) SEP    \
+    \
+  /* for gdf volumes */    \
+  ELTT( char_STRLEN, gdf_image_stem ) SEP    \
+    \
+  /*    \
+     each slice is an array of rows (mri->height of them) each of which is    \
+     mri->width long.    \
+  */    \
+  ELTX( slices_t, slices) SEP    \
+  ELTT( int, scale ) SEP    \
+  ELTT( char_STR_LEN, transform_fname ) SEP    \
+  ELTT( General_transform, transform ) SEP   /* the next two are from this struct */    \
+  ELTP( Transform, linear_transform ) SEP    \
+  ELTP( Transform, inverse_linear_transform ) SEP    \
+  ELTT( int, free_transform ) SEP   /* are we responsible for freeing it? */    \
+  ELTT( int, nframes ) SEP          /* # of concatenated images */    \
+    \
+  /* these are used to handle boundary conditions (arrays of indices) SEP */    \
+  ELTP( int, xi ) SEP    \
+  ELTP( int, yi ) SEP    \
+  ELTP( int, zi ) SEP    \
+  ELTT( int, yinvert ) SEP  /* for converting between MNC and coronal slices */    \
+  ELTT( MRI_REGION, roi ) SEP    \
+  ELTT( int, dof ) SEP    \
+  ELTT( double, mean ) SEP    \
+  ELTT( double, flip_angle ) SEP  /* in radians */    \
+  ELTT( float, FieldStrength ) SEP    \
+  ELTP( char, pedir ) SEP /* phase enc direction: ROW, COL, etc*/    \
+    \
+  ELTP( void, tag_data ) SEP /* saved tag data */    \
+  ELTT( int, tag_data_size ) SEP /* size of saved tag data */    \
+  ELTP( AffineMatrix, i_to_r__ ) SEP /* cache */    \
+  ELTP( MATRIX, r_to_i__ ) SEP    \
+    \
+  ELTX( cmdlines_t, cmdlines ) SEP    \
+  ELTT( int, ncmds ) SEP    \
+    \
+  ELTT( double, outside_val ) SEP /* 0 by default, but could be something else */    \
+    \
+  ELTP( MATRIX, AutoAlign ) SEP /* For Andre */    \
+  ELTP( MATRIX, bvals ) SEP    \
+  ELTP( MATRIX, bvecs ) SEP    \
+  ELTT( int, bvec_space ) SEP /* 0=unknown, 1=scanner, 2=voxel */    \
+    \
+  /* "Chunking" memory management. "Chunking" is where the entire 4D */   \
+  /* volume is allocated one big buffer. */   \
+  ELTT( int, ischunked ) SEP          /* 1 means alloc is one big chunk */    \
+  ELTP( void, chunk ) SEP              /* pointer to the one big chunk of buffer */    \
+  ELTT( size_t, bytes_per_vox ) SEP      /* # bytes per voxels */    \
+  ELTT( size_t, bytes_per_row ) SEP      /* # bytes per row */    \
+  ELTT( size_t, bytes_per_slice ) SEP    /* # bytes per slice */    \
+  ELTT( size_t, bytes_per_vol ) SEP      /* # bytes per volume/timepoint */    \
+  ELTT( size_t, bytes_total ) SEP        /* # total number of pixel bytes in the struct */    \
+  ELTP( COLOR_TABLE, ct ) SEP    \
+  ELTP( MRI_FRAME, frames )    \
 
-  float         x_r, x_a, x_s; /* these are the RAS distances
-                                          across the whole volume */
-  float         y_r, y_a, y_s; /* in x, y, and z */
-  float         z_r, z_a, z_s; /* c_r, c_a, and c_s are the
-                                          center ras coordinates */
-  float         c_r, c_a, c_s; /* ras_good_flag tells if
-                                          these coordinates are set */
-  int           ras_good_flag; /* and accurate for the volume */
+#define SEP ;
+#define ELTP(TARGET, MBR)   TARGET *MBR     // pointers 
+#define ELTT(TYPE,   MBR)   TYPE    MBR     // other members that should     be included in the hash
+#define ELTX(TYPE,   MBR)   TYPE    MBR     // other members that should NOT be included in the hash
+LIST_OF_MRI_ELTS ;
+#undef ELTX
+#undef ELTT
+#undef ELTP
+#undef SEP
 
-  /*  for bshorts and bfloats */
-  int           brightness;
-  char          subject_name[STRLEN];
-  MATRIX        *register_mat;
-  char          path_to_t1[STRLEN];
-  char          fname_format[STRLEN];
-
-  /* for gdf volumes */
-  char          gdf_image_stem[STRLEN];
-
-  /*
-     each slice is an array of rows (mri->height of them) each of which is
-     mri->width long.
-  */
-  BUFTYPE       ***slices ;
-  int           scale ;
-  char          transform_fname[STR_LEN] ;
-  General_transform transform ;   /* the next two are from this struct */
-  Transform         *linear_transform ;
-  Transform         *inverse_linear_transform ;
-  int           free_transform ;   /* are we responsible for freeing it? */
-  int           nframes ;          /* # of concatenated images */
-
-  /* these are used to handle boundary conditions (arrays of indices) */
-  int           *xi ;
-  int           *yi ;
-  int           *zi ;
-  int           yinvert ;  /* for converting between MNC and coronal slices */
-  MRI_REGION    roi ;
-  int           dof ;
-  double        mean ;
-  double        flip_angle ;  /* in radians */
-  float   FieldStrength;
-  char          *pedir; /* phase enc direction: ROW, COL, etc*/
-
-  void*         tag_data; /* saved tag data */
-  int           tag_data_size; /* size of saved tag data */
-  AffineMatrix *i_to_r__; /* cache */
-  MATRIX *r_to_i__;
-  char   *cmdlines[MAX_CMDS] ;
-  int    ncmds;
-  double outside_val ; // 0 by default, but could be something else
-
-  MATRIX *AutoAlign; // For Andre
-  MATRIX *bvals, *bvecs;
-  int bvec_space; // 0=unknown, 1=scanner, 2=voxel
-
-  // "Chunking" memory management. "Chunking" is where the entire 4D
-  // volume is allocated one big buffer.
-  int    ischunked; // 1 means alloc is one big chunk
-  void   *chunk; // pointer to the one big chunk of buffer
-  size_t    bytes_per_vox; // # bytes per voxels
-  size_t    bytes_per_row; // # bytes per row
-  size_t    bytes_per_slice; // # bytes per slice
-  size_t    bytes_per_vol; // # bytes per volume/timepoint
-  size_t    bytes_total; // # total number of pixel bytes in the struct
-  COLOR_TABLE *ct ;
-  MRI_FRAME   *frames ;
 }
 MRI_IMAGE, MRI ;
+
+
+// Support for writing traces that can be compared across test runs to help find where differences got introduced  
+//
+typedef struct {
+    unsigned long hash;
+} MRI_HASH;
+
+void mri_hash_init (MRI_HASH* hash, MRI const * mri);
+void mri_hash_add  (MRI_HASH* hash, MRI const * mri);
+void mri_hash_print(MRI_HASH const* hash, FILE* file);
+void mri_print_hash(FILE* file, MRI const * mri, const char* prefix, const char* suffix);
+
 
 typedef struct
 {

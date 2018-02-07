@@ -47,6 +47,7 @@ const char *MRI_C_VERSION = "$Revision: 1.575 $";
 #include "error.h"
 #include "fastmarching.h"
 #include "filter.h"
+#include "fnv_hash.h"
 #include "macros.h"
 #include "matrix.h"
 #include "minc_volume_io.h"
@@ -17388,3 +17389,90 @@ MRIcomputeLaplaceStreamline(MRI *mri_laplace, int max_steps, float x0, float y0,
   MRIfree(&mri_mask) ;
   return (vl);
 }
+
+
+// Support for writing traces that can be compared across test runs to help find where differences got introduced  
+//
+void mri_hash_init (MRI_HASH* hash, MRI const * mri)
+{
+    hash->hash = fnv_init();
+    if (mri) mri_hash_add(hash, mri);
+}
+
+static void matrix_hash_add(MRI_HASH* hash, MATRIX const * m)
+{
+#define ELT(MBR) \
+    hash->hash = fnv_add(hash->hash, (const unsigned char*)(&m->MBR), sizeof(m->MBR));
+    ELT(type)
+    ELT(rows)
+    ELT(cols)
+#undef ELT
+    int r;
+    for (r = 0; r < m->rows; r++) {
+        hash->hash = 
+            fnv_add(hash->hash, 
+                (const unsigned char*)(m->rptr[r]), 
+                m->cols * ((m->type == MATRIX_REAL) ? sizeof(float) : sizeof(COMPLEX_FLOAT)));
+    }
+}
+
+static void general_transform_hash_add(MRI_HASH* hash, General_transform const * transform)
+{
+//    nyi;
+}
+
+static void transform_hash_add(MRI_HASH* hash, Transform const * transform)
+{
+//    nyi;
+}
+
+void mri_hash_add(MRI_HASH* hash, MRI const * mri)
+{
+    #define SEP
+    #define ELTP(TARGET, MBR) // don't hash pointers.   Sometime may implement hashing their target
+    #define ELTT(TYPE,   MBR) hash->hash = fnv_add(hash->hash, (const unsigned char*)(&mri->MBR), sizeof(mri->MBR));
+    #define ELTX(TYPE,   MBR) 
+    LIST_OF_MRI_ELTS
+    #undef ELTX
+    #undef ELTT
+    #undef ELTP
+    #undef SEP
+
+    // Now include some of the pointer targets
+    //
+    matrix_hash_add(hash, mri->register_mat);
+    general_transform_hash_add(hash, &mri->transform);
+    transform_hash_add(hash, mri->linear_transform);
+    transform_hash_add(hash, mri->inverse_linear_transform);
+    matrix_hash_add(hash, mri->r_to_i__);
+    matrix_hash_add(hash, mri->AutoAlign);
+    matrix_hash_add(hash, mri->bvals);
+    matrix_hash_add(hash, mri->bvecs);
+    // nyi ct
+    // nyi frames
+    // 
+    int slice, row;
+    for (slice = 0; slice < mri->depth; slice++) {
+      for (row = 0; row < mri->height; row++) {
+        hash->hash = 
+            fnv_add(hash->hash, 
+                (const unsigned char*)(mri->slices[slice][row]), 
+                mri->bytes_per_row);
+      }
+    }
+
+}
+
+void mri_hash_print(MRI_HASH const* hash, FILE* file)
+{
+    fprintf(file, "%ld", hash->hash);
+}
+
+void mri_print_hash(FILE* file, MRI const * mri, const char* prefix, const char* suffix) {
+    MRI_HASH hash;
+    mri_hash_init(&hash, mri);
+    fprintf(file, "%sMRI_HASH{",prefix);
+    mri_hash_print(&hash, file);
+    fprintf(file, "}%s",suffix);
+}
+
