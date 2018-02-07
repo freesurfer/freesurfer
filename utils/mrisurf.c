@@ -35594,29 +35594,7 @@ int MRIScomputeBorderValues(
     return result;
 }
 
-static int MRIScomputeBorderValues_new(
-    MRI_SURFACE * const mris,
-    MRI         * const mri_brain,
-    MRI         * const mri_smooth,
-    double        const inside_hi,
-    double        const border_hi,
-    double        const border_low,
-    double        const outside_low,
-    double        const outside_hi,
-    double        const sigma,
-    float         const max_thickness,
-    FILE        * const log_fp,
-    int           const which,
-    MRI *         const mri_mask,
-    double        const thresh,
-    int           const flags,
-    MRI *         const mri_aseg) 
-{
-    // BEVIN HACK
-    return MRIScomputeBorderValues_old(
-                    mris,mri_brain,mri_smooth,inside_hi,border_hi,border_low,outside_low,outside_hi,
-                    sigma,max_thickness,log_fp,which,mri_mask,thresh,flags,mri_aseg);
-}
+#include "MRIScomputeBorderValues_new.c"
 
 static int MRIScomputeBorderValues_old(
     MRI_SURFACE * const mris,
@@ -73134,6 +73112,8 @@ int MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, double r, double a, doubl
 
   return (NO_ERROR);
 }
+
+// TODO - THIS IS THE WRONG WAY TO DO THIS!
 
 /*!
   \fn int MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri,
