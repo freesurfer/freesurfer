@@ -296,7 +296,7 @@ bool FSSurface::InitializeData(const QString &vector_filename,
   {
     MHTfree( &m_HashTable[0] );
   }
-  m_HashTable[0] = MHTfillVertexTableRes( m_MRIS, NULL, CURRENT_VERTICES, 2.0 );
+  m_HashTable[0] = MHTcreateVertexTable_Resolution( m_MRIS, CURRENT_VERTICES, 2.0 );
 
   UpdatePolyData();
 
@@ -409,7 +409,7 @@ bool FSSurface::LoadSurface( const QString& filename, int nSet )
     {
       MHTfree( &m_HashTable[nSet] );
     }
-    m_HashTable[nSet] = MHTfillVertexTableRes( m_MRIS, NULL, (filename == "white" ? WHITE_VERTICES:CURRENT_VERTICES), 2.0 );
+    m_HashTable[nSet] = MHTcreateVertexTable_Resolution( m_MRIS, (filename == "white" ? WHITE_VERTICES:CURRENT_VERTICES), 2.0 );
     ComputeNormals();
     SaveVertices( m_MRIS, nSet );
     SaveNormals ( m_MRIS, nSet );
@@ -1887,7 +1887,7 @@ void FSSurface::PostEditProcess()
 {
   if ( m_HashTable[m_nActiveSurface] )
     MHTfree( &m_HashTable[m_nActiveSurface] );
-  m_HashTable[m_nActiveSurface] = MHTfillVertexTableRes( m_MRIS, NULL, CURRENT_VERTICES, 2.0 );
+  m_HashTable[m_nActiveSurface] = MHTcreateVertexTable_Resolution( m_MRIS, CURRENT_VERTICES, 2.0 );
 
   SaveVertices( m_MRIS, m_nActiveSurface );
   ComputeNormals();
