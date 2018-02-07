@@ -73128,11 +73128,11 @@ int MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, double r, double a, doubl
   \param px, py, pz - pointers to col, rowl, and slice in mri (output)
 */
 
-void MRIS_loadRAS2VoxelCache(MRIS_SurfRAS2VoxelCache* cache, MRI const * const mri, MRI_SURFACE const * const mris)
+void MRIS_loadRAS2VoxelMap(MRIS_SurfRAS2VoxelMap* cache, MRI const * const mri, MRI_SURFACE const * const mris)
 {
     if (cache->mri) {
         if (MRIcompareHeaders(cache->mri, mri) == 0) return;    // already loaded
-        MRIS_unloadRAS2VoxelCache(cache);                            // unload the wrong stuff       
+        MRIS_unloadRAS2VoxelMap(cache);                            // unload the wrong stuff       
     }
     cache->mri = MRIcopyHeader(mri, NULL);
 
@@ -73164,36 +73164,36 @@ void MRIS_loadRAS2VoxelCache(MRIS_SurfRAS2VoxelCache* cache, MRI const * const m
     }
 }
 
-void MRIS_unloadRAS2VoxelCache(MRIS_SurfRAS2VoxelCache* cache)
+void MRIS_unloadRAS2VoxelMap(MRIS_SurfRAS2VoxelMap* map)
 {
-    MRIfree(&cache->mri);
+    MRIfree(&map->mri);
 }
 
-MRIS_SurfRAS2VoxelCache* MRIS_makeRAS2VoxelCache(MRI const * const mri, MRI_SURFACE const * const mris)
+MRIS_SurfRAS2VoxelMap* MRIS_makeRAS2VoxelMap(MRI const * const mri, MRI_SURFACE const * const mris)
 {
-    MRIS_SurfRAS2VoxelCache* cache = (MRIS_SurfRAS2VoxelCache*)calloc(1, sizeof(MRIS_SurfRAS2VoxelCache));
-    MRIS_loadRAS2VoxelCache(cache, mri, mris);
-    return cache;   
+    MRIS_SurfRAS2VoxelMap* map = (MRIS_SurfRAS2VoxelMap*)calloc(1, sizeof(MRIS_SurfRAS2VoxelMap));
+    MRIS_loadRAS2VoxelMap(map, mri, mris);
+    return map;   
 }
 
-void MRIS_freeRAS2VoxelCache(MRIS_SurfRAS2VoxelCache** const cachePtr)
+void MRIS_freeRAS2VoxelMap(MRIS_SurfRAS2VoxelMap** const mapPtr)
 {
-    MRIS_SurfRAS2VoxelCache* cache = *cachePtr; *cachePtr = NULL;
-    if (!cache) return;
-    MRIS_unloadRAS2VoxelCache(cache);
+    MRIS_SurfRAS2VoxelMap* map = *mapPtr; *mapPtr = NULL;
+    if (!map) return;
+    MRIS_unloadRAS2VoxelMap(map);
     int i;
     for (i = 0; i < _MAX_FS_THREADS; i++) {
-        VECTOR* v2 = cache->v2[i]; VectorFree(&v2);
-        VECTOR* v1 = cache->v1[i]; VectorFree(&v1);
+        VECTOR* v2 = map->v2[i]; VectorFree(&v2);
+        VECTOR* v1 = map->v1[i]; VectorFree(&v1);
     }
-    free(cache);
+    free(map);
 }
 
-void MRIS_useRAS2VoxelCache(
-    MRIS_SurfRAS2VoxelCache * cache_nonconst, MRI const * const mri,
+void MRIS_useRAS2VoxelMap(
+    MRIS_SurfRAS2VoxelMap * map_nonconst, MRI const * const mri,
     double r, double a, double s, double *px, double *py, double *pz)
 {
-    const MRIS_SurfRAS2VoxelCache * cache = cache_nonconst;
+    const MRIS_SurfRAS2VoxelMap * map = map_nonconst;
     
     int const tid =   // thread ID
 #ifdef HAVE_OPENMP
@@ -73204,26 +73204,26 @@ void MRIS_useRAS2VoxelCache(
 
     // BEVIN eliminate this once sure not needed
     //
-    if (MRIcompareHeaders(cache->mri, mri) != 0) {
-        fprintf(stderr, "%s:%d cache not valid\n", __FILE__, __LINE__);
+    if (MRIcompareHeaders(map->mri, mri) != 0) {
+        fprintf(stderr, "%s:%d map not valid\n", __FILE__, __LINE__);
         exit(1);
     }
      
     // Get some temps
     //
-    VECTOR* v1 = cache_nonconst->v1[tid];
-    VECTOR* v2 = cache_nonconst->v2[tid];
+    VECTOR* v1 = map_nonconst->v1[tid];
+    VECTOR* v2 = map_nonconst->v2[tid];
     if (v1 == NULL) // avoid the lock if possible 
 #ifdef HAVE_OPENMP
     #pragma omp critical
 #endif
     {
-        v1 = cache_nonconst->v1[tid];
-        v2 = cache_nonconst->v2[tid];
+        v1 = map_nonconst->v1[tid];
+        v2 = map_nonconst->v2[tid];
         if (v1 == NULL) 
         {   // order is important since v1 is tested outside the critical code
-            cache_nonconst->v2[tid] = v2 = VectorAlloc(4, MATRIX_REAL);  VECTOR_ELT(v2, 4) = 1.0;
-            cache_nonconst->v1[tid] = v1 = VectorAlloc(4, MATRIX_REAL);  VECTOR_ELT(v1, 4) = 1.0;
+            map_nonconst->v2[tid] = v2 = VectorAlloc(4, MATRIX_REAL);  VECTOR_ELT(v2, 4) = 1.0;
+            map_nonconst->v1[tid] = v1 = VectorAlloc(4, MATRIX_REAL);  VECTOR_ELT(v1, 4) = 1.0;
         }
     }
 
@@ -73233,7 +73233,7 @@ void MRIS_useRAS2VoxelCache(
     V3_X(v1) = r;
     V3_Y(v1) = a;
     V3_Z(v1) = s;
-    MatrixMultiply(cache->sras2vox, v1, v2);
+    MatrixMultiply(map->sras2vox, v1, v2);
     *px = V3_X(v2);
     *py = V3_Y(v2);
     *pz = V3_Z(v2);
@@ -73247,17 +73247,17 @@ static int MRISsurfaceRASToVoxelCached_old(
 int MRISsurfaceRASToVoxelCached(
     MRI_SURFACE *mris, MRI *mri, double r, double a, double s, double *px, double *py, double *pz)
 {
-    static MRIS_SurfRAS2VoxelCache cache;
-    MRIS_loadRAS2VoxelCache(&cache, mri, mris);
+    static MRIS_SurfRAS2VoxelMap map;
+    MRIS_loadRAS2VoxelMap(&map, mri, mris);
 
-    MRIS_useRAS2VoxelCache(&cache, mri, r,a,s, px, py, pz);
+    MRIS_useRAS2VoxelMap(&map, mri, r,a,s, px, py, pz);
 
     if (0) {  
         double old_px, old_py, old_pz;
         int result = MRISsurfaceRASToVoxelCached_old(mris, mri, r, a, s, &old_px, &old_py, &old_pz);
   
         if (result != NO_ERROR || *px != old_px || *py != old_py || *pz != old_pz) {
-            fprintf(stderr, "%s:%d MRIS_useRAS2VoxelCache gets wrong answer\n", __FILE__, __LINE__);
+            fprintf(stderr, "%s:%d MRIS_useRAS2VoxelMap gets wrong answer\n", __FILE__, __LINE__);
             exit(1);
         }
     }

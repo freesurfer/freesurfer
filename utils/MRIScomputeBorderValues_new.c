@@ -41,8 +41,14 @@ static int MRIScomputeBorderValues_new(
   
   double max_mag_dist = 0.0f;
 
-  // first compute intensity of local gray/white boundary
+  // Prepare to map all the surface points to voxels
   //
+  MRIS_SurfRAS2VoxelMap* sras2v_map = 
+    MRIS_makeRAS2VoxelMap(mri_brain, mris);
+  
+  // OLD CODE HAS THIS COMMENT, DONT KNOW WHY
+  // first compute intensity of local gray/white boundary
+
   int vno;
 
   ROMP_PF_begin
@@ -63,7 +69,7 @@ static int MRIScomputeBorderValues_new(
       DiagBreak();
     }
 
-    // calculate the normal to the vertex in voxel space
+    // calculate the unit-length normal to the vertex in voxel space
     // 
     float nx,ny,nz;
     {
@@ -73,20 +79,20 @@ static int MRIScomputeBorderValues_new(
       x = v->x;
       y = v->y;
       z = v->z;
-      MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+      MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
       
       double xw1, yw1, zw1;
       x = v->x + v->nx;
       y = v->y + v->ny;
       z = v->z + v->nz;
-      MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw1, &yw1, &zw1);
+      MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw1, &yw1, &zw1);
     
       nx = xw1 - xw;
       ny = yw1 - yw;
       nz = zw1 - zw;
 
       float dist = sqrt(SQR(nx) + SQR(ny) + SQR(nz));
-      if (FZERO(dist)) ROMP_PF_continue;                // was "dist = 1;" but that makes no sense
+      if (FZERO(dist)) ROMP_PF_continue;                                            // WAS "dist = 1;" BUT THAT MAKES NO SENSE
       nx /= dist;
       ny /= dist;
       nz /= dist;
@@ -110,7 +116,8 @@ static int MRIScomputeBorderValues_new(
         double dx = v->x - v->origx;
         double dy = v->y - v->origy;
         double dz = v->z - v->origz;
-        double orig_dist = fabs(dx * v->nx + dy * v->ny + dz * v->nz);
+        double orig_dist = fabs(dx * v->nx + dy * v->ny + dz * v->nz);              // THIS FORMULA IS WRONG, SINCE +ve and -ve terms should not cancel
+                                                                                    // SHOULD BE sqrt(SQR(...) + SQR(...) + SQR(...))
 
         if (fabs(dist) + orig_dist > max_thickness) {
           break;
@@ -120,9 +127,9 @@ static int MRIScomputeBorderValues_new(
         double const x = v->x + v->nx * dist;
         double const y = v->y + v->ny * dist;
         double const z = v->z + v->nz * dist;
-        MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+        MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
         
-        MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &mag, current_sigma);
+        MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &mag, current_sigma);   // expensive
         if (mag >= 0.0) {
           break;
         }
@@ -152,7 +159,7 @@ static int MRIScomputeBorderValues_new(
           x = v->x + v->nx * dist;
           y = v->y + v->ny * dist;
           z = v->z + v->nz * dist;
-          MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+          MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
           
           double val;
           MRIsampleVolume(mri_brain, xw, yw, zw, &val);
@@ -160,7 +167,7 @@ static int MRIScomputeBorderValues_new(
           x = v->x + v->nx * (dist + step_size / 2);
           y = v->y + v->ny * (dist + step_size / 2);
           z = v->z + v->nz * (dist + step_size / 2);
-          MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+          MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
           
           double next_val;
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
@@ -186,7 +193,7 @@ static int MRIScomputeBorderValues_new(
         double const x = v->x + v->nx * dist;
         double const y = v->y + v->ny * dist;
         double const z = v->z + v->nz * dist;
-        MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+        MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &mag, current_sigma);
         if (mag >= 0.0) {
           break;
@@ -259,7 +266,7 @@ static int MRIScomputeBorderValues_new(
         double const z = v->z + v->nz * dist;
 
         double xw, yw, zw;
-        MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+        MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
       
         MRIsampleVolume(mri_brain, xw, yw, zw, &val);
       }
@@ -275,7 +282,7 @@ static int MRIScomputeBorderValues_new(
         double const y = v->y + v->ny * (dist - STEP_SIZE);
         double const z = v->z + v->nz * (dist - STEP_SIZE);
         double xw,yw,zw;
-        MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+        MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
         MRIsampleVolume(mri_brain, xw, yw, zw, &previous_val);
       }
 #else
@@ -289,7 +296,7 @@ static int MRIScomputeBorderValues_new(
           double const x = v->x + v->nx * (d - 1);
           double const y = v->y + v->ny * (d - 1);
           double const z = v->z + v->nz * (d - 1);
-          MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+          MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
 
           double tmp_val;
           MRIsampleVolume(mri_brain, xw, yw, zw, &tmp_val);
@@ -312,13 +319,13 @@ static int MRIScomputeBorderValues_new(
         x = v->x + v->nx * dist;
         y = v->y + v->ny * dist;
         z = v->z + v->nz * dist;
-        MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+        MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
         MRIsampleVolume(mri_brain, xw, yw, zw, &val);
 
         x = v->x + v->nx * (dist + STEP_SIZE);
         y = v->y + v->ny * (dist + STEP_SIZE);
         z = v->z + v->nz * (dist + STEP_SIZE);
-        MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+        MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
         
         double next_mag;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &next_mag, sigma);
@@ -326,7 +333,7 @@ static int MRIScomputeBorderValues_new(
         x = v->x + v->nx * (dist - STEP_SIZE);
         y = v->y + v->ny * (dist - STEP_SIZE);
         z = v->z + v->nz * (dist - STEP_SIZE);
-        MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+        MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
         
         double previous_mag;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &previous_mag, sigma);
@@ -340,7 +347,7 @@ static int MRIScomputeBorderValues_new(
         x = v->x + v->nx * dist;
         y = v->y + v->ny * dist;
         z = v->z + v->nz * dist;
-        MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+        MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
 
         double mag;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &mag, sigma);
@@ -353,7 +360,7 @@ static int MRIScomputeBorderValues_new(
             ) { 
           break;
         }
-        
+ 
         if ((mri_aseg != NULL) && (MRIindexNotInVolume(mri_aseg, xw, yw, zw) == 0)) {
 
           int const label = MRIgetVoxVal(mri_aseg, nint(xw), nint(yw), nint(zw), 0);
@@ -396,7 +403,7 @@ static int MRIScomputeBorderValues_new(
           double const x = v->x + v->nx * (dist + STEP_SIZE);
           double const y = v->y + v->ny * (dist + STEP_SIZE);
           double const z = v->z + v->nz * (dist + STEP_SIZE);
-          MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+          MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
           
           double next_val;
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
@@ -421,7 +428,7 @@ static int MRIScomputeBorderValues_new(
           double const x = v->x + v->nx * (dist + 1);
           double const y = v->y + v->ny * (dist + 1);
           double const z = v->z + v->nz * (dist + 1);
-          MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+          MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
           
           double next_val;
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
@@ -451,7 +458,7 @@ static int MRIScomputeBorderValues_new(
             double const y = v->y + v->ny * (dist + 1);
             double const z = v->z + v->nz * (dist + 1);
             double xw,yw,zw;
-            MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+            MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
             
             double next_val;
             MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
@@ -649,7 +656,7 @@ static int MRIScomputeBorderValues_new(
         double const y = v->y + v->ny * outlen;
         double const z = v->z + v->nz * outlen;
         double xw,yw,zw;
-        MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
+        MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
         double val;
         MRIsampleVolume(mri_brain, xw, yw, zw, &val);
         if ((val < outside_hi /*border_low*/) || (val > border_hi)) {
@@ -823,6 +830,8 @@ static int MRIScomputeBorderValues_new(
             100.0f * (float)nmin      / (float)mris->nvertices,
             num_changed);
   }
+
+  MRIS_freeRAS2VoxelMap(&sras2v_map);
 
   return (NO_ERROR);
 }
