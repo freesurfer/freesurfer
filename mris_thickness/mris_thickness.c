@@ -107,7 +107,7 @@ main(int argc, char *argv[]) {
   parms.l_thick_spring = 0 ;
   parms.l_ashburner_triangle = 1 ;
   parms.l_ashburner_lambda = .1 ;
-  parms.l_tspring = .25;
+//  parms.l_tspring = .25;
   parms.l_thick_normal = 1;
   parms.integration_type = INTEGRATE_MOMENTUM ;
   parms.tol = 1e-3 ;
@@ -479,6 +479,10 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "THICK_PARALLEL")) {
     parms.l_thick_parallel = atof(argv[2]) ;
     printf("using parallel thickness coefficient %2.3f\n", parms.l_thick_parallel);
+    nargs = 1 ;
+  } else if (!stricmp(option, "THICK_SPRING")) {
+    parms.l_thick_spring = atof(argv[2]) ;
+    printf("using spring thickness coefficient %2.3f\n", parms.l_thick_spring);
     nargs = 1 ;
   } else if (!stricmp(option, "THICK_MIN")) {
     parms.l_thick_min = atof(argv[2]) ;

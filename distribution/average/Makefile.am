@@ -4,7 +4,8 @@
 SUBDIRS=surf \
 	Yeo_JNeurophysiol11_MNI152 \
 	Buckner_JNeurophysiol11_MNI152 \
-	Choi_JNeurophysiol12_MNI152
+	Choi_JNeurophysiol12_MNI152 \
+	samseg
 
 foodir=$(prefix)/average
 
@@ -127,13 +128,21 @@ foo_datafiles=\
 	mni305.cor.mgz \
 	mni305.cor.subfov1.mgz \
 	mni305.cor.subfov2.mgz \
-	mni305.mask.cor.mgz
+	mni305.mask.cor.mgz \
+	colortable_desikan_killiany.txt \
+	colortable_BA.txt 
 endif
 
 install:
 	test -z $(DESTDIR)$(foodir) || $(mkdir_p) $(DESTDIR)$(foodir)
 	$(INSTALL_DATA) $(foo_datafiles) $(DESTDIR)$(foodir)
 	mkdir -p $(DESTDIR)$(prefix)/subjects
+	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage
+	rm -Rf $(top_builddir)/distribution/average/fsaverage
+	gunzip -c $(top_srcdir)/distribution/average/fsaverage.tar.gz | tar xvf -
+	mv $(top_builddir)/distribution/average/fsaverage \
+		$(DESTDIR)$(prefix)/subjects
+	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage
 if SMALL_DIST_INSTALL
 else
 	rm -Rf $(DESTDIR)$(prefix)/subjects/cvs_avg35
@@ -146,12 +155,6 @@ else
 	gunzip -c $(top_srcdir)/distribution/average/cvs_avg35_inMNI152.tar.gz | tar xvf -
 	mv $(top_builddir)/distribution/average/cvs_avg35_inMNI152 \
 		$(DESTDIR)$(prefix)/subjects
-	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage
-	rm -Rf $(top_builddir)/distribution/average/fsaverage
-	gunzip -c $(top_srcdir)/distribution/average/fsaverage.tar.gz | tar xvf -
-	mv $(top_builddir)/distribution/average/fsaverage \
-		$(DESTDIR)$(prefix)/subjects
-	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage_sym
 	rm -Rf $(top_builddir)/distribution/average/fsaverage_sym
 	gunzip -c $(top_srcdir)/distribution/average/fsaverage_sym.tar.gz | tar xvf -
@@ -214,6 +217,7 @@ else
 	cd Yeo_JNeurophysiol11_MNI152; make install
 	cd Buckner_JNeurophysiol11_MNI152; make install
 	cd Choi_JNeurophysiol12_MNI152; make install
+	cd samseg; make install
 	if [ "$(install_CNYBCH)" = "true" ]; then \
 	  rm -Rf $(DESTDIR)$(prefix)/average/CNYBCH ;\
 	  rm -Rf $(top_builddir)/distribution/average/CNYBCH ;\
