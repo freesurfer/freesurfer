@@ -512,7 +512,7 @@ relabel_hypointensities(MRI *mri, MRI *mri_inputs,
   MRISeraseOutsideOfSurface(0.5, mri_inside, mris, 128) ;
   mri_inside_eroded = MRIerode(mri_inside, NULL) ;
   mri_inside_dilated = MRIdilate(mri_inside, NULL) ;
-  mht = MHTfillVertexTableRes(mris,NULL, CURRENT_VERTICES, 8.0f) ;
+  mht = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 8.0f) ;
 
 
  	if(right)
@@ -1318,7 +1318,7 @@ edit_hippocampal_complex(MRI *mri,
     MRIsegmentFree(&mriseg) ;
   }
 
-  mht = MHTfillVertexTableRes(mris,NULL, CURRENT_VERTICES, 8.0f) ;
+  mht = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 8.0f) ;
 
   /* find voxels that are below the parahippocampal gyrus and 
      labeled as something that should

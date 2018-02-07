@@ -926,8 +926,7 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
     printf("MRISapplyReg: building hash tables (res=16).\n");
     Hash = (MHT **)calloc(sizeof(MHT *), nsurfs);
     for (n = 0; n < nsurfs; n++) {
-      Hash[n] = (MHT *)calloc(sizeof(MHT), 1);
-      Hash[n] = MHTfillVertexTableRes(SurfReg[n], NULL, CURRENT_VERTICES, 16);
+      Hash[n] = MHTcreateVertexTable_Resolution(SurfReg[n], CURRENT_VERTICES, 16);
     }
   }
 
@@ -1143,7 +1142,7 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals,
   /* build hash tables */
   if (UseHash) {
     printf("surf2surf_nnfr: building source hash (res=16).\n");
-    SrcHash = MHTfillVertexTableRes(SrcSurfReg, NULL, CURRENT_VERTICES, 16);
+    SrcHash = MHTcreateVertexTable_Resolution(SrcSurfReg, CURRENT_VERTICES, 16);
   }
 
   /* Open vertex map file */
@@ -1210,7 +1209,7 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals,
     if (UseHash) {
       MHTfree(&SrcHash);
       printf("surf2surf_nnfr: building target hash (res=16).\n");
-      TrgHash = MHTfillVertexTableRes(TrgSurfReg, NULL, CURRENT_VERTICES, 16);
+      TrgHash = MHTcreateVertexTable_Resolution(TrgSurfReg, CURRENT_VERTICES, 16);
     }
     printf("Surf2Surf: Reverse Loop (%d)\n", SrcSurfReg->nvertices);
     nrevhits = 0;
@@ -1326,7 +1325,7 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals,
   /* build hash tables */
   if (UseHash) {
     printf("surf2surf_nnfr_jac: building source hash (res=16).\n");
-    SrcHash = MHTfillVertexTableRes(SrcSurfReg, NULL, CURRENT_VERTICES, 16);
+    SrcHash = MHTcreateVertexTable_Resolution(SrcSurfReg, CURRENT_VERTICES, 16);
   }
 
   // First forward loop just counts the number of hits for each src
@@ -1378,7 +1377,7 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals,
     if (UseHash) {
       MHTfree(&SrcHash);
       printf("surf2surf_nnfr: building target hash (res=16).\n");
-      TrgHash = MHTfillVertexTableRes(TrgSurfReg, NULL, CURRENT_VERTICES, 16);
+      TrgHash = MHTcreateVertexTable_Resolution(TrgSurfReg, CURRENT_VERTICES, 16);
     }
     printf("Surf2SurfJac: Reverse Loop (%d)\n", SrcSurfReg->nvertices);
     nrevhits = 0;
@@ -1567,7 +1566,7 @@ MRI *MRIsurf2VolOpt(MRI *ribbon, MRIS **surfs, MRI **overlays, int nsurfs, LTA *
   if (UseHash) {
     hash = (MHT **)calloc(sizeof(MHT *), nsurfs);
     for (n = 0; n < nsurfs; n++) {
-      hash[n] = MHTfillVertexTableRes(surfs[n], NULL, CURRENT_VERTICES, 16);
+      hash[n] = MHTcreateVertexTable_Resolution(surfs[n], CURRENT_VERTICES, 16);
     }
   }
 

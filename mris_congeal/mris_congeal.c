@@ -1041,7 +1041,7 @@ MRIScongealUpdateRigidRegistration(MRI_SURFACE *mris_ico, MRI_SURFACE **mris_arr
                                     mht_ico, parms,
                                     degrees, degrees, 6) ;
     MHTfree(&mht_array[i]) ;
-    mht_array[i] = MHTfillVertexTable(mris_array[i], NULL, CURRENT_VERTICES) ;
+    mht_array[i] = MHTcreateVertexTable(mris_array[i], CURRENT_VERTICES) ;
   }
   MRIScopyImagValuesToCurvature(mris_ico) ;
 
@@ -1072,7 +1072,7 @@ MRIScongeal(MRI_SURFACE *mris_ico, MRI_SURFACE **mris_array, int nsubjects,
   MRISscaleBrain(mris_ico, mris_ico, mris_array[0]->radius / mris_ico->radius) ;
   mris_ico->hemisphere = mris_array[0]->hemisphere ;
 
-  mht_ico = MHTfillVertexTable(mris_ico, NULL, CURRENT_VERTICES) ;
+  mht_ico = MHTcreateVertexTable(mris_ico, CURRENT_VERTICES) ;
   if (mrisp == NULL)
   {
     mrisp = MRISPalloc(scale, nsurfaces * IMAGES_PER_SURFACE );
@@ -1080,7 +1080,7 @@ MRIScongeal(MRI_SURFACE *mris_ico, MRI_SURFACE **mris_array, int nsubjects,
   
   printf("creating hash tables....\n") ;
   for (i = 0 ; i < nsubjects ; i++)
-    mht_array[i] = MHTfillVertexTable(mris_array[i], NULL, CURRENT_VERTICES) ;
+    mht_array[i] = MHTcreateVertexTable(mris_array[i], CURRENT_VERTICES) ;
 
   for (sno = parms->flags & IP_USE_INFLATED ?  0 : 1 ; sno < nsurfaces ; sno++)
   {
@@ -1140,8 +1140,10 @@ MRIScongeal(MRI_SURFACE *mris_ico, MRI_SURFACE **mris_array, int nsubjects,
       sse = MRIScongealEstimateTemplate(mris_ico, mris_array, mht_array, nsubjects, parms,-1) ;
       pct_change = 100 * (last_sse - sse) / last_sse ;
       done = (last_sse >= 0) && (pct_change < parms->tol) ;
-      for (i = 0 ; i < nsubjects ; i++)
-        MHTfillVertexTable(mris_array[i], mht_array[i], CURRENT_VERTICES) ;
+      for (i = 0 ; i < nsubjects ; i++) {
+        MHTfree(& mht_array[i]);
+        MHTcreateVertexTable(mris_array[i], CURRENT_VERTICES) ;
+      }
       iter++ ;
     } while (!done) ;
   } 

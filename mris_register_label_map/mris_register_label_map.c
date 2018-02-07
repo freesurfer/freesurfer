@@ -1080,10 +1080,10 @@ warp_surface(MRI_SURFACE *mris_lh_mov, MRI_SURFACE *mris_rh_mov, MRI_SURFACE *mr
 
   lh_vertices = (int *)calloc(mris_lh_fixed->nvertices, sizeof(int)) ;
   rh_vertices = (int *)calloc(mris_rh_fixed->nvertices, sizeof(int)) ;
-  mht_lh = MHTfillVertexTableRes(mris_lh_fixed, NULL, CURRENT_VERTICES, ceil(mris_lh_fixed->avg_vertex_dist));
-  mht_rh = MHTfillVertexTableRes(mris_rh_fixed, NULL, CURRENT_VERTICES, ceil(mris_rh_fixed->avg_vertex_dist));
-  mht_lh_faces = MHTfillTableAtResolution(mris_lh_fixed, NULL, CURRENT_VERTICES, ceil(mris_lh_fixed->avg_vertex_dist)) ;
-  mht_rh_faces = MHTfillTableAtResolution(mris_rh_fixed, NULL, CURRENT_VERTICES, ceil(mris_rh_fixed->avg_vertex_dist)) ;
+  mht_lh = MHTcreateVertexTable_Resolution(mris_lh_fixed, CURRENT_VERTICES, ceil(mris_lh_fixed->avg_vertex_dist));
+  mht_rh = MHTcreateVertexTable_Resolution(mris_rh_fixed, CURRENT_VERTICES, ceil(mris_rh_fixed->avg_vertex_dist));
+  mht_lh_faces = MHTcreateFaceTable_Resolution(mris_lh_fixed, CURRENT_VERTICES, ceil(mris_lh_fixed->avg_vertex_dist)) ;
+  mht_rh_faces = MHTcreateFaceTable_Resolution(mris_rh_fixed, CURRENT_VERTICES, ceil(mris_rh_fixed->avg_vertex_dist)) ;
   compute_vertex_permutation(mris_lh_mov, mris_lh_fixed, mht_lh, lh_vertices) ;
   compute_vertex_permutation(mris_rh_mov, mris_rh_fixed, mht_rh, rh_vertices) ;
   mri_cmat_permuted = permute_corrmat(mri_cmat_mov, lh_vertices, rh_vertices, mri_cmat_permuted) ;
@@ -1410,8 +1410,8 @@ warp_hemi(MRI_SURFACE *mris_mov, MRI_SURFACE *mris_fixed, MRI *mri_target_label,
   int  iter, grad_averages, iters_so_far = 0 ;
   double error, last_error, pct_change, orig_dt ;
 
-  mht_vertices = MHTfillVertexTableRes(mris_fixed, NULL, CURRENT_VERTICES, ceil(mris_fixed->avg_vertex_dist));
-  mht_faces = MHTfillTableAtResolution(mris_fixed, NULL, CURRENT_VERTICES, ceil(mris_fixed->avg_vertex_dist)) ;
+  mht_vertices = MHTcreateVertexTable_Resolution(mris_fixed, CURRENT_VERTICES, ceil(mris_fixed->avg_vertex_dist));
+  mht_faces    = MHTcreateFaceTable_Resolution  (mris_fixed, CURRENT_VERTICES, ceil(mris_fixed->avg_vertex_dist));
 #if 0
   if (write_diags)
   {

@@ -876,7 +876,7 @@ MRIsampleParcellationToSurface(MRI_SURFACE *mris, MRI *mri_parc) {
                 Progname, vno, nlabels) ;
   }
 
-  mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 8.0) ;
+  mht = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 8.0) ;
 
   MRISclearMarks(mris) ;
 

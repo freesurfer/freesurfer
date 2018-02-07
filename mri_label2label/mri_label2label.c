@@ -444,11 +444,9 @@ int main(int argc, char **argv) {
     
     if (usehash) {
       printf("Building target registration hash (res=%g).\n",hashres);
-      TrgHash = MHTfillVertexTableRes(TrgSurfReg, NULL,
-                                      CURRENT_VERTICES,hashres);
+      TrgHash = MHTcreateVertexTable_Resolution(TrgSurfReg, CURRENT_VERTICES,hashres);
       printf("Building source registration hash (res=%g).\n",hashres);
-      SrcHash = MHTfillVertexTableRes(SrcSurfReg, NULL,
-                                      CURRENT_VERTICES,hashres);
+      SrcHash = MHTcreateVertexTable_Resolution(SrcSurfReg, CURRENT_VERTICES,hashres);
     }
     if (useprojfrac) {
       sprintf(fname,"%s/%s/surf/%s.thickness",SUBJECTS_DIR,srcsubject,srchemi);
@@ -501,8 +499,7 @@ int main(int argc, char **argv) {
         exit(1);
       }
       if(usehash)
-	PaintHash = MHTfillVertexTableRes(PaintSurf, NULL,
-					  CURRENT_VERTICES,hashres);
+	PaintHash = MHTcreateVertexTable_Resolution(PaintSurf, CURRENT_VERTICES,hashres);
     }
 
     /* Loop through each source label and map its xyz to target */

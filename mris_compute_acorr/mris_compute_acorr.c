@@ -30,15 +30,15 @@
 #include <math.h>
 #include <ctype.h>
 
+#include "mrisurf.h"
+#include "mrishash_internals.h"
 
 #include "macros.h"
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
-#include "mrisurf.h"
 #include "macros.h"
 #include "fio.h"
-#include "mrishash.h"
 #include "sig.h"
 #include "version.h"
 
@@ -623,7 +623,7 @@ MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris,float*curv,double *acorr,
   nv = mris->nvertices ;
   if (!mht) {
     fprintf(stderr, "building spatial LUT...\n") ;
-    mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 2*max_dist) ;
+    mht = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 2*max_dist) ;
   }
   v1 = VectorAlloc(3, MATRIX_REAL) ;
   v2 = VectorAlloc(3, MATRIX_REAL) ;
@@ -694,7 +694,7 @@ MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris, float bin_size,
   v2 = VectorAlloc(3, MATRIX_REAL) ;
   radius = MRISaverageRadius(mris) ;
   circumference = M_PI * 2.0 * radius ;
-  mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 2*max_dist) ;
+  mht = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 2*max_dist) ;
 
   nbins = max_dist/bin_size+1 ;
   counts = (int *)calloc(nbins, sizeof(int)) ;
