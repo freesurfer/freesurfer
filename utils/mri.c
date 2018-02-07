@@ -2975,7 +2975,7 @@ MATRIX *voxelFromSurfaceRAS_(MRI *mri)
   intermediate matrices are alloced, inverted, and dealloced, so
   it might not be a good thing to have inside a loop.
   --------------------------------------------------------------*/
-MATRIX *surfaceRASFromRAS_(MRI *mri)
+MATRIX *surfaceRASFromRAS_(MRI const *mri)
 {
   MATRIX *sRASFromRAS;
   MATRIX *Vox2TkRAS, *Vox2RAS;
@@ -3005,13 +3005,13 @@ MATRIX *surfaceRASFromRAS_(MRI *mri)
   intermediate matrices are alloced, inverted, and dealloced, so
   it might not be a good thing to have inside a loop.
   --------------------------------------------------------------*/
-MATRIX *RASFromSurfaceRAS_(MRI *mri)
+MATRIX *RASFromSurfaceRAS_(MRI const *mri)
 {
   MATRIX *RASFromSRAS;
 
   MATRIX *Vox2TkRAS, *Vox2RAS;
 
-  Vox2RAS = MRIxfmCRS2XYZ(mri, 0);      // scanner vox2ras
+  Vox2RAS   = MRIxfmCRS2XYZ(mri, 0);      // scanner vox2ras
   Vox2TkRAS = MRIxfmCRS2XYZtkreg(mri);  // tkreg vox2ras
   // RASFromSRAS = Vox2RAS * inv(Vox2TkRAS)
   RASFromSRAS = MatrixInverse(Vox2TkRAS, NULL);
@@ -6009,7 +6009,7 @@ int MRIpeak(MRI *mri, int *px, int *py, int *pz)
 /*
   compare two headers to see if they are the same voxel and ras coords
 */
-int MRIcompareHeaders(MRI *mri1, MRI *mri2)
+int MRIcompareHeaders(MRI const *mri1, MRI const *mri2)
 {
   if (mri1 == NULL || mri2 == NULL) return (1);  // not the same
   if (!FEQUAL(mri1->xsize, mri2->xsize)) return (1);
