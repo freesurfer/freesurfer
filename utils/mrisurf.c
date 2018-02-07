@@ -35573,9 +35573,12 @@ int MRIScomputeBorderValues(
     int result;
     int pass;
     for (pass = 0; pass < 2; pass++) {
-        mri_print_hash(stderr, mri, "", "\n");
+        mri_print_hash(stderr, mri_brain,  "mri_brain ", "\n");
+        mri_print_hash(stderr, mri_smooth, "mri_smooth ", "\n");
+        mri_print_hash(stderr, mri_mask,   "mri_mask ", "\n");
+        mri_print_hash(stderr, mri_mask,   "mri_aseg ", "\n");
         if (pass) break;
-        if (0)
+        if (0) {
             result = 
                 MRIScomputeBorderValues_new(
                     mris,mri_brain,mri_smooth,inside_hi,border_hi,border_low,outside_low,outside_hi,
