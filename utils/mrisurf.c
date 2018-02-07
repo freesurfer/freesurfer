@@ -35513,6 +35513,45 @@ int MRIScomputeWhiteSurfaceValues(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_wm
 #endif
 
 #define MAX_SAMPLES 1000
+  
+// BEVIN mris_make_surfaces 2
+//  
+static int MRIScomputeBorderValues_old(
+    MRI_SURFACE * const mris,
+    MRI         * const mri_brain,
+    MRI         * const mri_smooth,
+    double        const inside_hi,
+    double        const border_hi,
+    double        const border_low,
+    double        const outside_low,
+    double        const outside_hi,
+    double        const sigma,
+    float         const max_thickness,
+    FILE        * const log_fp,
+    int           const which,
+    MRI *         const mri_mask,
+    double        const thresh,
+    int           const flags,
+    MRI *         const mri_aseg);
+
+static int MRIScomputeBorderValues_new(
+    MRI_SURFACE * const mris,
+    MRI         * const mri_brain,
+    MRI         * const mri_smooth,
+    double        const inside_hi,
+    double        const border_hi,
+    double        const border_low,
+    double        const outside_low,
+    double        const outside_hi,
+    double        const sigma,
+    float         const max_thickness,
+    FILE        * const log_fp,
+    int           const which,
+    MRI *         const mri_mask,
+    double        const thresh,
+    int           const flags,
+    MRI *         const mri_aseg);
+    
 int MRIScomputeBorderValues(
     MRI_SURFACE * const mris,
     MRI         * const mri_brain,
@@ -35529,7 +35568,70 @@ int MRIScomputeBorderValues(
     MRI *         const mri_mask,
     double        const thresh,
     int           const flags,
-    MRI *         const mri_aseg)  // BEVIN mris_make_surfaces 2
+    MRI *         const mri_aseg)
+{
+    int result;
+    int pass;
+    for (pass = 0; pass < 2; pass++) {
+        mri_print_hash(stderr, mri, "", "\n");
+        if (pass) break;
+        if (0)
+            result = 
+                MRIScomputeBorderValues_new(
+                    mris,mri_brain,mri_smooth,inside_hi,border_hi,border_low,outside_low,outside_hi,
+                    sigma,max_thickness,log_fp,which,mri_mask,thresh,flags,mri_aseg);
+        } else {
+            result = 
+                MRIScomputeBorderValues_old(
+                    mris,mri_brain,mri_smooth,inside_hi,border_hi,border_low,outside_low,outside_hi,
+                    sigma,max_thickness,log_fp,which,mri_mask,thresh,flags,mri_aseg);
+        }
+
+    }
+    return result;
+}
+
+static int MRIScomputeBorderValues_new(
+    MRI_SURFACE * const mris,
+    MRI         * const mri_brain,
+    MRI         * const mri_smooth,
+    double        const inside_hi,
+    double        const border_hi,
+    double        const border_low,
+    double        const outside_low,
+    double        const outside_hi,
+    double        const sigma,
+    float         const max_thickness,
+    FILE        * const log_fp,
+    int           const which,
+    MRI *         const mri_mask,
+    double        const thresh,
+    int           const flags,
+    MRI *         const mri_aseg) 
+{
+    // BEVIN HACK
+    return MRIScomputeBorderValues_old(
+                    mris,mri_brain,mri_smooth,inside_hi,border_hi,border_low,outside_low,outside_hi,
+                    sigma,max_thickness,log_fp,which,mri_mask,thresh,flags,mri_aseg);
+}
+
+static int MRIScomputeBorderValues_old(
+    MRI_SURFACE * const mris,
+    MRI         * const mri_brain,
+    MRI         * const mri_smooth,
+    double        const inside_hi,
+    double        const border_hi,
+    double        const border_low,
+    double        const outside_low,
+    double        const outside_hi,
+    double        const sigma,
+    float         const max_thickness,
+    FILE        * const log_fp,
+    int           const which,
+    MRI *         const mri_mask,
+    double        const thresh,
+    int           const flags,
+    MRI *         const mri_aseg)
 {
   float const step_size = mri_brain->xsize / 2;
     
