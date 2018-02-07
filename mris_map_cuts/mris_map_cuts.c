@@ -210,8 +210,8 @@ MRISmapCuts(MRI_SURFACE *mris_in, MRI_SURFACE *mris_out)
   MRISstoreRipFlags(mris_in) ;
   MRISunrip(mris_in) ;
 
-  mht_in = MHTfillVertexTable(mris_in, NULL, CANONICAL_VERTICES) ;
-  mht_out = MHTfillVertexTable(mris_out, NULL, CANONICAL_VERTICES) ;
+  mht_in  = MHTcreateVertexTable(mris_in,  CANONICAL_VERTICES) ;
+  mht_out = MHTcreateVertexTable(mris_out, CANONICAL_VERTICES) ;
 
 #if 0
   for (vno_in = 0 ; vno_in < mris_in->nvertices ; vno_in++)

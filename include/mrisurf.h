@@ -103,6 +103,10 @@ typedef struct face_type_
 #if 0
   float logshear,shearx,sheary;  /* compute_shear */
 #endif
+
+// Why does mrishash need these?  Where else are they used?
+#if 0
+
 #define LIST_OF_FACE_ELTS_2    \
   ELTT(float,cx) SEP    \
   ELTT(float,cy) SEP    \
@@ -113,6 +117,13 @@ typedef struct face_type_
     LIST_OF_FACE_ELTS_1 SEP \
     LIST_OF_FACE_ELTS_2 \
     // end of macro
+
+#else
+
+#define LIST_OF_FACE_ELTS \
+    LIST_OF_FACE_ELTS_1
+    
+#endif
 
 #define ELTT(T,N) T N;
 #define SEP
@@ -333,7 +344,6 @@ typedef struct vertex_type_
   ELTT(float,std_error) SEP    \
   ELTT(unsigned int,flags) SEP    \
   ELTP(void,vp) SEP /* to store user's information */    \
-  ELTT(int,linked) SEP         /* is this vertex linked to some others? */    \
   ELTT(int,fno) SEP            /* face that this vertex is in */    \
   ELTT(int,cropped)     \
   // end of macro
@@ -1713,9 +1723,6 @@ typedef struct
   HISTOGRAM *h_in ;         // inside label histogram
   HISTOGRAM *h_out ;        // inside label histogram
   double     mag ;          // directional derivative in normal dir initially
-  int        linked_vno[MAX_LINKS] ;   // is it the same as another vertex
-  int        linked_sno[MAX_LINKS] ;   // surface that it's linked to
-  int        nlinks ;
   double     p ;            // p-value for user to fill in
 }
 VERTEX_INFO ;
@@ -2337,7 +2344,7 @@ int MRISrepositionSurfaceToCoordinate(MRI_SURFACE *mris, MRI *mri, int target_vn
                                       float ty, 
                                       float tz, 
                                       int nsize, double sigma, int flags)  ;
-int face_barycentric_coords(MRI_SURFACE *mris, int fno, int which_vertices,
+int face_barycentric_coords(MRI_SURFACE const *mris, int fno, int which_vertices,
                             double cx, double cy, double cz, double *pl1, double *pl2, double *pl3) ;
 
 MRI *MRIScomputeFlattenedVolume(MRI_SURFACE *mris,

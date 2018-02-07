@@ -185,10 +185,7 @@ int main(int argc, char *argv[])
     int count_input = 0;
     float grid = 1.0;
 
-
-    //mht = MHTfillTable(mris, NULL) ;
-    mht = MHTfillTableAtResolution(mris, NULL, CURRENT_VERTICES, grid);
-
+    mht = MHTcreateFaceTable_Resolution(mris, CURRENT_VERTICES, grid);
 
     for (fno = 0 ; fno < mris->nfaces ; fno++)
     {
@@ -437,7 +434,7 @@ int main(int argc, char *argv[])
     float grid = 1.0;
 
     //
-    mht = MHTfillTableAtResolution(mris, NULL, CURRENT_VERTICES, grid);
+    mht = MHTcreateFaceTable_Resolution(mris, CURRENT_VERTICES, grid);
 
     for (fno = 0 ; fno < mris->nfaces ; fno++)
     {

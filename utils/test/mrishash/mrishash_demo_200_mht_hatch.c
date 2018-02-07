@@ -93,9 +93,8 @@ int main(int argc, char *argv[]) {
   // Hash the surface. Possibly try different
   // resolution arguments here
   //------------------------------------------
-  printf("MHTfillTableAtResolution\n");
-  mht = NULL;
-  mht = MHTfillTableAtResolution(mris, mht, CURRENT_VERTICES, 1.0);
+  printf("MHTcreateFaceTable_Resolution\n");
+  mht = MHTcreateFaceTable_Resolution(mris, CURRENT_VERTICES, 1.0);
 
   printf("MRIFromMHTandMRIS\n");
   mri = MRIFromMHTandMRIS(mht, mris, MFMM_Count);

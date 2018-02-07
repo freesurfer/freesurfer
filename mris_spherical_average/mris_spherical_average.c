@@ -265,7 +265,7 @@ main(int argc, char *argv[])
       {
         max_len = mean+3*sigma ;
       }
-      mht = MHTfillVertexTableRes(mris_avg, NULL, CURRENT_VERTICES,2*max_len);
+      mht = MHTcreateVertexTable_Resolution(mris_avg, CURRENT_VERTICES,2*max_len);
     }
 
     switch (which)
@@ -473,7 +473,7 @@ main(int argc, char *argv[])
   {
     max_len = mean+3*sigma ;
   }
-  mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 2*max_len);
+  mht = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 2*max_len);
   if (which != VERTEX_LABEL)
   {
     MRISsphericalCopy(mris_avg, mris, mht, which) ;
