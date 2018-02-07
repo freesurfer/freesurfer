@@ -1,0 +1,10 @@
+# See .git-keywords directory for README
+#[filter "kw"]
+#	clean  = .git-keywords/kwclean
+#	smudge = .git-keywords/kwset
+
+# See .git-rcs-keywords for README
+[filter "rcs-keywords"]
+	clean  = .git-rcs-keywords/.git_filters/rcs-keywords.clean
+	smudge = .git-rcs-keywords/.git_filters/rcs-keywords.smudge %f
+
