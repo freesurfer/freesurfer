@@ -313,6 +313,7 @@ void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
 
   this->OnColorMapChanged();
   emit OpacityChanged( mOpacity );
+  emit DisplayModeChanged();
 }
 
 void LayerPropertyMRI::SaveSettings( const QString& filename )
@@ -356,6 +357,9 @@ QVariantMap LayerPropertyMRI::GetFullSettings()
   map["DisplayVector"] = m_bDisplayVector;
   map["VectorInversion"] = m_nVectorInversion;
   map["VectorRepresentation"] = m_nVectorRepresentation;
+  map["VectorLengthScale"] = m_dVectorDisplayScale;
+  map["VectorWidthScale"] = m_dVectorLineWidth;
+  map["VectorNormalize"] = m_bNormalizeVector;
 
   map["DisplayTensor"] = m_bDisplayTensor;
   map["TensorInversion"] = m_nTensorInversion;
@@ -400,6 +404,15 @@ void LayerPropertyMRI::RestoreFullSettings(const QVariantMap &map)
 
   if (map.contains("Opacity"))
     mOpacity = map["Opacity"].toDouble();
+
+  if (map.contains("VectorLengthScale"))
+    m_dVectorDisplayScale = map["VectorLengthScale"].toDouble();
+
+  if (map.contains("VectorWidthScale"))
+    m_dVectorLineWidth = map["VectorWidthScale"].toDouble();
+
+  if (map.contains("VectorNormalize"))
+    m_bNormalizeVector = map["VectorNormalize"].toBool();
 
   RestoreSettings(map);
 }
