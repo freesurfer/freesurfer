@@ -17401,6 +17401,7 @@ void mri_hash_init (MRI_HASH* hash, MRI const * mri)
 
 static void matrix_hash_add(MRI_HASH* hash, MATRIX const * m)
 {
+    if (!m) return;
 #define ELT(MBR) \
     hash->hash = fnv_add(hash->hash, (const unsigned char*)(&m->MBR), sizeof(m->MBR));
     ELT(type)
@@ -17409,25 +17410,36 @@ static void matrix_hash_add(MRI_HASH* hash, MATRIX const * m)
 #undef ELT
     int r;
     for (r = 0; r < m->rows; r++) {
+        const unsigned char* rptr = (const unsigned char*)(m->rptr[r]);
+        if (!rptr) {
+            static int count;
+            if (!count++) fprintf(stderr, "%s:%d !rptr r:%d m->rows:%d m->cols:%d\n", 
+                __FILE__,__LINE__, r, m->rows, m->cols);
+            continue;
+        }
         hash->hash = 
             fnv_add(hash->hash, 
-                (const unsigned char*)(m->rptr[r]), 
+                rptr, 
                 m->cols * ((m->type == MATRIX_REAL) ? sizeof(float) : sizeof(COMPLEX_FLOAT)));
     }
 }
 
 static void general_transform_hash_add(MRI_HASH* hash, General_transform const * transform)
 {
+    if (!transform) return;
 //    nyi;
 }
 
 static void transform_hash_add(MRI_HASH* hash, Transform const * transform)
 {
+    if (!transform) return;
 //    nyi;
 }
 
 void mri_hash_add(MRI_HASH* hash, MRI const * mri)
 {
+    if (!mri) return;
+    
     #define SEP
     #define ELTP(TARGET, MBR) // don't hash pointers.   Sometime may implement hashing their target
     #define ELTT(TYPE,   MBR) hash->hash = fnv_add(hash->hash, (const unsigned char*)(&mri->MBR), sizeof(mri->MBR));
@@ -17451,16 +17463,20 @@ void mri_hash_add(MRI_HASH* hash, MRI const * mri)
     // nyi ct
     // nyi frames
     // 
-    int slice, row;
-    for (slice = 0; slice < mri->depth; slice++) {
-      for (row = 0; row < mri->height; row++) {
-        hash->hash = 
-            fnv_add(hash->hash, 
-                (const unsigned char*)(mri->slices[slice][row]), 
-                mri->bytes_per_row);
-      }
+    if (mri->slices) {
+        int slice, row;
+        for (slice = 0; slice < mri->depth; slice++) {
+            if (!mri->slices[slice]) continue;
+            for (row = 0; row < mri->height; row++) {
+                const unsigned char* ptr = (const unsigned char*)(mri->slices[slice][row]);
+                if (!ptr) continue;
+                hash->hash = 
+                    fnv_add(hash->hash, 
+                        ptr, 
+                        mri->bytes_per_row);
+            }
+        }
     }
-
 }
 
 void mri_hash_print(MRI_HASH const* hash, FILE* file)
