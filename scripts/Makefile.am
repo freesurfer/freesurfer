@@ -320,6 +320,9 @@ fsgdfPlot.tcl
 endif
 
 if SMALL_DIST_INSTALL
+tktoolsdir = $(prefix)/tktools
+tktools_SCRIPTS= \
+tkregister2.tcl
 else
 tktoolsdir = $(prefix)/tktools
 tktools_SCRIPTS= \
