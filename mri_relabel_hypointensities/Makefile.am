@@ -10,6 +10,11 @@ mri_relabel_hypointensities_SOURCES=mri_relabel_hypointensities.c
 mri_relabel_hypointensities_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_relabel_hypointensities_LDFLAGS=$(OS_LDFLAGS)
 
+TESTS=test_mris_make_surfaces
+
+EXTRA_DIST=test_mris_make_surfaces testdata.tar.gz $(foo_DATA) $(BUILT_SOURCES)
+
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.

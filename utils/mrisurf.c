@@ -73902,8 +73902,6 @@ int MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, double r, double a, doubl
   return (NO_ERROR);
 }
 
-// TODO - THIS IS THE WRONG WAY TO DO THIS!
-
 /*!
   \fn int MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri,
         double r, double a, double s,
