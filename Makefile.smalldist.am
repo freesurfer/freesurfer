@@ -7,93 +7,107 @@
 ## replace Makefile with this Makefile.smalldist.  One could also include --disable-g 
 ## with configure to compile without debug symbols.
 ## For a working installation, the MNI tools (namely nu_correct) will need to be 
-## installed, so one with need to include --with-mni-dir=somepathtomnidir so that
-## during make install, the link is made in freesurfer/mni to those tools.
+## available, so one will need to set MNI_DIR prior to sourcing SetUpFreeSurfer, eg.:
+## 	setenv MNI_DIR /usr/pubsw/packages/mni/current
 ##
-
-## TODO: this list could use some trimming based on a reprozip analysis to figure-out
-## the true list of source files needed
 
 ACLOCAL_AMFLAGS=-I m4
 
 foodir=$(prefix)
 foo_DATA=LICENSE NOTICE README AUTHORS INSTALL COPYING
 
-MRISUBDIRS=\
-	lta_convert \
-	mri_jacobian \
+# as executed by recon-all -all
+# these are the scripts, found in /scripts dir:
+#		mri_nu_correct.mni
+#		tal_QC_AZS
+#		vertexvol
+#		apas2aseg 
+# and:
+# 	mri_pretess is in mri_mc
+#		mris_extract_main_component is in mri_mc
+#		tkregister2_cmdl is in tkregister2/cmdl
+RECONALLDIRS=\
+	mri_convert \
 	mri_add_xform_to_header \
-	mri_annotation2label \
-	mri_aparc2aseg \
-	mri_aparc2wmseg \
-	mri_binarize \
-	mri_ca_label \
+	mri_robust_register \
+	talairach_avi \
+	talairach_afd \
+	mri_matrix_multiply \
+	mri_normalize \
+	mri_em_register \
+	mri_watershed \
+	mri_log_likelihood \
 	mri_ca_normalize \
 	mri_ca_register \
+	mri_ca_label \
 	mri_cc \
+	mri_mask \
+	mri_segment \
+	mri_edit_wm_with_aseg \
+	mri_fill \
+	mri_mc \
+	mri_tessellate \
+	mris_smooth \
+	mris_inflate \
+	mris_sphere \
+	mris_fix_topology \
+	mris_topo_fixer \
+	mris_euler_number \
+	mris_make_surfaces \
+	mris_curvature \
+	mris_curvature_stats \
+	mris_register \
+	mris_jacobian \
+	mrisp_paint \
+	mris_ca_label \
+	mris_volmask \
+	mris_anatomical_stats \
+	mri_relabel_hypointensities \
+	mri_aparc2aseg \
+	mri_segstats \
+	mri_label2label \
+	mris_label2annot \
+	mri_normalize_tp2 \
+	mri_info \
+	lta_convert \
+	mri_concatenate_lta \
+	mri_binarize \
+	mri_diff \
+	mris_thickness \
+	mris_thickness_diff \
+	tkregister2
+
+# tkregister2 is included to build tkregister2_cmdl only!
+
+EXTRADIRS=\
+	mri_annotation2label \
+	mri_aparc2wmseg \
 	mri_compute_overlap \
 	mri_concat \
-	mri_convert \
 	mri_deface \
-	mri_diff \
-	mri_edit_segmentation \
-	mri_edit_segmentation_with_surfaces \
-	mri_em_register \
-	mri_fill \
 	mri_fwhm \
-	mri_info \
+	mri_fuse_segmentations \
+	mri_gcut \
 	mri_and \
-	mri_label2label \
+	mri_or \
 	mri_label2vol \
-	mri_relabel_hypointensities \
 	mri_relabel_nonwm_hypos \
 	mri_remove_neck \
-	mri_robust_register \
 	mri_surf2surf \
 	mri_surf2vol \
 	mri_surfcluster \
-	mri_tessellate \
 	mri_voldiff \
 	mri_vol2vol \
-	mri_segstats \
 	mri_stats2seg \
 	mri_vol2surf \
-	mri_watershed \
-	mri_edit_wm_with_aseg \
-	mri_extract_largest_CC \
 	mri_compute_seg_overlap \
-	mri_concatenate_lta \
-	mri_log_likelihood \
-	talairach_afd \
-	talairach_avi
-
-MRISSUBDIRS=\
 	mris_calc \
-	mris_anatomical_stats \
-	mris_transmantle_dysplasia_paths \
-	mris_average_curvature \
-	mris_ca_label \
 	mris_divide_parcellation \
 	mris_convert \
-	mris_curvature \
-	mris_curvature_stats \
-	mris_euler_number \
-	mris_expand \
-	mris_fix_topology \
 	mris_topo_fixer \
-	mris_inflate \
 	mris_info \
-	mris_jacobian \
-	mris_label2annot \
-	mris_make_surfaces \
 	mris_diff \
-	mris_register \
 	mris_left_right_register \
-	mris_smooth \
-	mris_sphere \
-	mris_thickness \
-	mris_volmask \
-	mris_thickness_diff \
 	mris_surface_stats
 
 # ordering is important here for proper 'make check' and 'make distcheck' function
@@ -118,9 +132,8 @@ COREDIRS=\
 
 # dependent on COREDIRS
 OTHERDIRS=\
-	$(MRISUBDIRS) \
-	$(MRISSUBDIRS)
-
+	$(RECONALLDIRS) \
+	$(EXTRADIRS)
 
 # SUBDIRS is the automake definition of the 'all' for make
 SUBDIRS=\
@@ -151,7 +164,7 @@ fastbuild:
 
 # build stamp and symlinks to necessary 3rd-party packages.
 install-data-hook:
-	echo "$(PACKAGE)-$(target_triplet)-$(VERSION)-`date +%Y%m%d`" \
+	echo "$(PACKAGE)-$(target_triplet)-$(VERSION)-small-dist-`date +%Y%m%d`" \
 		> $(DESTDIR)$(prefix)/build-stamp.txt ;
 	cp -f $(DESTDIR)$(prefix)/build-stamp.txt \
 		$(DESTDIR)$(prefix)/VERSION

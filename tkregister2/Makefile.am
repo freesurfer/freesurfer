@@ -26,6 +26,7 @@ bin_PROGRAMS =
 
 endif
 
+
 if ENABLE_TCLTK_APPS
 # put a wrapper around the bin, used to setup tcltktixblt enviro vars
 # and install in 'tktools' dir instead of 'bin' (to allow easy deletion
@@ -54,11 +55,15 @@ uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/tkregister*
 
 else
+if SMALL_DIST
+# build/install only tkregister2_cmdl (handled by cmdl/Makefile.am)
+else
 all:
 	@echo ""
 	@echo "Excluding Tcl/Tk and OpenGL elements from this tkregister2 build."
 	@echo "Run configure with either --enable-tcltk-apps or --with-tcl-dir=DIR"
 	@echo ""
+endif
 endif
 
 # Copy over precompiled 32-bit versions until we get 64-bit builds working.
