@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
   }
 
   printf("Building hash of lh white\n");
-  lhwhite_hash = MHTfillVertexTableRes(lhwhite, NULL,CURRENT_VERTICES,16);
+  lhwhite_hash = MHTcreateVertexTable_Resolution(lhwhite, CURRENT_VERTICES,16);
 
   /* ------ Load lh annotation ------ */
   sprintf(annotfile,"%s/%s/label/lh.aparc.annot",SUBJECTS_DIR,subject);
@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
     exit(1);
   }
   if (debug) printf("Building hash of rh white\n");
-  rhwhite_hash = MHTfillVertexTableRes(rhwhite, NULL,CURRENT_VERTICES,16);
+  rhwhite_hash = MHTcreateVertexTable_Resolution(rhwhite, CURRENT_VERTICES,16);
 
   /* ------ Load rh annotation ------ */
   sprintf(annotfile,"%s/%s/label/rh.aparc.annot",SUBJECTS_DIR,subject);

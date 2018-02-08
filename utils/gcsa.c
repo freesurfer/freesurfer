@@ -164,10 +164,10 @@ GCSA *GCSAalloc(int ninputs, int icno_priors, int icno_classifiers)
   }
 
   MRIScomputeVertexSpacingStats(gcsa->mris_classifiers, NULL, NULL, &max_len, NULL, NULL, CURRENT_VERTICES);
-  gcsa->mht_classifiers = MHTfillVertexTableRes(gcsa->mris_classifiers, NULL, CURRENT_VERTICES, 2 * max_len);
+  gcsa->mht_classifiers = MHTcreateVertexTable_Resolution(gcsa->mris_classifiers, CURRENT_VERTICES, 2 * max_len);
 
   MRIScomputeVertexSpacingStats(gcsa->mris_priors, NULL, NULL, &max_len, NULL, NULL, CURRENT_VERTICES);
-  gcsa->mht_priors = MHTfillVertexTableRes(gcsa->mris_priors, NULL, CURRENT_VERTICES, 2 * max_len);
+  gcsa->mht_priors = MHTcreateVertexTable_Resolution(gcsa->mris_priors, CURRENT_VERTICES, 2 * max_len);
 
   return (gcsa);
 }

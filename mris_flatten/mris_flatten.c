@@ -190,7 +190,7 @@ MRIflattenOverlay(MRI_SURFACE *mris, MRI *mri_overlay, MRI *mri_flat, double res
   MRIsetResolution(mri_vertices, res, res, 1) ;
   if (label_overlay)  // constrain processing to only this label
     LabelRipRestOfSurface(label_overlay, mris) ;
-  mht = MHTfillTableAtResolution(mris, NULL, CURRENT_VERTICES, 1.0) ;
+  mht = MHTcreateFaceTable_Resolution(mris, CURRENT_VERTICES, 1.0) ;
   for (x = 0 ; x < width; x++)
     for (y = 0 ; y < height ; y++)
     {

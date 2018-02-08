@@ -67,7 +67,7 @@ MRI *MRIcomputeVolumeFractionFromSurface(MRI_SURFACE *mris, double acc, MRI *mri
   mri_interior = MRISfillInterior(mris, 0.0, mri_interior);
   /* creating the hash table related to the surface vertices */
   printf("computing the hash table\n");
-  mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 10);
+  mht = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 10);
   /* looping over the nonzero elements of the shell */
   printf("computing the fractions\n");
   volFraction frac;

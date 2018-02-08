@@ -3714,3 +3714,10 @@ bool LayerMRI::GEOSSegmentation(LayerROI *interior, LayerROI *exterior, double l
   VLSTfree(&vlist_out);
   return true;
 }
+
+void LayerMRI::GetVolumeInfo(int *dim, double *voxel_size)
+{
+  vtkImageData* image = m_volumeSource->GetImageOutput();
+  image->GetDimensions(dim);
+  image->GetSpacing(voxel_size);
+}

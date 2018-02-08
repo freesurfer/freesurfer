@@ -143,9 +143,9 @@ void CoverageTest() {
   // Create MHT using surface
   //-------------------------------
   printf("Creating MHT\n");
-  amht = MHTfillVertexTableRes(amris, NULL,CURRENT_VERTICES, hashres);
+  amht = MHTcreateVertexTable_Resolution(amris, CURRENT_VERTICES, hashres);
   if (!amht) {
-    printf("MHTfillVertexTableRes failed\n");
+    printf("MHTcreateVertexTable_Resolution failed\n");
     goto done;
   }
 

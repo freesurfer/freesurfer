@@ -126,7 +126,7 @@ vtkFSSurfaceSource::MRISRead( char const* ifn ) {
   // Make the hash table. This makes it with v->x,y,z.
   if ( NULL != mHashTable )
     MHTfree( &mHashTable );
-  mHashTable = MHTfillVertexTableRes( mMRIS, NULL, CURRENT_VERTICES, 2.0 );
+  mHashTable = MHTcreateVertexTable_Resolution( mMRIS, CURRENT_VERTICES, 2.0 );
 }
 
 vtkPolyData*

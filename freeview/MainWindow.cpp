@@ -5519,6 +5519,16 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
         this->OnTransformVolume();
         m_bShowTransformWindow = false;
       }
+
+      int dim[3];
+      double vs[3];
+      mri->GetVolumeInfo(dim, vs);
+      if (dim[0] == 1)
+        SetMainView(0);
+      else if (dim[1] == 1)
+        SetMainView(1);
+      else if (dim[2] == 1)
+        SetMainView(2);
     }
     else
     {

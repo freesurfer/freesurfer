@@ -398,8 +398,7 @@ main(int argc, char *argv[]) {
     free(nhits);
   }
   else{
-    mht = MHTfillTableAtResolution(mris_ico, NULL, CURRENT_VERTICES, 1.0);
-    //  mht = MHTfillTableAtResolution(mris_ico, NULL, CURRENT_VERTICES, mris_ico->avg_vertex_dist/10);
+    mht = MHTcreateFaceTable_Resolution(mris_ico, CURRENT_VERTICES, 1.0);
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       if ((((vno % (mris->nvertices/10))) == 0) && DIAG_VERBOSE_ON)

@@ -323,6 +323,8 @@ public:
   bool IsObscuring();
 
   bool GEOSSegmentation(LayerROI* inside, LayerROI* outside, double lambda, int wsize, double max_dist, LayerMRI* mask);
+
+  void GetVolumeInfo(int* dim, double* voxel_size);
   
 public slots:
   void SetActiveFrame( int nFrame );

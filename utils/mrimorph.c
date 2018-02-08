@@ -6319,8 +6319,8 @@ static int m3dMorphSkull(MORPH_3D *m3d, MRI_SURFACE *mris_in_skull, MRI_SURFACE 
   MRISscaleBrain(mris_in_skull, mris_in_skull, .5) ;
   MRISscaleBrain(mris_ref_skull, mris_ref_skull, .5) ;
 #endif
-  mht_in = MHTfillTable(mris_in_skull, NULL);
-  mht_ref = MHTfillTable(mris_ref_skull, NULL);
+  mht_in  = MHTcreateFaceTable(mris_in_skull);
+  mht_ref = MHTcreateFaceTable(mris_ref_skull);
 
   /* find morph coordinates of ref origin */
   // MRIworldToVoxel(mri, ref_x0, ref_y0, ref_z0, &xv, &yv, &zv) ;
