@@ -1,6 +1,6 @@
 import numpy as np
 
-from as_python.samseg.run_utilities import find_or_create_save_path, determine_compression_lookup_table_file_name, \
+from samseg.run_utilities import find_or_create_save_path, determine_compression_lookup_table_file_name, \
     determine_optimization_options, specify_model, Specification
 
 EXPECTED_NAMES = {name for name in [

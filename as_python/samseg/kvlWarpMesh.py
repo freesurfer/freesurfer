@@ -2,12 +2,13 @@ import traceback
 
 from scipy import ndimage
 
-import GEMS2Python
+from gems2python import GEMS2Python
+
 import numpy as np
 import scipy.ndimage
 import scipy.io
 
-from as_python.samseg.dev_utils.debug_client import CheckpointManager, compare_ndarray_closeness
+from samseg.dev_utils.debug_client import CheckpointManager, compare_ndarray_closeness
 
 
 # function [ targetDeformation, averageDistance, maximumDistance ] = kvlWarpMesh( sourceMeshCollectionFileName, sourceDeformation, targetMeshCollectionFileName, showFigures )

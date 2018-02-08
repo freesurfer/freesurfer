@@ -1,9 +1,9 @@
 import json
 import os
 
-from as_python.samseg.dev_utils.compute_dice_measure import find_gold_image, find_python_image, \
+from samseg.dev_utils.compute_dice_measure import find_gold_image, find_python_image, \
     find_matlab_image
-from as_python.samseg.dev_utils.debug_client import valid_case_folders_and_save_paths, \
+from samseg.dev_utils.debug_client import valid_case_folders_and_save_paths, \
     measure_label_differences, find_testing_dir
 
 

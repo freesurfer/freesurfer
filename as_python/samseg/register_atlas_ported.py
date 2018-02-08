@@ -1,8 +1,9 @@
 import logging
+from gems2python import GEMS2Python
+
 import numpy as np
 import scipy.ndimage
 import scipy.io
-import GEMS2Python
 import os
 
 logger = logging.getLogger(__name__)

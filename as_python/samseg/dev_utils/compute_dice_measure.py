@@ -1,8 +1,9 @@
 import os
 
-import GEMS2Python
+from gems2python import GEMS2Python
 
-from as_python.samseg.dev_utils.debug_client import run_test_cases, compare_ndarray_dice, create_checkpoint_manager
+
+from samseg.dev_utils.debug_client import run_test_cases, compare_ndarray_dice, create_checkpoint_manager
 
 RESULT_LEAF_NAME = 'crispSegmentation.nii'
 

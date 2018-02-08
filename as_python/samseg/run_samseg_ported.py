@@ -1,14 +1,14 @@
 import logging
 import os
 
-from as_python.samseg.command_arguments import parse_args
-from as_python.samseg.kvl_read_compression_lookup_table import kvlReadCompressionLookupTable
-from as_python.samseg.kvl_read_shared_gmm_parameters import kvlReadSharedGMMParameters
-from as_python.samseg.process_timer import ProcessTimer
-from as_python.samseg.register_atlas_ported import samseg_registerAtlas
-from as_python.samseg.run_utilities import find_or_create_save_path, specify_model, determine_optimization_options, \
+from samseg.command_arguments import parse_args
+from samseg.kvl_read_compression_lookup_table import kvlReadCompressionLookupTable
+from samseg.kvl_read_shared_gmm_parameters import kvlReadSharedGMMParameters
+from samseg.process_timer import ProcessTimer
+from samseg.register_atlas_ported import samseg_registerAtlas
+from samseg.run_utilities import find_or_create_save_path, specify_model, determine_optimization_options, \
     find_samseg_data_dir
-from as_python.samseg.samseg_ported import samsegment
+from samseg.samseg_ported import samsegment
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)  # TODO: configurable logging

@@ -1,7 +1,8 @@
 import logging
 import math
 
-import GEMS2Python
+from gems2python import GEMS2Python
+
 import numpy as np
 
 logger = logging.getLogger(__name__)

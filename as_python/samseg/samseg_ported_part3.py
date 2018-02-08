@@ -1,12 +1,13 @@
 import os
 
-import GEMS2Python
+from gems2python import GEMS2Python
+
 import numpy as np
 
-from as_python.samseg.bias_correction import backprojectKroneckerProductBasisFunctions
-from as_python.samseg.dev_utils.debug_client import run_test_cases, create_checkpoint_manager, \
+from samseg.bias_correction import backprojectKroneckerProductBasisFunctions
+from samseg.dev_utils.debug_client import run_test_cases, create_checkpoint_manager, \
     create_part3_inspection_team, load_starting_fixture
-from as_python.samseg.kvlWarpMesh import kvlWarpMesh
+from samseg.kvlWarpMesh import kvlWarpMesh
 
 
 eps = np.finfo(float).eps

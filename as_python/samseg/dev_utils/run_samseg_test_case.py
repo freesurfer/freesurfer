@@ -1,7 +1,7 @@
 import os
 
-from as_python.samseg.dev_utils.debug_client import create_checkpoint_manager, run_test_cases
-from as_python.samseg.run_samseg_ported import run_samseg
+from samseg.dev_utils.debug_client import create_checkpoint_manager, run_test_cases
+from samseg.run_samseg_ported import run_samseg
 
 USE_CHECKPOINT_MANAGER = False
 

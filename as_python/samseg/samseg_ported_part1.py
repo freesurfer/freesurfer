@@ -2,12 +2,13 @@ import math
 from functools import reduce
 from operator import mul
 
-import GEMS2Python
+from gems2python import GEMS2Python
+
 import numpy as np
 
-from as_python.samseg.dev_utils.debug_client import create_checkpoint_manager, run_test_cases, \
+from samseg.dev_utils.debug_client import create_checkpoint_manager, run_test_cases, \
     create_part1_inspection_team, load_starting_fixture
-from as_python.samseg.kvl_merge_alphas import kvlMergeAlphas
+from samseg.kvl_merge_alphas import kvlMergeAlphas
 
 
 def samsegment_part1(

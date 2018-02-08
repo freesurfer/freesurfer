@@ -1,9 +1,10 @@
-import GEMS2Python
+from gems2python import GEMS2Python
+
 import numpy as np
 from numpy.testing import assert_array_equal
 from numpy.testing import assert_array_almost_equal
 
-from as_python.samseg.kvl import transform_product, voxel_spacing_of_transform, calculate_down_sampling_factors
+from samseg.kvl import transform_product, voxel_spacing_of_transform, calculate_down_sampling_factors
 
 
 def test_transform_product():

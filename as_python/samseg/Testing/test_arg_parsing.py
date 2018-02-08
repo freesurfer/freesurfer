@@ -1,6 +1,6 @@
 import argparse
 
-from as_python.samseg.command_arguments import parse_args
+from samseg.command_arguments import parse_args
 
 
 class MockingParser(argparse.ArgumentParser):
