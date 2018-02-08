@@ -274,21 +274,17 @@ if test ! `uname -s` = "Darwin"; then
 fi
 
 if test `uname -s` = "Darwin"; then
+  if test -e "/usr/local/bin/glibtool" ; then
+    # brew installs here
+    AC_MSG_NOTICE(Copying /usr/local/bin/glibtool overtop the PROG_LIBTOOL)
+    cp /usr/local/bin/glibtool ./libtool
+  elif test -e "/opt/local/bin/glibtool" ; then
+    # port installs here
     AC_MSG_NOTICE(Copying /opt/local/bin/glibtool overtop the PROG_LIBTOOL)
     cp /opt/local/bin/glibtool ./libtool
+  fi
 fi
 
-# Temporary fix until I can get all version of OSX building
-#if (test `uname -n` = "gust.nmr.mgh.harvard.edu"); then
-#    AC_MSG_NOTICE(Copying /usr/pubsw/packages/autotools/bin/libtool overtop the PROG_LIBTOOL)
-#    cp /usr/pubsw/packages/autotools/bin/libtool .
-#fi
-
-# Temporary fix until I can get all version of OSX building
-# if (test `uname -n` = "aspasia.nmr.mgh.harvard.edu"); then
-#    AC_MSG_NOTICE(Copying /usr/pubsw/packages/autotools/bin/libtool overtop the PROG_LIBTOOL)
-#    cp /usr/pubsw/packages/autotools/bin/libtool .
-# fi
 
 ################################################################
 # Checks for header files.
@@ -457,7 +453,11 @@ AC_CHECK_FILE(/bin/tcsh,[],
   [AC_MSG_ERROR([FATAL: /bin/tcsh is required!])])
 
 # links with g++ rather than gcc (and check for Intel and AMD Compilers)
-CCLD=g++
+# first use $CXX if passed 
+CCLD=$CXX
+if test "x$CCLD" = "x"; then
+  CCLD=g++
+fi
 if test "x$CC" = "xicc"; then
   CCLD=icpc
 fi
@@ -766,11 +766,11 @@ if test ! "$OS" = "Darwin"; then
 fi
 
 if test "x$MAC_64" = "xYES"; then
-  if test ! "x$F77" = "xgfortran"; then
-    AC_MSG_ERROR([FATAL: gfortran (not $F77) required for 64-bit Mac OSX systems.])
-  else
+  #if test ! "x$F77" = "xgfortran"; then
+  #  AC_MSG_ERROR([FATAL: gfortran (not $F77) required for 64-bit Mac OSX systems.])
+  #else
     FFLAGS="$FFLAGS -m64"
-  fi
+  #fi
 fi
 
 # many linux systems, namedly Ubuntu, dont have libgfortran.so installed
