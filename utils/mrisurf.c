@@ -11957,6 +11957,8 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
   // Pass 0: In parallel, process each subvolume
   // Pass 1: In serial, process the cross-subvolume (parallel but only one hence serial)
   { 
+    mris_print_hash(stderr, mris,      "mrisAsynchronousTimeStep_optionalDxDyDzUpdate mris before ",  "\n");
+    
     MHT_maybeParallel_begin();
     
     int pass;
@@ -11982,6 +11984,8 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
     }
 
     MHT_maybeParallel_end();
+
+    mris_print_hash(stderr, mris,      "mrisAsynchronousTimeStep_optionalDxDyDzUpdate mris after ",  "\n");
   }
 
   // Free the temporary data
@@ -35573,13 +35577,15 @@ int MRIScomputeBorderValues(
     int result;
     int pass;
     for (pass = 0; pass < 2; pass++) {
-        mris_print_hash(stderr, mris,      "mris ",  "\n");
-        mri_print_hash(stderr, mri_brain,  "mri_brain ",  "\n");
-        mri_print_hash(stderr, mri_smooth, "mri_smooth ", "\n");
-        mri_print_hash(stderr, mri_mask,   "mri_mask ",   "\n");
-        mri_print_hash(stderr, mri_mask,   "mri_aseg ",   "\n");
-        if (pass) break;
         if (0) {
+            mris_print_hash(stderr, mris,      "mris ",  "\n");
+            mri_print_hash(stderr, mri_brain,  "mri_brain ",  "\n");
+            mri_print_hash(stderr, mri_smooth, "mri_smooth ", "\n");
+            mri_print_hash(stderr, mri_mask,   "mri_mask ",   "\n");
+            mri_print_hash(stderr, mri_mask,   "mri_aseg ",   "\n");
+        }
+        if (pass) break;
+        if (1) {
             result = 
                 MRIScomputeBorderValues_new(
                     mris,mri_brain,mri_smooth,inside_hi,border_hi,border_low,outside_low,outside_hi,
@@ -35590,7 +35596,6 @@ int MRIScomputeBorderValues(
                     mris,mri_brain,mri_smooth,inside_hi,border_hi,border_low,outside_low,outside_hi,
                     sigma,max_thickness,log_fp,which,mri_mask,thresh,flags,mri_aseg);
         }
-
     }
     return result;
 }
@@ -73986,13 +73991,6 @@ void MRIS_useRAS2VoxelMap(
         0;
 #endif
 
-    // BEVIN eliminate this once sure not needed
-    //
-    if (MRIcompareHeaders(map->mri, mri) != 0) {
-        fprintf(stderr, "%s:%d map not valid\n", __FILE__, __LINE__);
-        exit(1);
-    }
-     
     // Get some temps
     //
     VECTOR* v1 = map_nonconst->v1[tid];
