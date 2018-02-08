@@ -11,7 +11,9 @@ set passed = 1
 foreach threads ( 4 )
 
   # extract testing data
-
+  
+  rm -rf testdata
+  
   gunzip -c testdata.tar.gz | tar xvf -
 
   cd testdata
@@ -101,7 +103,8 @@ foreach threads ( 4 )
   # cleanup
 
   cd ..
-  rm -rf testdata
+  # leave the files for making a replacement .tar.gz
+  #     rm -rf testdata
 
 end
 
