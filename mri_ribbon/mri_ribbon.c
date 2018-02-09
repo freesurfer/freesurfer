@@ -159,8 +159,8 @@ MRIcropVolumeToLabel(MRI *mri_src,
   VERTEX *v_white, *v_pial ;
   double xs, ys, zs ;
 
-  mht_white = MHTfillVertexTableRes(mris_white, NULL, CURRENT_VERTICES, 5.0) ;
-  mht_pial = MHTfillVertexTableRes(mris_pial, NULL, CURRENT_VERTICES, 5.0) ;
+  mht_white = MHTcreateVertexTable_Resolution(mris_white, CURRENT_VERTICES, 5.0) ;
+  mht_pial = MHTcreateVertexTable_Resolution (mris_pial,  CURRENT_VERTICES, 5.0) ;
   if (mri_dst == NULL)
     mri_dst = MRIclone(mri_src, NULL) ;
 

@@ -34,6 +34,7 @@
 extern "C" {
 #endif
 
+#include "faster_variants.h"
 
 #include "mri.h"
 #include "transform.h"
@@ -105,7 +106,7 @@ typedef struct
   int    yp ;
   int    zp ;
   int    label ;
-#ifndef BEVIN_FASTER_MRI_EM_REGISTER
+#ifndef FASTER_MRI_EM_REGISTER
   float  prior ;
 #else
   float  prior_access_via_setGetPrior;
@@ -121,7 +122,7 @@ typedef struct
 }
 GCA_SAMPLE, GCAS ;
 
-#ifndef BEVIN_FASTER_MRI_EM_REGISTER
+#ifndef FASTER_MRI_EM_REGISTER
 
 #define gcas_setPrior(GCAS,TO) {(GCAS).prior = (TO); }
 #define gcas_getPrior(GCAS)    ((GCAS).prior)

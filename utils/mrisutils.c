@@ -1093,7 +1093,8 @@ MRIS *MRISmatchSurfaceToLabel(
     dt = base_dt;
     nreductions = 0;
 
-    mht = MHTfillTable(mris, mht);
+    MHTfree(&mht);
+    mht = MHTcreateFaceTable(mris);
 
     mrisClearGradient(mris);
     MRISstoreMetricProperties(mris);
@@ -1751,7 +1752,7 @@ MRI *MRISvolumeTH3(MRIS *w, MRIS *p, MRI *vol, MRI *mask, double *totvol)
   the search for non-cortical vertices (that is, they will be labeled
   cortex).
 */
-LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)
+LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)  // BEVIN mris_make_surfaces 5
 {
   LABEL *lcortex;
   int vno, label, nvox, total_vox, adjacent, x, y, z, target_label, l, base_label, left, right;
@@ -1780,7 +1781,14 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)
         }
   }
   MRISsetMarks(mris, 1);
+
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(serial)
+#endif
   for (vno = 0; vno < mris->nvertices; vno++) {
+    ROMP_PFLB_begin
+
     v = &mris->vertices[vno];
     if (v->ripflag || v->marked2 > 0)  // already must be cortex
       continue;
@@ -1872,7 +1880,10 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)
         if (vno == Gdiag_no) printf("no cortical GM found in vicinity - removing %d  vertex from cortex\n", vno);
       }
     }
+
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   // remove small holes that shouldn't be non-cortex
   {
@@ -2141,7 +2152,7 @@ MRI *MRIScomputeFlattenedVolume(MRI_SURFACE *mris,
 
   wm_samples = nint(wm_dist / res);
   outside_samples = nint(outside_dist / res);
-  mht = MHTfillTableAtResolution(mris, NULL, FLATTENED_VERTICES, 2.0);
+  mht = MHTcreateFaceTable_Resolution(mris, FLATTENED_VERTICES, 2.0);
   ymax = xmax = -1e10;
   ymin = xmin = 1e10;
 
@@ -2979,9 +2990,9 @@ int L2Sinit(LABEL2SURF *l2s)
 
   // initialize hashes
   for (n = 0; n < l2s->nsurfs; n++) {
-    l2s->hashes[n] = MHTfillVertexTableRes(l2s->surfs[n], NULL, CURRENT_VERTICES, l2s->hashres);
+    l2s->hashes[n] = MHTcreateVertexTable_Resolution(l2s->surfs[n], CURRENT_VERTICES, l2s->hashres);
     if (l2s->hashes[n] == NULL) {
-      printf("ERROR: L2Sinit(): MHTfillVertexTableRes() failed\n");
+      printf("ERROR: L2Sinit(): MHTcreateVertexTable_Resolution() failed\n");
       return (-1);
     }
     l2s->masks[n] = MRIalloc(l2s->surfs[n]->nvertices, 1, 1, MRI_INT);

@@ -82,23 +82,55 @@ MRIS_AREA_LABEL ;
   the vertices in the face structure are arranged in
   counter-clockwise fashion when viewed from the outside.
 */
+typedef int   vertices_per_face_t[VERTICES_PER_FACE];
+typedef float angles_per_triangle_t[ANGLES_PER_TRIANGLE];
+
 typedef struct face_type_
 {
-  int    v[VERTICES_PER_FACE];           /* vertex numbers of this face */
-  float  nx ;
-  float  ny ;
-  float  nz ;
-  float  area ;
-  float  orig_area ;
-  float  angle[ANGLES_PER_TRIANGLE] ;
-  float  orig_angle[ANGLES_PER_TRIANGLE]  ;
-  char   ripflag;                        /* ripped face */
-  char   oripflag;                       /* stored version */
-  int    marked;                         /* marked face */
+#define LIST_OF_FACE_ELTS_1    \
+  ELTT(vertices_per_face_t,v) SEP               /* vertex numbers of this face */    \
+  ELTT(float,nx) SEP    \
+  ELTT(float,ny) SEP    \
+  ELTT(float,nz) SEP    \
+  ELTT(float,area) SEP    \
+  ELTT(float,orig_area) SEP    \
+  ELTT(angles_per_triangle_t,angle) SEP    \
+  ELTT(angles_per_triangle_t,orig_angle) SEP    \
+  ELTT(char,ripflag) SEP                        /* ripped face */    \
+  ELTT(char,oripflag) SEP                       /* stored version */    \
+  ELTT(int,marked) SEP                         /* marked face */    \
+    // end of macro
 #if 0
   float logshear,shearx,sheary;  /* compute_shear */
 #endif
-  float  cx, cy, cz ;         // coordinates of centroid
+
+// Why does mrishash need these?  Where else are they used?
+#if 0
+
+#define LIST_OF_FACE_ELTS_2    \
+  ELTT(float,cx) SEP    \
+  ELTT(float,cy) SEP    \
+  ELTT(float,cz) SEP         /* coordinates of centroid */   \
+    // end of macro
+
+#define LIST_OF_FACE_ELTS \
+    LIST_OF_FACE_ELTS_1 SEP \
+    LIST_OF_FACE_ELTS_2 \
+    // end of macro
+
+#else
+
+#define LIST_OF_FACE_ELTS \
+    LIST_OF_FACE_ELTS_1
+    
+#endif
+
+#define ELTT(T,N) T N;
+#define SEP
+LIST_OF_FACE_ELTS
+#undef SEP
+#undef ELTT
+
 }
 face_type, FACE ;
 
@@ -312,7 +344,6 @@ typedef struct vertex_type_
   ELTT(float,std_error) SEP    \
   ELTT(unsigned int,flags) SEP    \
   ELTP(void,vp) SEP /* to store user's information */    \
-  ELTT(int,linked) SEP         /* is this vertex linked to some others? */    \
   ELTT(int,fno) SEP            /* face that this vertex is in */    \
   ELTT(int,cropped)     \
   // end of macro
@@ -1067,13 +1098,36 @@ int          MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri,
                                        double xw, double yw, double zw,
                                        double *pxv, double *pyv, double *pzv) ;
 #endif
+
 int          MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, double r, 
                                    double a, double s, 
                                    double *px, double *py, double *pz) ;
+                                   
+// THE FOLLOWING IS NOT THREAD SAFE!
 int          MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris,
                                          MRI *mri,
                                          double r, double a, double s, 
                                          double *px, double *py, double *pz) ;
+
+
+typedef struct MRIS_SurfRAS2VoxelCache {
+    MRI*    mri;                            // was held in mris->mri_sras2vox
+    MATRIX* sras2vox;                       // was held in mris->m_sras2vox
+    VECTOR * volatile v1[_MAX_FS_THREADS];  // used to avoid repeated allocations
+    VECTOR * volatile v2[_MAX_FS_THREADS];  // used to avoid repeated allocations
+} MRIS_SurfRAS2VoxelCache;
+
+void MRIS_useRAS2VoxelCache(MRIS_SurfRAS2VoxelCache * cache_nonconst,   // accesses cache thread safely
+        MRI const * const mri,
+        double r, double a, double s, double *px, double *py, double *pz);
+    
+void MRIS_loadRAS2VoxelCache(MRIS_SurfRAS2VoxelCache* cache,            // not thread safe
+        MRI const * const mri, MRI_SURFACE const * const mris);
+void MRIS_unloadRAS2VoxelCache(MRIS_SurfRAS2VoxelCache* cache);         // not thread safe
+
+MRIS_SurfRAS2VoxelCache* MRIS_makeRAS2VoxelCache(                       // not thread safe
+        MRI const * const mri, MRI_SURFACE const * const mris);
+void MRIS_freeRAS2VoxelCache(MRIS_SurfRAS2VoxelCache** const cachePtr); // not thread safe
 
 // these are the inverse of the previous two
 int          MRISsurfaceRASFromVoxel(MRI_SURFACE *mris, MRI *mri, 
@@ -1692,9 +1746,6 @@ typedef struct
   HISTOGRAM *h_in ;         // inside label histogram
   HISTOGRAM *h_out ;        // inside label histogram
   double     mag ;          // directional derivative in normal dir initially
-  int        linked_vno[MAX_LINKS] ;   // is it the same as another vertex
-  int        linked_sno[MAX_LINKS] ;   // surface that it's linked to
-  int        nlinks ;
   double     p ;            // p-value for user to fill in
 }
 VERTEX_INFO ;
@@ -2316,7 +2367,7 @@ int MRISrepositionSurfaceToCoordinate(MRI_SURFACE *mris, MRI *mri, int target_vn
                                       float ty, 
                                       float tz, 
                                       int nsize, double sigma, int flags)  ;
-int face_barycentric_coords(MRI_SURFACE *mris, int fno, int which_vertices,
+int face_barycentric_coords(MRI_SURFACE const *mris, int fno, int which_vertices,
                             double cx, double cy, double cz, double *pl1, double *pl2, double *pl3) ;
 
 MRI *MRIScomputeFlattenedVolume(MRI_SURFACE *mris,

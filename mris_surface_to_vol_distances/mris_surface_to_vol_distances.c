@@ -249,7 +249,7 @@ update_histograms(MRI_SURFACE *mris, MRI_SURFACE *mris_avg, float ***histograms,
   MHT    *mht ;
   float  **histogram, min_dist ;
 
-  mht = MHTfillVertexTableRes(mris_avg, NULL, CURRENT_VERTICES, 2.0) ;
+  mht = MHTcreateVertexTable_Resolution(mris_avg, CURRENT_VERTICES, 2.0) ;
 
   vec1 = VectorAlloc(3, MATRIX_REAL) ;
   vec2 = VectorAlloc(3, MATRIX_REAL) ;
@@ -300,7 +300,7 @@ update_histograms(MRI_SURFACE *mris, MRI_SURFACE *mris_avg, float ***histograms,
 
   /* map back ones that were missed */
   /* printf("\nfilling holes in mapping\n") ;*/
-  mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 2.0) ;
+  mht = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 2.0) ;
   for (vno_avg = 0 ; vno_avg < mris_avg->nvertices ; vno_avg++) {
     if (mris_avg->vertices[vno_avg].marked > 0)
       continue ;

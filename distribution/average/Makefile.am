@@ -4,7 +4,8 @@
 SUBDIRS=surf \
 	Yeo_JNeurophysiol11_MNI152 \
 	Buckner_JNeurophysiol11_MNI152 \
-	Choi_JNeurophysiol12_MNI152
+	Choi_JNeurophysiol12_MNI152 \
+	samseg
 
 foodir=$(prefix)/average
 
@@ -127,7 +128,9 @@ foo_datafiles=\
 	mni305.cor.mgz \
 	mni305.cor.subfov1.mgz \
 	mni305.cor.subfov2.mgz \
-	mni305.mask.cor.mgz
+	mni305.mask.cor.mgz \
+	colortable_desikan_killiany.txt \
+	colortable_BA.txt 
 endif
 
 install:
@@ -214,6 +217,7 @@ else
 	cd Yeo_JNeurophysiol11_MNI152; make install
 	cd Buckner_JNeurophysiol11_MNI152; make install
 	cd Choi_JNeurophysiol12_MNI152; make install
+	cd samseg; make install
 	if [ "$(install_CNYBCH)" = "true" ]; then \
 	  rm -Rf $(DESTDIR)$(prefix)/average/CNYBCH ;\
 	  rm -Rf $(top_builddir)/distribution/average/CNYBCH ;\

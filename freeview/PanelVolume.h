@@ -113,6 +113,8 @@ protected slots:
 
   void OnLineEditVectorDisplayScale(const QString& strg);
 
+  void OnLineEditVectorLineWidth(const QString& strg);
+
   void OnLineEditProjectionMapRangeChanged();
 
   void OnComboProjectionMapType(int nType);

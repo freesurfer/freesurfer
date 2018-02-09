@@ -113,7 +113,7 @@ double randomNumber(double low, double hi)
 
   if (idum == 0L) /* change seed from run to run */
   {
-    if (0) {
+    if (1) {
       static int laterTime = 0;
       if (!laterTime) {
         laterTime = 1; 

@@ -274,21 +274,17 @@ if test ! `uname -s` = "Darwin"; then
 fi
 
 if test `uname -s` = "Darwin"; then
+  if test -e "/usr/local/bin/glibtool" ; then
+    # brew installs here
+    AC_MSG_NOTICE(Copying /usr/local/bin/glibtool overtop the PROG_LIBTOOL)
+    cp /usr/local/bin/glibtool ./libtool
+  elif test -e "/opt/local/bin/glibtool" ; then
+    # port installs here
     AC_MSG_NOTICE(Copying /opt/local/bin/glibtool overtop the PROG_LIBTOOL)
     cp /opt/local/bin/glibtool ./libtool
+  fi
 fi
 
-# Temporary fix until I can get all version of OSX building
-#if (test `uname -n` = "gust.nmr.mgh.harvard.edu"); then
-#    AC_MSG_NOTICE(Copying /usr/pubsw/packages/autotools/bin/libtool overtop the PROG_LIBTOOL)
-#    cp /usr/pubsw/packages/autotools/bin/libtool .
-#fi
-
-# Temporary fix until I can get all version of OSX building
-# if (test `uname -n` = "aspasia.nmr.mgh.harvard.edu"); then
-#    AC_MSG_NOTICE(Copying /usr/pubsw/packages/autotools/bin/libtool overtop the PROG_LIBTOOL)
-#    cp /usr/pubsw/packages/autotools/bin/libtool .
-# fi
 
 ################################################################
 # Checks for header files.
@@ -457,7 +453,11 @@ AC_CHECK_FILE(/bin/tcsh,[],
   [AC_MSG_ERROR([FATAL: /bin/tcsh is required!])])
 
 # links with g++ rather than gcc (and check for Intel and AMD Compilers)
-CCLD=g++
+# first use $CXX if passed 
+CCLD=$CXX
+if test "x$CCLD" = "x"; then
+  CCLD=g++
+fi
 if test "x$CC" = "xicc"; then
   CCLD=icpc
 fi
@@ -552,11 +552,11 @@ AC_ARG_ENABLE(Werror,
 AC_ARG_ENABLE(Werror-lax,
  [  --enable-Werror-lax     add -Werror -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs to compiler flags],
  [ WERROR="-Werror -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs" ],
- [ ])
+ [ WERROR="$WERROR" ])
 
 # temporary: so that --disable-Werror is no longer needed
 if test "$ac_have_gcc_48_or_higher" = "yes"; then
-  [ WERROR="" ]
+  [ WERROR="-Werror=implicit-function-declaration" ]
   #  [ WERROR="-Wno-unused-parameter -Werror -Wno-unused-variable -Wno-narrowing -Wno-aggressive-loop-optimizations -Wno-switch -Wno-enum-compare -Wno-unused-local-typedefs -Wno-unused-but-set-variable -fno-strict-overflow -Wno-maybe-uninitialized -Wno-uninitialized" ]
 fi
 # the Intel C/C++ compiler issues warnings not yet fixed in the code, so
@@ -652,10 +652,10 @@ case "${target}" in
  SHARED_LDFLAGS="-dynamiclib"
  CPPFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
  FFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse"
- uname -r | grep "17" >& /dev/null
- if test "$?" = "0"; then
-  AC_MSG_NOTICE(Have Darwin v17.*)
- CPPFLAGS="$CPPFLAGS -DDarwin17"
+ darwin_version_major=`uname -r | cut -f1 -d"."`
+ if test ! "$darwin_version_major" -lt "16"; then
+  AC_MSG_NOTICE(Have macOS 10.12+ (Darwin 16+))
+  CPPFLAGS="$CPPFLAGS -DHAVE_CLOCK_GETTIME"
  fi
  ;;
  i*86-*-solaris*)
@@ -766,11 +766,11 @@ if test ! "$OS" = "Darwin"; then
 fi
 
 if test "x$MAC_64" = "xYES"; then
-  if test ! "x$F77" = "xgfortran"; then
-    AC_MSG_ERROR([FATAL: gfortran (not $F77) required for 64-bit Mac OSX systems.])
-  else
+  #if test ! "x$F77" = "xgfortran"; then
+  #  AC_MSG_ERROR([FATAL: gfortran (not $F77) required for 64-bit Mac OSX systems.])
+  #else
     FFLAGS="$FFLAGS -m64"
-  fi
+  #fi
 fi
 
 # many linux systems, namedly Ubuntu, dont have libgfortran.so installed
@@ -3851,6 +3851,7 @@ AC_CONFIG_FILES([
 	distribution/average/Choi_JNeurophysiol12_MNI152/Makefile
 	distribution/average/Makefile
 	distribution/average/Yeo_JNeurophysiol11_MNI152/Makefile
+  distribution/average/samseg/Makefile
 	distribution/average/surf/Makefile
 	distribution/diffusion/Makefile
 	distribution/diffusion/mgh-dti-seqpack/Makefile

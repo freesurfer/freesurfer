@@ -23,6 +23,7 @@ foo_DATA=LICENSE NOTICE README AUTHORS INSTALL COPYING
 MRISUBDIRS=\
 	lta_convert \
 	mri_jacobian \
+	mri_and \
 	mri_add_xform_to_header \
 	mri_annotation2label \
 	mri_aparc2aseg \
@@ -34,22 +35,36 @@ MRISUBDIRS=\
 	mri_cc \
 	mri_compute_overlap \
 	mri_concat \
+	mri_compute_seg_overlap \
+	mri_concatenate_lta \
 	mri_convert \
+	mri_coreg \
 	mri_deface \
 	mri_diff \
 	mri_edit_segmentation \
 	mri_edit_segmentation_with_surfaces \
+	mri_edit_wm_with_aseg \
+	mri_extract_largest_CC \
 	mri_em_register \
+	mri_fuse_segmentations \
+	mri_gcut \
 	mri_fill \
 	mri_fwhm \
 	mri_info \
-	mri_and \
 	mri_label2label \
 	mri_label2vol \
+	mri_log_likelihood \
+	mri_normalize \
+	mri_normalize_tp2 \
+	mri_mask \
+	mri_mc \
+	mri_matrix_multiply \
 	mri_relabel_hypointensities \
 	mri_relabel_nonwm_hypos \
 	mri_remove_neck \
 	mri_robust_register \
+	mri_segment \
+	mri_segreg
 	mri_surf2surf \
 	mri_surf2vol \
 	mri_surfcluster \
@@ -60,18 +75,12 @@ MRISUBDIRS=\
 	mri_stats2seg \
 	mri_vol2surf \
 	mri_watershed \
-	mri_edit_wm_with_aseg \
-	mri_extract_largest_CC \
-	mri_compute_seg_overlap \
-	mri_concatenate_lta \
-	mri_log_likelihood \
 	talairach_afd \
 	talairach_avi
 
 MRISSUBDIRS=\
 	mris_calc \
 	mris_anatomical_stats \
-	mris_transmantle_dysplasia_paths \
 	mris_average_curvature \
 	mris_ca_label \
 	mris_divide_parcellation \
@@ -90,6 +99,7 @@ MRISSUBDIRS=\
 	mris_diff \
 	mris_register \
 	mris_left_right_register \
+	mrisp_paint \
 	mris_smooth \
 	mris_sphere \
 	mris_thickness \
@@ -115,7 +125,9 @@ COREDIRS=\
 	scripts \
 	distribution \
 	fsgdf \
-	hipsstubs
+	hipsstubs \
+	tetgen \
+	tkregister2
 
 # dependent on COREDIRS
 OTHERDIRS=\

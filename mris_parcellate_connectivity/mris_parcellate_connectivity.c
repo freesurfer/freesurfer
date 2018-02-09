@@ -129,7 +129,7 @@ main(int argc, char *argv[]) {
   MRISprojectOntoSphere(mris_ico, mris_ico, DEFAULT_RADIUS) ;
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
 
-  mht = MHTfillTableAtResolution(mris, NULL, CURRENT_VERTICES, 1.0) ;
+  mht = MHTcreateFaceTable_Resolution(mris, CURRENT_VERTICES, 1.0) ;
 
   MRISwrite(mris_ico, "lh.ico") ; printf("dividing icosahedral edges...\n") ;
 

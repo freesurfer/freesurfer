@@ -139,6 +139,7 @@ int main(int argc, char *argv[])
     "':percentile=flag' Set min/mid/max thresholds as percentile.\n\n"
     "':vector=flag' Display 3 frame volume as vectors. flag can be 'yes', 'true' or '1'.\n\n"
     "':tensor=flag' Display 9 frame volume as tensors. flag can be 'yes', 'true' or '1'.\n\n"
+    "':vector_width=width' Set line width of the vectors.\n\n"
     "':render=flag' When displaying as vectors or tensors, render the glyph in the given form. For vector, flag can be 'line' as simple line or 'bar' as 3D bar (might be slow). For tensor, flag can be 'boxoid' or 'ellipsoid' (slow!).\n\n"
     "':inversion=flag' When displaying as vectors or tensors, invert the given component of the vectors. Valid flags are 'x', 'y' and 'z'.\n\n"
     "':outline=flag' Display labels as outline only. flag can be '1', 'yes' or 'true'.\n\n"

@@ -229,10 +229,10 @@ int main(int argc, char **argv)
     }
     printf("\n");
     printf("Building hash of lh white\n");
-    lhwhite_hash = MHTfillVertexTableRes(lhwhite, NULL,CURRENT_VERTICES,hashres);
+    lhwhite_hash = MHTcreateVertexTable_Resolution(lhwhite, CURRENT_VERTICES,hashres);
     printf("\n");
     printf("Building hash of lh pial\n");
-    lhpial_hash = MHTfillVertexTableRes(lhpial, NULL,CURRENT_VERTICES,hashres);
+    lhpial_hash = MHTcreateVertexTable_Resolution(lhpial, CURRENT_VERTICES,hashres);
   }
 
   if(DoRH){
@@ -293,10 +293,10 @@ int main(int argc, char **argv)
     }
     printf("\n");
     printf("Building hash of rh white\n");
-    rhwhite_hash = MHTfillVertexTableRes(rhwhite, NULL,CURRENT_VERTICES,hashres);
+    rhwhite_hash = MHTcreateVertexTable_Resolution(rhwhite, CURRENT_VERTICES,hashres);
     printf("\n");
     printf("Building hash of rh pial\n");
-    rhpial_hash = MHTfillVertexTableRes(rhpial, NULL,CURRENT_VERTICES,hashres);
+    rhpial_hash = MHTcreateVertexTable_Resolution(rhpial, CURRENT_VERTICES,hashres);
   }
 
   if(UseNewRibbon){

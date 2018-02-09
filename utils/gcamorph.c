@@ -1,4 +1,3 @@
-#define BEVIN_FASTER_gcamSmoothnessEnergy
 #define BEVIN_GCAMSMOOTHNESSENERGY_REPRODUCIBLE
 #define BEVIN_GCAMJACOBIANENERGY_REPRODUCIBLE
 #define BEVIN_GCAMLOGLIKELIHOODENERGY_REPRODUCIBLE
@@ -80,6 +79,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "faster_variants.h"
 #include "romp_support.h"
 
 #include "cma.h"
@@ -2337,8 +2337,6 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
   printf("%s: CPU call\n", __FUNCTION__);
 #endif
 
-  int x;
-
 #ifdef BEVIN_GCAMLOGLIKELIHOODENERGY_REPRODUCIBLE
 
   #define ROMP_VARIABLE       x
@@ -2354,6 +2352,8 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
     #define sse  ROMP_PARTIALSUM(0)
 
 #else
+
+  int x;
 
   ROMP_PF_begin     // mri_ca_register
 
@@ -4183,8 +4183,6 @@ double gcamJacobianEnergy(const GCA_MORPH * const gcam, MRI *mri)
   // Note sse initialised to zero here
   sse = 0.0f;
 
-  int i;
-
 #ifdef BEVIN_GCAMJACOBIANENERGY_REPRODUCIBLE
 
   #define ROMP_VARIABLE       i
@@ -4200,6 +4198,8 @@ double gcamJacobianEnergy(const GCA_MORPH * const gcam, MRI *mri)
     #define sse  ROMP_PARTIALSUM(0)
     
 #else
+
+  int i;
 
   ROMP_PF_begin     // important in mri_ca_register
 #ifdef HAVE_OPENMP
@@ -6806,13 +6806,13 @@ int gcamElasticTerm(const GCA_MORPH *gcam, GCA_MORPH_PARMS *parms)
   return (NO_ERROR);
 }
 
-#ifdef BEVIN_FASTER_gcamSmoothnessEnergy
+#ifdef FASTER_gcamSmoothnessEnergy
 static double gcamSmoothnessEnergy_old(const GCA_MORPH *gcam, const MRI *mri);
 static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri);
 #endif
 
 double gcamSmoothnessEnergy(const GCA_MORPH *gcam, const MRI *mri) 
-#ifdef BEVIN_FASTER_gcamSmoothnessEnergy
+#ifdef FASTER_gcamSmoothnessEnergy
 {
     static bool const do_old = false;
     static bool const do_new = true;
@@ -6973,7 +6973,7 @@ static double gcamSmoothnessEnergy_old(const GCA_MORPH *gcam, const MRI *mri)
   return (sse);
 }
 
-#ifdef BEVIN_FASTER_gcamSmoothnessEnergy
+#ifdef FASTER_gcamSmoothnessEnergy
 static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
 {
   /*!
@@ -7040,7 +7040,6 @@ static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
 #ifdef BEVIN_GCAMSMOOTHNESSENERGY_REPRODUCIBLE
 
   int const numberOfStrides = (width + xStride - 1) / xStride;
-  int xLoDividedByXStride;
   
   #define ROMP_VARIABLE       xLoDividedByXStride
   #define ROMP_LO             0

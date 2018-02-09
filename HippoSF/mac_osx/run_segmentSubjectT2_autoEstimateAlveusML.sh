@@ -15,7 +15,7 @@ else
   MCRROOT="$1"
   echo ---
 
-  DYLD_LIBRARY_PATH=.:${MCRROOT}/runtime/maci64:${MCRROOT}/bin/maci64:${MCRROOT}/sys/os/maci64:${DYLD_LIBRARY_PATH} ;
+  DYLD_LIBRARY_PATH=".:${MCRROOT}/runtime/maci64:${MCRROOT}/bin/maci64:${MCRROOT}/sys/os/maci64:${FREESURFER_HOME}/lib/gcc/lib:${DYLD_LIBRARY_PATH}" ;
   export DYLD_LIBRARY_PATH;
   echo DYLD_LIBRARY_PATH is ${DYLD_LIBRARY_PATH};
 

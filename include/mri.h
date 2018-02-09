@@ -26,7 +26,7 @@
 #ifndef MRI_H
 #define MRI_H
 
-#define BEVIN_FASTER_MRI_EM_REGISTER
+#include "faster_variants.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -396,7 +396,7 @@ long  MRIcorrelate(MRI *mri_ref, MRI *mri_in, int xoff, int yoff, int zoff) ;
 
 
 int   MRIpeak(MRI *mri, int *px, int *py, int *pz) ;
-int   MRIcompareHeaders(MRI *mri1, MRI *mri2) ;
+int   MRIcompareHeaders(MRI const *mri1, MRI const *mri2) ;
 MRI   *MRIcopyHeader( const MRI *mri_src, MRI *mri_dst) ;
 int   MRIcopyPulseParameters(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcopy(MRI *mri_src, MRI *mri_dst) ;
@@ -817,7 +817,7 @@ int   MRIsampleVolumeFrame( const MRI *mri,
 			    double x, double y, double z,
 			    const int frame,
 			    double *pval);
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 int   MRIsampleVolumeFrame_xyzInt_nRange_floats(const MRI *mri,
                             int x, int y, int z, 
 			    const int frameBegin,
@@ -829,7 +829,7 @@ int   MRIsampleVolumeFrameType( const MRI *mri,
 				const int frame,
 				int interp_type,
 				double *pval );
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 int   MRIsampleVolumeFrameType_xyzInt_nRange_SAMPLE_NEAREST_floats(const MRI *mri,
                             int x, int y, int z, 
 			    const int frameBegin,
@@ -877,8 +877,8 @@ MRI   *MRIresize(MRI *mri, double xsize, double ysize, double zsize, int nframes
 /* surfaceRAS and voxel routines */
 MATRIX *surfaceRASFromVoxel_(MRI *mri);
 MATRIX *voxelFromSurfaceRAS_(MRI *mri);
-MATRIX *surfaceRASFromRAS_(MRI *mri);
-MATRIX *RASFromSurfaceRAS_(MRI *mri);
+MATRIX *surfaceRASFromRAS_(MRI const *mri);
+MATRIX *RASFromSurfaceRAS_(MRI const *mri);
 
   int MRIscannerRASToVoxel(MRI *mri, double xr, double yr, double zr, double *xv, double *yv, double *zv);
 int MRIvoxelToSurfaceRAS(MRI *mri, double xv, double yv, double zv,

@@ -24,6 +24,8 @@
 
 #pragma once
 
+//#define ROMP_SUPPORT_ENABLED
+
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
@@ -85,7 +87,8 @@ typedef struct ROMP_pf_static_struct {
     unsigned int    line; 
 } ROMP_pf_static_struct;
 
-int ROMP_if_parallel(ROMP_level, ROMP_pf_static_struct*);
+int ROMP_if_parallel1(ROMP_level);
+int ROMP_if_parallel2(ROMP_level, ROMP_pf_static_struct*);
 
  
 typedef struct ROMP_pf_stack_struct  { 
@@ -119,15 +122,16 @@ typedef struct ROMP_pflb_stack_struct {
 } ROMP_pflb_stack_struct;
 
 
-//#define ROMP_SUPPORT_ENABLED
 #if !defined(ROMP_SUPPORT_ENABLED)
 
-#define if_ROMPLEVEL(LEVEL)
+#define if_ROMPLEVEL(LEVEL) \
+    if (ROMP_if_parallel1(LEVEL)) \
+    // end of macro
 
-#define if_ROMP(LEVEL)
+#define if_ROMP(LEVEL) if_ROMPLEVEL(ROMP_level_##LEVEL)
 
 #define if_ROMP2(CONDITION, LEVEL) \
-    if ((CONDITION)) \
+    if ((CONDITION) && ROMP_if_parallel1(ROMP_level_##LEVEL)) \
     // end of macro
 
 #define ROMP_PF_begin \
@@ -147,16 +151,16 @@ typedef struct ROMP_pflb_stack_struct {
 
 #define if_ROMPLEVEL(LEVEL) \
     if (ROMP_pf_stack.staticInfo && \
-        (ROMP_if_parallel(LEVEL,&ROMP_pf_static))) \
+        (ROMP_if_parallel2(LEVEL,&ROMP_pf_static))) \
     // end of macro
+
+#define if_ROMP(LEVEL) if_ROMPLEVEL(ROMP_level_##LEVEL)
 
 #define if_ROMP2(CONDITION, LEVEL) \
     if ((CONDITION) && \
         ROMP_pf_stack.staticInfo && \
-        (ROMP_if_parallel(ROMP_level_##LEVEL,&ROMP_pf_static))) \
+        (ROMP_if_parallel2(ROMP_level_##LEVEL,&ROMP_pf_static))) \
     // end of macro
-
-#define if_ROMP(LEVEL) if_ROMPLEVEL(ROMP_level_##LEVEL)
 
 #define ROMP_PF_begin \
     { \
