@@ -16069,48 +16069,68 @@ int MRIScomputeMeanCurvature(MRI_SURFACE *mris)
   ------------------------------------------------------*/
 static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)  // BEVIN mris_make_surfaces 4
 {
-  MATRIX *m_X, *m_X_inv;
-  VECTOR *v_Y, *v_n, *v_e1, *v_e2, *v_nbr, *v_P;
-  int vno, n;
-  VERTEX *v, *vn;
-  float ui, vi, a, e;
-  FILE *fp = NULL;  // for debugging
-
   if (FZERO(l_curv)) {
     return (NO_ERROR);
   }
 
   mrisComputeTangentPlanes(mris);
-  v_n = VectorAlloc(3, MATRIX_REAL);
-  v_P = VectorAlloc(5, MATRIX_REAL);
-  v_e1 = VectorAlloc(3, MATRIX_REAL);
-  v_e2 = VectorAlloc(3, MATRIX_REAL);
-  v_nbr = VectorAlloc(3, MATRIX_REAL);
 
+  typedef struct Reused {
+    VECTOR * v_n  ;
+    VECTOR * v_P  ;
+    VECTOR * v_e1 ;
+    VECTOR * v_e2 ;
+    VECTOR * v_nbr;
+  } Reused;
+  
+#ifdef HAVE_OPENMP
+  int const tid        = omp_get_thread_num();
+  int const maxThreads = omp_get_max_threads();
+#else
+  int const tid        = 0;
+  int const maxThreads = 1;
+#endif
+  Reused* reusedByThread = (Reused*)calloc(maxThreads, sizeof(Reused));
+
+  int vno;
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(serial)
+  #pragma omp parallel for if_ROMP(assume_reproducible)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
-    
-    v = &mris->vertices[vno];
+
+    Reused* reused = reusedByThread + tid;
+    #define REUSE(NAME,DIM) \
+        VECTOR* NAME = reused->NAME; if (!NAME) NAME = reused->NAME = VectorAlloc(DIM, MATRIX_REAL);
+    REUSE(v_n   ,3)
+    REUSE(v_P   ,5)
+    REUSE(v_e1  ,3)
+    REUSE(v_e2  ,3)
+    REUSE(v_nbr ,3)
+    #undef REUSE
+
+    VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag) continue;
 
+    FILE *fp = NULL;
     if (vno == Gdiag_no) fp = fopen("qcurv.dat", "w");
 
-    v_Y = VectorAlloc(v->vtotal, MATRIX_REAL);    /* heights above TpS */
-    m_X = MatrixAlloc(v->vtotal, 5, MATRIX_REAL); /* 2-d quadratic fit */
+    VECTOR* v_Y = VectorAlloc(v->vtotal, MATRIX_REAL);    /* heights above TpS */
     VECTOR_LOAD(v_n, v->nx, v->ny, v->nz);
     VECTOR_LOAD(v_e1, v->e1x, v->e1y, v->e1z);
     VECTOR_LOAD(v_e2, v->e2x, v->e2y, v->e2z);
+
+    MATRIX* m_X = MatrixAlloc(v->vtotal, 5, MATRIX_REAL); /* 2-d quadratic fit */
+
+    int n;
     for (n = 0; n < v->vtotal; n++) /* build data matrices */
     {
-      vn = &mris->vertices[v->v[n]];
+      VERTEX const * const vn = &mris->vertices[v->v[n]];
       VERTEX_EDGE(v_nbr, v, vn);
       VECTOR_ELT(v_Y, n + 1) = V3_DOT(v_nbr, v_n);
-      ui = V3_DOT(v_e1, v_nbr);
-      vi = V3_DOT(v_e2, v_nbr);
+      float ui = V3_DOT(v_e1, v_nbr);
+      float vi = V3_DOT(v_e2, v_nbr);
 
       *MATRIX_RELT(m_X, n + 1, 1) = ui * ui;
       *MATRIX_RELT(m_X, n + 1, 2) = vi * vi;
@@ -16119,16 +16139,19 @@ static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)  
       *MATRIX_RELT(m_X, n + 1, 5) = 1;
       if (vno == Gdiag_no) fprintf(fp, "%d %f %f %f\n", v->v[n], ui, vi, VECTOR_ELT(v_Y, n + 1));
     }
+
     if (vno == Gdiag_no) fclose(fp);
-    m_X_inv = MatrixPseudoInverse(m_X, NULL);
+
+    MATRIX *m_X_inv = MatrixPseudoInverse(m_X, NULL);
     if (!m_X_inv) {
       MatrixFree(&m_X);
       VectorFree(&v_Y);
       continue;
     }
+    
     v_P = MatrixMultiply(m_X_inv, v_Y, v_P);
-    a = VECTOR_ELT(v_P, 1);
-    e = VECTOR_ELT(v_P, 5);
+    //oat a = VECTOR_ELT(v_P, 1);
+    float e = VECTOR_ELT(v_P, 5);
     e *= l_curv;
 
     v->dx += e * v->nx;
@@ -16138,13 +16161,13 @@ static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)  
     if (vno == Gdiag_no)
       fprintf(stdout,
               "v %d curvature term:      (%2.3f, %2.3f, %2.3f), "
-              "a=%2.2f, e=%2.1f\n",
+              "e=%2.1f\n",
               vno,
               e * v->nx,
               e * v->ny,
               e * v->nz,
-              a,
               e);
+              
     VectorFree(&v_Y);
     MatrixFree(&m_X);
     MatrixFree(&m_X_inv);
@@ -16153,11 +16176,16 @@ static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)  
   }
   ROMP_PF_end
 
-  VectorFree(&v_n);
-  VectorFree(&v_e1);
-  VectorFree(&v_e2);
-  VectorFree(&v_nbr);
-  VectorFree(&v_P);
+  { int tid;
+    for (tid = 0; tid < maxThreads; tid++) {
+      Reused* reused = reusedByThread + tid;
+      if (reused->v_n)   VectorFree(&reused->v_n);
+      if (reused->v_e1)  VectorFree(&reused->v_e1);
+      if (reused->v_e2)  VectorFree(&reused->v_e2);
+      if (reused->v_nbr) VectorFree(&reused->v_nbr);
+      if (reused->v_P)   VectorFree(&reused->v_P);
+  } }
+  
   return (NO_ERROR);
 }
 /*-----------------------------------------------------
