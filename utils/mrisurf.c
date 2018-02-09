@@ -51,6 +51,7 @@
 #define BEVIN_MRISCOMPUTEDISTANCEERROR_REPRODUCIBLE
 #define BEVIN_MRISCOMPUTENONLINEARAREASSE_REPRODUCIBLE
 #define BEVIN_MRISCOMPUTESSE_REPRODUCIBLE
+#define BEVIN_MRISCOMPUTEQUADRATICCURVATURESSE_REPRODUCIBLE
 
 // Includes
 //
@@ -11957,7 +11958,7 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
   // Pass 0: In parallel, process each subvolume
   // Pass 1: In serial, process the cross-subvolume (parallel but only one hence serial)
   { 
-    mris_print_hash(stderr, mris,      "mrisAsynchronousTimeStep_optionalDxDyDzUpdate mris before ",  "\n");
+    if (0) mris_print_hash(stderr, mris,      "mrisAsynchronousTimeStep_optionalDxDyDzUpdate mris before ",  "\n");
     
     MHT_maybeParallel_begin();
     
@@ -11985,7 +11986,7 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
 
     MHT_maybeParallel_end();
 
-    mris_print_hash(stderr, mris,      "mrisAsynchronousTimeStep_optionalDxDyDzUpdate mris after ",  "\n");
+    if (0) mris_print_hash(stderr, mris,      "mrisAsynchronousTimeStep_optionalDxDyDzUpdate mris after ",  "\n");
   }
 
   // Free the temporary data
@@ -16171,48 +16172,87 @@ static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)  
   ------------------------------------------------------*/
 static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)            // BEVIN mris_make_surfaces 3
 {
-  MATRIX *m_X, *m_X_inv;
-  VECTOR *v_Y, *v_n, *v_e1, *v_e2, *v_nbr, *v_P;
-  int vno, n;
-  VERTEX *v, *vn;
-  float ui, vi, a, e;
-  double sse = 0.0;
-
   if (FZERO(l_curv)) {
     return (NO_ERROR);
   }
 
   mrisComputeTangentPlanes(mris);
-  v_n = VectorAlloc(3, MATRIX_REAL);
-  v_P = VectorAlloc(5, MATRIX_REAL);
-  v_e1 = VectorAlloc(3, MATRIX_REAL);
-  v_e2 = VectorAlloc(3, MATRIX_REAL);
-  v_nbr = VectorAlloc(3, MATRIX_REAL);
+  
+  typedef struct Reused {
+    VECTOR * v_n  ;
+    VECTOR * v_P  ;
+    VECTOR * v_e1 ;
+    VECTOR * v_e2 ;
+    VECTOR * v_nbr;
+  } Reused;
+  
+#ifdef HAVE_OPENMP
+  int const tid        = omp_get_thread_num();
+  int const maxThreads = omp_get_max_threads();
+#else
+  int const tid        = 0;
+  int const maxThreads = 1;
+#endif
+  Reused* reusedByThread = (Reused*)calloc(maxThreads, sizeof(Reused));
+  
+  double sse = 0.0;
 
+#ifdef BEVIN_MRISCOMPUTEQUADRATICCURVATURESSE_REPRODUCIBLE
+
+  #define ROMP_VARIABLE       vno 
+  #define ROMP_LO             0
+  #define ROMP_HI             mris->nvertices
+    
+  #define ROMP_SUMREDUCTION0  sse
+    
+  #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
+    
+  #include "romp_for_begin.h"
+    
+    #define sse ROMP_PARTIALSUM(0)
+
+#else
+  
+  int vno;
+  
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(serial)
+  #pragma omp parallel for if_ROMP(fast) reduction(+:sse)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
-    
-    v = &mris->vertices[vno];
+
+#endif
+
+    Reused* reused = reusedByThread + tid;
+    #define REUSE(NAME,DIM) \
+        VECTOR* NAME = reused->NAME; if (!NAME) NAME = reused->NAME = VectorAlloc(DIM, MATRIX_REAL);
+    REUSE(v_n   ,3)
+    REUSE(v_P   ,5)
+    REUSE(v_e1  ,3)
+    REUSE(v_e2  ,3)
+    REUSE(v_nbr ,3)
+    #undef REUSE
+
+    VERTEX const * const v = &mris->vertices[vno];
     if (v->ripflag) continue;
 
     if (vno == Gdiag_no) DiagBreak();
 
-    v_Y = VectorAlloc(v->vtotal, MATRIX_REAL);    /* heights above TpS */
-    m_X = MatrixAlloc(v->vtotal, 5, MATRIX_REAL); /* 2-d quadratic fit */
-    VECTOR_LOAD(v_n, v->nx, v->ny, v->nz);
+    VECTOR* v_Y = VectorAlloc(v->vtotal, MATRIX_REAL);    /* heights above TpS */
+    VECTOR_LOAD(v_n,  v->nx,  v->ny,  v->nz);
     VECTOR_LOAD(v_e1, v->e1x, v->e1y, v->e1z);
     VECTOR_LOAD(v_e2, v->e2x, v->e2y, v->e2z);
+
+    MATRIX* m_X = MatrixAlloc(v->vtotal, 5, MATRIX_REAL); /* 2-d quadratic fit */
+    int n;
     for (n = 0; n < v->vtotal; n++) /* build data matrices */
     {
-      vn = &mris->vertices[v->v[n]];
+      VERTEX const * const vn = &mris->vertices[v->v[n]];
       VERTEX_EDGE(v_nbr, v, vn);
       VECTOR_ELT(v_Y, n + 1) = V3_DOT(v_nbr, v_n);
-      ui = V3_DOT(v_e1, v_nbr);
-      vi = V3_DOT(v_e2, v_nbr);
+      float ui = V3_DOT(v_e1, v_nbr);
+      float vi = V3_DOT(v_e2, v_nbr);
 
       *MATRIX_RELT(m_X, n + 1, 1) = ui * ui;
       *MATRIX_RELT(m_X, n + 1, 2) = vi * vi;
@@ -16220,15 +16260,17 @@ static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
       *MATRIX_RELT(m_X, n + 1, 4) = vi;
       *MATRIX_RELT(m_X, n + 1, 5) = 1;
     }
-    m_X_inv = MatrixPseudoInverse(m_X, NULL);
+
+    MATRIX* m_X_inv = MatrixPseudoInverse(m_X, NULL);
     if (!m_X_inv) {
       MatrixFree(&m_X);
       VectorFree(&v_Y);
       continue;
     }
+    
     v_P = MatrixMultiply(m_X_inv, v_Y, v_P);
-    a = VECTOR_ELT(v_P, 1);
-    e = VECTOR_ELT(v_P, 5);
+    //oat a = VECTOR_ELT(v_P, 1);
+    float e = VECTOR_ELT(v_P, 5);
 
     sse += e * e;
     if (vno == Gdiag_no) printf("v %d: e=%2.2f, curvature sse %2.2f\n", vno, e, e * e);
@@ -16237,17 +16279,28 @@ static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
     MatrixFree(&m_X_inv);
     VectorFree(&v_Y);
     
+#ifdef BEVIN_MRISCOMPUTEQUADRATICCURVATURESSE_REPRODUCIBLE
+    #undef sse
+  #include "romp_for_end.h"
+#else
     ROMP_PFLB_end
   }
   ROMP_PF_end
+#endif
 
-  VectorFree(&v_n);
-  VectorFree(&v_e1);
-  VectorFree(&v_e2);
-  VectorFree(&v_nbr);
-  VectorFree(&v_P);
+  { int tid;
+    for (tid = 0; tid < maxThreads; tid++) {
+      Reused* reused = reusedByThread + tid;
+      if (reused->v_n)   VectorFree(&reused->v_n);
+      if (reused->v_e1)  VectorFree(&reused->v_e1);
+      if (reused->v_e2)  VectorFree(&reused->v_e2);
+      if (reused->v_nbr) VectorFree(&reused->v_nbr);
+      if (reused->v_P)   VectorFree(&reused->v_P);
+  } }
+  
   return (NO_ERROR);
 }
+
 #else
 
 // these versions use a 1d fit y = a*r^2 + b
