@@ -11958,8 +11958,6 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
   // Pass 0: In parallel, process each subvolume
   // Pass 1: In serial, process the cross-subvolume (parallel but only one hence serial)
   { 
-    if (0) mris_print_hash(stderr, mris,      "mrisAsynchronousTimeStep_optionalDxDyDzUpdate mris before ",  "\n");
-    
     MHT_maybeParallel_begin();
     
     int pass;
@@ -11986,7 +11984,6 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
 
     MHT_maybeParallel_end();
 
-    if (0) mris_print_hash(stderr, mris,      "mrisAsynchronousTimeStep_optionalDxDyDzUpdate mris after ",  "\n");
   }
 
   // Free the temporary data
@@ -16084,10 +16081,8 @@ static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)  
   } Reused;
   
 #ifdef HAVE_OPENMP
-  int const tid        = omp_get_thread_num();
   int const maxThreads = omp_get_max_threads();
 #else
-  int const tid        = 0;
   int const maxThreads = 1;
 #endif
   Reused* reusedByThread = (Reused*)calloc(maxThreads, sizeof(Reused));
@@ -16099,6 +16094,12 @@ static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)  
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
+
+#ifdef HAVE_OPENMP
+  int const tid        = omp_get_thread_num();
+#else
+  int const tid        = 0;
+#endif
 
     Reused* reused = reusedByThread + tid;
     #define REUSE(NAME,DIM) \
@@ -16215,10 +16216,8 @@ static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
   } Reused;
   
 #ifdef HAVE_OPENMP
-  int const tid        = omp_get_thread_num();
   int const maxThreads = omp_get_max_threads();
 #else
-  int const tid        = 0;
   int const maxThreads = 1;
 #endif
   Reused* reusedByThread = (Reused*)calloc(maxThreads, sizeof(Reused));
@@ -16250,6 +16249,12 @@ static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
 
+#endif
+
+#ifdef HAVE_OPENMP
+    int const tid = omp_get_thread_num();
+#else
+    int const tid = 0;
 #endif
 
     Reused* reused = reusedByThread + tid;
@@ -32527,6 +32532,7 @@ int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEG
   wm_sse = MRIScomputeSSEExternal(mris, parms, &mle_sse);
   MRISrestoreVertexPositions(mris, PIAL_VERTICES);
   MRIScomputeMetricProperties(mris);
+
   pial_sse = MRIScomputeSSE(mris, parms);
   sse = last_sse = wm_sse + pial_sse;
   last_mle_sse = mle_sse;
@@ -32571,6 +32577,7 @@ int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEG
   l_repulse = parms->l_repulse;
   l_surf_repulse = parms->l_surf_repulse;
   for (n = parms->start_t; n < parms->start_t + niterations; n++) {
+
     /* compute and apply wm derivatative */
     MRISclearGradient(mris);
     mrisClearExtraGradient(mris);
@@ -32579,6 +32586,7 @@ int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEG
         (*gMRISexternalClearSSEStatus)(mris);
       }
     }
+
     MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES); /* make wm positions current */
     MRISsaveVertexPositions(mris, WHITE_VERTICES);
     MRIScomputeMetricProperties(mris);
@@ -32627,6 +32635,7 @@ int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEG
     parms->l_repulse = 0;                   /* don't use self-repulsion for pial surface */
     parms->l_surf_repulse = l_surf_repulse; /* repel pial surface
                                                out from wm */
+
     mrisComputePositioningGradients(mris, parms);
     if (!FZERO(parms->l_link)) {
       mrisComputeLinkTerm(mris, parms->l_link, 1);
@@ -32636,12 +32645,14 @@ int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEG
       mht = MHTcreateFaceTable(mris);
     }
     last_pial_sse = MRIScomputeSSE(mris, parms);
+
     delta_t += mrisAsynchronousTimeStepNew(mris, 0, dt, mht, MAX_ASYNCH_NEW_MM);
     MRISsaveVertexPositions(mris, PIAL_VERTICES);
     if (gMRISexternalTimestep) {
       (*gMRISexternalTimestep)(mris, parms);
     }
     delta_t /= 2;
+    
     pial_sse = MRIScomputeSSEExternal(mris, parms, &mle_sse); /* needs update pial
                                                                  to compute sse.
                                                                  mle_sse includes
@@ -32867,6 +32878,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
 
   MRISclearCurvature(mris); /* curvature will be used to calculate sulc */
 
+
   /* write out initial surface */
   if ((parms->write_iterations > 0) && (Gdiag & DIAG_WRITE) && !parms->start_t) {
     mrisWriteSnapshot(mris, parms, 0);
@@ -32920,6 +32932,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
   else if (DZERO(parms->l_intensity) && gMRISexternalRMS != NULL && parms->l_external > 0) {
     last_rms = rms = (*gMRISexternalRMS)(mris, parms);
   }
+  
   if (Gdiag & DIAG_SHOW) fprintf(stdout, "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.3f\n", 0, 0.0f, (float)sse, (float)rms);
 
   if (Gdiag & DIAG_WRITE) {
@@ -32930,6 +32943,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
   dt = parms->dt;
   l_intensity = parms->l_intensity;
   for (n = parms->start_t; n < parms->start_t + niterations; n++) {
+
     parms->t = n;
     if (!FZERO(parms->l_repulse)) {
       MHTfree(&mht_v_current);
@@ -32976,7 +32990,6 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     mrisComputeNonlinearTangentialSpringTerm(mris, parms->l_nltspring, parms->min_dist);
     mrisComputeMaxSpringTerm(mris, parms->l_max_spring);
     mrisComputeAngleAreaTerms(mris, parms);
-
 #if 0
     switch (parms->integration_type)
     {
@@ -33050,8 +33063,8 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
         int nvox;
         MRISsaveVertexPositions(mris, PIAL_VERTICES);
 #if 0
-    if (parms->h2d != NULL)
-      HISTO2Dfree(&parms->h2d) ;
+        if (parms->h2d != NULL)
+          HISTO2Dfree(&parms->h2d) ;
 #endif
         if (parms->mri_volume_fractions) MRIfree(&parms->mri_volume_fractions);
         if (parms->mri_dtrans) MRIfree(&parms->mri_dtrans);
@@ -33102,40 +33115,11 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
         MRISprintVertexStats(mris, Gdiag_no, Gstdout, CURRENT_VERTICES);
       }
     } while (!done);
-#if 0
-    last_sse = sse ;
-    last_rms = rms ;
-#endif
+
 #endif
     mrisTrackTotalDistanceNew(mris); /* computes signed
                            deformation amount */
-#if 0
-    if (!FZERO(parms->l_histo))
-    {
-      rms = mrisComputeHistoNegativeLikelihood(mris, parms) ;
-    }
-    else if (!FZERO(parms->l_map))
-    {
-      rms = mrisComputeNegativeLogPosterior(mris, parms) ;
-    }
-    else if (!FZERO(parms->l_map2d))
-    {
-      rms = mrisComputeNegativeLogPosterior2D(mris, parms) ;
-    }
-    else if (!FZERO(parms->l_location))
-    {
-      rms = mrisRmsDistanceError(mris) ;
-    }
-    else if (DZERO(parms->l_intensity) && gMRISexternalRMS != NULL && parms->l_external > 0)
-    {
-      rms = (*gMRISexternalRMS)(mris, parms) ;
-    }
-    else
-    {
-      rms = mrisRmsValError(mris, mri_brain) ;
-    }
-    sse = MRIScomputeSSE(mris, parms) ;
-#endif
+
     if (Gdiag & DIAG_SHOW)
       fprintf(stdout,
               "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.3f (%2.3f%%)\n",
@@ -33202,6 +33186,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
   if (mht_v_orig) {
     MHTfree(&mht_v_orig);
   }
+
   return (NO_ERROR);
 }
 
@@ -35655,30 +35640,19 @@ int MRIScomputeBorderValues(
     int           const flags,
     MRI *         const mri_aseg)
 {
-    int result;
-    int pass;
-    for (pass = 0; pass < 2; pass++) {
-        if (0) {
-            mris_print_hash(stderr, mris,      "mris ",  "\n");
-            mri_print_hash(stderr, mri_brain,  "mri_brain ",  "\n");
-            mri_print_hash(stderr, mri_smooth, "mri_smooth ", "\n");
-            mri_print_hash(stderr, mri_mask,   "mri_mask ",   "\n");
-            mri_print_hash(stderr, mri_mask,   "mri_aseg ",   "\n");
-        }
-        if (pass) break;
-        if (1) {
-            result = 
-                MRIScomputeBorderValues_new(
-                    mris,mri_brain,mri_smooth,inside_hi,border_hi,border_low,outside_low,outside_hi,
-                    sigma,max_thickness,log_fp,which,mri_mask,thresh,flags,mri_aseg);
-        } else {
-            result = 
-                MRIScomputeBorderValues_old(
-                    mris,mri_brain,mri_smooth,inside_hi,border_hi,border_low,outside_low,outside_hi,
-                    sigma,max_thickness,log_fp,which,mri_mask,thresh,flags,mri_aseg);
-        }
-    }
-    return result;
+  int result;
+  if (1) {
+    result = 
+      MRIScomputeBorderValues_new(
+        mris,mri_brain,mri_smooth,inside_hi,border_hi,border_low,outside_low,outside_hi,
+        sigma,max_thickness,log_fp,which,mri_mask,thresh,flags,mri_aseg);
+  } else {
+    result = 
+      MRIScomputeBorderValues_old(
+        mris,mri_brain,mri_smooth,inside_hi,border_hi,border_low,outside_low,outside_hi,
+        sigma,max_thickness,log_fp,which,mri_mask,thresh,flags,mri_aseg);
+  }
+  return result;
 }
 
 static int MRIScomputeBorderValues_new(
@@ -43601,6 +43575,7 @@ int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp)
           dmax,
           vno,
           vno2);
+  
   mean = MRIScomputeFaceAreaStats(mris, &dsigma, &dmin, &dmax);
   fprintf(fp, "face area %2.2f +- %2.2f (%2.2f-->%2.2f)\n", mean, dsigma, dmin, dmax);
 
