@@ -126,7 +126,6 @@ def run_samseg(
     # % If the following command is not provided, the number of cores on your system will be used
     # kvlSetMaximumNumberOfThreads( numberOfThreads );
     GEMS2Python.setGlobalDefaultNumberOfThreads(numberOfThreads)
-    # TODO: kvlSetMaximumNumberOfThreads
     #
     #
     #
