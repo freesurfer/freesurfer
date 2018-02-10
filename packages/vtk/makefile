@@ -40,8 +40,8 @@ nuke:
 checkout:
 	$(checkout_cmd)
 	mv $(dist_name) $(src_dir)
-	# explicitly get vtk v5.4.0 via tag
-	(cd $(src_dir) && git checkout v5.4.0)
+	# explicitly get vtk v5.4.2 via tag
+	(cd $(src_dir) && git checkout v5.4.2)
 
 config:
 	mkdir -p $(build_dir)
