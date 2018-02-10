@@ -9,6 +9,7 @@ from as_python.samseg.register_atlas_ported import samseg_registerAtlas
 from as_python.samseg.run_utilities import find_or_create_save_path, specify_model, determine_optimization_options, \
     find_samseg_data_dir
 from as_python.samseg.samseg_ported import samsegment
+import GEMS2Python
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)  # TODO: configurable logging
@@ -84,7 +85,8 @@ def run_samseg_from_cmdargs(cmdargs):
             showFigures,
             noBrainMasking,
             useDiagonalCovarianceMatrices,
-            verbose
+            verbose,
+            numberOfThreads
     )
 
 
@@ -95,6 +97,7 @@ def run_samseg(
     noBrainMasking=False,
     useDiagonalCovarianceMatrices=False,
     verbose=False,
+    numberOfThreads=None,
     checkpoint_manager=None
 ):
     #
@@ -122,6 +125,7 @@ def run_samseg(
     # % the point where memory becomes the bottle neck.
     # % If the following command is not provided, the number of cores on your system will be used
     # kvlSetMaximumNumberOfThreads( numberOfThreads );
+    GEMS2Python.setGlobalDefaultNumberOfThreads(numberOfThreads)
     # TODO: kvlSetMaximumNumberOfThreads
     #
     #

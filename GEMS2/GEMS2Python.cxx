@@ -5,8 +5,13 @@
 #include "pyKvlMesh.h"
 #include "pyKvlOptimizer.h"
 #include "pyKvlTransform.h"
+#include "itkMultiThreader.h"
 
 namespace py = pybind11;
+
+void setGlobalDefaultNumberOfThreads(int maximumNumberOfThreads){
+    itk::MultiThreader::SetGlobalDefaultNumberOfThreads( maximumNumberOfThreads );
+}
 
 PYBIND11_MODULE(GEMS2Python, m) {
     py::class_<KvlImage>(m, "KvlImage")
@@ -73,4 +78,5 @@ PYBIND11_MODULE(GEMS2Python, m) {
             .def("transform", &KvlMeshCollection::Transform)
             .def("write", &KvlMeshCollection::Write)
             ;
+     m.def("setGlobalDefaultNumberOfThreads", &setGlobalDefaultNumberOfThreads, "Sets the maximum number of threads for ITK.");
 }
