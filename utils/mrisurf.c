@@ -49658,59 +49658,16 @@ static double mrisDefectPatchFitness(MRI_SURFACE *mris,
   defect->vertex_trans = vertex_trans;
   dp->verbose_mode = parms->verbose;
 
-  while (1) {
-    /* set the arrays to NULL in dp->tp */
-    TPinit(&dp->tp);
+  /* set the arrays to NULL in dp->tp */
+  TPinit(&dp->tp);
 
-    retessellateDefect(mris, mris_corrected, dvs, dp);
+  retessellateDefect(mris, mris_corrected, dvs, dp);    // BEVIN mris_fix_topology
 
-    /* detect the new set of faces */
-    detectDefectFaces(mris_corrected, dp);
+  /* detect the new set of faces */
+  detectDefectFaces(mris_corrected, dp);
 
-    /* compute the euler number of the patch */
-    euler = computePatchEulerNumber(mris_corrected, dp);
-
-    break;
-
-    /* the following lines in the while loop are incorrect */
-    /* It was assuming that the patch euler number was equal to one */
-
-    if (euler == 1) {
-      break;
-    }
-
-    /* we have a surface patch with an euler number
-       different from 1 : this is a bug!*/
-    /* restore the vertex state */
-    mrisRestoreVertexState(mris_corrected, dvs);
-
-    /* reset the edges to the unused state
-       (unless they were in the original tessellation) */
-    for (i = 0; i < dp->nedges; i++) {
-      if (dp->etable->edges[i].used == USED_IN_NEW_TESSELLATION) {
-        dp->etable->edges[i].used = NOT_USED;
-      }
-      if (dp->etable->edges[i].used == USED_IN_BOTH_TESSELLATION) {
-        dp->etable->edges[i].used = USED_IN_ORIGINAL_TESSELLATION;
-      }
-    }
-
-    /* free vertices,edges,faces tables */
-    TPfree(&dp->tp);
-
-    /* generate random ordering */
-    {
-      int p, m, tp;
-      for (m = 0; m < 11; m++)
-        for (i = 0; i < dp->nedges; i++) {
-          p = nint(randomNumber(0.0, (double)dp->nedges - 1));
-
-          tp = dp->ordering[i];
-          dp->ordering[i] = dp->ordering[p];
-          dp->ordering[p] = tp;
-        }
-    }
-  }
+  /* compute the euler number of the patch */
+  euler = computePatchEulerNumber(mris_corrected, dp);
 
   /* orient the patch faces */
   orientDefectFaces(mris_corrected, dp);
@@ -49751,10 +49708,10 @@ static double mrisDefectPatchFitness(MRI_SURFACE *mris,
   /* reset the edges to the unused state (unless they were in the original tessellation) */
   for (i = 0; i < dp->nedges; i++) {
     if (dp->etable->edges[i].used == USED_IN_NEW_TESSELLATION) {
-      dp->etable->edges[i].used = NOT_USED;
+        dp->etable->edges[i].used  = NOT_USED;
     }
     if (dp->etable->edges[i].used == USED_IN_BOTH_TESSELLATION) {
-      dp->etable->edges[i].used = USED_IN_ORIGINAL_TESSELLATION;
+        dp->etable->edges[i].used  = USED_IN_ORIGINAL_TESSELLATION;
     }
   }
   /* free vertices,edges,faces tables */
@@ -54516,10 +54473,17 @@ MRI *MRISbinarizeVolume(MRI_SURFACE *mris, MRI_REGION *region, float resolution,
         MRIFvox(mri_distance, i, j, k) = NPY;
       }
 
+  ROMP_PF_begin  
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(assume_reproducible) 
+#endif
   for (p = 0; p < mris->nfaces; p++) {
+    ROMP_PFLB_begin
     computeDefectFaceNormal(mris, &mris->faces[p]);
+    ROMP_PFLB_end
   }
-
+  ROMP_PF_end
+  
   /* find the distance to each surface voxels */
   for (p = 0; p < mris->nfaces; p++) {
     fno = p;  // tp->faces[p];
@@ -55492,10 +55456,6 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
         MRIFvox(mri_distance, i, j, k) = NPY;
       }
 
-  // compute face normals for the defect surface
-  // for ( p = 0 ; p < mris_source->nfaces ; p++) computeDefectFaceNormal(mris_source,&mris_source->faces[p]); //useless
-  // for ( p = 0 ; p < mris_defect->nfaces ; p++) computeDefectFaceNormal(mris_defect,&mris_defect->faces[p]); //useless
-
   /* find the distance to each surface voxels */
   for (p = 0; p < mris_defect->nfaces + mris_source->nfaces; p++) {
     if (p >= mris_defect->nfaces) {
@@ -56004,10 +55964,17 @@ static double mrisComputeDefectMRILogUnlikelihood(
     }
   }
 
-  { int p;  
+  { int p;
+    ROMP_PF_begin  
+#ifdef HAVE_OPENMP
+    #pragma omp parallel for if_ROMP(assume_reproducible) 
+#endif
     for (p = 0; p < mris->nfaces; p++) {
+      ROMP_PFLB_begin
       computeDefectFaceNormal(mris_nonconst, &mris_nonconst->faces[p]);	// MODIFIER
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
   }
 
 
@@ -58949,7 +58916,14 @@ static int mrisTessellateDefect_wkr(MRI_SURFACE *mris,
               "could not allocate %d edges for retessellation",
               nedges);
 
-  for (n = i = 0; i < nvertices; i++) {
+  n = 0;
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(serial)
+#endif
+  for (i = 0; i < nvertices; i++) {
+    ROMP_PFLB_begin
+    
     v = &mris->vertices[vlist[i]];
     if (vlist[i] == Gdiag_no) {
       DiagBreak();
@@ -59154,7 +59128,10 @@ static int mrisTessellateDefect_wkr(MRI_SURFACE *mris,
         nes++;
       }
     }
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   /* find and discard all edges that intersect one that is already in the
      tessellation.
@@ -59535,44 +59512,6 @@ static int mrisMutateDefectPatch(DEFECT_PATCH *dp, EDGE_TABLE *etable, double pm
 
   free(dp_indices);
   return (NO_ERROR);
-}
-#endif
-#if 0
-//old version (sept. 2004)
-static double
-mrisDefectPatchFitness
-(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, MRI *mri,
- DEFECT_PATCH *dp, int *vertex_trans, DEFECT_VERTEX_STATE *dvs,
- HISTOGRAM *h_k1, HISTOGRAM *h_k2, HISTOGRAM *h_white, HISTOGRAM *h_gray,
- HISTOGRAM *h_border, HISTOGRAM *h_grad, MRI *mri_gray_white,
- HISTOGRAM *h_dot, TOPOLOGY_PARMS *parms)
-{
-  int i ;
-
-  mrisRetessellateDefect
-  (mris, mris_corrected, dp->defect,
-   vertex_trans, dp->etable->edges, dp->nedges, dp->ordering,
-   dp->etable) ;
-#if 0
-  dp->fitness = -mrisComputeDefectEnergy
-                (mris_corrected, mri, dp->defect, vertex_trans) ;
-#else
-  dp->fitness = mrisComputeDefectLogLikelihood
-                (mris_corrected, mri, dp->defect, vertex_trans, dp,
-                 h_k1, h_k2, h_white, h_gray, h_border, h_grad,
-                 mri_gray_white, h_dot, parms) ;
-#endif
-  mrisRestoreVertexState(mris_corrected, dvs) ;
-
-  /* reset the edges to the unused state
-     (unless they were in the original tessellation */
-  for (i = 0 ; i < dp->nedges ; i++)
-    if (dp->etable->edges[i].used == USED_IN_NEW_TESSELLATION)
-    {
-      dp->etable->edges[i].used = NOT_USED ;
-    }
-
-  return(dp->fitness) ;
 }
 #endif
 
@@ -61698,16 +61637,6 @@ static int mrisRetessellateDefect(MRI_SURFACE *mris,
       i = index;
     }
 
-    if (i == 1662 || i == 1685) {
-      DiagBreak();
-    }
-    if ((et[i].vno1 == 52022 || et[i].vno2 == 52022) && (et[i].vno1 == 53156 || et[i].vno2 == 53156)) {
-      DiagBreak();
-    }
-    if (et[i].vno1 == Gdiag_no || et[i].vno2 == Gdiag_no) {
-      DiagBreak();
-    }
-
     if (et[i].used && et[i].used != USED_IN_ORIGINAL_TESSELLATION) /* already exists in
                                                                                     tessellation -
                                                                                     don't add it again */
@@ -61839,6 +61768,7 @@ mrisCheckDefectEdges(MRI_SURFACE *mris, DEFECT *defect, int vno,
   return(NO_ERROR) ;
 }
 #endif
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -61850,18 +61780,16 @@ mrisCheckDefectEdges(MRI_SURFACE *mris, DEFECT *defect, int vno,
   there are far more elegant ways of doing intersection
   (e.g. sorting).
   ------------------------------------------------------*/
-#if 1
+
 static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans, int *v1, int *v2)
 {
-  VERTEX *v;
-  int i, n, vno;
-  EDGE edge2;
-
+  int i;
   for (i = 0; i < defect->nvertices + defect->nchull; i++) {
+  
+    int vno;
     if (i < defect->nvertices) {
       vno = vertex_trans[defect->vertices[i]];
-    }
-    else {
+    } else {
       vno = vertex_trans[defect->chull[i - defect->nvertices]];
     }
 
@@ -61869,19 +61797,12 @@ static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int 
       continue;
     }
 
+    EDGE edge2;
     edge2.vno1 = vno;
-    v = &mris->vertices[vno];
-    for (n = 0; n < v->vnum; n++) {
-      if (vno == Gdiag_no) {
-        DiagBreak();
-      }
 
-      if ((vno == 53153 && v->v[n] == 53158) || (v->v[n] == 53153 && vno == 53158)) {
-        DiagBreak();
-      }
-      if ((vno == 52024 && v->v[n] == 53158) || (v->v[n] == 52024 && vno == 53158)) {
-        DiagBreak();
-      }
+    VERTEX *v = &mris->vertices[vno];
+    int n;
+    for (n = 0; n < v->vnum; n++) {
       if (v->v[n] == e->vno1 || v->v[n] == e->vno2) {
         continue;
       }
@@ -61920,16 +61841,6 @@ static int intersectDefectConvexHullEdges(
     edge2.vno1 = vno;
     v = &mris->vertices[vno];
     for (n = 0; n < v->vnum; n++) {
-      if (vno == Gdiag_no) {
-        DiagBreak();
-      }
-
-      if ((vno == 53153 && v->v[n] == 53158) || (v->v[n] == 53153 && vno == 53158)) {
-        DiagBreak();
-      }
-      if ((vno == 52024 && v->v[n] == 53158) || (v->v[n] == 52024 && vno == 53158)) {
-        DiagBreak();
-      }
       if (v->v[n] == e->vno1 || v->v[n] == e->vno2) {
         continue;
       }
@@ -61951,356 +61862,7 @@ static int intersectDefectConvexHullEdges(
 
   return (0);
 }
-#else
-static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans)
-{
-  VERTEX *v;
-  int i, n, vno;
-  FILE *fp = NULL;
-  EDGE edge2;
 
-  if ((e->vno1 == 109259 && e->vno2 == 108332) || (e->vno2 == 109259 && e->vno1 == 108332)) {
-    DiagBreak();
-  }
-
-  for (i = 0; i < defect->nvertices + defect->nchull; i++) {
-    if (i < defect->nvertices) {
-      vno = vertex_trans[defect->vertices[i]];
-    }
-    else {
-      vno = vertex_trans[defect->chull[i - defect->nvertices]];
-    }
-
-    if (vno == e->vno1 || vno == e->vno2 || vno < 0) {
-      continue;
-    }
-
-    edge2.vno1 = vno;
-    v = &mris->vertices[vno];
-    for (n = 0; n < v->vnum; n++) {
-      if (vno == Gdiag_no) {
-        DiagBreak();
-      }
-
-      if ((vno == 53153 && v->v[n] == 53158) || (v->v[n] == 53153 && vno == 53158)) {
-        DiagBreak();
-      }
-      if ((vno == 52024 && v->v[n] == 53158) || (v->v[n] == 52024 && vno == 53158)) {
-        DiagBreak();
-      }
-      if (v->v[n] == e->vno1 || v->v[n] == e->vno2) {
-        continue;
-      }
-      edge2.vno2 = v->v[n];
-      if (edgesIntersect(mris, e, &edge2)) {
-        return (1);
-      }
-    }
-  }
-
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
-    double x1_start, x1_end, y1_start, y1_end, x2_start, x2_end, y2_start, y2_end, x2min, x2max, y2min, y2max, cx, cy,
-        cz, origin[3], e0[3], e1[3];
-    char fname[STRLEN];
-    VERTEX *v2;
-    static int dno = -1;
-
-    mrisComputeCanonicalEdgeBasis(mris, e, e, origin, e0, e1);
-    sprintf(fname, "lines%d.log", defect_no);
-    v = &mris->vertices[e->vno1];
-    v2 = &mris->vertices[e->vno2];
-    cx = v->cx - origin[0];
-    cy = v->cy - origin[1];
-    cz = v->cz - origin[2];
-    x1_start = cx * e0[0] + cy * e0[1] + cz * e0[2];
-    y1_start = cx * e1[0] + cy * e1[1] + cz * e1[2];
-    cx = v2->cx - origin[0];
-    cy = v2->cy - origin[1];
-    cz = v2->cz - origin[2];
-    x1_end = cx * e0[0] + cy * e0[1] + cz * e0[2];
-    y1_end = cx * e1[0] + cy * e1[1] + cz * e1[2];
-    if (dno != defect_no) /* first time for this defect */
-    {
-      fp = fopen(fname, "w");
-
-      for (i = 0; i < defect->nvertices + defect->nchull; i++) {
-        if (i < defect->nvertices) {
-          vno = vertex_trans[defect->vertices[i]];
-        }
-        else {
-          vno = vertex_trans[defect->chull[i - defect->nvertices]];
-        }
-
-        if (vno == e->vno1 || vno == e->vno2 || vno < 0) {
-          continue;
-        }
-        v = &mris->vertices[vno];
-        cx = v->cx - origin[0];
-        cy = v->cy - origin[1];
-        cz = v->cz - origin[2];
-        x2_start = cx * e0[0] + cy * e0[1] + cz * e0[2];
-        y2_start = cx * e1[0] + cy * e1[1] + cz * e1[2];
-        for (n = 0; n < v->vnum; n++) {
-          if (vno == 6167) {
-            DiagBreak();
-          }
-          if (v->v[n] == e->vno1 || v->v[n] == e->vno2) {
-            continue;
-          }
-          v2 = &mris->vertices[v->v[n]];
-          cx = v2->cx - origin[0];
-          cy = v2->cy - origin[1];
-          cz = v2->cz - origin[2];
-          x2_end = cx * e0[0] + cy * e0[1] + cz * e0[2];
-          y2_end = cx * e1[0] + cy * e1[1] + cz * e1[2];
-          x2min = MIN(x2_start, x2_end);
-          x2max = MAX(x2_start, x2_end);
-          y2min = MIN(y2_start, y2_end);
-          y2max = MAX(y2_start, y2_end);
-          fprintf(fp, "%2.3f  %2.3f\n%2.3f  %2.3f\n\n", x2_start, y2_start, x2_end, y2_end);
-        }
-      }
-    }
-    else {
-      fp = fopen(fname, "a");
-    }
-    fprintf(fp, "%2.3f  %2.3f\n%2.3f  %2.3f\n\n", x1_start, y1_start, x1_end, y1_end);
-    if (fp) {
-      fclose(fp);
-    }
-
-    sprintf(fname, "edges%d.log", defect_no);
-    if (dno != defect_no) /* first time for this defect */
-    {
-      dno = defect_no;
-      fp = fopen(fname, "w");
-
-      for (i = 0; i < defect->nvertices + defect->nchull; i++) {
-        if (i < defect->nvertices) {
-          vno = vertex_trans[defect->vertices[i]];
-        }
-        else {
-          vno = vertex_trans[defect->chull[i - defect->nvertices]];
-        }
-
-        if (vno == e->vno1 || vno == e->vno2 || vno < 0) {
-          continue;
-        }
-        v = &mris->vertices[vno];
-        cx = v->cx - origin[0];
-        cy = v->cy - origin[1];
-        cz = v->cz - origin[2];
-        x2_start = cx * e0[0] + cy * e0[1] + cz * e0[2];
-        y2_start = cx * e1[0] + cy * e1[1] + cz * e1[2];
-        for (n = 0; n < v->vnum; n++) {
-          if (vno == 6167) {
-            DiagBreak();
-          }
-          if (v->v[n] == e->vno1 || v->v[n] == e->vno2) {
-            continue;
-          }
-          v2 = &mris->vertices[v->v[n]];
-          cx = v2->cx - origin[0];
-          cy = v2->cy - origin[1];
-          cz = v2->cz - origin[2];
-          x2_end = cx * e0[0] + cy * e0[1] + cz * e0[2];
-          y2_end = cx * e1[0] + cy * e1[1] + cz * e1[2];
-          x2min = MIN(x2_start, x2_end);
-          x2max = MAX(x2_start, x2_end);
-          y2min = MIN(y2_start, y2_end);
-          y2max = MAX(y2_start, y2_end);
-          fprintf(fp, "%d  %d  %2.3f  %2.3f  %2.3f  %2.3f\n", vno, v->v[n], x2_start, y2_start, x2_end, y2_end);
-        }
-      }
-    }
-    else {
-      fp = fopen(fname, "a");
-    }
-    fprintf(fp, "%d  %d  %2.3f  %2.3f  %2.3f  %2.3f\n", e->vno1, e->vno2, x1_start, y1_start, x1_end, y1_end);
-    if (fp) {
-      fclose(fp);
-    }
-  }
-  return (0);
-}
-/*-----------------------------------------------------
-Parameters:
-
-Returns value:
-
-Description
-See if the edge e intersects any edges in the defect or
-it's border. Sorry this code is such a hatchet job. I'm sure
-there are far more elegant ways of doing intersection
-(e.g. sorting).
-------------------------------------------------------*/
-static int intersectDefectConvexHullEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans)
-{
-  VERTEX *v;
-  int i, n, vno;
-  FILE *fp = NULL;
-  EDGE edge2;
-
-  if ((e->vno1 == 109259 && e->vno2 == 108332) || (e->vno2 == 109259 && e->vno1 == 108332)) {
-    DiagBreak();
-  }
-
-  for (i = defect->nborder; i < defect->nchull; i++) {
-    vno = vertex_trans[defect->chull[i]];
-
-    if (vno == e->vno1 || vno == e->vno2 || vno < 0) {
-      continue;
-    }
-
-    edge2.vno1 = vno;
-    v = &mris->vertices[vno];
-    for (n = 0; n < v->vnum; n++) {
-      if (vno == Gdiag_no) {
-        DiagBreak();
-      }
-
-      if ((vno == 53153 && v->v[n] == 53158) || (v->v[n] == 53153 && vno == 53158)) {
-        DiagBreak();
-      }
-      if ((vno == 52024 && v->v[n] == 53158) || (v->v[n] == 52024 && vno == 53158)) {
-        DiagBreak();
-      }
-      if (v->v[n] == e->vno1 || v->v[n] == e->vno2) {
-        continue;
-      }
-      edge2.vno2 = v->v[n];
-      if (edgesIntersect(mris, e, &edge2)) {
-        return (1);
-      }
-    }
-  }
-
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
-    double x1_start, x1_end, y1_start, y1_end, x2_start, x2_end, y2_start, y2_end, x2min, x2max, y2min, y2max, cx, cy,
-        cz, origin[3], e0[3], e1[3];
-    char fname[STRLEN];
-    VERTEX *v2;
-    static int dno = -1;
-
-    mrisComputeCanonicalEdgeBasis(mris, e, e, origin, e0, e1);
-    sprintf(fname, "lines%d.log", defect_no);
-    v = &mris->vertices[e->vno1];
-    v2 = &mris->vertices[e->vno2];
-    cx = v->cx - origin[0];
-    cy = v->cy - origin[1];
-    cz = v->cz - origin[2];
-    x1_start = cx * e0[0] + cy * e0[1] + cz * e0[2];
-    y1_start = cx * e1[0] + cy * e1[1] + cz * e1[2];
-    cx = v2->cx - origin[0];
-    cy = v2->cy - origin[1];
-    cz = v2->cz - origin[2];
-    x1_end = cx * e0[0] + cy * e0[1] + cz * e0[2];
-    y1_end = cx * e1[0] + cy * e1[1] + cz * e1[2];
-    if (dno != defect_no) /* first time for this defect */
-    {
-      fp = fopen(fname, "w");
-
-      for (i = 0; i < defect->nvertices + defect->nchull; i++) {
-        if (i < defect->nvertices) {
-          vno = vertex_trans[defect->vertices[i]];
-        }
-        else {
-          vno = vertex_trans[defect->chull[i - defect->nvertices]];
-        }
-
-        if (vno == e->vno1 || vno == e->vno2 || vno < 0) {
-          continue;
-        }
-        v = &mris->vertices[vno];
-        cx = v->cx - origin[0];
-        cy = v->cy - origin[1];
-        cz = v->cz - origin[2];
-        x2_start = cx * e0[0] + cy * e0[1] + cz * e0[2];
-        y2_start = cx * e1[0] + cy * e1[1] + cz * e1[2];
-        for (n = 0; n < v->vnum; n++) {
-          if (vno == 6167) {
-            DiagBreak();
-          }
-          if (v->v[n] == e->vno1 || v->v[n] == e->vno2) {
-            continue;
-          }
-          v2 = &mris->vertices[v->v[n]];
-          cx = v2->cx - origin[0];
-          cy = v2->cy - origin[1];
-          cz = v2->cz - origin[2];
-          x2_end = cx * e0[0] + cy * e0[1] + cz * e0[2];
-          y2_end = cx * e1[0] + cy * e1[1] + cz * e1[2];
-          x2min = MIN(x2_start, x2_end);
-          x2max = MAX(x2_start, x2_end);
-          y2min = MIN(y2_start, y2_end);
-          y2max = MAX(y2_start, y2_end);
-          fprintf(fp, "%2.3f  %2.3f\n%2.3f  %2.3f\n\n", x2_start, y2_start, x2_end, y2_end);
-        }
-      }
-    }
-    else {
-      fp = fopen(fname, "a");
-    }
-    fprintf(fp, "%2.3f  %2.3f\n%2.3f  %2.3f\n\n", x1_start, y1_start, x1_end, y1_end);
-    if (fp) {
-      fclose(fp);
-    }
-
-    sprintf(fname, "edges%d.log", defect_no);
-    if (dno != defect_no) /* first time for this defect */
-    {
-      dno = defect_no;
-      fp = fopen(fname, "w");
-
-      for (i = 0; i < defect->nvertices + defect->nchull; i++) {
-        if (i < defect->nvertices) {
-          vno = vertex_trans[defect->vertices[i]];
-        }
-        else {
-          vno = vertex_trans[defect->chull[i - defect->nvertices]];
-        }
-
-        if (vno == e->vno1 || vno == e->vno2 || vno < 0) {
-          continue;
-        }
-        v = &mris->vertices[vno];
-        cx = v->cx - origin[0];
-        cy = v->cy - origin[1];
-        cz = v->cz - origin[2];
-        x2_start = cx * e0[0] + cy * e0[1] + cz * e0[2];
-        y2_start = cx * e1[0] + cy * e1[1] + cz * e1[2];
-        for (n = 0; n < v->vnum; n++) {
-          if (vno == 6167) {
-            DiagBreak();
-          }
-          if (v->v[n] == e->vno1 || v->v[n] == e->vno2) {
-            continue;
-          }
-          v2 = &mris->vertices[v->v[n]];
-          cx = v2->cx - origin[0];
-          cy = v2->cy - origin[1];
-          cz = v2->cz - origin[2];
-          x2_end = cx * e0[0] + cy * e0[1] + cz * e0[2];
-          y2_end = cx * e1[0] + cy * e1[1] + cz * e1[2];
-          x2min = MIN(x2_start, x2_end);
-          x2max = MAX(x2_start, x2_end);
-          y2min = MIN(y2_start, y2_end);
-          y2max = MAX(y2_start, y2_end);
-          fprintf(fp, "%d  %d  %2.3f  %2.3f  %2.3f  %2.3f\n", vno, v->v[n], x2_start, y2_start, x2_end, y2_end);
-        }
-      }
-    }
-    else {
-      fp = fopen(fname, "a");
-    }
-    fprintf(fp, "%d  %d  %2.3f  %2.3f  %2.3f  %2.3f\n", e->vno1, e->vno2, x1_start, y1_start, x1_end, y1_end);
-    if (fp) {
-      fclose(fp);
-    }
-  }
-  return (0);
-}
-#endif
 /*-----------------------------------------------------
   Parameters:
 
