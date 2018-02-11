@@ -32,6 +32,9 @@
 #include <sys/utsname.h>
 #include <endianio.h>
 
+#include "rec.h"
+
+
 #define  MAXL	1024		/* accommodate very long commands */
 
 /********************/
@@ -41,6 +44,15 @@ static char recfile[MAXL] = "";
 static char rcsid[] = "$Id: rec.c,v 1.2 2007/05/05 00:00:07 nicks Exp $";
 
 void rec_rcsid (void) {printf ("%s\n", rcsid);}
+
+const char* current_date_time() {
+  time_t tt = time(&tt);
+  const char* time_str = ctime(&tt);
+  const char* override_time_str =
+    getenv("FREESURFER_REPLACEMENT_FOR_CREATION_TIME_STRING");
+  if (override_time_str) time_str = override_time_str;
+  return time_str;
+}
 
 int get_machine_info (char *string) {
 	struct utsname u_name;
