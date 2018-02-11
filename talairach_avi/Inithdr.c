@@ -32,6 +32,8 @@
 #include <unistd.h>
 #include <pwd.h>
 
+#include "rec.h"
+
 #define MAXL		256
 
 static char rcsid[] = "$Id: Inithdr.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";

@@ -30,3 +30,5 @@ extern int startrecl	(char *outfile, int argc, char *argv[], char *rcsid);
 extern int startrece	(char *outfile, int argc, char *argv[], char *rcsid, char control);
 extern int startrecle	(char *outfile, int argc, char *argv[], char *rcsid, char control);
 extern int endrec	(void);
+
+const char* current_date_time();
