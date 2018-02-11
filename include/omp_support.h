@@ -1,6 +1,6 @@
 #pragma once
 
-#ifndef HAVE_OMP
+#ifndef HAVE_OPENMP
 
 #define OMP_FOR_BEGIN
 #define OMP_FOR_END

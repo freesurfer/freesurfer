@@ -1334,8 +1334,6 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht) {
   float   dist, dx, dy, dz, x, y, z, sx, sy, sz, min_d, min_scale, norm ;
   double  scale=0 ;
   VERTEX  *v, *vn ;
-  MHBT    *bucket ;
-  MHB     *bin ;
 
   if (FZERO(l_repulse))
     return(NO_ERROR) ;
@@ -1350,10 +1348,11 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht) {
     x = v->x ;
     y = v->y ;
     z = v->z ;
-    bucket = MHTgetBucket(mht, x, y, z) ;
+    MHBT *bucket = MHTacqBucket(mht, x, y, z) ;
     if (!bucket)
       continue ;
     sx = sy = sz = 0.0 ;
+    MHB     *bin ;
     for (bin = bucket->bins, num = i = 0 ; i < bucket->nused ; i++, bin++) {
       if (bin->fno == vno)
         continue ;  /* don't be repelled by myself */
@@ -1406,6 +1405,7 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht) {
       fprintf(stdout, "min_dist @ %d = %2.2f, scale = %2.1f\n",
               min_vno, min_d, min_scale) ;
     }
+    MHTrelBucket(&bucket);
   }
   return(NO_ERROR) ;
 }
@@ -1417,8 +1417,6 @@ mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht) {
   float   dist, dx, dy, dz, x, y, z, min_d ;
   double  sse_repulse, v_sse ;
   VERTEX  *v, *vn ;
-  MHBT    *bucket ;
-  MHB     *bin ;
 
   if (FZERO(l_repulse))
     return(NO_ERROR) ;
@@ -1432,9 +1430,10 @@ mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht) {
     x = v->x ;
     y = v->y ;
     z = v->z ;
-    bucket = MHTgetBucket(mht, x, y, z) ;
+    MHBT* bucket = MHTacqBucket(mht, x, y, z) ;
     if (!bucket)
       continue ;
+    MHB *bin ;
     for (v_sse = 0.0, bin = bucket->bins, num = i = 0 ; i < bucket->nused ; i++, bin++) {
       if (bin->fno == vno)
         continue ;  /* don't be repelled by myself */
@@ -1466,6 +1465,7 @@ mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht) {
       printf("v %d: repulse sse:    min_dist=%2.4f, v_sse %2.4f\n", vno,
              min_d, v_sse) ;
     }
+    MHTrelBucket(&bucket);
   }
   return(sse_repulse) ;
 }

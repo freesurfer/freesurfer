@@ -115,6 +115,30 @@ typedef struct mht_triangle_t {
 } MHT_TRIANGLE;
 
 
+// Support for optional parallelism
+// since don't want to slow down the serial version with unnecessary locks
+//
+#ifdef HAVE_OPENMP
+static int parallelLevel;
+#endif
+
+void MHT_maybeParallel_begin()
+{
+#ifdef HAVE_OPENMP
+#pragma omp atomic
+    parallelLevel++;
+#endif
+}
+
+void MHT_maybeParallel_end()
+{
+#ifdef HAVE_OPENMP
+#pragma omp atomic
+    --parallelLevel;
+#endif
+}
+
+
 //==================================================================
 // Static forward declarations
 //==================================================================
@@ -159,8 +183,8 @@ static int MHTexpandToTouchingFaces(
     int * const fnoList,
     int   const trace);
 
-static int MHTdoesFaceIntersect_old(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno, int const trace);
-static int MHTdoesFaceIntersect_new(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno, int const trace);
+static int MHTdoesFaceIntersect_old(MRIS_HASH_TABLE const *mht, MRI_SURFACE const *mris, int fno, int const trace);
+static int MHTdoesFaceIntersect_new(MRIS_HASH_TABLE const *mht, MRI_SURFACE const *mris, int fno, int const trace);
     
 static int MHTdoesTriangleIntersect(
     MRIS_HASH_TABLE const * const mht, 
@@ -179,17 +203,30 @@ static int mhtDoesTriangleVoxelListIntersect(
 	
 // DELETE THIS
 static int mhtDoesFaceVoxelListIntersect(
-	MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VOXEL_LISTgw *voxlist, int fno, int const trace);
+	MRIS_HASH_TABLE const *mht, 
+        MRI_SURFACE const *mris, VOXEL_LISTgw *voxlist, int fno, int const trace);
 
-int mhtBruteForceClosestVertex(MRI_SURFACE const *mris, float x, float y, float z, int which, float *dmin);
+int mhtBruteForceClosestVertex(
+        MRI_SURFACE const *mris, float x, float y, float z, int which, float *dmin);
 
 //--------- test -----------
 static int checkFace(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno1);
 
 
-//=============================================================================
-// Destructor
-//=============================================================================
+// Primitives that have to be correct...
+//
+static MRIS_HASH_TABLE* newMHT(MRI_SURFACE const   *mris)
+{
+  MRIS_HASH_TABLE* mht = (MRIS_HASH_TABLE *)calloc(1, sizeof(MRIS_HASH_TABLE));
+  if (!mht) {
+    ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate hash table.\n", __MYFUNCTION__);
+  }
+  mht->mris = mris;
+#ifdef HAVE_OPENMP
+  omp_init_lock(&mht->buckets_lock);
+#endif
+  return mht;
+}
 
 void MHTfree(MRIS_HASH_TABLE **pmht)
 {
@@ -201,24 +238,167 @@ void MHTfree(MRIS_HASH_TABLE **pmht)
   int xv, yv, zv;
   for (xv = 0; xv < TABLE_SIZE; xv++) {
     for (yv = 0; yv < TABLE_SIZE; yv++) {
-      if (!mht->buckets[xv][yv]) continue;
+      if (!mht->buckets_mustUseAcqRel[xv][yv]) continue;
       for (zv = 0; zv < TABLE_SIZE; zv++) {
-        if (mht->buckets[xv][yv][zv]) {
-          if (mht->buckets[xv][yv][zv]->bins) free(mht->buckets[xv][yv][zv]->bins);
-          free(mht->buckets[xv][yv][zv]);
+        MHBT *bucket = mht->buckets_mustUseAcqRel[xv][yv][zv];
+        if (bucket) {
+#ifdef HAVE_OPENMP
+          omp_destroy_lock(&bucket->bucket_lock);
+#endif
+          if (bucket->bins) free(bucket->bins);
+          free(bucket);
         }
       }
-      free(mht->buckets[xv][yv]);
+      free(mht->buckets_mustUseAcqRel[xv][yv]);
     }
   }
 
+#ifdef HAVE_OPENMP
+  omp_destroy_lock(&mht->buckets_lock);
+#endif
+  
   free(mht);
 }
 
+static void checkThread0() 
+{
+#ifdef HAVE_OPENMP
+  int tid = omp_get_thread_num();
+  if (tid != 0) {
+    fprintf(stderr, "lock or unlock, not thread 0, but claiming no parallelism\n");
+    *(int*)(-1) = 0;
+    exit(1);
+  }
+#endif
+}
+ 
+static void lockBuckets(const MRIS_HASH_TABLE *mhtc) {
+    MRIS_HASH_TABLE *mht = (MRIS_HASH_TABLE *)mhtc;
+#ifdef HAVE_OPENMP
+    if (parallelLevel) omp_set_lock(&mht->buckets_lock); else checkThread0();
+#endif
+}
+static void unlockBuckets(const MRIS_HASH_TABLE *mhtc) {
+    MRIS_HASH_TABLE *mht = (MRIS_HASH_TABLE *)mhtc;
+#ifdef HAVE_OPENMP
+    if (parallelLevel) omp_unset_lock(&mht->buckets_lock); else checkThread0();
+#endif
+}
+
+static void lockBucket(const MHBT *bucketc) {
+    MHBT *bucket = (MHBT *)bucketc;
+#ifdef HAVE_OPENMP
+    if (parallelLevel) omp_set_lock(&bucket->bucket_lock); else checkThread0();
+#endif
+}
+static void unlockBucket(const MHBT *bucketc) {
+    MHBT *bucket = (MHBT *)bucketc;
+#ifdef HAVE_OPENMP
+    if (parallelLevel) omp_unset_lock(&bucket->bucket_lock); else checkThread0();
+#endif
+}
+
+static MHBT* makeAndAcqBucket(MRIS_HASH_TABLE *mht, int xv, int yv, int zv) 
+{
+  //-----------------------------------------------
+  // Allocate space if needed
+  //-----------------------------------------------
+  // 1. Allocate a 1-D array at buckets_mustUseAcqRel[xv][yv]
+  
+  lockBuckets(mht);
+  
+  if (!mht->buckets_mustUseAcqRel[xv][yv]) {
+    mht->buckets_mustUseAcqRel[xv][yv] = (MHBT **)calloc(TABLE_SIZE, sizeof(MHBT *));
+    if (!mht->buckets_mustUseAcqRel[xv][yv]) ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate slice.", __MYFUNCTION__);
+  }
+  
+  // 2. Allocate a bucket at buckets_mustUseAcqRel[xv][yv][zv]
+  MHBT *bucket = mht->buckets_mustUseAcqRel[xv][yv][zv];
+  
+  
+  if (!bucket) {
+    mht->buckets_mustUseAcqRel[xv][yv][zv] = bucket = (MHBT *)calloc(1, sizeof(MHBT));
+    if (!bucket) ErrorExit(ERROR_NOMEMORY, "%s couldn't allocate bucket.\n", __MYFUNCTION__);
+#ifdef HAVE_OPENMP
+    omp_init_lock(&bucket->bucket_lock);
+#endif
+  }
+  
+  unlockBuckets(mht);
+  
+  lockBucket(bucket);
+  
+  // 3. Allocate bins
+  if (!bucket->max_bins) /* nothing in this bucket yet - allocate bins */
+  {
+    bucket->max_bins = 4;
+    bucket->bins = (MHB *)calloc(bucket->max_bins, sizeof(MHB));
+    if (!bucket->bins)
+      ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate %d bins.\n", __MYFUNCTION__, bucket->max_bins);
+  }
+
+  // returns with the bucket locked
+  
+  return bucket;
+}
+
+static MHBT *acqBucket(MRIS_HASH_TABLE const *mht, int xv, int yv, int zv)
+{
+  if (xv >= TABLE_SIZE || yv >= TABLE_SIZE || zv >= TABLE_SIZE || xv < 0 || yv < 0 || zv < 0) return (NULL);
+  if (!mht) return (NULL);
+
+  lockBuckets(mht);
+
+  MHBT * bucket = NULL;
+  if (mht->buckets_mustUseAcqRel[xv][yv]) 
+      bucket = mht->buckets_mustUseAcqRel[xv][yv][zv];
+
+  unlockBuckets(mht);
+  
+  // returns with the bucket, if any, locked
+  //  
+  if (bucket) lockBucket(bucket);
+  
+  return (bucket);
+}
+
+
+static void relBucketC(MHBT const ** bucket)
+{
+  if (*bucket) {
+    unlockBucket(*bucket);
+    *bucket = NULL;
+  }
+}
+
+static void relBucket(MHBT ** bucket)
+{
+  MHBT const * bucketC = *bucket;
+  *bucket = NULL;
+  relBucketC(&bucketC);
+}
+
+void MHTrelBucket (MHBT       ** bucket) { relBucket (bucket); }
+void MHTrelBucketC(MHBT const ** bucket) { relBucketC(bucket); }
+
+static bool existsBuckets2(MRIS_HASH_TABLE const *mht, int xv, int yv)
+{
+  bool result = false;
+  if (xv >= TABLE_SIZE || yv >= TABLE_SIZE || xv < 0 || yv < 0) goto Done;
+  if (!mht) goto Done;
+  if (!mht->buckets_mustUseAcqRel[xv][yv]) goto Done;
+  result = true;
+Done:
+  return result;
+}
+
+
+#define buckets_mustUseAcqRel SHOULD_NOT_ACCESS_BUCKETS_DIRECTLY
 
 //=============================================================================
 // Surface --> MHT, store Face Numbers
 //=============================================================================
+
 
 MRIS_HASH_TABLE* MHTcreateFaceTable(
     MRI_SURFACE const   *mris)
@@ -234,20 +414,9 @@ MRIS_HASH_TABLE *MHTcreateFaceTable_Resolution(
   static int ncalls = 0;
   ncalls++;
 
-  MRIS_HASH_TABLE *mht = (MRIS_HASH_TABLE *)calloc(1, sizeof(MRIS_HASH_TABLE));
-  if (!mht) {
-    ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate hash table.\n", __MYFUNCTION__);
-  }
-  mht->mris = mris;
+  MRIS_HASH_TABLE* mht = newMHT(mris);
   
   mhtStoreFaceCentroids(mht, mris, which);
-
-  int xv, yv, zv;
-  for (xv = 0; xv < TABLE_SIZE; xv++) {
-    for (yv = 0; yv < TABLE_SIZE; yv++) {
-      mht->buckets[xv][yv] = NULL;
-    }
-  }
 
   //--------------------------------------
   // Capture data from caller and surface
@@ -273,17 +442,21 @@ MRIS_HASH_TABLE *MHTcreateFaceTable_Resolution(
 
     n = mean = 0.0;
     mx = -1;
+    int xv,yv,zv;
     for (xv = 0; xv < TABLE_SIZE; xv++) {
       for (yv = 0; yv < TABLE_SIZE; yv++) {
         for (zv = 0; zv < TABLE_SIZE; zv++) {
-          if (!mht->buckets[xv][yv] || !mht->buckets[xv][yv][zv]) continue;
 
-          MHBT* bucket = mht->buckets[xv][yv][zv];
+          MHBT* bucket = acqBucket(mht,xv,yv,zv);
+          if (!bucket) continue;
+                    
           if (bucket->nused) {
             mean += bucket->nused;
             n++;
           }
           if (bucket->nused > mx) mx = bucket->nused;
+          
+          relBucket(&bucket);
         }
       }
     }
@@ -291,13 +464,14 @@ MRIS_HASH_TABLE *MHTcreateFaceTable_Resolution(
     var = 0.0;
     for (xv = 0; xv < TABLE_SIZE; xv++) {
       for (yv = 0; yv < TABLE_SIZE; yv++) {
-        if (!mht->buckets[xv][yv]) continue;
+        if (!existsBuckets2(mht,xv,yv)) continue;
         for (zv = 0; zv < TABLE_SIZE; zv++) {
-          MHBT* bucket = mht->buckets[xv][yv][zv];
+          MHBT* bucket = acqBucket(mht,xv,yv,zv);
           if (bucket && bucket->nused) {
             v = mean - bucket->nused;
             var += v * v;
           }
+          relBucket(&bucket);
         }
       }
     }
@@ -608,7 +782,6 @@ MRIS_HASH_TABLE *MHTcreateVertexTable_Resolution(MRI_SURFACE const *mris, int wh
   int vno;
   int xv, yv, zv;
   float x = 0.0, y = 0.0, z = 0.0;
-  MHBT *bucket;
   VERTEX const *v;
   static int ncalls = 0;
 
@@ -616,17 +789,9 @@ MRIS_HASH_TABLE *MHTcreateVertexTable_Resolution(MRI_SURFACE const *mris, int wh
   // Allocation and initialization
   //-----------------------------
 
-  MRIS_HASH_TABLE* mht = (MRIS_HASH_TABLE *)calloc(1, sizeof(MRIS_HASH_TABLE));
-  if (!mht) ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate hash table.\n", __MYFUNCTION__);
-  mht->mris = mris;
+  MRIS_HASH_TABLE* mht = newMHT(mris);
 
   mhtStoreFaceCentroids(mht, mris, which);
-
-  for (xv = 0; xv < TABLE_SIZE; xv++) {
-    for (yv = 0; yv < TABLE_SIZE; yv++) {
-      mht->buckets[xv][yv] = NULL;
-    }
-  }
 
   //--------------------------------------
   // Capture data from caller and surface
@@ -656,14 +821,16 @@ MRIS_HASH_TABLE *MHTcreateVertexTable_Resolution(MRI_SURFACE const *mris, int wh
     mx = -1;
     for (xv = 0; xv < TABLE_SIZE; xv++) {
       for (yv = 0; yv < TABLE_SIZE; yv++) {
+        if (!existsBuckets2(mht,xv,yv)) continue;
         for (zv = 0; zv < TABLE_SIZE; zv++) {
-          if (!mht->buckets[xv][yv] || !mht->buckets[xv][yv][zv]) continue;
-          bucket = mht->buckets[xv][yv][zv];
+          MHBT const *bucket = acqBucket(mht,xv,yv,zv);
+          if (!bucket) continue;
           if (bucket->nused) {
             mean += bucket->nused;
             n++;
           }
           if (bucket->nused > mx) mx = bucket->nused;
+          relBucketC(&bucket);
         }
       }
     }
@@ -671,13 +838,15 @@ MRIS_HASH_TABLE *MHTcreateVertexTable_Resolution(MRI_SURFACE const *mris, int wh
     var = 0.0;
     for (xv = 0; xv < TABLE_SIZE; xv++) {
       for (yv = 0; yv < TABLE_SIZE; yv++) {
-        if (!mht->buckets[xv][yv]) continue;
+        if (!existsBuckets2(mht,xv,yv)) continue;
         for (zv = 0; zv < TABLE_SIZE; zv++) {
-          bucket = mht->buckets[xv][yv][zv];
-          if (bucket && bucket->nused) {
+          MHBT const *bucket = acqBucket(mht,xv,yv,zv);
+          if (!bucket) continue;
+          if (bucket->nused) {
             v = mean - bucket->nused;
-            var += v * v;
+            var += v*v;
           }
+          relBucketC(&bucket);
         }
       }
     }
@@ -700,73 +869,51 @@ MRIS_HASH_TABLE *MHTcreateVertexTable_Resolution(MRI_SURFACE const *mris, int wh
   -------------------------------------------------------------*/
 static int mhtAddFaceOrVertexAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, int zv, int forvnum)
 {
-  //---------------------------------------
-  int i;
-  MHB *bin;
-  MHBT *bucket;
-
-  if (xv < 0) xv = 0;
-  if (xv >= TABLE_SIZE) xv = TABLE_SIZE - 1;
-  if (yv < 0) yv = 0;
-  if (yv >= TABLE_SIZE) yv = TABLE_SIZE - 1;
-  if (zv < 0) zv = 0;
-  if (zv >= TABLE_SIZE) zv = TABLE_SIZE - 1;
+  if (xv < 0) xv = 0;  if (xv >= TABLE_SIZE) xv = TABLE_SIZE - 1;
+  if (yv < 0) yv = 0;  if (yv >= TABLE_SIZE) yv = TABLE_SIZE - 1;
+  if (zv < 0) zv = 0;  if (zv >= TABLE_SIZE) zv = TABLE_SIZE - 1;
 
   // [GW] (removed xv,yv,zv check here, as it's impossible to trigger)
 
-  //-----------------------------------------------
-  // Allocate space if needed
-  //-----------------------------------------------
-  // 1. Allocate a 1-D array at buckets[xv][yv]
-  if (!mht->buckets[xv][yv]) {
-    mht->buckets[xv][yv] = (MHBT **)calloc(TABLE_SIZE, sizeof(MHBT *));
-    if (!mht->buckets[xv][yv]) ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate slice.", __MYFUNCTION__);
-  }
-  // 2. Allocate a bucket at buckets[xv][yv][zv]
-  bucket = mht->buckets[xv][yv][zv];
-  if (!bucket) {
-    mht->buckets[xv][yv][zv] = bucket = (MHBT *)calloc(1, sizeof(MHBT));
-    if (!bucket) ErrorExit(ERROR_NOMEMORY, "%s couldn't allocate bucket.\n", __MYFUNCTION__);
-  }
-  // 3. Allocate a bucket at buckets[xv][yv][zv]
-  if (!bucket->max_bins) /* nothing in this bucket yet - allocate bins */
   {
-    bucket->max_bins = 4;
-    bucket->bins = (MHB *)calloc(bucket->max_bins, sizeof(MHB));
-    if (!bucket->bins)
-      ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate %d bins.\n", __MYFUNCTION__, bucket->max_bins);
-  }
+    MHBT *bucket = makeAndAcqBucket(mht, xv, yv, zv);
 
-  //-------------------------------------------------------------
-  // If this forvnum already is listed in this bucket then
-  // nothing to do.
-  //-------------------------------------------------------------
-  bin = bucket->bins;
-  for (i = 0; i < bucket->nused; i++, bin++) {
-    if (bin->fno == forvnum) goto done;
-  }
+    //-------------------------------------------------------------
+    // If this forvnum already is listed in this bucket then
+    // nothing to do.
+    //-------------------------------------------------------------
+    MHB *bin = bucket->bins;
 
-  //-------------------------------------------------------------
-  // Add forvnum to this bucket
-  //-------------------------------------------------------------
-  if (i >= bucket->nused) /* forvnum not already listed at this bucket */
-  {
-    //------ Increase allocation if needed -------
-    if (bucket->nused >= bucket->max_bins) {
-      bin = bucket->bins;
-      bucket->max_bins *= 2;
-      bucket->bins = (MHB *)calloc(bucket->max_bins, sizeof(MHB));
-      if (!bucket->bins)
-        ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate %d bins.\n", __MYFUNCTION__, bucket->max_bins);
-      memmove(bucket->bins, bin, bucket->nused * sizeof(MHB));
-      free(bin);
-      bin = &bucket->bins[i];
+    int i;
+    for (i = 0; i < bucket->nused; i++, bin++) {
+      if (bin->fno == forvnum) goto done;
     }
-    //----- add this face-position to this bucket ------
-    bucket->nused++;
-    bin->fno = forvnum;
-  }
-done:
+
+    //-------------------------------------------------------------
+    // Add forvnum to this bucket
+    //-------------------------------------------------------------
+    if (i >= bucket->nused) /* forvnum not already listed at this bucket */
+    {
+      //------ Increase allocation if needed -------
+      if (bucket->nused >= bucket->max_bins) {
+        bin = bucket->bins;
+        bucket->max_bins *= 2;
+        bucket->bins = (MHB *)calloc(bucket->max_bins, sizeof(MHB));
+        if (!bucket->bins)
+          ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate %d bins.\n", __MYFUNCTION__, bucket->max_bins);
+        memmove(bucket->bins, bin, bucket->nused * sizeof(MHB));
+        free(bin);
+        bin = &bucket->bins[i];
+      }
+      //----- add this face-position to this bucket ------
+      bucket->nused++;
+      bin->fno = forvnum;
+    }
+
+  done:
+    relBucket(&bucket);
+  }  
+
   return (NO_ERROR);
 }
 
@@ -795,8 +942,6 @@ static int mhtRemoveFaceOrVertexAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, in
 {
   //---------------------------------------
   int i;
-  MHBT *bucket;
-  MHB *bin;
 
   if (xv < 0) xv = 0;
   if (xv >= TABLE_SIZE) xv = TABLE_SIZE - 1;
@@ -805,11 +950,12 @@ static int mhtRemoveFaceOrVertexAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, in
   if (zv < 0) zv = 0;
   if (zv >= TABLE_SIZE) zv = TABLE_SIZE - 1;
 
-  if (!mht->buckets[xv][yv]) return (NO_ERROR);  // no bucket at such coordinates
-  bucket = mht->buckets[xv][yv][zv];
+  if (!existsBuckets2(mht,xv,yv)) return (NO_ERROR);  // no bucket at such coordinates
+  
+  MHBT *bucket = acqBucket(mht,xv,yv,zv);
   if (!bucket) return (NO_ERROR);  // no bucket at such coordinates
 
-  bin = bucket->bins;
+  MHB *bin = bucket->bins;
   for (i = 0; i < bucket->nused; i++, bin++) {
     if (bin->fno == forvnum) /* found face */
       break;
@@ -826,6 +972,7 @@ static int mhtRemoveFaceOrVertexAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, in
       memmove(dst_bin, src_bin, nbytes);
     }
   }
+  relBucket(&bucket);
   return (NO_ERROR);
 }
 
@@ -842,8 +989,8 @@ static int mhtRemoveFaceOrVertexAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, in
   1. MUST be used with mht prepared for CURRENT_VERTICES
   ------------------------------------------------------*/
 int MHTisVectorFilled(
-    MRIS_HASH_TABLE   * const mht, 
-    MRI_SURFACE const * const mris, 
+    MRIS_HASH_TABLE const * const mht, 
+    MRI_SURFACE const     * const mris, 
     int   const vtxno, 
     float const dx, 
     float const dy, 
@@ -1012,7 +1159,7 @@ if (do_new) {
   which was previously hashed into mht using MHTcreateFaceTablexxx
   Returns 1 for "yes -- intersection detected", else NO_ERROR.
   -------------------------------------------------------------*/
-static int MHTdoesFaceIntersect_old(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno, int const trace)
+static int MHTdoesFaceIntersect_old(MRIS_HASH_TABLE const *mht, MRI_SURFACE const *mris, int fno, int const trace)
 {
   //------------------------------------------------------------
   VERTEX const *v0, *v1, *v2;
@@ -1059,7 +1206,7 @@ static int MHTdoesFaceIntersect_old(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mri
   return (retval);
 }
 
-static int MHTdoesFaceIntersect_new(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, int fno, int trace)
+static int MHTdoesFaceIntersect_new(MRIS_HASH_TABLE const * const mht, MRI_SURFACE const * const mris, int const fno, int const trace)
 {
   if (!mht ) ErrorExit(ERROR_BADPARM, "%s: mht is NULL\n",  __MYFUNCTION__);
   if (!mris) ErrorExit(ERROR_BADPARM, "%s: mris is NULL\n", __MYFUNCTION__);
@@ -1217,18 +1364,16 @@ static int MHTdoesTriangleIntersect(
   analyzed into voxlist.
   ------------------------------------------------------------------*/
 static int mhtDoesFaceVoxelListIntersect(
-    MRIS_HASH_TABLE *mht, 
-    MRI_SURFACE const *mris, 
-    VOXEL_LISTgw * const voxlist, 
-    int const fno, 
-    int const trace)
+    MRIS_HASH_TABLE const * const mht, 
+    MRI_SURFACE     const * const mris, 
+    VOXEL_LISTgw          * const voxlist, 
+    int                     const fno, 
+    int                     const trace)
 //------------------------------------------------------------------
 {
   int xv, yv, zv, intersect, voxnum;
   int binix, faceix, facetestno;
   int facelist[MHT_MAX_FACES], nfaces;
-  MHB *bin;
-  MHBT *bucket;
   FACE const *facein, *facetest;
   VERTEX const *avtx;
   double v0[3], v1[3], v2[3], u0[3], u1[3], u2[3];
@@ -1263,11 +1408,12 @@ static int mhtDoesFaceVoxelListIntersect(
     // succeed, given that the same info was just used to put xv,yv,zv
     // into voxlist as was used to put faces into mht buckets.
     //----------------------------------------------------------
-    if (!mht->buckets[xv][yv]) return (0);
-    bucket = mht->buckets[xv][yv][zv];
+    if (!existsBuckets2(mht,xv,yv)) return (0);
+
+    MHBT *bucket = acqBucket(mht,xv,yv,zv);
     if (!bucket) continue;
 
-    bin = bucket->bins;
+    MHB *bin = bucket->bins;
 
     //-------------------------------------------------
     // Following is one iteration per face
@@ -1335,6 +1481,8 @@ static int mhtDoesFaceVoxelListIntersect(
     skip_this_facetest:
       if (trace && reason) fprintf(stderr, "mhtDoesFaceVoxelListIntersect discard face:%d because %s\n", facetestno, reason);
     }                     // for binix
+
+    relBucket(&bucket);
   }                       // for voxnum
 
   //-----------------------------------------------------------------------
@@ -1427,9 +1575,9 @@ static int mhtDoesTriangleVoxelListIntersect(
     // succeed, given that the same info was just used to put xv,yv,zv
     // into voxlist as was used to put faces into mht buckets.
     //----------------------------------------------------------
-    if (!mht->buckets[xv][yv]) return (0);
+    if (!existsBuckets2(mht,xv,yv)) return (0);
     
-    MHBT const * const bucket = mht->buckets[xv][yv][zv];
+    MHBT const * bucket = acqBucket(mht,xv,yv,zv);
     if (!bucket) continue;
 
     // Consider all the faces that intersect this voxel
@@ -1469,6 +1617,7 @@ static int mhtDoesTriangleVoxelListIntersect(
 
     skip_this_face:;
     }                     // for binix
+    relBucketC(&bucket);
   }                       // for voxnum
 
   // Find the first face that intersects the triangle
@@ -1586,8 +1735,6 @@ int mhtfindClosestVertexGenericInBucket(MRIS_HASH_TABLE *mht,
   VERTEX *AVtx;
   int AVtxNum;
   double ADistSq;
-  MHB *bin;
-  MHBT *bucket;
   float tryx = 0.0, tryy = 0.0, tryz = 0.0;  // Added [2007-07-27 GW]
 
   //----------------------------------
@@ -1595,7 +1742,7 @@ int mhtfindClosestVertexGenericInBucket(MRIS_HASH_TABLE *mht,
 
   FindBucketsChecked_Count++;
 
-  bucket = MHTgetBucketAtVoxIx(mht, xv, yv, zv);
+  MHBT* bucket = MHTacqBucketAtVoxIx(mht, xv, yv, zv);
   if (!bucket) goto done;
 
   FindBucketsPresent_Count++;
@@ -1603,7 +1750,7 @@ int mhtfindClosestVertexGenericInBucket(MRIS_HASH_TABLE *mht,
   //-----------------------------------------
   // Iterate through vertices in this bucket
   //-----------------------------------------
-  bin = bucket->bins;
+  MHB *bin = bucket->bins;
   for (vtxix = 0; vtxix < bucket->nused; vtxix++, bin++) {
     AVtxNum = bin->fno;
 
@@ -1628,6 +1775,8 @@ int mhtfindClosestVertexGenericInBucket(MRIS_HASH_TABLE *mht,
       *MinDistVtx = AVtx;
     }  // if
   }    // for vtxix
+  
+  MHTrelBucket(&bucket);
 done:
   return rslt;
 }
@@ -1656,12 +1805,10 @@ int mhtfindClosestFaceCentroidGenericInBucket(MRIS_HASH_TABLE *mht,
 
   FindBucketsChecked_Count++;
 
-  MHBT *bucket = MHTgetBucketAtVoxIx(mht, xv, yv, zv);
+  MHBT *bucket = MHTacqBucketAtVoxIx(mht, xv, yv, zv);
   if (!bucket) goto done;
 
   FindBucketsPresent_Count++;
-
-  if (bucket == NULL && bucket->nused == 0) return (ERROR_BADPARM);
 
   //-----------------------------------------
   // Iterate through vertices in this bucket
@@ -1692,7 +1839,8 @@ int mhtfindClosestFaceCentroidGenericInBucket(MRIS_HASH_TABLE *mht,
       *MinDistFace    = face;
     }  // if
   }    // for faceix
-  
+
+  MHTrelBucket(&bucket);  
 done:
   return rslt;
 }
@@ -2867,7 +3015,7 @@ static void mhtVertex2array3_double(VERTEX const *vtx, int which, double *array3
 }
 
 /*-----------------------------------------------------------------*/
-MHBT *MHTgetBucket(MRIS_HASH_TABLE *mht, float x, float y, float z)
+MHBT *MHTacqBucket(MRIS_HASH_TABLE *mht, float x, float y, float z)
 {
   //-------------------------------------------------------------------
   int xv, yv, zv;
@@ -2876,23 +3024,13 @@ MHBT *MHTgetBucket(MRIS_HASH_TABLE *mht, float x, float y, float z)
   yv = WORLD_TO_VOXEL(mht, y);
   zv = WORLD_TO_VOXEL(mht, z);
 
-  return MHTgetBucketAtVoxIx(mht, xv, yv, zv);
+  return acqBucket(mht, xv, yv, zv);
 }
 
 /*-----------------------------------------------------------------*/
-MHBT *MHTgetBucketAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, int zv)
+MHBT *MHTacqBucketAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, int zv)
 {
-  //-------------------------------------------------------------------
-  MHBT *bucket;
-
-  if (xv >= TABLE_SIZE || yv >= TABLE_SIZE || zv >= TABLE_SIZE || xv < 0 || yv < 0 || zv < 0) return (NULL);
-
-  if (!mht) return (NULL);
-
-  if (!mht->buckets[xv][yv]) return (NULL);
-
-  bucket = mht->buckets[xv][yv][zv];
-  return (bucket);
+  return acqBucket(mht, xv, yv, zv);
 }
 
 /*------------------------------------------------
