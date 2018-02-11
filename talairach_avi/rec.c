@@ -243,11 +243,10 @@ int endrec (void) {
 }
 
 void get_time_usr (char *string) {
-	time_t		time_sec;
+
 	struct passwd	*pw;
 
-	time (&time_sec);
-	strcpy (string, ctime (&time_sec));
+	strcpy (string, current_date_time());
 	string[24] = '\0';
 	strcat (string, "  ");
 	pw = getpwuid(geteuid());

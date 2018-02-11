@@ -36,6 +36,7 @@
 #include "error.h"  // return codes
 #include "gifti_local.h"
 #include "nifti1.h"
+#include "timer.h"
 #include "utils.h"  // strcpyalloc
 
 /*
@@ -1238,32 +1239,12 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
  */
 static void insertCommonMetaData(giiMetaData *md)
 {
-#if 0
-#include <uuid/uuid.h>
-  uuid_t uuid;
-  char uuidstr[2048];
-  uuid_generate(uuid);
-  uuid_unparse(uuid, uuidstr);
-  gifti_add_to_meta( md, "UniqueID", uuidstr, 1 );
-#endif
-
   struct passwd *pw = getpwuid(geteuid());
   if ((pw != NULL) && (pw->pw_name != NULL)) {
     gifti_add_to_meta(md, "UserName", pw->pw_name, 1);
   }
 
-  time_t tyme = time(NULL);
-  struct tm *lt = localtime(&tyme);
-  char *date = asctime(lt);
-  char *chr = strchr(date, '\r');
-  if (chr) {
-    *chr = 0;  // remove carriage return
-  }
-  chr = strchr(date, '\n');
-  if (chr) {
-    *chr = 0;  // remove linefeed
-  }
-  gifti_add_to_meta(md, "Date", date, 1);
+  gifti_add_to_meta(md, "Date", current_date_time(), 1);
 }
 
 /*-------------------------------------------------------------------------

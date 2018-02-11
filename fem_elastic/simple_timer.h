@@ -8,11 +8,6 @@ simple timer class - basic time measurements
 #ifndef _h_simple_timer_h
 #define _h_simple_timer_h
 
-//
-// the following seems to be measuring CPU time
-//     not the actual elapsed time
-//
-//#include <ctime>
 
 // use FS timer
 extern "C"

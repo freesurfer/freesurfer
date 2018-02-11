@@ -51,6 +51,7 @@
 #include "registerio.h"
 #include "resample.h"
 #include "talairachex.h"
+#include "timer.h"
 
 extern const char *Progname;
 
@@ -584,8 +585,7 @@ int LTAwrite(LTA *lta, const char *fname)
 #if 0
 
   FILE             *fp;
-  time_t           tt ;
-  char             *user, *time_str ;
+  char             *user;
   LINEAR_TRANSFORM *lt ;
   int              i ;
   char             ext[STRLEN] ;
@@ -602,10 +602,8 @@ int LTAwrite(LTA *lta, const char *fname)
     user = getenv("LOGNAME") ;
   if (!user)
     user = "UNKNOWN" ;
-  tt = time(&tt) ;
-  time_str = ctime(&tt) ;
   fprintf(fp, "# transform file %s\n# created by %s on %s\n",
-          fname, user, time_str) ;
+          fname, user, current_date_time()) ;
   fprintf(fp, "type      = %d ", lta->type) ;
   if(lta->type == LINEAR_VOX_TO_VOX) fprintf(fp, "# LINEAR_VOX_TO_VOX");
   if(lta->type == LINEAR_RAS_TO_RAS) fprintf(fp, "# LINEAR_RAS_TO_RAS");
@@ -3340,8 +3338,7 @@ int  // (NOT TRUE ANYMORE: OK means 1, BAD means 0 )  use standard ERROR returns
 LTAwriteEx(const LTA *lta, const char *fname)
 {
   FILE *fp;
-  time_t tt;
-  char *user, *time_str;
+  char *user;
   char ext[STRLEN];
 
   if (!stricmp(FileNameExtension((char *)fname, ext), "XFM") || lta->type == MNI_TRANSFORM_TYPE) {
@@ -3372,9 +3369,7 @@ LTAwriteEx(const LTA *lta, const char *fname)
   user = getenv("USER");
   if (!user) user = getenv("LOGNAME");
   if (!user) user = "UNKNOWN";
-  tt = time(&tt);
-  time_str = ctime(&tt);
-  fprintf(fp, "# transform file %s\n# created by %s on %s\n", fname, user, time_str);
+  fprintf(fp, "# transform file %s\n# created by %s on %s\n", fname, user, current_date_time());
   LTAprint(fp, lta);
   fclose(fp);
 
