@@ -590,50 +590,98 @@ endif
 echo "########################################" >> $LF
 echo "program versions used" >> $LF
 echo $VERSION                >> $LF
+set allinfocmds = (\
+	lta_convert \
+	mri_and \
+	mri_annotation2label \
+	mri_aparc2aseg \
+	mri_aparc2wmseg \
+	mri_binarize \
+	mri_ca_label \
+	mri_ca_normalize \
+	mri_ca_register \
+	mri_cc \
+	mri_compute_overlap \
+	mri_compute_seg_overlap \
+	mri_concat \
+	mri_concatenate_lta \
+	mri_convert \
+	mri_diff \
+	mri_edit_wm_with_aseg \
+	mri_em_register \
+	mri_fill \
+	mri_fuse_segmentations \
+	mri_fwhm \
+	mri_gcut \
+	mri_info \
+	mri_label2label \
+	mri_label2vol \
+	mri_log_likelihood \
+	mri_mask \
+	mri_matrix_multiply \
+	mri_normalize \
+	mri_normalize_tp2 \
+  mri_or \
+	mri_relabel_hypointensities \
+	mri_relabel_nonwm_hypos \
+	mri_remove_neck \
+	mri_robust_register \
+	mri_robust_template \
+	mris_anatomical_stats \
+	mris_ca_label \
+	mris_calc \
+	mris_convert \
+	mris_curvature \
+	mris_curvature_stats \
+	mris_diff \
+	mris_divide_parcellation \
+	mri_segment \
+	mri_segstats \
+	mris_euler_number \
+	mris_fix_topology \
+	mris_topo_fixer \
+	mris_jacobian \
+	mris_label2annot \
+	mris_left_right_register \
+	mris_make_surfaces \
+	mrisp_paint \
+	mris_register \
+	mris_smooth \
+	mris_sphere \
+	mris_surface_stats \
+	mri_stats2seg \
+	mris_thickness \
+	mris_thickness_diff \
+	mris_topo_fixer \
+	mri_surf2surf \
+	mri_surf2vol \
+	mri_surfcluster \
+	mris_volmask \
+	mri_tessellate \
+	mri_vol2surf \
+	mri_vol2vol \
+	mri_voldiff \
+	mri_watershed \
+  tkregister2_cmdl \
+)
+# Note: these commands do not properly support -all-info and should be fixed:
+# 	mri_add_xform_to_header mri_mc 	mri_deface mris_inflate 	talairach_afd
+# 	mris_info 	talairach_avi
+foreach cmd ($allinfocmds)
+  $cmd -all-info >> $LF
+  if($status) then
+    echo "ERROR: Executable '${cmd} -all-info failed! Is it missing from the distribution?'" |& tee -a $LF
+    exit 1;
+  endif
+end
 mri_motion_correct.fsl -version >> $LF
 if (-e $FREESURFER_HOME/bin/flirt.fsl) flirt.fsl -version >> $LF
-talairach_avi --version >> $LF
-tkregister2_cmdl --all-info >> $LF
 nu_correct -version >> $LF
-mri_make_uchar -all-info >> $LF
-mri_normalize -all-info >> $LF
-mri_watershed -all-info >> $LF
-mri_gcut -all-info >> $LF
-mri_segment -all-info >> $LF
-mri_label2label -all-info >> $LF
-mri_em_register -all-info >> $LF
-mri_ca_normalize -all-info >> $LF
-mri_ca_register -all-info >> $LF
-mri_ca_label -all-info >> $LF
-mri_pretess -all-info >> $LF
-mri_fill -all-info >> $LF
-mri_tessellate -all-info >> $LF
-mri_concatenate_lta -all-info >> $LF
-mri_normalize_tp2 -all-info >> $LF
-mris_smooth -all-info >> $LF
-mris_inflate -all-info >> $LF
-mris_curvature -all-info >> $LF
-mris_sphere -all-info >> $LF
-mris_fix_topology -all-info >> $LF
-mris_topo_fixer -all-info >> $LF
-mris_ca_label -all-info >> $LF
-mris_euler_number -all-info >> $LF
-mris_make_surfaces -all-info >> $LF
-mris_register -all-info >> $LF
-mris_volmask --all-info >> $LF
-mris_anatomical_stats -all-info >> $LF
-mrisp_paint -all-info >> $LF
-mris_curvature_stats -all-info >> $LF
+
+# clean-up droppings
 if(-e .xdebug_mris_curvature_stats) rm -f .xdebug_mris_curvature_stats
-mris_calc -all-info >> $LF
 if(-e .xdebug_mris_calc) rm -f .xdebug_mris_calc
-mri_robust_register -all-info >> $LF
-mri_robust_template -all-info >> $LF
-mri_and -all-info >> $LF
-mri_or -all-info >> $LF
-mri_fuse_segmentations -all-info >> $LF
-mri_segstats -all-info >> $LF
-mri_relabel_hypointensities -all-info >> $LF
+
 
 echo "#######################################" >> $LF
 echo "GCADIR $GCADIR" >> $LF

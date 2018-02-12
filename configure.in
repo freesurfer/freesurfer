@@ -737,7 +737,7 @@ AC_ARG_ENABLE(gl-apps,
   yes)  build_gl_apps=yes ;;
   no)   build_gl_apps=no  ;;
   *) AC_MSG_ERROR([bad value ${enableval} for --enable-gl-apps]) ;;
-  esac]
+  esac
  ])
 ################################################################
 # Mac 64-bit 32-bit concerns
