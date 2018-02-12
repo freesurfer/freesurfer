@@ -1494,6 +1494,9 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
   }
   MRIcopyHeader(mri_dst, mri_shell);
 
+  MRIS_SurfRAS2VoxelCache* map = MRIS_makeRAS2VoxelCache(mri_dst, mris);
+  MRIS_loadRAS2VoxelCache(map, mri_dst, mris);
+    
   /* Create a "watertight" shell of the surface by filling each face in MRI volume */
   for (fno = 0; fno < mris->nfaces; fno++) {
     f = &mris->faces[fno];
@@ -1534,8 +1537,10 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
         px = px0 + (px1 - px0) * (double)u / (double)numu;
         py = py0 + (py1 - py0) * (double)u / (double)numu;
         pz = pz0 + (pz1 - pz0) * (double)u / (double)numu;
-        MRISsurfaceRASToVoxelCached(mris, mri_dst, px, py, pz, &fcol, &frow, &fslc);
-        if (vox2sras == NULL) vox2sras = MatrixInverse(mris->m_sras2vox, NULL);
+        
+        MRIS_useRAS2VoxelCache(map, mri_dst, px, py, pz, &fcol, &frow, &fslc);
+        if (vox2sras == NULL) vox2sras = MatrixInverse(map->sras2vox, NULL);
+ 
         col = nint(fcol);
         row = nint(frow);
         slc = nint(fslc);
@@ -1571,6 +1576,7 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
     }
   }
   // printf("  shell done  t = %g\n",TimerStop(&start)/1000.0) ;
+  MRIS_freeRAS2VoxelCache(&map);
   MatrixFree(&crs);
   MatrixFree(&xyz);
   MRIfree(&mri_vlen);
