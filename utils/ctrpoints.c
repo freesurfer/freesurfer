@@ -34,6 +34,7 @@
 #include "mri.h"
 #include "proto.h"
 #include "transform.h"
+#include "timer.h"
 #include "utils.h"  //  fgetl
 
 extern char *cuserid(char *);
@@ -134,7 +135,6 @@ int MRIwriteControlPoints(const MPoint *pointArray, int count, int useRealRAS, c
   FILE *fp;
   int i;
   int res;
-  time_t time;
 
   if (Gdiag & DIAG_SHOW) fprintf(stderr, "Writing control points to %s...\n", fname);
 
@@ -164,7 +164,7 @@ int MRIwriteControlPoints(const MPoint *pointArray, int count, int useRealRAS, c
   res = fprintf(fp, "info\n");
   res = fprintf(fp, "numpoints %d\n", count);
   res = fprintf(fp, "useRealRAS %d\n", useRealRAS);
-  res = fprintf(fp, "written by %s on %s\n", cuserid(0), asctime(localtime(&time)));
+  res = fprintf(fp, "written by %s on %s\n", cuserid(0), current_date_time());
   res = fclose(fp);
 
   return (NO_ERROR);

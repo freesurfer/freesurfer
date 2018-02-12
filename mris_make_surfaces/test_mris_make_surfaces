@@ -7,10 +7,11 @@ if ( $?SKIP_MRIS_MAKE_SURFACES_TEST ) then
 endif
 
 
-foreach threads ( 8 )
+foreach threads ( 4 )
 
   # extract testing data
 
+  rm -rf testdata
   gunzip -c testdata.tar.gz | tar xvf -
 
   cd testdata
@@ -20,7 +21,8 @@ foreach threads ( 8 )
   setenv OMP_NUM_THREADS $threads
   echo "testing with $threads thread(s)"
 
-
+  setenv FREESURFER_REPLACEMENT_FOR_CREATION_TIME_STRING "Sun Jan 11 11:11:11 ZONE 2011"
+  
   # ---- TEST 1 ----
 
   # run mris_make_surfaces using typical input
@@ -99,7 +101,7 @@ foreach threads ( 8 )
   # cleanup
 
   cd ..
-  rm -rf testdata
+  # rm -rf testdata
 
   end
 

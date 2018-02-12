@@ -43,6 +43,7 @@
 #include "machine.h"
 #include "macros.h"
 #include "proto.h"
+#include "timer.h"
 #include "utils.h"
 
 /*-----------------------------------------------------------------
@@ -381,8 +382,7 @@ int BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[], char 
 {
   FILE *fp = NULL;
   int i;
-  char *user, *time_str;
-  time_t tt;
+  char *user;
   BPFILE_HEADER hd;
   long fpos;
 
@@ -451,9 +451,7 @@ int BackpropWrite(BACKPROP *backprop, char *fname, int argc, char *argv[], char 
   if (!user) user = getenv("LOGNAME");
   if (!user) user = "UNKNOWN";
 
-  tt = time(&tt);
-  time_str = ctime(&tt);
-  fprintf(fp, "\ncreated by %s on %s\n", user, time_str);
+  fprintf(fp, "\ncreated by %s on %s\n", user, current_date_time());
   for (i = 0; i < argc; i++) fprintf(fp, "%s ", argv[i]);
   fprintf(fp, "\n");
   if (comments) fprintf(fp, "%s\n", comments);

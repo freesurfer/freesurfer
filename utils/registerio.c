@@ -31,6 +31,7 @@
 #include "macros.h"  // FEQUAL
 #include "proto.h"   // nint
 #include "resample.h"
+#include "timer.h"
 
 extern const char *Progname;
 
@@ -333,7 +334,6 @@ int regio_write_mincxfm(const char *xfmfile, const MATRIX *R, const char *filein
 {
   FILE *fp;
   int r, c;
-  time_t time_now;
 
   fp = fopen(xfmfile, "w");
   if (fp == NULL) {
@@ -344,8 +344,7 @@ int regio_write_mincxfm(const char *xfmfile, const MATRIX *R, const char *filein
   fprintf(fp, "MNI Transform File\n");
   if (fileinfo) fprintf(fp, "%% %s\n", fileinfo);
   fprintf(fp, "%% This file was created by %s\n", Progname);
-  time(&time_now);
-  fprintf(fp, "%% %s\n", ctime(&time_now));
+  fprintf(fp, "%% %s\n", current_date_time());
   fprintf(fp, "\n");
   fprintf(fp, "Transform_Type = Linear;\n");
   fprintf(fp, "Linear_Transform =\n");
