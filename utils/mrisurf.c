@@ -49302,7 +49302,18 @@ typedef struct
   int vno1, vno2;
 } INTERSECTION_TABLE, IT;
 
+static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DVS *dvs, DP *dp);
+
 static int retessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DVS *dvs, DP *dp)
+{
+    int result;
+    ROMP_PF_begin
+    result =  retessellateDefect_wkr(mris, mris_corrected, dvs, dp);
+    ROMP_PF_end
+    return result;
+}
+
+static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DVS *dvs, DP *dp)
 {
   double max_len;
   int i, j, max_i, max_added, nadded, index, ndiscarded;
@@ -58875,6 +58886,9 @@ static int mrisTessellateDefect_wkr(MRI_SURFACE *mris,
   /*generate an initial ordering*/
   int *ordering = NULL;
 
+
+  ROMP_PF_begin
+  
   /* first build table of all possible edges among vertices in the defect
      and on its border.
   */
@@ -58916,6 +58930,8 @@ static int mrisTessellateDefect_wkr(MRI_SURFACE *mris,
               "could not allocate %d edges for retessellation",
               nedges);
 
+  ROMP_PF_end
+  
   n = 0;
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
@@ -59133,6 +59149,7 @@ static int mrisTessellateDefect_wkr(MRI_SURFACE *mris,
   }
   ROMP_PF_end
 
+  ROMP_PF_begin
   /* find and discard all edges that intersect one that is already in the
      tessellation.
   */
@@ -59157,6 +59174,8 @@ static int mrisTessellateDefect_wkr(MRI_SURFACE *mris,
       }
     }
   }
+  ROMP_PF_end
+  
 
   if (DIAG_VERBOSE_ON) fprintf(WHICH_OUTPUT, "%d of %d overlapping edges discarded\n", ndiscarded, nedges);
 
@@ -59168,6 +59187,8 @@ static int mrisTessellateDefect_wkr(MRI_SURFACE *mris,
     return (NO_ERROR);
   }
 
+  ROMP_PF_begin
+  
 #if 0
   //modify initial ordering, just for fun...
   {
@@ -59218,8 +59239,11 @@ static int mrisTessellateDefect_wkr(MRI_SURFACE *mris,
     parms->search_mode = RANDOM_SEARCH;
   }
 
+  ROMP_PF_end
+  
   switch (parms->search_mode) {
     case GENETIC_SEARCH:
+      ROMP_PF_begin
       mrisComputeOptimalRetessellation(mris,
                                        mris_corrected,
                                        mri,
@@ -59239,8 +59263,10 @@ static int mrisTessellateDefect_wkr(MRI_SURFACE *mris,
                                        mri_gray_white,
                                        h_dot,
                                        parms);
+      ROMP_PF_end
       break;
     case RANDOM_SEARCH:
+      ROMP_PF_begin
       mrisComputeRandomRetessellation(mris,
                                       mris_corrected,
                                       mri,
@@ -59260,19 +59286,25 @@ static int mrisTessellateDefect_wkr(MRI_SURFACE *mris,
                                       mri_gray_white,
                                       h_dot,
                                       parms);
+      ROMP_PF_end
       break;
     default:
+      ROMP_PF_begin
       parms->search_mode = GREEDY_SEARCH;
       mrisRetessellateDefect(mris, mris_corrected, defect, vertex_trans, et, nedges, ordering, NULL);
+      ROMP_PF_end
       break;
   }
 
+  ROMP_PF_begin
   free(es);
   if (ordering) {
     free(ordering);
   }
   free(et);
   defect_no++; /* for diagnostics */
+  ROMP_PF_end
+  
   return (NO_ERROR);
 }
 
@@ -59808,7 +59840,92 @@ static float fitness_values[11000];
 static float best_values[11000];
 #endif
 
+static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
+                                            MRI_SURFACE *mris_corrected,
+                                            MRI *mri,
+                                            DEFECT *defect,
+                                            int *vertex_trans,
+                                            EDGE *et,
+                                            int nedges,
+                                            ES *es,
+                                            int nes,
+                                            HISTOGRAM *h_k1,
+                                            HISTOGRAM *h_k2,
+                                            MRI *mri_k1_k2,
+                                            HISTOGRAM *h_white,
+                                            HISTOGRAM *h_gray,
+                                            HISTOGRAM *h_border,
+                                            HISTOGRAM *h_grad,
+                                            MRI *mri_gray_white,
+                                            HISTOGRAM *h_dot,
+                                            TOPOLOGY_PARMS *parms);
+
+static int (* volatile mrisComputeOptimalRetessellation_wkr_noinline)(MRI_SURFACE *mris,
+                                            MRI_SURFACE *mris_corrected,
+                                            MRI *mri,
+                                            DEFECT *defect,
+                                            int *vertex_trans,
+                                            EDGE *et,
+                                            int nedges,
+                                            ES *es,
+                                            int nes,
+                                            HISTOGRAM *h_k1,
+                                            HISTOGRAM *h_k2,
+                                            MRI *mri_k1_k2,
+                                            HISTOGRAM *h_white,
+                                            HISTOGRAM *h_gray,
+                                            HISTOGRAM *h_border,
+                                            HISTOGRAM *h_grad,
+                                            MRI *mri_gray_white,
+                                            HISTOGRAM *h_dot,
+                                            TOPOLOGY_PARMS *parms) = mrisComputeOptimalRetessellation_wkr;
+
 static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
+                                            MRI_SURFACE *mris_corrected,
+                                            MRI *mri,
+                                            DEFECT *defect,
+                                            int *vertex_trans,
+                                            EDGE *et,
+                                            int nedges,
+                                            ES *es,
+                                            int nes,
+                                            HISTOGRAM *h_k1,
+                                            HISTOGRAM *h_k2,
+                                            MRI *mri_k1_k2,
+                                            HISTOGRAM *h_white,
+                                            HISTOGRAM *h_gray,
+                                            HISTOGRAM *h_border,
+                                            HISTOGRAM *h_grad,
+                                            MRI *mri_gray_white,
+                                            HISTOGRAM *h_dot,
+                                            TOPOLOGY_PARMS *parms)
+{
+    int result;
+    ROMP_PF_begin
+    result = (*mrisComputeOptimalRetessellation_wkr_noinline)(mris,
+                                            mris_corrected,
+                                            mri,
+                                            defect,
+                                            vertex_trans,
+                                            et,
+                                            nedges,
+                                            es,
+                                            nes,
+                                            h_k1,
+                                            h_k2,
+                                            mri_k1_k2,
+                                            h_white,
+                                            h_gray,
+                                            h_border,
+                                            h_grad,
+                                            mri_gray_white,
+                                            h_dot,
+                                            parms);
+    ROMP_PF_end
+    return result;
+}
+
+static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
                                             MRI_SURFACE *mris_corrected,
                                             MRI *mri,
                                             DEFECT *defect,

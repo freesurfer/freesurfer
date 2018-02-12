@@ -77,7 +77,7 @@
 #endif
 #endif
   	for (ROMP_index = 0; ROMP_index < ROMP_distributor.partialSize; ROMP_index++) {
-            ROMP_PFLB_begin
+            ROMP_PF_begin
             
             // Serial iteration reproducing each partial sum
             //

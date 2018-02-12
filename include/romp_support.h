@@ -24,7 +24,7 @@
 
 #pragma once
 
-//#define ROMP_SUPPORT_ENABLED
+#define ROMP_SUPPORT_ENABLED
 
 #ifdef HAVE_OPENMP
 #include <omp.h>
@@ -87,17 +87,12 @@ typedef struct ROMP_pf_static_struct {
     unsigned int    line; 
 } ROMP_pf_static_struct;
 
-int ROMP_if_parallel1(ROMP_level);
-int ROMP_if_parallel2(ROMP_level, ROMP_pf_static_struct*);
-
- 
 typedef struct ROMP_pf_stack_struct  { 
     struct ROMP_pf_static_struct * staticInfo; 
     NanosecsTimer beginTime;
     Nanosecs      watchedThreadBeginCPUTimes[ROMP_maxWatchedThreadNum];
-    int 	  tids_active;
-    int 	  skip_pflb_timing;
-    ROMP_level    saved_ROMP_level;
+    int 	  gone_parallel;
+    ROMP_level    entry_level;
 } ROMP_pf_stack_struct;
 
 #define ROMP_main ROMP_main_started(__FILE__, __LINE__);
@@ -108,6 +103,9 @@ void ROMP_pf_begin(
     ROMP_pf_static_struct * pf_static,
     ROMP_pf_stack_struct  * pf_stack);
 
+int ROMP_if_parallel1(ROMP_level);
+int ROMP_if_parallel2(ROMP_level, ROMP_pf_stack_struct*);
+ 
 void ROMP_pf_end(
     ROMP_pf_stack_struct  * pf_stack);
 
@@ -151,7 +149,7 @@ typedef struct ROMP_pflb_stack_struct {
 
 #define if_ROMPLEVEL(LEVEL) \
     if (ROMP_pf_stack.staticInfo && \
-        (ROMP_if_parallel2(LEVEL,&ROMP_pf_static))) \
+        (ROMP_if_parallel2(LEVEL,&ROMP_pf_stack))) \
     // end of macro
 
 #define if_ROMP(LEVEL) if_ROMPLEVEL(ROMP_level_##LEVEL)
@@ -159,7 +157,7 @@ typedef struct ROMP_pflb_stack_struct {
 #define if_ROMP2(CONDITION, LEVEL) \
     if ((CONDITION) && \
         ROMP_pf_stack.staticInfo && \
-        (ROMP_if_parallel2(ROMP_level_##LEVEL,&ROMP_pf_static))) \
+        (ROMP_if_parallel2(ROMP_level_##LEVEL,&ROMP_pf_stack))) \
     // end of macro
 
 #define ROMP_PF_begin \
