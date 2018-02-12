@@ -1016,7 +1016,7 @@ AC_ARG_ENABLE(fermi-gpu,
 AM_CONDITIONAL(HAVE_FERMI_GPU, test "x$ac_have_fermi_gpu" = "xyes")
 
 # setup nvcc flags (default is for tesla-class, --enable-fermi-gpu overrides)
-NVIDIA_ARCH="sm_11"
+NVIDIA_ARCH="sm_52"
 if test x$ac_have_fermi_gpu = xyes
 then
   NVIDIA_ARCH="sm_20"
@@ -2941,7 +2941,9 @@ if test "$itk_apps" = "yes"; then
     $ac_itk_libraries/libitkv3p_netlib-5.0.a \
     $ac_itk_libraries/libitkzlib-5.0.a \
     $ac_itk_libraries/libitkopenjpeg-5.0.a \
-    $ac_itk_libraries/libITKDICOMParser-5.0.a"
+    $ac_itk_libraries/libITKDICOMParser-5.0.a\
+    $ac_itk_libraries/libITKTransform-5.0.a"
+    ITK_CFLAGS+=" -DHAVE_ITK50"
   fi
 
   # ITK 4.5 uses these:

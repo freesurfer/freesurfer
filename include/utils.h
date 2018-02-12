@@ -59,8 +59,10 @@ void   fComplementCode(double *pdIn, double *pdOut, int iLen) ;
 #ifndef _HOME_
 char *fgetl(char *s, int n, FILE *fp) ;
 #endif
+#ifndef HAVE_ITK50
 #ifndef isfinite 
 #define isfinite(x) (finite(x))
+#endif
 #endif
 
 int  IntSqrt(int n) ;

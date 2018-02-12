@@ -75,7 +75,12 @@ protected:
     EVA = 10,
   };
 
+  #if __cplusplus <= 199711L
   static const double SMALL_EIGENVALUE = 1e-8;
+  #else
+  static constexpr double SMALL_EIGENVALUE = 1e-8;
+  #endif
+
 
 private:
   vtkFDTensorGlyph(const vtkFDTensorGlyph&);  // Not implemented.

@@ -155,7 +155,7 @@ Preprocessor::convertPointSetToBinaryImage(PointSetPointer pointSet)
   FilterType::Pointer filter = FilterType::New();
 
   // compute the bounding box of the pointSet
-#ifdef HAVE_ITK45
+#if defined(HAVE_ITK45) || defined(HAVE_ITK50)
   typedef itk::BoundingBox<itk::IdentifierType, Dimension, float> BoundingBoxType;
   BoundingBoxType::Pointer boundingBox = BoundingBoxType::New();
   boundingBox->SetPoints(pointSet->GetPoints());
