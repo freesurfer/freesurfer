@@ -5826,6 +5826,8 @@ static int count_diagonals(MRI *mri, int x0, int y0, int z0) ;
 static int count_voxel_diagonals(MRI *mri, int x0, int y0, int z0) ;
 static int fillDiagonals(MRI *mri, int fillval) ;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
 static int
 MRIfillDegenerateLocations(MRI *mri, int fillval)
 {
@@ -5842,6 +5844,7 @@ MRIfillDegenerateLocations(MRI *mri, int fillval)
 
   return(NO_ERROR) ;
 }
+#pragma GCC diagnostic pop
 
 static int
 fillDiagonals(MRI *mri, int fillval)
