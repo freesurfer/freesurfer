@@ -30,6 +30,13 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+
+// removes implicit declaration
+#ifdef __APPLE__
+int pthread_getcpuclockid(pthread_t thread_id, clockid_t *clock_id);
+#endif
+
+
 // measurement is showing there is only a few percent difference in timing
 // between fast and assume_reproducible
 // so make the later the default 

@@ -57,6 +57,7 @@
 #include "mri2.h"
 #include "path.h"
 #include "fsenv.h"
+#include "mrishash_internals.h"
 
 #define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
 

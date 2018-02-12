@@ -3940,7 +3940,9 @@ static int MRIScomputeNormals_new(MRI_SURFACE *mris)
     if (f->ripflag) {
       int n;
       for (n = 0; n < VERTICES_PER_FACE; n++) {
+#ifdef HAVE_OPENMP
         #pragma omp critical
+#endif
         {
           mris->vertices[f->v[n]].border = TRUE;
         }
@@ -4052,8 +4054,9 @@ static int MRIScomputeNormals_new(MRI_SURFACE *mris)
         
         ROMP_PFLB_continue;
       }
-      
+#ifdef HAVE_OPENMP
       #pragma omp critical                              // Retry after various adjustments below
+#endif
       {
         nextPending[nextPendingSize++] = k;
       }
@@ -11467,8 +11470,8 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
 
 /* calculate the "area" of the vertices */
   int vno;
-#ifdef HAVE_OPENMP
   ROMP_PF_begin		// mris_fix_topology
+#ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(shown_reproducible)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {

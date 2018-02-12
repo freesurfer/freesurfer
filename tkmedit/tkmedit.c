@@ -5917,7 +5917,6 @@ int main ( int argc, char** argv ) {
   char*      pEnvVar                           = NULL;
   FILE*      pFile                             = NULL ;
   int        nArg                              = 0;
-  time_t     theTime;
   char       sSubjectName[tkm_knNameLen]       = "";
 
   if (getenv("TKMEDIT_FONT_SIZE") != NULL)
@@ -5954,8 +5953,7 @@ int main ( int argc, char** argv ) {
   gm_ras2screen = MatrixInverse(gm_screen2ras, NULL) ;
 
   /* write the time started, progam name, and arguments to the debug output */
-  time( &theTime );
-  DebugPrint( ( "tkmedit started: %s\n\t", ctime( &theTime ) ) );
+  DebugPrint( ( "tkmedit started: %s\n\t", current_date_time() ) );
   for ( nArg = 0; nArg < argc; nArg++ ) {
     DebugPrint( ( "%s ", argv[nArg] ) );
   }

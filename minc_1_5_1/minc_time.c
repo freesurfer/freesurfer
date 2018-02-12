@@ -58,6 +58,8 @@
 #define CLK_TCK CLOCKS_PER_SEC
 #endif
 
+#include "timer.h"
+
 #ifndef lint
 //static char rcsid[] = "$Header: /private-cvsroot/minc/volume_io/Prog_utils/time.c,v 1.21.2.3 2005/07/13 19:59:19 bert Exp $";
 #endif
@@ -254,16 +256,7 @@ void  print_time(
 
 char* get_clock_time( void )
 {
-    time_t clock_time;
-
-    (void) time( &clock_time );
-
-    struct tm *time_tm  = localtime( &clock_time );
-
-    char* str = (char*)malloc(27);
-    asctime_r( time_tm, str );
-
-    return( str );
+    return( strdup(current_date_time()) );
 }
 
 /* ----------------------------- MNI Header -----------------------------------
@@ -306,18 +299,9 @@ void sleep_program( double seconds )
 @MODIFIED   : 
 ---------------------------------------------------------------------------- */
 
-const char* get_date() {
-
-    time_t currentTime;
-    time( &currentTime );
-
-    struct tm  localtimeBuffer;
-    struct tm* localTime = localtime_r(&currentTime, &localtimeBuffer);
-
-    char   asctimeBuffer[32];
-    char * ascTime = asctime_r(localTime, asctimeBuffer);
-
-    return strdup(ascTime);
+const char* get_date() 
+{
+    return strdup(current_date_time());
 }
 
 

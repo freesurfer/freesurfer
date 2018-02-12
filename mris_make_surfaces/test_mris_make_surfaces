@@ -23,7 +23,8 @@ foreach threads ( 4 8 )
   setenv OMP_NUM_THREADS $threads
   echo "testing with $threads thread(s)"
 
-
+  setenv FREESURFER_REPLACEMENT_FOR_CREATION_TIME_STRING "Sun Jan 11 11:11:11 ZONE 2011"
+  
   # ---- TEST 1 ----
 
   # run mris_make_surfaces using typical input
@@ -109,6 +110,7 @@ foreach threads ( 4 8 )
   # cleanup
 
   cd ..
+
   # leave the files for making a replacement .tar.gz
   #     rm -rf testdata
 

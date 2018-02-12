@@ -230,25 +230,29 @@ if test "x$F77" = "x"; then
 fi
 
 # check for gcc 4.4 and higher which supports openmp.
+ac_have_gcc="no"
 ac_have_gcc_44_or_higher="no"
 ac_have_gcc_48_or_higher="no"
 ac_have_gcc_50_or_higher="no"
-if (test "${CC}" = "gcc"); then
+${CC} --version | grep "gcc" >& /dev/null
+if test "$?" = "0"; then
+  ac_have_gcc="yes"
+  AC_MSG_NOTICE(Have gcc)
   # gcc4.4
-  gcc --version | grep " 4\.@<:@4-9@:>@" >& /dev/null
+  ${CC} --version | grep " 4\.@<:@4-9@:>@" >& /dev/null
   if test "$?" = "0"; then
     AC_MSG_NOTICE(Have gcc 4.x where x >= 4)
     ac_have_gcc_44_or_higher="yes"
   fi
   # gcc4.8
-  gcc --version | grep " 4\.@<:@8-9@:>@" >& /dev/null
+  ${CC} --version | grep " 4\.@<:@8-9@:>@" >& /dev/null
   if test "$?" = "0"; then
     AC_MSG_NOTICE(Have gcc 4.x where x >= 8)
     ac_have_gcc_44_or_higher="yes"
     ac_have_gcc_48_or_higher="yes"
   fi
   # gcc5.0
-  gcc --version | grep " @<:@5-9@:>@." >& /dev/null
+  ${CC} --version | grep " @<:@5-9@:>@." >& /dev/null
   if test "$?" = "0"; then
     AC_MSG_NOTICE(Have gcc x where x >= 5)
     ac_have_gcc_44_or_higher="yes"
@@ -274,21 +278,17 @@ if test ! `uname -s` = "Darwin"; then
 fi
 
 if test `uname -s` = "Darwin"; then
+  if test -e "/usr/local/bin/glibtool" ; then
+    # brew installs here
+    AC_MSG_NOTICE(Copying /usr/local/bin/glibtool overtop the PROG_LIBTOOL)
+    cp /usr/local/bin/glibtool ./libtool
+  elif test -e "/opt/local/bin/glibtool" ; then
+    # port installs here
     AC_MSG_NOTICE(Copying /opt/local/bin/glibtool overtop the PROG_LIBTOOL)
     cp /opt/local/bin/glibtool ./libtool
+  fi
 fi
 
-# Temporary fix until I can get all version of OSX building
-#if (test `uname -n` = "gust.nmr.mgh.harvard.edu"); then
-#    AC_MSG_NOTICE(Copying /usr/pubsw/packages/autotools/bin/libtool overtop the PROG_LIBTOOL)
-#    cp /usr/pubsw/packages/autotools/bin/libtool .
-#fi
-
-# Temporary fix until I can get all version of OSX building
-# if (test `uname -n` = "aspasia.nmr.mgh.harvard.edu"); then
-#    AC_MSG_NOTICE(Copying /usr/pubsw/packages/autotools/bin/libtool overtop the PROG_LIBTOOL)
-#    cp /usr/pubsw/packages/autotools/bin/libtool .
-# fi
 
 ################################################################
 # Checks for header files.
@@ -457,7 +457,11 @@ AC_CHECK_FILE(/bin/tcsh,[],
   [AC_MSG_ERROR([FATAL: /bin/tcsh is required!])])
 
 # links with g++ rather than gcc (and check for Intel and AMD Compilers)
-CCLD=g++
+# first use $CXX if passed 
+CCLD=$CXX
+if test "x$CCLD" = "x"; then
+  CCLD=g++
+fi
 if test "x$CC" = "xicc"; then
   CCLD=icpc
 fi
@@ -556,21 +560,6 @@ AC_ARG_ENABLE(Werror-lax,
 
 # temporary: so that --disable-Werror is no longer needed
 if test "$ac_have_gcc_48_or_higher" = "yes"; then
-  [ WERROR="-Werror=implicit-function-declaration" ]
-  #  [ WERROR="-Wno-unused-parameter -Werror -Wno-unused-variable -Wno-narrowing -Wno-aggressive-loop-optimizations -Wno-switch -Wno-enum-compare -Wno-unused-local-typedefs -Wno-unused-but-set-variable -fno-strict-overflow -Wno-maybe-uninitialized -Wno-uninitialized" ]
-fi
-# the Intel C/C++ compiler issues warnings not yet fixed in the code, so
-# include -diag-disable <errorno> flag to disable specific icc warnings
-# so that escalating warnings to errors (which stops the build) is still
-# possible.
-if test "x$CC" = "xicc"; then
-  WERROR="$WERROR -diag-disable 1268 -diag-disable 279"
-  # warning #1268: support for exported templates is disabled
-  # error #279: controlling expression is constant
-  #   assert(!"Cannot invert 2x2 matrix with zero determinant");
-fi
-
-if (test "${CC}" = "gcc"); then
   # There are approximately 1000 of this 'error', most caused by
   # the presence of code intending for debugging, so don't report it
   WERROR="$WERROR -Wno-unused-but-set-variable"
@@ -580,6 +569,21 @@ if (test "${CC}" = "gcc"); then
   # There are approximately 40 of this 'error', but in external packages
   # header files, hence not possible to fix, and harmless.
   WERROR="$WERROR -Wno-unused-local-typedefs"
+
+  # there are others that need either fixing or ignoring:
+  #[ WERROR="-Werror=implicit-function-declaration" ]
+  #  [ WERROR="-Wno-unused-parameter -Werror -Wno-unused-variable -Wno-narrowing -Wno-aggressive-loop-optimizations -Wno-switch -Wno-enum-compare -Wno-unused-local-typedefs -fno-strict-overflow -Wno-maybe-uninitialized -Wno-uninitialized" ]
+fi
+
+# the Intel C/C++ compiler issues warnings not yet fixed in the code, so
+# include -diag-disable <errorno> flag to disable specific icc warnings
+# so that escalating warnings to errors (which stops the build) is still
+# possible.
+if test "x$CC" = "xicc"; then
+  WERROR="$WERROR -diag-disable 1268 -diag-disable 279"
+  # warning #1268: support for exported templates is disabled
+  # error #279: controlling expression is constant
+  #   assert(!"Cannot invert 2x2 matrix with zero determinant");
 fi
 
 # to strip unused code when using Linux gcc.
@@ -733,7 +737,7 @@ AC_ARG_ENABLE(gl-apps,
   yes)  build_gl_apps=yes ;;
   no)   build_gl_apps=no  ;;
   *) AC_MSG_ERROR([bad value ${enableval} for --enable-gl-apps]) ;;
-  esac]
+  esac
  ])
 ################################################################
 # Mac 64-bit 32-bit concerns
@@ -766,11 +770,11 @@ if test ! "$OS" = "Darwin"; then
 fi
 
 if test "x$MAC_64" = "xYES"; then
-  if test ! "x$F77" = "xgfortran"; then
-    AC_MSG_ERROR([FATAL: gfortran (not $F77) required for 64-bit Mac OSX systems.])
-  else
+  #if test ! "x$F77" = "xgfortran"; then
+  #  AC_MSG_ERROR([FATAL: gfortran (not $F77) required for 64-bit Mac OSX systems.])
+  #else
     FFLAGS="$FFLAGS -m64"
-  fi
+  #fi
 fi
 
 # many linux systems, namedly Ubuntu, dont have libgfortran.so installed
@@ -826,7 +830,6 @@ if test "x$CC" = "xicc"; then
   ac_have_openmp=yes
 fi
 AC_MSG_NOTICE([openmp available? $ac_have_openmp])
-
 
 # force on or off based on --enable-openmp[=yes,=no] or --disable-openmp
 AC_ARG_ENABLE(openmp,
@@ -1049,8 +1052,8 @@ fi
 ##############################################################
 # cpu optimization
 ##############################################################
-CPUFLAGS=""
-if test "${CC}" = "gcc"; then
+CPUFLAGS=""A
+if test "$ac_have_gcc" = "yes"; then
 AC_MSG_NOTICE(Setting CPU optimization...)
 CPUTYPE="NO"
 ####

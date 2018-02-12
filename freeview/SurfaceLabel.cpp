@@ -135,7 +135,7 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
 
   // update vno if it is -1
   MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
-  MHT* hash = MHTfillVertexTableRes(mris, NULL,
+  MHT* hash = MHTcreateVertexTable_Resolution(mris,
                                     CURRENT_VERTICES, 16);
 
   if (m_label->n_points > 0)
