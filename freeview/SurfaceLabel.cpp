@@ -99,6 +99,12 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
   }
 
   m_label = ::LabelRead( NULL, filename.toLatin1().data() );
+  if ( m_label == NULL )
+  {
+    cerr << "LabelRead failed";
+    return false;
+  }
+
   LabelIsCompletelyUnassigned(m_label, &unassigned) ;
   if (unassigned)
   {
@@ -107,12 +113,6 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
 //    return false;
     LabelFillUnassignedVertices(m_surface->GetSourceSurface()->GetMRIS(), m_label, CURRENT_VERTICES);
     cout << "label assigned to surface";
-  }
-
-  if ( m_label == NULL )
-  {
-    cerr << "LabelRead failed";
-    return false;
   }
 
   QFile file( filename );
