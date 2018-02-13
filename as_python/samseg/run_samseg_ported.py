@@ -125,7 +125,8 @@ def run_samseg(
     # % the point where memory becomes the bottle neck.
     # % If the following command is not provided, the number of cores on your system will be used
     # kvlSetMaximumNumberOfThreads( numberOfThreads );
-    GEMS2Python.setGlobalDefaultNumberOfThreads(numberOfThreads)
+    if numberOfThreads is not None:
+        GEMS2Python.setGlobalDefaultNumberOfThreads(numberOfThreads)
     #
     #
     #
