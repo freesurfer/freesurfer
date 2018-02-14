@@ -15,19 +15,21 @@ def errExit(message):
 
 # ---- parse args ----
 
-parser = argparse.ArgumentParser(description="prepares a given freesurfer glm dir for 'palm' processing")
+description = """Prepares and runs a provided freesurfer glm dir with 'palm'.
+                 Any unrecognized arguments will be pased to the palm() matlab function"""
+parser = argparse.ArgumentParser(description=description)
 parser._action_groups.pop()  #  list required arguments before optional
 required = parser.add_argument_group('required arguments')
 optional = parser.add_argument_group('optional arguments')
 required.add_argument('--glmdir', metavar='PATH', type=str, help='the glm directory to prepare', required=True)
 required.add_argument('--zthresh', metavar='FLOAT', type=str, help='z-threshold', required=True)
-required.add_argument('--iterations', metavar='INT', type=int, help='number of iterations', required=True)
 optional.add_argument('--palmdir', metavar='NAME', type=str, help='name of palm subdirectory (default="palm")', default="palm")
 # check for no args first
 if len(sys.argv) == 1:
   parser.print_help()
   sys.exit(1)
-args = parser.parse_args()
+# store any unknown args in a list to be passed to matlab script
+args, unknown = parser.parse_known_args()
 
 # check glmdir
 glmdir = os.path.abspath(args.glmdir)
@@ -132,34 +134,33 @@ if maskfile.endswith('.nii.gz'):
   # nii.gz mask can't be used - must convert to nii
   maskfile = maskfile[:-3]
   print('"nii.gz" format is unsupported - converting mask.nii.gz to mask.nii')
-  call(['mri_convert', maskfile + '.gz', maskfile])
+  ret = call(['mri_convert', maskfile + '.gz', maskfile])
+  if ret != 0: exit(ret)
 print('using mask volume {0}'.format(maskfile))
+
 
 # ---- matlab script ----
 
 script_content = """\
-input = '{0}'; 
+input = '{0}';
+hemi = '{1}';
+maskfile = '{2}';
+zthresh = {3};
 
-hemi = '{1}'; 
+FREESURFER_HOME = getenv('FREESURFER_HOME');
+surffile = sprintf('%s/subjects/fsaverage/surf/%s.white',FREESURFER_HOME,hemi);
+zthreshstr = sprintf('%f',zthresh);
 
-maskfile = '{2}'; 
-
-zthresh = {3}
-niterations = {4}
-
-FREESURFER_HOME = getenv('FREESURFER_HOME'); 
-surffile = sprintf('%s/subjects/fsaverage/surf/%s.white', FREESURFER_HOME, hemi);
-zthreshstr = sprintf('%f', zthresh); 
-niterationsstr = sprintf('%d', niterations); 
-
-palm('-i', input, '-rmethod', 'Freedman-Lane', '-m', maskfile, ... 
-     '-s', surffile, '-d', 'design.mat', '-t', 'design.con', ... 
-     '-T', '-C', zthreshstr, '-n', niterationsstr, '-o', 'palm');
-""".format(input_file, hemi, maskfile, args.zthresh, args.iterations)
+palm('-i',input,'-m',maskfile,'-s',surffile,'-d','design.mat','-t','design.con',...
+     '-C', zthreshstr,'-o','palm'{4});
+""".format(input_file, hemi, maskfile, args.zthresh, ''.join(",'{0}'".format(w) for w in unknown))
 
 # write the run_palm.m script
 script_path = os.path.join(palmdir, 'run_palm.m')
 with open(script_path, "w") as f:
   f.write(script_content)
+print('palmprep complete - running the generated matlab script')
 
-print('palmprep complete - matlab script created at {0}'.format(script_path))
+# run the run_palm.m script
+ret = call(['matlab', '<', 'run_palm.m'])
+if ret != 0: exit(ret)
