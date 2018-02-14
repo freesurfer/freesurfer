@@ -309,7 +309,7 @@ int MatrixFree(MATRIX **pmat)
   mat = *pmat;
   *pmat = NULL;
 
-  if (!mat) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MatrixFree: NULL mat POINTER!\n"));
+  if (!mat) return (0);
 
   /* silly numerical recipes in C requires 1-based stuff */
   mat->data -= 2;
