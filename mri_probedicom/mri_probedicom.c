@@ -31,9 +31,10 @@
  *
  */
 
-
+#ifdef HAVE_OPENGL
 #ifndef OPENGL
 #define OPENGL
+#endif
 #endif
 
 #include <stdio.h>
@@ -50,7 +51,9 @@
 #ifndef Darwin
 #include <malloc.h>
 #endif
+#ifdef HAVE_OPENGL
 #include "glut.h"
+#endif
 #include "error.h"
 #include "diag.h"
 #include "mri.h"
@@ -118,11 +121,14 @@ int DCMCompare(char *dcmfile1, char *dcmfile2);
 #define TMPSTRLEN 10000
 static char tmpstr[TMPSTRLEN];
 
-int RenderImage(int argc, char **argv);
 double ConvertTimeStringToSec(char *tstring);
+
+#ifdef HAVE_OPENGL
+int RenderImage(int argc, char **argv);
 int ImageWidth;
 int ImageHeight;
 GLubyte *ImageBuff;
+#endif // HAVE_OPENGL
 
 int DoPatientName = 1;
 
@@ -204,8 +210,13 @@ int main(int argc, char **argv) {
     exit(1);
   }
   if(DisplayImage) {
+#ifdef HAVE_OPENGL
     RenderImage(argc,argv);
     return(0);
+#else
+    fprintf(stderr,"ERROR: image display is not supported in this build!\n");
+    exit(1);
+#endif
   }
 
   object = GetObjectFromFile(dicomfile, 0);
@@ -1399,6 +1410,7 @@ char *ElementValueFormat(DCM_ELEMENT *e) {
 }
 /*---------------------------------------------------------------*/
 /*---------------------------------------------------------------*/
+#ifdef HAVE_OPENGL
 void init(void) {
   glClearColor (0.0, 0.0, 0.0, 0.0);
   glShadeModel(GL_FLAT);
@@ -1517,7 +1529,7 @@ int RenderImage(int argc, char **argv) {
 
   return(0);
 }
-
+#endif // HAVE_OPENGL
 
 
 int DCMCompare(char *dcmfile1, char *dcmfile2)
