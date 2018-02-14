@@ -104,7 +104,7 @@ if len(contrast_paths) == 0:
   errExit('cannot find any contrast subdirs (with C.dat) in the glm directory')
 contrasts = []
 for constrast_file in contrast_paths:
-  with open(xg_path) as f:
+  with open(constrast_file) as f:
     contrasts.append(f.readline().strip())
 
 # write the palm design.con
@@ -161,4 +161,5 @@ palm('-i', input, '-rmethod', 'Freedman-Lane', '-m', maskfile, ...
 script_path = os.path.join(palmdir, 'run_palm.m')
 with open(script_path, "w") as f:
   f.write(script_content)
+
 print('palmprep complete - matlab script created at {0}'.format(script_path))
