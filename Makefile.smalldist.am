@@ -129,8 +129,7 @@ COREDIRS=\
 	distribution \
 	fsgdf \
 	hipsstubs \
-	tetgen \
-	tkregister2
+	tetgen
 
 # dependent on COREDIRS
 OTHERDIRS=\
