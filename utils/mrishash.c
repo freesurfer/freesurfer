@@ -3233,6 +3233,7 @@ static void mhtComputeFaceCentroid(
   for (n = 0; n < VERTICES_PER_FACE; n++) {
     float x = 0, y = 0, z = 0;
     mhtVertex2xyz_float(&mris->vertices[face->v[n]], which, &x, &y, &z);
+    xt += x;
     yt += y;
     zt += z;
   }
