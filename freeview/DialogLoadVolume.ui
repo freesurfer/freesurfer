@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>325</width>
+    <width>398</width>
     <height>377</height>
    </rect>
   </property>
@@ -72,7 +72,7 @@
         <string>...</string>
        </property>
        <property name="icon">
-        <iconset>
+        <iconset resource="freeview.qrc">
          <normaloff>:/resource/icons/file_open_16.png</normaloff>:/resource/icons/file_open_16.png</iconset>
        </property>
       </widget>
@@ -89,6 +89,19 @@
      </property>
      <property name="text">
       <string>Resample to standard RAS space</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="checkBoxAsVector">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="text">
+      <string>Load as vector</string>
      </property>
     </widget>
    </item>
@@ -123,7 +136,7 @@
         <string>...</string>
        </property>
        <property name="icon">
-        <iconset>
+        <iconset resource="freeview.qrc">
          <normaloff>:/resource/icons/file_open_16.png</normaloff>:/resource/icons/file_open_16.png</iconset>
        </property>
       </widget>
@@ -301,7 +314,9 @@
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="freeview.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>buttonBox</sender>

@@ -382,7 +382,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
     if (keys[i] != "Supplement")
       connect(m_layerCollections[keys[i]], SIGNAL(ActiveLayerChanged(Layer*)),
-        this, SLOT(OnActiveLayerChanged(Layer*)), Qt::QueuedConnection);
+          this, SLOT(OnActiveLayerChanged(Layer*)), Qt::QueuedConnection);
   }
   for ( int i = 0; i < 4; i++ )
   {
@@ -2189,7 +2189,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
                                                             vector_display <<
                                                             vector_render <<
                                                             vector_inversion <<
-                                                            vector_width;
+                                                            vector_width << "new";
     m_scripts.insert( 0, script );
   }
 
@@ -2415,6 +2415,22 @@ void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
         else
         {
           cerr << "Unknown vector width value '" << cmd[4].toLatin1().constData() << "'.\n";
+        }
+
+        if (val == 1 && cmd.size() > 5)
+        {
+          QList<Layer*> list = GetLayers("MRI");
+          foreach (Layer* layer, list)
+          {
+            LayerMRI* mlayer = qobject_cast<LayerMRI*>(layer);
+            if (mlayer != mri && mlayer->GetProperty()->GetDisplayVector())
+            {
+              mri->GetProperty()->SetVectorDisplayScale(mlayer->GetProperty()->GetVectorDisplayScale());
+              mri->GetProperty()->SetVectorLineWidth(mlayer->GetProperty()->GetVectorLineWidth());
+              mri->GetProperty()->SetNormalizeVector(mlayer->GetProperty()->GetNormalizeVector());
+              break;
+            }
+          }
         }
       }
     }
@@ -4635,6 +4651,9 @@ void MainWindow::OnLoadVolume()
         fn += ":sample=trilinear";
       else if (dlg.GetSampleMethod() == SAMPLE_CUBIC_BSPLINE)
         fn += ":sample=cubic";
+
+      if (dlg.GetLoadAsVector())
+        fn += ":vector=1";
 
       fn += ":colormap=" + dlg.GetColorMap();
       if ( dlg.GetColorMap() == "lut" )

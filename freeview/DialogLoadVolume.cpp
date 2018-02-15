@@ -205,3 +205,8 @@ void DialogLoadVolume::OnOK()
   }
   accept();
 }
+
+bool DialogLoadVolume::GetLoadAsVector()
+{
+  return ui->checkBoxAsVector->isChecked();
+}
