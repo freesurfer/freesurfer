@@ -696,6 +696,7 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
     mri = mghRead(fname_copy, volume_flag, -1);
   }
   else if (type == MGH_MORPH) {
+    int which = start_frame ;
     GCA_MORPH *gcam;
     gcam = GCAMread(fname_copy);
     if (gcam == NULL) ErrorReturn(NULL, (ERROR_BADPARM, "MRIread(%s): could not read .m3z\n", fname_copy));
@@ -704,7 +705,22 @@ MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int
       mri = GCAMwriteWarpToMRI(gcam, NULL);
     else {
       printf("reading 'frame' # %d from gcam (see gcamorph.h for definitions)\n", start_frame);
-      mri = GCAMwriteMRI(gcam, NULL, start_frame);
+      if (which == GCAM_NODEX || which == GCAM_NODEY || which == GCAM_NODEZ)
+      {
+	MRI *mri_template ;
+
+	mri_template = MRIalloc(gcam->image.width, gcam->image.height, gcam->image.depth, MRI_FLOAT);
+	MRIcopyVolGeomToMRI(mri_template, &gcam->image);
+	MRIsetResolution(mri_template, gcam->image.xsize, gcam->image.ysize, gcam->image.zsize);
+	MRIreInitCache(mri_template);
+	if (!mri_template)
+	  ErrorExit(ERROR_NOMEMORY, "gcamWrite: could not allocate %dx%dx%d MRI\n", gcam->width, gcam->height, gcam->depth);
+	
+	mri = GCAMmorphFieldFromAtlas(gcam, mri_template, which, 0, 0) ;
+	MRIfree(&mri_template) ;
+      }
+      else
+	mri = GCAMwriteMRI(gcam, NULL, start_frame);
       start_frame = end_frame = 0;
     }
 
