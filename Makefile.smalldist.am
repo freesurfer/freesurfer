@@ -6,9 +6,10 @@
 ## disable the build of the GUI apps, and enable the 'small dist' data install, and
 ## replace Makefile with this Makefile.smalldist.  One could also include --disable-g
 ## with configure to compile without debug symbols.
-## For a working installation, the MNI tools (namely nu_correct) will need to be
-## available, so one will need to set MNI_DIR prior to sourcing SetUpFreeSurfer, eg.:
-## 	setenv MNI_DIR /usr/pubsw/packages/mni/current
+## For a working installation, the MNI tools (namely nu_correct) will need to be 
+## installed, so one with need to do this after their make install:
+## cd $FREESURFER_HOME
+## ln -s /some/path/to/mni/build mni
 ##
 
 ACLOCAL_AMFLAGS=-I m4
@@ -128,8 +129,7 @@ COREDIRS=\
 	distribution \
 	fsgdf \
 	hipsstubs \
-	tetgen \
-	tkregister2
+	tetgen
 
 # dependent on COREDIRS
 OTHERDIRS=\
