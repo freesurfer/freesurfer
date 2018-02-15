@@ -11733,23 +11733,64 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
   PerVertexInfo* vertexInfos = (PerVertexInfo*)calloc(mris->nvertices, sizeof(PerVertexInfo));
 
     // Compute the limits of each vertex's possible movement
-    { int vno;
+    { 
+      // Older versions of GCC don't support max and min reductions
+      // so this codes it explicitly
+      //
+      float xLos[_MAX_FS_THREADS], 
+            xHis[_MAX_FS_THREADS],
+	    yLos[_MAX_FS_THREADS],
+	    yHis[_MAX_FS_THREADS],
+	    zLos[_MAX_FS_THREADS],
+	    zHis[_MAX_FS_THREADS];
+     
+      { int i;
+        for (i = 0; i < _MAX_FS_THREADS; i++) {
+	  xLos[i] = xLo; xHis[i] = xHi;
+	  yLos[i] = yLo; yHis[i] = yHi;
+	  zLos[i] = zLo; zHis[i] = zHi;
+	}
+      }
+      
+      int vnoStep = (mris->nvertices + _MAX_FS_THREADS - 1)/_MAX_FS_THREADS;
+      int vnoLo; 
       ROMP_PF_begin
-      #pragma omp parallel for if_ROMP(assume_reproducible) reduction(max:xHi,yHi,zHi) reduction(min:xLo,yLo,zLo)
-      for (vno = 0; vno < mris->nvertices; vno++) {
+#if defined(HAVE_OPENMP)
+      #pragma omp parallel for if_ROMP(assume_reproducible) /* reduction(max:xHi,yHi,zHi) reduction(min:xLo,yLo,zLo) */
+#endif
+      for (vnoLo = 0; vnoLo < mris->nvertices; vnoLo += vnoStep) {
         ROMP_PFLB_begin
-        VERTEX * const v = &mris->vertices[vno];
+	int const tid =
+#if defined(HAVE_OPENMP)
+            omp_get_thread_num();
+#else
+	    0;
+#endif	
+	int vnoHi = MIN(mris->nvertices, vnoLo + vnoStep);
+        int vno;
+	for (vno = vnoLo; vno < vnoHi; vno++) { 
+          VERTEX * const v = &mris->vertices[vno];
 
-        mrisAsynchronousTimeStep_update_odxyz(
-          mris, momentum, delta_t, max_mag, v);
+          mrisAsynchronousTimeStep_update_odxyz(
+            mris, momentum, delta_t, max_mag, v);
 
-        PerVertexInfo* pvi = vertexInfos+vno; 
-        xLo = MIN(xLo, pvi->xLo = v->x); xHi = MAX(xHi, pvi->xHi = v->x + v->odx);
-        yLo = MIN(yLo, pvi->yLo = v->y); yHi = MAX(yHi, pvi->yHi = v->y + v->ody);
-        zLo = MIN(zLo, pvi->zLo = v->z); zHi = MAX(zHi, pvi->zHi = v->z + v->odz);
+          PerVertexInfo* pvi = vertexInfos+vno; 
+          xLos[tid] = MIN(xLos[tid], pvi->xLo = v->x); xHis[tid] = MAX(xHis[tid], pvi->xHi = v->x + v->odx);
+          yLos[tid] = MIN(yLos[tid], pvi->yLo = v->y); yHis[tid] = MAX(yHis[tid], pvi->yHi = v->y + v->ody);
+          zLos[tid] = MIN(zLos[tid], pvi->zLo = v->z); zHis[tid] = MAX(zHis[tid], pvi->zHi = v->z + v->odz);
+	}
+	
         ROMP_PFLB_end
       }
       ROMP_PF_end
+
+      { int i;
+        for (i = 0; i < _MAX_FS_THREADS; i++) {
+	  xLo = MIN(xLo,xLos[i]); xHi = MAX(xHi, xHis[i]);
+	  yLo = MIN(yLo,yLos[i]); yHi = MAX(yHi, yHis[i]);
+	  zLo = MIN(zLo,zLos[i]); zHi = MAX(zHi, zHis[i]);
+	}
+      }
     }
 
   if (debug) {
