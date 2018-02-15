@@ -2428,6 +2428,7 @@ void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
               mri->GetProperty()->SetVectorDisplayScale(mlayer->GetProperty()->GetVectorDisplayScale());
               mri->GetProperty()->SetVectorLineWidth(mlayer->GetProperty()->GetVectorLineWidth());
               mri->GetProperty()->SetNormalizeVector(mlayer->GetProperty()->GetNormalizeVector());
+              mri->GetProperty()->SetVectorRepresentation(mlayer->GetProperty()->GetVectorRepresentation());
               break;
             }
           }
