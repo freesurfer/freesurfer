@@ -186,6 +186,7 @@ mris_roiCircle \
 mris_volsmooth \
 ms_refine_subject \
 orientLAS \
+palmprep \
 parc_atlas_jackknife_test \
 petsc_setup \
 plot_structure_stats.tcl \
