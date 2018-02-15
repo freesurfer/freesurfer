@@ -125,6 +125,14 @@ protected slots:
 
   void OnButtonResetWindowLevel();
 
+  void OnCheckBoxSetDisplayVector(bool b);
+
+  void OnCheckBoxSetDisplayTensor(bool b);
+
+  void OnCheckBoxSetNormalizeVector(bool b);
+
+  void OnCheckBoxSetDisplayRGB(bool b);
+
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab );
   void DoUpdateWidgets();
