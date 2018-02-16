@@ -67,6 +67,10 @@ foreach threads ( 4 8 )
 
   if (1) then
   
+    # do not depend on the first test
+    #
+    cp subject/surf/lh.white.preaparc{.REF,}
+    
     set cmd=(../mris_make_surfaces \
              -orig_white white.preaparc -orig_pial white.preaparc \
              -aseg aseg.presurf -mgz -T1 brain.finalsurfs \
