@@ -5829,7 +5829,6 @@ static int fillDiagonals(MRI *mri, int fillval) ;
 #if GCC_VERSION > 40407
 #pragma GCC diagnostic push
 #endif
-
 #pragma GCC diagnostic ignored "-Wstrict-overflow"
 static int
 MRIfillDegenerateLocations(MRI *mri, int fillval)

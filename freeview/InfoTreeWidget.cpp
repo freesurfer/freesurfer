@@ -171,7 +171,7 @@ void InfoTreeWidget::UpdateAll()
         valueStrg.resize(valueStrg.size()-1);
       if (layer->GetNumberOfFrames() > 1 && layer->GetNumberOfFrames() <= 4)
       {
-        QList<double> values = layer->GetVoxelValueByOriginalIndexAllFrames(fIndex[0], fIndex[1], fIndex[2]);
+        QList<double> values = layer->GetVoxelValueByOriginalIndexAllFrames((int)(fIndex[0]+0.5), (int)(fIndex[1]+0.5), (int)(fIndex[2]+0.5));
         QStringList strgs;
         foreach (double value, values)
           strgs << QString("%1").arg(value);

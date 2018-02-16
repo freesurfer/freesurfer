@@ -121,6 +121,8 @@ int debug=0;
 int checkoptsonly=0;
 struct utsname uts;
 
+static int annot = 0 ;
+
 char *surfsegfile=NULL;
 char *subject=NULL, *hemi=NULL;
 char *ctabfile=NULL, *annotfile=NULL;
@@ -135,7 +137,7 @@ char *surfname = "white";
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs,nv,err;
+  int nargs,nv;
   char tmpstr[2000];
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -209,8 +211,33 @@ int main(int argc, char *argv[]) {
     free(segidlist);
   }
 
-  err = MRISseg2annot(mris, surfseg, ctab);
-  if (err) exit(1);
+  if (annot)
+  {
+    int annot, vno ;
+
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      annot = MRIgetVoxVal(surfseg, vno, 0, 0, 0) ;
+      if (vno == Gdiag_no)
+      {
+	int index, r, g, b ;
+	const char *name ;
+	AnnotToRGB(annot, r, g, b) ;
+	printf("annot %x = %d  %d  %d\n", annot, r, g, b) ;
+	name = CTABgetAnnotationName(ctab, annot) ;
+	CTABfindAnnotation(ctab, annot, &index);
+	printf("v %d, annot (%x)[%d] = %s\n", vno,  annot,index,name) ;
+	DiagBreak() ;
+      }
+      mris->vertices[vno].annotation = annot ;
+    }
+  }
+  else
+  {
+    int err ;
+    err = MRISseg2annot(mris, surfseg, ctab);
+    if (err) exit(1);
+  }
 
   printf("Writing annot to %s\n",annotfile);
   MRISwriteAnnotation(mris, annotfile);
@@ -249,6 +276,9 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       surfsegfile = pargv[0];
       nargsused = 1;
+    } else if (!strcasecmp(option, "--annot")) {
+      annot = 1 ;
+      nargsused = 0;
     } else if (!strcasecmp(option, "--h") || !strcasecmp(option, "--hemi")) {
       if (nargc < 1) CMDargNErr(option,1);
       hemi = pargv[0];

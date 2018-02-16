@@ -110,6 +110,9 @@ RECONALLDIRS=\
 	tkregister2
 # tkregister2 is included to build tkregister2_cmdl only!
 
+EXTRADIRS=\
+	mri_probedicom
+
 # ordering is important here for proper 'make check' and 'make distcheck' function
 COREDIRS=\
 	include \
@@ -129,8 +132,7 @@ COREDIRS=\
 	distribution \
 	fsgdf \
 	hipsstubs \
-	tetgen \
-	tkregister2
+	tetgen
 
 # dependent on COREDIRS
 OTHERDIRS=\
