@@ -8,6 +8,7 @@ set VERSION = '$Id$';
 
 set hrsubject = ();
 set hemilist = (lh rh);
+set tess1mmname = tess1mm
 
 set tmpdir = ();
 set cleanup = 1;
@@ -41,7 +42,7 @@ set min    = `date +%M`
 
 setenv HR_SUBJECTS_DIR $SUBJECTS_DIR
 set hrmdir = $HR_SUBJECTS_DIR/$hrsubject/mri
-set subject = tess1mm # folder inside hires-subject
+set subject = $tess1mmname # folder inside hires-subject
 set outdir = $SUBJECTS_DIR/$hrsubject/$subject
 
 setenv SUBJECTS_DIR $SUBJECTS_DIR/$hrsubject
@@ -123,17 +124,19 @@ echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
 
-set cmd = (mri_pretess filled.mgz 255 norm.mgz filled-pretess.mgz)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
-
 cd $outdir
 foreach hemi ($hemilist)
   if($hemi == lh) set vhemi = 255
   if($hemi == rh) set vhemi = 127
 
-  set cmd = (mri_tessellate mri/filled-pretess.mgz $vhemi surf/$hemi.orig.nofix)
+  # Pretess removes micro defects. In previous versions of this script, this command
+  # was only run for 255 (left hemi), leaving the right hemi unchanged. 
+  set cmd = (mri_pretess mri/filled.mgz $vhemi mri/norm.mgz mri/filled-pretess$vhemi.mgz)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+
+  set cmd = (mri_tessellate mri/filled-pretess$vhemi.mgz $vhemi surf/$hemi.orig.nofix)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;
@@ -221,6 +224,11 @@ while( $#argv != 0 )
       set hrsubject = $argv[1]; shift;
       breaksw
 
+    case "--name":
+      if($#argv < 1) goto arg1err;
+      set tess1mmname = $argv[1]; shift;
+      breaksw
+
     case "--lh":
       set hemilist = (lh)
       breaksw
@@ -301,6 +309,7 @@ usage_exit:
   echo ""
   echo "tess1mm --s subject"
   echo "  --lh, --rh : do only lh or rh (default is both)"
+  echo "  --name tess1mmfolder : default is tess1mm"
   echo ""
   echo ""
 

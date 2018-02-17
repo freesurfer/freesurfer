@@ -8508,6 +8508,7 @@ MRI *GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which)
   float d;
   GCA_MORPH_NODE *gcamn;
 
+
   if (!mri) {
     mri = MRIalloc(gcam->width, gcam->height, gcam->depth, MRI_FLOAT);
     MRIcopyVolGeomToMRI(mri, &gcam->atlas);
@@ -8626,6 +8627,9 @@ MRI *GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which)
           case GCAM_INVALID:
             d = gcamn->invalid;
             break;
+	case GCAM_NODEX: d = gcamn->xn ; break ;
+	case GCAM_NODEY: d = gcamn->yn ; break ;
+	case GCAM_NODEZ: d = gcamn->zn ; break ;
         }
         MRIsetVoxVal(mri, x, y, z, 0, d);
       }
@@ -12998,9 +13002,12 @@ MRI *GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inve
   double val;
 
   mri_atlas = GCAMwriteMRI(gcam, NULL, which);
-  MRIfree(&gcam->mri_xind);
-  MRIfree(&gcam->mri_yind);
-  MRIfree(&gcam->mri_zind);
+  if (gcam->mri_xind)
+    MRIfree(&gcam->mri_xind);
+  if (gcam->mri_yind)
+    MRIfree(&gcam->mri_yind);
+  if (gcam->mri_zind)
+    MRIfree(&gcam->mri_zind);
   GCAMinvert(gcam, mri);
   switch (which) {
     case GCAM_LABEL:
