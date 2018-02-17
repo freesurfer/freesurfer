@@ -102,7 +102,6 @@ MATRIX *MatrixInverse(const MATRIX *mIn, MATRIX *mOut)
   MATRIX *mTmp;
 
   if (!mIn) {
-    *(int*)(-1) = 0;
     ErrorExit(ERROR_BADPARM, "MatrixInverse: NULL input matrix!\n");
   }
   
