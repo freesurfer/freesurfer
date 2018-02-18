@@ -15,7 +15,7 @@ def errExit(message):
 
 # ---- parse args ----
 
-description = """Prepares and runs a provided freesurfer glm dir with 'palm'.
+description = """Prepares and processes a provided glm dir with 'palm'.
                  Any unrecognized arguments will be pased to the palm() matlab function"""
 parser = argparse.ArgumentParser(description=description)
 parser._action_groups.pop()  #  list required arguments before optional
@@ -23,7 +23,7 @@ required = parser.add_argument_group('required arguments')
 optional = parser.add_argument_group('optional arguments')
 required.add_argument('--glmdir', metavar='PATH', type=str, help='the glm directory to prepare', required=True)
 required.add_argument('--zthresh', metavar='FLOAT', type=str, help='z-threshold', required=True)
-optional.add_argument('--palmdir', metavar='NAME', type=str, help='name of palm subdirectory (default="palm")', default="palm")
+optional.add_argument('--name', metavar='DIRNAME', type=str, help='name of palm subdirectory (default="palm")', default="palm")
 # check for no args first
 if len(sys.argv) == 1:
   parser.print_help()
@@ -36,7 +36,7 @@ glmdir = os.path.abspath(args.glmdir)
 if not os.path.isdir(glmdir):
   errExit('"{0}" is not a valid directory'.format(glmdir))
 # make palm subdir
-palmdir = os.path.join(glmdir, args.palmdir)
+palmdir = os.path.join(glmdir, args.name)
 print('preparing a palm subdirectory in {0}'.format(palmdir))
 # os.makedirs(palmdir, exist_ok=True)  # python3
 if not os.path.exists(palmdir): os.makedirs(palmdir)  # settle for python2 for now
@@ -136,7 +136,6 @@ if maskfile.endswith('.nii.gz'):
   print('"nii.gz" format is unsupported - converting mask.nii.gz to mask.nii')
   ret = call(['mri_convert', maskfile + '.gz', maskfile])
   if ret != 0: exit(ret)
-print('using mask volume {0}'.format(maskfile))
 
 
 # ---- matlab script ----
@@ -152,15 +151,16 @@ surffile = sprintf('%s/subjects/fsaverage/surf/%s.white',FREESURFER_HOME,hemi);
 zthreshstr = sprintf('%f',zthresh);
 
 palm('-i',input,'-m',maskfile,'-s',surffile,'-d','design.mat','-t','design.con',...
-     '-C', zthreshstr,'-o','palm'{4});
+     '-C', zthreshstr,'-o','palm_output'{4});
 """.format(input_file, hemi, maskfile, args.zthresh, ''.join(",'{0}'".format(w) for w in unknown))
 
 # write the run_palm.m script
 script_path = os.path.join(palmdir, 'run_palm.m')
 with open(script_path, "w") as f:
   f.write(script_content)
-print('palmprep complete - running the generated matlab script')
+print('palmprep complete - running the generated matlab script...')
 
 # run the run_palm.m script
+os.chdir(palmdir)
 ret = call(['matlab', '<', 'run_palm.m'])
 if ret != 0: exit(ret)

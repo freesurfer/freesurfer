@@ -269,10 +269,10 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->checkBoxShowLabelContour, SIGNAL(clicked(bool)), p, SLOT(SetShowAsLabelContour(bool)) );
   connect( ui->sliderFrame, SIGNAL(valueChanged(int)), layer, SLOT(SetActiveFrame(int)) );
   connect( ui->spinBoxFrame, SIGNAL(valueChanged(int)), layer, SLOT(SetActiveFrame(int)) );
-  connect( ui->checkBoxDisplayVector, SIGNAL(toggled(bool)), p, SLOT(SetDisplayVector(bool)) );
-  connect( ui->checkBoxDisplayTensor, SIGNAL(toggled(bool)), p, SLOT(SetDisplayTensor(bool)) );
-  connect( ui->checkBoxDisplayRGB, SIGNAL(toggled(bool)), p, SLOT(SetDisplayRGB(bool)) );
-  connect( ui->checkBoxNormalizeVectors, SIGNAL(toggled(bool)), p, SLOT(SetNormalizeVector(bool)) );
+  connect( ui->checkBoxDisplayVector, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxSetDisplayVector(bool)) );
+  connect( ui->checkBoxDisplayTensor, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxSetDisplayTensor(bool)) );
+  connect( ui->checkBoxDisplayRGB, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxSetDisplayRGB(bool)) );
+  connect( ui->checkBoxNormalizeVectors, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxSetNormalizeVector(bool)) );
   connect( ui->comboBoxRenderObject, SIGNAL(currentIndexChanged(int)), p, SLOT(SetVectorRepresentation(int)) );
   connect( ui->comboBoxInversion, SIGNAL(currentIndexChanged(int)), p, SLOT(SetVectorInversion(int)) );
   connect( ui->comboBoxProjectionMapType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnComboProjectionMapType(int)) );
@@ -1525,27 +1525,69 @@ void PanelVolume::OnLockLayer(bool b)
   }
 }
 
+void PanelVolume::OnCheckBoxSetDisplayVector(bool b)
+{
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
+  {
+    if (layer->GetNumberOfFrames() == 3)
+      layer->GetProperty()->SetDisplayVector(b);
+  }
+}
+
+void PanelVolume::OnCheckBoxSetDisplayTensor(bool b)
+{
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
+  {
+    if (layer->GetNumberOfFrames() == 3)
+      layer->GetProperty()->SetDisplayTensor(b);
+  }
+}
+
+void PanelVolume::OnCheckBoxSetDisplayRGB(bool b)
+{
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
+  {
+    layer->GetProperty()->SetDisplayRGB(b);
+  }
+}
+
+void PanelVolume::OnCheckBoxSetNormalizeVector(bool b)
+{
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
+  {
+    layer->GetProperty()->SetNormalizeVector(b);
+  }
+}
+
 void PanelVolume::OnLineEditVectorDisplayScale(const QString &strg)
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer )
+  bool ok;
+  double val = strg.toDouble(&ok);
+  if (ok && val > 0)
   {
-    bool ok;
-    double val = strg.toDouble(&ok);
-    if (ok && val > 0)
+    QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+    foreach (LayerMRI* layer, layers)
+    {
       layer->GetProperty()->SetVectorDisplayScale(val);
+    }
   }
 }
 
 void PanelVolume::OnLineEditVectorLineWidth(const QString &strg)
 {
-  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-  if ( layer )
+  bool ok;
+  double val = strg.toDouble(&ok);
+  if (ok && val > 0)
   {
-    bool ok;
-    double val = strg.toDouble(&ok);
-    if (ok && val > 0)
+    QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+    foreach (LayerMRI* layer, layers)
+    {
       layer->GetProperty()->SetVectorLineWidth(val);
+    }
   }
 }
 
