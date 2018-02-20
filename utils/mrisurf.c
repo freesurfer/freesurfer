@@ -35756,6 +35756,8 @@ static int MRIScomputeBorderValues_new(
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
     
+    double max_mag_dist = 0.0f;
+
     VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag) {
       ROMP_PF_continue;
@@ -36920,7 +36922,7 @@ static int MRIScomputeBorderValues_old(
 #endif
           {                             // beware, this is non-deterministic! if the max mag has equal fabs(), any could be chosen
             local_max_found = 1;
-            max_mag_dist = dist; 
+            max_mag_dist = dist;
             max_mag      = fabs(mag);
             max_mag_val  = val;         
           }
