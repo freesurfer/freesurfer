@@ -35756,8 +35756,6 @@ static int MRIScomputeBorderValues_new(
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
     
-    double max_mag_dist = 0.0f;
-
     VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag) {
       ROMP_PF_continue;
@@ -35961,7 +35959,7 @@ static int MRIScomputeBorderValues_new(
 
     int    local_max_found = 0;
 
-    double max_mag_dist       = 0.0f;
+    double max_mag_dist    = 0.0f;
     
     float sample_dists[MAX_SAMPLES], sample_mri[MAX_SAMPLES];
     int   numberOfSamples = 0;
