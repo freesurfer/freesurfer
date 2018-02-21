@@ -57,8 +57,8 @@
         printf("bevins_break\n");
     }
 
-    int test(int nvertices) {
-        printf("Test nvertices:%d\n", nvertices);
+    int test(int nvertices, int useDuplicates) {
+        printf("Test nvertices:%d useDuplicates:%d\n", nvertices, useDuplicates);
         
         MRIS mris;
         mris.nvertices = nvertices;
@@ -67,10 +67,11 @@
         
         int vno;
         for (vno = 0; vno < mris.nvertices; vno++) {
+            int key = vno > useDuplicates ? vno : 936; 
             VERTEX* v = &mris.vertices[vno];
-            v->x = vno; 
-            v->y = (vno*7321)%71; 
-            v->z = (vno*17321)%91;
+            v->x = key; 
+            v->y = (key*7321)%71; 
+            v->z = (key*17321)%91;
         }
         vno = 0;
         float xMin = mris.vertices[vno].x, xMax = xMin,
@@ -168,15 +169,18 @@
     }
     
     int main() {
-        test(100);
-        test(0);
-        test(1);
-        test(2);
-        test(3);
-        test(4);
-        test(1000);
-        test(10000);
-        test(100000);
+        int useDuplicates;
+        for (useDuplicates = 0; useDuplicates <= 1000; useDuplicates += 200) {
+            test(1, useDuplicates);
+            test(2, useDuplicates);
+            test(3, useDuplicates);
+            test(4, useDuplicates);
+            test(100, useDuplicates);
+            test(1000, useDuplicates);
+            test(10000, useDuplicates);
+            test(100000, useDuplicates);
+            test(0, useDuplicates);
+        }
         return 0;
     }
 #endif
@@ -435,7 +439,7 @@ RealmTree* makeRealmTree(MRIS const * mris) {
     VERTEX const * vertex0 = &mris->vertices[vno];
     float xLo = vertex0->x, xHi = xLo,
           yLo = vertex0->y, yHi = yLo,
-          zLo = vertex0->z, zHi = zHi;
+          zLo = vertex0->z, zHi = zLo;
     for (vno = 1; vno < mris->nvertices; vno++) {
         VERTEX const * vertex = &mris->vertices[vno];
         float const x = vertex->x, y = vertex->y, z = vertex->z;
