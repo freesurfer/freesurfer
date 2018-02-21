@@ -29,6 +29,7 @@ def samsegment_part3(
         optimizationOptions,
         part1_results_dict,
         part2_results_dict,
+        imageFileNames,
         checkpoint_manager=None
 ):
     croppingOffset = part1_results_dict['croppingOffset']
@@ -257,26 +258,50 @@ def samsegment_part3(
     #
     #
     # % Also write out the bias field and the bias corrected image, each time remembering to un-crop the images
-    # TODO: Are these bias field files even used other than debugging purposes?
     # for contrastNumber = 1 : numberOfContrasts
-    #   [ dataPath, scanName, ext ] = fileparts( imageFileNames{ contrastNumber } );
-    #
-    #   % First bias field
-    #   biasField = zeros( nonCroppedImageSize, 'single' );
-    #   biasField( croppingOffset( 1 ) + [ 1 : imageSize( 1 ) ], ...
-    #              croppingOffset( 2 ) + [ 1 : imageSize( 2 ) ], ...
-    #              croppingOffset( 3 ) + [ 1 : imageSize( 3 ) ] ) = exp( biasFields( :, :, :, contrastNumber ) ) .* mask;
-    #   outputFileName = fullfile( savePath, [ scanName '_biasField.nii' ] );
-    #   kvlWriteImage( kvlCreateImage( biasField ), outputFileName, imageToWorldTransform );
-    #
-    #
-    #   % Then bias field corrected data
-    #   biasCorrected = zeros( nonCroppedImageSize, 'single' );
-    #   biasCorrected( croppingOffset( 1 ) + [ 1 : imageSize( 1 ) ], ...
-    #                  croppingOffset( 2 ) + [ 1 : imageSize( 2 ) ], ...
-    #                  croppingOffset( 3 ) + [ 1 : imageSize( 3 ) ] ) = exp( biasCorrectedImageBuffers( :, :, :, contrastNumber ) );
-    #   outputFileName = fullfile( savePath, [ scanName '_biasCorrected.nii' ] );
-    #   kvlWriteImage( kvlCreateImage( biasCorrected ), outputFileName, imageToWorldTransform );
+    for contrastNumber, imageFileName in enumerate(imageFileNames):
+        #   [ dataPath, scanName, ext ] = fileparts( imageFileNames{ contrastNumber } );
+        image_base_path, ext = os.path.splitext(imageFileName)
+        data_path, scanName = os.path.split(image_base_path)
+        #
+        #   % First bias field
+        #   biasField = zeros( nonCroppedImageSize, 'single' );
+        biasField = np.zeros(nonCroppedImageSize, dtype=np.float32)
+        #   biasField( croppingOffset( 1 ) + [ 1 : imageSize( 1 ) ], ...
+        #              croppingOffset( 2 ) + [ 1 : imageSize( 2 ) ], ...
+        #              croppingOffset( 3 ) + [ 1 : imageSize( 3 ) ] ) = exp( biasFields( :, :, :, contrastNumber ) ) .* mask;
+        biasField[
+            croppingOffset[0]:croppingOffset[0] + imageSize[0],
+            croppingOffset[1]:croppingOffset[1] + imageSize[1],
+            croppingOffset[2]:croppingOffset[2] + imageSize[2],
+        ] = np.exp(biasFields[:, :, :, contrastNumber]) * mask
+        #   outputFileName = fullfile( savePath, [ scanName '_biasField.nii' ] );
+        outputFileName = os.path.join(savePath, scanName + '_biasField.nii')
+        #   kvlWriteImage( kvlCreateImage( biasField ), outputFileName, imageToWorldTransform );
+        GEMS2Python.KvlImage(biasField).write(
+            outputFileName,
+            GEMS2Python.KvlTransform(require_np_array(imageToWorldTransformMatrix))
+        )
+        #
+        #
+        #   % Then bias field corrected data
+        #   biasCorrected = zeros( nonCroppedImageSize, 'single' );
+        biasCorrected = np.zeros(nonCroppedImageSize, dtype=np.float32)
+        #   biasCorrected( croppingOffset( 1 ) + [ 1 : imageSize( 1 ) ], ...
+        #                  croppingOffset( 2 ) + [ 1 : imageSize( 2 ) ], ...
+        #                  croppingOffset( 3 ) + [ 1 : imageSize( 3 ) ] ) = exp( biasCorrectedImageBuffers( :, :, :, contrastNumber ) );
+        biasCorrected[
+            croppingOffset[0]:croppingOffset[0] + imageSize[0],
+            croppingOffset[1]:croppingOffset[1] + imageSize[1],
+            croppingOffset[2]:croppingOffset[2] + imageSize[2],
+        ] = np.exp(biasCorrectedImageBuffers[:, :, :, contrastNumber])
+        #   outputFileName = fullfile( savePath, [ scanName '_biasCorrected.nii' ] );
+        outputFileName = os.path.join(savePath, scanName + '_biasCorrected.nii')
+        #   kvlWriteImage( kvlCreateImage( biasCorrected ), outputFileName, imageToWorldTransform );
+        GEMS2Python.KvlImage(biasCorrected).write(
+            outputFileName,
+            GEMS2Python.KvlTransform(require_np_array(imageToWorldTransformMatrix))
+        )
     #
     # end
     #
@@ -300,6 +325,7 @@ def test_samseg_ported_part3(case_name, case_file_folder, savePath):
         fixture['optimizationOptions'],
         part1_results_dict,
         part2_results_dict,
+        fixture['imageFileNames'],
         checkpoint_manager
     )
     checkpoint_manager.save(part3_results_dict, 'part3', 1)
