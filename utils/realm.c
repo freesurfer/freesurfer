@@ -84,17 +84,31 @@
         
         RealmTree* realmTree = makeRealmTree(&mris);
 
-        float fLo, fHi;
-        for (fLo = 0; fLo <= 1; fLo += 0.1)
-        for (fHi = 0; fHi <= 1; fHi += 0.1)
+        int fLimit = 1;
+        int fCount = 0;
+        float xfLo, xfHi;
+        float yfLo, yfHi;
+        float zfLo, zfHi;
+        for (xfLo = 0; xfLo <= 1; xfLo += 0.1)
+        for (xfHi = 0; xfHi <= 1; xfHi += 0.1)
+        for (yfLo = 0; yfLo <= 1; yfLo += 0.1)
+        for (yfHi = 0; yfHi <= 1; yfHi += 0.1)
+        for (zfLo = 0; zfLo <= 1; zfLo += 0.1)
+        for (zfHi = 0; zfHi <= 1; zfHi += 0.1)
         {
-            float xLo = xMin + fLo*(xMax-xMin);
-            float xHi = xMax - fHi*(xMax-xLo);
-            float yLo = yMin + fLo*(yMax-yMin);
-            float yHi = yMax - fHi*(yMax-yLo);
-            float zLo = zMin + fLo*(zMax-zMin);
-            float zHi = zMax - fHi*(zMax-zLo);
+            float xLo = xMin + xfLo*(xMax-xMin);
+            float xHi = xMax - xfHi*(xMax-xLo);
+            float yLo = yMin + yfLo*(yMax-yMin);
+            float yHi = yMax - yfHi*(yMax-yLo);
+            float zLo = zMin + zfLo*(zMax-zMin);
+            float zHi = zMax - zfHi*(zMax-zLo);
 
+            fCount++;
+            if (fCount == fLimit) {
+                fLimit *= 2;
+                printf("fCount:%d x:%f..%f y:%f.%f z:%f..%f\n", fCount, xLo, xHi, yLo, yHi, zLo, zHi);
+            }
+            
             Realm* realm = 
                 makeRealm(realmTree, 
                     xLo, xHi, 
@@ -104,14 +118,38 @@
             RealmIterator realmIterator;
             initRealmIterator(&realmIterator, realm);
             
-            //
+            int* states = (int*)calloc(mris.nvertices, sizeof(int));
             
-            //
+            int counter = 1;
             int vno;
-            while (0 <= (vno = realmNextMightTouchVno(realm, &realmIterator))) {
-                printf("vno:%d\n", vno);
+            for (;;) {
+                if (false && (counter == 1 || counter == 122)) {
+                    printf("counter:%d ri.i:%ld ri.p:%p\n", counter, realmIterator.i, realmIterator.p); 
+                    bevins_break();
+                }
+                vno = realmNextMightTouchVno(realm, &realmIterator);
+                if (0 > vno) break;
+                if (counter == 0 || states[vno]) {
+                    printf("ERROR, vno:%d reported again when counter:%d, was reported counter:%d\n", vno, counter, states[vno]); 
+                    bevins_break();
+                    exit(1);
+                }
+                states[vno] = counter++;
             }
         
+            // No vno should have been visited more than once
+            // No unreported vno should be in the region
+            for (vno = 0; vno < mris.nvertices; vno++) {
+                if (states[vno] > 1 ) 
+                if (states[vno] == 0) {
+                   VERTEX* v = &mris.vertices[vno];
+                   if (xLo <= v->x && v->x < xHi 
+                   &&  yLo <= v->y && v->y < yHi
+                   &&  zLo <= v->z && v->z < zHi) printf("ERROR, vno:%d was not reported\n", vno);
+                }
+            }
+            
+            free(states);
             freeRealm(&realm);
         }
             
@@ -191,14 +229,7 @@ static RealmTreeNode* insertIntoChild(
     RealmTreeNode* n,
     int vno, float x, float y,float z) {
     int c = chooseChild(n, x, y, z);
-    static int depth;
-    depth++;
-    if (depth > 10) {
-        bevins_break();
-    }
-    RealmTreeNode* result = insertIntoNode(realmTree, n->children[c], vno,x,y,z);
-    depth--;
-    return result;
+    return insertIntoNode(realmTree, n->children[c], vno,x,y,z);
 }
 
 struct RealmTree {
@@ -218,7 +249,6 @@ static RealmTreeNode* insertIntoNode(
     VERTEX const* v = &mris->vertices[vno];
     if (x != v->x || y != v->y || z != v->z) 
             bevins_break();
-   
     
     // Can fit in this node
     if (n->vnoSize < VNOS_CAPACITY) {
@@ -319,7 +349,6 @@ RealmTree* makeRealmTree(MRIS const * mris) {
     xHi += (xHi - xLo)/100.0;
     yHi += (yHi - yLo)/100.0;
     zHi += (zHi - zLo)/100.0;
-    bevins_break();
     
     RealmTreeNode* recentNode  = &rt->root;
     recentNode->xLo = xLo; recentNode->yLo = yLo; recentNode->zLo = zLo;
@@ -328,8 +357,6 @@ RealmTree* makeRealmTree(MRIS const * mris) {
     // Place all the vertices into boxes
     // 
     for (vno = 0; vno < mris->nvertices; vno++) {
-        if (vno == 62)
-            bevins_break();
         VERTEX const * vertex = &mris->vertices[vno];
         int const x = vertex->x, y = vertex->y, z = vertex->z;
         // Find the right subtree
@@ -466,28 +493,37 @@ int realmNextMightTouchVno(Realm* realm, RealmIterator* realmIterator) {
         
         // This leaf is consumed, so search for the next non-empty leaf
         
-        // Go up thru the non-leaf's until there is an unprocessed child
-        //
         do {
-            n = n->parent;
-            i /= VNOS_CAPACITY;
-            c = (i % VNOS_CAPACITY) + 1;
-            if (i == 1) {               // none
-                n = NULL;
-                break;
-            }
-        } while (c >= n->vnoSize);
-
-        // Go down to the next unprocessed leaf
-        //
-        if (n) {
+            // Go up thru the non-leaf's until there is an unprocessed child
+            //
             do {
-                n = n->children[c];
-                i = i*VNOS_CAPACITY;
-                c = 0;
-            } while (n->vnoSize > VNOS_CAPACITY);
-        }
-        
+                n = n->parent;
+                i /= VNOS_CAPACITY;
+                c = (i % VNOS_CAPACITY) + 1;
+                if (i == 1) {               // none
+                    n = NULL;
+                    break;
+                }
+            } while (c >= VNOS_CAPACITY);
+            i += 1;
+
+            // Go down to the next unprocessed leaf
+            //
+            if (n) {
+                int           const   pc = c;
+                RealmTreeNode const * pn = n;
+                RealmTreeNode const * pn2 = NULL;
+                do {
+                    pn2 = n;
+                    n = n->children[c];
+                    i = i*VNOS_CAPACITY;
+                    c = 0;
+                } while (n->vnoSize > VNOS_CAPACITY);
+            }
+            
+            // might have found an empty leaf
+        } while (n && (n->vnoSize == 0));
+                
         // Note for next time
         //
         realmIterator->i = i;
