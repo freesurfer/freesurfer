@@ -4605,6 +4605,7 @@ float GCAcomputeLogSampleProbability(
     
   #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
     
+  const int romp_for_line = __LINE__;
   #include "romp_for_begin.h"
     
     #define total_log_p  ROMP_PARTIALSUM(0)

@@ -60,6 +60,13 @@ typedef struct PerThreadScopeTreeData {
 static PerThreadScopeTreeData  scopeTreeRoots[ROMP_maxWatchedThreadNum];
 static PerThreadScopeTreeData* scopeTreeToS  [ROMP_maxWatchedThreadNum];
 
+static struct { NanosecsTimer timer; int inited; } tidStartTime[ROMP_maxWatchedThreadNum];
+static void maybeInitTidStartTime(int tid) {
+    if (tidStartTime[tid].inited) return;
+    TimerStartNanosecs(&tidStartTime[tid].timer);
+    tidStartTime[tid].inited = 1;
+}
+
 static PerThreadScopeTreeData* enterScope(PerThreadScopeTreeData* parent, ROMP_pf_static_struct* key) {
     PerThreadScopeTreeData** prev = &parent->first_child;
     while (*prev && (*prev)->key != key) { prev = &(*prev)->next_sibling; } // might need speeding up with a hash table
@@ -161,6 +168,12 @@ static void rompExitHandler(void)
     if (once++ > 0) return;
     if (debug) fprintf(stderr, "ROMP staticExitHandler called\n");
      
+    int tid;
+    for (tid = 0; tid < ROMP_maxWatchedThreadNum; tid++) {
+        PerThreadScopeTreeData* root = &scopeTreeRoots[tid];
+        if (tidStartTime[tid].inited) root->in_scope = TimerElapsedNanosecs(&tidStartTime[tid].timer);
+    }
+    
     ROMP_show_stats(stderr);
   
     if (getMainFile()) {
@@ -234,7 +247,7 @@ void ROMP_pf_begin(
     if (tid >= ROMP_maxWatchedThreadNum) return;
     
     PerThreadScopeTreeData* tos = scopeTreeToS[tid];
-    if (!tos) { tos = &scopeTreeRoots[tid]; scopeTreeToS[tid] = tos; }
+    if (!tos) { tos = &scopeTreeRoots[tid]; scopeTreeToS[tid] = tos; maybeInitTidStartTime(tid); }
     scopeTreeToS[tid] = enterScope(tos, pf_static);
     
     int i;
@@ -388,8 +401,10 @@ static void node_show_stats(FILE* file, PerThreadScopeTreeData* node, unsigned i
         for (d = 0; d < depth; d++) fprintf(file, "    ");
     }
     
-    fprintf(file, "%s, %d, %d, %12ld, %12ld, %12ld, %6.3g, %6.3g\n", 
-        pf ? pf->file : "<root>", pf ? pf->line : 0,
+    fprintf(file, "%s:%s, %d, %d, %12ld, %12ld, %12ld, %6.3g, %6.3g\n", 
+        pf ? pf->file : "<file>", 
+        pf ? pf->func : "<func>", 
+        pf ? pf->line : 0,
         sd ? sd->level : 0,
 	node->in_scope.ns, 0L, inAllThreads.ns, 
         0.0, (double)inAllThreads.ns/(double)node->in_scope.ns);
@@ -503,11 +518,12 @@ int main(int argc, char* argv[])
         }
         ROMP_PF_end
         
+        rompExitHandler();
         return 0;
     }
     
     
-    if (0) {
+    if (1) {
         ROMP_PF_begin
 
         int i; double sum = 0;
@@ -592,6 +608,7 @@ int main(int argc, char* argv[])
         #define ROMP_SUMREDUCTION1  doubleToSum1
         #define ROMP_LEVEL          assume_reproducible
         
+        const int romp_for_line = __LINE__;
         #include "romp_for_begin.h"
     
             #define doubleToSum0 ROMP_PARTIALSUM(0)

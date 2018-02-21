@@ -69,6 +69,8 @@
         int ROMP_index;
 
         ROMP_PF_begin
+        ROMP_pf_static.line = romp_for_line;
+
 #ifdef HAVE_OPENMP
 #ifdef ROMP_FOR_LEVEL 
     #pragma omp parallel for if_ROMPLEVEL(ROMP_FOR_LEVEL)

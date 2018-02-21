@@ -84,6 +84,7 @@ extern ROMP_level romp_level;
 typedef struct ROMP_pf_static_struct { 
     void * volatile ptr; 
     const char*     file; 
+    const char*     func; 
     unsigned int    line; 
 } ROMP_pf_static_struct;
 
@@ -95,7 +96,7 @@ typedef struct ROMP_pf_stack_struct  {
     ROMP_level    entry_level;
 } ROMP_pf_stack_struct;
 
-#define ROMP_main ROMP_main_started(__FILE__, __LINE__);
+#define ROMP_main ROMP_main_started(__BASE_FILE__, __LINE__);
     
 void ROMP_main_started(const char* file, int line);
 
@@ -162,7 +163,7 @@ typedef struct ROMP_pflb_stack_struct {
 
 #define ROMP_PF_begin \
     { \
-    static ROMP_pf_static_struct ROMP_pf_static = { 0L, __FILE__, __LINE__ }; \
+    static ROMP_pf_static_struct ROMP_pf_static = { 0L, __BASE_FILE__, __func__, __LINE__ }; \
     ROMP_pf_stack_struct  ROMP_pf_stack;  \
     ROMP_pf_begin(&ROMP_pf_static, &ROMP_pf_stack);
 
