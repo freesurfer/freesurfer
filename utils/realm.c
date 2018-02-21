@@ -29,8 +29,30 @@
 /*-----------------------------------------------------
                     INCLUDE FILES
 -------------------------------------------------------*/
-#include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+
 #include "fnv_hash.h"
+
+
+#ifdef REALM_UNIT_TEST
+    //
+    // rm -f a.out ; gcc -o a.out -I ../include realm.c ; ./a.out
+    //
+    typedef struct VERTEX {
+        float x,y,z;
+    } VERTEX;
+
+    struct MRIS {
+      int     nvertices;
+      VERTEX* vertices;
+    };
+    
+    static float MIN(float lhs, float rhs) { return (lhs < rhs) ? lhs : rhs; }
+    static float MAX(float lhs, float rhs) { return (lhs > rhs) ? lhs : rhs; }
+#endif
+
+
 
 // RealmTree construction and destruction
 //
@@ -42,27 +64,27 @@ struct RealmTreeNode {
 #define VNOS_CAPACITY 8
     int vnoSize;
     union {
-        RealmTreeNode* children[8]; // 2x2x2, when vnoSize  > VNOS_CAPACITY
-        int vnos[VNOS_CAPACITY];    //        when vnoSize <= VNOS_CAPACITY
+        RealmTreeNode* children[VNOS_CAPACITY];     // 2x2x2, when vnoSize  > VNOS_CAPACITY
+        int            vnos    [VNOS_CAPACITY];     //        when vnoSize <= VNOS_CAPACITY
     };
 };
 
 static bool nodeContains(
-    RealmTreeNode*  const n, 
+    RealmTreeNode const *  const n, 
     float const x, float const y, float const z) {
     return  n->xLo <= x && x < n->xHi &&
             n->yLo <= y && y < n->yHi &&
             n->zLo <= z && z < n->zHi;
 }
 
-static RealmTreeNode* upUntilContainsNode(RealmTreeNode* const n, 
+static RealmTreeNode const * upUntilContainsNode(RealmTreeNode const * n, 
     float const x, float const y, float const z) {
     while (!nodeContains(n,x,y,z)) n = n->parent;
     return n;
 }
 
 static int chooseChild(
-    RealmTreeNode* n,
+    RealmTreeNode const * n,
     float x, float y,float z) {
     int c = ((x < n->children[1]->xLo) ? 0 : 1) +
             ((x < n->children[2]->yLo) ? 0 : 1) +
@@ -70,7 +92,7 @@ static int chooseChild(
     return c;
 }
 
-static RealmTreeNode* deepestContainingNode(RealmTreeNode* const n, 
+static RealmTreeNode const * deepestContainingNode(RealmTreeNode const * n, 
     float const x, float const y, float const z) {
     n = upUntilContainsNode(n, x, y, z);
     while (n->vnoSize > VNOS_CAPACITY) {
@@ -100,7 +122,7 @@ struct RealmTree {
     RealmTreeNode** vnoToRealmTreeNode;
 };
 
-static void insertIntoNode(
+static RealmTreeNode* insertIntoNode(
     RealmTree*      const realmTree,
     RealmTreeNode*  const n, 
     int const vno, float const x, float const y, float const z)
@@ -127,32 +149,30 @@ static void insertIntoNode(
         int vnos[VNOS_CAPACITY];
         int vi;
         for (vi = 0; vi < VNOS_CAPACITY; vi++) {
-            vnos[vi] = n->children[vi];
+            vnos[vi] = n->vnos[vi];
         } 
         
         // Make the children
         int c;
-        for (c = 0; c < 8; c++) { 
+        for (c = 0; c < VNOS_CAPACITY; c++) { 
             RealmTreeNode* child = n->children[c] = 
                 (RealmTreeNode*)calloc(1, sizeof(RealmTreeNode));
-            if (c&1) c->xLo = xMid, c->xHi = n->xHi; else c->xLo = xLo, c->xHi = xMid; 
-            if (c&2) c->yLo = yMid, c->yHi = n->yHi; else c->yLo = yLo, c->yHi = yMid;
-            if (c&4) c->zLo = zMid, c->zHi = n->zHi; else c->zLo = zLo, c->zHi = zMid;
+            if (c&1) child->xLo = xMid, child->xHi = n->xHi; else child->xLo = n->xLo, child->xHi = xMid; 
+            if (c&2) child->yLo = yMid, child->yHi = n->yHi; else child->yLo = n->yLo, child->yHi = yMid;
+            if (c&4) child->zLo = zMid, child->zHi = n->zHi; else child->zLo = n->zLo, child->zHi = zMid;
         }
         n->vnoSize = VNOS_CAPACITY + 1;
         
         // Insert the saved vno into their right child
-        int vi;
-        for (vi = 0; vi < 8; vi++) {
+        for (vi = 0; vi < VNOS_CAPACITY; vi++) {
             RealmTreeNode* tmpN     = n; 
-            int            tmpDepth = depth; 
             VERTEX const * vertex = &mris->vertices[vnos[vi]];
-            insertIntoChild(realmTree, n, vertex->x, vertex->y, vertex->z);
+            insertIntoChild(realmTree, n, vno, vertex->x, vertex->y, vertex->z);
         }
     }
 
     // Insert this vno into the right child
-    return insertIntoChild(realmTree, n, x, y, z);
+    return insertIntoChild(realmTree, n, vno, x, y, z);
 }
 
 unsigned long computeRealmTreeHash(MRIS const * mris) {
@@ -182,15 +202,15 @@ RealmTree* makeRealmTree(MRIS const * mris) {
     rt->fnv_hash = computeRealmTreeHash(mris);
     rt->vnoToRealmTreeNode = (RealmTreeNode**)calloc(mris->nvertices, sizeof(RealmTreeNode*));
 
-    if (mris->nvertices == 0) return;
+    if (mris->nvertices == 0) return rt;
     
     // Calculate the outer box
     //
     int vno = 0;
     VERTEX const * vertex0 = &mris->vertices[vno];
-    int xLo = vertex->x, xHi = xLo,
-        yLo = vertex->y, yHi = yLo,
-        zLo = vertex->z, zHi = zHi;
+    int xLo = vertex0->x, xHi = xLo,
+        yLo = vertex0->y, yHi = yLo,
+        zLo = vertex0->z, zHi = zHi;
     for (vno = 1; vno < mris->nvertices; vno++) {
         VERTEX const * vertex = &mris->vertices[vno];
         int const x = vertex->x, y = vertex->y, z = vertex->z;
@@ -203,11 +223,6 @@ RealmTree* makeRealmTree(MRIS const * mris) {
     recentNode->xHi = xHi; recentNode->yHi = yHi; recentNode->zHi = zHi;
 
     // Place all the vertices into boxes
-    // There are up to 8 boxes at each level
-    // Assuming 100,000 vno's we want to subdivide into about 5 levels
-    //      about   8x8     64
-    //             x8x8   4096
-    //             x8    32768  boxes, so about 3 per box
     // 
     for (vno = 0; vno < mris->nvertices; vno++) {
         VERTEX const * vertex = &mris->vertices[vno];
@@ -217,7 +232,7 @@ RealmTree* makeRealmTree(MRIS const * mris) {
             recentNode = recentNode->parent;
         }
         // Insert here, or deeper
-        recentNode = insertIntoNode(recentNode, vno, x,y,z);
+        recentNode = insertIntoNode(rt, recentNode, vno, x,y,z);
     }
 
     return rt;
@@ -225,8 +240,8 @@ RealmTree* makeRealmTree(MRIS const * mris) {
 
 void checkRealmTree(RealmTree* realTree, MRIS const * mris) {
     unsigned long hash_now = computeRealmTreeHash(mris);
-    if (rt->fnv_hash != hash_now) {
-        printf(stderr, "%s:%d mris some vertex xyz has changed\n");
+    if (realTree->fnv_hash != hash_now) {
+        fprintf(stderr, "%s:%d mris some vertex xyz has changed\n", __FILE__, __LINE__);
         exit(1);
     }
 }
@@ -274,8 +289,8 @@ bool realmMightTouchFno(Realm const * realm, int fno) {
 }
 
 bool realmMightTouchVno(Realm const * realm, int vno) {
-    RealmTreeNode* realmNode = realm->deepestContainingNode;
-    RealmTreeNode* vnoNode   = realm->realmTree->vnoToRealmTreeNode[vno];
+    RealmTreeNode const * realmNode = realm->deepestContainingNode;
+    RealmTreeNode const * vnoNode   = realm->realmTree->vnoToRealmTreeNode[vno];
     while (vnoNode) {
         if (vnoNode == realmNode) return true;
         vnoNode = vnoNode->parent;
@@ -289,11 +304,92 @@ bool realmMightTouchVno(Realm const * realm, int vno) {
 // updates realmIterator to some private non-zero value
 // returns -1 when no more found
 // further calls will cause an error exit
-//  
-int realmNextMightTouchFno(Realm* realm, int & realmIterator) {
-    TBD;
+// 
+void initRealmIterator(RealmIterator* realmIterator, Realm* realm) {
+    // The iterator implements a depth-first walk of the tree
+    // It has to keep track of how far below the deepestContainingNode it is, and which of the children it is processing
+    //
+    // When i becomes 1, it is because we have popped the realm->deepestContainingNode
+    //
+    unsigned long i = 1*VNOS_CAPACITY;
+    RealmTreeNode const * n = realm->deepestContainingNode;
+
+    // Down to the deepest leftmost descendent
+    //
+    while (n->vnoSize > VNOS_CAPACITY) {
+        n = n->children[0];
+        i = i*VNOS_CAPACITY;
+    }
+
+    // Set up to access the next of these vno's, if any
+    //    
+    realmIterator->i = (n->vnoSize > 0) ?        i :           1;
+    realmIterator->p = (n->vnoSize > 0) ? (void*)n : (void*)NULL;
 }
 
-int realmNextMightTouchVno(Realm* realm, int & realmIterator) {
-    TBD;
+int realmNextMightTouchFno(Realm* realm, RealmIterator* realmIterator) {
+    fprintf(stderr, "%s:%d NYI\n", __FILE__, __LINE__);
+    exit(1);
+    return 0;
+}
+
+int realmNextMightTouchVno(Realm* realm, RealmIterator* realmIterator) {
+
+    unsigned long         i =                        realmIterator->i;
+    RealmTreeNode const * n = (RealmTreeNode const *)realmIterator->p;
+
+    // If there isn't any more
+    //
+    if (!n) {
+        return -1;
+    }
+
+    // Get this one
+    //
+    unsigned long c = i % VNOS_CAPACITY;
+    int const vno = n->vnos[c];
+
+    // Step to the next one
+    //    
+    c++;
+
+    if (c < n->vnoSize) {
+        
+        realmIterator->i++;
+        
+    } else {
+        
+        // This leaf is consumed, so search for the next non-empty leaf
+        
+        // Go up thru the non-leaf's until there is an unprocessed child
+        //
+        do {
+            n = n->parent;
+            i /= VNOS_CAPACITY;
+            c = (i % VNOS_CAPACITY) + 1;
+            if (i == 1) {               // none
+                n = NULL;
+                break;
+            }
+        } while (c >= n->vnoSize);
+
+        // Go down to the next unprocessed leaf
+        //
+        if (n) {
+            do {
+                n = n->children[c];
+                i = i*VNOS_CAPACITY;
+                c = 0;
+            } while (n->vnoSize > VNOS_CAPACITY);
+        }
+        
+        // Note for next time
+        //
+        realmIterator->i = i;
+        realmIterator->p = (void*)n;
+    }
+    
+    // Return this one
+    //
+    return vno;
 }

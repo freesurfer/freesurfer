@@ -27,7 +27,15 @@
  *
  */
 
+#define REALM_UNIT_TEST
+
+#include <stdbool.h>
+
+#ifndef REALM_UNIT_TEST
 #include "mris.h"
+#else
+    typedef struct MRIS MRIS;
+#endif
 
 typedef struct RealmTree RealmTree;
 void freeRealmTree(RealmTree** realmTreePtr);
@@ -53,13 +61,19 @@ bool realmMightTouchFno(Realm const * realm, int fno);
 bool realmMightTouchVno(Realm const * realm, int vno);
     //
     // Quick tests
-    
-int realmNextMightTouchFno(Realm* realm, int & realmIterator);
-int realmNextMightTouchVno(Realm* realm, int & realmIterator);
-    // first call with realmIterator 0
+ 
+typedef struct RealmIterator {  // can be assigned safely
+    unsigned long i;
+    void*         p;
+} RealmIterator;
+void initRealmIterator(RealmIterator* realmIterator, Realm* realm);
+    // no fini needed
+
+int realmNextMightTouchFno(Realm* realm, RealmIterator* realmIterator);
+int realmNextMightTouchVno(Realm* realm, RealmIterator* realmIterator);
+    // first call with realmIterator init'ed by initRealmIterator
     // successive calls return some next fno or vno, may not be ascending order!
-    // updates realmIterator to some private non-zero value
-    // returns -1 when no more found
-    // further calls will cause an error exit
+    // updates realmIterator to some private state
+    // returns -1 when no more found, and on further calls after this
 
 #endif
