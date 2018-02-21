@@ -50,6 +50,75 @@
     
     static float MIN(float lhs, float rhs) { return (lhs < rhs) ? lhs : rhs; }
     static float MAX(float lhs, float rhs) { return (lhs > rhs) ? lhs : rhs; }
+    
+    static void bevins_break()
+    {
+    }
+
+    int main() {
+        MRIS mris;
+        mris.nvertices = 10000;
+        mris.vertices = (VERTEX*)calloc(mris.nvertices, sizeof(VERTEX));
+        
+        
+        int vno;
+        for (vno = 0; vno < mris.nvertices; vno++) {
+            VERTEX* v = &mris.vertices[vno];
+            v->x = vno; 
+            v->y = (vno*7321)%71; 
+            v->z = (vno*17321)%91;
+        }
+        vno = 0;
+        float xMin = mris.vertices[vno].x, xMax = xMin,
+              yMin = mris.vertices[vno].y, yMax = yMin, 
+              zMin = mris.vertices[vno].z, zMax = zMin;
+        for (vno = 1; vno < mris.nvertices; vno++) {
+            VERTEX* v = &mris.vertices[vno];
+            xMin = MIN(xMin, mris.vertices[vno].x);
+            yMin = MIN(yMin, mris.vertices[vno].y);
+            zMin = MIN(zMin, mris.vertices[vno].z);
+            xMax = MAX(xMax, mris.vertices[vno].x);
+            yMax = MAX(yMax, mris.vertices[vno].y);
+            zMax = MAX(zMax, mris.vertices[vno].z);
+        }
+        
+        RealmTree* realmTree = makeRealmTree(&mris);
+
+        float fLo, fHi;
+        for (fLo = 0; fLo <= 1; fLo += 0.1)
+        for (fHi = 0; fHi <= 1; fHi += 0.1)
+        {
+            float xLo = xMin + fLo*(xMax-xMin);
+            float xHi = xMax - fHi*(xMax-xLo);
+            float yLo = yMin + fLo*(yMax-yMin);
+            float yHi = yMax - fHi*(yMax-yLo);
+            float zLo = zMin + fLo*(zMax-zMin);
+            float zHi = zMax - fHi*(zMax-zLo);
+
+            Realm* realm = 
+                makeRealm(realmTree, 
+                    xLo, xHi, 
+                    yLo, yHi,
+                    zLo, zHi);
+        
+            RealmIterator realmIterator;
+            initRealmIterator(&realmIterator, realm);
+            
+            //
+            
+            //
+            int vno;
+            while (0 <= (vno = realmNextMightTouchVno(realm, &realmIterator))) {
+                printf("vno:%d\n", vno);
+            }
+        
+            freeRealm(&realm);
+        }
+            
+        freeRealmTree(&realmTree);
+        
+        return 0;
+    }
 #endif
 
 
@@ -86,9 +155,19 @@ static RealmTreeNode const * upUntilContainsNode(RealmTreeNode const * n,
 static int chooseChild(
     RealmTreeNode const * n,
     float x, float y,float z) {
-    int c = ((x < n->children[1]->xLo) ? 0 : 1) +
-            ((x < n->children[2]->yLo) ? 0 : 1) +
-            ((x < n->children[4]->zLo) ? 0 : 1);
+
+    if (!nodeContains(n, x,y,z)) 
+        bevins_break();
+
+    float xMid = n->children[1]->xLo;
+    float yMid = n->children[2]->yLo;
+    float zMid = n->children[4]->zLo;
+    
+    int c = ((x < xMid) ? 0 : 1) + ((y < yMid) ? 0 : 2) + ((z < zMid) ? 0 : 4);
+    
+    if (!nodeContains(n->children[c], x,y,z)) 
+        bevins_break();
+    
     return c;
 }
 
@@ -112,7 +191,14 @@ static RealmTreeNode* insertIntoChild(
     RealmTreeNode* n,
     int vno, float x, float y,float z) {
     int c = chooseChild(n, x, y, z);
-    return insertIntoNode(realmTree, n->children[c], vno,x,y,z);
+    static int depth;
+    depth++;
+    if (depth > 10) {
+        bevins_break();
+    }
+    RealmTreeNode* result = insertIntoNode(realmTree, n->children[c], vno,x,y,z);
+    depth--;
+    return result;
 }
 
 struct RealmTree {
@@ -128,9 +214,18 @@ static RealmTreeNode* insertIntoNode(
     int const vno, float const x, float const y, float const z)
 {
     MRIS const* mris = realmTree->mris;
+
+    VERTEX const* v = &mris->vertices[vno];
+    if (x != v->x || y != v->y || z != v->z) 
+            bevins_break();
+   
     
     // Can fit in this node
     if (n->vnoSize < VNOS_CAPACITY) {
+    
+        if (!nodeContains(n, x,y,z)) 
+            bevins_break();
+   
         n->vnos[n->vnoSize++] = vno;
         realmTree->vnoToRealmTreeNode[vno] = n;
         return n;
@@ -157,6 +252,7 @@ static RealmTreeNode* insertIntoNode(
         for (c = 0; c < VNOS_CAPACITY; c++) { 
             RealmTreeNode* child = n->children[c] = 
                 (RealmTreeNode*)calloc(1, sizeof(RealmTreeNode));
+            child->parent = n;
             if (c&1) child->xLo = xMid, child->xHi = n->xHi; else child->xLo = n->xLo, child->xHi = xMid; 
             if (c&2) child->yLo = yMid, child->yHi = n->yHi; else child->yLo = n->yLo, child->yHi = yMid;
             if (c&4) child->zLo = zMid, child->zHi = n->zHi; else child->zLo = n->zLo, child->zHi = zMid;
@@ -165,9 +261,8 @@ static RealmTreeNode* insertIntoNode(
         
         // Insert the saved vno into their right child
         for (vi = 0; vi < VNOS_CAPACITY; vi++) {
-            RealmTreeNode* tmpN     = n; 
             VERTEX const * vertex = &mris->vertices[vnos[vi]];
-            insertIntoChild(realmTree, n, vno, vertex->x, vertex->y, vertex->z);
+            insertIntoChild(realmTree, n, vnos[vi], vertex->x, vertex->y, vertex->z);
         }
     }
 
@@ -208,16 +303,24 @@ RealmTree* makeRealmTree(MRIS const * mris) {
     //
     int vno = 0;
     VERTEX const * vertex0 = &mris->vertices[vno];
-    int xLo = vertex0->x, xHi = xLo,
-        yLo = vertex0->y, yHi = yLo,
-        zLo = vertex0->z, zHi = zHi;
+    float xLo = vertex0->x, xHi = xLo,
+          yLo = vertex0->y, yHi = yLo,
+          zLo = vertex0->z, zHi = zHi;
     for (vno = 1; vno < mris->nvertices; vno++) {
         VERTEX const * vertex = &mris->vertices[vno];
-        int const x = vertex->x, y = vertex->y, z = vertex->z;
+        float const x = vertex->x, y = vertex->y, z = vertex->z;
         xLo = MIN(xLo, x); yLo = MIN(yLo, y); zLo = MIN(zLo, z); 
         xHi = MAX(xHi, x); yHi = MAX(yHi, y); zHi = MAX(zHi, z); 
     }
-
+    
+    // Since contains is xLo <= x < xHi etc. the bounds need to be slightly wider than Hi
+    // so that the Hi is in a Node
+    //
+    xHi += (xHi - xLo)/100.0;
+    yHi += (yHi - yLo)/100.0;
+    zHi += (zHi - zLo)/100.0;
+    bevins_break();
+    
     RealmTreeNode* recentNode  = &rt->root;
     recentNode->xLo = xLo; recentNode->yLo = yLo; recentNode->zLo = zLo;
     recentNode->xHi = xHi; recentNode->yHi = yHi; recentNode->zHi = zHi;
@@ -225,6 +328,8 @@ RealmTree* makeRealmTree(MRIS const * mris) {
     // Place all the vertices into boxes
     // 
     for (vno = 0; vno < mris->nvertices; vno++) {
+        if (vno == 62)
+            bevins_break();
         VERTEX const * vertex = &mris->vertices[vno];
         int const x = vertex->x, y = vertex->y, z = vertex->z;
         // Find the right subtree
