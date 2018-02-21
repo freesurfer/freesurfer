@@ -69,7 +69,7 @@
         for (vno = 0; vno < mris.nvertices; vno++) {
             int key = vno > useDuplicates ? vno : 936; 
             VERTEX* v = &mris.vertices[vno];
-            v->x = key; 
+            v->x = (key*321)%51; 
             v->y = (key*7321)%71; 
             v->z = (key*17321)%91;
         }
