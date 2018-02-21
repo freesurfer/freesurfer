@@ -51,7 +51,7 @@ c Initial revision
       call warp2tparam(mode,t4,param)
       param(13)=1.
 
-      l=index(t4_file,'\0')-1
+      l=index(t4_file,char(0))-1
       if(l.le.0)l=lnblnk(t4_file)
       open(8,file=t4_file(1:l),status='old',err=9)
     1 read(8,"(a)",end=9)string
@@ -67,7 +67,7 @@ c Initial revision
 
       scale=1.
       iget_t4_scale=1
-      l=index(t4_file,'\0')-1
+      l=index(t4_file,char(0))-1
       if(l.le.0)l=lnblnk(t4_file)
       open(8,file=t4_file(1:l),status='old',err=9)
     1 read(8,"(a)",end=9)string
@@ -94,9 +94,9 @@ c Initial revision
       character*256 string
       logical*4 ldebug/.false./
 
-      l=index(t4_file,'\0')-1
+      l=index(t4_file,char(0))-1
       if(l.le.0)l=lnblnk(t4_file)
-      open(8,file=t4_file(1:l),status='old',err=9)
+      open(8,file=t4_file(1:l),status='old',err=10)
       do i=1,4
         read(8,"(3f10.6,f10.4)",err=7)(t4(i,j),j=1,4)
       enddo
@@ -111,7 +111,12 @@ c Initial revision
       enddo
       close(8)
       return
-    9 write(*,"('t4_read: ',a,' read error')")t4_file(1:l)
+    9 write(*,"('t4_read: read error in t4_sub.f l:',i4,' t4_file(1:l)',a,' ')")l,t4_file(1:l)
+      call t4_init(t4)
+      write(*,"('t4_read: transform initialized to I4')")
+      close(8)
+      return
+   10 write(*,"('t4_read: open error in t4_sub.f l:',i4,' t4_file(1:l)',a,' ')")l,t4_file(1:l)
       call t4_init(t4)
       write(*,"('t4_read: transform initialized to I4')")
       close(8)
@@ -122,7 +127,7 @@ c Initial revision
       character*256 b6_file
       real*4 b6(6,3)
 
-      l=index(b6_file,'\0')-1
+      l=index(b6_file,char(0))-1
       if(l.le.0)l=lnblnk(b6_file)
       open(8,file=b6_file(1:l),status='old',err=99)
       do i=1,3
@@ -150,10 +155,10 @@ c Initial revision
 
       call tparam2warp(mode,param,t4)
 
-      l=index(t4_file,'\0')-1
+      l=index(t4_file,char(0))-1
       if(l.le.0)l=lnblnk(t4_file)
       open(9,file=t4_file(1:l))
-      k=index(string,'\0')-1
+      k=index(string,char(0))-1
       if(k.eq.0)k=lnblnk(string)
       write(9,"(a)")string(1:k)
       do i=1,4
@@ -172,7 +177,7 @@ c Initial revision
       real*4 t4(4,4)
       character*256 t4_file
 
-      l=index(t4_file,'\0')-1
+      l=index(t4_file,char(0))-1
       if(l.le.0)l=lnblnk(t4_file)
       open(9,file=t4_file(1:l))
       do i=1,4
