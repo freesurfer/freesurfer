@@ -122,7 +122,7 @@ def samsegment_part1(
     # labelNumber = 0; % background label
     labelNumber = 0
     # backgroundPrior = kvlRasterizeAtlasMesh( mesh, imageSize, labelNumber ); % Volume with background probs
-    backgroundPrior = mesh.rasterize(imageSize, labelNumber)
+    backgroundPrior = mesh.rasterize_1a(imageSize, labelNumber)
     # if 1
     #   % Threshold background prior at 0.5 - this helps for atlases built from imperfect (i.e., automatic)
     #   % segmentations, whereas background areas don't have zero probability for non-background structures
@@ -173,7 +173,7 @@ def samsegment_part1(
     # kvlSetAlphasInMeshNodes( mesh, areaCoveredAlphas );
     mesh.alphas = areaCoveredAlphas  # temporary replacement of alphas
     # areaCoveredByMesh = kvlRasterizeAtlasMesh( mesh, imageSize, 1 );
-    areaCoveredByMesh = mesh.rasterize(imageSize, 1)
+    areaCoveredByMesh = mesh.rasterize_1b(imageSize, 1)
     # kvlSetAlphasInMeshNodes( mesh, alphas );
     mesh.alphas = alphas  # restore alphas
     # brainMask = brainMask & ( areaCoveredByMesh > 0 );

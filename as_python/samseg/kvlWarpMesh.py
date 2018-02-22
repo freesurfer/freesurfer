@@ -143,7 +143,7 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
         #   % denseDeformation = double( kvlRasterizeAtlasMesh( sourceReferenceMesh, imageSize ) ) / ( 2^16 -1 ) ...
         #   %                               * ( maxDeformation - minDeformation ) + minDeformation;
         #   tmp = kvlRasterizeAtlasMesh( sourceReferenceMesh, imageSize );
-        tmp = sourceReferenceMesh.rasterize(imageSize, -1)
+        tmp = sourceReferenceMesh.rasterize_warp(imageSize, -1)
         #
         #   % Unvisited voxels are marked by zeroes in all three coordinates - except possibly for the origin
         #   % which has all three coordinates zero as its natural state
@@ -332,7 +332,7 @@ def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshColle
         #
         #   %
         #   [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer )
-        minLogLikelihoodTimesPrior, maximalDeformation = optimizer.step_optimizer()
+        minLogLikelihoodTimesPrior, maximalDeformation = optimizer.step_optimizer_warp()
         #   %return
         #   if ( maximalDeformation == 0 )
         #     break;

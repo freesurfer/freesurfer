@@ -218,7 +218,7 @@ def samsegment_part2(
             #
             #     % Get the priors at the current mesh position
             #     tmp = reshape( kvlRasterizeAtlasMesh( mesh, downSampledImageSize ), [ prod( downSampledImageSize ) numberOfClasses ] );
-            tmp = mesh.rasterize(downSampledImageSize, -1)
+            tmp = mesh.rasterize_2(downSampledImageSize, -1)
             #     priors( : ) = double( tmp( downSampledMaskIndices, : ) ) / 65535;
             priors = tmp[downSampledMaskIndices] / 65535
             #
@@ -728,7 +728,7 @@ def samsegment_part2(
                 #       %
                 #       stepStartTime = tic;
                 #       [ minLogLikelihoodTimesDeformationPrior, maximalDeformation ] = kvlStepOptimizer( optimizer );
-                minLogLikelihoodTimesDeformationPrior, maximalDeformation = optimizer.step_optimizer()
+                minLogLikelihoodTimesDeformationPrior, maximalDeformation = optimizer.step_optimizer_samseg()
                 #       disp( [ 'maximalDeformation ' num2str( maximalDeformation ) ' took ' num2str( toc( stepStartTime ) ) ' sec' ] )
                 print("maximalDeformation={} minLogLikelihood={}".format(maximalDeformation,
                                                                          minLogLikelihoodTimesDeformationPrior))

@@ -51,11 +51,19 @@ PYBIND11_MODULE(GEMS2Python, m) {
             py::arg("numberOfGaussiansPerClass")=py::array_t<int>(),
             py::arg("targetPoints")=py::array_t<double>())
             .def("evaluate_mesh_position", &KvlCostAndGradientCalculator::EvaluateMeshPosition)
+            // Aliases to help with profiling
+            .def("evaluate_mesh_position_a", &KvlCostAndGradientCalculator::EvaluateMeshPosition)
+            .def("evaluate_mesh_position_b", &KvlCostAndGradientCalculator::EvaluateMeshPosition)
+            .def("evaluate_mesh_position_c", &KvlCostAndGradientCalculator::EvaluateMeshPosition)
             ;
 
     py::class_<KvlOptimizer>(m, "KvlOptimizer")
             .def(py::init<const std::string &, const KvlMesh&, const KvlCostAndGradientCalculator&, const std::map<std::string, double> &>())
             .def("step_optimizer", &KvlOptimizer::StepOptimizer)
+            // Aliases to help with profiling
+            .def("step_optimizer_warp", &KvlOptimizer::StepOptimizer)
+            .def("step_optimizer_atlas", &KvlOptimizer::StepOptimizer)
+            .def("step_optimizer_samseg", &KvlOptimizer::StepOptimizer)
             ;
 
     py::class_<KvlMesh>(m, "KvlMesh")
@@ -65,6 +73,13 @@ PYBIND11_MODULE(GEMS2Python, m) {
             .def_property("alphas", &KvlMesh::GetAlphas, &KvlMesh::SetAlphas)
             .def("scale", &KvlMesh::Scale)
             .def("rasterize", &KvlMesh::RasterizeMesh, py::arg("shape"), py::arg("classNumber") = -1)
+            // Aliases to help with profiling
+            .def("rasterize_warp", &KvlMesh::RasterizeMesh, py::arg("shape"), py::arg("classNumber") = -1)
+            .def("rasterize_atlas", &KvlMesh::RasterizeMesh, py::arg("shape"), py::arg("classNumber") = -1)
+            .def("rasterize_1a", &KvlMesh::RasterizeMesh, py::arg("shape"), py::arg("classNumber") = -1)
+            .def("rasterize_1b", &KvlMesh::RasterizeMesh, py::arg("shape"), py::arg("classNumber") = -1)
+            .def("rasterize_2", &KvlMesh::RasterizeMesh, py::arg("shape"), py::arg("classNumber") = -1)
+            .def("rasterize_3", &KvlMesh::RasterizeMesh, py::arg("shape"), py::arg("classNumber") = -1)
             ;
 
     py::class_<KvlMeshCollection>(m, "KvlMeshCollection")

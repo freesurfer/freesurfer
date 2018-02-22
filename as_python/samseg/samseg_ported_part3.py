@@ -152,7 +152,7 @@ def samsegment_part3(
     # data = reshape( biasCorrectedImageBuffers, [ prod( imageSize ) numberOfContrasts ] );
     data = biasCorrectedImageBuffers
     # priors = kvlRasterizeAtlasMesh( mesh, imageSize );
-    priors = mesh.rasterize(imageSize, -1)
+    priors = mesh.rasterize_3(imageSize, -1)
     # priors = reshape( priors, [ prod( imageSize ) numberOfStructures ] );
     # NOT GOING TO RESHAPE, WILL USE MASK INDEXING
     #

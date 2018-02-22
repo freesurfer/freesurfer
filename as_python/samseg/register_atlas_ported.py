@@ -209,7 +209,7 @@ def samseg_registerAtlas(imageFileName,
 
         calculator = GEMS2Python.KvlCostAndGradientCalculator('MutualInformation', [image], 'Affine')
         #   [ cost gradient ] = kvlEvaluateMeshPosition( calculator, mesh );
-        cost, gradient = calculator.evaluate_mesh_position(mesh)
+        cost, gradient = calculator.evaluate_mesh_position_a(mesh)
         #   if true
         #     %
         #     [ xtmp, ytmp, ztmp ] = ndgrid( 1 : size( imageBuffer, 1 ), ...
@@ -221,7 +221,7 @@ def samseg_registerAtlas(imageFileName,
         centerOfGravityImage = np.array(scipy.ndimage.measurements.center_of_mass(imageBuffer))
 
         #     priors = kvlRasterizeAtlasMesh( mesh, size( imageBuffer ) );
-        priors = mesh.rasterize(imageBuffer.shape)
+        priors = mesh.rasterize_atlas(imageBuffer.shape)
         #     %tmp = sum( priors, 4 );
         #     tmp = sum( priors( :, :, :, 2 : end ), 4 );
         tmp = np.sum(priors[:, :, :, 1:], axis=3)
@@ -237,7 +237,7 @@ def samseg_registerAtlas(imageFileName,
         #     kvlSetMeshNodePositions( mesh, trialNodePositions );
         mesh.points = trialNodePositions
         #     [ trialCost trialGradient ] = kvlEvaluateMeshPosition( calculator, mesh );
-        trialCost, trialGradient = calculator.evaluate_mesh_position(mesh)
+        trialCost, trialGradient = calculator.evaluate_mesh_position_b(mesh)
         #     if ( trialCost >= cost )
         if trialCost >= cost:
             #       % Center of gravity was not a success; revert to what we had before
@@ -311,13 +311,13 @@ def samseg_registerAtlas(imageFileName,
         gradients = []
         #   while truek
         while True:
-            cost, gradient = calculator.evaluate_mesh_position(mesh)
+            cost, gradient = calculator.evaluate_mesh_position_c(mesh)
             logger.info("cost = %f", cost)
             costs.append(cost)
             gradients.append(gradient)
             #     %
             #     [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer )
-            minLogLikelihoodTimesPrior, maximalDeformation = optimizer.step_optimizer()
+            minLogLikelihoodTimesPrior, maximalDeformation = optimizer.step_optimizer_atlas()
             minLogLikelihoodTimesPriors.append(minLogLikelihoodTimesPrior)
             maximalDeformations.append(maximalDeformation)
             #     %return
