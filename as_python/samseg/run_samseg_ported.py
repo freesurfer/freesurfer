@@ -10,6 +10,8 @@ from samseg.run_utilities import find_or_create_save_path, specify_model, determ
     find_samseg_data_dir
 from gems2python import GEMS2Python
 
+from samseg.samseg_ported import samsegment
+
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)  # TODO: configurable logging
 
@@ -52,6 +54,7 @@ def run_samseg_from_cmdargs(cmdargs):
     # fprintf('Matlab version %s\n',version);
     #
     verbose = cmdargs.verbose
+    atlas_only = cmdargs.atlas_only
     # savePath = cmdargs.outdir;
     savePath = cmdargs.output
     # numberOfThreads = cmdargs.nthreads;
@@ -85,7 +88,8 @@ def run_samseg_from_cmdargs(cmdargs):
             noBrainMasking,
             useDiagonalCovarianceMatrices,
             verbose,
-            numberOfThreads
+            numberOfThreads,
+            atlas_only
     )
 
 
@@ -97,6 +101,7 @@ def run_samseg(
     useDiagonalCovarianceMatrices=False,
     verbose=False,
     numberOfThreads=None,
+    atlas_only=False,
     checkpoint_manager=None
 ):
     #
@@ -158,6 +163,8 @@ def run_samseg(
         checkpoint_manager
     )
     process_timer.mark_time('registration done')
+    if atlas_only:
+        return
     #
     #
     #
