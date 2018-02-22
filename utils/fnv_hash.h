@@ -35,6 +35,7 @@ static unsigned long fnv_add(unsigned long hash, const unsigned char* p, unsigne
     return hash;
 }
 
+#pragma GCC diagnostic ignored "-Wunused-function"
 static float fnv_hash(int i, int k, int* random_counter, double LO, double HI) {
 
     unsigned int combined[3]; combined[0] = i; combined[1] = k; combined[2] = (*random_counter)++; 

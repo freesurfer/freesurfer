@@ -80,7 +80,7 @@ MRIS_HASH_TABLE *MHTcreateVertexTable_Resolution(
 int MHTdoesFaceIntersect(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris,int fno);
 
 
-int MHTisVectorFilled(MRIS_HASH_TABLE *mht,    MRI_SURFACE const *mris,
+int MHTisVectorFilled(MRIS_HASH_TABLE const *mht,    MRI_SURFACE const *mris,
                          int vno,  float dx, float dy, float dz) ;
 
 //------------------------------------------------
@@ -151,5 +151,12 @@ int mhtBruteForceClosestFace(MRI_SURFACE const *mris,
                              float x, float y, float z, 
                              int which,                  // which surface within mris to search
                              float *dmin);
+
+//-----
+// Support parallelism
+//-----
+
+void MHT_maybeParallel_begin();     // Note: Can be nested!
+void MHT_maybeParallel_end();
 
 #endif // END #ifndef MRISHASH_ONCE_H

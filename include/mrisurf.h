@@ -1110,24 +1110,24 @@ int          MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris,
                                          double *px, double *py, double *pz) ;
 
 
-typedef struct MRIS_SurfRAS2VoxelCache {
+typedef struct MRIS_SurfRAS2VoxelMap {
     MRI*    mri;                            // was held in mris->mri_sras2vox
     MATRIX* sras2vox;                       // was held in mris->m_sras2vox
     VECTOR * volatile v1[_MAX_FS_THREADS];  // used to avoid repeated allocations
     VECTOR * volatile v2[_MAX_FS_THREADS];  // used to avoid repeated allocations
-} MRIS_SurfRAS2VoxelCache;
+} MRIS_SurfRAS2VoxelMap;
 
-void MRIS_useRAS2VoxelCache(MRIS_SurfRAS2VoxelCache * cache_nonconst,   // accesses cache thread safely
+void MRIS_useRAS2VoxelMap(MRIS_SurfRAS2VoxelMap * cache_nonconst,   // accesses cache thread safely
         MRI const * const mri,
         double r, double a, double s, double *px, double *py, double *pz);
     
-void MRIS_loadRAS2VoxelCache(MRIS_SurfRAS2VoxelCache* cache,            // not thread safe
+void MRIS_loadRAS2VoxelMap(MRIS_SurfRAS2VoxelMap* cache,            // not thread safe
         MRI const * const mri, MRI_SURFACE const * const mris);
-void MRIS_unloadRAS2VoxelCache(MRIS_SurfRAS2VoxelCache* cache);         // not thread safe
+void MRIS_unloadRAS2VoxelMap(MRIS_SurfRAS2VoxelMap* cache);         // not thread safe
 
-MRIS_SurfRAS2VoxelCache* MRIS_makeRAS2VoxelCache(                       // not thread safe
+MRIS_SurfRAS2VoxelMap* MRIS_makeRAS2VoxelMap(                       // not thread safe
         MRI const * const mri, MRI_SURFACE const * const mris);
-void MRIS_freeRAS2VoxelCache(MRIS_SurfRAS2VoxelCache** const cachePtr); // not thread safe
+void MRIS_freeRAS2VoxelMap(MRIS_SurfRAS2VoxelMap** const cachePtr); // not thread safe
 
 // these are the inverse of the previous two
 int          MRISsurfaceRASFromVoxel(MRI_SURFACE *mris, MRI *mri, 

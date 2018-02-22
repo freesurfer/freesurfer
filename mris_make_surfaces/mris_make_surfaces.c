@@ -661,6 +661,7 @@ main(int argc, char *argv[])
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
+
   if (mris->vg.valid && !FZERO(mris->vg.xsize))
     spring_scale = 3/(mris->vg.xsize + mris->vg.ysize + mris->vg.zsize) ;
   else
@@ -677,10 +678,12 @@ main(int argc, char *argv[])
     mris->ct = ctab ;  // add user-specified color table to structure
 
   MRISremoveIntersections(mris) ;
+  
   if (pial_nbrs > 2)
   {
     MRISsetNeighborhoodSize(mris, pial_nbrs) ;
   }
+  
   if (auto_detect_stats)
   {
     MRI *mri_tmp ;
@@ -698,6 +701,7 @@ main(int argc, char *argv[])
       printf("using class modes intead of means, discounting robust sigmas....\n") ;
 //      MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, &white_std, &gray_std, NULL);
       MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, NULL, NULL, NULL);
+      
       white_mean = white_mode ;
       gray_mean = gray_mode ;
     }
@@ -1189,7 +1193,7 @@ L) ;
 	exit(0); ;
       }
 #endif
-    if (orig_white)  
+      if (orig_white)  
       {
 	if (i > 0)
 	  MRISsaveVertexPositions(mris, WHITE_VERTICES) ; // update estimate of white
@@ -1471,6 +1475,7 @@ L) ;
   MRISsetVal2(mris, 0) ;   // will be marked for vertices near lesions
 
   MRISunrip(mris) ;
+
   if (mri_aseg) //update aseg using either generated or orig_white
     fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF, fix_mtl) ;
   //////////////////////////////////////////////////////////////////
@@ -4165,16 +4170,24 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
   MRISdilateMarked(mris, 3) ;
   MRISerodeMarked(mris, 3) ;
   MRISsegmentMarked(mris, &labels, &nlabels, 1) ;
+  
   if (Gdiag_no > 0)
     printf("v %d: ripflag = %d after morphology\n",
            Gdiag_no, mris->vertices[Gdiag_no].marked) ;
+
   for (n = 0 ; n < nlabels ; n++)
   {
     if (labels[n]->n_points < 5)
     {
       int i ;
-      printf("removing %d vertex label from ripped group\n",
-             labels[n]->n_points) ;
+      printf("removing %d vertex label from ripped group in thread:%d\n",
+             labels[n]->n_points, 
+#ifdef HAVE_OPENMP
+             omp_get_thread_num()
+#else
+             0
+#endif
+             ) ;
       for (i = 0 ; i < labels[n]->n_points ; i++)
       {
         mris->vertices[labels[n]->lv[i].vno].marked = 0 ;
@@ -4226,6 +4239,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
            Gdiag_no, mris->vertices[Gdiag_no].marked) ;
   MRISripMarked(mris) ;
   MRISsetAllMarks(mris, 0) ;
+
   return(NO_ERROR) ;
 }
 

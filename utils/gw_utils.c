@@ -185,8 +185,6 @@ MRI *MRIFromMHTandMRIS(MHT *mht, MRIS *mris, MFMM_Option_t mfmm_option)
   MRI *amri;
   int mhtvx, mhtvy, mhtvz;  // MHT "voxels"
   int mrix, mriy, mriz;     // MRI voxels
-  MHBT *bucket;
-  MHB *bin;
   int binnum;
   // int fno_usage; //
   int outval;
@@ -213,7 +211,7 @@ MRI *MRIFromMHTandMRIS(MHT *mht, MRIS *mris, MFMM_Option_t mfmm_option)
       for (mrix = 0; mrix < 255; mrix++) {
         mhtvx = HALFMHTFOV - HALFMRIFOV + mrix;
 
-        bucket = MHTgetBucketAtVoxIx(mht, mhtvx, mhtvy, mhtvz);
+        MHBT* bucket = MHTacqBucketAtVoxIx(mht, mhtvx, mhtvy, mhtvz);
 
         outval = 0;
 
@@ -223,7 +221,7 @@ MRI *MRIFromMHTandMRIS(MHT *mht, MRIS *mris, MFMM_Option_t mfmm_option)
             goto outval_done;
           }
           for (binnum = 0; binnum < bucket->nused; binnum++) {
-            bin = &(bucket->bins[binnum]);
+            MRIS_HASH_BIN* bin = &(bucket->bins[binnum]);
 
             switch (mfmm_option) {
               case MFMM_None:
@@ -239,8 +237,9 @@ MRI *MRIFromMHTandMRIS(MHT *mht, MRIS *mris, MFMM_Option_t mfmm_option)
                 break;
             }
           }
-        }
       outval_done:
+          MHTrelBucket(&bucket);
+        }
         if (outval > MAXSHORT) outval = MAXSHORT;
 
         // MRI?vox is a type-specific macro!

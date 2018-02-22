@@ -101,8 +101,10 @@ MATRIX *MatrixInverse(const MATRIX *mIn, MATRIX *mOut)
   int isError, i, j, rows, cols, alloced = 0;
   MATRIX *mTmp;
 
-  if (!mIn) ErrorExit(ERROR_BADPARM, "MatrixInverse: NULL input matrix!\n");
-
+  if (!mIn) {
+    ErrorExit(ERROR_BADPARM, "MatrixInverse: NULL input matrix!\n");
+  }
+  
   if (mIn->rows != mIn->cols)
     ErrorReturn(NULL, (ERROR_BADPARM, "MatrixInverse: matrix (%d x %d) is not square\n", mIn->rows, mIn->cols));
 
