@@ -1,5 +1,4 @@
-#!/usr/bin/env python2
-
+#!/usr/bin/env python
 
 import os
 import sys
@@ -14,7 +13,6 @@ def errExit(message):
 
 
 # ---- parse args ----
-
 description = """Prepares and processes a provided glm dir with 'palm'.
                  Any unrecognized arguments will be pased to the palm() matlab function"""
 parser = argparse.ArgumentParser(description=description)
@@ -24,6 +22,8 @@ optional = parser.add_argument_group('optional arguments')
 required.add_argument('--glmdir', metavar='PATH', type=str, help='the glm directory to prepare', required=True)
 required.add_argument('--zthresh', metavar='FLOAT', type=str, help='z-threshold', required=True)
 optional.add_argument('--name', metavar='DIRNAME', type=str, help='name of palm subdirectory (default="palm")', default="palm")
+optional.add_argument('--iters', metavar='INT', help='number of iterations', default=10);
+optional.add_argument('--monly', help='only create matlab file, do not run', action='store_true');
 # check for no args first
 if len(sys.argv) == 1:
   parser.print_help()
@@ -37,19 +37,17 @@ if not os.path.isdir(glmdir):
   errExit('"{0}" is not a valid directory'.format(glmdir))
 # make palm subdir
 palmdir = os.path.join(glmdir, args.name)
-print('preparing a palm subdirectory in {0}'.format(palmdir))
+print('Preparing a palm subdirectory in {0}'.format(palmdir))
 # os.makedirs(palmdir, exist_ok=True)  # python3
 if not os.path.exists(palmdir): os.makedirs(palmdir)  # settle for python2 for now
 
 
 # ---- glm info ----
-
 glm_log = os.path.join(glmdir, 'mri_glmfit.log')
 if not os.path.isfile(glm_log):
   errExit('cannot find mri_glmfit.log in the glm directory')
 with open(glm_log, "r") as f:
   loglines = [line for line in f.readlines() if line.strip()]
-
 # extract hemi
 hemi = ''
 for line in loglines:
@@ -71,11 +69,10 @@ if not input_file:
   errExit("could not extract input filename from mri_glmfit.log")
 if not os.path.isfile(input_file):
   errExit('mri_glmfit input file "{0}" is no longer available at this location'.format(input_file))
-print('using the original glmfit input file {0}'.format(input_file))
+print('Using the original glmfit input file {0}'.format(input_file))
 
 
 # ---- design matrix ----
-
 # read the Xg.dat
 xg_path = os.path.join(glmdir, 'Xg.dat')
 if not os.path.isfile(xg_path):
@@ -99,7 +96,6 @@ f.close()
 
 
 # ---- contrasts ----
-
 # read in the C.dat files
 contrast_paths = glob.glob('{0}/*/C.dat'.format(glmdir))
 if len(contrast_paths) == 0:
@@ -122,7 +118,6 @@ f.close()
 
 
 # ---- mask ----
-
 maskfile = ''
 for fileformat in ['.mgz', '.mgh', '.nii', '.nii.gz']:
   if os.path.isfile(os.path.join(glmdir, 'mask' + fileformat)):
@@ -139,28 +134,29 @@ if maskfile.endswith('.nii.gz'):
 
 
 # ---- matlab script ----
-
-script_content = """\
-input = '{0}';
-hemi = '{1}';
-maskfile = '{2}';
-zthresh = {3};
-
-FREESURFER_HOME = getenv('FREESURFER_HOME');
-surffile = sprintf('%s/subjects/fsaverage/surf/%s.white',FREESURFER_HOME,hemi);
-zthreshstr = sprintf('%f',zthresh);
-
-palm('-i',input,'-m',maskfile,'-s',surffile,'-d','design.mat','-t','design.con',...
-     '-C', zthreshstr,'-o','palm_output'{4});
-""".format(input_file, hemi, maskfile, args.zthresh, ''.join(",'{0}'".format(w) for w in unknown))
-
 # write the run_palm.m script
 script_path = os.path.join(palmdir, 'run_palm.m')
 with open(script_path, "w") as f:
-  f.write(script_content)
-print('palmprep complete - running the generated matlab script...')
+  f.write("input = '%s';\n" % input_file)
+  f.write("hemi = '%s';\n" % hemi)
+  f.write("maskfile = '%s';\n" % maskfile)
+  f.write("zthresh = '%s';\n" % args.zthresh)
+  f.write("iters = '%s';\n\n" % args.iters)
+  f.write("FREESURFER_HOME = getenv('FREESURFER_HOME');\n")
+  f.write("surffile = sprintf('%s/subjects/fsaverage/surf/%s.white',FREESURFER_HOME,hemi);\n")
+  f.write("zthreshstr = sprintf('%f',zthresh);\n\n")
+  f.write("palm('-i',input,'-m',maskfile,'-s',surffile,'-d','design.mat','-t','design.con',...\n")
+  f.write("     '-C', zthreshstr,'-o','palm_output'%s);\n"  % ''.join(",'{0}'".format(w) for w in unknown))
 
 # run the run_palm.m script
-os.chdir(palmdir)
-ret = call(['matlab', '<', 'run_palm.m'])
-if ret != 0: exit(ret)
+if args.monly:
+  print("'--monly' requested, so exiting without running...")
+  print("To initiate palm processing, cd into %s and run 'run_palm.m' from matlab" % palmdir)
+else:
+  print('palmprep complete - running the generated matlab script...')
+  os.chdir(palmdir)
+  try:
+    ret = call('matlab < run_palm.m', shell=True)
+    exit(ret)
+  except KeyboardInterrupt:
+    errExit('run_palm.m interrupted')
