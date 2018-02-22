@@ -10,8 +10,7 @@ def require_np_array(np_array):
     return np.require(np_array, requirements=['F_CONTIGUOUS', 'ALIGNED'])
 
 
-def rasterize_a_mesh(mesh_collection_file_name, thread_count=1, repeat_count=10):
-    GEMS2Python.setGlobalDefaultNumberOfThreads(thread_count)
+def create_mesh(mesh_collection_file_name=MESH_COLLECTION_NAME):
     scaling = 0.9
     scalingMatrix = np.diag([scaling, scaling, scaling, 1.0])
     initialWorldToWorldTransformMatrix = scalingMatrix
@@ -22,6 +21,11 @@ def rasterize_a_mesh(mesh_collection_file_name, thread_count=1, repeat_count=10)
     mesh_collection.k = K
     mesh_collection.transform(GEMS2Python.KvlTransform(require_np_array(initialWorldToWorldTransformMatrix)))
     mesh = mesh_collection.reference_mesh
+    return mesh
+
+def rasterize_a_mesh(mesh_collection_file_name, thread_count=1, repeat_count=10):
+    mesh = create_mesh(mesh_collection_file_name)
+    GEMS2Python.setGlobalDefaultNumberOfThreads(thread_count)
     imageSize = [200, 200, 200]
     process_timer = ProcessTimer()
     for _ in range(repeat_count):
