@@ -140,13 +140,17 @@ with open(script_path, "w") as f:
   f.write("input = '%s';\n" % input_file)
   f.write("hemi = '%s';\n" % hemi)
   f.write("maskfile = '%s';\n" % maskfile)
-  f.write("zthresh = '%s';\n" % args.zthresh)
-  f.write("iters = '%s';\n\n" % args.iters)
+  f.write("zthresh = %s;\n" % args.zthresh)
+  f.write("iters = %s;\n\n" % args.iters)
   f.write("FREESURFER_HOME = getenv('FREESURFER_HOME');\n")
   f.write("surffile = sprintf('%s/subjects/fsaverage/surf/%s.white',FREESURFER_HOME,hemi);\n")
-  f.write("zthreshstr = sprintf('%f',zthresh);\n\n")
+  f.write("zthreshstr = sprintf('%f',zthresh);\n")
+  f.write("itersstr = sprintf('%d',iters);\n")
+  f.write("\n")
   f.write("palm('-i',input,'-m',maskfile,'-s',surffile,'-d','design.mat','-t','design.con',...\n")
-  f.write("     '-C', zthreshstr,'-o','palm_output'%s);\n"  % ''.join(",'{0}'".format(w) for w in unknown))
+  f.write("     '-n',itersstr,'-C', zthreshstr,'-o','palm'...\n")
+  f.write("     %s);\n"  % ''.join(",'{0}'".format(w) for w in unknown))
+  f.write("return;\n")
 
 # run the run_palm.m script
 if args.monly:
@@ -156,7 +160,7 @@ else:
   print('palmprep complete - running the generated matlab script...')
   os.chdir(palmdir)
   try:
-    ret = call('matlab < run_palm.m', shell=True)
+    ret = call('matlab -display iconic < run_palm.m', shell=True)
     exit(ret)
   except KeyboardInterrupt:
     errExit('run_palm.m interrupted')
