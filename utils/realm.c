@@ -32,21 +32,31 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <float.h>
+#include <math.h>
 
 #include "fnv_hash.h"
 
 
 #ifdef REALM_UNIT_TEST
     //
-    // rm -f a.out ; gcc -o a.out -I ../include realm.c ; ./a.out
+    // rm -f a.out ; gcc -o a.out -I ../include realm.c |& less ; ./a.out
     //
     typedef struct VERTEX {
         float x,y,z;
     } VERTEX;
 
+    #define VERTICES_PER_FACE 3
+    typedef int vertices_per_face_t[VERTICES_PER_FACE];
+
+    typedef struct FACE {
+        vertices_per_face_t v;
+    } FACE;
+
     struct MRIS {
       int     nvertices;
       VERTEX* vertices;
+      int     nfaces;
+      FACE*   faces;
     };
     
     static float MIN(float lhs, float rhs) { return (lhs < rhs) ? lhs : rhs; }
@@ -57,14 +67,25 @@
         printf("bevins_break\n");
     }
 
+    void* qsort_ctx;
+    static int vno_compare(const void* lhs_ptr, const void* rhs_ptr) {
+        int    lhs = *(int*)lhs_ptr;
+        int    rhs = *(int*)rhs_ptr;
+        float* ctx = (float*)qsort_ctx;
+        
+        return ctx[lhs] < ctx[rhs];
+    }
+
     void test(int nvertices, int useDuplicates) {
         printf("Test nvertices:%d useDuplicates:%d\n", nvertices, useDuplicates);
         
         MRIS mris;
+
+        // add the vertices
+        //
         mris.nvertices = nvertices;
         mris.vertices = (VERTEX*)calloc(mris.nvertices, sizeof(VERTEX));
-        
-        
+
         int vno;
         for (vno = 0; vno < mris.nvertices; vno++) {
             int key = vno > useDuplicates ? vno : 936; 
@@ -87,6 +108,78 @@
             zMax = MAX(zMax, v->z);
         }
         
+
+        // add mostly small faces
+        //
+        mris.nfaces = nvertices - 2;    // see below
+        mris.faces = (FACE*)calloc(mris.nfaces, sizeof(FACE));
+
+        const float delta_x = MAX(2, (xMax - xMin)/30 );
+        const float delta_y = MAX(2, (yMax - yMin)/30 );
+        const float delta_z = MAX(2, (zMax - zMin)/30 );
+        
+        int*   vnos  = (int*  )calloc(nvertices,sizeof(int));
+        float* ctx_x = (float*)calloc(nvertices,sizeof(float));
+        float* ctx_y = (float*)calloc(nvertices,sizeof(float));
+        float* ctx_z = (float*)calloc(nvertices,sizeof(float));
+        {
+            int i; 
+            for (i=0; i<nvertices; i++) {
+                vnos [i] = i;
+                ctx_x[i] = mris.vertices[i].x;
+                ctx_y[i] = mris.vertices[i].y;
+                ctx_z[i] = mris.vertices[i].z;
+            }
+        }
+        
+        //  choose a set of close x's
+        qsort_ctx = ctx_x;
+        qsort(vnos, nvertices, sizeof(int), vno_compare);
+
+        int fno = 0;
+        int i = 0; 
+        while (i+2 < nvertices) {
+            int iLo = i; i++;
+            float center_x = ctx_x[vnos[iLo]];
+            while (i+2 < nvertices && fabs(center_x - ctx_x[vnos[i]]) < delta_x) i++;
+            
+            //  sort the subrange by y
+            qsort_ctx = ctx_y;
+            qsort(vnos+iLo, i-iLo, sizeof(int), vno_compare);
+            
+            int j=iLo;
+            while (j+2 < i) {
+                //  choose a set of close x's with close y's
+                int jLo = j; j++;
+                float center_y = ctx_y[vnos[jLo]];
+                while (j+2 < i && fabs(center_y - ctx_y[vnos[j]]) < delta_y) j++;
+        
+                // sort the sub-sub range by z
+                qsort_ctx = ctx_z;
+                qsort(vnos+jLo, j-jLo, sizeof(int), vno_compare);
+                
+                // make the faces
+                int k;
+                for (k = jLo; k < j; k++) {
+                    int v0 = k;
+                    int v1 = k+1; if (v1 > j) v1 -= j-jLo;
+                    int v2 = k+2; if (v2 > j) v2 -= j-jLo;
+                    if (fno >= mris.nfaces) bevins_break();
+                    FACE* face = &mris.faces[fno++];
+                    face->v[0] = v0; 
+                    face->v[1] = v1; 
+                    face->v[2] = v2; 
+                }
+            }
+        }
+
+        free(vnos ); vnos  = NULL;               
+        free(ctx_x); ctx_x = NULL;
+        free(ctx_y); ctx_y = NULL;
+        free(ctx_z); ctx_z = NULL;
+                
+        //
+
         RealmTree* realmTree = makeRealmTree(&mris);
 
         int fLimit = 1;

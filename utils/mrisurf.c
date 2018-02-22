@@ -55967,10 +55967,14 @@ static double mrisComputeDefectMRILogUnlikelihood(
 
   if (computeDefectContext->realmTree == NULL) {
     fprintf(stdout, "%s:%d mrisComputeDefectMRILogUnlikelihood making realmTree\n",__FILE__,__LINE__);
+    ROMP_PF_begin  
     computeDefectContext->realmTree = makeRealmTree(mris);
+    ROMP_PF_end
   } else {
+    ROMP_PF_begin
     fprintf(stdout, "%s:%d mrisComputeDefectMRILogUnlikelihood checking realmTree\n",__FILE__,__LINE__);
     checkRealmTree(computeDefectContext->realmTree, mris);
+    ROMP_PF_end
   }
   
   { int i,j,k;
