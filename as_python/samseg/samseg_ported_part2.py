@@ -54,57 +54,23 @@ def samsegment_part2(
     voxelSpacing = part1_results_dict['voxelSpacing']
     transform = GEMS2Python.KvlTransform(np.asfortranarray(transformMatrix))
 
-    # function Y = backprojectKroneckerProductBasisFunctions( kroneckerProductBasisFunctions, coefficients )
-
-    # function coefficients = projectKroneckerProductBasisFunctions( kroneckerProductBasisFunctions, T )
-    # computePrecisionOfKroneckerProductBasisFunctions( kroneckerProductBasisFunctions, B )
-
-    # % We do the optimization in a multi-resolution type of scheme, where large
-    # % deformations are quickly found using smoothed versions of the atlas mesh, and the fine
-    # % details are then found on gradually less smoothed versions until the original atlas mesh is used for the optimization.
-    # % Multi-resolution is a standard procedure in image registration: the initial
-    # % blurring avoids getting stuck in the first local optimum of the search space, and get the rough major
-    # % deformations right instead.
-    # numberOfMultiResolutionLevels = length( optimizationOptions.multiResolutionSpecification );
     numberOfMultiResolutionLevels = len(optimizationOptions.multiResolutionSpecification)
-    # historyWithinEachMultiResolutionLevel = struct( [] );
-    historyWithinEachMultiResolutionLevel = []
-    # for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     for multiResolutionLevel in range(numberOfMultiResolutionLevels):
         logger.debug('multiResolutionLevel=%d', multiResolutionLevel)
-        #
-        #   %
-        #   maximumNumberOfIterations = optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).maximumNumberOfIterations;
         maximumNumberOfIterations = optimizationOptions.multiResolutionSpecification[
             multiResolutionLevel].maximumNumberOfIterations
-        #   estimateBiasField = optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).estimateBiasField;
         estimateBiasField = optimizationOptions.multiResolutionSpecification[multiResolutionLevel].estimateBiasField
-        #   historyOfCost = [ 1/eps ];
         historyOfCost = [1 / eps]
-        #   historyOfMaximalDeformationApplied = [];
-        #   historyOfTimeTakenIntensityParameterUpdating = [];
-        #   historyOfTimeTakenDeformationUpdating = [];
-        #   fprintf('maximumNumberOfIterations %d\n',maximumNumberOfIterations);
         logger.debug('maximumNumberOfIterations: %d', maximumNumberOfIterations)
-        #
-        #
         #   % Downsample the images, the mask, the mesh, and the bias field basis functions
         #   % Must be integer
-        #   downSamplingFactors = max( round( optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).targetDownsampledVoxelSpacing ...
-        #                                     ./ voxelSpacing ), [ 1 1 1 ] )
         downSamplingFactors = np.uint32(np.round(optimizationOptions.multiResolutionSpecification[
                                                      multiResolutionLevel].targetDownsampledVoxelSpacing / voxelSpacing))
         downSamplingFactors[downSamplingFactors < 1] = 1
-        #   downSampledMask = mask(  1 : downSamplingFactors( 1 ) : end, ...
-        #                            1 : downSamplingFactors( 2 ) : end, ...
-        #                            1 : downSamplingFactors( 3 ) : end );
         downSampledMask = mask[::downSamplingFactors[0], ::downSamplingFactors[1], ::downSamplingFactors[2]]
-        #   downSampledMaskIndices = find( downSampledMask );
         downSampledMaskIndices = np.where(downSampledMask)
         activeVoxelCount = len(downSampledMaskIndices[0])
-        #   downSampledImageBuffers = [];
         downSampledImageBuffers = np.zeros(downSampledMask.shape + (numberOfContrasts,))
-        #   for contrastNumber = 1 : numberOfContrasts
         for contrastNumber in range(numberOfContrasts):
             logger.debug('first time contrastNumber=%d', contrastNumber)
             #     if true
@@ -138,92 +104,52 @@ def samsegment_part2(
             #     end
             #
             #   end
-        #
-        #   %
-        #   downSampledKroneckerProductBasisFunctions = cell( 0, 0 );
-        #   for dimensionNumber = 1 : 3
-        #     A = kroneckerProductBasisFunctions{ dimensionNumber };
-        #     downSampledKroneckerProductBasisFunctions{ dimensionNumber } = A( 1 : downSamplingFactors( dimensionNumber ) : end, : );
-        #   end
         downSampledKroneckerProductBasisFunctions = [np.array(kroneckerProductBasisFunction[::downSamplingFactor])
                                                      for kroneckerProductBasisFunction, downSamplingFactor in
                                                      zip(kroneckerProductBasisFunctions, downSamplingFactors)]
-        #   downSampledImageSize = size( downSampledImageBuffers( :, :, :, 1 ) );
         downSampledImageSize = downSampledImageBuffers[:, :, :, 0].shape
-        #
-        #
         #   % Read the atlas mesh to be used for this multi-resolution level, taking into account the downsampling to position it
         #   % correctly
-        #   downSamplingTransformMatrix = diag( [ 1./downSamplingFactors 1 ] );
         downSamplingTransformMatrix = np.diag(1. / downSamplingFactors)
         downSamplingTransformMatrix = np.pad(downSamplingTransformMatrix, (0, 1), mode='constant', constant_values=0)
         downSamplingTransformMatrix[3][3] = 1
 
-        # totalTransformationMatrix = downSamplingTransformMatrix @ kvlGetTransformMatrix( transform )
         totalTransformationMatrix = downSamplingTransformMatrix @ transform.as_numpy_array
 
-        #   meshCollection = ...
-        #         kvlReadMeshCollection( optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).atlasFileName, ...
-        #                                 kvlCreateTransform( totalTransformationMatrix ), modelSpecifications.K );
         mesh_collection = GEMS2Python.KvlMeshCollection()
         mesh_collection.read(optimizationOptions.multiResolutionSpecification[multiResolutionLevel].atlasFileName)
         mesh_collection.k = modelSpecifications.K
         mesh_collection.transform(GEMS2Python.KvlTransform(require_np_array(totalTransformationMatrix)))
 
-        #   mesh = kvlGetMesh( meshCollection, -1 );
         mesh = mesh_collection.reference_mesh
 
-        #
         #   % Get the initial mesh node positions, also transforming them back into template space
         #   % (i.e., undoing the affine registration that we applied) for later usage
-        #   initialNodePositions = kvlGetMeshNodePositions( mesh );
         initialNodePositions = mesh.points
-        #   numberOfNodes = size( initialNodePositions, 1 );
         numberOfNodes = len(initialNodePositions)
-        #   tmp = ( totalTransformationMatrix \ [ initialNodePositions ones( numberOfNodes, 1 ) ]' )';
         tmp = np.linalg.solve(totalTransformationMatrix,
                               np.pad(initialNodePositions, ((0, 0), (0, 1)), mode='constant', constant_values=1).T).T
-        #   initialNodePositionsInTemplateSpace = tmp( :, 1 : 3 );
         initialNodePositionsInTemplateSpace = tmp[:, 0:3]
-        #
-        #
         #   % If this is not the first multi-resolution level, apply the warp computed during the previous level
-        #   if ( multiResolutionLevel > 1 )
         if multiResolutionLevel > 0:
             logger.debug('starting multiResolutionLevel=%d', multiResolutionLevel)
             #     % Get the warp in template space
-            #     nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = ...
-            #             historyWithinEachMultiResolutionLevel( multiResolutionLevel-1 ).finalNodePositionsInTemplateSpace - ...
-            #             historyWithinEachMultiResolutionLevel( multiResolutionLevel-1 ).initialNodePositionsInTemplateSpace;
-            #     initialNodeDeformationInTemplateSpace = kvlWarpMesh( ...
-            #                   optimizationOptions.multiResolutionSpecification( multiResolutionLevel-1 ).atlasFileName, ...
-            #                   nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel, ...
-            #                   optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).atlasFileName );
-
             [initialNodeDeformationInTemplateSpace, initial_averageDistance, initial_maximumDistance] = kvlWarpMesh(
                 optimizationOptions.multiResolutionSpecification[multiResolutionLevel - 1].atlasFileName,
                 nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel,
                 optimizationOptions.multiResolutionSpecification[multiResolutionLevel].atlasFileName)
 
             logger.debug('alpha multiResolutionLevel={0}'.format(multiResolutionLevel))
-
             #     % Apply this warp on the mesh node positions in template space, and transform into current space
-            #     desiredNodePositionsInTemplateSpace = initialNodePositionsInTemplateSpace + initialNodeDeformationInTemplateSpace;
             logger.debug('beta multiResolutionLevel=%d', multiResolutionLevel)
             desiredNodePositionsInTemplateSpace = initialNodePositionsInTemplateSpace + initialNodeDeformationInTemplateSpace
-            #     tmp = ( totalTransformationMatrix * ...
-            #             [ desiredNodePositionsInTemplateSpace ones( numberOfNodes, 1 ) ]' )';
 
             logger.debug('gamma multiResolutionLevel=%d', multiResolutionLevel)
             tmp = (totalTransformationMatrix @ np.pad(desiredNodePositionsInTemplateSpace, ((0, 0), (0, 1)), 'constant',
                                                       constant_values=1).T).T
-            #     desiredNodePositions = tmp( :, 1 : 3 );
             logger.debug('delta multiResolutionLevel=%d}', multiResolutionLevel)
             desiredNodePositions = tmp[:, 0:3]
             logger.debug('epsilon multiResolutionLevel=%d', multiResolutionLevel)
-            #
-            #     %
-            #     kvlSetMeshNodePositions( mesh, desiredNodePositions );
             mesh.points = require_np_array(desiredNodePositions)
             logger.debug('finish multiResolutionLevel=%d', multiResolutionLevel)
             if checkpoint_manager:
@@ -234,22 +160,12 @@ def samsegment_part2(
                     'nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel': nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel,
                     'initialNodeDeformationInTemplateSpace': initialNodeDeformationInTemplateSpace,
                 }, 'multiresWarp')
-                # fixture = checkpoint_manager.load('multiresWarp')
-            #
-            #   end
-        #
-        #
-        #
         #   % Set priors in mesh to the reduced (super-structure) ones
-        #   alphas = kvlGetAlphasInMeshNodes( mesh );
         alphas = mesh.alphas
-        #   reducedAlphas = kvlMergeAlphas( alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors );
         reducedAlphas, _, _, _, _ = kvlMergeAlphas(alphas, names, modelSpecifications.sharedGMMParameters,
                                                    FreeSurferLabels, colors);
         if checkpoint_manager:
             checkpoint_manager.increment_and_save({'reducedAlphas': reducedAlphas}, 'reducedAlphas')
-        # reducedAlphas = checkpoint_manager.load('reducedAlphas')['reducedAlphas']
-        #   kvlSetAlphasInMeshNodes( mesh, reducedAlphas )
         mesh.alphas = reducedAlphas
 
         #   % Algorithm-wise, we're just estimating sets of parameters for one given data (MR scan) that is
@@ -262,47 +178,24 @@ def samsegment_part2(
         #   % effectively I have two redundant variables "downSampledBiasCorrectedImageBuffers" and "biasCorrectedData"
         #   % that really just encode the variable "biasFieldCoefficients" and so need to be meticiously updated each time
         #   % "biasFieldCoefficients" is updated (!)
-        #   downSampledBiasCorrectedImageBuffers = zeros( [ downSampledImageSize numberOfContrasts ] );
         downSampledBiasCorrectedImageBuffers = np.zeros(downSampledImageSize + (numberOfContrasts,))
-        #   biasCorrectedData = zeros( [ length( downSampledMaskIndices ) numberOfContrasts ] );
         biasCorrectedData = np.zeros((activeVoxelCount, numberOfContrasts))
 
-        #   for contrastNumber = 1 : numberOfContrasts
         # TODO: remove this ensure_dims when part 1 is done
         biasFieldCoefficients = ensure_dims(biasFieldCoefficients, 2)
         for contrastNumber in range(numberOfContrasts):
             logger.debug('second time contrastNumber=%d', contrastNumber)
-            #     downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, biasFieldCoefficients( :, contrastNumber ) );
             downSampledBiasField = backprojectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions,
                                                                              biasFieldCoefficients[:, contrastNumber])
-            #     tmp = downSampledImageBuffers( :, :, :, contrastNumber ) - downSampledBiasField .* downSampledMask;
             tmp = downSampledImageBuffers[:, :, :, contrastNumber] - downSampledBiasField * downSampledMask
-            #     downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) = tmp;
             downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber] = tmp
-            #     biasCorrectedData( :, contrastNumber ) = tmp( downSampledMaskIndices );
             biasCorrectedData[:, contrastNumber] = tmp[downSampledMaskIndices]
-            #   end
-        #
-        #
         #   % Compute a color coded version of the atlas prior in the atlas's current pose, i.e., *before*
         #   % we start deforming. We'll use this just for visualization purposes
-        #   if ( showFigures )
-        #     oldColorCodedPriors = kvlColorCodeProbabilityImages( kvlRasterizeAtlasMesh( mesh, downSampledImageSize ), reducedColors );
-        #   end
-        #
-        #
-        #
-        #   historyWithinEachIteration = struct( [] );
-        historyWithinEachIteration = []
-        #   priors = zeros( length( downSampledMaskIndices ), numberOfClasses );
         priors = np.zeros((activeVoxelCount, numberOfClasses))
-        #   posteriors = zeros( length( downSampledMaskIndices ), numberOfGaussians ); % Gaussian mixture models burst out into
-        #                                                                              % individual Gaussian components
         posteriors = np.zeros((activeVoxelCount, numberOfGaussians))
-        #
         #   % Easier to work with vector notation in the EM computations
         #   % reshape into a matrix
-        #   data = zeros( [ length( downSampledMaskIndices ) numberOfContrasts ] );
         data = np.zeros((activeVoxelCount, numberOfContrasts))
         #   for contrastNumber = 1:numberOfContrasts
         for contrastNumber in range(numberOfContrasts):
