@@ -86,6 +86,7 @@
 #include "mri_circulars.h"
 #include "mri_identify.h"
 #include "proto.h"
+#include "realm.h"
 #include "selxavgio.h"
 #include "stats.h"
 #include "tags.h"
@@ -44583,8 +44584,16 @@ static int max_unchanged = MAX_UNCHANGED;
 //
 typedef struct ComputeDefectContext ComputeDefectContext;
 struct ComputeDefectContext {
+    RealmTree* realmTree;
 };
 
+static void constructComputeDefectContext(ComputeDefectContext* computeDefectContext) {
+    computeDefectContext->realmTree = NULL;
+}
+
+static void destructComputeDefectContext  (ComputeDefectContext* computeDefectContext) {
+    freeRealmTree(&computeDefectContext->realmTree);
+}
 
 // ----------------- Declaration of Static Functions ---------------------- //
 // segmentation of the edges into clusters
@@ -55956,6 +55965,14 @@ static double mrisComputeDefectMRILogUnlikelihood(
   MRI    const * const mri_defect   = dp->mri_defect;
   DEFECT const * const dp_defect    = dp->defect;
 
+  if (computeDefectContext->realmTree == NULL) {
+    fprintf(stdout, "%s:%d mrisComputeDefectMRILogUnlikelihood making realmTree\n",__FILE__,__LINE__);
+    computeDefectContext->realmTree = makeRealmTree(mris);
+  } else {
+    fprintf(stdout, "%s:%d mrisComputeDefectMRILogUnlikelihood checking realmTree\n",__FILE__,__LINE__);
+    checkRealmTree(computeDefectContext->realmTree, mris);
+  }
+  
   { int i,j,k;
     for (i = 0; i < mri_distance->width; i++) {
       for (j = 0; j < mri_distance->height; j++) {
@@ -59091,7 +59108,8 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
   nbests = 0;
 
   ComputeDefectContext computeDefectContext;
-
+    constructComputeDefectContext(&computeDefectContext);
+    
   /* generate initial population of patches */
   if (parms->initial_selection) {
     /* segment overlapping edges into clusters */
@@ -60140,6 +60158,8 @@ debug_use_this_patch:
   }
 
   /* free everything */
+  destructComputeDefectContext(&computeDefectContext);
+
   mrisFreeDefectVertexState(dvs);
 
   for (i = 0; i < max_patches; i++) {
@@ -60393,6 +60413,7 @@ static int mrisComputeRandomRetessellation(MRI_SURFACE *mris,
   dp.mri = mri;
 
   ComputeDefectContext computeDefectContext;
+    constructComputeDefectContext(&computeDefectContext);
 
   niters = 0;
   while (niters <= parms->niters) {
@@ -60592,6 +60613,7 @@ static int mrisComputeRandomRetessellation(MRI_SURFACE *mris,
   }
 
   /* free everything */
+  destructComputeDefectContext(&computeDefectContext);
   mrisFreeDefectVertexState(dvs);
 
   free(dp.ordering);

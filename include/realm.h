@@ -27,12 +27,12 @@
  *
  */
 
-#define REALM_UNIT_TEST
+//#define REALM_UNIT_TEST
 
 #include <stdbool.h>
 
 #ifndef REALM_UNIT_TEST
-#include "mris.h"
+#include "mrisurf.h"
 #else
     typedef struct MRIS MRIS;
 #endif
@@ -40,7 +40,7 @@
 typedef struct RealmTree RealmTree;
 void freeRealmTree(RealmTree** realmTreePtr);
 RealmTree* makeRealmTree(MRIS const * mris);
-void checkRealmTree(RealmTree* realTree, MRIS const * mris);
+void checkRealmTree(RealmTree* realmTree, MRIS const * mris);
     //
     // Fills in the tree using the existing position of 
     // the vertices and faces.  The check version verifies

@@ -128,20 +128,26 @@
             int counter = 1;
             int vno;
             for (;;) {
+#ifdef REALM_UNIT_TEST
                 if (false && (counter == 1 || counter == 122)) {
                     printf("counter:%d ri.i:%ld ri.p:%p\n", counter, realmIterator.i, realmIterator.p); 
                     bevins_break();
                 }
+#endif
                 vno = realmNextMightTouchVno(realm, &realmIterator);
+#ifdef REALM_UNIT_TEST
                 if (vno < -1 || vno >= mris.nvertices) {
                     printf("ERROR, vno:%d is illegal\n", vno); 
                     bevins_break();
                     exit(1);
                 }
+#endif
                 if (0 > vno) break;
                 if (counter == 0 || states[vno]) {
                     printf("ERROR, vno:%d reported again when counter:%d, was reported counter:%d\n", vno, counter, states[vno]); 
+#ifdef REALM_UNIT_TEST
                     bevins_break();
+#endif
                     exit(1);
                 }
                 states[vno] = counter++;
@@ -262,8 +268,10 @@ static int chooseChild(
     RealmTreeNode const * n,
     float x, float y,float z) {
 
+#ifdef REALM_UNIT_TEST
     if (!nodeContains(n, x,y,z)) 
         bevins_break();
+#endif
 
     float xMid = n->children[1]->xLo;
     float yMid = n->children[2]->yLo;
@@ -271,8 +279,10 @@ static int chooseChild(
     
     int c = ((x < xMid) ? 0 : 1) + ((y < yMid) ? 0 : 2) + ((z < zMid) ? 0 : 4);
     
+#ifdef REALM_UNIT_TEST
     if (!nodeContains(n->children[c], x,y,z)) 
         bevins_break();
+#endif
     
     return c;
 }
@@ -314,9 +324,11 @@ static RealmTreeNode* insertIntoNode(
 {
     MRIS const* mris = realmTree->mris;
 
+#ifdef REALM_UNIT_TEST
     VERTEX const* v = &mris->vertices[vno];
     if (x != v->x || y != v->y || z != v->z) 
-            bevins_break();
+        bevins_break();
+#endif
     
     // If this is a leaf
     //
@@ -473,11 +485,11 @@ RealmTree* makeRealmTree(MRIS const * mris) {
     return rt;
 }
 
-void checkRealmTree(RealmTree* realTree, MRIS const * mris) {
+void checkRealmTree(RealmTree* realmTree, MRIS const * mris) {
     unsigned long hash_now = computeRealmTreeHash(mris);
-    if (realTree->fnv_hash != hash_now) {
+    if (realmTree->fnv_hash != hash_now) {
         fprintf(stderr, "%s:%d mris some vertex xyz has changed\n", __FILE__, __LINE__);
-        exit(1);
+        // DON'T EXIT FOR NOW  exit(1);
     }
 }
 
