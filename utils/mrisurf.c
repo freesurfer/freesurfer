@@ -35757,8 +35757,6 @@ static int MRIScomputeBorderValues_new(
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
     
-    double max_mag_dist = 0.0f;
-
     VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag) {
       ROMP_PF_continue;
