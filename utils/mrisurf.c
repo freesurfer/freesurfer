@@ -4351,7 +4351,9 @@ static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
     
   #define ROMP_FOR_LEVEL      ROMP_level_shown_reproducible
     
+#ifdef ROMP_SUPPORT_ENABLED
   const int romp_for_line = __LINE__;
+#endif
   #include "romp_for_begin.h"
     
     #define Sum  ROMP_PARTIALSUM(0)
@@ -9365,7 +9367,9 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     
   #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
     
+#ifdef ROMP_SUPPORT_ENABLED
   const int romp_for_line = __LINE__;
+#endif
   #include "romp_for_begin.h"
     
     #define sse_angle    ROMP_PARTIALSUM(0)
@@ -9797,7 +9801,9 @@ static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris)
     
   #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
     
+#ifdef ROMP_SUPPORT_ENABLED
   const int romp_for_line = __LINE__;
+#endif
   #include "romp_for_begin.h"
     
     #define sse  ROMP_PARTIALSUM(0)
@@ -10115,7 +10121,9 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
     
     #define ROMP_FOR_LEVEL      ROMP_level_shown_reproducible
     
+#ifdef ROMP_SUPPORT_ENABLED
     const int romp_for_line = __LINE__;
+#endif
     #include "romp_for_begin.h"
     
       #define total_area      ROMP_PARTIALSUM(0)
@@ -11356,7 +11364,9 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
     
   #define ROMP_FOR_LEVEL      ROMP_level_shown_reproducible
     
+#ifdef ROMP_SUPPORT_ENABLED
   const int romp_for_line = __LINE__;
+#endif
   #include "romp_for_begin.h"
     
     #define reduction_total_area ROMP_PARTIALSUM(0)
@@ -16283,7 +16293,9 @@ static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
     
   #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
     
+#ifdef ROMP_SUPPORT_ENABLED
   const int romp_for_line = __LINE__;
+#endif
   #include "romp_for_begin.h"
     
     #define sse ROMP_PARTIALSUM(0)
@@ -22878,7 +22890,9 @@ static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *par
     
   #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
     
+#ifdef ROMP_SUPPORT_ENABLED
   const int romp_for_line = __LINE__;
+#endif
   #include "romp_for_begin.h"
     
     #define sse_dist ROMP_PARTIALSUM(0)
@@ -28869,7 +28883,9 @@ double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
     
   #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
     
+#ifdef ROMP_SUPPORT_ENABLED
   const int romp_for_line = __LINE__;
+#endif
   #include "romp_for_begin.h"
     
     #define sse  ROMP_PARTIALSUM(0)

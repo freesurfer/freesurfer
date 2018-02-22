@@ -69,7 +69,9 @@
         int ROMP_index;
 
         ROMP_PF_begin
+#ifdef ROMP_SUPPORT_ENABLED
         ROMP_pf_static.line = romp_for_line;
+#endif
 
 #ifdef HAVE_OPENMP
 #ifdef ROMP_FOR_LEVEL 
