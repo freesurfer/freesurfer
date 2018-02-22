@@ -57,7 +57,7 @@
         printf("bevins_break\n");
     }
 
-    int test(int nvertices, int useDuplicates) {
+    void test(int nvertices, int useDuplicates) {
         printf("Test nvertices:%d useDuplicates:%d\n", nvertices, useDuplicates);
         
         MRIS mris;
@@ -79,12 +79,12 @@
               zMin = mris.vertices[vno].z, zMax = zMin;
         for (vno = 1; vno < mris.nvertices; vno++) {
             VERTEX* v = &mris.vertices[vno];
-            xMin = MIN(xMin, mris.vertices[vno].x);
-            yMin = MIN(yMin, mris.vertices[vno].y);
-            zMin = MIN(zMin, mris.vertices[vno].z);
-            xMax = MAX(xMax, mris.vertices[vno].x);
-            yMax = MAX(yMax, mris.vertices[vno].y);
-            zMax = MAX(zMax, mris.vertices[vno].z);
+            xMin = MIN(xMin, v->x);
+            yMin = MIN(yMin, v->y);
+            zMin = MIN(zMin, v->z);
+            xMax = MAX(xMax, v->x);
+            yMax = MAX(yMax, v->y);
+            zMax = MAX(zMax, v->z);
         }
         
         RealmTree* realmTree = makeRealmTree(&mris);
@@ -221,7 +221,6 @@ static void constructRealmTreeNode(RealmTreeNode *child, RealmTreeNode *parent) 
 }
 
 static void destroyRealmTreeNode(RealmTreeNode *n) {
-    int i = 0;
     if (!n->vnos) {
         int c;
         for (c = 0; c < childrenSize; c++) {
@@ -513,6 +512,8 @@ Realm* makeRealm(
         upUntilContainsNode(
             deepestContainingNode(&realmTree->root, xLo, yLo, zLo), 
             xHi, yHi, zHi);
+
+    return r;
 }
 
 
