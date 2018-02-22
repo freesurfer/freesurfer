@@ -151,5 +151,8 @@ with open(script_path, "w") as f:
 
 # run the run_palm.m script
 os.chdir(palmdir)
-ret = call('matlab < run_palm.m', shell=True)
-if ret != 0: exit(ret)
+try:
+  ret = call('matlab < run_palm.m', shell=True)
+  exit(ret)
+except KeyboardInterrupt:
+  errExit('run_palm.m interrupted')
