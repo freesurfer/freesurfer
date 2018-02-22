@@ -10,7 +10,9 @@ class ProcessTimer:
         logger.info(message)
         self.start_time = datetime.datetime.now()
 
+    @property
+    def elapsed_time(self):
+        return datetime.datetime.now() - self.start_time
 
     def mark_time(self, message):
-        elapsed_time = datetime.datetime.now() - self.start_time
-        logger.info('%s:%s', message, str(elapsed_time))
+        logger.info('%s:%s', message, str(self.elapsed_time))
