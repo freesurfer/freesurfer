@@ -55972,6 +55972,9 @@ static double mrisComputeDefectMRILogUnlikelihood(
     DEFECT_PATCH * const dp_nonconst, 
     HISTOGRAM    * const h_border_nonconst)
 {
+//#define mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
+
+
   MRI_SURFACE  const * const mris     = mris_nonconst;			// find where the modifiers are
   DEFECT_PATCH const * const dp       = dp_nonconst;
   //HISTOGRAM  const * const h_border = h_border_nonconst;		// unused
@@ -55986,12 +55989,15 @@ static double mrisComputeDefectMRILogUnlikelihood(
     ROMP_PF_begin  
     computeDefectContext->realmTree = makeRealmTree(mris);
     ROMP_PF_end
-  } else if (0) {
+  } 
+#ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
+  else {
     ROMP_PF_begin
     fprintf(stdout, "%s:%d mrisComputeDefectMRILogUnlikelihood checking realmTree\n",__FILE__,__LINE__);
     checkRealmTree(computeDefectContext->realmTree, mris);
     ROMP_PF_end
   }
+#endif
   
   { int i,j,k;
     for (i = 0; i < mri_distance->width; i++) {
@@ -56112,11 +56118,12 @@ static double mrisComputeDefectMRILogUnlikelihood(
   int   const fnosSize     = realmMightTouchFno(realm, fnos, fnosCapacity);
   qsort(fnos, fnosSize, sizeof(int), int_compare);
   
-  //
   // but to make this worthwhile, there needs to be a precomputation that can be shared across all the defects
   // This precomputation is the computeDefectContext->realmTree
   // 
   //
+#ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
+
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(shown_reproducible) 
@@ -56125,6 +56132,18 @@ static double mrisComputeDefectMRILogUnlikelihood(
     ROMP_PFLB_begin
 
     int  const         fno  = p;
+#else
+
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(shown_reproducible) 
+#endif
+  for (p = 0; p < fnosSize; p++) {
+    ROMP_PFLB_begin
+
+    int  const         fno  = fnos[p];
+#endif
+
     FACE const * const face = &mris->faces[fno];
 
     // calculate three vertices
@@ -56135,29 +56154,31 @@ static double mrisComputeDefectMRILogUnlikelihood(
     float const
       min_y012 = MIN3(y0, y1, y2);
     int const jmin_nobnd = jVOL(mri_defect, min_y012) - delta;
-    
-    static int fewTimesCount = 0, fewTimesLimit = 1;
-    if (++fewTimesCount >= fewTimesLimit) {
-        fewTimesLimit *= 2;
-        printf(
-            "%s:%d "
-            "MIN3(y0, y1, y2):%g, jmin_nobnd:%d, delta:%d\n"
-            "mri->ysize:%g mri->ystart:%g\n"
-            "mri_defect->height:%d\n",
-            __FILE__,__LINE__, 
-            MIN3(y0, y1, y2), jmin_nobnd, delta, 
-            mri_defect->ysize, mri_defect->ystart, 
-            mri_defect->height);
-        //
-        // Typical values are
-        //
-        // MIN3(y0, y1, y2):-21.826, jmin_nobnd:143, delta:4, mri_defect->height:10
-        // MIN3(y0, y1, y2):-52.876, jmin_nobnd: 80, delta:4, mri_defect->height:10
-        // MIN3(y0, y1, y2):-20.466, jmin_nobnd:145, delta:4, mri_defect->height:10
-        // MIN3(y0, y1, y2):-20.418, jmin_nobnd:145, delta:4, mri_defect->height:10
-        // MIN3(y0, y1, y2): 14.452, jmin_nobnd:215, delta:4, mri_defect->height:10
-        // MIN3(y0, y1, y2):-51.468, jmin_nobnd: 83, delta:4, mri_defect->height:10
-        //
+
+    if (0) {    
+        static int fewTimesCount = 0, fewTimesLimit = 1;
+        if (++fewTimesCount >= fewTimesLimit) {
+            fewTimesLimit *= 2;
+            printf(
+                "%s:%d "
+                "MIN3(y0, y1, y2):%g, jmin_nobnd:%d, delta:%d\n"
+                "mri->ysize:%g mri->ystart:%g\n"
+                "mri_defect->height:%d\n",
+                __FILE__,__LINE__, 
+                MIN3(y0, y1, y2), jmin_nobnd, delta, 
+                mri_defect->ysize, mri_defect->ystart, 
+                mri_defect->height);
+            //
+            // Typical values are
+            //
+            // MIN3(y0, y1, y2):-21.826, jmin_nobnd:143, delta:4, mri_defect->height:10
+            // MIN3(y0, y1, y2):-52.876, jmin_nobnd: 80, delta:4, mri_defect->height:10
+            // MIN3(y0, y1, y2):-20.466, jmin_nobnd:145, delta:4, mri_defect->height:10
+            // MIN3(y0, y1, y2):-20.418, jmin_nobnd:145, delta:4, mri_defect->height:10
+            // MIN3(y0, y1, y2): 14.452, jmin_nobnd:215, delta:4, mri_defect->height:10
+            // MIN3(y0, y1, y2):-51.468, jmin_nobnd: 83, delta:4, mri_defect->height:10
+            //
+        }
     }
     
 #ifndef BEVIN_COUNT_EXITS
@@ -56226,6 +56247,7 @@ static double mrisComputeDefectMRILogUnlikelihood(
     noexits++;
 #endif
 
+#ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
     // Make sure fno was in the list of interesting fnos
     //
     {
@@ -56258,6 +56280,7 @@ static double mrisComputeDefectMRILogUnlikelihood(
             *(int*)(-1) = 0;
         }
     }
+#endif
     
     // Add an entry for this fno
     //
@@ -56276,6 +56299,8 @@ static double mrisComputeDefectMRILogUnlikelihood(
   ROMP_PF_end
   
   freeRealm(&realm);
+
+  printf("Only searching %d fnos, instead of %d to create %d tasks\n", fnosSize, mris->nfaces, bufferSize);
   
 #ifdef BEVIN_COUNT_EXITS
   if (1) { 
