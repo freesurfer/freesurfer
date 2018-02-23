@@ -409,71 +409,71 @@ def samsegment_part2(
                 downSampledBiasCorrectedImages.append(GEMS2Python.KvlImage(
                     require_np_array(downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber])))
 
-        #     % Set up cost calculator
-        calculator = GEMS2Python.KvlCostAndGradientCalculator(
-            typeName='AtlasMeshToIntensityImage',
-            images=downSampledBiasCorrectedImages,
-            boundaryCondition='Sliding',
-            transform=transform,
-            means=means,
-            variances=variances,
-            mixtureWeights=mixtureWeights,
-            numberOfGaussiansPerClass=numberOfGaussiansPerClass)
+            #     % Set up cost calculator
+            calculator = GEMS2Python.KvlCostAndGradientCalculator(
+                typeName='AtlasMeshToIntensityImage',
+                images=downSampledBiasCorrectedImages,
+                boundaryCondition='Sliding',
+                transform=transform,
+                means=means,
+                variances=variances,
+                mixtureWeights=mixtureWeights,
+                numberOfGaussiansPerClass=numberOfGaussiansPerClass)
 
-        optimizerType = 'L-BFGS';
-        optimization_parameters = {
-            'Verbose': optimizationOptions.verbose,
-            'MaximalDeformationStopCriterion': optimizationOptions.maximalDeformationStopCriterion,
-            'LineSearchMaximalDeformationIntervalStopCriterion': optimizationOptions.lineSearchMaximalDeformationIntervalStopCriterion,
-            'MaximumNumberOfIterations': optimizationOptions.maximumNumberOfDeformationIterations,
-            'BFGS-MaximumMemoryLength': optimizationOptions.BFGSMaximumMemoryLength
-        }
-        optimizer = GEMS2Python.KvlOptimizer(optimizerType, mesh, calculator, optimization_parameters)
-        historyOfDeformationCost = [];
-        historyOfMaximalDeformation = [];
-        nodePositionsBeforeDeformation = mesh.points
-        while True:
-            minLogLikelihoodTimesDeformationPrior, maximalDeformation = optimizer.step_optimizer_samseg()
-            print("maximalDeformation={} minLogLikelihood={}".format(maximalDeformation,
-                                                                     minLogLikelihoodTimesDeformationPrior))
-            if maximalDeformation == 0:
-                break
-            historyOfDeformationCost.append(minLogLikelihoodTimesDeformationPrior)
-            historyOfMaximalDeformation.append(maximalDeformation)
-        nodePositionsAfterDeformation = mesh.points
-        maximalDeformationApplied = np.sqrt(
-            np.max(np.sum((nodePositionsAfterDeformation - nodePositionsBeforeDeformation) ** 2, 1)))
-        print('==============================')
-        print(['iterationNumber: ', iterationNumber])
-        print(['    maximalDeformationApplied: ', maximalDeformationApplied])
-        print('==============================')
-        if checkpoint_manager:
-            checkpoint_manager.increment_and_save(
-                {
-                    'maximalDeformationApplied': maximalDeformationApplied,
-                    'nodePositionsAfterDeformation': nodePositionsAfterDeformation,
-                }, 'optimizer')
-        #     % Keep track of the cost function we're optimizing
-        historyOfCost.append(minLogLikelihoodTimesDeformationPrior + intensityModelParameterCost)
-        priorCost = historyOfCost[-2]
-        currentCost = historyOfCost[-1]
-        costChange = priorCost - currentCost
-        activeVoxelCount = len(downSampledMaskIndices[0])
-        perVoxelDecrease = costChange / activeVoxelCount
-        perVoxelDecreaseThreshold = optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion
-        if perVoxelDecrease < perVoxelDecreaseThreshold:
+            optimizerType = 'L-BFGS';
+            optimization_parameters = {
+                'Verbose': optimizationOptions.verbose,
+                'MaximalDeformationStopCriterion': optimizationOptions.maximalDeformationStopCriterion,
+                'LineSearchMaximalDeformationIntervalStopCriterion': optimizationOptions.lineSearchMaximalDeformationIntervalStopCriterion,
+                'MaximumNumberOfIterations': optimizationOptions.maximumNumberOfDeformationIterations,
+                'BFGS-MaximumMemoryLength': optimizationOptions.BFGSMaximumMemoryLength
+            }
+            optimizer = GEMS2Python.KvlOptimizer(optimizerType, mesh, calculator, optimization_parameters)
+            historyOfDeformationCost = [];
+            historyOfMaximalDeformation = [];
+            nodePositionsBeforeDeformation = mesh.points
+            while True:
+                minLogLikelihoodTimesDeformationPrior, maximalDeformation = optimizer.step_optimizer_samseg()
+                print("maximalDeformation={} minLogLikelihood={}".format(maximalDeformation,
+                                                                         minLogLikelihoodTimesDeformationPrior))
+                if maximalDeformation == 0:
+                    break
+                historyOfDeformationCost.append(minLogLikelihoodTimesDeformationPrior)
+                historyOfMaximalDeformation.append(maximalDeformation)
+            nodePositionsAfterDeformation = mesh.points
+            maximalDeformationApplied = np.sqrt(
+                np.max(np.sum((nodePositionsAfterDeformation - nodePositionsBeforeDeformation) ** 2, 1)))
+            print('==============================')
+            print(['iterationNumber: ', iterationNumber])
+            print(['    maximalDeformationApplied: ', maximalDeformationApplied])
+            print('==============================')
             if checkpoint_manager:
-                checkpoint_manager.increment_and_save({
-                    'activeVoxelCount': activeVoxelCount,
-                    'priorCost': priorCost,
-                    'currentCost': currentCost,
-                    'costChange': costChange,
-                    'perVoxelDecrease': perVoxelDecrease,
-                    'perVoxelDecreaseThreshold': perVoxelDecreaseThreshold,
-                    'minLogLikelihoodTimesDeformationPrior': minLogLikelihoodTimesDeformationPrior,
-                    'intensityModelParameterCost': intensityModelParameterCost,
-                }, 'optimizerPerVoxelExit')
-            break
+                checkpoint_manager.increment_and_save(
+                    {
+                        'maximalDeformationApplied': maximalDeformationApplied,
+                        'nodePositionsAfterDeformation': nodePositionsAfterDeformation,
+                    }, 'optimizer')
+            #     % Keep track of the cost function we're optimizing
+            historyOfCost.append(minLogLikelihoodTimesDeformationPrior + intensityModelParameterCost)
+            priorCost = historyOfCost[-2]
+            currentCost = historyOfCost[-1]
+            costChange = priorCost - currentCost
+            activeVoxelCount = len(downSampledMaskIndices[0])
+            perVoxelDecrease = costChange / activeVoxelCount
+            perVoxelDecreaseThreshold = optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion
+            if perVoxelDecrease < perVoxelDecreaseThreshold:
+                if checkpoint_manager:
+                    checkpoint_manager.increment_and_save({
+                        'activeVoxelCount': activeVoxelCount,
+                        'priorCost': priorCost,
+                        'currentCost': currentCost,
+                        'costChange': costChange,
+                        'perVoxelDecrease': perVoxelDecrease,
+                        'perVoxelDecreaseThreshold': perVoxelDecreaseThreshold,
+                        'minLogLikelihoodTimesDeformationPrior': minLogLikelihoodTimesDeformationPrior,
+                        'intensityModelParameterCost': intensityModelParameterCost,
+                    }, 'optimizerPerVoxelExit')
+                break
         #   % Get the final node positions
         finalNodePositions = mesh.points
         #   % Transform back in template space (i.e., undoing the affine registration
