@@ -12,6 +12,7 @@ foreach threads ( 4 8 )
 
   # extract testing data
   rm -rf testdata
+  
   gunzip -c testdata.tar.gz | tar xvf -
 
   cd testdata
