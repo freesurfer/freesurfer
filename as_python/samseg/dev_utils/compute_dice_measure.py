@@ -40,32 +40,24 @@ def dice_compare_test_case(case_name, case_file_folder, save_path, cross_compare
                 print('no data at {0}'.format(matlab_file_path))
 
 def find_gold_image(case_name):
-    gold_dir = os.getenv('GOLD_REFERENCE_DIR')
-    gold_case_dir = os.path.join(gold_dir, case_name)
-    gold_file_path = os.path.join(gold_case_dir, RESULT_LEAF_NAME)
-    if os.path.isfile(gold_file_path):
-        gold_image_buffer = GEMS2Python.KvlImage(gold_file_path).getImageBuffer()
-        return gold_image_buffer, gold_file_path
-    else:
-        return None, gold_file_path
+    return find_image_and_path(os.getenv('GOLD_REFERENCE_DIR'), case_name)
 
 def find_python_image(save_path):
-    python_file_path = os.path.join(save_path, RESULT_LEAF_NAME)
-    if os.path.isfile(python_file_path):
-        python_image_buffer = GEMS2Python.KvlImage(python_file_path).getImageBuffer()
-        return python_image_buffer, python_file_path
-    else:
-        return None, python_file_path
+    return find_image_and_path(save_path)
 
 def find_matlab_image(save_path, case_name):
     matlab_save_path = os.path.join(os.path.dirname(os.path.dirname(save_path)), 'matlab_temp_data')
-    matlab_case_dir = os.path.join(matlab_save_path, case_name)
-    matlab_file_path = os.path.join(matlab_case_dir, RESULT_LEAF_NAME)
-    if os.path.isfile(matlab_file_path):
-        matlab_image_buffer = GEMS2Python.KvlImage(matlab_file_path).getImageBuffer()
-        return matlab_image_buffer, matlab_file_path
+    return find_image_and_path(matlab_save_path, case_name)
+
+def find_image_and_path(case_dir, case_name=None):
+    if case_name:
+        case_dir = os.path.join(case_dir, case_name)
+    file_path = os.path.join(case_dir, RESULT_LEAF_NAME)
+    if os.path.isfile(file_path):
+        image_buffer = GEMS2Python.KvlImage(file_path).getImageBuffer()
+        return image_buffer, file_path
     else:
-        return None, matlab_file_path
+        return None, file_path
 
 
 def simple_dice_compare(case_name, case_file_folder, savePath):
