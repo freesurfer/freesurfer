@@ -3916,7 +3916,7 @@ static int MRIScomputeNormals_old(MRI_SURFACE *mris)
 static int int_compare(const void* lhs_ptr, const void* rhs_ptr) {
    int lhs = *(int*)lhs_ptr;
    int rhs = *(int*)rhs_ptr;
-   return lhs < rhs;
+   return lhs - rhs;
 }
 
 static int MRIScomputeNormals_new(MRI_SURFACE *mris)

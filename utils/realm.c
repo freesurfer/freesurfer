@@ -41,6 +41,8 @@
     //
     // rm -f a.out ; gcc -o a.out -I ../include realm.c |& less ; ./a.out
     //
+    void summarizeRealTree(RealmTree const * rt);
+    
     typedef struct VERTEX {
         float x,y,z;
     } VERTEX;
@@ -67,18 +69,26 @@
         printf("bevins_break\n");
     }
 
+    static int int_compare(const void* lhs_ptr, const void* rhs_ptr) {
+        int lhs = *(int*)lhs_ptr;
+        int rhs = *(int*)rhs_ptr;
+        return lhs - rhs;
+    }
+
     void* qsort_ctx;
     static int vno_compare(const void* lhs_ptr, const void* rhs_ptr) {
         int    lhs = *(int*)lhs_ptr;
         int    rhs = *(int*)rhs_ptr;
         float* ctx = (float*)qsort_ctx;
         
-        return ctx[lhs] < ctx[rhs];
+        return ctx[lhs] - ctx[rhs];
     }
 
     void test(int nvertices, int useDuplicates) {
         printf("Test nvertices:%d useDuplicates:%d\n", nvertices, useDuplicates);
         
+        int fBenefitCount = 0, fBenefitLimit = 1, fNoBenefitCount = 0, fHasBenefitCount = 0;
+
         MRIS mris;
 
         // add the vertices
@@ -111,8 +121,8 @@
 
         // add mostly small faces
         //
-        mris.nfaces = nvertices - 2;    // see below
-        mris.faces = (FACE*)calloc(mris.nfaces, sizeof(FACE));
+        mris.nfaces = (nvertices > 2) ? nvertices - 2 : 0;    // see below
+        mris.faces  = (FACE*)calloc(mris.nfaces, sizeof(FACE));
 
         const float delta_x = MAX(2, (xMax - xMin)/30 );
         const float delta_y = MAX(2, (yMax - yMin)/30 );
@@ -137,41 +147,52 @@
         qsort(vnos, nvertices, sizeof(int), vno_compare);
 
         int fno = 0;
-        int i = 0; 
+        int i = 0;
         while (i+2 < nvertices) {
             int iLo = i; i++;
             float center_x = ctx_x[vnos[iLo]];
-            while (i+2 < nvertices && fabs(center_x - ctx_x[vnos[i]]) < delta_x) i++;
+            while (i < nvertices && fabs(center_x - ctx_x[vnos[i]]) < delta_x) i++;
+            // [iLo..i) will be emitted by the following loop
             
             //  sort the subrange by y
             qsort_ctx = ctx_y;
             qsort(vnos+iLo, i-iLo, sizeof(int), vno_compare);
             
             int j=iLo;
-            while (j+2 < i) {
+            while (j < i) {
                 //  choose a set of close x's with close y's
                 int jLo = j; j++;
                 float center_y = ctx_y[vnos[jLo]];
-                while (j+2 < i && fabs(center_y - ctx_y[vnos[j]]) < delta_y) j++;
-        
+                while (j < i && fabs(center_y - ctx_y[vnos[j]]) < delta_y) j++;
+                // [jLo..j) will be emitted by the following loop
+                
                 // sort the sub-sub range by z
                 qsort_ctx = ctx_z;
                 qsort(vnos+jLo, j-jLo, sizeof(int), vno_compare);
                 
-                // make the faces
-                int k;
-                for (k = jLo; k < j; k++) {
-                    int v0 = k;
-                    int v1 = k+1; if (v1 > j) v1 -= j-jLo;
-                    int v2 = k+2; if (v2 > j) v2 -= j-jLo;
-                    if (fno >= mris.nfaces) bevins_break();
-                    FACE* face = &mris.faces[fno++];
-                    face->v[0] = v0; 
-                    face->v[1] = v1; 
-                    face->v[2] = v2; 
+                int k=jLo;
+                while (k < j) {
+                    //  choose a set of close x's with close y's with close z's
+                    int kLo = k; k++;
+                    float center_z = ctx_z[vnos[kLo]];
+                    while (k < j && fabs(center_z - ctx_z[vnos[k]]) < delta_z) k++;
+                    // [kLo..k) will be emitted by the following loop
+                    
+                    // make the faces
+                    int m;
+                    for (m = kLo; m+2 < k; m++) {
+                        int v0 = m;
+                        int v1 = m+1; if (v1 > j) v1 -= j-jLo;
+                        int v2 = m+2; if (v2 > j) v2 -= j-jLo;
+                        FACE* face = &mris.faces[fno++];
+                        face->v[0] = vnos[v0]; 
+                        face->v[1] = vnos[v1]; 
+                        face->v[2] = vnos[v2];
+                    }
                 }
             }
         }
+        mris.nfaces = fno;  // decrease to the correct number
 
         free(vnos ); vnos  = NULL;               
         free(ctx_x); ctx_x = NULL;
@@ -181,6 +202,7 @@
         //
 
         RealmTree* realmTree = makeRealmTree(&mris);
+        summarizeRealTree(realmTree);
 
         int fLimit = 1;
         int fCount = 0;
@@ -194,12 +216,12 @@
         for (zfLo = 0; zfLo <= 1; zfLo += 0.1)
         for (zfHi = 0; zfHi <= 1; zfHi += 0.1)
         {
-            float xLo = xMin + xfLo*(xMax-xMin);
-            float xHi = xMax - xfHi*(xMax-xLo);
-            float yLo = yMin + yfLo*(yMax-yMin);
-            float yHi = yMax - yfHi*(yMax-yLo);
-            float zLo = zMin + zfLo*(zMax-zMin);
-            float zHi = zMax - zfHi*(zMax-zLo);
+            float xLo = xMin +    xfLo *(xMax-xMin);
+            float xHi = xMax - (1-xfHi)*(xMax-xLo);
+            float yLo = yMin +    yfLo *(yMax-yMin);
+            float yHi = yMax - (1-yfHi)*(yMax-yLo);
+            float zLo = zMin +    zfLo *(zMax-zMin);
+            float zHi = zMax - (1-zfHi)*(zMax-zLo);
 
             fCount++;
             if (fCount == fLimit) {
@@ -257,7 +279,67 @@
                    &&  zLo <= v->z && v->z < zHi) printf("ERROR, vno:%d was not reported\n", vno);
                 }
             }
+
+            // Check that at least the needed fno's are reported and that none is reported twice
+            //            
+            int  fnosCapacity = realmNumberOfMightTouchFno(realm);
+            int* fnos         = (int*)calloc(fnosCapacity, sizeof(int));
+            int  fnosSize     = realmMightTouchFno(realm, fnos, fnosCapacity);
             
+            qsort(fnos, fnosSize, sizeof(int), int_compare);
+            
+            int fnosI;
+            for (fnosI = 0; fnosI < fnosSize-1; fnosI++) {
+                if (fnos[fnosI] >= fnos[fnosI + 1]) {
+                    printf("ERROR, fnos[fnosI]:%d fnos[fnosI+1]:%d\n", fnos[fnosI], fnos[fnosI + 1]);
+                }
+            }
+            
+            fnosI = 0;
+            int fno;
+            for (fno = 0; fno < mris.nfaces; fno++) {
+                FACE const * face = &mris.faces[fno];
+                int vi = 0;
+                VERTEX const * vertex = &mris.vertices[face->v[vi]];
+                float fxLo = vertex->x, fxHi = fxLo,
+                      fyLo = vertex->y, fyHi = fyLo,
+                      fzLo = vertex->z, fzHi = fzLo;
+                for (vi = 0; vi < VERTICES_PER_FACE; vi++) {
+                    fxLo = MIN(fxLo, vertex->x); fxHi = MAX(fxHi, vertex->x);
+                    fyLo = MIN(fyLo, vertex->y); fyHi = MAX(fyHi, vertex->y);
+                    fzLo = MIN(fzLo, vertex->z); fzHi = MAX(fzHi, vertex->z);
+                }
+                bool wontIntersect =  
+                    fxHi < xLo || xHi <= fxLo ||
+                    fyHi < yLo || yHi <= fyLo ||
+                    fzHi < zLo || zHi <= fzLo;
+                if (wontIntersect) continue;                            // might or might not be in the list
+                while (fnosI < fnosSize && fnos[fnosI] < fno) fnosI++;  // skip the ones that were reported but need not be
+                if (fnosI == fnosSize || fnos[fnosI] != fno) {
+                    printf("ERROR, fno:%d was not reported\n", fno);
+                }
+            }
+
+            // We are only interested in the benefits when the realm is much smaller than the volume
+            //
+            if (mris.nfaces > 0 &&
+                (xHi - xLo) < (xMax - xMin)/4 &&
+                (yHi - yLo) < (yMax - yMin)/4 &&
+                (zHi - zLo) < (zMax - zMin)/4
+                ) {
+                
+                if (fnosSize*3 > mris.nfaces*2) fNoBenefitCount++; else fHasBenefitCount++;
+                
+                if (++fBenefitCount == fBenefitLimit) {
+                    if (fBenefitLimit < 1000) fBenefitLimit *= 2; else fBenefitLimit += 1000;
+                    printf("fnosSize:%d mris.nfaces:%d fNoBenefitCount:%d fHasBenefitCount:%d\n", 
+                        fnosSize, mris.nfaces, fNoBenefitCount, fHasBenefitCount);
+                }
+            }
+            
+            // Done
+            //
+            free(fnos);
             free(states);
             freeRealm(&realm);
         }
@@ -270,15 +352,15 @@
     int main() {
         int useDuplicates;
         for (useDuplicates = 0; useDuplicates <= 1000; useDuplicates += 200) {
-            test(1, useDuplicates);
-            test(2, useDuplicates);
-            test(3, useDuplicates);
-            test(4, useDuplicates);
-            test(100, useDuplicates);
-            test(1000, useDuplicates);
-            test(10000, useDuplicates);
-            test(100000, useDuplicates);
-            test(0, useDuplicates);
+            if (0) test(1000, useDuplicates);
+            if (0) test(1, useDuplicates);
+            if (0) test(2, useDuplicates);
+            if (0) test(3, useDuplicates);
+            if (0) test(4, useDuplicates);
+            if (0) test(100, useDuplicates);
+            if (0) test(10000, useDuplicates);
+            if (1) test(100000, useDuplicates);
+            if (0) test(0, useDuplicates);
         }
         return 0;
     }
@@ -301,11 +383,13 @@ struct RealmTreeNode {
     union {
         RealmTreeNode*  children[childrenSize];
         struct {
-            int         vnosSize;                    // above 2 assumes these are the same as the vnosBuff elements
+            int         vnosSize;                       // above 2 assumes these are the same as the vnosBuff elements
             int         vnosCapacity;
             int         vnosBuff[vnosBuffSize];
         };
     };
+    int nFaces;                                         // the number of faces in the following list
+    int firstFnoPlus1;                                  // the first of a list of faces for which this node is the deepest node they fully fit within
 };
 static const unsigned long childIndexBits =      childrenSizeLog2;
 static const unsigned long childIndexMask = ((1<<childrenSizeLog2) - 1);
@@ -357,6 +441,13 @@ static RealmTreeNode const * upUntilContainsNode(RealmTreeNode const * n,
     return n;
 }
 
+static RealmTreeNode* deepestCommonNode(RealmTreeNode* n1, RealmTreeNode* n2) {
+    while (n1->depth > n2->depth) n1 = n1->parent;
+    while (n1->depth < n2->depth) n2 = n2->parent;
+    while (n1 != n2) { n1 = n1->parent; n2 = n2->parent; }
+    return n1;
+}
+
 static int chooseChild(
     RealmTreeNode const * n,
     float x, float y,float z) {
@@ -390,7 +481,7 @@ static RealmTreeNode const * deepestContainingNode(RealmTreeNode const * n,
     return n;
 }
 
-static RealmTreeNode* insertIntoNode(
+static RealmTreeNode* insertVnoIntoNode(
     RealmTree*      const realmTree,
     RealmTreeNode*  const n, 
     int const vno, float const x, float const y, float const z);
@@ -400,7 +491,7 @@ static RealmTreeNode* insertIntoChild(
     RealmTreeNode* n,
     int vno, float x, float y,float z) {
     int c = chooseChild(n, x, y, z);
-    return insertIntoNode(realmTree, n->children[c], vno,x,y,z);
+    return insertVnoIntoNode(realmTree, n->children[c], vno,x,y,z);
 }
 
 struct RealmTree {
@@ -408,9 +499,11 @@ struct RealmTree {
     unsigned long   fnv_hash;
     RealmTreeNode   root;
     RealmTreeNode** vnoToRealmTreeNode;
+    RealmTreeNode** fnoToRealmTreeNode;
+    int*            nextFnoPlus1;
 };
 
-static RealmTreeNode* insertIntoNode(
+static RealmTreeNode* insertVnoIntoNode(
     RealmTree*      const realmTree,
     RealmTreeNode*  const n, 
     int const vno, float const x, float const y, float const z)
@@ -513,8 +606,10 @@ unsigned long computeRealmTreeHash(MRIS const * mris) {
 void freeRealmTree(RealmTree** realmTreePtr) {
     RealmTree* rt = *realmTreePtr; *realmTreePtr = NULL;
     if (!rt) return;
-    destroyRealmTreeNode(&rt->root);
+    free(rt->nextFnoPlus1);
+    free(rt->fnoToRealmTreeNode);
     free(rt->vnoToRealmTreeNode);
+    destroyRealmTreeNode(&rt->root);
     free(rt);
 }
 
@@ -530,10 +625,12 @@ RealmTree* makeRealmTree(MRIS const * mris) {
     // Fills in the tree using the existing position of 
     // the vertices and faces
     RealmTree* rt = (RealmTree*)calloc(1, sizeof(RealmTree));
+    constructRealmTreeNode(&rt->root, NULL);
     rt->mris     = mris;
     rt->fnv_hash = computeRealmTreeHash(mris);
     rt->vnoToRealmTreeNode = (RealmTreeNode**)calloc(mris->nvertices, sizeof(RealmTreeNode*));
-    constructRealmTreeNode(&rt->root, NULL);
+    rt->fnoToRealmTreeNode = (RealmTreeNode**)calloc(mris->nfaces,    sizeof(RealmTreeNode*));
+    rt->nextFnoPlus1       = (int*           )calloc(mris->nfaces,    sizeof(int           ));
 
     if (mris->nvertices == 0) return rt;
     
@@ -551,18 +648,20 @@ RealmTree* makeRealmTree(MRIS const * mris) {
         xHi = MAX(xHi, x); yHi = MAX(yHi, y); zHi = MAX(zHi, z); 
     }
     
+    // Initialise the root node, and make it the recentNode
+    //
     // Since contains is xLo <= x < xHi etc. the bounds need to be slightly wider than Hi
     // so that the Hi is in a Node
     //
     xHi = widenHi(xLo,xHi);
     yHi = widenHi(yLo,yHi);
     zHi = widenHi(zLo,zHi);
-    
+
     RealmTreeNode* recentNode  = &rt->root;
     recentNode->xLo = xLo; recentNode->yLo = yLo; recentNode->zLo = zLo;
     recentNode->xHi = xHi; recentNode->yHi = yHi; recentNode->zHi = zHi;
 
-    // Place all the vertices into boxes
+    // Place all the vertices into nodes.  recentNode tries to speed up by assuming some locality.
     // 
     for (vno = 0; vno < mris->nvertices; vno++) {
         VERTEX const * vertex = &mris->vertices[vno];
@@ -572,9 +671,32 @@ RealmTree* makeRealmTree(MRIS const * mris) {
             recentNode = recentNode->parent;
         }
         // Insert here, or deeper
-        recentNode = insertIntoNode(rt, recentNode, vno, x,y,z);
+        recentNode = insertVnoIntoNode(rt, recentNode, vno, x,y,z);
     }
 
+    // Place all the faces into nodes
+    //
+    bevins_break(); 
+    int fno;
+    for (fno = 0; fno < mris->nfaces; fno++) {
+        FACE const * face = &mris->faces[fno];
+        RealmTreeNode * vertexNode;
+        int vi,vno;
+        vi = 0; 
+            vno = face->v[vi]; 
+            vertexNode = rt->vnoToRealmTreeNode[vno];
+            recentNode = vertexNode;
+        for (vi = 1; vi < VERTICES_PER_FACE; vi++) { 
+            vno = face->v[vi]; 
+            vertexNode = rt->vnoToRealmTreeNode[vno];
+            recentNode = deepestCommonNode(recentNode, vertexNode);
+        }
+        rt->fnoToRealmTreeNode[fno] = recentNode;
+        rt->nextFnoPlus1[fno]       = recentNode->firstFnoPlus1;
+        recentNode->firstFnoPlus1   = fno + 1;
+        recentNode->nFaces++;
+    }
+        
     return rt;
 }
 
@@ -631,22 +753,6 @@ static bool nodeIntersectsRealm(RealmTreeNode const * c, Realm* r) {
     return true;
 }
 
-bool realmMightTouchFno(Realm const * realm, int fno) {
-    fprintf(stderr, "%s:%d NYI\n", __FILE__, __LINE__);
-    exit(1);
-    return false;
-}
-
-bool realmMightTouchVno(Realm const * realm, int vno) {
-    RealmTreeNode const * realmNode = realm->deepestContainingNode;
-    RealmTreeNode const * vnoNode   = realm->realmTree->vnoToRealmTreeNode[vno];
-    while (vnoNode) {
-        if (vnoNode == realmNode) return true;
-        vnoNode = vnoNode->parent;
-    }
-    return false;
-}
-  
 // Iterators
 // first call with realmIterator 0
 // successive calls return some next fno or vno, may not be ascending order!
@@ -788,3 +894,67 @@ int realmNextMightTouchVno(Realm* realm, RealmIterator* realmIterator) {
     //
     return vno;
 }
+
+static int numberOffnosHereAndDeeper(RealmTreeNode const* n) {
+    int count = n->nFaces;
+    if (!n->vnos) {
+        int c;
+        for (c = 0; c < childrenSize; c++) count += numberOffnosHereAndDeeper(n->children[c]);
+    }
+    return count; 
+}
+
+int realmNumberOfMightTouchFno(Realm* realm) {
+    RealmTreeNode const* n = realm->deepestContainingNode;
+    int count = numberOffnosHereAndDeeper(n);
+    while (n = n->parent) count += n->nFaces;
+    return count;  
+}
+
+static int fnosHere(RealmTree const* rt, RealmTreeNode const* n, int* fnos, int fnosCapacity, int fnosSize) {
+    int fno = n->firstFnoPlus1 - 1;
+    while (fno >= 0) {
+#ifdef REALM_UNIT_TEST
+        if (fnosCapacity <= fnosSize) {
+            bevins_break();
+        }
+#endif
+        fnos[fnosSize++] = fno;
+        fno = rt->nextFnoPlus1[fno] - 1;
+    }
+    return fnosSize;
+}
+
+static int fnosHereAndDeeper(RealmTree const* rt, RealmTreeNode const* n, int* fnos, int fnosCapacity, int fnosSize) {
+    fnosSize = fnosHere(rt, n, fnos, fnosCapacity, fnosSize);
+    if (!n->vnos) {
+        int c;
+        for (c = 0; c < childrenSize; c++) fnosSize = fnosHereAndDeeper(rt, n->children[c], fnos, fnosCapacity, fnosSize);
+    }
+    return fnosSize; 
+}
+
+int realmMightTouchFno(Realm* realm, int* fnos, int fnosSize) {
+    RealmTreeNode const* n = realm->deepestContainingNode;
+    int written = fnosHereAndDeeper(realm->realmTree, n, fnos, fnosSize, 0);
+    while (n = n->parent) written = fnosHere(realm->realmTree, n, fnos, fnosSize, written);
+    return written;
+}
+
+#ifdef REALM_UNIT_TEST
+static void summarizeRealTreeNode(RealmTreeNode const * n) {
+    int i; for (i = 0; i < n->depth; i++) printf("    ");
+    printf("x:%f..%f y:%f..%f z:%f..:%f nFaces:%d", n->xLo, n->xHi, n->yLo, n->yHi, n->zLo, n->zHi, n->nFaces);
+    if (n->vnos) {
+        printf(" nosSize:%d\n",n->vnosSize);
+    } else {
+        printf("\n");
+        int c;
+        for (c = 0; c < childrenSize; c++) summarizeRealTreeNode(n->children[c]);
+    }
+}
+
+void summarizeRealTree(RealmTree const * realmTree) {
+    summarizeRealTreeNode(&realmTree->root);
+}
+#endif
