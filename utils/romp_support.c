@@ -608,7 +608,9 @@ int main(int argc, char* argv[])
         #define ROMP_SUMREDUCTION1  doubleToSum1
         #define ROMP_LEVEL          assume_reproducible
         
+#ifdef ROMP_SUPPORT_ENABLED
         const int romp_for_line = __LINE__;
+#endif
         #include "romp_for_begin.h"
     
             #define doubleToSum0 ROMP_PARTIALSUM(0)
