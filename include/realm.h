@@ -71,6 +71,6 @@ int realmNextMightTouchVno(Realm* realm, RealmIterator* realmIterator);
     // returns -1 when no more found, and on further calls after this
 
 int realmNumberOfMightTouchFno(Realm* realm);
-int realmMightTouchFno(Realm* realm, int* fnos, int fnoSize);
+int realmMightTouchFno(Realm* realm, int* fnos, int fnosCapacity);
 
 #endif
