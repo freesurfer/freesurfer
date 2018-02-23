@@ -55986,7 +55986,7 @@ static double mrisComputeDefectMRILogUnlikelihood(
     ROMP_PF_begin  
     computeDefectContext->realmTree = makeRealmTree(mris);
     ROMP_PF_end
-  } else {
+  } else if (0) {
     ROMP_PF_begin
     fprintf(stdout, "%s:%d mrisComputeDefectMRILogUnlikelihood checking realmTree\n",__FILE__,__LINE__);
     checkRealmTree(computeDefectContext->realmTree, mris);
@@ -56066,28 +56066,37 @@ static double mrisComputeDefectMRILogUnlikelihood(
   // so it should be possible to avoid searching all the faces to find the ones that fit in the box
   //
   // jVOL does the following mapping
-  //        #define yVOL(mri,y) (mri->ysize*(y-mri->ystart)) 
-  //        #define jVOL(mri,y) ((int)(yVOL(mri,y)+0.5))
+  //        #define zVOL(mri,z) (mri->zsize*(z-mri->zstart)) 
+  //        #define kVOL(mri,z) ((int)(zVOL(mri,z)+0.5))
   // so
-  //        j = ((int)(mri->ysize*(y - mri->ystart))+0.5) - delta
+  //        kmax_nobnd = ((int)(mri->zsize*(z - mri->zstart))+0.5) + delta
   //
-  //        (j + delta +/- 1) = mri->ysize * (y - mri->ystart)
-  //        (j - delta +/-1 ) / mri->ysize + mri->ystart = y
+  // we want to ignore when  kmax_nobnd < 0, but for safety, make it -1
+  // i.e.   ((int)(mri->zsize*(z - mri->zstart))+0.5) + delta <  -1
+  //        ((int)(mri->zsize*(z - mri->zstart))+0.5)         <  -delta - 1                  subtract delta from both sides
+  //               mri->zsize*(z - mri->zstart))+0.5          <  -delta - 2                  conversion to int rounds towards zero
+  //               mri->zsize*(z - mri->zstart))              <  -delta - 2.5                subtract 0.5 from both sides
+  //                           z - mri->zstart                < (-delta - 2.5) / mri->zsize
+  //                           z                              < (-delta - 2.5) / mri->zsize + mri->zstart         
   //
-  // and we want to ignore when  j > mri_defect->height - 1
-  //                         or  j < 0
+  // 
+  // we want to ignore when  kmin_nobnd > mri_defect->depth - 1, but for safety, make it -0
+  // i.e.        kVOL(mri_defect, z) - delta                  >  mri_defect->depth
+  //        ((int)(mri->zsize*(z - mri->zstart))+0.5)         >  mri_defect->depth + delta
+  //              (mri->zsize*(z - mri->zstart))+0.5)         >  mri_defect->depth + delta + 1
+  //               mri->zsize*(z - mri->zstart)               >  mri_defect->depth + delta + 1.5
+  //                           z - mri->zstart                > (mri_defect->depth + delta + 1.5) / mri->zsize
+  //                           z                              > (mri_defect->depth + delta + 1.5) / mri->zsize + mri->zstart
+  //            
   //
-  // which happens when (mri_defect->height - 1 + delta - 1) / mri->ysize + mri->ystart < y
-  //                    (0                      - delta + 1) / mri->ysize + mri->ystart > y
-  //
-  float const realm_xLo = (0                      - delta + 1) / mri_defect->xsize + mri_defect->xstart;
-  float const realm_xHi = (mri_defect->width  - 1 + delta - 1) / mri_defect->xsize + mri_defect->xstart;
+  float const realm_xLo = (0                  - delta - 2.5) / mri_defect->xsize + mri_defect->xstart;
+  float const realm_xHi = (mri_defect->width  + delta + 1.5) / mri_defect->xsize + mri_defect->xstart;
 
-  float const realm_yLo = (0                      - delta + 1) / mri_defect->ysize + mri_defect->ystart;
-  float const realm_yHi = (mri_defect->height - 1 + delta - 1) / mri_defect->ysize + mri_defect->ystart;
+  float const realm_yLo = (0                  - delta - 2.5) / mri_defect->ysize + mri_defect->ystart;
+  float const realm_yHi = (mri_defect->height + delta + 1.5) / mri_defect->ysize + mri_defect->ystart;
 
-  float const realm_zLo = (0                      - delta + 1) / mri_defect->zsize + mri_defect->zstart;
-  float const realm_zHi = (mri_defect->depth  - 1 + delta - 1) / mri_defect->zsize + mri_defect->zstart;
+  float const realm_zLo = (0                  - delta - 2.5) / mri_defect->zsize + mri_defect->zstart;
+  float const realm_zHi = (mri_defect->depth  + delta + 1.5) / mri_defect->zsize + mri_defect->zstart;
 
   // Get the list of interesting fno's in ascending order
   //
@@ -56227,7 +56236,24 @@ static double mrisComputeDefectMRILogUnlikelihood(
             printf("  realm x:%f..%f y:%f..%f z:%f..%f\n",realm_xLo,realm_xHi,realm_yLo,realm_yHi,realm_zLo,realm_zHi);
             printf("  fnosSize:%d\n", fnosSize);
             
-            summarizeRealmTree(computeDefectContext->realmTree);
+            // info leading to the realm_zLo bound
+            if (1) {
+                printf("0 - delta:%f + 1) / mri_defect->zsize:%f + mri_defect->zstart:%f     realm_zLo:%f\n",
+                    (float)(delta), (float)(mri_defect->zsize), (float)(mri_defect->zstart), realm_zLo);
+
+                printf("kmax_nobnd:%d ok if >= 0\n", kmax_nobnd);
+                printf("   kVOL(mri_defect, max_z012:%f):%d + delta:%d\n", max_z012, kVOL(mri_defect, max_z012), delta);
+                printf("   ((int)(zVOL(mri_defect,max_z012:%f):%f + 0.5))\n", max_z012, zVOL(mri_defect,max_z012));
+                printf("   (mri_defect->zsize:%f * (z:%f - mri_defect->zstart:%f))\n", mri_defect->zsize, max_z012, mri_defect->zstart);
+            }
+
+            // info leading to the realm_zHi bound
+            if (0) {
+                printf("mri_defect->depth:%f - 1 + delta:%f - 1) / mri_defect->zsize:%f + mri_defect->zstart:%f\n",
+                    (float)(mri_defect->depth), (float)(delta), (float)(mri_defect->zsize), (float)(mri_defect->zstart));
+            }
+
+            if (0) summarizeRealmTree(computeDefectContext->realmTree);
 
             *(int*)(-1) = 0;
         }
