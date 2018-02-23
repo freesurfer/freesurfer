@@ -56062,6 +56062,52 @@ static double mrisComputeDefectMRILogUnlikelihood(
   Entry* buffer  = (Entry*)malloc(mris->nfaces * sizeof(Entry));
   int bufferSize = 0; 
 
+  // the {i,j,k}VOL just inside the following loop implements a linear function of the .orig{x,y,z}
+  // so it should be possible to avoid searching all the faces to find the ones that fit in the box
+  //
+  // jVOL does the following mapping
+  //        #define yVOL(mri,y) (mri->ysize*(y-mri->ystart)) 
+  //        #define jVOL(mri,y) ((int)(yVOL(mri,y)+0.5))
+  // so
+  //        j = ((int)(mri->ysize*(y - mri->ystart))+0.5) - delta
+  //
+  //        (j + delta +/- 1) = mri->ysize * (y - mri->ystart)
+  //        (j - delta +/-1 ) / mri->ysize + mri->ystart = y
+  //
+  // and we want to ignore when  j > mri_defect->height - 1
+  //                         or  j < 0
+  //
+  // which happens when (mri_defect->height - 1 + delta - 1) / mri->ysize + mri->ystart < y
+  //                    (0                      - delta + 1) / mri->ysize + mri->ystart > y
+  //
+  float const realm_xLo = (0                      - delta + 1) / mri_defect->xsize + mri_defect->xstart;
+  float const realm_xHi = (mri_defect->width  - 1 + delta - 1) / mri_defect->xsize + mri_defect->xstart;
+
+  float const realm_yLo = (0                      - delta + 1) / mri_defect->ysize + mri_defect->ystart;
+  float const realm_yHi = (mri_defect->height - 1 + delta - 1) / mri_defect->ysize + mri_defect->ystart;
+
+  float const realm_zLo = (0                      - delta + 1) / mri_defect->zsize + mri_defect->zstart;
+  float const realm_zHi = (mri_defect->depth  - 1 + delta - 1) / mri_defect->zsize + mri_defect->zstart;
+
+  // Get the list of interesting fno's in ascending order
+  //
+  Realm* realm =        // This is the realm the face must possibly intersect to be interesting below
+    makeRealm(
+      computeDefectContext->realmTree, 
+      realm_xLo, realm_xHi, 
+      realm_yLo, realm_yHi,
+      realm_zLo, realm_zHi);
+  
+  int   const fnosCapacity = realmNumberOfMightTouchFno(realm);
+  int * const fnos         = (int*)malloc(fnosCapacity*sizeof(int));
+  int   const fnosSize     = realmMightTouchFno(realm, fnos, fnosCapacity);
+  qsort(fnos, fnosSize, sizeof(int), int_compare);
+  
+  //
+  // but to make this worthwhile, there needs to be a precomputation that can be shared across all the defects
+  // This precomputation is the computeDefectContext->realmTree
+  // 
+  //
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(shown_reproducible) 
@@ -56077,13 +56123,10 @@ static double mrisComputeDefectMRILogUnlikelihood(
       y0 = mris->vertices[face->v[0]].origy,
       y1 = mris->vertices[face->v[1]].origy,
       y2 = mris->vertices[face->v[2]].origy;
-    int const jmin_nobnd = jVOL(mri_defect, MIN3(y0, y1, y2)) - delta;
+    float const
+      min_y012 = MIN3(y0, y1, y2);
+    int const jmin_nobnd = jVOL(mri_defect, min_y012) - delta;
     
-    // the {i,j,k}VOL implements a linear function of the .orig{x,y,z}
-    // so it should be possible to avoid searching all the faces to find the ones that fit in the box
-    //
-    // but to make this worthwhile, there needs to be a precomputation that can be shared across all the defects
-    //
     static int fewTimesCount = 0, fewTimesLimit = 1;
     if (++fewTimesCount >= fewTimesLimit) {
         fewTimesLimit *= 2;
@@ -56115,7 +56158,9 @@ static double mrisComputeDefectMRILogUnlikelihood(
       z0 = mris->vertices[face->v[0]].origz,
       z1 = mris->vertices[face->v[1]].origz,
       z2 = mris->vertices[face->v[2]].origz;
-    int const kmin_nobnd = kVOL(mri_defect, MIN3(z0, z1, z2)) - delta;
+    float const
+      min_z012 = MIN3(z0, z1, z2);
+    int const kmin_nobnd = kVOL(mri_defect, min_z012) - delta;
 #ifndef BEVIN_COUNT_EXITS
     if (kmin_nobnd > mri_defect->depth  - 1) continue;			// hot
 #endif
@@ -56123,14 +56168,21 @@ static double mrisComputeDefectMRILogUnlikelihood(
       x0 = mris->vertices[face->v[0]].origx,
       x1 = mris->vertices[face->v[1]].origx,
       x2 = mris->vertices[face->v[2]].origx;
-    int const imax_nobnd = iVOL(mri_defect, MAX3(x0, x1, x2)) + delta;
+    float const
+      max_x012 = MAX3(x0, x1, x2);
+    int const imax_nobnd = iVOL(mri_defect, max_x012) + delta;
 #ifndef BEVIN_COUNT_EXITS
     if (imax_nobnd < 0)                     continue;			// hot
 #endif
 
-    int const jmax_nobnd = jVOL(mri_defect, MAX3(y0, y1, y2)) + delta;
-    int const kmax_nobnd = kVOL(mri_defect, MAX3(z0, z1, z2)) + delta;
-    int const imin_nobnd = iVOL(mri_defect, MIN3(x0, x1, x2)) - delta;
+    float const max_y012 = MAX3(y0, y1, y2);
+    int const jmax_nobnd = jVOL(mri_defect, max_y012) + delta;
+    
+    float const max_z012 = MAX3(z0, z1, z2);
+    int const kmax_nobnd = kVOL(mri_defect, max_z012) + delta;
+
+    float const min_x012 = MIN3(x0, x1, x2);
+    int const imin_nobnd = iVOL(mri_defect, min_x012) - delta;
       
     
     /* find the bounding box */
@@ -56165,6 +56217,24 @@ static double mrisComputeDefectMRILogUnlikelihood(
     noexits++;
 #endif
 
+    // Make sure fno was in the list of interesting fnos
+    //
+    {
+        if (!bsearch(&fno, fnos, fnosSize, sizeof(int), int_compare)) {
+            
+            printf("%s:%d fno:%d not in the interesting list\n", __FILE__, __LINE__, fno);
+            printf("  face  x:%f..%f y:%f..%f z:%f..%f\n",min_x012,max_x012,min_y012,max_y012,min_z012,max_z012);
+            printf("  realm x:%f..%f y:%f..%f z:%f..%f\n",realm_xLo,realm_xHi,realm_yLo,realm_yHi,realm_zLo,realm_zHi);
+            printf("  fnosSize:%d\n", fnosSize);
+            
+            summarizeRealmTree(computeDefectContext->realmTree);
+
+            *(int*)(-1) = 0;
+        }
+    }
+    
+    // Add an entry for this fno
+    //
     Entry* entry;
 #ifdef HAVE_OPENMP
     #pragma omp critical
@@ -56178,6 +56248,8 @@ static double mrisComputeDefectMRILogUnlikelihood(
     ROMP_PFLB_end
   }
   ROMP_PF_end
+  
+  freeRealm(&realm);
   
 #ifdef BEVIN_COUNT_EXITS
   if (1) { 

@@ -36,12 +36,10 @@
 
 #include "fnv_hash.h"
 
-
 #ifdef REALM_UNIT_TEST
     //
     // rm -f a.out ; gcc -o a.out -I ../include realm.c |& less ; ./a.out
     //
-    void summarizeRealTree(RealmTree const * rt);
     
     typedef struct VERTEX {
         float x,y,z;
@@ -202,19 +200,19 @@
         //
 
         RealmTree* realmTree = makeRealmTree(&mris);
-        summarizeRealTree(realmTree);
+        summarizeRealmTree(realmTree);
 
         int fLimit = 1;
         int fCount = 0;
         float xfLo, xfHi;
         float yfLo, yfHi;
         float zfLo, zfHi;
-        for (xfLo = 0; xfLo <= 1; xfLo += 0.1)
-        for (xfHi = 0; xfHi <= 1; xfHi += 0.1)
-        for (yfLo = 0; yfLo <= 1; yfLo += 0.1)
-        for (yfHi = 0; yfHi <= 1; yfHi += 0.1)
-        for (zfLo = 0; zfLo <= 1; zfLo += 0.1)
-        for (zfHi = 0; zfHi <= 1; zfHi += 0.1)
+        for (xfLo = -0.1; xfLo <= 1.2; xfLo += 0.1)     // check also when the realm exceeds the original bounds
+        for (xfHi = -0.1; xfHi <= 1.2; xfHi += 0.1)     // because this can happen...
+        for (yfLo = -0.1; yfLo <= 1.2; yfLo += 0.1)
+        for (yfHi = -0.1; yfHi <= 1.2; yfHi += 0.1)
+        for (zfLo = -0.1; zfLo <= 1.2; zfLo += 0.1)
+        for (zfHi = -0.1; zfHi <= 1.2; zfHi += 0.1)
         {
             float xLo = xMin +    xfLo *(xMax-xMin);
             float xHi = xMax - (1-xfHi)*(xMax-xLo);
@@ -497,6 +495,7 @@ static RealmTreeNode* insertIntoChild(
 struct RealmTree {
     MRIS const  *   mris;
     unsigned long   fnv_hash;
+    float           original_xLo,original_xHi,original_yLo,original_yHi,original_zLo,original_zHi;
     RealmTreeNode   root;
     RealmTreeNode** vnoToRealmTreeNode;
     RealmTreeNode** fnoToRealmTreeNode;
@@ -648,6 +647,10 @@ RealmTree* makeRealmTree(MRIS const * mris) {
         xHi = MAX(xHi, x); yHi = MAX(yHi, y); zHi = MAX(zHi, z); 
     }
     
+    rt->original_xLo = xLo;  rt->original_xHi = xHi;
+    rt->original_yLo = yLo;  rt->original_yHi = yHi;
+    rt->original_zLo = zLo;  rt->original_zHi = zHi;
+    
     // Initialise the root node, and make it the recentNode
     //
     // Since contains is xLo <= x < xHi etc. the bounds need to be slightly wider than Hi
@@ -676,7 +679,6 @@ RealmTree* makeRealmTree(MRIS const * mris) {
 
     // Place all the faces into nodes
     //
-    bevins_break(); 
     int fno;
     for (fno = 0; fno < mris->nfaces; fno++) {
         FACE const * face = &mris->faces[fno];
@@ -697,6 +699,11 @@ RealmTree* makeRealmTree(MRIS const * mris) {
         recentNode->nFaces++;
     }
         
+    if (0) {
+        printf("%s:%d summarizeRealmTree after made\n", __FILE__, __LINE__);
+        summarizeRealmTree(rt);
+    }
+    
     return rt;
 }
 
@@ -735,10 +742,17 @@ Realm* makeRealm(
     r->xLo = xLo; r->yLo = yLo; r->zLo = zLo;
     r->xHi = xHi; r->yHi = yHi; r->zHi = zHi;
     
+    // Have to restrict to the original range otherwise might not find
+    //
     r->deepestContainingNode = 
         upUntilContainsNode(
-            deepestContainingNode(&realmTree->root, xLo, yLo, zLo), 
-            xHi, yHi, zHi);
+            deepestContainingNode(&realmTree->root, 
+                MAX(xLo,realmTree->original_xLo), 
+                MAX(yLo,realmTree->original_yLo),
+                MAX(zLo,realmTree->original_zLo)), 
+            MIN(xHi,realmTree->original_xHi), 
+            MIN(yHi,realmTree->original_yHi), 
+            MIN(zHi,realmTree->original_zHi));
 
     return r;
 }
@@ -906,8 +920,9 @@ static int numberOffnosHereAndDeeper(RealmTreeNode const* n) {
 
 int realmNumberOfMightTouchFno(Realm* realm) {
     RealmTreeNode const* n = realm->deepestContainingNode;
+    if (!n) return 0;
     int count = numberOffnosHereAndDeeper(n);
-    while (n = n->parent) count += n->nFaces;
+    while ((n = n->parent)) count += n->nFaces;
     return count;  
 }
 
@@ -934,27 +949,26 @@ static int fnosHereAndDeeper(RealmTree const* rt, RealmTreeNode const* n, int* f
     return fnosSize; 
 }
 
-int realmMightTouchFno(Realm* realm, int* fnos, int fnosSize) {
+int realmMightTouchFno(Realm* realm, int* fnos, int fnosCapacity) {
     RealmTreeNode const* n = realm->deepestContainingNode;
-    int written = fnosHereAndDeeper(realm->realmTree, n, fnos, fnosSize, 0);
-    while (n = n->parent) written = fnosHere(realm->realmTree, n, fnos, fnosSize, written);
+    if (!n) return 0;
+    int written = fnosHereAndDeeper(realm->realmTree, n, fnos, fnosCapacity, 0);
+    while ((n = n->parent)) written = fnosHere(realm->realmTree, n, fnos, fnosCapacity, written);
     return written;
 }
 
-#ifdef REALM_UNIT_TEST
-static void summarizeRealTreeNode(RealmTreeNode const * n) {
-    int i; for (i = 0; i < n->depth; i++) printf("    ");
+static void summarizeRealmTreeNode(RealmTreeNode const * n) {
+    int i; for (i = 0; i < n->depth; i++) printf("   |");
     printf("x:%f..%f y:%f..%f z:%f..:%f nFaces:%d", n->xLo, n->xHi, n->yLo, n->yHi, n->zLo, n->zHi, n->nFaces);
     if (n->vnos) {
         printf(" nosSize:%d\n",n->vnosSize);
     } else {
         printf("\n");
         int c;
-        for (c = 0; c < childrenSize; c++) summarizeRealTreeNode(n->children[c]);
+        for (c = 0; c < childrenSize; c++) summarizeRealmTreeNode(n->children[c]);
     }
 }
 
-void summarizeRealTree(RealmTree const * realmTree) {
-    summarizeRealTreeNode(&realmTree->root);
+void summarizeRealmTree(RealmTree const * realmTree) {
+    summarizeRealmTreeNode(&realmTree->root);
 }
-#endif

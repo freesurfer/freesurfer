@@ -27,7 +27,7 @@
  *
  */
 
-#define REALM_UNIT_TEST
+//#define REALM_UNIT_TEST
 
 #include <stdbool.h>
 
@@ -72,5 +72,9 @@ int realmNextMightTouchVno(Realm* realm, RealmIterator* realmIterator);
 
 int realmNumberOfMightTouchFno(Realm* realm);
 int realmMightTouchFno(Realm* realm, int* fnos, int fnosCapacity);
+
+void summarizeRealmTree(RealmTree const * rt);
+    // Writes a summary to stdout
+
 
 #endif
