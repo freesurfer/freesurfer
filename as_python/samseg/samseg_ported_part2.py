@@ -474,17 +474,17 @@ def samsegment_part2(
                     'intensityModelParameterCost': intensityModelParameterCost,
                 }, 'optimizerPerVoxelExit')
             break
-    #   % Get the final node positions
-    finalNodePositions = mesh.points
-    #   % Transform back in template space (i.e., undoing the affine registration
-    #   % that we applied), and save for later usage
+        #   % Get the final node positions
+        finalNodePositions = mesh.points
+        #   % Transform back in template space (i.e., undoing the affine registration
+        #   % that we applied), and save for later usage
 
-    tmp = np.linalg.solve(totalTransformationMatrix,
-                          np.pad(finalNodePositions, ((0, 0), (0, 1)), 'constant', constant_values=1).T).T
-    finalNodePositionsInTemplateSpace = tmp[:, 0: 3]
-    ## Record deformation delta here in lieu of maintaining history
-    nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = \
-        finalNodePositionsInTemplateSpace - initialNodePositionsInTemplateSpace
+        tmp = np.linalg.solve(totalTransformationMatrix,
+                              np.pad(finalNodePositions, ((0, 0), (0, 1)), 'constant', constant_values=1).T).T
+        finalNodePositionsInTemplateSpace = tmp[:, 0: 3]
+        ## Record deformation delta here in lieu of maintaining history
+        nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = \
+            finalNodePositionsInTemplateSpace - initialNodePositionsInTemplateSpace
 
 
     return {
