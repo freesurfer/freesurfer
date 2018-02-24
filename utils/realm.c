@@ -497,14 +497,17 @@ static RealmTreeNode* insertIntoChild(
     return insertVnoIntoNode(realmTree, n->children[c], vno,x,y,z);
 }
 
+typedef struct Captured_VERTEX_xyz {
+    float x,y,z;
+} Captured_VERTEX_xyz;
+
 struct RealmTree {
-    MRIS const  *   mris;
-    GetXYZ_FunctionType getXYZ; // This lets realms be on x,y,z, origx,origy,origz, or anything else...
-    unsigned long   fnv_hash;
-    RealmTreeNode   root;
-    RealmTreeNode** vnoToRealmTreeNode;
-    RealmTreeNode** fnoToRealmTreeNode;
-    int*            nextFnoPlus1;
+    MRIS const  *           mris;
+    Captured_VERTEX_xyz*    captured_VERTEX_xyz;
+    RealmTreeNode**         vnoToRealmTreeNode;
+    RealmTreeNode**         fnoToRealmTreeNode;
+    int*                    nextFnoPlus1;
+    RealmTreeNode           root;
 };
 
 static RealmTreeNode* insertVnoIntoNode(
@@ -512,9 +515,8 @@ static RealmTreeNode* insertVnoIntoNode(
     RealmTreeNode*  const n, 
     int const vno, float const x, float const y, float const z)
 {
-    MRIS const* mris = realmTree->mris;
-
 #ifdef REALM_UNIT_TEST
+    MRIS const* mris = realmTree->mris;
     VERTEX const* v = &mris->vertices[vno];
     if (x != v->someX || y != v->someY || z != v->someZ) 
         bevins_break();
@@ -585,10 +587,8 @@ static RealmTreeNode* insertVnoIntoNode(
         
         // Insert the saved vno into their right child
         for (vi = 0; vi < vnosSize; vi++) {
-            VERTEX const * vertex = &mris->vertices[vnos[vi]];
-            float someX,someY,someZ;
-            realmTree->getXYZ(vertex, &someX, &someY, &someZ);
-            insertIntoChild(realmTree, n, vnos[vi], someX, someY, someZ);
+            Captured_VERTEX_xyz* cxyz = &realmTree->captured_VERTEX_xyz[vnos[vi]];
+            insertIntoChild(realmTree, n, vnos[vi], cxyz->x, cxyz->y, cxyz->z);
         }
     }
 
@@ -597,16 +597,17 @@ static RealmTreeNode* insertVnoIntoNode(
     return insertIntoChild(realmTree, n, vno, x, y, z);
 }
 
-unsigned long computeRealmTreeHash(RealmTree* realmTree, MRIS const * mris) {
-    unsigned long hash = fnv_init();
+int countXYZChanges(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ) {
+    int count = 0;
     int vno;
-    for (vno = 1; vno < mris->nvertices; vno++) {
+    for (vno = 0; vno < mris->nvertices; vno++) {
         VERTEX const * vertex = &mris->vertices[vno];
-        float f[3];
-        realmTree->getXYZ(vertex, &f[0], &f[1], &f[2]);
-        hash = fnv_add(hash, (const unsigned char*)f, sizeof(f));
+        float x,y,z;
+        getXYZ(vertex, &x, &y, &z);
+        Captured_VERTEX_xyz* c = &realmTree->captured_VERTEX_xyz[vno];
+        if (x != c->x || y != c->y || z != c->z) count++;
     }
-    return hash;
+    return count;
 }
 
 
@@ -633,26 +634,27 @@ RealmTree* makeRealmTree(MRIS const * mris, GetXYZ_FunctionType getXYZ) {
     // the vertices and faces
     RealmTree* rt = (RealmTree*)calloc(1, sizeof(RealmTree));
     constructRealmTreeNode(&rt->root, NULL);
-    rt->mris     = mris;
-    rt->getXYZ   = getXYZ;
-    rt->fnv_hash = computeRealmTreeHash(rt, mris);
-    rt->vnoToRealmTreeNode = (RealmTreeNode**)calloc(mris->nvertices, sizeof(RealmTreeNode*));
-    rt->fnoToRealmTreeNode = (RealmTreeNode**)calloc(mris->nfaces,    sizeof(RealmTreeNode*));
-    rt->nextFnoPlus1       = (int*           )calloc(mris->nfaces,    sizeof(int           ));
+    rt->mris                = mris;
+    rt->captured_VERTEX_xyz = (Captured_VERTEX_xyz*)calloc(mris->nvertices, sizeof(Captured_VERTEX_xyz));
+    rt->vnoToRealmTreeNode  = (RealmTreeNode**     )calloc(mris->nvertices, sizeof(RealmTreeNode*));
+    rt->fnoToRealmTreeNode  = (RealmTreeNode**     )calloc(mris->nfaces,    sizeof(RealmTreeNode*));
+    rt->nextFnoPlus1        = (int*                )calloc(mris->nfaces,    sizeof(int           ));
 
     if (mris->nvertices == 0) return rt;
     
-    // Calculate the outer box
+    // Capture the xyz and calculate the outer box
     //
     int vno = 0;
-    VERTEX const * vertex0 = &mris->vertices[vno];
-    float xLo, yLo, zLo; 
-    rt->getXYZ(vertex0, &xLo, &yLo, &zLo);
+    VERTEX       const * vertex0      = &mris->vertices[vno];
+    Captured_VERTEX_xyz* captured_xyz = &rt->captured_VERTEX_xyz[vno];
+    getXYZ(vertex0, &captured_xyz->x, &captured_xyz->y, &captured_xyz->z);
+    float xLo = captured_xyz->x, yLo = captured_xyz->y, zLo = captured_xyz->z; 
     float xHi = xLo, yHi = yLo, zHi = zLo;
     for (vno = 1; vno < mris->nvertices; vno++) {
         VERTEX const * vertex = &mris->vertices[vno];
-        float x, y, z; 
-        rt->getXYZ(vertex, &x, &y, &z);
+        captured_xyz = &rt->captured_VERTEX_xyz[vno];
+        getXYZ(vertex, &captured_xyz->x, &captured_xyz->y, &captured_xyz->z);
+        float x = captured_xyz->x, y = captured_xyz->y, z = captured_xyz->z; 
         xLo = MIN(xLo, x); yLo = MIN(yLo, y); zLo = MIN(zLo, z); 
         xHi = MAX(xHi, x); yHi = MAX(yHi, y); zHi = MAX(zHi, z); 
     }
@@ -673,15 +675,13 @@ RealmTree* makeRealmTree(MRIS const * mris, GetXYZ_FunctionType getXYZ) {
     // Place all the vertices into nodes.  recentNode tries to speed up by assuming some locality.
     // 
     for (vno = 0; vno < mris->nvertices; vno++) {
-        VERTEX const * vertex = &mris->vertices[vno];
-        float x, y, z; 
-        rt->getXYZ(vertex, &x, &y, &z);
+        captured_xyz = &rt->captured_VERTEX_xyz[vno];
         // Find the right subtree
-        while (!nodeContains(recentNode, x,y,z)) {
+        while (!nodeContains(recentNode, captured_xyz->x,captured_xyz->y,captured_xyz->z)) {
             recentNode = recentNode->parent;
         }
         // Insert here, or deeper
-        recentNode = insertVnoIntoNode(rt, recentNode, vno, x,y,z);
+        recentNode = insertVnoIntoNode(rt, recentNode, vno, captured_xyz->x,captured_xyz->y,captured_xyz->z);
     }
 
     // Place all the faces into nodes
@@ -714,10 +714,10 @@ RealmTree* makeRealmTree(MRIS const * mris, GetXYZ_FunctionType getXYZ) {
     return rt;
 }
 
-void checkRealmTree(RealmTree* realmTree, MRIS const * mris) {
-    unsigned long hash_now = computeRealmTreeHash(realmTree, mris);
-    if (realmTree->fnv_hash != hash_now) {
-        fprintf(stderr, "%s:%d mris some vertex xyz has changed\n", __FILE__, __LINE__);
+void checkRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ) {
+    int count = countXYZChanges(realmTree, mris, getXYZ);
+    if (count > 0) {
+        fprintf(stderr, "%s:%d mris %d vertex xyz have changed\n", __FILE__, __LINE__, count);
         // DON'T EXIT FOR NOW  exit(1);
     }
 }

@@ -55965,6 +55965,11 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
 
 #define DEBUG_UL 0
 
+static void get_origxyz(VERTEX const * vertex, float* x, float* y, float* z) {
+    *x = vertex->origx;
+    *y = vertex->origy;
+    *z = vertex->origz;
+}
 
 static double mrisComputeDefectMRILogUnlikelihood(
     ComputeDefectContext* computeDefectContext,
@@ -55972,7 +55977,7 @@ static double mrisComputeDefectMRILogUnlikelihood(
     DEFECT_PATCH * const dp_nonconst, 
     HISTOGRAM    * const h_border_nonconst)
 {
-//#define mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
+#define mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
 
 
   MRI_SURFACE  const * const mris     = mris_nonconst;			// find where the modifiers are
@@ -55987,14 +55992,14 @@ static double mrisComputeDefectMRILogUnlikelihood(
   if (computeDefectContext->realmTree == NULL) {
     fprintf(stdout, "%s:%d mrisComputeDefectMRILogUnlikelihood making realmTree\n",__FILE__,__LINE__);
     ROMP_PF_begin  
-    computeDefectContext->realmTree = makeRealmTree(mris);
+    computeDefectContext->realmTree = makeRealmTree(mris, get_origxyz);
     ROMP_PF_end
   } 
 #ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
   else {
     ROMP_PF_begin
     fprintf(stdout, "%s:%d mrisComputeDefectMRILogUnlikelihood checking realmTree\n",__FILE__,__LINE__);
-    checkRealmTree(computeDefectContext->realmTree, mris);
+    checkRealmTree(computeDefectContext->realmTree, mris, get_origxyz);
     ROMP_PF_end
   }
 #endif
