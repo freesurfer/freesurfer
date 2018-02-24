@@ -1,3 +1,16 @@
+static int orig_clock = 0;
+#define CHANGES_ORIG_WKR(WHY)  \
+    {   static int latest;  \
+        if (orig_clock != latest) { \
+            latest = orig_clock;    \
+            printf("%s:%d changes orig%s <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", \
+                __FILE__,__LINE__, WHY);   \
+        } \
+    } \
+    // end of macro
+#define CHANGES_ORIG        CHANGES_ORIG_WKR(" - not understood")
+#define UPDATE_REALMTREE    CHANGES_ORIG_WKR(" and updates realmTree")
+    
 /*
  * @file utilities operating on Original
  *
@@ -27109,7 +27122,7 @@ int MRISsaveVertexPositions(MRI_SURFACE *mris, int which)
         v->cz = v->z;
         break;
       case ORIGINAL_VERTICES:
-        v->origx = v->x;
+        v->origx = v->x; CHANGES_ORIG
         v->origy = v->y;
         v->origz = v->z;
         break;
@@ -34949,7 +34962,7 @@ int MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs)
       }
       if (v->marked) /* update value */
       {
-        v->origx = v->tdx;
+        v->origx = v->tdx; CHANGES_ORIG
         v->origy = v->tdy;
         v->origz = v->tdz;
       }
@@ -38415,7 +38428,7 @@ int MRISreverseCoords(MRI_SURFACE *mris, int which_direction, int reverse_face_o
         v->cz = z;
         break;
       case ORIGINAL_VERTICES:
-        v->origx = x;
+        v->origx = x; CHANGES_ORIG
         v->origy = y;
         v->origz = z;
         break;
@@ -41047,7 +41060,7 @@ static int mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2)
   vnew->ody = (v1->ody + v2->ody) / 2;
   vnew->odz = (v1->odz + v2->odz) / 2;
   vnew->val = (v1->val + v2->val) / 2;
-  vnew->origx = (v1->origx + v2->origx) / 2;
+  vnew->origx = (v1->origx + v2->origx) / 2; CHANGES_ORIG
   vnew->origy = (v1->origy + v2->origy) / 2;
   vnew->origz = (v1->origz + v2->origz) / 2;
   vnew->vnum = 2; /* at least connected to two bisected vertices */
@@ -41476,7 +41489,7 @@ mrisTessellateFace(MRI_SURFACE *mris, int fno)
   vc->odx = dx / (float)VERTICES_PER_FACE ;
   vc->ody = dy / (float)VERTICES_PER_FACE ;
   vc->odz = dz / (float)VERTICES_PER_FACE ;
-  vc->origx = ox / (float)VERTICES_PER_FACE ;
+  vc->origx = ox / (float)VERTICES_PER_FACE ; CHANGES_ORIG
   vc->origy = oy / (float)VERTICES_PER_FACE ;
   vc->origz = oz / (float)VERTICES_PER_FACE ;
   vc->vnum = 0 ;
@@ -41503,7 +41516,7 @@ mrisTessellateFace(MRI_SURFACE *mris, int fno)
     v->ody = (v1->ody+v2->ody) / 2.0f ;
     v->odz = (v1->odz+v2->odz) / 2.0f ;
 
-    v->origx = (v1->origx+v2->origx) / 2.0f ;
+    v->origx = (v1->origx+v2->origx) / 2.0f ; CHANGES_ORIG
     v->origy = (v1->origy+v2->origy) / 2.0f ;
     v->origz = (v1->origz+v2->origz) / 2.0f ;
     v->num = 0 ;
@@ -43042,7 +43055,7 @@ static int mrisPlaceVertexInOrigFace(MRI_SURFACE *mris, VERTEX *v, int fno)
   ADD(e1, e2, P);
   ADD(P, U0, P);
 
-  v->origx = P[0];
+  v->origx = P[0]; CHANGES_ORIG
   v->origy = P[1];
   v->origz = P[2];
 
@@ -47918,7 +47931,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
         for (i = 0; i < ninside; i++) {
           v = &mris->vertices[dp->tp.vertices[i]];
 
-          v->origx = v->tx;
+          v->origx = v->tx; CHANGES_ORIG
           v->origy = v->ty;
           v->origz = v->tz;
         }
@@ -47985,7 +47998,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
         for (i = 0; i < ninside; i++) {
           v = &mris->vertices[dp->tp.vertices[i]];
 
-          v->origx = v->tx;
+          v->origx = v->tx; UPDATE_REALMTREE
           v->origy = v->ty;
           v->origz = v->tz;
         }
@@ -48068,7 +48081,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
             continue;
           }
 
-          v->origx = v->tx;
+          v->origx = v->tx; CHANGES_ORIG
           v->origy = v->ty;
           v->origz = v->tz;
         }
@@ -48191,7 +48204,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
         for (i = 0; i < nvertices; i++) {
           v = &mris->vertices[dp->tp.vertices[vertices[i]]];
 
-          v->origx = v->tx;
+          v->origx = v->tx; CHANGES_ORIG
           v->origy = v->ty;
           v->origz = v->tz;
         }
@@ -48309,7 +48322,7 @@ static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, in
     /* update orig vertices */
     for (i = 0; i < nvertices; i++) {
       v = &mris->vertices[vertices[i]];
-      v->origx = v->tx;
+      v->origx = v->tx; CHANGES_ORIG
       v->origy = v->ty;
       v->origz = v->tz;
     }
@@ -48409,7 +48422,7 @@ static void defectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int ni
     /* update orig vertices */
     for (i = 0; i < nvertices; i++) {
       v = &mris->vertices[dp->tp.vertices[i]];
-      v->origx = v->tx;
+      v->origx = v->tx; UPDATE_REALMTREE
       v->origy = v->ty;
       v->origz = v->tz;
     }
@@ -49818,7 +49831,7 @@ static DEFECT_VERTEX_STATE *mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *def
     v = &mris->vertices[vno];
 
 #if 1
-    vs->origx = v->origx;
+    vs->origx = v->origx; UPDATE_REALMTREE
     vs->origy = v->origy;
     vs->origz = v->origz;
     vs->nx = v->nx;
@@ -49916,7 +49929,7 @@ static int mrisRestoreVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs)
     }
     v = &mris->vertices[vno];
 #if 1
-    v->origx = vs->origx;
+    v->origx = vs->origx; UPDATE_REALMTREE
     v->origy = vs->origy;
     v->origz = vs->origz;
     v->nx = vs->nx;
@@ -51289,7 +51302,7 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
     vdst->x = v->x;
     vdst->y = v->y;
     vdst->z = v->z;
-    vdst->origx = v->origx;
+    vdst->origx = v->origx; CHANGES_ORIG
     vdst->origy = v->origy;
     vdst->origz = v->origz;
     vdst->tx = v->tx;
@@ -51995,7 +52008,7 @@ MRI_SURFACE *MRIScorrectTopology(
     vdst->y = v->y;
     vdst->z = v->z;
     /* smoothed vertices */
-    vdst->origx = v->origx;
+    vdst->origx = v->origx; CHANGES_ORIG
     vdst->origy = v->origy;
     vdst->origz = v->origz;
     vdst->tx = v->tx;
@@ -52050,7 +52063,7 @@ MRI_SURFACE *MRIScorrectTopology(
         vdst->x = v->x;
         vdst->y = v->y;
         vdst->z = v->z;
-        vdst->origx = v->origx;
+        vdst->origx = v->origx; CHANGES_ORIG
         vdst->origy = v->origy;
         vdst->origz = v->origz;
         vdst->tx = v->tx;
@@ -55993,6 +56006,7 @@ static double mrisComputeDefectMRILogUnlikelihood(
     fprintf(stdout, "%s:%d mrisComputeDefectMRILogUnlikelihood making realmTree\n",__FILE__,__LINE__);
     ROMP_PF_begin  
     computeDefectContext->realmTree = makeRealmTree(mris, get_origxyz);
+    orig_clock++;
     ROMP_PF_end
   } 
 #ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
@@ -57618,7 +57632,7 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
     v_dst->cx = v_src->cx;
     v_dst->cy = v_src->cy;
     v_dst->cz = v_src->cz;
-    v_dst->origx = v_src->origx;
+    v_dst->origx = v_src->origx; CHANGES_ORIG
     v_dst->origy = v_src->origy;
     v_dst->origz = v_src->origz;
     v_dst->ripflag = v_src->ripflag; /* none of them should be ripped */
@@ -62231,7 +62245,7 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
     vdst->y = v->y;
     vdst->z = v->z;
     /* smoothed vertices */
-    vdst->origx = v->origx;
+    vdst->origx = v->origx; CHANGES_ORIG
     vdst->origy = v->origy;
     vdst->origz = v->origz;
     vdst->tx = v->tx;
@@ -65172,7 +65186,7 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE 
     vdst->marked++;
     switch (which) {
       case VERTEX_COORDS:
-        vdst->origx += v->origx;
+        vdst->origx += v->origx; CHANGES_ORIG
         vdst->origy += v->origy;
         vdst->origz += v->origz;
         break;
@@ -65204,7 +65218,7 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE 
     mean = vdst->d / (float)vdst->marked;
     switch (which) {
       case VERTEX_COORDS:
-        vdst->origx /= (float)vdst->marked;
+        vdst->origx /= (float)vdst->marked; CHANGES_ORIG
         vdst->origy /= (float)vdst->marked;
         vdst->origz /= (float)vdst->marked;
         break;
@@ -65253,7 +65267,7 @@ int MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total, MRIS_HASH_TABLE 
     vdst->marked++;
     switch (which) {
       case VERTEX_COORDS:
-        vdst->origx = v->origx;
+        vdst->origx = v->origx; CHANGES_ORIG
         vdst->origy = v->origy;
         vdst->origz = v->origz;
         break;
@@ -65321,7 +65335,7 @@ int MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRIS_HASH_TA
     vdst->val2 = v->val2;
     switch (which) {
       case VERTEX_COORDS:
-        vdst->origx = v->origx;
+        vdst->origx = v->origx; CHANGES_ORIG
         vdst->origy = v->origy;
         vdst->origz = v->origz;
         break;
@@ -69856,7 +69870,7 @@ int MRISsurf2surfAll(MRIS *mris, MRI *dst, LTA *lta)
     // original
     V4_LOAD(sX, mris->vertices[i].origx, mris->vertices[i].origy, mris->vertices[i].origz, 1.);
     MatrixMultiply(surf2surf, sX, dX);
-    mris->vertices[i].origx = VECTOR_ELT(dX, 1);
+    mris->vertices[i].origx = VECTOR_ELT(dX, 1); CHANGES_ORIG
     mris->vertices[i].origy = VECTOR_ELT(dX, 2);
     mris->vertices[i].origz = VECTOR_ELT(dX, 3);
 
@@ -70263,7 +70277,7 @@ int MRISupsampleIco(MRI_SURFACE *mris, MRI_SURFACE *mris_new)
     vnew->x = vold->x;
     vnew->y = vold->y;
     vnew->z = vold->z;
-    vnew->origx = vold->origx;
+    vnew->origx = vold->origx; CHANGES_ORIG
     vnew->origy = vold->origy;
     vnew->origz = vold->origz;
     vnew->marked = 1;
@@ -75068,7 +75082,7 @@ int MRISimportVertexCoords(MRI_SURFACE *mris, float *locations[3], int which)
         v->cz = locations[2][vno];
         break;
       case ORIGINAL_VERTICES:
-        v->origx = locations[0][vno];
+        v->origx = locations[0][vno]; CHANGES_ORIG
         v->origy = locations[1][vno];
         v->origz = locations[2][vno];
         break;
