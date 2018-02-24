@@ -8,8 +8,8 @@ static int orig_clock = 0;
         } \
     } \
     // end of macro
-#define CHANGES_ORIG        CHANGES_ORIG_WKR(" - not understood")
-#define UPDATE_REALMTREE    CHANGES_ORIG_WKR(" and updates realmTree")
+#define CHANGES_ORIG                CHANGES_ORIG_WKR(" - not understood")
+#define UPDATE_REALMTREE(MRIS,VNO)  update_any_realmTrees((MRIS), (VNO));
     
 /*
  * @file utilities operating on Original
@@ -44611,6 +44611,8 @@ static int max_unchanged = MAX_UNCHANGED;
 
 // An accelerator for a hot function
 //
+#define mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
+
 typedef struct ComputeDefectContext ComputeDefectContext;
 struct ComputeDefectContext {
     RealmTree* realmTree;
@@ -44620,8 +44622,91 @@ static void constructComputeDefectContext(ComputeDefectContext* computeDefectCon
     computeDefectContext->realmTree = NULL;
 }
 
-static void destructComputeDefectContext  (ComputeDefectContext* computeDefectContext) {
+
+typedef struct ActiveRealmTree {
+    RealmTree*          realmTree;
+    MRIS const*         mris;
+    GetXYZ_FunctionType getXYZ;
+} ActiveRealmTree;
+
+static int              activeRealmTreesCapacity;
+static ActiveRealmTree* activeRealmTrees;
+static int              activeRealmTreesSize;
+
+
+static void destructComputeDefectContext(ComputeDefectContext* computeDefectContext) {
+
+    #ifdef HAVE_OPENMP
+    #pragma omp critical
+    #endif
+    {
+        int i;
+        for (i = 0; activeRealmTrees[i].realmTree != computeDefectContext->realmTree; i++) ;
+        i++;
+        for (; i != activeRealmTreesSize; i++) activeRealmTrees[i-1] = activeRealmTrees[i];
+        activeRealmTreesSize--;
+    }
+
     freeRealmTree(&computeDefectContext->realmTree);
+}
+
+
+static void useComputeDefectContextRealmTree(
+    ComputeDefectContext* computeDefectContext,
+    MRIS  const * const   mris,
+    GetXYZ_FunctionType   getXYZ) 
+{
+#ifdef HAVE_OPENMP
+    #pragma omp critical
+#endif
+{
+    if (computeDefectContext->realmTree == NULL) {
+        fprintf(stdout, "%s:%d useComputeDefectContextRealmTree making realmTree\n",__FILE__,__LINE__);
+        ROMP_PF_begin  
+        computeDefectContext->realmTree = makeRealmTree(mris, getXYZ);
+        orig_clock++;
+        
+        if (activeRealmTreesSize == activeRealmTreesCapacity) {
+            activeRealmTreesCapacity++;
+            activeRealmTrees = 
+                (ActiveRealmTree*)realloc(
+                    activeRealmTrees, activeRealmTreesCapacity*sizeof(ActiveRealmTree));
+        }
+        
+        ActiveRealmTree* art = &activeRealmTrees[activeRealmTreesSize++];
+        art->realmTree = computeDefectContext->realmTree;
+        art->mris      = mris;
+        art->getXYZ    = getXYZ;
+         
+        ROMP_PF_end
+    } 
+#ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
+    else {
+        ROMP_PF_begin
+        fprintf(stdout, "%s:%d useComputeDefectContextRealmTree checking realmTree\n",__FILE__,__LINE__);
+        checkRealmTree(computeDefectContext->realmTree, mris, getXYZ);
+        ROMP_PF_end
+    }
+#endif
+}
+}
+
+static void update_any_realmTrees(MRIS const * const mris, int vno) {
+#ifdef HAVE_OPENMP
+    #pragma omp critical
+#endif
+    {   int i;
+        for (i = 0; i < activeRealmTreesSize; i++) {
+            if (activeRealmTrees[i].mris != mris) continue;
+            printf("Thread:%d updating realmTree:%p vno:%d\n", 
+                omp_get_thread_num(), activeRealmTrees[i].realmTree, vno);
+            updateRealmTree(
+                activeRealmTrees[i].realmTree, 
+                activeRealmTrees[i].mris,
+                activeRealmTrees[i].getXYZ, 
+                vno);
+        }
+    }
 }
 
 // ----------------- Declaration of Static Functions ---------------------- //
@@ -47998,9 +48083,10 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
         for (i = 0; i < ninside; i++) {
           v = &mris->vertices[dp->tp.vertices[i]];
 
-          v->origx = v->tx; UPDATE_REALMTREE
+          v->origx = v->tx;
           v->origy = v->ty;
           v->origz = v->tz;
+          UPDATE_REALMTREE(mris, dp->tp.vertices[i])
         }
       }
       break;
@@ -48422,9 +48508,10 @@ static void defectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int ni
     /* update orig vertices */
     for (i = 0; i < nvertices; i++) {
       v = &mris->vertices[dp->tp.vertices[i]];
-      v->origx = v->tx; UPDATE_REALMTREE
+      v->origx = v->tx;
       v->origy = v->ty;
       v->origz = v->tz;
+      UPDATE_REALMTREE(mris,dp->tp.vertices[i])
     }
 
     /* recompute normals */
@@ -49830,14 +49917,14 @@ static DEFECT_VERTEX_STATE *mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *def
     }
     v = &mris->vertices[vno];
 
-#if 1
-    vs->origx = v->origx; UPDATE_REALMTREE
+    vs->origx = v->origx; 
     vs->origy = v->origy;
     vs->origz = v->origz;
+    UPDATE_REALMTREE(mris,vno)
+
     vs->nx = v->nx;
     vs->ny = v->ny;
     vs->nz = v->nz;
-#endif
 
     vs->vtotal = v->vtotal;
     vs->vnum = v->vnum;
@@ -49928,14 +50015,15 @@ static int mrisRestoreVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs)
       continue;
     }
     v = &mris->vertices[vno];
-#if 1
-    v->origx = vs->origx; UPDATE_REALMTREE
+    v->origx = vs->origx; 
     v->origy = vs->origy;
     v->origz = vs->origz;
+    UPDATE_REALMTREE(mris,vno)
+
     v->nx = vs->nx;
     v->ny = vs->ny;
     v->nz = vs->nz;
-#endif
+
     free(v->v);
     v->v = NULL;
     v->vtotal = vs->vtotal;
@@ -55990,9 +56078,6 @@ static double mrisComputeDefectMRILogUnlikelihood(
     DEFECT_PATCH * const dp_nonconst, 
     HISTOGRAM    * const h_border_nonconst)
 {
-#define mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
-
-
   MRI_SURFACE  const * const mris     = mris_nonconst;			// find where the modifiers are
   DEFECT_PATCH const * const dp       = dp_nonconst;
   //HISTOGRAM  const * const h_border = h_border_nonconst;		// unused
@@ -56002,21 +56087,7 @@ static double mrisComputeDefectMRILogUnlikelihood(
   MRI    const * const mri_defect   = dp->mri_defect;
   DEFECT const * const dp_defect    = dp->defect;
 
-  if (computeDefectContext->realmTree == NULL) {
-    fprintf(stdout, "%s:%d mrisComputeDefectMRILogUnlikelihood making realmTree\n",__FILE__,__LINE__);
-    ROMP_PF_begin  
-    computeDefectContext->realmTree = makeRealmTree(mris, get_origxyz);
-    orig_clock++;
-    ROMP_PF_end
-  } 
-#ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
-  else {
-    ROMP_PF_begin
-    fprintf(stdout, "%s:%d mrisComputeDefectMRILogUnlikelihood checking realmTree\n",__FILE__,__LINE__);
-    checkRealmTree(computeDefectContext->realmTree, mris, get_origxyz);
-    ROMP_PF_end
-  }
-#endif
+  useComputeDefectContextRealmTree(computeDefectContext, mris, get_origxyz);
   
   { int i,j,k;
     for (i = 0; i < mri_distance->width; i++) {

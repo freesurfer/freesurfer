@@ -51,6 +51,8 @@ void checkRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType
     // that the faces and vertices have not moved since they were 
     // used to make the tree.
 
+void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ, int vno);
+
 void getRealmTreeBnds(
     RealmTree* realmTree, float* xLo, float*xHi, float* yLo, float* yHi, float* zLo, float* zHi);
 

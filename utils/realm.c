@@ -714,6 +714,31 @@ RealmTree* makeRealmTree(MRIS const * mris, GetXYZ_FunctionType getXYZ) {
     return rt;
 }
 
+void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ, int vno) {
+    VERTEX const * vertex = &mris->vertices[vno];
+    float x,y,z;
+    getXYZ(vertex, &x, &y, &z);
+    Captured_VERTEX_xyz* c = &realmTree->captured_VERTEX_xyz[vno];
+
+    if (x == c->x && y == c->y && z == c->z) {
+        // printf("updateRealmTree vno:%d has not moved\n", vno);   // this happens a lot
+        return;
+    }
+    
+    printf("updateRealmTree vno:%d has ", vno);
+    if (x < realmTree->root.xLo || realmTree->root.xHi <= x || 
+        y < realmTree->root.yLo || realmTree->root.yHi <= y ||
+        z < realmTree->root.zLo || realmTree->root.zHi <= z 
+    ) {
+        printf("moved outside root\n");                             // this almost never happens
+    } else {
+        printf("stayed inside root\n");                             // this happens a few tens of times
+    }
+    
+    // rather than updating now, batch them so that faces don't get moved more than once
+    // when several of their vertexs move
+}
+
 void checkRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ) {
     int count = countXYZChanges(realmTree, mris, getXYZ);
     if (count > 0) {
