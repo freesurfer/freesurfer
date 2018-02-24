@@ -41,8 +41,12 @@
     // rm -f a.out ; gcc -o a.out -I ../include realm.c |& less ; ./a.out
     //
     
+    #define MAX_FACES_PER_VERTEX 3
+    
     typedef struct VERTEX {
         float someX,someY,someZ;
+        int num;                        // number of faces
+        int f[MAX_FACES_PER_VERTEX];    // fno of the faces this vertex touches
     } VERTEX;
 
     void getSomeXYZ(VERTEX const * vertex, float* x, float* y, float* z) {
@@ -372,7 +376,7 @@
 
 
 
-// RealmTree construction and destruction
+// RealmTree
 //
 typedef struct RealmTreeNode RealmTreeNode;
 struct RealmTreeNode {
@@ -399,6 +403,43 @@ static const unsigned long childIndexBits =      childrenSizeLog2;
 static const unsigned long childIndexMask = ((1<<childrenSizeLog2) - 1);
 static const unsigned long leafIndexBits  =      maxVnosSizeLog2;
 static const unsigned long leafIndexMask  = ((1<<maxVnosSizeLog2 ) - 1);
+
+typedef struct Captured_VERTEX_xyz {
+    float x,y,z;
+} Captured_VERTEX_xyz;
+
+struct RealmTree {
+    MRIS const  *           mris;
+    Captured_VERTEX_xyz*    captured_VERTEX_xyz;
+    RealmTreeNode**         vnoToRealmTreeNode;
+    RealmTreeNode**         fnoToRealmTreeNode;
+    
+    // links in chains of fno off each RealmTreeNode
+    //      nextFnoPlus1[fno]         == 0   means end of chain
+    //  
+    int*                    nextFnoPlus1;
+
+    // links in chains of vno's whose update is pending
+    //      nextVnoToUpdatePlus1[vno] ==  0  means vno not in chain
+    //                                   -1  means it is the last in the chain
+    int                     firstVnoToUpdatePlus1;
+    int*                    nextVnoToUpdatePlus1;
+
+    // links in chains of fno's whose update are pending
+    // this is only used during updateRealmTree
+    //      kept here to avoid need to reallocate
+    //      full of zero's between uses
+    //
+    //      nextFnoToUpdatePlus1[fno] ==  0  means fno not in chain
+    //                                   -1  means it is the last in the chain
+    int*                    nextFnoToUpdatePlus1;
+
+    // the root node of the tree of nodes
+    // the tree has 8 children below each parent, being a 2x 2y 2z
+    //  
+    RealmTreeNode           root;
+};
+
 
 static void constructRealmTreeNode(RealmTreeNode *child, RealmTreeNode *parent) {
     child->parent = parent;
@@ -487,34 +528,26 @@ static RealmTreeNode const * deepestContainingNode(RealmTreeNode const * n, floa
 static RealmTreeNode* insertVnoIntoNode(
     RealmTree*      const realmTree,
     RealmTreeNode*  const n, 
-    int const vno, float const x, float const y, float const z);
+    int const vno);
 
 static RealmTreeNode* insertIntoChild(
     RealmTree*     realmTree,
     RealmTreeNode* n,
-    int vno, float x, float y,float z) {
+    int vno) {
+    Captured_VERTEX_xyz const * const captured_xyz = &realmTree->captured_VERTEX_xyz[vno];
+    float const x = captured_xyz->x, y = captured_xyz->y, z = captured_xyz->z;
     int c = chooseChild(n, x, y, z);
-    return insertVnoIntoNode(realmTree, n->children[c], vno,x,y,z);
+    return insertVnoIntoNode(realmTree, n->children[c], vno);
 }
-
-typedef struct Captured_VERTEX_xyz {
-    float x,y,z;
-} Captured_VERTEX_xyz;
-
-struct RealmTree {
-    MRIS const  *           mris;
-    Captured_VERTEX_xyz*    captured_VERTEX_xyz;
-    RealmTreeNode**         vnoToRealmTreeNode;
-    RealmTreeNode**         fnoToRealmTreeNode;
-    int*                    nextFnoPlus1;
-    RealmTreeNode           root;
-};
 
 static RealmTreeNode* insertVnoIntoNode(
     RealmTree*      const realmTree,
     RealmTreeNode*  const n, 
-    int const vno, float const x, float const y, float const z)
+    int const vno)
 {
+    Captured_VERTEX_xyz const * const captured_xyz = &realmTree->captured_VERTEX_xyz[vno];
+    float const x = captured_xyz->x, y = captured_xyz->y, z = captured_xyz->z;
+
 #ifdef REALM_UNIT_TEST
     MRIS const* mris = realmTree->mris;
     VERTEX const* v = &mris->vertices[vno];
@@ -585,16 +618,26 @@ static RealmTreeNode* insertVnoIntoNode(
             if (c&4) child->zLo = zMid, child->zHi = n->zHi; else child->zLo = n->zLo, child->zHi = zMid;
         }
         
-        // Insert the saved vno into their right child
+        // Insert the saved vno into their child
         for (vi = 0; vi < vnosSize; vi++) {
             Captured_VERTEX_xyz* cxyz = &realmTree->captured_VERTEX_xyz[vnos[vi]];
-            insertIntoChild(realmTree, n, vnos[vi], cxyz->x, cxyz->y, cxyz->z);
+            insertIntoChild(realmTree, n, vnos[vi]);
         }
     }
 
     // Insert this vno into the right child
     //
-    return insertIntoChild(realmTree, n, vno, x, y, z);
+    return insertIntoChild(realmTree, n, vno);
+}
+
+static RealmTreeNode* insertVnoNear(RealmTree* realmTree, RealmTreeNode* n, int vno) {
+    Captured_VERTEX_xyz* captured_xyz = &realmTree->captured_VERTEX_xyz[vno];
+    // Find the right subtree
+    while (!nodeContains(n, captured_xyz->x,captured_xyz->y,captured_xyz->z)) {
+        n = n->parent;
+    }
+    // Insert here, or deeper
+    return insertVnoIntoNode(realmTree, n, vno);
 }
 
 int countXYZChanges(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ) {
@@ -614,10 +657,14 @@ int countXYZChanges(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType
 void freeRealmTree(RealmTree** realmTreePtr) {
     RealmTree* rt = *realmTreePtr; *realmTreePtr = NULL;
     if (!rt) return;
+    
+    free(rt->nextFnoToUpdatePlus1);
+    free(rt->nextVnoToUpdatePlus1);
     free(rt->nextFnoPlus1);
     free(rt->fnoToRealmTreeNode);
     free(rt->vnoToRealmTreeNode);
     destroyRealmTreeNode(&rt->root);
+    
     free(rt);
 }
 
@@ -629,6 +676,62 @@ static float widenHi(float lo, float hi) {
     return hi + step;
 }
 
+static RealmTreeNode * chooseRealmTreeNodeForFno(MRIS const * const mris, RealmTree const * const rt, int const fno) {
+    FACE const * face = &mris->faces[fno];
+
+    RealmTreeNode * n;
+    RealmTreeNode * vertexNode;
+    int vi,vno;
+
+    vi = 0; 
+        vno = face->v[vi]; 
+        vertexNode = rt->vnoToRealmTreeNode[vno];
+        n = vertexNode;
+
+    for (vi = 1; vi < VERTICES_PER_FACE; vi++) { 
+        vno = face->v[vi]; 
+        vertexNode = rt->vnoToRealmTreeNode[vno];
+        n = deepestCommonNode(n, vertexNode);
+    }
+    
+    return n;
+}
+
+
+static void insertFnoIntoRealmTreeNode(RealmTree* realmTree, RealmTreeNode* n, int fno) {
+    realmTree->fnoToRealmTreeNode[fno] = n;
+    realmTree->nextFnoPlus1[fno]       = n->firstFnoPlus1;
+    n->firstFnoPlus1                   = fno + 1;
+    // adjust the count
+    n->nFaces++;
+}
+
+static void removeFnoFromRealmTree(RealmTree* realmTree, int fno) {
+    RealmTreeNode* n = realmTree->fnoToRealmTreeNode[fno];
+    realmTree->fnoToRealmTreeNode[fno] = NULL;
+
+    // find in the list
+    int prevFno = -1;                                           // this list is usually very small
+    int entryFno = n->firstFnoPlus1 - 1;                        // should this search be a performance problem
+    while (entryFno != fno) {                                   //      change to a per-node btree
+        prevFno = entryFno;
+        entryFno = realmTree->nextFnoPlus1[fno] - 1;
+    }
+
+    // remove from the list
+    if (prevFno < 0) {
+        n->firstFnoPlus1 = realmTree->nextFnoPlus1[fno];
+    } else {
+        realmTree->nextFnoPlus1[prevFno] = realmTree->nextFnoPlus1[fno];
+    }
+
+    // be tidy...
+    realmTree->nextFnoPlus1[fno] = 0;
+
+    // adjust the count
+    n->nFaces--;
+}
+
 RealmTree* makeRealmTree(MRIS const * mris, GetXYZ_FunctionType getXYZ) {
     // Fills in the tree using the existing position of 
     // the vertices and faces
@@ -638,7 +741,13 @@ RealmTree* makeRealmTree(MRIS const * mris, GetXYZ_FunctionType getXYZ) {
     rt->captured_VERTEX_xyz = (Captured_VERTEX_xyz*)calloc(mris->nvertices, sizeof(Captured_VERTEX_xyz));
     rt->vnoToRealmTreeNode  = (RealmTreeNode**     )calloc(mris->nvertices, sizeof(RealmTreeNode*));
     rt->fnoToRealmTreeNode  = (RealmTreeNode**     )calloc(mris->nfaces,    sizeof(RealmTreeNode*));
+
     rt->nextFnoPlus1        = (int*                )calloc(mris->nfaces,    sizeof(int           ));
+
+    rt->firstVnoToUpdatePlus1 = -1; // end of list marker, since none pending
+    rt->nextVnoToUpdatePlus1  = (int*              )calloc(mris->nvertices, sizeof(int           ));
+
+    rt->nextFnoToUpdatePlus1  = (int*              )calloc(mris->nfaces,    sizeof(int           ));
 
     if (mris->nvertices == 0) return rt;
     
@@ -676,34 +785,14 @@ RealmTree* makeRealmTree(MRIS const * mris, GetXYZ_FunctionType getXYZ) {
     // 
     for (vno = 0; vno < mris->nvertices; vno++) {
         captured_xyz = &rt->captured_VERTEX_xyz[vno];
-        // Find the right subtree
-        while (!nodeContains(recentNode, captured_xyz->x,captured_xyz->y,captured_xyz->z)) {
-            recentNode = recentNode->parent;
-        }
-        // Insert here, or deeper
-        recentNode = insertVnoIntoNode(rt, recentNode, vno, captured_xyz->x,captured_xyz->y,captured_xyz->z);
+        recentNode = insertVnoNear(rt, recentNode, vno);
     }
 
     // Place all the faces into nodes
     //
     int fno;
     for (fno = 0; fno < mris->nfaces; fno++) {
-        FACE const * face = &mris->faces[fno];
-        RealmTreeNode * vertexNode;
-        int vi,vno;
-        vi = 0; 
-            vno = face->v[vi]; 
-            vertexNode = rt->vnoToRealmTreeNode[vno];
-            recentNode = vertexNode;
-        for (vi = 1; vi < VERTICES_PER_FACE; vi++) { 
-            vno = face->v[vi]; 
-            vertexNode = rt->vnoToRealmTreeNode[vno];
-            recentNode = deepestCommonNode(recentNode, vertexNode);
-        }
-        rt->fnoToRealmTreeNode[fno] = recentNode;
-        rt->nextFnoPlus1[fno]       = recentNode->firstFnoPlus1;
-        recentNode->firstFnoPlus1   = fno + 1;
-        recentNode->nFaces++;
+        insertFnoIntoRealmTreeNode(rt, chooseRealmTreeNodeForFno(mris, rt, fno), fno);
     }
         
     if (0) {
@@ -714,14 +803,14 @@ RealmTree* makeRealmTree(MRIS const * mris, GetXYZ_FunctionType getXYZ) {
     return rt;
 }
 
-void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ, int vno) {
+void noteIfXYZChangedRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ, int vno) {
     VERTEX const * vertex = &mris->vertices[vno];
     float x,y,z;
     getXYZ(vertex, &x, &y, &z);
     Captured_VERTEX_xyz* c = &realmTree->captured_VERTEX_xyz[vno];
 
     if (x == c->x && y == c->y && z == c->z) {
-        // printf("updateRealmTree vno:%d has not moved\n", vno);   // this happens a lot
+        // printf("updateRealmTree vno:%d has not moved\n", vno);       // this happens a lot
         return;
     }
     
@@ -730,13 +819,80 @@ void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionTyp
         y < realmTree->root.yLo || realmTree->root.yHi <= y ||
         z < realmTree->root.zLo || realmTree->root.zHi <= z 
     ) {
-        printf("moved outside root\n");                             // this almost never happens
+        printf("moved outside root\n");                                 // this almost never happens
     } else {
-        printf("stayed inside root\n");                             // this happens a few tens of times
+        printf("stayed inside root\n");                                 // this happens a few tens of times
     }
     
-    // rather than updating now, batch them so that faces don't get moved more than once
-    // when several of their vertexs move
+    // rather than updating now, batch them 
+    //  so faces only get moved once when several of their vertexs move
+    //
+    if (realmTree->nextVnoToUpdatePlus1[vno] != 0) {                                // make sure not already in list
+        realmTree->nextVnoToUpdatePlus1[vno] = realmTree->firstVnoToUpdatePlus1;    // append existing list to this node
+        realmTree->firstVnoToUpdatePlus1 = vno + 1;                                 // make this vno the start of the list
+    }
+}
+
+void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ) {
+    
+    // process all the pending vno and build the pending face list
+    //
+    int firstFnoToUpdatePlus1 = -1;
+    int vno = realmTree->firstVnoToUpdatePlus1 - 1;
+    while (vno >= 0) {
+        VERTEX const * const vertex = &mris->vertices[vno];
+    
+        // add the faces to the face set
+        //
+        { 
+            int fi; 
+            for (fi = 0; fi < vertex->num; fi++) {
+                int fno = vertex->f[fi];
+                if (realmTree->nextFnoToUpdatePlus1[fno] != 0) continue;        // already in list
+                realmTree->nextFnoToUpdatePlus1[fno] = firstFnoToUpdatePlus1;   // add to list
+                firstFnoToUpdatePlus1 = fno + 1;
+            }
+        }
+        
+        // remove it from the existing realmTreeNode
+        //
+        RealmTreeNode* n = realmTree->vnoToRealmTreeNode[vno];
+        realmTree->vnoToRealmTreeNode[vno] = NULL;
+        {
+            int vi;
+            for (vi = n->vnosSize - 1; n->vnos[vi] != vi; vi--);                    // find it, backwards since the active ones are at end
+            do { n->vnos[vi] = n->vnos[vi+1]; } while (++vi < n->vnosSize - 1);     // remove it
+        }
+        
+        // insert it
+        //
+        {
+            Captured_VERTEX_xyz* captured_xyz = &realmTree->captured_VERTEX_xyz[vno];
+            getXYZ(vertex, &captured_xyz->x, &captured_xyz->y, &captured_xyz->z);
+            insertVnoNear(realmTree, n, vno);
+        }
+                
+        // next
+        //
+        vno = realmTree->nextVnoToUpdatePlus1[vno] - 1;                 // get the next vno, if any
+        realmTree->nextVnoToUpdatePlus1[vno] = 0;                       // clear the link for next time
+    }
+
+    // process all the pending fno, resetting the links to zero
+    //    
+    int fno = firstFnoToUpdatePlus1 - 1;
+    while (fno >= 0) {
+
+        RealmTreeNode * chosenForFno = chooseRealmTreeNodeForFno(mris, realmTree, fno);
+    
+        if (chosenForFno != realmTree->fnoToRealmTreeNode[fno]) {
+            removeFnoFromRealmTree(realmTree, fno);
+            insertFnoIntoRealmTreeNode(realmTree, chosenForFno, fno);
+        }
+                
+        fno = realmTree->nextFnoToUpdatePlus1[fno] - 1;                 // get the next fno, if any
+        realmTree->nextFnoToUpdatePlus1[fno] = 0;                       // clear the link for next time
+    }
 }
 
 void checkRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ) {

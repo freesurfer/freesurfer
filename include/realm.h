@@ -27,7 +27,7 @@
  *
  */
 
-//#define REALM_UNIT_TEST
+#define REALM_UNIT_TEST
 
 #include <stdbool.h>
 
@@ -51,7 +51,8 @@ void checkRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType
     // that the faces and vertices have not moved since they were 
     // used to make the tree.
 
-void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ, int vno);
+void noteIfXYZChangedRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ, int vno);
+void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ);
 
 void getRealmTreeBnds(
     RealmTree* realmTree, float* xLo, float*xHi, float* yLo, float* yHi, float* zLo, float* zHi);

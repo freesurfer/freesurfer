@@ -9,7 +9,7 @@ static int orig_clock = 0;
     } \
     // end of macro
 #define CHANGES_ORIG                CHANGES_ORIG_WKR(" - not understood")
-#define UPDATE_REALMTREE(MRIS,VNO)  update_any_realmTrees((MRIS), (VNO));
+#define UPDATE_REALMTREE(MRIS,VNO)  noteIfXYZChangedRealmTree((MRIS), (VNO));
     
 /*
  * @file utilities operating on Original
@@ -44680,14 +44680,15 @@ static void useComputeDefectContextRealmTree(
          
         ROMP_PF_end
     } 
-#ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
     else {
         ROMP_PF_begin
+        updateRealmTree(computeDefectContext->realmTree, mris, getXYZ);
+#ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
         fprintf(stdout, "%s:%d useComputeDefectContextRealmTree checking realmTree\n",__FILE__,__LINE__);
         checkRealmTree(computeDefectContext->realmTree, mris, getXYZ);
+#endif
         ROMP_PF_end
     }
-#endif
 }
 }
 
