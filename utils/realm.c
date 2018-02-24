@@ -42,9 +42,15 @@
     //
     
     typedef struct VERTEX {
-        float x,y,z;
+        float someX,someY,someZ;
     } VERTEX;
 
+    void getSomeXYZ(VERTEX const * vertex, float* x, float* y, float* z) {
+        *x = vertex->someX;
+        *y = vertex->someY;
+        *z = vertex->someZ;
+    }
+    
     #define VERTICES_PER_FACE 3
     typedef int vertices_per_face_t[VERTICES_PER_FACE];
 
@@ -98,22 +104,22 @@
         for (vno = 0; vno < mris.nvertices; vno++) {
             int key = vno > useDuplicates ? vno : 936; 
             VERTEX* v = &mris.vertices[vno];
-            v->x = (key*321)%51; 
-            v->y = (key*7321)%71; 
-            v->z = (key*17321)%91;
+            v->someX = (key*321)%51; 
+            v->someY = (key*7321)%71; 
+            v->someZ = (key*17321)%91;
         }
         vno = 0;
-        float xMin = mris.vertices[vno].x, xMax = xMin,
-              yMin = mris.vertices[vno].y, yMax = yMin, 
-              zMin = mris.vertices[vno].z, zMax = zMin;
+        float xMin = mris.vertices[vno].someX, xMax = xMin,
+              yMin = mris.vertices[vno].someY, yMax = yMin, 
+              zMin = mris.vertices[vno].someZ, zMax = zMin;
         for (vno = 1; vno < mris.nvertices; vno++) {
             VERTEX* v = &mris.vertices[vno];
-            xMin = MIN(xMin, v->x);
-            yMin = MIN(yMin, v->y);
-            zMin = MIN(zMin, v->z);
-            xMax = MAX(xMax, v->x);
-            yMax = MAX(yMax, v->y);
-            zMax = MAX(zMax, v->z);
+            xMin = MIN(xMin, v->someX);
+            yMin = MIN(yMin, v->someY);
+            zMin = MIN(zMin, v->someZ);
+            xMax = MAX(xMax, v->someX);
+            yMax = MAX(yMax, v->someY);
+            zMax = MAX(zMax, v->someZ);
         }
         
 
@@ -134,9 +140,9 @@
             int i; 
             for (i=0; i<nvertices; i++) {
                 vnos [i] = i;
-                ctx_x[i] = mris.vertices[i].x;
-                ctx_y[i] = mris.vertices[i].y;
-                ctx_z[i] = mris.vertices[i].z;
+                ctx_x[i] = mris.vertices[i].someX;
+                ctx_y[i] = mris.vertices[i].someY;
+                ctx_z[i] = mris.vertices[i].someZ;
             }
         }
         
@@ -199,7 +205,7 @@
                 
         //
 
-        RealmTree* realmTree = makeRealmTree(&mris);
+        RealmTree* realmTree = makeRealmTree(&mris, getSomeXYZ);
         summarizeRealmTree(realmTree);
 
         int fLimit = 1;
@@ -272,9 +278,9 @@
                 if (states[vno] > 1 ) 
                 if (states[vno] == 0) {
                    VERTEX* v = &mris.vertices[vno];
-                   if (xLo <= v->x && v->x < xHi 
-                   &&  yLo <= v->y && v->y < yHi
-                   &&  zLo <= v->z && v->z < zHi) printf("ERROR, vno:%d was not reported\n", vno);
+                   if (xLo <= v->someX && v->someX < xHi 
+                   &&  yLo <= v->someY && v->someY < yHi
+                   &&  zLo <= v->someZ && v->someZ < zHi) printf("ERROR, vno:%d was not reported\n", vno);
                 }
             }
 
@@ -299,13 +305,13 @@
                 FACE const * face = &mris.faces[fno];
                 int vi = 0;
                 VERTEX const * vertex = &mris.vertices[face->v[vi]];
-                float fxLo = vertex->x, fxHi = fxLo,
-                      fyLo = vertex->y, fyHi = fyLo,
-                      fzLo = vertex->z, fzHi = fzLo;
+                float fxLo = vertex->someX, fxHi = fxLo,
+                      fyLo = vertex->someY, fyHi = fyLo,
+                      fzLo = vertex->someZ, fzHi = fzLo;
                 for (vi = 0; vi < VERTICES_PER_FACE; vi++) {
-                    fxLo = MIN(fxLo, vertex->x); fxHi = MAX(fxHi, vertex->x);
-                    fyLo = MIN(fyLo, vertex->y); fyHi = MAX(fyHi, vertex->y);
-                    fzLo = MIN(fzLo, vertex->z); fzHi = MAX(fzHi, vertex->z);
+                    fxLo = MIN(fxLo, vertex->someX); fxHi = MAX(fxHi, vertex->someX);
+                    fyLo = MIN(fyLo, vertex->someY); fyHi = MAX(fyHi, vertex->someY);
+                    fzLo = MIN(fzLo, vertex->someZ); fzHi = MAX(fzHi, vertex->someZ);
                 }
                 bool wontIntersect =  
                     fxHi < xLo || xHi <= fxLo ||
@@ -469,8 +475,7 @@ static int chooseChild(
     return c;
 }
 
-static RealmTreeNode const * deepestContainingNode(RealmTreeNode const * n, 
-    float const x, float const y, float const z) {
+static RealmTreeNode const * deepestContainingNode(RealmTreeNode const * n, float const x, float const y, float const z) {
     n = upUntilContainsNode(n, x, y, z);
     while (n && !n->vnos) {
         int c = chooseChild(n, x, y, z);
@@ -494,8 +499,8 @@ static RealmTreeNode* insertIntoChild(
 
 struct RealmTree {
     MRIS const  *   mris;
+    GetXYZ_FunctionType getXYZ; // This lets realms be on x,y,z, origx,origy,origz, or anything else...
     unsigned long   fnv_hash;
-    float           original_xLo,original_xHi,original_yLo,original_yHi,original_zLo,original_zHi;
     RealmTreeNode   root;
     RealmTreeNode** vnoToRealmTreeNode;
     RealmTreeNode** fnoToRealmTreeNode;
@@ -511,7 +516,7 @@ static RealmTreeNode* insertVnoIntoNode(
 
 #ifdef REALM_UNIT_TEST
     VERTEX const* v = &mris->vertices[vno];
-    if (x != v->x || y != v->y || z != v->z) 
+    if (x != v->someX || y != v->someY || z != v->someZ) 
         bevins_break();
 #endif
     
@@ -581,7 +586,9 @@ static RealmTreeNode* insertVnoIntoNode(
         // Insert the saved vno into their right child
         for (vi = 0; vi < vnosSize; vi++) {
             VERTEX const * vertex = &mris->vertices[vnos[vi]];
-            insertIntoChild(realmTree, n, vnos[vi], vertex->x, vertex->y, vertex->z);
+            float someX,someY,someZ;
+            realmTree->getXYZ(vertex, &someX, &someY, &someZ);
+            insertIntoChild(realmTree, n, vnos[vi], someX, someY, someZ);
         }
     }
 
@@ -590,12 +597,13 @@ static RealmTreeNode* insertVnoIntoNode(
     return insertIntoChild(realmTree, n, vno, x, y, z);
 }
 
-unsigned long computeRealmTreeHash(MRIS const * mris) {
+unsigned long computeRealmTreeHash(RealmTree* realmTree, MRIS const * mris) {
     unsigned long hash = fnv_init();
     int vno;
     for (vno = 1; vno < mris->nvertices; vno++) {
         VERTEX const * vertex = &mris->vertices[vno];
-        float f[3]; f[0] = vertex->x, f[1] = vertex->y, f[2] = vertex->z;
+        float f[3];
+        realmTree->getXYZ(vertex, &f[0], &f[1], &f[2]);
         hash = fnv_add(hash, (const unsigned char*)f, sizeof(f));
     }
     return hash;
@@ -620,13 +628,14 @@ static float widenHi(float lo, float hi) {
     return hi + step;
 }
 
-RealmTree* makeRealmTree(MRIS const * mris) {
+RealmTree* makeRealmTree(MRIS const * mris, GetXYZ_FunctionType getXYZ) {
     // Fills in the tree using the existing position of 
     // the vertices and faces
     RealmTree* rt = (RealmTree*)calloc(1, sizeof(RealmTree));
     constructRealmTreeNode(&rt->root, NULL);
     rt->mris     = mris;
-    rt->fnv_hash = computeRealmTreeHash(mris);
+    rt->getXYZ   = getXYZ;
+    rt->fnv_hash = computeRealmTreeHash(rt, mris);
     rt->vnoToRealmTreeNode = (RealmTreeNode**)calloc(mris->nvertices, sizeof(RealmTreeNode*));
     rt->fnoToRealmTreeNode = (RealmTreeNode**)calloc(mris->nfaces,    sizeof(RealmTreeNode*));
     rt->nextFnoPlus1       = (int*           )calloc(mris->nfaces,    sizeof(int           ));
@@ -637,19 +646,16 @@ RealmTree* makeRealmTree(MRIS const * mris) {
     //
     int vno = 0;
     VERTEX const * vertex0 = &mris->vertices[vno];
-    float xLo = vertex0->x, xHi = xLo,
-          yLo = vertex0->y, yHi = yLo,
-          zLo = vertex0->z, zHi = zLo;
+    float xLo, yLo, zLo; 
+    rt->getXYZ(vertex0, &xLo, &yLo, &zLo);
+    float xHi = xLo, yHi = yLo, zHi = zLo;
     for (vno = 1; vno < mris->nvertices; vno++) {
         VERTEX const * vertex = &mris->vertices[vno];
-        float const x = vertex->x, y = vertex->y, z = vertex->z;
+        float x, y, z; 
+        rt->getXYZ(vertex, &x, &y, &z);
         xLo = MIN(xLo, x); yLo = MIN(yLo, y); zLo = MIN(zLo, z); 
         xHi = MAX(xHi, x); yHi = MAX(yHi, y); zHi = MAX(zHi, z); 
     }
-    
-    rt->original_xLo = xLo;  rt->original_xHi = xHi;
-    rt->original_yLo = yLo;  rt->original_yHi = yHi;
-    rt->original_zLo = zLo;  rt->original_zHi = zHi;
     
     // Initialise the root node, and make it the recentNode
     //
@@ -668,7 +674,8 @@ RealmTree* makeRealmTree(MRIS const * mris) {
     // 
     for (vno = 0; vno < mris->nvertices; vno++) {
         VERTEX const * vertex = &mris->vertices[vno];
-        int const x = vertex->x, y = vertex->y, z = vertex->z;
+        float x, y, z; 
+        rt->getXYZ(vertex, &x, &y, &z);
         // Find the right subtree
         while (!nodeContains(recentNode, x,y,z)) {
             recentNode = recentNode->parent;
@@ -708,12 +715,23 @@ RealmTree* makeRealmTree(MRIS const * mris) {
 }
 
 void checkRealmTree(RealmTree* realmTree, MRIS const * mris) {
-    unsigned long hash_now = computeRealmTreeHash(mris);
+    unsigned long hash_now = computeRealmTreeHash(realmTree, mris);
     if (realmTree->fnv_hash != hash_now) {
         fprintf(stderr, "%s:%d mris some vertex xyz has changed\n", __FILE__, __LINE__);
         // DON'T EXIT FOR NOW  exit(1);
     }
 }
+
+void getRealmTreeBnds(
+    RealmTree* realmTree, float* xLo, float* xHi, float* yLo, float* yHi, float* zLo, float* zHi) {
+    *xLo = realmTree->root.xLo;
+    *yLo = realmTree->root.yLo;
+    *zLo = realmTree->root.zLo;
+    *xHi = realmTree->root.xHi;
+    *yHi = realmTree->root.yHi;
+    *zHi = realmTree->root.zHi;
+}
+
 
 // Realm construction and destruction
 //
@@ -735,24 +753,32 @@ Realm* makeRealm(
     float zLo, float zHi) {
     //
     // Creates a realm that can be used to quickly find vertices and faces
-    // that MIGHT intersect this brick
+    // that MIGHT intersect this brick.
+    //
+    // There are no vertices ON the high wall or outside any of the walls
+    // so a realm - which represents the vertices and faces and not some unoccupied space
+    // - can be shrunk to these bounds, and needs to be if the deepestContainingNode
+    // is to be set correctly, otherwise a realm whose inhabitants might be but aren't outside
+    // those bounds would not have any containingNode!
 
     Realm* r = (Realm*)calloc(1, sizeof(Realm));
     r->realmTree = realmTree;
-    r->xLo = xLo; r->yLo = yLo; r->zLo = zLo;
-    r->xHi = xHi; r->yHi = yHi; r->zHi = zHi;
+    r->xLo = xLo = MAX(realmTree->root.xLo,xLo); 
+    r->yLo = yLo = MAX(realmTree->root.yLo,yLo); 
+    r->zLo = zLo = MAX(realmTree->root.zLo,zLo);
+    r->xHi = xHi = MIN(realmTree->root.xHi,xHi); 
+    r->yHi = yHi = MIN(realmTree->root.yHi,yHi); 
+    r->zHi = zHi = MIN(realmTree->root.zHi,zHi);
     
-    // Have to restrict to the original range otherwise might not find
+    // An empty realm contains no points hence can not be intersected by a face
     //
-    r->deepestContainingNode = 
-        upUntilContainsNode(
-            deepestContainingNode(&realmTree->root, 
-                MAX(xLo,realmTree->original_xLo), 
-                MAX(yLo,realmTree->original_yLo),
-                MAX(zLo,realmTree->original_zLo)), 
-            MIN(xHi,realmTree->original_xHi), 
-            MIN(yHi,realmTree->original_yHi), 
-            MIN(zHi,realmTree->original_zHi));
+    if (xHi <= xLo || yHi <= yLo || zHi <= zLo) return r;     // r->deepestContainingNode left NULL
+    
+    // == on the high bound is permissible, since points on that border are not in the realm
+    //
+    RealmTreeNode const * n = deepestContainingNode(&realmTree->root, xLo, yLo, zLo);
+    while (xHi > n->xHi || yHi > n->yHi || zHi > n->zHi) n = n->parent;
+    r->deepestContainingNode = n;
 
     return r;
 }

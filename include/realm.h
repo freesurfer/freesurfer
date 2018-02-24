@@ -34,18 +34,25 @@
 #ifndef REALM_UNIT_TEST
 #include "mrisurf.h"
 #else
+    typedef struct VERTEX VERTEX;
     typedef struct MRIS MRIS;
 #endif
 
 typedef struct RealmTree RealmTree;
+typedef void (*GetXYZ_FunctionType)(VERTEX const * vertex, float* x, float* y, float* z);
 void freeRealmTree(RealmTree** realmTreePtr);
-RealmTree* makeRealmTree(MRIS const * mris);
+RealmTree* makeRealmTree(MRIS const * mris, 
+    GetXYZ_FunctionType getXYZ  // This lets realms be on x,y,z, origx,origy,origz, or anything else...
+    );
 void checkRealmTree(RealmTree* realmTree, MRIS const * mris);
     //
     // Fills in the tree using the existing position of 
     // the vertices and faces.  The check version verifies
     // that the faces and vertices have not moved since they were 
     // used to make the tree.
+
+void getRealmTreeBnds(
+    RealmTree* realmTree, float* xLo, float*xHi, float* yLo, float* yHi, float* zLo, float* zHi);
 
 typedef struct Realm Realm;
 void freeRealm(Realm** realmPtr);

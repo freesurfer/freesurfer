@@ -56301,6 +56301,10 @@ static double mrisComputeDefectMRILogUnlikelihood(
   freeRealm(&realm);
 
   printf("Only searching %d fnos, instead of %d to create %d tasks\n", fnosSize, mris->nfaces, bufferSize);
+  if (fnosSize > mris->nfaces/4) {
+    printf("%s:%d Not many filtered when delta:%d\n", __FILE__, __LINE__, delta);
+    printf("  realm x:%f..%f y:%f..%f z:%f..%f\n",realm_xLo,realm_xHi,realm_yLo,realm_yHi,realm_zLo,realm_zHi);
+  }
   
 #ifdef BEVIN_COUNT_EXITS
   if (1) { 
