@@ -1218,18 +1218,30 @@ int realmMightTouchFno(Realm* realm, int* fnos, int fnosCapacity) {
     return written;
 }
 
-static void summarizeRealmTreeNode(RealmTreeNode const * n) {
-    int i; for (i = 0; i < n->depth; i++) printf("   |");
-    printf("x:%f..%f y:%f..%f z:%f..:%f nFaces:%d", n->xLo, n->xHi, n->yLo, n->yHi, n->zLo, n->zHi, n->nFaces);
-    if (n->vnos) {
-        printf(" nosSize:%d\n",n->vnosSize);
-    } else {
-        printf("\n");
-        int c;
-        for (c = 0; c < childrenSize; c++) summarizeRealmTreeNode(n->children[c]);
+static int summarizeRealmTreeNode(RealmTreeNode const * n, int targetDepth) {
+    int hasUnreachedChildren = 0;
+    int atDepth = (n->depth == targetDepth);
+    
+    int i; 
+    if (atDepth) {
+        for (i = 0; i < n->depth; i++) printf("   |");
+        printf("x:%f..%f y:%f..%f z:%f..:%f nFaces:%d\n", n->xLo, n->xHi, n->yLo, n->yHi, n->zLo, n->zHi, n->nFaces);
     }
+    if (n->vnos) {
+        if (atDepth) printf(" nosSize:%d\n",n->vnosSize);
+    } else if (n->depth < targetDepth) {
+        if (atDepth) printf("\n");
+        int c;
+        for (c = 0; c < childrenSize; c++) 
+            hasUnreachedChildren |= summarizeRealmTreeNode(n->children[c], targetDepth);
+    } else {
+        hasUnreachedChildren=1;
+    }
+    return hasUnreachedChildren;
 }
 
 void summarizeRealmTree(RealmTree const * realmTree) {
-    summarizeRealmTreeNode(&realmTree->root);
+    int depth;
+    for (depth = 0; ; depth++)
+        if (!summarizeRealmTreeNode(&realmTree->root, depth)) break;
 }
