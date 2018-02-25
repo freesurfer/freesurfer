@@ -1170,11 +1170,12 @@ int realmNextMightTouchVno(Realm* realm, RealmIterator* realmIterator) {
     return vno;
 }
 
-static int numberOffnosHereAndDeeper(RealmTreeNode const* n) {
+static int numberOffnosHereAndDeeper(RealmTreeNode const* n, Realm* realm) {
+    if (!nodeIntersectsRealm(n, realm)) return 0;
     int count = n->nFaces;
     if (!n->vnos) {
         int c;
-        for (c = 0; c < childrenSize; c++) count += numberOffnosHereAndDeeper(n->children[c]);
+        for (c = 0; c < childrenSize; c++) count += numberOffnosHereAndDeeper(n->children[c], realm);
     }
     return count; 
 }
@@ -1182,7 +1183,7 @@ static int numberOffnosHereAndDeeper(RealmTreeNode const* n) {
 int realmNumberOfMightTouchFno(Realm* realm) {
     RealmTreeNode const* n = realm->deepestContainingNode;
     if (!n) return 0;
-    int count = numberOffnosHereAndDeeper(n);
+    int count = numberOffnosHereAndDeeper(n, realm);
     while ((n = n->parent)) count += n->nFaces;
     return count;  
 }
@@ -1201,11 +1202,13 @@ static int fnosHere(RealmTree const* rt, RealmTreeNode const* n, int* fnos, int 
     return fnosSize;
 }
 
-static int fnosHereAndDeeper(RealmTree const* rt, RealmTreeNode const* n, int* fnos, int fnosCapacity, int fnosSize) {
+static int fnosHereAndDeeper(RealmTree const* rt, Realm* realm, RealmTreeNode const* n, int* fnos, int fnosCapacity, int fnosSize) {
+    if (!nodeIntersectsRealm(n, realm)) return fnosSize;
     fnosSize = fnosHere(rt, n, fnos, fnosCapacity, fnosSize);
     if (!n->vnos) {
         int c;
-        for (c = 0; c < childrenSize; c++) fnosSize = fnosHereAndDeeper(rt, n->children[c], fnos, fnosCapacity, fnosSize);
+        for (c = 0; c < childrenSize; c++) 
+        fnosSize = fnosHereAndDeeper(rt, realm, n->children[c], fnos, fnosCapacity, fnosSize);
     }
     return fnosSize; 
 }
@@ -1213,7 +1216,7 @@ static int fnosHereAndDeeper(RealmTree const* rt, RealmTreeNode const* n, int* f
 int realmMightTouchFno(Realm* realm, int* fnos, int fnosCapacity) {
     RealmTreeNode const* n = realm->deepestContainingNode;
     if (!n) return 0;
-    int written = fnosHereAndDeeper(realm->realmTree, n, fnos, fnosCapacity, 0);
+    int written = fnosHereAndDeeper(realm->realmTree, realm, n, fnos, fnosCapacity, 0);
     while ((n = n->parent)) written = fnosHere(realm->realmTree, n, fnos, fnosCapacity, written);
     return written;
 }

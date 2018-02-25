@@ -1,16 +1,3 @@
-static int orig_clock = 0;
-#define CHANGES_ORIG_WKR(WHY)  \
-    {   static int latest;  \
-        if (orig_clock != latest) { \
-            latest = orig_clock;    \
-            printf("%s:%d changes orig%s <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n", \
-                __FILE__,__LINE__, WHY);   \
-        } \
-    } \
-    // end of macro
-#define CHANGES_ORIG CHANGES_ORIG_WKR(" - not understood")
-
-    
 /*
  * @file utilities operating on Original
  *
@@ -338,15 +325,9 @@ static int mrisAddFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2);
 static int mrisComputeCanonicalEdgeBasis(
     MRI_SURFACE *mris, EDGE *edge1, EDGE *edge2, double origin[3], double e0[3], double e1[3]);
 #endif
-#if 0
-static int mrisDumpTriangle(MRI_SURFACE *mris, int fno) ;
-static int mrisDilateAmbiguousVertices(MRI_SURFACE *mris, int mark,int ndil) ;
-static int triangleNeighbors(MRI_SURFACE *mris, int fno1, int fno2) ;
-#endif
+
 static int triangleMarked(MRI_SURFACE *mris, int fno);
-#if 0
-static int mrisScaleMaxDimension(MRI_SURFACE *mris, float maxr) ;
-#endif
+
 static int mrisCalculateOriginalFaceCentroid(MRI_SURFACE *mris, int fno, float *px, float *py, float *pz);
 static int mrisCalculateFaceCentroid(MRI_SURFACE *mris, int fno, float *px, float *py, float *pz);
 static int mrisCalculateCanonicalFaceCentroid(MRI_SURFACE *mris, int fno, float *px, float *py, float *pz);
@@ -360,20 +341,6 @@ static int load_orig_triangle_vertices(MRI_SURFACE *mris, int fno, double U0[3],
 static void mrisDumpFace(MRI_SURFACE *mris, int fno, FILE *fp);
 static int mrisAddEdge(MRI_SURFACE *mris, int vno1, int vno2);
 
-#if 0
-static int mrisNormalDirectionTriangleIntersection(MRI_SURFACE*mris,VERTEX *v,
-    MHT *mht, double *pdist,
-    int *flist, int which);
-static int mrisAllCurrentTriangleIntersections(MRI_SURFACE *mris, float x,
-    float y, float z, float nx,
-    float ny, float nz,
-    MHT *mht, int *flist) ;
-static double mrisFindClosestFilledVoxel(MRI_SURFACE *mris, MRI *mri_filled,
-    int vno, double max_dist) ;
-static int   mrisCheck(MRI_SURFACE *mris) ;
-static int   mrisClipGradient(MRI_SURFACE *mris, float max_len) ;
-static int   mrisClipMomentumGradient(MRI_SURFACE *mris, float max_len) ;
-#endif
 static int mrisComputeSurfaceDimensions(MRI_SURFACE *mris);
 // static int   mrisFindNeighbors(MRI_SURFACE *mris) ;
 static float mrisNormalize(float v[3]);
@@ -427,12 +394,7 @@ static double mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris);
 static double mrisComputeIntensityError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
 static double mrisComputeTargetLocationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
 static double mrisComputeDuraError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
-#if 0
-static int    mrisMarkSulcalVertices(MRI_SURFACE *mris,
-                                     INTEGRATION_PARMS *parms) ;
-static int    mrisUpdateSulcalGradients(MRI_SURFACE *mris,
-                                        INTEGRATION_PARMS *parms) ;
-#endif
+
 static int mrisCheckSurfaceNbrs(MRI_SURFACE *mris);
 static double mrisComputeIntensityGradientError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
 static double mrisComputeSphereError(MRI_SURFACE *mris, double l_sphere, double a);
@@ -502,14 +464,6 @@ static int mrisComputeShrinkwrapTerm(MRI_SURFACE *mris, MRI *mri_brain, double l
 static double mrisComputeShrinkwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_shrinkwrap);
 static int mrisComputeExpandwrapTerm(MRI_SURFACE *mris, MRI *mri_brain, double l_expandwrap);
 static double mrisComputeExpandwrapError(MRI_SURFACE *mris, MRI *mri_brain, double l_expandwrap, double target_radius);
-#if 0
-static double mrisFindNormalDistance(MRI_SURFACE *mris, MHT *mht, int vno,
-                                     double max_dist, int which);
-static int    mrisFindNextOutwardFace(MRI_SURFACE *mris, MHT *mht, int vno,
-                                      double max_dist);
-static int    mrisFindNextInwardFace(MRI_SURFACE *mris, MHT *mht, int vno,
-                                     double max_dist);
-#endif
 
 static int project_point_onto_sphere(float cx, float cy, float cz, float radius, float *pcx, float *pcy, float *pcz);
 static int mrisProjectOntoSurface(MRI_SURFACE *mris, int which_vertices);
@@ -522,15 +476,6 @@ static int mrisFlipPatch(MRI_SURFACE *mris);
 static int mrisPlaceVertexInOrigFace(MRI_SURFACE *mris, VERTEX *v, int fno);
 static int vertexInFace(MRI_SURFACE *mris, int vno, int fno);
 
-#if 0
-static int   mrisAverageDs(MRI_SURFACE *mris, int num_avgs) ;
-/* not currently used */
-static int  mrisNeighborAtVoxel(MRI_SURFACE *mris, MRI *mri, int vno,
-                                int xv,int yv,int zv) ;
-static int mrisComputeAverageNormalTerm(MRI_SURFACE *mris, int navgs,
-                                        double l_thick_normal) ;
-#endif
-
 static int mrisComputeNonlinearSpringTerm(MRI_SURFACE *mris, double l_nlspring, INTEGRATION_PARMS *parms);
 static int mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring);
 static int mrisComputeNonlinearTangentialSpringTerm(MRI_SURFACE *mris, double l_spring, double min_dist);
@@ -538,28 +483,6 @@ static int mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring);
 static int mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno);
 static int mrisComputeVariableSmoothnessCoefficients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
 
-#if 0
-static int   mrisRemoveNormalGradientComponent(MRI_SURFACE *mris, int vno) ;
-static int   mrisSmoothNormalOutliers(MRI_SURFACE *mris, double nlen) ;
-static int   mrisDebugVertex(MRI_SURFACE *mris, int vno) ;
-static int    mrisComputeBoundaryTerm(MRI_SURFACE *mris,
-                                      INTEGRATION_PARMS *parms) ;
-static int   mrisComputeCurvatureTerm(MRI_SURFACE *mris,
-                                      INTEGRATION_PARMS *parms) ;
-static int   mrisComputeNegTerm(MRI_SURFACE *mris,INTEGRATION_PARMS *parms);
-static int   mrisCountNegativeVertices(MRI_SURFACE *mris) ;
-static double mrisComputeAverageHeight(MRI_SURFACE *mris) ;
-
-
-static int   mrisComputeSethianCurvatureTerm(MRI_SURFACE *mris,
-    INTEGRATION_PARMS *parms) ;
-static int   mrisSmoothNormals(MRI_SURFACE *mris, int niterations) ;
-static int   mrisComputeCurvatureGradientTerm(MRI_SURFACE *mris,
-    INTEGRATION_PARMS *parms) ;
-static int   mrisStoreCurrentGradient(MRI_SURFACE *mris) ;
-static int   mrisFindPoles(MRIS *mris) ;
-static int   mrisComputeEllipsoidProperties(MRI_SURFACE *mris) ;
-#endif
 static int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float dt, float old_sse);
 static int mrisWriteSnapshots(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t);
 static int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t);
@@ -568,10 +491,7 @@ static int mrisTrackTotalDistanceNew(MRI_SURFACE *mris);
 static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT const *mht, int vno);
 static int mrisFillFace(MRI_SURFACE *mris, MRI *mri, int fno);
 static int mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on);
-#if 0
-static int mrisEraseFace(MRI_SURFACE *mris, MRI *mri, int fno) ;
-static int  mrisRipVertices(MRI_SURFACE *mris) ;
-#endif
+
 static double mrisRmsValError(MRI_SURFACE *mris, MRI *mri);
 static double mrisRmsDistanceError(MRI_SURFACE *mris);
 static int mrisRemoveVertexLink(MRI_SURFACE *mris, int vno1, int vno2);
@@ -589,9 +509,6 @@ static int mrisComputeIntensityTerm_mef(MRI_SURFACE *mris,
                                         INTEGRATION_PARMS *parms);
 static double mrisRmsValError_mef(MRI_SURFACE *mris, MRI *mri_30, MRI *mri_5, float weight30, float weight5);
 
-#if 0
-static int   mrisAddVertices(MRI_SURFACE *mris, double max_len) ;
-#endif
 static int mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2);
 static int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vnew_no);
 
@@ -707,6 +624,32 @@ static void reproducible_check(double cell, double val, int line, int* count)
     exit(1);
 }
 #endif
+
+
+/*-----------------------------------------------------
+  This supports code that accelerates finding the vertices and faces needed during defect correction.
+  To do this, it must be able to tell when vertex orig[xyz] are changed.
+  Such changes need to be reported via noteInActiveRealmTrees.
+  To help decide where such calls had to be added, all changes to origx etc. that are not have a CHANGES_ORIG by them to check if should have been.
+  To test it is correct, the code can scan all vertices of an mris and verify there origxyz are what was expected.
+  ------------------------------------------------------*/
+
+//  #define mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
+
+static int activeRealmTreesSize;
+static int orig_clock = 0;
+#define CHANGES_ORIG                                                                \
+    if (activeRealmTreesSize) {                                                     \
+        static int latest;                                                          \
+        if (orig_clock != latest) {                                                 \
+            latest = orig_clock;                                                    \
+            printf("%s:%d changes orig <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n",     \
+                __FILE__,__LINE__);                                                 \
+        }                                                                           \
+    }                                                                               \
+    // end of macro
+
+    
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -44611,8 +44554,6 @@ static int max_unchanged = MAX_UNCHANGED;
 
 // An accelerator for a hot function
 //
-#define mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
-
 typedef struct ComputeDefectContext ComputeDefectContext;
 struct ComputeDefectContext {
     RealmTree* realmTree;
@@ -44631,7 +44572,6 @@ typedef struct ActiveRealmTree {
 
 static int              activeRealmTreesCapacity;
 static ActiveRealmTree* activeRealmTrees;
-static int              activeRealmTreesSize;
 
 
 static void destructComputeDefectContext(ComputeDefectContext* computeDefectContext) {
@@ -44661,7 +44601,9 @@ static void useComputeDefectContextRealmTree(
 #endif
 {
     if (computeDefectContext->realmTree == NULL) {
+#ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
         fprintf(stdout, "%s:%d useComputeDefectContextRealmTree making realmTree\n",__FILE__,__LINE__);
+#endif
         ROMP_PF_begin  
         computeDefectContext->realmTree = makeRealmTree(mris, getXYZ);
         orig_clock++;
@@ -56394,6 +56336,7 @@ static double mrisComputeDefectMRILogUnlikelihood(
   
   freeRealm(&realm);
 
+#ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
   printf("Only searching %d fnos, instead of %d to create %d tasks\n", fnosSize, mris->nfaces, bufferSize);
   if (fnosSize > mris->nfaces/4) 
   #pragma omp critical
@@ -56408,6 +56351,7 @@ static double mrisComputeDefectMRILogUnlikelihood(
     printf("%s:%d exit(1) called\n", __FILE__, __LINE__);
     exit(1);
   }
+#endif
   
 #ifdef BEVIN_COUNT_EXITS
   if (1) { 
