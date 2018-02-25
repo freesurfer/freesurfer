@@ -74,7 +74,7 @@
     
     static void bevins_break()
     {
-        printf("bevins_break\n");
+        fprintf(stderr,"bevins_break\n");
     }
 
     static int int_compare(const void* lhs_ptr, const void* rhs_ptr) {
@@ -93,7 +93,7 @@
     }
 
     void test(int nvertices, int useDuplicates) {
-        printf("Test nvertices:%d useDuplicates:%d\n", nvertices, useDuplicates);
+        fprintf(stderr,"Test nvertices:%d useDuplicates:%d\n", nvertices, useDuplicates);
         
         int fBenefitCount = 0, fBenefitLimit = 1, fNoBenefitCount = 0, fHasBenefitCount = 0;
 
@@ -241,13 +241,13 @@
                 v->someZ -= 0.1 * (v->someZ - zMin);
                 noteIfXYZChangedRealmTree(realmTree, &mris, getSomeXYZ, vno);
             }
-            printf("Moved vertices, now checking\n");
+            fprintf(stderr,"Moved vertices, now checking\n");
             checkRealmTree(realmTree, &mris, getSomeXYZ);
-            printf("Checked realmTree now updating\n");
+            fprintf(stderr,"Checked realmTree now updating\n");
             updateRealmTree(realmTree, &mris, getSomeXYZ);
-            printf("Updated realmTree, now checking\n");
+            fprintf(stderr,"Updated realmTree, now checking\n");
             checkRealmTree(realmTree, &mris, getSomeXYZ);
-            printf("Checked realmTree\n");
+            fprintf(stderr,"Checked realmTree\n");
         }
 
         // Check varous realms
@@ -274,7 +274,7 @@
             fCount++;
             if (fCount == fLimit) {
                 fLimit *= 2;
-                printf("fCount:%d x:%f..%f y:%f.%f z:%f..%f\n", fCount, xLo, xHi, yLo, yHi, zLo, zHi);
+                fprintf(stderr,"fCount:%d x:%f..%f y:%f.%f z:%f..%f\n", fCount, xLo, xHi, yLo, yHi, zLo, zHi);
             }
             
             Realm* realm = 
@@ -293,21 +293,21 @@
             for (;;) {
 #ifdef REALM_UNIT_TEST
                 if (false && (counter == 1 || counter == 122)) {
-                    printf("counter:%d ri.i:%ld ri.p:%p\n", counter, realmIterator.i, realmIterator.p); 
+                    fprintf(stderr,"counter:%d ri.i:%ld ri.p:%p\n", counter, realmIterator.i, realmIterator.p); 
                     bevins_break();
                 }
 #endif
                 vno = realmNextMightTouchVno(realm, &realmIterator);
 #ifdef REALM_UNIT_TEST
                 if (vno < -1 || vno >= mris.nvertices) {
-                    printf("ERROR, vno:%d is illegal\n", vno); 
+                    fprintf(stderr,"ERROR, vno:%d is illegal\n", vno); 
                     bevins_break();
                     exit(1);
                 }
 #endif
                 if (0 > vno) break;
                 if (counter == 0 || states[vno]) {
-                    printf("ERROR, vno:%d reported again when counter:%d, was reported counter:%d\n", vno, counter, states[vno]); 
+                    fprintf(stderr,"ERROR, vno:%d reported again when counter:%d, was reported counter:%d\n", vno, counter, states[vno]); 
 #ifdef REALM_UNIT_TEST
                     bevins_break();
 #endif
@@ -324,7 +324,7 @@
                    VERTEX* v = &mris.vertices[vno];
                    if (xLo <= v->someX && v->someX < xHi 
                    &&  yLo <= v->someY && v->someY < yHi
-                   &&  zLo <= v->someZ && v->someZ < zHi) printf("ERROR, vno:%d was not reported\n", vno);
+                   &&  zLo <= v->someZ && v->someZ < zHi) fprintf(stderr,"ERROR, vno:%d was not reported\n", vno);
                 }
             }
 
@@ -339,7 +339,7 @@
             int fnosI;
             for (fnosI = 0; fnosI < fnosSize-1; fnosI++) {
                 if (fnos[fnosI] >= fnos[fnosI + 1]) {
-                    printf("ERROR, fnos[fnosI]:%d fnos[fnosI+1]:%d\n", fnos[fnosI], fnos[fnosI + 1]);
+                    fprintf(stderr,"ERROR, fnos[fnosI]:%d fnos[fnosI+1]:%d\n", fnos[fnosI], fnos[fnosI + 1]);
                 }
             }
             
@@ -364,7 +364,7 @@
                 if (wontIntersect) continue;                            // might or might not be in the list
                 while (fnosI < fnosSize && fnos[fnosI] < fno) fnosI++;  // skip the ones that were reported but need not be
                 if (fnosI == fnosSize || fnos[fnosI] != fno) {
-                    printf("ERROR, fno:%d was not reported\n", fno);
+                    fprintf(stderr,"ERROR, fno:%d was not reported\n", fno);
                 }
             }
 
@@ -380,7 +380,7 @@
                 
                 if (++fBenefitCount == fBenefitLimit) {
                     if (fBenefitLimit < 1000) fBenefitLimit *= 2; else fBenefitLimit += 1000;
-                    printf("fnosSize:%d mris.nfaces:%d fNoBenefitCount:%d fHasBenefitCount:%d\n", 
+                    fprintf(stderr,"fnosSize:%d mris.nfaces:%d fNoBenefitCount:%d fHasBenefitCount:%d\n", 
                         fnosSize, mris.nfaces, fNoBenefitCount, fHasBenefitCount);
                 }
             }
@@ -835,7 +835,7 @@ RealmTree* makeRealmTree(MRIS const * mris, GetXYZ_FunctionType getXYZ) {
     }
         
     if (0) {
-        printf("%s:%d summarizeRealmTree after made\n", __FILE__, __LINE__);
+        fprintf(stderr,"%s:%d summarizeRealmTree after made\n", __FILE__, __LINE__);
         summarizeRealmTree(rt);
     }
     
@@ -854,7 +854,7 @@ void noteIfXYZChangedRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_F
 
     if (x == c->x && y == c->y && z == c->z) {
         // ignore if has not moved
-        // printf("noteIfXYZChangedRealmTree vno:%d has not moved\n", vno);       // this happens a lot
+        // fprintf(stderr,"noteIfXYZChangedRealmTree vno:%d has not moved\n", vno);       // this happens a lot
         return;
     }
     
@@ -862,10 +862,10 @@ void noteIfXYZChangedRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_F
         y < realmTree->root.yLo || realmTree->root.yHi <= y ||
         z < realmTree->root.zLo || realmTree->root.zHi <= z 
     ) {
-        printf("noteIfXYZChangedRealmTree vno:%d has ", vno);
-        printf("moved outside root\n");                                 // this almost never happens
+        fprintf(stderr,"noteIfXYZChangedRealmTree vno:%d has ", vno);
+        fprintf(stderr,"moved outside root\n");                                 // this almost never happens
     } else {
-        // printf("stayed inside root\n");                              // this happens a few tens of times
+        // fprintf(stderr,"stayed inside root\n");                              // this happens a few tens of times
     }
     
     // rather than updating now, batch them 
@@ -1227,13 +1227,13 @@ static int summarizeRealmTreeNode(RealmTreeNode const * n, int targetDepth) {
     
     int i; 
     if (atDepth) {
-        for (i = 0; i < n->depth; i++) printf("   |");
-        printf("x:%f..%f y:%f..%f z:%f..:%f nFaces:%d\n", n->xLo, n->xHi, n->yLo, n->yHi, n->zLo, n->zHi, n->nFaces);
+        for (i = 0; i < n->depth; i++) fprintf(stderr,"   |");
+        fprintf(stderr,"x:%f..%f y:%f..%f z:%f..:%f nFaces:%d\n", n->xLo, n->xHi, n->yLo, n->yHi, n->zLo, n->zHi, n->nFaces);
     }
     if (n->vnos) {
-        if (atDepth) printf(" nosSize:%d\n",n->vnosSize);
+        if (atDepth) fprintf(stderr," nosSize:%d\n",n->vnosSize);
     } else if (n->depth < targetDepth) {
-        if (atDepth) printf("\n");
+        if (atDepth) fprintf(stderr,"\n");
         int c;
         for (c = 0; c < childrenSize; c++) 
             hasUnreachedChildren |= summarizeRealmTreeNode(n->children[c], targetDepth);

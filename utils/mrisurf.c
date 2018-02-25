@@ -638,15 +638,15 @@ static void reproducible_check(double cell, double val, int line, int* count)
 
 static int activeRealmTreesSize;
 static int orig_clock = 0;
-#define CHANGES_ORIG                                                                \
-    if (activeRealmTreesSize) {                                                     \
-        static int latest;                                                          \
-        if (orig_clock != latest) {                                                 \
-            latest = orig_clock;                                                    \
-            printf("%s:%d changes orig <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n",     \
-                __FILE__,__LINE__);                                                 \
-        }                                                                           \
-    }                                                                               \
+#define CHANGES_ORIG                                                                        \
+    if (activeRealmTreesSize) {                                                             \
+        static int latest;                                                                  \
+        if (orig_clock != latest) {                                                         \
+            latest = orig_clock;                                                            \
+            fprintf(stderr,"%s:%d changes orig <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n",     \
+                __FILE__,__LINE__);                                                         \
+        }                                                                                   \
+    }                                                                                       \
     // end of macro
 
     
@@ -44602,9 +44602,9 @@ static void useComputeDefectContextRealmTree(
 #endif
 {
     if (computeDefectContext->realmTree == NULL) {
-#ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
-        fprintf(stdout, "%s:%d useComputeDefectContextRealmTree making realmTree\n",__FILE__,__LINE__);
-#endif
+//#ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
+        fprintf(stderr, "%s:%d useComputeDefectContextRealmTree making realmTree\n",__FILE__,__LINE__);
+//#endif
         ROMP_PF_begin  
         computeDefectContext->realmTree = makeRealmTree(mris, getXYZ);
         orig_clock++;
@@ -44628,7 +44628,7 @@ static void useComputeDefectContextRealmTree(
         updateRealmTree(computeDefectContext->realmTree, mris, getXYZ);
 #ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
         if (checkRealmTree(computeDefectContext->realmTree, mris, getXYZ)) {
-            fprintf(stdout, "%s:%d useComputeDefectContextRealmTree failed checking realmTree\n",__FILE__,__LINE__);
+            fprintf(stderr, "%s:%d useComputeDefectContextRealmTree failed checking realmTree\n",__FILE__,__LINE__);
             exit(1);
         }
 #endif
@@ -44637,15 +44637,17 @@ static void useComputeDefectContextRealmTree(
 }
 }
 
+static int noteInActiveRealmTreesCount;
 static void noteInActiveRealmTrees(MRIS const * const mris, int vno) {
 #ifdef HAVE_OPENMP
     #pragma omp critical
 #endif
     {   int i;
+        noteInActiveRealmTreesCount++;
         for (i = 0; i < activeRealmTreesSize; i++) {
             if (activeRealmTrees[i].mris != mris) continue;
             if (0)
-                printf("Thread:%d updating realmTree:%p vno:%d\n", 
+                fprintf(stderr,"Thread:%d updating realmTree:%p vno:%d\n", 
                     omp_get_thread_num(), activeRealmTrees[i].realmTree, vno);
             noteIfXYZChangedRealmTree(
                 activeRealmTrees[i].realmTree, 
@@ -56041,8 +56043,10 @@ static double mrisComputeDefectMRILogUnlikelihood(
     }
     if (suppress_usecomputeDefectContext) computeDefectContext = NULL;
     
-    TIMER_INTERVAL_BEGIN(A)
+    int saved_noteInActiveRealmTreesCount = noteInActiveRealmTreesCount++;
     
+    //  TIMER_INTERVAL_BEGIN(A)
+
     double result = 
         mrisComputeDefectMRILogUnlikelihood_wkr(
             computeDefectContext,
@@ -56050,7 +56054,10 @@ static double mrisComputeDefectMRILogUnlikelihood(
             dp_nonconst, 
             h_border_nonconst);
 
-    TIMER_INTERVAL_END(A)
+    //  TIMER_INTERVAL_END(A)
+
+    printf("noteInActiveRealmTrees called:%d\n",
+        noteInActiveRealmTreesCount-saved_noteInActiveRealmTreesCount);
 
     return result;
 }
@@ -56070,9 +56077,12 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   MRI    const * const mri_defect   = dp->mri_defect;
   DEFECT const * const dp_defect    = dp->defect;
 
-  if (computeDefectContext)
+  //  TIMER_INTERVAL_BEGIN(getRealmTree)
+  if (computeDefectContext) {
     useComputeDefectContextRealmTree(computeDefectContext, mris, get_origxyz);
-  
+  }
+  //  TIMER_INTERVAL_END(getRealmTree)
+
   { int i,j,k;
     for (i = 0; i < mri_distance->width; i++) {
       for (j = 0; j < mri_distance->height; j++) {
@@ -56142,6 +56152,8 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   Entry* buffer  = (Entry*)malloc(mris->nfaces * sizeof(Entry));
   int bufferSize = 0; 
 
+  //  TIMER_INTERVAL_BEGIN(taskCreation)
+
   // the {i,j,k}VOL just inside the following loop implements a linear function of the .orig{x,y,z}
   // so it should be possible to avoid searching all the faces to find the ones that fit in the box
   //
@@ -56196,25 +56208,24 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   int   const fnosSize     = !realm ? 0    : realmMightTouchFno(realm, fnos, fnosCapacity);
   qsort(fnos, fnosSize, sizeof(int), int_compare);
   
-  int const   fnosToIterateOverSize = 
+  bool const   iterateOverFnos =
 #ifndef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
-    fnos ? fnosSize : 
+    !!computeDefectContext;
+#else
+    false;
 #endif
-    mris->nfaces;
+  
+  int const fnosToIterateOverSize = 
+    iterateOverFnos ? fnosSize : mris->nfaces;
   
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(shown_reproducible) 
+  //BEVIN #pragma omp parallel for if_ROMP(shown_reproducible) 
 #endif
   for (p = 0; p < fnosToIterateOverSize; p++) {
     ROMP_PFLB_begin
 
-    int  const         fno  = 
-#ifndef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
-    fnos ? fnos[p] : 
-#endif
-    p;
-
+    int const fno = iterateOverFnos ? fnos[p] : p;
 
     FACE const * const face = &mris->faces[fno];
 
@@ -56344,11 +56355,15 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   }
   ROMP_PF_end
   
-  if (realm) {
-    freeRealm(&realm);
+  //  TIMER_INTERVAL_END(taskCreation)
+  //  TIMER_INTERVAL_BEGIN(realmFree)
+  
+  if (!iterateOverFnos) { 
+    printf("Only searching %d fnos, instead of %d to create %d tasks\n", mris->nfaces, mris->nfaces, bufferSize);
+  } else {
+    printf("Only searching %d fnos, instead of %d to create %d tasks\n", fnosSize,     mris->nfaces, bufferSize);
 
 #ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
-    printf("Only searching %d fnos, instead of %d to create %d tasks\n", fnosSize, mris->nfaces, bufferSize);
     if (fnosSize > mris->nfaces/4) 
     #pragma omp critical
     {
@@ -56363,6 +56378,8 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
       exit(1);
     }
 #endif
+
+    freeRealm(&realm);
   }
 
   
@@ -56374,6 +56391,9 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   }
 #endif
 
+  //  TIMER_INTERVAL_END(realmFree)
+
+  //  TIMER_INTERVAL_BEGIN(taskExecution)
 
   // do the tasks
   //
@@ -56610,7 +56630,12 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   ROMP_PF_end
   
   free(buffer);
+
+  //  TIMER_INTERVAL_END(taskExecution)
+
   } // int p;
+
+  //  TIMER_INTERVAL_BEGIN(volumeLikelihood)
 
   /* compute the volumeLikelihood */
   /* init log values */
@@ -56710,6 +56735,8 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   }
 
   dp_nonconst->tp.unmri_ll = (white_ll + gray_ll);	// MODIFIER
+
+  //  TIMER_INTERVAL_END(volumeLikelihood)
 
   return (white_ll + gray_ll);
 }
