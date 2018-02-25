@@ -8,8 +8,8 @@ static int orig_clock = 0;
         } \
     } \
     // end of macro
-#define CHANGES_ORIG                CHANGES_ORIG_WKR(" - not understood")
-#define UPDATE_REALMTREE(MRIS,VNO)  noteIfXYZChangedRealmTree((MRIS), (VNO));
+#define CHANGES_ORIG CHANGES_ORIG_WKR(" - not understood")
+
     
 /*
  * @file utilities operating on Original
@@ -44684,24 +44684,27 @@ static void useComputeDefectContextRealmTree(
         ROMP_PF_begin
         updateRealmTree(computeDefectContext->realmTree, mris, getXYZ);
 #ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
-        fprintf(stdout, "%s:%d useComputeDefectContextRealmTree checking realmTree\n",__FILE__,__LINE__);
-        checkRealmTree(computeDefectContext->realmTree, mris, getXYZ);
+        if (checkRealmTree(computeDefectContext->realmTree, mris, getXYZ)) {
+            fprintf(stdout, "%s:%d useComputeDefectContextRealmTree failed checking realmTree\n",__FILE__,__LINE__);
+            exit(1);
+        }
 #endif
         ROMP_PF_end
     }
 }
 }
 
-static void update_any_realmTrees(MRIS const * const mris, int vno) {
+static void noteInActiveRealmTrees(MRIS const * const mris, int vno) {
 #ifdef HAVE_OPENMP
     #pragma omp critical
 #endif
     {   int i;
         for (i = 0; i < activeRealmTreesSize; i++) {
             if (activeRealmTrees[i].mris != mris) continue;
-            printf("Thread:%d updating realmTree:%p vno:%d\n", 
-                omp_get_thread_num(), activeRealmTrees[i].realmTree, vno);
-            updateRealmTree(
+            if (0)
+                printf("Thread:%d updating realmTree:%p vno:%d\n", 
+                    omp_get_thread_num(), activeRealmTrees[i].realmTree, vno);
+            noteIfXYZChangedRealmTree(
                 activeRealmTrees[i].realmTree, 
                 activeRealmTrees[i].mris,
                 activeRealmTrees[i].getXYZ, 
@@ -48087,7 +48090,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
           v->origx = v->tx;
           v->origy = v->ty;
           v->origz = v->tz;
-          UPDATE_REALMTREE(mris, dp->tp.vertices[i])
+          noteInActiveRealmTrees(mris, dp->tp.vertices[i]);
         }
       }
       break;
@@ -48512,7 +48515,7 @@ static void defectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int ni
       v->origx = v->tx;
       v->origy = v->ty;
       v->origz = v->tz;
-      UPDATE_REALMTREE(mris,dp->tp.vertices[i])
+      noteInActiveRealmTrees(mris, dp->tp.vertices[i]);
     }
 
     /* recompute normals */
@@ -49921,7 +49924,7 @@ static DEFECT_VERTEX_STATE *mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *def
     vs->origx = v->origx; 
     vs->origy = v->origy;
     vs->origz = v->origz;
-    UPDATE_REALMTREE(mris,vno)
+    noteInActiveRealmTrees(mris, vno);
 
     vs->nx = v->nx;
     vs->ny = v->ny;
@@ -50019,7 +50022,7 @@ static int mrisRestoreVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs)
     v->origx = vs->origx; 
     v->origy = vs->origy;
     v->origz = vs->origz;
-    UPDATE_REALMTREE(mris,vno)
+    noteInActiveRealmTrees(mris, vno);
 
     v->nx = vs->nx;
     v->ny = vs->ny;
@@ -56392,9 +56395,18 @@ static double mrisComputeDefectMRILogUnlikelihood(
   freeRealm(&realm);
 
   printf("Only searching %d fnos, instead of %d to create %d tasks\n", fnosSize, mris->nfaces, bufferSize);
-  if (fnosSize > mris->nfaces/4) {
+  if (fnosSize > mris->nfaces/4) 
+  #pragma omp critical
+  {
+    float rtXLo, rtXHi, rtYLo, rtYHi, rtZLo, rtZHi;
+    getRealmTreeBnds(
+      computeDefectContext->realmTree, &rtXLo, &rtXHi, &rtYLo, &rtYHi, &rtZLo, &rtZHi);
     printf("%s:%d Not many filtered when delta:%d\n", __FILE__, __LINE__, delta);
-    printf("  realm x:%f..%f y:%f..%f z:%f..%f\n",realm_xLo,realm_xHi,realm_yLo,realm_yHi,realm_zLo,realm_zHi);
+    printf("  rtree x:%8.2f..%8.2f y:%8.2f..%8.2f z:%8.2f..%8.2f\n",rtXLo, rtXHi, rtYLo, rtYHi, rtZLo, rtZHi);
+    printf("  realm x:%8.2f..%8.2f y:%8.2f..%8.2f z:%8.2f..%8.2f\n",realm_xLo,realm_xHi,realm_yLo,realm_yHi,realm_zLo,realm_zHi);
+    summarizeRealmTree(computeDefectContext->realmTree);
+    printf("%s:%d exit(1) called\n", __FILE__, __LINE__);
+    exit(1);
   }
   
 #ifdef BEVIN_COUNT_EXITS

@@ -585,10 +585,10 @@ static RealmTreeNode* insertVnoIntoNode(
     RealmTreeNode*  const n, 
     int const vno)
 {
+#ifdef REALM_UNIT_TEST
     Captured_VERTEX_xyz const * const captured_xyz = &realmTree->captured_VERTEX_xyz[vno];
     float const x = captured_xyz->x, y = captured_xyz->y, z = captured_xyz->z;
 
-#ifdef REALM_UNIT_TEST
     MRIS const* mris = realmTree->mris;
     VERTEX const* v = &mris->vertices[vno];
     if (x != v->someX || y != v->someY || z != v->someZ) 
@@ -660,7 +660,6 @@ static RealmTreeNode* insertVnoIntoNode(
         
         // Insert the saved vno into their child
         for (vi = 0; vi < vnosSize; vi++) {
-            Captured_VERTEX_xyz* cxyz = &realmTree->captured_VERTEX_xyz[vnos[vi]];
             insertIntoChild(realmTree, n, vnos[vi]);
         }
     }
@@ -950,12 +949,12 @@ void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionTyp
     }
 }
 
-void checkRealmTree(RealmTree const * realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ) {
+int checkRealmTree(RealmTree const * realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ) {
     int count = countXYZChanges(realmTree, mris, getXYZ);
     if (count > 0) {
         fprintf(stderr, "%s:%d mris %d vertex xyz have changed\n", __FILE__, __LINE__, count);
-        // DON'T EXIT FOR NOW  exit(1);
     }
+    return count;
 }
 
 void getRealmTreeBnds(

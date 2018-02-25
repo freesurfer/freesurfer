@@ -27,7 +27,7 @@
  *
  */
 
-#define REALM_UNIT_TEST
+//#define REALM_UNIT_TEST
 
 #include <stdbool.h>
 
@@ -44,12 +44,14 @@ void freeRealmTree(RealmTree** realmTreePtr);
 RealmTree* makeRealmTree(MRIS const * mris, 
     GetXYZ_FunctionType getXYZ  // This lets realms be on x,y,z, origx,origy,origz, or anything else...
     );
-void checkRealmTree(RealmTree const * realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ);
+int checkRealmTree(RealmTree const * realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ);
     //
     // Fills in the tree using the existing position of 
     // the vertices and faces.  The check version verifies
     // that the faces and vertices have not moved since they were 
     // used to make the tree.
+    //
+    // Returns the number of errors
 
 void noteIfXYZChangedRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ, int vno);
 void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ);
