@@ -44,7 +44,7 @@ void freeRealmTree(RealmTree** realmTreePtr);
 RealmTree* makeRealmTree(MRIS const * mris, 
     GetXYZ_FunctionType getXYZ  // This lets realms be on x,y,z, origx,origy,origz, or anything else...
     );
-void checkRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ);
+void checkRealmTree(RealmTree const * realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ);
     //
     // Fills in the tree using the existing position of 
     // the vertices and faces.  The check version verifies
