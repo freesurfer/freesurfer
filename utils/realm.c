@@ -250,6 +250,24 @@
             fprintf(stderr,"Checked realmTree\n");
         }
 
+        // Be nasty, deliberately go outside in all the different directions
+        //
+        if (mris.nvertices >= 6) {
+            int vno; VERTEX* v;
+            vno = 0; v = &mris.vertices[vno]; v->someX = xMin - 0.1; noteIfXYZChangedRealmTree(realmTree, &mris, getSomeXYZ, vno);
+                                                                     updateRealmTree          (realmTree, &mris, getSomeXYZ);
+            vno = 1; v = &mris.vertices[vno]; v->someY = yMin - 0.1; noteIfXYZChangedRealmTree(realmTree, &mris, getSomeXYZ, vno);
+                                                                     updateRealmTree          (realmTree, &mris, getSomeXYZ);
+            vno = 2; v = &mris.vertices[vno]; v->someZ = zMin - 0.1; noteIfXYZChangedRealmTree(realmTree, &mris, getSomeXYZ, vno);
+                                                                     updateRealmTree          (realmTree, &mris, getSomeXYZ);
+            vno = 3; v = &mris.vertices[vno]; v->someX = xMax + 0.1; noteIfXYZChangedRealmTree(realmTree, &mris, getSomeXYZ, vno);
+                                                                     updateRealmTree          (realmTree, &mris, getSomeXYZ);
+            vno = 4; v = &mris.vertices[vno]; v->someY = yMax + 0.1; noteIfXYZChangedRealmTree(realmTree, &mris, getSomeXYZ, vno);
+                                                                     updateRealmTree          (realmTree, &mris, getSomeXYZ);
+            vno = 5; v = &mris.vertices[vno]; v->someZ = zMax + 0.1; noteIfXYZChangedRealmTree(realmTree, &mris, getSomeXYZ, vno);
+                                                                     updateRealmTree          (realmTree, &mris, getSomeXYZ);
+        }
+                
         // Check varous realms
         //
         int fLimit = 1;
@@ -556,6 +574,54 @@ static int chooseChild(
     return c;
 }
 
+typedef enum Widen_Mask {
+    Widen_xLo =  1, Widen_xHi = 2,
+    Widen_yLo =  4, Widen_yHi = 8,
+    Widen_zLo = 16, Widen_zHi = 32 } Widen_Mask;
+     
+static void widenSubtree_wkr(RealmTreeNode* n, float xLo, float xHi, float yLo, float yHi, float zLo, float zHi, Widen_Mask widen_Mask) {
+    if (widen_Mask == 0) return;
+    //
+    if (widen_Mask & Widen_xLo) n->xLo = xLo; if (widen_Mask & Widen_xHi) n->xHi = xHi;
+    if (widen_Mask & Widen_yLo) n->yLo = yLo; if (widen_Mask & Widen_yHi) n->yHi = yHi;
+    if (widen_Mask & Widen_zLo) n->zLo = zLo; if (widen_Mask & Widen_zHi) n->zHi = zHi;
+    
+    if (n->vnos) return;    // leaf nodes
+
+    // there are eight children
+    //      zyx     
+    //    0 000
+    //    1 001
+    //    2 010
+    //    3 011
+    //    4 100
+    //    5 101
+    //    6 110
+    //    7 111
+    // each should only have some of its bounds widened
+    //
+    widenSubtree_wkr(n->children[0], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xHi | Widen_yHi | Widen_zHi));    
+    widenSubtree_wkr(n->children[1], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xLo | Widen_yHi | Widen_zHi));    
+    widenSubtree_wkr(n->children[2], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xHi | Widen_yLo | Widen_zHi));    
+    widenSubtree_wkr(n->children[3], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xLo | Widen_yLo | Widen_zHi));    
+    widenSubtree_wkr(n->children[4], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xHi | Widen_yHi | Widen_zLo));    
+    widenSubtree_wkr(n->children[5], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xLo | Widen_yHi | Widen_zLo));    
+    widenSubtree_wkr(n->children[6], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xHi | Widen_yLo | Widen_zLo));    
+    widenSubtree_wkr(n->children[7], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xLo | Widen_yLo | Widen_zLo));    
+} 
+
+static void widenSubtree(RealmTree* realmTree, float xLo, float xHi, float yLo, float yHi, float zLo, float zHi) {
+    RealmTreeNode* n = &realmTree->root;
+    Widen_Mask widen_Mask = 0;
+    if (xLo < n->xLo) widen_Mask |= Widen_xLo;
+    if (xHi > n->xHi) widen_Mask |= Widen_xHi;
+    if (yLo < n->yLo) widen_Mask |= Widen_yLo;
+    if (yHi > n->yHi) widen_Mask |= Widen_yHi;
+    if (zLo < n->zLo) widen_Mask |= Widen_zLo;
+    if (zHi > n->zHi) widen_Mask |= Widen_zHi;
+    widenSubtree_wkr(n, xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask);
+}
+
 static RealmTreeNode const * deepestContainingNode(RealmTreeNode const * n, float const x, float const y, float const z) {
     n = upUntilContainsNode(n, x, y, z);
     while (n && !n->vnos) {
@@ -707,7 +773,7 @@ void freeRealmTree(RealmTree** realmTreePtr) {
     free(rt);
 }
 
-static float widenHi(float lo, float hi) {
+static float widenHi(float hi) {
     float step = FLT_MIN;
     while (hi + step == hi) {
         step *= 2.0;
@@ -812,9 +878,9 @@ RealmTree* makeRealmTree(MRIS const * mris, GetXYZ_FunctionType getXYZ) {
     // Since contains is xLo <= x < xHi etc. the bounds need to be slightly wider than Hi
     // so that the Hi is in a Node
     //
-    xHi = widenHi(xLo,xHi);
-    yHi = widenHi(yLo,yHi);
-    zHi = widenHi(zLo,zHi);
+    xHi = widenHi(xHi);
+    yHi = widenHi(yHi);
+    zHi = widenHi(zHi);
 
     RealmTreeNode* recentNode  = &rt->root;
     recentNode->xLo = xLo; recentNode->yLo = yLo; recentNode->zLo = zLo;
@@ -863,9 +929,14 @@ void noteIfXYZChangedRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_F
         z < realmTree->root.zLo || realmTree->root.zHi <= z 
     ) {
         fprintf(stderr,"noteIfXYZChangedRealmTree vno:%d has ", vno);
-        fprintf(stderr,"moved outside root\n");                                 // this almost never happens
+        fprintf(stderr,"moved outside root\n");                                 
+            // this almost never happens
+            // when it does, must widen the sides that are too tight
+        
+        widenSubtree(realmTree, x, widenHi(x), y, widenHi(y), z, widenHi(z)); 
+        
     } else {
-        // fprintf(stderr,"stayed inside root\n");                              // this happens a few tens of times
+        // fprintf(stderr,"stayed inside root\n");                                  // this happens a few tens of times
     }
     
     // rather than updating now, batch them 

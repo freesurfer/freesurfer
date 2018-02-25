@@ -56056,8 +56056,9 @@ static double mrisComputeDefectMRILogUnlikelihood(
 
     //  TIMER_INTERVAL_END(A)
 
-    printf("noteInActiveRealmTrees called:%d\n",
-        noteInActiveRealmTreesCount-saved_noteInActiveRealmTreesCount);
+    if (0) 
+        printf("noteInActiveRealmTrees called:%d\n",
+            noteInActiveRealmTreesCount-saved_noteInActiveRealmTreesCount);
 
     return result;
 }
