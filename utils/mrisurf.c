@@ -56359,9 +56359,9 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   //  TIMER_INTERVAL_BEGIN(realmFree)
   
   if (!iterateOverFnos) { 
-    printf("Only searching %d fnos, instead of %d to create %d tasks\n", mris->nfaces, mris->nfaces, bufferSize);
+    ; // printf("Only searching %d fnos, instead of %d to create %d tasks\n", mris->nfaces, mris->nfaces, bufferSize);
   } else {
-    printf("Only searching %d fnos, instead of %d to create %d tasks\n", fnosSize,     mris->nfaces, bufferSize);
+    ; // printf("Only searching %d fnos, instead of %d to create %d tasks\n", fnosSize,     mris->nfaces, bufferSize);
 
 #ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
     if (fnosSize > mris->nfaces/4) 
