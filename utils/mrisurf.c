@@ -44576,6 +44576,7 @@ static ActiveRealmTree* activeRealmTrees;
 
 static void destructComputeDefectContext(ComputeDefectContext* computeDefectContext) {
 
+    if (computeDefectContext->realmTree)
     #ifdef HAVE_OPENMP
     #pragma omp critical
     #endif
@@ -56018,9 +56019,45 @@ static void get_origxyz(VERTEX const * vertex, float* x, float* y, float* z) {
     *z = vertex->origz;
 }
 
+static double mrisComputeDefectMRILogUnlikelihood_wkr(
+    ComputeDefectContext* computeDefectContext,
+    MRI_SURFACE  * const mris_nonconst, 			        // various subcomponents of these structures get updated
+    DEFECT_PATCH * const dp_nonconst, 
+    HISTOGRAM    * const h_border_nonconst);
+    
 static double mrisComputeDefectMRILogUnlikelihood(
     ComputeDefectContext* computeDefectContext,
-    MRI_SURFACE  * const mris_nonconst, 			// various subcomponents of these structures get updated
+    MRI_SURFACE  * const mris_nonconst, 			        // various subcomponents of these structures get updated
+    DEFECT_PATCH * const dp_nonconst, 
+    HISTOGRAM    * const h_border_nonconst) {
+
+    static int once;
+    static int suppress_usecomputeDefectContext = 0;
+    if (!once++) {
+        if (getenv("FREESURFER_SUPPRESS_using_computeDefectContext")) {
+            fprintf(stderr, "Suppressing using computeDefectContext\n");
+            suppress_usecomputeDefectContext = 1;
+        }
+    }
+    if (suppress_usecomputeDefectContext) computeDefectContext = NULL;
+    
+    TIMER_INTERVAL_BEGIN(A)
+    
+    double result = 
+        mrisComputeDefectMRILogUnlikelihood_wkr(
+            computeDefectContext,
+            mris_nonconst,
+            dp_nonconst, 
+            h_border_nonconst);
+
+    TIMER_INTERVAL_END(A)
+
+    return result;
+}
+
+static double mrisComputeDefectMRILogUnlikelihood_wkr(
+    ComputeDefectContext* computeDefectContext,
+    MRI_SURFACE  * const mris_nonconst, 			        // various subcomponents of these structures get updated
     DEFECT_PATCH * const dp_nonconst, 
     HISTOGRAM    * const h_border_nonconst)
 {
@@ -56033,7 +56070,8 @@ static double mrisComputeDefectMRILogUnlikelihood(
   MRI    const * const mri_defect   = dp->mri_defect;
   DEFECT const * const dp_defect    = dp->defect;
 
-  useComputeDefectContextRealmTree(computeDefectContext, mris, get_origxyz);
+  if (computeDefectContext)
+    useComputeDefectContextRealmTree(computeDefectContext, mris, get_origxyz);
   
   { int i,j,k;
     for (i = 0; i < mri_distance->width; i++) {
@@ -56141,44 +56179,42 @@ static double mrisComputeDefectMRILogUnlikelihood(
   float const realm_zHi = (mri_defect->depth  + delta + 1.5) / mri_defect->zsize + mri_defect->zstart;
 
   // Get the list of interesting fno's in ascending order
+  // to make this worthwhile, there is a precomputation shared across all the defects
+  // This precomputation is the computeDefectContext->realmTree
   //
   Realm* realm =        // This is the realm the face must possibly intersect to be interesting below
-    makeRealm(
-      computeDefectContext->realmTree, 
-      realm_xLo, realm_xHi, 
-      realm_yLo, realm_yHi,
-      realm_zLo, realm_zHi);
+    !computeDefectContext
+    ? NULL
+    : makeRealm(
+        computeDefectContext->realmTree, 
+        realm_xLo, realm_xHi, 
+        realm_yLo, realm_yHi,
+        realm_zLo, realm_zHi);
   
-  int   const fnosCapacity = realmNumberOfMightTouchFno(realm);
-  int * const fnos         = (int*)malloc(fnosCapacity*sizeof(int));
-  int   const fnosSize     = realmMightTouchFno(realm, fnos, fnosCapacity);
+  int   const fnosCapacity = !realm ? 0    : realmNumberOfMightTouchFno(realm);
+  int * const fnos         = !realm ? NULL : (int*)malloc(fnosCapacity*sizeof(int));
+  int   const fnosSize     = !realm ? 0    : realmMightTouchFno(realm, fnos, fnosCapacity);
   qsort(fnos, fnosSize, sizeof(int), int_compare);
   
-  // but to make this worthwhile, there needs to be a precomputation that can be shared across all the defects
-  // This precomputation is the computeDefectContext->realmTree
-  // 
-  //
-#ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
-
+  int const   fnosToIterateOverSize = 
+#ifndef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
+    fnos ? fnosSize : 
+#endif
+    mris->nfaces;
+  
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(shown_reproducible) 
 #endif
-  for (p = 0; p < mris->nfaces; p++) {
+  for (p = 0; p < fnosToIterateOverSize; p++) {
     ROMP_PFLB_begin
 
-    int  const         fno  = p;
-#else
-
-  ROMP_PF_begin
-#ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(shown_reproducible) 
+    int  const         fno  = 
+#ifndef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
+    fnos ? fnos[p] : 
 #endif
-  for (p = 0; p < fnosSize; p++) {
-    ROMP_PFLB_begin
+    p;
 
-    int  const         fno  = fnos[p];
-#endif
 
     FACE const * const face = &mris->faces[fno];
 
@@ -56191,32 +56227,6 @@ static double mrisComputeDefectMRILogUnlikelihood(
       min_y012 = MIN3(y0, y1, y2);
     int const jmin_nobnd = jVOL(mri_defect, min_y012) - delta;
 
-    if (0) {    
-        static int fewTimesCount = 0, fewTimesLimit = 1;
-        if (++fewTimesCount >= fewTimesLimit) {
-            fewTimesLimit *= 2;
-            printf(
-                "%s:%d "
-                "MIN3(y0, y1, y2):%g, jmin_nobnd:%d, delta:%d\n"
-                "mri->ysize:%g mri->ystart:%g\n"
-                "mri_defect->height:%d\n",
-                __FILE__,__LINE__, 
-                MIN3(y0, y1, y2), jmin_nobnd, delta, 
-                mri_defect->ysize, mri_defect->ystart, 
-                mri_defect->height);
-            //
-            // Typical values are
-            //
-            // MIN3(y0, y1, y2):-21.826, jmin_nobnd:143, delta:4, mri_defect->height:10
-            // MIN3(y0, y1, y2):-52.876, jmin_nobnd: 80, delta:4, mri_defect->height:10
-            // MIN3(y0, y1, y2):-20.466, jmin_nobnd:145, delta:4, mri_defect->height:10
-            // MIN3(y0, y1, y2):-20.418, jmin_nobnd:145, delta:4, mri_defect->height:10
-            // MIN3(y0, y1, y2): 14.452, jmin_nobnd:215, delta:4, mri_defect->height:10
-            // MIN3(y0, y1, y2):-51.468, jmin_nobnd: 83, delta:4, mri_defect->height:10
-            //
-        }
-    }
-    
 #ifndef BEVIN_COUNT_EXITS
     if (jmin_nobnd > mri_defect->height - 1) continue;			// hottest
 #endif      
@@ -56286,7 +56296,7 @@ static double mrisComputeDefectMRILogUnlikelihood(
 #ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
     // Make sure fno was in the list of interesting fnos
     //
-    {
+    if (fnos) {
         if (!bsearch(&fno, fnos, fnosSize, sizeof(int), int_compare)) {
             
             printf("%s:%d fno:%d not in the interesting list\n", __FILE__, __LINE__, fno);
@@ -56334,24 +56344,27 @@ static double mrisComputeDefectMRILogUnlikelihood(
   }
   ROMP_PF_end
   
-  freeRealm(&realm);
+  if (realm) {
+    freeRealm(&realm);
 
 #ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
-  printf("Only searching %d fnos, instead of %d to create %d tasks\n", fnosSize, mris->nfaces, bufferSize);
-  if (fnosSize > mris->nfaces/4) 
-  #pragma omp critical
-  {
-    float rtXLo, rtXHi, rtYLo, rtYHi, rtZLo, rtZHi;
-    getRealmTreeBnds(
-      computeDefectContext->realmTree, &rtXLo, &rtXHi, &rtYLo, &rtYHi, &rtZLo, &rtZHi);
-    printf("%s:%d Not many filtered when delta:%d\n", __FILE__, __LINE__, delta);
-    printf("  rtree x:%8.2f..%8.2f y:%8.2f..%8.2f z:%8.2f..%8.2f\n",rtXLo, rtXHi, rtYLo, rtYHi, rtZLo, rtZHi);
-    printf("  realm x:%8.2f..%8.2f y:%8.2f..%8.2f z:%8.2f..%8.2f\n",realm_xLo,realm_xHi,realm_yLo,realm_yHi,realm_zLo,realm_zHi);
-    summarizeRealmTree(computeDefectContext->realmTree);
-    printf("%s:%d exit(1) called\n", __FILE__, __LINE__);
-    exit(1);
-  }
+    printf("Only searching %d fnos, instead of %d to create %d tasks\n", fnosSize, mris->nfaces, bufferSize);
+    if (fnosSize > mris->nfaces/4) 
+    #pragma omp critical
+    {
+      float rtXLo, rtXHi, rtYLo, rtYHi, rtZLo, rtZHi;
+      getRealmTreeBnds(
+        computeDefectContext->realmTree, &rtXLo, &rtXHi, &rtYLo, &rtYHi, &rtZLo, &rtZHi);
+      printf("%s:%d Not many filtered when delta:%d\n", __FILE__, __LINE__, delta);
+      printf("  rtree x:%8.2f..%8.2f y:%8.2f..%8.2f z:%8.2f..%8.2f\n",rtXLo, rtXHi, rtYLo, rtYHi, rtZLo, rtZHi);
+      printf("  realm x:%8.2f..%8.2f y:%8.2f..%8.2f z:%8.2f..%8.2f\n",realm_xLo,realm_xHi,realm_yLo,realm_yHi,realm_zLo,realm_zHi);
+      summarizeRealmTree(computeDefectContext->realmTree);
+      printf("%s:%d exit(1) called\n", __FILE__, __LINE__);
+      exit(1);
+    }
 #endif
+  }
+
   
 #ifdef BEVIN_COUNT_EXITS
   if (1) { 
