@@ -211,8 +211,19 @@ static StaticData* initStaticData(ROMP_pf_static_struct * pf_static)
 {
     StaticData* ptr = (StaticData*)pf_static->ptr;
     if (ptr) return ptr;
+    
+    // Don't use omp critical because caller might be within a critical already
+    //
 #ifdef HAVE_OPENMP
-    #pragma omp critical
+    static omp_lock_t lock; static volatile int lock_inited;
+    if (!lock_inited) {
+        #pragma omp critical
+        if (!lock_inited) {
+            omp_init_lock(&lock); 
+            lock_inited = 1; 
+        }
+    }
+    omp_set_lock(&lock);
 #endif
     {	// Might have been made by another thread
     	ptr = (StaticData*)pf_static->ptr;
@@ -224,6 +235,9 @@ static StaticData* initStaticData(ROMP_pf_static_struct * pf_static)
     	    known_ROMP_pf = pf_static;
     	}	
     }
+#ifdef HAVE_OPENMP
+    omp_unset_lock(&lock);
+#endif
     return ptr;
 }
 

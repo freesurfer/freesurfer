@@ -44605,7 +44605,6 @@ static void useComputeDefectContextRealmTree(
 #ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
         fprintf(stderr, "%s:%d useComputeDefectContextRealmTree making realmTree\n",__FILE__,__LINE__);
 #endif
-        ROMP_PF_begin  
         computeDefectContext->realmTree = makeRealmTree(mris, getXYZ);
         orig_clock++;
         
@@ -44620,11 +44619,7 @@ static void useComputeDefectContextRealmTree(
         art->realmTree = computeDefectContext->realmTree;
         art->mris      = mris;
         art->getXYZ    = getXYZ;
-         
-        ROMP_PF_end
-    } 
-    else {
-        ROMP_PF_begin
+    } else {
         updateRealmTree(computeDefectContext->realmTree, mris, getXYZ);
 #ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
         if (checkRealmTree(computeDefectContext->realmTree, mris, getXYZ)) {
@@ -44632,7 +44627,6 @@ static void useComputeDefectContextRealmTree(
             exit(1);
         }
 #endif
-        ROMP_PF_end
     }
 }
 }
