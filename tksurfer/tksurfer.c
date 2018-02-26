@@ -23584,7 +23584,7 @@ deconvolve_weights(char *weight_fname, char *scale_fname)
           y0 = v->cy + dy ;
           z0 = v->cz + dz ;
 
-          bucket = MHTgetBucket(mht, x0, y0, z0) ;
+          bucket = MHTacqBucket(mht, x0, y0, z0) ;
           if (!bucket)
             continue ;
           for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++)
@@ -23623,6 +23623,7 @@ deconvolve_weights(char *weight_fname, char *scale_fname)
             if (!finite(vn->val))
               DiagBreak() ;
           }
+          MHTrelBucket(&bucket);
         }
   }
   fprintf(stderr, "\n") ;
