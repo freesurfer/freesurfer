@@ -56219,9 +56219,11 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   int const fnosToIterateOverSize = 
     iterateOverFnos ? fnosSize : mris->nfaces;
 
+#ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
   static int tellCheckingFnosOnce = 0;
     // shared but doesn't need to be locked because worst result is an extra info message
-    
+#endif
+ 
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(shown_reproducible) 
