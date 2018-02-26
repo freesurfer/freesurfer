@@ -1519,6 +1519,12 @@ void LayerMRI::UpdateVectorLineWidth(double val)
 void LayerMRI::UpdateVectorActor()
 {
   this->blockSignals( true );
+  double val = GetProperty()->GetVectorLineWidth();
+  for ( int i = 0; i < 3; i++ )
+  {
+    m_glyphActor2D[i]->GetProperty()->SetLineWidth(val);
+    m_vectorDotActor2D[i]->GetProperty()->SetPointSize(val*(val>1?2:3));
+  }
   for ( int i = 0; i < 3; i++ )
   {
     UpdateVectorActor( i );
