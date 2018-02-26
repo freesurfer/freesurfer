@@ -72,6 +72,7 @@ static int PrintPEDir = 0;
 static int PrintCRes = 0;
 static int PrintType = 0 ;
 static int PrintConformed = 0 ;
+static int PrintConformedToMin = 0 ;
 static int PrintRRes = 0;
 static int PrintSRes = 0;
 static int PrintVoxVol  = 0;
@@ -281,6 +282,10 @@ static int parse_commandline(int argc, char **argv)
     {
       PrintConformed = 1;
     }
+    else if (!strcasecmp(option, "--conformed-to-min"))
+    {
+      PrintConformedToMin = 1;
+    }
     else if (!strcasecmp(option, "--ncols"))
     {
       PrintNCols = 1;
@@ -459,6 +464,7 @@ static void print_usage(void)
   printf("USAGE: %s fname1 <fname2> <options> \n",Progname) ;
   printf("\n");
   printf("   --conformed : print whether a volume is conformed stdout\n");
+  printf("   --conformed-to-min : print whether a volume is conformed-to-min stdout\n");
   printf("   --type : print the voxel type/precision (e.g. FLOAT) to stdout\n");
   printf("   --tr : print TR to stdout\n");
   printf("   --te : print TE to stdout\n");
@@ -683,6 +689,14 @@ static void do_file(char *fname)
   {
     fprintf(fpout,"%s\n",mriConformed(mri) ? "yes" : "no");
 //    return;
+  }
+  if (PrintConformedToMin)
+  {
+    if(mri->xsize == mri->ysize && mri->xsize == mri->zsize &&
+       mri->width == mri->height && mri->width == mri->depth)
+      fprintf(fpout,"yes\n");
+    else
+      fprintf(fpout,"no\n");
   }
 
   if (PrintType)
