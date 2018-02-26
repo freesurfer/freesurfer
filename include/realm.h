@@ -27,6 +27,30 @@
  *
  */
 
+
+//  I looked at many synonyms for a region, zone, section, sector, subdivision, partition, ... 
+//  of a volume into subvolumes but searching the sources forthe other choices found them 
+//  being used already.  This particular choice had only one hit, in one comment.
+//  
+//  Summarized, a RealmTree data structure is populated just before fixing the defects.  
+//  It is adjusted as vertexs are moved during defect repair, and discarded when no longer needed.
+//  
+//  A RealmTree the xyz volume of the surface is recursively broken into 2x2x2 subvolumes, 
+//  each vertex is listed in the deepest subvolume it fits in.  Each face is listed in the 
+//  deepest subvolume that all its vertexs fit in.  
+//  
+//  Prior to fixing the defects a RealmTree is built.  The cost of the build is therefore 
+//  amortized over many uses.   
+//  
+//  A Realm is a (xLo..xHi, ...) subset of the whole coordinate space.  It does not have to be
+//  a specific node in the RealmTree.
+//  
+//  To find all the faces that might intersect a realm, a walk of the RealmTree visits only those
+//  RealmTree nodes that intersect the Realm.   Typically this produces a lisst that is about 
+//  1/20th of the all faces, thus dramatically speeding up the loop that chooses which faces to 
+//  consider.
+
+
 //  #define REALM_UNIT_TEST
 
 #include <stdbool.h>
