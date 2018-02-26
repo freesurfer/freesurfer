@@ -928,8 +928,8 @@ void noteIfXYZChangedRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_F
         y < realmTree->root.yLo || realmTree->root.yHi <= y ||
         z < realmTree->root.zLo || realmTree->root.zHi <= z 
     ) {
-        fprintf(stderr,"noteIfXYZChangedRealmTree vno:%d has ", vno);
-        fprintf(stderr,"moved outside root\n");                                 
+        // fprintf(stderr,"noteIfXYZChangedRealmTree vno:%d has ", vno);
+        // fprintf(stderr,"moved outside root\n");                                 
             // this almost never happens
             // when it does, must widen the sides that are too tight
         
@@ -1292,22 +1292,46 @@ int realmMightTouchFno(Realm* realm, int* fnos, int fnosCapacity) {
     return written;
 }
 
-static int summarizeRealmTreeNode(RealmTreeNode const * n, int targetDepth) {
+static void summarizeRealmTreeNodeIndent(RealmTreeNode const * n) {
+    int i; 
+    for (i = 0; i < n->depth; i++) fprintf(stderr,"   |");
+}
+
+static void summarizeRealmTreeNode(RealmTree const * realmTree, RealmTreeNode const * n) {
+    summarizeRealmTreeNodeIndent(n);
+    fprintf(stderr,"x:%f..%f y:%f..%f z:%f..:%f nFaces:%d\n", n->xLo, n->xHi, n->yLo, n->yHi, n->zLo, n->zHi, n->nFaces);
+    if (n->vnos) {
+        summarizeRealmTreeNodeIndent(n);
+        fprintf(stderr," vnosSize:%d vno:",n->vnosSize);
+        int vi;
+        for (vi = 0; vi < n->vnosSize; vi++) {
+            fprintf(stderr," %d",n->vnos[vi]);
+        }
+        fprintf(stderr,"\n");
+    }
+    if (n->nFaces) {
+        summarizeRealmTreeNodeIndent(n);
+        fprintf(stderr," nFaces:%d fno:",n->nFaces);
+        int entryFno = n->firstFnoPlus1 - 1;
+        while (entryFno >= 0) {
+            fprintf(stderr," %d",entryFno);
+            entryFno = realmTree->nextFnoPlus1[entryFno] - 1;
+        }
+        fprintf(stderr,"\n");
+    }
+}
+
+static int summarizeRealmTreeSubtree(RealmTree const * realmTree, RealmTreeNode const * n, int targetDepth) {
     int hasUnreachedChildren = 0;
     int atDepth = (n->depth == targetDepth);
     
-    int i; 
-    if (atDepth) {
-        for (i = 0; i < n->depth; i++) fprintf(stderr,"   |");
-        fprintf(stderr,"x:%f..%f y:%f..%f z:%f..:%f nFaces:%d\n", n->xLo, n->xHi, n->yLo, n->yHi, n->zLo, n->zHi, n->nFaces);
-    }
+    if (atDepth) summarizeRealmTreeNode(realmTree, n);
     if (n->vnos) {
-        if (atDepth) fprintf(stderr," nosSize:%d\n",n->vnosSize);
+        ;
     } else if (n->depth < targetDepth) {
-        if (atDepth) fprintf(stderr,"\n");
         int c;
         for (c = 0; c < childrenSize; c++) 
-            hasUnreachedChildren |= summarizeRealmTreeNode(n->children[c], targetDepth);
+            hasUnreachedChildren |= summarizeRealmTreeSubtree(realmTree, n->children[c], targetDepth);
     } else {
         hasUnreachedChildren=1;
     }
@@ -1317,5 +1341,27 @@ static int summarizeRealmTreeNode(RealmTreeNode const * n, int targetDepth) {
 void summarizeRealmTree(RealmTree const * realmTree) {
     int depth;
     for (depth = 0; ; depth++)
-        if (!summarizeRealmTreeNode(&realmTree->root, depth)) break;
+        if (!summarizeRealmTreeSubtree(realmTree, &realmTree->root, depth)) break;
+}
+
+void summarizeRealmTreeVno(RealmTree const * realmTree, int vno) {
+    fprintf(stderr,"vno:%d\n",vno);
+    RealmTreeNode* n = realmTree->vnoToRealmTreeNode[vno];
+    summarizeRealmTreeNode(realmTree, n);
+}
+
+void summarizeRealmTreeFno(RealmTree const * realmTree, int fno) {
+    fprintf(stderr,"fno:%d\n",fno);
+    RealmTreeNode* n = realmTree->fnoToRealmTreeNode[fno];
+    summarizeRealmTreeNode(realmTree, n);
+    FACE const * face = &realmTree->mris->faces[fno];
+    fprintf(stderr,"vno");
+    int vi;
+    for (vi = 0; vi < VERTICES_PER_FACE; vi++) {
+        fprintf(stderr," %d",face->v[vi]);
+    }
+    fprintf(stderr,"\n");
+    for (vi = 0; vi < VERTICES_PER_FACE; vi++) {
+        summarizeRealmTreeVno(realmTree, face->v[vi]); 
+    }
 }

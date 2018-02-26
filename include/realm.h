@@ -85,8 +85,10 @@ int realmNextMightTouchVno(Realm* realm, RealmIterator* realmIterator);
 int realmNumberOfMightTouchFno(Realm* realm);
 int realmMightTouchFno(Realm* realm, int* fnos, int fnosCapacity);
 
-void summarizeRealmTree(RealmTree const * rt);
-    // Writes a summary to stdout
+void summarizeRealmTree   (RealmTree const * realmTree);
+void summarizeRealmTreeFno(RealmTree const * realmTree, int fno);
+void summarizeRealmTreeVno(RealmTree const * realmTree, int vno);
+    // Writes a summary to stderr
 
 
 #endif

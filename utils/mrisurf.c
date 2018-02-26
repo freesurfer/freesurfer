@@ -634,7 +634,7 @@ static void reproducible_check(double cell, double val, int line, int* count)
   To test it is correct, the code can scan all vertices of an mris and verify there origxyz are what was expected.
   ------------------------------------------------------*/
 
-//  #define mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
+// #define mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
 
 static int activeRealmTreesSize;
 static int orig_clock = 0;
@@ -44602,9 +44602,9 @@ static void useComputeDefectContextRealmTree(
 #endif
 {
     if (computeDefectContext->realmTree == NULL) {
-//#ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
+#ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
         fprintf(stderr, "%s:%d useComputeDefectContextRealmTree making realmTree\n",__FILE__,__LINE__);
-//#endif
+#endif
         ROMP_PF_begin  
         computeDefectContext->realmTree = makeRealmTree(mris, getXYZ);
         orig_clock++;
@@ -56218,10 +56218,13 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   
   int const fnosToIterateOverSize = 
     iterateOverFnos ? fnosSize : mris->nfaces;
-  
+
+  static int tellCheckingFnosOnce = 0;
+    // shared but doesn't need to be locked because worst result is an extra info message
+    
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
-  //BEVIN #pragma omp parallel for if_ROMP(shown_reproducible) 
+  #pragma omp parallel for if_ROMP(shown_reproducible) 
 #endif
   for (p = 0; p < fnosToIterateOverSize; p++) {
     ROMP_PFLB_begin
@@ -56309,32 +56312,37 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     // Make sure fno was in the list of interesting fnos
     //
     if (fnos) {
+        if (!tellCheckingFnosOnce++) fprintf(stderr,"Checking all relevant fnos were found\n");
+        
         if (!bsearch(&fno, fnos, fnosSize, sizeof(int), int_compare)) {
             
-            printf("%s:%d fno:%d not in the interesting list\n", __FILE__, __LINE__, fno);
-            printf("  face  x:%f..%f y:%f..%f z:%f..%f\n",min_x012,max_x012,min_y012,max_y012,min_z012,max_z012);
-            printf("  realm x:%f..%f y:%f..%f z:%f..%f\n",realm_xLo,realm_xHi,realm_yLo,realm_yHi,realm_zLo,realm_zHi);
-            printf("  fnosSize:%d\n", fnosSize);
+            fprintf(stderr,"%s:%d fno:%d not in the interesting list\n", __FILE__, __LINE__, fno);
+            fprintf(stderr,"  face  x:%f..%f y:%f..%f z:%f..%f\n",min_x012,max_x012,min_y012,max_y012,min_z012,max_z012);
+            fprintf(stderr,"  realm x:%f..%f y:%f..%f z:%f..%f\n",realm_xLo,realm_xHi,realm_yLo,realm_yHi,realm_zLo,realm_zHi);
+            fprintf(stderr,"  fnosSize:%d\n", fnosSize);
             
             // info leading to the realm_zLo bound
             if (1) {
-                printf("0 - delta:%f + 1) / mri_defect->zsize:%f + mri_defect->zstart:%f     realm_zLo:%f\n",
+                fprintf(stderr,"0 - delta:%f + 1) / mri_defect->zsize:%f + mri_defect->zstart:%f     realm_zLo:%f\n",
                     (float)(delta), (float)(mri_defect->zsize), (float)(mri_defect->zstart), realm_zLo);
 
-                printf("kmax_nobnd:%d ok if >= 0\n", kmax_nobnd);
-                printf("   kVOL(mri_defect, max_z012:%f):%d + delta:%d\n", max_z012, kVOL(mri_defect, max_z012), delta);
-                printf("   ((int)(zVOL(mri_defect,max_z012:%f):%f + 0.5))\n", max_z012, zVOL(mri_defect,max_z012));
-                printf("   (mri_defect->zsize:%f * (z:%f - mri_defect->zstart:%f))\n", mri_defect->zsize, max_z012, mri_defect->zstart);
+                fprintf(stderr,"kmax_nobnd:%d ok if >= 0\n", kmax_nobnd);
+                fprintf(stderr,"   kVOL(mri_defect, max_z012:%f):%d + delta:%d\n", max_z012, kVOL(mri_defect, max_z012), delta);
+                fprintf(stderr,"   ((int)(zVOL(mri_defect,max_z012:%f):%f + 0.5))\n", max_z012, zVOL(mri_defect,max_z012));
+                fprintf(stderr,"   (mri_defect->zsize:%f * (z:%f - mri_defect->zstart:%f))\n", mri_defect->zsize, max_z012, mri_defect->zstart);
             }
 
             // info leading to the realm_zHi bound
             if (0) {
-                printf("mri_defect->depth:%f - 1 + delta:%f - 1) / mri_defect->zsize:%f + mri_defect->zstart:%f\n",
+                fprintf(stderr,"mri_defect->depth:%f - 1 + delta:%f - 1) / mri_defect->zsize:%f + mri_defect->zstart:%f\n",
                     (float)(mri_defect->depth), (float)(delta), (float)(mri_defect->zsize), (float)(mri_defect->zstart));
             }
 
-            if (0) summarizeRealmTree(computeDefectContext->realmTree);
-
+            if (1) {
+                summarizeRealmTreeFno(computeDefectContext->realmTree, fno);
+                summarizeRealmTree   (computeDefectContext->realmTree);
+            }
+            
             *(int*)(-1) = 0;
         }
     }
