@@ -78,12 +78,14 @@ typedef struct _area_label
 }
 MRIS_AREA_LABEL ;
 
+struct MRIS;
 
 typedef struct FaceNormCacheEntry {
     // inputs
         // may have to capture them if the inputs change
     // flag saying the calculation has been deferred
         int deferred;
+        void (*computeFaceNormal)(struct MRIS const * const mris, int const fno, float* p_nx, float* p_ny, float* p_nz, float* p_orig_area);
     // value
         float nx,ny,nz,orig_area;
 } FaceNormCacheEntry;
@@ -397,7 +399,7 @@ typedef char   *MRIS_cmdlines_t[MAX_CMDS] ;
 typedef char    MRIS_subject_name_t[STRLEN] ;
 typedef char    MRIS_fname_t[STRLEN] ;
 
-typedef struct
+typedef struct MRIS
 {
 // The LIST_OF_MRIS_ELTS macro used here enables the the mris_hash
 // and other algorithms to process all the elements without having to explicitly name them there and here

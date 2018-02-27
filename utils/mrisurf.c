@@ -662,6 +662,32 @@ static int orig_clock = 0;
     To test this is working, there is an option for computing it immediately...
     
   ------------------------------------------------------*/
+
+#define CHECK_DEFERED_NORMS
+
+static void deferSetFaceNorms(
+    MRIS* mris, 
+    void (*computeFaceNormal)(
+        struct MRIS const * const mris, int const fno, float* p_nx, float* p_ny, float* p_nz, float* p_orig_area)
+    ) {
+
+    int fno;
+    ROMP_PF_begin  
+#ifdef HAVE_OPENMP
+    #pragma omp parallel for if_ROMP(assume_reproducible) 
+#endif
+    for (fno = 0; fno < mris->nfaces; fno++) {
+      ROMP_PFLB_begin
+      FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
+#ifdef CHECK_DEFERED_NORMS
+      (*computeFaceNormal)(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);  // compute it now so can check later
+#endif
+      fNorm->computeFaceNormal = computeFaceNormal;                                         // remember how to compute them
+      fNorm->deferred          = 3;                                                         // compute them again later
+      ROMP_PFLB_end
+    }
+    ROMP_PF_end
+}
     
 static void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz) {
     FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
@@ -689,9 +715,27 @@ static float getFaceOrigArea(MRIS const * const mris, int fno) {
 
 FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
     FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
-    if (fNorm->deferred & 1) {      // must compute
-    }
-    if (fNorm->deferred & 2) {      // must compute
+    if (fNorm->deferred) {
+        float nx,ny,nz,orig_area;
+        (*fNorm->computeFaceNormal)(mris, fno, &nx,&ny,&nz,&orig_area);
+#ifdef CHECK_DEFERED_NORMS
+        if (fNorm->deferred & 1) {      // must compute
+            if (nx != fNorm->nx || ny != fNorm->ny || nz != fNorm->nz) {
+                fprintf(stderr, "%s:%d prediction of norm did not equal result\n",__FILE__, __LINE__);
+            }   
+        }
+#endif
+        fNorm->nx = nx; fNorm->ny = ny; fNorm->nz = nz;
+        if (fNorm->deferred & 2) {      // must compute
+#ifdef CHECK_DEFERED_NORMS
+            if (orig_area != fNorm->orig_area) {
+                fprintf(stderr, "%s:%d prediction of norm did not equal result\n",__FILE__, __LINE__);
+            }
+#endif
+            fNorm->orig_area = orig_area;
+        }
+        fNorm->deferred = 0;
+        fNorm->computeFaceNormal = NULL;
     }
     return fNorm;
 }
@@ -44621,6 +44665,7 @@ static int max_unchanged = MAX_UNCHANGED;
 typedef struct ComputeDefectContext ComputeDefectContext;
 struct ComputeDefectContext {
     RealmTree* realmTree;
+    MRIS*      mris_deferred_norms;
 };
 
 static void constructComputeDefectContext(ComputeDefectContext* computeDefectContext) {
@@ -48712,7 +48757,8 @@ static void orientDefectFaces(MRIS *mris, DP *dp)
   }
 }
 
-static void computeDefectFaceNormal(MRIS const * const mris, int const fno)
+static void computeDefectFaceNormal_calculate(
+    MRIS const * const mris, int const fno, float* p_nx, float* p_ny, float* p_nz, float* p_orig_area)
 {
   FACE const * const face = &mris->faces[fno];
   
@@ -48763,9 +48809,18 @@ static void computeDefectFaceNormal(MRIS const * const mris, int const fno)
     }
     // fprintf(WHICH_OUTPUT,"\n");
   }
-  
-  setFaceNorm    (mris, fno, nx / len, ny / len, nz / len);
-  setFaceOrigArea(mris, fno, len / 2.0f);
+  *p_nx = nx / len;
+  *p_ny = ny / len;
+  *p_nz = nz / len;
+  *p_orig_area = len / 2.0f;
+}
+
+static void computeDefectFaceNormal(MRIS const * const mris, int const fno)
+{
+  float nx, ny, nz, orig_area;
+  computeDefectFaceNormal_calculate(mris, fno, &nx, &ny, &nz, &orig_area);
+  setFaceNorm    (mris, fno, nx, ny, nz);
+  setFaceOrigArea(mris, fno, orig_area);
 }
 
 /* used to temporary rip the faces of the defect so we don't proceed them many times */
@@ -56195,7 +56250,12 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     }
   }
 
-  { int p;
+
+  if (computeDefectContext->mris_deferred_norms == NULL) {
+    computeDefectContext->mris_deferred_norms = mris_nonconst;
+    deferSetFaceNorms(mris_nonconst, computeDefectFaceNormal_calculate);
+  } else { 
+    int p;
     ROMP_PF_begin  
 #ifdef HAVE_OPENMP
     #pragma omp parallel for if_ROMP(assume_reproducible) 
@@ -60507,7 +60567,6 @@ debug_use_this_patch:
 
   /* free everything */
   destructComputeDefectContext(&computeDefectContext);
-
   mrisFreeDefectVertexState(dvs);
 
   for (i = 0; i < max_patches; i++) {
