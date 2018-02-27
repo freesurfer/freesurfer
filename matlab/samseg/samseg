@@ -29,6 +29,7 @@ set regonly = 0;
 set missingstructs = ()
 set computedice = 0;
 set diceseg = none
+set DoHiRes = 1;
 if($?SAMSEG_DATA_DIR == 0) then
   setenv SAMSEG_DATA_DIR /autofs/cluster/koen/koen/koenAtlases/20Subjects_smoothing2_down2_smoothingForAffine2
 endif
@@ -164,6 +165,8 @@ endif
 
 date | tee -a $LF
 
+# Should probably convert segmentation to INT (now saves as float)
+
 # ========================================================
 # Compute dice:
 if($computedice && ! $regonly) then
@@ -203,6 +206,7 @@ if($#subject != 0) then
       set cmd = ($cmd -parallel)
     endif
     set cmd = ($cmd -s $subject -autorecon2-samseg -autorecon3 -threads $threads)
+    if($DoHiRes) set cmd = ($cmd -hires)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) goto error_exit;
@@ -282,6 +286,7 @@ while( $#argv != 0 )
     case "--i":
       if($#argv < 1) goto arg1err;
       set inputlist = ($inputlist $argv[1]); shift;
+      # assumes multiple inputs are already in alignment
       breaksw
 
     case "--i2":
@@ -360,6 +365,10 @@ while( $#argv != 0 )
       set usebin = 0;
       breaksw
 
+    case "--no-hires":
+      set DoHiRes = 0; # for recon-all
+      breaksw
+
     case "--log":
       if($#argv < 1) goto arg1err;
       set LF = $argv[1]; shift;
@@ -436,7 +445,8 @@ if($#subject) then
     exit 1;
   endif
   set outdir = $SUBJECTS_DIR/$subject/mri/samseg
-  set cmd = (mri_info --conformed $inputlist[1])
+  # --conformed-to-min in new version of mri_info
+  set cmd = (mri_info --conformed-to-min $inputlist[1])
   set isconformed = `$cmd | head -n 1`
   if("$isconformed" != "yes") then
     echo "$isconformed"
@@ -518,5 +528,10 @@ to your matlab path, eg,
 path(path,'/autofs/cluster/koen/koen/GEMS-Release/bin');
 
 All inputs should already be registered together
+
+Multiple inputs must be registered together
+
+BUGS: the input must be conformed (or conformed-to-min) if you are
+going to run recon-all on the output.
 
 

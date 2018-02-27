@@ -69,6 +69,10 @@
         int ROMP_index;
 
         ROMP_PF_begin
+#ifdef ROMP_SUPPORT_ENABLED
+        ROMP_pf_static.line = romp_for_line;
+#endif
+
 #ifdef HAVE_OPENMP
 #ifdef ROMP_FOR_LEVEL 
     #pragma omp parallel for if_ROMPLEVEL(ROMP_FOR_LEVEL)
@@ -77,7 +81,7 @@
 #endif
 #endif
   	for (ROMP_index = 0; ROMP_index < ROMP_distributor.partialSize; ROMP_index++) {
-            ROMP_PFLB_begin
+            ROMP_PF_begin
             
             // Serial iteration reproducing each partial sum
             //

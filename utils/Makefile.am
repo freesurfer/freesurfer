@@ -199,6 +199,7 @@ libutils_main_SOURCES=\
 	randomfields.c \
 	rbf.c \
 	rbm.c \
+        realm.c \
 	rec.c \
 	region.c \
 	registerio.c \

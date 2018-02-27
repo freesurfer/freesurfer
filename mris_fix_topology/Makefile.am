@@ -45,12 +45,12 @@ mris_fix_topology_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 
 endif
 
-TESTS=$(top_builddir)/scripts/help_xml_validate
+TESTS=test_mris_fix_topology $(top_builddir)/scripts/help_xml_validate
 
 clean-local:
 	rm -f $(BUILT_SOURCES) 
 
-EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
+EXTRA_DIST=test_mris_fix_topology testdata.tar.gz $(foo_DATA) $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
