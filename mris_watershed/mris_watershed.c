@@ -152,6 +152,8 @@ print_help(void) {
           "and writes the resulting measurement into a .annot file\n"
           "<output file>.\n") ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
+  fprintf(stderr, "\t-M <max clusters>: set the number of clusters\n") ;
+  fprintf(stderr, "\t-mask_label <label>: read in and mask the input volume that is not in the specified label\n") ;
   exit(1) ;
 }
 
