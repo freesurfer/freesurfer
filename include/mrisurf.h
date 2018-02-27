@@ -85,7 +85,6 @@ typedef struct FaceNormCacheEntry {
         // may have to capture them if the inputs change
     // flag saying the calculation has been deferred
         int deferred;
-        void (*computeFaceNormal)(struct MRIS const * const mris, int const fno, float* p_nx, float* p_ny, float* p_nz, float* p_orig_area);
     // value
         float nx,ny,nz,orig_area;
 } FaceNormCacheEntry;
