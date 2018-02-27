@@ -663,7 +663,7 @@ static int orig_clock = 0;
     
   ------------------------------------------------------*/
 
-#define CHECK_DEFERED_NORMS
+//#define CHECK_DEFERED_NORMS
 
 static void deferSetFaceNorms(
     MRIS* mris, 
