@@ -40,6 +40,7 @@ mfiles_DATA=\
 	dtimatrix.m \
 	erode3d.m \
 	fisher_twoclass.m \
+	fix_exvivo_dwi_drift.m \
 	fread3.m \
 	fwrite3.m \
 	fs_ranksum.m \
@@ -83,7 +84,7 @@ mfiles_DATA=\
 	MRIread.m \
 	MRIseg2labelxyz.m \
 	MRIsegReg.m \
-  mri_surfrft_jlbr.m \
+	mri_surfrft_jlbr.m \
 	MRIvol2vol.m \
 	MRIvote.m \
 	MRIwrite.m \
