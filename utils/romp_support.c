@@ -1,3 +1,5 @@
+static const int debug = 0;
+
 /**
  * @file  romp_support.c
  * @brief prototypes and structures for getting reproducible results from and for timing omp loops.
@@ -45,14 +47,69 @@ ROMP_level romp_level =                 // should not be set to ROMP_serial
     //ROMP_level_fast;
     ROMP_level_assume_reproducible;     // doesn't require the random seed to be     //ROMP_level_shown_reproducible;
 
+typedef struct PerThreadScopeTreeData {
+    ROMP_pf_static_struct*         key;
+    struct PerThreadScopeTreeData* parent;
+    struct PerThreadScopeTreeData* next_sibling;
+    struct PerThreadScopeTreeData* first_child;
+    Nanosecs in_scope;
+    Nanosecs in_child_threads[ROMP_maxWatchedThreadNum];    
+        // threads may be running in a different scope tree!
+} PerThreadScopeTreeData;
+
+static PerThreadScopeTreeData  scopeTreeRoots[ROMP_maxWatchedThreadNum];
+static PerThreadScopeTreeData* scopeTreeToS  [ROMP_maxWatchedThreadNum];
+
+static struct { NanosecsTimer timer; int inited; } tidStartTime[ROMP_maxWatchedThreadNum];
+static void maybeInitTidStartTime(int tid) {
+    if (tidStartTime[tid].inited) return;
+    TimerStartNanosecs(&tidStartTime[tid].timer);
+    tidStartTime[tid].inited = 1;
+}
+
+static PerThreadScopeTreeData* enterScope(PerThreadScopeTreeData* parent, ROMP_pf_static_struct* key) {
+    PerThreadScopeTreeData** prev = &parent->first_child;
+    while (*prev && (*prev)->key != key) { prev = &(*prev)->next_sibling; } // might need speeding up with a hash table
+    if (!*prev) {
+        PerThreadScopeTreeData* ptr = calloc(1, sizeof(PerThreadScopeTreeData));
+        ptr->key    = key;
+        ptr->parent = parent;
+        *prev = ptr;
+    }
+    return *prev;
+}
+
 typedef struct StaticData {
     ROMP_pf_static_struct* next;
     int skip_pflb_timing;
-    Nanosecs in_pf, in_pfThread, in_pflb;
+    Nanosecs in_pf_sum, in_pfThread_sum, in_pflb_sum;
     ROMP_level level;
 } StaticData;
 
 ROMP_pf_static_struct* known_ROMP_pf;
+
+
+static Nanosecs cpuTimeUsed() {
+    clockid_t clockid;
+    int s = pthread_getcpuclockid(pthread_self(), &clockid);
+    if (s != 0) {
+	fprintf(stderr, "%s:%d pthread_getcpuclockid failed", __FILE__, __LINE__);
+	exit(1);
+    }
+    struct timespec timespec;
+    int ret =
+#if defined(__APPLE__) && !defined(HAVE_CLOCK_GETTIME)
+        mach_gettime(clockid, &timespec);
+#else
+        clock_gettime(clockid, &timespec);
+#endif
+    if (ret != 0) {
+	fprintf(stderr, "%s:%d gettime failed", __FILE__, __LINE__);
+        exit(1);
+    }
+    Nanosecs t; t.ns = timespec.tv_sec * 1000000000L + timespec.tv_nsec;
+    return t;
+}
 
 
 int ROMP_if_parallel1(ROMP_level level)
@@ -60,15 +117,22 @@ int ROMP_if_parallel1(ROMP_level level)
     return (level >= romp_level);               // sadly this allows nested parallelism
 }                                               // sad only because it hasn't been analyzed
 
-int ROMP_if_parallel2(ROMP_level level, ROMP_pf_static_struct* pf_static) 
+int ROMP_if_parallel2(ROMP_level level, ROMP_pf_stack_struct* pf_stack) 
 {
+    ROMP_pf_static_struct * pf_static = pf_stack->staticInfo;
     StaticData* ptr = (StaticData*)pf_static->ptr;
     if (ptr) ptr->level = level;
-                                                // TODO detect nested parallelism
+
     ROMP_level current_level = romp_level;
     int result = level >= current_level;
 
-    if (result) romp_level = ROMP_level__size;	// disable nested parallelism because hard to analyze
+    if (result) {
+        if (debug) 
+            fprintf(stderr, "ROMP_if_parallel2 tid:%d pf_stack:%p gone parallel\n",
+                omp_get_thread_num(), pf_stack);
+        pf_stack->gone_parallel = 1;
+        romp_level = ROMP_level__size;	// disable nested parallelism because hard to analyze
+    }
     
     return result;
 }
@@ -102,8 +166,14 @@ static void rompExitHandler(void)
 #if defined(ROMP_SUPPORT_ENABLED)
     static int once;
     if (once++ > 0) return;
-    fprintf(stderr, "ROMP staticExitHandler called\n");
+    if (debug) fprintf(stderr, "ROMP staticExitHandler called\n");
      
+    int tid;
+    for (tid = 0; tid < ROMP_maxWatchedThreadNum; tid++) {
+        PerThreadScopeTreeData* root = &scopeTreeRoots[tid];
+        if (tidStartTime[tid].inited) root->in_scope = TimerElapsedNanosecs(&tidStartTime[tid].timer);
+    }
+    
     ROMP_show_stats(stderr);
   
     if (getMainFile()) {
@@ -165,53 +235,91 @@ void ROMP_pf_begin(
     StaticData* staticData = initStaticData(pf_static);
     if (!staticData) return;
 
-    if (romp_level == ROMP_level__size) {
-    	// ignore nested parallel so the loop body times are not added to more than one scope
-	pf_stack->staticInfo = NULL;
-	return;
-    }
+    pf_stack->gone_parallel = 0;
+    pf_stack->entry_level = romp_level;
+
+    int tid = 
+#ifdef HAVE_OPENMP
+	omp_get_thread_num();
+#else
+	0;
+#endif
+    if (tid >= ROMP_maxWatchedThreadNum) return;
+    
+    PerThreadScopeTreeData* tos = scopeTreeToS[tid];
+    if (!tos) { tos = &scopeTreeRoots[tid]; scopeTreeToS[tid] = tos; maybeInitTidStartTime(tid); }
+    scopeTreeToS[tid] = enterScope(tos, pf_static);
     
     int i;
     for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
         pf_stack->watchedThreadBeginCPUTimes[i].ns = 0;
     }
+
+    if (romp_level >= ROMP_level__size) {
+        if (debug) fprintf(stderr, "%s:%d only getting child tid start times for tid:%d pf_stack:%p\n", __FILE__, __LINE__, tid, pf_stack);
+        pf_stack->watchedThreadBeginCPUTimes[tid] = cpuTimeUsed();
+    } else {
+        if (debug) fprintf(stderr, "%s:%d get child tid start times for tid:%d pf_stack:%p\n", __FILE__, __LINE__, tid, pf_stack);
+
 #ifdef HAVE_OPENMP
-    #pragma omp parallel for schedule(static,1)
+        #pragma omp parallel for schedule(static,1)
 #endif
-    for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
-        int tid = 
+        for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
+            int childTid = 
 #ifdef HAVE_OPENMP
-	    omp_get_thread_num();
+	        omp_get_thread_num();
 #else
-	    0;
+	        0;
 #endif
-	if (tid >= ROMP_maxWatchedThreadNum) continue;
-	clockid_t clockid;
-	int s = pthread_getcpuclockid(pthread_self(), &clockid);
-	if (s != 0) {
-	    fprintf(stderr, "%s:%d pthread_getcpuclockid failed", __FILE__, __LINE__);
-	    exit(1);
-	}
-	struct timespec timespec;
-    int ret;
-#if defined(__APPLE__) && !defined(HAVE_CLOCK_GETTIME)
-    ret = mach_gettime(clockid, &timespec);
-#else
-    ret = clock_gettime(clockid, &timespec);
+            if (childTid >= ROMP_maxWatchedThreadNum) continue;
+	    pf_stack->watchedThreadBeginCPUTimes[childTid] = cpuTimeUsed();
+            if (debug) {
+#ifdef HAVE_OPENMP
+                #pragma omp critical
 #endif
-    if (ret != 0) {
-	    fprintf(stderr, "%s:%d gettime failed", __FILE__, __LINE__);
-	    exit(1);
-	}
-	pf_stack->watchedThreadBeginCPUTimes[tid].ns =
-    	    timespec.tv_sec * 1000000000L + timespec.tv_nsec;
+                fprintf(stderr, "%s:%d start time gotten for tid:%d childTid:%d\n", __FILE__, __LINE__, tid, childTid);
+            }
+        }
+    
+        for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
+            Nanosecs* startCPUTime = &pf_stack->watchedThreadBeginCPUTimes[i];
+            if (startCPUTime->ns == 0) {
+                if (debug) fprintf(stderr, "%s:%d no start time for %d\n", __FILE__, __LINE__, i);
+            }
+        }
     }
     
     TimerStartNanosecs(&pf_stack->beginTime);
-    pf_stack->skip_pflb_timing = staticData->skip_pflb_timing;
-    pf_stack->tids_active      = 0;
-    pf_stack->saved_ROMP_level = romp_level;
 }
+
+
+static void pf_end_one_thread(int tid, ROMP_pf_stack_struct * pf_stack, PerThreadScopeTreeData* tos)
+{
+    int childTid = 
+#ifdef HAVE_OPENMP
+	omp_get_thread_num();
+#else
+	0;
+#endif
+    if (childTid >= ROMP_maxWatchedThreadNum) return;
+	
+    Nanosecs* startCPUTime = &pf_stack->watchedThreadBeginCPUTimes[childTid];
+    if (startCPUTime->ns == -1) {
+        return;
+    }
+    if (startCPUTime->ns == 0) {
+        if (debug) fprintf(stderr, "%s:%d no corresponding start time for tid:%d pf_stack:%p\n", __FILE__, __LINE__, tid, pf_stack);
+        return;
+    }
+        
+    Nanosecs threadCpuTime;
+    threadCpuTime.ns = cpuTimeUsed().ns - startCPUTime->ns;
+    startCPUTime->ns = -1;  // copes when another iteration of this loop is executed on the same thread
+    
+    if (debug) fprintf(stderr, "Adding to tid:%d childTid:%d ns:%ld\n", tid, childTid, threadCpuTime.ns);
+    tos->in_child_threads[childTid].ns += threadCpuTime.ns;
+}
+
 
 void ROMP_pf_end(
     ROMP_pf_stack_struct  * pf_stack) 
@@ -219,139 +327,91 @@ void ROMP_pf_end(
     ROMP_pf_static_struct * pf_static = pf_stack->staticInfo;
     if (!pf_static) return;
 
+    int tid = 
+#ifdef HAVE_OPENMP
+	omp_get_thread_num();
+#else
+	0;
+#endif
+    if (tid >= ROMP_maxWatchedThreadNum) goto Done;
+    
+    PerThreadScopeTreeData* tos = scopeTreeToS[tid];
+    if (!tos) goto Done;
+    
     Nanosecs delta = TimerElapsedNanosecs(&pf_stack->beginTime);
-    StaticData* staticData = (StaticData*)(pf_static->ptr);
-#ifdef HAVE_OPENMP
-    #pragma omp atomic
-#endif
-    staticData->in_pf.ns += delta.ns;
 
-    int i;
-#ifdef HAVE_OPENMP
-    #pragma omp parallel for schedule(static,1)
-#endif
-    for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
-        int tid = 
-#ifdef HAVE_OPENMP
-	    omp_get_thread_num();
-#else
-	    0;
-#endif
-	if (tid >= ROMP_maxWatchedThreadNum) continue;
-	
-	Nanosecs* startCPUTime = &pf_stack->watchedThreadBeginCPUTimes[tid];
-	if (startCPUTime->ns == 0) {
-	    fprintf(stderr, "%s:%d no start time for %d\n", __FILE__, __LINE__, tid);
-	    continue;
-	}
-	if (startCPUTime->ns == -1) {
-	    continue;
-	}
-	clockid_t clockid;
-	int s = pthread_getcpuclockid(pthread_self(), &clockid);
-	if (s != 0) {
-	    fprintf(stderr, "%s:%d pthread_getcpuclockid failed", __FILE__, __LINE__);
-	    exit(1);
-	}
-	struct timespec timespec;
-    int ret;
-#if defined(__APPLE__) && !defined(HAVE_CLOCK_GETTIME)
-    ret = mach_gettime(clockid, &timespec);
-#else
-    ret = clock_gettime(clockid, &timespec);
-#endif
-    if (ret != 0) {
-	    fprintf(stderr, "%s:%d gettime failed", __FILE__, __LINE__);
-	    exit(1);
-	}
-	Nanosecs threadCpuTime;
-	threadCpuTime.ns = timespec.tv_sec * 1000000000L + timespec.tv_nsec - startCPUTime->ns;
-	startCPUTime->ns = -1;
-    
-#ifdef HAVE_OPENMP
-    	#pragma omp atomic
-#endif
-    	staticData->in_pfThread.ns += threadCpuTime.ns;
-    }
-    
-    for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
-        pf_stack->watchedThreadBeginCPUTimes[i].ns = 0;
+    tos->in_scope.ns += delta.ns;
+
+    if (pf_stack->gone_parallel)
+        if (debug) fprintf(stderr, "ROMP_pf_end tid:%d pf_stack:%p getting other thread times\n",
+            omp_get_thread_num(), pf_stack);
+
+    if (!pf_stack->gone_parallel) {
+        // Not the same as putting a condition on the else loop
+        // The later is implemented by openmp choosing any available thread to execute the loop body, not the current thread
+        pf_end_one_thread(tid, pf_stack, tos);
+    } else {
+        int i;
+        #ifdef HAVE_OPENMP
+            #pragma omp parallel for schedule(static,1)
+        #endif
+        for (i = 0; i < ROMP_maxWatchedThreadNum; i++) pf_end_one_thread(tid, pf_stack, tos);
     }
 
-    if (pf_stack->saved_ROMP_level != ROMP_level__size) {
-    	// exiting a non-nested parallel for
-        romp_level = pf_stack->saved_ROMP_level;
+    if (romp_level < ROMP_level__size) {
+        int i;
+        for (i = 0; i < ROMP_maxWatchedThreadNum; i++) {
+            Nanosecs* startCPUTime = &pf_stack->watchedThreadBeginCPUTimes[i];
+            if (startCPUTime->ns != 0 && startCPUTime->ns != -1) {
+                if (debug) fprintf(stderr, "%s:%d no end time for %d\n", __FILE__, __LINE__, tid);
+            }
+        } 
     }
     
+    scopeTreeToS[tid] = tos->parent;
+
+Done:
+    romp_level = pf_stack->entry_level;
 }
+
 
 void ROMP_pflb_begin(
     ROMP_pf_stack_struct   * pf_stack,
     ROMP_pflb_stack_struct * pflb_stack)
 {
-    pflb_stack->pf_stack = pf_stack;
-    ROMP_pf_static_struct * pf_static = pf_stack->staticInfo;
-    if (!pf_static) { pflb_stack->pf_stack = NULL; return; }
-    TimerStartNanosecs(&pflb_stack->beginTime);
-    int tid = 
-#ifdef HAVE_OPENMP
-        omp_get_thread_num();
-#else
-	0;
-#endif
-    pflb_stack->tid = tid;
-    if (tid >= 8*sizeof(int)) return;
-    int tidMask = 1<<tid;
-    if (pf_stack->tids_active & tidMask) {
-        fprintf(stderr, "Active tid in ROMP_pflb_begin %s:%d\n",
-	    pf_static->file, pf_static->line);
-        exit(1);
-    }
-#ifdef HAVE_OPENMP
-    #pragma omp atomic
-#endif
-    pf_stack->tids_active ^= tidMask;
 }
 
 void ROMP_pflb_end(
     ROMP_pflb_stack_struct  * pflb_stack)
 {
-    if (!pflb_stack->pf_stack) return;
-    ROMP_pf_stack_struct  * pf_stack = pflb_stack->pf_stack;
-    ROMP_pf_static_struct * pf_static = pf_stack->staticInfo;
-    Nanosecs delta = TimerElapsedNanosecs(&pflb_stack->beginTime);
-    StaticData* staticData = (StaticData*)(pf_static->ptr);
-    
-#ifdef HAVE_OPENMP
-    #pragma omp atomic
-#endif
-    staticData->in_pflb.ns += delta.ns;
-    int tid = 
-#ifdef HAVE_OPENMP
-        omp_get_thread_num();
-#else
-	0;
-#endif
-    if (pflb_stack->tid != tid) {
-        fprintf(stderr, "Bad tid in ROMP_pflb_end %s:%d\n",
-	    pf_static->file, pf_static->line);
-        exit(1);
-    }
-    if (tid >= 8*sizeof(int)) return;
-    int tidMask = 1<<tid;
-    if (!(pf_stack->tids_active & tidMask)) {
-        fprintf(stderr, "Inactive tid in ROMP_pflb_end %s:%d\n",
-	    pf_static->file, pf_static->line);
-        exit(1);
-    }
-#ifdef HAVE_OPENMP
-    #pragma omp atomic
-#endif
-    pf_stack->tids_active ^= tidMask;
+}
 
-    if (delta.ns < 1000) {	// loop body is too small to time this way...
-      staticData->skip_pflb_timing = pf_stack->skip_pflb_timing = 1;
-      return;
+
+static void node_show_stats(FILE* file, PerThreadScopeTreeData* node, unsigned int depth) {
+    ROMP_pf_static_struct* pf = node->key;
+    StaticData* sd = pf ? (StaticData*)(pf->ptr) : (StaticData*)(NULL);
+    
+    Nanosecs inAllThreads; inAllThreads.ns = 0;
+    int tid;
+    for (tid = 0; tid < ROMP_maxWatchedThreadNum; tid++) {
+        inAllThreads.ns += node->in_child_threads[tid].ns;
+    }
+    
+    {   int d;
+        for (d = 0; d < depth; d++) fprintf(file, "    ");
+    }
+    
+    fprintf(file, "%s:%s, %d, %d, %12ld, %12ld, %12ld, %6.3g, %6.3g\n", 
+        pf ? pf->file : "<file>", 
+        pf ? pf->func : "<func>", 
+        pf ? pf->line : 0,
+        sd ? sd->level : 0,
+	node->in_scope.ns, 0L, inAllThreads.ns, 
+        0.0, (double)inAllThreads.ns/(double)node->in_scope.ns);
+
+    PerThreadScopeTreeData* child;
+    for (child = node->first_child; child; child = child->next_sibling) {
+        node_show_stats(file, child, depth+1);
     }
 }
 
@@ -361,25 +421,20 @@ void ROMP_show_stats(FILE* file)
     fprintf(file, "file, line, level, in pf, in pflb, in_pfThread, pflb/elapsed, pft/elapsed\n");
 
     if (getMainFile())  {
-      	Nanosecs mainDuration = TimerElapsedNanosecs(&mainTimer);
-      	fprintf(file, "%s, %d, 0, %12ld, %12ld, %12ld, %6.3g, %6.3g\n", 
+        Nanosecs mainDuration = TimerElapsedNanosecs(&mainTimer);
+  	fprintf(file, "%s, %d, 0, %12ld, %12ld, %12ld, %6.3g, %6.3g\n", 
       	    mainFile, mainLine, 
 	    mainDuration.ns, 0L, 0L,
 	    1.0,
 	    1.0);
     }
-    ROMP_pf_static_struct* pf;
-    for (pf = known_ROMP_pf; pf; ) {
-    	StaticData* sd = (StaticData*)(pf->ptr);
-	if (sd->skip_pflb_timing) sd->in_pflb.ns = 0;
-    	fprintf(file, "%s, %d, %d, %12ld, %12ld, %12ld, %6.3g, %6.3g\n", 
-	    pf->file, pf->line,
-	    sd->level,
-	    sd->in_pf.ns, sd->in_pflb.ns, sd->in_pfThread.ns,
-	    (double)sd->in_pflb.ns    /(double)sd->in_pf.ns,
-	    (double)sd->in_pfThread.ns/(double)sd->in_pf.ns);
-    	pf = sd->next;
+        
+    int tid;
+    for (tid = 0; tid < ROMP_maxWatchedThreadNum; tid++) {
+        PerThreadScopeTreeData* node = &scopeTreeRoots[tid];
+        if (node) node_show_stats(file, node, 0);
     }
+
     fprintf(file, "ROMP_show_stats end\n");
 }
 
@@ -434,7 +489,7 @@ void ROMP_Distributor_end(ROMP_Distributor* distributor) {
 
 // example
 //
-// pushd utils; rm -f a.out ; gcc -fopenmp -I../include romp_support.c timer.c ; ./a.out ; popd
+// pushd utils; rm -f a.out ; gcc -g -DHAVE_OPENMP -fopenmp -I../include romp_support.c timer.c ; ./a.out ; popd
 //
 int main(int argc, char* argv[])
 {
@@ -447,6 +502,45 @@ int main(int argc, char* argv[])
     }
     comBuffer[comSize] = 0;
     fprintf(stdout, "%s:%d main() of %s\n", __FILE__, __LINE__, comBuffer);
+    
+    // Trivial timing 
+    //
+    if (0) {
+        ROMP_PF_begin
+
+        int i; double sum = 0;
+        #pragma omp parallel for if_ROMP(assume_reproducible)
+        for (i = 0; i < 4; i++) {
+            int j;
+            for (j = 0; j < 250000; j++) {   
+                sum += i/(double)j;
+            }
+        }
+        ROMP_PF_end
+        
+        rompExitHandler();
+        return 0;
+    }
+    
+    
+    if (1) {
+        ROMP_PF_begin
+
+        int i; double sum = 0;
+        #pragma omp parallel for if_ROMP(assume_reproducible)
+        for (i = 0; i < 4; i++) {
+            ROMP_PF_begin
+            int j;
+            for (j = 0; j < 250000; j++) {   
+                sum += i/(double)j;
+            }
+            ROMP_PF_end
+        }
+        ROMP_PF_end
+        
+        return 0;
+    }
+    
     
     // Simple timing and control example
     //
@@ -472,7 +566,7 @@ int main(int argc, char* argv[])
 	
 	int j;
 	ROMP_PF_begin
-    	#pragma omp parallel for if_ROMP(fast) reduction(+:sum)
+    	#pragma omp parallel for if_ROMP(assume_reproducible) reduction(+:sum)
     	for (j = 0; j < i; j++) {
     	    //ROMP_PFLB_begin
 	    
@@ -490,10 +584,14 @@ int main(int argc, char* argv[])
     
     // Reproducible reduction example
     //
+    ROMP_PF_begin
+    
     double doubleToSum0_0,doubleToSum1_0;
     int numThreads;
     for (numThreads = 1; numThreads <= 10; numThreads++) {
     
+        ROMP_PF_begin
+        
         omp_set_num_threads(numThreads);
     
         double doubleToSum0 = 0.0, doubleToSum1 = 0.0;
@@ -502,13 +600,17 @@ int main(int argc, char* argv[])
         //
         #define ROMP_VARIABLE   originalVariable
         #define ROMP_LO         1
-        #define ROMP_HI         1000000
+        #define ROMP_HI         10000
     
         // the original reductions
         //
         #define ROMP_SUMREDUCTION0  doubleToSum0
         #define ROMP_SUMREDUCTION1  doubleToSum1
+        #define ROMP_LEVEL          assume_reproducible
         
+#ifdef ROMP_SUPPORT_ENABLED
+        const int romp_for_line = __LINE__;
+#endif
         #include "romp_for_begin.h"
     
             #define doubleToSum0 ROMP_PARTIALSUM(0)
@@ -534,7 +636,10 @@ int main(int argc, char* argv[])
         
         printf("romp_for numThreads:%d doubleToSum0:%g doubleToSum1:%g\n",
             numThreads, doubleToSum0,doubleToSum1);
+            
+        ROMP_PF_end
     }
+    ROMP_PF_end
     
     // Done
     //

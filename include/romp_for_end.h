@@ -23,9 +23,10 @@
  */
 
 
+                ROMP_PFLB_end
 	    }           // serial loop
         
-            ROMP_PFLB_end
+            ROMP_PF_end
         }               // parallel loop
         ROMP_PF_end
         
