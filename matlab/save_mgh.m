@@ -78,9 +78,14 @@ else
   fwrite(fid, MRI_FLOAT, 'int') ;  % type = MRI_FLOAT
 end
 
+fwrite(fid, 1, 'int') ; % dof (not used)
+
 %%?????????????%%%
-fwrite(fid, 1, 'int') ;          % dof (not used)
-dof = fread(fid, 1, 'int') ; 
+% This line was originally run. It does not appear to
+% do anything wrong in matlab, but it causes octave
+% to throw an error. Removing it does not appear to 
+% create a problem in either matlab or octave.
+% dof = fread(fid, 1, 'int') ;
 
 UNUSED_SPACE_SIZE= 256;
 USED_SPACE_SIZE = (3*4+4*3*4);  % space for ras transform

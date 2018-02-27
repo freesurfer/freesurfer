@@ -118,9 +118,15 @@ bool FSPointSet::ReadFromStringAsControlPoints(const QString &content)
   m_label = ::LabelAlloc( nCount, NULL, (char*)"" );
   m_label->n_points = nCount;
   if (bRealRAS)
+  {
     m_label->coords = LABEL_COORDS_SCANNER_RAS;
+    strncpy(m_label->space, "scanner", sizeof(m_label->space));
+  }
   else
+  {
     m_label->coords = LABEL_COORDS_TKREG_RAS;
+    strncpy(m_label->space, "TkReg", sizeof(m_label->space));
+  }
   for ( int i = 0; i < nCount; i++ )
   {
     m_label->lv[i].x = values[i*3];
@@ -203,6 +209,7 @@ void FSPointSet::UpdateLabel( PointSet& points_in, FSVolume* ref_vol )
   m_label = ::LabelAlloc( nCount, NULL, (char*)"" );
   m_label->n_points = nCount;
   m_label->coords = LABEL_COORDS_SCANNER_RAS;
+  strncpy(m_label->space, "scanner", sizeof(m_label->space));
   for ( int i = 0; i < nCount; i++ )
   {
     m_label->lv[i].x = values[i*4];
