@@ -245,9 +245,10 @@ MRISareaErrors(MRI_SURFACE *mris) {
   for (fno = 0 ; fno < mris->nfaces ; fno++) {
     face = &mris->faces[fno] ;
     ferror = 0.0f ;
-    error = face->area - face->orig_area ;
-    pct_error = error / face->orig_area * 100.0f ;
-    printf("%d %2.3f %2.3f %2.3f %2.1f\n", fno, face->orig_area,
+    FaceNormCacheEntry const * fNorm = getFaceNorm(mris, fno);
+    error = face->area - fNorm->orig_area ;
+    pct_error = error / fNorm->orig_area * 100.0f ;
+    printf("%d %2.3f %2.3f %2.3f %2.1f\n", fno, fNorm->orig_area,
            face->area, error, pct_error) ;
     total_sq_error += (error * error) ;
     ferror += fabs(error) ;

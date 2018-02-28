@@ -649,7 +649,107 @@ static int orig_clock = 0;
     }                                                                                       \
     // end of macro
 
+
+/*-----------------------------------------------------
+    Support deferring the calculation of norms until needed
     
+    These values in computeDefectFaceNormal are the ones we are trying to avoid
+    since calling that is an expensive part of mris_fix_topology
+    
+    The solution is to simply mark it as needing computation, and to compute it only 
+    when getFaceNorm is called.
+    
+    To test this is working, there is an option for computing it immediately...
+    
+  ------------------------------------------------------*/
+
+//#define CHECK_DEFERED_NORMS
+static void computeDefectFaceNormal_calculate(
+    MRIS const * const mris, int const fno, float* p_nx, float* p_ny, float* p_nz, float* p_orig_area);
+     
+
+static void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz) {
+    FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
+    fNorm->nx = nx;
+    fNorm->ny = ny;
+    fNorm->nz = nz;
+    fNorm->deferred &= ~1;          // now known
+}
+
+static void setFaceOrigArea(MRIS const * const mris, int fno, float orig_area) {
+    FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
+    fNorm->orig_area = orig_area;
+    fNorm->deferred &= ~2;  // now known
+}
+
+static float getFaceOrigArea(MRIS const * const mris, int fno) {
+    FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
+    if (fNorm->deferred & 2) {      // must compute
+        fprintf(stderr, "%s:%d NYI\n", __FILE__, __LINE__);
+        *(int*)(-1) = 0;    // crash
+    }
+    return fNorm->orig_area;
+}
+
+
+FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
+    FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
+    if (fNorm->deferred) {
+        float nx,ny,nz,orig_area;
+        computeDefectFaceNormal_calculate(mris, fno, &nx,&ny,&nz,&orig_area);
+#ifdef CHECK_DEFERED_NORMS
+        if (fNorm->deferred & 1) {      // must update
+            if (nx != fNorm->nx || ny != fNorm->ny || nz != fNorm->nz) {
+                fprintf(stderr, "%s:%d prediction of norm did not equal result\n",__FILE__, __LINE__);
+            }   
+        }
+#endif
+        fNorm->nx = nx; fNorm->ny = ny; fNorm->nz = nz;
+        if (fNorm->deferred & 2) {      // must update
+#ifdef CHECK_DEFERED_NORMS
+            if (orig_area != fNorm->orig_area) {
+                fprintf(stderr, "%s:%d prediction of norm did not equal result\n",__FILE__, __LINE__);
+            }
+#endif
+            fNorm->orig_area = orig_area;
+        }
+        fNorm->deferred = 0;
+    }
+    return fNorm;
+}
+
+static void deferSetFaceNorms(MRIS* mris) {
+    int fno;
+    ROMP_PF_begin  
+#ifdef HAVE_OPENMP
+    #pragma omp parallel for if_ROMP(assume_reproducible) 
+#endif
+    for (fno = 0; fno < mris->nfaces; fno++) {
+      ROMP_PFLB_begin
+      FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
+#ifdef CHECK_DEFERED_NORMS
+      computeDefectFaceNormal_calculate(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);  // compute it now so can check later
+#endif
+      fNorm->deferred = 3;  // compute them again later
+      ROMP_PFLB_end
+    }
+    ROMP_PF_end
+}
+
+static void undeferSetFaceNorms(MRIS* mris) {
+    int fno;
+    ROMP_PF_begin  
+#ifdef HAVE_OPENMP
+    #pragma omp parallel for if_ROMP(assume_reproducible) 
+#endif
+    for (fno = 0; fno < mris->nfaces; fno++) {
+      ROMP_PFLB_begin
+      getFaceNorm(mris, fno);
+      ROMP_PFLB_end
+    }
+    ROMP_PF_end
+}
+
 
 /*-----------------------------------------------------
   ------------------------------------------------------*/
@@ -1609,27 +1709,23 @@ MRI_SURFACE *MRISalloc(int nvertices, int nfaces)
   mris = (MRI_SURFACE *)calloc(1, sizeof(MRI_SURFACE));
   if (!mris)
     ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate mris structure", nvertices, nfaces);
-  else {
-    memset(mris, 0, sizeof(MRI_SURFACE));
-  }
 
-  mris->nsize = 1; /* only 1-connected neighbors initially */
+  mris->nsize     = 1; /* only 1-connected neighbors initially */
   mris->nvertices = nvertices;
-  mris->nfaces = nfaces;
-  mris->vertices = (VERTEX *)calloc(nvertices, sizeof(VERTEX));
+  mris->nfaces    = nfaces;
+  
+  mris->vertices  = (VERTEX *)calloc(nvertices, sizeof(VERTEX));
   if (!mris->vertices)
     ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate vertices", nvertices, sizeof(VERTEX));
-  else {
-    memset(mris->vertices, 0, nvertices * sizeof(VERTEX));
-  }
 
   mris->faces = (FACE *)calloc(nfaces, sizeof(FACE));
   if (!mris->faces)
     ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate faces", nfaces, sizeof(FACE));
-  else {
-    memset(mris->faces, 0, nfaces * sizeof(FACE));
-  }
 
+  mris->faceNormCacheEntries = (FaceNormCacheEntry*)calloc(nfaces, sizeof(FaceNormCacheEntry));
+  if (!mris->faceNormCacheEntries)
+    ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate faceNormCacheEntries", nfaces, sizeof(FaceNormCacheEntry));
+ 
   mris->useRealRAS = 0; /* just initialize */
   mris->vg.valid = 0;   /* mark invalid */
 
@@ -3209,7 +3305,8 @@ int MRISremoveRippedFaces(MRI_SURFACE *mris)
     if (face->ripflag) {
       continue;
     }
-    mris->orig_area += face->orig_area;
+    FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
+    mris->orig_area += fNorm->orig_area;
   }
   return (NO_ERROR);
 }
@@ -3300,7 +3397,8 @@ int MRISremoveRippedVertices(MRI_SURFACE *mris)
     if (face->ripflag) {
       continue;
     }
-    mris->orig_area += face->orig_area;
+    FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
+    mris->orig_area += fNorm->orig_area;
   }
   return (NO_ERROR);
 }
@@ -3764,16 +3862,15 @@ static int MRIScomputeNormals_old(MRI_SURFACE *mris)
       v->area = 0;
 
       int n, num;
-      for (num = n = 0; n < v->num; n++)
-        if (!mris->faces[v->f[n]].ripflag) {
+      for (num = n = 0; n < v->num; n++) {
+        int const fno = v->f[n];
+        if (!mris->faces[fno].ripflag) {
           float norm[3];
           num++;
-          mrisNormalFace(mris, v->f[n], (int)v->n[n], norm);
+          mrisNormalFace(mris, fno, (int)v->n[n], norm);
           snorm[0] += norm[0];
           snorm[1] += norm[1];
           snorm[2] += norm[2];
-
-          FACE* face = &mris->faces[v->f[n]];
 
           // BUG: Parallel non-deterministic, this is reading shared vertices and writing shared faces.
           //      Worse, mrisNormalFace gives a different norm for each write.
@@ -3786,15 +3883,14 @@ static int MRIScomputeNormals_old(MRI_SURFACE *mris)
           // The code seems to not care about the length of the face normal
           // so use the cross product of any two edges, just to be consistent
           //
-          mrisFaceAreaNormal(mris, v->f[n], norm);
+          mrisFaceAreaNormal(mris, fno, norm);
 #endif
-          face->nx = norm[0];
-          face->ny = norm[1];
-          face->nz = norm[2];
+          setFaceNorm(mris, fno, norm[0], norm[1], norm[2]);
 
           /* Note: overestimates area by *2 !! */
-          v->area += mrisTriangleArea(mris, v->f[n], (int)v->n[n]);
+          v->area += mrisTriangleArea(mris, fno, (int)v->n[n]);
         }
+      }
       if (!num) continue;
 
       mrisNormalize(snorm);
@@ -3924,9 +4020,7 @@ static int MRIScomputeNormals_new(MRI_SURFACE *mris)
         // The code seems to not care about the length of the face normal
         // so use the cross product of any two edges
         //
-        f->nx = norm[0];
-        f->ny = norm[1];
-        f->nz = norm[2];
+        setFaceNorm(mris, k, norm[0], norm[1], norm[2]);
       }
     }
     ROMP_PFLB_end
@@ -4085,13 +4179,12 @@ static int MRIScomputeNormals_new(MRI_SURFACE *mris)
         // Note: this will recompute some, but I suspect the number is too small to be relevant
         //
         for (n = 0; n < v->num; n++) {
-          FACE* f = &mris->faces[v->f[n]];
+          int const fno = v->f[n];
+          FACE* f = &mris->faces[fno];
           if (f->ripflag) continue;
           float norm[3];
-          mrisFaceAreaNormal(mris, v->f[n], norm);
-          f->nx = norm[0];
-          f->ny = norm[1];
-          f->nz = norm[2];
+          mrisFaceAreaNormal(mris, fno, norm);
+          setFaceNorm(mris, fno, norm[0], norm[1], norm[2]);
         }
       }
     }
@@ -9156,8 +9249,9 @@ static double mrisComputeError(MRI_SURFACE *mris,
     if (face->ripflag) {
       continue;
     }
+    FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
     ntriangles++;
-    delta = (double)(area_scale * face->area - face->orig_area);
+    delta = (double)(area_scale * face->area - fNorm->orig_area);
     sse_area += delta * delta;
     for (ano = 0; ano < ANGLES_PER_TRIANGLE; ano++) {
       delta = deltaAngle(face->angle[ano], face->orig_angle[ano]);
@@ -9355,8 +9449,9 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
       face = &mris->faces[fno];
       if (face->ripflag) ROMP_PF_continue;
+      FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
 
-      delta = (double)(area_scale * face->area - face->orig_area);
+      delta = (double)(area_scale * face->area - fNorm->orig_area);
 #if ONLY_NEG_AREA_TERM
       if (face->area < 0.0f) sse_neg_area += delta * delta;
 
@@ -10027,6 +10122,8 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
       ROMP_PFLB_continue;
     }
 
+    FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
+
     /* now give the area an orientation: if the unit normal is pointing
        inwards on the ellipsoid then the area should be negative.
     */
@@ -10038,14 +10135,13 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
     float   const yc = (v0->y + v1->y + v2->y) /* / 3 */;   // since we only use the magnitude of the dot product
     float   const zc = (v0->z + v1->z + v2->z) /* / 3 */;
 
-    float   const dot = xc * face->nx + yc * face->ny + zc * face->nz;
+    float   const dot = xc * fNorm->nx + yc * fNorm->ny + zc * fNorm->nz;
     
     if (dot < 0.0f) /* not in same direction, area < 0 and reverse n */
     {
       face->area *= -1.0f;
-      face->nx *= -1.0f;
-      face->ny *= -1.0f;
-      face->nz *= -1.0f;
+
+      setFaceNorm(mris, fno, -fNorm->nx, -fNorm->ny, -fNorm->nz);
 
       int ano;
       for (ano = 0; ano < ANGLES_PER_TRIANGLE; ano++) {
@@ -10106,8 +10202,9 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
         total_area += face->area;
       }
       else {
+        FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
         neg_area      += -face->area;
-        neg_orig_area +=  face->orig_area;
+        neg_orig_area +=  fNorm->orig_area;
       }
       
 #ifdef BEVIN_MRISORIENTELLIPSOID_REPRODUCIBLE
@@ -10154,12 +10251,11 @@ static int mrisOrientPlane(MRI_SURFACE *mris)
     /* now give the area an orientation: if the unit normal is pointing
        downwards in the plane then the area should be negative.
     */
-    if (face->nz < 0.0f) {
+    FaceNormCacheEntry const * const fNorm =  getFaceNorm(mris, fno);
+    if (fNorm->nz < 0.0f) {
       /* not in same direction, area < 0 and reverse n */
       face->area *= -1.0f;
-      face->nx *= -1.0f;
-      face->ny *= -1.0f;
-      face->nz *= -1.0f;
+      setFaceNorm(mris, fno, -fNorm->nx, -fNorm->ny, -fNorm->nz);
       for (ano = 0; ano < ANGLES_PER_TRIANGLE; ano++) {
         face->angle[ano] *= -1.0f;
       }
@@ -10177,8 +10273,9 @@ static int mrisOrientPlane(MRI_SURFACE *mris)
       mris->total_area += face->area;
     }
     else {
+      FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
       mris->neg_area += -face->area;
-      mris->neg_orig_area += face->orig_area;
+      mris->neg_orig_area += fNorm->orig_area;
     }
   }
 
@@ -10885,7 +10982,7 @@ int MRISreadTriangleProperties(MRI_SURFACE *mris, const char *mris_fname)
   for (fno = 0; fno < fnum; fno++) {
     face = &mris->faces[fno];
     f = freadFloat(fp);
-    face->orig_area = f;
+    setFaceOrigArea(mris, fno, f);
     mris->orig_area += f;
   }
 
@@ -10894,8 +10991,7 @@ int MRISreadTriangleProperties(MRI_SURFACE *mris, const char *mris_fname)
     v = &mris->vertices[vno];
     v->origarea = 0.0f;
     for (fno = 0; fno < v->num; fno++) {
-      face = &mris->faces[v->f[fno]];
-      v->origarea += face->orig_area;
+      v->origarea += getFaceOrigArea(mris, v->f[fno]);
     }
   }
 
@@ -11175,15 +11271,16 @@ static int MRIScomputeTriangleProperties_old(MRI_SURFACE *mris, bool old_done)
     if (area < 0) DiagBreak();
 
     V3_NORMALIZE(v_n[tid], v_n[tid]); /* make it a unit vector */
-    face->nx = V3_X(v_n[tid]);
-    face->ny = V3_Y(v_n[tid]);
-    face->nz = V3_Z(v_n[tid]);
+    
+    setFaceNorm(mris, fno, V3_X(v_n[tid]), V3_Y(v_n[tid]), V3_Z(v_n[tid]));
+    
     if (!devFinite(area) || !devFinite(mris->total_area)) DiagBreak();
 
     total_area += area;
 
     /* now compute angles */
-    VECTOR_LOAD(v_n[tid], face->nx, face->ny, face->nz);
+    FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
+    VECTOR_LOAD(v_n[tid], fNorm->nx, fNorm->ny, fNorm->nz);
     if ((V3_X(v_n[tid]) < V3_Y(v_n[tid])) && (V3_X(v_n[tid]) < V3_Z(v_n[tid]))) {
       dz = fabs(V3_X(v_n[tid]));
     }
@@ -11366,13 +11463,28 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
     }
     
     V3_NORMALIZE(v_n[tid], v_n[tid]); /* make it a unit vector */
-    SET_OR_CHECK(face->nx, V3_X(v_n[tid]));
-    SET_OR_CHECK(face->ny, V3_Y(v_n[tid]));
-    SET_OR_CHECK(face->nz, V3_Z(v_n[tid]));
+
+    float const nx = V3_X(v_n[tid]), ny = V3_Y(v_n[tid]), nz = V3_Z(v_n[tid]);
+
+    //SET_OR_CHECK(face->nx, nx);
+    //SET_OR_CHECK(face->ny, ny);
+    //SET_OR_CHECK(face->nz, nz);
+#ifdef BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_CHECK
+    if (old_done) {
+        FaceNormCacheEntry const * fNorm = getFaceNorm(mris, fno);
+        reproducible_check(fNorm->nx,nx, __LINE__, &countChecks);
+        reproducible_check(fNorm->ny,ny, __LINE__, &countChecks);
+        reproducible_check(fNorm->nz,nz, __LINE__, &countChecks);
+    } else 
+#endif
+    {
+        setFaceNorm(mris, fno, nx, ny, nz);
+    }
     
 
     /* now compute angles */
-    VECTOR_LOAD(v_n[tid], face->nx, face->ny, face->nz);
+    FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
+    VECTOR_LOAD(v_n[tid], fNorm->nx, fNorm->ny, fNorm->nz);
 
     float dz;
     if ((V3_X(v_n[tid]) < V3_Y(v_n[tid])) && (V3_X(v_n[tid]) < V3_Z(v_n[tid]))) {
@@ -13482,7 +13594,7 @@ MRI_SURFACE *MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float alph
   ------------------------------------------------------*/
 int MRISwriteAreaError(MRI_SURFACE *mris, const char *name)
 {
-  int vno, fno, i;
+  int vno, fi, i;
   float area, orig_area;
   FACE *face;
   VERTEX *vertex;
@@ -13507,10 +13619,11 @@ int MRISwriteAreaError(MRI_SURFACE *mris, const char *name)
        this is not really correct, but should be good enough for
        visualization purposes.
     */
-    for (fno = 0; fno < vertex->num; fno++) {
-      face = &mris->faces[vertex->f[fno]];
+    for (fi = 0; fi < vertex->num; fi++) {
+      face = &mris->faces[vertex->f[fi]];
+      FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, vertex->f[fi]);
       area += face->area;
-      orig_area += face->orig_area;
+      orig_area += fNorm->orig_area;
     }
     i = nint((area - orig_area) * 100.0f / (float)(vertex->num));
     fwrite2((int)i, fp);
@@ -13552,7 +13665,8 @@ int MRISwriteAreaErrorToValFile(MRI_SURFACE *mris, const char *name)
     for (fno = 0; fno < v->num; fno++) {
       face = &mris->faces[v->f[fno]];
       area += face->area;
-      orig_area += face->orig_area;
+      FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
+      orig_area += fNorm->orig_area;
     }
     v->val = (area - orig_area) / (float)(v->num);
   }
@@ -17894,7 +18008,7 @@ int MRIScomputeSecondFundamentalFormAtVertex(MRI_SURFACE *mris, int vno, int *ve
   ------------------------------------------------------*/
 int MRISuseAreaErrors(MRI_SURFACE *mris)
 {
-  int vno, fno, n;
+  int vno, fi, n;
   float area, orig_area;
   FACE *face;
   VERTEX *vertex;
@@ -17910,10 +18024,11 @@ int MRISuseAreaErrors(MRI_SURFACE *mris)
        this is not really correct, but should be good enough for
        visualization purposes.
     */
-    for (n = fno = 0; fno < vertex->num; fno++) {
-      face = &mris->faces[vertex->f[fno]];
+    for (n = fi = 0; fi < vertex->num; fi++) {
+      face = &mris->faces[vertex->f[fi]];
       area += face->area;
-      orig_area += face->orig_area;
+      FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, vertex->f[fi]);
+      orig_area += fNorm->orig_area;
     }
     vertex->curv = (area - orig_area) / (float)n;
   }
@@ -19498,7 +19613,7 @@ int MRISstoreMetricProperties(MRI_SURFACE *mris)
     if (f->ripflag) {
       continue;
     }
-    f->orig_area = f->area;
+    setFaceOrigArea(mris, fno, f->area);
     for (ano = 0; ano < ANGLES_PER_TRIANGLE; ano++) {
       f->orig_angle[ano] = f->angle[ano];
     }
@@ -19536,7 +19651,7 @@ int MRISrestoreMetricProperties(MRI_SURFACE *mris)
     if (f->ripflag) {
       continue;
     }
-    f->area = f->orig_area;
+    f->area = getFaceOrigArea(mris, fno);
     for (ano = 0; ano < ANGLES_PER_TRIANGLE; ano++) {
       f->angle[ano] = f->orig_angle[ano];
     }
@@ -25772,13 +25887,14 @@ static int mrisComputeAngleAreaTerms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms
     if (fno == Gdiag_no2) {
       DiagBreak();
     }
-    VECTOR_LOAD(v_n, face->nx, face->ny, face->nz);
+    FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
+    VECTOR_LOAD(v_n, fNorm->nx, fNorm->ny, fNorm->nz);
     v0 = &mris->vertices[face->v[0]];
     v1 = &mris->vertices[face->v[1]];
     v2 = &mris->vertices[face->v[2]];
     VERTEX_EDGE(v_a, v0, v1);
     VERTEX_EDGE(v_b, v0, v2);
-    orig_area = face->orig_area;
+    orig_area = fNorm->orig_area;
     area = area_scale * face->area;
     delta = 0.0;
     if (!FZERO(l_parea)) {
@@ -25982,13 +26098,14 @@ static int mrisComputeNonlinearAreaTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *pa
     if (face->v[0] == Gdiag_no || face->v[1] == Gdiag_no || face->v[2] == Gdiag_no) {
       DiagBreak();
     }
-    VECTOR_LOAD(v_n, face->nx, face->ny, face->nz);
+    FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
+    VECTOR_LOAD(v_n, fNorm->nx, fNorm->ny, fNorm->nz);
     v0 = &mris->vertices[face->v[0]];
     v1 = &mris->vertices[face->v[1]];
     v2 = &mris->vertices[face->v[2]];
     VERTEX_EDGE(v_a, v0, v1);
     VERTEX_EDGE(v_b, v0, v2);
-    orig_area = face->orig_area;
+    orig_area = fNorm->orig_area;
     area = area_scale * face->area;
 #if SCALE_NONLINEAR_AREA
     if (!FZERO(orig_area)) {
@@ -28221,7 +28338,8 @@ int MRISwriteSTL(MRI_SURFACE *mris, const char *fname)
       continue;
     }
 
-    fprintf(fp, "facet normal %f %f %f\n", face->nx, face->ny, face->nz);
+    FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
+    fprintf(fp, "facet normal %f %f %f\n", fNorm->nx, fNorm->ny, fNorm->nz);
     fprintf(fp, "  outer loop\n");
 
     for (vno = 0; vno < VERTICES_PER_FACE; vno++) {
@@ -28668,7 +28786,7 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
         FACE* face = &mris->faces   [faceNo];
 	XYZ*  xyz  = &faceNormalXYZs[faceNo];
 
-	face->nx = xyz->x; face->ny = xyz->y; face->nz = xyz->z;
+        setFaceNorm(mris, faceNo, xyz->x, xyz->y, xyz->z);
 
 	int faceVertexNo;
 	for (faceVertexNo = 0; faceVertexNo < 3; faceVertexNo++) {
@@ -32422,9 +32540,8 @@ int MRISremoveCompressedRegions(MRI_SURFACE *mris, double min_dist)
 
   {
     int fno;
-
     for (fno = 0; fno < mris->nfaces; fno++) {
-      mris->faces[fno].orig_area = .5;
+      setFaceOrigArea(mris,fno,0.5f);
     }
   }
 
@@ -43634,7 +43751,8 @@ static void mrisDumpFace(MRI_SURFACE *mris, int fno, FILE *fp)
   int n;
 
   f = &mris->faces[fno];
-  fprintf(fp, "face %d, area %2.1f, orig area %2.1f\n", fno, f->area, f->orig_area);
+  FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
+  fprintf(fp, "face %d, area %2.1f, orig area %2.1f\n", fno, f->area, fNorm->orig_area);
   for (n = 0; n < VERTICES_PER_FACE; n++) {
     v = &mris->vertices[f->v[n]];
     fprintf(fp,
@@ -44557,6 +44675,7 @@ static int max_unchanged = MAX_UNCHANGED;
 typedef struct ComputeDefectContext ComputeDefectContext;
 struct ComputeDefectContext {
     RealmTree* realmTree;
+    MRIS*      mris_deferred_norms;
 };
 
 static void constructComputeDefectContext(ComputeDefectContext* computeDefectContext) {
@@ -44576,6 +44695,11 @@ static ActiveRealmTree* activeRealmTrees;
 
 static void destructComputeDefectContext(ComputeDefectContext* computeDefectContext) {
 
+    if (computeDefectContext->mris_deferred_norms) {
+        undeferSetFaceNorms(computeDefectContext->mris_deferred_norms);
+        computeDefectContext->mris_deferred_norms = NULL;
+    }
+    
     if (computeDefectContext->realmTree)
     #ifdef HAVE_OPENMP
     #pragma omp critical
@@ -44605,7 +44729,6 @@ static void useComputeDefectContextRealmTree(
 #ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
         fprintf(stderr, "%s:%d useComputeDefectContextRealmTree making realmTree\n",__FILE__,__LINE__);
 #endif
-        ROMP_PF_begin  
         computeDefectContext->realmTree = makeRealmTree(mris, getXYZ);
         orig_clock++;
         
@@ -44620,11 +44743,7 @@ static void useComputeDefectContextRealmTree(
         art->realmTree = computeDefectContext->realmTree;
         art->mris      = mris;
         art->getXYZ    = getXYZ;
-         
-        ROMP_PF_end
-    } 
-    else {
-        ROMP_PF_begin
+    } else {
         updateRealmTree(computeDefectContext->realmTree, mris, getXYZ);
 #ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
         if (checkRealmTree(computeDefectContext->realmTree, mris, getXYZ)) {
@@ -44632,7 +44751,6 @@ static void useComputeDefectContextRealmTree(
             exit(1);
         }
 #endif
-        ROMP_PF_end
     }
 }
 }
@@ -44778,7 +44896,7 @@ static void defectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int ni
 static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp);
 static int computePatchEulerNumber(MRIS *mris, DP *dp);
 static void orientDefectFaces(MRIS *mris, DP *dp);
-static void computeDefectFaceNormal(MRIS *mris, FACE *face);
+static void computeDefectFaceNormal(MRIS const * const mris, int const fno);
 static void computeDefectFaceNormals(MRIS *mris, DP *dp);
 static void computeDefectVertexNormals(MRIS *mris, DP *dp);
 static void computeDefectTangentPlaneAtVertex(MRIS *mris, int vno);
@@ -48654,16 +48772,18 @@ static void orientDefectFaces(MRIS *mris, DP *dp)
   }
 }
 
-static void computeDefectFaceNormal(MRIS *mris, FACE *face)
+static void computeDefectFaceNormal_calculate(
+    MRIS const * const mris, int const fno, float* p_nx, float* p_ny, float* p_nz, float* p_orig_area)
 {
-  VERTEX *v1, *v2, *v3;
-  float a[3], b[3], norm[3], len, nx, ny, nz;
-
-  v1 = &mris->vertices[face->v[0]];
-  v2 = &mris->vertices[face->v[1]];
-  v3 = &mris->vertices[face->v[2]];
+  FACE const * const face = &mris->faces[fno];
+  
+  VERTEX * v1 = &mris->vertices[face->v[0]];
+  VERTEX * v2 = &mris->vertices[face->v[1]];
+  VERTEX * v3 = &mris->vertices[face->v[2]];
 
   /* compute the face normal on the original configuration */
+  float a[3], b[3];
+
   a[0] = v2->origx - v1->origx;
   b[0] = v3->origx - v1->origx;
   a[1] = v2->origy - v1->origy;
@@ -48671,13 +48791,16 @@ static void computeDefectFaceNormal(MRIS *mris, FACE *face)
   a[2] = v2->origz - v1->origz;
   b[2] = v3->origz - v1->origz;
 
+  float norm[3];
   F_CROSS(a, b, norm);
+
+  float nx, ny, nz;
   nx = norm[0];
   ny = norm[1];
   nz = norm[2];
 
   /* normalize */
-  len = sqrt(nx * nx + ny * ny + nz * nz);
+  float len = sqrt(nx * nx + ny * ny + nz * nz);
   if (FZERO(len)) {
     // TO BE CHECKED
     //          fprintf(WHICH_OUTPUT,"face with a null normal (%f,%f,%f) - (%f,%f,%f) -
@@ -48701,10 +48824,18 @@ static void computeDefectFaceNormal(MRIS *mris, FACE *face)
     }
     // fprintf(WHICH_OUTPUT,"\n");
   }
-  face->nx = nx / len;
-  face->ny = ny / len;
-  face->nz = nz / len;
-  face->orig_area = len / 2.0f;
+  *p_nx = nx / len;
+  *p_ny = ny / len;
+  *p_nz = nz / len;
+  *p_orig_area = len / 2.0f;
+}
+
+static void computeDefectFaceNormal(MRIS const * const mris, int const fno)
+{
+  float nx, ny, nz, orig_area;
+  computeDefectFaceNormal_calculate(mris, fno, &nx, &ny, &nz, &orig_area);
+  setFaceNorm    (mris, fno, nx, ny, nz);
+  setFaceOrigArea(mris, fno, orig_area);
 }
 
 /* used to temporary rip the faces of the defect so we don't proceed them many times */
@@ -48729,7 +48860,7 @@ static void computeDefectFaceNormals(MRIS *mris, DP *dp)
       if (face->ripflag) {
         continue; /* don't process a face twice */
       }
-      computeDefectFaceNormal(mris, face);
+      computeDefectFaceNormal(mris, v->f[n]);
       face->ripflag = TEMPORARY_RIPPED_FACE;
     }
   }
@@ -48751,7 +48882,6 @@ static void computeDefectVertexNormals(MRIS *mris, DP *dp)
   int n, m;
   float nx, ny, nz, len;
   TP *tp;
-  FACE *face;
   VERTEX *v;
 
   tp = &dp->tp;
@@ -48762,11 +48892,10 @@ static void computeDefectVertexNormals(MRIS *mris, DP *dp)
     /* compute normal at vertex */
     nx = ny = nz = 0.0f;
     for (m = 0; m < v->num; m++) {
-      face = &mris->faces[v->f[m]];
-
-      nx += face->nx;
-      ny += face->ny;
-      nz += face->nz;
+      FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, v->f[m]);
+      nx += fNorm->nx;
+      ny += fNorm->ny;
+      nz += fNorm->nz;
     }
     /* normalize */
     len = sqrt(nx * nx + ny * ny + nz * nz);
@@ -51459,10 +51588,11 @@ static int defectIdentifyDefectiveVertices(MRI_SURFACE *mris,
   for (n = 0; n < defect->nvertices; n++) {
     v = &mris->vertices[defect->vertices[n]];
     for (p = 0; p < v->num; p++) {
-      f = &mris->faces[v->f[p]];
+      int const fno = v->f[p];
+      f = &mris->faces[fno];
       f->ripflag = 0;
       /* store information */
-      f->orig_area = f->area;
+      setFaceOrigArea(mris, fno, f->area);
     }
   }
 
@@ -51515,8 +51645,9 @@ static int defectIdentifyDefectiveVertices(MRI_SURFACE *mris,
   for (n = 0; n < defect->nvertices; n++) {
     v = &mris->vertices[defect->vertices[n]];
     for (p = 0; p < v->num; p++) {
+      FaceNormCacheEntry const * fNorm = getFaceNorm(mris, v->f[p]);
       f = &mris->faces[v->f[p]];
-      f->area = f->orig_area;
+      f->area = fNorm->orig_area;
     }
   }
 
@@ -54555,7 +54686,7 @@ MRI *MRISbinarizeVolume(MRI_SURFACE *mris, MRI_REGION *region, float resolution,
 #endif
   for (p = 0; p < mris->nfaces; p++) {
     ROMP_PFLB_begin
-    computeDefectFaceNormal(mris, &mris->faces[p]);
+    computeDefectFaceNormal(mris, p);
     ROMP_PFLB_end
   }
   ROMP_PF_end
@@ -54604,9 +54735,10 @@ MRI *MRISbinarizeVolume(MRI_SURFACE *mris, MRI_REGION *region, float resolution,
     kmax = MIN(kmax, mri_distance->depth - 1);
 
     /* generating the pseudo-normals for edges and vertices */
-    n_f[0] = face->nx;
-    n_f[1] = face->ny;
-    n_f[2] = face->nz;
+    FaceNormCacheEntry const * fNorm = getFaceNorm(mris, fno);
+    n_f[0] = fNorm->nx;
+    n_f[1] = fNorm->ny;
+    n_f[2] = fNorm->nz;
 
     /* edge0: x0 <--> x1 */
     e0[0] = x1 - x0;
@@ -54614,9 +54746,10 @@ MRI *MRISbinarizeVolume(MRI_SURFACE *mris, MRI_REGION *region, float resolution,
     e0[2] = z1 - z0;
     F_CROSS(n_f, e0, n0);
     fn1 = findOtherEdgeFace(mris, fno, face->v[0], face->v[1]);
-    n_e0[0] = face->nx + mris->faces[fn1].nx;
-    n_e0[1] = face->ny + mris->faces[fn1].ny;
-    n_e0[2] = face->nz + mris->faces[fn1].nz;
+    FaceNormCacheEntry const * fNorm0 = getFaceNorm(mris, fn1);
+    n_e0[0] = fNorm->nx + fNorm0->nx;
+    n_e0[1] = fNorm->ny + fNorm0->ny;
+    n_e0[2] = fNorm->nz + fNorm0->nz;
 
     /* edge1: x1 <--> x2 */
     e1[0] = x2 - x1;
@@ -54624,9 +54757,10 @@ MRI *MRISbinarizeVolume(MRI_SURFACE *mris, MRI_REGION *region, float resolution,
     e1[2] = z2 - z1;
     F_CROSS(n_f, e1, n1);
     fn1 = findOtherEdgeFace(mris, fno, face->v[1], face->v[2]);
-    n_e1[0] = face->nx + mris->faces[fn1].nx;
-    n_e1[1] = face->ny + mris->faces[fn1].ny;
-    n_e1[2] = face->nz + mris->faces[fn1].nz;
+    FaceNormCacheEntry const * fNorm1 = getFaceNorm(mris, fn1);
+    n_e1[0] = fNorm->nx + fNorm1->nx;
+    n_e1[1] = fNorm->ny + fNorm1->ny;
+    n_e1[2] = fNorm->nz + fNorm1->nz;
 
     /* edge2: x2 <--> x0 */
     e2[0] = x0 - x2;
@@ -54634,9 +54768,10 @@ MRI *MRISbinarizeVolume(MRI_SURFACE *mris, MRI_REGION *region, float resolution,
     e2[2] = z0 - z2;
     F_CROSS(n_f, e2, n2);
     fn1 = findOtherEdgeFace(mris, fno, face->v[2], face->v[0]);
-    n_e2[0] = face->nx + mris->faces[fn1].nx;
-    n_e2[1] = face->ny + mris->faces[fn1].ny;
-    n_e2[2] = face->nz + mris->faces[fn1].nz;
+    FaceNormCacheEntry const * fNorm2 = getFaceNorm(mris, fn1);
+    n_e2[0] = fNorm->nx + fNorm2->nx;
+    n_e2[1] = fNorm->ny + fNorm2->ny;
+    n_e2[2] = fNorm->nz + fNorm2->nz;
 
     /* vertex pseudo-normals */
     computeVertexPseudoNormal(mris, face->v[0], n_v0, 0);
@@ -54838,7 +54973,6 @@ static float mrisDefectFaceMRILogLikelihood(
   double x, y, z, nx, ny, nz, xv, yv, zv, white_val, gray_val, val;
   double int_w, int_g;
   double fll, t_area, tf_area;
-  FACE *face;
   VERTEX *v0, *v1, *v2;
 
 #if 1
@@ -54848,8 +54982,10 @@ static float mrisDefectFaceMRILogLikelihood(
   fll = 0.0;
   int_w = int_g = 0.0;
   for (n = 0; n < tp->nfaces; n++) {
-    face = &mris->faces[tp->faces[n]];
-
+    int const fno = tp->faces[n];
+    FACE * const face = &mris->faces[fno];
+    FaceNormCacheEntry const * fNorm = getFaceNorm(mris, fno);
+    
     vno0 = face->v[0];
     vno1 = face->v[1];
     vno2 = face->v[2];
@@ -54864,9 +55000,9 @@ static float mrisDefectFaceMRILogLikelihood(
     z = (v0->origz + v1->origz + v2->origz) / 3.0f;
 
     /* face normal */
-    nx = face->nx;
-    ny = face->ny;
-    nz = face->nz;
+    nx = fNorm->nx;
+    ny = fNorm->ny;
+    nz = fNorm->nz;
 
 #if MATRIX_ALLOCATION
     mriSurfaceRASToVoxel(x - .5 * nx, y - .5 * ny, z - .5 * nz, &xv, &yv, &zv);
@@ -55239,7 +55375,6 @@ static void vertexPseudoNormal(MRIS *mris1, int vn1, MRIS *mris2, int vn2, float
   int n, n0, n1, n2;
   float v1[3], v2[3], alpha;
   VERTEX *v;
-  FACE *face;
 
   // fprintf(stderr,"-vpn: %d and %d - ",vn1,vn2);
 
@@ -55247,7 +55382,8 @@ static void vertexPseudoNormal(MRIS *mris1, int vn1, MRIS *mris2, int vn2, float
 
   v = &mris1->vertices[vn1];
   for (n = 0; n < v->num; n++) {
-    face = &mris1->faces[v->f[n]];
+    int const fno = v->f[n];
+    FACE * const face = &mris1->faces[fno];
     if (face->marked) {
       continue;  // defect
     }
@@ -55301,14 +55437,17 @@ static void vertexPseudoNormal(MRIS *mris1, int vn1, MRIS *mris2, int vn2, float
     alpha = MAX(0.0, MIN(1.0, F_DOT(v1, v2) / NORM3(v1) / NORM3(v2)));
     alpha = acos(alpha);
 
-    norm[0] += alpha * face->nx;
-    norm[1] += alpha * face->ny;
-    norm[2] += alpha * face->nz;
+    FaceNormCacheEntry const * fNorm = getFaceNorm(mris1, fno);
+
+    norm[0] += alpha * fNorm->nx;
+    norm[1] += alpha * fNorm->ny;
+    norm[2] += alpha * fNorm->nz;
   }
 
   v = &mris2->vertices[vn2];
   for (n = 0; n < v->num; n++) {
-    face = &mris2->faces[v->f[n]];
+    int const fno = v->f[n];
+    FACE* const face = &mris2->faces[fno];
     n0 = v->n[n];
     n1 = (n0 == 2) ? 0 : n0 + 1;
     n2 = (n0 == 0) ? 2 : n0 - 1;
@@ -55357,9 +55496,10 @@ static void vertexPseudoNormal(MRIS *mris1, int vn1, MRIS *mris2, int vn2, float
     alpha = MAX(0.0, MIN(1.0, F_DOT(v1, v2) / NORM3(v1) / NORM3(v2)));
     alpha = acos(alpha);
 
-    norm[0] += alpha * face->nx;
-    norm[1] += alpha * face->ny;
-    norm[2] += alpha * face->nz;
+    FaceNormCacheEntry const * fNorm = getFaceNorm(mris2, fno);
+    norm[0] += alpha * fNorm->nx;
+    norm[1] += alpha * fNorm->ny;
+    norm[2] += alpha * fNorm->nz;
   }
 }
 
@@ -55368,13 +55508,13 @@ static void computeVertexPseudoNormal(MRIS const *mris, int vno, float norm[3], 
   int n, n0, n1, n2;
   float v1[3], v2[3], alpha;
   VERTEX const *v;
-  FACE   const *face;
   v = &mris->vertices[vno];
 
   norm[0] = norm[1] = norm[2] = 0;
 
   for (n = 0; n < v->num; n++) {
-    face = &mris->faces[v->f[n]];
+    int const fno = v->f[n];
+    FACE   const * const face = &mris->faces[fno];
 
     n0 = v->n[n];
     n1 = (n0 == 2) ? 0 : n0 + 1;
@@ -55421,9 +55561,10 @@ static void computeVertexPseudoNormal(MRIS const *mris, int vno, float norm[3], 
     alpha = MAX(0.0, MIN(1.0, F_DOT(v1, v2) / NORM3(v1) / NORM3(v2)));
     alpha = acos(alpha);
 
-    norm[0] += alpha * face->nx;
-    norm[1] += alpha * face->ny;
-    norm[2] += alpha * face->nz;
+    FaceNormCacheEntry const * fNorm = getFaceNorm(mris, fno);
+    norm[0] += alpha * fNorm->nx;
+    norm[1] += alpha * fNorm->ny;
+    norm[2] += alpha * fNorm->nz;
   }
 }
 
@@ -55471,9 +55612,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
   float x0, x1, x2, y0, y1, y2, z0, z1, z2;
   float x, y, z;
 
-  int fno, fn1;
+  int fn1;
   int delta;
-  FACE *face, *oface;
   int imin, imax, jmin, jmax, kmin, kmax;
   float distance, sign, scale;
   float n_f[3], n_e0[3], n_e1[3], n_e2[3], n_v0[3], n_v1[3], n_v2[3];
@@ -55534,20 +55674,24 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
 
   /* find the distance to each surface voxels */
   for (p = 0; p < mris_defect->nfaces + mris_source->nfaces; p++) {
+    int fno_init;
+    
     if (p >= mris_defect->nfaces) {
       mris = mris_source;
-      fno = p - mris_defect->nfaces;
+      fno_init = p - mris_defect->nfaces;
       wsurf = 1;  // using source surface
-      if (mris->faces[fno].marked) {
+      if (mris->faces[fno_init].marked) {
         continue;
       }
     }
     else {
-      fno = p;
+      fno_init = p;
       mris = mris_defect;
       wsurf = 0;  // using defect surface
     }
-    face = &mris->faces[fno];
+    
+    int const fno = fno_init;
+    FACE * const face = &mris->faces[fno];
 
     // calculate three vertices
     x0 = mris->vertices[face->v[0]].origx;
@@ -55589,16 +55733,22 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
     //////////////////////////////////////////////////////////////
     /* generating the pseudo-normals for edges and vertices */
     // normal for the current face
-    n_f[0] = face->nx;
-    n_f[1] = face->ny;
-    n_f[2] = face->nz;
+    FaceNormCacheEntry const * fNorm = getFaceNorm(mris, fno);
+    n_f[0] = fNorm->nx;
+    n_f[1] = fNorm->ny;
+    n_f[2] = fNorm->nz;
 
     /* edge0: x0 <--> x1 */
+    {
+    
     e0[0] = x1 - x0;
     e0[1] = y1 - y0;
     e0[2] = z1 - z0;
     F_CROSS(n_f, e0, n0);
     fn1 = findOtherEdgeFace(mris, fno, face->v[0], face->v[1]);
+
+    MRIS* oface_mris_init = mris;
+    int   oface_fno_init  = fn1;
     if (wsurf) {
       // source surface
       if (mris->faces[fn1].marked) {
@@ -55610,10 +55760,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
           fprintf(stderr, "fn1=-1 in defect- should not happen\n");
           fn1 = fno;
         }
-        oface = &mris_defect->faces[fn1];
-      }
-      else {
-        oface = &mris->faces[fn1];
+        oface_fno_init  = fn1;              // note change to fn1 just above
+        oface_mris_init = mris_defect;
       }
     }
     else {
@@ -55626,22 +55774,32 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
           fprintf(stderr, "fn1=-1 in source- should not happen\n");
           fn1 = fno;  // sanity check
         }
-        oface = &mris_source->faces[fn1];
-      }
-      else {
-        oface = &mris->faces[fn1];
+        oface_fno_init  = fn1;              // note change to fn1 just above
+        oface_mris_init = mris_source;
       }
     }
-    n_e0[0] = face->nx + oface->nx;
-    n_e0[1] = face->ny + oface->ny;
-    n_e0[2] = face->nz + oface->nz;
+    MRIS*  const oface_mris = oface_mris_init;
+    int    const oface_fno  = oface_fno_init;
+    
+    FaceNormCacheEntry const * ofNorm = getFaceNorm(oface_mris, oface_fno);
+    
+    n_e0[0] = fNorm->nx + ofNorm->nx;
+    n_e0[1] = fNorm->ny + ofNorm->ny;
+    n_e0[2] = fNorm->nz + ofNorm->nz;
 
-    /* edge1: x1 <--> x2 */
+    }
+    
+    /* edge1: x1 <--> x2 */    
+    {
+    
     e1[0] = x2 - x1;
     e1[1] = y2 - y1;
     e1[2] = z2 - z1;
     F_CROSS(n_f, e1, n1);
     fn1 = findOtherEdgeFace(mris, fno, face->v[1], face->v[2]);
+    
+    MRIS* oface_mris_init = mris;
+    int   oface_fno_init  = fn1;
     if (wsurf) {
       // source surface
       if (mris->faces[fn1].marked) {
@@ -55653,10 +55811,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
           fprintf(stderr, "fn1=-1 in defect- should not happen\n");
           fn1 = fno;
         }
-        oface = &mris_defect->faces[fn1];
-      }
-      else {
-        oface = &mris->faces[fn1];
+        oface_fno_init  = fn1;              // note change to fn1 just above
+        oface_mris_init = mris_defect;
       }
     }
     else {
@@ -55669,22 +55825,33 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
           fprintf(stderr, "fn1=-1 in source- should not happen\n");
           fn1 = fno;  // sanity check
         }
-        oface = &mris_source->faces[fn1];
-      }
-      else {
-        oface = &mris->faces[fn1];
+        oface_fno_init  = fn1;              // note change to fn1 just above
+        oface_mris_init = mris_source;
       }
     }
-    n_e1[0] = face->nx + oface->nx;
-    n_e1[1] = face->ny + oface->ny;
-    n_e1[2] = face->nz + oface->nz;
+    MRIS*  const oface_mris = oface_mris_init;
+    int    const oface_fno  = oface_fno_init;
 
+    FaceNormCacheEntry const * ofNorm = getFaceNorm(oface_mris, oface_fno);
+
+    n_e1[0] = fNorm->nx + ofNorm->nx;
+    n_e1[1] = fNorm->ny + ofNorm->ny;
+    n_e1[2] = fNorm->nz + ofNorm->nz;
+
+    }
+    
     /* edge2: x2 <--> x0 */
+    {
+    
     e2[0] = x0 - x2;
     e2[1] = y0 - y2;
     e2[2] = z0 - z2;
     F_CROSS(n_f, e2, n2);
     fn1 = findOtherEdgeFace(mris, fno, face->v[2], face->v[0]);
+
+    MRIS* oface_mris_init = mris;
+    int   oface_fno_init  = fn1;
+
     if (wsurf) {
       // source surface
       if (mris->faces[fn1].marked) {
@@ -55696,10 +55863,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
           fprintf(stderr, "fn1=-1 in defect- should not happen\n");
           fn1 = fno;
         }
-        oface = &mris_defect->faces[fn1];
-      }
-      else {
-        oface = &mris->faces[fn1];
+        oface_fno_init  = fn1;              // note change to fn1 just above
+        oface_mris_init = mris_defect;
       }
     }
     else {
@@ -55712,15 +55877,21 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
           fprintf(stderr, "fn1=-1 in source- should not happen\n");
           fn1 = fno;  // sanity check
         }
-        oface = &mris_source->faces[fn1];
-      }
-      else {
-        oface = &mris->faces[fn1];
+        oface_fno_init  = fn1;              // note change to fn1 just above
+        oface_mris_init = mris_source;
       }
     }
-    n_e2[0] = face->nx + oface->nx;
-    n_e2[1] = face->ny + oface->ny;
-    n_e2[2] = face->nz + oface->nz;
+
+    MRIS*  const oface_mris = oface_mris_init;
+    int    const oface_fno  = oface_fno_init;
+
+    FaceNormCacheEntry const * ofNorm = getFaceNorm(oface_mris, oface_fno);
+    
+    n_e2[0] = fNorm->nx + ofNorm->nx;
+    n_e2[1] = fNorm->ny + ofNorm->ny;
+    n_e2[2] = fNorm->nz + ofNorm->nz;
+
+    }
 
     /* vertex pseudo-normals */
     if (wsurf) {
@@ -56094,17 +56265,12 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     }
   }
 
-  { int p;
-    ROMP_PF_begin  
-#ifdef HAVE_OPENMP
-    #pragma omp parallel for if_ROMP(assume_reproducible) 
-#endif
-    for (p = 0; p < mris->nfaces; p++) {
-      ROMP_PFLB_begin
-      computeDefectFaceNormal(mris_nonconst, &mris_nonconst->faces[p]);	// MODIFIER
-      ROMP_PFLB_end
-    }
-    ROMP_PF_end
+
+  if (1) {
+    computeDefectContext->mris_deferred_norms = mris_nonconst;  // MODIFIER
+    deferSetFaceNorms(mris_nonconst);
+  } else {
+    undeferSetFaceNorms(mris_nonconst);                         // old code 
   }
 
 
@@ -56441,9 +56607,10 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     {
       int fn1;
     
-      n_f[0] = face->nx;
-      n_f[1] = face->ny;
-      n_f[2] = face->nz;
+      FaceNormCacheEntry const * fNorm = getFaceNorm(mris, fno);
+      n_f[0] = fNorm->nx;
+      n_f[1] = fNorm->ny;
+      n_f[2] = fNorm->nz;
 
       /* edge0: x0 <--> x1 */
       e0[0] = x1 - x0;
@@ -56452,9 +56619,10 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     
       F_CROSS(n_f, e0, n0);
       fn1 = findOtherEdgeFace(mris, fno, face->v[0], face->v[1]);
-      n_e0[0] = face->nx + mris->faces[fn1].nx;
-      n_e0[1] = face->ny + mris->faces[fn1].ny;
-      n_e0[2] = face->nz + mris->faces[fn1].nz;
+      FaceNormCacheEntry const * fNorm0 = getFaceNorm(mris, fn1);
+      n_e0[0] = fNorm->nx + fNorm0->nx;
+      n_e0[1] = fNorm->ny + fNorm0->ny;
+      n_e0[2] = fNorm->nz + fNorm0->nz;
 
       /* edge1: x1 <--> x2 */
       e1[0] = x2 - x1;
@@ -56463,9 +56631,10 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 
       F_CROSS(n_f, e1, n1);
       fn1 = findOtherEdgeFace(mris, fno, face->v[1], face->v[2]);
-      n_e1[0] = face->nx + mris->faces[fn1].nx;
-      n_e1[1] = face->ny + mris->faces[fn1].ny;
-      n_e1[2] = face->nz + mris->faces[fn1].nz;
+      FaceNormCacheEntry const * fNorm1 = getFaceNorm(mris, fn1);
+      n_e1[0] = fNorm->nx + fNorm1->nx;
+      n_e1[1] = fNorm->ny + fNorm1->ny;
+      n_e1[2] = fNorm->nz + fNorm1->nz;
 
       /* edge2: x2 <--> x0 */
       e2[0] = x0 - x2;
@@ -56474,9 +56643,10 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 
       F_CROSS(n_f, e2, n2);
       fn1 = findOtherEdgeFace(mris, fno, face->v[2], face->v[0]);
-      n_e2[0] = face->nx + mris->faces[fn1].nx;
-      n_e2[1] = face->ny + mris->faces[fn1].ny;
-      n_e2[2] = face->nz + mris->faces[fn1].nz;
+      FaceNormCacheEntry const * fNorm2 = getFaceNorm(mris, fn1);
+      n_e2[0] = fNorm->nx + fNorm2->nx;
+      n_e2[1] = fNorm->ny + fNorm2->ny;
+      n_e2[2] = fNorm->nz + fNorm2->nz;
     }
 
     /* vertex pseudo-normals */
@@ -58477,14 +58647,12 @@ static int mrisTessellateDefect_wkr(MRI_SURFACE *mris,
       break;
   }
 
-  ROMP_PF_begin
   free(es);
   if (ordering) {
     free(ordering);
   }
   free(et);
   defect_no++; /* for diagnostics */
-  ROMP_PF_end
   
   return (NO_ERROR);
 }
@@ -60404,7 +60572,6 @@ debug_use_this_patch:
 
   /* free everything */
   destructComputeDefectContext(&computeDefectContext);
-
   mrisFreeDefectVertexState(dvs);
 
   for (i = 0; i < max_patches; i++) {
@@ -71988,8 +72155,16 @@ short VERTICES_commonInFaces_find(FACE *apFACE_I, FACE *apFACE_J, VECTOR *apv_ve
   return k;
 }
 
-short FACES_Hcurvature_determineSign(MRIS *apmris, FACE *apFACE_O, FACE *apFACE_I)
+short FACES_Hcurvature_determineSign(MRIS *apmris,
+    	int			apFACE_O_fno,
+    	int			apFACE_I_fno)
 {
+  FACE * const apFACE_O = &apmris->faces[apFACE_O_fno];
+  FACE * const apFACE_I = &apmris->faces[apFACE_I_fno];
+  
+  FaceNormCacheEntry const * const apFNorm_O = getFaceNorm(apmris, apFACE_O_fno);
+  FaceNormCacheEntry const * const apFNorm_I = getFaceNorm(apmris, apFACE_I_fno);
+
   //
   // PRECONDITIONS
   //  o Typically called from MRIS_Hcurvature_determineSign()
@@ -72049,8 +72224,8 @@ short FACES_Hcurvature_determineSign(MRIS *apmris, FACE *apFACE_O, FACE *apFACE_
   pVERTEX_I = &apmris->vertices[vertexI];
   V3_LOAD(pv_O, pVERTEX_O->x, pVERTEX_O->y, pVERTEX_O->z);
   V3_LOAD(pv_I, pVERTEX_I->x, pVERTEX_I->y, pVERTEX_I->z);
-  V3_LOAD(pv_normalO, apFACE_O->nx, apFACE_O->ny, apFACE_O->nz);
-  V3_LOAD(pv_normalI, apFACE_I->nx, apFACE_I->ny, apFACE_I->nz);
+  V3_LOAD(pv_normalO, apFNorm_O->nx, apFNorm_O->ny, apFNorm_O->nz);
+  V3_LOAD(pv_normalI, apFNorm_I->nx, apFNorm_I->ny, apFNorm_I->nz);
 
   for (sign = 1; sign >= -1; sign -= 2) {
     V3_SCALAR_MUL(pv_normalO, sign, pv_normalO);
@@ -72131,9 +72306,10 @@ int VERTEX_faceAngles_determine(MRIS *apmris, int avertex, VECTOR *apv_angle)
 
   for (face = 0; face < nfaces; face++) {
     pFACE_side = &apmris->faces[pVERTEX_apex->f[face]];
-    VECTOR_ELT(pv_faceNormal, 1) = pFACE_side->nx;
-    VECTOR_ELT(pv_faceNormal, 2) = pFACE_side->ny;
-    VECTOR_ELT(pv_faceNormal, 3) = pFACE_side->nz;
+    FaceNormCacheEntry const * const pFNorm_side = getFaceNorm(apmris, pVERTEX_apex->f[face]);
+    VECTOR_ELT(pv_faceNormal, 1) = pFNorm_side->nx;
+    VECTOR_ELT(pv_faceNormal, 2) = pFNorm_side->ny;
+    VECTOR_ELT(pv_faceNormal, 3) = pFNorm_side->nz;
     f_lenFaceNormal = V3_LEN(pv_faceNormal);
     f_lenNormals = f_lenApexNormal * f_lenFaceNormal;
     f_dot = V3_DOT(pv_apexNormal, pv_faceNormal);
@@ -72261,8 +72437,6 @@ int MRIS_Hcurvature_determineSign(MRIS *apmris)
   VERTEX *pVERTEX = NULL;
   int ret = 1;
   int signSum = 0;
-  FACE *pFACE_I;
-  FACE *pFACE_J;
 
   for (vertex = 0; vertex < apmris->nvertices; vertex++) {
     MRIS_vertexProgress_print(apmris, vertex, "Determining H sign for vertex faces...");
@@ -72270,9 +72444,7 @@ int MRIS_Hcurvature_determineSign(MRIS *apmris)
     nfaces = pVERTEX->num;
     signSum = 0;
     for (face = 0; face < nfaces; face++) {
-      pFACE_I = &apmris->faces[pVERTEX->f[face]];
-      pFACE_J = &apmris->faces[pVERTEX->f[(face + 1) % nfaces]];
-      signSum += FACES_Hcurvature_determineSign(apmris, pFACE_I, pFACE_J);
+      signSum += FACES_Hcurvature_determineSign(apmris, pVERTEX->f[face], pVERTEX->f[(face + 1) % nfaces]);
     }
     pVERTEX->undefval = (signSum >= 0) ? 1 : -1;
   }
@@ -72452,8 +72624,14 @@ short FACES_aroundVertex_reorder(MRIS *apmris, int avertex, VECTOR *pv_geometric
   return 1;
 }
 
-float FACES_angleNormal_find(MRIS *apmris, FACE *apFACE_I, FACE *apFACE_J)
+float FACES_angleNormal_find(MRIS *apmris, int apFACE_I_fno, int apFACE_J_fno)
 {
+  //FACE * const apFACE_I = &apmris->faces[apFACE_I_fno];
+  //FACE * const apFACE_J = &apmris->faces[apFACE_J_fno];
+
+  FaceNormCacheEntry const * const apFNorm_I = getFaceNorm(apmris, apFACE_I_fno); 
+  FaceNormCacheEntry const * const apFNorm_J = getFaceNorm(apmris, apFACE_J_fno);
+ 
   //
   // PRECONDITIONS
   //  o The <apFACE>s should be triangles with 3 vertices each.
@@ -72484,8 +72662,8 @@ float FACES_angleNormal_find(MRIS *apmris, FACE *apFACE_I, FACE *apFACE_J)
     pv_faceNormalJ = VectorAlloc(3, MATRIX_REAL);
     pv_crossIJ = VectorAlloc(3, MATRIX_REAL);
   }
-  V3_LOAD(pv_faceNormalI, apFACE_I->nx, apFACE_I->ny, apFACE_I->nz);
-  V3_LOAD(pv_faceNormalJ, apFACE_J->nx, apFACE_J->ny, apFACE_J->nz);
+  V3_LOAD(pv_faceNormalI, apFNorm_I->nx, apFNorm_I->ny, apFNorm_I->nz);
+  V3_LOAD(pv_faceNormalJ, apFNorm_J->nx, apFNorm_J->ny, apFNorm_J->nz);
   f_faceNormalIlen = V3_LEN(pv_faceNormalI);
   f_faceNormalJlen = V3_LEN(pv_faceNormalJ);
   if (f_faceNormalIlen > 1.0001 || f_faceNormalJlen > 1.0001)
@@ -72493,7 +72671,7 @@ float FACES_angleNormal_find(MRIS *apmris, FACE *apFACE_I, FACE *apFACE_J)
         -4, "%s: face normal not unit length -- Ni: %f, Nj: %f\n", pch_function, f_faceNormalIlen, f_faceNormalJlen);
   f_faceNormalIJlen = f_faceNormalIlen * f_faceNormalJlen;
   f_dot = V3_DOT(pv_faceNormalI, pv_faceNormalJ);
-  sign = FACES_Hcurvature_determineSign(apmris, apFACE_I, apFACE_J);
+  sign = FACES_Hcurvature_determineSign(apmris, apFACE_I_fno, apFACE_J_fno);
   f_acosArg = f_dot / f_faceNormalIJlen;
   // Check on the bounds of the acos argument. Without this bounds check,
   //  it is quite possible to have 'nan' acos results, especially on 64-bit
@@ -72621,7 +72799,7 @@ short MRIS_discreteKH_compute(MRIS *apmris)
       pFACE_I = &apmris->faces[pFaceIndex[faceI]];
       pFACE_J = &apmris->faces[pFaceIndex[faceJ]];
 
-      f_angleNormalIJ = FACES_angleNormal_find(apmris, pFACE_I, pFACE_J);
+      f_angleNormalIJ = FACES_angleNormal_find  (apmris, pFaceIndex[faceI], pFaceIndex[faceJ]);
       f_edgeLength = FACES_commonEdgeLength_find(apmris, pFACE_I, pFACE_J);
       f_faceAreaSum += pFACE_I->area;
       angleIndex = FACE_vertexIndex_find(pFACE_I, vertex);

@@ -1500,6 +1500,9 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
   /* Create a "watertight" shell of the surface by filling each face in MRI volume */
   for (fno = 0; fno < mris->nfaces; fno++) {
     f = &mris->faces[fno];
+
+    FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, fno);
+
     v_0 = &mris->vertices[f->v[0]];
     v_1 = &mris->vertices[f->v[1]];
     v_2 = &mris->vertices[f->v[2]];
@@ -1568,7 +1571,7 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
           ux = (px - vx) / vlen;
           uy = (py - vy) / vlen;
           uz = (pz - vz) / vlen;
-          cosa = ux * f->nx + uy * f->ny + uz * f->nz;
+          cosa = ux * fNorm->nx + uy * fNorm->ny + uz * fNorm->nz;
           MRIsetVoxVal(mri_cosa, col, row, slc, 0, cosa);
           MRIsetVoxVal(mri_vlen, col, row, slc, 0, vlen);
         }
