@@ -165,7 +165,9 @@ double fdr = -1;
 
 double cwpvalthresh = -1; // pvalue, NOT log10(p)!
 int Bonferroni = 0;
+int BonferroniMax = 0;
 int ReportCentroid = 0;
+int sig2pmax = 0; // convert max value from -log10(p) to p
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -584,13 +586,18 @@ int main(int argc, char **argv) {
     fprintf(fp,"\n");
 
     for (n=0; n < NClusters; n++) {
+      double maxval = scs[n].maxval;
+      if(sig2pmax) {
+	maxval = pow(10.0,-fabs(scs[n].maxval));
+	if(BonferroniMax > 1) maxval *= BonferroniMax;
+      }
       if(ReportCentroid){ // Report Centriod XYZ
-	fprintf(fp,"%4d     %8.3f  %6d  %8.2f   %6.1f %6.1f %6.1f",
-		n+1, scs[n].maxval, scs[n].vtxmaxval, scs[n].area,
-              scs[n].cxxfm, scs[n].cyxfm, scs[n].czxfm);
+	fprintf(fp,"%4d     %9.4f  %6d  %8.2f   %6.1f %6.1f %6.1f",
+		n+1, maxval, scs[n].vtxmaxval, scs[n].area,
+		scs[n].cxxfm, scs[n].cyxfm, scs[n].czxfm);
       } else { // Report Max XYZ
-	fprintf(fp,"%4d     %8.3f  %6d  %8.2f   %6.1f %6.1f %6.1f",
-		n+1, scs[n].maxval, scs[n].vtxmaxval, scs[n].area,
+	fprintf(fp,"%4d     %9.4f  %6d  %8.2f   %6.1f %6.1f %6.1f",
+		n+1, maxval, scs[n].vtxmaxval, scs[n].area,
 		scs[n].xxfm, scs[n].yxfm, scs[n].zxfm);
       }
       if (csd != NULL)
@@ -723,6 +730,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--csdpdf-only")) csdpdfonly = 1;
     else if (!strcmp(option, "--cortex")) UseCortexLabel = 1;
     else if (!strcmp(option, "--centroid")) ReportCentroid = 1;
+    else if (!strcmp(option, "--sig2p-max")) sig2pmax = 1;
     else if (!strcmp(option, "--no-fix-vertex-area")) {
       printf("Turning off fixing of vertex area\n");
       MRISsetFixVertexAreaValue(0);
@@ -736,6 +744,12 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--bonferroni")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&Bonferroni);
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--bonferroni-max")) {
+      if (nargc < 1) argnerr(option,1);
+      // only applies when --sig2pmax is used
+      sscanf(pargv[0],"%d",&BonferroniMax);
       nargsused = 1;
     } 
     else if (!strcmp(option, "--hemi")) {
@@ -998,6 +1012,8 @@ static void print_usage(void) {
   printf("   --vwsig vwsig : map of corrected voxel-wise significances\n");
   printf("   --cwsig cwsig : map of cluster-wise significances\n");
   printf("   --bonferroni N : addition correction across N (eg, spaces)\n");
+  printf("   --sig2p-max : convert max from sig to p\n");
+  printf("   --bonferroni-max N : apply bonf cor to maximum (only applies with --sig2p-max)\n");
   printf("   --csdpdf csdpdffile\n");
   printf("   --csdpdf-only : write csd pdf file and exit.\n");
   printf("   --csd-out out.csd : write out merged csd files as one.\n");
