@@ -50,48 +50,64 @@ addons:
 
 before_install:
   # on osx use brew to install autotools and compiler
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update          ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install libtool ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install automake ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew postinstall automake ; fi
-     # workaround to make install gcc work (first uninstall conflicting oclint)
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew cask uninstall oclint ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install gcc49 ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew postinstall gcc49 ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew update ;
+      brew install libtool ;
+      brew install automake ;
+      brew postinstall automake ;
+    fi
+  # workaround to make install gcc work (first uninstall conflicting oclint)
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+      brew cask uninstall oclint ;
+      brew install gcc49 ;
+      brew postinstall gcc49 ;
+    fi
   # Needs recent git-annex to be able to get -J3 --metadata
-  - if [[ "$TESTS" != "" ]]; then bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh) ; fi
-  - if [[ "$TESTS" != "" ]]; then travis_retry sudo apt-get update -qq ; fi
-  - if [[ "$TESTS" != "" ]]; then travis_retry sudo apt-get install git-annex-standalone ; fi
-  - if [[ "$TESTS" != "" ]]; then git fetch origin git-annex ; fi
-  - if [[ "$TESTS" != "" ]]; then git remote add datasrc http://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/repo/annex.git ; fi
-  - if [[ "$TESTS" != "" ]]; then git fetch datasrc git-annex ; fi
-  - if [[ "$TESTS" != "" ]]; then git annex get -J3 --metadata fstags=makecheck . ; fi
+  - if [[ "$TESTS" != "" ]]; then
+      bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh) ;
+      travis_retry sudo apt-get update -qq ;
+      travis_retry sudo apt-get install git-annex-standalone ;
+      git fetch origin git-annex ;
+      git remote add datasrc http://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/repo/annex.git ;
+      git fetch datasrc git-annex ;
+      git annex get -J3 --metadata fstags=makecheck . ;
+    fi
 
 install:
   # Install library packages needed to compile FreeSurfer
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl -O ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/centos6_x86_64/centos6-x86_64-packages.tar.gz ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then tar -xzf centos6-x86_64-packages.tar.gz  ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then rm centos6-x86_64-packages.tar.gz  ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cd centos6-x86_64-packages  ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./setup.sh ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then cd .. ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      curl -O ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/centos6_x86_64/centos6-x86_64-packages.tar.gz ;
+      tar -xzf centos6-x86_64-packages.tar.gz  ;
+      rm centos6-x86_64-packages.tar.gz  ;
+      cd centos6-x86_64-packages  ;
+      ./setup.sh ;
+      cd .. ;
+    fi
   # different package on osx
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then mkdir osx-lion-packages ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then cd osx-lion-packages ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then curl -O ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/OSX/osx-lion-packages.tar.gz ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then tar -xzf osx-lion-packages.tar.gz ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then rm osx-lion-packages.tar.gz ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then cd .. ; fi
- 
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then
+      mkdir osx-lion-packages ;
+      cd osx-lion-packages ;
+      curl -O ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/OSX/osx-lion-packages.tar.gz ;
+      tar -xzf osx-lion-packages.tar.gz ;
+      rm osx-lion-packages.tar.gz ;
+      cd .. ;
+    fi
+
 script:
   # configure and build freesurfer
   - ./setup_configure
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/centos6-x86_64-packages --disable-Werror --disable-GUI-build ; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/osx-lion-packages       --disable-Werror --disable-GUI-build  F77=/usr/local/bin/gfortran-4.9 CC=/usr/local/bin/gcc-4.9 CXX=/usr/local/bin/g++-4.9 ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/centos6-x86_64-packages --disable-Werror --disable-GUI-build ;
+    fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then
+      ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/osx-lion-packages       --disable-Werror --disable-GUI-build  F77=/usr/local/bin/gfortran-4.9 CC=/usr/local/bin/gcc-4.9 CXX=/usr/local/bin/g++-4.9 ;
+    fi
   - travis_wait 40 ./travis_make.sh || travis_terminate 1
   # run tests
-  - if [[ "$TESTS" != "" ]]; then travis_wait 60 ./run_selected_tests ; fi
+  - if [[ "$TESTS" != "" ]]; then
+       travis_wait 60 ./run_selected_tests ;
+    fi
 
 after_failure:
   - tail -n 200 build.log
-  
+
