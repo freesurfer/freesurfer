@@ -668,7 +668,7 @@ static void computeDefectFaceNormal_calculate(
     MRIS const * const mris, int const fno, float* p_nx, float* p_ny, float* p_nz, float* p_orig_area);
      
 
-static void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz) {
+void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz) {
     FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
     fNorm->nx = nx;
     fNorm->ny = ny;

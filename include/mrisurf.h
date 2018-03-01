@@ -530,7 +530,7 @@ LIST_OF_MRIS_ELTS ;
 MRI_SURFACE, MRIS ;
 
 FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno);
-
+void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz);
 
 // Support for writing traces that can be compared across test runs to help find where differences got introduced  
 //
