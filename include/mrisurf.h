@@ -78,6 +78,17 @@ typedef struct _area_label
 }
 MRIS_AREA_LABEL ;
 
+struct MRIS;
+
+typedef struct FaceNormCacheEntry {
+    // inputs
+        // may have to capture them if the inputs change
+    // flag saying the calculation has been deferred
+        int deferred;
+    // value
+        float nx,ny,nz,orig_area;
+} FaceNormCacheEntry;
+
 /*
   the vertices in the face structure are arranged in
   counter-clockwise fashion when viewed from the outside.
@@ -85,20 +96,23 @@ MRIS_AREA_LABEL ;
 typedef int   vertices_per_face_t[VERTICES_PER_FACE];
 typedef float angles_per_triangle_t[ANGLES_PER_TRIANGLE];
 
+// the face norm elements have moved into the FaceNormalCacheEntry
+/*  ELTT(float,nx) SEP    \
+    ELTT(float,ny) SEP    \
+    ELTT(float,nz) SEP    \
+    ELTT(float,orig_area) SEP    \
+*/
+
 typedef struct face_type_
 {
 #define LIST_OF_FACE_ELTS_1    \
   ELTT(vertices_per_face_t,v) SEP               /* vertex numbers of this face */    \
-  ELTT(float,nx) SEP    \
-  ELTT(float,ny) SEP    \
-  ELTT(float,nz) SEP    \
   ELTT(float,area) SEP    \
-  ELTT(float,orig_area) SEP    \
   ELTT(angles_per_triangle_t,angle) SEP    \
   ELTT(angles_per_triangle_t,orig_angle) SEP    \
   ELTT(char,ripflag) SEP                        /* ripped face */    \
   ELTT(char,oripflag) SEP                       /* stored version */    \
-  ELTT(int,marked) SEP                         /* marked face */    \
+  ELTT(int,marked) SEP                          /* marked face */    \
     // end of macro
 #if 0
   float logshear,shearx,sheary;  /* compute_shear */
@@ -384,7 +398,7 @@ typedef char   *MRIS_cmdlines_t[MAX_CMDS] ;
 typedef char    MRIS_subject_name_t[STRLEN] ;
 typedef char    MRIS_fname_t[STRLEN] ;
 
-typedef struct
+typedef struct MRIS
 {
 // The LIST_OF_MRIS_ELTS macro used here enables the the mris_hash
 // and other algorithms to process all the elements without having to explicitly name them there and here
@@ -396,6 +410,7 @@ typedef struct
   ELTT(int,nstrips) SEP    \
   ELTP(VERTEX,vertices) SEP    \
   ELTP(FACE,faces) SEP    \
+  ELTP(FaceNormCacheEntry,faceNormCacheEntries) SEP \
   ELTP(STRIP,strips) SEP    \
   ELTT(float,xctr) SEP    \
   ELTT(float,yctr) SEP    \
@@ -513,6 +528,8 @@ LIST_OF_MRIS_ELTS ;
 
 }
 MRI_SURFACE, MRIS ;
+
+FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno);
 
 
 // Support for writing traces that can be compared across test runs to help find where differences got introduced  
@@ -2196,8 +2213,8 @@ short	VERTICES_commonInFaces_find(
 
 short	FACES_Hcurvature_determineSign(
     	MRIS*			apmris,
-    	FACE*			apFACE_O,
-    	FACE*			apFACE_I
+    	int			apFACE_O_fno,
+    	int			apFACE_I_fno
 );
 
 int	VERTEX_faceAngles_determine(
@@ -2231,8 +2248,8 @@ short	FACES_aroundVertex_reorder(
 
 float	FACES_angleNormal_find(
     	MRIS*			apmris,
-    	FACE*			apFACE_I,
-    	FACE*			apFACE_J
+    	int			apFACE_I_fno,
+    	int			apFACE_J_fno
 );
 
 float	FACES_commonEdgeLength_find(

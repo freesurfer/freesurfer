@@ -110,7 +110,6 @@ volFraction MRIcomputeVoxelFractions(octTreeVoxel V, VERTEX *v, double acc, int 
      mris: mri surface required for face normal information.
    */
   int fnum, fiter, j, k;
-  FACE *f;
   double meanNorm[3], meanVert[3];
   /* get the faces the closest vertex to the point (xs,ys,zs) is a part of */
   fnum = v->num;
@@ -122,10 +121,10 @@ volFraction MRIcomputeVoxelFractions(octTreeVoxel V, VERTEX *v, double acc, int 
   meanNorm[1] = 0.0;
   meanNorm[2] = 0.0;
   for (fiter = 0; fiter < fnum; fiter++) {
-    f = &mris->faces[v->f[fiter]];
-    meanNorm[0] = meanNorm[0] + f->nx / (double)fnum;
-    meanNorm[1] = meanNorm[1] + f->ny / (double)fnum;
-    meanNorm[2] = meanNorm[2] + f->nz / (double)fnum;
+    FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, v->f[fiter]);
+    meanNorm[0] = meanNorm[0] + fNorm->nx / (double)fnum;
+    meanNorm[1] = meanNorm[1] + fNorm->ny / (double)fnum;
+    meanNorm[2] = meanNorm[2] + fNorm->nz / (double)fnum;
   }
   meanVert[0] = v->x;
   meanVert[1] = v->y;

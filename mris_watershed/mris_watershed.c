@@ -53,6 +53,8 @@ static int merge_type = MERGE_SMALLEST ; //MERGE_MOST_SIMILAR ;
 static int nbrs = 3 ;
 static int max_clusters = 60 ;
 
+static LABEL *mask_label= NULL ;
+
 int
 main(int argc, char *argv[])
 {
@@ -89,6 +91,21 @@ main(int argc, char *argv[])
   out_fname = argv[3] ;
 
   MRISresetNeighborhoodSize(mris, nbrs) ;
+  if (mask_label)
+  {
+    int vno ;
+    VERTEX *v ;
+    
+    LabelMark(mask_label, mris) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->marked == 0)
+	MRIsetVoxVal(mri, vno, 0, 0, 0, 0);
+    }
+    LabelUnmark(mask_label, mris) ;
+  }
+
   MRISinitWatershed(mris, mri) ;
   MRISwatershed(mris, mri, max_clusters, merge_type) ;
   nlabels = MRISfindMaxLabel(mris)+1 ;
@@ -135,6 +152,8 @@ print_help(void) {
           "and writes the resulting measurement into a .annot file\n"
           "<output file>.\n") ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
+  fprintf(stderr, "\t-M <max clusters>: set the number of clusters\n") ;
+  fprintf(stderr, "\t-mask_label <label>: read in and mask the input volume that is not in the specified label\n") ;
   exit(1) ;
 }
 
@@ -168,9 +187,9 @@ get_option(int argc, char *argv[]) {
   {
     nargs = 1 ;
     printf("reading masking label from %s\n", argv[2]) ;
-//    mask_label = LabelRead(NULL,argv[2]) ;
-//    if (mask_label == NULL)
-//      ErrorExit(ERROR_NOFILE, "%s: could not load label %s for masking\n", Progname, argv[2]) ;
+    mask_label = LabelRead(NULL,argv[2]) ;
+    if (mask_label == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load label %s for masking\n", Progname, argv[2]) ;
   }
   else if (!stricmp(option, "dilate") || !stricmp(option, "label_dilate") ||
 	   !stricmp(option, "dilate_label"))
@@ -190,6 +209,11 @@ get_option(int argc, char *argv[]) {
     case 'N':
       nbrs = atoi(argv[2]) ;
       fprintf(stderr, "using neighborhood size=%d\n", nbrs) ;
+      nargs = 1 ;
+      break ;
+    case 'M':
+      max_clusters = atoi(argv[2]) ;
+      printf("using max clusters=%d\n", max_clusters) ;
       nargs = 1 ;
       break ;
     case 'V':
