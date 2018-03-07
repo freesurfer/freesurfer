@@ -32,7 +32,7 @@ comparisons. See https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/FsPalm
 for more info. PALM was written by Anderson Winkler:
 fsl.fmrib.ox.ac.uk/fsl/fslwiki/PALM"""
 
-parser = argparse.ArgumentParser(description=description, allow_abbrev=False, formatter_class=argparse.RawTextHelpFormatter)
+parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
 parser._action_groups.pop()  #  list required arguments before optional
 # required args
 required = parser.add_argument_group('required arguments')
@@ -63,11 +63,11 @@ args = parser.parse_args()
 # retrieve any additional palm arguments
 extra_opts = []
 if args.pargs:
-  extra_opts += shlex.split(args.pargs)
+  extra_opts += [ "'%s'" % x for x in shlex.split(args.pargs)]
 
 # two-tailed test
 if args.twotail:
-  extra_opts.append('-twotail')
+  extra_opts.append("'-twotail'")
 
 # check glmdir
 glmdir = os.path.abspath(args.glmdir)
@@ -130,7 +130,7 @@ else:
     errExit('you must set the SUBJECTS_DIR envionment variable to do surface-based analysis')
   # get the surface file path
   surface_file = os.path.join(subjects_dir, targ_subject, 'surf', hemi + '.white')
-  extra_opts += ['-s', 'surffile']
+  extra_opts += ["'-s'", "surffile"]
   # run a couple more sanity checks
   if not os.path.isdir(os.path.join(subjects_dir, targ_subject)):
     errExit('subject %s does not exist in current SUBJECTS_DIR (%s)' % (targ_subject, subjects_dir))
@@ -207,6 +207,16 @@ if maskfile.endswith('.nii.gz'):
 
 
 # ---- matlab script ----
+os.chdir(palmdir)
+# delete any previous palm outfiles
+if len(contrast_names) == 1:
+  fwep_file_list = ['fsp_clustere_tstat_fwep.mgz']
+else:
+  fwep_file_list = ['fsp_clustere_tstat_fwep_c%d.mgz' % (i+1) for i in range(len(contrast_names))]
+for fwep_file in fwep_file_list:
+  if os.path.isfile(fwep_file):
+    os.remove(fwep_file)
+
 # write the run_palm.m script
 script_path = os.path.join(palmdir, 'run_palm.m')
 with open(script_path, "w") as f:
@@ -226,7 +236,7 @@ with open(script_path, "w") as f:
   f.write("\n")
   f.write("palm('-i',input,'-m',maskfile,'-d','design.mat','-t','design.con','-logp',...\n")
   f.write("     '-n',itersstr,'-C',zthreshstr,'-o','fsp'")
-  f.write("%s);\n"  % ''.join(",'%s'" % x for x in extra_opts))
+  f.write("%s);\n"  % ''.join(",%s" % x for x in extra_opts))
   f.write("return;\n")
 
 if args.monly:
@@ -236,28 +246,26 @@ if args.monly:
 
 # run the run_palm.m script
 print('palm prep complete - running the generated matlab script...')
-os.chdir(palmdir)
 try:
   if args.octave:
     ret = call('octave -no-gui < run_palm.m', shell=True)
   else:
     ret = call('matlab -display iconic < run_palm.m', shell=True)
-  if ret != 0:
-    errExit('run_palm.m failed', ret)
 except KeyboardInterrupt:
   errExit('run_palm.m interrupted')
+
+# check for successful palm output since we can't get a return code from matlab
+for fwep_file in fwep_file_list:
+  if not os.path.isfile(fwep_file):
+    errExit('cannot find expected palm output "%s" - check for run_palm.m failures' % fwep_file)
 
 
 # ---- post-processing ----
 if surface_analysis:
-  print('palm processing complete - running the cluster analysis...')
+  print('palm processing complete - running the surface cluster analysis...')
   cwpsig = -log10(args.cwp)
   for i, con_name in enumerate(contrast_names):
-    # get fwep filename
-    if len(contrast_names) == 1:
-      fwep_file = 'fsp_clustere_tstat_fwep.mgz'
-    else:
-      fwep_file = 'fsp_clustere_tstat_fwep_c%d.mgz' % i+1
+    fwep_file = fwep_file_list[i]
     # mri_surfcluster command
     cmd =  'mri_surfcluster --in %s --thmin %f' % (fwep_file, cwpsig)
     cmd += ' --subject %s --hemi %s' % (targ_subject, hemi)
