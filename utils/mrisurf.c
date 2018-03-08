@@ -27972,7 +27972,8 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname)
   if (newMris) {
     mris->nfaces = nfaces;
     mris->faces = (FACE *)calloc(nfaces, sizeof(FACE));
-    if (!mris->faces) {
+    mris->faceNormCacheEntries = (FaceNormCacheEntry*)calloc(nfaces, sizeof(FaceNormCacheEntry));
+    if (!mris->faces || !mris->faceNormCacheEntries) {
       fclose(fp);
       ErrorExit(ERROR_NO_MEMORY, "MRISreadVTK(%d, %d): could not allocate faces", nfaces, sizeof(FACE));
     }
