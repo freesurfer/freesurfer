@@ -24,8 +24,8 @@ set UniformPDFMax = ();
 set DiagCluster = 0;
 set PBNodeType = ();
 set UseCache = 0;
-set PermForce = 0;
-set PermResid = 0; # use residual when running permutation, ter Braak method
+set PermForce = 1;
+set PermResid = 1; # use residual when running permutation, ter Braak method
 set UseGRF = 0;
 set volsubject = fsaverage;
 set subjectOverride = ();
@@ -524,7 +524,7 @@ if($DoPBSubmit) then
   echo "------------------------------------------------" | tee -a $LF
   echo $cmd  | tee -a $LF
   pbsubmit $PBNodeType -c "$cmd"
-  sleep 5;
+  sleep 1;
   echo "" 
   echo "Just submitted this as a job, and exiting now."
   echo ""
@@ -783,12 +783,6 @@ while( $#argv != 0 )
       set DoPBSubmit = 1;
       set DoPoll = 1;
       set DoBackground = 0;
-      if(`hostname` != seychelles && `hostname` != launchpad) then
-        hostname
-        echo "ERROR: must be on seychelles or launchpad to pbsubmit"
-        exit 1;
-      endif
-      if(`hostname` == seychelles) set PBNodeType = "-l nodes=1:opteron";
       breaksw
 
     case "--bg":
@@ -830,6 +824,14 @@ while( $#argv != 0 )
     case "--perm-resid":
       set PermResid = 1;
       set PermForce = 1; # purpose of using residual is to allow non-orthog
+      breaksw
+
+    case "--no-perm-force":
+      set PermForce = 0;
+      breaksw
+    case "--no-perm-resid":
+      set PermForce = 0;
+      set PermResid = 0;
       breaksw
 
     case "--tmp":
@@ -1186,14 +1188,16 @@ than determining it from the glmdir. This can be handy if the
 y file was deleted at some point.
 
 --perm-resid
+--no-perm-resid
 
-This is used for non-orthogonal designs (eg, when there is a covariate
-present). It runs the permutation using the residual of the analysis
-as the input rather than the raw data (the residual will have the
-covariate regressed out). You must have originally run mri_glmfit with
-the --eres-save option. This method is an APPROXIMATION known as the
-ter Braak method (ter Braak, 1992) that allows for permutation to be
-run on non-orthogonal designs. See also Winkler, 2014.
+perm-resid is used for non-orthogonal designs (eg, when there is a
+covariate present). It runs the permutation using the residual of the
+analysis as the input rather than the raw data (the residual will have
+the covariate regressed out). You must have originally run mri_glmfit
+with the --eres-save option. This method is an APPROXIMATION known as
+the ter Braak method (ter Braak, 1992) that allows for permutation to
+be run on non-orthogonal designs. See also Winkler, 2014. This is
+turned ON by default. Use --no-perm-resid to turn off.
 
 ter Braak, C.J.F., 1992. Permutation versus bootstrap significance
 tests in multiple regression and ANOVA. In: Jöckel, K.-H., Rothe, G.,
