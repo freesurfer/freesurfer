@@ -1001,6 +1001,7 @@ void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionTyp
         realmTree->nextVnoToUpdatePlus1[vno] = 0;                       // clear the link for next time
         vno = next_vno;
     }
+    realmTree->firstVnoToUpdatePlus1 = -1;				// mark the list as empty
 
     // process all the pending fno, resetting the links to zero
     //    
