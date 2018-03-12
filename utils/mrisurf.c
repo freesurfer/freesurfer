@@ -3192,13 +3192,17 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
     }
   }
 
-  // This loop fails under mcheck with arcane 
+  // The parallel loop fails under mcheck with an arcane 
   //        *** Error in `../mris_fix_topology': free(): invalid pointer: 0x0000000007bda5f0 ***
   // errors.  I suspect mcheck has some threading issues.
   //
   // With this loop serial, no problems are detected either here or in the entire mris_fix_topology test
   // and the only strange thing about this loop is it is intensely free/calloc intensive which is why
   // I suspect a problem in mcheck rather than here.
+  //
+  // Freeing all the pointers before allocating any gives mcheck a chance to detect duplicate pointers.
+  // It does not find any problems - but when this loop is done in parallel, it complains - further reinforcing
+  // my belief this is a mcheck problem.
   //
   static bool allowParallelFreeingOfDist = true;
   {
@@ -3210,6 +3214,19 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
     }
   }
 
+  if (!allowParallelFreeingOfDist) {
+    fprintf(stderr, "%s:%d Doing free's first because mcheck in use - detect duplicate pointers\n",__FILE__,__LINE__);
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX *v;
+      v = &mris->vertices[vno];
+      if (v->vtotal > 0) {
+        if (v->dist)      { free(v->dist);        v->dist      = NULL; }
+        if (v->dist_orig) { free(v->dist_orig);   v->dist_orig = NULL; }
+      }
+    }
+    fprintf(stderr, "%s:%d Free's done, now do allocations\n",__FILE__,__LINE__);
+  }
+  
   ntotal = vtotal = 0;
   ROMP_PF_begin		// mris_fix_topology
 #ifdef HAVE_OPENMP
