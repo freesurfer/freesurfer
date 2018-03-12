@@ -58,6 +58,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <math.h>
+#include <mcheck.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -3191,10 +3192,28 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
     }
   }
 
+  // This loop fails under mcheck with arcane 
+  //        *** Error in `../mris_fix_topology': free(): invalid pointer: 0x0000000007bda5f0 ***
+  // errors.  I suspect mcheck has some threading issues.
+  //
+  // With this loop serial, no problems are detected either here or in the entire mris_fix_topology test
+  // and the only strange thing about this loop is it is intensely free/calloc intensive which is why
+  // I suspect a problem in mcheck rather than here.
+  //
+  static bool allowParallelFreeingOfDist = true;
+  {
+    static long once;
+    if (!once++) {
+      allowParallelFreeingOfDist = (mprobe(malloc(1)) == MCHECK_DISABLED);
+      if (!allowParallelFreeingOfDist) 
+        fprintf(stderr, "%s:%d Disabling this parallel loop because mcheck in use\n",__FILE__,__LINE__);
+    }
+  }
+
   ntotal = vtotal = 0;
   ROMP_PF_begin		// mris_fix_topology
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(shown_reproducible) reduction(+ : ntotal, vtotal)
+  #pragma omp parallel for if_ROMP2(allowParallelFreeingOfDist,shown_reproducible) reduction(+ : ntotal, vtotal)
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
