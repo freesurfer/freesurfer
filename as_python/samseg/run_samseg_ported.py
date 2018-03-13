@@ -1,5 +1,6 @@
 import logging
 import os
+import numpy as np
 
 from samseg.command_arguments import parse_args
 from samseg.kvl_read_compression_lookup_table import kvlReadCompressionLookupTable
@@ -15,6 +16,15 @@ from samseg.samseg_ported import samsegment
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)  # TODO: configurable logging
 
+def force_fortran_order(funcname):
+    old_func = getattr(np, funcname)
+    def new_func(*args, **kwargs):
+        kwargs['order'] = 'F'
+        return old_func(*args, **kwargs)
+    setattr(np, funcname, new_func)
+
+for funcname in ('array', 'zeros', 'empty', 'zeros_like', 'empty_like'):
+    force_fortran_order(funcname)
 
 def run_samseg_from_cmdargs(cmdargs):
     # function retval = run_samseg(varargin)
