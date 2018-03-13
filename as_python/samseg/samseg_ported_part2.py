@@ -70,7 +70,7 @@ def samsegment_part2(
         downSampledMask = mask[::downSamplingFactors[0], ::downSamplingFactors[1], ::downSamplingFactors[2]]
         downSampledMaskIndices = np.where(downSampledMask)
         activeVoxelCount = len(downSampledMaskIndices[0])
-        downSampledImageBuffers = np.zeros(downSampledMask.shape + (numberOfContrasts,))
+        downSampledImageBuffers = np.zeros(downSampledMask.shape + (numberOfContrasts,), order='F')
         for contrastNumber in range(numberOfContrasts):
             logger.debug('first time contrastNumber=%d', contrastNumber)
             #       % No image smoothing
@@ -156,8 +156,8 @@ def samsegment_part2(
         #   % effectively I have two redundant variables "downSampledBiasCorrectedImageBuffers" and "biasCorrectedData"
         #   % that really just encode the variable "biasFieldCoefficients" and so need to be meticiously updated each time
         #   % "biasFieldCoefficients" is updated (!)
-        downSampledBiasCorrectedImageBuffers = np.zeros(downSampledImageSize + (numberOfContrasts,))
-        biasCorrectedData = np.zeros((activeVoxelCount, numberOfContrasts))
+        downSampledBiasCorrectedImageBuffers = np.zeros(downSampledImageSize + (numberOfContrasts,), order='F')
+        biasCorrectedData = np.zeros((activeVoxelCount, numberOfContrasts), order='F')
 
         # TODO: remove this ensure_dims when part 1 is done
         biasFieldCoefficients = ensure_dims(biasFieldCoefficients, 2)
@@ -170,8 +170,7 @@ def samsegment_part2(
             biasCorrectedData[:, contrastNumber] = tmp[downSampledMaskIndices]
         #   % Compute a color coded version of the atlas prior in the atlas's current pose, i.e., *before*
         #   % we start deforming. We'll use this just for visualization purposes
-        priors = np.zeros((activeVoxelCount, numberOfClasses))
-        posteriors = np.zeros((activeVoxelCount, numberOfGaussians))
+        posteriors = np.zeros((activeVoxelCount, numberOfGaussians), order='F')
         #   % Easier to work with vector notation in the EM computations
         #   % reshape into a matrix
         data = np.zeros((activeVoxelCount, numberOfContrasts))
@@ -262,11 +261,19 @@ def samsegment_part2(
                         mean = means[gaussianNumber, :].T
                         variance = variances[gaussianNumber, :, :]
                         L = np.linalg.cholesky(variance)
-                        tmp = np.linalg.solve(L, biasCorrectedData.T - mean)
-                        squaredMahalanobisDistances = (np.sum(tmp ** 2, axis=0)).T
+                        means_corrected_bias = biasCorrectedData.T - mean
+                        if L.shape == (1, 1):
+                            scale = 1.0 / L[0, 0]
+                            tmp = means_corrected_bias * scale
+                        else:
+                            tmp = np.linalg.solve(L, means_corrected_bias)
+                        tmp *= tmp
+                        scaled_squared_mahalanobis_distances = np.sum(tmp, axis=0) * -0.5
                         sqrtDeterminantOfVariance = np.prod(np.diag(L))
-                        gaussianLikelihoods = np.exp(-squaredMahalanobisDistances / 2) / (2 * np.pi) ** (
+                        scaling = 1.0 / (2 * np.pi) ** (
                                 numberOfContrasts / 2) / sqrtDeterminantOfVariance
+                        gaussianLikelihoods = np.exp(scaled_squared_mahalanobis_distances) * scaling
+                        gaussianLikelihoods = gaussianLikelihoods.T
                         posteriors[:, gaussianNumber] = gaussianLikelihoods * (mixtureWeights[gaussianNumber] * prior)
                 normalizer = np.sum(posteriors, axis=1) + eps
                 posteriors = posteriors / np.expand_dims(normalizer, 1)
@@ -357,7 +364,7 @@ def samsegment_part2(
                     numberOfBasisFunctions_prod = np.prod(numberOfBasisFunctions)
                     for contrastNumber1 in range(numberOfContrasts):
                         logger.debug('third time contrastNumber=%d', contrastNumber)
-                        tmp = np.zeros((data.shape[0], 1))
+                        tmp = np.zeros((data.shape[0], 1), order='F')
                         for contrastNumber2 in range(numberOfContrasts):
                             classSpecificWeights = posteriors * precisions[:, contrastNumber1, contrastNumber2].T
                             weights = np.sum(classSpecificWeights, 1);
