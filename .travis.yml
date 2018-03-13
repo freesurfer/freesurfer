@@ -95,6 +95,8 @@ install:
 
 script:
   # configure and build freesurfer
+  - pwd
+  - ls
   - ./setup_configure
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/centos6-x86_64-packages --disable-Werror --disable-GUI-build ;
@@ -110,4 +112,3 @@ script:
 
 after_failure:
   - tail -n 200 build.log
-
