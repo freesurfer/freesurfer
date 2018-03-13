@@ -9659,8 +9659,8 @@ static double MRIScomputeSSE_CUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, IN
       if (face->ripflag) {
         continue;
       }
-
-      delta = (double)(area_scale * face->area - face->orig_area);
+      FaceNormCacheEntry const * fnorm = getFaceNorm(mris, fno);
+      delta = (double)(area_scale * face->area - fnorm->orig_area);
 #if ONLY_NEG_AREA_TERM
       if (face->area < 0.0f) {
         sse_neg_area += delta * delta;
