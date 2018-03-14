@@ -23,11 +23,14 @@ sudo apt-get install build-essential \
             libxaw7-dev \
             liblapack-dev
 sudo apt-get install git
-sudo apt-get install gcc-4.8 g++-4.8 libgfortran-4.8-dev
-sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 50
-sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 50
-sudo apt-get install python3-dev
 ```
+Check the gcc compiler version:
+```bash
+gcc --version
+```
+
+Be sure to use the same compiler for building both ITK and GEMS2
+
 Most recent _ITK_ requires cmake 3.95 or greater. Test with 
 
 `cmake --version`.
@@ -45,7 +48,7 @@ Create a working directory. This document this will refer to it as `~/work/cm`.
 ```bash
 cd ~/work/cm
 ```
-Get the latest ITK:
+Get the latest release version of ITK:
 ```bash
 git clone https://itk.org/ITK.git
 ```
@@ -53,35 +56,28 @@ Get the porting branch of FreeSurfer and install pybind11:
 ```bash
 git clone https://github.com/innolitics/freesurfer.git
 cd freesurfer
-git checkout  nf-gems2-python-port
+git checkout  nf-gems2-python-performance
 cd GEMS2
 git clone https://github.com/pybind/pybind11.git
 ```
 ## Build from Source
 ### Build ITK
 ```bash
-cd ~/work/cm
+cd ~/work/cm/ITK
+git checkout release
+cd ..
 mkdir ITK-build
 cd ITK-build
-cmake ../ITK
-make -j4
+ccmake ../ITK
 ```
-### Build GEMS2python
-In the GEMS2 directory run the ccmake utility
-```
-cd ~/work/cm/freesurfer/GEMS2
-ccmake .
-```
-Use the `t` option to see the advanced mode optiosn. Then set the `CMAKE_CXX_FLAGS` and `CMAKE_C_FLAGS` to "`-fPIC -fpermissive`".
+The complete ITK is not needed. You may turn off ```BUILD_TESTING```.
 
-`BUILD_EXECUTABLES` `BUILD_GUI` `BUILD_MATLAB` `BUILD_SHARED_LIBS` and `BUILD_TESTING` should be `OFF`.
+Using the ```t``` command allows you to see the complete set of options.
+Then set the ```CMAKE_CXX_FLAGS``` and ```CMAKE_C_FLAGS``` to ```-msse2 -mfpmath=sse```.
 
-Check that the `PYTHON_EXECUTABLE` and `PYTHON_LIBRARY` have valid values such as `/usr/bin/python3.5` 
-and `/usr/lib/x86_64-linux-gnu/libpython3.5m.so` respectively.
-
-Build the GEMS2 code with:
+The ```c``` command will configure and the ```q``` command will exit.
+Now build the ITK library with
 ```bash
-cmake .
 make -j4
 ```
 ## Python Setup
@@ -129,11 +125,52 @@ which python
 ```
 You should see something like `~/virtenvs/gems2/bin/python3`
 
-Install the python requirements:
+### Build and install GEMS2python
+In the GEMS2 directory run the ccmake utility
+```
+cd ~/work/cm/freesurfer/GEMS2
+ccmake .
+```
+Use the `t` option to see the advanced mode options. Then set the `CMAKE_CXX_FLAGS` and `CMAKE_C_FLAGS` to "`-fPIC -fpermissive -msse2 -mfpmath=sse`".
+
+`BUILD_EXECUTABLES` `BUILD_GUI` `BUILD_MATLAB` `BUILD_SHARED_LIBS` and `BUILD_TESTING` should be `OFF`.
+
+Check that the `PYTHON_EXECUTABLE` and `PYTHON_LIBRARY` have valid values such as `/usr/bin/python3.5` 
+and `/usr/lib/x86_64-linux-gnu/libpython3.5m.so` respectively.
+
+Build the GEMS2 code with:
 ```bash
-pip install -r as_python/requirements.txt
+cmake .
+make -j4
+```
+The code just built can be installed into the virtual environment:
+```bash
+python setup.py bdist_wheel
+```
+The subdirectory ```dist``` should now have wheel file named something similar to ```GEMS2Python-0.1.0-cp35-cp35m-linux_x86_64.whl```
+Install this file into the virtual environment:
+```bash
+pip install dist/GEMS2Python-0.1.0-cp35-cp35m-linux_x86_64.whl
 ```
 
+### Build and install samseg
+The python portion of the code can also be built and installed as a wheel:
+```bash
+cd ~/work/cm/freesurfer/as_python/
+python setup.py bdist_wheel
+pip install dist/samseg-0.1.0-py2.py3-none-any.whl
+```
+As a test that everything is correctly built, linked, and installed try the following command:
+```bash
+run_samseg
+```
+You should see a usage recipe plus an error complaining that no input was specified:
+```bash
+usage: run_samseg [-h] [-o FOLDER] [-i FILE] [--threads THREADS] [-r FILE]
+                  [-m LABEL] [--showfigs] [--nobrainmask] [--diagcovs] [-v]
+                  [-a]
+run_samseg: error: must specify at least one input
+```
 ## Test and Run
 
 ## Running Samseg Code
@@ -142,7 +179,7 @@ The matlab script `run_samseg.m` has been ported to `run_samseg_ported.py` with 
 A minor difference is the use of `-i` and `-o` with single dash instead of `--i` and `--o`
 Running with `-h` for help will print a complete usage statement:
 ```bash
-usage: run_samseg_ported.py [-h] [-o FOLDER] [-i FILE] [--threads THREADS]
+usage: run_samseg [-h] [-o FOLDER] [-i FILE] [--threads THREADS]
                             [-r FILE] [-m LABEL] [--showfigs] [--nobrainmask]
                             [--diagcovs] [-v]
 
@@ -165,53 +202,53 @@ optional arguments:
                         contrast case)
   -v, --verbose         verbose debug output
 ```
+## Running Test Scripts
+Place the `innolitics_testing` data folder at `~/work/cm/`
+
+
 The following will run test case 008 directly:
 ```bash
 cd ~/work/cm/freesurfer
 workon gems2
-export PYTHONPATH=".:./GEMS2/bin"
 export SAMSEG_DATA_DIR=$HOME/work/cm/innolitics_testing/atlas/20Subjects_smoothing2_down2_smoothingForAffine2
-python ./as_python/samseg/run_samseg_ported.py \
+run_samseg \
    -o $HOME/work/cm/innolitics_testing/python_temp_data/008 \
     -i $HOME/work/cm/innolitics_testing/buckner40/008/orig.mgz
 ```
 
-## Running Test Scripts
-Place the `innolitics_testing` data folder at `~/work/cm/`
-
-Get ready to run a test with:
-```bash
-cd ~/work/cm/freesurfer
-workon gems2
-export PYTHONPATH=".:./GEMS2/bin"
-export TESTING_DIR=$HOME/work/cm/innolitics_testing/buckner40
-export SAMSEG_DATA_DIR=$HOME/work/cm/innolitics_testing/atlas/20Subjects_smoothing2_down2_smoothingForAffine2
-```
-Again, after changing `~/.bashrc` either open a new terminal or do a `source ~/.bashrc`
-
-At this point individual tests can be run with
-```bash
-python ./as_python/samseg/dev_utils/run_samseg_test_case.py 004
-```
-Multiple tests can be run by listing them on the command line:
-```bash
-python ./as_python/samseg/dev_utils/run_samseg_test_case.py 004 008 140
-```
-Or all of the tests can be run by leaving the command line arguments empty:
-```bash
-python ./as_python/samseg/dev_utils/run_samseg_test_case.py
-```
-results will appear, one folder per case, in `~/work/cm/innolitics_testing/buckner40/python_temp_data/`
-
-Dice measurements can be calculated using:
-```bash
-export GOLD_REFERENCE_DIR=$HOME/work/cm/innolitics_testing/tests/matlab_nov20/
-python ./as_python/samseg/dev_utils/measure_and_report.py 004 008 140
-```
-Leaving off case numbers will report against all cases.
-
 ## Development Cycle
+If you will be actively developing the code you can uninstall, rebuild, and reinstall the wheels.
+But there are some easier alternatives.
 
-Changes to Python code are reflected immediately next time you invoke the Python script. Editing the C++ code 
-will require you to run `make` again in the GEMS2 directory. This should recompile the module in place and 
-you can re-run Python scripts that will load in the rebuilt module automatically.
+### Python Development Cycle
+If you will be actively developing the python code then the ```samseg``` wheel can be installed in edit mode.
+If you had previously installed it normally, then uninstall it now:
+```bash
+pip uninstall samseg
+```
+The project can instead be installed in edit mode.
+```bash
+cd ~/work/cm/freesurfer/as_python/
+pip install -e .
+```
+Any changes to the python code will be automatically updated.
+
+### C++ Develpment Cycle
+
+A similar process is used if you will also be developing the c++ code.
+If you have already installed the ```gems2``` wheel you should uninstall it:
+```bash
+pip uninstall gems2
+```
+Now add the gems2 module in edit mode:
+```bash
+cd ~/work/cm/freesurfer/GEMS2/
+pip install -e .
+```
+
+### The PYTHONPATH alternative
+It is also possible to uninstall either or both wheels and use the python path.
+```
+export PYTHONPATH="$HOME/work/cm/freesurfer/as_python:$HOME/work/cm/freesurfer/GEMS2/bin"
+```
+Note the use of ```:``` as separator. If you are keeping one of the wheels then remove the corresponding piece of the path.
