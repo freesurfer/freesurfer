@@ -31,7 +31,6 @@
 #endif
 
 #include "timer.h"
-#include <stdio.h>
 
 
 void ROMP_show_stats(FILE*);

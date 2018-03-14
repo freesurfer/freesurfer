@@ -22,16 +22,12 @@
  *
  */
 
-
+// proto.h is included by base.h    
+//  and it is preferred that it not be included directly
+//
 #ifndef _PROTO_H_
 #define _PROTO_H_
 
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <time.h>
-#include <sys/timeb.h>
 
 #if defined(SunOS) | defined(IRIX)
 #include <ieeefp.h>
@@ -40,6 +36,10 @@
 /*----------------- ALL PLATFORMS *--------------------*/
 #ifndef Windows_NT
 int stricmp(const char *str1, const char *str2) ;
+#endif
+
+#ifndef DARWIN
+#include <malloc.h>
 #endif
 
 /*----------- SunOS -----------------------*/

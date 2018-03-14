@@ -30,7 +30,8 @@
 extern "C" {
 #endif
 
-#include <stdio.h>
+#include "base.h"
+
 
 #define MATLAB_FILE   0
 #define HIPS_FILE     1

@@ -27,12 +27,15 @@
 #ifndef TIMER_H
 #define TIMER_H
 
+#include "base.h"
+
+#include <sys/timeb.h>
+
+
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-
-#include <sys/timeb.h>
 
 struct timeb *TimerStart(struct timeb *then) ;
 int TimerStop(struct timeb *then) ;
