@@ -65,6 +65,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#ifndef __APPLE__
+#include <mcheck.h>
+#endif
+
 #include "mri.h"
 #include "mrisurf.h"
 #include "mrishash_internals.h"
@@ -3191,11 +3195,54 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
     }
   }
 
+#ifndef __APPLE__
+  // The parallel loop fails under mcheck with an arcane 
+  //        *** Error in `../mris_fix_topology': free(): invalid pointer: 0x0000000007bda5f0 ***
+  // errors.  I suspect mcheck has some threading issues.
+  //
+  // With this loop serial, no problems are detected either here or in the entire mris_fix_topology test
+  // and the only strange thing about this loop is it is intensely free/calloc intensive which is why
+  // I suspect a problem in mcheck rather than here.
+  //
+  // Freeing all the pointers before allocating any gives mcheck a chance to detect duplicate pointers.
+  // It does not find any problems - but when this loop is done in parallel, it complains - further reinforcing
+  // my belief this is a mcheck problem.
+  //
+  static bool allowParallelFreeingOfDist = true;
+  {
+    static long once;
+    if (!once++) {
+      allowParallelFreeingOfDist = (mprobe(malloc(1)) == MCHECK_DISABLED);
+      if (!allowParallelFreeingOfDist) 
+        fprintf(stderr, "%s:%d Disabling this parallel loop because mcheck in use\n",__FILE__,__LINE__);
+    }
+  }
+
+  if (!allowParallelFreeingOfDist) {
+    fprintf(stderr, "%s:%d Doing free's first because mcheck in use - detect duplicate pointers\n",__FILE__,__LINE__);
+    for (vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX *v;
+      v = &mris->vertices[vno];
+      if (v->vtotal > 0) {
+        if (v->dist)      { free(v->dist);        v->dist      = NULL; }
+        if (v->dist_orig) { free(v->dist_orig);   v->dist_orig = NULL; }
+      }
+    }
+    fprintf(stderr, "%s:%d Free's done, now do allocations\n",__FILE__,__LINE__);
+  }
+#endif
+
   ntotal = vtotal = 0;
   ROMP_PF_begin		// mris_fix_topology
+
 #ifdef HAVE_OPENMP
+#ifndef __APPLE__
+  #pragma omp parallel for if_ROMP2(allowParallelFreeingOfDist,shown_reproducible) reduction(+ : ntotal, vtotal)
+#else
   #pragma omp parallel for if_ROMP(shown_reproducible) reduction(+ : ntotal, vtotal)
 #endif
+#endif
+
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
     VERTEX *v;
@@ -9659,8 +9706,9 @@ static double MRIScomputeSSE_CUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, IN
       if (face->ripflag) {
         continue;
       }
+      FaceNormCacheEntry const * fnorm = getFaceNorm(mris, fno);
+      delta = (double)(area_scale * face->area - fnorm->orig_area);
 
-      delta = (double)(area_scale * face->area - face->orig_area);
 #if ONLY_NEG_AREA_TERM
       if (face->area < 0.0f) {
         sse_neg_area += delta * delta;

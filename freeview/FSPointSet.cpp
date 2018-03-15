@@ -207,9 +207,12 @@ void FSPointSet::UpdateLabel( PointSet& points_in, FSVolume* ref_vol )
   }
 
   m_label = ::LabelAlloc( nCount, NULL, (char*)"" );
+  ::LabelInit(m_label, ref_vol->GetMRI(), NULL, 0);
+  LABEL* l = m_label;
+  m_label = ::LabelToScannerRAS(l, ref_vol->GetMRI(), NULL);
+  ::LabelFree(&l);
+
   m_label->n_points = nCount;
-  m_label->coords = LABEL_COORDS_SCANNER_RAS;
-  strncpy(m_label->space, "scanner", sizeof(m_label->space));
   for ( int i = 0; i < nCount; i++ )
   {
     m_label->lv[i].x = values[i*4];

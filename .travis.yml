@@ -76,7 +76,7 @@ before_install:
 install:
   # Install library packages needed to compile FreeSurfer
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      curl -O ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/centos6_x86_64/centos6-x86_64-packages.tar.gz ;
+      curl -O ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/centos6_x86_64/centos6-x86_64-packages.tar.gz || travis_terminate 1 ;
       tar -xzf centos6-x86_64-packages.tar.gz  ;
       rm centos6-x86_64-packages.tar.gz  ;
       cd centos6-x86_64-packages  ;
@@ -87,7 +87,7 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then
       mkdir osx-lion-packages ;
       cd osx-lion-packages ;
-      curl -O ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/OSX/osx-lion-packages.tar.gz ;
+      curl -O ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/OSX/osx-lion-packages.tar.gz || travis_terminate 1 ;
       tar -xzf osx-lion-packages.tar.gz ;
       rm osx-lion-packages.tar.gz ;
       cd .. ;
@@ -110,4 +110,3 @@ script:
 
 after_failure:
   - tail -n 200 build.log
-
