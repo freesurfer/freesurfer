@@ -58,13 +58,16 @@
 #include <ctype.h>
 #include <errno.h>
 #include <math.h>
-#include <mcheck.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#ifndef __APPLE__
+#include <mcheck.h>
+#endif
 
 #include "mri.h"
 #include "mrisurf.h"
@@ -3192,6 +3195,7 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
     }
   }
 
+#ifndef __APPLE__
   // The parallel loop fails under mcheck with an arcane 
   //        *** Error in `../mris_fix_topology': free(): invalid pointer: 0x0000000007bda5f0 ***
   // errors.  I suspect mcheck has some threading issues.
@@ -3226,12 +3230,19 @@ int MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
     }
     fprintf(stderr, "%s:%d Free's done, now do allocations\n",__FILE__,__LINE__);
   }
-  
+#endif
+
   ntotal = vtotal = 0;
   ROMP_PF_begin		// mris_fix_topology
+
 #ifdef HAVE_OPENMP
+#ifndef __APPLE__
   #pragma omp parallel for if_ROMP2(allowParallelFreeingOfDist,shown_reproducible) reduction(+ : ntotal, vtotal)
+#else
+  #pragma omp parallel for if_ROMP(shown_reproducible) reduction(+ : ntotal, vtotal)
 #endif
+#endif
+
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
     VERTEX *v;
@@ -9695,8 +9706,9 @@ static double MRIScomputeSSE_CUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *mrisc, IN
       if (face->ripflag) {
         continue;
       }
+      FaceNormCacheEntry const * fnorm = getFaceNorm(mris, fno);
+      delta = (double)(area_scale * face->area - fnorm->orig_area);
 
-      delta = (double)(area_scale * face->area - face->orig_area);
 #if ONLY_NEG_AREA_TERM
       if (face->area < 0.0f) {
         sse_neg_area += delta * delta;
