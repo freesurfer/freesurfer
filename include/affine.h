@@ -145,23 +145,16 @@ void GetAffineMatrix( MATRIX* dst,
 inline static
 void AffineMatrixFree( AffineMatrix **am ) {
   if( *am != NULL ) {
-
-#ifdef AFFINE_MATRIX_USE_SSE
-    _mm_free( *am );
-#else
     free( *am );
-#endif
     *am = NULL;
   }
 }
 
 inline static
 void AffineMatrixAlloc( AffineMatrix **am ) {
-#ifdef AFFINE_MATRIX_USE_SSE
-  AffineMatrix* tmp = (AffineMatrix*)_mm_malloc( sizeof(AffineMatrix), 16 );
-#else
-  AffineMatrix* tmp = (AffineMatrix*)malloc( sizeof(AffineMatrix) );
-#endif
+
+  void* tmp = NULL;     // gcc complains otherwise
+  posix_memalign(&tmp, 16, sizeof(AffineMatrix));
 
   if( tmp == NULL ) {
     fprintf( stderr, "%s: FAILED\n", __FUNCTION__ );
@@ -170,7 +163,7 @@ void AffineMatrixAlloc( AffineMatrix **am ) {
   
   AffineMatrixFree( am );
 
-  *am = tmp;
+  *am = (AffineMatrix *)tmp;
 }
 
 

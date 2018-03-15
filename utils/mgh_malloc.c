@@ -44,6 +44,7 @@
 #undef free
 #undef calloc
 #undef realloc
+#undef posix_memalign
 
 typedef enum MallocAction {
     MA_insert = 1,
@@ -381,18 +382,45 @@ typedef struct MallocStats {
 
 static MallocStats* mallocStats = NULL;
 
+static int stats_compare(const void* lhs_ptr, const void* rhs_ptr) {
+   int lhs = *(int*)lhs_ptr;
+   int rhs = *(int*)rhs_ptr;
+   size_t lhsPriority = mallocStats[lhs].inserted + mallocStats[lhs].removed;
+   size_t rhsPriority = mallocStats[rhs].inserted + mallocStats[rhs].removed;
+   if (lhsPriority < rhsPriority) return +1;    // ascending order
+   if (lhsPriority > rhsPriority) return -1;    // ascending order
+   return 0;
+}
+
 static void mallocStatsExitHandler(void) {
     if (!mallocStats) return;
-    fprintf(stderr, "MallocStats\n   file, function, line, size, inserted, cleared, copied, removed\n");
+
+    size_t count = 0;
     size_t i;
     for (i = 0; i < mallocStatsSize; i++) {
         MallocStats* m = &mallocStats[i];
         if (!m->line) continue;
+        count++;
+    }
+
+    int* indexs = (int*)malloc(count*sizeof(int));
+    count = 0;
+    for (i = 0; i < mallocStatsSize; i++) {
+        MallocStats* m = &mallocStats[i];
+        if (!m->line) continue;
+        indexs[count++] = i;
+    }
+
+    qsort(indexs, count, sizeof(int), stats_compare);
+       
+    fprintf(stderr, "MallocStats\n   file, function, line, size, inserted, cleared, copied, removed\n");
+    for (i = 0; i < count; i++) {
+        MallocStats* m = &mallocStats[indexs[i]];
         fprintf(stderr, "%s, %s, %d, %g, %g, %g, %g, %g\n",
             m->file, m->function, m->line, (float)m->size, (float)m->inserted, (float)m->cleared, (float)m->copied, (float)m->removed);
     }
+    fprintf(stderr, "MallocStats\n   file, function, line, size, inserted, cleared, copied, removed\n");
 }
-
 
 static void noteMallocStatsAction(MallocAction action, size_t size, const char* file, const char* function, int line) {
 
@@ -439,3 +467,9 @@ void *reallocHere(void *ptr,    size_t size, const char* file, const char* funct
     void* r = realloc(ptr,size); noteMallocStatsAction(MA_insert|MA_remove, size, file, function, line);
     return r;
 }
+
+int posix_memalignHere(void **memptr, size_t alignment, size_t size,const char* file, const char* function, int line) {
+    int r = posix_memalign(memptr, alignment, size); noteMallocStatsAction(MA_insert, size, file, function, line);
+    return r;
+}
+

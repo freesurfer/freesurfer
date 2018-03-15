@@ -24,6 +24,11 @@
 
 #pragma once
 
+#ifndef DARWIN
+#include <malloc.h>
+#include <mm_malloc.h>
+#endif
+
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -75,16 +80,18 @@ extern "C" {
 //
 #if 0
 
-void *mallocHere (              size_t size, const char* file, const char* function, int line);
-void  freeHere   (void *ptr,                 const char* file, const char* function, int line);
-void* callocHere (size_t nmemb, size_t size, const char* file, const char* function, int line);
-void *reallocHere(void *ptr,    size_t size, const char* file, const char* function, int line);
+void *mallocHere (              size_t size,                        const char* file, const char* function, int line);
+void  freeHere   (void *ptr,                                        const char* file, const char* function, int line);
+void* callocHere (size_t nmemb, size_t size,                        const char* file, const char* function, int line);
+void *reallocHere(void *ptr,    size_t size,                        const char* file, const char* function, int line);
+int posix_memalignHere(void **memptr, size_t alignment, size_t size,const char* file, const char* function, int line);
     // implemented in mgh_malloc.c but defined here to get them widely used
 
-#define malloc(SIZE)        mallocHere ((SIZE),          __FILE__, __MYFUNCTION__, __LINE__)
-#define free(PTR)           freeHere   ((PTR),           __FILE__, __MYFUNCTION__, __LINE__)
-#define calloc(NMEMB,SIZE)  callocHere ((NMEMB), (SIZE), __FILE__, __MYFUNCTION__, __LINE__)
-#define realloc(PTR,SIZE)   reallocHere((PTR),   (SIZE), __FILE__, __MYFUNCTION__, __LINE__)
+#define malloc(SIZE)                        mallocHere ((SIZE),                         __FILE__, __MYFUNCTION__, __LINE__)
+#define free(PTR)                           freeHere   ((PTR),                          __FILE__, __MYFUNCTION__, __LINE__)
+#define calloc(NMEMB,SIZE)                  callocHere ((NMEMB), (SIZE),                __FILE__, __MYFUNCTION__, __LINE__)
+#define realloc(PTR,SIZE)                   reallocHere((PTR),   (SIZE),                __FILE__, __MYFUNCTION__, __LINE__)
+#define posix_memalign(MEMPTR,ALIGN,SIZE)   posix_memalignHere((MEMPTR),(ALIGN),(SIZE), __FILE__, __MYFUNCTION__, __LINE__)
 
 #endif
 
