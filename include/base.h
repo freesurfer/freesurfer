@@ -73,10 +73,7 @@ extern "C" {
 // Regardless of whether the __real_malloc etc. or the __wrap_ ones, it is still desirable
 // to know where in the program the allocations are happening.  This mechanism allows that to happen.
 //
-// #define WRAP_MALLOC_ET_AL
-
-
-#ifdef  WRAP_MALLOC_ET_AL
+#if 0
 
 void *mallocHere (              size_t size, const char* file, const char* function, int line);
 void  freeHere   (void *ptr,                 const char* file, const char* function, int line);
