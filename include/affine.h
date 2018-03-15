@@ -92,10 +92,8 @@ void GetFloorAffineVector( const AffineVector* av,
 
 // =====================================================
 
-enum AffineMatrixValidity { AffineMatrix_valid = 20180315, AffineMatrix_invalid = 0 };
 typedef struct _am {
   float mat[kAffineMatrixSize] __attribute__ ((aligned (16)));
-  enum AffineMatrixValidity validity;
 } AffineMatrix;
 
 
@@ -148,9 +146,6 @@ inline static
 void AffineMatrixFree( AffineMatrix **am ) {
   if( *am != NULL ) {
 
-    if ((*am)->validity != AffineMatrix_valid) *(int*)-1 = 0;
-    (*am)->validity = AffineMatrix_invalid;
-    
 #ifdef AFFINE_MATRIX_USE_SSE
     _mm_free( *am );
 #else
@@ -172,8 +167,6 @@ void AffineMatrixAlloc( AffineMatrix **am ) {
     fprintf( stderr, "%s: FAILED\n", __FUNCTION__ );
     abort();
   }
-  
-  tmp->validity = AffineMatrix_valid;
   
   AffineMatrixFree( am );
 
