@@ -39,9 +39,6 @@ extern "C" {
 #define UNKNOWN_FILE  3
 #define TEXT_FILE     4
 
-// defines the maximum number of threads used in OpenMP code
-#define _MAX_FS_THREADS 128 
-
 double randomNumber(double low, double hi) ;
 int    setRandomSeed(long seed) ;
 long getRandomSeed(void);

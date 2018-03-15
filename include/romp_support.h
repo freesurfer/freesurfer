@@ -35,6 +35,10 @@
 
 void ROMP_show_stats(FILE*);
 
+size_t ROMP_countGoParallel();
+    // return the number of times the code has gone from serial to parallel
+    // Useful during debugging to write conditional code looking for a problem that is being caused by parallelism
+
 // An annotated omp for loop looks like this...
 //
 #if 0

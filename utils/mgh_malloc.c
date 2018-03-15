@@ -1,3 +1,7 @@
+//  #define MEMORY_CORRUPTION_DEBUGGING     // uncomment this to turn the feature on
+
+
+
 /**
  * @file  mgh_malloc.c
  * @brief overrides or wraps malloc et. al. with code that allows us
@@ -24,6 +28,18 @@
  */
 #include "mgh_malloc.h"
 
+#include "romp_support.h"
+
+
+#ifdef HAVE_MCHECK
+#include <mcheck.h>
+#endif
+
+#if !defined(__APPLE__)
+#define USE_MPROTECT
+#include <sys/mman.h>
+#endif
+
 #undef malloc
 #undef free
 #undef calloc
@@ -35,9 +51,6 @@ typedef enum MallocAction {
     MA_copy   = 4,
     MA_remove = 8
 } MallocAction;
-
-
-//#define MEMORY_CORRUPTION_DEBUGGING 
 
 
 //  The link command needs to be something like this to enable this support
@@ -67,14 +80,21 @@ void *__real_realloc(void *ptr, size_t size);
 // The code here is only thread-safe because it is all done inside a critical section
 // protected by this lock
 //
+#ifdef HAVE_OPENMP
 static int lock_inited;
 static omp_lock_t lock;
+#endif
+
 static void wrapper_lock_acq() {
+#ifdef HAVE_OPENMP
    if (!lock_inited) { lock_inited = 1; omp_init_lock(&lock); }
    omp_set_lock(&lock);
+#endif
 }
 static void wrapper_lock_rel() {
+#ifdef HAVE_OPENMP
    omp_unset_lock(&lock);
+#endif
 }
 
 
@@ -141,10 +161,12 @@ static Page*        memProtected_loPage = NULL;
 static void canUse(Page* nLoPage, size_t npcPageCount) {
     
     if (nLoPage == memProtected_loPage) {
-        if (mprotect(nLoPage, npcPageCount*4096, PROT_READ|PROT_WRITE)) {                   // sadly there is a limit
-            perror("mprotect failed");                                                      // on how variegated memory can be
-            *(int*)-1 = 0;                // weird
+#ifdef USE_MPROTECT
+        if (mprotect(nLoPage, npcPageCount*4096, PROT_READ|PROT_WRITE)) {   // the limit (see below) should not affect this
+            perror("mprotect failed");                                      // 
+            *(int*)-1 = 0;                                                  // if can protect, should be able to unprotect
         }
+#endif
         memProtected_loPage = NULL;
     }
     
@@ -159,10 +181,12 @@ static void shouldNotUse(Page* oLoPage, size_t opcPageCount) {
 
     if (oLoPage->mostRecentlyAllocationClock != memProtected_mostRecentlyAllocationClock) return;
     
-    if (mprotect(oLoPage, opcPageCount*4096, PROT_NONE)) {                              // sadly there is a limit
-        perror("mprotect failed");                                                      // on how variegated memory can be
-        *(int*)-1 = 0;                // weird                                          // but we can use it to find a repeatable problem
+#ifdef USE_MPROTECT
+    if (mprotect(oLoPage, opcPageCount*4096, PROT_NONE)) {      // sadly there is a limit
+        perror("mprotect failed");                              // on how variegated memory can be
+        *(int*)-1 = 0;                // weird                  // but we can use it to find a repeatable problem
     }
+#endif
 
     memProtected_loPage = oLoPage;
 }
@@ -184,8 +208,8 @@ typedef struct Malloced {
 #define mallocedSizeMask (mallocedSize-1)
 
 static Malloced* malloced = NULL;
-
-static size_t mostRecentlyAllocationClock;
+static size_t countAlloc[_MAX_FS_THREADS];
+static size_t countFrees[_MAX_FS_THREADS];
 
 static int doMallocAction(MallocAction action, void** ptr, size_t size) {
     if (!pages) {
@@ -218,7 +242,8 @@ static int doMallocAction(MallocAction action, void** ptr, size_t size) {
         pageChainsGet[npci]++;
         nLoPage->size    = size;
         nLoPage->loGuard = 0xFEEDBABEFEEDBABE;
-        nLoPage->mostRecentlyAllocationClock = countGoParallel*100000000L + saveCountAlloc*100 + omp_get_thread_num();
+        nLoPage->mostRecentlyAllocationClock = 
+            ROMP_countGoParallel()*100000000L + saveCountAlloc*100 + omp_get_thread_num();
         np = (char*)&nLoPage->available;
     }
 
@@ -386,12 +411,11 @@ static void noteMallocStatsAction(MallocAction action, size_t size, const char* 
         if (++stabs > 1000) *(int*)-1 = 0;  // table too full 
     }
     
-    #pragma omp critical
     if (m->line == 0) {     // There is a slight chance this might find the same empty cell as another thread - who cares?
         m->line = line; m->function = function; m->file = file;
     }
     
-    if (action & MA_insert) { m->removed++; m->size += size; }
+    if (action & MA_insert) { m->inserted++; m->size += size; }
     if (action & MA_clear)    m->cleared++;
     if (action & MA_copy)     m->copied++;
     if (action & MA_remove)   m->removed++;

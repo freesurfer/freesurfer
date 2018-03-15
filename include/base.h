@@ -65,10 +65,15 @@ extern "C" {
 #endif
 
 
+// defines the maximum number of threads used in OpenMP code
+//
+#define _MAX_FS_THREADS 128 
+
+
 // Regardless of whether the __real_malloc etc. or the __wrap_ ones, it is still desirable
 // to know where in the program the allocations are happening.  This mechanism allows that to happen.
 //
-#define WRAP_MALLOC_ET_AL
+// #define WRAP_MALLOC_ET_AL
 
 
 #ifdef  WRAP_MALLOC_ET_AL

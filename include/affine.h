@@ -26,7 +26,7 @@
 #define AFFINE_H
 
 #ifdef USE_SSE_MATHFUN
-#if __GNUC__ > 3
+#if (__GNUC__ > 3) && !defined(HAVE_MCHECK)     // mcheck does not understand _mm_alloc et. al.
 #define AFFINE_MATRIX_USE_SSE
 #endif
 #endif
@@ -92,9 +92,10 @@ void GetFloorAffineVector( const AffineVector* av,
 
 // =====================================================
 
-
+enum AffineMatrixValidity { AffineMatrix_valid = 20180315, AffineMatrix_invalid = 0 };
 typedef struct _am {
   float mat[kAffineMatrixSize] __attribute__ ((aligned (16)));
+  enum AffineMatrixValidity validity;
 } AffineMatrix;
 
 
@@ -146,6 +147,10 @@ void GetAffineMatrix( MATRIX* dst,
 inline static
 void AffineMatrixFree( AffineMatrix **am ) {
   if( *am != NULL ) {
+
+    if ((*am)->validity != AffineMatrix_valid) *(int*)-1 = 0;
+    (*am)->validity = AffineMatrix_invalid;
+    
 #ifdef AFFINE_MATRIX_USE_SSE
     _mm_free( *am );
 #else
@@ -167,6 +172,8 @@ void AffineMatrixAlloc( AffineMatrix **am ) {
     fprintf( stderr, "%s: FAILED\n", __FUNCTION__ );
     abort();
   }
+  
+  tmp->validity = AffineMatrix_valid;
   
   AffineMatrixFree( am );
 
