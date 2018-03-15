@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# user will need dev (3/15/2018) version of mri_surfcluter and mri_volcluster
+
 import os
 import sys
 import shlex
@@ -24,15 +26,28 @@ def convertNifty(src_vol, trg_vol):
   return trg_vol
 
 
+# if a user does this: --pargs "-flag", then argparse will fail because it interprets "-flag"
+# as a seperate argument. This can be fixed by using --pargs="-flag", so here we override
+# the ArgumentParser error function to notify users if this issue occurs
+class ArgumentParser(argparse.ArgumentParser):
+  def error(self, message):
+    exc = sys.exc_info()[1]
+    if exc and (exc.argument_name == '--pargs'):
+      message = 'additional arguments should be passed to the palm function with this syntax: --pargs="-flag1 -flag2"'
+    self.print_usage(sys.stderr)
+    args = {'prog': self.prog, 'message': message}
+    self.exit(2, ('%(prog)s: error: %(message)s\n') % args)
+
+
 # ---- parse args ----
 description = """\
 Prepares and analyzes the output of mri_glmfit for Permutation
 Analysis of Linear Models (PALM) to correct for multiple
-comparisons. See https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/FsPalm
-for more info. PALM was written by Anderson Winkler:
+comparisons. See https://surfer.nmr.mgh.harvard.edu/fswiki/FsPalm
+for more info. PALM was written by Dr. Anderson Winkler, see
 fsl.fmrib.ox.ac.uk/fsl/fslwiki/PALM"""
 
-parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
+parser = ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
 parser._action_groups.pop()  #  list required arguments before optional
 # required args
 required = parser.add_argument_group('required arguments')
@@ -47,14 +62,14 @@ tails.add_argument('--twotail', action='store_true', help='perform a two-tailed 
 # optional args
 optional = parser.add_argument_group('optional arguments')
 optional.add_argument('--name', metavar='DIRNAME', type=str, help='name of palm subdirectory (default="palm")', default='palm')
-optional.add_argument('--iters', metavar='INT', help='number of iterations', default=10);
+optional.add_argument('--iters', metavar='INT', help='number of iterations', default=10)
 optional.add_argument('--pargs', metavar='SUBARGS', type=str, help='supply additional args to be passed to the palm function')
-optional.add_argument('--monly', action='store_true', help='only create matlab file, do not run');
-optional.add_argument('--octave', action='store_true', help='run with octave, not matlab');
+optional.add_argument('--monly', action='store_true', help='only create matlab file, do not run')
+optional.add_argument('--octave', action='store_true', help='run with octave, not matlab')
 optional.add_argument('--centroid', action='store_true', help='add --centroid flag to mri_surfcluster post-processing')
 optional.add_argument('--2spaces', action='store_true', help='add --bonferroni-max 2 flag to mri_surfcluster post-processing')
 optional.add_argument('--3spaces', action='store_true', help='add --bonferroni-max 3 flag to mri_surfcluster post-processing')
-# check for no args first
+# check for no args before parsing
 if len(sys.argv) == 1:
   parser.print_help()
   sys.exit(1)
@@ -87,6 +102,7 @@ if os.path.isfile(os.path.join(glmdir, 'surface')):
 else:
   print('this is a volume-based analysis')
 
+freesurferhome = os.environ.get('FREESURFER_HOME', '')
 
 # ---- glm info ----
 glm_log = os.path.join(glmdir, 'mri_glmfit.log')
@@ -110,18 +126,14 @@ if input_file.endswith('.nii.gz'):
   input_file = convertNifty(input_file, os.path.join(palmdir, os.path.basename(input_file).split('.')[0] + '.nii'))
 print('using the glmfit input file %s' % input_file)
 
+# get output file format
+if input_file.endswith('.nii'): oformat = '.nii'
+if input_file.endswith('.mgh'): oformat = '.mgh'
+if input_file.endswith('.mgz'): oformat = '.mgz'
+
 # extract hemi (and subject info for surface-based analysis)
 hemi = None
-if not surface_analysis:
-  for line in loglines:
-    splitline = line.split()
-    if splitline[0] == 'cmdline':
-      if 'lh' in splitline: hemi = 'lh'
-      elif 'rh' in splitline: hemi = 'rh'
-      break
-  if not hemi:
-    errExit("could not extract hemi info from mri_glmfit.log")
-else:
+if surface_analysis:
   # use the glmdir/surface file
   with open(os.path.join(glmdir, 'surface'), 'r') as f:
     targ_subject, hemi = f.readline().strip().split()
@@ -136,7 +148,10 @@ else:
     errExit('subject %s does not exist in current SUBJECTS_DIR (%s)' % (targ_subject, subjects_dir))
   if not os.path.isfile(surface_file):
     errExit('subject file %s does not exist' % surface_file)
-
+else:
+  # could be a cvs subject, need a way to figure this out
+  # mri_glmfit-sim does not figure it out either, user spec on cmd line
+  vol_targ_subject = 'fsaverage'
 
 # ---- design matrix ----
 # read the Xg.dat
@@ -205,65 +220,67 @@ if maskfile.endswith('.nii.gz'):
   # nii.gz mask can't be used - must convert to nii
   maskfile = convertNifty(maskfile, os.path.join(palmdir, 'mask.nii'))
 
-
-# ---- matlab script ----
+# cd to output dir
 os.chdir(palmdir)
-# delete any previous palm outfiles
+
+# create list of palm output files (should use same file format as inputs)
 if len(contrast_names) == 1:
-  fwep_file_list = ['fsp_clustere_tstat_fwep.mgz']
+  fwep_file_list = ['fsp_clustere_tstat_fwep' + oformat]
 else:
-  fwep_file_list = ['fsp_clustere_tstat_fwep_c%d.mgz' % (i+1) for i in range(len(contrast_names))]
-for fwep_file in fwep_file_list:
-  if os.path.isfile(fwep_file):
-    os.remove(fwep_file)
+  tmpstr = 'fsp_clustere_tstat_fwep_c%d' + oformat
+  fwep_file_list = [tmpstr % (i+1) for i in range(len(contrast_names))]
 
-# write the run_palm.m script
-script_path = os.path.join(palmdir, 'run_palm.m')
-with open(script_path, "w") as f:
-  f.write("hemi = '%s';\n" % hemi)
-  f.write("input = '%s';\n" % input_file)
-  f.write("maskfile = '%s';\n" % maskfile)
-  if surface_analysis:
-    f.write("surffile = '%s';\n" % surface_file)
-  f.write("\n")
-  f.write("cft = %s;\n" % args.cft)
-  f.write("pthresh = 10^-cft;\n");
-  f.write("zthresh = fast_p2z(pthresh);\n");
-  f.write("iters = %s;\n" % args.iters)
-  f.write("\n")
-  f.write("zthreshstr = sprintf('%f',zthresh);\n")
-  f.write("itersstr = sprintf('%d',iters);\n")
-  f.write("\n")
-  f.write("palm('-i',input,'-m',maskfile,'-d','design.mat','-t','design.con','-logp',...\n")
-  f.write("     '-n',itersstr,'-C',zthreshstr,'-o','fsp'")
-  f.write("%s);\n"  % ''.join(",%s" % x for x in extra_opts))
-  f.write("return;\n")
-
-if args.monly:
-  print("'--monly' requested, so exiting without running...")
-  print("to initiate palm processing, cd into %s and run 'run_palm.m' from matlab" % palmdir)
-  sys.exit(0)
-
-# run the run_palm.m script
-print('palm prep complete - running the generated matlab script...')
-try:
-  if args.octave:
-    ret = call('octave -no-gui < run_palm.m', shell=True)
-  else:
-    ret = call('matlab -display iconic < run_palm.m', shell=True)
-except KeyboardInterrupt:
-  errExit('run_palm.m interrupted')
-
+if True: # set to False to test with post-processing only
+  # delete any previous palm outfiles
+  for fwep_file in fwep_file_list:
+    if os.path.isfile(fwep_file): os.remove(fwep_file)
+    
+  # ---- matlab script ----
+  # write the run_palm.m script
+  script_path = os.path.join(palmdir, 'run_palm.m')
+  with open(script_path, "w") as f:
+    f.write("hemi = '%s';\n" % hemi)
+    f.write("input = '%s';\n" % input_file)
+    f.write("maskfile = '%s';\n" % maskfile)
+    if surface_analysis: f.write("surffile = '%s';\n" % surface_file)
+    f.write("\n")
+    f.write("cft = %s;\n" % args.cft)
+    f.write("pthresh = 10^-cft;\n");
+    f.write("zthresh = fast_p2z(pthresh);\n")
+    f.write("iters = %s;\n" % args.iters)
+    f.write("\n")
+    f.write("zthreshstr = sprintf('%f',zthresh);\n")
+    f.write("itersstr = sprintf('%d',iters);\n")
+    f.write("\n")
+    f.write("palm('-i',input,'-m',maskfile,'-d','design.mat','-t','design.con','-logp',...\n")
+    f.write("     '-n',itersstr,'-C',zthreshstr,'-o','fsp'")
+    f.write("%s);\n"  % ''.join(",%s" % x for x in extra_opts))
+    f.write("return;\n")
+  
+  if args.monly:
+    print("'--monly' requested, so exiting without running...")
+    print("to initiate palm processing, cd into %s and run 'run_palm.m' from matlab" % palmdir)
+    sys.exit(0)
+        
+  # run the run_palm.m script
+  print('palm prep complete - running the generated matlab script...')
+  try:
+    if args.octave:
+      ret = call('octave --no-gui < run_palm.m', shell=True)
+    else:
+      ret = call('matlab -display iconic < run_palm.m', shell=True)
+  except KeyboardInterrupt: errExit('run_palm.m interrupted')
+            
 # check for successful palm output since we can't get a return code from matlab
 for fwep_file in fwep_file_list:
   if not os.path.isfile(fwep_file):
     errExit('cannot find expected palm output "%s" - check for run_palm.m failures' % fwep_file)
 
-
 # ---- post-processing ----
-if surface_analysis:
+cwpsig = -log10(args.cwp)
+
+if surface_analysis:  # =============================================
   print('palm processing complete - running the surface cluster analysis...')
-  cwpsig = -log10(args.cwp)
   for i, con_name in enumerate(contrast_names):
     fwep_file = fwep_file_list[i]
     # mri_surfcluster command
@@ -275,10 +292,38 @@ if surface_analysis:
     if args.centroid:   cmd += ' --centroid'
     if vars(args)['2spaces']: cmd += ' --bonferroni-max 2'
     if vars(args)['3spaces']: cmd += ' --bonferroni-max 3'
-
     print(cmd)
     ret = call(cmd, shell=True)
-    if ret != 0:
-      errExit('mri_surfcluster failed', ret)
+    if ret != 0: errExit('mri_surfcluster failed', ret)
+    # Compute mean of input over clusters
+    cmd =  'mri_segstats --seg %s.ocn.mgh --exclude 0' % (con_name)
+    cmd += ' --i %s --avgwf %s.y.ocn.dat' % (input_file, con_name)
+    print(cmd)
+    ret = call(cmd, shell=True)
+    if ret != 0: errExit('mri_segstats failed', ret)
+
+else:  # volume analysis  ===========================================
+  print('palm processing complete - running the volume cluster analysis...')
+  for i, con_name in enumerate(contrast_names):
+    fwep_file = fwep_file_list[i]
+    # mri_volcluster command
+    cmd =  'mri_volcluster --in %s --thmin %f' % (fwep_file, cwpsig)
+    cmd += ' --seg %s aparc+aseg.mgz' % (vol_targ_subject)
+    cmd += ' --sum  %s.clustertable.dat --no-fixmni ' % (con_name)
+    cmd += ' --ocn %s.ocn.mgh --allowdiag --sig2p-max' % (con_name)
+    cmd += ' --reg %s/subjects/%s/mri.2mm/reg.2mm.dat' % (freesurferhome, vol_targ_subject)
+    # additional options
+    # no centoid option in volume
+    if vars(args)['2spaces']: cmd += ' --bonferroni-max 2'
+    if vars(args)['3spaces']: cmd += ' --bonferroni-max 3'
+    print(cmd)
+    ret = call(cmd, shell=True)
+    if ret != 0: errExit('mri_volcluster failed', ret)
+    # Compute mean of input over clusters
+    cmd =  'mri_segstats --seg %s.ocn.mgh --exclude 0' % (con_name)
+    cmd += ' --i %s --avgwf %s.y.ocn.dat' % (input_file, con_name)
+    print(cmd)
+    ret = call(cmd, shell=True)
+    if ret != 0: errExit('mri_segstats failed', ret)
 
 print('fspalm complete')
