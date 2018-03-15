@@ -240,10 +240,9 @@ If you have already installed the ```gems2``` wheel you should uninstall it:
 ```bash
 pip uninstall gems2
 ```
-Now add the gems2 module in edit mode:
+Instead  add the gems2 binary to the PYTHONPATH:
 ```bash
-cd ~/work/cm/freesurfer/GEMS2/
-pip install -e .
+export PYTHONPATH="$HOME/work/cm/freesurfer/GEMS2/bin"
 ```
 
 ### The PYTHONPATH alternative
