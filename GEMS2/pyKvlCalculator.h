@@ -31,7 +31,6 @@ public:
         std::cout << "1" << std::endl;
         switch( typeName[ 0 ] )
         {
-            // TODO: implement AtlasMeshToIntensityImage as needed for samseg
             case 'A':
             {
                 
