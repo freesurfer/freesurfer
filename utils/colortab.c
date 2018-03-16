@@ -1805,8 +1805,8 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
       case Right_Amygdala:
       case Left_Pallidum:
       case Right_Pallidum:
-      case Left_Thalamus_Proper:
-      case Right_Thalamus_Proper:
+      case Left_Thalamus:
+      case Right_Thalamus:
       case Right_Putamen:
       case Left_Putamen:
       case Right_Caudate:
@@ -1960,8 +1960,8 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
       case Right_Amygdala:
       case Left_Pallidum:
       case Right_Pallidum:
-      case Left_Thalamus_Proper:
-      case Right_Thalamus_Proper:
+      case Left_Thalamus:
+      case Right_Thalamus:
       case Right_Putamen:
       case Left_Putamen:
       case Right_Caudate:

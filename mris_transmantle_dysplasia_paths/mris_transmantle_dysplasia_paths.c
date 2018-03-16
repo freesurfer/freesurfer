@@ -46,9 +46,9 @@
 #include "voxlist.h"
 #include "pdf.h"
 #include "tritri.h"
-#ifdef HAVE_OPENMP
-#include <omp.h>
-#endif
+
+#include "romp_support.h"
+
 
 int main(int argc, char *argv[]) ;
 static VOXEL_LIST *compute_path_to_ventricles(MRI_SURFACE *mris, int vno, MRI *mri_ventricle_dist_grad, MRI *mri_aseg) ;
@@ -425,13 +425,16 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
     MRIwrite(mri_path_grad, "pg.mgz") ;
     MRIwrite(mri_possible_migration_paths, "p.mgz") ;
   }
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
   v = NULL ; n = 0 ;
   vl = vl_spline = NULL ;
-#pragma omp parallel for firstprivate(n, v, vl, vl_spline, entropy, gm_mean, mcmc_samples) shared(mri_intensity, mri_aseg, mri_path_grad,mri_splines) schedule(static,1)
+#pragma omp parallel for if_ROMP(experimental) firstprivate(n, v, vl, vl_spline, entropy, gm_mean, mcmc_samples) shared(mri_intensity, mri_aseg, mri_path_grad,mri_splines) schedule(static,1)
 #endif
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
+    ROMP_PFLB_begin
+    
     if ((vno % (mris->nvertices/200)) == 0)
       printf("processed %d of %d: %2.1f%%\n", vno, mris->nvertices, 100.0*vno/(float)mris->nvertices) ;
     v = &mris->vertices[vno] ;
@@ -443,14 +446,14 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
     {
       vl = compute_path_to_ventricles(mris, vno, mri_path_grad, mri_aseg) ;
       if (vl == NULL)
-	continue ;
+	ROMP_PFLB_continue ;
       vl_spline = find_optimal_spline(vl, mri_intensity, mri_aseg, mri_wm_dist, gm_mean, mcmc_samples,mris,spline_control_points, mcmc_samples, spline_length_penalty, spline_nonwm_penalty, spline_interior_penalty,
 				      mri_posterior, vl_posterior, &entropy, mri_total_posterior);
       MRIsetVoxVal(mri_entropy, vno, 0, 0, 0, -log(entropy)) ;
       if (vl_spline == NULL)
       {
 	VLSTfree(&vl) ;
-	continue ;
+	ROMP_PFLB_continue ;
       }
       if (vno == Gdiag_no)
       {
@@ -493,7 +496,11 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
     VLSTfree(&vl_spline) ;
 //    MRIsetVoxVal(mri_pvals, vno, 0, 0, 0, exp(val/100.0)) ;
     MRIsetVoxVal(mri_pvals, vno, 0, 0, 0, val) ;
+  
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   if (read_flag == 0)
   {
     if (randomize_data)

@@ -55,9 +55,8 @@
 #include "numerics.h"
 #include "proto.h"
 #include "utils.h"
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+
+#include "romp_support.h"
 
 // private functions
 MATRIX *MatrixCalculateEigenSystemHelper(MATRIX *m, float *evalues, MATRIX *m_evectors, int isSymmetric);
@@ -102,8 +101,10 @@ MATRIX *MatrixInverse(const MATRIX *mIn, MATRIX *mOut)
   int isError, i, j, rows, cols, alloced = 0;
   MATRIX *mTmp;
 
-  if (!mIn) ErrorExit(ERROR_BADPARM, "MatrixInverse: NULL input matrix!\n");
-
+  if (!mIn) {
+    ErrorExit(ERROR_BADPARM, "MatrixInverse: NULL input matrix!\n");
+  }
+  
   if (mIn->rows != mIn->cols)
     ErrorReturn(NULL, (ERROR_BADPARM, "MatrixInverse: matrix (%d x %d) is not square\n", mIn->rows, mIn->cols));
 
@@ -307,7 +308,7 @@ int MatrixFree(MATRIX **pmat)
   mat = *pmat;
   *pmat = NULL;
 
-  if (!mat) ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MatrixFree: NULL mat POINTER!\n"));
+  if (!mat) return (0);
 
   /* silly numerical recipes in C requires 1-based stuff */
   mat->data -= 2;
@@ -1937,7 +1938,12 @@ MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m)
       else if (fscanf(fp, "%f  ", &m->rptr[row][col]) != 1)
         ErrorReturn(NULL, (ERROR_BADFILE, "MatrixAsciiReadFrom: could not scan element (%d, %d)", row, col));
     }
-    fscanf(fp, "\n");
+    // a non zero return value for fscanf would be odd, since the scan does not match any values
+    // but we need to handle the return value, so this seems to be the sensible way to 'contract this'
+    // even if ferror is never reached
+    if(fscanf(fp, "\n") != 0 && ferror(fp)) {
+      ErrorPrintf(ERROR_BADFILE, "MatrixAsciiReadFrom: A read error occured while scanning for newline");
+    }
   }
 
   return (m);
@@ -2385,7 +2391,9 @@ float XYZApproxAngle(XYZ const *normalizedXYZ, float x2, float y2, float z2)
 
   // left the following here for debugging or other investigation
   if (0)
+#ifdef HAVE_OPENMP
 #pragma omp critical
+#endif
   {
 #define HL 1024
     static long histogram[HL];
@@ -2428,7 +2436,9 @@ float XYZApproxAngle(XYZ const *normalizedXYZ, float x2, float y2, float z2)
     angle = sqrt(2.0f * (1.0f - acosInput));
     // left the following here for debugging or other investigation
     if (0)
+#ifdef HAVE_OPENMP
 #pragma omp critical
+#endif
     {
       static int count;
       if (count++ < 100) printf("acos approx inp:%g approx:%g correct:%g\n", acosInput, angle, acos(acosInput));
@@ -3912,10 +3922,13 @@ MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
 
 /* Loop over the number of distinct elements in the symetric matrix. Using
    the LUT created above is better for load balancing.  */
-#ifdef _OPENMP
-#pragma omp parallel for default(none) shared(c1list, c2list, ntot, cols, rows, mout, m)
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(experimental) shared(c1list, c2list, ntot, cols, rows, mout, m)
 #endif
   for (n = 0; n < ntot; n++) {
+    ROMP_PFLB_begin
+    
     double v, v1, v2;
     int c1, c2, r;
     c1 = c1list[n];
@@ -3931,7 +3944,9 @@ MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
     }  // row
     mout->rptr[c1][c2] = v;
     mout->rptr[c2][c1] = v;
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   if (0) {
     // This is a built-in test. The difference should be 0.
@@ -4058,10 +4073,13 @@ MATRIX *MatrixAtB(MATRIX *A, MATRIX *B, MATRIX *mout)
     }
   }
 
-#ifdef _OPENMP
-#pragma omp parallel for
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (colA = 0; colA < A->cols; colA++) {
+    ROMP_PFLB_begin
+    
     int row, colB;
     double sum;
     for (colB = 0; colB < B->cols; colB++) {
@@ -4069,8 +4087,11 @@ MATRIX *MatrixAtB(MATRIX *A, MATRIX *B, MATRIX *mout)
       for (row = 0; row < A->rows; row++) sum += (double)A->rptr[row + 1][colA + 1] * B->rptr[row + 1][colB + 1];
       mout->rptr[colA + 1][colB + 1] = sum;
     }
+    
+    ROMP_PFLB_end
   }
-
+  ROMP_PF_end
+  
   if (0) {
     // In this test, dmax should be 0 because MatrixMultiplyD() is used
     MATRIX *At = MatrixTranspose(A, NULL);

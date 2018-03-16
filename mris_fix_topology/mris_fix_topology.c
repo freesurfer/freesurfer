@@ -36,10 +36,8 @@
 #include <ctype.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-#ifdef HAVE_OPENMP
-#include <omp.h>
-#endif
 
+#include "romp_support.h"
 #include "macros.h"
 #include "error.h"
 #include "tags.h"
@@ -98,6 +96,8 @@ char *rusage_file=NULL;
 int
 main(int argc, char *argv[])
 {
+  ROMP_main
+  
   char          **av, *hemi, *sname, *cp, fname[STRLEN] ;
   int           ac, nargs ;
   MRI_SURFACE   *mris, *mris_corrected ;
@@ -343,7 +343,7 @@ main(int argc, char *argv[])
 
   // Output formatted so it can be easily grepped
 #ifdef HAVE_OPENMP
-  int n_omp_threads = omp_get_num_threads();
+  int n_omp_threads = omp_get_max_threads();
   printf("FSRUNTIME@ mris_fix_topology %s %7.4f hours %d threads\n",hemi,msec/(1000.0*60.0*60.0),n_omp_threads);
 #else
   printf("FSRUNTIME@ mris_fix_topology %s %7.4f hours %d threads\n",hemi,msec/(1000.0*60.0*60.0),1);

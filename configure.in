@@ -1,4 +1,3 @@
-
 ########################################################################
 #
 #                          -*- Autoconf -*-
@@ -7,6 +6,7 @@
 # June 17, 2004
 #
 # Process this file with autoconf to produce a configure script.
+# See https://devmanual.gentoo.org/general-concepts/autotools/index.html
 #
 # CVS Revision Info:
 #    $Author: ah221 $
@@ -64,7 +64,7 @@ else
     PACKAGES_DIR=${pkgs_dir}
     AC_MSG_RESULT([using '${PACKAGES_DIR}'])
   else
-    AC_MSG_ERROR([FATAL: ${pkgs_dir} not found])
+    AC_MSG_RESULT([${pkgs_dir} not found. May need to use --with-pkgs-dir.])
   fi
 fi
 
@@ -226,22 +226,37 @@ if test "x$CC" = "xicc"; then
 fi
 AC_PROG_F77
 if test "x$F77" = "x"; then
-	AC_MSG_ERROR([FATAL: A Fortran 77 compiler is required!])
+  AC_MSG_ERROR([FATAL: A Fortran 77 compiler is required!])
 fi
 
 # check for gcc 4.4 and higher which supports openmp.
+ac_have_gcc="no"
 ac_have_gcc_44_or_higher="no"
+ac_have_gcc_48_or_higher="no"
 ac_have_gcc_50_or_higher="no"
-if (test "${CC}" = "gcc"); then
-  gcc --version | grep " 4\.@<:@4-9@:>@" >& /dev/null
+${CC} --version | grep "gcc" >& /dev/null
+if test "$?" = "0"; then
+  ac_have_gcc="yes"
+  AC_MSG_NOTICE(Have gcc)
+  # gcc4.4
+  ${CC} --version | grep " 4\.@<:@4-9@:>@" >& /dev/null
   if test "$?" = "0"; then
     AC_MSG_NOTICE(Have gcc 4.x where x >= 4)
     ac_have_gcc_44_or_higher="yes"
   fi
-  gcc --version | grep " @<:@5-9@:>@." >& /dev/null
+  # gcc4.8
+  ${CC} --version | grep " 4\.@<:@8-9@:>@" >& /dev/null
+  if test "$?" = "0"; then
+    AC_MSG_NOTICE(Have gcc 4.x where x >= 8)
+    ac_have_gcc_44_or_higher="yes"
+    ac_have_gcc_48_or_higher="yes"
+  fi
+  # gcc5.0
+  ${CC} --version | grep " @<:@5-9@:>@." >& /dev/null
   if test "$?" = "0"; then
     AC_MSG_NOTICE(Have gcc x where x >= 5)
     ac_have_gcc_44_or_higher="yes"
+    ac_have_gcc_48_or_higher="yes"
     ac_have_gcc_50_or_higher="yes"
     CXXFLAGS="$CXXFLAGS -fabi-version=2"
     	# needed until vnl and maybe others can be rebuilt
@@ -263,21 +278,17 @@ if test ! `uname -s` = "Darwin"; then
 fi
 
 if test `uname -s` = "Darwin"; then
+  if test -e "/usr/local/bin/glibtool" ; then
+    # brew installs here
+    AC_MSG_NOTICE(Copying /usr/local/bin/glibtool overtop the PROG_LIBTOOL)
+    cp /usr/local/bin/glibtool ./libtool
+  elif test -e "/opt/local/bin/glibtool" ; then
+    # port installs here
     AC_MSG_NOTICE(Copying /opt/local/bin/glibtool overtop the PROG_LIBTOOL)
     cp /opt/local/bin/glibtool ./libtool
+  fi
 fi
 
-# Temporary fix until I can get all version of OSX building
-#if (test `uname -n` = "gust.nmr.mgh.harvard.edu"); then
-#    AC_MSG_NOTICE(Copying /usr/pubsw/packages/autotools/bin/libtool overtop the PROG_LIBTOOL)
-#    cp /usr/pubsw/packages/autotools/bin/libtool .
-#fi
-
-# Temporary fix until I can get all version of OSX building
-# if (test `uname -n` = "aspasia.nmr.mgh.harvard.edu"); then
-#    AC_MSG_NOTICE(Copying /usr/pubsw/packages/autotools/bin/libtool overtop the PROG_LIBTOOL)
-#    cp /usr/pubsw/packages/autotools/bin/libtool .
-# fi
 
 ################################################################
 # Checks for header files.
@@ -438,55 +449,6 @@ if test "$host" = "powerpc64-suse-linux"; then
 fi
 AC_SUBST(LIB_LAPACK)
 
-# BEVIN MOVED THE FOLLOWING UP TO HERE
-# Need to decide MNI_DIR before deciding which netcdf to use
-#
-ac_mni_includes=no
-ac_mni_libraries=no
-MNI_DIR=""
-AC_MSG_CHECKING(MNI directory)
-
-AC_ARG_WITH(mni-dir,
-[  --with-mni-dir=DIR      where the root of MNI is installed.],
-  [  ac_mni_includes="$withval"/include
-     ac_mni_libraries="$withval"/lib
-     MNI_DIR="$withval"
-  ])
-
-if test "x$MNI_DIR" = "x"; then
-  # if an MNI root was not supplied, but one exists in the
-  # default packages path at the NMR Center, then use that:
-  if test -d "${PACKAGES_DIR}/mni/current" ; then
-    withval=${PACKAGES_DIR}/mni/current
-    MNI_DIR="$withval"
-    ac_mni_includes="$withval"/include
-    ac_mni_libraries="$withval"/lib
-  fi
-fi
-
-AC_MSG_RESULT(MNI_DIR is $MNI_DIR)
-
-
-
-# libnetcdf is now installed by default on centos6 computers
-# at the Center. We want it to compile against the static
-# version found in the mni library or BEVIN ADDED the standalone one in the packages 
-# so that libnetcdf does not become a dependancy for users outside the Center.
-LIB_NETCDF=""
-if ! test "x$MNI_DIR" = "xno"; then
-  if test -e ${PACKAGES_DIR}/mni/current/lib/libnetcdf.a ; then
-    LIB_NETCDF="${PACKAGES_DIR}/mni/current/lib/libnetcdf.a"
-  fi
-else
-  # BEVIN added
-  if test    -e ${PACKAGES_DIR}/netcdf/current/lib/libnetcdf.a ; then
-    LIB_NETCDF="${PACKAGES_DIR}/netcdf/current/lib/libnetcdf.a"
-  fi
-fi
-if test "x$LIB_NETCDF" = "x"; then
-    LIB_NETCDF="-lnetcdf"
-fi
-AC_SUBST(LIB_NETCDF)
 
 ################################################################
 # Most of our scripts use /bin/tcsh, so make sure it exists
@@ -495,7 +457,11 @@ AC_CHECK_FILE(/bin/tcsh,[],
   [AC_MSG_ERROR([FATAL: /bin/tcsh is required!])])
 
 # links with g++ rather than gcc (and check for Intel and AMD Compilers)
-CCLD=g++
+# first use $CXX if passed 
+CCLD=$CXX
+if test "x$CCLD" = "x"; then
+  CCLD=g++
+fi
 if test "x$CC" = "xicc"; then
   CCLD=icpc
 fi
@@ -525,9 +491,13 @@ AC_CHECK_PROG(LATEX, latex, latex)
 AM_CONDITIONAL(HAVE_LATEX, ! test -z "$LATEX")
 
 #
-# xxd is optionally used to convert .xml to a .h, for .c data incorporation
-AC_CHECK_PROG(XXD, xxd, xxd)
-AM_CONDITIONAL(HAVE_XXD, ! test -z "$XXD")
+# xxd is used to convert .xml to a .h, for .c data incorporation
+AC_CHECK_PROG([XXD], [xxd], [1], [])
+if test ! "$XXD" = "1"; then
+ AC_MSG_ERROR([FATAL: xxd is required in creating help files etc. \
+Put it in the path, or add vim-common package.])
+fi
+AM_CONDITIONAL(HAVE_XXD, test "$XXD" = "1")
 
 #
 # xmllint is optionally used to check the help.xml files for correctness
@@ -560,6 +530,16 @@ LFS_CFLAGS="-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE"
 # like pragma indent
 NUPRAG="-Wno-unknown-pragmas"
 
+# -g compiles-in debugging info for use by debuggers like gdb
+# normally we want that in the build, but here we implement the
+# flag --disable-g, which removes usages of the -g flag. this
+# greatly reduces the size of a compiled binary.
+DBGFLAG="-g"
+AC_ARG_ENABLE(g,
+ [  --disable-g             do not add -g to compiler flags],
+ [ DBGFLAG="" ],
+ [ DBGFLAG="-g" ])
+
 # Freesurfer should compile with -Wall (which enables all warnings)
 # and -Werror (which escalates warnings to errors, thus stopping the
 # build), but here we allow a bypass:
@@ -568,28 +548,43 @@ WERROR="-Werror"
 AC_ARG_ENABLE(Wall,
  [  --disable-Wall          do not add -Wall to compiler flags],
  [ WALL="" ],
- [ WALL="-Wall" ])
+ [ WALL="-Wall"])
 AC_ARG_ENABLE(Werror,
  [  --disable-Werror        do not add -Werror to compiler flags],
  [ WERROR="" ],
- [ WERROR="-Werror" ])
+ [ WERROR="-Werror"])
+AC_ARG_ENABLE(Werror-lax,
+ [  --enable-Werror-lax     add -Werror -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs to compiler flags],
+ [ WERROR="-Werror -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs" ],
+ [ WERROR="$WERROR" ])
+
+# temporary: so that --disable-Werror is no longer needed
+if test "$ac_have_gcc_48_or_higher" = "yes"; then
+  # There are approximately 1000 of this 'error', most caused by
+  # the presence of code intending for debugging, so don't report it
+  WERROR="$WERROR -Wno-unused-but-set-variable"
+  # There are approximately 600 of this 'error', most caused by
+  # the presence of code ignoring status from write, fgets and similar functions
+  WERROR="$WERROR -Wno-unused-result"
+  # There are approximately 40 of this 'error', but in external packages
+  # header files, hence not possible to fix, and harmless.
+  WERROR="$WERROR -Wno-unused-local-typedefs"
+
+  # there are others that need either fixing or ignoring:
+  #[ WERROR="-Werror=implicit-function-declaration" ]
+  #  [ WERROR="-Wno-unused-parameter -Werror -Wno-unused-variable -Wno-narrowing -Wno-aggressive-loop-optimizations -Wno-switch -Wno-enum-compare -Wno-unused-local-typedefs -fno-strict-overflow -Wno-maybe-uninitialized -Wno-uninitialized" ]
+fi
+
 # the Intel C/C++ compiler issues warnings not yet fixed in the code, so
 # include -diag-disable <errorno> flag to disable specific icc warnings
 # so that escalating warnings to errors (which stops the build) is still
 # possible.
 if test "x$CC" = "xicc"; then
-  WERROR="$WERROR -diag-disable 1268"
+  WERROR="$WERROR -diag-disable 1268 -diag-disable 279"
   # warning #1268: support for exported templates is disabled
+  # error #279: controlling expression is constant
+  #   assert(!"Cannot invert 2x2 matrix with zero determinant");
 fi
-# There are approximately 1000 of this 'error', most caused by
-# the presence of code intending for debugging, so don't report it
-WERROR="$WERROR -Wno-unused-but-set-variable"
-# There are approximately 600 of this 'error', most caused by
-# the presence of code ignoring status from write, fgets and similar functions
-WERROR="$WERROR -Wno-unused-result"
-# There are approximately 40 of this 'error', but in external packages
-# header files, hence not possible to fix, and harmless.
-WERROR="$WERROR -Wno-unused-local-typedefs"
 
 # to strip unused code when using Linux gcc.
 # but not on cent4 because for some reason it fails
@@ -613,8 +608,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
- FFLAGS="-g -O3 -msse2 -mfpmath=sse"
+ CPPFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
+ FFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse"
  ac_have_sse_mathfun=yes
  ;;
  x86_64-*linux*)
@@ -627,16 +622,16 @@ case "${target}" in
  SHARED_LDFLAGS="-shared"
  if test "x$CC" = "xicc"; then
   # Intel compiler vector options defined later
-  CPPFLAGS="-g -O3 $WALL $WERROR"
+  CPPFLAGS="$DBGFLAG -O3 $WALL $WERROR"
  else
   # note: gcc 4.4 flags -ftree-vectorize -msse4.1 dont help over just -msse2
-  CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR"
+  CPPFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse $WALL $WERROR"
  fi
  if test "x$F77" = "xifort"; then
   # Intel compiler vector options defined later
-  FFLAGS="-g -O3"
+  FFLAGS="$DBGFLAG -O3"
  else
-  FFLAGS="-g -O3 -msse2 -mfpmath=sse"
+  FFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse"
  fi
  ac_have_sse_mathfun=yes
  TEEM_32BIT=0
@@ -648,20 +643,24 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
- CPPFLAGS="-g -O2 $WALL $WERROR $LFS_CFLAGS"
+ CPPFLAGS="$DBGFLAG -O2 $WALL $WERROR $LFS_CFLAGS"
  TEEM_32BIT=0
  ;;
  *-apple-darwin*)
- # Mac OS X
+ # Mac OS X - include detection of Darwin v17.*
  OS=Darwin
  OS_CPPFLAGS=
  OS_LDFLAGS="$DEADCODE_STRIP_MAC"
  DYNAMIC_LIB_EXT=".dylib"
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
- CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
- FFLAGS="-g -O3 -msse2 -mfpmath=sse"
- FCLIBS="-L/usr/lib -lgcc"
+ CPPFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
+ FFLAGS="$DBGFLAG -O3 -msse2 -mfpmath=sse"
+ darwin_version_major=`uname -r | cut -f1 -d"."`
+ if test ! "$darwin_version_major" -lt "16"; then
+  AC_MSG_NOTICE(Have macOS 10.12+ (Darwin 16+))
+  CPPFLAGS="$CPPFLAGS -DHAVE_CLOCK_GETTIME"
+ fi
  ;;
  i*86-*-solaris*)
  OS=SunOS
@@ -670,7 +669,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CPPFLAGS="-g -O2 $WALL $WERROR $NUPRAG"
+ CPPFLAGS="$DBGFLAG -O2 $WALL $WERROR $NUPRAG"
  ;;
  i*86-pc-cygwin)
  OS=Windows_NT
@@ -679,7 +678,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=
  SHARED_CFLAGS=
  SHARED_LDFLAGS=
- CPPFLAGS="-g -O2 $WALL $WERROR $NUPRAG"
+ CPPFLAGS="$DBGFLAG -O2 $WALL $WERROR $NUPRAG"
  ;;
  powerpc64-*-linux-gnu*)
  OS=Linux
@@ -688,7 +687,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CPPFLAGS="-g -O2 $WALL $WERROR $LFS_CFLAGS"
+ CPPFLAGS="$DBGFLAG -O2 $WALL $WERROR $LFS_CFLAGS"
  ;;
  powerpc64-suse-linux)
  OS=Linux
@@ -697,7 +696,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CPPFLAGS="-g -O2 $WALL $WERROR $LFS_CFLAGS"
+ CPPFLAGS="$DBGFLAG -O2 $WALL $WERROR $LFS_CFLAGS"
   ;;
 esac
 AC_SUBST(OS)
@@ -717,6 +716,29 @@ AC_MSG_NOTICE(OS is $OS)
 
 AM_CONDITIONAL(HAVE_MAC_OSX, test "x$OS" = "xDarwin" )
 
+############################################################
+# Catch-all flag to disable OpenGL, Tcl/Tk, ITK and KWW apps
+############################################################
+needs_opengl=""
+ # space separated list of why it is needed, empty if none
+disable_gui_build=no
+AC_ARG_ENABLE(GUI-build,
+ [  --disable-GUI-build     disable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
+ [ case "${enableval}" in
+  yes)                          ;;
+  no)  	disable_gui_build="YES" ;;
+  *) AC_MSG_ERROR([bad value ${enableval} for --disable-GUI-build]) ;;
+  esac
+ ])
+build_gl_apps="yes"
+AC_ARG_ENABLE(gl-apps,
+ [  --disable-gl-apps       disable building OpenGL-based apps],
+ [case "${enableval}" in
+  yes)  build_gl_apps=yes ;;
+  no)   build_gl_apps=no  ;;
+  *) AC_MSG_ERROR([bad value ${enableval} for --enable-gl-apps]) ;;
+  esac
+ ])
 ################################################################
 # Mac 64-bit 32-bit concerns
 ################################################################
@@ -733,11 +755,6 @@ if test x$MAC_64 = xYES; then
    install_Mac32_GUIs="YES"
 fi
 
-disable_gui_build="NO"
-AC_ARG_ENABLE(GUI-build,
- [  --disable-GUI-build     disable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
- [ disable_gui_build="YES"
- ])
 
 AM_CONDITIONAL(INSTALL_MAC32_GUIS, test "x$install_Mac32_GUIs" = "xYES" )
 
@@ -753,11 +770,11 @@ if test ! "$OS" = "Darwin"; then
 fi
 
 if test "x$MAC_64" = "xYES"; then
-  if test ! "x$F77" = "xgfortran"; then
-    AC_MSG_ERROR([FATAL: gfortran (not $F77) required for 64-bit Mac OSX systems.])
-  else
+  #if test ! "x$F77" = "xgfortran"; then
+  #  AC_MSG_ERROR([FATAL: gfortran (not $F77) required for 64-bit Mac OSX systems.])
+  #else
     FFLAGS="$FFLAGS -m64"
-  fi
+  #fi
 fi
 
 # many linux systems, namedly Ubuntu, dont have libgfortran.so installed
@@ -804,39 +821,40 @@ AM_CONDITIONAL(USE_SSE_MATHFUN, test "x$ac_have_sse_mathfun" = "xyes")
 ##############################################################
 # OpenMP
 ##############################################################
+# decide on the default
 ac_have_openmp=no
-OPENMP_FLAG=""
-AC_ARG_ENABLE(openmp,
- [  --enable-openmp         enable OpenMP multi-core support],
- [ ac_have_openmp=yes
-   AC_MSG_NOTICE(Using OpenMP)
-   if test "${CC}" = "icc"; then
-     OPENMP_FLAG="-qopenmp"
-     CPPFLAGS="-D_OPENMP $OPENMP_FLAG $CPPFLAGS"
-   else
-     OPENMP_FLAG="-fopenmp"
-     CPPFLAGS="-D_OPENMP $OPENMP_FLAG $CPPFLAGS"
-   fi
- ])
-
-# gcc 4.4 supports openmp, so enable it by default (no harm in doing so)
-if test "$ac_have_gcc_44_or_higher" = "yes"; then
+if test "x$ac_have_gcc_44_or_higher" = "xyes"; then
   ac_have_openmp=yes
-  OPENMP_FLAG="-fopenmp"
-  CPPFLAGS="$CPPFLAGS $OPENMP_FLAG -DHAVE_OPENMP"
-  LDFLAGS="$LDFLAGS $OPENMP_FLAG"
-  AC_MSG_NOTICE(Using OpenMP with gcc 4.x)
 fi
-
-# Intel icc supports openmp, so enable it by default (no harm in doing so)
 if test "x$CC" = "xicc"; then
   ac_have_openmp=yes
-  OPENMP_FLAG="-qopenmp"
-  CPPFLAGS="$CPPFLAGS $OPENMP_FLAG -DHAVE_OPENMP"
-  LDFLAGS="$LDFLAGS $OPENMP_FLAG"
-  AC_MSG_NOTICE(Using OpenMP with Intel Compiler)
+fi
+AC_MSG_NOTICE([openmp available? $ac_have_openmp])
+
+# force on or off based on --enable-openmp[=yes,=no] or --disable-openmp
+AC_ARG_ENABLE(openmp,
+ [  --enable-openmp         enable OpenMP multi-core support],
+ [case "${enableval}" in
+  yes)  ac_have_openmp=yes ;;
+  no)   ac_have_openmp=no  ;;
+  *) AC_MSG_ERROR([bad value ${enableval} for --enable-openmp]) ;;
+  esac])
+AC_MSG_NOTICE([openmp being used? $ac_have_openmp])
+
+# do the right thing
+if test "x$ac_have_openmp" = "xyes"; then
+   AC_MSG_NOTICE(Using OpenMP)
+   if test "x${CC}" = "xicc"; then
+     OPENMP_FLAG="-qopenmp"
+   else
+     OPENMP_FLAG="-fopenmp"
+   fi
+   CPPFLAGS="$CPPFLAGS $OPENMP_FLAG -DHAVE_OPENMP"
+     # Note: Adding -D_OPENMP causes the ./configure command to fail!
+   LDFLAGS="$LDFLAGS $OPENMP_FLAG"
 fi
 
+AC_MSG_NOTICE([openmp used? $ac_have_openmp])
 AM_CONDITIONAL(HAVE_OPENMP, test "x$ac_have_openmp" = "xyes")
 AC_SUBST(OPENMP_FLAG)
 
@@ -926,17 +944,17 @@ AM_CONDITIONAL(BUILDOPENCL, test x$use_opencl = xyes)
 
 if( test ! "x$use_opencl" = "xno" )
 then
-	AC_DEFINE([FS_OPENCL],[1],[Defined if OPENCL should be used])
+  AC_DEFINE([FS_OPENCL],[1],[Defined if OPENCL should be used])
 fi
 
 #############################################################
 # Nvidia CUDA enabling
 ############################################################
 CUDA_DIR=""
-with_cuda=""
+#with_cuda=""
 AC_ARG_WITH([cuda],
    [  --with-cuda=PATH        prefix where cuda is installed [default=auto]],
-   [  with_cuda="${withval}"],[])
+   [  with_cuda="${withval}"],[with_cuda=""])
 
 if test -n "$with_cuda"; then
     CUDA_DIR="$with_cuda"
@@ -1034,8 +1052,8 @@ fi
 ##############################################################
 # cpu optimization
 ##############################################################
-CPUFLAGS=""
-if test "${CC}" = "gcc"; then
+CPUFLAGS=""A
+if test "$ac_have_gcc" = "yes"; then
 AC_MSG_NOTICE(Setting CPU optimization...)
 CPUTYPE="NO"
 ####
@@ -1124,6 +1142,7 @@ AC_SUBST(CPUTYPE)
 case "$CPUTYPE" in
   intel_haswell)
      #CPUFLAGS="-march=core-avx2 -m64"
+     ac_have_avx2=yes
      CPUFLAGS="-m64"
      ;;
   pentium3)
@@ -1342,33 +1361,68 @@ AC_MSG_NOTICE([Checking for directory specification of 3rd-party libraries...])
 
 #############################################################
 # MNI
+#
+# When MNI_DIR="no" is set, by default the minc_1_5_1 and
+# netcdf_3_6_0_p1 libs are built locally and used. This is
+# also the case when --without-mni-dir is specified.
+# Use --with-mni-dir="some-path" to specify external libs.
 #############################################################
+ac_mni_includes=no
+ac_mni_libraries=no
 MNI_CFLAGS=""
 MNI_LIBS=""
+# default (no) is to use local minc and netcdf:
+MNI_DIR="no"
 LIBS_MNI=""
+LIBS_MNI_LOCAL=""
+AC_MSG_CHECKING(MNI directory)
+
+AC_ARG_WITH(mni-dir,
+[  --with-mni-dir=DIR      where the root of MNI is installed.],
+  [  ac_mni_includes="$withval"/include
+     ac_mni_libraries="$withval"/lib
+     MNI_DIR="$withval"
+  ])
+
+if test "x$MNI_DIR" = "x"; then
+  # if an MNI root was not supplied, but one exists in the
+  # default packages path at the NMR Center, then use that:
+  if test -d "${PACKAGES_DIR}/mni/current" ; then
+    withval=${PACKAGES_DIR}/mni/current
+    MNI_DIR="$withval"
+    ac_mni_includes="$withval"/include
+    ac_mni_libraries="$withval"/lib
+  fi
+fi
 
 if test "x$MNI_DIR" = "xno"; then
-  # MNI_DIR is set to 'no' only if --without-mni-dir is used,
-  # which indicates that no MNI libs should be used in the build
+  # MNI_DIR is set to 'no' only if --without-mni-dir is used, or
+  # if it is initialized as the default above, which indicates that
+  # no external MNI libs should be used in the build, but to use
+  # the local minc and netcdf source builds
   ac_mni_includes=no
   ac_mni_libraries=no
   LIBS_MNI=""
+  MNI_LIBS=""
 fi
 
 if test ! "$ac_mni_includes" = "no"; then
   AC_MSG_RESULT(MNI directory is $withval)
   MNI_CFLAGS=-I$ac_mni_includes
 else
-  AC_MSG_RESULT(MNI directory is not supplied)
-  MNI_CFLAGS="-DBEVIN_EXCLUDE_MINC -I${PACKAGES_DIR}/netcdf/current/include"
+  AC_MSG_RESULT(MNI directory is not supplied. Using local minc and netcdf.)
+  MNI_CFLAGS="-DUSE_LOCAL_MINC -I../netcdf_3_6_0_p1"
+  LIB_MINC="minc_1_5_1/libminc_1_5_1.a"
+  LIB_NETCDF="netcdf_3_6_0_p1/libnetcdf_3_6_0_p1.a"
+  LIBS_MNI=""
+  LIBS_MNI_LOCAL="$LIB_MINC $LIB_NETCDF"
+  # note: local minc and netcsf static libs declared later in LIBS_MGH.
 fi
 
-MNI_LIBS=""
 if test ! "$ac_mni_libraries" = "no"; then
   MNI_LIBS=-L$ac_mni_libraries
 fi
 
-LIBS_MNI="$LIB_NETCDF"
 if test ! "$ac_mni_libraries" = "no"; then
   LIB_VOLUME_IO=""
   if test -e ${PACKAGES_DIR}/mni/current/lib/libvolume_io.a ; then
@@ -1382,6 +1436,13 @@ if test ! "$ac_mni_libraries" = "no"; then
     LIB_MINC="${PACKAGES_DIR}/mni/current/lib/libminc.a"
   else
     LIB_MINC="-lminc"
+  fi
+
+  LIB_NETCDF=""
+  if test -e ${PACKAGES_DIR}/mni/current/lib/libnetcdf.a ; then
+    LIB_NETCDF="${PACKAGES_DIR}/mni/current/lib/libnetcdf.a"
+  else
+    LIB_NETCDF="-lnetcdf"
   fi
 
   # these are the libs used by freesurfer:
@@ -1401,6 +1462,7 @@ AC_SUBST(MNI_DIR)
 AC_SUBST(LIBS_MNI)
 
 AM_CONDITIONAL(HAVE_MINC_LIBS, ! test "x$ac_mni_libraries" = "xno")
+AM_CONDITIONAL(USE_LOCAL_MINC, ! test "x$LIBS_MNI_LOCAL" = "x")
 
 ################################################################
 # NIfTI
@@ -1468,54 +1530,36 @@ AC_MSG_CHECKING(VXL directory)
 
 AC_ARG_WITH(vxl-dir,
   [  --with-vxl-dir=DIR      where the root of VXL is installed.],
-  [  # v1.7.0 has new vxl dir, earlier versions do not!
-     if test -d "$withval/include/vxl"; then
-        vxl_i="$withval/include/vxl"
-     else
-        vxl_i="$withval/include"
-     fi
+  [  vxl_i="$withval/include/vxl"
      ac_vxl_includes="$vxl_i/core $vxl_i/vcl $vxl_i/v3p/netlib $vxl_i/v3p/netlib/opt"
      ac_vxl_libraries="$withval"/lib
      VXL_DIR="$withval"
      AC_SUBST(VXL_DIR)
   ])
 
-# NJS: --with-itk-4.5.1-vxl is a temporary hack to allow building against
-# ITK v4.5.1, which doesnt seem to work with the default vxl, so we use the
-# Vxl code within itk
-AC_ARG_WITH(itk-4.5.1-vxl,
-  [  --with-itk-4.5.1-vxl     set paths to use VXL in NMR Center ITK v4.5.1.],
-  [  ac_vxl_includes="$withval"/include/ITK-4.5
-     ac_vxl_libraries="$withval"/lib
-     VXL_DIR="$withval"
-     itk_45_vxl="yes"
-     AC_SUBST(VXL_DIR)
-  ])
-# end NJS HACK
-
 if test "x$VXL_DIR" = "x"; then
-  # if a VXL root was not supplied, but one exists in the
-  # default packages path at the NMR Center, then use that:
+  # if a VXL root was not supplied, but one exists in...
+  # the default packages path at the NMR Center, then use that:
   if test -d "${PACKAGES_DIR}/vxl/current" ; then
     withval=${PACKAGES_DIR}/vxl/current
-    VXL_DIR="$withval"
-    if test -d "$withval/include/vxl"; then
-      vxl_i="$withval/include/vxl"
-    else
-      vxl_i="$withval/include"
-    fi
+    vxl_i="$withval/include/vxl"
     ac_vxl_includes="$vxl_i/core $vxl_i/vcl $vxl_i/v3p/netlib $vxl_i/v3p/netlib/opt"
     ac_vxl_libraries="$withval"/lib
+    VXL_DIR="$withval"
+  fi
+  # or the git build in the local vxl dir (see vxl/fs_build_local_vxl script)
+  if test -d "vxl/lib" ; then
+    withval="`pwd`/vxl"
+    vxl_i="$withval/include/vxl"
+    ac_vxl_includes="$vxl_i/core $vxl_i/vcl $vxl_i/v3p/netlib $vxl_i/v3p/netlib/opt"
+    ac_vxl_libraries="$withval"/lib
+    VXL_DIR="$withval"
   fi
 fi
 
 AC_ARG_WITH(vxl-include,
   [  --with-vxl-include=DIR      root of VXL include directory.],
-  [  if test -d "$withval/include/vxl"; then
-        vxl_i="$withval/include/vxl"
-     else
-        vxl_i="$withval/include"
-     fi
+  [  vxl_i="$withval/include/vxl"
      ac_vxl_includes="$vxl_i/core $vxl_i/vcl $vxl_i/v3p/netlib $vxl_i/v3p/netlib/opt"
   ])
 
@@ -1540,15 +1584,12 @@ fi
 
 # these are the VXL libs used by freesurfer:
 LIBS_VXL="-lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib"
-# NJS HACK ITK 4.5.1 has these:
-if test "x$itk_45_vxl" = "xyes"; then
-  LIBS_VXL="-litkvnl_algo-4.5 -litkvnl-4.5 -litkvcl-4.5 -litkv3p_netlib-4.5"
-fi
 
 AC_SUBST(VXL_CFLAGS)
 AC_SUBST(VXL_LIBS)
 AC_SUBST(VXL_LIB)
 AC_SUBST(LIBS_VXL)
+
 
 ################################################################
 # PETSc
@@ -1805,27 +1846,30 @@ AC_SUBST(ANN_DIR)
 AM_CONDITIONAL(HAVE_ANN_LIBS, ! test "x$ac_ann_libraries" = "xNO")
 
 
-############################################################
-# Catch-all flag to disable OpenGL, Tcl/Tk, ITK and KWW apps
-############################################################
-tcltk_apps="NO"
-itk_apps="NO"
-kww_apps="NO"
-AC_ARG_ENABLE(GUI-build,
- [  --disable-GUI-build     disable building Tcl/Tk, ITK, VTK/KWWidgets, wxWidgets and OpenGL-based apps],
- [ disable_gui_build="YES"
-   tcltk_apps="NO"
-   itk_apps="NO"
-   vtk_apps="NO"
-   kww_apps="NO"
-   wxw_apps="NO"
-   need_opengl="NO"
- ])
+###################################################################
+# Option to exclude a ton of files from being installed during
+# make install in the distribution directory (see Makefile.am
+# in distribution/ and distribution/average dirs for usage
+# of SMALL_DIST_INSTALL)
+###################################################################
 
-AC_ARG_ENABLE(gl-apps,
- [  --disable-gl-apps       disable building OpenGL-based apps],
- [ need_opengl="NO"
- ])
+AC_ARG_ENABLE(small-dist-install,
+ [  --enable-small-dist-install      exclude install of needless gobs of data files],
+ [ AM_CONDITIONAL(SMALL_DIST_INSTALL, true) ],
+ [ AM_CONDITIONAL(SMALL_DIST_INSTALL, false)
+])
+# this version will build only those files in Makefile.smalldist.am 
+# after AC_OUTPUT in this file, it will cp Makefile.smalldist Makefile
+BUILD_SMALLDIST="no"
+AC_ARG_ENABLE(small-build-dist,
+ [  --enable-small-build-dist        builds minimal source and installs minimal data to run recon-all -all],
+ [ disable_gui_build="YES"
+   BUILD_SMALLDIST="yes"
+   AM_CONDITIONAL(SMALL_DIST, true)
+   AM_CONDITIONAL(SMALL_DIST_INSTALL, true) ],
+ [ AM_CONDITIONAL(SMALL_DIST, false)
+   AM_CONDITIONAL(SMALL_DIST_INSTALL, false)
+])
 
 
 ####################################################
@@ -1899,7 +1943,7 @@ fi
 if test "$tcltk_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of Tcl/Tk apps.])
   # enable testing for OpenGL libs:
-  need_opengl=yes
+  needs_opengl="$needs_opengl tcltkapps"
 else
   AC_MSG_RESULT([Not building Tcl/Tk apps.])
 fi
@@ -2043,7 +2087,7 @@ fi
 if test "$xawplus_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of XawPlus apps.])
   # enable testing for OpenGL libs:
-  need_opengl=yes
+    needs_opengl="$needs_opengl XawPlusapps"
 fi
 
 AM_CONDITIONAL(ENABLE_XAWPLUS_APPS, test "$xawplus_apps" = "yes")
@@ -2579,7 +2623,7 @@ fi
 if test "$kww_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of KWWidgets apps.])
   # enable testing for OpenGL libs:
-  need_opengl=yes
+  needs_opengl="$needs_opengl kwwapps"
 else
   AC_MSG_RESULT([Not building KWWidgets apps.])
 fi
@@ -2631,18 +2675,18 @@ if test ! "x$WXWIDGETS_DIR" = "x"; then
   # except wx-config isn't so handy in including some header paths on Linux:
   if test -d /usr/include/gtk-2.0 ; then
   WXWIDGETS_GTK_CFLAGS="-D__WXGTK20__"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/gtk-2.0"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/lib/gtk-2.0/include"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/gdk-pixbuf-2.0"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/lib64/gtk-2.0/include"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/glib-2.0"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/lib/glib-2.0/include"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/lib64/glib-2.0/include"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/pango-1.0"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/cairo"
-  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/atk-1.0"
-  WXWIDGETS_CFLAGS="$WXWIDGETS_CFLAGS	$WXWIDGETS_GTK_CFLAGS"
-  WXWIDGETS_CXXFLAGS="$WXWIDGETS_CXXFLAGS	$WXWIDGETS_GTK_CFLAGS"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/include/gtk-2.0"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/lib/gtk-2.0/include"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/include/gdk-pixbuf-2.0"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/lib64/gtk-2.0/include"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/include/glib-2.0"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/lib/glib-2.0/include"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/lib64/glib-2.0/include"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/include/pango-1.0"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/include/cairo"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS -I/usr/include/atk-1.0"
+  WXWIDGETS_CFLAGS="$WXWIDGETS_CFLAGS $WXWIDGETS_GTK_CFLAGS"
+  WXWIDGETS_CXXFLAGS="$WXWIDGETS_CXXFLAGS $WXWIDGETS_GTK_CFLAGS"
   fi
 
   # seems like we gotta manually check for these...
@@ -2667,10 +2711,13 @@ AC_ARG_ENABLE(wxw-apps,
  [ wxw_apps="NO"
  ])
 
+if test "$disable_gui_build" = "YES"; then
+  wxw_apps="NO"
+fi
 if test "$wxw_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of wxWidgets apps.])
   # enable testing for OpenGL libs:
-  need_opengl=yes
+  needs_opengl="$needs_opengl wxwapps"
 else
   AC_MSG_RESULT([Not building wxWidgets apps.])
 fi
@@ -2740,19 +2787,38 @@ ITK_DIR=""
 AC_MSG_CHECKING(ITK directory)
 
 AC_ARG_WITH(itk-dir,
-  [  --with-itk-dir=DIR      where the root of ITK is installed.],
+  [  --with-itk-dir=DIR          where the root of ITK is installed.],
   [  itk_i="$withval/include/InsightToolkit"
-     ac_itk_includes="$itk_i $itk_i/Algorithms $itk_i/BasicFilters $itk_i/Common $itk_i/IO $itk_i/Numerics $itk_i/Numerics/Statistics $itk_i/Review $itk_i/Review/Statistics $itk_i/SpatialObject $itk_i/Utilities"
+     ac_itk_includes="$itk_i $itk_i/Algorithms \
+     			     $itk_i/BasicFilters \
+			     $itk_i/Common \
+			     $itk_i/IO \
+			     $itk_i/Numerics \
+			     $itk_i/Numerics/Statistics \
+			     $itk_i/Review \
+			     $itk_i/Review/Statistics \
+			     $itk_i/SpatialObject \
+			     $itk_i/Utilities"
      ac_itk_libraries="$withval"/lib/InsightToolkit
      ITK_DIR="$withval"
      itk_apps="yes"
      AC_SUBST(ITK_DIR)
   ])
 
-# NJS: --with-itk-4.5.1 is a temporary hack to allow building against ITK v4.5.1
-# Note: use with --with-itk-4.5.1-vxl flag, since default vxl doesnt work w4.5.1
-AC_ARG_WITH(itk-4.5.1,
-  [  --with-itk-4.5.1        set paths to use NMR Center ITK v4.5.1.],
+# option to build against ITK v5.0
+AC_ARG_WITH(itk-5.0,
+  [  --with-itk-5.0=DIR          where the root of ITK v5.0 is installed.],
+  [  ac_itk_includes="$withval"/include/ITK-5.0
+     ac_itk_libraries="$withval"/lib
+     ITK_DIR="$withval"
+     itk_apps="yes"
+     itk_50="yes"
+     AC_SUBST(ITK_DIR)
+  ])
+
+# option to build against ITK v4.5
+AC_ARG_WITH(itk-4.5,
+  [  --with-itk-4.5=DIR          where the root of ITK v4.5 is installed.],
   [  ac_itk_includes="$withval"/include/ITK-4.5
      ac_itk_libraries="$withval"/lib
      ITK_DIR="$withval"
@@ -2760,7 +2826,6 @@ AC_ARG_WITH(itk-4.5.1,
      itk_45="yes"
      AC_SUBST(ITK_DIR)
   ])
-# end NJS HACK
 
 AC_ARG_WITH(itk-include,
   [  --with-itk-include=DIR      root of ITK include directory.],
@@ -2786,7 +2851,17 @@ if test "x$ITK_DIR" = "x"; then
   if test -d "${PACKAGES_DIR}/itk/current" ; then
     withval=${PACKAGES_DIR}/itk/current
     itk_i="$withval/include/InsightToolkit"
-    ac_itk_includes="$itk_i $itk_i/Algorithms $itk_i/BasicFilters $itk_i/Common $itk_i/IO $itk_i/Numerics $itk_i/Numerics/Statistics $itk_i/Review $itk_i/Review/Statistics $itk_i/SpatialObject $itk_i/Utilities"
+    ac_itk_includes="$itk_i \
+    $itk_i/Algorithms \
+    $itk_i/BasicFilters \
+    $itk_i/Common \
+    $itk_i/IO \
+    $itk_i/Numerics \
+    $itk_i/Numerics/Statistics \
+    $itk_i/Review \
+    $itk_i/Review/Statistics \
+    $itk_i/SpatialObject \
+    $itk_i/Utilities"
     ac_itk_libraries="$withval"/lib/InsightToolkit
     ITK_DIR="$withval"
     itk_apps="yes"
@@ -2854,7 +2929,25 @@ if test "$itk_apps" = "yes"; then
   $ac_itk_libraries/libitkjpeg16.a \
   $ac_itk_libraries/libITKDICOMParser.a"
 
-  # NJS HACK ITK 4.5.1 uses these:
+  # ITK 5.0 uses these:
+  if test "x$itk_50" = "xyes"; then
+    LIBS_ITK="\
+    $ac_itk_libraries/libITKIONRRD-5.0.a \
+    $ac_itk_libraries/libITKIOImageBase-5.0.a \
+    $ac_itk_libraries/libITKCommon-5.0.a \
+    $ac_itk_libraries/libITKMetaIO-5.0.a \
+    $ac_itk_libraries/libITKniftiio-5.0.a \
+    $ac_itk_libraries/libITKNrrdIO-5.0.a \
+    $ac_itk_libraries/libitkpng-5.0.a \
+    $ac_itk_libraries/libitksys-5.0.a \
+    $ac_itk_libraries/libitktiff-5.0.a \
+    $ac_itk_libraries/libitkv3p_netlib-5.0.a \
+    $ac_itk_libraries/libitkzlib-5.0.a \
+    $ac_itk_libraries/libitkopenjpeg-5.0.a \
+    $ac_itk_libraries/libITKDICOMParser-5.0.a"
+  fi
+
+  # ITK 4.5 uses these:
   if test "x$itk_45" = "xyes"; then
     LIBS_ITK="\
     $ac_itk_libraries/libITKIONRRD-4.5.a \
@@ -2894,6 +2987,7 @@ fi
 AM_CONDITIONAL(ENABLE_ITK_APPS, test "$itk_apps" = "yes")
 AM_CONDITIONAL(HAVE_ITK_LIBS, test "$itk_apps" = "yes")
 AM_CONDITIONAL(HAVE_ITK45, test "$itk_45" = "yes")
+AM_CONDITIONAL(HAVE_ITK50, test "$itk_50" = "yes")
 
 
 AC_SUBST(ITK_CFLAGS)
@@ -2997,7 +3091,7 @@ if test "$OS" = "Darwin"; then
   if test -d "/usr/X11"; then
     X_DIR="/usr/X11"
   fi
-  if test ! "X$X_DIR" = "X"; then 
+  if test ! "X$X_DIR" = "X"; then
     gl_cflags="-I${X_DIR}/include -I${X_DIR}/include/GL"
     gl_libs="-L${X_DIR}/lib $X_LIBS -Wl,-dylib_file,\
 /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:\
@@ -3023,8 +3117,8 @@ fi
 LDFLAGS="$gl_libs $LDFLAGS"
 AX_CHECK_GL
 if test "X$no_gl" = "Xyes"; then
-  if test "X$need_opengl" = "Xyes"; then
-    AC_MSG_ERROR([FATAL: GL not found. Use --with-gl-dir=... to specify])
+  if test ! "X$needs_opengl" = "X"; then
+    AC_MSG_ERROR([FATAL: GL not found, but needed for $needs_opengl. Use --with-gl-dir=... to specify])
   else
     AC_MSG_RESULT([GL not found])
   fi
@@ -3050,8 +3144,8 @@ CFLAGS="$gl_cflags $CFLAGS"
 LDFLAGS="$gl_libs $LDFLAGS"
 AX_CHECK_GLU
 if test "X$no_glu" = "Xyes"; then
-  if test "X$need_opengl" = "Xyes"; then
-    AC_MSG_ERROR([FATAL: GLu not found. Use --with-gl-dir=... to specify])
+  if test ! "X$needs_opengl" = "X"; then
+    AC_MSG_ERROR([FATAL: GLu not found but needed for $needs_opengl. Use --with-gl-dir=... to specify])
   else
     AC_MSG_RESULT([GLu not found])
   fi
@@ -3087,14 +3181,24 @@ fi
 AM_CONDITIONAL(NMR_INSTALL, test x$nmrinstall = xtrue)
 
 
+###################################################################
+# Temporary build options
+###################################################################
+
+# include Lilla's infant FS scripts and subjects
+AC_ARG_ENABLE(infantFS,
+ [  --enable-infantFS      include infantFS in build],
+ [ AM_CONDITIONAL(INCLUDE_INFANTFS, true) ],
+ [ AM_CONDITIONAL(INCLUDE_INFANTFS, false)
+])
+
 ################################################
-LIBDIRS_MGH="utils minc_substitute rgb unix dicom hipsstubs"
+LIBDIRS_MGH="utils rgb unix dicom hipsstubs"
 AC_SUBST(LIBDIRS_MGH)
 
 # stupid circular dependency on iopen swapInt etc.
 LIBS_MGH="\
   utils/libutils.a \
-  minc_substitute/libminc_substitute.a \
   fsgdf/libfsgdf.a \
   rgb/librgb.a \
   unix/libunix.a \
@@ -3118,6 +3222,10 @@ if test "$ac_expat_libraries" = "NO"; then
   LIB_EXPAT=""
   LIBS_MGH="${LIBS_MGH} expat/libexpat.a"
 fi
+# use local minc and netcdf if --with-mni-dir not used:
+if test "$ac_mni_libraries" = "no"; then
+  LIBS_MGH="${LIBS_MGH} ${LIBS_MNI_LOCAL}"
+fi
 
 # to support CUDA, use libutils_cuda instead of libutils:
 LIBS_CUDA_MGH=`echo ${LIBS_MGH} | sed 's/libutils/libutils_cuda/g'`
@@ -3138,7 +3246,10 @@ LDFLAGS="$LDFLAGS $OS_LDFLAGS"
 #####################################################
 # link map
 #####################################################
-LDFLAGS="$LDFLAGS -Wl,-Map,ld_map.txt -Wl,--no-demangle"
+# this produces errors on os x
+if test ! "$OS" = "Darwin"; then
+  LDFLAGS="$LDFLAGS -Wl,-Map,ld_map.txt -Wl,--no-demangle"
+fi
 
 #####################################################
 # Checks for libraries.
@@ -3217,14 +3328,10 @@ AC_CHECK_FILE($VXL_LIB/libvnl$DYNAMIC_LIB_EXT,
    else
      export LD_LIBRARY_PATH="$VXL_LIB":"$LD_LIBRARY_PATH"
    fi],[])
-if test ! "x$itk_45_vxl" = "xyes"; then
 AC_CHECK_LIB([vnl], [main],[],
-  [AC_MSG_ERROR([FATAL: vnl lib not found. \
-Set LDFLAGS or --with-vxl-dir.])] )
+  [AC_MSG_ERROR([FATAL: vnl lib not found. Set LDFLAGS or --with-vxl-dir.])] )
 AC_CHECK_LIB([vnl_algo], [main],[],
-  [AC_MSG_ERROR([FATAL: vnl_algo lib not found. \
-Set LDFLAGS or --with-vxl-dir.])] )
-fi
+  [AC_MSG_ERROR([FATAL: vnl_algo lib not found. Set LDFLAGS or --with-vxl-dir.])] )
 
 # ANN check
 if test ! "x$ac_ann_dir" = "xNO"; then
@@ -3562,7 +3669,7 @@ fi
 if test ! "x$xawplus_apps" = "xNO"; then
   # with and without libXpm (Centos 6 doesnt have it)
   AC_CHECK_LIB(
-    [XawPlus], 
+    [XawPlus],
     [XawInitializeWidgetSet],
     [LIBS_XAWPLUS="-lXawPlus -lXt -lXpm -lX11"],
     [AC_CHECK_LIB(
@@ -3626,13 +3733,18 @@ AC_SUBST(LIBS_TCL_OPENGL)
 # this is done here because if added earlier -ipo breaks the OpenGL check
 if test "x$CC" = "xicc"; then
   AC_MSG_NOTICE(Setting Intel Compiler optimizations...)
-  CPPFLAGS="$CPPFLAGS -ip -axCORE-AVX2"
+  CPPFLAGS="$CPPFLAGS -ip"
+  if test "x$ac_have_avx2" = "xyes"; then
+    CPPFLAGS="$CPPFLAGS -axCORE-AVX2"
+  fi
   CPPFLAGS="$CPPFLAGS -parallel"
   CPPFLAGS="$CPPFLAGS -qopt-report=5" # -guide-par
   LDFLAGS="$LDFLAGS -ip"
 fi
 if test "x$F77" = "xifort"; then
-  FFLAGS="$FFLAGS -xCORE-AVX2"
+  if test "x$ac_have_avx2" = "xyes"; then
+    FFLAGS="$FFLAGS -xCORE-AVX2"
+  fi
 fi
 
 ###########################################################
@@ -3652,6 +3764,10 @@ else
   MATH_LIBS="-lm"
 fi
 LIBS="-lz $MATH_LIBS $LIB_CRYPT -ldl -lpthread $LIBS"
+# librt is not available on osx
+if test ! "$OS" = "Darwin"; then
+  LIBS="-lrt $LIBS"
+fi
 LIBS="$LIBS $LIB_JPEG"
 LIBS="$LIBS $LIB_TIFF"
 LIBS="$LIBS $LIB_EXPAT"
@@ -3691,7 +3807,7 @@ HAVE_OPENGL="-DHAVE_OPENGL"
 if test "x$GL_LIBS" = "x"; then
   HAVE_OPENGL=""
 fi
-if test "x$disable_gui_build" = "xYES"; then
+if test "$disable_gui_build" = "YES"; then
   HAVE_OPENGL=""
 fi
 AC_SUBST(HAVE_OPENGL)
@@ -3713,428 +3829,442 @@ fi
 AC_SUBST(TESTS_ENVIRONMENT)
 
 #########################################################################
-# output
+# output Makefiles in this list. Note that the top-level Makefile.am
+# lists the subdirectories (SUBDIRS) to make, so that drives a build
 #########################################################################
 
+AC_CONFIG_FILES([
+	Makefile
+	Makefile.smalldist
+	BrainstemSS/Makefile
+	BrainstemSS/linux_x86_64/Makefile
+	BrainstemSS/mac_osx/Makefile
+	HippoSF/Makefile
+	HippoSF/linux_x86_64/Makefile
+	HippoSF/mac_osx/Makefile
+	check_siemens_dir/Makefile
+	connectgraph/Makefile
+	cudatest/Makefile
+	cudatest/gcatest/Makefile
+	cudatest/mrilabeltest/Makefile
+	cudatest/volumecopy/Makefile
+	dicom/Makefile
+	distribution/Makefile
+	distribution/average/Buckner_JNeurophysiol11_MNI152/Makefile
+	distribution/average/Choi_JNeurophysiol12_MNI152/Makefile
+	distribution/average/Makefile
+	distribution/average/Yeo_JNeurophysiol11_MNI152/Makefile
+  distribution/average/samseg/Makefile
+	distribution/average/surf/Makefile
+	distribution/diffusion/Makefile
+	distribution/diffusion/mgh-dti-seqpack/Makefile
+	distribution/docs/Makefile
+	distribution/fsafd/Makefile
+	distribution/fsl-extra/Makefile
+	distribution/lib/Makefile
+	distribution/lib/bem/Makefile
+	distribution/sessions/Makefile
+	distribution/subjects/Makefile
+	distribution/trctrain/Makefile
+	dmri_tensoreig/Makefile
+	dngtester/Makefile
+	dummy/Makefile
+	dummy_qt/Makefile
+	expat/Makefile
+	fem_elastic/Makefile
+	freeview/Makefile
+	fsfast/Makefile
+	fsfast/bin/Makefile
+	fsfast/docs/Makefile
+	fsfast/toolbox/Makefile
+	fsgdf/Makefile
+	fslutils/Makefile
+	glut/Makefile
+	gpu_utils/Makefile
+	hiam_make_surfaces/Makefile
+	hiam_make_template/Makefile
+	hiam_register/Makefile
+	hipsstubs/Makefile
+	histo_compute_joint_density/Makefile
+	histo_fix_topology/Makefile
+	histo_register/Makefile
+	histo_register/ParticleVideoLib/Makefile
+	histo_register/SimpleBaseLib/Makefile
+	histo_register_block/Makefile
+	histo_segment/Makefile
+	histo_synthesize/Makefile
+	images/Makefile
+	include/Makefile
+	include/NrrdIO/Makefile
+	include/dicom/Makefile
+	include/fs_vnl/Makefile
+	include/pixrect/Makefile
+	include/sys/Makefile
+	include/topology/Makefile
+	include/xview/Makefile
+	itkio/Makefile
+	itkutils/Makefile
+	jpeg/Makefile
+	label2flat/Makefile
+	label2patch/Makefile
+	label_area/Makefile
+	label_border/Makefile
+	lineprof/Makefile
+	log/Makefile
+	lta_convert/Makefile
+	matlab/Makefile
+	minc_1_5_1/Makefile
+	mkxsubjreg/Makefile
+	mri_add_xform_to_header/Makefile
+	mri_and/Makefile
+	mri_annotation2label/Makefile
+	mri_aparc2aseg/Makefile
+	mri_aparc2wmseg/Makefile
+	mri_apply_inu_correction/Makefile
+	mri_aseg_edit_reclassify/Makefile
+	mri_aseg_edit_train/Makefile
+	mri_auto_fill/Makefile
+	mri_average/Makefile
+	mri_bc_sc_bias_correct/Makefile
+	mri_bias/Makefile
+	mri_binarize/Makefile
+	mri_build_priors/Makefile
+	mri_ca_label/Makefile
+	mri_ca_normalize/Makefile
+	mri_ca_register/Makefile
+	mri_ca_tissue_parms/Makefile
+	mri_ca_train/Makefile
+	mri_cal_renormalize_gca/Makefile
+	mri_cc/Makefile
+	mri_cht2p/Makefile
+	mri_classify/Makefile
+	mri_cnr/Makefile
+	mri_compile_edits/Makefile
+	mri_compute_change_map/Makefile
+	mri_compute_overlap/Makefile
+	mri_compute_seg_overlap/Makefile
+	mri_compute_structure_transforms/Makefile
+	mri_compute_volume_fractions/Makefile
+	mri_concat/Makefile
+	mri_concatenate_gcam/Makefile
+	mri_concatenate_lta/Makefile
+	mri_convert/Makefile
+	mri_convert_mdh/Makefile
+	mri_copy_values/Makefile
+	mri_cor2label/Makefile
+	mri_coreg/Makefile
+	mri_correct_segmentations/Makefile
+	mri_cvs_register/Makefile
+	mri_dct_align/Makefile
+	mri_deface/Makefile
+	mri_diff/Makefile
+	mri_distance_transform/Makefile
+	mri_divide_segmentation/Makefile
+	mri_edit_segmentation/Makefile
+	mri_edit_segmentation_with_surfaces/Makefile
+	mri_edit_wm_with_aseg/Makefile
+	mri_elastic_energy/Makefile
+	mri_em_register/Makefile
+	mri_estimate_tissue_parms/Makefile
+	mri_evaluate_morph/Makefile
+	mri_extract/Makefile
+	mri_extract_conditions/Makefile
+	mri_extract_fcd_features/Makefile
+	mri_extract_label/Makefile
+	mri_extract_largest_CC/Makefile
+	mri_fcili/Makefile
+	mri_fdr/Makefile
+	mri_fieldsign/Makefile
+	mri_fill/Makefile
+	mri_fit_bias/Makefile
+	mri_fslmat_to_lta/Makefile
+	mri_fuse_intensity_images/Makefile
+	mri_fuse_segmentations/Makefile
+	mri_fwhm/Makefile
+	mri_gca_ambiguous/Makefile
+	mri_gcab_train/Makefile
+	mri_gcut/Makefile
+	mri_gdfglm/Makefile
+	mri_glmfit/Makefile
+	mri_gtmpvc/Makefile
+	mri_gtmseg/Makefile
+	mri_hausdorff_dist/Makefile
+	mri_head/Makefile
+	mri_hires_register/Makefile
+	mri_histo_eq/Makefile
+	mri_histo_normalize/Makefile
+	mri_ibmc/Makefile
+	mri_iic/Makefile
+	mri_info/Makefile
+	mri_interpolate/Makefile
+	mri_jacobian/Makefile
+	mri_joint_density/Makefile
+	mri_label2label/Makefile
+	mri_label2vol/Makefile
+	mri_label_accuracy/Makefile
+	mri_label_histo/Makefile
+	mri_label_vals/Makefile
+	mri_label_volume/Makefile
+	mri_linear_register/Makefile
+	mri_log_likelihood/Makefile
+	mri_make_bem_surfaces/Makefile
+	mri_make_density_map/Makefile
+	mri_make_labels/Makefile
+	mri_make_register/Makefile
+	mri_make_template/Makefile
+	mri_map_cpdat/Makefile
+	mri_mark_temporal_lobe/Makefile
+	mri_mask/Makefile
+	mri_matrix_multiply/Makefile
+	mri_mc/Makefile
+	mri_mcsim/Makefile
+	mri_mi/Makefile
+	mri_modify/Makefile
+	mri_morphology/Makefile
+	mri_mosaic/Makefile
+	mri_ms_EM/Makefile
+	mri_ms_EM_with_atlas/Makefile
+	mri_ms_LDA/Makefile
+	mri_ms_fitparms/Makefile
+	mri_multiscale_segment/Makefile
+	mri_multispectral_segment/Makefile
+	mri_nlfilter/Makefile
+	mri_normalize/Makefile
+	mri_normalize_tp2/Makefile
+	mri_otl/Makefile
+	mri_paint/Makefile
+	mri_parse_sdcmdir/Makefile
+	mri_parselabel/Makefile
+	mri_partial_ribbon/Makefile
+	mri_path2label/Makefile
+	mri_polv/Makefile
+	mri_probe_ima/Makefile
+	mri_probedicom/Makefile
+	mri_reduce/Makefile
+	mri_register/Makefile
+	mri_relabel_hypointensities/Makefile
+	mri_relabel_nonwm_hypos/Makefile
+	mri_remove_neck/Makefile
+	mri_rf_label/Makefile
+	mri_rf_long_label/Makefile
+	mri_rf_long_train/Makefile
+	mri_rf_train/Makefile
+	mri_ribbon/Makefile
+	mri_rigid_register/Makefile
+	mri_robust_register/Makefile
+	mri_sbbr/Makefile
+	mri_seg_diff/Makefile
+	mri_segcentroids/Makefile
+	mri_seghead/Makefile
+	mri_segment/Makefile
+	mri_segment_tumor/Makefile
+	mri_segment_wm_damage/Makefile
+	mri_segreg/Makefile
+	mri_segstats/Makefile
+	mri_simulate_atrophy/Makefile
+	mri_stats2seg/Makefile
+	mri_strip_nonwhite/Makefile
+	mri_strip_subject_info/Makefile
+	mri_surf2surf/Makefile
+	mri_surf2vol/Makefile
+	mri_surfacemask/Makefile
+	mri_surfcluster/Makefile
+	mri_synthesize/Makefile
+	mri_tessellate/Makefile
+	mri_threshold/Makefile
+	mri_topologycorrection/Makefile
+	mri_train/Makefile
+	mri_train_autoencoder/Makefile
+	mri_transform/Makefile
+	mri_transform_to_COR/Makefile
+	mri_twoclass/Makefile
+	mri_update_gca/Makefile
+	mri_vol2roi/Makefile
+	mri_vol2surf/Makefile
+	mri_vol2vol/Makefile
+	mri_volcluster/Makefile
+	mri_voldiff/Makefile
+	mri_volsynth/Makefile
+	mri_warp_convert/Makefile
+	mri_watershed/Makefile
+	mri_watershed/brain_volume/Makefile
+	mri_wbc/Makefile
+	mri_wmfilter/Makefile
+	mri_xcorr/Makefile
+	mri_xvolavg/Makefile
+	mri_z2p/Makefile
+	mris2rgb/Makefile
+	mris_BA_segment/Makefile
+	mris_add_template/Makefile
+	mris_anatomical_stats/Makefile
+	mris_annot_to_segmentation/Makefile
+	mris_apply_reg/Makefile
+	mris_aseg_distance/Makefile
+	mris_average_curvature/Makefile
+	mris_average_parcellation/Makefile
+	mris_ca_label/Makefile
+	mris_ca_train/Makefile
+	mris_calc/Makefile
+	mris_classify_thickness/Makefile
+	mris_compute_acorr/Makefile
+	mris_compute_lgi/Makefile
+	mris_compute_optimal_kernel/Makefile
+	mris_compute_overlap/Makefile
+	mris_compute_parc_overlap/Makefile
+	mris_compute_volume_fractions/Makefile
+	mris_congeal/Makefile
+	mris_convert/Makefile
+	mris_copy_header/Makefile
+	mris_curvature/Makefile
+	mris_curvature_stats/Makefile
+	mris_decimate/Makefile
+	mris_decimate_gui/Makefile
+	mris_deform/Makefile
+	mris_density/Makefile
+	mris_diff/Makefile
+	mris_distance_map/Makefile
+	mris_distance_to_label/Makefile
+	mris_distance_transform/Makefile
+	mris_divide_parcellation/Makefile
+	mris_entropy/Makefile
+	mris_errors/Makefile
+	mris_euler_number/Makefile
+	mris_expand/Makefile
+	mris_fbirn_annot/Makefile
+	mris_fill/Makefile
+	mris_find_flat_regions/Makefile
+	mris_fix_topology/Makefile
+	mris_flatten/Makefile
+	mris_fwhm/Makefile
+	mris_glm/Makefile
+	mris_hausdorff_dist/Makefile
+	mris_inflate/Makefile
+	mris_info/Makefile
+	mris_init_global_tractography/Makefile
+	mris_interpolate_warp/Makefile
+	mris_jacobian/Makefile
+	mris_label2annot/Makefile
+	mris_label_area/Makefile
+	mris_label_calc/Makefile
+	mris_label_mode/Makefile
+	mris_left_right_register/Makefile
+	mris_longitudinal_surfaces/Makefile
+	mris_make_average_surface/Makefile
+	mris_make_face_parcellation/Makefile
+	mris_make_map_surfaces/Makefile
+	mris_make_surfaces/Makefile
+	mris_make_template/Makefile
+	mris_map_cuts/Makefile
+	mris_merge_parcellations/Makefile
+	mris_mesh_subdivide/Makefile
+	mris_morph_stats/Makefile
+	mris_ms_refine/Makefile
+	mris_ms_surface_CNR/Makefile
+	mris_multiscale_stats/Makefile
+	mris_niters2fwhm/Makefile
+	mris_parcellate_connectivity/Makefile
+	mris_pmake/Makefile
+	mris_register/Makefile
+	mris_register_label_map/Makefile
+	mris_register_to_volume/Makefile
+	mris_remove_variance/Makefile
+	mris_resample/Makefile
+	mris_rescale/Makefile
+	mris_reverse/Makefile
+	mris_rf_label/Makefile
+	mris_rf_train/Makefile
+	mris_rotate/Makefile
+	mris_sample_label/Makefile
+	mris_sample_parc/Makefile
+	mris_seg2annot/Makefile
+	mris_segment/Makefile
+	mris_segment_vals/Makefile
+	mris_segmentation_stats/Makefile
+	mris_shrinkwrap/Makefile
+	mris_simulate_atrophy/Makefile
+	mris_smooth/Makefile
+	mris_sphere/Makefile
+	mris_spherical_average/Makefile
+	mris_surface_change/Makefile
+	mris_surface_stats/Makefile
+	mris_surface_to_vol_distances/Makefile
+	mris_svm_classify/Makefile
+	mris_svm_train/Makefile
+	mris_talairach/Makefile
+	mris_thickness/Makefile
+	mris_thickness_comparison/Makefile
+	mris_thickness_diff/Makefile
+	mris_topo_fixer/Makefile
+	mris_transform/Makefile
+	mris_translate_annotation/Makefile
+	mris_transmantle_dysplasia_paths/Makefile
+	mris_twoclass/Makefile
+	mris_volmask/Makefile
+	mris_volume/Makefile
+	mris_w_to_curv/Makefile
+	mris_warp/Makefile
+	mris_watershed/Makefile
+	mrisp_paint/Makefile
+	netcdf_3_6_0_p1/Makefile
+	nmovie/Makefile
+	nmovie_qt/Makefile
+	oct_register_mosaic/Makefile
+	oct_train/Makefile
+	opencl_algorithms/Makefile
+	optseq2/Makefile
+	orient_mri/Makefile
+	qdec/Makefile
+	qdec_glmfit/Makefile
+	qdecproject/Makefile
+	rbftest/Makefile
+	regdat2xfm/Makefile
+	repair_siemens_file/Makefile
+	rgb/Makefile
+	scripts/InfantFS/Makefile
+	scripts/Makefile
+	spherical_stats/Makefile
+	spline3/Makefile
+	stat_normalize/Makefile
+	stim_polar/Makefile
+	svm-lib/Makefile
+	swi_processing/Makefile
+	talairach_afd/Makefile
+	talairach_avi/Makefile
+	template/Makefile
+	test_makevol/Makefile
+	tetgen/Makefile
+	tiff/Makefile
+	tkmedit/Makefile
+	tkregister2/Makefile
+	tkregister2/cmdl/Makefile
+	tksurfer/Makefile
+	trc/Makefile
+	tridec/Makefile
+	unix/Makefile
+	utils/Makefile
+	utils/NrrdIO/Makefile
+	utils/cephes/Makefile
+	utils/test/MRIScomputeBorderValues/Makefile
+	utils/test/MRISpositionSurface/Makefile
+	utils/test/Makefile
+	utils/test/mriBuildVoronoiDiagramFloat/Makefile
+	utils/test/mriSoapBubbleFloat/Makefile
+	utils/test/mrishash/Makefile
+	utilscpp/Makefile
+	utilscpp/test/Makefile
+	vtkfsio/Makefile
+	vtkutils/Makefile
+	xml2/Makefile
+	])
+# generate Makefiles from list in AC_CONFIG_FILES:
+AC_OUTPUT()
 
-AC_OUTPUT([Makefile
-           BrainstemSS/Makefile
-           BrainstemSS/linux_x86_64/Makefile
-           BrainstemSS/mac_osx/Makefile
-           check_siemens_dir/Makefile
-           cudatest/Makefile
-           cudatest/gcatest/Makefile
-           cudatest/volumecopy/Makefile
-           cudatest/mrilabeltest/Makefile
-           dicom/Makefile
-           distribution/Makefile
-           distribution/average/Makefile
-           distribution/average/surf/Makefile
-           distribution/average/Yeo_JNeurophysiol11_MNI152/Makefile
-           distribution/average/Buckner_JNeurophysiol11_MNI152/Makefile
-           distribution/average/Choi_JNeurophysiol12_MNI152/Makefile
-           distribution/docs/Makefile
-           distribution/diffusion/Makefile
-           distribution/diffusion/mgh-dti-seqpack/Makefile
-           distribution/trctrain/Makefile
-           distribution/fsafd/Makefile
-           distribution/lib/Makefile
-           distribution/lib/bem/Makefile
-           distribution/sessions/Makefile
-           distribution/subjects/Makefile
-           distribution/fsl-extra/Makefile
-           dmri_tensoreig/Makefile
-           dngtester/Makefile
-           dummy/Makefile
-           dummy_qt/Makefile
-           expat/Makefile
-           fem_elastic/Makefile
-           fsfast/Makefile
-           fsfast/bin/Makefile
-           fsfast/docs/Makefile
-           fsfast/toolbox/Makefile
-           fsgdf/Makefile
-           fslutils/Makefile
-           glut/Makefile
-           gpu_utils/Makefile
-           opencl_algorithms/Makefile
-           hiam_make_surfaces/Makefile
-           hiam_register/Makefile
-           hiam_make_template/Makefile
-           HippoSF/Makefile
-           HippoSF/linux_x86_64/Makefile
-           HippoSF/mac_osx/Makefile
-           hipsstubs/Makefile
-           histo_segment/Makefile
-           histo_synthesize/Makefile
-           histo_register/Makefile
-           histo_register/SimpleBaseLib/Makefile
-           histo_register/ParticleVideoLib/Makefile
-           histo_compute_joint_density/Makefile
-           histo_register_block/Makefile
-           images/Makefile
-           include/Makefile
-           include/NrrdIO/Makefile
-           include/dicom/Makefile
-           include/xview/Makefile
-           include/pixrect/Makefile
-           include/sys/Makefile
-           include/topology/Makefile
-           include/fs_vnl/Makefile
-           itkio/Makefile
-           itkutils/Makefile
-           jpeg/Makefile
-           label_area/Makefile
-           label_border/Makefile
-           label2patch/Makefile
-           label2flat/Makefile
-           log/Makefile
-           lta_convert/Makefile
-           matlab/Makefile
-	   minc_substitute/Makefile
-           mkxsubjreg/Makefile
-           mri_bias/Makefile
-           mri_train_autoencoder/Makefile
-           mri_log_likelihood/Makefile
-           mri_add_xform_to_header/Makefile
-           mri_annotation2label/Makefile
-           mri_aparc2aseg/Makefile
-           mri_aparc2wmseg/Makefile
-           mri_apply_inu_correction/Makefile
-           mri_aseg_edit_train/Makefile
-           mri_aseg_edit_reclassify/Makefile
-           mri_auto_fill/Makefile
-           mri_average/Makefile
-           mri_dct_align/Makefile
-           mri_bc_sc_bias_correct/Makefile
-           mri_binarize/Makefile
-           mri_build_priors/Makefile
-           mri_cal_renormalize_gca/Makefile
-           mri_ca_label/Makefile
-           mri_ca_normalize/Makefile
-           mri_ca_register/Makefile
-           mri_ca_tissue_parms/Makefile
-           mri_ca_train/Makefile
-           mri_correct_segmentations/Makefile
-           mri_divide_segmentation/Makefile
-           mri_gtmpvc/Makefile
-           mri_rf_label/Makefile
-           mri_rf_train/Makefile
-           mri_gcab_train/Makefile
-           mri_gtmseg/Makefile
-           mri_cc/Makefile
-           mri_cht2p/Makefile
-           mri_cnr/Makefile
-           mri_compile_edits/Makefile
-           mri_coreg/Makefile
-           mri_update_gca/Makefile
-           mri_compute_overlap/Makefile
-           mri_compute_seg_overlap/Makefile
-           mri_concat/Makefile
-           mri_concatenate_gcam/Makefile
-           mri_concatenate_lta/Makefile
-           mri_convert/Makefile
-           mri_mosaic/Makefile
-           mri_convert_mdh/Makefile
-           mri_copy_values/Makefile
-           mri_cor2label/Makefile
-           mri_cvs_register/Makefile
-           mri_deface/Makefile
-           mri_diff/Makefile
-           mri_distance_transform/Makefile
-           mri_edit_segmentation/Makefile
-           mri_edit_segmentation_with_surfaces/Makefile
-           mri_edit_wm_with_aseg/Makefile
-           mri_em_register/Makefile
-           mri_estimate_tissue_parms/Makefile
-           mri_evaluate_morph/Makefile
-           mri_extract/Makefile
-           mri_extract_conditions/Makefile
-           mri_extract_label/Makefile
-           mri_extract_largest_CC/Makefile
-           mri_extract_fcd_features/Makefile
-           mri_fcili/Makefile
-           mri_fdr/Makefile
-           mri_fieldsign/Makefile
-           mri_fill/Makefile
-           mri_fit_bias/Makefile
-           mri_fslmat_to_lta/Makefile
-           mri_fwhm/Makefile
-           mri_gca_ambiguous/Makefile
-           mri_gcut/Makefile
-           mri_gdfglm/Makefile
-           mri_glmfit/Makefile
-           mri_head/Makefile
-           mri_hires_register/Makefile
-           mri_otl/Makefile
-           mri_histo_eq/Makefile
-           mri_histo_normalize/Makefile
-           histo_fix_topology/Makefile
-           mri_ibmc/Makefile
-           mri_iic/Makefile
-           mri_info/Makefile
-           mri_and/Makefile
-           mri_hausdorff_dist/Makefile
-           mri_fuse_segmentations/Makefile
-           mri_fuse_intensity_images/Makefile
-           mri_sbbr/Makefile
-           mri_simulate_atrophy/Makefile
-           mri_joint_density/Makefile
-           mri_label2label/Makefile
-           mri_label2vol/Makefile
-           mri_label_histo/Makefile
-           mri_label_vals/Makefile
-           mri_label_volume/Makefile
-           mri_linear_register/Makefile
-           mri_compute_structure_transforms/Makefile
-           mri_make_bem_surfaces/Makefile
-           mri_make_density_map/Makefile
-           mri_make_labels/Makefile
-           mri_make_register/Makefile
-           mri_make_template/Makefile
-           mri_map_cpdat/Makefile
-           mri_mark_temporal_lobe/Makefile
-           mri_mask/Makefile
-           mri_matrix_multiply/Makefile
-           mri_mc/Makefile
-           mri_mi/Makefile
-           mri_mcsim/Makefile
-           mri_modify/Makefile
-           mri_morphology/Makefile
-           mri_jacobian/Makefile
-           mri_compute_volume_fractions/Makefile
-           mri_interpolate/Makefile
-           mri_ms_EM/Makefile
-           mri_ms_EM_with_atlas/Makefile
-           mri_ms_LDA/Makefile
-           mri_ms_fitparms/Makefile
-           mri_elastic_energy/Makefile
-           mri_nlfilter/Makefile
-           mri_normalize/Makefile
-           mri_normalize_tp2/Makefile
-           mri_paint/Makefile
-           mri_parse_sdcmdir/Makefile
-           mri_parselabel/Makefile
-           mri_partial_ribbon/Makefile
-           mri_path2label/Makefile
-           mri_polv/Makefile
-           mri_probe_ima/Makefile
-           mri_probedicom/Makefile
-           mri_reduce/Makefile
-           mri_register/Makefile
-           mri_relabel_hypointensities/Makefile
-           mri_relabel_nonwm_hypos/Makefile
-           mri_remove_neck/Makefile
-           mri_ribbon/Makefile
-           mri_rigid_register/Makefile
-           mri_robust_register/Makefile
-           mri_seg_diff/Makefile
-           mri_seghead/Makefile
-           mri_segment/Makefile
-           mri_segment_tumor/Makefile
-           mri_segment_wm_damage/Makefile
-           mri_segreg/Makefile
-           mri_segstats/Makefile
-           mri_stats2seg/Makefile
-           mri_strip_nonwhite/Makefile
-           mri_strip_subject_info/Makefile
-           mri_surf2surf/Makefile
-           mri_surf2vol/Makefile
-           mri_surfacemask/Makefile
-           mri_surfcluster/Makefile
-           mri_synthesize/Makefile
-           mri_tessellate/Makefile
-           mri_threshold/Makefile
-           mri_topologycorrection/Makefile
-           mri_train/Makefile
-           mri_classify/Makefile
-           mri_transform/Makefile
-           mri_transform_to_COR/Makefile
-           mri_twoclass/Makefile
-           mri_vol2roi/Makefile
-           mri_vol2surf/Makefile
-           mri_vol2vol/Makefile
-           mris_copy_header/Makefile
-           mris_segmentation_stats/Makefile
-           mris_simulate_atrophy/Makefile
-           mris_rf_label/Makefile
-           mris_rf_train/Makefile
-           mri_rf_long_train/Makefile
-           mri_rf_long_label/Makefile
-           mri_volcluster/Makefile
-           mri_voldiff/Makefile
-           mri_volsynth/Makefile
-           mri_warp_convert/Makefile
-           mri_watershed/Makefile
-           mri_watershed/brain_volume/Makefile
-           mri_wbc/Makefile
-           mri_wmfilter/Makefile
-           mri_xcorr/Makefile
-           mri_xvolavg/Makefile
-           mri_z2p/Makefile
-           mri_label_accuracy/Makefile
-           mri_multispectral_segment/Makefile
-           mri_multiscale_segment/Makefile
-           mri_compute_change_map/Makefile
-           mris2rgb/Makefile
-           mris_hausdorff_dist/Makefile
-           mris_map_cuts/Makefile
-           mris_merge_parcellations/Makefile
-           mris_distance_transform/Makefile
-           mris_add_template/Makefile
-           mris_aseg_distance/Makefile
-           mris_density/Makefile
-           mris_fill/Makefile
-           mris_fbirn_annot/Makefile
-           mris_anatomical_stats/Makefile
-           mris_transmantle_dysplasia_paths/Makefile
-           mris_annot_to_segmentation/Makefile
-           mris_apply_reg/Makefile
-           mris_average_curvature/Makefile
-           mris_ca_label/Makefile
-           mris_divide_parcellation/Makefile
-           mris_ca_train/Makefile
-           mris_svm_classify/Makefile
-           mris_svm_train/Makefile
-           mris_calc/Makefile
-           mris_classify_thickness/Makefile
-           mris_compute_acorr/Makefile
-           mris_compute_lgi/Makefile
-           mris_compute_overlap/Makefile
-           mris_compute_parc_overlap/Makefile
-           mris_congeal/Makefile
-           mris_convert/Makefile
-           mris_distance_map/Makefile
-           mris_curvature/Makefile
-           mris_curvature_stats/Makefile
-           mris_decimate/Makefile
-           mris_decimate_gui/Makefile
-           mris_diff/Makefile
-           mris_distance_to_label/Makefile
-           mris_entropy/Makefile
-           mris_errors/Makefile
-           mris_euler_number/Makefile
-           mris_expand/Makefile
-           mris_find_flat_regions/Makefile
-           mris_fix_topology/Makefile
-           mris_topo_fixer/Makefile
-           mris_flatten/Makefile
-           mris_fwhm/Makefile
-           mris_glm/Makefile
-           mris_inflate/Makefile
-           mris_info/Makefile
-           mris_jacobian/Makefile
-           mris_label_area/Makefile
-           mris_label_calc/Makefile
-           mris_label_mode/Makefile
-           mris_label2annot/Makefile
-           mris_make_average_surface/Makefile
-           mris_make_surfaces/Makefile
-           mris_make_map_surfaces/Makefile
-           mris_make_template/Makefile
-           mris_mesh_subdivide/Makefile
-           mris_morph_stats/Makefile
-           mris_deform/Makefile
-           mris_ms_refine/Makefile
-           mris_ms_surface_CNR/Makefile
-           mris_multiscale_stats/Makefile
-           mris_niters2fwhm/Makefile
-           mris_pmake/Makefile
-           mris_register/Makefile
-           mris_register_label_map/Makefile
-           mris_left_right_register/Makefile
-           mris_register_to_volume/Makefile
-           mris_init_global_tractography/Makefile
-           mris_interpolate_warp/Makefile
-           mris_remove_variance/Makefile
-           mris_resample/Makefile
-           mris_rescale/Makefile
-           mris_reverse/Makefile
-           mris_rotate/Makefile
-           mris_sample_label/Makefile
-           mris_sample_parc/Makefile
-           mris_segment_vals/Makefile
-           mris_segment/Makefile
-           mris_seg2annot/Makefile
-           mris_shrinkwrap/Makefile
-           mris_show/Makefile
-           mris_smooth/Makefile
-           mris_parcellate_connectivity/Makefile
-           mris_make_face_parcellation/Makefile
-           mris_sphere/Makefile
-           mris_spherical_average/Makefile
-           mris_average_parcellation/Makefile
-           mris_surface_stats/Makefile
-           mris_surface_to_vol_distances/Makefile
-           mris_talairach/Makefile
-           mris_thickness/Makefile
-           mris_surface_change/Makefile
-           mris_BA_segment/Makefile
-           mris_compute_optimal_kernel/Makefile
-           mris_thickness_comparison/Makefile
-           mris_thickness_diff/Makefile
-           mris_transform/Makefile
-           mris_translate_annotation/Makefile
-           mris_twoclass/Makefile
-           mris_volume/Makefile
-           mris_warp/Makefile
-           mris_watershed/Makefile
-           mris_volmask/Makefile
-           mris_w_to_curv/Makefile
-           mrisp_paint/Makefile
-           mris_longitudinal_surfaces/Makefile
-           mris_compute_volume_fractions/Makefile
-           nmovie/Makefile
-           oct_train/Makefile
-           oct_register_mosaic/Makefile
-                 nmovie_qt/Makefile
-           optseq2/Makefile
-           orient_mri/Makefile
-           qdec/Makefile
-           rbftest/Makefile
-           regdat2xfm/Makefile
-           repair_siemens_file/Makefile
-           rgb/Makefile
-           scripts/Makefile
-           freeview/Makefile
-           connectgraph/Makefile
-           spherical_stats/Makefile
-           spline3/Makefile
-           stat_normalize/Makefile
-           stim_polar/Makefile
-           svm-lib/Makefile
-           swi_processing/Makefile
-           talairach_afd/Makefile
-           talairach_avi/Makefile
-           template/Makefile
-           test_exclude_minc/Makefile
-           test_makevol/Makefile
-           tetgen/Makefile
-           tiff/Makefile
-           tkmedit/Makefile
-           tkregister2/Makefile
-           tkregister2/cmdl/Makefile
-           tksurfer/Makefile
-           trc/Makefile
-           tridec/Makefile
-           unix/Makefile
-           utils/Makefile
-           utils/cephes/Makefile
-           utils/NrrdIO/Makefile
-           utils/test/Makefile
-           utils/test/mriBuildVoronoiDiagramFloat/Makefile
-           utils/test/MRIScomputeBorderValues/Makefile
-           utils/test/mrishash/Makefile
-           utils/test/MRISpositionSurface/Makefile
-           utils/test/mriSoapBubbleFloat/Makefile
-           utilscpp/Makefile
-           utilscpp/test/Makefile
-           qdec_glmfit/Makefile
-           qdecproject/Makefile
-           vtkfsio/Makefile
-           vtkutils/Makefile
-           lineprof/Makefile
-           xml2/Makefile])
+# if --enable-small-dist was used, then replace Makefile with the small-build version
+if test "x$BUILD_SMALLDIST" = "xyes"; then
+    AC_MSG_NOTICE(Replaced Makefile with Makefile.smalldist for minimal build)
+    cp Makefile.smalldist Makefile
+fi
+
 
 ########################################################################
 

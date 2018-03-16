@@ -32,6 +32,8 @@
 #include <unistd.h>
 #include <pwd.h>
 
+#include "rec.h"
+
 #define MAXL		256
 
 static char rcsid[] = "$Id: Inithdr.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";
@@ -41,7 +43,6 @@ int Inithdr (struct dsr *phdr, int *imgdim, float *voxdim, char *proto_imgfile) 
 	char		*str, string[MAXL], proto_hdr[MAXL];
 	int		j, k, status;
 	int		debug = 1;
-	time_t		time_sec;
 	struct passwd	*pw;
 
 	memset (phdr, '\0', sizeof (struct dsr));
@@ -81,8 +82,7 @@ int Inithdr (struct dsr *phdr, int *imgdim, float *voxdim, char *proto_imgfile) 
 	phdr->dime.pixdim[2] = voxdim[1];
 	phdr->dime.pixdim[3] = voxdim[2];
 
-	time (&time_sec);
-	strcpy (string, ctime (&time_sec));
+	strcpy (string, current_date_time());
 	string[24] = '\0';
 	if (debug) printf ("%s\n", string);
 	for (j = k = 0; k < 10; k++) if (string[k] != ' ') phdr->hist.exp_date[j++] = string[k];

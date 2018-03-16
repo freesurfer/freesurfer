@@ -48,7 +48,7 @@
 
 //------------------------------------------------------------------------
 static char vcid[] =
-  "$Id: mris_convert.c,v 1.47 2015/07/24 16:13:39 greve Exp $";
+  "$Id$";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 // this mini colortable is used when .label file gets converted to gifti
@@ -134,7 +134,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_convert.c,v 1.47 2015/07/24 16:13:39 greve Exp $",
+           "$Id$",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -921,7 +921,7 @@ print_help(void)
   printf( "Apply talairach xfm to white surface, save as binary:\n");
   printf( "  mris_convert -t bert lh.white lh.white.tal\n") ;
   printf( "\n");
-  printf( "Convert a scalar overlay file to ascii:\n");
+  printf( "Convert a scalar overlay file in \"curv\" format to ascii:\n");
   printf( "  mris_convert -c lh.thickness lh.white lh.thickness.asc\n") ;
   printf( "\n") ;
   printf( "Convert a .annot file to Gifti label file:\n");

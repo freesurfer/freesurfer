@@ -5826,6 +5826,10 @@ static int count_diagonals(MRI *mri, int x0, int y0, int z0) ;
 static int count_voxel_diagonals(MRI *mri, int x0, int y0, int z0) ;
 static int fillDiagonals(MRI *mri, int fillval) ;
 
+#if GCC_VERSION > 40407
+#pragma GCC diagnostic push
+#endif
+#pragma GCC diagnostic ignored "-Wstrict-overflow"
 static int
 MRIfillDegenerateLocations(MRI *mri, int fillval)
 {
@@ -5842,6 +5846,9 @@ MRIfillDegenerateLocations(MRI *mri, int fillval)
 
   return(NO_ERROR) ;
 }
+#if GCC_VERSION > 40407
+#pragma GCC diagnostic pop
+#endif
 
 static int
 fillDiagonals(MRI *mri, int fillval)
@@ -6478,7 +6485,6 @@ MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg)
         case Left_Lateral_Ventricle:
         case Left_Inf_Lat_Vent:
         case Left_Thalamus:
-        case Left_Thalamus_Proper:
         case Left_Caudate:
         case Left_Putamen:
         case Left_Pallidum:
@@ -6509,7 +6515,6 @@ MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg)
         case Right_Lateral_Ventricle:
         case Right_Inf_Lat_Vent:
         case Right_Thalamus:
-        case Right_Thalamus_Proper:
         case Right_Caudate:
         case Right_Putamen:
         case Right_Pallidum:

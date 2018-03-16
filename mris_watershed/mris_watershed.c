@@ -19,7 +19,7 @@ S. Beucher and F. Meyer introduced an algorithmic inter-pixel implementation of 
 #include <math.h>
 #include <string.h>
 #include <ctype.h>
-#include <omp.h>
+#include "romp_support.h"
 
 #include "macros.h"
 #include "error.h"
@@ -52,6 +52,8 @@ int MRISmergeBasins(MRI_SURFACE *mris, int b1, int b2) ;
 static int merge_type = MERGE_SMALLEST ; //MERGE_MOST_SIMILAR ;
 static int nbrs = 3 ;
 static int max_clusters = 60 ;
+
+static LABEL *mask_label= NULL ;
 
 int
 main(int argc, char *argv[])
@@ -89,6 +91,21 @@ main(int argc, char *argv[])
   out_fname = argv[3] ;
 
   MRISresetNeighborhoodSize(mris, nbrs) ;
+  if (mask_label)
+  {
+    int vno ;
+    VERTEX *v ;
+    
+    LabelMark(mask_label, mris) ;
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->marked == 0)
+	MRIsetVoxVal(mri, vno, 0, 0, 0, 0);
+    }
+    LabelUnmark(mask_label, mris) ;
+  }
+
   MRISinitWatershed(mris, mri) ;
   MRISwatershed(mris, mri, max_clusters, merge_type) ;
   nlabels = MRISfindMaxLabel(mris)+1 ;
@@ -135,6 +152,8 @@ print_help(void) {
           "and writes the resulting measurement into a .annot file\n"
           "<output file>.\n") ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
+  fprintf(stderr, "\t-M <max clusters>: set the number of clusters\n") ;
+  fprintf(stderr, "\t-mask_label <label>: read in and mask the input volume that is not in the specified label\n") ;
   exit(1) ;
 }
 
@@ -157,16 +176,20 @@ get_option(int argc, char *argv[]) {
     char str[STRLEN] ;
     sprintf(str, "OMP_NUM_THREADS=%d", atoi(argv[2]));
     putenv(str) ;
+#ifdef HAVE_OPENMP
     omp_set_num_threads(atoi(argv[2]));
+#else
+    fprintf(stderr, "Warning - built without openmp support\n");
+#endif
     nargs = 1 ;
     fprintf(stderr, "Setting %s\n", str) ;
   } else if (!stricmp(option, "mask_label"))
   {
     nargs = 1 ;
     printf("reading masking label from %s\n", argv[2]) ;
-//    mask_label = LabelRead(NULL,argv[2]) ;
-//    if (mask_label == NULL)
-//      ErrorExit(ERROR_NOFILE, "%s: could not load label %s for masking\n", Progname, argv[2]) ;
+    mask_label = LabelRead(NULL,argv[2]) ;
+    if (mask_label == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load label %s for masking\n", Progname, argv[2]) ;
   }
   else if (!stricmp(option, "dilate") || !stricmp(option, "label_dilate") ||
 	   !stricmp(option, "dilate_label"))
@@ -186,6 +209,11 @@ get_option(int argc, char *argv[]) {
     case 'N':
       nbrs = atoi(argv[2]) ;
       fprintf(stderr, "using neighborhood size=%d\n", nbrs) ;
+      nargs = 1 ;
+      break ;
+    case 'M':
+      max_clusters = atoi(argv[2]) ;
+      printf("using max clusters=%d\n", max_clusters) ;
       nargs = 1 ;
       break ;
     case 'V':
@@ -367,11 +395,13 @@ MRISfindMostSimilarBasins(MRI_SURFACE *mris, MRI *mri, int *pb2)
     memset(avg_grad, 0, nbasins*sizeof(*avg_grad)) ;
     max_basin = 0 ;
 // reductions for min and max aren't available in earlier openmp
+    ROMP_PF_begin
 #if defined(HAVE_OPENMP) && GCC_VERSION > 40408
-#pragma omp parallel for reduction(max:max_basin)
+    #pragma omp parallel for if_ROMP(experimental) reduction(max:max_basin)
 #endif
     for (vno = 0 ;  vno < mris->nvertices ; vno++)
     {
+      ROMP_PFLB_begin
       VERTEX *v, *vn ;
       int    n, nbr_basin ;
 
@@ -389,7 +419,9 @@ MRISfindMostSimilarBasins(MRI_SURFACE *mris, MRI *mri, int *pb2)
 	if (nbr_basin > max_basin)
 	  max_basin = nbr_basin ;
       }
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
     
     min_grad = 1e10 ;
     for (basin = 1 ; basin <= max_basin ; basin++)
@@ -509,7 +541,7 @@ MRISwatershed(MRI_SURFACE *mris, MRI *mri, int max_clusters, int merge_type)
     vv = MRISgetSortedVertexValues(mris, mri, vv, &nvert) ;
     max_val = 0 ;
 //ifdef HAVE_OPENMP
-//pragma omp parallel for reduction(max:max_val)
+//pragma omp parallel for if_ROMP(experimental) reduction(max:max_val)
 //endif
     for (vno = 0 ; vno < nvert ; vno++)
     {

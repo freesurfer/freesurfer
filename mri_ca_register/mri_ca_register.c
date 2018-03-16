@@ -46,9 +46,8 @@
 #include <ctype.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-#ifdef HAVE_OPENMP
-#include <omp.h>
-#endif
+
+#include "romp_support.h"
 
 #include "mri.h"
 #include "matrix.h"
@@ -185,6 +184,8 @@ char *rusage_file=NULL;
 int
 main(int argc, char *argv[])
 {
+  ROMP_main
+  
   char         *gca_fname, *in_fname, *out_fname, fname[STRLEN], **av ;
   MRI          *mri_inputs, *mri_tmp ;
   GCA          *gca /*, *gca_tmp, *gca_reduced*/ ;
@@ -267,10 +268,7 @@ main(int argc, char *argv[])
   }
 
 #ifdef HAVE_OPENMP
-  #pragma omp parallel
-  {
-    n_omp_threads = omp_get_num_threads();
-  }
+  n_omp_threads = omp_get_max_threads();
   printf("\n== Number of threads available to %s for OpenMP = %d == \n",
          Progname, n_omp_threads);
 #else

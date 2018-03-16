@@ -25,14 +25,14 @@
 <help>
 	<name>mri_segstats</name>
 	<synopsis>mri_segstats --seg segvol --annot  subject hemi parc --slabel subject hemi label --sum file</synopsis>
-	<description> </description>
+	<description>Calculates measures and stats derived from brain segmentation data. </description>
   <arguments>
     <positional>
 
     </positional>
     <required-flagged>
       <argument>--seg segvol</argument>
-      <explanation>Input segmentation volume. A segmentation is a volume whose voxel values indicate a segmentation or class. This can be as complicaated as a FreeSurfer automatic cortical or subcortial segmentation or as simple as a binary mask. The format of segvol can be anything that mri_convert accepts as input (eg, analyze, nifti, mgh, bhdr, bshort, bfloat).
+      <explanation>Input segmentation volume. A segmentation is a volume whose voxel values indicate a segmentation or class. This can be as complicated as a FreeSurfer automatic cortical or subcortial segmentation or as simple as a binary mask. The format of segvol can be anything that mri_convert accepts as input (eg, analyze, nifti, mgh, bhdr, bshort, bfloat).
 
 SPECIFYING SEGMENTATION IDS
 
@@ -45,7 +45,7 @@ This list can be further reduced by specifying masks and --excludeid.
 
 MEASURES OF BRAIN VOLUME
 
-There will be three measures of brain volume in the output summary file:
+There will be four measures of brain volume in the output summary file:
 1. BrainSegNotVent - sum of the volume of the structures identified in the aseg.mgz volume this will include cerebellum but not ventricles, CSF and dura. Includes partial volume compensation with --pv. This is probably the number you want to report.
 2. BrainMask - total volume of non-zero voxels in brainmask.mgz. This will include cerebellum, ventricles, and possibly dura. This is probably not what you want to report.
 3. BrainSeg - sum of the volume of the structures identified in the aseg.mgz volume. This will  include cerebellum and ventricles but should exclude dura. This does not include partial volume compensation, so this number might be different than the sum of the segmentation volumes.
@@ -183,6 +183,8 @@ For each segmentation, computes the average waveform across all the voxels in th
       </explanation>
       <argument>--sd SUBJECTS_DIR</argument>
       <explanation>Set SUBJECTS_DIR env var</explanation>
+      <argument>--seed N</argument>
+      <explanation>set random number generator to seed N</explanation>
     </optional-flagged>
   </arguments>
 	<example>mri_segstats --seg $SUBJECTS_DIR/bert/mri/aseg --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt --excludeid 0 --sum bert.aseg.sum

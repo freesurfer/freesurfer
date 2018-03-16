@@ -48,9 +48,9 @@
 #include "tritri.h"
 #include "cmat.h"
 #include "fsinit.h"
-#ifdef HAVE_OPENMP
-#include <omp.h>
-#endif
+
+#include "romp_support.h"
+
 
 
 #define MIN_SPLINE_CONTROL_POINTS  3
@@ -298,20 +298,21 @@ main(int argc, char *argv[]) {
       {
 #if 0
 #ifdef HAVE_OPENMP
-	    val = 0 ; l = 0 ;
-#pragma omp parallel for firstprivate(val, l) shared(mri_aseg, mri_tmp, labels, y, z) schedule(static,1)
+        val = 0 ; l = 0 ;
+#pragma omp parallel for if_ROMP(experimental) firstprivate(val, l) shared(mri_aseg, mri_tmp, labels, y, z) schedule(static,1)
 #endif
 #endif
-	for (x = 0 ; x < mri_aseg->width ; x++)
-	  for (y = 0 ; y < mri_aseg->height ; y++)
-	    for (z = 0 ; z < mri_aseg->depth ; z++)
-	    {
+	for (x = 0 ; x < mri_aseg->width ; x++) {
+	  for (y = 0 ; y < mri_aseg->height ; y++) {
+	    for (z = 0 ; z < mri_aseg->depth ; z++) {
 	      l = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
 	      if (IS_WMH(l) || l == label2_target)
 		continue ;
 	      val = MRImaxInRegion(mri_smooth, x, y, z, 1)  + 1 ;  // one greater than max
 	      MRIsetVoxVal(mri_tmp, x, y, z, 0, val) ;
 	    }
+	  }
+	}
 	MRIcopy(mri_tmp, mri_smooth) ;
       }
       MRIfree(&mri_tmp) ;
@@ -366,14 +367,17 @@ main(int argc, char *argv[]) {
       mri_tmp = MRIcopy(mri_smooth, NULL) ;
       for (i = 0 ; i < 10 ; i++)
       {
+	ROMP_PF_begin
 #if 0
 #ifdef HAVE_OPENMP
-	    val = 0 ; l = 0 ;
-#pragma omp parallel for firstprivate(val, l) shared(mri_aseg, mri_tmp, labels, y, z) schedule(static,1)
+	val = 0 ; l = 0 ;
+#pragma omp parallel for if_ROMP(experimental) firstprivate(val, l) shared(mri_aseg, mri_tmp, labels, y, z) schedule(static,1)
 #endif
 #endif
-	for (x = 0 ; x < mri_aseg->width ; x++)
-	  for (y = 0 ; y < mri_aseg->height ; y++)
+	for (x = 0 ; x < mri_aseg->width ; x++) {
+          ROMP_PFLB_begin
+          
+	  for (y = 0 ; y < mri_aseg->height ; y++) {
 	    for (z = 0 ; z < mri_aseg->depth ; z++)
 	    {
 	      l = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
@@ -382,6 +386,12 @@ main(int argc, char *argv[]) {
 	      val = MRImaxInRegion(mri_smooth, x, y, z, 1)  + 1 ;  // one greater than max
 	      MRIsetVoxVal(mri_tmp, x, y, z, 0, val) ;
 	    }
+	  }
+          
+          ROMP_PFLB_end
+	}
+        ROMP_PF_end
+
 	MRIcopy(mri_tmp, mri_smooth) ;
       }
       MRIfree(&mri_tmp) ;
@@ -517,7 +527,11 @@ get_option(int argc, char *argv[]) {
     char str[STRLEN] ;
     sprintf(str, "OMP_NUM_THREADS=%d", atoi(argv[2]));
     putenv(str) ;
+#ifdef HAVE_OPENMP
     omp_set_num_threads(atoi(argv[2]));
+#else
+    fprintf(stderr, "Warning - built without openmp support\n");
+#endif
     nargs = 1 ;
     fprintf(stderr, "Setting %s\n", str) ;
   }
@@ -830,31 +844,33 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
     MRIwrite(mri_path_grad, "pg.mgz") ;
     MRIwrite(mri_possible_migration_paths, "p.mgz") ;
   }
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
   v = NULL ; n = 0 ; vl = vl_spline = NULL ;
-#pragma omp parallel for firstprivate(n, v, vl, vl_spline, entropy, gm_mean, mcmc_samples) shared(mri_intensity, mri_aseg, mri_path_grad,mri_splines) schedule(static,1)
+#pragma omp parallel for if_ROMP(experimental) firstprivate(n, v, vl, vl_spline, entropy, gm_mean, mcmc_samples) shared(mri_intensity, mri_aseg, mri_path_grad,mri_splines) schedule(static,1)
 #endif
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
+    ROMP_PFLB_begin
     if ((vno % (mris->nvertices/200)) == 0)
       printf("processed %d of %d: %2.1f%%\n", vno, mris->nvertices, 100.0*vno/(float)mris->nvertices) ;
     v = &mris->vertices[vno] ;
     if (v->ripflag)
-      continue ;
+      ROMP_PFLB_continue ;
     if (vno == Gdiag_no)
       DiagBreak() ;
     if (read_flag == 0)
     {
       vl = compute_path_to_ventricles(mris, vno, mri_path_grad, mri_aseg) ;
       if (vl == NULL)
-	continue ;
+	ROMP_PFLB_continue ;
       vl_spline = find_optimal_spline(vl, mri_intensity, mri_aseg, mri_wm_dist, gm_mean, mcmc_samples,mris,min_spline_control_points, mcmc_samples, spline_length_penalty, spline_nonwm_penalty, spline_interior_penalty,
 				      mri_posterior, vl_posterior, &entropy, mri_total_posterior);
       MRIsetVoxVal(mri_entropy, vno, 0, 0, 0, -log(entropy)) ;
       if (vl_spline == NULL)
       {
 	VLSTfree(&vl) ;
-	continue ;
+	ROMP_PFLB_continue ;
       }
       if (vno == Gdiag_no)
       {
@@ -897,7 +913,11 @@ compute_migration_probabilities(MRI_SURFACE *mris, MRI *mri_intensity, MRI *mri_
     VLSTfree(&vl_spline) ;
 //    MRIsetVoxVal(mri_pvals, vno, 0, 0, 0, exp(val/100.0)) ;
     MRIsetVoxVal(mri_pvals, vno, 0, 0, 0, val) ;
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   if (read_flag == 0)
   {
     if (randomize_data)

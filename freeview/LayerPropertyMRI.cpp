@@ -96,7 +96,8 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_dVectorDisplayScale(1.0),
   m_bHeatScaleAutoMid(true),
   m_nProjectionMapType(0),
-  m_bDisplayRGB(false)
+  m_bDisplayRGB(false),
+  m_dVectorLineWidth(1)
 {
   mGrayScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   mHeatScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
@@ -127,6 +128,7 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   connect( this, SIGNAL(ResliceInterpolationChanged()), this, SIGNAL(PropertyChanged()) );
   connect( this, SIGNAL(TextureSmoothingChanged()), this, SIGNAL(PropertyChanged()) );
   connect( this, SIGNAL(UpSampleMethodChanged(int)), this, SIGNAL(PropertyChanged()) );
+  connect( this, SIGNAL(VectorLineWidthChanged(double)), this, SIGNAL(PropertyChanged()) );
 }
 
 LayerPropertyMRI::~LayerPropertyMRI ()
@@ -160,6 +162,7 @@ void LayerPropertyMRI::CopySettings( const LayerPropertyMRI* p )
   m_bHeatScaleTruncate    =   p->m_bHeatScaleTruncate;
   m_bHeatScaleInvert      =   p->m_bHeatScaleInvert;
   m_bRememberFrameSettings = p->m_bRememberFrameSettings;
+  m_dVectorLineWidth      =   p->m_dVectorLineWidth;
 
   SetLUTCTAB  ( p->mFreeSurferCTAB );
 
@@ -310,6 +313,7 @@ void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
 
   this->OnColorMapChanged();
   emit OpacityChanged( mOpacity );
+  emit DisplayModeChanged();
 }
 
 void LayerPropertyMRI::SaveSettings( const QString& filename )
@@ -353,6 +357,9 @@ QVariantMap LayerPropertyMRI::GetFullSettings()
   map["DisplayVector"] = m_bDisplayVector;
   map["VectorInversion"] = m_nVectorInversion;
   map["VectorRepresentation"] = m_nVectorRepresentation;
+  map["VectorLengthScale"] = m_dVectorDisplayScale;
+  map["VectorWidthScale"] = m_dVectorLineWidth;
+  map["VectorNormalize"] = m_bNormalizeVector;
 
   map["DisplayTensor"] = m_bDisplayTensor;
   map["TensorInversion"] = m_nTensorInversion;
@@ -397,6 +404,15 @@ void LayerPropertyMRI::RestoreFullSettings(const QVariantMap &map)
 
   if (map.contains("Opacity"))
     mOpacity = map["Opacity"].toDouble();
+
+  if (map.contains("VectorLengthScale"))
+    m_dVectorDisplayScale = map["VectorLengthScale"].toDouble();
+
+  if (map.contains("VectorWidthScale"))
+    m_dVectorLineWidth = map["VectorWidthScale"].toDouble();
+
+  if (map.contains("VectorNormalize"))
+    m_bNormalizeVector = map["VectorNormalize"].toBool();
 
   RestoreSettings(map);
 }
@@ -512,6 +528,15 @@ void LayerPropertyMRI::SetLUTCTAB( COLOR_TABLE* ct )
       emit ColorMapChanged();
     }
   }
+}
+
+bool LayerPropertyMRI::IsValueInColorTable(double nVal)
+{
+  int bValid = 0;
+  if (mFreeSurferCTAB)
+    CTABisEntryValid( mFreeSurferCTAB, (int)nVal, &bValid );
+
+  return bValid;
 }
 
 void LayerPropertyMRI::UpdateLUTTable()
@@ -1345,9 +1370,9 @@ void LayerPropertyMRI::SetVolumeSource ( FSVolume* source )
   // Init our color scale values.
   UpdateMinMaxValues();
 
-  double dscale = qMax(fabs(mMaxVoxelValue), fabs(mMinVoxelValue));
-  if (dscale > 0)
-    m_dVectorDisplayScale = 1/dscale;
+//  double dscale = qMax(fabs(mMaxVoxelValue), fabs(mMinVoxelValue));
+//  if (dscale > 0)
+//    m_dVectorDisplayScale = 1/dscale;
 
   mColorMapTable->ClampingOn();
 
@@ -1454,6 +1479,7 @@ void LayerPropertyMRI::UpdateMinMaxValues()
     mHeatScaleMinThreshold = 0;
   mHeatScaleMidThreshold = highestAbsValue / 2.0;
   mHeatScaleMaxThreshold = highestAbsValue - oneTenth;
+  mHeatScaleOffset = 0;
 
   // Init the colors in the heat scale. The editor will handle the
   // editing from here.
@@ -1462,6 +1488,12 @@ void LayerPropertyMRI::UpdateMinMaxValues()
   mMaxGenericThreshold = mMaxGrayscaleWindow;
   mMinContourThreshold = mHeatScaleMidThreshold;
   mMaxContourThreshold = mMaxGrayscaleWindow;
+}
+
+void LayerPropertyMRI::ResetWindowLevel()
+{
+  UpdateMinMaxValues();
+  this->OnColorMapChanged();
 }
 
 void LayerPropertyMRI::SetMinMaxGenericThreshold ( double iMin, double iMax )
@@ -1492,7 +1524,6 @@ void LayerPropertyMRI::SetMinMaxGenericThreshold ( double iMin, double iMax )
       mMaxGenericThreshold = iMax;
     }
     this->OnColorMapChanged();
-    emit GenericWindowLevelChanged();
   }
 }
 
@@ -1728,7 +1759,7 @@ void LayerPropertyMRI::SetRememberFrameSettings(bool bFlag)
   }
 }
 
-void LayerPropertyMRI::SetActiveFrame(int nFrame)
+void LayerPropertyMRI::UpdateActiveFrame(int nFrame)
 {
   if (nFrame != m_nActiveFrame)
   {
@@ -1745,7 +1776,15 @@ void LayerPropertyMRI::SetVectorScale(double dval)
   if (m_dVectorScale != dval)
   {
     m_dVectorScale = dval;
+  }
+}
 
+void LayerPropertyMRI::SetVectorLineWidth(double val)
+{
+  if (m_dVectorLineWidth != val)
+  {
+    m_dVectorLineWidth = val;
+    emit VectorLineWidthChanged(val);
   }
 }
 

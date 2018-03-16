@@ -17,7 +17,6 @@ DMRISUBDIRS=\
 GLSUBDIRS=\
 	glut \
 	nmovie \
-	mris_show \
 	stim_polar \
 	tkmedit \
 	tkregister2 \
@@ -55,7 +54,6 @@ MRISUBDIRS=\
 	mri_correct_segmentations \
 	mri_cal_renormalize_gca \
 	mri_divide_segmentation \
-	test_exclude_minc \
 	mri_gtmpvc \
 	mri_rf_label \
 	mri_rf_train \
@@ -155,6 +153,7 @@ MRISUBDIRS=\
 	mri_rigid_register \
 	mri_robust_register \
 	mri_seg_diff \
+	mri_segcentroids \
 	mri_segment \
 	mri_segment_tumor \
 	mri_seghead \
@@ -375,7 +374,8 @@ COREDIRS=\
 	log \
 	gpu_utils \
 	opencl_algorithms \
-	minc_substitute \
+	minc_1_5_1 \
+	netcdf_3_6_0_p1 \
 	utils \
 	utilscpp \
 	vtkfsio \

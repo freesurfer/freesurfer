@@ -494,12 +494,12 @@ int main(int argc, char *argv[]) {
     // Loop over faces ----------------------------------------
     error_count=0;
     for (nthface=0; nthface < surf1->nfaces; nthface++) {
-      face1 = &(surf1->faces[nthface]);
-      face2 = &(surf2->faces[nthface]);
+      face1 = &(surf1->faces[nthface]); FaceNormCacheEntry const * fNorm1 = getFaceNorm(surf1, nthface);
+      face2 = &(surf2->faces[nthface]); FaceNormCacheEntry const * fNorm2 = getFaceNorm(surf2, nthface);
       if (CheckNXYZ) {
-        compare(&faceNxnynzHistogram, face1->nx, face2->nx);
-        compare(&faceNxnynzHistogram, face1->ny, face2->ny);
-        compare(&faceNxnynzHistogram, face1->nz, face2->nz);
+        compare(&faceNxnynzHistogram, fNorm1->nx, fNorm2->nx);
+        compare(&faceNxnynzHistogram, fNorm1->ny, fNorm2->ny);
+        compare(&faceNxnynzHistogram, fNorm1->nz, fNorm2->nz);
       }
       compare(&faceAreaHistogram, face1->area, face2->area);
       if (face1->ripflag != face2->ripflag) {

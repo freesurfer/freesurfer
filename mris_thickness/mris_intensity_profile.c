@@ -30,7 +30,7 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
-#include <omp.h>
+#include "romp_support.h"
 
 #include "macros.h"
 #include "error.h"
@@ -980,7 +980,11 @@ get_option(int argc, char *argv[]) {
     char str[STRLEN] ;
     sprintf(str, "OMP_NUM_THREADS=%d", atoi(argv[2]));
     putenv(str) ;
+#ifdef HAVE_OPENMP
     omp_set_num_threads(atoi(argv[2]));
+#else
+    fprintf(stderr, "Warning - built without openmp support\n");
+#endif
     nargs = 1 ;
     fprintf(stderr, "Setting %s\n", str) ;
   } else if (!stricmp(option, "lta_src") ||

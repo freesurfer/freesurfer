@@ -25,10 +25,11 @@
 
 using namespace std;
 
+#include "faster_variants.h"
+
 #include "cudacheck.h"
 
 #include "gcasgpu.hpp"
-
 
 
 // ====================================================
@@ -74,8 +75,13 @@ void GCASampleGPU::SendGPU( GCA *gca,
   int* myz = new int[nSamples];
 
   float* covars = new float[nSamples];
-  float* priors = new float[nSamples];
   float* means = new float[nSamples];
+#ifdef FASTER_MRI_EM_REGISTER
+  float* prior_access_via_setGetPriors = new float[nSamples];
+  float* prior_logs = new float[nSamples];
+#else
+  float* priors = new float[nSamples];
+#endif
 
   for( int i=0; i<nSamples; i++ )
   {
@@ -95,8 +101,12 @@ void GCASampleGPU::SendGPU( GCA *gca,
     // These lines require the check for ninputs==1
     covars[i] = gcaSample[i].covars[0];
     means[i] = gcaSample[i].means[0];
+#ifdef FASTER_MRI_EM_REGISTER
+    prior_access_via_setGetPriors[i] = gcaSample[i].prior_access_via_setGetPrior;
+    prior_logs[i] = gcaSample[i].prior_log;
+#else
     priors[i] = gcaSample[i].prior;
-
+#endif
   }
 
   // Send to the GPU
@@ -116,17 +126,32 @@ void GCASampleGPU::SendGPU( GCA *gca,
   CUDA_SAFE_CALL( cudaMemcpy( this->d_covars, covars,
                               nSamples*sizeof(float),
                               cudaMemcpyHostToDevice ) );
+
+#ifdef FASTER_MRI_EM_REGISTER
+  CUDA_SAFE_CALL( cudaMemcpy( this->d_prior_access_via_setGetPriors, prior_access_via_setGetPriors,
+			      nSamples*sizeof(float),
+			      cudaMemcpyHostToDevice ) );
+  CUDA_SAFE_CALL( cudaMemcpy( this->d_prior_logs, prior_logs,
+			      nSamples*sizeof(float),
+			      cudaMemcpyHostToDevice ) );
+#else
   CUDA_SAFE_CALL( cudaMemcpy( this->d_priors, priors,
                               nSamples*sizeof(float),
                               cudaMemcpyHostToDevice ) );
+#endif
 
   // Release memory
   delete[] myx;
   delete[] myy;
   delete[] myz;
   delete[] covars;
-  delete[] priors;
   delete[] means;
+#ifdef FASTER_MRI_EM_REGISTER
+  delete[] prior_access_via_setGetPriors;
+  delete[] prior_logs;
+#else
+  delete[] priors;
+#endif
 
   // Following should also free the identity matrix
   TransformFree( &identityTransform );
@@ -151,8 +176,15 @@ void GCASampleGPU::Allocate( const unsigned int n )
 
     CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_means),
                                 n*sizeof(float) ) );
+#ifdef FASTER_MRI_EM_REGISTER
+    CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_prior_access_via_setGetPriors),
+                                n*sizeof(float) ) );
+    CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_prior_logs),
+                                n*sizeof(float) ) );
+#else
     CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_priors),
                                 n*sizeof(float) ) );
+#endif
     CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_covars),
                                 n*sizeof(float) ) );
 
@@ -170,7 +202,12 @@ void GCASampleGPU::Release( void )
     cudaFree( d_y );
     cudaFree( d_z );
     cudaFree( d_means );
+#ifdef FASTER_MRI_EM_REGISTER
+    cudaFree( d_prior_access_via_setGetPriors );
+    cudaFree( d_prior_logs );
+#else
     cudaFree( d_priors );
+#endif
     cudaFree( d_covars );
     this->nSamples = 0;
     this->nSamplesAlloc = 0;

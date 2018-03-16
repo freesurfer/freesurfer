@@ -33,9 +33,8 @@
 double round(double x);
 #include <memory.h>
 #include <string.h>
-#ifdef HAVE_OPENMP
-#include <omp.h>
-#endif
+
+#include "romp_support.h"
 
 #include "box.h"
 #include "diag.h"
@@ -443,10 +442,13 @@ MRI *MRIerode(MRI *mri_src, MRI *mri_dst)
     same = 0;
 
   if (mri_src->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR) {
+    ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+    #pragma omp parallel for if_ROMP(experimental)
 #endif
     for (z = 0; z < depth; z++) {
+      ROMP_PFLB_begin
+      
       int x, y, z0, zi, y0, yi, x0, xi;
       float fmin_val, fval;
       for (y = 0; y < height; y++) {
@@ -466,13 +468,19 @@ MRI *MRIerode(MRI *mri_src, MRI *mri_dst)
           MRIsetVoxVal(mri_dst, x, y, z, 0, fmin_val);
         }
       }
+      
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
   }
   else {
+    ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+    #pragma omp parallel for if_ROMP(assume_reproducible)
 #endif
     for (z = 0; z < depth; z++) {
+      ROMP_PFLB_begin
+      
       int x, y, z0, zi, y0, yi, x0, xi;
       BUFTYPE *pdst, min_val, val;
 
@@ -494,8 +502,11 @@ MRI *MRIerode(MRI *mri_src, MRI *mri_dst)
           *pdst++ = min_val;
         }
       }
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
   }
+  
   if (same) {
     MRIcopy(mri_dst, mri_src);
     MRIfree(&mri_dst);
@@ -1621,10 +1632,13 @@ MRI *MRIdilate(MRI *mri_src, MRI *mri_dst)
   zmax = depth - 1;
 #endif
   for (f = 0; f < mri_src->nframes; f++) {
+    ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+    #pragma omp parallel for if_ROMP(assume_reproducible)
 #endif
     for (z = zmin; z <= zmax; z++) {
+      ROMP_PFLB_begin
+      
       int y, x, xi, yi, zi, z0, y0, x0;
       double val, max_val;
       for (y = ymin; y <= ymax; y++) {
@@ -1644,7 +1658,10 @@ MRI *MRIdilate(MRI *mri_src, MRI *mri_dst)
           MRIsetVoxVal(mri_dst, x, y, z, f, max_val);
         }
       }
+      
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
   }
   if (same) {
     MRIcopy(mri_dst, mri_src);
@@ -2106,10 +2123,13 @@ MRI *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
 
   if (mri_src->type == MRI_UCHAR && mri_dst->type == MRI_UCHAR)
     return (MRIreplaceValuesUchar(mri_src, mri_dst, (BUFTYPE)nint(in_val), (BUFTYPE)nint(out_val)));
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for shared(mri_src, mri_dst, out_val, width, height, depth)
+  #pragma omp parallel for if_ROMP(experimental) shared(mri_src, mri_dst, out_val, width, height, depth)
 #endif
   for (z = 0; z < depth; z++) {
+    ROMP_PFLB_begin
+    
     int x, y, frame;
     float val;
 
@@ -2122,7 +2142,9 @@ MRI *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
         }
       }
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
   return (mri_dst);
 }
 MRI *MRIreplaceValuesOnly(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)

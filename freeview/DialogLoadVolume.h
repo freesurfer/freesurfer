@@ -59,6 +59,8 @@ public:
 
   void SetRecentFiles( const QStringList& filenames );
 
+  bool GetLoadAsVector();
+
 protected slots:
   void OnOpen();
   void OnOpenRegistration();

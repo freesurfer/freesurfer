@@ -864,8 +864,8 @@ postprocess_segmentation_with_aseg(MRI *mri_labeled, MRI *mri_aseg, int min_voxe
 	case Unknown:
 	case Right_Putamen:
 	case Left_Putamen:
-	case Right_Thalamus_Proper:
-	case Left_Thalamus_Proper:
+	case Right_Thalamus:
+	case Left_Thalamus:
 	case Left_Lateral_Ventricle:
 	case Right_Lateral_Ventricle:
 	case Left_Inf_Lat_Vent:

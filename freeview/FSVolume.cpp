@@ -3047,7 +3047,7 @@ void FSVolume::UpdateHistoCDF(int frame, float threshold, bool highThresh)
   MRInonzeroValRange(m_MRI, &fMinValue, &fMaxValue);
   if (fMinValue == fMaxValue)
   {
-    qDebug() << "Could not create histogram because non-zero min value is equal to max value.";
+//    qDebug() << "Could not create histogram because non-zero min value is equal to max value.";
     m_bValidHistogram = false;
     return;
   }

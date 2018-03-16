@@ -34,6 +34,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/param.h>
@@ -56,6 +57,7 @@ int isblank(int c);
 #include "mghendian.h"
 #include "numerics.h"
 #include "proto.h"
+#include "romp_support.h"
 #include "utils.h"
 
 /*------------------------------------------------------------------------
@@ -66,7 +68,10 @@ int isblank(int c);
   Return Values:
   nothing.
   ------------------------------------------------------------------------*/
+static bool seedHasBeenSet = false;
+
 static long idum = 0L, nrgcalls = 0L;
+
 int setRandomSeed(long seed)
 {
   // also seed the 'standard' random number generators: rand() and random()
@@ -88,6 +93,8 @@ int setRandomSeed(long seed)
   OpenRan1(&idum);
   nrgcalls = 1;
 
+  seedHasBeenSet = true;
+  
   return (NO_ERROR);
 }
 
@@ -105,8 +112,31 @@ double randomNumber(double low, double hi)
   }
 
   if (idum == 0L) /* change seed from run to run */
+  {
+    if (1) {
+      static int laterTime = 0;
+      if (!laterTime) {
+        laterTime = 1; 
+        char commBuffer[1024];
+        FILE* commFile = fopen("/proc/self/comm", "r");
+        int commSize = 0;
+        if (commFile) {
+            commSize = fread(commBuffer, 1, 1023, commFile);
+	    if (commSize > 0) commSize-=1; // drop the \n
+	    int i = 0;
+	    for (i = 0; i < commSize; i++) {
+	        if (commBuffer[i] == '/') commBuffer[i] = '@';
+	    }
+            fclose(commFile);
+        }
+        commBuffer[commSize] = 0;
+        fprintf(stderr, "%s supposed to be reproducible but seed not set\n",
+            commBuffer);
+      }
+    }
     idum = -1L * (long)(abs((int)time(NULL)));
-
+  }
+  
   range = hi - low;
   val = OpenRan1(&idum) * range + low;
   // printf("randomcall %3ld %12.10lf\n",nrgcalls,val);

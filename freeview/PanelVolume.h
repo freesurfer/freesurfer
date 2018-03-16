@@ -113,6 +113,8 @@ protected slots:
 
   void OnLineEditVectorDisplayScale(const QString& strg);
 
+  void OnLineEditVectorLineWidth(const QString& strg);
+
   void OnLineEditProjectionMapRangeChanged();
 
   void OnComboProjectionMapType(int nType);
@@ -120,6 +122,16 @@ protected slots:
   void OnLineEditMaskThreshold(const QString& text);
 
   void OnCustomContextMenu(const QPoint& pt);
+
+  void OnButtonResetWindowLevel();
+
+  void OnCheckBoxSetDisplayVector(bool b);
+
+  void OnCheckBoxSetDisplayTensor(bool b);
+
+  void OnCheckBoxSetNormalizeVector(bool b);
+
+  void OnCheckBoxSetDisplayRGB(bool b);
 
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab );

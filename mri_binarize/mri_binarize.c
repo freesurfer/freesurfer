@@ -842,7 +842,7 @@ static int parse_commandline(int argc, char **argv) {
       DoMatch = 1;
     } 
     else if (!strcasecmp(option, "--subcort-gm")) {
-      MatchValues[nMatch] = Left_Thalamus_Proper; nMatch++;
+      MatchValues[nMatch] = Left_Thalamus; nMatch++;
       MatchValues[nMatch] = Left_Caudate; nMatch++;
       MatchValues[nMatch] = Left_Putamen; nMatch++;
       MatchValues[nMatch] = Left_Pallidum; nMatch++;
@@ -852,7 +852,7 @@ static int parse_commandline(int argc, char **argv) {
       MatchValues[nMatch] = Left_VentralDC; nMatch++;
       MatchValues[nMatch] = Left_Substancia_Nigra; nMatch++;
       MatchValues[nMatch] = Left_Cerebellum_Cortex; nMatch++;
-      MatchValues[nMatch] = Right_Thalamus_Proper; nMatch++;
+      MatchValues[nMatch] = Right_Thalamus; nMatch++;
       MatchValues[nMatch] = Right_Caudate; nMatch++;
       MatchValues[nMatch] = Right_Putamen; nMatch++;
       MatchValues[nMatch] = Right_Pallidum; nMatch++;

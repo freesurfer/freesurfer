@@ -2,6 +2,7 @@ function [vol_orig, vol_dest, vol_ind0, spacing, exp_k] = mris_read_m3z(filename
 %MRIS_READ_M3Z
 %
 % varargout = mris_read_m3z(filename_m3z)
+% function [vol_orig, vol_dest, vol_ind0, spacing, exp_k] = mris_read_m3z(filename_m3z)
 %
 %
 % see also MRIS_SAVE_M3Z.

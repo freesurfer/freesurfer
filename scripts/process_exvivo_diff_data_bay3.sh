@@ -1,13 +1,16 @@
 #! /bin/tcsh -ef
-set echo=1
+#set echo=1
 
-# this script was renamed by Allison M. and Brian on 3/7/17 to process_diff_data_bay3.sh because we added dti processing as well.
-# no longer makes sense to say do,qbi.
- 
 # this version of the original do,qbi script works with the Bay 3 SSFP diffusion data. 
 # It includes the ability to reorient hemi scans, as well as whole brains, 
 # alters the eddy parameters to work with SSFP diffusion data 
 # and incorporates Benner's temperature drift correction MATLAB script
+
+# 11/27/2017
+# last edits include changes by lzollei in order to fix gradient table misorientation 
+# issues
+# ** some important updates: computing both distance normalized and unnormalized versions and probab. 
+# curvature threshold differs between deterministic and probabilitic reconstructions!! (in order to match probab default) 
 
 
 if ($#argv == 0) then
@@ -26,8 +29,22 @@ if (! $?dcmlist) then
   echo "ERROR: Must specify dcmlist in configuration file"
 endif
 
+# if (! $?protocol) then
+#  echo "ERROR: Must specify protocol in configuration file"
+# endif
+
 if (! $?protocol) then
-  echo "ERROR: Must specify protocol in configuration file"
+  if (! $?pe1) then
+    echo "ERROR: Must specify protocol or pe1 in configuration file"
+  endif
+
+  if (! $?pe2) then
+    echo "ERROR: Must specify protocol or pe2 in configuration file"
+  endif
+
+  if (! $?rotime) then
+    echo "ERROR: Must specify protocol or rotime in configuration file"
+  endif
 endif
 
 if (! $?bvecfile) then
@@ -89,34 +106,19 @@ if (! $?usehibmask) then
   set usehibmask = 0
 endif
 if (! $?angthresh) then		
-  set angthresh = 60
+  set angthresh = 60   
 endif
 if (! $?nstick) then		
   set nstick = 2
 endif
 if (! $?seedroidir) then	
   set seedroidir = $dwidir/rois
-endif
-
-if (! $?protocol) then
-  if (! $?pe1) then
-    echo "ERROR: Must specify protocol or pe1 in configuration file"
-  endif
-
-  if (! $?pe2) then
-    echo "ERROR: Must specify protocol or pe2 in configuration file"
-  endif
-
-  if (! $?rotime) then
-    echo "ERROR: Must specify protocol or rotime in configuration file"
-  endif
-endif
- 
+endif 
 
 if ($usehibmask) then
-  set mask = lowb
-else
   set mask = highb
+else
+  set mask = lowb 
 endif
  
 
@@ -136,13 +138,16 @@ echo "Everything from the configuration file has been properly sourced."
  set highblist = ()
  
 set bvals = `cat $bvalfile`
- 
+# echo $bvals
+
  if (! $?keepframe) then
   set keepframe = `printf "%d\n" $bvals | awk '{print 1}'`
  endif
+# echo $keepframe
  
  @ k = 1
  while ($k <= $#bvals)
+  echo $k
   if ($bvals[$k] == 0) then
     if ($keepframe[$k]) set lowblist  = ($lowblist  `echo "$k-1" | bc`)
   else
@@ -163,6 +168,8 @@ if ($doconcat) then
                    | awk -v run=$dcmlist[$k] '{if ($1 == run) print $NF}'`
 
     set dwifile = dwi_set`printf '%02d\n' $k`.nii.gz
+
+    setenv FS_SAME_SLICE_THRESH .01 # needed in order to avoid strange exvivo save/trasfer error (LZ:08/09/2017)
 
     set cmd = mri_convert
     set cmd = ($cmd $dcmdir/$dcmfile)
@@ -189,13 +196,39 @@ if ($dodrift) then
   #
   # Normalize images to compensate for temperature drift
   #
-  set cmd = "fix_exvivo_dwi_drift("
+  set cmd = "addpath $FREESURFER_HOME/matlab"
+  set cmd = "$cmd; fix_exvivo_dwi_drift("
   set cmd = "$cmd '$dwidir/dwi_drift.nii.gz', "
   set cmd = "$cmd '$dwidir/drift', "
   set cmd = "$cmd '$dwidir/dwi_orig.nii.gz');"
   echo $cmd | tee -a $LF
-  echo $cmd | matlab -nojvm -nosplash
+  echo $cmd | matlab -nosplash
 endif
+
+#############
+##### NOTE: given that the exvivo diffusion matrices are loaded from outside of the 
+#####       images' dicom files they need to be moved into the image domain
+#####       Here bvecs are rotated by the abs value of the ras2vox matrix
+#####       This needs to happen before any of the operations with bvecs start
+## 07/11/2017 (LZ)
+set cmd = (mri_info --ras2vox $dwidir/dwi_orig.nii.gz)  
+echo $cmd | tee -a $LF
+eval $cmd  >> $dwidir/mtx.r2v.txt
+
+if (-e $dwidir/neg.mtx.r2v.txt) then 
+  rm -f $dwidir/neg.mtx.r2v.txt
+endif 
+foreach k (1 2 3 4)
+  set line = `sed -n "$k p"  $dwidir/mtx.r2v.txt`
+  echo `echo "$line[1]" | awk ' { if($1>=0) { print $1} else {print $1*-1 }}'` `echo "$line[2]" | awk ' { if($1>=0) { print $1} else {print $1*-1 }}'` `echo "$line[3]" | awk ' { if($1>=0) { print $1} else {print $1*-1 }}'` `echo "$line[4]" | awk ' { if($1>=0) { print $1} else {print $1*-1 }}'` >> $dwidir/neg.mtx.r2v.txt
+end
+# more $dwidir/neg.mtx.r2v.txt
+
+set cmd = (xfmrot $dwidir/neg.mtx.r2v.txt $bvecfile $dwidir/r2v.bvecs)
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
+set bvecfile = $dwidir/r2v.bvecs
+#############
 
 if ($doorient) then
   if (-e $dwidir/dwi_drift.nii.gz) then
@@ -216,6 +249,7 @@ if ($doorient) then
   # towards the console room, an additional rotation around the y-axis
   # would be needed that is not performed here!
   #
+
   set cdc =  `mri_info --cdc $dwidir/$dwiname.nii.gz | awk '{print $1, -$3, $2}'`
   set rdc =  `mri_info --rdc $dwidir/$dwiname.nii.gz | awk '{print $1, -$3, $2}'`
   set sdc =  `mri_info --sdc $dwidir/$dwiname.nii.gz | awk '{print $1, -$3, $2}'`
@@ -232,6 +266,7 @@ if ($doorient) then
       set rdc =  `echo $rdc | awk '{print $3, $2, -$1}'`
       set sdc =  `echo $sdc | awk '{print $3, $2, -$1}'`
       set cras = `echo $cras | awk '{print $3, $2, -$1}'`
+
     else if ($hemi == rh) then
       #
       # This sample is a right hemisphere, placed lateral side down
@@ -242,8 +277,10 @@ if ($doorient) then
       set rdc =  `echo $rdc | awk '{print -$3, $2, $1}'`
       set sdc =  `echo $sdc | awk '{print -$3, $2, $1}'`
       set cras = `echo $cras | awk '{print -$3, $2, $1}'`
+
     endif
   endif
+
 
   set cmd = mri_convert
   set cmd = ($cmd -iid $cdc)
@@ -251,28 +288,25 @@ if ($doorient) then
   set cmd = ($cmd -ikd $sdc)
   set cmd = ($cmd -ic  $cras)
   set cmd = ($cmd $dwidir/$dwiname.nii.gz)
-  set cmd = ($cmd $dwidir/$dwiname.nii.gz)
+  set cmd = ($cmd $dwidir/$dwiname.hdrorient.nii.gz)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+
+  set cmd = (cp $bvecfile $dwidir/$dwiname.hdrorient.bvecs)
+  echo $cmd; eval $cmd
+  echo $cmd |& tee -a $LF
+
+  set cmd = (cp $bvalfile $dwidir/$dwiname.hdrorient.bvals)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
 
   #
-  # Copy gradient vector table and b-value table
-  #
-  set cmd = (cp $bvecfile $dwidir/$dwiname.bvecs)
-  echo $cmd |& tee -a $LF
-  $cmd |& tee -a $LF
-
-  set cmd = (cp $bvalfile $dwidir/$dwiname.bvals)
-  echo $cmd |& tee -a $LF
-  $cmd |& tee -a $LF
-
-
-  #
-  # Convert DWIs and gradient vectors to LAS orientation
-  #(Use this instead of flip4fsl, which inverts bvecs in x erroneously)
-
+  #  Convert DWIs and gradient vectors to LAS orientation
+  #  (Use this instead of flip4fsl, which inverts bvecs in x erroneously)
+  #  Note, this will also produce the reoriented bvec file 
+  #  NB: bvec file needs to be consistently named with corresponding dwi!!!
   set cmd = orientLAS
-  set cmd = ($cmd $dwidir/$dwiname.nii.gz)
+  set cmd = ($cmd $dwidir/$dwiname.hdrorient.nii.gz)
   set cmd = ($cmd $dwidir/dwi_las.nii.gz)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
@@ -304,7 +338,6 @@ if ($domask) then
   set cmd = ($cmd -m -f $lobmaskthresh)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
-
 
   #
   # Extract mask from high-b images
@@ -338,7 +371,7 @@ if ($doeddy) then
   # Compensate for eddy-current distortions
   #
   if ($?protocol) then	# Read acquisition parameters from protocol print-out
- 				# echo spacing and EPI factor not relevant to SSFP scan
+ 			# echo spacing and EPI factor not relevant to SSFP scan
     set pe1 = `awk '{if ($1 ~ /trufi_diff_tb/) \
                         {while ($0 !~ /Phase enc. dir./) {getline}; pe1 = $4}} \
                     END {print pe1}' $protocol`
@@ -355,7 +388,7 @@ if ($doeddy) then
     #                    {while ($0 !~ /EPI factor/) {getline}; epif = $3}} \
     #                 END {print epif}' $protocol`
 
-	  set rotime = 0.1 # 1 doesn't work in eddy
+    set rotime = 0.1 # 1 doesn't work in eddy
     #    set rotime = `echo "$esp * 0.001 * ($epif - 1)" | bc -l`
   endif
 
@@ -365,7 +398,7 @@ if ($doeddy) then
     echo "-1 0 0 $rotime"   > $dwidir/acqp.txt
   else if ($pe1 == P && $pe2 == A) then
     echo "0 1 0 $rotime"    > $dwidir/acqp.txt
-  else ($pe1 == A && $pe2 == P) then
+  else if ($pe1 == A && $pe2 == P) then
     echo "0 -1 0 $rotime"   > $dwidir/acqp.txt
   endif
 
@@ -439,11 +472,12 @@ if ($doeddy) then
   $cmd |& tee -a $LF
 endif
 
+
 if ($dotensor) then
   #
   # Fit tensors
   #
-  if (-e dwi.nii.gz) then
+  if (-e $dwidir/dwi.nii.gz) then
     set dwiname = dwi
     set maskname = $mask
   else
@@ -461,11 +495,13 @@ if ($dotensor) then
   $cmd |& tee -a $LF
 endif
 
+set dtkdir = /usr/pubsw/packages/dtk/0.6.4.1_patched
+
 if ($doodf) then
   #
   # Fit ODFs
   #
-  if (-e dwi.nii.gz) then
+  if (-e $dwidir/dwi.nii.gz) then
     set dwiname = dwi
   else
     set dwiname = dwi_las
@@ -489,18 +525,17 @@ if ($doodf) then
     echo "$xyz[1], $xyz[2], $xyz[3]" >> $dwidir/gradients.txt
   end
 
-  set cmd = hardi_mat
+  set cmd = $dtkdir/hardi_mat
   set cmd = ($cmd $dwidir/gradients.txt)
   set cmd = ($cmd $dwidir/qbi_mat.dat)
   set cmd = ($cmd -ref $dwidir/tmp.$dwiname.nii)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
 
-
   set nlow = $#lowblist
   set ndir = `echo "$#highblist + 1" | bc`
 
-  set cmd = odf_recon
+  set cmd = $dtkdir/odf_recon
   set cmd = ($cmd $dwidir/tmp.$dwiname.nii)
   set cmd = ($cmd $ndir 181)
   set cmd = ($cmd $dwidir/qbi)
@@ -513,10 +548,11 @@ if ($doodf) then
   #
   # Run dti tractography (Brian doesn't use dti track file, but does use FA, ADC and color FA maps generated by this)
   #
-  set cmd = dti_recon
+
+  set cmd = $dtkdir/dti_recon
   set cmd = ($cmd $dwidir/dwi.nii.gz)
   set cmd = ($cmd $dwidir/dti)
-  set cmd = ($cmd -gm $bvecfile)
+  set cmd = ($cmd -gm $dwidir/$dwiname.bvecs)
   set cmd = ($cmd -b 4080)
   set cmd = ($cmd -b0 12)
   echo $cmd |& tee -a $LF
@@ -528,42 +564,44 @@ if ($doodf) then
   $cmd |& tee -a $LF
 endif
 
-
-
 if ($dotrk) then
   #
   # The foreach loop below run various inversions and swaps so you can check which version is correct
   # Run q-ball tractography
   #
 
-  # Brian said no inversion, and yz swap is correct one, so following line should be used:
-  #set trkfile = qbi.inv,no.swap,yz.trk  
- 
+  setenv DSI_PATH $dtkdir/matrices
+
+  ##  Brian said no inversion, and yz swap is correct one, so following line should be used:
+  ##  set trkfile = qbi.inv,no.swap,yz.trk  
+  #
+  # LZ (11/27/2017): the above is outdated - it is either (swap no, inv z) that works or (swap no, inv no) with a newer / correct version of DTK -- hard to track when that version got released and what version was used...
+  #
+
   foreach inv (no x y z)
    foreach swap (no xy yz zx)
      set trkfile = qbi.inv,$inv.swap,$swap.trk
- 
-   	  set cmd = odf_tracker
-   	  set cmd = ($cmd $dwidir/qbi)
-   	  set cmd = ($cmd $dwidir/tmp.qbi.trk)
-   	  set cmd = ($cmd -at $angthresh)
-   	  set cmd = ($cmd -m $dwidir/qbi_dwi.nii)
-   	  set cmd = ($cmd -it nii)
-   	  if ($inv != no)	set cmd = ($cmd -i$inv)
-   	  if ($swap != no)	set cmd = ($cmd -s$swap)
-   	  echo $cmd |& tee -a $LF
-   	  $cmd |& tee -a $LF
- 	    
-   	  set cmd = (spline_filter $dwidir/tmp.qbi.trk 1 $dwidir/qbi.trk)
-   	  echo $cmd |& tee -a $LF
-   	  $cmd |& tee -a $LF
- 	    
-   	  # Clean up temporary files
-   	  set cmd = (rm -f $dwidir/tmp.qbi.trk)
-   	  echo $cmd |& tee -a $LF
-   	  $cmd |& tee -a $LF
+     set cmd = $dtkdir/odf_tracker
+     set cmd = ($cmd $dwidir/qbi)
+     set cmd = ($cmd $dwidir/tmp.qbi.trk)
+     set cmd = ($cmd -at $angthresh)
+     set cmd = ($cmd -m $dwidir/qbi_dwi.nii)
+     set cmd = ($cmd -it nii)
+     if ($inv != no)	set cmd = ($cmd -i$inv)
+     if ($swap != no)	set cmd = ($cmd -s$swap)
+     echo $cmd |& tee -a $LF
+     $cmd |& tee -a $LF
+	    
+     set cmd = ($dtkdir/spline_filter $dwidir/tmp.qbi.trk 1 $dwidir/$trkfile)
+     echo $cmd |& tee -a $LF
+     $cmd |& tee -a $LF
+	    
+    # Clean up temporary files
+     set cmd = (rm -f $dwidir/tmp.qbi.trk)
+     echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
     end
- 	end
+  end
 endif
 
 
@@ -573,7 +611,7 @@ if ($doprebed) then
   # This is done separately because it needs to be run on a machine
   # with more memory than launchpad nodes
   #
-  if (-e dwi.nii.gz) then
+  if (-e $dwidir/dwi.nii.gz) then
     set dwiname = dwi
     set maskname = ${mask}
   else
@@ -641,6 +679,8 @@ if ($dopostbed) then
   # This is done separately because it needs to be run on a machine
   # with more memory than launchpad nodes
   #
+  # NOTE, cleanup for prebed happens here!
+  #
   set cmd = (bedpostx_postproc.sh $dwidir)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
@@ -648,7 +688,7 @@ endif
 
 if ($doprobtrk) then
   #
-  # Probabilistic seed-based tractography
+  # Probabilistic seed-based targeted tractography -- all seeds are used as targets as well (LZ: 11/27/2017)
   #
   set seedlist = ($seedroidir/*.nii)
 
@@ -661,24 +701,40 @@ if ($doprobtrk) then
   foreach seed ($seedlist)
     set seedname = `basename $seed | sed 's/.nii//'`
 
-    set outdir = `dirname $dwidir`/dpath.$seedname
-    mkdir -p $outdir
+    foreach target ($seedlist)
+      set targetname = `basename $target | sed 's/.nii//'`
+      if !($seedname == $targetname) then
+        set outdir = $dwidir/dpath.uncorrected.targeted.$seedname.2.$targetname # -pd is not on
+        mkdir -p $outdir
+      
+        if !(-e $dwidir/rois/target$targetname.txt) then
+          echo $dwidir/rois/$targetname.nii >> $dwidir/rois/target$targetname.txt
+        endif 
+ 
+        set cmd = probtrackx2
+        set cmd = ($cmd -x $seed)
+        set cmd = ($cmd -s $dwidir.bedpostX/merged)
+        set cmd = ($cmd -m $dwidir.bedpostX/nodif_brain_mask)
+        set cmd = ($cmd --dir=$outdir)
+        set cmd = ($cmd -l --onewaycondition)
+        set cmd = ($cmd -c 0.2 -S 2000 -P 5000) # Note: use -c .5 curvature threshold (vs .2, the default) in order to have correspondance with the 60 degrees angle threshold of deterministic tractography
+        set cmd = ($cmd --fibthresh=0.01 --distthresh=0.0 --sampvox=0.0)
+        set cmd = ($cmd --steplength=$step)
+        set cmd = ($cmd --forcedir --opd) 
+        set cmd = ($cmd --targetmasks=$dwidir/rois/target$targetname.txt --stop=$dwidir/rois/target$targetname.txt --waypoints=$dwidir/rois/target$targetname.txt --os2t --s2tastext)
+        echo $cmd |& tee -a $LF
+        # $cmd |& tee -a $LF
+        pbsubmit -m `whoami` -q p30 -c "$cmd" -l nodes=1:ppn=4,vmem=28gb
 
-    set cmd = probtrackx2
-    set cmd = ($cmd -x $seed)
-    set cmd = ($cmd -s $dwidir.bedpostX/merged)
-    set cmd = ($cmd -m $dwidir.bedpostX/nodif_brain_mask)
-    set cmd = ($cmd --dir=$outdir)
-    set cmd = ($cmd -l --onewaycondition)
-    set cmd = ($cmd -c 0.2 -S 2000 --steplength=0.5 -P 5000)
-    set cmd = ($cmd --fibthresh=0.01 --distthresh=0.0 --sampvox=0.0)
-    set cmd = ($cmd --steplength=$step)
-    set cmd = ($cmd --forcedir --opd)
-    echo $cmd |& tee -a $LF
-    $cmd |& tee -a $LF
 
-    pbsubmit -m `whoami` -q p30 -c "$cmd"       # -l nodes=1:ppn=4,vmem=28gb
-    # Remove the 3rd stick and try again on launchpad?
+
+        set outdir = $dwidir/dpath.corrected.targeted.$seedname.2.$targetname # -pd is on ("Correct path distribution for the length of the pathways")
+        mkdir -p $outdir
+        set cmd = ($cmd --pd)
+        echo $cmd |& tee -a $LF
+        # $cmd |& tee -a $LF
+        pbsubmit -m `whoami` -q p30 -c "$cmd" -l nodes=1:ppn=4,vmem=28gb
+      endif
+    end
   end
 endif
-

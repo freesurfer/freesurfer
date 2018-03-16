@@ -386,6 +386,7 @@ protected:
   void CommandSetTrackRender    ( const QStringList& cmd );
   void CommandLoadTractCluster  ( const QStringList& cmd );
   void CommandReorderLayers  ( const QStringList& cmd );
+  void CommandSetActiveFrame    ( const QStringList& cmd );
 
 public:
   void CommandSetCamera         ( const QStringList& cmd );

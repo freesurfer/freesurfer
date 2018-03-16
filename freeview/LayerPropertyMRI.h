@@ -107,6 +107,7 @@ public:
 
   COLOR_TABLE*  GetLUTCTAB () const;
   void          SetLUTCTAB ( COLOR_TABLE* ct );
+  bool          IsValueInColorTable (double nVal);
 
   virtual vtkScalarsToColors* GetActiveLookupTable();
 
@@ -319,8 +320,6 @@ public:
     return this->m_bContourUpsample;
   }
 
-  void SetActiveFrame(int nFrame);
-
   QString GetLabelContourRange()
   {
     return m_sLabelContourRange;
@@ -383,6 +382,13 @@ public:
     return m_listVisibleLabels;
   }
 
+  void UpdateActiveFrame(int nFrame);
+
+  double GetVectorLineWidth()
+  {
+    return m_dVectorLineWidth;
+  }
+
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -433,6 +439,9 @@ public slots:
   void SetSelectLabel(int nVal, bool bSelected);
   void SetSelectAllLabels();
   void SetUnselectAllLabels();
+  void ResetWindowLevel();
+
+  void SetVectorLineWidth(double val);
 
 signals:
   void ColorMapChanged();
@@ -450,6 +459,7 @@ signals:
   void ProjectionMapChanged();
   void ProjectMapTypeChanged(int nType);
   void LabelContourChanged(int n = -1);
+  void VectorLineWidthChanged(double val);
 
 private:
   void UpdateMinMaxValues();
@@ -537,6 +547,8 @@ private:
   bool    m_bUsePercentile;
   bool    m_bAutoAdjustFrameLevel;
   QMap<int, QPair<double, double> > m_mapMinMaxValues;
+
+  int     m_dVectorLineWidth;
 
   // ---------------------------------------------------------------------
 

@@ -2,6 +2,10 @@
 # Makefile.am for scripts
 #
 
+if INCLUDE_INFANTFS
+SUBDIRS = InfantFS
+endif
+
 dist_bin_SCRIPTS = \
 annot2std \
 aparc2feat \
@@ -182,6 +186,7 @@ mris_roiCircle \
 mris_volsmooth \
 ms_refine_subject \
 orientLAS \
+fspalm \
 parc_atlas_jackknife_test \
 petsc_setup \
 plot_structure_stats.tcl \
@@ -282,6 +287,8 @@ xhemireg \
 xhemi-tal \
 xsanatreg
 
+if SMALL_DIST_INSTALL
+else
 tcldir = $(prefix)/lib/tcl
 tcl_SCRIPTS= \
 allisons_surfaces.tcl \
@@ -311,7 +318,13 @@ twocond-masked-views.tcl \
 twocond-views.tcl \
 wrappers.tcl \
 fsgdfPlot.tcl
+endif
 
+if SMALL_DIST_INSTALL
+tktoolsdir = $(prefix)/tktools
+tktools_SCRIPTS= \
+tkregister2.tcl
+else
 tktoolsdir = $(prefix)/tktools
 tktools_SCRIPTS= \
 tkanalyse.tcl \
@@ -326,6 +339,7 @@ tkregister2.tcl \
 tksurfer.tcl \
 tkUtils.tcl \
 fsgdfPlot.tcl
+endif
 
 foo_datafiles=fs_spmreg.glnxa64 irepifitvol.glnx64
 

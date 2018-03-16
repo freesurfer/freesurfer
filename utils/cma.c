@@ -418,8 +418,8 @@ int insert_ribbon_into_aseg(MRI *mri_src_aseg, MRI *mri_aseg, MRI_SURFACE *mris_
                     case Right_Lateral_Ventricle:
                     case Left_Inf_Lat_Vent:
                     case Right_Inf_Lat_Vent:
-                    case Left_Thalamus_Proper:
-                    case Right_Thalamus_Proper:
+                    case Left_Thalamus:
+                    case Right_Thalamus:
                     case Left_choroid_plexus:
                     case Right_choroid_plexus:
                     case CC_Posterior:
@@ -467,8 +467,8 @@ int IsSubCorticalGray(int SegId)
 {
   if (SegId == Left_Thalamus) return (1);
   if (SegId == Right_Thalamus) return (1);
-  if (SegId == Left_Thalamus_Proper) return (1);
-  if (SegId == Right_Thalamus_Proper) return (1);
+  if (SegId == Left_Thalamus) return (1);
+  if (SegId == Right_Thalamus) return (1);
   if (SegId == Left_Caudate) return (1);
   if (SegId == Right_Caudate) return (1);
   if (SegId == Left_Putamen) return (1);
@@ -534,8 +534,8 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon)
         if (SegId == WM_hypointensities) vol += VoxSize;
         if (SegId == Left_WM_hypointensities) vol += VoxSize;
         if (SegId == Right_WM_hypointensities) vol += VoxSize;
-        if (SegId == Left_Thalamus_Proper) vol += VoxSize;
-        if (SegId == Right_Thalamus_Proper) vol += VoxSize;
+        if (SegId == Left_Thalamus) vol += VoxSize;
+        if (SegId == Right_Thalamus) vol += VoxSize;
         if (SegId == Left_Thalamus) vol += VoxSize;
         if (SegId == Right_Thalamus) vol += VoxSize;
         if (SegId == CC_Posterior) vol += VoxSize;
@@ -624,8 +624,8 @@ double CorticalGMVolCorrection(MRI *aseg, MRI *ribbon, int hemi)
         if (SegId == WM_hypointensities) vol += VoxSize;
         if (SegId == Left_WM_hypointensities) vol += VoxSize;
         if (SegId == Right_WM_hypointensities) vol += VoxSize;
-        if (SegId == Left_Thalamus_Proper) vol += VoxSize;
-        if (SegId == Right_Thalamus_Proper) vol += VoxSize;
+        if (SegId == Left_Thalamus) vol += VoxSize;
+        if (SegId == Right_Thalamus) vol += VoxSize;
         if (SegId == Left_Thalamus) vol += VoxSize;
         if (SegId == Right_Thalamus) vol += VoxSize;
         if (SegId == CC_Posterior) vol += VoxSize;
@@ -717,9 +717,6 @@ MRI *MRIlrswapAseg(MRI *aseg)
             break;
           case Left_Thalamus:
             id2 = Right_Thalamus;
-            break;
-          case Left_Thalamus_Proper:
-            id2 = Right_Thalamus_Proper;
             break;
           case Left_Caudate:
             id2 = Right_Caudate;
@@ -825,9 +822,6 @@ MRI *MRIlrswapAseg(MRI *aseg)
             break;
           case Right_Thalamus:
             id2 = Left_Thalamus;
-            break;
-          case Right_Thalamus_Proper:
-            id2 = Left_Thalamus_Proper;
             break;
           case Right_Caudate:
             id2 = Left_Caudate;

@@ -64,9 +64,7 @@
 #include <string.h>
 #include "timer.h"
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+#include "romp_support.h"
 
 #include "bfileio.h"
 #include "corio.h"
@@ -928,8 +926,7 @@ MRI *MRISapplyReg(MRI *SrcSurfVals, MRI_SURFACE **SurfReg, int nsurfs, int Rever
     printf("MRISapplyReg: building hash tables (res=16).\n");
     Hash = (MHT **)calloc(sizeof(MHT *), nsurfs);
     for (n = 0; n < nsurfs; n++) {
-      Hash[n] = (MHT *)calloc(sizeof(MHT), 1);
-      Hash[n] = MHTfillVertexTableRes(SurfReg[n], NULL, CURRENT_VERTICES, 16);
+      Hash[n] = MHTcreateVertexTable_Resolution(SurfReg[n], CURRENT_VERTICES, 16);
     }
   }
 
@@ -1145,7 +1142,7 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals,
   /* build hash tables */
   if (UseHash) {
     printf("surf2surf_nnfr: building source hash (res=16).\n");
-    SrcHash = MHTfillVertexTableRes(SrcSurfReg, NULL, CURRENT_VERTICES, 16);
+    SrcHash = MHTcreateVertexTable_Resolution(SrcSurfReg, CURRENT_VERTICES, 16);
   }
 
   /* Open vertex map file */
@@ -1212,7 +1209,7 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals,
     if (UseHash) {
       MHTfree(&SrcHash);
       printf("surf2surf_nnfr: building target hash (res=16).\n");
-      TrgHash = MHTfillVertexTableRes(TrgSurfReg, NULL, CURRENT_VERTICES, 16);
+      TrgHash = MHTcreateVertexTable_Resolution(TrgSurfReg, CURRENT_VERTICES, 16);
     }
     printf("Surf2Surf: Reverse Loop (%d)\n", SrcSurfReg->nvertices);
     nrevhits = 0;
@@ -1328,7 +1325,7 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals,
   /* build hash tables */
   if (UseHash) {
     printf("surf2surf_nnfr_jac: building source hash (res=16).\n");
-    SrcHash = MHTfillVertexTableRes(SrcSurfReg, NULL, CURRENT_VERTICES, 16);
+    SrcHash = MHTcreateVertexTable_Resolution(SrcSurfReg, CURRENT_VERTICES, 16);
   }
 
   // First forward loop just counts the number of hits for each src
@@ -1380,7 +1377,7 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals,
     if (UseHash) {
       MHTfree(&SrcHash);
       printf("surf2surf_nnfr: building target hash (res=16).\n");
-      TrgHash = MHTfillVertexTableRes(TrgSurfReg, NULL, CURRENT_VERTICES, 16);
+      TrgHash = MHTcreateVertexTable_Resolution(TrgSurfReg, CURRENT_VERTICES, 16);
     }
     printf("Surf2SurfJac: Reverse Loop (%d)\n", SrcSurfReg->nvertices);
     nrevhits = 0;
@@ -1569,7 +1566,7 @@ MRI *MRIsurf2VolOpt(MRI *ribbon, MRIS **surfs, MRI **overlays, int nsurfs, LTA *
   if (UseHash) {
     hash = (MHT **)calloc(sizeof(MHT *), nsurfs);
     for (n = 0; n < nsurfs; n++) {
-      hash[n] = MHTfillVertexTableRes(surfs[n], NULL, CURRENT_VERTICES, 16);
+      hash[n] = MHTcreateVertexTable_Resolution(surfs[n], CURRENT_VERTICES, 16);
     }
   }
 
@@ -1936,7 +1933,7 @@ MRI *MRIseg2SegPVF(
 
   // Get number of threads
   nthreads = 1;
-#ifdef _OPENMP
+#ifdef HAVE_OPENMP
   nthreads = omp_get_max_threads();  // using max should be ok
 #endif
 
@@ -2109,11 +2106,14 @@ MRI *MRIseg2SegPVF(
   /* The main loop goes over each voxel in the output/mask. This is
      thread-safe because each voxel is handled separately. */
   nhits = 0;  // keep track of the total number of hits
-#ifdef _OPENMP
-// note: removing reduction(+:nhits) slows the speed to that of 1 thread
-#pragma omp parallel for shared(nperfth, m13, m23, m33) reduction(+ : nhits)
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  // note: removing reduction(+:nhits) slows the speed to that of 1 thread
+  #pragma omp parallel for if_ROMP(experimental) shared(nperfth, m13, m23, m33) reduction(+ : nhits)
 #endif
   for (nthvox = 0; nthvox < nvox; nthvox++) {
+    ROMP_PFLB_begin
+    
     int c, r, s, i, j, k, ca, ra, sa, segid, f, threadno;
     double cf, rf, sf;
     double m11cf, m21cf, m31cf, m12rf, m22rf, m32rf;
@@ -2121,7 +2121,7 @@ MRI *MRIseg2SegPVF(
 
     // Get the thread number
     threadno = 0;
-#ifdef _OPENMP
+#ifdef HAVE_OPENMP
     threadno = omp_get_thread_num();
 #endif
     nperf = nperfth[threadno];
@@ -2179,8 +2179,11 @@ MRI *MRIseg2SegPVF(
       segid = VOXsegPVF2Seg(nperf, segidlist, nsegs, ct);
       MRIsetVoxVal(out, c, r, s, 0, segid);
     }
+    
+    ROMP_PFLB_end
   }  // nthvox
-
+  ROMP_PF_end
+  
   for (f = 0; f < nthreads; f++) free(nperfth[f]);
   free(nperfth);
 

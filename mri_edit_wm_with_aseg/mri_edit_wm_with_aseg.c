@@ -591,7 +591,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           {
             continue ;
           }
-          olabel = left ? Left_Thalamus_Proper : Right_Thalamus_Proper ;
+          olabel = left ? Left_Thalamus : Right_Thalamus ;
           if (distance_to_label(mri_seg, olabel, x, y, z, 0, -1, 0, 5) < 3)
           {
             continue ;
@@ -677,8 +677,6 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
         case Right_Putamen:
         case Left_Pallidum:
         case Right_Pallidum:
-        case Right_Thalamus_Proper:
-        case Left_Thalamus_Proper:
         case Right_Thalamus:
         case Left_Thalamus:
         case Left_VentralDC:
@@ -1034,7 +1032,7 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
             {
               continue ;
             }
-            olabel = left ? Left_Thalamus_Proper : Right_Thalamus_Proper ;
+            olabel = left ? Left_Thalamus : Right_Thalamus ;
             if (distance_to_label(mri_seg, olabel, x, y, z, 0, -1, 0, 5) < 3)
             {
               continue ;

@@ -1,0 +1,28 @@
+
+This module provides a means to add keyword expansion of the following 
+standard RCS tags to your git projects:
+
+	 $Id$
+	 $Date$
+	 $File$
+	 $Author$
+	 $Revision$
+	 $Source$
+
+The mechanism used are filters.  The smudge filter is run on checkout, and the
+clean filter is run on commit.  The tags are only expanded on the local disk,
+not in the repository itself.
+
+To start, you need to add the following to ~/.gitconfig:
+
+[filter "rcs-keywords"]
+	clean  = .git_filters/rcs-keywords.clean
+	smudge = .git_filters/rcs-keywords.smudge %f
+
+Then, to add keyword expansion, simply add these files to your project:
+    <project>/.gitattributes                    - *.c filter=rcs-keywords
+    <project>/.git_filters/rcs-keywords.smudge  - copy this file to project
+    <project>/.git_filters/rcs-keywords.clean   - copy companion to project
+
+Note: This feature is known not to work in git 1.6.2.2 and 1.7.3.*, and 
+      verified to work in git 1.7.4.4 and 1.7.4.msysgit.0

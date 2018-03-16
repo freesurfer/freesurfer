@@ -23,8 +23,6 @@ static int non_hippo_labels[] = {
     Right_Inf_Lat_Vent,
     Right_Lateral_Ventricle,
     Left_Lateral_Ventricle,
-    Left_Thalamus_Proper,
-    Right_Thalamus_Proper,
     Left_Thalamus,
     Right_Thalamus,
     Left_choroid_plexus,
@@ -286,11 +284,9 @@ MRI *HIPPOestimateIntensityImage(MRI *mri_hippo_labels, MRI *mri_aseg, MRI *mri_
   }
 
   gcam_ltt.input_labels[gcam_ltt.nlabels] = Left_Thalamus;
-  gcam_ltt.output_labels[gcam_ltt.nlabels] = Left_Thalamus_Proper;
   if (MRIlabelInVolume(mri_hippo_labels, gcam_ltt.input_labels[gcam_ltt.nlabels])) gcam_ltt.nlabels++;
 
   gcam_ltt.input_labels[gcam_ltt.nlabels] = Right_Thalamus;
-  gcam_ltt.output_labels[gcam_ltt.nlabels] = Right_Thalamus_Proper;
   if (MRIlabelInVolume(mri_hippo_labels, gcam_ltt.input_labels[gcam_ltt.nlabels])) gcam_ltt.nlabels++;
 
   gcam_ltt.input_labels[gcam_ltt.nlabels] = Conn_Tissue;

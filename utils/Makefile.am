@@ -199,6 +199,7 @@ libutils_main_SOURCES=\
 	randomfields.c \
 	rbf.c \
 	rbm.c \
+        realm.c \
 	rec.c \
 	region.c \
 	registerio.c \
@@ -208,6 +209,7 @@ libutils_main_SOURCES=\
 	rfa.c \
 	rfutils.c \
 	rforest.c \
+	romp_support.c \
 	selxavgio.c \
 	sig.c \
 	signa.c \

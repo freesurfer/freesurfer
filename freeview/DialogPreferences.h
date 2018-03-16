@@ -34,6 +34,7 @@ class DialogPreferences;
 }
 
 class QAbstractButton;
+class QComboBox;
 
 class DialogPreferences : public QDialog, public UIUpdateHelper
 {
@@ -49,8 +50,12 @@ public:
 
 protected slots:
   void OnClicked(QAbstractButton* btn);
+  void OnComboShortcutChanged(const QString& text);
+  void SetActionShortcut(QAction* act, const QString& text);
 
 private:
+  void SetCurrentComboText(QComboBox* combo, const QString& text);
+
   Ui::DialogPreferences *ui;
 };
 

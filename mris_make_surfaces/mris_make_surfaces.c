@@ -35,7 +35,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #include "macros.h"
@@ -661,6 +661,7 @@ main(int argc, char *argv[])
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
+
   if (mris->vg.valid && !FZERO(mris->vg.xsize))
     spring_scale = 3/(mris->vg.xsize + mris->vg.ysize + mris->vg.zsize) ;
   else
@@ -677,10 +678,12 @@ main(int argc, char *argv[])
     mris->ct = ctab ;  // add user-specified color table to structure
 
   MRISremoveIntersections(mris) ;
+  
   if (pial_nbrs > 2)
   {
     MRISsetNeighborhoodSize(mris, pial_nbrs) ;
   }
+  
   if (auto_detect_stats)
   {
     MRI *mri_tmp ;
@@ -698,6 +701,7 @@ main(int argc, char *argv[])
       printf("using class modes intead of means, discounting robust sigmas....\n") ;
 //      MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, &white_std, &gray_std, NULL);
       MRIScomputeClassModes(mris, mri_T1, &white_mode, &gray_mode, NULL, NULL, NULL, NULL);
+      
       white_mean = white_mode ;
       gray_mean = gray_mode ;
     }
@@ -1189,7 +1193,7 @@ L) ;
 	exit(0); ;
       }
 #endif
-    if (orig_white)  
+      if (orig_white)  
       {
 	if (i > 0)
 	  MRISsaveVertexPositions(mris, WHITE_VERTICES) ; // update estimate of white
@@ -1471,6 +1475,7 @@ L) ;
   MRISsetVal2(mris, 0) ;   // will be marked for vertices near lesions
 
   MRISunrip(mris) ;
+
   if (mri_aseg) //update aseg using either generated or orig_white
     fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF, fix_mtl) ;
   //////////////////////////////////////////////////////////////////
@@ -3138,7 +3143,11 @@ get_option(int argc, char *argv[])
     char str[STRLEN] ;
     sprintf(str, "OMP_NUM_THREADS=%d", atoi(argv[2]));
     putenv(str) ;
+#ifdef HAVE_OPENMP
     omp_set_num_threads(atoi(argv[2]));
+#else
+    fprintf(stderr, "Warning - built without openmp support\n");
+#endif
     nargs = 1 ;
     fprintf(stderr, "Setting %s\n", str) ;
   }
@@ -4161,16 +4170,24 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
   MRISdilateMarked(mris, 3) ;
   MRISerodeMarked(mris, 3) ;
   MRISsegmentMarked(mris, &labels, &nlabels, 1) ;
+  
   if (Gdiag_no > 0)
     printf("v %d: ripflag = %d after morphology\n",
            Gdiag_no, mris->vertices[Gdiag_no].marked) ;
+
   for (n = 0 ; n < nlabels ; n++)
   {
     if (labels[n]->n_points < 5)
     {
       int i ;
-      printf("removing %d vertex label from ripped group\n",
-             labels[n]->n_points) ;
+      printf("removing %d vertex label from ripped group in thread:%d\n",
+             labels[n]->n_points, 
+#ifdef HAVE_OPENMP
+             omp_get_thread_num()
+#else
+             0
+#endif
+             ) ;
       for (i = 0 ; i < labels[n]->n_points ; i++)
       {
         mris->vertices[labels[n]->lv[i].vno].marked = 0 ;
@@ -4222,6 +4239,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
            Gdiag_no, mris->vertices[Gdiag_no].marked) ;
   MRISripMarked(mris) ;
   MRISsetAllMarks(mris, 0) ;
+
   return(NO_ERROR) ;
 }
 
@@ -5410,7 +5428,7 @@ compute_white_gradient_histo(MRI_SURFACE *mris, MRI *mri_T2, MRI *mri_aseg, doub
     max_intensity_change = 5 ;
     nadded = 0 ;
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+:nadded)
+#pragma omp parallel for if_ROMP(experimental) reduction(+:nadded)
 #endif
     for (i = 0 ; i < vl->nvox ; i++)
     {
@@ -5478,7 +5496,7 @@ compute_white_gradient_histo(MRI_SURFACE *mris, MRI *mri_T2, MRI *mri_aseg, doub
       passno++  ;
     }
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for if_ROMP(experimental)
 #endif
     for (i = 0 ; i < vl->nvox ; i++)
     {
@@ -6921,14 +6939,15 @@ near_bright_structure(MRI *mri_aseg, int xi, int yi, int zi, int whalf)
 int
 MRISremoveSelfIntersections(MRI_SURFACE *mris)
 {
-  MRIS_HASH_TABLE  *mht ;
   int              n, vno, fno ;
   VERTEX           *v ;
 
 //  return(NO_ERROR) ;
   MRISremoveIntersections(mris);
+
   return(NO_ERROR) ;
-  mht = MHTfillTable(mris, NULL) ;
+
+  MRIS_HASH_TABLE* mht = MHTcreateFaceTable(mris) ;
   
   MRISsetMarks(mris, 1) ;  // fixed vertices
   for (fno = 0 ; fno < mris->nfaces ; fno++)

@@ -29,6 +29,8 @@
 #include <cstdlib>
 #include <iostream>
 
+#include "faster_variants.h"
+
 #include "error.h"
 #include "mri.h"
 #include "matrix.h"
@@ -52,10 +54,15 @@ public:
   // -----------------------------
   //! Default constructor
   GCASampleGPU( void ) : nSamples(0), nSamplesAlloc(0),
-    d_x(NULL), d_y(NULL), d_z(NULL),
-    d_means(NULL),
-    d_priors(NULL),
-    d_covars(NULL) {}
+			 d_x(NULL), d_y(NULL), d_z(NULL),
+			 d_means(NULL),
+#ifdef FASTER_MRI_EM_REGISTER
+			 d_prior_access_via_setGetPriors(NULL),
+			 d_prior_logs(NULL),
+#else
+			 d_priors(NULL),
+#endif
+			 d_covars(NULL) {}
 
   // Destructor
   ~GCASampleGPU( void )
@@ -89,8 +96,13 @@ private:
 
   //! List of means
   float *d_means;
+#ifdef FASTER_MRI_EM_REGISTER
+  float *d_prior_access_via_setGetPriors;
+  float *d_prior_logs;
+#else
   //! List of priors
   float *d_priors;
+#endif
   //! List of covariances
   float *d_covars;
 
@@ -107,13 +119,18 @@ private:
 
   //! Copy constructor aborts
   GCASampleGPU( const GCASampleGPU& src ) : nSamples(0),
-    nSamplesAlloc(0),
-    d_x(NULL),
-    d_y(NULL),
-    d_z(NULL),
-    d_means(NULL),
-    d_priors(NULL),
-    d_covars(NULL)
+					    nSamplesAlloc(0),
+					    d_x(NULL),
+					    d_y(NULL),
+					    d_z(NULL),
+					    d_means(NULL),
+#ifdef FASTER_MRI_EM_REGISTER
+					    d_prior_access_via_setGetPriors(NULL),
+					    d_prior_logs(NULL),
+#else
+					    d_priors(NULL),
+#endif
+					    d_covars(NULL)
   {
     std::cerr << __FUNCTION__ << ": Please don't copy"
               << std::endl;
@@ -145,19 +162,29 @@ public:
 
   //! List of means
   float *means;
+#ifdef FASTER_MRI_EM_REGISTER
+  float *prior_access_via_setGetPriors;
+  float *prior_logs;
+#else
   //! List of priors
   float *priors;
+#endif
   //! List of covariances
   float *covars;
 
   //! Construct from GCASGPU
   GCASonGPU( const GCASampleGPU& src ) : nSamples(src.nSamples),
-    x(src.d_x),
-    y(src.d_y),
-    z(src.d_z),
-    means(src.d_means),
-    priors(src.d_priors),
-    covars(src.d_covars) {}
+					 x(src.d_x),
+					 y(src.d_y),
+					 z(src.d_z),
+					 means(src.d_means),
+#ifdef FASTER_MRI_EM_REGISTER
+					 prior_access_via_setGetPriors(src.d_prior_access_via_setGetPriors),
+					 prior_logs(src.d_prior_logs),
+#else
+					 priors(src.d_priors),
+#endif
+					 covars(src.d_covars) {}
 
   //! Accessor for locations
   __device__ float3 GetLocation( const unsigned int i ) const
@@ -175,8 +202,15 @@ private:
 
   //! Default constructor should not be used
   GCASonGPU( void ) : nSamples(0),
-    x(NULL), y(NULL), z(NULL),
-    means(NULL), priors(NULL), covars(NULL)
+		      x(NULL), y(NULL), z(NULL),
+		      means(NULL),
+#ifdef FASTER_MRI_EM_REGISTER
+		      prior_access_via_setGetPriors(NULL),
+		      prior_logs(NULL),
+#else
+		      priors(NULL),
+#endif
+		      covars(NULL)
   {
     std::cerr << __FUNCTION__ << ": Please don't use"
               << std::endl;

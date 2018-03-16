@@ -30,15 +30,15 @@
 #include <math.h>
 #include <ctype.h>
 
+#include "mrisurf.h"
+#include "mrishash_internals.h"
 
 #include "macros.h"
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
-#include "mrisurf.h"
 #include "macros.h"
 #include "fio.h"
-#include "mrishash.h"
 #include "sig.h"
 #include "version.h"
 
@@ -608,8 +608,6 @@ MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris,float*curv,double *acorr,
                                     double *counts, int nbins, float bin_size) {
   static MHT     *mht = NULL ;
   static int nv = 0 ;
-  MHBT    *bucket ;
-  MHB     *bin ;
   int     vno, n, i, index ;
   VERTEX  *v, *vn ;
   float   x, y, z, radius, dist, max_dist ;
@@ -623,7 +621,7 @@ MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris,float*curv,double *acorr,
   nv = mris->nvertices ;
   if (!mht) {
     fprintf(stderr, "building spatial LUT...\n") ;
-    mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 2*max_dist) ;
+    mht = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 2*max_dist) ;
   }
   v1 = VectorAlloc(3, MATRIX_REAL) ;
   v2 = VectorAlloc(3, MATRIX_REAL) ;
@@ -643,8 +641,9 @@ MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris,float*curv,double *acorr,
     x = v->x ;
     y = v->y ;
     z = v->z ;
-    bucket = MHTgetBucket(mht, x, y, z) ;
+    MHBT* bucket = MHTacqBucket(mht, x, y, z) ;
     VECTOR_LOAD(v1, v->x, v->y, v->z) ;  /* radius vector */
+    MHB* bin ;
     for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++) {
       n = bin->fno ;
       vn = &mris->vertices[n] ;
@@ -670,6 +669,7 @@ MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris,float*curv,double *acorr,
         acorr[index] += (double)(curv[vno] * curv[n]) ;
       }
     }
+    MHTrelBucket(&bucket);
   }
 
   VectorFree(&v1) ;
@@ -683,8 +683,6 @@ MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris, float bin_size,
   MHT     *mht ;
   int     vno, n, i, index, *counts, nbins ;
   VERTEX  *v, *vn ;
-  MHBT    *bucket ;
-  MHB     *bin ;
   float   x, y, z, radius, dist ;
   double  angle, circumference, *acorr ;
   VECTOR  *v1, *v2 ;
@@ -694,7 +692,7 @@ MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris, float bin_size,
   v2 = VectorAlloc(3, MATRIX_REAL) ;
   radius = MRISaverageRadius(mris) ;
   circumference = M_PI * 2.0 * radius ;
-  mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 2*max_dist) ;
+  mht = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 2*max_dist) ;
 
   nbins = max_dist/bin_size+1 ;
   counts = (int *)calloc(nbins, sizeof(int)) ;
@@ -709,28 +707,22 @@ MRIScomputeCurvatureAutocorrelation(MRI_SURFACE *mris, float bin_size,
     x = v->x ;
     y = v->y ;
     z = v->z ;
-    bucket = MHTgetBucket(mht, x, y, z) ;
+    MHBT* bucket = MHTacqBucket(mht, x, y, z) ;
     VECTOR_LOAD(v1, v->x, v->y, v->z) ;  /* radius vector */
+    MHB* bin ;
     for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++) {
       n = bin->fno ;
       vn = &mris->vertices[n] ;
       VECTOR_LOAD(v2, vn->x, vn->y, vn->z) ;  /* radius vector */
       angle = fabs(Vector3Angle(v1, v2)) ;
-#if 0
-      xd = v->x - vn->x ;
-      yd = v->y - vn->y ;
-      zd = v->z - vn->z ;
-      dist = sqrt(xd*xd + yd*yd + zd*zd) ;
-#else
-dist = circumference * angle / (2.0 * M_PI) ;
-#endif
+      dist = circumference * angle / (2.0 * M_PI) ;
       if (dist < max_dist) {
         index = (int)((float)dist/bin_size) ;
         counts[index]++ ;
         acorr[index] += (double)(v->curv * vn->curv) ;
       }
     }
-
+    MHTrelBucket(&bucket);
   }
 
   MHTfree(&mht) ;

@@ -3,6 +3,9 @@
 ##
 
 AM_CXXFLAGS=-I$(top_srcdir)/include
+if USE_LOCAL_MINC
+AM_CXXFLAGS+=-I$(top_srcdir)/netcdf_3_6_0_p1
+endif
 AM_LDFLAGS=
 
 bin_PROGRAMS = mri_brain_volume

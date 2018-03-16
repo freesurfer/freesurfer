@@ -12,6 +12,9 @@ endif
 set samsegdir = ();
 set subject = ();
 set input = ();
+set DoUchar = 1;
+set DoCC = 1;
+set KeepECS = 0;
 set tmpdir = ()
 set LF = ()
 set cleanup = 1
@@ -71,6 +74,9 @@ endif
 
 #========================================================
 
+# If input volume is not isotropic, then there will be downstream failures.
+# Need to resolve the failures or conform-to-min from the start.
+
 set mdir = $SUBJECTS_DIR/$subject/mri
 
 # Copy the first input. As it is set up now, the input to samseg
@@ -89,12 +95,35 @@ $cmd | tee -a $LF
 if($status) goto error_exit;
 popd
 
-# Have to change seg to uchar or things break downstream
-set cmd = (mri_convert -odt uchar --no_scale 1 \
-  $samsegdir/crispSegmentation.nii $mdir/aseg.auto_noCCseg.mgz)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
+# Note: crispSegmentation.nii is type float.  Might have to change
+# seg to uchar or int or else things might break downstream. Or
+# downstream might not break. 
+
+if(! $KeepECS) then
+  # Remove extra cerebral stuff from samseg seg
+  # --uchar has no effect here because --replaceonly copies type of input (float)
+  set cmd = (mri_binarize  --i $samsegdir/crispSegmentation.nii \
+    --replaceonly 258 0 --replaceonly 259 0 --replaceonly 165 0 \
+    --o $mdir/aseg.auto_noCCseg.mgz)
+  echo $cmd | tee -a $LF
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+  # The mri_binarize output will be float, so change to int or uchar
+  set cmd = (mri_convert $mdir/aseg.auto_noCCseg.mgz $mdir/aseg.auto_noCCseg.mgz)
+  if($DoUchar) then 
+    set cmd = ($cmd  -odt uchar --no_scale 1)
+  else
+    set cmd = ($cmd  -odt int --no_scale 1)
+  endif
+else
+  echo "Keeping Extracerebral segs" | tee -a $LF
+  # odt must be int because extracerebral seg ids are > 255
+  set cmd = (mri_convert $samsegdir/crispSegmentation.nii \
+      $mdir/aseg.auto_noCCseg.mgz -odt int --no_scale 1)
+  echo $cmd | tee -a $LF
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
 
 # Link the samseg talairach to the talairach.lta
 pushd $mdir/transforms
@@ -102,7 +131,7 @@ set cmd = (ln -sf $samsegdir/samseg.talairach.lta talairach.lta)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
-# Create a talairach.xfm (needed mris_anatomical stats) 
+# Create a talairach.xfm (needed for mris_anatomical stats) 
 set cmd = (lta_convert --inlta talairach.lta --outmni talairach.xfm)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
@@ -115,18 +144,18 @@ set vbase = `fname2stem $input`
 set vbase = `basename $vbase`
 set bc = $samsegdir/$vbase"_biasCorrected".nii
 
-# Need to rescale bias cor such that WM is 110
+# Need to rescale bias corrected such that WM is 110
 # Get mask of WM, eroded
 set wm = $tmpdir/wm.mask.mgh
 set cmd = (mri_binarize --i $samsegdir/crispSegmentation.nii --match 2 41 --erode 2 --o $wm)
 echo $cmd | tee -a $LF
-$cmd | tee -a $LF
+fs_time $cmd | tee -a $LF
 if($status) goto error_exit;
 # Compute mean in the mask
 set wmmeanfile = $tmpdir/wm.mask.mean.dat
 set cmd = (mri_segstats --id 1 --i $bc --seg $wm --avgwf $wmmeanfile)
 echo $cmd | tee -a $LF
-$cmd | tee -a $LF
+fs_time $cmd | tee -a $LF
 if($status) goto error_exit;
 set wmmean = `cat $wmmeanfile`
 set scale = `echo 110/$wmmean | bc -l`
@@ -136,13 +165,21 @@ echo scale $scale | tee -a $LF
 set nu = $mdir/nu.mgz
 set cmd = (mri_concat $bc --mul $scale --o $nu)
 echo $cmd | tee -a $LF
-$cmd | tee -a $LF
+fs_time $cmd | tee -a $LF
+if($status) goto error_exit;
+
+# Remove extracerebral stuff
+# Could just use aseg created above
+set mask = $tmpdir/mask.mgh
+set cmd = (mri_binarize --i $samsegdir/crispSegmentation.nii --match 0 165 258 259 --inv --o $mask)
+echo $cmd | tee -a $LF
+fs_time $cmd | tee -a $LF
 if($status) goto error_exit;
 
 # Create the norm by just masking nu with the aseg
-set cmd = (mri_mask $nu $mdir/aseg.auto_noCCseg.mgz $mdir/norm.mgz)
+set cmd = (mri_mask $nu $mask $mdir/norm.mgz)
 echo $cmd | tee -a $LF
-$cmd | tee -a $LF
+fs_time $cmd | tee -a $LF
 if($status) goto error_exit;
 # link norm to brainmask
 pushd $mdir
@@ -155,10 +192,18 @@ popd
 # Create aseg.auto.mgz This needs to be run separately, outside of
 # recon-all, because in recon-all it is done as part of ca_label
 pushd $mdir
-set cmd = (mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz -lta transforms/cc_up.lta $subject)
+if($DoCC) then
+  set cmd = (mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz -lta transforms/cc_up.lta $subject)
+else
+  echo "Not segmenting CC" | tee -a $LF
+  # will the cc_up.lta be needed at some point?
+  set cmd = (cp aseg.auto_noCCseg.mgz aseg.auto.mgz)
+endif
+date | tee -a $LF
 echo $cmd | tee -a $LF
-$cmd | tee -a $LF
+fs_time $cmd | tee -a $LF
 if($status) goto error_exit;
+date | tee -a $LF
 popd
 
 # Cleanup
@@ -224,6 +269,23 @@ while( $#argv != 0 )
       if($#argv < 1) goto arg1err;
       set diceseg = $argv[1]; shift;
       set computedice = 1;
+      breaksw
+
+    case "--no-uchar":
+      set DoUchar = 0;
+      breaksw
+
+    case "--keep-exc":
+      # keep extraceregral segmentations
+      set KeepECS = 1;
+      breaksw
+
+    case "--no-cc":
+      set DoCC = 0;
+      breaksw
+
+    case "--cc":
+      set DoCC = 1;
       breaksw
 
     case "--tmp":
@@ -301,6 +363,7 @@ usage_exit:
   echo "  --i input : same as when samseg was run (hack: needed for name)"
   echo "  --samseg samsegdir : ouput dir when running samseg"
   echo "      if not supplied, then assumes subject/mri/samseg"
+  echo "  --no-cc : do not do corpus callosum segmentation"
   echo ""
 
   if(! $PrintHelp) exit 1;

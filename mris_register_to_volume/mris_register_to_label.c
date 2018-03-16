@@ -113,9 +113,7 @@ ENDHELP --------------------------------------------------------------
 #include "timer.h"
 #include "numerics.h"
 #include "mri_circulars.h"
-#ifdef HAVE_OPENMP
-#include <omp.h>
-#endif
+#include "romp_support.h"
 
 #ifdef X
 #undef X
@@ -634,17 +632,21 @@ compute_error(MRI *mri_dist, MATRIX *R0, MATRIX *Mras2vox, LABEL *lras, LABEL *l
   switch (cost)
   {
   case COST_MAX:
+    ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(val, mri_dist) shared(lvol) schedule(static,1) 
+    #pragma omp parallel for if_ROMP(experimental) firstprivate(val, mri_dist) shared(lvol) schedule(static,1) 
 #endif
     for (i = 0 ; i < lvol->n_points ; i++)
     {
+      ROMP_PFLB_begin
       MRIsampleVolume(mri_dist, lvol->lv[i].x, lvol->lv[i].y, lvol->lv[i].z, &val) ;
       lvol->lv[i].stat = val ;
       if (val > current_error)
 	max_val = val ; // no point in looking any furter
-
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
+    
     if (!FZERO(max_val))
       return(max_val) ;
 
@@ -663,31 +665,35 @@ compute_error(MRI *mri_dist, MATRIX *R0, MATRIX *Mras2vox, LABEL *lras, LABEL *l
 
   default:
   case COST_RMS:
-#if 1
+     ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(val, mri_dist) shared(lvol) schedule(static,1) reduction(+: sse)
-#endif
+     #pragma omp parallel for if_ROMP(experimental) firstprivate(val, mri_dist) shared(lvol) schedule(static,1) reduction(+: sse)
 #endif
     for (i = 0 ; i < lvol->n_points ; i++)
     {
+      ROMP_PFLB_begin
       MRIsampleVolume(mri_dist, lvol->lv[i].x, lvol->lv[i].y, lvol->lv[i].z, &val) ;
       lvol->lv[i].stat = val ;
       sse += val*val ;
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
     return(sqrt(sse/lras->n_points)) ;
     break ;
   case COST_L1:
-#if 1
+    ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(val, mri_dist) shared(lvol) schedule(static,1) reduction(+: sse)
-#endif
+#pragma omp parallel for if_ROMP(experimental) firstprivate(val, mri_dist) shared(lvol) schedule(static,1) reduction(+: sse)
 #endif
     for (i = 0 ; i < lvol->n_points ; i++)
     {
+      ROMP_PFLB_begin
       MRIsampleVolume(mri_dist, lvol->lv[i].x, lvol->lv[i].y, lvol->lv[i].z, &val) ;
       lvol->lv[i].stat = val ;
       sse += fabs(val) ;
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
     return(sse/lras->n_points) ;
     break ;
   }

@@ -1,7 +1,8 @@
-function [ worldToWorldTransformMatrix, transformedTemplateFileName ] = samseg_registerAtlas( imageFileName, meshCollectionFileName, templateFileName, savePath, showFigures, worldToWorldTransformMatrix )
+function [ worldToWorldTransformMatrix, transformedTemplateFileName ] = samseg_registerAtlas( imageFileName, meshCollectionFileName, templateFileName, savePath, showFigures, worldToWorldTransformMatrix, InitLTAFile )
 %
-checkpoint_manager = CheckpointManager();
-checkpoint_manager.save('part0', '')
+
+% For converting from RAS to LPS. Itk/GEMS/SAMSEG uses LPS internally
+RAS2LPS = diag([-1 -1 1 1]);
 
 if ( nargin < 6 )
   worldToWorldTransformMatrix = [];
@@ -15,18 +16,16 @@ templateFileName
 savePath
 showFigures
 worldToWorldTransformMatrix
+InitLTAFile
 
 
 
 % Read in image and template, as well as their coordinates in world (mm) space
 [ image, imageToWorldTransform ] = kvlReadImage( imageFileName );
 imageToWorldTransformMatrix = double( kvlGetTransformMatrix( imageToWorldTransform ) );
-fixture.sourceImageToWorldTransformMatrix = imageToWorldTransformMatrix;
 
 [ template, templateImageToWorldTransform ] = kvlReadImage( templateFileName );
 templateImageToWorldTransformMatrix = double( kvlGetTransformMatrix( templateImageToWorldTransform ) );
-fixture.templateImageToWorldTransformMatrix = templateImageToWorldTransformMatrix;
-fixture.templateImageBuffer = kvlGetImageBuffer( template )
 [ ~, templateFileNameBase, templateFileNameExtension ] = fileparts( templateFileName );
 
 
@@ -46,7 +45,20 @@ if ( isempty( worldToWorldTransformMatrix ) )
 
 
   % Initialization
-  initialWorldToWorldTransformMatrix = eye( 4 );
+  if(isempty(InitLTAFile))
+    initialWorldToWorldTransformMatrix = eye( 4 );
+  else
+    [~,InitLTA] = lta_read(InitLTAFile);
+    if(InitLTA.type == 0)
+      % The LTA is vox2vox
+      initialWorldToWorldTransformMatrix = ...
+	  RAS2LPS * InitLTA.dstmri.vox2ras0 * InitLTA.xform * inv(InitLTA.srcmri.vox2ras0) * inv(RAS2LPS);
+    else
+      % The LTA is ras2ras
+      initialWorldToWorldTransformMatrix = RAS2LPS * InitLTA.xform * inv(RAS2LPS);      
+    end
+  end
+
   if true
     % Provide an initial (non-identity) affine transform guestimate
 
@@ -66,16 +78,10 @@ if ( isempty( worldToWorldTransformMatrix ) )
   end
   initialImageToImageTransformMatrix = imageToWorldTransformMatrix \ ...
                     ( initialWorldToWorldTransformMatrix * templateImageToWorldTransformMatrix );
-        fixture.imageToWorldTransformMatrix = imageToWorldTransformMatrix;
-        fixture.multiplied = initialWorldToWorldTransformMatrix * templateImageToWorldTransformMatrix;
-        fixture.templateImageToWorldTransformMatrix = templateImageToWorldTransformMatrix;
-        fixture.initialWorldToWorldTransformMatrix = initialWorldToWorldTransformMatrix;
-        fixture.initialImageToImageTransformMatrix = initialImageToImageTransformMatrix;
 
   % Figure out how much to downsample (depends on voxel size)
   voxelSpacing = sum( imageToWorldTransformMatrix( 1 : 3, 1 : 3 ).^2 ).^( 1/2 );
   downSamplingFactors = max( round( targetDownsampledVoxelSpacing ./ voxelSpacing ), [ 1 1 1 ] )
-  fixture.downSamplingFactors = downSamplingFactors;
   if 1
     % Use initial transform to define the reference (rest) position of the mesh (i.e., the one
     % where the log-prior term is zero)
@@ -102,7 +108,6 @@ if ( isempty( worldToWorldTransformMatrix ) )
 
   % Get image data
   imageBuffer = kvlGetImageBuffer( image );
-  fixture.initialImageBuffer = imageBuffer;
   if showFigures
     figure
     showImage( imageBuffer );
@@ -112,13 +117,9 @@ if ( isempty( worldToWorldTransformMatrix ) )
   imageBuffer = imageBuffer( 1 : downSamplingFactors( 1 ) : end, ...
                              1 : downSamplingFactors( 2 ) : end, ...
                              1 : downSamplingFactors( 3 ) : end );
-  fixture.downsampledImageBuffer = imageBuffer;
   image = kvlCreateImage( imageBuffer );
-  fixture.preScaleMesh =  kvlGetMeshNodePositions( mesh );
   kvlScaleMesh( mesh, 1 ./ downSamplingFactors );
-  fixture.postScaleMesh =  kvlGetMeshNodePositions( mesh );
   alphas = kvlGetAlphasInMeshNodes( mesh );
-  fixture.downsampledAlphas = alphas;
   gmClassNumber = 3;  % Needed for displaying purposes
   if 0
     % Get rid of the background class
@@ -144,26 +145,21 @@ if ( isempty( worldToWorldTransformMatrix ) )
                                                 image, 'Affine' );
 
   [ cost gradient ] = kvlEvaluateMeshPosition( calculator, mesh );
-  fixture.initialCost = cost;
-  fixture.initialGradient = gradient;
   if true
     %
     [ xtmp, ytmp, ztmp ] = ndgrid( 1 : size( imageBuffer, 1 ), ...
                                    1 : size( imageBuffer, 2 ), ...
                                    1 : size( imageBuffer, 3 ) );
     centerOfGravityImage = [ xtmp(:) ytmp(:) ztmp(:) ]' * imageBuffer(:) / sum( imageBuffer(:) );
-    fixture.centerOfGravityImage = centerOfGravityImage;
     priors = kvlRasterizeAtlasMesh( mesh, size( imageBuffer ) );
     %tmp = sum( priors, 4 );
     tmp = sum( priors( :, :, :, 2 : end ), 4 );
     centerOfGravityAtlas = [ xtmp(:) ytmp(:) ztmp(:) ]' * tmp(:) / sum( tmp(:) );
-    fixture.centerOfGravityAtlas = centerOfGravityAtlas;
     %
     initialTranslation = double( centerOfGravityImage - centerOfGravityAtlas );
     nodePositions = kvlGetMeshNodePositions( mesh );
     trialNodePositions = nodePositions + repmat( initialTranslation', [ size( nodePositions, 1 ) 1 ] );
     kvlSetMeshNodePositions( mesh, trialNodePositions );
-    fixture.trialNodePositions = trialNodePositions;
     [ trialCost trialGradient ] = kvlEvaluateMeshPosition( calculator, mesh );
     if ( trialCost >= cost )
       % Center of gravity was not a success; revert to what we had before
@@ -177,7 +173,6 @@ if ( isempty( worldToWorldTransformMatrix ) )
   end
   %
   originalNodePositions = kvlGetMeshNodePositions( mesh );
-  fixture.originalNodePositions = originalNodePositions;
   % Visualize starting situation
   priorVisualizationAlpha = 0.4;
   if showFigures
@@ -213,22 +208,10 @@ if ( isempty( worldToWorldTransformMatrix ) )
 
   numberOfIterations = 0;
   tic
-  fixture.minLogLikelihoodTimesPriors = [];
-  fixture.maximalDeformations = [];
-  fixture.costs = [];
-  fixture.gradients = [];
-  fixture.nodePositions = [];
-  fixture.alphas = [];
   while true
     %
-    fixture.nodePositions = [fixture.nodePositions, kvlGetMeshNodePositions( mesh )];
-    fixture.alphas = [fixture.alphas, kvlGetAlphasInMeshNodes( mesh )];
     [ cost gradient ] = kvlEvaluateMeshPosition( calculator, mesh );
-    fixture.costs = [fixture.costs, cost];
-    fixture.gradients = [fixture.gradients, gradient];
     [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer )
-    fixture.minLogLikelihoodTimesPriors = [fixture.minLogLikelihoodTimesPriors, minLogLikelihoodTimesPrior];
-    fixture.maximalDeformations = [fixture.maximalDeformations, maximalDeformation];
     %return
     if ( maximalDeformation == 0 )
       break;
@@ -300,7 +283,6 @@ if ( isempty( worldToWorldTransformMatrix ) )
   % Retrieve the implicitly applied affine matrix from any four non-colinear points before and after registration,
   % taking into account the downsampling that we applied
   nodePositions = kvlGetMeshNodePositions( mesh );
-  fixture.finalNodePositions = nodePositions;
   pointNumbers = [ 1 111 202 303 ];
   originalY = [ diag( downSamplingFactors ) * originalNodePositions( pointNumbers, : )'; 1 1 1 1 ];
   Y = [ diag( downSamplingFactors ) * nodePositions( pointNumbers, : )'; 1 1 1 1 ];
@@ -311,15 +293,12 @@ if ( isempty( worldToWorldTransformMatrix ) )
   imageToImageTransformMatrix = extraImageToImageTransformMatrix * initialImageToImageTransformMatrix;
   worldToWorldTransformMatrix = imageToWorldTransformMatrix * imageToImageTransformMatrix * ...
                                 inv( templateImageToWorldTransformMatrix );
-  fixture.imageToImageTransformMatrix = imageToImageTransformMatrix;
-  fixture.worldToWorldTransformMatrix = worldToWorldTransformMatrix;
 
 else
   % The world-to-world transfrom is externally given, so let's just compute the corresponding image-to-image
   % transform (needed for subsequent computations) and be done
   imageToImageTransformMatrix = inv( imageToWorldTransformMatrix ) * worldToWorldTransformMatrix * ...
                                 templateImageToWorldTransformMatrix
-
 end % End test if the solution is externally given
 
 
@@ -363,6 +342,4 @@ transformedTemplateFileName = fullfile( savePath, ...
                                         [ templateFileNameBase '_coregistered' templateFileNameExtension ] );
 kvlWriteImage( template, transformedTemplateFileName, ...
                kvlCreateTransform( desiredTemplateImageToWorldTransformMatrix ) );
-fixture.desiredTemplateImageToWorldTransformMatrix = desiredTemplateImageToWorldTransformMatrix;
-% save('/home/willy/work/cm/innolitics_testing/buckner40/matlab_temp_data/register_atlas_fixture_1.mat', 'fixture')
 

@@ -242,9 +242,9 @@ double round(double x);
 #include "icosahedron.h"
 #include "pdf.h"
 #include "matfile.h"
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+
+#include "romp_support.h"
+
 
 MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM,
                                double tol, int nitersmax,

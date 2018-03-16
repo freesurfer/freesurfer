@@ -30,9 +30,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef HAVE_OPENMP
-#include <omp.h>
-#endif
+
+#include "romp_support.h"
 
 #include "box.h"
 #include "diag.h"
@@ -1263,10 +1262,13 @@ HISTOGRAM *MRIhistogramRegionWithThreshold(
   HISTOclear(histo, histo);
   HISTOinit(histo, nbins, fmin, fmax);
 
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for shared(histos, width, height, depth, fmin, fmax, frame, x0, y0, z0, histo)
+  #pragma omp parallel for if_ROMP(experimental) shared(histos, width, height, depth, fmin, fmax, frame, x0, y0, z0, histo)
 #endif
   for (z = z0; z < depth; z++) {
+    ROMP_PFLB_begin
+    
     int y, x, tid;
     float val;
     for (y = y0; y < height; y++) {
@@ -1282,7 +1284,10 @@ HISTOGRAM *MRIhistogramRegionWithThreshold(
         HISTOaddSample(histos[tid], val, fmin, fmax);
       }
     }
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
 #ifdef HAVE_OPENMP
   for (tid = 0; tid < _MAX_FS_THREADS; tid++) {

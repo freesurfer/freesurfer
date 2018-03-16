@@ -10,11 +10,16 @@ function [rms_error, BG_predicted] = compute_bg_error(M0, M,A,F,dt,S,basal_absor
 
 % C - carbs/insulin ratio   not needed - ratio of S and I
 
+basal_absorbed = basal_absorbed - basal_absorbed(1);
 ntps = size(M,2);
 
 rms_error = 0 ;
 for i=1:ntps
-    M1 = predict_bg(M0, S, A(i), basal_absorbed(i), dt(i)-dt(1), F(i), I);
+  if (i == ntps)
+%   keyboard
+ end
+ 
+  M1 = predict_bg(M0, S, A(i), basal_absorbed(i), dt(i)-dt(1), F(i), I);
     BG_predicted(i) = M1 ;
 %    error = abs(M(i)-M1) ;
     error = (M(i)-M1).^2 ;

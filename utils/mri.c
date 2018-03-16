@@ -37,9 +37,9 @@ const char *MRI_C_VERSION = "$Revision: 1.575 $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef HAVE_OPENMP
-#include <omp.h>
-#endif
+
+#include "faster_variants.h"
+#include "romp_support.h"
 
 #include "box.h"
 #include "cma.h"
@@ -47,6 +47,7 @@ const char *MRI_C_VERSION = "$Revision: 1.575 $";
 #include "error.h"
 #include "fastmarching.h"
 #include "filter.h"
+#include "fnv_hash.h"
 #include "macros.h"
 #include "matrix.h"
 #include "minc_volume_io.h"
@@ -2975,7 +2976,7 @@ MATRIX *voxelFromSurfaceRAS_(MRI *mri)
   intermediate matrices are alloced, inverted, and dealloced, so
   it might not be a good thing to have inside a loop.
   --------------------------------------------------------------*/
-MATRIX *surfaceRASFromRAS_(MRI *mri)
+MATRIX *surfaceRASFromRAS_(MRI const *mri)
 {
   MATRIX *sRASFromRAS;
   MATRIX *Vox2TkRAS, *Vox2RAS;
@@ -3005,13 +3006,13 @@ MATRIX *surfaceRASFromRAS_(MRI *mri)
   intermediate matrices are alloced, inverted, and dealloced, so
   it might not be a good thing to have inside a loop.
   --------------------------------------------------------------*/
-MATRIX *RASFromSurfaceRAS_(MRI *mri)
+MATRIX *RASFromSurfaceRAS_(MRI const *mri)
 {
   MATRIX *RASFromSRAS;
 
   MATRIX *Vox2TkRAS, *Vox2RAS;
 
-  Vox2RAS = MRIxfmCRS2XYZ(mri, 0);      // scanner vox2ras
+  Vox2RAS   = MRIxfmCRS2XYZ(mri, 0);      // scanner vox2ras
   Vox2TkRAS = MRIxfmCRS2XYZtkreg(mri);  // tkreg vox2ras
   // RASFromSRAS = Vox2RAS * inv(Vox2TkRAS)
   RASFromSRAS = MatrixInverse(Vox2TkRAS, NULL);
@@ -4382,10 +4383,13 @@ MRI *MRIbinarizeNoThreshold(MRI *mri_src, MRI *mri_dst)
   depth = mri_src->depth;
 
   for (f = 0; f < mri_src->nframes; f++) {
+    ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+    #pragma omp parallel for if_ROMP(experimental)
 #endif
     for (z = 0; z < depth; z++) {
+      ROMP_PFLB_begin
+      
       double val;
       int x, y;
 
@@ -4396,7 +4400,10 @@ MRI *MRIbinarizeNoThreshold(MRI *mri_src, MRI *mri_dst)
           MRIsetVoxVal(mri_dst, x, y, z, f, val);
         }
       }
+      
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
   }
 
   return (mri_dst);
@@ -4421,10 +4428,13 @@ MRI *MRIbinarize(MRI *mri_src, MRI *mri_dst, float threshold, float low_val, flo
   depth = mri_src->depth;
 
   for (f = 0; f < mri_src->nframes; f++) {
+    ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+    #pragma omp parallel for if_ROMP(experimental)
 #endif
     for (z = 0; z < depth; z++) {
+      ROMP_PFLB_begin
+      
       double val;
       int x, y;
 
@@ -4442,7 +4452,10 @@ MRI *MRIbinarize(MRI *mri_src, MRI *mri_dst, float threshold, float low_val, flo
           MRIsetVoxVal(mri_dst, x, y, z, f, val);
         }
       }
+      
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
   }
 
   return (mri_dst);
@@ -5997,7 +6010,7 @@ int MRIpeak(MRI *mri, int *px, int *py, int *pz)
 /*
   compare two headers to see if they are the same voxel and ras coords
 */
-int MRIcompareHeaders(MRI *mri1, MRI *mri2)
+int MRIcompareHeaders(MRI const *mri1, MRI const *mri2)
 {
   if (mri1 == NULL || mri2 == NULL) return (1);  // not the same
   if (!FEQUAL(mri1->xsize, mri2->xsize)) return (1);
@@ -8921,7 +8934,7 @@ int MRIsampleVolumeFrame(const MRI *mri, double x, double y, double z, const int
   return (NO_ERROR);
 }
 
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 int   MRIsampleVolumeFrame_xyzInt_nRange_floats(const MRI *mri,
                             int x, int y, int z, 
 			    const int frameBegin,
@@ -9273,7 +9286,7 @@ int MRIsampleVolumeFrameType(
   return (NO_ERROR);
 }
 
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 int   MRIsampleVolumeFrameType_xyzInt_nRange_SAMPLE_NEAREST_floats(const MRI *mri,
                             int xv, int yv, int zv, 
 			    const int frameBegin,
@@ -17208,11 +17221,14 @@ MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int t
   {
     max_change = 0.0 ;
     mri_tmp = MRIcopy(mri_laplace, mri_tmp) ;
+    ROMP_PF_begin
 #if defined(HAVE_OPENMP) && GCC_VERSION > 40408
-#pragma omp parallel for reduction(max: max_change)
+    #pragma omp parallel for if_ROMP(experimental) reduction(max: max_change)
 #endif
     for (v = 0 ; v < vl->nvox  ; v++)
     {
+      ROMP_PFLB_begin
+      
       int    x, y, z, xm1, ym1, zm1, xp1, yp1, zp1, nvox ;
       float  change, val, oval ;
 
@@ -17260,7 +17276,11 @@ MRIsolveLaplaceEquation(MRI *mri_interior, MRI *mri_seg, int source_label, int t
       if (change > max_change)
         max_change = change ;
       MRIsetVoxVal(mri_tmp, x, y, z, 0, val);
+      
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
+    
     MRIcopy(mri_tmp, mri_laplace) ;
     npasses++ ;
     if (npasses%10 == 0)
@@ -17369,3 +17389,106 @@ MRIcomputeLaplaceStreamline(MRI *mri_laplace, int max_steps, float x0, float y0,
   MRIfree(&mri_mask) ;
   return (vl);
 }
+
+
+// Support for writing traces that can be compared across test runs to help find where differences got introduced  
+//
+void mri_hash_init (MRI_HASH* hash, MRI const * mri)
+{
+    hash->hash = fnv_init();
+    if (mri) mri_hash_add(hash, mri);
+}
+
+static void matrix_hash_add(MRI_HASH* hash, MATRIX const * m)
+{
+    if (!m) return;
+#define ELT(MBR) \
+    hash->hash = fnv_add(hash->hash, (const unsigned char*)(&m->MBR), sizeof(m->MBR));
+    ELT(type)
+    ELT(rows)
+    ELT(cols)
+#undef ELT
+    int r;
+    for (r = 0; r < m->rows; r++) {
+        const unsigned char* rptr = (const unsigned char*)(m->rptr[r]);
+        if (!rptr) {
+            static int count;
+            if (!count++) fprintf(stderr, "%s:%d !rptr r:%d m->rows:%d m->cols:%d\n", 
+                __FILE__,__LINE__, r, m->rows, m->cols);
+            continue;
+        }
+        hash->hash = 
+            fnv_add(hash->hash, 
+                rptr, 
+                m->cols * ((m->type == MATRIX_REAL) ? sizeof(float) : sizeof(COMPLEX_FLOAT)));
+    }
+}
+
+static void general_transform_hash_add(MRI_HASH* hash, General_transform const * transform)
+{
+    if (!transform) return;
+//    nyi;
+}
+
+static void transform_hash_add(MRI_HASH* hash, Transform const * transform)
+{
+    if (!transform) return;
+//    nyi;
+}
+
+void mri_hash_add(MRI_HASH* hash, MRI const * mri)
+{
+    if (!mri) return;
+    
+    #define SEP
+    #define ELTP(TARGET, MBR) // don't hash pointers.   Sometime may implement hashing their target
+    #define ELTT(TYPE,   MBR) hash->hash = fnv_add(hash->hash, (const unsigned char*)(&mri->MBR), sizeof(mri->MBR));
+    #define ELTX(TYPE,   MBR) 
+    LIST_OF_MRI_ELTS
+    #undef ELTX
+    #undef ELTT
+    #undef ELTP
+    #undef SEP
+
+    // Now include some of the pointer targets
+    //
+    matrix_hash_add(hash, mri->register_mat);
+    general_transform_hash_add(hash, &mri->transform);
+    transform_hash_add(hash, mri->linear_transform);
+    transform_hash_add(hash, mri->inverse_linear_transform);
+    matrix_hash_add(hash, mri->r_to_i__);
+    matrix_hash_add(hash, mri->AutoAlign);
+    matrix_hash_add(hash, mri->bvals);
+    matrix_hash_add(hash, mri->bvecs);
+    // nyi ct
+    // nyi frames
+    // 
+    if (mri->slices) {
+        int slice, row;
+        for (slice = 0; slice < mri->depth; slice++) {
+            if (!mri->slices[slice]) continue;
+            for (row = 0; row < mri->height; row++) {
+                const unsigned char* ptr = (const unsigned char*)(mri->slices[slice][row]);
+                if (!ptr) continue;
+                hash->hash = 
+                    fnv_add(hash->hash, 
+                        ptr, 
+                        mri->bytes_per_row);
+            }
+        }
+    }
+}
+
+void mri_hash_print(MRI_HASH const* hash, FILE* file)
+{
+    fprintf(file, "%ld", hash->hash);
+}
+
+void mri_print_hash(FILE* file, MRI const * mri, const char* prefix, const char* suffix) {
+    MRI_HASH hash;
+    mri_hash_init(&hash, mri);
+    fprintf(file, "%sMRI_HASH{",prefix);
+    mri_hash_print(&hash, file);
+    fprintf(file, "}%s",suffix);
+}
+

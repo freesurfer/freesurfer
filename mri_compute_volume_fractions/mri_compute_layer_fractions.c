@@ -536,8 +536,8 @@ add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst,
           break ;
         case Left_Pallidum:
         case Right_Pallidum:
-        case Left_Thalamus_Proper:
-        case Right_Thalamus_Proper:
+        case Left_Thalamus:
+        case Right_Thalamus:
         case Right_Putamen:
         case Left_Putamen:
         case Right_Caudate:

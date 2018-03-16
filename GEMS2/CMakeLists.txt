@@ -9,6 +9,7 @@ MARK_AS_ADVANCED(LIBRARY_OUTPUT_PATH EXECUTABLE_OUTPUT_PATH)
 SET(GEMS_LIBRARY_PATH "${LIBRARY_OUTPUT_PATH}")
 SET(GEMS_EXECUTABLE_PATH "${EXECUTABLE_OUTPUT_PATH}")
 
+#
 INCLUDE_DIRECTORIES(${GEMS_SOURCE_DIR})
 INCLUDE_DIRECTORIES(interfaces)
 
@@ -30,6 +31,8 @@ OPTION( BUILD_TESTING "Build tests" OFF )
 OPTION( BUILD_GUI "Build GUI components (requires FLTK and VTK)" OFF )
 
 OPTION( BUILD_MATLAB "Build Matlab wrappers" OFF )
+
+OPTION( BUILD_CUDA "Build CUDA stuff" OFF )
 
 # Enable C++11 syntax
 set(CMAKE_CXX_STANDARD 11)
@@ -70,6 +73,8 @@ pybind11_add_module(GEMS2Python
         kvlMutualInformationCostAndGradientCalculator.cxx
         kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
         kvlAverageAtlasMeshPositionCostAndGradientCalculator.cxx
+        kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
+        kvlAverageAtlasMeshPositionCostAndGradientCalculator.cxx
         kvlHistogrammer.cxx
         kvlAtlasMeshSummaryDrawer.cxx
         itkMGHImageIO.cxx
@@ -80,6 +85,32 @@ TARGET_LINK_LIBRARIES(GEMS2Python
         PRIVATE ${ITK_LIBRARIES}
         PRIVATE ${ZLIB_LIBRARIES}
         )
+
+#
+IF( BUILD_EXECUTABLES OR BUILD_GUI )
+  #
+  ADD_DEFINITIONS( -DUSE_DYNAMIC_MESH )
+  
+  # 
+  MESSAGE( WARNING 
+           "Since you're building executables to compute meshes, ITK dynamic meshes will be used (internally using std::map instead of std::vector to store lists of points, cells, etc). Everything will still work, but anything that only uses existing meshes will be slower than it could be (up to 100% slower)" )
+           
+ENDIF( BUILD_EXECUTABLES OR BUILD_GUI )
+
+
+IF( BUILD_CUDA )
+  FIND_PACKAGE( CUDA )
+  IF( CUDA_FOUND )
+    # Enable C++11 syntax
+    SET(CMAKE_CXX_FLAGS "-g -std=c++11 ${CMAKE_CXX_FLAGS}")
+
+    INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
+    SET(CMAKE_CXX_FLAGS "-DCUDA_FOUND ${CMAKE_CXX_FLAGS}")
+
+    INCLUDE_DIRECTORIES(cuda)
+    SUBDIRS(cuda)
+  ENDIF( CUDA_FOUND )
+ENDIF( BUILD_CUDA )
 
 
 # Add libary

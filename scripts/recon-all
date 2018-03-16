@@ -50,6 +50,7 @@ if($?SET_FS_CMD_TIMING) set DoTime = 1;
 set fs_time = "";
 set ErrorFile = /dev/null
 set cmd = ();
+setenv FS_LOAD_DWI 0 # turn off trying to load DWI
 
 # commands to only process single hemispheres (e.g. for ex vivo)
 set LHonly = 0 ;
@@ -589,50 +590,98 @@ endif
 echo "########################################" >> $LF
 echo "program versions used" >> $LF
 echo $VERSION                >> $LF
+set allinfocmds = (\
+	lta_convert \
+	mri_and \
+	mri_annotation2label \
+	mri_aparc2aseg \
+	mri_aparc2wmseg \
+	mri_binarize \
+	mri_ca_label \
+	mri_ca_normalize \
+	mri_ca_register \
+	mri_cc \
+	mri_compute_overlap \
+	mri_compute_seg_overlap \
+	mri_concat \
+	mri_concatenate_lta \
+	mri_convert \
+	mri_diff \
+	mri_edit_wm_with_aseg \
+	mri_em_register \
+	mri_fill \
+	mri_fuse_segmentations \
+	mri_fwhm \
+	mri_gcut \
+	mri_info \
+	mri_label2label \
+	mri_label2vol \
+	mri_log_likelihood \
+	mri_mask \
+	mri_matrix_multiply \
+	mri_normalize \
+	mri_normalize_tp2 \
+  mri_or \
+	mri_relabel_hypointensities \
+	mri_relabel_nonwm_hypos \
+	mri_remove_neck \
+	mri_robust_register \
+	mri_robust_template \
+	mris_anatomical_stats \
+	mris_ca_label \
+	mris_calc \
+	mris_convert \
+	mris_curvature \
+	mris_curvature_stats \
+	mris_diff \
+	mris_divide_parcellation \
+	mri_segment \
+	mri_segstats \
+	mris_euler_number \
+	mris_fix_topology \
+	mris_topo_fixer \
+	mris_jacobian \
+	mris_label2annot \
+	mris_left_right_register \
+	mris_make_surfaces \
+	mrisp_paint \
+	mris_register \
+	mris_smooth \
+	mris_sphere \
+	mris_surface_stats \
+	mri_stats2seg \
+	mris_thickness \
+	mris_thickness_diff \
+	mris_topo_fixer \
+	mri_surf2surf \
+	mri_surf2vol \
+	mri_surfcluster \
+	mris_volmask \
+	mri_tessellate \
+	mri_vol2surf \
+	mri_vol2vol \
+	mri_voldiff \
+	mri_watershed \
+  tkregister2_cmdl \
+)
+# Note: these commands do not properly support -all-info and should be fixed:
+# 	mri_add_xform_to_header mri_mc 	mri_deface mris_inflate 	talairach_afd
+# 	mris_info 	talairach_avi
+foreach cmd ($allinfocmds)
+  $cmd -all-info >> $LF
+  if($status) then
+    echo "ERROR: Executable '${cmd} -all-info failed! Is it missing from the distribution?'" |& tee -a $LF
+    exit 1;
+  endif
+end
 mri_motion_correct.fsl -version >> $LF
 if (-e $FREESURFER_HOME/bin/flirt.fsl) flirt.fsl -version >> $LF
-talairach_avi --version >> $LF
-tkregister2_cmdl --all-info >> $LF
 nu_correct -version >> $LF
-mri_make_uchar -all-info >> $LF
-mri_normalize -all-info >> $LF
-mri_watershed -all-info >> $LF
-mri_gcut -all-info >> $LF
-mri_segment -all-info >> $LF
-mri_label2label -all-info >> $LF
-mri_em_register -all-info >> $LF
-mri_ca_normalize -all-info >> $LF
-mri_ca_register -all-info >> $LF
-mri_ca_label -all-info >> $LF
-mri_pretess -all-info >> $LF
-mri_fill -all-info >> $LF
-mri_tessellate -all-info >> $LF
-mri_concatenate_lta -all-info >> $LF
-mri_normalize_tp2 -all-info >> $LF
-mris_smooth -all-info >> $LF
-mris_inflate -all-info >> $LF
-mris_curvature -all-info >> $LF
-mris_sphere -all-info >> $LF
-mris_fix_topology -all-info >> $LF
-mris_topo_fixer -all-info >> $LF
-mris_ca_label -all-info >> $LF
-mris_euler_number -all-info >> $LF
-mris_make_surfaces -all-info >> $LF
-mris_register -all-info >> $LF
-mris_volmask --all-info >> $LF
-mris_anatomical_stats -all-info >> $LF
-mrisp_paint -all-info >> $LF
-mris_curvature_stats -all-info >> $LF
+
+# clean-up droppings
 if(-e .xdebug_mris_curvature_stats) rm -f .xdebug_mris_curvature_stats
-mris_calc -all-info >> $LF
 if(-e .xdebug_mris_calc) rm -f .xdebug_mris_calc
-mri_robust_register -all-info >> $LF
-mri_robust_template -all-info >> $LF
-mri_and -all-info >> $LF
-mri_or -all-info >> $LF
-mri_fuse_segmentations -all-info >> $LF
-mri_segstats -all-info >> $LF
-mri_relabel_hypointensities -all-info >> $LF
+
 
 echo "#######################################" >> $LF
 echo "GCADIR $GCADIR" >> $LF
@@ -2025,6 +2074,7 @@ if($DoNormalization) then
       echo "Recompute intensity norm to create $longbaseid ctrl_vol.mgz" \
         |& tee -a $LF
       set cmd = (mri_normalize)
+      if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
       if($#Norm3dIters)  set cmd = ($cmd -n $Norm3dIters)
       if($#Norm1_b)      set cmd = ($cmd -b $Norm1_b)
       if($#Norm1_n)      set cmd = ($cmd -n $Norm1_n)
@@ -2046,7 +2096,9 @@ if($DoNormalization) then
       rm -f $longbasedir/mri/T1_tmp.mgz
     endif
     # use ctrl_vol.mgz from base for normalization:
-    set cmd = (mri_normalize \
+    set cmd = (mri_normalize)
+    if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+    set cmd = ($cmd \
       -w $subjdir/mri/ctrl_vol.mgz $subjdir/mri/bias_vol.mgz \
       -l $longbasedir/mri/ctrl_vol.mgz $longbasedir/mri/bias_vol.mgz \
       $subjdir/mri/nu.mgz \
@@ -2079,6 +2131,7 @@ if($DoNormalization) then
     endif
     # for cross, base (and long if not useLongBaseCtrlVol) processing streams:
     set cmd = (mri_normalize -g $NormMaxGrad);
+    if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     if($UseControlPoints) set cmd = ($cmd -f $ControlPointsFile)
     if($#Norm3dIters)     set cmd = ($cmd -n $Norm3dIters)
     if($#Norm1_b)         set cmd = ($cmd -b $Norm1_b)
@@ -2910,6 +2963,7 @@ if($DoNormalization2) then
   cd $subjdir/mri > /dev/null
   set xopts = `fsr-getxopts mri_normalize $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_normalize);
+  if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
   if($UseControlPoints)   set cmd = ($cmd -f $ControlPointsFile)
   if($#Norm3dIters)       set cmd = ($cmd -n $Norm3dIters)
   if($#Norm2_b)           set cmd = ($cmd -b $Norm2_b)
@@ -3637,7 +3691,9 @@ if($DoCurvHK) then
     $PWD |& tee -a $LF
     # create curvature files ?h.white.H and ?h.white.K
     set xopts = `fsr-getxopts mris_curatvure $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_curvature -w $xopts $hemi.white.preaparc)
+    set cmd = (mris_curvature -w)
+    if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+    set cmd = ($cmd $xopts $hemi.white.preaparc)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($DoParallel) then
       set CMDF = mris_curvature_white_${hemi}.cmd
@@ -3675,7 +3731,9 @@ if($DoCurvHK) then
 
     # create curvature files ?h.inflated.H and ?h.inflated.K
     set xopts = `fsr-getxopts mris_curatvure $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_curvature -thresh .999 -n -a 5 -w -distances 10 10)
+    set cmd = (mris_curvature )
+    if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+    set cmd = ($cmd -thresh .999 -n -a 5 -w -distances 10 10)
     set cmd = ($cmd $xopts $hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($DoParallel) then
@@ -4303,7 +4361,9 @@ if($DoT2pial || $DoFLAIRpial) then
     foreach hemi ($hemilist)
         set surfaces = ($surfaces -surface $sdir/$hemi.white identity.nofile)
     end
-    set normcmd = (mri_normalize \
+    set normcmd = (mri_normalize)
+    if ($NoRandomness) set normcmd = ($normcmd -seed $RngSeed)
+    set normcmd = ($normcmd \
         -sigma 0.5 -nonmax_suppress 0 -min_dist 1 \
         -aseg $mdir/aseg.presurf.mgz \
 	$surfaces  \
@@ -4808,7 +4868,9 @@ if($DoSegStats) then
   cd $subjdir > /dev/null
   $PWD |& tee -a $LF
   set xopts = `fsr-getxopts mri_segstats $XOptsFile $GlobXOptsFile`;
-  set cmd = (mri_segstats --seg mri/aseg.mgz --sum stats/aseg.stats)
+  set cmd = (mri_segstats)
+  if ($NoRandomness) set cmd = ($cmd --seed $RngSeed)
+  set cmd = ($cmd --seg mri/aseg.mgz --sum stats/aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz --empty)
   set cmd = ($cmd --brainmask mri/brainmask.mgz --brain-vol-from-seg)
   set cmd = ($cmd --excludeid 0 --excl-ctxgmwm)
@@ -4874,6 +4936,7 @@ if($DoWMParc) then
   # Do wm segstats while we're here
   set xopts = `fsr-getxopts mri_segstats $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_segstats)
+  if ($NoRandomness) set cmd = ($cmd --seed $RngSeed)
   set cmd = ($cmd --seg mri/wmparc.mgz --sum stats/wmparc.stats \
     --pv mri/norm.mgz --excludeid 0 \
     --brainmask mri/brainmask.mgz --in mri/norm.mgz --in-intensity-name norm \
@@ -4907,6 +4970,7 @@ if($DoAParcASegStats) then
   cd $subjdir > /dev/null
   set xopts = `fsr-getxopts mri_segstats $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_segstats)
+  if ($NoRandomness) set cmd = ($cmd --seed $RngSeed)
   set cmd = ($cmd --seg mri/aparc+aseg.mgz --sum stats/aparc+aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz )
   set cmd = ($cmd --excludeid 0 --ctab-default --empty)
@@ -7937,7 +8001,7 @@ if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2) then
   echo " "
   echo "ERROR: the hippocampal subfield module is now in separate scripts:"
   echo "  segmentHA_T1.sh"
-  echo "  segmentHAS_T2.sh"
+  echo "  segmentHA_T2.sh"
   echo "  segmentHA_T1_long.sh"
   echo " "
   echo "For help, please execute the corresponding script  with the flag --help: "
@@ -8093,7 +8157,8 @@ usage_exit:
   echo "  -noappend     : start new log and status files instead of appending"
   echo "  -no-isrunning : do not check whether this subject is currently being processed"
   echo ""
-  echo " Segmentation of substructures of hippocampus and brainstem"
+  echo " Segmentation of substructures of hippocampus and brainstem "
+  echo " (These deprecated; please see segmentHA_T1.sh, segmentHA_T1.sh, segmentHA_T1_long.sh, segmentBS.sh)"
   echo "  -hippocampal-subfields-T1 : segmentation of hippocampal subfields using input T1 scan"
   echo "  -hippocampal-subfields-T2 file ID : segmentation using an additional scan (given by file);"
   echo "                                      ID is a user-defined identifier for the analysis"

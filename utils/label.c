@@ -32,13 +32,13 @@
 
 #include "mri.h"
 #include "mrisurf.h"
+#include "mrishash_internals.h"
 
 #include "diag.h"
 #include "error.h"
 #include "fio.h"
 #include "macros.h"
 #include "minc_volume_io.h"
-#include "mrishash.h"
 #include "proto.h"
 #include "utils.h"
 
@@ -496,9 +496,7 @@ int LabelToFlat(LABEL *area, MRI_SURFACE *mris)
 {
   int n, vno;
   VERTEX *v;
-  MRIS_HASH_TABLE *mht;
-
-  mht = MHTfillVertexTable(mris, NULL, CURRENT_VERTICES);
+  MRIS_HASH_TABLE* mht = MHTcreateVertexTable(mris, CURRENT_VERTICES);
 
   for (n = 0; n < area->n_points; n++) {
     vno = area->lv[n].vno;
@@ -511,14 +509,6 @@ int LabelToFlat(LABEL *area, MRI_SURFACE *mris)
     }
     else /* in canonical coordinate system - find closest vertex */
     {
-#if 0
-      vno =
-        MRISfindClosestVertex(mris,
-                              area->lv[n].x,
-                              area->lv[n].y,
-                              area->lv[n].z,
-                              &dmin);
-#endif
       v = MHTfindClosestVertexInTable(mht, mris, area->lv[n].x, area->lv[n].y, area->lv[n].z, 0);
       if (v == NULL) {
         continue;
@@ -1797,8 +1787,6 @@ int LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
   int n, i, vno, min_vno, nfilled = 0, max_vno;
   LV *lv;
   MHT *mht;
-  MHBT *bucket;
-  MHB *bin;
   VERTEX *v;
   float dx, dy, dz, x, y, z, dist, min_dist;
   int num_not_found;
@@ -1822,7 +1810,7 @@ int LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
   fprintf(stderr, "%d unassigned vertices in label - building spatial LUT...\n", i);
 
   /* if we can't find a vertex within 10 mm of the point, something is wrong */
-  mht = MHTfillVertexTableRes(mris, NULL, coords, 2 * max_spacing);
+  mht = MHTcreateVertexTable_Resolution(mris, coords, 2 * max_spacing);
   fprintf(stderr, "assigning vertex numbers to label...\n");
   num_not_found = 0;
   for (n = 0; n < area->n_points; n++) {
@@ -1832,31 +1820,37 @@ int LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
     }
     nfilled++;
     labelGetSurfaceRasCoords(area, lv, &x, &y, &z);
-    bucket = MHTgetBucket(mht, x, y, z);
 
-    min_dist = 10000.0;
-    min_vno = -1;
-    if (bucket) {
-      for (bin = bucket->bins, i = 0; i < bucket->nused; i++, bin++) {
-        vno = bin->fno;
-        v = &mris->vertices[vno];
-        if (vno == Gdiag_no) {
-          DiagBreak();
-        }
+    {
+      min_dist = 10000.0;
+      min_vno = -1;
 
-        MRISgetCoords(v, coords, &vx, &vy, &vz);
+      MHBT *bucket = MHTacqBucket(mht, x, y, z);
+      if (bucket) {
+        MHB *bin;
+        for (bin = bucket->bins, i = 0; i < bucket->nused; i++, bin++) {
+          vno = bin->fno;
+          v = &mris->vertices[vno];
+          if (vno == Gdiag_no) {
+            DiagBreak();
+          }
 
-        dx = vx - x;
-        dy = vy - y;
-        dz = vz - z;
+          MRISgetCoords(v, coords, &vx, &vy, &vz);
 
-        dist = sqrt(dx * dx + dy * dy + dz * dz);
-        if (dist < min_dist) {
-          min_dist = dist;
-          min_vno = vno;
+          dx = vx - x;
+          dy = vy - y;
+          dz = vz - z;
+
+          dist = sqrt(dx * dx + dy * dy + dz * dz);
+          if (dist < min_dist) {
+            min_dist = dist;
+            min_vno = vno;
+          }
         }
       }
+      MHTrelBucket(&bucket);
     }
+        
     if (min_vno == -1) {
       switch (coords) {
         case ORIG_VERTICES:
@@ -1959,7 +1953,7 @@ LABEL *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mh
   }
 
   MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_len, NULL, NULL, CURRENT_VERTICES);
-  mht_src = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 2 * max_len);
+  mht_src = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, 2 * max_len);
 
   MRISclearMarks(mris);
   LabelMarkStats(asrc, mris);
@@ -3297,8 +3291,6 @@ LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, i
   LV *lv;
   static MHT *mht = NULL;
   static MRI_SURFACE *mris_cached = NULL;
-  MHBT *bucket;
-  MHB *bin;
   VERTEX *v;
   float dx, dy, dz, x, y, z, dist, min_dist;
   int num_not_found, nchanged, num_brute_force;
@@ -3334,7 +3326,7 @@ LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, i
     MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing, NULL, &max_vno, coords);
     if (mht) MHTfree(&mht);
     mris_cached = mris;
-    mht = MHTfillVertexTableRes(mris, NULL, coords, 2 * max_spacing);
+    mht = MHTcreateVertexTable_Resolution(mris, coords, 2 * max_spacing);
   }
   fprintf(stderr, "assigning vertex numbers to label...\n");
   num_not_found = num_brute_force = 0;
@@ -3345,30 +3337,36 @@ LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, i
 
     nfilled++;
     labelGetSurfaceRasCoords(area, lv, &x, &y, &z);
-    bucket = MHTgetBucket(mht, x, y, z);  // x,y,z now in surface ras
 
-    min_dist = 10000.0;
-    min_vno = -1;
-    if (bucket) {
-      for (bin = bucket->bins, i = 0; i < bucket->nused; i++, bin++)  // find min dist vertex
-      {
-        vno = bin->fno;
-        v = &mris->vertices[vno];
-        if (vno == Gdiag_no) DiagBreak();
+    {
+      min_dist = 10000.0;
+      min_vno  = -1;
 
-        MRISgetCoords(v, coords, &vx, &vy, &vz);
+      MHBT *bucket = MHTacqBucket(mht, x, y, z);  // x,y,z now in surface ras
+      if (bucket) {
+        MHB *bin;
+        for (bin = bucket->bins, i = 0; i < bucket->nused; i++, bin++)  // find min dist vertex
+        {
+          vno = bin->fno;
+          v = &mris->vertices[vno];
+          if (vno == Gdiag_no) DiagBreak();
 
-        dx = vx - x;
-        dy = vy - y;
-        dz = vz - z;
+          MRISgetCoords(v, coords, &vx, &vy, &vz);
 
-        dist = sqrt(dx * dx + dy * dy + dz * dz);
-        if (dist < min_dist) {
-          min_dist = dist;
-          min_vno = vno;
+          dx = vx - x;
+          dy = vy - y;
+          dz = vz - z;
+
+          dist = sqrt(dx * dx + dy * dy + dz * dz);
+          if (dist < min_dist) {
+            min_dist = dist;
+            min_vno  = vno;
+          }
         }
+        MHTrelBucket(&bucket);
       }
     }
+        
     if (min_vno == 0) DiagBreak();
     if (min_vno == -1) {
       num_brute_force++;
@@ -3468,8 +3466,6 @@ int LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
 {
   double xv, yv, zv, max_spacing, x, y, z, min_dist, dx, dy, dz, vx, vy, vz, dist;
   int n, max_vno, min_vno, i, vno;
-  MHBT *bucket;
-  MHB *bin;
   LV *lv;
   VERTEX *v;
 
@@ -3520,7 +3516,7 @@ int LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
   for (n = 0; n < mris->nvertices; n++) area->vertex_label_ind[n] = -1;  // means that this vertex is not in th elabel
 
   MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing, NULL, &max_vno, coords);
-  area->mht = (void *)MHTfillVertexTableRes(mris, NULL, coords, max_spacing);
+  area->mht = (void *)MHTcreateVertexTable_Resolution(mris, coords, max_spacing);
 
   // map unassigned vertices to surface locations
   for (n = 0; n < area->n_points; n++) {
@@ -3539,7 +3535,7 @@ int LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
     vx = lv->x;
     vy = lv->y;
     vz = lv->z;
-    bucket = MHTgetBucket(area->mht, vx, vy, vz);
+
     switch (area->coords) {
       case LABEL_COORDS_SCANNER_RAS:
         MRIworldToVoxel(mri_template, vx, vy, vz, &xv, &yv, &zv);
@@ -3560,10 +3556,12 @@ int LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
     lv->yv = nint(yv);
     lv->zv = nint(zv);
 
+    MHBT *bucket = MHTacqBucket(area->mht, vx, vy, vz);
     if (bucket)  // some vertices map to this voxel
     {
       min_dist = 10000.0;
       min_vno = -1;
+  MHB *bin;
       for (bin = bucket->bins, i = 0; i < bucket->nused; i++, bin++)  // find min dist vertex
       {
         vno = bin->fno;
@@ -3601,14 +3599,13 @@ int LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
         if (nint(xv) == lv->xv && nint(yv) == lv->yv && nint(zv) == lv->zv) LabelAddVertex(area, vno, coords);
       }
     }
+    MHTrelBucket(&bucket);
   }
   return (NO_ERROR);
 }
 
 int LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices, int *pnvertices)
 {
-  MHBT *bucket;
-  MHB *bin;
   int n, min_vno, i, vno;
   LV *lv;
   double min_dist, dist, x, y, z, vx, vy, vz, dx, dy, dz;
@@ -3653,8 +3650,9 @@ int LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices
   else
     MRIvoxelToSurfaceRAS(area->mri_template, xv, yv, zv, &vx, &vy, &vz);
   x = y = z = -1;
-  bucket = MHTgetBucket(area->mht, vx, vy, vz);
 
+  MHBT *bucket = MHTacqBucket(area->mht, vx, vy, vz);
+  
   //  printf("LabelAddVoxel(%d, %d, %d): coords = %2.1f, %2.1f, %2.1f, bucket = %lx\n", xv, yv, zv, vx, vy, vz,
   //  (long)bucket) ;
   if (bucket == NULL) return (-1);
@@ -3663,6 +3661,7 @@ int LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices
   min_vno = -1;
 
   // find surface vertex that is min dist from this voxel
+  MHB *bin;
   for (bin = bucket->bins, i = 0; i < bucket->nused; i++, bin++)  // find min dist vertex
   {
     vno = bin->fno;
@@ -3713,6 +3712,8 @@ int LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices
       LabelAddVertex(area, vno, coords);
     }
   }
+
+  MHTrelBucket(&bucket);
 
   return (min_vno);
 }

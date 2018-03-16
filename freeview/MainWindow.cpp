@@ -382,7 +382,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
     if (keys[i] != "Supplement")
       connect(m_layerCollections[keys[i]], SIGNAL(ActiveLayerChanged(Layer*)),
-        this, SLOT(OnActiveLayerChanged(Layer*)), Qt::QueuedConnection);
+          this, SLOT(OnActiveLayerChanged(Layer*)), Qt::QueuedConnection);
   }
   for ( int i = 0; i < 4; i++ )
   {
@@ -585,6 +585,9 @@ void MainWindow::LoadSettings()
   {
     m_settings["AutoReorientView"] = false;
   }
+
+  OnPreferences();
+  m_dlgPreferences->hide();
 
   for (int i = 0; i < 4; i++)
   {
@@ -1175,6 +1178,11 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   if (parser->Found("hide-3d-slices", &sa) )
   {
     ((RenderView3D*)m_views[3])->HideSlices();
+  }
+
+  if (parser->Found("hide-3d-frames"), &sa)
+  {
+    ((RenderView3D*)m_views[3])->SetShowSliceFrames(false);
   }
 
   if ( parser->Found("quit"))
@@ -1829,6 +1837,10 @@ void MainWindow::RunScript()
   {
     CommandReorderLayers(sa);
   }
+  else if (cmd == "setactiveframe")
+  {
+    CommandSetActiveFrame(sa);
+  }
   else
   {
     cerr << "Command '" << qPrintable(cmd) << "' is not recognized." << endl;
@@ -1957,7 +1969,8 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       vector_inversion = "none",
       vector_render = "line",
       tensor_display = "no",
-      tensor_render = "boxoid";
+      tensor_render = "boxoid",
+      vector_width = "1";
   int nSampleMethod = m_nDefaultSampleMethod;
   bool bConform = m_bDefaultConform;
   QString gotoLabelName;
@@ -2002,6 +2015,14 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
         if ( vector_display.isEmpty() )
         {
           cerr << "Missing vector display argument.\n";
+        }
+      }
+      else if ( subOption == "vector_width")
+      {
+        vector_width = subArgu;
+        if ( vector_width.isEmpty() )
+        {
+          cerr << "Missing vector width argument.\n";
         }
       }
       else if ( subOption == "tensor" )
@@ -2123,6 +2144,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       {
         sup_data["ID"] = subArgu.toInt();
       }
+      else if ( subOption == "frame")
+      {
+        m_scripts.insert( 0, QStringList() << "setactiveframe" << subArgu );
+      }
       else if (!subOption.isEmpty())
       {
         cerr << "Unrecognized sub-option flag '" << strg.toLatin1().constData() << "'.\n";
@@ -2159,7 +2184,8 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
     QStringList script = QStringList("setdisplaytensor") <<
                                                             tensor_display <<
                                                             tensor_render <<
-                                                            vector_inversion;
+                                                            vector_inversion <<
+                                                            vector_width;
     m_scripts.insert( 0, script );
   }
   else if ( !vector_display.isEmpty() && vector_display != "no" )
@@ -2167,7 +2193,8 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
     QStringList script = QStringList("setdisplayvector") <<
                                                             vector_display <<
                                                             vector_render <<
-                                                            vector_inversion;
+                                                            vector_inversion <<
+                                                            vector_width << "new";
     m_scripts.insert( 0, script );
   }
 
@@ -2383,6 +2410,34 @@ void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
             cerr << "Unknown inversion flag '" << cmd[2].toLatin1().constData() << "'.\n";
           }
         }
+
+        bool ok;
+        double val = cmd[4].toDouble(&ok);
+        if (ok)
+        {
+          mri->GetProperty()->SetVectorLineWidth(val);
+        }
+        else
+        {
+          cerr << "Unknown vector width value '" << cmd[4].toLatin1().constData() << "'.\n";
+        }
+
+        if (val == 1 && cmd.size() > 5)
+        {
+          QList<Layer*> list = GetLayers("MRI");
+          foreach (Layer* layer, list)
+          {
+            LayerMRI* mlayer = qobject_cast<LayerMRI*>(layer);
+            if (mlayer != mri && mlayer->GetProperty()->GetDisplayVector())
+            {
+              mri->GetProperty()->SetVectorDisplayScale(mlayer->GetProperty()->GetVectorDisplayScale());
+              mri->GetProperty()->SetVectorLineWidth(mlayer->GetProperty()->GetVectorLineWidth());
+              mri->GetProperty()->SetNormalizeVector(mlayer->GetProperty()->GetNormalizeVector());
+              mri->GetProperty()->SetVectorRepresentation(mlayer->GetProperty()->GetVectorRepresentation());
+              break;
+            }
+          }
+        }
       }
     }
   }
@@ -2433,8 +2488,19 @@ void MainWindow::CommandSetDisplayTensor( const QStringList& cmd )
           }
           else
           {
-            cerr << "Unknown inversion flag '" << cmd[2].toLatin1().constData() << "'.\n";
+            cerr << "Unknown inversion flag '" << cmd[3].toLatin1().constData() << "'.\n";
           }
+        }
+
+        bool ok;
+        double val = cmd[4].toDouble(&ok);
+        if (ok)
+        {
+          mri->GetProperty()->SetVectorLineWidth(val);
+        }
+        else
+        {
+          cerr << "Unknown vector width value '" << cmd[4].toLatin1().constData() << "'.\n";
         }
       }
     }
@@ -2469,6 +2535,24 @@ void MainWindow::CommandSetOpacity( const QStringList& sa )
     else
     {
       cerr << "Opacity value is not valid.\n";
+    }
+  }
+}
+
+void MainWindow::CommandSetActiveFrame( const QStringList& sa )
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {
+    bool bOK;
+    int val = sa[1].toInt(&bOK);
+    if ( bOK && val >= 0 && val < mri->GetNumberOfFrames())
+    {
+      mri->SetActiveFrame(val);
+    }
+    else
+    {
+      cerr << "Frame value is not valid.\n";
     }
   }
 }
@@ -4574,6 +4658,9 @@ void MainWindow::OnLoadVolume()
       else if (dlg.GetSampleMethod() == SAMPLE_CUBIC_BSPLINE)
         fn += ":sample=cubic";
 
+      if (dlg.GetLoadAsVector())
+        fn += ":vector=1";
+
       fn += ":colormap=" + dlg.GetColorMap();
       if ( dlg.GetColorMap() == "lut" )
       {
@@ -5457,6 +5544,16 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
         this->OnTransformVolume();
         m_bShowTransformWindow = false;
       }
+
+      int dim[3];
+      double vs[3];
+      mri->GetVolumeInfo(dim, vs);
+      if (dim[0] == 1)
+        SetMainView(0);
+      else if (dim[1] == 1)
+        SetMainView(1);
+      else if (dim[2] == 1)
+        SetMainView(2);
     }
     else
     {
@@ -6343,7 +6440,6 @@ void MainWindow::OnVolumeFilterErode()
   }
 }
 
-
 void MainWindow::OnVolumeFilterDilate()
 {
   LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
@@ -6354,7 +6450,6 @@ void MainWindow::OnVolumeFilterDilate()
     mri->ResetWindowLevel();
   }
 }
-
 
 void MainWindow::OnVolumeFilterOpen()
 {

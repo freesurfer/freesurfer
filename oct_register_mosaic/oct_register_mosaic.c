@@ -29,9 +29,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
-#ifdef HAVE_OPENMP
-#include <omp.h>
-#endif
+
+#include "romp_support.h"
+
 
 #include "mri.h"
 #include "macros.h"
@@ -169,11 +169,14 @@ main(int argc, char *argv[]) {
   }
   printf("mosaicing %d images...\n", nimages) ;
 
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(downsample, blur_sigma)  shared(x0, y0, xbest, ybest, mri, mri_orig, ax, ay, mri_smooth)
+  #pragma omp parallel for if_ROMP(experimental) firstprivate(downsample, blur_sigma)  shared(x0, y0, xbest, ybest, mri, mri_orig, ax, ay, mri_smooth)
 #endif
   for (i = 0 ; i < nimages ; i++)
   {
+    ROMP_PFLB_begin
+    
     VOL_GEOM   vg;
     char      *cp, fname[STRLEN], line[STRLEN] ;
     if (fp)
@@ -250,7 +253,10 @@ main(int argc, char *argv[]) {
       mri_smooth[i] = MRIcopy(mri[i], NULL) ;
 
 //    MRIwrite(mri[i], fname) ;
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   if (fp)
     fclose(fp) ;
 
@@ -563,11 +569,13 @@ mosaic_images(MRI **mri, int *x0, int *y0, int nimages, int pad)
   MRIcopyHeader(mri[0], mri_mosaic) ;
 
   mri_counts = MRIclone(mri_mosaic, NULL) ;
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for 
+  #pragma omp parallel for if_ROMP(experimental) 
 #endif
   for (i =  0 ; i < nimages ; i++)
   {
+    ROMP_PFLB_begin
     int x, y, count, xm, ym ;
     float  val, sum ;
     for (x = 0 ; x < mri[i]->width ; x++)
@@ -587,13 +595,18 @@ mosaic_images(MRI **mri, int *x0, int *y0, int nimages, int pad)
 	MRIsetVoxVal(mri_mosaic, xm, ym, 0, i+1, val) ;
       }
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for 
+  #pragma omp parallel for if_ROMP(experimental) 
 #endif
   for (x = 0 ; x < mri_mosaic->width ; x++)
   {
+    ROMP_PFLB_begin
+    
     float sum, count ;
     int   y ;
     for (y = 0 ; y < mri_mosaic->height ; y++)
@@ -604,7 +617,10 @@ mosaic_images(MRI **mri, int *x0, int *y0, int nimages, int pad)
       sum = MRIgetVoxVal(mri_mosaic, x, y, 0, 0) ;
       MRIsetVoxVal(mri_mosaic, x, y, 0, 0, sum/count) ;
     }
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   MRIfree(&mri_counts) ;
   return(mri_mosaic) ;
@@ -620,11 +636,14 @@ compute_mosaic_energy(MRI *mri_mosaic, int nimages)
 
   energy =  0.0 ;
   nonzero = overlap_voxels = 0 ;
+
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction (+:overlap_voxels,nonzero,energy)  
+  #pragma omp parallel for if_ROMP(experimental) reduction (+:overlap_voxels,nonzero,energy)  
 #endif
   for (x = 0 ; x < mri_mosaic->width ; x++)
   {
+    ROMP_PFLB_begin
     int    y, count, frame ;
     double var, dif, val, mean, vals[MAX_IMAGES] ; ;
     for (y = 0 ; y < mri_mosaic->height ; y++)
@@ -661,7 +680,9 @@ compute_mosaic_energy(MRI *mri_mosaic, int nimages)
 	energy += ((var/(double)count)) ;
       }
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
   min_overlap_voxels = nint(nonzero*.1) ;
   energy = (sqrt(energy/(double)overlap_voxels)) ;
 //  printf("%d overlapping voxels (%2.3f%%) - energy = %2.4f\n", overlap_voxels, 100.0f*overlap_voxels/(nonzero), energy) ;
@@ -700,11 +721,14 @@ compute_pairwise_deformation_energy(MRI *mri1, MRI *mri2, double dx, double dy, 
     return(1e10) ;
 
   nvox = 0 ; energy = 0.0 ;
+
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+:energy,nvox)
+  #pragma omp parallel for if_ROMP(experimental) reduction(+:energy,nvox)
 #endif
   for (x1 = xmin ; x1 <= xmax ; x1++)
   {
+    ROMP_PFLB_begin
     double  val1, val2, x1u, y1u, x2u, y2u ;
     int x2, y1, y2 ;
 
@@ -726,7 +750,9 @@ compute_pairwise_deformation_energy(MRI *mri1, MRI *mri2, double dx, double dy, 
 	energy += SQR(val1-val2) ;
       }
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
   if (nvox == 0 || (xmax-xmin ) < 100 || (ymax - ymin) < 100)
     return(1e10) ;
   energy = sqrt(energy/(double)nvox) ;
@@ -874,7 +900,7 @@ add_image_to_mosaic(MRI *mri_orig_mosaic, MRI *mri, double x0, double y0, double
 		 mri_orig_mosaic->width,mri_orig_mosaic->height,mri_orig_mosaic->depth,0,0,0) ;
 
 //#ifdef HAVE_OPENMP
-//#pragma omp parallel for 
+//#pragma omp parallel for if_ROMP(experimental) 
 //#endif
   {
     int x, y, count, xstart, xend, ystart, yend ;
@@ -911,7 +937,7 @@ add_image_to_mosaic(MRI *mri_orig_mosaic, MRI *mri, double x0, double y0, double
   MRIwrite(mri_mosaic, "m.mgz");
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for 
+#pragma omp parallel for if_ROMP(experimental) 
 #endif
   for (x = 0 ; x < mri_mosaic->width ; x++)
   {
@@ -968,11 +994,14 @@ undistort_and_mosaic_images(MRI **mri, double *x0, double *y0, int nimages, doub
   MRIcopyHeader(mri_mosaic, mri_vars) ;
 
   mri_counts = MRIclone(mri_mosaic, NULL) ;
+
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (i =  0 ; i < nimages ; i++)
   {
+    ROMP_PFLB_begin
     int x, y, count, xstart, xend, ystart, yend ;
     double   xu, yu, xf, yf ;
     double  val, sum ;
@@ -1018,16 +1047,22 @@ undistort_and_mosaic_images(MRI **mri, double *x0, double *y0, int nimages, doub
 	MRIsetVoxVal(mri_vars, x, y, 0, 0, sum+val*val) ;
       }
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
 //  MRIwrite(mri_jac, "jac.mgz") ;
   MRIfree(&mri_jac) ;
   energy = 0.0 ; nvoxels = 0 ;
+
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction (+:energy,nvoxels)
+  #pragma omp parallel for if_ROMP(experimental) reduction (+:energy,nvoxels)
 #endif
   for (x = 0 ; x < mri_mosaic->width ; x++)
   {
+    ROMP_PFLB_begin
+    
     float sum, count, var ;
     int   y ;
     for (y = 0 ; y < mri_mosaic->height ; y++)
@@ -1043,7 +1078,9 @@ undistort_and_mosaic_images(MRI **mri, double *x0, double *y0, int nimages, doub
       energy += var ;
       nvoxels++ ;
     }
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   energy = sqrt(energy / nvoxels) ;
   if (penergy)
@@ -1417,7 +1454,7 @@ mosaic_images_with_xforms(MRI **mri, int nimages, MRI *mri_weights, int pad)
   m_ras2vox = MRIgetRasToVoxelXform(mri_mosaic) ;
   mri_counts = MRIclone(mri_mosaic, NULL) ;
 //#ifdef HAVE_OPENMP
-//#pragma omp parallel for 
+//#pragma omp parallel for if_ROMP(experimental) 
 //#endif
   for (i =  0 ; i < nimages ; i++)
   {
@@ -1479,7 +1516,7 @@ mosaic_images_with_xforms(MRI **mri, int nimages, MRI *mri_weights, int pad)
   {  MRIwrite(mri_mosaic, "m.mgz") ; MRIwrite(mri_counts, "c.mgz") ;}
 
 //#ifdef HAVE_OPENMP
-//#pragma omp parallel for 
+//#pragma omp parallel for if_ROMP(experimental) 
 //#endif
   for (x = 0 ; x < mri_mosaic->width ; x++)
   {

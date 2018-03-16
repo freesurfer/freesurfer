@@ -35,7 +35,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #ifdef HAVE_OPENMP // mrisurf.c has numerous parallelized functions
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 #include "mri.h"
@@ -286,13 +286,11 @@ int main(int argc, char *argv[])
   Progname = argv[0];
 
 #ifdef HAVE_OPENMP
-  int n_omp_threads = 1;
-  #pragma omp parallel
   {
-    n_omp_threads = omp_get_num_threads();
+    int n_omp_threads = omp_get_max_threads();
+    printf("\n== Number of threads available to %s for OpenMP = %d == \n",
+      Progname, n_omp_threads);
   }
-  printf("\n== Number of threads available to %s for OpenMP = %d == \n",
-         Progname, n_omp_threads);
 #endif
 
   setRandomSeed(-1L) ;
@@ -538,45 +536,6 @@ int main(int argc, char *argv[])
   {
     GCAapplyRenormalization(gca, Glabel_scales, Glabel_offsets, 0) ;
   }
-  if (renormalization_fname)
-  {
-    FILE   *fp ;
-    int    *labels, nlines, i ;
-    float  *intensities, f1, f2 ;
-    char   *cp, line[STRLEN] ;
-
-    fp = fopen(renormalization_fname, "r") ;
-    if (!fp)
-      ErrorExit(ERROR_NOFILE, "%s: could not read %s",
-                Progname, renormalization_fname) ;
-
-    cp = fgetl(line, 199, fp) ;
-    nlines = 0 ;
-    while (cp)
-    {
-      nlines++ ;
-      cp = fgetl(line, 199, fp) ;
-    }
-    rewind(fp) ;
-    printf("reading %d labels from %s\n", nlines,renormalization_fname) ;
-    labels = (int *)calloc(nlines, sizeof(int)) ;
-    intensities = (float *)calloc(nlines, sizeof(float)) ;
-    cp = fgetl(line, 199, fp) ;
-    for (i = 0 ; i < nlines ; i++)
-    {
-      sscanf(cp, "%e  %e", &f1, &f2) ;
-      labels[i] = (int)f1 ;
-      intensities[i] = f2 ;
-      if (labels[i] == Left_Cerebral_White_Matter)
-      {
-        DiagBreak() ;
-      }
-      cp = fgetl(line, 199, fp) ;
-    }
-    GCArenormalizeIntensities(gca, labels, intensities, nlines) ;
-    free(labels) ;
-    free(intensities) ;
-  }
   fflush(stdout);
   fflush(stderr);
   //
@@ -735,11 +694,6 @@ int main(int argc, char *argv[])
     transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
   }
 
-  if (norm_PD)
-  {
-    GCAnormalizePD(gca, mri_inputs, transform) ;
-  }
-
   if (Ggca_x >= 0 && Gx < 0)
   {
     GCAsourceVoxelToNode(gca, mri_inputs, transform, 
@@ -749,6 +703,50 @@ int main(int argc, char *argv[])
            Ggca_x, Ggca_y, Ggca_z, Gx, Gy, Gz) ;
     GCAdump(gca, mri_inputs, Ggca_x, Ggca_y, Ggca_z, transform, stdout, 0) ;
   }
+  if (renormalization_fname)
+  {
+    FILE   *fp ;
+    int    *labels, nlines, i ;
+    float  *intensities, f1, f2 ;
+    char   *cp, line[STRLEN] ;
+
+    fp = fopen(renormalization_fname, "r") ;
+    if (!fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not read %s",
+                Progname, renormalization_fname) ;
+
+    cp = fgetl(line, 199, fp) ;
+    nlines = 0 ;
+    while (cp)
+    {
+      nlines++ ;
+      cp = fgetl(line, 199, fp) ;
+    }
+    rewind(fp) ;
+    printf("reading %d labels from %s\n", nlines,renormalization_fname) ;
+    labels = (int *)calloc(nlines, sizeof(int)) ;
+    intensities = (float *)calloc(nlines, sizeof(float)) ;
+    cp = fgetl(line, 199, fp) ;
+    for (i = 0 ; i < nlines ; i++)
+    {
+      sscanf(cp, "%e  %e", &f1, &f2) ;
+      labels[i] = (int)f1 ;
+      intensities[i] = f2 ;
+      if (labels[i] == Left_Cerebral_White_Matter)
+      {
+        DiagBreak() ;
+      }
+      cp = fgetl(line, 199, fp) ;
+    }
+    GCArenormalizeIntensities(gca, labels, intensities, nlines) ;
+    free(labels) ;
+    free(intensities) ;
+  }
+  if (norm_PD)
+  {
+    GCAnormalizePD(gca, mri_inputs, transform) ;
+  }
+
   if (nreads > 0)
   {
     float label_scales[MAX_CMA_LABELS], label_offsets[MAX_CMA_LABELS] ;
@@ -4989,7 +4987,7 @@ GCArelabelUnlikely(GCA *gca,
     nchanged = 0 ;
     MRIcomputeVoxelPermutation(mri_inputs, x_indices, y_indices, z_indices) ;
 #if 0 //def HAVE_OPENMP   doesn't work
-#pragma omp parallel for firstprivate(mri_independent_posterior, mri_inputs, gca, mri_prior_labels, whalf, prior_thresh, Ggca_x, Ggca_y, Ggca_z) shared(mri_unchanged, mri_priors,transform, x_indices,y_indices,z_indices, mri_dst_labeled) reduction(+:nchanged)
+#pragma omp parallel for if_ROMP(experimental) firstprivate(mri_independent_posterior, mri_inputs, gca, mri_prior_labels, whalf, prior_thresh, Ggca_x, Ggca_y, Ggca_z) shared(mri_unchanged, mri_priors,transform, x_indices,y_indices,z_indices, mri_dst_labeled) reduction(+:nchanged)
 #endif
     for (index = 0 ; index < nindices ; index++)
     {

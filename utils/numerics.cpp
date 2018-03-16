@@ -25,6 +25,10 @@
 #include <stdlib.h>
 #include <iostream>
 
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
+
 #define export // obsolete feature "export template" used in these header files
 
 #include <vnl/vnl_det.h>
@@ -1213,6 +1217,14 @@ extern "C" int OpenSvdcmp(MATRIX *ioA, VECTOR *oW, MATRIX *oV)
  */
 extern "C" float OpenRan1(long *iSeed)
 {
+
+#ifdef HAVE_OPENMP
+  if (omp_get_thread_num() != 0) {
+    fprintf(stderr, "%s:%d OpenRan1 called from non-0 thread but this is not conducive to reproducible behavior, nor is this code thread-safe\n", __FILE__, __LINE__);
+    exit(1);
+  }
+#endif
+  
   static const double MIN = 0.0;
   static const double MAX = 1.0;
 

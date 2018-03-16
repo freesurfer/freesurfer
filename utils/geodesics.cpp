@@ -3,7 +3,7 @@
 //
 
 #include <stdlib.h>
-#include <algorithm>
+#include <algorithm>  
 #include <iomanip>
 #include <iostream>
 #include <map>
@@ -404,9 +404,15 @@ extern "C" Geodesics *geodesicsRead(char *fname, int *pnvertices)
       printf("%2d%% ", (int)round(100 * (float)nthvtx / (*pnvertices)));
       fflush(stdout);
     }
-    fread(&geo[nthvtx].vnum, sizeof(int), 1, fp);
-    fread(geo[nthvtx].v, sizeof(int), geo[nthvtx].vnum, fp);
-    fread(geo[nthvtx].dist, sizeof(float), geo[nthvtx].vnum, fp);
+    if(!fread(&geo[nthvtx].vnum, sizeof(int), 1, fp)){
+      printf("ERROR: %s failed fread\n", fname);
+    }
+    if(!fread(geo[nthvtx].v, sizeof(int), geo[nthvtx].vnum, fp)){
+      printf("ERROR: %s failed fread\n", fname);
+    }
+    if(!fread(geo[nthvtx].dist, sizeof(float), geo[nthvtx].vnum, fp)){
+      printf("Error: %s failed fread\n", fname);
+    }
   }
   printf("\n");
   fclose(fp);

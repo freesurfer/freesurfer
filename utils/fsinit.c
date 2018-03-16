@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "error.h"
 #ifdef HAVE_OPENMP
-#include <omp.h>
+#include "romp_support.h"
 #endif
 
 int FSinit(void)

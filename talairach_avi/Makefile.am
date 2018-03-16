@@ -19,6 +19,25 @@ AM_LDFLAGS=$(LIB_G2C_A)
 LIBS=
 
 foodir=$(prefix)/average
+
+if SMALL_DIST_INSTALL
+foo_datafiles= \
+	711-2B_as_mni_average_305_mask.4dfp.ifh \
+	711-2B_as_mni_average_305_mask.4dfp.img \
+	711-2B_as_mni_average_305_mask.4dfp.img.rec \
+	711-2B_as_mni_average_305_mask.4dfp.hdr \
+	711-2C_as_mni_average_305.4dfp.img \
+	711-2C_as_mni_average_305.4dfp.img.rec \
+	711-2C_as_mni_average_305.4dfp.hdr \
+	711-2C_as_mni_average_305.4dfp.ifh \
+	711-2C_as_mni_average_305.4dfp.mat \
+	3T18yoSchwartzReactN32_as_orig.4dfp.hdr \
+	3T18yoSchwartzReactN32_as_orig.4dfp.img \
+	3T18yoSchwartzReactN32_as_orig.4dfp.ifh \
+	3T18yoSchwartzReactN32_as_orig.4dfp.img.rec \
+	3T18yoSchwartzReactN32_as_orig.4dfp.mat \
+	3T18yoSchwartzReactN32_as_orig.lst
+else
 foo_datafiles= \
 	711-2B_as_mni_average_305.4dfp.hdr \
 	711-2B_as_mni_average_305_mask.4dfp.ifh \
@@ -75,6 +94,7 @@ foo_datafiles= \
 	SVIP_Young_Patient_N12_as_orig.4dfp.ifh \
 	SVIP_Young_Patient_N12_as_orig.4dfp.img \
 	SVIP_Young_Patient_N12_as_orig.4dfp.img.rec
+endif
 
 xmldir=$(prefix)/docs/xml
 xml_DATA=talairach_avi.help.xml

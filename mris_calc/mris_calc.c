@@ -54,9 +54,9 @@
 #include "fio.h"
 #include "mri_identify.h"
 #include "label.h"
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+
+#include "romp_support.h"
+
 
 #define  STRBUF         65536
 #define  MAX_FILES      1000
@@ -2561,11 +2561,13 @@ CURV_functionRunABC( double (*F)(float f_A, float f_B) )
   //
   int   i;
 
-  #ifdef _OPENMP
-  #pragma omp parallel for 
+  ROMP_PF_begin
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(experimental) 
   #endif
   for(i=0; i<G_sizeCurv1; i++)
   {
+    ROMP_PFLB_begin
     double f_a = 0.;
     double f_b = 0.;
     double f_c = 0.;
@@ -2573,7 +2575,9 @@ CURV_functionRunABC( double (*F)(float f_A, float f_B) )
     f_b                 = G_pf_arrayCurv2[i];
     f_c                 = (F)(f_a, f_b);
     G_pf_arrayCurv3[i]  = f_c;
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
   return 1;
 }
 

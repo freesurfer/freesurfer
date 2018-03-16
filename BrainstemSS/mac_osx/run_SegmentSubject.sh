@@ -15,12 +15,10 @@ else
   MCRROOT="$1"
   echo ---
 
-  DYLD_LIBRARY_PATH=.:${MCRROOT}/runtime/maci64:${MCRROOT}/bin/maci64:${MCRROOT}/sys/os/maci64:${DYLD_LIBRARY_PATH} ;
-  XAPPLRESDIR=${MCRROOT}/X11/app-defaults ;
-
+  DYLD_LIBRARY_PATH=".:${MCRROOT}/runtime/maci64:${MCRROOT}/bin/maci64:${MCRROOT}/sys/os/maci64:${FREESURFER_HOME}/lib/gcc/lib:${DYLD_LIBRARY_PATH}" ;
   export DYLD_LIBRARY_PATH;
-  export XAPPLRESDIR;
   echo DYLD_LIBRARY_PATH is ${DYLD_LIBRARY_PATH};
+
   shift 1
   args=
   while [ $# -gt 0 ]; do
@@ -35,7 +33,8 @@ else
   "${exe_dir}"/segmentSubject.app/Contents/MacOS/segmentSubject $args
   returnVal=$?
   rm -rf $MCR_CACHE_ROOT
-
+  
 fi
 
 exit $returnVal
+

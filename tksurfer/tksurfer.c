@@ -57,6 +57,7 @@
 #include "mri2.h"
 #include "path.h"
 #include "fsenv.h"
+#include "mrishash_internals.h"
 
 #define bzero(b,len) (memset((b), '\0', (len)), (void) 0)
 
@@ -6269,7 +6270,6 @@ invert_vertex(int vno)
 {
   VERTEX *v ;
   int    n ;
-  FACE   *f ;
 
   v = &mris->vertices[vno] ;
   v->nx *= -1.0f ;
@@ -6277,24 +6277,19 @@ invert_vertex(int vno)
   v->nz *= -1.0f ;
   for (n = 0 ; n < v->num ; n++)
   {
-    f = &mris->faces[v->f[n]] ;
-    f->nx *= -1.0f ;
-    f->ny *= -1.0f ;
-    f->nz *= -1.0f ;
+    int fno = v->f[n];
+    FaceNormCacheEntry const * fNorm = getFaceNorm(mris, fno);
+    setFaceNorm(mris, fno, -fNorm->nx, -fNorm->ny, -fNorm->nz);
   }
 }
 
 void
 invert_face(int fno)
 {
-  FACE   *f ;
-
   if (fno < 0 || fno >= mris->nfaces)
     return ;
-  f = &mris->faces[fno] ;
-  f->nx *= -1.0f ;
-  f->ny *= -1.0f ;
-  f->nz *= -1.0f ;
+  FaceNormCacheEntry const * fNorm = getFaceNorm(mris, fno);
+  setFaceNorm(mris, fno, -fNorm->nx, -fNorm->ny, -fNorm->nz);
 }
 
 void
@@ -6331,17 +6326,16 @@ load_gcsa(char *fname)
 void
 dump_faces(int vno)
 {
-  VERTEX *v ;
-  int    n ;
-  FACE   *f ;
+  VERTEX const * const v = &mris->vertices[vno] ;
 
-  v = &mris->vertices[vno] ;
+  int n ;
   for (n = 0 ; n < v->num ; n++)
   {
-    f = &mris->faces[v->f[n]] ;
+    FACE               const * f     = &mris->faces[     v->f[n]];
+    FaceNormCacheEntry const * fNorm = getFaceNorm(mris, v->f[n]);
     fprintf(stderr,
             "face %6d [%d,%d,%d], n = (%2.1f,%2.1f,%2.1f), area = %2.1f\n",
-            v->f[n], f->v[0],f->v[1],f->v[2],f->nx, f->ny, f->nz, f->area) ;
+            v->f[n], f->v[0],f->v[1],f->v[2],fNorm->nx, fNorm->ny, fNorm->nz, f->area) ;
   }
 }
 
@@ -6551,6 +6545,8 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
   for (fno = 0; fno < mris->nfaces; fno++)
   {
     f = &mris->faces[fno];
+    FaceNormCacheEntry const * fNorm = getFaceNorm(mris, fno);
+    
     v0 = &mris->vertices[f->v[0]];
 
     /* We want to get a plane representing this face. Take the first
@@ -6561,9 +6557,9 @@ find_vertex_at_screen_point (short sx, short sy, int* ovno, float* od)
     plane[1] =   -m[0][1]*v0->x + m[1][1]*v0->z + m[2][1]*v0->y + m[3][1];
     plane[2] = -(-m[0][2]*v0->x + m[1][2]*v0->z + m[2][2]*v0->y + m[3][2]);
 
-    n[0] =   -m[0][0]*f->nx + m[1][0]*f->nz + m[2][0]*f->ny;
-    n[1] =   -m[0][1]*f->nx + m[1][1]*f->nz + m[2][1]*f->ny;
-    n[2] = -(-m[0][2]*f->nx + m[1][2]*f->nz + m[2][2]*f->ny);
+    n[0] =   -m[0][0]*fNorm->nx + m[1][0]*fNorm->nz + m[2][0]*fNorm->ny;
+    n[1] =   -m[0][1]*fNorm->nx + m[1][1]*fNorm->nz + m[2][1]*fNorm->ny;
+    n[2] = -(-m[0][2]*fNorm->nx + m[1][2]*fNorm->nz + m[2][2]*fNorm->ny);
 
     /* Make sure the normal's z < 0, so the face is facing us. */
     /* RKT: Removed this test as it caused vertices 'inside' folds
@@ -18677,6 +18673,7 @@ mark_face(int fno)
   }
 
   f = &mris->faces[fno] ;
+  FaceNormCacheEntry const * fNorm = getFaceNorm(mris, fno);
   RGBcolor(0,255,255);
   bgnpolygon();
   for (i = 0 ; i< VERTICES_PER_FACE ; i++)
@@ -18684,12 +18681,12 @@ mark_face(int fno)
     v = &mris->vertices[f->v[i]];
     load_brain_coords(v->nx,v->ny,v->nz,v1);
     n3f(v1);
-    load_brain_coords(v->x+mup*f->nx,v->y+mup*f->ny,v->z+mup*f->nz,v1);
+    load_brain_coords(v->x+mup*fNorm->nx,v->y+mup*fNorm->ny,v->z+mup*fNorm->nz,v1);
     v3f(v1);
   }
 #if 0
   linewidth(CURSOR_LINE_PIX_WIDTH);
-  load_brain_coords(f->nx,f->ny,f->nz,v1);
+  load_brain_coords(fNorm->nx,fNorm->ny,fNorm->nz,v1);
   n3f(v1);
 #endif
   endpolygon();
@@ -23542,7 +23539,7 @@ deconvolve_weights(char *weight_fname, char *scale_fname)
 #define MAX_DIST  (1.0*sqrt(500))
 
   fprintf(stderr, "building spatial LUT...\n") ;
-  mht = MHTfillVertexTableRes(mris, NULL, CANONICAL_VERTICES, MAX_DIST) ;
+  mht = MHTcreateVertexTable_Resolution(mris, CANONICAL_VERTICES, MAX_DIST) ;
 
   fprintf(stderr, "deconvolving weights...\n") ;
   MRISsetVals(mris, 0.0) ;  /* clear all values */
@@ -23583,7 +23580,7 @@ deconvolve_weights(char *weight_fname, char *scale_fname)
           y0 = v->cy + dy ;
           z0 = v->cz + dz ;
 
-          bucket = MHTgetBucket(mht, x0, y0, z0) ;
+          bucket = MHTacqBucket(mht, x0, y0, z0) ;
           if (!bucket)
             continue ;
           for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++)
@@ -23622,6 +23619,7 @@ deconvolve_weights(char *weight_fname, char *scale_fname)
             if (!finite(vn->val))
               DiagBreak() ;
           }
+          MHTrelBucket(&bucket);
         }
   }
   fprintf(stderr, "\n") ;

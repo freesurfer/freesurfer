@@ -1,4 +1,5 @@
 #define USE_ROUND 1
+#define BEVIN_GCACOMPUTELOGSAMPLEPROBABILITY_REPRODUCIBLE
 
 /**
  * @file  gca.c
@@ -32,9 +33,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef HAVE_OPENMP
-#include <omp.h>
-#endif
+#include "faster_variants.h"
+#include "romp_support.h"
 
 #include "cma.h"
 #include "diag.h"
@@ -237,7 +237,7 @@ static int boundsCheck(int *pix, int *piy, int *piz, MRI *mri);
 
 static void set_equilavent_classes(int *equivalent_classes);
 
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 static void load_vals_xyzInt(const MRI *mri_inputs, int x, int y, int z, float *vals, int ninputs);
 static double gcaComputeSampleLogDensity_1_input(GCA_SAMPLE *gcas, float val);
 static double gcaComputeSampleConditionalLogDensity_1_input(GCA_SAMPLE *gcas, float val, int label);
@@ -3556,7 +3556,7 @@ MRI *GCAlabel(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *transform)
   num_pv = 0;
   // if 0
   // ifdef HAVE_OPENMP
-  // pragma omp parallel for reduction(+: num_pv)
+  // pragma omp parallel for if_ROMP(experimental) reduction(+: num_pv)
   // endif
   for (x = 0; x < width; x++) {
     int y, z, n, label, xn, yn, zn;
@@ -3726,7 +3726,7 @@ MRI *GCAlabelProbabilities(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *t
      classifiers statistics based on this voxel's intensity and label.
   */
   //#ifdef HAVE_OPENMP
-  //#pragma omp parallel for
+  //#pragma omp parallel for if_ROMP(experimental)
   //#endif
   for (x = 0; x < width; x++) {
     int y, z, xn, yn, zn, n;
@@ -4449,10 +4449,7 @@ float GCAcomputeLabelIntensityVariance(GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inpu
  multimodal inputs. Removing did not seem to slow it down much.
 */
 #ifdef HAVE_OPENMP
-#pragma omp parallel
-  {
-    nthreads = omp_get_num_threads();
-  }
+  nthreads = omp_get_max_threads();
 #else
   nthreads = 1;
 #endif
@@ -4471,7 +4468,7 @@ float GCAcomputeLabelIntensityVariance(GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inpu
   max_label = 0;
   total_var = 0.0;
   // ifdef HAVE_OPENMP
-  // pragma omp parallel for firstprivate(gcas, tid, m_prior2source_voxel) reduction(max:max_label)
+  // pragma omp parallel for if_ROMP(experimental) firstprivate(gcas, tid, m_prior2source_voxel) reduction(max:max_label)
   // endif
   for (i = 0; i < nsamples; i++) {
     int x, y, z, xp, yp, zp;
@@ -4554,12 +4551,8 @@ float GCAcomputeLabelIntensityVariance(GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inpu
 }
 
 float GCAcomputeLogSampleProbability(
-    GCA *gca, GCA_SAMPLE *gcas, MRI *mri_inputs, TRANSFORM *transform, int nsamples, double clamp)
+    GCA * const gca, GCA_SAMPLE * const gcas, MRI * const mri_inputs, TRANSFORM * const transform, int const nsamples, double const clamp)
 {
-  int i, tid, nthreads;
-  double total_log_p;
-  MATRIX *m_prior2source_voxel = NULL;
-  VECTOR *v_src[_MAX_FS_THREADS], *v_dst[_MAX_FS_THREADS];
 
   //  double     outside_log_p = 0.;
 
@@ -4571,42 +4564,77 @@ float GCAcomputeLogSampleProbability(
   TransformInvert(transform, mri_inputs);
 
   // go through all sample points
-  total_log_p = 0.0;
+  double total_log_p = 0.0;
 
 /* This loop used to be openmp'ed but there was something in it that
  was not thread-safe and caused unstable/nonrepeatable behavior with
  multimodal inputs. Removing did not seem to slow it down much.
 */
+  int const nthreads =
 #ifdef HAVE_OPENMP
-  nthreads = omp_get_max_threads();
+    omp_get_max_threads();
 #else
-  nthreads = 1;
+    1;
 #endif
-  for (tid = 0; tid < nthreads; tid++) {
-    v_src[tid] = VectorAlloc(4, MATRIX_REAL);
-    v_dst[tid] = VectorAlloc(4, MATRIX_REAL);
-    *MATRIX_RELT(v_src[tid], 4, 1) = 1.0;
-    *MATRIX_RELT(v_dst[tid], 4, 1) = 1.0;
+
+  MATRIX * m_prior2source_voxel_nonconst = 
+    (transform->type == MORPH_3D_TYPE)
+    ? NULL
+    : GCAgetPriorToSourceVoxelMatrix(gca, mri_inputs, transform);
+  MATRIX const * const m_prior2source_voxel = m_prior2source_voxel_nonconst;    // just to make sure not changed below
+
+  VECTOR *v_src[_MAX_FS_THREADS], *v_dst[_MAX_FS_THREADS];
+  { int tid;
+    for (tid = 0; tid < nthreads; tid++) {
+      v_src[tid] = VectorAlloc(4, MATRIX_REAL);
+      v_dst[tid] = VectorAlloc(4, MATRIX_REAL);
+      *MATRIX_RELT(v_src[tid], 4, 1) = 1.0;
+      *MATRIX_RELT(v_dst[tid], 4, 1) = 1.0;
+    }
   }
+  
 
-  if (transform->type == MORPH_3D_TYPE)
-    m_prior2source_voxel = NULL;
-  else
-    m_prior2source_voxel = GCAgetPriorToSourceVoxelMatrix(gca, mri_inputs, transform);
 
+#ifdef BEVIN_GCACOMPUTELOGSAMPLEPROBABILITY_REPRODUCIBLE
+
+  #define ROMP_VARIABLE       i
+  #define ROMP_LO             0
+  #define ROMP_HI             nsamples
+    
+  #define ROMP_SUMREDUCTION0  total_log_p
+    
+  #define ROMP_FOR_LEVEL      ROMP_level_assume_reproducible
+    
+#ifdef ROMP_SUPPORT_ENABLED
+  const int romp_for_line = __LINE__;
+#endif
+  #include "romp_for_begin.h"
+    
+    #define total_log_p  ROMP_PARTIALSUM(0)
+    
+#else
+  int i;
+
+  ROMP_PF_begin     // important in mri_em_register
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(gcas, tid, m_prior2source_voxel) reduction(+ : total_log_p)
+  #pragma omp parallel for if_ROMP(fast) reduction(+ : total_log_p)
 #endif
   for (i = 0; i < nsamples; i++) {
+    ROMP_PFLB_begin
+
+#endif
+    
     int x, y, z, xp, yp, zp;
     double log_p;
     float vals[MAX_GCA_INPUTS];
 
+    int const tid =
 #ifdef HAVE_OPENMP
-    tid = omp_get_thread_num();
+      omp_get_thread_num();
 #else
-    tid = 0;
+      0;
 #endif
+
     /////////////////// diag code /////////////////////////////
     if (i == Gdiag_no) DiagBreak();
     if (Gdiag_no == gcas[i].label) DiagBreak();
@@ -4640,14 +4668,14 @@ float GCAcomputeLogSampleProbability(
 
       // get values from all inputs
 
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
       if (gca->ninputs > 1) 
         load_vals_xyzInt(mri_inputs, x, y, z, vals, gca->ninputs);
       else
 #endif
         load_vals(mri_inputs, x, y, z, vals, gca->ninputs);
 
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
       if (gca->ninputs == 1)
         log_p = gcaComputeSampleLogDensity_1_input(&gcas[i], vals[0]);
       else 
@@ -4667,14 +4695,29 @@ float GCAcomputeLogSampleProbability(
     }
     gcas[i].log_p = log_p;
     total_log_p += log_p;
+
+#ifdef BEVIN_GCACOMPUTELOGSAMPLEPROBABILITY_REPRODUCIBLE
+
+    #undef total_log_p
+  #include "romp_for_end.h"
+  
+#else
+
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+
+#endif
+
   fflush(stdout);
 
-  for (tid = 0; tid < nthreads; tid++) {
-    VectorFree(&v_src[tid]);
-    VectorFree(&v_dst[tid]);
-  }
-  if (m_prior2source_voxel) MatrixFree(&m_prior2source_voxel);
+  { int tid;
+    for (tid = 0; tid < nthreads; tid++) {
+      VectorFree(&v_src[tid]);
+      VectorFree(&v_dst[tid]);
+  } }
+  
+  if (m_prior2source_voxel_nonconst) MatrixFree(&m_prior2source_voxel_nonconst);
   return ((float)total_log_p / nsamples);
 }
 
@@ -7702,7 +7745,7 @@ MRI *GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
   */
   // mark changed location
   // ifdef HAVE_OPENMP
-  // pragma omp parallel for
+  // pragma omp parallel for if_ROMP(experimental)
   // endif
   for (x = 0; x < width; x++) {
     int y, z;
@@ -7804,7 +7847,7 @@ MRI *GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
     }
 
     //#ifdef HAVE_OPENMP
-    // pragma omp parallel for reduction(+: nchanged)
+    // pragma omp parallel for if_ROMP(experimental) reduction(+: nchanged)
     //#endif
     for (index = 0; index < nindices; index++) {
       int x, y, z, n, label, old_label;
@@ -8196,7 +8239,7 @@ double GCAgibbsImageLogPosterior(GCA *gca, MRI *mri_labels, MRI *mri_inputs, TRA
 
   total_log_posterior = 0.0;
   // ifdef HAVE_OPENMP
-  // pragma omp parallel for reduction(+: total_log_posterior)
+  // pragma omp parallel for if_ROMP(experimental) reduction(+: total_log_posterior)
   // endif
   for (x = 0; x < width; x++) {
     int y, z;
@@ -11091,9 +11134,6 @@ char *cma_label_to_name(int label)
   if (label == Left_Thalamus) {
     return ("Left_Thalamus");
   }
-  if (label == Left_Thalamus_Proper) {
-    return ("Left_Thalamus_Proper");
-  }
   if (label == Left_Caudate) {
     return ("Left_Caudate");
   }
@@ -11210,9 +11250,6 @@ char *cma_label_to_name(int label)
   }
   if (label == Right_Thalamus) {
     return ("Right_Thalamus");
-  }
-  if (label == Right_Thalamus_Proper) {
-    return ("Right_Thalamus_Proper");
   }
   if (label == Right_Caudate) {
     return ("Right_Caudate");
@@ -13002,8 +13039,14 @@ int GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities, int num
             gc->means[0] = intensities[i] / 3;
           }
           else
+	  {
+            if ((xn == Gx && yn == Gy && zn == Gz) &&
+                (Ggca_label == gcan->labels[i] || Ggca_label < 0))
+	      printf("scaling gc for %s at (%d %d %d) from %2.1f --> %2.1f\n",
+		     cma_label_to_name(label), xn, yn, zn, gc->means[0], scales[i] * gc->means[0]);
             gc->means[0] = scales[i] * gc->means[0];
-        }
+	  }
+	}
       }
     }
   }
@@ -14971,7 +15014,7 @@ void load_vals(const MRI *mri_inputs, float x, float y, float z, float *vals, in
   }
 }
 
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 static void load_vals_xyzInt(const MRI *mri_inputs, int x, int y, int z, float *vals, int ninputs)
 {
   MRIsampleVolumeFrame_xyzInt_nRange_floats(mri_inputs, x, y, z, 0, ninputs, vals);
@@ -15215,7 +15258,7 @@ static double gcaComputeSampleLogDensity(GCA_SAMPLE *gcas, float *vals, int ninp
 }
 
 
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 static double gcaComputeSampleLogDensity_1_input(GCA_SAMPLE *gcas, float val)
 {
   double log_p;
@@ -15243,7 +15286,7 @@ static double gcaComputeSampleConditionalLogDensity(GCA_SAMPLE *gcas, float *val
   }
   return (log_p);
 }
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 static double gcaComputeSampleConditionalLogDensity_1_input(GCA_SAMPLE *gcas, float val, int label)
 {
   double log_p, det;
@@ -15300,7 +15343,7 @@ static double sample_covariance_determinant(GCA_SAMPLE *gcas, int ninputs)
   return (det);
 }
 
-#ifdef BEVIN_FASTER_MRI_EM_REGISTER
+#ifdef FASTER_MRI_EM_REGISTER
 static double GCAsampleMahDist_1_input(GCA_SAMPLE *gcas, float val) 
 {
     float v = val - gcas->means[0];
@@ -16665,8 +16708,8 @@ static int align_labels[] = {Left_Lateral_Ventricle,
                              Right_Cerebellum_White_Matter,
                              Left_Amygdala,
                              Right_Amygdala,
-                             Left_Thalamus_Proper,
-                             Right_Thalamus_Proper,
+                             Left_Thalamus,
+                             Right_Thalamus,
                              Left_Putamen,
                              Right_Putamen,
                              Brain_Stem,
@@ -16783,7 +16826,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
       }
       GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, border, transform,mri_labels) ;
 //#ifdef HAVE_OPENMP
-//#pragma omp parallel for
+//#pragma omp parallel for if_ROMP(experimental)
 //#endif
       for (x = 0 ; x < mri_labels->width ; x++)
       {
@@ -17043,7 +17086,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
       }
 
 //ifdef HAVE_OPENMP
-//pragma omp parallel for reduction(+:num)
+//pragma omp parallel for if_ROMP(experimental) reduction(+:num)
 //endif
       for (num = x = 0 ; x < mri_aligned->width ; x++)
       {
@@ -17563,7 +17606,7 @@ static int lh_labels[] = {
     Left_Cerebellum_Cortex,
     Left_Cerebellum_White_Matter,
     Left_Amygdala,
-    Left_Thalamus_Proper,
+    Left_Thalamus,
     Left_Putamen,
     Left_Pallidum,
     Left_VentralDC,
@@ -17577,7 +17620,7 @@ static int rh_labels[] = {
     Right_Cerebellum_Cortex,
     Right_Cerebellum_White_Matter,
     Right_Amygdala,
-    Right_Thalamus_Proper,
+    Right_Thalamus,
     Right_Putamen,
     Right_Pallidum,
     Right_VentralDC,
@@ -18108,8 +18151,8 @@ int GCAmapRenormalizeWithHistograms(GCA *gca,
       //     lower_thresh = 75;
       //     upper_thresh = 135;
       //     break;
-      //   case Left_Thalamus_Proper:
-      //   case Right_Thalamus_Proper:
+      //   case Left_Thalamus:
+      //   case Right_Thalamus:
       //     lower_thresh = 75;
       //     upper_thresh = 120;
       //     break;
@@ -18634,8 +18677,8 @@ int GCAcomputeRenormalizationWithAlignment(GCA *gca,
           lower_thresh = 75;
           upper_thresh = 135;
           break;
-        case Left_Thalamus_Proper:
-        case Right_Thalamus_Proper:
+        case Left_Thalamus:
+        case Right_Thalamus:
           lower_thresh = 75;
           upper_thresh = 120;
           break;
@@ -19753,8 +19796,8 @@ int GCAcomputeRenormalizationWithAlignmentLongitudinal(GCA *gca,
         lower_thresh = 75;
         upper_thresh = 135;
         break;
-      case Left_Thalamus_Proper:
-      case Right_Thalamus_Proper:
+      case Left_Thalamus:
+      case Right_Thalamus:
         lower_thresh = 75;
         upper_thresh = 120;
         break;
@@ -21404,8 +21447,6 @@ int GCAmapRenormalizeByClass(GCA *gca, MRI *mri, TRANSFORM *transform)
             break;
           case Left_Thalamus:
           case Right_Thalamus:
-          case Left_Thalamus_Proper:
-          case Right_Thalamus_Proper:
             //      GCAlabelMean(gca, Left_Thalamus, means) ;
             //      GCAlabelMean(gca, Right_Thalamus, rmeans) ;
             //      means[frame] = (means[frame] + rmeans[frame]) / 2 ;
@@ -21839,7 +21880,6 @@ int GCAreplaceRightWithLeft(GCA *gca)
   GCAreplaceLabels(gca, Right_Cerebellum_White_Matter, Left_Cerebellum_White_Matter);
   GCAreplaceLabels(gca, Right_Cerebellum_Cortex, Left_Cerebellum_Cortex);
   GCAreplaceLabels(gca, Right_Thalamus, Left_Thalamus);
-  GCAreplaceLabels(gca, Right_Thalamus_Proper, Left_Thalamus_Proper);
   GCAreplaceLabels(gca, Right_Caudate, Left_Caudate);
   GCAreplaceLabels(gca, Right_Putamen, Left_Putamen);
   GCAreplaceLabels(gca, Right_Pallidum, Left_Pallidum);
@@ -22387,7 +22427,7 @@ MRI *GCAbuildMostLikelyVolumeForStructure(
   depth = mri->depth;
   height = mri->height;
   //#ifdef HAVE_OPENMP
-  //#pragma omp parallel for
+  //#pragma omp parallel for if_ROMP(experimental)
   //#endif
   for (z = 0; z < depth; z++) {
     int x, y, xn, yn, zn, max_label, n, r, xp, yp, zp;
@@ -22498,7 +22538,7 @@ MRI *GCAbuildMostLikelyVolumeForStructure(
     mri_tmp = MRIcopy(mri, NULL);
 
     //#ifdef HAVE_OPENMP
-    //#pragma omp parallel for
+    //#pragma omp parallel for if_ROMP(experimental)
     //#endif
     for (z = 0; z < depth; z++) {
       int y, xn, yn, zn, max_label, n, r, xp, yp, zp, x;
@@ -22713,7 +22753,7 @@ static HISTOGRAM *gcaGetLabelHistogram(GCA *gca, int label, int frame, int borde
   // but perhaps h_gca->counts[b] += prior is not thread-safe.
   // parallelizing this loop only trimmed two seconds from em_reg.
   // ifdef HAVE_OPENMP
-  // pragma omp parallel for
+  // pragma omp parallel for if_ROMP(experimental)
   // endif
   for (zn = 0; zn < gca->node_depth; zn++) {
     GCA_NODE *gcan;
@@ -24002,7 +24042,7 @@ static int entropy_labels[] = {
     Left_Cerebellum_Cortex,
     Left_Amygdala,
     Left_Hippocampus,
-    Left_Thalamus_Proper,
+    Left_Thalamus,
     Left_Pallidum,
     Left_Caudate,
     Left_Putamen,
@@ -24021,7 +24061,7 @@ static int contra_entropy_labels[] = {
     Right_Cerebellum_Cortex,
     Right_Amygdala,
     Right_Hippocampus,
-    Right_Thalamus_Proper,
+    Right_Thalamus,
     Right_Pallidum,
     Right_Caudate,
     Right_Putamen,

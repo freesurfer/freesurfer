@@ -52,9 +52,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/utsname.h>
-#ifdef HAVE_OPENMP
-#include <omp.h>
-#endif
+
+#include "romp_support.h"
 
 #include "macros.h"
 #include "utils.h"
@@ -1081,10 +1080,10 @@ warp_surface(MRI_SURFACE *mris_lh_mov, MRI_SURFACE *mris_rh_mov, MRI_SURFACE *mr
 
   lh_vertices = (int *)calloc(mris_lh_fixed->nvertices, sizeof(int)) ;
   rh_vertices = (int *)calloc(mris_rh_fixed->nvertices, sizeof(int)) ;
-  mht_lh = MHTfillVertexTableRes(mris_lh_fixed, NULL, CURRENT_VERTICES, ceil(mris_lh_fixed->avg_vertex_dist));
-  mht_rh = MHTfillVertexTableRes(mris_rh_fixed, NULL, CURRENT_VERTICES, ceil(mris_rh_fixed->avg_vertex_dist));
-  mht_lh_faces = MHTfillTableAtResolution(mris_lh_fixed, NULL, CURRENT_VERTICES, ceil(mris_lh_fixed->avg_vertex_dist)) ;
-  mht_rh_faces = MHTfillTableAtResolution(mris_rh_fixed, NULL, CURRENT_VERTICES, ceil(mris_rh_fixed->avg_vertex_dist)) ;
+  mht_lh = MHTcreateVertexTable_Resolution(mris_lh_fixed, CURRENT_VERTICES, ceil(mris_lh_fixed->avg_vertex_dist));
+  mht_rh = MHTcreateVertexTable_Resolution(mris_rh_fixed, CURRENT_VERTICES, ceil(mris_rh_fixed->avg_vertex_dist));
+  mht_lh_faces = MHTcreateFaceTable_Resolution(mris_lh_fixed, CURRENT_VERTICES, ceil(mris_lh_fixed->avg_vertex_dist)) ;
+  mht_rh_faces = MHTcreateFaceTable_Resolution(mris_rh_fixed, CURRENT_VERTICES, ceil(mris_rh_fixed->avg_vertex_dist)) ;
   compute_vertex_permutation(mris_lh_mov, mris_lh_fixed, mht_lh, lh_vertices) ;
   compute_vertex_permutation(mris_rh_mov, mris_rh_fixed, mht_rh, rh_vertices) ;
   mri_cmat_permuted = permute_corrmat(mri_cmat_mov, lh_vertices, rh_vertices, mri_cmat_permuted) ;
@@ -1411,8 +1410,8 @@ warp_hemi(MRI_SURFACE *mris_mov, MRI_SURFACE *mris_fixed, MRI *mri_target_label,
   int  iter, grad_averages, iters_so_far = 0 ;
   double error, last_error, pct_change, orig_dt ;
 
-  mht_vertices = MHTfillVertexTableRes(mris_fixed, NULL, CURRENT_VERTICES, ceil(mris_fixed->avg_vertex_dist));
-  mht_faces = MHTfillTableAtResolution(mris_fixed, NULL, CURRENT_VERTICES, ceil(mris_fixed->avg_vertex_dist)) ;
+  mht_vertices = MHTcreateVertexTable_Resolution(mris_fixed, CURRENT_VERTICES, ceil(mris_fixed->avg_vertex_dist));
+  mht_faces    = MHTcreateFaceTable_Resolution  (mris_fixed, CURRENT_VERTICES, ceil(mris_fixed->avg_vertex_dist));
 #if 0
   if (write_diags)
   {
@@ -1696,11 +1695,13 @@ compute_weight_functional(VECTOR **v_D, MATRIX **m_I, VECTOR *v_weights, int nsu
   
   total_error = 0.0 ;
 
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate (v_D, v_weight_T) reduction(+:total_error) schedule(static,1)
+  #pragma omp parallel for if_ROMP(experimental) firstprivate (v_D, v_weight_T) reduction(+:total_error) schedule(static,1)
 #endif
   for (n = 0 ; n < nsubjects ; n++)
   {
+    ROMP_PFLB_begin
     VECTOR *I_weighted, *I_weighted_T ;
     double error ;
 
@@ -1710,7 +1711,9 @@ compute_weight_functional(VECTOR **v_D, MATRIX **m_I, VECTOR *v_weights, int nsu
     error = VectorSSE(v_D[n], I_weighted_T) ;
     total_error += error ;
     VectorFree(&I_weighted) ;  VectorFree(&I_weighted_T) ; 
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
   VectorFree(&v_weight_T) ;
   return(total_error) ;
 }
@@ -1725,26 +1728,32 @@ compute_gradient_wrt_weights(VECTOR **v_D, MATRIX **m_I, VECTOR *v_weights, int 
   else
     VectorClear(v_gradient) ;
   nvertices = v_D[0]->rows ; nvox = v_weights->rows ;
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate (v_D) shared(v_diff)  schedule(static,1)
+  #pragma omp parallel for if_ROMP(experimental) firstprivate (v_D) shared(v_diff)  schedule(static,1)
 #endif
   for (n = 0 ; n < nsubjects ; n++)
   {
+    ROMP_PFLB_begin
     VECTOR *I_weighted, *I_weighted_T ;
     I_weighted = MatrixMultiply(v_weight_T, m_I[n], NULL) ;
     I_weighted_T = VectorTranspose(I_weighted, NULL) ;
     v_diff[n] = MatrixSubtract(v_D[n], I_weighted_T, NULL) ;
     VectorFree(&I_weighted) ; VectorFree(&I_weighted_T) ; 
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
   VectorFree(&v_weight_T) ;
 
   for (l = 0 ; l < nvox ; l++)
   {
+    ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate (l, v_gradient, nvertices) schedule(static,1)
+    #pragma omp parallel for if_ROMP(experimental) firstprivate (l, v_gradient, nvertices) schedule(static,1)
 #endif
     for (n = 0 ; n < nsubjects ; n++)
     {
+      ROMP_PFLB_begin
       int i ;
       for (i = 0 ; i < nvertices ; i++)
       {
@@ -1753,7 +1762,9 @@ compute_gradient_wrt_weights(VECTOR **v_D, MATRIX **m_I, VECTOR *v_weights, int 
 	In = *MATRIX_RELT(m_I[n], l+1, i+1) ;
 	VECTOR_ELT(v_gradient, l+1) += vd * (-In) ;
       }
+      ROMP_PFLB_end
     }
+    ROMP_PF_end
   }
   for (n = 0 ; n < nsubjects ; n++)
     VectorFree(&v_diff[n]) ;
@@ -1858,12 +1869,14 @@ compute_subcortical_map_weights(MRI_SURFACE *mris, MRI *mri_fvol[MAX_SUBJECTS][M
     }
   }
   printf("reading timeseries and creating correlations\n") ;
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
   mri_cmat = NULL ;
-#pragma omp parallel for firstprivate (mri_cmat) shared(m_I, vl, mri_fvol, mri_fsurf, runs) schedule(static,1)
+  #pragma omp parallel for if_ROMP(experimental) firstprivate (mri_cmat) shared(m_I, vl, mri_fvol, mri_fsurf, runs) schedule(static,1)
 #endif
   for (n = 0 ; n <= nsubjects ; n++)
   {
+    ROMP_PFLB_begin
     mri_cmat = compute_voxlist_surface_correlations_across_runs(vl, vl->nvox, mri_fvol[n], mri_fsurf[n], runs, NULL) ;
     m_I[n] = MRIcopyFramesToMatrixRows(mri_cmat, NULL, 0, vl->nvox, 1) ;
     if (write_diags)
@@ -1875,7 +1888,9 @@ compute_subcortical_map_weights(MRI_SURFACE *mris, MRI *mri_fvol[MAX_SUBJECTS][M
       MRIwrite(mri_cmat, fname) ;
     }
     MRIfree(&mri_cmat) ;
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   if (create_only)
     exit(0) ;

@@ -1,0 +1,26 @@
+This document accompanies version 3 of the netCDF package (otherwise
+known as "netCDF-3").  For more information about netCDF, see the
+netCDF Web page at
+
+    http://www.unidata.ucar.edu/packages/netcdf/
+
+Legal stuff (copyright, licensing restrictions, etc.) can be found in
+the file COPYRIGHT.
+
+To install this package, please see the file INSTALL in the
+distribution, or the (possibly more up-to-date) document:
+
+    http://www.unidata.ucar.edu/packages/netcdf/docs/netcdf-install/
+
+The netCDF-3 C and FORTRAN-77 interfaces are documented in man(1)
+pages in the distribution in files netcdf.3 and netcdf.3f,
+respectively, or at
+
+    http://www.unidata.ucar.edu/packages/netcdf/docs
+
+User's Guides for C, FORTRAN, and FORTRAN-90 are also available in
+several forms from the same location.
+
+We appreciate feedback from users of this package.  Please send
+comments, suggestions, and bug reports to <support@unidata.ucar.edu>.
+Please identify the version of the package (file VERSION).

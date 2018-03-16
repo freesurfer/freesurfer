@@ -52,15 +52,19 @@ extern "C" {
 
 typedef struct
 {
-  double origx ;      //  mri original src voxel position (using lta)
-  double origy ;
-  double origz ;
-  double saved_origx ;      //  mri original src voxel position (using lta)
-  double saved_origy ;
-  double saved_origz ;
+  // gcamorph uses these fields in its hottest function so put them together to reduce cache misses
+  char   invalid;       /* if invalid = 1, then don't use this structure */
+  int    label ;
   double x ;          //  updated original src voxel position
   double y ;
   double z ;
+  double origx ;      //  mri original src voxel position (using lta)
+  double origy ;
+  double origz ;
+  //
+  double saved_origx ;      //  mri original src voxel position (using lta)
+  double saved_origy ;
+  double saved_origz ;
   double xs ;         //  not saved
   double ys ;
   double zs ;
@@ -70,7 +74,6 @@ typedef struct
   int    xn ;         /* node coordinates */
   int    yn ;         //  prior voxel position
   int    zn ;
-  int    label ;
   int    n ;          /* index in gcan structure */
   float  prior ;
   GC1D   *gc ;
@@ -85,7 +88,6 @@ typedef struct
   float  orig_area1 ;
   float  orig_area2 ;
   int    status ;       /* ignore likelihood term */
-  char   invalid;       /* if invalid = 1, then don't use this structure */
   float  label_dist ;   /* for computing label dist */
   float  last_se ;
   float  predicted_val ; /* weighted average of all class 
@@ -621,11 +623,6 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 
 
   int zero_vals(float *vals, int nvals) ;
-
-  int different_neighbor_labels( const GCA_MORPH *gcam, 
-				 const int x, const int y, const int z,
-				 const int whalf);
-
 
   int gcamComputeGradient( GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
 			   GCA_MORPH_PARMS *parms );

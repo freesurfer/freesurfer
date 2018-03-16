@@ -49,8 +49,9 @@ extern "C" {
 #define Left_Cerebellum_Exterior       6
 #define Left_Cerebellum_White_Matter   7
 #define Left_Cerebellum_Cortex         8
-#define Left_Thalamus                  9
+// 9 used to be thalamus and 10 thalamus_proper
 #define Left_Thalamus_Proper          10
+#define Left_Thalamus                 10
 #define Left_Caudate                  11
 #define Left_Putamen                  12
 #define Left_Pallidum                 13
@@ -88,8 +89,9 @@ extern "C" {
 #define Right_Cerebellum_Exterior     45
 #define Right_Cerebellum_White_Matter 46
 #define Right_Cerebellum_Cortex       47
-#define Right_Thalamus                48
+// 48 used to be thalamus and 49 thalamus_proper
 #define Right_Thalamus_Proper         49
+#define Right_Thalamus                49
 #define Right_Caudate                 50
 #define Right_Putamen                 51
 #define Right_Pallidum                52
@@ -449,7 +451,7 @@ extern "C" {
 #define IS_HYPO(label) (((label) == WM_hypointensities)  || ((label) == Left_WM_hypointensities)  || ((label) == Right_WM_hypointensities) || IS_FUTURE_WMSA(label))
 #define IS_WMSA(label) IS_HYPO(label)
 #define IS_WMH(label) (IS_WM(label) || IS_HYPO(label))
-#define IS_THALAMUS(label)  (((label) == Left_Thalamus) || ((label) == Left_Thalamus_Proper) || ((label) == Right_Thalamus) || ((label) == Right_Thalamus_Proper))
+#define IS_THALAMUS(label)  (((label) == Left_Thalamus) || ((label) == Left_Thalamus) || ((label) == Right_Thalamus) || ((label) == Right_Thalamus))
 #define IS_GM(label) (((label) == Left_Cerebral_Cortex) || ((label) == Right_Cerebral_Cortex))
 #define IS_VENTRAL_DC(l)  (((l) == Left_VentralDC) || ((l) == Right_VentralDC))
 
@@ -604,7 +606,7 @@ MRI *MRIfixAsegWithRibbon(MRI *aseg, MRI *ribbon, MRI *asegfixed);
    ((l) == Left_Inf_Lat_Vent) || \
    ((l) == Left_Cerebellum_Cortex) || \
    ((l) == Left_Cerebellum_White_Matter) || \
-   ((l) == Left_Thalamus_Proper) || \
+   ((l) == Left_Thalamus) || \
    ((l) == Left_vessel) || \
    ((l) == Left_choroid_plexus) || \
    ((l) == Left_VentralDC) || \
@@ -622,7 +624,7 @@ MRI *MRIfixAsegWithRibbon(MRI *aseg, MRI *ribbon, MRI *asegfixed);
    ((l) == Right_Inf_Lat_Vent) || \
    ((l) == Right_Cerebellum_Cortex) || \
    ((l) == Right_Cerebellum_White_Matter) || \
-   ((l) == Right_Thalamus_Proper) || \
+   ((l) == Right_Thalamus) || \
    ((l) == Right_vessel) || \
    ((l) == Right_choroid_plexus) || \
    ((l) == Right_VentralDC) || \

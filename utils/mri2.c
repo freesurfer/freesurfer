@@ -54,9 +54,8 @@
 #ifdef FS_CUDA
 #include "mrivol2vol_cuda.h"
 #endif
-#ifdef _OPENMP
-#include <omp.h>
-#endif
+
+#include "romp_support.h"
 
 /* overwrite generic nint to speed up execution
   Make sure NOT use calls like nint(f++) in this file!
@@ -761,10 +760,13 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
   valvects[0] = (float *)calloc(sizeof(float), src->nframes);
 #endif
 
+  ROMP_PF_begin
 #ifdef HAVE_OPENMP
-#pragma omp parallel for shared(show_progress_thread, targ, bspline, src, Vt2s, InterpCode)
+  #pragma omp parallel for if_ROMP(experimental) shared(show_progress_thread, targ, bspline, src, Vt2s, InterpCode)
 #endif
   for (ct = 0; ct < targ->width; ct++) {
+    ROMP_PFLB_begin
+    
     int rt, st, f;
     int ics, irs, iss;
     float fcs, frs, fss, *valvect;
@@ -823,8 +825,10 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s, int InterpCode, float param)
       } /* target col */
     }   /* target row */
     if (tid == show_progress_thread) exec_progress_callback(ct, targ->width, 0, 1);
+    ROMP_PFLB_end
   } /* target slice */
-
+  ROMP_PF_end
+  
 #ifdef HAVE_OPENMP
   for (tid = 0; tid < _MAX_FS_THREADS; tid++) free(valvects[tid]);
 #else
@@ -4262,10 +4266,13 @@ int MRIcountMatches(const MRI *seg, const int MatchVal, const int frame, const M
   int nMatches = 0;
   int c;
 
-#ifdef _OPENMP
-#pragma omp parallel for reduction(+ : nMatches)
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(experimental) reduction(+ : nMatches)
 #endif
   for (c = 0; c < seg->width; c++) {
+    ROMP_PFLB_begin
+    
     int r, s;
     for (r = 0; r < seg->height; r++) {
       for (s = 0; s < seg->depth; s++) {
@@ -4273,7 +4280,11 @@ int MRIcountMatches(const MRI *seg, const int MatchVal, const int frame, const M
         if (MRIgetVoxVal(seg, c, r, s, frame) == MatchVal) nMatches++;
       }
     }
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   return (nMatches);
 }
 
@@ -4422,10 +4433,10 @@ MRI *MRIannot2CorticalSeg(MRI *seg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, 
   SegVox2SurfRAS = MatrixMultiplyD(AnatVox2SurfRAS, lta->inv_xforms[0].m_L, NULL);
 
   // Create the hash for faster service
-  lhw_hash = MHTfillVertexTableRes(lhw, NULL, CURRENT_VERTICES, hashres);
-  lhp_hash = MHTfillVertexTableRes(lhp, NULL, CURRENT_VERTICES, hashres);
-  rhw_hash = MHTfillVertexTableRes(rhw, NULL, CURRENT_VERTICES, hashres);
-  rhp_hash = MHTfillVertexTableRes(rhp, NULL, CURRENT_VERTICES, hashres);
+  lhw_hash = MHTcreateVertexTable_Resolution(lhw, CURRENT_VERTICES, hashres);
+  lhp_hash = MHTcreateVertexTable_Resolution(lhp, CURRENT_VERTICES, hashres);
+  rhw_hash = MHTcreateVertexTable_Resolution(rhw, CURRENT_VERTICES, hashres);
+  rhp_hash = MHTcreateVertexTable_Resolution(rhp, CURRENT_VERTICES, hashres);
 
   // Check whether the seg has an extracerebral CSF segmentation
   HasXCSF = MRIcountMatches(seg, CSF_ExtraCerebral, 0, seg);
@@ -4437,11 +4448,14 @@ MRI *MRIannot2CorticalSeg(MRI *seg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, 
   printf("  MRIannot2CorticalSeg(): looping over volume\n");
   fflush(stdout);
   nunknown = 0;
-#ifdef _OPENMP
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
   printf("     nthreads = %d\n", omp_get_max_threads());
-#pragma omp parallel for reduction(+ : nunknown)
+  #pragma omp parallel for if_ROMP(experimental) reduction(+ : nunknown)
 #endif
   for (c = 0; c < seg->width; c++) {
+    ROMP_PFLB_begin
+    
     int r, s, asegv, annot, annotid, vtxno, wvtxno, pvtxno, segv;
     // int wmval;
     VERTEX vtx;
@@ -4515,7 +4529,11 @@ MRI *MRIannot2CorticalSeg(MRI *seg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, 
     }
     MatrixFree(&CRS);
     if (RAS) MatrixFree(&RAS);
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   printf("  MRIannot2CorticalSeg(): found %d unknown, filled with %d\n", nunknown, UnknownFill);
   fflush(stdout);
 
@@ -4594,16 +4612,19 @@ MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, L
   SegVox2SurfRAS = MatrixMultiplyD(AnatVox2SurfRAS, lta->inv_xforms[0].m_L, NULL);
 
   // Create the hash for faster service
-  lhw_hash = MHTfillVertexTableRes(lhw, NULL, CURRENT_VERTICES, hashres);
-  rhw_hash = MHTfillVertexTableRes(rhw, NULL, CURRENT_VERTICES, hashres);
+  lhw_hash = MHTcreateVertexTable_Resolution(lhw, CURRENT_VERTICES, hashres);
+  rhw_hash = MHTcreateVertexTable_Resolution(rhw, CURRENT_VERTICES, hashres);
 
   printf("  MRIannot2CerebralWMSeg(): looping over volume\n");
   fflush(stdout);
-#ifdef _OPENMP
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
   printf("     nthreads = %d\n", omp_get_max_threads());
-#pragma omp parallel for
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (c = 0; c < seg->width; c++) {
+    ROMP_PFLB_begin
+    
     int r, s, asegv, annot, annotid, wvtxno, segv, wmunknown;
     VERTEX vtx;
     MATRIX *RAS = NULL, *CRS = NULL;
@@ -4664,7 +4685,9 @@ MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, L
     }
     MatrixFree(&CRS);
     if (RAS) MatrixFree(&RAS);
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   MHTfree(&lhw_hash);
   MHTfree(&rhw_hash);
@@ -4728,16 +4751,19 @@ MRI *MRIunsegmentWM(MRI *seg, MRIS *lhw, MRIS *rhw, int *segidlist, int nlist, L
   SegVox2SurfRAS = MatrixMultiplyD(AnatVox2SurfRAS, lta->inv_xforms[0].m_L, NULL);
 
   // Create the hash for faster service
-  lhw_hash = MHTfillVertexTableRes(lhw, NULL, CURRENT_VERTICES, hashres);
-  rhw_hash = MHTfillVertexTableRes(rhw, NULL, CURRENT_VERTICES, hashres);
+  lhw_hash = MHTcreateVertexTable_Resolution(lhw, CURRENT_VERTICES, hashres);
+  rhw_hash = MHTcreateVertexTable_Resolution(rhw, CURRENT_VERTICES, hashres);
 
   printf("  MRIunsegmentWM(): looping over volume\n");
   fflush(stdout);
-#ifdef _OPENMP
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
   printf("     nthreads = %d\n", omp_get_max_threads());
-#pragma omp parallel for
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (c = 0; c < seg->width; c++) {
+    ROMP_PFLB_begin
+    
     int n, r, s, asegv, segv, hit, lhvtxno, rhvtxno;
     VERTEX vtx;
     MATRIX *RAS = NULL, *CRS = NULL;
@@ -4783,7 +4809,10 @@ MRI *MRIunsegmentWM(MRI *seg, MRIS *lhw, MRIS *rhw, int *segidlist, int nlist, L
     }
     MatrixFree(&CRS);
     if (RAS) MatrixFree(&RAS);
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   MHTfree(&lhw_hash);
   MHTfree(&rhw_hash);
@@ -4849,16 +4878,19 @@ MRI *MRIrelabelHypoHemi(MRI *seg, MRIS *lhw, MRIS *rhw, LTA *anat2seg, MRI *wmse
   SegVox2SurfRAS = MatrixMultiplyD(AnatVox2SurfRAS, lta->inv_xforms[0].m_L, NULL);
 
   // Create the hash for faster service
-  lhw_hash = MHTfillVertexTableRes(lhw, NULL, CURRENT_VERTICES, hashres);
-  rhw_hash = MHTfillVertexTableRes(rhw, NULL, CURRENT_VERTICES, hashres);
+  lhw_hash = MHTcreateVertexTable_Resolution(lhw, CURRENT_VERTICES, hashres);
+  rhw_hash = MHTcreateVertexTable_Resolution(rhw, CURRENT_VERTICES, hashres);
 
   printf("  MRIrelabelHypoHemi(): looping over volume\n");
   fflush(stdout);
-#ifdef _OPENMP
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
   printf("     nthreads = %d\n", omp_get_max_threads());
-#pragma omp parallel for
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (c = 0; c < seg->width; c++) {
+    ROMP_PFLB_begin
+    
     int r, s, asegv, segv, lhvtxno, rhvtxno;
     VERTEX vtx;
     MATRIX *RAS = NULL, *CRS = NULL;
@@ -4896,7 +4928,10 @@ MRI *MRIrelabelHypoHemi(MRI *seg, MRIS *lhw, MRIS *rhw, LTA *anat2seg, MRI *wmse
     }
     MatrixFree(&CRS);
     if (RAS) MatrixFree(&RAS);
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
 
   MHTfree(&lhw_hash);
   MHTfree(&rhw_hash);
@@ -4931,10 +4966,13 @@ MRI *MRIunsegmentCortex(MRI *seg, int lhmin, int lhmax, int rhmin, int rhmax, MR
     return (NULL);
   }
 
-#ifdef _OPENMP
-#pragma omp parallel for
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(experimental)
 #endif
   for (c = 0; c < seg->width; c++) {
+    ROMP_PFLB_begin
+    
     int r, s, segid;
     for (r = 0; r < seg->height; r++) {
       for (s = 0; s < seg->depth; s++) {
@@ -4947,7 +4985,11 @@ MRI *MRIunsegmentCortex(MRI *seg, int lhmin, int lhmax, int rhmin, int rhmax, MR
           MRIsetVoxVal(out, c, r, s, 0, segid);
       }
     }
+    
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   return (out);
 }
 
