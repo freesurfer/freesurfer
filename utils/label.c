@@ -74,7 +74,7 @@ LABEL *LabelReadFrom(const char *subject_name, FILE *fp)
     sprintf(area->space, "%s", str + strlen("vox2ras="));
   }
 
-  if (strstr(cp, "voxel"))
+  if (strstr(area->space, "voxel"))
     area->coords = LABEL_COORDS_VOXEL;
   else if (strstr(cp, "scanner"))
     area->coords = LABEL_COORDS_SCANNER_RAS;
@@ -3811,6 +3811,8 @@ int LabelAddVertex(LABEL *area, int vno, int coords)
   v = &((MRI_SURFACE *)(area->mris))->vertices[vno];
   MRISgetCoords(v, coords, &x, &y, &z);
   MRISsurfaceRASToVoxel(area->mris, area->mri_template, v->x, v->y, v->z, &xv, &yv, &zv);
+  if (area->mri_template && area->coords == LABEL_COORDS_SCANNER_RAS)
+    MRIvoxelToWorld(area->mri_template, xv, yv, zv, &x, &y, &z);
 
   lv->vno = vno;
   lv->x = x;
