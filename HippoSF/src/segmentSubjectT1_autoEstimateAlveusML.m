@@ -3,9 +3,9 @@
 % function put together by Eugenio to segment the subfields from the MPRAGE. It is based on
 % segmentSubjectT1, which is in turn based on (pre-)processHippoSubfields.m
 % It uses all labels in ASEG to initialize mesh deformation
-%
+%s
 % segmentSubjectT1(subjectName,subjectDir,resolution,atlasMeshFileName,atlasDumpFileName,compressionLUTfileName,K,side,optimizerType,suffix,MRFconstant)
-%
+%d
 % - subjectName: FreeSurfer subject name
 % - subjectDir: FreeSurfer subject directory
 % - resolution: voxel size at which we want to work (in mm).
@@ -14,7 +14,7 @@
 % - compressionLUTfileName: corresponding compressionLUT.txt
 % - K: stiffness of the mesh in the segmentation.
 % - side: 'left' or 'right'
-% - optimizerType: must be 'LM' or 'ConjGrad'
+% - optimizerType: 'FixedStepGradientDescent','GradientDescent','ConjugateGradient','L-BFGS'
 % - suffix: for output directory, e.g. 'T1based_GGAWLnoSimil'
 % - FSpath: path to FreeSurfer executables
 % - MRFconstant (optional): make it >0 for MRF cleanup (5 is reasonable, larger is smoother)
@@ -23,28 +23,40 @@
 
 function segmentSubjectT1_autoEstimateAlveusML(subjectName,subjectDir,resolution,atlasMeshFileName,atlasDumpFileName,compressionLUTfileName,K,side,optimizerType,suffix,FSpath,MRFconstant)
 
-
 % clear
 % subjectName='eugenio';
+% % subjectName='0003';
 % subjectDir='/autofs/space/panamint_005/users/iglesias/brains/myBrain/myBrain/subjectdir/';
+% % subjectDir='/autofs/space/panamint_005/users/iglesias/data/ADNI_SF_130607/';
 % resolution=(1/3);
 % atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoAmygBuckner_170621_CJ_GD_allBuckner_BodyHead/AtlasMesh_merged.gz';
 % atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoAmygBuckner_170621_CJ_GD_allBuckner_BodyHead/imageDumpWithAmygdala.mgz';
 % compressionLUTfileName='/autofs/homes/002/iglesias/matlab/code/Atlas3dFreeSurferJuly2017newAtlas/code/compressionLookupTable.txt';
 % K=0.05;
 % side='right';
-% optimizerType='ConjGrad';
-% suffix='TestCHA';
+% optimizerType='L-BFGS';
+% % optimizerType='ConjugateGradient';
+% suffix='GEMS2-dev-mac';
 % FSpath='/usr/local/freesurfer/dev/bin/';
 % MRFconstant=0;
+% nargin=9;
 
+% Eugenio November 2017: added option to write meshes and smoother resampling
 DEBUG=0;
 FAST=0; % set it to one to optimize just a bit (go through code fast)
 WRITE_POSTERIORS=0;
+WRITE_MESHES=0;
+SMOOTH_LABEL_RESAMPLE=0;
 aux=getenv('WRITE_POSTERIORS');
 if ~isempty(aux)
     if str2double(aux)>0
         WRITE_POSTERIORS=1;
+    end
+end
+aux=getenv('WRITE_MESHES');
+if ~isempty(aux)
+    if str2double(aux)>0
+        WRITE_MESHES=1;
     end
 end
 
@@ -58,8 +70,8 @@ if nargin<9
     error('Not enough input arguments');
 elseif strcmp(side,'left')==0 && strcmp(side,'right')==0
     error('Side must be ''left'' or ''right''');
-elseif strcmp(optimizerType,'LM')==0 && strcmp(optimizerType,'ConjGrad')==0
-    error('Optimizer type must be ''LM'' or ''ConjGrad''');
+elseif optimizerType(1)~='F' && optimizerType(1)~='G' && optimizerType(1)~='C' && optimizerType(1)~='L'
+    error('Optimizer type must be ''FixedStepGradientDescent'',''GradientDescent'',''ConjugateGradient'',''L-BFGS''');
 elseif exist([subjectDir '/' subjectName],'dir')==0
     error('Subject directory does not exist');
 elseif ~isdeployed && (~isnumeric(resolution))
@@ -89,10 +101,10 @@ if isdeployed
 else
     addpath([pwd() '/functions']);
     addpath('/usr/local/freesurfer/stable6_0_0/matlab')
-    if isunix
-        addpath('/cluster/koen/eugenio/GEMS-Release-linux/bin')
-    elseif ismac
-        addpath('/cluster/koen/eugenio/GEMS-Release-mac/bin')
+    if ismac
+        addpath('/autofs/space/panamint_005/users/iglesias/software/freesurfer.GEMS2.MAC/bin')
+    elseif isunix
+        addpath('/autofs/space/panamint_005/users/iglesias/software/freesurfer.GEMS2/bin')
     else
         error('Neither Linux nor Mac');
     end
@@ -188,11 +200,6 @@ cmd=[FSpath '/mri_robust_register --mov imageDump.mgz  --dst ' targetRegFileName
 system(cmd);
 % system([cmd ' >/dev/null']);
 system('mv imageDump_coregistered.mgz imageDump.mgz' );
-
-
-
-
-
 
 
 % Now, the idea is to refine the affine transform based on the hippo
@@ -410,12 +417,8 @@ end
 
 % We use a multiscale approach here (Koen had a single one with sigma=3)
 meshSmoothingSigmas = [ 3.0 2.0]';
-if strcmp(optimizerType,'LM')>0
-    maxIt=[100,50];
-else
-    maxIt=[200,100];
-end
-
+% Eugenio November 2017: increased number of iterations by 50%
+maxIt=[300,150];
 
 numberOfMultiResolutionLevels = length( meshSmoothingSigmas );
 
@@ -446,27 +449,38 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         title('Smoothed priors')
     end
     
+    % Eugenio November 2017: GEMS2
     % Set up the black box optimizer for the mesh nodes
-    if ( exist( 'optimizer', 'var' ) == 1 )
+    if ( exist( 'cheatingOptimizer', 'var' ) == 1 )
         % The optimizer is very memory hungry when run in multithreaded mode.
         % Let's clear any old ones we may have lying around
-        kvlClear( optimizer );
+        % Eugenio November 2017: GEMS2
+        kvlClear( cheatingOptimizer );
+        kvlClear( cheatingCalculator );
     end
     
+    % Eugenio November 2017: GEMS2  (note that it uses variances instead of precisions)
     % Now the optimization per-se
-    % [ cost gradient ] = kvlEvaluateMeshPosition( mesh,cheatingImage, transform, cheatingMeans, cheatingVariances );
-    if strcmp(optimizerType,'LM')>0
-        cheatingOptimizer = kvlGetLevenbergMarquardtOptimizer( mesh, cheatingImage, transform );
-        maximalDeformationStopCriterion = 0.001;
-        relativeChangeInCostStopCriterion = 1e-7;
-    else
-        cheatingOptimizer = kvlGetConjugateGradientOptimizer( mesh, cheatingImage, transform );
-        maximalDeformationStopCriterion = 1e-10;  % worth it to be precise, this is fast compared to the latter optimization anyway...
-        relativeChangeInCostStopCriterion = 1e-10;
-    end
-    maxpuin=maxIt(multiResolutionLevel);
-    kvlSetOptimizerProperties( cheatingOptimizer, cheatingMeans, 1./reshape(cheatingVariances,[1 1 length(cheatingVariances)]) );
+    cheatingCalculator = kvlGetCostAndGradientCalculator('AtlasMeshToIntensityImage',...
+    cheatingImage, 'Sliding',transform,cheatingMeans,cheatingVariances,ones(size(cheatingMeans)),ones(size(cheatingMeans)));
     
+    verbose=0;
+    maximalDeformationStopCriterion=1e-10;
+    lineSearchMaximalDeformationIntervalStopCriterion=1e-10;
+    maximumNumberOfDeformationIterations=1000;
+    BFGSMaximumMemoryLength=12;
+    
+    % optimizer = kvlGetOptimizer( optimizerType, mesh, calculator);
+    cheatingOptimizer = kvlGetOptimizer( optimizerType, mesh, cheatingCalculator, ...
+                                    'Verbose', verbose, ...
+                                    'MaximalDeformationStopCriterion', maximalDeformationStopCriterion, ... 
+                                    'LineSearchMaximalDeformationIntervalStopCriterion', ...
+                                     lineSearchMaximalDeformationIntervalStopCriterion, ...
+                                    'MaximumNumberOfIterations', maximumNumberOfDeformationIterations, ... 
+                                    'BFGS-MaximumMemoryLength', BFGSMaximumMemoryLength );
+                                
+    relativeChangeInCostStopCriterion = 1e-10;
+    maxpuin=maxIt(multiResolutionLevel);
     if FAST>0
         maxpuin=20;
     end
@@ -475,7 +489,8 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         disp(['Resolution ' num2str(multiResolutionLevel) ', iteration ' num2str(positionUpdatingIterationNumber)]);
         % Calculate a good step. The first one is very slow because of various set-up issues
         tic
-        [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlDeformOneStep( cheatingOptimizer , 1);
+        % Eugenio November 2017: GEMS2
+        [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( cheatingOptimizer );
         elapsedTime = toc;
         disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
         minLogLikelihoodTimesPrior
@@ -504,7 +519,9 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         end
     end
 end
+% Eugenio November 2017: GEMS2
 kvlClear( cheatingOptimizer )
+kvlClear( cheatingCalculator )
 
 disp(['Fitting mesh to synthetic image from ASEG took ' num2str(etime(clock,time_ref_cheat_optimization)) ' seconds']);
 
@@ -970,8 +987,8 @@ end
 % Specify here the size of the standard deviation of the Gaussian kernel used to smooth the priors/mesh. Use
 % if you don't want to use multi-resolution
 meshSmoothingSigmas = [ 1.5 .75 0 ]';
-imageSmoothingSigmas = [0 0 0]';
-maxItNos=[7 5 3];  % each iteration has 20 deformation steps
+imageSmoothingSigmas = [0 0 0]'; 
+maxItNos=[7 5 3];  % each iteration has 40 deformation steps
 
 numberOfMultiResolutionLevels = length( meshSmoothingSigmas );
 
@@ -1029,31 +1046,11 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     % is provided as a black box type of thing as it's implemented in C++ using complicated code - the other
     % set is much much better to experiment with in Matlab.
     
-    % Set up the black box optimizer for the mesh nodes
-    if ( exist( 'optimizer', 'var' ) == 1 )
-        % The optimizer is very memory hungry when run in multithreaded mode.
-        % Let's clear any old ones we may have lying around
-        try
-            kvlClear( optimizer );
-        catch ME
-        end
-    end
     
-    
-    % Now the optimization per-se
-    if strcmp(optimizerType,'LM')>0
-        optimizer = kvlGetLevenbergMarquardtOptimizer( mesh, image, transform );
-        maximalDeformationStopCriterion = 0.01;
-        positionUpdatingMaximumNumberOfIterations = 20;
-    else
-        optimizer = kvlGetConjugateGradientOptimizer( mesh, image, transform );
-        maximalDeformationStopCriterion = 1e-10;
-        positionUpdatingMaximumNumberOfIterations = 20;
-    end
-    
-    
+    % Iterations
+    % Eugenio November 2017: we now do 30 instead of 20, since it's a bit faster
     maximumNumberOfIterations = maxItNos(multiResolutionLevel);  % Maximum number of iterations (includes one imaging model parameter estimation and
-    % one deformation optimization; the latter always does 20 steps).
+    positionUpdatingMaximumNumberOfIterations = 30;
     
     if FAST>0, maximumNumberOfIterations = 3; end  % in case we just wanna cruise throught it :-)
     
@@ -1270,13 +1267,46 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         % sense to re-estimate the imaging model parameters frequently after a partial (not full)
         % optimization of the mesh nodes.
         %
+        
+        % Eugenio November 2017: GEMS2
+        if ( exist( 'optimizer', 'var' ) == 1 )
+            % The optimizer is very memory hungry when run in multithreaded mode.
+            % Let's clear any old ones we may have lying around
+            try
+                % Eugenio November 2017: GEMS2
+                kvlClear( optimizer );
+                kvlClear( calculator );
+            catch ME
+            end
+        end
+        
         haveMoved = false; % Keep track if we've ever moved or not
-        kvlSetOptimizerProperties( optimizer, means', reshape(1./variances,[1 1 length(variances)]));
+        
+         % (note that it uses variances instead of precisions)
+        calculator = kvlGetCostAndGradientCalculator('AtlasMeshToIntensityImage',...
+            image, 'Sliding',transform,means',variances',ones(size(means')),ones(size(means')));
+        
+        verbose=0;
+        maximalDeformationStopCriterion=1e-10;
+        lineSearchMaximalDeformationIntervalStopCriterion=1e-10;
+        maximumNumberOfDeformationIterations=1000;
+        BFGSMaximumMemoryLength=12;
+        
+        optimizer = kvlGetOptimizer( optimizerType, mesh, calculator, ...
+            'Verbose', verbose, ...
+            'MaximalDeformationStopCriterion', maximalDeformationStopCriterion, ...
+            'LineSearchMaximalDeformationIntervalStopCriterion', ...
+            lineSearchMaximalDeformationIntervalStopCriterion, ...
+            'MaximumNumberOfIterations', maximumNumberOfDeformationIterations, ...
+            'BFGS-MaximumMemoryLength', BFGSMaximumMemoryLength );
+        
+                                
         for positionUpdatingIterationNumber = 1 : positionUpdatingMaximumNumberOfIterations
             % Calculate a good step. The first one is very slow because of various set-up issues
             disp(['Resolution level ' num2str(multiResolutionLevel) ' iteration ' num2str(iterationNumber) ' deformation iterations ' num2str(positionUpdatingIterationNumber)]);
             tic
-            [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlDeformOneStep( optimizer, 1 );
+            % Eugenio November 2017: GEMS2
+            [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer );
             elapsedTime = toc;
             disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
             minLogLikelihoodTimesPrior
@@ -1338,7 +1368,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     
 end % End loop over multiresolution levels
 
-disp(['Fitting mesh to image data mask took ' num2str(etime(clock,time_ref_optimization)) ' seconds']);
+disp(['Fitting mesh to image data took ' num2str(etime(clock,time_ref_optimization)) ' seconds']);
 
 % Restore original image buffer
 kvlSetImageBuffer(image,imageBufferOrig);
@@ -1347,7 +1377,11 @@ kvlSetImageBuffer(image,imageBufferOrig);
 % labels instead of the reduced "super"-structure labels we created.
 
 % Clear some memory
-kvlClear( optimizer )
+% Eugenio November 2017: GEMS2
+try
+    kvlClear( optimizer )
+    kvlClear( calculator )
+end
 
 %
 if  ~isdeployed && DEBUG>0
@@ -1937,16 +1971,25 @@ if DEBUG>0
 end
 
 % Convert to 1 mm FreeSurfer Space 
-% Eugenio July 2017: add new segmentation maps
-system([FSpath '/mri_convert  discreteLabels.mgz  discreteLabelsResampledT1.mgz -rt nearest -odt float ' ...
-    ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz']);
-system([FSpath '/mri_convert  discreteLabelsWholeBodyHead.mgz  discreteLabelsWholeBodyHeadResampledT1.mgz -rt nearest -odt float ' ...
-    ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz']);
-system([FSpath '/mri_convert  discreteLabelsMergedBodyHead.mgz  discreteLabelsMergedBodyHeadResampledT1.mgz -rt nearest -odt float ' ...
-    ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz']);
-system([FSpath '/mri_convert  discreteLabelsMergedBodyHeadNoMLorGCDG.mgz  discreteLabelsMergedBodyHeadNoMLorGCDGResampledT1.mgz -rt nearest -odt float ' ...
-    ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz']);
+% Eugenio November 2017: smarter/smoother resampling
+if SMOOTH_LABEL_RESAMPLE>0
+    refFile=[subjectDir '/' subjectName '/mri/norm.mgz'];
+    applyLTAsmoothLabels('discreteLabels.mgz',[],'discreteLabelsResampledT1.mgz',refFile,0,FSpath,tempdir);
+    applyLTAsmoothLabels('discreteLabelsWholeBodyHead.mgz',[],'discreteLabelsWholeBodyHeadResampledT1.mgz',refFile,0,FSpath,tempdir);
+    applyLTAsmoothLabels('discreteLabelsMergedBodyHead.mgz',[],'discreteLabelsMergedBodyHeadResampledT1.mgz',refFile,0,FSpath,tempdir);
+    applyLTAsmoothLabels('discreteLabelsMergedBodyHeadNoMLorGCDG.mgz',[],'discreteLabelsMergedBodyHeadNoMLorGCDGResampledT1.mgz',refFile,0,FSpath,tempdir);
+else
+    system([FSpath '/mri_convert  discreteLabels.mgz  discreteLabelsResampledT1.mgz -rt nearest -odt float ' ...
+        ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz']);
+    system([FSpath '/mri_convert  discreteLabelsWholeBodyHead.mgz  discreteLabelsWholeBodyHeadResampledT1.mgz -rt nearest -odt float ' ...
+        ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz']);
+    system([FSpath '/mri_convert  discreteLabelsMergedBodyHead.mgz  discreteLabelsMergedBodyHeadResampledT1.mgz -rt nearest -odt float ' ...
+        ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz']);
+    system([FSpath '/mri_convert  discreteLabelsMergedBodyHeadNoMLorGCDG.mgz  discreteLabelsMergedBodyHeadNoMLorGCDGResampledT1.mgz -rt nearest -odt float ' ...
+        ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz']);
+end
 
+    
 
 % Move to MRI directory
 % Eugenio July 2017: add new segmentation maps, and simplified code
@@ -1973,6 +2016,19 @@ if WRITE_POSTERIORS>0
             system(['mv  ' d(i).name ' ' subjectDir '/' subjectName '/mri/']);
         end
     end
+end
+
+% Eugenio November 2017
+if WRITE_MESHES>0
+    system(['mv warpedMesh.txt.gz   ' subjectDir '/' subjectName '/mri/' side(1) 'h.hippoAmygMesh-T1.' suffix '.txt.gz']);
+    system(['mv warpedMeshNoAffine.txt.gz   ' subjectDir '/' subjectName '/mri/' side(1) 'h.hippoAmygMeshAtlasSpace-T1.' suffix '.txt.gz']);
+    system(['mv image.mgz   ' subjectDir '/' subjectName '/mri/' side(1) 'h.imageForMesh-T1.' suffix '.mgz']);    
+    fid=fopen([subjectDir '/' subjectName '/mri/' side(1) 'h.affineTransformMesh-T1.' suffix '.txt'],'w');
+    fprintf(fid,'%f %f %f %f \n',transformMatrix(1,1),transformMatrix(1,2),transformMatrix(1,3),transformMatrix(1,4));
+    fprintf(fid,'%f %f %f %f \n',transformMatrix(2,1),transformMatrix(2,2),transformMatrix(2,3),transformMatrix(2,4));  
+    fprintf(fid,'%f %f %f %f \n',transformMatrix(3,1),transformMatrix(3,2),transformMatrix(3,3),transformMatrix(3,4));
+    fprintf(fid,'%f %f %f %f \n',0,0,0,1);
+    fclose(fid);
 end
 
 
