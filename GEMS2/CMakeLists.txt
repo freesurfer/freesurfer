@@ -22,7 +22,7 @@ ELSE(ITK_FOUND)
            "Cannot build without ITK.  Please set ITK_DIR.")
 ENDIF(ITK_FOUND)
 
-OPTION( BUILD_SHARED_LIBS "Build GEMS with shared libraries." ON )
+OPTION( BUILD_SHARED_LIBS "Build GEMS with shared libraries." OFF )
 
 OPTION( BUILD_EXECUTABLES "Build command line executables" OFF )
 
@@ -32,59 +32,63 @@ OPTION( BUILD_GUI "Build GUI components (requires FLTK and VTK)" OFF )
 
 OPTION( BUILD_MATLAB "Build Matlab wrappers" OFF )
 
+OPTION( BUILD_PYTHON "Build Python wrappers" OFF )
+
 OPTION( BUILD_CUDA "Build CUDA stuff" OFF )
 
-# Enable C++11 syntax
-set(CMAKE_CXX_STANDARD 11)
+IF(BUILD_PYTHON)
+  # Enable C++11 syntax
+  set(CMAKE_CXX_STANDARD 11)
 
 
-add_subdirectory(pybind11)
-pybind11_add_module(GEMS2Python
-        GEMS2Python.cxx
-        pyKvlCalculator.cxx
-        pyKvlImage.cxx
-        pyKvlMesh.cxx
-        pyKvlTransform.cxx
-        pyKvlOptimizer.cxx
-        kvlAtlasMeshCollection.cxx
-        gzstream.C
-        kvlAtlasMeshCollectionValidator.cxx
-        kvlAtlasParameterEstimator.cxx
-        kvlAtlasMeshSmoother.cxx
-        kvlCompressionLookupTable.cxx
-        kvlCroppedImageReader.cxx
-        #kvlAtlasMeshAveragingConjugateGradientOptimizer.cxx
-        kvlAtlasMeshRasterizor.cxx
-        kvlAtlasMeshAlphaDrawer.cxx
-        kvlAtlasMeshMultiAlphaDrawer.cxx
-        kvlAtlasMeshVisitCounter.cxx
-        kvlAtlasMeshStatisticsCollector.cxx
-        kvlAtlasMeshLabelImageStatisticsCollector.cxx
-        kvlAtlasMeshProbabilityImageStatisticsCollector.cxx
-        kvlAtlasMeshDeformationOptimizer.cxx
-        kvlAtlasMeshDeformationFixedStepGradientDescentOptimizer.cxx
-        kvlAtlasMeshDeformationGradientDescentOptimizer.cxx
-        kvlAtlasMeshDeformationConjugateGradientOptimizer.cxx
-        kvlAtlasMeshDeformationLBFGSOptimizer.cxx
-        kvlAtlasMeshPositionCostAndGradientCalculator.cxx
-        kvlAtlasMeshToLabelImageCostAndGradientCalculator.cxx
-        kvlAtlasMeshToIntensityImageCostAndGradientCalculator.cxx
-        kvlConditionalGaussianEntropyCostAndGradientCalculator.cxx
-        kvlMutualInformationCostAndGradientCalculator.cxx
-        kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
-        kvlAverageAtlasMeshPositionCostAndGradientCalculator.cxx
-        kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
-        kvlAverageAtlasMeshPositionCostAndGradientCalculator.cxx
-        kvlHistogrammer.cxx
-        kvlAtlasMeshSummaryDrawer.cxx
-        itkMGHImageIO.cxx
-        itkMGHImageIOFactory.cxx
-        )
+  add_subdirectory(pybind11)
+  pybind11_add_module(GEMS2Python
+          GEMS2Python.cxx
+          pyKvlCalculator.cxx
+          pyKvlImage.cxx
+          pyKvlMesh.cxx
+          pyKvlTransform.cxx
+          pyKvlOptimizer.cxx
+          kvlAtlasMeshCollection.cxx
+          gzstream.C
+          kvlAtlasMeshCollectionValidator.cxx
+          kvlAtlasParameterEstimator.cxx
+          kvlAtlasMeshSmoother.cxx
+          kvlCompressionLookupTable.cxx
+          kvlCroppedImageReader.cxx
+          #kvlAtlasMeshAveragingConjugateGradientOptimizer.cxx
+          kvlAtlasMeshRasterizor.cxx
+          kvlAtlasMeshAlphaDrawer.cxx
+          kvlAtlasMeshMultiAlphaDrawer.cxx
+          kvlAtlasMeshVisitCounter.cxx
+          kvlAtlasMeshStatisticsCollector.cxx
+          kvlAtlasMeshLabelImageStatisticsCollector.cxx
+          kvlAtlasMeshProbabilityImageStatisticsCollector.cxx
+          kvlAtlasMeshDeformationOptimizer.cxx
+          kvlAtlasMeshDeformationFixedStepGradientDescentOptimizer.cxx
+          kvlAtlasMeshDeformationGradientDescentOptimizer.cxx
+          kvlAtlasMeshDeformationConjugateGradientOptimizer.cxx
+          kvlAtlasMeshDeformationLBFGSOptimizer.cxx
+          kvlAtlasMeshPositionCostAndGradientCalculator.cxx
+          kvlAtlasMeshToLabelImageCostAndGradientCalculator.cxx
+          kvlAtlasMeshToIntensityImageCostAndGradientCalculator.cxx
+          kvlConditionalGaussianEntropyCostAndGradientCalculator.cxx
+          kvlMutualInformationCostAndGradientCalculator.cxx
+          kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
+          kvlAverageAtlasMeshPositionCostAndGradientCalculator.cxx
+          kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
+          kvlAverageAtlasMeshPositionCostAndGradientCalculator.cxx
+          kvlHistogrammer.cxx
+          kvlAtlasMeshSummaryDrawer.cxx
+          itkMGHImageIO.cxx
+          itkMGHImageIOFactory.cxx
+          )
 
-TARGET_LINK_LIBRARIES(GEMS2Python
-        PRIVATE ${ITK_LIBRARIES}
-        PRIVATE ${ZLIB_LIBRARIES}
-        )
+  TARGET_LINK_LIBRARIES(GEMS2Python
+          PRIVATE ${ITK_LIBRARIES}
+          PRIVATE ${ZLIB_LIBRARIES}
+          )
+ENDIF(BUILD_PYTHON)
 
 #
 IF( BUILD_EXECUTABLES OR BUILD_GUI )
