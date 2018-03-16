@@ -3,10 +3,8 @@ function [ FreeSurferLabels, names, volumesInCubicMm ] = samsegment( imageFileNa
                                                                      savePath, showFigures )
 %
 %
-checkpoint_manager = CheckpointManager();
-checkpoint_manager.save('part0', '')
 
-% transformedTemplateFileName = '/home/willy/work/cm/innolitics_testing/buckner40/python_temp_data/004/template_coregistered.nii'
+
 
 % Print input options
 disp( '==========================' );
@@ -301,7 +299,7 @@ if ( showFigures )
   biasFieldFigure = figure;
 end
 
-checkpoint_manager.save('part1', '')
+
 % We do the optimization in a multi-resolution type of scheme, where large
 % deformations are quickly found using smoothed versions of the atlas mesh, and the fine
 % details are then found on gradually less smoothed versions until the original atlas mesh is used for the optimization.
@@ -330,7 +328,6 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
                            1 : downSamplingFactors( 2 ) : end, ...
                            1 : downSamplingFactors( 3 ) : end );
   downSampledMaskIndices = find( downSampledMask );
-  activeVoxelCount = length( downSampledMaskIndices )
   downSampledImageBuffers = [];
   for contrastNumber = 1 : numberOfContrasts
     % if ( multiResolutionLevel == numberOfMultiResolutionLevels )
@@ -370,8 +367,6 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
   % Read the atlas mesh to be used for this multi-resolution level, taking into account the downsampling to position it 
   % correctly
   downSamplingTransformMatrix = diag( [ 1./downSamplingFactors 1 ] );
-  transformMatrix = kvlGetTransformMatrix( transform );
-  checkpoint_manager.save('transformMatrix', 'transformMatrix');
   totalTransformationMatrix = downSamplingTransformMatrix * double( kvlGetTransformMatrix( transform ) );
   meshCollection = ...
         kvlReadMeshCollection( optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).atlasFileName, ...
@@ -396,7 +391,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
                   optimizationOptions.multiResolutionSpecification( multiResolutionLevel-1 ).atlasFileName, ...
                   nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel, ...
                   optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).atlasFileName );
-             
+
     % Apply this warp on the mesh node positions in template space, and transform into current space  
     desiredNodePositionsInTemplateSpace = initialNodePositionsInTemplateSpace + initialNodeDeformationInTemplateSpace;
     tmp = ( totalTransformationMatrix * ...
@@ -405,15 +400,14 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
 
     %
     kvlSetMeshNodePositions( mesh, desiredNodePositions );
-    checkpoint_manager.save('multiresWarp', 'desiredNodePositions tmp desiredNodePositionsInTemplateSpace nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel initialNodeDeformationInTemplateSpace');
+
   end    
 
     
   
   % Set priors in mesh to the reduced (super-structure) ones
   alphas = kvlGetAlphasInMeshNodes( mesh );
-  reducedAlphas = kvlMergeAlphas( alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors ); 
-  checkpoint_manager.save('reducedAlphas', 'reducedAlphas');
+  reducedAlphas = kvlMergeAlphas( alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors );
   kvlSetAlphasInMeshNodes( mesh, reducedAlphas )
 
   
@@ -649,16 +643,11 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
       % Check for convergence
       % relativeChangeCost = ( historyOfEMCost(end-1) - historyOfEMCost(end) ) /  historyOfEMCost(end)
       % if ( relativeChangeCost < stopCriterionEM )
-      priorEMCost = historyOfEMCost(end-1);
-      currentEMCost = historyOfEMCost(end);
-      costChangeEM = priorEMCost - currentEMCost;
-      changeCostEMPerVoxel = costChangeEM / activeVoxelCount;
-      changeCostEMPerVoxelThreshold = optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion;
-      if ( changeCostEMPerVoxel < changeCostEMPerVoxelThreshold )
+      changeCostPerVoxel = ( historyOfEMCost(end-1) - historyOfEMCost(end) ) / length( downSampledMaskIndices );
+      if ( changeCostPerVoxel < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion )
         % Converged
         disp( 'EM converged!' )
-        checkpoint_manager.save('optimizerEmExit', 'activeVoxelCount priorEMCost currentEMCost costChangeEM changeCostEMPerVoxel changeCostEMPerVoxelThreshold minLogLikelihood intensityModelParameterCost');
-                break;
+        break;
       end 
       
 
@@ -755,7 +744,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
           downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) = tmp;
           biasCorrectedData( :, contrastNumber ) = tmp( downSampledMaskIndices );
         end
-        checkpoint_manager.save('estimateBiasField', 'biasFieldCoefficients lhs rhs downSampledBiasField downSampledBiasCorrectedImageBuffers biasCorrectedData');
+
       end % End test if multiResolutionLevel == 1
     
       
@@ -832,7 +821,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     disp( [ '    maximalDeformationApplied: ' num2str( maximalDeformationApplied ) ] )
     disp( [ '  ' num2str( toc( deformationStartTime ) ) ' sec' ] )
     disp( '==============================' )
-    checkpoint_manager.save('optimizer', 'historyOfDeformationCost historyOfMaximalDeformation maximalDeformationApplied nodePositionsAfterDeformation')
+
     
     % Show a little movie comparing before and after deformation so far...
     if ( showFigures )
@@ -886,15 +875,10 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     %        ( ( ( historyOfCost( end-1 ) - historyOfCost( end ) ) / historyOfCost( end ) ) ...
     %          < relativeCostDecreaseStopCriterion ) || ...
     %        ( maximalDeformationApplied < maximalDeformationAppliedStopCriterion ) )
-    priorCost = historyOfCost( end-1 );
-    currentCost = historyOfCost( end );
-    costChange = priorCost - currentCost;
-    perVoxelDecrease = costChange / activeVoxelCount;
-    perVoxelDecreaseThreshold = optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion;
-    if (perVoxelDecrease < perVoxelDecreaseThreshold ) % If EM converges in one iteration and mesh node optimization doesn't do anything
+    if ( ( ( ( historyOfCost( end-1 ) - historyOfCost( end ) ) / length( downSampledMaskIndices ) ) ...
+           < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion ) ) % If EM converges in one iteration and mesh node optimization doesn't do anything
          
       % Converged
-      checkpoint_manager.save('optimizerPerVoxelExit', 'activeVoxelCount priorCost currentCost costChange perVoxelDecrease perVoxelDecreaseThreshold minLogLikelihoodTimesDeformationPrior intensityModelParameterCost');
       break;
     end
     
@@ -935,7 +919,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     
 end % End loop over multiresolution levels
 
-checkpoint_manager.save('part2', '')
+
 % Save something about how the estimation proceeded
 history.imageBuffers = imageBuffers;
 history.mask = mask;
@@ -975,7 +959,7 @@ estimatedNodeDeformationInTemplateSpace = ...
                         historyWithinEachMultiResolutionLevel( end ).finalNodePositionsInTemplateSpace ...
                         - historyWithinEachMultiResolutionLevel( end ).initialNodePositionsInTemplateSpace, ...
                         modelSpecifications.atlasFileName );
-checkpoint_manager.save('estimatedNodeDeformationInTemplateSpace', 'estimatedNodeDeformationInTemplateSpace')
+
 % Apply this warp on the mesh node positions in template space, and transform into current space  
 desiredNodePositionsInTemplateSpace = nodePositionsInTemplateSpace + estimatedNodeDeformationInTemplateSpace;
 tmp = ( transformMatrix * [ desiredNodePositionsInTemplateSpace ones( numberOfNodes, 1 ) ]' )';
@@ -1080,5 +1064,4 @@ for contrastNumber = 1 : numberOfContrasts
 
 end
 
-checkpoint_manager.save('part3', '')
 
