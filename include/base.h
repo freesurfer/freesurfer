@@ -24,7 +24,7 @@
 
 #pragma once
 
-#ifndef DARWIN
+#if !defined(DARWIN) && !defined(__APPLE__)
 #include <malloc.h>
 #include <mm_malloc.h>
 #endif
