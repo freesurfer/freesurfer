@@ -54989,24 +54989,27 @@ static int edgeExists(MRI_SURFACE *mris, int vno1, int vno2)
 }
 
 #if MATRIX_ALLOCATION
+
 #ifndef V4_LOAD
 #define V4_LOAD(v, x, y, z, r) (VECTOR_ELT(v, 1) = x, VECTOR_ELT(v, 2) = y, VECTOR_ELT(v, 3) = z, VECTOR_ELT(v, 4) = r);
 #endif
 
-int mriSurfaceRASToVoxel(double xr, double yr, double zr, double *xv, double *yv, double *zv)
+int mriSurfaceRASToVoxel(
+    double xr, double yr, double zr, 
+    double *xv, double *yv, double *zv)
 {
-#ifndef FASTER_mriSurfaceRASToVoxel
-  static bool const try_new_way = false;
-  static bool const try_old_way = true;
-#else
   static int once;
-  static bool const try_new_way = true;
-  static bool       try_old_way = false;
+  static bool try_both_way = false;
+  static bool try_new_way  = true;
+  static bool try_old_way  = false;
   if (!once) {
     once++; 
-    try_old_way = getenv("FREESURFER_mriSurfaceRASToVoxel_old");
+    try_both_way = getenv("FREESURFER_mriSurfaceRASToVoxel_both");
+    if  (try_both_way) 
+        try_new_way = try_old_way = true;
+    else if (getenv("FREESURFER_mriSurfaceRASToVoxel_old"))
+        try_new_way = false, try_old_way = true;
   }
-#endif
 
   bool const new_way = 
     try_new_way &&
@@ -55018,24 +55021,24 @@ int mriSurfaceRASToVoxel(double xr, double yr, double zr, double *xv, double *yv
     try_old_way ||
     !new_way;
 
-#ifdef FASTER_mriSurfaceRASToVoxel
   float nx = 0, ny = 0, nz = 0;
   if (new_way) {
+    float fxr = xr, fyr = yr, fzr = zr;     // cvt to float to match old way
     nx = 
-      *MATRIX_RELT(VoxelFromSRASmatrix, 1,1)*xr +
-      *MATRIX_RELT(VoxelFromSRASmatrix, 1,2)*yr +
-      *MATRIX_RELT(VoxelFromSRASmatrix, 1,3)*zr +
-      *MATRIX_RELT(VoxelFromSRASmatrix, 1,4) ;
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 1,1)*fxr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 1,2)*fyr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 1,3)*fzr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 1,4) ;
     ny = 
-      *MATRIX_RELT(VoxelFromSRASmatrix, 2,1)*xr +
-      *MATRIX_RELT(VoxelFromSRASmatrix, 2,2)*yr +
-      *MATRIX_RELT(VoxelFromSRASmatrix, 2,3)*zr +
-      *MATRIX_RELT(VoxelFromSRASmatrix, 2,4) ;
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 2,1)*fxr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 2,2)*fyr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 2,3)*fzr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 2,4) ;
     nz = 
-      *MATRIX_RELT(VoxelFromSRASmatrix, 3,1)*xr +
-      *MATRIX_RELT(VoxelFromSRASmatrix, 3,2)*yr +
-      *MATRIX_RELT(VoxelFromSRASmatrix, 3,3)*zr +
-      *MATRIX_RELT(VoxelFromSRASmatrix, 3,4) ;
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 3,1)*fxr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 3,2)*fyr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 3,3)*fzr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 3,4) ;
   }
   
   if (!old_way) {
@@ -55044,7 +55047,6 @@ int mriSurfaceRASToVoxel(double xr, double yr, double zr, double *xv, double *yv
     *zv = nz;
     return (NO_ERROR);
   }
-#endif
 
   VECTOR* sr = VectorAlloc(4, MATRIX_REAL);
   V4_LOAD(sr, xr, yr, zr, 1.);
@@ -55058,12 +55060,12 @@ int mriSurfaceRASToVoxel(double xr, double yr, double zr, double *xv, double *yv
   VectorFree(&sr);
   VectorFree(&vv);
 
-#ifndef FASTER_mriSurfaceRASToVoxel
-  if (closeEnough(ox,nx) || closeEnough(oy,ny) || closeEnough(oz, nz)) {
-    fprintf(stderr, "%s:%d not same answer\n", __FILE__, __LINE__);
-    *(int*)-1 = 0;
+  if (new_way) {
+    if (closeEnough(ox,nx) || closeEnough(oy,ny) || closeEnough(oz, nz)) {
+      fprintf(stderr, "%s:%d not same answer\n", __FILE__, __LINE__);
+      *(int*)-1 = 0;
+    }
   }
-#endif
 
   *xv = ox;
   *yv = oy;

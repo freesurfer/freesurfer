@@ -28,6 +28,7 @@
 #ifndef _PROTO_H_
 #define _PROTO_H_
 
+#include "base.h"
 
 #if defined(SunOS) | defined(IRIX)
 #include <ieeefp.h>
@@ -36,10 +37,6 @@
 /*----------------- ALL PLATFORMS *--------------------*/
 #ifndef Windows_NT
 int stricmp(const char *str1, const char *str2) ;
-#endif
-
-#ifndef DARWIN
-#include <malloc.h>
 #endif
 
 /*----------- SunOS -----------------------*/
