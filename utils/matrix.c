@@ -204,7 +204,7 @@ MATRIX *MatrixInverse(const MATRIX *mIn, MATRIX *mOut)
   return (mOut);
 }
 
-MATRIX *MatrixAlloc(const int rows, const int cols, const int type)
+static MATRIX *MatrixAlloc_old(const int rows, const int cols, const int type)
 {
   MATRIX *mat;
   int row, nelts;
@@ -299,6 +299,121 @@ MATRIX *MatrixAlloc(const int rows, const int cols, const int type)
   return (mat);
 }
 
+static MATRIX *MatrixAlloc_new(const int rows, const int cols, const int type)
+{
+
+  // Calculate the storage size, to get in one allocation
+  // (1) to reduce the calls to malloc by 3x, since it is an important part of mris_fix_topology
+  // (2) to prepare to have a stack buffer that the MATRIX can be in, to reduce the calls to malloc for 2x2 3x3 matrices
+  //
+  size_t size_needed = sizeof(MATRIX);
+  size_needed = (size_needed + 63) & ~63;   // round up
+  
+  // Decide on the number of ptrs
+  //
+  size_t const rptr_offset = size_needed;
+  size_needed += (rows + 1) * sizeof(float *);
+  size_needed = (size_needed + 63) & ~63;   // round up
+
+  // Decide on the number of data elements
+  // NRC is one-based, so leave room for a few unused (but valid) addresses before the start of the actual data so
+  // that mat->rptr[0][0] is a valid address even though it wont be used.
+  //
+  size_t const data_offset = size_needed;
+  int const nelts = ((rows * cols) + 2) * ((type == MATRIX_COMPLEX) ? 2 : 1);
+  size_needed += nelts*sizeof(float);
+  size_needed = (size_needed + 63) & ~63;   // round up
+
+  // Try to get the matrix and the rptrs with out without the data
+  //
+  MATRIX* mat  = NULL;
+  float*  data = NULL; 
+  {
+    void* memptr;
+    if (!posix_memalign(&memptr, 64, size_needed)) {
+      mat  = (MATRIX*)memptr;
+      data = (float*) ((char*)memptr + data_offset);
+    } else if (!posix_memalign(&memptr, 64, data_offset)) {
+      mat  = (MATRIX*)memptr;
+    }
+  }
+  
+  FILE* mmapfile = NULL;
+  
+#ifdef _POSIX_MAPPED_FILES
+  if (!data) { // Try to allocate a mmap'd tmpfile
+
+    printf("MatrixAlloc(%d, %d): Using mmap'd tmpfile\n", rows, cols);
+    if ((mmapfile = tmpfile())) {
+
+      // This seems to matter with some implementations of mmap
+      //
+      fseek(mmapfile, 0, 0);
+      fflush(mmapfile);
+
+      data = (float *)mmap(0, (nelts + 2) * sizeof(float), PROT_READ | PROT_WRITE, MAP_SHARED, fileno(mat->mmapfile), 0);
+
+      if (data == MAP_FAILED) {
+        data = NULL;
+      }
+    }
+  }
+#endif
+
+  if (!mat || !data) {
+    fprintf(stderr, "MatrixAlloc(%d, %d): allocation failed\n", rows, cols);
+    exit(1);
+  }
+
+  bzero(mat,  data_offset);
+  bzero(data, nelts*sizeof(float));
+  
+  mat->rows = rows;
+  mat->cols = cols;
+  mat->type = type;
+
+  mat->data = data;
+  mat->data += 2;
+
+  mat->mmapfile = mmapfile;
+
+  // silly numerical recipes in C requires 1-based stuff. The full
+  // data array is zero based, point the first row to the zeroth
+  // element, and so on.
+  //
+  float** rptr = (float**)((char*)mat + rptr_offset);
+  mat->rptr = rptr;
+
+  int row;
+  for (row = 1; row <= rows; row++) {
+    switch (type) {
+      case MATRIX_REAL:
+        rptr[row] = mat->data + (row - 1) * cols - 1;
+        break;
+      case MATRIX_COMPLEX:
+        rptr[row] = (float *)(((CPTR)mat->data) + (row - 1) * cols - 1);
+        break;
+      default:
+        ErrorReturn(NULL, (ERROR_BADPARM, "MatrixAlloc: unknown type %d\n", type));
+    }
+  }
+
+  return (mat);
+}
+
+
+static int use_new_MatricAlloc;
+MATRIX *MatrixAlloc(const int rows, const int cols, const int type) {
+    static int once;
+    if (!once) {
+        once++;
+        use_new_MatricAlloc = !getenv("FREESURFER_MatrixAlloc_old");
+    }
+    if (use_new_MatricAlloc) return MatrixAlloc_new(rows, cols, type);
+    else         return MatrixAlloc_old(rows, cols, type);
+}
+
+
 int MatrixFree(MATRIX **pmat)
 {
   MATRIX *mat;
@@ -324,10 +439,10 @@ int MatrixFree(MATRIX **pmat)
     fclose(mat->mmapfile);
   }
   else {
-    free(mat->data);
+    if (!use_new_MatricAlloc) free(mat->data);
   }
 
-  free(mat->rptr);
+  if (!use_new_MatricAlloc) free(mat->rptr);
   free(mat);
 
   return (0);
