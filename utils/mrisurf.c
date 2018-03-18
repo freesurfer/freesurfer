@@ -54999,14 +54999,16 @@ int mriSurfaceRASToVoxel(
     double *xv, double *yv, double *zv)
 {
   static int once;
-  static bool const try_both_way = true;
-  static bool const try_new_way  = true;
-  static bool       try_old_way  = false;
+  static bool try_both_way = false;
+  static bool try_new_way  = true;
+  static bool try_old_way  = false;
   if (!once) {
     once++; 
     try_both_way = getenv("FREESURFER_mriSurfaceRASToVoxel_both");
-    try_old_way  = getenv("FREESURFER_mriSurfaceRASToVoxel_old");
-    if (try_both_way) try_new_way = try_old_way = true;
+    if  (try_both_way) 
+        try_new_way = try_old_way = true;
+    else if (getenv("FREESURFER_mriSurfaceRASToVoxel_old"))
+        try_new_way = false, try_old_way = true;
   }
 
   bool const new_way = 
@@ -55021,21 +55023,22 @@ int mriSurfaceRASToVoxel(
 
   float nx = 0, ny = 0, nz = 0;
   if (new_way) {
+    float fxr = xr, fyr = yr, fzr = zr;     // cvt to float to match old way
     nx = 
-      *MATRIX_RELT(VoxelFromSRASmatrix, 1,1)*xr +
-      *MATRIX_RELT(VoxelFromSRASmatrix, 1,2)*yr +
-      *MATRIX_RELT(VoxelFromSRASmatrix, 1,3)*zr +
-      *MATRIX_RELT(VoxelFromSRASmatrix, 1,4) ;
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 1,1)*fxr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 1,2)*fyr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 1,3)*fzr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 1,4) ;
     ny = 
-      *MATRIX_RELT(VoxelFromSRASmatrix, 2,1)*xr +
-      *MATRIX_RELT(VoxelFromSRASmatrix, 2,2)*yr +
-      *MATRIX_RELT(VoxelFromSRASmatrix, 2,3)*zr +
-      *MATRIX_RELT(VoxelFromSRASmatrix, 2,4) ;
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 2,1)*fxr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 2,2)*fyr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 2,3)*fzr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 2,4) ;
     nz = 
-      *MATRIX_RELT(VoxelFromSRASmatrix, 3,1)*xr +
-      *MATRIX_RELT(VoxelFromSRASmatrix, 3,2)*yr +
-      *MATRIX_RELT(VoxelFromSRASmatrix, 3,3)*zr +
-      *MATRIX_RELT(VoxelFromSRASmatrix, 3,4) ;
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 3,1)*fxr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 3,2)*fyr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 3,3)*fzr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 3,4) ;
   }
   
   if (!old_way) {
