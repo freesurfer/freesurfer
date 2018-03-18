@@ -67,11 +67,9 @@ def samsegment(
     FreeSurferLabels = part3_results_dict['FreeSurferLabels']
     volumesInCubicMm = part3_results_dict['volumesInCubicMm']
 
-    volfp = open(os.path.join(savePath, 'samseg.stats'), 'w')
-    for i, names in enumerate(names):
-        vol =  "%.6f" % volumesInCubicMm[i]
-        volfp.write('# Measure ' + names + ', ' + vol + ', mm^3\n')
-    volfp.close()
+    with open(os.path.join(savePath, 'samseg.stats'), 'w') as fid:
+        for volume, name in zip(volumesInCubicMm, names):
+            fid.write('# Measure {}, {:.6f}, mm^3\n'.format(name, volume))
     
     return [FreeSurferLabels, names, volumesInCubicMm]
 
