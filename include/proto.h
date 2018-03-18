@@ -22,16 +22,13 @@
  *
  */
 
-
+// proto.h is included by base.h    
+//  and it is preferred that it not be included directly
+//
 #ifndef _PROTO_H_
 #define _PROTO_H_
 
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <time.h>
-#include <sys/timeb.h>
+#include "base.h"
 
 #if defined(SunOS) | defined(IRIX)
 #include <ieeefp.h>

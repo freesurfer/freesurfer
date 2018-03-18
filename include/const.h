@@ -32,10 +32,12 @@
 
 ----------------------------------------------------------------------*/
 
-#include <math.h>
-
 #ifndef CONST_H
 #define CONST_H
+
+
+#include "base.h"
+
 
 #ifndef True
 #define True 1
