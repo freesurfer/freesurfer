@@ -723,21 +723,39 @@ FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
 }
 
 static void deferSetFaceNorms(MRIS* mris) {
-    int fno;
-    ROMP_PF_begin  
-#ifdef HAVE_OPENMP
-    #pragma omp parallel for if_ROMP(assume_reproducible) 
-#endif
-    for (fno = 0; fno < mris->nfaces; fno++) {
-      ROMP_PFLB_begin
-      FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
-#ifdef CHECK_DEFERED_NORMS
-      computeDefectFaceNormal_calculate(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);  // compute it now so can check later
-#endif
-      fNorm->deferred = 3;  // compute them again later
-      ROMP_PFLB_end
+    static int use_parallel;
+    static int once;
+    if (!once) {
+        once++;
+        use_parallel = !!getenv("FREESURFER_deferSetFaceNorms_parallel");
     }
-    ROMP_PF_end
+    if (!use_parallel) {
+        // It looks like there is not enough work to go parallel...
+        int fno;
+        for (fno = 0; fno < mris->nfaces; fno++) {
+          FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
+#ifdef CHECK_DEFERED_NORMS
+          computeDefectFaceNormal_calculate(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);  // compute it now so can check later
+#endif
+          fNorm->deferred = 3;  // compute them again later
+        }
+    } else {
+        int fno;
+        ROMP_PF_begin  
+#ifdef HAVE_OPENMP
+        #pragma omp parallel for if_ROMP(assume_reproducible) 
+#endif
+        for (fno = 0; fno < mris->nfaces; fno++) {
+          ROMP_PFLB_begin
+          FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
+#ifdef CHECK_DEFERED_NORMS
+          computeDefectFaceNormal_calculate(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);  // compute it now so can check later
+#endif
+          fNorm->deferred = 3;  // compute them again later
+          ROMP_PFLB_end
+        }
+        ROMP_PF_end
+    }
 }
 
 static void undeferSetFaceNorms(MRIS* mris) {
