@@ -31,4 +31,3 @@
 
 #define FASTER_gcamSmoothnessEnergy
 #define FASTER_MRI_EM_REGISTER
-#define FASTER_mriSurfaceRASToVoxel
