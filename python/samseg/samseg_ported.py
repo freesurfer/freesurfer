@@ -1,4 +1,5 @@
 import logging
+import os.path
 
 from samseg.dev_utils.debug_client import run_test_cases, create_checkpoint_manager, load_starting_fixture
 from samseg.run_utilities import Specification
@@ -65,6 +66,13 @@ def samsegment(
     names = part1_results_dict['names']
     FreeSurferLabels = part3_results_dict['FreeSurferLabels']
     volumesInCubicMm = part3_results_dict['volumesInCubicMm']
+
+    volfp = open(os.path.join(savePath, 'samseg.stats'), 'w')
+    for i, names in enumerate(names):
+        vol =  "%.6f" % volumesInCubicMm[i]
+        volfp.write('# Measure ' + names + ', ' + vol + ', mm^3\n')
+    volfp.close()
+    
     return [FreeSurferLabels, names, volumesInCubicMm]
 
 
