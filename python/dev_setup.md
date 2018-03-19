@@ -156,7 +156,7 @@ pip install dist/GEMS2Python-0.1.0-cp35-cp35m-linux_x86_64.whl
 ### Build and install samseg
 The python portion of the code can also be built and installed as a wheel:
 ```bash
-cd ~/work/cm/freesurfer/as_python/
+cd ~/work/cm/freesurfer/python/
 python setup.py bdist_wheel
 pip install dist/samseg-0.1.0-py2.py3-none-any.whl
 ```
@@ -228,7 +228,7 @@ pip uninstall samseg
 ```
 The project can instead be installed in edit mode.
 ```bash
-cd ~/work/cm/freesurfer/as_python/
+cd ~/work/cm/freesurfer/python/
 pip install -e .
 ```
 Any changes to the python code will be automatically updated.
@@ -248,6 +248,6 @@ export PYTHONPATH="$HOME/work/cm/freesurfer/GEMS2/bin"
 ### The PYTHONPATH alternative
 It is also possible to uninstall either or both wheels and use the python path.
 ```
-export PYTHONPATH="$HOME/work/cm/freesurfer/as_python:$HOME/work/cm/freesurfer/GEMS2/bin"
+export PYTHONPATH="$HOME/work/cm/freesurfer/python:$HOME/work/cm/freesurfer/GEMS2/bin"
 ```
 Note the use of ```:``` as separator. If you are keeping one of the wheels then remove the corresponding piece of the path.
