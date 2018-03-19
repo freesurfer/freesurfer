@@ -62,8 +62,8 @@ def samsegment_part2(
         estimateBiasField = optimizationOptions.multiResolutionSpecification[multiResolutionLevel].estimateBiasField
         historyOfCost = [1 / eps]
         logger.debug('maximumNumberOfIterations: %d', maximumNumberOfIterations)
-        #   % Downsample the images, the mask, the mesh, and the bias field basis functions
-        #   % Must be integer
+        # Downsample the images, the mask, the mesh, and the bias field basis functions
+        # Must be integer
         downSamplingFactors = np.uint32(np.round(optimizationOptions.multiResolutionSpecification[
                                                      multiResolutionLevel].targetDownsampledVoxelSpacing / voxelSpacing))
         downSamplingFactors[downSamplingFactors < 1] = 1
@@ -73,7 +73,7 @@ def samsegment_part2(
         downSampledImageBuffers = np.zeros(downSampledMask.shape + (numberOfContrasts,), order='F')
         for contrastNumber in range(numberOfContrasts):
             logger.debug('first time contrastNumber=%d', contrastNumber)
-            #       % No image smoothing
+            # No image smoothing
             # TODO: Remove need to check this. Matlab implicitly lets you expand one dim, our python code should have the shape (x, y, z, numberOfContrasts)
             if imageBuffers.ndim == 3:
                 imageBuffers = np.expand_dims(imageBuffers, axis=3)
@@ -86,8 +86,8 @@ def samsegment_part2(
                                                      for kroneckerProductBasisFunction, downSamplingFactor in
                                                      zip(kroneckerProductBasisFunctions, downSamplingFactors)]
         downSampledImageSize = downSampledImageBuffers[:, :, :, 0].shape
-        #   % Read the atlas mesh to be used for this multi-resolution level, taking into account the downsampling to position it
-        #   % correctly
+        # Read the atlas mesh to be used for this multi-resolution level, taking into account the downsampling to position it
+        # correctly
         downSamplingTransformMatrix = np.diag(1. / downSamplingFactors)
         downSamplingTransformMatrix = np.pad(downSamplingTransformMatrix, (0, 1), mode='constant', constant_values=0)
         downSamplingTransformMatrix[3][3] = 1
@@ -101,24 +101,24 @@ def samsegment_part2(
 
         mesh = mesh_collection.reference_mesh
 
-        #   % Get the initial mesh node positions, also transforming them back into template space
-        #   % (i.e., undoing the affine registration that we applied) for later usage
+        # Get the initial mesh node positions, also transforming them back into template space
+        # (i.e., undoing the affine registration that we applied) for later usage
         initialNodePositions = mesh.points
         numberOfNodes = len(initialNodePositions)
         tmp = np.linalg.solve(totalTransformationMatrix,
                               np.pad(initialNodePositions, ((0, 0), (0, 1)), mode='constant', constant_values=1).T).T
         initialNodePositionsInTemplateSpace = tmp[:, 0:3]
-        #   % If this is not the first multi-resolution level, apply the warp computed during the previous level
+        # If this is not the first multi-resolution level, apply the warp computed during the previous level
         if multiResolutionLevel > 0:
             logger.debug('starting multiResolutionLevel=%d', multiResolutionLevel)
-            #     % Get the warp in template space
+            # Get the warp in template space
             [initialNodeDeformationInTemplateSpace, initial_averageDistance, initial_maximumDistance] = kvlWarpMesh(
                 optimizationOptions.multiResolutionSpecification[multiResolutionLevel - 1].atlasFileName,
                 nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel,
                 optimizationOptions.multiResolutionSpecification[multiResolutionLevel].atlasFileName)
 
             logger.debug('alpha multiResolutionLevel={0}'.format(multiResolutionLevel))
-            #     % Apply this warp on the mesh node positions in template space, and transform into current space
+            # Apply this warp on the mesh node positions in template space, and transform into current space
             logger.debug('beta multiResolutionLevel=%d', multiResolutionLevel)
             desiredNodePositionsInTemplateSpace = initialNodePositionsInTemplateSpace + initialNodeDeformationInTemplateSpace
 
@@ -138,7 +138,7 @@ def samsegment_part2(
                     'nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel': nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel,
                     'initialNodeDeformationInTemplateSpace': initialNodeDeformationInTemplateSpace,
                 }, 'multiresWarp')
-        #   % Set priors in mesh to the reduced (super-structure) ones
+        # Set priors in mesh to the reduced (super-structure) ones
         alphas = mesh.alphas
         reducedAlphas, _, _, _, _ = kvlMergeAlphas(alphas, names, modelSpecifications.sharedGMMParameters,
                                                    FreeSurferLabels, colors);
@@ -146,16 +146,16 @@ def samsegment_part2(
             checkpoint_manager.increment_and_save({'reducedAlphas': reducedAlphas}, 'reducedAlphas')
         mesh.alphas = reducedAlphas
 
-        #   % Algorithm-wise, we're just estimating sets of parameters for one given data (MR scan) that is
-        #   % known and fixed throughout. However, in terms of bias field correction it will be computationally
-        #   % more efficient to pre-compute the bias field corrected version of the scan ("corrected" with
-        #   % the current estimate of the bias field) once and pass that on to different routines instead of the
-        #   % original data.
-        #   % For convenience (although potentially a recipe for future bug introduction), I'm also keeping a
-        #   % vectorized form of that around -- this will be useful in various places in the EM-parts. So
-        #   % effectively I have two redundant variables "downSampledBiasCorrectedImageBuffers" and "biasCorrectedData"
-        #   % that really just encode the variable "biasFieldCoefficients" and so need to be meticiously updated each time
-        #   % "biasFieldCoefficients" is updated (!)
+        # Algorithm-wise, we're just estimating sets of parameters for one given data (MR scan) that is
+        # known and fixed throughout. However, in terms of bias field correction it will be computationally
+        # more efficient to pre-compute the bias field corrected version of the scan ("corrected" with
+        # the current estimate of the bias field) once and pass that on to different routines instead of the
+        # original data.
+        # For convenience (although potentially a recipe for future bug introduction), I'm also keeping a
+        # vectorized form of that around -- this will be useful in various places in the EM-parts. So
+        # effectively I have two redundant variables "downSampledBiasCorrectedImageBuffers" and "biasCorrectedData"
+        # that really just encode the variable "biasFieldCoefficients" and so need to be meticiously updated each time
+        # "biasFieldCoefficients" is updated (!)
         downSampledBiasCorrectedImageBuffers = np.zeros(downSampledImageSize + (numberOfContrasts,), order='F')
         biasCorrectedData = np.zeros((activeVoxelCount, numberOfContrasts), order='F')
 
@@ -168,70 +168,50 @@ def samsegment_part2(
             tmp = downSampledImageBuffers[:, :, :, contrastNumber] - downSampledBiasField * downSampledMask
             downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber] = tmp
             biasCorrectedData[:, contrastNumber] = tmp[downSampledMaskIndices]
-        #   % Compute a color coded version of the atlas prior in the atlas's current pose, i.e., *before*
-        #   % we start deforming. We'll use this just for visualization purposes
+        # Compute a color coded version of the atlas prior in the atlas's current pose, i.e., *before*
+        # we start deforming. We'll use this just for visualization purposes
         posteriors = np.zeros((activeVoxelCount, numberOfGaussians), order='F')
-        #   % Easier to work with vector notation in the EM computations
-        #   % reshape into a matrix
+        # Easier to work with vector notation in the EM computations
+        # reshape into a matrix
         data = np.zeros((activeVoxelCount, numberOfContrasts))
         for contrastNumber in range(numberOfContrasts):
             tmp = downSampledImageBuffers[:, :, :, contrastNumber]
             data[:, contrastNumber] = tmp[downSampledMaskIndices]
-        #   % Main iteration loop over both EM and deformation
+        # Main iteration loop over both EM and deformation
         for iterationNumber in range(maximumNumberOfIterations):
             logger.debug('iterationNumber=%d', iterationNumber)
-            #     %
-            #     % Part I: estimate Gaussian mixture model parameters, as well as bias field parameters using EM.
-            #     %
             #
-            #     % Get the priors at the current mesh position
+            # Part I: estimate Gaussian mixture model parameters, as well as bias field parameters using EM.
+            #
+            #
+            # Get the priors at the current mesh position
             tmp = mesh.rasterize_2(downSampledImageSize, -1)
             priors = tmp[downSampledMaskIndices] / 65535
-            #     % Start EM iterations.
+            # Start EM iterations.
             if ((multiResolutionLevel == 0) and (iterationNumber == 0)):
                 #
-                #       % Initialize the mixture parameters if this is the first time ever you run this
+                # Initialize the mixture parameters if this is the first time ever you run this
                 means = np.zeros((numberOfGaussians, numberOfContrasts))
                 variances = np.zeros((numberOfGaussians, numberOfContrasts, numberOfContrasts))
                 mixtureWeights = np.zeros((numberOfGaussians, 1))
                 for classNumber in range(numberOfClasses):
-                    #         % Calculate the global weighted mean and variance of this class, where the weights are given by the prior
+                    # Calculate the global weighted mean and variance of this class, where the weights are given by the prior
                     prior = priors[:, classNumber]
                     mean = data.T @ prior / np.sum(prior)
                     tmp = data - mean
                     prior = np.expand_dims(prior, 1)
                     variance = tmp.T @ (tmp * prior) / np.sum(prior)
                     if modelSpecifications.useDiagonalCovarianceMatrices:
-                        #           % Force diagonal covariance matrices
+                        # Force diagonal covariance matrices
                         variance = np.diag(np.diag(variance))
-                    #         % Based on this, initialize the mean and variance of the individual Gaussian components in this class'
-                    #         % mixture model: variances are simply copied from the global class variance, whereas the means are
-                    #         % determined by splitting the [ mean-sqrt( variance ) mean+sqrt( variance ) ] domain into equal intervals,
-                    #         % the middle of which are taken to be the means of the Gaussians. Mixture weights are initialized to be
-                    #         % all equal.
-                    #         %
-                    #         % This actually creates a mixture model that mimics the single Gaussian quite OK-ish: to visualize this
-                    #         % do e.g.,
-                    #         %
-                    #         %  for numberOfComponents = 1 : 7
-                    #         %    intervalSize = 2 / numberOfComponents;
-                    #         %    means = -1 + intervalSize/2 + [ 0 : numberOfComponents-1 ] * intervalSize;
-                    #         %    figure
-                    #         %    x = [ -6 : .1 : 6 ];
-                    #         %    gauss = exp( -x.^2/2 );
-                    #         %    plot( gauss )
-                    #         %    hold on
-                    #         %    mixture = zeros( size( x ) );
-                    #         %    for i = 1 : numberOfComponents
-                    #         %      gauss = exp( -( x - means( i ) ).^2/2 );
-                    #         %      plot( gauss / numberOfComponents, 'g' )
-                    #         %      mixture = mixture + gauss / numberOfComponents;
-                    #         %    end
-                    #         %    plot( mixture, 'r' )
-                    #         %    grid
-                    #         %    title( [ num2str( numberOfComponents ) ' components' ] )
-                    #         %  end
-                    #         %
+                    # Based on this, initialize the mean and variance of the individual Gaussian components in this class'
+                    # mixture model: variances are simply copied from the global class variance, whereas the means are
+                    # determined by splitting the [ mean-sqrt( variance ) mean+sqrt( variance ) ] domain into equal intervals,
+                    # the middle of which are taken to be the means of the Gaussians. Mixture weights are initialized to be
+                    # all equal.
+                    #
+                    # This actually creates a mixture model that mimics the single Gaussian quite OK-ish: to visualize this
+                    # do e.g.,
                     numberOfComponents = numberOfGaussiansPerClass[classNumber]
 
                     for componentNumber in range(numberOfComponents):
@@ -241,7 +221,7 @@ def samsegment_part2(
                         means[gaussianNumber, :] = (mean - np.sqrt(np.diag(variance)) + intervalSize / 2 + (
                             componentNumber) * intervalSize).T
                         mixtureWeights[gaussianNumber] = 1 / numberOfComponents
-            #       % Also remember the overall data variance for later usage in a conjugate prior on the variances
+            # Also remember the overall data variance for later usage in a conjugate prior on the variances
             dataMean = np.mean(data)
             tmp = data - dataMean
             dataVariance = np.var(tmp)
@@ -250,9 +230,9 @@ def samsegment_part2(
             historyOfEMCost = [1 / eps]
             for EMIterationNumber in range(100):
                 logger.debug('EMIterationNumber=%d', EMIterationNumber)
-                #       %
-                #       % E-step: compute the posteriors based on the current parameters.
-                #       %
+                #
+                # E-step: compute the posteriors based on the current parameters.
+                #
                 for classNumber in range(numberOfClasses):
                     prior = priors[:, classNumber]
                     numberOfComponents = numberOfGaussiansPerClass[classNumber]
@@ -282,16 +262,16 @@ def samsegment_part2(
                 intensityModelParameterCost = 0
                 for gaussianNumber in range(numberOfGaussians):
                     variance = variances[gaussianNumber, :, :]
-                    #         % Evaluate unnormalized Wishart distribution (conjugate prior on precisions) with parameters
-                    #         %
-                    #         %   scale matrix V = inv( pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior )
-                    #         %
-                    #         % and
-                    #         %
-                    #         %   degrees of freedom n = numberOfPseudoMeasurementsOfWishartPrior + numberOfContrasts + 1
-                    #         %
-                    #         % which has pseudoVarianceOfWishartPrior as the MAP solution in the absence of any data
-                    #         %
+                    # Evaluate unnormalized Wishart distribution (conjugate prior on precisions) with parameters
+                    #
+                    #   scale matrix V = inv( pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior )
+                    #
+                    # and
+                    #
+                    #   degrees of freedom n = numberOfPseudoMeasurementsOfWishartPrior + numberOfContrasts + 1
+                    #
+                    # which has pseudoVarianceOfWishartPrior as the MAP solution in the absence of any data
+                    #
                     minLogUnnormalizedWishart = \
                         np.trace(np.linalg.solve(variance, np.array(pseudoVarianceOfWishartPrior).reshape(1,
                                                                                                           1))) * numberOfPseudoMeasurementsOfWishartPrior / 2 + \
@@ -304,7 +284,7 @@ def samsegment_part2(
                 changeCostEMPerVoxel = costChangeEM / activeVoxelCount
                 changeCostEMPerVoxelThreshold = optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion
                 if changeCostEMPerVoxel < changeCostEMPerVoxelThreshold:
-                    #         % Converged
+                    # Converged
                     print('EM converged!')
                     if checkpoint_manager:
                         checkpoint_manager.increment_and_save({
@@ -318,10 +298,10 @@ def samsegment_part2(
                             'intensityModelParameterCost': intensityModelParameterCost,
                         }, 'optimizerEmExit')
                     break
-                #       %
-                #       % M-step: update the model parameters based on the current posterior
-                #       %
-                #       % First the mixture model parameters
+                #
+                # M-step: update the model parameters based on the current posterior
+                #
+                # First the mixture model parameters
                 for gaussianNumber in range(numberOfGaussians):
                     posterior = posteriors[:, gaussianNumber]
                     posterior = posterior.reshape(-1, 1)
@@ -331,26 +311,26 @@ def samsegment_part2(
                                 pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior) \
                                / (np.sum(posterior) + numberOfPseudoMeasurementsOfWishartPrior)
                     if modelSpecifications.useDiagonalCovarianceMatrices:
-                        #           % Force diagonal covariance matrices
+                        # Force diagonal covariance matrices
                         variance = np.diag(np.diag(variance));
                     variances[gaussianNumber, :, :] = variance
                     means[gaussianNumber, :] = mean.T
                 mixtureWeights = np.sum(posteriors + eps, axis=0).T
                 for classNumber in range(numberOfClasses):
-                    #         % mixture weights are normalized (those belonging to one mixture sum to one)
+                    # mixture weights are normalized (those belonging to one mixture sum to one)
                     numberOfComponents = numberOfGaussiansPerClass[classNumber]
                     gaussianNumbers = np.array(
                         np.sum(numberOfGaussiansPerClass[:classNumber]) + np.array(range(numberOfComponents)),
                         dtype=np.uint32)
                     mixtureWeights[gaussianNumbers] = mixtureWeights[gaussianNumbers] / np.sum(
                         mixtureWeights[gaussianNumbers])
-                #       % Now update the parameters of the bias field model.
+                # Now update the parameters of the bias field model.
                 if (estimateBiasField and (iterationNumber > 0)):
-                    #         %
-                    #         % Bias field correction: implements Eq. 8 in the paper
-                    #         %
-                    #         %    Van Leemput, "Automated Model-based Bias Field Correction of MR Images of the Brain", IEEE TMI 1999
-                    #         %
+                    #
+                    # Bias field correction: implements Eq. 8 in the paper
+                    #
+                    #    Van Leemput, "Automated Model-based Bias Field Correction of MR Images of the Brain", IEEE TMI 1999
+                    #
                     precisions = np.zeros_like(variances)
                     for classNumber in range(numberOfGaussians):
                         precisions[classNumber, :, :] = np.linalg.inv(variances[classNumber, :, :]).reshape(
@@ -368,12 +348,12 @@ def samsegment_part2(
                         for contrastNumber2 in range(numberOfContrasts):
                             classSpecificWeights = posteriors * precisions[:, contrastNumber1, contrastNumber2].T
                             weights = np.sum(classSpecificWeights, 1);
-                            #             % Build up stuff needed for rhs
+                            # Build up stuff needed for rhs
                             predicted = np.sum(classSpecificWeights * np.expand_dims(means[:, contrastNumber2], 2).T / (
                                     np.expand_dims(weights, 1) + eps), 1)
                             residue = data[:, contrastNumber2] - predicted
                             tmp = tmp + weights.reshape(-1, 1) * residue.reshape(-1, 1)
-                            #             % Fill in submatrix of lhs
+                            # Fill in submatrix of lhs
                             weightsImageBuffer[downSampledMaskIndices] = weights
                             computedPrecisionOfKroneckerProductBasisFunctions = computePrecisionOfKroneckerProductBasisFunctions(
                                 downSampledKroneckerProductBasisFunctions, weightsImageBuffer)
@@ -408,15 +388,15 @@ def samsegment_part2(
                             }, 'estimateBiasField')
                     pass
             historyOfEMCost = historyOfEMCost[1:]
-            #     %
-            #     % Part II: update the position of the mesh nodes for the current mixture model and bias field parameter estimates
-            #     %
+            #
+            # Part II: update the position of the mesh nodes for the current mixture model and bias field parameter estimates
+            #
             downSampledBiasCorrectedImages = []
             for contrastNumber in range(numberOfContrasts):
                 downSampledBiasCorrectedImages.append(GEMS2Python.KvlImage(
                     require_np_array(downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber])))
 
-            #     % Set up cost calculator
+            # Set up cost calculator
             calculator = GEMS2Python.KvlCostAndGradientCalculator(
                 typeName='AtlasMeshToIntensityImage',
                 images=downSampledBiasCorrectedImages,
@@ -460,7 +440,7 @@ def samsegment_part2(
                         'maximalDeformationApplied': maximalDeformationApplied,
                         'nodePositionsAfterDeformation': nodePositionsAfterDeformation,
                     }, 'optimizer')
-            #     % Keep track of the cost function we're optimizing
+            # Keep track of the cost function we're optimizing
             historyOfCost.append(minLogLikelihoodTimesDeformationPrior + intensityModelParameterCost)
             priorCost = historyOfCost[-2]
             currentCost = historyOfCost[-1]
@@ -481,10 +461,10 @@ def samsegment_part2(
                         'intensityModelParameterCost': intensityModelParameterCost,
                     }, 'optimizerPerVoxelExit')
                 break
-        #   % Get the final node positions
+        # Get the final node positions
         finalNodePositions = mesh.points
-        #   % Transform back in template space (i.e., undoing the affine registration
-        #   % that we applied), and save for later usage
+        # Transform back in template space (i.e., undoing the affine registration
+        # that we applied), and save for later usage
 
         tmp = np.linalg.solve(totalTransformationMatrix,
                               np.pad(finalNodePositions, ((0, 0), (0, 1)), 'constant', constant_values=1).T).T

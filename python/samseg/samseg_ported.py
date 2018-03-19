@@ -8,11 +8,6 @@ from samseg.samseg_ported_part3 import samsegment_part3
 
 logger = logging.getLogger(__name__)
 
-
-# function [ FreeSurferLabels, names, volumesInCubicMm ] = samsegment( imageFileNames, transformedTemplateFileName, meshCollectionFileName, ...
-#                                                                    compressionLookupTableFileName, modelSpecifications, ...
-#                                                                    optimizationOptions, savePath, showFigures )
-
 def samsegment(
         imageFileNames,
         transformedTemplateFileName,
@@ -22,14 +17,6 @@ def samsegment(
         showFigures,
         checkpoint_manager=None
 ):
-    # ﻿function [ FreeSurferLabels, names, volumesInCubicMm ] = samsegment( imageFileNames, transformedTemplateFileName, ...
-    #                                                                      modelSpecifications, optimizationOptions, ...
-    #                                                                      savePath, showFigures )
-    # %
-    # %
-    #
-    #
-    #
     part0_results_dict = Specification({
         'imageFileNames': imageFileNames,
         'transformedTemplateFileName': transformedTemplateFileName,
@@ -38,7 +25,6 @@ def samsegment(
         'savePath': savePath,
         'showFigures': showFigures,
     })
-    # transformedTemplateFileName = transformedTemplateFileName.replace('python_', 'matlab_')
     if checkpoint_manager:
         checkpoint_manager.save_specification(part0_results_dict, 'part0', 1)
     logger.info('calling part1...')

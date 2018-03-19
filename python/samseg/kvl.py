@@ -1,5 +1,4 @@
 import logging
-import math
 
 from gems2python import GEMS2Python
 
@@ -25,9 +24,7 @@ def voxel_spacing_of_transform(t):
 
 
 def calculate_down_sampling_factors(transform, target_voxel_spacing):
-    # % Figure out how much to downsample (depends on voxel size)
-    # voxelSpacing = sum( imageToWorldTransformMatrix( 1 : 3, 1 : 3 ).^2 ).^( 1/2 );
-    # downSamplingFactors = max( round( targetDownsampledVoxelSpacing ./ voxelSpacing ), [ 1 1 1 ] )
+    # Figure out how much to downsample (depends on voxel size)
     voxel_spacing = voxel_spacing_of_transform(transform)
     tentative_spacing = np.rint(target_voxel_spacing / voxel_spacing)
     limited_spacing = np.maximum([1, 1, 1], tentative_spacing)
