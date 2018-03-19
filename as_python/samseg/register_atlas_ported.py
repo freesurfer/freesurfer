@@ -431,21 +431,40 @@ def samseg_registerAtlas(imageFileName,
         imageToImageTransformMatrix = np.linalg.inv(imageToWorldTransformMatrix) * worldToWorldTransformMatrix @ templateImageToWorldTransformMatrix
 
         # end % End test if the solution is externally given
-    #
-    #
-    # % Save the image-to-image and the world-to-world affine registration matrices
+    transformedTemplateFileName = save_results(costs, imageToImageTransformMatrix, imageToWorldTransformMatrix,
+                                               savePath, template, templateFileNameBase, templateFileNameExtension,
+                                               worldToWorldTransformMatrix)
+    return worldToWorldTransformMatrix, transformedTemplateFileName
 
-    scipy.io.savemat(os.path.join(savePath, templateFileNameBase+'_coregistrationMatrices.mat'),
-                     {'imageToImageTransformMatrix': imageToImageTransformMatrix,
-                      'worldToWorldTransformMatrix': worldToWorldTransformMatrix,
-                      'costs': costs,
-                      }
-                     )
+
+def save_results(costs, imageToImageTransformMatrix, imageToWorldTransformMatrix, savePath, template,
+                 templateFileNameBase, templateFileNameExtension, worldToWorldTransformMatrix):
+    save_coregistration_matrices(costs, imageToImageTransformMatrix, savePath, templateFileNameBase,
+                                 worldToWorldTransformMatrix)
+    save_talairch(compute_talairch())
+    transformedTemplateFileName = save_coregistered_template(imageToImageTransformMatrix, imageToWorldTransformMatrix,
+                                                             savePath, template, templateFileNameBase,
+                                                             templateFileNameExtension)
+    return transformedTemplateFileName
+
+def save_coregistration_matrices(costs, imageToImageTransformMatrix, savePath, templateFileNameBase,
+                                 worldToWorldTransformMatrix):
     # transformationMatricesFileName = fullfile( savePath, ...
     #                                            [ templateFileNameBase '_coregistrationMatrices.mat' ] );
     # eval( [ 'save ' transformationMatricesFileName ' imageToImageTransformMatrix worldToWorldTransformMatrix;' ] )
     #
     #
+    #
+    #
+    # % Save the image-to-image and the world-to-world affine registration matrices
+    scipy.io.savemat(os.path.join(savePath, templateFileNameBase + '_coregistrationMatrices.mat'),
+                     {'imageToImageTransformMatrix': imageToImageTransformMatrix,
+                      'worldToWorldTransformMatrix': worldToWorldTransformMatrix,
+                      'costs': costs,
+                      }
+                     )
+
+def compute_talairch():
     # % Compute the talairach.xfm
     # % Load fsaverage orig.mgz -- this is the ultimate target/destination
     # fshome = getenv('FREESURFER_HOME');
@@ -469,23 +488,32 @@ def samseg_registerAtlas(imageFileName,
     # lta.dstmri = fsaorig;
     # lta.dstmri.vol = [];
     # lta.subject = 'fsaverage';
+    return None
+
+def save_talairch(ita, savePath):
     # ltaFileName = sprintf('%s/samseg.talairach.lta',savePath);
     # lta_write(ltaFileName,lta);
     # fprintf('Done computng and writing out LTA %s\n',ltaFileName);
     #
     #
+    pass
+
+def save_coregistered_template(imageToImageTransformMatrix, imageToWorldTransformMatrix, savePath, template,
+                               templateFileNameBase, templateFileNameExtension):
     # % For historical reasons, we applied the estimated transformation to the template; let's do that now
     # desiredTemplateImageToWorldTransformMatrix = imageToWorldTransformMatrix * imageToImageTransformMatrix
-    desiredTemplateImageToWorldTransformMatrix = np.asfortranarray(imageToWorldTransformMatrix @ imageToImageTransformMatrix)
-
+    desiredTemplateImageToWorldTransformMatrix = np.asfortranarray(
+        imageToWorldTransformMatrix @ imageToImageTransformMatrix)
     # transformedTemplateFileName = fullfile( savePath, ...
     #                                         [ templateFileNameBase '_coregistered' templateFileNameExtension ] );
-    transformedTemplateFileName = os.path.join(savePath, templateFileNameBase + '_coregistered' + templateFileNameExtension)
+    transformedTemplateFileName = os.path.join(savePath,
+                                               templateFileNameBase + '_coregistered' + templateFileNameExtension)
     # kvlWriteImage( template, transformedTemplateFileName, ...
     #                kvlCreateTransform( desiredTemplateImageToWorldTransformMatrix ) );
     template.write(transformedTemplateFileName, GEMS2Python.KvlTransform(desiredTemplateImageToWorldTransformMatrix))
     #
-    return worldToWorldTransformMatrix, transformedTemplateFileName
+    return transformedTemplateFileName
+
 
 if __name__ == '__main__':
     import os

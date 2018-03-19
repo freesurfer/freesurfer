@@ -6,6 +6,7 @@ from gems2python import GEMS2Python
 from samseg.dev_utils.debug_client import run_test_cases, compare_ndarray_dice, create_checkpoint_manager
 
 RESULT_LEAF_NAME = 'crispSegmentation.nii'
+RESULT_REGISTRATION_LEAF_NAME = 'template_coregistered.nii'
 
 
 def dice_compare_test_case(case_name, case_file_folder, save_path, cross_compare):
@@ -49,15 +50,18 @@ def find_matlab_image(save_path, case_name):
     matlab_save_path = os.path.join(os.path.dirname(os.path.dirname(save_path)), 'matlab_temp_data')
     return find_image_and_path(matlab_save_path, case_name)
 
-def find_image_and_path(case_dir, case_name=None):
+def find_image_and_path(case_dir, case_name=None, leaf_name=RESULT_LEAF_NAME):
     if case_name:
         case_dir = os.path.join(case_dir, case_name)
-    file_path = os.path.join(case_dir, RESULT_LEAF_NAME)
+    file_path = os.path.join(case_dir, leaf_name)
     if os.path.isfile(file_path):
         image_buffer = GEMS2Python.KvlImage(file_path).getImageBuffer()
         return image_buffer, file_path
     else:
         return None, file_path
+
+def find_registration_image_and_path(case_dir, case_name=None, leaf_name=RESULT_REGISTRATION_LEAF_NAME):
+    return find_image_and_path(case_dir, case_name=case_name, leaf_name=leaf_name)
 
 
 def simple_dice_compare(case_name, case_file_folder, savePath):
