@@ -508,6 +508,7 @@ void LayerROI::OnBaseVoxelEdited(const QList<int> voxel_list, bool bAdd)
 
       int cnt = 0;
       m_label->EditVoxel(n[0], n[1], n[2], bAdd, m_nVertexCache, m_nVertexCache?(&cnt):NULL);
+
       total_cnt += cnt;
     }
     if (total_cnt > 0 && m_layerMappedSurface)
@@ -558,7 +559,6 @@ void LayerROI::EditVertex(const QList<int> list_nvo_in, bool bAdd)
       else
         ret = qMax(ret, ::LabelDeleteVertex(m_label->GetRawLabel(), nvo, coords));
     }
-
     if (ret >= 0)
     {
       OnLabelDataUpdated();

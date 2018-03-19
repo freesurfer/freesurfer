@@ -45,7 +45,7 @@ FSLabel::FSLabel( QObject* parent, FSVolume* mri_template ) : QObject( parent ),
   m_label = ::LabelAlloc( 100, NULL, (char*)"" );
   if (mri_template)
   {
-    ::LabelInit(m_label, mri_template->GetMRI(), NULL, 0);
+    ::LabelInit(m_label, mri_template->GetMRI(), NULL, CURRENT_VERTICES);
     LABEL* l = m_label;
     m_label = LabelToScannerRAS(l, mri_template->GetMRI(), NULL);
     LabelFree(&l);
@@ -328,6 +328,7 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
     }
   }
 
+  QString error_strg;
   for ( int i = 0; i < m_label->n_points; i++ )
   {
     if (!m_label->lv[i].deleted && (m_label->lv[i].stat >= threshold || m_dStatsRange[0] <= 0))
@@ -353,10 +354,13 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
       }
       else
       {
-        cerr << "Label coordinate out of bound";
+        error_strg = "Label coordinate out of bound";
       }
     }
   }
+  if (!error_strg.isEmpty())
+    cerr << qPrintable(error_strg) << endl;
+
   rasImage->Modified();
 }
 
@@ -411,7 +415,7 @@ void FSLabel::GetStatsRange(double *range)
 void FSLabel::EditVoxel(int nx, int ny, int nz, bool bAdd, int* vertices, int* pnum)
 {
   if (bAdd)
-    ::LabelAddVoxel(m_label, nx, ny, nz, WHITE_VERTICES, vertices, pnum);
+    ::LabelAddVoxel(m_label, nx, ny, nz, CURRENT_VERTICES, vertices, pnum);
   else
     ::LabelDeleteVoxel(m_label, nx, ny, nz, vertices, pnum);
 //  Q_UNUSED(vertices);
@@ -461,7 +465,7 @@ void FSLabel::Clear()
   m_label = ::LabelAlloc( 100, NULL, (char*)"" );
   if (m_mri_template)
   {
-    ::LabelInit(m_label, m_mri_template->GetMRI(), NULL, 0);
+    ::LabelInit(m_label, m_mri_template->GetMRI(), NULL, CURRENT_VERTICES);
     LABEL* l = m_label;
     m_label = LabelToScannerRAS(l, m_mri_template->GetMRI(), NULL);
     LabelFree(&l);
