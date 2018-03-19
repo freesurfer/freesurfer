@@ -13061,7 +13061,9 @@ float MRIfindNearestNonzeroLocation(MRI *mri, int wsize, double xr, double yr, d
 MRI *MRIfromTalairach(MRI *mri_src, MRI *mri_dst)
 {
   int x, y, z, xv, yv, zv;
-  double xt, yt, zt, xn, yn, zn, val;
+  double 
+    xt=0, yt=0, zt=0,   // = 0 so gcc 5 doesn't complain
+    xn, yn, zn, val;
 
   if (!mri_dst) mri_dst = MRIclone(mri_src, NULL);
 
@@ -13090,7 +13092,10 @@ MRI *MRIfromTalairach(MRI *mri_src, MRI *mri_dst)
 MRI *MRItoTalairach(MRI *mri_src, MRI *mri_dst)
 {
   int x, y, z, xv, yv, zv;
-  double xt, yt, zt, xn, yn, zn, val;
+  double 
+    xt, yt, zt, 
+    xn=0, yn=0, zn=0,   // =0 so gcc 5 doesn't complain 
+    val;
 
   if (!mri_dst) mri_dst = MRIclone(mri_src, NULL);
 

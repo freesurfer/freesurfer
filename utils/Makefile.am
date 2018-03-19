@@ -149,6 +149,7 @@ libutils_main_SOURCES=\
 	matfile.c \
 	matrix.c \
 	mgh_filter.c \
+        mgh_malloc.c \
 	mgh_matrix.c \
 	min_heap.c \
 	mincutils.c \
