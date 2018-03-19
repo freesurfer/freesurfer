@@ -30,16 +30,14 @@
 extern "C" {
 #endif
 
-#include <stdio.h>
+#include "base.h"
+
 
 #define MATLAB_FILE   0
 #define HIPS_FILE     1
 #define LIST_FILE     2
 #define UNKNOWN_FILE  3
 #define TEXT_FILE     4
-
-// defines the maximum number of threads used in OpenMP code
-#define _MAX_FS_THREADS 128 
 
 double randomNumber(double low, double hi) ;
 int    setRandomSeed(long seed) ;

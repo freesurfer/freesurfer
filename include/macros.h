@@ -25,6 +25,8 @@
 #ifndef MACROS_H
 #define MACROS_H
 
+#include "base.h"
+
 #include "const.h"
 #include "utils.h"
 #include "proto.h"
@@ -139,26 +141,4 @@
 #define memmove  memcpy
 #endif
 
-#endif
-
-// you can do #if GCC_VERSION > 30200 for gcc 3.2.0
-#ifdef __GNUC__
-#define GCC_VERSION (__GNUC__ * 10000 \
-                     + __GNUC_MINOR__ * 100 \
-                     + __GNUC_PATCHLEVEL__)
-// from Graham Wideman:
-// __func__ in gcc appears not to be a predefined macro that can be
-// tested and also glued to string literals. Instead we have to use
-// printf-style
-#define __MYFUNCTION__ __func__
-
-#ifdef  __FUNCTION__
-#undef  __MYFUNCTION__
-#define __MYFUNCTION__  __FUNCTION__
-#endif
-
-#ifdef  __FUNC__
-#undef  __MYFUNCTION__
-#define __MYFUNCTION__  __FUNC__
-#endif
 #endif
