@@ -3499,7 +3499,7 @@ int LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
   for (n = 0; n < mris->nvertices; n++) area->vertex_label_ind[n] = -1;  // means that this vertex is not in th elabel
 
   MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing, NULL, &max_vno, coords);
-  area->mht = (void *)MHTcreateVertexTable_Resolution(mris, coords, max_spacing);
+  area->mht = (void *)MHTcreateVertexTable_Resolution(mris, coords, max_spacing/4);
 
   // map unassigned vertices to surface locations
   for (n = 0; n < area->n_points; n++) {
@@ -3651,15 +3651,38 @@ int LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices
   min_vno = MHTfindClosestVertexNo( area->mht, area->mris, &temp_v, &distance );
 
   lv->vno = min_vno;
-  if (min_vno >= 0 && area->vertex_label_ind[min_vno] < 0)  // found one that isn't in label
+  if (min_vno >= 0)
   {
-    area->vertex_label_ind[min_vno] = n;
-    if (pnvertices) {
-      int n = *pnvertices;
-      vertices[n] = min_vno;
-      (*pnvertices)++;
-    }
+    if (area->vertex_label_ind[min_vno] < 0)  // found one that isn't in label
+    {
+      area->vertex_label_ind[min_vno] = n;
+      if (pnvertices) {
+        int n = *pnvertices;
+        vertices[n] = min_vno;
+        (*pnvertices)++;
+      }
     //      printf("LabelAddVoxel(%d, %d, %d): added min_dist vno %d at %d\n", xv, yv, zv, min_vno, n) ;
+    }
+    else
+    {
+      lv->deleted = 1;
+    }
+  }
+  else
+  {
+    for ( i = 0; i < area->n_points-1; i++)
+    {
+      LV *lv2 = &area->lv[i];
+      if (lv2->vno < 0)
+      {
+        if (FEQUAL(lv->x, lv2->x) && FEQUAL(lv->y, lv2->y) && FEQUAL(lv->z, lv2->z))
+        {
+          lv->deleted = 1;
+          break;
+        }
+      }
+    }
+    return (NO_ERROR);
   }
   //  else
   //    printf("min dist vertex %d already in label\n", min_vno) ;
@@ -3685,7 +3708,7 @@ int LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices
     }
   }
 
-  return (min_vno);
+  return (NO_ERROR);
 }
 
 int LabelDeleteVoxel(LABEL *area, int xv, int yv, int zv, int *vertices, int *pnvertices)
