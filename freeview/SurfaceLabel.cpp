@@ -135,8 +135,11 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
 
   // update vno if it is -1
   MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
+  double max_spacing;
+  int max_vno;
+  MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing, NULL, &max_vno, CURRENT_VERTICES);
   MHT* hash = MHTcreateVertexTable_Resolution(mris,
-                                    CURRENT_VERTICES, 16);
+                                    CURRENT_VERTICES, max_spacing/3);
 
   if (m_label->n_points > 0)
     m_dHeatscaleMin = m_dHeatscaleMax = m_label->lv[0].stat;
