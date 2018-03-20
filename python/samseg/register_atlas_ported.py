@@ -441,7 +441,7 @@ def save_results(costs, imageToImageTransformMatrix, imageToWorldTransformMatrix
                  templateFileNameBase, templateFileNameExtension, worldToWorldTransformMatrix):
     save_coregistration_matrices(costs, imageToImageTransformMatrix, savePath, templateFileNameBase,
                                  worldToWorldTransformMatrix)
-    save_talairch(compute_talairch())
+    save_talairch(compute_talairch(), savePath)
     transformedTemplateFileName = save_coregistered_template(imageToImageTransformMatrix, imageToWorldTransformMatrix,
                                                              savePath, template, templateFileNameBase,
                                                              templateFileNameExtension)
