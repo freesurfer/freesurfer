@@ -1,0 +1,3 @@
+[submodule "GEMS2/pybind11"]
+	path = GEMS2/pybind11
+	url = git@github.com:pybind/pybind11.git
