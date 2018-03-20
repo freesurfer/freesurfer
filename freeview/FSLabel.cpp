@@ -412,10 +412,10 @@ void FSLabel::GetStatsRange(double *range)
   range[1] = m_dStatsRange[1];
 }
 
-void FSLabel::EditVoxel(int nx, int ny, int nz, bool bAdd, int* vertices, int* pnum)
+void FSLabel::EditVoxel(int nx, int ny, int nz, int coords, bool bAdd, int* vertices, int* pnum)
 {
   if (bAdd)
-    ::LabelAddVoxel(m_label, nx, ny, nz, CURRENT_VERTICES, vertices, pnum);
+    ::LabelAddVoxel(m_label, nx, ny, nz, coords, vertices, pnum);
   else
     ::LabelDeleteVoxel(m_label, nx, ny, nz, vertices, pnum);
 //  Q_UNUSED(vertices);

@@ -507,7 +507,10 @@ void LayerROI::OnBaseVoxelEdited(const QList<int> voxel_list, bool bAdd)
         m_nVertexCache = new int[m_layerMappedSurface->GetNumberOfVertices()];
 
       int cnt = 0;
-      m_label->EditVoxel(n[0], n[1], n[2], bAdd, m_nVertexCache, m_nVertexCache?(&cnt):NULL);
+      int coords = 0;
+      if (m_layerMappedSurface)
+        coords = m_layerMappedSurface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES;
+      m_label->EditVoxel(n[0], n[1], n[2], coords, bAdd, m_nVertexCache, m_nVertexCache?(&cnt):NULL);
 
       total_cnt += cnt;
     }
