@@ -16,6 +16,7 @@ set monly = 0;
 set MLF = ();
 set DoRecon = 0;
 set threads = 1;
+set stiffness = 0.1
 set parallel = 0;
 set DoValGrind = 0
 set vg = (valgrind --error-limit=no --leak-check=yes --tool=memcheck --track-origins=yes)
@@ -119,6 +120,7 @@ if($usebin) then
   if($#regmat)  set cmd0 = ($cmd0 --regmat $regmat)
   if($#initlta) set cmd0 = ($cmd0 --initlta $regmat)
   if($regonly) set cmd0 = ($cmd0 --regonly);
+  set cmd0 = ($cmd0 --stiffness $stiffness)
   foreach input ($inputlist)
     set cmd0 = ($cmd0 --i $input)
   end
@@ -133,16 +135,19 @@ if($usebin) then
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) goto error_exit;
+  echo "Finished with run_samseg binary" | tee -a $LF
 else
   if($#MLF == 0) set MLF = $outdir/samseg.m
   rm -f $MLF
   # You should probably have these things in your path already
   # echo "path(path,'/autofs/cluster/koen/koen/GEMS-Release/bin')" >> $MLF
   # echo "path(path,'/usr/pubsw/common/spm/spm8');" >> $MLF
+  echo "setenv('SAMSEG_DATA_DIR','$SAMSEG_DATA_DIR');" >> $MLF
   echo "which run_samseg"  >> $MLF
   echo "which samsegment"  >> $MLF
   echo "which samseg_registerAtlas"  >> $MLF
   echo -n "run_samseg('--o','$outdir','--threads','$threads'" >> $MLF
+  echo -n ",'--stiffness','$stiffness'" >> $MLF
   if($#regmat) echo -n ",'--regmat','$regmat'" >> $MLF; # note leading comma
   if($#initlta) echo -n ",'--initlta','$initlta'" >> $MLF; # note leading comma
   if($exvivo == 1) echo -n ",'--exvivo'" >> $MLF; # note leading comma
@@ -161,6 +166,7 @@ else
     cat $MLF |& $matlab -display iconic $threads |& tee -a $LF
   endif
   if($monly) exit 0
+  echo "Finished with run_samseg in matlab" | tee -a $LF
 endif
 
 date | tee -a $LF
@@ -225,9 +231,11 @@ set tSecEnd = `date '+%s'`;
 @ tSecRun = $tSecEnd - $tSecStart;
 set tRunHours = `echo $tSecRun/3600|bc -l`
 set tRunHours = `printf %5.2f $tRunHours`
+set tRunMin = `echo $tSecRun/60|bc -l`
+set tRunMin = `printf %5.2f $tRunMin`
 echo "Started at $StartTime " |& tee -a $LF
 echo "Ended   at `date`" |& tee -a $LF
-echo "Samseg-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Samseg-Run-Time-Min $tRunMin" |& tee -a $LF
 echo "Samseg-Run-Time-Hours $tRunHours" |& tee -a $LF
 echo " " |& tee -a $LF
 echo "samseg Done" |& tee -a $LF
@@ -339,6 +347,17 @@ while( $#argv != 0 )
     case "--threads":
       if( $#argv < 1) goto arg1err;
       set threads =  $1; shift;
+      breaksw
+
+    case "--stiffness":
+    case "--K":
+      if( $#argv < 1) goto arg1err;
+      set stiffness =  $1; shift;
+      breaksw
+
+    case "--ssdd":
+      if( $#argv < 1) goto arg1err;
+      setenv SAMSEG_DATA_DIR $1; shift;
       breaksw
 
     case "--parallel":
@@ -500,7 +519,8 @@ usage_exit:
   echo "    allows using the reg from one run with another run"
   echo " --initlta init.lta : initial registration"
   echo " --reg-only : only perform registration"
-  echo ""
+  echo " --stiffness K : mesh stiffness ($stiffness)"
+  echo " --ssdd SAMSEG_DATA_DIR : where the atlas is located"
 
   if(! $PrintHelp) exit 1;
   echo $VERSION
