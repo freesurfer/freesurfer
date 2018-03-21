@@ -15,6 +15,7 @@ cmdargs.regmatfile = '';
 cmdargs.initltafile = '';
 cmdargs.regonly = 0;
 cmdargs.nthreads = 1;
+cmdargs.stiffness = 0.1;
 cmdargs.showfigs = 0;
 cmdargs.nobrainmask = 0;
 cmdargs.diagcovs = 0;
@@ -35,7 +36,8 @@ dump_args(cmdargs);
 
 fprintf('%s\n',mfileversion);
 fprintf('Matlab version %s\n',version);
-
+fprintf('2 cmd Stiffness %g\n',cmdargs.stiffness);
+    
 savePath = cmdargs.outdir;
 numberOfThreads = cmdargs.nthreads;
 showFigures = cmdargs.showfigs;
@@ -147,7 +149,8 @@ if noBrainMasking
 else
   modelSpecifications.brainMaskingThreshold = 0.01;
 end
-modelSpecifications.K = 0.1; % Stiffness of the mesh
+modelSpecifications.K = cmdargs.stiffness; % Stiffness of the mesh
+fprintf('Stiffness %g\n',modelSpecifications.K);
 modelSpecifications.biasFieldSmoothingKernelSize = 50.0;  % Distance in mm of sinc function center to first zero crossing
 
 % Set various optimization options
@@ -177,7 +180,7 @@ optimizationOptions.BFGSMaximumMemoryLength = 12;
 names
 volumesInCubicMm
 
-fprintf('#@# samseg done %6.4f min\n',toc( samsegStartTime )/60);
+fprintf('#@# run_samseg done %6.4f min\n',toc( samsegStartTime )/60);
 retval = 0;
 return
 
@@ -211,6 +214,12 @@ while(narg <= ninputargs)
    case '--threads',
     arg1check(flag,narg,ninputargs);
     cmdargs.nthreads = sscanf(inputargs{narg},'%d');
+    narg = narg + 1;
+    
+   case '--stiffness',
+    arg1check(flag,narg,ninputargs);
+    cmdargs.stiffness = sscanf(inputargs{narg},'%f');
+    fprintf('cmd Stiffness %g\n',cmdargs.stiffness);
     narg = narg + 1;
     
    case '--o',
