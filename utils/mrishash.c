@@ -1571,11 +1571,10 @@ static int mhtDoesTriangleVoxelListIntersect(
     int const zv = (*voxel)[2];
 
     //----------------------------------------------------------
-    // Get corresponding bucket from mht. This *should* always
-    // succeed, given that the same info was just used to put xv,yv,zv
-    // into voxlist as was used to put faces into mht buckets.
+    // Get corresponding bucket from mht, if any.
+    // There might not be...
     //----------------------------------------------------------
-    if (!existsBuckets2(mht,xv,yv)) return (0);
+    if (!existsBuckets2(mht,xv,yv)) continue;
     
     MHBT const * bucket = acqBucket(mht,xv,yv,zv);
     if (!bucket) continue;
