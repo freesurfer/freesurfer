@@ -3464,8 +3464,8 @@ LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, i
 
 int LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
 {
-  double xv, yv, zv, max_spacing, x, y, z, min_dist, vx, vy, vz;
-  int n, max_vno, min_vno, i, vno;
+  double xv, yv, zv, x, y, z, min_dist, vx, vy, vz;
+  int n, min_vno, i, vno;
   LV *lv;
   VERTEX *v;
 
@@ -3498,8 +3498,9 @@ int LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
     ErrorExit(ERROR_NOMEMORY, "LabelInit: could not allocate %d-long vertex index array", mris->nvertices);
   for (n = 0; n < mris->nvertices; n++) area->vertex_label_ind[n] = -1;  // means that this vertex is not in th elabel
 
-  MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing, NULL, &max_vno, coords);
-  area->mht = (void *)MHTcreateVertexTable_Resolution(mris, coords, max_spacing/4);
+  double vxl_spacing = (mri_template->xsize < mri_template->ysize ? mri_template->xsize : mri_template->ysize);
+  vxl_spacing = (vxl_spacing < mri_template->zsize ? vxl_spacing : mri_template->zsize);
+  area->mht = (void *)MHTcreateVertexTable_Resolution(mris, coords, vxl_spacing);
 
   // map unassigned vertices to surface locations
   for (n = 0; n < area->n_points; n++) {
@@ -3568,23 +3569,21 @@ int LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
     {
       area->vertex_label_ind[min_vno] = n;
       //      printf("LabelAddVoxel(%d, %d, %d): added min_dist vno %d at %d\n", xv, yv, zv, min_vno, n) ;
-    }
-    //  else
-    //    printf("min dist vertex %d already in label\n", min_vno) ;
 
-    // now add other vertices that also map to this voxel
-    VERTEX* min_v = &((MRI_SURFACE *)(area->mris))->vertices[min_vno];
-    for (i = 0; i < min_v->vnum; i++)  // find min dist vertex
-    {
-      vno = min_v->v[i];
-      if (area->vertex_label_ind[vno] >= 0) continue;  // already in the label
-      v = &((MRI_SURFACE *)(area->mris))->vertices[vno];
-      if (vno == Gdiag_no) DiagBreak();
+      // now add other vertices that also map to this voxel
+      VERTEX* min_v = &((MRI_SURFACE *)(area->mris))->vertices[min_vno];
+      for (i = 0; i < min_v->vnum; i++)  // find min dist vertex
+      {
+        vno = min_v->v[i];
+        if (area->vertex_label_ind[vno] >= 0) continue;  // already in the label
+        v = &((MRI_SURFACE *)(area->mris))->vertices[vno];
+        if (vno == Gdiag_no) DiagBreak();
 
-      MRISgetCoords(v, coords, &x, &y, &z);
-      MRISsurfaceRASToVoxel(area->mris, area->mri_template, x, y, z, &vx, &vy, &vz);
-      if ((xv == nint(vx)) && (yv == nint(vy)) && (zv == nint(vz))) {
-        LabelAddVertex(area, vno, coords);
+        MRISgetCoords(v, coords, &x, &y, &z);
+        MRISsurfaceRASToVoxel(area->mris, area->mri_template, x, y, z, &vx, &vy, &vz);
+        if ((xv == nint(vx)) && (yv == nint(vy)) && (zv == nint(vz))) {
+          LabelAddVertex(area, vno, coords);
+        }
       }
     }
   }
@@ -3661,11 +3660,32 @@ int LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices
         vertices[n] = min_vno;
         (*pnvertices)++;
       }
-    //      printf("LabelAddVoxel(%d, %d, %d): added min_dist vno %d at %d\n", xv, yv, zv, min_vno, n) ;
+      //      printf("LabelAddVoxel(%d, %d, %d): added min_dist vno %d at %d\n", xv, yv, zv, min_vno, n) ;
     }
-    else
+    else  //
     {
-      lv->deleted = 1;
+      n = area->vertex_label_ind[min_vno];
+      LV *lv2 = &area->lv[n];
+      if (FEQUAL(lv->x, lv2->x) && FEQUAL(lv->y, lv2->y) && FEQUAL(lv->z, lv2->z))
+      {
+        lv->deleted = 1;
+      }
+      else
+      {
+        lv->vno = -1;
+        for ( i = 0; i < area->n_points-1; i++)
+        {
+          LV *lv2 = &area->lv[i];
+          if ( lv2->vno < 0 && !lv2->deleted)
+          {
+            if (FEQUAL(lv->x, lv2->x) && FEQUAL(lv->y, lv2->y) && FEQUAL(lv->z, lv2->z))
+            {
+              lv->deleted = 1;
+              break;
+            }
+          }
+        }
+      }
     }
   }
   else
@@ -3673,7 +3693,7 @@ int LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices
     for ( i = 0; i < area->n_points-1; i++)
     {
       LV *lv2 = &area->lv[i];
-      if (lv2->vno < 0)
+      if ( lv2->vno < 0 && !lv2->deleted)
       {
         if (FEQUAL(lv->x, lv2->x) && FEQUAL(lv->y, lv2->y) && FEQUAL(lv->z, lv2->z))
         {
