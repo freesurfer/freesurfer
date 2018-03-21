@@ -300,7 +300,7 @@ bool FSSurface::InitializeData(const QString &vector_filename,
   double max_spacing;
   int max_vno;
   MRIScomputeVertexSpacingStats(m_MRIS, NULL, NULL, &max_spacing, NULL, &max_vno, CURRENT_VERTICES);
-  m_HashTable[0] = MHTcreateVertexTable_Resolution( m_MRIS, CURRENT_VERTICES, max_spacing/3 );
+  m_HashTable[0] = MHTcreateVertexTable_Resolution( m_MRIS, CURRENT_VERTICES, max_spacing/4 );
 
   UpdatePolyData();
 
@@ -416,7 +416,7 @@ bool FSSurface::LoadSurface( const QString& filename, int nSet )
     double max_spacing;
     int max_vno, coord = (filename == "white" ? WHITE_VERTICES:CURRENT_VERTICES);
     MRIScomputeVertexSpacingStats(m_MRIS, NULL, NULL, &max_spacing, NULL, &max_vno, coord);
-    m_HashTable[nSet] = MHTcreateVertexTable_Resolution( m_MRIS, coord, max_spacing/3 );
+    m_HashTable[nSet] = MHTcreateVertexTable_Resolution( m_MRIS, coord, max_spacing/4 );
     ComputeNormals();
     SaveVertices( m_MRIS, nSet );
     SaveNormals ( m_MRIS, nSet );
@@ -1897,7 +1897,7 @@ void FSSurface::PostEditProcess()
   double max_spacing;
   int max_vno;
   MRIScomputeVertexSpacingStats(m_MRIS, NULL, NULL, &max_spacing, NULL, &max_vno, CURRENT_VERTICES);
-  m_HashTable[m_nActiveSurface] = MHTcreateVertexTable_Resolution( m_MRIS, CURRENT_VERTICES, max_spacing/3);
+  m_HashTable[m_nActiveSurface] = MHTcreateVertexTable_Resolution( m_MRIS, CURRENT_VERTICES, max_spacing/4);
 
   SaveVertices( m_MRIS, m_nActiveSurface );
   ComputeNormals();
