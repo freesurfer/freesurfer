@@ -11983,15 +11983,6 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
     mris_print_hash(stdout, mris, "mris ", "\n");
   }
 
-  int const interestingFno = 
-    (goneParallelCount() == 1277 - 3    // -1 because haven't started yet, -1 fno loop, -1 vno to svi loop
-    ) ? 151232 : -1;
-  
-  if (interestingFno >= 0) {
-    fprintf(stdout, "%s:%d interestingFno:%d set\n", __FILE__, __LINE__, interestingFno);
-    MHTsetInterestingFno(mht, interestingFno);
-  }
-  
   { int fno;
     ROMP_PF_begin
     #pragma omp parallel for if_ROMP(assume_reproducible)
