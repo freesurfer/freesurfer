@@ -1,3 +1,4 @@
+static const int debugNonDeterminism = 0;
 /*
  * @file utilities operating on Original
  *
@@ -4264,6 +4265,11 @@ static int mrisComputeVertexDistances(MRI_SURFACE *mris)
 {
   int vno;
 
+  if (debugNonDeterminism) {
+    fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+    mris_print_hash(stdout, mris, "mris ", "\n");
+  }
+
   switch (mris->status) {
     default: /* don't really know what to do in other cases */
 
@@ -4433,6 +4439,11 @@ static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
 
   Sum = 0;
   Sum2 = 0;
+
+  if (debugNonDeterminism) {
+    fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+    mris_print_hash(stdout, Surf, "Surf ", "\n");
+  }
 
 #ifdef BEVIN_MRISAVGINTERVERTEXDIST_REPRODUCIBLE
 
@@ -11446,6 +11457,11 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
 
   double reduction_total_area = 0.0f;
 
+  if (debugNonDeterminism) {
+    fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+    mris_print_hash(stdout, mris, "mris ", "\n");
+  }
+
 #if 0
 
   int fno;
@@ -11599,6 +11615,11 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
   }
   
   SET_OR_CHECK(mris->total_area, (float)reduction_total_area);
+
+  if (debugNonDeterminism) {
+    fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+    mris_print_hash(stdout, mris, "mris ", "\n");
+  }
 
 /* calculate the "area" of the vertices */
   int vno;
@@ -11884,6 +11905,11 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
 	}
       }
       
+      if (debugNonDeterminism) {
+        fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+        mris_print_hash(stdout, mris, "mris ", "\n");
+      }
+
       int vnoStep = (mris->nvertices + _MAX_FS_THREADS - 1)/_MAX_FS_THREADS;
       int vnoLo; 
       ROMP_PF_begin
@@ -11906,10 +11932,14 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
           mrisAsynchronousTimeStep_update_odxyz(
             mris, momentum, delta_t, max_mag, v);
 
-          PerVertexInfo* pvi = vertexInfos+vno; 
-          xLos[tid] = MIN(xLos[tid], pvi->xLo = v->x); xHis[tid] = MAX(xHis[tid], pvi->xHi = v->x + v->odx);
-          yLos[tid] = MIN(yLos[tid], pvi->yLo = v->y); yHis[tid] = MAX(yHis[tid], pvi->yHi = v->y + v->ody);
-          zLos[tid] = MIN(zLos[tid], pvi->zLo = v->z); zHis[tid] = MAX(zHis[tid], pvi->zHi = v->z + v->odz);
+          PerVertexInfo* pvi = vertexInfos + vno;
+          float tLo, tHi;
+          tLo = v->x; tHi = v->x + v->odx; if (tLo > tHi) { float temp = tLo; tLo = tHi; tHi = temp; }
+          xLos[tid] = MIN(xLos[tid], pvi->xLo = tLo); xHis[tid] = MAX(xHis[tid], pvi->xHi = tHi);
+          tLo = v->y; tHi = v->y + v->ody; if (tLo > tHi) { float temp = tLo; tLo = tHi; tHi = temp; }
+          yLos[tid] = MIN(yLos[tid], pvi->yLo = tLo); yHis[tid] = MAX(yHis[tid], pvi->yHi = tHi);
+          tLo = v->z; tHi = v->z + v->odz; if (tLo > tHi) { float temp = tLo; tLo = tHi; tHi = temp; }
+          zLos[tid] = MIN(zLos[tid], pvi->zLo = tLo); zHis[tid] = MAX(zHis[tid], pvi->zHi = tHi);
 	}
 	
         ROMP_PFLB_end
@@ -11948,10 +11978,15 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
   } PerFaceInfo;
   PerFaceInfo* faceInfos = (PerFaceInfo*)calloc(mris->nfaces, sizeof(PerFaceInfo));
 
+  if (debugNonDeterminism) {
+    fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+    mris_print_hash(stdout, mris, "mris ", "\n");
+  }
+
   { int fno;
     ROMP_PF_begin
     #pragma omp parallel for if_ROMP(assume_reproducible)
-    for (fno = 0; fno < mris->nvertices; fno++) {
+    for (fno = 0; fno < mris->nfaces; fno++) {
       ROMP_PFLB_begin
       
       FACE const * const face = &mris->faces[fno];
@@ -12038,6 +12073,10 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
   } SubvolInfo;
   SubvolInfo* subvols = (SubvolInfo*)calloc(numSubvols, sizeof(SubvolInfo));
   
+  if (debugNonDeterminism) {
+    fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+    mris_print_hash(stdout, mris, "mris ", "\n");
+  }
   { int i;
     ROMP_PF_begin
     #pragma omp parallel for if_ROMP(assume_reproducible)
@@ -12050,8 +12089,10 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
         : i;
       
       VERTEX const * const v = &mris->vertices[vno];
-      if (v->ripflag || v->num == 0) ROMP_PF_continue;
-
+      if (v->ripflag || v->num == 0) {
+        ROMP_PF_continue;
+      }
+      
       // Choose the same svi as all its faces have, 
       // but if they disagree, use the shared subvol
       //
@@ -12075,7 +12116,8 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
       pvi->nextVnoPlus1 = subvol->firstVnoPlus1;    
       subvol->firstVnoPlus1 = vno + 1;
       if (!subvol->lastVnoPlus1) subvol->lastVnoPlus1 = vno + 1;
-      
+
+          
       ROMP_PFLB_end
     }
     ROMP_PF_end 
@@ -12109,6 +12151,12 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
       //
       qsort(temp, tempSize, sizeof(int), int_compare);
 
+      if (false && debugNonDeterminism) {
+        unsigned long hash = fnv_add(fnv_init(), (const unsigned char*)temp, tempSize*sizeof(int));
+        fprintf(stdout, "%s:%d stdout hash of the allocation into the %d subvolume:%ld\n",__FILE__,__LINE__,svi,hash);
+      }
+
+
       // put it into the thread 0 subvolume for this svi
       //
       SubvolInfo* subvol0 = subvols + svi;
@@ -12141,6 +12189,10 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
       int const sviLo = (pass==0) ? 0                     : numSubvolsPerThread-1;
       int const sviHi = (pass==0) ? numSubvolsPerThread-1 : numSubvolsPerThread;
       int svi;
+      if (debugNonDeterminism) {
+        fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);             // the results differ here on the 2nd pass!
+        mris_print_hash(stdout, mris, "mris ", "\n");
+      }
       ROMP_PF_begin
       #pragma omp parallel for if_ROMP(assume_reproducible)
       for (svi = sviLo; svi < sviHi; svi++) {
@@ -33272,6 +33324,12 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
       else {
         rms = mrisRmsValError(mris, mri_brain);
       }
+      
+      if (debugNonDeterminism) {
+        fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+        mris_print_hash(stdout, mris, "Input to MRIScomputeSSE ", "\n");
+      }
+      
       sse = MRIScomputeSSE(mris, parms);
       done = 1;
       /* check to see if the error decreased substantially, if not
