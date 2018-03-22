@@ -1265,7 +1265,7 @@ int main(int argc, char **argv) {
       MRIfree(&firstFrameVol);
     }
     else{
-      mriglm->mask = MRIframeBinarize(mriglm->y,FLT_MIN,mriglm->mask);
+      mriglm->mask = MRIframeBinarize(mriglm->y,prune_thr,mriglm->mask);
     }
   }
 

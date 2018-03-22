@@ -223,6 +223,7 @@ rmcr \
 rtview \
 run-qdec-glm \
 samseg2recon \
+seg2filled \
 segment_monkey \
 segment_subject \
 segment_subject_notal \
