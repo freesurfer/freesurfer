@@ -10,11 +10,9 @@ endif
 set outdir = ();
 set subject = ();
 set usebin = 0;
-set usegpu = 0;
 set exvivo = 0;
 set monly = 0;
 set MLF = ();
-set DoRecon = 0;
 set threads = 1;
 set stiffness = 0.1
 set parallel = 0;
@@ -30,6 +28,9 @@ set regonly = 0;
 set missingstructs = ()
 set computedice = 0;
 set diceseg = none
+set DoRecon = 0;
+set DoFill = 0;
+set DoNormalization2 = 0;
 set DoHiRes = 1;
 if($?SAMSEG_DATA_DIR == 0) then
   setenv SAMSEG_DATA_DIR /autofs/cluster/koen/koen/koenAtlases/20Subjects_smoothing2_down2_smoothingForAffine2
@@ -200,6 +201,8 @@ endif
 # Prep for recon
 if($#subject != 0) then
   set cmd = (samseg2recon --i $input --s $subject)
+  if($DoFill) set cmd = ($cmd --fill)
+  if($DoNormalization2) set cmd = ($cmd --normalization2)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;
@@ -212,6 +215,8 @@ if($#subject != 0) then
       set cmd = ($cmd -parallel)
     endif
     set cmd = ($cmd -s $subject -autorecon2-samseg -autorecon3 -threads $threads)
+    if($DoFill) set cmd = ($cmd -nosegmentation -nofill)
+    if($DoNormalization2) set cmd = ($cmd -nonormalization2)
     if($DoHiRes) set cmd = ($cmd -hires)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
@@ -364,11 +369,18 @@ while( $#argv != 0 )
       set parallel = 1
       breaksw
 
-    case "--gpu":
-      set usegpu = 1;
+    case "--fill":
+      set DoFill = 1;
       breaksw
-    case "--no-gpu":
-      set usegpu = 0;
+    case "--no-fill":
+      set DoFill = 0;
+      breaksw
+
+    case "--normalization2":
+      set DoNormalization2 = 1;
+      breaksw
+    case "--nonormalization2":
+      set DoNormalization2 = 0;
       breaksw
 
     case "--valgrind":
@@ -467,7 +479,7 @@ if($#subject) then
   # --conformed-to-min in new version of mri_info
   set cmd = (mri_info --conformed-to-min $inputlist[1])
   set isconformed = `$cmd | head -n 1`
-  if("$isconformed" != "yes") then
+  if(0 && "$isconformed" != "yes") then
     echo "$isconformed"
     echo "ERROR: must use conformed volume with --s"
     exit 1;
@@ -514,6 +526,8 @@ usage_exit:
   echo "  --s subject : create subject, sets outdir to subject/mri/samseg"
   echo "                the first input must be the conformed T1 weighted input"
   echo "  --recon : run recon-all "
+  echo "  --fill : create filled.mgz from samseg output (with --recon) "
+  echo "  --normalization2 : create brain.mgz from samseg output (with --recon) "
   echo ""
   echo " --regmat reg.mat : registration file (as output by samseg)"
   echo "    allows using the reg from one run with another run"
