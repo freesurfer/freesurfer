@@ -6,15 +6,22 @@ import scipy.ndimage
 import scipy.io
 import os
 
+from samseg.lta import LTA, MRI
+
 logger = logging.getLogger(__name__)
+
 
 def require_np_array(np_array):
     return np.require(np_array, requirements=['F_CONTIGUOUS', 'ALIGNED'])
 
+
 ASSERTIONS_ON = False
+
+
 def assert_close(golden, trial, **kwargs):
     if ASSERTIONS_ON:
         np.testing.assert_allclose(golden, trial, **kwargs)
+
 
 def samseg_registerAtlas(imageFileName,
                          meshCollectionFileName,
@@ -114,7 +121,6 @@ def samseg_registerAtlas(imageFileName,
         K = K / (scaling * scaling * scaling)
         #   end
 
-
         #   initialImageToImageTransformMatrix = imageToWorldTransformMatrix \ ...
         #                     ( initialWorldToWorldTransformMatrix * templateImageToWorldTransformMatrix );
         multiplied = (initialWorldToWorldTransformMatrix @ templateImageToWorldTransformMatrix)
@@ -123,7 +129,7 @@ def samseg_registerAtlas(imageFileName,
         #
         #   % Figure out how much to downsample (depends on voxel size)
         #   voxelSpacing = sum( imageToWorldTransformMatrix( 1 : 3, 1 : 3 ).^2 ).^( 1/2 );
-        voxelSpacing = np.sum(imageToWorldTransformMatrix[0:3,0:3]**2, axis=0)**(1/2)
+        voxelSpacing = np.sum(imageToWorldTransformMatrix[0:3, 0:3] ** 2, axis=0) ** (1 / 2)
         #   downSamplingFactors = max( round( targetDownsampledVoxelSpacing ./ voxelSpacing ), [ 1 1 1 ] )
         downSamplingFactors = np.round(targetDownsampledVoxelSpacing / voxelSpacing)
         downSamplingFactors[downSamplingFactors < 1] = 1
@@ -248,7 +254,8 @@ def samseg_registerAtlas(imageFileName,
             #       % This is better starting position; remember that we applied it
             #       initialImageToImageTransformMatrix( 1 : 3, 4 ) = ...
             #               initialImageToImageTransformMatrix( 1 : 3, 4 ) + diag( downSamplingFactors ) * initialTranslation;
-            initialImageToImageTransformMatrix[0:3, 3] = initialImageToImageTransformMatrix[0:3, 3] + (np.diag( downSamplingFactors ) @ initialTranslation)
+            initialImageToImageTransformMatrix[0:3, 3] = initialImageToImageTransformMatrix[0:3, 3] + (
+                    np.diag(downSamplingFactors) @ initialTranslation)
         #   end
         #
         #   end
@@ -403,12 +410,12 @@ def samseg_registerAtlas(imageFileName,
         #   nodePositions = kvlGetMeshNodePositions( mesh );
         nodePositions = mesh.points
         #   pointNumbers = [ 1 111 202 303 ];
-        pointNumbers = [0, 110, 201, 302 ]
+        pointNumbers = [0, 110, 201, 302]
         #   originalY = [ diag( downSamplingFactors ) * originalNodePositions( pointNumbers, : )'; 1 1 1 1 ];
-        originalY = np.vstack((np.diag( downSamplingFactors ) @ originalNodePositions[pointNumbers].T, [1, 1, 1, 1]))
+        originalY = np.vstack((np.diag(downSamplingFactors) @ originalNodePositions[pointNumbers].T, [1, 1, 1, 1]))
 
         #   Y = [ diag( downSamplingFactors ) * nodePositions( pointNumbers, : )'; 1 1 1 1 ];
-        Y = np.vstack((np.diag( downSamplingFactors ) @ nodePositions[pointNumbers].T, [1, 1, 1, 1]))
+        Y = np.vstack((np.diag(downSamplingFactors) @ nodePositions[pointNumbers].T, [1, 1, 1, 1]))
         #   extraImageToImageTransformMatrix = Y * inv( originalY );
         extraImageToImageTransformMatrix = Y @ np.linalg.inv(originalY)
         #
@@ -418,8 +425,8 @@ def samseg_registerAtlas(imageFileName,
         imageToImageTransformMatrix = extraImageToImageTransformMatrix @ initialImageToImageTransformMatrix
         #   worldToWorldTransformMatrix = imageToWorldTransformMatrix * imageToImageTransformMatrix * ...
         #                                 inv( templateImageToWorldTransformMatrix );
-        worldToWorldTransformMatrix = imageToWorldTransformMatrix @ imageToImageTransformMatrix @ np.linalg.inv( templateImageToWorldTransformMatrix )
-
+        worldToWorldTransformMatrix = imageToWorldTransformMatrix @ imageToImageTransformMatrix @ np.linalg.inv(
+            templateImageToWorldTransformMatrix)
 
         # #
     # else
@@ -428,24 +435,57 @@ def samseg_registerAtlas(imageFileName,
         #   % transform (needed for subsequent computations) and be done
         #   imageToImageTransformMatrix = inv( imageToWorldTransformMatrix ) * worldToWorldTransformMatrix * ...
         #                                 templateImageToWorldTransformMatrix
-        imageToImageTransformMatrix = np.linalg.inv(imageToWorldTransformMatrix) * worldToWorldTransformMatrix @ templateImageToWorldTransformMatrix
+        imageToImageTransformMatrix = np.linalg.inv(
+            imageToWorldTransformMatrix) * worldToWorldTransformMatrix @ templateImageToWorldTransformMatrix
 
         # end % End test if the solution is externally given
-    transformedTemplateFileName = save_results(costs, imageToImageTransformMatrix, imageToWorldTransformMatrix,
-                                               savePath, template, templateFileNameBase, templateFileNameExtension,
-                                               worldToWorldTransformMatrix)
+    transformedTemplateFileName = save_results(
+        costs,
+        imageFileName,
+        imageToImageTransformMatrix,
+        imageToWorldTransformMatrix,
+        savePath,
+        template,
+        templateFileNameBase,
+        templateFileNameExtension,
+        templateImageToWorldTransformMatrix,
+        worldToWorldTransformMatrix,
+    )
     return worldToWorldTransformMatrix, transformedTemplateFileName
 
 
-def save_results(costs, imageToImageTransformMatrix, imageToWorldTransformMatrix, savePath, template,
-                 templateFileNameBase, templateFileNameExtension, worldToWorldTransformMatrix):
-    save_coregistration_matrices(costs, imageToImageTransformMatrix, savePath, templateFileNameBase,
-                                 worldToWorldTransformMatrix)
-    save_talairch(compute_talairch(), savePath)
-    transformedTemplateFileName = save_coregistered_template(imageToImageTransformMatrix, imageToWorldTransformMatrix,
-                                                             savePath, template, templateFileNameBase,
-                                                             templateFileNameExtension)
+def save_results(
+        costs,
+        imageFileName,
+        imageToImageTransformMatrix,
+        imageToWorldTransformMatrix,
+        savePath,
+        template,
+        templateFileNameBase,
+        templateFileNameExtension,
+        templateImageToWorldTransformMatrix,
+        worldToWorldTransformMatrix,
+):
+    save_coregistration_matrices(
+        costs,
+        imageToImageTransformMatrix,
+        savePath,
+        templateFileNameBase,
+        worldToWorldTransformMatrix,
+    )
+    save_talairch(
+        compute_talairach(imageFileName, imageToImageTransformMatrix, templateImageToWorldTransformMatrix),
+        savePath)
+    transformedTemplateFileName = save_coregistered_template(
+        imageToImageTransformMatrix,
+        imageToWorldTransformMatrix,
+        savePath,
+        template,
+        templateFileNameBase,
+        templateFileNameExtension
+    )
     return transformedTemplateFileName
+
 
 def save_coregistration_matrices(costs, imageToImageTransformMatrix, savePath, templateFileNameBase,
                                  worldToWorldTransformMatrix):
@@ -464,39 +504,52 @@ def save_coregistration_matrices(costs, imageToImageTransformMatrix, savePath, t
                       }
                      )
 
-def compute_talairch():
-    # % Compute the talairach.xfm
-    # % Load fsaverage orig.mgz -- this is the ultimate target/destination
-    # fshome = getenv('FREESURFER_HOME');
-    # fnamedst = sprintf('%s/subjects/fsaverage/mri/orig.mgz',fshome);
-    # fsaorig = MRIread(fnamedst,1);
-    # % Compute the vox2vox from the template to fsaverage assuming they
-    # %   share world RAS space
-    # RAS2LPS = diag([-1 -1 1 1]);
-    # M = inv(RAS2LPS*fsaorig.vox2ras)*(templateImageToWorldTransformMatrix);
-    # % Compute the input to fsaverage vox2vox by combining the
-    # % input-template vox2vox and the template-fsaverage vox2vox
-    # X = M*inv(imageToImageTransformMatrix);
-    # % Now write out the LTA. This can be used as the talairach.lta in recon-all
-    # invol = MRIread(imageFileName,1); % have to reread to get header info
-    # lta.type = 0;
-    # lta.xform = X;
-    # lta.srcfile = imageFileName;
-    # lta.srcmri = invol;
-    # lta.srcmri.vol = [];
-    # lta.dstfile = fnamedst;
-    # lta.dstmri = fsaorig;
-    # lta.dstmri.vol = [];
-    # lta.subject = 'fsaverage';
-    return None
 
-def save_talairch(ita, savePath):
-    # ltaFileName = sprintf('%s/samseg.talairach.lta',savePath);
-    # lta_write(ltaFileName,lta);
-    # fprintf('Done computng and writing out LTA %s\n',ltaFileName);
-    #
-    #
-    pass
+def compute_talairach(imageFileName, imageToImageTransformMatrix, templateImageToWorldTransformMatrix, fshome=None):
+    # Compute the talairach.xfm
+    # Load fsaverage orig.mgz -- this is the ultimate target/destination
+    if fshome is None:
+        fshome = os.getenv('FREESURFER_HOME')
+    fnamedst = os.path.join(fshome, 'subjects', 'fsaverage', 'mri', 'orig.mgz')
+    fsaorig = MRI().read_header(fnamedst)
+    # Compute the vox2vox from the template to fsaverage assuming they
+    # share world RAS space
+    RAS2LPS = np.diag([-1, -1, 1, 1])
+    M = np.matmul(
+        np.linalg.inv(
+            np.matmul(
+                RAS2LPS,
+                fsaorig.vox2ras
+            )
+        ),
+        templateImageToWorldTransformMatrix
+    )
+    # Compute the input to fsaverage vox2vox by combining the
+    # input-template vox2vox and the template-fsaverage vox2vox
+    X = np.matmul(
+        M,
+        np.linalg.inv(imageToImageTransformMatrix)
+    )
+    # Now write out the LTA. This can be used as the talairach.lta in recon-all
+    invol = MRI().read_header(imageFileName)  # have to reread to get header info
+    lta = LTA()
+    lta.type = 0
+    lta.xform = X
+    lta.srcfile = imageFileName
+    lta.srcmri = invol
+    lta.srcmri.vol = []
+    lta.dstfile = fnamedst
+    lta.dstmri = fsaorig
+    lta.dstmri.vol = []
+    lta.subject = 'fsaverage'
+    return lta
+
+
+def save_talairch(lta, savePath):
+    ltaFileName = os.path.join(savePath, 'samseg.talairach.lta')
+    lta.write(ltaFileName)
+    print('Done computng and writing out LTA {}'.format(ltaFileName))
+
 
 def save_coregistered_template(imageToImageTransformMatrix, imageToWorldTransformMatrix, savePath, template,
                                templateFileNameBase, templateFileNameExtension):
@@ -517,6 +570,7 @@ def save_coregistered_template(imageToImageTransformMatrix, imageToWorldTransfor
 
 if __name__ == '__main__':
     import os
+
     affineRegistrationMeshCollectionFileName = '/Users/ys/Downloads/innolitics_testing/atlas/20Subjects_smoothing2_down2_smoothingForAffine2/atlasForAffineRegistration.txt.gz'
     templateFileName = '/Users/ys/Downloads/innolitics_testing/atlas/20Subjects_smoothing2_down2_smoothingForAffine2/template.nii'
     rootPath = '/Users/ys/Downloads/innolitics_testing/buckner40/'
@@ -531,7 +585,6 @@ if __name__ == '__main__':
                                  savePath=savePath,
                                  showFigures=False,
                                  worldToWorldTransformMatrix=None)
-
 
     # fullpath = os.path.join(rootPath, '008')
     # if os.path.isdir(fullpath):

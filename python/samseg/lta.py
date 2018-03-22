@@ -1,4 +1,9 @@
+import math
+import os
+
 import numpy as np
+
+from samseg.mri_util import load_mgh_header
 
 
 def filter_until_type(lines):
@@ -36,6 +41,7 @@ def parse_expected_string(expected_var, gen):
     if len(value_list) == 1:
         return value_list[0]
 
+
 def parse_expected_string_no_equals(expected_var, gen):
     line_parts = next(gen).strip().split(' ')
     if len(line_parts) == 2:
@@ -48,6 +54,7 @@ def parse_expected_string_no_equals(expected_var, gen):
     else:
         message = 'Expected {0} but found {1}'.format(expected_var, str(line_parts))
         raise Exception(message)
+
 
 def parse_expected_int(expected_var, gen):
     value_list = parse_expected(expected_var, next(gen))
@@ -82,14 +89,17 @@ def parse_float_array(gen):
 def parse_2d_float_array(gen, rows=4):
     return [parse_float_array(gen) for row in range(rows)]
 
+def nice_array_format(data):
+    return ' '.join(['{: 18.15f}'.format(val) for val in data])
 
 class LTA:
     def __init__(self):
-        self.srcmri = LTA_MRI()
-        self.dstmri = LTA_MRI()
+        self.srcmri = MRI()
+        self.dstmri = MRI()
         self.sigma = 0.0
         self.mean = [0.0, 0.0, 0.0]
         self.dims = [1, 4, 4]
+        self.nxforms = 1
 
     def read(self, filename):
         with open(filename, 'r') as file:
@@ -104,33 +114,75 @@ class LTA:
             self.dstfile = self.dstmri.read(content)
             self.subject = parse_expected_string_no_equals('subject', content)
 
-
     def write(self, filename):
         with open(filename, 'w') as file:
             file.writelines('\n'.join([
-                '# transform file {0}'.format(filename),
-                '# created by LTA.write',
-                'type     = %d' % self.type,
-                'nxforms  = %d' % self.nxforms,
-                'mean     = {}'.format(' '.join([str(val) for val in self.mean])),
-                'sigma     = %d' % self.sigma,
-                ' '.join(str(val) for val in self.dims),
-                ] + self.transformLines() + [
-                ] + self.srcmri.formatted_lines('src', self.srcfile) + [
-                ] + self.dstmri.formatted_lines('dst', self.dstfile) + [
-            ' '.join(['subject', self.subject or 'unknown']),
-            ]))
+                                          '# transform file {0}'.format(filename),
+                                          '# created by LTA.write',
+                                          'type     = %d' % self.type,
+                                          'nxforms  = %d' % self.nxforms,
+                                          'mean     = {}'.format(' '.join([str(val) for val in self.mean])),
+                                          'sigma    = %d' % self.sigma,
+                                          ' '.join(str(val) for val in self.dims),
+                                      ] + self.transformLines() + [
+                                      ] + self.srcmri.formatted_lines('src', self.srcfile) + [
+                                      ] + self.dstmri.formatted_lines('dst', self.dstfile) + [
+                                          ' '.join(['subject', self.subject or 'unknown']),
+                                      ]))
+
     def transformLines(self):
-        return [' '.join([str(col) for col in row]) for row in self.xform]
+        return [nice_array_format(row) for row in self.xform]
+
+    def calculate(self):
+        pass
 
 
-class LTA_MRI:
+class MRI:
+    def __init__(self):
+        self.analyzehdr = None
+        self.bhdr = None
+        self.valid = False
+
+    def read_header(self, filename):
+        self.fspec = filename
+        self.pwd = os.getcwd()
+        [self.vol, M, mr_parms, volsz] = load_mgh_header(filename)
+        [self.tr, self.flip_angle, self.te, self.ti] = mr_parms
+        volsz[0], volsz[1] = volsz[1], volsz[0]  # first two dimensions get swapped
+        self.vox2ras0 = M
+        self.volsize = volsz[0:3]
+
+        self.nframes = volsz[3]
+        # %--------------------------------------------------------------------%
+        # % Everything below is redundant in that they can be derivied from
+        # % stuff above, but they are in the MRI struct defined in mri.h, so I
+        # % thought I would add them here for completeness.  Note: MRIwrite()
+        # % derives all geometry information (ie, direction cosines, voxel
+        # % resolution, and P0 from vox2ras0. If you change other geometry
+        # % elements below, it will not be reflected in the output volume.
+        #
+        M2 = M * M
+
+        self.volres = [
+            math.sqrt(sum(M2[:, 0])),  # Column
+            math.sqrt(sum(M2[:, 1])),  # Row
+            math.sqrt(sum(M2[:, 2])),  # Slice
+        ]
+        self.xras = [M[row, 0] / self.xsize for row in range(3)]
+        self.yras = [M[row, 1] / self.xsize for row in range(3)]
+        self.zras = [M[row, 2] / self.xsize for row in range(3)]
+        ic = np.array([self.width / 2, self.height / 2, self.depth / 2, 1]).T
+        c = np.matmul(M, ic)
+        self.cras = list(c[0:3])
+        self.valid = True
+        return self
+
     def read(self, content):
         next(content)  # "xxx volume info"
         self.valid = parse_expected_int('valid', content)
         filename = parse_expected_string('filename', content)
-        self.volume = parse_expected_int_array('volume', content)
-        self.voxelsize = parse_expected_float_array('voxelsize', content)
+        self.volsize = parse_expected_int_array('volume', content)
+        self.volres = parse_expected_float_array('voxelsize', content)
         self.xras = parse_expected_float_array('xras', content)
         self.yras = parse_expected_float_array('yras', content)
         self.zras = parse_expected_float_array('zras', content)
@@ -140,12 +192,92 @@ class LTA_MRI:
     def formatted_lines(self, prefix, filename):
         return [
             '{} volume info'.format(prefix),
-            'valid = %d' % self.valid,
+            'valid = %d' % 1 if self.valid else 0,
             'filename = %s' % filename,
-            'volume = ' + ' '.join([str(val) for val in self.volume]),
-            'voxelsize = ' + ' '.join([str(val) for val in self.voxelsize]),
-            'xras = ' + ' '.join([str(val) for val in self.xras]),
-            'yras = ' + ' '.join([str(val) for val in self.yras]),
-            'zras = ' + ' '.join([str(val) for val in self.zras]),
-            'cras = ' + ' '.join([str(val) for val in self.cras]),
+            'volume = ' + ' '.join([str(val) for val in self.volsize]),
+            'voxelsize = ' + nice_array_format(self.volres),
+            'xras = ' + nice_array_format(self.xras),
+            'yras = ' + nice_array_format(self.yras),
+            'zras = ' + nice_array_format(self.zras),
+            'cras = ' + nice_array_format(self.cras),
         ]
+
+    @property
+    def c_r(self):
+        return self.cras[0]
+
+    @property
+    def c_a(self):
+        return self.cras[1]
+
+    @property
+    def c_s(self):
+        return self.cras[2]
+
+    @property
+    def x_r(self):
+        return self.xras[0]
+
+    @property
+    def x_a(self):
+        return self.xras[1]
+
+    @property
+    def x_s(self):
+        return self.xras[2]
+
+    @property
+    def y_r(self):
+        return self.yras[0]
+
+    @property
+    def y_a(self):
+        return self.yras[1]
+
+    @property
+    def y_s(self):
+        return self.yras[2]
+
+    @property
+    def z_r(self):
+        return self.zras[0]
+
+    @property
+    def z_a(self):
+        return self.zras[1]
+
+    @property
+    def z_s(self):
+        return self.zras[2]
+
+    @property
+    def xsize(self):
+        return self.volres[1]
+
+    @property
+    def ysize(self):
+        return self.volres[0]
+
+    @property
+    def zsize(self):
+        return self.volres[2]
+
+    @property
+    def height(self):
+        return self.volsize[0]
+
+    @property
+    def width(self):
+        return self.volsize[1]
+
+    @property
+    def depth(self):
+        return self.volsize[2]
+
+    @property
+    def vox2ras(self):
+        return self.vox2ras0
+
+    @property
+    def nvoxels(self):
+        return self.height * self.width * self.depth
