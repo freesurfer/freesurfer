@@ -117,6 +117,9 @@ int ROMP_if_parallel1(ROMP_level level)
     return (level >= romp_level);               // sadly this allows nested parallelism
 }                                               // sad only because it hasn't been analyzed
 
+static size_t countGoParallel;
+size_t ROMP_countGoParallel() { return countGoParallel; }
+
 int ROMP_if_parallel2(ROMP_level level, ROMP_pf_stack_struct* pf_stack) 
 {
     ROMP_pf_static_struct * pf_static = pf_stack->staticInfo;
@@ -127,6 +130,7 @@ int ROMP_if_parallel2(ROMP_level level, ROMP_pf_stack_struct* pf_stack)
     int result = level >= current_level;
 
     if (result) {
+        countGoParallel++;
         if (debug) 
             fprintf(stderr, "ROMP_if_parallel2 tid:%d pf_stack:%p gone parallel\n",
                 omp_get_thread_num(), pf_stack);

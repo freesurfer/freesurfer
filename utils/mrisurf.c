@@ -1,3 +1,4 @@
+static const int debugNonDeterminism = 0;
 /*
  * @file utilities operating on Original
  *
@@ -285,6 +286,117 @@ static int mriSurfaceRASToVoxel(double xr, double yr, double zr, double *xv, dou
 static int mris_readval_frame = -1;
 static int fix_vertex_area = 1;
 
+struct MrisAsynchronousTimeStep_optionalDxDyDzUpdate_PerVertexInfo_t {
+  float xLo, xHi, yLo, yHi, zLo, zHi;
+  int nextVnoPlus1;   // Plus1 so 0 can act as NULL
+};
+  
+typedef struct MRISAsynchronousTimeStep_optionalDxDyDzUpdate_Context {
+  float xLo, xHi, yLo, yHi, zLo, zHi;
+  float xSubvolLen,ySubvolLen,zSubvolLen;
+  float xSubvolVerge,ySubvolVerge,zSubvolVerge;
+  int*   vnoToSvi; 
+  struct MrisAsynchronousTimeStep_optionalDxDyDzUpdate_PerVertexInfo_t* vertexInfos;
+} MRISAsynchronousTimeStep_optionalDxDyDzUpdate_Context;
+
+typedef struct MRISAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex_Context {
+  MRISAsynchronousTimeStep_optionalDxDyDzUpdate_Context* allVertexsContext;
+  unsigned long hash;
+  size_t count;
+  size_t limit;
+  bool   trace;
+  int    svi;
+} MRISAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex_Context;
+
+#define MRISAsynchronousTimeStep_optionalDxDyDzUpdate_numSubvolsPerEdge 4
+static const size_t MRISAsynchronousTimeStep_optionalDxDyDzUpdate_numSubvolsPerThread = 
+    (MRISAsynchronousTimeStep_optionalDxDyDzUpdate_numSubvolsPerEdge * 
+     MRISAsynchronousTimeStep_optionalDxDyDzUpdate_numSubvolsPerEdge * 
+     MRISAsynchronousTimeStep_optionalDxDyDzUpdate_numSubvolsPerEdge + 1);
+    // one extra for the faces that intersect more than one subvol
+
+static int MRISAsynchronousTimeStep_optionalDxDyDzUpdate_svi(
+  MRISAsynchronousTimeStep_optionalDxDyDzUpdate_Context* ctx,
+  float x, float y, float z) 
+{
+  const size_t numSubvolsPerEdge   = MRISAsynchronousTimeStep_optionalDxDyDzUpdate_numSubvolsPerEdge;
+  int const svxLo = MIN(numSubvolsPerEdge-1,(int)((x - ctx->xSubvolVerge - ctx->xLo)/ctx->xSubvolLen));
+  int const svyLo = MIN(numSubvolsPerEdge-1,(int)((y - ctx->ySubvolVerge - ctx->yLo)/ctx->ySubvolLen));
+  int const svzLo = MIN(numSubvolsPerEdge-1,(int)((z - ctx->zSubvolVerge - ctx->zLo)/ctx->zSubvolLen));
+
+  int const svxHi = MIN(numSubvolsPerEdge-1,(int)((x + ctx->xSubvolVerge - ctx->xLo)/ctx->xSubvolLen));
+  int const svyHi = MIN(numSubvolsPerEdge-1,(int)((y + ctx->ySubvolVerge - ctx->yLo)/ctx->ySubvolLen));
+  int const svzHi = MIN(numSubvolsPerEdge-1,(int)((z + ctx->zSubvolVerge - ctx->zLo)/ctx->zSubvolLen));
+
+  if (svxLo != svxHi || svyLo != svyHi || svzLo != svzHi) 
+    return MRISAsynchronousTimeStep_optionalDxDyDzUpdate_numSubvolsPerThread - 1;       // the svi for any items not deep inside a subvolume
+
+  return svxLo*numSubvolsPerEdge*numSubvolsPerEdge + svyLo*numSubvolsPerEdge + svzLo;
+}
+
+
+static bool proposed_ODXYZ_valid(
+    MRI_SURFACE *mris,
+    MRISAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex_Context* ctx, 
+    int vno,
+    float odx, float ody, float odz) 
+{
+  struct MrisAsynchronousTimeStep_optionalDxDyDzUpdate_PerVertexInfo_t* vertexInfos
+    = !ctx ? NULL : ctx->allVertexsContext->vertexInfos;
+  
+  if (!vertexInfos) return true;            // The lack of vertexInfo means all vertexs can move anywhere
+  
+  VERTEX const * v = &mris->vertices[vno];
+  float const x = v->x + odx;
+  float const y = v->y + ody;
+  float const z = v->z + odz;
+
+  int current_svi = ctx->allVertexsContext->vnoToSvi[vno];
+  if (current_svi == MRISAsynchronousTimeStep_optionalDxDyDzUpdate_numSubvolsPerThread - 1) return true;
+    // already not deep in any subvolume
+    
+  int proposed_svi = 
+    MRISAsynchronousTimeStep_optionalDxDyDzUpdate_svi(ctx->allVertexsContext, 
+      x,y,z);
+
+  return (current_svi == proposed_svi);
+    // hasn't changed subvolumes, and hence can be done as before
+}
+
+static void checkODXYZ_valid(
+    MRI_SURFACE *mris,
+    MRISAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex_Context* ctx, 
+    int vno) 
+{
+  VERTEX const * v = &mris->vertices[vno];
+  if (proposed_ODXYZ_valid(mris, ctx, vno, v->odx, v->ody, v->odz)) return; 
+  struct MrisAsynchronousTimeStep_optionalDxDyDzUpdate_PerVertexInfo_t* vertexInfos
+    = !ctx ? NULL : ctx->allVertexsContext->vertexInfos;
+  float x = v->x + v->odx;
+  float y = v->y + v->ody;
+  float z = v->z + v->odz;
+  struct MrisAsynchronousTimeStep_optionalDxDyDzUpdate_PerVertexInfo_t * vi = &vertexInfos[vno];
+  fprintf(stdout, "%s:%d proposed to move vno:%d further than originally planned"
+    "xLo:%g x:%g xHi:%g\n"
+    "yLo:%g y:%g yHi:%g\n"
+    "zLo:%g z:%g zHi:%g\n", 
+    __FILE__, __LINE__, vno,
+     vi->xLo, x, vi->xHi,
+     vi->yLo, y, vi->yHi,
+     vi->zLo, z, vi->zHi);
+  *(int*)-1 = 0;
+}
+
+static int vertexOdFrozen = 0;
+static void checkVertexOdNotFrozen(const char* file, int line) {
+    if (vertexOdFrozen) {
+        fprintf(stdout, "%s:%d vertexOdFrozen\n",file,line);
+        *(int*)-1 = 0;
+    }
+}
+#define CHANGES_ODXYZ checkVertexOdNotFrozen(__FILE__,__LINE__);
+#define CHANGES_ODXYZ_OKAY
+
 /*------------------------ STATIC PROTOTYPES -------------------------*/
 int MRIScomputeAllDistances(MRI_SURFACE *mris);
 #if 0
@@ -484,7 +596,9 @@ static int mrisComputeNonlinearSpringTerm(MRI_SURFACE *mris, double l_nlspring, 
 static int mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring);
 static int mrisComputeNonlinearTangentialSpringTerm(MRI_SURFACE *mris, double l_spring, double min_dist);
 static int mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring);
-static int mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno);
+static float minNeighborDistance(MRI_SURFACE *mris);
+static bool mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno, 
+                                               MRISAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex_Context* ctx);
 static int mrisComputeVariableSmoothnessCoefficients(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
 
 static int mrisLogStatus(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, FILE *fp, float dt, float old_sse);
@@ -492,7 +606,8 @@ static int mrisWriteSnapshots(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t
 static int mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t);
 static int mrisTrackTotalDistance(MRI_SURFACE *mris);
 static int mrisTrackTotalDistanceNew(MRI_SURFACE *mris);
-static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT const *mht, int vno);
+static bool mrisLimitGradientDistance(MRI_SURFACE *mris, MHT const *mht, int vno,
+                                     MRISAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex_Context* ctx);
 static int mrisFillFace(MRI_SURFACE *mris, MRI *mri, int fno);
 static int mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on);
 
@@ -4023,6 +4138,11 @@ static int MRIScomputeNormals_new(MRI_SURFACE *mris)
   static const double RAN = 0.001; /* one thousandth of a millimeter */
 
 
+  if (debugNonDeterminism) {
+    fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+    mris_print_hash(stdout, mris, "mris ", "\n");
+  }
+
   int k;
 
   // For every face, 
@@ -4095,6 +4215,11 @@ static int MRIScomputeNormals_new(MRI_SURFACE *mris)
 
     int nextPendingSize = 0;
   
+    if (debugNonDeterminism) {
+      fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+      mris_print_hash(stdout, mris, "mris ", "\n");
+    }
+
     int p;
     ROMP_PF_begin		// mris_fix_topology
 #ifdef HAVE_OPENMP
@@ -4263,6 +4388,11 @@ static int MRIScomputeNormals_new(MRI_SURFACE *mris)
 static int mrisComputeVertexDistances(MRI_SURFACE *mris)
 {
   int vno;
+
+  if (debugNonDeterminism) {
+    fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+    mris_print_hash(stdout, mris, "mris ", "\n");
+  }
 
   switch (mris->status) {
     default: /* don't really know what to do in other cases */
@@ -4433,6 +4563,11 @@ static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
 
   Sum = 0;
   Sum2 = 0;
+
+  if (debugNonDeterminism) {
+    fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+    mris_print_hash(stdout, Surf, "Surf ", "\n");
+  }
 
 #ifdef BEVIN_MRISAVGINTERVERTEXDIST_REPRODUCIBLE
 
@@ -11446,6 +11581,11 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
 
   double reduction_total_area = 0.0f;
 
+  if (debugNonDeterminism) {
+    fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+    mris_print_hash(stdout, mris, "mris ", "\n");
+  }
+
 #if 0
 
   int fno;
@@ -11600,6 +11740,11 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
   
   SET_OR_CHECK(mris->total_area, (float)reduction_total_area);
 
+  if (debugNonDeterminism) {
+    fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+    mris_print_hash(stdout, mris, "mris ", "\n");
+  }
+
 /* calculate the "area" of the vertices */
   int vno;
   ROMP_PF_begin		// mris_fix_topology
@@ -11722,11 +11867,12 @@ static void mrisAsynchronousTimeStep_update_odxyz(
 }
 
 
-static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex(
+static bool mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex(    // returns false if tries to move outside available range
     MRI_SURFACE * const mris, 
     MHT *         const mht, 
     bool          const updateDxDyDz,
-    int           const vno) 
+    int           const vno,
+    MRISAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex_Context* ctx) 
 {
     if (vno == Gdiag_no) {
         DiagBreak();
@@ -11742,34 +11888,35 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex(
         MHTremoveAllFaces(mht, mris, v);
     }
 
-    // This will be a challenge to parallelize
-    //
+    bool canMove = true;
     if (mht) {
-        mrisLimitGradientDistance(mris, mht, vno);
+        canMove = mrisLimitGradientDistance(mris, mht, vno, ctx);
     }
 
-    v->x += v->odx;
-    v->y += v->ody;
-    v->z += v->odz;
+    if (canMove) {    
+        v->x += v->odx;
+        v->y += v->ody;
+        v->z += v->odz;
 
-    if ((fabs(v->x) > 128.0f) || (fabs(v->y) > 128.0f) || (fabs(v->z) > 128.0f)) {
-        DiagBreak();
-    }
+        if ((fabs(v->x) > 128.0f) || (fabs(v->y) > 128.0f) || (fabs(v->z) > 128.0f)) {
+            DiagBreak();
+        }
 
-    // If this is done here, then the undo step needs to cope 
-    // Perhaps this is why mrisAsynchronousTimeStepNew does not do it
-    //
-    if (updateDxDyDz) {
-        v->dx = v->odx; /* for mrisTrackTotalDistances */
-        v->dy = v->ody;
-        v->dz = v->odz;
+        // If this is done here, then the undo step needs to cope 
+        // Perhaps this is why mrisAsynchronousTimeStepNew does not do it
+        //
+        if (updateDxDyDz) {
+            v->dx = v->odx; /* for mrisTrackTotalDistances */
+            v->dy = v->ody;
+            v->dz = v->odz;
+        }
     }
-    
-    // This will be a challenge to parallelize
-    //
+        
     if (mht) {
         MHTaddAllFaces(mht, mris, v);
     }
+
+    return canMove;
 }
 
 static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_surfaces 1
@@ -11839,7 +11986,7 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
         mris, momentum, delta_t, max_mag, v);
     
       mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex(
-        mris, mht, updateDxDyDz, vno);
+        mris, mht, updateDxDyDz, vno, NULL);
 
     }
     
@@ -11857,10 +12004,7 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
   float xLo = 1e8, xHi=-xLo, yLo=xLo, yHi=xHi, zLo=xLo, zHi=yHi;
     // Box that will contains all the vertices after their largest possible movement
 
-  typedef struct PerVertexInfo_t {
-    float xLo, xHi, yLo, yHi, zLo, zHi;
-    int nextVnoPlus1;   // Plus1 so 0 can act as NULL
-  } PerVertexInfo;
+  typedef struct MrisAsynchronousTimeStep_optionalDxDyDzUpdate_PerVertexInfo_t PerVertexInfo;
 
   PerVertexInfo* vertexInfos = (PerVertexInfo*)calloc(mris->nvertices, sizeof(PerVertexInfo));
 
@@ -11884,6 +12028,11 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
 	}
       }
       
+      if (debugNonDeterminism) {
+        fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+        mris_print_hash(stdout, mris, "mris ", "\n");
+      }
+
       int vnoStep = (mris->nvertices + _MAX_FS_THREADS - 1)/_MAX_FS_THREADS;
       int vnoLo; 
       ROMP_PF_begin
@@ -11906,10 +12055,14 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
           mrisAsynchronousTimeStep_update_odxyz(
             mris, momentum, delta_t, max_mag, v);
 
-          PerVertexInfo* pvi = vertexInfos+vno; 
-          xLos[tid] = MIN(xLos[tid], pvi->xLo = v->x); xHis[tid] = MAX(xHis[tid], pvi->xHi = v->x + v->odx);
-          yLos[tid] = MIN(yLos[tid], pvi->yLo = v->y); yHis[tid] = MAX(yHis[tid], pvi->yHi = v->y + v->ody);
-          zLos[tid] = MIN(zLos[tid], pvi->zLo = v->z); zHis[tid] = MAX(zHis[tid], pvi->zHi = v->z + v->odz);
+          PerVertexInfo* pvi = vertexInfos + vno;
+          float tLo, tHi;
+          tLo = v->x; tHi = v->x + v->odx; if (tLo > tHi) { float temp = tLo; tLo = tHi; tHi = temp; }
+          xLos[tid] = MIN(xLos[tid], pvi->xLo = tLo); xHis[tid] = MAX(xHis[tid], pvi->xHi = tHi);
+          tLo = v->y; tHi = v->y + v->ody; if (tLo > tHi) { float temp = tLo; tLo = tHi; tHi = temp; }
+          yLos[tid] = MIN(yLos[tid], pvi->yLo = tLo); yHis[tid] = MAX(yHis[tid], pvi->yHi = tHi);
+          tLo = v->z; tHi = v->z + v->odz; if (tLo > tHi) { float temp = tLo; tLo = tHi; tHi = temp; }
+          zLos[tid] = MIN(zLos[tid], pvi->zLo = tLo); zHis[tid] = MAX(zHis[tid], pvi->zHi = tHi);
 	}
 	
         ROMP_PFLB_end
@@ -11933,14 +12086,49 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
   //
   const size_t numSubvolsPerEdge = 4;
   const size_t numSubvolsPerThread = (numSubvolsPerEdge * numSubvolsPerEdge * numSubvolsPerEdge + 1);
-    // one extra for the faces that intersect more than one subvol
+  // Info that must be shared with called functions
+  //  
+  MRISAsynchronousTimeStep_optionalDxDyDzUpdate_Context allVertexsContext;
+  bzero(&allVertexsContext, sizeof(allVertexsContext));
+  allVertexsContext.xLo = xLo; allVertexsContext.xHi = xHi; 
+  allVertexsContext.yLo = yLo; allVertexsContext.yHi = yHi; 
+  allVertexsContext.zLo = zLo; allVertexsContext.zHi = zHi;
+
+  // Decide the subvolume geometry
+  //
+  {
+    float const xSubvolLen = (xHi - xLo) / numSubvolsPerEdge; float xSubvolVerge = xSubvolLen*0.02;
+    float const ySubvolLen = (yHi - yLo) / numSubvolsPerEdge; float ySubvolVerge = ySubvolLen*0.02;
+    float const zSubvolLen = (zHi - zLo) / numSubvolsPerEdge; float zSubvolVerge = zSubvolLen*0.02;
+      // The verge is a safety margin.  
+      // Any face that gets this close to the surface of the subvolume is assumed might influence across it due to rounding errors.
+
+    float const min_nbr_dist = minNeighborDistance(mris);
+    {
+      static int once;
+      if (!once) {
+          once = 1;
+          fprintf(stdout, "%s:%d xSubvolLen:%g ySubvolLen:%g zSubvolLen:%g min_nbr_dist:%g\n", __FILE__, __LINE__,
+              xSubvolLen, ySubvolLen, zSubvolLen, min_nbr_dist);
+          fprintf(stdout, "%s:%d xSubvolVerge:%g ySubvolVerge:%g zSubvolVerge:%g\n", __FILE__, __LINE__,
+              xSubvolVerge, ySubvolVerge, zSubvolVerge);
+      }
+
+      // Even things this close to the subvolume surface can affect the adjacent subvolumes
+      //
+      xSubvolVerge += min_nbr_dist;
+      ySubvolVerge += min_nbr_dist;
+      zSubvolVerge += min_nbr_dist;
+    }
     
-  float const xSubvolLen = (xHi - xLo) / numSubvolsPerEdge, xSubvolVerge = xSubvolLen*0.02;
-  float const ySubvolLen = (yHi - yLo) / numSubvolsPerEdge, ySubvolVerge = ySubvolLen*0.02;
-  float const zSubvolLen = (zHi - zLo) / numSubvolsPerEdge, zSubvolVerge = zSubvolLen*0.02;
-    // The verge is a safety margin.  
-    // Any face that gets this close to the surface of the subvolume is assumed might influence across it due to rounding errors.
-    
+    allVertexsContext.xSubvolLen   = xSubvolLen;
+    allVertexsContext.ySubvolLen   = ySubvolLen;
+    allVertexsContext.zSubvolLen   = zSubvolLen;
+    allVertexsContext.xSubvolVerge = xSubvolVerge;
+    allVertexsContext.ySubvolVerge = ySubvolVerge;
+    allVertexsContext.zSubvolVerge = zSubvolVerge;
+  }
+
   // Assign the faces to the subvolumes
   //
   typedef struct PerFaceInfo_t {
@@ -11948,10 +12136,15 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
   } PerFaceInfo;
   PerFaceInfo* faceInfos = (PerFaceInfo*)calloc(mris->nfaces, sizeof(PerFaceInfo));
 
+  if (debugNonDeterminism) {
+    fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+    mris_print_hash(stdout, mris, "mris ", "\n");
+  }
+
   { int fno;
     ROMP_PF_begin
     #pragma omp parallel for if_ROMP(assume_reproducible)
-    for (fno = 0; fno < mris->nvertices; fno++) {
+    for (fno = 0; fno < mris->nfaces; fno++) {
       ROMP_PFLB_begin
       
       FACE const * const face = &mris->faces[fno];
@@ -11983,28 +12176,15 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
         fxHi = MAX(fxHi,pvi->xHi); fyHi = MAX(fyHi,pvi->yHi); fzHi = MAX(fzHi,pvi->zHi);
       }
 
-      // Assume rounding errors might make it appear slightly larger than this
-      //
-      fxLo -= xSubvolVerge; fxHi += xSubvolVerge;
-      fyLo -= ySubvolVerge; fyHi += ySubvolVerge;
-      fzLo -= zSubvolVerge; fzHi += zSubvolVerge;
-
       // Compute the subvolumes that this face intersects
       //
-      int const svxLo = MIN(numSubvolsPerEdge-1,(int)((fxLo - xLo)/xSubvolLen));
-      int const svyLo = MIN(numSubvolsPerEdge-1,(int)((fyLo - yLo)/ySubvolLen));
-      int const svzLo = MIN(numSubvolsPerEdge-1,(int)((fzLo - zLo)/zSubvolLen));
-      int const svxHi = MIN(numSubvolsPerEdge-1,(int)((fxHi - xLo)/xSubvolLen));
-      int const svyHi = MIN(numSubvolsPerEdge-1,(int)((fyHi - yLo)/ySubvolLen));
-      int const svzHi = MIN(numSubvolsPerEdge-1,(int)((fzHi - zLo)/zSubvolLen));
+      int const sviLo = MRISAsynchronousTimeStep_optionalDxDyDzUpdate_svi(&allVertexsContext, fxLo, fyLo, fzLo);
+      int const sviHi = MRISAsynchronousTimeStep_optionalDxDyDzUpdate_svi(&allVertexsContext, fxHi, fyHi, fzHi);
       
       // Choose the subvolume to put this face into
       //
-      int svi = numSubvolsPerThread-1;   // assume into the shared subvol
-      if (svxLo==svxHi && svyLo==svyHi && svzLo==svzHi) {
-        svi = svxLo*numSubvolsPerEdge*numSubvolsPerEdge + svyLo*numSubvolsPerEdge + svzLo; 
-      }
-      
+      int const svi = (sviLo==sviHi) ? sviLo : numSubvolsPerThread-1;   // if not same subvol, into the shared subvol
+
       // Assign the face to the subvolume
       //
       PerFaceInfo* pfi = faceInfos + fno;
@@ -12014,12 +12194,6 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
       #pragma omp critical
       {
         fprintf(stderr, "%s:%d fno:%d assigned to svi:%d\n", __FILE__, __LINE__, fno, svi);
-        fprintf(stderr, " svxLo:%d  fxLo:%g xLo:%g xSubvolLen:%g\n",svxLo,fxLo,xLo,xSubvolLen);
-        fprintf(stderr, " svxHi:%d  fxHi:%g xHi:%g xSubvolLen:%g\n",svxHi,fxHi,xHi,xSubvolLen);
-        fprintf(stderr, " svyLo:%d  fyLo:%g yLo:%g ySubvolLen:%g\n",svyLo,fyLo,yLo,ySubvolLen);
-        fprintf(stderr, " svyHi:%d  fyHi:%g yHi:%g ySubvolLen:%g\n",svyHi,fyHi,yHi,ySubvolLen);
-        fprintf(stderr, " svzLo:%d  fzLo:%g zLo:%g zSubvolLen:%g\n",svzLo,fzLo,zLo,zSubvolLen);
-        fprintf(stderr, " svzHi:%d  fzHi:%g zHi:%g zSubvolLen:%g\n",svzHi,fzHi,zHi,zSubvolLen);
       }
       
       ROMP_PFLB_end
@@ -12038,6 +12212,14 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
   } SubvolInfo;
   SubvolInfo* subvols = (SubvolInfo*)calloc(numSubvols, sizeof(SubvolInfo));
   
+  int* vnoToSvi = (int*)calloc(mris->nvertices, sizeof(int));
+  allVertexsContext.vnoToSvi = vnoToSvi;
+  
+  if (debugNonDeterminism) {
+    fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+    mris_print_hash(stdout, mris, "mris ", "\n");
+  }
+
   { int i;
     ROMP_PF_begin
     #pragma omp parallel for if_ROMP(assume_reproducible)
@@ -12050,8 +12232,11 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
         : i;
       
       VERTEX const * const v = &mris->vertices[vno];
-      if (v->ripflag || v->num == 0) ROMP_PF_continue;
-
+      if (v->ripflag || v->num == 0) {
+        vnoToSvi[vno] = -1;
+        ROMP_PF_continue;
+      }
+      
       // Choose the same svi as all its faces have, 
       // but if they disagree, use the shared subvol
       //
@@ -12075,7 +12260,9 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
       pvi->nextVnoPlus1 = subvol->firstVnoPlus1;    
       subvol->firstVnoPlus1 = vno + 1;
       if (!subvol->lastVnoPlus1) subvol->lastVnoPlus1 = vno + 1;
-      
+  
+      vnoToSvi[vno] = svi;
+          
       ROMP_PFLB_end
     }
     ROMP_PF_end 
@@ -12109,6 +12296,12 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
       //
       qsort(temp, tempSize, sizeof(int), int_compare);
 
+      if (false && debugNonDeterminism) {
+        unsigned long hash = fnv_add(fnv_init(), (const unsigned char*)temp, tempSize*sizeof(int));
+        fprintf(stdout, "%s:%d stdout hash of the allocation into the %d subvolume:%ld\n",__FILE__,__LINE__,svi,hash);
+      }
+
+
       // put it into the thread 0 subvolume for this svi
       //
       SubvolInfo* subvol0 = subvols + svi;
@@ -12130,7 +12323,9 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
       }
     }
   }
-  
+
+  // Make more info available to functions called below
+  //  
   // Pass 0: In parallel, process each subvolume
   // Pass 1: In serial, process the cross-subvolume (parallel but only one hence serial)
   { 
@@ -12141,17 +12336,47 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
       int const sviLo = (pass==0) ? 0                     : numSubvolsPerThread-1;
       int const sviHi = (pass==0) ? numSubvolsPerThread-1 : numSubvolsPerThread;
       int svi;
+
+      allVertexsContext.vertexInfos = (pass == 1) ? NULL : vertexInfos;   // on the second pass, the vertexs can move anywhere
+
+      if (debugNonDeterminism) {
+        fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);             // the results differ here on the 2nd pass!
+        mris_print_hash(stdout, mris, "mris ", "\n");
+      }
       ROMP_PF_begin
       #pragma omp parallel for if_ROMP(assume_reproducible)
       for (svi = sviLo; svi < sviHi; svi++) {
         ROMP_PFLB_begin
+        MRISAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex_Context ctx;
+        ctx.allVertexsContext = &allVertexsContext;
+        ctx.hash  = fnv_init();
+        ctx.count = 0;
+        ctx.limit = 3035;
+        ctx.trace = false;
+        ctx.svi   = svi;
         SubvolInfo* subvol = subvols + svi;
         int vno = subvol->firstVnoPlus1 - 1;
         while (vno >= 0) {
-          mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex(
-            mris, mht, updateDxDyDz, vno);
+          int vnoToRetry = -1;
+          if (!mrisAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex(
+            mris, mht, updateDxDyDz, vno,
+            &ctx)) {
+            vnoToRetry = vno;
+          }
           PerVertexInfo* pvi = vertexInfos + vno;
           vno = pvi->nextVnoPlus1 - 1;
+          if (vnoToRetry >= 0) 
+#ifdef HAVE_OPENMP
+          #pragma omp critical
+#endif
+          {
+            if (pass == 1) *(int*)-1 = 0;                     // on the second pass, the vertexs can move anywhere, so this should not happen
+            int shared_svi = numSubvolsPerThread - 1;
+            SubvolInfo* subvol = subvols + shared_svi;
+            pvi->nextVnoPlus1 = subvol->firstVnoPlus1;    
+            subvol->firstVnoPlus1 = vno + 1;
+            if (!subvol->lastVnoPlus1) subvol->lastVnoPlus1 = vno + 1;
+		  }
         }
         ROMP_PFLB_end
       }
@@ -12163,6 +12388,7 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
   }
 
   // Free the temporary data
+  free(vnoToSvi);
   free(faceInfos);
   free(subvols);
   free(vertexInfos);
@@ -33272,6 +33498,12 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
       else {
         rms = mrisRmsValError(mris, mri_brain);
       }
+      
+      if (debugNonDeterminism) {
+        fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
+        mris_print_hash(stdout, mris, "Input to MRIScomputeSSE ", "\n");
+      }
+      
       sse = MRIScomputeSSE(mris, parms);
       done = 1;
       /* check to see if the error decreased substantially, if not
@@ -38624,29 +38856,31 @@ int MRISreverseFaceOrder(MRIS *mris)
 /*-----------------------------------------------------
   Parameters:
 
-  Returns value:
+  Returns value:    true if and only if any required movement was done.
 
   Description
   ------------------------------------------------------*/
-static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT const *mht, int vno)
+static bool mrisLimitGradientDistance(
+    MRI_SURFACE *mris, MHT const *mht, int vno,
+    MRISAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex_Context * ctx)
 {
   VERTEX *v = &mris->vertices[vno];
 
   if (v->ripflag) {
-    return (NO_ERROR);
+    return true;
   }
 
-  mrisRemoveNeighborGradientComponent(mris, vno);
+  if (!mrisRemoveNeighborGradientComponent(mris, vno, ctx)) return false;
   
   if (MHTisVectorFilled(mht, mris, vno, v->odx, v->ody, v->odz)) {
     v->odx = v->ody = v->odz = 0.0;
     if (vno == Gdiag_no) printf("(%2.2f, %2.2f, %2.2f)\n", v->odx, v->ody, v->odz);
     v->cropped++;
-    return (NO_ERROR);
+    return true;
   }
 
   v->cropped = 0;
-  return (NO_ERROR);
+  return true;    
 }
 
 #if 0
@@ -40402,14 +40636,19 @@ mrisRemoveNormalGradientComponent(MRI_SURFACE *mris, int vno)
   ------------------------------------------------------*/
 #define MIN_NBR_DIST (0.01)
 
-static int mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno)
+static float minNeighborDistance(MRI_SURFACE *mris) {
+    return MAX(MIN_NBR_DIST, MIN_NBR_DIST * (mris->vg.xsize + mris->vg.ysize + mris->vg.zsize) / 3);
+}
+
+static bool mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno, 
+  MRISAsynchronousTimeStep_optionalDxDyDzUpdate_oneVertex_Context* ctx)
 {
-  float const min_nbr_dist = MAX(MIN_NBR_DIST, MIN_NBR_DIST * (mris->vg.xsize + mris->vg.ysize + mris->vg.zsize) / 3);
+  float const min_nbr_dist = minNeighborDistance(mris);
 
   VERTEX* const v = &mris->vertices[vno];
   
   if (v->ripflag) {
-    return (NO_ERROR);
+    return true;
   }
 
   float const x = v->x;
@@ -40434,15 +40673,24 @@ static int mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno)
       if (dot > 0.0) {
         if (vno == Gdiag_no)
           printf("v %d: removing neighbor gradient dist (%2.2f, %2.2f, %2.2f) --> ", vno, v->odx, v->ody, v->odz);
-        v->odx -= dot * dx;
-        v->ody -= dot * dy;
-        v->odz -= dot * dz;
+
+        float odx = v->odx - dot * dx;
+        float ody = v->ody - dot * dy;
+        float odz = v->odz - dot * dz;
+
+        if (!proposed_ODXYZ_valid(mris, ctx, vno, odx, ody, odz)) return false;
+            // the proposed odxyz is beyond the range planned the parallelism can cope with
+
+        v->odx = odx;
+        v->ody = ody;
+        v->odz = odz;
+        
         if (vno == Gdiag_no) printf(" (%2.2f, %2.2f, %2.2f)\n", v->odx, v->ody, v->odz);
       }
     }
   }
 
-  return (NO_ERROR);
+  return true;
 }
 /*-----------------------------------------------------
   Parameters:
@@ -54989,26 +55237,87 @@ static int edgeExists(MRI_SURFACE *mris, int vno1, int vno2)
 }
 
 #if MATRIX_ALLOCATION
+
 #ifndef V4_LOAD
 #define V4_LOAD(v, x, y, z, r) (VECTOR_ELT(v, 1) = x, VECTOR_ELT(v, 2) = y, VECTOR_ELT(v, 3) = z, VECTOR_ELT(v, 4) = r);
 #endif
 
-int mriSurfaceRASToVoxel(double xr, double yr, double zr, double *xv, double *yv, double *zv)
+int mriSurfaceRASToVoxel(
+    double xr, double yr, double zr, 
+    double *xv, double *yv, double *zv)
 {
-  VECTOR *sr, *vv;
+  static int once;
+  static bool try_both_way = false;
+  static bool try_new_way  = true;
+  static bool try_old_way  = false;
+  if (!once) {
+    once++; 
+    try_both_way = getenv("FREESURFER_mriSurfaceRASToVoxel_both");
+    if  (try_both_way) 
+        try_new_way = try_old_way = true;
+    else if (getenv("FREESURFER_mriSurfaceRASToVoxel_old"))
+        try_new_way = false, try_old_way = true;
+  }
 
-  sr = VectorAlloc(4, MATRIX_REAL);
+  bool const new_way = 
+    try_new_way &&
+      VoxelFromSRASmatrix->type == MATRIX_REAL &&
+      VoxelFromSRASmatrix->rows == 4 &&
+      VoxelFromSRASmatrix->cols == 4;
 
+  bool const old_way = 
+    try_old_way ||
+    !new_way;
+
+  float nx = 0, ny = 0, nz = 0;
+  if (new_way) {
+    float fxr = xr, fyr = yr, fzr = zr;     // cvt to float to match old way
+    nx = 
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 1,1)*fxr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 1,2)*fyr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 1,3)*fzr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 1,4) ;
+    ny = 
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 2,1)*fxr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 2,2)*fyr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 2,3)*fzr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 2,4) ;
+    nz = 
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 3,1)*fxr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 3,2)*fyr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 3,3)*fzr +
+      (double)*MATRIX_RELT(VoxelFromSRASmatrix, 3,4) ;
+  }
+  
+  if (!old_way) {
+    *xv = nx;
+    *yv = ny;
+    *zv = nz;
+    return (NO_ERROR);
+  }
+
+  VECTOR* sr = VectorAlloc(4, MATRIX_REAL);
   V4_LOAD(sr, xr, yr, zr, 1.);
 
-  vv = MatrixMultiply(VoxelFromSRASmatrix, sr, NULL);
+  VECTOR* vv = MatrixMultiply(VoxelFromSRASmatrix, sr, NULL);
 
-  *xv = V3_X(vv);
-  *yv = V3_Y(vv);
-  *zv = V3_Z(vv);
+  float ox = V3_X(vv);
+  float oy = V3_Y(vv);
+  float oz = V3_Z(vv);
 
   VectorFree(&sr);
   VectorFree(&vv);
+
+  if (new_way) {
+    if (closeEnough(ox,nx) || closeEnough(oy,ny) || closeEnough(oz, nz)) {
+      fprintf(stderr, "%s:%d not same answer\n", __FILE__, __LINE__);
+      *(int*)-1 = 0;
+    }
+  }
+
+  *xv = ox;
+  *yv = oy;
+  *zv = oz;
 
   return (NO_ERROR);
 }
@@ -74586,6 +74895,7 @@ int MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   parms->projection = PROJECT_ELLIPSOID;
 
   MRIScomputeSurfaceNormals(mris, WHITE_VERTICES, navgs);  // will be used in normal term
+  MRIScomputeSurfaceNormals(mris, PIAL_VERTICES, navgs);  // will be used in normal term
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     //    int  n ;

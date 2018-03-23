@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>405</width>
-    <height>317</height>
+    <width>438</width>
+    <height>312</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -115,7 +115,7 @@
             <string notr="true">color:gray;</string>
            </property>
            <property name="text">
-            <string>Shift+Left Btn</string>
+            <string>Shift+Left Button</string>
            </property>
           </widget>
          </item>
@@ -125,7 +125,7 @@
             <string notr="true">color: gray;</string>
            </property>
            <property name="text">
-            <string>Shift+Ctrl+Left Btn</string>
+            <string>Shift+Ctrl+Left Button</string>
            </property>
           </widget>
          </item>
@@ -202,7 +202,7 @@
             <bool>true</bool>
            </property>
            <attribute name="buttonGroup">
-            <string>buttonGroup</string>
+            <string notr="true">buttonGroup</string>
            </attribute>
           </widget>
          </item>
@@ -215,7 +215,7 @@
             <bool>true</bool>
            </property>
            <attribute name="buttonGroup">
-            <string>buttonGroup</string>
+            <string notr="true">buttonGroup</string>
            </attribute>
           </widget>
          </item>
@@ -228,7 +228,7 @@
             <bool>true</bool>
            </property>
            <attribute name="buttonGroup">
-            <string>buttonGroup</string>
+            <string notr="true">buttonGroup</string>
            </attribute>
           </widget>
          </item>

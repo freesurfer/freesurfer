@@ -330,6 +330,7 @@ set DoCAReg          = 0;
 set DoRemoveNeck     = 0;
 set DoSkullLTA       = 0;
 set DoCALabel        = 0;
+set DoCCSeg          = 0;
 set DoASegMerge      = 0;
 set DoFill           = 0;
 #----- Surface -----------#
@@ -2786,7 +2787,7 @@ if($DoCALabel) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# SubCort Seg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
-  set DoASegMerge = 1; # Force
+  set DoCCSeg = 1; # Force
 
   if($DoCleanASeg) then
     set cmd = (rm -f aseg.presurf.mgz aseg.manedit.mgz)
@@ -2904,9 +2905,16 @@ if($DoCALabel) then
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
+endif
 
-  #--- Corpus Callosum Segmentation ---#
-  # Run mri_cc to create aseg.auto.mgz
+#--- Corpus Callosum Segmentation ---#
+# Run mri_cc to create aseg.auto.mgz. Note that DoCCSeg
+# will be 1 if CALabel is run. This just allows the recon-all -make
+# to start from here if aseg.auto_noCCseg.mgz was modified
+if($DoCCSeg) then
+  echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
+  echo "#@# CC Seg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  set DoASegMerge = 1; # Force
   set xopts = `fsr-getxopts mri_cc $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz \
     -lta ${subjdir}/mri/transforms/cc_up.lta);
@@ -2922,7 +2930,7 @@ endif
 
 # --------- Incorporate Manual ASeg Changes ----------------------
 # Allow it to be done outside of CALabel. Note that DoASegMerge
-# will be 1 if CALabel is run. This just allows the user to
+# will be 1 if CCSeg (or CALabel) is run. This just allows the user to
 # merge with Man Edits even if CALabel was not run, which will
 # only have an effect if the user has actually changed aseg.manedit
 if($DoASegMerge) then
@@ -6143,11 +6151,19 @@ while( $#argv != 0 )
       set DoCALabel = 0;
       breaksw
 
+    case "-ccseg":
+      set DoCCSeg = 1;
+      breaksw
+    case "-no-ccseg":
+      # Note: this will be overriden if DoCALabel=1
+      set DoCCSeg = 0;
+      breaksw
+
     case "-asegmerge":
       set DoASegMerge = 1;
       breaksw
     case "-no-asegmerge":
-      # Note: this will be overriden if DoCALabel=1
+      # Note: this will be overriden if DoCCSeg=1 (as well as DoCALabel=1)
       set DoASegMerge = 0;
       breaksw
 
@@ -7927,7 +7943,7 @@ check_params:
      ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && \
      ! $DoMaskBFS && ! $DoAParcASegStats && ! $DoLocalGyriIndex && \
      ! $DoMakefile && ! $DoParallel && ! $DoRelabelHypos && ! $DoCurvHK && \
-     ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats && ! $DoLabelV1 && \
+     ! $DoSurfVolume && ! $DoASegMerge && ! $DoCCSeg && ! $DoCurvStats && ! $DoLabelV1 && \
      ! $DoCreateBaseSubj && ! $DoBaLabels && ! $DoShowEdits && \
      ! $DoLabelExvivoEC && ! $DoPialSurfs && \
      ! $DoHippoSF_T1 && ! $DoHippoSF_T1T2 && ! $DoHippoSF_T2 &&  ! $DoBSsubst && \
