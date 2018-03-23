@@ -12,9 +12,8 @@ DESCRIPTION = 'GEMS2 Samseg.'
 URL = 'https://github.com/innolitics/freesurfer'
 EMAIL = 'wmills@innolitics.com, yshrestha@innolitics.com'
 AUTHOR = 'William Mills, Yujan Shrestha'
-VERSION = '0.1.0'  # TODO look at bumpversion or versioneer to maintain this
+VERSION = '0.1.1'
 
-# TODO: What packages are required for this module to be executed?
 REQUIRED = [
     'numpy >= 1.13.3',
     'scipy >= 1.0.0',

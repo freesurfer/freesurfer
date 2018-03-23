@@ -74,10 +74,6 @@ def samsegment_part2(
         for contrastNumber in range(numberOfContrasts):
             logger.debug('first time contrastNumber=%d', contrastNumber)
             # No image smoothing
-            # TODO: Remove need to check this. Matlab implicitly lets you expand one dim, our python code should have the shape (x, y, z, numberOfContrasts)
-            if imageBuffers.ndim == 3:
-                imageBuffers = np.expand_dims(imageBuffers, axis=3)
-
             downSampledImageBuffers[:, :, :, contrastNumber] = imageBuffers[::downSamplingFactors[0],
                                                                ::downSamplingFactors[1],
                                                                ::downSamplingFactors[2],
@@ -159,8 +155,6 @@ def samsegment_part2(
         downSampledBiasCorrectedImageBuffers = np.zeros(downSampledImageSize + (numberOfContrasts,), order='F')
         biasCorrectedData = np.zeros((activeVoxelCount, numberOfContrasts), order='F')
 
-        # TODO: remove this ensure_dims when part 1 is done
-        biasFieldCoefficients = ensure_dims(biasFieldCoefficients, 2)
         for contrastNumber in range(numberOfContrasts):
             logger.debug('second time contrastNumber=%d', contrastNumber)
             downSampledBiasField = backprojectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions,

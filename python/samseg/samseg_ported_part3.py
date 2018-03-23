@@ -63,9 +63,6 @@ def samsegment_part3(
     biasCorrectedImageBuffers = np.zeros((imageSize[0], imageSize[1], imageSize[2], numberOfContrasts))
     biasFields = np.zeros((imageSize[0], imageSize[1], imageSize[2], numberOfContrasts))
 
-    # TODO remove these ensure_dims once merging with part 2
-    biasFieldCoefficients = ensure_dims(biasFieldCoefficients, 2)
-    imageBuffers = ensure_dims(imageBuffers, 4)
     for contrastNumber in range(numberOfContrasts):
         biasField = backprojectKroneckerProductBasisFunctions(kroneckerProductBasisFunctions,
                                                               biasFieldCoefficients[:, contrastNumber])
