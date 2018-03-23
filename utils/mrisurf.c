@@ -12136,15 +12136,6 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
 
     float const min_nbr_dist = minNeighborDistance(mris);
     {
-      static int once;
-      if (!once) {
-          once = 1;
-          fprintf(stdout, "%s:%d xSubvolLen:%g ySubvolLen:%g zSubvolLen:%g min_nbr_dist:%g\n", __FILE__, __LINE__,
-              xSubvolLen, ySubvolLen, zSubvolLen, min_nbr_dist);
-          fprintf(stdout, "%s:%d xSubvolVerge:%g ySubvolVerge:%g zSubvolVerge:%g\n", __FILE__, __LINE__,
-              xSubvolVerge, ySubvolVerge, zSubvolVerge);
-      }
-
       // Even things this close to the subvolume surface can affect the adjacent subvolumes
       //
       xSubvolVerge += min_nbr_dist;
