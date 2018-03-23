@@ -95,6 +95,7 @@ int posix_memalignHere(void **memptr, size_t alignment, size_t size,const char* 
 
 #endif
 
+#define freeAndNULL(PTR) { free((PTR)); (PTR) = NULL; }
 
 #if defined(__cplusplus)
 };
