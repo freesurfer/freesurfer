@@ -55,7 +55,7 @@ public:
   void UpdateLabelFromImage( vtkImageData* rasImage_in, FSVolume* ref_vol );
   void UpdateRASImage( vtkImageData* rasImage_out, FSVolume* ref_vol, double threshold = -1e10 );
   void FillUnassignedVertices(FSSurface* surf, FSVolume* mri_template, int coords);
-  void EditVoxel(int nx, int ny, int nz, bool bAdd, int* vertices = NULL, int* pnum = NULL);
+  void EditVoxel(int nx, int ny, int nz, int coords, bool bAdd, int* vertices = NULL, int* pnum = NULL);
 
   bool GetCentroidRASPosition(double* pos, FSVolume* ref_vol);
 

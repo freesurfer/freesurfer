@@ -146,6 +146,7 @@ float sizethresh    = 0.0;
 int   sizethreshvox = 0;
 float distthresh =   0.0;
 int   allowdiag  = 0;
+int sig2pmax = 0; // convert max value from -log10(p) to p
 
 MRI *vol, *HitMap, *outvol, *maskvol, *binmask;
 VOLCLUSTER **ClusterList, **ClusterList2;
@@ -194,6 +195,7 @@ char *cmdline, cwd[2000];
 char *segctabfile = NULL;
 COLOR_TABLE *segctab = NULL;
 int Bonferroni = 0;
+int BonferroniMax = 0;
 int regheader = 0;
 
 /*--------------------------------------------------------------*/
@@ -207,6 +209,8 @@ int main(int argc, char **argv) {
   char *stem;
   COLOR_TABLE *ct;
   FILE *fp;
+
+  setRandomSeed(53);
 
   /* rkt: check for and handle version tag */
   nargs =
@@ -618,6 +622,11 @@ int main(int argc, char **argv) {
   else fprintf(fpsum,"\n");
 
   for (n = 0; n < nclusters; n++) {
+    double maxval = ClusterList[n]->maxval;
+    if(sig2pmax) {
+      maxval = pow(10.0,-fabs(ClusterList[n]->maxval));
+      if(BonferroniMax > 1) maxval *= BonferroniMax;
+    }
     clustComputeTal(ClusterList[n],CRS2MNI); /* for "true" Tal coords */
     //clustComputeXYZ(ClusterList[n],CRS2FSA); /* for FSA coords */
     //clustComputeXYZ(ClusterList[n],CRS2MNI); /* for MNI coords */
@@ -635,7 +644,7 @@ int main(int argc, char **argv) {
     }
     fprintf(fpsum,"%3d        %5d      %8.1f    %7.2f %7.2f %7.2f   %15.5f",
             n+1,ClusterList[n]->nmembers,voxsize*ClusterList[n]->nmembers,
-            x,y,z, ClusterList[n]->maxval);
+            x,y,z, maxval);
     if (debug) fprintf(fpsum,"  %3d %3d %3d \n",col,row,slc);
     if (csd != NULL)
       fprintf(fpsum,"  %7.5lf  %7.5lf  %7.5lf",
@@ -768,6 +777,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-fixmni"))  FixMNI = 0;
     else if (!strcasecmp(option, "--fixmni"))     FixMNI = 1;
     else if (!strcasecmp(option, "--fsaverage"))  UseFSAverage = 1;
+    else if (!strcmp(option, "--sig2p-max")) sig2pmax = 1;
 
     else if (!strcasecmp(option, "--diag")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -968,6 +978,12 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&Bonferroni);
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--bonferroni-max")) {
+      if (nargc < 1) argnerr(option,1);
+      // only applies when --sig2pmax is used
+      sscanf(pargv[0],"%d",&BonferroniMax);
+      nargsused = 1;
+    } 
     else if (!strcmp(option, "--minsize")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&sizethresh);
@@ -1095,6 +1111,8 @@ static void print_usage(void) {
   printf("   --mindist distance threshold <0>\n");
   printf("   --allowdiag  : define contiguity to include diagonal\n");
   printf("   --bonferroni N : addition correction across N (eg, spaces)\n");
+  printf("   --bonferroni-max N : apply bonf cor to maximum (only applies with --sig2p-max)\n");
+  printf("   --sig2p-max : convert max from sig to p\n");
   printf("\n");
   printf("   --mask      mask volid (same dim as input)\n");
   printf("   --mask_type file format \n");
