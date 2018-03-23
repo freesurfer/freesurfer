@@ -56,35 +56,34 @@ class TestIta:
         assert not mri.valid
 
     def test_read(self):
-        lta = LTA()
-        lta.read(self.test_fixture_file_name)
+        lta = LTA().read(self.test_fixture_file_name)
         self.check_is_valid(lta)
 
     def check_is_valid(self, lta):
         assert lta is not None
         assert lta.type == 0
         assert lta.nxforms == 1
-        assert lta.mean == [0.0, 0.0, 0.0]
+        assert list(lta.mean) == [0.0, 0.0, 0.0]
         assert lta.sigma == 0.0
-        assert lta.dims == [1, 4, 4]
+        assert list(lta.dims) == [1, 4, 4]
         assert lta.xform.shape == (4, 4)
         assert lta.xform[1, 2] == 0.154134709291283
         assert lta.srcmri.valid == 1
         assert lta.srcfile == '/autofs/cluster/fsm/users/samseg/subjects/Buckner40/004/mri/in_vol.mgz'
-        assert lta.srcmri.volsize == [256, 256, 256]
-        assert lta.srcmri.volres == [1.0, 1.0, 1.0]
-        assert lta.srcmri.xras == [-1.0, 0.0, 0.0]
-        assert lta.srcmri.yras == [0.0, 0.0, -1.0]
-        assert lta.srcmri.zras == [0.0, 1.0, 0.0]
-        assert lta.srcmri.cras == [0.0, 0.0, 0.0]
+        assert list(lta.srcmri.volsize) == [256, 256, 256]
+        assert list(lta.srcmri.volres) == [1.0, 1.0, 1.0]
+        assert list(lta.srcmri.xras) == [-1.0, 0.0, 0.0]
+        assert list(lta.srcmri.yras) == [0.0, 0.0, -1.0]
+        assert list(lta.srcmri.zras) == [0.0, 1.0, 0.0]
+        assert list(lta.srcmri.cras) == [0.0, 0.0, 0.0]
         assert lta.dstmri.valid == 1
         assert lta.dstfile == '/autofs/cluster/fsm/users/samseg/freesurfer/dist/subjects/fsaverage/mri/orig.mgz'
-        assert lta.dstmri.volsize == [256, 256, 256]
-        assert lta.dstmri.volres == [1.0, 1.0, 1.0]
-        assert lta.dstmri.xras == [-1.0, 0.0, 0.0]
-        assert lta.dstmri.yras == [0.0, 0.0, -1.0]
-        assert lta.dstmri.zras == [0.0, 1.0, 0.0]
-        assert lta.dstmri.cras == [0.0, 0.0, 0.0]
+        assert list(lta.dstmri.volsize) == [256, 256, 256]
+        assert list(lta.dstmri.volres) == [1.0, 1.0, 1.0]
+        assert list(lta.dstmri.xras) == [-1.0, 0.0, 0.0]
+        assert list(lta.dstmri.yras) == [0.0, 0.0, -1.0]
+        assert list(lta.dstmri.zras) == [0.0, 1.0, 0.0]
+        assert list(lta.dstmri.cras) == [0.0, 0.0, 0.0]
         assert lta.subject == 'fsaverage'
         assert lta.srcmri.valid
         assert lta.dstmri.valid
@@ -119,7 +118,7 @@ class TestIta:
 
     def test_load_mgh_header(self):
         [vol, M, mr_parms, volsz] = load_mgh_header(self.expected_dstfile)
-        assert volsz == [256, 256, 256, 1]
+        assert list(volsz) == [256, 256, 256, 1]
         assert vol is None
         assert M is not None
         assert mr_parms is not None
@@ -137,7 +136,7 @@ class TestIta:
         assert mri.ti == 0
         assert mri.vox2ras is not None
         assert mri.vox2ras0 is not None
-        assert mri.volsize == [256, 256, 256]
+        assert list(mri.volsize) == [256, 256, 256]
         assert mri.height == 256
         assert mri.width == 256
         assert mri.depth == 256

@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 
-from samseg.mri_util import load_mgh_header
+from samseg.mri_util import load_mgh_header, construct_affine
 
 
 def filter_until_type(lines):
@@ -69,28 +69,30 @@ def parse_expected_float(expected_var, gen):
 
 
 def parse_expected_float_array(expected_var, gen):
-    return [float(value) for value in parse_expected(expected_var, next(gen))]
+    return np.array([float(value) for value in parse_expected(expected_var, next(gen))])
 
 
 def parse_expected_int_array(expected_var, gen):
-    return [int(value) for value in parse_expected(expected_var, next(gen))]
+    return np.array([int(value) for value in parse_expected(expected_var, next(gen))])
 
 
 def parse_int_array(gen):
     line = next(gen).strip()
-    return [int(value) for value in line.split(' ') if value != '']
+    return np.array([int(value) for value in line.split(' ') if value != ''])
 
 
 def parse_float_array(gen):
     line = next(gen).strip()
-    return [float(value) for value in line.split(' ') if value != '']
+    return np.array([float(value) for value in line.split(' ') if value != ''])
 
 
 def parse_2d_float_array(gen, rows=4):
-    return [parse_float_array(gen) for row in range(rows)]
+    return np.array([parse_float_array(gen) for row in range(rows)])
+
 
 def nice_array_format(data):
     return ' '.join(['{: 18.15f}'.format(val) for val in data])
+
 
 class LTA:
     def __init__(self):
@@ -113,6 +115,7 @@ class LTA:
             self.srcfile = self.srcmri.read(content)
             self.dstfile = self.dstmri.read(content)
             self.subject = parse_expected_string_no_equals('subject', content)
+        return self
 
     def write(self, filename):
         with open(filename, 'w') as file:
@@ -172,7 +175,7 @@ class MRI:
         self.yras = [M[row, 1] / self.xsize for row in range(3)]
         self.zras = [M[row, 2] / self.xsize for row in range(3)]
         ic = np.array([self.width / 2, self.height / 2, self.depth / 2, 1]).T
-        c = np.matmul(M, ic)
+        c = M @ ic
         self.cras = list(c[0:3])
         self.valid = True
         return self
@@ -187,7 +190,23 @@ class MRI:
         self.yras = parse_expected_float_array('yras', content)
         self.zras = parse_expected_float_array('zras', content)
         self.cras = parse_expected_float_array('cras', content)
+        self.upate_vox2ras()
         return filename
+
+    def upate_vox2ras(self):
+        # Compute the vox2ras matrix
+        Mdc = np.zeros([3, 3])
+        for row, source in enumerate([self.xras, self.yras, self.zras]):
+            for column in range(3):
+                Mdc[row, column] = source[column]
+        Nvox2 = self.volsize / 2
+        D = np.diag(self.volres)
+        MdcD = Mdc @ D
+        P0 = self.cras - MdcD @ Nvox2
+        self.vox2ras0 = np.zeros([4, 4])
+        self.vox2ras[3, 3] = 1.0
+        self.vox2ras0 = construct_affine(MdcD, P0)
+        pass
 
     def formatted_lines(self, prefix, filename):
         return [

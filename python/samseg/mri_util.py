@@ -73,29 +73,24 @@ def load_mgh_header(filename):
         file.seek(number_of_voxels * bytes_per_voxel, 1)  # from current position
 
         mr_parms = [read_float() for _ in range(4)]
-        return [vol, M, mr_parms, volsz]
+        return [vol, M, mr_parms, np.array(volsz)]
 
 
 def construct_transform(delta, Mdc, Pxyz_c, volsz):
-    # D = diag(delta);
     D = np.diag(delta)
-    # Pcrs_c = [ndim1 / 2 ndim2 / 2 ndim3 / 2]'
     ndims = volsz[:3]
     Pcrs_c = np.array([0.5 * ndim for ndim in ndims]).T  # % Should this be kept?
-    # Pxyz_0 = Pxyz_c - Mdc * D * Pcrs_c;
-    MdcD = np.matmul(Mdc, D)
-    Pxyz_0 = Pxyz_c - np.matmul(MdcD, Pcrs_c)
-    # M = [Mdc * D Pxyz_0;
-    # ...
-    # 0
-    # 0
-    # 0
-    # 1];
+    MdcD = Mdc @ D
+    Pxyz_0 = Pxyz_c - MdcD @ Pcrs_c
+    M = construct_affine(MdcD, Pxyz_0)
+    return M
+
+def construct_affine(mat, offset):
     M = np.zeros([4, 4])
     for row in range(3):
         for column in range(3):
-            M[row, column] = MdcD[row, column]
-        M[row, 3] = Pxyz_0[row]
+            M[row, column] = mat[row, column]
+        M[row, 3] = offset[row]
     M[3, 3] = 1.0
     return M
 
