@@ -36,6 +36,7 @@ def run_samseg_from_cmdargs(cmdargs):
     noBrainMasking = cmdargs.nobrainmask
     useDiagonalCovarianceMatrices = cmdargs.diagcovs
     RegMatFile = cmdargs.regmat
+    InitLTAFile = cmdargs.InitLTAFile
     imageFileNames = cmdargs.image_file_names
     # Display input
     display_cmdargs(cmdargs)
@@ -48,7 +49,8 @@ def run_samseg_from_cmdargs(cmdargs):
             useDiagonalCovarianceMatrices,
             verbose,
             numberOfThreads,
-            atlas_only
+            atlas_only=atlas_only,
+            InitLTAFile=InitLTAFile
     )
 
 
@@ -60,6 +62,7 @@ def run_samseg(
     useDiagonalCovarianceMatrices=False,
     verbose=False,
     numberOfThreads=None,
+    InitLTAFile=None,
     atlas_only=False,
     checkpoint_manager=None
 ):
@@ -94,10 +97,12 @@ def run_samseg(
         savePath,
         showFigures,
         worldToWorldTransformMatrix,
+        InitLTAFile,
         checkpoint_manager
     )
     process_timer.mark_time('registration done')
     if atlas_only:
+        print('Registration-only requested, so quiting now')
         return
     # FreeSurfer (http://surfer.nmr.mgh.harvard.edu) has a standardized way of representation segmentations,
     # both manual and automated, as images in which certain intensity levels correspond to well-defined
@@ -145,6 +150,7 @@ def display_cmdargs(cmdargs):
     log_image_file_names(cmdargs.image_file_names)
     logger.info("output to %s", cmdargs.output)
     logger.info("threads=%d", cmdargs.threads)
+    logger.info("init lta is %s", cmdargs.InitLTAFile)
     log_mode('verbose', cmdargs.verbose)
 
 
