@@ -3903,26 +3903,30 @@ static int MRIScomputeNormals_new(MRI_SURFACE *mris);
     typedef struct MRIScomputeNormals_Snapshot {
         FACE*   faces;
         VERTEX* vertices;
+	FaceNormCacheEntry *faceNormCacheEntries; 
     } MRIScomputeNormals_Snapshot;
     
     static void MRIScomputeNormals_Snapshot_init(
         MRIScomputeNormals_Snapshot* lhs,
         MRI_SURFACE*                 mris) {
-        int FC = mris->nfaces    * sizeof(FACE);   memcpy(lhs->faces    = (FACE*  )malloc(FC), mris->faces,    FC); 
-        int VC = mris->nvertices * sizeof(VERTEX); memcpy(lhs->vertices = (VERTEX*)malloc(VC), mris->vertices, VC); 
+	int CC = mris->nfaces    * sizeof(FaceNormCacheEntry);  memcpy(lhs->faceNormCacheEntries = (FaceNormCacheEntry*  )malloc(CC), mris->faceNormCacheEntries, CC); 
+        int FC = mris->nfaces    * sizeof(FACE);   		memcpy(lhs->faces                = (FACE*  )              malloc(FC), mris->faces,                FC); 
+        int VC = mris->nvertices * sizeof(VERTEX); 		memcpy(lhs->vertices             = (VERTEX*)              malloc(VC), mris->vertices,             VC);
     }
 
     static void MRIScomputeNormals_Snapshot_undo(
         MRIScomputeNormals_Snapshot* lhs,
         MRI_SURFACE*                 mris) {
-        int FC = mris->nfaces    * sizeof(FACE);   memcpy(mris->faces,    lhs->faces,    FC); 
-        int VC = mris->nvertices * sizeof(VERTEX); memcpy(mris->vertices, lhs->vertices, VC); 
+	int CC = mris->nfaces    * sizeof(FaceNormCacheEntry);  memcpy(mris->faceNormCacheEntries, lhs->faceNormCacheEntries, CC);
+        int FC = mris->nfaces    * sizeof(FACE);   		memcpy(mris->faces,                lhs->faces,                FC); 
+        int VC = mris->nvertices * sizeof(VERTEX); 		memcpy(mris->vertices,             lhs->vertices,             VC); 
     }
 
     static void MRIScomputeNormals_Snapshot_fini(
         MRIScomputeNormals_Snapshot* lhs) {
-        free(lhs->faces   ); lhs->faces    = NULL;
-        free(lhs->vertices); lhs->vertices = NULL;
+	freeAndNULL(lhs->faceNormCacheEntries);
+        freeAndNULL(lhs->faces);
+        freeAndNULL(lhs->vertices);
     }
     
     static void MRIScomputeNormals_Snapshot_check(double lhs, double rhs, int line, int i, int* count) {
