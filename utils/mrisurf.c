@@ -1841,6 +1841,24 @@ MRI_SURFACE *MRISoverAlloc(int max_vertices, int max_faces, int nvertices, int n
 
   Description
   ------------------------------------------------------*/
+static bool MRISallocateFaces(MRI_SURFACE * mris, int nfaces) {
+  mris->nfaces = nfaces;
+  
+  mris->faces  = (FACE *)calloc(nfaces, sizeof(FACE));
+  if (!mris->faces)
+    return false;
+
+  mris->faceNormCacheEntries = (FaceNormCacheEntry*)calloc(nfaces, sizeof(FaceNormCacheEntry));
+  if (!mris->faceNormCacheEntries)
+    return false;
+ 
+  mris->faceNormDeferredEntries = (FaceNormDeferredEntry*)calloc(nfaces, sizeof(FaceNormDeferredEntry));
+  if (!mris->faceNormCacheEntries)
+    return false;
+    
+  return true;
+}
+
 MRI_SURFACE *MRISalloc(int nvertices, int nfaces)
 {
   MRI_SURFACE *mris;
@@ -1855,23 +1873,14 @@ MRI_SURFACE *MRISalloc(int nvertices, int nfaces)
 
   mris->nsize     = 1; /* only 1-connected neighbors initially */
   mris->nvertices = nvertices;
-  mris->nfaces    = nfaces;
   
   mris->vertices  = (VERTEX *)calloc(nvertices, sizeof(VERTEX));
   if (!mris->vertices)
     ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate vertices", nvertices, sizeof(VERTEX));
 
-  mris->faces = (FACE *)calloc(nfaces, sizeof(FACE));
-  if (!mris->faces)
-    ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate faces", nfaces, sizeof(FACE));
-
-  mris->faceNormCacheEntries = (FaceNormCacheEntry*)calloc(nfaces, sizeof(FaceNormCacheEntry));
-  if (!mris->faceNormCacheEntries)
-    ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate faceNormCacheEntries", nfaces, sizeof(FaceNormCacheEntry));
- 
-  mris->faceNormDeferredEntries = (FaceNormDeferredEntry*)calloc(nfaces, sizeof(FaceNormDeferredEntry));
-  if (!mris->faceNormCacheEntries)
-    ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate faceNormDeferredEntries", nfaces, sizeof(FaceNormDeferredEntry));
+  if (!MRISallocateFaces(mris, nfaces)) {
+    ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate faces", nfaces, sizeof(FACE)+sizeof(FaceNormCacheEntry)+sizeof(FaceNormDeferredEntry));
+  }
 
   mris->useRealRAS = 0; /* just initialize */
   mris->vg.valid = 0;   /* mark invalid */
@@ -28275,15 +28284,9 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname)
 
   /* now we can book some face space (if we have a new mris structure) */
   if (newMris) {
-    mris->nfaces = nfaces;
-    mris->faces = (FACE *)calloc(nfaces, sizeof(FACE));
-    mris->faceNormCacheEntries = (FaceNormCacheEntry*)calloc(nfaces, sizeof(FaceNormCacheEntry));
-    if (!mris->faces || !mris->faceNormCacheEntries) {
+    if (!MRISallocateFaces(mris, nfaces)) {
       fclose(fp);
       ErrorExit(ERROR_NO_MEMORY, "MRISreadVTK(%d, %d): could not allocate faces", nfaces, sizeof(FACE));
-    }
-    else {
-      memset(mris->faces, 0, nfaces * sizeof(FACE));
     }
   }
   else {
