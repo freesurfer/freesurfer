@@ -134,7 +134,7 @@ foreach hemi ($hemilist)
   if($status) exit 1;
 
   # Compute stats
-  set sum = $SUBJECTS_DIR/$subject/stats/$hemi.w-g.pct.stats
+  set sum = $SUBJECTS_DIR/$subject/stats/$hemi.$OutBase.stats
   set cmd = (mri_segstats --in $out --annot $subject $hemi aparc \
     --sum $sum --snr);
   echo $cmd 

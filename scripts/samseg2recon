@@ -12,9 +12,11 @@ endif
 set samsegdir = ();
 set subject = ();
 set input = ();
-set DoUchar = 1;
-set DoCC = 1;
-set KeepECS = 0;
+set DoUchar = 0; # recon-all apparently does not need it
+set KeepECS = 1; # recon-all apparently handles extracereb seg ok
+set DoCC = 1;    # Corpus callosum
+set DoFill = ()
+set DoNormalization2 = 0;
 set tmpdir = ()
 set LF = ()
 set cleanup = 1
@@ -206,6 +208,40 @@ if($status) goto error_exit;
 date | tee -a $LF
 popd
 
+if($DoNormalization2) then
+  # Mimic normalization2 by just linking norm.mgz to brain.mgz In
+  # recon-all it is created by mri_normalize. This is important because
+  # brain.finalsurfs.mgz is created from brain.mgz, and the surfaces
+  # are built from brain.finalsurfs.mgz.
+  pushd $mdir
+  rm -f brain.mgz
+  ln -s norm.mgz brain.mgz
+  popd
+endif
+
+if($DoFill) then
+  # Use the samseg aseg.auto.mgz to create the filled.mgz
+  # Should be able to not run pretess in recon-all (except can't turn it off)
+  pushd $mdir
+  set cmd = (seg2filled --seg aseg.auto.mgz --norm norm.mgz --o filled.mgz)
+  date | tee -a $LF
+  echo $cmd | tee -a $LF
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+  date | tee -a $LF
+  # If creating the filled.mgz directly, then there is no need to run
+  # mri_segments, etc, which creates wm.mgz. However, wm.mgz is used
+  # by the topology fixer, so need something there. So just mask the
+  # norm.mgz with the filled.mgz. Might be something better to do.
+  set cmd = (mri_mask norm.mgz filled.mgz wm.mgz)
+  date | tee -a $LF
+  echo $cmd | tee -a $LF
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+  date | tee -a $LF
+  popd
+endif
+
 # Cleanup
 if($cleanup) rm -rf $tmpdir
 
@@ -265,12 +301,29 @@ while( $#argv != 0 )
       set LF = /dev/null
       breaksw
 
+    case "--fill":
+      set DoFill = 1;
+      breaksw
+    case "--no-fill":
+      set DoFill = 0;
+      breaksw
+
+    case "--normalization2":
+      set DoNormalization2 = 1;
+      breaksw
+    case "--nonormalization2":
+      set DoNormalization2 = 0;
+      breaksw
+
     case "--dice":
       if($#argv < 1) goto arg1err;
       set diceseg = $argv[1]; shift;
       set computedice = 1;
       breaksw
 
+    case "--uchar":
+      set DoUchar = 1;
+      breaksw
     case "--no-uchar":
       set DoUchar = 0;
       breaksw
@@ -278,6 +331,10 @@ while( $#argv != 0 )
     case "--keep-exc":
       # keep extraceregral segmentations
       set KeepECS = 1;
+      breaksw
+    case "--no-keep-exc":
+      # keep extraceregral segmentations
+      set KeepECS = 0;
       breaksw
 
     case "--no-cc":
@@ -364,6 +421,10 @@ usage_exit:
   echo "  --samseg samsegdir : ouput dir when running samseg"
   echo "      if not supplied, then assumes subject/mri/samseg"
   echo "  --no-cc : do not do corpus callosum segmentation"
+  echo "  --fill : use samseg to create the filled.mgz used for tessellation (--no-fill)"
+  echo "  --normalization2 : seg brain.mgz to norm.mgz "
+  echo "  --uchar : convert to uchar"
+  echo "  --no-keep-exc : do not keep extracerebral segmentations"
   echo ""
 
   if(! $PrintHelp) exit 1;
