@@ -74586,6 +74586,7 @@ int MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   parms->projection = PROJECT_ELLIPSOID;
 
   MRIScomputeSurfaceNormals(mris, WHITE_VERTICES, navgs);  // will be used in normal term
+  MRIScomputeSurfaceNormals(mris, PIAL_VERTICES, navgs);  // will be used in normal term
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     //    int  n ;
