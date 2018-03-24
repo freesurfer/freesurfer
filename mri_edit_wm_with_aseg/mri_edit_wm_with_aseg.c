@@ -86,6 +86,7 @@ static int keep_edits = 0 ;
 static int keep_edits_input = 0 ;
 static void usage_exit(int code) ;
 
+static int fcd = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -224,6 +225,11 @@ get_option(int argc, char *argv[])
     keep_edits = 1 ;
     fprintf(stderr, "preserving editing changes in output volume...\n");
   }
+  else if (!stricmp(option, "fcd"))
+  {
+    fcd = 1 ;
+    fprintf(stderr, "preserving focal cortical dysplasias - not filling non-wm lesions\n");
+  }
   else if (!stricmp(option, "keep-in"))
   {
     keep_edits = 1 ;
@@ -339,14 +345,16 @@ edit_segmentation(MRI *mri_wm, MRI *mri_T1, MRI *mri_seg)
           break ;
 
           /* fill these */
+        case non_WM_hypointensities:
+        case Left_non_WM_hypointensities:
+        case Right_non_WM_hypointensities:
+	  if (fcd)
+	    break ;
         case Left_Lesion:
         case Right_Lesion:
         case WM_hypointensities:
         case Left_WM_hypointensities:
         case Right_WM_hypointensities:
-        case non_WM_hypointensities:
-        case Left_non_WM_hypointensities:
-        case Right_non_WM_hypointensities:
           // only fill these if they are not adjacent to cortex
           if ((neighborLabel(mri_seg, x, y, z,1,Left_Cerebral_Cortex) == 0) &&
               (neighborLabel(mri_seg, x, y, z,1,Right_Cerebral_Cortex) == 0) &&

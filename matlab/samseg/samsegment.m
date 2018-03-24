@@ -327,7 +327,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
   downSampledMask = mask(  1 : downSamplingFactors( 1 ) : end, ...
                            1 : downSamplingFactors( 2 ) : end, ...
                            1 : downSamplingFactors( 3 ) : end );
-  downSampledMaskIndices = find( downSampledMask );                         
+  downSampledMaskIndices = find( downSampledMask );
   downSampledImageBuffers = [];
   for contrastNumber = 1 : numberOfContrasts
     % if ( multiResolutionLevel == numberOfMultiResolutionLevels )
@@ -726,7 +726,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
             lhs( ( contrastNumber1 - 1 ) * prod( numberOfBasisFunctions ) + [ 1 : prod( numberOfBasisFunctions ) ], ...
                  ( contrastNumber2 - 1 ) * prod( numberOfBasisFunctions ) + [ 1 : prod( numberOfBasisFunctions ) ] ) = ... 
                   computePrecisionOfKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, weightsImageBuffer );
-            
+
           end % End loop over contrastNumber2
           
           tmpImageBuffer( downSampledMaskIndices ) = tmp;
@@ -821,7 +821,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     disp( [ '    maximalDeformationApplied: ' num2str( maximalDeformationApplied ) ] )
     disp( [ '  ' num2str( toc( deformationStartTime ) ) ' sec' ] )
     disp( '==============================' )
-    
+
     
     % Show a little movie comparing before and after deformation so far...
     if ( showFigures )

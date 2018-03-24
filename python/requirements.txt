@@ -1,0 +1,5 @@
+gems2python==0.1.0
+numpy==1.13.3
+py==1.5.2
+pytest==3.2.5
+scipy==1.0.0

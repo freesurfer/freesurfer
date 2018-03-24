@@ -8,7 +8,7 @@ import optparse
 import logging
 import csv
 
-# sys.path.append(os.environ['FREESURFER_HOME']+'/bin/') 
+# sys.path.append(os.environ['FREESURFER_HOME']+'/bin/')
 import fsutils
 from fsutils import AsegStatsParser, BadFileError, aseglogger
 
@@ -114,7 +114,7 @@ def options_parse():
     initiate the option parser and return the parsed object
     """
     parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.41 2015/11/24 17:55:49 mreuter Exp $', usage=HELPTEXT)
-    
+
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
     h_s = ' subjectname'
@@ -132,50 +132,50 @@ def options_parse():
     h_all = 'output all the segmentations of the statsfiles given'
     h_stats = 'use `fname` instead of "aseg.stats"'
     h_subdir = 'use `subdir` instead of "stats/"'
-    h_tr = 'transpose the table ( default is subjects in rows and segmentations in cols)' 
-    h_etiv = 'report volume as percent estimated total intracranial volume' 
+    h_tr = 'transpose the table ( default is subjects in rows and segmentations in cols)'
+    h_etiv = 'report volume as percent estimated total intracranial volume'
     h_t = '(REQUIRED) the output tablefile'
-    h_deli = 'delimiter between measures in the table. default is tab (alt comma, space, semicolon )' 
+    h_deli = 'delimiter between measures in the table. default is tab (alt comma, space, semicolon )'
     h_skip = 'if a subject does not have stats file, skip it'
     h_v = 'increase verbosity'
-    h_vol_extras = 'Do not include global volume measures like BrainSegVol';
+    h_vol_extras = 'Do not include global volume measures like BrainSegVol'
 
-    # Add options 
-    parser.add_option('--subjects', dest='subjects' ,action='callback',
-                      callback=fsutils.callback_var,  help=h_sub)
-    parser.add_option('-s', dest='subjects' ,action='append',
+    # Add options
+    parser.add_option('--subjects', dest='subjects', action='callback',
+                      callback=fsutils.callback_var, help=h_sub)
+    parser.add_option('-s', dest='subjects', action='append',
                       help=h_s)
     parser.add_option('--subjectsfile', dest='subjectsfile', help=h_subf)
     parser.add_option('--qdec', dest='qdec', help=h_qdec)
     parser.add_option('--qdec-long', dest='qdeclong', help=h_qdeclong)
-    parser.add_option('--inputs', dest='inputs' ,action='callback',
-                      callback=fsutils.callback_var,  help=h_inp)
-    parser.add_option('-i', dest='inputs' ,action='append',
+    parser.add_option('--inputs', dest='inputs', action='callback',
+                      callback=fsutils.callback_var, help=h_inp)
+    parser.add_option('-i', dest='inputs', action='append',
                       help=h_i)
     parser.add_option('-t', '--tablefile', dest='outputfile',
                       help=h_t)
     parser.add_option('-m', '--meas', dest='meas',
                       choices=('volume','Area_mm2','nvoxels','nvertices','mean','std','snr','max'),  default='volume', help=h_meas)
     parser.add_option('--maxsegno', dest='maxsegno',
-                       help=h_inp)
+                      help=h_inp)
     parser.add_option('--segids-from-file', dest='segidsfile', help=h_segsfile)
 
-    parser.add_option('--segno', dest='segnos' ,action='callback',
-                      callback=fsutils.callback_var,  help=h_seg)
-    parser.add_option('--no-segno', dest='no_segnos' ,action='callback',
-                      callback=fsutils.callback_var,  help=h_noseg)
-    parser.add_option('--common-segs', dest='common_flag' ,action='store_true',
+    parser.add_option('--segno', dest='segnos', action='callback',
+                      callback=fsutils.callback_var, help=h_seg)
+    parser.add_option('--no-segno', dest='no_segnos', action='callback',
+                      callback=fsutils.callback_var, help=h_noseg)
+    parser.add_option('--common-segs', dest='common_flag', action='store_true',
                       default=False, help=h_common)
-    parser.add_option('--all-segs', dest='all_flag' ,action='store_true',
+    parser.add_option('--all-segs', dest='all_flag', action='store_true',
                       default=False, help=h_all)
-    parser.add_option('--no-vol-extras', dest='vol_extras' ,action='store_false',
+    parser.add_option('--no-vol-extras', dest='vol_extras', action='store_false',
                       default=True, help=h_vol_extras)
     parser.add_option('--stats', dest='statsfname',
-                       help=h_stats)
+                      help=h_stats)
     parser.add_option('--statsfile', dest='statsfname',
-                       help=h_stats)
+                      help=h_stats)
     parser.add_option('--subdir', dest='subdir',
-                       help=h_subdir)
+                      help=h_subdir)
     parser.add_option('-d', '--delimiter', dest='delimiter',
                       choices=('comma','tab','space','semicolon'),
                       default='tab', help=h_deli)
@@ -189,7 +189,7 @@ def options_parse():
                       default=False, help=h_v)
 
     (options, args) = parser.parse_args()
-    
+
     # extensive error checks
     if options.subjects is not None:
         if len(options.subjects) < 1:
@@ -197,7 +197,7 @@ def options_parse():
             sys.exit(1)
         else:
             options.dodirect = False
-    
+
     if options.inputs is not None:
         if len(options.inputs) < 1:
             print('ERROR: inputs are not specified')
@@ -208,26 +208,26 @@ def options_parse():
     if options.subjectsfile is not None or options.qdec is not None or options.qdeclong is not None:
         options.dodirect = False
 
-    if options.subjects is None and options.inputs is None and options.subjectsfile is None and options.qdec is None and options.qdeclong is None: 
+    if options.subjects is None and options.inputs is None and options.subjectsfile is None and options.qdec is None and options.qdeclong is None:
         print('ERROR: Specify one of --subjects, --inputs, --subjectsfile --qdec or --qdec-long')
         print('       or run with --help for help.')
         sys.exit(1)
-    
-    count=0
+
+    count = 0
     if options.subjects is not None:
-        count = count+1;
+        count = count+1
     if options.inputs is not None:
-        count = count+1;
+        count = count+1
     if options.subjectsfile is not None:
         count = count+1
     if options.qdec is not None:
-        count = count+1;
+        count = count+1
     if options.qdeclong is not None:
-        count = count+1;
-    if count >1:
+        count = count+1
+    if count > 1:
         print('ERROR: Please specify just one of  --subjects, --inputs --subjectsfile --qdec or --qdec-long.')
         sys.exit(1)
-    
+
     if not options.outputfile:
         print('ERROR: output table name should be specified (use --tablefile FILE)')
         sys.exit(1)
@@ -239,11 +239,11 @@ def options_parse():
     if options.maxsegno and int(options.maxsegno) < 1:
         print('ERROR: maximum number of segs reported shouldnt be less than 1')
         sys.exit(1)
-    
-    if options.segnos is not None  and len(options.segnos) < 1 :
+
+    if options.segnos is not None  and len(options.segnos) < 1:
         print('ERROR: segmentation numbers should be specified with that option')
         sys.exit(1)
-    
+
     if options.no_segnos is not None and len(options.no_segnos) < 1:
         print('ERROR: to be excluded segmentation numbers should be specified with that option')
         sys.exit(1)
@@ -259,7 +259,7 @@ def options_parse():
 
     if options.verboseflag:
         l.setLevel(logging.DEBUG)
-    
+
     return options
 
 """
@@ -295,7 +295,7 @@ def assemble_inputs(o):
             o.statsfname = 'aseg.stats'
         # in case the user gave --subjectsfile argument
         if o.subjectsfile is not None:
-            o.subjects=[]
+            o.subjects = []
             try:
                 sf = open(o.subjectsfile)
                 [o.subjects.append(subfromfile.strip()) for subfromfile in sf]
@@ -304,15 +304,15 @@ def assemble_inputs(o):
                 print('ERROR: the file %s doesnt exist'%o.subjectsfile)
                 sys.exit(1)
         if o.qdec is not None:
-            o.subjects=[]
+            o.subjects = []
             try:
                 f = open(o.qdec, 'rb')
                 dialect = csv.Sniffer().sniff(f.readline())
                 f.seek(0)
-                reader = csv.DictReader(f,dialect=dialect)
+                reader = csv.DictReader(f, dialect=dialect)
                 #o.subjects = [row['fsid'] for row in reader]
                 for row in reader:
-                    fsid=row['fsid'].strip()
+                    fsid = row['fsid'].strip()
                     if fsid[0] != '#':
                         o.subjects.append(fsid)
                 f.close()
@@ -320,24 +320,24 @@ def assemble_inputs(o):
                 print('ERROR: the file %s doesnt exist'%o.qdec)
                 sys.exit(1)
         if o.qdeclong is not None:
-            o.subjects=[]
+            o.subjects = []
             try:
                 f = open(o.qdeclong, 'rb')
                 dialect = csv.Sniffer().sniff(f.readline())
                 f.seek(0)
-                reader = csv.DictReader(f,dialect=dialect)
+                reader = csv.DictReader(f, dialect=dialect)
                 #o.subjects = [(row['fsid']+'.long.'+row['fsid-base']) for row in reader]
                 for row in reader:
-                    fsid=row['fsid'].strip()
+                    fsid = row['fsid'].strip()
                     if fsid[0] != '#':
                         o.subjects.append(fsid+'.long.'+row['fsid-base'].strip())
                 f.close()
             except IOError:
                 print('ERROR: the file %s doesnt exist'%o.qdeclong)
                 sys.exit(1)
-        
+
         for sub in o.subjects:
-            specs_paths.append( (sub,  os.path.join(subjdir, sub, o.subdir, o.statsfname)) )
+            specs_paths.append( (sub, os.path.join(subjdir, sub, o.subdir, o.statsfname)) )
     return specs_paths
 
 
@@ -415,7 +415,7 @@ def sanitize_table(options, disorganized_table):
     o = options
     _t = disorganized_table
 
-    l.debug( '-'*40)
+    l.debug('-'*40)
     l.debug('Sanitizing the table')
     # first find all the ids with 'Placeholder_Segmentation'
     pl_ids = fsutils.StableDict()
@@ -424,21 +424,21 @@ def sanitize_table(options, disorganized_table):
             if _id_name_map[_id] == 'Placeholder_Segmentation':
                 pl_ids[_id] = 'Placeholder_Segmentation'
 
-    # then find the actual segmentation of the ids which have 'Placeholder_Segmentation' 
-    # if it can't find, it's an error because the only way something is assigned 
-    # 'Placeholder_Segmentation' is if the user has requested that segmentation id and error results when 
+    # then find the actual segmentation of the ids which have 'Placeholder_Segmentation'
+    # if it can't find, it's an error because the only way something is assigned
+    # 'Placeholder_Segmentation' is if the user has requested that segmentation id and error results when
     # parser doesn't encounter that segmentation name and the corresponding measure for that id
     if pl_ids:
         tmp_pl_ids = pl_ids.copy()
         itmp_pl_ids = tmp_pl_ids.iteritems()
-        plid,plname = next(itmp_pl_ids)
+        plid, plname = next(itmp_pl_ids)
         try:
             for _spec, _id_name_map, _measl in _t:
                 for _id in _id_name_map.keys():
                     if _id == plid:
                         if _id_name_map[plid] != 'Placeholder_Segmentation':
                             pl_ids[plid] = _id_name_map[plid]
-                            plid,plname = next(itmp_pl_ids)
+                            plid, plname = next(itmp_pl_ids)
         except StopIteration:
             pass
 
@@ -449,7 +449,7 @@ def sanitize_table(options, disorganized_table):
                 print('in any of the .stats files parsed')
                 sys.exit(1)
 
-        # now go through the entire disorganized table and replace the ids with 'Placeholder_Segmentation' 
+        # now go through the entire disorganized table and replace the ids with 'Placeholder_Segmentation'
         # with the actual segmentations
         for _spec, _id_name_map, _measl in _t:
             for _id in _id_name_map.keys():
@@ -462,8 +462,8 @@ def sanitize_table(options, disorganized_table):
     # init the values
     _union = []
     _specs, _id_name_map, _measl = _t[0]
-    intersection = _id_name_map.values() 
-    
+    intersection = _id_name_map.values()
+
     for _spec, _id_name_map, _measl in _t:
         segnames = _id_name_map.values()
         _union.append(segnames)
@@ -478,7 +478,7 @@ def sanitize_table(options, disorganized_table):
     l.debug('-'*20)
     l.debug('Union:')
     l.debug(union)
-    
+
     if o.common_flag:
         #write only the common segs ( intersection )
         row, column, table = make_table2d(_t, intersection)
@@ -487,7 +487,7 @@ def sanitize_table(options, disorganized_table):
         # if there's no seg for a certain .stats file, write the measure as 0.0
         row, column, table = make_table2d(_t, union)
     # at this point, find whether all segs are equal.
-    # if not, error out because all-segs / common-segs is not requested 
+    # if not, error out because all-segs / common-segs is not requested
     elif union == intersection:
         row, column, table = make_table2d(_t, union)
     else:
@@ -499,40 +499,39 @@ def sanitize_table(options, disorganized_table):
 
     return row, column, table
 
-        
+
 def write_table(options, rows, cols, table):
     """
     Write the table from memory to disk. Initialize the writer class.
     """
     tw = fsutils.TableWriter(rows, cols, table)
-    r1c1 = 'Measure:%s' %( options.meas)
+    r1c1 = 'Measure:%s' % (options.meas)
     tw.assign_attributes(filename=options.outputfile, row1col1=r1c1,
-                         delimiter=delimiter2char[options.delimiter] )
+                         delimiter=delimiter2char[options.delimiter])
     if options.transposeflag:
         tw.write_transpose()
     else:
         tw.write()
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     # Command Line options and error checking done here
     options = options_parse()
     l.debug('-- The options you entered --')
-    l.debug(options) 
+    l.debug(options)
 
     # Assemble the input stats files
     subj_listoftuples = assemble_inputs(options)
 
     # Init the table in memory
-    # is a list containing tuples of the form 
+    # is a list containing tuples of the form
     # [(specifier, segidlist, structlist, measurelist),] for all specifiers
     pretable = []
 
-    # Parse the stats files 
+    # Parse the stats files
     print('Parsing the .stats files')
-    nth = 0;
+    nmeasures0 = None
     for specifier, filepath in subj_listoftuples:
-        nth = nth + 1;
         try:
             l.debug('-'*20)
             l.debug('Processing file ' + filepath)
@@ -545,7 +544,7 @@ if __name__=="__main__":
             if options.maxsegno is not None:
                 parsed.set_maxsegno(options.maxsegno)
             if options.vol_extras is not True:
-                parsed.include_vol_extras = 0;
+                parsed.include_vol_extras = 0
             id_name_map, measurelist = parsed.parse(options.meas)
             l.debug('-- Parsed Ids, Names --')
             l.debug(id_name_map)
@@ -557,36 +556,36 @@ if __name__=="__main__":
                 continue
             else:
                 print("")
-                if(not os.path.exists(str(e))):
+                if not os.path.exists(str(e)):
                     print('ERROR: Cannot find stats file '+str(e))
                 else:
                     print('ERROR: The stats file '+str(e)+' is too small to be a valid statsfile')
                 print('Use --skip flag to automatically skip bad or missing stats files')
                 print("")
                 sys.exit(1)
-        nmeasures = len(measurelist);
-        if(nth == 1): nmeasures0 = nmeasures;
-        if(nmeasures != nmeasures0 and not options.common_flag and not options.all_flag):
-            print("WARN: %s nmeasures = %d, expecting %d" % (specifier,nmeasures,nmeasures0))
-        pretable.append( (specifier, id_name_map, measurelist)) 
+        nmeasures = len(measurelist)
+        if nmeasures0 is None: nmeasures0 = nmeasures
+        if nmeasures != nmeasures0 and not options.common_flag and not options.all_flag:
+            print("WARN: %s nmeasures = %d, expecting %d" % (specifier, nmeasures, nmeasures0))
+        pretable.append( (specifier, id_name_map, measurelist) )
 
     # Make sure the table has the same number of cols for all stats files
     # and merge them up, clean them up etc. More in the documentation of the fn.
     print('Building the table..')
     rows, columns, table = sanitize_table(options, pretable)
 
-    if(options.etivflag):
+    if options.etivflag:
         try:
             for row in rows:
-                etiv = table[row]['EstimatedTotalIntraCranialVol'];
+                etiv = table[row]['EstimatedTotalIntraCranialVol']
                 for col in columns:
-                    if(col == 'lhSurfaceHoles'): continue; 
-                    if(col == 'rhSurfaceHoles'): continue; 
-                    if(col == 'SurfaceHoles'): continue; 
-                    if(col == 'BrainSegVol-to-eTIV'): continue; 
-                    if(col == 'MaskVol-to-eTIV'): continue; 
-                    v = table[row][col];
-                    table[row][col] = 100*v/etiv;
+                    if col == 'lhSurfaceHoles': continue
+                    if col == 'rhSurfaceHoles': continue
+                    if col == 'SurfaceHoles': continue
+                    if col == 'BrainSegVol-to-eTIV': continue
+                    if col == 'MaskVol-to-eTIV': continue
+                    v = table[row][col]
+                    table[row][col] = 100*v/etiv
 
         except:
             print("ERROR: --etiv, cannot find EstimatedTotalIntraCranialVol in list")

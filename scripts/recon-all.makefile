@@ -38,6 +38,7 @@ TAL_M3Z=$(subj)/mri/transforms/talairach.m3z
 #NU_NONECK=$(subj)/mri/nu_noneck.mgz
 #TAL_SKULL_LTA=$(subj)/mri/transforms/talairach_with_skull_2.lta
 ASEG_PRESURF=$(subj)/mri/aseg.presurf.mgz
+ASEG_AUTO_NOCC=$(subj)/mri/aseg.auto_noCCseg.mgz
 # ASEG_TOUCH can be used as a dependency target in some targets instead of
 # aseg.mgz because aseg.mgz can change in autorecon3 as a result of edits
 # via the surfaces.
@@ -69,6 +70,11 @@ $(TAL_M3Z): $(NORM) $(BRAINMASK) $(TAL_LTA)
 
 $(ASEG_PRESURF): $(NORM) $(TAL_M3Z)
 	recon-all -s $(subj) -calabel
+
+# ccseg is actually run with calabel, but this allows
+# for aseg.auto_noCCseg to be edited
+$(ASEG_PRESURF): $(ASEG_AUTO_NOCC)
+	recon-all -s $(subj) -ccseg
 
 $(BRAIN): $(BRAINMASK) $(NORM) $(ASEG_PRESURF) $(CP)
 	recon-all -s $(subj) -normalization2

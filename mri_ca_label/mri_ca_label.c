@@ -102,6 +102,7 @@ static float unlikely_mah_dist_thresh = 4 ;
 
 static int wmsa = 0 ;   // apply wmsa postprocessing (using T2/PD data)
 static int nowmsa = 0 ; // remove all wmsa labels from the atlas
+static int fcd = 0 ;  // don't check for focal cortical dysplasias
 
 static int handle_expanded_ventricles = 0;
 
@@ -126,6 +127,7 @@ static MRI *fix_putamen(GCA *gca,
                         MRI *mri_src_labeled,
                         MRI *mri_dst_labeled,
                         double prior_thresh)  ;
+static MRI *gcaCheckForFCDs(MRI *mri_src, MRI *mri_dst, GCA *gca, TRANSFORM *transform, MRI *mri_inputs) ;
 #if 0
 static int load_val_vector(VECTOR *v_means,
                            MRI *mri_inputs,
@@ -383,6 +385,7 @@ int main(int argc, char *argv[])
   {
     GCAremoveWMSA(gca) ;
   }
+
   if (gsmooth_sigma > 0)
   {
     GCA *gca_smooth ;
@@ -1382,6 +1385,8 @@ int main(int argc, char *argv[])
     mri_labeled = mri_tmp ;
   }
 #endif
+  if (fcd)
+    gcaCheckForFCDs(mri_labeled, mri_labeled, gca, transform, mri_inputs) ;
 
   // convert back to uchar if possible
   MRItoUCHAR(&mri_labeled);
@@ -1501,6 +1506,12 @@ get_option(int argc, char *argv[])
   {
     nowmsa = 1 ;
     printf("disabling WMSA labels\n") ;
+  }
+  else if (!stricmp(option, "fcd"))
+  {
+    fcd = 1 ;
+//    reclassify_unlikely = 0 ;
+    printf("checking for focal cortical dysplasias\n") ;
   }
   else if (!stricmp(option, "read_intensities") || !stricmp(option, "ri"))
   {
@@ -5095,4 +5106,89 @@ GCArelabelUnlikely(GCA *gca,
 
   MRIfree(&mri_prior_labels) ; MRIfree(&mri_priors) ; MRIfree(&mri_unchanged) ; MRIfree(&mri_tmp) ;
   return(mri_dst_labeled) ;
+}
+
+static MRI *
+gcaCheckForFCDs(MRI *mri_src, MRI *mri_dst, GCA *gca, TRANSFORM *transform, MRI *mri_inputs) 
+{
+  int        x, y, z, label, out_label, nchanged, iter = 0 ;
+  float      left_means[2], right_means[2], global_gm_mean, global_wm_mean ;
+
+  GCAlabelMean(gca, Left_Cerebral_Cortex, left_means) ;
+  GCAlabelMean(gca, Right_Cerebral_Cortex, right_means) ;
+  global_gm_mean = 0.5 * (left_means[0] + right_means[0]) ;
+  GCAlabelMean(gca, Left_Cerebral_White_Matter, left_means) ;
+  GCAlabelMean(gca, Right_Cerebral_White_Matter, right_means) ;
+  global_wm_mean = 0.5 * (left_means[0] + right_means[0]) ;
+
+  printf("checking for FCDS - global means: WM=%2.0f, GM=%2.0f\n", global_wm_mean, global_gm_mean);
+  mri_dst = MRIcopy(mri_src, mri_dst) ;
+
+  do
+  {
+    nchanged = 0 ;
+    for (x = 0 ; x < mri_src->width ; x++)
+      for (y = 0 ; y < mri_src->height ; y++)
+	for (z = 0 ; z < mri_src->depth ; z++)
+	{
+	  out_label = label = MRIgetVoxVal(mri_dst, x, y, z, 0) ;
+	  if (Ggca_x == x && Ggca_y == y && Ggca_z == z)
+	    printf("label at (%d, %d, %d) = %s\n", x, y, z, cma_label_to_name(label)) ;
+	  if (IS_HYPO(label))
+	  {
+	    out_label = Left_WM_hypointensities ? Left_non_WM_hypointensities : Right_non_WM_hypointensities;
+	  }
+	  else if (IS_WM(label))
+	  {
+	    GCA_PRIOR *gcap ;
+	    GC1D      *gm_gc, *wm_gc ;
+	    float     wm_prior, gm_prior, gm_dist, wm_dist, val, thresh ;
+	    
+	    if (MRIcountNbhdLabels(mri_src, x, y, z, Left_WM_hypointensities) > 0 ||
+		MRIcountNbhdLabels(mri_src, x, y, z, Right_WM_hypointensities) > 0 ||
+		MRIcountNbhdLabels(mri_src, x, y, z, WM_hypointensities) > 0 ||
+		MRIcountNbhdLabels(mri_dst, x, y, z, Left_non_WM_hypointensities) > 0 ||
+		MRIcountNbhdLabels(mri_dst, x, y, z, Right_non_WM_hypointensities) > 0)
+	      
+	      thresh = 1.3 ;
+	    
+	    val = MRIgetVoxVal(mri_inputs, x, y, z, 0) ;
+	    gcap = getGCAP(gca, mri_src, transform,  x,  y, z) ;
+	    wm_prior = getPrior(gcap, label) ;
+	    if (label == Left_Cerebral_White_Matter)
+	    {
+	      gm_prior = getPrior(gcap, Left_Cerebral_Cortex) ;
+	      gm_gc = GCAfindSourceGC(gca, mri_src, transform, x, y, z, Left_Cerebral_Cortex) ;
+	    }
+	    else
+	    {
+	      gm_prior = getPrior(gcap, Right_Cerebral_Cortex) ;
+	      gm_gc = GCAfindSourceGC(gca, mri_src, transform, x, y, z, Left_Cerebral_Cortex) ;
+	    }
+	    wm_gc = GCAfindSourceGC(gca, mri_src, transform, x, y, z, Left_Cerebral_Cortex) ;
+	    gm_dist = gm_gc ? fabs(val - gm_gc->means[0]) : fabs(val-global_gm_mean);
+	    wm_dist = wm_gc ? fabs(val - wm_gc->means[0]) : fabs(val-global_wm_mean);
+	    if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+	      printf("%d, %d, %d) = %2.0f, WM dist = %2.1f, prior = %2.2f, GM: dist = %2.1f,  prior = %2.2f, thresh %2.1f\n",
+		     x, y, z, val, wm_dist, wm_prior, gm_dist, gm_prior, thresh) ;
+	    if (wm_prior > gm_prior && thresh*gm_dist < wm_dist)
+	    {
+	      if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+		printf(" CHANGING LABEL\n") ;
+	      out_label = (label == Left_Cerebral_White_Matter) 
+		? Left_non_WM_hypointensities : Right_non_WM_hypointensities ;
+	    }
+	  }
+	  if (label != out_label && (x == Ggca_x && y == Ggca_y && z == Ggca_z))
+	    printf("(%d %d %d): changing from %s to %s\n", x,y,z,cma_label_to_name(label),
+		   cma_label_to_name(out_label)) ;
+	  if (label != out_label)
+	  {
+	    nchanged++ ;
+	    MRIsetVoxVal(mri_dst, x, y, z, 0, out_label);
+	  }
+	}
+    printf("iter %d: %d changed\n", iter, nchanged) ;
+  } while (nchanged > 0) ;
+  return(mri_dst) ;
 }
