@@ -48,6 +48,7 @@ setup(
     entry_points={
         'console_scripts': [
             'run_samseg = samseg.main:samseg_main',
+            'sbtiv = samseg.main_utilities:sbtiv_main'
         ]
     }
     # $ setup.py publish support.
