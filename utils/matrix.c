@@ -61,6 +61,88 @@
 // private functions
 MATRIX *MatrixCalculateEigenSystemHelper(MATRIX *m, float *evalues, MATRIX *m_evectors, int isSymmetric);
 
+
+
+
+typedef struct MatrixStats {
+    const char* file;
+    int         line;
+    int     	rowsCols;
+    int         count;
+} MatrixStats;
+
+#define matrixStatsSizeLog2 13
+#define matrixStatsSize     (1<<matrixStatsSizeLog2)
+#define matrixStatsSizeMask (matrixStatsSize-1)
+
+static MatrixStats* matrixStats = NULL;
+
+static int stats_compare(const void* lhs_ptr, const void* rhs_ptr) {
+   int lhs = *(int*)lhs_ptr;
+   int rhs = *(int*)rhs_ptr;
+   size_t lhsPriority = matrixStats[lhs].count;
+   size_t rhsPriority = matrixStats[rhs].count;
+   if (lhsPriority < rhsPriority) return +1;    // ascending order
+   if (lhsPriority > rhsPriority) return -1;    // ascending order
+   return 0;
+}
+
+static void matrixStatsExitHandler(void) {
+    if (!matrixStats) return;
+
+    size_t count = 0;
+    size_t i;
+    for (i = 0; i < matrixStatsSize; i++) {
+        MatrixStats* m = &matrixStats[i];
+        if (!m->line) continue;
+        count++;
+    }
+
+    int* indexs = (int*)malloc(count*sizeof(int));
+    count = 0;
+    for (i = 0; i < matrixStatsSize; i++) {
+        MatrixStats* m = &matrixStats[i];
+        if (!m->line) continue;
+        indexs[count++] = i;
+    }
+
+    qsort(indexs, count, sizeof(int), stats_compare);
+       
+    fprintf(stdout, "MatrixStats\n   file, line, rowsCols, count\n");
+    for (i = 0; i < count; i++) {
+        MatrixStats* m = &matrixStats[indexs[i]];
+        fprintf(stdout, "%s, %d, %d, %d\n",
+            m->file, m->line, m->rowsCols, m->count);
+    }
+    fprintf(stdout, "MatrixStats\n   file, line, rowsCols, count\n");
+}
+
+static void noteMatrixAlloced(const char* file, int line, int rows, int cols) {
+
+    if (!matrixStats) {
+        matrixStats = (MatrixStats*)calloc(matrixStatsSize, sizeof(MatrixStats));
+        atexit(matrixStatsExitHandler);
+    }
+    
+    int rowsCols = rows*1000000+cols;
+    size_t stabs = 0;
+    size_t hash = (((size_t)line ^ (size_t)file)*75321) & matrixStatsSizeMask;
+    MatrixStats* m = &matrixStats[hash];
+    while (m->line != line || m->file != file || m->rowsCols != rowsCols ) {
+        if (m->line == 0) break; // not in chain
+        hash = (hash*327 + 1) & matrixStatsSizeMask;
+        m = &matrixStats[hash];
+        if (++stabs > 1000) *(int*)-1 = 0;  // table too full 
+    }
+    
+    if (m->line == 0) {     // There is a slight chance this might find the same empty cell as another thread - who cares?
+        m->line = line; m->file = file; m->rowsCols = rowsCols;
+    }
+    
+    m->count++;
+}
+
+
 /**
  * Returns true if the matrix is symmetric (should be square too).
  */
@@ -216,9 +298,10 @@ static MATRIX *MatrixAlloc_old(const int rows, const int cols, const int type)
   mat = (MATRIX *)calloc(1, sizeof(MATRIX));
   if (!mat) ErrorExit(ERROR_NO_MEMORY, "MatrixAlloc(%d, %d, %d): could not allocate mat", rows, cols, type);
 
-  mat->rows = rows;
-  mat->cols = cols;
-  mat->type = type;
+  mat->rows  = rows;
+  mat->cols  = cols;
+  mat->inBuf = false;
+  mat->type  = type;
 
   /*
     allocate a single array the size of the matrix, then initialize
@@ -299,7 +382,11 @@ static MATRIX *MatrixAlloc_old(const int rows, const int cols, const int type)
   return (mat);
 }
 
-static MATRIX *MatrixAlloc_new(const int rows, const int cols, const int type)
+static MATRIX *MatrixAlloc_new(
+    const int rows, 
+    const int cols, 
+    const int type,
+    MatrixBuffer* const buf)
 {
 
   // Calculate the storage size, to get in one allocation
@@ -330,11 +417,15 @@ static MATRIX *MatrixAlloc_new(const int rows, const int cols, const int type)
   float*  data = NULL; 
   {
     void* memptr;
-    if (!posix_memalign(&memptr, 64, size_needed)) {
-      mat  = (MATRIX*)memptr;
-      data = (float*) ((char*)memptr + data_offset);
+    if (buf && size_needed <= sizeof(buf)) {
+      memptr = &buf->matrix;
+      mat    = &buf->matrix;
+      data   = (float*) ((char*)memptr + data_offset);
+    } else if (!posix_memalign(&memptr, 64, size_needed)) {
+      mat    = (MATRIX*)memptr;
+      data   = (float*) ((char*)memptr + data_offset);
     } else if (!posix_memalign(&memptr, 64, data_offset)) {
-      mat  = (MATRIX*)memptr;
+      mat    = (MATRIX*)memptr;
     }
   }
   
@@ -368,12 +459,13 @@ static MATRIX *MatrixAlloc_new(const int rows, const int cols, const int type)
   bzero(mat,  data_offset);
   bzero(data, nelts*sizeof(float));
   
-  mat->rows = rows;
-  mat->cols = cols;
-  mat->type = type;
+  mat->rows  = rows;
+  mat->cols  = cols;
+  mat->inBuf = (mat == &buf->matrix);
+  mat->type  = type;
 
-  mat->data = data;
-  mat->data += 2;
+  mat->data  = data;
+  mat->data  += 2;
 
   mat->mmapfile = mmapfile;
 
@@ -402,15 +494,32 @@ static MATRIX *MatrixAlloc_new(const int rows, const int cols, const int type)
 }
 
 
-static int use_new_MatricAlloc;
-MATRIX *MatrixAlloc(const int rows, const int cols, const int type) {
-    static int once;
+static int use_new_MatricAlloc() {
+    static int once, result;
     if (!once) {
         once++;
-        use_new_MatricAlloc = !getenv("FREESURFER_MatrixAlloc_old");
+        result = !getenv("FREESURFER_MatrixAlloc_old");
     }
-    if (use_new_MatricAlloc) return MatrixAlloc_new(rows, cols, type);
-    else         return MatrixAlloc_old(rows, cols, type);
+    return result;
+}
+
+MATRIX *MatrixAlloc_wkr( const int rows, const int cols, const int type,
+    	    	     const char* callSiteFile, int callSiteLine) {
+		     
+    noteMatrixAlloced(callSiteFile, callSiteLine, rows, cols);
+    
+    if (use_new_MatricAlloc()) return MatrixAlloc_new(rows, cols, type, NULL);
+    else         	       return MatrixAlloc_old(rows, cols, type);
+}
+
+
+MATRIX *MatrixAlloc2_wkr(const int rows, const int cols, const int type, MatrixBuffer* buf,
+    	    	     const char* callSiteFile, int callSiteLine) {
+
+    noteMatrixAlloced(callSiteFile, callSiteLine, rows, cols);
+
+    if (use_new_MatricAlloc()) return MatrixAlloc_new(rows, cols, type, buf);
+    else    	    	       return MatrixAlloc_old(rows, cols, type);
 }
 
 
@@ -423,7 +532,7 @@ int MatrixFree(MATRIX **pmat)
   mat = *pmat;
   *pmat = NULL;
 
-  if (!mat) return (0);
+  if (!mat || mat->inBuf) return (0);
 
   /* silly numerical recipes in C requires 1-based stuff */
   mat->data -= 2;
@@ -439,11 +548,11 @@ int MatrixFree(MATRIX **pmat)
     fclose(mat->mmapfile);
   }
   else {
-    if (!use_new_MatricAlloc) free(mat->data);
+    if (!use_new_MatricAlloc()) free(mat->data);
   }
 
-  if (!use_new_MatricAlloc) free(mat->rptr);
-  free(mat);
+  if (!use_new_MatricAlloc()) free(mat->rptr);
+  if (!mat->inBuf) free(mat);
 
   return (0);
 }
@@ -583,7 +692,7 @@ MATRIX *MatrixMultiplyD(const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
   \brief Multiplies two matrices. The accumulation is done with float.
    Consider using MatrixMultiplyD() which uses double.
 */
-MATRIX *MatrixMultiply(const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
+MATRIX *MatrixMultiply_wkr(const MATRIX *m1, const MATRIX *m2, MATRIX *m3, const char* callSiteFile, int callSiteLine)
 {
   int col, row, i, rows, cols, m1_cols;
   float *r3;
@@ -599,6 +708,8 @@ MATRIX *MatrixMultiply(const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
   }
 
   if (!m3) {
+    noteMatrixAlloced(callSiteFile, callSiteLine, -m1->rows, -m2->cols);
+  
     /* twitzel also did something here */
     if ((m1->type == MATRIX_COMPLEX) || (m2->type == MATRIX_COMPLEX))
       m3 = MatrixAlloc(m1->rows, m2->cols, MATRIX_COMPLEX);
