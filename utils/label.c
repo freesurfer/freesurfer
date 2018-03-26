@@ -180,7 +180,8 @@ LABEL *LabelRead(const char *subject_name, const char *label_name)
   if (!fp) ErrorReturn(NULL, (ERROR_NOFILE, "%s: could not open label file %s", Progname, fname));
 
   area = LabelReadFrom(subject_name, fp);
-  strcpy(area->name, fname);
+  if (area)
+    strcpy(area->name, fname);
   fclose(fp);
   return (area);
 }
