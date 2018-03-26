@@ -405,8 +405,8 @@ typedef struct MRIS
 //
 #define LIST_OF_MRIS_ELTS_1     \
     \
-  ELTT(int,nvertices) SEP      /* # of vertices on surface */    \
-  ELTT(int,nfaces) SEP         /* # of faces on surface */    \
+  ELTT(const int,nvertices) SEP      /* # of vertices on surface, SHOULD BE CONST AND change by calling MRISreallocVerticesAndFaces et al */    \
+  ELTT(const int,nfaces) SEP         /* # of faces on surface, change by calling MRISreallocVerticesAndFaces et al */    \
   ELTT(int,nstrips) SEP    \
   ELTP(VERTEX,vertices) SEP    \
   ELTP(FACE,faces) SEP    \
@@ -484,10 +484,10 @@ typedef struct MRIS
   ELTT(float,gamma) SEP            /* rotation around x-axis */    \
   ELTT(float,da) SEP    \
   ELTT(float,db) SEP    \
-  ELTT(float,dg) SEP       /* old deltas */    \
-  ELTT(int,type) SEP             /* what type of surface was this initially*/    \
-  ELTT(int,max_vertices) SEP     /* may be bigger than nvertices */    \
-  ELTT(int,max_faces) SEP        /* may be bigger than nfaces */    \
+  ELTT(float,dg) SEP                /* old deltas */    \
+  ELTT(int,type) SEP                /* what type of surface was this initially*/    \
+  ELTT(const int,max_vertices) SEP  /* may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces */    \
+  ELTT(const int,max_faces) SEP     /* may be bigger than nfaces, set by calling MRISreallocVerticesAndFaces */    \
   ELTT(MRIS_subject_name_t,subject_name) SEP /* name of the subject */    \
   ELTT(float,canon_area) SEP    \
   ELTT(int,noscale) SEP          /* don't scale by surface area if true */    \
@@ -1071,9 +1071,10 @@ int          MRISaverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int          MRIScomputeNormal(MRIS *mris, int which, int vno,
                                double *pnx, double *pny, double *pnz) ;
 
-MRI_SURFACE  *MRISoverAlloc(int max_vertices, int max_faces,
-                            int nvertices, int nfaces) ;
-MRI_SURFACE  *MRISalloc(int nvertices, int nfaces) ;
+MRI_SURFACE* MRISoverAlloc              (                   int max_vertices, int max_faces, int nvertices, int nfaces) ;
+MRI_SURFACE* MRISalloc                  (                                                    int nvertices, int nfaces) ;
+void         MRISreallocVerticesAndFaces(MRI_SURFACE *mris,                                  int nvertices, int nfaces) ;
+    
 int          MRISfreeDists(MRI_SURFACE *mris) ;
 int          MRISfree(MRI_SURFACE **pmris) ;
 int   MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_avgs);

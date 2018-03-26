@@ -524,21 +524,10 @@ extern "C" MRIS *MRISduplicateOver(MRIS *mris,int mode)
     n_extra_faces =__MAX(mris->max_faces-mris->nfaces,0);
   }
   //now allocate the extra space
-  VERTEX *vertices = 
-    (VERTEX*)calloc(mris->nvertices+n_extra_vertices,sizeof(VERTEX));
-  FACE *faces = (FACE*)calloc(mris->nfaces+n_extra_faces,sizeof(FACE));
-  for (int n = 0 ; n < mris_dst->nvertices ; n++) {
-    vertices[n] = mris_dst->vertices[n];
-  }
-  for (int n = 0 ; n < mris_dst->nfaces ;n++) {
-    faces[n] = mris_dst->faces[n];
-  }
-  delete [] mris_dst->vertices;
-  mris_dst->vertices=vertices;
-  mris_dst->max_vertices = mris_dst->nvertices+n_extra_vertices;
-  delete [] mris_dst->faces;
-  mris_dst->faces  = faces;
-  mris_dst->max_faces = mris_dst->nfaces+n_extra_faces;
+  MRISreallocVerticesAndFaces(
+    mris, 
+    mris->nvertices+n_extra_vertices, 
+    mris_dst->nfaces+n_extra_faces);
   return mris_dst;
 }
 
@@ -738,8 +727,7 @@ extern "C" MRIP* MRIPextractFromMRIS(MRIS *mris, int defect_number)
 
   MRIS *mris_dst=mrip->mris;
   /* copy the necessary information */
-  mris_dst->nvertices=nvertices;
-  mris_dst->nfaces=nfaces;
+  MRISreallocVerticesAndFaces(mris_dst, nvertices, nfaces);
 
   //the corresponding tables
   int *vt_to,*vt_from;
@@ -1002,12 +990,7 @@ MRIS * SurfaceToMRIS(Surface *surface, MRIS *mris)
                        surface->nvertices,
                        surface->nfaces);
   }
-  mris->nvertices=surface->nvertices;
-  mris->nfaces=surface->nfaces;
-  if (mris->nvertices>=mris->max_vertices)
-    fprintf(WHICH_OUTPUT,"too many vertices in mris!\n");
-  if (mris->nfaces>=mris->max_faces)
-    fprintf(WHICH_OUTPUT,"too many faces in mris!\n");
+  MRISreallocVerticesAndFaces(mris,surface->nvertices,surface->nfaces);
 
   //Vertices
   for (int n = 0 ; n < surface->nvertices ; n++) {
@@ -1076,9 +1059,10 @@ bool MRISaddMRIP(MRIS *mris_dst, MRIP *mrip)
   MRIS *mris = mrip->mris;
 
   //vertices
+  int newNVertices = mris_dst->nvertices;
   for (int n = 0 ; n < mris->nvertices ; n++) {
     VERTEX *vsrc = &mris->vertices[n];
-    if (n >= nvertices) vto[n] = mris_dst->nvertices++;
+    if (n >= nvertices) vto[n] = newNVertices++;
     VERTEX *vdst = &mris_dst->vertices[vto[n]];
     //coordonnees
     vdst->x=vsrc->x;
@@ -1089,16 +1073,18 @@ bool MRISaddMRIP(MRIS *mris_dst, MRIP *mrip)
     vdst->origz = vsrc->z;
   }
   //faces
+  int newNFaces = mris_dst->nfaces;
   for (int n = 0 ; n < mris->nfaces ; n++) {
     FACE *fsrc = &mris->faces[n];
-    if (n >= nfaces) fto[n] = mris_dst->nfaces++;
+    if (n >= nfaces) fto[n] = newNFaces++;
     FACE *fdst = &mris_dst->faces[fto[n]];
     //vertex indices
     fdst->v[0]=vto[fsrc->v[0]];
     fdst->v[1]=vto[fsrc->v[1]];
     fdst->v[2]=vto[fsrc->v[2]];
   }
-
+  MRISreallocVerticesAndFaces(mris_dst, newNVertices, newNFaces);
+  
   //stuff in vertices and faces
   MRISinitSurface(mris_dst);
 

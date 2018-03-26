@@ -1789,26 +1789,120 @@ int MRISwrite(MRI_SURFACE *mris, const char *name)
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISoverAlloc(int max_vertices, int max_faces, int nvertices, int nfaces)
-{
-  MRI_SURFACE *mris;
 
-  if (max_vertices <= 0) {
-    max_vertices = nvertices;
-  }
-  if (max_faces <= 0) {
-    max_faces = nfaces;
-  }
-  mris = MRISalloc(max_vertices, max_faces);
-  mris->nvertices = nvertices;
-  mris->nfaces = nfaces;
-  mris->max_vertices = max_vertices;
-  mris->max_faces = max_faces;
-  mris->useRealRAS = 0; /* just initialize */
-  mris->vg.valid = 0;   /* mark as invalid */
-
-  return (mris);
+static void MRISchangedNFacesNVertices(MRI_SURFACE * mris, bool scrambled) {
+    // useful for debugging
 }
+
+static bool MRISreallocVertices(MRI_SURFACE * mris, int max_vertices, int nvertices) {
+  cheapAssert(nvertices >= 0);
+  cheapAssert(max_vertices >= nvertices);
+
+  mris->vertices = (VERTEX *)realloc(mris->vertices, max_vertices*sizeof(VERTEX));
+  if (!mris->vertices) return false;
+
+  int change = max_vertices - mris->max_vertices;
+  if (change > 0) {
+      bzero(mris->vertices + mris->max_vertices, change*sizeof(VERTEX));
+  }
+
+  *(int*)(&mris->max_vertices) = max_vertices;    // get around const
+  *(int*)(&mris->nvertices)    = nvertices;       // get around const
+    
+  return true;
+}
+
+static void MRISgrowNVertices(MRI_SURFACE * mris, int nvertices) {
+  if (nvertices > mris->max_vertices) {
+    ErrorExit(ERROR_NOMEMORY, "MRISgrowNVertices: max vertices reached");
+  }
+  MRISchangedNFacesNVertices(mris, false);
+  *(int*)(&mris->nvertices) = nvertices;  // get around const
+}
+
+static void MRIStruncateNVertices(MRI_SURFACE * mris, int nvertices) {
+  cheapAssert(mris->nvertices >= nvertices);
+  MRISchangedNFacesNVertices(mris, false);
+  *(int*)(&mris->nvertices) = nvertices;  // get around const
+}
+
+static void MRISremovedVertices(MRI_SURFACE * mris, int nvertices) {
+  cheapAssert(mris->nvertices >= nvertices);
+  MRISchangedNFacesNVertices(mris, true);
+  *(int*)(&mris->nvertices) = nvertices;  // get around const
+}
+
+static bool MRISreallocFaces(MRI_SURFACE * mris, int max_faces, int nfaces) {
+  cheapAssert(nfaces >= 0);
+  cheapAssert(max_faces >= nfaces);
+  
+  mris->faces  =
+    (FACE *)realloc(mris->faces, max_faces*sizeof(FACE));
+  if (!mris->faces) return false;
+
+  mris->faceNormCacheEntries =
+    (FaceNormCacheEntry*)realloc(mris->faceNormCacheEntries, max_faces*sizeof(FaceNormCacheEntry));
+  if (!mris->faceNormCacheEntries) return false;
+ 
+  int change = max_faces - mris->max_faces;
+  if (change > 0) {
+      bzero(mris->faces                   + mris->max_faces, change*sizeof(FACE));
+      bzero(mris->faceNormCacheEntries    + mris->max_faces, change*sizeof(FaceNormCacheEntry));
+  }
+
+  *(int*)(&mris->max_faces) = max_faces;    // get around const
+  *(int*)(&mris->nfaces)    = nfaces;       // get around const
+    
+  return true;
+}
+
+static bool MRISallocateFaces(MRI_SURFACE * mris, int nfaces) {
+    return MRISreallocFaces(mris, nfaces, nfaces);
+}
+
+static void MRISgrowNFaces(MRI_SURFACE * mris, int nfaces) {
+  if (nfaces > mris->max_faces) {
+    ErrorExit(ERROR_NOMEMORY, "mrisAddFace: max faces reached");
+  }
+  MRISchangedNFacesNVertices(mris, false);
+  *(int*)(&mris->nfaces) = nfaces;  // get around const
+}
+
+static void MRIStruncateNFaces(MRI_SURFACE * mris, int nfaces) {
+  cheapAssert(mris->nfaces >= nfaces);
+  MRISchangedNFacesNVertices(mris, false);
+  *(int*)(&mris->nfaces) = nfaces;  // get around const
+}
+
+static void MRISremovedFaces(MRI_SURFACE * mris, int nfaces) {
+  cheapAssert(mris->nfaces >= nfaces);
+  MRISchangedNFacesNVertices(mris, true);
+  *(int*)(&mris->nfaces) = nfaces;  // get around const
+}
+
+
+static void MRISoverAllocVerticesAndFaces(MRI_SURFACE* mris, int max_vertices, int max_faces, int nvertices, int nfaces)
+{
+  MRISchangedNFacesNVertices(mris, false);
+  if (nvertices < 0) ErrorExit(ERROR_BADPARM, "ERROR: MRISalloc: nvertices=%d < 0\n", nvertices);
+  if (nfaces    < 0) ErrorExit(ERROR_BADPARM, "ERROR: MRISalloc: nfaces=%d < 0\n", nfaces);
+
+  if (max_vertices <= nvertices) max_vertices = nvertices;
+  if (max_faces    <= nfaces   ) max_faces    = nfaces;
+
+  if (!MRISreallocVertices(mris, max_vertices, nvertices)) ErrorExit(ERROR_NO_MEMORY, 
+    "MRISalloc(%d, %d): could not allocate vertices", max_vertices, sizeof(VERTEX));
+
+  if (!MRISreallocFaces(mris, max_faces, nfaces)) ErrorExit(ERROR_NO_MEMORY, 
+    "MRISalloc(%d, %d): could not allocate faces", nfaces,
+    sizeof(FACE)+sizeof(FaceNormCacheEntry));
+}
+
+
+void MRISreallocVerticesAndFaces(MRI_SURFACE *mris, int nvertices, int nfaces) {
+  MRISoverAllocVerticesAndFaces(mris, nvertices, nfaces, nvertices, nfaces);
+}
+
 
 /*-----------------------------------------------------
   Parameters:
@@ -1817,38 +1911,26 @@ MRI_SURFACE *MRISoverAlloc(int max_vertices, int max_faces, int nvertices, int n
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISalloc(int nvertices, int nfaces)
+MRI_SURFACE *MRISoverAlloc(int max_vertices, int max_faces, int nvertices, int nfaces)
 {
-  MRI_SURFACE *mris;
+  MRI_SURFACE* mris = (MRI_SURFACE *)calloc(1, sizeof(MRI_SURFACE));
+  if (!mris) ErrorExit(ERROR_NO_MEMORY, 
+                "MRISalloc(%d, %d): could not allocate mris structure", max_vertices, max_faces);
 
-  if (nvertices < 0) ErrorExit(ERROR_BADPARM, "ERROR: MRISalloc: nvertices=%d < 0\n", nvertices);
+  mris->nsize = 1;      // only 1-connected neighbors initially
 
-  if (nfaces < 0) ErrorExit(ERROR_BADPARM, "ERROR: MRISalloc: nfaces=%d < 0\n", nfaces);
+  mris->useRealRAS = 0; // just initialize
+  mris->vg.valid = 0;   // mark as invalid
 
-  mris = (MRI_SURFACE *)calloc(1, sizeof(MRI_SURFACE));
-  if (!mris)
-    ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate mris structure", nvertices, nfaces);
-
-  mris->nsize     = 1; /* only 1-connected neighbors initially */
-  mris->nvertices = nvertices;
-  mris->nfaces    = nfaces;
-  
-  mris->vertices  = (VERTEX *)calloc(nvertices, sizeof(VERTEX));
-  if (!mris->vertices)
-    ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate vertices", nvertices, sizeof(VERTEX));
-
-  mris->faces = (FACE *)calloc(nfaces, sizeof(FACE));
-  if (!mris->faces)
-    ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate faces", nfaces, sizeof(FACE));
-
-  mris->faceNormCacheEntries = (FaceNormCacheEntry*)calloc(nfaces, sizeof(FaceNormCacheEntry));
-  if (!mris->faceNormCacheEntries)
-    ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate faceNormCacheEntries", nfaces, sizeof(FaceNormCacheEntry));
- 
-  mris->useRealRAS = 0; /* just initialize */
-  mris->vg.valid = 0;   /* mark invalid */
+  MRISoverAllocVerticesAndFaces(mris, max_vertices, max_faces, nvertices, nfaces);
 
   return (mris);
+}
+
+
+MRI_SURFACE* MRISalloc(int nvertices, int nfaces)
+{
+  return MRISoverAlloc(nvertices, nfaces, nvertices, nfaces);
 }
 
 /*-----------------------------------------------------
@@ -1904,6 +1986,7 @@ int MRISfree(MRI_SURFACE **pmris)
     }
   }
 
+  free(mris->faceNormCacheEntries);
   if (mris->vertices) {
     free(mris->vertices);
   }
@@ -3434,13 +3517,16 @@ int MRISremoveRippedFaces(MRI_SURFACE *mris)
       out_faces[fno] = out_fno ;
       if (out_fno == Gdiag_no)
 	DiagBreak() ;
-      if (fno != out_fno)  // at least one compressed out already
-	*(mris->faces+out_fno) = *(mris->faces+fno) ;   // should free memory here
+      if (fno != out_fno) { // at least one compressed out already
+	mris->faces                  [out_fno] = mris->faces                  [fno];    // should free memory here
+	mris->faceNormCacheEntries   [out_fno] = mris->faceNormCacheEntries   [fno];
+      }
       out_fno++ ;
     }
   }
 
-  mris->nfaces = nfaces ;
+  cheapAssert(nfaces == out_fno);
+  
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     int num ;
@@ -3457,6 +3543,8 @@ int MRISremoveRippedFaces(MRI_SURFACE *mris)
       v->f[v->num++] = out_faces[v->f[n]] ;
     }
   }
+
+  MRISremovedFaces(mris, nfaces);
 
   free(out_faces) ;
 
@@ -3509,8 +3597,8 @@ int MRISremoveRippedVertices(MRI_SURFACE *mris)
       out_vno++ ;
     }
   }
-  mris->nvertices = nvertices ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  
+  for (vno = 0 ; vno < nvertices ; vno++)
   {
     int vnum, v2num, v3num ;
 
@@ -3549,6 +3637,8 @@ int MRISremoveRippedVertices(MRI_SURFACE *mris)
     for (n = 0 ; n < VERTICES_PER_FACE ; n++)
       face->v[n] = out_vnos[face->v[n]] ;
   }
+
+  MRISremovedVertices(mris, nvertices);
 
   free(out_vnos) ;
 
@@ -3863,26 +3953,30 @@ static int MRIScomputeNormals_new(MRI_SURFACE *mris);
     typedef struct MRIScomputeNormals_Snapshot {
         FACE*   faces;
         VERTEX* vertices;
+	FaceNormCacheEntry *faceNormCacheEntries; 
     } MRIScomputeNormals_Snapshot;
     
     static void MRIScomputeNormals_Snapshot_init(
         MRIScomputeNormals_Snapshot* lhs,
         MRI_SURFACE*                 mris) {
-        int FC = mris->nfaces    * sizeof(FACE);   memcpy(lhs->faces    = (FACE*  )malloc(FC), mris->faces,    FC); 
-        int VC = mris->nvertices * sizeof(VERTEX); memcpy(lhs->vertices = (VERTEX*)malloc(VC), mris->vertices, VC); 
+	int CC = mris->nfaces    * sizeof(FaceNormCacheEntry);  memcpy(lhs->faceNormCacheEntries = (FaceNormCacheEntry*  )malloc(CC), mris->faceNormCacheEntries, CC); 
+        int FC = mris->nfaces    * sizeof(FACE);   		memcpy(lhs->faces                = (FACE*  )              malloc(FC), mris->faces,                FC); 
+        int VC = mris->nvertices * sizeof(VERTEX); 		memcpy(lhs->vertices             = (VERTEX*)              malloc(VC), mris->vertices,             VC);
     }
 
     static void MRIScomputeNormals_Snapshot_undo(
         MRIScomputeNormals_Snapshot* lhs,
         MRI_SURFACE*                 mris) {
-        int FC = mris->nfaces    * sizeof(FACE);   memcpy(mris->faces,    lhs->faces,    FC); 
-        int VC = mris->nvertices * sizeof(VERTEX); memcpy(mris->vertices, lhs->vertices, VC); 
+	int CC = mris->nfaces    * sizeof(FaceNormCacheEntry);  memcpy(mris->faceNormCacheEntries, lhs->faceNormCacheEntries, CC);
+        int FC = mris->nfaces    * sizeof(FACE);   		memcpy(mris->faces,                lhs->faces,                FC); 
+        int VC = mris->nvertices * sizeof(VERTEX); 		memcpy(mris->vertices,             lhs->vertices,             VC); 
     }
 
     static void MRIScomputeNormals_Snapshot_fini(
         MRIScomputeNormals_Snapshot* lhs) {
-        free(lhs->faces   ); lhs->faces    = NULL;
-        free(lhs->vertices); lhs->vertices = NULL;
+	freeAndNULL(lhs->faceNormCacheEntries);
+        freeAndNULL(lhs->faces);
+        freeAndNULL(lhs->vertices);
     }
     
     static void MRIScomputeNormals_Snapshot_check(double lhs, double rhs, int line, int i, int* count) {
@@ -28244,15 +28338,9 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname)
 
   /* now we can book some face space (if we have a new mris structure) */
   if (newMris) {
-    mris->nfaces = nfaces;
-    mris->faces = (FACE *)calloc(nfaces, sizeof(FACE));
-    mris->faceNormCacheEntries = (FaceNormCacheEntry*)calloc(nfaces, sizeof(FaceNormCacheEntry));
-    if (!mris->faces || !mris->faceNormCacheEntries) {
+    if (!MRISallocateFaces(mris, nfaces)) {
       fclose(fp);
       ErrorExit(ERROR_NO_MEMORY, "MRISreadVTK(%d, %d): could not allocate faces", nfaces, sizeof(FACE));
-    }
-    else {
-      memset(mris->faces, 0, nfaces * sizeof(FACE));
     }
   }
   else {
@@ -29046,9 +29134,7 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
       if (!mris) {
         ErrorReturn(NULL, (ERROR_NOMEMORY, "MRISreadSTLfile: could not alloc memory for mris"));
       }
-      mris->type      = MRIS_TRIANGULAR_SURFACE;
-      mris->nvertices = nextVertexNo;
-      mris->nfaces    = faceNormalXYZsSize;
+      mris->type = MRIS_TRIANGULAR_SURFACE;
 
     } // scanned the file and made the mris
 
@@ -41440,7 +41526,7 @@ static int mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2)
       }
   }
 
-  mris->nvertices++;
+  MRISgrowNVertices(mris, mris->nvertices+1);
 
   /* will be part of two new faces also */
   // total array size is going to be vnew->num*2!
@@ -41579,7 +41665,8 @@ static int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vn
     return (ERROR_NO_MEMORY);
   }
 
-  fnew_no = mris->nfaces++;
+  fnew_no = mris->nfaces;
+  MRISgrowNFaces(mris, fnew_no+1);
 
   f1 = &mris->faces[fno];
   f2 = &mris->faces[fnew_no];
@@ -50339,8 +50426,8 @@ static int mrisRestoreFaceVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dv
   VERTEX *v;
   VERTEX_STATE *vs;
 
-  /* restore the original number of faces */
-  mris->nfaces = dvs->nfaces;
+  /* remove the added faces */
+  MRIStruncateNFaces(mris, dvs->nfaces);
 
   for (i = 0; i < dvs->nvertices; i++) {
     vs = &dvs->vs[i];
@@ -50351,10 +50438,8 @@ static int mrisRestoreFaceVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dv
 
     v = &mris->vertices[vno];
 
-    free(v->f);
-    v->f = NULL;
-    free(v->n);
-    v->n = NULL;
+    freeAndNULL(v->f);
+    freeAndNULL(v->n);
     v->num = vs->num;
 
     if (vs->num) {
@@ -50380,8 +50465,8 @@ static int mrisRestoreVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs)
   VERTEX *v;
   VERTEX_STATE *vs;
 
-  /* restore the original number of faces */
-  mris->nfaces = dvs->nfaces;
+  /* remove the added faces */
+  MRIStruncateNFaces(mris, dvs->nfaces);
 
   for (i = 0; i < dvs->nvertices; i++) {
     vs = &dvs->vs[i];
@@ -51752,7 +51837,8 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
 
   mris_corrected->type = MRIS_TRIANGULAR_SURFACE;
 
-  for (nrippedvertices = mris_corrected->nvertices = vno = 0; vno < mris->nvertices; vno++) {
+  int newNVertices = 0;
+  for (nrippedvertices = vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
     /* ignore the ripped vertices */
     if (v->ripflag) {
@@ -51760,7 +51846,7 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
       continue;
     }
     /* save vertex information */
-    vdst = &mris_corrected->vertices[mris_corrected->nvertices];
+    vdst = &mris_corrected->vertices[newNVertices];
     vdst->nsize = v->nsize;
     vdst->x = v->x;
     vdst->y = v->y;
@@ -51792,10 +51878,12 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
     vdst->K = v->K;
     vdst->k1 = v->k1;
     vdst->k2 = v->k2;
-    vertex_trans[vno] = mris_corrected->nvertices++;
+    vertex_trans[vno] = newNVertices++;
   }
+  MRIStruncateNVertices(mris_corrected, newNVertices);
 
-  for (nrippedfaces = mris_corrected->nfaces = fno = 0; fno < mris->nfaces; fno++) {
+  int newNFaces = 0;
+  for (nrippedfaces = newNFaces = fno = 0; fno < mris->nfaces; fno++) {
     f = &mris->faces[fno];
     /* don't update triangle with marked vertices */
     if (f->ripflag) {
@@ -51803,20 +51891,22 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
       continue;
     }
     /* save face information */
-    fdst = &mris_corrected->faces[mris_corrected->nfaces];
+    fdst = &mris_corrected->faces[newNFaces];
     for (n = 0; n < VERTICES_PER_FACE; n++) {
       fdst->v[n] = vertex_trans[f->v[n]];
       if (mris->vertices[f->v[n]].ripflag) {
         fprintf(stderr,
                 "Error with face %d (%d): vertex %d (%d) is ripped\n",
                 fno,
-                mris_corrected->nfaces,
+                newNFaces,
                 f->v[n],
                 fdst->v[n]);
       }
     }
-    face_trans[fno] = mris_corrected->nfaces++;
+    face_trans[fno] = newNFaces++;
   }
+  MRIStruncateNFaces(mris_corrected, newNFaces);
+
   /* now allocate face and neighbor stuff in mris_corrected */
   for (vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
@@ -52453,7 +52543,8 @@ MRI_SURFACE *MRIScorrectTopology(
   MRISrestoreVertexPositions(mris, TMP_VERTICES); /* inflated */
   MRIScomputeMetricProperties(mris);
 
-  for (mris_corrected->nvertices = vno = 0; vno < mris->nvertices; vno++) {
+  int newNVertices = 0;
+  for (vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
     if (vno == Gdiag_no) {
       DiagBreak();
@@ -52462,7 +52553,7 @@ MRI_SURFACE *MRIScorrectTopology(
     if (v->marked) {
       continue;
     }
-    vdst = &mris_corrected->vertices[mris_corrected->nvertices];
+    vdst = &mris_corrected->vertices[newNVertices];
     if (mris_corrected->nvertices == Gdiag_no) {
       DiagBreak();
     }
@@ -52503,7 +52594,7 @@ MRI_SURFACE *MRIScorrectTopology(
     vdst->k1 = v->k1;
     vdst->k2 = v->k2;
     vdst->border = 0;
-    vertex_trans[vno] = mris_corrected->nvertices++;
+    vertex_trans[vno] = newNVertices++;
   }
   /* now add all the retained vertices in the defects */
   for (i = 0; i < dl->ndefects; i++) {
@@ -52519,7 +52610,7 @@ MRI_SURFACE *MRIScorrectTopology(
         if (vno == Gdiag_no) {
           DiagBreak();
         }
-        vdst = &mris_corrected->vertices[mris_corrected->nvertices];
+        vdst = &mris_corrected->vertices[newNVertices];
         if (mris_corrected->nvertices == Gdiag_no) {
           DiagBreak();
         }
@@ -52560,25 +52651,28 @@ MRI_SURFACE *MRIScorrectTopology(
         if (parms->search_mode != GREEDY_SEARCH && defect->status[n] == DISCARD_VERTEX) {
           vdst->ripflag = 1;
         }
-        vertex_trans[vno] = mris_corrected->nvertices++;
+        vertex_trans[vno] = newNVertices++;
       }
+      MRISgrowNVertices(mris_corrected, newNVertices);
     }
   }
 
-  for (mris_corrected->nfaces = fno = 0; fno < mris->nfaces; fno++) {
+  int newNfaces;
+  for (newNfaces = fno = 0; fno < mris->nfaces; fno++) {
     f = &mris->faces[fno];
     /* don't update triangle with marked vertices */
     if (triangleMarked(mris, fno)) {
       continue;
     }
     /* initialize face */
-    fdst = &mris_corrected->faces[mris_corrected->nfaces];
+    fdst = &mris_corrected->faces[newNfaces];
     for (n = 0; n < VERTICES_PER_FACE; n++) {
       fdst->v[n] = vertex_trans[f->v[n]];
     }
-    face_trans[fno] = mris_corrected->nfaces++;
+    face_trans[fno] = newNfaces++;
   }
-
+  MRISgrowNFaces(mris_corrected, newNfaces);
+  
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     FILE *fp;
     char fname[STRLEN];
@@ -61929,11 +62023,9 @@ static int mrisAddFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2)
   if (vno0 == 6160 && vno1 == 6189 && vno2 == 6176) {
     DiagBreak();
   }
-  if (mris->nfaces >= mris->max_faces) {
-    ErrorExit(ERROR_NOMEMORY, "mrisAddFace: max faces reached");
-  }
 
-  fno = mris->nfaces++;
+  fno = mris->nfaces;
+  MRISgrowNFaces(mris, fno+1);
   if (fno == Gdiag_no) {
     DiagBreak();
   }
@@ -62836,13 +62928,14 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
 
   mris_corrected->type = MRIS_TRIANGULAR_SURFACE;
 
-  for (mris_corrected->nvertices = vno = 0; vno < mris->nvertices; vno++) {
+  int newNVertices;
+  for (newNVertices = vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
     /* ignore the marked defect vertices but not the bordering ones */
     if (v->marked) {
       continue;
     }
-    vdst = &mris_corrected->vertices[mris_corrected->nvertices];
+    vdst = &mris_corrected->vertices[newNVertices];
     vdst->nsize = v->nsize;
     /* original vertices */
     vdst->x = v->x;
@@ -62879,22 +62972,25 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
     vdst->k1 = v->k1;
     vdst->k2 = v->k2;
     vdst->border = 0;
-    vertex_trans[vno] = mris_corrected->nvertices++;
+    vertex_trans[vno] = newNVertices++;
   }
+  MRIStruncateNVertices(mris_corrected, newNVertices);
 
-  for (mris_corrected->nfaces = fno = 0; fno < mris->nfaces; fno++) {
+  int newNfaces = 0;
+  for (fno = 0; fno < mris->nfaces; fno++) {
     f = &mris->faces[fno];
     /* don't update triangle with marked vertices */
     if (triangleMarked(mris, fno)) {
       continue;
     }
     /* initialize face */
-    fdst = &mris_corrected->faces[mris_corrected->nfaces];
+    fdst = &mris_corrected->faces[newNfaces];
     for (n = 0; n < VERTICES_PER_FACE; n++) {
       fdst->v[n] = vertex_trans[f->v[n]];
     }
-    face_trans[fno] = mris_corrected->nfaces++;
+    face_trans[fno] = newNfaces++;
   }
+  MRIStruncateNFaces(mris_corrected, newNfaces); 
 
   /* now allocate face and neighbor stuff in mris_corrected */
   for (vno = 0; vno < mris->nvertices; vno++) {
