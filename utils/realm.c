@@ -835,7 +835,7 @@ static RealmTreeNode * chooseRealmTreeNodeForFno(MRIS const * const mris, RealmT
     return n;
 }
 
-static const int interestingFno = 301539;
+static const int interestingFno = -1; // 301539;
 
 static bool isFnoInRealmTreeNode(RealmTree* realmTree, int fno) {
     RealmTreeNode* n = realmTree->fnoToRealmTreeNode[chkBnd(0,fno,realmTree->saved_nfaces)];

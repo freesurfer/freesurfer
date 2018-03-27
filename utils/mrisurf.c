@@ -753,7 +753,7 @@ static void reproducible_check(double cell, double val, int line, int* count)
   To test it is correct, the code can scan all vertices of an mris and verify there origxyz are what was expected.
   ------------------------------------------------------*/
 
-#define mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
+// #define mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
 
 static int activeRealmTreesSize;
 static int orig_clock = 0;
