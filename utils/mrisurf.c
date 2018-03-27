@@ -855,6 +855,15 @@ static void deferSetFaceNorms(MRIS* mris) {
     ROMP_PF_end
 }
 
+static void recomputeFaceNorms(MRIS* mris) {
+    int fno;
+    for (fno = 0; fno < mris->nfaces; fno++) {
+      FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
+      fNorm->deferred = 3;      // invalidate their old values 
+      getFaceNorm(mris, fno);   // recompute now
+    }
+}
+
 static void undeferSetFaceNorms(MRIS* mris) {
     int fno;
     ROMP_PF_begin  
@@ -56718,11 +56727,11 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   }
 
 
-  if (1) {
+  if (computeDefectContext) {
     computeDefectContext->mris_deferred_norms = mris_nonconst;  // MODIFIER
     deferSetFaceNorms(mris_nonconst);
   } else {
-    undeferSetFaceNorms(mris_nonconst);                         // old code 
+    recomputeFaceNorms(mris_nonconst);                         // old code 
   }
 
 
