@@ -167,6 +167,7 @@ GCAM* readITK(const string& warp_file, const string& src_geom)
   MRI* src = MRIread(src_geom.c_str());
   if (src == NULL)
   {
+	cerr << "ERROR: couldn't read source geometry from " << src_geom << endl;
     return NULL;
   }
 
