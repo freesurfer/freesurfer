@@ -108,7 +108,7 @@ void RenderWidget::mouseMoveEvent(QMouseEvent *e)
   }
 }
 
-void RenderWidget::mouseReleaseEvent(QMouseEvent *e)
+void RenderWidget::mouseReleaseEvent()
 {
   m_bPressed = false;
 }
