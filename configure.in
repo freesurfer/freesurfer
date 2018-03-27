@@ -1585,8 +1585,8 @@ if test "x$VXL_DIR" = "x"; then
     VXL_DIR="$withval"
   fi
   # or the git build in the local vxl dir (see vxl/fs_build_local_vxl script)
-  if test -d "vxl/lib" ; then
-    withval="`pwd`/vxl"
+  if test -d "packages/vxl/lib" ; then
+    withval="`pwd`/packages/vxl"
     vxl_i="$withval/include/vxl"
     ac_vxl_includes="$vxl_i/core $vxl_i/vcl $vxl_i/v3p/netlib $vxl_i/v3p/netlib/opt"
     ac_vxl_libraries="$withval"/lib
