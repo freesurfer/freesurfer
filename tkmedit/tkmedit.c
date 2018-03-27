@@ -64,6 +64,7 @@ char *VERSION = "$Revision: 1.348 $";
 #include "fsgdf.h"
 #include "mri2.h"
 #include "registerio.h"
+#include "timer.h" // current_date_time()
 
 #include <tcl.h>
 //#include <tclDecls.h>
