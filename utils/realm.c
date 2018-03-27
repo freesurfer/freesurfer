@@ -101,7 +101,7 @@ static int chkBnd(int lo, int b, int hi) {
     }
 
     void test(int nvertices, int useDuplicates) {
-        fprintf(stderr,"Test nvertices:%d useDuplicates:%d\n", nvertices, useDuplicates);
+        fprintf(stdout,"Test nvertices:%d useDuplicates:%d\n", nvertices, useDuplicates);
         
         int fBenefitCount = 0, fBenefitLimit = 1, fNoBenefitCount = 0, fHasBenefitCount = 0;
 
@@ -225,7 +225,7 @@ static int chkBnd(int lo, int b, int hi) {
         freeAndNULL(ctx_z);
         
         if (1) {
-            fprintf(stderr, "Testing RealmTree\n");
+            fprintf(stdout, "Testing RealmTree\n");
         
             // Make a RealmTree
             //
@@ -252,13 +252,13 @@ static int chkBnd(int lo, int b, int hi) {
                     v->someZ -= 0.1 * (v->someZ - zMin);
                     noteIfXYZChangedRealmTree(realmTree, &mris, getSomeXYZ, vno);
                 }
-                fprintf(stderr,"Moved vertices, now checking\n");
+                fprintf(stdout,"Moved vertices, now checking\n");
                 checkRealmTree(realmTree, &mris, getSomeXYZ);
-                fprintf(stderr,"Checked realmTree now updating\n");
+                fprintf(stdout,"Checked realmTree now updating\n");
                 updateRealmTree(realmTree, &mris, getSomeXYZ);
-                fprintf(stderr,"Updated realmTree, now checking\n");
+                fprintf(stdout,"Updated realmTree, now checking\n");
                 checkRealmTree(realmTree, &mris, getSomeXYZ);
-                fprintf(stderr,"Checked realmTree\n");
+                fprintf(stdout,"Checked realmTree\n");
             }
 
             // Be nasty, deliberately go outside in all the different directions
@@ -303,7 +303,7 @@ static int chkBnd(int lo, int b, int hi) {
                 fCount++;
                 if (fCount == fLimit) {
                     fLimit *= 2;
-                    fprintf(stderr,"fCount:%d x:%f..%f y:%f.%f z:%f..%f\n", fCount, xLo, xHi, yLo, yHi, zLo, zHi);
+                    fprintf(stdout,"fCount:%d x:%f..%f y:%f.%f z:%f..%f\n", fCount, xLo, xHi, yLo, yHi, zLo, zHi);
                 }
 
                 Realm* realm = 
@@ -322,19 +322,19 @@ static int chkBnd(int lo, int b, int hi) {
                 for (;;) {
     #ifdef REALM_UNIT_TEST
                     if (false && (counter == 1 || counter == 122)) {
-                        fprintf(stderr,"counter:%d ri.i:%ld ri.p:%p\n", counter, realmIterator.i, realmIterator.p); 
+                        fprintf(stdout,"counter:%d ri.i:%ld ri.p:%p\n", counter, realmIterator.i, realmIterator.p); 
                     }
     #endif
                     vno = realmNextMightTouchVno(realm, &realmIterator);
     #ifdef REALM_UNIT_TEST
                     if (vno < -1 || vno >= mris.nvertices) {
-                        fprintf(stderr,"ERROR, vno:%d is illegal\n", vno); 
+                        fprintf(stdout,"ERROR, vno:%d is illegal\n", vno); 
                         exit(1);
                     }
     #endif
                     if (0 > vno) break;
                     if (counter == 0 || states[vno]) {
-                        fprintf(stderr,"ERROR, vno:%d reported again when counter:%d, was reported counter:%d\n", vno, counter, states[vno]); 
+                        fprintf(stdout,"ERROR, vno:%d reported again when counter:%d, was reported counter:%d\n", vno, counter, states[vno]); 
                         exit(1);
                     }
                     states[vno] = counter++;
@@ -348,7 +348,7 @@ static int chkBnd(int lo, int b, int hi) {
                        VERTEX* v = &mris.vertices[vno];
                        if (xLo <= v->someX && v->someX < xHi 
                        &&  yLo <= v->someY && v->someY < yHi
-                       &&  zLo <= v->someZ && v->someZ < zHi) fprintf(stderr,"ERROR, vno:%d was not reported\n", vno);
+                       &&  zLo <= v->someZ && v->someZ < zHi) fprintf(stdout,"ERROR, vno:%d was not reported\n", vno);
                     }
                 }
 
@@ -363,7 +363,7 @@ static int chkBnd(int lo, int b, int hi) {
                 int fnosI;
                 for (fnosI = 0; fnosI < fnosSize-1; fnosI++) {
                     if (fnos[fnosI] >= fnos[fnosI + 1]) {
-                        fprintf(stderr,"ERROR, fnos[fnosI]:%d fnos[fnosI+1]:%d\n", fnos[fnosI], fnos[fnosI + 1]);
+                        fprintf(stdout,"ERROR, fnos[fnosI]:%d fnos[fnosI+1]:%d\n", fnos[fnosI], fnos[fnosI + 1]);
                     }
                 }
 
@@ -388,7 +388,7 @@ static int chkBnd(int lo, int b, int hi) {
                     if (wontIntersect) continue;                            // might or might not be in the list
                     while (fnosI < fnosSize && fnos[fnosI] < fno) fnosI++;  // skip the ones that were reported but need not be
                     if (fnosI == fnosSize || fnos[fnosI] != fno) {
-                        fprintf(stderr,"ERROR, fno:%d was not reported\n", fno);
+                        fprintf(stdout,"ERROR, fno:%d was not reported\n", fno);
                     }
                 }
 
@@ -404,7 +404,7 @@ static int chkBnd(int lo, int b, int hi) {
 
                     if (++fBenefitCount == fBenefitLimit) {
                         if (fBenefitLimit < 1000) fBenefitLimit *= 2; else fBenefitLimit += 1000;
-                        fprintf(stderr,"fnosSize:%d mris.nfaces:%d fNoBenefitCount:%d fHasBenefitCount:%d\n", 
+                        fprintf(stdout,"fnosSize:%d mris.nfaces:%d fNoBenefitCount:%d fHasBenefitCount:%d\n", 
                             fnosSize, mris.nfaces, fNoBenefitCount, fHasBenefitCount);
                     }
                 }
@@ -835,7 +835,7 @@ static RealmTreeNode * chooseRealmTreeNodeForFno(MRIS const * const mris, RealmT
     return n;
 }
 
-static const int interestingFno = -1; // 301561;
+static const int interestingFno = 301539;
 
 static bool isFnoInRealmTreeNode(RealmTree* realmTree, int fno) {
     RealmTreeNode* n = realmTree->fnoToRealmTreeNode[chkBnd(0,fno,realmTree->saved_nfaces)];
@@ -856,7 +856,7 @@ static void insertFnoIntoRealmTreeNode(RealmTree* realmTree, RealmTreeNode* n, i
     // adjust the count
     n->nFaces++;
 
-    if (n == realmTree->interestingRealmTreeNode) { 
+    if (false && n == realmTree->interestingRealmTreeNode) { 
         fprintf(stdout, "%s:%d interestingRealmTreeNode inserted into\n", __FILE__, __LINE__);
     }
     
@@ -871,7 +871,7 @@ static void insertFnoIntoRealmTreeNode(RealmTree* realmTree, RealmTreeNode* n, i
 static void removeFnoFromRealmTree(RealmTree* realmTree, int fno) {
     RealmTreeNode* n = realmTree->fnoToRealmTreeNode[chkBnd(0,fno,realmTree->saved_nfaces)];
 
-    if (n == realmTree->interestingRealmTreeNode) { 
+    if (false && n == realmTree->interestingRealmTreeNode) { 
         fprintf(stdout, "%s:%d interestingRealmTreeNode removed from\n", __FILE__, __LINE__);
     }
 
@@ -898,8 +898,14 @@ static void removeFnoFromRealmTree(RealmTree* realmTree, int fno) {
     n->nFaces--;
 
     if (fno == interestingFno) { 
-        fprintf(stdout, "%s:%d interestingFno removed\n", __FILE__, __LINE__);
+        static long count;
+        count++;
+        fprintf(stdout, "%s:%d interestingFno removed, count:%ld\n", __FILE__, __LINE__, count);
         realmTree->interestingRealmTreeNode = NULL;
+        
+        if (count == 248) {
+            fprintf(stdout, "%s:%d breakpoint here\n", __FILE__, __LINE__);
+        }
     }
 
     if (realmTree->interestingRealmTreeNode) costlyAssert(isFnoInRealmTreeNode(realmTree, interestingFno));
@@ -912,7 +918,7 @@ static void resizeRealmTree(RealmTree* rt, MRIS const * mris) {
     count++;
 
     {
-        int change =  mris->nvertices - rt->saved_nvertices;
+        int change = mris->nvertices - rt->saved_nvertices;
         if (change > 0) {   
             rt->captured_VERTEX_xyz = (Captured_VERTEX_xyz*)realloc(rt->captured_VERTEX_xyz,  mris->nvertices*sizeof(Captured_VERTEX_xyz));
             rt->vnoToRealmTreeNode  = (RealmTreeNode**     )realloc(rt->vnoToRealmTreeNode,   mris->nvertices*sizeof(RealmTreeNode*     ));
@@ -922,11 +928,21 @@ static void resizeRealmTree(RealmTree* rt, MRIS const * mris) {
             bzero(rt->vnoToRealmTreeNode  + rt->saved_nvertices, change*sizeof(RealmTreeNode*));
             bzero(rt->nextVnoToUpdatePlus1+ rt->saved_nvertices, change*sizeof(int));
         } else {
-            // need to remove these faces from the tree
+            // remove these from the tree
             int vno;
             for (vno = mris->nvertices; vno < rt->saved_nvertices; vno++) {
                 RealmTreeNode* const n = rt->vnoToRealmTreeNode[vno]; if (!n) continue;
                 removeVnoFromRealmTree(rt, vno);
+            }
+            // remove any in the vnoToUpdate list
+            int* prevLink = &rt->firstVnoToUpdatePlus1;
+            while ((vno = *prevLink - 1) >= 0) {
+                if (vno >= mris->nvertices) {                           // should remain?
+                    *prevLink = rt->nextVnoToUpdatePlus1[vno];          // no - remove from chain
+                    rt->nextVnoToUpdatePlus1[vno] = 0;
+                } else {
+                    prevLink = &rt->nextVnoToUpdatePlus1[vno];          // yes - keep it
+                }
             }
         }
         rt->saved_nvertices = mris->nvertices;
@@ -943,7 +959,7 @@ static void resizeRealmTree(RealmTree* rt, MRIS const * mris) {
             bzero(rt->nextFnoPlus1         + rt->saved_nfaces, change*sizeof(int));
             bzero(rt->nextFnoToUpdatePlus1 + rt->saved_nfaces, change*sizeof(int));
         } else {
-            // need to remove these faces from the tree
+            // remove these from the tree
             int fno;
             for (fno = mris->nfaces; fno < rt->saved_nfaces; fno++) {
                 RealmTreeNode* const n = rt->fnoToRealmTreeNode[fno]; if (!n) continue;
@@ -1002,7 +1018,6 @@ RealmTree* makeRealmTree(MRIS const * mris, GetXYZ_FunctionType getXYZ) {
     // Place all the vertices into nodes.  recentNode tries to speed up by assuming some locality.
     // 
     for (vno = 0; vno < mris->nvertices; vno++) {
-        captured_xyz = &rt->captured_VERTEX_xyz[vno];
         recentNode = insertVnoNear(rt, recentNode, vno);
     }
 
@@ -1014,7 +1029,7 @@ RealmTree* makeRealmTree(MRIS const * mris, GetXYZ_FunctionType getXYZ) {
     }
         
     if (0) {
-        fprintf(stderr,"%s:%d summarizeRealmTree after made\n", __FILE__, __LINE__);
+        fprintf(stdout,"%s:%d summarizeRealmTree after made\n", __FILE__, __LINE__);
         summarizeRealmTree(rt);
     }
     
@@ -1035,7 +1050,7 @@ void noteIfXYZChangedRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_F
 
     if (x == c->x && y == c->y && z == c->z) {
         // ignore if has not moved
-        // fprintf(stderr,"noteIfXYZChangedRealmTree vno:%d has not moved\n", vno);       // this happens a lot
+        // fprintf(stdout,"noteIfXYZChangedRealmTree vno:%d has not moved\n", vno);       // this happens a lot
         return;
     }
     
@@ -1063,16 +1078,41 @@ void noteIfXYZChangedRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_F
     }
 }
 
+static int addFacesToFaceSet(int firstFnoToUpdatePlus1, RealmTree* realmTree, VERTEX const * const vertex) {
+    int fi; 
+    for (fi = 0; fi < vertex->num; fi++) {
+        int fno = vertex->f[fi];
+        if (realmTree->nextFnoToUpdatePlus1[fno] != 0) continue;        // already in list
+        realmTree->nextFnoToUpdatePlus1[fno] = firstFnoToUpdatePlus1;   // add to list
+        firstFnoToUpdatePlus1 = fno + 1;
+    }
+    return firstFnoToUpdatePlus1;
+}
+
 void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ) {
     
+    int previous_saved_nvertices = realmTree->saved_nvertices;
+    
     resizeRealmTree(realmTree, mris);
+
+    // Pending faces list
+    //    
+    int firstFnoToUpdatePlus1 = -1;
+
+    // add the new vertices.  recentNode tries to speed up by assuming some locality.
+    // 
+    RealmTreeNode* recentNode = &realmTree->root;
+    int vno;
+    for (vno = previous_saved_nvertices; vno < mris->nvertices; vno++) {
+        recentNode = insertVnoNear(realmTree, recentNode, vno);
+        firstFnoToUpdatePlus1 = addFacesToFaceSet(firstFnoToUpdatePlus1, realmTree, &mris->vertices[vno]);
+    }
     
     // process all the pending vno and build the pending face list
     //
-    int firstFnoToUpdatePlus1 = -1;
-    int vno = realmTree->firstVnoToUpdatePlus1 - 1;
+    vno = realmTree->firstVnoToUpdatePlus1 - 1;
     while (vno >= 0) {
-        VERTEX const * const vertex = &mris->vertices[vno];
+        VERTEX const * const vertex = &mris->vertices[chkBnd(0,vno,mris->nvertices)];
 
         // Get its new xyz
         //    
@@ -1088,15 +1128,7 @@ void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionTyp
         
             // add the faces to the face set
             //
-            { 
-                int fi; 
-                for (fi = 0; fi < vertex->num; fi++) {
-                    int fno = vertex->f[fi];
-                    if (realmTree->nextFnoToUpdatePlus1[fno] != 0) continue;        // already in list
-                    realmTree->nextFnoToUpdatePlus1[fno] = firstFnoToUpdatePlus1;   // add to list
-                    firstFnoToUpdatePlus1 = fno + 1;
-                }
-            }
+            firstFnoToUpdatePlus1 = addFacesToFaceSet(firstFnoToUpdatePlus1, realmTree, vertex);
 
             // remove it from the existing realmTreeNode
             //
@@ -1136,7 +1168,7 @@ void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionTyp
 int checkRealmTree(RealmTree const * realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ) {
     int count = countXYZChanges(realmTree, mris, getXYZ);
     if (count > 0) {
-        fprintf(stderr, "%s:%d mris %d vertex xyz have changed\n", __FILE__, __LINE__, count);
+        fprintf(stdout, "%s:%d mris %d vertex xyz have changed\n", __FILE__, __LINE__, count);
     }
     return count;
 }
@@ -1407,30 +1439,34 @@ int realmMightTouchFno(Realm* realm, int* fnos, int fnosCapacity) {
 
 static void summarizeRealmTreeNodeIndent(RealmTreeNode const * n) {
     int i; 
-    for (i = 0; i < n->depth; i++) fprintf(stderr,"   |");
+    for (i = 0; i < n->depth; i++) fprintf(stdout,"   |");
 }
 
 static void summarizeRealmTreeNode(RealmTree const * realmTree, RealmTreeNode const * n) {
+    if (!n) {
+        fprintf(stdout,"not in the tree\n");
+        return;
+    }
     summarizeRealmTreeNodeIndent(n);
-    fprintf(stderr,"x:%f..%f y:%f..%f z:%f..:%f nFaces:%d\n", n->xLo, n->xHi, n->yLo, n->yHi, n->zLo, n->zHi, n->nFaces);
+    fprintf(stdout,"x:%f..%f y:%f..%f z:%f..:%f nFaces:%d\n", n->xLo, n->xHi, n->yLo, n->yHi, n->zLo, n->zHi, n->nFaces);
     if (n->vnos) {
         summarizeRealmTreeNodeIndent(n);
-        fprintf(stderr," vnosSize:%d vno:",n->vnosSize);
+        fprintf(stdout," vnosSize:%d vno:",n->vnosSize);
         int vi;
         for (vi = 0; vi < n->vnosSize; vi++) {
-            fprintf(stderr," %d",n->vnos[vi]);
+            fprintf(stdout," %d",n->vnos[vi]);
         }
-        fprintf(stderr,"\n");
+        fprintf(stdout,"\n");
     }
     if (n->nFaces) {
         summarizeRealmTreeNodeIndent(n);
-        fprintf(stderr," nFaces:%d fno:",n->nFaces);
+        fprintf(stdout," nFaces:%d fno:",n->nFaces);
         int entryFno = n->firstFnoPlus1 - 1;
         while (entryFno >= 0) {
-            fprintf(stderr," %d",entryFno);
+            fprintf(stdout," %d",entryFno);
             entryFno = realmTree->nextFnoPlus1[entryFno] - 1;
         }
-        fprintf(stderr,"\n");
+        fprintf(stdout,"\n");
     }
 }
 
@@ -1458,22 +1494,22 @@ void summarizeRealmTree(RealmTree const * realmTree) {
 }
 
 void summarizeRealmTreeVno(RealmTree const * realmTree, int vno) {
-    fprintf(stderr,"vno:%d\n",vno);
+    fprintf(stdout,"vno:%d\n",vno);
     RealmTreeNode* n = realmTree->vnoToRealmTreeNode[vno];
     summarizeRealmTreeNode(realmTree, n);
 }
 
 void summarizeRealmTreeFno(RealmTree const * realmTree, int fno) {
-    fprintf(stderr,"fno:%d\n",fno);
+    fprintf(stdout,"summarizeRealmTreeFno fno:%d\n",fno);
     RealmTreeNode* n = realmTree->fnoToRealmTreeNode[fno];
     summarizeRealmTreeNode(realmTree, n);
     FACE const * face = &realmTree->mris->faces[fno];
-    fprintf(stderr,"vno");
+    fprintf(stdout,"vno");
     int vi;
     for (vi = 0; vi < VERTICES_PER_FACE; vi++) {
-        fprintf(stderr," %d",face->v[vi]);
+        fprintf(stdout," %d",face->v[vi]);
     }
-    fprintf(stderr,"\n");
+    fprintf(stdout,"\n");
     for (vi = 0; vi < VERTICES_PER_FACE; vi++) {
         summarizeRealmTreeVno(realmTree, face->v[vi]); 
     }
