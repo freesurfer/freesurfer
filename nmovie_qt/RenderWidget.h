@@ -16,7 +16,7 @@ public:
 
     void mousePressEvent(QMouseEvent *);
     void mouseMoveEvent(QMouseEvent *);
-    void mouseReleaseEvent();
+    void mouseReleaseEvent(QMouseEvent *);
 
     int LoadImages(const QStringList& filenames);
 
