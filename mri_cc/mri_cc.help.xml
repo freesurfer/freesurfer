@@ -37,6 +37,8 @@
       <explanation>write aseg including CC to SDIR/mri/&lt;fname&gt;</explanation>
       <argument>-aseg &lt;fname&gt;</argument>
       <explanation>read aseg from SDIR/mri/&lt;fname&gt;</explanation>
+      <argument>-norm &lt;fname&gt;</argument>
+      <explanation>read norm from SDIR/mri/&lt;fname&gt;</explanation>
       <argument>-sdir &lt;dname&gt;</argument>
       <explanation>set SUBJECTS_DIR to &lt;dname&gt;</explanation>
       <argument>-lta &lt;fname&gt;</argument>
