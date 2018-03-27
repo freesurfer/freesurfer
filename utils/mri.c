@@ -8546,6 +8546,7 @@ int MRIeraseTalairachPlane(MRI *mri, MRI *mri_mask, int orientation, int x, int 
 MRI *MRIextractPlane(MRI *mri_src, MRI *mri_dst, int orientation, int where)
 {
   int x, y, z, width, height;
+  double val;
 
   switch (orientation) {
     default:
@@ -8564,7 +8565,7 @@ MRI *MRIextractPlane(MRI *mri_src, MRI *mri_dst, int orientation, int where)
   }
 
   if (!mri_dst) {
-    mri_dst = MRIalloc(width, height, 1, MRI_UCHAR);
+    mri_dst = MRIalloc(width, height, 1, mri_src->type);
     MRIcopyHeader(mri_src, mri_dst);
     mri_dst->zstart = where;
     mri_dst->zend = where + 1;
@@ -8575,17 +8576,26 @@ MRI *MRIextractPlane(MRI *mri_src, MRI *mri_dst, int orientation, int where)
     default:
     case MRI_CORONAL: /* basis vectors in x-y plane */
       for (x = 0; x < mri_src->width; x++) {
-        for (y = 0; y < mri_src->height; y++) MRIvox(mri_dst, x, y, 0) = MRIvox(mri_src, x, y, where);
+        for (y = 0; y < mri_src->height; y++) {
+	  val = MRIgetVoxVal(mri_src,x,y,where,0);
+	  MRIsetVoxVal(mri_dst,x,y,0,0,val);
+	}
       }
       break;
     case MRI_HORIZONTAL: /* basis vectors in x-z plane */
       for (x = 0; x < mri_src->width; x++) {
-        for (z = 0; z < mri_src->depth; z++) MRIvox(mri_dst, x, z, 0) = MRIvox(mri_src, x, where, z);
+        for (z = 0; z < mri_src->depth; z++) {
+	  val = MRIgetVoxVal(mri_src,x,where,z,0);
+	  MRIsetVoxVal(mri_dst,x,z,0,0,val);
+	}
       }
       break;
     case MRI_SAGITTAL: /* basis vectors in y-z plane */
       for (z = 0; z < mri_src->depth; z++) {
-        for (y = 0; y < mri_src->height; y++) MRIvox(mri_dst, z, y, 0) = MRIvox(mri_src, where, y, z);
+        for (y = 0; y < mri_src->height; y++) {
+	  val = MRIgetVoxVal(mri_src,where,y,z,0);
+	  MRIsetVoxVal(mri_dst,z,y,0,0,val);
+	}
       }
       break;
   }
@@ -8624,21 +8634,25 @@ MRI *MRIfillPlane(MRI *mri_mask, MRI *mri_dst, int orientation, int where, int f
     default:
     case MRI_CORONAL: /* basis vectors in x-y plane */
       for (x = 0; x < mri_dst->width; x++) {
-        for (y = 0; y < mri_dst->height; y++)
-          if (MRIvox(mri_mask, x, y, 0)) MRIvox(mri_dst, x, y, where) = fillval;
+        for (y = 0; y < mri_dst->height; y++){
+          if(MRIgetVoxVal(mri_mask, x, y, 0,0)) 
+	    MRIsetVoxVal(mri_dst, x, y, where,0,fillval);
+	}
       }
       break;
     case MRI_HORIZONTAL: /* basis vectors in x-z plane */
       for (x = 0; x < mri_dst->width; x++) {
         for (z = 0; z < mri_dst->depth; z++) {
-          if (MRIvox(mri_mask, x, z, 0)) MRIvox(mri_dst, x, where, z) = fillval;
+          if(MRIgetVoxVal(mri_mask, x, z, 0,0)) 
+	    MRIsetVoxVal(mri_dst, x, where,z, 0,fillval);
         }
       }
       break;
     case MRI_SAGITTAL: /* basis vectors in y-z plane */
       for (z = 0; z < mri_dst->depth; z++) {
         for (y = 0; y < mri_dst->height; y++)
-          if (MRIvox(mri_mask, z, y, 0)) MRIvox(mri_dst, where, y, z) = fillval;
+          if(MRIgetVoxVal(mri_mask, z, y, 0,0)) 
+	    MRIsetVoxVal(mri_dst, where, y, z, 0,fillval);
       }
       break;
   }
