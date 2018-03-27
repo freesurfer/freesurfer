@@ -1078,13 +1078,18 @@ void noteIfXYZChangedRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_F
     }
 }
 
+static int addFnoFaceSet(int firstFnoToUpdatePlus1, RealmTree* realmTree, int fno) {
+    if (realmTree->nextFnoToUpdatePlus1[fno] == 0) {
+        realmTree->nextFnoToUpdatePlus1[fno] = firstFnoToUpdatePlus1;   // add to list
+        firstFnoToUpdatePlus1 = fno + 1;
+    }
+    return firstFnoToUpdatePlus1;
+}
+
 static int addFacesToFaceSet(int firstFnoToUpdatePlus1, RealmTree* realmTree, VERTEX const * const vertex) {
     int fi; 
     for (fi = 0; fi < vertex->num; fi++) {
-        int fno = vertex->f[fi];
-        if (realmTree->nextFnoToUpdatePlus1[fno] != 0) continue;        // already in list
-        realmTree->nextFnoToUpdatePlus1[fno] = firstFnoToUpdatePlus1;   // add to list
-        firstFnoToUpdatePlus1 = fno + 1;
+        firstFnoToUpdatePlus1 = addFnoFaceSet(firstFnoToUpdatePlus1, realmTree, vertex->f[fi]);
     }
     return firstFnoToUpdatePlus1;
 }
@@ -1092,8 +1097,13 @@ static int addFacesToFaceSet(int firstFnoToUpdatePlus1, RealmTree* realmTree, VE
 void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionType getXYZ) {
     
     int previous_saved_nvertices = realmTree->saved_nvertices;
+    int previous_saved_nfaces    = realmTree->saved_nfaces;
     
     resizeRealmTree(realmTree, mris);
+
+    if (previous_saved_nfaces <= interestingFno && interestingFno < realmTree->saved_nfaces) {
+        fprintf(stdout, "%s:%d interestingFno:%d should be added soon\n", __FILE__, __LINE__, interestingFno);
+    }
 
     // Pending faces list
     //    
@@ -1106,6 +1116,13 @@ void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionTyp
     for (vno = previous_saved_nvertices; vno < mris->nvertices; vno++) {
         recentNode = insertVnoNear(realmTree, recentNode, vno);
         firstFnoToUpdatePlus1 = addFacesToFaceSet(firstFnoToUpdatePlus1, realmTree, &mris->vertices[vno]);
+    }
+    
+    // add the new faces
+    // 
+    int fno;
+    for (fno = previous_saved_nfaces; fno < mris->nfaces; fno++) {
+        firstFnoToUpdatePlus1 = addFnoFaceSet(firstFnoToUpdatePlus1, realmTree, fno);
     }
     
     // process all the pending vno and build the pending face list
@@ -1149,7 +1166,7 @@ void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionTyp
 
     // process all the pending fno, resetting the links to zero
     //    
-    int fno = firstFnoToUpdatePlus1 - 1;
+    fno = firstFnoToUpdatePlus1 - 1;
     while (fno >= 0) {
 
         RealmTreeNode * chosenForFno  = chooseRealmTreeNodeForFno(mris, realmTree, fno);
