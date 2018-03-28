@@ -61533,7 +61533,7 @@ static int compare_edge_length(const void *pe0, const void *pe1)
     // will produce sorting differences on osx
     return(1);
   }
-  return(-1)
+  return(-1);
 }
 #if 0
 static int
