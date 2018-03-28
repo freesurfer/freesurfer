@@ -1,0 +1,528 @@
+#!/bin/tcsh -f
+# fsr-coreg 
+
+#  In theory, it would be better to resample all modes into an
+#    in-between space rather than to a reference.
+
+#  Need a way to better specify args for internal commands (eg, rob
+#    reg, and coreg)
+#
+
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id$';
+set selfname = `basename $0`
+
+set importdir = ();
+set outdir = ()
+set refmodename = ();
+set threads = 1
+set cleanup = 1;
+set Force = 0;
+set LF = ();
+set tmpdir = ()
+set XOptsFile = ()
+set GlobXOptsFile = ()
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+mkdir -p $outdir/log
+
+#if($#tmpdir == 0) then
+#  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.fsr-coreg.$$
+#  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.fsr-coreg.$$
+#endif
+#mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $outdir/log/fsr-coreg.Y$year.M$month.D$day.H$hour.M$min.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for fsr-coreg" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+
+#========================================================
+date | tee -a $LF
+
+if($#XOptsFile) then
+  cp $XOptsFile $outdir/log
+endif
+
+# Create the refernce mode file
+if(! -e $outdir/refmode.txt) then
+  echo $refmodename > $outdir/refmode.txt
+endif
+
+if(! -e $outdir/modenames.txt) then
+  cp $importdir/modenames.txt $outdir/modenames.txt
+endif
+
+# Go through each mode and do within mode registration
+echo "\nWithin-mode registration" | tee -a $LF
+set avglist = ()
+foreach modename ($modenamelist)
+  echo "$modename `date` -------------------------"
+  set modedir = $outdir/$modename
+  set average = $modedir/$modename.native.mgz
+  set avglist = ($avglist $average)
+  mkdir -p $modedir
+
+  set nruns = `cat $importdir/$modename/nruns.txt`
+  # If only one run, then just create a symlink
+  if($nruns == 1) then
+    if("$outdir" == "$importdir") then
+      pushd $modedir >& /dev/null
+      rm -f $modename.native.mgz
+      ln -s r001.mgz $modename.native.mgz
+      popd >& /dev/null
+    else
+      rm -f $modedir/$modename.native.mgz
+      ln -s $importdir/$modename/r001.mgz $modedir/$modename.native.mgz
+    endif
+    echo "$modename, only one run, creating symlink" | tee -a $LF
+    continue
+  endif
+
+  # Multiple runs, register and average together
+  set srclist = ()
+  set ltalist = ()
+  @ nthrun = 0;
+  while ($nthrun < $nruns)
+    @ nthrun = $nthrun + 1
+    set nthrunstr = `printf %03d $nthrun`
+    set srcfile = $importdir/$modename/r$nthrunstr.mgz
+    set ltafile = $outdir/$modename/r$nthrunstr.lta
+    if(! -e $srcfile) then
+      echo "ERROR: cannot find $srcfile"
+      exit 1;
+    endif
+    set srclist = ($srclist $srcfile)
+    set ltalist = ($ltalist $ltafile)
+  end
+
+  # Check whether anything needs to be done
+  set UN = `UpdateNeeded $average $srclist`
+  if($UN == 0 && $Force == 0) then
+    echo "$modename, within mode registration update not needed" | tee -a $LF
+    continue
+  endif
+
+  # If it gets here, then register runs together
+  set cmd = (mri_robust_template --template $average --mov $srclist --lta $ltalist --sat 4.685)
+  set xopts = `fsr-getxopts $selfname-mri_robust_template $XOptsFile $GlobXOptsFile`;
+  set cmd = ($cmd $xopts)
+  date | tee -a $LF
+  echo "cd `pwd`" | tee -a $LF
+  echo $cmd |& tee -a $LF
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit
+
+end
+
+# Start a file for collecting tkregister commands
+if($#modenamelist > 1) then
+  set rc = $outdir/log/registration-check-commands
+  rm -f $rc
+  echo "# These are commands that can be used to check the cross-modal registration" | tee -a $rc
+  echo "" | tee -a $rc
+endif
+
+#---------------------------------------------------------------------------
+echo "\nBetween-mode registration" | tee -a $LF
+set refvol = $outdir/$refmodename/$refmodename.native.mgz
+foreach modename ($modenamelist)
+  echo "$modename `date` -------------------------" | tee -a $LF
+
+  if($modename == $refmodename) then
+    # This is the reference mode, just create a link
+    pushd $outdir/$modename >& /dev/null
+    rm -f $modename.mgz
+    ln -s $modename.native.mgz $modename.mgz
+    # rm -f $modename.header.mgz
+    # ln -s $modename.mgz $modename.header.mgz
+    # Create an LTA too?
+    popd >& /dev/null
+    continue
+  endif
+
+  # Before generating a new LTA, check whether the LTA exists
+  # and whether it is different than the auto LTA. If the LTA
+  # does not exist or is the same as the auto LTA, then it is
+  # safe to copy any newly generated auto LTA to the LTA
+  set ltaauto = $outdir/$modename/$modename.reg-to-ref.auto.lta
+  set lta = $outdir/$modename/$modename.reg-to-ref.lta
+  set LTAsAreDiff = 1;
+  if(! -e $lta) set LTAsAreDiff = 0;
+  if(-e $lta && -e $ltaauto) then
+    # Check whether there is a difference
+    set LTAsAreDiff = `diff $lta $ltaauto | wc -l`
+  endif
+  # LTAsAreDiff will == 1 if lta does not exist or is the same as ltaauto
+
+  # Run mri_coreg to create the auto lta
+  set movvol = $outdir/$modename/$modename.native.mgz
+  set UN = `UpdateNeeded $ltaauto $movvol`
+  if($UN == 1 || $Force == 1) then
+    set cmd = (mri_coreg --mov $movvol --ref $refvol --reg $ltaauto --threads $threads)
+    set xopts = `fsr-getxopts $selfname-mri_coreg $XOptsFile $GlobXOptsFile`;
+    set cmd = ($cmd $xopts)
+    date | tee -a $LF
+    echo "cd `pwd`" | tee -a $LF
+    echo $cmd |& tee -a $LF
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit
+    # Create the final LTA. If it does not exist or is identical, then just copy 
+    if($LTAsAreDiff == 0) then
+      set cmd = (cp -p $ltaauto $lta)
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) goto error_exit
+    endif
+  else
+    echo "$modename, between mode registration update not needed" | tee -a $LF
+  endif
+
+  # Add a command to check the reg to the registration-check-commands file
+  set cmd = (tkregisterfv --mov $movvol --targ $refvol --reg $lta)
+  echo $cmd | tee -a $rc
+  echo "" | tee -a $rc
+
+  # Resample mode to reference mode space (use cubic)
+  # Should concatenate the run LTAs, then resample once and average
+  set outvol = $outdir/$modename/$modename.mgz
+  set UN = `UpdateNeeded $outvol $ltaauto $movvol`
+  if($UN == 1 || $Force == 1) then
+    set cmd = (mri_vol2vol --mov $movvol --targ $refvol --reg $lta --o $outvol --interp cubic)
+    set xopts = `fsr-getxopts $selfname-mri_vol2vol $XOptsFile $GlobXOptsFile`;
+    set cmd = ($cmd $xopts)
+    date | tee -a $LF
+    echo "cd `pwd`" | tee -a $LF
+    echo $cmd |& tee -a $LF
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$modename, resampling update not needed" | tee -a $LF
+  endif
+
+  if(0) then
+  # Change header to create reg to reference mode space (no
+  # resampling) This is better for surfaces. Might not need to do this
+  # here, prob only needed for the fsr output before running
+  # recon-all
+  set outvol = $outdir/$modename/$modename.regheader.mgz
+  set UN = `UpdateNeeded $outvol $lta $movvol`
+  if($UN == 1 || $Force == 1) then
+    set cmd = (mri_vol2vol --mov $movvol --targ $refvol --reg $lta --o $outvol --no-resample)
+    date | tee -a $LF
+    echo "cd `pwd`" | tee -a $LF
+    echo $cmd |& tee -a $LF
+    fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit
+  else
+    echo "$modename, header update not needed" | tee -a $LF
+  endif
+  endif
+
+end
+date | tee -a $LF
+echo "" | tee -a $LF
+
+if($#modenamelist > 1) then
+  # Create one freeview command to look at all the resampled modes together
+  set cmd = (freeview)
+  foreach modename ($modenamelist)
+    set outvol = $outdir/$modename/$modename.mgz
+    set cmd = ($cmd $outvol)
+  end
+  echo $cmd >> $outdir/log/registration-check-commands
+  echo " ----------------------------------------- " | tee -a $LF
+  cat $outdir/log/registration-check-commands | tee -a $LF
+  echo " ----------------------------------------- " | tee -a $LF
+  echo ""  | tee -a $LF
+endif
+
+# For fun, create a fsr command line (but don't run it)
+# Make sure that refmode is the first input because fsr
+# uses that for registration to the atlas (or not)
+set outvol = $outdir/$refmodename/$refmodename.mgz
+set cmd = (fsr --i $outvol)
+foreach modename ($modenamelist)
+  if($modename == $refmodename) continue;
+  set outvol = $outdir/$modename/$modename.mgz
+  set cmd = ($cmd --i $outvol)
+end
+set cmd = ($cmd --bin --threads $threads)
+echo "To run fsr (add --o outputdir): "| tee -a $LF
+echo $cmd | tee -a $LF
+echo ""| tee -a $LF
+
+#========================================================
+
+# Cleanup
+# if($cleanup) rm -rf $tmpdir
+
+# Done
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunMin = `echo $tSecRun/50|bc -l`
+set tRunMin = `printf %5.2f $tRunMin`
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Fsr-coreg-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Fsr-coreg-Run-Time-Min $tRunMin" |& tee -a $LF
+echo "Fsr-coreg-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "fsr-coreg Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--i":
+      if($#argv < 1) goto arg1err;
+      set importdir = $argv[1]; shift;
+      if(! -e $importdir) then
+        echo "ERROR: $importdir does not exist, run fsr-import"
+        exit 1
+      endif
+      breaksw
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--ref":
+    case "--refmode":
+      if($#argv < 1) goto arg1err;
+      set refmodename = $argv[1]; shift;
+      breaksw
+
+    case "--nthreads":
+    case "--threads":
+      if($#argv < 1) goto arg1err;
+      set threads = $argv[1]; shift;
+      breaksw
+
+    case "--force":
+      set Force = 1;
+      breaksw
+
+    case "--expert":
+      if( $#argv < 1) goto arg1err;
+      set XOptsFile = $argv[1]; shift;
+      fsr-checkxopts $XOptsFile
+      if($status) goto error_exit;
+      set XOptsFile = `getfullpath $XOptsFile`
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#importdir == 0) then
+  echo "ERROR: must spec importdir"
+  exit 1;
+endif
+
+if($#outdir == 0) then
+  set outdir = $importdir
+endif
+
+# Make sure that specified reference mode matches the existing reference mode
+if(-e $outdir/refmode.txt) then
+  set refmodename0 = `cat $outdir/refmode.txt`
+  if($#refmodename != 0) then
+    if($refmodename != $refmodename0) then
+      echo "ERROR: specified refmode ($refmodename) does not match existing refmode ($refmodename0)"
+      exit 1;
+    endif
+  else
+    set refmodename = $refmodename0;
+  endif
+endif
+
+if($#refmodename == 0) then
+  echo "ERROR: must spec a reference mode"
+  exit 1;
+endif
+
+# Make sure reference mode is in the list of references
+set modenamelist = (`cat $importdir/modenames.txt`)
+set ok = 0;
+foreach modename ($modenamelist)
+  if("$refmodename" == "$modename") then
+    set ok = 1;
+    break;
+  endif
+end
+if(! $ok) then
+  echo "ERROR: reference mode $refmodename is not a mode"
+  echo "Available modes: $modenamelist"
+  exit 1;
+endif
+
+set importdir = `getfullpath $importdir`
+set outdir    = `getfullpath $outdir`
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "fsr-coreg : co-registers input data in prep for FreeSurfer analysis"
+  echo "  --i importdir : data dir created by fsr-import"
+  echo "  --ref modename : mode to use as a reference (all modes register to this mode)"
+  echo "  --threads nthreads"
+  echo "  --force : force update"
+  echo "  --o outdir : set the output dir (default is importdir)"
+  echo "  --expert xoptsfile"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+fsr-coreg : co-registers input data in prep for FreeSurfer analysis
+
+The input folder is that as created by fsr-import, which creates a folder of modalities
+
+For example:
+
+fsr-import --t1w run1.T1.slice0.dicom  --t1w run2.T1.slice0.dicom --t2w T2.nii.gz \
+  --mode pd myPDimage.mgz --flair FLAIR-weighted.dcm --o importdir
+
+will import 5 volumes, two of which are T1-weighted, one is T2
+weighted, one is FLAIR weighted, the other is a custom mode called "pd".
+
+The output will be a directory structure stored in import, eg,
+import/pd/r001.mgz
+import/t1w/r001.mgz and r002.mgz
+import/t2w/r001.mgz
+
+When fsr-coreg is run, it registers all the with-in modality runs
+together (eg, r001.mgz and r002.mgz) using mri_robust_template to
+create a file called mode.native.mgz. If there is only one run, then
+mode.native.mgz is a symbolic link to r001.mgz. Next, each mode is
+registered (with mri_coreg) to the reference mode to create an LTA
+file (mode.reg-to-ref.lta). The native volume is then resampled with
+cubic interpolation into the space of the reference mode to create a
+file called mode.mgz (for the reference mode, this is just a link to
+mode.native.mgz). In this way, a volume is produced for each mode in
+alignment with the reference mode. These can be input to samseg (which
+is automatically done when running samseg with
+--mode/--t1w/--t2w/--flair).
+
+t1w, t2w, and flair are given special consideration because they
+can all be used as input to recon-all.
+
+
