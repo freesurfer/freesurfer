@@ -788,22 +788,27 @@ static void computeDefectFaceNormal_calculate(
      
 
 void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz) {
-    FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
+    FaceNormCacheEntry    * fNorm         = &mris->faceNormCacheEntries   [fno];
+    FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+
     fNorm->nx = nx;
     fNorm->ny = ny;
     fNorm->nz = nz;
-    fNorm->deferred &= ~1;          // now known
+    fNormDeferred->deferred &= ~1;          // now known
+
 }
 
 static void setFaceOrigArea(MRIS const * const mris, int fno, float orig_area) {
-    FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
+    FaceNormCacheEntry    * fNorm         = &mris->faceNormCacheEntries   [fno];
+    FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
     fNorm->orig_area = orig_area;
-    fNorm->deferred &= ~2;  // now known
+    fNormDeferred->deferred &= ~2;            // now known
 }
 
 static float getFaceOrigArea(MRIS const * const mris, int fno) {
-    FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
-    if (fNorm->deferred & 2) {      // must compute
+    FaceNormCacheEntry    * fNorm         = &mris->faceNormCacheEntries   [fno];
+    FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+    if (fNormDeferred->deferred & 2) {      // must compute
         fprintf(stderr, "%s:%d NYI\n", __FILE__, __LINE__);
         *(int*)(-1) = 0;    // crash
     }
@@ -812,8 +817,9 @@ static float getFaceOrigArea(MRIS const * const mris, int fno) {
 
 
 FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
-    FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
-    if (fNorm->deferred) {
+    FaceNormCacheEntry    * fNorm         = &mris->faceNormCacheEntries   [fno];
+    FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+    if (fNormDeferred->deferred) {
         float nx,ny,nz,orig_area;
         computeDefectFaceNormal_calculate(mris, fno, &nx,&ny,&nz,&orig_area);
 #ifdef CHECK_DEFERED_NORMS
@@ -824,7 +830,7 @@ FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
         }
 #endif
         fNorm->nx = nx; fNorm->ny = ny; fNorm->nz = nz;
-        if (fNorm->deferred & 2) {      // must update
+        if (fNormDeferred->deferred & 2) {      // must update
 #ifdef CHECK_DEFERED_NORMS
             if (orig_area != fNorm->orig_area) {
                 fprintf(stderr, "%s:%d prediction of norm did not equal result\n",__FILE__, __LINE__);
@@ -832,27 +838,45 @@ FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
 #endif
             fNorm->orig_area = orig_area;
         }
-        fNorm->deferred = 0;
+        fNormDeferred->deferred = 0;
     }
     return fNorm;
 }
 
 static void deferSetFaceNorms(MRIS* mris) {
-    int fno;
-    ROMP_PF_begin  
-#ifdef HAVE_OPENMP
-    #pragma omp parallel for if_ROMP(assume_reproducible) 
-#endif
-    for (fno = 0; fno < mris->nfaces; fno++) {
-      ROMP_PFLB_begin
-      FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
-#ifdef CHECK_DEFERED_NORMS
-      computeDefectFaceNormal_calculate(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);  // compute it now so can check later
-#endif
-      fNorm->deferred = 3;  // compute them again later
-      ROMP_PFLB_end
+    static int use_parallel;
+    static int once;
+    if (!once) {
+        once++;
+        use_parallel = !!getenv("FREESURFER_deferSetFaceNorms_parallel");
     }
-    ROMP_PF_end
+    if (!use_parallel) {
+        // It looks like there is not enough work to go parallel...
+        int fno;
+        for (fno = 0; fno < mris->nfaces; fno++) {
+          FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+#ifdef CHECK_DEFERED_NORMS
+          computeDefectFaceNormal_calculate(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);  // compute it now so can check later
+#endif
+          fNormDeferred->deferred = 3;  // compute them again later
+        }
+    } else {
+        int fno;
+        ROMP_PF_begin  
+#ifdef HAVE_OPENMP
+        #pragma omp parallel for if_ROMP(assume_reproducible) 
+#endif
+        for (fno = 0; fno < mris->nfaces; fno++) {
+          ROMP_PFLB_begin
+          FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+#ifdef CHECK_DEFERED_NORMS
+          computeDefectFaceNormal_calculate(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);  // compute it now so can check later
+#endif
+          fNormDeferred->deferred = 3;  // compute them again later
+          ROMP_PFLB_end
+        }
+        ROMP_PF_end
+    }
 }
 
 static void undeferSetFaceNorms(MRIS* mris) {
@@ -1817,6 +1841,24 @@ MRI_SURFACE *MRISoverAlloc(int max_vertices, int max_faces, int nvertices, int n
 
   Description
   ------------------------------------------------------*/
+static bool MRISallocateFaces(MRI_SURFACE * mris, int nfaces) {
+  mris->nfaces = nfaces;
+  
+  mris->faces  = (FACE *)calloc(nfaces, sizeof(FACE));
+  if (!mris->faces)
+    return false;
+
+  mris->faceNormCacheEntries = (FaceNormCacheEntry*)calloc(nfaces, sizeof(FaceNormCacheEntry));
+  if (!mris->faceNormCacheEntries)
+    return false;
+ 
+  mris->faceNormDeferredEntries = (FaceNormDeferredEntry*)calloc(nfaces, sizeof(FaceNormDeferredEntry));
+  if (!mris->faceNormCacheEntries)
+    return false;
+    
+  return true;
+}
+
 MRI_SURFACE *MRISalloc(int nvertices, int nfaces)
 {
   MRI_SURFACE *mris;
@@ -1831,20 +1873,15 @@ MRI_SURFACE *MRISalloc(int nvertices, int nfaces)
 
   mris->nsize     = 1; /* only 1-connected neighbors initially */
   mris->nvertices = nvertices;
-  mris->nfaces    = nfaces;
   
   mris->vertices  = (VERTEX *)calloc(nvertices, sizeof(VERTEX));
   if (!mris->vertices)
     ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate vertices", nvertices, sizeof(VERTEX));
 
-  mris->faces = (FACE *)calloc(nfaces, sizeof(FACE));
-  if (!mris->faces)
-    ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate faces", nfaces, sizeof(FACE));
+  if (!MRISallocateFaces(mris, nfaces)) {
+    ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate faces", nfaces, sizeof(FACE)+sizeof(FaceNormCacheEntry)+sizeof(FaceNormDeferredEntry));
+  }
 
-  mris->faceNormCacheEntries = (FaceNormCacheEntry*)calloc(nfaces, sizeof(FaceNormCacheEntry));
-  if (!mris->faceNormCacheEntries)
-    ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate faceNormCacheEntries", nfaces, sizeof(FaceNormCacheEntry));
- 
   mris->useRealRAS = 0; /* just initialize */
   mris->vg.valid = 0;   /* mark invalid */
 
@@ -1904,6 +1941,9 @@ int MRISfree(MRI_SURFACE **pmris)
     }
   }
 
+  free(mris->faceNormDeferredEntries);
+  free(mris->faceNormCacheEntries);
+  
   if (mris->vertices) {
     free(mris->vertices);
   }
@@ -3863,26 +3903,30 @@ static int MRIScomputeNormals_new(MRI_SURFACE *mris);
     typedef struct MRIScomputeNormals_Snapshot {
         FACE*   faces;
         VERTEX* vertices;
+	FaceNormCacheEntry *faceNormCacheEntries; 
     } MRIScomputeNormals_Snapshot;
     
     static void MRIScomputeNormals_Snapshot_init(
         MRIScomputeNormals_Snapshot* lhs,
         MRI_SURFACE*                 mris) {
-        int FC = mris->nfaces    * sizeof(FACE);   memcpy(lhs->faces    = (FACE*  )malloc(FC), mris->faces,    FC); 
-        int VC = mris->nvertices * sizeof(VERTEX); memcpy(lhs->vertices = (VERTEX*)malloc(VC), mris->vertices, VC); 
+	int CC = mris->nfaces    * sizeof(FaceNormCacheEntry);  memcpy(lhs->faceNormCacheEntries = (FaceNormCacheEntry*  )malloc(CC), mris->faceNormCacheEntries, CC); 
+        int FC = mris->nfaces    * sizeof(FACE);   		memcpy(lhs->faces                = (FACE*  )              malloc(FC), mris->faces,                FC); 
+        int VC = mris->nvertices * sizeof(VERTEX); 		memcpy(lhs->vertices             = (VERTEX*)              malloc(VC), mris->vertices,             VC);
     }
 
     static void MRIScomputeNormals_Snapshot_undo(
         MRIScomputeNormals_Snapshot* lhs,
         MRI_SURFACE*                 mris) {
-        int FC = mris->nfaces    * sizeof(FACE);   memcpy(mris->faces,    lhs->faces,    FC); 
-        int VC = mris->nvertices * sizeof(VERTEX); memcpy(mris->vertices, lhs->vertices, VC); 
+	int CC = mris->nfaces    * sizeof(FaceNormCacheEntry);  memcpy(mris->faceNormCacheEntries, lhs->faceNormCacheEntries, CC);
+        int FC = mris->nfaces    * sizeof(FACE);   		memcpy(mris->faces,                lhs->faces,                FC); 
+        int VC = mris->nvertices * sizeof(VERTEX); 		memcpy(mris->vertices,             lhs->vertices,             VC); 
     }
 
     static void MRIScomputeNormals_Snapshot_fini(
         MRIScomputeNormals_Snapshot* lhs) {
-        free(lhs->faces   ); lhs->faces    = NULL;
-        free(lhs->vertices); lhs->vertices = NULL;
+	freeAndNULL(lhs->faceNormCacheEntries);
+        freeAndNULL(lhs->faces);
+        freeAndNULL(lhs->vertices);
     }
     
     static void MRIScomputeNormals_Snapshot_check(double lhs, double rhs, int line, int i, int* count) {
@@ -12105,15 +12149,6 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
 
     float const min_nbr_dist = minNeighborDistance(mris);
     {
-      static int once;
-      if (!once) {
-          once = 1;
-          fprintf(stdout, "%s:%d xSubvolLen:%g ySubvolLen:%g zSubvolLen:%g min_nbr_dist:%g\n", __FILE__, __LINE__,
-              xSubvolLen, ySubvolLen, zSubvolLen, min_nbr_dist);
-          fprintf(stdout, "%s:%d xSubvolVerge:%g ySubvolVerge:%g zSubvolVerge:%g\n", __FILE__, __LINE__,
-              xSubvolVerge, ySubvolVerge, zSubvolVerge);
-      }
-
       // Even things this close to the subvolume surface can affect the adjacent subvolumes
       //
       xSubvolVerge += min_nbr_dist;
@@ -28244,15 +28279,9 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname)
 
   /* now we can book some face space (if we have a new mris structure) */
   if (newMris) {
-    mris->nfaces = nfaces;
-    mris->faces = (FACE *)calloc(nfaces, sizeof(FACE));
-    mris->faceNormCacheEntries = (FaceNormCacheEntry*)calloc(nfaces, sizeof(FaceNormCacheEntry));
-    if (!mris->faces || !mris->faceNormCacheEntries) {
+    if (!MRISallocateFaces(mris, nfaces)) {
       fclose(fp);
       ErrorExit(ERROR_NO_MEMORY, "MRISreadVTK(%d, %d): could not allocate faces", nfaces, sizeof(FACE));
-    }
-    else {
-      memset(mris->faces, 0, nfaces * sizeof(FACE));
     }
   }
   else {
@@ -56624,12 +56653,8 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   }
 
 
-  if (1) {
-    computeDefectContext->mris_deferred_norms = mris_nonconst;  // MODIFIER
-    deferSetFaceNorms(mris_nonconst);
-  } else {
-    undeferSetFaceNorms(mris_nonconst);                         // old code 
-  }
+  computeDefectContext->mris_deferred_norms = mris_nonconst;
+  deferSetFaceNorms(mris_nonconst);                                     // MODIFIER
 
 
   /* look at approximately +/- 2mm */
