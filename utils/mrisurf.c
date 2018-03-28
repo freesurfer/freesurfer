@@ -61547,13 +61547,18 @@ static int compare_edge_length(const void *pe0, const void *pe1)
 
   /*  return(c1 > c2 ? 1 : c1 == c2 ? 0 : -1) ;*/
   if (e0->len > e1->len) {
-    return (1);
+    return(1);
   }
   else if (e0->len < e1->len) {
-    return (-1);
+    return(-1);
   }
-
-  return (0);
+  else if (e0->vno1 > e1->vno1) {
+    // if two lengths are the same, force a consistent order by
+    // comparing the vno1 values for each edge. Otherwise, returning 0
+    // will produce sorting differences on osx
+    return(1);
+  }
+  return(-1);
 }
 #if 0
 static int
