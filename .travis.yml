@@ -87,7 +87,7 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then
       mkdir osx-lion-packages ;
       cd osx-lion-packages ;
-      curl -O ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/OSX/osx-lion-packages.tar.gz || travis_terminate 1 ;
+      wget ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/OSX/osx-lion-packages.tar.gz || travis_terminate 1 ;
       tar -xzf osx-lion-packages.tar.gz ;
       rm osx-lion-packages.tar.gz ;
       cd .. ;
