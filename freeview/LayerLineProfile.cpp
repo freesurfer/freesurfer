@@ -22,6 +22,7 @@
 #include "LayerPropertyPointSet.h"
 #include <vtkLookupTable.h>
 #include <vtkMath.h>
+#include "MyUtils.h"
 
 LayerLineProfile::LayerLineProfile(int nPlane, QObject *parent, LayerPointSet *line1, LayerPointSet *line2) :
   Layer(parent),
@@ -458,6 +459,90 @@ bool LayerLineProfile::Export(const QString &filename, LayerMRI *mri, int nSampl
     out << "\n";
   }
   m_nSamples = nSamples;
+
+  return true;
+}
+
+QList<double> LayerLineProfile::ComputeThicknessAlongLineProfile(std::vector<std::vector<double> > &line2d_in,
+                                                                 const QList<LayerPointSet *> &splines, int nSample)
+{
+  QList<double> thicknesses;
+//  double x0 = line2d[0][0], y0 = line2d[0][1];
+  double x, y, len = 0;
+  int n0 = 0, n;
+  std::vector< std::vector<double> > line3d = Points2DToSpline3D(line2d_in, nSample);
+  std::vector<std::vector<double> > line2d;
+  for (size_t i = 0; i < line3d.size(); i++)
+  {
+    std::vector<double> point2d;
+    point2d.push_back(line3d[i][0]);
+    point2d.push_back(line3d[i][1]);
+    switch (m_nPlane)
+    {
+    case 0:
+      point2d[0] = line3d[i][1];
+      point2d[1] = line3d[i][2];
+      break;
+    case 1:
+      point2d[1] = line3d[i][2];
+      break;
+    default:
+      break;
+    }
+    line2d.push_back(point2d);
+  }
+  for (int i = 0; i < splines.size(); i++)
+  {
+    std::vector<double> ctrl_pts0  = splines[i]->GetPoints();
+    std::vector < std::vector < double > > spline2d = Points3DToSpline2D(ctrl_pts0, m_dWorldVoxelSize[m_nPlane]/3.0);
+    if (MyUtils::FindIntersection(line2d, spline2d, &x, &y, &n))
+    {
+      for (int j = n0; j < n; j++)
+      {
+        len += sqrt((line2d[j][0]-line2d[j+1][0])*(line2d[j][0]-line2d[j+1][0]) +
+            (line2d[j][1]-line2d[j+1][1])*(line2d[j][1]-line2d[j+1][1]));
+      }
+      len += sqrt((line2d[n][0]-x)*(line2d[n][0]-x)+(line2d[n][1]-y)*(line2d[n][1]-y));
+      thicknesses << len;
+      if (n+1 < line2d.size())
+      {
+        len = sqrt((line2d[n+1][0]-x)*(line2d[n+1][0]-x)+(line2d[n+1][1]-y)*(line2d[n+1][1]-y));
+        n0 = n+1;
+      }
+    }
+    else
+    {
+      thicknesses << -1;
+      cerr << "Failed to find intersection point";
+    }
+  }
+  n = line2d.size()-1;
+  for (int j = n0; j < n; j++)
+  {
+    len += sqrt((line2d[j][0]-line2d[j+1][0])*(line2d[j][0]-line2d[j+1][0]) +
+        (line2d[j][1]-line2d[j+1][1])*(line2d[j][1]-line2d[j+1][1]));
+  }
+  thicknesses << len;
+  return thicknesses;
+}
+
+bool LayerLineProfile::ExportThickness(const QString &filename, const QList<LayerPointSet *> &splines, int nSample)
+{
+  QFile file(filename);
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+    return false;
+
+  QTextStream out(&file);
+  for (size_t i = 0; i < m_ptsProfile.size(); i++)
+  {
+    QList<double> vals = ComputeThicknessAlongLineProfile(m_ptsProfile[i], splines, nSample);
+    out << i;
+    for (int j = 0; j < vals.size(); j++)
+    {
+      out << "," << vals[j];
+    }
+    out << "\n";
+  }
 
   return true;
 }

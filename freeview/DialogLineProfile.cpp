@@ -9,6 +9,7 @@
 #include <QFileDialog>
 #include <QDebug>
 #include "LayerPropertyLineProfile.h"
+#include "DialogSelectSplines.h"
 
 DialogLineProfile::DialogLineProfile(QWidget *parent) :
   QDialog(parent),
@@ -17,6 +18,7 @@ DialogLineProfile::DialogLineProfile(QWidget *parent) :
 {
   ui->setupUi(this);
   ui->labelError->hide();
+  UpdateWidgets();
 }
 
 DialogLineProfile::~DialogLineProfile()
@@ -106,6 +108,30 @@ void DialogLineProfile::OnCompute()
   m_lineProfile->Solve(GetSpacing(), dVoxelSize, GetResolution(), GetOffset());
 
   mainwnd->SetMode(RenderView::IM_Navigate);
+
+  UpdateWidgets();
+}
+
+void DialogLineProfile::OnClear()
+{
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
+  int nViewId = mainwnd->GetActiveViewId();
+
+  LayerCollection* col = mainwnd->GetLayerCollection("Supplement");
+  if (!col)
+    return;
+
+  QList<Layer*> lineLayers = col->GetLayers("LineProfile");
+  foreach (Layer* layer, lineLayers)
+  {
+    LayerLineProfile* line = qobject_cast<LayerLineProfile*>(layer);
+    if (line->GetPlane() == nViewId)
+    {
+      col->RemoveLayer(layer);
+    }
+  }
+  m_lineProfile = NULL;
+  UpdateWidgets();
 }
 
 double DialogLineProfile::GetResolution()
@@ -126,6 +152,13 @@ double DialogLineProfile::GetOffset()
 int DialogLineProfile::GetNumberOfSamples()
 {
   return ui->lineEditSamplePoints->text().toInt();
+}
+
+void DialogLineProfile::UpdateWidgets()
+{
+  ui->pushButtonExport->setEnabled(m_lineProfile);
+  ui->pushButtonSave->setEnabled(m_lineProfile);
+  ui->pushButtonExportThickness->setEnabled(m_lineProfile);
 }
 
 void DialogLineProfile::OnExport()
@@ -294,5 +327,41 @@ void DialogLineProfile::OnLineProfileIdPicked(LayerLineProfile *lp, int nId)
   if (lp == m_lineProfile)
   {
     ui->labelActiveId->setText(QString::number(nId));
+  }
+}
+
+void DialogLineProfile::OnExportThickness()
+{
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
+  QList<Layer*> layers = mainwnd->GetLayers("PointSet");
+  QVariant v = ui->comboBoxIsoLine1->itemData(ui->comboBoxIsoLine1->currentIndex());
+  LayerPointSet* layer1 = qobject_cast<LayerPointSet*>(v.value<QObject*>());
+  v = ui->comboBoxIsoLine1->itemData(ui->comboBoxIsoLine2->currentIndex());
+  LayerPointSet* layer2 = qobject_cast<LayerPointSet*>(v.value<QObject*>());
+  layers.removeAll(layer1);
+  layers.removeAll(layer2);
+  DialogSelectSplines dlg(this);
+  dlg.SetPointSets(layers);
+  if (dlg.exec() == QDialog::Accepted)
+  {
+    ui->labelError->hide();
+    if (layers.isEmpty())
+    {
+      ui->labelError->setText("No layer point sets to choose from.");
+      ui->labelError->show();
+      return;
+    }
+
+    QString fn = QFileDialog::getSaveFileName(this, "Export Thickness to File",
+                                              "",
+                                              "CSV files (*.csv);;All Files (*)");
+    if (!fn.isEmpty())
+    {
+      if (!m_lineProfile->ExportThickness(fn, dlg.GetSelectedPointSets(), GetNumberOfSamples()))
+      {
+        ui->labelError->setText("Failed to export");
+        ui->labelError->show();
+      }
+    }
   }
 }

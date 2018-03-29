@@ -111,6 +111,7 @@ public slots:
   void Close(int nTimes = 1);
   void Resample();
   void Clear();
+  void OnSurfaceDestroyed(QObject* obj);
 
 protected slots:
   void OnBaseVoxelEdited(const QList<int> voxel_list, bool bAdd);

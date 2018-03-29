@@ -54,6 +54,7 @@ BUILT_SOURCES = \
   ui_DialogVolumeSegmentation.h \
   ui_DialogLoadTransform.h \
   ui_DialogAddPointSetStat.h \
+  ui_DialogSelectSplines.h \
 	qtcolorpicker.moc \
 	moc_BrushProperty.cpp \
 	moc_CommandEdit.cpp \
@@ -185,6 +186,7 @@ BUILT_SOURCES = \
   moc_BinaryTreeEdge.cpp \
   moc_BinaryTreeNode.cpp \
   moc_BinaryTreeView.cpp \
+  moc_DialogSelectSplines.cpp \
   qrc_freeview.cpp
 
 if USING_QT_5
@@ -541,6 +543,8 @@ freeview_SOURCES = $(BUILT_SOURCES) $(JSON_SOURCES) \
   BinaryTreeNode.h \
   BinaryTreeView.cpp \
   BinaryTreeView.h \
+  DialogSelectSplines.cpp \
+  DialogSelectSplines.h \
 	freeview.qrc
 
 qrc_freeview.cpp: freeview.qrc
