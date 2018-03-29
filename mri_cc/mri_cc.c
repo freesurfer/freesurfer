@@ -81,6 +81,7 @@ static int rh_only = 0 ;
 static int skip = 0 ;
 static LTA *lta = 0;
 static char output_fname[STRLEN] = "aseg_with_cc.mgz";
+static char norm_fname[STRLEN] = "norm.mgz" ;
 static char aseg_fname[STRLEN] = "aseg.mgz" ;
 static char lta_fname[STRLEN] = "" ;
 static MRI *remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited) ;
@@ -269,7 +270,7 @@ main(int argc, char *argv[])
       // need to replace the cc labels with either lh or rh wm here...
     }
 
-    sprintf(ifname,"%s/%s/mri/norm.mgz",data_dir,argv[1]) ;
+    sprintf(ifname,"%s/%s/mri/%s",data_dir,argv[1],norm_fname) ;
     printf("reading norm from %s\n", ifname);
     mri_norm = MRIread(ifname) ;
     if (mri_norm == NULL)
@@ -1428,6 +1429,12 @@ get_option(int argc, char *argv[])
     strcpy(aseg_fname, argv[2]) ;
     printf("will read input aseg from %s\n", aseg_fname);
     use_aseg = 1 ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "NORM"))
+  {
+    strcpy(norm_fname, argv[2]) ;
+    printf("will read norm from %s\n", norm_fname);
     nargs = 1 ;
   }
   else if (!stricmp(option, "LTA"))

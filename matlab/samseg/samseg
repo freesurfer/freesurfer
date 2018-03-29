@@ -29,9 +29,17 @@ set missingstructs = ()
 set computedice = 0;
 set diceseg = none
 set DoRecon = 0;
-set DoFill = 0;
-set DoNormalization2 = 0;
-set DoHiRes = 1;
+set DoFill = 1; # Create filled.mgz in samseg2recon
+set DoNormalization2 = 1; # Do Normalization2 in samseg2recon
+set DoHiRes = 1; 
+set DoImport = 0
+set HaveT1w = 0;
+set HaveT2w = 0;
+set HaveFLAIR = 0;
+set UseT2w = 0;
+set UseFLAIR = 0;
+set modenamelist = ()
+set refmodename = ();
 if($?SAMSEG_DATA_DIR == 0) then
   setenv SAMSEG_DATA_DIR /autofs/cluster/koen/koen/koenAtlases/20Subjects_smoothing2_down2_smoothingForAffine2
 endif
@@ -113,6 +121,28 @@ echo SAMSEG_DATA_DIR $SAMSEG_DATA_DIR | tee -a $LF
 uname -a  | tee -a $LF
 if($?PBS_JOBID) then
   echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+
+if($DoImport) then
+  # Import the data
+  set cmd = (fsr-import $inputargs --o $importdir)
+  echo $cmd | tee -a $LF
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  # Coregister within and between modes, resample to reference mode
+  set cmd = (fsr-coreg --i $importdir --ref $refmodename --threads $threads --o $coregdir)
+  echo $cmd | tee -a $LF
+  fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  # Create input list, make sure refmodename is first
+  set outvol = $coregdir/$refmodename/$refmodename.mgz
+  set inputlist = ($outvol)
+  set modenamelist = (`cat $importdir/modenames.txt`)
+  foreach modename ($modenamelist)
+    if($modename == $refmodename) continue;
+    set outvol = $coregdir/$modename/$modename.mgz
+    set inputlist = ($inputlist $outvol)
+  end
 endif
 
 #========================================================
@@ -217,6 +247,8 @@ if($#subject != 0) then
     set cmd = ($cmd -s $subject -autorecon2-samseg -autorecon3 -threads $threads)
     if($DoFill) set cmd = ($cmd -nosegmentation -nofill)
     if($DoNormalization2) set cmd = ($cmd -nonormalization2)
+    if($UseT2w)   set cmd = ($cmd -T2pial)
+    if($UseFLAIR) set cmd = ($cmd -FLAIRpial)
     if($DoHiRes) set cmd = ($cmd -hires)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
@@ -300,6 +332,50 @@ while( $#argv != 0 )
       if($#argv < 1) goto arg1err;
       set inputlist = ($inputlist $argv[1]); shift;
       # assumes multiple inputs are already in alignment
+      breaksw
+
+    # These are inputs to fsr-import or fsr-coreg. The actual values
+    # are not directly important for samseg. The only thing is that
+    # there must be a t1w if a recon will be done.
+    case "--t1w":
+      if($#argv < 1) goto arg1err;
+      shift; 
+      set HaveT1w = 1;
+      set DoImport = 1
+      breaksw
+    case "--t2w":
+      if($#argv < 1) goto arg1err;
+      shift; 
+      set HaveT2w = 1;
+      set DoImport = 1
+      breaksw
+    case "--flair":
+      if($#argv < 1) goto arg1err;
+      shift;
+      set HaveFLAIR = 1;
+      set DoImport = 1
+      breaksw
+    case "--mode":
+      if($#argv < 2) goto arg2err;
+      set modename = $argv[1]; shift
+      shift;
+      if($modename == t1w) set HaveT1w = 1;
+      set DoImport = 1
+      breaksw
+    case "--refmode":
+      if($#argv < 1) goto arg1err;
+      set refmodename = $argv[1]; shift;
+      set DoImport = 1
+      breaksw
+    # When doing a recon with T2 and/or FLAIR available, one can
+    # include the T2 or the FLAIR in the recon (but not both).
+    case "--use-t2w":
+      set UseT2w = 1;
+      set DoImport = 1
+      breaksw
+    case "--use-flair":
+      set UseFLAIR = 1;
+      set DoImport = 1
       breaksw
 
     case "--i2":
@@ -455,16 +531,61 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-if($#inputlist == 0) then
+if($#inputlist == 0 && $DoImport == 0) then
   echo "ERROR: must supply at least one input"
   exit 1
 endif
-foreach f ($inputlist)
-  if($f != none && ! -e $f) then
-    echo "ERROR: cannot find $f"
+if($#inputlist != 0 && $DoImport != 0) then
+  echo "ERROR: cannot spec both --i and --mode/--t1w/--t2w/--flair"
+  exit 1
+endif
+if($DoImport == 0) then
+  foreach f ($inputlist)
+    if($f != none && ! -e $f) then
+      echo "ERROR: cannot find $f"
+      exit 1;
+    endif
+  end
+endif
+if($DoRecon && $DoImport == 0) then
+  echo "ERROR: with --recon, must spec input with --mode/--t1w/--t2w/--flair "
+  exit 1
+endif
+if($#subject && $DoImport == 0) then
+  echo "ERROR: with --s, must spec input with --mode/--t1w/--t2w/--flair "
+  exit 1
+endif
+if($#subject == 0 && $DoRecon) then
+  echo "ERROR: Cannot use --recon without --s"
+  exit 1;
+endif
+
+if($DoImport) then
+  if($#refmodename == 0) then
+    echo "ERROR: must specify --refmode with --mode/--t1w/--t2w/--flair"
     exit 1;
   endif
-end
+  if(! $HaveT1w) then
+    echo "ERROR: if performing a recon and import, then must have a T1w mode"
+    exit 1;
+  endif
+  if($HaveT2w && $HaveFLAIR) then
+    if($UseT2w == 1 && $UseFLAIR == 1) then
+      echo "ERROR: you cannot specify to use both T2w and FLAIR in the recon"
+      exit 1
+    endif
+  endif
+endif
+
+if($#regmat && $#initlta) then
+  echo "ERROR: cannot specify both --regmat and --initlta"
+  exit 1
+endif
+
+if($#outdir == 0 && $#subject == 0) then
+  echo "ERROR: must spec outdir or --s"
+  exit 1;
+endif
 
 if($#subject) then
   if(-e $SUBJECTS_DIR/$subject) then
@@ -476,32 +597,22 @@ if($#subject) then
     exit 1;
   endif
   set outdir = $SUBJECTS_DIR/$subject/mri/samseg
+  set importdir = $SUBJECTS_DIR/$subject/input
+  set coregdir  = $SUBJECTS_DIR/$subject/coreg
   # --conformed-to-min in new version of mri_info
-  set cmd = (mri_info --conformed-to-min $inputlist[1])
-  set isconformed = `$cmd | head -n 1`
-  if(0 && "$isconformed" != "yes") then
-    echo "$isconformed"
-    echo "ERROR: must use conformed volume with --s"
-    exit 1;
-  endif
+  #set cmd = (mri_info --conformed-to-min $inputlist[1])
+  #set isconformed = `$cmd | head -n 1`
+  #if(0 && "$isconformed" != "yes") then
+  #  echo "$isconformed"
+  #  echo "ERROR: must use conformed volume with --s"
+  #  exit 1;
+  #endif
   mkdir -p $outdir 
   mkdir -p $SUBJECTS_DIR/$subject/scripts 
   mkdir -p $SUBJECTS_DIR/$subject/mri/transforms
-endif
-
-if($#subject == 0 && $DoRecon) then
-  echo "ERROR: Cannot use --recon without --s"
-  exit 1;
-endif
-
-if($#outdir == 0) then
-  echo "ERROR: must spec outdir"
-  exit 1;
-endif
-
-if($#regmat && $#initlta) then
-  echo "ERROR: cannot specify both --regmat and --initlta"
-  exit 1
+else
+  set importdir = $outdir/input
+  set coregdir  = $outdir/coreg
 endif
 
 goto check_params_return;
@@ -522,12 +633,16 @@ usage_exit:
   echo ""
   echo "samseg"
   echo "  --i file.mgz <--i file2.mgz> <--i file3.mgz>... <--i>"
+  echo "  --t1w t1file.mgz <--t1w t2file2.mgz> <--t2w t2file.mgz> <--flair flairfile.mgz> <--mode modename modefile.mgz>  "
+  echo "      --refmode modename (t1w/t2w/flair/modename)  "
   echo "  --o outdir "
   echo "  --s subject : create subject, sets outdir to subject/mri/samseg"
   echo "                the first input must be the conformed T1 weighted input"
   echo "  --recon : run recon-all "
-  echo "  --fill : create filled.mgz from samseg output (with --recon) "
-  echo "  --normalization2 : create brain.mgz from samseg output (with --recon) "
+  echo "  --no-fill : create filled.mgz in recon-all instead of in samseg2recon (with --recon) "
+  echo "  --no-normalization2 : create brain.mgz in recon-all instead from samseg2recon (with --recon) "
+  echo "  --use-t2w : use the t2-weighted input when running recon-all"
+  echo "  --use-flair : use the FLAIR-weighted input when running recon-all"
   echo ""
   echo " --regmat reg.mat : registration file (as output by samseg)"
   echo "    allows using the reg from one run with another run"
@@ -561,11 +676,30 @@ In matlab, you will need to have added the GEMS mex file folder
 to your matlab path, eg,
 path(path,'/autofs/cluster/koen/koen/GEMS-Release/bin');
 
-All inputs should already be registered together
+Inputs can be specified in two ways. One way is simply with --i
+input1.mgz <--i input2.mgz>. In this case, each input will be a
+separate input to samseg; all the inputs must be in registration with
+each other. The alternative is with the "fsr-import" options:
+--t1w/--t2w/--flair/--mode. If multiple acquisitions within modality
+are specified, they will be registered and averaged together. If
+multiple modalities are specified, then they will be registered
+together for input to samseg. The registration is performed with
+fsr-coreg. Within modality, the volumes must be the same dimension,
+voxel size, etc.  The inputs can differ in dimention, etc, between
+modality. When using the fsr-import option, one must supply a
+--refmode to indicate which mode the other modes should be registered
+to.
 
-Multiple inputs must be registered together
+When running with --recon, the input must be specified with the
+fsr-input options. One of the modes must be t1w. The --refmode should
+probably be t1w. If the input includes a t2-weighted and/or a FLAIR image, 
+the user can supply a --use-t2w or --use-flair to indicate that the recon
+should be done with T2/FLAIR pial refinement. 
 
-BUGS: the input must be conformed (or conformed-to-min) if you are
-going to run recon-all on the output.
+Example,
+samseg --t1w run1.T1.slice0.dicom  --t1w run2.T1.slice0.dicom \
+  --t2w T2.nii.gz  --mode pd myPDimage.mgz --flair FLAIR-weighted.dcm ...
+
+
 
 

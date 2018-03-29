@@ -84,10 +84,14 @@ typedef struct FaceNormCacheEntry {
     // inputs
         // may have to capture them if the inputs change
     // flag saying the calculation has been deferred
-        int deferred;
+    // may be better to store these separately...
     // value
         float nx,ny,nz,orig_area;
 } FaceNormCacheEntry;
+
+typedef struct FaceNormDeferredEntry {
+    char deferred;
+} FaceNormDeferredEntry;
 
 /*
   the vertices in the face structure are arranged in
@@ -411,6 +415,7 @@ typedef struct MRIS
   ELTP(VERTEX,vertices) SEP    \
   ELTP(FACE,faces) SEP    \
   ELTP(FaceNormCacheEntry,faceNormCacheEntries) SEP \
+  ELTP(FaceNormDeferredEntry,faceNormDeferredEntries) SEP \
   ELTP(STRIP,strips) SEP    \
   ELTT(float,xctr) SEP    \
   ELTT(float,yctr) SEP    \

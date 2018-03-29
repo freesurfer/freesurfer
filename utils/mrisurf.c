@@ -788,22 +788,27 @@ static void computeDefectFaceNormal_calculate(
      
 
 void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz) {
-    FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
+    FaceNormCacheEntry    * fNorm         = &mris->faceNormCacheEntries   [fno];
+    FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+
     fNorm->nx = nx;
     fNorm->ny = ny;
     fNorm->nz = nz;
-    fNorm->deferred &= ~1;          // now known
+    fNormDeferred->deferred &= ~1;          // now known
+
 }
 
 static void setFaceOrigArea(MRIS const * const mris, int fno, float orig_area) {
-    FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
+    FaceNormCacheEntry    * fNorm         = &mris->faceNormCacheEntries   [fno];
+    FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
     fNorm->orig_area = orig_area;
-    fNorm->deferred &= ~2;  // now known
+    fNormDeferred->deferred &= ~2;            // now known
 }
 
 static float getFaceOrigArea(MRIS const * const mris, int fno) {
-    FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
-    if (fNorm->deferred & 2) {      // must compute
+    FaceNormCacheEntry    * fNorm         = &mris->faceNormCacheEntries   [fno];
+    FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+    if (fNormDeferred->deferred & 2) {      // must compute
         fprintf(stderr, "%s:%d NYI\n", __FILE__, __LINE__);
         *(int*)(-1) = 0;    // crash
     }
@@ -812,8 +817,9 @@ static float getFaceOrigArea(MRIS const * const mris, int fno) {
 
 
 FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
-    FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
-    if (fNorm->deferred) {
+    FaceNormCacheEntry    * fNorm         = &mris->faceNormCacheEntries   [fno];
+    FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+    if (fNormDeferred->deferred) {
         float nx,ny,nz,orig_area;
         computeDefectFaceNormal_calculate(mris, fno, &nx,&ny,&nz,&orig_area);
 #ifdef CHECK_DEFERED_NORMS
@@ -824,7 +830,7 @@ FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
         }
 #endif
         fNorm->nx = nx; fNorm->ny = ny; fNorm->nz = nz;
-        if (fNorm->deferred & 2) {      // must update
+        if (fNormDeferred->deferred & 2) {      // must update
 #ifdef CHECK_DEFERED_NORMS
             if (orig_area != fNorm->orig_area) {
                 fprintf(stderr, "%s:%d prediction of norm did not equal result\n",__FILE__, __LINE__);
@@ -832,35 +838,53 @@ FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
 #endif
             fNorm->orig_area = orig_area;
         }
-        fNorm->deferred = 0;
+        fNormDeferred->deferred = 0;
     }
     return fNorm;
 }
 
 static void deferSetFaceNorms(MRIS* mris) {
-    int fno;
-    ROMP_PF_begin  
-#ifdef HAVE_OPENMP
-    #pragma omp parallel for if_ROMP(assume_reproducible) 
-#endif
-    for (fno = 0; fno < mris->nfaces; fno++) {
-      ROMP_PFLB_begin
-      FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
-#ifdef CHECK_DEFERED_NORMS
-      computeDefectFaceNormal_calculate(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);  // compute it now so can check later
-#endif
-      fNorm->deferred = 3;  // compute them again later
-      ROMP_PFLB_end
+    static int use_parallel;
+    static int once;
+    if (!once) {
+        once++;
+        use_parallel = !!getenv("FREESURFER_deferSetFaceNorms_parallel");
     }
-    ROMP_PF_end
+    if (!use_parallel) {
+        // It looks like there is not enough work to go parallel...
+        int fno;
+        for (fno = 0; fno < mris->nfaces; fno++) {
+          FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+#ifdef CHECK_DEFERED_NORMS
+          computeDefectFaceNormal_calculate(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);  // compute it now so can check later
+#endif
+          fNormDeferred->deferred = 3;  // compute them again later
+        }
+    } else {
+        int fno;
+        ROMP_PF_begin  
+#ifdef HAVE_OPENMP
+        #pragma omp parallel for if_ROMP(assume_reproducible) 
+#endif
+        for (fno = 0; fno < mris->nfaces; fno++) {
+          ROMP_PFLB_begin
+          FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+#ifdef CHECK_DEFERED_NORMS
+          computeDefectFaceNormal_calculate(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);  // compute it now so can check later
+#endif
+          fNormDeferred->deferred = 3;  // compute them again later
+          ROMP_PFLB_end
+        }
+        ROMP_PF_end
+    }
 }
 
 static void recomputeFaceNorms(MRIS* mris) {
     int fno;
     for (fno = 0; fno < mris->nfaces; fno++) {
-      FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
-      fNorm->deferred = 3;      // invalidate their old values 
-      getFaceNorm(mris, fno);   // recompute now
+      FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+      fNormDeferred->deferred = 3;      // invalidate their old values 
+      getFaceNorm(mris, fno);           // recompute now
     }
 }
 
@@ -1995,7 +2019,9 @@ int MRISfree(MRI_SURFACE **pmris)
     }
   }
 
+  free(mris->faceNormDeferredEntries);
   free(mris->faceNormCacheEntries);
+  
   if (mris->vertices) {
     free(mris->vertices);
   }
@@ -12208,15 +12234,6 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
 
     float const min_nbr_dist = minNeighborDistance(mris);
     {
-      static int once;
-      if (!once) {
-          once = 1;
-          fprintf(stdout, "%s:%d xSubvolLen:%g ySubvolLen:%g zSubvolLen:%g min_nbr_dist:%g\n", __FILE__, __LINE__,
-              xSubvolLen, ySubvolLen, zSubvolLen, min_nbr_dist);
-          fprintf(stdout, "%s:%d xSubvolVerge:%g ySubvolVerge:%g zSubvolVerge:%g\n", __FILE__, __LINE__,
-              xSubvolVerge, ySubvolVerge, zSubvolVerge);
-      }
-
       // Even things this close to the subvolume surface can affect the adjacent subvolumes
       //
       xSubvolVerge += min_nbr_dist;
@@ -61625,13 +61642,18 @@ static int compare_edge_length(const void *pe0, const void *pe1)
 
   /*  return(c1 > c2 ? 1 : c1 == c2 ? 0 : -1) ;*/
   if (e0->len > e1->len) {
-    return (1);
+    return(1);
   }
   else if (e0->len < e1->len) {
-    return (-1);
+    return(-1);
   }
-
-  return (0);
+  else if (e0->vno1 > e1->vno1) {
+    // if two lengths are the same, force a consistent order by
+    // comparing the vno1 values for each edge. Otherwise, returning 0
+    // will produce sorting differences on osx
+    return(1);
+  }
+  return(-1);
 }
 #if 0
 static int
