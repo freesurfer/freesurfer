@@ -2174,6 +2174,7 @@ void LayerSurface::AddMappedLabel(LayerROI *label)
     connect(label, SIGNAL(VisibilityChanged(bool)), SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
     connect(label->GetProperty(), SIGNAL(ColorMapChanged()), SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
     connect(label->GetProperty(), SIGNAL(ThresholdChanged(double)), SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
+    connect(this, SIGNAL(destroyed(QObject*)), label, SLOT(OnSurfaceDestroyed(QObject*)));
   }
 }
 

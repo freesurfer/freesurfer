@@ -416,6 +416,72 @@ double MyUtils::CalculateCorrelationCoefficient(float *x, float *y, int n)
   return calculate_correlation_coefficient(x, y, n);
 }
 
+bool IsBetween(const double& x0, const double& x, const double& x1)
+{
+  return (x >= x0) && (x <= x1);
+}
+
+bool MyUtils::FindIntersection(const double& x0, const double& y0,
+                      const double& x1, const double& y1,
+                      const double& a0, const double& b0,
+                      const double& a1, const double& b1,
+                      double* x, double* y)
+{
+  // four endpoints are x0, y0 & x1,y1 & a0,b0 & a1,b1
+
+  double xy, ab;
+  bool partial = false;
+  double denom = (b0 - b1) * (x0 - x1) - (y0 - y1) * (a0 - a1);
+  if (denom == 0)
+  {
+    xy = -1;
+    ab = -1;
+  }
+  else
+  {
+    xy = (a0 * (y1 - b1) + a1 * (b0 - y1) + x1 * (b1 - b0)) / denom;
+    partial = IsBetween(0, xy, 1);
+    if (partial)
+    {
+      // no point calculating this unless xy is between 0 & 1
+      ab = (y1 * (x0 - a1) + b1 * (x1 - x0) + y0 * (a1 - x1)) / denom;
+    }
+  }
+  if ( partial && IsBetween(0, ab, 1))
+  {
+    ab = 1-ab;
+    xy = 1-xy;
+    *x = x0 + (x1-x0)*xy;
+    *y = y0 + (y1-y0)*xy;
+    return true;
+  }
+  else
+    return false;
+}
+
+
+bool MyUtils::FindIntersection(std::vector<std::vector<double> > &line0,
+                               std::vector<std::vector<double> > &line1, double *x, double *y,
+                               int* n0, int* n1)
+{
+  for (size_t i = 0; i < line0.size()-1; i++)
+  {
+    for (size_t j = 0; j < line1.size()-1; j++)
+    {
+      if (FindIntersection(line0[i][0], line0[i][1], line0[i+1][0], line0[i+1][1],
+                           line1[j][0], line1[j][1], line1[j+1][0], line1[j+1][1], x, y))
+      {
+        if (n0)
+          *n0 = i;
+        if (n1)
+          *n1 = j;
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 QStringList MyUtils::SplitString( const QString& strg_to_split,
                                   const QString& divider,
                                   int nIgnoreStart,
