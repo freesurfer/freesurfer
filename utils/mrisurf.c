@@ -1834,9 +1834,9 @@ static bool MRISreallocVertices(MRI_SURFACE * mris, int max_vertices, int nverti
   mris->vertices = (VERTEX *)realloc(mris->vertices, max_vertices*sizeof(VERTEX));
   if (!mris->vertices) return false;
 
-  int change = max_vertices - mris->max_vertices;
-  if (change > 0) {
-      bzero(mris->vertices + mris->max_vertices, change*sizeof(VERTEX));
+  int change = max_vertices - mris->nvertices;
+  if (change > 0) { // all above nvertices must be zero'ed, since MRISgrowNVertices does not...
+      bzero(mris->vertices + mris->nvertices, change*sizeof(VERTEX));
   }
 
   *(int*)(&mris->max_vertices) = max_vertices;    // get around const
@@ -1877,10 +1877,16 @@ static bool MRISreallocFaces(MRI_SURFACE * mris, int max_faces, int nfaces) {
     (FaceNormCacheEntry*)realloc(mris->faceNormCacheEntries, max_faces*sizeof(FaceNormCacheEntry));
   if (!mris->faceNormCacheEntries) return false;
  
-  int change = max_faces - mris->max_faces;
-  if (change > 0) {
-      bzero(mris->faces                   + mris->max_faces, change*sizeof(FACE));
-      bzero(mris->faceNormCacheEntries    + mris->max_faces, change*sizeof(FaceNormCacheEntry));
+  mris->faceNormDeferredEntries =
+    (FaceNormDeferredEntry*)realloc(mris->faceNormDeferredEntries, max_faces*sizeof(FaceNormDeferredEntry));
+  if (!mris->faceNormDeferredEntries) return false;
+  
+  
+  int change = max_faces - mris->nfaces;
+  if (change > 0) { // all above nfaces must be zero'ed, since MRISgrowNFaces does not...
+      bzero(mris->faces                   + mris->nfaces, change*sizeof(FACE));
+      bzero(mris->faceNormCacheEntries    + mris->nfaces, change*sizeof(FaceNormCacheEntry));
+      bzero(mris->faceNormDeferredEntries + mris->nfaces, change*sizeof(FaceNormDeferredEntry));
   }
 
   *(int*)(&mris->max_faces) = max_faces;    // get around const
