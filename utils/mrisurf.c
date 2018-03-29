@@ -398,6 +398,7 @@ static void checkVertexOdNotFrozen(const char* file, int line) {
 #define CHANGES_ODXYZ_OKAY
 
 /*------------------------ STATIC PROTOTYPES -------------------------*/
+static void notifyActiveRealmTreesChangedNFacesNVertices(MRIS const * const mris);
 int MRIScomputeAllDistances(MRI_SURFACE *mris);
 #if 0
 static MRI_SP *MRISPiterative_blur(MRI_SURFACE *mris,
@@ -748,7 +749,7 @@ static void reproducible_check(double cell, double val, int line, int* count)
 /*-----------------------------------------------------
   This supports code that accelerates finding the vertices and faces needed during defect correction.
   To do this, it must be able to tell when vertex orig[xyz] are changed.
-  Such changes need to be reported via noteInActiveRealmTrees.
+  Such changes need to be reported via noteVnoMovedInActiveRealmTrees.
   To help decide where such calls had to be added, all changes to origx etc. that are not have a CHANGES_ORIG by them to check if should have been.
   To test it is correct, the code can scan all vertices of an mris and verify there origxyz are what was expected.
   ------------------------------------------------------*/
@@ -1842,6 +1843,8 @@ static bool MRISreallocVertices(MRI_SURFACE * mris, int max_vertices, int nverti
   *(int*)(&mris->max_vertices) = max_vertices;    // get around const
   *(int*)(&mris->nvertices)    = nvertices;       // get around const
     
+  notifyActiveRealmTreesChangedNFacesNVertices(mris);
+  
   return true;
 }
 
@@ -45171,13 +45174,13 @@ static void useComputeDefectContextRealmTree(
 }
 }
 
-static int noteInActiveRealmTreesCount;
-static void noteInActiveRealmTrees(MRIS const * const mris, int vno) {
+static int noteVnoMovedInActiveRealmTreesCount;
+static void noteVnoMovedInActiveRealmTrees(MRIS const * const mris, int vno) {
 #ifdef HAVE_OPENMP
     #pragma omp critical
 #endif
     {   int i;
-        noteInActiveRealmTreesCount++;
+        noteVnoMovedInActiveRealmTreesCount++;
         for (i = 0; i < activeRealmTreesSize; i++) {
             if (activeRealmTrees[i].mris != mris) continue;
             if (0)
@@ -45188,6 +45191,24 @@ static void noteInActiveRealmTrees(MRIS const * const mris, int vno) {
                 activeRealmTrees[i].mris,
                 activeRealmTrees[i].getXYZ, 
                 vno);
+        }
+    }
+}
+
+static void notifyActiveRealmTreesChangedNFacesNVertices(MRIS const * const mris) {
+#ifdef HAVE_OPENMP
+    #pragma omp critical
+#endif
+    {   int i;
+        for (i = 0; i < activeRealmTreesSize; i++) {
+            if (activeRealmTrees[i].mris != mris) continue;
+            if (0)
+                fprintf(stderr,"Thread:%d updating realmTree:%p vno:%d\n", 
+                    omp_get_thread_num(), activeRealmTrees[i].realmTree, vno);
+            updateRealmTree(
+                activeRealmTrees[i].realmTree, 
+                activeRealmTrees[i].mris,
+                activeRealmTrees[i].getXYZ);
         }
     }
 }
@@ -48569,7 +48590,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
           v->origx = v->tx;
           v->origy = v->ty;
           v->origz = v->tz;
-          noteInActiveRealmTrees(mris, dp->tp.vertices[i]);
+          noteVnoMovedInActiveRealmTrees(mris, dp->tp.vertices[i]);
         }
       }
       break;
@@ -48994,7 +49015,7 @@ static void defectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int ni
       v->origx = v->tx;
       v->origy = v->ty;
       v->origz = v->tz;
-      noteInActiveRealmTrees(mris, dp->tp.vertices[i]);
+      noteVnoMovedInActiveRealmTrees(mris, dp->tp.vertices[i]);
     }
 
     /* recompute normals */
@@ -50414,7 +50435,7 @@ static DEFECT_VERTEX_STATE *mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *def
     vs->origx = v->origx; 
     vs->origy = v->origy;
     vs->origz = v->origz;
-    noteInActiveRealmTrees(mris, vno);
+    noteVnoMovedInActiveRealmTrees(mris, vno);
 
     vs->nx = v->nx;
     vs->ny = v->ny;
@@ -50510,7 +50531,7 @@ static int mrisRestoreVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs)
     v->origx = vs->origx; 
     v->origy = vs->origy;
     v->origz = vs->origz;
-    noteInActiveRealmTrees(mris, vno);
+    noteVnoMovedInActiveRealmTrees(mris, vno);
 
     v->nx = vs->nx;
     v->ny = vs->ny;
@@ -56698,7 +56719,7 @@ static double mrisComputeDefectMRILogUnlikelihood(
     }
     if (suppress_usecomputeDefectContext) computeDefectContext = NULL;
     
-    int saved_noteInActiveRealmTreesCount = noteInActiveRealmTreesCount++;
+    int saved_noteVnoMovedInActiveRealmTreesCount = noteVnoMovedInActiveRealmTreesCount++;
     
     //  TIMER_INTERVAL_BEGIN(A)
 
@@ -56712,8 +56733,8 @@ static double mrisComputeDefectMRILogUnlikelihood(
     //  TIMER_INTERVAL_END(A)
 
     if (0) 
-        printf("noteInActiveRealmTrees called:%d\n",
-            noteInActiveRealmTreesCount-saved_noteInActiveRealmTreesCount);
+        printf("noteVnoMovedInActiveRealmTrees called:%d\n",
+            noteVnoMovedInActiveRealmTreesCount-saved_noteVnoMovedInActiveRealmTreesCount);
 
     return result;
 }
