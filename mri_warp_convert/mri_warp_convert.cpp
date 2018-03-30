@@ -171,13 +171,6 @@ GCAM* readITK(const string& warp_file, const string& src_geom)
     return NULL;
   }
 
-  // This may not make sense, so comment out for now.
-  // if (itk->width != src->width || itk->height != src->height || itk->depth != src->depth)
-  // {
-  //  cerr << "ERROR: ITK warp and source image have different geometry." << endl;
-  //  return NULL;
-  // }
-
   GCA_MORPH* gcam = GCAMalloc(itk->width, itk->height, itk->depth) ;
   GCAMinitVolGeom(gcam, src, itk) ;
 
