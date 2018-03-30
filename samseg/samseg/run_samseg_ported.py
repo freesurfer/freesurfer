@@ -12,6 +12,7 @@ from samseg.run_utilities import find_or_create_save_path, specify_model, determ
 from gems2python import GEMS2Python
 
 from samseg.samseg_ported import samsegment
+from samseg.show_figures import DoNotShowFigures, ShowFigures
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)  # TODO: configurable logging
@@ -32,7 +33,8 @@ def run_samseg_from_cmdargs(cmdargs):
     atlas_only = cmdargs.atlas_only
     savePath = cmdargs.output
     numberOfThreads = cmdargs.threads
-    showFigures = cmdargs.showfigs
+    showFigures = ShowFigures() if cmdargs.showfigs else DoNotShowFigures()
+
     noBrainMasking = cmdargs.nobrainmask
     useDiagonalCovarianceMatrices = cmdargs.diagcovs
     RegMatFile = cmdargs.regmat
@@ -57,7 +59,7 @@ def run_samseg_from_cmdargs(cmdargs):
 def run_samseg(
     imageFileNames,
     savePath,
-    showFigures=False,
+    showFigures=None,
     noBrainMasking=False,
     useDiagonalCovarianceMatrices=False,
     verbose=False,
@@ -66,6 +68,8 @@ def run_samseg(
     atlas_only=False,
     checkpoint_manager=None
 ):
+    if showFigures is None:
+        showFigures = DoNotShowFigures()
     # Create the output folder
     savePath = find_or_create_save_path(savePath)
 

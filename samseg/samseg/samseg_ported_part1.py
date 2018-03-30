@@ -9,6 +9,7 @@ import numpy as np
 from samseg.dev_utils.debug_client import create_checkpoint_manager, run_test_cases, \
     create_part1_inspection_team, load_starting_fixture
 from samseg.kvl_merge_alphas import kvlMergeAlphas
+from samseg.show_figures import DoNotShowFigures
 
 
 def samsegment_part1(
@@ -50,6 +51,7 @@ def samsegment_part1(
 
     imageSize = imageBuffers[0].shape
     imageBuffers = np.transpose(imageBuffers, axes=[1, 2, 3, 0])
+    showFigures.show(images=imageBuffers, window_id='samsegment contrast')
 
     # Also read in the voxel spacing -- this is needed since we'll be specifying bias field smoothing kernels, downsampling
     # steps etc in mm.
@@ -92,8 +94,10 @@ def samsegment_part1(
         np.ma.masked_greater(backgroundPrior, backGroundThreshold),
         backGroundPeak).astype(np.float32)
 
+    showFigures.show(probabilities=backgroundPrior, images=imageBuffers, window_id='samsegment background')
     smoothingSigmas = [1.0 * modelSpecifications.brainMaskingSmoothingSigma] * 3
     smoothedBackgroundPrior = GEMS2Python.KvlImage.smooth_image_buffer(backgroundPrior, smoothingSigmas)
+    showFigures.show(probabilities=smoothedBackgroundPrior, window_id='samsegment smoothed')
 
     # 65535 = 2^16 - 1. priors are stored as 16bit ints
     # To put the threshold in perspective: for Gaussian smoothing with a 3D isotropic kernel with variance
@@ -124,6 +128,8 @@ def samsegment_part1(
     for contrastNumber in range(numberOfContrasts):
         imageBuffers[:, :, :, contrastNumber] *= brainMask
 
+    showFigures.show(images=imageBuffers, window_id='samsegment images')
+
     # Let's prepare for the bias field correction that is part of the imaging model. It assumes
     # an additive effect, whereas the MR physics indicate it's a multiplicative one - so we log
     # transform the data first. In order to do so, mask out zeros from
@@ -148,11 +154,10 @@ def samsegment_part1(
     FreeSurferLabels = modelSpecifications.FreeSurferLabels
     names = modelSpecifications.names
     colors = modelSpecifications.colors
-    [reducedAlphas, reducedNames, reducedFreeSurferLabels, reducedColors, reducingLookupTable] = kvlMergeAlphas(alphas,
-                                                                                                                names,
-                                                                                                                modelSpecifications.sharedGMMParameters,
-                                                                                                                FreeSurferLabels,
-                                                                                                                colors)
+    [reducedAlphas, reducedNames, reducedFreeSurferLabels, reducedColors, reducingLookupTable
+     ] = kvlMergeAlphas(alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors)
+
+    showFigures.show(mesh=mesh, shape=imageBuffers.shape, window_id='samsegment mesh')
 
     # The fact that we merge several neuroanatomical structures into "super"-structures for the purpose of model
     # parameter estimaton, but at the same time represent each of these super-structures with a mixture of Gaussians,

@@ -45,6 +45,7 @@ def samsegment(
         modelSpecifications,
         optimizationOptions,
         part1_results_dict,
+        showFigures,
         checkpoint_manager
     )
     if checkpoint_manager:

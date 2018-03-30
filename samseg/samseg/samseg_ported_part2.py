@@ -11,6 +11,7 @@ from samseg.dev_utils.debug_client import create_part2_inspection_team, run_test
     create_checkpoint_manager, load_starting_fixture
 from samseg.kvlWarpMesh import kvlWarpMesh
 from samseg.kvl_merge_alphas import kvlMergeAlphas
+from samseg.show_figures import DoNotShowFigures
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,8 @@ def samsegment_part2(
         modelSpecifications,
         optimizationOptions,
         part1_results_dict,
-        checkpoint_manager=None
+        showFigures,
+        checkpoint_manager=None,
 ):
     biasFieldCoefficients = part1_results_dict['biasFieldCoefficients']
     colors = part1_results_dict['colors']
@@ -272,6 +274,7 @@ def samsegment_part2(
                         numberOfPseudoMeasurementsOfWishartPrior / 2 * np.log(np.linalg.det(variance))
                     intensityModelParameterCost = intensityModelParameterCost + minLogUnnormalizedWishart
                 historyOfEMCost.append(minLogLikelihood + intensityModelParameterCost)
+
                 priorEMCost = historyOfEMCost[-2]
                 currentEMCost = historyOfEMCost[-1]
                 costChangeEM = priorEMCost - currentEMCost
@@ -381,6 +384,7 @@ def samsegment_part2(
                                 'computedPrecisionOfKroneckerProductBasisFunctions': computedPrecisionOfKroneckerProductBasisFunctions,
                             }, 'estimateBiasField')
                     pass
+            showFigures.show(mesh=mesh, images=downSampledBiasCorrectedImageBuffers, window_id='samsegment')
             historyOfEMCost = historyOfEMCost[1:]
             #
             # Part II: update the position of the mesh nodes for the current mixture model and bias field parameter estimates
@@ -389,6 +393,7 @@ def samsegment_part2(
             for contrastNumber in range(numberOfContrasts):
                 downSampledBiasCorrectedImages.append(GEMS2Python.KvlImage(
                     require_np_array(downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber])))
+
 
             # Set up cost calculator
             calculator = GEMS2Python.KvlCostAndGradientCalculator(
@@ -428,6 +433,7 @@ def samsegment_part2(
             print(['iterationNumber: ', iterationNumber])
             print(['    maximalDeformationApplied: ', maximalDeformationApplied])
             print('==============================')
+            showFigures.show(mesh=mesh, images=downSampledBiasCorrectedImageBuffers, window_id='samsegment')
             if checkpoint_manager:
                 checkpoint_manager.increment_and_save(
                     {
@@ -489,6 +495,7 @@ def test_samseg_ported_part2(case_name, case_file_folder, savePath):
         fixture['modelSpecifications'],
         fixture['optimizationOptions'],
         part1_results_dict,
+        DoNotShowFigures(),
         checkpoint_manager
     )
     checkpoint_manager.save(part2_results_dict, 'part2', 1)

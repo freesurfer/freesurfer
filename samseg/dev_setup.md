@@ -52,13 +52,13 @@ Get the latest release version of ITK:
 ```bash
 git clone https://itk.org/ITK.git
 ```
-Get the porting branch of FreeSurfer and install pybind11:
+Get the porting branch of FreeSurfer and install submodules pybind11 and hdav:
 ```bash
 git clone https://github.com/innolitics/freesurfer.git
 cd freesurfer
 git checkout  nf-gems2-python-performance
-cd GEMS2
-git clone https://github.com/pybind/pybind11.git
+git submodule init
+git submodule update
 ```
 ## Build from Source
 ### Build ITK
@@ -134,6 +134,8 @@ ccmake .
 Use the `t` option to see the advanced mode options. Then set the `CMAKE_CXX_FLAGS` and `CMAKE_C_FLAGS` to "`-fPIC -fpermissive -msse2 -mfpmath=sse`".
 
 `BUILD_EXECUTABLES` `BUILD_GUI` `BUILD_MATLAB` `BUILD_SHARED_LIBS` and `BUILD_TESTING` should be `OFF`.
+`
+BUILD_PYTHON` should be `ON`
 
 Check that the `PYTHON_EXECUTABLE` and `PYTHON_LIBRARY` have valid values such as `/usr/bin/python3.5` 
 and `/usr/lib/x86_64-linux-gnu/libpython3.5m.so` respectively.
