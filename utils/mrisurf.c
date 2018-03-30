@@ -45203,7 +45203,7 @@ static void notifyActiveRealmTreesChangedNFacesNVertices(MRIS const * const mris
         for (i = 0; i < activeRealmTreesSize; i++) {
             if (activeRealmTrees[i].mris != mris) continue;
             if (0)
-                fprintf(stderr,"Thread:%d updating realmTree:%p vno:%d\n", 
+                fprintf(stderr,"Thread:%d updating realmTree:%p\n", 
                     omp_get_thread_num(), activeRealmTrees[i].realmTree);
             updateRealmTree(
                 activeRealmTrees[i].realmTree, 
