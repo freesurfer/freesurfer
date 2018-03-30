@@ -45204,7 +45204,7 @@ static void notifyActiveRealmTreesChangedNFacesNVertices(MRIS const * const mris
             if (activeRealmTrees[i].mris != mris) continue;
             if (0)
                 fprintf(stderr,"Thread:%d updating realmTree:%p vno:%d\n", 
-                    omp_get_thread_num(), activeRealmTrees[i].realmTree, vno);
+                    omp_get_thread_num(), activeRealmTrees[i].realmTree);
             updateRealmTree(
                 activeRealmTrees[i].realmTree, 
                 activeRealmTrees[i].mris,
@@ -45212,6 +45212,61 @@ static void notifyActiveRealmTreesChangedNFacesNVertices(MRIS const * const mris
         }
     }
 }
+// IntersectDefectEdgesContext are used to speed up intersectDefectEdges and intersectDefectConvexHullEdges
+// by sharing computations across multiple calls
+//
+
+//#define COPE_WITH_VERTEX_MOVEMENT
+typedef struct IntersectDefectEdgesContext_Entry {
+  int vno, n;
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+  int next;
+  float cx,cy,cz,cx2,cy2,cz2;   // the values when created so movement can be detected
+#endif
+} IntersectDefectEdgesContext_Entry;
+
+typedef struct IntersectDefectEdgesContext {
+    int                                 entriesCapacity;
+    int                                 entriesSize;
+    IntersectDefectEdgesContext_Entry*  entries;
+    GreatArcSet*                        greatArcSet;
+    bool                                obsoleted;
+    int                                 nvertices_seen;
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+    int*                                vnoToFirstNPlus1;   // 0 is end of list
+#else
+    int*                                vnosHighestNSeen;   // Detect added vertices
+#endif
+} IntersectDefectEdgesContext;
+
+static void initIntersectDefectEdgesContext(IntersectDefectEdgesContext* ctx, MRI_SURFACE* mris) {
+    ctx->entriesCapacity  = 0;
+    ctx->entriesSize      = 0;
+    ctx->entries          = NULL;
+    ctx->greatArcSet      = NULL;
+    ctx->obsoleted        = false;
+    ctx->nvertices_seen   = mris->nvertices;
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+    ctx->vnoToFirstNPlus1 = (int*)calloc(ctx->nvertices_seen,sizeof(int));
+#else
+    ctx->vnosHighestNSeen = (int*)calloc(ctx->nvertices_seen,sizeof(int));
+#endif
+}
+
+static void finiIntersectDefectEdgesContext(IntersectDefectEdgesContext* ctx) {
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+    free(ctx->vnoToFirstNPlus1); ctx->vnoToFirstNPlus1 = NULL; ctx->nvertices_seen = 0;
+#endif
+    freeGreatArcSet(&ctx->greatArcSet);
+    free(ctx->entries); ctx->entries = NULL;
+    ctx->entriesCapacity = ctx->entriesSize = 0;
+}
+
+static void obsoleteIntersectDefectEdgesContext(IntersectDefectEdgesContext* ctx) {
+    ctx->obsoleted = true;
+}
+
+
 
 // ----------------- Declaration of Static Functions ---------------------- //
 // segmentation of the edges into clusters
@@ -45295,9 +45350,8 @@ static int mrisTessellateDefect(MRI_SURFACE *mris,
 static int mrisDefectRemoveDegenerateVertices(MRI_SURFACE *mris, float min_sphere_dist, DEFECT *defect);
 static int mrisDefectRemoveProximalVertices(MRI_SURFACE *mris, float min_orig_dist, DEFECT *defect);
 static int mrisDefectRemoveNegativeVertices(MRI_SURFACE *mris, DEFECT *defect);
-static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans, int *v1, int *v2);
-static int intersectDefectConvexHullEdges(
-    MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans, int *v1, int *v2);
+static int intersectDefectEdges          (MRI_SURFACE *mris, DEFECT *defect, EDGE *e, IntersectDefectEdgesContext* ctx, int *vertex_trans, int *v1, int *v2);
+static int intersectDefectConvexHullEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, IntersectDefectEdgesContext* ctx, int *vertex_trans, int *v1, int *v2);
 
 static MRI *mriDefectVolume(MRIS *mris, EDGE_TABLE *etable, TOPOLOGY_PARMS *parms);
 static void defectVolumeLikelihood(MRI *mri,
@@ -45316,8 +45370,8 @@ static int isDiscarded(MRIS *mris, int vno1, int vno2);
 static void removeVertex(MRIS *mris, int vno);
 static int updateVertexTriangle(MRIS *mris, int vno, int fno);
 // static void updateTriangle(MRIS *mris,int fno);
-static void findNewTriangles(MRIS *mris, int vno1, int vno2);
-static int isEdgeAdded(MRIS *mris, int vno1, int vno2, int mode);
+static void possiblyAddNewFaces(MRIS *mris, int vno1, int vno2);
+static int possiblyAddEdgesAndFaces(MRIS *mris, int vno1, int vno2, int mode);
 static int retessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DVS *dvs, DP *dp);
 static int mrisRetessellateDefect(MRI_SURFACE *mris,
                                   MRI_SURFACE *mris_corrected,
@@ -49787,7 +49841,7 @@ static int updateVertexTriangle(MRIS *mris, int vno, int fno)
 /* } */
 
 /* check if the edge vno1 <--> vno2 is the edge of a triangle */
-static void findNewTriangles(MRIS *mris, int vno1, int vno2)
+static void possiblyAddNewFaces(MRIS *mris, int vno1, int vno2)
 {
   int n, m, vn, fno;
   VERTEX *v;
@@ -49829,7 +49883,7 @@ static void findNewTriangles(MRIS *mris, int vno1, int vno2)
   }
 }
 
-static int isEdgeAdded(MRIS *mris, int vno1, int vno2, int mode)
+static int possiblyAddEdgesAndFaces(MRIS *mris, int vno1, int vno2, int mode)
 {
   int mark1, mark2, tmp;
   VERTEX *v1, *v2;
@@ -49890,7 +49944,7 @@ static int isEdgeAdded(MRIS *mris, int vno1, int vno2, int mode)
         /* add this edge */
         mrisAddEdge(mris, vno1, vno2);
         /* look for new triangles */
-        findNewTriangles(mris, vno1, vno2);
+        possiblyAddNewFaces(mris, vno1, vno2);
         return 1;
       }
       else {
@@ -49898,7 +49952,7 @@ static int isEdgeAdded(MRIS *mris, int vno1, int vno2, int mode)
         /* is the first vertex inside or outside the faces of vno2 */
         if (isDiscarded(mris, vno1, vno2)) {
           /* inside one of the faces */
-          /* remove this vertex and its connexions */
+          /* remove this vertex and its connections */
           removeVertex(mris, vno1);
           return 0;
         }
@@ -49906,7 +49960,7 @@ static int isEdgeAdded(MRIS *mris, int vno1, int vno2, int mode)
           /* outside */
           mrisAddEdge(mris, vno1, vno2);
           /* check if some new triangles have been formed : if yes, update type*/
-          findNewTriangles(mris, vno1, vno2);
+          possiblyAddNewFaces(mris, vno1, vno2);
           return 1;
         }
       }
@@ -49915,7 +49969,7 @@ static int isEdgeAdded(MRIS *mris, int vno1, int vno2, int mode)
       /* both vertices have the type TRIANGLE_VERTEX */
       mrisAddEdge(mris, vno1, vno2);
       /* check if some new triangles have been formed */
-      findNewTriangles(mris, vno1, vno2);
+      possiblyAddNewFaces(mris, vno1, vno2);
       return 1;
       break;
   }
@@ -49942,9 +49996,11 @@ static int retessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DV
 
 static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DVS *dvs, DP *dp)
 {
+  static bool const showStats = false;
+
   double max_len;
   int i, j, max_i, max_added, nadded, index, ndiscarded;
-  int (*intersection_function)(MRI_SURFACE * mris, DEFECT * defect, EDGE * e, int *vertex_trans, int *v1, int *v2);
+  int (*intersection_function)(MRI_SURFACE * mris, DEFECT * defect, EDGE * e, IntersectDefectEdgesContext* ctx, int *vertex_trans, int *v1, int *v2);
   int *vertex_trans;
   DEFECT *defect;
   EDGE *et;
@@ -49956,6 +50012,8 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
   VERTEX *vertex1, *vertex2;
   int counting;
 
+  ROMP_PF_begin
+  
   /* initialize arrays of tessellated patch to null pointer*/
   TPinit(&dp->tp);
 
@@ -50006,12 +50064,30 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
   /* allocate the table of potentially intersected edges */
   it = (IT *)calloc(nedges, sizeof(IT));
 
+  ROMP_PF_end
+  
+  ROMP_PF_begin
+
+  static long stats_count = 0;
+  static long stats_limit = 1;
+  long stats_modified_loops   = 0;
+  long stats_nedges_loops_all = 0, stats_nedges_loops_heavy = 0, stats_intersection_function_calls = 0;
+  
   modified = 1;
   while (modified) {
     modified = 0;
 
+    stats_modified_loops++;
+    
+    IntersectDefectEdgesContext intersectDefectEdgesContext; 
+    initIntersectDefectEdgesContext(&intersectDefectEdgesContext, mris);
+    
+    ROMP_PF_begin
+    
     /* start building the retessellation */
     for (index = 0; index < nedges; index++) {
+      stats_nedges_loops_all++;
+      
       if (ordering) {
         i = ordering[index];
       }
@@ -50046,11 +50122,15 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
         continue;
       }
 
+      stats_nedges_loops_heavy++;
+
       if (etable && etable->use_overlap == USE_OVERLAP) /* use pre-computed
                                                            intersection table */
       {
         int intersects = 0;
 
+        ROMP_PF_begin   // mris_fix_topology not using this
+        
         for (j = 0; j < etable->noverlap[i]; j++)
           if (et[etable->overlapping_edges[i][j]].used &&
               et[etable->overlapping_edges[i][j]].used != USED_IN_ORIGINAL_TESSELLATION) {
@@ -50062,6 +50142,9 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
             it[i].vno2 = et[etable->overlapping_edges[i][j]].vno2;
             break;
           }
+          
+        ROMP_PF_end
+        
         if (intersects) {
           continue;
         }
@@ -50072,10 +50155,18 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
           intersection_function = intersectDefectConvexHullEdges;
         }
       }
-      if ((*intersection_function)(mris_corrected, defect, &et[i], vertex_trans, &it[i].vno1, &it[i].vno2) == 0) {
+      
+      stats_intersection_function_calls++;
+        // almost always comes this way
+        
+      if ((*intersection_function)(mris_corrected, defect, &et[i], &intersectDefectEdgesContext, vertex_trans, &it[i].vno1, &it[i].vno2) == 0) {
         /* this edge could potentially be added : no sphere intersection */
         nadded++;
-        if (isEdgeAdded(mris_corrected, et[i].vno1, et[i].vno2, dp->retessellation_mode)) {
+
+        ROMP_PF_begin   // negliable time spent in here
+        
+        if (possiblyAddEdgesAndFaces(mris_corrected, et[i].vno1, et[i].vno2, dp->retessellation_mode)) {
+          obsoleteIntersectDefectEdgesContext(&intersectDefectEdgesContext);
           nthings++;
           if (et[i].used) /* used in original tessellation */
           {
@@ -50097,12 +50188,23 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
             }
           }
         }
+        
+        ROMP_PF_end
       }
       else /* intersecting edge with edge e1<-->e2 */
       {
         it[i].intersected = 2;
       }
     }
+
+    ROMP_PF_end
+    ROMP_PF_begin       // negliable time spent in here
+
+    finiIntersectDefectEdgesContext(&intersectDefectEdgesContext);
+
+    ROMP_PF_end
+    ROMP_PF_begin       // negliable time spent in here
+    
     /* now update the edges */
     for (index = 0; index < nedges; index++) {
       /* keep the same order (not necessary) */
@@ -50149,7 +50251,23 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
         it[i].intersected = 1;
       }
     }
+    ROMP_PF_end
   }
+
+  if (++stats_count >= stats_limit) {
+    stats_limit *= 2;
+    if (showStats) {
+      fprintf(stderr, "%s:%d stats_count:%ld "
+        "modified_loops:%ld nedges_loops_all:%ld "
+        "nedges_loops_heavy:%ld intersection_function_calls:%ld\n",
+        __FILE__, __LINE__, stats_count, 
+        stats_modified_loops, stats_nedges_loops_all, 
+        stats_nedges_loops_heavy, stats_intersection_function_calls);
+    }
+  }
+
+  ROMP_PF_end
+  ROMP_PF_begin     // negliable time spent in here
 
   /* in this retessellation we have added, at most, nthings edges */
   things = (int *)malloc(nthings * sizeof(int));
@@ -50176,6 +50294,9 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
     }
   }
 
+  ROMP_PF_end
+  ROMP_PF_begin     // negliable time spent in here
+  
   /* store list of used edges */
   dp->tp.nedges = nthings;
   dp->tp.edges = (int *)malloc(nthings * sizeof(int));
@@ -50248,6 +50369,8 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
 
   /* free the allocated memory for the intersection_table */
   free(it);
+
+  ROMP_PF_end
 
   return (NO_ERROR);
 }
@@ -61596,7 +61719,7 @@ static int mrisRetessellateDefect(MRI_SURFACE *mris,
 {
   double max_len;
   int i, j, max_i, max_added, nadded, index;
-  int (*intersection_function)(MRI_SURFACE * mris, DEFECT * defect, EDGE * e, int *vertex_trans, int *v1, int *v2);
+  int (*intersection_function)(MRI_SURFACE * mris, DEFECT * defect, EDGE * e, IntersectDefectEdgesContext* ctx, int *vertex_trans, int *v1, int *v2);
 
   max_len = 0;
   max_i = 0;
@@ -61639,7 +61762,7 @@ static int mrisRetessellateDefect(MRI_SURFACE *mris,
       }
     }
 
-    if ((*intersection_function)(mris_corrected, defect, &et[i], vertex_trans, NULL, NULL) == 0) {
+    if ((*intersection_function)(mris_corrected, defect, &et[i], NULL, vertex_trans, NULL, NULL) == 0) {
       mrisAddEdge(mris_corrected, et[i].vno1, et[i].vno2);
       if (et[i].used) {
         et[i].used = USED_IN_BOTH_TESSELLATION;
@@ -61753,58 +61876,528 @@ mrisCheckDefectEdges(MRI_SURFACE *mris, DEFECT *defect, int vno,
   Returns value:
 
   Description
-  See if the edge e intersects any edges in the defect or
-  it's border. Sorry this code is such a hatchet job. I'm sure
-  there are far more elegant ways of doing intersection
-  (e.g. sorting).
+  See if the edge e intersects any edges in the defect or it's border.
   ------------------------------------------------------*/
 
-static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans, int *v1, int *v2)
-{
-  int i;
-  for (i = 0; i < defect->nvertices + defect->nchull; i++) {
-  
-    int vno;
-    if (i < defect->nvertices) {
-      vno = vertex_trans[defect->vertices[i]];
-    } else {
-      vno = vertex_trans[defect->chull[i - defect->nvertices]];
-    }
+    static bool isHit(MRI_SURFACE * mris, int vno, DEFECT *defect, EDGE* e, int n, char* whyTracing) {
+      bool result = false;
 
-    if (vno == e->vno1 || vno == e->vno2 || vno < 0) {
-      continue;
-    }
-
-    EDGE edge2;
-    edge2.vno1 = vno;
-
-    VERTEX *v = &mris->vertices[vno];
-    int n;
-    for (n = 0; n < v->vnum; n++) {
-      if (v->v[n] == e->vno1 || v->v[n] == e->vno2) {
-        continue;
+      if (vno == e->vno1 || vno == e->vno2 || vno < 0) {
+        if (whyTracing) fprintf(stderr, "isHit false because shared vno when %s\n", whyTracing);
+        goto Done;
       }
+
+      EDGE edge2;
+      edge2.vno1 = vno;
+      VERTEX const * const v = &mris->vertices[vno];
+
+      if (n >= v->vnum) {
+        if (whyTracing) fprintf(stderr, "isHit vno:%d deleted edge n:%d when %s\n",vno,n, whyTracing);
+        return false;
+      }
+      
+      if (whyTracing) fprintf(stderr, "isHit vno:%d v->v[n]:%d e:%p e->vno1:%d e->vno2:%d when %s\n",vno,v->v[n],e,e->vno1,e->vno2, whyTracing);
+      
+      if (v->v[n] == e->vno1 || v->v[n] == e->vno2) {
+        if (whyTracing) fprintf(stderr, "isHit false because shared second vno when %s\n", whyTracing);
+        goto Done;
+      }
+      
       edge2.vno2 = v->v[n];
       if (defect->optimal_mapping && mris->vertices[v->v[n]].fixedval == 0) {
-        continue;  // experimental
+        if (whyTracing) fprintf(stderr, "isHit false optimal_mapping\n");
+        goto Done;
       }
       if (edgesIntersect(mris, e, &edge2)) {
-        if (v1) {
-          (*v1) = edge2.vno1;
-        }
-        if (v2) {
-          (*v2) = edge2.vno2;
-        }
-        return (1);
+        result = true;
       }
+      if (whyTracing) fprintf(stderr, "isHit edgesIntersect returned %d when %s\n",(int)result, whyTracing);
+    Done:
+      return result;
+    }  
+
+    typedef struct PossiblyIntersectingGreatArcs_callback_context {
+      MRI_SURFACE*                  mris;
+      DEFECT*                       defect;
+      EDGE*                         e;
+      IntersectDefectEdgesContext*  ide_ctx;
+      
+      int                           old_firstHit_vnoLo;     // The same vno pair can be found from several directions
+      int                           old_firstHit_vnoHi;     // but any find is ok
+      
+      bool                          emit_line_py;
+      
+      int                           tried;                  // count until the first match
+                                                            //
+      int                           matches;                // total number of matches found, including after the first match
+      int                           someMatchingIndexPlus1; // result
+    } PossiblyIntersectingGreatArcs_callback_context;
+
+    static bool possiblyIntersectingGreatArcs_callback (void* void_ctx, int indexIntoIDECtxEntries, bool* pIsHit) {
+      PossiblyIntersectingGreatArcs_callback_context* ctx = (PossiblyIntersectingGreatArcs_callback_context*)void_ctx;
+
+      if (ctx->someMatchingIndexPlus1 == 0) ctx->tried++;
+      
+      IntersectDefectEdgesContext_Entry* entry = &ctx->ide_ctx->entries[indexIntoIDECtxEntries];
+      *pIsHit = isHit(ctx->mris, entry->vno, ctx->defect, ctx->e, entry->n, NULL);
+
+      if (ctx->emit_line_py) {
+        VERTEX const * const v0 = &ctx->mris->vertices[entry->vno]; 
+        VERTEX const * const v1 = &ctx->mris->vertices[v0->v[entry->n]]; 
+        fprintf(stderr, " [3, %f, %f, %f, %f, %f, %f, %d], # line.py trial\n", v0->cx,v0->cy,v0->cz, v1->cx,v1->cy,v1->cz, *pIsHit);
+      }
+      
+      int entry_vnoLo = entry->vno;
+      int entry_vnoHi = ctx->mris->vertices[entry->vno].v[entry->n];
+      if (entry_vnoLo > entry_vnoHi) { int temp = entry_vnoLo; entry_vnoLo = entry_vnoHi; entry_vnoHi = temp; }
+      
+      if ( ctx->old_firstHit_vnoLo == entry_vnoLo 
+        && ctx->old_firstHit_vnoHi == entry_vnoHi
+        && !*pIsHit) {
+        fprintf(stderr, "callback passed the is_old_firstHit, now it is not hitting\n");
+        isHit(ctx->mris, entry->vno, ctx->defect, ctx->e, entry->n, "possiblyIntersectingGreatArcs_callback - showing why not hit");
+        *(int*)(-1) = 0;
+      }
+
+      if (!*pIsHit)
+        return true;    // Keep going when missing, and no need to keep
+      
+      ctx->matches++;
+      
+      ctx->someMatchingIndexPlus1 = indexIntoIDECtxEntries + 1;
+      
+      return false;
+    }
+
+static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, IntersectDefectEdgesContext* ctx, int *vertex_trans, int *v1, int *v2)
+{
+  static long stats_count    = 0;
+  static long stats_limit    = 1;
+  
+  static int once;
+  static bool asked_do_old_way,asked_do_new_way,asked_do_stats;
+  if (!once++) {
+    if (getenv("FREESURFER_intersectDefectEdges_old"))   asked_do_old_way = true;
+    if (getenv("FREESURFER_intersectDefectEdges_new"))   asked_do_new_way = true;
+    if (getenv("FREESURFER_intersectDefectEdges_stats")) asked_do_stats   = true;
+  }
+  bool do_old_way = asked_do_old_way;
+  bool do_new_way = asked_do_new_way || !asked_do_old_way;
+  
+  if (!ctx) { do_new_way = false; do_old_way = true; }
+
+  bool showStats = asked_do_stats || (do_old_way && do_new_way);
+  if (showStats) {
+    stats_count++;
+    
+    if (stats_count < stats_limit) {
+      showStats = false;
+    } else {
+      if (stats_limit < 20000) stats_limit *= 2; else stats_limit += 20000;
     }
   }
 
-  return (0);
+  // This code says 
+  //  for each vertex in the defect
+  //      for each edge from the vertex 
+  //          if the edge shares a vertex with 'e' 
+  //          or the edge does not intersect 'e' 
+  //          then
+  //              ignore it
+  //          else 
+  //              return it
+  //
+  // but it only really needs to consider edges that might intersect 'e'
+  // so it can be rewritten as
+  //    for each vertex in the defect
+  //        for each edge from the vertex
+  //            add this edge to a list
+  //
+  //    for each edge in the list
+  //        if this edge shares a vertex with 'e' ignore it
+  //        else if this edge intersects 'e' return it
+  //
+  // This second loop can then be replaced with one that only considers edges that MIGHT intersect 'e'
+  // The pGreatArcSet code implements this version...
+  //
+  //  
+  int result = 0;
+  
+  int old_firstHit       = -1;
+  int old_firstHit_vnoLo = -1;
+  int old_firstHit_vnoHi = -1;
+  
+  if (do_old_way) {
+
+    static long stats_tried = 0;
+
+    ROMP_PF_begin
+    int i;
+    for (i = 0; i < defect->nvertices + defect->nchull; i++) {
+
+      int vno;
+      if (i < defect->nvertices) {
+        vno = vertex_trans[defect->vertices[i]];
+      } else {
+        vno = vertex_trans[defect->chull[i - defect->nvertices]];
+      }
+
+      if (vno == e->vno1 || vno == e->vno2 || vno < 0) {
+        continue;
+      }
+
+      EDGE edge2;
+      edge2.vno1 = vno;
+      VERTEX const * const v = &mris->vertices[vno];
+
+      int n;
+      for (n = 0; n < v->vnum; n++) {
+        if (v->v[n] == e->vno1 || v->v[n] == e->vno2) {
+          continue;
+        }
+        edge2.vno2 = v->v[n];
+        if (defect->optimal_mapping && mris->vertices[v->v[n]].fixedval == 0) {
+          continue;  // experimental
+        }
+        old_firstHit++;
+
+        stats_tried++;
+
+        if (edgesIntersect(mris, e, &edge2)) {
+        
+          if (v1) {
+            (*v1) = edge2.vno1;
+          }
+          if (v2) {
+            (*v2) = edge2.vno2;
+          }
+          result = 1;
+          
+          old_firstHit_vnoLo = edge2.vno1;
+          old_firstHit_vnoHi = edge2.vno2;
+          if (old_firstHit_vnoLo > old_firstHit_vnoHi) { 
+            int tmp = old_firstHit_vnoLo; old_firstHit_vnoLo = old_firstHit_vnoHi; old_firstHit_vnoHi = tmp; 
+          }
+          
+          if (stats_count == 48) {
+            fprintf(stderr, "%s:%d stats_count:%ld old found edge vno:%d .. vno:%d\n", __FILE__, __LINE__, stats_count,
+                old_firstHit_vnoLo, old_firstHit_vnoHi);
+          }
+          
+          goto Done;
+        }
+      }
+    }
+  Done:;
+
+    if (showStats) {
+        if (stats_limit < 20000) stats_limit *= 2; else stats_limit += 20000;
+        fprintf(stderr, "%s:%d"
+          " avg_tried:%g, stats_count:%ld\n", 
+          __FILE__, __LINE__,
+          (float)stats_tried/(float)stats_count, stats_count);
+    }
+
+    ROMP_PF_end
+  }
+  
+  if (do_new_way) {
+    static long stats_made;                 // the GreatArcSet
+    static long stats_reused;
+    static long stats_revised;
+    static long stats_numberOfGreatArcs;    // #entries in the GreatArcSet
+    
+    static long stats_addedVertexs, stats_addedArcs, stats_movedArcs, stats_unmovedArcs;
+    static long stats_possible;
+    static long stats_tried;
+    
+    GreatArcSet* gas = ctx->greatArcSet;
+    
+    if (ctx->nvertices_seen < mris->nvertices) {
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+        int* p = ctx->vnoToFirstNPlus1 = (int*)realloc(vnoToFirstNPlus1,mris->nvertices*sizeof(int));
+#else
+        int* p = ctx->vnosHighestNSeen = (int*)realloc(ctx->vnosHighestNSeen,mris->nvertices*sizeof(int));
+#endif
+        int i; for (i = ctx->nvertices_seen; i < mris->nvertices; i++) p[i] = 0;
+        stats_addedVertexs += mris->nvertices - ctx->nvertices_seen;
+        ctx->nvertices_seen = mris->nvertices;
+    }
+    
+    // Make a GreatArcSet of all the edges that must be considered
+    // unless it has been already made
+    //
+    bool emit_line_py = false;  // showStats || (stats_count < 45);
+    if (emit_line_py) fprintf(stderr, "%s:%d emit_line_py set for stats_count:%ld\n", __FILE__, __LINE__, stats_count);
+       
+    ROMP_PF_begin
+    if (gas && !ctx->obsoleted) {
+      stats_reused++;
+    } else {
+
+      ROMP_PF_begin
+
+      if (!ctx->obsoleted) {
+        stats_made++; 
+        gas = ctx->greatArcSet = makeGreatArcSet(mris);
+        // emit_line_py = true;
+        if (emit_line_py) fprintf(stderr, " [0 ], # line.py reset\n");
+      } else {
+        stats_revised++;
+        ctx->obsoleted = false;
+      }
+
+      stats_numberOfGreatArcs = 0;
+      
+      int i;
+      for (i = 0; i < defect->nvertices + defect->nchull; i++) {
+
+        int vno;
+        if (i < defect->nvertices) {
+          vno = vertex_trans[defect->vertices[i]];
+        } else {
+          vno = vertex_trans[defect->chull[i - defect->nvertices]];
+        }
+
+        if (vno < 0) {
+          continue;
+        }
+
+        VERTEX const *v = &mris->vertices[vno];
+        
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+        int                                 nextEntryIndexForVno = ctx->vnoToFirstNPlus1[vno] - 1;
+        IntersectDefectEdgesContext_Entry*  prevEntry            = NULL;
+#else
+        int                                 nextEntryIndexForVno = -1;
+#endif
+        stats_numberOfGreatArcs += v->vnum;
+
+        int n;
+        for (n = 0; n < v->vnum; n++) {
+
+          VERTEX const *v2 = &mris->vertices[v->v[n]];
+
+          // During revision, there are four possibilities... This (vno, n) pair
+          //    (1) is still at the same location   - no change
+          //    (2) has gone                        - the entry will be ignored by the callback (detected by v->vnum <= n)
+          //    (3) did not exist before            - add a new one
+          //    (4) has moved                       - tell GreatArcSet it has moved     TESTING HAS NOT FOUND ANY OF THESE
+          // Need a per-vno chain of entries that will be cheap
+          //
+          IntersectDefectEdgesContext_Entry* entry;
+
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+          if (nextEntryIndexForVno >= 0) {
+            entry = &ctx->entries[nextEntryIndexForVno];
+            
+            if (v ->cx != entry->cx
+            ||  v ->cy != entry->cy
+            ||  v ->cz != entry->cz
+            ||  v2->cx != entry->cx2
+            ||  v2->cy != entry->cy2
+            ||  v2->cz != entry->cz2
+               ) {                                       // true to tell GreatArcSet it has moved
+
+                static int show_moves_count, show_moves_limit = 1;
+                if (show_moves_count++ == show_moves_limit) {
+                    if (show_moves_limit < 20) show_moves_limit++;
+                    else if (show_moves_limit < 1024) show_moves_limit *= 2;
+                    else show_moves_limit += 1024;
+                    fprintf(stderr, " (x:%6g,y:%6g,z:%6g) moved by \n (  %6g,  %6g,  %6g)\n",
+                        entry->cx,         entry->cy,         entry->cz,
+                        entry->cx - v->cx, entry->cy - v->cy, entry->cz - v->cz);
+                }
+
+                entry->cx  = v ->cx;
+                entry->cy  = v ->cy;
+                entry->cz  = v ->cz;
+                entry->cx2 = v2->cx;
+                entry->cy2 = v2->cy;
+                entry->cz2 = v2->cz;
+
+                stats_movedArcs++;
+
+                insertGreatArc(gas, nextEntryIndexForVno, true,
+                    v->cx,v->cy,v->cz,  v2->cx,v2->cy,v2->cz);
+            } else {
+                stats_unmovedArcs++;
+            }
+            
+          }
+#else
+          if (n < ctx->vnosHighestNSeen[vno]) {
+            // ones that have been entered have not moved
+            ;
+          }
+#endif
+          else 
+          {
+          
+            if (ctx->entriesSize == ctx->entriesCapacity) {
+              ctx->entriesCapacity *= 2;
+              if (ctx->entriesCapacity == 0) ctx->entriesCapacity = 128;
+              ctx->entries = 
+                (IntersectDefectEdgesContext_Entry*)realloc(
+                  ctx->entries, 
+                  ctx->entriesCapacity*sizeof(IntersectDefectEdgesContext_Entry));
+            }
+          
+            nextEntryIndexForVno = ctx->entriesSize++;
+            entry = &ctx->entries[nextEntryIndexForVno];
+            entry->vno = vno; entry->n = n; 
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+            entry->next = -1;
+            if (prevEntry) prevEntry->next = nextEntryIndexForVno; else ctx->vnoToFirstNPlus1[vno] = nextEntryIndexForVno + 1;
+#endif
+
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+            entry->cx  = v ->cx;
+            entry->cy  = v ->cy;
+            entry->cz  = v ->cz;
+            entry->cx2 = v2->cx;
+            entry->cy2 = v2->cy;
+            entry->cz2 = v2->cz;
+#endif  
+            bool interesting = false;
+            if (false && vno == 151634 && v->v[n] == 487) {
+                fprintf(stderr, "%s:%d , interesting greatArc found\n", __FILE__, __LINE__);
+                interesting = true;
+            }
+            
+            insertGreatArc(gas, nextEntryIndexForVno, 
+                vno, v->v[n]    // NEW INTERFACE
+                // OLD INTERFACE    false, v->cx,v->cy,v->cz,  v2->cx,v2->cy,v2->cz, interesting
+                );
+                
+            // get some data for visualizing
+            // by a separate tool to understand the situation better
+            //
+            if (emit_line_py) {
+              fprintf(stderr, " [1, %f, %f, %f, %f, %f, %f], # line.py defect edge vno:%d..%d\n", 
+                v->cx,v->cy,v->cz,  v2->cx,v2->cy,v2->cz,
+                vno, v->v[n]);
+            }
+            
+          }
+          
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+          nextEntryIndexForVno = entry->next;
+          prevEntry            = entry;
+#endif
+        }   // for n
+
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+#else
+        if (ctx->vnosHighestNSeen[vno] < v->vnum) {
+            if (ctx->vnosHighestNSeen[vno]) stats_addedArcs += v->vnum - ctx->vnosHighestNSeen[vno];    // added after the first ones
+            ctx->vnosHighestNSeen[vno] = v->vnum;
+        }
+#endif
+      }
+      ROMP_PF_end
+    }
+    ROMP_PF_end
+    
+    // Get the subset that need to be examined
+    //
+    VERTEX const * const ev  = &mris->vertices[e->vno1];
+    VERTEX const * const ev2 = &mris->vertices[e->vno2];
+    
+    PossiblyIntersectingGreatArcs_callback_context callback_context;
+    {
+      bzero(&callback_context, sizeof(callback_context));
+      callback_context.mris    = mris;
+      callback_context.defect  = defect;
+      callback_context.e       = e;
+      callback_context.ide_ctx = ctx;
+      callback_context.old_firstHit_vnoLo = old_firstHit_vnoLo;
+      callback_context.old_firstHit_vnoHi = old_firstHit_vnoHi;
+      
+      callback_context.emit_line_py = emit_line_py;
+
+      ROMP_PF_begin
+
+        if (emit_line_py) fprintf(stderr, " [2, %f, %f, %f, %f, %f, %f], # line.py target\n", ev->cx,ev->cy,ev->cz, ev2->cx,ev2->cy,ev2->cz);
+
+        possiblyIntersectingGreatArcs(
+          gas,
+          &callback_context,
+          possiblyIntersectingGreatArcs_callback,
+          ev->cx,ev->cy,ev->cz, ev2->cx,ev2->cy,ev2->cz, 
+          stats_count == stats_limit-1);                    // tracing
+
+      ROMP_PF_end
+    }
+        
+    stats_possible += stats_numberOfGreatArcs;
+    stats_tried    += callback_context.tried;
+    
+    // Process the found one
+    //
+    if (callback_context.someMatchingIndexPlus1 > 0) {
+
+      IntersectDefectEdgesContext_Entry* entry = &ctx->entries[callback_context.someMatchingIndexPlus1 - 1];
+      int vno = entry->vno;
+      int n   = entry->n;
+      VERTEX const * const v = &mris->vertices[vno];
+
+      if (v1) {
+        (*v1) = vno;
+      }
+      if (v2) {
+        (*v2) = v->v[n];
+      }
+      
+      if (do_old_way && !result) { 
+        fprintf(stderr, "%s:%d old stats_count:%ld didn't find, new did\n", __FILE__, __LINE__, stats_count);
+        *(int*)(-1) = 0; 
+      }
+      
+      result = 1;
+      goto Done2;
+    }
+
+    if (do_old_way && result) { 
+      
+      fprintf(stderr, "%s:%d stats_count:%ld old found vno0:%d vno1:%d, new did not during \n", __FILE__, __LINE__, stats_count, 
+        old_firstHit_vnoLo, old_firstHit_vnoHi); 
+        
+      possiblyIntersectingGreatArcs_Debug(                              // show how vno0..vno1 interacts with the arc
+        gas,
+        ev->cx,ev->cy,ev->cz, ev2->cx,ev2->cy,ev2->cz,                  // the arc
+        old_firstHit_vnoLo, old_firstHit_vnoHi);                        // vno0..vno1
+
+      *(int*)(-1) = 0; 
+    }
+
+Done2:;
+    
+    if (showStats) {
+        if (stats_limit < 20000) stats_limit *= 2; else stats_limit += 20000;
+        fprintf(stderr, "%s:%d"
+          " made:%ld revised:%ld reused:%ld"
+          " addedVertexs:%g, addedArcs:%g movedArcs:%g movedArcs/revision:%g "
+          " unmovedArcs/revision:%g "
+          " avg_possible:%g  avg_tried:%g  stats_count:%ld\n", 
+          __FILE__, __LINE__,
+          stats_made, stats_revised, stats_reused,
+          (float)stats_addedVertexs,
+          (float)stats_addedArcs,
+          (float)stats_movedArcs,
+          (float)stats_movedArcs/(float)stats_revised,
+          (float)stats_unmovedArcs/(float)stats_revised,
+          (float)stats_possible/(float)stats_count, 
+          (float)stats_tried   /(float)stats_count,
+          stats_count);
+    }
+  }
+
+  return result;
 }
 
 static int intersectDefectConvexHullEdges(
-    MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans, int *v1, int *v2)
+    MRI_SURFACE *mris, DEFECT *defect, EDGE *e, IntersectDefectEdgesContext* ctx, int *vertex_trans, int *v1, int *v2)
 {
   VERTEX *v;
   int i, n, vno;

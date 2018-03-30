@@ -100,6 +100,23 @@ static int chkBnd(int lo, int b, int hi) {
         return ctx[lhs] - ctx[rhs];
     }
 
+    typedef struct PossiblyIntersectingGreatArcs_callback_context {
+      int  capacity;
+      int  size;
+      int* keys;
+    } PossiblyIntersectingGreatArcs_callback_context;
+
+    static bool possiblyIntersectingGreatArcs_callback (void* void_ctx, int key, bool* isHit) {
+      PossiblyIntersectingGreatArcs_callback_context* ctx = (PossiblyIntersectingGreatArcs_callback_context*)void_ctx;
+      if (ctx->size == ctx->capacity) {
+        ctx->capacity *= 2; if (!ctx->capacity) ctx->capacity = 64; 
+        ctx->keys = (int*)realloc(ctx->keys, ctx->capacity*sizeof(int));
+      }
+      ctx->keys[ctx->size++] = key;
+      *isHit = false;
+      return true;  // keep sending them to me
+    }
+
     void test(int nvertices, int useDuplicates) {
         fprintf(stdout,"Test nvertices:%d useDuplicates:%d\n", nvertices, useDuplicates);
         
@@ -224,7 +241,112 @@ static int chkBnd(int lo, int b, int hi) {
         freeAndNULL(ctx_y);
         freeAndNULL(ctx_z);
         
+#if 1          
         if (1) {
+            fprintf(stderr, "Testing GreatArcSet\n");
+            
+            int  size;
+            int* keys;
+
+            if (1) {
+                // Make a GreatArcSet
+                //
+                GreatArcSet* gas = makeGreatArcSet(&mris);
+
+                // Throw in some one edge
+                //
+                mris.vertices[0].someX = 1;         // vertex 0
+                mris.vertices[0].someY = 0;
+                mris.vertices[0].someZ = -1.1;
+                mris.vertices[1].someX = 1;         // vertex 1
+                mris.vertices[1].someY = 0;
+                mris.vertices[1].someZ = -1.2;
+                insertGreatArc(gas, 77, 0,1);       // edge connecting them
+                
+                // See if an intersection is detected
+                //
+                {
+                    PossiblyIntersectingGreatArcs_callback_context context;
+                    bzero(&context, sizeof(context));
+                    possiblyIntersectingGreatArcs(gas, &context, possiblyIntersectingGreatArcs_callback, 1,0,-1.2, 1,0,-1.1, false);
+                    int size  = context.size;
+                    int* keys = context.keys; 
+                    if (size    !=  1) fprintf(stderr, "same lines failed, size:%d\n", size); else
+                    if (keys[0] != 77) fprintf(stderr, "same lines wrong key\n"); else
+                                       fprintf(stderr, "same lines correct key - good!\n");
+                    freeAndNULL(keys);
+                }
+                
+                // Done
+                //
+                freeGreatArcSet(&gas);
+            }
+            
+            if (1) {
+            
+                // Make a GreatArcSet
+                //
+                GreatArcSet* gas = makeGreatArcSet(&mris);
+
+                // Throw in edges to make squared graph paper
+                //
+                int key = 0;
+                int vno = 0;
+                int x,y;
+                for (x = 0; x < 100; x++)             
+                for (y = 0; y < 100; y++) {
+                    if (vno + 3 >= mris.nvertices) break;
+                               
+                    mris.vertices[vno].someX = x;
+                    mris.vertices[vno].someY = y;
+                    mris.vertices[vno].someZ = 1000.0;
+                    vno++;
+                    mris.vertices[vno].someX = x+1;
+                    mris.vertices[vno].someY = y;
+                    mris.vertices[vno].someZ = 1000.0;
+                    vno++;
+                    mris.vertices[vno].someX = x;
+                    mris.vertices[vno].someY = y+1;
+                    mris.vertices[vno].someZ = 1000.0;
+                    vno++;
+
+                    insertGreatArc(gas, key++, vno-3,vno-2);
+                    insertGreatArc(gas, key++, vno-3,vno-1);
+                }
+
+                // Lookup a variety of lines and make sure that at least the right ones are found
+                // and not too many others
+                //                
+                for (x = 5; x < 100; x+=5)             
+                for (y = 5; y < 100; y+=5) {
+                    PossiblyIntersectingGreatArcs_callback_context context;
+                    bzero(&context, sizeof(context));
+
+                    possiblyIntersectingGreatArcs(gas, &context, possiblyIntersectingGreatArcs_callback,  x-0.5,y-0.5,1000.0, x+x%5,y+y%3,1000.0, true);
+
+                    size = context.size;
+                    keys = context.keys;
+                    fprintf(stderr, "%d possible intersections found near %d\n", size, x*10000+y*100+0);
+                    int i;
+                    for (i = 0; i < size; i++) {
+                        if (i == 40) {
+                            fprintf(stderr, " ...");
+                            break;
+                        }
+                        fprintf(stderr, "  %d", keys[i]);
+                    }
+                    fprintf(stderr, "\n");
+                    freeAndNULL(keys);
+                }
+            
+                // Done
+                //
+                freeGreatArcSet(&gas);
+            }
+        }
+#endif
+        
+        if (0) {
             fprintf(stdout, "Testing RealmTree\n");
         
             // Make a RealmTree
@@ -1530,4 +1652,563 @@ void summarizeRealmTreeFno(RealmTree const * realmTree, int fno) {
     for (vi = 0; vi < VERTICES_PER_FACE; vi++) {
         summarizeRealmTreeVno(realmTree, face->v[vi]); 
     }
+}
+static void sortIntSoFirstLo(int* a, int* b) {
+    if (*a > *b) { int temp = *a; *a = *b; *b = temp; }
+}
+
+static void sortFloatSoFirstLo(float* a, float* b) {
+    if (*a > *b) { float temp = *a; *a = *b; *b = temp; }
+}
+
+
+
+
+// Wrapper for realloc that 
+//      adjusts the capacity
+//      zero's the extension
+//
+static void growCapacity(int* p_capacity, int minCapacity) {
+    int old_capacity = *p_capacity;
+    int new_capacity = old_capacity + old_capacity/3;
+    if (new_capacity < minCapacity) new_capacity = minCapacity;
+    *p_capacity = new_capacity;
+}
+
+static void growInts(int** p_old, int old_capacity, int new_capacity) {
+    int* old = *p_old;
+    int* new = (int*)realloc(old, new_capacity*sizeof(int));
+    bzero(&new[old_capacity], (new_capacity - old_capacity)*sizeof(int));
+    *p_old = new;
+}
+
+static void growCapacityAndInts(int** p_old, int* p_capacity, int minCapacity) {
+    int  old_capacity = *p_capacity;
+    growCapacity(p_capacity, minCapacity);
+    growInts(p_old, old_capacity, *p_capacity);
+}
+
+// The cells of the projection plane that contain the indexs for the great arcs that might intersect the cell
+//
+#define GRID_WIDTH  16
+#define GRID_HEIGHT 16
+#define CELLS_SIZE (GRID_WIDTH*GRID_HEIGHT + 1) // Need a grid, plus one cell for everything that has at least partial exceeds the grid
+#define UNIVERSAL_CELL (CELLS_SIZE - 1)
+
+typedef struct Cell {
+    int  size, capacity;
+    int* indexs;
+} Cell;
+
+static void finiCell(Cell* cell) {
+    freeAndNULL(cell->indexs);
+}
+
+typedef struct Pair {                           // an entry in a chain off the GreatArcSet pairHeadsPlus1 hash table
+    int nextPlus1;                              // index plus 1 (0 is end of list) of the next item
+    int loVno;
+    int hiVno;
+} Pair;
+
+
+#define PAIRS_HEADS_SIZE (1<<10)
+#define PAIRS_HEADS_MASK (PAIRS_HEADS_SIZE-1)
+
+struct GreatArcSet {
+    MRIS*   mris;
+    
+    int     capacity, size,                     // the list of great arcs
+            size_dispersed;                     // the size of the tail of the great arcs not yet in the cells
+    int*    keys;                               // mrisurf gives a key to each great arc, to id the arc in the callback
+    int*    loVnos;                             // beginning vno of the great arc
+    int*    hiVnos;                             // ending vno of the great arc
+    
+    int*    passed;                             // used during one callback to note those passed to de-duplicate the multiple cells
+    
+    int     pairHeadsPlus1[PAIRS_HEADS_SIZE];   // a hash table, indexs into pairs
+    int     pairsSize, pairsCapacity;           // chains off the hash table
+    Pair*   pairs;                              //      the entries in the chains
+    
+    float   ax,ay,az,bx,by,bz,cx,cy,cz;         // used to project the vno into the rectangle h,w
+    float   minH,minW,scaleH,scaleW;            // used to project the h,w into the cel grid
+
+    Cell    cells[CELLS_SIZE];
+};
+
+static Cell* getCell(GreatArcSet* set, int w, int h) {
+    // Does not include the UNIVERSAL_CELL
+    return &set->cells[chkBnd(0,w,GRID_WIDTH)*GRID_HEIGHT + chkBnd(0,h,GRID_HEIGHT)];
+} 
+
+
+static void greatArcSet_project(GreatArcSet* set, float x, float y, float z, float* w, float* h, bool* universal_cell, bool trace) {
+
+    // Project into the coordinate space invented for the defect
+    //
+    float
+        px = set->cx*x + set->cy*y + set->cz*z,
+        py = set->ax*x + set->ay*y + set->az*z,
+        pz = set->bx*x + set->by*y + set->bz*z;
+
+    if (trace) {
+        fprintf(stdout, "%s:%d x:%g y:%g z:%g \n", __FILE__, __LINE__, x,y,z);
+        fprintf(stdout, "  ax:%g ay:%g az:%g \n", set->ax,set->ay,set->az);
+        fprintf(stdout, "  bx:%g by:%g bz:%g \n", set->bx,set->by,set->bz);
+        fprintf(stdout, "  cx:%g cy:%g cz:%g \n", set->cx,set->cy,set->cz);
+    }
+    
+    // Project into the perpendicular plane
+
+    if (px <= 0.1) {                // This could be zero, but making it 0.1 reduce the range of the w h
+        *w = -1.0f;                 // because our cx,... data is typically approx 100.0
+        *h = -1.0f;
+        *universal_cell = true;
+        
+        if (1) {
+            static int once;
+            if (!once) { once = 1;
+                fprintf(stdout, "Large defect found - not a problem, but a curiousity\n");
+            }
+        }
+    }
+    
+    *universal_cell = false;
+    *w = pz/px;
+    *h = py/px;
+
+    if (trace) {
+        fprintf(stdout, "  w:%g h:%g\n", *w, *h);
+    }
+}
+
+
+static void greatArcSet_getCellCoords(GreatArcSet* set, float x, float y, float z, int* p_wI, int* p_hI, bool* universal_cell, bool trace) {
+
+    float h,w;
+    greatArcSet_project(set, x, y, z, &w, &h, universal_cell, trace);
+    
+    int wI = (int)((w - set->minW)*set->scaleW);
+    int hI = (int)((h - set->minH)*set->scaleH);
+   
+    if (trace) {
+        fprintf(stdout, "%s:%d wI:%d = (w:%g - minW:%g)*scaleW:%g\n",__FILE__,__LINE__,wI,w,set->minW,set->scaleW);
+        fprintf(stdout, "%s:%d hI:%d = (w:%g - minH:%g)*scaleH:%g\n",__FILE__,__LINE__,hI,h,set->minH,set->scaleH);
+    }
+    
+    if (*universal_cell
+    || hI < 0 || GRID_HEIGHT <= hI
+    || wI < 0 || GRID_WIDTH  <= wI) {
+        if (0) {
+            static int aFewTimes;
+            if (aFewTimes < 100) { aFewTimes++;
+                fprintf(stdout, "Large defect found - a curiousity, not a problem - *universal_cell:%d\n", *universal_cell);
+            }
+        }
+        *universal_cell = true;
+        *p_wI = -1;
+        *p_hI = -1;
+    } else {  
+        *p_wI = wI;
+        *p_hI = hI;
+    }
+}
+
+
+static void greatArcSet_cellInsert(GreatArcSet* set, Cell* cell, int index) {
+    if (cell->size == cell->capacity) growCapacityAndInts(&cell->indexs, &cell->capacity, 16);
+    cell->indexs[chkBnd(0,cell->size++,cell->capacity)] = index;
+}
+
+void freeGreatArcSet(GreatArcSet** setPtr) {
+    GreatArcSet* set = *setPtr; *setPtr = NULL;
+    if (!set) return;
+    { int i; for (i=0; i<CELLS_SIZE; i++) finiCell(&set->cells[i]); }
+    freeAndNULL(set->pairs);
+    freeAndNULL(set->passed);
+    freeAndNULL(set->hiVnos);
+    freeAndNULL(set->loVnos);
+    freeAndNULL(set->keys);
+}
+
+GreatArcSet* makeGreatArcSet(MRIS* mris) {
+    GreatArcSet* set = (GreatArcSet*)calloc(1, sizeof(GreatArcSet));
+    set->mris = mris;
+    return set;
+}
+
+static void growGreatArcBuffer(GreatArcSet* set) {
+    size_t old_capacity = set->capacity;
+    growCapacity(&set->capacity, 128);
+    growInts(&set->keys,   old_capacity, set->capacity);
+    growInts(&set->loVnos, old_capacity, set->capacity);
+    growInts(&set->hiVnos, old_capacity, set->capacity);
+    growInts(&set->passed, old_capacity, set->capacity);
+}
+
+
+static bool isInPairs(int* p_pairHeadsIndex, GreatArcSet* set, int vno0, int vno1) {
+    int pairHeadsIndex = *p_pairHeadsIndex = chkBnd(0,((vno0*12797)^(vno1*97127)) & PAIRS_HEADS_MASK, PAIRS_HEADS_SIZE);
+    int next = set->pairHeadsPlus1[pairHeadsIndex] - 1;
+    while (next >= 0) {
+        Pair* pair = &set->pairs[chkBnd(0,next,set->pairsSize)];
+        if (pair->loVno == vno0 && pair->hiVno == vno1) 
+            return true;
+        next = pair->nextPlus1 - 1;
+    }
+    return false;
+}
+
+
+void insertGreatArc(GreatArcSet* set, int key, int vno0, int vno1) {
+
+    // Order the vno's to help detect duplicate edges
+    //
+    sortIntSoFirstLo(&vno0, &vno1);
+
+    // Check for duplicates, and ignore if present
+    //
+    int pairHeadsIndex;
+    if (isInPairs(&pairHeadsIndex, set, vno0, vno1)) return;                            // duplicate, ignored
+    
+    // Insert
+    //
+    if (set->pairsSize == set->pairsCapacity) {
+        growCapacity(&set->pairsCapacity,128);
+        set->pairs = (Pair*)realloc(set->pairs, set->pairsCapacity * sizeof(Pair));      // note: not zeroed
+    }
+
+    Pair* pair = &set->pairs[set->pairsSize++];
+    pair->nextPlus1 = set->pairHeadsPlus1[pairHeadsIndex];
+    pair->loVno     = vno0;
+    pair->hiVno     = vno1;
+    
+    set->pairHeadsPlus1[pairHeadsIndex] = set->pairsSize;                                  // +1 has been done by the set->pairsSize++
+
+    if (set->size == set->capacity) growGreatArcBuffer(set);
+
+    int i = set->size++;
+    set->keys  [i] = key;
+    set->loVnos[i] = vno0;
+    set->hiVnos[i] = vno1;
+}
+
+
+static void decideProjection(GreatArcSet* set) {
+    
+    // Sum the coordinates of all (or a subset) of the vertexs
+    //
+    float sumX = 0, sumY = 0, sumZ = 0;
+    {   int index;
+        for (index = 0; index < set->size; index++) {
+            VERTEX const * v0 = &set->mris->vertices[chkBnd(0,set->loVnos[index],set->mris->nvertices)];
+            VERTEX const * v1 = &set->mris->vertices[chkBnd(0,set->hiVnos[index],set->mris->nvertices)];
+            sumX += v0->cx + v1->cx;
+            sumY += v0->cy + v1->cy;
+            sumZ += v0->cz + v1->cz;
+        }
+    }
+
+    // Compute the plane through the points that is going to hold the projection of the defect for search purposes
+    // It is close enough to the sphere for small defects that it can guide the search for intersecting lines.
+    //    
+    // This is the center of the points, aka the vector from the origin to the center, 
+    // so it is the normal to the plane that is tangent to the surface where the defect is centered.
+    // Make it the unit vector to use as the axis.
+    //
+    float cx = sumX, cy = sumY, cz = sumZ;
+    {
+        float clen = sqrt(cx*cx+cy*cy+cz*cz);  if (clen == 0.0) clen = 1.0; clen = 1.0/clen; cx *= clen; cy *= clen; cz *= clen; 
+    }
+
+    // Construct some unit vector in the plane
+    //    
+    float ax,ay,az;                                         // construct a perpendicular to cx,cy,cz [make the dot product == 0.0]
+    if (fabs(cx) >= fabs(cz) && fabs(cx) >= fabs(cz))       // cz is smallest
+        ax = cy, ay = -cx, az = 0;
+    else if (fabs(cx) >= fabs(cy) && fabs(cz) >= fabs(cy))  // cy is smallest
+        ax = cz, ay = 0, az = -cx;
+    else                                                    // cx is smallest
+        ax = 0,  ay = cz, az = -cy;
+    {
+        float alen = sqrt(ax*ax+ay*ay+az*az);  if (alen == 0.0) alen = 1.0; alen = 1.0/alen; ax *= alen; ay *= alen; az *= alen; 
+    }
+
+    // Construct the third axis
+    //
+    float                                                   // cross product to get the third axis
+        bx = ay*cz - az*cy,                                 // it will be a unit vector, but just in case tidy it up..
+        by = az*cx - ax*cz,
+        bz = ax*cy - ay*cx;
+    {
+        float blen = sqrt(bx*bx+by*by+bz*bz);  if (blen == 0.0) blen = 1.0; blen = 1.0/blen; bx *= blen; by *= blen; bz *= blen; 
+    }
+
+    // Save - used to project the lines later
+    //
+    set->ax = ax; set->ay = ay; set->az = az;
+    set->bx = bx; set->by = by; set->bz = bz;
+    set->cx = cx; set->cy = cy; set->cz = cz;
+
+    // Decide the range of the projected data
+    //
+    float minH = +FLT_MAX, minW = +FLT_MAX;
+    float maxH = -FLT_MAX, maxW = -FLT_MAX;
+    {   int* vnos = set->loVnos;
+        for (;;) {
+            int index;
+            for (index = 0; index < set->size; index++) {
+                VERTEX const * v = &set->mris->vertices[chkBnd(0,vnos[index],set->mris->nvertices)];
+                bool  universal_cell;
+                float h,w;
+                greatArcSet_project(set, v->cx, v->cy, v->cz, &h, &w, &universal_cell, false);
+                if (!universal_cell) {
+                    minH = MIN(minH,h); maxH = MAX(maxH,h);
+                    minW = MIN(minW,w); maxW = MAX(maxW,w);
+                }
+            }
+            if (vnos == set->hiVnos) break;
+            vnos = set->hiVnos;
+        }
+    }
+
+    set->minH = minH; if (maxH == minH) maxH = minH + 1; set->scaleH = GRID_HEIGHT/(maxH-minH);
+    set->minW = minW; if (maxW == minW) maxW = minW + 1; set->scaleW = GRID_WIDTH /(maxW-minW);
+
+    if (0) {
+        bool universal_cell;
+        int hI, wI;
+        greatArcSet_getCellCoords(set, sumX/set->size, sumY/set->size, sumZ/set->size, &hI, &wI, &universal_cell, false);  
+        fprintf(stderr, "%s:%d center -> (%d,%d) %s\n", __FILE__, __LINE__, hI,wI,universal_cell?"universal_cell":"");
+    }
+}
+
+
+static void disperseGreatArcsIntoCells(GreatArcSet* set) 
+{
+    if (set->size_dispersed == set->size) return;
+
+    if (set->size_dispersed == 0) decideProjection(set);
+
+    // Insert the new arcs into the cells
+    //
+    int index;
+    for (index = set->size_dispersed; index < set->size; index++) {
+
+        int const vno0 = set->loVnos[index];
+        int const vno1 = set->hiVnos[index];
+        
+        bool const trace = false; // vno0 == 496 && vno1 == 151637;
+        
+        VERTEX const * v0 = &set->mris->vertices[chkBnd(0,vno0,set->mris->nvertices)];
+        VERTEX const * v1 = &set->mris->vertices[chkBnd(0,vno1,set->mris->nvertices)];
+
+        bool universal_cell0, universal_cell1;
+        int hI0, hI1, wI0, wI1;
+        greatArcSet_getCellCoords(set, v0->cx, v0->cy, v0->cz, &wI0, &hI0, &universal_cell0, trace);
+        greatArcSet_getCellCoords(set, v1->cx, v1->cy, v1->cz, &wI1, &hI1, &universal_cell1, trace);
+
+        if (trace) {
+            fprintf(stdout, "%s:%d v0:%d v1:%d dispersed to cell coords (%d..%d, %d..%d) %s\n", __FILE__, __LINE__,
+                vno0,vno1, wI0,wI1,hI0,hI1,  (universal_cell0 || universal_cell1)?"universal_cell":"");
+            fprintf(stdout, " v0 at (%g,%g,%g) v1 at (%g,%g,%g)\n", v0->cx,v0->cy,v0->cz, v1->cx,v1->cy,v1->cz);
+        }
+
+        if (universal_cell0 || universal_cell1) {
+            greatArcSet_cellInsert(set, &set->cells[UNIVERSAL_CELL], index);
+            continue;   
+        }
+        
+        // There are many ways to do this, but most edges are within a cell or adjacent cells
+        // so it is not worth being clever
+        //
+        sortIntSoFirstLo(&hI0,&hI1);
+        sortIntSoFirstLo(&wI0,&wI1);
+        
+        int h,w;
+        for (h = hI0; h <= hI1; h++)           
+        for (w = wI0; w <= wI1; w++)
+            greatArcSet_cellInsert(set, getCell(set,w,h), index);           
+    }
+
+    set->size_dispersed = set->size; 
+}
+
+
+static bool possiblyIntersectingCell(GreatArcSet* set,
+    void* callbackCtx,
+    bool (*callback)(
+        void* callbackCtx, 
+        int   key, 
+        bool* isHit),               // returns true if should keep going, false if no more needed
+    Cell* cell,
+    bool  tracing,
+    int*  pFirstPassedPlus1,
+    int*  pCallBackCount,
+    int*  pCallBackFirstFound) {
+
+    int i;
+    for (i = 0; i < cell->size; i++) {
+        int index = chkBnd(0,cell->indexs[i],set->size);
+
+        // eliminate duplicates
+        //
+        if (set->passed[index]) continue;           // in list, hence this is a duplicate
+        set->passed[index] = *pFirstPassedPlus1;    // prepend to list
+        *pFirstPassedPlus1 = index + 1;
+
+
+        // NOTE: faster intersect code could go in here
+
+
+        (*pCallBackCount)++;
+        bool isHit = false;
+        bool keepGoing = (*callback)(callbackCtx,set->keys[index],&isHit);
+        if (isHit) {
+            if (!*pCallBackFirstFound) *pCallBackFirstFound = *pCallBackCount;
+        }
+        if (!keepGoing) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void possiblyIntersectingGreatArcs(GreatArcSet* set,
+    void*        callbackCtx,
+    bool (*callback)(
+        void* callbackCtx, 
+        int   key, 
+        bool* isHit),               // returns true if should keep going, false if no more needed
+    float x0, float y0, float z0,   // ends of the line, need not be a unit vector
+    float x1, float y1, float z1,
+    bool  tracing)
+{
+    tracing = false;
+
+    if (tracing) {
+        printf("possiblyIntersectingGreatArcs x:%g..%g y:%g..%g z:%g..%g\n", 
+            x0,x1,y0,y1,z0,z1);
+    }
+
+    // Once all the arcs are available, they can be placed
+    //
+    disperseGreatArcsIntoCells(set);
+
+    // Once placed, they can be looked for in the cells...
+    //
+    bool universal_cell0, universal_cell1;
+    int wI0, wI1, hI0, hI1;
+    greatArcSet_getCellCoords(set, x0, y0, z0, &wI0, &hI0, &universal_cell0, false);
+    greatArcSet_getCellCoords(set, x1, y1, z1, &wI1, &hI1, &universal_cell1, false);
+
+    if (universal_cell0 || universal_cell1) {
+        wI0 = 0; wI1 = GRID_WIDTH -1;
+        hI0 = 0; hI1 = GRID_HEIGHT-1;
+    } else {
+        sortIntSoFirstLo(&wI0,&wI1);
+        sortIntSoFirstLo(&hI0,&hI1);          
+    }
+    
+    // There are lots of ways to do this, but most edges are within a cell or adjacent cells
+    // so it is not worth being clever, however if there is more than one cell, there is a risk of duplicates
+    // 
+    //
+    int  callBackCount = 0, callBackFirstFound = -1;
+
+    int firstPassedPlus1 = -1;  // 0 means not passed, -1 means end of list
+    
+    int w,h;
+    for (w = wI0; w <= wI1; w++) 
+    for (h = hI0; h <= hI1; h++) {
+        Cell* cell = getCell(set,w,h);           
+        if (possiblyIntersectingCell(set, callbackCtx, callback, cell, 
+                tracing, &firstPassedPlus1, &callBackCount, &callBackFirstFound)) goto Found;
+    }
+
+    if (possiblyIntersectingCell(set, callbackCtx, callback, &set->cells[UNIVERSAL_CELL], 
+                tracing, &firstPassedPlus1, &callBackCount, &callBackFirstFound)) goto Found;
+        
+Found:
+    // Reset the passed list
+    //
+    {   int index;
+        while ((index = firstPassedPlus1 - 1) >= 0) {
+            firstPassedPlus1 = set->passed[index];
+            set->passed[index] = 0;
+        }
+    }
+    
+    // Done
+    //
+    if (tracing) {
+        fprintf(stderr, 
+            " callBackCount:%d, callBackFirstFound:%d total size:%d\n", 
+            callBackCount, callBackFirstFound, set->size);
+    }
+}
+
+
+void possiblyIntersectingGreatArcs_Debug(                           // show how vno0..vno1 interacts with the arc
+    GreatArcSet* set,
+    float x0, float y0, float z0,   // ends of the arc, need not be a unit vector
+    float x1, float y1, float z1,
+    int vno0, int vno1)
+{
+    sortIntSoFirstLo(&vno0, &vno1);
+
+    VERTEX const * v0 = &set->mris->vertices[chkBnd(0,vno0,set->mris->nvertices)];
+    VERTEX const * v1 = &set->mris->vertices[chkBnd(0,vno1,set->mris->nvertices)];
+
+    fprintf(stdout, "%s:%d possiblyIntersectingGreatArcs_Debug vno0:%d vno1:%d\n", __FILE__, __LINE__, vno0,vno1);
+    fprintf(stdout, " v0 at (%g,%g,%g) v1 at (%g,%g,%g)\n", v0->cx,v0->cy,v0->cz, v1->cx,v1->cy,v1->cz);
+
+    int pairHeadsIndex;
+    if (isInPairs(&pairHeadsIndex, set, vno0, vno1)) {              // already in somewhere
+        fprintf(stderr, "Is in GreatArcSet pairs\n");
+    }
+    
+    int target_index;
+    for (target_index = 0; target_index < set->size; target_index++) {
+        if (set->loVnos[target_index] == vno0 && set->hiVnos[target_index] == vno1) break;
+    }
+    if (target_index == set->size) {
+        fprintf(stderr, "Not in GreatArcSet list\n");
+        return;
+    }
+    
+    bool universal_cell0, universal_cell1;
+    int wI0, wI1, hI0, hI1;
+    greatArcSet_getCellCoords(set, x0, y0, z0, &wI0, &hI0, &universal_cell0, true);
+    greatArcSet_getCellCoords(set, x1, y1, z1, &wI1, &hI1, &universal_cell1, true);
+
+    if (universal_cell0 || universal_cell1) {
+        wI0 = 0; wI1 = GRID_WIDTH-1;
+        hI0 = 0; hI1 = GRID_HEIGHT-1;
+    } else {
+        sortIntSoFirstLo(&wI0,&wI1);
+        sortIntSoFirstLo(&hI0,&hI1);          
+    }
+    
+    fprintf(stderr, "Should be in (%d..%d,%d..%d) %s.  Found in ", wI0, wI1, hI0, hI1, (universal_cell0||universal_cell1) ? "universal cell":"");
+    int w,h;
+    for (w = 0; w < GRID_WIDTH;  w++)
+    for (h = 0; h < GRID_HEIGHT; h++) {           
+        Cell* cell = getCell(set,w,h);           
+        int i;
+        for (i = 0; i < cell->size; i++) {
+            int index = chkBnd(0,cell->indexs[i],set->size);
+            if (target_index == index) {
+                fprintf(stderr, " (%d,%d)", w,h); 
+            }
+        }
+    }
+        Cell* cell = &set->cells[UNIVERSAL_CELL];
+        int i;
+        for (i = 0; i < cell->size; i++) {
+            int index = chkBnd(0,cell->indexs[i],set->size);
+            if (target_index == index) {
+                fprintf(stderr, " cells[UNIVERSAL_CELL]"); 
+            }
+        }
+    fprintf(stderr, "\n");
 }
