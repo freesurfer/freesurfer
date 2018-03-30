@@ -28,7 +28,7 @@ void DialogSelectSplines::SetPointSets(const QList<Layer *> &list)
     QListWidgetItem* item = new QListWidgetItem;
     item->setText(ps->GetName());
     item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
-    item->setCheckState(Qt::Checked);
+    item->setCheckState(ps->IsVisible()?Qt::Checked:Qt::Unchecked);
     item->setData(Qt::UserRole, QVariant::fromValue<QObject*>(ps));
     ui->listWidget->insertItem(0, item);
   }
