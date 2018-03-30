@@ -15,6 +15,7 @@ AUTHOR = 'William Mills, Yujan Shrestha'
 VERSION = '0.1.1'
 
 REQUIRED = [
+    'nibabel >= 2.2.1'
     'numpy >= 1.13.3',
     'scipy >= 1.0.0',
     'gems2python',
