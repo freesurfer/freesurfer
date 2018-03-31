@@ -74,6 +74,10 @@ extern "C" {
 //
 #define _MAX_FS_THREADS 128 
 
+// assertions
+//
+#define cheapAssert(TST)  { if (!(TST)) *(int*)-1 = 0; }
+#define costlyAssert(TST) { if (!(TST)) *(int*)-1 = 0; }
 
 // Regardless of whether the __real_malloc etc. or the __wrap_ ones, it is still desirable
 // to know where in the program the allocations are happening.  This mechanism allows that to happen.

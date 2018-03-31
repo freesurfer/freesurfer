@@ -53,7 +53,7 @@
 
 //  #define REALM_UNIT_TEST
 
-#include <stdbool.h>
+#include "base.h"
 
 #ifndef REALM_UNIT_TEST
 #include "mrisurf.h"
