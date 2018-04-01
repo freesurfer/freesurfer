@@ -134,6 +134,7 @@ void possiblyIntersectingGreatArcs(
     GreatArcSet* set,
     void*        callbackCtx,
     bool (*callback)(void* callbackCtx, int key, bool* isHit),      // returns true if should keep going, false if no more needed
+    int vno0, int vno1,
     float x0, float y0, float z0,   // ends of the arc, need not be a unit vector
     float x1, float y1, float z1,
     bool tracing);

@@ -62265,10 +62265,7 @@ static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, Inte
                 interesting = true;
             }
             
-            insertGreatArc(gas, nextEntryIndexForVno, 
-                vno, v->v[n]    // NEW INTERFACE
-                // OLD INTERFACE    false, v->cx,v->cy,v->cz,  v2->cx,v2->cy,v2->cz, interesting
-                );
+            insertGreatArc(gas, nextEntryIndexForVno, vno, v->v[n]);
                 
             // get some data for visualizing
             // by a separate tool to understand the situation better
@@ -62324,6 +62321,7 @@ static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, Inte
           gas,
           &callback_context,
           possiblyIntersectingGreatArcs_callback,
+          e->vno1,              e->vno2,
           ev->cx,ev->cy,ev->cz, ev2->cx,ev2->cy,ev2->cz, 
           stats_count == stats_limit-1);                    // tracing
 
