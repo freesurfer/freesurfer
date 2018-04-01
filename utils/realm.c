@@ -1714,6 +1714,11 @@ typedef struct Pair {                           // an entry in a chain off the G
 #define PAIRS_HEADS_SIZE (1<<10)
 #define PAIRS_HEADS_MASK (PAIRS_HEADS_SIZE-1)
 
+typedef struct IntersectionSupport {
+    float   w1MinusW0, w0;
+    float   h1MinusH0, h0;
+} IntersectionSupport;
+
 struct GreatArcSet {
     MRIS*   mris;
     
@@ -1722,15 +1727,17 @@ struct GreatArcSet {
     int*    keys;                               // mrisurf gives a key to each great arc, to id the arc in the callback
     int*    loVnos;                             // beginning vno of the great arc
     int*    hiVnos;                             // ending vno of the great arc
-    
+
     int*    passed;                             // used during one callback to note those passed to de-duplicate the multiple cells
     
+    IntersectionSupport* intersectionSupport;   
+        
     int     pairHeadsPlus1[PAIRS_HEADS_SIZE];   // a hash table, indexs into pairs
     int     pairsSize, pairsCapacity;           // chains off the hash table
     Pair*   pairs;                              //      the entries in the chains
     
     float   ax,ay,az,bx,by,bz,cx,cy,cz;         // used to project the vno into the rectangle h,w
-    float   minH,minW,scaleH,scaleW;            // used to project the h,w into the cel grid
+    float   minH,minW,scaleH,scaleW;            // used to project the h,w into the cell grid
 
     Cell    cells[CELLS_SIZE];
 };
@@ -1782,10 +1789,10 @@ static void greatArcSet_project(GreatArcSet* set, float x, float y, float z, flo
 }
 
 
-static void greatArcSet_getCellCoords(GreatArcSet* set, float x, float y, float z, int* p_wI, int* p_hI, bool* universal_cell, bool trace) {
+static void greatArcSet_getCellCoords(GreatArcSet* set, float x, float y, float z, float* wp, float* hp, int* p_wI, int* p_hI, bool* universal_cell, bool trace) {
 
-    float h,w;
-    greatArcSet_project(set, x, y, z, &w, &h, universal_cell, trace);
+    greatArcSet_project(set, x, y, z, wp, hp, universal_cell, trace);
+    float w = *wp, h = *hp;
     
     int wI = (int)((w - set->minW)*set->scaleW);
     int hI = (int)((h - set->minH)*set->scaleH);
@@ -1824,6 +1831,7 @@ void freeGreatArcSet(GreatArcSet** setPtr) {
     if (!set) return;
     { int i; for (i=0; i<CELLS_SIZE; i++) finiCell(&set->cells[i]); }
     freeAndNULL(set->pairs);
+    freeAndNULL(set->intersectionSupport);
     freeAndNULL(set->passed);
     freeAndNULL(set->hiVnos);
     freeAndNULL(set->loVnos);
@@ -1843,6 +1851,7 @@ static void growGreatArcBuffer(GreatArcSet* set) {
     growInts(&set->loVnos, old_capacity, set->capacity);
     growInts(&set->hiVnos, old_capacity, set->capacity);
     growInts(&set->passed, old_capacity, set->capacity);
+    set->intersectionSupport = (IntersectionSupport*)realloc(set->intersectionSupport, set->capacity*sizeof(IntersectionSupport));  // don't need zero'ing
 }
 
 
@@ -1973,13 +1982,6 @@ static void decideProjection(GreatArcSet* set) {
 
     set->minH = minH; if (maxH == minH) maxH = minH + 1; set->scaleH = GRID_HEIGHT/(maxH-minH);
     set->minW = minW; if (maxW == minW) maxW = minW + 1; set->scaleW = GRID_WIDTH /(maxW-minW);
-
-    if (0) {
-        bool universal_cell;
-        int hI, wI;
-        greatArcSet_getCellCoords(set, sumX/set->size, sumY/set->size, sumZ/set->size, &hI, &wI, &universal_cell, false);  
-        fprintf(stderr, "%s:%d center -> (%d,%d) %s\n", __FILE__, __LINE__, hI,wI,universal_cell?"universal_cell":"");
-    }
 }
 
 
@@ -2003,9 +2005,15 @@ static void disperseGreatArcsIntoCells(GreatArcSet* set)
         VERTEX const * v1 = &set->mris->vertices[chkBnd(0,vno1,set->mris->nvertices)];
 
         bool universal_cell0, universal_cell1;
-        int hI0, hI1, wI0, wI1;
-        greatArcSet_getCellCoords(set, v0->cx, v0->cy, v0->cz, &wI0, &hI0, &universal_cell0, trace);
-        greatArcSet_getCellCoords(set, v1->cx, v1->cy, v1->cz, &wI1, &hI1, &universal_cell1, trace);
+        float w0,  w1,  h0,  h1;
+        int   wI0, wI1, hI0, hI1;
+        
+        greatArcSet_getCellCoords(set, v0->cx, v0->cy, v0->cz, &w0, &h0, &wI0, &hI0, &universal_cell0, trace);
+        greatArcSet_getCellCoords(set, v1->cx, v1->cy, v1->cz, &w1, &h1, &wI1, &hI1, &universal_cell1, trace);
+
+        IntersectionSupport* is = &set->intersectionSupport[index];
+        is->w0 = w0; is->w1MinusW0 = w1-w0;
+        is->h0 = h0; is->h1MinusH0 = h1-h0;
 
         if (trace) {
             fprintf(stdout, "%s:%d v0:%d v1:%d dispersed to cell coords (%d..%d, %d..%d) %s\n", __FILE__, __LINE__,
@@ -2024,10 +2032,10 @@ static void disperseGreatArcsIntoCells(GreatArcSet* set)
         sortIntSoFirstLo(&hI0,&hI1);
         sortIntSoFirstLo(&wI0,&wI1);
         
-        int h,w;
-        for (h = hI0; h <= hI1; h++)           
-        for (w = wI0; w <= wI1; w++)
-            greatArcSet_cellInsert(set, getCell(set,w,h), index);           
+        int wI, hI;
+        for (wI = wI0; wI <= wI1; wI++)
+        for (hI = hI0; hI <= hI1; hI++)           
+            greatArcSet_cellInsert(set, getCell(set,wI,hI), index);           
     }
 
     set->size_dispersed = set->size; 
@@ -2044,7 +2052,9 @@ static bool possiblyIntersectingCell(GreatArcSet* set,
     bool  tracing,
     int*  pFirstPassedPlus1,
     int*  pCallBackCount,
-    int*  pCallBackFirstFound) {
+    int*  pCallBackFirstFound,
+    bool  doFastIntersectionTest,
+    float w2, float h2, float w3, float h3) {
 
     int i;
     for (i = 0; i < cell->size; i++) {
@@ -2056,13 +2066,89 @@ static bool possiblyIntersectingCell(GreatArcSet* set,
         set->passed[index] = *pFirstPassedPlus1;    // prepend to list
         *pFirstPassedPlus1 = index + 1;
 
-
         // NOTE: faster intersect code could go in here
+        //
+        bool predictIntersect = false;
+        
+        if (doFastIntersectionTest) {
+            // The  great arc being tested against has projected to be the straight line segment (w0,h0)..(w1,h1)
+            // This great arc                      has projected to be the straight line segment set->lineSegments[index].w0 .., call these instead (w2,h2)..(w3,h3)
+            // To solve whether they intersect, this code does a simple game
+            // It rewrites the two line segments as (w0,h0) + p (w1-w0,h1-h0) = (x,y)
+            //                                      (w2,h2) + q (w3-w2,h3-h2) = (x,y)
+            // which intersect when they produce the same (x,y)
+            //
+            // ie. when w0 + p(w1-w0) = w2 + q(w3-w2)
+            //      and h0 + p(h1-h0) = h2 + q(h3-h2)
+            // which is an easily solved pair of simultaneous linear equations.
+            //
+            // If the solution's p and q are both between 0 and 1, the line segments intersect!
+            //
+            // [ w1-w0  w2-w3 ] [ p ] = [ w2-w0 ]
+            // [ h1-h0  h2-h3 ] [ q ]   [ h2-h0 ]
+            //
+            // [   a      b   ] [ p ] = [   e   ]
+            // [   c      d   ] [ q ]   [   f   ]
+            //
+            IntersectionSupport* is = &set->intersectionSupport[index];
+            float const a = is->w1MinusW0, b = w2-w3, c = is->h1MinusH0, d = h2-h3, e = w2 - is->w0, f = h2 - is->h0;
 
+            // [   d     -b   ] [ a  b ] [ p ] = [  d -b ] [ e ]
+            // [   -c     a   ] [ c  d ] [ q ]   [ -c  a ] [ f ]
+            //
+            // [ ad-bc 0      ] [ p ]          = [ de - bf ]
+            // [ 0     ad-bc  ] [ q ]            [ af - ce ]
+            //
+            //               [ (ad-bc) p ]     
+            //               [ (ad-bc) q ] 
+            //
+            // So the 0..1 test turns into 0 <= (de-bf) / (ab-bc) <= 1      0 <= (af-ce) / (ab-bc) <= 1
+            //
+            float const debf = d*e - b*f;
+            float const afce = a*f - c*e;
+            float const adbc = a*d - b*c;
+            
+            // When ad-bc is negative, multiplying by it flips the comparison, and you get
+                //
+                //     the test turns into      0         >= (de-bf)             >= (ab-bc)
+                //     i.e.                   -(ab-bc)/2  >= (de-bf) - (ab-bc)/2 >= (ab-bc)/2
+                // which can be coded as
+                //              |(ab-bc)/2| >= |(de-bf) - (ab-bc)/2|
+
+            // When positive you get
+                // Now the test turns into      0         <= (de-bf)             <= (ab-bc)
+                //                            -(ab-bc)/2  <= (de-bf) - (ab-bc)/2 <= (ab-bc)/2
+                // which can be coded as
+                //              |(ab-bc)/2| >= |(de-bf) - (ab-bc)/2|
+            //
+            // Curiously, both are the same!
+            //
+            float const halfADBC = adbc * 0.5;
+            
+            predictIntersect = (fabs(halfADBC) >= fabs(debf - halfADBC))
+                             & (fabs(halfADBC) >= fabs(afce - halfADBC));
+        }
 
         (*pCallBackCount)++;
         bool isHit = false;
         bool keepGoing = (*callback)(callbackCtx,set->keys[index],&isHit);
+
+        if (doFastIntersectionTest) {
+            static long correctPrediction,missedHit,missedMiss,count,limit=1;
+            if (isHit == predictIntersect) {
+                correctPrediction++;
+            } else if (isHit) {
+                missedHit++;
+            } else {
+                missedMiss++;
+            }
+            if (count++ == limit) {
+                limit *= 2;
+                fprintf(stdout, "%s:%d count:%g correctPrediction:%g missedHit:%ld missedMiss:%ld\n", __FILE__, __LINE__, 
+                                (float)count, (float)correctPrediction, missedHit, missedMiss);
+            }
+        } 
+        
         if (isHit) {
             if (!*pCallBackFirstFound) *pCallBackFirstFound = *pCallBackCount;
         }
@@ -2097,9 +2183,10 @@ void possiblyIntersectingGreatArcs(GreatArcSet* set,
     // Once placed, they can be looked for in the cells...
     //
     bool universal_cell0, universal_cell1;
+    float w0, w1, h0, h1;
     int wI0, wI1, hI0, hI1;
-    greatArcSet_getCellCoords(set, x0, y0, z0, &wI0, &hI0, &universal_cell0, false);
-    greatArcSet_getCellCoords(set, x1, y1, z1, &wI1, &hI1, &universal_cell1, false);
+    greatArcSet_getCellCoords(set, x0, y0, z0, &w0, &h0, &wI0, &hI0, &universal_cell0, false);
+    greatArcSet_getCellCoords(set, x1, y1, z1, &w1, &h1, &wI1, &hI1, &universal_cell1, false);
 
     if (universal_cell0 || universal_cell1) {
         wI0 = 0; wI1 = GRID_WIDTH -1;
@@ -2117,16 +2204,20 @@ void possiblyIntersectingGreatArcs(GreatArcSet* set,
 
     int firstPassedPlus1 = -1;  // 0 means not passed, -1 means end of list
     
-    int w,h;
-    for (w = wI0; w <= wI1; w++) 
-    for (h = hI0; h <= hI1; h++) {
-        Cell* cell = getCell(set,w,h);           
+    int wI,hI;
+    for (wI = wI0; wI <= wI1; wI++) 
+    for (hI = hI0; hI <= hI1; hI++) {
+        Cell* cell = getCell(set,wI,hI);           
         if (possiblyIntersectingCell(set, callbackCtx, callback, cell, 
-                tracing, &firstPassedPlus1, &callBackCount, &callBackFirstFound)) goto Found;
+                tracing, &firstPassedPlus1, &callBackCount, &callBackFirstFound,
+                !(universal_cell0 || universal_cell1),
+                w0, h0, w1, h1)) goto Found;
     }
 
     if (possiblyIntersectingCell(set, callbackCtx, callback, &set->cells[UNIVERSAL_CELL], 
-                tracing, &firstPassedPlus1, &callBackCount, &callBackFirstFound)) goto Found;
+                tracing, &firstPassedPlus1, &callBackCount, &callBackFirstFound,
+                false,
+                w0, h0, w1, h1)) goto Found;
         
 Found:
     // Reset the passed list
@@ -2177,9 +2268,10 @@ void possiblyIntersectingGreatArcs_Debug(                           // show how 
     }
     
     bool universal_cell0, universal_cell1;
+    float w0,w1,h0,h1;
     int wI0, wI1, hI0, hI1;
-    greatArcSet_getCellCoords(set, x0, y0, z0, &wI0, &hI0, &universal_cell0, true);
-    greatArcSet_getCellCoords(set, x1, y1, z1, &wI1, &hI1, &universal_cell1, true);
+    greatArcSet_getCellCoords(set, x0, y0, z0, &w0 ,&h0, &wI0, &hI0, &universal_cell0, true);
+    greatArcSet_getCellCoords(set, x1, y1, z1, &w1 ,&h1, &wI1, &hI1, &universal_cell1, true);
 
     if (universal_cell0 || universal_cell1) {
         wI0 = 0; wI1 = GRID_WIDTH-1;
