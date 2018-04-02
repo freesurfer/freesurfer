@@ -1922,7 +1922,6 @@ static void MRISremovedFaces(MRI_SURFACE * mris, int nfaces) {
   *(int*)(&mris->nfaces) = nfaces;  // get around const
 }
 
-
 static void MRISoverAllocVerticesAndFaces(MRI_SURFACE* mris, int max_vertices, int max_faces, int nvertices, int nfaces)
 {
   MRISchangedNFacesNVertices(mris, false);
@@ -45212,6 +45211,7 @@ static void notifyActiveRealmTreesChangedNFacesNVertices(MRIS const * const mris
         }
     }
 }
+
 // IntersectDefectEdgesContext are used to speed up intersectDefectEdges and intersectDefectConvexHullEdges
 // by sharing computations across multiple calls
 //
@@ -45265,7 +45265,6 @@ static void finiIntersectDefectEdgesContext(IntersectDefectEdgesContext* ctx) {
 static void obsoleteIntersectDefectEdgesContext(IntersectDefectEdgesContext* ctx) {
     ctx->obsoleted = true;
 }
-
 
 
 // ----------------- Declaration of Static Functions ---------------------- //

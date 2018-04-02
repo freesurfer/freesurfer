@@ -115,6 +115,7 @@ private:
   double      m_dSpacing;
   double      m_dOffset;
   int         m_nSamples;
+  double      m_dReferenceSize;
 
   int         m_nActiveLineId;
 };
