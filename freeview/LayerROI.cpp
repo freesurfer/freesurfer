@@ -454,6 +454,15 @@ void LayerROI::SetMappedSurface(LayerSurface *s)
   }
 }
 
+void LayerROI::OnSurfaceDestroyed(QObject *obj)
+{
+  if (m_layerMappedSurface == obj)
+  {
+    m_layerMappedSurface = NULL;
+    m_label->Initialize(m_layerSource->GetSourceVolume(), NULL, 0);
+  }
+}
+
 void LayerROI::OnUpdateLabelRequested()
 {
   //    UpdateLabelData();

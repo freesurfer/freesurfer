@@ -31,11 +31,14 @@ protected slots:
   void OnExport();
   void OnSave();
   void OnLoad();
+  void OnClear();
   void OnComboIsoLine(int sel);
   void OnSliderOpacity(int);
   void OnEditRadius(const QString& strg);
   void OnColorPicker(const QColor& color);
   void OnLineProfileIdPicked(LayerLineProfile* lp, int nId);
+  void UpdateWidgets();
+  void OnExportThickness();
 
 private:
   bool Validate(LayerPointSet*& spline0, LayerPointSet* &spline1);

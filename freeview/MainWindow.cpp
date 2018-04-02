@@ -5501,6 +5501,7 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
   LayerCollection* lc_mri = GetLayerCollection( "MRI" );
   LayerCollection* lc_surface = GetLayerCollection( "Surface" );
   LayerCollection* lc_track = GetLayerCollection( "Tract" );
+  LayerCollection* lc_sup = GetLayerCollection( "Supplement");
   if ( jobtype == ThreadIOWorker::JT_LoadVolume && layer->IsTypeOf( "MRI" ) )
   {
     LayerMRI* mri = qobject_cast<LayerMRI*>( layer );
@@ -5524,6 +5525,10 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
         lc_surface->SetWorldOrigin( mri->GetWorldOrigin() );
         lc_surface->SetWorldSize( mri->GetWorldSize() );
       }
+
+      lc_sup->SetWorldVoxelSize( mri->GetWorldVoxelSize() );
+      lc_sup->SetWorldOrigin( mri->GetWorldOrigin() );
+      lc_sup->SetWorldSize( mri->GetWorldSize() );
 
       lc_mri->AddLayer( layer, true );
       lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );

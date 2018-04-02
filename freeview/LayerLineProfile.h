@@ -46,6 +46,8 @@ public:
 
   bool Export(const QString &filename, LayerMRI *mri, int nSample);
 
+  bool ExportThickness(const QString& filename, const QList<LayerPointSet*>& layers, int nSample = 100);
+
   bool Save(const QString& filename);
 
   static LayerLineProfile* Load(const QString& filename, LayerMRI* ref);
@@ -98,6 +100,8 @@ private:
   std::vector < std::vector < double > > Points3DToSpline2D(std::vector<double> pts3d, double distance);
   std::vector < std::vector < double > > Points2DToSpline3D(std::vector < std::vector<double> > pts2d, int nSample);
   void MakeFlatTube(vtkPoints* points, vtkCellArray* lines, vtkActor* actor_in, double radius);
+  QList<double> ComputeThicknessAlongLineProfile(std::vector < std::vector < double > >& line2d,
+                                                 const QList<LayerPointSet*>& splines, int nSample);
 
   LayerPointSet*  m_spline0;
   LayerPointSet*  m_spline1;
@@ -111,6 +115,7 @@ private:
   double      m_dSpacing;
   double      m_dOffset;
   int         m_nSamples;
+  double      m_dReferenceSize;
 
   int         m_nActiveLineId;
 };
