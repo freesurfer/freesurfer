@@ -2067,12 +2067,6 @@ static bool possiblyIntersectingCell(GreatArcSet* set,
         set->passed[index] = *pFirstPassedPlus1;    // prepend to list
         *pFirstPassedPlus1 = index + 1;
 
-        // For now, this goes here, but once the following code is shown to be correct, it can be omitted
-        //            
-        (*pCallBackCount)++;
-        bool isHit = false;
-        bool keepGoing = (*callback)(callbackCtx,set->keys[index],&isHit);
-
         // If shared vertex, don't intersect
         //
         bool const sharedVertex = 
@@ -2083,15 +2077,28 @@ static bool possiblyIntersectingCell(GreatArcSet* set,
 
         // NOTE: faster intersect code could go in here
         //
-        bool predictIntersectApproachOne = false;
-        bool predictIntersectApproachTwo = false;
-        
+        static long approachOneCount, approachTwoCount, approachOldCount;
+
+        bool approachOneDone = false, approachOneAnswer = false;
+        bool approachTwoDone = false, approachTwoAnswer = false;
+        bool approachOldDone = false, approachOldAnswer = false;
+
+        bool const comparingAnswers = false;
+            //
+            // Testing shows these get the same answers except in extremely rare cases
+
         if (sharedVertex) {
 
-            cheapAssert(!isHit);
+            // Shared vertex lines by definition don't intersect
+            //
+            approachOneDone = 
+            approachTwoDone = true;
+        }
+        
+        if (!sharedVertex && doFastIntersectionTest) {
 
-        } else if (doFastIntersectionTest) {
-
+            // The new approaches depend on the defect and the arc being tested against all mapping onto the viewing plane
+            //
             IntersectionSupport* is = &set->intersectionSupport[index];
             float const w0 = is->w0;
             float const h0 = is->h0;
@@ -2099,91 +2106,9 @@ static bool possiblyIntersectingCell(GreatArcSet* set,
             // The  great arc being tested against has projected to be the straight line segment (w0,h0)..(w1,h1)
             // This great arc                      has projected to be the straight line segment set->lineSegments[index].w0 .., 
             //                                                                call these instead (w2,h2)..(w3,h3)
-            //
 
-            // Approach One:  Project into a coordinate system centered on (w0,h0) and using (w1-w0,h1-h0) as one axis and 
-            // its perpendicular as the other.
-            //
-            float const
-              //w0d = 0,                    h0d = 0,                // Recenter on (w0,h0)
-                w1d = is->w1MinusW0,        h1d = is->h1MinusH0,
-                w2d = w2 - w0,              h2d = h2 - h0, 
-                w3d = w3 - w0,              h3d = h3 - h0;
-
-            float const                                             // The perpendicular axes
-                pww = w1d,   pwh = h1d,                             // 
-                phw = -pwh,  phh = pww;
-                
-            float const                                             // Project the four points
-                p0w = /* pww*w0d + pwh*h0d */ 0,  p0h = /* phw*w0d + phh*h0d */ 0,
-                p1w =    pww*w1d + pwh*h1d,       p1h = /* phw*w1d + phh*h1d */ 0;
-                
-            float
-                p2w = pww*w2d + pwh*h2d,    p2h = phw*w2d + phh*h2d,
-                p3w = pww*w3d + pwh*h3d,    p3h = phw*w3d + phh*h3d;
-            
-            // Note that p1w =  (w1-w0)*(w1-w0) + (h1-h0)*(h1-h0) = sum of two squared
-            //           p1h = -(h1-h0)*(w1-w0) + (w1-w0)*(h1-h0) = 0
-            //
-            cheapAssert(p0w == 0); cheapAssert(p0h == 0); cheapAssert(p1w >= 0); cheapAssert(p1h == 0);
-            
-            // The situation is                 |   
-            //                                  |   
-            //                       -----------p0------------ p1   h=0
-            //                                  |
-            //                                  |
-            //                                  w=0
-            //
-            // Sort the 2,3 points so that the 2 has a lower or equal pw to the 3
-            //
-            if (p2w > p3w) { float tmp = p2h; p2h = p3h; p3h = p2h; tmp = p2w; p2w = p3w; p3w = tmp; }
-            
-            // Whether they overlap in the h dimension
-            //
-            if (p3w < 0 || p1w < p2w) {
-                goto ApproachOneDone;
-            } 
-            
-            // The situation is         p2?     |     p2? p3?       p3?
-            //                                  |   
-            //                       -----------p0------------ p1 ---------          h=0
-            //                                  |
-            //                          p2?     |     p2? p3?       p3?
-            //                                  w=0
-
-            // Mirror image the 2 3 points around the h=0 axis to make p2w the lower
-            // This does not change the intersection
-            //           
-            if (p2h > p3h) { p2h = -p2h; p3h = -p3h; }
-            
-            if (p3h < 0 || 0 < p2h) {
-                goto ApproachOneDone;
-            } 
-            
-            // The situation is                 |         p3?       p3?
-            //                                  |   
-            //                       -----------p0------------ p1 ---------          h=0
-            //                                  |
-            //                          p2?     |     p2? 
-            //                                  w=0
-            //
-            // Does the line from p2 to p3 intersect left of (0,0)?
-            //
-            if (p2w < 0 && (p2h*p3w > p3h*p2w)) {       //     p2h/p2w < p3h/p3w   with the divides removed
-                goto ApproachOneDone;
-            }
-                
-            if (p3w > p1w && ((0-p2h)*(p3w-p1w) > (p3h-0)*(p1w-p2w))) {                      
-                                                        //     (0-p2h)/(p1w-p2w) > (p3h-0)/(p3w-p1w)  with the divides removed   
-                goto ApproachOneDone;
-            }
-            
-            predictIntersectApproachOne = true;
-            
-            
-        ApproachOneDone:;
-            
-            // Approach Two:  Solve the simultaneous equations - doesn't work if segments part of the same line
+            // Approach One:  Solve the simultaneous equations - doesn't work if line segments parallel, 
+            // including being part of the same line which shows up as the determinant of the matrix being almost zero
             //
             // To solve whether they intersect, this code does a simple math
             //
@@ -2221,73 +2146,214 @@ static bool possiblyIntersectingCell(GreatArcSet* set,
             // So the 0..1 test turns into 0 <= (de-bf) / (ad-bc) <= 1      0 <= (af-ce) / (ad-bc) <= 1
             //
             float const adbc = a*d - b*c;
-            float const debf = d*e - b*f;
-            float const afce = a*f - c*e;
             
-            // When ad-bc is positive 
-                //      the test turns into      0         <= (de-bf)             <= (ad-bc)
-                //      i.e.                   -(ad-bc)/2  <= (de-bf) - (ad-bc)/2 <= (ad-bc)/2
+            if (fabsf(adbc) > 1e-8) {
+
+                approachOneCount++;
+
+                float const debf = d*e - b*f;
+                float const afce = a*f - c*e;
+
+                // When ad-bc is positive 
+                    //      the test turns into      0         <= (de-bf)             <= (ad-bc)
+                    //      i.e.                   -(ad-bc)/2  <= (de-bf) - (ad-bc)/2 <= (ad-bc)/2
+                    //
+                    // which can be coded as
+                    //              |(ab-bc)/2| >= |(de-bf) - (ab-bc)/2|
+
+                // When ad-bc is negative, multiplying by it flips the comparison
+                    //
+                    //     the test turns into      0         >= (de-bf)             >= (ad-bc)
+                    //     i.e.                   -(ad-bc)/2  >= (de-bf) - (ad-bc)/2 >= (ad-bc)/2
+                    //
+                    // which can be coded as
+                    //              |(ab-bc)/2| >= |(de-bf) - (ab-bc)/2|
+
+                // Fortunately both are the same!
                 //
-                // which can be coded as
-                //              |(ab-bc)/2| >= |(de-bf) - (ab-bc)/2|
+                float const halfADBC = adbc * 0.5;
 
-            // When ad-bc is negative, multiplying by it flips the comparison
+                approachOneDone = true;
+                approachOneAnswer = 
+                                    (fabsf(halfADBC) >= fabsf(debf - halfADBC))
+                                 &  (fabsf(halfADBC) >= fabsf(afce - halfADBC));
+            }
+                        
+            // Approach Two:  Project into a coordinate system centered on (w0,h0) and using (w1-w0,h1-h0) as one axis and 
+            // its perpendicular as the other.
+            //
+            if (!approachOneDone || comparingAnswers) {
+
+                if (!approachOneDone) approachTwoCount++;
+
+                approachTwoDone = true;
+
+                float const
+                  //w0d = 0,                    h0d = 0,                // Recenter on (w0,h0)
+                    w1d = is->w1MinusW0,        h1d = is->h1MinusH0,
+                    w2d = w2 - w0,              h2d = h2 - h0, 
+                    w3d = w3 - w0,              h3d = h3 - h0;
+
+                float const                                             // The perpendicular axes
+                    pww = w1d,   pwh = h1d,                             // 
+                    phw = -pwh,  phh = pww;
+
+                float const                                             // Project the four points
+                    p0w = /* pww*w0d + pwh*h0d */ 0,  p0h = /* phw*w0d + phh*h0d */ 0,
+                    p1w =    pww*w1d + pwh*h1d,       p1h = /* phw*w1d + phh*h1d */ 0;
+
+                float
+                    p2w = pww*w2d + pwh*h2d,    p2h = phw*w2d + phh*h2d,
+                    p3w = pww*w3d + pwh*h3d,    p3h = phw*w3d + phh*h3d;
+
+                // Note that p1w =  (w1-w0)*(w1-w0) + (h1-h0)*(h1-h0) = sum of two squared
+                //           p1h = -(h1-h0)*(w1-w0) + (w1-w0)*(h1-h0) = 0
                 //
-                //     the test turns into      0         >= (de-bf)             >= (ad-bc)
-                //     i.e.                   -(ad-bc)/2  >= (de-bf) - (ad-bc)/2 >= (ad-bc)/2
+                cheapAssert(p0w == 0); cheapAssert(p0h == 0); cheapAssert(p1w >= 0); cheapAssert(p1h == 0);
+
+                // The situation is                 |   
+                //                                  |   
+                //                       -----------p0------------ p1   h=0
+                //                                  |
+                //                                  |
+                //                                  w=0
                 //
-                // which can be coded as
-                //              |(ab-bc)/2| >= |(de-bf) - (ab-bc)/2|
+                // Sort the 2,3 points so that the 2 has a lower or equal pw to the 3
+                //
+                if (p2w > p3w) { float tmp = p2h; p2h = p3h; p3h = tmp; tmp = p2w; p2w = p3w; p3w = tmp; }
 
-            // Fortunately both are the same!
-            //
-            float const halfADBC = adbc * 0.5;
-            
-            predictIntersectApproachTwo = 
-                                (fabsf(halfADBC) >= fabsf(debf - halfADBC))
-                             &  (fabsf(halfADBC) >= fabsf(afce - halfADBC));
-            
-            if (predictIntersectApproachOne != predictIntersectApproachTwo) {
+                // Whether they overlap in the h dimension
+                //
+                if (p3w < 0 || p1w < p2w) {
+                    goto ApproachTwoDone;
+                } 
 
-                fprintf(stdout, "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
-                fprintf(stdout, "%s:%d predictIntersectApproachOne:%d predictIntersectApproachTwo:%d\n", __FILE__, __LINE__,
-                    predictIntersectApproachOne, predictIntersectApproachTwo);
-                fprintf(stdout, "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+                // The situation is         p2?     |     p2? p3?       p3?
+                //                                  |   
+                //                       -----------p0------------ p1 ---------          h=0
+                //                                  |
+                //                          p2?     |     p2? p3?       p3?
+                //                                  w=0
 
+                // Mirror image the 2 3 points around the h=0 axis to make p2w the lower
+                // This does not change the intersection
+                //           
+                if (p2h > p3h) { p2h = -p2h; p3h = -p3h; }
+
+                if (p3h < 0 || 0 < p2h) {
+                    goto ApproachTwoDone;
+                } 
+
+                // The situation is                 |         p3?       p3?
+                //                                  |   
+                //                       -----------p0------------ p1 ---------          h=0
+                //                                  |
+                //                          p2?     |     p2? 
+                //                                  w=0
+                //
+                // Does the line from p2 to p3 intersect left of (0,0)?
+                //
+                if (p2w < 0 && (p2h*p3w > p3h*p2w)) {       //     p2h/p2w < p3h/p3w   with the divides removed
+                    goto ApproachTwoDone;
+                }
+
+                if (p3w > p1w && ((0-p2h)*(p3w-p1w) > (p3h-0)*(p1w-p2w))) {                      
+                                                            //     (0-p2h)/(p1w-p2w) > (p3h-0)/(p3w-p1w)  with the divides removed   
+                    goto ApproachTwoDone;
+                }
+
+                approachTwoAnswer = true;
+
+            ApproachTwoDone:;
             }
-            
-            bool predictIntersect = predictIntersectApproachOne;
-            
-            static long hitHit, hitMiss, missHit, missMiss,count,limit=1;
-            //
-            //  count:6.71089e+07 hitHit:3.80079e+06 hitMiss:4 missHit:0 missMiss:6.33081e+07
-            //
-            count++;                                    // 6.7e7
-            if (isHit && predictIntersect) {
-                hitHit++;                               // 3.8e6
-            } else if (isHit && !predictIntersect) {
+        }
 
-                hitMiss++;                              //   4      surprise
+        // If both new approaches tried, they should give the same answer except for some really rare cases...
+        //
+        //      Approach one, that works except when the line segments are almost parallel
+        //      Approach two, that is slower than approach one, but always works
+        //
+        if (comparingAnswers && approachOneDone && approachTwoDone && approachOneAnswer != approachTwoAnswer) {
 
-                fprintf(stdout, "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
-                fprintf(stdout, "%s:%d hit when predicted miss\n", __FILE__, __LINE__);
-                fprintf(stdout, "  fabs(halfADBC):%g fabs(debf - halfADBC):%g  fabs(afce - halfADBC):%g \n",
-                                   fabs(halfADBC),   fabs(debf - halfADBC),    fabs(afce - halfADBC));
-                fprintf(stdout, "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
-                             
-            } else if (!isHit && predictIntersect) {
-                missHit++;                              //   0
-            } else {
-                missMiss++;                             // 6.3e7
-            }
-            if (count == limit) {
-                limit *= 2;
-                fprintf(stdout, "%s:%d count:%g hitHit:%g hitMiss:%g missHit:%g missMiss:%g  halfADBC:%g\n", __FILE__, __LINE__, 
-                                (float)count, (float)hitHit, (float)hitMiss, (float)missHit, (float)missMiss,  halfADBC);
-            }
-        } 
+            fprintf(stdout, "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+            fprintf(stdout, "%s:%d approachOneAnswer:%d approachTwoAnswer:%d\n", __FILE__, __LINE__,
+                approachOneAnswer, approachTwoAnswer);
+            fprintf(stdout, "<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
+        }
+
+        bool const answerIsFound = approachOneDone || approachTwoDone;
+        bool const answerSoFar   = approachOneDone ? approachOneAnswer : approachTwoAnswer;
         
-        if (isHit) {
+
+        // Must callBack only for hits, others can be skipped
+        //
+        bool keepGoing = true;
+
+        if (comparingAnswers || !answerIsFound || answerSoFar) {
+            
+            if (!answerIsFound || answerSoFar) {    // These are the circumstances where it MUST be called
+                approachOldCount++;
+                (*pCallBackCount)++;
+            }
+            
+            approachOldDone = true;
+            keepGoing = (*callback)(callbackCtx,set->keys[index],&approachOldAnswer);
+        }
+
+        bool const definitiveAnswer = 
+            approachOldDone ? approachOldAnswer :
+            approachOneDone ? approachOneAnswer :
+            approachTwoDone ? approachTwoAnswer : *(bool*)(-1);
+            
+        // Compare the old code and the new code
+        //
+        static long 
+            hit,        // only the old code tried
+            hitHit,     // both tried
+            hitMiss, 
+            missHit, 
+            missMiss,
+            miss,       // only the old code tried
+            count, limit=1;
+        //
+        //  count:6.71089e+07 hitHit:3.80079e+06 hitMiss:4 missHit:0 missMiss:6.33081e+07
+        //
+        count++;                                    // 6.7e7
+        
+        if (!answerIsFound) {
+            // only the old code tried
+            if (approachOldAnswer) hit++; else miss++;
+        } else {
+            // both old code and new code tried
+            //
+            if (approachOldAnswer && answerSoFar) {
+                hitHit++;                               // 3.8e6    okay
+             } else if (approachOldAnswer && !answerSoFar) {
+
+                hitMiss++;                              //   4      new code will get a different answer, which may be bad
+                fprintf(stdout, "%s:%d hit when predicted miss %ld <######################################################\n", __FILE__, __LINE__,
+                    hitMiss);
+
+            } else if (!approachOldAnswer && answerSoFar) {
+                missHit++;                              //   0      not a problem, but a waste of time
+            
+            } else {
+                missMiss++;                             // 6.3e7    okay
+            }
+        }
+        
+        if (count == limit) {
+            limit *= 2;
+            fprintf(stdout, 
+                "%s:%d count:%g hit:%g miss:%g hitHit:%g hitMiss:%g missHit:%g missMiss:%g\n"
+                "  a1:%g a2:%g old:%g\n", __FILE__, __LINE__, 
+                (float)count, 
+                (float)hit, (float)miss,
+                (float)hitHit, (float)hitMiss, (float)missHit, (float)missMiss,  
+                (float)approachOneCount, (float)approachTwoCount, (float)approachOldCount);
+        }
+
+        if (definitiveAnswer) {
             if (!*pCallBackFirstFound) *pCallBackFirstFound = *pCallBackCount;
         }
         if (!keepGoing) {
