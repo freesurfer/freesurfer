@@ -18,6 +18,7 @@ def require_np_array(np_array):
 
 ASSERTIONS_ON = False
 
+SKIP_ATLAS_SHOW_FIGURES = False
 
 def assert_close(golden, trial, **kwargs):
     if ASSERTIONS_ON:
@@ -32,8 +33,9 @@ def samseg_registerAtlas(imageFileName,
                          worldToWorldTransformMatrix=None,
                          InitLTAFile=None,
                          checkpoint_manager=None):
-    if showFigures is None:
+    if SKIP_ATLAS_SHOW_FIGURES or showFigures is None:
         showFigures = DoNotShowFigures()
+
     # For converting from RAS to LPS. Itk/GEMS/SAMSEG uses LPS internally
     RAS2LPS = np.diag([-1, -1, 1, 1])
 
@@ -121,7 +123,7 @@ def samseg_registerAtlas(imageFileName,
         mesh = mesh_collection.reference_mesh
         #   % Get image data
         imageBuffer = image.getImageBuffer()
-        showFigures.show(images=imageBuffer, window_id='atlas initial')
+        showFigures.show(images=imageBuffer, window_id='atlas initial', title='Initial Atlas Registration')
         #   % Downsample
         imageBuffer = imageBuffer[
                       ::int(downSamplingFactors[0]),
@@ -132,13 +134,13 @@ def samseg_registerAtlas(imageFileName,
         alphas = mesh.alphas
         gmClassNumber = 3  # Needed for displaying purposes
         numberOfClasses = alphas.shape[1]
-        showFigures.show(mesh=mesh, shape=imageBuffer.shape, window_id='atlas mesh')
+        showFigures.show(mesh=mesh, shape=imageBuffer.shape, window_id='atlas mesh', title="Atlas Mesh")
         # Get a registration cost and use it to evaluate some promising starting point proposals
         calculator = GEMS2Python.KvlCostAndGradientCalculator('MutualInformation', [image], 'Affine')
         cost, gradient = calculator.evaluate_mesh_position_a(mesh)
         centerOfGravityImage = np.array(scipy.ndimage.measurements.center_of_mass(imageBuffer))
         priors = mesh.rasterize_atlas(imageBuffer.shape)
-        showFigures.show(probabilities=priors, window_id='atlas probabilities')
+        showFigures.show(probabilities=priors, window_id='atlas probabilities', title='Atlas Probabilities')
         tmp = np.sum(priors[:, :, :, 1:], axis=3)
         centerOfGravityAtlas = np.array(scipy.ndimage.measurements.center_of_mass(tmp))
         initialTranslation = centerOfGravityImage - centerOfGravityAtlas
@@ -187,7 +189,7 @@ def samseg_registerAtlas(imageFileName,
             if maximalDeformation == 0:
                 break
             numberOfIterations += 1
-            showFigures.show(mesh=mesh, images=imageBuffer, window_id='atlas iteration')
+            showFigures.show(mesh=mesh, images=imageBuffer, window_id='atlas iteration', title='Atlas Registration')
 
         nodePositions = mesh.points
         pointNumbers = [0, 110, 201, 302]

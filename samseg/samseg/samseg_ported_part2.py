@@ -11,9 +11,11 @@ from samseg.dev_utils.debug_client import create_part2_inspection_team, run_test
     create_checkpoint_manager, load_starting_fixture
 from samseg.kvlWarpMesh import kvlWarpMesh
 from samseg.kvl_merge_alphas import kvlMergeAlphas
-from samseg.show_figures import DoNotShowFigures
+from samseg.show_figures import DoNotShowFigures, ShowFigures
 
 logger = logging.getLogger(__name__)
+
+SKIP_SHOW_FIGURES_SAMSEG_PART_2 = False
 
 eps = np.finfo(float).eps
 
@@ -40,6 +42,8 @@ def samsegment_part2(
         showFigures,
         checkpoint_manager=None,
 ):
+    if SKIP_SHOW_FIGURES_SAMSEG_PART_2 or showFigures is None:
+        showFigures = DoNotShowFigures()
     biasFieldCoefficients = part1_results_dict['biasFieldCoefficients']
     colors = part1_results_dict['colors']
     FreeSurferLabels = part1_results_dict['FreeSurferLabels']
@@ -157,13 +161,22 @@ def samsegment_part2(
         downSampledBiasCorrectedImageBuffers = np.zeros(downSampledImageSize + (numberOfContrasts,), order='F')
         biasCorrectedData = np.zeros((activeVoxelCount, numberOfContrasts), order='F')
 
-        for contrastNumber in range(numberOfContrasts):
-            logger.debug('second time contrastNumber=%d', contrastNumber)
-            downSampledBiasField = backprojectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions,
-                                                                             biasFieldCoefficients[:, contrastNumber])
-            tmp = downSampledImageBuffers[:, :, :, contrastNumber] - downSampledBiasField * downSampledMask
-            downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber] = tmp
-            biasCorrectedData[:, contrastNumber] = tmp[downSampledMaskIndices]
+        downSampledBiasFields = bias_correct_data(
+            biasCorrectedData,
+            biasFieldCoefficients,
+            downSampledBiasCorrectedImageBuffers,
+            downSampledImageBuffers,
+            downSampledKroneckerProductBasisFunctions,
+            downSampledMask,
+            downSampledMaskIndices,
+            numberOfContrasts
+        )
+        showFigures.show(
+            image_list=downSampledBiasFields,
+            auto_scale=True,
+            window_id='bias field',
+            title='Samsegment Bias Fields'
+        )
         # Compute a color coded version of the atlas prior in the atlas's current pose, i.e., *before*
         # we start deforming. We'll use this just for visualization purposes
         posteriors = np.zeros((activeVoxelCount, numberOfGaussians), order='F')
@@ -366,25 +379,36 @@ def samsegment_part2(
                                                                     tmpImageBuffer).reshape(-1, 1)
                     biasFieldCoefficients = np.linalg.solve(lhs, rhs).reshape(
                         (np.prod(numberOfBasisFunctions), numberOfContrasts))
-                    for contrastNumber in range(numberOfContrasts):
-                        downSampledBiasField = backprojectKroneckerProductBasisFunctions(
-                            downSampledKroneckerProductBasisFunctions, biasFieldCoefficients[:, contrastNumber])
-                        tmp = downSampledImageBuffers[:, :, :, contrastNumber] - downSampledBiasField * downSampledMask
-                        downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber] = tmp
-                        biasCorrectedData[:, contrastNumber] = tmp[downSampledMaskIndices]
+                    downSampledBiasFields = bias_correct_data(biasCorrectedData, biasFieldCoefficients,
+                                                              downSampledBiasCorrectedImageBuffers,
+                                                              downSampledImageBuffers,
+                                                              downSampledKroneckerProductBasisFunctions,
+                                                              downSampledMask, downSampledMaskIndices,
+                                                              numberOfContrasts)
                     if checkpoint_manager and checkpoint_manager.detailed:
                         checkpoint_manager.increment_and_save(
                             {
                                 'biasFieldCoefficients': biasFieldCoefficients,
                                 'lhs': lhs,
                                 'rhs': rhs,
-                                'downSampledBiasField': downSampledBiasField,
+                                'downSampledBiasField': downSampledBiasFields[0],
                                 'downSampledBiasCorrectedImageBuffers': downSampledBiasCorrectedImageBuffers,
                                 'biasCorrectedData': biasCorrectedData,
                                 'computedPrecisionOfKroneckerProductBasisFunctions': computedPrecisionOfKroneckerProductBasisFunctions,
                             }, 'estimateBiasField')
                     pass
-            showFigures.show(mesh=mesh, images=downSampledBiasCorrectedImageBuffers, window_id='samsegment')
+            showFigures.show(
+                image_list=downSampledBiasFields,
+                auto_scale=True,
+                window_id='bias field',
+                title='Samsegment Bias Fields'
+            )
+            showFigures.show(
+                mesh=mesh,
+                images=downSampledBiasCorrectedImageBuffers,
+                window_id='samsegment',
+                title='Samsegment Mesh Registration (EM)'
+            )
             historyOfEMCost = historyOfEMCost[1:]
             #
             # Part II: update the position of the mesh nodes for the current mixture model and bias field parameter estimates
@@ -393,7 +417,6 @@ def samsegment_part2(
             for contrastNumber in range(numberOfContrasts):
                 downSampledBiasCorrectedImages.append(GEMS2Python.KvlImage(
                     require_np_array(downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber])))
-
 
             # Set up cost calculator
             calculator = GEMS2Python.KvlCostAndGradientCalculator(
@@ -433,7 +456,13 @@ def samsegment_part2(
             print(['iterationNumber: ', iterationNumber])
             print(['    maximalDeformationApplied: ', maximalDeformationApplied])
             print('==============================')
-            showFigures.show(mesh=mesh, images=downSampledBiasCorrectedImageBuffers, window_id='samsegment')
+            showFigures.show(
+                mesh=mesh,
+                images=downSampledBiasCorrectedImageBuffers,
+                window_id='samsegment',
+                title='Samsegment Mesh Registration (Deformation)'
+            )
+
             if checkpoint_manager:
                 checkpoint_manager.increment_and_save(
                     {
@@ -449,6 +478,8 @@ def samsegment_part2(
             perVoxelDecrease = costChange / activeVoxelCount
             perVoxelDecreaseThreshold = optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion
             if perVoxelDecrease < perVoxelDecreaseThreshold:
+                if len(historyOfCost) > 2:
+                    showFigures.plot(historyOfCost[1:], title='History of Cost')
                 if checkpoint_manager:
                     checkpoint_manager.increment_and_save({
                         'activeVoxelCount': activeVoxelCount,
@@ -473,7 +504,6 @@ def samsegment_part2(
         nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = \
             finalNodePositionsInTemplateSpace - initialNodePositionsInTemplateSpace
 
-
     return {
         'biasFieldCoefficients': biasFieldCoefficients,
         'imageBuffers': imageBuffers,
@@ -484,6 +514,27 @@ def samsegment_part2(
         'transformMatrix': transform.as_numpy_array,
         'variances': variances,
     }
+
+
+def bias_correct_data(
+        biasCorrectedData,
+        biasFieldCoefficients,
+        downSampledBiasCorrectedImageBuffers,
+        downSampledImageBuffers,
+        downSampledKroneckerProductBasisFunctions,
+        downSampledMask,
+        downSampledMaskIndices,
+        numberOfContrasts
+):
+    downSampledBiasFields = []
+    for contrastNumber in range(numberOfContrasts):
+        downSampledBiasField = backprojectKroneckerProductBasisFunctions(
+            downSampledKroneckerProductBasisFunctions, biasFieldCoefficients[:, contrastNumber])
+        tmp = downSampledImageBuffers[:, :, :, contrastNumber] - downSampledBiasField * downSampledMask
+        downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber] = tmp
+        biasCorrectedData[:, contrastNumber] = tmp[downSampledMaskIndices]
+        downSampledBiasFields += [downSampledBiasField]
+    return downSampledBiasFields
 
 
 def test_samseg_ported_part2(case_name, case_file_folder, savePath):
