@@ -1980,6 +1980,14 @@ static void decideProjection(GreatArcSet* set) {
         }
     }
 
+    // More arcs are going to get added later
+    // so widen the range to include that possibility
+    //
+    float const vergeH = (maxH-minH)/4; minH -= vergeH; maxH += vergeH;
+    float const vergeW = (maxW-minW)/4; minW -= vergeW; maxW += vergeW;
+    
+    // Save the estimates
+    //
     set->minH = minH; if (maxH == minH) maxH = minH + 1; set->scaleH = GRID_HEIGHT/(maxH-minH);
     set->minW = minW; if (maxW == minW) maxW = minW + 1; set->scaleW = GRID_WIDTH /(maxW-minW);
 }
@@ -2307,50 +2315,52 @@ static bool possiblyIntersectingCell(GreatArcSet* set,
             
         // Compare the old code and the new code
         //
-        static long 
-            hit,        // only the old code tried
-            hitHit,     // both tried
-            hitMiss, 
-            missHit, 
-            missMiss,
-            miss,       // only the old code tried
-            count, limit=1;
-        //
-        //  count:6.71089e+07 hitHit:3.80079e+06 hitMiss:4 missHit:0 missMiss:6.33081e+07
-        //
-        count++;                                    // 6.7e7
-        
-        if (!answerIsFound) {
-            // only the old code tried
-            if (approachOldAnswer) hit++; else miss++;
-        } else {
-            // both old code and new code tried
+        if (0) {
+            static long 
+                hit,        // only the old code tried
+                hitHit,     // both tried
+                hitMiss, 
+                missHit, 
+                missMiss,
+                miss,       // only the old code tried
+                count, limit=1;
             //
-            if (approachOldAnswer && answerSoFar) {
-                hitHit++;                               // 3.8e6    okay
-             } else if (approachOldAnswer && !answerSoFar) {
+            //  count:6.71089e+07 hitHit:3.80079e+06 hitMiss:4 missHit:0 missMiss:6.33081e+07
+            //
+            count++;                                    // 6.7e7
 
-                hitMiss++;                              //   4      new code will get a different answer, which may be bad
-                fprintf(stdout, "%s:%d hit when predicted miss %ld <######################################################\n", __FILE__, __LINE__,
-                    hitMiss);
-
-            } else if (!approachOldAnswer && answerSoFar) {
-                missHit++;                              //   0      not a problem, but a waste of time
-            
+            if (!answerIsFound) {
+                // only the old code tried
+                if (approachOldAnswer) hit++; else miss++;
             } else {
-                missMiss++;                             // 6.3e7    okay
+                // both old code and new code tried
+                //
+                if (approachOldAnswer && answerSoFar) {
+                    hitHit++;                               // 3.8e6    okay
+                 } else if (approachOldAnswer && !answerSoFar) {
+
+                    hitMiss++;                              //   4      new code will get a different answer, which may be bad
+                    fprintf(stdout, "%s:%d hit when predicted miss %ld <######################################################\n", __FILE__, __LINE__,
+                        hitMiss);
+
+                } else if (!approachOldAnswer && answerSoFar) {
+                    missHit++;                              //   0      not a problem, but a waste of time
+
+                } else {
+                    missMiss++;                             // 6.3e7    okay
+                }
             }
-        }
-        
-        if (count == limit) {
-            limit *= 2;
-            fprintf(stdout, 
-                "%s:%d count:%g hit:%g miss:%g hitHit:%g hitMiss:%g missHit:%g missMiss:%g\n"
-                "  a1:%g a2:%g old:%g\n", __FILE__, __LINE__, 
-                (float)count, 
-                (float)hit, (float)miss,
-                (float)hitHit, (float)hitMiss, (float)missHit, (float)missMiss,  
-                (float)approachOneCount, (float)approachTwoCount, (float)approachOldCount);
+
+            if (count == limit) {
+                limit *= 2;
+                fprintf(stdout, 
+                    "%s:%d count:%g hit:%g miss:%g hitHit:%g hitMiss:%g missHit:%g missMiss:%g\n"
+                    "  a1:%g a2:%g old:%g\n", __FILE__, __LINE__, 
+                    (float)count, 
+                    (float)hit, (float)miss,
+                    (float)hitHit, (float)hitMiss, (float)missHit, (float)missMiss,  
+                    (float)approachOneCount, (float)approachTwoCount, (float)approachOldCount);
+            }
         }
 
         if (definitiveAnswer) {
@@ -2393,6 +2403,17 @@ void possiblyIntersectingGreatArcs(GreatArcSet* set,
     greatArcSet_getCellCoords(set, x0, y0, z0, &w0, &h0, &wI0, &hI0, &universal_cell0, false);
     greatArcSet_getCellCoords(set, x1, y1, z1, &w1, &h1, &wI1, &hI1, &universal_cell1, false);
 
+    if (0) {
+        static long limit=1,count,universalCount;
+        count++;
+        if (universal_cell0 || universal_cell1) universalCount++;
+        if (count >= limit) {
+            limit *= 2;
+            fprintf(stdout,"%s:%d target arcs - count:%g universalCount:%g\n",__FILE__,__LINE__,
+                (float)count, (float)universalCount);
+        }
+    }
+    
     if (universal_cell0 || universal_cell1) {
         wI0 = 0; wI1 = GRID_WIDTH -1;
         hI0 = 0; hI1 = GRID_HEIGHT-1;
@@ -2405,19 +2426,33 @@ void possiblyIntersectingGreatArcs(GreatArcSet* set,
     // so it is not worth being clever, however if there is more than one cell, there is a risk of duplicates
     // 
     //
-    int  callBackCount = 0, callBackFirstFound = -1;
+    int callBackCount = 0, callBackFirstFound = -1;
 
     int firstPassedPlus1 = -1;  // 0 means not passed, -1 means end of list
     
+    static long localCount;
+
     int wI,hI;
     for (wI = wI0; wI <= wI1; wI++) 
     for (hI = hI0; hI <= hI1; hI++) {
-        Cell* cell = getCell(set,wI,hI);           
+        Cell* cell = getCell(set,wI,hI);
+        localCount += cell->size;           
         if (possiblyIntersectingCell(set, callbackCtx, callback, cell, 
                 tracing, &firstPassedPlus1, &callBackCount, &callBackFirstFound,
                 !(universal_cell0 || universal_cell1),
                 vno0, vno1,
                 w0, h0, w1, h1)) goto Found;
+    }
+
+    if (0) {
+        static long limit=1,count,universalCount;
+        count++;
+        universalCount += set->cells[UNIVERSAL_CELL].size;
+        if (count >= limit) {
+            limit *= 2;
+            fprintf(stdout,"%s:%d universal inserted arcs - count:%g localCount:%g universalCount:%g\n",__FILE__,__LINE__,
+                (float)count, (float)localCount, (float)universalCount);
+        }
     }
 
     if (possiblyIntersectingCell(set, callbackCtx, callback, &set->cells[UNIVERSAL_CELL], 
