@@ -43,7 +43,7 @@ def disparity_rgb(r0, g0, b0, r1, g1, b1):
     color_differencer = cie_2000_differencer
     gray0 = luminosity([r0, g0, b0])
     gray1 = luminosity([r1, g1, b1])
-    gray_difference = cie_2000_differencer(gray0, gray0, gray0, gray1, gray1, gray1)
+    gray_difference = color_differencer(gray0, gray0, gray0, gray1, gray1, gray1)
     color_difference = color_differencer(r0, g0, b0, r1, g1, b1)
     return color_difference, gray_difference
 
@@ -111,9 +111,12 @@ def maximal_distance_palette(max_size=35, segments=None, metric=None):
     return palette
 
 
-if __name__ == '__main__':
-    palette = maximal_distance_palette(metric=perceptual_difference)
+def generate_python_code_for_default_palette(palette):
     print('DEFAULT_PALETTE = [')
     for index, color in enumerate(palette):
         print('    {0},  # luminosity={1}'.format(color, luminosity(color)))
     print(']')
+
+
+if __name__ == '__main__':
+    generate_python_code_for_default_palette(maximal_distance_palette(metric=perceptual_difference))

@@ -181,9 +181,10 @@ The matlab script `run_samseg.m` has been ported to `run_samseg_ported.py` with 
 A minor difference is the use of `-i` and `-o` with single dash instead of `--i` and `--o`
 Running with `-h` for help will print a complete usage statement:
 ```bash
-usage: run_samseg [-h] [-o FOLDER] [-i FILE] [--threads THREADS]
-                            [-r FILE] [-m LABEL] [--showfigs] [--nobrainmask]
-                            [--diagcovs] [-v]
+usage: run_samseg_ported.py [-h] [-o FOLDER] [-i FILE] [--threads THREADS]
+                            [-r FILE] [--initlta FILE] [-m LABEL] [--movie]
+                            [--showfigs] [--nobrainmask] [--diagcovs] [-v]
+                            [--reg-only]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -194,16 +195,43 @@ optional arguments:
   --threads THREADS     number of threads
   -r FILE, --regmat FILE
                         skip registration and read from FILE
+  --initlta FILE        initial registration FILE
   -m LABEL, --missing LABEL
                         LABEL is a missing structure (repeat for multiple
                         missing labels)
+  --movie               show as arrow key controlled time sequence
   --showfigs            show figures during run
   --nobrainmask         no initial brain masking based on affine atlas
                         registration
   --diagcovs            use diagonal covariance matrices (only affect multi-
                         contrast case)
   -v, --verbose         verbose debug output
+  --reg-only, --regonly
+                        only perform registration
 ```
+
+### Display Options: showfigs and movie
+If you turn on the `showfigs` or `movie` command line options then you will see charted data during the run.
+
+The `showfigs` option by itself will display various graphs and charts as the data is calculated.
+
+The 3d images can be navigated by placing the cursor over one of the three views and then
+either clicking with the mouse or using the mouse scroll wheel.
+The legend at left also assigns keys to each layer (label or contrast) of the displayed image.
+These keys toggle that layer on and off.
+
+The `movie` option alone will show one movie at the end of atas registration and
+one movie for each multi resolution level. Time is controlled by using the arrow keys
+while the cursor is over the display window.
+Left and right arrow keys move forward or back one frame. The up and down arrows move to the
+start or end of the movie.
+The current frame number and the frame count can be seen in the display title.
+
+If both `showfigs` and `movie` options are selected, then some of the displays will be for a movie in progress,
+with as many frames as have been generated to that point in time.
+
+***With either option, all calculations are paused until the displayed window is closed.***
+
 ## Running Test Scripts
 Place the `innolitics_testing` data folder at `~/work/cm/`
 

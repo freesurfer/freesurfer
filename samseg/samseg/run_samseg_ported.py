@@ -33,8 +33,7 @@ def run_samseg_from_cmdargs(cmdargs):
     atlas_only = cmdargs.atlas_only
     savePath = cmdargs.output
     numberOfThreads = cmdargs.threads
-    showFigures = ShowFigures() if cmdargs.showfigs else DoNotShowFigures()
-
+    showFigures = construct_show_figures(show_flag=cmdargs.showfigs, movie_flag=cmdargs.movie)
     noBrainMasking = cmdargs.nobrainmask
     useDiagonalCovarianceMatrices = cmdargs.diagcovs
     RegMatFile = cmdargs.regmat
@@ -55,6 +54,11 @@ def run_samseg_from_cmdargs(cmdargs):
             InitLTAFile=InitLTAFile
     )
 
+def construct_show_figures(show_flag, movie_flag):
+    if show_flag or movie_flag:
+        return ShowFigures(show_flag=show_flag, movie_flag=movie_flag)
+    else:
+        return DoNotShowFigures()
 
 def run_samseg(
     imageFileNames,

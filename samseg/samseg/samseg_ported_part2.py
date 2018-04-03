@@ -63,6 +63,12 @@ def samsegment_part2(
     numberOfMultiResolutionLevels = len(optimizationOptions.multiResolutionSpecification)
     for multiResolutionLevel in range(numberOfMultiResolutionLevels):
         logger.debug('multiResolutionLevel=%d', multiResolutionLevel)
+        #  If the movie flag is on then making a movie archives a lot of data.
+        #  Saving some memory here by making, showing, then erasing the movie at each resolution level.
+        showFigures.start_movie(
+            window_id='samsegment',
+            title='Samsegment Mesh Registration - the movie'
+        )
         maximumNumberOfIterations = optimizationOptions.multiResolutionSpecification[
             multiResolutionLevel].maximumNumberOfIterations
         estimateBiasField = optimizationOptions.multiResolutionSpecification[multiResolutionLevel].estimateBiasField
@@ -406,7 +412,7 @@ def samsegment_part2(
             showFigures.show(
                 mesh=mesh,
                 images=downSampledBiasCorrectedImageBuffers,
-                window_id='samsegment',
+                window_id='samsegment em',
                 title='Samsegment Mesh Registration (EM)'
             )
             historyOfEMCost = historyOfEMCost[1:]
@@ -480,6 +486,7 @@ def samsegment_part2(
             if perVoxelDecrease < perVoxelDecreaseThreshold:
                 if len(historyOfCost) > 2:
                     showFigures.plot(historyOfCost[1:], title='History of Cost')
+                showFigures.show_movie(window_id='samsegment')
                 if checkpoint_manager:
                     checkpoint_manager.increment_and_save({
                         'activeVoxelCount': activeVoxelCount,

@@ -7,6 +7,7 @@ from PyQt5 import QtGui
 from samseg.hdav import hdav
 from samseg.hdav.hdav.hdav import HdavWindow
 
+# Generated via main method of ColorScheme.py
 DEFAULT_PALETTE = [
     [0.7, 0.15, 1.0],  # luminosity=0.3283
     [0.3, 0.65, 0.0],  # luminosity=0.5286599999999999
@@ -53,15 +54,25 @@ class DoNotShowFigures:
     def plot(self, **kwargs):
         pass
 
+    def start_movie(self, **kwargs):
+        pass
+
+    def show_movie(self, **kwargs):
+        pass
+
 
 class ShowFigures:
-    def __init__(self, interactive=False, image_alpha=0.6, palette=None):
+    def __init__(self, interactive=False, image_alpha=0.6, palette=None, show_flag=False, movie_flag=False):
         if palette is None:
             palette = DEFAULT_PALETTE
         self.palette = palette
         self.interactive = interactive
         self._next_window_id = 0
         self.image_alpha = image_alpha
+        self.movie_flag = movie_flag
+        self.show_flag = show_flag
+        self.movies = {}
+        self.user_callbacks = {}
 
     def create_palette(self, layer_count):
         palette = []
@@ -96,7 +107,9 @@ class ShowFigures:
             probability_layers[probability_max - 1]['data'] = tail
             probability_layers = probability_layers[:probability_max]
         layers = probability_layers + image_layers
-        self.show_layers(layers, window_id, title)
+        self.archive(window_id, layers)
+        if self.show_flag:
+            self.show_layers(layers, window_id, title)
 
     def probability_layers(self, probabilities, names, prefix=None, visibility=True):
         if prefix is None:
@@ -157,15 +170,123 @@ class ShowFigures:
         if window_id is None:
             window_id = str(self._next_window_id)
             self._next_window_id += 1
+        self.hdav_view(layers, window_id, title)
+
+    def hdav_view(self, layers, window_id, title, handle_events=True):
         if layers:
-            hdav.view(layers, interactive=self.interactive, window_id=window_id, title=title)
+            hdav.view(layers,
+                      interactive=self.interactive,
+                      window_id=window_id,
+                      title=title,
+                      user_keys_callback=self.user_callbacks.get(window_id),
+                      handle_events=handle_events,
+                      )
+
+    def archive(self, window_id, layers):
+        if self.movie_flag:
+            layer_sequence = self.movies.get(window_id)
+            if layer_sequence:
+                # This point can only be reached if a movie was started with this window_id
+                layer_sequence.add(layers)
+
+    def start_movie(self, window_id, title=None):
+        if self.movie_flag:
+            layer_sequence = LayerSequence(title)
+            self.movies[window_id] = layer_sequence
+
+            def update_movie(layers):
+                # Call backs should not handle events as they are inside an event loop already
+                self.hdav_view(layers, window_id, layer_sequence.title, handle_events=False)
+
+            def backward():
+                update_movie(layer_sequence.previous())
+
+            def forward():
+                update_movie(layer_sequence.next())
+
+            def beginning_of_movie():
+                update_movie(layer_sequence.rewind())
+
+            def end_of_movie():
+                update_movie(layer_sequence.skip_to_end())
+
+            self.user_callbacks[window_id] = {
+                pg.QtCore.Qt.Key_Left: backward,
+                pg.QtCore.Qt.Key_Right: forward,
+                pg.QtCore.Qt.Key_Up: beginning_of_movie,
+                pg.QtCore.Qt.Key_Down: end_of_movie,
+            }
+
+    def show_movie(self, window_id, clear_memory=True):
+        if self.movie_flag:
+            layer_sequence = self.movies.get(window_id)
+            if layer_sequence:
+                layers = layer_sequence.rewind()
+                title = layer_sequence.title
+                self.hdav_view(layers, window_id, title)
+                if clear_memory:
+                    self.movies[window_id] = None
+                    self.user_callbacks[window_id] = None
 
     def plot(self, data, title=None):
-        pg.plot(y=data, pen=pg.mkPen(color='l', width=3), title=title)
-        if self.interactive:
-            QtGui.QApplication.processEvents()
+        if self.show_flag:
+            pg.plot(y=data, pen=pg.mkPen(color='l', width=3), title=title)
+            if self.interactive:
+                QtGui.QApplication.processEvents()
+            else:
+                QtGui.QApplication.exec_()
+
+
+class LayerSequence:
+    def __init__(self, title):
+        self._title = title
+        self.time_index = -1
+        self.history = []
+
+    @property
+    def title(self):
+        return '{0} {1}/{2}'.format(self._title, self.time_index + 1, self.frame_count)
+
+    @property
+    def current_frame(self):
+        if self.time_index >= 0:
+            return self.history[self.time_index]
         else:
-            QtGui.QApplication.exec_()
+            return None
+
+    @property
+    def frame_count(self):
+        return len(self.history)
+
+    def add(self, layers):
+        for layer in layers:
+            layer['data'] = np.copy(layer['data'])
+        self.history.append(layers)
+        self.time_index = self.frame_count - 1
+
+    def rewind(self):
+        if self.history:
+            self.time_index = 0
+        else:
+            self.time_index = -1
+        return self.current_frame
+
+    def skip_to_end(self):
+        if self.history:
+            self.time_index = self.frame_count - 1
+        else:
+            self.time_index = -1
+        return self.current_frame
+
+    def next(self):
+        if self.time_index + 1 < self.frame_count:
+            self.time_index += 1
+        return self.current_frame
+
+    def previous(self):
+        if self.time_index > 0:
+            self.time_index -= 1
+        return self.current_frame
 
 
 def transparency_color_map(top_rgb_color, bottom_rgb_color=None, start=0, stop=65535, bottom_alpha=0.0, top_alpha=1.0):
@@ -212,5 +333,5 @@ def show_example_plot():
 
 
 if __name__ == '__main__':
-    # show_palette()
+    show_palette()
     show_example_plot()

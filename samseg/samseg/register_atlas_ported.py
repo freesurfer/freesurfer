@@ -176,6 +176,7 @@ def samseg_registerAtlas(imageFileName,
         maximalDeformations = []
         costs = []
         gradients = []
+        showFigures.start_movie(window_id='atlas iteration', title='Atlas Registration - the movie')
         while True:
             cost, gradient = calculator.evaluate_mesh_position_c(mesh)
             logger.info("cost = %f", cost)
@@ -191,6 +192,7 @@ def samseg_registerAtlas(imageFileName,
             numberOfIterations += 1
             showFigures.show(mesh=mesh, images=imageBuffer, window_id='atlas iteration', title='Atlas Registration')
 
+        showFigures.show_movie(window_id='atlas iteration')
         nodePositions = mesh.points
         pointNumbers = [0, 110, 201, 302]
         originalY = np.vstack((np.diag(downSamplingFactors) @ originalNodePositions[pointNumbers].T, [1, 1, 1, 1]))
