@@ -11,6 +11,7 @@ from samseg.dev_utils.debug_client import create_part2_inspection_team, run_test
     create_checkpoint_manager, load_starting_fixture
 from samseg.kvlWarpMesh import kvlWarpMesh
 from samseg.kvl_merge_alphas import kvlMergeAlphas
+from samseg.run_utilities import merged_names
 from samseg.show_figures import DoNotShowFigures, ShowFigures
 
 logger = logging.getLogger(__name__)
@@ -59,6 +60,7 @@ def samsegment_part2(
     transformMatrix = part1_results_dict['transformMatrix']
     voxelSpacing = part1_results_dict['voxelSpacing']
     transform = GEMS2Python.KvlTransform(np.asfortranarray(transformMatrix))
+    names_for_merged_data = merged_names(modelSpecifications)
 
     numberOfMultiResolutionLevels = len(optimizationOptions.multiResolutionSpecification)
     for multiResolutionLevel in range(numberOfMultiResolutionLevels):
@@ -403,6 +405,8 @@ def samsegment_part2(
                                 'computedPrecisionOfKroneckerProductBasisFunctions': computedPrecisionOfKroneckerProductBasisFunctions,
                             }, 'estimateBiasField')
                     pass
+            if len(historyOfEMCost) > 2:
+                showFigures.plot(historyOfEMCost[1:], title='History of EM Cost')
             showFigures.show(
                 image_list=downSampledBiasFields,
                 auto_scale=True,
@@ -413,7 +417,8 @@ def samsegment_part2(
                 mesh=mesh,
                 images=downSampledBiasCorrectedImageBuffers,
                 window_id='samsegment em',
-                title='Samsegment Mesh Registration (EM)'
+                title='Samsegment Mesh Registration (EM)',
+                names=names_for_merged_data,
             )
             historyOfEMCost = historyOfEMCost[1:]
             #
@@ -466,7 +471,8 @@ def samsegment_part2(
                 mesh=mesh,
                 images=downSampledBiasCorrectedImageBuffers,
                 window_id='samsegment',
-                title='Samsegment Mesh Registration (Deformation)'
+                title='Samsegment Mesh Registration (Deformation)',
+                names=names_for_merged_data,
             )
 
             if checkpoint_manager:

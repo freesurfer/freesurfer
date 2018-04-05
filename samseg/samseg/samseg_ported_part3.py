@@ -8,10 +8,11 @@ from samseg.bias_correction import backprojectKroneckerProductBasisFunctions
 from samseg.dev_utils.debug_client import run_test_cases, create_checkpoint_manager, \
     create_part3_inspection_team, load_starting_fixture
 from samseg.kvlWarpMesh import kvlWarpMesh
-
+from samseg.show_figures import DoNotShowFigures
 
 eps = np.finfo(float).eps
 
+SKIP_SHOW_FIGURES_SAMSEG_PART_3 = False
 
 def ensure_dims(np_array, dims):
     if np_array.ndim < dims:
@@ -30,8 +31,11 @@ def samsegment_part3(
         part1_results_dict,
         part2_results_dict,
         imageFileNames,
+        showFigures,
         checkpoint_manager=None
 ):
+    if SKIP_SHOW_FIGURES_SAMSEG_PART_3 or showFigures is None:
+        showFigures = DoNotShowFigures()
     croppingOffset = part1_results_dict['croppingOffset']
     FreeSurferLabels = part1_results_dict['FreeSurferLabels']
     imageSize = part1_results_dict['imageSize']

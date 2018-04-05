@@ -177,7 +177,9 @@ def samsegment_part1(
         mesh=mesh,
         shape=imageBuffers.shape,
         window_id='samsegment mesh',
-        title='Samsegment Mesh'
+        title='Samsegment Mesh',
+        names=names,
+        legend_width=350, # Wider legend to handle the longer names
     )
 
     # The fact that we merge several neuroanatomical structures into "super"-structures for the purpose of model

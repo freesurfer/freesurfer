@@ -128,3 +128,6 @@ def specify_model(FreeSurferLabels, noBrainMasking, useDiagonalCovarianceMatrice
         # modelSpecifications.biasFieldSmoothingKernelSize = 50.0;  % Distance in mm of sinc function center to first zero crossing
         'biasFieldSmoothingKernelSize': 50,
     })
+
+def merged_names(model):
+    return [item.mergedName for item in model.sharedGMMParameters]

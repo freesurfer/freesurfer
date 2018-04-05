@@ -58,6 +58,7 @@ def samsegment(
         part1_results_dict,
         part2_results_dict,
         imageFileNames,
+        showFigures,
         checkpoint_manager
     )
     if checkpoint_manager:
