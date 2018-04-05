@@ -1,7 +1,15 @@
 import os
 import argparse
 
-def parse_args(argv=None, parser=argparse.ArgumentParser()):
+HELP_EPILOG = """
+Spatially navigate images with mouse by clicking, dragging or scrolling wheel.
+Toggle layer visibility using keys listed in legend.
+Navigate movies in time with up/down arrows to go to start/end or left/right arrows to change one frame
+at a time.
+"""
+def parse_args(argv=None, parser=argparse.ArgumentParser(
+    epilog=HELP_EPILOG
+)):
     parser.add_argument("-o", "--output", metavar="FOLDER",
                         help="output to FOLDER")
     parser.add_argument('-i', '--input', action='append', metavar="FILE", dest='image_file_names',
