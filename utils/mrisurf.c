@@ -42862,7 +42862,7 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
       useVolGeomToMRI(&gcam->atlas, mri);
     }
     if (gcam->type == GCAM_RAS) {
-        GCAMrasToVox(gcam, mri_dst);
+        GCAMrasToVox(gcam, mri);
     }
 
     v1 = VectorAlloc(4, MATRIX_REAL);
@@ -42870,7 +42870,6 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
     v2 = VectorAlloc(4, MATRIX_REAL);
     VECTOR_ELT(v2, 4) = 1.0;
     voxelFromSurfaceRAS = voxelFromSurfaceRAS_(mri);
-    surfaceRASFromVoxel = surfaceRASFromVoxel_(mri_dst);
 
     // now apply the transform
     for (vno = 0; vno < mris->nvertices; vno++) {
@@ -42904,7 +42903,6 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
     VectorFree(&v1);
     VectorFree(&v2);
     MatrixFree(&voxelFromSurfaceRAS);
-    MatrixFree(&surfaceRASFromVoxel);
     if (dstNotGiven) {
       MRIfree(&mri_dst);
     }
