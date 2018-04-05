@@ -51,7 +51,7 @@ class DoNotShowFigures:
     def show(self, **kwargs):
         pass
 
-    def plot(self, **kwargs):
+    def plot(self, what, **kwargs):
         pass
 
     def start_movie(self, **kwargs):
@@ -85,7 +85,7 @@ class ShowFigures:
         return palette
 
     def show(self, auto_scale=False, images=None, image_list=None, probabilities=None, mesh=None, names=None,
-             window_id=None, shape=None, title=None):
+             window_id=None, shape=None, title=None, legend_width=None):
         if image_list is None:
             image_list = []
         if images is not None:
@@ -109,7 +109,7 @@ class ShowFigures:
         layers = probability_layers + image_layers
         self.archive(window_id, layers)
         if self.show_flag:
-            self.show_layers(layers, window_id, title)
+            self.show_layers(layers, window_id, title, legend_width)
 
     def probability_layers(self, probabilities, names, prefix=None, visibility=True):
         if prefix is None:
@@ -166,13 +166,13 @@ class ShowFigures:
     def generate_names(self, prefix, count):
         return ['{0} {1}'.format(prefix, index + 1) for index in range(count)]
 
-    def show_layers(self, layers, window_id, title):
+    def show_layers(self, layers, window_id, title, legend_width=None):
         if window_id is None:
             window_id = str(self._next_window_id)
             self._next_window_id += 1
-        self.hdav_view(layers, window_id, title)
+        self.hdav_view(layers, window_id, title, legend_width=legend_width)
 
-    def hdav_view(self, layers, window_id, title, handle_events=True):
+    def hdav_view(self, layers, window_id, title, handle_events=True, legend_width=None):
         if layers:
             hdav.view(layers,
                       interactive=self.interactive,
@@ -180,6 +180,7 @@ class ShowFigures:
                       title=title,
                       user_keys_callback=self.user_callbacks.get(window_id),
                       handle_events=handle_events,
+                      legend_width=legend_width,
                       )
 
     def archive(self, window_id, layers):
