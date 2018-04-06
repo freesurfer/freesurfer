@@ -42862,7 +42862,7 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
       useVolGeomToMRI(&gcam->atlas, mri);
     }
     if (gcam->type == GCAM_RAS) {
-        GCAMrasToVox(gcam, mri);
+        GCAMrasToVox(gcam, mri_dst);
     }
 
     v1 = VectorAlloc(4, MATRIX_REAL);
