@@ -173,6 +173,7 @@ GCAM* readITK(const string& warp_file, const string& src_geom)
 
   GCA_MORPH* gcam = GCAMalloc(itk->width, itk->height, itk->depth) ;
   GCAMinitVolGeom(gcam, src, itk) ;
+  gcam->type = GCAM_VOX;
 
   MATRIX *ras2lps = MatrixIdentity(4, NULL);
   ras2lps->rptr[1][1] = -1;
