@@ -115,4 +115,34 @@ void summarizeRealmTreeVno(RealmTree const * realmTree, int vno);
     // Writes a summary to stderr
 
 
+// GreatArcs supports projecting a set of edges onto the unit circle, 
+// and then quickly asking whether one projected edge intersects any others
+//
+// This is needed when fixing defects in mris_fix_topology
+//
+typedef struct GreatArcSet GreatArcSet;
+
+void freeGreatArcSet(GreatArcSet** setPtr);
+GreatArcSet* makeGreatArcSet(MRIS* mris);
+
+void insertGreatArc(GreatArcSet* set, 
+    int key,                        // key must not be in the set already
+    int vno0,
+    int vno1);
+    
+void possiblyIntersectingGreatArcs(
+    GreatArcSet* set,
+    void*        callbackCtx,
+    bool (*callback)(void* callbackCtx, int key, bool* isHit),      // returns true if should keep going, false if no more needed
+    int vno0, int vno1,
+    float x0, float y0, float z0,   // ends of the arc, need not be a unit vector
+    float x1, float y1, float z1,
+    bool tracing);
+
+void possiblyIntersectingGreatArcs_Debug(                           // show how vno0..vno1 interacts with the arc
+    GreatArcSet* set,
+    float x0, float y0, float z0,   // ends of the arc, need not be a unit vector
+    float x1, float y1, float z1,
+    int vno0, int vno1);
+    
 #endif
