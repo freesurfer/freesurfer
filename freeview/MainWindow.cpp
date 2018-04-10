@@ -3146,11 +3146,11 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         }
         else if ( subOption == "patch" )
         {
-          if ( subArgu.contains( "/" ) )
+          if ( !subArgu.contains( "/" ) )
           {
-            subArgu = QFileInfo( subArgu ).absoluteFilePath();
+            subArgu = "./" + subArgu;
           }
-          fn_patch = subArgu;
+          fn_patch = QFileInfo( subArgu ).absoluteFilePath();
         }
         else if ( subOption == "target" || subOption == "target_surf")
         {
@@ -5446,6 +5446,43 @@ void MainWindow::OnCloseSurface()
   }
 
   GetLayerCollection( "Surface" )->RemoveLayers( layers );
+}
+
+void MainWindow::OnLoadPatch()
+{
+  LayerSurface* surf = ( LayerSurface* )GetActiveLayer("Surface");
+  if ( !surf )
+    return;
+
+  QString filename = QFileDialog::getOpenFileName( this, "Select patch file",
+                                                         AutoSelectLastDir( "surf" ),
+                                                         "Patch files (*)", 0, QFileDialog::DontConfirmOverwrite);
+  if ( !filename.isEmpty() && !surf->LoadPatch(filename) )
+  {
+    QMessageBox::warning(this, "Error", QString("Could not load patch from %1").arg(filename));
+  }
+}
+
+void MainWindow::OnSavePatchAs()
+{
+  LayerSurface* layer_surf = ( LayerSurface* )GetActiveLayer( "Surface" );
+  if ( !layer_surf)
+  {
+    return;
+  }
+  else if ( !layer_surf->IsVisible() )
+  {
+    QMessageBox::warning( this, "Error", "Current surface layer is not visible. Please turn it on before saving.");
+    return;
+  }
+
+  QString fn = QFileDialog::getSaveFileName( this, "Save patch as",
+                                             layer_surf->GetFileName(),
+                                             "Patch files (*)");
+  if ( !fn.isEmpty() && !layer_surf->WritePatch(fn))
+  {
+    QMessageBox::warning(this, "Error", QString("Could not save patch to %1").arg(fn));
+  }
 }
 
 void MainWindow::OnIOError( Layer* layer, int jobtype )

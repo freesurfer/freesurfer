@@ -183,7 +183,7 @@
      <item row="10" column="0">
       <widget class="QLabel" name="label_13">
        <property name="text">
-        <string>Active Id</string>
+        <string>Laplace line</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>

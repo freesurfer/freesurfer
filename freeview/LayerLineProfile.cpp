@@ -536,6 +536,7 @@ bool LayerLineProfile::ExportThickness(const QString &filename, const QList<Laye
     return false;
 
   QTextStream out(&file);
+  out << "Laplace line";
   for (int i = 0; i <= splines.size(); i++)
     out << "," << QString("Layer %1").arg(i+1);
   out << "\n";

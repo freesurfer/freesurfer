@@ -168,7 +168,9 @@ SOURCES += \
     BinaryTreeNode.cpp \
     BinaryTreeEdge.cpp \
     BinaryTreeView.cpp \
-    DialogSelectSplines.cpp
+    DialogSelectSplines.cpp \
+    SurfacePath.cpp \
+    Interactor3DPathEdit.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -324,7 +326,9 @@ HEADERS  += \
     BinaryTreeNode.h \
     BinaryTreeEdge.h \
     BinaryTreeView.h \
-    DialogSelectSplines.h
+    DialogSelectSplines.h \
+    SurfacePath.h \
+    Interactor3DPathEdit.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \

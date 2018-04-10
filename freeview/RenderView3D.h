@@ -42,6 +42,7 @@ class vtkAnnotatedCubeActor;
 class Layer;
 class LayerSurface;
 class SurfaceROI;
+class Interactor3DPathEdit;
 
 class RenderView3D : public RenderView
 {
@@ -193,6 +194,7 @@ private:
   Interactor3DMeasure*    m_interactorMeasure;
   Interactor3DVolumeCrop* m_interactorVolumeCrop;
   Interactor3DROIEdit*    m_interactorROIEdit;
+  Interactor3DPathEdit*   m_interactorPathEdit;
 };
 
 #endif // RENDERVIEW3D_H
