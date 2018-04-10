@@ -79,31 +79,45 @@ extern "C"
 //  Callback function for loading vertex data from GtsSurface in
 //  decimateSurface()
 //
+struct VertexLoadContext {
+    MRI_SURFACE *mris;
+    int          nextVertex;
+};
+
 static void vertexLoad(GtsPoint * p, gpointer * data)
 {
-  MRI_SURFACE *mris = (MRI_SURFACE *)data;
-  mris->vertices[mris->nvertices].x = p->x;
-  mris->vertices[mris->nvertices].y = p->y;
-  mris->vertices[mris->nvertices].z = p->z;
-  unsigned int vertexID = mris->nvertices;
+  VertexLoadContext* vertexLoadContext = (VertexLoadContext*)data;
+  MRI_SURFACE *mris = vertexLoadContext->mris;
+
+  mris->vertices[vertexLoadContext->nextVertex].x = p->x;
+  mris->vertices[vertexLoadContext->nextVertex].y = p->y;
+  mris->vertices[vertexLoadContext->nextVertex].z = p->z;
+  unsigned int vertexID = vertexLoadContext->nextVertex;
   GTS_OBJECT(p)->reserved = GUINT_TO_POINTER(vertexID);
-  mris->nvertices++;
+  vertexLoadContext->nextVertex++;
 }
 
 ///
 //  Callbackfunction for loading traingle data from GtsSurface in
 //  decimateSurface()
 //
+struct FaceLoadContext {
+    MRI_SURFACE *mris;
+    int          nextFace;
+};
+
 static void faceLoad(GtsTriangle * t, gpointer * data)
 {
-  MRI_SURFACE *mris = (MRI_SURFACE *)data;
+  FaceLoadContext* faceLoadContext = (FaceLoadContext*)data;
+  MRI_SURFACE *mris = faceLoadContext->mris;
+  
   GtsVertex *v1, *v2, *v3;
   gts_triangle_vertices(t, &v1, &v2, &v3);
 
-  mris->faces[mris->nfaces].v[0] = (guint) (glong) GTS_OBJECT (v1)->reserved;
-  mris->faces[mris->nfaces].v[1] = (guint) (glong) GTS_OBJECT (v2)->reserved;
-  mris->faces[mris->nfaces].v[2] = (guint) (glong) GTS_OBJECT (v3)->reserved;
-  mris->nfaces++;
+  mris->faces[faceLoadContext->nextFace].v[0] = (guint) (glong) GTS_OBJECT (v1)->reserved;
+  mris->faces[faceLoadContext->nextFace].v[1] = (guint) (glong) GTS_OBJECT (v2)->reserved;
+  mris->faces[faceLoadContext->nextFace].v[2] = (guint) (glong) GTS_OBJECT (v3)->reserved;
+  faceLoadContext->nextFace++;
 }
 
 ///
@@ -336,44 +350,28 @@ int decimateSurface(MRI_SURFACE **pmris,
   printf("Decimated Surface Number of faces: %d\n",
          stats.n_faces);
 
-  mris->nvertices = stats.edges_per_vertex.n;
-  mris->nfaces = stats.n_faces;
-
-  // Allocate at the new size
-  mris->vertices = (VERTEX *)calloc(stats.edges_per_vertex.n, sizeof(VERTEX)) ;
-  if (!mris->vertices)
-  {
-    ErrorExit(ERROR_NO_MEMORY,
-              "decimateSurface(%d, %d): could not allocate vertices",
-              mris->nvertices, sizeof(VERTEX));
-  }
-  mris->faces = (FACE *)calloc(stats.n_faces, sizeof(FACE)) ;
-  if (!mris->faces)
-  {
-    ErrorExit(ERROR_NO_MEMORY,
-              "decimateSurface(%d, %d): could not allocate faces",
-              mris->nfaces, sizeof(FACE));
-  }
+  
+  MRISreallocVerticesAndFaces(mris, stats.edges_per_vertex.n, stats.n_faces);
 
   if (decimateProgressFn != NULL)
   {
     decimateProgressFn(0.70, "Copying vertices to mris...", userData);
   }
 
-  gpointer data;
-  mris->nvertices = 0;
-  data = (gpointer)mris;
-  gts_surface_foreach_vertex( gtsSurface, (GtsFunc) vertexLoad, data);
-
+  VertexLoadContext vertexLoadContext;
+  	vertexLoadContext.mris     = mris;
+	vertexLoadContext.nextVertex = 0;
+  gts_surface_foreach_vertex( gtsSurface, (GtsFunc) vertexLoad, (gpointer)&vertexLoadContext);
 
   if (decimateProgressFn != NULL)
   {
     decimateProgressFn(0.80, "Copying faces to mris...", userData);
   }
 
-  mris->nfaces = 0;
-  data = (gpointer)mris;
-  gts_surface_foreach_face( gtsSurface, (GtsFunc) faceLoad, data);
+  FaceLoadContext faceLoadContext;
+  	faceLoadContext.mris     = mris;
+	faceLoadContext.nextFace = 0;
+  gts_surface_foreach_face( gtsSurface, (GtsFunc) faceLoad, (gpointer)&faceLoadContext);
 
 
   if (decimateProgressFn != NULL)
@@ -381,6 +379,8 @@ int decimateSurface(MRI_SURFACE **pmris,
     decimateProgressFn(0.90, "Creating new mris...", userData);
   }
 
+  MRISreallocVerticesAndFaces(mris, vertexLoadContext.nextVertex, faceLoadContext.nextFace);
+  
   // Create a temporary file to write the output and then read it back in
   // to get the decimated surface. The reason I do this is because there
   // was no clear API call in mrisurf.c that would allow me to muck with
