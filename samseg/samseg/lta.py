@@ -118,20 +118,25 @@ class LTA:
         return self
 
     def write(self, filename):
+        header_lines = [
+            '# transform file {0}'.format(filename),
+            '# created by LTA.write',
+        ]
+        description_lines = [
+            'type     = %d' % self.type,
+            'nxforms  = %d' % self.nxforms,
+            'mean     = {}'.format(' '.join([str(val) for val in self.mean])),
+            'sigma    = %d' % self.sigma,
+            ' '.join(str(val) for val in self.dims),
+        ]
+        transform_lines = self.transformLines()
+        source_lines = self.srcmri.formatted_lines('src', self.srcfile)
+        destination_lines = self.dstmri.formatted_lines('dst', self.dstfile)
+        subject_line = [' '.join(['subject', self.subject or 'unknown'])]
+        output_lines = header_lines + description_lines + transform_lines + \
+                       source_lines + destination_lines + subject_line
         with open(filename, 'w') as file:
-            file.writelines('\n'.join([
-                                          '# transform file {0}'.format(filename),
-                                          '# created by LTA.write',
-                                          'type     = %d' % self.type,
-                                          'nxforms  = %d' % self.nxforms,
-                                          'mean     = {}'.format(' '.join([str(val) for val in self.mean])),
-                                          'sigma    = %d' % self.sigma,
-                                          ' '.join(str(val) for val in self.dims),
-                                      ] + self.transformLines() + [
-                                      ] + self.srcmri.formatted_lines('src', self.srcfile) + [
-                                      ] + self.dstmri.formatted_lines('dst', self.dstfile) + [
-                                          ' '.join(['subject', self.subject or 'unknown']),
-                                      ]))
+            file.writelines('\n'.join(output_lines))
 
     def transformLines(self):
         return [nice_array_format(row) for row in self.xform]
@@ -178,6 +183,7 @@ class MRI:
         c = M @ ic
         self.cras = list(c[0:3])
         self.valid = True
+        self.upate_vox2ras()
         return self
 
     def read(self, content):
@@ -195,16 +201,11 @@ class MRI:
 
     def upate_vox2ras(self):
         # Compute the vox2ras matrix
-        Mdc = np.zeros([3, 3])
-        for row, source in enumerate([self.xras, self.yras, self.zras]):
-            for column in range(3):
-                Mdc[row, column] = source[column]
+        Mdc = np.array([self.xras, self.yras, self.zras]).T
         Nvox2 = self.volsize / 2
         D = np.diag(self.volres)
         MdcD = Mdc @ D
         P0 = self.cras - MdcD @ Nvox2
-        self.vox2ras0 = np.zeros([4, 4])
-        self.vox2ras[3, 3] = 1.0
         self.vox2ras0 = construct_affine(MdcD, P0)
         pass
 

@@ -13,8 +13,8 @@ TEST_LEAF_NAME = 'samseg.talairach.lta'
 class TestIta:
     def setup(self):
         self.test_fixture_file_name = os.path.join(os.path.dirname(__file__), TEST_LEAF_NAME)
-        self.fs_home = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-        self.expected_dstfile = self.fs_home + '/subjects/fsaverage/mri/orig.mgz'
+        self.fs_home = os.path.abspath(os.path.join(__file__, '../../../../'))
+        self.expected_dstfile = os.path.join(self.fs_home, 'subjects/fsaverage/mri/orig.mgz')
         self.test_image_folder = os.path.join(os.path.dirname(self.fs_home), 'innolitics_testing')
 
     def test_the_test(self):
@@ -162,3 +162,7 @@ class TestIta:
         assert mri.yras == [0.0, 0.0, -1.0]
         assert mri.zras == [0.0, 1.0, 0.0]
         assert mri.cras == [0, 0, 0]
+        assert mri.vox2ras0[0] == pytest.approx([-1, 0, 0, 128])
+        assert mri.vox2ras0[1] == pytest.approx([0, 0, 1, -128])
+        assert mri.vox2ras0[2] == pytest.approx([0, -1, 0, 128])
+        assert mri.vox2ras0[3] == pytest.approx([0, 0, 0, 1])
