@@ -57233,9 +57233,17 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     float   e0[3],   e1[3],   e2[3];
     float n_e0[3], n_e1[3], n_e2[3];
     {
-      int fn1;
-    
-      FaceNormCacheEntry const * fNorm = getFaceNorm(mris, fno);
+      // Do these first, so the optimizer has plenty of common subexpressions knowing the pointed-to items aren't changing
+      //
+      int fnoV01 = findOtherEdgeFace(mris, fno, face->v[0], face->v[1]);
+      int fnoV12 = findOtherEdgeFace(mris, fno, face->v[1], face->v[2]);
+      int fnoV20 = findOtherEdgeFace(mris, fno, face->v[2], face->v[0]);
+
+      FaceNormCacheEntry const * fNorm  = getFaceNorm(mris, fno);
+      FaceNormCacheEntry const * fNorm0 = getFaceNorm(mris, fnoV01);
+      FaceNormCacheEntry const * fNorm1 = getFaceNorm(mris, fnoV12);
+      FaceNormCacheEntry const * fNorm2 = getFaceNorm(mris, fnoV20);
+
       n_f[0] = fNorm->nx;
       n_f[1] = fNorm->ny;
       n_f[2] = fNorm->nz;
@@ -57246,8 +57254,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
       e0[2] = z1 - z0;
     
       F_CROSS(n_f, e0, n0);
-      fn1 = findOtherEdgeFace(mris, fno, face->v[0], face->v[1]);
-      FaceNormCacheEntry const * fNorm0 = getFaceNorm(mris, fn1);
+
       n_e0[0] = fNorm->nx + fNorm0->nx;
       n_e0[1] = fNorm->ny + fNorm0->ny;
       n_e0[2] = fNorm->nz + fNorm0->nz;
@@ -57258,8 +57265,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
       e1[2] = z2 - z1;
 
       F_CROSS(n_f, e1, n1);
-      fn1 = findOtherEdgeFace(mris, fno, face->v[1], face->v[2]);
-      FaceNormCacheEntry const * fNorm1 = getFaceNorm(mris, fn1);
+
       n_e1[0] = fNorm->nx + fNorm1->nx;
       n_e1[1] = fNorm->ny + fNorm1->ny;
       n_e1[2] = fNorm->nz + fNorm1->nz;
@@ -57270,8 +57276,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
       e2[2] = z0 - z2;
 
       F_CROSS(n_f, e2, n2);
-      fn1 = findOtherEdgeFace(mris, fno, face->v[2], face->v[0]);
-      FaceNormCacheEntry const * fNorm2 = getFaceNorm(mris, fn1);
+
       n_e2[0] = fNorm->nx + fNorm2->nx;
       n_e2[1] = fNorm->ny + fNorm2->ny;
       n_e2[2] = fNorm->nz + fNorm2->nz;
@@ -57295,30 +57300,33 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 
     /* finding distance to surface */
     /* the above shows that typically there are only about 20 iterations */
+    //
+    // GCC does not find many of the loop invariants in the following, hence the explicit hoisting
+    //
+    float vec[3], vec0[3], vec1[3], vec2[3];
+
     int k,j,i;
     for (i = imin; i <= imax; i++) {
-      for (j = jmin; j <= jmax; j++) {
-        for (k = kmin; k <= kmax; k++) {
-
-          float const 
-	    x = xSURF(mri_defect, i),
-            y = ySURF(mri_defect, j),
-            z = zSURF(mri_defect, k);
-
-  	  float vec[3], vec0[3], vec1[3], vec2[3];
-
+      	  float const x = xSURF(mri_defect, i);
           vec0[0] = x - x0;
-          vec0[1] = y - y0;
-          vec0[2] = z - z0;
           vec1[0] = x - x1;
-          vec1[1] = y - y1;
-          vec1[2] = z - z1;
           vec2[0] = x - x2;
+          vec [0] = (vec0[0] + vec1[0] + vec2[0]) / 3.0;
+
+      for (j = jmin; j <= jmax; j++) {
+          float const y = ySURF(mri_defect, j);
+          vec0[1] = y - y0;
+          vec1[1] = y - y1;
           vec2[1] = y - y2;
+          vec [1] = (vec0[1] + vec1[1] + vec2[1]) / 3.0;
+
+        for (k = kmin; k <= kmax; k++) {
+          float const z = zSURF(mri_defect, k);
+
+          vec0[2] = z - z0;
+          vec1[2] = z - z1;
           vec2[2] = z - z2;
-          vec[0] = (vec0[0] + vec1[0] + vec2[0]) / 3.0;
-          vec[1] = (vec0[1] + vec1[1] + vec2[1]) / 3.0;
-          vec[2] = (vec0[2] + vec1[2] + vec2[2]) / 3.0;
+          vec [2] = (vec0[2] + vec1[2] + vec2[2]) / 3.0;
 
           /* compute distance to face */
           /* where is the point */
