@@ -2021,6 +2021,10 @@ MRI *MRI3dGentleNormalize(MRI *mri_src,
         if (norm > 255.0f && mri_norm->type == MRI_UCHAR) {
           norm = 255.0f;
         }
+	if (bias > 200 || bias < 50 || norm < -10)
+	  DiagBreak() ;
+	if (norm < -10)
+	  DiagBreak();
         MRIsetVoxVal(mri_norm, x, y, z, 0, norm);
       }
     }
@@ -3566,10 +3570,14 @@ int MRInormAddFileControlPoints(MRI *mri_ctrl, int value, MRI *mri)
     x = xctrl[i];
     y = yctrl[i];
     z = zctrl[i];
-    if (MRIindexNotInVolume(mri_ctrl, x, y, z) == 0) {
-      if (mri && MRIgetVoxVal(mri, x, y, z, 0) <= 0) {
+    if (MRIindexNotInVolume(mri_ctrl, x, y, z) == 0) 
+    {
+      if (mri && MRIgetVoxVal(mri, x, y, z, 0) <= 0) 
+      {
         printf(
             "control point %d @ (%d, %d, %d), MRI=%d, skipping!!!!!\n", i, x, y, z, (int)MRIgetVoxVal(mri, x, y, z, 0));
+	bad++ ;
+	continue ;
       }
       if (MRIvox(mri_ctrl, x, y, z) == 0) {
         nctrl++;

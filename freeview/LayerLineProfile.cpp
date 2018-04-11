@@ -31,7 +31,8 @@ LayerLineProfile::LayerLineProfile(int nPlane, QObject *parent, LayerPointSet *l
   m_dSpacing(2),
   m_nSamples(100),
   m_dOffset(10),
-  m_nActiveLineId(-1)
+  m_nActiveLineId(-1),
+  m_dReferenceSize(1.0)
 {
   this->m_strTypeNames << "Supplement" << "LineProfile";
   SetSourceLayers(line1, line2);
@@ -200,6 +201,8 @@ bool LayerLineProfile::Solve(double profileSpacing, double referenceSize, double
   //double resolution        = spacing * 10.0;
   double distance          = referenceSize / 3.0;
 
+  m_dReferenceSize = referenceSize;
+
   std::vector < std::vector < double > > points2d;
   std::vector < int > segment0;
   std::vector < int > segment1;
@@ -348,7 +351,7 @@ void LayerLineProfile::UpdateActiveLine()
       }
     }
 
-    MakeFlatTube(points, lines, m_activeLine, m_dWorldVoxelSize[0]*GetProperty()->GetRadius()*1.01);
+    MakeFlatTube(points, lines, m_activeLine, GetProperty()->GetRadius()*1.01);
     emit ActorUpdated();
   }
 }
@@ -375,7 +378,7 @@ void LayerLineProfile::UpdateActors()
   lines->InsertNextCell(2);
   lines->InsertCellPoint(2);
   lines->InsertCellPoint(3);
-  MakeFlatTube(points, lines, m_endLines, m_dWorldVoxelSize[0]*GetProperty()->GetRadius());
+  MakeFlatTube(points, lines, m_endLines, GetProperty()->GetRadius());
 
   // update profile lines
   points = vtkSmartPointer<vtkPoints>::New();
@@ -408,7 +411,7 @@ void LayerLineProfile::UpdateActors()
     }
   }
 
-  MakeFlatTube(points, lines, m_profileLines, m_dWorldVoxelSize[0]*GetProperty()->GetRadius());
+  MakeFlatTube(points, lines, m_profileLines, GetProperty()->GetRadius());
 
   UpdateActiveLine();
   emit this->ActorChanged();
@@ -533,6 +536,7 @@ bool LayerLineProfile::ExportThickness(const QString &filename, const QList<Laye
     return false;
 
   QTextStream out(&file);
+  out << "Laplace line";
   for (int i = 0; i <= splines.size(); i++)
     out << "," << QString("Layer %1").arg(i+1);
   out << "\n";

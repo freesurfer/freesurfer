@@ -64,12 +64,12 @@ bool Interactor3D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
   {
     m_bMoveSlice = true;
   }
-//    else if ( event->button() == Qt::LeftButton && event->modifiers() & CONTROL_MODIFIER )
-//    {
-//      m_surfaceROI = view->InitializeSurfaceROI(event->x(), event->y());
-//      if (m_surfaceROI)
-//        return false;   // intercept the event, do not pass down
-//    }
+//  else if ( event->button() == Qt::LeftButton && event->modifiers() & CONTROL_MODIFIER )
+//  {
+//    m_surfaceROI = view->InitializeSurfaceROI(event->x(), event->y());
+//    if (m_surfaceROI)
+//      return false;   // intercept the event, do not pass down
+//  }
   else
   {
     return Interactor::ProcessMouseDownEvent( event, renderview ); // pass down the event

@@ -36,6 +36,8 @@ class QAction;
 class WindowConfigureOverlay;
 class SurfaceLabel;
 class SurfaceSpline;
+class QToolButton;
+class QActionGroup;
 
 class PanelSurface : public PanelLayer
 {
@@ -90,6 +92,11 @@ protected slots:
   void OnCheckBoxSplineProjection(bool);
   void OnSplineItemChanged(QTreeWidgetItem *item);
   void OnCurrentSplineItemChanged(QTreeWidgetItem *item);
+  void OnButtonEditCut(bool b);
+  void OnButtonCutLine();
+  void OnButtonCutClosedLine();
+  void OnButtonClearCuts();
+  void OnButtonFillUncutArea();
 
 private:
   QList<SurfaceLabel*> GetSelectedLabels();
@@ -104,6 +111,8 @@ private:
   QList<QWidget*>  m_widgetsMesh;
   QList<QWidget*>  m_widgetsLabel;
   QList<QWidget*>  m_widgetsSpline;
+  QToolButton*     m_toolButtonSurface;
+  QActionGroup*    m_actGroupSurface;
 
   WindowConfigureOverlay* m_wndConfigureOverlay;
 };

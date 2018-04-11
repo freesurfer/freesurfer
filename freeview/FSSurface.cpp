@@ -202,9 +202,14 @@ bool FSSurface::InitializeData(const QString &vector_filename,
                                const QString &target_filename,
                                const QStringList &sup_files)
 {
+  // backup ripflags
+  m_originalRipflags.clear();
+  for (int i = 0; i < m_MRIS->nvertices; i++)
+    m_originalRipflags << m_MRIS->vertices[i].ripflag;
+
   if ( !patch_filename.isEmpty() )
   {
-    if ( ::MRISreadPatch( m_MRIS, patch_filename.toLatin1().data() ) != 0 )
+    if ( ::MRISreadPatchNoRemove(m_MRIS, patch_filename.toLatin1().data() ) != 0 )
     {
       cerr << "Can not load patch file " << qPrintable(patch_filename) << "\n";
     }
@@ -292,16 +297,7 @@ bool FSSurface::InitializeData(const QString &vector_filename,
   m_SurfaceToRASTransform->SetMatrix( m_SurfaceToRASMatrix );
 
   // Make the hash table. This makes it with v->x,y,z.
-  if ( m_HashTable[0] )
-  {
-    MHTfree( &m_HashTable[0] );
-  }
-
-  double max_spacing;
-  int max_vno;
-  MRIScomputeVertexSpacingStats(m_MRIS, NULL, NULL, &max_spacing, NULL, &max_vno, CURRENT_VERTICES);
-  m_HashTable[0] = MHTcreateVertexTable_Resolution( m_MRIS, CURRENT_VERTICES, max_spacing/4 );
-
+  UpdateHashTable(0, CURRENT_VERTICES);
   UpdatePolyData();
 
   // Save main vertices and normals
@@ -309,7 +305,7 @@ bool FSSurface::InitializeData(const QString &vector_filename,
   SaveNormals ( m_MRIS, SurfaceMain );
   m_bSurfaceLoaded[SurfaceMain] = true;
 
-  if ( patch_filename.isEmpty() )
+//  if ( patch_filename.isEmpty() )
   {
     if (sup_files.contains("white"))
       LoadSurface ( "white",    SurfaceWhite );
@@ -343,6 +339,16 @@ bool FSSurface::InitializeData(const QString &vector_filename,
     LoadCurvature();
 
   return true;
+}
+
+void FSSurface::UpdateHashTable(int nSet, int coord)
+{
+  if (m_HashTable[nSet])
+   MHTfree( &m_HashTable[nSet] );
+  double max_spacing;
+  int max_vno;
+  MRIScomputeVertexSpacingStats(m_MRIS, NULL, NULL, &max_spacing, NULL, &max_vno, coord);
+  m_HashTable[nSet] = MHTcreateVertexTable_Resolution( m_MRIS, coord, max_spacing/3 );
 }
 
 void FSSurface::LoadTargetSurface( const QString& filename )
@@ -409,14 +415,7 @@ bool FSSurface::LoadSurface( const QString& filename, int nSet )
     if (filename == "white")
       ::MRISsaveVertexPositions(m_MRIS, WHITE_VERTICES);
 
-    if ( m_HashTable[nSet] )
-    {
-      MHTfree( &m_HashTable[nSet] );
-    }
-    double max_spacing;
-    int max_vno, coord = (filename == "white" ? WHITE_VERTICES:CURRENT_VERTICES);
-    MRIScomputeVertexSpacingStats(m_MRIS, NULL, NULL, &max_spacing, NULL, &max_vno, coord);
-    m_HashTable[nSet] = MHTcreateVertexTable_Resolution( m_MRIS, coord, max_spacing/4 );
+    UpdateHashTable(nSet, (filename == "white" ? WHITE_VERTICES:CURRENT_VERTICES));
     ComputeNormals();
     SaveVertices( m_MRIS, nSet );
     SaveNormals ( m_MRIS, nSet );
@@ -1892,13 +1891,7 @@ void FSSurface::RemoveIntersections()
 
 void FSSurface::PostEditProcess()
 {
-  if ( m_HashTable[m_nActiveSurface] )
-    MHTfree( &m_HashTable[m_nActiveSurface] );
-  double max_spacing;
-  int max_vno;
-  MRIScomputeVertexSpacingStats(m_MRIS, NULL, NULL, &max_spacing, NULL, &max_vno, CURRENT_VERTICES);
-  m_HashTable[m_nActiveSurface] = MHTcreateVertexTable_Resolution( m_MRIS, CURRENT_VERTICES, max_spacing/4);
-
+  UpdateHashTable(m_nActiveSurface);
   SaveVertices( m_MRIS, m_nActiveSurface );
   ComputeNormals();
   SaveNormals( m_MRIS, m_nActiveSurface );
@@ -1946,9 +1939,9 @@ bool FSSurface::FindPath(int* vert_vno, int num_vno,
   int neighbor_vno;
   float dist_uv;
   int path_vno;
-//  int num_path = 0;
+  //  int num_path = 0;
   int num_checked;
-//  float vu_x, vu_y, vu_z;
+  //  float vu_x, vu_y, vu_z;
 
   dist = (float*) calloc (mris->nvertices, sizeof(float));
   pred = (int*) calloc (mris->nvertices, sizeof(int));
@@ -2014,12 +2007,12 @@ bool FSSurface::FindPath(int* vert_vno, int num_vno,
           u = &(mris->vertices[neighbor_vno]);
 
           /* calc the vector from u to v. */
-//          vu_x = u->x - v->x;
-//          vu_y = u->y - v->y;
-//          if (flag2d)
-//            vu_z = 0;
-//          else
-//            vu_z = u->z - v->z;
+          //          vu_x = u->x - v->x;
+          //          vu_y = u->y - v->y;
+          //          if (flag2d)
+          //            vu_z = 0;
+          //          else
+          //            vu_z = u->z - v->z;
 
           /* recalc the weight. */
           if (flag2d)
@@ -2063,4 +2056,258 @@ bool FSSurface::FindPath(int* vert_vno, int num_vno,
   free (check);
 
   return true;
+}
+
+void FSSurface::RipFaces()
+{
+  MRIS* mris = m_MRIS;
+  int n,k;
+  FACE *f;
+
+  for (k=0;k<mris->nfaces;k++)
+    mris->faces[k].ripflag = FALSE;
+  for (k=0;k<mris->nfaces;k++)
+  {
+    f = &mris->faces[k];
+    for (n=0;n<VERTICES_PER_FACE;n++)
+      if (mris->vertices[f->v[n]].ripflag)
+        f->ripflag = TRUE;
+  }
+  for (k=0;k<mris->nvertices;k++)
+    mris->vertices[k].border = FALSE;
+  for (k=0;k<mris->nfaces;k++)
+    if (mris->faces[k].ripflag)
+    {
+      f = &mris->faces[k];
+      for (n=0;n<VERTICES_PER_FACE;n++)
+        mris->vertices[f->v[n]].border = TRUE;
+    }
+}
+
+QList<int> FSSurface::FloodFillFromSeed(int seed_vno)
+{
+  MRIS* mris = m_MRIS;
+  char* filled;
+  int num_filled_this_iter;
+  int num_filled;
+  int iter;
+  int min_vno, max_vno, step_vno;
+  int vno;
+  int this_label = 0;
+  int neighbor_index;
+  int neighbor_vno;
+  VERTEX* v;
+  VERTEX* neighbor_v;
+  float fvalue = 0;
+  float seed_curv = 0;
+  float seed_fvalue = 0;
+  int new_index;
+  int num_labels_found, found_label_index;
+  int skip;
+  int count;
+
+  QList<int> filled_verts;
+
+  if (seed_vno < 0 || seed_vno >= mris->nvertices)
+    return filled_verts;
+
+  /* init filled array. */
+  filled = (char*) calloc (mris->nvertices, sizeof(char));
+
+  /* start with the seed filled.*/
+  filled[seed_vno] = TRUE;
+
+  /* find seed values for some conditions. */
+  //  if (params->dont_cross_label)
+  //    this_label = labl_selected_label;
+  //  if (params->dont_cross_cmid)
+  //    seed_curv = mris->vertices[seed_vno].curv;
+  //  if (params->dont_cross_fthresh)
+  //    sclv_get_value (&mris->vertices[seed_vno],
+  //                    sclv_current_field, &seed_fvalue);
+
+  /* while we're still filling stuff in a pass... */
+  num_filled_this_iter = 1;
+  num_filled = 0;
+  iter = 0;
+  while (num_filled_this_iter > 0)
+  {
+    num_filled_this_iter = 0;
+
+    /* switch between iterating forward and backwards. */
+    if ((iter%2)==0)
+    {
+      min_vno = 0;
+      max_vno = mris->nvertices-1;
+      step_vno = 1;
+    }
+    else
+    {
+      min_vno = mris->nvertices-1;
+      max_vno = 0;
+      step_vno = -1;
+    }
+
+    /* for each vertex, if it's filled, check its neighbors. for the
+       rules that are up-to-and-including, make the check on this
+       vertex. for the rules that are up-to-and-not-including, check
+       on the neighbor. */
+    for (vno = min_vno; vno != max_vno; vno += step_vno)
+    {
+      if (filled[vno])
+      {
+
+        /* check the neighbors... */
+        v = &mris->vertices[vno];
+
+        /* if this vert is ripped, move on. */
+        if (v->ripflag)
+        {
+          continue;
+        }
+
+        /* if we're not crossing paths, check if this is a
+           path. if so, move on. */
+        //        if (params->dont_cross_path &&
+        //            path_is_vertex_on_path (vno))
+        //        {
+        //          continue;
+        //        }
+
+        /* if we're not crossing the cmid, see if the cmid at this
+           vertex is on the other side of the cmid as the seed
+           point. if so, move on. */
+        //        if (params->dont_cross_cmid &&
+        //            ((seed_curv <= cmid && v->curv > cmid) ||
+        //             (seed_curv >= cmid && v->curv < cmid)))
+        //        {
+        //          continue;
+        //        }
+
+        for (neighbor_index = 0;
+             neighbor_index < v->vnum;
+             neighbor_index++)
+        {
+          neighbor_vno = v->v[neighbor_index];
+          neighbor_v = &mris->vertices[neighbor_vno] ;
+
+          /* if the neighbor is filled, move on. */
+          if (filled[neighbor_vno])
+            continue;
+
+          /* if we're not crossing labels, check if the label at
+             this vertex is the same as the one at the seed. if not,
+             move on. */
+          //          if (params->dont_cross_label ||
+          //              params->dont_fill_unlabeled)
+          //          {
+
+          //            labl_find_label_by_vno (neighbor_vno, 0,
+          //                                    label_index_array,
+          //                                    LABL_MAX_LABELS,
+          //                                    &num_labels_found);
+          //            if (num_labels_found > 0 &&
+          //                params->dont_cross_label)
+          //            {
+          //              skip = 0;
+          //              for (found_label_index = 0;
+          //                   found_label_index < num_labels_found;
+          //                   found_label_index++)
+          //              {
+          //                if (label_index_array[found_label_index] !=
+          //                    this_label)
+          //                {
+          //                  skip = 1;
+          //                  break;
+          //                }
+          //              }
+          //              if (skip) continue;
+          //            }
+          //            if (num_labels_found == 0 &&
+          //                params->dont_fill_unlabeled)
+          //            {
+          //              continue;
+          //            }
+          //          }
+
+          /* if we're not crossing the fthresh, make sure this
+             point is above it, or, if our initial functional
+             value was negative, make sure it's not above
+             -fthresh. if not, move on. */
+          //          if (params->dont_cross_fthresh)
+          //          {
+          //            sclv_get_value (neighbor_v, sclv_current_field, &fvalue);
+          //            if ((fthresh != 0 &&
+          //                 seed_fvalue > 0 &&
+          //                 fvalue < fthresh) ||
+          //                (fthresh != 0 &&
+          //                 seed_fvalue < 0 &&
+          //                 fvalue > -fthresh) ||
+          //                (fthresh == 0 && (fvalue * seed_fvalue < 0)))
+          //            {
+          //              continue;
+          //            }
+          //          }
+
+          /* mark this vertex as filled. */
+          filled[neighbor_vno] = TRUE;
+          num_filled_this_iter++;
+          num_filled++;
+        }
+      }
+    }
+
+    iter++;
+  }
+
+  /* mark all filled vertices. */
+  count = 0;
+  for (vno = 0; vno < mris->nvertices; vno++ )
+  {
+    mris->vertices[vno].ripflag = (!filled[vno]);
+  }
+
+  free (filled);
+
+  return filled_verts;
+}
+
+QList<int> FSSurface::MakeCutLine(const QList<int>& verts)
+{
+  QList<int> old;
+  MRIS* mris = m_MRIS;
+  for (int i = 0; i < verts.size(); i++)
+  {
+    VERTEX *v;
+    int vno = verts[i];
+    v = &mris->vertices[vno];
+    if (v->ripflag != 1)
+      old << vno;
+    v->ripflag = 1;
+  }
+  return old;
+}
+
+void FSSurface::ClearCuts(const QList<int> &verts)
+{
+  MRIS* mris = m_MRIS;
+  if (verts.isEmpty())
+  {
+    for (int i = 0; i < mris->nvertices; i++)
+    {
+      VERTEX *v;
+      v = &mris->vertices[i];
+      v->ripflag = m_originalRipflags[i];
+    }
+  }
+  else
+  {
+    for (int i = 0; i < verts.size(); i++)
+    {
+      VERTEX *v;
+      int vno = verts[i];
+      v = &mris->vertices[vno];
+      v->ripflag = 0;
+    }
+  }
 }

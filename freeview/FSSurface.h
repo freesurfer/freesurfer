@@ -229,12 +229,20 @@ public:
   bool FindPath(int* vert_vno, int num_vno,
                 int* path, int* path_length);
 
+  void UpdatePolyData();
+  void RipFaces();
+  QList<int> MakeCutLine(const QList<int>& verts);
+  void ClearCuts(const QList<int>& verts = QList<int>());
+
+  QList<int> FloodFillFromSeed(int seed_vno);
+
+  void UpdateHashTable(int nSet = 0, int coord = CURRENT_VERTICES);
+
 protected:
   bool InitializeData(const QString& vector_filename = QString(),
                       const QString& patch_filename = QString(),
                       const QString& target_filename = QString(),
                       const QStringList& sup_files = QStringList());
-  void UpdatePolyData();
   void UpdatePolyData( MRIS* mris, vtkPolyData* polydata,
                        vtkPolyData* polydata_verts = NULL,
                        vtkPolyData* polydata_wireframe = NULL, bool create_segs = false );
@@ -329,6 +337,8 @@ protected:
   bool      m_bSharedMRIS;
 
   double    m_dMaxSegmentLength;
+
+  QList<int>  m_originalRipflags;
 };
 
 #endif
