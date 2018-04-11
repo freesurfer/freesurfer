@@ -56874,7 +56874,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   if (!once) { once = true;
     do_old_loop3  = !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_old");
     do_new_loop3  = !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_new") || !do_old_loop3;
-    keep_sign_bug = !getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_fix_sign_bug"); 	
+    keep_sign_bug = !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug"); 	
     	// keep the bug until explicitly told not to
   }
 

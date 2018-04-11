@@ -29,22 +29,22 @@ foreach threads ( 4 )
         if ($feature == 0) then
           setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_old 1
     	  unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_new
-    	  unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_fix_sign_bug
+    	  setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug 1
         endif
         if ($feature == 1) then
           setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_old 1
     	  unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_new
-    	  setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_fix_sign_bug 1
+    	  unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug
         endif
         if ($feature == 2) then
           unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_old
     	  setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_new 1
-    	  unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_fix_sign_bug
+    	  setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug 1
         endif
         if ($feature == 3) then
           unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_old
     	  setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_new 1
-    	  setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_fix_sign_bug 1
+    	  unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug
         endif
         
 	set extension = -B${branch}-F${feature}-N${niters}-T${threads}
