@@ -57361,77 +57361,98 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
             } else {
 	    
 	      float least_distance_squared = NPY*NPY;
-    	      float last_sign              = 1.0f;
+	      int   least_case             = -1;
 	      
               if (val0 <= 0) {
         	/* compute distance to edge0 */
 		float distance_squared;
         	float val = F_DOT(vec0, e0);
+	        int this_case;
         	if (val < 0) {
                   /* closer to x0 */
-                  if (keep_sign_bug) last_sign = F_DOT(n_v0, vec0);
+		  this_case = 0;
                   distance_squared = SQR3(       vec0);
         	}
         	else if (val < SQR3_e0) {
                   /* closer to edge0 */
-                  if (keep_sign_bug) last_sign = F_DOT(n_e0, vec0);
+		  this_case = 1;
                   distance_squared = MAX(0, SQR3(vec0) - SQR(val) / SQR3_e0);
         	}
         	else {
                   /* closer to x1 */
-                  if (keep_sign_bug) last_sign = F_DOT(n_v1, vec1);
+		  this_case = 2;
                   distance_squared = SQR3 (vec1);
         	}
 		least_distance_squared = distance_squared;
+	    	least_case = this_case;
               }
 
               if (val1 <= 0) {
 		float distance_squared;
         	float val = F_DOT(vec1, e1);
+	        int this_case;
         	if (val < 0) {
                   /* closer to x1 */
-                  if (keep_sign_bug) last_sign = F_DOT(n_v1, vec1);
+		  this_case = 3;
                   distance_squared = SQR3(       vec1);
         	}
         	else if (val < SQR3_e1) {
                   /* closer to edge1 */
-                  if (keep_sign_bug) last_sign = F_DOT(n_e1, vec1);
+		  this_case = 4;
                   distance_squared = MAX(0, SQR3(vec1) - SQR(val) / SQR3_e1);
         	}
         	else {
                   /* closer to x2 */
-                  if (keep_sign_bug) last_sign = F_DOT(n_v2, vec2);
+  		  this_case = 5;
                   distance_squared = SQR3(vec2);
         	}
 		if (least_distance_squared > distance_squared) {
 		  least_distance_squared = distance_squared;
-		}
+		  least_case = this_case;
+		} else if (keep_sign_bug) least_case = this_case;
               }
 
               if (val2 <= 0) {
 		float distance_squared;
         	float val = F_DOT(vec2, e2);
+	        int this_case;
         	if (val < 0) {
                   /* closer to x2 */
-                  if (keep_sign_bug) last_sign = F_DOT(n_v2, vec2);
+		  this_case = 6;
                   distance_squared = SQR3(       vec2);
         	}
         	else if (val < SQR3(e2)) {
                   /* closer to edge2 */
-                  if (keep_sign_bug) last_sign = F_DOT(n_e2, vec2);
+		  this_case = 7;
                   distance_squared = MAX(0, SQR3(vec2) - SQR(val) / SQR3_e2);
         	}
         	else {
                   /* closer to x0 */
-                  if (keep_sign_bug) last_sign = F_DOT(n_v0, vec0);
+		  this_case = 8;
                   distance_squared = SQR3(vec0);
         	}
 		if (least_distance_squared > distance_squared) {
 		  least_distance_squared = distance_squared;
-		}
+		  least_case = this_case;
+		} else if (keep_sign_bug) least_case = this_case;
               }
-	    
-	      new_distance = SIGN(last_sign)*sqrt(least_distance_squared);  	// yes, last_sign!  It mimics the following old code
+
+    	      float least_sign = 1.0f;	    
+	      switch (least_case) {
+	      case 0: least_sign = F_DOT(n_v0, vec0); break;
+	      case 1: least_sign = F_DOT(n_e0, vec0); break;
+	      case 2: least_sign = F_DOT(n_v1, vec1); break;
+
+	      case 3: least_sign = F_DOT(n_v1, vec1); break;
+	      case 4: least_sign = F_DOT(n_e1, vec1); break;
+	      case 5: least_sign = F_DOT(n_v2, vec2); break;
+
+	      case 6: least_sign = F_DOT(n_v2, vec2); break;
+	      case 7: least_sign = F_DOT(n_e2, vec2); break;
+	      case 8: least_sign = F_DOT(n_v0, vec0); break;
+	      }
+	      
+	      new_distance = SIGN(least_sign)*sqrt(least_distance_squared);
             }
     	  }
 	  
