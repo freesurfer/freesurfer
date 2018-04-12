@@ -1180,7 +1180,7 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     ((RenderView3D*)m_views[3])->HideSlices();
   }
 
-  if (parser->Found("hide-3d-frames"), &sa)
+  if (parser->Found("hide-3d-frames", &sa) )
   {
     ((RenderView3D*)m_views[3])->SetShowSliceFrames(false);
   }
