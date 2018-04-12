@@ -615,7 +615,7 @@ static void do_file(char *fname)
     if (gcam->type == GCAM_RAS) {
         type = "GCAM_RAS";
     }
-    else if (gcam->type == GCAM_VOX) { 
+    else if (gcam->type == GCAM_VOX) {
         type = "GCAM_VOX";
     }
     fprintf(fpout,"3D morph type: %s\n", type);
