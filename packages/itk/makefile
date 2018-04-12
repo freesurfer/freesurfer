@@ -37,7 +37,7 @@ cmake_cmd:=$(CMAKE) ../$(src_dir) \
 -DCMAKE_VERBOSE_MAKEFILE=ON \
 -DCMAKE_INSTALL_PREFIX=$(install_dir)
 
-# defualt target is first target
+# default target is first target
 all: checkout config build test install
 
 .PHONY: nuke checkout config build config test install
@@ -48,6 +48,8 @@ nuke:
 checkout:
 	$(checkout_cmd)
 	mv $(dist_name) $(src_dir)
+	# explicitly get latest release, v4.13.0
+	(cd $(src_dir) && git checkout v4.13.0)
 
 config:
 	mkdir -p $(build_dir)

@@ -1584,9 +1584,9 @@ if test "x$VXL_DIR" = "x"; then
     ac_vxl_libraries="$withval"/lib
     VXL_DIR="$withval"
   fi
-  # or the git build in the local vxl dir (see vxl/fs_build_local_vxl script)
-  if test -d "packages/vxl/lib" ; then
-    withval="`pwd`/packages/vxl"
+  # or the git build in the local vxl dir (see packages/vxl/build_local)
+  if test -d "packages/vxl/build/lib" ; then
+    withval="`pwd`/packages/vxl/build"
     vxl_i="$withval/include/vxl"
     ac_vxl_includes="$vxl_i/core $vxl_i/vcl $vxl_i/v3p/netlib $vxl_i/v3p/netlib/opt"
     ac_vxl_libraries="$withval"/lib
@@ -2842,14 +2842,14 @@ AC_ARG_WITH(itk-dir,
      AC_SUBST(ITK_DIR)
   ])
 
-# option to build against ITK v5.0
-AC_ARG_WITH(itk-5.0,
-  [  --with-itk-5.0=DIR          where the root of ITK v5.0 is installed.],
-  [  ac_itk_includes="$withval"/include/ITK-5.0
+# option to build against ITK v4.13
+AC_ARG_WITH(itk-4.13,
+  [  --with-itk-4.13=DIR          where the root of ITK v4.13 is installed.],
+  [  ac_itk_includes="$withval"/include/ITK-4.13
      ac_itk_libraries="$withval"/lib
      ITK_DIR="$withval"
      itk_apps="yes"
-     itk_50="yes"
+     itk_413="yes"
      AC_SUBST(ITK_DIR)
   ])
 
@@ -2966,22 +2966,24 @@ if test "$itk_apps" = "yes"; then
   $ac_itk_libraries/libitkjpeg16.a \
   $ac_itk_libraries/libITKDICOMParser.a"
 
-  # ITK 5.0 uses these:
-  if test "x$itk_50" = "xyes"; then
+  # ITK 4.13 uses these:
+  if test "x$itk_413" = "xyes"; then
     LIBS_ITK="\
-    $ac_itk_libraries/libITKIONRRD-5.0.a \
-    $ac_itk_libraries/libITKIOImageBase-5.0.a \
-    $ac_itk_libraries/libITKCommon-5.0.a \
-    $ac_itk_libraries/libITKMetaIO-5.0.a \
-    $ac_itk_libraries/libITKniftiio-5.0.a \
-    $ac_itk_libraries/libITKNrrdIO-5.0.a \
-    $ac_itk_libraries/libitkpng-5.0.a \
-    $ac_itk_libraries/libitksys-5.0.a \
-    $ac_itk_libraries/libitktiff-5.0.a \
-    $ac_itk_libraries/libitkv3p_netlib-5.0.a \
-    $ac_itk_libraries/libitkzlib-5.0.a \
-    $ac_itk_libraries/libitkopenjpeg-5.0.a \
-    $ac_itk_libraries/libITKDICOMParser-5.0.a"
+    $ac_itk_libraries/libITKIONRRD-4.13.a \
+    $ac_itk_libraries/libITKIOImageBase-4.13.a \
+    $ac_itk_libraries/libITKCommon-4.13.a \
+    $ac_itk_libraries/libITKMetaIO-4.13.a \
+    $ac_itk_libraries/libITKniftiio-4.13.a \
+    $ac_itk_libraries/libITKNrrdIO-4.13.a \
+    $ac_itk_libraries/libitkpng-4.13.a \
+    $ac_itk_libraries/libitksys-4.13.a \
+    $ac_itk_libraries/libitktiff-4.13.a \
+    $ac_itk_libraries/libitkv3p_netlib-4.13.a \
+    $ac_itk_libraries/libitkzlib-4.13.a"
+#   These aren't installed in v4.13 using options in packages/itk/makefile
+#   should they be installed separately/referenced in another way?
+#    $ac_itk_libraries/libitkopenjpeg-4.13.a \
+#    $ac_itk_libraries/libITKDICOMParser-4.13.a"
   fi
 
   # ITK 4.5 uses these:
@@ -3024,7 +3026,7 @@ fi
 AM_CONDITIONAL(ENABLE_ITK_APPS, test "$itk_apps" = "yes")
 AM_CONDITIONAL(HAVE_ITK_LIBS, test "$itk_apps" = "yes")
 AM_CONDITIONAL(HAVE_ITK45, test "$itk_45" = "yes")
-AM_CONDITIONAL(HAVE_ITK50, test "$itk_50" = "yes")
+AM_CONDITIONAL(HAVE_ITK413, test "$itk_413" = "yes")
 
 
 AC_SUBST(ITK_CFLAGS)

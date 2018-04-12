@@ -29,7 +29,7 @@ cmake_cmd:=$(CMAKE) ../$(src_dir) \
 -DCMAKE_VERBOSE_MAKEFILE=ON \
 -DCMAKE_INSTALL_PREFIX=$(install_dir)
 
-# defualt target is first target
+# default target is first target
 all: checkout config build test install
 
 .PHONY: nuke checkout config build test install
