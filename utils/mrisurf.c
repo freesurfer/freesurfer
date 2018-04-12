@@ -42842,7 +42842,6 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
     GCA_MORPH *gcam;
     double xs, ys, zs, xv, yv, zv;
     float xv2, yv2, zv2;
-    MATRIX *m_atlas_ras2vox, *m_surf_vox2ras, *m_surf_ras_to_atlas_ras;
     VECTOR *v1, *v2;
 
     /*
@@ -42861,20 +42860,15 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
       mri = MRIalloc(gcam->atlas.width, gcam->atlas.height, gcam->atlas.depth, MRI_UCHAR);
       useVolGeomToMRI(&gcam->atlas, mri);
     }
-    GCAMrasToVox(gcam, mri_dst);
+    if (gcam->type == GCAM_RAS) {
+        GCAMrasToVox(gcam, mri_dst);
+    }
 
     v1 = VectorAlloc(4, MATRIX_REAL);
     VECTOR_ELT(v1, 4) = 1.0;
     v2 = VectorAlloc(4, MATRIX_REAL);
     VECTOR_ELT(v2, 4) = 1.0;
     voxelFromSurfaceRAS = voxelFromSurfaceRAS_(mri);
-    surfaceRASFromVoxel = surfaceRASFromVoxel_(mri_dst);
-    m_surf_vox2ras = MRIgetVoxelToRasXform(mri);  // from "surface" volume to ras
-    m_atlas_ras2vox = VGgetVoxelToRasXform(&gcam->atlas, NULL, 0);
-    // from "surface" volume to ras
-    // from surface ras to atlas ras
-    m_surf_ras_to_atlas_ras = MatrixMultiply(m_surf_vox2ras, voxelFromSurfaceRAS, NULL);
-    MatrixMultiply(m_atlas_ras2vox, m_surf_ras_to_atlas_ras, voxelFromSurfaceRAS);
 
     // now apply the transform
     for (vno = 0; vno < mris->nvertices; vno++) {
@@ -42908,10 +42902,6 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
     VectorFree(&v1);
     VectorFree(&v2);
     MatrixFree(&voxelFromSurfaceRAS);
-    MatrixFree(&surfaceRASFromVoxel);
-    MatrixFree(&m_surf_vox2ras);
-    MatrixFree(&m_atlas_ras2vox);
-    MatrixFree(&m_surf_ras_to_atlas_ras);
     if (dstNotGiven) {
       MRIfree(&mri_dst);
     }
