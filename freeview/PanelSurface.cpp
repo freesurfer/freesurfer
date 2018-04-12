@@ -40,6 +40,7 @@
 #include <QDebug>
 #include "SurfacePath.h"
 #include <QToolButton>
+#include "LayerMRI.h"
 
 PanelSurface::PanelSurface(QWidget *parent) :
   PanelLayer("Surface", parent),
@@ -135,6 +136,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
   connect(ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxLabelOutline(bool)));
   connect(ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), this, SLOT(OnColorPickerLabelColor(QColor)));
   connect(ui->treeWidgetLabels, SIGNAL(MenuGoToCentroid()), mainwnd, SLOT(OnGoToSurfaceLabel()));
+  connect(ui->treeWidgetLabels, SIGNAL(MenuResample()), this, SLOT(OnLabelResample()));
 
   connect(ui->actionCut, SIGNAL(toggled(bool)), SLOT(OnButtonEditCut(bool)));
   connect(ui->actionCutLine, SIGNAL(triggered(bool)), SLOT(OnButtonCutLine()));
@@ -1114,4 +1116,17 @@ void PanelSurface::OnButtonUndoCut()
   LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
   if ( surf)
     surf->UndoCut();
+}
+
+void PanelSurface::OnLabelResample()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  LayerMRI* mri = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer("MRI"));
+  if (!mri)
+  {
+    QMessageBox::warning(this, "Error", "Could not find a MRI template for resampling");
+    return;
+  }
+  if ( surf && surf->GetActiveLabel())
+    surf->GetActiveLabel()->Resample(mri);
 }

@@ -2490,3 +2490,4 @@ bool LayerSurface::IsVertexRipped(int vno)
   }
   return false;
 }
+

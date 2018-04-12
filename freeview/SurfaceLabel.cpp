@@ -36,6 +36,8 @@
 #include <QFile>
 #include <QDebug>
 #include "vtkRGBAColorTransferFunction.h"
+#include "LayerMRI.h"
+#include "FSVolume.h"
 
 SurfaceLabel::SurfaceLabel ( LayerSurface* surf ) :
   QObject( surf ),
@@ -287,4 +289,20 @@ void SurfaceLabel::SetVisible(bool flag)
 bool SurfaceLabel::GetCentroid(double *x, double *y, double *z, int *nvo)
 {
   return (LabelCentroid(m_label, m_surface->GetSourceSurface()->GetMRIS(), x, y, z, nvo) == 0);
+}
+
+void SurfaceLabel::Resample(LayerMRI *mri)
+{
+  ::LabelUnassign(m_label);
+  int coord = m_surface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES;
+  if (!m_label->mri_template)
+    LabelInit(m_label, mri->GetSourceVolume()->GetMRI(), m_surface->GetSourceSurface()->GetMRIS(), coord);
+  LABEL* label = ::LabelSampleToSurface(m_surface->GetSourceSurface()->GetMRIS(), m_label,
+                                        m_label->mri_template, coord);
+  if (label)
+  {
+    LabelCopy(label, m_label) ;
+    LabelFree(&label);
+    emit SurfaceLabelChanged();
+  }
 }

@@ -98,6 +98,7 @@ protected slots:
   void OnButtonClearCuts();
   void OnButtonFillUncutArea();
   void OnButtonUndoCut();
+  void OnLabelResample();
 
 private:
   QList<SurfaceLabel*> GetSelectedLabels();

@@ -40,6 +40,7 @@ extern "C"
 
 class LayerSurface;
 class vtkRGBAColorTransferFunction;
+class LayerMRI;
 
 class SurfaceLabel  : public QObject
 {
@@ -104,6 +105,8 @@ public:
   {
     return m_label;
   }
+
+  void Resample(LayerMRI* mri);
 
 Q_SIGNALS:
   void SurfaceLabelChanged();
