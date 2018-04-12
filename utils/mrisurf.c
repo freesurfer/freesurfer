@@ -57360,97 +57360,89 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	      
             } else {
 	    
-	      float least_distance_squared = NPY*NPY;
-	      int   least_case             = -1;
-	      
+	      float  least_distance_squared = NPY*NPY;
+	      float* least_sign_lhs = NULL;
+	      float* least_sign_rhs = NULL;
+#define THIS_CASE_DEF       float* this_sign_lhs,*this_sign_rhs;
+#define LEAST_CASE(LHS,RHS) { least_sign_lhs = (LHS); least_sign_rhs = (RHS); }
+#define THIS_CASE(LHS,RHS)  { this_sign_lhs  = (LHS); this_sign_rhs = (RHS);  }
+#define MAKE_LEAST_THIS     { least_sign_lhs = this_sign_lhs; least_sign_rhs = this_sign_rhs; }
+ 
               if (val0 <= 0) {
         	/* compute distance to edge0 */
 		float distance_squared;
         	float val = F_DOT(vec0, e0);
-	        int this_case;
+	        THIS_CASE_DEF
         	if (val < 0) {
                   /* closer to x0 */
-		  this_case = 0;
+		  THIS_CASE(n_v0, vec0);
                   distance_squared = SQR3(       vec0);
         	}
         	else if (val < SQR3_e0) {
                   /* closer to edge0 */
-		  this_case = 1;
+		  THIS_CASE(n_e0, vec0);
                   distance_squared = MAX(0, SQR3(vec0) - SQR(val) / SQR3_e0);
         	}
         	else {
                   /* closer to x1 */
-		  this_case = 2;
+		  THIS_CASE(n_v1, vec1);
                   distance_squared = SQR3 (vec1);
         	}
 		least_distance_squared = distance_squared;
-	    	least_case = this_case;
+	    	MAKE_LEAST_THIS;
               }
 
               if (val1 <= 0) {
 		float distance_squared;
         	float val = F_DOT(vec1, e1);
-	        int this_case;
+	        THIS_CASE_DEF
         	if (val < 0) {
                   /* closer to x1 */
-		  this_case = 3;
+		  THIS_CASE(n_v1, vec1);
                   distance_squared = SQR3(       vec1);
         	}
         	else if (val < SQR3_e1) {
                   /* closer to edge1 */
-		  this_case = 4;
+		  THIS_CASE(n_e1, vec1);
                   distance_squared = MAX(0, SQR3(vec1) - SQR(val) / SQR3_e1);
         	}
         	else {
                   /* closer to x2 */
-  		  this_case = 5;
+  		  THIS_CASE(n_v2, vec2);
                   distance_squared = SQR3(vec2);
         	}
 		if (least_distance_squared > distance_squared) {
 		  least_distance_squared = distance_squared;
-		  least_case = this_case;
-		} else if (keep_sign_bug) least_case = this_case;
+		  MAKE_LEAST_THIS;
+		} else if (keep_sign_bug) MAKE_LEAST_THIS;
               }
 
               if (val2 <= 0) {
 		float distance_squared;
         	float val = F_DOT(vec2, e2);
-	        int this_case;
+	        THIS_CASE_DEF
         	if (val < 0) {
                   /* closer to x2 */
-		  this_case = 6;
+		  THIS_CASE(n_v2, vec2);
                   distance_squared = SQR3(       vec2);
         	}
         	else if (val < SQR3(e2)) {
                   /* closer to edge2 */
-		  this_case = 7;
+		  THIS_CASE(n_e2, vec2);
                   distance_squared = MAX(0, SQR3(vec2) - SQR(val) / SQR3_e2);
         	}
         	else {
                   /* closer to x0 */
-		  this_case = 8;
+		  THIS_CASE(n_v0, vec0);
                   distance_squared = SQR3(vec0);
         	}
 		if (least_distance_squared > distance_squared) {
 		  least_distance_squared = distance_squared;
-		  least_case = this_case;
-		} else if (keep_sign_bug) least_case = this_case;
+		  MAKE_LEAST_THIS;
+		} else if (keep_sign_bug) MAKE_LEAST_THIS;
               }
 
-    	      float least_sign = 1.0f;	    
-	      switch (least_case) {
-	      case 0: least_sign = F_DOT(n_v0, vec0); break;
-	      case 1: least_sign = F_DOT(n_e0, vec0); break;
-	      case 2: least_sign = F_DOT(n_v1, vec1); break;
-
-	      case 3: least_sign = F_DOT(n_v1, vec1); break;
-	      case 4: least_sign = F_DOT(n_e1, vec1); break;
-	      case 5: least_sign = F_DOT(n_v2, vec2); break;
-
-	      case 6: least_sign = F_DOT(n_v2, vec2); break;
-	      case 7: least_sign = F_DOT(n_e2, vec2); break;
-	      case 8: least_sign = F_DOT(n_v0, vec0); break;
-	      }
+    	      float least_sign = F_DOT(least_sign_lhs, least_sign_rhs);	    
 	      
 	      new_distance = SIGN(least_sign)*sqrt(least_distance_squared);
             }
