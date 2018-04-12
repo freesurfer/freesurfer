@@ -40,11 +40,11 @@ def samsegment_part2(
         modelSpecifications,
         optimizationOptions,
         part1_results_dict,
-        showFigures,
+        visualizer,
         checkpoint_manager=None,
 ):
-    if SKIP_SHOW_FIGURES_SAMSEG_PART_2 or showFigures is None:
-        showFigures = DoNotShowFigures()
+    if SKIP_SHOW_FIGURES_SAMSEG_PART_2 or visualizer is None:
+        visualizer = DoNotShowFigures()
     biasFieldCoefficients = part1_results_dict['biasFieldCoefficients']
     colors = part1_results_dict['colors']
     FreeSurferLabels = part1_results_dict['FreeSurferLabels']
@@ -67,7 +67,7 @@ def samsegment_part2(
         logger.debug('multiResolutionLevel=%d', multiResolutionLevel)
         #  If the movie flag is on then making a movie archives a lot of data.
         #  Saving some memory here by making, showing, then erasing the movie at each resolution level.
-        showFigures.start_movie(
+        visualizer.start_movie(
             window_id='samsegment',
             title='Samsegment Mesh Registration - the movie'
         )
@@ -179,7 +179,7 @@ def samsegment_part2(
             downSampledMaskIndices,
             numberOfContrasts
         )
-        showFigures.show(
+        visualizer.show(
             image_list=downSampledBiasFields,
             auto_scale=True,
             window_id='bias field',
@@ -406,14 +406,14 @@ def samsegment_part2(
                             }, 'estimateBiasField')
                     pass
             if len(historyOfEMCost) > 2:
-                showFigures.plot(historyOfEMCost[1:], title='History of EM Cost')
-            showFigures.show(
+                visualizer.plot(historyOfEMCost[1:], title='History of EM Cost')
+            visualizer.show(
                 image_list=downSampledBiasFields,
                 auto_scale=True,
                 window_id='bias field',
                 title='Samsegment Bias Fields'
             )
-            showFigures.show(
+            visualizer.show(
                 mesh=mesh,
                 images=downSampledBiasCorrectedImageBuffers,
                 window_id='samsegment em',
@@ -467,7 +467,7 @@ def samsegment_part2(
             print(['iterationNumber: ', iterationNumber])
             print(['    maximalDeformationApplied: ', maximalDeformationApplied])
             print('==============================')
-            showFigures.show(
+            visualizer.show(
                 mesh=mesh,
                 images=downSampledBiasCorrectedImageBuffers,
                 window_id='samsegment',
@@ -491,8 +491,8 @@ def samsegment_part2(
             perVoxelDecreaseThreshold = optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion
             if perVoxelDecrease < perVoxelDecreaseThreshold:
                 if len(historyOfCost) > 2:
-                    showFigures.plot(historyOfCost[1:], title='History of Cost')
-                showFigures.show_movie(window_id='samsegment')
+                    visualizer.plot(historyOfCost[1:], title='History of Cost')
+                visualizer.show_movie(window_id='samsegment')
                 if checkpoint_manager:
                     checkpoint_manager.increment_and_save({
                         'activeVoxelCount': activeVoxelCount,

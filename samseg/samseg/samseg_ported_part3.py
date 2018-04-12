@@ -31,11 +31,11 @@ def samsegment_part3(
         part1_results_dict,
         part2_results_dict,
         imageFileNames,
-        showFigures,
+        visualizer,
         checkpoint_manager=None
 ):
-    if SKIP_SHOW_FIGURES_SAMSEG_PART_3 or showFigures is None:
-        showFigures = DoNotShowFigures()
+    if SKIP_SHOW_FIGURES_SAMSEG_PART_3 or visualizer is None:
+        visualizer = DoNotShowFigures()
     croppingOffset = part1_results_dict['croppingOffset']
     FreeSurferLabels = part1_results_dict['FreeSurferLabels']
     imageSize = part1_results_dict['imageSize']

@@ -18,7 +18,7 @@ def run_single_full_case(case_name, case_file_folder, savePath):
             checkpoint_manager=checkpoint_manager,
             numberOfThreads=THREAD_COUNT,
             atlas_only=False,
-            showFigures=ShowFigures(interactive=False, movie_flag=True, show_flag=False),
+            visualizer=ShowFigures(interactive=False, movie_flag=True, show_flag=False),
         )
     else:
         print("{0} is not a file".format(image_file_path))

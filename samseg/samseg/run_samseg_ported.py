@@ -33,7 +33,7 @@ def run_samseg_from_cmdargs(cmdargs):
     atlas_only = cmdargs.atlas_only
     savePath = cmdargs.output
     numberOfThreads = cmdargs.threads
-    showFigures = construct_show_figures(show_flag=cmdargs.showfigs, movie_flag=cmdargs.movie)
+    visualizer = construct_visualizer(show_flag=cmdargs.showfigs, movie_flag=cmdargs.movie)
     noBrainMasking = cmdargs.nobrainmask
     useDiagonalCovarianceMatrices = cmdargs.diagcovs
     RegMatFile = cmdargs.regmat
@@ -45,7 +45,7 @@ def run_samseg_from_cmdargs(cmdargs):
     return run_samseg(
             imageFileNames,
             savePath,
-            showFigures,
+            visualizer,
             noBrainMasking,
             useDiagonalCovarianceMatrices,
             verbose,
@@ -54,7 +54,7 @@ def run_samseg_from_cmdargs(cmdargs):
             InitLTAFile=InitLTAFile
     )
 
-def construct_show_figures(show_flag, movie_flag):
+def construct_visualizer(show_flag, movie_flag):
     if show_flag or movie_flag:
         return ShowFigures(show_flag=show_flag, movie_flag=movie_flag)
     else:
@@ -63,7 +63,7 @@ def construct_show_figures(show_flag, movie_flag):
 def run_samseg(
     imageFileNames,
     savePath,
-    showFigures=None,
+    visualizer=None,
     noBrainMasking=False,
     useDiagonalCovarianceMatrices=False,
     verbose=False,
@@ -72,8 +72,8 @@ def run_samseg(
     atlas_only=False,
     checkpoint_manager=None
 ):
-    if showFigures is None:
-        showFigures = DoNotShowFigures()
+    if visualizer is None:
+        visualizer = DoNotShowFigures()
     # Create the output folder
     savePath = find_or_create_save_path(savePath)
 
@@ -103,7 +103,7 @@ def run_samseg(
         affineRegistrationMeshCollectionFileName,
         templateFileName,
         savePath,
-        showFigures,
+        visualizer,
         worldToWorldTransformMatrix,
         InitLTAFile,
         checkpoint_manager
@@ -148,7 +148,7 @@ def run_samseg(
 
     FreeSurferLabels, names, volumesInCubicMm = samsegment(imageFileNames, transformedTemplateFileName,
                                                            modelSpecifications, optimizationOptions,
-                                                           savePath, showFigures,
+                                                           savePath, visualizer,
                                                            checkpoint_manager)
     print('names', names)
     print('volumesInCubicMm', volumesInCubicMm)

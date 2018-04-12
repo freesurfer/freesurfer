@@ -10,7 +10,7 @@ import scipy.io
 
 from samseg.dev_utils.debug_client import CheckpointManager, compare_ndarray_closeness
 
-def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshCollectionFileName, showFigures=False):
+def kvlWarpMesh(sourceMeshCollectionFileName, sourceDeformation, targetMeshCollectionFileName):
     #
     # Applies sourceDeformation to the reference node positions of the sourceMeshCollection given by
     # sourceMeshCollectionFileName, and computes a targetDeformation on the reference node positions of the

@@ -29,12 +29,12 @@ def samseg_registerAtlas(imageFileName,
                          meshCollectionFileName,
                          templateFileName,
                          savePath,
-                         showFigures=None,
+                         visualizer=None,
                          worldToWorldTransformMatrix=None,
                          InitLTAFile=None,
                          checkpoint_manager=None):
-    if SKIP_ATLAS_SHOW_FIGURES or showFigures is None:
-        showFigures = DoNotShowFigures()
+    if SKIP_ATLAS_SHOW_FIGURES or visualizer is None:
+        visualizer = DoNotShowFigures()
 
     # For converting from RAS to LPS. Itk/GEMS/SAMSEG uses LPS internally
     RAS2LPS = np.diag([-1, -1, 1, 1])
@@ -45,7 +45,7 @@ def samseg_registerAtlas(imageFileName,
     print(meshCollectionFileName)
     print(templateFileName)
     print(savePath)
-    print(type(showFigures).__name__)
+    print(visualizer)
     print(worldToWorldTransformMatrix)
     if InitLTAFile:
         print(InitLTAFile)
@@ -123,7 +123,7 @@ def samseg_registerAtlas(imageFileName,
         mesh = mesh_collection.reference_mesh
         #   % Get image data
         imageBuffer = image.getImageBuffer()
-        showFigures.show(images=imageBuffer, window_id='atlas initial', title='Initial Atlas Registration')
+        visualizer.show(images=imageBuffer, window_id='atlas initial', title='Initial Atlas Registration')
         #   % Downsample
         imageBuffer = imageBuffer[
                       ::int(downSamplingFactors[0]),
@@ -134,13 +134,13 @@ def samseg_registerAtlas(imageFileName,
         alphas = mesh.alphas
         gmClassNumber = 3  # Needed for displaying purposes
         numberOfClasses = alphas.shape[1]
-        showFigures.show(mesh=mesh, shape=imageBuffer.shape, window_id='atlas mesh', title="Atlas Mesh")
+        visualizer.show(mesh=mesh, shape=imageBuffer.shape, window_id='atlas mesh', title="Atlas Mesh")
         # Get a registration cost and use it to evaluate some promising starting point proposals
         calculator = GEMS2Python.KvlCostAndGradientCalculator('MutualInformation', [image], 'Affine')
         cost, gradient = calculator.evaluate_mesh_position_a(mesh)
         centerOfGravityImage = np.array(scipy.ndimage.measurements.center_of_mass(imageBuffer))
         priors = mesh.rasterize_atlas(imageBuffer.shape)
-        showFigures.show(probabilities=priors, window_id='atlas probabilities', title='Atlas Probabilities')
+        visualizer.show(probabilities=priors, window_id='atlas probabilities', title='Atlas Probabilities')
         tmp = np.sum(priors[:, :, :, 1:], axis=3)
         centerOfGravityAtlas = np.array(scipy.ndimage.measurements.center_of_mass(tmp))
         initialTranslation = centerOfGravityImage - centerOfGravityAtlas
@@ -176,7 +176,7 @@ def samseg_registerAtlas(imageFileName,
         maximalDeformations = []
         costs = []
         gradients = []
-        showFigures.start_movie(window_id='atlas iteration', title='Atlas Registration - the movie')
+        visualizer.start_movie(window_id='atlas iteration', title='Atlas Registration - the movie')
         while True:
             cost, gradient = calculator.evaluate_mesh_position_c(mesh)
             logger.info("cost = %f", cost)
@@ -190,9 +190,9 @@ def samseg_registerAtlas(imageFileName,
             if maximalDeformation == 0:
                 break
             numberOfIterations += 1
-            showFigures.show(mesh=mesh, images=imageBuffer, window_id='atlas iteration', title='Atlas Registration')
+            visualizer.show(mesh=mesh, images=imageBuffer, window_id='atlas iteration', title='Atlas Registration')
 
-        showFigures.show_movie(window_id='atlas iteration')
+        visualizer.show_movie(window_id='atlas iteration')
         nodePositions = mesh.points
         pointNumbers = [0, 110, 201, 302]
         originalY = np.vstack((np.diag(downSamplingFactors) @ originalNodePositions[pointNumbers].T, [1, 1, 1, 1]))
@@ -333,7 +333,7 @@ if __name__ == '__main__':
                                  meshCollectionFileName=affineRegistrationMeshCollectionFileName,
                                  templateFileName=templateFileName,
                                  savePath=savePath,
-                                 showFigures=None,
+                                 visualizer=None,
                                  worldToWorldTransformMatrix=None,
                                  InitLTAFile=None,
                                  checkpoint_manager=None)

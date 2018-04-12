@@ -19,11 +19,11 @@ def samsegment_part1(
         modelSpecifications,
         optimizationOptions,
         savePath,
-        showFigures,
+        visualizer,
         checkpoint_manager=None
 ):
-    if SKIP_SHOW_FIGURES_SAMSEG_PART_1 or showFigures is None:
-        showFigures = DoNotShowFigures()
+    if SKIP_SHOW_FIGURES_SAMSEG_PART_1 or visualizer is None:
+        visualizer = DoNotShowFigures()
     # Print input options
     print('==========================')
     print_image_file_names(imageFileNames)
@@ -31,7 +31,7 @@ def samsegment_part1(
     print_model_specifications(modelSpecifications)
     print_optimization_options(optimizationOptions)
     print_save_path(savePath)
-    print_show_figures(showFigures)
+    print_visualizer(visualizer)
 
     numberOfContrasts = len(imageFileNames)
     # Read the image data from disk. At the same time, construct a 3-D affine transformation (i.e.,
@@ -54,7 +54,7 @@ def samsegment_part1(
 
     imageSize = imageBuffers[0].shape
     imageBuffers = np.transpose(imageBuffers, axes=[1, 2, 3, 0])
-    showFigures.show(images=imageBuffers, window_id='samsegment contrast', title='Samsegment Contrasts')
+    visualizer.show(images=imageBuffers, window_id='samsegment contrast', title='Samsegment Contrasts')
 
     # Also read in the voxel spacing -- this is needed since we'll be specifying bias field smoothing kernels, downsampling
     # steps etc in mm.
@@ -97,7 +97,7 @@ def samsegment_part1(
         np.ma.masked_greater(backgroundPrior, backGroundThreshold),
         backGroundPeak).astype(np.float32)
 
-    showFigures.show(
+    visualizer.show(
         probabilities=backgroundPrior,
         images=imageBuffers,
         window_id='samsegment background',
@@ -105,7 +105,7 @@ def samsegment_part1(
     )
     smoothingSigmas = [1.0 * modelSpecifications.brainMaskingSmoothingSigma] * 3
     smoothedBackgroundPrior = GEMS2Python.KvlImage.smooth_image_buffer(backgroundPrior, smoothingSigmas)
-    showFigures.show(
+    visualizer.show(
         probabilities=smoothedBackgroundPrior,
         window_id='samsegment smoothed',
         title='Samsegment Smoothed Background Priors'
@@ -140,7 +140,7 @@ def samsegment_part1(
     for contrastNumber in range(numberOfContrasts):
         imageBuffers[:, :, :, contrastNumber] *= brainMask
 
-    showFigures.show(
+    visualizer.show(
         images=imageBuffers,
         window_id='samsegment images',
         title='Samsegment Masked Contrasts'
@@ -173,7 +173,7 @@ def samsegment_part1(
     [reducedAlphas, reducedNames, reducedFreeSurferLabels, reducedColors, reducingLookupTable
      ] = kvlMergeAlphas(alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors)
 
-    showFigures.show(
+    visualizer.show(
         mesh=mesh,
         shape=imageBuffers.shape,
         window_id='samsegment mesh',
@@ -299,8 +299,8 @@ def print_save_path(savePath):
     print('savePath:', savePath)
 
 
-def print_show_figures(showFigures):
-    print('showFigures:', showFigures)
+def print_visualizer(visualizer):
+    print('visualizer:', visualizer)
     print('-----')
 
 
@@ -318,7 +318,7 @@ def test_samseg_part_1(case_name, case_file_folder, savePath):
         fixture['modelSpecifications'],
         fixture['optimizationOptions'],
         savePath,
-        fixture['showFigures'],
+        fixture['visualizer'],
         checkpoint_manager
     )
     create_part1_inspection_team().inspect_all(checkpoint_manager)

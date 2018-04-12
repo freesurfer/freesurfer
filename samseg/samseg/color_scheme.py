@@ -30,10 +30,6 @@ def luminosity_metric(a, b):
     return abs(luminosity(a) - luminosity(b))
 
 
-def chromatic_length(delta_chrome):
-    return np.dot(LUMINOSITY_VECTOR, np.abs(delta_chrome))
-
-
 def disparity(a, b):
     return disparity_rgb(a[0], a[1], a[2], b[0], b[1], b[2])
 

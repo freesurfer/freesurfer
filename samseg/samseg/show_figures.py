@@ -48,6 +48,9 @@ DEFAULT_PALETTE = [
 
 
 class DoNotShowFigures:
+    def __str__(self):
+        return 'No visualization'
+
     def show(self, **kwargs):
         pass
 
@@ -62,6 +65,14 @@ class DoNotShowFigures:
 
 
 class ShowFigures:
+    def __str__(self):
+        visualization = 'Show'
+        if self.movie_flag:
+            visualization += ' movies'
+        if self.show_flag:
+            visualization += ' plots, and images'
+        return visualization
+
     def __init__(self, interactive=False, image_alpha=0.6, palette=None, show_flag=False, movie_flag=False):
         if palette is None:
             palette = DEFAULT_PALETTE
@@ -75,14 +86,8 @@ class ShowFigures:
         self.user_callbacks = {}
 
     def create_palette(self, layer_count):
-        palette = []
         self_size = len(self.palette)
-        while layer_count > self_size:
-            palette += self.palette
-            layer_count -= self_size
-        if layer_count:
-            palette += self.palette[:layer_count]
-        return palette
+        return self.palette * (layer_count // self_size) + self.palette[:layer_count % self_size]
 
     def show(self, auto_scale=False, images=None, image_list=None, probabilities=None, mesh=None, names=None,
              window_id=None, shape=None, title=None, legend_width=None):
@@ -90,7 +95,7 @@ class ShowFigures:
             image_list = []
         if images is not None:
             image_list += self.create_image_list(images)
-        if probabilities is None and mesh:
+        if probabilities is None and mesh is not None:
             if shape is None:
                 shape = images.shape
             probabilities = mesh.rasterize_atlas(shape[0:3])
@@ -107,7 +112,7 @@ class ShowFigures:
             probability_layers[probability_max - 1]['data'] = tail
             probability_layers = probability_layers[:probability_max]
         layers = probability_layers + image_layers
-        self.archive(window_id, layers)
+        self.save_movie_frame(window_id, layers)
         if self.show_flag:
             self.show_layers(layers, window_id, title, legend_width)
 
@@ -120,11 +125,11 @@ class ShowFigures:
             names = self.generate_names(prefix, layer_count)
         palette = self.create_palette(layer_count)
         return [{
-            'name': names[index],
-            'data': image_list[index],
+            'name': name,
+            'data': image,
             'visible': visibility,
-            'cmap': transparency_color_map(palette[index])
-        } for index in range(layer_count)]
+            'cmap': transparency_color_map(layer_color),
+        } for name, image, layer_color in zip(names, image_list, palette)]
 
     def image_layers(self, image_list, prefix=None, visibility=True, alpha=None):
         if len(image_list) == 0:
@@ -183,7 +188,7 @@ class ShowFigures:
                       legend_width=legend_width,
                       )
 
-    def archive(self, window_id, layers):
+    def save_movie_frame(self, window_id, layers):
         if self.movie_flag:
             layer_sequence = self.movies.get(window_id)
             if layer_sequence:
@@ -300,39 +305,39 @@ def transparency_color_map(top_rgb_color, bottom_rgb_color=None, start=0, stop=6
     return pg.ColorMap(positions, colors)
 
 
-def show_palette(palette=None):
-    if palette is None:
-        palette = DEFAULT_PALETTE
-    OFF = 0
-    ON = 65535
-    color_count = len(palette)
-    unit = 5
-    stripe = 3 * unit
-    width = stripe * color_count
-    image = np.zeros([width, width, unit, color_count])
-
-    # make horizontal stripes
-    for color in range(color_count):
-        base_row = color * stripe
-        end_row = base_row + stripe
-        image[:, base_row:end_row, :, color] = ON
-
-        # with inserted squares
-        for square_color in range(color_count):
-            square_base_row = base_row + unit
-            square_end_row = square_base_row + unit
-            square_base_column = square_color * stripe + unit
-            square_end_column = square_base_column + unit
-            image[square_base_column:square_end_column, square_base_row:square_end_row, :, color] = OFF
-            image[square_base_column:square_end_column, square_base_row:square_end_row, :, square_color] = ON
-    ShowFigures(palette=palette).show(probabilities=image)
-
-
-def show_example_plot():
-    data = [math.sqrt(val) for val in range(10)]
-    ShowFigures().plot(data, title='Hello')
-
-
 if __name__ == '__main__':
+    def show_palette(palette=None):
+        if palette is None:
+            palette = DEFAULT_PALETTE
+        OFF = 0
+        ON = 65535
+        color_count = len(palette)
+        unit = 5
+        stripe = 3 * unit
+        width = stripe * color_count
+        image = np.zeros([width, width, unit, color_count])
+
+        # make horizontal stripes
+        for color in range(color_count):
+            base_row = color * stripe
+            end_row = base_row + stripe
+            image[:, base_row:end_row, :, color] = ON
+
+            # with inserted squares
+            for square_color in range(color_count):
+                square_base_row = base_row + unit
+                square_end_row = square_base_row + unit
+                square_base_column = square_color * stripe + unit
+                square_end_column = square_base_column + unit
+                image[square_base_column:square_end_column, square_base_row:square_end_row, :, color] = OFF
+                image[square_base_column:square_end_column, square_base_row:square_end_row, :, square_color] = ON
+        ShowFigures(palette=palette, show_flag=True).show(probabilities=image)
+
+
+    def show_example_plot():
+        data = [math.sqrt(val) for val in range(10)]
+        ShowFigures(show_flag=True).plot(data, title='Hello')
+
+
     show_palette()
     show_example_plot()
