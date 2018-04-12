@@ -119,6 +119,8 @@ static void matrixStatsExitHandler(void) {
 
 static void noteMatrixAlloced(const char* file, int line, int rows, int cols) {
 
+    if (1) return;
+    
     if (!matrixStats) {
         matrixStats = (MatrixStats*)calloc(matrixStatsSize, sizeof(MatrixStats));
         atexit(matrixStatsExitHandler);
@@ -416,8 +418,13 @@ static MATRIX *MatrixAlloc_new(
   MATRIX* mat  = NULL;
   float*  data = NULL; 
   {
+    static long count, limit = 128, bufsSupplied, bufsUsed;
+    count++;
+    if (buf) bufsSupplied++;
+    
     void* memptr;
-    if (buf && size_needed <= sizeof(buf)) {
+    if (buf && size_needed <= sizeof(*buf)) {
+      bufsUsed++;
       memptr = &buf->matrix;
       mat    = &buf->matrix;
       data   = (float*) ((char*)memptr + data_offset);
@@ -426,6 +433,14 @@ static MATRIX *MatrixAlloc_new(
       data   = (float*) ((char*)memptr + data_offset);
     } else if (!posix_memalign(&memptr, 64, data_offset)) {
       mat    = (MATRIX*)memptr;
+    }
+    
+    if (0 && (count >= limit)) {
+      limit *= 2;
+      fprintf(stdout, "%s:%d MatrixAlloc_new stats  count:%g bufsSupplied:%g bufsUsed:%g\n", __FILE__, __LINE__, 
+      	(float)count, (float)bufsSupplied, (float)bufsUsed);
+      fprintf(stdout, "      MatrixAlloc_new size_needed:%ld sizeof(buf):%ld rows:%d cols:%d\n",
+      	size_needed, sizeof(*buf), rows, cols);
     }
   }
   
@@ -560,7 +575,7 @@ int MatrixFree(MATRIX **pmat)
 /*!
   \fn MATRIX *MatrixMultiplyD( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
   \brief Multiplies two matrices. The accumulation is done with double,
-   which is more accurate than MatrixMultiplyD() which uses float.
+   which is more accurate than MatrixMultiply() which uses float.
 */
 MATRIX *MatrixMultiplyD(const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
 {
@@ -1816,31 +1831,41 @@ float MatrixSVDEigenValues(MATRIX *m, float *evalues)
 
 MATRIX *MatrixSVDInverse(MATRIX *m, MATRIX *m_inverse)
 {
-  VECTOR *v_w;
-  MATRIX *m_U, *m_V, *m_w, *m_Ut, *m_tmp;
-  int row, rows, cols;
-  float wmax, wmin;
-
+  // This function accounted for a lot of the matrix allocation and free, and they were almost always 1x3 or 3x3
+  // so it has been rewritten to use the buffered matrix support
+  //
   if (MatrixIsZero(m)) return (NULL);
-  cols = m->cols;
-  rows = m->rows;
-  m_U = MatrixCopy(m, NULL);
-  v_w = RVectorAlloc(cols, MATRIX_REAL);
-  m_V = MatrixAlloc(cols, cols, MATRIX_REAL);
-  m_w = MatrixAlloc(cols, cols, MATRIX_REAL);
+
+  int const rows = m->rows;
+  int const cols = m->cols;
+
+  MatrixBuffer m_U_buffer, m_V_buffer;
+  MATRIX      *m_U,       *m_V;
+
+  m_U = MatrixAlloc2(rows, cols, MATRIX_REAL, &m_U_buffer);
+  m_U = MatrixCopy(m, m_U);
+
+  m_V = MatrixAlloc2(cols, cols, MATRIX_REAL, &m_V_buffer);
+
+  MatrixBuffer v_w_buffer; 
+  MATRIX* v_w = MatrixAlloc2(1, cols, MATRIX_REAL, &v_w_buffer);
 
   if (OpenSvdcmp(m_U, v_w, m_V) != NO_ERROR) {
     MatrixFree(&m_U);
-    VectorFree(&v_w);
     MatrixFree(&m_V);
-    MatrixFree(&m_w);
+    MatrixFree(&v_w);
     return (NULL);
   }
 
-  wmax = 0.0f;
+  MatrixBuffer m_w_buffer;
+  MATRIX *m_w = MatrixAlloc2(cols, cols, MATRIX_REAL, &m_w_buffer);
+ 
+  float wmax = 0.0f;
+  int row;
   for (row = 1; row <= rows; row++)
     if (fabs(RVECTOR_ELT(v_w, row)) > wmax) wmax = fabs(RVECTOR_ELT(v_w, row));
-  wmin = TOO_SMALL * wmax;
+
+  float wmin = TOO_SMALL * wmax;
   for (row = 1; row <= rows; row++) {
     if (fabs(RVECTOR_ELT(v_w, row)) < wmin)
       m_w->rptr[row][row] = 0.0f;
@@ -1848,17 +1873,36 @@ MATRIX *MatrixSVDInverse(MATRIX *m, MATRIX *m_inverse)
       m_w->rptr[row][row] = 1.0f / RVECTOR_ELT(v_w, row);
   }
 
-  m_Ut = MatrixTranspose(m_U, NULL);
-  m_tmp = MatrixMultiply(m_w, m_Ut, NULL);
-  m_inverse = MatrixMultiply(m_V, m_tmp, m_inverse);
+  // This is the WRONG way to multiply by a transpose!
+  // It is faster to not transpose and perform a faster multiply
+  //
+  // m_w  is (cols x cols)
+  // m_U  is (rows x cols)
+  // m_Ut is (cols x rows)
+  // (cols x cols) * (cols x rows) is (cols, rows) which is what m_tmp needs to be
+  //
+  MatrixBuffer m_Ut_buffer, m_tmp_buffer;
+  
+  MATRIX *m_Ut  = MatrixAlloc2(cols, cols, MATRIX_REAL, &m_Ut_buffer);
+  m_Ut = MatrixTranspose(m_U, m_Ut);
+
+  MATRIX *m_tmp = MatrixAlloc2(cols, rows, MATRIX_REAL, &m_tmp_buffer);
+  m_tmp         = MatrixMultiply (m_w, m_Ut,  m_tmp);
+
+  // m_V   is (cols x cols)
+  // m_tmp is (cols x rows)
+  // m_inverse is (cols x rows) but it is returned so can't be buffered here
+  //
+  m_inverse = MatrixMultiply (m_V, m_tmp, m_inverse);
 
   MatrixFree(&m_U);
-  VectorFree(&v_w);
+  MatrixFree(&v_w);
   MatrixFree(&m_V);
   MatrixFree(&m_w);
 
   MatrixFree(&m_Ut);
   MatrixFree(&m_tmp);
+  
   return (m_inverse);
 }
 

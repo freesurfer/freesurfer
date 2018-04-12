@@ -105,15 +105,16 @@ MATRIX  *MatrixAlloc_wkr ( const int rows, const int cols, const int type,
     	                    const char* callSiteFile, int callSiteLine);
 MATRIX  *MatrixAlloc2_wkr( const int rows, const int cols, const int type, MatrixBuffer* buf, 
     	    	    	    const char* callSiteFile, int callSiteLine);
-#define MatrixAlloc(ROWS,COLS,TYPE)      MatrixAlloc_wkr ((ROWS),(COLS),(TYPE),     __FILE__,__LINE__)
-#define MatrixAlloc2(ROWS,COLS,TYPE,BUF) MatrixAlloc2_wkr((ROWS),(COLS),(TYPE),(BUF)__FILE__,__LINE__)
+#define MatrixAlloc(ROWS,COLS,TYPE)      MatrixAlloc_wkr ((ROWS),(COLS),(TYPE),       __FILE__,__LINE__)
+#define MatrixAlloc2(ROWS,COLS,TYPE,BUF) MatrixAlloc2_wkr((ROWS),(COLS),(TYPE),(BUF), __FILE__,__LINE__)
 
 int     MatrixFree(MATRIX **pmat) ;
 MATRIX  *MatrixMultiplyD( const MATRIX *m1, const MATRIX *m2, MATRIX *m3); // use this one
-
 MATRIX  *MatrixMultiply_wkr( const MATRIX *m1, const MATRIX *m2, MATRIX *m3, 
     	    	    	    const char* callSiteFile, int callSiteLine) ;
 #define MatrixMultiply(M1,M2,M3) MatrixMultiply_wkr((M1),(M2),(M3),__FILE__,__LINE__)
+    	// (r1 x c1) * (r2 x c2) = (r1 x c2)
+	// c1 must equal r2
 
 MATRIX *MatrixMultiplyElts(MATRIX *m1, MATRIX *m2, MATRIX *m12); // like matlab m1.*m2
 MATRIX *MatrixReplicate(MATRIX *mIn, int nr, int nc, MATRIX *mOut); // like matlab repmat()

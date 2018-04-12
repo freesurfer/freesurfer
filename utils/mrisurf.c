@@ -17822,7 +17822,7 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
     }
 
     m_U = MatrixAlloc(vertex->vtotal, 3, MATRIX_REAL);
-    v_z = VectorAlloc(vertex->vtotal, MATRIX_REAL);
+    v_z = VectorAlloc(vertex->vtotal,    MATRIX_REAL);
 
     if (vno == Gdiag_no) {
       DiagBreak();
@@ -17878,14 +17878,18 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
       }
     } while (n < 4);
 
-    m_Ut = MatrixTranspose(m_U, NULL);        /* Ut */
-    m_tmp2 = MatrixMultiply(m_Ut, m_U, NULL); /* Ut U */
+    MatrixBuffer m_Ut_buffer, m_tmp2_buffer;
+    
+    m_Ut   = MatrixAlloc2(m_U->cols, m_U->rows, MATRIX_REAL, &m_Ut_buffer);
+    m_Ut   = MatrixTranspose(m_U, m_Ut);        /* Ut cols x rows */
+    
+    m_tmp2 = MatrixAlloc2(m_Ut->rows, m_U->cols, MATRIX_REAL, &m_tmp2_buffer);
+    m_tmp2 = MatrixMultiply (m_Ut, m_U, m_tmp2);  /* Ut U  cols x rows * rows x cols = cols x cols */
     cond_no = MatrixConditionNumber(m_tmp2);
-#if 0
-    m_inverse = MatrixInverse(m_tmp2, NULL) ;    /* (Ut U)^-1 */
-#else
-    m_inverse = MatrixSVDInverse(m_tmp2, NULL); /* (Ut U)^-1 */
-#endif
+
+    MatrixBuffer m_inverse_buffer;
+    m_inverse = MatrixAlloc2(m_tmp2->cols, m_tmp2->rows, MATRIX_REAL, &m_inverse_buffer);
+    m_inverse = MatrixSVDInverse(m_tmp2, m_inverse); /* (Ut U)^-1 */
     if (!m_inverse) /* singular matrix - must be planar?? */
     {
       nbad++;
@@ -17893,7 +17897,9 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
       MatrixIdentity(m_eigen->rows, m_eigen);
     }
     else {
-      m_tmp1 = MatrixMultiply(m_Ut, v_z, NULL); /* Ut z */
+      MatrixBuffer m_tmp1_buffer;
+      m_tmp1 = MatrixAlloc2(m_Ut->rows, v_z->cols, MATRIX_REAL, &m_tmp1_buffer); 
+      m_tmp1 = MatrixMultiply(m_Ut, v_z, m_tmp1); /* Ut z */
       MatrixMultiply(m_inverse, m_tmp1, v_c);   /* (Ut U)^-1 Ut z */
 
       /* now build Hessian matrix */
@@ -49537,11 +49543,18 @@ static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp)
       }
       n++;
     }
-    m_Ut = MatrixTranspose(m_U, NULL);        /* Ut */
-    m_tmp2 = MatrixMultiply(m_Ut, m_U, NULL); /* Ut U */
+    
+    MatrixBuffer m_Ut_buffer, m_tmp2_buffer;
+    m_Ut   = MatrixAlloc2(m_U->cols, m_U->rows, MATRIX_REAL, &m_Ut_buffer); 
+    m_Ut   = MatrixTranspose(m_U, m_Ut);        /* Ut */
+    
+    m_tmp2 = MatrixAlloc2(m_Ut->rows, m_U->cols, MATRIX_REAL, &m_tmp2_buffer);
+    m_tmp2 = MatrixMultiply(m_Ut, m_U, m_tmp2); /* Ut U */
     cond_no = MatrixConditionNumber(m_tmp2);
 
-    m_inverse = MatrixSVDInverse(m_tmp2, NULL); /* (Ut U)^-1 */
+    MatrixBuffer m_inverse_buffer;
+    m_inverse = MatrixAlloc2(m_U->cols, m_U->cols, MATRIX_REAL, &m_inverse_buffer);
+    m_inverse = MatrixSVDInverse(m_tmp2, m_inverse); /* (Ut U)^-1 */
 
     if (!m_inverse) {
       /* singular matrix - must be planar?? */
@@ -49549,7 +49562,9 @@ static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp)
       evalues[0] = evalues[1] = 0.0;
     }
     else {
-      m_tmp1 = MatrixMultiply(m_Ut, v_z, NULL); /* Ut z */
+      MatrixBuffer m_tmp1_buffer;
+      m_tmp1 = MatrixAlloc2(m_Ut->rows, v_z->cols, MATRIX_REAL, &m_tmp1_buffer); 
+      m_tmp1 = MatrixMultiply(m_Ut, v_z, m_tmp1); /* Ut z */
       MatrixMultiply(m_inverse, m_tmp1, v_c);   /* (Ut U)^-1 Ut z */
 
       /* now build Hessian matrix */
