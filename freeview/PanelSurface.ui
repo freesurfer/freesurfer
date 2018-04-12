@@ -102,6 +102,8 @@
         <addaction name="actionCutLine"/>
         <addaction name="actionCutClosedLine"/>
         <addaction name="actionFillUncutArea"/>
+        <addaction name="separator"/>
+        <addaction name="actionUndoCut"/>
         <addaction name="actionCutClear"/>
        </widget>
       </item>
@@ -1210,6 +1212,15 @@
     <string>Fill Uncut Area</string>
    </property>
   </action>
+  <action name="actionUndoCut">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/surface_undo_cut.png</normaloff>:/resource/icons/surface_undo_cut.png</iconset>
+   </property>
+   <property name="text">
+    <string>Undo Cut</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -1245,7 +1256,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>249</x>
-     <y>149</y>
+     <y>173</y>
     </hint>
     <hint type="destinationlabel">
      <x>368</x>
@@ -1613,7 +1624,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>309</x>
-     <y>176</y>
+     <y>207</y>
     </hint>
     <hint type="destinationlabel">
      <x>415</x>

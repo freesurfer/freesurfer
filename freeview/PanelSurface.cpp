@@ -141,6 +141,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
   connect(ui->actionCutClosedLine, SIGNAL(triggered(bool)), SLOT(OnButtonCutClosedLine()));
   connect(ui->actionCutClear, SIGNAL(triggered(bool)), SLOT(OnButtonClearCuts()));
   connect(ui->actionFillUncutArea, SIGNAL(triggered(bool)), SLOT(OnButtonFillUncutArea()));
+  connect(ui->actionUndoCut, SIGNAL(triggered(bool)), SLOT(OnButtonUndoCut()));
 }
 
 PanelSurface::~PanelSurface()
@@ -246,6 +247,7 @@ void PanelSurface::DoIdle()
   ui->actionMoveLayerDown->setEnabled(layer && m_layerCollection
                                       && m_layerCollection->GetLayerIndex(layer) < m_layerCollection->GetNumberOfLayers()-1);
   ui->actionCut->setChecked(MainWindow::GetMainWindow()->GetMode() == RenderView::IM_SurfacePath);
+  ui->actionUndoCut->setEnabled(layer && layer->HasUndoableCut());
 
   QList<QAction*> acts = m_actGroupSurface->actions();
   foreach (QAction* act, acts)
@@ -278,7 +280,7 @@ void PanelSurface::DoUpdateWidgets()
   for ( int i = 0; i < this->allWidgets.size(); i++ )
   {
     if ( allWidgets[i] != ui->toolbar && allWidgets[i]->parentWidget() != ui->toolbar &&
-         allWidgets[i] != ui->toolbarSurfaces && allWidgets[i]->parentWidget() != ui->toolbarSurfaces)
+         allWidgets[i] != ui->toolbarPath && allWidgets[i]->parentWidget() != ui->toolbarPath)
     {
       allWidgets[i]->setEnabled(layer);
     }
@@ -1105,4 +1107,11 @@ void PanelSurface::OnButtonFillUncutArea()
       ui->actionCut->setChecked(false);
     }
   }
+}
+
+void PanelSurface::OnButtonUndoCut()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf)
+    surf->UndoCut();
 }
