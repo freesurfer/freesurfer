@@ -3,7 +3,7 @@
 umask 002
 
 # 1 2 4 8
-foreach threads ( 4 )
+foreach threads ( 1 4 )
 
   # 2 -1
   foreach niters ( 2 )
@@ -15,16 +15,16 @@ foreach threads ( 4 )
       set NITERS_EXTENSION = _unlimited
     endif
   
-    # .nf_faster_distance_map_update	currently available
+    # .nf_fewer_free_locks_1 currently available
     #
-    foreach branch ( .nf_faster_distance_map_update )
+    foreach branch ( .nf_faster_distance_map_update_1 .nf_fewer_free_locks_1 )
 
       # 0 = old code with sign bug
       # 1 = old code without sign bug
       # 2 = new code with sign bug
       # 3 = new code without sign bug
       #
-      foreach feature ( 0 1 2 3 )
+      foreach feature ( 3 )
     
         if ($feature == 0) then
           setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_old 1
