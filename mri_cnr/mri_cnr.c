@@ -44,7 +44,7 @@ static char vcid[] = "$Id: mri_cnr.c,v 1.11 2016/05/05 18:44:03 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
-static int MRIScomputeSlope(MRI_SURFACE *mris, MRI *mri, double dist_in, double dist_out, 
+static int MRIScomputeSlope(MRI_SURFACE *mris, MRI *mri, double dist_in, double dist_out,
                             double step_in, double step_out, MATRIX *m_linfit);
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
@@ -151,7 +151,7 @@ main(int argc, char *argv[]) {
       {
         MATRIX *m_linfit ;
 
-        m_linfit = MatrixAlloc(mris->nvertices, 2, MATRIX_REAL) ; 
+        m_linfit = MatrixAlloc(mris->nvertices, 2, MATRIX_REAL) ;
         if (m_linfit == NULL)
           ErrorExit(ERROR_NOMEMORY, "%s: could not allocate slope/offset amtrix", Progname) ;
         MRIScomputeSlope(mris, mri, dist_in, dist_out, step_in, step_out, m_linfit);
@@ -161,7 +161,7 @@ main(int argc, char *argv[]) {
         MRISimportValFromMatrixColumn(mris, m_linfit, 2) ;
         sprintf(fname, "%s/%s.%s.offset.mgz", path, hemi, slope_fname) ;
         MRISwriteValues(mris, fname) ;
-        
+
 
         MatrixFree(&m_linfit) ;
       }
@@ -253,9 +253,20 @@ print_usage(void) {
   fprintf(stderr,
           "usage: %s [options] <surf directory> <vol 1> <vol 2> ...\n",
           Progname) ;
-  fprintf(stderr, 
-          "\t-s <slope fname> <dist in> <dist out> <step in> <step out>\n") ;
+  fprintf(stderr,
+          "\t-s <slope_fname> <dist in> <dist out> <step in> <step out>: compute slope based on given values, write it to slope and offset files labeled <slope_fname> (e.g., `lh.<slope_fname>.slope.mgz')\n") ;
+  fprintf(stderr,
+          "\t-t : print only the total CNR to stdout (stderr still contains more information)\n") ;
+  fprintf(stderr,
+          "\t-l <logfile>: log g/w cnr to file <logfile>. Will contain 8 values in the following order: gray_white_cnr, gray_csf_cnr, white_mean, gray_mean, csf_mean,
+                  sqrt(white_var), sqrt(gray_var), sqrt(csf_var)\n") ;
+  fprintf(stderr,
+          "\t-u, -? : print usage information and quit\n") ;
+  fprintf(stderr,
+          "\t-version : print software version information\n") ;
 }
+
+
 
 static void
 print_help(void) {
@@ -289,7 +300,7 @@ compute_volume_cnr(MRI_SURFACE *mris, MRI *mri, char *log_fname) {
     if (v->ripflag)
       continue ;
 
-    //MRIworldToVoxel(mri, v->x+v->nx, 
+    //MRIworldToVoxel(mri, v->x+v->nx,
     MRISsurfaceRASToVoxelCached(mris, mri, v->x+v->nx, v->y+v->ny, v->z+v->nz, &x, &y, &z) ;
 //    MRIsurfaceRASToVoxel(mri, v->x+v->nx, v->y+v->ny, v->z+v->nz, &x, &y, &z) ;
     MRIsampleVolume(mri, x, y, z, &csf) ;
@@ -353,7 +364,7 @@ compute_volume_cnr(MRI_SURFACE *mris, MRI *mri, char *log_fname) {
     fp = fopen(log_fname, "a") ;
     if (fp == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not open file %s", Progname, log_fname) ;
-    fprintf(fp, "%f %f %f %f %f %f %f %f\n", gray_white_cnr, gray_csf_cnr, white_mean, gray_mean, csf_mean, 
+    fprintf(fp, "%f %f %f %f %f %f %f %f\n", gray_white_cnr, gray_csf_cnr, white_mean, gray_mean, csf_mean,
             sqrt(white_var), sqrt(gray_var), sqrt(csf_var)) ;
 
   }
@@ -364,7 +375,7 @@ compute_volume_cnr(MRI_SURFACE *mris, MRI *mri, char *log_fname) {
 }
 
 static int
-MRIScomputeSlope(MRI_SURFACE *mris, MRI *mri, double dist_in, double dist_out, 
+MRIScomputeSlope(MRI_SURFACE *mris, MRI *mri, double dist_in, double dist_out,
                  double step_in, double step_out, MATRIX *m_linfit)
 {
   int      vno, nsamples, n ;
@@ -417,4 +428,3 @@ MRIScomputeSlope(MRI_SURFACE *mris, MRI *mri, double dist_in, double dist_out,
 
   return(NO_ERROR) ;
 }
-
