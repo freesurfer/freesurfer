@@ -56891,6 +56891,11 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     do_new_loop3  = !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_new") || !do_old_loop3;
     keep_sign_bug = !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug"); 	
     	// keep the bug until explicitly told not to
+	
+    if (do_old_loop3)  
+      fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood using old algorithm with the %s\n",keep_sign_bug?"sign bug still there":"sign bug fixed");
+    if (do_new_loop3) 
+      fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood using new algorithm\n");
   }
 
   MRI_SURFACE  const * const mris     = mris_nonconst;			// find where the modifiers are
@@ -57429,7 +57434,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 		if (least_distance_squared > distance_squared) {
 		  least_distance_squared = distance_squared;
 		  MAKE_LEAST_THIS;
-		} else if (keep_sign_bug) MAKE_LEAST_THIS;
+		}
               }
 
               if (val2 <= 0) {
@@ -57454,7 +57459,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 		if (least_distance_squared > distance_squared) {
 		  least_distance_squared = distance_squared;
 		  MAKE_LEAST_THIS;
-		} else if (keep_sign_bug) MAKE_LEAST_THIS;
+		}
               }
 
     	      float least_sign = F_DOT(least_sign_lhs, least_sign_rhs);	    
@@ -57464,102 +57469,200 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     	  }
 	  
 	  float old_distance = 0.0f;
-    	  if (do_old_loop3) {
-	    float val, valu, sign, distance;
-	    
-	    // THIS CODE HAS A FUNDAMENTAL PROBLEM
-	    //
-	    // IT FINDS THE LEAST ABS DISTANCE, BUT THE SIGN OF THE DISTANCE IS THE SIGN OF THE LAST TESTED VALUE
-	    // WHICH CAN'T POSSIBLY BE RIGHT!  CONCLUSION - SIGN DOESNT MATTER!
+          if (do_old_loop3) {
+	    if (keep_sign_bug) {
+	      float val, valu, sign, distance;
 
-            if ((val0 >= 0) && (val1 >= 0) && (val2 >= 0)) {
-              /* the projection of the vertex is inside */
-              val = F_DOT(n_f, vec);
-              valu     = 1;
-              sign     = val;
-              distance = val; /* n_f is already normalized */
+	      // THIS CODE HAS A FUNDAMENTAL PROBLEM
+	      //
+	      // IT FINDS THE LEAST ABS DISTANCE, BUT THE SIGN OF THE DISTANCE IS THE SIGN OF THE LAST TESTED VALUE
+	      // WHICH CAN'T POSSIBLY BE RIGHT!  CONCLUSION - MAYBE SIGN DOESNT MATTER?  IT IS EXPENSIVE TO COMPUTE...
+
+              if ((val0 >= 0) && (val1 >= 0) && (val2 >= 0)) {
+        	/* the projection of the vertex is inside */
+        	val = F_DOT(n_f, vec);
+        	valu     = 1;
+        	sign     = val;
+        	distance = val; /* n_f is already normalized */
+              }
+              else {
+        	distance = NPY;
+        	sign = 0;
+        	valu = 0;
+
+        	if (val0 <= 0) {
+        	  /* compute distance to edge0 */
+        	  val = F_DOT(vec0, e0);
+        	  if (val < 0) {
+                    /* closer to x0 */
+                    sign = F_DOT(n_v0, vec0);
+                    valu = 2;
+                    distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec0));
+        	  }
+        	  else if (val < SQR3(e0)) {
+                    /* closer to edge0 */
+                    sign = F_DOT(n_e0, vec0);
+                    valu = 3;
+                    distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec0) - SQR(val) / SQR3(e0))));
+        	  }
+        	  else {
+                    /* closer to x1 */
+                    sign = F_DOT(n_v1, vec1);
+                    valu = 2;
+                    distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec1));
+        	  }
+        	};
+
+        	if (val1 <= 0) {
+        	  val = F_DOT(vec1, e1);
+        	  if (val < 0) {
+                    /* closer to x1 */
+                    sign = F_DOT(n_v1, vec1);
+                    valu = 2;
+                    distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec1));
+        	  }
+        	  else if (val < SQR3(e1)) {
+                    /* closer to edge1 */
+                    sign = F_DOT(n_e1, vec1);
+                    valu = 3;
+                    distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec1) - SQR(val) / SQR3(e1))));
+        	  }
+        	  else {
+                    /* closer to x2 */
+                    sign = F_DOT(n_v2, vec2);
+                    valu = 2;
+                    distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec2));
+        	  }
+        	};
+
+        	if (val2 <= 0) {
+        	  val = F_DOT(vec2, e2);
+        	  if (val < 0) {
+                    /* closer to x2 */
+                    sign = F_DOT(n_v2, vec2);
+                    valu = 2;
+                    distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec2));
+        	  }
+        	  else if (val < SQR3(e2)) {
+                    /* closer to edge2 */
+                    sign = F_DOT(n_e2, vec2);
+                    valu = 3;
+                    distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec2) - SQR(val) / SQR3(e2))));
+        	  }
+        	  else {
+                    /* closer to x0 */
+                    sign = F_DOT(n_v0, vec0);
+                    valu = 2;
+                    distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec0));
+        	  }
+        	};
+              }
+
+    	      old_distance = distance;
+            } else {
+	      float val, valu, sign, distance;
+
+	      // THIS CODE KEEPS THE SIGN FROM THE LEAST OF THE DISTANCES
+
+              if ((val0 >= 0) && (val1 >= 0) && (val2 >= 0)) {
+        	/* the projection of the vertex is inside */
+        	val = F_DOT(n_f, vec);
+        	valu     = 1;
+        	sign     = val;
+        	distance = val; /* n_f is already normalized */
+              }
+              else {
+        	distance = NPY;
+        	sign = 0;
+        	valu = 0;
+
+    		float trialDistance;
+
+        	if (val0 <= 0) {
+        	  /* compute distance to edge0 */
+        	  val = F_DOT(vec0, e0);
+        	  if (val < 0) {
+                    /* closer to x0 */
+                    sign = F_DOT(n_v0, vec0);
+                    valu = 2;
+		    trialDistance = NORM3(vec0);
+        	  }
+        	  else if (val < SQR3(e0)) {
+                    /* closer to edge0 */
+                    sign = F_DOT(n_e0, vec0);
+                    valu = 3;
+		    trialDistance = sqrt(MAX(0, SQR3(vec0) - SQR(val) / SQR3(e0)));
+        	  }
+        	  else {
+                    /* closer to x1 */
+                    sign = F_DOT(n_v1, vec1);
+                    valu = 2;
+		    trialDistance = NORM3(vec1);
+        	  }
+                  if (fabs(distance) > trialDistance) distance = SIGN(sign) * trialDistance;
+        	};
+
+        	if (val1 <= 0) {
+        	  val = F_DOT(vec1, e1);
+        	  if (val < 0) {
+                    /* closer to x1 */
+                    sign = F_DOT(n_v1, vec1);
+                    valu = 2;
+                    trialDistance = NORM3(vec1);
+        	  }
+        	  else if (val < SQR3(e1)) {
+                    /* closer to edge1 */
+                    sign = F_DOT(n_e1, vec1);
+                    valu = 3;
+                    trialDistance = sqrt(MAX(0, SQR3(vec1) - SQR(val) / SQR3(e1)));
+        	  }
+        	  else {
+                    /* closer to x2 */
+                    sign = F_DOT(n_v2, vec2);
+                    valu = 2;
+                    trialDistance = NORM3(vec2);
+        	  }
+    	    	  if (fabs(distance) > trialDistance) distance = SIGN(sign) * trialDistance;
+        	};
+
+        	if (val2 <= 0) {
+        	  val = F_DOT(vec2, e2);
+        	  if (val < 0) {
+                    /* closer to x2 */
+                    sign = F_DOT(n_v2, vec2);
+                    valu = 2;
+                    trialDistance = NORM3(vec2);
+        	  }
+        	  else if (val < SQR3(e2)) {
+                    /* closer to edge2 */
+                    sign = F_DOT(n_e2, vec2);
+                    valu = 3;
+                    trialDistance = sqrt(MAX(0, SQR3(vec2) - SQR(val) / SQR3(e2)));
+        	  }
+        	  else {
+                    /* closer to x0 */
+                    sign = F_DOT(n_v0, vec0);
+                    valu = 2;
+                    trialDistance = NORM3(vec0);
+        	  }
+    	    	  if (fabs(distance) > trialDistance) distance = SIGN(sign) * trialDistance;
+        	};
+              }
+
+    	      old_distance = distance;
             }
-            else {
-              distance = NPY;
-              sign = 0;
-              valu = 0;
-
-              if (val0 <= 0) {
-        	/* compute distance to edge0 */
-        	val = F_DOT(vec0, e0);
-        	if (val < 0) {
-                  /* closer to x0 */
-                  sign = F_DOT(n_v0, vec0);
-                  valu = 2;
-                  distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec0));
-        	}
-        	else if (val < SQR3(e0)) {
-                  /* closer to edge0 */
-                  sign = F_DOT(n_e0, vec0);
-                  valu = 3;
-                  distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec0) - SQR(val) / SQR3(e0))));
-        	}
-        	else {
-                  /* closer to x1 */
-                  sign = F_DOT(n_v1, vec1);
-                  valu = 2;
-                  distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec1));
-        	}
-              };
-
-              if (val1 <= 0) {
-        	val = F_DOT(vec1, e1);
-        	if (val < 0) {
-                  /* closer to x1 */
-                  sign = F_DOT(n_v1, vec1);
-                  valu = 2;
-                  distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec1));
-        	}
-        	else if (val < SQR3(e1)) {
-                  /* closer to edge1 */
-                  sign = F_DOT(n_e1, vec1);
-                  valu = 3;
-                  distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec1) - SQR(val) / SQR3(e1))));
-        	}
-        	else {
-                  /* closer to x2 */
-                  sign = F_DOT(n_v2, vec2);
-                  valu = 2;
-                  distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec2));
-        	}
-              };
-
-              if (val2 <= 0) {
-        	val = F_DOT(vec2, e2);
-        	if (val < 0) {
-                  /* closer to x2 */
-                  sign = F_DOT(n_v2, vec2);
-                  valu = 2;
-                  distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec2));
-        	}
-        	else if (val < SQR3(e2)) {
-                  /* closer to edge2 */
-                  sign = F_DOT(n_e2, vec2);
-                  valu = 3;
-                  distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec2) - SQR(val) / SQR3(e2))));
-        	}
-        	else {
-                  /* closer to x0 */
-                  sign = F_DOT(n_v0, vec0);
-                  valu = 2;
-                  distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec0));
-        	}
-              };
-            }
-
-    	    old_distance = keep_sign_bug ? distance : fabs(distance);
-          }
-	  
+	  }
+	  	  
 	  float distance = do_new_loop3 ? new_distance : old_distance;
 	  if (do_new_loop3 && do_old_loop3) {
-	    if (!closeEnough(new_distance, old_distance)) {
-	      fprintf(stdout, "%s:%d new_distance:%g not near old_distance:%g\n", __FILE__, __LINE__, 
-	      	new_distance, old_distance);
+	  
+	    // Sadly the old code compares the distances rather than the distances-squared
+	    // forcing it to take a sqrt before doing the comparison.  But sqrt can make unequal
+	    // things equal, so the old code might select a different sign distance than the new.
+	    //
+	    if (!closeEnough(fabs(new_distance), fabs(old_distance))) {
+	      fprintf(stdout, "%s:%d new_distance:%g not near old_distance:%g,  magnitude diff:%g\n", __FILE__, __LINE__, 
+	      	new_distance, old_distance, fabs(new_distance)-fabs(old_distance));
 	    }
 	  }
 	  
@@ -57568,7 +57671,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
           // There was a reproducibility problem here.
           // If the smallest positive distance and the smallest negative distance is the same fabs()
           // then this code would randomly choose between them.
-          // Furthermore the sign of the distance does NOT seem to be important, so CAN just store the fabs - SEE ABOVE BUG COMMENT
+          // Maybe the sign of the distance is not important, so CAN just store the fabs - SEE ABOVE BUG COMMENT
     	  //
           // Eliminating the bug changed the mris_fix_topology test result so there is an option to keep it until agreement on its removal.
 	  //
