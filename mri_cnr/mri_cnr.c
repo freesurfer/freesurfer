@@ -153,7 +153,7 @@ main(int argc, char *argv[]) {
 
         m_linfit = MatrixAlloc(mris->nvertices, 2, MATRIX_REAL) ;
         if (m_linfit == NULL)
-          ErrorExit(ERROR_NOMEMORY, "%s: could not allocate slope/offset amtrix", Progname) ;
+          ErrorExit(ERROR_NOMEMORY, "%s: could not allocate slope/offset matrix", Progname) ;
         MRIScomputeSlope(mris, mri, dist_in, dist_out, step_in, step_out, m_linfit);
         MRISimportValFromMatrixColumn(mris, m_linfit, 1) ;
         sprintf(fname, "%s/%s.%s.slope.mgz", path, hemi, slope_fname) ;
