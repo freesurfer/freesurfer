@@ -3,10 +3,10 @@
 umask 002
 
 # 1 2 4 8
-foreach threads ( 1 4 )
+foreach threads ( 8 )
 
   # 2 -1
-  foreach niters ( 2 )
+  foreach niters ( -1 )
     if ($niters != -1) then
       set NITERS_OPTION = "-niters $niters"
       set NITERS_EXTENSION =
@@ -15,38 +15,51 @@ foreach threads ( 1 4 )
       set NITERS_EXTENSION = _unlimited
     endif
   
-    # .nf_fewer_free_locks_1 currently available
+    #  currently available:
+    # 	.nf_fewer_free_locks_1 
+    # 	.nf_faster_distance_map_update_1 
     #
-    foreach branch ( .nf_faster_distance_map_update_1 .nf_fewer_free_locks_1 )
+    foreach branch ( .nf_fewer_free_locks_1 )
 
       # 0 = old code with sign bug
       # 1 = old code without sign bug
       # 2 = new code with sign bug
       # 3 = new code without sign bug
+      # 4 = 3 with other improvements also
       #
-      foreach feature ( 3 )
+      foreach feature ( 1 4 )
     
         if ($feature == 0) then
           setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_old 1
     	  unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_new
     	  setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug 1
+          setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_oldMriDistance 1
         endif
         if ($feature == 1) then
           setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_old 1
     	  unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_new
     	  unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug
+          setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_oldMriDistance 1
         endif
         if ($feature == 2) then
           unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_old
     	  setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_new 1
     	  setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug 1
+          setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_oldMriDistance 1
         endif
         if ($feature == 3) then
           unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_old
     	  setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_new 1
     	  unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug
+          setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_oldMriDistance 1
         endif
-        
+        if ($feature == 4) then
+          unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_old
+    	  setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_new 1
+    	  unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug
+          unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_oldMriDistance
+        endif
+	
 	set extension = -B${branch}-F${feature}-N${niters}-T${threads}
 
 	# extract testing data
