@@ -16,7 +16,7 @@ RANLIB:=$(shell which ranlib)
 
 export MAKE CMAKE CC CXX AR RANLIB
 
-checkout_cmd:=$(GIT) clone git@github.com:vxl/vxl.git
+checkout_cmd:=$(GIT) clone https://github.com/vxl/vxl.git
 
 cmake_cmd:=$(CMAKE) ../$(src_dir) \
 -G "Unix Makefiles" \
