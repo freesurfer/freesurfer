@@ -70,10 +70,22 @@ extern "C" {
 
 #endif
 
+// Causes the compiler to not inline this function
+//
+#define NOINLINE __attribute__((noinline))
 
 // defines the maximum number of threads used in OpenMP code
 //
 #define _MAX_FS_THREADS 128 
+
+#ifndef HAVE_OPENMP
+    // Make it easier to write code which is insensitive to OpenMP being present
+    //
+    #pragma GCC diagnostic ignored "-Wunused-function"
+    static int omp_get_max_threads() { return 1; }
+    #pragma GCC diagnostic ignored "-Wunused-function"
+    static int omp_get_thread_num()  { return 0; }
+#endif
 
 // assertions
 //

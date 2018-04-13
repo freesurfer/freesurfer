@@ -50028,8 +50028,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
   VERTEX *vertex1, *vertex2;
   int counting;
 
-  ROMP_PF_begin
-  
   /* initialize arrays of tessellated patch to null pointer*/
   TPinit(&dp->tp);
 
@@ -50080,10 +50078,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
   /* allocate the table of potentially intersected edges */
   it = (IT *)calloc(nedges, sizeof(IT));
 
-  ROMP_PF_end
-  
-  ROMP_PF_begin
-
   static long stats_count = 0;
   static long stats_limit = 1;
   long stats_modified_loops   = 0;
@@ -50097,8 +50091,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
     
     IntersectDefectEdgesContext intersectDefectEdgesContext; 
     initIntersectDefectEdgesContext(&intersectDefectEdgesContext, mris);
-    
-    ROMP_PF_begin
     
     /* start building the retessellation */
     for (index = 0; index < nedges; index++) {
@@ -50145,8 +50137,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
       {
         int intersects = 0;
 
-        ROMP_PF_begin   // mris_fix_topology not using this
-        
         for (j = 0; j < etable->noverlap[i]; j++)
           if (et[etable->overlapping_edges[i][j]].used &&
               et[etable->overlapping_edges[i][j]].used != USED_IN_ORIGINAL_TESSELLATION) {
@@ -50159,8 +50149,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
             break;
           }
           
-        ROMP_PF_end
-        
         if (intersects) {
           continue;
         }
@@ -50179,8 +50167,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
         /* this edge could potentially be added : no sphere intersection */
         nadded++;
 
-        ROMP_PF_begin   // negliable time spent in here
-        
         if (possiblyAddEdgesAndFaces(mris_corrected, et[i].vno1, et[i].vno2, dp->retessellation_mode)) {
           obsoleteIntersectDefectEdgesContext(&intersectDefectEdgesContext);
           nthings++;
@@ -50205,7 +50191,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
           }
         }
         
-        ROMP_PF_end
       }
       else /* intersecting edge with edge e1<-->e2 */
       {
@@ -50213,14 +50198,8 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
       }
     }
 
-    ROMP_PF_end
-    ROMP_PF_begin       // negliable time spent in here
-
     finiIntersectDefectEdgesContext(&intersectDefectEdgesContext);
 
-    ROMP_PF_end
-    ROMP_PF_begin       // negliable time spent in here
-    
     /* now update the edges */
     for (index = 0; index < nedges; index++) {
       /* keep the same order (not necessary) */
@@ -50267,7 +50246,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
         it[i].intersected = 1;
       }
     }
-    ROMP_PF_end
   }
 
   if (++stats_count >= stats_limit) {
@@ -50281,9 +50259,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
         stats_nedges_loops_heavy, stats_intersection_function_calls);
     }
   }
-
-  ROMP_PF_end
-  ROMP_PF_begin     // negliable time spent in here
 
   /* in this retessellation we have added, at most, nthings edges */
   things = (int *)malloc(nthings * sizeof(int));
@@ -50309,9 +50284,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
       max_i = i;
     }
   }
-
-  ROMP_PF_end
-  ROMP_PF_begin     // negliable time spent in here
   
   /* store list of used edges */
   dp->tp.nedges = nthings;
@@ -50385,8 +50357,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
 
   /* free the allocated memory for the intersection_table */
   free(it);
-
-  ROMP_PF_end
 
   return (NO_ERROR);
 }
@@ -56878,6 +56848,55 @@ static double mrisComputeDefectMRILogUnlikelihood(
     return result;
 }
 
+typedef struct PerThreadMRIDistance {
+  MRI const * mri_distance;
+  int heightTimesDepth,depth;
+  float* elts;
+} PerThreadMRIDistance;
+
+static PerThreadMRIDistance* makePerThreadMRIDistance(MRI const * const mri_distance) {
+  PerThreadMRIDistance* ptd = (PerThreadMRIDistance*)malloc(sizeof(PerThreadMRIDistance));
+  ptd->mri_distance 	= mri_distance;
+  ptd->heightTimesDepth = mri_distance->height*mri_distance->depth;
+  ptd->depth        	= mri_distance->depth;
+  int size          	= mri_distance->width*mri_distance->height*mri_distance->depth;
+  float* elts = ptd->elts = (float*)malloc(size*sizeof(float));
+  int i;
+  for (i = 0; i < size; i++) elts[i] = NPY;
+  return ptd;
+}
+
+static float* perThreadMRIDistanceElt(PerThreadMRIDistance* ptd, int i, int j, int k) {
+  return &ptd->elts[i*ptd->heightTimesDepth + j*ptd->depth + k];
+}
+
+static void freePerThreadMRIDistance(PerThreadMRIDistance** ptdp) {
+  PerThreadMRIDistance* ptd = *ptdp;
+  *ptdp = NULL;
+  if (!ptd) return;
+  freeAndNULL(ptd->elts);
+  freeAndNULL(ptd);
+}
+
+static void updateDistanceElt(volatile float* f, float distance, bool lockNeeded) {
+    
+#ifdef HAVE_OPENMP
+  if (lockNeeded) {
+    if (fabs(distance) > fabs(*f)) return;  	// avoid the lock if possible
+    #pragma omp critical
+    updateDistanceElt(f, distance, false);
+    return;
+  } 
+#endif
+
+  if (fabs(distance) < fabs(*f)) {
+    *f = distance;	            
+  } else if (fabs(distance) == fabs(*f)) {
+    // They are equal.  Prefer the positive.
+    if (distance > 0) *f = distance;
+  }
+}
+
 static double mrisComputeDefectMRILogUnlikelihood_wkr(
     ComputeDefectContext* computeDefectContext,
     MRI_SURFACE  * const mris_nonconst, 			        // various subcomponents of these structures get updated
@@ -56885,17 +56904,22 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     HISTOGRAM    * const h_border_nonconst)
 {
   static bool once;
+  static bool use_perThreadMRIDistance;
   static bool do_new_loop3, do_old_loop3, keep_sign_bug;
   if (!once) { once = true;
-    do_old_loop3  = !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_old");
-    do_new_loop3  = !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_new") || !do_old_loop3;
-    keep_sign_bug = !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug"); 	
+    use_perThreadMRIDistance =  !getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_oldMriDistance");	
+    do_old_loop3             = !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_old");
+    do_new_loop3             = !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_new") || !do_old_loop3;
+    keep_sign_bug            = !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug"); 
     	// keep the bug until explicitly told not to
 	
     if (do_old_loop3)  
       fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood using old algorithm with the %s\n",keep_sign_bug?"sign bug still there":"sign bug fixed");
     if (do_new_loop3) 
       fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood using new algorithm\n");
+    if (use_perThreadMRIDistance) {
+      fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood using perThreadDistance\n");
+    }
   }
 
   MRI_SURFACE  const * const mris     = mris_nonconst;			// find where the modifiers are
@@ -56913,6 +56937,11 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   }
   //  TIMER_INTERVAL_END(getRealmTree)
 
+  int const maxThreads = omp_get_max_threads();
+  PerThreadMRIDistance* perThreadMRIDistances[_MAX_FS_THREADS];
+  { int tid; for (tid = 0; tid < maxThreads; tid++) perThreadMRIDistances[tid] = NULL; }
+  
+  if (!use_perThreadMRIDistance) 
   { int i,j,k;
     for (i = 0; i < mri_distance->width; i++) {
       for (j = 0; j < mri_distance->height; j++) {
@@ -57230,9 +57259,26 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 
   //  TIMER_INTERVAL_BEGIN(taskExecution)
 
+  // The following is a very complex loop
+  // We need to understand its behavior better before starting to optimize it
+  //
+  bool traceTid0 = false;
+  if (0) {
+    static long count, limit=1, sumBufferSize;
+    count++;
+    sumBufferSize += bufferSize;
+    if (count >= limit) {
+      limit *= 2;
+      fprintf(stdout, "%s:%d count:%ld avg bufferSize:%g\n", __FILE__, __LINE__, count, (float)sumBufferSize/(float)count);
+      traceTid0 = (count == 1024);
+    }
+  }
+  
+  
   // do the tasks
   //
   int bufferIndex = 0;
+
 
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
@@ -57240,6 +57286,12 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 #endif
   for (bufferIndex = 0; bufferIndex < bufferSize; bufferIndex++) {
     ROMP_PFLB_begin
+    
+    bool const trace = traceTid0 
+#ifdef HAVE_OPENMP
+    	&& (omp_get_thread_num() == 0)
+#endif
+	;
     
     typedef void p;	// poison p
     Entry const * entry = &buffer[bufferIndex];
@@ -57269,6 +57321,10 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
       int fnoV12 = findOtherEdgeFace(mris, fno, face->v[1], face->v[2]);
       int fnoV20 = findOtherEdgeFace(mris, fno, face->v[2], face->v[0]);
 
+      if (trace) {
+      	fprintf(stdout, "  fno:%d abuts fnos:%d %d %d\n", fno, fnoV01, fnoV12, fnoV20);
+      }
+      
       FaceNormCacheEntry const * fNorm  = getFaceNorm(mris, fno);
       FaceNormCacheEntry const * fNorm0 = getFaceNorm(mris, fnoV01);
       FaceNormCacheEntry const * fNorm1 = getFaceNorm(mris, fnoV12);
@@ -57321,6 +57377,10 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     computeVertexPseudoNormal(mris, face->v[0], n_v0, dp->verbose_mode);
     computeVertexPseudoNormal(mris, face->v[1], n_v1, dp->verbose_mode);
     computeVertexPseudoNormal(mris, face->v[2], n_v2, dp->verbose_mode);
+
+    if (trace) {
+      fprintf(stdout, "  computeVertexPseudoNormal for vnos:%d %d %d\n", face->v[0], face->v[1], face->v[2]);
+    }
 
     if (0) {
       static int count, limit = 1;
@@ -57677,21 +57737,24 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	  //
           // The OLD solution WAS to have the positive be the preferred of two equal values.
           //
-	  volatile float * f = &MRIFvox(mri_distance_nonconst, i, j, k);    	    // MODIFIER NOT CAUGHT BY COMPILER
+          if (trace) fprintf(stdout, "  update distance for i:%d j:%d j:%d\n", i,j,k);
+
+	  if (!use_perThreadMRIDistance) {
+	  
+	    updateDistanceElt(&MRIFvox(mri_distance_nonconst, i, j, k), distance, 
 #ifdef HAVE_OPENMP
-          if (fabs(distance) <= fabs(*f))					    // avoid the lock if possible
-	  #pragma omp critical
+	    	true
+#else
+    	    	false
 #endif
-          {
-            if (fabs(distance) < fabs(*f)) {
-              *f = distance;	            
-            } else if (fabs(distance) == fabs(*f)) {
-              // They are equal.  Prefer the positive.
-              if (distance > 0) *f = distance;
-            } else {
-              // Might happen if the distance got stored between the non-critical and critical compares
-            }
-          }
+		);
+	  } else {
+	    // No locking needed, since per thread
+	    int const tid = omp_get_thread_num();
+	    PerThreadMRIDistance* ptd = perThreadMRIDistances[tid];
+	    if (!ptd) ptd = perThreadMRIDistances[tid] = makePerThreadMRIDistance(mri_distance);
+	    updateDistanceElt(perThreadMRIDistanceElt(ptd, i,j,k), distance, false);
+	  }
         }
       }
     }
@@ -57701,6 +57764,35 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   
   free(buffer);
 
+  if (use_perThreadMRIDistance) {
+    ROMP_PF_begin
+    int i,j,k;
+#ifdef HAVE_OPENMP
+    #pragma omp parallel for if_ROMP(shown_reproducible) 
+#endif
+    for (i = 0; i < mri_distance->width; i++) {
+      ROMP_PFLB_begin
+      for (j = 0; j < mri_distance->height; j++) {
+        for (k = 0; k < mri_distance->depth; k++) {
+	  float distance = NPY;
+          int tid;
+          for (tid = 0; tid < maxThreads; tid++) {
+	    PerThreadMRIDistance* ptd = perThreadMRIDistances[tid];
+	    if (ptd) updateDistanceElt(&distance, *perThreadMRIDistanceElt(ptd, i,j,k), false);
+          }
+          MRIFvox(mri_distance_nonconst, i, j, k) = distance;		// MODIFIER THAT WASN'T DETECTED
+        }
+      }
+      ROMP_PFLB_end
+    }
+    ROMP_PF_end
+    
+    int tid;
+    for (tid = 0; tid < maxThreads; tid++) {
+      freePerThreadMRIDistance(&perThreadMRIDistances[tid]);
+    }
+  }
+  
   //  TIMER_INTERVAL_END(taskExecution)
 
   } // int p;
@@ -60098,25 +60190,6 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
                                             HISTOGRAM *h_dot,
                                             TOPOLOGY_PARMS *parms);
 
-static int (* volatile mrisComputeOptimalRetessellation_wkr_noinline)(MRI_SURFACE *mris,
-                                            MRI_SURFACE *mris_corrected,
-                                            MRI *mri,
-                                            DEFECT *defect,
-                                            int *vertex_trans,
-                                            EDGE *et,
-                                            int nedges,
-                                            ES *es,
-                                            int nes,
-                                            HISTOGRAM *h_k1,
-                                            HISTOGRAM *h_k2,
-                                            MRI *mri_k1_k2,
-                                            HISTOGRAM *h_white,
-                                            HISTOGRAM *h_gray,
-                                            HISTOGRAM *h_border,
-                                            HISTOGRAM *h_grad,
-                                            MRI *mri_gray_white,
-                                            HISTOGRAM *h_dot,
-                                            TOPOLOGY_PARMS *parms) = mrisComputeOptimalRetessellation_wkr;
 
 static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
                                             MRI_SURFACE *mris_corrected,
@@ -60140,7 +60213,7 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
 {
     int result;
     ROMP_PF_begin
-    result = (*mrisComputeOptimalRetessellation_wkr_noinline)(mris,
+    result = mrisComputeOptimalRetessellation_wkr(mris,
                                             mris_corrected,
                                             mri,
                                             defect,
@@ -60163,7 +60236,7 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
     return result;
 }
 
-static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
+static NOINLINE int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
                                             MRI_SURFACE *mris_corrected,
                                             MRI *mri,
                                             DEFECT *defect,
@@ -60300,6 +60373,8 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     max_unchanged = max_unchanged / 5;
   }
 
+  ROMP_PF_begin
+
   etable.use_overlap = parms->edge_table;
   etable.nedges = nedges;
   etable.edges = (EDGE *)calloc(nedges, sizeof(EDGE));
@@ -60364,6 +60439,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     free(overlap);
   }
 
+  ROMP_PF_end
+  ROMP_PF_begin
+
   /* allocate the volume constituted by the potential edges */
   mri_defect = mri_defect_white = mri_defect_gray = mri_defect_sign = NULL;
   if (!FZERO(parms->l_unmri)) {
@@ -60383,6 +60461,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
                            0);
   };
 
+  ROMP_PF_end
+  ROMP_PF_begin
+
   if ((!FZERO(parms->l_unmri)) && parms->save_fname &&
       (parms->defect_number < 0 || (parms->defect_number == defect->defect_number))) {
     sprintf(fname, "%s/white_%d.mgh", parms->save_fname, defect->defect_number);
@@ -60390,6 +60471,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     sprintf(fname, "%s/gray_%d.mgh", parms->save_fname, defect->defect_number);
     MRIwrite(mri_defect_gray, fname);
   }
+
+  ROMP_PF_end
+  ROMP_PF_begin
 
   dvs = mrisRecordVertexState(mris_corrected, defect, vertex_trans);
   dps = dps1;
@@ -60409,9 +60493,14 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
 
   nbests = 0;
 
+  ROMP_PF_end
+
   ComputeDefectContext computeDefectContext;
+
+  ROMP_PF_begin
+
     constructComputeDefectContext(&computeDefectContext);
-    
+
   /* generate initial population of patches */
   if (parms->initial_selection) {
     /* segment overlapping edges into clusters */
@@ -60772,6 +60861,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     }
   }
 
+  ROMP_PF_end
+  ROMP_PF_begin
+
   /*compute statistics*/
   for (fitness_mean = fitness_sigma = 0.0, i = 0; i < max_patches; i++) {
     dp = &dps[i];
@@ -60816,11 +60908,17 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
 
   last_fitness = best_fitness;
 
+  ROMP_PF_end
+
+  ROMP_PF_begin
+
   while (nunchanged < max_unchanged) {
     if (ngenerations == parms->niters) {
       break;
     }
 
+    ROMP_PF_begin
+    
     if (dps == dps1) {
       dps_next_generation = dps2;
     }
@@ -60839,6 +60937,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     next_gen_index = 0;
     for (i = 0; i < nelite; i++) mrisCopyDefectPatch(&dps[ranks[i]], &dps_next_generation[next_gen_index++]);
 
+    ROMP_PF_end
+    ROMP_PF_begin
+    
     /* now replace the worst ones with mutated copies of the best */
     for (i = 0; i < nreplacements; i++) {
       ntotalmutations++;
@@ -60925,6 +61026,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
       }
     }
 
+    ROMP_PF_end
+    ROMP_PF_begin
+
     for (fitness_mean = fitness_sigma = 0.0, i = 0; i < max_patches; i++) {
       dp = &dps[i];
       fitness_mean += dp->fitness;
@@ -60971,6 +61075,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
       break;
     }
 
+    ROMP_PF_end
+    ROMP_PF_begin
+
     /* selection of chromosomes for cross-over */
     ncrossovers = max_patches - (nelite + nreplacements);
     for (l = k = j = 0; j < nselected; j++) {
@@ -61007,6 +61114,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
       selected[l] = i;
     }
 
+    ROMP_PF_end
+    ROMP_PF_begin
+
     for (i = 0; i < ncrossovers; i++) {
       int p1, p2;
       ntotalcross_overs++;
@@ -61016,6 +61126,8 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
       {
         p2 = selected[(int)randomNumber(0, ncrossovers - .001)];
       } while (p2 == p1);
+
+      ROMP_PF_begin
 
       dp = &dps_next_generation[next_gen_index++];
       mrisCrossoverDefectPatches(&dps[p1], &dps[p2], dp, &etable);
@@ -61047,7 +61159,12 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
 #endif
       number_of_patches++;
 
+      ROMP_PF_end
+
       if (fitness > best_fitness) {
+
+        ROMP_PF_begin
+
         ncross_overs++;
         nunchanged = 0;
         best_fitness = fitness;
@@ -61105,6 +61222,8 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
           }
         }
 
+        ROMP_PF_end
+
         ncross++;
         if (++nbest == debug_patch_n) {
           dps = dps_next_generation;
@@ -61113,6 +61232,8 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
       }
       else /* mutate it also */
       {
+        ROMP_PF_begin
+
         mrisMutateDefectPatch(dp, &etable, MUTATION_PCT);
         fitness = mrisDefectPatchFitness(&computeDefectContext,
                                          mris,
@@ -61209,8 +61330,13 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
           nmut++;
           ncross++;
         }
+
+        ROMP_PF_end
       }
     }
+
+    ROMP_PF_end
+    ROMP_PF_begin
 
     /* make next generation current */
     if (dps == dps1) {
@@ -61307,9 +61433,15 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     }
 
     ngenerations++;
+    ROMP_PF_end
   }
 
+  ROMP_PF_end
+
 debug_use_this_patch:
+
+  ROMP_PF_begin
+
   dp = &dps[best_i];
 
   if (parms->save_fname && (parms->defect_number < 0 || (parms->defect_number == defect->defect_number))) {
@@ -61364,6 +61496,9 @@ debug_use_this_patch:
     }
   }
 
+  ROMP_PF_end
+  ROMP_PF_begin
+
   fitness = mrisDefectPatchFitness(&computeDefectContext,
                                    mris,
                                    mris_corrected,
@@ -61392,13 +61527,21 @@ debug_use_this_patch:
     printDefectStatistics(dp);
   }
 
+  ROMP_PF_end
+  ROMP_PF_begin
+  
   /* compute the final tessellation */
   retessellateDefect(mris, mris_corrected, dvs, dp);
 
+  ROMP_PF_end
+  ROMP_PF_begin
+
   /* detect the new set of faces */
   detectDefectFaces(mris_corrected, dp);
+
   /* orient the patch faces */
   orientDefectFaces(mris_corrected, dp);
+
   /* smooth original vertices in the retessellated patch */
   defectMatch(mri, mris_corrected, dp, parms->smooth, parms->match);
 
@@ -61432,6 +61575,9 @@ debug_use_this_patch:
           WHICH_OUTPUT, "              NUMBER OF INTERSECTING FACES: %d (out of %d) \n", nintersections, dp->tp.nfaces);
   }
 
+  ROMP_PF_end
+  ROMP_PF_begin
+
   /* should free the tessellated patch structure */
   TPfree(&dp->tp);
 
@@ -61458,6 +61604,9 @@ debug_use_this_patch:
   for (i = 0; i < dp->defect->nborder; i++) {
     mris_corrected->vertices[vertex_trans[dp->defect->border[i]]].marked = 0;
   }
+
+  ROMP_PF_end
+  ROMP_PF_begin
 
   /* free everything */
   destructComputeDefectContext(&computeDefectContext);
@@ -61514,6 +61663,8 @@ debug_use_this_patch:
     fclose(f);
   }
 #endif
+
+  ROMP_PF_end
 
   return (NO_ERROR);
 }
@@ -62391,12 +62542,9 @@ static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, Inte
     bool emit_line_py = false;  // showStats || (stats_count < 45);
     if (emit_line_py) fprintf(stderr, "%s:%d emit_line_py set for stats_count:%ld\n", __FILE__, __LINE__, stats_count);
        
-    ROMP_PF_begin
     if (gas && !ctx->obsoleted) {
       stats_reused++;
     } else {
-
-      ROMP_PF_begin
 
       if (!ctx->obsoleted) {
         stats_made++; 
@@ -62553,9 +62701,7 @@ static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, Inte
         }
 #endif
       }
-      ROMP_PF_end
     }
-    ROMP_PF_end
     
     // Get the subset that need to be examined
     //
@@ -62574,19 +62720,16 @@ static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, Inte
       
       callback_context.emit_line_py = emit_line_py;
 
-      ROMP_PF_begin
+      if (emit_line_py) fprintf(stderr, " [2, %f, %f, %f, %f, %f, %f], # line.py target\n", ev->cx,ev->cy,ev->cz, ev2->cx,ev2->cy,ev2->cz);
 
-        if (emit_line_py) fprintf(stderr, " [2, %f, %f, %f, %f, %f, %f], # line.py target\n", ev->cx,ev->cy,ev->cz, ev2->cx,ev2->cy,ev2->cz);
+      possiblyIntersectingGreatArcs(
+        gas,
+        &callback_context,
+        possiblyIntersectingGreatArcs_callback,
+        e->vno1,              e->vno2,
+        ev->cx,ev->cy,ev->cz, ev2->cx,ev2->cy,ev2->cz, 
+        stats_count == stats_limit-1);                    // tracing
 
-        possiblyIntersectingGreatArcs(
-          gas,
-          &callback_context,
-          possiblyIntersectingGreatArcs_callback,
-          e->vno1,              e->vno2,
-          ev->cx,ev->cy,ev->cz, ev2->cx,ev2->cy,ev2->cz, 
-          stats_count == stats_limit-1);                    // tracing
-
-      ROMP_PF_end
     }
         
     stats_possible += stats_numberOfGreatArcs;
