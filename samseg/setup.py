@@ -15,7 +15,7 @@ AUTHOR = 'William Mills, Yujan Shrestha'
 VERSION = '0.1.1'
 
 REQUIRED = [
-    'nibabel >= 2.2.1'
+    'nibabel >= 2.2.1',
     'numpy >= 1.13.3',
     'scipy >= 1.0.0',
     'gems2python',
@@ -26,7 +26,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 with io.open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = '\n' + f.read()
 
-our_packages = find_packages(include=['samseg', 'samseg.dev_utils'])
+our_packages = find_packages(include=['samseg', 'samseg.dev_utils', 'samseg.hdav.hdav'])
 
 setup(
     name=NAME,
