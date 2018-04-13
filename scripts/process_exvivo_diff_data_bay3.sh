@@ -196,7 +196,8 @@ if ($dodrift) then
   #
   # Normalize images to compensate for temperature drift
   #
-  set cmd = "addpath $FREESURFER_HOME/matlab"
+ #  set cmd = "addpath $FREESURFER_HOME/matlab"
+  set cmd = "addpath /autofs/space/turan_001/users/lzollei/dev/matlab"
   set cmd = "$cmd; fix_exvivo_dwi_drift("
   set cmd = "$cmd '$dwidir/dwi_drift.nii.gz', "
   set cmd = "$cmd '$dwidir/drift', "
@@ -535,6 +536,8 @@ if ($doodf) then
   set nlow = $#lowblist
   set ndir = `echo "$#highblist + 1" | bc`
 
+  setenv DSI_PATH $dtkdir/matrices
+
   set cmd = $dtkdir/odf_recon
   set cmd = ($cmd $dwidir/tmp.$dwiname.nii)
   set cmd = ($cmd $ndir 181)
@@ -554,7 +557,7 @@ if ($doodf) then
   set cmd = ($cmd $dwidir/dti)
   set cmd = ($cmd -gm $dwidir/$dwiname.bvecs)
   set cmd = ($cmd -b 4080)
-  set cmd = ($cmd -b0 12)
+  set cmd = ($cmd -b0 $nlow)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF 
 
