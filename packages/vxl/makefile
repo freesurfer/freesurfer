@@ -79,7 +79,7 @@ checkout:
 	mv $(dist_name) $(src_dir)
 	# explicitly get vxl v1.17.0 via tag
 	# Latest release is >5 years old, and doesn't build using cmake v3.11/gcc v5.4
-	# For not just building from most recent commit
+	# For now just building from most recent commit
 	# (cd $(src_dir) && git checkout v1.17.0)
 
 config:

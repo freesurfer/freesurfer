@@ -4,7 +4,7 @@ set -eu
 if [ ! -d src ]; then
     git clone git@github.com:vxl/vxl.git
     # Latest release is >5 years old, and doesn't build using cmake v3.11/gcc v5.4
-    # For not just building from most recent commit
+    # For now just building from most recent commit
     # cd vxl
     # git checkout v1.17.0
     # cd ..
