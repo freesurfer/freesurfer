@@ -261,6 +261,8 @@ print_usage(void) {
           "\t-l <logfile>: log g/w cnr to file <logfile>. Will contain 8 values in the following order: gray_white_cnr, gray_csf_cnr, white_mean, gray_mean, csf_mean,
                   sqrt(white_var), sqrt(gray_var), sqrt(csf_var)\n") ;
   fprintf(stderr,
+            "\tlabel <lh> <rh>: read hemisphere labels from <lh> and <rh>\n") ;
+  fprintf(stderr,
           "\t-u, -? : print usage information and quit\n") ;
   fprintf(stderr,
           "\t-version : print software version information\n") ;
