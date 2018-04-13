@@ -1586,7 +1586,7 @@ if test "x$VXL_DIR" = "x"; then
   fi
   # or the git build in the local vxl dir (see packages/vxl/build_local)
   if test -d "packages/vxl/build/lib" ; then
-    withval="`pwd`/packages/vxl/build"
+    withval="`pwd`/packages/vxl"
     vxl_i="$withval/include/vxl"
     ac_vxl_includes="$vxl_i/core $vxl_i/vcl $vxl_i/v3p/netlib $vxl_i/v3p/netlib/opt"
     ac_vxl_libraries="$withval"/lib
