@@ -13,6 +13,7 @@ public:
 
 signals:
   void MenuGoToCentroid();
+  void MenuResample();
 
 public slots:
   void OnMenuTriggered();

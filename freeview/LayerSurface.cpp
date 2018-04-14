@@ -2420,6 +2420,26 @@ bool LayerSurface::HasUndoableCut()
   return false;
 }
 
+void LayerSurface::UndoCut()
+{
+  for (int i = m_paths.size()-1; i >= 0; i--)
+  {
+    if (m_paths[i]->IsCutLineMade())
+    {
+      m_surfaceSource->ClearCuts(m_paths[i]->GetUndoVerts());
+      m_paths[i]->deleteLater();
+      m_paths.removeAt(i);
+      if (m_nActivePath >= m_paths.size())
+        m_nActivePath = -1;
+      m_surfaceSource->RipFaces();
+      m_surfaceSource->UpdateHashTable();
+      m_surfaceSource->UpdatePolyData();
+      emit ActorUpdated();
+      return;
+    }
+  }
+}
+
 bool LayerSurface::FillUncutArea(int vno)
 {
   if (vno < 0)
@@ -2470,3 +2490,4 @@ bool LayerSurface::IsVertexRipped(int vno)
   }
   return false;
 }
+

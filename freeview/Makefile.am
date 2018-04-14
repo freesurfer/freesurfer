@@ -628,7 +628,7 @@ install-exec-hook:freeview
 	chgrp -R admin $(DESTDIR)$(bindir)/../Freeview.app/
 	chmod -R a+rx $(DESTDIR)$(bindir)/../Freeview.app
 	chmod -R g+w $(DESTDIR)$(bindir)/../Freeview.app
-	macdeployqt $(DESTDIR)$(bindir)/../Freeview.app
+	$(QT_PATH)/macdeployqt $(DESTDIR)$(bindir)/../Freeview.app
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/freeview

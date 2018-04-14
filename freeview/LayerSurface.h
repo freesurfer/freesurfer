@@ -404,6 +404,8 @@ public slots:
 
   void ClearAllCuts();
 
+  void UndoCut();
+
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
   void SurfaceLabelAdded( SurfaceLabel* );
