@@ -19,6 +19,8 @@ REQUIRED = [
     'numpy >= 1.13.3',
     'scipy >= 1.0.0',
     'gems2python',
+    'pyqtgraph',
+    'pyqt5',
 ]
 
 here = os.path.abspath(os.path.dirname(__file__))
