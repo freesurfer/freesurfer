@@ -137,6 +137,8 @@ Use the `t` option to see the advanced mode options. Then set the `CMAKE_CXX_FLA
 `
 BUILD_PYTHON` should be `ON`
 
+'CMAKE_BUILD_TYPE' should be 'Release'
+
 Check that the `PYTHON_EXECUTABLE` and `PYTHON_LIBRARY` have valid values such as `/usr/bin/python3.5` 
 and `/usr/lib/x86_64-linux-gnu/libpython3.5m.so` respectively.
 
