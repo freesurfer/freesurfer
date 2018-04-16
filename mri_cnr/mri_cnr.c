@@ -191,7 +191,6 @@ get_option(int argc, char *argv[]) {
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
     usage_exit() ;
-    break ;
   else if (!stricmp(option, "-version"))
     print_version() ;
   else if (!stricmp(option, "label"))
