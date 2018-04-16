@@ -36,6 +36,15 @@ m4/lt~obsolete.m4
 aclocal.m4
 autom4te.cache/
 
+# built packages
+packages/*/build/**
+packages/*/include/**
+packages/*/share/**
+packages/*/src/**
+packages/*/bin/**
+packages/*/lib/**
+GEMS2/ITKFactoryRegistration/**
+
 # licenses:
 distribution/.license
 distribution/license.txt
