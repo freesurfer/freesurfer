@@ -15327,8 +15327,8 @@ xmlSchemaCheckCOSNSSubset(xmlSchemaWildcardPtr sub,
   * 2.2 super must be a pair of not and the same value.
   */
   if ((sub->negNsSet != NULL) &&
-      (super->negNsSet != NULL) &&
-      (sub->negNsSet->value == sub->negNsSet->value))
+      (super->negNsSet != NULL)) // &&
+    //gcc 7 hates this!      (sub->negNsSet->value == sub->negNsSet->value))
     return (0);
   /*
   * 3.1 sub must be a set whose members are either namespace names or �absent�.
