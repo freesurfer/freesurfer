@@ -5,6 +5,7 @@ build_dir:=./build
 lib_dir:=./lib
 install_dir:=..
 include_dir:=./include
+share_dir:=./share
 
 GIT:=$(shell which git)
 MAKE:=$(shell which make)
@@ -72,7 +73,7 @@ all: checkout config build test install
 .PHONY: nuke checkout config build test install
 
 nuke:
-	rm -rf $(dist_name) $(src_dir) $(build_dir) $(bin_dir) $(lib_dir) $(include_dir)
+	rm -rf $(dist_name) $(src_dir) $(build_dir) $(bin_dir) $(lib_dir) $(include_dir) $(share_dir)
 
 checkout:
 	$(checkout_cmd)
