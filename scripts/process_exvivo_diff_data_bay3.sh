@@ -95,6 +95,9 @@ endif
 if (! $?doprobtrk) then 
   set doprobtrk = 0
 endif
+if (! $?dopd) then
+  set dopd = 0
+endif
 
 if (! $?lobmaskthresh) then	
   set lobmaskthresh = 0.1
@@ -731,9 +734,11 @@ if ($doprobtrk) then
 
 
 
-        set outdir = $dwidir/dpath.corrected.targeted.$seedname.2.$targetname # -pd is on ("Correct path distribution for the length of the pathways")
+        set outdir = $dwidir/dpath.corrected.targeted.$seedname.2.$targetname # -pd is off while dopd=0 ("Correct path distribution for the length of the pathways")
         mkdir -p $outdir
-        set cmd = ($cmd --pd)
+	if ($dopd) then
+  	  set cmd = ($cmd --pd)
+	endif
         echo $cmd |& tee -a $LF
         # $cmd |& tee -a $LF
         pbsubmit -m `whoami` -q p30 -c "$cmd" -l nodes=1:ppn=4,vmem=28gb
