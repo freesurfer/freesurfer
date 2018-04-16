@@ -49,7 +49,6 @@ static int MRIScomputeSlope(MRI_SURFACE *mris, MRI *mri, double dist_in, double 
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;
-static void print_help(void) ;
 static void print_version(void) ;
 static double compute_volume_cnr(MRI_SURFACE *mris, MRI *mri, char *log_fname) ;
 char *Progname ;
@@ -191,7 +190,8 @@ get_option(int argc, char *argv[]) {
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
-    print_help() ;
+    usage_exit() ;
+    break ;
   else if (!stricmp(option, "-version"))
     print_version() ;
   else if (!stricmp(option, "label"))
@@ -229,8 +229,7 @@ get_option(int argc, char *argv[]) {
       break ;
     case '?':
     case 'U':
-      print_usage() ;
-      exit(1) ;
+      usage_exit() ;
       break ;
     default:
       fprintf(stderr, "unknown option %s\n", argv[1]) ;
@@ -244,38 +243,36 @@ get_option(int argc, char *argv[]) {
 static void
 usage_exit(void) {
   print_usage() ;
-  print_help() ;
   exit(1) ;
 }
 
 static void
 print_usage(void) {
   fprintf(stderr,
+          "%s -- compute the gray/white/csf contrast-to-noise ratio for volumes.\n",
+          Progname) ;
+  fprintf(stderr,
           "usage: %s [options] <surf directory> <vol 1> <vol 2> ...\n",
           Progname) ;
+  fprintf(stderr,
+          "usage example (assumes fs pipeline has finished for subject subj1): %s subj1/surf subj1/mri/orig.mgz\n",
+          Progname) ;
+  fprintf(stderr, "Available options:\n") ;
   fprintf(stderr,
           "\t-s <slope_fname> <dist in> <dist out> <step in> <step out>: compute slope based on given values, write it to slope and offset files labeled <slope_fname> (e.g., `lh.<slope_fname>.slope.mgz')\n") ;
   fprintf(stderr,
           "\t-t : print only the total CNR to stdout (stderr still contains more information)\n") ;
   fprintf(stderr,
-          "\t-l <logfile>: log g/w cnr to file <logfile>. Will contain 8 values in the following order: gray_white_cnr, gray_csf_cnr, white_mean, gray_mean, csf_mean,
-                  sqrt(white_var), sqrt(gray_var), sqrt(csf_var)\n") ;
+          "\t-l <logfile>: log cnr to file <logfile>. Will contain 8 values in the following order: gray_white_cnr, gray_csf_cnr, white_mean, gray_mean, csf_mean, sqrt(white_var), sqrt(gray_var), sqrt(csf_var)\n") ;
   fprintf(stderr,
             "\tlabel <lh> <rh>: read hemisphere labels from <lh> and <rh>\n") ;
   fprintf(stderr,
-          "\t-u, -? : print usage information and quit\n") ;
+          "\t-u, -?, -help : print usage information and quit\n") ;
   fprintf(stderr,
-          "\t-version : print software version information\n") ;
+          "\t-version : print software version information and quit\n") ;
 }
 
 
-
-static void
-print_help(void) {
-  fprintf(stderr,
-          "\nThis program will compute the gray/white/csf contrast-to-noise ratio\n") ;
-  exit(1) ;
-}
 
 static void
 print_version(void) {
