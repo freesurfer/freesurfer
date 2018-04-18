@@ -381,6 +381,8 @@ while( $#argv != 0 )
     case "--symlink":
     case "--no-symlink":
     case "--no-link":
+    case "--template-only":
+    case "--no-template-only":
       breaksw
 
     case "--xhemi":

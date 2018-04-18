@@ -146,7 +146,18 @@ foreach s ($SUBJECTS)
   echo $s >> $subjlistfile
 end
 cp $subjlistfile list.subjects.txt
-set subjlistfile = $SUBJECTS_DIR/$average_subject/list.subjects.txt
+set subjlistfile = $sdout/$average_subject/list.subjects.txt
+
+# These are files that will exist when making surfaces from
+# subcortical structures with seg2surf (DNG)
+set fname = $SUBJECTS_DIR/$SUBJECTS[1]/rgb.dat
+if(-e $fname) then
+  cp $fname $sdout/$average_subject
+endif
+set fname = $SUBJECTS_DIR/$SUBJECTS[1]/segname
+if(-e $fname) then
+  cp $fname $sdout/$average_subject
+endif
 
 # Include cross-hemi registration
 if($DoXHemi) then
@@ -342,6 +353,7 @@ foreach hemi ($hemilist)
     if($meas != area) rm $avgmeas 
   end # meas
 end # hemi
+
 
 echo "---------------------------------------------------" | tee -a $LF
 echo "" | tee -a $LF
@@ -556,6 +568,14 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "--no-template-only":
+      set DoTemplateOnly = 0;
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
     case "--xhemi":
       set DoXHemi = 1;
       if ( $getting_subjects ) then
@@ -698,6 +718,7 @@ usage_exit:
   echo "   --force   : overwrite existing average subject data"
   echo "   --no-annot : do not use annotation when making template tif"
   echo "   --template-only : useful when creating iterative atlases"
+  echo "   --no-template-only : turns off --template-only"
   echo "   --no-cortex-label : do not create ?h.cortex.label"
   echo "   --annot annotname <--annot annotname > : supply list of annots to use (default $annotlist)"
   echo "   --meas measname <--meas measname > : supply list of meass to use (default $measlist)"
