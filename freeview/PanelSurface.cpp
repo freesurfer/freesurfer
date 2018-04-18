@@ -38,6 +38,9 @@
 #include "MyUtils.h"
 #include <QMessageBox>
 #include <QDebug>
+#include "SurfacePath.h"
+#include <QToolButton>
+#include "LayerMRI.h"
 
 PanelSurface::PanelSurface(QWidget *parent) :
   PanelLayer("Surface", parent),
@@ -48,7 +51,20 @@ PanelSurface::PanelSurface(QWidget *parent) :
   ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionLoadSurface);
   ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionCloseSurface);
   ui->toolbar->insertSeparator(ui->actionShowOverlay);
-//  ui->toolbar2->hide();
+  m_toolButtonSurface = new QToolButton(this);
+  m_toolButtonSurface->setStyleSheet("QToolButton::menu-indicator{image: none;}");
+  m_toolButtonSurface->setPopupMode(QToolButton::InstantPopup);
+  m_toolButtonSurface->setIcon(QIcon(":/resource/icons/surface_main.png"));
+  ui->toolbar->insertWidget(ui->actionShowOverlay, m_toolButtonSurface);
+  ui->toolbarSurfaces->hide();
+
+  QMenu* menu = new QMenu(this);
+  menu->addAction(ui->actionSurfaceMain);
+  menu->addAction(ui->actionSurfaceInflated);
+  menu->addAction(ui->actionSurfaceWhite);
+  menu->addAction(ui->actionSurfacePial);
+  menu->addAction(ui->actionSurfaceOriginal);
+  m_toolButtonSurface->setMenu(menu);
 
   //  ui->treeWidgetLabels->hide();
 
@@ -102,6 +118,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
   ag->addAction(ui->actionSurfaceOriginal);
   ag->setExclusive( true );
   connect( ag, SIGNAL(triggered(QAction*)), this, SLOT(OnChangeSurfaceType(QAction*)));
+  m_actGroupSurface = ag;
 
   LayerCollection* lc = mainwnd->GetLayerCollection("Surface");
   connect( ui->actionLockLayer, SIGNAL(toggled(bool)), this, SLOT(OnLockLayer(bool)) );
@@ -119,6 +136,14 @@ PanelSurface::PanelSurface(QWidget *parent) :
   connect(ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxLabelOutline(bool)));
   connect(ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), this, SLOT(OnColorPickerLabelColor(QColor)));
   connect(ui->treeWidgetLabels, SIGNAL(MenuGoToCentroid()), mainwnd, SLOT(OnGoToSurfaceLabel()));
+  connect(ui->treeWidgetLabels, SIGNAL(MenuResample()), this, SLOT(OnLabelResample()));
+
+  connect(ui->actionCut, SIGNAL(toggled(bool)), SLOT(OnButtonEditCut(bool)));
+  connect(ui->actionCutLine, SIGNAL(triggered(bool)), SLOT(OnButtonCutLine()));
+  connect(ui->actionCutClosedLine, SIGNAL(triggered(bool)), SLOT(OnButtonCutClosedLine()));
+  connect(ui->actionCutClear, SIGNAL(triggered(bool)), SLOT(OnButtonClearCuts()));
+  connect(ui->actionFillUncutArea, SIGNAL(triggered(bool)), SLOT(OnButtonFillUncutArea()));
+  connect(ui->actionUndoCut, SIGNAL(triggered(bool)), SLOT(OnButtonUndoCut()));
 }
 
 PanelSurface::~PanelSurface()
@@ -223,6 +248,18 @@ void PanelSurface::DoIdle()
                                     && m_layerCollection->GetLayerIndex(layer) > 0);
   ui->actionMoveLayerDown->setEnabled(layer && m_layerCollection
                                       && m_layerCollection->GetLayerIndex(layer) < m_layerCollection->GetNumberOfLayers()-1);
+  ui->actionCut->setChecked(MainWindow::GetMainWindow()->GetMode() == RenderView::IM_SurfacePath);
+  ui->actionUndoCut->setEnabled(layer && layer->HasUndoableCut());
+
+  QList<QAction*> acts = m_actGroupSurface->actions();
+  foreach (QAction* act, acts)
+  {
+    if (act->isChecked())
+    {
+      m_toolButtonSurface->setIcon(act->icon());
+      m_toolButtonSurface->setToolTip(act->text());
+    }
+  }
   BlockAllSignals( false );
 }
 
@@ -245,11 +282,12 @@ void PanelSurface::DoUpdateWidgets()
   for ( int i = 0; i < this->allWidgets.size(); i++ )
   {
     if ( allWidgets[i] != ui->toolbar && allWidgets[i]->parentWidget() != ui->toolbar &&
-         allWidgets[i] != ui->toolbar2 && allWidgets[i]->parentWidget() != ui->toolbar2)
+         allWidgets[i] != ui->toolbarPath && allWidgets[i]->parentWidget() != ui->toolbarPath)
     {
       allWidgets[i]->setEnabled(layer);
     }
   }
+  ui->actionCut->setChecked(MainWindow::GetMainWindow()->GetMode() == RenderView::IM_SurfacePath);
   FSSurface* surf = NULL;
   ui->lineEditFileName->clear();
   if ( layer )
@@ -257,8 +295,8 @@ void PanelSurface::DoUpdateWidgets()
     ui->checkBoxHideIn3DView->setChecked(!layer->GetVisibleIn3D());
 
     surf = layer->GetSourceSurface();
-    //    ui->toolbar2->setVisible(surf->IsSurfaceLoaded( FSSurface::SurfaceOriginal ) || surf->IsSurfaceLoaded( FSSurface::SurfaceInflated ) ||
-    //                             surf->IsSurfaceLoaded( FSSurface::SurfaceWhite ) || surf->IsSurfaceLoaded( FSSurface::SurfacePial ) );
+//    ui->toolbarSurfaces->setVisible(surf->IsSurfaceLoaded( FSSurface::SurfaceOriginal ) || surf->IsSurfaceLoaded( FSSurface::SurfaceInflated ) ||
+//                             surf->IsSurfaceLoaded( FSSurface::SurfaceWhite ) || surf->IsSurfaceLoaded( FSSurface::SurfacePial ) );
     ui->sliderOpacity->setValue( (int)( layer->GetProperty()->GetOpacity() * 100 ) );
     ChangeDoubleSpinBoxValue( ui->doubleSpinBoxOpacity, layer->GetProperty()->GetOpacity() );
 
@@ -1011,4 +1049,84 @@ void PanelSurface::OnCheckBoxSplineProjection(bool b)
   {
     spline->SetProjection(b);
   }
+}
+
+void PanelSurface::OnButtonEditCut(bool b)
+{
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
+  if (b)
+    mainwnd->SetMode(RenderView::IM_SurfacePath);
+  else
+    mainwnd->SetMode(RenderView::IM_Navigate);
+}
+
+void PanelSurface::OnButtonCutLine()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf && surf->GetActivePath())
+  {
+    if (surf->GetActivePath()->GetPathVerts().size() < 2)
+      QMessageBox::warning(this->parentWidget(), "Error", "Need at least 2 marks to cut line");
+    else
+      surf->GetActivePath()->MakeCutLine(false);
+  }
+}
+
+void PanelSurface::OnButtonCutClosedLine()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf && surf->GetActivePath())
+  {
+    if (surf->GetActivePath()->GetPathVerts().size() < 3)
+      QMessageBox::warning(this->parentWidget(), "Error", "Need at least 3 marks to cut closed line");
+    else
+      surf->GetActivePath()->MakeCutLine(true);
+  }
+}
+
+void PanelSurface::OnButtonClearCuts()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf)
+  {
+    surf->ClearAllCuts();
+  }
+}
+
+void PanelSurface::OnButtonFillUncutArea()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf)
+  {
+    int vno = surf->GetCurrentVertex();
+    if (vno < 0)
+      QMessageBox::information(this->parentWidget(), "Fill Cut Area", "Please move cursor to a valid vertex");
+    else if (surf->IsVertexRipped(vno))
+      QMessageBox::information(this->parentWidget(), "Fill Cut Area", "Please move cursor to an uncut vertex");
+    else
+    {
+      surf->FillUncutArea(vno);
+      ui->actionCut->setChecked(false);
+    }
+  }
+}
+
+void PanelSurface::OnButtonUndoCut()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf)
+    surf->UndoCut();
+}
+
+void PanelSurface::OnLabelResample()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  LayerMRI* mri = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer("MRI"));
+  if (!mri)
+  {
+    QMessageBox::warning(this, "Error", "Could not find a MRI template for resampling");
+    return;
+  }
+  if ( surf && surf->GetActiveLabel())
+    surf->GetActiveLabel()->Resample(mri);
 }

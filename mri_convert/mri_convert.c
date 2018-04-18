@@ -190,6 +190,7 @@ int main(int argc, char *argv[])
   MATRIX *T;
   float scale_factor, out_scale_factor ;
   int nthframe=-1;
+  int reduce = 0 ;
   float fwhm, gstd;
   char cmdline[STRLEN] ;
   int sphinx_flag = FALSE;
@@ -988,6 +989,11 @@ int main(int argc, char *argv[])
       get_floats(argc, argv, &i, &fwhm, 1);
       gstd = fwhm/sqrt(log(256.0));
       printf("fwhm = %g, gstd = %g\n",fwhm,gstd);
+    }
+    else if(strcmp(argv[i], "--reduce") == 0)
+    {
+      get_ints(argc, argv, &i, &reduce, 1);
+      printf("reducing input image %d times\n", reduce) ;
     }
     else if( strcmp(argv[i], "-tr") == 0 )
     {
@@ -2205,6 +2211,31 @@ int main(int argc, char *argv[])
   {
     printf("Applying Half-Cosine Slice Bias, Alpha = %g\n",SliceBiasAlpha);
     MRIhalfCosBias(mri, SliceBiasAlpha, mri);
+  }
+
+  if (reduce > 0)
+  {
+    MRI *mri_tmp ;
+    int r ;
+
+    if (mri->depth == 1)
+    {
+      for (r = 0 ; r < reduce ; r++)
+      {
+	mri_tmp = MRIreduce2D(mri, NULL);
+	MRIfree(&mri) ;
+	mri = mri_tmp ;
+      }
+    }
+    else
+    {
+      for (r = 0 ; r < reduce ; r++)
+      {
+	mri_tmp = MRIreduce(mri, NULL);
+	MRIfree(&mri) ;
+	mri = mri_tmp ;
+      }
+    }
   }
 
   if(fwhm > 0)

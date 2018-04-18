@@ -109,5 +109,15 @@
         <file>resource/icons/reset_view.png</file>
         <file>resource/icons/surface.png</file>
         <file>resource/icons/voxel_draw_autoseg.png</file>
+        <file>resource/icons/surface_path_delete.png</file>
+        <file>resource/icons/surface_path_make_closed.png</file>
+        <file>resource/icons/surface_path_make.png</file>
+        <file>resource/icons/surface_path.png</file>
+        <file>resource/icons/surface_cut_clear.png</file>
+        <file>resource/icons/surface_cut_closed_line.png</file>
+        <file>resource/icons/surface_cut_line.png</file>
+        <file>resource/icons/surface_cut.png</file>
+        <file>resource/icons/surface_fill_uncut_area.png</file>
+        <file>resource/icons/surface_undo_cut.png</file>
     </qresource>
 </RCC>

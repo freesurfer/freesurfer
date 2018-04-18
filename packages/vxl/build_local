@@ -3,6 +3,11 @@ set -eu
 
 if [ ! -d src ]; then
     git clone git@github.com:vxl/vxl.git
+    # Latest release is >5 years old, and doesn't build using cmake v3.11/gcc v5.4
+    # For now just building from most recent commit
+    # cd vxl
+    # git checkout v1.17.0
+    # cd ..
     mv vxl src
 fi
 
@@ -11,14 +16,15 @@ export CXX="`which c++`"
 export AR="`which ar`"
 export RANLIB="`which ranlib`"
 
-cd src
+mkdir -p build
+cd build
 
 # this test hangs at NMR Center (tries to access web), so remove it:
 sed -i.bak '/test_url.cxx/d' core/vul/tests/CMakeLists.txt
 
 rm -Rf CMakeCache.txt CMakeFiles/ CMakeTmp/
 
-cmake -G "Unix Makefiles" \
+cmake ../src -G "Unix Makefiles" \
 -DBOXM2_USE_VOLM=OFF \
 -DBUILD_BRL=OFF \
 -DBUILD_BRL_PYTHON=OFF \
@@ -63,8 +69,7 @@ cmake -G "Unix Makefiles" \
 -DCMAKE_C_COMPILER_RANLIB=$RANLIB \
 -DCMAKE_C_FLAGS="-msse2 -mfpmath=sse" \
 -DCMAKE_VERBOSE_MAKEFILE=ON \
--DCMAKE_INSTALL_PREFIX=.. \
-.
+-DCMAKE_INSTALL_PREFIX=..
 
 make clean
 make -j 8

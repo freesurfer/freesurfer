@@ -167,7 +167,10 @@ SOURCES += \
     DialogAddPointSetStat.cpp \
     BinaryTreeNode.cpp \
     BinaryTreeEdge.cpp \
-    BinaryTreeView.cpp
+    BinaryTreeView.cpp \
+    DialogSelectSplines.cpp \
+    SurfacePath.cpp \
+    Interactor3DPathEdit.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -322,7 +325,10 @@ HEADERS  += \
     DialogAddPointSetStat.h \
     BinaryTreeNode.h \
     BinaryTreeEdge.h \
-    BinaryTreeView.h
+    BinaryTreeView.h \
+    DialogSelectSplines.h \
+    SurfacePath.h \
+    Interactor3DPathEdit.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -372,7 +378,8 @@ FORMS    += MainWindow.ui \
     DialogThresholdVolume.ui \
     DialogVolumeSegmentation.ui \
     DialogLoadTransform.ui \
-    DialogAddPointSetStat.ui
+    DialogAddPointSetStat.ui \
+    DialogSelectSplines.ui
 
 RESOURCES += \
     freeview.qrc

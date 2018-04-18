@@ -69,6 +69,7 @@
 #include "vtkDoubleArray.h"
 #include "LayerROI.h"
 #include "LayerPropertyROI.h"
+#include "SurfacePath.h"
 
 LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( parent ),
   m_surfaceSource( NULL ),
@@ -88,7 +89,8 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_surfaceContralateral(NULL),
   m_surfaceSphere1(NULL),
   m_surfaceSphere2(NULL),
-  m_nMouseVertex(-1)
+  m_nMouseVertex(-1),
+  m_nActivePath(-1)
 {
   m_strTypeNames.push_back( "Surface" );
   m_sPrimaryType = "Surface";
@@ -176,6 +178,9 @@ LayerSurface::~LayerSurface()
   {
     delete m_labels[i];
   }
+
+  for (int i = 0; i < m_paths.size(); i++)
+    delete m_paths[i];
 
   if (m_nColorDataCache)
     delete[] m_nColorDataCache;
@@ -858,6 +863,9 @@ void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility 
 
   foreach (SurfaceSpline* spline, m_splines)
     spline->AppendProp3D(renderer);
+
+  foreach (SurfacePath* path, m_paths)
+    path->AppendProps(renderer);
 
   m_roi->AppendProps(renderer);
 }
@@ -2013,11 +2021,11 @@ bool LayerSurface::IsInflated()
 bool LayerSurface::GetActiveLabelCentroidPosition(double *pos)
 {
   SurfaceLabel* label = GetActiveLabel();
-  int nvo;
+  int vno;
   double x, y, z;
-  if (label && label->GetCentroid(&x, &y, &z, &nvo))
+  if (label && label->GetCentroid(&x, &y, &z, &vno))
   {
-    return GetTargetAtVertex(nvo, pos);
+    return GetTargetAtVertex(vno, pos);
   }
   return false;
 }
@@ -2174,6 +2182,7 @@ void LayerSurface::AddMappedLabel(LayerROI *label)
     connect(label, SIGNAL(VisibilityChanged(bool)), SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
     connect(label->GetProperty(), SIGNAL(ColorMapChanged()), SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
     connect(label->GetProperty(), SIGNAL(ThresholdChanged(double)), SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
+    connect(this, SIGNAL(destroyed(QObject*)), label, SLOT(OnSurfaceDestroyed(QObject*)));
   }
 }
 
@@ -2228,14 +2237,14 @@ void LayerSurface::SetNeighborhoodSize(int nSize)
   ::MRISsetNeighborhoodSize(mris, nSize);
 }
 
-QList<int> LayerSurface::GetVertexNeighbors(int nvo)
+QList<int> LayerSurface::GetVertexNeighbors(int vno)
 {
-  QList<int> nvo_list;
+  QList<int> vno_list;
   MRIS* mris = m_surfaceSource->GetMRIS();
-  VERTEX* v = &mris->vertices[nvo];
+  VERTEX* v = &mris->vertices[vno];
   for (int i = 0; i < v->vtotal; i++)
-    nvo_list << v->v[i];
-  return nvo_list;
+    vno_list << v->v[i];
+  return vno_list;
 }
 
 void LayerSurface::ResetContralateralInfo()
@@ -2260,16 +2269,16 @@ void LayerSurface::SetContralateralLayer(LayerSurface* layer, LayerSurface* sphe
   }
 }
 
-int LayerSurface::GetContralateralVertex(int nvo)
+int LayerSurface::GetContralateralVertex(int vno)
 {
-  if (nvo >= 0 && m_surfaceSphere1)
+  if (vno >= 0 && m_surfaceSphere1)
   {
     double ras[3];
-    m_surfaceSphere1->GetSurfaceRASAtVertex(nvo, ras);
-    nvo = m_surfaceSphere2->GetVertexAtSurfaceRAS(ras, NULL);
-    return nvo;
+    m_surfaceSphere1->GetSurfaceRASAtVertex(vno, ras);
+    vno = m_surfaceSphere2->GetVertexAtSurfaceRAS(ras, NULL);
+    return vno;
   }
-  return nvo;
+  return vno;
 }
 
 bool LayerSurface::IsContralateralPossible()
@@ -2287,3 +2296,198 @@ bool LayerSurface::IsContralateralPossible()
   return QFile::exists(fn) && QFile::exists(fullpath + "/lh.sphere.d1.left_right") &&
       QFile::exists(fullpath + "/rh.sphere.d1.left_right");
 }
+
+void LayerSurface::AddPathPoint(int vno)
+{
+  EditPathPoint(vno, false);
+}
+
+void LayerSurface::RemovePathPoint(int vno)
+{
+  EditPathPoint(vno, true);
+}
+
+void LayerSurface::EditPathPoint(int vno, bool remove)
+{
+  SurfacePath* path = NULL;
+  if (m_nActivePath >= 0 && !m_paths.isEmpty() && !m_paths[m_nActivePath]->IsPathMade())
+    path = m_paths[m_nActivePath];
+  else
+  {
+    for (int i = 0; i < m_paths.size(); i++)
+    {
+      if (!m_paths[i]->IsPathMade())
+      {
+        path = m_paths[i];
+        SetActivePath(i);
+        break;
+      }
+    }
+  }
+
+  if (!path)
+  {
+    path = new SurfacePath(this);
+    m_paths << path;
+    SetActivePath(m_paths.size()-1);
+    connect(path, SIGNAL(Updated()), this, SIGNAL(ActorUpdated()));
+    connect(path, SIGNAL(CutLineMade()), this, SLOT(OnPathCut()), Qt::QueuedConnection);
+    emit ActorChanged();
+  }
+  if (remove)
+    path->RemovePoint(vno);
+  else
+    path->AddPoint(vno);
+}
+
+void LayerSurface::SetActivePath(int n)
+{
+  if (m_nActivePath >=0)
+    m_paths[m_nActivePath]->SetColor(Qt::red);
+
+  if (n >= 0)
+  {
+    m_nActivePath = n;
+    m_paths[n]->SetColor(Qt::yellow);
+  }
+  emit ActorUpdated();
+}
+
+SurfacePath* LayerSurface::GetActivePath()
+{
+  if (m_nActivePath >= 0)
+    return m_paths[m_nActivePath];
+  else
+    return NULL;
+}
+
+void LayerSurface::DeleteActivePath()
+{
+  if (m_nActivePath >= 0)
+  {
+    m_paths[m_nActivePath]->deleteLater();
+    m_paths.removeAt(m_nActivePath);
+    m_nActivePath = -1;
+    emit ActorChanged();
+  }
+}
+
+int LayerSurface::FindPathAt(int vno)
+{
+  for (int i = 0; i < m_paths.size(); i++)
+  {
+    if (m_paths[i]->Contains(vno))
+      return i;
+  }
+  return -1;
+}
+
+void LayerSurface::OnPathCut()
+{
+  SurfacePath* path = qobject_cast<SurfacePath*>(sender());
+  if (path)
+  {
+    QList<int> undoableVerts = m_surfaceSource->MakeCutLine(path->GetPathVerts());
+    m_surfaceSource->RipFaces();
+    m_surfaceSource->UpdatePolyData();
+    path->SetUndoVerts(undoableVerts);
+    emit ActorUpdated();
+  }
+}
+
+void LayerSurface::ClearAllCuts()
+{
+  for (int i = 0; i < m_paths.size(); i++)
+  {
+    m_paths[i]->deleteLater();
+  }
+  m_paths.clear();
+  m_surfaceSource->ClearCuts();
+  m_nActivePath = -1;
+  m_surfaceSource->RipFaces();
+  m_surfaceSource->UpdateHashTable();
+  m_surfaceSource->UpdatePolyData();
+  emit ActorChanged();
+}
+
+bool LayerSurface::HasUndoableCut()
+{
+  for (int i = 0; i < m_paths.size(); i++)
+  {
+    if (m_paths[i]->IsCutLineMade())
+      return true;
+  }
+  return false;
+}
+
+void LayerSurface::UndoCut()
+{
+  for (int i = m_paths.size()-1; i >= 0; i--)
+  {
+    if (m_paths[i]->IsCutLineMade())
+    {
+      m_surfaceSource->ClearCuts(m_paths[i]->GetUndoVerts());
+      m_paths[i]->deleteLater();
+      m_paths.removeAt(i);
+      if (m_nActivePath >= m_paths.size())
+        m_nActivePath = -1;
+      m_surfaceSource->RipFaces();
+      m_surfaceSource->UpdateHashTable();
+      m_surfaceSource->UpdatePolyData();
+      emit ActorUpdated();
+      return;
+    }
+  }
+}
+
+bool LayerSurface::FillUncutArea(int vno)
+{
+  if (vno < 0)
+    return false;
+  m_surfaceSource->FloodFillFromSeed(vno);
+  m_surfaceSource->RipFaces();
+  m_surfaceSource->UpdateHashTable();
+  m_surfaceSource->UpdatePolyData();
+
+  if (m_nActivePath >=0 && !m_paths[m_nActivePath]->IsCutLineMade())
+  {
+    m_paths[m_nActivePath]->deleteLater();
+    m_paths.removeAt(m_nActivePath);
+    m_nActivePath = -1;
+    emit ActorChanged();
+  }
+  else
+    emit ActorUpdated();
+  return true;
+}
+
+bool LayerSurface::LoadPatch(const QString &filename)
+{
+  MRIS* mris = m_surfaceSource->GetMRIS();
+  if (::MRISreadPatchNoRemove(mris, filename.toLatin1().data() ) == 0 )
+  {
+    m_surfaceSource->RipFaces();
+    m_surfaceSource->UpdateHashTable();
+    m_surfaceSource->UpdatePolyData();
+    emit ActorUpdated();
+    return true;
+  }
+  else
+    return false;
+}
+
+bool LayerSurface::WritePatch(const QString &filename)
+{
+  return (::MRISwritePatch(m_surfaceSource->GetMRIS(), filename.toLatin1().data()) == 0);
+}
+
+bool LayerSurface::IsVertexRipped(int vno)
+{
+  for (int i = 0; i < m_paths.size(); i++)
+  {
+    if (m_paths[i]->IsCutLineMade() && m_paths[i]->Contains(vno))
+      return true;
+  }
+  return false;
+}
+

@@ -79,6 +79,16 @@ public:
   static QString CygwinPathProof(const QString& path_in);
 
   static QString Win32PathProof(const QString& path_in);
+
+  static bool FindIntersection(const double& x0, const double& y0,
+                               const double& x1, const double& y1,
+                               const double& a0, const double& b0,
+                               const double& a1, const double& b1,
+                               double* x, double* y);
+
+  static bool FindIntersection(std::vector < std::vector < double > >& line0,
+                               std::vector < std::vector < double > >& line1,
+                               double* x, double* y, int* n0 = NULL, int* n1 = NULL);
 };
 
 template <class T>

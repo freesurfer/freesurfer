@@ -408,6 +408,8 @@ protected slots:
   void OnLoadSurface();
   void OnCloseSurface();
   void OnReloadSurface();
+  void OnLoadPatch();
+  void OnSavePatchAs();
   void OnNewROI();
   void OnLoadROI();
   void OnSaveROI();

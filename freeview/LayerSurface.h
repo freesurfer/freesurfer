@@ -51,6 +51,7 @@ class SurfaceAnnotation;
 class SurfaceLabel;
 class SurfaceROI;
 class SurfaceSpline;
+class SurfacePath;
 class LayerROI;
 
 struct RGBMap {
@@ -296,7 +297,7 @@ public:
 
   void SetNeighborhoodSize(int nSize);
 
-  QList<int> GetVertexNeighbors(int nvo);
+  QList<int> GetVertexNeighbors(int vno);
 
   bool IsContralateralReady()
   {
@@ -310,7 +311,7 @@ public:
     return m_surfaceContralateral;
   }
 
-  int GetContralateralVertex(int nvo);
+  int GetContralateralVertex(int vno);
 
   int GetMouseVertex()
   {
@@ -321,6 +322,28 @@ public:
   {
     m_nMouseVertex = n;
   }
+
+  void AddPathPoint(int vno);
+
+  void RemovePathPoint(int vno);
+
+  void SetActivePath(int n);
+
+  SurfacePath* GetActivePath();
+
+  void DeleteActivePath();
+
+  int FindPathAt(int vno);
+
+  bool IsVertexRipped(int vno);
+
+  bool HasUndoableCut();
+
+  bool FillUncutArea(int vno);
+
+  bool LoadPatch(const QString& filename);
+
+  bool WritePatch(const QString& filename);
 
 public slots:
   void SetActiveSurface( int nSurfaceType );
@@ -377,6 +400,12 @@ public slots:
   void SetContralateralLayer(LayerSurface* layer, LayerSurface* sphere1, LayerSurface* sphere2);
   void ResetContralateralInfo();
 
+  void OnPathCut();
+
+  void ClearAllCuts();
+
+  void UndoCut();
+
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
   void SurfaceLabelAdded( SurfaceLabel* );
@@ -412,6 +441,7 @@ protected:
   void InitializeSurface();
   void InitializeActors();
   void MapLabels( unsigned char* data, int nVertexCount );
+  void EditPathPoint(int vno, bool remove = false);
 
   virtual void OnSlicePositionChanged( int nPlane );
 
@@ -448,6 +478,9 @@ protected:
 
   QList<SurfaceLabel*>      m_labels;
   int         m_nActiveLabel;
+
+  QList<SurfacePath*> m_paths;
+  int         m_nActivePath;
 
   QList<RGBMap>             m_rgbMaps;
   int         m_nActiveRGBMap;

@@ -125,7 +125,7 @@ void ToolWindowMeasure::showEvent(QShowEvent* event)
   static bool bFirstTime = true;
   if ( bFirstTime )
   {
-    this->move( parentWidget()->pos() + QPoint(20,20) );
+    this->move( parentWidget()->pos() + QPoint(20,80) );
     bFirstTime = false;
   }
 }

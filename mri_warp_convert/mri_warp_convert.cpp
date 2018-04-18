@@ -171,14 +171,9 @@ GCAM* readITK(const string& warp_file, const string& src_geom)
     return NULL;
   }
 
-  if (itk->width != src->width || itk->height != src->height || itk->depth != src->depth)
-  {
-    cerr << "ERROR: ITK warp and source image have different geometry." << endl;
-    return NULL;
-  }
-
   GCA_MORPH* gcam = GCAMalloc(itk->width, itk->height, itk->depth) ;
   GCAMinitVolGeom(gcam, src, itk) ;
+  gcam->type = GCAM_VOX;
 
   MATRIX *ras2lps = MatrixIdentity(4, NULL);
   ras2lps->rptr[1][1] = -1;
@@ -277,14 +272,14 @@ void writeITK(const string& fname, GCAM* gcam)
   MATRIX* mov_vox2ras = VGgetRasToVoxelXform(&gcam->image, NULL, 0);
   MATRIX* mov_vox2lps = MatrixMultiplyD(ras2lps, mov_vox2ras, NULL);
 
-  MRI* itk = MRIallocSequence( gcam->atlas.width,
-                   gcam->atlas.height,
-				   gcam->atlas.depth,
-				   MRI_FLOAT, 3);
+  MRI* itk = MRIallocSequence(gcam->atlas.width,
+		  gcam->atlas.height,
+		  gcam->atlas.depth,
+		  MRI_FLOAT, 3);
   MRIsetResolution(itk,
-                   gcam->atlas.xsize,
-                   gcam->atlas.ysize,
-                   gcam->atlas.zsize);
+		  gcam->atlas.xsize,
+		  gcam->atlas.ysize,
+		  gcam->atlas.zsize);
   MRIsetVox2RASFromMatrix(itk, ref_vox2ras);
   MRIcopyVolGeomToMRI(itk, &gcam->atlas);
 
@@ -296,13 +291,13 @@ void writeITK(const string& fname, GCAM* gcam)
   VECTOR_ELT(dest_ind, 4) = 1;
   MATRIX* orig_wld_lps = VectorAlloc(4, MATRIX_REAL);
   MATRIX* dest_wld_lps = VectorAlloc(4, MATRIX_REAL);
+  bool samesize = itk->width==gcam->width && itk->height==gcam->height && itk->depth==gcam->depth;
   for (x = 0; x < itk->width; x++)
     for (y = 0; y < itk->height; y++)
       for (z = 0; z < itk->depth; z++) {
         VECTOR3_LOAD(orig_ind, x, y, z);
         MatrixMultiplyD(ref_vox2lps, orig_ind, orig_wld_lps);
-
-  		if (itk->width==gcam->width && itk->height==gcam->height && itk->depth==gcam->depth) {
+  		if (samesize) {
 			GCA_MORPH_NODE* node = &gcam->nodes[x][y][z];
 			xw = node->x;
 			yw = node->y;

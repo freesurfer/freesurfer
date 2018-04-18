@@ -466,7 +466,7 @@ while( $#argv != 0 )
       set icoorder = $argv[1]; shift;
       breaksw
 
-    case "--no-template-only":
+case "--no-template-only":
       # allows making average surface files under conditions when
       # usually only a surface temlate gif would be created
       # Eg, when only use one hemi or with --no-vol
