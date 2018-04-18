@@ -19,6 +19,7 @@ set UseAParc = 1;
 set DoVol = 1;
 set icoorder = 7
 set ShortSleep = 0;
+set NoTemplateOnly = 0;
 
 #set tmpdir = ();
 #set cleanup = 1;
@@ -191,6 +192,7 @@ while ($nthIter < $nitersmax)
     # If not running both lh and rh
     if($#hemilist == 1) set cmd = ($cmd --no-vol --template-only --$hemilist)
     if($DoVol == 0) set cmd = ($cmd --no-vol --template-only)
+    if($NoTemplateOnly) set cmd = ($cmd --no-template-only) # turns off --template-only above
     if($DoXHemi) set cmd = ($cmd --xhemi)
     if($UseAParc == 0)  set cmd = ($cmd --no-annot)
     echo "#@# $cmd" | tee -a $LF
@@ -460,6 +462,13 @@ while( $#argv != 0 )
       set icoorder = $argv[1]; shift;
       breaksw
 
+    case "--no-template-only":
+      # allows making average surface files under conditions when
+      # usually only a surface temlate gif would be created
+      # Eg, when only use one hemi or with --no-vol
+      set NoTemplateOnly = 1
+      breaksw
+
     case "--threads":
     case "--nthreads":
       if($#argv < 1) goto arg1err;
@@ -576,6 +585,7 @@ usage_exit:
   echo "  --q : spec queue to use (eg, max100)"
   echo "  --no-q : use default queue"
   echo "  --short-sleep : sleep for shorter time before polling"
+  echo "  --no-template-only : make avg surf files even with a single hemi or --no-vol"
   echo "  --threads N "
   echo ""
 

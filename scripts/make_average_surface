@@ -556,6 +556,14 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "--no-template-only":
+      set DoTemplateOnly = 0;
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
     case "--xhemi":
       set DoXHemi = 1;
       if ( $getting_subjects ) then
@@ -698,6 +706,7 @@ usage_exit:
   echo "   --force   : overwrite existing average subject data"
   echo "   --no-annot : do not use annotation when making template tif"
   echo "   --template-only : useful when creating iterative atlases"
+  echo "   --no-template-only : turns off --template-only"
   echo "   --no-cortex-label : do not create ?h.cortex.label"
   echo "   --annot annotname <--annot annotname > : supply list of annots to use (default $annotlist)"
   echo "   --meas measname <--meas measname > : supply list of meass to use (default $measlist)"
