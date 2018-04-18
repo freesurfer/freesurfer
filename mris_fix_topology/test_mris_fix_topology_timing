@@ -2,8 +2,12 @@
 
 umask 002
 
+unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_ComputeVertexPseudoNormalCache_test
+unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_test_avoidable_prediction
+
+
 # 1 2 4 8
-foreach threads ( 8 )
+foreach threads ( 4 )
 
   # 2 -1
   foreach niters ( -1 )
@@ -16,55 +20,61 @@ foreach threads ( 8 )
     endif
   
     #  currently available:
-    # 	.nf_fewer_free_locks_1 
-    # 	.nf_faster_distance_map_update_1 
+    # 	.nf_faster_distance_map_update_4 
     #
-    foreach branch ( .nf_fewer_free_locks_1 )
+    # Don't forget to...
+    #   cp mris_fix_topology{,.nf_faster_distance_map_update_4}
+    #
+    foreach branch ( .nf_faster_distance_map_update_4 )
 
-      # 0 = old code with sign bug
-      # 1 = old code without sign bug
-      # 2 = new code with sign bug
-      # 3 = new code without sign bug
-      # 4 = 3 with other improvements also
-      #
-      foreach feature ( 1 4 )
+      foreach feature ( 1 )
     
-        if ($feature == 0) then
-          setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_old 1
-    	  unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_new
-    	  setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug 1
-          setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_oldMriDistance 1
+        # This is the supposedly worst state
+	#
+    	unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug
+
+        setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_loop3_old	    	    	    	1
+        unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_loop3_new
+
+    	setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_MRIDistance_old	    	    	    	1
+    	unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_MRIDistance_new
+	
+	setenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_avoidable_prediction 	    	1
+	setenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_fast_avoidable_prediction    	1
+	setenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_ComputeVertexPseudoNormalCache_suppress 	1
+        setenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_sharedVertexPseudoNormalCache    1
+	
+	# Enabling the new features one at a time
+	#
+        if ($feature >= 1) then
+            unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_loop3_old   	    	    	1
+            setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_loop3_new
         endif
-        if ($feature == 1) then
-          setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_old 1
-    	  unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_new
-    	  unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug
-          setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_oldMriDistance 1
+        if ($feature >= 2) then
+	    setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_MRIDistance_new 	    	    	1
         endif
-        if ($feature == 2) then
-          unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_old
-    	  setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_new 1
-    	  setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug 1
-          setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_oldMriDistance 1
+        if ($feature >= 3) then
+	    unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_MRIDistance_old
         endif
-        if ($feature == 3) then
-          unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_old
-    	  setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_new 1
-    	  unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug
-          setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_oldMriDistance 1
+        if ($feature >= 4) then
+	    unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_avoidable_prediction
         endif
-        if ($feature == 4) then
-          unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_old
-    	  setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_new 1
-    	  unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug
-          unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_oldMriDistance
+        if ($feature >= 5) then
+	    unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_fast_avoidable_prediction
+        endif
+        if ($feature >= 6) then
+	    unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_ComputeVertexPseudoNormalCache_suppress
+        endif
+        if ($feature >= 7) then
+            # setenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_test_sharedVertexPseudoNormalCache
+	    unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_sharedVertexPseudoNormalCache
         endif
 	
 	set extension = -B${branch}-F${feature}-N${niters}-T${threads}
 
 	# extract testing data
 	rm -rf testdata
-	gunzip -c testdata.tar.gz | tar xvf -
+	gunzip -c testdata.tar.gz | tar xf -
 
 	cd testdata
 	cp subjects/bert/surf/lh.orig{.before,}

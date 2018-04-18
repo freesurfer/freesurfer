@@ -568,7 +568,7 @@ static int chkBnd(int lo, int b, int hi) {
 //
 typedef struct RealmTreeNode RealmTreeNode;
 struct RealmTreeNode {
-    float xLo, xHi, yLo, yHi, zLo, zHi;
+    float xLo, xMid, xHi, yLo, yMid, yHi, zLo, zMid, zHi;
     RealmTreeNode*  parent;
     int             depth;    
 #define childrenSizeLog2 3                              // 2x 2y 2z
@@ -577,7 +577,7 @@ struct RealmTreeNode {
 #define vnosBuffSize     ((sizeof(RealmTreeNode*)*childrenSize/sizeof(int)) - 2)    // 2 for vnosSize and vnosCapacity
     int* vnos;                                          // NULL for non-leaf nodes, either &vnosBuff or 
     union {
-        RealmTreeNode*  children[childrenSize];
+        RealmTreeNode*  childIfPresent[childrenSize];
         struct {
             int         vnosSize;                       // above 2 assumes these are the same as the vnosBuff elements
             int         vnosCapacity;
@@ -646,7 +646,7 @@ static void destroyRealmTreeNode(RealmTreeNode *n) {
     if (!n->vnos) {
         int c;
         for (c = 0; c < childrenSize; c++) {
-            RealmTreeNode * child = n->children[c]; n->children[c] = NULL;
+            RealmTreeNode * child = n->childIfPresent[c]; n->childIfPresent[c] = NULL;
             if (!child) continue;
             destroyRealmTreeNode(child);
             freeAndNULL(child);
@@ -696,17 +696,12 @@ static int chooseChild(
         *(int*)-1 = 0;
 #endif
 
-    float xMid = n->children[1]->xLo;
-    float yMid = n->children[2]->yLo;
-    float zMid = n->children[4]->zLo;
+    float xMid = n->xMid;
+    float yMid = n->yMid;
+    float zMid = n->zMid;
     
     int c = ((x < xMid) ? 0 : 1) + ((y < yMid) ? 0 : 2) + ((z < zMid) ? 0 : 4);
     
-#ifdef REALM_UNIT_TEST
-    if (!nodeContains(n->children[c], x,y,z)) 
-        *(int*)-1 = 0;
-#endif
-  
     return c;
 }
 
@@ -716,7 +711,7 @@ typedef enum Widen_Mask {
     Widen_zLo = 16, Widen_zHi = 32 } Widen_Mask;
      
 static void widenSubtree_wkr(RealmTreeNode* n, float xLo, float xHi, float yLo, float yHi, float zLo, float zHi, Widen_Mask widen_Mask) {
-    if (widen_Mask == 0) return;
+    if (!n || (widen_Mask == 0)) return;
     //
     if (widen_Mask & Widen_xLo) n->xLo = xLo; if (widen_Mask & Widen_xHi) n->xHi = xHi;
     if (widen_Mask & Widen_yLo) n->yLo = yLo; if (widen_Mask & Widen_yHi) n->yHi = yHi;
@@ -736,14 +731,14 @@ static void widenSubtree_wkr(RealmTreeNode* n, float xLo, float xHi, float yLo, 
     //    7 111
     // each should only have some of its bounds widened
     //
-    widenSubtree_wkr(n->children[0], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xHi | Widen_yHi | Widen_zHi));    
-    widenSubtree_wkr(n->children[1], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xLo | Widen_yHi | Widen_zHi));    
-    widenSubtree_wkr(n->children[2], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xHi | Widen_yLo | Widen_zHi));    
-    widenSubtree_wkr(n->children[3], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xLo | Widen_yLo | Widen_zHi));    
-    widenSubtree_wkr(n->children[4], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xHi | Widen_yHi | Widen_zLo));    
-    widenSubtree_wkr(n->children[5], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xLo | Widen_yHi | Widen_zLo));    
-    widenSubtree_wkr(n->children[6], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xHi | Widen_yLo | Widen_zLo));    
-    widenSubtree_wkr(n->children[7], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xLo | Widen_yLo | Widen_zLo));    
+    widenSubtree_wkr(n->childIfPresent[0], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xHi | Widen_yHi | Widen_zHi));    
+    widenSubtree_wkr(n->childIfPresent[1], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xLo | Widen_yHi | Widen_zHi));    
+    widenSubtree_wkr(n->childIfPresent[2], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xHi | Widen_yLo | Widen_zHi));    
+    widenSubtree_wkr(n->childIfPresent[3], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xLo | Widen_yLo | Widen_zHi));    
+    widenSubtree_wkr(n->childIfPresent[4], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xHi | Widen_yHi | Widen_zLo));    
+    widenSubtree_wkr(n->childIfPresent[5], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xLo | Widen_yHi | Widen_zLo));    
+    widenSubtree_wkr(n->childIfPresent[6], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xHi | Widen_yLo | Widen_zLo));    
+    widenSubtree_wkr(n->childIfPresent[7], xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask & ~(Widen_xLo | Widen_yLo | Widen_zLo));    
 } 
 
 static void widenSubtree(RealmTree* realmTree, float xLo, float xHi, float yLo, float yHi, float zLo, float zHi) {
@@ -758,19 +753,57 @@ static void widenSubtree(RealmTree* realmTree, float xLo, float xHi, float yLo, 
     widenSubtree_wkr(n, xLo, xHi, yLo, yHi, zLo, zHi, widen_Mask);
 }
 
-static RealmTreeNode const * deepestContainingNode(RealmTreeNode const * n, float const x, float const y, float const z) {
-    n = upUntilContainsNode(n, x, y, z);
-    while (n && !n->vnos) {
-        int c = chooseChild(n, x, y, z);
-        n = n->children[c];
-    }
-    return n;
-}
-
 static RealmTreeNode* insertVnoIntoNode(
     RealmTree*      const realmTree,
     RealmTreeNode*  const n, 
     int const vno);
+
+static RealmTreeNode* getChild(RealmTreeNode * const n, int c) {
+    RealmTreeNode volatile * const nv = n;
+    RealmTreeNode* child = nv->childIfPresent[c];
+
+    if (!child)
+    #pragma omp critical
+    {
+    	child = nv->childIfPresent[c];     // fetch again now locked, hence the volatile
+    	if (!child) {
+    
+	    child = (RealmTreeNode*)calloc(1, sizeof(RealmTreeNode));
+	    constructRealmTreeNode(child, n);
+
+    #ifdef REALM_UNIT_TEST    
+	    if (child->depth >= maxDepth) *(int*)-1 = 0;
+    #endif
+
+    	    // Set its bounds
+	    //
+	    if (c&1) child->xLo = n->xMid, child->xHi = n->xHi; else child->xLo = n->xLo, child->xHi = n->xMid; 
+	    if (c&2) child->yLo = n->yMid, child->yHi = n->yHi; else child->yLo = n->yLo, child->yHi = n->yMid;
+	    if (c&4) child->zLo = n->zMid, child->zHi = n->zHi; else child->zLo = n->zLo, child->zHi = n->zMid;
+
+	    // Set its splitting values, since there are no grandchildren to store them in
+	    //
+	    child->xMid = (child->xLo + child->xHi)/2; 
+	    child->yMid = (child->yLo + child->yHi)/2;
+	    child->zMid = (child->zLo + child->zHi)/2;
+
+	    nv->childIfPresent[c] = child;
+    	}
+    }
+    
+    return child;
+}
+
+static RealmTreeNode const * deepestContainingNode(RealmTreeNode const * n, float const x, float const y, float const z) {
+    n = upUntilContainsNode(n, x, y, z);
+    while (n && !n->vnos) {
+        int c = chooseChild(n, x, y, z);
+        RealmTreeNode const * child = n->childIfPresent[c];
+	if (!child) break;
+	n = child;
+    }
+    return n;
+}
 
 static RealmTreeNode* insertIntoChild(
     RealmTree*     realmTree,
@@ -781,7 +814,7 @@ static RealmTreeNode* insertIntoChild(
     Captured_VERTEX_xyz const * const captured_xyz = &realmTree->captured_VERTEX_xyz[vno];
     float const x = captured_xyz->x, y = captured_xyz->y, z = captured_xyz->z;
     int c = chooseChild(n, x, y, z);
-    return insertVnoIntoNode(realmTree, n->children[c], vno);
+    return insertVnoIntoNode(realmTree, getChild(n,c), vno);
 }
 
 static RealmTreeNode* insertVnoIntoNode(
@@ -830,11 +863,6 @@ static RealmTreeNode* insertVnoIntoNode(
         
         // Must split
 
-        // Chose the splitting values
-        float xMid = (n->xLo + n->xHi)/2;
-        float yMid = (n->yLo + n->yHi)/2;
-        float zMid = (n->zLo + n->zHi)/2;
-
         // Save the vnos, since the next step overwrites them
         //
         int const vnosSize = n->vnosSize;   // n->vnosSize and n->vnosBuf will get overwritten by children
@@ -850,18 +878,10 @@ static RealmTreeNode* insertVnoIntoNode(
         }
         n->vnos = NULL;
 
-        // Make the children
+        // Clear the children pointers
         int c;
         for (c = 0; c < childrenSize; c++) { 
-            RealmTreeNode* child = n->children[c] = 
-                (RealmTreeNode*)calloc(1, sizeof(RealmTreeNode));
-            constructRealmTreeNode(child, n);
-#ifdef REALM_UNIT_TEST    
-            if (child->depth >= maxDepth) *(int*)-1 = 0;
-#endif
-            if (c&1) child->xLo = xMid, child->xHi = n->xHi; else child->xLo = n->xLo, child->xHi = xMid; 
-            if (c&2) child->yLo = yMid, child->yHi = n->yHi; else child->yLo = n->yLo, child->yHi = yMid;
-            if (c&4) child->zLo = zMid, child->zHi = n->zHi; else child->zLo = n->zLo, child->zHi = zMid;
+            n->childIfPresent[c] = NULL;
         }
         
         // Insert the saved vno into their child
@@ -1432,7 +1452,7 @@ GoDown:;
     //
     RealmTreeNode const * child;
     for (;;) {
-        child = n->children[c];
+        child = n->childIfPresent[c];
         if (!child->vnos || child->vnosSize)                // the child is a non-leaf or a leaf with children
             if (nodeIntersectsRealm(child, realm))          // and it might contribute to this realm
                 break;                                      // it is what we are looking for
@@ -1480,7 +1500,7 @@ void initRealmIterator(RealmIterator* realmIterator, Realm* realm) {
     // Down to the deepest leftmost descendent
     //
     while (!n->vnos) {
-        n   = n->children[0];
+        n   = n->childIfPresent[0];
         i <<= ((n->vnos) ? leafIndexBits : childIndexBits);
     }
 
@@ -1526,11 +1546,11 @@ int realmNextMightTouchVno(Realm* realm, RealmIterator* realmIterator) {
 }
 
 static int numberOffnosHereAndDeeper(RealmTreeNode const* n, Realm* realm) {
-    if (!nodeIntersectsRealm(n, realm)) return 0;
+    if (!n || !nodeIntersectsRealm(n, realm)) return 0;
     int count = n->nFaces;
     if (!n->vnos) {
         int c;
-        for (c = 0; c < childrenSize; c++) count += numberOffnosHereAndDeeper(n->children[c], realm);
+        for (c = 0; c < childrenSize; c++) count += numberOffnosHereAndDeeper(n->childIfPresent[c], realm);
     }
     return count; 
 }
@@ -1558,12 +1578,12 @@ static int fnosHere(RealmTree const* rt, RealmTreeNode const* n, int* fnos, int 
 }
 
 static int fnosHereAndDeeper(RealmTree const* rt, Realm* realm, RealmTreeNode const* n, int* fnos, int fnosCapacity, int fnosSize) {
-    if (!nodeIntersectsRealm(n, realm)) return fnosSize;
+    if (!n || !nodeIntersectsRealm(n, realm)) return fnosSize;
     fnosSize = fnosHere(rt, n, fnos, fnosCapacity, fnosSize);
     if (!n->vnos) {
         int c;
         for (c = 0; c < childrenSize; c++) 
-        fnosSize = fnosHereAndDeeper(rt, realm, n->children[c], fnos, fnosCapacity, fnosSize);
+        fnosSize = fnosHereAndDeeper(rt, realm, n->childIfPresent[c], fnos, fnosCapacity, fnosSize);
     }
     return fnosSize; 
 }
@@ -1611,17 +1631,19 @@ static void summarizeRealmTreeNode(RealmTree const * realmTree, RealmTreeNode co
 
 static int summarizeRealmTreeSubtree(RealmTree const * realmTree, RealmTreeNode const * n, int targetDepth) {
     int hasUnreachedChildren = 0;
-    int atDepth = (n->depth == targetDepth);
-    
-    if (atDepth) summarizeRealmTreeNode(realmTree, n);
-    if (n->vnos) {
-        ;
-    } else if (n->depth < targetDepth) {
-        int c;
-        for (c = 0; c < childrenSize; c++) 
-            hasUnreachedChildren |= summarizeRealmTreeSubtree(realmTree, n->children[c], targetDepth);
-    } else {
-        hasUnreachedChildren=1;
+    if (n) {
+	int atDepth = (n->depth == targetDepth);
+
+	if (atDepth) summarizeRealmTreeNode(realmTree, n);
+	if (n->vnos) {
+            ;
+	} else if (n->depth < targetDepth) {
+            int c;
+            for (c = 0; c < childrenSize; c++) 
+        	hasUnreachedChildren |= summarizeRealmTreeSubtree(realmTree, n->childIfPresent[c], targetDepth);
+	} else {
+            hasUnreachedChildren=1;
+	}
     }
     return hasUnreachedChildren;
 }
