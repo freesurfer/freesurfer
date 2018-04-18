@@ -146,7 +146,18 @@ foreach s ($SUBJECTS)
   echo $s >> $subjlistfile
 end
 cp $subjlistfile list.subjects.txt
-set subjlistfile = $SUBJECTS_DIR/$average_subject/list.subjects.txt
+set subjlistfile = $sdout/$average_subject/list.subjects.txt
+
+# These are files that will exist when making surfaces from
+# subcortical structures with seg2surf (DNG)
+set fname = $SUBJECTS_DIR/$SUBJECTS[1]/rgb.dat
+if(-e $fname) then
+  cp $fname $sdout/$average_subject
+endif
+set fname = $SUBJECTS_DIR/$SUBJECTS[1]/segname
+if(-e $fname) then
+  cp $fname $sdout/$average_subject
+endif
 
 # Include cross-hemi registration
 if($DoXHemi) then
@@ -342,6 +353,7 @@ foreach hemi ($hemilist)
     if($meas != area) rm $avgmeas 
   end # meas
 end # hemi
+
 
 echo "---------------------------------------------------" | tee -a $LF
 echo "" | tee -a $LF
