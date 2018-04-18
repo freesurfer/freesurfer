@@ -278,9 +278,13 @@ while ($nthIter < $nitersmax)
 
   echo "i=$nthIter Launched $nRunning surfreg processes" | tee -a $LF
   if($nRunning > 0 && $RunIt) then
-    echo "Sleeping 60 min (surfreg)" | tee -a $LF
-    #sleep 3600
-    sleep 10
+    if($ShortSleep == 0) then      
+      echo "Sleeping 60 min (surfreg)" | tee -a $LF
+      sleep 3600
+    else
+      echo "Sleeping 10 sec (surfreg)" | tee -a $LF
+      sleep 10
+    endif
   endif
 
   # Start polling
