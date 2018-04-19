@@ -57793,9 +57793,10 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	    // This path does not yet have a specific correctness test
 	    //
             for (;;) {
-    	        float const ijkDistance    = ijkDistances[k];
-	    	float const distanceToCxyz = sqrtf(partialPythagorasSum + squaref(zt-cz)) * 0.99f;  // margin for error included
-		bool predictedIrrelevant = distanceToCxyz - furtherestVertexDistance > fabs(ijkDistance);
+    	        float const ijkDistance           = ijkDistances[k];
+	    	float const distanceToCxyzSquared = partialPythagorasSum + squaref(zt-cz);
+                //oat const distanceToCxyz        = sqrtf(distanceToCxyzSquared) * 0.99f;  // margin for error included
+		bool predictedIrrelevant = distanceToCxyzSquared*0.98f > squaref(fabs(ijkDistance) + furtherestVertexDistance);
 		if (!predictedIrrelevant) goto RelevantK;
 		k++;
 		if (k > kmax) break;
@@ -57810,26 +57811,26 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	  
     	  // Here is the minimum distance to update
 	  //
-    	  float* const ijkDistanceElt = do_old_MRIDistance ? &MRIFvox(mri_distance_nonconst, i, j, k) : perThreadMRIDistanceElt(ptd, i,j,k);
+    	  float* const ijkDistanceElt = &ijkDistances[k];
 	  
     	  // The following code has four different ways of getting the answer
 	  // and can check them against each other
 	  //	      
-	  float distanceToCxyz = 0.0;	bool       predictedIrrelevant = false;
+	  float distanceToCxyzSquared = 0.0; bool predictedIrrelevant = false;
        	  float new_distance  = 0.0f;
 	  float old_distance  = 0.0f;
 	    
       	  static long pointCount, pointLimit = 1000000, irrelevantPointCount;
+#if 0
 	  pointCount++;
+#endif
 
           // Calculate the distance to center, and ignore when no chance of providing a new least distance
 	  //
-    	  if (use_avoidable_prediction) {
-	      distanceToCxyz      = sqrtf(partialPythagorasSum + squaref(z-cz)) * 0.99f;  // margin for error included
-	      predictedIrrelevant = distanceToCxyz - furtherestVertexDistance > fabs(*ijkDistanceElt);
-	      
+    	  if (use_avoidable_prediction && test_avoidable_prediction) {
+	      distanceToCxyzSquared = partialPythagorasSum + squaref(z-cz);
+	      predictedIrrelevant   =  distanceToCxyzSquared*0.98f > squaref(fabs(*ijkDistanceElt) + furtherestVertexDistance);
 	      if (predictedIrrelevant) irrelevantPointCount++;
-	      
 	      if (!test_avoidable_prediction && predictedIrrelevant) 
 	      	continue;
 	  }
@@ -58162,8 +58163,8 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	      fprintf(stdout, "do_new_MRIDistance:%d\n", do_new_MRIDistance);
 	      fprintf(stdout, "c (%g, %g, %g)\n", cx,cy,cz);
 	      fprintf(stdout, "furtherestVertexDistance %g\n", furtherestVertexDistance);
-	      fprintf(stdout, "distanceToCxyz %g\n", distanceToCxyz);
-	      fprintf(stdout, "distanceToCxyz - furtherestVertexDistance:%g\n", distanceToCxyz - furtherestVertexDistance);
+	      fprintf(stdout, "distanceToCxyz %g\n", sqrt(distanceToCxyzSquared));
+	      fprintf(stdout, "distanceToCxyz - furtherestVertexDistance:%g\n", sqrt(distanceToCxyzSquared) - furtherestVertexDistance);
 	      fprintf(stdout, "ijk (%g, %g, %g)\n", x,y,z);
 	      fprintf(stdout, "fabs(distance) %g\n", fabs(distance));
 	      fprintf(stdout, "fabs(*ijkDistanceElt) %g\n\n", fabs(*ijkDistanceElt));
