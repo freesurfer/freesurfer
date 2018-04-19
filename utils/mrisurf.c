@@ -57070,6 +57070,21 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     DEFECT_PATCH * const dp_nonconst, 
     HISTOGRAM    * const h_border_nonconst)
 {
+#if 1
+  // The tests themselves are expensive, so eliminate them except when developing
+  //
+  static const bool 
+    keep_sign_bug = false,  	    	    	    	    	    	    	    	// no test
+    do_new_MRIDistance = true,     	    	    	    	    	    	    	// if both set, that tests the new
+    do_old_MRIDistance = false,
+    do_new_loop3 = true,   	    	    	    	    	    	    	    	// if both set, that tests the new
+    do_old_loop3 = false, 
+    	    	    	            	        use_fast_avoidable_prediction = true,	// no test
+    test_avoidable_prediction = false, 	        use_avoidable_prediction = true,
+    test_sharedVertexPseudoNormalCache = false, use_sharedVertexPseudoNormalCache = true;
+#else
+  // Allow comparing different options quickly, but the times are affected compared to unconditional
+  //
   static bool 
     keep_sign_bug,  	    	    	    	    	    	    	    	// no test
     do_new_MRIDistance,     	    	    	    	    	    	    	// if both set, that tests the new
@@ -57096,7 +57111,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     test_sharedVertexPseudoNormalCache	= !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_test_sharedVertexPseudoNormalCache"),
     use_sharedVertexPseudoNormalCache	=  !getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_sharedVertexPseudoNormalCache")
     	    	    	    	    	    || test_sharedVertexPseudoNormalCache;
-    
+
     if (do_old_loop3) {
       fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood using old loop3 algorithm with the %s\n",keep_sign_bug?"sign bug still there":"sign bug fixed");
       if (do_new_loop3) 
@@ -57119,6 +57134,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
         test_sharedVertexPseudoNormalCache?" only, but testing it":"");
     }
   }
+#endif
 
   MRI_SURFACE  const * const mris     = mris_nonconst;			// find where the modifiers are
   DEFECT_PATCH const * const dp       = dp_nonconst;
