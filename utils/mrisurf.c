@@ -57517,7 +57517,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
         int const vno = face->v[vi];
         char alreadyDone;
 #ifdef HAVE_OPENMP
-        #pragma omp atomic capture
+        #pragma omp critical
 #endif
         {  alreadyDone = done[vno]; 
            done[vno] = 1; 
