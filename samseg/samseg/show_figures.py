@@ -1,11 +1,16 @@
 import math
 
 import numpy as np
-import pyqtgraph as pg
-from PyQt5 import QtGui
+try:
+    import pyqtgraph as pg
+    from PyQt5 import QtGui
 
-from samseg.hdav import hdav
-from samseg.hdav.hdav.hdav import HdavWindow
+    from samseg.hdav import hdav
+    from samseg.hdav.hdav.hdav import HdavWindow
+    VISUALIZATION_NOT_INSTALLED = False
+except ImportError:
+    VISUALIZATION_NOT_INSTALLED = True
+
 
 # Generated via main method of ColorScheme.py
 DEFAULT_PALETTE = [
@@ -48,6 +53,9 @@ DEFAULT_PALETTE = [
 
 
 class DoNotShowFigures:
+    def __init__(self, **kwargs):
+        pass
+
     def __str__(self):
         return 'No visualization'
 
@@ -63,185 +71,189 @@ class DoNotShowFigures:
     def show_movie(self, **kwargs):
         pass
 
+if VISUALIZATION_NOT_INSTALLED:
+    class ShowFigures:
+        def __init__(self, **kwargs):
+            raise NotImplementedError("Visualization is not installed.")
 
-class ShowFigures:
-    def __str__(self):
-        visualization = 'Show'
-        if self.movie_flag:
-            visualization += ' movies'
-        if self.show_flag:
-            visualization += ' plots, and images'
-        return visualization
+else:
+    class ShowFigures:
+        def __str__(self):
+            visualization = 'Show'
+            if self.movie_flag:
+                visualization += ' movies'
+            if self.show_flag:
+                visualization += ' plots, and images'
+            return visualization
 
-    def __init__(self, interactive=False, image_alpha=0.6, palette=None, show_flag=False, movie_flag=False):
-        if palette is None:
-            palette = DEFAULT_PALETTE
-        self.palette = palette
-        self.interactive = interactive
-        self._next_window_id = 0
-        self.image_alpha = image_alpha
-        self.movie_flag = movie_flag
-        self.show_flag = show_flag
-        self.movies = {}
-        self.user_callbacks = {}
+        def __init__(self, interactive=False, image_alpha=0.6, palette=None, show_flag=False, movie_flag=False):
+            if palette is None:
+                palette = DEFAULT_PALETTE
+            self.palette = palette
+            self.interactive = interactive
+            self._next_window_id = 0
+            self.image_alpha = image_alpha
+            self.movie_flag = movie_flag
+            self.show_flag = show_flag
+            self.movies = {}
+            self.user_callbacks = {}
 
-    def create_palette(self, layer_count):
-        self_size = len(self.palette)
-        return self.palette * (layer_count // self_size) + self.palette[:layer_count % self_size]
+        def create_palette(self, layer_count):
+            self_size = len(self.palette)
+            return self.palette * (layer_count // self_size) + self.palette[:layer_count % self_size]
 
-    def show(self, auto_scale=False, images=None, image_list=None, probabilities=None, mesh=None, names=None,
-             window_id=None, shape=None, title=None, legend_width=None):
-        if image_list is None:
-            image_list = []
-        if images is not None:
-            image_list += self.create_image_list(images)
-        if probabilities is None and mesh is not None:
-            if shape is None:
-                shape = images.shape
-            probabilities = mesh.rasterize_atlas(shape[0:3])
-        if probabilities is None:
-            probability_layers = []
-            image_alpha = 1.0 if auto_scale else None
-        else:
-            probability_layers = self.probability_layers(probabilities, names)
-            image_alpha = self.image_alpha
-        image_layers = self.image_layers(image_list, alpha=image_alpha)
-        probability_max = HdavWindow.MAX_LAYER_COUNT - len(image_layers)
-        if len(probability_layers) > probability_max:
-            tail = np.sum(layer['data'] for layer in probability_layers[probability_max - 1:])
-            probability_layers[probability_max - 1]['data'] = tail
-            probability_layers = probability_layers[:probability_max]
-        layers = probability_layers + image_layers
-        self.save_movie_frame(window_id, layers)
-        if self.show_flag:
-            self.show_layers(layers, window_id, title, legend_width)
-
-    def probability_layers(self, probabilities, names, prefix=None, visibility=True):
-        if prefix is None:
-            prefix = 'Label'
-        image_list = self.create_image_list(probabilities)
-        layer_count = len(image_list)
-        if names is None:
-            names = self.generate_names(prefix, layer_count)
-        palette = self.create_palette(layer_count)
-        return [{
-            'name': name,
-            'data': image,
-            'visible': visibility,
-            'cmap': transparency_color_map(layer_color),
-        } for name, image, layer_color in zip(names, image_list, palette)]
-
-    def image_layers(self, image_list, prefix=None, visibility=True, alpha=None):
-        if len(image_list) == 0:
-            return []
-        if prefix is None:
-            prefix = 'Contrast'
-        layer_count = len(image_list)
-        names = self.generate_names(prefix, layer_count)
-        if alpha is None:
-            cmap = None
-        else:
-            start = min([np.min(image) for image in image_list])
-            stop = max([np.max(image) for image in image_list])
-            cmap = transparency_color_map(
-                (1.0, 1.0, 1.0),  # white
-                bottom_rgb_color=(0., 0., 0.),
-                start=start,
-                stop=stop,
-                bottom_alpha=alpha,
-                top_alpha=alpha)
-        return [{
-            'name': names[index],
-            'data': image_list[index],
-            'visible': visibility,
-            'cmap': cmap,
-        } for index in range(layer_count)]
-
-    def create_image_list(self, source):
-        if source is None:
-            return []
-        shape = source.shape
-        if len(shape) > 3:
-            layer_count = shape[3]
-            image_list = [source[:, :, :, index] for index in range(layer_count)]
-        else:
-            image_list = [source]
-        return image_list
-
-    def generate_names(self, prefix, count):
-        return ['{0} {1}'.format(prefix, index + 1) for index in range(count)]
-
-    def show_layers(self, layers, window_id, title, legend_width=None):
-        if window_id is None:
-            window_id = str(self._next_window_id)
-            self._next_window_id += 1
-        self.hdav_view(layers, window_id, title, legend_width=legend_width)
-
-    def hdav_view(self, layers, window_id, title, handle_events=True, legend_width=None):
-        if layers:
-            hdav.view(layers,
-                      interactive=self.interactive,
-                      window_id=window_id,
-                      title=title,
-                      user_keys_callback=self.user_callbacks.get(window_id),
-                      handle_events=handle_events,
-                      legend_width=legend_width,
-                      )
-
-    def save_movie_frame(self, window_id, layers):
-        if self.movie_flag:
-            layer_sequence = self.movies.get(window_id)
-            if layer_sequence:
-                # This point can only be reached if a movie was started with this window_id
-                layer_sequence.add(layers)
-
-    def start_movie(self, window_id, title=None):
-        if self.movie_flag:
-            layer_sequence = LayerSequence(title)
-            self.movies[window_id] = layer_sequence
-
-            def update_movie(layers):
-                # Call backs should not handle events as they are inside an event loop already
-                self.hdav_view(layers, window_id, layer_sequence.title, handle_events=False)
-
-            def backward():
-                update_movie(layer_sequence.previous())
-
-            def forward():
-                update_movie(layer_sequence.next())
-
-            def beginning_of_movie():
-                update_movie(layer_sequence.rewind())
-
-            def end_of_movie():
-                update_movie(layer_sequence.skip_to_end())
-
-            self.user_callbacks[window_id] = {
-                pg.QtCore.Qt.Key_Left: backward,
-                pg.QtCore.Qt.Key_Right: forward,
-                pg.QtCore.Qt.Key_Up: beginning_of_movie,
-                pg.QtCore.Qt.Key_Down: end_of_movie,
-            }
-
-    def show_movie(self, window_id, clear_memory=True):
-        if self.movie_flag:
-            layer_sequence = self.movies.get(window_id)
-            if layer_sequence:
-                layers = layer_sequence.rewind()
-                title = layer_sequence.title
-                self.hdav_view(layers, window_id, title)
-                if clear_memory:
-                    self.movies[window_id] = None
-                    self.user_callbacks[window_id] = None
-
-    def plot(self, data, title=None):
-        if self.show_flag:
-            pg.plot(y=data, pen=pg.mkPen(color='l', width=3), title=title)
-            if self.interactive:
-                QtGui.QApplication.processEvents()
+        def show(self, auto_scale=False, images=None, image_list=None, probabilities=None, mesh=None, names=None,
+                 window_id=None, shape=None, title=None, legend_width=None):
+            if image_list is None:
+                image_list = []
+            if images is not None:
+                image_list += self.create_image_list(images)
+            if probabilities is None and mesh is not None:
+                if shape is None:
+                    shape = images.shape
+                probabilities = mesh.rasterize_atlas(shape[0:3])
+            if probabilities is None:
+                probability_layers = []
+                image_alpha = 1.0 if auto_scale else None
             else:
-                QtGui.QApplication.exec_()
+                probability_layers = self.probability_layers(probabilities, names)
+                image_alpha = self.image_alpha
+            image_layers = self.image_layers(image_list, alpha=image_alpha)
+            probability_max = HdavWindow.MAX_LAYER_COUNT - len(image_layers)
+            if len(probability_layers) > probability_max:
+                tail = np.sum(layer['data'] for layer in probability_layers[probability_max - 1:])
+                probability_layers[probability_max - 1]['data'] = tail
+                probability_layers = probability_layers[:probability_max]
+            layers = probability_layers + image_layers
+            self.save_movie_frame(window_id, layers)
+            if self.show_flag:
+                self.show_layers(layers, window_id, title, legend_width)
 
+        def probability_layers(self, probabilities, names, prefix=None, visibility=True):
+            if prefix is None:
+                prefix = 'Label'
+            image_list = self.create_image_list(probabilities)
+            layer_count = len(image_list)
+            if names is None:
+                names = self.generate_names(prefix, layer_count)
+            palette = self.create_palette(layer_count)
+            return [{
+                'name': name,
+                'data': image,
+                'visible': visibility,
+                'cmap': transparency_color_map(layer_color),
+            } for name, image, layer_color in zip(names, image_list, palette)]
+
+        def image_layers(self, image_list, prefix=None, visibility=True, alpha=None):
+            if len(image_list) == 0:
+                return []
+            if prefix is None:
+                prefix = 'Contrast'
+            layer_count = len(image_list)
+            names = self.generate_names(prefix, layer_count)
+            if alpha is None:
+                cmap = None
+            else:
+                start = min([np.min(image) for image in image_list])
+                stop = max([np.max(image) for image in image_list])
+                cmap = transparency_color_map(
+                    (1.0, 1.0, 1.0),  # white
+                    bottom_rgb_color=(0., 0., 0.),
+                    start=start,
+                    stop=stop,
+                    bottom_alpha=alpha,
+                    top_alpha=alpha)
+            return [{
+                'name': names[index],
+                'data': image_list[index],
+                'visible': visibility,
+                'cmap': cmap,
+            } for index in range(layer_count)]
+
+        def create_image_list(self, source):
+            if source is None:
+                return []
+            shape = source.shape
+            if len(shape) > 3:
+                layer_count = shape[3]
+                image_list = [source[:, :, :, index] for index in range(layer_count)]
+            else:
+                image_list = [source]
+            return image_list
+
+        def generate_names(self, prefix, count):
+            return ['{0} {1}'.format(prefix, index + 1) for index in range(count)]
+
+        def show_layers(self, layers, window_id, title, legend_width=None):
+            if window_id is None:
+                window_id = str(self._next_window_id)
+                self._next_window_id += 1
+            self.hdav_view(layers, window_id, title, legend_width=legend_width)
+
+        def hdav_view(self, layers, window_id, title, handle_events=True, legend_width=None):
+            if layers:
+                hdav.view(layers,
+                          interactive=self.interactive,
+                          window_id=window_id,
+                          title=title,
+                          user_keys_callback=self.user_callbacks.get(window_id),
+                          handle_events=handle_events,
+                          legend_width=legend_width,
+                          )
+
+        def save_movie_frame(self, window_id, layers):
+            if self.movie_flag:
+                layer_sequence = self.movies.get(window_id)
+                if layer_sequence:
+                    # This point can only be reached if a movie was started with this window_id
+                    layer_sequence.add(layers)
+
+        def start_movie(self, window_id, title=None):
+            if self.movie_flag:
+                layer_sequence = LayerSequence(title)
+                self.movies[window_id] = layer_sequence
+
+                def update_movie(layers):
+                    # Call backs should not handle events as they are inside an event loop already
+                    self.hdav_view(layers, window_id, layer_sequence.title, handle_events=False)
+
+                def backward():
+                    update_movie(layer_sequence.previous())
+
+                def forward():
+                    update_movie(layer_sequence.next())
+
+                def beginning_of_movie():
+                    update_movie(layer_sequence.rewind())
+
+                def end_of_movie():
+                    update_movie(layer_sequence.skip_to_end())
+
+                self.user_callbacks[window_id] = {
+                    pg.QtCore.Qt.Key_Left: backward,
+                    pg.QtCore.Qt.Key_Right: forward,
+                    pg.QtCore.Qt.Key_Up: beginning_of_movie,
+                    pg.QtCore.Qt.Key_Down: end_of_movie,
+                }
+
+        def show_movie(self, window_id, clear_memory=True):
+            if self.movie_flag:
+                layer_sequence = self.movies.get(window_id)
+                if layer_sequence:
+                    layers = layer_sequence.rewind()
+                    title = layer_sequence.title
+                    self.hdav_view(layers, window_id, title)
+                    if clear_memory:
+                        self.movies[window_id] = None
+                        self.user_callbacks[window_id] = None
+
+        def plot(self, data, title=None):
+            if self.show_flag:
+                pg.plot(y=data, pen=pg.mkPen(color='l', width=3), title=title)
+                if self.interactive:
+                    QtGui.QApplication.processEvents()
+                else:
+                    QtGui.QApplication.exec_()
 
 class LayerSequence:
     def __init__(self, title):
@@ -303,7 +315,6 @@ def transparency_color_map(top_rgb_color, bottom_rgb_color=None, start=0, stop=6
     top_color = list(top_rgb_color) + [top_alpha]  # fully opaque
     colors = [zero_color, top_color]
     return pg.ColorMap(positions, colors)
-
 
 if __name__ == '__main__':
     def show_palette(palette=None):
