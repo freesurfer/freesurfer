@@ -3,45 +3,62 @@
 
 readonly PROGRAM_NAME=$(basename $0)
 readonly CURRENT_DIRECTORY=$(pwd)
-readonly PROGRAM_DIRECTORY=$(readlink -m $(dirname $0))
+readonly PROGRAM_DIRECTORY=$(cd "$(dirname "$0")"; pwd)
 readonly SAMSEG_DIRECTORY="${PROGRAM_DIRECTORY}"
 readonly GEMS2_DIRECTORY=$(dirname "${PROGRAM_DIRECTORY}")/GEMS2
 readonly DEFAULT_VIRTUAL_ENVIRONMENT_BASE="${PROGRAM_DIRECTORY}"
 
 main() {
     local virtual_environment_base="${DEFAULT_VIRTUAL_ENVIRONMENT_BASE}"
+    local virtual_environment_name="packaging"
     local no_visualization=false
 
-    local parsed_commandline=$(getopt -o hnv: --long 'help,no-visualization,venv-dir:' -- "$@")
-    eval set -- "${parsed_commandline}"
-    while true ; do
-        case "$1" in
-            -h|--help)
+    while getopts ":hnd:v:-:" arg; do
+        case "${arg}" in
+            h)
                 usage
                 exit 0
                 ;;
-            -n|--no-visualization)
+            n)
                 no_visualization=true
                 echo "Setting visualization off"
-                shift
                 ;;
-             -v|--venv-dir)
-                virtual_environment_base="$2"
+            d)
+                virtual_environment_base=${OPTARG}
                 echo "Setting virtual environment base to ${virtual_environment_base}"
-                shift 2
                 ;;
-             --)
-                shift
-                break
+            v)
+                virtual_environment_name=${OPTARG}
+                echo "Setting virtual environment name to ${virtual_environment_name}"
+                ;;
+            -)
+                case "${OPTARG}" in
+                    "no-visualization")
+                        no_visualization=true
+                        echo "Setting visualization off"
+                        ;;
+                    "dir")
+                        virtual_environment_base="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
+                        echo "Setting virtual environment base to ${virtual_environment_base}"
+                        ;;
+                    "venv-name")
+                        virtual_environment_name="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
+                        echo "Setting virtual environment name to ${virtual_environment_name}"
+                        ;;
+                    "help")
+                        usage
+                        exit 0
+                        ;;
+                 esac
+                 ;;
+             *)
+                echo "unknown arguments $@"
+                usage
+                exit 1
                 ;;
         esac
     done
-    if [[ 0 != $# ]]; then
-        echo "unknown arguments $@"
-        usage
-        exit 1
-    fi
-    local virtual_environment="${virtual_environment_base}/packaging"
+    local virtual_environment="${virtual_environment_base}/${virtual_environment_name}"
     check_and_install "${virtual_environment}" $no_visualization
 }
 
@@ -132,9 +149,9 @@ create_and_install_samseg() {
     local no_visualization="$1"
     cd "${SAMSEG_DIRECTORY}"
     if [[ true = $no_visualization ]] ; then
-        source make_samseg_wheel --no-visualization
+        $PROGRAM_DIRECTORY/make_samseg_wheel --no-visualization
     else
-        source make_samseg_wheel --
+        $PROGRAM_DIRECTORY/make_samseg_wheel
     fi
 }
 

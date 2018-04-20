@@ -4,30 +4,36 @@ readonly MAKE_SAMSEG_PROGRAM_NAME=$(basename $0)
 
 make_samseg_main() {
     local visualization_arg=''
-    local parsed_commandline=$(getopt -o hn --long 'help,no-visualization' -- "$@")
-    eval set -- "${parsed_commandline}"
-    while true ; do
-        case "$1" in
-            -h|--help)
+
+    while getopts ":hn-:" arg; do
+        case "${arg}" in
+            h)
                 make_samseg_usage
                 exit 0
                 ;;
-            -n|--no-visualization)
+            n)
                 visualization_arg="--no-visualization"
                 echo "Setting visualization off"
-                shift
                 ;;
-             --)
-                shift
-                break
+            -)
+                case "${OPTARG}" in
+                    "no-visualization")
+                        visualization_arg="--no-visualization"
+                        echo "Setting visualization off"
+                        ;;
+                    "help")
+                        make_samseg_usage
+                        exit 0
+                        ;;
+                 esac
+                 ;;
+             *)
+                echo "unknown arguments $@"
+                usage
+                exit 1
                 ;;
         esac
     done
-    if [[ 0 != $# ]]; then
-        echo "unknown arguments $@"
-        make_samseg_usage
-        exit 1
-    fi
     python setup.py bdist_wheel $visualization_arg && pip install dist/*.whl
 
 }
