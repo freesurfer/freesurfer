@@ -7,9 +7,10 @@ try:
 
     from samseg.hdav import hdav
     from samseg.hdav.hdav.hdav import HdavWindow
-    VISUALIZATION_NOT_INSTALLED = False
 except ImportError:
     VISUALIZATION_NOT_INSTALLED = True
+else:
+    VISUALIZATION_NOT_INSTALLED = False
 
 
 # Generated via main method of ColorScheme.py
@@ -164,11 +165,11 @@ else:
                     bottom_alpha=alpha,
                     top_alpha=alpha)
             return [{
-                'name': names[index],
-                'data': image_list[index],
+                'name': name,
+                'data': image,
                 'visible': visibility,
                 'cmap': cmap,
-            } for index in range(layer_count)]
+            } for name, image in zip(names, image_list)]
 
         def create_image_list(self, source):
             if source is None:

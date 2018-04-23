@@ -24,7 +24,7 @@ REQUIRED = [
 
 PACKAGES_TO_FIND = ['samseg', 'samseg.dev_utils']
 NO_VISUALIZATION_ARG = '--no-visualization'
-if not NO_VISUALIZATION_ARG in sys.argv:
+if NO_VISUALIZATION_ARG not in sys.argv:
     REQUIRED += [ 'pyqtgraph', 'pyqt5']
     PACKAGES_TO_FIND += ['samseg.hdav.hdav']
 else:

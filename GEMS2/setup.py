@@ -17,9 +17,14 @@ class BinaryDistribution(Distribution):
 
 def create_init_file():
     file_path = os.path.join(os.path.dirname(__file__), 'bin', '__init__.py')
-    if not os.path.exists(file_path):
-        with open(file_path, 'w'):
-            pass
+    try:
+        # If file does not exist...
+        file = open(file_path, 'r')
+    except FileNotFoundError:
+        # ... then create it.
+        file = open(file_path, 'w')
+        # No writing as empty init file is all we need to mark as package.
+    file.close()
 
 
 def find_gems2_libraries():
