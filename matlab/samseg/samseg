@@ -149,7 +149,7 @@ endif
 if($usebin) then
   set cmd0 = (run_samseg --o $outdir --threads $threads)
   if($#regmat)  set cmd0 = ($cmd0 --regmat $regmat)
-  if($#initlta) set cmd0 = ($cmd0 --initlta $regmat)
+  if($#initlta) set cmd0 = ($cmd0 --initlta $initlta)
   if($regonly) set cmd0 = ($cmd0 --regonly);
   set cmd0 = ($cmd0 --stiffness $stiffness)
   foreach input ($inputlist)

@@ -302,8 +302,11 @@ while ($nthIter < $nitersmax)
     end # subject
     if($nRunning != 0) then
       echo "#%# i=$nthIter Waiting for $nRunning surfreg processes `date`" | tee -a $LF
-      sleep 180; 
-      sleep 10
+      if($ShortSleep == 0) then            
+        sleep 180; 
+      else
+        sleep 10
+      endif
     endif
   end # while
 
