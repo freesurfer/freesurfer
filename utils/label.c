@@ -1861,7 +1861,7 @@ int LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
         min_vno = MRISfindClosestWhiteVertex(mris, lv->x, lv->y, lv->z);
         break;
       case CURRENT_VERTICES:
-        min_vno = MRISfindClosestVertex(mris, lv->x, lv->y, lv->z, NULL);
+        min_vno = MRISfindClosestVertex(mris, lv->x, lv->y, lv->z, NULL, CURRENT_VERTICES);
         break;
       case CANONICAL_VERTICES:
         min_vno = MRISfindClosestCanonicalVertex(mris, lv->x, lv->y, lv->z);
@@ -3301,6 +3301,7 @@ LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, i
   LABEL *area_dst;
   double xw, yw, zw, xv, yv, zv;
 
+  LabelInit(area, mri_template, mris, coords) ;
   printf("LabelSampleToSurface(%d vertices)\n", area->n_points);
   xw = yw = zw = vx = vy = vz = x = y = z = -1;  // remove compiler warnings
 
@@ -3379,7 +3380,7 @@ LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, i
         min_vno = MRISfindClosestWhiteVertex(mris, lv->x, lv->y, lv->z);
         break;
       case CURRENT_VERTICES:
-        min_vno = MRISfindClosestVertex(mris, lv->x, lv->y, lv->z, NULL);
+        min_vno = MRISfindClosestVertex(mris, lv->x, lv->y, lv->z, NULL, CURRENT_VERTICES);
         break;
       case CANONICAL_VERTICES:
         min_vno = MRISfindClosestCanonicalVertex(mris, lv->x, lv->y, lv->z);

@@ -2617,7 +2617,7 @@ find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
 
   best_wm_len = best_ig_len = best_sg_len = best_start_index = best_csf_len = 0 ;
 
-  ico_vno = MRISfindClosestVertex(mris_ico, vp->nx, vp->ny, vp->nz, NULL) ;
+  ico_vno = MRISfindClosestVertex(mris_ico, vp->nx, vp->ny, vp->nz, NULL, CURRENT_VERTICES);
   vico = &mris_ico->vertices[ico_vno] ;
   best_nx = vp->nx ; best_ny = vp->ny ; best_nz = vp->nz ;
   best_ig_intensity_offset = best_sg_intensity_offset = best_wm_intensity_offset = 0.0 ;

@@ -380,7 +380,7 @@ main(int argc, char *argv[]) {
       if ((((vno % (mris->nvertices/10))) == 0) && DIAG_VERBOSE_ON)
         printf("%2.1f%% done\n", 100.0*(float)vno / mris->nvertices) ;
       v = &mris->vertices[vno] ;
-      fno = MRISfindClosestVertex(mris_ico, v->cx, v->cy, v->cz, NULL) ;
+      fno = MRISfindClosestVertex(mris_ico, v->cx, v->cy, v->cz, NULL, CURRENT_VERTICES) ;
       CTABannotationAtIndex(mris->ct, fno, &annot);
       v->annotation = annot ;
       v->marked = fno ;

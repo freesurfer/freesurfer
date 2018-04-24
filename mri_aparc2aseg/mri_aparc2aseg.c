@@ -671,12 +671,12 @@ int main(int argc, char **argv)
             fflush(stdout);
             */
 	    if(DoLH){
-	      lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
-	      lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp);
+	      lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw, CURRENT_VERTICES);
+	      lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp, CURRENT_VERTICES);
 	    }
 	    if(DoRH){
-	      rhwvtx = MRISfindClosestVertex(rhwhite,vtx.x,vtx.y,vtx.z,&drhw);
-	      rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp);
+	      rhwvtx = MRISfindClosestVertex(rhwhite,vtx.x,vtx.y,vtx.z,&drhw, CURRENT_VERTICES);
+	      rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp, CURRENT_VERTICES);
 	    }
             nbrute ++;
             //exit(1);
@@ -685,15 +685,15 @@ int main(int argc, char **argv)
         else
         {
 	  if(DoLH){
-	    lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
-	    lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp);
+	    lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw, CURRENT_VERTICES);
+	    lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp, CURRENT_VERTICES);
 	  } else {
 	    lhwvtx = -1;
 	    lhpvtx = -1;
 	  }
 	  if(DoRH){
-	    rhwvtx = MRISfindClosestVertex(rhwhite,vtx.x,vtx.y,vtx.z,&drhw);
-	    rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp);
+	    rhwvtx = MRISfindClosestVertex(rhwhite,vtx.x,vtx.y,vtx.z,&drhw, CURRENT_VERTICES);
+	    rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp, CURRENT_VERTICES);
 	  } else {
 	    rhwvtx = -1;
 	    rhpvtx = -1;
@@ -1561,10 +1561,10 @@ int FindClosestLRWPVertexNo(int c, int r, int s,
     printf("crs = %d %d %d, ras = %6.4f %6.4f %6.4f \n",
            c,r,s,vtx.x,vtx.y,vtx.z);
     printf("Using Bruce Force\n");
-    *lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw);
-    *lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp);
-    *rhwvtx = MRISfindClosestVertex(rhwhite,vtx.x,vtx.y,vtx.z,&drhw);
-    *rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp);
+    *lhwvtx = MRISfindClosestVertex(lhwhite,vtx.x,vtx.y,vtx.z,&dlhw, CURRENT_VERTICES);
+    *lhpvtx = MRISfindClosestVertex(lhpial,vtx.x,vtx.y,vtx.z,&dlhp, CURRENT_VERTICES);
+    *rhwvtx = MRISfindClosestVertex(rhwhite,vtx.x,vtx.y,vtx.z,&drhw, CURRENT_VERTICES);
+    *rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp, CURRENT_VERTICES);
     printf("lh white: %d %g\n",*lhwvtx,dlhw);
     printf("lh pial:  %d %g\n",*lhpvtx,dlhp);
     printf("rh white: %d %g\n",*rhwvtx,drhw);

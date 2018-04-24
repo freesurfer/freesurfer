@@ -1700,6 +1700,10 @@ void LayerSurface::UpdateActorPositions()
   {
     m_sliceActor3D[i]->SetPosition( pos );
   }
+  for (int i = 0; i < m_paths.size(); i++)
+  {
+    m_paths[i]->GetActor()->SetPosition(pos);
+  }
 
   m_sliceActor2D[0]->SetPosition( 0.1, pos[1], pos[2] );
   m_sliceActor2D[1]->SetPosition( pos[0], 0.1, pos[2] );

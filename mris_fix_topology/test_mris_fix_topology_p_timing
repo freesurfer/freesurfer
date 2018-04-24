@@ -1,0 +1,80 @@
+#!/bin/tcsh -f
+
+umask 002
+
+printenv | grep FREESURFER
+
+# 1 2 4 8
+foreach threads ( 1 )
+
+  # 2 -1
+  foreach niters ( 2 )
+    if ($niters != -1) then
+      set NITERS_OPTION = "-niters $niters"
+      set NITERS_EXTENSION =
+    else
+      set NITERS_OPTION = 
+      set NITERS_EXTENSION = _unlimited
+    endif
+  
+    #  currently available:
+    # 	.dev .nf_faster_distance_map_update_4 .nf_faster_distance_map_update_5
+    #
+    # Don't forget to...
+    #   cp mris_fix_topology{,.nf_faster_distance_map_update_5}
+    #
+    foreach branch ( .nf_faster_distance_map_update_5 )
+
+      set feature=0
+
+      set extension = -B${branch}-F${feature}-N${niters}-T${threads}
+
+      # the simple cmd
+      #
+      set cmd=(../mris_fix_topology${branch} \
+              $NITERS_OPTION \
+              -mgz \
+              -sphere qsphere.nofix \
+              -ga -seed 1234 bert lh)
+
+      # extract testing data
+      #
+      echo "#\!/bin/tcsh -f" > tmp_cmd
+      echo "( \" >> tmp_cmd
+      
+      set p=3
+      foreach i ( 1 2 3)
+	  rm -rf testdata
+	  gunzip -c testdata.tar.gz | tar xf -
+	  cp testdata/subjects/bert/surf/lh.orig{.before,}
+
+	  rm -rf testdata${extension}_p${p}_${i}
+    	  mv     testdata{,${extension}_p${p}_${i}}
+	  
+	  echo "( cd testdata${extension}_p${p}_${i}; \"    >> tmp_cmd
+	  echo "  $cmd ) >& \"      	    	    	    >> tmp_cmd
+	  echo "  cout_cerr_p${p}_${i}.txt &; \"     	    >> tmp_cmd
+      end
+
+      setenv FREESURFER_HOME ../../distribution
+      setenv SUBJECTS_DIR ./subjects
+      setenv OMP_NUM_THREADS $threads
+      echo "testing with $threads thread(s)"
+
+      setenv FREESURFER_REPLACEMENT_FOR_CREATION_TIME_STRING "Sun Jan 11 11:11:11 ZONE 2011"
+
+      # ---- TEST 1 ----
+
+      # run mris_make_surfaces using typical input
+
+      echo "wait )" >> tmp_cmd
+      chmod u+x tmp_cmd
+      
+      cat tmp_cmd
+      ./tmp_cmd
+      
+      grep RUN cout_cerr_p${p}_*.txt
+      
+    end
+  end
+end

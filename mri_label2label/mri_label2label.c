@@ -517,7 +517,7 @@ int main(int argc, char **argv) {
         if (usehash)
           srcvtxno = MHTfindClosestVertexNo(PaintHash,PaintSurf,&v,&dmin);
         else
-          srcvtxno = MRISfindClosestVertex(PaintSurf,v.x,v.y,v.z,&dmin);
+          srcvtxno = MRISfindClosestVertex(PaintSurf,v.x,v.y,v.z,&dmin, CURRENT_VERTICES);
 	if(debug) printf("%3d %6d (%5.2f,%5.2f,%5.2f) %g\n",n,srcvtxno,v.x,v.y,v.z,dmin);
         if (dmin > PaintMax) continue;
 	if(dmin < dminmin){
@@ -555,7 +555,7 @@ int main(int argc, char **argv) {
         }
       } else {
         trgvtxno = MRISfindClosestVertex(TrgSurfReg,srcvtx->x,srcvtx->y,
-                                         srcvtx->z,&dmin);
+                                         srcvtx->z,&dmin, CURRENT_VERTICES);
       }
       /* target vertex */
       trgvtx = &(TrgSurf->vertices[trgvtxno]);
@@ -623,13 +623,13 @@ int main(int argc, char **argv) {
             printf("  because the xyz of the target is outside of the \n");
             printf("  range of the hash table.\n");
 	    srcvtxno = MRISfindClosestVertex(SrcSurfReg,trgregvtx->x,
-					     trgregvtx->y,trgregvtx->z,&dmin);
+					     trgregvtx->y,trgregvtx->z,&dmin, CURRENT_VERTICES);
 	    printf("dmin = %g\n",dmin);
             exit(1);
           }
         } else {
           srcvtxno = MRISfindClosestVertex(SrcSurfReg,trgregvtx->x,
-                                           trgregvtx->y,trgregvtx->z,&dmin);
+                                           trgregvtx->y,trgregvtx->z,&dmin, CURRENT_VERTICES);
         }
         srcvtx = &(SrcSurfReg->vertices[srcvtxno]);
 
