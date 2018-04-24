@@ -159,7 +159,7 @@ int RETlogMap(MRIS *surf, double k, double a, double xc0, double yc0)
       yc2 = k * log(r2 * sin(theta2));
       xc = (xc2 - xc0);
       yc = (yc2 - yc0);
-      vno = MRISfindClosestVertex(surf, xc, yc, 0, &dmin);
+      vno = MRISfindClosestVertex(surf, xc, yc, 0, &dmin, CURRENT_VERTICES);
       if (dmin > 5) continue;
       surf->vertices[vno].val = 1;
       surf->vertices[vno].val2 = dmin;
@@ -177,7 +177,7 @@ int RETlogMap(MRIS *surf, double k, double a, double xc0, double yc0)
       yc2 = k * log(r2 * sin(theta2));
       xc = (xc2 - xc0);
       yc = (yc2 - yc0);
-      vno = MRISfindClosestVertex(surf, xc, yc, 0, &dmin);
+      vno = MRISfindClosestVertex(surf, xc, yc, 0, &dmin, CURRENT_VERTICES);
       if (dmin > 5) continue;
       surf->vertices[vno].val = -1;
       surf->vertices[vno].val2 = dmin;

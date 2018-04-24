@@ -21891,7 +21891,7 @@ static int mrisComputeSphereTerm(MRI_SURFACE *mris, double l_sphere, float radiu
     float dot, dx, dy, dz ;
     static int iter = 0 ;
 
-    vno = MRISfindClosestVertex(mris, x0, y0, z0, &r) ;
+    vno = MRISfindClosestVertex(mris, x0, y0, z0, &r, CURRENT_VERTICES) ;
     v = &mris->vertices[vno] ;
     dx = x0-v->x ;
     dy = y0-v->y ;
@@ -21914,7 +21914,7 @@ static int mrisComputeSphereTerm(MRI_SURFACE *mris, double l_sphere, float radiu
       mris->y0 = y0 ;
       mris->z0 = z0 ;
       print("moving centroid to (%2.1f, %2.1f, %2.1f)\n", x0, y0, z0) ;
-      vno = MRISfindClosestVertex(mris, x0, y0, z0, &r) ;
+      vno = MRISfindClosestVertex(mris, x0, y0, z0, &r, CURRENT_VERTICES) ;
       v = &mris->vertices[vno] ;
       dx = x0-v->x ;
       dy = y0-v->y ;
@@ -32076,7 +32076,7 @@ int MRISzeroNegativeAreas(MRI_SURFACE *mris)
 
   Description
   ------------------------------------------------------*/
-int MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z, float *dmin)
+int MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z, float *dmin, int which_vertices)
 {
   int vno, min_v = -1;
   VERTEX *v;
@@ -32088,9 +32088,23 @@ int MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z, float *d
     if (v->ripflag) {
       continue;
     }
-    dx = v->x - x;
-    dy = v->y - y;
-    dz = v->z - z;
+    switch (which_vertices)
+    {
+    case CURRENT_VERTICES:
+      dx = v->x - x;
+      dy = v->y - y;
+      dz = v->z - z;
+      break ;
+    case CANONICAL_VERTICES:
+      dx = v->cx - x;
+      dy = v->cy - y;
+      dz = v->cz - z;
+      break ;
+    default:
+      ErrorExit(ERROR_UNSUPPORTED, "MRISfindClosestVertex: unsupported vertex set %d\n", which_vertices);
+      break ;
+    }
+
     d = sqrt(dx * dx + dy * dy + dz * dz);
     if (d < min_d) {
       min_d = d;

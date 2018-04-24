@@ -4501,11 +4501,11 @@ MRI *MRIannot2CorticalSeg(MRI *seg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, 
 
         // Find closest white surface vertex and compute distance
         wvtxno = MHTfindClosestVertexNo(whash, wsurf, &vtx, &wdw);
-        if (wvtxno < 0) wvtxno = MRISfindClosestVertex(wsurf, vtx.x, vtx.y, vtx.z, &wdw);
+        if (wvtxno < 0) wvtxno = MRISfindClosestVertex(wsurf, vtx.x, vtx.y, vtx.z, &wdw, CURRENT_VERTICES);
 
         // Find closest pial surface vertex and compute distance
         pvtxno = MHTfindClosestVertexNo(phash, psurf, &vtx, &pdw);
-        if (pvtxno < 0) pvtxno = MRISfindClosestVertex(psurf, vtx.x, vtx.y, vtx.z, &pdw);
+        if (pvtxno < 0) pvtxno = MRISfindClosestVertex(psurf, vtx.x, vtx.y, vtx.z, &pdw, CURRENT_VERTICES);
 
         // Use the vertex that is closest
         if (wdw <= pdw)
@@ -4665,7 +4665,7 @@ MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, L
 
         // Find closest white surface vertex and compute distance
         wvtxno = MHTfindClosestVertexNo(whash, wsurf, &vtx, &wdw);
-        if (wvtxno < 0) wvtxno = MRISfindClosestVertex(wsurf, vtx.x, vtx.y, vtx.z, &wdw);
+        if (wvtxno < 0) wvtxno = MRISfindClosestVertex(wsurf, vtx.x, vtx.y, vtx.z, &wdw, CURRENT_VERTICES);
 
         if (wdw <= DistThresh || DistThresh < 0) {
           // From the surface annotation, get the annotation number
@@ -4795,10 +4795,10 @@ MRI *MRIunsegmentWM(MRI *seg, MRIS *lhw, MRIS *rhw, int *segidlist, int nlist, L
         vtx.z = RAS->rptr[3][1];
 
         lhvtxno = MHTfindClosestVertexNo(lhw_hash, lhw, &vtx, &lhd);
-        if (lhvtxno < 0) lhvtxno = MRISfindClosestVertex(lhw, vtx.x, vtx.y, vtx.z, &lhd);
+        if (lhvtxno < 0) lhvtxno = MRISfindClosestVertex(lhw, vtx.x, vtx.y, vtx.z, &lhd, CURRENT_VERTICES);
 
         rhvtxno = MHTfindClosestVertexNo(rhw_hash, rhw, &vtx, &rhd);
-        if (rhvtxno < 0) rhvtxno = MRISfindClosestVertex(rhw, vtx.x, vtx.y, vtx.z, &rhd);
+        if (rhvtxno < 0) rhvtxno = MRISfindClosestVertex(rhw, vtx.x, vtx.y, vtx.z, &rhd, CURRENT_VERTICES);
 
         if (lhd < rhd)
           segv = Left_Cerebral_White_Matter;
@@ -4914,10 +4914,10 @@ MRI *MRIrelabelHypoHemi(MRI *seg, MRIS *lhw, MRIS *rhw, LTA *anat2seg, MRI *wmse
         vtx.z = RAS->rptr[3][1];
 
         lhvtxno = MHTfindClosestVertexNo(lhw_hash, lhw, &vtx, &lhd);
-        if (lhvtxno < 0) lhvtxno = MRISfindClosestVertex(lhw, vtx.x, vtx.y, vtx.z, &lhd);
+        if (lhvtxno < 0) lhvtxno = MRISfindClosestVertex(lhw, vtx.x, vtx.y, vtx.z, &lhd, CURRENT_VERTICES);
 
         rhvtxno = MHTfindClosestVertexNo(rhw_hash, rhw, &vtx, &rhd);
-        if (rhvtxno < 0) rhvtxno = MRISfindClosestVertex(rhw, vtx.x, vtx.y, vtx.z, &rhd);
+        if (rhvtxno < 0) rhvtxno = MRISfindClosestVertex(rhw, vtx.x, vtx.y, vtx.z, &rhd, CURRENT_VERTICES);
 
         if (lhd < rhd)
           segv = Left_WM_hypointensities;

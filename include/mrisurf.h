@@ -950,7 +950,7 @@ int MRISfindClosestWhiteVertex(MRI_SURFACE *mris, float x, float y,
                                float z) ;
 int MRISfindClosestVertex(MRI_SURFACE *mris,
                           float x, float y, float z,
-                          float *dmin);
+                          float *dmin, int which_vertices);
 double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 double MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                               double *ext_sse) ;
