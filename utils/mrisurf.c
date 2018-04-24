@@ -32117,6 +32117,9 @@ int MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z, float *d
       dz = v->cz - z;
       break ;
     default:
+      dx = v->x - x;
+      dy = v->y - y;
+      dz = v->z - z;
       ErrorExit(ERROR_UNSUPPORTED, "MRISfindClosestVertex: unsupported vertex set %d\n", which_vertices);
       break ;
     }
