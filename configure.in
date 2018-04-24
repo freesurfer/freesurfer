@@ -4168,6 +4168,7 @@ AC_CONFIG_FILES([
 	mris_errors/Makefile
 	mris_euler_number/Makefile
 	mris_expand/Makefile
+	mris_extract_patches/Makefile
 	mris_fbirn_annot/Makefile
 	mris_fill/Makefile
 	mris_find_flat_regions/Makefile
