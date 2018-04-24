@@ -3300,6 +3300,7 @@ void MainWindow::CommandSetSurfaceOverlaySmooth(const QStringList &cmd)
       {
         overlay->GetProperty()->SetSmooth(true);
         overlay->GetProperty()->SetSmoothSteps(steps);
+        overlay->UpdateSmooth();
       }
       else
       {
