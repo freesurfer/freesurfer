@@ -17,6 +17,9 @@ set InitSurfReg = sphere.reg
 set InitSubj = ();
 set UseAParc = 1;
 set DoVol = 1;
+set icoorder = 7
+set ShortSleep = 0;
+set NoTemplateOnly = 0;
 
 #set tmpdir = ();
 #set cleanup = 1;
@@ -102,7 +105,7 @@ if($DoXHemi) then
     end
     if($nRunning != 0) then
       echo "#%# Waiting for $nRunning xhemireg processes `date`" | tee -a $LF
-      sleep 60
+      sleep 30
     endif
   end
 
@@ -128,8 +131,13 @@ if($DoXHemi) then
   # Wait for xhemi surfreg to finish (need a time out)
   if($nRunning != 0 && $RunIt) then
     echo "#%# Waiting for $nRunning surfreg processes `date`" | tee -a $LF 
-    echo "#%#    Sleeping for 30 min" | tee -a $LF
-    sleep 1800
+    if($ShortSleep == 0) then
+      echo "#%#    Sleeping for 30 min" | tee -a $LF
+      sleep 1800
+    else
+      echo "#%#    Sleeping for 1 min" | tee -a $LF
+      sleep 60
+    endif
   endif
   while($nRunning != 0 && $RunIt)
     @ nRunning = 0;
@@ -141,7 +149,7 @@ if($DoXHemi) then
     end # subject
     if($nRunning != 0) then
       echo "#%# Waiting for $nRunning surfreg processes `date`" | tee -a $LF
-      sleep 120; 
+      sleep 60
     endif
   end
 
@@ -178,12 +186,13 @@ while ($nthIter < $nitersmax)
   end
   if($MASNeeded) then
     echo "i=$nthIter Running Make Average Subject `date`" | tee -a $LF
-    set cmd = (make_average_subject --out $atlas --surf-reg $srcreg)
+    set cmd = (make_average_subject --out $atlas --surf-reg $srcreg --ico $icoorder)
     if($#InitSubj == 0 || $nthIter != 1) set cmd = ($cmd --subjects $subjlist)
     if($#InitSubj != 0 && $nthIter == 1) set cmd = ($cmd --subjects $InitSubj)
     # If not running both lh and rh
     if($#hemilist == 1) set cmd = ($cmd --no-vol --template-only --$hemilist)
     if($DoVol == 0) set cmd = ($cmd --no-vol --template-only)
+    if($NoTemplateOnly) set cmd = ($cmd --no-template-only) # turns off --template-only above
     if($DoXHemi) set cmd = ($cmd --xhemi)
     if($UseAParc == 0)  set cmd = ($cmd --no-annot)
     echo "#@# $cmd" | tee -a $LF
@@ -191,9 +200,13 @@ while ($nthIter < $nitersmax)
       # This can use a lot of memory, so 2 nodes
       pbsubmit -l nodes=1:ppn=2,vmem=14gb $queue -c "fs_time $cmd" | tee -a $LF
       date | tee -a $LF
-      echo "Sleeping 10 min (make_average_subject)" | tee -a $LF
-      sleep 600 
-      sleep 1
+      if($ShortSleep == 0) then      
+        echo "Sleeping 10 min (make_average_subject)" | tee -a $LF
+        sleep 600 
+      else
+        echo "Sleeping 30 sec (make_average_subject)" | tee -a $LF
+        sleep 30
+      endif
     endif
     set IsRunning = 1;
     while ($IsRunning && $RunIt)
@@ -204,7 +217,11 @@ while ($nthIter < $nitersmax)
       end
       if($IsRunning) then
         echo "#%# i=$nthIter Waiting for make_average_subject `date`" | tee -a $LF
-        sleep 120;
+        if($ShortSleep == 0) then      
+          sleep 120;
+        else
+          sleep 10;
+        endif
       endif
     end
   else
@@ -261,8 +278,13 @@ while ($nthIter < $nitersmax)
 
   echo "i=$nthIter Launched $nRunning surfreg processes" | tee -a $LF
   if($nRunning > 0 && $RunIt) then
-    echo "Sleeping 60 min (surfreg)" | tee -a $LF
-    sleep 3600
+    if($ShortSleep == 0) then      
+      echo "Sleeping 60 min (surfreg)" | tee -a $LF
+      sleep 3600
+    else
+      echo "Sleeping 10 sec (surfreg)" | tee -a $LF
+      sleep 10
+    endif
   endif
 
   # Start polling
@@ -281,6 +303,7 @@ while ($nthIter < $nitersmax)
     if($nRunning != 0) then
       echo "#%# i=$nthIter Waiting for $nRunning surfreg processes `date`" | tee -a $LF
       sleep 180; 
+      sleep 10
     endif
   end # while
 
@@ -411,6 +434,10 @@ while( $#argv != 0 )
       set UseInitReg = 1;
       breaksw
 
+    case "--short-sleep":
+      set ShortSleep = 1;
+      breaksw
+
     case "--runit":
       set RunIt = 1;
       breaksw
@@ -425,9 +452,25 @@ while( $#argv != 0 )
       set queue = ("-q $argv[1]"); shift;
       breaksw
 
+    case "--no-q":
+      set queue = ""
+      breaksw
+
     case "--xq":
       if($#argv < 1) goto arg1err;
       set xhemiqueue = ("-q $argv[1]"); shift;
+      breaksw
+
+    case "--ico":
+      if($#argv < 1) goto arg1err;
+      set icoorder = $argv[1]; shift;
+      breaksw
+
+case "--no-template-only":
+      # allows making average surface files under conditions when
+      # usually only a surface temlate gif would be created
+      # Eg, when only use one hemi or with --no-vol
+      set NoTemplateOnly = 1
       breaksw
 
     case "--threads":
@@ -509,7 +552,7 @@ if($RunIt) then
     echo "ERROR: pbsubmit command not found"
   endif
 endif
-if(! $?OMP_NUM_THREADS) setenv OMP_NUM_THREADS 
+if(! $?OMP_NUM_THREADS) setenv OMP_NUM_THREADS 1
 
 goto check_params_return;
 ############--------------##################
@@ -537,11 +580,16 @@ usage_exit:
   echo "  --init-subject subject : create first atlas from subject instead"
   echo "      of all subjects. Automatically uses sphere for init surf"
   echo "  --no-annot : good for monkeys"
+  echo "  --lh, --rh : do left or right (default is both)"
+  echo "  --ico icoorder : default is 7"
   echo "  --no-vol : do not run make_average_volume"
   echo "  --init : use prev iter reg to init mris_register/surfreg instead "
   echo "      of ?h.sphere. This might speed things up, but could bias. Note: "
   echo "      this has nothing to do with --int-surf-reg or --init-subject"
   echo "  --q : spec queue to use (eg, max100)"
+  echo "  --no-q : use default queue"
+  echo "  --short-sleep : sleep for shorter time before polling"
+  echo "  --no-template-only : make avg surf files even with a single hemi or --no-vol"
   echo "  --threads N "
   echo ""
 

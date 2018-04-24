@@ -2,47 +2,83 @@
 
 umask 002
 
-if ( $?SKIP_MRIS_FIX_TOPOLOGY_TEST ) then
-  exit 0
-endif
+unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_ComputeVertexPseudoNormalCache_test
+unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_test_avoidable_prediction
 
-set passed = 1
+printenv | grep FREESURFER
 
-# 2 -1
-foreach niters ( -1 )
-  if ($niters != -1) then
-    set NITERS_OPTION = "-niters $niters"
-    set NITERS_EXTENSION =
-  else
-    set NITERS_OPTION = 
-    set NITERS_EXTENSION = _unlimited
-  endif
+# 1 2 4 8
+foreach threads ( 4 )
+
+  # 2 -1
+  foreach niters ( 2 )
+    if ($niters != -1) then
+      set NITERS_OPTION = "-niters $niters"
+      set NITERS_EXTENSION =
+    else
+      set NITERS_OPTION = 
+      set NITERS_EXTENSION = _unlimited
+    endif
   
-  # 4 8
-  foreach threads ( 1 2 4 8 )
-
-    # .before .after .after2
+    #  currently available:
+    # 	.dev .nf_faster_distance_map_update_4 .nf_faster_distance_map_update_5
     #
-    foreach branch ( .after2 )
-      # extract testing data
-      rm -rf testdata
-      gunzip -c testdata.tar.gz | tar xvf -
+    # Don't forget to...
+    #   cp mris_fix_topology{,.nf_faster_distance_map_update_5}
+    #
+    foreach branch ( .nf_faster_distance_map_update_5  )
 
-      cd testdata
-      cp subjects/bert/surf/lh.orig{.before,}
+      foreach feature ( 6 )
+    
+        # This is the supposedly worst state
+	#
+        setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_loop3_old	    	    	    	1
+    	setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_MRIDistance_old	    	    	    	1
+	setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_avoidable_prediction 	    	1
+	setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_fast_avoidable_prediction    	1
+	setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_ComputeVertexPseudoNormalCache_suppress 1
+        setenv   FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_sharedVertexPseudoNormalCache  1
+	
+	# Enabling the new features one at a time
+	#
+        if ($feature >= 1) then
+            unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_loop3_old
+        endif
+        if ($feature >= 2) then
+	    unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_MRIDistance_old
+        endif
+        if ($feature >= 3) then
+	    unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_avoidable_prediction
+        endif
+        if ($feature >= 4) then
+	    unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_fast_avoidable_prediction
+        endif
+        if ($feature >= 5) then
+	    unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_ComputeVertexPseudoNormalCache_suppress
+        endif
+        if ($feature >= 6) then
+	    unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_sharedVertexPseudoNormalCache
+        endif
+	
+	set extension = -B${branch}-F${feature}-N${niters}-T${threads}
 
-      setenv FREESURFER_HOME ../../distribution
-      setenv SUBJECTS_DIR ./subjects
-      setenv OMP_NUM_THREADS $threads
-      echo "testing with $threads thread(s)"
+	# extract testing data
+	rm -rf testdata
+	gunzip -c testdata.tar.gz | tar xf -
 
-      setenv FREESURFER_REPLACEMENT_FOR_CREATION_TIME_STRING "Sun Jan 11 11:11:11 ZONE 2011"
+	cd testdata
+	cp subjects/bert/surf/lh.orig{.before,}
 
-      # ---- TEST 1 ----
+	setenv FREESURFER_HOME ../../distribution
+	setenv SUBJECTS_DIR ./subjects
+	setenv OMP_NUM_THREADS $threads
+	echo "testing with $threads thread(s)"
 
-      # run mris_make_surfaces using typical input
+	setenv FREESURFER_REPLACEMENT_FOR_CREATION_TIME_STRING "Sun Jan 11 11:11:11 ZONE 2011"
 
-      if (1) then
+	# ---- TEST 1 ----
+
+	# run mris_make_surfaces using typical input
 
         set cmd=(../mris_fix_topology${branch} \
                 $NITERS_OPTION \
@@ -51,53 +87,19 @@ foreach niters ( -1 )
                 -ga -seed 1234 bert lh)
 
         echo ""
-        echo "$cmd >& ../mris_fix_topology${branch}-T${threads}.log"
+        echo "$cmd >& ../mris_fix_topology${extension}.log"
         rm -rf oprofile_data
         operf -g -t \
-              $cmd >& ../mris_fix_topology${branch}-T${threads}.log
-        opreport --callgraph > ../mris_fix_topology_oprofile_callgraph${branch}.txt
-        
-        if ($status != 0) then
-          echo "mris_fix_topology FAILED"
-          set passed = 0
-        else
-          # compare expected results with actual (produced) results
+              $cmd >& ../mris_fix_topology${extension}.log
+        opreport --callgraph > ../mris_fix_topology_oprofile_callgraph${extension}.txt
 
-          set TST = subjects/bert/surf/lh.orig
-          set REF = ${TST}.REF${NITERS_EXTENSION}
-          set cmd=(../../mris_diff/mris_diff --debug $REF $TST );
+	# cleanup
 
-          echo ""
-          echo $cmd
-          $cmd
-          set diff_status=$status
-          if ($diff_status != 0) then
-            echo "$cmd FAILED (exit status=$diff_status)"
-            set passed = 0
-          endif
-        endif
+	cd ..
+	rm -rf testdata${extension}
+	mv testdata{,${extension}}
 
-      endif
-
-
-      # cleanup
-
-      cd ..
-      mv testdata{,${branch}}
-
-      # leave the files for making a replacement .tar.gz
-      #     rm -rf testdata
-
+      end
     end
   end
 end
-
-if ($passed != 0) then
-  echo ""
-  echo "test_mris_fix_topology passed all tests"
-  exit 0
-else
-  echo ""
-  echo "test_mris_fix_topology failed some tests"
-  exit 1
-endif

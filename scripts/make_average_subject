@@ -37,6 +37,7 @@ set DoSurfaces = 1;
 set DoVolumes  = 1;
 set Force = 0;
 set KeepAllOrig = 0;
+set DoRibbon = 1
 
 set cmdargs = ($argv);
 
@@ -106,7 +107,7 @@ if($DoVolumes) then
   endif
 endif
 
-if($DoSurfaces && $DoVolumes) then
+if($DoSurfaces && $DoVolumes && $DoRibbon) then
   set xopts = /tmp/make_average_subject.$$.xopts
   set cmd = (recon-all -s $average_subject -cortribbon -aparc2aseg)
   echo "mri_aparc2aseg --no-relabel" > $xopts
@@ -182,6 +183,10 @@ while( $#argv != 0 )
 
     case "--no-surf":
       set DoSurfaces = 0;
+      breaksw
+
+    case "--no-ribbon":
+      set DoRibbon = 0;
       breaksw
 
     case "--no-vol":
@@ -284,6 +289,7 @@ usage_exit:
   echo "   --force   : overwrite existing average subject data"
   echo "   --keep-all-orig : concatenate all orig vols into mri/orig.all.mgz"
   echo "   --no-symlink : do not use symbolic links with surfs (just copy files)"
+  echo "   --no-ribbon : do not create ribbon.mgz and aparc+aseg.mgz files"
   echo ""
   echo "   --help    : short descriptive help"
   echo "   --version : script version info"

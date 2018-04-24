@@ -119,6 +119,10 @@ static const int debugNonDeterminism = 0;
 #define MAXFACES (2 * MAXVERTICES)
 #define MAX_NBHD_VERTICES 20000
 
+
+static float squaref(float x) { return x*x; }
+
+
 // uncomment this to expose code which shows timings of gpu activities:
 //#define FS_CUDA_TIMINGS
 
@@ -757,9 +761,14 @@ static void reproducible_check(double cell, double val, int line, int* count)
 // #define mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
 
 static int activeRealmTreesSize;
+
+static bool hasActiveRealmTrees() {
+    return activeRealmTreesSize > 0;
+}
+
 static int orig_clock = 0;
 #define CHANGES_ORIG                                                                        \
-    if (activeRealmTreesSize) {                                                             \
+    if (hasActiveRealmTrees()) {                                                            \
         static int latest;                                                                  \
         if (orig_clock != latest) {                                                         \
             latest = orig_clock;                                                            \
@@ -1921,6 +1930,7 @@ static void MRISremovedFaces(MRI_SURFACE * mris, int nfaces) {
   MRISchangedNFacesNVertices(mris, true);
   *(int*)(&mris->nfaces) = nfaces;  // get around const
 }
+
 
 static void MRISoverAllocVerticesAndFaces(MRI_SURFACE* mris, int max_vertices, int max_faces, int nvertices, int nfaces)
 {
@@ -17821,7 +17831,7 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
     }
 
     m_U = MatrixAlloc(vertex->vtotal, 3, MATRIX_REAL);
-    v_z = VectorAlloc(vertex->vtotal, MATRIX_REAL);
+    v_z = VectorAlloc(vertex->vtotal,    MATRIX_REAL);
 
     if (vno == Gdiag_no) {
       DiagBreak();
@@ -17877,14 +17887,18 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
       }
     } while (n < 4);
 
-    m_Ut = MatrixTranspose(m_U, NULL);        /* Ut */
-    m_tmp2 = MatrixMultiply(m_Ut, m_U, NULL); /* Ut U */
+    MatrixBuffer m_Ut_buffer, m_tmp2_buffer;
+    
+    m_Ut   = MatrixAlloc2(m_U->cols, m_U->rows, MATRIX_REAL, &m_Ut_buffer);
+    m_Ut   = MatrixTranspose(m_U, m_Ut);        /* Ut cols x rows */
+    
+    m_tmp2 = MatrixAlloc2(m_Ut->rows, m_U->cols, MATRIX_REAL, &m_tmp2_buffer);
+    m_tmp2 = MatrixMultiply (m_Ut, m_U, m_tmp2);  /* Ut U  cols x rows * rows x cols = cols x cols */
     cond_no = MatrixConditionNumber(m_tmp2);
-#if 0
-    m_inverse = MatrixInverse(m_tmp2, NULL) ;    /* (Ut U)^-1 */
-#else
-    m_inverse = MatrixSVDInverse(m_tmp2, NULL); /* (Ut U)^-1 */
-#endif
+
+    MatrixBuffer m_inverse_buffer;
+    m_inverse = MatrixAlloc2(m_tmp2->cols, m_tmp2->rows, MATRIX_REAL, &m_inverse_buffer);
+    m_inverse = MatrixSVDInverse(m_tmp2, m_inverse); /* (Ut U)^-1 */
     if (!m_inverse) /* singular matrix - must be planar?? */
     {
       nbad++;
@@ -17892,7 +17906,9 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
       MatrixIdentity(m_eigen->rows, m_eigen);
     }
     else {
-      m_tmp1 = MatrixMultiply(m_Ut, v_z, NULL); /* Ut z */
+      MatrixBuffer m_tmp1_buffer;
+      m_tmp1 = MatrixAlloc2(m_Ut->rows, v_z->cols, MATRIX_REAL, &m_tmp1_buffer); 
+      m_tmp1 = MatrixMultiply(m_Ut, v_z, m_tmp1); /* Ut z */
       MatrixMultiply(m_inverse, m_tmp1, v_c);   /* (Ut U)^-1 Ut z */
 
       /* now build Hessian matrix */
@@ -42856,7 +42872,6 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
     GCA_MORPH *gcam;
     double xs, ys, zs, xv, yv, zv;
     float xv2, yv2, zv2;
-    MATRIX *m_atlas_ras2vox, *m_surf_vox2ras, *m_surf_ras_to_atlas_ras;
     VECTOR *v1, *v2;
 
     /*
@@ -42875,20 +42890,15 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
       mri = MRIalloc(gcam->atlas.width, gcam->atlas.height, gcam->atlas.depth, MRI_UCHAR);
       useVolGeomToMRI(&gcam->atlas, mri);
     }
-    GCAMrasToVox(gcam, mri_dst);
+    if (gcam->type == GCAM_RAS) {
+        GCAMrasToVox(gcam, mri_dst);
+    }
 
     v1 = VectorAlloc(4, MATRIX_REAL);
     VECTOR_ELT(v1, 4) = 1.0;
     v2 = VectorAlloc(4, MATRIX_REAL);
     VECTOR_ELT(v2, 4) = 1.0;
     voxelFromSurfaceRAS = voxelFromSurfaceRAS_(mri);
-    surfaceRASFromVoxel = surfaceRASFromVoxel_(mri_dst);
-    m_surf_vox2ras = MRIgetVoxelToRasXform(mri);  // from "surface" volume to ras
-    m_atlas_ras2vox = VGgetVoxelToRasXform(&gcam->atlas, NULL, 0);
-    // from "surface" volume to ras
-    // from surface ras to atlas ras
-    m_surf_ras_to_atlas_ras = MatrixMultiply(m_surf_vox2ras, voxelFromSurfaceRAS, NULL);
-    MatrixMultiply(m_atlas_ras2vox, m_surf_ras_to_atlas_ras, voxelFromSurfaceRAS);
 
     // now apply the transform
     for (vno = 0; vno < mris->nvertices; vno++) {
@@ -42922,10 +42932,6 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
     VectorFree(&v1);
     VectorFree(&v2);
     MatrixFree(&voxelFromSurfaceRAS);
-    MatrixFree(&surfaceRASFromVoxel);
-    MatrixFree(&m_surf_vox2ras);
-    MatrixFree(&m_atlas_ras2vox);
-    MatrixFree(&m_surf_ras_to_atlas_ras);
     if (dstNotGiven) {
       MRIfree(&mri_dst);
     }
@@ -45121,8 +45127,35 @@ typedef struct ActiveRealmTree {
     GetXYZ_FunctionType getXYZ;
 } ActiveRealmTree;
 
+
+
+#ifdef HAVE_OPENMP
+static volatile bool    activeRealmTreesLockInited = false;
+static omp_lock_t       activeRealmTreesLock;
+#endif
+
+static void acquireActiveRealmTrees() {
+#ifdef HAVE_OPENMP
+    if (!activeRealmTreesLockInited) {	// avoid critical if possible
+        #pragma omp critical
+    	if (!activeRealmTreesLockInited) {
+	    omp_init_lock(&activeRealmTreesLock);
+	    activeRealmTreesLockInited = true;
+    	}
+    }
+    omp_set_lock(&activeRealmTreesLock);
+#endif
+}
+
+static void releaseActiveRealmTrees() {
+#ifdef HAVE_OPENMP
+    omp_unset_lock(&activeRealmTreesLock);
+#endif
+}
+
 static int              activeRealmTreesCapacity;
 static ActiveRealmTree* activeRealmTrees;
+
 
 
 static void destructComputeDefectContext(ComputeDefectContext* computeDefectContext) {
@@ -45132,16 +45165,14 @@ static void destructComputeDefectContext(ComputeDefectContext* computeDefectCont
         computeDefectContext->mris_deferred_norms = NULL;
     }
     
-    if (computeDefectContext->realmTree)
-    #ifdef HAVE_OPENMP
-    #pragma omp critical
-    #endif
-    {
+    if (computeDefectContext->realmTree) {
+    	acquireActiveRealmTrees();
         int i;
         for (i = 0; activeRealmTrees[i].realmTree != computeDefectContext->realmTree; i++) ;
         i++;
         for (; i != activeRealmTreesSize; i++) activeRealmTrees[i-1] = activeRealmTrees[i];
         activeRealmTreesSize--;
+	releaseActiveRealmTrees();
     }
 
     freeRealmTree(&computeDefectContext->realmTree);
@@ -45153,28 +45184,29 @@ static void useComputeDefectContextRealmTree(
     MRIS  const * const   mris,
     GetXYZ_FunctionType   getXYZ) 
 {
-#ifdef HAVE_OPENMP
-    #pragma omp critical
-#endif
-{
     if (computeDefectContext->realmTree == NULL) {
+    
 #ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
         fprintf(stderr, "%s:%d useComputeDefectContextRealmTree making realmTree\n",__FILE__,__LINE__);
 #endif
         computeDefectContext->realmTree = makeRealmTree(mris, getXYZ);
         orig_clock++;
         
-        if (activeRealmTreesSize == activeRealmTreesCapacity) {
-            activeRealmTreesCapacity++;
-            activeRealmTrees = 
-                (ActiveRealmTree*)realloc(
-                    activeRealmTrees, activeRealmTreesCapacity*sizeof(ActiveRealmTree));
-        }
-        
-        ActiveRealmTree* art = &activeRealmTrees[activeRealmTreesSize++];
-        art->realmTree = computeDefectContext->realmTree;
-        art->mris      = mris;
-        art->getXYZ    = getXYZ;
+	{
+	    acquireActiveRealmTrees();
+            if (activeRealmTreesSize == activeRealmTreesCapacity) {
+        	activeRealmTreesCapacity++;
+        	activeRealmTrees = 
+                    (ActiveRealmTree*)realloc(
+                	activeRealmTrees, activeRealmTreesCapacity*sizeof(ActiveRealmTree));
+            }
+
+            ActiveRealmTree* art = &activeRealmTrees[activeRealmTreesSize++];
+            art->realmTree = computeDefectContext->realmTree;
+            art->mris      = mris;
+            art->getXYZ    = getXYZ;
+	    releaseActiveRealmTrees();
+    	}
     } else {
         updateRealmTree(computeDefectContext->realmTree, mris, getXYZ);
 #ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
@@ -45185,46 +45217,42 @@ static void useComputeDefectContextRealmTree(
 #endif
     }
 }
-}
 
 static int noteVnoMovedInActiveRealmTreesCount;
 static void noteVnoMovedInActiveRealmTrees(MRIS const * const mris, int vno) {
-#ifdef HAVE_OPENMP
-    #pragma omp critical
-#endif
-    {   int i;
-        noteVnoMovedInActiveRealmTreesCount++;
-        for (i = 0; i < activeRealmTreesSize; i++) {
-            if (activeRealmTrees[i].mris != mris) continue;
-            if (0)
-                fprintf(stderr,"Thread:%d updating realmTree:%p vno:%d\n", 
-                    omp_get_thread_num(), activeRealmTrees[i].realmTree, vno);
-            noteIfXYZChangedRealmTree(
-                activeRealmTrees[i].realmTree, 
-                activeRealmTrees[i].mris,
-                activeRealmTrees[i].getXYZ, 
-                vno);
-        }
+    acquireActiveRealmTrees();
+    int i;
+    noteVnoMovedInActiveRealmTreesCount++;
+    for (i = 0; i < activeRealmTreesSize; i++) {
+        if (activeRealmTrees[i].mris != mris) continue;
+        if (0)
+            fprintf(stderr,"Thread:%d updating realmTree:%p vno:%d\n", 
+                omp_get_thread_num(), activeRealmTrees[i].realmTree, vno);
+        noteIfXYZChangedRealmTree(
+            activeRealmTrees[i].realmTree, 
+            activeRealmTrees[i].mris,
+            activeRealmTrees[i].getXYZ, 
+            vno);
     }
+    releaseActiveRealmTrees();
 }
 
 static void notifyActiveRealmTreesChangedNFacesNVertices(MRIS const * const mris) {
-#ifdef HAVE_OPENMP
-    #pragma omp critical
-#endif
-    {   int i;
-        for (i = 0; i < activeRealmTreesSize; i++) {
-            if (activeRealmTrees[i].mris != mris) continue;
-            if (0)
-                fprintf(stderr,"Thread:%d updating realmTree:%p\n", 
-                    omp_get_thread_num(), activeRealmTrees[i].realmTree);
-            updateRealmTree(
-                activeRealmTrees[i].realmTree, 
-                activeRealmTrees[i].mris,
-                activeRealmTrees[i].getXYZ);
-        }
+    acquireActiveRealmTrees();
+    int i;
+    for (i = 0; i < activeRealmTreesSize; i++) {
+        if (activeRealmTrees[i].mris != mris) continue;
+        if (0)
+            fprintf(stderr,"Thread:%d updating realmTree:%p\n", 
+                omp_get_thread_num(), activeRealmTrees[i].realmTree);
+        updateRealmTree(
+            activeRealmTrees[i].realmTree, 
+            activeRealmTrees[i].mris,
+            activeRealmTrees[i].getXYZ);
     }
+    releaseActiveRealmTrees();
 }
+
 
 // IntersectDefectEdgesContext are used to speed up intersectDefectEdges and intersectDefectConvexHullEdges
 // by sharing computations across multiple calls
@@ -49549,11 +49577,18 @@ static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp)
       }
       n++;
     }
-    m_Ut = MatrixTranspose(m_U, NULL);        /* Ut */
-    m_tmp2 = MatrixMultiply(m_Ut, m_U, NULL); /* Ut U */
+    
+    MatrixBuffer m_Ut_buffer, m_tmp2_buffer;
+    m_Ut   = MatrixAlloc2(m_U->cols, m_U->rows, MATRIX_REAL, &m_Ut_buffer); 
+    m_Ut   = MatrixTranspose(m_U, m_Ut);        /* Ut */
+    
+    m_tmp2 = MatrixAlloc2(m_Ut->rows, m_U->cols, MATRIX_REAL, &m_tmp2_buffer);
+    m_tmp2 = MatrixMultiply(m_Ut, m_U, m_tmp2); /* Ut U */
     cond_no = MatrixConditionNumber(m_tmp2);
 
-    m_inverse = MatrixSVDInverse(m_tmp2, NULL); /* (Ut U)^-1 */
+    MatrixBuffer m_inverse_buffer;
+    m_inverse = MatrixAlloc2(m_U->cols, m_U->cols, MATRIX_REAL, &m_inverse_buffer);
+    m_inverse = MatrixSVDInverse(m_tmp2, m_inverse); /* (Ut U)^-1 */
 
     if (!m_inverse) {
       /* singular matrix - must be planar?? */
@@ -49561,7 +49596,9 @@ static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp)
       evalues[0] = evalues[1] = 0.0;
     }
     else {
-      m_tmp1 = MatrixMultiply(m_Ut, v_z, NULL); /* Ut z */
+      MatrixBuffer m_tmp1_buffer;
+      m_tmp1 = MatrixAlloc2(m_Ut->rows, v_z->cols, MATRIX_REAL, &m_tmp1_buffer); 
+      m_tmp1 = MatrixMultiply(m_Ut, v_z, m_tmp1); /* Ut z */
       MatrixMultiply(m_inverse, m_tmp1, v_c);   /* (Ut U)^-1 Ut z */
 
       /* now build Hessian matrix */
@@ -50025,8 +50062,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
   VERTEX *vertex1, *vertex2;
   int counting;
 
-  ROMP_PF_begin
-  
   /* initialize arrays of tessellated patch to null pointer*/
   TPinit(&dp->tp);
 
@@ -50077,10 +50112,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
   /* allocate the table of potentially intersected edges */
   it = (IT *)calloc(nedges, sizeof(IT));
 
-  ROMP_PF_end
-  
-  ROMP_PF_begin
-
   static long stats_count = 0;
   static long stats_limit = 1;
   long stats_modified_loops   = 0;
@@ -50094,8 +50125,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
     
     IntersectDefectEdgesContext intersectDefectEdgesContext; 
     initIntersectDefectEdgesContext(&intersectDefectEdgesContext, mris);
-    
-    ROMP_PF_begin
     
     /* start building the retessellation */
     for (index = 0; index < nedges; index++) {
@@ -50142,8 +50171,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
       {
         int intersects = 0;
 
-        ROMP_PF_begin   // mris_fix_topology not using this
-        
         for (j = 0; j < etable->noverlap[i]; j++)
           if (et[etable->overlapping_edges[i][j]].used &&
               et[etable->overlapping_edges[i][j]].used != USED_IN_ORIGINAL_TESSELLATION) {
@@ -50156,8 +50183,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
             break;
           }
           
-        ROMP_PF_end
-        
         if (intersects) {
           continue;
         }
@@ -50176,8 +50201,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
         /* this edge could potentially be added : no sphere intersection */
         nadded++;
 
-        ROMP_PF_begin   // negliable time spent in here
-        
         if (possiblyAddEdgesAndFaces(mris_corrected, et[i].vno1, et[i].vno2, dp->retessellation_mode)) {
           obsoleteIntersectDefectEdgesContext(&intersectDefectEdgesContext);
           nthings++;
@@ -50202,7 +50225,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
           }
         }
         
-        ROMP_PF_end
       }
       else /* intersecting edge with edge e1<-->e2 */
       {
@@ -50210,14 +50232,8 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
       }
     }
 
-    ROMP_PF_end
-    ROMP_PF_begin       // negliable time spent in here
-
     finiIntersectDefectEdgesContext(&intersectDefectEdgesContext);
 
-    ROMP_PF_end
-    ROMP_PF_begin       // negliable time spent in here
-    
     /* now update the edges */
     for (index = 0; index < nedges; index++) {
       /* keep the same order (not necessary) */
@@ -50264,7 +50280,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
         it[i].intersected = 1;
       }
     }
-    ROMP_PF_end
   }
 
   if (++stats_count >= stats_limit) {
@@ -50278,9 +50293,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
         stats_nedges_loops_heavy, stats_intersection_function_calls);
     }
   }
-
-  ROMP_PF_end
-  ROMP_PF_begin     // negliable time spent in here
 
   /* in this retessellation we have added, at most, nthings edges */
   things = (int *)malloc(nthings * sizeof(int));
@@ -50306,9 +50318,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
       max_i = i;
     }
   }
-
-  ROMP_PF_end
-  ROMP_PF_begin     // negliable time spent in here
   
   /* store list of used edges */
   dp->tp.nedges = nthings;
@@ -50382,8 +50391,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
 
   /* free the allocated memory for the intersection_table */
   free(it);
-
-  ROMP_PF_end
 
   return (NO_ERROR);
 }
@@ -56121,7 +56128,7 @@ static void vertexPseudoNormal(MRIS *mris1, int vn1, MRIS *mris2, int vn2, float
         // MRISwrite(mris,"rh.testdebug2");
         if (1)  // verbose==VERBOSE_MODE_HIGH)
         {
-          ErrorExit(ERROR_BADPARM, "computeVertexPseudoNormal: SHOULD NOT HAPPEN\n");
+          ErrorExit(ERROR_BADPARM, "vertexPseudoNormal: SHOULD NOT HAPPEN\n");
         }
       }
     }
@@ -56875,12 +56882,274 @@ static double mrisComputeDefectMRILogUnlikelihood(
     return result;
 }
 
+
+// PerThreadVertexPseudoNormalCache
+// Since each vertex is in two or more faces, it makes sense to cache this
+// Sizing it will be important - based on test_mris_fix_topology
+//
+#define PerThreadVertexPseudoNormalCacheSize (1<<12)	    	    	    	    	// below code assumes this is divisible by (sizeof(long) * 8) 
+#define PerThreadVertexPseudoNormalCacheMask (PerThreadVertexPseudoNormalCacheSize-1)
+typedef struct PerThreadVertexPseudoNormalCacheEntry {
+  int   vno;
+  float norm[3];
+} PerThreadVertexPseudoNormalCacheEntry;
+
+#define PerThreadVertexPseudoNormalCacheInitedSize (PerThreadVertexPseudoNormalCacheSize / (sizeof(long) * 8))
+
+typedef struct PerThreadVertexPseudoNormalCache {
+  long                                  inited [PerThreadVertexPseudoNormalCacheInitedSize];
+  PerThreadVertexPseudoNormalCacheEntry entries[PerThreadVertexPseudoNormalCacheSize      ];
+} PerThreadVertexPseudoNormalCache;
+
+static PerThreadVertexPseudoNormalCache* makePerThreadVertexPseudoNormalCache() {
+  PerThreadVertexPseudoNormalCache* p = (PerThreadVertexPseudoNormalCache*)malloc(sizeof(PerThreadVertexPseudoNormalCache));
+  bzero(&p->inited, sizeof(p->inited));
+  return p;
+}
+
+static void freePerThreadVertexPseudoNormalCache(PerThreadVertexPseudoNormalCache** pp) {
+  PerThreadVertexPseudoNormalCache* p = *pp;
+  *pp = NULL;
+  if (!p) return;
+  freeAndNULL(p);
+}
+
+static void cachedOrComputeVertexPseudoNormal(
+  PerThreadVertexPseudoNormalCache** pp,
+  MRI_SURFACE const  * const mris,
+  int                  const vno,
+  float*               const norm,	    	    // output!
+  DEFECT_PATCH const * const dp) {
+    
+  static volatile bool once;
+  static bool use_cache, test_cache;
+  if (!once) 
+#ifdef HAVE_OPENMP
+  #pragma omp critical
+#endif
+  if (!once) {
+    use_cache  =  !getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_ComputeVertexPseudoNormalCache_suppress");	
+    test_cache = !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_ComputeVertexPseudoNormalCache_test");	
+    use_cache |= test_cache;
+    if (!use_cache)  
+      fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood not using ComputeVertexPseudoNormalCache\n");
+    if (test_cache) 
+      fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood testing ComputeVertexPseudoNormalCache\n");
+    once = true;
+  }
+
+  static long count, limit = 1, hits, invalidates;
+  count++;
+  
+  PerThreadVertexPseudoNormalCacheEntry* entry = NULL;
+  
+  bool valid = false;
+  if (use_cache) {
+    PerThreadVertexPseudoNormalCache* p = *pp;
+    if (!p) {
+    	*pp = p = (PerThreadVertexPseudoNormalCache*)malloc(sizeof(PerThreadVertexPseudoNormalCache));
+	bzero(&p->inited, sizeof(p->inited));
+    }
+
+    bool inited = false;
+
+    int index = (vno*1234567) & PerThreadVertexPseudoNormalCacheMask;
+    int tries;
+    for (tries = 0; tries < 2; tries++) {
+      int const initedIndex =       (index / ( sizeof(long) * 8)   );
+      int const initedMask  = 1L << (index & ((sizeof(long) * 8)-1));
+      
+      if (0) {
+      	cheapAssert(0 <= index);
+      	cheapAssert(index       < PerThreadVertexPseudoNormalCacheSize);
+      	cheapAssert(initedIndex < PerThreadVertexPseudoNormalCacheInitedSize);
+      }
+      
+      inited = p->inited[initedIndex] & initedMask;
+      p->inited[initedIndex] |= initedMask;   	    	// will be inited soon
+      
+      
+      entry = &p->entries[index];
+      if (!inited) break;	    	    	    	// use this entry, since currently empty
+
+      valid = inited && (entry->vno == vno);
+      if (valid) {  // use this entry, since is the right one
+	hits++; 
+	break; 
+      }
+      
+      index = (index + 1) & PerThreadVertexPseudoNormalCacheMask;
+    }
+    
+    if (!valid) {	    	    	// either empty, or too many tries made
+      if (inited) invalidates++;  	// count evictions
+      entry->vno = vno;     	    	// use it
+    }
+  }
+      
+  // Fetch from, or update, or test cache
+  //
+  if (valid && !test_cache) {
+
+    memmove(norm, &entry->norm, sizeof(entry->norm));
+
+  } else {
+
+    computeVertexPseudoNormal(mris, vno, norm, dp->verbose_mode);
+
+    if (valid && memcmp(&entry->norm, norm, sizeof(entry->norm))) {
+      static int count;
+      if (count++ < 10) {
+	fprintf(stdout,"%s:%d PerThreadVertexPseudoNormalCacheEntry wrong norm for vno:%d tid:%d<<<<<<<<<<<<<\n", __FILE__, __LINE__, 
+	    vno, omp_get_thread_num());
+	fprintf(stdout,"cache:%g %g %g\n", entry->norm[0], entry->norm[1], entry->norm[2]);
+	fprintf(stdout,"norm :%g %g %g\n",        norm[0],        norm[1],        norm[2]);
+	exit(1);
+      }
+    }
+    
+    if (entry) memmove(&entry->norm, norm, sizeof(entry->norm));
+  }
+  
+  if (test_cache) {
+    if (count >= limit) {
+      if (limit < 100000) limit *= 2; else limit += 100000;
+      fprintf(stdout, "cachedOrComputeVertexPseudoNormal count:%g hits:%g invalidates:%g\n", (float)count, (float)hits, (float)invalidates);
+    }
+  }
+}
+
+
+// PerThreadMRIDistance is used to avoid locks and cache-bouncing below
+//
+typedef struct PerThreadMRIDistance {
+  MRI const * mri_distance;
+  int heightTimesDepth,depth;
+  float* elts;
+} PerThreadMRIDistance;
+
+static PerThreadMRIDistance* makePerThreadMRIDistance(MRI const * const mri_distance) {
+  PerThreadMRIDistance* ptd = (PerThreadMRIDistance*)malloc(sizeof(PerThreadMRIDistance));
+  ptd->mri_distance 	= mri_distance;
+  ptd->heightTimesDepth = mri_distance->height*mri_distance->depth;
+  ptd->depth        	= mri_distance->depth;
+  int size          	= mri_distance->width*mri_distance->height*mri_distance->depth;
+  float* elts = ptd->elts = (float*)malloc(size*sizeof(float));
+  int i;
+  for (i = 0; i < size; i++) elts[i] = NPY;
+  return ptd;
+}
+
+static float* perThreadMRIDistanceElt(PerThreadMRIDistance* ptd, int i, int j, int k) {
+  return &ptd->elts[i*ptd->heightTimesDepth + j*ptd->depth + k];
+}
+
+static void freePerThreadMRIDistance(PerThreadMRIDistance** ptdp) {
+  PerThreadMRIDistance* ptd = *ptdp;
+  *ptdp = NULL;
+  if (!ptd) return;
+  freeAndNULL(ptd->elts);
+  freeAndNULL(ptd);
+}
+
+
+static void updateDistanceElt(volatile float* f, float distance, bool lockNeeded) {
+    
+#ifdef HAVE_OPENMP
+  if (lockNeeded) {
+    if (fabs(distance) > fabs(*f)) return;  	// avoid the lock if possible
+    #pragma omp critical
+    updateDistanceElt(f, distance, false);
+    return;
+  } 
+#endif
+
+  // There was a reproducibility problem here.
+  // If the smallest positive distance and the smallest negative distance is the same fabs()
+  // then this code would randomly choose between them.
+  //
+  // The solution is to have the positive be the preferred of two equal values.
+  //
+  if (fabs(distance) < fabs(*f)) {
+    *f = distance;	            
+  } else if (fabs(distance) == fabs(*f)) {
+    // They are equal.  Prefer the positive.
+    if (distance > 0) *f = distance;
+  }
+}
+
 static double mrisComputeDefectMRILogUnlikelihood_wkr(
     ComputeDefectContext* computeDefectContext,
-    MRI_SURFACE  * const mris_nonconst, 			        // various subcomponents of these structures get updated
+    MRI_SURFACE  * const mris_nonconst, 			            	// various subcomponents of these structures get updated
     DEFECT_PATCH * const dp_nonconst, 
     HISTOGRAM    * const h_border_nonconst)
 {
+#if 1
+  // The tests themselves are expensive, so eliminate them except when developing
+  //
+  static const bool 
+    keep_sign_bug = false,  	    	    	    	    	    	    	    	// no test
+    do_new_MRIDistance = true,     	    	    	    	    	    	    	// if both set, that tests the new
+    do_old_MRIDistance = false,
+    do_new_loop3 = true,   	    	    	    	    	    	    	    	// if both set, that tests the new
+    do_old_loop3 = false, 
+    	    	    	            	        use_fast_avoidable_prediction = true,	// no test
+    test_avoidable_prediction = false, 	        use_avoidable_prediction = true,
+    test_sharedVertexPseudoNormalCache = false, use_sharedVertexPseudoNormalCache = true;
+#else
+  // Allow comparing different options quickly, but the times are affected compared to unconditional
+  //
+  static bool 
+    keep_sign_bug,  	    	    	    	    	    	    	    	// no test
+    do_new_MRIDistance,     	    	    	    	    	    	    	// if both set, that tests the new
+    do_old_MRIDistance,
+    do_new_loop3,   	    	    	    	    	    	    	    	// if both set, that tests the new
+    do_old_loop3, 
+    	    	    	            	    use_fast_avoidable_prediction,	// no test
+    test_avoidable_prediction,      	    use_avoidable_prediction,
+    test_sharedVertexPseudoNormalCache,     use_sharedVertexPseudoNormalCache;
+    
+  static bool once;
+  if (!once) { once = true;
+    keep_sign_bug             	    	= !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug"); 
+    do_old_loop3              	    	= !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_loop3_old");
+    do_new_loop3              	    	= !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_loop3_new") || !do_old_loop3;
+    do_old_MRIDistance  	    	= !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_MRIDistance_old");	
+    do_new_MRIDistance  	    	= !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_MRIDistance_new") || !do_old_MRIDistance;
+    test_avoidable_prediction 	    	= !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_test_avoidable_prediction");
+    use_avoidable_prediction  	    	=  !getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_avoidable_prediction") 
+    	    	    	    	    	    || test_avoidable_prediction;
+    use_fast_avoidable_prediction   	=  !getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_fast_avoidable_prediction") 
+    	    	    	    	    	    && use_avoidable_prediction;
+    
+    test_sharedVertexPseudoNormalCache	= !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_test_sharedVertexPseudoNormalCache"),
+    use_sharedVertexPseudoNormalCache	=  !getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_sharedVertexPseudoNormalCache")
+    	    	    	    	    	    || test_sharedVertexPseudoNormalCache;
+
+    if (do_old_loop3) {
+      fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood using old loop3 algorithm with the %s\n",keep_sign_bug?"sign bug still there":"sign bug fixed");
+      if (do_new_loop3) 
+        fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood comparing old and new loop3 algorithm\n");
+    }
+    if (do_old_MRIDistance) {
+      fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood using old mris_distance\n");
+      if (do_new_MRIDistance) {
+        fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood comparing old and new mris_distance\n");
+      }
+    }
+    if (!use_avoidable_prediction) {
+      fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood using old tests only\n");
+    }
+    if (!use_fast_avoidable_prediction) {
+      fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood using slower prediction code only\n");
+    }
+    if (!use_sharedVertexPseudoNormalCache) {
+      fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood not using sharedVertexPseudoNormalCache%s\n",
+        test_sharedVertexPseudoNormalCache?" only, but testing it":"");
+    }
+  }
+#endif
+
   MRI_SURFACE  const * const mris     = mris_nonconst;			// find where the modifiers are
   DEFECT_PATCH const * const dp       = dp_nonconst;
   //HISTOGRAM  const * const h_border = h_border_nonconst;		// unused
@@ -56896,17 +57165,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   }
   //  TIMER_INTERVAL_END(getRealmTree)
 
-  { int i,j,k;
-    for (i = 0; i < mri_distance->width; i++) {
-      for (j = 0; j < mri_distance->height; j++) {
-        for (k = 0; k < mri_distance->depth; k++) {
-          MRIFvox(mri_distance_nonconst, i, j, k) = NPY;		// MODIFIER THAT WASN'T DETECTED
-        }
-      }
-    }
-  }
-
-
+  int const maxThreads = omp_get_max_threads();
   if (computeDefectContext) {
     computeDefectContext->mris_deferred_norms = mris_nonconst;  // MODIFIER
     deferSetFaceNorms(mris_nonconst);
@@ -57213,17 +57472,93 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 
   //  TIMER_INTERVAL_BEGIN(taskExecution)
 
+  // The following is a very complex loop
+  // We need to understand its behavior better before starting to optimize it
+  //
+  bool traceTid0 = false;
+  if (0) {
+    static long count, limit=1, sumBufferSize;
+    count++;
+    sumBufferSize += bufferSize;
+    if (count >= limit) {
+      limit *= 2;
+      fprintf(stdout, "%s:%d count:%ld avg bufferSize:%g\n", __FILE__, __LINE__, count, (float)sumBufferSize/(float)count);
+      traceTid0 = (count == 1024);
+    }
+  }
+  
+  
   // do the tasks
   //
-  int bufferIndex = 0;
+  PerThreadVertexPseudoNormalCache* perThreadVertexPseudoNormalCache[_MAX_FS_THREADS];
+  PerThreadMRIDistance*             perThreadMRIDistances           [_MAX_FS_THREADS];
+  { int tid; 
+    for (tid = 0; tid < maxThreads; tid++) {
+      perThreadMRIDistances           [tid] = NULL; 	// allocate in the loop to get in the right cache and to parallelize the init
+      perThreadVertexPseudoNormalCache[tid] = NULL;
+    }
+  }
+  
+  if (do_old_MRIDistance) 
+  { int i,j,k;
+    for (i = 0; i < mri_distance->width; i++) {
+      for (j = 0; j < mri_distance->height; j++) {
+        for (k = 0; k < mri_distance->depth; k++) {
+          MRIFvox(mri_distance_nonconst, i, j, k) = NPY;		// MODIFIER THAT WASN'T DETECTED
+        }
+      }
+    }
+  }
+
+  typedef struct Float3 { float elts[3]; } Float3;
+  Float3* sharedVertexPseudoNormalCache = NULL;
+  if (use_sharedVertexPseudoNormalCache) {
+  
+    sharedVertexPseudoNormalCache = (Float3*)malloc(sizeof(Float3) * mris->nvertices);
+
+    volatile char* done = (char*)calloc(mris->nvertices,sizeof(char)); 
+    
+    ROMP_PF_begin
+    int bufferIndex;
+#ifdef HAVE_OPENMP
+    #pragma omp parallel for if_ROMP(shown_reproducible)
+#endif
+    for (bufferIndex = 0; bufferIndex < bufferSize; bufferIndex++) {
+      Entry const * const entry = &buffer[bufferIndex];
+      FACE  const * const face  = entry->face;
+      int vi;
+      for (vi = 0; vi < 3; vi++) {
+        int const vno = face->v[vi];
+        char alreadyDone;
+#ifdef HAVE_OPENMP
+        #pragma omp critical
+#endif
+        {  alreadyDone = done[vno]; 
+           done[vno] = 1; 
+        }
+        
+        if (alreadyDone) continue;
+        computeVertexPseudoNormal(mris, vno, sharedVertexPseudoNormalCache[vno].elts, dp->verbose_mode);
+	done[vno] = 1;
+      }
+    }
+    ROMP_PF_end
+    
+    free((char*)done);
+  }
 
   ROMP_PF_begin
+
+  int bufferIndex;
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(shown_reproducible)
 #endif
   for (bufferIndex = 0; bufferIndex < bufferSize; bufferIndex++) {
     ROMP_PFLB_begin
+    int const tid = omp_get_thread_num();
     
+    bool const trace = traceTid0 && (tid == 0);
+
     typedef void p;	// poison p
     Entry const * entry = &buffer[bufferIndex];
 
@@ -57240,15 +57575,61 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     int const kmin = MAX(kmin_nobnd, 0);
     int const kmax = MIN(kmax_nobnd, mri_defect->depth - 1);
 
-    /* generating the pseudo-normals for edges and vertices */
+    // Get the pseudonormals
+    // My previous belief was they would not many would be needed by more than one threads, but maybe they are
+    // I should measure this!  Or maybe we should use a snoopy cache!
+    //
+    float n_v0[3], n_v1[3], n_v2[3];
+    
+    if (!use_sharedVertexPseudoNormalCache || test_sharedVertexPseudoNormalCache) {
+      cachedOrComputeVertexPseudoNormal(&perThreadVertexPseudoNormalCache[tid], mris, face->v[0], n_v0, dp);
+      cachedOrComputeVertexPseudoNormal(&perThreadVertexPseudoNormalCache[tid], mris, face->v[1], n_v1, dp);
+      cachedOrComputeVertexPseudoNormal(&perThreadVertexPseudoNormalCache[tid], mris, face->v[2], n_v2, dp);
+    } 
+
+    if (use_sharedVertexPseudoNormalCache) {
+      if (test_sharedVertexPseudoNormalCache) {
+    	if (memcmp(n_v0, sharedVertexPseudoNormalCache[face->v[0]].elts, sizeof(n_v0)) 
+	||  memcmp(n_v1, sharedVertexPseudoNormalCache[face->v[1]].elts, sizeof(n_v1))
+	||  memcmp(n_v2, sharedVertexPseudoNormalCache[face->v[2]].elts, sizeof(n_v2))) {
+	  fprintf(stdout, "%s:%d sharedVertexPseudoNormalCache wrong\n", __FILE__, __LINE__);
+	  float* e0 = sharedVertexPseudoNormalCache[face->v[0]].elts;
+	  float* e1 = sharedVertexPseudoNormalCache[face->v[1]].elts;
+	  float* e2 = sharedVertexPseudoNormalCache[face->v[2]].elts;
+	  fprintf(stdout, " v0 %g %g %g  ?=  %g %g %g \n", n_v0[0], n_v0[1], n_v0[2], e0[0], e0[1], e0[2]);
+	  fprintf(stdout, " v1 %g %g %g  ?=  %g %g %g \n", n_v1[0], n_v1[1], n_v1[2], e1[0], e1[1], e1[2]);
+	  fprintf(stdout, " v2 %g %g %g  ?=  %g %g %g \n", n_v2[0], n_v2[1], n_v2[2], e2[0], e2[1], e2[2]);
+	  exit(1);
+	}
+      } else {
+    	memmove(n_v0, sharedVertexPseudoNormalCache[face->v[0]].elts, sizeof(n_v0)); 
+	memmove(n_v1, sharedVertexPseudoNormalCache[face->v[1]].elts, sizeof(n_v1));
+	memmove(n_v2, sharedVertexPseudoNormalCache[face->v[2]].elts, sizeof(n_v2));
+      }
+    } 
+    
+    // Generate the edges and their normals
+    //
     float n_f [3];
     float   n0[3],   n1[3],   n2[3];
     float   e0[3],   e1[3],   e2[3];
     float n_e0[3], n_e1[3], n_e2[3];
     {
-      int fn1;
-    
-      FaceNormCacheEntry const * fNorm = getFaceNorm(mris, fno);
+      // Do these first, so the optimizer has plenty of common subexpressions knowing the pointed-to items aren't changing
+      //
+      int fnoV01 = findOtherEdgeFace(mris, fno, face->v[0], face->v[1]);
+      int fnoV12 = findOtherEdgeFace(mris, fno, face->v[1], face->v[2]);
+      int fnoV20 = findOtherEdgeFace(mris, fno, face->v[2], face->v[0]);
+
+      if (trace) {
+      	fprintf(stdout, "  fno:%d abuts fnos:%d %d %d\n", fno, fnoV01, fnoV12, fnoV20);
+      }
+      
+      FaceNormCacheEntry const * fNorm  = getFaceNorm(mris, fno);
+      FaceNormCacheEntry const * fNorm0 = getFaceNorm(mris, fnoV01);
+      FaceNormCacheEntry const * fNorm1 = getFaceNorm(mris, fnoV12);
+      FaceNormCacheEntry const * fNorm2 = getFaceNorm(mris, fnoV20);
+
       n_f[0] = fNorm->nx;
       n_f[1] = fNorm->ny;
       n_f[2] = fNorm->nz;
@@ -57259,8 +57640,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
       e0[2] = z1 - z0;
     
       F_CROSS(n_f, e0, n0);
-      fn1 = findOtherEdgeFace(mris, fno, face->v[0], face->v[1]);
-      FaceNormCacheEntry const * fNorm0 = getFaceNorm(mris, fn1);
+
       n_e0[0] = fNorm->nx + fNorm0->nx;
       n_e0[1] = fNorm->ny + fNorm0->ny;
       n_e0[2] = fNorm->nz + fNorm0->nz;
@@ -57271,8 +57651,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
       e1[2] = z2 - z1;
 
       F_CROSS(n_f, e1, n1);
-      fn1 = findOtherEdgeFace(mris, fno, face->v[1], face->v[2]);
-      FaceNormCacheEntry const * fNorm1 = getFaceNorm(mris, fn1);
+
       n_e1[0] = fNorm->nx + fNorm1->nx;
       n_e1[1] = fNorm->ny + fNorm1->ny;
       n_e1[2] = fNorm->nz + fNorm1->nz;
@@ -57283,175 +57662,615 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
       e2[2] = z0 - z2;
 
       F_CROSS(n_f, e2, n2);
-      fn1 = findOtherEdgeFace(mris, fno, face->v[2], face->v[0]);
-      FaceNormCacheEntry const * fNorm2 = getFaceNorm(mris, fn1);
+
       n_e2[0] = fNorm->nx + fNorm2->nx;
       n_e2[1] = fNorm->ny + fNorm2->ny;
       n_e2[2] = fNorm->nz + fNorm2->nz;
+
     }
 
-    /* vertex pseudo-normals */
-    float n_v0[3], n_v1[3], n_v2[3];
-    computeVertexPseudoNormal(mris, face->v[0], n_v0, dp->verbose_mode);
-    computeVertexPseudoNormal(mris, face->v[1], n_v1, dp->verbose_mode);
-    computeVertexPseudoNormal(mris, face->v[2], n_v2, dp->verbose_mode);
+    float const SQR3_e0 = SQR3(e0);
+    float const SQR3_e1 = SQR3(e1);
+    float const SQR3_e2 = SQR3(e2);
+
+
+    if (trace) {
+      fprintf(stdout, "  computeVertexPseudoNormal for vnos:%d %d %d\n", face->v[0], face->v[1], face->v[2]);
+    }
 
     if (0) {
-      static int count, limit = 1;
-      bool show = (++count > limit);
-      if (show) {
-        limit *= 2;
-        fprintf(stderr, "mris->nfaces:%d imin:%d imax:%d jmin:%d jmax:%d kmin:%d kmax:%d \n", 
-          mris->nfaces, imin, imax, jmin, jmax, kmin, kmax);
-      }
+    	// Find out the sizes of these boxes
+    	static int count, limit = 128;
+	if (count++ > limit) 
+    	#pragma omp critical
+	{
+	    limit *= 2;
+	    float 
+	    	xmin = xSURF(mri_defect, imin),
+	    	xmax = xSURF(mri_defect, imax),
+	    	ymin = xSURF(mri_defect, jmin),
+	    	ymax = xSURF(mri_defect, jmax),
+	    	zmin = xSURF(mri_defect, kmin),
+	    	zmax = xSURF(mri_defect, kmax);
+	    fprintf(stdout, "%s:%d box %g..%g,%g..%g,%g..%g %g*%g*%g\n", __FILE__, __LINE__, 
+	    	xmin,xmax,ymin,ymax,zmin,zmax,xmax-xmin,ymax-ymin,zmax-zmin);
+	    fprintf(stdout, "%d..%d,%d..%d,%d..%d %d*%d*%d=%d\n",
+	    	imin,imax,jmin,jmax,kmin,kmax,imax+1-imin,  jmax+1-jmin,  kmax+1-kmin,
+		                             (imax+1-imin)*(jmax+1-jmin)*(kmax+1-kmin));
+	}
     }
+    
+    // Bevin has an ideas for making the following faster.
+    // It is looping over a box, and for each point in the box deciding...
+    // 
+    // (a) which aspect of the face this point is closest to
+    //	    - the face
+    //	    - one of the six corners
+    //	    - one of the six edges
+    //
+    // (b) what the distance is to that aspect
+    //
+    // (c) the minimum of the distance to that aspect of this face and to all the similar situation on all the other faces
+    //
+    // However there are two facts that can speed this up
+    //
+    // 1.   It is possible to get a lower bound on the distance to this face, and - when it is too large - don't bother refining it
+    //	    This estimate can be based on the average of the vertices, and the distance from it to the furtherest vertex.
+    //	    because we know
+    //	    	let IJK be any point in the box, and FP be any point on the face
+    //	    	    distance(IJK, Center) <= distance(IJK,FP) + distance(FP,Center) 	hence
+    //	    	    distance(IJK, Center) - distance(FP,Center) <= distance(IJK,FP)
+    //	    so when the LHS is larger than the current least distance for IJK, it is not worth further consideration of this face 
+    //
+    // 2.   If two points in the box are nearest to the same aspect, then all points between them are also nearest to it
+    //      which avoids deciding which of the branches below to take.  This is not yet exploited
+    //
+    // In addition an initial estimate of the minimum distance can be obtained from the realm tree, which will ignore even more faces.
+    //	    TBD
+    //
+    // Calculate the center of the face - note, the precise location is not important.
+    //    
+    float cx = 0, cy = 0, cz = 0;
+    {
+    	int vi;
+	for (vi = 0; vi < 3; vi++) {
+	    VERTEX const * v = &mris->vertices[face->v[vi]];
+	    cx += v->origx;
+	    cy += v->origy;
+	    cz += v->origz;
+	}
+	cx *= 0.33f; cy *= 0.33f; cz *= 0.33f;
+    }
+    
+    // Calculate the square of the furtherest distance
+    //
+    float furtherestVertexDistanceSquared = 0;
+    {
+    	int vi;
+	for (vi = 0; vi < 3; vi++) {
+	    VERTEX const * v = &mris->vertices[face->v[vi]];
+	    float x = cx - v->origx;
+	    float y = cy - v->origy;
+	    float z = cz - v->origz;
+	    furtherestVertexDistanceSquared = MAX(furtherestVertexDistanceSquared, x*x + y*y + z*z);
+	}
+    }
+    float const furtherestVertexDistance = sqrtf(furtherestVertexDistanceSquared) * 1.01f;  // margin for error included
+    
+    // For each point in the box, find the distance, and update the leasts accordingly
+    //
+    // GCC does not find many of the loop invariants in the following, hence the explicit hoisting
+    //
+    float vec[3], vec0[3], vec1[3], vec2[3];
 
-    /* finding distance to surface */
-    /* the above shows that typically there are only about 20 iterations */
+    PerThreadMRIDistance* ptd = perThreadMRIDistances[tid];
+    if (do_new_MRIDistance && !ptd) ptd = perThreadMRIDistances[tid] = makePerThreadMRIDistance(mri_distance);
+
     int k,j,i;
+
+    float  jToYMapBuffer[100];
+    int    jToYMapSize = jmax - jmin + 1;
+    float* jToYMap = (jToYMapSize <= 256) ? jToYMapBuffer : (float*)malloc(jToYMapSize * sizeof(float));
+    for (j = jmin; j <= jmax; j++) jToYMap[j - jmin] = ySURF(mri_defect, j);
+    
+    float  kToZMapBuffer[100];
+    int    kToZMapSize = kmax - kmin + 1;
+    float* kToZMap = (kToZMapSize <= 256) ? kToZMapBuffer : (float*)malloc(kToZMapSize * sizeof(float));
+    for (k = kmin; k <= kmax; k++) kToZMap[k - kmin] = zSURF(mri_defect, k);
+    
     for (i = imin; i <= imax; i++) {
-      for (j = jmin; j <= jmax; j++) {
-        for (k = kmin; k <= kmax; k++) {
-
-          float const 
-	    x = xSURF(mri_defect, i),
-            y = ySURF(mri_defect, j),
-            z = zSURF(mri_defect, k);
-
-  	  float vec[3], vec0[3], vec1[3], vec2[3];
-
+      	  float const x = xSURF(mri_defect, i);
           vec0[0] = x - x0;
-          vec0[1] = y - y0;
-          vec0[2] = z - z0;
           vec1[0] = x - x1;
-          vec1[1] = y - y1;
-          vec1[2] = z - z1;
           vec2[0] = x - x2;
+          vec [0] = (vec0[0] + vec1[0] + vec2[0]) / 3.0;
+
+      for (j = jmin; j <= jmax; j++) {
+          float const y = jToYMap[j - jmin];
+          vec0[1] = y - y0;
+          vec1[1] = y - y1;
           vec2[1] = y - y2;
-          vec2[2] = z - z2;
-          vec[0] = (vec0[0] + vec1[0] + vec2[0]) / 3.0;
-          vec[1] = (vec0[1] + vec1[1] + vec2[1]) / 3.0;
-          vec[2] = (vec0[2] + vec1[2] + vec2[2]) / 3.0;
+          vec [1] = (vec0[1] + vec1[1] + vec2[1]) / 3.0;
 
-          /* compute distance to face */
-          /* where is the point */
-          float const
-	    val0 = F_DOT(vec0, n0),
-            val1 = F_DOT(vec1, n1),
-            val2 = F_DOT(vec2, n2);
+        float const partialPythagorasSum = squaref(x-cx) + squaref(y-cy);
+	
+        float* const ijkDistances =
+            do_new_MRIDistance ? perThreadMRIDistanceElt(ptd, i,j,0) : &MRIFvox(mri_distance_nonconst, i, j, 0);
+                  
+        for (k = kmin; k <= kmax; k++) {
+          float zt = kToZMap[k - kmin];
 
-	  float val, valu, sign, distance;
+	  if (use_fast_avoidable_prediction && !test_avoidable_prediction) {
+	    
+	    // This path is so important I have hand-optimized it
+	    // It skips over all the predictedIrrelevant k's
+	    // This path does not yet have a specific correctness test
+	    //
+            for (;;) {
+    	        float const ijkDistance           = ijkDistances[k];
+	    	float const distanceToCxyzSquared = partialPythagorasSum + squaref(zt-cz);
+                //oat const distanceToCxyz        = sqrtf(distanceToCxyzSquared) * 0.99f;  // margin for error included
+		bool predictedIrrelevant = distanceToCxyzSquared*0.98f > squaref(fabs(ijkDistance) + furtherestVertexDistance);
+		if (!predictedIrrelevant) goto RelevantK;
+		k++;
+		if (k > kmax) break;
+		zt = kToZMap[k - kmin]; 
+	    }
+	    break;  	    	    // no relevant K found
+    	  
+	    RelevantK:;
+	  }
+
+    	  float const z = zt;
 	  
-          if ((val0 >= 0) && (val1 >= 0) && (val2 >= 0)) {
-            /* the projection of the vertex is inside */
-            val = F_DOT(n_f, vec);
-            valu     = 1;
-            sign     = val;
-            distance = val; /* n_f is already normalized */
-          }
-          else {
-            distance = NPY;
-            sign = 0;
-            valu = 0;
-
-            if (val0 <= 0) {
-              /* compute distance to edge0 */
-              val = F_DOT(vec0, e0);
-              if (val < 0) {
-                /* closer to x0 */
-                sign = F_DOT(n_v0, vec0);
-                valu = 2;
-                distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec0));
-              }
-              else if (val < SQR3(e0)) {
-                /* closer to edge0 */
-                sign = F_DOT(n_e0, vec0);
-                valu = 3;
-                distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec0) - SQR(val) / SQR3(e0))));
-              }
-              else {
-                /* closer to x1 */
-                sign = F_DOT(n_v1, vec1);
-                valu = 2;
-                distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec1));
-              }
-            };
-            if (val1 <= 0) {
-              val = F_DOT(vec1, e1);
-              if (val < 0) {
-                /* closer to x1 */
-                sign = F_DOT(n_v1, vec1);
-                valu = 2;
-                distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec1));
-              }
-              else if (val < SQR3(e1)) {
-                /* closer to edge1 */
-                sign = F_DOT(n_e1, vec1);
-                valu = 3;
-                distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec1) - SQR(val) / SQR3(e1))));
-              }
-              else {
-                /* closer to x2 */
-                sign = F_DOT(n_v2, vec2);
-                valu = 2;
-                distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec2));
-              }
-            };
-            if (val2 <= 0) {
-              val = F_DOT(vec2, e2);
-              if (val < 0) {
-                /* closer to x2 */
-                sign = F_DOT(n_v2, vec2);
-                valu = 2;
-                distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec2));
-              }
-              else if (val < SQR3(e2)) {
-                /* closer to edge2 */
-                sign = F_DOT(n_e2, vec2);
-                valu = 3;
-                distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec2) - SQR(val) / SQR3(e2))));
-              }
-              else {
-                /* closer to x0 */
-                sign = F_DOT(n_v0, vec0);
-                valu = 2;
-                distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec0));
-              }
-            };
-          }
-
-          /* update distance map */
-          //
-          // There was a reproducibility problem here.
-          // If the smallest positive distance and the smallest negative distance is the same fabs()
-          // then this code would randomly choose between them.
-          // Furthermore the sign of the distance does seem to be important, so can't just store the fabs
-          //
-          // The solution is to have the positive be the preferred of two equal values.
-          //
-	  volatile float * f = &MRIFvox(mri_distance, i, j, k);
-#ifdef HAVE_OPENMP
-          if (fabs(distance) <= fabs(*f))					    // avoid the lock if possible
-	  #pragma omp critical
+    	  // Here is the minimum distance to update
+	  //
+    	  float* const ijkDistanceElt = &ijkDistances[k];
+	  
+    	  // The following code has four different ways of getting the answer
+	  // and can check them against each other
+	  //	      
+	  float distanceToCxyzSquared = 0.0; bool predictedIrrelevant = false;
+       	  float new_distance  = 0.0f;
+	  float old_distance  = 0.0f;
+	    
+      	  static long pointCount, pointLimit = 1000000, irrelevantPointCount;
+#if 0
+	  pointCount++;
 #endif
-          {
-            if (fabs(distance) < fabs(*f)) {
-              MRIFvox(mri_distance_nonconst, i, j, k) = distance;	            // MODIFIER NOT CAUGHT BY COMPILER
-            } else if (fabs(distance) == fabs(*f)) {
-              // They are equal.  Prefer the positive.
-              if (distance > 0) MRIFvox(mri_distance_nonconst, i, j, k) = distance;
-            } else {
-              // Might happen if the distance got stored between the non-critical and critical compares
-            }
-          }
-        }
-      }
-    }
+
+          // Calculate the distance to center, and ignore when no chance of providing a new least distance
+	  //
+    	  if (use_avoidable_prediction && test_avoidable_prediction) {
+	      distanceToCxyzSquared = partialPythagorasSum + squaref(z-cz);
+	      predictedIrrelevant   =  distanceToCxyzSquared*0.98f > squaref(fabs(*ijkDistanceElt) + furtherestVertexDistance);
+	      if (predictedIrrelevant) irrelevantPointCount++;
+	      if (!test_avoidable_prediction && predictedIrrelevant) 
+	      	continue;
+	  }
+
+    	  // Complete the three vectors
+	  //
+          vec0[2] = z - z0;
+          vec1[2] = z - z1;
+          vec2[2] = z - z2;
+	  
+          if (true) {
+	  
+            vec[2] = (vec0[2] + vec1[2] + vec2[2]) / 3.0;
+
+            /* compute distance to face */
+            /* where is the point */
+            float const
+	      val0 = F_DOT(vec0, n0),
+              val1 = F_DOT(vec1, n1),
+              val2 = F_DOT(vec2, n2);
+
+    	    if (do_new_loop3) {
+
+              if ((val0 >= 0) && (val1 >= 0) && (val2 >= 0)) {
+
+		// the projection of the vertex is inside
+        	//
+		new_distance = F_DOT(n_f, vec); 	// n_f is already normalized
+
+              } else {
+
+		float  least_distance_squared = NPY*NPY;
+		float* least_sign_lhs = NULL;
+		float* least_sign_rhs = NULL;
+#define THIS_CASE_DEF       	float* this_sign_lhs,*this_sign_rhs;
+#define LEAST_CASE(LHS,RHS)     { least_sign_lhs = (LHS); least_sign_rhs = (RHS); }
+#define THIS_CASE(LHS,RHS,CASE) { this_sign_lhs  = (LHS); this_sign_rhs = (RHS); }
+#define MAKE_LEAST_THIS         { least_sign_lhs = this_sign_lhs; least_sign_rhs = this_sign_rhs; }
+
+        	if (val0 <= 0) {
+        	  /* compute distance to edge0 */
+		  float distance_squared;
+        	  float val = F_DOT(vec0, e0);
+	          THIS_CASE_DEF
+        	  if (val < 0) {
+                    /* closer to x0 */
+		    THIS_CASE(n_v0, vec0, 2);
+                    distance_squared = SQR3(       vec0);
+        	  }
+        	  else if (val < SQR3_e0) {
+                    /* closer to edge0 */
+		    THIS_CASE(n_e0, vec0, 3);
+                    distance_squared = MAX(0, SQR3(vec0) - SQR(val) / SQR3_e0);
+        	  }
+        	  else {
+                    /* closer to x1 */
+		    THIS_CASE(n_v1, vec1, 4);
+                    distance_squared = SQR3 (vec1);
+        	  }
+		  least_distance_squared = distance_squared;
+	    	  MAKE_LEAST_THIS;
+        	}
+
+        	if (val1 <= 0) {
+		  float distance_squared;
+        	  float val = F_DOT(vec1, e1);
+	          THIS_CASE_DEF
+        	  if (val < 0) {
+                    /* closer to x1 */
+		    THIS_CASE(n_v1, vec1, 5);
+                    distance_squared = SQR3(       vec1);
+        	  }
+        	  else if (val < SQR3_e1) {
+                    /* closer to edge1 */
+		    THIS_CASE(n_e1, vec1, 6);
+                    distance_squared = MAX(0, SQR3(vec1) - SQR(val) / SQR3_e1);
+        	  }
+        	  else {
+                    /* closer to x2 */
+  		    THIS_CASE(n_v2, vec2, 7);
+                    distance_squared = SQR3(vec2);
+        	  }
+		  if (least_distance_squared > distance_squared) {
+		    least_distance_squared = distance_squared;
+		    MAKE_LEAST_THIS;
+		  }
+        	}
+
+        	if (val2 <= 0) {
+		  float distance_squared;
+        	  float val = F_DOT(vec2, e2);
+	          THIS_CASE_DEF
+        	  if (val < 0) {
+                    /* closer to x2 */
+		    THIS_CASE(n_v2, vec2, 8);
+                    distance_squared = SQR3(       vec2);
+        	  }
+        	  else if (val < SQR3(e2)) {
+                    /* closer to edge2 */
+		    THIS_CASE(n_e2, vec2, 9);
+                    distance_squared = MAX(0, SQR3(vec2) - SQR(val) / SQR3_e2);
+        	  }
+        	  else {
+                    /* closer to x0 */
+		    THIS_CASE(n_v0, vec0, 10);
+                    distance_squared = SQR3(vec0);
+        	  }
+		  if (least_distance_squared > distance_squared) {
+		    least_distance_squared = distance_squared;
+		    MAKE_LEAST_THIS;
+		  }
+        	}
+#undef THIS_CASE_DEF
+#undef LEAST_CASE
+#undef THIS_CASE
+#undef MAKE_LEAST_THIS
+
+    		float least_sign = F_DOT(least_sign_lhs, least_sign_rhs);
+		new_distance = SIGN(least_sign)*sqrt(least_distance_squared);
+              }
+    	    }
+    	    // end if (do_new_loop3)
+	  
+            if (do_old_loop3) {
+	      if (keep_sign_bug) {
+		float val, valu, sign, distance;
+
+		// THIS CODE HAS A FUNDAMENTAL PROBLEM
+		//
+		// IT FINDS THE LEAST ABS DISTANCE, BUT THE SIGN OF THE DISTANCE IS THE SIGN OF THE LAST TESTED VALUE
+		// WHICH CAN'T POSSIBLY BE RIGHT!  CONCLUSION - MAYBE SIGN DOESNT MATTER?  IT IS EXPENSIVE TO COMPUTE...
+
+        	if ((val0 >= 0) && (val1 >= 0) && (val2 >= 0)) {
+        	  /* the projection of the vertex is inside */
+        	  val = F_DOT(n_f, vec);
+        	  valu     = 1;
+        	  sign     = val;
+        	  distance = val; /* n_f is already normalized */
+        	}
+        	else {
+        	  distance = NPY;
+        	  sign = 0;
+        	  valu = 0;
+
+        	  if (val0 <= 0) {
+        	    /* compute distance to edge0 */
+        	    val = F_DOT(vec0, e0);
+        	    if (val < 0) {
+                      /* closer to x0 */
+                      sign = F_DOT(n_v0, vec0);
+                      valu = 2;
+                      distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec0));
+        	    }
+        	    else if (val < SQR3(e0)) {
+                      /* closer to edge0 */
+                      sign = F_DOT(n_e0, vec0);
+                      valu = 3;
+                      distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec0) - SQR(val) / SQR3(e0))));
+        	    }
+        	    else {
+                      /* closer to x1 */
+                      sign = F_DOT(n_v1, vec1);
+                      valu = 2;
+                      distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec1));
+        	    }
+        	  };
+
+        	  if (val1 <= 0) {
+        	    val = F_DOT(vec1, e1);
+        	    if (val < 0) {
+                      /* closer to x1 */
+                      sign = F_DOT(n_v1, vec1);
+                      valu = 2;
+                      distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec1));
+        	    }
+        	    else if (val < SQR3(e1)) {
+                      /* closer to edge1 */
+                      sign = F_DOT(n_e1, vec1);
+                      valu = 3;
+                      distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec1) - SQR(val) / SQR3(e1))));
+        	    }
+        	    else {
+                      /* closer to x2 */
+                      sign = F_DOT(n_v2, vec2);
+                      valu = 2;
+                      distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec2));
+        	    }
+        	  };
+
+        	  if (val2 <= 0) {
+        	    val = F_DOT(vec2, e2);
+        	    if (val < 0) {
+                      /* closer to x2 */
+                      sign = F_DOT(n_v2, vec2);
+                      valu = 2;
+                      distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec2));
+        	    }
+        	    else if (val < SQR3(e2)) {
+                      /* closer to edge2 */
+                      sign = F_DOT(n_e2, vec2);
+                      valu = 3;
+                      distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec2) - SQR(val) / SQR3(e2))));
+        	    }
+        	    else {
+                      /* closer to x0 */
+                      sign = F_DOT(n_v0, vec0);
+                      valu = 2;
+                      distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec0));
+        	    }
+        	  };
+        	}
+
+    		old_distance = distance;
+              } else {
+		float val, valu, sign, distance;
+
+		// THIS CODE KEEPS THE SIGN FROM THE LEAST OF THE DISTANCES
+
+        	if ((val0 >= 0) && (val1 >= 0) && (val2 >= 0)) {
+        	  /* the projection of the vertex is inside */
+        	  val = F_DOT(n_f, vec);
+        	  valu     = 1;
+        	  sign     = val;
+        	  distance = val; /* n_f is already normalized */
+        	}
+        	else {
+        	  distance = NPY;
+        	  sign = 0;
+        	  valu = 0;
+
+    		  float trialDistance;
+
+        	  if (val0 <= 0) {
+        	    /* compute distance to edge0 */
+        	    val = F_DOT(vec0, e0);
+        	    if (val < 0) {
+                      /* closer to x0 */
+                      sign = F_DOT(n_v0, vec0);
+                      valu = 2;
+		      trialDistance = NORM3(vec0);
+        	    }
+        	    else if (val < SQR3(e0)) {
+                      /* closer to edge0 */
+                      sign = F_DOT(n_e0, vec0);
+                      valu = 3;
+		      trialDistance = sqrt(MAX(0, SQR3(vec0) - SQR(val) / SQR3(e0)));
+        	    }
+        	    else {
+                      /* closer to x1 */
+                      sign = F_DOT(n_v1, vec1);
+                      valu = 2;
+		      trialDistance = NORM3(vec1);
+        	    }
+                    if (fabs(distance) > trialDistance) distance = SIGN(sign) * trialDistance;
+        	  };
+
+        	  if (val1 <= 0) {
+        	    val = F_DOT(vec1, e1);
+        	    if (val < 0) {
+                      /* closer to x1 */
+                      sign = F_DOT(n_v1, vec1);
+                      valu = 2;
+                      trialDistance = NORM3(vec1);
+        	    }
+        	    else if (val < SQR3(e1)) {
+                      /* closer to edge1 */
+                      sign = F_DOT(n_e1, vec1);
+                      valu = 3;
+                      trialDistance = sqrt(MAX(0, SQR3(vec1) - SQR(val) / SQR3(e1)));
+        	    }
+        	    else {
+                      /* closer to x2 */
+                      sign = F_DOT(n_v2, vec2);
+                      valu = 2;
+                      trialDistance = NORM3(vec2);
+        	    }
+    	    	    if (fabs(distance) > trialDistance) distance = SIGN(sign) * trialDistance;
+        	  };
+
+        	  if (val2 <= 0) {
+        	    val = F_DOT(vec2, e2);
+        	    if (val < 0) {
+                      /* closer to x2 */
+                      sign = F_DOT(n_v2, vec2);
+                      valu = 2;
+                      trialDistance = NORM3(vec2);
+        	    }
+        	    else if (val < SQR3(e2)) {
+                      /* closer to edge2 */
+                      sign = F_DOT(n_e2, vec2);
+                      valu = 3;
+                      trialDistance = sqrt(MAX(0, SQR3(vec2) - SQR(val) / SQR3(e2)));
+        	    }
+        	    else {
+                      /* closer to x0 */
+                      sign = F_DOT(n_v0, vec0);
+                      valu = 2;
+                      trialDistance = NORM3(vec0);
+        	    }
+    	    	    if (fabs(distance) > trialDistance) distance = SIGN(sign) * trialDistance;
+        	  };
+        	}
+
+    		old_distance = distance;
+              }
+	    }
+            // end if (do_old_loop3)
+
+    	  }
+          // end of if (true)
+
+    	  // Show the stats about how each point was calculated
+	  //
+	  if (false && (pointCount >= pointLimit)) {
+	    if (pointLimit > 10000000) pointLimit += 10000000; else pointLimit *= 2;
+	    fprintf(stdout, "pointCount:%g irrelevantPointCount:%g remainder:%g\n", 
+	      (float) pointCount, (float)irrelevantPointCount,
+	      (float)(pointCount -       irrelevantPointCount));
+	  }
+
+    	  // Choose the answer
+	  //	  
+	  float distance = do_new_loop3 ? new_distance : old_distance;
+
+	  // Compare the various answers when testing
+	  //
+    	  if (test_avoidable_prediction && predictedIrrelevant) {
+     	    if (fabs(*ijkDistanceElt) > fabs(distance)) {
+	      fprintf(stdout, "%s:%d prediction failed!\n", __FILE__, __LINE__);
+	      fprintf(stdout, "do_new_MRIDistance:%d\n", do_new_MRIDistance);
+	      fprintf(stdout, "c (%g, %g, %g)\n", cx,cy,cz);
+	      fprintf(stdout, "furtherestVertexDistance %g\n", furtherestVertexDistance);
+	      fprintf(stdout, "distanceToCxyz %g\n", sqrt(distanceToCxyzSquared));
+	      fprintf(stdout, "distanceToCxyz - furtherestVertexDistance:%g\n", sqrt(distanceToCxyzSquared) - furtherestVertexDistance);
+	      fprintf(stdout, "ijk (%g, %g, %g)\n", x,y,z);
+	      fprintf(stdout, "fabs(distance) %g\n", fabs(distance));
+	      fprintf(stdout, "fabs(*ijkDistanceElt) %g\n\n", fabs(*ijkDistanceElt));
+	      exit(1);
+	    }
+	  }
+	  
+	  if (do_new_loop3 && do_old_loop3) {
+	  
+	    // Sadly the old code compares the distances rather than the distances-squared
+	    // forcing it to take a sqrt before doing the comparison.  But sqrt can make unequal
+	    // things equal, so the old code might select a different sign distance than the new.
+	    //
+	    if (!closeEnough(fabs(new_distance), fabs(old_distance))) {
+	      fprintf(stdout, "%s:%d new_distance:%g not near old_distance:%g,  magnitude diff:%g\n", __FILE__, __LINE__, 
+	      	new_distance, old_distance, fabs(new_distance)-fabs(old_distance));
+	      exit(1);
+	    }
+	  }
+	  
+          // update distance map
+          //
+          if (trace) fprintf(stdout, "  update distance for i:%d j:%d j:%d\n", i,j,k);
+
+    	  updateDistanceElt(ijkDistanceElt, distance, 
+#ifdef HAVE_OPENMP
+	    do_old_MRIDistance
+#else
+    	    false
+#endif
+	    );
+	    
+	  if (do_old_MRIDistance && do_new_MRIDistance) {
+	    updateDistanceElt(perThreadMRIDistanceElt(ptd, i,j,k), distance, false);
+	  }
+	  
+        } // k
+      } // j
+    } // i
+
+    if (kToZMap != kToZMapBuffer) freeAndNULL(kToZMap);
+    if (jToYMap != jToYMapBuffer) freeAndNULL(jToYMap);
+    
     ROMP_PFLB_end
   }
   ROMP_PF_end
   
   free(buffer);
+
+  if (do_new_MRIDistance) {
+    ROMP_PF_begin
+    int i,j,k;
+#ifdef HAVE_OPENMP
+    #pragma omp parallel for if_ROMP(shown_reproducible) 
+#endif
+    for (i = 0; i < mri_distance->width; i++) {
+      ROMP_PFLB_begin
+      for (j = 0; j < mri_distance->height; j++) {
+        for (k = 0; k < mri_distance->depth; k++) {
+	
+	  float distance = NPY;
+          int tid;
+          for (tid = 0; tid < maxThreads; tid++) {
+	    PerThreadMRIDistance* ptd = perThreadMRIDistances[tid];
+	    if (ptd) updateDistanceElt(&distance, *perThreadMRIDistanceElt(ptd, i,j,k), false);
+          }
+	  
+	  if (do_old_MRIDistance) {
+	    float old_distance = MRIFvox(mri_distance_nonconst, i, j, k);
+	    if (old_distance != distance) {
+	      fprintf(stdout, "%s:%d diff distances at i:%d j:%d k:%d old:%g new:%g\n", __FILE__, __LINE__,
+	      	i,j,k,old_distance,distance);
+	      exit(1);
+	    }
+	  }
+	  
+	  MRIFvox(mri_distance_nonconst, i, j, k) = distance;		// MODIFIER THAT WASN'T DETECTED
+        }
+      }
+      ROMP_PFLB_end
+    }
+    ROMP_PF_end
+    
+  }
+  
+  int tid;
+  for (tid = 0; tid < maxThreads; tid++) {
+    freePerThreadVertexPseudoNormalCache(&perThreadVertexPseudoNormalCache[tid]);
+    freePerThreadMRIDistance            (&perThreadMRIDistances           [tid]);
+  }
+
+  freeAndNULL(sharedVertexPseudoNormalCache);
 
   //  TIMER_INTERVAL_END(taskExecution)
 
@@ -59850,25 +60669,6 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
                                             HISTOGRAM *h_dot,
                                             TOPOLOGY_PARMS *parms);
 
-static int (* volatile mrisComputeOptimalRetessellation_wkr_noinline)(MRI_SURFACE *mris,
-                                            MRI_SURFACE *mris_corrected,
-                                            MRI *mri,
-                                            DEFECT *defect,
-                                            int *vertex_trans,
-                                            EDGE *et,
-                                            int nedges,
-                                            ES *es,
-                                            int nes,
-                                            HISTOGRAM *h_k1,
-                                            HISTOGRAM *h_k2,
-                                            MRI *mri_k1_k2,
-                                            HISTOGRAM *h_white,
-                                            HISTOGRAM *h_gray,
-                                            HISTOGRAM *h_border,
-                                            HISTOGRAM *h_grad,
-                                            MRI *mri_gray_white,
-                                            HISTOGRAM *h_dot,
-                                            TOPOLOGY_PARMS *parms) = mrisComputeOptimalRetessellation_wkr;
 
 static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
                                             MRI_SURFACE *mris_corrected,
@@ -59892,7 +60692,7 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
 {
     int result;
     ROMP_PF_begin
-    result = (*mrisComputeOptimalRetessellation_wkr_noinline)(mris,
+    result = mrisComputeOptimalRetessellation_wkr(mris,
                                             mris_corrected,
                                             mri,
                                             defect,
@@ -59915,7 +60715,7 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
     return result;
 }
 
-static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
+static NOINLINE int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
                                             MRI_SURFACE *mris_corrected,
                                             MRI *mri,
                                             DEFECT *defect,
@@ -60052,6 +60852,8 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     max_unchanged = max_unchanged / 5;
   }
 
+  ROMP_PF_begin
+
   etable.use_overlap = parms->edge_table;
   etable.nedges = nedges;
   etable.edges = (EDGE *)calloc(nedges, sizeof(EDGE));
@@ -60116,6 +60918,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     free(overlap);
   }
 
+  ROMP_PF_end
+  ROMP_PF_begin
+
   /* allocate the volume constituted by the potential edges */
   mri_defect = mri_defect_white = mri_defect_gray = mri_defect_sign = NULL;
   if (!FZERO(parms->l_unmri)) {
@@ -60135,6 +60940,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
                            0);
   };
 
+  ROMP_PF_end
+  ROMP_PF_begin
+
   if ((!FZERO(parms->l_unmri)) && parms->save_fname &&
       (parms->defect_number < 0 || (parms->defect_number == defect->defect_number))) {
     sprintf(fname, "%s/white_%d.mgh", parms->save_fname, defect->defect_number);
@@ -60142,6 +60950,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     sprintf(fname, "%s/gray_%d.mgh", parms->save_fname, defect->defect_number);
     MRIwrite(mri_defect_gray, fname);
   }
+
+  ROMP_PF_end
+  ROMP_PF_begin
 
   dvs = mrisRecordVertexState(mris_corrected, defect, vertex_trans);
   dps = dps1;
@@ -60161,9 +60972,14 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
 
   nbests = 0;
 
+  ROMP_PF_end
+
   ComputeDefectContext computeDefectContext;
+
+  ROMP_PF_begin
+
     constructComputeDefectContext(&computeDefectContext);
-    
+
   /* generate initial population of patches */
   if (parms->initial_selection) {
     /* segment overlapping edges into clusters */
@@ -60524,6 +61340,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     }
   }
 
+  ROMP_PF_end
+  ROMP_PF_begin
+
   /*compute statistics*/
   for (fitness_mean = fitness_sigma = 0.0, i = 0; i < max_patches; i++) {
     dp = &dps[i];
@@ -60568,11 +61387,17 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
 
   last_fitness = best_fitness;
 
+  ROMP_PF_end
+
+  ROMP_PF_begin
+
   while (nunchanged < max_unchanged) {
     if (ngenerations == parms->niters) {
       break;
     }
 
+    ROMP_PF_begin
+    
     if (dps == dps1) {
       dps_next_generation = dps2;
     }
@@ -60591,6 +61416,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     next_gen_index = 0;
     for (i = 0; i < nelite; i++) mrisCopyDefectPatch(&dps[ranks[i]], &dps_next_generation[next_gen_index++]);
 
+    ROMP_PF_end
+    ROMP_PF_begin
+    
     /* now replace the worst ones with mutated copies of the best */
     for (i = 0; i < nreplacements; i++) {
       ntotalmutations++;
@@ -60677,6 +61505,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
       }
     }
 
+    ROMP_PF_end
+    ROMP_PF_begin
+
     for (fitness_mean = fitness_sigma = 0.0, i = 0; i < max_patches; i++) {
       dp = &dps[i];
       fitness_mean += dp->fitness;
@@ -60723,6 +61554,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
       break;
     }
 
+    ROMP_PF_end
+    ROMP_PF_begin
+
     /* selection of chromosomes for cross-over */
     ncrossovers = max_patches - (nelite + nreplacements);
     for (l = k = j = 0; j < nselected; j++) {
@@ -60759,6 +61593,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
       selected[l] = i;
     }
 
+    ROMP_PF_end
+    ROMP_PF_begin
+
     for (i = 0; i < ncrossovers; i++) {
       int p1, p2;
       ntotalcross_overs++;
@@ -60768,6 +61605,8 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
       {
         p2 = selected[(int)randomNumber(0, ncrossovers - .001)];
       } while (p2 == p1);
+
+      ROMP_PF_begin
 
       dp = &dps_next_generation[next_gen_index++];
       mrisCrossoverDefectPatches(&dps[p1], &dps[p2], dp, &etable);
@@ -60799,7 +61638,12 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
 #endif
       number_of_patches++;
 
+      ROMP_PF_end
+
       if (fitness > best_fitness) {
+
+        ROMP_PF_begin
+
         ncross_overs++;
         nunchanged = 0;
         best_fitness = fitness;
@@ -60857,6 +61701,8 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
           }
         }
 
+        ROMP_PF_end
+
         ncross++;
         if (++nbest == debug_patch_n) {
           dps = dps_next_generation;
@@ -60865,6 +61711,8 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
       }
       else /* mutate it also */
       {
+        ROMP_PF_begin
+
         mrisMutateDefectPatch(dp, &etable, MUTATION_PCT);
         fitness = mrisDefectPatchFitness(&computeDefectContext,
                                          mris,
@@ -60961,8 +61809,13 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
           nmut++;
           ncross++;
         }
+
+        ROMP_PF_end
       }
     }
+
+    ROMP_PF_end
+    ROMP_PF_begin
 
     /* make next generation current */
     if (dps == dps1) {
@@ -61059,9 +61912,15 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     }
 
     ngenerations++;
+    ROMP_PF_end
   }
 
+  ROMP_PF_end
+
 debug_use_this_patch:
+
+  ROMP_PF_begin
+
   dp = &dps[best_i];
 
   if (parms->save_fname && (parms->defect_number < 0 || (parms->defect_number == defect->defect_number))) {
@@ -61116,6 +61975,9 @@ debug_use_this_patch:
     }
   }
 
+  ROMP_PF_end
+  ROMP_PF_begin
+
   fitness = mrisDefectPatchFitness(&computeDefectContext,
                                    mris,
                                    mris_corrected,
@@ -61144,13 +62006,21 @@ debug_use_this_patch:
     printDefectStatistics(dp);
   }
 
+  ROMP_PF_end
+  ROMP_PF_begin
+  
   /* compute the final tessellation */
   retessellateDefect(mris, mris_corrected, dvs, dp);
 
+  ROMP_PF_end
+  ROMP_PF_begin
+
   /* detect the new set of faces */
   detectDefectFaces(mris_corrected, dp);
+
   /* orient the patch faces */
   orientDefectFaces(mris_corrected, dp);
+
   /* smooth original vertices in the retessellated patch */
   defectMatch(mri, mris_corrected, dp, parms->smooth, parms->match);
 
@@ -61184,6 +62054,9 @@ debug_use_this_patch:
           WHICH_OUTPUT, "              NUMBER OF INTERSECTING FACES: %d (out of %d) \n", nintersections, dp->tp.nfaces);
   }
 
+  ROMP_PF_end
+  ROMP_PF_begin
+
   /* should free the tessellated patch structure */
   TPfree(&dp->tp);
 
@@ -61210,6 +62083,9 @@ debug_use_this_patch:
   for (i = 0; i < dp->defect->nborder; i++) {
     mris_corrected->vertices[vertex_trans[dp->defect->border[i]]].marked = 0;
   }
+
+  ROMP_PF_end
+  ROMP_PF_begin
 
   /* free everything */
   destructComputeDefectContext(&computeDefectContext);
@@ -61266,6 +62142,8 @@ debug_use_this_patch:
     fclose(f);
   }
 #endif
+
+  ROMP_PF_end
 
   return (NO_ERROR);
 }
@@ -62143,12 +63021,9 @@ static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, Inte
     bool emit_line_py = false;  // showStats || (stats_count < 45);
     if (emit_line_py) fprintf(stderr, "%s:%d emit_line_py set for stats_count:%ld\n", __FILE__, __LINE__, stats_count);
        
-    ROMP_PF_begin
     if (gas && !ctx->obsoleted) {
       stats_reused++;
     } else {
-
-      ROMP_PF_begin
 
       if (!ctx->obsoleted) {
         stats_made++; 
@@ -62305,9 +63180,7 @@ static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, Inte
         }
 #endif
       }
-      ROMP_PF_end
     }
-    ROMP_PF_end
     
     // Get the subset that need to be examined
     //
@@ -62326,19 +63199,16 @@ static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, Inte
       
       callback_context.emit_line_py = emit_line_py;
 
-      ROMP_PF_begin
+      if (emit_line_py) fprintf(stderr, " [2, %f, %f, %f, %f, %f, %f], # line.py target\n", ev->cx,ev->cy,ev->cz, ev2->cx,ev2->cy,ev2->cz);
 
-        if (emit_line_py) fprintf(stderr, " [2, %f, %f, %f, %f, %f, %f], # line.py target\n", ev->cx,ev->cy,ev->cz, ev2->cx,ev2->cy,ev2->cz);
+      possiblyIntersectingGreatArcs(
+        gas,
+        &callback_context,
+        possiblyIntersectingGreatArcs_callback,
+        e->vno1,              e->vno2,
+        ev->cx,ev->cy,ev->cz, ev2->cx,ev2->cy,ev2->cz, 
+        stats_count == stats_limit-1);                    // tracing
 
-        possiblyIntersectingGreatArcs(
-          gas,
-          &callback_context,
-          possiblyIntersectingGreatArcs_callback,
-          e->vno1,              e->vno2,
-          ev->cx,ev->cy,ev->cz, ev2->cx,ev2->cy,ev2->cz, 
-          stats_count == stats_limit-1);                    // tracing
-
-      ROMP_PF_end
     }
         
     stats_possible += stats_numberOfGreatArcs;

@@ -95,6 +95,9 @@ endif
 if (! $?doprobtrk) then 
   set doprobtrk = 0
 endif
+if (! $?dopd) then
+  set dopd = 0
+endif
 
 if (! $?lobmaskthresh) then	
   set lobmaskthresh = 0.1
@@ -196,7 +199,8 @@ if ($dodrift) then
   #
   # Normalize images to compensate for temperature drift
   #
-  set cmd = "addpath $FREESURFER_HOME/matlab"
+ #  set cmd = "addpath $FREESURFER_HOME/matlab"
+  set cmd = "addpath /autofs/space/turan_001/users/lzollei/dev/matlab"
   set cmd = "$cmd; fix_exvivo_dwi_drift("
   set cmd = "$cmd '$dwidir/dwi_drift.nii.gz', "
   set cmd = "$cmd '$dwidir/drift', "
@@ -535,6 +539,8 @@ if ($doodf) then
   set nlow = $#lowblist
   set ndir = `echo "$#highblist + 1" | bc`
 
+  setenv DSI_PATH $dtkdir/matrices
+
   set cmd = $dtkdir/odf_recon
   set cmd = ($cmd $dwidir/tmp.$dwiname.nii)
   set cmd = ($cmd $ndir 181)
@@ -554,7 +560,7 @@ if ($doodf) then
   set cmd = ($cmd $dwidir/dti)
   set cmd = ($cmd -gm $dwidir/$dwiname.bvecs)
   set cmd = ($cmd -b 4080)
-  set cmd = ($cmd -b0 12)
+  set cmd = ($cmd -b0 $nlow)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF 
 
@@ -728,9 +734,11 @@ if ($doprobtrk) then
 
 
 
-        set outdir = $dwidir/dpath.corrected.targeted.$seedname.2.$targetname # -pd is on ("Correct path distribution for the length of the pathways")
+        set outdir = $dwidir/dpath.corrected.targeted.$seedname.2.$targetname # -pd is off while dopd=0 ("Correct path distribution for the length of the pathways")
         mkdir -p $outdir
-        set cmd = ($cmd --pd)
+	if ($dopd) then
+  	  set cmd = ($cmd --pd)
+	endif
         echo $cmd |& tee -a $LF
         # $cmd |& tee -a $LF
         pbsubmit -m `whoami` -q p30 -c "$cmd" -l nodes=1:ppn=4,vmem=28gb

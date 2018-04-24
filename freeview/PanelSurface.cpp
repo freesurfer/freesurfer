@@ -40,6 +40,7 @@
 #include <QDebug>
 #include "SurfacePath.h"
 #include <QToolButton>
+#include "LayerMRI.h"
 
 PanelSurface::PanelSurface(QWidget *parent) :
   PanelLayer("Surface", parent),
@@ -135,12 +136,14 @@ PanelSurface::PanelSurface(QWidget *parent) :
   connect(ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxLabelOutline(bool)));
   connect(ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), this, SLOT(OnColorPickerLabelColor(QColor)));
   connect(ui->treeWidgetLabels, SIGNAL(MenuGoToCentroid()), mainwnd, SLOT(OnGoToSurfaceLabel()));
+  connect(ui->treeWidgetLabels, SIGNAL(MenuResample()), this, SLOT(OnLabelResample()));
 
   connect(ui->actionCut, SIGNAL(toggled(bool)), SLOT(OnButtonEditCut(bool)));
   connect(ui->actionCutLine, SIGNAL(triggered(bool)), SLOT(OnButtonCutLine()));
   connect(ui->actionCutClosedLine, SIGNAL(triggered(bool)), SLOT(OnButtonCutClosedLine()));
   connect(ui->actionCutClear, SIGNAL(triggered(bool)), SLOT(OnButtonClearCuts()));
   connect(ui->actionFillUncutArea, SIGNAL(triggered(bool)), SLOT(OnButtonFillUncutArea()));
+  connect(ui->actionUndoCut, SIGNAL(triggered(bool)), SLOT(OnButtonUndoCut()));
 }
 
 PanelSurface::~PanelSurface()
@@ -246,6 +249,7 @@ void PanelSurface::DoIdle()
   ui->actionMoveLayerDown->setEnabled(layer && m_layerCollection
                                       && m_layerCollection->GetLayerIndex(layer) < m_layerCollection->GetNumberOfLayers()-1);
   ui->actionCut->setChecked(MainWindow::GetMainWindow()->GetMode() == RenderView::IM_SurfacePath);
+  ui->actionUndoCut->setEnabled(layer && layer->HasUndoableCut());
 
   QList<QAction*> acts = m_actGroupSurface->actions();
   foreach (QAction* act, acts)
@@ -278,7 +282,7 @@ void PanelSurface::DoUpdateWidgets()
   for ( int i = 0; i < this->allWidgets.size(); i++ )
   {
     if ( allWidgets[i] != ui->toolbar && allWidgets[i]->parentWidget() != ui->toolbar &&
-         allWidgets[i] != ui->toolbarSurfaces && allWidgets[i]->parentWidget() != ui->toolbarSurfaces)
+         allWidgets[i] != ui->toolbarPath && allWidgets[i]->parentWidget() != ui->toolbarPath)
     {
       allWidgets[i]->setEnabled(layer);
     }
@@ -1105,4 +1109,24 @@ void PanelSurface::OnButtonFillUncutArea()
       ui->actionCut->setChecked(false);
     }
   }
+}
+
+void PanelSurface::OnButtonUndoCut()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf)
+    surf->UndoCut();
+}
+
+void PanelSurface::OnLabelResample()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  LayerMRI* mri = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer("MRI"));
+  if (!mri)
+  {
+    QMessageBox::warning(this, "Error", "Could not find a MRI template for resampling");
+    return;
+  }
+  if ( surf && surf->GetActiveLabel())
+    surf->GetActiveLabel()->Resample(mri);
 }

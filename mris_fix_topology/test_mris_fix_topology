@@ -11,7 +11,7 @@ set passed = 1
 foreach niters ( 2 -1 )
   if ($niters != -1) then
     set NITERS_OPTION = "-niters $niters"
-    set NITERS_EXTENSION =
+    set NITERS_EXTENSION = _n$niters
   else
     set NITERS_OPTION = 
     set NITERS_EXTENSION = _unlimited
@@ -55,7 +55,11 @@ foreach niters ( 2 -1 )
         # compare expected results with actual (produced) results
 
         set TST = subjects/bert/surf/lh.orig
-        set REF = ${TST}.REF${NITERS_EXTENSION}
+
+    	mv $TST   $TST${NITERS_EXTENSION}
+	set TST = $TST${NITERS_EXTENSION}
+
+        set REF = ${TST}.REF
         set cmd=(../../mris_diff/mris_diff --debug $REF $TST );
 
         echo ""
@@ -71,12 +75,12 @@ foreach niters ( 2 -1 )
     endif
 
 
-    # cleanup
+    # cleanup, saving results for making new REF files
 
     cd ..
 
-    # leave the files for making a replacement .tar.gz
-    #     rm -rf testdata
+    rm -rf testdata${NITERS_EXTENSION}
+    mv testdata{,${NITERS_EXTENSION}}    
 
   end
 end

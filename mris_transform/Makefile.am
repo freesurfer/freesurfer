@@ -10,8 +10,9 @@ mris_transform_SOURCES=mris_transform.c
 mris_transform_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_transform_LDFLAGS=$(OS_LDFLAGS)
 
-# Our release target. Include files to be excluded here. They will be
-# found and removed after 'make install' is run during the 'make
-# release' target.
+TESTS=test
+
+EXTRA_DIST=test testdata.tar.gz $(foo_DATA) $(BUILT_SOURCES)
+
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
