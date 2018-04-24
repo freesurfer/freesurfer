@@ -2113,6 +2113,7 @@ QList<int> FSSurface::FloodFillFromSeed(int seed_vno)
 
   /* init filled array. */
   filled = (char*) calloc (mris->nvertices, sizeof(char));
+  memset(filled, 0, sizeof(char)*mris->nvertices);
 
   /* start with the seed filled.*/
   filled[seed_vno] = TRUE;
@@ -2193,6 +2194,9 @@ QList<int> FSSurface::FloodFillFromSeed(int seed_vno)
 
           /* if the neighbor is filled, move on. */
           if (filled[neighbor_vno])
+            continue;
+
+          if (neighbor_v->ripflag)
             continue;
 
           /* if we're not crossing labels, check if the label at
