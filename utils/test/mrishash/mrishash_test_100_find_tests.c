@@ -156,7 +156,7 @@ int TestNearestVtxInConcentricIcos(int surfacenum,
     //------------------------------------
     brute_vno = MRISfindClosestVertex(mris,
                                       probex, probey, probez,
-                                      &brute_dist);
+                                      &brute_dist, CURRENT_VERTICES);
     if (brute_vno >=0)
       brute_vtx = &(mris->vertices[brute_vno]);
 
@@ -168,7 +168,7 @@ int TestNearestVtxInConcentricIcos(int surfacenum,
     // Using mht
     // Test all functions
     //------------------------------------
-    fcv_vtx    = MHTfindClosestVertex(mht, mris, &probe_vtx) ;
+    fcv_vtx    = MHTfindClosestVertex(mht, mris, &probe_vtx, CURRENT_VERTICES) ;
 
     fcvit_vtx  = MHTfindClosestVertexInTable(mht,
                                              mris,
