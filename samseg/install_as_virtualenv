@@ -126,7 +126,8 @@ install_gems2_and_samseg() {
     create_virtual_environment "${virtual_environment}" \
     && activate_virtual_environment "${virtual_environment}" \
     && create_and_install_gems2 \
-    && create_and_install_samseg "${no_visualization}"
+    && create_and_install_samseg "${no_visualization}" \
+    && copy_run_samseg_shell_script  "${virtual_environment}"
 }
 
 create_virtual_environment() {
@@ -153,6 +154,11 @@ create_and_install_samseg() {
     else
         $PROGRAM_DIRECTORY/make_samseg_wheel
     fi
+}
+
+copy_run_samseg_shell_script() {
+    local virtual_environment="$1"
+    cp scripting/run_samseg.sh "${virtual_environment}/bin"
 }
 
 main "$@" || true
