@@ -1814,6 +1814,14 @@ int LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
   mht = MHTcreateVertexTable_Resolution(mris, coords, 2 * max_spacing);
   fprintf(stderr, "assigning vertex numbers to label...\n");
   num_not_found = 0;
+  if (area->mri_template == NULL)
+  {
+    area->mri_template = MRIalloc(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR) ;
+    useVolGeomToMRI(&mris->vg, area->mri_template);
+  }
+
+  if (area->mris == NULL)
+    area->mris = mris ;
   for (n = 0; n < area->n_points; n++) {
     lv = &area->lv[n];
     if (lv->vno >= 0 && lv->vno <= mris->nvertices) {
