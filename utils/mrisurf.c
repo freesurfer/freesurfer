@@ -57081,6 +57081,19 @@ static void updateDistanceElt(volatile float* f, float distance, bool lockNeeded
   }
 }
 
+static void updateDistanceEltFromSignArgAndSquare(volatile float* f, float distanceSignArg, float distanceSquared, bool lockNeeded) {
+  // Avoid calculating the sqrt unless definitely needed
+  //
+  // This has problems if sqrtf(distanceSquared) == f and distanceSign is positive, because this would reject that solution
+  // when the above code would prefer it.  Hence the 1.01f margin of error.
+  //
+  // if (squaref(*f) < distanceSquared) return;
+  //
+  if (squaref(*f)*1.01f < distanceSquared) return;
+  
+  updateDistanceElt(f, SIGN(distanceSignArg)*sqrtf(distanceSquared), lockNeeded);
+}
+
 static double mrisComputeDefectMRILogUnlikelihood_wkr(
     ComputeDefectContext* computeDefectContext,
     MRI_SURFACE  * const mris_nonconst, 			            	// various subcomponents of these structures get updated
@@ -57534,7 +57547,11 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
         int const vno = face->v[vi];
         char alreadyDone;
 #ifdef HAVE_OPENMP
+#if GCC_VERSION >= 50400
+        #pragma omp atomic capture
+#else
         #pragma omp critical
+#endif
 #endif
         {  alreadyDone = done[vno]; 
            done[vno] = 1; 
@@ -57834,8 +57851,6 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	  // and can check them against each other
 	  //	      
 	  float distanceToCxyzSquared = 0.0; bool predictedIrrelevant = false;
-       	  float new_distance  = 0.0f;
-	  float old_distance  = 0.0f;
 	    
       	  static long pointCount, pointLimit = 1000000, irrelevantPointCount;
 #if 0
@@ -57851,6 +57866,11 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	      if (!test_avoidable_prediction && predictedIrrelevant) 
 	      	continue;
 	  }
+
+       	  float new_distanceSquared = -1.0f;
+          float new_distanceSignArg = 0.0f;
+          float new_distance        = 0.0f;
+	  float old_distance        = 0.0f;
 
     	  // Complete the three vectors
 	  //
@@ -57966,7 +57986,8 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 #undef MAKE_LEAST_THIS
 
     		float least_sign = F_DOT(least_sign_lhs, least_sign_rhs);
-		new_distance = SIGN(least_sign)*sqrt(least_distance_squared);
+		new_distanceSignArg = least_sign;
+                new_distanceSquared = least_distance_squared;
               }
     	    }
     	    // end if (do_new_loop3)
@@ -58168,13 +58189,12 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	      (float)(pointCount -       irrelevantPointCount));
 	  }
 
-    	  // Choose the answer
-	  //	  
-	  float distance = do_new_loop3 ? new_distance : old_distance;
-
 	  // Compare the various answers when testing
 	  //
     	  if (test_avoidable_prediction && predictedIrrelevant) {
+            if (new_distanceSquared >= 0.0f) new_distance = SIGN(new_distanceSignArg) * sqrtf(new_distanceSquared);
+	    float distance = do_new_loop3 ? new_distance : old_distance;
+
      	    if (fabs(*ijkDistanceElt) > fabs(distance)) {
 	      fprintf(stdout, "%s:%d prediction failed!\n", __FILE__, __LINE__);
 	      fprintf(stdout, "do_new_MRIDistance:%d\n", do_new_MRIDistance);
@@ -58190,6 +58210,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	  }
 	  
 	  if (do_new_loop3 && do_old_loop3) {
+            if (new_distanceSquared >= 0.0f) new_distance = SIGN(new_distanceSignArg) * sqrtf(new_distanceSquared);
 	  
 	    // Sadly the old code compares the distances rather than the distances-squared
 	    // forcing it to take a sqrt before doing the comparison.  But sqrt can make unequal
@@ -58206,16 +58227,28 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
           //
           if (trace) fprintf(stdout, "  update distance for i:%d j:%d j:%d\n", i,j,k);
 
-    	  updateDistanceElt(ijkDistanceElt, distance, 
+          if (new_distanceSquared >= 0) {
+     	    updateDistanceEltFromSignArgAndSquare(ijkDistanceElt, new_distanceSignArg, new_distanceSquared,
 #ifdef HAVE_OPENMP
-	    do_old_MRIDistance
+	      do_old_MRIDistance
 #else
-    	    false
+    	      false
 #endif
-	    );
-	    
+	      );
+          } else {
+    	    updateDistanceElt(ijkDistanceElt, do_new_loop3 ? new_distance : old_distance, 
+#ifdef HAVE_OPENMP
+	      do_old_MRIDistance
+#else
+    	      false
+#endif
+	      );
+	  }
+          
 	  if (do_old_MRIDistance && do_new_MRIDistance) {
-	    updateDistanceElt(perThreadMRIDistanceElt(ptd, i,j,k), distance, false);
+            if (new_distanceSquared >= 0.0f) new_distance = SIGN(new_distanceSignArg) * sqrtf(new_distanceSquared);
+	    float distance = do_new_loop3 ? new_distance : old_distance;
+	    updateDistanceElt(&MRIFvox(mri_distance_nonconst, i, j, 0), distance, false);
 	  }
 	  
         } // k
