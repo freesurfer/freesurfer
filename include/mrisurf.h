@@ -63,7 +63,7 @@ testing effects on surface placement so that the stream is the same up
 until surface placement.
  */
 #ifdef _MRISURF_SRC
-int UnitizeNormalFace = 0;
+int UnitizeNormalFace = 1;
 #else
 extern int UnitizeNormalFace;
 #endif
