@@ -241,7 +241,7 @@ def samsegment_part2(
             # Also remember the overall data variance for later usage in a conjugate prior on the variances
             dataMean = np.mean(data)
             tmp = data - dataMean
-            dataVariance = np.var(tmp)
+            dataVariance = np.var(tmp, axis=0)
             numberOfPseudoMeasurementsOfWishartPrior = 1
             pseudoVarianceOfWishartPrior = dataVariance / numberOfPseudoMeasurementsOfWishartPrior
             historyOfEMCost = [1 / eps]
@@ -255,7 +255,7 @@ def samsegment_part2(
                     numberOfComponents = numberOfGaussiansPerClass[classNumber]
                     for componentNumber in range(numberOfComponents):
                         gaussianNumber = sum(numberOfGaussiansPerClass[:classNumber]) + componentNumber
-                        mean = means[gaussianNumber, :].T
+                        mean = np.expand_dims(means[gaussianNumber, :], 1)
                         variance = variances[gaussianNumber, :, :]
                         L = np.linalg.cholesky(variance)
                         means_corrected_bias = biasCorrectedData.T - mean
@@ -289,9 +289,10 @@ def samsegment_part2(
                     #
                     # which has pseudoVarianceOfWishartPrior as the MAP solution in the absence of any data
                     #
-                    minLogUnnormalizedWishart = \
-                        np.trace(np.linalg.solve(variance, np.array(pseudoVarianceOfWishartPrior).reshape(1,
-                                                                                                          1))) * numberOfPseudoMeasurementsOfWishartPrior / 2 + \
+                    minLogUnnormalizedWishart = np.trace(np.linalg.solve(
+                            variance,
+                            np.array(pseudoVarianceOfWishartPrior).reshape(numberOfContrasts, 1)
+                        )) * numberOfPseudoMeasurementsOfWishartPrior / 2 + \
                         numberOfPseudoMeasurementsOfWishartPrior / 2 * np.log(np.linalg.det(variance))
                     intensityModelParameterCost = intensityModelParameterCost + minLogUnnormalizedWishart
                 historyOfEMCost.append(minLogLikelihood + intensityModelParameterCost)

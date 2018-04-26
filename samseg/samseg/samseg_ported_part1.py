@@ -220,7 +220,7 @@ def samsegment_part1(
         kroneckerProductBasisFunctions.append(A)
         numberOfBasisFunctions.append(M)
     basisProduct = reduce(mul, numberOfBasisFunctions, 1)
-    biasFieldCoefficients = np.zeros((basisProduct, 1))
+    biasFieldCoefficients = np.zeros((basisProduct, numberOfContrasts))
     return {
         'biasFieldCoefficients': biasFieldCoefficients,
         'colors': colors,
