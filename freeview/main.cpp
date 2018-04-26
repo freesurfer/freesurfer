@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
     "':inversion=flag' When displaying as vectors or tensors, invert the given component of the vectors. Valid flags are 'x', 'y' and 'z'.\n\n"
     "':outline=flag' Display labels as outline only. flag can be '1', 'yes' or 'true'.\n\n"
     "':reg=filename' or ':transform=filename' Set registration/transform file for the volume. filename can contain relative path to the volume file.\n\n"
-    "':sample=method' Set the sample method when resampling is necessary. method can be 'nearest' (default) or 'trilinear'.\n\n"
+    "':resample=method' or 'interpolation=method' Set the interpolation method when resampling is necessary. method can be 'nearest' (default), 'trilinear' or 'cubic.\n\n"
     "':opacity=value' Set the opacity of the volume layer. value ranges from 0 to 1.\n\n"
     "':mask=volume_name' Use the given volume to as mask for display. The maks volume must be loaded first.\n\n"
     "':isosurface=low_threshold,high_threshold' Set 3D display as isosurface. High_threshold is optional. If no threshold or simply 'on' is given, threshold will be either automatically determined or retrieved from the save previously settings.\n\n"

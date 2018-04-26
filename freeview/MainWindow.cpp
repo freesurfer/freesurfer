@@ -2058,7 +2058,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       {
         reg_fn = subArgu;
       }
-      else if ( subOption == "sample" )
+      else if ( subOption == "sample" || subOption == "resample" || subOption == "interpolation" )
       {
         if ( subArgu.toLower() == "nearest" )
         {
