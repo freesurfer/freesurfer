@@ -125,7 +125,7 @@ def samsegment_part3(
         numberOfComponents = numberOfGaussiansPerClass[classNumber - 1]
         for componentNumber in range(numberOfComponents):
             gaussianNumber = int(np.sum(numberOfGaussiansPerClass[: classNumber - 1]) + componentNumber)
-            mean = ensure_dims(means, 2)[gaussianNumber, :].T
+            mean = np.expand_dims(ensure_dims(means, 2)[gaussianNumber, :], 1)
             variance = ensure_dims(variances, 3)[gaussianNumber, :, :]
             mixtureWeight = mixtureWeights[gaussianNumber]
             L = np.linalg.cholesky(variance)
