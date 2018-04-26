@@ -2054,7 +2054,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
           tensor_render = "boxoid";
         }
       }
-      else if ( subOption == "reg" )
+      else if ( subOption == "reg" || subOption == "transform")
       {
         reg_fn = subArgu;
       }
@@ -2688,7 +2688,8 @@ void MainWindow::CommandLoadDTI( const QStringList& sa )
             }
           }
         }
-        else if ( strg.left( n ).toLower() == "reg" )
+        else if ( strg.left( n ).toLower() == "reg" ||
+                  strg.left( n ).toLower() == "transform")
         {
           reg_fn = strg.mid( n + 1 );
         }
@@ -7256,7 +7257,6 @@ void MainWindow::OnGoToPointSet(bool center)
       GetMainView()->CenterAtWorldPosition(pos);
   }
 }
-
 
 void MainWindow::OnGoToSurfaceLabel(bool center)
 {

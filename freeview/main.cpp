@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
     "':render=flag' When displaying as vectors or tensors, render the glyph in the given form. For vector, flag can be 'line' as simple line or 'bar' as 3D bar (might be slow). For tensor, flag can be 'boxoid' or 'ellipsoid' (slow!).\n\n"
     "':inversion=flag' When displaying as vectors or tensors, invert the given component of the vectors. Valid flags are 'x', 'y' and 'z'.\n\n"
     "':outline=flag' Display labels as outline only. flag can be '1', 'yes' or 'true'.\n\n"
-    "':reg=reg_filename' Set registration file for the volume. reg_filename can contain relative path to the volume file.\n\n"
+    "':reg=filename' or ':transform=filename' Set registration/transform file for the volume. filename can contain relative path to the volume file.\n\n"
     "':sample=method' Set the sample method when resampling is necessary. method can be 'nearest' (default) or 'trilinear'.\n\n"
     "':opacity=value' Set the opacity of the volume layer. value ranges from 0 to 1.\n\n"
     "':mask=volume_name' Use the given volume to as mask for display. The maks volume must be loaded first.\n\n"
