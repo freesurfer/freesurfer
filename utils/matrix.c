@@ -1205,7 +1205,7 @@ MATRIX *MatrixScalarAdd(const MATRIX *mIn, const float val, MATRIX *mOut)
   if ((rows != mOut->rows) || (cols != mOut->cols))
     ErrorReturn(NULL,
                 (ERROR_BADPARM,
-                 "MatrixScalarMul: incompatable matrices %d x %d != %d x %d\n",
+                 "MatrixScalarAdd: incompatable matrices %d x %d != %d x %d\n",
                  rows,
                  cols,
                  mOut->rows,
@@ -2535,6 +2535,34 @@ VECTOR *VectorCrossProduct(const VECTOR *v1, const VECTOR *v2, VECTOR *vdst)
   VECTOR_ELT(vdst, 3) = x1 * y2 - y1 * x2;
   return (vdst);
 }
+
+/*!
+  \fn VECTOR *VectorCrossProductD(const VECTOR *v1, const VECTOR *v2, VECTOR *vdst)
+  Calculates the cross product of two vectors and returns the result
+  in vdst, allocating it if necessary. Same as VectorCrossProduct() but uses
+  long doubles internally instead of floats.
+*/
+VECTOR *VectorCrossProductD(const VECTOR *v1, const VECTOR *v2, VECTOR *vdst)
+{
+  long double x1, x2, y1, y2, z1, z2;
+
+  if (v1->rows != 3 && v1->cols != 1) return(NULL);
+
+  if (!vdst) vdst = VectorClone(v1);
+
+  x1 = VECTOR_ELT(v1, 1);
+  y1 = VECTOR_ELT(v1, 2);
+  z1 = VECTOR_ELT(v1, 3);
+  x2 = VECTOR_ELT(v2, 1);
+  y2 = VECTOR_ELT(v2, 2);
+  z2 = VECTOR_ELT(v2, 3);
+
+  VECTOR_ELT(vdst, 1) = y1 * z2 - z1 * y2;
+  VECTOR_ELT(vdst, 2) = z1 * x2 - x1 * z2;
+  VECTOR_ELT(vdst, 3) = x1 * y2 - y1 * x2;
+  return (vdst);
+}
+
 
 /*
   compute the triple scalar product v1 x v2 . v3
