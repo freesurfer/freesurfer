@@ -1643,6 +1643,19 @@
     <string>Save Patch As...</string>
    </property>
   </action>
+  <action name="actionLoadTransform">
+   <property name="text">
+    <string>Load Transform...</string>
+   </property>
+   <property name="toolTip">
+    <string>Load Transform</string>
+   </property>
+  </action>
+  <action name="actionUnloadTransform">
+   <property name="text">
+    <string>Unload Transform...</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -3386,6 +3399,38 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionLoadTransform</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLoadVolumeTransform()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionUnloadTransform</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnUnloadVolumeTransform()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -3483,5 +3528,7 @@
   <slot>OnLoadTractCluster()</slot>
   <slot>OnLoadPatch()</slot>
   <slot>OnSavePatchAs()</slot>
+  <slot>OnLoadVolumeTransform()</slot>
+  <slot>OnUnloadVolumeTransform()</slot>
  </slots>
 </ui>

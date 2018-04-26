@@ -151,11 +151,11 @@ FSVolume::~FSVolume()
 
 bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
 {
-  if ( !reg_filename.isEmpty() && !m_MRIRef )
-  {
-    cerr << "Error: A target volume must be loaded first to apply registration matrix.\n";
-    return false;
-  }
+//  if ( !reg_filename.isEmpty() && !m_MRIRef )
+//  {
+//    cerr << "Error: A target volume must be loaded first to apply registration matrix.\n";
+//    return false;
+//  }
 
   // save old header to release later so there is no gap where m_MRI becomes NULL during re-loading process
   MRI* tempMRI = m_MRI;
@@ -202,6 +202,9 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
         << M->rptr[4][1] << " " << M->rptr[4][2] << " " << M->rptr[4][3] << " " << M->rptr[4][4] << endl;
   }
   */
+
+  if (!m_MRIRef)
+    SetMRI(m_MRIRef, m_MRI);
 
   // read registration matrix
   if ( !reg_filename.isEmpty() && !LoadRegistrationMatrix( reg_filename ) )
@@ -426,12 +429,17 @@ MATRIX* FSVolume::LoadRegistrationMatrix(const QString &filename, MRI *target, M
 // read in registration file and convert it to tkreg style
 bool FSVolume::LoadRegistrationMatrix( const QString& filename )
 {
+  ClearRegistrationMatrix();
+  m_matReg = LoadRegistrationMatrix(filename, m_MRIRef, m_MRI, &m_lta);
+  return (m_matReg != NULL);
+}
+
+void FSVolume::ClearRegistrationMatrix()
+{
   if ( m_matReg )
   {
     ::MatrixFree( &m_matReg );
   }
-  m_matReg = LoadRegistrationMatrix(filename, m_MRIRef, m_MRI, &m_lta);
-  return (m_matReg != NULL);
 }
 
 bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
@@ -1796,12 +1804,12 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
   }
   MatrixFree( &m );
 
-  if ( m_matReg && !m_MRIRef )
-  {
-    cerr << "No target volume available! Cannot use registration matrix.\n";
-  }
+//  if ( m_matReg && !m_MRIRef )
+//  {
+//    cerr << "No target volume available! Cannot use registration matrix.\n";
+//  }
 
-  if ( m_matReg && m_MRIRef )
+  if ( m_matReg)
   {
     // registration matrix is always converted to tkReg style now
     // if ( m_nRegType == REG_TKREGISTER )

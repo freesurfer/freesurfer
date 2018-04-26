@@ -85,6 +85,8 @@ public:
   bool LoadVolumeFromFile();
   bool Create( LayerMRI* mri, bool bCopyVoxel, int data_type = -1, int voxel_option = -1 );
   bool CreateFromMRIData(void* mri);  // hack
+  bool LoadVolumeTransform();
+  void UnloadVolumeTransform();
 
   virtual void Append2DProps( vtkRenderer* renderer, int nPlane );
   virtual void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL );
@@ -165,10 +167,7 @@ public:
 
   void SetReorient( bool bReorient );
 
-  void SetSampleMethod( int nSampleMethod )
-  {
-    m_nSampleMethod = nSampleMethod;
-  }
+  void SetSampleMethod( int nSampleMethod );
 
   void SetConform( bool bConform );
 

@@ -5770,6 +5770,10 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     std::cout << qPrintable(qobject_cast<LayerSurface*>(layer)->GetFileName()) << " saved successfully.\n";
     m_dlgRepositionSurface->UpdateUI();
   }
+  else if ( jobtype == ThreadIOWorker::JT_TransformVolume)
+  {
+    RequestRedraw();
+  }
 
   if (m_scripts.isEmpty())
   {
@@ -7769,4 +7773,30 @@ void MainWindow::ShowTractClusterMap()
 {
   m_wndTractCluster->show();
   m_wndTractCluster->raise();
+}
+
+void MainWindow::OnLoadVolumeTransform()
+{
+  LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI");
+  if (!mri)
+    return;
+
+  DialogLoadTransform dlg(this);
+  if ( dlg.exec() == QDialog::Accepted )
+  {
+    mri->SetRegFileName(dlg.GetFilename());
+    mri->SetSampleMethod(dlg.GetSampleMethod());
+    m_threadIOWorker->TransformVolume(mri);
+  }
+}
+
+void MainWindow::OnUnloadVolumeTransform()
+{
+  LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI");
+  if (!mri)
+    return;
+
+  QVariantMap args;
+  args["unload"] = true;
+  m_threadIOWorker->TransformVolume(mri, args);
 }

@@ -182,7 +182,7 @@ LayerMRI::~LayerMRI()
     m_vectorDotActor2D[i]->Delete();
     m_projectionMapActor[i]->Delete();
   }
-  
+
   if ( m_sFilename.size() > 0 )
   {
     GetProperty()->SaveSettings( m_sFilename );
@@ -292,6 +292,28 @@ bool LayerMRI::LoadVolumeFromFile()
     m_nGotoLabelSlice = this->GoToLabel(m_nGotoLabelOrientation, m_strGotoLabelName);
   
   return true;
+}
+
+bool LayerMRI::LoadVolumeTransform()
+{
+  if (!m_volumeSource->LoadRegistrationMatrix(m_sRegFilename))
+  {
+    cerr << "Could not load transformation from " << qPrintable(m_sRegFilename) << endl;
+    return false;
+  }
+  m_volumeSource->MapMRIToImage();
+  InitializeVolume();
+  InitializeActors();
+  return true;
+}
+
+void LayerMRI::UnloadVolumeTransform()
+{
+  m_sRegFilename.clear();
+  m_volumeSource->ClearRegistrationMatrix();
+  m_volumeSource->MapMRIToImage();
+  InitializeVolume();
+  InitializeActors();
 }
 
 bool LayerMRI::CreateFromMRIData(void *mri_ptr)
@@ -438,6 +460,13 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type, int vo
 void LayerMRI::SetReorient( bool bReorient )
 {
   m_bReorient = bReorient;
+}
+
+void LayerMRI::SetSampleMethod( int nSampleMethod )
+{
+  m_nSampleMethod = nSampleMethod;
+  if (m_volumeSource)
+    m_volumeSource->SetInterpolationMethod(nSampleMethod);
 }
 
 bool LayerMRI::SaveVolume()

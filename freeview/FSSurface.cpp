@@ -2093,17 +2093,17 @@ QList<int> FSSurface::FloodFillFromSeed(int seed_vno)
   int iter;
   int min_vno, max_vno, step_vno;
   int vno;
-  int this_label = 0;
+//  int this_label = 0;
   int neighbor_index;
   int neighbor_vno;
   VERTEX* v;
   VERTEX* neighbor_v;
-  float fvalue = 0;
-  float seed_curv = 0;
-  float seed_fvalue = 0;
-  int new_index;
-  int num_labels_found, found_label_index;
-  int skip;
+//  float fvalue = 0;
+//  float seed_curv = 0;
+//  float seed_fvalue = 0;
+//  int new_index;
+//  int num_labels_found, found_label_index;
+//  int skip;
   int count;
 
   QList<int> filled_verts;
