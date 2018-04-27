@@ -40,5 +40,21 @@ def parse_args(argv=None, parser=argparse.ArgumentParser(
         parser.error("must specify at least one input")
     return args
 
+
+def parse_sbtiv_args(argv=None, parser=argparse.ArgumentParser()):
+    parser.add_argument('-o', '--output', metavar='FOLDER', help="output to FOLDER")
+    parser.add_argument('-i', '--input', metavar='FILE', help="file containing samseg stats")
+    parser.add_argument('-m', '--map', metavar="FILE",
+                        help="file containing a list over intracranial structure labels. Label names must be identical to those defined in the atlas used by samseg. A default is used, if omitted. ")
+    parser.add_argument('-v', '--verbose', action='store_true', default=False, help="verbose debug output")
+
+    args = parser.parse_args(args=argv)
+
+    if not args.input:
+        parser.error("must specify at least one input")
+
+    return args
+
+
 if __name__ == '__main__':
     print(parse_args())
