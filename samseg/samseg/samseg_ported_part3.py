@@ -8,10 +8,11 @@ from samseg.bias_correction import backprojectKroneckerProductBasisFunctions
 from samseg.dev_utils.debug_client import run_test_cases, create_checkpoint_manager, \
     create_part3_inspection_team, load_starting_fixture
 from samseg.kvlWarpMesh import kvlWarpMesh
-
+from samseg.show_figures import DoNotShowFigures
 
 eps = np.finfo(float).eps
 
+SKIP_SHOW_FIGURES_SAMSEG_PART_3 = False
 
 def ensure_dims(np_array, dims):
     if np_array.ndim < dims:
@@ -30,8 +31,11 @@ def samsegment_part3(
         part1_results_dict,
         part2_results_dict,
         imageFileNames,
+        visualizer,
         checkpoint_manager=None
 ):
+    if SKIP_SHOW_FIGURES_SAMSEG_PART_3 or visualizer is None:
+        visualizer = DoNotShowFigures()
     croppingOffset = part1_results_dict['croppingOffset']
     FreeSurferLabels = part1_results_dict['FreeSurferLabels']
     imageSize = part1_results_dict['imageSize']
@@ -63,9 +67,6 @@ def samsegment_part3(
     biasCorrectedImageBuffers = np.zeros((imageSize[0], imageSize[1], imageSize[2], numberOfContrasts))
     biasFields = np.zeros((imageSize[0], imageSize[1], imageSize[2], numberOfContrasts))
 
-    # TODO remove these ensure_dims once merging with part 2
-    biasFieldCoefficients = ensure_dims(biasFieldCoefficients, 2)
-    imageBuffers = ensure_dims(imageBuffers, 4)
     for contrastNumber in range(numberOfContrasts):
         biasField = backprojectKroneckerProductBasisFunctions(kroneckerProductBasisFunctions,
                                                               biasFieldCoefficients[:, contrastNumber])
@@ -124,7 +125,7 @@ def samsegment_part3(
         numberOfComponents = numberOfGaussiansPerClass[classNumber - 1]
         for componentNumber in range(numberOfComponents):
             gaussianNumber = int(np.sum(numberOfGaussiansPerClass[: classNumber - 1]) + componentNumber)
-            mean = ensure_dims(means, 2)[gaussianNumber, :].T
+            mean = np.expand_dims(ensure_dims(means, 2)[gaussianNumber, :], 1)
             variance = ensure_dims(variances, 3)[gaussianNumber, :, :]
             mixtureWeight = mixtureWeights[gaussianNumber]
             L = np.linalg.cholesky(variance)

@@ -52,13 +52,13 @@ Get the latest release version of ITK:
 ```bash
 git clone https://itk.org/ITK.git
 ```
-Get the porting branch of FreeSurfer and install pybind11:
+Get the porting branch of FreeSurfer and install submodules pybind11 and hdav:
 ```bash
 git clone https://github.com/innolitics/freesurfer.git
 cd freesurfer
 git checkout  nf-gems2-python-performance
-cd GEMS2
-git clone https://github.com/pybind/pybind11.git
+git submodule init
+git submodule update
 ```
 ## Build from Source
 ### Build ITK
@@ -134,6 +134,10 @@ ccmake .
 Use the `t` option to see the advanced mode options. Then set the `CMAKE_CXX_FLAGS` and `CMAKE_C_FLAGS` to "`-fPIC -fpermissive -msse2 -mfpmath=sse`".
 
 `BUILD_EXECUTABLES` `BUILD_GUI` `BUILD_MATLAB` `BUILD_SHARED_LIBS` and `BUILD_TESTING` should be `OFF`.
+`
+BUILD_PYTHON` should be `ON`
+
+'CMAKE_BUILD_TYPE' should be 'Release'
 
 Check that the `PYTHON_EXECUTABLE` and `PYTHON_LIBRARY` have valid values such as `/usr/bin/python3.5` 
 and `/usr/lib/x86_64-linux-gnu/libpython3.5m.so` respectively.
@@ -156,7 +160,7 @@ pip install dist/GEMS2Python-0.1.0-cp35-cp35m-linux_x86_64.whl
 ### Build and install samseg
 The python portion of the code can also be built and installed as a wheel:
 ```bash
-cd ~/work/cm/freesurfer/python/
+cd ~/work/cm/freesurfer/samseg/
 python setup.py bdist_wheel
 pip install dist/samseg-0.1.0-py2.py3-none-any.whl
 ```
@@ -179,9 +183,10 @@ The matlab script `run_samseg.m` has been ported to `run_samseg_ported.py` with 
 A minor difference is the use of `-i` and `-o` with single dash instead of `--i` and `--o`
 Running with `-h` for help will print a complete usage statement:
 ```bash
-usage: run_samseg [-h] [-o FOLDER] [-i FILE] [--threads THREADS]
-                            [-r FILE] [-m LABEL] [--showfigs] [--nobrainmask]
-                            [--diagcovs] [-v]
+usage: run_samseg_ported.py [-h] [-o FOLDER] [-i FILE] [--threads THREADS]
+                            [-r FILE] [--initlta FILE] [-m LABEL] [--movie]
+                            [--showfigs] [--nobrainmask] [--diagcovs] [-v]
+                            [--reg-only]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -192,16 +197,43 @@ optional arguments:
   --threads THREADS     number of threads
   -r FILE, --regmat FILE
                         skip registration and read from FILE
+  --initlta FILE        initial registration FILE
   -m LABEL, --missing LABEL
                         LABEL is a missing structure (repeat for multiple
                         missing labels)
+  --movie               show as arrow key controlled time sequence
   --showfigs            show figures during run
   --nobrainmask         no initial brain masking based on affine atlas
                         registration
   --diagcovs            use diagonal covariance matrices (only affect multi-
                         contrast case)
   -v, --verbose         verbose debug output
+  --reg-only, --regonly
+                        only perform registration
 ```
+
+### Display Options: showfigs and movie
+If you turn on the `showfigs` or `movie` command line options then you will see charted data during the run.
+
+The `showfigs` option by itself will display various graphs and charts as the data is calculated.
+
+The 3d images can be navigated by placing the cursor over one of the three views and then
+either clicking with the mouse or using the mouse scroll wheel.
+The legend at left also assigns keys to each layer (label or contrast) of the displayed image.
+These keys toggle that layer on and off.
+
+The `movie` option alone will show one movie at the end of atas registration and
+one movie for each multi resolution level. Time is controlled by using the arrow keys
+while the cursor is over the display window.
+Left and right arrow keys move forward or back one frame. The up and down arrows move to the
+start or end of the movie.
+The current frame number and the frame count can be seen in the display title.
+
+If both `showfigs` and `movie` options are selected, then some of the displays will be for a movie in progress,
+with as many frames as have been generated to that point in time.
+
+***With either option, all calculations are paused until the displayed window is closed.***
+
 ## Running Test Scripts
 Place the `innolitics_testing` data folder at `~/work/cm/`
 
@@ -228,7 +260,7 @@ pip uninstall samseg
 ```
 The project can instead be installed in edit mode.
 ```bash
-cd ~/work/cm/freesurfer/python/
+cd ~/work/cm/freesurfer/samseg/
 pip install -e .
 ```
 Any changes to the python code will be automatically updated.
@@ -248,6 +280,28 @@ export PYTHONPATH="$HOME/work/cm/freesurfer/GEMS2/bin"
 ### The PYTHONPATH alternative
 It is also possible to uninstall either or both wheels and use the python path.
 ```
-export PYTHONPATH="$HOME/work/cm/freesurfer/python:$HOME/work/cm/freesurfer/GEMS2/bin"
+export PYTHONPATH="$HOME/work/cm/freesurfer/samseg:$HOME/work/cm/freesurfer/GEMS2/bin"
 ```
 Note the use of ```:``` as separator. If you are keeping one of the wheels then remove the corresponding piece of the path.
+
+## Packaging
+
+To create a package to port to another machine change to the main ```samseg``` directory
+and run the packaging script ```install_as_virtualenv```
+```bash
+cd ~/work/cm/freesurfer/samseg/
+install_as_virtualenv
+```
+There are several options. 
+The default will create a subfolder ```packaging``` that includes the visualization options.
+
+Running with the ```--help``` option will display a usage message that describes all of the options.
+The most significant is the ```-n``` option. This will exclude visualization and
+is more suitable for a production server.
+
+The created package is a virtual environment and can be used as such on the build machine.
+It includes a copy of the python3 interpreter.
+However, the package subfolder can also be copied to another machine with the same OS
+and then invoked directly.
+It has a script ```run_samseg.sh``` that will use the packaged python
+to run the script ```run_samseg``` with the same command line options.

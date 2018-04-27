@@ -1,0 +1,167 @@
+#!/usr/bin/env bash
+#set -o xtrace
+
+readonly PROGRAM_NAME=$(basename $0)
+readonly CURRENT_DIRECTORY=$(pwd)
+readonly PROGRAM_DIRECTORY=$(cd "$(dirname "$0")"; pwd)
+readonly SAMSEG_DIRECTORY="${PROGRAM_DIRECTORY}"
+readonly GEMS2_DIRECTORY=$(dirname "${PROGRAM_DIRECTORY}")/GEMS2
+readonly DEFAULT_VIRTUAL_ENVIRONMENT_BASE="${PROGRAM_DIRECTORY}"
+
+main() {
+    local virtual_environment_base="${DEFAULT_VIRTUAL_ENVIRONMENT_BASE}"
+    local virtual_environment_name="packaging"
+    local no_visualization=false
+
+    while getopts ":hnd:v:-:" arg; do
+        case "${arg}" in
+            h)
+                usage
+                exit 0
+                ;;
+            n)
+                no_visualization=true
+                echo "Setting visualization off"
+                ;;
+            d)
+                virtual_environment_base=${OPTARG}
+                echo "Setting virtual environment base to ${virtual_environment_base}"
+                ;;
+            v)
+                virtual_environment_name=${OPTARG}
+                echo "Setting virtual environment name to ${virtual_environment_name}"
+                ;;
+            -)
+                case "${OPTARG}" in
+                    "no-visualization")
+                        no_visualization=true
+                        echo "Setting visualization off"
+                        ;;
+                    "dir")
+                        virtual_environment_base="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
+                        echo "Setting virtual environment base to ${virtual_environment_base}"
+                        ;;
+                    "venv-name")
+                        virtual_environment_name="${!OPTIND}"; OPTIND=$(( $OPTIND + 1 ))
+                        echo "Setting virtual environment name to ${virtual_environment_name}"
+                        ;;
+                    "help")
+                        usage
+                        exit 0
+                        ;;
+                 esac
+                 ;;
+             *)
+                echo "unknown arguments $@"
+                usage
+                exit 1
+                ;;
+        esac
+    done
+    local virtual_environment="${virtual_environment_base}/${virtual_environment_name}"
+    check_and_install "${virtual_environment}" $no_visualization
+}
+
+usage() {
+cat <<-EOF
+usage: $PROGRAM_NAME options
+
+Creates a virtual environment and then installs gems2python and samseg packages.
+
+OPTIONS:
+    -h, --help               Print this usage message
+    -n, --no-visualization   Builds with no visualization and no dependency on Qt5
+                             Default is to include visualization
+    -d, --dir DIRECTORY      Use DIRECTORY as base folder in which environment is created
+                             Default is to use $DEFAULT_VIRTUAL_ENVIRONMENT_BASE
+    -v, --venv-name VENV     Use VENV as name of virtual environment with base folder
+                             Default is to use "packaging"
+
+Examples:
+    Create a virtual environment at default location $DEFAULT_VIRTUAL_ENVIRONMENT_BASE/packaging:
+    $PROGRAM_NAME
+
+    Create a virtual environment named "server" at /tmp/venv with no visualization:
+    $PROGRAM_NAME -n -d /tmp/server -v server
+
+EOF
+}
+
+check_and_install() {
+    local virtual_environment="$1"; shift
+    local no_visualization="$1"
+
+    check_needed_tools_are_installed \
+    && install_gems2_and_samseg "${virtual_environment}" "${no_visualization}" \
+    && echo \
+    && echo Virtual environment successfully built at $virtual_environment
+}
+
+check_needed_tools_are_installed() {
+    check_python3_is_installed \
+    && check_virtualenv_is_installed
+}
+
+check_python3_is_installed() {
+    CMD=$(which python3)
+    if [[ $? != 0 ]]; then
+        echo "Must have python3 interpreter installed."
+        exit 3
+    fi
+}
+
+check_virtualenv_is_installed() {
+    CMD=$(which virtualenv)
+    if [[ $? != 0 ]]; then
+        echo "Must have virtualenv tool installed."
+        echo "Try running:"
+        echo "    pip install virtualenv"
+        exit 2
+    fi
+}
+
+install_gems2_and_samseg() {
+    local virtual_environment="$1"; shift
+    local no_visualization="$1"
+    create_virtual_environment "${virtual_environment}" \
+    && activate_virtual_environment "${virtual_environment}" \
+    && create_and_install_gems2 \
+    && create_and_install_samseg "${no_visualization}" \
+    && copy_run_samseg_shell_script  "${virtual_environment}"
+}
+
+create_virtual_environment() {
+    local virtual_environment=$1
+    virtualenv --always-copy -p python3 "${virtual_environment}"
+}
+
+activate_virtual_environment() {
+    local virtual_environment="$1"
+    local activator="${virtual_environment}/bin/activate"
+    source "${activator}"
+}
+
+create_and_install_gems2() {
+    cd "${GEMS2_DIRECTORY}"
+    source make_gems2Python_wheel
+}
+
+create_and_install_samseg() {
+    local no_visualization="$1"
+    cd "${SAMSEG_DIRECTORY}"
+    if [[ true = $no_visualization ]] ; then
+        $PROGRAM_DIRECTORY/make_samseg_wheel --no-visualization
+    else
+        $PROGRAM_DIRECTORY/make_samseg_wheel
+    fi
+}
+
+copy_run_samseg_shell_script() {
+    local virtual_environment="$1"
+    cp scripting/run_samseg.sh "${virtual_environment}/bin"
+}
+
+main "$@" || true
+MY_EXIT_CODE=${PIPESTATUS[0]}
+cd "${CURRENT_DIRECTORY}"
+exit $MY_EXIT_CODE

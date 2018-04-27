@@ -12,6 +12,7 @@ from samseg.run_utilities import find_or_create_save_path, specify_model, determ
 from gems2python import GEMS2Python
 
 from samseg.samseg_ported import samsegment
+from samseg.show_figures import DoNotShowFigures, ShowFigures
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)  # TODO: configurable logging
@@ -32,10 +33,11 @@ def run_samseg_from_cmdargs(cmdargs):
     atlas_only = cmdargs.atlas_only
     savePath = cmdargs.output
     numberOfThreads = cmdargs.threads
-    showFigures = cmdargs.showfigs
+    visualizer = construct_visualizer(show_flag=cmdargs.showfigs, movie_flag=cmdargs.movie)
     noBrainMasking = cmdargs.nobrainmask
     useDiagonalCovarianceMatrices = cmdargs.diagcovs
     RegMatFile = cmdargs.regmat
+    InitLTAFile = cmdargs.InitLTAFile
     imageFileNames = cmdargs.image_file_names
     # Display input
     display_cmdargs(cmdargs)
@@ -43,26 +45,35 @@ def run_samseg_from_cmdargs(cmdargs):
     return run_samseg(
             imageFileNames,
             savePath,
-            showFigures,
+            visualizer,
             noBrainMasking,
             useDiagonalCovarianceMatrices,
             verbose,
             numberOfThreads,
-            atlas_only
+            atlas_only=atlas_only,
+            InitLTAFile=InitLTAFile
     )
 
+def construct_visualizer(show_flag, movie_flag):
+    if show_flag or movie_flag:
+        return ShowFigures(show_flag=show_flag, movie_flag=movie_flag)
+    else:
+        return DoNotShowFigures()
 
 def run_samseg(
     imageFileNames,
     savePath,
-    showFigures=False,
+    visualizer=None,
     noBrainMasking=False,
     useDiagonalCovarianceMatrices=False,
     verbose=False,
     numberOfThreads=None,
+    InitLTAFile=None,
     atlas_only=False,
     checkpoint_manager=None
 ):
+    if visualizer is None:
+        visualizer = DoNotShowFigures()
     # Create the output folder
     savePath = find_or_create_save_path(savePath)
 
@@ -92,12 +103,14 @@ def run_samseg(
         affineRegistrationMeshCollectionFileName,
         templateFileName,
         savePath,
-        showFigures,
+        visualizer,
         worldToWorldTransformMatrix,
+        InitLTAFile,
         checkpoint_manager
     )
     process_timer.mark_time('registration done')
     if atlas_only:
+        print('Registration-only requested, so quiting now')
         return
     # FreeSurfer (http://surfer.nmr.mgh.harvard.edu) has a standardized way of representation segmentations,
     # both manual and automated, as images in which certain intensity levels correspond to well-defined
@@ -135,7 +148,7 @@ def run_samseg(
 
     FreeSurferLabels, names, volumesInCubicMm = samsegment(imageFileNames, transformedTemplateFileName,
                                                            modelSpecifications, optimizationOptions,
-                                                           savePath, showFigures,
+                                                           savePath, visualizer,
                                                            checkpoint_manager)
     print('names', names)
     print('volumesInCubicMm', volumesInCubicMm)
@@ -145,6 +158,7 @@ def display_cmdargs(cmdargs):
     log_image_file_names(cmdargs.image_file_names)
     logger.info("output to %s", cmdargs.output)
     logger.info("threads=%d", cmdargs.threads)
+    logger.info("init lta is %s", cmdargs.InitLTAFile)
     log_mode('verbose', cmdargs.verbose)
 
 

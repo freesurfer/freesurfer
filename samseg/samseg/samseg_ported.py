@@ -15,7 +15,7 @@ def samsegment(
         modelSpecifications,
         optimizationOptions,
         savePath,
-        showFigures,
+        visualizer,
         checkpoint_manager=None
 ):
     part0_results_dict = Specification({
@@ -24,7 +24,7 @@ def samsegment(
         'modelSpecifications': modelSpecifications,
         'optimizationOptions': optimizationOptions,
         'savePath': savePath,
-        'showFigures': showFigures,
+        'visualizer': visualizer,
     })
     if checkpoint_manager:
         checkpoint_manager.save_specification(part0_results_dict, 'part0', 1)
@@ -35,7 +35,7 @@ def samsegment(
         modelSpecifications,
         optimizationOptions,
         savePath,
-        showFigures,
+        visualizer,
         checkpoint_manager
     )
     if checkpoint_manager:
@@ -46,6 +46,7 @@ def samsegment(
         modelSpecifications,
         optimizationOptions,
         part1_results_dict,
+        visualizer,
         checkpoint_manager
     )
     if checkpoint_manager:
@@ -58,6 +59,7 @@ def samsegment(
         part1_results_dict,
         part2_results_dict,
         imageFileNames,
+        visualizer,
         checkpoint_manager
     )
     if checkpoint_manager:
@@ -83,7 +85,7 @@ def test_samseg_ported(case_name, case_file_folder, savePath):
         fixture['modelSpecifications'],
         fixture['optimizationOptions'],
         savePath,
-        fixture['showFigures'],
+        fixture['visualizer'],
         checkpoint_manager
     )
     print(results)

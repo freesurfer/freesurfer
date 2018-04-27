@@ -9,7 +9,9 @@ import numpy as np
 from samseg.dev_utils.debug_client import create_checkpoint_manager, run_test_cases, \
     create_part1_inspection_team, load_starting_fixture
 from samseg.kvl_merge_alphas import kvlMergeAlphas
+from samseg.show_figures import DoNotShowFigures
 
+SKIP_SHOW_FIGURES_SAMSEG_PART_1 = False
 
 def samsegment_part1(
         imageFileNames,
@@ -17,9 +19,11 @@ def samsegment_part1(
         modelSpecifications,
         optimizationOptions,
         savePath,
-        showFigures,
+        visualizer,
         checkpoint_manager=None
 ):
+    if SKIP_SHOW_FIGURES_SAMSEG_PART_1 or visualizer is None:
+        visualizer = DoNotShowFigures()
     # Print input options
     print('==========================')
     print_image_file_names(imageFileNames)
@@ -27,7 +31,7 @@ def samsegment_part1(
     print_model_specifications(modelSpecifications)
     print_optimization_options(optimizationOptions)
     print_save_path(savePath)
-    print_show_figures(showFigures)
+    print_visualizer(visualizer)
 
     numberOfContrasts = len(imageFileNames)
     # Read the image data from disk. At the same time, construct a 3-D affine transformation (i.e.,
@@ -50,6 +54,7 @@ def samsegment_part1(
 
     imageSize = imageBuffers[0].shape
     imageBuffers = np.transpose(imageBuffers, axes=[1, 2, 3, 0])
+    visualizer.show(images=imageBuffers, window_id='samsegment contrast', title='Samsegment Contrasts')
 
     # Also read in the voxel spacing -- this is needed since we'll be specifying bias field smoothing kernels, downsampling
     # steps etc in mm.
@@ -92,8 +97,19 @@ def samsegment_part1(
         np.ma.masked_greater(backgroundPrior, backGroundThreshold),
         backGroundPeak).astype(np.float32)
 
+    visualizer.show(
+        probabilities=backgroundPrior,
+        images=imageBuffers,
+        window_id='samsegment background',
+        title='Samsegment Background Priors'
+    )
     smoothingSigmas = [1.0 * modelSpecifications.brainMaskingSmoothingSigma] * 3
     smoothedBackgroundPrior = GEMS2Python.KvlImage.smooth_image_buffer(backgroundPrior, smoothingSigmas)
+    visualizer.show(
+        probabilities=smoothedBackgroundPrior,
+        window_id='samsegment smoothed',
+        title='Samsegment Smoothed Background Priors'
+    )
 
     # 65535 = 2^16 - 1. priors are stored as 16bit ints
     # To put the threshold in perspective: for Gaussian smoothing with a 3D isotropic kernel with variance
@@ -124,6 +140,12 @@ def samsegment_part1(
     for contrastNumber in range(numberOfContrasts):
         imageBuffers[:, :, :, contrastNumber] *= brainMask
 
+    visualizer.show(
+        images=imageBuffers,
+        window_id='samsegment images',
+        title='Samsegment Masked Contrasts'
+    )
+
     # Let's prepare for the bias field correction that is part of the imaging model. It assumes
     # an additive effect, whereas the MR physics indicate it's a multiplicative one - so we log
     # transform the data first. In order to do so, mask out zeros from
@@ -148,11 +170,17 @@ def samsegment_part1(
     FreeSurferLabels = modelSpecifications.FreeSurferLabels
     names = modelSpecifications.names
     colors = modelSpecifications.colors
-    [reducedAlphas, reducedNames, reducedFreeSurferLabels, reducedColors, reducingLookupTable] = kvlMergeAlphas(alphas,
-                                                                                                                names,
-                                                                                                                modelSpecifications.sharedGMMParameters,
-                                                                                                                FreeSurferLabels,
-                                                                                                                colors)
+    [reducedAlphas, reducedNames, reducedFreeSurferLabels, reducedColors, reducingLookupTable
+     ] = kvlMergeAlphas(alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors)
+
+    visualizer.show(
+        mesh=mesh,
+        shape=imageBuffers.shape,
+        window_id='samsegment mesh',
+        title='Samsegment Mesh',
+        names=names,
+        legend_width=350, # Wider legend to handle the longer names
+    )
 
     # The fact that we merge several neuroanatomical structures into "super"-structures for the purpose of model
     # parameter estimaton, but at the same time represent each of these super-structures with a mixture of Gaussians,
@@ -192,7 +220,7 @@ def samsegment_part1(
         kroneckerProductBasisFunctions.append(A)
         numberOfBasisFunctions.append(M)
     basisProduct = reduce(mul, numberOfBasisFunctions, 1)
-    biasFieldCoefficients = np.zeros((basisProduct, 1))
+    biasFieldCoefficients = np.zeros((basisProduct, numberOfContrasts))
     return {
         'biasFieldCoefficients': biasFieldCoefficients,
         'colors': colors,
@@ -271,8 +299,8 @@ def print_save_path(savePath):
     print('savePath:', savePath)
 
 
-def print_show_figures(showFigures):
-    print('showFigures:', showFigures)
+def print_visualizer(visualizer):
+    print('visualizer:', visualizer)
     print('-----')
 
 
@@ -290,7 +318,7 @@ def test_samseg_part_1(case_name, case_file_folder, savePath):
         fixture['modelSpecifications'],
         fixture['optimizationOptions'],
         savePath,
-        fixture['showFigures'],
+        fixture['visualizer'],
         checkpoint_manager
     )
     create_part1_inspection_team().inspect_all(checkpoint_manager)

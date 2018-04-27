@@ -131,6 +131,8 @@ def specify_model(FreeSurferLabels, noBrainMasking, useDiagonalCovarianceMatrice
         'biasFieldSmoothingKernelSize': 50,
     })
 
+def merged_names(model):
+    return [item.mergedName for item in model.sharedGMMParameters]
 
 def run_sbtiv_from_cmdargs(cmdargs):
     

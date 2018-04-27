@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+cmake  -D CMAKE_CXX_FLAGS="-msse2 -mfpmath=sse -fPIC -fpermissive" \
+          -D CMAKE_C_FLAGS="-msse2 -mfpmath=sse -fPIC -fpermissive" \
+          -D BUILD_EXECUTABLES=OFF \
+          -D BUILD_GUI=OFF \
+          -D BUILD_MATLAB=OFF \
+          -D BUILD_PYTHON=ON \
+          -D BUILD_SHARED_LIBS=OFF \
+          -D BUILD_TESTING=OFF \
+          . && \
+    make -j4 && \
+    python setup.py bdist_wheel && \
+    pip install dist/*.whl

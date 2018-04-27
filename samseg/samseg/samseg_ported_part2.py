@@ -11,8 +11,12 @@ from samseg.dev_utils.debug_client import create_part2_inspection_team, run_test
     create_checkpoint_manager, load_starting_fixture
 from samseg.kvlWarpMesh import kvlWarpMesh
 from samseg.kvl_merge_alphas import kvlMergeAlphas
+from samseg.run_utilities import merged_names
+from samseg.show_figures import DoNotShowFigures, ShowFigures
 
 logger = logging.getLogger(__name__)
+
+SKIP_SHOW_FIGURES_SAMSEG_PART_2 = False
 
 eps = np.finfo(float).eps
 
@@ -36,8 +40,11 @@ def samsegment_part2(
         modelSpecifications,
         optimizationOptions,
         part1_results_dict,
-        checkpoint_manager=None
+        visualizer,
+        checkpoint_manager=None,
 ):
+    if SKIP_SHOW_FIGURES_SAMSEG_PART_2 or visualizer is None:
+        visualizer = DoNotShowFigures()
     biasFieldCoefficients = part1_results_dict['biasFieldCoefficients']
     colors = part1_results_dict['colors']
     FreeSurferLabels = part1_results_dict['FreeSurferLabels']
@@ -53,10 +60,17 @@ def samsegment_part2(
     transformMatrix = part1_results_dict['transformMatrix']
     voxelSpacing = part1_results_dict['voxelSpacing']
     transform = GEMS2Python.KvlTransform(np.asfortranarray(transformMatrix))
+    names_for_merged_data = merged_names(modelSpecifications)
 
     numberOfMultiResolutionLevels = len(optimizationOptions.multiResolutionSpecification)
     for multiResolutionLevel in range(numberOfMultiResolutionLevels):
         logger.debug('multiResolutionLevel=%d', multiResolutionLevel)
+        #  If the movie flag is on then making a movie archives a lot of data.
+        #  Saving some memory here by making, showing, then erasing the movie at each resolution level.
+        visualizer.start_movie(
+            window_id='samsegment',
+            title='Samsegment Mesh Registration - the movie'
+        )
         maximumNumberOfIterations = optimizationOptions.multiResolutionSpecification[
             multiResolutionLevel].maximumNumberOfIterations
         estimateBiasField = optimizationOptions.multiResolutionSpecification[multiResolutionLevel].estimateBiasField
@@ -74,10 +88,6 @@ def samsegment_part2(
         for contrastNumber in range(numberOfContrasts):
             logger.debug('first time contrastNumber=%d', contrastNumber)
             # No image smoothing
-            # TODO: Remove need to check this. Matlab implicitly lets you expand one dim, our python code should have the shape (x, y, z, numberOfContrasts)
-            if imageBuffers.ndim == 3:
-                imageBuffers = np.expand_dims(imageBuffers, axis=3)
-
             downSampledImageBuffers[:, :, :, contrastNumber] = imageBuffers[::downSamplingFactors[0],
                                                                ::downSamplingFactors[1],
                                                                ::downSamplingFactors[2],
@@ -159,15 +169,22 @@ def samsegment_part2(
         downSampledBiasCorrectedImageBuffers = np.zeros(downSampledImageSize + (numberOfContrasts,), order='F')
         biasCorrectedData = np.zeros((activeVoxelCount, numberOfContrasts), order='F')
 
-        # TODO: remove this ensure_dims when part 1 is done
-        biasFieldCoefficients = ensure_dims(biasFieldCoefficients, 2)
-        for contrastNumber in range(numberOfContrasts):
-            logger.debug('second time contrastNumber=%d', contrastNumber)
-            downSampledBiasField = backprojectKroneckerProductBasisFunctions(downSampledKroneckerProductBasisFunctions,
-                                                                             biasFieldCoefficients[:, contrastNumber])
-            tmp = downSampledImageBuffers[:, :, :, contrastNumber] - downSampledBiasField * downSampledMask
-            downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber] = tmp
-            biasCorrectedData[:, contrastNumber] = tmp[downSampledMaskIndices]
+        downSampledBiasFields = bias_correct_data(
+            biasCorrectedData,
+            biasFieldCoefficients,
+            downSampledBiasCorrectedImageBuffers,
+            downSampledImageBuffers,
+            downSampledKroneckerProductBasisFunctions,
+            downSampledMask,
+            downSampledMaskIndices,
+            numberOfContrasts
+        )
+        visualizer.show(
+            image_list=downSampledBiasFields,
+            auto_scale=True,
+            window_id='bias field',
+            title='Samsegment Bias Fields'
+        )
         # Compute a color coded version of the atlas prior in the atlas's current pose, i.e., *before*
         # we start deforming. We'll use this just for visualization purposes
         posteriors = np.zeros((activeVoxelCount, numberOfGaussians), order='F')
@@ -224,7 +241,7 @@ def samsegment_part2(
             # Also remember the overall data variance for later usage in a conjugate prior on the variances
             dataMean = np.mean(data)
             tmp = data - dataMean
-            dataVariance = np.var(tmp)
+            dataVariance = np.var(tmp, axis=0)
             numberOfPseudoMeasurementsOfWishartPrior = 1
             pseudoVarianceOfWishartPrior = dataVariance / numberOfPseudoMeasurementsOfWishartPrior
             historyOfEMCost = [1 / eps]
@@ -238,7 +255,7 @@ def samsegment_part2(
                     numberOfComponents = numberOfGaussiansPerClass[classNumber]
                     for componentNumber in range(numberOfComponents):
                         gaussianNumber = sum(numberOfGaussiansPerClass[:classNumber]) + componentNumber
-                        mean = means[gaussianNumber, :].T
+                        mean = np.expand_dims(means[gaussianNumber, :], 1)
                         variance = variances[gaussianNumber, :, :]
                         L = np.linalg.cholesky(variance)
                         means_corrected_bias = biasCorrectedData.T - mean
@@ -272,12 +289,14 @@ def samsegment_part2(
                     #
                     # which has pseudoVarianceOfWishartPrior as the MAP solution in the absence of any data
                     #
-                    minLogUnnormalizedWishart = \
-                        np.trace(np.linalg.solve(variance, np.array(pseudoVarianceOfWishartPrior).reshape(1,
-                                                                                                          1))) * numberOfPseudoMeasurementsOfWishartPrior / 2 + \
+                    minLogUnnormalizedWishart = np.trace(np.linalg.solve(
+                            variance,
+                            np.array(pseudoVarianceOfWishartPrior).reshape(numberOfContrasts, 1)
+                        )) * numberOfPseudoMeasurementsOfWishartPrior / 2 + \
                         numberOfPseudoMeasurementsOfWishartPrior / 2 * np.log(np.linalg.det(variance))
                     intensityModelParameterCost = intensityModelParameterCost + minLogUnnormalizedWishart
                 historyOfEMCost.append(minLogLikelihood + intensityModelParameterCost)
+
                 priorEMCost = historyOfEMCost[-2]
                 currentEMCost = historyOfEMCost[-1]
                 costChangeEM = priorEMCost - currentEMCost
@@ -369,24 +388,39 @@ def samsegment_part2(
                                                                     tmpImageBuffer).reshape(-1, 1)
                     biasFieldCoefficients = np.linalg.solve(lhs, rhs).reshape(
                         (np.prod(numberOfBasisFunctions), numberOfContrasts))
-                    for contrastNumber in range(numberOfContrasts):
-                        downSampledBiasField = backprojectKroneckerProductBasisFunctions(
-                            downSampledKroneckerProductBasisFunctions, biasFieldCoefficients[:, contrastNumber])
-                        tmp = downSampledImageBuffers[:, :, :, contrastNumber] - downSampledBiasField * downSampledMask
-                        downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber] = tmp
-                        biasCorrectedData[:, contrastNumber] = tmp[downSampledMaskIndices]
+                    downSampledBiasFields = bias_correct_data(biasCorrectedData, biasFieldCoefficients,
+                                                              downSampledBiasCorrectedImageBuffers,
+                                                              downSampledImageBuffers,
+                                                              downSampledKroneckerProductBasisFunctions,
+                                                              downSampledMask, downSampledMaskIndices,
+                                                              numberOfContrasts)
                     if checkpoint_manager and checkpoint_manager.detailed:
                         checkpoint_manager.increment_and_save(
                             {
                                 'biasFieldCoefficients': biasFieldCoefficients,
                                 'lhs': lhs,
                                 'rhs': rhs,
-                                'downSampledBiasField': downSampledBiasField,
+                                'downSampledBiasField': downSampledBiasFields[0],
                                 'downSampledBiasCorrectedImageBuffers': downSampledBiasCorrectedImageBuffers,
                                 'biasCorrectedData': biasCorrectedData,
                                 'computedPrecisionOfKroneckerProductBasisFunctions': computedPrecisionOfKroneckerProductBasisFunctions,
                             }, 'estimateBiasField')
                     pass
+            if len(historyOfEMCost) > 2:
+                visualizer.plot(historyOfEMCost[1:], title='History of EM Cost')
+            visualizer.show(
+                image_list=downSampledBiasFields,
+                auto_scale=True,
+                window_id='bias field',
+                title='Samsegment Bias Fields'
+            )
+            visualizer.show(
+                mesh=mesh,
+                images=downSampledBiasCorrectedImageBuffers,
+                window_id='samsegment em',
+                title='Samsegment Mesh Registration (EM)',
+                names=names_for_merged_data,
+            )
             historyOfEMCost = historyOfEMCost[1:]
             #
             # Part II: update the position of the mesh nodes for the current mixture model and bias field parameter estimates
@@ -434,6 +468,14 @@ def samsegment_part2(
             print(['iterationNumber: ', iterationNumber])
             print(['    maximalDeformationApplied: ', maximalDeformationApplied])
             print('==============================')
+            visualizer.show(
+                mesh=mesh,
+                images=downSampledBiasCorrectedImageBuffers,
+                window_id='samsegment',
+                title='Samsegment Mesh Registration (Deformation)',
+                names=names_for_merged_data,
+            )
+
             if checkpoint_manager:
                 checkpoint_manager.increment_and_save(
                     {
@@ -449,6 +491,9 @@ def samsegment_part2(
             perVoxelDecrease = costChange / activeVoxelCount
             perVoxelDecreaseThreshold = optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion
             if perVoxelDecrease < perVoxelDecreaseThreshold:
+                if len(historyOfCost) > 2:
+                    visualizer.plot(historyOfCost[1:], title='History of Cost')
+                visualizer.show_movie(window_id='samsegment')
                 if checkpoint_manager:
                     checkpoint_manager.increment_and_save({
                         'activeVoxelCount': activeVoxelCount,
@@ -473,7 +518,6 @@ def samsegment_part2(
         nodeDeformationInTemplateSpaceAtPreviousMultiResolutionLevel = \
             finalNodePositionsInTemplateSpace - initialNodePositionsInTemplateSpace
 
-
     return {
         'biasFieldCoefficients': biasFieldCoefficients,
         'imageBuffers': imageBuffers,
@@ -486,6 +530,27 @@ def samsegment_part2(
     }
 
 
+def bias_correct_data(
+        biasCorrectedData,
+        biasFieldCoefficients,
+        downSampledBiasCorrectedImageBuffers,
+        downSampledImageBuffers,
+        downSampledKroneckerProductBasisFunctions,
+        downSampledMask,
+        downSampledMaskIndices,
+        numberOfContrasts
+):
+    downSampledBiasFields = []
+    for contrastNumber in range(numberOfContrasts):
+        downSampledBiasField = backprojectKroneckerProductBasisFunctions(
+            downSampledKroneckerProductBasisFunctions, biasFieldCoefficients[:, contrastNumber])
+        tmp = downSampledImageBuffers[:, :, :, contrastNumber] - downSampledBiasField * downSampledMask
+        downSampledBiasCorrectedImageBuffers[:, :, :, contrastNumber] = tmp
+        biasCorrectedData[:, contrastNumber] = tmp[downSampledMaskIndices]
+        downSampledBiasFields += [downSampledBiasField]
+    return downSampledBiasFields
+
+
 def test_samseg_ported_part2(case_name, case_file_folder, savePath):
     checkpoint_manager = create_checkpoint_manager(case_file_folder)
     fixture = load_starting_fixture()
@@ -495,6 +560,7 @@ def test_samseg_ported_part2(case_name, case_file_folder, savePath):
         fixture['modelSpecifications'],
         fixture['optimizationOptions'],
         part1_results_dict,
+        DoNotShowFigures(),
         checkpoint_manager
     )
     checkpoint_manager.save(part2_results_dict, 'part2', 1)
