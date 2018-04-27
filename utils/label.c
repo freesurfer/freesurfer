@@ -180,7 +180,8 @@ LABEL *LabelRead(const char *subject_name, const char *label_name)
   if (!fp) ErrorReturn(NULL, (ERROR_NOFILE, "%s: could not open label file %s", Progname, fname));
 
   area = LabelReadFrom(subject_name, fp);
-  strcpy(area->name, fname);
+  if (area)
+    strcpy(area->name, fname);
   fclose(fp);
   return (area);
 }
@@ -1813,6 +1814,14 @@ int LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
   mht = MHTcreateVertexTable_Resolution(mris, coords, 2 * max_spacing);
   fprintf(stderr, "assigning vertex numbers to label...\n");
   num_not_found = 0;
+  if (area->mri_template == NULL)
+  {
+    area->mri_template = MRIalloc(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR) ;
+    useVolGeomToMRI(&mris->vg, area->mri_template);
+  }
+
+  if (area->mris == NULL)
+    area->mris = mris ;
   for (n = 0; n < area->n_points; n++) {
     lv = &area->lv[n];
     if (lv->vno >= 0 && lv->vno <= mris->nvertices) {
@@ -1860,7 +1869,7 @@ int LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
         min_vno = MRISfindClosestWhiteVertex(mris, lv->x, lv->y, lv->z);
         break;
       case CURRENT_VERTICES:
-        min_vno = MRISfindClosestVertex(mris, lv->x, lv->y, lv->z, NULL);
+        min_vno = MRISfindClosestVertex(mris, lv->x, lv->y, lv->z, NULL, CURRENT_VERTICES);
         break;
       case CANONICAL_VERTICES:
         min_vno = MRISfindClosestCanonicalVertex(mris, lv->x, lv->y, lv->z);
@@ -3300,6 +3309,7 @@ LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, i
   LABEL *area_dst;
   double xw, yw, zw, xv, yv, zv;
 
+  LabelInit(area, mri_template, mris, coords) ;
   printf("LabelSampleToSurface(%d vertices)\n", area->n_points);
   xw = yw = zw = vx = vy = vz = x = y = z = -1;  // remove compiler warnings
 
@@ -3378,7 +3388,7 @@ LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, i
         min_vno = MRISfindClosestWhiteVertex(mris, lv->x, lv->y, lv->z);
         break;
       case CURRENT_VERTICES:
-        min_vno = MRISfindClosestVertex(mris, lv->x, lv->y, lv->z, NULL);
+        min_vno = MRISfindClosestVertex(mris, lv->x, lv->y, lv->z, NULL, CURRENT_VERTICES);
         break;
       case CANONICAL_VERTICES:
         min_vno = MRISfindClosestCanonicalVertex(mris, lv->x, lv->y, lv->z);

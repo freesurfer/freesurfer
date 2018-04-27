@@ -408,6 +408,8 @@ protected slots:
   void OnLoadSurface();
   void OnCloseSurface();
   void OnReloadSurface();
+  void OnLoadPatch();
+  void OnSavePatchAs();
   void OnNewROI();
   void OnLoadROI();
   void OnSaveROI();
@@ -528,6 +530,10 @@ protected slots:
   void OnTractClusterLoaded(const QVariantMap& data);
 
   void ShowTractClusterMap();
+
+  void OnLoadVolumeTransform();
+
+  void OnUnloadVolumeTransform();
 
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);

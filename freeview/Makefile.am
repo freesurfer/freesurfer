@@ -54,6 +54,7 @@ BUILT_SOURCES = \
   ui_DialogVolumeSegmentation.h \
   ui_DialogLoadTransform.h \
   ui_DialogAddPointSetStat.h \
+  ui_DialogSelectSplines.h \
 	qtcolorpicker.moc \
 	moc_BrushProperty.cpp \
 	moc_CommandEdit.cpp \
@@ -90,6 +91,7 @@ BUILT_SOURCES = \
 	moc_Interactor3D.cpp \
   moc_Interactor3DMeasure.cpp \
   moc_Interactor3DROIEdit.cpp \
+  moc_Interactor3DPathEdit.cpp \
   moc_Layer.cpp \
 	moc_LayerCollection.cpp \
 	moc_LayerDTI.cpp \
@@ -148,6 +150,7 @@ BUILT_SOURCES = \
   moc_LayerVolumeTrack.cpp \
   moc_LayerLandmarks.cpp \
   moc_SurfaceROI.cpp \
+  moc_SurfacePath.cpp \
   moc_MainApplication.cpp \
   moc_DialogRepositionSurface.cpp \
   moc_WindowTimeCourse.cpp \
@@ -185,6 +188,7 @@ BUILT_SOURCES = \
   moc_BinaryTreeEdge.cpp \
   moc_BinaryTreeNode.cpp \
   moc_BinaryTreeView.cpp \
+  moc_DialogSelectSplines.cpp \
   qrc_freeview.cpp
 
 if USING_QT_5
@@ -254,6 +258,7 @@ freeview_SOURCES = $(BUILT_SOURCES) $(JSON_SOURCES) \
 	Interactor3DNavigate.cpp \
   Interactor3DVolumeCrop.cpp \
   Interactor3DROIEdit.cpp \
+  Interactor3DPathEdit.cpp \
   Layer.cpp \
 	LayerCollection.cpp \
 	LayerDTI.cpp \
@@ -393,6 +398,7 @@ freeview_SOURCES = $(BUILT_SOURCES) $(JSON_SOURCES) \
 	Interactor3DNavigate.h \
   Interactor3DVolumeCrop.h \
   Interactor3DROIEdit.h \
+  Interactor3DPathEdit.h \
   Layer.h \
 	LayerCollection.h \
 	LayerDTI.h \
@@ -467,6 +473,8 @@ freeview_SOURCES = $(BUILT_SOURCES) $(JSON_SOURCES) \
   LayerLandmarks.h \
   SurfaceROI.cpp \
   SurfaceROI.h \
+  SurfacePath.cpp \
+  SurfacePath.h \
   MainApplication.cpp \
   MainApplication.h \
   ProgressCallback.cpp \
@@ -541,6 +549,8 @@ freeview_SOURCES = $(BUILT_SOURCES) $(JSON_SOURCES) \
   BinaryTreeNode.h \
   BinaryTreeView.cpp \
   BinaryTreeView.h \
+  DialogSelectSplines.cpp \
+  DialogSelectSplines.h \
 	freeview.qrc
 
 qrc_freeview.cpp: freeview.qrc
@@ -618,7 +628,7 @@ install-exec-hook:freeview
 	chgrp -R admin $(DESTDIR)$(bindir)/../Freeview.app/
 	chmod -R a+rx $(DESTDIR)$(bindir)/../Freeview.app
 	chmod -R g+w $(DESTDIR)$(bindir)/../Freeview.app
-	macdeployqt $(DESTDIR)$(bindir)/../Freeview.app
+	$(QT_PATH)/macdeployqt $(DESTDIR)$(bindir)/../Freeview.app
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/freeview

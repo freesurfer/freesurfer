@@ -21,7 +21,7 @@ noinst_LIBRARIES= libfsgdf.a
 if ENABLE_TCLTK_APPS
 libfsgdf_a_SOURCES = fsgdf.c fsgdf_wrap.c FsgdfPlot.cxx
 else
-libfsgdf_a_SOURCES = fsgdf.c fsgdf_wrap.c
+libfsgdf_a_SOURCES = fsgdf.c
 endif
 
 if ENABLE_TCLTK_APPS

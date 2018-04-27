@@ -65,6 +65,7 @@
 #include <QFileInfo>
 #include "MyUtils.h"
 #include "FSSurface.h"
+#include "Interactor3DPathEdit.h"
 
 #define SLICE_PICKER_PIXEL_TOLERANCE  15
 
@@ -106,6 +107,7 @@ RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
   m_interactorMeasure = new Interactor3DMeasure( this );
   m_interactorVolumeCrop = new Interactor3DVolumeCrop(this);
   m_interactorROIEdit = new Interactor3DROIEdit(this);
+  m_interactorPathEdit = new Interactor3DPathEdit(this);
   connect(m_cursor3D, SIGNAL(Updated()), this, SLOT(RequestRedraw()));
 
   m_cursorInflatedSurf = new Cursor3D(this);
@@ -141,6 +143,9 @@ void RenderView3D::SetInteractionMode( int nMode )
     break;
   case IM_ROIEdit:
     m_interactor = m_interactorROIEdit;
+    break;
+  case IM_SurfacePath:
+    m_interactor = m_interactorPathEdit;
     break;
   default:
     m_interactor = m_interactorNavigate;

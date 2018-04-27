@@ -35,7 +35,7 @@ extern "C" {
 #undef X
 #endif
 
-#include <stdio.h>
+#include "base.h"
 
 /* matrices and vectors are the same data type, vector will only
    have one column (by default) or one row.
@@ -43,6 +43,7 @@ extern "C" {
 typedef struct
 {
   short   type ;
+  char    inBuf;	// The matrix is in a stack buffer (see below)
   int     rows ;
   int     cols ;
   float **rptr;    /* pointer to an array of rows */
@@ -51,6 +52,13 @@ typedef struct
 }
 MATRIX, VECTOR ;
 
+
+typedef struct MatrixBuffer {
+  MATRIX  matrix;
+  float * rptr[5];
+  float   data[5*5+2];
+} MatrixBuffer;		// Upto 4x4 are so common and so small they should be stack allocated
+			// so MatrixFree will just NULL the pointer
 
 typedef struct		// This case is so important it should be optimized 
 {
@@ -92,10 +100,22 @@ MATRIX  *MatrixPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) ;
 MATRIX  *MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) ;
 MATRIX  *MatrixRightPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) ;
 #define MatrixLeftPseudoInverse MatrixPseudoInverse
-MATRIX  *MatrixAlloc( const int rows, const int cols, const int type);
+
+MATRIX  *MatrixAlloc_wkr ( const int rows, const int cols, const int type,
+    	                    const char* callSiteFile, int callSiteLine);
+MATRIX  *MatrixAlloc2_wkr( const int rows, const int cols, const int type, MatrixBuffer* buf, 
+    	    	    	    const char* callSiteFile, int callSiteLine);
+#define MatrixAlloc(ROWS,COLS,TYPE)      MatrixAlloc_wkr ((ROWS),(COLS),(TYPE),       __FILE__,__LINE__)
+#define MatrixAlloc2(ROWS,COLS,TYPE,BUF) MatrixAlloc2_wkr((ROWS),(COLS),(TYPE),(BUF), __FILE__,__LINE__)
+
 int     MatrixFree(MATRIX **pmat) ;
 MATRIX  *MatrixMultiplyD( const MATRIX *m1, const MATRIX *m2, MATRIX *m3); // use this one
-MATRIX  *MatrixMultiply( const MATRIX *m1, const MATRIX *m2, MATRIX *m3) ;
+MATRIX  *MatrixMultiply_wkr( const MATRIX *m1, const MATRIX *m2, MATRIX *m3, 
+    	    	    	    const char* callSiteFile, int callSiteLine) ;
+#define MatrixMultiply(M1,M2,M3) MatrixMultiply_wkr((M1),(M2),(M3),__FILE__,__LINE__)
+    	// (r1 x c1) * (r2 x c2) = (r1 x c2)
+	// c1 must equal r2
+
 MATRIX *MatrixMultiplyElts(MATRIX *m1, MATRIX *m2, MATRIX *m12); // like matlab m1.*m2
 MATRIX *MatrixReplicate(MATRIX *mIn, int nr, int nc, MATRIX *mOut); // like matlab repmat()
 MATRIX  *MatrixCopy( const MATRIX *mIn, MATRIX *mOut );
@@ -216,6 +236,7 @@ double MatrixTransformDistance(MATRIX *m1, MATRIX *m2, double radius);
 VECTOR *MatrixColumn(MATRIX *m, VECTOR *v, int col) ;
 MATRIX *VectorOuterProduct(VECTOR *v1, VECTOR *v2, MATRIX *m) ;
 VECTOR *VectorCrossProduct( const VECTOR *v1, const VECTOR *v2, VECTOR *vdst) ;
+VECTOR *VectorCrossProductD(const VECTOR *v1, const VECTOR *v2, VECTOR *vdst);
 float  VectorTripleProduct( const VECTOR *v1,
                             const VECTOR *v2,
                             const VECTOR *v3) ;

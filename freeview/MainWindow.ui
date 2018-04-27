@@ -282,6 +282,8 @@
     <addaction name="actionReloadSurface"/>
     <addaction name="actionSaveSurface"/>
     <addaction name="actionSaveSurfaceAs"/>
+    <addaction name="actionLoadPatch"/>
+    <addaction name="actionSavePatchAs"/>
     <addaction name="separator"/>
     <addaction name="actionNewROI"/>
     <addaction name="actionLoadROI"/>
@@ -1621,6 +1623,37 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+6</string>
+   </property>
+  </action>
+  <action name="actionPathEdit">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Path Edit</string>
+   </property>
+  </action>
+  <action name="actionLoadPatch">
+   <property name="text">
+    <string>Load Patch...</string>
+   </property>
+  </action>
+  <action name="actionSavePatchAs">
+   <property name="text">
+    <string>Save Patch As...</string>
+   </property>
+  </action>
+  <action name="actionLoadTransform">
+   <property name="text">
+    <string>Load Transform...</string>
+   </property>
+   <property name="toolTip">
+    <string>Load Transform</string>
+   </property>
+  </action>
+  <action name="actionUnloadTransform">
+   <property name="text">
+    <string>Unload Transform...</string>
    </property>
   </action>
  </widget>
@@ -3334,6 +3367,70 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionLoadPatch</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLoadPatch()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSavePatchAs</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSavePatchAs()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionLoadTransform</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLoadVolumeTransform()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionUnloadTransform</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnUnloadVolumeTransform()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -3429,5 +3526,9 @@
   <slot>OnToolLoadCamera()</slot>
   <slot>OnVolumeFilterThreshold()</slot>
   <slot>OnLoadTractCluster()</slot>
+  <slot>OnLoadPatch()</slot>
+  <slot>OnSavePatchAs()</slot>
+  <slot>OnLoadVolumeTransform()</slot>
+  <slot>OnUnloadVolumeTransform()</slot>
  </slots>
 </ui>

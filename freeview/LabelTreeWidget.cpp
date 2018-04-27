@@ -19,6 +19,10 @@ void LabelTreeWidget::contextMenuEvent(QContextMenuEvent *e)
     act->setData("go_to_centroid");
     connect(act, SIGNAL(triggered()), this, SLOT(OnMenuTriggered()));
     menu->addAction(act);
+    act = new QAction("Resample", this);
+    act->setData("resample");
+    connect(act, SIGNAL(triggered()), this, SLOT(OnMenuTriggered()));
+    menu->addAction(act);
     menu->exec(e->globalPos());
   }
 }
@@ -31,5 +35,7 @@ void LabelTreeWidget::OnMenuTriggered()
     QString act_str = act->data().toString();
     if (act_str == "go_to_centroid")
       emit MenuGoToCentroid();
+    else if (act_str == "resample")
+      emit MenuResample();
   }
 }

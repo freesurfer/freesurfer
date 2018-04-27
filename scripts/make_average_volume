@@ -381,6 +381,8 @@ while( $#argv != 0 )
     case "--symlink":
     case "--no-symlink":
     case "--no-link":
+    case "--template-only":
+    case "--no-template-only":
       breaksw
 
     case "--xhemi":
@@ -400,6 +402,9 @@ while( $#argv != 0 )
     case "--lh":
     case "--rh":
     case "--lhrh":
+    case "--no-ribbon":
+    case "--no-annot":
+    case "--no-cortex-label":
       if ( $getting_subjects ) then
         set getting_subjects = 0;
         # got em all, from --subjects variable arg loop
@@ -412,7 +417,8 @@ while( $#argv != 0 )
     case "--surf-reg":
     case "--surf_reg":
     case "--ico":
-    case "--no-annot":
+    case "--annot"
+    case "--meas"
       if ( $getting_subjects ) then
         set getting_subjects = 0;
         # got em all, from --subjects variable arg loop

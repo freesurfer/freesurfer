@@ -31,6 +31,7 @@
 
 #include <math.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -69,11 +70,27 @@ extern "C" {
 
 #endif
 
+// Causes the compiler to not inline this function
+//
+#define NOINLINE __attribute__((noinline))
 
 // defines the maximum number of threads used in OpenMP code
 //
 #define _MAX_FS_THREADS 128 
 
+#ifndef HAVE_OPENMP
+    // Make it easier to write code which is insensitive to OpenMP being present
+    //
+    #pragma GCC diagnostic ignored "-Wunused-function"
+    static int omp_get_max_threads() { return 1; }
+    #pragma GCC diagnostic ignored "-Wunused-function"
+    static int omp_get_thread_num()  { return 0; }
+#endif
+
+// assertions
+//
+#define cheapAssert(TST)  { if (!(TST)) *(int*)-1 = 0; }
+#define costlyAssert(TST) { if (!(TST)) *(int*)-1 = 0; }
 
 // Regardless of whether the __real_malloc etc. or the __wrap_ ones, it is still desirable
 // to know where in the program the allocations are happening.  This mechanism allows that to happen.
@@ -95,6 +112,7 @@ int posix_memalignHere(void **memptr, size_t alignment, size_t size,const char* 
 
 #endif
 
+#define freeAndNULL(PTR) { free((PTR)); (PTR) = NULL; }
 
 #if defined(__cplusplus)
 };

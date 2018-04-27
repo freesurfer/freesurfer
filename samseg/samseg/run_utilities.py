@@ -4,6 +4,8 @@ import os
 
 import numpy as np
 
+from samseg.samseg_utilities import intracranial_volume
+
 logger = logging.getLogger(__name__)
 
 
@@ -131,3 +133,92 @@ def specify_model(FreeSurferLabels, noBrainMasking, useDiagonalCovarianceMatrice
 
 def merged_names(model):
     return [item.mergedName for item in model.sharedGMMParameters]
+
+def run_sbtiv_from_cmdargs(cmdargs):
+    
+    samsegStatsFile = cmdargs.input
+    structuresToIncludeFile = cmdargs.map
+    savePath = cmdargs.output
+    verbose = cmdargs.verbose
+
+    # default the output directory if not specified
+    if not savePath:
+        savePath = os.path.dirname(samsegStatsFile)
+        print('No output folder specified, using input file folder: ' + savePath)             
+
+
+    # read in structure names and volumes from samseg stats 
+    structures = []
+    with open(samsegStatsFile) as fid:
+        for line in fid.readlines():
+            name, vol, _ = line.split(',')
+            _, _, name = name.split(' ')
+            structures.append({
+                'name': name.strip(),
+                'vol': float(vol)
+            })
+
+    # read in structure names that is considered intra-cranial
+    includeStructures = []   
+    if not structuresToIncludeFile:
+        print("No list of intracranial structures provided, using default:")
+        includeStructures = [  
+            'Brain-Stem', 
+            'CSF', 
+            'Left-Cerebellum-Cortex',
+            'Right-Cerebellum-Cortex', 
+            '4th-Ventricle', 
+            'Left-Cerebral-Cortex', 
+            'Right-Cerebral-Cortex', 
+            'Left-Cerebellum-White-Matter', 
+            'Right-Cerebellum-White-Matter', 
+            'Right-Cerebral-White-Matter', 
+            'Left-Cerebral-White-Matter', 
+            'Right-choroid-plexus', 
+            'Right-Amygdala', 
+            'Left-Amygdala', 
+            'Right-Hippocampus', 
+            'Right-Inf-Lat-Vent', 
+            'Left-Hippocampus', 
+            'Left-choroid-plexus', 
+            'Left-Inf-Lat-Vent', 
+            'Optic-Chiasm', 
+            'Right-VentralDC', 
+            'Left-VentralDC', 
+            '3rd-Ventricle', 
+            'Left-Accumbens-area', 
+            'Left-Putamen', 
+            'Right-Putamen', 
+            'Right-vessel', 
+            'Right-Accumbens-area', 
+            'WM-hypointensities', 
+            'Left-Lateral-Ventricle', 
+            'Left-vessel', 
+            'Right-Lateral-Ventricle', 
+            'Right-Pallidum', 
+            'Left-Caudate', 
+            'Right-Thalamus-Proper', 
+            'Left-Pallidum', 
+            'Right-Caudate', 
+            'Left-Thalamus-Proper', 
+            'non-WM-hypointensities', 
+            '5th-Ventricle']
+        print(includeStructures)
+    else:
+        with open(structuresToIncludeFile) as fid:
+            includeStructures = [line.strip() for line in fid.readlines()]
+
+    # compute
+    icv = intracranial_volume(
+        structures,
+        includeStructures
+    )
+
+    # write out and exit
+    outstring = '# Measure Intra-Cranial, {:.6f}, mm^3\n'.format(icv)
+
+    with open(os.path.join(savePath, 'sbtiv.stats'), 'w') as fid:
+        fid.write(outstring)
+
+    if verbose:
+        print(outstring)

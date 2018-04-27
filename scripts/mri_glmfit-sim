@@ -25,6 +25,7 @@ set DiagCluster = 0;
 set PBNodeType = ();
 set UseCache = 0;
 set PermForce = 1;
+set PermSignFlip = 0; # for osgm-type contrasts
 set PermResid = 1; # use residual when running permutation, ter Braak method
 set UseGRF = 0;
 set volsubject = fsaverage;
@@ -165,6 +166,11 @@ while($#glmfitcmd)
     if("$flag" == "--table") set UseTable = 1;
     breaksw
   case "--wls"
+    if($nulltype == perm) then
+      echo "ERROR: cannot use permutation with weighted least squares (--wls)"
+      echo "You must re-run mri_glmfit without the --wls flag"
+      exit 1;
+    endif
     set wls = $glmfitcwd/$glmfitcmd[1]; shift glmfitcmd;
     if(! -e $wls) then
       set wls = $glmdir/`basename $wls`
@@ -174,10 +180,13 @@ while($#glmfitcmd)
       endif
     endif
     breaksw
+  case "--osgm"
+    # Technically don't need to do this here because automatically done in mri_glmfit
+    set PermSignFlip = 1;
+    breaksw
   # Ignore these options that have no args
   case "cmdline"
   case "mri_glmfit"
-  case "--osgm"
   case "--prune"
   case "--no-prune"
   case "--pca"
@@ -196,6 +205,7 @@ while($#glmfitcmd)
   case "--no-pcc"
   case "dods"
   case "mri_glmfit.bin"
+  case "--save-eres"
     breaksw
   # Ignore these options that have one arg
   case "--glmdir"
@@ -412,6 +422,7 @@ if($DoSim) then
       set cmd = ($cmd --mask $mask)
       if($PermResid == 0) set cmd = ($cmd --y $y)
       if($PermResid == 1) set cmd = ($cmd --y $residual)
+      if($PermSignFlip == 1) set cmd = ($cmd --perm-1)
     endif
     if($UseTable)   set cmd = ($cmd --table $y)
     #if($#label) set cmd = ($cmd --label $label)
@@ -738,6 +749,10 @@ while( $#argv != 0 )
       set csdbase = perm.th$threshStr.$simsign
       breaksw
 
+    case "--perm-signflip":
+      set PermSignFlip = 1;
+      breaksw
+
     case "--sim":
       if( $#argv < 4) goto arg4err;
       set nulltype = $argv[1]; shift;
@@ -986,10 +1001,11 @@ usage_exit:
   echo "   --mczsim-label label : default is cortex"
   echo ""
   echo "Use permutation simulation"
-  echo " --perm nsim vwthreshold sign"
+  echo " --perm nsim CFT sign : permutation simulation with nsim iterations"
   echo "   --perm-resid : add this with non-orthogonal designs to run permutation"
   echo "      on the residual rather than on the raw data (must have run mri_glmfit"
   echo "      with --eres-save)"
+  echo " --perm-signflip : use sign flipping instead of shuffling (automatic for --osgm)"
   echo ""
   echo "Use Gaussian Random Fields (GRF), volumes only"
   echo " --grf vwthreshold sign : -log10(p) and sign (pos, neg, abs)"
@@ -1186,6 +1202,21 @@ When using this option, put it first on the command-line.
 Specify the GLM input (ie, argument to --y in mri_glmfit) rather
 than determining it from the glmdir. This can be handy if the
 y file was deleted at some point.
+
+--perm nsim CFT sign
+
+Perform a permutation simulation to correct for multiple comparisons using 
+nsim iterations, a cluster forming threshold of CFT (in -log10(p) units),
+using the given contrast sign (pos, neg, abs). 
+
+--perm-signflip
+
+Perform sign flipping instead of shuffling. This is required (and
+automatic) when --osgm is used. But it can be helpful when looking
+at any main effect. Eg, if you have two groups, then it is usually 
+the case that you will look at the difference between the groups.
+If you want to look at the mean of the groups, then you would
+want to enable sign flipping.
 
 --perm-resid
 --no-perm-resid

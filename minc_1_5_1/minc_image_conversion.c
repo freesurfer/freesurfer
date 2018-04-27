@@ -1442,7 +1442,7 @@ PRIVATE int MI_icv_zero_buffer(mi_icv_type *icvp, long count[], void *values)
 	signed int     si;
 	float          f;
 	double         d;
-   } volatile zerobuf;
+   } volatile zerobuf = { 0 };
    volatile char *zerostart;
    int zerolen, idim, ndims;
    char *bufptr, *bufend, *zeroptr, *zeroend;

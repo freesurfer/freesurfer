@@ -46,7 +46,7 @@ public:
   RenderView( QWidget* parent = NULL );
 
   enum InteractionMode { IM_Navigate = 0, IM_Measure, IM_VoxelEdit, IM_ReconEdit,
-                         IM_ROIEdit, IM_PointSetEdit, IM_VolumeCrop };
+                         IM_ROIEdit, IM_PointSetEdit, IM_VolumeCrop, IM_SurfacePath };
 
   void SetWorldCoordinateInfo( const double* origin, const double* size, bool bResetView = true );
   virtual void UpdateViewByWorldCoordinate() {}

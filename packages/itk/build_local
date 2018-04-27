@@ -3,6 +3,9 @@ set -eu
 
 if [ ! -d src ]; then
     git clone git://itk.org/ITK.git
+    cd ITK
+    git checkout v4.13.0
+    cd ..
     mv ITK src
 fi
 

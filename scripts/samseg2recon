@@ -17,6 +17,8 @@ set KeepECS = 1; # recon-all apparently handles extracereb seg ok
 set DoCC = 1;    # Corpus callosum
 set DoFill = ()
 set DoNormalization2 = 0;
+set HaveT2w = 0;
+set HaveFLAIR = 0;
 set tmpdir = ()
 set LF = ()
 set cleanup = 1
@@ -97,10 +99,6 @@ $cmd | tee -a $LF
 if($status) goto error_exit;
 popd
 
-# Note: crispSegmentation.nii is type float.  Might have to change
-# seg to uchar or int or else things might break downstream. Or
-# downstream might not break. 
-
 if(! $KeepECS) then
   # Remove extra cerebral stuff from samseg seg
   # --uchar has no effect here because --replaceonly copies type of input (float)
@@ -153,7 +151,7 @@ set cmd = (mri_binarize --i $samsegdir/crispSegmentation.nii --match 2 41 --erod
 echo $cmd | tee -a $LF
 fs_time $cmd | tee -a $LF
 if($status) goto error_exit;
-# Compute mean in the mask
+# Compute mean in the eroded WM mask
 set wmmeanfile = $tmpdir/wm.mask.mean.dat
 set cmd = (mri_segstats --id 1 --i $bc --seg $wm --avgwf $wmmeanfile)
 echo $cmd | tee -a $LF
@@ -161,8 +159,8 @@ fs_time $cmd | tee -a $LF
 if($status) goto error_exit;
 set wmmean = `cat $wmmeanfile`
 set scale = `echo 110/$wmmean | bc -l`
-echo wmmean $wmmean | tee -a $LF
-echo scale $scale | tee -a $LF
+echo T1w wmmean $wmmean | tee -a $LF
+echo T1w scale $scale | tee -a $LF
 # Now rescale the BC so that WM is 110, save as nu
 set nu = $mdir/nu.mgz
 set cmd = (mri_concat $bc --mul $scale --o $nu)
@@ -191,21 +189,128 @@ $cmd | tee -a $LF
 if($status) goto error_exit;
 popd
 
+echo $modenamelist | tee -a $LF
+foreach mode ($modenamelist)
+  echo "$mode `date` ------------- "   | tee -a $LF
+  if($mode == t1w) continue
+  set modebase = $mode
+  if($mode == t2w)   set modebase = T2
+  if($mode == flair) set modebase = FLAIR
+  set cmd = (mri_convert $coregdir/$mode/$mode.mgz $mdir/$modebase.prenorm.mgz)
+  echo $cmd | tee -a $LF
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+  # Compute mean $modebase in the eroded WM mask
+  set bc = $samsegdir/$mode"_biasCorrected".nii
+  set wmmeanfile = $tmpdir/wm.mask.mean.$modebase.dat
+  set cmd = (mri_segstats --id 1 --i $bc --seg $wm --avgwf $wmmeanfile)
+  echo $cmd | tee -a $LF
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+  set wmmean = `cat $wmmeanfile`
+  set scale = `echo 110/$wmmean | bc -l`
+  echo $modebase wmmean $wmmean | tee -a $LF
+  echo $modebase scale $scale | tee -a $LF
+  # Now rescale the BC so that WM is 110, 
+  set cmd = (mri_concat $bc --mul $scale --o $mdir/$modebase.norm.mgz)
+  echo $cmd | tee -a $LF
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+  # Now mask 
+  set cmd = (mri_mask $mdir/$modebase.norm.mgz $mask $mdir/$modebase.mgz)
+  echo $cmd | tee -a $LF
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+end
+
+# T2/FLAIR
+# orig/t2fraw.mgz
+# Below is created with -T2pial  and  -FLAIRpial
+#   transforms/t2fraw.lta (for long)
+#   t2f.prenorm.mgz
+#   t2f.norm.mgz
+#   T2.mgz/FLAIR.mgz - masked by brain.finalsurfs.mgz
+#   - this is used by mri_make_surfaces
+#   if T2.mgz/FLAIR.mgz exist, then prenorm and norm are not created
+#    but masking is still done 
+#   T2/FL.mgz does not have to be resampled if the header is changed
+#     - but takes some more effort to apply the samseg BC to the
+#       raw input
+#     - for now, it should be possible to create a {T2,FLAIR}.norm.mgz
+#       and {T2,FLAIR}.mgz files in the same space as the t1w. When
+#       recon-all is run with the above flags, the T2.mgz file will be
+#       created from the T2.norm.mgz by masking
+
+# Note: crispSegmentation.nii is type float.  Might have to change
+# seg to uchar or int or else things might break downstream. Or
+# downstream might not break. 
+
+
 # Create aseg.auto.mgz This needs to be run separately, outside of
 # recon-all, because in recon-all it is done as part of ca_label
 pushd $mdir
 if($DoCC) then
-  set cmd = (mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz -lta transforms/cc_up.lta $subject)
+  set tmpfile = $tmpdir/isconformed
+  mri_info --o $tmpfile --conformed-to-min aseg.auto_noCCseg.mgz > /dev/null
+  set isconf = `cat $tmpfile | head -n 1`
+  echo IsConformed $isconf | tee -a $LF
+  if($isconf == yes) then
+    set cmd = (mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz -lta transforms/cc_up.lta $subject)
+    date | tee -a $LF
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+    date | tee -a $LF
+  else
+    # If it is not conformed, have to go through some gymnastics because mri_cc
+    # needs things to be conformed
+    # Conform the norm and aseg
+    set cmd = (mri_convert norm.mgz norm.conf.mgz --conform_min)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+    set cmd = (mri_label2vol --seg aseg.auto_noCCseg.mgz --temp norm.conf.mgz --regheader --o aseg.auto_noCCseg.conf.mgz)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+    # Now run mri_cc. Not sure if cc_up.lta will be valid (or needed)
+    set cmd = (mri_cc -norm norm.conf.mgz -aseg aseg.auto_noCCseg.conf.mgz -o aseg.auto.conf.mgz -lta transforms/cc_up.lta $subject)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+    # Now map it back to the non-conformed space
+    set cmd = (mri_label2vol --seg aseg.auto.conf.mgz --temp norm.mgz --regheader --o aseg.auto.noconf.mgz)
+    echo $cmd | tee -a $LF
+    fs_time $cmd | tee -a $LF
+    if($status) goto error_exit;
+    # Merge the CC labels back into the original aseg. Do not use the non-conf volume above because
+    # moving into and out of 1mm space may create a problem
+    foreach segid (251 252 253 254 255)
+      set cmd = (mri_binarize --i aseg.auto.noconf.mgz --match $segid --o $tmpdir/ccbin.mgh)
+      echo $cmd | tee -a $LF
+      fs_time $cmd | tee -a $LF
+      if($status) goto error_exit;
+      if($segid == 251) then
+        set src = aseg.auto_noCCseg.mgz
+      else
+        set src = aseg.auto.mgz
+      endif
+      set cmd = (mergeseg --src $src --merge $tmpdir/ccbin.mgh  --o aseg.auto.mgz --segid $segid)
+      echo $cmd | tee -a $LF
+      fs_time $cmd | tee -a $LF
+      if($status) goto error_exit;
+    end
+  endif
 else
   echo "Not segmenting CC" | tee -a $LF
   # will the cc_up.lta be needed at some point?
   set cmd = (cp aseg.auto_noCCseg.mgz aseg.auto.mgz)
+  date | tee -a $LF
+  echo $cmd | tee -a $LF
+  fs_time $cmd | tee -a $LF
+  if($status) goto error_exit;
+  date | tee -a $LF
 endif
-date | tee -a $LF
-echo $cmd | tee -a $LF
-fs_time $cmd | tee -a $LF
-if($status) goto error_exit;
-date | tee -a $LF
 popd
 
 if($DoNormalization2) then
@@ -380,11 +485,6 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-if($#input == 0) then
-  echo "ERROR: must supply input, use the exact same -i file as when samseg was run"
-  # needed to create orig.mgz and to get file name. This will eventually be changed.
-  exit 1;
-endif
 if($#subject == 0) then
   echo "ERROR: must supply subject"
   exit 1;
@@ -398,6 +498,32 @@ endif
 pushd $samsegdir > /dev/null
 set samsegdir = `pwd`
 popd  > /dev/null
+
+set coregdir = $SUBJECTS_DIR/$subject/coreg
+if(! -e $coregdir) then
+  set coregdir = $samsegdir/coreg
+  if(! -e $coregdir) then
+    echo "ERROR: cannot find coreg dir"
+    exit 1;
+  endif
+endif
+
+set modenamelist = (`cat $coregdir/modenames.txt`)
+set ok = 0;
+foreach mode ($modenamelist)
+  if($mode == t1w) set ok = 1;
+  if($mode == t2w)   set HaveT2w = 1;
+  if($mode == flair) set HaveFLAIR = 1;
+end
+if(! $ok) then
+  echo "ERROR: cannot find t1w in mode list $modenamelist"
+  exit 1;
+endif
+set input = $coregdir/t1w/t1w.mgz
+if(! -e $input) then
+  echo "ERROR: cannot find $input"
+  exit 1;
+endif
 
 goto check_params_return;
 ############--------------##################
@@ -417,8 +543,7 @@ usage_exit:
   echo ""
   echo "samseg2recon"
   echo "  --s subject"
-  echo "  --i input : same as when samseg was run (hack: needed for name)"
-  echo "  --samseg samsegdir : ouput dir when running samseg"
+  echo "  --samseg samsegdir : ouput dir when samseg was run"
   echo "      if not supplied, then assumes subject/mri/samseg"
   echo "  --no-cc : do not do corpus callosum segmentation"
   echo "  --fill : use samseg to create the filled.mgz used for tessellation (--no-fill)"

@@ -119,6 +119,10 @@ static const int debugNonDeterminism = 0;
 #define MAXFACES (2 * MAXVERTICES)
 #define MAX_NBHD_VERTICES 20000
 
+
+static float squaref(float x) { return x*x; }
+
+
 // uncomment this to expose code which shows timings of gpu activities:
 //#define FS_CUDA_TIMINGS
 
@@ -398,6 +402,7 @@ static void checkVertexOdNotFrozen(const char* file, int line) {
 #define CHANGES_ODXYZ_OKAY
 
 /*------------------------ STATIC PROTOTYPES -------------------------*/
+static void notifyActiveRealmTreesChangedNFacesNVertices(MRIS const * const mris);
 int MRIScomputeAllDistances(MRI_SURFACE *mris);
 #if 0
 static MRI_SP *MRISPiterative_blur(MRI_SURFACE *mris,
@@ -461,7 +466,6 @@ static int mrisComputeSurfaceDimensions(MRI_SURFACE *mris);
 // static int   mrisFindNeighbors(MRI_SURFACE *mris) ;
 static float mrisNormalize(float v[3]);
 static float mrisTriangleArea(MRIS *mris, int fac, int n);
-static int mrisNormalFace(MRIS *mris, int fac, int n, float norm[]);
 static void mrisFaceAreaNormal(MRIS *mris, int fac, float norm[]);
 static int mrisComputeOrigNormal(MRIS *mris, int vno, float norm[]);
 static int mrisComputeWhiteNormal(MRIS *mris, int vno, float norm[]);
@@ -748,7 +752,7 @@ static void reproducible_check(double cell, double val, int line, int* count)
 /*-----------------------------------------------------
   This supports code that accelerates finding the vertices and faces needed during defect correction.
   To do this, it must be able to tell when vertex orig[xyz] are changed.
-  Such changes need to be reported via noteInActiveRealmTrees.
+  Such changes need to be reported via noteVnoMovedInActiveRealmTrees.
   To help decide where such calls had to be added, all changes to origx etc. that are not have a CHANGES_ORIG by them to check if should have been.
   To test it is correct, the code can scan all vertices of an mris and verify there origxyz are what was expected.
   ------------------------------------------------------*/
@@ -756,9 +760,14 @@ static void reproducible_check(double cell, double val, int line, int* count)
 // #define mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
 
 static int activeRealmTreesSize;
+
+static bool hasActiveRealmTrees() {
+    return activeRealmTreesSize > 0;
+}
+
 static int orig_clock = 0;
 #define CHANGES_ORIG                                                                        \
-    if (activeRealmTreesSize) {                                                             \
+    if (hasActiveRealmTrees()) {                                                            \
         static int latest;                                                                  \
         if (orig_clock != latest) {                                                         \
             latest = orig_clock;                                                            \
@@ -788,22 +797,27 @@ static void computeDefectFaceNormal_calculate(
      
 
 void setFaceNorm(MRIS const * const mris, int fno, float nx, float ny, float nz) {
-    FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
+    FaceNormCacheEntry    * fNorm         = &mris->faceNormCacheEntries   [fno];
+    FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+
     fNorm->nx = nx;
     fNorm->ny = ny;
     fNorm->nz = nz;
-    fNorm->deferred &= ~1;          // now known
+    fNormDeferred->deferred &= ~1;          // now known
+
 }
 
 static void setFaceOrigArea(MRIS const * const mris, int fno, float orig_area) {
-    FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
+    FaceNormCacheEntry    * fNorm         = &mris->faceNormCacheEntries   [fno];
+    FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
     fNorm->orig_area = orig_area;
-    fNorm->deferred &= ~2;  // now known
+    fNormDeferred->deferred &= ~2;            // now known
 }
 
 static float getFaceOrigArea(MRIS const * const mris, int fno) {
-    FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
-    if (fNorm->deferred & 2) {      // must compute
+    FaceNormCacheEntry    * fNorm         = &mris->faceNormCacheEntries   [fno];
+    FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+    if (fNormDeferred->deferred & 2) {      // must compute
         fprintf(stderr, "%s:%d NYI\n", __FILE__, __LINE__);
         *(int*)(-1) = 0;    // crash
     }
@@ -812,8 +826,9 @@ static float getFaceOrigArea(MRIS const * const mris, int fno) {
 
 
 FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
-    FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
-    if (fNorm->deferred) {
+    FaceNormCacheEntry    * fNorm         = &mris->faceNormCacheEntries   [fno];
+    FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+    if (fNormDeferred->deferred) {
         float nx,ny,nz,orig_area;
         computeDefectFaceNormal_calculate(mris, fno, &nx,&ny,&nz,&orig_area);
 #ifdef CHECK_DEFERED_NORMS
@@ -824,7 +839,7 @@ FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
         }
 #endif
         fNorm->nx = nx; fNorm->ny = ny; fNorm->nz = nz;
-        if (fNorm->deferred & 2) {      // must update
+        if (fNormDeferred->deferred & 2) {      // must update
 #ifdef CHECK_DEFERED_NORMS
             if (orig_area != fNorm->orig_area) {
                 fprintf(stderr, "%s:%d prediction of norm did not equal result\n",__FILE__, __LINE__);
@@ -832,27 +847,54 @@ FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
 #endif
             fNorm->orig_area = orig_area;
         }
-        fNorm->deferred = 0;
+        fNormDeferred->deferred = 0;
     }
     return fNorm;
 }
 
 static void deferSetFaceNorms(MRIS* mris) {
-    int fno;
-    ROMP_PF_begin  
-#ifdef HAVE_OPENMP
-    #pragma omp parallel for if_ROMP(assume_reproducible) 
-#endif
-    for (fno = 0; fno < mris->nfaces; fno++) {
-      ROMP_PFLB_begin
-      FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
-#ifdef CHECK_DEFERED_NORMS
-      computeDefectFaceNormal_calculate(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);  // compute it now so can check later
-#endif
-      fNorm->deferred = 3;  // compute them again later
-      ROMP_PFLB_end
+    static int use_parallel;
+    static int once;
+    if (!once) {
+        once++;
+        use_parallel = !!getenv("FREESURFER_deferSetFaceNorms_parallel");
     }
-    ROMP_PF_end
+    if (!use_parallel) {
+        // It looks like there is not enough work to go parallel...
+        int fno;
+        for (fno = 0; fno < mris->nfaces; fno++) {
+          FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+#ifdef CHECK_DEFERED_NORMS
+          computeDefectFaceNormal_calculate(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);  // compute it now so can check later
+#endif
+          fNormDeferred->deferred = 3;  // compute them again later
+        }
+    } else {
+        int fno;
+        ROMP_PF_begin  
+#ifdef HAVE_OPENMP
+        #pragma omp parallel for if_ROMP(assume_reproducible) 
+#endif
+        for (fno = 0; fno < mris->nfaces; fno++) {
+          ROMP_PFLB_begin
+          FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+#ifdef CHECK_DEFERED_NORMS
+          computeDefectFaceNormal_calculate(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);  // compute it now so can check later
+#endif
+          fNormDeferred->deferred = 3;  // compute them again later
+          ROMP_PFLB_end
+        }
+        ROMP_PF_end
+    }
+}
+
+static void recomputeFaceNorms(MRIS* mris) {
+    int fno;
+    for (fno = 0; fno < mris->nfaces; fno++) {
+      FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+      fNormDeferred->deferred = 3;      // invalidate their old values 
+      getFaceNorm(mris, fno);           // recompute now
+    }
 }
 
 static void undeferSetFaceNorms(MRIS* mris) {
@@ -1789,26 +1831,128 @@ int MRISwrite(MRI_SURFACE *mris, const char *name)
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISoverAlloc(int max_vertices, int max_faces, int nvertices, int nfaces)
-{
-  MRI_SURFACE *mris;
 
-  if (max_vertices <= 0) {
-    max_vertices = nvertices;
-  }
-  if (max_faces <= 0) {
-    max_faces = nfaces;
-  }
-  mris = MRISalloc(max_vertices, max_faces);
-  mris->nvertices = nvertices;
-  mris->nfaces = nfaces;
-  mris->max_vertices = max_vertices;
-  mris->max_faces = max_faces;
-  mris->useRealRAS = 0; /* just initialize */
-  mris->vg.valid = 0;   /* mark as invalid */
-
-  return (mris);
+static void MRISchangedNFacesNVertices(MRI_SURFACE * mris, bool scrambled) {
+    // useful for debugging
 }
+
+static bool MRISreallocVertices(MRI_SURFACE * mris, int max_vertices, int nvertices) {
+  cheapAssert(nvertices >= 0);
+  cheapAssert(max_vertices >= nvertices);
+
+  mris->vertices = (VERTEX *)realloc(mris->vertices, max_vertices*sizeof(VERTEX));
+  if (!mris->vertices) return false;
+
+  int change = max_vertices - mris->nvertices;
+  if (change > 0) { // all above nvertices must be zero'ed, since MRISgrowNVertices does not...
+      bzero(mris->vertices + mris->nvertices, change*sizeof(VERTEX));
+  }
+
+  *(int*)(&mris->max_vertices) = max_vertices;    // get around const
+  *(int*)(&mris->nvertices)    = nvertices;       // get around const
+    
+  notifyActiveRealmTreesChangedNFacesNVertices(mris);
+  
+  return true;
+}
+
+static void MRISgrowNVertices(MRI_SURFACE * mris, int nvertices) {
+  if (nvertices > mris->max_vertices) {
+    ErrorExit(ERROR_NOMEMORY, "MRISgrowNVertices: max vertices reached");
+  }
+  MRISchangedNFacesNVertices(mris, false);
+  *(int*)(&mris->nvertices) = nvertices;  // get around const
+}
+
+static void MRIStruncateNVertices(MRI_SURFACE * mris, int nvertices) {
+  cheapAssert(mris->nvertices >= nvertices);
+  MRISchangedNFacesNVertices(mris, false);
+  *(int*)(&mris->nvertices) = nvertices;  // get around const
+}
+
+static void MRISremovedVertices(MRI_SURFACE * mris, int nvertices) {
+  cheapAssert(mris->nvertices >= nvertices);
+  MRISchangedNFacesNVertices(mris, true);
+  *(int*)(&mris->nvertices) = nvertices;  // get around const
+}
+
+static bool MRISreallocFaces(MRI_SURFACE * mris, int max_faces, int nfaces) {
+  cheapAssert(nfaces >= 0);
+  cheapAssert(max_faces >= nfaces);
+  
+  mris->faces  =
+    (FACE *)realloc(mris->faces, max_faces*sizeof(FACE));
+  if (!mris->faces) return false;
+
+  mris->faceNormCacheEntries =
+    (FaceNormCacheEntry*)realloc(mris->faceNormCacheEntries, max_faces*sizeof(FaceNormCacheEntry));
+  if (!mris->faceNormCacheEntries) return false;
+ 
+  mris->faceNormDeferredEntries =
+    (FaceNormDeferredEntry*)realloc(mris->faceNormDeferredEntries, max_faces*sizeof(FaceNormDeferredEntry));
+  if (!mris->faceNormDeferredEntries) return false;
+  
+  
+  int change = max_faces - mris->nfaces;
+  if (change > 0) { // all above nfaces must be zero'ed, since MRISgrowNFaces does not...
+      bzero(mris->faces                   + mris->nfaces, change*sizeof(FACE));
+      bzero(mris->faceNormCacheEntries    + mris->nfaces, change*sizeof(FaceNormCacheEntry));
+      bzero(mris->faceNormDeferredEntries + mris->nfaces, change*sizeof(FaceNormDeferredEntry));
+  }
+
+  *(int*)(&mris->max_faces) = max_faces;    // get around const
+  *(int*)(&mris->nfaces)    = nfaces;       // get around const
+    
+  return true;
+}
+
+static bool MRISallocateFaces(MRI_SURFACE * mris, int nfaces) {
+    return MRISreallocFaces(mris, nfaces, nfaces);
+}
+
+static void MRISgrowNFaces(MRI_SURFACE * mris, int nfaces) {
+  if (nfaces > mris->max_faces) {
+    ErrorExit(ERROR_NOMEMORY, "mrisAddFace: max faces reached");
+  }
+  MRISchangedNFacesNVertices(mris, false);
+  *(int*)(&mris->nfaces) = nfaces;  // get around const
+}
+
+static void MRIStruncateNFaces(MRI_SURFACE * mris, int nfaces) {
+  cheapAssert(mris->nfaces >= nfaces);
+  MRISchangedNFacesNVertices(mris, false);
+  *(int*)(&mris->nfaces) = nfaces;  // get around const
+}
+
+static void MRISremovedFaces(MRI_SURFACE * mris, int nfaces) {
+  cheapAssert(mris->nfaces >= nfaces);
+  MRISchangedNFacesNVertices(mris, true);
+  *(int*)(&mris->nfaces) = nfaces;  // get around const
+}
+
+
+static void MRISoverAllocVerticesAndFaces(MRI_SURFACE* mris, int max_vertices, int max_faces, int nvertices, int nfaces)
+{
+  MRISchangedNFacesNVertices(mris, false);
+  if (nvertices < 0) ErrorExit(ERROR_BADPARM, "ERROR: MRISalloc: nvertices=%d < 0\n", nvertices);
+  if (nfaces    < 0) ErrorExit(ERROR_BADPARM, "ERROR: MRISalloc: nfaces=%d < 0\n", nfaces);
+
+  if (max_vertices <= nvertices) max_vertices = nvertices;
+  if (max_faces    <= nfaces   ) max_faces    = nfaces;
+
+  if (!MRISreallocVertices(mris, max_vertices, nvertices)) ErrorExit(ERROR_NO_MEMORY, 
+    "MRISalloc(%d, %d): could not allocate vertices", max_vertices, sizeof(VERTEX));
+
+  if (!MRISreallocFaces(mris, max_faces, nfaces)) ErrorExit(ERROR_NO_MEMORY, 
+    "MRISalloc(%d, %d): could not allocate faces", nfaces,
+    sizeof(FACE)+sizeof(FaceNormCacheEntry));
+}
+
+
+void MRISreallocVerticesAndFaces(MRI_SURFACE *mris, int nvertices, int nfaces) {
+  MRISoverAllocVerticesAndFaces(mris, nvertices, nfaces, nvertices, nfaces);
+}
+
 
 /*-----------------------------------------------------
   Parameters:
@@ -1817,38 +1961,26 @@ MRI_SURFACE *MRISoverAlloc(int max_vertices, int max_faces, int nvertices, int n
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *MRISalloc(int nvertices, int nfaces)
+MRI_SURFACE *MRISoverAlloc(int max_vertices, int max_faces, int nvertices, int nfaces)
 {
-  MRI_SURFACE *mris;
+  MRI_SURFACE* mris = (MRI_SURFACE *)calloc(1, sizeof(MRI_SURFACE));
+  if (!mris) ErrorExit(ERROR_NO_MEMORY, 
+                "MRISalloc(%d, %d): could not allocate mris structure", max_vertices, max_faces);
 
-  if (nvertices < 0) ErrorExit(ERROR_BADPARM, "ERROR: MRISalloc: nvertices=%d < 0\n", nvertices);
+  mris->nsize = 1;      // only 1-connected neighbors initially
 
-  if (nfaces < 0) ErrorExit(ERROR_BADPARM, "ERROR: MRISalloc: nfaces=%d < 0\n", nfaces);
+  mris->useRealRAS = 0; // just initialize
+  mris->vg.valid = 0;   // mark as invalid
 
-  mris = (MRI_SURFACE *)calloc(1, sizeof(MRI_SURFACE));
-  if (!mris)
-    ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate mris structure", nvertices, nfaces);
-
-  mris->nsize     = 1; /* only 1-connected neighbors initially */
-  mris->nvertices = nvertices;
-  mris->nfaces    = nfaces;
-  
-  mris->vertices  = (VERTEX *)calloc(nvertices, sizeof(VERTEX));
-  if (!mris->vertices)
-    ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate vertices", nvertices, sizeof(VERTEX));
-
-  mris->faces = (FACE *)calloc(nfaces, sizeof(FACE));
-  if (!mris->faces)
-    ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate faces", nfaces, sizeof(FACE));
-
-  mris->faceNormCacheEntries = (FaceNormCacheEntry*)calloc(nfaces, sizeof(FaceNormCacheEntry));
-  if (!mris->faceNormCacheEntries)
-    ErrorExit(ERROR_NO_MEMORY, "MRISalloc(%d, %d): could not allocate faceNormCacheEntries", nfaces, sizeof(FaceNormCacheEntry));
- 
-  mris->useRealRAS = 0; /* just initialize */
-  mris->vg.valid = 0;   /* mark invalid */
+  MRISoverAllocVerticesAndFaces(mris, max_vertices, max_faces, nvertices, nfaces);
 
   return (mris);
+}
+
+
+MRI_SURFACE* MRISalloc(int nvertices, int nfaces)
+{
+  return MRISoverAlloc(nvertices, nfaces, nvertices, nfaces);
 }
 
 /*-----------------------------------------------------
@@ -1861,7 +1993,7 @@ MRI_SURFACE *MRISalloc(int nvertices, int nfaces)
 int MRISfree(MRI_SURFACE **pmris)
 {
   MRI_SURFACE *mris;
-  int vno;
+  int vno,e,k,faceno;
 
   mris = *pmris;
   *pmris = NULL;
@@ -1904,13 +2036,29 @@ int MRISfree(MRI_SURFACE **pmris)
     }
   }
 
+  free(mris->faceNormDeferredEntries);
+  free(mris->faceNormCacheEntries);
+  
   if (mris->vertices) {
     free(mris->vertices);
   }
-  if (mris->faces) {
+  if(mris->faces) {
+    for(faceno = 0; faceno < mris->nfaces; faceno++){
+      if(mris->faces[faceno].norm) MatrixFree(&mris->faces[faceno].norm);
+      for(k=0; k < 3; k++){
+	if(mris->faces[faceno].gradNorm[k]) MatrixFree(&mris->faces[faceno].gradNorm[k]);
+      }
+    }
     free(mris->faces);
   }
-
+  if(mris->edges) {
+    for(e=0; e < mris->nedges; e++){
+      for(k=0; k<4; k++){
+	if(mris->edges[e].gradJ[k]) MatrixFree(&mris->edges[e].gradJ[k]);
+      }
+    }
+    free(mris->edges);
+  }
   if (mris->free_transform) {
     if (mris->SRASToTalSRAS_) {
       MatrixFree(&(mris->SRASToTalSRAS_));
@@ -3434,13 +3582,16 @@ int MRISremoveRippedFaces(MRI_SURFACE *mris)
       out_faces[fno] = out_fno ;
       if (out_fno == Gdiag_no)
 	DiagBreak() ;
-      if (fno != out_fno)  // at least one compressed out already
-	*(mris->faces+out_fno) = *(mris->faces+fno) ;   // should free memory here
+      if (fno != out_fno) { // at least one compressed out already
+	mris->faces                  [out_fno] = mris->faces                  [fno];    // should free memory here
+	mris->faceNormCacheEntries   [out_fno] = mris->faceNormCacheEntries   [fno];
+      }
       out_fno++ ;
     }
   }
 
-  mris->nfaces = nfaces ;
+  cheapAssert(nfaces == out_fno);
+  
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     int num ;
@@ -3457,6 +3608,8 @@ int MRISremoveRippedFaces(MRI_SURFACE *mris)
       v->f[v->num++] = out_faces[v->f[n]] ;
     }
   }
+
+  MRISremovedFaces(mris, nfaces);
 
   free(out_faces) ;
 
@@ -3509,8 +3662,8 @@ int MRISremoveRippedVertices(MRI_SURFACE *mris)
       out_vno++ ;
     }
   }
-  mris->nvertices = nvertices ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  
+  for (vno = 0 ; vno < nvertices ; vno++)
   {
     int vnum, v2num, v3num ;
 
@@ -3549,6 +3702,8 @@ int MRISremoveRippedVertices(MRI_SURFACE *mris)
     for (n = 0 ; n < VERTICES_PER_FACE ; n++)
       face->v[n] = out_vnos[face->v[n]] ;
   }
+
+  MRISremovedVertices(mris, nvertices);
 
   free(out_vnos) ;
 
@@ -3863,26 +4018,30 @@ static int MRIScomputeNormals_new(MRI_SURFACE *mris);
     typedef struct MRIScomputeNormals_Snapshot {
         FACE*   faces;
         VERTEX* vertices;
+	FaceNormCacheEntry *faceNormCacheEntries; 
     } MRIScomputeNormals_Snapshot;
     
     static void MRIScomputeNormals_Snapshot_init(
         MRIScomputeNormals_Snapshot* lhs,
         MRI_SURFACE*                 mris) {
-        int FC = mris->nfaces    * sizeof(FACE);   memcpy(lhs->faces    = (FACE*  )malloc(FC), mris->faces,    FC); 
-        int VC = mris->nvertices * sizeof(VERTEX); memcpy(lhs->vertices = (VERTEX*)malloc(VC), mris->vertices, VC); 
+	int CC = mris->nfaces    * sizeof(FaceNormCacheEntry);  memcpy(lhs->faceNormCacheEntries = (FaceNormCacheEntry*  )malloc(CC), mris->faceNormCacheEntries, CC); 
+        int FC = mris->nfaces    * sizeof(FACE);   		memcpy(lhs->faces                = (FACE*  )              malloc(FC), mris->faces,                FC); 
+        int VC = mris->nvertices * sizeof(VERTEX); 		memcpy(lhs->vertices             = (VERTEX*)              malloc(VC), mris->vertices,             VC);
     }
 
     static void MRIScomputeNormals_Snapshot_undo(
         MRIScomputeNormals_Snapshot* lhs,
         MRI_SURFACE*                 mris) {
-        int FC = mris->nfaces    * sizeof(FACE);   memcpy(mris->faces,    lhs->faces,    FC); 
-        int VC = mris->nvertices * sizeof(VERTEX); memcpy(mris->vertices, lhs->vertices, VC); 
+	int CC = mris->nfaces    * sizeof(FaceNormCacheEntry);  memcpy(mris->faceNormCacheEntries, lhs->faceNormCacheEntries, CC);
+        int FC = mris->nfaces    * sizeof(FACE);   		memcpy(mris->faces,                lhs->faces,                FC); 
+        int VC = mris->nvertices * sizeof(VERTEX); 		memcpy(mris->vertices,             lhs->vertices,             VC); 
     }
 
     static void MRIScomputeNormals_Snapshot_fini(
         MRIScomputeNormals_Snapshot* lhs) {
-        free(lhs->faces   ); lhs->faces    = NULL;
-        free(lhs->vertices); lhs->vertices = NULL;
+	freeAndNULL(lhs->faceNormCacheEntries);
+        freeAndNULL(lhs->faces);
+        freeAndNULL(lhs->vertices);
     }
     
     static void MRIScomputeNormals_Snapshot_check(double lhs, double rhs, int line, int i, int* count) {
@@ -4953,7 +5112,7 @@ static int mrisPialNormalFace(MRIS *mris, int fac, int n, float norm[])
   and is used to bias the sum of the face normal vectors used to compute a vertex normal vector
   
  */ 
-static int mrisNormalFace(MRIS *mris, int fac, int n, float norm[])
+int mrisNormalFace(MRIS *mris, int fac, int n, float norm[])
 {
   int n0, n1, *pv;
   FACE *f;
@@ -12105,15 +12264,6 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
 
     float const min_nbr_dist = minNeighborDistance(mris);
     {
-      static int once;
-      if (!once) {
-          once = 1;
-          fprintf(stdout, "%s:%d xSubvolLen:%g ySubvolLen:%g zSubvolLen:%g min_nbr_dist:%g\n", __FILE__, __LINE__,
-              xSubvolLen, ySubvolLen, zSubvolLen, min_nbr_dist);
-          fprintf(stdout, "%s:%d xSubvolVerge:%g ySubvolVerge:%g zSubvolVerge:%g\n", __FILE__, __LINE__,
-              xSubvolVerge, ySubvolVerge, zSubvolVerge);
-      }
-
       // Even things this close to the subvolume surface can affect the adjacent subvolumes
       //
       xSubvolVerge += min_nbr_dist;
@@ -17693,7 +17843,7 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
     }
 
     m_U = MatrixAlloc(vertex->vtotal, 3, MATRIX_REAL);
-    v_z = VectorAlloc(vertex->vtotal, MATRIX_REAL);
+    v_z = VectorAlloc(vertex->vtotal,    MATRIX_REAL);
 
     if (vno == Gdiag_no) {
       DiagBreak();
@@ -17749,14 +17899,18 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
       }
     } while (n < 4);
 
-    m_Ut = MatrixTranspose(m_U, NULL);        /* Ut */
-    m_tmp2 = MatrixMultiply(m_Ut, m_U, NULL); /* Ut U */
+    MatrixBuffer m_Ut_buffer, m_tmp2_buffer;
+    
+    m_Ut   = MatrixAlloc2(m_U->cols, m_U->rows, MATRIX_REAL, &m_Ut_buffer);
+    m_Ut   = MatrixTranspose(m_U, m_Ut);        /* Ut cols x rows */
+    
+    m_tmp2 = MatrixAlloc2(m_Ut->rows, m_U->cols, MATRIX_REAL, &m_tmp2_buffer);
+    m_tmp2 = MatrixMultiply (m_Ut, m_U, m_tmp2);  /* Ut U  cols x rows * rows x cols = cols x cols */
     cond_no = MatrixConditionNumber(m_tmp2);
-#if 0
-    m_inverse = MatrixInverse(m_tmp2, NULL) ;    /* (Ut U)^-1 */
-#else
-    m_inverse = MatrixSVDInverse(m_tmp2, NULL); /* (Ut U)^-1 */
-#endif
+
+    MatrixBuffer m_inverse_buffer;
+    m_inverse = MatrixAlloc2(m_tmp2->cols, m_tmp2->rows, MATRIX_REAL, &m_inverse_buffer);
+    m_inverse = MatrixSVDInverse(m_tmp2, m_inverse); /* (Ut U)^-1 */
     if (!m_inverse) /* singular matrix - must be planar?? */
     {
       nbad++;
@@ -17764,7 +17918,9 @@ int MRIScomputeSecondFundamentalFormThresholded(MRI_SURFACE *mris, double pct_th
       MatrixIdentity(m_eigen->rows, m_eigen);
     }
     else {
-      m_tmp1 = MatrixMultiply(m_Ut, v_z, NULL); /* Ut z */
+      MatrixBuffer m_tmp1_buffer;
+      m_tmp1 = MatrixAlloc2(m_Ut->rows, v_z->cols, MATRIX_REAL, &m_tmp1_buffer); 
+      m_tmp1 = MatrixMultiply(m_Ut, v_z, m_tmp1); /* Ut z */
       MatrixMultiply(m_inverse, m_tmp1, v_c);   /* (Ut U)^-1 Ut z */
 
       /* now build Hessian matrix */
@@ -21763,7 +21919,7 @@ static int mrisComputeSphereTerm(MRI_SURFACE *mris, double l_sphere, float radiu
     float dot, dx, dy, dz ;
     static int iter = 0 ;
 
-    vno = MRISfindClosestVertex(mris, x0, y0, z0, &r) ;
+    vno = MRISfindClosestVertex(mris, x0, y0, z0, &r, CURRENT_VERTICES) ;
     v = &mris->vertices[vno] ;
     dx = x0-v->x ;
     dy = y0-v->y ;
@@ -21786,7 +21942,7 @@ static int mrisComputeSphereTerm(MRI_SURFACE *mris, double l_sphere, float radiu
       mris->y0 = y0 ;
       mris->z0 = z0 ;
       print("moving centroid to (%2.1f, %2.1f, %2.1f)\n", x0, y0, z0) ;
-      vno = MRISfindClosestVertex(mris, x0, y0, z0, &r) ;
+      vno = MRISfindClosestVertex(mris, x0, y0, z0, &r, CURRENT_VERTICES) ;
       v = &mris->vertices[vno] ;
       dx = x0-v->x ;
       dy = y0-v->y ;
@@ -28244,15 +28400,9 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname)
 
   /* now we can book some face space (if we have a new mris structure) */
   if (newMris) {
-    mris->nfaces = nfaces;
-    mris->faces = (FACE *)calloc(nfaces, sizeof(FACE));
-    mris->faceNormCacheEntries = (FaceNormCacheEntry*)calloc(nfaces, sizeof(FaceNormCacheEntry));
-    if (!mris->faces || !mris->faceNormCacheEntries) {
+    if (!MRISallocateFaces(mris, nfaces)) {
       fclose(fp);
       ErrorExit(ERROR_NO_MEMORY, "MRISreadVTK(%d, %d): could not allocate faces", nfaces, sizeof(FACE));
-    }
-    else {
-      memset(mris->faces, 0, nfaces * sizeof(FACE));
     }
   }
   else {
@@ -29046,9 +29196,7 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
       if (!mris) {
         ErrorReturn(NULL, (ERROR_NOMEMORY, "MRISreadSTLfile: could not alloc memory for mris"));
       }
-      mris->type      = MRIS_TRIANGULAR_SURFACE;
-      mris->nvertices = nextVertexNo;
-      mris->nfaces    = faceNormalXYZsSize;
+      mris->type = MRIS_TRIANGULAR_SURFACE;
 
     } // scanned the file and made the mris
 
@@ -31956,7 +32104,7 @@ int MRISzeroNegativeAreas(MRI_SURFACE *mris)
 
   Description
   ------------------------------------------------------*/
-int MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z, float *dmin)
+int MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z, float *dmin, int which_vertices)
 {
   int vno, min_v = -1;
   VERTEX *v;
@@ -31968,9 +32116,26 @@ int MRISfindClosestVertex(MRI_SURFACE *mris, float x, float y, float z, float *d
     if (v->ripflag) {
       continue;
     }
-    dx = v->x - x;
-    dy = v->y - y;
-    dz = v->z - z;
+    switch (which_vertices)
+    {
+    case CURRENT_VERTICES:
+      dx = v->x - x;
+      dy = v->y - y;
+      dz = v->z - z;
+      break ;
+    case CANONICAL_VERTICES:
+      dx = v->cx - x;
+      dy = v->cy - y;
+      dz = v->cz - z;
+      break ;
+    default:
+      dx = v->x - x;
+      dy = v->y - y;
+      dz = v->z - z;
+      ErrorExit(ERROR_UNSUPPORTED, "MRISfindClosestVertex: unsupported vertex set %d\n", which_vertices);
+      break ;
+    }
+
     d = sqrt(dx * dx + dy * dy + dz * dz);
     if (d < min_d) {
       min_d = d;
@@ -41440,7 +41605,7 @@ static int mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2)
       }
   }
 
-  mris->nvertices++;
+  MRISgrowNVertices(mris, mris->nvertices+1);
 
   /* will be part of two new faces also */
   // total array size is going to be vnew->num*2!
@@ -41579,7 +41744,8 @@ static int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vn
     return (ERROR_NO_MEMORY);
   }
 
-  fnew_no = mris->nfaces++;
+  fnew_no = mris->nfaces;
+  MRISgrowNFaces(mris, fnew_no+1);
 
   f1 = &mris->faces[fno];
   f2 = &mris->faces[fnew_no];
@@ -42721,7 +42887,6 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
     GCA_MORPH *gcam;
     double xs, ys, zs, xv, yv, zv;
     float xv2, yv2, zv2;
-    MATRIX *m_atlas_ras2vox, *m_surf_vox2ras, *m_surf_ras_to_atlas_ras;
     VECTOR *v1, *v2;
 
     /*
@@ -42740,20 +42905,15 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
       mri = MRIalloc(gcam->atlas.width, gcam->atlas.height, gcam->atlas.depth, MRI_UCHAR);
       useVolGeomToMRI(&gcam->atlas, mri);
     }
-    GCAMrasToVox(gcam, mri_dst);
+    if (gcam->type == GCAM_RAS) {
+        GCAMrasToVox(gcam, mri_dst);
+    }
 
     v1 = VectorAlloc(4, MATRIX_REAL);
     VECTOR_ELT(v1, 4) = 1.0;
     v2 = VectorAlloc(4, MATRIX_REAL);
     VECTOR_ELT(v2, 4) = 1.0;
     voxelFromSurfaceRAS = voxelFromSurfaceRAS_(mri);
-    surfaceRASFromVoxel = surfaceRASFromVoxel_(mri_dst);
-    m_surf_vox2ras = MRIgetVoxelToRasXform(mri);  // from "surface" volume to ras
-    m_atlas_ras2vox = VGgetVoxelToRasXform(&gcam->atlas, NULL, 0);
-    // from "surface" volume to ras
-    // from surface ras to atlas ras
-    m_surf_ras_to_atlas_ras = MatrixMultiply(m_surf_vox2ras, voxelFromSurfaceRAS, NULL);
-    MatrixMultiply(m_atlas_ras2vox, m_surf_ras_to_atlas_ras, voxelFromSurfaceRAS);
 
     // now apply the transform
     for (vno = 0; vno < mris->nvertices; vno++) {
@@ -42787,10 +42947,6 @@ int MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_ds
     VectorFree(&v1);
     VectorFree(&v2);
     MatrixFree(&voxelFromSurfaceRAS);
-    MatrixFree(&surfaceRASFromVoxel);
-    MatrixFree(&m_surf_vox2ras);
-    MatrixFree(&m_atlas_ras2vox);
-    MatrixFree(&m_surf_ras_to_atlas_ras);
     if (dstNotGiven) {
       MRIfree(&mri_dst);
     }
@@ -44986,8 +45142,35 @@ typedef struct ActiveRealmTree {
     GetXYZ_FunctionType getXYZ;
 } ActiveRealmTree;
 
+
+
+#ifdef HAVE_OPENMP
+static volatile bool    activeRealmTreesLockInited = false;
+static omp_lock_t       activeRealmTreesLock;
+#endif
+
+static void acquireActiveRealmTrees() {
+#ifdef HAVE_OPENMP
+    if (!activeRealmTreesLockInited) {	// avoid critical if possible
+        #pragma omp critical
+    	if (!activeRealmTreesLockInited) {
+	    omp_init_lock(&activeRealmTreesLock);
+	    activeRealmTreesLockInited = true;
+    	}
+    }
+    omp_set_lock(&activeRealmTreesLock);
+#endif
+}
+
+static void releaseActiveRealmTrees() {
+#ifdef HAVE_OPENMP
+    omp_unset_lock(&activeRealmTreesLock);
+#endif
+}
+
 static int              activeRealmTreesCapacity;
 static ActiveRealmTree* activeRealmTrees;
+
 
 
 static void destructComputeDefectContext(ComputeDefectContext* computeDefectContext) {
@@ -44997,16 +45180,14 @@ static void destructComputeDefectContext(ComputeDefectContext* computeDefectCont
         computeDefectContext->mris_deferred_norms = NULL;
     }
     
-    if (computeDefectContext->realmTree)
-    #ifdef HAVE_OPENMP
-    #pragma omp critical
-    #endif
-    {
+    if (computeDefectContext->realmTree) {
+    	acquireActiveRealmTrees();
         int i;
         for (i = 0; activeRealmTrees[i].realmTree != computeDefectContext->realmTree; i++) ;
         i++;
         for (; i != activeRealmTreesSize; i++) activeRealmTrees[i-1] = activeRealmTrees[i];
         activeRealmTreesSize--;
+	releaseActiveRealmTrees();
     }
 
     freeRealmTree(&computeDefectContext->realmTree);
@@ -45018,28 +45199,29 @@ static void useComputeDefectContextRealmTree(
     MRIS  const * const   mris,
     GetXYZ_FunctionType   getXYZ) 
 {
-#ifdef HAVE_OPENMP
-    #pragma omp critical
-#endif
-{
     if (computeDefectContext->realmTree == NULL) {
+    
 #ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
         fprintf(stderr, "%s:%d useComputeDefectContextRealmTree making realmTree\n",__FILE__,__LINE__);
 #endif
         computeDefectContext->realmTree = makeRealmTree(mris, getXYZ);
         orig_clock++;
         
-        if (activeRealmTreesSize == activeRealmTreesCapacity) {
-            activeRealmTreesCapacity++;
-            activeRealmTrees = 
-                (ActiveRealmTree*)realloc(
-                    activeRealmTrees, activeRealmTreesCapacity*sizeof(ActiveRealmTree));
-        }
-        
-        ActiveRealmTree* art = &activeRealmTrees[activeRealmTreesSize++];
-        art->realmTree = computeDefectContext->realmTree;
-        art->mris      = mris;
-        art->getXYZ    = getXYZ;
+	{
+	    acquireActiveRealmTrees();
+            if (activeRealmTreesSize == activeRealmTreesCapacity) {
+        	activeRealmTreesCapacity++;
+        	activeRealmTrees = 
+                    (ActiveRealmTree*)realloc(
+                	activeRealmTrees, activeRealmTreesCapacity*sizeof(ActiveRealmTree));
+            }
+
+            ActiveRealmTree* art = &activeRealmTrees[activeRealmTreesSize++];
+            art->realmTree = computeDefectContext->realmTree;
+            art->mris      = mris;
+            art->getXYZ    = getXYZ;
+	    releaseActiveRealmTrees();
+    	}
     } else {
         updateRealmTree(computeDefectContext->realmTree, mris, getXYZ);
 #ifdef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
@@ -45050,28 +45232,97 @@ static void useComputeDefectContextRealmTree(
 #endif
     }
 }
+
+static int noteVnoMovedInActiveRealmTreesCount;
+static void noteVnoMovedInActiveRealmTrees(MRIS const * const mris, int vno) {
+    acquireActiveRealmTrees();
+    int i;
+    noteVnoMovedInActiveRealmTreesCount++;
+    for (i = 0; i < activeRealmTreesSize; i++) {
+        if (activeRealmTrees[i].mris != mris) continue;
+        if (0)
+            fprintf(stderr,"Thread:%d updating realmTree:%p vno:%d\n", 
+                omp_get_thread_num(), activeRealmTrees[i].realmTree, vno);
+        noteIfXYZChangedRealmTree(
+            activeRealmTrees[i].realmTree, 
+            activeRealmTrees[i].mris,
+            activeRealmTrees[i].getXYZ, 
+            vno);
+    }
+    releaseActiveRealmTrees();
 }
 
-static int noteInActiveRealmTreesCount;
-static void noteInActiveRealmTrees(MRIS const * const mris, int vno) {
-#ifdef HAVE_OPENMP
-    #pragma omp critical
-#endif
-    {   int i;
-        noteInActiveRealmTreesCount++;
-        for (i = 0; i < activeRealmTreesSize; i++) {
-            if (activeRealmTrees[i].mris != mris) continue;
-            if (0)
-                fprintf(stderr,"Thread:%d updating realmTree:%p vno:%d\n", 
-                    omp_get_thread_num(), activeRealmTrees[i].realmTree, vno);
-            noteIfXYZChangedRealmTree(
-                activeRealmTrees[i].realmTree, 
-                activeRealmTrees[i].mris,
-                activeRealmTrees[i].getXYZ, 
-                vno);
-        }
+static void notifyActiveRealmTreesChangedNFacesNVertices(MRIS const * const mris) {
+    acquireActiveRealmTrees();
+    int i;
+    for (i = 0; i < activeRealmTreesSize; i++) {
+        if (activeRealmTrees[i].mris != mris) continue;
+        if (0)
+            fprintf(stderr,"Thread:%d updating realmTree:%p\n", 
+                omp_get_thread_num(), activeRealmTrees[i].realmTree);
+        updateRealmTree(
+            activeRealmTrees[i].realmTree, 
+            activeRealmTrees[i].mris,
+            activeRealmTrees[i].getXYZ);
     }
+    releaseActiveRealmTrees();
 }
+
+
+// IntersectDefectEdgesContext are used to speed up intersectDefectEdges and intersectDefectConvexHullEdges
+// by sharing computations across multiple calls
+//
+
+//#define COPE_WITH_VERTEX_MOVEMENT
+typedef struct IntersectDefectEdgesContext_Entry {
+  int vno, n;
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+  int next;
+  float cx,cy,cz,cx2,cy2,cz2;   // the values when created so movement can be detected
+#endif
+} IntersectDefectEdgesContext_Entry;
+
+typedef struct IntersectDefectEdgesContext {
+    int                                 entriesCapacity;
+    int                                 entriesSize;
+    IntersectDefectEdgesContext_Entry*  entries;
+    GreatArcSet*                        greatArcSet;
+    bool                                obsoleted;
+    int                                 nvertices_seen;
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+    int*                                vnoToFirstNPlus1;   // 0 is end of list
+#else
+    int*                                vnosHighestNSeen;   // Detect added vertices
+#endif
+} IntersectDefectEdgesContext;
+
+static void initIntersectDefectEdgesContext(IntersectDefectEdgesContext* ctx, MRI_SURFACE* mris) {
+    ctx->entriesCapacity  = 0;
+    ctx->entriesSize      = 0;
+    ctx->entries          = NULL;
+    ctx->greatArcSet      = NULL;
+    ctx->obsoleted        = false;
+    ctx->nvertices_seen   = mris->nvertices;
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+    ctx->vnoToFirstNPlus1 = (int*)calloc(ctx->nvertices_seen,sizeof(int));
+#else
+    ctx->vnosHighestNSeen = (int*)calloc(ctx->nvertices_seen,sizeof(int));
+#endif
+}
+
+static void finiIntersectDefectEdgesContext(IntersectDefectEdgesContext* ctx) {
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+    free(ctx->vnoToFirstNPlus1); ctx->vnoToFirstNPlus1 = NULL; ctx->nvertices_seen = 0;
+#endif
+    freeGreatArcSet(&ctx->greatArcSet);
+    free(ctx->entries); ctx->entries = NULL;
+    ctx->entriesCapacity = ctx->entriesSize = 0;
+}
+
+static void obsoleteIntersectDefectEdgesContext(IntersectDefectEdgesContext* ctx) {
+    ctx->obsoleted = true;
+}
+
 
 // ----------------- Declaration of Static Functions ---------------------- //
 // segmentation of the edges into clusters
@@ -45155,9 +45406,8 @@ static int mrisTessellateDefect(MRI_SURFACE *mris,
 static int mrisDefectRemoveDegenerateVertices(MRI_SURFACE *mris, float min_sphere_dist, DEFECT *defect);
 static int mrisDefectRemoveProximalVertices(MRI_SURFACE *mris, float min_orig_dist, DEFECT *defect);
 static int mrisDefectRemoveNegativeVertices(MRI_SURFACE *mris, DEFECT *defect);
-static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans, int *v1, int *v2);
-static int intersectDefectConvexHullEdges(
-    MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans, int *v1, int *v2);
+static int intersectDefectEdges          (MRI_SURFACE *mris, DEFECT *defect, EDGE *e, IntersectDefectEdgesContext* ctx, int *vertex_trans, int *v1, int *v2);
+static int intersectDefectConvexHullEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, IntersectDefectEdgesContext* ctx, int *vertex_trans, int *v1, int *v2);
 
 static MRI *mriDefectVolume(MRIS *mris, EDGE_TABLE *etable, TOPOLOGY_PARMS *parms);
 static void defectVolumeLikelihood(MRI *mri,
@@ -45176,8 +45426,8 @@ static int isDiscarded(MRIS *mris, int vno1, int vno2);
 static void removeVertex(MRIS *mris, int vno);
 static int updateVertexTriangle(MRIS *mris, int vno, int fno);
 // static void updateTriangle(MRIS *mris,int fno);
-static void findNewTriangles(MRIS *mris, int vno1, int vno2);
-static int isEdgeAdded(MRIS *mris, int vno1, int vno2, int mode);
+static void possiblyAddNewFaces(MRIS *mris, int vno1, int vno2);
+static int possiblyAddEdgesAndFaces(MRIS *mris, int vno1, int vno2, int mode);
 static int retessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DVS *dvs, DP *dp);
 static int mrisRetessellateDefect(MRI_SURFACE *mris,
                                   MRI_SURFACE *mris_corrected,
@@ -48450,7 +48700,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
           v->origx = v->tx;
           v->origy = v->ty;
           v->origz = v->tz;
-          noteInActiveRealmTrees(mris, dp->tp.vertices[i]);
+          noteVnoMovedInActiveRealmTrees(mris, dp->tp.vertices[i]);
         }
       }
       break;
@@ -48875,7 +49125,7 @@ static void defectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int ni
       v->origx = v->tx;
       v->origy = v->ty;
       v->origz = v->tz;
-      noteInActiveRealmTrees(mris, dp->tp.vertices[i]);
+      noteVnoMovedInActiveRealmTrees(mris, dp->tp.vertices[i]);
     }
 
     /* recompute normals */
@@ -49342,11 +49592,18 @@ static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp)
       }
       n++;
     }
-    m_Ut = MatrixTranspose(m_U, NULL);        /* Ut */
-    m_tmp2 = MatrixMultiply(m_Ut, m_U, NULL); /* Ut U */
+    
+    MatrixBuffer m_Ut_buffer, m_tmp2_buffer;
+    m_Ut   = MatrixAlloc2(m_U->cols, m_U->rows, MATRIX_REAL, &m_Ut_buffer); 
+    m_Ut   = MatrixTranspose(m_U, m_Ut);        /* Ut */
+    
+    m_tmp2 = MatrixAlloc2(m_Ut->rows, m_U->cols, MATRIX_REAL, &m_tmp2_buffer);
+    m_tmp2 = MatrixMultiply(m_Ut, m_U, m_tmp2); /* Ut U */
     cond_no = MatrixConditionNumber(m_tmp2);
 
-    m_inverse = MatrixSVDInverse(m_tmp2, NULL); /* (Ut U)^-1 */
+    MatrixBuffer m_inverse_buffer;
+    m_inverse = MatrixAlloc2(m_U->cols, m_U->cols, MATRIX_REAL, &m_inverse_buffer);
+    m_inverse = MatrixSVDInverse(m_tmp2, m_inverse); /* (Ut U)^-1 */
 
     if (!m_inverse) {
       /* singular matrix - must be planar?? */
@@ -49354,7 +49611,9 @@ static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp)
       evalues[0] = evalues[1] = 0.0;
     }
     else {
-      m_tmp1 = MatrixMultiply(m_Ut, v_z, NULL); /* Ut z */
+      MatrixBuffer m_tmp1_buffer;
+      m_tmp1 = MatrixAlloc2(m_Ut->rows, v_z->cols, MATRIX_REAL, &m_tmp1_buffer); 
+      m_tmp1 = MatrixMultiply(m_Ut, v_z, m_tmp1); /* Ut z */
       MatrixMultiply(m_inverse, m_tmp1, v_c);   /* (Ut U)^-1 Ut z */
 
       /* now build Hessian matrix */
@@ -49647,7 +49906,7 @@ static int updateVertexTriangle(MRIS *mris, int vno, int fno)
 /* } */
 
 /* check if the edge vno1 <--> vno2 is the edge of a triangle */
-static void findNewTriangles(MRIS *mris, int vno1, int vno2)
+static void possiblyAddNewFaces(MRIS *mris, int vno1, int vno2)
 {
   int n, m, vn, fno;
   VERTEX *v;
@@ -49689,7 +49948,7 @@ static void findNewTriangles(MRIS *mris, int vno1, int vno2)
   }
 }
 
-static int isEdgeAdded(MRIS *mris, int vno1, int vno2, int mode)
+static int possiblyAddEdgesAndFaces(MRIS *mris, int vno1, int vno2, int mode)
 {
   int mark1, mark2, tmp;
   VERTEX *v1, *v2;
@@ -49750,7 +50009,7 @@ static int isEdgeAdded(MRIS *mris, int vno1, int vno2, int mode)
         /* add this edge */
         mrisAddEdge(mris, vno1, vno2);
         /* look for new triangles */
-        findNewTriangles(mris, vno1, vno2);
+        possiblyAddNewFaces(mris, vno1, vno2);
         return 1;
       }
       else {
@@ -49758,7 +50017,7 @@ static int isEdgeAdded(MRIS *mris, int vno1, int vno2, int mode)
         /* is the first vertex inside or outside the faces of vno2 */
         if (isDiscarded(mris, vno1, vno2)) {
           /* inside one of the faces */
-          /* remove this vertex and its connexions */
+          /* remove this vertex and its connections */
           removeVertex(mris, vno1);
           return 0;
         }
@@ -49766,7 +50025,7 @@ static int isEdgeAdded(MRIS *mris, int vno1, int vno2, int mode)
           /* outside */
           mrisAddEdge(mris, vno1, vno2);
           /* check if some new triangles have been formed : if yes, update type*/
-          findNewTriangles(mris, vno1, vno2);
+          possiblyAddNewFaces(mris, vno1, vno2);
           return 1;
         }
       }
@@ -49775,7 +50034,7 @@ static int isEdgeAdded(MRIS *mris, int vno1, int vno2, int mode)
       /* both vertices have the type TRIANGLE_VERTEX */
       mrisAddEdge(mris, vno1, vno2);
       /* check if some new triangles have been formed */
-      findNewTriangles(mris, vno1, vno2);
+      possiblyAddNewFaces(mris, vno1, vno2);
       return 1;
       break;
   }
@@ -49802,9 +50061,11 @@ static int retessellateDefect(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DV
 
 static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected, DVS *dvs, DP *dp)
 {
+  static bool const showStats = false;
+
   double max_len;
   int i, j, max_i, max_added, nadded, index, ndiscarded;
-  int (*intersection_function)(MRI_SURFACE * mris, DEFECT * defect, EDGE * e, int *vertex_trans, int *v1, int *v2);
+  int (*intersection_function)(MRI_SURFACE * mris, DEFECT * defect, EDGE * e, IntersectDefectEdgesContext* ctx, int *vertex_trans, int *v1, int *v2);
   int *vertex_trans;
   DEFECT *defect;
   EDGE *et;
@@ -49866,12 +50127,24 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
   /* allocate the table of potentially intersected edges */
   it = (IT *)calloc(nedges, sizeof(IT));
 
+  static long stats_count = 0;
+  static long stats_limit = 1;
+  long stats_modified_loops   = 0;
+  long stats_nedges_loops_all = 0, stats_nedges_loops_heavy = 0, stats_intersection_function_calls = 0;
+  
   modified = 1;
   while (modified) {
     modified = 0;
 
+    stats_modified_loops++;
+    
+    IntersectDefectEdgesContext intersectDefectEdgesContext; 
+    initIntersectDefectEdgesContext(&intersectDefectEdgesContext, mris);
+    
     /* start building the retessellation */
     for (index = 0; index < nedges; index++) {
+      stats_nedges_loops_all++;
+      
       if (ordering) {
         i = ordering[index];
       }
@@ -49906,6 +50179,8 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
         continue;
       }
 
+      stats_nedges_loops_heavy++;
+
       if (etable && etable->use_overlap == USE_OVERLAP) /* use pre-computed
                                                            intersection table */
       {
@@ -49922,6 +50197,7 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
             it[i].vno2 = et[etable->overlapping_edges[i][j]].vno2;
             break;
           }
+          
         if (intersects) {
           continue;
         }
@@ -49932,10 +50208,16 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
           intersection_function = intersectDefectConvexHullEdges;
         }
       }
-      if ((*intersection_function)(mris_corrected, defect, &et[i], vertex_trans, &it[i].vno1, &it[i].vno2) == 0) {
+      
+      stats_intersection_function_calls++;
+        // almost always comes this way
+        
+      if ((*intersection_function)(mris_corrected, defect, &et[i], &intersectDefectEdgesContext, vertex_trans, &it[i].vno1, &it[i].vno2) == 0) {
         /* this edge could potentially be added : no sphere intersection */
         nadded++;
-        if (isEdgeAdded(mris_corrected, et[i].vno1, et[i].vno2, dp->retessellation_mode)) {
+
+        if (possiblyAddEdgesAndFaces(mris_corrected, et[i].vno1, et[i].vno2, dp->retessellation_mode)) {
+          obsoleteIntersectDefectEdgesContext(&intersectDefectEdgesContext);
           nthings++;
           if (et[i].used) /* used in original tessellation */
           {
@@ -49957,12 +50239,16 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
             }
           }
         }
+        
       }
       else /* intersecting edge with edge e1<-->e2 */
       {
         it[i].intersected = 2;
       }
     }
+
+    finiIntersectDefectEdgesContext(&intersectDefectEdgesContext);
+
     /* now update the edges */
     for (index = 0; index < nedges; index++) {
       /* keep the same order (not necessary) */
@@ -50011,6 +50297,18 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
     }
   }
 
+  if (++stats_count >= stats_limit) {
+    stats_limit *= 2;
+    if (showStats) {
+      fprintf(stderr, "%s:%d stats_count:%ld "
+        "modified_loops:%ld nedges_loops_all:%ld "
+        "nedges_loops_heavy:%ld intersection_function_calls:%ld\n",
+        __FILE__, __LINE__, stats_count, 
+        stats_modified_loops, stats_nedges_loops_all, 
+        stats_nedges_loops_heavy, stats_intersection_function_calls);
+    }
+  }
+
   /* in this retessellation we have added, at most, nthings edges */
   things = (int *)malloc(nthings * sizeof(int));
   /* then, note the used edges */
@@ -50035,7 +50333,7 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
       max_i = i;
     }
   }
-
+  
   /* store list of used edges */
   dp->tp.nedges = nthings;
   dp->tp.edges = (int *)malloc(nthings * sizeof(int));
@@ -50295,7 +50593,7 @@ static DEFECT_VERTEX_STATE *mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *def
     vs->origx = v->origx; 
     vs->origy = v->origy;
     vs->origz = v->origz;
-    noteInActiveRealmTrees(mris, vno);
+    noteVnoMovedInActiveRealmTrees(mris, vno);
 
     vs->nx = v->nx;
     vs->ny = v->ny;
@@ -50339,8 +50637,8 @@ static int mrisRestoreFaceVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dv
   VERTEX *v;
   VERTEX_STATE *vs;
 
-  /* restore the original number of faces */
-  mris->nfaces = dvs->nfaces;
+  /* remove the added faces */
+  MRIStruncateNFaces(mris, dvs->nfaces);
 
   for (i = 0; i < dvs->nvertices; i++) {
     vs = &dvs->vs[i];
@@ -50351,10 +50649,8 @@ static int mrisRestoreFaceVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dv
 
     v = &mris->vertices[vno];
 
-    free(v->f);
-    v->f = NULL;
-    free(v->n);
-    v->n = NULL;
+    freeAndNULL(v->f);
+    freeAndNULL(v->n);
     v->num = vs->num;
 
     if (vs->num) {
@@ -50380,8 +50676,8 @@ static int mrisRestoreVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs)
   VERTEX *v;
   VERTEX_STATE *vs;
 
-  /* restore the original number of faces */
-  mris->nfaces = dvs->nfaces;
+  /* remove the added faces */
+  MRIStruncateNFaces(mris, dvs->nfaces);
 
   for (i = 0; i < dvs->nvertices; i++) {
     vs = &dvs->vs[i];
@@ -50393,7 +50689,7 @@ static int mrisRestoreVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs)
     v->origx = vs->origx; 
     v->origy = vs->origy;
     v->origz = vs->origz;
-    noteInActiveRealmTrees(mris, vno);
+    noteVnoMovedInActiveRealmTrees(mris, vno);
 
     v->nx = vs->nx;
     v->ny = vs->ny;
@@ -51752,7 +52048,8 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
 
   mris_corrected->type = MRIS_TRIANGULAR_SURFACE;
 
-  for (nrippedvertices = mris_corrected->nvertices = vno = 0; vno < mris->nvertices; vno++) {
+  int newNVertices = 0;
+  for (nrippedvertices = vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
     /* ignore the ripped vertices */
     if (v->ripflag) {
@@ -51760,7 +52057,7 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
       continue;
     }
     /* save vertex information */
-    vdst = &mris_corrected->vertices[mris_corrected->nvertices];
+    vdst = &mris_corrected->vertices[newNVertices];
     vdst->nsize = v->nsize;
     vdst->x = v->x;
     vdst->y = v->y;
@@ -51792,10 +52089,12 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
     vdst->K = v->K;
     vdst->k1 = v->k1;
     vdst->k2 = v->k2;
-    vertex_trans[vno] = mris_corrected->nvertices++;
+    vertex_trans[vno] = newNVertices++;
   }
+  MRIStruncateNVertices(mris_corrected, newNVertices);
 
-  for (nrippedfaces = mris_corrected->nfaces = fno = 0; fno < mris->nfaces; fno++) {
+  int newNFaces = 0;
+  for (nrippedfaces = newNFaces = fno = 0; fno < mris->nfaces; fno++) {
     f = &mris->faces[fno];
     /* don't update triangle with marked vertices */
     if (f->ripflag) {
@@ -51803,20 +52102,22 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
       continue;
     }
     /* save face information */
-    fdst = &mris_corrected->faces[mris_corrected->nfaces];
+    fdst = &mris_corrected->faces[newNFaces];
     for (n = 0; n < VERTICES_PER_FACE; n++) {
       fdst->v[n] = vertex_trans[f->v[n]];
       if (mris->vertices[f->v[n]].ripflag) {
         fprintf(stderr,
                 "Error with face %d (%d): vertex %d (%d) is ripped\n",
                 fno,
-                mris_corrected->nfaces,
+                newNFaces,
                 f->v[n],
                 fdst->v[n]);
       }
     }
-    face_trans[fno] = mris_corrected->nfaces++;
+    face_trans[fno] = newNFaces++;
   }
+  MRIStruncateNFaces(mris_corrected, newNFaces);
+
   /* now allocate face and neighbor stuff in mris_corrected */
   for (vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
@@ -52453,7 +52754,8 @@ MRI_SURFACE *MRIScorrectTopology(
   MRISrestoreVertexPositions(mris, TMP_VERTICES); /* inflated */
   MRIScomputeMetricProperties(mris);
 
-  for (mris_corrected->nvertices = vno = 0; vno < mris->nvertices; vno++) {
+  int newNVertices = 0;
+  for (vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
     if (vno == Gdiag_no) {
       DiagBreak();
@@ -52462,7 +52764,7 @@ MRI_SURFACE *MRIScorrectTopology(
     if (v->marked) {
       continue;
     }
-    vdst = &mris_corrected->vertices[mris_corrected->nvertices];
+    vdst = &mris_corrected->vertices[newNVertices];
     if (mris_corrected->nvertices == Gdiag_no) {
       DiagBreak();
     }
@@ -52503,7 +52805,7 @@ MRI_SURFACE *MRIScorrectTopology(
     vdst->k1 = v->k1;
     vdst->k2 = v->k2;
     vdst->border = 0;
-    vertex_trans[vno] = mris_corrected->nvertices++;
+    vertex_trans[vno] = newNVertices++;
   }
   /* now add all the retained vertices in the defects */
   for (i = 0; i < dl->ndefects; i++) {
@@ -52519,7 +52821,7 @@ MRI_SURFACE *MRIScorrectTopology(
         if (vno == Gdiag_no) {
           DiagBreak();
         }
-        vdst = &mris_corrected->vertices[mris_corrected->nvertices];
+        vdst = &mris_corrected->vertices[newNVertices];
         if (mris_corrected->nvertices == Gdiag_no) {
           DiagBreak();
         }
@@ -52560,25 +52862,28 @@ MRI_SURFACE *MRIScorrectTopology(
         if (parms->search_mode != GREEDY_SEARCH && defect->status[n] == DISCARD_VERTEX) {
           vdst->ripflag = 1;
         }
-        vertex_trans[vno] = mris_corrected->nvertices++;
+        vertex_trans[vno] = newNVertices++;
       }
+      MRISgrowNVertices(mris_corrected, newNVertices);
     }
   }
 
-  for (mris_corrected->nfaces = fno = 0; fno < mris->nfaces; fno++) {
+  int newNfaces;
+  for (newNfaces = fno = 0; fno < mris->nfaces; fno++) {
     f = &mris->faces[fno];
     /* don't update triangle with marked vertices */
     if (triangleMarked(mris, fno)) {
       continue;
     }
     /* initialize face */
-    fdst = &mris_corrected->faces[mris_corrected->nfaces];
+    fdst = &mris_corrected->faces[newNfaces];
     for (n = 0; n < VERTICES_PER_FACE; n++) {
       fdst->v[n] = vertex_trans[f->v[n]];
     }
-    face_trans[fno] = mris_corrected->nfaces++;
+    face_trans[fno] = newNfaces++;
   }
-
+  MRISgrowNFaces(mris_corrected, newNfaces);
+  
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     FILE *fp;
     char fname[STRLEN];
@@ -55838,7 +56143,7 @@ static void vertexPseudoNormal(MRIS *mris1, int vn1, MRIS *mris2, int vn2, float
         // MRISwrite(mris,"rh.testdebug2");
         if (1)  // verbose==VERBOSE_MODE_HIGH)
         {
-          ErrorExit(ERROR_BADPARM, "computeVertexPseudoNormal: SHOULD NOT HAPPEN\n");
+          ErrorExit(ERROR_BADPARM, "vertexPseudoNormal: SHOULD NOT HAPPEN\n");
         }
       }
     }
@@ -56572,7 +56877,7 @@ static double mrisComputeDefectMRILogUnlikelihood(
     }
     if (suppress_usecomputeDefectContext) computeDefectContext = NULL;
     
-    int saved_noteInActiveRealmTreesCount = noteInActiveRealmTreesCount++;
+    int saved_noteVnoMovedInActiveRealmTreesCount = noteVnoMovedInActiveRealmTreesCount++;
     
     //  TIMER_INTERVAL_BEGIN(A)
 
@@ -56586,18 +56891,280 @@ static double mrisComputeDefectMRILogUnlikelihood(
     //  TIMER_INTERVAL_END(A)
 
     if (0) 
-        printf("noteInActiveRealmTrees called:%d\n",
-            noteInActiveRealmTreesCount-saved_noteInActiveRealmTreesCount);
+        printf("noteVnoMovedInActiveRealmTrees called:%d\n",
+            noteVnoMovedInActiveRealmTreesCount-saved_noteVnoMovedInActiveRealmTreesCount);
 
     return result;
 }
 
+
+// PerThreadVertexPseudoNormalCache
+// Since each vertex is in two or more faces, it makes sense to cache this
+// Sizing it will be important - based on test_mris_fix_topology
+//
+#define PerThreadVertexPseudoNormalCacheSize (1<<12)	    	    	    	    	// below code assumes this is divisible by (sizeof(long) * 8) 
+#define PerThreadVertexPseudoNormalCacheMask (PerThreadVertexPseudoNormalCacheSize-1)
+typedef struct PerThreadVertexPseudoNormalCacheEntry {
+  int   vno;
+  float norm[3];
+} PerThreadVertexPseudoNormalCacheEntry;
+
+#define PerThreadVertexPseudoNormalCacheInitedSize (PerThreadVertexPseudoNormalCacheSize / (sizeof(long) * 8))
+
+typedef struct PerThreadVertexPseudoNormalCache {
+  long                                  inited [PerThreadVertexPseudoNormalCacheInitedSize];
+  PerThreadVertexPseudoNormalCacheEntry entries[PerThreadVertexPseudoNormalCacheSize      ];
+} PerThreadVertexPseudoNormalCache;
+
+static PerThreadVertexPseudoNormalCache* makePerThreadVertexPseudoNormalCache() {
+  PerThreadVertexPseudoNormalCache* p = (PerThreadVertexPseudoNormalCache*)malloc(sizeof(PerThreadVertexPseudoNormalCache));
+  bzero(&p->inited, sizeof(p->inited));
+  return p;
+}
+
+static void freePerThreadVertexPseudoNormalCache(PerThreadVertexPseudoNormalCache** pp) {
+  PerThreadVertexPseudoNormalCache* p = *pp;
+  *pp = NULL;
+  if (!p) return;
+  freeAndNULL(p);
+}
+
+static void cachedOrComputeVertexPseudoNormal(
+  PerThreadVertexPseudoNormalCache** pp,
+  MRI_SURFACE const  * const mris,
+  int                  const vno,
+  float*               const norm,	    	    // output!
+  DEFECT_PATCH const * const dp) {
+    
+  static volatile bool once;
+  static bool use_cache, test_cache;
+  if (!once) 
+#ifdef HAVE_OPENMP
+  #pragma omp critical
+#endif
+  if (!once) {
+    use_cache  =  !getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_ComputeVertexPseudoNormalCache_suppress");	
+    test_cache = !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_ComputeVertexPseudoNormalCache_test");	
+    use_cache |= test_cache;
+    if (!use_cache)  
+      fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood not using ComputeVertexPseudoNormalCache\n");
+    if (test_cache) 
+      fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood testing ComputeVertexPseudoNormalCache\n");
+    once = true;
+  }
+
+  static long count, limit = 1, hits, invalidates;
+  count++;
+  
+  PerThreadVertexPseudoNormalCacheEntry* entry = NULL;
+  
+  bool valid = false;
+  if (use_cache) {
+    PerThreadVertexPseudoNormalCache* p = *pp;
+    if (!p) {
+    	*pp = p = (PerThreadVertexPseudoNormalCache*)malloc(sizeof(PerThreadVertexPseudoNormalCache));
+	bzero(&p->inited, sizeof(p->inited));
+    }
+
+    bool inited = false;
+
+    int index = (vno*1234567) & PerThreadVertexPseudoNormalCacheMask;
+    int tries;
+    for (tries = 0; tries < 2; tries++) {
+      int const initedIndex =       (index / ( sizeof(long) * 8)   );
+      int const initedMask  = 1L << (index & ((sizeof(long) * 8)-1));
+      
+      if (0) {
+      	cheapAssert(0 <= index);
+      	cheapAssert(index       < PerThreadVertexPseudoNormalCacheSize);
+      	cheapAssert(initedIndex < PerThreadVertexPseudoNormalCacheInitedSize);
+      }
+      
+      inited = p->inited[initedIndex] & initedMask;
+      p->inited[initedIndex] |= initedMask;   	    	// will be inited soon
+      
+      
+      entry = &p->entries[index];
+      if (!inited) break;	    	    	    	// use this entry, since currently empty
+
+      valid = inited && (entry->vno == vno);
+      if (valid) {  // use this entry, since is the right one
+	hits++; 
+	break; 
+      }
+      
+      index = (index + 1) & PerThreadVertexPseudoNormalCacheMask;
+    }
+    
+    if (!valid) {	    	    	// either empty, or too many tries made
+      if (inited) invalidates++;  	// count evictions
+      entry->vno = vno;     	    	// use it
+    }
+  }
+      
+  // Fetch from, or update, or test cache
+  //
+  if (valid && !test_cache) {
+
+    memmove(norm, &entry->norm, sizeof(entry->norm));
+
+  } else {
+
+    computeVertexPseudoNormal(mris, vno, norm, dp->verbose_mode);
+
+    if (valid && memcmp(&entry->norm, norm, sizeof(entry->norm))) {
+      static int count;
+      if (count++ < 10) {
+	fprintf(stdout,"%s:%d PerThreadVertexPseudoNormalCacheEntry wrong norm for vno:%d tid:%d<<<<<<<<<<<<<\n", __FILE__, __LINE__, 
+	    vno, omp_get_thread_num());
+	fprintf(stdout,"cache:%g %g %g\n", entry->norm[0], entry->norm[1], entry->norm[2]);
+	fprintf(stdout,"norm :%g %g %g\n",        norm[0],        norm[1],        norm[2]);
+	exit(1);
+      }
+    }
+    
+    if (entry) memmove(&entry->norm, norm, sizeof(entry->norm));
+  }
+  
+  if (test_cache) {
+    if (count >= limit) {
+      if (limit < 100000) limit *= 2; else limit += 100000;
+      fprintf(stdout, "cachedOrComputeVertexPseudoNormal count:%g hits:%g invalidates:%g\n", (float)count, (float)hits, (float)invalidates);
+    }
+  }
+}
+
+
+// PerThreadMRIDistance is used to avoid locks and cache-bouncing below
+//
+typedef struct PerThreadMRIDistance {
+  MRI const * mri_distance;
+  int heightTimesDepth,depth;
+  float* elts;
+} PerThreadMRIDistance;
+
+static PerThreadMRIDistance* makePerThreadMRIDistance(MRI const * const mri_distance) {
+  PerThreadMRIDistance* ptd = (PerThreadMRIDistance*)malloc(sizeof(PerThreadMRIDistance));
+  ptd->mri_distance 	= mri_distance;
+  ptd->heightTimesDepth = mri_distance->height*mri_distance->depth;
+  ptd->depth        	= mri_distance->depth;
+  int size          	= mri_distance->width*mri_distance->height*mri_distance->depth;
+  float* elts = ptd->elts = (float*)malloc(size*sizeof(float));
+  int i;
+  for (i = 0; i < size; i++) elts[i] = NPY;
+  return ptd;
+}
+
+static float* perThreadMRIDistanceElt(PerThreadMRIDistance* ptd, int i, int j, int k) {
+  return &ptd->elts[i*ptd->heightTimesDepth + j*ptd->depth + k];
+}
+
+static void freePerThreadMRIDistance(PerThreadMRIDistance** ptdp) {
+  PerThreadMRIDistance* ptd = *ptdp;
+  *ptdp = NULL;
+  if (!ptd) return;
+  freeAndNULL(ptd->elts);
+  freeAndNULL(ptd);
+}
+
+
+static void updateDistanceElt(volatile float* f, float distance, bool lockNeeded) {
+    
+#ifdef HAVE_OPENMP
+  if (lockNeeded) {
+    if (fabs(distance) > fabs(*f)) return;  	// avoid the lock if possible
+    #pragma omp critical
+    updateDistanceElt(f, distance, false);
+    return;
+  } 
+#endif
+
+  // There was a reproducibility problem here.
+  // If the smallest positive distance and the smallest negative distance is the same fabs()
+  // then this code would randomly choose between them.
+  //
+  // The solution is to have the positive be the preferred of two equal values.
+  //
+  if (fabs(distance) < fabs(*f)) {
+    *f = distance;	            
+  } else if (fabs(distance) == fabs(*f)) {
+    // They are equal.  Prefer the positive.
+    if (distance > 0) *f = distance;
+  }
+}
+
 static double mrisComputeDefectMRILogUnlikelihood_wkr(
     ComputeDefectContext* computeDefectContext,
-    MRI_SURFACE  * const mris_nonconst, 			        // various subcomponents of these structures get updated
+    MRI_SURFACE  * const mris_nonconst, 			            	// various subcomponents of these structures get updated
     DEFECT_PATCH * const dp_nonconst, 
     HISTOGRAM    * const h_border_nonconst)
 {
+#if 1
+  // The tests themselves are expensive, so eliminate them except when developing
+  //
+  static const bool 
+    keep_sign_bug = false,  	    	    	    	    	    	    	    	// no test
+    do_new_MRIDistance = true,     	    	    	    	    	    	    	// if both set, that tests the new
+    do_old_MRIDistance = false,
+    do_new_loop3 = true,   	    	    	    	    	    	    	    	// if both set, that tests the new
+    do_old_loop3 = false, 
+    	    	    	            	        use_fast_avoidable_prediction = true,	// no test
+    test_avoidable_prediction = false, 	        use_avoidable_prediction = true,
+    test_sharedVertexPseudoNormalCache = false, use_sharedVertexPseudoNormalCache = true;
+#else
+  // Allow comparing different options quickly, but the times are affected compared to unconditional
+  //
+  static bool 
+    keep_sign_bug,  	    	    	    	    	    	    	    	// no test
+    do_new_MRIDistance,     	    	    	    	    	    	    	// if both set, that tests the new
+    do_old_MRIDistance,
+    do_new_loop3,   	    	    	    	    	    	    	    	// if both set, that tests the new
+    do_old_loop3, 
+    	    	    	            	    use_fast_avoidable_prediction,	// no test
+    test_avoidable_prediction,      	    use_avoidable_prediction,
+    test_sharedVertexPseudoNormalCache,     use_sharedVertexPseudoNormalCache;
+    
+  static bool once;
+  if (!once) { once = true;
+    keep_sign_bug             	    	= !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_fix_sign_bug"); 
+    do_old_loop3              	    	= !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_loop3_old");
+    do_new_loop3              	    	= !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_loop3_new") || !do_old_loop3;
+    do_old_MRIDistance  	    	= !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_MRIDistance_old");	
+    do_new_MRIDistance  	    	= !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_MRIDistance_new") || !do_old_MRIDistance;
+    test_avoidable_prediction 	    	= !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_test_avoidable_prediction");
+    use_avoidable_prediction  	    	=  !getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_avoidable_prediction") 
+    	    	    	    	    	    || test_avoidable_prediction;
+    use_fast_avoidable_prediction   	=  !getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_fast_avoidable_prediction") 
+    	    	    	    	    	    && use_avoidable_prediction;
+    
+    test_sharedVertexPseudoNormalCache	= !!getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_test_sharedVertexPseudoNormalCache"),
+    use_sharedVertexPseudoNormalCache	=  !getenv("FREESURFER_mrisComputeDefectMRILogUnlikelihood_dont_use_sharedVertexPseudoNormalCache")
+    	    	    	    	    	    || test_sharedVertexPseudoNormalCache;
+
+    if (do_old_loop3) {
+      fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood using old loop3 algorithm with the %s\n",keep_sign_bug?"sign bug still there":"sign bug fixed");
+      if (do_new_loop3) 
+        fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood comparing old and new loop3 algorithm\n");
+    }
+    if (do_old_MRIDistance) {
+      fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood using old mris_distance\n");
+      if (do_new_MRIDistance) {
+        fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood comparing old and new mris_distance\n");
+      }
+    }
+    if (!use_avoidable_prediction) {
+      fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood using old tests only\n");
+    }
+    if (!use_fast_avoidable_prediction) {
+      fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood using slower prediction code only\n");
+    }
+    if (!use_sharedVertexPseudoNormalCache) {
+      fprintf(stdout, "mrisComputeDefectMRILogUnlikelihood not using sharedVertexPseudoNormalCache%s\n",
+        test_sharedVertexPseudoNormalCache?" only, but testing it":"");
+    }
+  }
+#endif
+
   MRI_SURFACE  const * const mris     = mris_nonconst;			// find where the modifiers are
   DEFECT_PATCH const * const dp       = dp_nonconst;
   //HISTOGRAM  const * const h_border = h_border_nonconst;		// unused
@@ -56613,22 +57180,12 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   }
   //  TIMER_INTERVAL_END(getRealmTree)
 
-  { int i,j,k;
-    for (i = 0; i < mri_distance->width; i++) {
-      for (j = 0; j < mri_distance->height; j++) {
-        for (k = 0; k < mri_distance->depth; k++) {
-          MRIFvox(mri_distance_nonconst, i, j, k) = NPY;		// MODIFIER THAT WASN'T DETECTED
-        }
-      }
-    }
-  }
-
-
-  if (1) {
+  int const maxThreads = omp_get_max_threads();
+  if (computeDefectContext) {
     computeDefectContext->mris_deferred_norms = mris_nonconst;  // MODIFIER
     deferSetFaceNorms(mris_nonconst);
   } else {
-    undeferSetFaceNorms(mris_nonconst);                         // old code 
+    recomputeFaceNorms(mris_nonconst);                         // old code 
   }
 
 
@@ -56842,25 +57399,25 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
         
         if (!bsearch(&fno, fnos, fnosSize, sizeof(int), int_compare)) {
             
-            fprintf(stderr,"%s:%d fno:%d not in the interesting list\n", __FILE__, __LINE__, fno);
-            fprintf(stderr,"  face  x:%f..%f y:%f..%f z:%f..%f\n",min_x012,max_x012,min_y012,max_y012,min_z012,max_z012);
-            fprintf(stderr,"  realm x:%f..%f y:%f..%f z:%f..%f\n",realm_xLo,realm_xHi,realm_yLo,realm_yHi,realm_zLo,realm_zHi);
-            fprintf(stderr,"  fnosSize:%d\n", fnosSize);
+            fprintf(stdout,"%s:%d fno:%d not in the interesting list\n", __FILE__, __LINE__, fno);
+            fprintf(stdout,"  face  x:%f..%f y:%f..%f z:%f..%f\n",min_x012,max_x012,min_y012,max_y012,min_z012,max_z012);
+            fprintf(stdout,"  realm x:%f..%f y:%f..%f z:%f..%f\n",realm_xLo,realm_xHi,realm_yLo,realm_yHi,realm_zLo,realm_zHi);
+            fprintf(stdout,"  fnosSize:%d\n", fnosSize);
             
             // info leading to the realm_zLo bound
             if (1) {
-                fprintf(stderr,"0 - delta:%f + 1) / mri_defect->zsize:%f + mri_defect->zstart:%f     realm_zLo:%f\n",
+                fprintf(stdout,"0 - delta:%f + 1) / mri_defect->zsize:%f + mri_defect->zstart:%f     realm_zLo:%f\n",
                     (float)(delta), (float)(mri_defect->zsize), (float)(mri_defect->zstart), realm_zLo);
 
-                fprintf(stderr,"kmax_nobnd:%d ok if >= 0\n", kmax_nobnd);
-                fprintf(stderr,"   kVOL(mri_defect, max_z012:%f):%d + delta:%d\n", max_z012, kVOL(mri_defect, max_z012), delta);
-                fprintf(stderr,"   ((int)(zVOL(mri_defect,max_z012:%f):%f + 0.5))\n", max_z012, zVOL(mri_defect,max_z012));
-                fprintf(stderr,"   (mri_defect->zsize:%f * (z:%f - mri_defect->zstart:%f))\n", mri_defect->zsize, max_z012, mri_defect->zstart);
+                fprintf(stdout,"kmax_nobnd:%d ok if >= 0\n", kmax_nobnd);
+                fprintf(stdout,"   kVOL(mri_defect, max_z012:%f):%d + delta:%d\n", max_z012, kVOL(mri_defect, max_z012), delta);
+                fprintf(stdout,"   ((int)(zVOL(mri_defect,max_z012:%f):%f + 0.5))\n", max_z012, zVOL(mri_defect,max_z012));
+                fprintf(stdout,"   (mri_defect->zsize:%f * (z:%f - mri_defect->zstart:%f))\n", mri_defect->zsize, max_z012, mri_defect->zstart);
             }
 
             // info leading to the realm_zHi bound
             if (0) {
-                fprintf(stderr,"mri_defect->depth:%f - 1 + delta:%f - 1) / mri_defect->zsize:%f + mri_defect->zstart:%f\n",
+                fprintf(stdout,"mri_defect->depth:%f - 1 + delta:%f - 1) / mri_defect->zsize:%f + mri_defect->zstart:%f\n",
                     (float)(mri_defect->depth), (float)(delta), (float)(mri_defect->zsize), (float)(mri_defect->zstart));
             }
 
@@ -56930,17 +57487,93 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 
   //  TIMER_INTERVAL_BEGIN(taskExecution)
 
+  // The following is a very complex loop
+  // We need to understand its behavior better before starting to optimize it
+  //
+  bool traceTid0 = false;
+  if (0) {
+    static long count, limit=1, sumBufferSize;
+    count++;
+    sumBufferSize += bufferSize;
+    if (count >= limit) {
+      limit *= 2;
+      fprintf(stdout, "%s:%d count:%ld avg bufferSize:%g\n", __FILE__, __LINE__, count, (float)sumBufferSize/(float)count);
+      traceTid0 = (count == 1024);
+    }
+  }
+  
+  
   // do the tasks
   //
-  int bufferIndex = 0;
+  PerThreadVertexPseudoNormalCache* perThreadVertexPseudoNormalCache[_MAX_FS_THREADS];
+  PerThreadMRIDistance*             perThreadMRIDistances           [_MAX_FS_THREADS];
+  { int tid; 
+    for (tid = 0; tid < maxThreads; tid++) {
+      perThreadMRIDistances           [tid] = NULL; 	// allocate in the loop to get in the right cache and to parallelize the init
+      perThreadVertexPseudoNormalCache[tid] = NULL;
+    }
+  }
+  
+  if (do_old_MRIDistance) 
+  { int i,j,k;
+    for (i = 0; i < mri_distance->width; i++) {
+      for (j = 0; j < mri_distance->height; j++) {
+        for (k = 0; k < mri_distance->depth; k++) {
+          MRIFvox(mri_distance_nonconst, i, j, k) = NPY;		// MODIFIER THAT WASN'T DETECTED
+        }
+      }
+    }
+  }
+
+  typedef struct Float3 { float elts[3]; } Float3;
+  Float3* sharedVertexPseudoNormalCache = NULL;
+  if (use_sharedVertexPseudoNormalCache) {
+  
+    sharedVertexPseudoNormalCache = (Float3*)malloc(sizeof(Float3) * mris->nvertices);
+
+    volatile char* done = (char*)calloc(mris->nvertices,sizeof(char)); 
+    
+    ROMP_PF_begin
+    int bufferIndex;
+#ifdef HAVE_OPENMP
+    #pragma omp parallel for if_ROMP(shown_reproducible)
+#endif
+    for (bufferIndex = 0; bufferIndex < bufferSize; bufferIndex++) {
+      Entry const * const entry = &buffer[bufferIndex];
+      FACE  const * const face  = entry->face;
+      int vi;
+      for (vi = 0; vi < 3; vi++) {
+        int const vno = face->v[vi];
+        char alreadyDone;
+#ifdef HAVE_OPENMP
+        #pragma omp critical
+#endif
+        {  alreadyDone = done[vno]; 
+           done[vno] = 1; 
+        }
+        
+        if (alreadyDone) continue;
+        computeVertexPseudoNormal(mris, vno, sharedVertexPseudoNormalCache[vno].elts, dp->verbose_mode);
+	done[vno] = 1;
+      }
+    }
+    ROMP_PF_end
+    
+    free((char*)done);
+  }
 
   ROMP_PF_begin
+
+  int bufferIndex;
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(shown_reproducible)
 #endif
   for (bufferIndex = 0; bufferIndex < bufferSize; bufferIndex++) {
     ROMP_PFLB_begin
+    int const tid = omp_get_thread_num();
     
+    bool const trace = traceTid0 && (tid == 0);
+
     typedef void p;	// poison p
     Entry const * entry = &buffer[bufferIndex];
 
@@ -56957,15 +57590,61 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     int const kmin = MAX(kmin_nobnd, 0);
     int const kmax = MIN(kmax_nobnd, mri_defect->depth - 1);
 
-    /* generating the pseudo-normals for edges and vertices */
+    // Get the pseudonormals
+    // My previous belief was they would not many would be needed by more than one threads, but maybe they are
+    // I should measure this!  Or maybe we should use a snoopy cache!
+    //
+    float n_v0[3], n_v1[3], n_v2[3];
+    
+    if (!use_sharedVertexPseudoNormalCache || test_sharedVertexPseudoNormalCache) {
+      cachedOrComputeVertexPseudoNormal(&perThreadVertexPseudoNormalCache[tid], mris, face->v[0], n_v0, dp);
+      cachedOrComputeVertexPseudoNormal(&perThreadVertexPseudoNormalCache[tid], mris, face->v[1], n_v1, dp);
+      cachedOrComputeVertexPseudoNormal(&perThreadVertexPseudoNormalCache[tid], mris, face->v[2], n_v2, dp);
+    } 
+
+    if (use_sharedVertexPseudoNormalCache) {
+      if (test_sharedVertexPseudoNormalCache) {
+    	if (memcmp(n_v0, sharedVertexPseudoNormalCache[face->v[0]].elts, sizeof(n_v0)) 
+	||  memcmp(n_v1, sharedVertexPseudoNormalCache[face->v[1]].elts, sizeof(n_v1))
+	||  memcmp(n_v2, sharedVertexPseudoNormalCache[face->v[2]].elts, sizeof(n_v2))) {
+	  fprintf(stdout, "%s:%d sharedVertexPseudoNormalCache wrong\n", __FILE__, __LINE__);
+	  float* e0 = sharedVertexPseudoNormalCache[face->v[0]].elts;
+	  float* e1 = sharedVertexPseudoNormalCache[face->v[1]].elts;
+	  float* e2 = sharedVertexPseudoNormalCache[face->v[2]].elts;
+	  fprintf(stdout, " v0 %g %g %g  ?=  %g %g %g \n", n_v0[0], n_v0[1], n_v0[2], e0[0], e0[1], e0[2]);
+	  fprintf(stdout, " v1 %g %g %g  ?=  %g %g %g \n", n_v1[0], n_v1[1], n_v1[2], e1[0], e1[1], e1[2]);
+	  fprintf(stdout, " v2 %g %g %g  ?=  %g %g %g \n", n_v2[0], n_v2[1], n_v2[2], e2[0], e2[1], e2[2]);
+	  exit(1);
+	}
+      } else {
+    	memmove(n_v0, sharedVertexPseudoNormalCache[face->v[0]].elts, sizeof(n_v0)); 
+	memmove(n_v1, sharedVertexPseudoNormalCache[face->v[1]].elts, sizeof(n_v1));
+	memmove(n_v2, sharedVertexPseudoNormalCache[face->v[2]].elts, sizeof(n_v2));
+      }
+    } 
+    
+    // Generate the edges and their normals
+    //
     float n_f [3];
     float   n0[3],   n1[3],   n2[3];
     float   e0[3],   e1[3],   e2[3];
     float n_e0[3], n_e1[3], n_e2[3];
     {
-      int fn1;
-    
-      FaceNormCacheEntry const * fNorm = getFaceNorm(mris, fno);
+      // Do these first, so the optimizer has plenty of common subexpressions knowing the pointed-to items aren't changing
+      //
+      int fnoV01 = findOtherEdgeFace(mris, fno, face->v[0], face->v[1]);
+      int fnoV12 = findOtherEdgeFace(mris, fno, face->v[1], face->v[2]);
+      int fnoV20 = findOtherEdgeFace(mris, fno, face->v[2], face->v[0]);
+
+      if (trace) {
+      	fprintf(stdout, "  fno:%d abuts fnos:%d %d %d\n", fno, fnoV01, fnoV12, fnoV20);
+      }
+      
+      FaceNormCacheEntry const * fNorm  = getFaceNorm(mris, fno);
+      FaceNormCacheEntry const * fNorm0 = getFaceNorm(mris, fnoV01);
+      FaceNormCacheEntry const * fNorm1 = getFaceNorm(mris, fnoV12);
+      FaceNormCacheEntry const * fNorm2 = getFaceNorm(mris, fnoV20);
+
       n_f[0] = fNorm->nx;
       n_f[1] = fNorm->ny;
       n_f[2] = fNorm->nz;
@@ -56976,8 +57655,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
       e0[2] = z1 - z0;
     
       F_CROSS(n_f, e0, n0);
-      fn1 = findOtherEdgeFace(mris, fno, face->v[0], face->v[1]);
-      FaceNormCacheEntry const * fNorm0 = getFaceNorm(mris, fn1);
+
       n_e0[0] = fNorm->nx + fNorm0->nx;
       n_e0[1] = fNorm->ny + fNorm0->ny;
       n_e0[2] = fNorm->nz + fNorm0->nz;
@@ -56988,8 +57666,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
       e1[2] = z2 - z1;
 
       F_CROSS(n_f, e1, n1);
-      fn1 = findOtherEdgeFace(mris, fno, face->v[1], face->v[2]);
-      FaceNormCacheEntry const * fNorm1 = getFaceNorm(mris, fn1);
+
       n_e1[0] = fNorm->nx + fNorm1->nx;
       n_e1[1] = fNorm->ny + fNorm1->ny;
       n_e1[2] = fNorm->nz + fNorm1->nz;
@@ -57000,175 +57677,615 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
       e2[2] = z0 - z2;
 
       F_CROSS(n_f, e2, n2);
-      fn1 = findOtherEdgeFace(mris, fno, face->v[2], face->v[0]);
-      FaceNormCacheEntry const * fNorm2 = getFaceNorm(mris, fn1);
+
       n_e2[0] = fNorm->nx + fNorm2->nx;
       n_e2[1] = fNorm->ny + fNorm2->ny;
       n_e2[2] = fNorm->nz + fNorm2->nz;
+
     }
 
-    /* vertex pseudo-normals */
-    float n_v0[3], n_v1[3], n_v2[3];
-    computeVertexPseudoNormal(mris, face->v[0], n_v0, dp->verbose_mode);
-    computeVertexPseudoNormal(mris, face->v[1], n_v1, dp->verbose_mode);
-    computeVertexPseudoNormal(mris, face->v[2], n_v2, dp->verbose_mode);
+    float const SQR3_e0 = SQR3(e0);
+    float const SQR3_e1 = SQR3(e1);
+    float const SQR3_e2 = SQR3(e2);
+
+
+    if (trace) {
+      fprintf(stdout, "  computeVertexPseudoNormal for vnos:%d %d %d\n", face->v[0], face->v[1], face->v[2]);
+    }
 
     if (0) {
-      static int count, limit = 1;
-      bool show = (++count > limit);
-      if (show) {
-        limit *= 2;
-        fprintf(stderr, "mris->nfaces:%d imin:%d imax:%d jmin:%d jmax:%d kmin:%d kmax:%d \n", 
-          mris->nfaces, imin, imax, jmin, jmax, kmin, kmax);
-      }
+    	// Find out the sizes of these boxes
+    	static int count, limit = 128;
+	if (count++ > limit) 
+    	#pragma omp critical
+	{
+	    limit *= 2;
+	    float 
+	    	xmin = xSURF(mri_defect, imin),
+	    	xmax = xSURF(mri_defect, imax),
+	    	ymin = xSURF(mri_defect, jmin),
+	    	ymax = xSURF(mri_defect, jmax),
+	    	zmin = xSURF(mri_defect, kmin),
+	    	zmax = xSURF(mri_defect, kmax);
+	    fprintf(stdout, "%s:%d box %g..%g,%g..%g,%g..%g %g*%g*%g\n", __FILE__, __LINE__, 
+	    	xmin,xmax,ymin,ymax,zmin,zmax,xmax-xmin,ymax-ymin,zmax-zmin);
+	    fprintf(stdout, "%d..%d,%d..%d,%d..%d %d*%d*%d=%d\n",
+	    	imin,imax,jmin,jmax,kmin,kmax,imax+1-imin,  jmax+1-jmin,  kmax+1-kmin,
+		                             (imax+1-imin)*(jmax+1-jmin)*(kmax+1-kmin));
+	}
     }
+    
+    // Bevin has an ideas for making the following faster.
+    // It is looping over a box, and for each point in the box deciding...
+    // 
+    // (a) which aspect of the face this point is closest to
+    //	    - the face
+    //	    - one of the six corners
+    //	    - one of the six edges
+    //
+    // (b) what the distance is to that aspect
+    //
+    // (c) the minimum of the distance to that aspect of this face and to all the similar situation on all the other faces
+    //
+    // However there are two facts that can speed this up
+    //
+    // 1.   It is possible to get a lower bound on the distance to this face, and - when it is too large - don't bother refining it
+    //	    This estimate can be based on the average of the vertices, and the distance from it to the furtherest vertex.
+    //	    because we know
+    //	    	let IJK be any point in the box, and FP be any point on the face
+    //	    	    distance(IJK, Center) <= distance(IJK,FP) + distance(FP,Center) 	hence
+    //	    	    distance(IJK, Center) - distance(FP,Center) <= distance(IJK,FP)
+    //	    so when the LHS is larger than the current least distance for IJK, it is not worth further consideration of this face 
+    //
+    // 2.   If two points in the box are nearest to the same aspect, then all points between them are also nearest to it
+    //      which avoids deciding which of the branches below to take.  This is not yet exploited
+    //
+    // In addition an initial estimate of the minimum distance can be obtained from the realm tree, which will ignore even more faces.
+    //	    TBD
+    //
+    // Calculate the center of the face - note, the precise location is not important.
+    //    
+    float cx = 0, cy = 0, cz = 0;
+    {
+    	int vi;
+	for (vi = 0; vi < 3; vi++) {
+	    VERTEX const * v = &mris->vertices[face->v[vi]];
+	    cx += v->origx;
+	    cy += v->origy;
+	    cz += v->origz;
+	}
+	cx *= 0.33f; cy *= 0.33f; cz *= 0.33f;
+    }
+    
+    // Calculate the square of the furtherest distance
+    //
+    float furtherestVertexDistanceSquared = 0;
+    {
+    	int vi;
+	for (vi = 0; vi < 3; vi++) {
+	    VERTEX const * v = &mris->vertices[face->v[vi]];
+	    float x = cx - v->origx;
+	    float y = cy - v->origy;
+	    float z = cz - v->origz;
+	    furtherestVertexDistanceSquared = MAX(furtherestVertexDistanceSquared, x*x + y*y + z*z);
+	}
+    }
+    float const furtherestVertexDistance = sqrtf(furtherestVertexDistanceSquared) * 1.01f;  // margin for error included
+    
+    // For each point in the box, find the distance, and update the leasts accordingly
+    //
+    // GCC does not find many of the loop invariants in the following, hence the explicit hoisting
+    //
+    float vec[3], vec0[3], vec1[3], vec2[3];
 
-    /* finding distance to surface */
-    /* the above shows that typically there are only about 20 iterations */
+    PerThreadMRIDistance* ptd = perThreadMRIDistances[tid];
+    if (do_new_MRIDistance && !ptd) ptd = perThreadMRIDistances[tid] = makePerThreadMRIDistance(mri_distance);
+
     int k,j,i;
+
+    float  jToYMapBuffer[100];
+    int    jToYMapSize = jmax - jmin + 1;
+    float* jToYMap = (jToYMapSize <= 256) ? jToYMapBuffer : (float*)malloc(jToYMapSize * sizeof(float));
+    for (j = jmin; j <= jmax; j++) jToYMap[j - jmin] = ySURF(mri_defect, j);
+    
+    float  kToZMapBuffer[100];
+    int    kToZMapSize = kmax - kmin + 1;
+    float* kToZMap = (kToZMapSize <= 256) ? kToZMapBuffer : (float*)malloc(kToZMapSize * sizeof(float));
+    for (k = kmin; k <= kmax; k++) kToZMap[k - kmin] = zSURF(mri_defect, k);
+    
     for (i = imin; i <= imax; i++) {
-      for (j = jmin; j <= jmax; j++) {
-        for (k = kmin; k <= kmax; k++) {
-
-          float const 
-	    x = xSURF(mri_defect, i),
-            y = ySURF(mri_defect, j),
-            z = zSURF(mri_defect, k);
-
-  	  float vec[3], vec0[3], vec1[3], vec2[3];
-
+      	  float const x = xSURF(mri_defect, i);
           vec0[0] = x - x0;
-          vec0[1] = y - y0;
-          vec0[2] = z - z0;
           vec1[0] = x - x1;
-          vec1[1] = y - y1;
-          vec1[2] = z - z1;
           vec2[0] = x - x2;
+          vec [0] = (vec0[0] + vec1[0] + vec2[0]) / 3.0;
+
+      for (j = jmin; j <= jmax; j++) {
+          float const y = jToYMap[j - jmin];
+          vec0[1] = y - y0;
+          vec1[1] = y - y1;
           vec2[1] = y - y2;
-          vec2[2] = z - z2;
-          vec[0] = (vec0[0] + vec1[0] + vec2[0]) / 3.0;
-          vec[1] = (vec0[1] + vec1[1] + vec2[1]) / 3.0;
-          vec[2] = (vec0[2] + vec1[2] + vec2[2]) / 3.0;
+          vec [1] = (vec0[1] + vec1[1] + vec2[1]) / 3.0;
 
-          /* compute distance to face */
-          /* where is the point */
-          float const
-	    val0 = F_DOT(vec0, n0),
-            val1 = F_DOT(vec1, n1),
-            val2 = F_DOT(vec2, n2);
+        float const partialPythagorasSum = squaref(x-cx) + squaref(y-cy);
+	
+        float* const ijkDistances =
+            do_new_MRIDistance ? perThreadMRIDistanceElt(ptd, i,j,0) : &MRIFvox(mri_distance_nonconst, i, j, 0);
+                  
+        for (k = kmin; k <= kmax; k++) {
+          float zt = kToZMap[k - kmin];
 
-	  float val, valu, sign, distance;
+	  if (use_fast_avoidable_prediction && !test_avoidable_prediction) {
+	    
+	    // This path is so important I have hand-optimized it
+	    // It skips over all the predictedIrrelevant k's
+	    // This path does not yet have a specific correctness test
+	    //
+            for (;;) {
+    	        float const ijkDistance           = ijkDistances[k];
+	    	float const distanceToCxyzSquared = partialPythagorasSum + squaref(zt-cz);
+                //oat const distanceToCxyz        = sqrtf(distanceToCxyzSquared) * 0.99f;  // margin for error included
+		bool predictedIrrelevant = distanceToCxyzSquared*0.98f > squaref(fabs(ijkDistance) + furtherestVertexDistance);
+		if (!predictedIrrelevant) goto RelevantK;
+		k++;
+		if (k > kmax) break;
+		zt = kToZMap[k - kmin]; 
+	    }
+	    break;  	    	    // no relevant K found
+    	  
+	    RelevantK:;
+	  }
+
+    	  float const z = zt;
 	  
-          if ((val0 >= 0) && (val1 >= 0) && (val2 >= 0)) {
-            /* the projection of the vertex is inside */
-            val = F_DOT(n_f, vec);
-            valu     = 1;
-            sign     = val;
-            distance = val; /* n_f is already normalized */
-          }
-          else {
-            distance = NPY;
-            sign = 0;
-            valu = 0;
-
-            if (val0 <= 0) {
-              /* compute distance to edge0 */
-              val = F_DOT(vec0, e0);
-              if (val < 0) {
-                /* closer to x0 */
-                sign = F_DOT(n_v0, vec0);
-                valu = 2;
-                distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec0));
-              }
-              else if (val < SQR3(e0)) {
-                /* closer to edge0 */
-                sign = F_DOT(n_e0, vec0);
-                valu = 3;
-                distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec0) - SQR(val) / SQR3(e0))));
-              }
-              else {
-                /* closer to x1 */
-                sign = F_DOT(n_v1, vec1);
-                valu = 2;
-                distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec1));
-              }
-            };
-            if (val1 <= 0) {
-              val = F_DOT(vec1, e1);
-              if (val < 0) {
-                /* closer to x1 */
-                sign = F_DOT(n_v1, vec1);
-                valu = 2;
-                distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec1));
-              }
-              else if (val < SQR3(e1)) {
-                /* closer to edge1 */
-                sign = F_DOT(n_e1, vec1);
-                valu = 3;
-                distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec1) - SQR(val) / SQR3(e1))));
-              }
-              else {
-                /* closer to x2 */
-                sign = F_DOT(n_v2, vec2);
-                valu = 2;
-                distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec2));
-              }
-            };
-            if (val2 <= 0) {
-              val = F_DOT(vec2, e2);
-              if (val < 0) {
-                /* closer to x2 */
-                sign = F_DOT(n_v2, vec2);
-                valu = 2;
-                distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec2));
-              }
-              else if (val < SQR3(e2)) {
-                /* closer to edge2 */
-                sign = F_DOT(n_e2, vec2);
-                valu = 3;
-                distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec2) - SQR(val) / SQR3(e2))));
-              }
-              else {
-                /* closer to x0 */
-                sign = F_DOT(n_v0, vec0);
-                valu = 2;
-                distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec0));
-              }
-            };
-          }
-
-          /* update distance map */
-          //
-          // There was a reproducibility problem here.
-          // If the smallest positive distance and the smallest negative distance is the same fabs()
-          // then this code would randomly choose between them.
-          // Furthermore the sign of the distance does seem to be important, so can't just store the fabs
-          //
-          // The solution is to have the positive be the preferred of two equal values.
-          //
-	  volatile float * f = &MRIFvox(mri_distance, i, j, k);
-#ifdef HAVE_OPENMP
-          if (fabs(distance) <= fabs(*f))					    // avoid the lock if possible
-	  #pragma omp critical
+    	  // Here is the minimum distance to update
+	  //
+    	  float* const ijkDistanceElt = &ijkDistances[k];
+	  
+    	  // The following code has four different ways of getting the answer
+	  // and can check them against each other
+	  //	      
+	  float distanceToCxyzSquared = 0.0; bool predictedIrrelevant = false;
+       	  float new_distance  = 0.0f;
+	  float old_distance  = 0.0f;
+	    
+      	  static long pointCount, pointLimit = 1000000, irrelevantPointCount;
+#if 0
+	  pointCount++;
 #endif
-          {
-            if (fabs(distance) < fabs(*f)) {
-              MRIFvox(mri_distance_nonconst, i, j, k) = distance;	            // MODIFIER NOT CAUGHT BY COMPILER
-            } else if (fabs(distance) == fabs(*f)) {
-              // They are equal.  Prefer the positive.
-              if (distance > 0) MRIFvox(mri_distance_nonconst, i, j, k) = distance;
-            } else {
-              // Might happen if the distance got stored between the non-critical and critical compares
-            }
-          }
-        }
-      }
-    }
+
+          // Calculate the distance to center, and ignore when no chance of providing a new least distance
+	  //
+    	  if (use_avoidable_prediction && test_avoidable_prediction) {
+	      distanceToCxyzSquared = partialPythagorasSum + squaref(z-cz);
+	      predictedIrrelevant   =  distanceToCxyzSquared*0.98f > squaref(fabs(*ijkDistanceElt) + furtherestVertexDistance);
+	      if (predictedIrrelevant) irrelevantPointCount++;
+	      if (!test_avoidable_prediction && predictedIrrelevant) 
+	      	continue;
+	  }
+
+    	  // Complete the three vectors
+	  //
+          vec0[2] = z - z0;
+          vec1[2] = z - z1;
+          vec2[2] = z - z2;
+	  
+          if (true) {
+	  
+            vec[2] = (vec0[2] + vec1[2] + vec2[2]) / 3.0;
+
+            /* compute distance to face */
+            /* where is the point */
+            float const
+	      val0 = F_DOT(vec0, n0),
+              val1 = F_DOT(vec1, n1),
+              val2 = F_DOT(vec2, n2);
+
+    	    if (do_new_loop3) {
+
+              if ((val0 >= 0) && (val1 >= 0) && (val2 >= 0)) {
+
+		// the projection of the vertex is inside
+        	//
+		new_distance = F_DOT(n_f, vec); 	// n_f is already normalized
+
+              } else {
+
+		float  least_distance_squared = NPY*NPY;
+		float* least_sign_lhs = NULL;
+		float* least_sign_rhs = NULL;
+#define THIS_CASE_DEF       	float* this_sign_lhs,*this_sign_rhs;
+#define LEAST_CASE(LHS,RHS)     { least_sign_lhs = (LHS); least_sign_rhs = (RHS); }
+#define THIS_CASE(LHS,RHS,CASE) { this_sign_lhs  = (LHS); this_sign_rhs = (RHS); }
+#define MAKE_LEAST_THIS         { least_sign_lhs = this_sign_lhs; least_sign_rhs = this_sign_rhs; }
+
+        	if (val0 <= 0) {
+        	  /* compute distance to edge0 */
+		  float distance_squared;
+        	  float val = F_DOT(vec0, e0);
+	          THIS_CASE_DEF
+        	  if (val < 0) {
+                    /* closer to x0 */
+		    THIS_CASE(n_v0, vec0, 2);
+                    distance_squared = SQR3(       vec0);
+        	  }
+        	  else if (val < SQR3_e0) {
+                    /* closer to edge0 */
+		    THIS_CASE(n_e0, vec0, 3);
+                    distance_squared = MAX(0, SQR3(vec0) - SQR(val) / SQR3_e0);
+        	  }
+        	  else {
+                    /* closer to x1 */
+		    THIS_CASE(n_v1, vec1, 4);
+                    distance_squared = SQR3 (vec1);
+        	  }
+		  least_distance_squared = distance_squared;
+	    	  MAKE_LEAST_THIS;
+        	}
+
+        	if (val1 <= 0) {
+		  float distance_squared;
+        	  float val = F_DOT(vec1, e1);
+	          THIS_CASE_DEF
+        	  if (val < 0) {
+                    /* closer to x1 */
+		    THIS_CASE(n_v1, vec1, 5);
+                    distance_squared = SQR3(       vec1);
+        	  }
+        	  else if (val < SQR3_e1) {
+                    /* closer to edge1 */
+		    THIS_CASE(n_e1, vec1, 6);
+                    distance_squared = MAX(0, SQR3(vec1) - SQR(val) / SQR3_e1);
+        	  }
+        	  else {
+                    /* closer to x2 */
+  		    THIS_CASE(n_v2, vec2, 7);
+                    distance_squared = SQR3(vec2);
+        	  }
+		  if (least_distance_squared > distance_squared) {
+		    least_distance_squared = distance_squared;
+		    MAKE_LEAST_THIS;
+		  }
+        	}
+
+        	if (val2 <= 0) {
+		  float distance_squared;
+        	  float val = F_DOT(vec2, e2);
+	          THIS_CASE_DEF
+        	  if (val < 0) {
+                    /* closer to x2 */
+		    THIS_CASE(n_v2, vec2, 8);
+                    distance_squared = SQR3(       vec2);
+        	  }
+        	  else if (val < SQR3(e2)) {
+                    /* closer to edge2 */
+		    THIS_CASE(n_e2, vec2, 9);
+                    distance_squared = MAX(0, SQR3(vec2) - SQR(val) / SQR3_e2);
+        	  }
+        	  else {
+                    /* closer to x0 */
+		    THIS_CASE(n_v0, vec0, 10);
+                    distance_squared = SQR3(vec0);
+        	  }
+		  if (least_distance_squared > distance_squared) {
+		    least_distance_squared = distance_squared;
+		    MAKE_LEAST_THIS;
+		  }
+        	}
+#undef THIS_CASE_DEF
+#undef LEAST_CASE
+#undef THIS_CASE
+#undef MAKE_LEAST_THIS
+
+    		float least_sign = F_DOT(least_sign_lhs, least_sign_rhs);
+		new_distance = SIGN(least_sign)*sqrt(least_distance_squared);
+              }
+    	    }
+    	    // end if (do_new_loop3)
+	  
+            if (do_old_loop3) {
+	      if (keep_sign_bug) {
+		float val, valu, sign, distance;
+
+		// THIS CODE HAS A FUNDAMENTAL PROBLEM
+		//
+		// IT FINDS THE LEAST ABS DISTANCE, BUT THE SIGN OF THE DISTANCE IS THE SIGN OF THE LAST TESTED VALUE
+		// WHICH CAN'T POSSIBLY BE RIGHT!  CONCLUSION - MAYBE SIGN DOESNT MATTER?  IT IS EXPENSIVE TO COMPUTE...
+
+        	if ((val0 >= 0) && (val1 >= 0) && (val2 >= 0)) {
+        	  /* the projection of the vertex is inside */
+        	  val = F_DOT(n_f, vec);
+        	  valu     = 1;
+        	  sign     = val;
+        	  distance = val; /* n_f is already normalized */
+        	}
+        	else {
+        	  distance = NPY;
+        	  sign = 0;
+        	  valu = 0;
+
+        	  if (val0 <= 0) {
+        	    /* compute distance to edge0 */
+        	    val = F_DOT(vec0, e0);
+        	    if (val < 0) {
+                      /* closer to x0 */
+                      sign = F_DOT(n_v0, vec0);
+                      valu = 2;
+                      distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec0));
+        	    }
+        	    else if (val < SQR3(e0)) {
+                      /* closer to edge0 */
+                      sign = F_DOT(n_e0, vec0);
+                      valu = 3;
+                      distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec0) - SQR(val) / SQR3(e0))));
+        	    }
+        	    else {
+                      /* closer to x1 */
+                      sign = F_DOT(n_v1, vec1);
+                      valu = 2;
+                      distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec1));
+        	    }
+        	  };
+
+        	  if (val1 <= 0) {
+        	    val = F_DOT(vec1, e1);
+        	    if (val < 0) {
+                      /* closer to x1 */
+                      sign = F_DOT(n_v1, vec1);
+                      valu = 2;
+                      distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec1));
+        	    }
+        	    else if (val < SQR3(e1)) {
+                      /* closer to edge1 */
+                      sign = F_DOT(n_e1, vec1);
+                      valu = 3;
+                      distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec1) - SQR(val) / SQR3(e1))));
+        	    }
+        	    else {
+                      /* closer to x2 */
+                      sign = F_DOT(n_v2, vec2);
+                      valu = 2;
+                      distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec2));
+        	    }
+        	  };
+
+        	  if (val2 <= 0) {
+        	    val = F_DOT(vec2, e2);
+        	    if (val < 0) {
+                      /* closer to x2 */
+                      sign = F_DOT(n_v2, vec2);
+                      valu = 2;
+                      distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec2));
+        	    }
+        	    else if (val < SQR3(e2)) {
+                      /* closer to edge2 */
+                      sign = F_DOT(n_e2, vec2);
+                      valu = 3;
+                      distance = SIGN(sign) * MIN(fabs(distance), sqrt(MAX(0, SQR3(vec2) - SQR(val) / SQR3(e2))));
+        	    }
+        	    else {
+                      /* closer to x0 */
+                      sign = F_DOT(n_v0, vec0);
+                      valu = 2;
+                      distance = SIGN(sign) * MIN(fabs(distance), NORM3(vec0));
+        	    }
+        	  };
+        	}
+
+    		old_distance = distance;
+              } else {
+		float val, valu, sign, distance;
+
+		// THIS CODE KEEPS THE SIGN FROM THE LEAST OF THE DISTANCES
+
+        	if ((val0 >= 0) && (val1 >= 0) && (val2 >= 0)) {
+        	  /* the projection of the vertex is inside */
+        	  val = F_DOT(n_f, vec);
+        	  valu     = 1;
+        	  sign     = val;
+        	  distance = val; /* n_f is already normalized */
+        	}
+        	else {
+        	  distance = NPY;
+        	  sign = 0;
+        	  valu = 0;
+
+    		  float trialDistance;
+
+        	  if (val0 <= 0) {
+        	    /* compute distance to edge0 */
+        	    val = F_DOT(vec0, e0);
+        	    if (val < 0) {
+                      /* closer to x0 */
+                      sign = F_DOT(n_v0, vec0);
+                      valu = 2;
+		      trialDistance = NORM3(vec0);
+        	    }
+        	    else if (val < SQR3(e0)) {
+                      /* closer to edge0 */
+                      sign = F_DOT(n_e0, vec0);
+                      valu = 3;
+		      trialDistance = sqrt(MAX(0, SQR3(vec0) - SQR(val) / SQR3(e0)));
+        	    }
+        	    else {
+                      /* closer to x1 */
+                      sign = F_DOT(n_v1, vec1);
+                      valu = 2;
+		      trialDistance = NORM3(vec1);
+        	    }
+                    if (fabs(distance) > trialDistance) distance = SIGN(sign) * trialDistance;
+        	  };
+
+        	  if (val1 <= 0) {
+        	    val = F_DOT(vec1, e1);
+        	    if (val < 0) {
+                      /* closer to x1 */
+                      sign = F_DOT(n_v1, vec1);
+                      valu = 2;
+                      trialDistance = NORM3(vec1);
+        	    }
+        	    else if (val < SQR3(e1)) {
+                      /* closer to edge1 */
+                      sign = F_DOT(n_e1, vec1);
+                      valu = 3;
+                      trialDistance = sqrt(MAX(0, SQR3(vec1) - SQR(val) / SQR3(e1)));
+        	    }
+        	    else {
+                      /* closer to x2 */
+                      sign = F_DOT(n_v2, vec2);
+                      valu = 2;
+                      trialDistance = NORM3(vec2);
+        	    }
+    	    	    if (fabs(distance) > trialDistance) distance = SIGN(sign) * trialDistance;
+        	  };
+
+        	  if (val2 <= 0) {
+        	    val = F_DOT(vec2, e2);
+        	    if (val < 0) {
+                      /* closer to x2 */
+                      sign = F_DOT(n_v2, vec2);
+                      valu = 2;
+                      trialDistance = NORM3(vec2);
+        	    }
+        	    else if (val < SQR3(e2)) {
+                      /* closer to edge2 */
+                      sign = F_DOT(n_e2, vec2);
+                      valu = 3;
+                      trialDistance = sqrt(MAX(0, SQR3(vec2) - SQR(val) / SQR3(e2)));
+        	    }
+        	    else {
+                      /* closer to x0 */
+                      sign = F_DOT(n_v0, vec0);
+                      valu = 2;
+                      trialDistance = NORM3(vec0);
+        	    }
+    	    	    if (fabs(distance) > trialDistance) distance = SIGN(sign) * trialDistance;
+        	  };
+        	}
+
+    		old_distance = distance;
+              }
+	    }
+            // end if (do_old_loop3)
+
+    	  }
+          // end of if (true)
+
+    	  // Show the stats about how each point was calculated
+	  //
+	  if (false && (pointCount >= pointLimit)) {
+	    if (pointLimit > 10000000) pointLimit += 10000000; else pointLimit *= 2;
+	    fprintf(stdout, "pointCount:%g irrelevantPointCount:%g remainder:%g\n", 
+	      (float) pointCount, (float)irrelevantPointCount,
+	      (float)(pointCount -       irrelevantPointCount));
+	  }
+
+    	  // Choose the answer
+	  //	  
+	  float distance = do_new_loop3 ? new_distance : old_distance;
+
+	  // Compare the various answers when testing
+	  //
+    	  if (test_avoidable_prediction && predictedIrrelevant) {
+     	    if (fabs(*ijkDistanceElt) > fabs(distance)) {
+	      fprintf(stdout, "%s:%d prediction failed!\n", __FILE__, __LINE__);
+	      fprintf(stdout, "do_new_MRIDistance:%d\n", do_new_MRIDistance);
+	      fprintf(stdout, "c (%g, %g, %g)\n", cx,cy,cz);
+	      fprintf(stdout, "furtherestVertexDistance %g\n", furtherestVertexDistance);
+	      fprintf(stdout, "distanceToCxyz %g\n", sqrt(distanceToCxyzSquared));
+	      fprintf(stdout, "distanceToCxyz - furtherestVertexDistance:%g\n", sqrt(distanceToCxyzSquared) - furtherestVertexDistance);
+	      fprintf(stdout, "ijk (%g, %g, %g)\n", x,y,z);
+	      fprintf(stdout, "fabs(distance) %g\n", fabs(distance));
+	      fprintf(stdout, "fabs(*ijkDistanceElt) %g\n\n", fabs(*ijkDistanceElt));
+	      exit(1);
+	    }
+	  }
+	  
+	  if (do_new_loop3 && do_old_loop3) {
+	  
+	    // Sadly the old code compares the distances rather than the distances-squared
+	    // forcing it to take a sqrt before doing the comparison.  But sqrt can make unequal
+	    // things equal, so the old code might select a different sign distance than the new.
+	    //
+	    if (!closeEnough(fabs(new_distance), fabs(old_distance))) {
+	      fprintf(stdout, "%s:%d new_distance:%g not near old_distance:%g,  magnitude diff:%g\n", __FILE__, __LINE__, 
+	      	new_distance, old_distance, fabs(new_distance)-fabs(old_distance));
+	      exit(1);
+	    }
+	  }
+	  
+          // update distance map
+          //
+          if (trace) fprintf(stdout, "  update distance for i:%d j:%d j:%d\n", i,j,k);
+
+    	  updateDistanceElt(ijkDistanceElt, distance, 
+#ifdef HAVE_OPENMP
+	    do_old_MRIDistance
+#else
+    	    false
+#endif
+	    );
+	    
+	  if (do_old_MRIDistance && do_new_MRIDistance) {
+	    updateDistanceElt(perThreadMRIDistanceElt(ptd, i,j,k), distance, false);
+	  }
+	  
+        } // k
+      } // j
+    } // i
+
+    if (kToZMap != kToZMapBuffer) freeAndNULL(kToZMap);
+    if (jToYMap != jToYMapBuffer) freeAndNULL(jToYMap);
+    
     ROMP_PFLB_end
   }
   ROMP_PF_end
   
   free(buffer);
+
+  if (do_new_MRIDistance) {
+    ROMP_PF_begin
+    int i,j,k;
+#ifdef HAVE_OPENMP
+    #pragma omp parallel for if_ROMP(shown_reproducible) 
+#endif
+    for (i = 0; i < mri_distance->width; i++) {
+      ROMP_PFLB_begin
+      for (j = 0; j < mri_distance->height; j++) {
+        for (k = 0; k < mri_distance->depth; k++) {
+	
+	  float distance = NPY;
+          int tid;
+          for (tid = 0; tid < maxThreads; tid++) {
+	    PerThreadMRIDistance* ptd = perThreadMRIDistances[tid];
+	    if (ptd) updateDistanceElt(&distance, *perThreadMRIDistanceElt(ptd, i,j,k), false);
+          }
+	  
+	  if (do_old_MRIDistance) {
+	    float old_distance = MRIFvox(mri_distance_nonconst, i, j, k);
+	    if (old_distance != distance) {
+	      fprintf(stdout, "%s:%d diff distances at i:%d j:%d k:%d old:%g new:%g\n", __FILE__, __LINE__,
+	      	i,j,k,old_distance,distance);
+	      exit(1);
+	    }
+	  }
+	  
+	  MRIFvox(mri_distance_nonconst, i, j, k) = distance;		// MODIFIER THAT WASN'T DETECTED
+        }
+      }
+      ROMP_PFLB_end
+    }
+    ROMP_PF_end
+    
+  }
+  
+  int tid;
+  for (tid = 0; tid < maxThreads; tid++) {
+    freePerThreadVertexPseudoNormalCache(&perThreadVertexPseudoNormalCache[tid]);
+    freePerThreadMRIDistance            (&perThreadMRIDistances           [tid]);
+  }
+
+  freeAndNULL(sharedVertexPseudoNormalCache);
 
   //  TIMER_INTERVAL_END(taskExecution)
 
@@ -59567,25 +60684,6 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
                                             HISTOGRAM *h_dot,
                                             TOPOLOGY_PARMS *parms);
 
-static int (* volatile mrisComputeOptimalRetessellation_wkr_noinline)(MRI_SURFACE *mris,
-                                            MRI_SURFACE *mris_corrected,
-                                            MRI *mri,
-                                            DEFECT *defect,
-                                            int *vertex_trans,
-                                            EDGE *et,
-                                            int nedges,
-                                            ES *es,
-                                            int nes,
-                                            HISTOGRAM *h_k1,
-                                            HISTOGRAM *h_k2,
-                                            MRI *mri_k1_k2,
-                                            HISTOGRAM *h_white,
-                                            HISTOGRAM *h_gray,
-                                            HISTOGRAM *h_border,
-                                            HISTOGRAM *h_grad,
-                                            MRI *mri_gray_white,
-                                            HISTOGRAM *h_dot,
-                                            TOPOLOGY_PARMS *parms) = mrisComputeOptimalRetessellation_wkr;
 
 static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
                                             MRI_SURFACE *mris_corrected,
@@ -59609,7 +60707,7 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
 {
     int result;
     ROMP_PF_begin
-    result = (*mrisComputeOptimalRetessellation_wkr_noinline)(mris,
+    result = mrisComputeOptimalRetessellation_wkr(mris,
                                             mris_corrected,
                                             mri,
                                             defect,
@@ -59632,7 +60730,7 @@ static int mrisComputeOptimalRetessellation(MRI_SURFACE *mris,
     return result;
 }
 
-static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
+static NOINLINE int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
                                             MRI_SURFACE *mris_corrected,
                                             MRI *mri,
                                             DEFECT *defect,
@@ -59769,6 +60867,8 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     max_unchanged = max_unchanged / 5;
   }
 
+  ROMP_PF_begin
+
   etable.use_overlap = parms->edge_table;
   etable.nedges = nedges;
   etable.edges = (EDGE *)calloc(nedges, sizeof(EDGE));
@@ -59833,6 +60933,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     free(overlap);
   }
 
+  ROMP_PF_end
+  ROMP_PF_begin
+
   /* allocate the volume constituted by the potential edges */
   mri_defect = mri_defect_white = mri_defect_gray = mri_defect_sign = NULL;
   if (!FZERO(parms->l_unmri)) {
@@ -59852,6 +60955,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
                            0);
   };
 
+  ROMP_PF_end
+  ROMP_PF_begin
+
   if ((!FZERO(parms->l_unmri)) && parms->save_fname &&
       (parms->defect_number < 0 || (parms->defect_number == defect->defect_number))) {
     sprintf(fname, "%s/white_%d.mgh", parms->save_fname, defect->defect_number);
@@ -59859,6 +60965,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     sprintf(fname, "%s/gray_%d.mgh", parms->save_fname, defect->defect_number);
     MRIwrite(mri_defect_gray, fname);
   }
+
+  ROMP_PF_end
+  ROMP_PF_begin
 
   dvs = mrisRecordVertexState(mris_corrected, defect, vertex_trans);
   dps = dps1;
@@ -59878,9 +60987,14 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
 
   nbests = 0;
 
+  ROMP_PF_end
+
   ComputeDefectContext computeDefectContext;
+
+  ROMP_PF_begin
+
     constructComputeDefectContext(&computeDefectContext);
-    
+
   /* generate initial population of patches */
   if (parms->initial_selection) {
     /* segment overlapping edges into clusters */
@@ -60241,6 +61355,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     }
   }
 
+  ROMP_PF_end
+  ROMP_PF_begin
+
   /*compute statistics*/
   for (fitness_mean = fitness_sigma = 0.0, i = 0; i < max_patches; i++) {
     dp = &dps[i];
@@ -60285,11 +61402,17 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
 
   last_fitness = best_fitness;
 
+  ROMP_PF_end
+
+  ROMP_PF_begin
+
   while (nunchanged < max_unchanged) {
     if (ngenerations == parms->niters) {
       break;
     }
 
+    ROMP_PF_begin
+    
     if (dps == dps1) {
       dps_next_generation = dps2;
     }
@@ -60308,6 +61431,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     next_gen_index = 0;
     for (i = 0; i < nelite; i++) mrisCopyDefectPatch(&dps[ranks[i]], &dps_next_generation[next_gen_index++]);
 
+    ROMP_PF_end
+    ROMP_PF_begin
+    
     /* now replace the worst ones with mutated copies of the best */
     for (i = 0; i < nreplacements; i++) {
       ntotalmutations++;
@@ -60394,6 +61520,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
       }
     }
 
+    ROMP_PF_end
+    ROMP_PF_begin
+
     for (fitness_mean = fitness_sigma = 0.0, i = 0; i < max_patches; i++) {
       dp = &dps[i];
       fitness_mean += dp->fitness;
@@ -60440,6 +61569,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
       break;
     }
 
+    ROMP_PF_end
+    ROMP_PF_begin
+
     /* selection of chromosomes for cross-over */
     ncrossovers = max_patches - (nelite + nreplacements);
     for (l = k = j = 0; j < nselected; j++) {
@@ -60476,6 +61608,9 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
       selected[l] = i;
     }
 
+    ROMP_PF_end
+    ROMP_PF_begin
+
     for (i = 0; i < ncrossovers; i++) {
       int p1, p2;
       ntotalcross_overs++;
@@ -60485,6 +61620,8 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
       {
         p2 = selected[(int)randomNumber(0, ncrossovers - .001)];
       } while (p2 == p1);
+
+      ROMP_PF_begin
 
       dp = &dps_next_generation[next_gen_index++];
       mrisCrossoverDefectPatches(&dps[p1], &dps[p2], dp, &etable);
@@ -60516,7 +61653,12 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
 #endif
       number_of_patches++;
 
+      ROMP_PF_end
+
       if (fitness > best_fitness) {
+
+        ROMP_PF_begin
+
         ncross_overs++;
         nunchanged = 0;
         best_fitness = fitness;
@@ -60574,6 +61716,8 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
           }
         }
 
+        ROMP_PF_end
+
         ncross++;
         if (++nbest == debug_patch_n) {
           dps = dps_next_generation;
@@ -60582,6 +61726,8 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
       }
       else /* mutate it also */
       {
+        ROMP_PF_begin
+
         mrisMutateDefectPatch(dp, &etable, MUTATION_PCT);
         fitness = mrisDefectPatchFitness(&computeDefectContext,
                                          mris,
@@ -60678,8 +61824,13 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
           nmut++;
           ncross++;
         }
+
+        ROMP_PF_end
       }
     }
+
+    ROMP_PF_end
+    ROMP_PF_begin
 
     /* make next generation current */
     if (dps == dps1) {
@@ -60776,9 +61927,15 @@ static int mrisComputeOptimalRetessellation_wkr(MRI_SURFACE *mris,
     }
 
     ngenerations++;
+    ROMP_PF_end
   }
 
+  ROMP_PF_end
+
 debug_use_this_patch:
+
+  ROMP_PF_begin
+
   dp = &dps[best_i];
 
   if (parms->save_fname && (parms->defect_number < 0 || (parms->defect_number == defect->defect_number))) {
@@ -60833,6 +61990,9 @@ debug_use_this_patch:
     }
   }
 
+  ROMP_PF_end
+  ROMP_PF_begin
+
   fitness = mrisDefectPatchFitness(&computeDefectContext,
                                    mris,
                                    mris_corrected,
@@ -60861,13 +62021,21 @@ debug_use_this_patch:
     printDefectStatistics(dp);
   }
 
+  ROMP_PF_end
+  ROMP_PF_begin
+  
   /* compute the final tessellation */
   retessellateDefect(mris, mris_corrected, dvs, dp);
 
+  ROMP_PF_end
+  ROMP_PF_begin
+
   /* detect the new set of faces */
   detectDefectFaces(mris_corrected, dp);
+
   /* orient the patch faces */
   orientDefectFaces(mris_corrected, dp);
+
   /* smooth original vertices in the retessellated patch */
   defectMatch(mri, mris_corrected, dp, parms->smooth, parms->match);
 
@@ -60901,6 +62069,9 @@ debug_use_this_patch:
           WHICH_OUTPUT, "              NUMBER OF INTERSECTING FACES: %d (out of %d) \n", nintersections, dp->tp.nfaces);
   }
 
+  ROMP_PF_end
+  ROMP_PF_begin
+
   /* should free the tessellated patch structure */
   TPfree(&dp->tp);
 
@@ -60927,6 +62098,9 @@ debug_use_this_patch:
   for (i = 0; i < dp->defect->nborder; i++) {
     mris_corrected->vertices[vertex_trans[dp->defect->border[i]]].marked = 0;
   }
+
+  ROMP_PF_end
+  ROMP_PF_begin
 
   /* free everything */
   destructComputeDefectContext(&computeDefectContext);
@@ -60983,6 +62157,8 @@ debug_use_this_patch:
     fclose(f);
   }
 #endif
+
+  ROMP_PF_end
 
   return (NO_ERROR);
 }
@@ -61449,7 +62625,7 @@ static int mrisRetessellateDefect(MRI_SURFACE *mris,
 {
   double max_len;
   int i, j, max_i, max_added, nadded, index;
-  int (*intersection_function)(MRI_SURFACE * mris, DEFECT * defect, EDGE * e, int *vertex_trans, int *v1, int *v2);
+  int (*intersection_function)(MRI_SURFACE * mris, DEFECT * defect, EDGE * e, IntersectDefectEdgesContext* ctx, int *vertex_trans, int *v1, int *v2);
 
   max_len = 0;
   max_i = 0;
@@ -61492,7 +62668,7 @@ static int mrisRetessellateDefect(MRI_SURFACE *mris,
       }
     }
 
-    if ((*intersection_function)(mris_corrected, defect, &et[i], vertex_trans, NULL, NULL) == 0) {
+    if ((*intersection_function)(mris_corrected, defect, &et[i], NULL, vertex_trans, NULL, NULL) == 0) {
       mrisAddEdge(mris_corrected, et[i].vno1, et[i].vno2);
       if (et[i].used) {
         et[i].used = USED_IN_BOTH_TESSELLATION;
@@ -61522,13 +62698,18 @@ static int compare_edge_length(const void *pe0, const void *pe1)
 
   /*  return(c1 > c2 ? 1 : c1 == c2 ? 0 : -1) ;*/
   if (e0->len > e1->len) {
-    return (1);
+    return(1);
   }
   else if (e0->len < e1->len) {
-    return (-1);
+    return(-1);
   }
-
-  return (0);
+  else if (e0->vno1 > e1->vno1) {
+    // if two lengths are the same, force a consistent order by
+    // comparing the vno1 values for each edge. Otherwise, returning 0
+    // will produce sorting differences on osx
+    return(1);
+  }
+  return(-1);
 }
 #if 0
 static int
@@ -61601,58 +62782,518 @@ mrisCheckDefectEdges(MRI_SURFACE *mris, DEFECT *defect, int vno,
   Returns value:
 
   Description
-  See if the edge e intersects any edges in the defect or
-  it's border. Sorry this code is such a hatchet job. I'm sure
-  there are far more elegant ways of doing intersection
-  (e.g. sorting).
+  See if the edge e intersects any edges in the defect or it's border.
   ------------------------------------------------------*/
 
-static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans, int *v1, int *v2)
-{
-  int i;
-  for (i = 0; i < defect->nvertices + defect->nchull; i++) {
-  
-    int vno;
-    if (i < defect->nvertices) {
-      vno = vertex_trans[defect->vertices[i]];
-    } else {
-      vno = vertex_trans[defect->chull[i - defect->nvertices]];
-    }
+    static bool isHit(MRI_SURFACE * mris, int vno, DEFECT *defect, EDGE* e, int n, char* whyTracing) {
+      bool result = false;
 
-    if (vno == e->vno1 || vno == e->vno2 || vno < 0) {
-      continue;
-    }
-
-    EDGE edge2;
-    edge2.vno1 = vno;
-
-    VERTEX *v = &mris->vertices[vno];
-    int n;
-    for (n = 0; n < v->vnum; n++) {
-      if (v->v[n] == e->vno1 || v->v[n] == e->vno2) {
-        continue;
+      if (vno == e->vno1 || vno == e->vno2 || vno < 0) {
+        if (whyTracing) fprintf(stderr, "isHit false because shared vno when %s\n", whyTracing);
+        goto Done;
       }
+
+      EDGE edge2;
+      edge2.vno1 = vno;
+      VERTEX const * const v = &mris->vertices[vno];
+
+      if (n >= v->vnum) {
+        if (whyTracing) fprintf(stderr, "isHit vno:%d deleted edge n:%d when %s\n",vno,n, whyTracing);
+        return false;
+      }
+      
+      if (whyTracing) fprintf(stderr, "isHit vno:%d v->v[n]:%d e:%p e->vno1:%d e->vno2:%d when %s\n",vno,v->v[n],e,e->vno1,e->vno2, whyTracing);
+      
+      if (v->v[n] == e->vno1 || v->v[n] == e->vno2) {
+        if (whyTracing) fprintf(stderr, "isHit false because shared second vno when %s\n", whyTracing);
+        goto Done;
+      }
+      
       edge2.vno2 = v->v[n];
       if (defect->optimal_mapping && mris->vertices[v->v[n]].fixedval == 0) {
-        continue;  // experimental
+        if (whyTracing) fprintf(stderr, "isHit false optimal_mapping\n");
+        goto Done;
       }
       if (edgesIntersect(mris, e, &edge2)) {
-        if (v1) {
-          (*v1) = edge2.vno1;
-        }
-        if (v2) {
-          (*v2) = edge2.vno2;
-        }
-        return (1);
+        result = true;
       }
+      if (whyTracing) fprintf(stderr, "isHit edgesIntersect returned %d when %s\n",(int)result, whyTracing);
+    Done:
+      return result;
+    }  
+
+    typedef struct PossiblyIntersectingGreatArcs_callback_context {
+      MRI_SURFACE*                  mris;
+      DEFECT*                       defect;
+      EDGE*                         e;
+      IntersectDefectEdgesContext*  ide_ctx;
+      
+      int                           old_firstHit_vnoLo;     // The same vno pair can be found from several directions
+      int                           old_firstHit_vnoHi;     // but any find is ok
+      
+      bool                          emit_line_py;
+      
+      int                           tried;                  // count until the first match
+                                                            //
+      int                           matches;                // total number of matches found, including after the first match
+      int                           someMatchingIndexPlus1; // result
+    } PossiblyIntersectingGreatArcs_callback_context;
+
+    static bool possiblyIntersectingGreatArcs_callback (void* void_ctx, int indexIntoIDECtxEntries, bool* pIsHit) {
+      PossiblyIntersectingGreatArcs_callback_context* ctx = (PossiblyIntersectingGreatArcs_callback_context*)void_ctx;
+
+      if (ctx->someMatchingIndexPlus1 == 0) ctx->tried++;
+      
+      IntersectDefectEdgesContext_Entry* entry = &ctx->ide_ctx->entries[indexIntoIDECtxEntries];
+      *pIsHit = isHit(ctx->mris, entry->vno, ctx->defect, ctx->e, entry->n, NULL);
+
+      if (ctx->emit_line_py) {
+        VERTEX const * const v0 = &ctx->mris->vertices[entry->vno]; 
+        VERTEX const * const v1 = &ctx->mris->vertices[v0->v[entry->n]]; 
+        fprintf(stderr, " [3, %f, %f, %f, %f, %f, %f, %d], # line.py trial\n", v0->cx,v0->cy,v0->cz, v1->cx,v1->cy,v1->cz, *pIsHit);
+      }
+      
+      int entry_vnoLo = entry->vno;
+      int entry_vnoHi = ctx->mris->vertices[entry->vno].v[entry->n];
+      if (entry_vnoLo > entry_vnoHi) { int temp = entry_vnoLo; entry_vnoLo = entry_vnoHi; entry_vnoHi = temp; }
+      
+      if ( ctx->old_firstHit_vnoLo == entry_vnoLo 
+        && ctx->old_firstHit_vnoHi == entry_vnoHi
+        && !*pIsHit) {
+        fprintf(stderr, "callback passed the is_old_firstHit, now it is not hitting\n");
+        isHit(ctx->mris, entry->vno, ctx->defect, ctx->e, entry->n, "possiblyIntersectingGreatArcs_callback - showing why not hit");
+        *(int*)(-1) = 0;
+      }
+
+      if (!*pIsHit)
+        return true;    // Keep going when missing, and no need to keep
+      
+      ctx->matches++;
+      
+      ctx->someMatchingIndexPlus1 = indexIntoIDECtxEntries + 1;
+      
+      return false;
+    }
+
+static int intersectDefectEdges(MRI_SURFACE *mris, DEFECT *defect, EDGE *e, IntersectDefectEdgesContext* ctx, int *vertex_trans, int *v1, int *v2)
+{
+  static long stats_count    = 0;
+  static long stats_limit    = 1;
+  
+  static int once;
+  static bool asked_do_old_way,asked_do_new_way,asked_do_stats;
+  if (!once++) {
+    if (getenv("FREESURFER_intersectDefectEdges_old"))   asked_do_old_way = true;
+    if (getenv("FREESURFER_intersectDefectEdges_new"))   asked_do_new_way = true;
+    if (getenv("FREESURFER_intersectDefectEdges_stats")) asked_do_stats   = true;
+  }
+  bool do_old_way = asked_do_old_way;
+  bool do_new_way = asked_do_new_way || !asked_do_old_way;
+  
+  if (!ctx) { do_new_way = false; do_old_way = true; }
+
+  bool showStats = asked_do_stats || (do_old_way && do_new_way);
+  if (showStats) {
+    stats_count++;
+    
+    if (stats_count < stats_limit) {
+      showStats = false;
+    } else {
+      if (stats_limit < 20000) stats_limit *= 2; else stats_limit += 20000;
     }
   }
 
-  return (0);
+  // This code says 
+  //  for each vertex in the defect
+  //      for each edge from the vertex 
+  //          if the edge shares a vertex with 'e' 
+  //          or the edge does not intersect 'e' 
+  //          then
+  //              ignore it
+  //          else 
+  //              return it
+  //
+  // but it only really needs to consider edges that might intersect 'e'
+  // so it can be rewritten as
+  //    for each vertex in the defect
+  //        for each edge from the vertex
+  //            add this edge to a list
+  //
+  //    for each edge in the list
+  //        if this edge shares a vertex with 'e' ignore it
+  //        else if this edge intersects 'e' return it
+  //
+  // This second loop can then be replaced with one that only considers edges that MIGHT intersect 'e'
+  // The pGreatArcSet code implements this version...
+  //
+  //  
+  int result = 0;
+  
+  int old_firstHit       = -1;
+  int old_firstHit_vnoLo = -1;
+  int old_firstHit_vnoHi = -1;
+  
+  if (do_old_way) {
+
+    static long stats_tried = 0;
+
+    ROMP_PF_begin
+    int i;
+    for (i = 0; i < defect->nvertices + defect->nchull; i++) {
+
+      int vno;
+      if (i < defect->nvertices) {
+        vno = vertex_trans[defect->vertices[i]];
+      } else {
+        vno = vertex_trans[defect->chull[i - defect->nvertices]];
+      }
+
+      if (vno == e->vno1 || vno == e->vno2 || vno < 0) {
+        continue;
+      }
+
+      EDGE edge2;
+      edge2.vno1 = vno;
+      VERTEX const * const v = &mris->vertices[vno];
+
+      int n;
+      for (n = 0; n < v->vnum; n++) {
+        if (v->v[n] == e->vno1 || v->v[n] == e->vno2) {
+          continue;
+        }
+        edge2.vno2 = v->v[n];
+        if (defect->optimal_mapping && mris->vertices[v->v[n]].fixedval == 0) {
+          continue;  // experimental
+        }
+        old_firstHit++;
+
+        stats_tried++;
+
+        if (edgesIntersect(mris, e, &edge2)) {
+        
+          if (v1) {
+            (*v1) = edge2.vno1;
+          }
+          if (v2) {
+            (*v2) = edge2.vno2;
+          }
+          result = 1;
+          
+          old_firstHit_vnoLo = edge2.vno1;
+          old_firstHit_vnoHi = edge2.vno2;
+          if (old_firstHit_vnoLo > old_firstHit_vnoHi) { 
+            int tmp = old_firstHit_vnoLo; old_firstHit_vnoLo = old_firstHit_vnoHi; old_firstHit_vnoHi = tmp; 
+          }
+          
+          if (stats_count == 48) {
+            fprintf(stderr, "%s:%d stats_count:%ld old found edge vno:%d .. vno:%d\n", __FILE__, __LINE__, stats_count,
+                old_firstHit_vnoLo, old_firstHit_vnoHi);
+          }
+          
+          goto Done;
+        }
+      }
+    }
+  Done:;
+
+    if (showStats) {
+        if (stats_limit < 20000) stats_limit *= 2; else stats_limit += 20000;
+        fprintf(stderr, "%s:%d"
+          " avg_tried:%g, stats_count:%ld\n", 
+          __FILE__, __LINE__,
+          (float)stats_tried/(float)stats_count, stats_count);
+    }
+
+    ROMP_PF_end
+  }
+  
+  if (do_new_way) {
+    static long stats_made;                 // the GreatArcSet
+    static long stats_reused;
+    static long stats_revised;
+    static long stats_numberOfGreatArcs;    // #entries in the GreatArcSet
+    
+    static long stats_addedVertexs, stats_addedArcs, stats_movedArcs, stats_unmovedArcs;
+    static long stats_possible;
+    static long stats_tried;
+    
+    GreatArcSet* gas = ctx->greatArcSet;
+    
+    if (ctx->nvertices_seen < mris->nvertices) {
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+        int* p = ctx->vnoToFirstNPlus1 = (int*)realloc(vnoToFirstNPlus1,mris->nvertices*sizeof(int));
+#else
+        int* p = ctx->vnosHighestNSeen = (int*)realloc(ctx->vnosHighestNSeen,mris->nvertices*sizeof(int));
+#endif
+        int i; for (i = ctx->nvertices_seen; i < mris->nvertices; i++) p[i] = 0;
+        stats_addedVertexs += mris->nvertices - ctx->nvertices_seen;
+        ctx->nvertices_seen = mris->nvertices;
+    }
+    
+    // Make a GreatArcSet of all the edges that must be considered
+    // unless it has been already made
+    //
+    bool emit_line_py = false;  // showStats || (stats_count < 45);
+    if (emit_line_py) fprintf(stderr, "%s:%d emit_line_py set for stats_count:%ld\n", __FILE__, __LINE__, stats_count);
+       
+    if (gas && !ctx->obsoleted) {
+      stats_reused++;
+    } else {
+
+      if (!ctx->obsoleted) {
+        stats_made++; 
+        gas = ctx->greatArcSet = makeGreatArcSet(mris);
+        // emit_line_py = true;
+        if (emit_line_py) fprintf(stderr, " [0 ], # line.py reset\n");
+      } else {
+        stats_revised++;
+        ctx->obsoleted = false;
+      }
+
+      stats_numberOfGreatArcs = 0;
+      
+      int i;
+      for (i = 0; i < defect->nvertices + defect->nchull; i++) {
+
+        int vno;
+        if (i < defect->nvertices) {
+          vno = vertex_trans[defect->vertices[i]];
+        } else {
+          vno = vertex_trans[defect->chull[i - defect->nvertices]];
+        }
+
+        if (vno < 0) {
+          continue;
+        }
+
+        VERTEX const *v = &mris->vertices[vno];
+        
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+        int                                 nextEntryIndexForVno = ctx->vnoToFirstNPlus1[vno] - 1;
+        IntersectDefectEdgesContext_Entry*  prevEntry            = NULL;
+#else
+        int                                 nextEntryIndexForVno = -1;
+#endif
+        stats_numberOfGreatArcs += v->vnum;
+
+        int n;
+        for (n = 0; n < v->vnum; n++) {
+
+          VERTEX const *v2 = &mris->vertices[v->v[n]];
+
+          // During revision, there are four possibilities... This (vno, n) pair
+          //    (1) is still at the same location   - no change
+          //    (2) has gone                        - the entry will be ignored by the callback (detected by v->vnum <= n)
+          //    (3) did not exist before            - add a new one
+          //    (4) has moved                       - tell GreatArcSet it has moved     TESTING HAS NOT FOUND ANY OF THESE
+          // Need a per-vno chain of entries that will be cheap
+          //
+          IntersectDefectEdgesContext_Entry* entry;
+
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+          if (nextEntryIndexForVno >= 0) {
+            entry = &ctx->entries[nextEntryIndexForVno];
+            
+            if (v ->cx != entry->cx
+            ||  v ->cy != entry->cy
+            ||  v ->cz != entry->cz
+            ||  v2->cx != entry->cx2
+            ||  v2->cy != entry->cy2
+            ||  v2->cz != entry->cz2
+               ) {                                       // true to tell GreatArcSet it has moved
+
+                static int show_moves_count, show_moves_limit = 1;
+                if (show_moves_count++ == show_moves_limit) {
+                    if (show_moves_limit < 20) show_moves_limit++;
+                    else if (show_moves_limit < 1024) show_moves_limit *= 2;
+                    else show_moves_limit += 1024;
+                    fprintf(stderr, " (x:%6g,y:%6g,z:%6g) moved by \n (  %6g,  %6g,  %6g)\n",
+                        entry->cx,         entry->cy,         entry->cz,
+                        entry->cx - v->cx, entry->cy - v->cy, entry->cz - v->cz);
+                }
+
+                entry->cx  = v ->cx;
+                entry->cy  = v ->cy;
+                entry->cz  = v ->cz;
+                entry->cx2 = v2->cx;
+                entry->cy2 = v2->cy;
+                entry->cz2 = v2->cz;
+
+                stats_movedArcs++;
+
+                insertGreatArc(gas, nextEntryIndexForVno, true,
+                    v->cx,v->cy,v->cz,  v2->cx,v2->cy,v2->cz);
+            } else {
+                stats_unmovedArcs++;
+            }
+            
+          }
+#else
+          if (n < ctx->vnosHighestNSeen[vno]) {
+            // ones that have been entered have not moved
+            ;
+          }
+#endif
+          else 
+          {
+          
+            if (ctx->entriesSize == ctx->entriesCapacity) {
+              ctx->entriesCapacity *= 2;
+              if (ctx->entriesCapacity == 0) ctx->entriesCapacity = 128;
+              ctx->entries = 
+                (IntersectDefectEdgesContext_Entry*)realloc(
+                  ctx->entries, 
+                  ctx->entriesCapacity*sizeof(IntersectDefectEdgesContext_Entry));
+            }
+          
+            nextEntryIndexForVno = ctx->entriesSize++;
+            entry = &ctx->entries[nextEntryIndexForVno];
+            entry->vno = vno; entry->n = n; 
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+            entry->next = -1;
+            if (prevEntry) prevEntry->next = nextEntryIndexForVno; else ctx->vnoToFirstNPlus1[vno] = nextEntryIndexForVno + 1;
+#endif
+
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+            entry->cx  = v ->cx;
+            entry->cy  = v ->cy;
+            entry->cz  = v ->cz;
+            entry->cx2 = v2->cx;
+            entry->cy2 = v2->cy;
+            entry->cz2 = v2->cz;
+#endif  
+            bool interesting = false;
+            if (false && vno == 151634 && v->v[n] == 487) {
+                fprintf(stderr, "%s:%d , interesting greatArc found\n", __FILE__, __LINE__);
+                interesting = true;
+            }
+            
+            insertGreatArc(gas, nextEntryIndexForVno, vno, v->v[n]);
+                
+            // get some data for visualizing
+            // by a separate tool to understand the situation better
+            //
+            if (emit_line_py) {
+              fprintf(stderr, " [1, %f, %f, %f, %f, %f, %f], # line.py defect edge vno:%d..%d\n", 
+                v->cx,v->cy,v->cz,  v2->cx,v2->cy,v2->cz,
+                vno, v->v[n]);
+            }
+            
+          }
+          
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+          nextEntryIndexForVno = entry->next;
+          prevEntry            = entry;
+#endif
+        }   // for n
+
+#ifdef COPE_WITH_VERTEX_MOVEMENT
+#else
+        if (ctx->vnosHighestNSeen[vno] < v->vnum) {
+            if (ctx->vnosHighestNSeen[vno]) stats_addedArcs += v->vnum - ctx->vnosHighestNSeen[vno];    // added after the first ones
+            ctx->vnosHighestNSeen[vno] = v->vnum;
+        }
+#endif
+      }
+    }
+    
+    // Get the subset that need to be examined
+    //
+    VERTEX const * const ev  = &mris->vertices[e->vno1];
+    VERTEX const * const ev2 = &mris->vertices[e->vno2];
+    
+    PossiblyIntersectingGreatArcs_callback_context callback_context;
+    {
+      bzero(&callback_context, sizeof(callback_context));
+      callback_context.mris    = mris;
+      callback_context.defect  = defect;
+      callback_context.e       = e;
+      callback_context.ide_ctx = ctx;
+      callback_context.old_firstHit_vnoLo = old_firstHit_vnoLo;
+      callback_context.old_firstHit_vnoHi = old_firstHit_vnoHi;
+      
+      callback_context.emit_line_py = emit_line_py;
+
+      if (emit_line_py) fprintf(stderr, " [2, %f, %f, %f, %f, %f, %f], # line.py target\n", ev->cx,ev->cy,ev->cz, ev2->cx,ev2->cy,ev2->cz);
+
+      possiblyIntersectingGreatArcs(
+        gas,
+        &callback_context,
+        possiblyIntersectingGreatArcs_callback,
+        e->vno1,              e->vno2,
+        ev->cx,ev->cy,ev->cz, ev2->cx,ev2->cy,ev2->cz, 
+        stats_count == stats_limit-1);                    // tracing
+
+    }
+        
+    stats_possible += stats_numberOfGreatArcs;
+    stats_tried    += callback_context.tried;
+    
+    // Process the found one
+    //
+    if (callback_context.someMatchingIndexPlus1 > 0) {
+
+      IntersectDefectEdgesContext_Entry* entry = &ctx->entries[callback_context.someMatchingIndexPlus1 - 1];
+      int vno = entry->vno;
+      int n   = entry->n;
+      VERTEX const * const v = &mris->vertices[vno];
+
+      if (v1) {
+        (*v1) = vno;
+      }
+      if (v2) {
+        (*v2) = v->v[n];
+      }
+      
+      if (do_old_way && !result) { 
+        fprintf(stderr, "%s:%d old stats_count:%ld didn't find, new did\n", __FILE__, __LINE__, stats_count);
+        *(int*)(-1) = 0; 
+      }
+      
+      result = 1;
+      goto Done2;
+    }
+
+    if (do_old_way && result) { 
+      
+      fprintf(stderr, "%s:%d stats_count:%ld old found vno0:%d vno1:%d, new did not during \n", __FILE__, __LINE__, stats_count, 
+        old_firstHit_vnoLo, old_firstHit_vnoHi); 
+        
+      possiblyIntersectingGreatArcs_Debug(                              // show how vno0..vno1 interacts with the arc
+        gas,
+        ev->cx,ev->cy,ev->cz, ev2->cx,ev2->cy,ev2->cz,                  // the arc
+        old_firstHit_vnoLo, old_firstHit_vnoHi);                        // vno0..vno1
+
+      *(int*)(-1) = 0; 
+    }
+
+Done2:;
+    
+    if (showStats) {
+        if (stats_limit < 20000) stats_limit *= 2; else stats_limit += 20000;
+        fprintf(stderr, "%s:%d"
+          " made:%ld revised:%ld reused:%ld"
+          " addedVertexs:%g, addedArcs:%g movedArcs:%g movedArcs/revision:%g "
+          " unmovedArcs/revision:%g "
+          " avg_possible:%g  avg_tried:%g  stats_count:%ld\n", 
+          __FILE__, __LINE__,
+          stats_made, stats_revised, stats_reused,
+          (float)stats_addedVertexs,
+          (float)stats_addedArcs,
+          (float)stats_movedArcs,
+          (float)stats_movedArcs/(float)stats_revised,
+          (float)stats_unmovedArcs/(float)stats_revised,
+          (float)stats_possible/(float)stats_count, 
+          (float)stats_tried   /(float)stats_count,
+          stats_count);
+    }
+  }
+
+  return result;
 }
 
 static int intersectDefectConvexHullEdges(
-    MRI_SURFACE *mris, DEFECT *defect, EDGE *e, int *vertex_trans, int *v1, int *v2)
+    MRI_SURFACE *mris, DEFECT *defect, EDGE *e, IntersectDefectEdgesContext* ctx, int *vertex_trans, int *v1, int *v2)
 {
   VERTEX *v;
   int i, n, vno;
@@ -61929,11 +63570,9 @@ static int mrisAddFace(MRI_SURFACE *mris, int vno0, int vno1, int vno2)
   if (vno0 == 6160 && vno1 == 6189 && vno2 == 6176) {
     DiagBreak();
   }
-  if (mris->nfaces >= mris->max_faces) {
-    ErrorExit(ERROR_NOMEMORY, "mrisAddFace: max faces reached");
-  }
 
-  fno = mris->nfaces++;
+  fno = mris->nfaces;
+  MRISgrowNFaces(mris, fno+1);
   if (fno == Gdiag_no) {
     DiagBreak();
   }
@@ -62836,13 +64475,14 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
 
   mris_corrected->type = MRIS_TRIANGULAR_SURFACE;
 
-  for (mris_corrected->nvertices = vno = 0; vno < mris->nvertices; vno++) {
+  int newNVertices;
+  for (newNVertices = vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
     /* ignore the marked defect vertices but not the bordering ones */
     if (v->marked) {
       continue;
     }
-    vdst = &mris_corrected->vertices[mris_corrected->nvertices];
+    vdst = &mris_corrected->vertices[newNVertices];
     vdst->nsize = v->nsize;
     /* original vertices */
     vdst->x = v->x;
@@ -62879,22 +64519,25 @@ MRIS *MRISextractMarkedVertices(MRIS *mris)
     vdst->k1 = v->k1;
     vdst->k2 = v->k2;
     vdst->border = 0;
-    vertex_trans[vno] = mris_corrected->nvertices++;
+    vertex_trans[vno] = newNVertices++;
   }
+  MRIStruncateNVertices(mris_corrected, newNVertices);
 
-  for (mris_corrected->nfaces = fno = 0; fno < mris->nfaces; fno++) {
+  int newNfaces = 0;
+  for (fno = 0; fno < mris->nfaces; fno++) {
     f = &mris->faces[fno];
     /* don't update triangle with marked vertices */
     if (triangleMarked(mris, fno)) {
       continue;
     }
     /* initialize face */
-    fdst = &mris_corrected->faces[mris_corrected->nfaces];
+    fdst = &mris_corrected->faces[newNfaces];
     for (n = 0; n < VERTICES_PER_FACE; n++) {
       fdst->v[n] = vertex_trans[f->v[n]];
     }
-    face_trans[fno] = mris_corrected->nfaces++;
+    face_trans[fno] = newNfaces++;
   }
+  MRIStruncateNFaces(mris_corrected, newNfaces); 
 
   /* now allocate face and neighbor stuff in mris_corrected */
   for (vno = 0; vno < mris->nvertices; vno++) {
@@ -78845,8 +80488,10 @@ static void face_hash_add(MRIS_HASH* hash, FACE const * face)
 {
 #define SEP
 #define ELTT(TYPE,       MBR) hash->hash = fnv_add(hash->hash, (const unsigned char*)(&face->MBR), sizeof(face->MBR));
+#define ELTP(TARGET,NAME) // don't hash pointers
 LIST_OF_FACE_ELTS
 #undef ELTT
+#undef ELTP
 #undef SEP
 }
 
@@ -78888,3 +80533,371 @@ void mris_print_hash(FILE* file, MRIS const * mris, const char* prefix, const ch
     fprintf(file, "}%s",suffix);
 }
 
+
+
+/*
+  \fn int MRIScountEdges(MRIS *surf)
+  \brief Counts the number of edges on the surface. Edge struct
+  is not needed.
+*/
+int MRIScountEdges(MRIS *surf)
+{
+  int vtxno,nedges=0,nthnbr;
+  VERTEX *v;
+  // This is not thread safe and cannot be made thread safe
+  for(vtxno=0; vtxno < surf->nvertices; vtxno++){
+    v = &(surf->vertices[vtxno]);
+    for(nthnbr = 0; nthnbr < v->vnum; nthnbr++){
+      if(v->v[nthnbr] < vtxno) continue;
+      nedges++;
+    }
+  }
+  //printf("nedges %d\n",nedges);
+  return(nedges);
+}
+
+/*
+  \fn int MRISedges(MRIS *surf)
+  \brief Allocates and assigns edge structures. I think the corner values
+  are not correct.
+*/
+int MRISedges(MRIS *surf)
+{
+  int vtxno0,vtxno1,edgeno,k,nthnbr,n,m,c;
+  VERTEX *v0, *v1;
+  FACE *f;
+  MRI_EDGE *edge;
+  surf->nedges = MRIScountEdges(surf);
+  surf->edges = (MRI_EDGE *)calloc(surf->nedges,sizeof(MRI_EDGE));
+
+  // This is not thread safe and cannot be made thread safe
+  edgeno = 0;
+  for(vtxno0=0; vtxno0 < surf->nvertices; vtxno0++){
+    v0 = &surf->vertices[vtxno0];
+    for(nthnbr = 0; nthnbr < v0->vnum; nthnbr++){
+      vtxno1 = v0->v[nthnbr];
+      if(vtxno1 < vtxno0) continue;
+      v1 = &surf->vertices[vtxno1];
+      edge = &(surf->edges[edgeno]);
+      edge->vtxno[0] = vtxno0;
+      edge->vtxno[1] = vtxno1;
+
+      // Find the two faces that adjoin this edge
+      k = 0; // k is the nthface out of 2
+      for(n=0; n < v0->num; n++){ // go thru faces of vtx1
+	for(m=0; m < v1->num; m++){ // go thru faces of vtx2
+	  if(v0->f[n] == v1->f[m]){ // same face
+	    if(k>1){
+	      printf("ERROR: MRISedge(): too many faces: %d %d n=%d, m=%d, k=%d\n",vtxno0,vtxno1,n,m,k);
+	      return(1);
+	    }
+	    f = &(surf->faces[v0->f[n]]);
+	    // get the ordinal corner numbers for the two vertices
+	    for(c=0; c<2; c++){
+	      if(f->v[c] == vtxno0) edge->corner[k][0] = c;
+	      if(f->v[c] == vtxno1) edge->corner[k][1] = c;
+	    }
+	    edge->faceno[k] = v0->f[n];
+	    k++;
+	  }
+	}
+      }
+      if(k != 2){
+	printf("ERROR: MRISedge(): not enough faces %d %d k=%d\n",vtxno0,vtxno1,k);
+	return(1);
+      }
+
+      // Now find the two vertices of the faces that are not common between the faces;
+      // these are the 3rd corner for the two triangles
+      for(k=0; k<2; k++){ // go thru the two faces
+	f = &(surf->faces[edge->faceno[k]]); // kth face
+	for(c=0; c<3; c++){ // go thru the vertices of the kth face
+	  if(f->v[c] != vtxno0 && f->v[c] != vtxno1){
+	    // this is the 3rd corner if it is not vtx1 or vtx2
+	    edge->vtxno[k+2] = f->v[c];
+	    // get the ordinal corner number
+	    if(k==0) edge->corner[k][2] = c;
+	    if(k==1) edge->corner[k][3] = c;
+	    break;
+	  }
+	}
+      }
+
+      // Note: corner[1][2] and corner[1][3] are not used
+
+      edgeno++;
+    }
+  }
+
+  return(0);
+}
+
+
+
+/*!
+\fn int MRISfaceNormalGrad(MRIS *surf, int faceno, int NormOnly)
+Computes the gradient of the face normal with respect to changes 
+in the the position of each vertex (also computes the norm itself).
+The gradient is a 3x3 matrix of the form
+   dnx/dvx dnx/dvy dnx/dvz  
+   dny/dvx dny/dvy dny/dvz  
+   dnz/dvx dnz/dvy dnz/dvz  
+Where nx is the x component of the normal and vx is the x component of the vertex.
+Since there are three vertices, there are three such matrices.
+The matrices are stored in face->gradNorm[refvtxno]
+The norm is stored in face->norm
+If NormOnly != 0, then only the norm is computed
+These equations themselves have been verified emperically, though there could be
+some issues with accuracy in certain cases because the data structures use float.
+See MRISfaceNormalGradTest().
+*/
+int MRISfaceNormalGrad(MRIS *surf, int faceno, int NormOnly)
+{
+  VERTEX *vSrc, *vWRT, *vC;
+  FACE *f;
+  MATRIX *a, *b, *c=NULL, *cT=NULL, *gradc=NULL, *gradcL=NULL, *tmp1=NULL, *tmp2=NULL;
+  long double cL;
+  int wrtvtxno,k,m;
+
+  if(faceno < 0 || faceno >= surf->nfaces){
+    printf("MRISfaceNormalGrad(): faceno = %d (0,%d)\n",faceno,surf->nfaces);
+    return(1);
+  }
+
+  f = &(surf->faces[faceno]);
+
+  a = MatrixAlloc(3,1,MATRIX_REAL);
+  b = MatrixAlloc(3,1,MATRIX_REAL);
+  c = MatrixAlloc(3,1,MATRIX_REAL);
+  gradc = MatrixAlloc(3,3,MATRIX_REAL);
+
+  // Compute gradient with respect to (wrt) each vertex in the triangle
+  for(wrtvtxno = 0; wrtvtxno < 3; wrtvtxno++){
+
+    // This is the vertex we are computing the gradient for
+    vWRT = &(surf->vertices[f->v[wrtvtxno]]);
+
+    // This is the "source" vertex. Vectors used in the cross product will 
+    // point away from this vertex
+    k = wrtvtxno-1;
+    if(k<0) k = 2;
+    vSrc = &(surf->vertices[f->v[k]]);
+
+    // This is just the 3rd vertex
+    m = wrtvtxno+1;
+    if(m>2) m = 0;
+    vC = &(surf->vertices[f->v[m]]);
+
+    // Vector a must go from source vertex to WRT vertex
+    a->rptr[1][1] = vWRT->x - vSrc->x;
+    a->rptr[2][1] = vWRT->y - vSrc->y;
+    a->rptr[3][1] = vWRT->z - vSrc->z;
+
+    // Vector b must go from source to the other vertex (and
+    // specifically not include the WRT vertex)
+    b->rptr[1][1] = vC->x - vSrc->x;
+    b->rptr[2][1] = vC->y - vSrc->y;
+    b->rptr[3][1] = vC->z - vSrc->z;
+
+    // Now compute the cross product
+    c = VectorCrossProductD(a, b, c);
+    
+    cL = VectorLen(c); // Length/magnitude of cross
+
+    // norm computed below should be the same as mrisNormalFace()
+    if(wrtvtxno == 0) // only needs to be done once
+      f->norm = MatrixScalarMul(c,1.0/cL,f->norm); 
+    if(NormOnly) break;
+
+    // Gradient of the unnormalized cross 
+    gradc->rptr[1][2] =  b->rptr[3][1];
+    gradc->rptr[1][3] = -b->rptr[2][1];
+    gradc->rptr[2][1] = -b->rptr[3][1];
+    gradc->rptr[2][3] =  b->rptr[1][1];
+    gradc->rptr[3][1] =  b->rptr[2][1];
+    gradc->rptr[3][2] = -b->rptr[1][1];
+
+    // Gradient of the length of c
+    cT = MatrixTranspose(c,cT);
+    gradcL = MatrixMultiplyD(cT,gradc,gradcL);
+    gradcL = MatrixScalarMul(gradcL, 1.0/cL, gradcL);
+    
+    // Gradient of normalized cross
+    // gradNorm = gradc/cL - [c*gradcL]/(cL^2) = tmp1-tmp2
+    tmp1 = MatrixScalarMul(gradc, 1.0/cL, tmp1);
+    tmp2 = MatrixMultiplyD(c,gradcL,tmp2);
+    tmp2 = MatrixScalarMul(tmp2, 1.0/(cL*cL), tmp2);
+    f->gradNorm[wrtvtxno] = MatrixSubtract(tmp1,tmp2,f->gradNorm[wrtvtxno]);
+    
+    if(0){
+      printf("a = [");
+      MatrixPrint(stdout,a);
+      printf("];\n");
+      printf("b = [");
+      MatrixPrint(stdout,b);
+      printf("];\n");
+      printf("gradc = [");
+      MatrixPrint(stdout,gradc);
+      printf("];\n");
+      printf("gradcL = [");
+      MatrixPrint(stdout,gradcL);
+      printf("];\n");
+      printf("grad = [");
+      MatrixPrint(stdout,f->gradNorm[wrtvtxno]);
+      printf("];\n");
+      printf("[g0 gradc0 gradcL0]= gradnormcross(a,b);\n");
+      printf("mar(g0-grad)\n");
+    }
+  }
+
+  MatrixFree(&a);
+  MatrixFree(&b); 
+  MatrixFree(&c); 
+  MatrixFree(&gradc); 
+  if(!NormOnly) {
+    MatrixFree(&cT); 
+    MatrixFree(&gradcL); 
+    MatrixFree(&tmp1); 
+    MatrixFree(&tmp2);
+  }
+
+  return(0);
+}
+
+/*!
+  \fn int MRISfaceNormalGradTest(MRIS *surf, char *surfpath)
+
+  This function tests MRISfaceNormalGrad() by numerically computing
+  the gradient and comparing it to the theoretical. The idea is
+  simple, but the application is more complicated for two reasons. (1)
+  If a triangle is very small or has a very short edge, then the
+  perturbation needs to be very small. (2) Very small perturbations
+  can get overwhelmed by precision noise because the underlying FS and
+  matrix code uses float. As a result, you can sometimes get fairly
+  large differences between the theoretical and numerical. There are
+  not too many mismatches, but there are enough and they are big
+  enough that it makes it hard to set a good threshold.
+
+  Returns the number of errors as indicated by an arbitrary threshold
+  of triangles with areas above another threshold.
+
+  If surf is passed, then it uses that surface as input. If surfpath
+  is passed, then it loads that surface (and deallocs at the end).
+  If both are NULL, then it uses ic1.tri.
+
+ */
+int MRISfaceNormalGradTest(MRIS *surf, char *surfpath)
+{
+  double delta = .001; //mm
+  int faceno, wrtvtx, c,k, Dealloc, nhits;
+  VERTEX *v;
+  FACE *f;
+  MATRIX *norm1=NULL, *norm2[3]={NULL,NULL,NULL}, *dnorm=NULL, *numgrad=NULL;
+  double maxabsnumgrad, absdiff, maxabsdiff, rdiff, maxrdiff;
+  float vx0, vy0, vz0;
+  char tmpstr[2000];
+
+  Dealloc=1;
+  if(surf) Dealloc=0;
+  else {
+    if(surfpath == NULL) {
+      sprintf(tmpstr,"%s/lib/bem/ic1.tri",getenv("FREESURFER_HOME"));
+      surfpath = tmpstr;
+    }
+    fprintf(stderr,"Reading in surf %s\n",surfpath);
+    surf = MRISread(surfpath);
+    if(surf==NULL) exit(1);
+  }
+
+  maxrdiff = -1;
+  numgrad = MatrixAlloc(3,3,MATRIX_REAL);
+  nhits = 0;
+  // go through each face
+  for(faceno=0; faceno < surf->nfaces; faceno++){
+    f = &(surf->faces[faceno]);
+    // Compute the normal and the gradients for this face
+    MRISfaceNormalGrad(surf, faceno, 0);
+    norm1 = MatrixCopy(f->norm,norm1); // make a copy of the norm
+
+    // Empirically compute gradient WRT each vertex in the triangle
+    MatrixZero(3, 3, numgrad);
+    for(wrtvtx = 0; wrtvtx < 3; wrtvtx++){
+      v = &(surf->vertices[f->v[wrtvtx]]);
+      vx0 = v->x; vy0 = v->y;  vz0 = v->z; // store orig pos
+
+      // Go thru each WRT vertex coordinate
+      for(c=0; c<3; c++){
+	// Change coord by a small amount
+	if(c==0) v->x += delta;
+	if(c==1) v->y += delta;
+	if(c==2) v->z += delta;
+	// Compute only the normal
+	MRISfaceNormalGrad(surf, faceno, 1);
+	norm2[c] = MatrixCopy(f->norm,norm2[c]); // make a copy
+	dnorm = MatrixSubtract(norm2[c],norm1,dnorm); // difference
+	// Numerically compute the gradient
+	for(k=0; k<3; k++) 
+	  numgrad->rptr[k+1][c+1] = (dnorm->rptr[k+1][1]/delta);
+	v->x = vx0; v->y = vy0;	v->z = vz0; //restore
+      } // coordinate
+      // Compute the maximum abs gradient and maximum abs difference
+      maxabsnumgrad = -1;
+      maxabsdiff = -1;
+      for(k=0; k<3; k++) {
+	for(c=0; c<3; c++){
+	  if(maxabsnumgrad < fabs(numgrad->rptr[k+1][c+1])) maxabsnumgrad = fabs(numgrad->rptr[k+1][c+1]);
+	  absdiff = fabs(numgrad->rptr[k+1][c+1] - f->gradNorm[wrtvtx]->rptr[k+1][c+1]);
+	  if(maxabsdiff < absdiff) maxabsdiff = absdiff;
+	}
+      }
+
+      // Compute the difference relative to the maximum
+      rdiff = maxabsdiff/maxabsnumgrad;
+      if(maxrdiff < rdiff && f->area > 0.1) maxrdiff = rdiff;
+
+      // Log an error if rdiff is over threshold and the face area is big enough
+      // This is not perfect as the area may be ok but one edge may be really short
+      if(rdiff > 0.02 && f->area > 0.1){
+	printf("#@# %4d %4d %d %6.4lf  %6.4lf  %6.4lf %10.8f\n",nhits,faceno,wrtvtx,maxabsdiff,maxabsnumgrad,rdiff,f->area);
+	fflush(stdout);
+	nhits ++;
+	if(0){
+	  printf("delta = %lf\n",delta);
+	  for(k = 0; k < 3; k++){
+	    v = &(surf->vertices[f->v[k]]);
+	    printf("vtx%d = [%g,%g,%g]\n",k,v->x,v->y,v->z);
+	  }
+	  printf("norm1 = [\n");
+	  MatrixPrint(stdout,norm1);
+	  printf("]\n");
+	  for(c=0; c<3; c++){
+	    printf("norm2 = [\n");
+	    MatrixPrint(stdout,norm2[c]);
+	    printf("]\n");
+	  }
+	  printf("dnorm = [\n");
+	  MatrixPrint(stdout,dnorm);
+	  printf("]\n");
+	  printf("gradNorm = [\n");
+	  MatrixPrint(stdout,f->gradNorm[wrtvtx]);
+	  printf("]\n");
+	  printf("numgrad = [\n");
+	  MatrixPrint(stdout,numgrad);
+	  printf("]\n");
+	  printf("mar(gradNorm-numgrad)\n");
+	  //exit(1);
+	}
+      }
+    } // corner vertex
+  } // face
+  printf("%4d %4d %lf\n",surf->nfaces,nhits,maxrdiff);
+
+  if(Dealloc) MRISfree(&surf);
+
+  MatrixFree(&norm1);
+  for(k = 0; k < 3; k++) MatrixFree(&norm2[k]);
+  MatrixFree(&dnorm);
+  MatrixFree(&numgrad);
+
+  return(nhits);
+}

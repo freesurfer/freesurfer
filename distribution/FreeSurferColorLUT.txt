@@ -129,7 +129,7 @@
 127 Soft-Tissue                             26  237 57  0
 128 Nerve                                   34  139 34  0
 129 Bone                                    30  144 255 0
-130 Air                                     147 19  173 0
+130 AirCavity                               196 160 128 0
 131 Orbital-Fat                             238 59  59  0
 132 Tongue                                  221 39  200 0
 133 Nasal-Structures                        238 174 238 0
@@ -262,9 +262,11 @@
 259 SkullApprox                           120 120 120  0
 260 BoneOrAir                             119 159 176 0
 261 PossibleFluid                         120  18 134 0
-262 Sinus                                 119 159 176 0
+262 Sinus                                 196 160 128 0
 263 Left-Eustachian                       119 159 176 0
 264 Right-Eustachian                      119 159 176 0
+265 Left-Eyeball                          60  60  60  0
+266 Right-Eyeball                         60  60  60  0
 
 # lymph node and vascular labels
 331 Aorta                                   255 0   0   0

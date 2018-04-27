@@ -37,6 +37,7 @@ extern "C"
 #include "gcamorph.h"
 #include "macros.h"
 #include "mri.h"
+#include "mri_circulars.h"
 #include "version.h"
 
 #ifdef __cplusplus
@@ -166,12 +167,13 @@ GCAM* readITK(const string& warp_file, const string& src_geom)
   MRI* src = MRIread(src_geom.c_str());
   if (src == NULL)
   {
-    cerr << "ERROR: couldn't read source geometry from " << src_geom << endl;
+	cerr << "ERROR: couldn't read source geometry from " << src_geom << endl;
     return NULL;
   }
 
   GCA_MORPH* gcam = GCAMalloc(itk->width, itk->height, itk->depth) ;
   GCAMinitVolGeom(gcam, src, itk) ;
+  gcam->type = GCAM_VOX;
 
   MATRIX *ras2lps = MatrixIdentity(4, NULL);
   ras2lps->rptr[1][1] = -1;
@@ -230,7 +232,7 @@ GCAM* readITK(const string& warp_file, const string& src_geom)
       }
     }
   }
-
+  
   MRIfree(&itk);
   MRIfree(&src);
 
@@ -270,55 +272,56 @@ void writeITK(const string& fname, GCAM* gcam)
   MATRIX* mov_vox2ras = VGgetRasToVoxelXform(&gcam->image, NULL, 0);
   MATRIX* mov_vox2lps = MatrixMultiplyD(ras2lps, mov_vox2ras, NULL);
 
-  MRI* itk = MRIallocSequence(gcam->width, gcam->height, gcam->depth,
-                              MRI_FLOAT, 3);
+  MRI* itk = MRIallocSequence(gcam->atlas.width,
+		  gcam->atlas.height,
+		  gcam->atlas.depth,
+		  MRI_FLOAT, 3);
   MRIsetResolution(itk,
-                   gcam->atlas.xsize,
-                   gcam->atlas.ysize,
-                   gcam->atlas.zsize);
+		  gcam->atlas.xsize,
+		  gcam->atlas.ysize,
+		  gcam->atlas.zsize);
   MRIsetVox2RASFromMatrix(itk, ref_vox2ras);
+  MRIcopyVolGeomToMRI(itk, &gcam->atlas);
 
-  for(int s=0; s < gcam->depth; s++)
-  {
-    for(int c=0; c < gcam->width; c++)
-    {
-      for(int r=0; r < gcam->height; r++)
-      {
-        GCA_MORPH_NODE* node = &gcam->nodes[c][r][s];
+  int x, y, z;
+  float xw, yw, zw;
+  MATRIX* orig_ind = VectorAlloc(4, MATRIX_REAL);
+  MATRIX* dest_ind = VectorAlloc(4, MATRIX_REAL);
+  VECTOR_ELT(orig_ind, 4) = 1;
+  VECTOR_ELT(dest_ind, 4) = 1;
+  MATRIX* orig_wld_lps = VectorAlloc(4, MATRIX_REAL);
+  MATRIX* dest_wld_lps = VectorAlloc(4, MATRIX_REAL);
+  bool samesize = itk->width==gcam->width && itk->height==gcam->height && itk->depth==gcam->depth;
+  for (x = 0; x < itk->width; x++)
+    for (y = 0; y < itk->height; y++)
+      for (z = 0; z < itk->depth; z++) {
+        VECTOR3_LOAD(orig_ind, x, y, z);
+        MatrixMultiplyD(ref_vox2lps, orig_ind, orig_wld_lps);
+  		if (samesize) {
+			GCA_MORPH_NODE* node = &gcam->nodes[x][y][z];
+			xw = node->x;
+			yw = node->y;
+			zw = node->z;
+		}
+		else {
+		  GCAMsampleMorph(gcam, x, y, z, &xw, &yw, &zw);
+		}
+        VECTOR3_LOAD(dest_ind, xw, yw, zw);
+        MatrixMultiplyD(mov_vox2lps, dest_ind, dest_wld_lps);
 
-        MATRIX* orig_ind = VectorAlloc(4, MATRIX_REAL);
-        VECTOR3_LOAD(orig_ind, node->origx, node->origy, node->origz);
-        VECTOR_ELT(orig_ind, 4) = 1;
-
-        MATRIX* orig_wld_lps = MatrixMultiplyD(ref_vox2lps, orig_ind, NULL);
-
-        MATRIX* dest_ind = VectorAlloc(4, MATRIX_REAL);
-        VECTOR3_LOAD(dest_ind, node->x, node->y, node->z);
-        VECTOR_ELT(dest_ind, 4) = 1;
-
-        MATRIX* dest_wld_lps = MatrixMultiplyD(mov_vox2lps, dest_ind, NULL);
-
-        MATRIX* delta = VectorAlloc(4, MATRIX_REAL);
-        VectorSubtract(dest_wld_lps, orig_wld_lps, delta);
-
-        MRIsetVoxVal(itk, c, r, s, 0, VECTOR_ELT(delta, 1));
-        MRIsetVoxVal(itk, c, r, s, 1, VECTOR_ELT(delta, 2));
-        MRIsetVoxVal(itk, c, r, s, 2, VECTOR_ELT(delta, 3));
-
-        MatrixFree(&orig_ind);
-        MatrixFree(&orig_wld_lps);
-        MatrixFree(&dest_wld_lps);
-        MatrixFree(&dest_ind);
-        MatrixFree(&delta);
-      }
-    }
+        MRIsetVoxVal(itk, x, y, z, 0, VECTOR_ELT(dest_wld_lps,1)-VECTOR_ELT(orig_wld_lps,1));
+        MRIsetVoxVal(itk, x, y, z, 1, VECTOR_ELT(dest_wld_lps,2)-VECTOR_ELT(orig_wld_lps,2));
+        MRIsetVoxVal(itk, x, y, z, 2, VECTOR_ELT(dest_wld_lps,3)-VECTOR_ELT(orig_wld_lps,3));
   }
+  MatrixFree(&orig_ind);
+  MatrixFree(&dest_ind);
+  MatrixFree(&orig_wld_lps);
+  MatrixFree(&dest_wld_lps);
 
   if (MRIwriteType(itk, fname.c_str(), ITK_MORPH) != 0)
   {
     cerr << "Error writing ITK warp to " << fname << endl;
   }
-
   MRIfree(&itk);
 
   MatrixFree(&ras2lps);

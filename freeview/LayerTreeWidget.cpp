@@ -185,6 +185,10 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
       QAction* act = new QAction("Save All Checked Volumes", this);
       connect(act, SIGNAL(triggered()), this, SLOT(OnSaveVisibleVolumes()));
       menu->addAction(act);
+      menu->addSeparator();
+      menu->addAction(wnd->ui->actionLoadTransform);
+      if (layer && ((LayerMRI*)layer)->HasReg())
+        menu->addAction(wnd->ui->actionUnloadTransform);
     }
     menu->addSeparator();
   }

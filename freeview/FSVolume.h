@@ -215,6 +215,10 @@ public:
 
   bool Segment(int min_label_index, int max_label_index, int min_num_of_voxels);
 
+  bool LoadRegistrationMatrix( const QString& filename );
+
+  void ClearRegistrationMatrix();
+
 Q_SIGNALS:
   void ProgressChanged( int n );
 
@@ -226,7 +230,6 @@ public slots:
 
 protected:
   bool LoadMRI( const QString& filename, const QString& reg_filename );
-  bool LoadRegistrationMatrix( const QString& filename );
   void UpdateHistoCDF(int frame = 0, float threshold = -1, bool bHighThreshold = false);
   void CopyMRIDataToImage( MRI* mri, vtkImageData* image );
   void CopyMatricesFromMRI();

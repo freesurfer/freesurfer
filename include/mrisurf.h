@@ -30,6 +30,7 @@
 
 #include "minc_volume_io.h"
 #include "const.h"
+#include "matrix.h"
 
 #define MAX_SURFACES 20
 #define TALAIRACH_COORDS     0
@@ -63,7 +64,7 @@ testing effects on surface placement so that the stream is the same up
 until surface placement.
  */
 #ifdef _MRISURF_SRC
-int UnitizeNormalFace = 0;
+int UnitizeNormalFace = 1;
 #else
 extern int UnitizeNormalFace;
 #endif
@@ -84,10 +85,14 @@ typedef struct FaceNormCacheEntry {
     // inputs
         // may have to capture them if the inputs change
     // flag saying the calculation has been deferred
-        int deferred;
+    // may be better to store these separately...
     // value
         float nx,ny,nz,orig_area;
 } FaceNormCacheEntry;
+
+typedef struct FaceNormDeferredEntry {
+    char deferred;
+} FaceNormDeferredEntry;
 
 /*
   the vertices in the face structure are arranged in
@@ -103,6 +108,16 @@ typedef float angles_per_triangle_t[ANGLES_PER_TRIANGLE];
     ELTT(float,orig_area) SEP    \
 */
 
+typedef struct edge_type_
+{
+  int edgeno; // this face no
+  int vtxno[4]; // vertex numbers of 2 ends + 2 opposites
+  int faceno[2]; // two adjacent faces
+  unsigned char corner[2][4]; // corner[faceno][nthvtx];
+  double J; // Angle Cost of this edge
+  MATRIX *gradJ[4]; // 3x1 grad of J wrt 4 vertices
+} MRI_EDGE;
+
 typedef struct face_type_
 {
 #define LIST_OF_FACE_ELTS_1    \
@@ -113,37 +128,37 @@ typedef struct face_type_
   ELTT(char,ripflag) SEP                        /* ripped face */    \
   ELTT(char,oripflag) SEP                       /* stored version */    \
   ELTT(int,marked) SEP                          /* marked face */    \
+  ELTP(MATRIX,norm) SEP  /* 3x1 normal vector */ \
+  ELTP(MATRIX,gradNorm[3]) SEP  /* 3x3 Gradient of the normal wrt each of the 3 vertices*/ 
     // end of macro
+
 #if 0
   float logshear,shearx,sheary;  /* compute_shear */
 #endif
 
 // Why does mrishash need these?  Where else are they used?
 #if 0
-
 #define LIST_OF_FACE_ELTS_2    \
   ELTT(float,cx) SEP    \
   ELTT(float,cy) SEP    \
   ELTT(float,cz) SEP         /* coordinates of centroid */   \
     // end of macro
-
 #define LIST_OF_FACE_ELTS \
     LIST_OF_FACE_ELTS_1 SEP \
     LIST_OF_FACE_ELTS_2 \
     // end of macro
-
 #else
-
 #define LIST_OF_FACE_ELTS \
     LIST_OF_FACE_ELTS_1
-    
 #endif
 
 #define ELTT(T,N) T N;
+#define ELTP(TARGET,NAME) TARGET *NAME ;
 #define SEP
 LIST_OF_FACE_ELTS
 #undef SEP
 #undef ELTT
+#undef ELTP
 
 }
 face_type, FACE ;
@@ -405,12 +420,15 @@ typedef struct MRIS
 //
 #define LIST_OF_MRIS_ELTS_1     \
     \
-  ELTT(int,nvertices) SEP      /* # of vertices on surface */    \
-  ELTT(int,nfaces) SEP         /* # of faces on surface */    \
+  ELTT(const int,nvertices) SEP      /* # of vertices on surface, SHOULD BE CONST AND change by calling MRISreallocVerticesAndFaces et al */    \
+  ELTT(const int,nfaces) SEP         /* # of faces on surface, change by calling MRISreallocVerticesAndFaces et al */    \
+  ELTT(int,nedges) SEP         /* # of edges on surface*/    \
   ELTT(int,nstrips) SEP    \
   ELTP(VERTEX,vertices) SEP    \
   ELTP(FACE,faces) SEP    \
+  ELTP(MRI_EDGE,edges) SEP    \
   ELTP(FaceNormCacheEntry,faceNormCacheEntries) SEP \
+  ELTP(FaceNormDeferredEntry,faceNormDeferredEntries) SEP \
   ELTP(STRIP,strips) SEP    \
   ELTT(float,xctr) SEP    \
   ELTT(float,yctr) SEP    \
@@ -484,10 +502,10 @@ typedef struct MRIS
   ELTT(float,gamma) SEP            /* rotation around x-axis */    \
   ELTT(float,da) SEP    \
   ELTT(float,db) SEP    \
-  ELTT(float,dg) SEP       /* old deltas */    \
-  ELTT(int,type) SEP             /* what type of surface was this initially*/    \
-  ELTT(int,max_vertices) SEP     /* may be bigger than nvertices */    \
-  ELTT(int,max_faces) SEP        /* may be bigger than nfaces */    \
+  ELTT(float,dg) SEP                /* old deltas */    \
+  ELTT(int,type) SEP                /* what type of surface was this initially*/    \
+  ELTT(const int,max_vertices) SEP  /* may be bigger than nvertices, set by calling MRISreallocVerticesAndFaces */    \
+  ELTT(const int,max_faces) SEP     /* may be bigger than nfaces, set by calling MRISreallocVerticesAndFaces */    \
   ELTT(MRIS_subject_name_t,subject_name) SEP /* name of the subject */    \
   ELTT(float,canon_area) SEP    \
   ELTT(int,noscale) SEP          /* don't scale by surface area if true */    \
@@ -945,7 +963,7 @@ int MRISfindClosestWhiteVertex(MRI_SURFACE *mris, float x, float y,
                                float z) ;
 int MRISfindClosestVertex(MRI_SURFACE *mris,
                           float x, float y, float z,
-                          float *dmin);
+                          float *dmin, int which_vertices);
 double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) ;
 double MRIScomputeSSEExternal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                               double *ext_sse) ;
@@ -1032,6 +1050,7 @@ int          MRISwriteWhiteNormals(MRI_SURFACE *mris, const char *fname) ;
 int          MRISwriteNormalsAscii(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISreadNormals(MRI_SURFACE *mris, const char *fname) ;
 int          MRISwriteNormals(MRI_SURFACE *mris,const  char *fname) ;
+int mrisNormalFace(MRIS *mris, int fac, int n, float norm[]);
 int          MRISwritePrincipalDirection(MRI_SURFACE *mris, int dir_index, const  char *fname) ;
 int          MRISwriteVTK(MRI_SURFACE *mris,const  char *fname);
 int          MRISwriteCurvVTK(MRI_SURFACE *mris, const char *fname);
@@ -1071,9 +1090,10 @@ int          MRISaverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int          MRIScomputeNormal(MRIS *mris, int which, int vno,
                                double *pnx, double *pny, double *pnz) ;
 
-MRI_SURFACE  *MRISoverAlloc(int max_vertices, int max_faces,
-                            int nvertices, int nfaces) ;
-MRI_SURFACE  *MRISalloc(int nvertices, int nfaces) ;
+MRI_SURFACE* MRISoverAlloc              (                   int max_vertices, int max_faces, int nvertices, int nfaces) ;
+MRI_SURFACE* MRISalloc                  (                                                    int nvertices, int nfaces) ;
+void         MRISreallocVerticesAndFaces(MRI_SURFACE *mris,                                  int nvertices, int nfaces) ;
+    
 int          MRISfreeDists(MRI_SURFACE *mris) ;
 int          MRISfree(MRI_SURFACE **pmris) ;
 int   MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_avgs);
@@ -2439,5 +2459,9 @@ MRI *MRISarN(MRIS *surf, MRI *src, MRI *mask, MRI *arN, int N);
 MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *globkern, SURFHOPLIST ***pshl, MRI *out);
 int MRISmeasureLaplaceStreamlines(MRI_SURFACE *mris, MRI *mri_laplace, MRI *mri_intensity, MRI *mri_profiles) ;
 MRI *MRISsolveLaplaceEquation(MRI_SURFACE *mris, MRI *mri, double res) ;
+int MRIScountEdges(MRIS *surf);
+int MRISedges(MRIS *surf);
+int MRISfaceNormalGrad(MRIS *surf, int faceno, int NormOnly);
+int MRISfaceNormalGradTest(MRIS *surf, char *surfpath);
 
 #endif // MRISURF_H

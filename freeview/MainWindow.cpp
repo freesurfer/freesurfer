@@ -1180,7 +1180,7 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     ((RenderView3D*)m_views[3])->HideSlices();
   }
 
-  if (parser->Found("hide-3d-frames"), &sa)
+  if (parser->Found("hide-3d-frames", &sa) )
   {
     ((RenderView3D*)m_views[3])->SetShowSliceFrames(false);
   }
@@ -2054,11 +2054,11 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
           tensor_render = "boxoid";
         }
       }
-      else if ( subOption == "reg" )
+      else if ( subOption == "reg" || subOption == "transform")
       {
         reg_fn = subArgu;
       }
-      else if ( subOption == "sample" )
+      else if ( subOption == "sample" || subOption == "resample" || subOption == "interpolation" )
       {
         if ( subArgu.toLower() == "nearest" )
         {
@@ -2688,7 +2688,8 @@ void MainWindow::CommandLoadDTI( const QStringList& sa )
             }
           }
         }
-        else if ( strg.left( n ).toLower() == "reg" )
+        else if ( strg.left( n ).toLower() == "reg" ||
+                  strg.left( n ).toLower() == "transform")
         {
           reg_fn = strg.mid( n + 1 );
         }
@@ -3146,11 +3147,11 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         }
         else if ( subOption == "patch" )
         {
-          if ( subArgu.contains( "/" ) )
+          if ( !subArgu.contains( "/" ) )
           {
-            subArgu = QFileInfo( subArgu ).absoluteFilePath();
+            subArgu = "./" + subArgu;
           }
-          fn_patch = subArgu;
+          fn_patch = QFileInfo( subArgu ).absoluteFilePath();
         }
         else if ( subOption == "target" || subOption == "target_surf")
         {
@@ -3300,6 +3301,7 @@ void MainWindow::CommandSetSurfaceOverlaySmooth(const QStringList &cmd)
       {
         overlay->GetProperty()->SetSmooth(true);
         overlay->GetProperty()->SetSmoothSteps(steps);
+        overlay->UpdateSmooth();
       }
       else
       {
@@ -5448,6 +5450,43 @@ void MainWindow::OnCloseSurface()
   GetLayerCollection( "Surface" )->RemoveLayers( layers );
 }
 
+void MainWindow::OnLoadPatch()
+{
+  LayerSurface* surf = ( LayerSurface* )GetActiveLayer("Surface");
+  if ( !surf )
+    return;
+
+  QString filename = QFileDialog::getOpenFileName( this, "Select patch file",
+                                                         AutoSelectLastDir( "surf" ),
+                                                         "Patch files (*)", 0, QFileDialog::DontConfirmOverwrite);
+  if ( !filename.isEmpty() && !surf->LoadPatch(filename) )
+  {
+    QMessageBox::warning(this, "Error", QString("Could not load patch from %1").arg(filename));
+  }
+}
+
+void MainWindow::OnSavePatchAs()
+{
+  LayerSurface* layer_surf = ( LayerSurface* )GetActiveLayer( "Surface" );
+  if ( !layer_surf)
+  {
+    return;
+  }
+  else if ( !layer_surf->IsVisible() )
+  {
+    QMessageBox::warning( this, "Error", "Current surface layer is not visible. Please turn it on before saving.");
+    return;
+  }
+
+  QString fn = QFileDialog::getSaveFileName( this, "Save patch as",
+                                             layer_surf->GetFileName(),
+                                             "Patch files (*)");
+  if ( !fn.isEmpty() && !layer_surf->WritePatch(fn))
+  {
+    QMessageBox::warning(this, "Error", QString("Could not save patch to %1").arg(fn));
+  }
+}
+
 void MainWindow::OnIOError( Layer* layer, int jobtype )
 {
   bool bQuit = false;
@@ -5501,6 +5540,7 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
   LayerCollection* lc_mri = GetLayerCollection( "MRI" );
   LayerCollection* lc_surface = GetLayerCollection( "Surface" );
   LayerCollection* lc_track = GetLayerCollection( "Tract" );
+  LayerCollection* lc_sup = GetLayerCollection( "Supplement");
   if ( jobtype == ThreadIOWorker::JT_LoadVolume && layer->IsTypeOf( "MRI" ) )
   {
     LayerMRI* mri = qobject_cast<LayerMRI*>( layer );
@@ -5524,6 +5564,10 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
         lc_surface->SetWorldOrigin( mri->GetWorldOrigin() );
         lc_surface->SetWorldSize( mri->GetWorldSize() );
       }
+
+      lc_sup->SetWorldVoxelSize( mri->GetWorldVoxelSize() );
+      lc_sup->SetWorldOrigin( mri->GetWorldOrigin() );
+      lc_sup->SetWorldSize( mri->GetWorldSize() );
 
       lc_mri->AddLayer( layer, true );
       lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
@@ -5726,6 +5770,10 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
   {
     std::cout << qPrintable(qobject_cast<LayerSurface*>(layer)->GetFileName()) << " saved successfully.\n";
     m_dlgRepositionSurface->UpdateUI();
+  }
+  else if ( jobtype == ThreadIOWorker::JT_TransformVolume)
+  {
+    RequestRedraw();
   }
 
   if (m_scripts.isEmpty())
@@ -7210,7 +7258,6 @@ void MainWindow::OnGoToPointSet(bool center)
   }
 }
 
-
 void MainWindow::OnGoToSurfaceLabel(bool center)
 {
   LayerSurface* surf = (LayerSurface*)GetActiveLayer("Surface");
@@ -7726,4 +7773,30 @@ void MainWindow::ShowTractClusterMap()
 {
   m_wndTractCluster->show();
   m_wndTractCluster->raise();
+}
+
+void MainWindow::OnLoadVolumeTransform()
+{
+  LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI");
+  if (!mri)
+    return;
+
+  DialogLoadTransform dlg(this);
+  if ( dlg.exec() == QDialog::Accepted )
+  {
+    mri->SetRegFileName(dlg.GetFilename());
+    mri->SetSampleMethod(dlg.GetSampleMethod());
+    m_threadIOWorker->TransformVolume(mri);
+  }
+}
+
+void MainWindow::OnUnloadVolumeTransform()
+{
+  LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI");
+  if (!mri)
+    return;
+
+  QVariantMap args;
+  args["unload"] = true;
+  m_threadIOWorker->TransformVolume(mri, args);
 }

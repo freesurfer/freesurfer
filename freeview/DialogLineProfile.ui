@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>276</width>
-    <height>433</height>
+    <width>328</width>
+    <height>425</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -183,7 +183,7 @@
      <item row="10" column="0">
       <widget class="QLabel" name="label_13">
        <property name="text">
-        <string>Active Id</string>
+        <string>Laplace line</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -267,7 +267,14 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <spacer name="horizontalSpacer">
+      <widget class="QPushButton" name="pushButtonCompute">
+       <property name="text">
+        <string>Compute</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_3">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
@@ -278,13 +285,6 @@
         </size>
        </property>
       </spacer>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pushButtonCompute">
-       <property name="text">
-        <string>Compute</string>
-       </property>
-      </widget>
      </item>
      <item>
       <widget class="QPushButton" name="pushButtonExport">
@@ -294,24 +294,25 @@
       </widget>
      </item>
      <item>
-      <spacer name="horizontalSpacer_2">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
+      <widget class="QPushButton" name="pushButtonExportThickness">
+       <property name="text">
+        <string>Export Thickness</string>
        </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>5</width>
-         <height>5</height>
-        </size>
-       </property>
-      </spacer>
+      </widget>
      </item>
     </layout>
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
-      <spacer name="horizontalSpacer_3">
+      <widget class="QPushButton" name="pushButtonClear">
+       <property name="text">
+        <string>Clear</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_4">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
@@ -336,19 +337,6 @@
         <string>Load</string>
        </property>
       </widget>
-     </item>
-     <item>
-      <spacer name="horizontalSpacer_4">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>5</width>
-         <height>5</height>
-        </size>
-       </property>
-      </spacer>
      </item>
     </layout>
    </item>
@@ -417,8 +405,8 @@
    <slot>OnCompute()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>130</x>
-     <y>341</y>
+     <x>95</x>
+     <y>328</y>
     </hint>
     <hint type="destinationlabel">
      <x>98</x>
@@ -433,8 +421,8 @@
    <slot>OnExport()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>221</x>
-     <y>341</y>
+     <x>181</x>
+     <y>328</y>
     </hint>
     <hint type="destinationlabel">
      <x>213</x>
@@ -449,8 +437,8 @@
    <slot>OnColorPicker(QColor)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>185</x>
-     <y>232</y>
+     <x>161</x>
+     <y>207</y>
     </hint>
     <hint type="destinationlabel">
      <x>267</x>
@@ -465,8 +453,8 @@
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>257</x>
-     <y>259</y>
+     <x>265</x>
+     <y>228</y>
     </hint>
     <hint type="destinationlabel">
      <x>267</x>
@@ -481,8 +469,8 @@
    <slot>OnEditRadius(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>185</x>
-     <y>267</y>
+     <x>161</x>
+     <y>256</y>
     </hint>
     <hint type="destinationlabel">
      <x>267</x>
@@ -497,8 +485,8 @@
    <slot>OnSave()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>130</x>
-     <y>376</y>
+     <x>92</x>
+     <y>372</y>
     </hint>
     <hint type="destinationlabel">
      <x>99</x>
@@ -513,12 +501,44 @@
    <slot>OnLoad()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>221</x>
-     <y>376</y>
+     <x>175</x>
+     <y>372</y>
     </hint>
     <hint type="destinationlabel">
      <x>267</x>
      <y>277</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonClear</sender>
+   <signal>clicked()</signal>
+   <receiver>DialogLineProfile</receiver>
+   <slot>OnClear()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>233</x>
+     <y>364</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>317</x>
+     <y>402</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonExportThickness</sender>
+   <signal>clicked()</signal>
+   <receiver>DialogLineProfile</receiver>
+   <slot>OnExportThickness()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>293</x>
+     <y>316</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>422</x>
+     <y>320</y>
     </hint>
    </hints>
   </connection>
@@ -532,5 +552,7 @@
   <slot>OnSliderOpacity(int)</slot>
   <slot>OnSave()</slot>
   <slot>OnLoad()</slot>
+  <slot>OnClear()</slot>
+  <slot>OnExportThickness()</slot>
  </slots>
 </ui>
