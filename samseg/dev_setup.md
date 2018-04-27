@@ -283,3 +283,25 @@ It is also possible to uninstall either or both wheels and use the python path.
 export PYTHONPATH="$HOME/work/cm/freesurfer/samseg:$HOME/work/cm/freesurfer/GEMS2/bin"
 ```
 Note the use of ```:``` as separator. If you are keeping one of the wheels then remove the corresponding piece of the path.
+
+## Packaging
+
+To create a package to port to another machine change to the main ```samseg``` directory
+and run the packaging script ```install_as_virtualenv```
+```bash
+cd ~/work/cm/freesurfer/samseg/
+install_as_virtualenv
+```
+There are several options. 
+The default will create a subfolder ```packaging``` that includes the visualization options.
+
+Running with the ```--help``` option will display a usage message that describes all of the options.
+The most significant is the ```-n``` option. This will exclude visualization and
+is more suitable for a production server.
+
+The created package is a virtual environment and can be used as such on the build machine.
+It includes a copy of the python3 interpreter.
+However, the package subfolder can also be copied to another machine with the same OS
+and then invoked directly.
+It has a script ```run_samseg.sh``` that will use the packaged python
+to run the script ```run_samseg``` with the same command line options.
