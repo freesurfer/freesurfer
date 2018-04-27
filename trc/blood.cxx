@@ -2426,9 +2426,12 @@ void Blood::FindCenterStreamline(bool CheckOverlap, bool CheckDeviation,
       cout << "WARN: Turning off FA check for center streamline" << endl;
       FindCenterStreamline(CheckOverlap, false, false);
     }
-    else {
+    else if (CheckOverlap) {
       cout << "WARN: Turning off overlap check for center streamline" << endl;
       FindCenterStreamline(false, false, false);
+    else {
+      cout << "WARN: All checks already off. Exiting." << endl;
+      return;
     }
   }
   else {
