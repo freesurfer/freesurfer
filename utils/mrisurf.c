@@ -57583,7 +57583,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 
   int bufferIndex;
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(shown_reproducible)
+  #pragma omp parallel for if_ROMP(shown_reproducible) schedule(guided)
 #endif
   for (bufferIndex = 0; bufferIndex < bufferSize; bufferIndex++) {
     ROMP_PFLB_begin
