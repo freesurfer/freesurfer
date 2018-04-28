@@ -53,7 +53,8 @@ void LayerCollection::Clear()
 {
   for ( int i = 0; i < m_layers.size(); i++ )
   {
-    m_layers[i]->deleteLater();
+  //  m_layers[i]->deleteLater();
+    delete m_layers[i];
   }
   m_layers.clear();
 }

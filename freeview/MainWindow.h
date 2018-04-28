@@ -531,6 +531,10 @@ protected slots:
 
   void ShowTractClusterMap();
 
+  void OnLoadVolumeTransform();
+
+  void OnUnloadVolumeTransform();
+
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);
   void SaveSettings();
