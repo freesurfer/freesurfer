@@ -1,5 +1,9 @@
 #include "sort.h"
 
+// Self-test by
+//                  gcc -fopenmp -I../include -DSORT_TEST sort.c
+//                  ./a.out
+//
 #ifdef SORT_TEST
 int main() {
     size_t capacity = 100000000;
