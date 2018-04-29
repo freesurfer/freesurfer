@@ -57819,6 +57819,9 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     float* kToZMap = (kToZMapSize <= 128) ? kToZMapBuffer : (float*)malloc(kToZMapSize * sizeof(float));
     for (k = kmin; k <= kmax; k++) kToZMap[k - kmin] = zSURF(mri_defect, k);
     
+    float  kTopredictedIrrelevantDeltaBuffer[128];
+    float* kTopredictedIrrelevantDelta = (kToZMapSize <= 128) ? kTopredictedIrrelevantDeltaBuffer : (float*)malloc(kToZMapSize * sizeof(float));
+    
     for (i = imin; i <= imax; i++) {
       	  float const x = xSURF(mri_defect, i);
           vec0[0] = x - x0;
@@ -57838,31 +57841,32 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
         float* const ijkDistances =
             do_new_MRIDistance ? perThreadMRIDistanceElt(ptd, i,j,0) : &MRIFvox(mri_distance_nonconst, i, j, 0);
                   
-        for (k = kmin; k <= kmax; k++) {
-          float zt = kToZMap[k - kmin];
+        if (use_fast_avoidable_prediction && !test_avoidable_prediction) {
 
-	  if (use_fast_avoidable_prediction && !test_avoidable_prediction) {
-	    
-	    // This path is so important I have hand-optimized it
+	    // This path is so important I have hand-optimized it.
+            //
 	    // It skips over all the predictedIrrelevant k's
 	    // This path does not yet have a specific correctness test
+            //
+            // By moving it out of the following loop, there may be more overlapping of the floating point operations and the memory traffic
+            // and fewer branch mispredicts
+            // and more opportunities for unrolling and for vector operations and for cse's
 	    //
-            for (;;) {
-    	        float const ijkDistance           = ijkDistances[k];
-	    	float const distanceToCxyzSquared = partialPythagorasSum + squaref(zt-cz);
-                //oat const distanceToCxyz        = sqrtf(distanceToCxyzSquared) * 0.99f;  // margin for error included
-		bool predictedIrrelevant = distanceToCxyzSquared*0.98f > squaref(fabs(ijkDistance) + furtherestVertexDistance);
-		if (!predictedIrrelevant) goto RelevantK;
-		k++;
-		if (k > kmax) break;
-		zt = kToZMap[k - kmin]; 
-	    }
-	    break;  	    	    // no relevant K found
-    	  
-	    RelevantK:;
+            for (k = kmin; k <= kmax; k++) {
+                float zt                    = kToZMap[k - kmin];
+                float ijkDistance           = ijkDistances[k];
+                float distanceToCxyzSquared = partialPythagorasSum + squaref(zt-cz);
+                kTopredictedIrrelevantDelta[k - kmin] = distanceToCxyzSquared*0.98f - (squaref(fabs(ijkDistance) + furtherestVertexDistance));
+            }
+        }
+        
+        for (k = kmin; k <= kmax; k++) {
+
+	  if (use_fast_avoidable_prediction && !test_avoidable_prediction) {
+            if (kTopredictedIrrelevantDelta[k - kmin] > 0.0f) continue;
 	  }
 
-    	  float const z = zt;
+    	  float const z = kToZMap[k - kmin];
 	  
     	  // Here is the minimum distance to update
 	  //
@@ -58276,6 +58280,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
       } // j
     } // i
 
+    if (kTopredictedIrrelevantDelta != kTopredictedIrrelevantDeltaBuffer) freeAndNULL(kTopredictedIrrelevantDelta);
     if (kToZMap != kToZMapBuffer) freeAndNULL(kToZMap);
     if (jToYMap != jToYMapBuffer) freeAndNULL(jToYMap);
     
