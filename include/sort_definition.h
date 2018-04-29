@@ -112,6 +112,8 @@ Partition:;
 _Pragma("GCC diagnostic ignored \"-Wunused-function\"")
 static void SORT_NAME(SORT_ELEMENT* elts, size_t size, bool useThreads) {
 
+#ifdef HAVE_OPENMP
+
     // It is only sensible to use threads when there are many elements to sort.
     // This is done by recursively partitioning the data until all the threads are busy. 
     // Currently allow up to 16 partitions
@@ -148,6 +150,7 @@ static void SORT_NAME(SORT_ELEMENT* elts, size_t size, bool useThreads) {
         }        
         return;
     }
+#endif
     
     // It is only sensible to partition when there are several elements to sort
     //
