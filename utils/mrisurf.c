@@ -49475,7 +49475,7 @@ static void computeDefectFaceNormal_calculate(
   nz = norm[2];
 
   /* normalize */
-  float len = sqrt(nx * nx + ny * ny + nz * nz);
+  float len = sqrtf(nx * nx + ny * ny + nz * nz);
   if (FZERO(len)) {
     // TO BE CHECKED
     //          fprintf(WHICH_OUTPUT,"face with a null normal (%f,%f,%f) - (%f,%f,%f) -
@@ -49582,7 +49582,7 @@ static void computeDefectVertexNormals(MRIS *mris, DP *dp)
       nz += fNorm->nz;
     }
     /* normalize */
-    len = sqrt(nx * nx + ny * ny + nz * nz);
+    len = sqrtf(nx * nx + ny * ny + nz * nz);
     if (FZERO(len)) {
       fprintf(WHICH_OUTPUT,
               "normal vector of length zero at vertex %d with %d faces\n",
@@ -57230,17 +57230,46 @@ static void updateDistanceElt(volatile float* f, float distance, bool lockNeeded
   }
 }
 
-static void updateDistanceEltFromSignArgAndSquare(volatile float* f, float distanceSignArg, float distanceSquared, bool lockNeeded) {
+static void updateDistanceEltFromSignArgAndSquareLockNeeded(volatile float* f, float distanceSignArg, float distanceSquared) {
   // Avoid calculating the sqrt unless definitely needed
   //
-  // This has problems if sqrtf(distanceSquared) == f and distanceSign is positive, because this would reject that solution
+  // The obvious test has problems if sqrtf(distanceSquared) == f and distanceSign is positive, because this would reject that solution
   // when the above code would prefer it.  Hence the 1.01f margin of error.
   //
   // if (squaref(*f) < distanceSquared) return;
   //
   if (squaref(*f)*1.01f < distanceSquared) return;
   
-  updateDistanceElt(f, SIGN(distanceSignArg)*sqrtf(distanceSquared), lockNeeded);
+  updateDistanceElt(f, SIGN(distanceSignArg)*sqrtf(distanceSquared), true);
+}
+
+static void updateDistanceEltFromSignArgAndSquareNoLockNeeded(
+    volatile float* f, 
+    float distanceSignArg, 
+    float distanceSquared,
+    float sqrtfDistanceSquared) {
+  // This function is performance-critical for mris_fix_topology, hence hand-optimized
+  //
+  // Avoid waiting for the sqrt unless definitely needed
+  //
+  // The obvious test has problems if sqrtf(distanceSquared) == f and distanceSign is positive, because this would reject that solution
+  // when the above code would prefer it.  Hence the 1.01f margin of error.
+  //
+  // if (squaref(*f) < distanceSquared) return;
+  //
+  if (squaref(*f)*1.01f < distanceSquared) return;          // don't wait for the sqrtf to complete if it is not needed
+  
+  float positiveDistance = sqrtfDistanceSquared;
+  if (positiveDistance > fabsf(*f)) return;
+
+  float distance = SIGN(distanceSignArg)*positiveDistance;
+  
+  if (positiveDistance < fabsf(*f)) {
+    *f = distance;	            
+  } else if (positiveDistance == fabsf(*f)) {
+    // They are equal.  Prefer the positive.
+    if (distance > 0) *f = distance;
+  }
 }
 
 static double mrisComputeDefectMRILogUnlikelihood_wkr(
@@ -57731,7 +57760,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     ROMP_PFLB_begin
     int const tid = omp_get_thread_num();
     
-    bool const trace = traceTid0 && (tid == 0);
+    bool const trace = false; // traceTid0 && (tid == 0);
 
     typedef void p;	// poison p
     Entry const * entry = &buffer[bufferIndex];
@@ -58392,13 +58421,20 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
           if (trace) fprintf(stdout, "  update distance for i:%ld j:%ld j:%ld\n", i,j,k);
 
           if (new_distanceSquared >= 0) {
-     	    updateDistanceEltFromSignArgAndSquare(ijkDistanceElt, new_distanceSignArg, new_distanceSquared,
+            bool const lockNeeded =
 #ifdef HAVE_OPENMP
-	      do_old_MRIDistance
+	      do_old_MRIDistance;
 #else
-    	      false
+    	      false;
 #endif
-	      );
+     	    if (lockNeeded) updateDistanceEltFromSignArgAndSquareLockNeeded  (ijkDistanceElt, new_distanceSignArg, new_distanceSquared);
+            else            updateDistanceEltFromSignArgAndSquareNoLockNeeded(
+                                ijkDistanceElt, 
+                                new_distanceSignArg, 
+                                new_distanceSquared,
+                                sqrtf(new_distanceSquared));    // start this as soon as possible - the unit is idle, and the result
+                                                                // is discarded if not needed
+	    
           } else {
     	    updateDistanceElt(ijkDistanceElt, do_new_loop3 ? new_distance : old_distance, 
 #ifdef HAVE_OPENMP
