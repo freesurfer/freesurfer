@@ -26,7 +26,7 @@ foreach threads ( 4 )
     # Don't forget to...
     #   cp mris_fix_topology{,.nf_faster_distance_map_update_5}
     #
-    foreach branch ( .bf_wrongBufferSize  .nf_faster_distance_map_update_6 )
+    foreach branch ( .nf_faster_distance_map_update_8 )
 
       foreach feature ( 0 )
     
