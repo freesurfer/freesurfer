@@ -38,7 +38,7 @@ public:
   explicit ThreadIOWorker(QObject *parent = 0);
 
   enum JobType { JT_LoadVolume = 0, JT_SaveVolume, JT_LoadSurface, JT_SaveSurface, JT_LoadSurfaceOverlay, JT_LoadTrack,
-                 JT_LoadConnectome, JT_LoadFCD };
+                 JT_LoadConnectome, JT_LoadFCD, JT_TransformVolume };
 
   void LoadVolume( Layer* layer, const QVariantMap& args = QVariantMap() );
   void SaveVolume( Layer* layer, const QVariantMap& args = QVariantMap() );
@@ -48,6 +48,7 @@ public:
   void LoadTrack( Layer* layer, const QVariantMap& args = QVariantMap() );
   void LoadConnectomeMatrix( Layer* layer, const QVariantMap& args = QVariantMap() );
   void LoadFCD(Layer* layer, const QVariantMap& args = QVariantMap());
+  void TransformVolume( Layer* layer, const QVariantMap& args = QVariantMap() );
 
 signals:
   void Progress( int n );

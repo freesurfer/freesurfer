@@ -56,6 +56,14 @@ void ThreadIOWorker::SaveVolume( Layer* layer, const QVariantMap& args )
   start();
 }
 
+void ThreadIOWorker::TransformVolume( Layer* layer, const QVariantMap& args )
+{
+  m_layer = layer;
+  m_nJobType = JT_TransformVolume;
+  m_args = args;
+  start();
+}
+
 void ThreadIOWorker::LoadSurface( Layer* layer, const QVariantMap& args )
 {
   m_layer = layer;
@@ -183,6 +191,27 @@ void ThreadIOWorker::run()
       return;
     }
     if ( !mri->SaveVolume() )
+    {
+      emit Error( m_layer, m_nJobType );
+    }
+    else
+    {
+      emit Finished( m_layer, m_nJobType );
+    }
+  }
+  else if (m_nJobType == JT_TransformVolume)
+  {
+    LayerMRI* mri = qobject_cast<LayerMRI*>( m_layer );
+    if ( !mri )
+    {
+      return;
+    }
+    if (m_args.value("unload").toBool())
+    {
+      mri->UnloadVolumeTransform();
+      emit Finished( m_layer, m_nJobType );
+    }
+    else if ( !mri->LoadVolumeTransform() )
     {
       emit Error( m_layer, m_nJobType );
     }

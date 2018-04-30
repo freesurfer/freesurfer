@@ -2054,11 +2054,11 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
           tensor_render = "boxoid";
         }
       }
-      else if ( subOption == "reg" )
+      else if ( subOption == "reg" || subOption == "transform")
       {
         reg_fn = subArgu;
       }
-      else if ( subOption == "sample" )
+      else if ( subOption == "sample" || subOption == "resample" || subOption == "interpolation" )
       {
         if ( subArgu.toLower() == "nearest" )
         {
@@ -2688,7 +2688,8 @@ void MainWindow::CommandLoadDTI( const QStringList& sa )
             }
           }
         }
-        else if ( strg.left( n ).toLower() == "reg" )
+        else if ( strg.left( n ).toLower() == "reg" ||
+                  strg.left( n ).toLower() == "transform")
         {
           reg_fn = strg.mid( n + 1 );
         }
@@ -5770,6 +5771,10 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     std::cout << qPrintable(qobject_cast<LayerSurface*>(layer)->GetFileName()) << " saved successfully.\n";
     m_dlgRepositionSurface->UpdateUI();
   }
+  else if ( jobtype == ThreadIOWorker::JT_TransformVolume)
+  {
+    RequestRedraw();
+  }
 
   if (m_scripts.isEmpty())
   {
@@ -7253,7 +7258,6 @@ void MainWindow::OnGoToPointSet(bool center)
   }
 }
 
-
 void MainWindow::OnGoToSurfaceLabel(bool center)
 {
   LayerSurface* surf = (LayerSurface*)GetActiveLayer("Surface");
@@ -7769,4 +7773,30 @@ void MainWindow::ShowTractClusterMap()
 {
   m_wndTractCluster->show();
   m_wndTractCluster->raise();
+}
+
+void MainWindow::OnLoadVolumeTransform()
+{
+  LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI");
+  if (!mri)
+    return;
+
+  DialogLoadTransform dlg(this);
+  if ( dlg.exec() == QDialog::Accepted )
+  {
+    mri->SetRegFileName(dlg.GetFilename());
+    mri->SetSampleMethod(dlg.GetSampleMethod());
+    m_threadIOWorker->TransformVolume(mri);
+  }
+}
+
+void MainWindow::OnUnloadVolumeTransform()
+{
+  LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI");
+  if (!mri)
+    return;
+
+  QVariantMap args;
+  args["unload"] = true;
+  m_threadIOWorker->TransformVolume(mri, args);
 }
