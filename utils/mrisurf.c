@@ -57783,14 +57783,14 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 
     int k,j,i;
 
-    float  jToYMapBuffer[100];
     int    jToYMapSize = jmax - jmin + 1;
-    float* jToYMap = (jToYMapSize <= 256) ? jToYMapBuffer : (float*)malloc(jToYMapSize * sizeof(float));
+    float  jToYMapBuffer            [128];
+    float* jToYMap = (jToYMapSize <= 128) ? jToYMapBuffer : (float*)malloc(jToYMapSize * sizeof(float));
     for (j = jmin; j <= jmax; j++) jToYMap[j - jmin] = ySURF(mri_defect, j);
     
-    float  kToZMapBuffer[100];
     int    kToZMapSize = kmax - kmin + 1;
-    float* kToZMap = (kToZMapSize <= 256) ? kToZMapBuffer : (float*)malloc(kToZMapSize * sizeof(float));
+    float  kToZMapBuffer            [128];
+    float* kToZMap = (kToZMapSize <= 128) ? kToZMapBuffer : (float*)malloc(kToZMapSize * sizeof(float));
     for (k = kmin; k <= kmax; k++) kToZMap[k - kmin] = zSURF(mri_defect, k);
     
     for (i = imin; i <= imax; i++) {
