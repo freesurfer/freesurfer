@@ -214,6 +214,7 @@ libutils_main_SOURCES=\
 	selxavgio.c \
 	sig.c \
 	signa.c \
+        sort.c \
 	stats.c \
 	stc.c \
 	surfcluster.c \

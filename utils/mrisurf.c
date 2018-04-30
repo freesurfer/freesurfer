@@ -93,6 +93,7 @@ static const int debugNonDeterminism = 0;
 #include "proto.h"
 #include "realm.h"
 #include "selxavgio.h"
+#include "sort.h"
 #include "stats.h"
 #include "tags.h"
 #include "talairachex.h"
@@ -12444,7 +12445,11 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
     
       // sort it, so it is thread count independent
       //
+#if 0
       qsort(temp, tempSize, sizeof(int), int_compare);
+#else
+      sort_int(temp, tempSize, true);
+#endif
 
       if (false && debugNonDeterminism) {
         unsigned long hash = fnv_add(fnv_init(), (const unsigned char*)temp, tempSize*sizeof(int));
@@ -57093,6 +57098,19 @@ static void updateDistanceElt(volatile float* f, float distance, bool lockNeeded
   }
 }
 
+static void updateDistanceEltFromSignArgAndSquare(volatile float* f, float distanceSignArg, float distanceSquared, bool lockNeeded) {
+  // Avoid calculating the sqrt unless definitely needed
+  //
+  // This has problems if sqrtf(distanceSquared) == f and distanceSign is positive, because this would reject that solution
+  // when the above code would prefer it.  Hence the 1.01f margin of error.
+  //
+  // if (squaref(*f) < distanceSquared) return;
+  //
+  if (squaref(*f)*1.01f < distanceSquared) return;
+  
+  updateDistanceElt(f, SIGN(distanceSignArg)*sqrtf(distanceSquared), lockNeeded);
+}
+
 static double mrisComputeDefectMRILogUnlikelihood_wkr(
     ComputeDefectContext* computeDefectContext,
     MRI_SURFACE  * const mris_nonconst, 			            	// various subcomponents of these structures get updated
@@ -57288,7 +57306,11 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   int   const fnosCapacity = !realm ? 0    : realmNumberOfMightTouchFno(realm);
   int * const fnos         = !realm ? NULL : (int*)malloc(fnosCapacity*sizeof(int));
   int   const fnosSize     = !realm ? 0    : realmMightTouchFno(realm, fnos, fnosCapacity);
+#if 0
   qsort(fnos, fnosSize, sizeof(int), int_compare);
+#else
+  sort_int(fnos, fnosSize, true);
+#endif
   
   bool const   iterateOverFnos =
 #ifndef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
@@ -57546,7 +57568,11 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
         int const vno = face->v[vi];
         char alreadyDone;
 #ifdef HAVE_OPENMP
+#if GCC_VERSION >= 50400
+        #pragma omp atomic capture
+#else
         #pragma omp critical
+#endif
 #endif
         {  alreadyDone = done[vno]; 
            done[vno] = 1; 
@@ -57566,7 +57592,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 
   int bufferIndex;
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(shown_reproducible)
+  #pragma omp parallel for if_ROMP(shown_reproducible) schedule(guided)
 #endif
   for (bufferIndex = 0; bufferIndex < bufferSize; bufferIndex++) {
     ROMP_PFLB_begin
@@ -57783,14 +57809,14 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 
     int k,j,i;
 
-    float  jToYMapBuffer[100];
     int    jToYMapSize = jmax - jmin + 1;
-    float* jToYMap = (jToYMapSize <= 256) ? jToYMapBuffer : (float*)malloc(jToYMapSize * sizeof(float));
+    float  jToYMapBuffer            [128];
+    float* jToYMap = (jToYMapSize <= 128) ? jToYMapBuffer : (float*)malloc(jToYMapSize * sizeof(float));
     for (j = jmin; j <= jmax; j++) jToYMap[j - jmin] = ySURF(mri_defect, j);
     
-    float  kToZMapBuffer[100];
     int    kToZMapSize = kmax - kmin + 1;
-    float* kToZMap = (kToZMapSize <= 256) ? kToZMapBuffer : (float*)malloc(kToZMapSize * sizeof(float));
+    float  kToZMapBuffer            [128];
+    float* kToZMap = (kToZMapSize <= 128) ? kToZMapBuffer : (float*)malloc(kToZMapSize * sizeof(float));
     for (k = kmin; k <= kmax; k++) kToZMap[k - kmin] = zSURF(mri_defect, k);
     
     for (i = imin; i <= imax; i++) {
@@ -57846,8 +57872,6 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	  // and can check them against each other
 	  //	      
 	  float distanceToCxyzSquared = 0.0; bool predictedIrrelevant = false;
-       	  float new_distance  = 0.0f;
-	  float old_distance  = 0.0f;
 	    
       	  static long pointCount, pointLimit = 1000000, irrelevantPointCount;
 #if 0
@@ -57863,6 +57887,11 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	      if (!test_avoidable_prediction && predictedIrrelevant) 
 	      	continue;
 	  }
+
+       	  float new_distanceSquared = -1.0f;
+          float new_distanceSignArg = 0.0f;
+          float new_distance        = 0.0f;
+	  float old_distance        = 0.0f;
 
     	  // Complete the three vectors
 	  //
@@ -57978,7 +58007,8 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 #undef MAKE_LEAST_THIS
 
     		float least_sign = F_DOT(least_sign_lhs, least_sign_rhs);
-		new_distance = SIGN(least_sign)*sqrt(least_distance_squared);
+		new_distanceSignArg = least_sign;
+                new_distanceSquared = least_distance_squared;
               }
     	    }
     	    // end if (do_new_loop3)
@@ -58180,13 +58210,12 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	      (float)(pointCount -       irrelevantPointCount));
 	  }
 
-    	  // Choose the answer
-	  //	  
-	  float distance = do_new_loop3 ? new_distance : old_distance;
-
 	  // Compare the various answers when testing
 	  //
     	  if (test_avoidable_prediction && predictedIrrelevant) {
+            if (new_distanceSquared >= 0.0f) new_distance = SIGN(new_distanceSignArg) * sqrtf(new_distanceSquared);
+	    float distance = do_new_loop3 ? new_distance : old_distance;
+
      	    if (fabs(*ijkDistanceElt) > fabs(distance)) {
 	      fprintf(stdout, "%s:%d prediction failed!\n", __FILE__, __LINE__);
 	      fprintf(stdout, "do_new_MRIDistance:%d\n", do_new_MRIDistance);
@@ -58202,6 +58231,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	  }
 	  
 	  if (do_new_loop3 && do_old_loop3) {
+            if (new_distanceSquared >= 0.0f) new_distance = SIGN(new_distanceSignArg) * sqrtf(new_distanceSquared);
 	  
 	    // Sadly the old code compares the distances rather than the distances-squared
 	    // forcing it to take a sqrt before doing the comparison.  But sqrt can make unequal
@@ -58218,16 +58248,28 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
           //
           if (trace) fprintf(stdout, "  update distance for i:%d j:%d j:%d\n", i,j,k);
 
-    	  updateDistanceElt(ijkDistanceElt, distance, 
+          if (new_distanceSquared >= 0) {
+     	    updateDistanceEltFromSignArgAndSquare(ijkDistanceElt, new_distanceSignArg, new_distanceSquared,
 #ifdef HAVE_OPENMP
-	    do_old_MRIDistance
+	      do_old_MRIDistance
 #else
-    	    false
+    	      false
 #endif
-	    );
-	    
+	      );
+          } else {
+    	    updateDistanceElt(ijkDistanceElt, do_new_loop3 ? new_distance : old_distance, 
+#ifdef HAVE_OPENMP
+	      do_old_MRIDistance
+#else
+    	      false
+#endif
+	      );
+	  }
+          
 	  if (do_old_MRIDistance && do_new_MRIDistance) {
-	    updateDistanceElt(perThreadMRIDistanceElt(ptd, i,j,k), distance, false);
+            if (new_distanceSquared >= 0.0f) new_distance = SIGN(new_distanceSignArg) * sqrtf(new_distanceSquared);
+	    float distance = do_new_loop3 ? new_distance : old_distance;
+	    updateDistanceElt(&MRIFvox(mri_distance_nonconst, i, j, 0), distance, false);
 	  }
 	  
         } // k
