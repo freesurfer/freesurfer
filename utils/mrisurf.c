@@ -45452,7 +45452,23 @@ static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp);
 static int computePatchEulerNumber(MRIS *mris, DP *dp);
 static void orientDefectFaces(MRIS *mris, DP *dp);
 static void computeDefectFaceNormal(MRIS const * const mris, int const fno);
-static void computeDefectFaceNormals(MRIS *mris, DP *dp);
+
+typedef struct DefectFacesCache {
+    int  size;
+    int  capacity;
+    int* fnos;
+} DefectFacesCache;
+static void initDefectFacesCache(DefectFacesCache* p) { bzero(p, sizeof(*p)); }
+static void finiDefectFacesCache(DefectFacesCache* p) { freeAndNULL(p->fnos); }
+static void insertIntoDefectFacesCache(DefectFacesCache* p, int fno) {
+    if (p->size == p->capacity) { 
+        if (!(p->capacity *= 2)) p->capacity = 1000;
+        p->fnos = (int*)realloc(p->fnos, p->capacity * sizeof(int));
+    }
+    p->fnos[p->size++] = fno;
+}
+
+static void computeDefectFaceNormals(MRIS *mris, DP *dp, DefectFacesCache* dfc);
 static void computeDefectVertexNormals(MRIS *mris, DP *dp);
 static void computeDefectTangentPlaneAtVertex(MRIS *mris, int vno);
 static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp);
@@ -48653,7 +48669,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       F = 6 / (1 / rmin - 1 / rmax);
 
       while (niter--) {
-        computeDefectFaceNormals(mris, dp);
+        computeDefectFaceNormals(mris, dp, NULL);
         computeDefectVertexNormals(mris, dp);
 
         /* using the tmp vertices */
@@ -48806,7 +48822,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       F = 6 / (1 / rmin - 1 / rmax);
 
       // detect high curvatures vertices
-      computeDefectFaceNormals(mris, dp);
+      computeDefectFaceNormals(mris, dp, NULL);
       computeDefectVertexNormals(mris, dp);
 
       mean = var = 0.0;
@@ -48921,7 +48937,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
 
       break;
   }
-  computeDefectFaceNormals(mris, dp);
+  computeDefectFaceNormals  (mris, dp, NULL);
   computeDefectVertexNormals(mris, dp);
 }
 
@@ -49036,7 +49052,7 @@ static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, in
     }
 
     /* recompute normals */
-    computeDefectFaceNormals(mris, dp);
+    computeDefectFaceNormals(mris, dp, NULL);
     computeDefectVertexNormals(mris, dp);
   }
   if (vertices) {
@@ -49065,6 +49081,8 @@ static void defectMaximizeLikelihood_new(MRI *mri, MRI_SURFACE *mris, DP *dp, in
 
   int const nvertices = dp->tp.ninside; /* matching only for inside vertices */
 
+  DefectFacesCache defectFacesCache;
+  initDefectFacesCache(&defectFacesCache);
   while (niter--) {
 
     /* using the tmp vertices */
@@ -49140,9 +49158,10 @@ static void defectMaximizeLikelihood_new(MRI *mri, MRI_SURFACE *mris, DP *dp, in
     }
 
     /* recompute normals */
-    computeDefectFaceNormals  (mris, dp);
+    computeDefectFaceNormals  (mris, dp, &defectFacesCache);
     computeDefectVertexNormals(mris, dp);
   } // next iteration
+  finiDefectFacesCache(&defectFacesCache);
 }
 
 static void defectMaximizeLikelihood_old(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha)
@@ -49238,7 +49257,7 @@ static void defectMaximizeLikelihood_old(MRI *mri, MRI_SURFACE *mris, DP *dp, in
     }
 
     /* recompute normals */
-    computeDefectFaceNormals(mris, dp);
+    computeDefectFaceNormals(mris, dp, NULL);
     computeDefectVertexNormals(mris, dp);
   }
 }
@@ -49498,7 +49517,7 @@ static void computeDefectFaceNormal(MRIS const * const mris, int const fno)
 // FLO TO BE CHECKED
 #define TEMPORARY_RIPPED_FACE 2
 
-static void computeDefectFaceNormals(MRIS *mris, DP *dp)
+static void computeDefectFaceNormals(MRIS *mris, DP *dp, DefectFacesCache* dfc)
 {
   int i, n;
   VERTEX *v;
@@ -49507,6 +49526,14 @@ static void computeDefectFaceNormals(MRIS *mris, DP *dp)
 
   /* the tessellated patch */
   tp = &dp->tp;
+
+  if (dfc && dfc->size > 0) {
+    int const * const fnos = dfc->fnos;
+    for (i = 0; i < dfc->size; i++) {
+      computeDefectFaceNormal(mris, fnos[i]);   // measurement says this happens about 40 times per initDefectCache
+    }
+    return;
+  }
 
   /* compute faces only for modified vertices */
   for (i = 0; i < tp->nvertices; i++) {
@@ -49517,6 +49544,7 @@ static void computeDefectFaceNormals(MRIS *mris, DP *dp)
         continue; /* don't process a face twice */
       }
       computeDefectFaceNormal(mris, v->f[n]);
+      if (dfc) insertIntoDefectFacesCache(dfc,v->f[n]); 
       face->ripflag = TEMPORARY_RIPPED_FACE;
     }
   }
@@ -50597,7 +50625,7 @@ static double mrisDefectPatchFitness(
   computeDisplacement(mris_corrected, dp);
 
   /* compute the face normals on the surface*/
-  computeDefectFaceNormals(mris_corrected, dp);
+  computeDefectFaceNormals(mris_corrected, dp, NULL);
 
   /* compute vertex normals on original surface */
   // computeDefectVertexNormals(mris_corrected,dp);
