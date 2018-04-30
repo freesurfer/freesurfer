@@ -93,6 +93,7 @@ static const int debugNonDeterminism = 0;
 #include "proto.h"
 #include "realm.h"
 #include "selxavgio.h"
+#include "sort.h"
 #include "stats.h"
 #include "tags.h"
 #include "talairachex.h"
@@ -12444,7 +12445,11 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
     
       // sort it, so it is thread count independent
       //
+#if 0
       qsort(temp, tempSize, sizeof(int), int_compare);
+#else
+      sort_int(temp, tempSize, true);
+#endif
 
       if (false && debugNonDeterminism) {
         unsigned long hash = fnv_add(fnv_init(), (const unsigned char*)temp, tempSize*sizeof(int));
@@ -57301,7 +57306,11 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   int   const fnosCapacity = !realm ? 0    : realmNumberOfMightTouchFno(realm);
   int * const fnos         = !realm ? NULL : (int*)malloc(fnosCapacity*sizeof(int));
   int   const fnosSize     = !realm ? 0    : realmMightTouchFno(realm, fnos, fnosCapacity);
+#if 0
   qsort(fnos, fnosSize, sizeof(int), int_compare);
+#else
+  sort_int(fnos, fnosSize, true);
+#endif
   
   bool const   iterateOverFnos =
 #ifndef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
