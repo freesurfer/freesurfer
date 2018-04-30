@@ -8,7 +8,7 @@ unsetenv FREESURFER_mrisComputeDefectMRILogUnlikelihood_test_avoidable_predictio
 printenv | grep FREESURFER
 
 # 1 2 4 8
-foreach threads ( 4 )
+foreach threads ( 1 2 4 8 )
 
   # 2 -1
   foreach niters ( -1 )
@@ -71,6 +71,8 @@ foreach threads ( 4 )
               $cmd >& ../mris_fix_topology${extension}.log
         #opreport --callgraph > ../mris_fix_topology_oprofile_callgraph${extension}.txt
 
+        grep -H RUNTIME ../mris_fix_topology${extension}.log
+        
 	# cleanup
 
 	cd ..
