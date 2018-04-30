@@ -573,7 +573,7 @@ DMATRIX *DMatrixCopy(DMATRIX *msrc, DMATRIX *mcopy)
   }
   if(mcopy==NULL)
     mcopy = DMatrixAlloc(msrc->rows,msrc->cols,MATRIX_REAL);
-  err = DMatrixCheckDims(msrc, mcopy, 4, stdout, "DMatrixCopy(): ");
+  err = DMatrixCheckDims(msrc, mcopy, 3, stdout, "DMatrixCopy(): ");
   if(err) return(NULL);
   for(r=1; r <= msrc->rows; r++){
     for(c=1; c <= msrc->cols; c++){
