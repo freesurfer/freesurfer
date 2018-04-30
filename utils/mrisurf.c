@@ -862,14 +862,17 @@ static void deferSetFaceNorms(MRIS* mris) {
     }
     if (!use_parallel) {
         // It looks like there is not enough work to go parallel...
+#ifdef CHECK_DEFERED_NORMS
         int fno;
         for (fno = 0; fno < mris->nfaces; fno++) {
           FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
-#ifdef CHECK_DEFERED_NORMS
           computeDefectFaceNormal_calculate(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);  // compute it now so can check later
-#endif
           fNormDeferred->deferred = 3;  // compute them again later
         }
+#else
+        if (sizeof(mris->faceNormDeferredEntries[0]) != 1) *(int*)(-1) = 0;
+        memset(&mris->faceNormDeferredEntries[0], 3, mris->nfaces);
+#endif
     } else {
         int fno;
         ROMP_PF_begin  
@@ -49041,7 +49044,108 @@ static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, in
   }
 }
 
-static void defectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha)
+static void defectMaximizeLikelihood_new(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha);
+static void defectMaximizeLikelihood_old(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha);
+
+static void defectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha) {
+    return
+#if 1
+        defectMaximizeLikelihood_new
+#else
+        defectMaximizeLikelihood_old
+#endif
+            (mri, mris, dp, niter, alpha);
+}
+
+static void defectMaximizeLikelihood_new(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha)
+{
+  float const wm   = dp->defect->white_mean;
+  float const gm   = dp->defect->gray_mean;
+  float const mean = (wm + gm) * 0.5f;
+
+  int const nvertices = dp->tp.ninside; /* matching only for inside vertices */
+
+  while (niter--) {
+
+    /* using the tmp vertices */
+
+    int i;
+    for (i = 0; i < nvertices; i++) {
+
+      VERTEX* const v = &mris->vertices[dp->tp.vertices[i]];
+      float const x = v->origx;
+      float const y = v->origy;
+      float const z = v->origz;
+
+      /* smoothness term */
+      double xm = 0, ym = 0, zm = 0;
+      if (v->vnum > 0) {
+        int n;
+        for (n = 0; n < v->vnum; n++) {
+          VERTEX const * const vn = &mris->vertices[v->v[n]];
+          xm += vn->origx;
+          ym += vn->origy;
+          zm += vn->origz;
+        }
+
+        xm *= 1/(double)n;
+        ym *= 1/(double)n;
+        zm *= 1/(double)n;
+      }
+      
+      /* image gradient */
+      double const nx = v->nx;
+      double const ny = v->ny;
+      double const nz = v->nz;
+
+      double xv_lo,  yv_lo,  zv_lo;
+      double xv_mid, yv_mid, zv_mid;
+      double xv_hi,  yv_hi,  zv_hi;
+#if MATRIX_ALLOCATION
+      mriSurfaceRASToVoxel                  (x - 0.5 * nx, y - 0.5 * ny, z - 0.5 * nz, &xv_lo,  &yv_lo,  &zv_lo);
+      mriSurfaceRASToVoxel                  (x,            y,            z,            &xv_mid, &yv_mid, &zv_mid);
+      mriSurfaceRASToVoxel                  (x + 0.5 * nx, y + 0.5 * ny, z + 0.5 * nz, &xv_hi,  &yv_hi,  &zv_hi);
+#else
+      MRISsurfaceRASToVoxelCached(mris, mri, x - 0.5 * nx, y - 0.5 * ny, z - 0.5 * nz, &xv_lo,  &yv_lo,  &zv_lo);
+      MRISsurfaceRASToVoxelCached(mris, mri, x,            y,            z,            &xv_mid, &yv_mid, &zv_mid);
+      MRISsurfaceRASToVoxelCached(mris, mri, x + 0.5 * nx, y + 0.5 * ny, z + 0.5 * nz, &xv_hi,  &yv_hi,  &zv_hi);
+#endif
+
+      double white_val, val, gray_val;
+      MRIsampleVolume(mri, xv_lo,  yv_lo,  zv_lo,  &white_val);
+      MRIsampleVolume(mri, xv_mid, yv_mid, zv_mid, &val);
+      MRIsampleVolume(mri, xv_hi,  yv_hi,  zv_hi,  &gray_val);
+
+      double g = (white_val - gray_val) * (val - mean);
+      if (fabs(g) > 0.2) {
+        g = SIGN(g)*0.2;
+      }
+
+      double const dx = 0.5 * (xm - x) + g * nx;
+      double const dy = 0.5 * (ym - y) + g * ny;
+      double const dz = 0.5 * (zm - z) + g * nz;
+
+      v->tx = x + alpha * dx;
+      v->ty = y + alpha * dy;
+      v->tz = z + alpha * dz;
+    }
+
+    /* update orig vertices */
+    for (i = 0; i < nvertices; i++) {
+      VERTEX* const v = &mris->vertices[dp->tp.vertices[i]];
+      v->origx = v->tx;
+      v->origy = v->ty;
+      v->origz = v->tz;
+      noteVnoMovedInActiveRealmTrees(mris, dp->tp.vertices[i]);
+    }
+
+    /* recompute normals */
+    computeDefectFaceNormals  (mris, dp);
+    computeDefectVertexNormals(mris, dp);
+  } // next iteration
+}
+
+static void defectMaximizeLikelihood_old(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha)
 {
   float wm, gm, mean;
   int i, n, nvertices;
@@ -49390,7 +49494,7 @@ static void computeDefectFaceNormal(MRIS const * const mris, int const fno)
   setFaceOrigArea(mris, fno, orig_area);
 }
 
-/* used to temporary rip the faces of the defect so we don't proceed them many times */
+/* used to temporary rip the faces of the defect so we don't process them many times */
 // FLO TO BE CHECKED
 #define TEMPORARY_RIPPED_FACE 2
 
