@@ -290,7 +290,7 @@ mask_opened = dilate3d(erode3d(mask,Nopen),Nopen);
 fmask = fluid_mask_vol;                            
 ind = find(mask_opened ==0);
 fmask(ind) = zeros(size(ind));
-ind = find(fmask < 30) ;
+ind = find(fmask < fluidthresh) ;
 fmask(ind) = zeros(size(ind));
 
 % don't let things get too bright and compress the rest of the values
