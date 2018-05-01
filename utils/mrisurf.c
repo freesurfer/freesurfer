@@ -93,6 +93,7 @@ static const int debugNonDeterminism = 0;
 #include "proto.h"
 #include "realm.h"
 #include "selxavgio.h"
+#include "sort.h"
 #include "stats.h"
 #include "tags.h"
 #include "talairachex.h"
@@ -861,14 +862,17 @@ static void deferSetFaceNorms(MRIS* mris) {
     }
     if (!use_parallel) {
         // It looks like there is not enough work to go parallel...
+#ifdef CHECK_DEFERED_NORMS
         int fno;
         for (fno = 0; fno < mris->nfaces; fno++) {
           FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
-#ifdef CHECK_DEFERED_NORMS
           computeDefectFaceNormal_calculate(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);  // compute it now so can check later
-#endif
           fNormDeferred->deferred = 3;  // compute them again later
         }
+#else
+        if (sizeof(mris->faceNormDeferredEntries[0]) != 1) *(int*)(-1) = 0;
+        memset(&mris->faceNormDeferredEntries[0], 3, mris->nfaces);
+#endif
     } else {
         int fno;
         ROMP_PF_begin  
@@ -12444,7 +12448,11 @@ static void mrisAsynchronousTimeStep_optionalDxDyDzUpdate( // BEVIN mris_make_su
     
       // sort it, so it is thread count independent
       //
+#if 0
       qsort(temp, tempSize, sizeof(int), int_compare);
+#else
+      sort_int(temp, tempSize, true);
+#endif
 
       if (false && debugNonDeterminism) {
         unsigned long hash = fnv_add(fnv_init(), (const unsigned char*)temp, tempSize*sizeof(int));
@@ -45444,7 +45452,23 @@ static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp);
 static int computePatchEulerNumber(MRIS *mris, DP *dp);
 static void orientDefectFaces(MRIS *mris, DP *dp);
 static void computeDefectFaceNormal(MRIS const * const mris, int const fno);
-static void computeDefectFaceNormals(MRIS *mris, DP *dp);
+
+typedef struct DefectFacesCache {
+    int  size;
+    int  capacity;
+    int* fnos;
+} DefectFacesCache;
+static void initDefectFacesCache(DefectFacesCache* p) { bzero(p, sizeof(*p)); }
+static void finiDefectFacesCache(DefectFacesCache* p) { freeAndNULL(p->fnos); }
+static void insertIntoDefectFacesCache(DefectFacesCache* p, int fno) {
+    if (p->size == p->capacity) { 
+        if (!(p->capacity *= 2)) p->capacity = 1000;
+        p->fnos = (int*)realloc(p->fnos, p->capacity * sizeof(int));
+    }
+    p->fnos[p->size++] = fno;
+}
+
+static void computeDefectFaceNormals(MRIS *mris, DP *dp, DefectFacesCache* dfc);
 static void computeDefectVertexNormals(MRIS *mris, DP *dp);
 static void computeDefectTangentPlaneAtVertex(MRIS *mris, int vno);
 static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp);
@@ -48645,7 +48669,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       F = 6 / (1 / rmin - 1 / rmax);
 
       while (niter--) {
-        computeDefectFaceNormals(mris, dp);
+        computeDefectFaceNormals(mris, dp, NULL);
         computeDefectVertexNormals(mris, dp);
 
         /* using the tmp vertices */
@@ -48798,7 +48822,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       F = 6 / (1 / rmin - 1 / rmax);
 
       // detect high curvatures vertices
-      computeDefectFaceNormals(mris, dp);
+      computeDefectFaceNormals(mris, dp, NULL);
       computeDefectVertexNormals(mris, dp);
 
       mean = var = 0.0;
@@ -48913,7 +48937,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
 
       break;
   }
-  computeDefectFaceNormals(mris, dp);
+  computeDefectFaceNormals  (mris, dp, NULL);
   computeDefectVertexNormals(mris, dp);
 }
 
@@ -49028,7 +49052,7 @@ static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, in
     }
 
     /* recompute normals */
-    computeDefectFaceNormals(mris, dp);
+    computeDefectFaceNormals(mris, dp, NULL);
     computeDefectVertexNormals(mris, dp);
   }
   if (vertices) {
@@ -49036,7 +49060,111 @@ static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, in
   }
 }
 
-static void defectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha)
+static void defectMaximizeLikelihood_new(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha);
+static void defectMaximizeLikelihood_old(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha);
+
+static void defectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha) {
+    return
+#if 1
+        defectMaximizeLikelihood_new
+#else
+        defectMaximizeLikelihood_old
+#endif
+            (mri, mris, dp, niter, alpha);
+}
+
+static void defectMaximizeLikelihood_new(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha)
+{
+  float const wm   = dp->defect->white_mean;
+  float const gm   = dp->defect->gray_mean;
+  float const mean = (wm + gm) * 0.5f;
+
+  int const nvertices = dp->tp.ninside; /* matching only for inside vertices */
+
+  DefectFacesCache defectFacesCache;
+  initDefectFacesCache(&defectFacesCache);
+  while (niter--) {
+
+    /* using the tmp vertices */
+
+    int i;
+    for (i = 0; i < nvertices; i++) {
+
+      VERTEX* const v = &mris->vertices[dp->tp.vertices[i]];
+      float const x = v->origx;
+      float const y = v->origy;
+      float const z = v->origz;
+
+      /* smoothness term */
+      double xm = 0, ym = 0, zm = 0;
+      if (v->vnum > 0) {
+        int n;
+        for (n = 0; n < v->vnum; n++) {
+          VERTEX const * const vn = &mris->vertices[v->v[n]];
+          xm += vn->origx;
+          ym += vn->origy;
+          zm += vn->origz;
+        }
+
+        xm *= 1/(double)n;
+        ym *= 1/(double)n;
+        zm *= 1/(double)n;
+      }
+      
+      /* image gradient */
+      double const nx = v->nx;
+      double const ny = v->ny;
+      double const nz = v->nz;
+
+      double xv_lo,  yv_lo,  zv_lo;
+      double xv_mid, yv_mid, zv_mid;
+      double xv_hi,  yv_hi,  zv_hi;
+#if MATRIX_ALLOCATION
+      mriSurfaceRASToVoxel                  (x - 0.5 * nx, y - 0.5 * ny, z - 0.5 * nz, &xv_lo,  &yv_lo,  &zv_lo);
+      mriSurfaceRASToVoxel                  (x,            y,            z,            &xv_mid, &yv_mid, &zv_mid);
+      mriSurfaceRASToVoxel                  (x + 0.5 * nx, y + 0.5 * ny, z + 0.5 * nz, &xv_hi,  &yv_hi,  &zv_hi);
+#else
+      MRISsurfaceRASToVoxelCached(mris, mri, x - 0.5 * nx, y - 0.5 * ny, z - 0.5 * nz, &xv_lo,  &yv_lo,  &zv_lo);
+      MRISsurfaceRASToVoxelCached(mris, mri, x,            y,            z,            &xv_mid, &yv_mid, &zv_mid);
+      MRISsurfaceRASToVoxelCached(mris, mri, x + 0.5 * nx, y + 0.5 * ny, z + 0.5 * nz, &xv_hi,  &yv_hi,  &zv_hi);
+#endif
+
+      double white_val, val, gray_val;
+      MRIsampleVolume(mri, xv_lo,  yv_lo,  zv_lo,  &white_val);
+      MRIsampleVolume(mri, xv_mid, yv_mid, zv_mid, &val);
+      MRIsampleVolume(mri, xv_hi,  yv_hi,  zv_hi,  &gray_val);
+
+      double g = (white_val - gray_val) * (val - mean);
+      if (fabs(g) > 0.2) {
+        g = SIGN(g)*0.2;
+      }
+
+      double const dx = 0.5 * (xm - x) + g * nx;
+      double const dy = 0.5 * (ym - y) + g * ny;
+      double const dz = 0.5 * (zm - z) + g * nz;
+
+      v->tx = x + alpha * dx;
+      v->ty = y + alpha * dy;
+      v->tz = z + alpha * dz;
+    }
+
+    /* update orig vertices */
+    for (i = 0; i < nvertices; i++) {
+      VERTEX* const v = &mris->vertices[dp->tp.vertices[i]];
+      v->origx = v->tx;
+      v->origy = v->ty;
+      v->origz = v->tz;
+      noteVnoMovedInActiveRealmTrees(mris, dp->tp.vertices[i]);
+    }
+
+    /* recompute normals */
+    computeDefectFaceNormals  (mris, dp, &defectFacesCache);
+    computeDefectVertexNormals(mris, dp);
+  } // next iteration
+  finiDefectFacesCache(&defectFacesCache);
+}
+
+static void defectMaximizeLikelihood_old(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha)
 {
   float wm, gm, mean;
   int i, n, nvertices;
@@ -49129,7 +49257,7 @@ static void defectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int ni
     }
 
     /* recompute normals */
-    computeDefectFaceNormals(mris, dp);
+    computeDefectFaceNormals(mris, dp, NULL);
     computeDefectVertexNormals(mris, dp);
   }
 }
@@ -49347,7 +49475,7 @@ static void computeDefectFaceNormal_calculate(
   nz = norm[2];
 
   /* normalize */
-  float len = sqrt(nx * nx + ny * ny + nz * nz);
+  float len = sqrtf(nx * nx + ny * ny + nz * nz);
   if (FZERO(len)) {
     // TO BE CHECKED
     //          fprintf(WHICH_OUTPUT,"face with a null normal (%f,%f,%f) - (%f,%f,%f) -
@@ -49385,11 +49513,11 @@ static void computeDefectFaceNormal(MRIS const * const mris, int const fno)
   setFaceOrigArea(mris, fno, orig_area);
 }
 
-/* used to temporary rip the faces of the defect so we don't proceed them many times */
+/* used to temporary rip the faces of the defect so we don't process them many times */
 // FLO TO BE CHECKED
 #define TEMPORARY_RIPPED_FACE 2
 
-static void computeDefectFaceNormals(MRIS *mris, DP *dp)
+static void computeDefectFaceNormals(MRIS *mris, DP *dp, DefectFacesCache* dfc)
 {
   int i, n;
   VERTEX *v;
@@ -49398,6 +49526,14 @@ static void computeDefectFaceNormals(MRIS *mris, DP *dp)
 
   /* the tessellated patch */
   tp = &dp->tp;
+
+  if (dfc && dfc->size > 0) {
+    int const * const fnos = dfc->fnos;
+    for (i = 0; i < dfc->size; i++) {
+      computeDefectFaceNormal(mris, fnos[i]);   // measurement says this happens about 40 times per initDefectCache
+    }
+    return;
+  }
 
   /* compute faces only for modified vertices */
   for (i = 0; i < tp->nvertices; i++) {
@@ -49408,6 +49544,7 @@ static void computeDefectFaceNormals(MRIS *mris, DP *dp)
         continue; /* don't process a face twice */
       }
       computeDefectFaceNormal(mris, v->f[n]);
+      if (dfc) insertIntoDefectFacesCache(dfc,v->f[n]); 
       face->ripflag = TEMPORARY_RIPPED_FACE;
     }
   }
@@ -49445,7 +49582,7 @@ static void computeDefectVertexNormals(MRIS *mris, DP *dp)
       nz += fNorm->nz;
     }
     /* normalize */
-    len = sqrt(nx * nx + ny * ny + nz * nz);
+    len = sqrtf(nx * nx + ny * ny + nz * nz);
     if (FZERO(len)) {
       fprintf(WHICH_OUTPUT,
               "normal vector of length zero at vertex %d with %d faces\n",
@@ -50488,7 +50625,7 @@ static double mrisDefectPatchFitness(
   computeDisplacement(mris_corrected, dp);
 
   /* compute the face normals on the surface*/
-  computeDefectFaceNormals(mris_corrected, dp);
+  computeDefectFaceNormals(mris_corrected, dp, NULL);
 
   /* compute vertex normals on original surface */
   // computeDefectVertexNormals(mris_corrected,dp);
@@ -57072,7 +57209,7 @@ static void updateDistanceElt(volatile float* f, float distance, bool lockNeeded
     
 #ifdef HAVE_OPENMP
   if (lockNeeded) {
-    if (fabs(distance) > fabs(*f)) return;  	// avoid the lock if possible
+    if (fabsf(distance) > fabsf(*f)) return;  	// avoid the lock if possible
     #pragma omp critical
     updateDistanceElt(f, distance, false);
     return;
@@ -57085,9 +57222,51 @@ static void updateDistanceElt(volatile float* f, float distance, bool lockNeeded
   //
   // The solution is to have the positive be the preferred of two equal values.
   //
-  if (fabs(distance) < fabs(*f)) {
+  if (fabsf(distance) < fabsf(*f)) {
     *f = distance;	            
-  } else if (fabs(distance) == fabs(*f)) {
+  } else if (fabsf(distance) == fabsf(*f)) {
+    // They are equal.  Prefer the positive.
+    if (distance > 0) *f = distance;
+  }
+}
+
+static void updateDistanceEltFromSignArgAndSquareLockNeeded(volatile float* f, float distanceSignArg, float distanceSquared) {
+  // Avoid calculating the sqrt unless definitely needed
+  //
+  // The obvious test has problems if sqrtf(distanceSquared) == f and distanceSign is positive, because this would reject that solution
+  // when the above code would prefer it.  Hence the 1.01f margin of error.
+  //
+  // if (squaref(*f) < distanceSquared) return;
+  //
+  if (squaref(*f)*1.01f < distanceSquared) return;
+  
+  updateDistanceElt(f, SIGN(distanceSignArg)*sqrtf(distanceSquared), true);
+}
+
+static void updateDistanceEltFromSignArgAndSquareNoLockNeeded(
+    volatile float* f, 
+    float distanceSignArg, 
+    float distanceSquared,
+    float sqrtfDistanceSquared) {
+  // This function is performance-critical for mris_fix_topology, hence hand-optimized
+  //
+  // Avoid waiting for the sqrt unless definitely needed
+  //
+  // The obvious test has problems if sqrtf(distanceSquared) == f and distanceSign is positive, because this would reject that solution
+  // when the above code would prefer it.  Hence the 1.01f margin of error.
+  //
+  // if (squaref(*f) < distanceSquared) return;
+  //
+  if (squaref(*f)*1.01f < distanceSquared) return;          // don't wait for the sqrtf to complete if it is not needed
+  
+  float positiveDistance = sqrtfDistanceSquared;
+  if (positiveDistance > fabsf(*f)) return;
+
+  float distance = SIGN(distanceSignArg)*positiveDistance;
+  
+  if (positiveDistance < fabsf(*f)) {
+    *f = distance;	            
+  } else if (positiveDistance == fabsf(*f)) {
     // They are equal.  Prefer the positive.
     if (distance > 0) *f = distance;
   }
@@ -57288,7 +57467,11 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
   int   const fnosCapacity = !realm ? 0    : realmNumberOfMightTouchFno(realm);
   int * const fnos         = !realm ? NULL : (int*)malloc(fnosCapacity*sizeof(int));
   int   const fnosSize     = !realm ? 0    : realmMightTouchFno(realm, fnos, fnosCapacity);
+#if 0
   qsort(fnos, fnosSize, sizeof(int), int_compare);
+#else
+  sort_int(fnos, fnosSize, true);
+#endif
   
   bool const   iterateOverFnos =
 #ifndef mrisComputeDefectMRILogUnlikelihood_CHECK_USE_OF_REALM
@@ -57536,7 +57719,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     ROMP_PF_begin
     int bufferIndex;
 #ifdef HAVE_OPENMP
-    #pragma omp parallel for if_ROMP(shown_reproducible)
+    #pragma omp parallel for if_ROMP(shown_reproducible) schedule(guided)
 #endif
     for (bufferIndex = 0; bufferIndex < bufferSize; bufferIndex++) {
       Entry const * const entry = &buffer[bufferIndex];
@@ -57544,17 +57727,22 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
       int vi;
       for (vi = 0; vi < 3; vi++) {
         int const vno = face->v[vi];
-        char alreadyDone;
+        char alreadyDone = done[vno];
+        if (alreadyDone) continue;
+
 #ifdef HAVE_OPENMP
+#if GCC_VERSION >= 50400
+        #pragma omp atomic capture
+#else
         #pragma omp critical
+#endif
 #endif
         {  alreadyDone = done[vno]; 
            done[vno] = 1; 
         }
-        
         if (alreadyDone) continue;
+
         computeVertexPseudoNormal(mris, vno, sharedVertexPseudoNormalCache[vno].elts, dp->verbose_mode);
-	done[vno] = 1;
       }
     }
     ROMP_PF_end
@@ -57566,13 +57754,13 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 
   int bufferIndex;
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(shown_reproducible)
+  #pragma omp parallel for if_ROMP(shown_reproducible) schedule(dynamic, bufferSize/MAX(omp_get_max_threads()*4,32) )
 #endif
   for (bufferIndex = 0; bufferIndex < bufferSize; bufferIndex++) {
     ROMP_PFLB_begin
     int const tid = omp_get_thread_num();
     
-    bool const trace = traceTid0 && (tid == 0);
+    bool const trace = false; // traceTid0 && (tid == 0);
 
     typedef void p;	// poison p
     Entry const * entry = &buffer[bufferIndex];
@@ -57581,14 +57769,14 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     ENTRY_MEMBERS
 #undef ELT
 
-    int const imin = MAX(imin_nobnd, 0);
-    int const imax = MIN(imax_nobnd, mri_defect->width - 1);
+    long const imin = MAX(imin_nobnd, 0);
+    long const imax = MIN(imax_nobnd, mri_defect->width - 1);
 
-    int const jmin = MAX(jmin_nobnd, 0);
-    int const jmax = MIN(jmax_nobnd, mri_defect->height - 1);
+    long const jmin = MAX(jmin_nobnd, 0);
+    long const jmax = MIN(jmax_nobnd, mri_defect->height - 1);
 
-    int const kmin = MAX(kmin_nobnd, 0);
-    int const kmax = MIN(kmax_nobnd, mri_defect->depth - 1);
+    long const kmin = MAX(kmin_nobnd, 0);
+    long const kmax = MIN(kmax_nobnd, mri_defect->depth - 1);
 
     // Get the pseudonormals
     // My previous belief was they would not many would be needed by more than one threads, but maybe they are
@@ -57709,7 +57897,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	    	zmax = xSURF(mri_defect, kmax);
 	    fprintf(stdout, "%s:%d box %g..%g,%g..%g,%g..%g %g*%g*%g\n", __FILE__, __LINE__, 
 	    	xmin,xmax,ymin,ymax,zmin,zmax,xmax-xmin,ymax-ymin,zmax-zmin);
-	    fprintf(stdout, "%d..%d,%d..%d,%d..%d %d*%d*%d=%d\n",
+	    fprintf(stdout, "%ld..%ld,%ld..%ld,%ld..%ld %ld*%ld*%ld=%ld\n",
 	    	imin,imax,jmin,jmax,kmin,kmax,imax+1-imin,  jmax+1-jmin,  kmax+1-kmin,
 		                             (imax+1-imin)*(jmax+1-jmin)*(kmax+1-kmin));
 	}
@@ -57781,62 +57969,72 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     PerThreadMRIDistance* ptd = perThreadMRIDistances[tid];
     if (do_new_MRIDistance && !ptd) ptd = perThreadMRIDistances[tid] = makePerThreadMRIDistance(mri_distance);
 
-    int k,j,i;
+    long k,j,i;
 
-    float  jToYMapBuffer[100];
-    int    jToYMapSize = jmax - jmin + 1;
-    float* jToYMap = (jToYMapSize <= 256) ? jToYMapBuffer : (float*)malloc(jToYMapSize * sizeof(float));
+    long   jToYMapSize = jmax - jmin + 1;
+    float  jToYMapBuffer            [128];
+    float* jToYMap = (jToYMapSize <= 128) ? jToYMapBuffer : (float*)malloc(jToYMapSize * sizeof(float));
     for (j = jmin; j <= jmax; j++) jToYMap[j - jmin] = ySURF(mri_defect, j);
     
-    float  kToZMapBuffer[100];
-    int    kToZMapSize = kmax - kmin + 1;
-    float* kToZMap = (kToZMapSize <= 256) ? kToZMapBuffer : (float*)malloc(kToZMapSize * sizeof(float));
+    long   kToZMapSize = kmax - kmin + 1;
+    float  kToZMapBuffer            [128];
+    float* kToZMap = (kToZMapSize <= 128) ? kToZMapBuffer : (float*)malloc(kToZMapSize * sizeof(float));
     for (k = kmin; k <= kmax; k++) kToZMap[k - kmin] = zSURF(mri_defect, k);
     
+    long   kToDoBuffer[128];
+    long*  kToDo = (kToZMapSize <= 128) ? kToDoBuffer : (long*)malloc(kToZMapSize * sizeof(long));
+    long   kToDoSize = kToZMapSize;
+
+    for (k = kmin; k <= kmax; k++) kToDo[k - kmin] = k;
+        //
+        // By putting these in a buffer, I hope to avoid a lot of branch mispredicts that were resulting
+        // in lots of cancelled floating point ops below
+           
     for (i = imin; i <= imax; i++) {
       	  float const x = xSURF(mri_defect, i);
           vec0[0] = x - x0;
           vec1[0] = x - x1;
           vec2[0] = x - x2;
-          vec [0] = (vec0[0] + vec1[0] + vec2[0]) / 3.0;
+          vec [0] = (vec0[0] + vec1[0] + vec2[0]) * 0.3333333f;
 
       for (j = jmin; j <= jmax; j++) {
           float const y = jToYMap[j - jmin];
           vec0[1] = y - y0;
           vec1[1] = y - y1;
           vec2[1] = y - y2;
-          vec [1] = (vec0[1] + vec1[1] + vec2[1]) / 3.0;
+          vec [1] = (vec0[1] + vec1[1] + vec2[1]) * 0.3333333f;
 
         float const partialPythagorasSum = squaref(x-cx) + squaref(y-cy);
 	
         float* const ijkDistances =
             do_new_MRIDistance ? perThreadMRIDistanceElt(ptd, i,j,0) : &MRIFvox(mri_distance_nonconst, i, j, 0);
                   
-        for (k = kmin; k <= kmax; k++) {
-          float zt = kToZMap[k - kmin];
+        if (use_fast_avoidable_prediction && !test_avoidable_prediction) {
 
-	  if (use_fast_avoidable_prediction && !test_avoidable_prediction) {
-	    
-	    // This path is so important I have hand-optimized it
+	    // This path is so important I have hand-optimized it.
+            //
 	    // It skips over all the predictedIrrelevant k's
 	    // This path does not yet have a specific correctness test
+            //
+            // By moving it out of the following loop, there may be more overlapping of the floating point operations and the memory traffic
+            // and fewer branch mispredicts
+            // and more opportunities for unrolling and for vector operations and for cse's
 	    //
-            for (;;) {
-    	        float const ijkDistance           = ijkDistances[k];
-	    	float const distanceToCxyzSquared = partialPythagorasSum + squaref(zt-cz);
-                //oat const distanceToCxyz        = sqrtf(distanceToCxyzSquared) * 0.99f;  // margin for error included
-		bool predictedIrrelevant = distanceToCxyzSquared*0.98f > squaref(fabs(ijkDistance) + furtherestVertexDistance);
-		if (!predictedIrrelevant) goto RelevantK;
-		k++;
-		if (k > kmax) break;
-		zt = kToZMap[k - kmin]; 
-	    }
-	    break;  	    	    // no relevant K found
-    	  
-	    RelevantK:;
-	  }
+            kToDoSize = 0;
+            for (k = kmin; k <= kmax; k++) {
+                kToDo[kToDoSize] = k;
+                float zt                    = kToZMap[k - kmin];
+                float ijkDistance           = ijkDistances[k];
+                float distanceToCxyzSquared = partialPythagorasSum + squaref(zt-cz);
+                kToDoSize += ((distanceToCxyzSquared*0.98f <= (squaref(fabsf(ijkDistance) + furtherestVertexDistance))));
+            }
+        }
+        
+        long kToDoIndex;
+        for (kToDoIndex = 0; kToDoIndex < kToDoSize; kToDoIndex++) {
+          k = kToDo[kToDoIndex];
 
-    	  float const z = zt;
+    	  float const z = kToZMap[k - kmin];
 	  
     	  // Here is the minimum distance to update
 	  //
@@ -57846,8 +58044,6 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	  // and can check them against each other
 	  //	      
 	  float distanceToCxyzSquared = 0.0; bool predictedIrrelevant = false;
-       	  float new_distance  = 0.0f;
-	  float old_distance  = 0.0f;
 	    
       	  static long pointCount, pointLimit = 1000000, irrelevantPointCount;
 #if 0
@@ -57858,11 +58054,16 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	  //
     	  if (use_avoidable_prediction && test_avoidable_prediction) {
 	      distanceToCxyzSquared = partialPythagorasSum + squaref(z-cz);
-	      predictedIrrelevant   =  distanceToCxyzSquared*0.98f > squaref(fabs(*ijkDistanceElt) + furtherestVertexDistance);
+	      predictedIrrelevant   =  distanceToCxyzSquared*0.98f > squaref(fabsf(*ijkDistanceElt) + furtherestVertexDistance);
 	      if (predictedIrrelevant) irrelevantPointCount++;
 	      if (!test_avoidable_prediction && predictedIrrelevant) 
 	      	continue;
 	  }
+
+       	  float new_distanceSquared = -1.0f;
+          float new_distanceSignArg = 0.0f;
+          float new_distance        = 0.0f;
+	  float old_distance        = 0.0f;
 
     	  // Complete the three vectors
 	  //
@@ -57872,7 +58073,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	  
           if (true) {
 	  
-            vec[2] = (vec0[2] + vec1[2] + vec2[2]) / 3.0;
+            vec[2] = (vec0[2] + vec1[2] + vec2[2]) * 0.3333333f;
 
             /* compute distance to face */
             /* where is the point */
@@ -57978,7 +58179,8 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 #undef MAKE_LEAST_THIS
 
     		float least_sign = F_DOT(least_sign_lhs, least_sign_rhs);
-		new_distance = SIGN(least_sign)*sqrt(least_distance_squared);
+		new_distanceSignArg = least_sign;
+                new_distanceSquared = least_distance_squared;
               }
     	    }
     	    // end if (do_new_loop3)
@@ -58180,14 +58382,13 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	      (float)(pointCount -       irrelevantPointCount));
 	  }
 
-    	  // Choose the answer
-	  //	  
-	  float distance = do_new_loop3 ? new_distance : old_distance;
-
 	  // Compare the various answers when testing
 	  //
     	  if (test_avoidable_prediction && predictedIrrelevant) {
-     	    if (fabs(*ijkDistanceElt) > fabs(distance)) {
+            if (new_distanceSquared >= 0.0f) new_distance = SIGN(new_distanceSignArg) * sqrtf(new_distanceSquared);
+	    float distance = do_new_loop3 ? new_distance : old_distance;
+
+     	    if (fabsf(*ijkDistanceElt) > fabsf(distance)) {
 	      fprintf(stdout, "%s:%d prediction failed!\n", __FILE__, __LINE__);
 	      fprintf(stdout, "do_new_MRIDistance:%d\n", do_new_MRIDistance);
 	      fprintf(stdout, "c (%g, %g, %g)\n", cx,cy,cz);
@@ -58195,45 +58396,66 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	      fprintf(stdout, "distanceToCxyz %g\n", sqrt(distanceToCxyzSquared));
 	      fprintf(stdout, "distanceToCxyz - furtherestVertexDistance:%g\n", sqrt(distanceToCxyzSquared) - furtherestVertexDistance);
 	      fprintf(stdout, "ijk (%g, %g, %g)\n", x,y,z);
-	      fprintf(stdout, "fabs(distance) %g\n", fabs(distance));
-	      fprintf(stdout, "fabs(*ijkDistanceElt) %g\n\n", fabs(*ijkDistanceElt));
+	      fprintf(stdout, "fabsf(distance) %g\n", fabsf(distance));
+	      fprintf(stdout, "fabsf(*ijkDistanceElt) %g\n\n", fabsf(*ijkDistanceElt));
 	      exit(1);
 	    }
 	  }
 	  
 	  if (do_new_loop3 && do_old_loop3) {
+            if (new_distanceSquared >= 0.0f) new_distance = SIGN(new_distanceSignArg) * sqrtf(new_distanceSquared);
 	  
 	    // Sadly the old code compares the distances rather than the distances-squared
 	    // forcing it to take a sqrt before doing the comparison.  But sqrt can make unequal
 	    // things equal, so the old code might select a different sign distance than the new.
 	    //
-	    if (!closeEnough(fabs(new_distance), fabs(old_distance))) {
+	    if (!closeEnough(fabsf(new_distance), fabsf(old_distance))) {
 	      fprintf(stdout, "%s:%d new_distance:%g not near old_distance:%g,  magnitude diff:%g\n", __FILE__, __LINE__, 
-	      	new_distance, old_distance, fabs(new_distance)-fabs(old_distance));
+	      	new_distance, old_distance, fabsf(new_distance)-fabsf(old_distance));
 	      exit(1);
 	    }
 	  }
 	  
           // update distance map
           //
-          if (trace) fprintf(stdout, "  update distance for i:%d j:%d j:%d\n", i,j,k);
+          if (trace) fprintf(stdout, "  update distance for i:%ld j:%ld j:%ld\n", i,j,k);
 
-    	  updateDistanceElt(ijkDistanceElt, distance, 
+          if (new_distanceSquared >= 0) {
+            bool const lockNeeded =
 #ifdef HAVE_OPENMP
-	    do_old_MRIDistance
+	      do_old_MRIDistance;
 #else
-    	    false
+    	      false;
 #endif
-	    );
+     	    if (lockNeeded) updateDistanceEltFromSignArgAndSquareLockNeeded  (ijkDistanceElt, new_distanceSignArg, new_distanceSquared);
+            else            updateDistanceEltFromSignArgAndSquareNoLockNeeded(
+                                ijkDistanceElt, 
+                                new_distanceSignArg, 
+                                new_distanceSquared,
+                                sqrtf(new_distanceSquared));    // start this as soon as possible - the unit is idle, and the result
+                                                                // is discarded if not needed
 	    
+          } else {
+    	    updateDistanceElt(ijkDistanceElt, do_new_loop3 ? new_distance : old_distance, 
+#ifdef HAVE_OPENMP
+	      do_old_MRIDistance
+#else
+    	      false
+#endif
+	      );
+	  }
+          
 	  if (do_old_MRIDistance && do_new_MRIDistance) {
-	    updateDistanceElt(perThreadMRIDistanceElt(ptd, i,j,k), distance, false);
+            if (new_distanceSquared >= 0.0f) new_distance = SIGN(new_distanceSignArg) * sqrtf(new_distanceSquared);
+	    float distance = do_new_loop3 ? new_distance : old_distance;
+	    updateDistanceElt(&MRIFvox(mri_distance_nonconst, i, j, 0), distance, false);
 	  }
 	  
         } // k
       } // j
     } // i
 
+    if (kToDo != kToDoBuffer) freeAndNULL(kToDo);
     if (kToZMap != kToZMapBuffer) freeAndNULL(kToZMap);
     if (jToYMap != jToYMapBuffer) freeAndNULL(jToYMap);
     

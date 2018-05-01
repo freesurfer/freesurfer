@@ -13,6 +13,7 @@ set norecon=0
 set cerebellum = ()
 set opts=()
 set run_bet = 0 ;
+set mask_vol = 0
 unset hemi
 set cmdline = ($argv);
 while( $#argv != 0 )
@@ -52,6 +53,10 @@ while( $#argv != 0 )
        echo make sure to set the SUBJECTS_DIR first
        exit 1 ;
        breaksw ;
+     case "-mask":
+	set mask_vol = 1
+	set mask_fname = $argv[1]; shift;
+       breaksw ;
      case "-run_bet":
      case "-runbet":
      case "-bet":
@@ -63,17 +68,11 @@ while( $#argv != 0 )
      case "-renorm":
        set ifile=$argv[1]; shift;
        breaksw ;
+     case "-fluidthresh"
+       setenv fluidthresh $argv[1]; shift;
+       breaksw 
 
-# these are all pass through commands with no argument
-       default: 
-    case "-no-cerebellum":
-    case "-nocerebellum":
-    case "-NO-CEREBELLUM":
-    case "-NOCEREBELLUM":
-    case "-notalairach":
-    case "-noskullstrip":
-       set opts = ($opts $flag)
-       breaksw
+
 
      case "-i":
        set base=$argv[1]; shift;
@@ -87,6 +86,16 @@ while( $#argv != 0 )
        if ( $#argv < 1) goto arg1err;
        set opts = ($opts $flag $1)
        breaksw ;
+# these are all pass through commands with no argument
+       default: 
+    case "-no-cerebellum":
+    case "-nocerebellum":
+    case "-NO-CEREBELLUM":
+    case "-NOCEREBELLUM":
+    case "-notalairach":
+    case "-noskullstrip":
+       set opts = ($opts $flag)
+       breaksw
   endsw
 end
 
@@ -174,6 +183,10 @@ end
 compute_label_vals.csh
 matlab < $FREESURFER_HOME/matlab/compute_opt_volume.m
 mri_convert $odir/fluid_mask.mgz $odir/fluid_mask.nii.gz
+if ($mask_vol) then
+    mri_mask $odir/opt.mgz ${mask_fname} $odir/opt.mgz
+endif
+
 if ($run_bet) then
   bet $odir/fluid_mask.nii.gz $odir/brainmask.nii.gz
   mri_convert $odir/brainmask.nii.gz $odir/brainmask.mgz

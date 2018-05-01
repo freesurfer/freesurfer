@@ -119,9 +119,9 @@ int main(int argc, char *argv[])
   std::cout << "avg d:    " << d_avg << std::endl;
   std::cout << "avg mean: " << mean_avg << std::endl;
 
-  if (!FEQUAL(val_avg, 80.10114288)) { err = 1; }
-  if (!FEQUAL(d_avg, -0.26251045))   { err = 1; }
-  if (!FEQUAL(mean_avg, 6.81254005)) { err = 1; }
+  if (!FEQUAL(val_avg, 80.09034729)) { err = 1; }
+  if (!FEQUAL(d_avg, -0.26023445))   { err = 1; }
+  if (!FEQUAL(mean_avg, 6.81196499)) { err = 1; }
   if (err == 1)
   {
     std::cout << "surface vertex stats DO NOT match reference data!\n";

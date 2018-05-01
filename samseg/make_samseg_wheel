@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+readonly MAKE_SAMSEG_PROGRAM_NAME=$(basename $0)
+
+make_samseg_main() {
+    local visualization_arg=''
+
+    while getopts ":hn-:" arg; do
+        case "${arg}" in
+            h)
+                make_samseg_usage
+                exit 0
+                ;;
+            n)
+                visualization_arg="--no-visualization"
+                echo "Setting visualization off"
+                ;;
+            -)
+                case "${OPTARG}" in
+                    "no-visualization")
+                        visualization_arg="--no-visualization"
+                        echo "Setting visualization off"
+                        ;;
+                    "help")
+                        make_samseg_usage
+                        exit 0
+                        ;;
+                 esac
+                 ;;
+             *)
+                echo "unknown arguments $@"
+                usage
+                exit 1
+                ;;
+        esac
+    done
+    python setup.py bdist_wheel $visualization_arg && pip install dist/*.whl
+
+}
+
+make_samseg_usage() {
+cat <<-EOF
+usage: $MAKE_SAMSEG_PROGRAM_NAME options
+
+Makes and then installs samseg packages.
+
+OPTIONS:
+    -h, --help               Print this usage message
+    -n, --no-visualization   Builds with no visualization and no dependency on Qt5
+                             Default is to include visualization
+
+Examples:
+    Make with visualization:
+    $MAKE_SAMSEG_PROGRAM_NAME
+
+    Make with no visualization:
+    $MAKE_SAMSEG_PROGRAM_NAME -n
+
+EOF
+}
+
+make_samseg_main "$@"
