@@ -31,6 +31,7 @@
 #include "minc_volume_io.h"
 #include "const.h"
 #include "matrix.h"
+#include "dmatrix.h"
 
 #define MAX_SURFACES 20
 #define TALAIRACH_COORDS     0
@@ -113,9 +114,12 @@ typedef struct edge_type_
   int edgeno; // this face no
   int vtxno[4]; // vertex numbers of 2 ends + 2 opposites
   int faceno[2]; // two adjacent faces
-  unsigned char corner[2][4]; // corner[faceno][nthvtx];
+  unsigned char corner[4][2]; // corner[nthvtx][faceno]
+  double len; // length of the edge
+  double dot; // dot product of the adjacent face normals
+  double angle; // angle (deg) of the adjacent face normals
   double J; // Angle Cost of this edge
-  MATRIX *gradJ[4]; // 3x1 grad of J wrt 4 vertices
+  DMATRIX *gradDot[4]; // 3x3 grad of dot product wrt 4 vertices
 } MRI_EDGE;
 
 typedef struct face_type_
@@ -128,8 +132,8 @@ typedef struct face_type_
   ELTT(char,ripflag) SEP                        /* ripped face */    \
   ELTT(char,oripflag) SEP                       /* stored version */    \
   ELTT(int,marked) SEP                          /* marked face */    \
-  ELTP(MATRIX,norm) SEP  /* 3x1 normal vector */ \
-  ELTP(MATRIX,gradNorm[3]) SEP  /* 3x3 Gradient of the normal wrt each of the 3 vertices*/ 
+  ELTP(DMATRIX,norm) SEP  /* 3x1 normal vector */ \
+  ELTP(DMATRIX,gradNorm[3]) SEP  /* 3x3 Gradient of the normal wrt each of the 3 vertices*/ 
     // end of macro
 
 #if 0
@@ -2461,7 +2465,5 @@ int MRISmeasureLaplaceStreamlines(MRI_SURFACE *mris, MRI *mri_laplace, MRI *mri_
 MRI *MRISsolveLaplaceEquation(MRI_SURFACE *mris, MRI *mri, double res) ;
 int MRIScountEdges(MRIS *surf);
 int MRISedges(MRIS *surf);
-int MRISfaceNormalGrad(MRIS *surf, int faceno, int NormOnly);
-int MRISfaceNormalGradTest(MRIS *surf, char *surfpath);
 
 #endif // MRISURF_H
