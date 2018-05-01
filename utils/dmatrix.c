@@ -238,10 +238,8 @@ int DMatrixTest(void)
     printf("];\n");
   }
   else printf("passed\n");
-<<<<<<< HEAD
-  
-=======
->>>>>>> 78b9ca6e1a0808baad91e50409a7a0160dbe3f2d
+  MatrixFree(&mf);
+  DMatrixFree(&md);
 
   printf("DMatrix: testing matrix dot ...");
   vf = VectorDot(m1f,m2f);
