@@ -45,10 +45,10 @@ typedef struct
 #ifdef HAVE_OPENMP
   omp_lock_t     bucket_lock;
 #endif
-  MRIS_HASH_BIN  *bins ;
-  int            max_bins ;
-  int            nused ;
-  int            xsize, ysize, zsize ;
+  MRIS_HASH_BIN  * const bins ;
+  int              const max_bins ;
+  int                    nused ;
+  int                    size, ysize, zsize ;
 } MRIS_HASH_BUCKET, MHBT ;
 
 
