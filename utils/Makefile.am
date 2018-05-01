@@ -148,6 +148,7 @@ libutils_main_SOURCES=\
 	MARS_DT_Boundary.c \
 	matfile.c \
 	matrix.c \
+	dmatrix.c \
 	mgh_filter.c \
         mgh_malloc.c \
 	mgh_matrix.c \
@@ -218,6 +219,7 @@ libutils_main_SOURCES=\
 	stats.c \
 	stc.c \
 	surfcluster.c \
+	surfgrad.c \
 	svm.c \
 	tags.c \
 	talairachex.c \

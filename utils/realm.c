@@ -41,7 +41,7 @@
 
 #include "fnv_hash.h"
 
-static int chkBnd(int lo, int b, int hi) {
+static inline __attribute__((always_inline)) int chkBnd(int lo, int b, int hi) {
     costlyAssert(lo <= b);
     costlyAssert(b < hi);
     return b;
@@ -896,13 +896,18 @@ static RealmTreeNode* insertVnoIntoNode(
 }
 
 static void removeVnoFromRealmTree(RealmTree* realmTree, int vno) {
-
     RealmTreeNode* n = realmTree->vnoToRealmTreeNode[chkBnd(0, vno, realmTree->saved_nvertices)];
     realmTree->vnoToRealmTreeNode[vno] = NULL;
     {
+        // find it, backwards since the active ones are at end
+	//
         int vi;
-        for (vi = n->vnosSize - 1; n->vnos[vi] != vno; vi--);                   // find it, backwards since the active ones are at end
-        do { n->vnos[vi] = n->vnos[vi+1]; } while (++vi < n->vnosSize - 1);     // remove it
+        for (vi = n->vnosSize - 1; n->vnos[vi] != vno; vi--) { }
+	                   
+	// found at vi, shrink the list
+	//
+        for (; vi+1 < n->vnosSize; vi++)  { n->vnos[vi] = n->vnos[vi+1]; }  // remove it
+	n->vnosSize--;
     }
 }
 
@@ -1750,8 +1755,13 @@ struct GreatArcSet {
     int*    loVnos;                             // beginning vno of the great arc
     int*    hiVnos;                             // ending vno of the great arc
 
+    int     passedClock;
     int*    passed;                             // used during one callback to note those passed to de-duplicate the multiple cells
-    
+                //
+                // When the passed[i] == passedClock, the index is in the set
+                // When the passed[i] <  passedClock, the index is NOT in the set
+                // This makes it possible to remove all elements from the set by simply incrementing the passedClock
+                
     IntersectionSupport* intersectionSupport;   
         
     int     pairHeadsPlus1[PAIRS_HEADS_SIZE];   // a hash table, indexs into pairs
@@ -1858,11 +1868,13 @@ void freeGreatArcSet(GreatArcSet** setPtr) {
     freeAndNULL(set->hiVnos);
     freeAndNULL(set->loVnos);
     freeAndNULL(set->keys);
+    freeAndNULL(set);
 }
 
 GreatArcSet* makeGreatArcSet(MRIS* mris) {
     GreatArcSet* set = (GreatArcSet*)calloc(1, sizeof(GreatArcSet));
-    set->mris = mris;
+    set->mris        = mris;
+    set->passedClock = 1;
     return set;
 }
 
@@ -2080,7 +2092,6 @@ static bool possiblyIntersectingCell(GreatArcSet* set,
         bool* isHit),               // returns true if should keep going, false if no more needed
     Cell* cell,
     bool  tracing,
-    int*  pFirstPassedPlus1,
     int*  pCallBackCount,
     int*  pCallBackFirstFound,
     bool  doFastIntersectionTest,
@@ -2093,9 +2104,8 @@ static bool possiblyIntersectingCell(GreatArcSet* set,
 
         // eliminate duplicates
         //
-        if (set->passed[index]) continue;           // in list, hence this is a duplicate
-        set->passed[index] = *pFirstPassedPlus1;    // prepend to list
-        *pFirstPassedPlus1 = index + 1;
+        if (set->passed[index] == set->passedClock) continue;   // in the set, hence this is a duplicate
+        set->passed[index] = set->passedClock;                  // add to the set
 
         // If shared vertex, don't intersect
         //
@@ -2450,8 +2460,6 @@ void possiblyIntersectingGreatArcs(GreatArcSet* set,
     //
     int callBackCount = 0, callBackFirstFound = -1;
 
-    int firstPassedPlus1 = -1;  // 0 means not passed, -1 means end of list
-    
     static long localCount;
 
     int wI,hI;
@@ -2460,7 +2468,7 @@ void possiblyIntersectingGreatArcs(GreatArcSet* set,
         Cell* cell = getCell(set,wI,hI);
         localCount += cell->size;           
         if (possiblyIntersectingCell(set, callbackCtx, callback, cell, 
-                tracing, &firstPassedPlus1, &callBackCount, &callBackFirstFound,
+                tracing, &callBackCount, &callBackFirstFound,
                 !(universal_cell0 || universal_cell1),
                 vno0, vno1,
                 w0, h0, w1, h1)) goto Found;
@@ -2478,7 +2486,7 @@ void possiblyIntersectingGreatArcs(GreatArcSet* set,
     }
 
     if (possiblyIntersectingCell(set, callbackCtx, callback, &set->cells[UNIVERSAL_CELL], 
-                tracing, &firstPassedPlus1, &callBackCount, &callBackFirstFound,
+                tracing, &callBackCount, &callBackFirstFound,
                 false,
                 vno0, vno1,
                 w0, h0, w1, h1)) goto Found;
@@ -2486,11 +2494,12 @@ void possiblyIntersectingGreatArcs(GreatArcSet* set,
 Found:
     // Reset the passed list
     //
-    {   int index;
-        while ((index = firstPassedPlus1 - 1) >= 0) {
-            firstPassedPlus1 = set->passed[index];
-            set->passed[index] = 0;
-        }
+    set->passedClock++;
+    if (set->passedClock > 1000000000) {
+        // It is HIGHLY unlikely this code will ever execute
+        int index;
+        for (index = 0; index < set->capacity; index++) set->passed[index] = 0;
+        set->passedClock = 1;
     }
     
     // Done

@@ -68,21 +68,11 @@ while( $#argv != 0 )
      case "-renorm":
        set ifile=$argv[1]; shift;
        breaksw ;
-
-# these are all pass through commands with no argument
-       default: 
-    case "-no-cerebellum":
-    case "-nocerebellum":
-    case "-NO-CEREBELLUM":
-    case "-NOCEREBELLUM":
-    case "-notalairach":
-    case "-noskullstrip":
-       set opts = ($opts $flag)
-       breaksw
-
      case "-fluidthresh"
        setenv fluidthresh $argv[1]; shift;
        breaksw 
+
+
 
      case "-i":
        set base=$argv[1]; shift;
@@ -96,6 +86,16 @@ while( $#argv != 0 )
        if ( $#argv < 1) goto arg1err;
        set opts = ($opts $flag $1)
        breaksw ;
+# these are all pass through commands with no argument
+       default: 
+    case "-no-cerebellum":
+    case "-nocerebellum":
+    case "-NO-CEREBELLUM":
+    case "-NOCEREBELLUM":
+    case "-notalairach":
+    case "-noskullstrip":
+       set opts = ($opts $flag)
+       breaksw
   endsw
 end
 

@@ -862,14 +862,17 @@ static void deferSetFaceNorms(MRIS* mris) {
     }
     if (!use_parallel) {
         // It looks like there is not enough work to go parallel...
+#ifdef CHECK_DEFERED_NORMS
         int fno;
         for (fno = 0; fno < mris->nfaces; fno++) {
           FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
-#ifdef CHECK_DEFERED_NORMS
           computeDefectFaceNormal_calculate(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);  // compute it now so can check later
-#endif
           fNormDeferred->deferred = 3;  // compute them again later
         }
+#else
+        if (sizeof(mris->faceNormDeferredEntries[0]) != 1) *(int*)(-1) = 0;
+        memset(&mris->faceNormDeferredEntries[0], 3, mris->nfaces);
+#endif
     } else {
         int fno;
         ROMP_PF_begin  
@@ -2045,9 +2048,9 @@ int MRISfree(MRI_SURFACE **pmris)
   }
   if(mris->faces) {
     for(faceno = 0; faceno < mris->nfaces; faceno++){
-      if(mris->faces[faceno].norm) MatrixFree(&mris->faces[faceno].norm);
+      if(mris->faces[faceno].norm) DMatrixFree(&mris->faces[faceno].norm);
       for(k=0; k < 3; k++){
-	if(mris->faces[faceno].gradNorm[k]) MatrixFree(&mris->faces[faceno].gradNorm[k]);
+	if(mris->faces[faceno].gradNorm[k]) DMatrixFree(&mris->faces[faceno].gradNorm[k]);
       }
     }
     free(mris->faces);
@@ -2055,7 +2058,7 @@ int MRISfree(MRI_SURFACE **pmris)
   if(mris->edges) {
     for(e=0; e < mris->nedges; e++){
       for(k=0; k<4; k++){
-	if(mris->edges[e].gradJ[k]) MatrixFree(&mris->edges[e].gradJ[k]);
+	if(mris->edges[e].gradDot[k]) DMatrixFree(&mris->edges[e].gradDot[k]);
       }
     }
     free(mris->edges);
@@ -11711,6 +11714,8 @@ static int MRIScomputeTriangleProperties_old(MRI_SURFACE *mris, bool old_done)
 #ifdef BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_REPRODUCIBLE
 static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
 {
+  int const max_threads = omp_get_max_threads();
+  
   // This is the new code, that can compare its answers with the old code
   //
 #ifdef BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_CHECK
@@ -11733,7 +11738,7 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
   VECTOR *v_a[_MAX_FS_THREADS], *v_b[_MAX_FS_THREADS], *v_n[_MAX_FS_THREADS];
 
   int tno;
-  for (tno = 0; tno < _MAX_FS_THREADS; tno++) {
+  for (tno = 0; tno < max_threads; tno++) {
     v_a[tno] = VectorAlloc(3, MATRIX_REAL);
     v_b[tno] = VectorAlloc(3, MATRIX_REAL);
     v_n[tno] = VectorAlloc(3, MATRIX_REAL); /* normal vector */
@@ -11786,11 +11791,7 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
       *v1 = &mris->vertices[face->v[1]], 
       *v2 = &mris->vertices[face->v[2]];
 
-#ifdef HAVE_OPENMP
     int const tid = omp_get_thread_num();
-#else
-    int const tid = 0;
-#endif
 
     VERTEX_EDGE(v_a[tid], v0, v1);
     VERTEX_EDGE(v_b[tid], v0, v2);
@@ -11892,7 +11893,7 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
 
 #endif
 
-  for (tno = 0; tno < _MAX_FS_THREADS; tno++) {
+  for (tno = 0; tno < max_threads; tno++) {
     VectorFree(&v_a[tno]);
     VectorFree(&v_b[tno]);
     VectorFree(&v_n[tno]);
@@ -45317,7 +45318,9 @@ static void initIntersectDefectEdgesContext(IntersectDefectEdgesContext* ctx, MR
 
 static void finiIntersectDefectEdgesContext(IntersectDefectEdgesContext* ctx) {
 #ifdef COPE_WITH_VERTEX_MOVEMENT
-    free(ctx->vnoToFirstNPlus1); ctx->vnoToFirstNPlus1 = NULL; ctx->nvertices_seen = 0;
+    freeAndNULL(ctx->vnoToFirstNPlus1); ctx->nvertices_seen = 0;
+#else
+    freeAndNULL(ctx->vnosHighestNSeen);
 #endif
     freeGreatArcSet(&ctx->greatArcSet);
     free(ctx->entries); ctx->entries = NULL;
@@ -45449,7 +45452,23 @@ static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp);
 static int computePatchEulerNumber(MRIS *mris, DP *dp);
 static void orientDefectFaces(MRIS *mris, DP *dp);
 static void computeDefectFaceNormal(MRIS const * const mris, int const fno);
-static void computeDefectFaceNormals(MRIS *mris, DP *dp);
+
+typedef struct DefectFacesCache {
+    int  size;
+    int  capacity;
+    int* fnos;
+} DefectFacesCache;
+static void initDefectFacesCache(DefectFacesCache* p) { bzero(p, sizeof(*p)); }
+static void finiDefectFacesCache(DefectFacesCache* p) { freeAndNULL(p->fnos); }
+static void insertIntoDefectFacesCache(DefectFacesCache* p, int fno) {
+    if (p->size == p->capacity) { 
+        if (!(p->capacity *= 2)) p->capacity = 1000;
+        p->fnos = (int*)realloc(p->fnos, p->capacity * sizeof(int));
+    }
+    p->fnos[p->size++] = fno;
+}
+
+static void computeDefectFaceNormals(MRIS *mris, DP *dp, DefectFacesCache* dfc);
 static void computeDefectVertexNormals(MRIS *mris, DP *dp);
 static void computeDefectTangentPlaneAtVertex(MRIS *mris, int vno);
 static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp);
@@ -48650,7 +48669,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       F = 6 / (1 / rmin - 1 / rmax);
 
       while (niter--) {
-        computeDefectFaceNormals(mris, dp);
+        computeDefectFaceNormals(mris, dp, NULL);
         computeDefectVertexNormals(mris, dp);
 
         /* using the tmp vertices */
@@ -48803,7 +48822,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       F = 6 / (1 / rmin - 1 / rmax);
 
       // detect high curvatures vertices
-      computeDefectFaceNormals(mris, dp);
+      computeDefectFaceNormals(mris, dp, NULL);
       computeDefectVertexNormals(mris, dp);
 
       mean = var = 0.0;
@@ -48918,7 +48937,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
 
       break;
   }
-  computeDefectFaceNormals(mris, dp);
+  computeDefectFaceNormals  (mris, dp, NULL);
   computeDefectVertexNormals(mris, dp);
 }
 
@@ -49033,7 +49052,7 @@ static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, in
     }
 
     /* recompute normals */
-    computeDefectFaceNormals(mris, dp);
+    computeDefectFaceNormals(mris, dp, NULL);
     computeDefectVertexNormals(mris, dp);
   }
   if (vertices) {
@@ -49041,7 +49060,111 @@ static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, in
   }
 }
 
-static void defectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha)
+static void defectMaximizeLikelihood_new(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha);
+static void defectMaximizeLikelihood_old(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha);
+
+static void defectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha) {
+    return
+#if 1
+        defectMaximizeLikelihood_new
+#else
+        defectMaximizeLikelihood_old
+#endif
+            (mri, mris, dp, niter, alpha);
+}
+
+static void defectMaximizeLikelihood_new(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha)
+{
+  float const wm   = dp->defect->white_mean;
+  float const gm   = dp->defect->gray_mean;
+  float const mean = (wm + gm) * 0.5f;
+
+  int const nvertices = dp->tp.ninside; /* matching only for inside vertices */
+
+  DefectFacesCache defectFacesCache;
+  initDefectFacesCache(&defectFacesCache);
+  while (niter--) {
+
+    /* using the tmp vertices */
+
+    int i;
+    for (i = 0; i < nvertices; i++) {
+
+      VERTEX* const v = &mris->vertices[dp->tp.vertices[i]];
+      float const x = v->origx;
+      float const y = v->origy;
+      float const z = v->origz;
+
+      /* smoothness term */
+      double xm = 0, ym = 0, zm = 0;
+      if (v->vnum > 0) {
+        int n;
+        for (n = 0; n < v->vnum; n++) {
+          VERTEX const * const vn = &mris->vertices[v->v[n]];
+          xm += vn->origx;
+          ym += vn->origy;
+          zm += vn->origz;
+        }
+
+        xm *= 1/(double)n;
+        ym *= 1/(double)n;
+        zm *= 1/(double)n;
+      }
+      
+      /* image gradient */
+      double const nx = v->nx;
+      double const ny = v->ny;
+      double const nz = v->nz;
+
+      double xv_lo,  yv_lo,  zv_lo;
+      double xv_mid, yv_mid, zv_mid;
+      double xv_hi,  yv_hi,  zv_hi;
+#if MATRIX_ALLOCATION
+      mriSurfaceRASToVoxel                  (x - 0.5 * nx, y - 0.5 * ny, z - 0.5 * nz, &xv_lo,  &yv_lo,  &zv_lo);
+      mriSurfaceRASToVoxel                  (x,            y,            z,            &xv_mid, &yv_mid, &zv_mid);
+      mriSurfaceRASToVoxel                  (x + 0.5 * nx, y + 0.5 * ny, z + 0.5 * nz, &xv_hi,  &yv_hi,  &zv_hi);
+#else
+      MRISsurfaceRASToVoxelCached(mris, mri, x - 0.5 * nx, y - 0.5 * ny, z - 0.5 * nz, &xv_lo,  &yv_lo,  &zv_lo);
+      MRISsurfaceRASToVoxelCached(mris, mri, x,            y,            z,            &xv_mid, &yv_mid, &zv_mid);
+      MRISsurfaceRASToVoxelCached(mris, mri, x + 0.5 * nx, y + 0.5 * ny, z + 0.5 * nz, &xv_hi,  &yv_hi,  &zv_hi);
+#endif
+
+      double white_val, val, gray_val;
+      MRIsampleVolume(mri, xv_lo,  yv_lo,  zv_lo,  &white_val);
+      MRIsampleVolume(mri, xv_mid, yv_mid, zv_mid, &val);
+      MRIsampleVolume(mri, xv_hi,  yv_hi,  zv_hi,  &gray_val);
+
+      double g = (white_val - gray_val) * (val - mean);
+      if (fabs(g) > 0.2) {
+        g = SIGN(g)*0.2;
+      }
+
+      double const dx = 0.5 * (xm - x) + g * nx;
+      double const dy = 0.5 * (ym - y) + g * ny;
+      double const dz = 0.5 * (zm - z) + g * nz;
+
+      v->tx = x + alpha * dx;
+      v->ty = y + alpha * dy;
+      v->tz = z + alpha * dz;
+    }
+
+    /* update orig vertices */
+    for (i = 0; i < nvertices; i++) {
+      VERTEX* const v = &mris->vertices[dp->tp.vertices[i]];
+      v->origx = v->tx;
+      v->origy = v->ty;
+      v->origz = v->tz;
+      noteVnoMovedInActiveRealmTrees(mris, dp->tp.vertices[i]);
+    }
+
+    /* recompute normals */
+    computeDefectFaceNormals  (mris, dp, &defectFacesCache);
+    computeDefectVertexNormals(mris, dp);
+  } // next iteration
+  finiDefectFacesCache(&defectFacesCache);
+}
+
+static void defectMaximizeLikelihood_old(MRI *mri, MRI_SURFACE *mris, DP *dp, int niter, double alpha)
 {
   float wm, gm, mean;
   int i, n, nvertices;
@@ -49134,7 +49257,7 @@ static void defectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, int ni
     }
 
     /* recompute normals */
-    computeDefectFaceNormals(mris, dp);
+    computeDefectFaceNormals(mris, dp, NULL);
     computeDefectVertexNormals(mris, dp);
   }
 }
@@ -49352,7 +49475,7 @@ static void computeDefectFaceNormal_calculate(
   nz = norm[2];
 
   /* normalize */
-  float len = sqrt(nx * nx + ny * ny + nz * nz);
+  float len = sqrtf(nx * nx + ny * ny + nz * nz);
   if (FZERO(len)) {
     // TO BE CHECKED
     //          fprintf(WHICH_OUTPUT,"face with a null normal (%f,%f,%f) - (%f,%f,%f) -
@@ -49390,11 +49513,11 @@ static void computeDefectFaceNormal(MRIS const * const mris, int const fno)
   setFaceOrigArea(mris, fno, orig_area);
 }
 
-/* used to temporary rip the faces of the defect so we don't proceed them many times */
+/* used to temporary rip the faces of the defect so we don't process them many times */
 // FLO TO BE CHECKED
 #define TEMPORARY_RIPPED_FACE 2
 
-static void computeDefectFaceNormals(MRIS *mris, DP *dp)
+static void computeDefectFaceNormals(MRIS *mris, DP *dp, DefectFacesCache* dfc)
 {
   int i, n;
   VERTEX *v;
@@ -49403,6 +49526,14 @@ static void computeDefectFaceNormals(MRIS *mris, DP *dp)
 
   /* the tessellated patch */
   tp = &dp->tp;
+
+  if (dfc && dfc->size > 0) {
+    int const * const fnos = dfc->fnos;
+    for (i = 0; i < dfc->size; i++) {
+      computeDefectFaceNormal(mris, fnos[i]);   // measurement says this happens about 40 times per initDefectCache
+    }
+    return;
+  }
 
   /* compute faces only for modified vertices */
   for (i = 0; i < tp->nvertices; i++) {
@@ -49413,6 +49544,7 @@ static void computeDefectFaceNormals(MRIS *mris, DP *dp)
         continue; /* don't process a face twice */
       }
       computeDefectFaceNormal(mris, v->f[n]);
+      if (dfc) insertIntoDefectFacesCache(dfc,v->f[n]); 
       face->ripflag = TEMPORARY_RIPPED_FACE;
     }
   }
@@ -49450,7 +49582,7 @@ static void computeDefectVertexNormals(MRIS *mris, DP *dp)
       nz += fNorm->nz;
     }
     /* normalize */
-    len = sqrt(nx * nx + ny * ny + nz * nz);
+    len = sqrtf(nx * nx + ny * ny + nz * nz);
     if (FZERO(len)) {
       fprintf(WHICH_OUTPUT,
               "normal vector of length zero at vertex %d with %d faces\n",
@@ -50493,7 +50625,7 @@ static double mrisDefectPatchFitness(
   computeDisplacement(mris_corrected, dp);
 
   /* compute the face normals on the surface*/
-  computeDefectFaceNormals(mris_corrected, dp);
+  computeDefectFaceNormals(mris_corrected, dp, NULL);
 
   /* compute vertex normals on original surface */
   // computeDefectVertexNormals(mris_corrected,dp);
@@ -57077,7 +57209,7 @@ static void updateDistanceElt(volatile float* f, float distance, bool lockNeeded
     
 #ifdef HAVE_OPENMP
   if (lockNeeded) {
-    if (fabs(distance) > fabs(*f)) return;  	// avoid the lock if possible
+    if (fabsf(distance) > fabsf(*f)) return;  	// avoid the lock if possible
     #pragma omp critical
     updateDistanceElt(f, distance, false);
     return;
@@ -57090,25 +57222,54 @@ static void updateDistanceElt(volatile float* f, float distance, bool lockNeeded
   //
   // The solution is to have the positive be the preferred of two equal values.
   //
-  if (fabs(distance) < fabs(*f)) {
+  if (fabsf(distance) < fabsf(*f)) {
     *f = distance;	            
-  } else if (fabs(distance) == fabs(*f)) {
+  } else if (fabsf(distance) == fabsf(*f)) {
     // They are equal.  Prefer the positive.
     if (distance > 0) *f = distance;
   }
 }
 
-static void updateDistanceEltFromSignArgAndSquare(volatile float* f, float distanceSignArg, float distanceSquared, bool lockNeeded) {
+static void updateDistanceEltFromSignArgAndSquareLockNeeded(volatile float* f, float distanceSignArg, float distanceSquared) {
   // Avoid calculating the sqrt unless definitely needed
   //
-  // This has problems if sqrtf(distanceSquared) == f and distanceSign is positive, because this would reject that solution
+  // The obvious test has problems if sqrtf(distanceSquared) == f and distanceSign is positive, because this would reject that solution
   // when the above code would prefer it.  Hence the 1.01f margin of error.
   //
   // if (squaref(*f) < distanceSquared) return;
   //
   if (squaref(*f)*1.01f < distanceSquared) return;
   
-  updateDistanceElt(f, SIGN(distanceSignArg)*sqrtf(distanceSquared), lockNeeded);
+  updateDistanceElt(f, SIGN(distanceSignArg)*sqrtf(distanceSquared), true);
+}
+
+static void updateDistanceEltFromSignArgAndSquareNoLockNeeded(
+    volatile float* f, 
+    float distanceSignArg, 
+    float distanceSquared,
+    float sqrtfDistanceSquared) {
+  // This function is performance-critical for mris_fix_topology, hence hand-optimized
+  //
+  // Avoid waiting for the sqrt unless definitely needed
+  //
+  // The obvious test has problems if sqrtf(distanceSquared) == f and distanceSign is positive, because this would reject that solution
+  // when the above code would prefer it.  Hence the 1.01f margin of error.
+  //
+  // if (squaref(*f) < distanceSquared) return;
+  //
+  if (squaref(*f)*1.01f < distanceSquared) return;          // don't wait for the sqrtf to complete if it is not needed
+  
+  float positiveDistance = sqrtfDistanceSquared;
+  if (positiveDistance > fabsf(*f)) return;
+
+  float distance = SIGN(distanceSignArg)*positiveDistance;
+  
+  if (positiveDistance < fabsf(*f)) {
+    *f = distance;	            
+  } else if (positiveDistance == fabsf(*f)) {
+    // They are equal.  Prefer the positive.
+    if (distance > 0) *f = distance;
+  }
 }
 
 static double mrisComputeDefectMRILogUnlikelihood_wkr(
@@ -57558,7 +57719,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     ROMP_PF_begin
     int bufferIndex;
 #ifdef HAVE_OPENMP
-    #pragma omp parallel for if_ROMP(shown_reproducible)
+    #pragma omp parallel for if_ROMP(shown_reproducible) schedule(guided)
 #endif
     for (bufferIndex = 0; bufferIndex < bufferSize; bufferIndex++) {
       Entry const * const entry = &buffer[bufferIndex];
@@ -57566,7 +57727,9 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
       int vi;
       for (vi = 0; vi < 3; vi++) {
         int const vno = face->v[vi];
-        char alreadyDone;
+        char alreadyDone = done[vno];
+        if (alreadyDone) continue;
+
 #ifdef HAVE_OPENMP
 #if GCC_VERSION >= 50400
         #pragma omp atomic capture
@@ -57577,10 +57740,9 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
         {  alreadyDone = done[vno]; 
            done[vno] = 1; 
         }
-        
         if (alreadyDone) continue;
+
         computeVertexPseudoNormal(mris, vno, sharedVertexPseudoNormalCache[vno].elts, dp->verbose_mode);
-	done[vno] = 1;
       }
     }
     ROMP_PF_end
@@ -57592,13 +57754,13 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 
   int bufferIndex;
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(shown_reproducible) schedule(guided)
+  #pragma omp parallel for if_ROMP(shown_reproducible) schedule(dynamic, bufferSize/MAX(omp_get_max_threads()*4,32) )
 #endif
   for (bufferIndex = 0; bufferIndex < bufferSize; bufferIndex++) {
     ROMP_PFLB_begin
     int const tid = omp_get_thread_num();
     
-    bool const trace = traceTid0 && (tid == 0);
+    bool const trace = false; // traceTid0 && (tid == 0);
 
     typedef void p;	// poison p
     Entry const * entry = &buffer[bufferIndex];
@@ -57607,14 +57769,14 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     ENTRY_MEMBERS
 #undef ELT
 
-    int const imin = MAX(imin_nobnd, 0);
-    int const imax = MIN(imax_nobnd, mri_defect->width - 1);
+    long const imin = MAX(imin_nobnd, 0);
+    long const imax = MIN(imax_nobnd, mri_defect->width - 1);
 
-    int const jmin = MAX(jmin_nobnd, 0);
-    int const jmax = MIN(jmax_nobnd, mri_defect->height - 1);
+    long const jmin = MAX(jmin_nobnd, 0);
+    long const jmax = MIN(jmax_nobnd, mri_defect->height - 1);
 
-    int const kmin = MAX(kmin_nobnd, 0);
-    int const kmax = MIN(kmax_nobnd, mri_defect->depth - 1);
+    long const kmin = MAX(kmin_nobnd, 0);
+    long const kmax = MIN(kmax_nobnd, mri_defect->depth - 1);
 
     // Get the pseudonormals
     // My previous belief was they would not many would be needed by more than one threads, but maybe they are
@@ -57735,7 +57897,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	    	zmax = xSURF(mri_defect, kmax);
 	    fprintf(stdout, "%s:%d box %g..%g,%g..%g,%g..%g %g*%g*%g\n", __FILE__, __LINE__, 
 	    	xmin,xmax,ymin,ymax,zmin,zmax,xmax-xmin,ymax-ymin,zmax-zmin);
-	    fprintf(stdout, "%d..%d,%d..%d,%d..%d %d*%d*%d=%d\n",
+	    fprintf(stdout, "%ld..%ld,%ld..%ld,%ld..%ld %ld*%ld*%ld=%ld\n",
 	    	imin,imax,jmin,jmax,kmin,kmax,imax+1-imin,  jmax+1-jmin,  kmax+1-kmin,
 		                             (imax+1-imin)*(jmax+1-jmin)*(kmax+1-kmin));
 	}
@@ -57807,62 +57969,72 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
     PerThreadMRIDistance* ptd = perThreadMRIDistances[tid];
     if (do_new_MRIDistance && !ptd) ptd = perThreadMRIDistances[tid] = makePerThreadMRIDistance(mri_distance);
 
-    int k,j,i;
+    long k,j,i;
 
-    int    jToYMapSize = jmax - jmin + 1;
+    long   jToYMapSize = jmax - jmin + 1;
     float  jToYMapBuffer            [128];
     float* jToYMap = (jToYMapSize <= 128) ? jToYMapBuffer : (float*)malloc(jToYMapSize * sizeof(float));
     for (j = jmin; j <= jmax; j++) jToYMap[j - jmin] = ySURF(mri_defect, j);
     
-    int    kToZMapSize = kmax - kmin + 1;
+    long   kToZMapSize = kmax - kmin + 1;
     float  kToZMapBuffer            [128];
     float* kToZMap = (kToZMapSize <= 128) ? kToZMapBuffer : (float*)malloc(kToZMapSize * sizeof(float));
     for (k = kmin; k <= kmax; k++) kToZMap[k - kmin] = zSURF(mri_defect, k);
     
+    long   kToDoBuffer[128];
+    long*  kToDo = (kToZMapSize <= 128) ? kToDoBuffer : (long*)malloc(kToZMapSize * sizeof(long));
+    long   kToDoSize = kToZMapSize;
+
+    for (k = kmin; k <= kmax; k++) kToDo[k - kmin] = k;
+        //
+        // By putting these in a buffer, I hope to avoid a lot of branch mispredicts that were resulting
+        // in lots of cancelled floating point ops below
+           
     for (i = imin; i <= imax; i++) {
       	  float const x = xSURF(mri_defect, i);
           vec0[0] = x - x0;
           vec1[0] = x - x1;
           vec2[0] = x - x2;
-          vec [0] = (vec0[0] + vec1[0] + vec2[0]) / 3.0;
+          vec [0] = (vec0[0] + vec1[0] + vec2[0]) * 0.3333333f;
 
       for (j = jmin; j <= jmax; j++) {
           float const y = jToYMap[j - jmin];
           vec0[1] = y - y0;
           vec1[1] = y - y1;
           vec2[1] = y - y2;
-          vec [1] = (vec0[1] + vec1[1] + vec2[1]) / 3.0;
+          vec [1] = (vec0[1] + vec1[1] + vec2[1]) * 0.3333333f;
 
         float const partialPythagorasSum = squaref(x-cx) + squaref(y-cy);
 	
         float* const ijkDistances =
             do_new_MRIDistance ? perThreadMRIDistanceElt(ptd, i,j,0) : &MRIFvox(mri_distance_nonconst, i, j, 0);
                   
-        for (k = kmin; k <= kmax; k++) {
-          float zt = kToZMap[k - kmin];
+        if (use_fast_avoidable_prediction && !test_avoidable_prediction) {
 
-	  if (use_fast_avoidable_prediction && !test_avoidable_prediction) {
-	    
-	    // This path is so important I have hand-optimized it
+	    // This path is so important I have hand-optimized it.
+            //
 	    // It skips over all the predictedIrrelevant k's
 	    // This path does not yet have a specific correctness test
+            //
+            // By moving it out of the following loop, there may be more overlapping of the floating point operations and the memory traffic
+            // and fewer branch mispredicts
+            // and more opportunities for unrolling and for vector operations and for cse's
 	    //
-            for (;;) {
-    	        float const ijkDistance           = ijkDistances[k];
-	    	float const distanceToCxyzSquared = partialPythagorasSum + squaref(zt-cz);
-                //oat const distanceToCxyz        = sqrtf(distanceToCxyzSquared) * 0.99f;  // margin for error included
-		bool predictedIrrelevant = distanceToCxyzSquared*0.98f > squaref(fabs(ijkDistance) + furtherestVertexDistance);
-		if (!predictedIrrelevant) goto RelevantK;
-		k++;
-		if (k > kmax) break;
-		zt = kToZMap[k - kmin]; 
-	    }
-	    break;  	    	    // no relevant K found
-    	  
-	    RelevantK:;
-	  }
+            kToDoSize = 0;
+            for (k = kmin; k <= kmax; k++) {
+                kToDo[kToDoSize] = k;
+                float zt                    = kToZMap[k - kmin];
+                float ijkDistance           = ijkDistances[k];
+                float distanceToCxyzSquared = partialPythagorasSum + squaref(zt-cz);
+                kToDoSize += ((distanceToCxyzSquared*0.98f <= (squaref(fabsf(ijkDistance) + furtherestVertexDistance))));
+            }
+        }
+        
+        long kToDoIndex;
+        for (kToDoIndex = 0; kToDoIndex < kToDoSize; kToDoIndex++) {
+          k = kToDo[kToDoIndex];
 
-    	  float const z = zt;
+    	  float const z = kToZMap[k - kmin];
 	  
     	  // Here is the minimum distance to update
 	  //
@@ -57882,7 +58054,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	  //
     	  if (use_avoidable_prediction && test_avoidable_prediction) {
 	      distanceToCxyzSquared = partialPythagorasSum + squaref(z-cz);
-	      predictedIrrelevant   =  distanceToCxyzSquared*0.98f > squaref(fabs(*ijkDistanceElt) + furtherestVertexDistance);
+	      predictedIrrelevant   =  distanceToCxyzSquared*0.98f > squaref(fabsf(*ijkDistanceElt) + furtherestVertexDistance);
 	      if (predictedIrrelevant) irrelevantPointCount++;
 	      if (!test_avoidable_prediction && predictedIrrelevant) 
 	      	continue;
@@ -57901,7 +58073,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	  
           if (true) {
 	  
-            vec[2] = (vec0[2] + vec1[2] + vec2[2]) / 3.0;
+            vec[2] = (vec0[2] + vec1[2] + vec2[2]) * 0.3333333f;
 
             /* compute distance to face */
             /* where is the point */
@@ -58216,7 +58388,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
             if (new_distanceSquared >= 0.0f) new_distance = SIGN(new_distanceSignArg) * sqrtf(new_distanceSquared);
 	    float distance = do_new_loop3 ? new_distance : old_distance;
 
-     	    if (fabs(*ijkDistanceElt) > fabs(distance)) {
+     	    if (fabsf(*ijkDistanceElt) > fabsf(distance)) {
 	      fprintf(stdout, "%s:%d prediction failed!\n", __FILE__, __LINE__);
 	      fprintf(stdout, "do_new_MRIDistance:%d\n", do_new_MRIDistance);
 	      fprintf(stdout, "c (%g, %g, %g)\n", cx,cy,cz);
@@ -58224,8 +58396,8 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	      fprintf(stdout, "distanceToCxyz %g\n", sqrt(distanceToCxyzSquared));
 	      fprintf(stdout, "distanceToCxyz - furtherestVertexDistance:%g\n", sqrt(distanceToCxyzSquared) - furtherestVertexDistance);
 	      fprintf(stdout, "ijk (%g, %g, %g)\n", x,y,z);
-	      fprintf(stdout, "fabs(distance) %g\n", fabs(distance));
-	      fprintf(stdout, "fabs(*ijkDistanceElt) %g\n\n", fabs(*ijkDistanceElt));
+	      fprintf(stdout, "fabsf(distance) %g\n", fabsf(distance));
+	      fprintf(stdout, "fabsf(*ijkDistanceElt) %g\n\n", fabsf(*ijkDistanceElt));
 	      exit(1);
 	    }
 	  }
@@ -58237,25 +58409,32 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	    // forcing it to take a sqrt before doing the comparison.  But sqrt can make unequal
 	    // things equal, so the old code might select a different sign distance than the new.
 	    //
-	    if (!closeEnough(fabs(new_distance), fabs(old_distance))) {
+	    if (!closeEnough(fabsf(new_distance), fabsf(old_distance))) {
 	      fprintf(stdout, "%s:%d new_distance:%g not near old_distance:%g,  magnitude diff:%g\n", __FILE__, __LINE__, 
-	      	new_distance, old_distance, fabs(new_distance)-fabs(old_distance));
+	      	new_distance, old_distance, fabsf(new_distance)-fabsf(old_distance));
 	      exit(1);
 	    }
 	  }
 	  
           // update distance map
           //
-          if (trace) fprintf(stdout, "  update distance for i:%d j:%d j:%d\n", i,j,k);
+          if (trace) fprintf(stdout, "  update distance for i:%ld j:%ld j:%ld\n", i,j,k);
 
           if (new_distanceSquared >= 0) {
-     	    updateDistanceEltFromSignArgAndSquare(ijkDistanceElt, new_distanceSignArg, new_distanceSquared,
+            bool const lockNeeded =
 #ifdef HAVE_OPENMP
-	      do_old_MRIDistance
+	      do_old_MRIDistance;
 #else
-    	      false
+    	      false;
 #endif
-	      );
+     	    if (lockNeeded) updateDistanceEltFromSignArgAndSquareLockNeeded  (ijkDistanceElt, new_distanceSignArg, new_distanceSquared);
+            else            updateDistanceEltFromSignArgAndSquareNoLockNeeded(
+                                ijkDistanceElt, 
+                                new_distanceSignArg, 
+                                new_distanceSquared,
+                                sqrtf(new_distanceSquared));    // start this as soon as possible - the unit is idle, and the result
+                                                                // is discarded if not needed
+	    
           } else {
     	    updateDistanceElt(ijkDistanceElt, do_new_loop3 ? new_distance : old_distance, 
 #ifdef HAVE_OPENMP
@@ -58276,6 +58455,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
       } // j
     } // i
 
+    if (kToDo != kToDoBuffer) freeAndNULL(kToDo);
     if (kToZMap != kToZMapBuffer) freeAndNULL(kToZMap);
     if (jToYMap != jToYMapBuffer) freeAndNULL(jToYMap);
     
@@ -58331,6 +58511,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 
   //  TIMER_INTERVAL_END(taskExecution)
 
+  free(fnos);
   } // int p;
 
   //  TIMER_INTERVAL_BEGIN(volumeLikelihood)
@@ -80598,6 +80779,7 @@ int MRIScountEdges(MRIS *surf)
   return(nedges);
 }
 
+
 /*
   \fn int MRISedges(MRIS *surf)
   \brief Allocates and assigns edge structures. I think the corner values
@@ -80657,15 +80839,28 @@ int MRISedges(MRIS *surf)
 	  if(f->v[c] != vtxno0 && f->v[c] != vtxno1){
 	    // this is the 3rd corner if it is not vtx1 or vtx2
 	    edge->vtxno[k+2] = f->v[c];
-	    // get the ordinal corner number
-	    if(k==0) edge->corner[k][2] = c;
-	    if(k==1) edge->corner[k][3] = c;
 	    break;
 	  }
 	}
       }
 
-      // Note: corner[1][2] and corner[1][3] are not used
+      // Fill the corner matrix
+      for(n=0; n<4; n++){ // go thru the four edge vertices
+	m = edge->vtxno[n];
+	for(k=0; k<2; k++){ // go thru the two faces
+	  f = &(surf->faces[edge->faceno[k]]); // kth face
+	  for(c=0; c<3; c++){ // go thru the vertices of the kth face
+	    // Compare the edge vertex no against the face vertex no
+	    if(f->v[c] == m){
+	      edge->corner[n][k] = c;
+	      break;
+	    }
+	  }
+	}
+      }
+      // Note: corner[2][1] and corner[3][0] are not used
+      edge->corner[2][1] = 9;
+      edge->corner[3][0] = 9;
 
       edgeno++;
     }
@@ -80674,272 +80869,3 @@ int MRISedges(MRIS *surf)
   return(0);
 }
 
-
-
-/*!
-\fn int MRISfaceNormalGrad(MRIS *surf, int faceno, int NormOnly)
-Computes the gradient of the face normal with respect to changes 
-in the the position of each vertex (also computes the norm itself).
-The gradient is a 3x3 matrix of the form
-   dnx/dvx dnx/dvy dnx/dvz  
-   dny/dvx dny/dvy dny/dvz  
-   dnz/dvx dnz/dvy dnz/dvz  
-Where nx is the x component of the normal and vx is the x component of the vertex.
-Since there are three vertices, there are three such matrices.
-The matrices are stored in face->gradNorm[refvtxno]
-The norm is stored in face->norm
-If NormOnly != 0, then only the norm is computed
-These equations themselves have been verified emperically, though there could be
-some issues with accuracy in certain cases because the data structures use float.
-See MRISfaceNormalGradTest().
-*/
-int MRISfaceNormalGrad(MRIS *surf, int faceno, int NormOnly)
-{
-  VERTEX *vSrc, *vWRT, *vC;
-  FACE *f;
-  MATRIX *a, *b, *c=NULL, *cT=NULL, *gradc=NULL, *gradcL=NULL, *tmp1=NULL, *tmp2=NULL;
-  long double cL;
-  int wrtvtxno,k,m;
-
-  if(faceno < 0 || faceno >= surf->nfaces){
-    printf("MRISfaceNormalGrad(): faceno = %d (0,%d)\n",faceno,surf->nfaces);
-    return(1);
-  }
-
-  f = &(surf->faces[faceno]);
-
-  a = MatrixAlloc(3,1,MATRIX_REAL);
-  b = MatrixAlloc(3,1,MATRIX_REAL);
-  c = MatrixAlloc(3,1,MATRIX_REAL);
-  gradc = MatrixAlloc(3,3,MATRIX_REAL);
-
-  // Compute gradient with respect to (wrt) each vertex in the triangle
-  for(wrtvtxno = 0; wrtvtxno < 3; wrtvtxno++){
-
-    // This is the vertex we are computing the gradient for
-    vWRT = &(surf->vertices[f->v[wrtvtxno]]);
-
-    // This is the "source" vertex. Vectors used in the cross product will 
-    // point away from this vertex
-    k = wrtvtxno-1;
-    if(k<0) k = 2;
-    vSrc = &(surf->vertices[f->v[k]]);
-
-    // This is just the 3rd vertex
-    m = wrtvtxno+1;
-    if(m>2) m = 0;
-    vC = &(surf->vertices[f->v[m]]);
-
-    // Vector a must go from source vertex to WRT vertex
-    a->rptr[1][1] = vWRT->x - vSrc->x;
-    a->rptr[2][1] = vWRT->y - vSrc->y;
-    a->rptr[3][1] = vWRT->z - vSrc->z;
-
-    // Vector b must go from source to the other vertex (and
-    // specifically not include the WRT vertex)
-    b->rptr[1][1] = vC->x - vSrc->x;
-    b->rptr[2][1] = vC->y - vSrc->y;
-    b->rptr[3][1] = vC->z - vSrc->z;
-
-    // Now compute the cross product
-    c = VectorCrossProductD(a, b, c);
-    
-    cL = VectorLen(c); // Length/magnitude of cross
-
-    // norm computed below should be the same as mrisNormalFace()
-    if(wrtvtxno == 0) // only needs to be done once
-      f->norm = MatrixScalarMul(c,1.0/cL,f->norm); 
-    if(NormOnly) break;
-
-    // Gradient of the unnormalized cross 
-    gradc->rptr[1][2] =  b->rptr[3][1];
-    gradc->rptr[1][3] = -b->rptr[2][1];
-    gradc->rptr[2][1] = -b->rptr[3][1];
-    gradc->rptr[2][3] =  b->rptr[1][1];
-    gradc->rptr[3][1] =  b->rptr[2][1];
-    gradc->rptr[3][2] = -b->rptr[1][1];
-
-    // Gradient of the length of c
-    cT = MatrixTranspose(c,cT);
-    gradcL = MatrixMultiplyD(cT,gradc,gradcL);
-    gradcL = MatrixScalarMul(gradcL, 1.0/cL, gradcL);
-    
-    // Gradient of normalized cross
-    // gradNorm = gradc/cL - [c*gradcL]/(cL^2) = tmp1-tmp2
-    tmp1 = MatrixScalarMul(gradc, 1.0/cL, tmp1);
-    tmp2 = MatrixMultiplyD(c,gradcL,tmp2);
-    tmp2 = MatrixScalarMul(tmp2, 1.0/(cL*cL), tmp2);
-    f->gradNorm[wrtvtxno] = MatrixSubtract(tmp1,tmp2,f->gradNorm[wrtvtxno]);
-    
-    if(0){
-      printf("a = [");
-      MatrixPrint(stdout,a);
-      printf("];\n");
-      printf("b = [");
-      MatrixPrint(stdout,b);
-      printf("];\n");
-      printf("gradc = [");
-      MatrixPrint(stdout,gradc);
-      printf("];\n");
-      printf("gradcL = [");
-      MatrixPrint(stdout,gradcL);
-      printf("];\n");
-      printf("grad = [");
-      MatrixPrint(stdout,f->gradNorm[wrtvtxno]);
-      printf("];\n");
-      printf("[g0 gradc0 gradcL0]= gradnormcross(a,b);\n");
-      printf("mar(g0-grad)\n");
-    }
-  }
-
-  MatrixFree(&a);
-  MatrixFree(&b); 
-  MatrixFree(&c); 
-  MatrixFree(&gradc); 
-  if(!NormOnly) {
-    MatrixFree(&cT); 
-    MatrixFree(&gradcL); 
-    MatrixFree(&tmp1); 
-    MatrixFree(&tmp2);
-  }
-
-  return(0);
-}
-
-/*!
-  \fn int MRISfaceNormalGradTest(MRIS *surf, char *surfpath)
-
-  This function tests MRISfaceNormalGrad() by numerically computing
-  the gradient and comparing it to the theoretical. The idea is
-  simple, but the application is more complicated for two reasons. (1)
-  If a triangle is very small or has a very short edge, then the
-  perturbation needs to be very small. (2) Very small perturbations
-  can get overwhelmed by precision noise because the underlying FS and
-  matrix code uses float. As a result, you can sometimes get fairly
-  large differences between the theoretical and numerical. There are
-  not too many mismatches, but there are enough and they are big
-  enough that it makes it hard to set a good threshold.
-
-  Returns the number of errors as indicated by an arbitrary threshold
-  of triangles with areas above another threshold.
-
-  If surf is passed, then it uses that surface as input. If surfpath
-  is passed, then it loads that surface (and deallocs at the end).
-  If both are NULL, then it uses ic1.tri.
-
- */
-int MRISfaceNormalGradTest(MRIS *surf, char *surfpath)
-{
-  double delta = .001; //mm
-  int faceno, wrtvtx, c,k, Dealloc, nhits;
-  VERTEX *v;
-  FACE *f;
-  MATRIX *norm1=NULL, *norm2[3]={NULL,NULL,NULL}, *dnorm=NULL, *numgrad=NULL;
-  double maxabsnumgrad, absdiff, maxabsdiff, rdiff, maxrdiff;
-  float vx0, vy0, vz0;
-  char tmpstr[2000];
-
-  Dealloc=1;
-  if(surf) Dealloc=0;
-  else {
-    if(surfpath == NULL) {
-      sprintf(tmpstr,"%s/lib/bem/ic1.tri",getenv("FREESURFER_HOME"));
-      surfpath = tmpstr;
-    }
-    fprintf(stderr,"Reading in surf %s\n",surfpath);
-    surf = MRISread(surfpath);
-    if(surf==NULL) exit(1);
-  }
-
-  maxrdiff = -1;
-  numgrad = MatrixAlloc(3,3,MATRIX_REAL);
-  nhits = 0;
-  // go through each face
-  for(faceno=0; faceno < surf->nfaces; faceno++){
-    f = &(surf->faces[faceno]);
-    // Compute the normal and the gradients for this face
-    MRISfaceNormalGrad(surf, faceno, 0);
-    norm1 = MatrixCopy(f->norm,norm1); // make a copy of the norm
-
-    // Empirically compute gradient WRT each vertex in the triangle
-    MatrixZero(3, 3, numgrad);
-    for(wrtvtx = 0; wrtvtx < 3; wrtvtx++){
-      v = &(surf->vertices[f->v[wrtvtx]]);
-      vx0 = v->x; vy0 = v->y;  vz0 = v->z; // store orig pos
-
-      // Go thru each WRT vertex coordinate
-      for(c=0; c<3; c++){
-	// Change coord by a small amount
-	if(c==0) v->x += delta;
-	if(c==1) v->y += delta;
-	if(c==2) v->z += delta;
-	// Compute only the normal
-	MRISfaceNormalGrad(surf, faceno, 1);
-	norm2[c] = MatrixCopy(f->norm,norm2[c]); // make a copy
-	dnorm = MatrixSubtract(norm2[c],norm1,dnorm); // difference
-	// Numerically compute the gradient
-	for(k=0; k<3; k++) 
-	  numgrad->rptr[k+1][c+1] = (dnorm->rptr[k+1][1]/delta);
-	v->x = vx0; v->y = vy0;	v->z = vz0; //restore
-      } // coordinate
-      // Compute the maximum abs gradient and maximum abs difference
-      maxabsnumgrad = -1;
-      maxabsdiff = -1;
-      for(k=0; k<3; k++) {
-	for(c=0; c<3; c++){
-	  if(maxabsnumgrad < fabs(numgrad->rptr[k+1][c+1])) maxabsnumgrad = fabs(numgrad->rptr[k+1][c+1]);
-	  absdiff = fabs(numgrad->rptr[k+1][c+1] - f->gradNorm[wrtvtx]->rptr[k+1][c+1]);
-	  if(maxabsdiff < absdiff) maxabsdiff = absdiff;
-	}
-      }
-
-      // Compute the difference relative to the maximum
-      rdiff = maxabsdiff/maxabsnumgrad;
-      if(maxrdiff < rdiff && f->area > 0.1) maxrdiff = rdiff;
-
-      // Log an error if rdiff is over threshold and the face area is big enough
-      // This is not perfect as the area may be ok but one edge may be really short
-      if(rdiff > 0.02 && f->area > 0.1){
-	printf("#@# %4d %4d %d %6.4lf  %6.4lf  %6.4lf %10.8f\n",nhits,faceno,wrtvtx,maxabsdiff,maxabsnumgrad,rdiff,f->area);
-	fflush(stdout);
-	nhits ++;
-	if(0){
-	  printf("delta = %lf\n",delta);
-	  for(k = 0; k < 3; k++){
-	    v = &(surf->vertices[f->v[k]]);
-	    printf("vtx%d = [%g,%g,%g]\n",k,v->x,v->y,v->z);
-	  }
-	  printf("norm1 = [\n");
-	  MatrixPrint(stdout,norm1);
-	  printf("]\n");
-	  for(c=0; c<3; c++){
-	    printf("norm2 = [\n");
-	    MatrixPrint(stdout,norm2[c]);
-	    printf("]\n");
-	  }
-	  printf("dnorm = [\n");
-	  MatrixPrint(stdout,dnorm);
-	  printf("]\n");
-	  printf("gradNorm = [\n");
-	  MatrixPrint(stdout,f->gradNorm[wrtvtx]);
-	  printf("]\n");
-	  printf("numgrad = [\n");
-	  MatrixPrint(stdout,numgrad);
-	  printf("]\n");
-	  printf("mar(gradNorm-numgrad)\n");
-	  //exit(1);
-	}
-      }
-    } // corner vertex
-  } // face
-  printf("%4d %4d %lf\n",surf->nfaces,nhits,maxrdiff);
-
-  if(Dealloc) MRISfree(&surf);
-
-  MatrixFree(&norm1);
-  for(k = 0; k < 3; k++) MatrixFree(&norm2[k]);
-  MatrixFree(&dnorm);
-  MatrixFree(&numgrad);
-
-  return(nhits);
-}
