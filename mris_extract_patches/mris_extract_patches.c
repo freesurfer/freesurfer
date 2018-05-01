@@ -57,18 +57,22 @@ static int nbrs = 3 ;
 static char *label_name = "FCD";
 static char *vol_name = "norm.mgz" ;
 static char sdir[STRLEN] = "" ;
-MRI *MRISextractVolumeWindow(MRI_SURFACE *mris, MRI *mri, int wsize, int vno) ;
+static float random_patch_pct = 0.0 ;
+static int augment = 0 ;
+
+MRI *MRISextractVolumeWindow(MRI_SURFACE *mris, MRI *mri, int wsize, int vno, double theta) ;
 
 int
 main(int argc, char *argv[])
 {
-  int          nargs ;
+  int          nargs, a ;
   char         *subject, fname[STRLEN], *out_dir ;
   int          msec, minutes, seconds, n ;
   struct timeb start ;
   MRI_SURFACE  *mris, *mris_ohemi ;
   MRI          *mri_norm, *mri_patches, *mri_labels ;
   LABEL        *area_tmp, *area ;
+  int          random_patches, npoints, *non_fcd_vertices = NULL, augment_patches ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
@@ -92,6 +96,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
 
   TimerStart(&start) ;
+  setRandomSeed(-1L) ;
 
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
   {
@@ -140,22 +145,90 @@ main(int argc, char *argv[])
   area_tmp = LabelRead(subject, fname) ;
   if (area_tmp == NULL)
     ErrorExit(ERROR_NOFILE, "%s: LabelRead(%s) failed", Progname, fname) ;
-
+  
   LabelUnassign(area_tmp) ;
   area = LabelSampleToSurface(mris, area_tmp, mri_norm, CURRENT_VERTICES) ;
   LabelFree(&area_tmp) ;
-  mri_patches = MRIallocSequence(wsize, wsize, wsize,MRI_FLOAT,area->n_points);
-  mri_labels = MRIallocSequence(area->n_points, 2, 1, MRI_INT, 1) ;
+  random_patches = round(area->n_points*random_patch_pct) ;
+  npoints = area->n_points + random_patches ;
+  augment_patches = nint(npoints*augment) ;
+  
+  mri_patches = MRIallocSequence(wsize, wsize, wsize,MRI_FLOAT, npoints+augment_patches);
+  mri_labels = MRIallocSequence(npoints+augment_patches, 2, 1, MRI_INT, 1) ;
   for (n = 0 ; n < area->n_points ; n++)
   {
     MRI *mri_tmp ;
-    mri_tmp = MRISextractVolumeWindow(mris, mri_norm,  wsize,  area->lv[n].vno) ;
+    mri_tmp = MRISextractVolumeWindow(mris, mri_norm,  wsize, area->lv[n].vno, 0) ;
     MRIcopyFrame(mri_tmp, mri_patches, 0, n) ;
     MRIfree(&mri_tmp) ;
     MRIsetVoxVal(mri_labels, n, 0, 0, 0, area->lv[n].vno) ;
     MRIsetVoxVal(mri_labels, n, 1, 0, 0, 1) ; // mark it as an FCD
   }
+#define MAX_ITER 1000000
+  if (random_patches > 0)
+  {
+    int    i, vno, iter ;
+    VERTEX *v ;
+
+    if (MRISreadCurvatureFile(mris, "sulc") != NO_ERROR)
+      ErrorExit(Gerror, "");
+    LabelMarkSurface(area, mris) ;
+    non_fcd_vertices = (int *)calloc(random_patches, sizeof(int)) ;
+    for (i = iter = 0 ; iter < MAX_ITER ; iter++)
+    {
+      vno = nint(randomNumber(0, mris->nvertices-1)) ;
+      v = &mris->vertices[vno] ;
+      if (v->curv < 0 || v->marked)
+	continue ;
+      v->marked = 1 ;
+      non_fcd_vertices[i] = vno ;
+      i++ ;
+       if (i >= random_patches)
+	break ;
+    }
+    if (iter >= MAX_ITER)
+      ErrorExit(ERROR_NOFILE, "%s: max iterations %d reached without finding enough random patches", Progname, iter);
+    for (i = 0 ; n < npoints ; n++, i++)
+    {
+      MRI *mri_tmp ;
+      mri_tmp = MRISextractVolumeWindow(mris, mri_norm,  wsize,  non_fcd_vertices[i], 0) ;
+      MRIcopyFrame(mri_tmp, mri_patches, 0, n) ;
+      MRIfree(&mri_tmp) ;
+      MRIsetVoxVal(mri_labels, n, 0, 0, 0, non_fcd_vertices[i]) ;
+      MRIsetVoxVal(mri_labels, n, 1, 0, 0, 0) ; // mark it as not an FCD
+    }
+  }
   
+  for (a = 0 ; a < augment ; a++)
+  {
+    double theta ;
+    int n1, i ;
+
+    theta = randomNumber(0.0, M_PI) ;
+    for (n1 = 0 ; n1 < area->n_points ; n1++, n++)
+    {
+      MRI *mri_tmp ;
+
+      mri_tmp = MRISextractVolumeWindow(mris, mri_norm,  wsize, area->lv[n1].vno, theta) ;
+      MRIcopyFrame(mri_tmp, mri_patches, 0, n) ;
+      MRIfree(&mri_tmp) ;
+      MRIsetVoxVal(mri_labels, n, 0, 0, 0, area->lv[n1].vno) ;
+      MRIsetVoxVal(mri_labels, n, 1, 0, 0, 1) ; // mark it as an FCD
+    }
+    if (random_patches > 0)
+    {
+      for (i = 0 ; n1 < npoints ; n1++, n++, i++)
+      {
+        MRI *mri_tmp ;
+	mri_tmp = MRISextractVolumeWindow(mris, mri_norm,  wsize,  non_fcd_vertices[i], theta) ;
+	MRIcopyFrame(mri_tmp, mri_patches, 0, n) ;
+	MRIfree(&mri_tmp) ;
+	MRIsetVoxVal(mri_labels, n, 0, 0, 0, non_fcd_vertices[i]) ;
+	MRIsetVoxVal(mri_labels, n, 1, 0, 0, 0) ; // mark it as not an FCD
+      }
+    }
+  }
+
   sprintf(fname, "%s/%s.patches.mgz", out_dir, hemi_name) ;
   printf("writing output file %s\n", fname) ;
   MRIwrite(mri_patches, fname) ;
@@ -173,16 +246,84 @@ main(int argc, char *argv[])
     ovno = MRISfindClosestCanonicalVertex(mris_ohemi, v->cx, v->cy, v->cz) ;
     if (ovno < 0)
       ErrorExit(ERROR_BADPARM, "%s: could not find closest vertex to %d\n", area->lv[n].vno) ;
-    v = &mris_ohemi->vertices[ovno] ;
-    mri_tmp = MRISextractVolumeWindow(mris_ohemi, mri_norm,  wsize,  ovno) ;
+    mri_tmp = MRISextractVolumeWindow(mris_ohemi, mri_norm,  wsize,  ovno, 0) ;
     MRIcopyFrame(mri_tmp, mri_patches, 0, n) ;
     MRIfree(&mri_tmp) ;
     MRIsetVoxVal(mri_labels, n, 0, 0, 0, ovno) ;
     MRIsetVoxVal(mri_labels, n, 1, 0, 0, 0) ; // mark it as an FCD
   }
+
+  if (random_patches > 0)
+  {
+    int    i ;
+
+    for (i = 0 ; n < npoints ; n++, i++)
+    {
+      MRI    *mri_tmp ;
+      VERTEX *v ;
+      int    ovno ;
+
+      v = &mris->vertices[non_fcd_vertices[i]] ;
+      ovno = MRISfindClosestCanonicalVertex(mris_ohemi, v->cx, v->cy, v->cz) ;
+      if (ovno < 0)
+	ErrorExit(ERROR_BADPARM, "%s: could not find closest vertex to %d\n", area->lv[n].vno) ;
+
+      mri_tmp = MRISextractVolumeWindow(mris_ohemi, mri_norm,  wsize,  ovno, 0) ;
+      MRIcopyFrame(mri_tmp, mri_patches, 0, n) ;
+      MRIfree(&mri_tmp) ;
+      MRIsetVoxVal(mri_labels, n, 0, 0, 0, ovno) ;
+      MRIsetVoxVal(mri_labels, n, 1, 0, 0, 0) ; // mark it as not an FCD
+    }
+  }
+
+  for (a = 0 ; a < augment ; a++)
+  {
+    double theta ;
+    int n1 ;
+
+    theta = randomNumber(0.0, M_PI) ;
+    for (n1 = 0 ; n1 < area->n_points ; n1++, n++)
+    {
+      MRI    *mri_tmp ;
+      VERTEX *v ;
+      int    ovno ;
+
+      v = &mris->vertices[area->lv[n1].vno] ;
+      ovno = MRISfindClosestCanonicalVertex(mris_ohemi, v->cx, v->cy, v->cz) ;
+      if (ovno < 0)
+	ErrorExit(ERROR_BADPARM, "%s: could not find closest vertex to %d\n", area->lv[n1].vno) ;
+      mri_tmp = MRISextractVolumeWindow(mris_ohemi, mri_norm,  wsize,  ovno, theta) ;
+      MRIcopyFrame(mri_tmp, mri_patches, 0, n) ;
+      MRIfree(&mri_tmp) ;
+      MRIsetVoxVal(mri_labels, n, 0, 0, 0, ovno) ;
+      MRIsetVoxVal(mri_labels, n, 1, 0, 0, 0) ; // mark it as an FCD
+    }
+    if (random_patches > 0)
+    {
+      int i ;
+
+      for (i = 0 ; n1 < npoints ; n1++, n++, i++)
+      {
+        MRI *   mri_tmp ;
+	VERTEX  *v ;
+	int     ovno ;
+
+	v = &mris->vertices[non_fcd_vertices[i]] ;
+	ovno = MRISfindClosestCanonicalVertex(mris_ohemi, v->cx, v->cy, v->cz) ;
+	if (ovno < 0)
+	  ErrorExit(ERROR_BADPARM, "%s: could not find closest vertex to %d\n", non_fce_vertices[i]) ;
+	
+	mri_tmp = MRISextractVolumeWindow(mris_ohemi, mri_norm,  wsize, ovno, theta) ;
+	MRIcopyFrame(mri_tmp, mri_patches, 0, n) ;
+	MRIfree(&mri_tmp) ;
+	MRIsetVoxVal(mri_labels, n, 0, 0, 0, ovno) ;
+	MRIsetVoxVal(mri_labels, n, 1, 0, 0, 0) ; // mark it as not an FCD
+      }
+    }
+  }
   
   sprintf(fname, "%s/%s.patches.mgz", out_dir, ohemi_name) ;
-  printf("writing output file %s\n", fname) ;
+  printf("writing output file with %d patches to %s\n", mris_patches->nframes,fname) ;
   MRIwrite(mri_patches, fname) ;
   sprintf(fname, "%s/%s.labels.mgz", out_dir, ohemi_name) ;
   printf("writing output file %s\n", fname) ;
@@ -244,6 +385,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
     {
+    case 'A':
+      augment = atoi(argv[2]) ;
+      nargs = 1 ;
+      printf("augmenting the data %2d times using planar rotations\n", augment) ;
+      break ;
     case 'S':
       surf_name = argv[2] ;
       nargs = 1 ;
@@ -253,6 +399,11 @@ get_option(int argc, char *argv[])
       label_name = argv[2] ;
       nargs = 1 ;
       printf("reading label from %s\n", label_name) ;
+      break ;
+    case 'R':
+      random_patch_pct = atof(argv[2]);
+      nargs = 1 ;
+      printf("creating %2.2f%% randomly chosen patches to augment training set\n", 100*random_patch_pct);
       break ;
     case '?':
     case 'U':
@@ -293,12 +444,15 @@ usage_exit(int code)
 }
 
 MRI *
-MRISextractVolumeWindow(MRI_SURFACE *mris, MRI *mri, int wsize, int vno)
+MRISextractVolumeWindow(MRI_SURFACE *mris, MRI *mri, int wsize, int vno, double theta)
 {
   MRI    *mri_vol ;
   VERTEX *v ;
-  double x0, y0, z0, whalf, xs, ys, zs, xv, yv, zv, val, e1c, e2c, nc ;
+  double x0, y0, z0, whalf, xs, ys, zs, xv, yv, zv, val, e1c, e2c, nc, ctheta, stheta, x1, y1 ;
   int   xi, yi, zi ;
+
+  ctheta = cos(theta) ;
+  stheta = sin(theta) ;
 
   v = &mris->vertices[vno] ;
   mri_vol = MRIalloc(wsize, wsize, wsize, MRI_FLOAT) ;
@@ -316,10 +470,14 @@ MRISextractVolumeWindow(MRI_SURFACE *mris, MRI *mri, int wsize, int vno)
       {
 	e1c = (xi-whalf) ;
 	e2c = (yi-whalf) ;
+	x1 = e1c*ctheta - e2c*stheta ;
+	y1 = e1c*stheta + e2c*ctheta ;
+	e1c = x1 ; e2c = y1 ;
 	nc = (zi-(whalf/2.0)) ;  // have more of the window extend outwards than inwards
 	xs = x0 + e1c*v->e1x + e2c*v->e2x + nc*v->nx ;
 	ys = y0 + e1c*v->e1y + e2c*v->e2y + nc*v->ny;
 	zs = z0 + e1c*v->e1z + e2c*v->e2z + nc*v->nz ;
+
 	MRISsurfaceRASToVoxel(mris, mri, xs, ys, zs, &xv, &yv, &zv) ;
 	MRIsampleVolume(mri, xv, yv, zv, &val) ;
 	MRIsetVoxVal(mri_vol, xi, yi, zi, 0, val) ;
