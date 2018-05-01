@@ -11711,6 +11711,8 @@ static int MRIScomputeTriangleProperties_old(MRI_SURFACE *mris, bool old_done)
 #ifdef BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_REPRODUCIBLE
 static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
 {
+  int const max_threads = omp_get_max_threads();
+  
   // This is the new code, that can compare its answers with the old code
   //
 #ifdef BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_CHECK
@@ -11733,7 +11735,7 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
   VECTOR *v_a[_MAX_FS_THREADS], *v_b[_MAX_FS_THREADS], *v_n[_MAX_FS_THREADS];
 
   int tno;
-  for (tno = 0; tno < _MAX_FS_THREADS; tno++) {
+  for (tno = 0; tno < max_threads; tno++) {
     v_a[tno] = VectorAlloc(3, MATRIX_REAL);
     v_b[tno] = VectorAlloc(3, MATRIX_REAL);
     v_n[tno] = VectorAlloc(3, MATRIX_REAL); /* normal vector */
@@ -11786,11 +11788,7 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
       *v1 = &mris->vertices[face->v[1]], 
       *v2 = &mris->vertices[face->v[2]];
 
-#ifdef HAVE_OPENMP
     int const tid = omp_get_thread_num();
-#else
-    int const tid = 0;
-#endif
 
     VERTEX_EDGE(v_a[tid], v0, v1);
     VERTEX_EDGE(v_b[tid], v0, v2);
@@ -11892,7 +11890,7 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
 
 #endif
 
-  for (tno = 0; tno < _MAX_FS_THREADS; tno++) {
+  for (tno = 0; tno < max_threads; tno++) {
     VectorFree(&v_a[tno]);
     VectorFree(&v_b[tno]);
     VectorFree(&v_n[tno]);
@@ -45317,7 +45315,9 @@ static void initIntersectDefectEdgesContext(IntersectDefectEdgesContext* ctx, MR
 
 static void finiIntersectDefectEdgesContext(IntersectDefectEdgesContext* ctx) {
 #ifdef COPE_WITH_VERTEX_MOVEMENT
-    free(ctx->vnoToFirstNPlus1); ctx->vnoToFirstNPlus1 = NULL; ctx->nvertices_seen = 0;
+    freeAndNULL(ctx->vnoToFirstNPlus1); ctx->nvertices_seen = 0;
+#else
+    freeAndNULL(ctx->vnosHighestNSeen);
 #endif
     freeGreatArcSet(&ctx->greatArcSet);
     free(ctx->entries); ctx->entries = NULL;
@@ -58331,6 +58331,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 
   //  TIMER_INTERVAL_END(taskExecution)
 
+  free(fnos);
   } // int p;
 
   //  TIMER_INTERVAL_BEGIN(volumeLikelihood)

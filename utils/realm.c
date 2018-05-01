@@ -1858,6 +1858,7 @@ void freeGreatArcSet(GreatArcSet** setPtr) {
     freeAndNULL(set->hiVnos);
     freeAndNULL(set->loVnos);
     freeAndNULL(set->keys);
+    freeAndNULL(set);
 }
 
 GreatArcSet* makeGreatArcSet(MRIS* mris) {

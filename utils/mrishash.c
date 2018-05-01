@@ -228,6 +228,7 @@ static MRIS_HASH_TABLE* newMHT(MRI_SURFACE const   *mris)
   return mht;
 }
 
+static void freeBins(MHBT* bucket);
 void MHTfree(MRIS_HASH_TABLE **pmht)
 {
   MRIS_HASH_TABLE* mht = *pmht;
@@ -245,7 +246,7 @@ void MHTfree(MRIS_HASH_TABLE **pmht)
 #ifdef HAVE_OPENMP
           omp_destroy_lock(&bucket->bucket_lock);
 #endif
-          if (bucket->bins) free(bucket->bins);
+          if (bucket->bins) freeBins(bucket);
           free(bucket);
         }
       }
@@ -298,6 +299,36 @@ static void unlockBucket(const MHBT *bucketc) {
 #endif
 }
 
+// A Bucket's ->bins and ->binsDebug 
+//      starts          NULL,       0
+//      each realloc    set,        incremented
+//      upon free,      dangling,   0xDEADDEAD
+// then the Bucket is freed
+//
+// But I am seeing one Bucket having problems when it bins are freed
+//
+static void reallocBins(MHBT* bucket, int atLeast) {
+  int max_bins = MAX(1,bucket->max_bins);
+  while (max_bins < atLeast) max_bins *= 2;
+  if (max_bins <= bucket->max_bins) return;
+  
+  MHB* bins = (MHB *)realloc(bucket->bins, max_bins*sizeof(MHB));
+  if (!bins)
+    ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate %d bins.\n", __MYFUNCTION__, bucket->max_bins);
+
+  // The const is there to stop any other code from modifying these fields
+  //
+  *(MHB**)&bucket->bins     = bins;
+  *(int *)&bucket->max_bins = max_bins;
+}
+
+static void freeBins(MHBT* bucket) {
+  MHB* bins = bucket->bins;
+  free(bins);
+  *(MHB**)&bucket->bins     = NULL;
+  *(int *)&bucket->max_bins = 0;
+}
+
 static MHBT* makeAndAcqBucket(MRIS_HASH_TABLE *mht, int xv, int yv, int zv) 
 {
   //-----------------------------------------------
@@ -330,12 +361,7 @@ static MHBT* makeAndAcqBucket(MRIS_HASH_TABLE *mht, int xv, int yv, int zv)
   
   // 3. Allocate bins
   if (!bucket->max_bins) /* nothing in this bucket yet - allocate bins */
-  {
-    bucket->max_bins = 4;
-    bucket->bins = (MHB *)calloc(bucket->max_bins, sizeof(MHB));
-    if (!bucket->bins)
-      ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate %d bins.\n", __MYFUNCTION__, bucket->max_bins);
-  }
+    reallocBins(bucket, 4);
 
   // returns with the bucket locked
   
@@ -892,22 +918,11 @@ static int mhtAddFaceOrVertexAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, int z
     //-------------------------------------------------------------
     // Add forvnum to this bucket
     //-------------------------------------------------------------
-    if (i >= bucket->nused) /* forvnum not already listed at this bucket */
+    if (i == bucket->nused) /* forvnum not already listed at this bucket */
     {
-      //------ Increase allocation if needed -------
-      if (bucket->nused >= bucket->max_bins) {
-        bin = bucket->bins;
-        bucket->max_bins *= 2;
-        bucket->bins = (MHB *)calloc(bucket->max_bins, sizeof(MHB));
-        if (!bucket->bins)
-          ErrorExit(ERROR_NO_MEMORY, "%s: could not allocate %d bins.\n", __MYFUNCTION__, bucket->max_bins);
-        memmove(bucket->bins, bin, bucket->nused * sizeof(MHB));
-        free(bin);
-        bin = &bucket->bins[i];
-      }
+      reallocBins(bucket, bucket->nused + 1);
       //----- add this face-position to this bucket ------
-      bucket->nused++;
-      bin->fno = forvnum;
+      bucket->bins[bucket->nused++].fno = forvnum;
     }
 
   done:

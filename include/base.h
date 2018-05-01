@@ -95,7 +95,9 @@ extern "C" {
 // Regardless of whether the __real_malloc etc. or the __wrap_ ones, it is still desirable
 // to know where in the program the allocations are happening.  This mechanism allows that to happen.
 //
-#if 0
+//#define DEBUG_MEMLEAK
+
+#if defined(DEBUG_MEMLEAK)
 
 void *mallocHere (              size_t size,                        const char* file, const char* function, int line);
 void  freeHere   (void *ptr,                                        const char* file, const char* function, int line);

@@ -53,16 +53,41 @@ typedef enum MallocAction {
     MA_remove = 8
 } MallocAction;
 
+// Sometimes the code tracks where the allocation was done
+//
+typedef struct MallocStats {
+    const char* file;
+    const char* function;
+    int         line;
+    size_t      size;
+    size_t      inserted;
+    size_t      cleared;
+    size_t      copied;
+    size_t      removed;
+    size_t      sumCurrentAllocs;
+    size_t      maxSumCurrentAllocs;
+} MallocStats;
+
+static void clearMallocStatsAllocCounters();
+static void showMallocStatsAllocCounters();
+
+
 
 //  The link command needs to be something like this to enable this support
 //
-//      make CCLD="g++ -Wl,--wrap=free -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc"
+//      make CCLD="g++ -Wl,--wrap=free -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,--wrap=posix_memalign"
 //
 //  It may also need
 //           -lmcheck
 
 
-#ifdef MEMORY_CORRUPTION_DEBUGGING
+#if !defined(MEMORY_CORRUPTION_DEBUGGING) && !defined(DEBUG_MEMLEAK)
+
+static void noteWhereAllocated(void* ptr, MallocStats* mallocStats) {
+}
+
+#else
+
 //
 // TBD get this working in conjunction with ROMP_SUPPORT
 
@@ -77,6 +102,7 @@ void *__real_malloc(size_t size);
 void  __real_free(void *ptr);
 void *__real_calloc(size_t nmemb, size_t size);
 void *__real_realloc(void *ptr, size_t size);
+int   __real_posix_memalign(void **memptr, size_t alignment, size_t size);
 
 // The code here is only thread-safe because it is all done inside a critical section
 // protected by this lock
@@ -99,6 +125,7 @@ static void wrapper_lock_rel() {
 }
 
 
+#if defined(MEMORY_CORRUPTION_DEBUGGING)    
 // In the extreme situation, rather than using __real_malloc etc., this code can
 // use whole pages of memory to satisfy each request.  It can change the protection
 // on one of these pages when it is 'free' to catch writes to free pages.  It also
@@ -114,7 +141,7 @@ typedef struct Page {
 
 size_t const pagesCapacity = 8000000;
 size_t pagesSize = 0;
-Page* pages;
+Page*  pages;
 
 Page*  pageChains   [100];
 size_t pageChainsGet[100];
@@ -192,6 +219,7 @@ static void shouldNotUse(Page* oLoPage, size_t opcPageCount) {
     memProtected_loPage = oLoPage;
 }
 
+#endif
 
 // The code also tracks all the mallocated storage in a huge hash table
 // These can be either the pages above or storage managed by __real_malloc etc.
@@ -199,9 +227,10 @@ static void shouldNotUse(Page* oLoPage, size_t opcPageCount) {
 // It also puts a few guard bytes at the end of the storage that can be checked for overruns
 //
 typedef struct Malloced {
-    size_t size;
-    size_t padding;
-    void*  ptr;
+    size_t       size;
+    size_t       padding;
+    void*        ptr;
+    MallocStats* whereAllocated;
 } Malloced;
 
 #define mallocedSizeLog2 23
@@ -211,8 +240,19 @@ typedef struct Malloced {
 static Malloced* malloced = NULL;
 static size_t countAlloc[_MAX_FS_THREADS];
 static size_t countFrees[_MAX_FS_THREADS];
+static size_t sumAlloc;
+static size_t sumAllocLimit = 1000000;
 
 static int doMallocAction(MallocAction action, void** ptr, size_t size) {
+
+#if !defined(MEMORY_CORRUPTION_DEBUGGING)    
+    if (action & MA_insert) countAlloc[omp_get_thread_num()]++;
+    if (action & MA_remove) countFrees[omp_get_thread_num()]++;
+    
+    // Doesn't do the allocation
+    //
+    return 0;
+#else
     if (!pages) {
         size_t unalignedPage = (size_t)    __real_malloc((pagesCapacity+1) * sizeof(Page));
         size_t alignedPage   = unalignedPage & ~(sizeof(Page)-1);
@@ -269,10 +309,11 @@ static int doMallocAction(MallocAction action, void** ptr, size_t size) {
     *ptr = np;
     
     return 1;           // DONE
+#endif
 }    
 
 
-static void noteMallocAction(MallocAction action, void* ptr, size_t size, size_t padding) {
+static Malloced* noteMallocAction(MallocAction action, void* ptr, size_t size, size_t padding) {
 
     if (!malloced) {
         malloced = (Malloced*)__real_calloc(mallocedSize,       sizeof(Malloced));
@@ -282,8 +323,8 @@ static void noteMallocAction(MallocAction action, void* ptr, size_t size, size_t
     size_t hash = ((((size_t)ptr) >> 5)*75321) & mallocedSizeMask;
     Malloced* m = &malloced[hash];
     while (m->ptr != ptr) {
-        if (m->ptr == 0) break; // not in chain
-        hash = (hash*327 + 1) & mallocedSizeMask;
+        if (m->ptr == 0) break;                                     // reached the end of the chain, some items on which may have been freed
+        hash = (hash*327 + 1) & mallocedSizeMask;                   //      but their ptr's were left non-null so they did not act as end of chain!
         m = &malloced[hash];
         if (++stabs > 1000) *(int*)-1 = 0;  // table too full 
     }
@@ -293,17 +334,24 @@ static void noteMallocAction(MallocAction action, void* ptr, size_t size, size_t
         if (m->size == 0  ) *(int*)-1 = 0;                          // in chain but freed already
         char* pad = (char*)ptr + m->size - m->padding;              // 
         while (m->padding--) if (*pad++ != 0x5c) *(int*)-1 = 0;     // trailing padding has been corrupted
+        sumAlloc -= m->size;
+        m->whereAllocated = NULL;
+        //m->ptr must not be zeroed' because that would end chains that others might be in
         m->size = 0;                        // free, but following items
     }                                       //  in chain still reachable
+    
     if (action & MA_insert) {
         if (m->size != 0  ) *(int*)-1 = 0;  // already in chain
         if (size == 0) size = 1;            // special case, can malloc a 0 sized object!
-        m->size = size;                     // free, but following items
+        m->size = size;
+        sumAlloc += m->size;
         m->ptr  = ptr;
         m->padding = padding;        
         char* pad = (char*)ptr + size - padding;
         while (padding--) *pad++ = 0x5c;
     }
+    
+    return m;
 }
 
 void round_up_size(size_t* size, size_t* padding) {
@@ -311,6 +359,29 @@ void round_up_size(size_t* size, size_t* padding) {
     *size += *padding;
 }
 
+static void showCurrentAllocs() {
+    clearMallocStatsAllocCounters();
+    
+    size_t hash;
+    for (hash = 0; hash < mallocedSize; hash++) {
+        Malloced* m = &malloced[hash];
+        if (!m->size || !m->whereAllocated) continue;
+        m->whereAllocated->sumCurrentAllocs += m->size;
+    }
+    
+    showMallocStatsAllocCounters();
+}
+
+static void noteWhereAllocated(void* ptr, MallocStats* mallocStats) {
+    Malloced* malloced = noteMallocAction(0, ptr, 0, 0);
+    malloced->whereAllocated = mallocStats;
+    if (sumAllocLimit < sumAlloc) {
+        sumAllocLimit = sumAlloc + 10000000L;
+        fprintf(stderr,  "sumAlloc:%ld\n", sumAlloc);
+        showCurrentAllocs();
+        // Clear the counters
+    }
+}
 
 // Here are the wrap functions that use the above mechanisms
 // I have seen mris_fix_topology run almost to completion before the hash table filled up
@@ -359,23 +430,25 @@ void  __wrap_free(void *ptr) {
     wrapper_lock_rel();
 }
 
+int __wrap_posix_memalign(void **memptr, size_t alignment, size_t size) {
+    size_t padding;
+    round_up_size(&size, &padding);
+    wrapper_lock_acq();
+    
+    int   r = 0;    if (!doMallocAction(MA_insert, memptr, size))                   r = __real_posix_memalign(memptr, alignment, size);
+
+    noteMallocAction(MA_insert, *memptr, size, padding);
+    wrapper_lock_rel();
+    return r;
+}
+
+
 #endif
 
 
 // Regardless of whether the __real_malloc etc. or the __wrap_ ones are being used, it is still desirable
 // to know where in the program the allocations are happening.  This mechanism allows that to happen.
 //
-typedef struct MallocStats {
-    const char* file;
-    const char* function;
-    int         line;
-    size_t      size;
-    size_t      inserted;
-    size_t      cleared;
-    size_t      copied;
-    size_t      removed;
-} MallocStats;
-
 #define mallocStatsSizeLog2 13
 #define mallocStatsSize     (1<<mallocStatsSizeLog2)
 #define mallocStatsSizeMask (mallocStatsSize-1)
@@ -422,7 +495,7 @@ static void mallocStatsExitHandler(void) {
     fprintf(stderr, "MallocStats\n   file, function, line, size, inserted, cleared, copied, removed\n");
 }
 
-static void noteMallocStatsAction(MallocAction action, size_t size, const char* file, const char* function, int line) {
+static MallocStats* noteMallocStatsAction(MallocAction action, size_t size, const char* file, const char* function, int line) {
 
     if (!mallocStats) {
         mallocStats = (MallocStats*)calloc(mallocStatsSize, sizeof(MallocStats));
@@ -447,29 +520,59 @@ static void noteMallocStatsAction(MallocAction action, size_t size, const char* 
     if (action & MA_clear)    m->cleared++;
     if (action & MA_copy)     m->copied++;
     if (action & MA_remove)   m->removed++;
+    
+    return m;
+}
+
+_Pragma("GCC diagnostic ignored \"-Wunused-function\"")
+static void clearMallocStatsAllocCounters() {
+    size_t hash;
+    for (hash = 0; hash < mallocStatsSize; hash++) mallocStats[hash].sumCurrentAllocs = 0;
+}
+
+_Pragma("GCC diagnostic ignored \"-Wunused-function\"")
+static void showMallocStatsAllocCounters() {
+    fprintf(stdout, "\nshowMallocStatsAllocCounters\n");
+    size_t hash;
+    for (hash = 0; hash < mallocStatsSize; hash++) {
+        MallocStats* m = &mallocStats[hash];
+        if (!m->sumCurrentAllocs || m->maxSumCurrentAllocs < m->sumCurrentAllocs) continue;
+        fprintf(stdout, "%10g %s:%d %s\n", (double)m->sumCurrentAllocs, m->file, m->line, m->function);
+    }
+    for (hash = 0; hash < mallocStatsSize; hash++) {
+        MallocStats* m = &mallocStats[hash];
+        if (!m->sumCurrentAllocs || m->maxSumCurrentAllocs > m->sumCurrentAllocs) continue;
+        fprintf(stdout, "%10g %s:%d %s, up from %g\n", (double)m->sumCurrentAllocs, m->file, m->line, m->function, (double)m->maxSumCurrentAllocs);
+        m->maxSumCurrentAllocs = m->sumCurrentAllocs;
+    }
 }
 
 void *mallocHere (              size_t size, const char* file, const char* function, int line) {
-    void* r = malloc(size); noteMallocStatsAction(MA_insert, size, file, function, line);
+    void* r = malloc(size);       MallocStats* m = noteMallocStatsAction(MA_insert, size, file, function, line);
+    noteWhereAllocated(r,m);
     return r;
 }
 
 void  freeHere   (void *ptr,                 const char* file, const char* function, int line) {
-    free(ptr); noteMallocStatsAction(MA_remove, 0, file, function, line);
+    free(ptr);                                     noteMallocStatsAction(MA_remove, 0, file, function, line);
 }
 
 void* callocHere (size_t nmemb, size_t size, const char* file, const char* function, int line) {
-    void* r = calloc(nmemb,size); noteMallocStatsAction(MA_insert|MA_clear, size, file, function, line);
+    void* r = calloc(nmemb,size); MallocStats* m = noteMallocStatsAction(MA_insert|MA_clear, size, file, function, line);
+    noteWhereAllocated(r,m);
     return r;
 }
 
 void *reallocHere(void *ptr,    size_t size, const char* file, const char* function, int line) {
-    void* r = realloc(ptr,size); noteMallocStatsAction(MA_insert|MA_remove, size, file, function, line);
+    void* r = realloc(ptr,size);  MallocStats* m = noteMallocStatsAction(MA_insert|MA_remove, size, file, function, line);
+    noteWhereAllocated(r,m);
     return r;
 }
 
-int posix_memalignHere(void **memptr, size_t alignment, size_t size,const char* file, const char* function, int line) {
-    int r = posix_memalign(memptr, alignment, size); noteMallocStatsAction(MA_insert, size, file, function, line);
+int posix_memalignHere(void **memptr, size_t alignment, size_t size, const char* file, const char* function, int line) {
+    int r = posix_memalign(memptr, alignment, size); 
+                                  MallocStats* m = noteMallocStatsAction(MA_insert, size, file, function, line);
+    noteWhereAllocated(*memptr,m);
     return r;
 }
 
