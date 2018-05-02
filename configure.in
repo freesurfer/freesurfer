@@ -36,12 +36,31 @@ AC_CONFIG_MACRO_DIR([m4])
 # To use the Intel C/C++ compiler, assuming it is installed here:
 #   /somepath/intel
 # do this prior to configuring:
+#
 #   source /somepath/intel/bin/iccvars.csh -arch intel64 -platform linux
 #   setenv CC icc
 #   setenv CXX icpc
 #   setenv LD icpc
 #   setenv LDFLAGS "-L/somepath/intel/lib"
 #   setenv AR xiar
+#
+ac_enable_icc=no
+AC_ARG_ENABLE(icc,
+ [  --enable-icc         enable use of the Intel compiler],
+ [case "${enableval}" in
+  yes)  ac_enable_icc=yes ;;
+  no)   ;;
+  *) AC_MSG_ERROR([bad value ${enableval} for --enable-icc]) ;;
+  esac])
+if test "$ac_enable_icc" = "yes"; then
+  AC_MSG_NOTICE([icc enabled with defaults])
+  CC=icc
+  CXX=icpc
+  LD=icpc
+  LDFLAGS="-L/opt/intel/lib"
+  AR="xiar"
+fi
+
 ########################################################################
 
 ##############################################################
@@ -3795,7 +3814,19 @@ $ITK_LIBS $EXPAT_LIBS"
 # The order is important here. When adding or removing a lib, be sure
 # to test the link line to make sure you don't need to adjust the
 # order.
+ac_use_mkl=no
 if test "x$CC" = "xicc"; then
+  # was yes, but that assumed MKL was installed, which is not guaranteed
+  ac_use_mkl=no
+fi
+AC_ARG_ENABLE(icc,
+ [  --enable-mkl         enable use of the Intel Math Kernel Library],
+ [case "${enableval}" in
+  yes)  ac_enable_icc=yes ;;
+  no)   ;;
+  *) AC_MSG_ERROR([bad value ${enableval} for --enable-mkl]) ;;
+  esac])
+if test "$ac_use_mkl" = "yes"; then
   AC_MSG_NOTICE(Using Intel Math Kernel Library)
   MATH_LIBS="-lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core"
   MATH_LIBS="$MATH_LIBS -liomp5 -lm"

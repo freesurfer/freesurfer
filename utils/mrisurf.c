@@ -58467,12 +58467,13 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 
   if (do_new_MRIDistance) {
     ROMP_PF_begin
-    int i,j,k;
+    long i;
 #ifdef HAVE_OPENMP
     #pragma omp parallel for if_ROMP(shown_reproducible) 
 #endif
     for (i = 0; i < mri_distance->width; i++) {
       ROMP_PFLB_begin
+      long j,k;
       for (j = 0; j < mri_distance->height; j++) {
         for (k = 0; k < mri_distance->depth; k++) {
 	
@@ -58486,7 +58487,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	  if (do_old_MRIDistance) {
 	    float old_distance = MRIFvox(mri_distance_nonconst, i, j, k);
 	    if (old_distance != distance) {
-	      fprintf(stdout, "%s:%d diff distances at i:%d j:%d k:%d old:%g new:%g\n", __FILE__, __LINE__,
+	      fprintf(stdout, "%s:%d diff distances at i:%ld j:%ld k:%ld old:%g new:%g\n", __FILE__, __LINE__,
 	      	i,j,k,old_distance,distance);
 	      exit(1);
 	    }
