@@ -97,7 +97,8 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_bHeatScaleAutoMid(true),
   m_nProjectionMapType(0),
   m_bDisplayRGB(false),
-  m_dVectorLineWidth(1)
+  m_dVectorLineWidth(1),
+  m_nVectorSkip(0)
 {
   mGrayScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   mHeatScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
@@ -1835,4 +1836,13 @@ void LayerPropertyMRI::SetSelectLabel(int nVal, bool bSelected)
   UpdateLUTTable();
   this->OnColorMapChanged();
   emit LabelContourChanged(nVal);
+}
+
+void LayerPropertyMRI::SetVectorSkip(int nSkip)
+{
+  if (nSkip != m_nVectorSkip)
+  {
+    m_nVectorSkip = nSkip;
+    emit VectorSkipChanged(nSkip);
+  }
 }

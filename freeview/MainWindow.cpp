@@ -2025,6 +2025,15 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
           cerr << "Missing vector width argument.\n";
         }
       }
+      else if ( subOption == "vector_skip" )
+      {
+        if ( subArgu.isEmpty() )
+        {
+          cerr << "Missing vector skip argument.\n";
+        }
+        else
+          sup_data["VectorSkip"] = subArgu;
+      }
       else if ( subOption == "tensor" )
       {
         tensor_display = subArgu.toLower();
@@ -4727,12 +4736,16 @@ void MainWindow::LoadVolumeFile( const QString& filename,
     }
   }
 
+  layer->GetProperty()->blockSignals(true);
   if (sup_data.contains("Basis"))
     layer->SetLayerIndex(sup_data["Basis"].toInt());
   if (sup_data.contains("Percentile"))
     layer->GetProperty()->SetUsePercentile(sup_data["Percentile"].toBool());
   if (sup_data.contains("ID"))
     layer->SetID(sup_data["ID"].toInt());
+  if (sup_data.contains("VectorSkip"))
+    layer->GetProperty()->SetVectorSkip(qMax(0, sup_data["VectorSkip"].toInt()));
+  layer->GetProperty()->blockSignals(false);
 
   m_threadIOWorker->LoadVolume( layer );
 }
@@ -5457,8 +5470,8 @@ void MainWindow::OnLoadPatch()
     return;
 
   QString filename = QFileDialog::getOpenFileName( this, "Select patch file",
-                                                         AutoSelectLastDir( "surf" ),
-                                                         "Patch files (*)", 0, QFileDialog::DontConfirmOverwrite);
+                                                   AutoSelectLastDir( "surf" ),
+                                                   "Patch files (*)", 0, QFileDialog::DontConfirmOverwrite);
   if ( !filename.isEmpty() && !surf->LoadPatch(filename) )
   {
     QMessageBox::warning(this, "Error", QString("Could not load patch from %1").arg(filename));

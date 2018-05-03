@@ -2048,9 +2048,9 @@ int MRISfree(MRI_SURFACE **pmris)
   }
   if(mris->faces) {
     for(faceno = 0; faceno < mris->nfaces; faceno++){
-      if(mris->faces[faceno].norm) MatrixFree(&mris->faces[faceno].norm);
+      if(mris->faces[faceno].norm) DMatrixFree(&mris->faces[faceno].norm);
       for(k=0; k < 3; k++){
-	if(mris->faces[faceno].gradNorm[k]) MatrixFree(&mris->faces[faceno].gradNorm[k]);
+	if(mris->faces[faceno].gradNorm[k]) DMatrixFree(&mris->faces[faceno].gradNorm[k]);
       }
     }
     free(mris->faces);
@@ -2058,7 +2058,7 @@ int MRISfree(MRI_SURFACE **pmris)
   if(mris->edges) {
     for(e=0; e < mris->nedges; e++){
       for(k=0; k<4; k++){
-	if(mris->edges[e].gradJ[k]) MatrixFree(&mris->edges[e].gradJ[k]);
+	if(mris->edges[e].gradDot[k]) DMatrixFree(&mris->edges[e].gradDot[k]);
       }
     }
     free(mris->edges);
@@ -11714,6 +11714,8 @@ static int MRIScomputeTriangleProperties_old(MRI_SURFACE *mris, bool old_done)
 #ifdef BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_REPRODUCIBLE
 static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
 {
+  int const max_threads = omp_get_max_threads();
+  
   // This is the new code, that can compare its answers with the old code
   //
 #ifdef BEVIN_MRISCOMPUTETRIANGLEPROPERTIES_CHECK
@@ -11736,7 +11738,7 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
   VECTOR *v_a[_MAX_FS_THREADS], *v_b[_MAX_FS_THREADS], *v_n[_MAX_FS_THREADS];
 
   int tno;
-  for (tno = 0; tno < _MAX_FS_THREADS; tno++) {
+  for (tno = 0; tno < max_threads; tno++) {
     v_a[tno] = VectorAlloc(3, MATRIX_REAL);
     v_b[tno] = VectorAlloc(3, MATRIX_REAL);
     v_n[tno] = VectorAlloc(3, MATRIX_REAL); /* normal vector */
@@ -11789,11 +11791,7 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
       *v1 = &mris->vertices[face->v[1]], 
       *v2 = &mris->vertices[face->v[2]];
 
-#ifdef HAVE_OPENMP
     int const tid = omp_get_thread_num();
-#else
-    int const tid = 0;
-#endif
 
     VERTEX_EDGE(v_a[tid], v0, v1);
     VERTEX_EDGE(v_b[tid], v0, v2);
@@ -11895,7 +11893,7 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
 
 #endif
 
-  for (tno = 0; tno < _MAX_FS_THREADS; tno++) {
+  for (tno = 0; tno < max_threads; tno++) {
     VectorFree(&v_a[tno]);
     VectorFree(&v_b[tno]);
     VectorFree(&v_n[tno]);
@@ -45320,7 +45318,9 @@ static void initIntersectDefectEdgesContext(IntersectDefectEdgesContext* ctx, MR
 
 static void finiIntersectDefectEdgesContext(IntersectDefectEdgesContext* ctx) {
 #ifdef COPE_WITH_VERTEX_MOVEMENT
-    free(ctx->vnoToFirstNPlus1); ctx->vnoToFirstNPlus1 = NULL; ctx->nvertices_seen = 0;
+    freeAndNULL(ctx->vnoToFirstNPlus1); ctx->nvertices_seen = 0;
+#else
+    freeAndNULL(ctx->vnosHighestNSeen);
 #endif
     freeGreatArcSet(&ctx->greatArcSet);
     free(ctx->entries); ctx->entries = NULL;
@@ -58467,12 +58467,13 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 
   if (do_new_MRIDistance) {
     ROMP_PF_begin
-    int i,j,k;
+    long i;
 #ifdef HAVE_OPENMP
     #pragma omp parallel for if_ROMP(shown_reproducible) 
 #endif
     for (i = 0; i < mri_distance->width; i++) {
       ROMP_PFLB_begin
+      long j,k;
       for (j = 0; j < mri_distance->height; j++) {
         for (k = 0; k < mri_distance->depth; k++) {
 	
@@ -58486,7 +58487,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 	  if (do_old_MRIDistance) {
 	    float old_distance = MRIFvox(mri_distance_nonconst, i, j, k);
 	    if (old_distance != distance) {
-	      fprintf(stdout, "%s:%d diff distances at i:%d j:%d k:%d old:%g new:%g\n", __FILE__, __LINE__,
+	      fprintf(stdout, "%s:%d diff distances at i:%ld j:%ld k:%ld old:%g new:%g\n", __FILE__, __LINE__,
 	      	i,j,k,old_distance,distance);
 	      exit(1);
 	    }
@@ -58511,6 +58512,7 @@ static double mrisComputeDefectMRILogUnlikelihood_wkr(
 
   //  TIMER_INTERVAL_END(taskExecution)
 
+  free(fnos);
   } // int p;
 
   //  TIMER_INTERVAL_BEGIN(volumeLikelihood)
@@ -80778,6 +80780,7 @@ int MRIScountEdges(MRIS *surf)
   return(nedges);
 }
 
+
 /*
   \fn int MRISedges(MRIS *surf)
   \brief Allocates and assigns edge structures. I think the corner values
@@ -80837,15 +80840,28 @@ int MRISedges(MRIS *surf)
 	  if(f->v[c] != vtxno0 && f->v[c] != vtxno1){
 	    // this is the 3rd corner if it is not vtx1 or vtx2
 	    edge->vtxno[k+2] = f->v[c];
-	    // get the ordinal corner number
-	    if(k==0) edge->corner[k][2] = c;
-	    if(k==1) edge->corner[k][3] = c;
 	    break;
 	  }
 	}
       }
 
-      // Note: corner[1][2] and corner[1][3] are not used
+      // Fill the corner matrix
+      for(n=0; n<4; n++){ // go thru the four edge vertices
+	m = edge->vtxno[n];
+	for(k=0; k<2; k++){ // go thru the two faces
+	  f = &(surf->faces[edge->faceno[k]]); // kth face
+	  for(c=0; c<3; c++){ // go thru the vertices of the kth face
+	    // Compare the edge vertex no against the face vertex no
+	    if(f->v[c] == m){
+	      edge->corner[n][k] = c;
+	      break;
+	    }
+	  }
+	}
+      }
+      // Note: corner[2][1] and corner[3][0] are not used
+      edge->corner[2][1] = 9;
+      edge->corner[3][0] = 9;
 
       edgeno++;
     }
@@ -80854,272 +80870,3 @@ int MRISedges(MRIS *surf)
   return(0);
 }
 
-
-
-/*!
-\fn int MRISfaceNormalGrad(MRIS *surf, int faceno, int NormOnly)
-Computes the gradient of the face normal with respect to changes 
-in the the position of each vertex (also computes the norm itself).
-The gradient is a 3x3 matrix of the form
-   dnx/dvx dnx/dvy dnx/dvz  
-   dny/dvx dny/dvy dny/dvz  
-   dnz/dvx dnz/dvy dnz/dvz  
-Where nx is the x component of the normal and vx is the x component of the vertex.
-Since there are three vertices, there are three such matrices.
-The matrices are stored in face->gradNorm[refvtxno]
-The norm is stored in face->norm
-If NormOnly != 0, then only the norm is computed
-These equations themselves have been verified emperically, though there could be
-some issues with accuracy in certain cases because the data structures use float.
-See MRISfaceNormalGradTest().
-*/
-int MRISfaceNormalGrad(MRIS *surf, int faceno, int NormOnly)
-{
-  VERTEX *vSrc, *vWRT, *vC;
-  FACE *f;
-  MATRIX *a, *b, *c=NULL, *cT=NULL, *gradc=NULL, *gradcL=NULL, *tmp1=NULL, *tmp2=NULL;
-  long double cL;
-  int wrtvtxno,k,m;
-
-  if(faceno < 0 || faceno >= surf->nfaces){
-    printf("MRISfaceNormalGrad(): faceno = %d (0,%d)\n",faceno,surf->nfaces);
-    return(1);
-  }
-
-  f = &(surf->faces[faceno]);
-
-  a = MatrixAlloc(3,1,MATRIX_REAL);
-  b = MatrixAlloc(3,1,MATRIX_REAL);
-  c = MatrixAlloc(3,1,MATRIX_REAL);
-  gradc = MatrixAlloc(3,3,MATRIX_REAL);
-
-  // Compute gradient with respect to (wrt) each vertex in the triangle
-  for(wrtvtxno = 0; wrtvtxno < 3; wrtvtxno++){
-
-    // This is the vertex we are computing the gradient for
-    vWRT = &(surf->vertices[f->v[wrtvtxno]]);
-
-    // This is the "source" vertex. Vectors used in the cross product will 
-    // point away from this vertex
-    k = wrtvtxno-1;
-    if(k<0) k = 2;
-    vSrc = &(surf->vertices[f->v[k]]);
-
-    // This is just the 3rd vertex
-    m = wrtvtxno+1;
-    if(m>2) m = 0;
-    vC = &(surf->vertices[f->v[m]]);
-
-    // Vector a must go from source vertex to WRT vertex
-    a->rptr[1][1] = vWRT->x - vSrc->x;
-    a->rptr[2][1] = vWRT->y - vSrc->y;
-    a->rptr[3][1] = vWRT->z - vSrc->z;
-
-    // Vector b must go from source to the other vertex (and
-    // specifically not include the WRT vertex)
-    b->rptr[1][1] = vC->x - vSrc->x;
-    b->rptr[2][1] = vC->y - vSrc->y;
-    b->rptr[3][1] = vC->z - vSrc->z;
-
-    // Now compute the cross product
-    c = VectorCrossProductD(a, b, c);
-    
-    cL = VectorLen(c); // Length/magnitude of cross
-
-    // norm computed below should be the same as mrisNormalFace()
-    if(wrtvtxno == 0) // only needs to be done once
-      f->norm = MatrixScalarMul(c,1.0/cL,f->norm); 
-    if(NormOnly) break;
-
-    // Gradient of the unnormalized cross 
-    gradc->rptr[1][2] =  b->rptr[3][1];
-    gradc->rptr[1][3] = -b->rptr[2][1];
-    gradc->rptr[2][1] = -b->rptr[3][1];
-    gradc->rptr[2][3] =  b->rptr[1][1];
-    gradc->rptr[3][1] =  b->rptr[2][1];
-    gradc->rptr[3][2] = -b->rptr[1][1];
-
-    // Gradient of the length of c
-    cT = MatrixTranspose(c,cT);
-    gradcL = MatrixMultiplyD(cT,gradc,gradcL);
-    gradcL = MatrixScalarMul(gradcL, 1.0/cL, gradcL);
-    
-    // Gradient of normalized cross
-    // gradNorm = gradc/cL - [c*gradcL]/(cL^2) = tmp1-tmp2
-    tmp1 = MatrixScalarMul(gradc, 1.0/cL, tmp1);
-    tmp2 = MatrixMultiplyD(c,gradcL,tmp2);
-    tmp2 = MatrixScalarMul(tmp2, 1.0/(cL*cL), tmp2);
-    f->gradNorm[wrtvtxno] = MatrixSubtract(tmp1,tmp2,f->gradNorm[wrtvtxno]);
-    
-    if(0){
-      printf("a = [");
-      MatrixPrint(stdout,a);
-      printf("];\n");
-      printf("b = [");
-      MatrixPrint(stdout,b);
-      printf("];\n");
-      printf("gradc = [");
-      MatrixPrint(stdout,gradc);
-      printf("];\n");
-      printf("gradcL = [");
-      MatrixPrint(stdout,gradcL);
-      printf("];\n");
-      printf("grad = [");
-      MatrixPrint(stdout,f->gradNorm[wrtvtxno]);
-      printf("];\n");
-      printf("[g0 gradc0 gradcL0]= gradnormcross(a,b);\n");
-      printf("mar(g0-grad)\n");
-    }
-  }
-
-  MatrixFree(&a);
-  MatrixFree(&b); 
-  MatrixFree(&c); 
-  MatrixFree(&gradc); 
-  if(!NormOnly) {
-    MatrixFree(&cT); 
-    MatrixFree(&gradcL); 
-    MatrixFree(&tmp1); 
-    MatrixFree(&tmp2);
-  }
-
-  return(0);
-}
-
-/*!
-  \fn int MRISfaceNormalGradTest(MRIS *surf, char *surfpath)
-
-  This function tests MRISfaceNormalGrad() by numerically computing
-  the gradient and comparing it to the theoretical. The idea is
-  simple, but the application is more complicated for two reasons. (1)
-  If a triangle is very small or has a very short edge, then the
-  perturbation needs to be very small. (2) Very small perturbations
-  can get overwhelmed by precision noise because the underlying FS and
-  matrix code uses float. As a result, you can sometimes get fairly
-  large differences between the theoretical and numerical. There are
-  not too many mismatches, but there are enough and they are big
-  enough that it makes it hard to set a good threshold.
-
-  Returns the number of errors as indicated by an arbitrary threshold
-  of triangles with areas above another threshold.
-
-  If surf is passed, then it uses that surface as input. If surfpath
-  is passed, then it loads that surface (and deallocs at the end).
-  If both are NULL, then it uses ic1.tri.
-
- */
-int MRISfaceNormalGradTest(MRIS *surf, char *surfpath)
-{
-  double delta = .001; //mm
-  int faceno, wrtvtx, c,k, Dealloc, nhits;
-  VERTEX *v;
-  FACE *f;
-  MATRIX *norm1=NULL, *norm2[3]={NULL,NULL,NULL}, *dnorm=NULL, *numgrad=NULL;
-  double maxabsnumgrad, absdiff, maxabsdiff, rdiff, maxrdiff;
-  float vx0, vy0, vz0;
-  char tmpstr[2000];
-
-  Dealloc=1;
-  if(surf) Dealloc=0;
-  else {
-    if(surfpath == NULL) {
-      sprintf(tmpstr,"%s/lib/bem/ic1.tri",getenv("FREESURFER_HOME"));
-      surfpath = tmpstr;
-    }
-    fprintf(stderr,"Reading in surf %s\n",surfpath);
-    surf = MRISread(surfpath);
-    if(surf==NULL) exit(1);
-  }
-
-  maxrdiff = -1;
-  numgrad = MatrixAlloc(3,3,MATRIX_REAL);
-  nhits = 0;
-  // go through each face
-  for(faceno=0; faceno < surf->nfaces; faceno++){
-    f = &(surf->faces[faceno]);
-    // Compute the normal and the gradients for this face
-    MRISfaceNormalGrad(surf, faceno, 0);
-    norm1 = MatrixCopy(f->norm,norm1); // make a copy of the norm
-
-    // Empirically compute gradient WRT each vertex in the triangle
-    MatrixZero(3, 3, numgrad);
-    for(wrtvtx = 0; wrtvtx < 3; wrtvtx++){
-      v = &(surf->vertices[f->v[wrtvtx]]);
-      vx0 = v->x; vy0 = v->y;  vz0 = v->z; // store orig pos
-
-      // Go thru each WRT vertex coordinate
-      for(c=0; c<3; c++){
-	// Change coord by a small amount
-	if(c==0) v->x += delta;
-	if(c==1) v->y += delta;
-	if(c==2) v->z += delta;
-	// Compute only the normal
-	MRISfaceNormalGrad(surf, faceno, 1);
-	norm2[c] = MatrixCopy(f->norm,norm2[c]); // make a copy
-	dnorm = MatrixSubtract(norm2[c],norm1,dnorm); // difference
-	// Numerically compute the gradient
-	for(k=0; k<3; k++) 
-	  numgrad->rptr[k+1][c+1] = (dnorm->rptr[k+1][1]/delta);
-	v->x = vx0; v->y = vy0;	v->z = vz0; //restore
-      } // coordinate
-      // Compute the maximum abs gradient and maximum abs difference
-      maxabsnumgrad = -1;
-      maxabsdiff = -1;
-      for(k=0; k<3; k++) {
-	for(c=0; c<3; c++){
-	  if(maxabsnumgrad < fabs(numgrad->rptr[k+1][c+1])) maxabsnumgrad = fabs(numgrad->rptr[k+1][c+1]);
-	  absdiff = fabs(numgrad->rptr[k+1][c+1] - f->gradNorm[wrtvtx]->rptr[k+1][c+1]);
-	  if(maxabsdiff < absdiff) maxabsdiff = absdiff;
-	}
-      }
-
-      // Compute the difference relative to the maximum
-      rdiff = maxabsdiff/maxabsnumgrad;
-      if(maxrdiff < rdiff && f->area > 0.1) maxrdiff = rdiff;
-
-      // Log an error if rdiff is over threshold and the face area is big enough
-      // This is not perfect as the area may be ok but one edge may be really short
-      if(rdiff > 0.02 && f->area > 0.1){
-	printf("#@# %4d %4d %d %6.4lf  %6.4lf  %6.4lf %10.8f\n",nhits,faceno,wrtvtx,maxabsdiff,maxabsnumgrad,rdiff,f->area);
-	fflush(stdout);
-	nhits ++;
-	if(0){
-	  printf("delta = %lf\n",delta);
-	  for(k = 0; k < 3; k++){
-	    v = &(surf->vertices[f->v[k]]);
-	    printf("vtx%d = [%g,%g,%g]\n",k,v->x,v->y,v->z);
-	  }
-	  printf("norm1 = [\n");
-	  MatrixPrint(stdout,norm1);
-	  printf("]\n");
-	  for(c=0; c<3; c++){
-	    printf("norm2 = [\n");
-	    MatrixPrint(stdout,norm2[c]);
-	    printf("]\n");
-	  }
-	  printf("dnorm = [\n");
-	  MatrixPrint(stdout,dnorm);
-	  printf("]\n");
-	  printf("gradNorm = [\n");
-	  MatrixPrint(stdout,f->gradNorm[wrtvtx]);
-	  printf("]\n");
-	  printf("numgrad = [\n");
-	  MatrixPrint(stdout,numgrad);
-	  printf("]\n");
-	  printf("mar(gradNorm-numgrad)\n");
-	  //exit(1);
-	}
-      }
-    } // corner vertex
-  } // face
-  printf("%4d %4d %lf\n",surf->nfaces,nhits,maxrdiff);
-
-  if(Dealloc) MRISfree(&surf);
-
-  MatrixFree(&norm1);
-  for(k = 0; k < 3; k++) MatrixFree(&norm2[k]);
-  MatrixFree(&dnorm);
-  MatrixFree(&numgrad);
-
-  return(nhits);
-}

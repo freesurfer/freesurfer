@@ -197,6 +197,12 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
     menu->addAction(wnd->ui->actionLoadSurface);
     menu->addAction(wnd->ui->actionReloadSurface);
     menu->addSeparator();
+    if (type == "Surface")
+    {
+      menu->addAction(wnd->ui->actionLoadPatch);
+      menu->addAction(wnd->ui->actionSavePatchAs);
+      menu->addSeparator();
+    }
   }
   if (type == "ROI" || type.isEmpty())
   {

@@ -238,6 +238,8 @@ int DMatrixTest(void)
     printf("];\n");
   }
   else printf("passed\n");
+  MatrixFree(&mf);
+  DMatrixFree(&md);
 
   printf("DMatrix: testing matrix dot ...");
   vf = VectorDot(m1f,m2f);
@@ -257,6 +259,8 @@ int DMatrixTest(void)
     printf("resd = %lf\n",vd);
   }
   else printf("passed\n");
+  MatrixFree(&mf);
+  DMatrixFree(&md);
 
   printf("DMatrix: testing vector length ...");
   vf = VectorLen(m1f);

@@ -896,13 +896,18 @@ static RealmTreeNode* insertVnoIntoNode(
 }
 
 static void removeVnoFromRealmTree(RealmTree* realmTree, int vno) {
-
     RealmTreeNode* n = realmTree->vnoToRealmTreeNode[chkBnd(0, vno, realmTree->saved_nvertices)];
     realmTree->vnoToRealmTreeNode[vno] = NULL;
     {
+        // find it, backwards since the active ones are at end
+	//
         int vi;
-        for (vi = n->vnosSize - 1; n->vnos[vi] != vno; vi--);                   // find it, backwards since the active ones are at end
-        do { n->vnos[vi] = n->vnos[vi+1]; } while (++vi < n->vnosSize - 1);     // remove it
+        for (vi = n->vnosSize - 1; n->vnos[vi] != vno; vi--) { }
+	                   
+	// found at vi, shrink the list
+	//
+        for (; vi+1 < n->vnosSize; vi++)  { n->vnos[vi] = n->vnos[vi+1]; }  // remove it
+	n->vnosSize--;
     }
 }
 
@@ -1863,6 +1868,7 @@ void freeGreatArcSet(GreatArcSet** setPtr) {
     freeAndNULL(set->hiVnos);
     freeAndNULL(set->loVnos);
     freeAndNULL(set->keys);
+    freeAndNULL(set);
 }
 
 GreatArcSet* makeGreatArcSet(MRIS* mris) {

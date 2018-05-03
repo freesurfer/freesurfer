@@ -232,6 +232,7 @@ void LayerMRI::ConnectProperty()
   connect( this, SIGNAL(ActiveFrameChanged(int)), this, SLOT(UpdateContour()));
   connect( p, SIGNAL(LabelContourChanged(int)), this, SLOT(OnLabelContourChanged(int)));
   connect( p, SIGNAL(VectorLineWidthChanged(double)), this, SLOT(UpdateVectorLineWidth(double)));
+  connect( p, SIGNAL(VectorSkipChanged(int)), SLOT(UpdateVectorActor()));
 }
 
 void LayerMRI::SetResampleToRAS( bool bResample )
@@ -1657,12 +1658,13 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   m_glyphActor2D[nPlane]->SetPosition(actor_pos);
   m_vectorDotActor2D[nPlane]->SetPosition(actor_pos);
 
+  int nSkip = GetProperty()->GetVectorSkip()+1;
   switch ( nPlane )
   {
   case 0:
-    for ( int i = 0; i < dim[1]; i++ )
+    for ( int i = 0; i < dim[1]; i+=nSkip )
     {
-      for ( int j = 0; j < dim[2]; j++ )
+      for ( int j = 0; j < dim[2]; j+=nSkip )
       {
         double v[3];
         double pt[3];
@@ -1727,9 +1729,9 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
     }
     break;
   case 1:
-    for ( int i = 0; i < dim[0]; i++ )
+    for ( int i = 0; i < dim[0]; i+=nSkip )
     {
-      for ( int j = 0; j < dim[2]; j++ )
+      for ( int j = 0; j < dim[2]; j+=nSkip )
       {
         double v[3];
         double pt[3];
@@ -1794,9 +1796,9 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
     }
     break;
   case 2:
-    for ( int i = 0; i < dim[0]; i++ )
+    for ( int i = 0; i < dim[0]; i+=nSkip )
     {
-      for ( int j = 0; j < dim[1]; j++ )
+      for ( int j = 0; j < dim[1]; j+=nSkip )
       {
         double v[3];
         double pt[3];
