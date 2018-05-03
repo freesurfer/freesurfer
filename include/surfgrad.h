@@ -49,6 +49,16 @@ int MRISfaceNormalGradTest(MRIS *surf, char *surfpath, double delta);
 int MRISfaceNormalFace(MRIS *surf, int faceno, DMATRIX **pc, double *pcL);
 double MRISfaceNormalGradFaceTest(MRIS *surf, int faceno, int wrtvtxno, long double delta, int verbose);
 
+  double MRISedgeAngleCostEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno, DMATRIX **pgrad);
+  int MRISedgeGradDotEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno);
+  int MRISedgeGradDot(MRIS *surf);
+  double MRISedgeGradDotEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long double delta, int verbose);
+  int MRISfaceNormalGrad(MRIS *surf, int NormOnly);
+  int MRISedgeAngleCostEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long double delta);
+  int MRISedgePrint(MRIS *surf, int edgeno, FILE *fp);
+  int MRISedgeMetricEdge(MRIS *surf, int edgeno);
+  int MRISfacePrint(MRIS *surf, int faceno, FILE *fp);
+
 #if defined(__cplusplus)
 };
 #endif
