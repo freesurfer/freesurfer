@@ -53,10 +53,8 @@ endif
 set REF_VOL = ref_lh.sphere.reg
 set TST_VOL = lh.sphere.reg
 
-hd -s 96 -n 550000 < $REF_VOL > ${REF_VOL}.hd.txt
-hd -s 96 -n 550000 < $TST_VOL > ${TST_VOL}.hd.txt
+set cmd=(../../mris_diff/mris_diff --debug $REF_VOL $TST_VOL );
 
-set cmd=(diff -q ${REF_VOL}.hd.txt ${TST_VOL}.hd.txt );
 echo ""
 echo $cmd
 $cmd
@@ -66,8 +64,6 @@ if ($diff_status != 0) then
   exit 1
 endif
 
-echo ""
-echo ""
 echo ""
 
 #
