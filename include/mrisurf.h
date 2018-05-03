@@ -2369,6 +2369,9 @@ int MRISwriteCoordsToIco(MRI_SURFACE *mris,
 int MRISvertexCoord2XYZ_float (VERTEX * v,
                                int which,
                                float  *x, float  *y, float  *z);
+int MRISvertexCoord2XYZ_double (VERTEX * v,
+                               int which,
+                               double  *x, double  *y, double  *z);
 int MRISsampleFaceNormal(MRI_SURFACE *mris, int fno, double x, double y, double z, 
                          float *px, float *py, float *pz) ;
 int
