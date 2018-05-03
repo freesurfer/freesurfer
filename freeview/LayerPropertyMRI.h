@@ -389,6 +389,11 @@ public:
     return m_dVectorLineWidth;
   }
 
+  int GetVectorSkip()
+  {
+    return m_nVectorSkip;
+  }
+
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -442,6 +447,7 @@ public slots:
   void ResetWindowLevel();
 
   void SetVectorLineWidth(double val);
+  void SetVectorSkip(int nSkip);
 
 signals:
   void ColorMapChanged();
@@ -460,6 +466,7 @@ signals:
   void ProjectMapTypeChanged(int nType);
   void LabelContourChanged(int n = -1);
   void VectorLineWidthChanged(double val);
+  void VectorSkipChanged(int nSkip);
 
 private:
   void UpdateMinMaxValues();
@@ -559,6 +566,8 @@ private:
 
   int     m_nProjectionMapType;
   int     m_nProjectionMapRange[6];
+
+  int     m_nVectorSkip;
 
   QList<int>  m_listVisibleLabels;
 };

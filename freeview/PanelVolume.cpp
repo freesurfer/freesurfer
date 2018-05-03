@@ -161,7 +161,9 @@ PanelVolume::PanelVolume(QWidget *parent) :
                      << ui->lineEditVectorScale
                      << ui->labelVectorScale
                      << ui->labelVectorLineWidth
-                     << ui->lineEditVectorLineWidth;
+                     << ui->lineEditVectorLineWidth
+                     << ui->labelVectorSkip
+                     << ui->spinBoxVectorSkip;
   //    << ui->labelMask
   //    << ui->comboBoxMask;
 
@@ -301,6 +303,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( layer, SIGNAL(IsoSurfaceUpdating()), ui->progressBarWorking, SLOT(show()));
   connect( layer, SIGNAL(IsoSurfaceUpdated()), ui->progressBarWorking, SLOT(hide()));
   connect( ui->pushButtonResetWindowLevel, SIGNAL(clicked(bool)), SLOT(OnButtonResetWindowLevel()));
+  connect( ui->spinBoxVectorSkip, SIGNAL(valueChanged(int)), p, SLOT(SetVectorSkip(int)));
 }
 
 void PanelVolume::DoIdle()
@@ -571,6 +574,8 @@ void PanelVolume::DoUpdateWidgets()
       }
       ui->comboBoxCorrelationSurface->setCurrentIndex(n);
     }
+
+    ui->spinBoxVectorSkip->setValue(layer->GetProperty()->GetVectorSkip());
   }
 
   bool bNormalDisplay = (layer && !layer->GetProperty()->GetDisplayVector()
