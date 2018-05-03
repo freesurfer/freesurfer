@@ -76340,7 +76340,7 @@ int MRISvertexCoord2XYZ_float(VERTEX *v, int which, float *x, float *y, float *z
       break;
     default:
     case GOOD_VERTICES:
-      ErrorExit(ERROR_UNSUPPORTED, "MRISvertexCoord2XYZ_double: unsupported which %d", which);
+      ErrorExit(ERROR_UNSUPPORTED, "MRISvertexCoord2XYZ_float: unsupported which %d", which);
       break;
   }
   return (NO_ERROR);
