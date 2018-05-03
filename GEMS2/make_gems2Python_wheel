@@ -5,6 +5,7 @@ cmake  -D CMAKE_CXX_FLAGS="-msse2 -mfpmath=sse -fPIC -fpermissive" \
           -D BUILD_GUI=OFF \
           -D BUILD_MATLAB=OFF \
           -D BUILD_PYTHON=ON \
+          -D CMAKE_BUILD_TYPE=RELEASE \
           -D BUILD_SHARED_LIBS=OFF \
           -D BUILD_TESTING=OFF \
           . && \
