@@ -109,6 +109,19 @@ class RegressionTest:
         errorExit('mri_diff of %s and %s failed' % (orig, ref))
 
 
+  # run a diff on two surfs (calls mris_diff, which must be already
+  # built in the source directory)
+  def surfdiff(self, orig, ref):
+    if self.regenerate:
+      self.regen(orig, ref)
+    else:
+      self.cd(self.testdatadir)
+      diffcmd = op.relpath(self.findPath(self.testdatadir, 'mris_diff/mris_diff'))
+      cmd = '%s %s %s  --debug' % (diffcmd, orig, ref)
+      if self.runcmd(cmd, fatal=False) != 0:
+        errorExit('mris_diff of %s and %s failed' % (orig, ref))
+
+
   # overwrite a reference file with the observed output
   # this will re-tar and overwrite the primary testdata.tar.gz
   def regen(self, orig, ref):
