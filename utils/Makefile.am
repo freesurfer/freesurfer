@@ -183,6 +183,7 @@ libutils_main_SOURCES=\
 	mrisp.c \
 	mriSurface.c \
 	mrisurf.c \
+        MRISrigidBodyAlignGlobal.c \
 	mrisutils.c \
 	mri_tess.c \
 	mri_topology.c \
@@ -230,6 +231,7 @@ libutils_main_SOURCES=\
 	tukey.c \
 	utils.c \
 	version.c \
+        vertexRotator.c \
 	vlabels.c \
 	volcluster.c \
 	voxlist.c \
