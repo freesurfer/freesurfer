@@ -54,13 +54,13 @@ foo:
 
 check_PROGRAMS=foo
 
-TESTS=test_mris_sphere test_fs_posix $(top_builddir)/scripts/help_xml_validate
+TESTS=test test_fs_posix $(top_builddir)/scripts/help_xml_validate
 
 clean-local:
 	rm -f $(BUILT_SOURCES)
 
 EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES) \
-	make_mris_sphere_movie.tcl test_mris_sphere
+	make_mris_sphere_movie.tcl test
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
