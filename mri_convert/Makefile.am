@@ -27,12 +27,12 @@ foo:
 
 check_PROGRAMS=foo
 
-TESTS=test_mri_convert $(top_builddir)/scripts/help_xml_validate
+TESTS=test $(top_builddir)/scripts/help_xml_validate
 
 clean-local:
 	rm -f $(BUILT_SOURCES)
 
-EXTRA_DIST=test_mri_convert testdata.tar.gz $(foo_DATA) $(BUILT_SOURCES)
+EXTRA_DIST=test testdata.tar.gz $(foo_DATA) $(BUILT_SOURCES)
 
 # mri_convert is called by Eugenio's hippocampal subfield code.
 # Mac OSX systems 10.11 (El Capitan) and greater implemented SIP
