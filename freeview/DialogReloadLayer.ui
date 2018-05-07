@@ -27,7 +27,7 @@
    <item>
     <widget class="QCheckBox" name="checkBoxCloseFirst">
      <property name="text">
-      <string>Close the current layer before reloading</string>
+      <string>Close the selected layer(s) before reloading</string>
      </property>
     </widget>
    </item>

@@ -385,7 +385,8 @@ protected:
   void CommandSetTrackColor     ( const QStringList& cmd );
   void CommandSetTrackRender    ( const QStringList& cmd );
   void CommandLoadTractCluster  ( const QStringList& cmd );
-  void CommandReorderLayers  ( const QStringList& cmd );
+  void CommandReorderLayers   ( const QStringList& cmd );
+  void CommandUnloadLayers    ( const QStringList& cmd );
   void CommandSetActiveFrame    ( const QStringList& cmd );
 
 public:
@@ -400,13 +401,13 @@ protected slots:
   void OnSetMainView  ( QAction* );
   void OnNewVolume();
   void OnLoadVolume();
-  bool OnCloseVolume();
+  bool OnCloseVolume(const QList<Layer*>& layers = QList<Layer*>());
   void OnSaveVolume();
   void OnReloadVolume();
   void OnLoadDTI();
   void OnLoadTrackVolume();
   void OnLoadSurface();
-  void OnCloseSurface();
+  void OnCloseSurface(const QList<Layer*>& layers = QList<Layer*>());
   void OnReloadSurface();
   void OnLoadPatch();
   void OnSavePatchAs();
