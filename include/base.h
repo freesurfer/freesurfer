@@ -116,6 +116,14 @@ int posix_memalignHere(void **memptr, size_t alignment, size_t size,const char* 
 
 #define freeAndNULL(PTR) { free((PTR)); (PTR) = NULL; }
 
+
+// Some trivial math functions needed lots
+//
+#pragma GCC diagnostic ignored "-Wunused-function"
+static float squaref(float x) { return x*x; }
+
+
+
 #if defined(__cplusplus)
 };
 #endif
