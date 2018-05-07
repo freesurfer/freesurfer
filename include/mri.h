@@ -35,6 +35,7 @@ extern "C" {
 #include "minc_volume_io.h"
 #include "const.h"
 #include "matrix.h"
+#include "dmatrix.h"
 #include "machine.h"
 #include "colortab.h"
 
@@ -821,8 +822,9 @@ int   MRIerasePlane(MRI *mri, float x0, float y0, float z0,
 int   MRIeraseBorders(MRI *mri, int width) ;
 int   MRIindexNotInVolume( const MRI *mri,
 			   const double col, const double row, const double slice );
-int   MRIsampleVolume( const MRI *mri,
-                       double x, double y, double z, double *pval );
+int   MRIsampleVolume( const MRI *mri,double x, double y, double z, double *pval );
+DMATRIX *MRIgradTrilinInterp(const MRI *mri, double x, double y, double z, DMATRIX *grad);
+
 double *MRItrilinKernel(MRI *mri,
                         double c,
                         double r,

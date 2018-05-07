@@ -9468,7 +9468,7 @@ int MRIinterpolateIntoVolumeFrame(MRI *mri, double x, double y, double z, int fr
 /*-------------------------------------------------------------------
   MRIsampleVolume() - performs trilinear interpolation on a
   single-frame volume. See MRIsampleSeqVolume() for sampling
-  multi-frame.
+  multi-frame. See MRIgradTrilinInterp() to get the gradient.
   -------------------------------------------------------------------*/
 int MRIsampleVolume(const MRI *mri, double x, double y, double z, double *pval)
 {
@@ -9553,6 +9553,84 @@ int MRIsampleVolume(const MRI *mri, double x, double y, double z, double *pval)
   }
   return (NO_ERROR);
 }
+
+/*!
+  \fn DMATRIX *MRIgradTrilinInterp(const MRI *mri, double x, double y, double z, DMATRIX *grad)
+  \brief Compute the gradient of the intensity (as computed by
+  MRIsampleVolume())wrt the column (x), row (y), and slice (z). grad
+  is a 1x3 matrix = [dI/dc dI/dr dI/ds].
+*/
+DMATRIX *MRIgradTrilinInterp(const MRI *mri, double x, double y, double z, DMATRIX *grad)
+{
+  int OutOfBounds;
+  int xm, xp, ym, yp, zm, zp, width, height, depth;
+  double xmd, ymd, zmd, xpd, ypd, zpd; /* d's are distances */
+
+  OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
+  if (OutOfBounds == 1) {
+    /* unambiguously out of bounds */
+    return(NULL);
+  }
+
+  width  = mri->width;
+  height = mri->height;
+  depth  = mri->depth;
+
+  if(x >= width)  x = width  - 1.0;
+  if(y >= height) y = height - 1.0;
+  if(z >= depth)  z = depth  - 1.0;
+  if(x < 0.0) x = 0.0;
+  if(y < 0.0) y = 0.0;
+  if(z < 0.0) z = 0.0;
+
+  xm = MAX((int)x, 0);
+  xp = MIN(width - 1, xm + 1);
+  ym = MAX((int)y, 0);
+  yp = MIN(height - 1, ym + 1);
+  zm = MAX((int)z, 0);
+  zp = MIN(depth - 1, zm + 1);
+
+  xmd = x - (float)xm;
+  ymd = y - (float)ym;
+  zmd = z - (float)zm;
+  xpd = (1.0f - xmd);
+  ypd = (1.0f - ymd);
+  zpd = (1.0f - zmd);
+
+  // Everything above is the same as in MRIsampleVolume()
+
+  if(grad == NULL)
+    grad = DMatrixAlloc(1,3,MATRIX_REAL);
+
+  // Gradient of intensity WRT a change in the column
+  // Just replace xmd with +1 and xpd with -1
+  grad->rptr[1][1] = 
+    -1 * ypd * zpd * MRIgetVoxVal(mri, xm, ym, zm, 0) + -1 * ypd * zmd * MRIgetVoxVal(mri, xm, ym, zp, 0) +
+    -1 * ymd * zpd * MRIgetVoxVal(mri, xm, yp, zm, 0) + -1 * ymd * zmd * MRIgetVoxVal(mri, xm, yp, zp, 0) +
+    +1 * ypd * zpd * MRIgetVoxVal(mri, xp, ym, zm, 0) + +1 * ypd * zmd * MRIgetVoxVal(mri, xp, ym, zp, 0) +
+    +1 * ymd * zpd * MRIgetVoxVal(mri, xp, yp, zm, 0) + +1 * ymd * zmd * MRIgetVoxVal(mri, xp, yp, zp, 0);
+
+  // Gradient of intensity WRT a change in the row
+  // Just replace ymd with +1 and ypd with -1
+  grad->rptr[1][2] = 
+    xpd * -1 * zpd * MRIgetVoxVal(mri, xm, ym, zm, 0) + xpd * -1 * zmd * MRIgetVoxVal(mri, xm, ym, zp, 0) +
+    xpd * +1 * zpd * MRIgetVoxVal(mri, xm, yp, zm, 0) + xpd * +1 * zmd * MRIgetVoxVal(mri, xm, yp, zp, 0) +
+    xmd * -1 * zpd * MRIgetVoxVal(mri, xp, ym, zm, 0) + xmd * -1 * zmd * MRIgetVoxVal(mri, xp, ym, zp, 0) +
+    xmd * +1 * zpd * MRIgetVoxVal(mri, xp, yp, zm, 0) + xmd * +1 * zmd * MRIgetVoxVal(mri, xp, yp, zp, 0);
+
+  // Gradient of intensity WRT a change in the slice
+  // Just replace zmd with +1 and zpd with -1
+  grad->rptr[1][3] = 
+    xpd * ypd * -1 * MRIgetVoxVal(mri, xm, ym, zm, 0) + xpd * ypd * +1 * MRIgetVoxVal(mri, xm, ym, zp, 0) +
+    xpd * ymd * -1 * MRIgetVoxVal(mri, xm, yp, zm, 0) + xpd * ymd * +1 * MRIgetVoxVal(mri, xm, yp, zp, 0) +
+    xmd * ypd * -1 * MRIgetVoxVal(mri, xp, ym, zm, 0) + xmd * ypd * +1 * MRIgetVoxVal(mri, xp, ym, zp, 0) +
+    xmd * ymd * -1 * MRIgetVoxVal(mri, xp, yp, zm, 0) + xmd * ymd * +1 * MRIgetVoxVal(mri, xp, yp, zp, 0);
+
+  return(grad);
+}
+
+
+
 
 /*------------------------------------------------------------------
   MRIsampleSeqVolume() - performs trilinear interpolation on a
