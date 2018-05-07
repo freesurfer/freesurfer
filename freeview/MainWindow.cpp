@@ -1837,6 +1837,10 @@ void MainWindow::RunScript()
   {
     CommandReorderLayers(sa);
   }
+  else if (cmd == "unloadlayers")
+  {
+    CommandUnloadLayers(sa);
+  }
   else if (cmd == "setactiveframe")
   {
     CommandSetActiveFrame(sa);
@@ -4750,9 +4754,11 @@ void MainWindow::LoadVolumeFile( const QString& filename,
   m_threadIOWorker->LoadVolume( layer );
 }
 
-bool MainWindow::OnCloseVolume()
+bool MainWindow::OnCloseVolume(const QList<Layer*>& layers_in)
 {
-  QList<Layer*> layers = GetSelectedLayers( "MRI" );
+  QList<Layer*> layers = layers_in;
+  if (layers.isEmpty())
+    layers = GetSelectedLayers( "MRI" );
   if ( layers.isEmpty() )
   {
     return false;
@@ -5452,9 +5458,11 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   m_statusBar->StartTimer();
 }
 
-void MainWindow::OnCloseSurface()
+void MainWindow::OnCloseSurface(const QList<Layer*>& layers_in)
 {
-  QList<Layer*> layers = GetSelectedLayers("Surface");
+  QList<Layer*> layers = layers_in;
+  if (layers.isEmpty())
+    layers = GetSelectedLayers("Surface");
   if ( layers.isEmpty() )
   {
     return;
@@ -7137,12 +7145,20 @@ void MainWindow::OnReloadVolume()
       foreach (Layer* layer, all_layers)
         layer_order << QString::number(layer->GetID());
 
+//      if (dlg.GetCloseLayerFirst())
+//      {
+//        if (!OnCloseVolume())
+//        {
+//          m_volumeSettings.clear();
+//          return;
+//        }
+//      }
+      QStringList layer_ids;
       if (dlg.GetCloseLayerFirst())
       {
-        if (!OnCloseVolume())
+        for (int i = 0; i < sel_layers.size(); i++)
         {
-          m_volumeSettings.clear();
-          return;
+          layer_ids << QString::number(sel_layers[i]->GetID()+1000000);
         }
       }
       for (int i = sel_layers.size()-1; i >= 0; i--)
@@ -7156,7 +7172,12 @@ void MainWindow::OnReloadVolume()
           args += ":reg=" + reg_fn;
         args += QString(":id=%1").arg(mri->GetID());
 
+        mri->SetID(mri->GetID()+1000000);
         AddScript(QStringList("loadvolume") << args);
+      }
+      if (dlg.GetCloseLayerFirst())
+      {
+        AddScript(QStringList("unloadlayers") << "mri" << layer_ids.join(","));
       }
       AddScript(QStringList("reorderlayers") << "mri" << layer_order.join(","));
     }
@@ -7184,16 +7205,26 @@ void MainWindow::OnReloadSurface()
       foreach (Layer* layer, all_layers)
         layer_order << QString::number(layer->GetID());
 
+      QStringList layer_ids;
       if (dlg.GetCloseLayerFirst())
       {
-        OnCloseSurface();
+        for (int i = 0; i < sel_layers.size(); i++)
+        {
+          layer_ids << QString::number(sel_layers[i]->GetID()+1000000);
+        }
       }
       for (int i = sel_layers.size()-1; i >= 0; i--)
       {
         LayerSurface* surf = qobject_cast<LayerSurface*>(sel_layers[i]);
         QString args = QString("%1:name=%2:id=%3").arg(surf->GetFileName()).arg(surf->GetName()).arg(surf->GetID());
+        surf->SetID(surf->GetID()+1000000);
         AddScript(QStringList("loadsurface") << args);
       }
+      if (dlg.GetCloseLayerFirst())
+      {
+        AddScript(QStringList("unloadlayers") << "surface" << layer_ids.join(","));
+      }
+
       AddScript(QStringList("reorderlayers") << "surface" << layer_order.join(","));
     }
   }
@@ -7413,6 +7444,43 @@ void MainWindow::CommandReorderLayers(const QStringList &cmd)
     lc->UpdateLayerOrder(ids);
   }
 }
+
+
+void MainWindow::CommandUnloadLayers(const QStringList &cmd)
+{
+  if (cmd.size() < 3)
+    return;
+
+  LayerCollection* lc = NULL;
+  if (cmd[1].toLower() == "mri")
+    lc = GetLayerCollection("MRI");
+  else if (cmd[1].toLower() == "surface")
+    lc = GetLayerCollection("Surface");
+
+  if (lc)
+  {
+    QList<int> ids;
+    QStringList list = cmd[2].split(",");
+    for (int i = 0; i < list.size(); i++)
+    {
+      ids << list[i].toInt();
+    }
+    QList<Layer*> layers;
+    for (int i = 0; i < lc->GetNumberOfLayers(); i++)
+    {
+      if (ids.contains(lc->GetLayer(i)->GetID()))
+        layers << lc->GetLayer(i);
+    }
+    if (!layers.isEmpty())
+    {
+      if (cmd[1].toLower() == "mri")
+        OnCloseVolume(layers);
+      else
+        OnCloseSurface(layers);
+    }
+  }
+}
+
 
 void MainWindow::SaveLayers(const QList<Layer *> &layers)
 {
