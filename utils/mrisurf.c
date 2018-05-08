@@ -45245,7 +45245,7 @@ struct ComputeDefectContext {
 };
 
 static void constructComputeDefectContext(ComputeDefectContext* computeDefectContext) {
-    computeDefectContext->realmTree = NULL;
+    bzero(computeDefectContext, sizeof(*computeDefectContext));
 }
 
 
