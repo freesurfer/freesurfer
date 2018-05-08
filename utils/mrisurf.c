@@ -4536,8 +4536,10 @@ static int MRIScomputeNormals_new(MRI_SURFACE *mris)
       __FILE__, __LINE__, trial, pendingSize);
   }
 
+  freeAndNULL(nextPending);
+  freeAndNULL(pending);
+  
   return (NO_ERROR);
-
 }
 
 #undef randomNumber
