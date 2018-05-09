@@ -606,9 +606,10 @@ main(int argc, char *argv[])
   }
   else if (combinesurfs_flag)
   {
+    int vno,vno2,vno3;
     MRI_SURFACE *mris3 = MRISalloc(mris->nvertices+mris2->nvertices,
                                    mris->nfaces+mris2->nfaces);
-    int vno,vno2,vno3;
+    copyVolGeom(&mris->vg,&mris3->vg);
     for (vno=0,vno3=0; vno < mris->nvertices; vno++, vno3++)
     {
       mris3->vertices[vno3].x = mris->vertices[vno].x;

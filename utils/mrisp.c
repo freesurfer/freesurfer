@@ -1410,51 +1410,31 @@ MRI_SURFACE *MRISgradientFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris)
 
         Description
 ------------------------------------------------------*/
-double MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp, MRI_SURFACE *mris, float x, float y, float z, int fno)
+void MRISPfunctionVal_radiusR(                                                      // returns the value that would be stored in resultsForEachFno[0] for fnoLo
+                              MRI_SURFACE_PARAMETERIZATION *mrisp,  
+                              MRISPfunctionValResultForAlpha* resultsForEachAlpha,  // must be numAlphas elements
+                              MRI_SURFACE *mris,
+                              float r, float x, float y, float z, 
+                              int fnoLo, bool getNextAlso,                          // always fills in resultsForEachAlpha.curr for fno, optionally fills in .next for fno+1
+                              float const * alphas, float numAlphas,                // rotate x,y,z by these alphas (radians) and get the values
+                              bool trace)                                           // note: this rotation is around the z axis, hence z does not change
 {
-  double r, r2, r4, r6, val, d, x2, y2, z2, g, h, f, dx, dy, dz;
-  float phi, theta, uf, vf, du, dv;
-  int u0, v0, u1, v1, u0_voff, u1_voff, u1_v0, u1_v1, u0_v0, u0_v1;
-
-  r = sqrt(x * x + y * y + z * z);
-  if (!FEQUAL(r, mris->radius)) /* project it onto sphere */
-  {
-    r = mris->radius;
-    r2 = r * r;
-    r4 = r2 * r2;
-    r6 = r2 * r4;
-    x2 = x * x;
-    y2 = y * y;
-    z2 = z * z;
-    f = x2 / r6 + y2 / r6 + z2 / r6;
-    g = 2 * (x2 / r4 + y2 / r4 + z2 / r4);
-    h = x2 / r2 + y2 / r2 + z2 / r2 - 1;
-    d = (-g + (float)sqrt((double)(g * g - 4 * f * h))) / (2 * f);
-    dx = d * x / r2;
-    dy = d * y / r2;
-    dz = d * z / r2;
-    x = x + dx;
-    y = y + dy;
-    z = z + dz;
+  float phi;
+  { float d = r * r - z * z;
+    if (d < 0.0) d = 0.0;
+    phi = atan2(sqrt(d), z);
+    if (phi < RADIANS(1)) DiagBreak();
   }
+  
+  float uf = PHI_DIM(mrisp) * phi / PHI_MAX;
+  int   u0 = floor(uf);
+  int   u1 = ceil(uf);
 
-  theta = atan2(y / r, x / r);
-  if (theta < 0.0f) theta = 2 * M_PI + theta; /* make it 0 --> 2*PI */
-  d = r * r - z * z;
-  if (d < 0.0) d = 0.0;
-  phi = atan2(sqrt(d), z);
-  if (phi < RADIANS(1)) DiagBreak();
-
-  uf = PHI_DIM(mrisp) * phi / PHI_MAX;
-  vf = THETA_DIM(mrisp) * theta / THETA_MAX;
-  u0 = floor(uf);
-  u1 = ceil(uf);
-  v0 = floor(vf);
-  v1 = ceil(vf);
-  du = uf - (float)u0;
-  dv = vf - (float)v0;
+  float du = uf - (float)u0;
 
   /* enforce spherical topology  */
+  int u0_voff, u1_voff;
+
   if (u0 < 0) /* enforce spherical topology  */
   {
     u0_voff = V_DIM(mrisp) / 2;
@@ -1477,27 +1457,100 @@ double MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp, MRI_SURFACE *mris, 
   }
   else
     u1_voff = 0;
-  if (v0 < 0) v0 += V_DIM(mrisp);
-  if (v0 >= V_DIM(mrisp)) v0 -= V_DIM(mrisp);
-  if (v1 < 0) v1 += V_DIM(mrisp);
-  if (v1 >= V_DIM(mrisp)) v1 -= V_DIM(mrisp);
 
-  u0_v1 = v1 + u0_voff;
-  while (u0_v1 >= V_DIM(mrisp)) u0_v1 -= V_DIM(mrisp);
-  u0_v0 = v0 + u0_voff;
-  while (u0_v0 >= V_DIM(mrisp)) u0_v0 -= V_DIM(mrisp);
-  u1_v1 = v1 + u1_voff;
-  while (u1_v1 >= V_DIM(mrisp)) u1_v1 -= V_DIM(mrisp);
-  u1_v0 = v0 + u1_voff;
-  while (u1_v0 >= V_DIM(mrisp)) u1_v0 -= V_DIM(mrisp);
+  // This is the rotation around the z axis
+  //
+  float const baseTheta = atan2(y / r, x / r);
 
-  /* do bilinear interpolation */
-  val = du * dv * *IMAGEFseq_pix(mrisp->Ip, u1, u1_v1, fno) +
-        (1.0f - du) * dv * *IMAGEFseq_pix(mrisp->Ip, u0, u0_v1, fno) +
-        (1.0f - du) * (1.0f - dv) * *IMAGEFseq_pix(mrisp->Ip, u0, u0_v0, fno) +
-        du * (1.0f - dv) * *IMAGEFseq_pix(mrisp->Ip, u1, u1_v0, fno);
-  return (val);
+  int alphaIndex;
+  for (alphaIndex = 0; alphaIndex < numAlphas; alphaIndex++) {
+    float theta = baseTheta - alphas[alphaIndex];
+    while (theta <  0.0f  ) theta += 2*M_PI; /* make it 0 --> 2*PI */
+    while (theta >= 2*M_PI) theta -= 2*M_PI; /* make it 0 --> 2*PI */
+
+    float vf = THETA_DIM(mrisp) * theta / THETA_MAX;
+    int   v0 = floor(vf);
+    int   v1 = ceil(vf);
+
+    float dv = vf - (float)v0;
+
+    if (v0 < 0            ) v0 += V_DIM(mrisp);
+    if (v0 >= V_DIM(mrisp)) v0 -= V_DIM(mrisp);
+    if (v1 < 0            ) v1 += V_DIM(mrisp);
+    if (v1 >= V_DIM(mrisp)) v1 -= V_DIM(mrisp);
+
+    int u0_v1 = v1 + u0_voff; while (u0_v1 >= V_DIM(mrisp)) u0_v1 -= V_DIM(mrisp);
+    int u0_v0 = v0 + u0_voff; while (u0_v0 >= V_DIM(mrisp)) u0_v0 -= V_DIM(mrisp);
+    int u1_v1 = v1 + u1_voff; while (u1_v1 >= V_DIM(mrisp)) u1_v1 -= V_DIM(mrisp);
+    int u1_v0 = v0 + u1_voff; while (u1_v0 >= V_DIM(mrisp)) u1_v0 -= V_DIM(mrisp);
+
+    if (0) {
+      static long statsCount, statsLimit = 1, statsV_DIMSum;
+
+      statsV_DIMSum += V_DIM(mrisp);
+      statsCount++;
+      if (statsCount == statsLimit) {
+        if (statsLimit < 10000000) statsLimit *= 2; else statsLimit += 10000000;
+        fprintf(stdout, "%s:%d statsCount:%g V_DIM avg:%g\n", __FILE__, __LINE__,
+          (float)statsCount, (double)statsV_DIMSum/(double)statsCount);
+      }
+    }
+
+    int i;
+    for (i = 0; i < (getNextAlso?2:1); i++) {
+      int fno = fnoLo + i;
+      /* do bilinear interpolation */
+      double val = 
+                    du  *         dv  * *IMAGEFseq_pix(mrisp->Ip, u1, u1_v1, fno) +
+            (1.0f - du) *         dv  * *IMAGEFseq_pix(mrisp->Ip, u0, u0_v1, fno) +
+            (1.0f - du) * (1.0f - dv) * *IMAGEFseq_pix(mrisp->Ip, u0, u0_v0, fno) +
+                    du  * (1.0f - dv) * *IMAGEFseq_pix(mrisp->Ip, u1, u1_v0, fno);
+      if (trace) {
+        fprintf(stdout, "%s:%d x:%g y:%g z:%g returns %g for fno:%d phi:%g alphaIndex:%d theta:%g\n", 
+            __FILE__, __LINE__, 
+            x,y,z,val,fno,phi,alphaIndex,theta);
+      }
+      *(i ? &resultsForEachAlpha[alphaIndex].next : &resultsForEachAlpha[alphaIndex].curr) = val;
+    }
+  }
 }
+
+
+double MRISPfunctionValTraceable(MRI_SURFACE_PARAMETERIZATION *mrisp, MRI_SURFACE *mris, float x, float y, float z, int fno, bool trace)
+{
+  double r = sqrt(x * x + y * y + z * z);
+
+  if (!FEQUAL(r, mris->radius)) /* project it onto sphere */
+  {
+    r = mris->radius;
+    double r2 = r * r;
+    double r4 = r2 * r2;
+    double r6 = r2 * r4;
+    double x2 = x * x;
+    double y2 = y * y;
+    double z2 = z * z;
+    double f  = x2 / r6 + y2 / r6 + z2 / r6;
+    double g  = 2 * (x2 / r4 + y2 / r4 + z2 / r4);
+    double h  = x2 / r2 + y2 / r2 + z2 / r2 - 1;
+    double d  = (-g + (float)sqrt((double)(g * g - 4 * f * h))) / (2 * f);
+    double dx = d * x / r2;
+    double dy = d * y / r2;
+    double dz = d * z / r2;
+    x = x + dx;
+    y = y + dy;
+    z = z + dz;
+  }
+
+  float zero = 0.0f;
+  MRISPfunctionValResultForAlpha result;
+  MRISPfunctionVal_radiusR(mrisp, &result, mris, r, x, y, z, fno, false, &zero, 1, trace);
+  return result.curr;
+}
+
+double MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp, MRI_SURFACE *mris, float x, float y, float z, int fno) {
+    return MRISPfunctionValTraceable(mrisp, mris, x, y, z, fno, false);
+}
+
 /*-----------------------------------------------------
         Parameters:
 

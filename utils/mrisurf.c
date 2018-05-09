@@ -73,7 +73,7 @@ static const int debugNonDeterminism = 0;
 #include "mri.h"
 #include "mrisurf.h"
 #include "mrishash_internals.h"
-
+#include "MRISrigidBodyAlignGlobal.h"
 #include "chklc.h"
 #include "cma.h"
 #include "colortab.h"
@@ -119,9 +119,6 @@ static const int debugNonDeterminism = 0;
 #define MAXVERTICES 10000000
 #define MAXFACES (2 * MAXVERTICES)
 #define MAX_NBHD_VERTICES 20000
-
-
-static float squaref(float x) { return x*x; }
 
 
 // uncomment this to expose code which shows timings of gpu activities:
@@ -520,7 +517,10 @@ static int mrisCheckSurfaceNbrs(MRI_SURFACE *mris);
 static double mrisComputeIntensityGradientError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
 static double mrisComputeSphereError(MRI_SURFACE *mris, double l_sphere, double a);
 static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms);
-double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int use_stds);
+
+static double mrisComputeCorrelationErrorTraceable(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int use_stds, bool trace);
+static double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int use_stds);
+
 static int mrisComputeVertexDistances(MRI_SURFACE *mris);
 static int mrisComputeOriginalVertexDistances(MRI_SURFACE *mris);
 static double mrisComputeError(MRI_SURFACE *mris,
@@ -13966,52 +13966,58 @@ MRI_SURFACE *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris, int which)
   ------------------------------------------------------*/
 MRI_SURFACE *MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, float alpha, float beta, float gamma)
 {
-  int vno;
-  VERTEX *vertex;
-  float x, y, z, ca, cb, cg, sa, sb, sg, xp, yp, zp;
-  float cacb, cacgsb, sasg, cgsa;
-  float casbsg, cbsa, cgsasb, casg;
-  float cacg, sasbsg, cbcg, cbsg;
-
   if (!mris_dst) {
     mris_dst = MRISclone(mris_src);
   }
 
-  sa = sin(alpha);
-  sb = sin(beta);
-  sg = sin(gamma);
-  ca = cos(alpha);
-  cb = cos(beta);
-  cg = cos(gamma);
-  cacb = ca * cb;
-  cacgsb = ca * cg * sb;
-  sasg = sa * sg;
-  cgsa = cg * sa;
-  casbsg = ca * sb * sg;
-  cbsa = cb * sa;
-  cgsasb = cg * sa * sb;
-  casg = ca * sg;
-  cacg = ca * cg;
-  sasbsg = sa * sb * sg;
-  cbcg = cb * cg;
-  cbsg = cb * sg;
+  float const sa = sin(alpha);
+  float const sb = sin(beta);
+  float const sg = sin(gamma);
+  float const ca = cos(alpha);
+  float const cb = cos(beta);
+  float const cg = cos(gamma);
 
+  float const cacb = ca * cb;
+  float const cacgsb = ca * cg * sb;
+  float const sasg = sa * sg;
+  float const cgsa = cg * sa;
+  float const casbsg = ca * sb * sg;
+  float const cbsa = cb * sa;
+  float const cgsasb = cg * sa * sb;
+  float const casg = ca * sg;
+  float const cacg = ca * cg;
+  float const sasbsg = sa * sb * sg;
+  float const cbcg = cb * cg;
+  float const cbsg = cb * sg;
+
+  int vno;
+  
+  ROMP_PF_begin
+#ifdef HAVE_OPENMP
+  #pragma omp parallel for if_ROMP(assume_reproducible) schedule(guided)
+#endif
   for (vno = 0; vno < mris_src->nvertices; vno++) {
+    ROMP_PFLB_begin
+    
     if (vno == Gdiag_no) {
       DiagBreak();
     }
 
-    vertex = &mris_src->vertices[vno];
-    x = vertex->x;
-    y = vertex->y;
-    z = vertex->z;
-    xp = x * cacb + z * (-cacgsb - sasg) + y * (cgsa - casbsg);
-    yp = -x * cbsa + z * (cgsasb - casg) + y * (cacg + sasbsg);
-    zp = z * cbcg + x * sb + y * cbsg;
+    VERTEX *vertex = &mris_src->vertices[vno];
+    float x = vertex->x;
+    float y = vertex->y;
+    float z = vertex->z;
+    float xp = x * cacb + z * (-cacgsb - sasg) + y * (cgsa - casbsg);
+    float yp = -x * cbsa + z * (cgsasb - casg) + y * (cacg + sasbsg);
+    float zp = z * cbcg + x * sb + y * cbsg;
     vertex->x = xp;
     vertex->y = yp;
     vertex->z = zp;
+
+    ROMP_PFLB_end
   }
+  ROMP_PF_end
+  
   return (mris_dst);
 }
 
@@ -29366,7 +29372,11 @@ double MRIScomputeCorrelationError(MRI_SURFACE *mris, MRI_SP *mrisp_template, in
 
   Description
   ------------------------------------------------------*/
-double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int use_stds)
+static double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int use_stds) {
+    return mrisComputeCorrelationErrorTraceable(mris, parms, use_stds, false);
+}
+
+static double mrisComputeCorrelationErrorTraceable(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int use_stds, bool trace)
 {
   float l_corr;
 
@@ -29408,6 +29418,8 @@ double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
 
 #endif
     
+    bool const vertexTrace = trace && (vno == 0);
+    
     VERTEX *v = &mris->vertices[vno];
     if (vno == Gdiag_no) {
       DiagBreak();
@@ -29423,17 +29435,17 @@ double mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, 
     y = v->y;
     z = v->z;
 #if 0
-    src = MRISPfunctionVal(parms->mrisp, mris, x, y, z, 0) ;
+    src = MRISPfunctionVal(parms->mrisp, mris, x, y, z, 0, vertexTrace) ;
 #else
     src = v->curv;
 #endif
-    target = MRISPfunctionVal(parms->mrisp_template, mris, x, y, z, parms->frame_no);
+    target = MRISPfunctionValTraceable(parms->mrisp_template, mris, x, y, z, parms->frame_no, vertexTrace);
 #define DEFAULT_STD 4.0f
 #define DISABLE_STDS 0
 #if DISABLE_STDS
     std = 1.0f;
 #else
-    std = MRISPfunctionVal(parms->mrisp_template, mris, x, y, z, parms->frame_no + 1);
+    std = MRISPfunctionValTraceable(parms->mrisp_template, mris, x, y, z, parms->frame_no + 1, vertexTrace);
     std = sqrt(std);
     if (FZERO(std)) {
       std = DEFAULT_STD /*FSMALL*/;
@@ -31760,23 +31772,27 @@ int MRISrigidBodyAlignVectorLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parm
 int MRISrigidBodyAlignGlobal(
     MRI_SURFACE *mris, INTEGRATION_PARMS *parms, float min_degrees, float max_degrees, int nangles)
 {
-  double alpha, beta, gamma, degrees, delta, mina, minb, ming, sse, min_sse, ext_sse;
-  int old_status = mris->status, old_norm, msec;
-  struct timeb mytimer;
+  bool const tracing             = (Gdiag & DIAG_SHOW);
+  bool const tracingWithSnapshot = tracing && (Gdiag & DIAG_SHOW);
+    
+  float const min_radians = RADIANS(min_degrees);
+  float const max_radians = RADIANS(max_degrees);
 
   printf("Starting MRISrigidBodyAlignGlobal()\n");
+  struct timeb mytimer;
   TimerStart(&mytimer);
 
-  old_norm = parms->abs_norm;
+  int const old_norm = parms->abs_norm;
   parms->abs_norm = 1;
-  min_degrees = RADIANS(min_degrees);
-  max_degrees = RADIANS(max_degrees);
+
   mrisOrientSurface(mris);
+
+  int const old_status = mris->status;
   mris->status = MRIS_RIGID_BODY;
 
   if (!parms->start_t) {
     mrisLogStatus(mris, parms, stdout, 0.0f, -1);
-    if (Gdiag & DIAG_WRITE) {
+    if (tracingWithSnapshot) {
       mrisLogStatus(mris, parms, parms->fp, 0.0f, -1);
       if (parms->write_iterations > 0) {
         mrisWriteSnapshot(mris, parms, 0);
@@ -31784,104 +31800,159 @@ int MRISrigidBodyAlignGlobal(
     }
   }
 
-  for (degrees = max_degrees; degrees >= min_degrees; degrees /= 2.0f) {
-    mina = minb = ming = 0.0;
-    min_sse = mrisComputeCorrelationError(mris, parms, 1); /* was 0 !!!! */
+  static bool 
+    once,
+    use_old,
+    use_new;
 
-    if (gMRISexternalSSE) {
-      ext_sse = (*gMRISexternalSSE)(mris, parms);
-      min_sse += ext_sse;
-    }
+  if (!once) { once = true;
+    use_old = !!getenv("FREESURFER_MRISrigidBodyAlignGlobal_useOld");
+    use_new = !!getenv("FREESURFER_MRISrigidBodyAlignGlobal_useNew") || !use_old ;
+  }
 
-    delta = 2 * degrees / (float)nangles;
+  double new_mina = 666.0, new_minb = 666.0, new_ming = 666.0, new_sse = 666.0;
 
-    if (Gdiag & DIAG_SHOW) {
-      fprintf(stdout, "scanning %2.2f degree nbhd, min sse = %2.2f\n", (float)DEGREES(degrees), (float)min_sse);
-    }
+  double const ext_sse = gMRISexternalSSE ? (*gMRISexternalSSE)(mris, parms) : 0.0;
 
-    for (alpha = -degrees; alpha <= degrees; alpha += delta) {
-      for (beta = -degrees; beta <= degrees; beta += delta) {
-        if (Gdiag & DIAG_SHOW) {
-          fprintf(stdout,
-                  "\r(%+2.2f, %+2.2f, %+2.2f), "
-                  "min @ (%2.2f, %2.2f, %2.2f) = %2.1f   ",
-                  (float)DEGREES(alpha),
-                  (float)DEGREES(beta),
-                  (float)DEGREES(-degrees),
-                  (float)DEGREES(mina),
-                  (float)DEGREES(minb),
-                  (float)DEGREES(ming),
-                  (float)min_sse);
-        }
+  if (use_new) {
+  
+    printf("Starting new MRISrigidBodyAlignGlobal_findMinSSE()\n");
+    struct timeb new_timer;
+    TimerStart(&new_timer);
+    
+    // This does not modify either mris or params until after the old code has executed
+    //
+    double ext_sse = (gMRISexternalSSE) ? (*gMRISexternalSSE)(mris, parms) : 0.0;
+    MRISrigidBodyAlignGlobal_findMinSSE(
+        &new_mina, &new_minb, &new_ming, &new_sse,
+        mris,
+        parms,
+        min_radians,
+        max_radians,
+        ext_sse,
+        nangles); 
 
-        for (gamma = -degrees; gamma <= degrees; gamma += delta) {
-          MRISsaveVertexPositions(mris, TMP_VERTICES);
-          MRISrotate(mris, mris, alpha, beta, gamma);
-          sse = mrisComputeCorrelationError(mris, parms, 1); /* was 0 !!!! */
-          if (gMRISexternalSSE) {
-            ext_sse = (*gMRISexternalSSE)(mris, parms);
-            sse += ext_sse;
-          }
-          MRISrestoreVertexPositions(mris, TMP_VERTICES);
-          if (sse < min_sse) {
-            mina = alpha;
-            minb = beta;
-            ming = gamma;
-            min_sse = sse;
-          }
+    parms->start_t += 1.0f;
+    parms->t       += 1.0f;
+
+    int msec = TimerStop(&new_timer);
+    printf("  new MRISrigidBodyAlignGlobal_findMinSSE"
+      " min @ (%2.2f, %2.2f, %2.2f) sse = %2.1f, elapsed since starting=%6.4f min\n",
+      (float)DEGREES(new_mina), (float)DEGREES(new_minb), (float)DEGREES(new_ming), new_sse,
+      msec / (1000 * 60.0));
+  }
+  
+  double old_mina = 666.0, old_minb = 666.0, old_ming = 666.0, old_sse = 666.0;
+  if (use_old) {
+
+    printf("Starting old MRISrigidBodyAlignGlobal_findMinSSE()\n");
+    struct timeb old_timer;
+    TimerStart(&old_timer);
+ 
+    // Note: 
+    //      This used to do a series of smaller and smaller rotations to mris_sphere, rotating the sphere to the minimum each time.
+    //      This accumulated errors, and did an unnecessary rotation.
+    //      Now it converges the three angles separately...
+    // 
+    MRISsaveVertexPositions(mris, TMP_VERTICES);
+
+    double center_a = 0.0, center_b = 0.0, center_g = 0.0;
+
+    double center_sse = -1.0;  // not known
+    bool   center_sse_known = false;
+    
+    double radians;
+    for (radians = max_radians; radians >= min_radians; radians /= 2.0f) {
+
+      bool trace = tracing;
+    
+      if (tracing) {
+        fprintf(stdout, 
+          "scanning %2.2f degree nbhd of (%2.2f, %2.2f, %2.2f), min sse = %2.2f\n", 
+          (float)DEGREES(radians),
+          (float)DEGREES(center_a),  (float)DEGREES(center_b), (float)DEGREES(center_g),
+          center_sse_known ? (float)(center_sse + ext_sse) : -666.0);
+      }
+
+      double const delta = 2 * radians / (float)nangles;
+      double mina = center_a, minb = center_b, ming = center_g, min_sse = center_sse;
+      bool min_known = center_sse_known;
+      
+      double alpha, beta, gamma;
 #if 0
-          if (Gdiag & DIAG_SHOW)
-            fprintf(stdout, "\r(%+2.2f, %+2.2f, %+2.2f), "
-                    "min @ (%2.2f, %2.2f, %2.2f) = %2.1f   ",
-                    (float)DEGREES(alpha), (float)DEGREES(beta), (float)
-                    DEGREES(gamma), (float)DEGREES(mina),
-                    (float)DEGREES(minb), (float)DEGREES(ming),(float)min_sse);
-#endif
-        }  // gamma
-      }    // beta
-    }      // alpha
+      // The oldest code went in this order
+      // but the order should not matter
+      // and the cache behavior and the new code both think that alpha should the innermost
+      //
+      for (alpha = center_a - radians; alpha <= center_a + radians; alpha += delta) {
+        for (beta = center_b - radians; beta <= center_b + radians; beta += delta) {
+          for (gamma = center_g - radians; gamma <= center_g + radians; gamma += delta) {
+#else
+      for (gamma = center_g - radians; gamma <= center_g + radians; gamma += delta) {
+        for (beta = center_b - radians; beta <= center_b + radians; beta += delta) {
+          for (alpha = center_a - radians; alpha <= center_a + radians; alpha += delta) {
+#endif     
+            VERTEX const * vertex0 = &mris->vertices[0];
+            float vertex0_x = vertex0->x, vertex0_y = vertex0->y, vertex0_z = vertex0->z;
+            MRISrotate(mris, mris, center_a + alpha, center_b + beta, center_g + gamma);
+            
+            if (trace) {
+              fprintf(stdout, "%s:%d rotated (%g,%g,%g) by (a:%g, b:%g, g:%g) to (%g,%g,%g)\n", __FILE__, __LINE__, 
+                vertex0_x,vertex0_y,vertex0_z, 
+                center_a + alpha, center_b + beta, center_g + gamma,
+                vertex0->x,vertex0->y,vertex0->z); 
+            }
+            
+            double sse = mrisComputeCorrelationErrorTraceable(mris, parms, 1, trace);
+            if (trace) fprintf(stdout, "%s:%d sse:%g\n", __FILE__, __LINE__, sse);
+            
+            MRISrestoreVertexPositions(mris, TMP_VERTICES);
+            
+            if (!min_known || sse < min_sse) {
+              min_known = true;
+              mina    = center_a + alpha;
+              minb    = center_b + beta;
+              ming    = center_g + gamma;
+              min_sse = sse;
+            }
+            
+            trace = false;
 
-    if (Gdiag & DIAG_SHOW) {
-      fprintf(stdout, "\n");
-    }
-
-    if (!FZERO(mina) || !FZERO(minb) || !FZERO(ming)) {
-      // Apply the rotation to get to the minimum. This sets up for the next
-      // degree iteration over a smaller area.
-      MRISrotate(mris, mris, mina, minb, ming);
-      sse = mrisComputeCorrelationError(mris, parms, 1); /* was 0 !!!! */
-      if (gMRISexternalSSE) {
-        sse += (*gMRISexternalSSE)(mris, parms);
-      }
-      msec = TimerStop(&mytimer);
-      printf("  d=%4.2f min @ (%2.2f, %2.2f, %2.2f) sse = %2.1f, elapsed since starting=%6.4f min\n",
-             (float)DEGREES(degrees),
-             (float)DEGREES(mina),
-             (float)DEGREES(minb),
-             (float)DEGREES(ming),
-             (float)min_sse,
-             msec / (1000 * 60.0));
+            if (false && tracing) {
+              fprintf(stdout, "\r  gamma "
+                "min @ (%2.2f, %2.2f, %2.2f) sse:%2.1f   try @ (%+2.2f, %+2.2f, %+2.2f) sse:%2.2f",
+                (float)DEGREES(mina),  (float)DEGREES(minb), (float)DEGREES(ming),   (float)(min_sse + ext_sse),
+                (float)DEGREES(alpha), (float)DEGREES(beta), (float)DEGREES(gamma),  (float)(    sse + ext_sse));
+              fflush(stdout);
+            }
+          }  // gamma
+          if (false && tracing) {
+            fprintf(stdout, "\r  beta "
+              "min @ (%2.2f, %2.2f, %2.2f) sse:%2.1f   try @ (%+2.2f, %+2.2f, *)",
+              (float)DEGREES(mina),  (float)DEGREES(minb), (float)DEGREES(ming),   (float)(min_sse + ext_sse),
+              (float)DEGREES(alpha), (float)DEGREES(beta));
+          }
+        }    // beta
+        if (false && tracing) {
+          fprintf(stdout, "\n");
+        }
+      }      // alpha
+    
+      int msec = TimerStop(&old_timer);
+      printf("  min @ (%2.2f, %2.2f, %2.2f) sse = %2.1f, elapsed since starting=%6.4f min\n",
+        (float)DEGREES(mina), (float)DEGREES(minb), (float)DEGREES(ming),
+        (float)(min_sse + ext_sse),
+        msec / (1000 * 60.0));
       fflush(stdout);
-      if (Gdiag & DIAG_SHOW) {
-        fprintf(stdout,
-                "min sse = %2.2f at (%2.2f, %2.2f, %2.2f)\n",
-                sse,
-                (float)DEGREES(mina),
-                (float)DEGREES(minb),
-                (float)DEGREES(ming));
-      }
 
-      if (Gdiag & DIAG_WRITE) {
-        fprintf(parms->fp,
-                "rotating brain by (%2.2f, %2.2f, %2.2f), sse: %2.2f\n",
-                (float)DEGREES(mina),
-                (float)DEGREES(minb),
-                (float)DEGREES(ming),
-                (float)sse);
-      }
-
+      center_a = mina;
+      center_b = minb;
+      center_g = ming;
+      center_sse = min_sse;
+      center_sse_known = min_known;
+      
       parms->start_t += 1.0f;
-      parms->t += 1.0f;
+      parms->t       += 1.0f;
 
       if (Gdiag & DIAG_WRITE && parms->write_iterations > 0) {
         mrisWriteSnapshot(mris, parms, parms->start_t);
@@ -31892,13 +31963,49 @@ int MRISrigidBodyAlignGlobal(
       if (Gdiag & DIAG_SHOW) {
         mrisLogStatus(mris, parms, stdout, 0.0f, -1);
       }
-    }
-  }  // degrees
+    }   // radians
 
-  mris->status = old_status;
+    old_mina = center_a; old_minb = center_b, old_ming = center_g, old_sse = center_sse;
+
+    int msec = TimerStop(&old_timer);
+    printf("  old MRISrigidBodyAlignGlobal_findMinSSE"
+      " min @ (%2.2f, %2.2f, %2.2f) sse = %2.1f, elapsed since starting=%6.4f min\n",
+      (float)DEGREES(old_mina), (float)DEGREES(old_minb), (float)DEGREES(old_ming), old_sse,
+      msec / (1000 * 60.0));
+
+  }  // use_old
+
+  // Rotate to the best position
+  //
+  if (use_old) { 
+    new_mina = old_mina; new_minb = old_minb; new_ming = old_ming; new_sse =  old_sse; 
+    
+    // TODO compare with new once the new is implemented
+  }
+
+  if (tracing) {
+    fprintf(stdout,
+      "rotating brain by (%2.2f, %2.2f, %2.2f), final sse: %2.2f\n",
+      (float)DEGREES(new_mina),
+      (float)DEGREES(new_minb),
+      (float)DEGREES(new_ming),
+      (float)(new_sse + ext_sse));
+  }
+  if (tracingWithSnapshot) {
+    fprintf(parms->fp,
+      "rotating brain by (%2.2f, %2.2f, %2.2f), final sse: %2.2f\n",
+      (float)DEGREES(new_mina),
+      (float)DEGREES(new_minb),
+      (float)DEGREES(new_ming),
+      (float)(new_sse + ext_sse));
+  }
+  
+  MRISrotate(mris, mris, new_mina, new_minb, new_ming);
+
+  mris->status    = old_status;
   parms->abs_norm = old_norm;
 
-  msec = TimerStop(&mytimer);
+  int msec = TimerStop(&mytimer);
   printf("MRISrigidBodyAlignGlobal() done %6.2f min\n", msec / (1000 * 60.0));
 
   return (NO_ERROR);

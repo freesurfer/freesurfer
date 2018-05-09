@@ -35,8 +35,9 @@ class RegressionTest:
     parser = argparse.ArgumentParser()
     parser.add_argument("--regenerate", action='store_true', help='regenerate the reference data')
     args = parser.parse_args()
-    # setup FREESURFER_HOME
+    # setup FREESURFER_HOME and SUBJECTS_DIR
     os.environ["FREESURFER_HOME"] = self.findPath(self.scriptdir, 'distribution')
+    os.environ["SUBJECTS_DIR"] = ""
     # regenerate
     self.regenerate = args.regenerate
     if self.regenerate: print('regenerating %s testdata' % op.basename(self.scriptdir))
@@ -71,12 +72,16 @@ class RegressionTest:
 
 
   # run a test command (this is what should be called from the actual test script)
-  def run(self, cmd):
+  def run(self, cmd, threads=None):
     self.cd(self.scriptdir)
     # extract the testdata
     rmdir('testdata')
     self.runcmd('tar -xzvf testdata.tar.gz')
     self.cd('testdata')
+    # set number of OMP threads if necessary
+    if threads is not None:
+      os.environ['OMP_NUM_THREADS'] = str(threads)
+      print('setting OMP_NUM_THREADS = %s' % os.environ['OMP_NUM_THREADS'])
     # run the test command (assumes the command is located above the testdata dir)
     if self.runcmd('../' + cmd, fatal=False) != 0:
       errorExit('test command "%s" failed' % cmd)
@@ -95,7 +100,7 @@ class RegressionTest:
 
   # run a diff on two volumes (calls mri_diff, which must be already
   # built in the source directory)
-  def mridiff(self, orig, ref, thresh=0.0, res_thresh=1e-6, geo_thresh=8e-6):
+  def mridiff(self, orig, ref, thresh=0.0, res_thresh=1e-6, geo_thresh=8e-6, flags=""):
     if self.regenerate:
       self.regen(orig, ref)
     else:
@@ -104,20 +109,20 @@ class RegressionTest:
       cmd = '%s %s %s' % (diffcmd, orig, ref)
       origname = rmext(op.basename(orig))
       cmd += ' --debug --diff diff-%s.mgz --log diff-%s.log' % (origname, origname)
-      cmd += ' --thresh %f --res-thresh %f --geo-thresh %f' % (thresh, res_thresh, geo_thresh)
+      cmd += ' --thresh %f --res-thresh %f --geo-thresh %f %s' % (thresh, res_thresh, geo_thresh, flags)
       if self.runcmd(cmd, fatal=False) != 0:
         errorExit('mri_diff of %s and %s failed' % (orig, ref))
 
 
   # run a diff on two surfs (calls mris_diff, which must be already
   # built in the source directory)
-  def surfdiff(self, orig, ref):
+  def surfdiff(self, orig, ref, flags=""):
     if self.regenerate:
       self.regen(orig, ref)
     else:
       self.cd(self.testdatadir)
       diffcmd = op.relpath(self.findPath(self.testdatadir, 'mris_diff/mris_diff'))
-      cmd = '%s %s %s  --debug' % (diffcmd, orig, ref)
+      cmd = '%s %s %s --debug %s' % (diffcmd, orig, ref, flags)
       if self.runcmd(cmd, fatal=False) != 0:
         errorExit('mris_diff of %s and %s failed' % (orig, ref))
 
