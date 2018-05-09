@@ -2548,6 +2548,8 @@ MRI *MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int niter, float m
   BUFTYPE ctrl, *ptmp;
   MRI *mri_tmp;
 
+  if (niter == 0)
+    return(MRIcopy(mri_src, mri_dst)) ;
   if (mri_src->type == MRI_FLOAT) {
     return (mriSoapBubbleFloat(mri_src, mri_ctrl, mri_dst, niter, min_change));
   }
@@ -2958,17 +2960,19 @@ static MRI *mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int ni
       if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
         fprintf(stderr, "soap bubble iteration %d of %d\n", i + 1, niter);
       }
-      for (z = z1; z <= z2; z++) {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
+      for (z = z1; z <= z2; z++) 
+      {
+	int x, y, ctrl, xi, yi, zi, xk, yk, zk ;
+	double mean ;
         for (y = y1; y <= y2; y++) {
-          pctrl = &MRIvox(mri_ctrl, x1, y, z);
-          ptmp = &MRIFseq_vox(mri_tmp, x1, y, z, f);
           for (x = x1; x <= x2; x++) {
-            ctrl = *pctrl++;
+	    ctrl = MRIgetVoxVal(mri_ctrl, x, y, z, f) ;
             if (ctrl == CONTROL_MARKED)  // marked point - don't change it
-            {
-              ptmp++;
               continue;
-            }
+
             /* now set this voxel to the average of
                the marked neighbors */
             mean = 0.0;
@@ -2982,12 +2986,11 @@ static MRI *mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int ni
                 }
               }
             }
-            val = *ptmp;
+            val = MRIgetVoxVal(mri_tmp, x, y, z, f) ;
             if (fabs(mean / (3 * 3 * 3.0) - val) > max_change) {
               max_change = fabs(mean / (3 * 3 * 3.0) - val);
             }
-            *ptmp++ = (float)mean / (3.0f * 3.0f * 3.0f);
-            // *ptmp++ = (float)nint((float)mean / (3.0f*3.0f*3.0f));
+            MRIsetVoxVal(mri_tmp, x, y, z, f, (float)mean / (3.0f * 3.0f * 3.0f));
           }
         }
       }

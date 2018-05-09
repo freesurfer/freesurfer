@@ -10878,7 +10878,7 @@ int MRIneighbors3x3(MRI *mri, int x, int y, int z, int val)
       for (xk = -1; xk <= 1; xk++) {
         xi = mri->xi[x + xk];
         if (!zk && !yk && !xk) continue;
-        if (MRIvox(mri, xi, yi, zi) == val) nbrs++;
+        if (nint(MRIgetVoxVal(mri, xi, yi, zi,0)) == val) nbrs++;
       }
     }
   }
