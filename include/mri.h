@@ -1413,6 +1413,7 @@ int MRIsincSampleVolume( const MRI *mri,
 int MRIcubicSampleVolume( const MRI *mri,
                           double x, double y, double z,
                           double *pval ); /*E*/
+int MRIgradCubicInterp(const MRI *mri, double x, double y, double z, double *pval, DMATRIX *grad);
 MRI *MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw);
 int MRIlabelOverlap(MRI *mri1, MRI *mri2, int label) ;
 int MRIlabelUnion(MRI *mri1, MRI *mri2, int label) ;
