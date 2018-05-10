@@ -26,7 +26,7 @@
 
 #if !defined(DARWIN) && !defined(__APPLE__)
 #include <malloc.h>
-#include <mm_malloc.h>
+// DON'T #include <mm_malloc.h> IT BREAKS icc AND IS NOT NEEDED
 #endif
 
 #include <math.h>
