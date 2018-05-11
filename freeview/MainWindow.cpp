@@ -156,9 +156,6 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
       m_propertyBrush, SLOT(OnLayerRemoved(Layer*)));
 
   ui->setupUi(this);
-#ifndef DEVELOPMENT
-  //  ui->tabWidgetControlPanel->removeTab(ui->tabWidgetControlPanel->indexOf(ui->tabTrack));
-#endif
 
   ui->treeWidgetCursorInfo->SetForCursor(true);
 
@@ -2262,33 +2259,36 @@ void MainWindow::CommandSetColorMap( const QStringList& sa )
   }
 
   int nColorMapScale = LayerPropertyMRI::Grayscale;
-  strg = sa[2];
-  if ( strg == "heatscale" )
-  {
-    nColorMapScale = LayerPropertyMRI::Heat;
-  }
-  else if ( strg == "colorscale" )
-  {
-    nColorMapScale = LayerPropertyMRI::Jet;
-  }
-  else if ( strg == "lut" )
-  {
-    nColorMapScale = LayerPropertyMRI::LUT;
-  }
-
   QList<double> pars;
-  for ( int i = 3; i < sa.size(); i++ )
+  if (sa.size() > 2)
   {
-    bool bOK;
-    double dValue = sa[i].toDouble(&bOK);
-    if ( !bOK )
+    strg = sa[2];
+    if ( strg == "heatscale" )
     {
-      cerr << "Invalid color scale value(s). \n";
-      break;
+      nColorMapScale = LayerPropertyMRI::Heat;
     }
-    else
+    else if ( strg == "colorscale" )
     {
-      pars << dValue;
+      nColorMapScale = LayerPropertyMRI::Jet;
+    }
+    else if ( strg == "lut" )
+    {
+      nColorMapScale = LayerPropertyMRI::LUT;
+    }
+
+    for ( int i = 3; i < sa.size(); i++ )
+    {
+      bool bOK;
+      double dValue = sa[i].toDouble(&bOK);
+      if ( !bOK )
+      {
+        cerr << "Invalid color scale value(s). \n";
+        break;
+      }
+      else
+      {
+        pars << dValue;
+      }
     }
   }
 
@@ -6218,62 +6218,65 @@ void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QLi
   {
     LayerPropertyMRI* p = layer->GetProperty();
     p->SetColorMap( (LayerPropertyMRI::ColorMapType) nColorMap );
-    QList<double> scales = scales_in;
-    if (p->GetUsePercentile())
+    if (!scales_in.isEmpty())
     {
-      for (int i = 0; i < scales.size(); i++)
-        scales[i] = layer->GetHistoValueFromPercentile(scales[i]/100.0);
-    }
-    switch ( nColorMapScale )
-    {
-    case LayerPropertyMRI::Grayscale:
-      if ( scales.size() >= 2 )
+      QList<double> scales = scales_in;
+      if (p->GetUsePercentile())
       {
-        p->SetMinMaxGrayscaleWindow( scales[0], scales[1] );
+        for (int i = 0; i < scales.size(); i++)
+          scales[i] = layer->GetHistoValueFromPercentile(scales[i]/100.0);
       }
-      else if ( !scales.empty() )
+      switch ( nColorMapScale )
       {
-        cerr << "Need 2 values for grayscale.\n";
+      case LayerPropertyMRI::Grayscale:
+        if ( scales.size() >= 2 )
+        {
+          p->SetMinMaxGrayscaleWindow( scales[0], scales[1] );
+        }
+        else if ( !scales.empty() )
+        {
+          cerr << "Need 2 values for grayscale.\n";
+        }
+        break;
+      case LayerPropertyMRI::Heat:
+        if ( scales.size() >= 3 )
+        {
+          p->SetHeatScaleAutoMid(false);
+          p->SetHeatScaleMinThreshold( scales[0] );
+          p->SetHeatScaleMidThreshold( scales[1] );
+          p->SetHeatScaleMaxThreshold( scales[2] );
+        }
+        else if ( scales.size() == 2 )
+        {
+          p->SetHeatScaleAutoMid(true);
+          p->SetHeatScaleMinThreshold( scales[0] );
+          p->SetHeatScaleMaxThreshold( scales[1] );
+        }
+        else if ( !scales.empty() )
+        {
+          cerr << "Need 2 or 3 values for heatscale.\n";
+        }
+        break;
+      case LayerPropertyMRI::LUT:
+        if ( scales.size() >= 1 )
+        {
+        }
+        else if ( !scales.empty() )
+        {
+          cerr << "Need a value for lut.\n";
+        }
+        break;
+      default:
+        if ( scales.size() >= 2 )
+        {
+          p->SetMinMaxGenericThreshold( scales[0], scales[1] );
+        }
+        else if ( !scales.empty() )
+        {
+          cerr << "Need 2 values for colorscale.\n";
+        }
+        break;
       }
-      break;
-    case LayerPropertyMRI::Heat:
-      if ( scales.size() >= 3 )
-      {
-        p->SetHeatScaleAutoMid(false);
-        p->SetHeatScaleMinThreshold( scales[0] );
-        p->SetHeatScaleMidThreshold( scales[1] );
-        p->SetHeatScaleMaxThreshold( scales[2] );
-      }
-      else if ( scales.size() == 2 )
-      {
-        p->SetHeatScaleAutoMid(true);
-        p->SetHeatScaleMinThreshold( scales[0] );
-        p->SetHeatScaleMaxThreshold( scales[1] );
-      }
-      else if ( !scales.empty() )
-      {
-        cerr << "Need 2 or 3 values for heatscale.\n";
-      }
-      break;
-    case LayerPropertyMRI::LUT:
-      if ( scales.size() >= 1 )
-      {
-      }
-      else if ( !scales.empty() )
-      {
-        cerr << "Need a value for lut.\n";
-      }
-      break;
-    default:
-      if ( scales.size() >= 2 )
-      {
-        p->SetMinMaxGenericThreshold( scales[0], scales[1] );
-      }
-      else if ( !scales.empty() )
-      {
-        cerr << "Need 2 values for colorscale.\n";
-      }
-      break;
     }
   }
 }
