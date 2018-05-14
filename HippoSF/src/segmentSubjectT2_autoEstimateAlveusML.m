@@ -21,26 +21,8 @@
 %           It does NOT affect volumes, which are computed from soft posteriors anyway
 
 
-% function segmentSubjectT2_autoEstimateAlveusML(subjectName,subjectDir,T2volumeFileName,resolution,atlasMeshFileName,atlasDumpFileName,compressionLUTfileName,K,side,optimizerType,suffix,suffixUser,FSpath,MRFconstant,ByPassBF,UseWholeBrainInHyperPar)
+function segmentSubjectT2_autoEstimateAlveusML(subjectName,subjectDir,T2volumeFileName,resolution,atlasMeshFileName,atlasDumpFileName,compressionLUTfileName,K,side,optimizerType,suffix,suffixUser,FSpath,MRFconstant,ByPassBF,UseWholeBrainInHyperPar)
 
-
-clear
-subjectName='bif';
-subjectDir='~/Downloads/';
-T2volumeFileName='~/Downloads/bif/mri/anisotropicT2_reoriented.nii.gz';
-resolution=0.3;
-atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoAmygBuckner_170621_CJ_GD_allBuckner_BodyHead/AtlasMesh_merged.gz';
-atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoAmygBuckner_170621_CJ_GD_allBuckner_BodyHead/imageDumpWithAmygdala.mgz';
-compressionLUTfileName='/autofs/homes/002/iglesias/matlab/code/Atlas3dFreeSurferJuly2017newAtlas/code/compressionLookupTable.txt';
-K=0.005;
-side='right';
-optimizerType='L_BFGS';
-suffix='T2';
-suffixUser='GEMS2_lowerK_doBF';
-FSpath='/usr/local/freesurfer/dev/bin/';
-MRFconstant=0;
-ByPassBF=0;
-UseWholeBrainInHyperPar=0;
 
 % clear
 % subjectName='ADNI2_009_S_1030v51_i399379';
@@ -646,16 +628,12 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     for positionUpdatingIterationNumber = 1 : maxpuin
         disp(['Resolution ' num2str(multiResolutionLevel) ', iteration ' num2str(positionUpdatingIterationNumber)]);
         % Calculate a good step. The first one is very slow because of various set-up issues
-        % Eugenio May2018
-        maximalDeformation=0;
-        try
-            tic
-            % Eugenio November 2017: GEMS2
-            [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( cheatingOptimizer );
-            elapsedTime = toc;
-            disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
-            minLogLikelihoodTimesPrior
-        end
+        tic
+        % Eugenio November 2017: GEMS2
+        [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( cheatingOptimizer );
+        elapsedTime = toc;
+        disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
+        minLogLikelihoodTimesPrior
         if isnan(minLogLikelihoodTimesPrior)
             error('lhood is nan');
         end
@@ -838,7 +816,7 @@ else
     mriT2=myMRIread(T2volumeFileName,0,tempdir);
     biasFieldOrder=4;
     PSI=prepBiasFieldBase(size(mriT2.vol),biasFieldOrder);
-    MASK=mri.vol>0 & ~isnan(mri.vol) & ~isnan(mriT2.vol);
+    MASK=mri.vol>0;
     
     
     L=mri.vol(MASK);
@@ -897,7 +875,6 @@ else
     end
     T2corr=exp(T2corr)-1; % back to natural
     T2corr(mriT2.vol==0)=0;
-    T2corr(isnan(mriT2.vol))=0;
     aux=mri;
     aux.vol=T2corr;
     myMRIwrite(aux,T2correctedFilename,'float',tempdir);
@@ -1654,16 +1631,12 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         for positionUpdatingIterationNumber = 1 : positionUpdatingMaximumNumberOfIterations
             % Calculate a good step. The first one is very slow because of various set-up issues
             disp(['Resolution level ' num2str(multiResolutionLevel) ' iteration ' num2str(iterationNumber) ' deformation iterations ' num2str(positionUpdatingIterationNumber)]);
-            % Eugenio May2018
-            maximalDeformation=0;
-            try
-                tic
-                % Eugenio November 2017: GEMS2
-                [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer );
-                elapsedTime = toc;
-                disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
-                minLogLikelihoodTimesPrior
-            end
+            tic
+            % Eugenio November 2017: GEMS2
+            [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer );
+            elapsedTime = toc;
+            disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
+            minLogLikelihoodTimesPrior
             if isnan(minLogLikelihoodTimesPrior)
                 error('lhood is nan');
             end

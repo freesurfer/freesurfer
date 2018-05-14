@@ -488,16 +488,12 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     for positionUpdatingIterationNumber = 1 : maxpuin
         disp(['Resolution ' num2str(multiResolutionLevel) ', iteration ' num2str(positionUpdatingIterationNumber)]);
         % Calculate a good step. The first one is very slow because of various set-up issues
-        % Eugenio May2018
-        maximalDeformation=0;
-        try
-            tic
-            % Eugenio November 2017: GEMS2
-            [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( cheatingOptimizer );
-            elapsedTime = toc;
-            disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
-            minLogLikelihoodTimesPrior
-        end
+        tic
+        % Eugenio November 2017: GEMS2
+        [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( cheatingOptimizer );
+        elapsedTime = toc;
+        disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
+        minLogLikelihoodTimesPrior
         if isnan(minLogLikelihoodTimesPrior)
             error('lhood is nan');
         end
@@ -1308,16 +1304,12 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         for positionUpdatingIterationNumber = 1 : positionUpdatingMaximumNumberOfIterations
             % Calculate a good step. The first one is very slow because of various set-up issues
             disp(['Resolution level ' num2str(multiResolutionLevel) ' iteration ' num2str(iterationNumber) ' deformation iterations ' num2str(positionUpdatingIterationNumber)]);
-            % Eugenio May2018
-            maximalDeformation=0;
-            try
-                tic
-                % Eugenio November 2017: GEMS2
-                [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer );
-                elapsedTime = toc;
-                disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
-                minLogLikelihoodTimesPrior
-            end
+            tic
+            % Eugenio November 2017: GEMS2
+            [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer );
+            elapsedTime = toc;
+            disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
+            minLogLikelihoodTimesPrior
             if isnan(minLogLikelihoodTimesPrior)
                 error('lhood is nan');
             end

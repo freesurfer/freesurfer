@@ -645,16 +645,12 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     for positionUpdatingIterationNumber = 1 : maxpuin
         disp(['Resolution ' num2str(multiResolutionLevel) ', iteration ' num2str(positionUpdatingIterationNumber)]);
         % Calculate a good step. The first one is very slow because of various set-up issues
-        % Eugenio May2018
-        maximalDeformation=0;
-        try
-            tic
-            % Eugenio November 2017: GEMS2
-            [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( cheatingOptimizer );
-            elapsedTime = toc;
-            disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
-            minLogLikelihoodTimesPrior
-        end
+        tic
+        % Eugenio November 2017: GEMS2
+        [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( cheatingOptimizer );
+        elapsedTime = toc;
+        disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
+        minLogLikelihoodTimesPrior
         if isnan(minLogLikelihoodTimesPrior)
             error('lhood is nan');
         end
@@ -792,7 +788,7 @@ else
     mriT2=myMRIread(T2volumeFileName,0,tempdir);
     biasFieldOrder=4;
     PSI=prepBiasFieldBase(size(mriT2.vol),biasFieldOrder);
-    MASK=mri.vol>0 & ~isnan(mri.vol) & ~isnan(mriT2.vol);
+    MASK=mri.vol>0;
     X=log(1+mriT2.vol(MASK));
     L=mri.vol(MASK);
     PSIv=zeros([numel(X) size(PSI,4)]);
@@ -849,7 +845,6 @@ else
     end
     T2corr=exp(T2corr)-1; % back to natural
     T2corr(mriT2.vol==0)=0;
-    T2corr(isnan(mriT2.vol))=0;
     aux=mri;
     aux.vol=T2corr;
     myMRIwrite(aux,T2correctedFilename,'float',tempdir);
@@ -1997,16 +1992,12 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         for positionUpdatingIterationNumber = 1 : positionUpdatingMaximumNumberOfIterations
             % Calculate a good step. The first one is very slow because of various set-up issues
             disp(['Resolution level ' num2str(multiResolutionLevel) ' iteration ' num2str(iterationNumber) ' deformation iterations ' num2str(positionUpdatingIterationNumber)]);
-            % Eugenio May2018
-            maximalDeformation=0;
-            try
-                tic
-                % Eugenio November 2017: GEMS2
-                [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer );
-                elapsedTime = toc;
-                disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
-                minLogLikelihoodTimesPrior
-            end
+            tic
+            % Eugenio November 2017: GEMS2
+            [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer );
+            elapsedTime = toc;
+            disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
+            minLogLikelihoodTimesPrior
             if isnan(minLogLikelihoodTimesPrior)
                 error('lhood is nan');
             end
