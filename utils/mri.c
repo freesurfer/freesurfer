@@ -9557,8 +9557,9 @@ int MRIsampleVolume(const MRI *mri, double x, double y, double z, double *pval)
 /*!
   \fn DMATRIX *MRIgradTrilinInterp(const MRI *mri, double x, double y, double z, DMATRIX *grad)
   \brief Compute the gradient of the intensity (as computed by
-  MRIsampleVolume())wrt the column (x), row (y), and slice (z). grad
-  is a 1x3 matrix = [dI/dc dI/dr dI/ds].
+  MRIsampleVolume()) wrt the column (x), row (y), and slice (z). grad
+  is a 1x3 matrix = [dI/dc dI/dr dI/ds]. Note that trilinear
+  interpolation has a discontinous gradient.
 */
 DMATRIX *MRIgradTrilinInterp(const MRI *mri, double x, double y, double z, DMATRIX *grad)
 {
@@ -9948,7 +9949,7 @@ double *MRItrilinKernel(MRI *mri, double c, double r, double s, double *kernel)
   used by MRIcubicSampleVolume
   ------------------------------------------------------*/
 
-double localeval(double x, int iter)
+double MRIcubicCoeff(double x, int iter)
 {
   double p;
   switch (iter) {
@@ -9965,10 +9966,42 @@ double localeval(double x, int iter)
       p = (x - 1) * x * x;
       break;
     default:
-      ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "localeval: called wrong by MRIcubicSampleVolume!"));
+      ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "MRIcubicCoeff: called wrong by MRIcubicSampleVolume!"));
   }
   return (p);
 }
+/*!
+  \fn double MRIgradCubicCoeff(double x, int iter)
+  \brief derivative of MRIcubicCoeff() wrt x. Used to compute
+  the gradient of cubic interp
+ */
+double MRIgradCubicCoeff(double x, int iter)
+{
+  double gradp;
+  switch (iter) {
+    case 0:
+      //p = ((2 - x) * x - 1) * x;
+      gradp = 4*x - 3*(x*x) - 1;
+      break;
+    case 1:
+      //p = (3 * x - 5) * x * x + 2;
+      gradp = 9*x*x - 10*x;
+      break;
+    case 2:
+      //p = ((4 - 3 * x) * x + 1) * x;
+      gradp = 8*x - 9*x*x + 1;
+      break;
+    case 3:
+      //p = (x - 1) * x * x;
+      gradp = 3*x*x - 2*x;
+      break;
+    default:
+      ErrorReturn(ERROR_UNSUPPORTED, (ERROR_UNSUPPORTED, "MRIgradCubicCoeff: called wrong by MRIcubicSampleVolume!"));
+  }
+  return (gradp);
+}
+
+
 
 /*-----------------------------------------------------
   Parameters:
@@ -9980,7 +10013,7 @@ double localeval(double x, int iter)
   by analogy with
   /usr/pubsw/common/matlab/6.5/toolbox/matlab/polyfun/interp3.m
 
-  uses localeval above
+  uses MRIcubicCoeff above
 
   ------------------------------------------------------*/
 int MRIcubicSampleVolume(const MRI *mri, double x, double y, double z, double *pval)
@@ -10074,11 +10107,11 @@ int MRIcubicSampleVolume(const MRI *mri, double x, double y, double z, double *p
   val = 0;
 
   for (iz = 0; iz <= 3; iz++) {
-    fz = localeval(zz, iz);
+    fz = MRIcubicCoeff(zz, iz);
     for (iy = 0; iy <= 3; iy++) {
-      fy = localeval(yy, iy);
+      fy = MRIcubicCoeff(yy, iy);
       for (ix = 0; ix <= 3; ix++) {
-        fx = localeval(xx, ix);
+        fx = MRIcubicCoeff(xx, ix);
         val += (double)(vv[ix][iy][iz] * fx * fy * fz);
       }
     }
@@ -10087,6 +10120,102 @@ int MRIcubicSampleVolume(const MRI *mri, double x, double y, double z, double *p
   *pval = val / 8.;
 
   return (NO_ERROR);
+}
+
+/*!
+  \fn DMATRIX *MRIgradCubicInterp(const MRI *mri, double x, double y, double z, DMATRIX *grad)
+  \brief Computes the gradient of the intensity wrt the col (x), row
+  (y), and slice (z). Allocs grad if needed.  grad =
+  DMatrixAlloc(1,3,MATRIX_REAL) = [dval/dcol dval/drow
+  dval/dslice]. This is mostly just a copy of MRIcubicSampleVolume()
+  with the ability to compute the gradient.
+*/
+DMATRIX *MRIgradCubicInterp(const MRI *mri, double x, double y, double z, DMATRIX *grad)
+{
+  int OutOfBounds;
+  int width, height, depth, wrtdim;
+  int ix_low, iy_low, iz_low, ix, iy, iz;
+  double xx, yy, zz, fx, fy, fz, vv[4][4][4];
+
+  OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
+  if (OutOfBounds == 1) {
+    /* unambiguously out of bounds */
+    return(NULL);
+  }
+
+  width  = mri->width;
+  height = mri->height;
+  depth  = mri->depth;
+
+  /*E* I suppose these are for "ambiguously out of bounds" - within .5vox */
+
+  /*E* I think this needs an edit - x is double, whatever that is, not
+    int, so any x>= width-1 should be set to width-1.
+    if (x >= width)    x = width - 1.0 ;
+    if (y >= height)   y = height - 1.0 ;
+    if (z >= depth)    z = depth - 1.0 ;
+  */
+
+  if(x > width  - 1.0) x = width  - 1.0;
+  if(y > height - 1.0) y = height - 1.0;
+  if(z > depth  - 1.0) z = depth  - 1.0;
+  if(x < 0.0) x = 0.0;
+  if(y < 0.0) y = 0.0;
+  if(z < 0.0) z = 0.0;
+
+  ix_low = floor((double)x);
+  if(ix_low < width - 1)
+    xx = x - ix_low;
+  else {
+    ix_low--;
+    xx = 1;
+  }
+  iy_low = floor((double)y);
+  if(iy_low < height - 1)
+    yy = y - iy_low;
+  else {
+    iy_low--;
+    yy = 1;
+  }
+  iz_low = floor((double)z);
+  if(iz_low < depth - 1)
+    zz = z - iz_low;
+  else {
+    iz_low--;
+    zz = 1;
+  }
+
+  /*E* build a little box of the local points plus boundary stuff -
+    for this rev accept zeroes for the border expansion */
+  for (iz = MAX(0, 1 - iz_low); iz < MIN(4, depth + 1 - iz_low); iz++) {
+    for (iy = MAX(0, 1 - iy_low); iy < MIN(4, height + 1 - iy_low); iy++) {
+      for (ix = MAX(0, 1 - ix_low); ix < MIN(4, width + 1 - ix_low); ix++) {
+	vv[ix][iy][iz] = MRIgetVoxVal(mri, ix_low - 1 + ix, iy_low - 1 + iy, iz_low - 1 + iz, 0);
+      }
+    }
+  }
+
+  grad = DMatrixConstVal(0.0, 1, 3, grad);
+  if(grad == NULL) return(NULL);
+  for(wrtdim=0; wrtdim<3; wrtdim++){
+    for (iz = 0; iz <= 3; iz++) {
+      if(wrtdim==2) fz = MRIgradCubicCoeff(zz, iz);
+      else          fz = MRIcubicCoeff(zz, iz);
+      for (iy = 0; iy <= 3; iy++) {
+	if(wrtdim==1) fy = MRIgradCubicCoeff(yy, iy);
+	else          fy = MRIcubicCoeff(yy, iy);
+	for (ix = 0; ix <= 3; ix++) {
+	  if(wrtdim==0) fx = MRIgradCubicCoeff(xx, ix);
+	  else          fx = MRIcubicCoeff(xx, ix);
+	  grad->rptr[1][wrtdim+1] += (double)(vv[ix][iy][iz] * fx * fy * fz);
+	}
+      }
+    }
+  }
+  for(wrtdim=0; wrtdim<3; wrtdim++)
+    grad->rptr[1][wrtdim+1] /= 8.0;
+
+  return(grad);
 }
 
 int MRIcubicSampleVolumeFrame(MRI *mri, double x, double y, double z, int frame, double *pval)
@@ -10181,11 +10310,11 @@ int MRIcubicSampleVolumeFrame(MRI *mri, double x, double y, double z, int frame,
   val = 0;
 
   for (iz = 0; iz <= 3; iz++) {
-    fz = localeval(zz, iz);
+    fz = MRIcubicCoeff(zz, iz);
     for (iy = 0; iy <= 3; iy++) {
-      fy = localeval(yy, iy);
+      fy = MRIcubicCoeff(yy, iy);
       for (ix = 0; ix <= 3; ix++) {
-        fx = localeval(xx, ix);
+        fx = MRIcubicCoeff(xx, ix);
         val += (double)(vv[ix][iy][iz] * fx * fy * fz);
       }
     }

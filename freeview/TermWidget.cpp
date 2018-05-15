@@ -76,11 +76,11 @@ TermWidget::TermWidget(QWidget *parent) :
   QSettings settings;
   this->restoreGeometry(settings.value("/CommandConsole/Geometry").toByteArray());
 
-#ifdef DEVELOPMENT
-  SetRedirectStdOutput(false); // for debugging
-#else
+//#ifdef DEVELOPMENT
+//  SetRedirectStdOutput(false); // for debugging
+//#else
+//#endif
   SetRedirectStdOutput(true);
-#endif
   SetDuplicateStdOutput(true);
 
   Known_Shell_Cmds << "ls" << "pwd" << "cd" << "cp" << "dir" << "copy";
@@ -264,11 +264,13 @@ void TermWidget::OnTimeOut()
   }
 }
 
-void TermWidget::AppendErrorString(const QString &strg)
+void TermWidget::AppendErrorString(const QString &strg_in)
 {
+  QString strg = strg_in;
+  strg.replace("\n", "<br />");
   ui->textLog->append(QString("<span style=\"color:%1;\">%2</span>")
                       .arg(m_strErrorColor)
-                      .arg(strg).replace("\n", "<br />"));
+                      .arg(strg.trimmed()));
 }
 
 void TermWidget::SetDarkTheme(bool bDark)

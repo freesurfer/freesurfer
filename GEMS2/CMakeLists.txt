@@ -76,8 +76,6 @@ IF(BUILD_PYTHON)
           kvlMutualInformationCostAndGradientCalculator.cxx
           kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
           kvlAverageAtlasMeshPositionCostAndGradientCalculator.cxx
-          kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
-          kvlAverageAtlasMeshPositionCostAndGradientCalculator.cxx
           kvlHistogrammer.cxx
           kvlAtlasMeshSummaryDrawer.cxx
           itkMGHImageIO.cxx
@@ -144,6 +142,8 @@ ADD_LIBRARY( kvlGEMSCommon
              kvlAtlasMeshToIntensityImageCostAndGradientCalculator.cxx
              kvlConditionalGaussianEntropyCostAndGradientCalculator.cxx
              kvlMutualInformationCostAndGradientCalculator.cxx
+             kvlAtlasMeshToPointSetCostAndGradientCalculator.cxx
+             kvlAverageAtlasMeshPositionCostAndGradientCalculator.cxx
              kvlHistogrammer.cxx
              kvlAtlasMeshSummaryDrawer.cxx
              itkMGHImageIO.cxx

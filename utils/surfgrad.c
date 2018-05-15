@@ -349,6 +349,13 @@ double MRISfaceNormalGradFaceTest(MRIS *surf, int faceno, int wrtvtxno, long dou
 }
 
 
+/*!
+  \fn double MRISedgeAngleCostEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno, DMATRIX **pgrad)
+  \brief Computes the cost of an edge as well as its gradient with
+  respect to the given edge vertex (0-3). cost = (1-dot).^2 all
+  faces. If pgrad=NULL, then the gradient is not computed. If *pgrad
+  is NULL, then the 1x3 grad is allocated.
+ */
 double MRISedgeAngleCostEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno, DMATRIX **pgrad)
 {
   MRI_EDGE *e;
@@ -421,6 +428,11 @@ int MRISedgeAngleCostEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long d
   return(0);
 }
 
+/*!
+  \fn int MRISfaceNormalGrad(MRIS *surf, int NormOnly)
+  \brief Computes the face normal and gradient of the face normal for
+  all faces. If NormOnly=1, then the gradient is not computed.
+ */
 int MRISfaceNormalGrad(MRIS *surf, int NormOnly)
 {
   int faceno;
@@ -437,6 +449,13 @@ int MRISfaceNormalGrad(MRIS *surf, int NormOnly)
   return(0);
 }
 
+/*!
+  \fn double MRISedgeGradDotEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long double delta, int verbose)
+  \brief Test of the gradient of the edge dot product for the given
+  edge and vertex. Tests by computing a numerical gradient by changing
+  a vertex position by delta (mm). Returns the max relative difference
+  between the theoretical and numerical.
+ */
 double MRISedgeGradDotEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long double delta, int verbose)
 {
   int c, wrtdimno,vnosurf,nthface;
@@ -530,6 +549,12 @@ double MRISedgeGradDotEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long 
   return(maxrdiff);
 }
 
+/*!
+  \fn int MRISedgeGradDot(MRIS *surf)
+  \brief Computes gradient of the dot product of the normals of the
+  two faces adjacent to the all edges with respect to (wrt) all
+  four adjacent vertices.
+ */
 int MRISedgeGradDot(MRIS *surf)
 {
   int edgeno;
@@ -547,6 +572,12 @@ int MRISedgeGradDot(MRIS *surf)
   return(0);
 }
 
+/*!
+  \fn int MRISedgeGradDotEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno)
+  \brief Computes gradient of the dot product of the normals of the
+  two faces adjacent to the given edge with respect to (wrt) the given
+  vertex; wrtvtxno = 0, 1, 2, 3.
+ */
 int MRISedgeGradDotEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno)
 {
   MRI_EDGE *e;
@@ -597,7 +628,12 @@ int MRISedgeGradDotEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno)
   return(0);
 }
 
-
+/*!
+  \fn int MRISedgeMetricEdge(MRIS *surf, int edgeno)
+  \brief Computes edge-related metrics including the length, the dot
+  product of the angle of the faces across the edge, and the angle
+  (def).
+ */
 int MRISedgeMetricEdge(MRIS *surf, int edgeno)
 {
   MRI_EDGE *e;
@@ -620,7 +656,10 @@ int MRISedgeMetricEdge(MRIS *surf, int edgeno)
   return(0);
 }
 
-
+/*!
+  \fn int MRISedgePrint(MRIS *surf, int edgeno, FILE *fp)
+  \brief Prints some info about an edge
+ */
 int MRISedgePrint(MRIS *surf, int edgeno, FILE *fp)
 {
   MRI_EDGE *e;
@@ -644,6 +683,10 @@ int MRISedgePrint(MRIS *surf, int edgeno, FILE *fp)
   return(0);
 }
 
+/*!
+  \fn int MRISfacePrint(MRIS *surf, int faceno, FILE *fp)
+  \brief Prints some info about a face.
+ */
 int MRISfacePrint(MRIS *surf, int faceno, FILE *fp)
 {
   FACE *f;
@@ -660,4 +703,393 @@ int MRISfacePrint(MRIS *surf, int faceno, FILE *fp)
     printf("v%d = [%f %f %f];\n",c,v->x,v->y,v->z);
   }
   return(0);
+}
+
+
+/*!
+  \fn BBRFACE *BBRFaceAlloc(void)
+  \brief Allocates the BBRFACE structure
+ */
+BBRFACE *BBRFaceAlloc(void)
+{
+  BBRFACE *bbrf;
+  int n;
+  bbrf = (BBRFACE *) calloc(sizeof(BBRFACE),1);
+  bbrf->pc = DMatrixAlloc(3,1,MATRIX_REAL);
+  bbrf->pin = DMatrixAlloc(4,1,MATRIX_REAL);
+  bbrf->vin = DMatrixAlloc(4,1,MATRIX_REAL);
+  bbrf->pout = DMatrixAlloc(4,1,MATRIX_REAL);
+  bbrf->vout = DMatrixAlloc(4,1,MATRIX_REAL);
+  bbrf->pin->rptr[4][1] = 1.0;
+  bbrf->vin->rptr[4][1] = 1.0;
+  bbrf->pout->rptr[4][1] = 1.0;
+  bbrf->vout->rptr[4][1] = 1.0;
+  for(n=0; n < 3; n++){
+    bbrf->gradPin[n] = DMatrixAlloc(3,3,MATRIX_REAL);
+    bbrf->gradVin[n] = DMatrixAlloc(3,3,MATRIX_REAL);
+    bbrf->gradInterpIn[n] = DMatrixAlloc(1,3,MATRIX_REAL);
+    bbrf->gradIin[n] = DMatrixAlloc(1,3,MATRIX_REAL);
+    bbrf->gradPout[n] = DMatrixAlloc(3,3,MATRIX_REAL);
+    bbrf->gradVout[n] = DMatrixAlloc(3,3,MATRIX_REAL);
+    bbrf->gradIout[n] = DMatrixAlloc(1,3,MATRIX_REAL);
+    bbrf->gradInterpOut[n] = DMatrixAlloc(1,3,MATRIX_REAL);
+    bbrf->gradQ[n] = DMatrixAlloc(1,3,MATRIX_REAL);
+    bbrf->gradCost[n] = DMatrixAlloc(1,3,MATRIX_REAL);
+  }
+  return(bbrf);
+}
+/*!
+  \fn int BBRFaceFree(BBRFACE **pbbrf)
+  \brief Frees the BBRFACE structure
+ */
+int BBRFaceFree(BBRFACE **pbbrf)
+{
+  BBRFACE *bbrf = *pbbrf;
+  int n;
+  if(bbrf->pc) DMatrixFree(&bbrf->pc);
+  if(bbrf->pin) DMatrixFree(&bbrf->pin);
+  if(bbrf->vin) DMatrixFree(&bbrf->vin);
+  if(bbrf->pout) DMatrixFree(&bbrf->pout);
+  if(bbrf->vout) DMatrixFree(&bbrf->pout);
+  for(n=0; n < 3; n++){
+    DMatrixFree(&bbrf->gradPin[n]);
+    DMatrixFree(&bbrf->gradVin[n]);
+    DMatrixFree(&bbrf->gradInterpIn[n]);
+    DMatrixFree(&bbrf->gradIin[n]);
+    DMatrixFree(&bbrf->gradPout[n]);
+    DMatrixFree(&bbrf->gradVout[n]);
+    DMatrixFree(&bbrf->gradInterpOut[n]);
+    DMatrixFree(&bbrf->gradIout[n]);
+    DMatrixFree(&bbrf->gradQ[n]);
+    DMatrixFree(&bbrf->gradCost[n]);
+  }
+  free(bbrf);
+  *pbbrf = NULL;
+  return(0);
+}
+/*!
+  \fn BBRFACE *BBRFaceDiff(const BBRFACE *bbrf1, const BBRFACE *bbrf2, const double delta, BBRFACE *bbrfout)
+  \brief Compute the difference between two BBRFACE structures. This can be useful when computing numerical
+  gradients by setting delta to the amount a vertex position was changed between computing bbrf1 and bbrf2.
+ */
+BBRFACE *BBRFaceDiff(const BBRFACE *bbrf1, const BBRFACE *bbrf2, const double delta, BBRFACE *bbrfout)
+{
+  int n;
+  double f = 1.0/delta;
+  if(bbrfout == NULL) bbrfout = BBRFaceAlloc();
+  bbrfout->faceno = bbrf1->faceno;
+
+  DMatrixAddMul(bbrf1->pc,  bbrf2->pc,f,-f,bbrfout->pc);
+  DMatrixAddMul(bbrf1->pin, bbrf2->pin,f,-f,bbrfout->pin);
+  DMatrixAddMul(bbrf1->pout,bbrf2->pout,f,-f,bbrfout->pout);
+  DMatrixAddMul(bbrf1->vin, bbrf2->vin,f,-f,bbrfout->vin);
+  DMatrixAddMul(bbrf1->vout,bbrf2->vout,f,-f,bbrfout->vout);
+  for(n=0; n < 3; n++){
+    DMatrixAddMul(bbrf1->gradPin[n],      bbrf2->gradPin[n],f,-f,bbrfout->gradPin[n]);
+    DMatrixAddMul(bbrf1->gradPout[n],     bbrf2->gradPout[n],f,-f,bbrfout->gradPout[n]);
+    DMatrixAddMul(bbrf1->gradVin[n],      bbrf2->gradVin[n],f,-f,bbrfout->gradVin[n]);
+    DMatrixAddMul(bbrf1->gradVout[n],     bbrf2->gradVout[n],f,-f,bbrfout->gradVout[n]);
+    DMatrixAddMul(bbrf1->gradInterpIn[n], bbrf2->gradInterpIn[n],f,-f,bbrfout->gradInterpIn[n]);
+    DMatrixAddMul(bbrf1->gradInterpOut[n],bbrf2->gradInterpOut[n],f,-f,bbrfout->gradInterpOut[n]);
+    DMatrixAddMul(bbrf1->gradIin[n],      bbrf2->gradIin[n],f,-f,bbrfout->gradIin[n]);
+    DMatrixAddMul(bbrf1->gradIout[n],     bbrf2->gradIout[n],f,-f,bbrfout->gradIout[n]);
+    DMatrixAddMul(bbrf1->gradQ[n],        bbrf2->gradQ[n],f,-f,bbrfout->gradQ[n]);
+    DMatrixAddMul(bbrf1->gradCost[n],     bbrf2->gradCost[n],f,-f,bbrfout->gradCost[n]);
+  }
+  bbrfout->Iin  = (bbrf1->Iin  - bbrf2->Iin)/delta;
+  bbrfout->Iout = (bbrf1->Iout - bbrf2->Iout)/delta;
+  bbrfout->Q    = (bbrf1->Q    - bbrf2->Q)/delta;
+  bbrfout->cost = (bbrf1->cost - bbrf2->cost)/delta;
+  return(bbrfout);
+}
+
+/*!
+  \fn int BBRFacePrint(FILE *fp, BBRFACE *bbrf, BBRPARAMS *bbrpar)
+  \brief Prints info about the BBRFACE structure used to manage the BBR
+  costs and gradients.
+ */
+int BBRFacePrint(FILE *fp, BBRFACE *bbrf, BBRPARAMS *bbrpar)
+{
+  FACE *f;
+  VERTEX *v;
+  int n;
+  f = &(bbrpar->surf->faces[bbrf->faceno]);
+  fprintf(fp,"faceno %d\n",bbrf->faceno);
+  fprintf(fp,"area %12.10f\n",f->area);
+  fprintf(fp,"interp %d\n",bbrpar->interp);
+  fprintf(fp,"vtxno ");   for(n=0; n<3; n++)   fprintf(fp,"%d ",f->v[n]);  fprintf(fp,"\n");
+  for(n=0; n<3; n++){
+    v = &(bbrpar->surf->vertices[f->v[n]]);
+    fprintf(fp,"vtx%d %g %g %g\n",n,v->x,v->y,v->z);
+  }
+  fprintf(fp,"fnorm ");for(n=0; n<3; n++)  fprintf(fp,"%12.10lf ",f->norm->rptr[n+1][1]); fprintf(fp,"\n");
+  fprintf(fp,"pc ");   for(n=0; n<3; n++)  fprintf(fp,"%6.4lf ",bbrf->pc->rptr[n+1][1]); fprintf(fp,"\n");
+  fprintf(fp,"pin ");   for(n=0; n<3; n++) fprintf(fp,"%6.4lf ",bbrf->pin->rptr[n+1][1]); fprintf(fp,"\n");
+  fprintf(fp,"pout ");   for(n=0; n<3; n++)fprintf(fp,"%6.4lf ",bbrf->pout->rptr[n+1][1]); fprintf(fp,"\n");
+  fprintf(fp,"vin ");   for(n=0; n<3; n++) fprintf(fp,"%6.4lf ",bbrf->vin->rptr[n+1][1]); fprintf(fp,"\n");
+  fprintf(fp,"vout ");   for(n=0; n<3; n++)fprintf(fp,"%6.4lf ",bbrf->vout->rptr[n+1][1]); fprintf(fp,"\n");
+  fprintf(fp,"Iin  %lf\n",bbrf->Iin);
+  fprintf(fp,"Iout %lf\n",bbrf->Iout);
+  fprintf(fp,"Q %lf\n",bbrf->Q);
+  fprintf(fp,"cost %12.10lf\n",bbrf->cost);
+  fflush(fp);
+  return(0);
+}
+
+/*!
+  \fn BBRFACE *BBRCostFace(int faceno, int wrtvtxno, BBRPARAMS *bbrpar, BBRFACE *bbrf)
+  \brief Computes the BBR cost at the given face, and, optionally, its
+  gradient with respect to (wrt) the given vertex. If wrtvtxno<0, then
+  only the cost is computed.  If wrtvtxno>0, then only the gradient of
+  cost is computed. wrtvtxno should be 0, 1, or 2, corresponding to
+  the three vertices of the triangle. Intermediate values and
+  gradients are computed. All values are stored in the BBRFACE
+  structure.
+ */
+BBRFACE *BBRCostFace(int faceno, int wrtvtxno, BBRPARAMS *bbrpar, BBRFACE *bbrf)
+{
+  FACE *f;
+  VERTEX *v;
+  int n,oob=0;
+  double c,r,s;
+  double OutInSum, OutInDiff, vtanh;
+  DMATRIX *tmp1, *tmp2;
+  MRIS *surf = bbrpar->surf;
+
+  if(bbrf==NULL)
+    bbrf = BBRFaceAlloc();
+
+  bbrf->faceno = faceno;
+  f = &(surf->faces[faceno]);
+
+  if(wrtvtxno < 0){
+    // Compute the center of the triangle
+    bbrf->pc = DMatrixConstVal(0, 4, 1, bbrf->pc);
+    for(n=0; n<3; n++){
+      v = &(surf->vertices[f->v[n]]);
+      bbrf->pc->rptr[1][1] += (v->x);
+      bbrf->pc->rptr[2][1] += (v->y);
+      bbrf->pc->rptr[3][1] += (v->z);
+      // Add to vertex here if testing
+    }
+    DMatrixScalarMul(bbrf->pc,1/3.0,bbrf->pc);
+    
+    // Compute the XYZ at the interior point = pc - norm*Din
+    // Note: pc and norm are 3x1 whereas pin is 4x1
+    for(n=0; n<3; n++)
+      bbrf->pin->rptr[n+1][1] = bbrf->pc->rptr[n+1][1] - (bbrpar->Din*f->norm->rptr[n+1][1]);
+    
+    // Compute the CRS at the interior point = ras2vox*pin
+    bbrf->vin = DMatrixMultiply(bbrpar->sras2vox,bbrf->pin,bbrf->vin);
+    
+    // Compute the intensity at the interior point
+    c=bbrf->vin->rptr[1][1]; r=bbrf->vin->rptr[1][2]; s=bbrf->vin->rptr[1][3];
+    if(bbrpar->interp == SAMPLE_TRILINEAR)
+      oob = MRIsampleVolume(bbrpar->mri, c,r,s, &bbrf->Iin);
+    if(bbrpar->interp == SAMPLE_CUBIC)
+      oob = MRIcubicSampleVolume(bbrpar->mri, c,r,s, &bbrf->Iin);
+    if(oob){
+      printf("ERROR: BBRCostFace(): in-point out of volume\n");fflush(stdout);
+      BBRFacePrint(stdout, bbrf, bbrpar);
+      return(NULL);
+    }
+    
+    // Compute the XYZ at the exterior point = pc + norm*Dout
+    // Note: pc and norm are 3x1 whereas pin is 4x1
+    for(n=0; n<3; n++)
+      bbrf->pout->rptr[n+1][1] = bbrf->pc->rptr[n+1][1] + (bbrpar->Dout*f->norm->rptr[n+1][1]);
+    
+    // Compute the CRS at the exterior point = ras2vox*pout
+    bbrf->vout = DMatrixMultiply(bbrpar->sras2vox,bbrf->pout,bbrf->vout);
+    
+    // Compute the intensity at the exterior point
+    c=bbrf->vout->rptr[1][1]; r=bbrf->vout->rptr[1][2]; s=bbrf->vout->rptr[1][3];
+    if(bbrpar->interp == SAMPLE_TRILINEAR)
+      oob = MRIsampleVolume(bbrpar->mri, c,r,s, &bbrf->Iout);
+    if(bbrpar->interp == SAMPLE_CUBIC)
+      oob = MRIcubicSampleVolume(bbrpar->mri, c,r,s, &bbrf->Iout);
+    if(oob){
+      printf("ERROR: BBRCostFace(): out-point out of volume\n");fflush(stdout);
+      BBRFacePrint(stdout, bbrf, bbrpar);
+      return(NULL);
+    }
+
+    // Finally, compute the cost
+    OutInSum  = bbrf->Iout + bbrf->Iin + 10e-10;
+    OutInDiff = bbrf->Iout - bbrf->Iin;
+    bbrf->Q = 100*(OutInDiff)/(0.5*(OutInSum));
+    vtanh = tanh(bbrpar->M*(bbrf->Q - bbrpar->Q0));
+    bbrf->cost = 1 + vtanh;
+
+    return(bbrf);
+  } // if(wrtvtxno < 0)
+
+  // Now compute the gradients
+
+  // Recompute these
+  OutInSum  = bbrf->Iout + bbrf->Iin + 10e-10;
+  OutInDiff = bbrf->Iout - bbrf->Iin;
+  vtanh = tanh(bbrpar->M*(bbrf->Q - bbrpar->Q0));
+
+  // gradPin = gradPc - Din*gradNorm, gradPc = eye(3)/3
+  bbrf->gradPin[wrtvtxno] = DMatrixScalarMul(f->gradNorm[wrtvtxno],-bbrpar->Din,bbrf->gradPin[wrtvtxno]);
+  for(n=0; n<3; n++) bbrf->gradPin[wrtvtxno]->rptr[n+1][n+1] += 1/3.0;
+
+  // gradVin = ras2vox*gradPin
+  bbrf->gradVin[wrtvtxno] = DMatrixMultiply(bbrpar->sras2vox3x3,bbrf->gradPin[wrtvtxno],bbrf->gradVin[wrtvtxno]);
+
+  // Compute gradient of the sampled intensity WRT a change in col, row, or slice
+  c=bbrf->vin->rptr[1][1]; r=bbrf->vin->rptr[1][2]; s=bbrf->vin->rptr[1][3];
+  if(bbrpar->interp == SAMPLE_TRILINEAR)
+    bbrf->gradInterpIn[wrtvtxno] = MRIgradTrilinInterp(bbrpar->mri, c,r,s, bbrf->gradInterpIn[wrtvtxno]);
+  if(bbrpar->interp == SAMPLE_CUBIC)
+    bbrf->gradInterpIn[wrtvtxno] = MRIgradCubicInterp(bbrpar->mri, c,r,s, bbrf->gradInterpIn[wrtvtxno]);
+  if(bbrf->gradInterpIn[wrtvtxno] == NULL){
+    printf("ERROR: BBRCostFace(): grad %d in-point out of volume\n",wrtvtxno);fflush(stdout);
+    BBRFacePrint(stdout, bbrf, bbrpar);
+    return(NULL);
+  }
+
+  // Compute gradient of the sampled intensity WRT a change vertex position
+  bbrf->gradIin[wrtvtxno] = 
+    DMatrixMultiply(bbrf->gradInterpIn[wrtvtxno],bbrf->gradVin[wrtvtxno],bbrf->gradIin[wrtvtxno]);
+
+
+  // gradPout = gradPc + Dout*gradNorm, gradPc = eye(3)/3
+  bbrf->gradPout[wrtvtxno] = DMatrixScalarMul(f->gradNorm[wrtvtxno],+bbrpar->Dout,bbrf->gradPout[wrtvtxno]);
+  for(n=0; n<3; n++) bbrf->gradPout[wrtvtxno]->rptr[n+1][n+1] += 1/3.0;
+
+  // gradVout = ras2vox*gradPout
+  bbrf->gradVout[wrtvtxno] = DMatrixMultiply(bbrpar->sras2vox3x3,bbrf->gradPout[wrtvtxno],bbrf->gradVout[wrtvtxno]);
+
+  // Compute gradient of the sampled intensity WRT a change in col, row, or slice
+  c=bbrf->vout->rptr[1][1]; r=bbrf->vout->rptr[1][2]; s=bbrf->vout->rptr[1][3];
+  if(bbrpar->interp == SAMPLE_TRILINEAR)
+    bbrf->gradInterpOut[wrtvtxno] = MRIgradTrilinInterp(bbrpar->mri, c,r,s, bbrf->gradInterpOut[wrtvtxno]);
+  if(bbrpar->interp == SAMPLE_CUBIC)
+    bbrf->gradInterpOut[wrtvtxno] = MRIgradCubicInterp(bbrpar->mri, c,r,s, bbrf->gradInterpOut[wrtvtxno]);
+  if(bbrf->gradInterpOut[wrtvtxno] == NULL){
+    printf("ERROR: BBRCostFace(): grad %d out-point out of volume\n",wrtvtxno);fflush(stdout);
+    BBRFacePrint(stdout, bbrf, bbrpar);
+    return(NULL);
+  }
+
+  // Compute gradient of the sampled intensity WRT a change vertex position
+  bbrf->gradIout[wrtvtxno] = 
+    DMatrixMultiply(bbrf->gradInterpOut[wrtvtxno],bbrf->gradVout[wrtvtxno],bbrf->gradIout[wrtvtxno]);
+
+  // Compute the gradient of Q = 200*((gradOut-gradIn)/(Iout+Iin) - (gradOut+gradIn)/(Iout-Iin)/((Iout-Iin)^2));
+  tmp1 = DMatrixSubtract(bbrf->gradIout[wrtvtxno],bbrf->gradIin[wrtvtxno],NULL);
+  tmp1 = DMatrixScalarMul(tmp1,1.0/OutInSum,tmp1);
+  tmp2 = DMatrixAdd(bbrf->gradIout[wrtvtxno],bbrf->gradIin[wrtvtxno],NULL);
+  tmp2 = DMatrixScalarMul(tmp2,-OutInDiff/(OutInSum*OutInSum),tmp2);
+  bbrf->gradQ[wrtvtxno] = DMatrixAdd(tmp1,tmp2, bbrf->gradQ[wrtvtxno]);
+  bbrf->gradQ[wrtvtxno] = DMatrixScalarMul(bbrf->gradQ[wrtvtxno],200,bbrf->gradQ[wrtvtxno]);
+  DMatrixFree(&tmp1);
+  DMatrixFree(&tmp2);
+
+  // Finally, compute the gadient of the cost = M*(1-tanh^2)*gradQ
+  bbrf->gradCost[wrtvtxno] = DMatrixScalarMul(bbrf->gradQ[wrtvtxno],bbrpar->M*(1.0 - vtanh*vtanh),bbrf->gradCost[wrtvtxno]);
+
+  return(bbrf);
+}
+
+/*!
+  \fn double TestBBRCostFace(BBRPARAMS *bbrpar, int faceno, int wrtvtxno, double delta, int verbose)
+  \brief Runs a test to numerically measure the gradient of the BBR
+  cost and compares it against the theortical for the given face and
+  vertex. Returns the maximum relative difference.
+*/
+double TestBBRCostFace(BBRPARAMS *bbrpar, int faceno, int wrtvtxno, double delta, int verbose)
+{
+  int wrtdimno,svtxno,n;
+  FACE *f;
+  VERTEX *v;
+  BBRFACE *bbrf1,*bbrf2=NULL,*bbrfgrad=NULL;
+  double diff,maxgrad,maxdiff,maxrdiff=0;
+
+  // Compute baseline cost and gradient
+  MRISfaceNormalGrad(bbrpar->surf, 0);
+  bbrf1 = BBRCostFace(faceno, -1, bbrpar,NULL);
+  bbrf1 = BBRCostFace(faceno, wrtvtxno, bbrpar, bbrf1);
+  if(verbose) {
+    printf("wrtvtxno = %d, delta = %lf \n",wrtvtxno,delta);
+    printf("BBRF1 ----------\n");
+    BBRFacePrint(stdout,bbrf1,bbrpar);
+  }
+
+  maxgrad = 0;
+  maxdiff = 0;
+  f = &(bbrpar->surf->faces[faceno]);
+  svtxno = f->v[wrtvtxno];
+  v = &(bbrpar->surf->vertices[svtxno]);
+  // Go through each dimension in the WRT vertex
+  for(wrtdimno=0; wrtdimno<3; wrtdimno++){
+    // Doing the delta here is convenient but sometimes in accurate
+    // because xyz are floats so limited on how small delta can be.
+    if(wrtdimno==0) v->x += delta;
+    if(wrtdimno==1) v->y += delta;
+    if(wrtdimno==2) v->z += delta;
+
+    // Compute face normal (but not grad of norm). 
+    // Runs for all faces, inefficient, but only a test
+    MRISfaceNormalGrad(bbrpar->surf, 1); 
+
+    // Compute BBRFace cost, etc, not grads
+    bbrf2 = BBRCostFace(faceno, -1, bbrpar, bbrf2); 
+
+    // Numerically compute the grad by taking the diff and dividing by delta.  
+    bbrfgrad = BBRFaceDiff(bbrf2, bbrf1, delta, bbrfgrad);
+
+    // This will work for all the parameters, but just tesing cost
+    // gradient -- if that is correct, then everything upstream must
+    // be correct. But upstream grads could be computed in the same way.
+    diff = bbrf1->gradCost[wrtvtxno]->rptr[1][wrtdimno+1]-bbrfgrad->cost;
+
+    // Keep track of the max gradient and the max diff bet theoretical and numerical
+    if(maxgrad < fabs(bbrf1->gradCost[wrtvtxno]->rptr[1][wrtdimno+1]))
+      maxgrad = fabs(bbrf1->gradCost[wrtvtxno]->rptr[1][wrtdimno+1]);
+    if(maxdiff < fabs(diff)) maxdiff = fabs(diff) ;
+
+    if(verbose) {
+      printf("wrtdim %d =================================================\n",wrtdimno);
+      printf("%5d %5d %d %d %12.10lf %12.10lf %12.10lf\n",faceno,svtxno,wrtvtxno,wrtdimno,
+	     bbrf1->gradCost[wrtvtxno]->rptr[1][wrtdimno+1],bbrfgrad->cost,diff);
+      printf("BBRF2 ----------\n");
+      BBRFacePrint(stdout,bbrf2,bbrpar);
+      printf("BBRF Theoretical Grad ----------\n");
+      printf("gradPin  = "); for(n=0;n<3;n++) printf("%lf ",bbrf1->gradPin[wrtvtxno]->rptr[n+1][wrtdimno+1]); printf("\n");
+      printf("gradPout = "); for(n=0;n<3;n++) printf("%lf ",bbrf1->gradPout[wrtvtxno]->rptr[n+1][wrtdimno+1]); printf("\n");
+      printf("gradVin  = "); for(n=0;n<3;n++) printf("%lf ",bbrf1->gradVin[wrtvtxno]->rptr[n+1][wrtdimno+1]); printf("\n");
+      printf("gradVout = "); for(n=0;n<3;n++) printf("%lf ",bbrf1->gradVout[wrtvtxno]->rptr[n+1][wrtdimno+1]); printf("\n");
+      printf("gradIin  = %lf\n",bbrf1->gradIin[wrtvtxno]->rptr[1][wrtdimno+1]);
+      printf("gradIout = %lf\n",bbrf1->gradIout[wrtvtxno]->rptr[1][wrtdimno+1]);
+      printf("gradQ    = %lf\n",bbrf1->gradQ[wrtvtxno]->rptr[1][wrtdimno+1]);
+      printf("gradCost = %lf\n",bbrf1->gradCost[wrtvtxno]->rptr[1][wrtdimno+1]);
+      printf("BBRF Numerical Grad ----------\n");
+      BBRFacePrint(stdout,bbrfgrad,bbrpar);
+    }
+    // restore
+    if(wrtdimno==0) v->x -= delta;
+    if(wrtdimno==1) v->y -= delta;
+    if(wrtdimno==2) v->z -= delta;
+  }
+  // Compute the maximum diff relative to the maximum gradient
+  maxrdiff = maxdiff/(maxgrad+10e-10);
+
+  if(verbose){
+    printf("maxgrad = %lf maxdiff = %lf  maxrdiff = %lf\n",maxgrad,maxdiff,maxrdiff);
+    fflush(stdout);
+  }
+
+  // Clean up
+  BBRFaceFree(&bbrf1);
+  BBRFaceFree(&bbrf2);
+  BBRFaceFree(&bbrfgrad);
+
+  // Recompute baseline cost and gradient
+  MRIScomputeMetricProperties(bbrpar->surf); // not needed?
+  MRISfaceNormalGrad(bbrpar->surf, 0);
+
+  return(maxrdiff);
 }
