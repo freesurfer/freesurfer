@@ -122,6 +122,8 @@ int posix_memalignHere(void **memptr, size_t alignment, size_t size,const char* 
 #pragma GCC diagnostic ignored "-Wunused-function"
 static float squaref(float x) { return x*x; }
 
+#pragma GCC diagnostic ignored "-Wunused-function"
+static double squared(double x) { return x*x; }
 
 
 #if defined(__cplusplus)

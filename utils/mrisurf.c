@@ -827,30 +827,44 @@ static float getFaceOrigArea(MRIS const * const mris, int fno) {
 
 
 FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
-    FaceNormCacheEntry    * fNorm         = &mris->faceNormCacheEntries   [fno];
-    FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+
+    // volatile to stop the compiler from reordering the stores of the nx,ny,nz,orig with the stores of the deferred 
+    //
+    FaceNormCacheEntry    volatile * fNorm         = &mris->faceNormCacheEntries   [fno];
+    FaceNormDeferredEntry volatile * fNormDeferred = &mris->faceNormDeferredEntries[fno];
     if (fNormDeferred->deferred) {
         float nx,ny,nz,orig_area;
+	
+	// Not locked so that can be done in parallel
+	//
         computeDefectFaceNormal_calculate(mris, fno, &nx,&ny,&nz,&orig_area);
-#ifdef CHECK_DEFERED_NORMS
-        if (fNorm->deferred & 1) {      // must update
-            if (nx != fNorm->nx || ny != fNorm->ny || nz != fNorm->nz) {
-                fprintf(stderr, "%s:%d prediction of norm did not equal result\n",__FILE__, __LINE__);
-            }   
-        }
+	
+	// Just lock the update, since multiple threads would have got equally acceptable answers
+	//
+#ifdef HAVE_OMP
+	#pragma omp critical
 #endif
-        fNorm->nx = nx; fNorm->ny = ny; fNorm->nz = nz;
-        if (fNormDeferred->deferred & 2) {      // must update
+    	{
 #ifdef CHECK_DEFERED_NORMS
-            if (orig_area != fNorm->orig_area) {
-                fprintf(stderr, "%s:%d prediction of norm did not equal result\n",__FILE__, __LINE__);
+            if (fNorm->deferred & 1) {      // must update
+        	if (nx != fNorm->nx || ny != fNorm->ny || nz != fNorm->nz) {
+                    fprintf(stderr, "%s:%d prediction of norm did not equal result\n",__FILE__, __LINE__);
+        	}   
             }
 #endif
-            fNorm->orig_area = orig_area;
-        }
-        fNormDeferred->deferred = 0;
+            fNorm->nx = nx; fNorm->ny = ny; fNorm->nz = nz;
+            if (fNormDeferred->deferred & 2) {      // must update
+#ifdef CHECK_DEFERED_NORMS
+        	if (orig_area != fNorm->orig_area) {
+                    fprintf(stderr, "%s:%d prediction of norm did not equal result\n",__FILE__, __LINE__);
+        	}
+#endif
+        	fNorm->orig_area = orig_area;
+            }
+            fNormDeferred->deferred = 0;
+    	}
     }
-    return fNorm;
+    return (FaceNormCacheEntry*)fNorm;
 }
 
 static void deferSetFaceNorms(MRIS* mris) {
@@ -892,16 +906,7 @@ static void deferSetFaceNorms(MRIS* mris) {
     }
 }
 
-static void recomputeFaceNorms(MRIS* mris) {
-    int fno;
-    for (fno = 0; fno < mris->nfaces; fno++) {
-      FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
-      fNormDeferred->deferred = 3;      // invalidate their old values 
-      getFaceNorm(mris, fno);           // recompute now
-    }
-}
-
-static void undeferSetFaceNorms(MRIS* mris) {
+static void recomputeOrUndeferFaceNorms(MRIS* mris, bool isRecompute) {
     int fno;
     ROMP_PF_begin  
 #ifdef HAVE_OPENMP
@@ -909,10 +914,27 @@ static void undeferSetFaceNorms(MRIS* mris) {
 #endif
     for (fno = 0; fno < mris->nfaces; fno++) {
       ROMP_PFLB_begin
-      getFaceNorm(mris, fno);
+      FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+#ifdef CHECK_DEFERED_NORMS
+      if (isRecompute) fNormDeferred->deferred = 3;
+      getFaceNorm(mris, fno);      
+#else
+      FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
+      if (!isRecompute && !fNormDeferred->deferred) continue;
+      computeDefectFaceNormal_calculate(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);
+      fNormDeferred->deferred = 0;
+#endif
       ROMP_PFLB_end
     }
     ROMP_PF_end
+}
+
+static void recomputeFaceNorms(MRIS* mris) {
+    recomputeOrUndeferFaceNorms(mris, true);
+}
+
+static void undeferSetFaceNorms(MRIS* mris) {
+    recomputeOrUndeferFaceNorms(mris, false);
 }
 
 
@@ -4752,6 +4774,7 @@ static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define Sum  ROMP_PARTIALSUM(0)
     #define Sum2 ROMP_PARTIALSUM(1)
@@ -9769,6 +9792,7 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define sse_angle    ROMP_PARTIALSUM(0)
     #define sse_neg_area ROMP_PARTIALSUM(1)
@@ -10205,6 +10229,7 @@ static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris)
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define sse  ROMP_PARTIALSUM(0)
 
@@ -10526,6 +10551,7 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
     const int romp_for_line = __LINE__;
 #endif
     #include "romp_for_begin.h"
+    ROMP_for_begin
     
       #define total_area      ROMP_PARTIALSUM(0)
       #define neg_area        ROMP_PARTIALSUM(1)
@@ -11777,6 +11803,7 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define reduction_total_area ROMP_PARTIALSUM(0)
 
@@ -16806,6 +16833,7 @@ static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define sse ROMP_PARTIALSUM(0)
 
@@ -23410,6 +23438,7 @@ static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *par
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define sse_dist ROMP_PARTIALSUM(0)
     
@@ -29403,6 +29432,7 @@ static double mrisComputeCorrelationErrorTraceable(MRI_SURFACE *mris, INTEGRATIO
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define sse  ROMP_PARTIALSUM(0)
     

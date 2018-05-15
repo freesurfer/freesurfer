@@ -2351,6 +2351,7 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define sse  ROMP_PARTIALSUM(0)
 
@@ -4200,6 +4201,7 @@ double gcamJacobianEnergy(const GCA_MORPH * const gcam, MRI *mri)
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define sse  ROMP_PARTIALSUM(0)
     
@@ -7059,6 +7061,7 @@ static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define sse  ROMP_PARTIALSUM(0)
 
