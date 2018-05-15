@@ -1460,7 +1460,7 @@ void MRISPfunctionVal_radiusR(                                                  
 
   // This is the rotation around the z axis
   //
-  float const baseTheta = atan2(y / r, x / r);
+  float const baseTheta = fastApproxAtan2f(y, x);
 
   int alphaIndex;
   for (alphaIndex = 0; alphaIndex < numAlphas; alphaIndex++) {

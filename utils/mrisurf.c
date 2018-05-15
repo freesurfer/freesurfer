@@ -11907,7 +11907,7 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
       VERTEX_EDGE(v_b[tid], vo, vb);
       float cross = VectorTripleProduct(v_b[tid], v_a[tid], v_n[tid]);
       float dot   = V3_DOT(v_a[tid], v_b[tid]);
-      float angle = atan2(cross, dot);
+      float angle = fastApproxAtan2f(cross, dot);
       SET_OR_CHECK(face->angle[ano], angle);
     }
 
