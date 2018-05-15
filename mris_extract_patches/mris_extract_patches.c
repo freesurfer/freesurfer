@@ -66,7 +66,7 @@ int
 main(int argc, char *argv[])
 {
   int          nargs, a ;
-  char         *subject, fname[STRLEN], *out_dir ;
+  char         *subject, fname[STRLEN], *out_dir, fname_only[STRLEN] ;
   int          msec, minutes, seconds, n ;
   struct timeb start ;
   MRI_SURFACE  *mris, *mris_ohemi ;
@@ -229,10 +229,11 @@ main(int argc, char *argv[])
     }
   }
 
-  sprintf(fname, "%s/%s.patches.mgz", out_dir, hemi_name) ;
+  FileNameRemoveExtension(FileNameOnly(vol_name, fname_only), fname_only) ;
+  sprintf(fname, "%s/%s.patches.%s.mgz", out_dir, hemi_name, fname_only) ;
   printf("writing output file %s\n", fname) ;
   MRIwrite(mri_patches, fname) ;
-  sprintf(fname, "%s/%s.labels.mgz", out_dir, hemi_name) ;
+  sprintf(fname, "%s/%s.labels.%s.mgz", out_dir, hemi_name, fname_only) ;
   printf("writing output file %s\n", fname) ;
   MRIwrite(mri_labels, fname) ;
 
@@ -311,7 +312,7 @@ main(int argc, char *argv[])
 	v = &mris->vertices[non_fcd_vertices[i]] ;
 	ovno = MRISfindClosestCanonicalVertex(mris_ohemi, v->cx, v->cy, v->cz) ;
 	if (ovno < 0)
-	  ErrorExit(ERROR_BADPARM, "%s: could not find closest vertex to %d\n", non_fce_vertices[i]) ;
+	  ErrorExit(ERROR_BADPARM, "%s: could not find closest vertex to %d\n", non_fcd_vertices[i]) ;
 	
 	mri_tmp = MRISextractVolumeWindow(mris_ohemi, mri_norm,  wsize, ovno, theta) ;
 	MRIcopyFrame(mri_tmp, mri_patches, 0, n) ;
@@ -322,10 +323,10 @@ main(int argc, char *argv[])
     }
   }
   
-  sprintf(fname, "%s/%s.patches.mgz", out_dir, ohemi_name) ;
-  printf("writing output file with %d patches to %s\n", mris_patches->nframes,fname) ;
+  sprintf(fname, "%s/%s.patches.%s.mgz", out_dir, ohemi_name, fname_only) ;
+  printf("writing output file with %d patches to %s\n", mri_patches->nframes,fname) ;
   MRIwrite(mri_patches, fname) ;
-  sprintf(fname, "%s/%s.labels.mgz", out_dir, ohemi_name) ;
+  sprintf(fname, "%s/%s.labels.%s.mgz", out_dir, ohemi_name, fname_only) ;
   printf("writing output file %s\n", fname) ;
   MRIwrite(mri_labels, fname) ;
 
@@ -363,6 +364,12 @@ get_option(int argc, char *argv[])
   {
     sphere_name = argv[2] ;
     printf("using sphere file %s\n", sphere_name) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "vol_name") || !stricmp(option, "vol"))
+  {
+    vol_name = argv[2] ;
+    printf("using volume file %s\n", vol_name) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "hemi"))
