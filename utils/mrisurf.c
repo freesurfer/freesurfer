@@ -10738,6 +10738,127 @@ static int closeEnough(float a, float b) {
   return 0; 
 }
 
+typedef struct MRISaverageGradients_Data {
+  float dx,dy,dz;
+} MRISaverageGradients_Data;
+
+typedef struct MRISaverageGradients_Control {    
+  int numNeighbors;
+  int firstNeighbor;
+} MRISaverageGradients_Control;
+
+static int                              MRISaverageGradients_neighbors_size;
+static int*	                        MRISaverageGradients_neighbors;
+static int  	                        MRISaverageGradients_controls_and_data_size;
+static MRISaverageGradients_Control*    MRISaverageGradients_controls;
+static MRISaverageGradients_Data*       MRISaverageGradients_datas_init;
+
+static int*     MRISaverageGradients_new2old_indexMap;
+static int*     MRISaverageGradients_old2new_indexMap;
+
+
+// optimizing the program
+//  There are two things that can be done to optimize the code
+//  (a) put those that have the same numNeighbors together, to avoid the branch mispredicts
+//  (b) keep the locality of reference by reordering only nearby indices
+// both are important...
+
+static bool MRISaverageGradients_index_le(int lhs, int rhs) {
+ 
+    MRISaverageGradients_Control* controls = MRISaverageGradients_controls;
+    
+    // L2 caches are 256KB = 64KB fp numbers = about 20K vertices
+    // so, for locality of reference purposes, we keep about 16768 = 2^14 together
+    //
+    int const lhsLocality = lhs>>14;
+    int const rhsLocality = rhs>>14;
+    
+    if (       lhsLocality != rhsLocality)
+    	return lhsLocality <= rhsLocality;
+
+    if (       controls[lhs].numNeighbors != controls[rhs].numNeighbors)
+    	return controls[lhs].numNeighbors <= controls[rhs].numNeighbors;
+
+    return lhs <= rhs;
+}
+
+#define SORT_NAME           sort_MRISaverageGradients_index
+#define SORT_NAME_partition sort_MRISaverageGradients_index_partition
+#define SORT_NAME_isSorted  sort_MRISaverageGradients_index_isSorted
+#define SORT_NAME_small     sort_MRISaverageGradients_index_small
+   
+#define SORT_ELEMENT    int
+#define SORT_LE         MRISaverageGradients_index_le
+#include "sort_definition.h"
+
+static void MRISaverageGradients_optimize() {
+  typedef MRISaverageGradients_Data    Data;
+  typedef MRISaverageGradients_Control Control;
+
+  static bool once, optimize;
+  if (!once) { once = true;
+    optimize = !getenv("FREESURFER_MRISaverageGradients_optimize_suppress");
+    if (!optimize) {
+      fprintf(stdout, "FREESURFER_MRISaverageGradients_optimize_suppress so not optimizing\n");
+    }
+  }
+  if (!optimize) {
+    free(MRISaverageGradients_new2old_indexMap);
+    free(MRISaverageGradients_old2new_indexMap);
+    return;
+  }
+  
+  int                                 const controls_and_data_size  = MRISaverageGradients_controls_and_data_size;
+  const MRISaverageGradients_Control* const controls                = MRISaverageGradients_controls;
+  const MRISaverageGradients_Data*    const datas_init              = MRISaverageGradients_datas_init;
+  const int*                          const neighbors               = MRISaverageGradients_neighbors;
+  int                                 const neighbors_size          = MRISaverageGradients_neighbors_size;
+
+  int* new2old_indexMap = MRISaverageGradients_new2old_indexMap;
+  int* old2new_indexMap = MRISaverageGradients_old2new_indexMap;
+
+  // sort the old indices to get the order to process the old indices in
+  new2old_indexMap = (int*)realloc(new2old_indexMap, controls_and_data_size*sizeof(int));
+  int ni;
+  for (ni = 0; ni < controls_and_data_size; ni++) {
+    new2old_indexMap[ni] = ni;
+  }
+  
+  sort_MRISaverageGradients_index(new2old_indexMap, controls_and_data_size, true);
+
+  // compute the inverse
+  old2new_indexMap = (int*)realloc(old2new_indexMap, controls_and_data_size*sizeof(int));
+  for (ni = 0; ni < controls_and_data_size; ni++) {
+    int oi = new2old_indexMap[ni];
+    old2new_indexMap[oi] = ni;
+  }
+  
+  // permute the program
+  int*	   const new_neighbors  = (int    *)malloc(neighbors_size         * sizeof(int));
+  Data*	   const new_datas_init = (Data   *)malloc(controls_and_data_size * sizeof(Data));
+  Control* const new_controls   = (Control*)malloc(controls_and_data_size * sizeof(Control));
+  int            new_neighborsSize = 0;
+  for (ni = 0; ni < controls_and_data_size; ni++) {
+    int const old_index         = new2old_indexMap[ni];
+    int const old_firstNeighbor = controls[old_index].firstNeighbor;
+    int const numNeighbors      = controls[old_index].numNeighbors;
+    new_controls[ni].numNeighbors  = numNeighbors;
+    new_controls[ni].firstNeighbor = new_neighborsSize;
+    int j;
+    for (j = 0; j < numNeighbors; j++) {
+      new_neighbors[new_neighborsSize++] = old2new_indexMap[neighbors[old_firstNeighbor + j]];	
+    }
+    new_datas_init[ni] = datas_init[old_index];
+  }
+    
+  free(MRISaverageGradients_datas_init); MRISaverageGradients_datas_init = new_datas_init;
+  free(MRISaverageGradients_controls);   MRISaverageGradients_controls   = new_controls;
+  free(MRISaverageGradients_neighbors);  MRISaverageGradients_neighbors  = new_neighbors;
+
+  MRISaverageGradients_new2old_indexMap = new2old_indexMap;
+  MRISaverageGradients_old2new_indexMap = old2new_indexMap;
+}
+
 
 int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
 {
@@ -10820,16 +10941,11 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
     int *index_to_vno = NULL;
     int  index_to_vno_size = 0;
     
-    typedef struct Data {
-      float dx,dy,dz;
-    } Data;
+    typedef MRISaverageGradients_Data Data;
     Data *datas_inp = NULL;
     Data *datas_out = NULL;
 
-    typedef struct Control {    
-      int numNeighbors;
-      int firstNeighbor;
-    } Control;
+    typedef MRISaverageGradients_Control Control;
     Control *controls = NULL;
 
     int  neighbors_capacity = 0;
@@ -10915,6 +11031,29 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
         }      
       }
       
+      // Print out for later investigation
+      //
+      if (0) {
+        static int once;
+	if (!once++) {
+	  const char* fnm = "tesselation_averaging_data.txt";
+	  fprintf(stdout, "%s:%d writing %s\n",__FILE__, __LINE__, fnm);
+          int i;
+      	  FILE* f = fopen(fnm, "w");
+	  fprintf(f, "num_avgs:%d\n", num_avgs);
+	  fprintf(f, "neighbors_size:%d\n", neighbors_size);
+    	  for (i = 0; i < neighbors_size; i++) fprintf(f, "  %5d %5d\n", i, neighbors[i]);
+	  fprintf(f, "controls and data size:%d\n", index_to_vno_size);
+    	  for (i = 0; i < index_to_vno_size; i++) {
+	    fprintf(f, "  %5d %5d %5d %g %g %g\n", 
+	                  i, 
+			  controls[i].numNeighbors, controls[i].firstNeighbor, 
+			  datas_inp[i].dx, datas_inp[i].dy, datas_inp[i].dz);
+	  }
+	  fclose(f);
+	  fprintf(stdout, "%s:%d finished writing %s\n",__FILE__, __LINE__, fnm);
+	}
+      }
       // Do all the iterations
       for (i = 0 ; i < num_avgs ; i++) {
         int index;
