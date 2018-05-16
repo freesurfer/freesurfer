@@ -4277,6 +4277,7 @@ AC_CONFIG_FILES([
 	mris_warp/Makefile
 	mris_watershed/Makefile
 	mrisp_paint/Makefile
+	mrisp_write/Makefile
 	netcdf_3_6_0_p1/Makefile
 	nmovie/Makefile
 	nmovie_qt/Makefile

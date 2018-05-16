@@ -56,6 +56,7 @@ static int wsize = 32 ;
 static int nbrs = 3 ;
 static char *label_name = "FCD";
 static char *vol_name = "norm.mgz" ;
+static char *ovol_name = "norm.mgz" ;
 static char sdir[STRLEN] = "" ;
 static float random_patch_pct = 0.0 ;
 static int augment = 0 ;
@@ -70,7 +71,7 @@ main(int argc, char *argv[])
   int          msec, minutes, seconds, n ;
   struct timeb start ;
   MRI_SURFACE  *mris, *mris_ohemi ;
-  MRI          *mri_norm, *mri_patches, *mri_labels ;
+  MRI          *mri_norm, *mri_patches, *mri_labels, *mri_onorm ;
   LABEL        *area_tmp, *area ;
   int          random_patches, npoints, *non_fcd_vertices = NULL, augment_patches ;
 
@@ -139,6 +140,11 @@ main(int argc, char *argv[])
   sprintf(fname, "%s/%s/mri/%s", sdir, subject, vol_name) ;
   mri_norm = MRIread(fname) ;
   if (mri_norm == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: MRIread(%s) failed", Progname, fname);
+
+  sprintf(fname, "%s/%s/mri/%s", sdir, subject, ovol_name) ;
+  mri_onorm = MRIread(fname) ;
+  if (mri_onorm == NULL)
     ErrorExit(ERROR_NOFILE, "%s: MRIread(%s) failed", Progname, fname);
 
   sprintf(fname, "%s/%s/label/%s.%s.label", sdir, subject, hemi_name, label_name);
@@ -247,7 +253,7 @@ main(int argc, char *argv[])
     ovno = MRISfindClosestCanonicalVertex(mris_ohemi, v->cx, v->cy, v->cz) ;
     if (ovno < 0)
       ErrorExit(ERROR_BADPARM, "%s: could not find closest vertex to %d\n", area->lv[n].vno) ;
-    mri_tmp = MRISextractVolumeWindow(mris_ohemi, mri_norm,  wsize,  ovno, 0) ;
+    mri_tmp = MRISextractVolumeWindow(mris_ohemi, mri_onorm,  wsize,  ovno, 0) ;
     MRIcopyFrame(mri_tmp, mri_patches, 0, n) ;
     MRIfree(&mri_tmp) ;
     MRIsetVoxVal(mri_labels, n, 0, 0, 0, ovno) ;
@@ -269,7 +275,7 @@ main(int argc, char *argv[])
       if (ovno < 0)
 	ErrorExit(ERROR_BADPARM, "%s: could not find closest vertex to %d\n", area->lv[n].vno) ;
 
-      mri_tmp = MRISextractVolumeWindow(mris_ohemi, mri_norm,  wsize,  ovno, 0) ;
+      mri_tmp = MRISextractVolumeWindow(mris_ohemi, mri_onorm,  wsize,  ovno, 0) ;
       MRIcopyFrame(mri_tmp, mri_patches, 0, n) ;
       MRIfree(&mri_tmp) ;
       MRIsetVoxVal(mri_labels, n, 0, 0, 0, ovno) ;
@@ -293,7 +299,7 @@ main(int argc, char *argv[])
       ovno = MRISfindClosestCanonicalVertex(mris_ohemi, v->cx, v->cy, v->cz) ;
       if (ovno < 0)
 	ErrorExit(ERROR_BADPARM, "%s: could not find closest vertex to %d\n", area->lv[n1].vno) ;
-      mri_tmp = MRISextractVolumeWindow(mris_ohemi, mri_norm,  wsize,  ovno, theta) ;
+      mri_tmp = MRISextractVolumeWindow(mris_ohemi, mri_onorm,  wsize,  ovno, theta) ;
       MRIcopyFrame(mri_tmp, mri_patches, 0, n) ;
       MRIfree(&mri_tmp) ;
       MRIsetVoxVal(mri_labels, n, 0, 0, 0, ovno) ;
@@ -314,7 +320,7 @@ main(int argc, char *argv[])
 	if (ovno < 0)
 	  ErrorExit(ERROR_BADPARM, "%s: could not find closest vertex to %d\n", non_fcd_vertices[i]) ;
 	
-	mri_tmp = MRISextractVolumeWindow(mris_ohemi, mri_norm,  wsize, ovno, theta) ;
+	mri_tmp = MRISextractVolumeWindow(mris_ohemi, mri_onorm,  wsize, ovno, theta) ;
 	MRIcopyFrame(mri_tmp, mri_patches, 0, n) ;
 	MRIfree(&mri_tmp) ;
 	MRIsetVoxVal(mri_labels, n, 0, 0, 0, ovno) ;
@@ -323,6 +329,7 @@ main(int argc, char *argv[])
     }
   }
   
+  FileNameRemoveExtension(FileNameOnly(ovol_name, fname_only), fname_only) ;
   sprintf(fname, "%s/%s.patches.%s.mgz", out_dir, ohemi_name, fname_only) ;
   printf("writing output file with %d patches to %s\n", mri_patches->nframes,fname) ;
   MRIwrite(mri_patches, fname) ;
@@ -370,6 +377,12 @@ get_option(int argc, char *argv[])
   {
     vol_name = argv[2] ;
     printf("using volume file %s\n", vol_name) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "ovol_name") || !stricmp(option, "ovol"))
+  {
+    ovol_name = argv[2] ;
+    printf("using contralateral volume file %s\n", ovol_name) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "hemi"))
