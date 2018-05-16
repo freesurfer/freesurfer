@@ -341,6 +341,8 @@ MATRIX *ImageDirCos2Slice(double Vcx, double Vcy, double Vcz,
 			  double Vrx, double Vry, double Vrz,
 			  double *Vsx, double *Vsy, double *Vsz);
 
+int DCMcheckInterceptSlope(DCM_OBJECT *object);
+
 #ifdef SunOS
 /* kteich - this typedef is to keep the compiler from complaining
    about a struct defined in the parameter list... i don't know. i
