@@ -2053,7 +2053,24 @@ MRI_SP *MRISPcombine(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno)
 ------------------------------------------------------*/
 int MRISPwrite(MRI_SP *mrisp, char *fname)
 {
-  ImageWrite(mrisp->Ip, fname);
+  char ext[STRLEN] ;
+  
+  if (!strcmp(FileNameExtension(fname, ext), "mgz"))
+  {
+    MRI *mri ;
+    int r, c, f ;
+
+    printf("writing MRISP to mgh file\n") ;
+    mri = MRIalloc(mrisp->Ip->cols, mrisp->Ip->rows, mrisp->Ip->num_frame, MRI_FLOAT) ;
+    for (f = 0 ; f < mrisp->Ip->num_frame ; f++)
+      for (r = 0 ; r < mrisp->Ip->rows ; r++)
+	for (c = 0 ; c < mrisp->Ip->cols ; c++)
+	  MRIsetVoxVal(mri, c, r, f, 0, *IMAGEFseq_pix(mrisp->Ip, c, r, f)) ;
+    MRIwrite(mri, fname) ;
+    MRIfree(&mri) ;
+  }
+  else
+    ImageWrite(mrisp->Ip, fname);
   return (NO_ERROR);
 }
 /*-----------------------------------------------------
