@@ -10802,6 +10802,7 @@ static void MRISaverageGradients_optimize() {
       fprintf(stdout, "FREESURFER_MRISaverageGradients_optimize_suppress so not optimizing\n");
     }
   }
+  
   if (!optimize) {
     free(MRISaverageGradients_new2old_indexMap);
     free(MRISaverageGradients_old2new_indexMap);
@@ -10859,6 +10860,32 @@ static void MRISaverageGradients_optimize() {
   MRISaverageGradients_old2new_indexMap = old2new_indexMap;
 }
 
+
+static void MRISaverageGradients_write(
+  const char*                           filename,
+  int                                   num_avgs,
+  int                                   neighbors_size,
+  const int*                            neighbors,
+  int                                   index_to_vno_size,
+  const MRISaverageGradients_Control*   controls, 
+  const MRISaverageGradients_Data*      datas_inp) 
+{
+  fprintf(stdout, "%s:%d writing %s\n",__FILE__, __LINE__, filename);
+  int i;
+  FILE* f = fopen(filename, "w");
+  fprintf(f, "num_avgs:%d\n", num_avgs);
+  fprintf(f, "neighbors_size:%d\n", neighbors_size);
+  for (i = 0; i < neighbors_size; i++) fprintf(f, "  %5d %5d\n", i, neighbors[i]);
+  fprintf(f, "controls and data size:%d\n", index_to_vno_size);
+  for (i = 0; i < index_to_vno_size; i++) {
+    fprintf(f, "  %5d %5d %5d %g %g %g\n", 
+	          i, 
+		  controls[i].numNeighbors, controls[i].firstNeighbor, 
+		  datas_inp[i].dx, datas_inp[i].dy, datas_inp[i].dz);
+  }
+  fclose(f);
+  fprintf(stdout, "%s:%d finished writing %s\n",__FILE__, __LINE__, filename);
+}
 
 int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
 {
@@ -10936,6 +10963,11 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
     static const int doNew = 1;
     static const int doOld = 0;
     
+    if (doOld && doNew && num_avgs > 10) {
+        fprintf(stdout, "%s:%d reducing num_avgs:%d to 10\n", __FILE__, __LINE__, num_avgs);
+        num_avgs = 10;
+    }
+     
     // This is the new algorithm
     int *vno_to_index = NULL;
     int *index_to_vno = NULL;
@@ -11033,52 +11065,99 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
       
       // Print out for later investigation
       //
-      if (0) {
+      if (1) {
         static int once;
 	if (!once++) {
-	  const char* fnm = "tesselation_averaging_data.txt";
-	  fprintf(stdout, "%s:%d writing %s\n",__FILE__, __LINE__, fnm);
-          int i;
-      	  FILE* f = fopen(fnm, "w");
-	  fprintf(f, "num_avgs:%d\n", num_avgs);
-	  fprintf(f, "neighbors_size:%d\n", neighbors_size);
-    	  for (i = 0; i < neighbors_size; i++) fprintf(f, "  %5d %5d\n", i, neighbors[i]);
-	  fprintf(f, "controls and data size:%d\n", index_to_vno_size);
-    	  for (i = 0; i < index_to_vno_size; i++) {
-	    fprintf(f, "  %5d %5d %5d %g %g %g\n", 
-	                  i, 
-			  controls[i].numNeighbors, controls[i].firstNeighbor, 
-			  datas_inp[i].dx, datas_inp[i].dy, datas_inp[i].dz);
-	  }
-	  fclose(f);
-	  fprintf(stdout, "%s:%d finished writing %s\n",__FILE__, __LINE__, fnm);
+          MRISaverageGradients_write("tesselation_averaging_data.txt",
+            num_avgs, neighbors_size, neighbors, index_to_vno_size, controls, datas_inp);
 	}
       }
+
+      // Optimize enough iterations to payback the cost
+      //
+      freeAndNULL(MRISaverageGradients_new2old_indexMap);
+      freeAndNULL(MRISaverageGradients_old2new_indexMap);
+
+      if (num_avgs > 150) {
+
+        MRISaverageGradients_neighbors_size         = neighbors_size;
+        MRISaverageGradients_neighbors              = neighbors;
+        MRISaverageGradients_controls_and_data_size = index_to_vno_size;
+        MRISaverageGradients_controls               = controls;
+        MRISaverageGradients_datas_init             = datas_inp;
+
+        MRISaverageGradients_optimize();
+
+        neighbors_size    = MRISaverageGradients_neighbors_size;
+        neighbors         = MRISaverageGradients_neighbors;
+        index_to_vno_size = MRISaverageGradients_controls_and_data_size;
+        controls          = MRISaverageGradients_controls;
+        datas_inp         = MRISaverageGradients_datas_init;
+      }
+      
+      if (1) {
+        static int once;
+	if (!once++) {
+          MRISaverageGradients_write("tesselation_averaging_data.optimized.txt", 
+            num_avgs, neighbors_size, neighbors, index_to_vno_size, controls, datas_inp);
+	}
+      }
+
+      // Choose chunk size assuming should evenly distribute the number of neighbors to process
+      //
+      typedef struct Chunk { int indexLo; } Chunk;
+#define chunksCapacity 17  // 4 * omp_get_max_threads() + 1 // must be at least 3
+      Chunk chunks[chunksCapacity];
+      size_t chunksSize = 0;
+      { int const neighborsPerChunk = neighbors_size/(chunksCapacity-1);
+        int chunkSumNumNeighbors = 0;
+        chunks[chunksSize++].indexLo = 0;
+        int index;
+        for (index = 0; index < index_to_vno_size; index++ ) {
+          Control *c = controls  + index;
+          chunkSumNumNeighbors += c->numNeighbors;
+          if (chunkSumNumNeighbors < neighborsPerChunk) continue;
+          chunks[chunksSize++].indexLo = index;
+          chunkSumNumNeighbors = 0;
+          if (chunksSize == chunksCapacity-1) break;
+        }
+        chunks[chunksSize++].indexLo = index_to_vno_size;
+      }
+#undef chunksCapacity
+
       // Do all the iterations
       for (i = 0 ; i < num_avgs ; i++) {
-        int index;
-      
+        
+        int chunksIndex;
         ROMP_PF_begin
 #ifdef HAVE_OPENMP
         #pragma omp parallel for if_ROMP(assume_reproducible)
 #endif
-        for (index = 0; index < index_to_vno_size ; index++ ) {
-	  ROMP_PFLB_begin
-	  
-          Data *d = datas_inp + index;
-          Control *c = controls  + index;
-          float dx = d->dx, dy = d->dy, dz = d->dz;
-          int *nearby = neighbors + c->firstNeighbor;
-          int n;
-          for (n = 0; n < c->numNeighbors; n++) {
-            int neighborIndex = nearby[n];
-            Data *neighborData = datas_inp + neighborIndex;
-            dx += neighborData->dx; dy += neighborData->dy; dz += neighborData->dz;
-          }
-          d = datas_out + index;
-          float inv_num = 1.0f/(c->numNeighbors + 1);
-          d->dx = dx*inv_num ; d->dy = dy*inv_num ; d->dz = dz*inv_num; 
-	  
+        for (chunksIndex = 0; chunksIndex < chunksSize-1 ; chunksIndex++ ) {
+          int
+            indexLo = chunks[chunksIndex  ].indexLo, 
+            indexHi = chunks[chunksIndex+1].indexLo;
+          int index;
+          for (index = indexLo; index < indexHi; index++ ) {
+	    ROMP_PFLB_begin
+
+            Data *d = datas_inp + index;
+            Control *c = controls  + index;
+            float dx = d->dx, dy = d->dy, dz = d->dz;
+            
+            int *nearby = neighbors + c->firstNeighbor;
+            int n;
+            for (n = 0; n < c->numNeighbors; n++) {
+              int neighborIndex = nearby[n];
+              Data *neighborData = datas_inp + neighborIndex;
+              dx += neighborData->dx; dy += neighborData->dy; dz += neighborData->dz;
+            }
+
+            d = datas_out + index;
+            float inv_num = 1.0f/(c->numNeighbors + 1);
+            
+            d->dx = dx*inv_num ; d->dy = dy*inv_num ; d->dz = dz*inv_num; 
+          }	  
 	  ROMP_PFLB_end
         }
 	ROMP_PF_end
@@ -11087,7 +11166,7 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
         Data* tmp = datas_inp ; datas_inp = datas_out ; datas_out = tmp;
       }
     }
-
+    
     // Only perform the old algorithm when needed
     if (doOld) {
     
@@ -11156,24 +11235,26 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
 
     }  // if (doOld) 
     
-    // Compare the new algorithm and old algorithm answers
     if (doOld && doNew) {
+      fprintf(stdout, "%s:%d comparing old and new algorithms\n", __FILE__, __LINE__);
       int errors = 0;
       for (vno = 0 ; vno < mris->nvertices ; vno++) {
         VERTEX *v = &mris->vertices[vno];
-        int index = vno_to_index[vno];
-        if (index == -1) {
+        int old_index = vno_to_index[vno];
+        if (old_index == -1) {
           // check has not changed - but this is not currently possible
           // but could be enabled by making all these nodes go into the high end of the initial datas_inp vector
         } else {
-          Data *d = datas_inp + index;
+          int new_index = MRISaverageGradients_old2new_indexMap ? MRISaverageGradients_old2new_indexMap[old_index] : old_index;
+          Data *d = datas_inp + new_index;
           if (!closeEnough(d->dx,v->dx) || !closeEnough(d->dy,v->dy) || !closeEnough(d->dz,v->dz)) {
             errors++;
             if (errors < 10) {
-              fprintf(stderr,"%s:%d vno:%d d->dx:%g v->dx:%g d->dy:%g v->dy:%g d->dz:%g v->dz:%g\n",__FILE__,__LINE__,
+              fprintf(stdout,"%s:%d vno:%d d->dx:%g v->dx:%g d->dy:%g v->dy:%g d->dz:%g v->dz:%g - datas_inp\n",__FILE__,__LINE__,
                       vno, d->dx, v->dx, d->dy, v->dy, d->dz, v->dz);
             }
           }
+          
         }
       }
       fprintf(stderr,"%s:%d errors:%d\n",__FILE__,__LINE__,errors);
@@ -11183,19 +11264,31 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
     // Put the results where they belong
     // Note: this code does not set tdx, etc. - I believe they are temporaries   
     if (doNew) {
-      int index;
-      for (index = 0 ; index < index_to_vno_size; index++) {
-        VERTEX *v = &mris->vertices[index_to_vno[index]];
-        Data   *d = datas_inp + index;
+      int errors = 0;
+      int new_index;
+      for (new_index = 0 ; new_index < index_to_vno_size; new_index++) {
+
+        int old_index = MRISaverageGradients_new2old_indexMap ? MRISaverageGradients_new2old_indexMap[new_index] : new_index;
+
+        int vno   = index_to_vno[old_index];
+        VERTEX *v = &mris->vertices[vno];
+        Data   *d = datas_inp + new_index;
+        
         v->dx = d->dx;
         v->dy = d->dy;
         v->dz = d->dz;
       }
-    
-      free(neighbors); 
-      free(controls);
+
+      if (errors > 0) {
+        fprintf(stderr,"%s:%d errors:%d\n",__FILE__,__LINE__,errors);
+        exit (104);
+      }
+      
       free(datas_out); 
       free(datas_inp);
+      free(neighbors); 
+      free(controls);
+      
       free(index_to_vno);
       free(vno_to_index);
     }
