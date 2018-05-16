@@ -2359,6 +2359,8 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile)
     }
   }
 
+  DCMcheckInterceptSlope(object);
+
   tag = DCM_MAKETAG(0x18, 0x86);
   cond = GetUSFromString(&object, tag, &ustmp);
   sdcmfi->EchoNo = (int)ustmp;
@@ -4782,6 +4784,8 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
     free(strtmp);
   }
 
+  DCMcheckInterceptSlope(*object);
+
   DoDWI = 1;
   pc = getenv("FS_LOAD_DWI");
   if (pc == NULL)
@@ -7204,4 +7208,45 @@ MATRIX *ImageDirCos2Slice(
   Mdc->rptr[3][3] = *Vsz;
 
   return (Mdc);
+}
+
+
+/*!
+  \fn int DCMcheckInterceptSlope(DCM_OBJECT *object)
+  This prints out a warning if intercept slope are present and not equal to 0,1
+*/
+int DCMcheckInterceptSlope(DCM_OBJECT *object)
+{
+  CONDITION cond;
+  DCM_TAG tag;
+  int ret = 0;
+  char *strtmp;
+
+  tag = DCM_MAKETAG(0x28, 0x1052);
+  cond = GetString(&object, tag, &strtmp);
+  if(cond == DCM_NORMAL) {
+    double RescaleIntercept;
+    sscanf(strtmp, "%lf", &RescaleIntercept);
+    free(strtmp);
+    if(RescaleIntercept != 0.0){
+      printf("\n\n");
+      printf("WARNING: RescaleIntercept = %lf but will not be applied\n",RescaleIntercept);
+      printf("\n\n");
+    ret = 1;
+    }
+  }
+  tag = DCM_MAKETAG(0x28, 0x1053);
+  cond = GetString(&object, tag, &strtmp);
+  if(cond == DCM_NORMAL) {
+    double RescaleSlope;
+    sscanf(strtmp, "%lf", &RescaleSlope);
+    free(strtmp);
+    if(RescaleSlope != 1.0){
+      printf("\n\n");
+      printf("WARNING: RescaleSlope = %lf but will not be applied\n",RescaleSlope);
+      printf("\n\n");
+      ret = 1;
+    }
+  }
+  return(ret);
 }
