@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+	<name>mrispwrite</name>
+	<synopsis>mrispwrite [options] &lt;template file&gt; &lt;input surface&gt; &lt;output name&gt;</synopsis>
+	<description>This program is useful for takaing a surface
+	overlay on a sphere and writing in into spherical
+	coordinates. Typically ?h.sphere.reg would be the input (or
+	possibly ?h.sphere)
+</description>
+  <arguments>
+    <positional>
+      <argument>&lt;input surfacee&gt;</argument>
+      <explanation>Full path to input surface.</explanation>
+      <argument>&lt;overlay_fname&gt;</argument>
+      <explanation>Full path to the overlay to map</explanation>
+      <argument>&lt;out_fname&gt;</argument>
+      <explanation>Output file name. Can be full path to a .tif or
+      .mgz file</explanation>
+    </positional>
+    <required-flagged>
+      <intro>None.</intro>
+    </required-flagged>
+    <optional-flagged>
+      <argument>-SDIR &lt;subjects_dir&gt;</argument>
+      <explanation>Set SUBJECTS_DIR. Default: use environment variable/</explanation>
+      <argument>-A &lt;navgs&gt;</argument>
+      <explanation>Average curvature patterns navgs times</explanation>
+      <argument>-N</argument>
+      <explanation>Normalize curvature by variance.</explanation>
+      <argument>-?,-U</argument>
+      <explanation>Print usage</explanation>
+      <argument>--all-info, -all-info</argument>
+      <explanation>Prints BIRN-standard program information</explanation>
+      <argument>--help</argument>
+      <explanation>Prints help message</explanation>
+      <argument>-V &lt;vertex_num (int)&gt;</argument>
+      <explanation>Invoke diagnostics for vertex number vertex_num</explanation>
+      <argument>--version, -version</argument>
+      <explanation>Prints version information</explanation>
+      <argument>-W</argument>
+      <explanation>Write some diagnostics (DIAG_WRITE)</explanation>
+    </optional-flagged>
+  </arguments>
+  <outputs>
+    <output>&lt;output name&gt;</output>
+    <explanation>the output specified as an argument. This is a file
+    containing a surface-worth of per-vertex values, saved in
+    spherical coordinates. </explanation>
+  </outputs>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+	<see-also>mris_make_template</see-also>
+</help>
+
