@@ -10,21 +10,8 @@ cache:
 
 matrix:
   include:
-  # Compile only on osx and linux:
   - os: osx
-    env: TESTS=""
   - os: linux
-    env: TESTS=""
-  # tests currently work only on linux due to neurodebian-travis.sh script below
-  # Autorecon1:  
-  - os: linux
-    env: TESTS="mri_convert mri_add_xform_to_header talairach_avi talairach_afd mri_normalize mri_watershed"
-  # Autorecon2 and 3:
-  - os: linux
-    env: TESTS="mri_cc mri_mask mri_segment mri_edit_wm_with_aseg mri_pretess mri_fill mri_tesellate mris_inflate mris_ca_label"
-  # Misc
-  - os: linux
-    env: TESTS="utils"
 
 addons:
   apt:
@@ -62,16 +49,6 @@ before_install:
       brew install gcc49 ;
       brew postinstall gcc49 ;
     fi
-  # Needs recent git-annex to be able to get -J3 --metadata
-  - if [[ "$TESTS" != "" ]]; then
-      bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh) ;
-      travis_retry sudo apt-get update -qq ;
-      travis_retry sudo apt-get install git-annex-standalone ;
-      git fetch origin git-annex ;
-      git remote add datasrc http://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/repo/annex.git ;
-      git fetch datasrc git-annex ;
-      travis_retry git annex get -J3 --metadata fstags=makecheck . ;
-    fi
 
 install:
   # Install library packages needed to compile FreeSurfer
@@ -103,10 +80,6 @@ script:
       ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/osx-lion-packages       --disable-Werror --disable-GUI-build  F77=/usr/local/bin/gfortran-4.9 CC=/usr/local/bin/gcc-4.9 CXX=/usr/local/bin/g++-4.9 ;
     fi
   - travis_wait 40 ./travis_make.sh || travis_terminate 1
-  # run tests
-  - if [[ "$TESTS" != "" ]]; then
-       travis_wait 60 ./run_selected_tests ;
-    fi
 
 after_failure:
   - tail -n 200 build.log
