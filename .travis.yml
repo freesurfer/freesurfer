@@ -52,11 +52,11 @@ before_install:
 
 install:
   # install pre-built packages needed to compile FreeSurfer
-  - ./travis/packages.sh || travis_terminate 1
+  - ./travis/packages.sh
 
 script:
   # configure and compile freesurfer
-  - travis_wait 40 ./travis/build.sh || travis_terminate 1
+  - travis_wait 40 ./travis/build.sh &> build.log
 
 after_failure:
   - tail -n 100 build.log
