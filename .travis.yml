@@ -56,7 +56,4 @@ install:
 
 script:
   # configure and compile freesurfer
-  - travis_wait 40 ./travis/build.sh &> build.log
-
-after_failure:
-  - tail -n 100 build.log
+  - travis_wait 30 ./travis/build.sh
