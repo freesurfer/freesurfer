@@ -10,21 +10,8 @@ cache:
 
 matrix:
   include:
-  # Compile only on osx and linux:
   - os: osx
-    env: TESTS=""
   - os: linux
-    env: TESTS=""
-  # tests currently work only on linux due to neurodebian-travis.sh script below
-  # Autorecon1:  
-  - os: linux
-    env: TESTS="mri_convert mri_add_xform_to_header talairach_avi talairach_afd mri_normalize mri_watershed"
-  # Autorecon2 and 3:
-  - os: linux
-    env: TESTS="mri_cc mri_mask mri_segment mri_edit_wm_with_aseg mri_pretess mri_fill mri_tesellate mris_inflate mris_ca_label"
-  # Misc
-  - os: linux
-    env: TESTS="utils"
 
 addons:
   apt:
@@ -54,65 +41,15 @@ before_install:
       brew update ;
       brew install libtool ;
       brew install automake ;
-      brew postinstall automake ;
-    fi
-  # workaround to make install gcc work (first uninstall conflicting oclint)
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       brew cask uninstall oclint ;
       brew install gcc49 ;
       brew postinstall gcc49 ;
     fi
-  # Needs recent git-annex to be able to get -J3 --metadata
-  - if [[ "$TESTS" != "" ]]; then
-      bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh) ;
-      travis_retry sudo apt-get update -qq ;
-      travis_retry sudo apt-get install git-annex-standalone ;
-      git fetch origin git-annex ;
-      git remote add datasrc http://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/repo/annex.git ;
-      git fetch datasrc git-annex ;
-      # git annex get -J3 --metadata fstags=makecheck . ;
-      # add travis_retry to allow retries if failure (will do 3 retries)
-      travis_retry git annex get -J3 --metadata fstags=makecheck . ;
-    fi
 
 install:
-  # Install library packages needed to compile FreeSurfer
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      # curl -O ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/centos6_x86_64/centos6-x86_64-packages.tar.gz || travis_terminate 1 ;
-      # try http for better reliability than ftp, with some extended retry and timeout options
-      curl ——verbose —-connect-timeout 8 --retry 60 --retry-delay 3 -O http://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/centos6_x86_64/centos6-x86_64-packages.tar.gz || travis_terminate 1 ;
-      tar -xzf centos6-x86_64-packages.tar.gz  ;
-      rm centos6-x86_64-packages.tar.gz  ;
-      cd centos6-x86_64-packages  ;
-      ./setup.sh ;
-      cd .. ;
-    fi
-  # different package on osx
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then
-      mkdir osx-lion-packages ;
-      cd osx-lion-packages ;
-      # curl -O ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/OSX/osx-lion-packages.tar.gz || travis_terminate 1 ;
-      # try http for better reliability than ftp, with some extended retry and timeout options
-      curl ——verbose —-connect-timeout 8 --retry 60 --retry-delay 3 -O http://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/OSX/osx-lion-packages.tar.gz || travis_terminate 1 ;
-      tar -xzf osx-lion-packages.tar.gz ;
-      rm osx-lion-packages.tar.gz ;
-      cd .. ;
-    fi
+  # install pre-built packages needed to compile freesurfer
+  - ./travis/packages.sh
 
 script:
-  # configure and build freesurfer
-  - ./setup_configure
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/centos6-x86_64-packages --disable-Werror --disable-GUI-build ;
-    fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then
-      ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/osx-lion-packages       --disable-Werror --disable-GUI-build  F77=/usr/local/bin/gfortran-4.9 CC=/usr/local/bin/gcc-4.9 CXX=/usr/local/bin/g++-4.9 ;
-    fi
-  - travis_wait 40 ./travis_make.sh || travis_terminate 1
-  # run tests
-  - if [[ "$TESTS" != "" ]]; then
-       travis_wait 60 ./run_selected_tests ;
-    fi
-
-after_failure:
-  - tail -n 200 build.log
+  # configure and compile freesurfer
+  - travis_wait 30 ./travis/build.sh
