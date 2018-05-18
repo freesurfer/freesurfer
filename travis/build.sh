@@ -2,10 +2,11 @@
 
 #
 # script to run the travis build step
+# this lets us handle build failures better
 #
 
 function runstep {
-  $@ >> build.log 2>&1 || { echo $@; tail -n 100 build.log; exit 1; }
+  $@ >> build.log 2>&1 || { tail -n 50 build.log; echo "travis build failed during $@"; exit 1; }
 }
 
 runstep "./setup_configure"
