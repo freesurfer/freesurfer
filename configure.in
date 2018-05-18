@@ -2949,17 +2949,6 @@ AC_ARG_ENABLE(itk-apps,
    ITK_DIR=""
  ])
 
-if test "$disable_gui_build" = "YES"; then
-  itk_apps="NO"
-  ac_itk_includes="NO"
-  ac_itk_libraries="NO"
-  ITK_CFLAGS=""
-  ITK_LIBS=""
-  ITK_LIB=""
-  LIBS_ITK=""
-  ITK_DIR=""
-fi
-
 if test "$itk_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of ITK apps.])
 
