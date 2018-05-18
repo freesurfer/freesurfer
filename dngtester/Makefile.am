@@ -2,28 +2,30 @@
 ## Makefile.am 
 ##
 
-if HAVE_ITK_LIBS
-ITK_THINGS=$(ITK_CFLAGS) \
-           -I$(ITK_DIR)/include/InsightToolkit/Utilities/vxl/core \
-           -I$(ITK_DIR)/include/InsightToolkit/Utilities/vxl/vcl \
-           -DHAVE_ITK_LIBS
-else
-ITK_THINGS=
-endif
-
 AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom -O0
-AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom -O0 $(ITK_THINGS)
-bin_PROGRAMS = dngtester cpptester
+bin_PROGRAMS = dngtester
 
 dngtester_SOURCES=dngtester.c
 dngtester_LDADD= $(top_builddir)/fsgdf/libfsgdf.a \
   $(addprefix $(top_builddir)/, $(LIBS_MGH))
 dngtester_LDFLAGS=$(OS_LDFLAGS)
 
+if HAVE_ITK_LIBS
+
+ITK_THINGS=$(ITK_CFLAGS) \
+           -I$(ITK_DIR)/include/InsightToolkit/Utilities/vxl/core \
+           -I$(ITK_DIR)/include/InsightToolkit/Utilities/vxl/vcl \
+           -DHAVE_ITK_LIBS
+AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom -O0 $(ITK_THINGS)
+
+bin_PROGRAMS = $(bin_PROGRAMS) cpptester
+
 cpptester_SOURCES=cpptester.cpp
 cpptester_LDADD= $(top_builddir)/fsgdf/libfsgdf.a \
   $(addprefix $(top_builddir)/, $(LIBS_MGH))
 cpptester_LDFLAGS=$(OS_LDFLAGS)
+
+endif
 
 install:
 
