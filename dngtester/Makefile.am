@@ -3,7 +3,10 @@
 ##
 
 if HAVE_ITK_LIBS
-ITK_THINGS=$(ITK_CFLAGS) -DHAVE_ITK_LIBS
+ITK_THINGS=$(ITK_CFLAGS) \
+           -I$(ITK_DIR)/include/InsightToolkit/Utilities/vxl/core \
+           -I$(ITK_DIR)/include/InsightToolkit/Utilities/vxl/vcl \
+           -DHAVE_ITK_LIBS
 else
 ITK_THINGS=
 endif
