@@ -87,7 +87,8 @@ FSVolume::FSVolume( FSVolume* ref, QObject* parent ) : QObject( parent ),
   m_nHistoFrame(0),
   m_bValidHistogram(false),
   m_bSharedMRI(false),
-  m_lta(NULL)
+  m_lta(NULL),
+  m_bIgnoreHeader(false)
 {
   m_imageData = NULL;
   if ( ref )
@@ -177,6 +178,9 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
     }
     return false;
   }
+
+  if (m_MRIRef && m_bIgnoreHeader)
+    MRIcopyHeader( m_MRIRef, m_MRI );
 
   // if m_MRI successfully loaded, release old header.
   if ( tempMRI )

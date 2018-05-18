@@ -103,7 +103,8 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
   m_nGotoLabelSlice(-1),
   m_nGotoLabelOrientation(-1),
   m_layerMask(NULL),
-  m_correlationSurface(NULL)
+  m_correlationSurface(NULL),
+  m_bIgnoreHeader(false)
 {
   m_strTypeNames.push_back( "MRI" );
   m_sPrimaryType = "MRI";
@@ -275,6 +276,7 @@ bool LayerMRI::LoadVolumeFromFile()
   m_volumeSource->SetResampleToRAS( m_bResampleToRAS );
   m_volumeSource->SetConform( m_bConform );
   m_volumeSource->SetInterpolationMethod( m_nSampleMethod );
+  m_volumeSource->SetIgnoreHeader(m_bIgnoreHeader);
   
   if ( !m_volumeSource->MRIRead( m_sFilename.toLatin1().data(),
                                  m_sRegFilename.size() > 0 ? m_sRegFilename.toLatin1().data() : NULL ) )
@@ -330,6 +332,7 @@ bool LayerMRI::CreateFromMRIData(void *mri_ptr)
   m_volumeSource->SetResampleToRAS( m_bResampleToRAS );
   m_volumeSource->SetConform( m_bConform );
   m_volumeSource->SetInterpolationMethod( m_nSampleMethod );
+  m_volumeSource->SetIgnoreHeader(m_bIgnoreHeader);
   if (!m_volumeSource->CreateFromMRIData(mri))
     return false;
   

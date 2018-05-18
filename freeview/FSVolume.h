@@ -219,6 +219,11 @@ public:
 
   void ClearRegistrationMatrix();
 
+  void SetIgnoreHeader(bool b)
+  {
+    m_bIgnoreHeader = b;
+  }
+
 Q_SIGNALS:
   void ProgressChanged( int n );
 
@@ -267,6 +272,7 @@ protected:
   float     m_fMaxValue;
 
   bool      m_bResampleToRAS;
+  bool      m_bIgnoreHeader;
   double    m_MRIToImageMatrix[16];
 
   // RAS bounds.

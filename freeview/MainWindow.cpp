@@ -1844,7 +1844,7 @@ void MainWindow::RunScript()
   }
   else
   {
-    cerr << "Command '" << qPrintable(cmd) << "' is not recognized." << endl;
+    cerr << "Command '" << qPrintable(cmd) << "' was not recognized.\n";
   }
   m_bScriptRunning = false;
 }
@@ -2158,6 +2158,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       {
         m_scripts.insert( 0, QStringList() << "setactiveframe" << subArgu );
       }
+      else if (subOption == "ignore_header")
+      {
+        sup_data["IgnoreHeader"] = true;
+      }
       else if (!subOption.isEmpty())
       {
         cerr << "Unrecognized sub-option flag '" << strg.toLatin1().constData() << "'.\n";
@@ -2227,7 +2231,8 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
 
 void MainWindow::CommandSetColorMap( const QStringList& sa )
 {
-  int nColorMap = LayerPropertyMRI::Grayscale;;
+  int nColorMap = LayerPropertyMRI::Grayscale;
+  int nColorMapScale = LayerPropertyMRI::Grayscale;
   QString strg = sa[1];
   if ( strg == "heat" || strg == "heatscale" )
   {
@@ -2258,7 +2263,6 @@ void MainWindow::CommandSetColorMap( const QStringList& sa )
     cerr << "Unrecognized colormap name '" << strg.toLatin1().constData() << "'.\n";
   }
 
-  int nColorMapScale = LayerPropertyMRI::Grayscale;
   QList<double> pars;
   if (sa.size() > 2)
   {
@@ -4750,6 +4754,9 @@ void MainWindow::LoadVolumeFile( const QString& filename,
   if (sup_data.contains("VectorSkip"))
     layer->GetProperty()->SetVectorSkip(qMax(0, sup_data["VectorSkip"].toInt()));
   layer->GetProperty()->blockSignals(false);
+
+  if (sup_data.value("IgnoreHeader").toBool())
+    layer->SetIgnoreHeader(true);
 
   m_threadIOWorker->LoadVolume( layer );
 }
