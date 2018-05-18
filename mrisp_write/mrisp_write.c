@@ -36,6 +36,7 @@
 #include "mri.h"
 #include "macros.h"
 #include "version.h"
+#include "label.h"
 
 static char vcid[] = "$Id: mrisp_write.c,v 1.12 2016/03/22 14:47:57 fischl Exp $";
 
@@ -49,6 +50,7 @@ static void print_version(void) ;
 
 char *Progname ;
 
+static char *label_fname = NULL;
 static int normalize = 0 ;
 static int navgs = 0 ;
 
@@ -106,6 +108,19 @@ main(int argc, char *argv[])
   printf("reading overlay from %s\n", in_overlay) ;
   if (MRISreadCurvatureFile(mris, in_overlay) != NO_ERROR)
     ErrorExit(ERROR_NOFILE, "%s: could not read input overlay %s", Progname, in_overlay) ;
+
+  if (label_fname)
+  {
+    LABEL *area ;
+    area = LabelRead(NULL, label_fname) ;
+    if (area == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read label file from %s", label_fname) ;
+    MRIScopyCurvatureToValues(mris) ;  // LabelMaskSurface zeros out vals not curv
+    LabelMaskSurface(area, mris);
+    MRIScopyValuesToCurvature(mris) ;
+
+    LabelFree(&area) ;
+  }
 
   if (normalize)
     MRISnormalizeCurvature(mris, NORM_MEAN);
@@ -165,6 +180,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
     {
+    case 'L':
+      label_fname = argv[2] ;
+      printf("masking label %s\n", label_fname) ;
+      nargs = 1; 
+      break ;
     case 'A':
       navgs = atoi(argv[2]) ;
       nargs = 1 ;
