@@ -41,17 +41,13 @@ before_install:
       brew update ;
       brew install libtool ;
       brew install automake ;
-      brew postinstall automake ;
-    fi
-  # workaround to make install gcc work (first uninstall conflicting oclint)
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       brew cask uninstall oclint ;
       brew install gcc49 ;
       brew postinstall gcc49 ;
     fi
 
 install:
-  # install pre-built packages needed to compile FreeSurfer
+  # install pre-built packages needed to compile freesurfer
   - ./travis/packages.sh
 
 script:
