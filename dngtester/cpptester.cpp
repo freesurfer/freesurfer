@@ -4,9 +4,12 @@
 #include <iostream>
 #include <fstream>
 #define export
+
+#ifdef HAVE_ITK_LIBS
 #include <vnl/vnl_matrix.h>
 #include <vnl/vnl_inverse.h>
 #include <vnl/algo/vnl_matrix_inverse.h>
+#endif
 
 // all other software are all in "C"
 #ifdef __cplusplus
@@ -53,6 +56,10 @@ int main(int argc, char *argv[])
   argv++;
   ErrorInit(NULL, NULL, NULL);
 
+#ifndef HAVE_ITK_LIBS
+  fprintf(stderr, "%s:%d dngtester needs ITK, not available\n",__FILE__,__LINE__);
+  exit(1);
+#else
   while(1){
     vnl_matrix<float> M(3000,3000);
     vnl_matrix<float> Q =  M.apply(&myrand);
@@ -69,6 +76,7 @@ int main(int argc, char *argv[])
   //N.print(cout);
   //printf("is_zero %d\n",M.is_zero());
   //printf("is_ident %d\n",M.is_identity());
+#endif
     
   // Parse command line
   if (!parseCommandLine(argc, argv))
