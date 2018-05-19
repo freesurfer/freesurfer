@@ -3,15 +3,16 @@
 ##
 
 if HAVE_ITK_LIBS
-ITK_THINGS=$(ITK_CFLAGS) -DHAVE_ITK_LIBS
+ITK_THINGS=$(ITK_CFLAGS) \
+           -I$(ITK_DIR)/include/InsightToolkit/Utilities/vxl/core \
+           -I$(ITK_DIR)/include/InsightToolkit/Utilities/vxl/vcl \
+           -DHAVE_ITK_LIBS
 else
 ITK_THINGS=
 endif
 
 AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom -O0
-AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
-AM_CPPFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom -O0 $(ITK_THINGS) \
-	-I/usr/pubsw/packages/itk/current/include/InsightToolkit/Utilities/vxl/core -I/usr/pubsw/packages/itk/current/include/InsightToolkit -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Algorithms -I/usr/pubsw/packages/itk/current/include/InsightToolkit/BasicFilters -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Common -I/usr/pubsw/packages/itk/current/include/InsightToolkit/IO -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Numerics -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Numerics/Statistics -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Review -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Review/Statistics -I/usr/pubsw/packages/itk/current/include/InsightToolkit/SpatialObject -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Utilities/vxl/vcl
+AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom -O0 $(ITK_THINGS)
 bin_PROGRAMS = dngtester cpptester
 
 dngtester_SOURCES=dngtester.c
