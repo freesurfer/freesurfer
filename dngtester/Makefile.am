@@ -24,9 +24,9 @@ cpptester_LDFLAGS=$(OS_LDFLAGS)
 
 # only compile cpptester if ITK is enabled
 if HAVE_ITK_LIBS
-bin_PROGRAMS = cpptester
-else
 bin_PROGRAMS = dngtester cpptester
+else
+bin_PROGRAMS = dngtester
 endif
 
 # Our release target. Include files to be excluded here. They will be
