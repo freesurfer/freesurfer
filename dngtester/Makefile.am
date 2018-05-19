@@ -22,7 +22,7 @@ cpptester_LDADD= $(top_builddir)/fsgdf/libfsgdf.a \
   $(addprefix $(top_builddir)/, $(LIBS_MGH))
 cpptester_LDFLAGS=$(OS_LDFLAGS)
 
-# only compile cpptester is ITK enabled
+# only compile cpptester if ITK is enabled
 if HAVE_ITK_LIBS
 bin_PROGRAMS = cpptester
 else
@@ -30,7 +30,7 @@ bin_PROGRAMS = dngtester cpptester
 endif
 
 # Our release target. Include files to be excluded here. They will be
-# # found and removed after 'make install' is run during the 'make
-# # release' target.
+# found and removed after 'make install' is run during the 'make
+# release' target.
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
