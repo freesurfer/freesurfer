@@ -1665,6 +1665,14 @@ static float fastApproxAtan2fWkr(float ay, float ax) {     // ax >= ay
 }
 
 float fastApproxAtan2f(float y, float x) {
+    static bool volatile once;
+    static bool volatile use_atanf2;
+    if (!once) {
+        use_atanf2 = !!getenv("FREESURFER_fastApproxAtan2f_use_atanf2");
+        once = true;
+    }
+    if (use_atanf2) return atan2f(y,x);
+    
     float  ax = fabsf(x), ay = fabsf(y);
     double r;
     if (ax >= ay) { 
