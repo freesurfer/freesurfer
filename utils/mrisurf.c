@@ -11095,7 +11095,7 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
         datas_inp         = MRISaverageGradients_datas_init;
       }
       
-      if (1) {
+      if (0) {
         static int once;
 	if (!once++) {
           MRISaverageGradients_write("tesselation_averaging_data.optimized.txt", 
