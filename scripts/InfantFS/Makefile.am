@@ -15,6 +15,8 @@ find_neighbors_byMI.csh \
 find_neighbors_byMI_extended.csh \
 find_putamen_labels.csh \
 infant_recon_all \
+LabelFusion \
+run_LabelFusion.sh \
 run_LabelFusion_wrapper.csh \
 set_babydev_packages.csh \
 set_infant_recon_params.csh \
