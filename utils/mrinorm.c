@@ -2965,8 +2965,8 @@ static MRI *mriSoapBubbleFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst, int ni
 #endif
       for (z = z1; z <= z2; z++) 
       {
-	int x, y, ctrl, xi, yi, zi, xk, yk, zk ;
-	double mean ;
+        int x, y, ctrl, xi, yi, zi, xk, yk, zk ;
+        float mean, val ;
         for (y = y1; y <= y2; y++) {
           for (x = x1; x <= x2; x++) {
 	    ctrl = MRIgetVoxVal(mri_ctrl, x, y, z, f) ;
