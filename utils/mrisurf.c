@@ -11663,7 +11663,7 @@ static int MRIScomputeTriangleProperties_old(MRI_SURFACE *mris, bool old_done)
       VERTEX_EDGE(v_b[tid], vo, vb);
       cross = VectorTripleProduct(v_b[tid], v_a[tid], v_n[tid]);
       dot   = V3_DOT(v_a[tid], v_b[tid]);
-      angle = atan2(cross, dot);
+      angle = atan2f(cross, dot);
       face->angle[ano] = angle;
 
 #if 0
@@ -11880,7 +11880,7 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
       VERTEX_EDGE(v_b[tid], vo, vb);
       float cross = VectorTripleProduct(v_b[tid], v_a[tid], v_n[tid]);
       float dot   = V3_DOT(v_a[tid], v_b[tid]);
-      float angle = atan2(cross, dot);
+      float angle = atan2f(cross, dot);
       SET_OR_CHECK(face->angle[ano], angle);
     }
 
@@ -27760,7 +27760,7 @@ int MRIScomputeCanonicalCoordinates(MRI_SURFACE *mris)
     x = v->cx;
     y = v->cy;
     z = v->cz;
-    theta = atan2(y / r, x / r);
+    theta = atan2f(y, x);
     if (theta < 0.0f) {
       theta = 2 * M_PI + theta; /* make it 0 --> 2*PI */
     }
@@ -27768,7 +27768,7 @@ int MRIScomputeCanonicalCoordinates(MRI_SURFACE *mris)
     if (d < 0.0) {
       d = 0.0;
     }
-    phi = atan2(sqrt(d), z);
+    phi = atan2f(sqrt(d), z);
     v->theta = theta;
     v->phi = phi;
   }

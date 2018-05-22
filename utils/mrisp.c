@@ -1422,7 +1422,7 @@ void MRISPfunctionVal_radiusR(                                                  
   float phi;
   { float d = r * r - z * z;
     if (d < 0.0) d = 0.0;
-    phi = atan2(sqrt(d), z);
+    phi = atan2f(sqrt(d), z);
     if (phi < RADIANS(1)) DiagBreak();
   }
   
@@ -1460,7 +1460,7 @@ void MRISPfunctionVal_radiusR(                                                  
 
   // This is the rotation around the z axis
   //
-  float const baseTheta = atan2(y / r, x / r);
+  float const baseTheta = atan2f(y, x);
 
   int alphaIndex;
   for (alphaIndex = 0; alphaIndex < numAlphas; alphaIndex++) {
