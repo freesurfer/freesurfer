@@ -144,6 +144,7 @@ main(int argc, char *argv[]) {
     exit (0);
   argc -= nargs;
 
+  setRandomSeed(-1L) ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -151,7 +152,6 @@ main(int argc, char *argv[]) {
   FSinit() ;
   TimerStart(&start) ;
 
-  setRandomSeed(0L) ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;

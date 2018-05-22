@@ -348,7 +348,6 @@ MISCDIRS=\
 	histo_compute_joint_density \
 	histo_register_block \
 	regdat2xfm \
-	dngtester \
 	test_makevol \
 	images \
 	dummy \

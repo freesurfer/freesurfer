@@ -1422,7 +1422,7 @@ void MRISPfunctionVal_radiusR(                                                  
   float phi;
   { float d = r * r - z * z;
     if (d < 0.0) d = 0.0;
-    phi = atan2(sqrt(d), z);
+    phi = atan2f(sqrt(d), z);
     if (phi < RADIANS(1)) DiagBreak();
   }
   
