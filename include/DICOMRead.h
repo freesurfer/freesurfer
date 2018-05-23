@@ -121,6 +121,7 @@ typedef enum
 }
 DCM_TagList;
 
+// This structure is for generic dicoms (see below for siemens specific)
 typedef struct
 {
   // DICOM file name
@@ -170,6 +171,9 @@ typedef struct
   void *PixelData;
   unsigned char min8,  max8;
   unsigned short int min16, max16;
+
+  // Rescaling parameters
+  double RescaleIntercept, RescaleSlope; //(0028,1052) (0028,1053)
 
 }
 DICOMInfo ;
