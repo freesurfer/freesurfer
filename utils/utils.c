@@ -1670,8 +1670,9 @@ float fastApproxAtan2f(float y, float x) {
     if (!once) {
         use_atanf2 = !!getenv("FREESURFER_fastApproxAtan2f_use_atanf2");
         once = true;
-        fprintf(stdout, "%s:%d %s\n", __FILE__, __LINE__,
-            use_atanf2?"using slow atan2f":"using table lookup for fast but slightly inaccurate atan");
+        if (use_atanf2)
+            fprintf(stdout, "%s:%d %s\n", __FILE__, __LINE__,
+                use_atanf2?"using slow atan2f":"using table lookup for fast but slightly inaccurate atan");
     }
     if (use_atanf2) return atan2f(y,x);
     
