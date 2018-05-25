@@ -4784,7 +4784,25 @@ CONDITION GetDICOMInfo(const char *fname, DICOMInfo *dcminfo, BOOL ReadImage, in
     free(strtmp);
   }
 
-  DCMcheckInterceptSlope(*object);
+  dcminfo->RescaleIntercept = 0;
+  //DCMcheckInterceptSlope(*object);
+  tag = DCM_MAKETAG(0x28, 0x1052);
+  cond = GetString(object, tag, &strtmp);
+  if(cond == DCM_NORMAL) {
+    sscanf(strtmp, "%lf", &dcminfo->RescaleIntercept);
+    free(strtmp);
+    if(dcminfo->RescaleIntercept != 0.0 && Gdiag_no > 0)
+      printf("Info: %d RescaleIntercept = %lf \n",DCM_ImageNumber,dcminfo->RescaleIntercept);
+  }
+  dcminfo->RescaleSlope = 1.0;
+  tag = DCM_MAKETAG(0x28, 0x1053);
+  cond = GetString(object, tag, &strtmp);
+  if(cond == DCM_NORMAL) {
+    sscanf(strtmp, "%lf", &dcminfo->RescaleSlope);
+    free(strtmp);
+    if(dcminfo->RescaleSlope != 1.0 && Gdiag_no > 0)
+      printf("Info: %d RescaleSlope = %lf \n",DCM_ImageNumber,dcminfo->RescaleSlope);
+  }
 
   DoDWI = 1;
   pc = getenv("FS_LOAD_DWI");
@@ -5398,7 +5416,8 @@ int alphasort(const void *a, const void *b)
 
 /*--------------------------------------------------------------
   DICOMRead2() - generic dicom reader. It should be possible to
-  use this for everything but siemens mosaics.
+  use this for everything but siemens mosaics. There is a 
+  siemens specific reader called sdcmLoadVolume().
   --------------------------------------------------------------*/
 MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
 {
@@ -5409,7 +5428,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   unsigned short *v16 = NULL;
   unsigned char *v08 = NULL;
   DCM_ELEMENT *element;
-  double r0, a0, s0;
+  double r0, a0, s0, val;
   MRI *mri;
   FSENV *env;
   char tmpfile[2000], tmpfilestdout[2000], *FileNameUse, cmd[4000];
@@ -5545,8 +5564,41 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
     printf("This is a philips DWI, so ignorning the last frame, nframes = %d\n", nframes);
   }
 
-  mritype = MRI_SHORT;
-  if (LoadVolume)
+  int DoRescale = 1;
+  int RescaleNeeded = 0;
+  // Go through all files and determine whether any need to rescale
+  for (nthfile = 0; nthfile < ndcmfiles; nthfile++){
+    if(dcminfo[nthfile]->RescaleSlope != 1 || dcminfo[nthfile]->RescaleIntercept != 0){
+      RescaleNeeded = 1;
+      break;
+    }
+  }
+
+  if(RescaleNeeded){
+    // must explicitly set FS_RESCALE_DICOM=0 to turn off rescaling
+    if(getenv("FS_RESCALE_DICOM") != NULL && strcmp(getenv("FS_RESCALE_DICOM"),"0")==0){
+      printf("INFO: nontrivial rescale factors are present but will not be applied because\n");
+      printf("the FS_RESCALE_DICOM environment variable is set to 0.\n");
+      printf("If you want to apply rescaling (intercept and slope), then unset that \n");
+      printf("environment variable (or set it to non-zero) and re-run\n");
+      printf("\n");
+      DoRescale = 0;
+    }
+  }
+  else {
+    DoRescale = 0;
+    printf("INFO: rescale not needed\n");
+  }
+
+  if(DoRescale){
+    printf("INFO: applying rescale intercept and slope based on (0028,1052) (0028,1053).\n");
+    printf("  If you do not want this, then set FS_RESCALE_DICOM to 0 and rerun.\n");
+    mritype = MRI_FLOAT;
+  }
+  else 
+    mritype = MRI_SHORT;
+
+  if(LoadVolume)
     mri = MRIallocSequence(RefDCMInfo.Columns, RefDCMInfo.Rows, nslices, mritype, nframes);
   else {
     mri = MRIallocHeader(RefDCMInfo.Columns, RefDCMInfo.Rows, nslices, mritype, nframes);
@@ -5724,16 +5776,16 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
           unlink(tmpfilestdout);
         }
 
+	val = 1;
         v08 = (unsigned char *)(element->d.string);
         v16 = (unsigned short *)(element->d.string);
         for (r = 0; r < RefDCMInfo.Rows; r++) {
           for (c = 0; c < RefDCMInfo.Columns; c++) {
-            if (RefDCMInfo.BitsAllocated == 8) {
-              MRISseq_vox(mri, c, r, s, f) = *(v08++);
-            }
-            if (RefDCMInfo.BitsAllocated == 16) {
-              MRISseq_vox(mri, c, r, s, f) = *(v16++);
-            }
+            if(RefDCMInfo.BitsAllocated == 8)  val = *(v08++);
+            if(RefDCMInfo.BitsAllocated == 16) val = *(v16++);
+	    if(DoRescale)
+	      val = val*dcminfo[nthfile]->RescaleSlope + dcminfo[nthfile]->RescaleIntercept;
+	    MRIsetVoxVal(mri, c, r, s, f, val);
           }
         }
         if (IsDWI) {

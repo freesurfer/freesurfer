@@ -1157,10 +1157,12 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
 
   if ( parser->Found( "ss", &sa ) )
   {
-    QString mag_factor = "1";
+    QString mag_factor = "1", auto_trim = "0";
     if (sa.size() > 1)
       mag_factor = sa[1];
-    this->AddScript( QStringList("screencapture") << sa[0] << mag_factor );
+    if (sa.size() > 2)
+      auto_trim = sa[2];
+    this->AddScript( QStringList("screencapture") << sa[0] << mag_factor << auto_trim);
     if (bAutoQuit && !parser->Found("noquit"))
     {
       this->AddScript( QStringList("quit") );
@@ -3983,9 +3985,13 @@ void MainWindow::CommandScreenCapture( const QStringList& cmd )
   if (bOK && mag_factor < 1)
     mag_factor = 1;
 
+  bool auto_trim = false;
+  if (cmd.size() > 3 && (cmd[3] == "true" || cmd[3] == "1"))
+    auto_trim = true;
+
   if (!m_views[m_nMainView]->SaveScreenShot( cmd[1],
                                              m_settingsScreenshot.AntiAliasing,
-                                             (int)mag_factor ))
+                                             (int)mag_factor, auto_trim))
   {
     cerr << "Failed to save screen shot to " << cmd[1].toLatin1().constData() << ".\n";
   }
