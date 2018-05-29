@@ -8,7 +8,7 @@
 #include <sstream>
 
 
-namespace log
+namespace Log
 {
   // message status types
   enum Status {
@@ -68,10 +68,10 @@ namespace log
 }
 
 // macros for easy logging of standard message types
-#define warning       log::Logger(log::WARNING)
-#define error         log::Logger(log::ERROR)
-#define errExit(ret)  log::Logger(log::ERROR, ret)
-#define argError      log::Logger(log::ARGERROR, 2)
-#define debug         log::Logger(log::DEBUG)
+#define warning       Log::Logger(Log::WARNING)
+#define error         Log::Logger(Log::ERROR)
+#define errExit(ret)  Log::Logger(Log::ERROR, ret)
+#define argError      Log::Logger(Log::ARGERROR, 2)
+#define debug         Log::Logger(Log::DEBUG)
 
 #endif

@@ -6,7 +6,7 @@
 #include "log.hpp"
 
 
-namespace log
+namespace Log
 {
   Logger::Logger(Status status) : msg_status(status), exitout(false) {}
   Logger::Logger(Status status, int exitcode) : msg_status(status), retcode(exitcode), exitout(true) {}

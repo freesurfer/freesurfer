@@ -173,10 +173,10 @@ public:
         sentence_starter = "These inputs are";
       }
       errExit(1) << "invalid cast of argument '" << name << "'. " << sentence_starter << " of type '"
-                 << arguments[N].typeName() << "' and should be retrieved via " << log::dim()
-                 << "retrieve<" << fulltype << ">(\"" << name << "\")" << log::reset() << ". " 
+                 << arguments[N].typeName() << "' and should be retrieved via " << Log::dim()
+                 << "retrieve<" << fulltype << ">(\"" << name << "\")" << Log::reset() << ". " 
                  << "To change the expected type, modify the call to "
-                 << log::dim() << "addArgument()" << log::reset();
+                 << Log::dim() << "addArgument()" << Log::reset();
     }
   }
 
