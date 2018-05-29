@@ -67344,6 +67344,23 @@ int MRISimportCurvatureVector(MRI_SURFACE *mris, float *curvs)
   return (NO_ERROR);
 }
 
+int
+MRISimportValFromMRI(MRI_SURFACE *mris, MRI *mri, int frame) 
+{
+  VERTEX  *v ;
+  int     vno ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    v->val = MRIgetVoxVal(mri, vno, 0, 0, frame) ;
+  }
+  return(NO_ERROR) ;
+}
+
 int MRISimportValVector(MRI_SURFACE *mris, float *vals)
 {
   int vno;
