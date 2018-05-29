@@ -53,7 +53,10 @@ LayerPropertySurface::LayerPropertySurface ( QObject* parent ) :
   m_surface( NULL ),
   m_bShowOverlay(true),
   m_bShowAnnotation(true),
-  m_bUseSurfaceColorOn2D(false)
+  m_bUseSurfaceColorOn2D(false),
+  m_nZOrderLabel(3),
+  m_nZOrderAnnotation(2),
+  m_nZOrderOverlay(1)
 {
   m_lutCurvature = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
 
@@ -487,5 +490,32 @@ void LayerPropertySurface::SetUseSurfaceColorOn2D(bool bKeep)
   {
     m_bUseSurfaceColorOn2D = bKeep;
     emit ColorMapChanged();
+  }
+}
+
+void LayerPropertySurface::SetZOrderAnnotation(int nOrder)
+{
+  if (m_nZOrderAnnotation != nOrder)
+  {
+    m_nZOrderAnnotation = nOrder;
+    emit OverlayChanged();
+  }
+}
+
+void LayerPropertySurface::SetZOrderLabel(int nOrder)
+{
+  if (m_nZOrderLabel != nOrder)
+  {
+    m_nZOrderLabel = nOrder;
+    emit OverlayChanged();
+  }
+}
+
+void LayerPropertySurface::SetZOrderOverlay(int nOrder)
+{
+  if (m_nZOrderOverlay != nOrder)
+  {
+    m_nZOrderOverlay = nOrder;
+    emit OverlayChanged();
   }
 }

@@ -302,7 +302,7 @@ protected:
   void LoadSurfaceFile( const QString& filename,
                         const QString& fn_patch = "",
                         const QString& fn_target = "",
-                        const QStringList& sup_files = QStringList(), int layer_id = -1);
+                        const QStringList& sup_files = QStringList(), const QVariantMap& sup_options = QVariantMap());
   void LoadPVolumeFiles( const QStringList& filenames, const QString& prefix, const QString& lut );
   void LoadROIFile( const QString& fn, const QString& ref_vol, const QColor& color = Qt::yellow, double opacity = 1, double threshold = 0 );
   void LoadWayPointsFile        ( const QString& fn );
