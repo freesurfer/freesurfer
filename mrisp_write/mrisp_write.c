@@ -37,6 +37,7 @@
 #include "macros.h"
 #include "version.h"
 #include "label.h"
+#include "mri_identify.h"
 
 static char vcid[] = "$Id: mrisp_write.c,v 1.12 2016/03/22 14:47:57 fischl Exp $";
 
@@ -64,10 +65,11 @@ int
 main(int argc, char *argv[])
 {
   char         **av, *out_fname;
-  int          ac, nargs ;
+  int          ac, nargs, file_type ;
   char         *in_surf, *in_overlay;
   MRI_SURFACE  *mris;
   MRI_SP       *mrisp ;
+  MRI          *mri_overlay ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, "$Id: mrisp_write.c,v 1.12 2016/03/22 14:47:57 fischl Exp $", "$Name:  $");
@@ -99,40 +101,85 @@ main(int argc, char *argv[])
   in_overlay = argv[2] ;
   out_fname = argv[3] ;
 
-  mrisp = MRISPalloc(scale, 1) ;
   fprintf(stderr, "reading surface from %s...\n", in_surf) ;
   mris = MRISread(in_surf) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname, in_surf) ;
 
-  printf("reading overlay from %s\n", in_overlay) ;
-  if (MRISreadCurvatureFile(mris, in_overlay) != NO_ERROR)
-    ErrorExit(ERROR_NOFILE, "%s: could not read input overlay %s", Progname, in_overlay) ;
+  file_type = mri_identify(in_overlay);
+  if (file_type == MRI_MGH_FILE || file_type == NIFTI1_FILE || file_type == NII_FILE)
+  {
+    int   frame ;
+    LABEL *area ;
 
-  if (label_fname)
+    mri_overlay = MRIread(in_overlay) ;
+    if (mri_overlay == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface-encoded volume file from %s", Progname, in_overlay) ;
+    printf("processing surface-encoded volume file with %d frames\n", mri_overlay->nframes) ;
+    mrisp = MRISPalloc(scale, mri_overlay->nframes) ;
+    if (label_fname)
+    {
+      area = LabelRead(NULL, label_fname) ;
+      if (area == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not read label file from %s", label_fname) ;
+    }
+    else
+      area = NULL ;
+
+    for (frame = 0 ; frame < mri_overlay->nframes ; frame++)
+    {
+      printf("\rframe %3.3d of %3.3d", frame, mri_overlay->nframes) ;
+      MRISimportValFromMRI(mris, mri_overlay, frame);
+      MRIScopyValuesToCurvature(mris) ;
+      if (normalize)
+	MRISnormalizeCurvature(mris, NORM_MEAN);
+
+      if (label_fname)
+	LabelMaskSurfaceCurvature(area, mris);
+    
+      MRISaverageCurvatures(mris, navgs) ;
+      if (label_fname)
+	LabelMaskSurfaceCurvature(area, mris);
+
+    
+      MRIStoParameterization(mris, mrisp, scale, frame) ;
+    }
+    printf("\n") ;
+  }
+  else // process a 'curvature' file like thickness with a single frame
   {
     LABEL *area ;
-    area = LabelRead(NULL, label_fname) ;
-    if (area == NULL)
-      ErrorExit(ERROR_NOFILE, "%s: could not read label file from %s", label_fname) ;
-    MRIScopyCurvatureToValues(mris) ;  // LabelMaskSurface zeros out vals not curv
-    LabelMaskSurface(area, mris);
-    MRIScopyValuesToCurvature(mris) ;
+    mrisp = MRISPalloc(scale, 1) ;
+    mri_overlay = NULL ;
+    file_type = MRI_CURV_FILE ;
+    printf("reading overlay from %s\n", in_overlay) ;
+    if (MRISreadCurvatureFile(mris, in_overlay) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not read input overlay %s", Progname, in_overlay) ;
 
-    LabelFree(&area) ;
+    if (label_fname)
+    {
+      area = LabelRead(NULL, label_fname) ;
+      if (area == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not read label file from %s", label_fname) ;
+      LabelMaskSurfaceCurvature(area, mris);
+    }
+    
+    if (normalize)
+      MRISnormalizeCurvature(mris, NORM_MEAN);
+    
+    MRISaverageCurvatures(mris, navgs) ;
+    if (label_fname)
+    {
+      LabelMaskSurfaceCurvature(area, mris);
+      LabelFree(&area) ;
+    }
+    
+    MRIStoParameterization(mris, mrisp, scale, 0) ;
   }
-
-  if (normalize)
-    MRISnormalizeCurvature(mris, NORM_MEAN);
-
-  MRISaverageCurvatures(mris, navgs) ;
-
-  MRIStoParameterization(mris, mrisp, scale, 0) ;
-
   printf("writing output file to %s\n", out_fname) ;
 
   MRISPwrite(mrisp, out_fname) ;
-
+  
   MRISPfree(&mrisp) ;
   MRISfree(&mris) ;
   exit(0) ;
