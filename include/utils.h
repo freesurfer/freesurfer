@@ -43,20 +43,26 @@ double randomNumber(double low, double hi) ;
 int    setRandomSeed(long seed) ;
 long getRandomSeed(void);
 long getRandomCalls(void);
+
 double normAngle(double angle) ;
 float  deltaAngle(float angle1, float angle2) ;
 double calcDeltaPhi(double phi1, double phi2) ;
+
 #if 1
 double latan2(double y, double x) ;
 #else
 #define latan2(y,x)  atan2(y,x)
 #endif
+
+float fastApproxAtan2f(float y, float x);
+
 float  angleDistance(float theta1, float theta2) ;
 int    QuadEqual(double a1, double a2) ;
 void   fComplementCode(double *pdIn, double *pdOut, int iLen) ;
 #ifndef _HOME_
 char *fgetl(char *s, int n, FILE *fp) ;
 #endif
+
 #ifndef isfinite 
 #define isfinite(x) (finite(x))
 #endif

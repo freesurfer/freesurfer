@@ -32,6 +32,7 @@
         
     } // poison ROMP_SUMREDUCTION0 etc.
     
+#undef ROMP_FOR_PRAGMA
 #undef ROMP_VARIABLE
 #undef ROMP_LO
 #undef ROMP_HI

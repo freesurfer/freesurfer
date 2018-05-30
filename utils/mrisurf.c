@@ -827,30 +827,44 @@ static float getFaceOrigArea(MRIS const * const mris, int fno) {
 
 
 FaceNormCacheEntry const * getFaceNorm(MRIS const * const mris, int fno) {
-    FaceNormCacheEntry    * fNorm         = &mris->faceNormCacheEntries   [fno];
-    FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+
+    // volatile to stop the compiler from reordering the stores of the nx,ny,nz,orig with the stores of the deferred 
+    //
+    FaceNormCacheEntry    volatile * fNorm         = &mris->faceNormCacheEntries   [fno];
+    FaceNormDeferredEntry volatile * fNormDeferred = &mris->faceNormDeferredEntries[fno];
     if (fNormDeferred->deferred) {
         float nx,ny,nz,orig_area;
+	
+	// Not locked so that can be done in parallel
+	//
         computeDefectFaceNormal_calculate(mris, fno, &nx,&ny,&nz,&orig_area);
-#ifdef CHECK_DEFERED_NORMS
-        if (fNorm->deferred & 1) {      // must update
-            if (nx != fNorm->nx || ny != fNorm->ny || nz != fNorm->nz) {
-                fprintf(stderr, "%s:%d prediction of norm did not equal result\n",__FILE__, __LINE__);
-            }   
-        }
+	
+	// Just lock the update, since multiple threads would have got equally acceptable answers
+	//
+#ifdef HAVE_OMP
+	#pragma omp critical
 #endif
-        fNorm->nx = nx; fNorm->ny = ny; fNorm->nz = nz;
-        if (fNormDeferred->deferred & 2) {      // must update
+    	{
 #ifdef CHECK_DEFERED_NORMS
-            if (orig_area != fNorm->orig_area) {
-                fprintf(stderr, "%s:%d prediction of norm did not equal result\n",__FILE__, __LINE__);
+            if (fNorm->deferred & 1) {      // must update
+        	if (nx != fNorm->nx || ny != fNorm->ny || nz != fNorm->nz) {
+                    fprintf(stderr, "%s:%d prediction of norm did not equal result\n",__FILE__, __LINE__);
+        	}   
             }
 #endif
-            fNorm->orig_area = orig_area;
-        }
-        fNormDeferred->deferred = 0;
+            fNorm->nx = nx; fNorm->ny = ny; fNorm->nz = nz;
+            if (fNormDeferred->deferred & 2) {      // must update
+#ifdef CHECK_DEFERED_NORMS
+        	if (orig_area != fNorm->orig_area) {
+                    fprintf(stderr, "%s:%d prediction of norm did not equal result\n",__FILE__, __LINE__);
+        	}
+#endif
+        	fNorm->orig_area = orig_area;
+            }
+            fNormDeferred->deferred = 0;
+    	}
     }
-    return fNorm;
+    return (FaceNormCacheEntry*)fNorm;
 }
 
 static void deferSetFaceNorms(MRIS* mris) {
@@ -892,16 +906,7 @@ static void deferSetFaceNorms(MRIS* mris) {
     }
 }
 
-static void recomputeFaceNorms(MRIS* mris) {
-    int fno;
-    for (fno = 0; fno < mris->nfaces; fno++) {
-      FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
-      fNormDeferred->deferred = 3;      // invalidate their old values 
-      getFaceNorm(mris, fno);           // recompute now
-    }
-}
-
-static void undeferSetFaceNorms(MRIS* mris) {
+static void recomputeOrUndeferFaceNorms(MRIS* mris, bool isRecompute) {
     int fno;
     ROMP_PF_begin  
 #ifdef HAVE_OPENMP
@@ -909,10 +914,27 @@ static void undeferSetFaceNorms(MRIS* mris) {
 #endif
     for (fno = 0; fno < mris->nfaces; fno++) {
       ROMP_PFLB_begin
-      getFaceNorm(mris, fno);
+      FaceNormDeferredEntry * fNormDeferred = &mris->faceNormDeferredEntries[fno];
+#ifdef CHECK_DEFERED_NORMS
+      if (isRecompute) fNormDeferred->deferred = 3;
+      getFaceNorm(mris, fno);      
+#else
+      FaceNormCacheEntry * fNorm = &mris->faceNormCacheEntries[fno];
+      if (!isRecompute && !fNormDeferred->deferred) continue;
+      computeDefectFaceNormal_calculate(mris, fno, &fNorm->nx,&fNorm->ny,&fNorm->nz,&fNorm->orig_area);
+      fNormDeferred->deferred = 0;
+#endif
       ROMP_PFLB_end
     }
     ROMP_PF_end
+}
+
+static void recomputeFaceNorms(MRIS* mris) {
+    recomputeOrUndeferFaceNorms(mris, true);
+}
+
+static void undeferSetFaceNorms(MRIS* mris) {
+    recomputeOrUndeferFaceNorms(mris, false);
 }
 
 
@@ -4752,6 +4774,7 @@ static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define Sum  ROMP_PARTIALSUM(0)
     #define Sum2 ROMP_PARTIALSUM(1)
@@ -9769,6 +9792,7 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define sse_angle    ROMP_PARTIALSUM(0)
     #define sse_neg_area ROMP_PARTIALSUM(1)
@@ -10205,6 +10229,7 @@ static double mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris)
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define sse  ROMP_PARTIALSUM(0)
 
@@ -10526,6 +10551,7 @@ static int mrisOrientEllipsoid(MRI_SURFACE *mris)
     const int romp_for_line = __LINE__;
 #endif
     #include "romp_for_begin.h"
+    ROMP_for_begin
     
       #define total_area      ROMP_PARTIALSUM(0)
       #define neg_area        ROMP_PARTIALSUM(1)
@@ -10712,6 +10738,154 @@ static int closeEnough(float a, float b) {
   return 0; 
 }
 
+typedef struct MRISaverageGradients_Data {
+  float dx,dy,dz;
+} MRISaverageGradients_Data;
+
+typedef struct MRISaverageGradients_Control {    
+  int numNeighbors;
+  int firstNeighbor;
+} MRISaverageGradients_Control;
+
+static int                              MRISaverageGradients_neighbors_size;
+static int*	                        MRISaverageGradients_neighbors;
+static int  	                        MRISaverageGradients_controls_and_data_size;
+static MRISaverageGradients_Control*    MRISaverageGradients_controls;
+static MRISaverageGradients_Data*       MRISaverageGradients_datas_init;
+
+static int*     MRISaverageGradients_new2old_indexMap;
+static int*     MRISaverageGradients_old2new_indexMap;
+
+
+// optimizing the program
+//  There are two things that can be done to optimize the code
+//  (a) put those that have the same numNeighbors together, to avoid the branch mispredicts
+//  (b) keep the locality of reference by reordering only nearby indices
+// both are important...
+
+static bool MRISaverageGradients_index_le(int lhs, int rhs) {
+ 
+    MRISaverageGradients_Control* controls = MRISaverageGradients_controls;
+    
+    // L2 caches are 256KB = 64KB fp numbers = about 20K vertices
+    // so, for locality of reference purposes, we keep about 16768 = 2^14 together
+    //
+    int const lhsLocality = lhs>>14;
+    int const rhsLocality = rhs>>14;
+    
+    if (       lhsLocality != rhsLocality)
+    	return lhsLocality <= rhsLocality;
+
+    if (       controls[lhs].numNeighbors != controls[rhs].numNeighbors)
+    	return controls[lhs].numNeighbors <= controls[rhs].numNeighbors;
+
+    return lhs <= rhs;
+}
+
+#define SORT_NAME           sort_MRISaverageGradients_index
+#define SORT_NAME_partition sort_MRISaverageGradients_index_partition
+#define SORT_NAME_isSorted  sort_MRISaverageGradients_index_isSorted
+#define SORT_NAME_small     sort_MRISaverageGradients_index_small
+   
+#define SORT_ELEMENT    int
+#define SORT_LE         MRISaverageGradients_index_le
+#include "sort_definition.h"
+
+static void MRISaverageGradients_optimize() {
+  typedef MRISaverageGradients_Data    Data;
+  typedef MRISaverageGradients_Control Control;
+
+  static bool once, optimize;
+  if (!once) { once = true;
+    optimize = !getenv("FREESURFER_MRISaverageGradients_optimize_suppress");
+    if (!optimize) {
+      fprintf(stdout, "FREESURFER_MRISaverageGradients_optimize_suppress so not optimizing\n");
+    }
+  }
+  
+  if (!optimize) {
+    free(MRISaverageGradients_new2old_indexMap);
+    free(MRISaverageGradients_old2new_indexMap);
+    return;
+  }
+  
+  int                                 const controls_and_data_size  = MRISaverageGradients_controls_and_data_size;
+  const MRISaverageGradients_Control* const controls                = MRISaverageGradients_controls;
+  const MRISaverageGradients_Data*    const datas_init              = MRISaverageGradients_datas_init;
+  const int*                          const neighbors               = MRISaverageGradients_neighbors;
+  int                                 const neighbors_size          = MRISaverageGradients_neighbors_size;
+
+  int* new2old_indexMap = MRISaverageGradients_new2old_indexMap;
+  int* old2new_indexMap = MRISaverageGradients_old2new_indexMap;
+
+  // sort the old indices to get the order to process the old indices in
+  new2old_indexMap = (int*)realloc(new2old_indexMap, controls_and_data_size*sizeof(int));
+  int ni;
+  for (ni = 0; ni < controls_and_data_size; ni++) {
+    new2old_indexMap[ni] = ni;
+  }
+  
+  sort_MRISaverageGradients_index(new2old_indexMap, controls_and_data_size, true);
+
+  // compute the inverse
+  old2new_indexMap = (int*)realloc(old2new_indexMap, controls_and_data_size*sizeof(int));
+  for (ni = 0; ni < controls_and_data_size; ni++) {
+    int oi = new2old_indexMap[ni];
+    old2new_indexMap[oi] = ni;
+  }
+  
+  // permute the program
+  int*	   const new_neighbors  = (int    *)malloc(neighbors_size         * sizeof(int));
+  Data*	   const new_datas_init = (Data   *)malloc(controls_and_data_size * sizeof(Data));
+  Control* const new_controls   = (Control*)malloc(controls_and_data_size * sizeof(Control));
+  int            new_neighborsSize = 0;
+  for (ni = 0; ni < controls_and_data_size; ni++) {
+    int const old_index         = new2old_indexMap[ni];
+    int const old_firstNeighbor = controls[old_index].firstNeighbor;
+    int const numNeighbors      = controls[old_index].numNeighbors;
+    new_controls[ni].numNeighbors  = numNeighbors;
+    new_controls[ni].firstNeighbor = new_neighborsSize;
+    int j;
+    for (j = 0; j < numNeighbors; j++) {
+      new_neighbors[new_neighborsSize++] = old2new_indexMap[neighbors[old_firstNeighbor + j]];	
+    }
+    new_datas_init[ni] = datas_init[old_index];
+  }
+    
+  free(MRISaverageGradients_datas_init); MRISaverageGradients_datas_init = new_datas_init;
+  free(MRISaverageGradients_controls);   MRISaverageGradients_controls   = new_controls;
+  free(MRISaverageGradients_neighbors);  MRISaverageGradients_neighbors  = new_neighbors;
+
+  MRISaverageGradients_new2old_indexMap = new2old_indexMap;
+  MRISaverageGradients_old2new_indexMap = old2new_indexMap;
+}
+
+
+static void MRISaverageGradients_write(
+  const char*                           filename,
+  int                                   num_avgs,
+  int                                   neighbors_size,
+  const int*                            neighbors,
+  int                                   index_to_vno_size,
+  const MRISaverageGradients_Control*   controls, 
+  const MRISaverageGradients_Data*      datas_inp) 
+{
+  fprintf(stdout, "%s:%d writing %s\n",__FILE__, __LINE__, filename);
+  int i;
+  FILE* f = fopen(filename, "w");
+  fprintf(f, "num_avgs:%d\n", num_avgs);
+  fprintf(f, "neighbors_size:%d\n", neighbors_size);
+  for (i = 0; i < neighbors_size; i++) fprintf(f, "  %5d %5d\n", i, neighbors[i]);
+  fprintf(f, "controls and data size:%d\n", index_to_vno_size);
+  for (i = 0; i < index_to_vno_size; i++) {
+    fprintf(f, "  %5d %5d %5d %g %g %g\n", 
+	          i, 
+		  controls[i].numNeighbors, controls[i].firstNeighbor, 
+		  datas_inp[i].dx, datas_inp[i].dy, datas_inp[i].dz);
+  }
+  fclose(f);
+  fprintf(stdout, "%s:%d finished writing %s\n",__FILE__, __LINE__, filename);
+}
 
 int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
 {
@@ -10789,21 +10963,21 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
     static const int doNew = 1;
     static const int doOld = 0;
     
+    if (doOld && doNew && num_avgs > 10) {
+        fprintf(stdout, "%s:%d reducing num_avgs:%d to 10\n", __FILE__, __LINE__, num_avgs);
+        num_avgs = 10;
+    }
+     
     // This is the new algorithm
     int *vno_to_index = NULL;
     int *index_to_vno = NULL;
     int  index_to_vno_size = 0;
     
-    typedef struct Data {
-      float dx,dy,dz;
-    } Data;
+    typedef MRISaverageGradients_Data Data;
     Data *datas_inp = NULL;
     Data *datas_out = NULL;
 
-    typedef struct Control {    
-      int numNeighbors;
-      int firstNeighbor;
-    } Control;
+    typedef MRISaverageGradients_Control Control;
     Control *controls = NULL;
 
     int  neighbors_capacity = 0;
@@ -10889,31 +11063,101 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
         }      
       }
       
+      // Print out for later investigation
+      //
+      if (0) {
+        static int once;
+	if (!once++) {
+          MRISaverageGradients_write("tesselation_averaging_data.txt",
+            num_avgs, neighbors_size, neighbors, index_to_vno_size, controls, datas_inp);
+	}
+      }
+
+      // Optimize enough iterations to payback the cost
+      //
+      freeAndNULL(MRISaverageGradients_new2old_indexMap);
+      freeAndNULL(MRISaverageGradients_old2new_indexMap);
+
+      if (num_avgs > 150) {
+
+        MRISaverageGradients_neighbors_size         = neighbors_size;
+        MRISaverageGradients_neighbors              = neighbors;
+        MRISaverageGradients_controls_and_data_size = index_to_vno_size;
+        MRISaverageGradients_controls               = controls;
+        MRISaverageGradients_datas_init             = datas_inp;
+
+        MRISaverageGradients_optimize();
+
+        neighbors_size    = MRISaverageGradients_neighbors_size;
+        neighbors         = MRISaverageGradients_neighbors;
+        index_to_vno_size = MRISaverageGradients_controls_and_data_size;
+        controls          = MRISaverageGradients_controls;
+        datas_inp         = MRISaverageGradients_datas_init;
+      }
+      
+      if (0) {
+        static int once;
+	if (!once++) {
+          MRISaverageGradients_write("tesselation_averaging_data.optimized.txt", 
+            num_avgs, neighbors_size, neighbors, index_to_vno_size, controls, datas_inp);
+	}
+      }
+
+      // Choose chunk size assuming should evenly distribute the number of neighbors to process
+      //
+      typedef struct Chunk { int indexLo; } Chunk;
+#define chunksCapacity 17  // 4 * omp_get_max_threads() + 1 // must be at least 3
+      Chunk chunks[chunksCapacity];
+      size_t chunksSize = 0;
+      { int const neighborsPerChunk = neighbors_size/(chunksCapacity-1);
+        int chunkSumNumNeighbors = 0;
+        chunks[chunksSize++].indexLo = 0;
+        int index;
+        for (index = 0; index < index_to_vno_size; index++ ) {
+          Control *c = controls  + index;
+          chunkSumNumNeighbors += c->numNeighbors;
+          if (chunkSumNumNeighbors < neighborsPerChunk) continue;
+          chunks[chunksSize++].indexLo = index;
+          chunkSumNumNeighbors = 0;
+          if (chunksSize == chunksCapacity-1) break;
+        }
+        chunks[chunksSize++].indexLo = index_to_vno_size;
+      }
+#undef chunksCapacity
+
       // Do all the iterations
       for (i = 0 ; i < num_avgs ; i++) {
-        int index;
-      
+        
+        int chunksIndex;
         ROMP_PF_begin
 #ifdef HAVE_OPENMP
         #pragma omp parallel for if_ROMP(assume_reproducible)
 #endif
-        for (index = 0; index < index_to_vno_size ; index++ ) {
-	  ROMP_PFLB_begin
-	  
-          Data *d = datas_inp + index;
-          Control *c = controls  + index;
-          float dx = d->dx, dy = d->dy, dz = d->dz;
-          int *nearby = neighbors + c->firstNeighbor;
-          int n;
-          for (n = 0; n < c->numNeighbors; n++) {
-            int neighborIndex = nearby[n];
-            Data *neighborData = datas_inp + neighborIndex;
-            dx += neighborData->dx; dy += neighborData->dy; dz += neighborData->dz;
-          }
-          d = datas_out + index;
-          float inv_num = 1.0f/(c->numNeighbors + 1);
-          d->dx = dx*inv_num ; d->dy = dy*inv_num ; d->dz = dz*inv_num; 
-	  
+        for (chunksIndex = 0; chunksIndex < chunksSize-1 ; chunksIndex++ ) {
+          int
+            indexLo = chunks[chunksIndex  ].indexLo, 
+            indexHi = chunks[chunksIndex+1].indexLo;
+          int index;
+          for (index = indexLo; index < indexHi; index++ ) {
+	    ROMP_PFLB_begin
+
+            Data *d = datas_inp + index;
+            Control *c = controls  + index;
+            float dx = d->dx, dy = d->dy, dz = d->dz;
+            
+            int *nearby = neighbors + c->firstNeighbor;
+            int n;
+            for (n = 0; n < c->numNeighbors; n++) {
+              int neighborIndex = nearby[n];
+              Data *neighborData = datas_inp + neighborIndex;
+              dx += neighborData->dx; dy += neighborData->dy; dz += neighborData->dz;
+            }
+
+            d = datas_out + index;
+            float inv_num = 1.0f/(c->numNeighbors + 1);
+            
+            d->dx = dx*inv_num ; d->dy = dy*inv_num ; d->dz = dz*inv_num; 
+          }	  
 	  ROMP_PFLB_end
         }
 	ROMP_PF_end
@@ -10922,7 +11166,7 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
         Data* tmp = datas_inp ; datas_inp = datas_out ; datas_out = tmp;
       }
     }
-
+    
     // Only perform the old algorithm when needed
     if (doOld) {
     
@@ -10991,24 +11235,26 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
 
     }  // if (doOld) 
     
-    // Compare the new algorithm and old algorithm answers
     if (doOld && doNew) {
+      fprintf(stdout, "%s:%d comparing old and new algorithms\n", __FILE__, __LINE__);
       int errors = 0;
       for (vno = 0 ; vno < mris->nvertices ; vno++) {
         VERTEX *v = &mris->vertices[vno];
-        int index = vno_to_index[vno];
-        if (index == -1) {
+        int old_index = vno_to_index[vno];
+        if (old_index == -1) {
           // check has not changed - but this is not currently possible
           // but could be enabled by making all these nodes go into the high end of the initial datas_inp vector
         } else {
-          Data *d = datas_inp + index;
+          int new_index = MRISaverageGradients_old2new_indexMap ? MRISaverageGradients_old2new_indexMap[old_index] : old_index;
+          Data *d = datas_inp + new_index;
           if (!closeEnough(d->dx,v->dx) || !closeEnough(d->dy,v->dy) || !closeEnough(d->dz,v->dz)) {
             errors++;
             if (errors < 10) {
-              fprintf(stderr,"%s:%d vno:%d d->dx:%g v->dx:%g d->dy:%g v->dy:%g d->dz:%g v->dz:%g\n",__FILE__,__LINE__,
+              fprintf(stdout,"%s:%d vno:%d d->dx:%g v->dx:%g d->dy:%g v->dy:%g d->dz:%g v->dz:%g - datas_inp\n",__FILE__,__LINE__,
                       vno, d->dx, v->dx, d->dy, v->dy, d->dz, v->dz);
             }
           }
+          
         }
       }
       fprintf(stderr,"%s:%d errors:%d\n",__FILE__,__LINE__,errors);
@@ -11018,19 +11264,31 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
     // Put the results where they belong
     // Note: this code does not set tdx, etc. - I believe they are temporaries   
     if (doNew) {
-      int index;
-      for (index = 0 ; index < index_to_vno_size; index++) {
-        VERTEX *v = &mris->vertices[index_to_vno[index]];
-        Data   *d = datas_inp + index;
+      int errors = 0;
+      int new_index;
+      for (new_index = 0 ; new_index < index_to_vno_size; new_index++) {
+
+        int old_index = MRISaverageGradients_new2old_indexMap ? MRISaverageGradients_new2old_indexMap[new_index] : new_index;
+
+        int vno   = index_to_vno[old_index];
+        VERTEX *v = &mris->vertices[vno];
+        Data   *d = datas_inp + new_index;
+        
         v->dx = d->dx;
         v->dy = d->dy;
         v->dz = d->dz;
       }
-    
-      free(neighbors); 
-      free(controls);
+
+      if (errors > 0) {
+        fprintf(stderr,"%s:%d errors:%d\n",__FILE__,__LINE__,errors);
+        exit (104);
+      }
+      
       free(datas_out); 
       free(datas_inp);
+      free(neighbors); 
+      free(controls);
+      
       free(index_to_vno);
       free(vno_to_index);
     }
@@ -11777,6 +12035,7 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define reduction_total_area ROMP_PARTIALSUM(0)
 
@@ -11880,7 +12139,7 @@ static int MRIScomputeTriangleProperties_new(MRI_SURFACE *mris, bool old_done)
       VERTEX_EDGE(v_b[tid], vo, vb);
       float cross = VectorTripleProduct(v_b[tid], v_a[tid], v_n[tid]);
       float dot   = V3_DOT(v_a[tid], v_b[tid]);
-      float angle = atan2f(cross, dot);
+      float angle = fastApproxAtan2f(cross, dot);
       SET_OR_CHECK(face->angle[ano], angle);
     }
 
@@ -16806,6 +17065,7 @@ static double mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define sse ROMP_PARTIALSUM(0)
 
@@ -23410,6 +23670,7 @@ static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *par
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define sse_dist ROMP_PARTIALSUM(0)
     
@@ -29403,6 +29664,7 @@ static double mrisComputeCorrelationErrorTraceable(MRI_SURFACE *mris, INTEGRATIO
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define sse  ROMP_PARTIALSUM(0)
     

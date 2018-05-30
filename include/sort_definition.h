@@ -178,6 +178,10 @@ static bool SORT_NAME_isSorted(SORT_ELEMENT* elts, size_t size) {
     return true;
 }
 
+#undef SORT_NAME
+#undef SORT_NAME_partition
+#undef SORT_NAME_isSorted
+#undef SORT_NAME_small
 
 #undef SORT_ELEMENT
 #undef SORT_NAME
