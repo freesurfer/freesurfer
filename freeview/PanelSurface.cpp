@@ -98,7 +98,18 @@ PanelSurface::PanelSurface(QWidget *parent) :
                  << ui->lineEditLabelThreshold
                  << ui->lineEditLabelHeatscaleMin
                  << ui->lineEditLabelHeatscaleMax
-                 << ui->labelHeatscaleRange;
+                 << ui->labelHeatscaleRange
+                 << ui->labelLabelZOrderLabel
+                 << ui->spinBoxZOrderLabel;
+
+  m_widgetsOverlay << ui->pushButtonConfigureOverlay
+                   << ui->pushButtonRemoveOverlay
+                   << ui->labelLabelZOrderOverlay
+                   << ui->spinBoxZOrderOverlay;
+
+  m_widgetsAnnotation << ui->checkBoxAnnotationOutline
+                      << ui->labelLabelZOrderAnnotation
+                      << ui->spinBoxZOrderAnnotation;
 
   m_widgetsSpline << ui->colorpickerSplineColor
                   << ui->labelSplineColor
@@ -193,6 +204,9 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
   connect( ui->checkBoxHideIn3DView, SIGNAL(toggled(bool)), layer, SLOT(SetHideIn3D(bool)));
   connect( ui->colorpickerSplineColor, SIGNAL(colorChanged(QColor)), this, SLOT(OnColorPickerSplineColor(QColor)));
   connect(ui->checkBoxSplineProjection, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxSplineProjection(bool)));
+  connect(ui->spinBoxZOrderAnnotation, SIGNAL(valueChanged(int)), SLOT(OnSpinBoxZOrder(int)));
+  connect(ui->spinBoxZOrderLabel, SIGNAL(valueChanged(int)), SLOT(OnSpinBoxZOrder(int)));
+  connect(ui->spinBoxZOrderOverlay, SIGNAL(valueChanged(int)), SLOT(OnSpinBoxZOrder(int)));
 
   for (int i = 0; i < layer->GetNumberOfSplines(); i++)
   {
@@ -384,8 +398,7 @@ void PanelSurface::DoUpdateWidgets()
   ui->comboBoxOverlay->addItem( "Load generic..." );
   ui->comboBoxOverlay->addItem( "Load correlation..." );
   ui->comboBoxOverlay->setCurrentIndex( layer ? 1 + layer->GetActiveOverlayIndex() : 0 );
-  ui->pushButtonConfigureOverlay->setVisible( layer && layer->GetActiveOverlayIndex() >= 0 );
-  ui->pushButtonRemoveOverlay->setVisible(ui->pushButtonConfigureOverlay->isVisible());
+  ShowWidgets(m_widgetsOverlay, layer && layer->GetActiveOverlayIndex() >= 0);
   if ( ui->comboBoxOverlay->currentIndex() == 0 )
   {
     this->m_wndConfigureOverlay->hide();
@@ -468,6 +481,7 @@ void PanelSurface::DoUpdateWidgets()
   ShowWidgets( m_widgetsMesh,     layer && layer->GetProperty()->GetSurfaceRenderMode() != LayerPropertySurface::SM_Surface );
   ShowWidgets( m_widgetsLabel,    layer && layer->GetActiveLabelIndex() >= 0 );
   ShowWidgets( m_widgetsSpline,   layer && layer->GetActiveSpline());
+  ShowWidgets( m_widgetsAnnotation, layer && layer->GetActiveAnnotation());
   if (layer && layer->GetActiveLabel())
   {
     SurfaceLabel* label = layer->GetActiveLabel();
@@ -484,7 +498,6 @@ void PanelSurface::DoUpdateWidgets()
     ui->lineEditLabelHeatscaleMax->setVisible(label->GetColorCode() == SurfaceLabel::Heatscale);
     ui->colorpickerLabelColor->setVisible(label->GetColorCode() == SurfaceLabel::SolidColor);
   }
-  ui->checkBoxAnnotationOutline->setVisible(layer && layer->GetActiveAnnotation());
   ui->colorpickerSurfaceColor->setEnabled( layer ); // && nCurvatureMap != LayerPropertySurface::CM_Threshold );
 
   bool isInflated = (layer && layer->GetFileName().contains("inflated"));
@@ -492,6 +505,13 @@ void PanelSurface::DoUpdateWidgets()
   ui->lineEditMappingSurface->setVisible(isInflated);
   if (isInflated)
     ui->lineEditMappingSurface->setText(layer->GetMappingSurfaceName());
+
+  if (layer)
+  {
+    ui->spinBoxZOrderAnnotation->setValue(layer->GetProperty()->GetZOrderAnnotation());
+    ui->spinBoxZOrderLabel->setValue(layer->GetProperty()->GetZOrderLabel());
+    ui->spinBoxZOrderOverlay->setValue(layer->GetProperty()->GetZOrderOverlay());
+  }
 
   UpdateSplineWidgets();
 
@@ -1129,4 +1149,18 @@ void PanelSurface::OnLabelResample()
   }
   if ( surf && surf->GetActiveLabel())
     surf->GetActiveLabel()->Resample(mri);
+}
+
+void PanelSurface::OnSpinBoxZOrder(int nOrder)
+{
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
+  {
+    if (sender() == ui->spinBoxZOrderAnnotation)
+      layer->GetProperty()->SetZOrderAnnotation(nOrder);
+    else if (sender() == ui->spinBoxZOrderLabel)
+      layer->GetProperty()->SetZOrderLabel(nOrder);
+    else if (sender() == ui->spinBoxZOrderOverlay)
+      layer->GetProperty()->SetZOrderOverlay(nOrder);
+  }
 }

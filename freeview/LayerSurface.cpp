@@ -1414,13 +1414,25 @@ void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached)
         polydata->GetPointData()->AddArray( array );
         polydataWireframe->GetPointData()->AddArray( array );
       }
+
+      QMultiMap<int, QString> zorders;
+      zorders.insert(GetProperty()->GetZOrderAnnotation(), "annot");
+      zorders.insert(GetProperty()->GetZOrderLabel(), "label");
+      zorders.insert(GetProperty()->GetZOrderOverlay(), "overlay");
+      bool bLabelOnTop = (zorders.values(zorders.keys().last()).last() == "label");
+
       unsigned char* data = new unsigned char[ nCount*4 ];
-      if (pre_cached)
+      if (pre_cached && bLabelOnTop)
+      {
         memcpy(data, m_nColorDataCache, nCount*4);
+        MapLabels( data, nCount );
+      }
       else
       {
         if (polydata->GetPointData()->GetScalars("Curvature") && m_nActiveRGBMap < 0)
+        {
           GetProperty()->GetCurvatureLUT()->MapScalarsThroughTable( polydata->GetPointData()->GetScalars("Curvature"), data, VTK_RGBA );
+        }
         else
         {
           if (m_nActiveRGBMap < 0)
@@ -1449,14 +1461,32 @@ void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached)
             }
           }
         }
-        if (GetProperty()->GetShowOverlay() && m_nActiveOverlay >= 0)
-          GetActiveOverlay()->MapOverlay( data );
-        if (GetProperty()->GetShowAnnotation() && m_nActiveAnnotation >= 0)
-          GetActiveAnnotation()->MapAnnotationColor(data);
-
-        memcpy(m_nColorDataCache, data, nCount*4);
+        QList<int> zkeys = zorders.keys();
+        for (int i = 0; i < zkeys.size(); i++)
+        {
+          QStringList values = zorders.values(zkeys[i]);
+          for (int j = 0; j < values.size(); j++)
+          {
+            QString render = values[j];
+            if ( render == "overlay")
+            {
+              if (GetProperty()->GetShowOverlay() && m_nActiveOverlay >= 0)
+                GetActiveOverlay()->MapOverlay( data );
+            }
+            else if (render == "annot")
+            {
+              if (GetProperty()->GetShowAnnotation() && m_nActiveAnnotation >= 0)
+                GetActiveAnnotation()->MapAnnotationColor(data);
+            }
+            else if (render == "label")
+            {
+              if (bLabelOnTop)
+                memcpy(m_nColorDataCache, data, nCount*4);
+              MapLabels( data, nCount );
+            }
+          }
+        }
       }
-      MapLabels( data, nCount );
       for ( int i = 0; i < nCount; i++ )
       {
         array->SetTupleValue( i, data + i*4 );

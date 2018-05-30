@@ -2933,7 +2933,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QString fn_target = "";
   QStringList sup_files;
   QStringList valid_overlay_options;
-  int layer_id = -1;
+  QVariantMap sup_options;
   valid_overlay_options << "overlay_reg" << "overlay_method" << "overlay_threshold" << "overlay_color"
                         << "overlay_rh" << "overlay_opacity" << "overlay_frame" << "overlay_smooth";
   for (int nOverlay = 0; nOverlay < overlay_list.size(); nOverlay++)
@@ -2997,7 +2997,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           bool ok;
           subArgu.toInt(&ok);
           if (ok)
-            layer_id = subArgu.toInt();
+            sup_options["ID"] = subArgu.toInt();
         }
         else if ( subOption == "edgecolor" || subOption == "edge_color")
         {
@@ -3151,6 +3151,18 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
             }
           }
         }
+        else if (subOption == "annot_zorder" || subOption == "annotation_zorder" )
+        {
+          sup_options["ZOrderAnnotation"] = subArgu;
+        }
+        else if (subOption == "label_zorder")
+        {
+          sup_options["ZOrderLabel"] = subArgu;
+        }
+        else if (subOption == "overlay_zorder" )
+        {
+          sup_options["ZOrderOverlay"] = subArgu;
+        }
         else if ( subOption == "vector" )
         {
           // add script to load surface vector files
@@ -3221,7 +3233,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
       sup_files << "white" << "inflated" << "pial" << "orig";
     }
   }
-  LoadSurfaceFile( surface_fn, fn_patch, fn_target, sup_files, layer_id );
+  LoadSurfaceFile( surface_fn, fn_patch, fn_target, sup_files, sup_options );
 }
 
 void MainWindow::CommandSetSurfaceLabelOutline(const QStringList &cmd)
@@ -3986,7 +3998,7 @@ void MainWindow::CommandScreenCapture( const QStringList& cmd )
     mag_factor = 1;
 
   bool auto_trim = false;
-  if (cmd.size() > 3 && (cmd[3] == "true" || cmd[3] == "1"))
+  if (cmd.size() > 3 && (cmd[3] == "autotrim" || cmd[3] == "true" || cmd[3] == "1"))
     auto_trim = true;
 
   if (!m_views[m_nMainView]->SaveScreenShot( cmd[1],
@@ -5434,7 +5446,7 @@ void MainWindow::OnLoadSurface()
 }
 
 void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_patch, const QString& fn_target,
-                                  const QStringList& sup_files_in, int layer_id)
+                                  const QStringList& sup_files_in, const QVariantMap& sup_options)
 {
   QFileInfo fi( filename );
   m_strLastDir = fi.absolutePath();
@@ -5464,8 +5476,16 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   layer->SetPatchFileName( fn_patch );
   layer->SetTargetFileName( fn_target );
   layer->SetLoadSupSurfaces(sup_files);
-  if (layer_id >= 0)
-    layer->SetID(layer_id);
+  if (sup_options.contains("ID"))
+    layer->SetID(sup_options.value("ID").toInt());
+  layer->GetProperty()->blockSignals(true);
+  if (sup_options.contains("ZOrderAnnotation"))
+    layer->GetProperty()->SetZOrderAnnotation(sup_options["ZOrderAnnotation"].toInt());
+  if (sup_options.contains("ZOrderLabel"))
+    layer->GetProperty()->SetZOrderLabel(sup_options["ZOrderLabel"].toInt());
+  if (sup_options.contains("ZOrderOverlay"))
+    layer->GetProperty()->SetZOrderOverlay(sup_options["ZOrderOverlay"].toInt());
+  layer->GetProperty()->blockSignals(false);
 
   m_threadIOWorker->LoadSurface( layer );
   m_statusBar->StartTimer();
