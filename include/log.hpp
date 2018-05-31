@@ -26,7 +26,7 @@ namespace Log
   public:
     Logger(Status status);
     Logger(Status status, int exitcode);
-    ~Logger() noexcept(false);
+    ~Logger();
 
     template<typename T>
     Logger& operator << (const T& t) {
