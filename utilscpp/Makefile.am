@@ -2,7 +2,7 @@
 # Makefile.am for libutilscpp.a
 #
 
-AM_CPPFLAGS=-std=c++11 $(X_CFLAGS) \
+AM_CPPFLAGS=-std=c++0x $(X_CFLAGS) \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom
 

@@ -57,13 +57,13 @@ private:
   class Any {
   public:
     // constructor
-    Any() : content(0) {}
+    Any() : exists(false), content(0) {}
     // destructor
     ~Any() { delete content; }
     // inward conversions
-    Any(const Any& other) : content(other.content ? other.content->clone() : 0) {}
+    Any(const Any& other) : exists(false), content(other.content ? other.content->clone() : 0) {}
     template <typename ValueType>
-    Any(const ValueType& other) : content(new Holder<ValueType>(other)) {}
+    Any(const ValueType& other) : exists(false), content(new Holder<ValueType>(other)) {}
     Any& swap(Any& other) {
       std::swap(content, other.content);
       return *this;
@@ -92,7 +92,7 @@ private:
       if (!toPtr<ValueType>()) throw std::bad_cast();
       return *toPtr<ValueType>();
     }
-    bool exists = false;
+    bool exists;
 
   private:
     // inner placeholder interface

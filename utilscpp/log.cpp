@@ -12,7 +12,7 @@ namespace Log
   Logger::Logger(Status status, int exitcode) : msg_status(status), retcode(exitcode), exitout(true) {}
 
   // destructor calls the print routine
-  Logger::~Logger() noexcept(false)
+  Logger::~Logger()
   {
     log(ss.str());
     if (exitout) exit(retcode);
@@ -30,7 +30,8 @@ namespace Log
   }
 
   /// checks to make sure the output is a tty that accepts colors
-  static const bool term_allows_color = [](){
+  static bool term_allows_color()
+  {
     if (!isatty(fileno(stderr))) return false;
     if (const char* term = getenv("TERM")) {
       return 0 == strcmp(term, "cygwin")
@@ -45,25 +46,25 @@ namespace Log
           || 0 == strcmp(term, "xterm-color");
     }
     else return false;
-  }();
+  }
 
   // colors
-  const char* black()      { return term_allows_color ? "\e[30m" : ""; }
-  const char* red()        { return term_allows_color ? "\e[31m" : ""; }
-  const char* green()      { return term_allows_color ? "\e[32m" : ""; }
-  const char* yellow()     { return term_allows_color ? "\e[33m" : ""; }
-  const char* blue()       { return term_allows_color ? "\e[34m" : ""; }
-  const char* purple()     { return term_allows_color ? "\e[35m" : ""; }
-  const char* cyan()       { return term_allows_color ? "\e[36m" : ""; }
-  const char* light_gray() { return term_allows_color ? "\e[37m" : ""; }
-  const char* white()      { return term_allows_color ? "\e[37m" : ""; }
-  const char* light_red()  { return term_allows_color ? "\e[91m" : ""; }
-  const char* dim()        { return term_allows_color ? "\e[2m"  : ""; }
+  const char* black()      { return term_allows_color() ? "\e[30m" : ""; }
+  const char* red()        { return term_allows_color() ? "\e[31m" : ""; }
+  const char* green()      { return term_allows_color() ? "\e[32m" : ""; }
+  const char* yellow()     { return term_allows_color() ? "\e[33m" : ""; }
+  const char* blue()       { return term_allows_color() ? "\e[34m" : ""; }
+  const char* purple()     { return term_allows_color() ? "\e[35m" : ""; }
+  const char* cyan()       { return term_allows_color() ? "\e[36m" : ""; }
+  const char* light_gray() { return term_allows_color() ? "\e[37m" : ""; }
+  const char* white()      { return term_allows_color() ? "\e[37m" : ""; }
+  const char* light_red()  { return term_allows_color() ? "\e[91m" : ""; }
+  const char* dim()        { return term_allows_color() ? "\e[2m"  : ""; }
 
   // formating
-  const char* bold()       { return term_allows_color ? "\e[1m" : ""; }
-  const char* underline()  { return term_allows_color ? "\e[4m" : ""; }
+  const char* bold()       { return term_allows_color() ? "\e[1m" : ""; }
+  const char* underline()  { return term_allows_color() ? "\e[4m" : ""; }
 
   // reset
-  const char* reset()      { return term_allows_color ? "\e[0m" : ""; }
+  const char* reset()      { return term_allows_color() ? "\e[0m" : ""; }
 }
