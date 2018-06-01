@@ -6725,6 +6725,19 @@ int dcmGetDWIParamsPhilips(DCM_OBJECT *dcm, double *pbval, double *pxbvec, doubl
 
   if (Gdiag_no > 0) printf("Entering dcmGetDWIParamsPhilips()\n");
 
+  // since it's difficult to check whether Philip's DWI info exists, this function should
+  // return 0 after a read failure instead of returning an error (assuming that the DWI
+  // data doesn't exist). However, if the user has specified 'FS_LOAD_DWI', we should assume
+  // that DWI data definitely exists, and a read failure should throw an error
+  char *pc;
+  int forceDWI = 1;
+  pc = getenv("FS_LOAD_DWI");
+  if (pc == NULL) {
+    forceDWI = 0;
+  } else if (strcmp(pc, "0") == 0) {
+    forceDWI = 0;
+  }
+
   *pbval = 0;
   *pxbvec = 0;
   *pybvec = 0;
@@ -6737,7 +6750,11 @@ int dcmGetDWIParamsPhilips(DCM_OBJECT *dcm, double *pbval, double *pxbvec, doubl
   cond = DCM_GetElement(&dcm, tag, e);
   if (cond != DCM_NORMAL) {
     free(e);
-    return (7);
+    if (forceDWI) {
+      return(7);
+    } else {
+      return(0);
+    }
   }
   AllocElementData(e);
   cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
