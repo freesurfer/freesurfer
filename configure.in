@@ -4272,8 +4272,6 @@ AC_CONFIG_FILES([
 	mrisp_paint/Makefile
 	mrisp_write/Makefile
 	netcdf_3_6_0_p1/Makefile
-	nmovie/Makefile
-	nmovie_qt/Makefile
 	oct_register_mosaic/Makefile
 	oct_train/Makefile
 	opencl_algorithms/Makefile
