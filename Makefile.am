@@ -344,7 +344,6 @@ STATSDIRS=\
 	stat_normalize
 
 MISCDIRS=\
-	argparsetester \
 	histo_compute_joint_density \
 	histo_register_block \
 	regdat2xfm \
