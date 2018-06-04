@@ -184,7 +184,7 @@ void Layer::SetSlicePosition( double* slicePos )
   this->blockSignals( false );;
 }
 
-void Layer::SetSlicePosition( int nPlane, double slicePos )
+void Layer::SetSlicePosition( int nPlane, double slicePos)
 {
   if ( fabs( slicePos - m_dSlicePosition[ nPlane ] ) > CLOSE_DISTANCE )
   {

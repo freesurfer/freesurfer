@@ -435,6 +435,7 @@ protected slots:
   void UpdateActorPositions();
   void UpdateROIPosition(double dx, double dy, double dz);
   void UpdateVectorActor2D();
+  void OnSlicePositionChanged3D();
 
 protected:
   void InitializeData();

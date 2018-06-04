@@ -149,7 +149,7 @@ public:
   double* GetSlicePosition();
   void GetSlicePosition( double* slicePos );
   void SetSlicePosition( double* slicePos );
-  void SetSlicePosition( int nPlane, double slicePos );
+  void SetSlicePosition( int nPlane, double slicePos);
 
   virtual void OnSlicePositionChanged( int nPlane ) = 0;
 

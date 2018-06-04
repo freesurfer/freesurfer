@@ -950,7 +950,10 @@ void LayerSurface::OnSlicePositionChanged( int nPlane )
   {
     m_bVector2DPendingUpdate = true;
   }
+}
 
+void LayerSurface::OnSlicePositionChanged3D()
+{
   if (!m_splines.isEmpty() && MainWindow::GetMainWindow()->GetSplinePicking())
   {
     int nVertex = this->GetVertexIndexAtTarget(m_dSlicePosition, NULL);
@@ -1383,7 +1386,9 @@ void LayerSurface::UpdateCorrelationOverlayAtVertex( int nVertex )
 
 void LayerSurface::UpdateCorrelationOverlay()
 {
-  int nVertex = GetVertexIndexAtTarget( GetSlicePosition(), NULL );
+  int nVertex = GetCurrentVertex();
+  if (!IsInflated())
+    nVertex = GetVertexIndexAtTarget( GetSlicePosition(), NULL );
   UpdateCorrelationOverlayAtVertex( nVertex );
 }
 

@@ -217,8 +217,7 @@ bool SurfaceOverlay::LoadCorrelationData( const QString& filename )
     cerr << "MRIread failed: unable to read from " << qPrintable(filename) << "\n";
     return false;
   }
-  if ( mri->width != m_nDataSize*2 || (mri->height != 1 && mri->height != m_nDataSize*2) ||
-       (mri->nframes != 1 && mri->nframes != m_nDataSize*2))
+  if ( (((qlonglong)mri->width)*mri->height*mri->nframes)%(m_nDataSize*m_nDataSize) != 0 )
   {
     cerr << "Correlation data does not match with surface\n";
     MRIfree( &mri );
@@ -247,12 +246,18 @@ bool SurfaceOverlay::LoadCorrelationData( const QString& filename )
 
 void SurfaceOverlay::UpdateCorrelationAtVertex( int nVertex, int nHemisphere )
 {
+  bool bSingleHemiData = ( ((qlonglong)m_mriCorrelation->width)*m_mriCorrelation->height*m_mriCorrelation->nframes == m_nDataSize*m_nDataSize );
   if ( nHemisphere == -1)
   {
     nHemisphere = m_surface->GetHemisphere();
   }
   int nVertexOffset = nHemisphere * m_nDataSize;
   int nDataOffset = m_surface->GetHemisphere() * m_nDataSize;
+  if (bSingleHemiData)
+  {
+    nVertexOffset = 0;
+    nDataOffset = 0;
+  }
   double old_range = m_dMaxValue - m_dMinValue;
   if (m_mriCorrelation->height > 1)
     m_dMaxValue = m_dMinValue =
@@ -292,7 +297,7 @@ void SurfaceOverlay::UpdateCorrelationAtVertex( int nVertex, int nHemisphere )
     m_property->Reset();
   }
 
-  if (m_overlayPaired && nHemisphere == m_surface->GetHemisphere())
+  if (m_overlayPaired && nHemisphere == m_surface->GetHemisphere() && !bSingleHemiData)
   {
     m_overlayPaired->blockSignals(true);
     m_overlayPaired->UpdateCorrelationAtVertex(nVertex, nHemisphere);
@@ -451,7 +456,19 @@ void SurfaceOverlay::UpdateCorrelationCoefficient(double* pos_in)
         m_fCorrelationDataBuffer[j] = m_fDataRaw[i+j*m_nDataSize];
       }
       m_fData[i] = MyUtils::CalculateCorrelationCoefficient(m_fCorrelationSourceData, m_fCorrelationDataBuffer, m_nNumOfFrames);
+
+      if (i == 0)
+        m_dMaxValue = m_dMinValue = m_fData[0];
+      else if ( m_dMaxValue < m_fData[i] )
+      {
+        m_dMaxValue = m_fData[i];
+      }
+      else if ( m_dMinValue > m_fData[i] )
+      {
+        m_dMinValue = m_fData[i];
+      }
     }
+    memcpy(m_fDataRaw, m_fData, sizeof(float)*m_nDataSize);
     memcpy(m_fDataUnsmoothed, m_fData, sizeof(float)*m_nDataSize);
     if (GetProperty()->GetSmooth())
       SmoothData();

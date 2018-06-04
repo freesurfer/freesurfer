@@ -105,11 +105,11 @@ void WindowConfigureOverlay::OnActiveSurfaceChanged(Layer* layer)
     connect(m_layerSurface, SIGNAL(SurfaceOverlyDataUpdated()),
             this, SLOT(UpdateUI()), Qt::UniqueConnection);
     connect(m_layerSurface, SIGNAL(SurfaceOverlyDataUpdated()),
-            this, SLOT(UpdateGraphClean()), Qt::QueuedConnection);
+            this, SLOT(UpdateGraph()), Qt::QueuedConnection);
     connect(m_layerSurface, SIGNAL(ActiveOverlayChanged(int)),
             this, SLOT(UpdateUI()), Qt::UniqueConnection);
     connect(m_layerSurface, SIGNAL(ActiveOverlayChanged(int)),
-            this, SLOT(UpdateGraphClean()), Qt::QueuedConnection);
+            this, SLOT(UpdateGraph()), Qt::QueuedConnection);
     connect(m_layerSurface, SIGNAL(SurfaceLabelAdded(SurfaceLabel*)),
             this, SLOT(OnSurfaceLabelAdded(SurfaceLabel*)), Qt::UniqueConnection);
     connect(m_layerSurface, SIGNAL(SurfaceLabelDeleted(SurfaceLabel*)),
