@@ -3254,6 +3254,8 @@ LIBS_MGH="\
   log/liblog.a \
   xml2/libxml2.a"
 
+LIBS_CPP="utilscpp/libutilscpp.a"
+
 # use local libjpeg if --with-jpeg-dir not used:
 if test "$ac_jpeg_libraries" = "NO"; then
   LIB_JPEG=""
@@ -3277,7 +3279,9 @@ fi
 # to support CUDA, use libutils_cuda instead of libutils:
 LIBS_CUDA_MGH=`echo ${LIBS_MGH} | sed 's/libutils/libutils_cuda/g'`
 
+
 AC_SUBST(LIBS_MGH)
+AC_SUBST(LIBS_CPP)
 AC_SUBST(LIBS_CUDA_MGH)
 AC_SUBST(LIB_JPEG)
 AC_SUBST(LIB_TIFF)
@@ -4268,8 +4272,6 @@ AC_CONFIG_FILES([
 	mrisp_paint/Makefile
 	mrisp_write/Makefile
 	netcdf_3_6_0_p1/Makefile
-	nmovie/Makefile
-	nmovie_qt/Makefile
 	oct_register_mosaic/Makefile
 	oct_train/Makefile
 	opencl_algorithms/Makefile

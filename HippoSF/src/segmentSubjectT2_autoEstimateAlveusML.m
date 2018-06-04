@@ -21,26 +21,26 @@
 %           It does NOT affect volumes, which are computed from soft posteriors anyway
 
 
-% function segmentSubjectT2_autoEstimateAlveusML(subjectName,subjectDir,T2volumeFileName,resolution,atlasMeshFileName,atlasDumpFileName,compressionLUTfileName,K,side,optimizerType,suffix,suffixUser,FSpath,MRFconstant,ByPassBF,UseWholeBrainInHyperPar)
+function segmentSubjectT2_autoEstimateAlveusML(subjectName,subjectDir,T2volumeFileName,resolution,atlasMeshFileName,atlasDumpFileName,compressionLUTfileName,K,side,optimizerType,suffix,suffixUser,FSpath,MRFconstant,ByPassBF,UseWholeBrainInHyperPar)
 
 
-clear
-subjectName='bif';
-subjectDir='~/Downloads/';
-T2volumeFileName='~/Downloads/bif/mri/anisotropicT2_reoriented.nii.gz';
-resolution=0.3;
-atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoAmygBuckner_170621_CJ_GD_allBuckner_BodyHead/AtlasMesh_merged.gz';
-atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoAmygBuckner_170621_CJ_GD_allBuckner_BodyHead/imageDumpWithAmygdala.mgz';
-compressionLUTfileName='/autofs/homes/002/iglesias/matlab/code/Atlas3dFreeSurferJuly2017newAtlas/code/compressionLookupTable.txt';
-K=0.005;
-side='right';
-optimizerType='L_BFGS';
-suffix='T2';
-suffixUser='GEMS2_lowerK_doBF';
-FSpath='/usr/local/freesurfer/dev/bin/';
-MRFconstant=0;
-ByPassBF=0;
-UseWholeBrainInHyperPar=0;
+% clear
+% subjectName='bif';
+% subjectDir='~/Downloads/';
+% T2volumeFileName='~/Downloads/bif/mri/anisotropicT2_reoriented.nii.gz';
+% resolution=0.3;
+% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoAmygBuckner_170621_CJ_GD_allBuckner_BodyHead/AtlasMesh_merged.gz';
+% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoAmygBuckner_170621_CJ_GD_allBuckner_BodyHead/imageDumpWithAmygdala.mgz';
+% compressionLUTfileName='/autofs/homes/002/iglesias/matlab/code/Atlas3dFreeSurferJuly2017newAtlas/code/compressionLookupTable.txt';
+% K=0.005;
+% side='right';
+% optimizerType='L_BFGS';
+% suffix='T2';
+% suffixUser='GEMS2_lowerK_doBF';
+% FSpath='/usr/local/freesurfer/dev/bin/';
+% MRFconstant=0;
+% ByPassBF=0;
+% UseWholeBrainInHyperPar=0;
 
 % clear
 % subjectName='ADNI2_009_S_1030v51_i399379';

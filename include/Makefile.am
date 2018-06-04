@@ -7,6 +7,7 @@ EXTRA_DIST=\
 	AFNI.h \
 	analyze.h \
 	annotation.h \
+  argparse.hpp \
 	art1.h \
 	artmap.h \
 	autoencoder.h \
@@ -122,6 +123,7 @@ EXTRA_DIST=\
 	kinput.h \
 	label.h \
 	ldtmplt.h \
+  log.hpp \
 	lpafile.h \
 	machine.h \
 	macros.h \

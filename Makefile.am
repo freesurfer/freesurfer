@@ -16,7 +16,6 @@ DMRISUBDIRS=\
 
 GLSUBDIRS=\
 	glut \
-	nmovie \
 	stim_polar \
 	tkmedit \
 	tkregister2 \
@@ -358,7 +357,6 @@ MISCDIRS=\
 	histo_register \
 	spline3 \
 	swi_processing \
-	nmovie_qt \
 	HippoSF \
 	BrainstemSS
 

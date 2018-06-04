@@ -1427,8 +1427,8 @@
      <y>144</y>
     </hint>
     <hint type="destinationlabel">
-     <x>130</x>
-     <y>154</y>
+     <x>133</x>
+     <y>149</y>
     </hint>
    </hints>
   </connection>
@@ -1444,7 +1444,7 @@
     </hint>
     <hint type="destinationlabel">
      <x>430</x>
-     <y>154</y>
+     <y>149</y>
     </hint>
    </hints>
   </connection>
@@ -1460,7 +1460,7 @@
     </hint>
     <hint type="destinationlabel">
      <x>488</x>
-     <y>154</y>
+     <y>149</y>
     </hint>
    </hints>
   </connection>
@@ -1492,7 +1492,7 @@
     </hint>
     <hint type="destinationlabel">
      <x>430</x>
-     <y>125</y>
+     <y>121</y>
     </hint>
    </hints>
   </connection>
@@ -1508,7 +1508,7 @@
     </hint>
     <hint type="destinationlabel">
      <x>488</x>
-     <y>125</y>
+     <y>121</y>
     </hint>
    </hints>
   </connection>
@@ -1519,12 +1519,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>42</x>
-     <y>175</y>
+     <x>44</x>
+     <y>173</y>
     </hint>
     <hint type="destinationlabel">
-     <x>130</x>
-     <y>183</y>
+     <x>133</x>
+     <y>177</y>
     </hint>
    </hints>
   </connection>
@@ -1535,12 +1535,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>42</x>
-     <y>175</y>
+     <x>44</x>
+     <y>173</y>
     </hint>
     <hint type="destinationlabel">
      <x>430</x>
-     <y>183</y>
+     <y>177</y>
     </hint>
    </hints>
   </connection>
@@ -1551,12 +1551,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>42</x>
-     <y>175</y>
+     <x>44</x>
+     <y>173</y>
     </hint>
     <hint type="destinationlabel">
      <x>488</x>
-     <y>183</y>
+     <y>177</y>
     </hint>
    </hints>
   </connection>
@@ -1631,8 +1631,8 @@
    <slot>OnScrollBarTranslateY(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>177</x>
-     <y>91</y>
+     <x>237</x>
+     <y>89</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -1647,8 +1647,8 @@
    <slot>OnScrollBarTranslateZ(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>236</x>
-     <y>120</y>
+     <x>296</x>
+     <y>117</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -1664,7 +1664,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>499</x>
-     <y>67</y>
+     <y>65</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -1680,7 +1680,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>499</x>
-     <y>96</y>
+     <y>93</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -1696,7 +1696,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>499</x>
-     <y>125</y>
+     <y>121</y>
     </hint>
     <hint type="destinationlabel">
      <x>432</x>
@@ -1727,8 +1727,8 @@
    <slot>OnScrollBarScaleY(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>129</x>
-     <y>91</y>
+     <x>189</x>
+     <y>89</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -1743,8 +1743,8 @@
    <slot>OnScrollBarScaleZ(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>188</x>
-     <y>120</y>
+     <x>248</x>
+     <y>117</y>
     </hint>
     <hint type="destinationlabel">
      <x>421</x>
@@ -1775,8 +1775,8 @@
    <slot>OnLineEditScaleY(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>463</x>
-     <y>96</y>
+     <x>499</x>
+     <y>93</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -1792,7 +1792,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>499</x>
-     <y>125</y>
+     <y>121</y>
     </hint>
     <hint type="destinationlabel">
      <x>416</x>
@@ -1855,8 +1855,8 @@
    <slot>OnButtonLandmarkPick()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>282</x>
-     <y>381</y>
+     <x>283</x>
+     <y>375</y>
     </hint>
     <hint type="destinationlabel">
      <x>522</x>
@@ -1872,7 +1872,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>141</x>
-     <y>402</y>
+     <y>400</y>
     </hint>
     <hint type="destinationlabel">
      <x>522</x>
@@ -1887,8 +1887,8 @@
    <slot>OnButtonLandmarkPick()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>140</x>
-     <y>381</y>
+     <x>141</x>
+     <y>375</y>
     </hint>
     <hint type="destinationlabel">
      <x>522</x>
@@ -1904,7 +1904,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>55</x>
-     <y>381</y>
+     <y>375</y>
     </hint>
     <hint type="destinationlabel">
      <x>278</x>
@@ -1920,7 +1920,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>197</x>
-     <y>381</y>
+     <y>375</y>
     </hint>
     <hint type="destinationlabel">
      <x>278</x>
@@ -1936,7 +1936,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>55</x>
-     <y>402</y>
+     <y>400</y>
     </hint>
     <hint type="destinationlabel">
      <x>278</x>
@@ -1968,7 +1968,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>283</x>
-     <y>402</y>
+     <y>400</y>
     </hint>
     <hint type="destinationlabel">
      <x>278</x>
@@ -1984,7 +1984,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>197</x>
-     <y>402</y>
+     <y>400</y>
     </hint>
     <hint type="destinationlabel">
      <x>278</x>
@@ -2048,7 +2048,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>430</x>
-     <y>125</y>
+     <y>121</y>
     </hint>
     <hint type="destinationlabel">
      <x>522</x>
@@ -2064,7 +2064,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>430</x>
-     <y>154</y>
+     <y>149</y>
     </hint>
     <hint type="destinationlabel">
      <x>522</x>
@@ -2080,7 +2080,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>430</x>
-     <y>183</y>
+     <y>177</y>
     </hint>
     <hint type="destinationlabel">
      <x>522</x>
