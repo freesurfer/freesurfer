@@ -436,7 +436,7 @@ void SurfaceOverlay::UpdateCorrelationCoefficient(double* pos_in)
     else
     {
       int nVertex = m_surface->GetCurrentVertex();
-      if (pos_in)
+      if (!m_surface->IsInflated() && pos_in)
         nVertex = m_surface->GetVertexIndexAtTarget(pos_in, NULL);
 
       if (nVertex >= 0)

@@ -229,7 +229,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_OPTION, "t", "tract", "<FILE>...", "Load one or more tract files.\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "tc", "tract-cluster", "<DIRECTORY>", "Load tract cluster data from given directory.\n", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "recon", "recon", "<SUBJECT_NAME>...", "Load a series of pre-defined volumes and surfaces of given subject(s).\n", 1, 1000 ),
-    CmdLineEntry( CMD_LINE_OPTION, "ss", "screenshot", "<FILE> <MAGIFICATION_FACTOR> <AUTO_TRIM>", "Take a screen shot of the main viewport and then quit the program. Default value for magnification factor is 1. AUTO_TRIM can be 'autotrim', 'true' or '1'.", 1, 3 ),
+    CmdLineEntry( CMD_LINE_OPTION, "ss", "screenshot", "<FILE> <MAGIFICATION_FACTOR> <AUTO_TRIM>", "Take a screen shot of the main viewport and then quit the program. Default value for magnification factor is 1. AUTO_TRIM can be 'autotrim', 'true' or '1'. NOTE: AUTO_TRIM option is only available on Linux.", 1, 3 ),
     //    CmdLineEntry( CMD_LINE_OPTION, "fly", "fly-through", "<START_SLICE_NUMBER> <END_SLICE_NUMBER> <PREFIX>", "Fly through slices and take screenshot of each slice", 1, 3 ),
     CmdLineEntry( CMD_LINE_OPTION, "layout", "layout", "<STYLE>", "Set layout of the view panels as given. Accepted styles are 1, 2, 3 & 4. 1 is single panel. The rest are 3 different 4-panel styles.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "viewport", "viewport", "<NAME>", "Set the main viewport as given. Accepted names are 'sagittal' or 'x', 'coronal' or 'y', 'axial' or 'z' and '3d'.", 1, 1 ),

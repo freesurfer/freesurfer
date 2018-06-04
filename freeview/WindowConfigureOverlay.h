@@ -55,6 +55,7 @@ signals:
 
 public slots:
   void UpdateGraph();
+  void UpdateGraphClean();
   void UpdateUI();
   void OnCurrentVertexChanged();
 

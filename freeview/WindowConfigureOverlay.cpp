@@ -35,6 +35,7 @@
 #include <QMessageBox>
 #include <QDebug>
 #include <QSettings>
+#include <QTimer>
 
 WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   QWidget(parent), UIUpdateHelper(),
@@ -100,14 +101,15 @@ void WindowConfigureOverlay::OnActiveSurfaceChanged(Layer* layer)
   m_layerSurface = qobject_cast<LayerSurface*>(layer);
   if (m_layerSurface)
   {
+    disconnect(m_layerSurface, 0, this, 0);
     connect(m_layerSurface, SIGNAL(SurfaceOverlyDataUpdated()),
             this, SLOT(UpdateUI()), Qt::UniqueConnection);
     connect(m_layerSurface, SIGNAL(SurfaceOverlyDataUpdated()),
-            this, SLOT(UpdateGraph()), Qt::UniqueConnection);
+            this, SLOT(UpdateGraphClean()), Qt::QueuedConnection);
     connect(m_layerSurface, SIGNAL(ActiveOverlayChanged(int)),
             this, SLOT(UpdateUI()), Qt::UniqueConnection);
     connect(m_layerSurface, SIGNAL(ActiveOverlayChanged(int)),
-            this, SLOT(UpdateGraph()), Qt::UniqueConnection);
+            this, SLOT(UpdateGraphClean()), Qt::QueuedConnection);
     connect(m_layerSurface, SIGNAL(SurfaceLabelAdded(SurfaceLabel*)),
             this, SLOT(OnSurfaceLabelAdded(SurfaceLabel*)), Qt::UniqueConnection);
     connect(m_layerSurface, SIGNAL(SurfaceLabelDeleted(SurfaceLabel*)),
@@ -398,6 +400,14 @@ bool WindowConfigureOverlay::UpdateOverlayProperty( SurfaceOverlayProperty* p )
   p->SetMaskInverse(ui->checkBoxMaskInverse->isChecked());
 
   return true;
+}
+
+void WindowConfigureOverlay::UpdateGraphClean()
+{
+  if (m_fDataCache)
+    delete[] m_fDataCache;
+  m_fDataCache = NULL;
+  UpdateGraph();
 }
 
 void WindowConfigureOverlay::UpdateGraph()
