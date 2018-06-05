@@ -36,6 +36,30 @@ extern "C" {
 
 #include "mrisurf.h"
 
+typedef struct {
+  double Din, Dout; // abs distance (mm) to project in and out
+  double M, Q0; // BBR slope and offset
+  int interp; // SAMPLE_TRILINEAR (1) or SAMPLE_CUBIC (3)
+  MRI *mri;
+  MRIS *surf;
+  DMATRIX *sras2vox; // 4x4 maps surface RAS to mri CRS 
+  DMATRIX *sras2vox3x3; // 3x3 version good for computing gradients
+} 
+BBRPARAMS;
+
+typedef struct {
+  int faceno;
+  DMATRIX *pc, *pin, *pout; // xyz of center, inward point and outward point
+  DMATRIX *vin, *vout; // col,row,slice of inward point and outward point
+  double Iin,Iout; // intensity of inward point and outward point
+  double Q,cost; // Q=relative contrast, cost=bbr cost
+  DMATRIX *gradPin[3], *gradVin[3], *gradIin[3], *gradPout[3], *gradVout[3], *gradIout[3];
+  DMATRIX *gradInterpIn[3], *gradInterpOut[3];
+  DMATRIX *gradQ[3], *gradCost[3];
+} 
+BBRFACE;
+
+
 #ifdef _SURFGRAD_SRC
 int MRISfaceNormalFace_AddDeltaVertex = -1;
 long double MRISfaceNormalFace_AddDelta[3]={0,0,0};
@@ -49,15 +73,22 @@ int MRISfaceNormalGradTest(MRIS *surf, char *surfpath, double delta);
 int MRISfaceNormalFace(MRIS *surf, int faceno, DMATRIX **pc, double *pcL);
 double MRISfaceNormalGradFaceTest(MRIS *surf, int faceno, int wrtvtxno, long double delta, int verbose);
 
-  double MRISedgeAngleCostEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno, DMATRIX **pgrad);
-  int MRISedgeGradDotEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno);
-  int MRISedgeGradDot(MRIS *surf);
-  double MRISedgeGradDotEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long double delta, int verbose);
-  int MRISfaceNormalGrad(MRIS *surf, int NormOnly);
-  int MRISedgeAngleCostEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long double delta);
-  int MRISedgePrint(MRIS *surf, int edgeno, FILE *fp);
-  int MRISedgeMetricEdge(MRIS *surf, int edgeno);
-  int MRISfacePrint(MRIS *surf, int faceno, FILE *fp);
+double MRISedgeAngleCostEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno, DMATRIX **pgrad);
+int MRISedgeGradDotEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno);
+int MRISedgeGradDot(MRIS *surf);
+double MRISedgeGradDotEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long double delta, int verbose);
+int MRISfaceNormalGrad(MRIS *surf, int NormOnly);
+int MRISedgeAngleCostEdgeVertexTest(MRIS *surf, int edgeno, int wrtvtxno, long double delta);
+int MRISedgePrint(MRIS *surf, int edgeno, FILE *fp);
+int MRISedgeMetricEdge(MRIS *surf, int edgeno);
+int MRISfacePrint(MRIS *surf, int faceno, FILE *fp);
+
+BBRFACE *BBRFaceAlloc(void);
+int BBRFaceFree(BBRFACE **pbbrf);
+BBRFACE *BBRCostFace(int faceno, int wrtvtxno, BBRPARAMS *bbrpar, BBRFACE *bbrf);
+int BBRFacePrint(FILE *fp, BBRFACE *bbrf, BBRPARAMS *bbrpar);
+BBRFACE *BBRFaceDiff(const BBRFACE *bbrf1, const BBRFACE *bbrf2, const double delta, BBRFACE *bbrfout);
+double TestBBRCostFace(BBRPARAMS *bbrpar, int faceno, int wrtvtxno, double delta, int verbose);
 
 #if defined(__cplusplus)
 };

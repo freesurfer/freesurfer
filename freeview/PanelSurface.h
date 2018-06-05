@@ -99,6 +99,7 @@ protected slots:
   void OnButtonFillUncutArea();
   void OnButtonUndoCut();
   void OnLabelResample();
+  void OnSpinBoxZOrder(int nOrder);
 
 private:
   QList<SurfaceLabel*> GetSelectedLabels();
@@ -113,6 +114,8 @@ private:
   QList<QWidget*>  m_widgetsMesh;
   QList<QWidget*>  m_widgetsLabel;
   QList<QWidget*>  m_widgetsSpline;
+  QList<QWidget*>  m_widgetsOverlay;
+  QList<QWidget*>  m_widgetsAnnotation;
   QToolButton*     m_toolButtonSurface;
   QActionGroup*    m_actGroupSurface;
 

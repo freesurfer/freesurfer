@@ -35,6 +35,7 @@
 #include <QMessageBox>
 #include <QDebug>
 #include <QSettings>
+#include <QTimer>
 
 WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   QWidget(parent), UIUpdateHelper(),
@@ -53,6 +54,7 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   ui->buttonBox->button(QDialogButtonBox::Apply)->setAutoDefault(true);
   connect(ui->widgetHistogram, SIGNAL(MarkerChanged()), this, SLOT(OnHistogramMarkerChanged()));
   connect(ui->checkBoxApplyToAll, SIGNAL(toggled(bool)), this, SLOT(OnCheckApplyToAll(bool)));
+  connect(ui->checkBoxAutoFrame, SIGNAL(toggled(bool)), this, SLOT(OnCheckAutoFrameByVertex(bool)));
   m_layerSurface = NULL;
   QSettings settings;
   QVariant v = settings.value("WindowConfigureOverlay/Geometry");
@@ -100,14 +102,15 @@ void WindowConfigureOverlay::OnActiveSurfaceChanged(Layer* layer)
   m_layerSurface = qobject_cast<LayerSurface*>(layer);
   if (m_layerSurface)
   {
+    disconnect(m_layerSurface, 0, this, 0);
     connect(m_layerSurface, SIGNAL(SurfaceOverlyDataUpdated()),
             this, SLOT(UpdateUI()), Qt::UniqueConnection);
     connect(m_layerSurface, SIGNAL(SurfaceOverlyDataUpdated()),
-            this, SLOT(UpdateGraph()), Qt::UniqueConnection);
+            this, SLOT(UpdateGraph()), Qt::QueuedConnection);
     connect(m_layerSurface, SIGNAL(ActiveOverlayChanged(int)),
             this, SLOT(UpdateUI()), Qt::UniqueConnection);
     connect(m_layerSurface, SIGNAL(ActiveOverlayChanged(int)),
-            this, SLOT(UpdateGraph()), Qt::UniqueConnection);
+            this, SLOT(UpdateGraph()), Qt::QueuedConnection);
     connect(m_layerSurface, SIGNAL(SurfaceLabelAdded(SurfaceLabel*)),
             this, SLOT(OnSurfaceLabelAdded(SurfaceLabel*)), Qt::UniqueConnection);
     connect(m_layerSurface, SIGNAL(SurfaceLabelDeleted(SurfaceLabel*)),
@@ -707,7 +710,12 @@ void WindowConfigureOverlay::OnCurrentVertexChanged()
   if ( m_layerSurface && m_layerSurface->GetActiveOverlay()
        && m_layerSurface->GetActiveOverlay()->GetNumberOfFrames() > 1 )
   {
-    int nVertex = m_layerSurface->GetVertexIndexAtTarget( m_layerSurface->GetSlicePosition(), NULL );
+    int nVertex;
+    if (m_layerSurface->IsInflated())
+      nVertex = m_layerSurface->GetCurrentVertex();
+    else
+      nVertex = m_layerSurface->GetVertexIndexAtTarget( m_layerSurface->GetSlicePosition(), NULL );
+
     if (nVertex >= 0 && ui->checkBoxAutoFrame->isChecked()
         && nVertex < m_layerSurface->GetActiveOverlay()->GetNumberOfFrames())
     {
@@ -809,4 +817,10 @@ void WindowConfigureOverlay::OnSurfaceLabelAdded(SurfaceLabel* label)
     setProperty("wait_for_label", false);
     ui->comboBoxMask->setCurrentIndex(1);
   }
+}
+
+void WindowConfigureOverlay::OnCheckAutoFrameByVertex(bool bChecked)
+{
+  if (bChecked)
+    OnCurrentVertexChanged();
 }

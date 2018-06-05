@@ -1422,7 +1422,7 @@ void MRISPfunctionVal_radiusR(                                                  
   float phi;
   { float d = r * r - z * z;
     if (d < 0.0) d = 0.0;
-    phi = atan2(sqrt(d), z);
+    phi = atan2f(sqrt(d), z);
     if (phi < RADIANS(1)) DiagBreak();
   }
   
@@ -1460,7 +1460,7 @@ void MRISPfunctionVal_radiusR(                                                  
 
   // This is the rotation around the z axis
   //
-  float const baseTheta = atan2(y / r, x / r);
+  float const baseTheta = fastApproxAtan2f(y, x);
 
   int alphaIndex;
   for (alphaIndex = 0; alphaIndex < numAlphas; alphaIndex++) {
@@ -1734,7 +1734,254 @@ MRI_SP *MRISPconvolveGaussian(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma,
 
         Description
 ------------------------------------------------------*/
-MRI_SP *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno)
+static MRI_SP *MRISPblur_new(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno);
+static MRI_SP *MRISPblur_old(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno);
+
+MRI_SP *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno) {
+    static bool once, do_old;
+    if (!once) { once = true;
+        do_old = getenv("FREESUREFER_MRISPblur_old");
+    }
+    return 
+        (do_old ? MRISPblur_old : MRISPblur_new)(mrisp_src, mrisp_dst, sigma, fno);
+}
+
+static MRI_SP *MRISPblur_new(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno) {
+  int fnoLo_init, fnoHi_init;
+  int no_sphere_init;
+  int cart_klen_init;
+  double sigma_sq_inv_init;
+  IMAGE *Ip_src_init;
+  {
+    no_sphere_init = getenv("NO_SPHERE") != NULL;
+    if (no_sphere_init) fprintf(stderr, "disabling spherical geometry\n");
+
+    if (!mrisp_dst) mrisp_dst = MRISPclone(mrisp_src);
+    mrisp_dst->sigma = sigma;
+
+    /* determine the size of the kernel */
+    cart_klen_init = (int)nint(6.0f * sigma) + 1;
+    if (ISEVEN(cart_klen_init)) /* ensure it's odd */
+      cart_klen_init++;
+
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      fprintf(stderr, "blurring surface, sigma = %2.3f, cartesian klen = %d\n", sigma, cart_klen_init);
+
+    if (FZERO(sigma))
+      sigma_sq_inv_init = BIG;
+    else
+      sigma_sq_inv_init = 1.0f / (sigma * sigma);
+
+    Ip_src_init = mrisp_src->Ip ;
+
+    if (fno < 0) {
+      fnoLo_init = 0;
+      fnoHi_init =  Ip_src_init->num_frame;
+    } else {
+      fnoLo_init = fno;
+      fnoHi_init = fno + 1;
+    }
+  }
+
+  int const          fnoLo        = fnoLo_init;
+  int const          fnoHi        = fnoHi_init;
+  int const          cart_klen    = cart_klen_init;
+  int const          no_sphere    = no_sphere_init;
+  double const       sigma_sq_inv = sigma_sq_inv_init;
+  const IMAGE *const Ip_src       = Ip_src_init;
+
+  static int  uMax                    = 0;
+  static int  uToKHalfCache_PHI_DIM   = 0;
+  static int  uToKHalfCache_cart_klen = 0;
+  static int* uToKHalfCache           = NULL;
+  
+  static int     kHalfHi              = 0;
+  static double* uukvkToExpResult     = NULL;
+  
+  if (uMax                    != U_DIM  (mrisp_src) 
+  ||  uToKHalfCache_PHI_DIM   != PHI_DIM(mrisp_src)
+  ||  uToKHalfCache_cart_klen != cart_klen
+  ) {
+    uMax                    = U_DIM  (mrisp_src);
+    uToKHalfCache_PHI_DIM   = PHI_DIM(mrisp_src);
+    uToKHalfCache_cart_klen = cart_klen;
+    
+    uToKHalfCache = (int*)realloc(uToKHalfCache, uMax*sizeof(int));
+    
+    int u;
+    for (u = 0; u < U_DIM(mrisp_src); u++) {
+      double const phi      = (double)u * PHI_MAX / PHI_DIM(mrisp_src);
+      double const sin_sq_u = no_sphere ? 1.0 : squared(sin(phi));
+
+      int klen;
+
+      if (no_sphere) {
+        klen = cart_klen;
+
+      } else if (!FZERO(sin_sq_u)) {
+        int k = cart_klen * cart_klen;
+        klen = sqrt(k + k / sin_sq_u);
+        if (klen > MAX_LEN * cart_klen) klen = MAX_LEN * cart_klen;
+
+      } else {
+        klen = MAX_LEN * cart_klen; /* arbitrary max length */          // happens when u is 0
+      }
+
+      if (klen >= U_DIM(mrisp_src)) klen = U_DIM(mrisp_src) - 1;
+      if (klen >= V_DIM(mrisp_src)) klen = V_DIM(mrisp_src) - 1;
+
+      uToKHalfCache[u] = klen / 2;
+      
+      if (u > 0 && uToKHalfCache[u] > uToKHalfCache[0]) {
+        fprintf(stdout, "%s:%d uMax[0] not max\n", __FILE__, __LINE__);
+        exit(1);
+      }
+    }
+    
+    kHalfHi          = uToKHalfCache[0] + 1;
+    uukvkToExpResult = (double*)realloc(uukvkToExpResult, uMax*kHalfHi*kHalfHi*sizeof(double));
+    
+    for (u = 0; u < U_DIM(mrisp_src); u++) {
+      double* ukvkToExpResult = uukvkToExpResult + u*kHalfHi*kHalfHi;
+
+      double const phi      = (double)u * PHI_MAX / PHI_DIM(mrisp_src);
+      double const sin_sq_u = no_sphere ? 1.0 : squared(sin(phi));
+       
+      int uk,vk;
+      for (uk = 0; uk < kHalfHi; uk++) 
+      for (vk = 0; vk < kHalfHi; vk++) {
+        double const udiff = (double)(uk * uk); /* distance squared in u */
+        double const vdiff = (double)(vk * vk); /* distance squared in v */
+        double neg_exp_input = (udiff + sin_sq_u * vdiff) * sigma_sq_inv;
+        double k             = exp(-neg_exp_input);
+        ukvkToExpResult[uk*kHalfHi + vk] = k;
+      }
+    }
+  }
+  
+  int u;
+
+  ROMP_PF_begin
+#if HAVE_OPENMP  
+  #pragma omp parallel for if_ROMP(assume_reproducible) collapse(2)
+#endif
+  for (fno = fnoLo; fno < fnoHi; fno++) /* for each frame */
+  {
+    for (u = 0; u < U_DIM(mrisp_src); u++) {
+      ROMP_PFLB_begin
+      double const * const ukvkToExpResult = uukvkToExpResult + u*kHalfHi*kHalfHi;
+      
+      if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) fprintf(stderr, "\r%3.3d of %d     ", u, U_DIM(mrisp_src) - 1);
+      
+      double const phi      = (double)u * PHI_MAX / PHI_DIM(mrisp_src);
+      double const sin_sq_u = no_sphere ? 1.0 : squared(sin(phi));
+      
+      // khalf is independent of fno and of v.
+      //
+      int khalf_init;
+      {
+        int klen;
+
+        if (no_sphere) {
+          klen = cart_klen;
+
+        } else if (!FZERO(sin_sq_u)) {
+          int k = cart_klen * cart_klen;
+          klen = sqrt(k + k / sin_sq_u);
+          if (klen > MAX_LEN * cart_klen) klen = MAX_LEN * cart_klen;
+        
+        } else {
+          klen = MAX_LEN * cart_klen; /* arbitrary max length */
+        }
+
+        if (klen >= U_DIM(mrisp_src)) klen = U_DIM(mrisp_src) - 1;
+        if (klen >= V_DIM(mrisp_src)) klen = V_DIM(mrisp_src) - 1;
+        
+        khalf_init = klen / 2;
+      }
+      int const khalf = khalf_init;
+
+      if (khalf != uToKHalfCache[u]) {
+        fprintf(stdout, "%s:%d khalf != uToKHalfCache[u]\n",__FILE__, __LINE__);
+        exit(1);
+      }
+      
+      int v;
+      for (v = 0; v < V_DIM(mrisp_src); v++) {
+        /*      theta = (double)v*THETA_MAX / THETA_DIM(mrisp_src) ;*/
+        // if (u == DEBUG_U && v == DEBUG_V) DiagBreak();
+
+        double total = 0.0, ktotal = 0.0;
+
+        int uk;
+        for (uk = -khalf; uk <= khalf; uk++) {
+          int const absUk = (uk < 0) ? -uk : uk; 
+#ifdef CHECK_TABLE
+          double const udiff = (double)(uk * uk); /* distance squared in u */
+#endif
+
+          int voff;
+
+          int u1 = u + uk;
+          if (u1 < 0) /* enforce spherical topology  */
+          {
+            voff = V_DIM(mrisp_src) / 2;
+            u1 = -u1;
+          }
+          else if (u1 >= U_DIM(mrisp_src)) {
+            u1 = U_DIM(mrisp_src) - (u1 - U_DIM(mrisp_src) + 1);
+            voff = V_DIM(mrisp_src) / 2;
+          } else {
+            voff = 0;
+          }
+          
+          int vk;
+          for (vk = -khalf; vk <= khalf; vk++) {
+            int const absVk = (vk < 0) ? -vk : vk; 
+            double kFromTable = ukvkToExpResult[absUk*kHalfHi + absVk];
+
+#ifndef CHECK_TABLE
+            double k = kFromTable;
+#else
+            double vdiff = (double)(vk * vk);
+            
+            double neg_exp_input = (udiff + sin_sq_u * vdiff) * sigma_sq_inv;
+                //
+                // udiff is v invariant
+                // 
+                
+            double k = exp(-neg_exp_input);
+
+            if (k != kFromTable) {
+              fprintf(stdout, "%s:%d k:%f != kFromTable:%f uk:%d vk:%d\n", __FILE__, __LINE__, k, kFromTable, uk, vk);
+              exit(1);
+            }
+#endif
+            
+            int v1 = v + vk + voff;
+            while (v1 < 0) /* enforce spherical topology */
+              v1 += V_DIM(mrisp_src);
+            while (v1 >= V_DIM(mrisp_src)) v1 -= V_DIM(mrisp_src);
+            
+            ktotal += k;
+            total  += k * *IMAGEFseq_pix(Ip_src, u1, v1, fno);
+          }
+        }
+        if (u == DEBUG_U && v == DEBUG_V) DiagBreak();
+        total /= ktotal; /* normalize weights to 1 */
+        *IMAGEFseq_pix(mrisp_dst->Ip, u, v, fno) = total;
+      }
+      ROMP_PFLB_end
+    }
+  }
+  ROMP_PF_end
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) fprintf(stderr, "done.\n");
+
+  return (mrisp_dst);
+}
+
+static MRI_SP *MRISPblur_old(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma, int fno)
 {
   int f0, f1;
   int no_sphere_init;
@@ -2053,7 +2300,24 @@ MRI_SP *MRISPcombine(MRI_SP *mrisp, MRI_SP *mrisp_template, int fno)
 ------------------------------------------------------*/
 int MRISPwrite(MRI_SP *mrisp, char *fname)
 {
-  ImageWrite(mrisp->Ip, fname);
+  char ext[STRLEN] ;
+  
+  if (!strcmp(FileNameExtension(fname, ext), "mgz"))
+  {
+    MRI *mri ;
+    int r, c, f ;
+
+    printf("writing MRISP to mgh file\n") ;
+    mri = MRIalloc(mrisp->Ip->cols, mrisp->Ip->rows, mrisp->Ip->num_frame, MRI_FLOAT) ;
+    for (f = 0 ; f < mrisp->Ip->num_frame ; f++)
+      for (r = 0 ; r < mrisp->Ip->rows ; r++)
+	for (c = 0 ; c < mrisp->Ip->cols ; c++)
+	  MRIsetVoxVal(mri, c, r, f, 0, *IMAGEFseq_pix(mrisp->Ip, c, r, f)) ;
+    MRIwrite(mri, fname) ;
+    MRIfree(&mri) ;
+  }
+  else
+    ImageWrite(mrisp->Ip, fname);
   return (NO_ERROR);
 }
 /*-----------------------------------------------------

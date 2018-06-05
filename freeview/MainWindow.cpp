@@ -156,9 +156,6 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
       m_propertyBrush, SLOT(OnLayerRemoved(Layer*)));
 
   ui->setupUi(this);
-#ifndef DEVELOPMENT
-  //  ui->tabWidgetControlPanel->removeTab(ui->tabWidgetControlPanel->indexOf(ui->tabTrack));
-#endif
 
   ui->treeWidgetCursorInfo->SetForCursor(true);
 
@@ -1160,10 +1157,12 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
 
   if ( parser->Found( "ss", &sa ) )
   {
-    QString mag_factor = "1";
+    QString mag_factor = "1", auto_trim = "0";
     if (sa.size() > 1)
       mag_factor = sa[1];
-    this->AddScript( QStringList("screencapture") << sa[0] << mag_factor );
+    if (sa.size() > 2)
+      auto_trim = sa[2];
+    this->AddScript( QStringList("screencapture") << sa[0] << mag_factor << auto_trim);
     if (bAutoQuit && !parser->Found("noquit"))
     {
       this->AddScript( QStringList("quit") );
@@ -1847,7 +1846,7 @@ void MainWindow::RunScript()
   }
   else
   {
-    cerr << "Command '" << qPrintable(cmd) << "' is not recognized." << endl;
+    cerr << "Command '" << qPrintable(cmd) << "' was not recognized.\n";
   }
   m_bScriptRunning = false;
 }
@@ -2161,6 +2160,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       {
         m_scripts.insert( 0, QStringList() << "setactiveframe" << subArgu );
       }
+      else if (subOption == "ignore_header")
+      {
+        sup_data["IgnoreHeader"] = true;
+      }
       else if (!subOption.isEmpty())
       {
         cerr << "Unrecognized sub-option flag '" << strg.toLatin1().constData() << "'.\n";
@@ -2230,7 +2233,8 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
 
 void MainWindow::CommandSetColorMap( const QStringList& sa )
 {
-  int nColorMap = LayerPropertyMRI::Grayscale;;
+  int nColorMap = LayerPropertyMRI::Grayscale;
+  int nColorMapScale = LayerPropertyMRI::Grayscale;
   QString strg = sa[1];
   if ( strg == "heat" || strg == "heatscale" )
   {
@@ -2261,34 +2265,36 @@ void MainWindow::CommandSetColorMap( const QStringList& sa )
     cerr << "Unrecognized colormap name '" << strg.toLatin1().constData() << "'.\n";
   }
 
-  int nColorMapScale = LayerPropertyMRI::Grayscale;
-  strg = sa[2];
-  if ( strg == "heatscale" )
-  {
-    nColorMapScale = LayerPropertyMRI::Heat;
-  }
-  else if ( strg == "colorscale" )
-  {
-    nColorMapScale = LayerPropertyMRI::Jet;
-  }
-  else if ( strg == "lut" )
-  {
-    nColorMapScale = LayerPropertyMRI::LUT;
-  }
-
   QList<double> pars;
-  for ( int i = 3; i < sa.size(); i++ )
+  if (sa.size() > 2)
   {
-    bool bOK;
-    double dValue = sa[i].toDouble(&bOK);
-    if ( !bOK )
+    strg = sa[2];
+    if ( strg == "heatscale" )
     {
-      cerr << "Invalid color scale value(s). \n";
-      break;
+      nColorMapScale = LayerPropertyMRI::Heat;
     }
-    else
+    else if ( strg == "colorscale" )
     {
-      pars << dValue;
+      nColorMapScale = LayerPropertyMRI::Jet;
+    }
+    else if ( strg == "lut" )
+    {
+      nColorMapScale = LayerPropertyMRI::LUT;
+    }
+
+    for ( int i = 3; i < sa.size(); i++ )
+    {
+      bool bOK;
+      double dValue = sa[i].toDouble(&bOK);
+      if ( !bOK )
+      {
+        cerr << "Invalid color scale value(s). \n";
+        break;
+      }
+      else
+      {
+        pars << dValue;
+      }
     }
   }
 
@@ -2927,7 +2933,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QString fn_target = "";
   QStringList sup_files;
   QStringList valid_overlay_options;
-  int layer_id = -1;
+  QVariantMap sup_options;
   valid_overlay_options << "overlay_reg" << "overlay_method" << "overlay_threshold" << "overlay_color"
                         << "overlay_rh" << "overlay_opacity" << "overlay_frame" << "overlay_smooth";
   for (int nOverlay = 0; nOverlay < overlay_list.size(); nOverlay++)
@@ -2991,7 +2997,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           bool ok;
           subArgu.toInt(&ok);
           if (ok)
-            layer_id = subArgu.toInt();
+            sup_options["ID"] = subArgu.toInt();
         }
         else if ( subOption == "edgecolor" || subOption == "edge_color")
         {
@@ -3145,6 +3151,18 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
             }
           }
         }
+        else if (subOption == "annot_zorder" || subOption == "annotation_zorder" )
+        {
+          sup_options["ZOrderAnnotation"] = subArgu;
+        }
+        else if (subOption == "label_zorder")
+        {
+          sup_options["ZOrderLabel"] = subArgu;
+        }
+        else if (subOption == "overlay_zorder" )
+        {
+          sup_options["ZOrderOverlay"] = subArgu;
+        }
         else if ( subOption == "vector" )
         {
           // add script to load surface vector files
@@ -3215,7 +3233,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
       sup_files << "white" << "inflated" << "pial" << "orig";
     }
   }
-  LoadSurfaceFile( surface_fn, fn_patch, fn_target, sup_files, layer_id );
+  LoadSurfaceFile( surface_fn, fn_patch, fn_target, sup_files, sup_options );
 }
 
 void MainWindow::CommandSetSurfaceLabelOutline(const QStringList &cmd)
@@ -3979,9 +3997,13 @@ void MainWindow::CommandScreenCapture( const QStringList& cmd )
   if (bOK && mag_factor < 1)
     mag_factor = 1;
 
+  bool auto_trim = false;
+  if (cmd.size() > 3 && (cmd[3] == "autotrim" || cmd[3] == "true" || cmd[3] == "1"))
+    auto_trim = true;
+
   if (!m_views[m_nMainView]->SaveScreenShot( cmd[1],
                                              m_settingsScreenshot.AntiAliasing,
-                                             (int)mag_factor ))
+                                             (int)mag_factor, auto_trim))
   {
     cerr << "Failed to save screen shot to " << cmd[1].toLatin1().constData() << ".\n";
   }
@@ -4751,6 +4773,9 @@ void MainWindow::LoadVolumeFile( const QString& filename,
     layer->GetProperty()->SetVectorSkip(qMax(0, sup_data["VectorSkip"].toInt()));
   layer->GetProperty()->blockSignals(false);
 
+  if (sup_data.value("IgnoreHeader").toBool())
+    layer->SetIgnoreHeader(true);
+
   m_threadIOWorker->LoadVolume( layer );
 }
 
@@ -5421,7 +5446,7 @@ void MainWindow::OnLoadSurface()
 }
 
 void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_patch, const QString& fn_target,
-                                  const QStringList& sup_files_in, int layer_id)
+                                  const QStringList& sup_files_in, const QVariantMap& sup_options)
 {
   QFileInfo fi( filename );
   m_strLastDir = fi.absolutePath();
@@ -5430,6 +5455,7 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   connect(ui->treeWidgetCursorInfo, SIGNAL(VertexChangeTriggered(int)), m_wndGroupPlot, SLOT(SetCurrentVertex(int)), Qt::UniqueConnection);
   connect(layer, SIGNAL(SurfaceOverlyDataUpdated()), ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::UniqueConnection);
   connect(layer, SIGNAL(ActiveSurfaceChanged(int)), ui->view3D, SLOT(OnLayerVisibilityChanged()), Qt::UniqueConnection);
+  connect(this, SIGNAL(SlicePositionChanged(bool)), layer, SLOT(OnSlicePositionChanged3D()), Qt::UniqueConnection);
   layer->SetName( fi.fileName() );
   QString fullpath = fi.absoluteFilePath();
   if ( fullpath.isEmpty() )
@@ -5451,8 +5477,16 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   layer->SetPatchFileName( fn_patch );
   layer->SetTargetFileName( fn_target );
   layer->SetLoadSupSurfaces(sup_files);
-  if (layer_id >= 0)
-    layer->SetID(layer_id);
+  if (sup_options.contains("ID"))
+    layer->SetID(sup_options.value("ID").toInt());
+  layer->GetProperty()->blockSignals(true);
+  if (sup_options.contains("ZOrderAnnotation"))
+    layer->GetProperty()->SetZOrderAnnotation(sup_options["ZOrderAnnotation"].toInt());
+  if (sup_options.contains("ZOrderLabel"))
+    layer->GetProperty()->SetZOrderLabel(sup_options["ZOrderLabel"].toInt());
+  if (sup_options.contains("ZOrderOverlay"))
+    layer->GetProperty()->SetZOrderOverlay(sup_options["ZOrderOverlay"].toInt());
+  layer->GetProperty()->blockSignals(false);
 
   m_threadIOWorker->LoadSurface( layer );
   m_statusBar->StartTimer();
@@ -6218,62 +6252,65 @@ void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QLi
   {
     LayerPropertyMRI* p = layer->GetProperty();
     p->SetColorMap( (LayerPropertyMRI::ColorMapType) nColorMap );
-    QList<double> scales = scales_in;
-    if (p->GetUsePercentile())
+    if (!scales_in.isEmpty())
     {
-      for (int i = 0; i < scales.size(); i++)
-        scales[i] = layer->GetHistoValueFromPercentile(scales[i]/100.0);
-    }
-    switch ( nColorMapScale )
-    {
-    case LayerPropertyMRI::Grayscale:
-      if ( scales.size() >= 2 )
+      QList<double> scales = scales_in;
+      if (p->GetUsePercentile())
       {
-        p->SetMinMaxGrayscaleWindow( scales[0], scales[1] );
+        for (int i = 0; i < scales.size(); i++)
+          scales[i] = layer->GetHistoValueFromPercentile(scales[i]/100.0);
       }
-      else if ( !scales.empty() )
+      switch ( nColorMapScale )
       {
-        cerr << "Need 2 values for grayscale.\n";
+      case LayerPropertyMRI::Grayscale:
+        if ( scales.size() >= 2 )
+        {
+          p->SetMinMaxGrayscaleWindow( scales[0], scales[1] );
+        }
+        else if ( !scales.empty() )
+        {
+          cerr << "Need 2 values for grayscale.\n";
+        }
+        break;
+      case LayerPropertyMRI::Heat:
+        if ( scales.size() >= 3 )
+        {
+          p->SetHeatScaleAutoMid(false);
+          p->SetHeatScaleMinThreshold( scales[0] );
+          p->SetHeatScaleMidThreshold( scales[1] );
+          p->SetHeatScaleMaxThreshold( scales[2] );
+        }
+        else if ( scales.size() == 2 )
+        {
+          p->SetHeatScaleAutoMid(true);
+          p->SetHeatScaleMinThreshold( scales[0] );
+          p->SetHeatScaleMaxThreshold( scales[1] );
+        }
+        else if ( !scales.empty() )
+        {
+          cerr << "Need 2 or 3 values for heatscale.\n";
+        }
+        break;
+      case LayerPropertyMRI::LUT:
+        if ( scales.size() >= 1 )
+        {
+        }
+        else if ( !scales.empty() )
+        {
+          cerr << "Need a value for lut.\n";
+        }
+        break;
+      default:
+        if ( scales.size() >= 2 )
+        {
+          p->SetMinMaxGenericThreshold( scales[0], scales[1] );
+        }
+        else if ( !scales.empty() )
+        {
+          cerr << "Need 2 values for colorscale.\n";
+        }
+        break;
       }
-      break;
-    case LayerPropertyMRI::Heat:
-      if ( scales.size() >= 3 )
-      {
-        p->SetHeatScaleAutoMid(false);
-        p->SetHeatScaleMinThreshold( scales[0] );
-        p->SetHeatScaleMidThreshold( scales[1] );
-        p->SetHeatScaleMaxThreshold( scales[2] );
-      }
-      else if ( scales.size() == 2 )
-      {
-        p->SetHeatScaleAutoMid(true);
-        p->SetHeatScaleMinThreshold( scales[0] );
-        p->SetHeatScaleMaxThreshold( scales[1] );
-      }
-      else if ( !scales.empty() )
-      {
-        cerr << "Need 2 or 3 values for heatscale.\n";
-      }
-      break;
-    case LayerPropertyMRI::LUT:
-      if ( scales.size() >= 1 )
-      {
-      }
-      else if ( !scales.empty() )
-      {
-        cerr << "Need a value for lut.\n";
-      }
-      break;
-    default:
-      if ( scales.size() >= 2 )
-      {
-        p->SetMinMaxGenericThreshold( scales[0], scales[1] );
-      }
-      else if ( !scales.empty() )
-      {
-        cerr << "Need 2 values for colorscale.\n";
-      }
-      break;
     }
   }
 }

@@ -1641,3 +1641,51 @@ int WriteRUsage(int who, const char *pre, char *fname)
   err = PrintRUsage(who, pre, fp);
   return (err);
 }
+
+
+static const float     Pi = PI;
+static const float halfPi = PI/2;
+
+static float fastApproxAtan2fWkr(float ay, float ax) {     // ax >= ay
+
+    #define tableLast 100000
+    static volatile float table[tableLast + 1];
+    static volatile int   tableInited;
+    if (!tableInited) {
+        int index;
+        for (index = 0; index <= tableLast; index++) {
+            table[index] = atan2(index,tableLast);
+        }
+        tableInited = 1;
+    }
+    
+    int index = (ax==0) ? 0 : (tableLast*ay)/ax;
+        
+    return table[index];
+}
+
+float fastApproxAtan2f(float y, float x) {
+    static bool volatile once;
+    static bool volatile use_atanf2;
+    if (!once) {
+        use_atanf2 = !!getenv("FREESURFER_fastApproxAtan2f_use_atanf2");
+        once = true;
+        if (use_atanf2)
+            fprintf(stdout, "%s:%d %s\n", __FILE__, __LINE__,
+                use_atanf2?"using slow atan2f":"using table lookup for fast but slightly inaccurate atan");
+    }
+    if (use_atanf2) return atan2f(y,x);
+    
+    float  ax = fabsf(x), ay = fabsf(y);
+    double r;
+    if (ax >= ay) { 
+        r =          fastApproxAtan2fWkr(ay,ax);
+    } else {
+        r = halfPi - fastApproxAtan2fWkr(ax,ay);
+    }
+    if (ax == x && ay == y) r =     r; else
+    if (ax == x && ay != y) r =    -r; else
+    if (ax != x && ay == y) r =  Pi-r; else
+    if (ax != x && ay != y) r = -Pi+r;
+    return r; 
+}

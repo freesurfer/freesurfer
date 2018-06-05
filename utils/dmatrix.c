@@ -731,6 +731,22 @@ DMATRIX *DMatrixConstVal(double val, int rows, int cols, DMATRIX *X)
 }
 
 /*! 
+  \fn MATRIX *DMatrixZero(double val, int rows, int cols, MATRIX *X)
+  \brief sets all the elements to 0.  If X is NULL, then a matrix
+  rows-by-cols is alloced. If X is non-NULL, then rows and cols are
+  ignored. This is different than DMatrixConstVal(0) in that it
+  it uses memset(), which should be much faster.
+*/
+DMATRIX *DMatrixZero(const int rows, const int cols, DMATRIX *X)
+{
+  if(X == NULL) {
+    X = DMatrixAlloc(rows, cols, MATRIX_REAL);
+    return(X);
+  }
+  memset(X->data,0,X->rows*X->cols*sizeof(DMATRIX_TYPE));
+  return(X);
+}
+/*! 
   \fn double DVectorLen(const DVECTOR *v)
   \brief Computes the lenght of the vector;
 */
@@ -816,4 +832,17 @@ DMATRIX_TYPE DMatrixMaxAbs(DMATRIX *M)
     }
   }
   return(vmax);
+}
+/*----------------------------------------------------------------*/
+DMATRIX *DMatrixDRand48(int rows, int cols, DMATRIX *m)
+{
+  int r, c;
+  if (m == NULL) m = DMatrixAlloc(rows, cols, MATRIX_REAL);
+  /* if m != NULL rows and cols are ignored */
+  for (r = 1; r <= m->rows; r++) {
+    for (c = 1; c <= m->cols; c++) {
+      m->rptr[r][c] = drand48();
+    }
+  }
+  return (m);
 }

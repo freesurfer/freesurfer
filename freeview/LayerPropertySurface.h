@@ -169,6 +169,21 @@ public:
       return m_bUseSurfaceColorOn2D;
   }
 
+  int GetZOrderOverlay()
+  {
+    return m_nZOrderOverlay;
+  }
+
+  int GetZOrderLabel()
+  {
+    return m_nZOrderLabel;
+  }
+
+  int GetZOrderAnnotation()
+  {
+    return m_nZOrderAnnotation;
+  }
+
 public slots:
   void SetOpacity( double opacity );
   void SetCurvatureMap( int nMap );
@@ -193,6 +208,9 @@ public slots:
   void SetShowOverlay(bool bShow);
   void SetShowAnnotation(bool bShow);
   void SetUseSurfaceColorOn2D(bool bKeep);
+  void SetZOrderOverlay(int nOrder);
+  void SetZOrderAnnotation(int nOrder);
+  void SetZOrderLabel(int nOrder);
 
 Q_SIGNALS:
   void OpacityChanged( double opacity );
@@ -239,6 +257,10 @@ private:
   bool    m_bShowAnnotation;
 
   bool    m_bUseSurfaceColorOn2D;
+
+  int     m_nZOrderOverlay;
+  int     m_nZOrderLabel;
+  int     m_nZOrderAnnotation;
 
   vtkSmartPointer<vtkRGBAColorTransferFunction> m_lutCurvature;
 

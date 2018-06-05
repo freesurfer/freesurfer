@@ -165,7 +165,7 @@ private:
   float*        m_fData;
   float*        m_fDataRaw;
   float*        m_fDataUnsmoothed;
-  int           m_nDataSize;
+  qlonglong     m_nDataSize;
   double        m_dMaxValue;
   double        m_dMinValue;
   double        m_dRawMaxValue;

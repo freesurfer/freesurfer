@@ -2949,17 +2949,6 @@ AC_ARG_ENABLE(itk-apps,
    ITK_DIR=""
  ])
 
-if test "$disable_gui_build" = "YES"; then
-  itk_apps="NO"
-  ac_itk_includes="NO"
-  ac_itk_libraries="NO"
-  ITK_CFLAGS=""
-  ITK_LIBS=""
-  ITK_LIB=""
-  LIBS_ITK=""
-  ITK_DIR=""
-fi
-
 if test "$itk_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of ITK apps.])
 
@@ -3265,6 +3254,8 @@ LIBS_MGH="\
   log/liblog.a \
   xml2/libxml2.a"
 
+LIBS_CPP="utilscpp/libutilscpp.a"
+
 # use local libjpeg if --with-jpeg-dir not used:
 if test "$ac_jpeg_libraries" = "NO"; then
   LIB_JPEG=""
@@ -3288,7 +3279,9 @@ fi
 # to support CUDA, use libutils_cuda instead of libutils:
 LIBS_CUDA_MGH=`echo ${LIBS_MGH} | sed 's/libutils/libutils_cuda/g'`
 
+
 AC_SUBST(LIBS_MGH)
+AC_SUBST(LIBS_CPP)
 AC_SUBST(LIBS_CUDA_MGH)
 AC_SUBST(LIB_JPEG)
 AC_SUBST(LIB_TIFF)
@@ -4277,9 +4270,8 @@ AC_CONFIG_FILES([
 	mris_warp/Makefile
 	mris_watershed/Makefile
 	mrisp_paint/Makefile
+	mrisp_write/Makefile
 	netcdf_3_6_0_p1/Makefile
-	nmovie/Makefile
-	nmovie_qt/Makefile
 	oct_register_mosaic/Makefile
 	oct_train/Makefile
 	opencl_algorithms/Makefile

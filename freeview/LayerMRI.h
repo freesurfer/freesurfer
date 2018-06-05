@@ -324,6 +324,11 @@ public:
   bool GEOSSegmentation(LayerROI* inside, LayerROI* outside, double lambda, int wsize, double max_dist, LayerMRI* mask);
 
   void GetVolumeInfo(int* dim, double* voxel_size);
+
+  void SetIgnoreHeader(bool b)
+  {
+    m_bIgnoreHeader = b;
+  }
   
 public slots:
   void SetActiveFrame( int nFrame );
@@ -421,6 +426,7 @@ protected:
   int     m_nSampleMethod;
   bool    m_bConform;
   bool    m_bWriteResampled;
+  bool    m_bIgnoreHeader;
 
   vtkImageActor*  m_sliceActor2D[3];
   vtkImageActor*  m_sliceActor3D[3];

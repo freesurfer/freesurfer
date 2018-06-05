@@ -121,6 +121,7 @@ typedef enum
 }
 DCM_TagList;
 
+// This structure is for generic dicoms (see below for siemens specific)
 typedef struct
 {
   // DICOM file name
@@ -170,6 +171,9 @@ typedef struct
   void *PixelData;
   unsigned char min8,  max8;
   unsigned short int min16, max16;
+
+  // Rescaling parameters
+  double RescaleIntercept, RescaleSlope; //(0028,1052) (0028,1053)
 
 }
 DICOMInfo ;
@@ -340,6 +344,8 @@ int dcmImageDirCosObject(DCM_OBJECT *dcm, double *Vcx, double *Vcy, double *Vcz,
 MATRIX *ImageDirCos2Slice(double Vcx, double Vcy, double Vcz,
 			  double Vrx, double Vry, double Vrz,
 			  double *Vsx, double *Vsy, double *Vsz);
+
+int DCMcheckInterceptSlope(DCM_OBJECT *object);
 
 #ifdef SunOS
 /* kteich - this typedef is to keep the compiler from complaining

@@ -17,6 +17,7 @@ set fmax    = 5;
 set label = ();
 set UseTkSurfer = 0;
 set curv = curv
+set DoAllSurfs = 0;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -69,6 +70,7 @@ if(! $UseTkSurfer) then
       if($#overlayreg) set surfarg = "$surfarg":"overlay_reg=$overlayreg"
     end
     if($#label) set surfarg = "$surfarg":"label=$label"
+    if($DoAllSurfs) set surfarg = "$surfarg":"all=true"
     set cmd = ($cmd $surfarg)
   end
   set cmd = ($cmd -viewport 3d)
@@ -197,6 +199,13 @@ while( $#argv != 0 )
       set surflist0 = (white pial inflated)
       breaksw
 
+    case "-all":
+      set DoAllSurfs = 1;
+      breaksw
+    case "-no-all":
+      set DoAllSurfs = 0;
+      breaksw
+
     case "-tksurfer":
     case "-tkm":
       set UseTkSurfer = 1;
@@ -319,6 +328,8 @@ usage_exit:
   echo ""
   echo "-tksurfer : use tksurfer instead of freeview"
   echo "Can have multiple annotations"
+  echo ""
+  echo "-all : load white, pial, inflated"
   echo ""
   if(! $PrintHelp) exit 1;
   echo $VERSION

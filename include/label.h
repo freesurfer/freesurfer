@@ -164,6 +164,8 @@ LABEL *LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad) ;
 int   LabelUnassign(LABEL *area) ;
 LABEL *MRISlabelInvert(MRIS *surf, LABEL *label);
 int LabelMaskSurface(LABEL *label, MRI_SURFACE *mris) ;
+int LabelMaskSurfaceValues(LABEL *label, MRI_SURFACE *mris) ;
+int LabelMaskSurfaceCurvature(LABEL *label, MRI_SURFACE *mris) ;
 int LabelMaskSurfaceVolume(LABEL *label, MRI *mri, float nonmask_val) ;
 
 #include "mrishash.h"

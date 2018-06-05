@@ -16,7 +16,6 @@ DMRISUBDIRS=\
 
 GLSUBDIRS=\
 	glut \
-	nmovie \
 	stim_polar \
 	tkmedit \
 	tkregister2 \
@@ -264,6 +263,7 @@ MRISSUBDIRS=\
 	mris_errors \
 	mris_euler_number \
 	mris_expand \
+	mris_extract_patches \
 	mris_find_flat_regions \
 	mris_fix_topology \
 	mris_topo_fixer \
@@ -310,6 +310,7 @@ MRISSUBDIRS=\
 	mris_average_parcellation \
 	mris_surface_to_vol_distances \
 	mrisp_paint \
+	mrisp_write \
 	mris_talairach \
 	mris_surface_change \
 	mris_thickness \
@@ -346,7 +347,6 @@ MISCDIRS=\
 	histo_compute_joint_density \
 	histo_register_block \
 	regdat2xfm \
-	dngtester \
 	test_makevol \
 	images \
 	dummy \
@@ -357,7 +357,6 @@ MISCDIRS=\
 	histo_register \
 	spline3 \
 	swi_processing \
-	nmovie_qt \
 	HippoSF \
 	BrainstemSS
 
