@@ -402,14 +402,6 @@ bool WindowConfigureOverlay::UpdateOverlayProperty( SurfaceOverlayProperty* p )
   return true;
 }
 
-void WindowConfigureOverlay::UpdateGraphClean()
-{
-  if (m_fDataCache)
-    delete[] m_fDataCache;
-  m_fDataCache = NULL;
-  UpdateGraph();
-}
-
 void WindowConfigureOverlay::UpdateGraph()
 {
   if ( m_layerSurface && m_layerSurface->GetActiveOverlay() )
@@ -717,7 +709,12 @@ void WindowConfigureOverlay::OnCurrentVertexChanged()
   if ( m_layerSurface && m_layerSurface->GetActiveOverlay()
        && m_layerSurface->GetActiveOverlay()->GetNumberOfFrames() > 1 )
   {
-    int nVertex = m_layerSurface->GetVertexIndexAtTarget( m_layerSurface->GetSlicePosition(), NULL );
+    int nVertex;
+    if (m_layerSurface->IsInflated())
+      nVertex = m_layerSurface->GetCurrentVertex();
+    else
+      nVertex = m_layerSurface->GetVertexIndexAtTarget( m_layerSurface->GetSlicePosition(), NULL );
+
     if (nVertex >= 0 && ui->checkBoxAutoFrame->isChecked()
         && nVertex < m_layerSurface->GetActiveOverlay()->GetNumberOfFrames())
     {
