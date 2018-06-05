@@ -80,6 +80,7 @@ protected slots:
   void OnComboMask(int n);
   void OnCheckInverseMask(bool bChecked);
   void OnSurfaceLabelAdded(SurfaceLabel* label);
+  void OnCheckAutoFrameByVertex(bool bChecked);
 
 private:
   Ui::WindowConfigureOverlay *ui;

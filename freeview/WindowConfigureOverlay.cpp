@@ -54,6 +54,7 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   ui->buttonBox->button(QDialogButtonBox::Apply)->setAutoDefault(true);
   connect(ui->widgetHistogram, SIGNAL(MarkerChanged()), this, SLOT(OnHistogramMarkerChanged()));
   connect(ui->checkBoxApplyToAll, SIGNAL(toggled(bool)), this, SLOT(OnCheckApplyToAll(bool)));
+  connect(ui->checkBoxAutoFrame, SIGNAL(toggled(bool)), this, SLOT(OnCheckAutoFrameByVertex(bool)));
   m_layerSurface = NULL;
   QSettings settings;
   QVariant v = settings.value("WindowConfigureOverlay/Geometry");
@@ -816,4 +817,10 @@ void WindowConfigureOverlay::OnSurfaceLabelAdded(SurfaceLabel* label)
     setProperty("wait_for_label", false);
     ui->comboBoxMask->setCurrentIndex(1);
   }
+}
+
+void WindowConfigureOverlay::OnCheckAutoFrameByVertex(bool bChecked)
+{
+  if (bChecked)
+    OnCurrentVertexChanged();
 }
