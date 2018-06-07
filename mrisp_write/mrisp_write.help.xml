@@ -48,6 +48,8 @@
       <explanation>Set SUBJECTS_DIR. Default: use environment variable/</explanation>
       <argument>-A &lt;navgs&gt;</argument>
       <explanation>Average curvature patterns navgs times</explanation>
+      <argument>-CORR &lt;label_file_name&gt;</argument>
+      <explanation>Use the overlay to compute the correlation matrix within the  specified label</explanation>
       <argument>-N</argument>
       <explanation>Normalize curvature by variance.</explanation>
       <argument>-?,-U</argument>
