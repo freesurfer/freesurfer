@@ -38,11 +38,13 @@
 #include "version.h"
 #include "label.h"
 #include "mri_identify.h"
+#include "fsinit.h"
 
 static char vcid[] = "$Id: mrisp_write.c,v 1.12 2016/03/22 14:47:57 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
+MRI *mrisComputeLabelCorrelations(MRI_SURFACE *mris, LABEL *area, MRI *mri_overlay, MRI *mri_corr) ;
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;
@@ -51,9 +53,12 @@ static void print_version(void) ;
 
 char *Progname ;
 
+static int compute_corr = 0 ;
 static char *label_fname = NULL;
+static char *seed_label_fname = NULL;
 static int normalize = 0 ;
 static int navgs = 0 ;
+static float sigma=0;
 
 
 static char subjects_dir[STRLEN] ;
@@ -80,6 +85,7 @@ main(int argc, char *argv[])
   argc -= nargs;
 
   Progname = argv[0] ;
+  FSinit() ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
@@ -115,6 +121,20 @@ main(int argc, char *argv[])
     mri_overlay = MRIread(in_overlay) ;
     if (mri_overlay == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface-encoded volume file from %s", Progname, in_overlay) ;
+
+    if (compute_corr) // store a frame of correlations for each vertex in the label in the mrisp
+    {
+      MRI *mri_corr ;
+
+      area = LabelRead(NULL, seed_label_fname) ;
+      if (area == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not read label file from %s", seed_label_fname) ;
+      printf("computing %d surface correlations\n", area->n_points) ;
+      mri_corr = mrisComputeLabelCorrelations(mris, area, mri_overlay, NULL) ;
+      MRIfree(&mri_overlay) ;
+      mri_overlay = mri_corr ;
+    }
+
     printf("processing surface-encoded volume file with %d frames\n", mri_overlay->nframes) ;
     mrisp = MRISPalloc(scale, mri_overlay->nframes) ;
     if (label_fname)
@@ -125,7 +145,7 @@ main(int argc, char *argv[])
     }
     else
       area = NULL ;
-
+    
     for (frame = 0 ; frame < mri_overlay->nframes ; frame++)
     {
       printf("\rframe %3.3d of %3.3d", frame, mri_overlay->nframes) ;
@@ -134,17 +154,21 @@ main(int argc, char *argv[])
       if (normalize)
 	MRISnormalizeCurvature(mris, NORM_MEAN);
 
-      if (label_fname)
+      if (label_fname)  // if compute_corr==TRUE then label is a set of seeds and don't mask
 	LabelMaskSurfaceCurvature(area, mris);
-    
+      
       MRISaverageCurvatures(mris, navgs) ;
-      if (label_fname)
+      if (label_fname)  // if compute_corr==TRUE then label is a set of seeds and don't mask
 	LabelMaskSurfaceCurvature(area, mris);
 
-    
+      if (frame == Gz)
+      {
+	extern int DEBUG_U, DEBUG_V ;
+	DEBUG_U = Gx ; DEBUG_V = Gy ;
+      }
       MRIStoParameterization(mris, mrisp, scale, frame) ;
     }
-    printf("\n") ;
+      printf("\n") ;
   }
   else // process a 'curvature' file like thickness with a single frame
   {
@@ -175,6 +199,18 @@ main(int argc, char *argv[])
     }
     
     MRIStoParameterization(mris, mrisp, scale, 0) ;
+  }
+  if (sigma> 0)
+  {
+    int f ;
+    MRI_SP *mrisp_dst ;
+
+    printf("applying spherical convolution with sigma = %2.1f\n", sigma) ;
+    mrisp_dst = MRISPclone(mrisp) ;
+    for (f = 0 ; f < mrisp->Ip->num_frame ; f++)
+      MRISPblur(mrisp, mrisp_dst, sigma, f) ;
+    MRISPfree(&mrisp) ;
+    mrisp = mrisp_dst ;
   }
   printf("writing output file to %s\n", out_fname) ;
 
@@ -211,6 +247,27 @@ get_option(int argc, char *argv[])
     strcpy(subjects_dir, argv[2]) ;
     nargs = 1 ;
     printf("using %s as subjects directory\n", subjects_dir) ;
+  }
+  else if (!stricmp(option, "DEBUG_VOXEL"))
+  {
+    Gx = atoi(argv[2]) ;
+    Gy = atoi(argv[3]) ;
+    Gz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
+  }
+  else if (!stricmp(option, "CORR"))
+  {
+    seed_label_fname = argv[2] ;
+    printf("computing vertex correlations inside label %s\n", seed_label_fname) ;
+    compute_corr = 1 ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "sigma"))
+  {
+    sigma = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("blurring maps with Cartesian kernel with sigma=%2.2F\n", sigma) ;
   }
   else if (!stricmp(option, "NFRAMES")) // not implemented yet
   {
@@ -290,5 +347,46 @@ print_version(void)
 {
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
+}
+
+MRI *
+mrisComputeLabelCorrelations(MRI_SURFACE *mris, LABEL *area, MRI *mri_overlay, MRI *mri_corr)
+{
+  int    lvno  ;
+
+  if (mri_corr == NULL)
+    mri_corr = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, area->n_points);
+  if (mri_corr == NULL)
+    ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d x %d correlation matrix", mris->nvertices, area->n_points);
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
+  for (lvno = 0 ; lvno < area->n_points ; lvno++)
+  {
+    int    vno1, vno2, t  ;
+    double norm1, norm2, dot, val1, val2 ;
+
+    vno1 = area->lv[lvno].vno ;
+    for (vno2 = 0 ; vno2 < mris->nvertices ; vno2++)
+    {
+      dot = norm1 = norm2 =  0 ;
+      for (t = 0 ; t < mri_overlay->nframes ; t++)
+      {
+	val1 = MRIgetVoxVal(mri_overlay, vno1, 0, 0, t) ;
+	val2 = MRIgetVoxVal(mri_overlay, vno2, 0, 0, t) ;
+	dot += val1*val2 ;
+	norm1 += val1*val1 ;
+	norm2 += val2*val2 ;
+      }
+      if (FZERO(norm1) || FZERO(norm2))
+	dot = 0 ;
+      else
+	dot = dot / ((sqrt(norm1) * sqrt(norm2))) ;
+      MRIsetVoxVal(mri_corr, vno2, 0, 0, lvno, dot) ;
+    }
+  }
+
+  return(mri_corr) ;
 }
 
