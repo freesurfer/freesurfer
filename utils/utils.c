@@ -946,7 +946,8 @@ int devIsnan(float value)
 /* non-zero if neither infinite nor NaN, 0 otherwise */
 int devFinite(float value)
 {
-  if (!devIsinf(value) && !devIsnan(value)) return (1);
+  if (!devIsinf(value) && !devIsnan(value)) 
+    return (1);
 
   return (0);
 } /* end devFinite() */

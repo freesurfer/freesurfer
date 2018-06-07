@@ -56,8 +56,8 @@
 #define DEBUG_U 255
 #define DEBUG_V 410
 #endif
-static int DEBUG_U = -1;
-static int DEBUG_V = -1;
+ int DEBUG_U = -1;
+ int DEBUG_V = -1;
 
 static int spherical_coordinate(double x, double y, double z, double *pphi, double *ptheta);
 
@@ -451,7 +451,8 @@ MRI_SP *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, in
     if (v >= V_DIM(mrisp)) v -= V_DIM(mrisp);
 
     if (u == 0 && v == 56) DiagBreak();
-    if ((u == DEBUG_U) && (v == DEBUG_V)) DiagBreak();
+    if ((u == DEBUG_U) && (v == DEBUG_V)) 
+      DiagBreak();
 
     filled[u][v] = vno;
     distances[u][v] += 1; /* keep track of total # of nodes */
@@ -496,7 +497,10 @@ MRI_SP *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, in
     /* 0,0 */
     total_d = distances[u][v];
     if ((total_d > 10000.0) || (vertex->curv > 1000.0)) DiagBreak();
-    if (total_d > 0.0) *IMAGEFseq_pix(mrisp->Ip, u, v, fno) += vertex->curv / total_d;
+    if (total_d > 0.0) 
+      *IMAGEFseq_pix(mrisp->Ip, u, v, fno) += vertex->curv / total_d;
+    if (devFinite(*IMAGEFseq_pix(mrisp->Ip, u, v, fno)) == 0)
+      DiagBreak() ;
     if ((u == DEBUG_U) && (v == DEBUG_V))
       fprintf(stderr,
               "v = %6.6d (%2.1f, %2.1f, %2.1f), curv = %2.3f, "
@@ -547,6 +551,8 @@ MRI_SP *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, in
           }
         }
         *IMAGEFseq_pix(mrisp->Ip, u, v, fno) = mris->vertices[min_v].curv ;
+	if (devFinite(*IMAGEFseq_pix(mrisp->Ip, u, v, fno)) == 0)
+	  DiagBreak() ;
       }
     }
   }
@@ -567,7 +573,10 @@ MRI_SP *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, in
     ;
     for (u = 0; u <= U_MAX_INDEX(mrisp); u++) {
       for (v = 0; v <= V_MAX_INDEX(mrisp); v++) {
-        if ((u == DEBUG_U) && (v == DEBUG_V)) DiagBreak();
+        if ((u == DEBUG_U) && (v == DEBUG_V)) 
+	  DiagBreak();
+	if (devFinite(*IMAGEFseq_pix(mrisp->Ip, u, v, fno)) == 0)
+	  DiagBreak() ;
         if (filled[u][v] == UNFILLED_ELT) {
           for (total = 0.0f, n = 0, uk = -1; uk <= 1; uk++) {
             u1 = u + uk;
@@ -583,6 +592,8 @@ MRI_SP *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, in
                 v1 -= V_DIM(mrisp);
 
               if (filled[u1][v1] >= 0) {
+		if (devFinite(*IMAGEFseq_pix(mrisp->Ip, u1, v1, fno)) == 0)
+		  DiagBreak() ;
                 total += *IMAGEFseq_pix(Ip, u1, v1, fno);
                 n++;
               }
@@ -590,6 +601,8 @@ MRI_SP *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp, float scale, in
           }
           if (n > 0) {
             total /= (float)n;
+	    if (devFinite(*IMAGEFseq_pix(Itmp, u, v, fno)) == 0)
+	      DiagBreak() ;
             *IMAGEFseq_pix(Itmp, u, v, fno) = total;
             filled[u][v] = FILLING_ELT;
             nfilled++;
