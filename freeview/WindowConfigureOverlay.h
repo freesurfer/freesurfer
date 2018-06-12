@@ -81,6 +81,7 @@ protected slots:
   void OnCheckInverseMask(bool bChecked);
   void OnSurfaceLabelAdded(SurfaceLabel* label);
   void OnCheckAutoFrameByVertex(bool bChecked);
+  void OnCheckUseNonZeroVertices(bool bChecked);
 
 private:
   Ui::WindowConfigureOverlay *ui;

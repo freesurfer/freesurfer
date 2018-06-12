@@ -545,10 +545,13 @@ double SurfaceOverlay::PercentileToPosition(double percentile)
   memset( m_nOutputData, 0, m_nNumberOfBins * sizeof( int ) );
   for ( long i = 0; i < m_nDataSize; i++ )
   {
-    int n = (int)( ( m_fData[i] - range[0] ) / m_dBinWidth );
-    if ( n >= 0 && n < m_nNumberOfBins )
+    if (!GetProperty()->GetIgnoreZeros() || m_fData[i] != 0)
     {
-      m_nOutputData[n] ++;
+      int n = (int)( ( m_fData[i] - range[0] ) / m_dBinWidth );
+      if ( n >= 0 && n < m_nNumberOfBins )
+      {
+        m_nOutputData[n] ++;
+      }
     }
   }
 

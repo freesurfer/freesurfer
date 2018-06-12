@@ -3384,11 +3384,14 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd_in )
 
       overlay->GetProperty()->SetColorMethod( nMethod );
 
-      bool bPercentile = false;
-      if (cmd.last() == "percentile")
+      bool bPercentile = false, bIgnoreZeros = false;
+      while (cmd.last() == "percentile" || cmd.last() == "ignore_zeros")
       {
+        if (cmd.last() == "percentile")
+          bPercentile = true;
+        else
+          bIgnoreZeros = true;
         cmd.removeLast();
-        bPercentile = true;
       }
       double values[3];
       if ( cmd.size() - 2 >= 3 )   // 3 values
@@ -3397,6 +3400,8 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd_in )
         values[0] = cmd[2].toDouble(&bOK);
         values[1] = cmd[3].toDouble(&bOK);
         values[2] = cmd[4].toDouble(&bOK);
+        if (bIgnoreZeros)
+          overlay->GetProperty()->SetIgnoreZeros(bIgnoreZeros);
         if (bPercentile)
         {
           overlay->GetProperty()->SetUsePercentile(bPercentile);
