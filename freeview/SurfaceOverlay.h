@@ -117,6 +117,16 @@ public:
     return m_strFileName;
   }
 
+  void SetRegFileName(const QString& fn)
+  {
+    m_strRegFileName = fn;
+  }
+
+  QString GetRegFileName()
+  {
+    return m_strRegFileName;
+  }
+
   void SmoothData(int nSteps = -1, float* data_out = NULL);
 
   int GetNumberOfFrames()
@@ -173,6 +183,7 @@ private:
 
   QString       m_strName;
   QString       m_strFileName;
+  QString       m_strRegFileName;
   LayerSurface* m_surface;
 
   bool        m_bCorrelationData;

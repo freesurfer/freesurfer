@@ -190,6 +190,8 @@ void PanelAllLayers::AddLayers(QList<Layer *> layers, const QString &cat_name, L
       {
         selectedItems << item;
       }
+      if (layers[i]->GetAboutToDelete())
+        item->setHidden(true);
     }
     topItem->setExpanded(true);
   }

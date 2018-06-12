@@ -416,6 +416,7 @@ bool LayerSurface::LoadGenericOverlayFromFile( const QString& filename, const QS
   overlay->InitializeData(data, nvertices, nframes);
   overlay->SetName( QFileInfo(filename).fileName() );
   overlay->SetFileName( filename );
+  overlay->SetRegFileName( fn_reg );
 
   m_overlays.push_back( overlay );
   SetActiveOverlay( m_overlays.size() - 1 );
@@ -443,6 +444,8 @@ bool LayerSurface::LoadCorrelationFromFile( const QString& filename )
   emit Modified();
   emit SurfaceOverlayAdded( overlay );
   connect(overlay, SIGNAL(DataUpdated()), this, SIGNAL(SurfaceOverlyDataUpdated()), Qt::UniqueConnection);
+  if (overlay->HasCorrelationData())
+    UpdateCorrelationOverlay();
   return true;
 }
 
@@ -597,7 +600,6 @@ void LayerSurface::DeleteSpline(SurfaceSpline *spline)
     }
   }
 }
-
 
 void LayerSurface::InitializeSurface()
 {

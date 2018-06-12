@@ -108,6 +108,11 @@ public:
 
   void Resample(LayerMRI* mri);
 
+  QString GetFileName()
+  {
+    return m_strFilename;
+  }
+
 Q_SIGNALS:
   void SurfaceLabelChanged();
   void SurfaceLabelVisibilityChanged();
@@ -135,6 +140,7 @@ private:
   int           m_nColorCode;
   double        m_dHeatscaleMin;
   double        m_dHeatscaleMax;
+  QString       m_strFilename;
 
   vtkSmartPointer<vtkRGBAColorTransferFunction> m_lut;
 };

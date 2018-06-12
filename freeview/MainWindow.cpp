@@ -113,6 +113,7 @@
 #include "DialogLoadTransform.h"
 #include "LayerPropertyTrack.h"
 #include "BinaryTreeView.h"
+#include "SurfaceAnnotation.h"
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
@@ -1832,6 +1833,17 @@ void MainWindow::RunScript()
       GoToContralateralPoint(surf);
     }
   }
+  else if (cmd == "setcurrentvertex")
+  {
+    LayerSurface* surf = qobject_cast<LayerSurface*>(GetActiveLayer("Surface"));
+    if (surf)
+    {
+      bool bOk;
+      int n = sa[1].toInt(&bOk);
+      if (bOk && n >= 0)
+        surf->SetCurrentVertex(n);
+    }
+  }
   else if (cmd == "reorderlayers")
   {
     CommandReorderLayers(sa);
@@ -3011,6 +3023,10 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         {
           m_scripts.insert( 0, QStringList("displaysurfacevertex") << subArgu);
         }
+        else if ( subOption == "current_vertex")
+        {
+          m_scripts.insert(0, QStringList("setcurrentvertex") << subArgu);
+        }
         else if ( subOption == "hide_in_3d")
         {
           m_scripts.insert( 0, QStringList("hidesurfacein3d") << subArgu);
@@ -3066,7 +3082,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         else if ( subOption == "annot" || subOption == "annotation" || subOption == "aparc" )
         {
           // add script to load surface annotation files
-          QStringList annot_fns =subArgu.split(",");
+          QStringList annot_fns = subArgu.split(",");
           for ( int i = annot_fns.size()-1; i >= 0; i-- )
           {
             m_scripts.insert( 0, QStringList("loadsurfaceannotation") << annot_fns[i] );
@@ -7254,8 +7270,52 @@ void MainWindow::OnReloadSurface()
       {
         LayerSurface* surf = qobject_cast<LayerSurface*>(sel_layers[i]);
         QString args = QString("%1:name=%2:id=%3").arg(surf->GetFileName()).arg(surf->GetName()).arg(surf->GetID());
+        if (surf->GetCurrentVertex() >= 0)
+          args += QString(":current_vertex=%1").arg(surf->GetCurrentVertex());
+        args += QString(":overlay_zorder=%1:label_zorder=%2:annot_zorder=%3")
+            .arg(surf->GetProperty()->GetZOrderOverlay())
+            .arg(surf->GetProperty()->GetZOrderLabel())
+            .arg(surf->GetProperty()->GetZOrderAnnotation());
         surf->SetID(surf->GetID()+1000000);
         AddScript(QStringList("loadsurface") << args);
+
+        for (int j = surf->GetNumberOfOverlays()-1; j >= 0; j--)
+        {
+          SurfaceOverlay* overlay = surf->GetOverlay(j);
+          QStringList script("loadsurfaceoverlay");
+          if (overlay)
+          {
+            script << overlay->GetFileName() << overlay->GetRegFileName();
+            if (overlay->HasCorrelationData())
+              script << "correlation";
+            AddScript(script);
+          }
+        }
+        for (int j = surf->GetNumberOfLabels()-1; j >= 0; j--)
+        {
+          SurfaceLabel* label = surf->GetLabel(j);
+          if (label)
+          {
+            AddScript(QStringList("loadsurfacelabel") << label->GetFileName());
+            if (label->GetShowOutline())
+              AddScript(QStringList("setsurfacelabeloutline") << "1");
+            if (!label->IsVisible())
+              AddScript(QStringList("hidesurfacelabel"));
+            double* c = label->GetColor();
+            AddScript(QStringList("setsurfacelabelcolor") << QString("%1,%2,%3").arg((int)(c[0]*255)).arg((int)(c[1]*255)).arg((int)(c[2]*255)));
+          }
+        }
+        for (int j = surf->GetNumberOfAnnotations()-1; j >= 0; j--)
+        {
+          SurfaceAnnotation* annot = surf->GetAnnotation(j);
+          if (annot)
+          {
+            AddScript(QStringList("loadsurfaceannotation") << annot->GetFilename());
+            if (annot->GetShowOutline())
+              AddScript(QStringList("setsurfaceannotationoutline") << "1");
+          }
+        }
+        surf->MarkAboutToDelete();
       }
       if (dlg.GetCloseLayerFirst())
       {

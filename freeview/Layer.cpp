@@ -41,6 +41,8 @@ Layer::Layer( QObject* parent ) : QObject( parent )
   m_nID = m_nLastID + 1;
   m_nLastID++;
 
+  m_bAboutToDelete = false;
+
   for ( int i = 0; i < 3; i++ )
   {
     m_dSlicePosition[i] = 0;

@@ -122,6 +122,7 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
   {
     return false;
   }
+  m_strFilename = filename;
 
   QString strg;
   while (!file.atEnd())
@@ -168,6 +169,7 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
   m_nOutlineIndices = new int[m_label->n_points];
   UpdateOutline();
   UpdateLut();
+
 
   return true;
 }
