@@ -232,7 +232,7 @@ public:
     return m_bAboutToDelete;
   }
 
-  void MarkAboutToDelete(bool flag = true)
+  void MarkAboutToDelete()
   {
     m_bAboutToDelete = true;
   }
