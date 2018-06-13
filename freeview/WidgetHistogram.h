@@ -101,18 +101,12 @@ public:
     range[1] = m_dInputRange[1];
   }
 
-
-  //  double PositionToPercentile(double pos);
-
-  //  double PercentileToPosition(double percentile);
-
 signals:
   void MouseButtonPressed(int button, double value);
   void MarkerChanged();
 
 public slots:
   void SetAutoRange( bool bRange );
-  //  void SetUsePercentile(bool bUsePercentile);
   void SetForegroundColor( const QColor& color );
   void FlipMarkers();
 

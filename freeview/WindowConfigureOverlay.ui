@@ -924,7 +924,7 @@ color: gray;</string>
    <sender>checkBoxTruncate</sender>
    <signal>toggled(bool)</signal>
    <receiver>WindowConfigureOverlay</receiver>
-   <slot>UpdateGraph()</slot>
+   <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>102</x>
@@ -940,7 +940,7 @@ color: gray;</string>
    <sender>checkBoxInverse</sender>
    <signal>toggled(bool)</signal>
    <receiver>WindowConfigureOverlay</receiver>
-   <slot>UpdateGraph()</slot>
+   <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>207</x>
@@ -956,7 +956,7 @@ color: gray;</string>
    <sender>radioButtonHeat</sender>
    <signal>toggled(bool)</signal>
    <receiver>WindowConfigureOverlay</receiver>
-   <slot>UpdateGraph()</slot>
+   <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>102</x>
@@ -972,7 +972,7 @@ color: gray;</string>
    <sender>radioButtonColorWheel</sender>
    <signal>toggled(bool)</signal>
    <receiver>WindowConfigureOverlay</receiver>
-   <slot>UpdateGraph()</slot>
+   <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>207</x>
@@ -988,7 +988,7 @@ color: gray;</string>
    <sender>radioButtonCustom</sender>
    <signal>toggled(bool)</signal>
    <receiver>WindowConfigureOverlay</receiver>
-   <slot>UpdateGraph()</slot>
+   <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>310</x>
@@ -1068,7 +1068,7 @@ color: gray;</string>
    <sender>radioButtonLinear</sender>
    <signal>toggled(bool)</signal>
    <receiver>WindowConfigureOverlay</receiver>
-   <slot>UpdateGraph()</slot>
+   <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>93</x>
@@ -1084,7 +1084,7 @@ color: gray;</string>
    <sender>radioButtonLinearOpaque</sender>
    <signal>toggled(bool)</signal>
    <receiver>WindowConfigureOverlay</receiver>
-   <slot>UpdateGraph()</slot>
+   <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>212</x>
@@ -1100,7 +1100,7 @@ color: gray;</string>
    <sender>radioButtonPiecewise</sender>
    <signal>toggled(bool)</signal>
    <receiver>WindowConfigureOverlay</receiver>
-   <slot>UpdateGraph()</slot>
+   <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>303</x>
@@ -1260,7 +1260,7 @@ color: gray;</string>
    <sender>checkBoxClearLower</sender>
    <signal>toggled(bool)</signal>
    <receiver>WindowConfigureOverlay</receiver>
-   <slot>UpdateGraph()</slot>
+   <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>310</x>
@@ -1276,7 +1276,7 @@ color: gray;</string>
    <sender>checkBoxClearHigher</sender>
    <signal>toggled(bool)</signal>
    <receiver>WindowConfigureOverlay</receiver>
-   <slot>UpdateGraph()</slot>
+   <slot>UpdateGraphAndApply()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>418</x>
@@ -1660,5 +1660,6 @@ color: gray;</string>
   <slot>OnComboMask(int)</slot>
   <slot>OnCheckInverseMask(bool)</slot>
   <slot>OnCheckUseNonZeroVertices(bool)</slot>
+  <slot>UpdateGraphAndApply()</slot>
  </slots>
 </ui>

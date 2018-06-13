@@ -55,6 +55,10 @@ signals:
 
 public slots:
   void UpdateGraph(bool bApply = false);
+  void UpdateGraphAndApply()
+  {
+    UpdateGraph(true);
+  }
   void UpdateUI();
   void OnCurrentVertexChanged();
 
