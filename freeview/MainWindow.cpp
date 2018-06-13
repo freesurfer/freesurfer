@@ -3393,54 +3393,42 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd_in )
           bIgnoreZeros = true;
         cmd.removeLast();
       }
+
       double values[3];
+      if (bIgnoreZeros)
+        overlay->GetProperty()->SetIgnoreZeros(bIgnoreZeros);
+      if (bPercentile)
+        overlay->GetProperty()->SetUsePercentile(bPercentile);
+
+      bool bOK;
       if ( cmd.size() - 2 >= 3 )   // 3 values
       {
-        bool bOK;
         values[0] = cmd[2].toDouble(&bOK);
         values[1] = cmd[3].toDouble(&bOK);
         values[2] = cmd[4].toDouble(&bOK);
-        if (bIgnoreZeros)
-          overlay->GetProperty()->SetIgnoreZeros(bIgnoreZeros);
-        if (bPercentile)
-        {
-          overlay->GetProperty()->SetUsePercentile(bPercentile);
-          for (int i = 0; i < 3; i++)
-            values[i] = overlay->PercentileToPosition(values[i]);
-        }
-        if ( bOK )
-        {
-          overlay->GetProperty()->SetMinPoint( values[0] );
-          overlay->GetProperty()->SetMidPoint( values[1] );
-          overlay->GetProperty()->SetMaxPoint( values[2] );
-        }
-        else
-        {
-          cerr << "Invalid input for overlay threshold.\n";
-        }
       }
-      else if ( cmd.size() - 2 == 2 )   // 2 values
+      else if (cmd.size() - 2 == 2)
       {
-        bool bOK;
         values[0] = cmd[2].toDouble(&bOK);
-        values[1] = cmd[3].toDouble(&bOK);
-        if ( bOK )
-        {
-          if (bPercentile)
-          {
-            overlay->GetProperty()->SetUsePercentile(bPercentile);
-            for (int i = 0; i < 2; i++)
-              values[i] = overlay->PercentileToPosition(values[i]);
-          }
-          overlay->GetProperty()->SetMinPoint( values[0] );
-          overlay->GetProperty()->SetMaxPoint( values[1] );
-          overlay->GetProperty()->SetMidPoint( ( values[0] + values[1] ) / 2 );
-        }
-        else
-        {
-          cerr << "Invalid input for overlay threshold.\n";
-        }
+        values[2] = cmd[3].toDouble(&bOK);
+        values[1] = (values[0]+values[2])/2;
       }
+      if (bPercentile)
+      {
+        for (int i = 0; i < 3; i++)
+          values[i] = overlay->PercentileToPosition(values[i], bIgnoreZeros);
+      }
+      if ( bOK )
+      {
+        overlay->GetProperty()->SetMinPoint( values[0] );
+        overlay->GetProperty()->SetMidPoint( values[1] );
+        overlay->GetProperty()->SetMaxPoint( values[2] );
+      }
+      else
+      {
+        cerr << "Invalid input for overlay threshold.\n";
+      }
+
       surf->UpdateOverlay(true);
       overlay->EmitDataUpdated();
     }
@@ -7203,14 +7191,14 @@ void MainWindow::OnReloadVolume()
       foreach (Layer* layer, all_layers)
         layer_order << QString::number(layer->GetID());
 
-//      if (dlg.GetCloseLayerFirst())
-//      {
-//        if (!OnCloseVolume())
-//        {
-//          m_volumeSettings.clear();
-//          return;
-//        }
-//      }
+      //      if (dlg.GetCloseLayerFirst())
+      //      {
+      //        if (!OnCloseVolume())
+      //        {
+      //          m_volumeSettings.clear();
+      //          return;
+      //        }
+      //      }
       QStringList layer_ids;
       if (dlg.GetCloseLayerFirst())
       {

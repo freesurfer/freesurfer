@@ -43,7 +43,6 @@ WidgetHistogram::WidgetHistogram(QWidget *parent) :
   m_nMaxCount = 0;
   m_nColorTable = NULL;
   m_bMarkerEditable = false;
-  m_bUsePercentile = false;
 
   m_rectGraph = QRect( 50, 20, 100, 100 );
 }
@@ -643,51 +642,51 @@ void WidgetHistogram::FlipMarkers()
   emit MarkerChanged();
 }
 
-void WidgetHistogram::SetUsePercentile(bool bUsePercentile)
-{
-  if (m_bUsePercentile == bUsePercentile)
-    return;
+//void WidgetHistogram::SetUsePercentile(bool bUsePercentile)
+//{
+//  if (m_bUsePercentile == bUsePercentile)
+//    return;
 
-  m_bUsePercentile = bUsePercentile;
+//  m_bUsePercentile = bUsePercentile;
 
-  emit MarkerChanged();
-}
+//  emit MarkerChanged();
+//}
 
-double WidgetHistogram::PositionToPercentile(double pos)
-{
-  double dArea = 0;
-  double dPos = m_dOutputRange[0];
-  int n = 0;
-  while (dPos < pos && n < m_nNumberOfBins)
-  {
-    dArea += m_nOutputData[n];
-    dPos += m_dBinWidth;
-    n++;
-  }
-  if (dPos > pos && n > 0)
-  {
-    dArea -= (dPos-pos)*m_nOutputData[n-1]/m_dBinWidth;
-  }
+//double WidgetHistogram::PositionToPercentile(double pos)
+//{
+//  double dArea = 0;
+//  double dPos = m_dOutputRange[0];
+//  int n = 0;
+//  while (dPos < pos && n < m_nNumberOfBins)
+//  {
+//    dArea += m_nOutputData[n];
+//    dPos += m_dBinWidth;
+//    n++;
+//  }
+//  if (dPos > pos && n > 0)
+//  {
+//    dArea -= (dPos-pos)*m_nOutputData[n-1]/m_dBinWidth;
+//  }
 
-  return dArea/m_dOutputTotalArea;
-}
+//  return dArea/m_dOutputTotalArea;
+//}
 
-double WidgetHistogram::PercentileToPosition(double percentile)
-{
-  double dArea = 0;
-  double dPos = m_dOutputRange[0];
-  int n = 0;
-  while (dArea/m_dOutputTotalArea < percentile && n < m_nNumberOfBins)
-  {
-    dArea += m_nOutputData[n];
-    dPos += m_dBinWidth;
-    n++;
-  }
+//double WidgetHistogram::PercentileToPosition(double percentile)
+//{
+//  double dArea = 0;
+//  double dPos = m_dOutputRange[0];
+//  int n = 0;
+//  while (dArea/m_dOutputTotalArea < percentile && n < m_nNumberOfBins)
+//  {
+//    dArea += m_nOutputData[n];
+//    dPos += m_dBinWidth;
+//    n++;
+//  }
 
-  if (dArea > percentile*m_dOutputTotalArea && n > 0)
-  {
-    dPos -= (dArea-percentile*m_dOutputTotalArea)*m_dBinWidth/m_nOutputData[n-1];
-  }
+//  if (dArea > percentile*m_dOutputTotalArea && n > 0)
+//  {
+//    dPos -= (dArea-percentile*m_dOutputTotalArea)*m_dBinWidth/m_nOutputData[n-1];
+//  }
 
-  return dPos;
-}
+//  return dPos;
+//}

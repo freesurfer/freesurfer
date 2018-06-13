@@ -51,7 +51,7 @@ public:
   explicit WidgetHistogram(QWidget *parent = 0);
   ~WidgetHistogram();
 
-  template <class T> void SetInputData( T* data, long size, double* range = NULL, bool ignore_zeros = false );
+  template <class T> void SetInputData( T* data, long size, double* range = NULL);
 
   void GetOutputRange( double* dRange );
 
@@ -102,9 +102,9 @@ public:
   }
 
 
-  double PositionToPercentile(double pos);
+  //  double PositionToPercentile(double pos);
 
-  double PercentileToPosition(double percentile);
+  //  double PercentileToPosition(double percentile);
 
 signals:
   void MouseButtonPressed(int button, double value);
@@ -112,7 +112,7 @@ signals:
 
 public slots:
   void SetAutoRange( bool bRange );
-  void SetUsePercentile(bool bUsePercentile);
+  //  void SetUsePercentile(bool bUsePercentile);
   void SetForegroundColor( const QColor& color );
   void FlipMarkers();
 
@@ -157,11 +157,9 @@ protected:
   bool        m_bMarkerEditable;
   int         m_nActiveMarker;
   bool        m_bActiveMarkerMirrored;
-
-  bool        m_bUsePercentile;
 };
 
-template <class T> void WidgetHistogram::SetInputData( T* data, long size, double* range, bool ignore_zeros)
+template <class T> void WidgetHistogram::SetInputData( T* data, long size, double* range)
 {
   if ( m_dInputData )
   {
@@ -171,25 +169,21 @@ template <class T> void WidgetHistogram::SetInputData( T* data, long size, doubl
   m_dInputData = new double[size];
   if ( m_dInputData )
   {
-    int nCnt = 0;
     m_dInputRange[0] = m_dInputRange[1] = data[0];
     for ( long i = 0; i < size; i++ )
     {
-      if (!ignore_zeros || data[i] != 0)
+      m_dInputData[i] = data[i];
+      if ( m_dInputRange[0] > m_dInputData[i] )
       {
-        m_dInputData[nCnt] = data[i];
-        if ( m_dInputRange[0] > m_dInputData[nCnt] )
-        {
-          m_dInputRange[0] = m_dInputData[nCnt];
-        }
-        else if ( m_dInputRange[1] < m_dInputData[nCnt] )
-        {
-          m_dInputRange[1] = m_dInputData[nCnt];
-        }
-        nCnt++;
+        m_dInputRange[0] = m_dInputData[i];
+      }
+      else if ( m_dInputRange[1] < m_dInputData[i] )
+      {
+        m_dInputRange[1] = m_dInputData[i];
       }
     }
-    m_nInputSize = nCnt;
+
+    m_nInputSize = size;
     m_dOutputRange[0] = m_dInputRange[0];
     m_dOutputRange[1] = m_dInputRange[1];
   }
