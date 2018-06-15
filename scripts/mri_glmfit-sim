@@ -943,7 +943,7 @@ if($DoSim) then
   endif
 endif
 set residual = ()
-if($PermResid) then
+if($nulltype == perm && $PermResid) then
   set stem = $glmdir/eres
   set residual = `stem2fname $stem`
   if($status) then
