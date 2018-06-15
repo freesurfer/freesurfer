@@ -52,7 +52,8 @@ SurfaceOverlayProperty::SurfaceOverlayProperty ( SurfaceOverlay* overlay) :
   m_dOffset(0),
   m_mask(NULL),
   m_maskData(NULL),
-  m_bInverseMask(false)
+  m_bInverseMask(false),
+  m_bIgnoreZeros(false)
 {
   m_lut = vtkRGBAColorTransferFunction::New();
 
@@ -79,6 +80,7 @@ void SurfaceOverlayProperty::Copy(SurfaceOverlayProperty *p)
   m_bSmooth = p->m_bSmooth;
   m_nSmoothSteps = p->m_nSmoothSteps;
   m_bUsePercentile = p->m_bUsePercentile;
+  m_bIgnoreZeros = p->m_bIgnoreZeros;
   m_dOffset = p->m_dOffset;
   m_nColorScale = p->m_nColorScale;
   m_nColorMethod = p->m_nColorMethod;

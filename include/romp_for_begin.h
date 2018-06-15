@@ -73,21 +73,30 @@
         ROMP_pf_static.line = romp_for_line;
 #endif
 
-#ifdef HAVE_OPENMP
-#ifdef ROMP_FOR_LEVEL 
-    #pragma omp parallel for if_ROMPLEVEL(ROMP_FOR_LEVEL)
-#else
-    #pragma omp parallel for if_ROMP(assume_reproducible)
+// When this is not in a macro, but is directly here instead, the compilers use this file 
+// as the source correlation of the "omp parallel for" loop body, which hinders using performance analysis tools
+//
+#ifndef ROMP_for_begin
+#define ROMP_for_begin                                                                      \
+  	for (ROMP_index = 0; ROMP_index < ROMP_distributor.partialSize; ROMP_index++) {     \
+            ROMP_PF_begin                                                                   \
+                                                                                            \
+            /* Serial iteration reproducing each partial sum    */                          \
+            /*                                                  */                          \
+            int const ROMP_lo = ROMP_distributor.partials[ROMP_index].lo;                   \
+            int const ROMP_hi = ROMP_distributor.partials[ROMP_index].hi;                   \
+            int ROMP_VARIABLE;                                                              \
+            for (ROMP_VARIABLE = ROMP_lo; ROMP_VARIABLE < ROMP_hi; ROMP_VARIABLE++) {       \
+                                                                                            \
+	        ROMP_PFLB_begin                                                             \
+    // end of macro
 #endif
-#endif
-  	for (ROMP_index = 0; ROMP_index < ROMP_distributor.partialSize; ROMP_index++) {
-            ROMP_PF_begin
-            
-            // Serial iteration reproducing each partial sum
-            //
-            int const ROMP_lo = ROMP_distributor.partials[ROMP_index].lo; 
-            int const ROMP_hi = ROMP_distributor.partials[ROMP_index].hi; 
-            int ROMP_VARIABLE;
-            for (ROMP_VARIABLE = ROMP_lo; ROMP_VARIABLE < ROMP_hi; ROMP_VARIABLE++) {
 
-	        ROMP_PFLB_begin
+#ifndef ROMP_FOR_LEVEL
+#define ROMP_FOR_LEVEL assume_reproducible;
+#endif
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for if_ROMPLEVEL(ROMP_FOR_LEVEL)
+#endif
+// ROMP_for_begin should be the next line after the include

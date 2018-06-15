@@ -2909,6 +2909,32 @@ int LabelCropPosterior(LABEL *area, float anterior_dist)
   return (NO_ERROR);
 }
 
+int
+LabelMaskSurfaceValues(LABEL *label, MRI_SURFACE *mris)
+{
+  return(LabelMaskSurface(label, mris)) ;
+}
+
+
+int
+LabelMaskSurfaceCurvature(LABEL *area, MRI_SURFACE *mris) 
+{
+  int vno;
+  VERTEX *v;
+
+  LabelMarkSurface(area, mris); /* mark all points in label */
+
+  for (vno = 0; vno < mris->nvertices; vno++) {
+    v = &mris->vertices[vno];
+    if (v->marked || v->ripflag) {
+      continue;
+    }
+    v->curv = 0.0;
+  }
+  MRISclearMarks(mris);
+  return (NO_ERROR);
+}
+
 int LabelMaskSurface(LABEL *area, MRI_SURFACE *mris)
 {
   int vno;

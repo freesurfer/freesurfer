@@ -177,6 +177,7 @@ int main(int argc, char *argv[])
     "':overlay_threshold=low,(mid,)high(,percentile)' Set overlay threshold values, separated by comma. When overlay method is linear or linearopaque, only 2 numbers (low and high) are needed. When method is piecewise, 3 numbers are needed. If last element is 'percentile', use the give numbers as percentile.\n\n"
     "':overlay_frame=frame_number' Set active frame of multi-frame overlay.\n\n"
     "':overlay_smooth=smooth_steps' Set smooth steps for overlay.\n\n"
+    "':overlay_zorder=number' Set z-order for rendering overlay.\n\n"
     "':patch=patch_filename' Load given patch file.\n\n"
     "':correlation=correlation_filename' Load correlation data from file. Correlation data is treated as a special kind of overlay data.\n\n"
     "':color=colorname' Set the base color of the surface. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n"
@@ -184,6 +185,7 @@ int main(int argc, char *argv[])
     "':edgethickness=thickness' Set the thickness of the slice intersection outline on the surface. set 0 to hide it.\n\n"
     "':annot=filenames' Set annotation files to load.\n\n"
     "':annot_outline=flag' Show surface annotation as outline. flag can be 'true', 'yes' or '1'.\n\n"
+    "':annot_zorder=number' Set z-order for rendering annotation.\n\n"
     "':name=display_name' Set the display name of the surface.\n\n':offset=x,y,z' Set the position offset of the surface. Useful for connectivity display.\n\n"
     "':visible=visibility' Set the initial visibility of the surface. Visibility can be '1' or '0' or 'true' or 'false'.\n\n':vector=filename' Load a vector file for display.\n\n"
     "':target_surf=filename' Load a target surface file for vectors to project on for 2D display.\n\n"
@@ -192,6 +194,7 @@ int main(int argc, char *argv[])
     "':label_color=colorname' Set the color of the surface label.\n\n"
     "':label_centroid=flag' Move 3D cursor to the centroid of the label. flag can be 'true', 'yes' or '1'.\n\n"
     "':label_visible=flag' Set label visibility.\n\n"
+    "':label_zorder=number' Set z-order for rendering labels.\n\n"
     "':spline=filename' Load a spline file for display.\n\n"
     "':vertex=flag' Show surface vertices on both 2D and 3D views. flag can be 'true', 'on' or '1'.\n\n"
     "':vertexcolor=colorname' Set color of the vertices. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n"
@@ -226,7 +229,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_OPTION, "t", "tract", "<FILE>...", "Load one or more tract files.\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "tc", "tract-cluster", "<DIRECTORY>", "Load tract cluster data from given directory.\n", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "recon", "recon", "<SUBJECT_NAME>...", "Load a series of pre-defined volumes and surfaces of given subject(s).\n", 1, 1000 ),
-    CmdLineEntry( CMD_LINE_OPTION, "ss", "screenshot", "<FILE> <MAGIFICATION_FACTOR>", "Take a screen shot of the main viewport and then quit the program. Default value for magnification factor is 1", 1, 2 ),
+    CmdLineEntry( CMD_LINE_OPTION, "ss", "screenshot", "<FILE> <MAGIFICATION_FACTOR> <AUTO_TRIM>", "Take a screen shot of the main viewport and then quit the program. Default value for magnification factor is 1. AUTO_TRIM can be 'autotrim', 'true' or '1'. NOTE: AUTO_TRIM option is only available on Linux.", 1, 3 ),
     //    CmdLineEntry( CMD_LINE_OPTION, "fly", "fly-through", "<START_SLICE_NUMBER> <END_SLICE_NUMBER> <PREFIX>", "Fly through slices and take screenshot of each slice", 1, 3 ),
     CmdLineEntry( CMD_LINE_OPTION, "layout", "layout", "<STYLE>", "Set layout of the view panels as given. Accepted styles are 1, 2, 3 & 4. 1 is single panel. The rest are 3 different 4-panel styles.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "viewport", "viewport", "<NAME>", "Set the main viewport as given. Accepted names are 'sagittal' or 'x', 'coronal' or 'y', 'axial' or 'z' and '3d'.", 1, 1 ),

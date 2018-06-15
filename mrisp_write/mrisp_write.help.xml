@@ -48,6 +48,10 @@
       <explanation>Set SUBJECTS_DIR. Default: use environment variable/</explanation>
       <argument>-A &lt;navgs&gt;</argument>
       <explanation>Average curvature patterns navgs times</explanation>
+      <argument>-CORR &lt;label_file_name&gt;</argument>
+      <explanation>Use the overlay to compute the correlation matrix within the specified label</explanation>
+      <argument>-SCALE &lt;scale factor&gt;</argument>
+      <explanation>By default the spherical map is 256x512. If specified, scale factor is applied to the size and hence will increase or decrease the resolution of the spherical map (e.g. -scale 0.5 will make it 128x256) </explanation>
       <argument>-N</argument>
       <explanation>Normalize curvature by variance.</explanation>
       <argument>-?,-U</argument>

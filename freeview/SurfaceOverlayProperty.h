@@ -126,6 +126,16 @@ public:
     m_bUsePercentile = bPercentile;
   }
 
+  bool GetIgnoreZeros()
+  {
+    return m_bIgnoreZeros;
+  }
+
+  void SetIgnoreZeros(bool b)
+  {
+    m_bIgnoreZeros = b;
+  }
+
 //  void MapOverlayColor( unsigned char* colordata, int nPoints );
   void MapOverlayColor( float* data, unsigned char* colordata, int nPoints );
   void MapOverlayColorSymmetric( float* data, unsigned char* colordata, int nPoints );
@@ -188,6 +198,7 @@ private:
   bool        m_bSmooth;
   int         m_nSmoothSteps;
   bool        m_bUsePercentile;
+  bool        m_bIgnoreZeros;
 
   SurfaceLabel* m_mask;
   unsigned char* m_maskData;

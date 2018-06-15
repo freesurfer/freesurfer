@@ -113,6 +113,7 @@
 #include "DialogLoadTransform.h"
 #include "LayerPropertyTrack.h"
 #include "BinaryTreeView.h"
+#include "SurfaceAnnotation.h"
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
@@ -1157,10 +1158,12 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
 
   if ( parser->Found( "ss", &sa ) )
   {
-    QString mag_factor = "1";
+    QString mag_factor = "1", auto_trim = "0";
     if (sa.size() > 1)
       mag_factor = sa[1];
-    this->AddScript( QStringList("screencapture") << sa[0] << mag_factor );
+    if (sa.size() > 2)
+      auto_trim = sa[2];
+    this->AddScript( QStringList("screencapture") << sa[0] << mag_factor << auto_trim);
     if (bAutoQuit && !parser->Found("noquit"))
     {
       this->AddScript( QStringList("quit") );
@@ -1828,6 +1831,17 @@ void MainWindow::RunScript()
     {
       GetLayerCollection("Surface")->SetActiveLayer(surf);
       GoToContralateralPoint(surf);
+    }
+  }
+  else if (cmd == "setcurrentvertex")
+  {
+    LayerSurface* surf = qobject_cast<LayerSurface*>(GetActiveLayer("Surface"));
+    if (surf)
+    {
+      bool bOk;
+      int n = sa[1].toInt(&bOk);
+      if (bOk && n >= 0)
+        surf->SetCurrentVertex(n);
     }
   }
   else if (cmd == "reorderlayers")
@@ -2931,7 +2945,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QString fn_target = "";
   QStringList sup_files;
   QStringList valid_overlay_options;
-  int layer_id = -1;
+  QVariantMap sup_options;
   valid_overlay_options << "overlay_reg" << "overlay_method" << "overlay_threshold" << "overlay_color"
                         << "overlay_rh" << "overlay_opacity" << "overlay_frame" << "overlay_smooth";
   for (int nOverlay = 0; nOverlay < overlay_list.size(); nOverlay++)
@@ -2995,7 +3009,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           bool ok;
           subArgu.toInt(&ok);
           if (ok)
-            layer_id = subArgu.toInt();
+            sup_options["ID"] = subArgu.toInt();
         }
         else if ( subOption == "edgecolor" || subOption == "edge_color")
         {
@@ -3008,6 +3022,10 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         else if ( subOption == "vertex" )
         {
           m_scripts.insert( 0, QStringList("displaysurfacevertex") << subArgu);
+        }
+        else if ( subOption == "current_vertex")
+        {
+          m_scripts.insert(0, QStringList("setcurrentvertex") << subArgu);
         }
         else if ( subOption == "hide_in_3d")
         {
@@ -3064,7 +3082,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         else if ( subOption == "annot" || subOption == "annotation" || subOption == "aparc" )
         {
           // add script to load surface annotation files
-          QStringList annot_fns =subArgu.split(",");
+          QStringList annot_fns = subArgu.split(",");
           for ( int i = annot_fns.size()-1; i >= 0; i-- )
           {
             m_scripts.insert( 0, QStringList("loadsurfaceannotation") << annot_fns[i] );
@@ -3149,6 +3167,18 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
             }
           }
         }
+        else if (subOption == "annot_zorder" || subOption == "annotation_zorder" )
+        {
+          sup_options["ZOrderAnnotation"] = subArgu;
+        }
+        else if (subOption == "label_zorder")
+        {
+          sup_options["ZOrderLabel"] = subArgu;
+        }
+        else if (subOption == "overlay_zorder" )
+        {
+          sup_options["ZOrderOverlay"] = subArgu;
+        }
         else if ( subOption == "vector" )
         {
           // add script to load surface vector files
@@ -3219,7 +3249,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
       sup_files << "white" << "inflated" << "pial" << "orig";
     }
   }
-  LoadSurfaceFile( surface_fn, fn_patch, fn_target, sup_files, layer_id );
+  LoadSurfaceFile( surface_fn, fn_patch, fn_target, sup_files, sup_options );
 }
 
 void MainWindow::CommandSetSurfaceLabelOutline(const QStringList &cmd)
@@ -3354,58 +3384,51 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd_in )
 
       overlay->GetProperty()->SetColorMethod( nMethod );
 
-      bool bPercentile = false;
-      if (cmd.last() == "percentile")
+      bool bPercentile = false, bIgnoreZeros = false;
+      while (cmd.last() == "percentile" || cmd.last() == "ignore_zeros")
       {
+        if (cmd.last() == "percentile")
+          bPercentile = true;
+        else
+          bIgnoreZeros = true;
         cmd.removeLast();
-        bPercentile = true;
       }
+
       double values[3];
+      if (bIgnoreZeros)
+        overlay->GetProperty()->SetIgnoreZeros(bIgnoreZeros);
+      if (bPercentile)
+        overlay->GetProperty()->SetUsePercentile(bPercentile);
+
+      bool bOK;
       if ( cmd.size() - 2 >= 3 )   // 3 values
       {
-        bool bOK;
         values[0] = cmd[2].toDouble(&bOK);
         values[1] = cmd[3].toDouble(&bOK);
         values[2] = cmd[4].toDouble(&bOK);
-        if (bPercentile)
-        {
-          overlay->GetProperty()->SetUsePercentile(bPercentile);
-          for (int i = 0; i < 3; i++)
-            values[i] = overlay->PercentileToPosition(values[i]);
-        }
-        if ( bOK )
-        {
-          overlay->GetProperty()->SetMinPoint( values[0] );
-          overlay->GetProperty()->SetMidPoint( values[1] );
-          overlay->GetProperty()->SetMaxPoint( values[2] );
-        }
-        else
-        {
-          cerr << "Invalid input for overlay threshold.\n";
-        }
       }
-      else if ( cmd.size() - 2 == 2 )   // 2 values
+      else if (cmd.size() - 2 == 2)
       {
-        bool bOK;
         values[0] = cmd[2].toDouble(&bOK);
-        values[1] = cmd[3].toDouble(&bOK);
-        if ( bOK )
-        {
-          if (bPercentile)
-          {
-            overlay->GetProperty()->SetUsePercentile(bPercentile);
-            for (int i = 0; i < 2; i++)
-              values[i] = overlay->PercentileToPosition(values[i]);
-          }
-          overlay->GetProperty()->SetMinPoint( values[0] );
-          overlay->GetProperty()->SetMaxPoint( values[1] );
-          overlay->GetProperty()->SetMidPoint( ( values[0] + values[1] ) / 2 );
-        }
-        else
-        {
-          cerr << "Invalid input for overlay threshold.\n";
-        }
+        values[2] = cmd[3].toDouble(&bOK);
+        values[1] = (values[0]+values[2])/2;
       }
+      if (bPercentile)
+      {
+        for (int i = 0; i < 3; i++)
+          values[i] = overlay->PercentileToPosition(values[i], bIgnoreZeros);
+      }
+      if ( bOK )
+      {
+        overlay->GetProperty()->SetMinPoint( values[0] );
+        overlay->GetProperty()->SetMidPoint( values[1] );
+        overlay->GetProperty()->SetMaxPoint( values[2] );
+      }
+      else
+      {
+        cerr << "Invalid input for overlay threshold.\n";
+      }
+
       surf->UpdateOverlay(true);
       overlay->EmitDataUpdated();
     }
@@ -3983,9 +4006,13 @@ void MainWindow::CommandScreenCapture( const QStringList& cmd )
   if (bOK && mag_factor < 1)
     mag_factor = 1;
 
+  bool auto_trim = false;
+  if (cmd.size() > 3 && (cmd[3] == "autotrim" || cmd[3] == "true" || cmd[3] == "1"))
+    auto_trim = true;
+
   if (!m_views[m_nMainView]->SaveScreenShot( cmd[1],
                                              m_settingsScreenshot.AntiAliasing,
-                                             (int)mag_factor ))
+                                             (int)mag_factor, auto_trim))
   {
     cerr << "Failed to save screen shot to " << cmd[1].toLatin1().constData() << ".\n";
   }
@@ -5428,7 +5455,7 @@ void MainWindow::OnLoadSurface()
 }
 
 void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_patch, const QString& fn_target,
-                                  const QStringList& sup_files_in, int layer_id)
+                                  const QStringList& sup_files_in, const QVariantMap& sup_options)
 {
   QFileInfo fi( filename );
   m_strLastDir = fi.absolutePath();
@@ -5437,6 +5464,7 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   connect(ui->treeWidgetCursorInfo, SIGNAL(VertexChangeTriggered(int)), m_wndGroupPlot, SLOT(SetCurrentVertex(int)), Qt::UniqueConnection);
   connect(layer, SIGNAL(SurfaceOverlyDataUpdated()), ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::UniqueConnection);
   connect(layer, SIGNAL(ActiveSurfaceChanged(int)), ui->view3D, SLOT(OnLayerVisibilityChanged()), Qt::UniqueConnection);
+  connect(this, SIGNAL(SlicePositionChanged(bool)), layer, SLOT(OnSlicePositionChanged3D()), Qt::UniqueConnection);
   layer->SetName( fi.fileName() );
   QString fullpath = fi.absoluteFilePath();
   if ( fullpath.isEmpty() )
@@ -5458,8 +5486,16 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   layer->SetPatchFileName( fn_patch );
   layer->SetTargetFileName( fn_target );
   layer->SetLoadSupSurfaces(sup_files);
-  if (layer_id >= 0)
-    layer->SetID(layer_id);
+  if (sup_options.contains("ID"))
+    layer->SetID(sup_options.value("ID").toInt());
+  layer->GetProperty()->blockSignals(true);
+  if (sup_options.contains("ZOrderAnnotation"))
+    layer->GetProperty()->SetZOrderAnnotation(sup_options["ZOrderAnnotation"].toInt());
+  if (sup_options.contains("ZOrderLabel"))
+    layer->GetProperty()->SetZOrderLabel(sup_options["ZOrderLabel"].toInt());
+  if (sup_options.contains("ZOrderOverlay"))
+    layer->GetProperty()->SetZOrderOverlay(sup_options["ZOrderOverlay"].toInt());
+  layer->GetProperty()->blockSignals(false);
 
   m_threadIOWorker->LoadSurface( layer );
   m_statusBar->StartTimer();
@@ -7155,14 +7191,14 @@ void MainWindow::OnReloadVolume()
       foreach (Layer* layer, all_layers)
         layer_order << QString::number(layer->GetID());
 
-//      if (dlg.GetCloseLayerFirst())
-//      {
-//        if (!OnCloseVolume())
-//        {
-//          m_volumeSettings.clear();
-//          return;
-//        }
-//      }
+      //      if (dlg.GetCloseLayerFirst())
+      //      {
+      //        if (!OnCloseVolume())
+      //        {
+      //          m_volumeSettings.clear();
+      //          return;
+      //        }
+      //      }
       QStringList layer_ids;
       if (dlg.GetCloseLayerFirst())
       {
@@ -7227,8 +7263,52 @@ void MainWindow::OnReloadSurface()
       {
         LayerSurface* surf = qobject_cast<LayerSurface*>(sel_layers[i]);
         QString args = QString("%1:name=%2:id=%3").arg(surf->GetFileName()).arg(surf->GetName()).arg(surf->GetID());
+        if (surf->GetCurrentVertex() >= 0)
+          args += QString(":current_vertex=%1").arg(surf->GetCurrentVertex());
+        args += QString(":overlay_zorder=%1:label_zorder=%2:annot_zorder=%3")
+            .arg(surf->GetProperty()->GetZOrderOverlay())
+            .arg(surf->GetProperty()->GetZOrderLabel())
+            .arg(surf->GetProperty()->GetZOrderAnnotation());
         surf->SetID(surf->GetID()+1000000);
         AddScript(QStringList("loadsurface") << args);
+
+        for (int j = surf->GetNumberOfOverlays()-1; j >= 0; j--)
+        {
+          SurfaceOverlay* overlay = surf->GetOverlay(j);
+          QStringList script("loadsurfaceoverlay");
+          if (overlay)
+          {
+            script << overlay->GetFileName() << overlay->GetRegFileName();
+            if (overlay->HasCorrelationData())
+              script << "correlation";
+            AddScript(script);
+          }
+        }
+        for (int j = surf->GetNumberOfLabels()-1; j >= 0; j--)
+        {
+          SurfaceLabel* label = surf->GetLabel(j);
+          if (label)
+          {
+            AddScript(QStringList("loadsurfacelabel") << label->GetFileName());
+            if (label->GetShowOutline())
+              AddScript(QStringList("setsurfacelabeloutline") << "1");
+            if (!label->IsVisible())
+              AddScript(QStringList("hidesurfacelabel"));
+            double* c = label->GetColor();
+            AddScript(QStringList("setsurfacelabelcolor") << QString("%1,%2,%3").arg((int)(c[0]*255)).arg((int)(c[1]*255)).arg((int)(c[2]*255)));
+          }
+        }
+        for (int j = surf->GetNumberOfAnnotations()-1; j >= 0; j--)
+        {
+          SurfaceAnnotation* annot = surf->GetAnnotation(j);
+          if (annot)
+          {
+            AddScript(QStringList("loadsurfaceannotation") << annot->GetFilename());
+            if (annot->GetShowOutline())
+              AddScript(QStringList("setsurfaceannotationoutline") << "1");
+          }
+        }
+        surf->MarkAboutToDelete();
       }
       if (dlg.GetCloseLayerFirst())
       {

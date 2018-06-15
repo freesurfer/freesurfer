@@ -35,6 +35,7 @@
 #include <QMessageBox>
 #include <QDebug>
 #include <QSettings>
+#include <QTimer>
 
 WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   QWidget(parent), UIUpdateHelper(),
@@ -52,7 +53,9 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   ui->widgetColorPicker->setCurrentColor(Qt::green);
   ui->buttonBox->button(QDialogButtonBox::Apply)->setAutoDefault(true);
   connect(ui->widgetHistogram, SIGNAL(MarkerChanged()), this, SLOT(OnHistogramMarkerChanged()));
-  connect(ui->checkBoxApplyToAll, SIGNAL(toggled(bool)), this, SLOT(OnCheckApplyToAll(bool)));
+  connect(ui->checkBoxAutoApply, SIGNAL(toggled(bool)), this, SLOT(CheckApply(bool)));
+  connect(ui->checkBoxApplyToAll, SIGNAL(toggled(bool)), this, SLOT(CheckApply(bool)));
+  connect(ui->checkBoxAutoFrame, SIGNAL(toggled(bool)), this, SLOT(OnCheckAutoFrameByVertex(bool)));
   m_layerSurface = NULL;
   QSettings settings;
   QVariant v = settings.value("WindowConfigureOverlay/Geometry");
@@ -100,14 +103,15 @@ void WindowConfigureOverlay::OnActiveSurfaceChanged(Layer* layer)
   m_layerSurface = qobject_cast<LayerSurface*>(layer);
   if (m_layerSurface)
   {
+    disconnect(m_layerSurface, 0, this, 0);
     connect(m_layerSurface, SIGNAL(SurfaceOverlyDataUpdated()),
             this, SLOT(UpdateUI()), Qt::UniqueConnection);
     connect(m_layerSurface, SIGNAL(SurfaceOverlyDataUpdated()),
-            this, SLOT(UpdateGraph()), Qt::UniqueConnection);
+            this, SLOT(UpdateGraph()), Qt::QueuedConnection);
     connect(m_layerSurface, SIGNAL(ActiveOverlayChanged(int)),
             this, SLOT(UpdateUI()), Qt::UniqueConnection);
     connect(m_layerSurface, SIGNAL(ActiveOverlayChanged(int)),
-            this, SLOT(UpdateGraph()), Qt::UniqueConnection);
+            this, SLOT(UpdateGraph()), Qt::QueuedConnection);
     connect(m_layerSurface, SIGNAL(SurfaceLabelAdded(SurfaceLabel*)),
             this, SLOT(OnSurfaceLabelAdded(SurfaceLabel*)), Qt::UniqueConnection);
     connect(m_layerSurface, SIGNAL(SurfaceLabelDeleted(SurfaceLabel*)),
@@ -150,13 +154,15 @@ void WindowConfigureOverlay::UpdateUI()
     ui->radioButtonCustom  ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_Custom );
 
     ui->checkBoxUsePercentile->setChecked(p->GetUsePercentile());
-    ui->widgetHistogram->SetUsePercentile(p->GetUsePercentile());
+//    ui->widgetHistogram->SetUsePercentile(p->GetUsePercentile());
+    ui->checkBoxUseNonZeroVertices->setChecked(p->GetIgnoreZeros());
+    ui->checkBoxUseNonZeroVertices->setVisible(p->GetUsePercentile());
 
-    if (ui->checkBoxUsePercentile->isChecked())
+    if (p->GetUsePercentile())
     {
-      ChangeLineEditNumber( ui->lineEditMin, ui->widgetHistogram->PositionToPercentile(p->GetMinPoint()) );
-      ChangeLineEditNumber( ui->lineEditMid, ui->widgetHistogram->PositionToPercentile(p->GetMidPoint()) );
-      ChangeLineEditNumber( ui->lineEditMax, ui->widgetHistogram->PositionToPercentile(p->GetMaxPoint()) );
+      ChangeLineEditNumber( ui->lineEditMin, overlay->PositionToPercentile(p->GetMinPoint()) );
+      ChangeLineEditNumber( ui->lineEditMid, overlay->PositionToPercentile(p->GetMidPoint()) );
+      ChangeLineEditNumber( ui->lineEditMax, overlay->PositionToPercentile(p->GetMaxPoint()) );
     }
     else
     {
@@ -293,7 +299,7 @@ void WindowConfigureOverlay::OnApply()
   }
 }
 
-void WindowConfigureOverlay::OnCheckApplyToAll(bool bChecked)
+void WindowConfigureOverlay::CheckApply(bool bChecked)
 {
   if (bChecked)
   {
@@ -303,15 +309,20 @@ void WindowConfigureOverlay::OnCheckApplyToAll(bool bChecked)
 
 bool WindowConfigureOverlay::UpdateOverlayProperty( SurfaceOverlayProperty* p )
 {
+  if (!m_layerSurface || !m_layerSurface->GetActiveOverlay())
+    return false;
+
   p->SetOpacity( ui->doubleSpinBoxOpacity->value() );
+  p->SetUsePercentile(ui->checkBoxUsePercentile->isChecked());
+  p->SetIgnoreZeros(ui->checkBoxUseNonZeroVertices->isChecked());
 
   bool bOK;
   double dValue = ui->lineEditMin->text().toDouble(&bOK);
-
+  SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
   if ( bOK )
   {
     if (ui->checkBoxUsePercentile->isChecked())
-      dValue = ui->widgetHistogram->PercentileToPosition(dValue);
+      dValue = overlay->PercentileToPosition(dValue, p->GetIgnoreZeros());
     p->SetMinPoint( dValue );
   }
   else
@@ -323,7 +334,7 @@ bool WindowConfigureOverlay::UpdateOverlayProperty( SurfaceOverlayProperty* p )
   if ( bOK )
   {
     if (ui->checkBoxUsePercentile->isChecked())
-      dValue = ui->widgetHistogram->PercentileToPosition(dValue);
+      dValue = overlay->PercentileToPosition(dValue, p->GetIgnoreZeros());
     p->SetMidPoint( dValue );
   }
   else
@@ -335,7 +346,7 @@ bool WindowConfigureOverlay::UpdateOverlayProperty( SurfaceOverlayProperty* p )
   if ( bOK )
   {
     if (ui->checkBoxUsePercentile->isChecked())
-      dValue = ui->widgetHistogram->PercentileToPosition(dValue);
+      dValue = overlay->PercentileToPosition(dValue, p->GetIgnoreZeros());
     p->SetMaxPoint( dValue );
   }
   else
@@ -400,7 +411,7 @@ bool WindowConfigureOverlay::UpdateOverlayProperty( SurfaceOverlayProperty* p )
   return true;
 }
 
-void WindowConfigureOverlay::UpdateGraph()
+void WindowConfigureOverlay::UpdateGraph(bool bApply)
 {
   if ( m_layerSurface && m_layerSurface->GetActiveOverlay() )
   {
@@ -417,9 +428,9 @@ void WindowConfigureOverlay::UpdateGraph()
       SurfaceOverlayProperty* p = new SurfaceOverlayProperty( overlay );
       UpdateOverlayProperty( p );
       if (m_fDataCache)
-        ui->widgetHistogram->SetInputData( m_fDataCache, overlay->GetDataSize(), range );
+        ui->widgetHistogram->SetInputData( m_fDataCache, overlay->GetDataSize(), range);
       else
-        ui->widgetHistogram->SetInputData( overlay->GetData(), overlay->GetDataSize(), range );
+        ui->widgetHistogram->SetInputData( overlay->GetData(), overlay->GetDataSize(), range);
       ui->widgetHistogram->SetSymmetricMarkers(p->GetColorScale() <= SurfaceOverlayProperty::CS_BlueRed);
       ui->widgetHistogram->SetMarkerEditable(p->GetColorScale() == SurfaceOverlayProperty::CS_Custom);
 
@@ -476,7 +487,7 @@ void WindowConfigureOverlay::UpdateGraph()
       ui->widgetHistogram->SetMarkers( markers );
       delete p;
     }
-    if (ui->checkBoxAutoApply->isChecked())
+    if (bApply && ui->checkBoxAutoApply->isChecked())
       OnApply();
   }
 }
@@ -486,7 +497,7 @@ void WindowConfigureOverlay::OnSliderOpacity( int nVal )
   ui->doubleSpinBoxOpacity->blockSignals( true );
   ChangeDoubleSpinBoxValue( ui->doubleSpinBoxOpacity, nVal / 100.0 );
   ui->doubleSpinBoxOpacity->blockSignals(false);
-  UpdateGraph();
+  UpdateGraph(true);
 }
 
 void WindowConfigureOverlay::OnSpinBoxOpacity( double dVal )
@@ -494,7 +505,7 @@ void WindowConfigureOverlay::OnSpinBoxOpacity( double dVal )
   ui->sliderOpacity->blockSignals(true);
   ui->sliderOpacity->setValue( (int)(dVal * 100) );
   ui->sliderOpacity->blockSignals(false);
-  UpdateGraph();
+  UpdateGraph(true);
 }
 
 void WindowConfigureOverlay::UpdateThresholdChanges()
@@ -512,14 +523,19 @@ void WindowConfigureOverlay::UpdateThresholdChanges()
       ui->lineEditMid->blockSignals(false);
     }
   }
-  UpdateGraph();
+  UpdateGraph(true);
 }
 
 void WindowConfigureOverlay::OnHistogramMouseButtonPressed(int button, double value)
 {
+  if (!m_layerSurface || !m_layerSurface->GetActiveOverlay())
+    return;
+
+  SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
+
   value -= m_dSavedOffset;
   if (ui->checkBoxUsePercentile->isChecked())
-    value = ui->widgetHistogram->PositionToPercentile(value);
+    value = overlay->PositionToPercentile(value, ui->checkBoxUseNonZeroVertices->isChecked());
 
   if (button == Qt::LeftButton)
   {
@@ -538,21 +554,27 @@ void WindowConfigureOverlay::OnHistogramMouseButtonPressed(int button, double va
 
 void WindowConfigureOverlay::OnHistogramMarkerChanged()
 {
+  if (!m_layerSurface || !m_layerSurface->GetActiveOverlay())
+    return;
+
+  SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
+
   LineMarkers markers = ui->widgetHistogram->GetMarkers();
   if (ui->radioButtonCustom->isChecked())
   {
     m_markers = markers;
-    UpdateGraph();
+    UpdateGraph(true);
   }
   else
   {
-    bool bUserPercentile = ui->checkBoxUsePercentile->isChecked();
+    bool bUsePercentile = ui->checkBoxUsePercentile->isChecked();
+    bool bIgnoreZeros = ui->checkBoxUseNonZeroVertices->isChecked();
     for (int i = 0; i < markers.size(); i++)
     {
       if (i == 0)
       {
-        if (bUserPercentile)
-          ChangeLineEditNumber(ui->lineEditMin, ui->widgetHistogram->PositionToPercentile(markers[i].position-m_dSavedOffset),
+        if (bUsePercentile)
+          ChangeLineEditNumber(ui->lineEditMin, overlay->PositionToPercentile(markers[i].position-m_dSavedOffset, bIgnoreZeros),
                                2, true);
         else
           ChangeLineEditNumber(ui->lineEditMin, markers[i].position-m_dSavedOffset, 2, true);
@@ -561,16 +583,16 @@ void WindowConfigureOverlay::OnHistogramMarkerChanged()
       {
         if (ui->radioButtonPiecewise->isChecked() && ui->radioButtonHeat->isChecked())
         {
-          if (bUserPercentile)
-            ChangeLineEditNumber(ui->lineEditMid, ui->widgetHistogram->PositionToPercentile(markers[i].position-m_dSavedOffset),
+          if (bUsePercentile)
+            ChangeLineEditNumber(ui->lineEditMid, overlay->PositionToPercentile(markers[i].position-m_dSavedOffset, bIgnoreZeros),
                                  2, true);
           else
             ChangeLineEditNumber(ui->lineEditMid, markers[i].position-m_dSavedOffset, 2, true);
         }
       }
     }
-    if (bUserPercentile)
-      ChangeLineEditNumber(ui->lineEditMax, ui->widgetHistogram->PositionToPercentile(markers[markers.size()-1].position-m_dSavedOffset),
+    if (bUsePercentile)
+      ChangeLineEditNumber(ui->lineEditMax, overlay->PositionToPercentile(markers[markers.size()-1].position-m_dSavedOffset, bIgnoreZeros),
           2, true);
     else
       ChangeLineEditNumber(ui->lineEditMax, markers[markers.size()-1].position-m_dSavedOffset, 2, true);
@@ -615,18 +637,24 @@ void WindowConfigureOverlay::OnSmoothChanged()
       {
         memcpy(m_fDataCache, overlay->GetUnsmoothedData(), sizeof(float)*overlay->GetDataSize());
       }
-      UpdateGraph();
+      UpdateGraph(true);
     }
   }
 }
 
 void WindowConfigureOverlay::OnTextThresholdChanged(const QString &strg)
 {
+  if (!m_layerSurface || !m_layerSurface->GetActiveOverlay())
+    return;
+
+  SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
+
   bool ok;
   double val = strg.toDouble(&ok);
   if (!ok)
     return;
 
+  bool bIgnoreZeros = ui->checkBoxUseNonZeroVertices->isChecked();
   double dOffset = ui->lineEditOffset->text().trimmed().toDouble(&ok);
   if (!ok)
     dOffset = m_dSavedOffset;
@@ -635,11 +663,11 @@ void WindowConfigureOverlay::OnTextThresholdChanged(const QString &strg)
   if (markers.isEmpty())
     return;
 
-  if (sender() == ui->lineEditMax)
+  if (sender() == ui->lineEditMax || sender() == NULL)
   {
     LineMarker marker = markers.last();
     if (ui->checkBoxUsePercentile->isChecked())
-      marker.position = ui->widgetHistogram->PercentileToPosition(val)+dOffset;
+      marker.position = overlay->PercentileToPosition(val, bIgnoreZeros)+dOffset;
     else
       marker.position = val+dOffset;
     markers[markers.size()-1] = marker;
@@ -653,7 +681,7 @@ void WindowConfigureOverlay::OnTextThresholdChanged(const QString &strg)
   {
     LineMarker marker = markers.first();
     if (ui->checkBoxUsePercentile->isChecked())
-      marker.position = ui->widgetHistogram->PercentileToPosition(val)+dOffset;
+      marker.position = overlay->PercentileToPosition(val, bIgnoreZeros)+dOffset;
     else
       marker.position = val+dOffset;
     markers[0] = marker;
@@ -674,7 +702,7 @@ void WindowConfigureOverlay::OnTextThresholdChanged(const QString &strg)
     m_dSavedOffset = val;
   }
   ui->widgetHistogram->SetMarkers(markers);
-  UpdateGraph();
+  UpdateGraph(true);
 }
 
 void WindowConfigureOverlay::OnFrameChanged(int nFrame)
@@ -707,7 +735,12 @@ void WindowConfigureOverlay::OnCurrentVertexChanged()
   if ( m_layerSurface && m_layerSurface->GetActiveOverlay()
        && m_layerSurface->GetActiveOverlay()->GetNumberOfFrames() > 1 )
   {
-    int nVertex = m_layerSurface->GetVertexIndexAtTarget( m_layerSurface->GetSlicePosition(), NULL );
+    int nVertex;
+    if (m_layerSurface->IsInflated())
+      nVertex = m_layerSurface->GetCurrentVertex();
+    else
+      nVertex = m_layerSurface->GetVertexIndexAtTarget( m_layerSurface->GetSlicePosition(), NULL );
+
     if (nVertex >= 0 && ui->checkBoxAutoFrame->isChecked()
         && nVertex < m_layerSurface->GetActiveOverlay()->GetNumberOfFrames())
     {
@@ -753,11 +786,23 @@ void WindowConfigureOverlay::OnComboCorrelationVolume(int n)
 
 void WindowConfigureOverlay::OnCheckUsePercentile(bool bChecked)
 {
+  ui->checkBoxUseNonZeroVertices->setVisible(bChecked);
   if ( m_layerSurface && m_layerSurface->GetActiveOverlay() )
   {
     SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
     overlay->GetProperty()->SetUsePercentile(bChecked);
-    ui->widgetHistogram->SetUsePercentile(bChecked);
+//    ui->widgetHistogram->SetUsePercentile(bChecked);
+  }
+}
+
+void WindowConfigureOverlay::OnCheckUseNonZeroVertices(bool bChecked)
+{
+  if ( m_layerSurface && m_layerSurface->GetActiveOverlay() )
+  {
+    SurfaceOverlay* overlay = m_layerSurface->GetActiveOverlay();
+    overlay->GetProperty()->SetIgnoreZeros(bChecked);
+    OnHistogramMarkerChanged();
+    OnTextThresholdChanged(ui->lineEditMax->text());
   }
 }
 
@@ -809,4 +854,10 @@ void WindowConfigureOverlay::OnSurfaceLabelAdded(SurfaceLabel* label)
     setProperty("wait_for_label", false);
     ui->comboBoxMask->setCurrentIndex(1);
   }
+}
+
+void WindowConfigureOverlay::OnCheckAutoFrameByVertex(bool bChecked)
+{
+  if (bChecked)
+    OnCurrentVertexChanged();
 }

@@ -227,6 +227,16 @@ public:
     m_nID = n;
   }
 
+  bool GetAboutToDelete()
+  {
+    return m_bAboutToDelete;
+  }
+
+  void MarkAboutToDelete()
+  {
+    m_bAboutToDelete = true;
+  }
+
   void CopyTransformation(Layer* layer);
 
 Q_SIGNALS:
@@ -270,6 +280,7 @@ protected:
   bool      m_bUseRotationCenter;
 
   bool      m_bLocked;
+  bool      m_bAboutToDelete;
 
   LayerProperty*  mProperty;
 

@@ -51,6 +51,7 @@ SurfaceOverlay::SurfaceOverlay ( LayerSurface* surf ) :
   m_fDataUnsmoothed(NULL),
   m_dMaxValue(0),
   m_dMinValue(0),
+  m_dNonZeroMinValue(0),
   m_dRawMaxValue(0),
   m_dRawMinValue(0),
   m_surface( surf ),
@@ -133,6 +134,7 @@ void SurfaceOverlay::InitializeData()
     }
 
     m_dMaxValue = m_dMinValue = mris->vertices[0].val;
+    m_dNonZeroMinValue = 1e10;
     for ( int vno = 0; vno < m_nDataSize; vno++ )
     {
       m_fData[vno] = mris->vertices[vno].val;
@@ -144,6 +146,8 @@ void SurfaceOverlay::InitializeData()
       {
         m_dMinValue = m_fData[vno];
       }
+      if (m_fData[vno] > 0 && m_dNonZeroMinValue > m_fData[vno])
+        m_dNonZeroMinValue = m_fData[vno];
     }
     m_dRawMaxValue = m_dMaxValue;
     m_dRawMinValue = m_dMinValue;
@@ -165,12 +169,15 @@ void SurfaceOverlay::InitializeData(float *data_buffer_in, int nvertices, int nf
       return;
 
     m_dMaxValue = m_dMinValue = m_fDataRaw[0];
+    m_dNonZeroMinValue = 1e10;
     for (int i = 0; i < m_nDataSize*m_nNumOfFrames; i++)
     {
       if ( m_dMaxValue < m_fDataRaw[i])
         m_dMaxValue = m_fDataRaw[i];
       else if (m_dMinValue > m_fDataRaw[i])
         m_dMinValue = m_fDataRaw[i];
+      if ( m_fDataRaw[i] > 0 && m_dNonZeroMinValue > m_fDataRaw[i])
+        m_dNonZeroMinValue = m_fDataRaw[i];
     }
     m_dRawMaxValue = m_dMaxValue;
     m_dRawMinValue = m_dMinValue;
@@ -217,8 +224,7 @@ bool SurfaceOverlay::LoadCorrelationData( const QString& filename )
     cerr << "MRIread failed: unable to read from " << qPrintable(filename) << "\n";
     return false;
   }
-  if ( mri->width != m_nDataSize*2 || (mri->height != 1 && mri->height != m_nDataSize*2) ||
-       (mri->nframes != 1 && mri->nframes != m_nDataSize*2))
+  if ( (((qlonglong)mri->width)*mri->height*mri->nframes)%(m_nDataSize*m_nDataSize) != 0 )
   {
     cerr << "Correlation data does not match with surface\n";
     MRIfree( &mri );
@@ -247,12 +253,18 @@ bool SurfaceOverlay::LoadCorrelationData( const QString& filename )
 
 void SurfaceOverlay::UpdateCorrelationAtVertex( int nVertex, int nHemisphere )
 {
+  bool bSingleHemiData = ( ((qlonglong)m_mriCorrelation->width)*m_mriCorrelation->height*m_mriCorrelation->nframes == m_nDataSize*m_nDataSize );
   if ( nHemisphere == -1)
   {
     nHemisphere = m_surface->GetHemisphere();
   }
   int nVertexOffset = nHemisphere * m_nDataSize;
   int nDataOffset = m_surface->GetHemisphere() * m_nDataSize;
+  if (bSingleHemiData)
+  {
+    nVertexOffset = 0;
+    nDataOffset = 0;
+  }
   double old_range = m_dMaxValue - m_dMinValue;
   if (m_mriCorrelation->height > 1)
     m_dMaxValue = m_dMinValue =
@@ -260,6 +272,7 @@ void SurfaceOverlay::UpdateCorrelationAtVertex( int nVertex, int nHemisphere )
   else
     m_dMaxValue = m_dMinValue =
         MRIFseq_vox( m_mriCorrelation, nVertex + nVertexOffset, 0, 0, nDataOffset );
+  m_dNonZeroMinValue = 1e10;
   for ( int i = 0; i < m_nDataSize; i++ )
   {
     if (m_mriCorrelation->height > 1)
@@ -278,6 +291,8 @@ void SurfaceOverlay::UpdateCorrelationAtVertex( int nVertex, int nHemisphere )
     {
       m_dMinValue = m_fData[i];
     }
+    if (m_fData[i] > 0 && m_dNonZeroMinValue > m_fData[i])
+      m_dNonZeroMinValue = m_fData[i];
   }
   memcpy(m_fDataRaw, m_fData, sizeof(float)*m_nDataSize);
   memcpy(m_fDataUnsmoothed, m_fData, sizeof(float)*m_nDataSize);
@@ -292,7 +307,7 @@ void SurfaceOverlay::UpdateCorrelationAtVertex( int nVertex, int nHemisphere )
     m_property->Reset();
   }
 
-  if (m_overlayPaired && nHemisphere == m_surface->GetHemisphere())
+  if (m_overlayPaired && nHemisphere == m_surface->GetHemisphere() && !bSingleHemiData)
   {
     m_overlayPaired->blockSignals(true);
     m_overlayPaired->UpdateCorrelationAtVertex(nVertex, nHemisphere);
@@ -390,6 +405,7 @@ void SurfaceOverlay::SetActiveFrame(int nFrame)
   memcpy(m_fData, m_fDataRaw + m_nActiveFrame*m_nDataSize, sizeof(float)*m_nDataSize);
   memcpy(m_fDataUnsmoothed, m_fData, sizeof(float)*m_nDataSize);
   m_dMaxValue = m_dMinValue = m_fData[0];
+  m_dNonZeroMinValue = 1e10;
   for ( int i = 0; i < m_nDataSize; i++ )
   {
     if ( m_dMaxValue < m_fData[i] )
@@ -400,6 +416,8 @@ void SurfaceOverlay::SetActiveFrame(int nFrame)
     {
       m_dMinValue = m_fData[i];
     }
+    if (m_fData[i] > 0 && m_dNonZeroMinValue > m_fData[i])
+      m_dNonZeroMinValue = m_fData[i];
   }
   if (GetProperty()->GetSmooth())
   {
@@ -436,7 +454,7 @@ void SurfaceOverlay::UpdateCorrelationCoefficient(double* pos_in)
     else
     {
       int nVertex = m_surface->GetCurrentVertex();
-      if (pos_in)
+      if (!m_surface->IsInflated() && pos_in)
         nVertex = m_surface->GetVertexIndexAtTarget(pos_in, NULL);
 
       if (nVertex >= 0)
@@ -451,7 +469,27 @@ void SurfaceOverlay::UpdateCorrelationCoefficient(double* pos_in)
         m_fCorrelationDataBuffer[j] = m_fDataRaw[i+j*m_nDataSize];
       }
       m_fData[i] = MyUtils::CalculateCorrelationCoefficient(m_fCorrelationSourceData, m_fCorrelationDataBuffer, m_nNumOfFrames);
+
+      if (i == 0)
+      {
+        m_dMaxValue = m_dMinValue = m_fData[0];
+        if (m_fData[0] > 0)
+          m_dNonZeroMinValue = m_fData[0];
+        else
+          m_dNonZeroMinValue = 1e10;
+      }
+      else if ( m_dMaxValue < m_fData[i] )
+      {
+        m_dMaxValue = m_fData[i];
+      }
+      else if ( m_dMinValue > m_fData[i] )
+      {
+        m_dMinValue = m_fData[i];
+      }
+      if (m_fData[i] > 0 && m_dNonZeroMinValue > m_fData[i])
+        m_dNonZeroMinValue = m_fData[i];
     }
+    memcpy(m_fDataRaw, m_fData, sizeof(float)*m_nDataSize);
     memcpy(m_fDataUnsmoothed, m_fData, sizeof(float)*m_nDataSize);
     if (GetProperty()->GetSmooth())
       SmoothData();
@@ -493,6 +531,20 @@ void SurfaceOverlay::GetRange( double* range )
   }
 }
 
+void SurfaceOverlay::GetNonZeroRange(double *range)
+{
+  if (m_bComputeCorrelation)
+  {
+    range[0] = -1;
+    range[1] = 1;
+  }
+  else
+  {
+    range[0] = m_dNonZeroMinValue;
+    range[1] = m_dMaxValue;
+  }
+}
+
 void SurfaceOverlay::GetRawRange( double* range )
 {
   range[0] = m_dRawMinValue;
@@ -511,10 +563,18 @@ bool SurfaceOverlay::GetDataAtVertex(int nVertex, float *output)
   return true;
 }
 
-double SurfaceOverlay::PercentileToPosition(double percentile)
+double SurfaceOverlay::PercentileToPosition(double dPercentile)
+{
+  return PercentileToPosition(dPercentile, GetProperty()->GetIgnoreZeros());
+}
+
+double SurfaceOverlay::PercentileToPosition(double percentile, bool bIgnoreZeros)
 {
   double range[2];
-  GetRange(range);
+  if (bIgnoreZeros)
+    GetNonZeroRange(range);
+  else
+    GetRange(range);
   int m_nNumberOfBins = 100;
   double m_dBinWidth = ( range[1] - range[0] ) / m_nNumberOfBins;
   int* m_nOutputData = new int[m_nNumberOfBins];
@@ -528,10 +588,13 @@ double SurfaceOverlay::PercentileToPosition(double percentile)
   memset( m_nOutputData, 0, m_nNumberOfBins * sizeof( int ) );
   for ( long i = 0; i < m_nDataSize; i++ )
   {
-    int n = (int)( ( m_fData[i] - range[0] ) / m_dBinWidth );
-    if ( n >= 0 && n < m_nNumberOfBins )
+    if (!bIgnoreZeros || m_fData[i] != 0)
     {
-      m_nOutputData[n] ++;
+      int n = (int)( ( m_fData[i] - range[0] ) / m_dBinWidth );
+      if ( n >= 0 && n < m_nNumberOfBins )
+      {
+        m_nOutputData[n] ++;
+      }
     }
   }
 
@@ -558,4 +621,62 @@ double SurfaceOverlay::PercentileToPosition(double percentile)
 
   delete[] m_nOutputData;
   return dPos;
+}
+
+double SurfaceOverlay::PositionToPercentile(double dPos)
+{
+  return PositionToPercentile(dPos, GetProperty()->GetIgnoreZeros());
+}
+
+double SurfaceOverlay::PositionToPercentile(double pos, bool bIgnoreZeros)
+{
+  double range[2];
+  if (bIgnoreZeros)
+    GetNonZeroRange(range);
+  else
+    GetRange(range);
+  int m_nNumberOfBins = 100;
+  double m_dBinWidth = ( range[1] - range[0] ) / m_nNumberOfBins;
+  int* m_nOutputData = new int[m_nNumberOfBins];
+  if ( !m_nOutputData )
+  {
+    qCritical() << "Can not allocate memory.";
+    return 0;
+  }
+
+  // calculate histogram data
+  memset( m_nOutputData, 0, m_nNumberOfBins * sizeof( int ) );
+  for ( long i = 0; i < m_nDataSize; i++ )
+  {
+    if (!bIgnoreZeros || m_fData[i] != 0)
+    {
+      int n = (int)( ( m_fData[i] - range[0] ) / m_dBinWidth );
+      if ( n >= 0 && n < m_nNumberOfBins )
+      {
+        m_nOutputData[n] ++;
+      }
+    }
+  }
+
+  double m_dOutputTotalArea = 0;
+  for (int i = 0; i < m_nNumberOfBins; i++)
+  {
+    m_dOutputTotalArea += m_nOutputData[i];
+  }
+
+  double dArea = 0;
+  double dPos = range[0];
+  int n = 0;
+  while (dPos < pos && n < m_nNumberOfBins)
+  {
+    dArea += m_nOutputData[n];
+    dPos += m_dBinWidth;
+    n++;
+  }
+  if (dPos > pos && n > 0)
+  {
+    dArea -= (dPos-pos)*m_nOutputData[n-1]/m_dBinWidth;
+  }
+
+  return dArea/m_dOutputTotalArea;
 }

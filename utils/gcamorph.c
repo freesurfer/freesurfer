@@ -2351,6 +2351,7 @@ double gcamLogLikelihoodEnergy(const GCA_MORPH *gcam, MRI *mri)
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define sse  ROMP_PARTIALSUM(0)
 
@@ -4200,6 +4201,7 @@ double gcamJacobianEnergy(const GCA_MORPH * const gcam, MRI *mri)
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define sse  ROMP_PARTIALSUM(0)
     
@@ -7059,6 +7061,7 @@ static double gcamSmoothnessEnergy_new(const GCA_MORPH *gcam, const MRI *mri)
   const int romp_for_line = __LINE__;
 #endif
   #include "romp_for_begin.h"
+  ROMP_for_begin
     
     #define sse  ROMP_PARTIALSUM(0)
 
@@ -18253,12 +18256,16 @@ MRI *MRIapplyMorph(MRI *mri_source, MRI *mri_warp, MRI *mri_dst, int sample_type
   for (x = 0; x < mri_dst->width; x++)
     for (y = 0; y < mri_dst->height; y++)
       for (z = 0; z < mri_dst->depth; z++) {
+	if (x == Gx &&  y == Gy && z == Gz)
+	  DiagBreak() ;
         dx = MRIgetVoxVal(mri_warp, x, y, z, 0);
         dy = MRIgetVoxVal(mri_warp, x, y, z, 1);
         dz = MRIgetVoxVal(mri_warp, x, y, z, 2);
         xd = x + dx;
         yd = y + dy;
         zd = z + dz;
+	if ((fabs(xd-Gx) < 1) && (fabs(yd-Gy)<1) && (fabs(zd-Gz)<1))
+	  DiagBreak() ;
         for (f = 0; f < mri_source->nframes; f++) {
           if (sample_type == SAMPLE_CUBIC_BSPLINE)
           // recommended to externally call this and keep mri_coeff

@@ -51,7 +51,7 @@ public:
   explicit WidgetHistogram(QWidget *parent = 0);
   ~WidgetHistogram();
 
-  template <class T> void SetInputData( T* data, long size, double* range = NULL );
+  template <class T> void SetInputData( T* data, long size, double* range = NULL);
 
   void GetOutputRange( double* dRange );
 
@@ -101,18 +101,12 @@ public:
     range[1] = m_dInputRange[1];
   }
 
-
-  double PositionToPercentile(double pos);
-
-  double PercentileToPosition(double percentile);
-
 signals:
   void MouseButtonPressed(int button, double value);
   void MarkerChanged();
 
 public slots:
   void SetAutoRange( bool bRange );
-  void SetUsePercentile(bool bUsePercentile);
   void SetForegroundColor( const QColor& color );
   void FlipMarkers();
 
@@ -157,11 +151,9 @@ protected:
   bool        m_bMarkerEditable;
   int         m_nActiveMarker;
   bool        m_bActiveMarkerMirrored;
-
-  bool        m_bUsePercentile;
 };
 
-template <class T> void WidgetHistogram::SetInputData( T* data, long size, double* range )
+template <class T> void WidgetHistogram::SetInputData( T* data, long size, double* range)
 {
   if ( m_dInputData )
   {
@@ -184,6 +176,7 @@ template <class T> void WidgetHistogram::SetInputData( T* data, long size, doubl
         m_dInputRange[1] = m_dInputData[i];
       }
     }
+
     m_nInputSize = size;
     m_dOutputRange[0] = m_dInputRange[0];
     m_dOutputRange[1] = m_dInputRange[1];
