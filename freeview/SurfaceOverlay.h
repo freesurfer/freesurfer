@@ -89,6 +89,8 @@ public:
 
   void GetRange( double* range );
 
+  void GetNonZeroRange( double* range);
+
   void GetRawRange( double* range );
 
   bool LoadCorrelationData( const QString& filename );
@@ -159,6 +161,12 @@ public:
 
   double PercentileToPosition(double dPercentile);
 
+  double PercentileToPosition(double dPercentile, bool ignore_zeros);
+
+  double PositionToPercentile(double dPos);
+
+  double PositionToPercentile(double dPos, bool ignore_zeros);
+
 signals:
   void DataUpdated();
 
@@ -178,6 +186,7 @@ private:
   qlonglong     m_nDataSize;
   double        m_dMaxValue;
   double        m_dMinValue;
+  double        m_dNonZeroMinValue;
   double        m_dRawMaxValue;
   double        m_dRawMinValue;
 

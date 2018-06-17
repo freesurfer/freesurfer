@@ -47,14 +47,18 @@ public:
   explicit WindowConfigureOverlay(QWidget *parent = 0);
   ~WindowConfigureOverlay();
 
-  virtual void showEvent(QShowEvent *);
+  void showEvent(QShowEvent *);
 
 signals:
   void ActiveFrameChanged();
   void MaskLoadRequested(const QString& filename);
 
 public slots:
-  void UpdateGraph();
+  void UpdateGraph(bool bApply = false);
+  void UpdateGraphAndApply()
+  {
+    UpdateGraph(true);
+  }
   void UpdateUI();
   void OnCurrentVertexChanged();
 
@@ -76,7 +80,7 @@ protected slots:
   void OnComboCorrelationVolume(int n);
   void OnCheckUsePercentile(bool bChecked);
   void OnCustomColorScale();
-  void OnCheckApplyToAll(bool bChecked);
+  void CheckApply(bool bChecked);
   void OnComboMask(int n);
   void OnCheckInverseMask(bool bChecked);
   void OnSurfaceLabelAdded(SurfaceLabel* label);

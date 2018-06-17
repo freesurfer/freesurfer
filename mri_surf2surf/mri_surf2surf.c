@@ -1771,7 +1771,7 @@ static void print_usage(void)
   printf("   --srchemi    hemisphere : (lh or rh) for source\n");
   printf("   --trghemi    hemisphere : (lh or rh) for target\n");
   printf("   --dual-hemi  : assume source ?h.?h.surfreg file name\n");
-
+  printf("   --jac  : turn on jacobian correction, needed when applying to area or volume \n");
   printf("   --surfreg    source and targ surface registration (sphere.reg)  \n");
   printf("   --srcsurfreg source surface registration (sphere.reg)  \n");
   printf("   --trgsurfreg target surface registration (sphere.reg)  \n");
@@ -1933,6 +1933,9 @@ printf("    This, however, can leave some source vertices unrepresented in targe
 printf("    'holes'). If nnfr is chosen, then each hole is assigned to the closest\n");
 printf("    target vertex. If a target vertex has multiple source vertices, then the\n");
 printf("    source values are averaged together. It does not seem to make much difference.\n");
+printf("\n");
+printf("--jac\n");
+printf("    Turn on jacobian correction. This is needed when applying to area or volume \n");
 printf("\n");
 printf("  --fwhm-src fwhmsrc\n");
 printf("  --fwhm-trg fwhmtrg (can also use --fwhm)\n");
