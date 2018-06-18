@@ -13739,13 +13739,13 @@ int GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
   mri_seg = GCAbuildMostLikelyLabelVolume(gca, NULL) ;
   left_wm = MRIvoxelsInLabel(mri_seg, Left_Cerebral_White_Matter) ;
   right_wm = MRIvoxelsInLabel(mri_seg, Right_Cerebral_White_Matter) ;
-  label = (left_wm > right_wm) ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter ;
+  label = (left_wm > 2*right_wm) ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter ;
   printf("finding center of left hemi white matter\n") ;
   MRIfree(&mri_seg) ;
 
   y0 = box.y + box.dy / 3;
   z0 = box.z + box.dz / 2;
-  if (left_wm > right_wm)
+  if (label == Left_Cerebral_White_Matter)
     x0 = box.x + 2*box.dx / 3;
   else
     x0 = box.x + box.dx / 3;
