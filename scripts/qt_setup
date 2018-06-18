@@ -49,6 +49,8 @@ if ( $?FS_QT_HOME ) then
     if ( -e $FS_QT_HOME/lib/qt ) then
       setenv QTLIBPATH $FS_QT_HOME/lib/
     endif
+    
+    setenv QT_QPA_PLATFORM_PLUGIN_PATH $FS_QT_HOME/plugins
 
     if(! $?LD_LIBRARY_PATH ) then
       setenv LD_LIBRARY_PATH $QTLIBPATH
