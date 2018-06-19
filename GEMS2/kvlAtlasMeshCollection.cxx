@@ -893,9 +893,18 @@ AtlasMeshCollection
 
 
 
-//
-//
-//
+/*!
+  \fn AtlasMeshCollection::Construct()
+
+  \brief Construct a mesh collection out of whole cloth.  The mesh is
+  constructed by defining cubes in a volume. Each cube is filled with
+  five tetrahedra. meshSize is the number of cubes in each dim. The
+  domainSize is the width of the volume in each dimension (units
+  unclear, probably best to think of them as 1mm, or
+  not). forceBorderVerticesToBackground will cause the vertices at the
+  edge of the volume to the first class (which is usually the
+  background).
+*/
 void
 AtlasMeshCollection
 ::Construct( const unsigned int*  meshSize, const unsigned int*  domainSize,
@@ -908,6 +917,7 @@ AtlasMeshCollection
   m_Meshes.clear();
   m_CellLinks = 0;
 
+  // Create a single mesh, then replicate it below
   // Use a mesh source to create the mesh
   MeshSourceType::Pointer  meshSource = MeshSourceType::New();
   for ( unsigned int  x = 0; x < meshSize[ 0 ]-1; x++ )
@@ -916,6 +926,7 @@ AtlasMeshCollection
       {
       for ( unsigned int  z = 0; z < meshSize[ 2 ]-1; z++ )
         {
+	// Get the two extreme corners of the cube
         float  x1 = static_cast< float >( x ) * static_cast< float >( domainSize[ 0 ] - 1 )
                                               / static_cast< float >( meshSize[ 0 ] - 1 );
         float  y1 = static_cast< float >( y ) * static_cast< float >( domainSize[ 1 ] - 1 )
@@ -971,15 +982,13 @@ AtlasMeshCollection
       }
     }
 
-
-
-
-
-  // Assign flat alphas as a starting point. Vertices lying on the border can not move freely and belong to 
-  // first class
+  // Alpha[Class] is the probability that the given point belongs to class Class.
+  // Each point needs an alpha vector, but set up some defaults first
+  // Assign flat alphas as a starting point. 
   AtlasAlphasType   flatAlphasEntry( numberOfClasses );
   flatAlphasEntry.Fill( 1.0f / static_cast< float >( numberOfClasses ) );
   
+  // Vertices lying on the border can not move freely and belong to first (background) class
   AtlasAlphasType   borderAlphasEntry( numberOfClasses );
   if ( forceBorderVerticesToBackground )
     {
@@ -991,15 +1000,19 @@ AtlasMeshCollection
     borderAlphasEntry = flatAlphasEntry;
     }
 
+  // Now go through all the points
   for ( AtlasMesh::PointsContainer::ConstIterator  pointIt = meshSource->GetOutput()->GetPoints()->Begin();
         pointIt != meshSource->GetOutput()->GetPoints()->End();
         ++pointIt )
     {
+
+    // Goal here is to fill the pointParameters struct for this point
     AtlasMesh::PixelType  pointParameters;
-    
     pointParameters.m_Alphas = flatAlphasEntry;
     pointParameters.m_CanChangeAlphas = true;
     
+    // pointIt.Value() will return an array[3] of the coordinates of the point
+    // Check whether the point is on the X extreme
     if ( ( pointIt.Value()[ 0 ] == 0 ) || ( pointIt.Value()[ 0 ] == ( domainSize[ 0 ] - 1 ) ) )
       {
       pointParameters.m_CanMoveX = false;
@@ -1012,7 +1025,7 @@ AtlasMeshCollection
       {
       pointParameters.m_CanMoveX = true;
       }
-    
+    // Check whether the point is on the Y extreme    
     if ( ( pointIt.Value()[ 1 ] == 0 ) || ( pointIt.Value()[ 1 ] == ( domainSize[ 1 ] - 1 ) ) )
       {
       pointParameters.m_CanMoveY = false;
@@ -1025,7 +1038,7 @@ AtlasMeshCollection
       {
       pointParameters.m_CanMoveY = true;
       }
-
+    // Check whether the point is on the Z extreme
     if ( ( pointIt.Value()[ 2 ] == 0 ) || ( pointIt.Value()[ 2 ] == ( domainSize[ 2 ] - 1 ) ) )
       {
       pointParameters.m_CanMoveZ = false;
@@ -1038,15 +1051,12 @@ AtlasMeshCollection
       {
       pointParameters.m_CanMoveZ = true;
       }
-      
+    // Insert the pointParameters struct into the mesh
     meshSource->GetOutput()->SetPointData( pointIt.Index(), pointParameters );
     }
-
     
   // Now simply create the mesh collection by repeating the mesh
   this->GenerateFromSingleMesh( meshSource->GetOutput(), numberOfMeshes, K );
-
-
 }
   
 
