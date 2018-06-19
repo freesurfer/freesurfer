@@ -82,6 +82,8 @@ public :
   std::vector< PointsContainerType::Pointer >&  GetPositions()
     { return m_Positions; }
   
+  unsigned int GetNumberOfAlphas() const
+    { return(m_PointParameters->Begin().Value().m_Alphas.size()); }
   
   //
   unsigned int GetNumberOfMeshes() const
