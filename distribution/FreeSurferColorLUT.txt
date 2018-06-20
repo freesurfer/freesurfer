@@ -1112,6 +1112,67 @@
 8013  Thalamus-lateral-geniculate                       203 182 143 0
 8014  Thalamus-medial-geniculate                        42  204 167 0
 
+
+
+#
+# Labels for thalamus parcellation using histological atlas (Iglesias et al.)
+#
+
+8103 Left-AV 0 85 0 0
+8104 Left-CeM 170 85 0 0
+8105 Left-CL 0 170 0 0
+8106 Left-CM 170 170 0 0
+8108 Left-LD 170 255 0 0
+8109 Left-LGN 0 0 127 0
+8110 Left-LP 0 85 127 0
+8111 Left-L-Sg 170 85 127 0
+8112 Left-MDl 0 170 127 0
+8113 Left-MDm 170 170 127 0
+8115 Left-MGN 170 255 127 0
+8116 Left-MV(Re) 0 0 255 0
+8117 Left-Pc 170 0 255 0
+8118 Left-Pf 0 85 255 0
+8119 Left-Pt 170 85 255 0
+8120 Left-PuA 0 170 255 0
+8121 Left-PuI 170 170 255 0
+8122 Left-PuL 0 255 255 0
+8123 Left-PuM 170 255 255 0
+8125 Left-R 255 0 0 0
+8126 Left-VA 85 85 0 0
+8127 Left-VAmc 255 85 0 0
+8128 Left-VLa 85 170 0 0
+8129 Left-VLp 255 170 0 0
+8130 Left-VM 85 255 0 0
+8133 Left-VPL 255 0 255 0
+
+8203 Right-AV 0 85 0 0
+8204 Right-CeM 170 85 0 0
+8205 Right-CL 0 170 0 0
+8206 Right-CM 170 170 0 0
+8208 Right-LD 170 255 0 0
+8209 Right-LGN 0 0 127 0
+8210 Right-LP 0 85 127 0
+8211 Right-L-Sg 170 85 127 0
+8212 Right-MDl 0 170 127 0
+8213 Right-MDm 170 170 127 0
+8215 Right-MGN 170 255 127 0
+8216 Right-MV(Re) 0 0 255 0
+8217 Right-Pc 170 0 255 0
+8218 Right-Pf 0 85 255 0
+8219 Right-Pt 170 85 255 0
+8220 Right-PuA 0 170 255 0
+8221 Right-PuI 170 170 255 0
+8222 Right-PuL 0 255 255 0
+8223 Right-PuM 170 255 255 0
+8225 Right-R 255 0 0 0
+8226 Right-VA 85 85 0 0
+8227 Right-VAmc 255 85 0 0
+8228 Right-VLa 85 170 0 0
+8229 Right-VLp 255 170 0 0
+8230 Right-VM 85 255 0 0
+8233 Right-VPL 255 0 255 0
+
+
 #
 # Labels for thalamus parcellation using probabilistic tractography. See:
 # Functional--Anatomical Validation and Individual Variation of Diffusion
