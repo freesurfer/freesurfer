@@ -800,7 +800,7 @@ static void do_file(char *fname)
   }
   if (PrintRes)
   {
-    fprintf(fpout,"%5.3f %5.3f %5.3f %5.3f\n",
+    fprintf(fpout,"%9.7f %9.7f %9.7f %9.7f\n",
             mri->xsize,mri->ysize,mri->zsize,mri->tr);
     return;
   }
