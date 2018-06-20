@@ -236,6 +236,10 @@ typedef struct
   double bval, bvecx, bvecy, bvecz;
   float LargestValue; // 0x28, 0x107
   int   ErrorFlag;   /* Set for error, eg, aborted run */
+
+  // Rescaling parameters
+  double RescaleIntercept, RescaleSlope; //(0028,1052) (0028,1053)
+
 }
 SDCMFILEINFO;
 
