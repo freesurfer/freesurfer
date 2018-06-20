@@ -427,7 +427,10 @@ int main(int argc, char *argv[])
     LTA *seg2bbpet,*anat2bbpet,*lta;
     MRI *masktmp,*yvoltmp;
     printf("Automask, reducing FOV\n");
-    gtm->automaskRegion = REGIONgetBoundingBox(gtm->mask,1);
+    if(gtm->reduce_fov == 1)
+      gtm->automaskRegion = REGIONgetBoundingBox(gtm->mask,1);
+    if(gtm->reduce_fov == 2)
+      gtm->automaskRegion = REGIONgetBoundingBoxEqOdd(gtm->mask,1);
     printf("region %d %d %d reduced to ",gtm->yvol->width,gtm->yvol->height,gtm->yvol->depth);
     REGIONprint(stdout, gtm->automaskRegion);
     fflush(stdout);
@@ -1156,6 +1159,8 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     }
     else if(!strcasecmp(option, "--no-reduce-fov")) gtm->reduce_fov = 0;
+    else if(!strcasecmp(option, "--reduce-fov")) gtm->reduce_fov = 1;
+    else if(!strcasecmp(option, "--reduce-fov-eqodd")) gtm->reduce_fov = 2;
     else if(!strcmp(option, "--sd") || !strcmp(option, "-SDIR")) {
       if(nargc < 1) CMDargNErr(option,1);
       setenv("SUBJECTS_DIR",pargv[0],1);
@@ -1576,7 +1581,8 @@ static void print_usage(void) {
   printf("\n");
   printf("   --mask volfile : ignore areas outside of the mask (in input vol space)\n");
   printf("   --auto-mask FWHM thresh : automatically compute mask\n");
-  printf("   --no-reduce-fov : do not reduce FoV to encompass automask\n");
+  printf("   --no-reduce-fov : do not reduce FoV to encompass mask\n");
+  printf("   --reduce-fov-eqodd : reduce FoV to encompass mask but force nc=nr and ns to be odd\n");
   printf("   --C contrast.mtx : univariate contrast to test (ascii text file)\n");
   printf("\n");
   printf("   --default-seg-merge : default schema for merging ROIs\n");
