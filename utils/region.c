@@ -335,6 +335,76 @@ MRI_REGION *REGIONgetBoundingBox(MRI *mask, int npad)
 }
 
 /*!
+  \fn MRI_REGION *REGIONgetBoundingBoxEqOdd(MRI *mask, int npad)
+  \brief Same as REGIONgetBoundingBox() but forces the output to
+  have nrows=ncols and nslices to be odd. This is a customization
+  to accomodate the STIR PET simulator
+*/
+MRI_REGION *REGIONgetBoundingBoxEqOdd(MRI *mask, int npad)
+{
+  MRI_REGION *region;
+  int dxy,delta, delta1, delta2, isodd;
+
+  region = REGIONgetBoundingBox(mask, npad);
+  isodd = (region->dz % 2);
+
+  if(region->dx == region->dy && isodd) 
+    return(region);
+
+  if(!isodd){
+    if(region->dz+1 < mask->depth){
+      // Add 1 to dz to make it odd
+      region->dz += 1; 
+    }
+    else if(region->z > 0){
+      // Remove 1 from z and add 1 to dz to make it odd
+      region->z -= 1;
+      region->dz += 1; 
+    }
+    else {
+      printf("ERROR: REGIONgetBoundingBoxEqOdd(): cannot make z odd: z=%d, dz=%d, nz=%d\n",
+	     region->z,region->dz,mask->depth);
+      return(NULL);
+    }
+  }
+  if(region->dx == region->dy)
+    return(region);
+
+  // If it gets here, then dx != dy
+  dxy = MAX(region->dx,region->dy);
+  if(region->x + dxy < mask->width && region->y + dxy < mask->height){
+    region->dx = dxy;
+    region->dy = dxy;
+    return(region);
+  }
+  // Divide the difference into two (maybe equal) parts
+  delta = fabs(region->dx-region->dy);
+  delta1 = delta/2;
+  delta2 = delta - delta1;
+  if(region->dx < region->dy){
+    // reduce the x start by half the difference
+    if(region->x - delta1 > 0 && region->x + region->dx + delta2 < mask->width){
+      region->x  -= delta1;
+      region->dx += delta;
+      return(region);
+    }
+  }
+  if(region->dy < region->dx){
+    // reduce the y start by half the difference
+    if(region->y - delta1 > 0 && region->y + region->dy + delta2 < mask->width){
+      region->y  -= delta1;
+      region->dy += delta;
+      return(region);
+    }
+  }
+
+  // Not sure if more can be done
+  printf("ERROR: REGIONgetBoundingBoxEqOdd(): cannot make x=y\n");
+  REGIONprint(stdout,region);
+  return(NULL);
+}
+
+/*!
   \fn int REGIONprint(FILE *fp, MRI_REGION *r)
   \brief Prints REGION struct.
 */
