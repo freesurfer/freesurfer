@@ -3899,6 +3899,9 @@ AC_SUBST(TESTS_ENVIRONMENT)
 AC_CONFIG_FILES([
 	Makefile
 	Makefile.smalldist
+	ThalamicNuclei/Makefile
+	ThalamicNuclei/linux_x86_64/Makefile
+	ThalamicNuclei/mac_osx/Makefile
 	BrainstemSS/Makefile
 	BrainstemSS/linux_x86_64/Makefile
 	BrainstemSS/mac_osx/Makefile
