@@ -352,7 +352,7 @@ MRI_REGION *REGIONgetBoundingBoxEqOdd(MRI *mask, int npad)
     return(region);
 
   if(!isodd){
-    if(region->dz+1 < mask->depth){
+    if(region->dz < mask->depth){
       // Add 1 to dz to make it odd
       region->dz += 1; 
     }
@@ -372,7 +372,7 @@ MRI_REGION *REGIONgetBoundingBoxEqOdd(MRI *mask, int npad)
 
   // If it gets here, then dx != dy
   dxy = MAX(region->dx,region->dy);
-  if(region->x + dxy < mask->width && region->y + dxy < mask->height){
+  if(region->x + dxy <= mask->width && region->y + dxy <= mask->height){
     region->dx = dxy;
     region->dy = dxy;
     return(region);
@@ -383,7 +383,7 @@ MRI_REGION *REGIONgetBoundingBoxEqOdd(MRI *mask, int npad)
   delta2 = delta - delta1;
   if(region->dx < region->dy){
     // reduce the x start by half the difference
-    if(region->x - delta1 > 0 && region->x + region->dx + delta2 < mask->width){
+    if(region->x - delta1 > 0 && region->x + region->dx + delta2 <= mask->width){
       region->x  -= delta1;
       region->dx += delta;
       return(region);
@@ -391,7 +391,7 @@ MRI_REGION *REGIONgetBoundingBoxEqOdd(MRI *mask, int npad)
   }
   if(region->dy < region->dx){
     // reduce the y start by half the difference
-    if(region->y - delta1 > 0 && region->y + region->dy + delta2 < mask->width){
+    if(region->y - delta1 > 0 && region->y + region->dy + delta2 <= mask->height){
       region->y  -= delta1;
       region->dy += delta;
       return(region);
