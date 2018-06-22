@@ -208,6 +208,7 @@ int main(int argc, char *argv[])
   getcwd(cwd,2000);
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   vg_isEqual_Threshold = 10e-4;
+  setRandomSeed(53);
 
   gtm = GTMalloc();
   //gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014+head");
@@ -581,10 +582,10 @@ int main(int argc, char *argv[])
   if(Gdiag_no > 0) PrintMemUsage(stdout);
   PrintMemUsage(logfp);
 
-  // Create GTM pvf in pet space (why?)
+  // Create GTM pvf in pet space (why?). This is actually the fraction of each tissue type
   gtm->ttpvf = MRIsegPVF2TissueTypePVF(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
 				       gtm->ctGTMSeg, gtm->mask, gtm->ttpvf);
-  sprintf(tmpstr,"%s/pvf.nii.gz",AuxDir);
+  sprintf(tmpstr,"%s/tissue.fraction.nii.gz",AuxDir);
   MRIwrite(gtm->ttpvf,tmpstr);
 
   // Compute gray matter PVF with smoothing
@@ -1186,6 +1187,8 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--no-mask_rbv_to_brain")) gtm->mask_rbv_to_brain = 0;
     else if(!strcasecmp(option, "--default-seg-merge"))
       GTMdefaultSegReplacmentList(&gtm->nReplace,&(gtm->SrcReplace[0]),&(gtm->TrgReplace[0]));
+    else if(!strcasecmp(option, "--opt-seg-merge"))
+      GTMoptSegReplacmentList(&gtm->nReplace,&(gtm->SrcReplace[0]),&(gtm->TrgReplace[0]));
 
     else if(!strcmp(option, "--replace-file")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -2402,4 +2405,3 @@ MRI *GTMnoPVC(GTM *gtm)
   free(nperseg);
   return(nopvc);
 }
-

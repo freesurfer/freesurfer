@@ -188,6 +188,7 @@ typedef struct
 int MRIgtmSeg(GTMSEG *gtmseg);
 int GTMSEGprint(GTMSEG *gtmseg, FILE *fp);
 int GTMdefaultSegReplacmentList(int *nReplace, int *ReplaceThis, int *WithThat);
+int GTMoptSegReplacmentList(int *nReplace, int *ReplaceThis, int *WithThat);
 COLOR_TABLE *GTMSEGctab(GTMSEG *gtmseg, COLOR_TABLE *ctSubCort);
 
 GTM *GTMalloc();

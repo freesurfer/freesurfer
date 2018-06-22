@@ -361,7 +361,147 @@ int GTMdefaultSegReplacmentList(int *nReplace, int *ReplaceThis, int *WithThat)
   // ReplaceThis[nlist] =   31; WithThat[nlist] =   24; nlist++; // LChoroidP ?
   // ReplaceThis[nlist] =   63; WithThat[nlist] =   24; nlist++; // RChoroidP ?
 
-  *nReplace += nlist;
+  *nReplace = nlist;
+  return (0);
+}
+/*!
+  \fn int GTMoptSegReplacmentList(int *nReplace, int *ReplaceThis, int *WithThat)
+  \brief Reduces the number of ROIs by merging left and right and
+  combining cortical segs into a much fewer number (lobes,
+  more-or-less); also combines some subcort. The idea here is to
+  reduce the number of ROIs to make optimization faster without
+  loosing a lot of anatomical detail. Calls GTMdefaultSegReplacmentList().
+ */
+int GTMoptSegReplacmentList(int *nReplace, int *ReplaceThis, int *WithThat)
+{
+  int nlist;
+  GTMdefaultSegReplacmentList(nReplace, ReplaceThis, WithThat);
+
+  nlist = *nReplace;
+  // Merge all occip (left and right) into a single seg (1021, lh calc)
+  ReplaceThis[nlist] = 2021; WithThat[nlist] = 1021; nlist++;  // rh calc
+  ReplaceThis[nlist] = 1011; WithThat[nlist] = 1021; nlist++;  // lh lat occip
+  ReplaceThis[nlist] = 2011; WithThat[nlist] = 1021; nlist++;  // rh lat occip
+  ReplaceThis[nlist] = 1005; WithThat[nlist] = 1021; nlist++;  // lh cuneus
+  ReplaceThis[nlist] = 2005; WithThat[nlist] = 1021; nlist++;  // rh cuneus
+  ReplaceThis[nlist] = 1013; WithThat[nlist] = 1021; nlist++;  // lh lingual
+  ReplaceThis[nlist] = 2013; WithThat[nlist] = 1021; nlist++;  // rh lingual
+
+  // Merge all temporal (left and right) into a single seg (1015, lh med temp)
+  ReplaceThis[nlist] = 2015; WithThat[nlist] = 1015; nlist++;  // rh medtemp
+  ReplaceThis[nlist] = 1009; WithThat[nlist] = 1015; nlist++;  // lh inftemp
+  ReplaceThis[nlist] = 2009; WithThat[nlist] = 1015; nlist++;  // rh inftemp
+  ReplaceThis[nlist] = 1030; WithThat[nlist] = 1015; nlist++;  // lh suptemp
+  ReplaceThis[nlist] = 2030; WithThat[nlist] = 1015; nlist++;  // rh suptemp
+  ReplaceThis[nlist] = 1033; WithThat[nlist] = 1015; nlist++;  // lh temppole
+  ReplaceThis[nlist] = 2033; WithThat[nlist] = 1015; nlist++;  // rh temppole
+  ReplaceThis[nlist] = 1034; WithThat[nlist] = 1015; nlist++;  // lh transtemp
+  ReplaceThis[nlist] = 2034; WithThat[nlist] = 1015; nlist++;  // rh transtemp
+  ReplaceThis[nlist] = 1007; WithThat[nlist] = 1015; nlist++;  // lh fusi
+  ReplaceThis[nlist] = 2007; WithThat[nlist] = 1015; nlist++;  // rh fusi
+  ReplaceThis[nlist] = 1001; WithThat[nlist] = 1015; nlist++;  // lh banks sts
+  ReplaceThis[nlist] = 2001; WithThat[nlist] = 1015; nlist++;  // rh banks sts
+  ReplaceThis[nlist] = 1016; WithThat[nlist] = 1015; nlist++;  // lh parahip
+  ReplaceThis[nlist] = 2016; WithThat[nlist] = 1015; nlist++;  // rh parahip
+  ReplaceThis[nlist] = 1006; WithThat[nlist] = 1015; nlist++;  // lh ento
+  ReplaceThis[nlist] = 2006; WithThat[nlist] = 1015; nlist++;  // rh ento
+
+  // Merge all parietal (left and right) into a single seg (1029, lh sup parietal)
+  ReplaceThis[nlist] = 2029; WithThat[nlist] = 1029; nlist++;  // rh sup par
+  ReplaceThis[nlist] = 1008; WithThat[nlist] = 1029; nlist++;  // lh inf par
+  ReplaceThis[nlist] = 2008; WithThat[nlist] = 1029; nlist++;  // rh inf par
+  ReplaceThis[nlist] = 1025; WithThat[nlist] = 1029; nlist++;  // lh precuen
+  ReplaceThis[nlist] = 2025; WithThat[nlist] = 1029; nlist++;  // rh precuen
+  ReplaceThis[nlist] = 1031; WithThat[nlist] = 1029; nlist++;  // lh sup marg
+  ReplaceThis[nlist] = 2031; WithThat[nlist] = 1029; nlist++;  // rh sup marg
+
+  // Merge all cingulate (left and right) into a single seg (1002, lh caud ant cing)
+  ReplaceThis[nlist] = 2002; WithThat[nlist] = 1002; nlist++;  // rh caudantcing
+  ReplaceThis[nlist] = 1026; WithThat[nlist] = 1002; nlist++;  // lh rostantcing
+  ReplaceThis[nlist] = 2026; WithThat[nlist] = 1002; nlist++;  // rh rostantcing
+  ReplaceThis[nlist] = 1023; WithThat[nlist] = 1002; nlist++;  // lh postcing
+  ReplaceThis[nlist] = 2023; WithThat[nlist] = 1002; nlist++;  // rh postcing
+  ReplaceThis[nlist] = 1010; WithThat[nlist] = 1002; nlist++;  // lh isthmuscing
+  ReplaceThis[nlist] = 2010; WithThat[nlist] = 1002; nlist++;  // rh isthmuscing
+
+  // Merge all central (left and right) into a single seg (1022, lh post cent)
+  ReplaceThis[nlist] = 2022; WithThat[nlist] = 1022; nlist++;  // rh post cent
+  ReplaceThis[nlist] = 1024; WithThat[nlist] = 1022; nlist++;  // lh pre cent
+  ReplaceThis[nlist] = 2024; WithThat[nlist] = 1022; nlist++;  // rh pre cent
+  ReplaceThis[nlist] = 1017; WithThat[nlist] = 1022; nlist++;  // lh para cent
+  ReplaceThis[nlist] = 2017; WithThat[nlist] = 1022; nlist++;  // rh para cent
+
+  // Merge all supfront (left and right) into a single seg (1028, lh sup front)
+  ReplaceThis[nlist] = 2028; WithThat[nlist] = 1028; nlist++;  // rh sup front
+
+  // Merge all midfront (left and right) into a single seg (1003, lh caudmid front)
+  ReplaceThis[nlist] = 2003; WithThat[nlist] = 1003; nlist++;  // rh caudmid front
+  ReplaceThis[nlist] = 1027; WithThat[nlist] = 1003; nlist++;  // lh rostmid front
+  ReplaceThis[nlist] = 2027; WithThat[nlist] = 1003; nlist++;  // rh rostmid front
+
+  // Merge all pars (left and right) into a single seg (1020, lh pars tri)
+  ReplaceThis[nlist] = 2020; WithThat[nlist] = 1020; nlist++;  // rh pars tri
+  ReplaceThis[nlist] = 1018; WithThat[nlist] = 1020; nlist++;  // lh pars oper
+  ReplaceThis[nlist] = 2018; WithThat[nlist] = 1020; nlist++;  // rh pars oper
+  ReplaceThis[nlist] = 1019; WithThat[nlist] = 1020; nlist++;  // lh pars orbit
+  ReplaceThis[nlist] = 2019; WithThat[nlist] = 1020; nlist++;  // rh pars orbit
+
+  // Merge all orb front (left and right) into a single seg (1012, lh lat orb front)
+  ReplaceThis[nlist] = 2012; WithThat[nlist] = 1012; nlist++;  // rh lat orb front
+  ReplaceThis[nlist] = 1014; WithThat[nlist] = 1012; nlist++;  // lh med orb front
+  ReplaceThis[nlist] = 2014; WithThat[nlist] = 1012; nlist++;  // rh med orb front
+  ReplaceThis[nlist] = 1032; WithThat[nlist] = 1012; nlist++;  // lh frontal pole
+  ReplaceThis[nlist] = 2032; WithThat[nlist] = 1012; nlist++;  // rh frontal pole
+
+  // Merge left and right insula into left ins 1035
+  ReplaceThis[nlist] = 2035; WithThat[nlist] = 1035; nlist++;  // rh ins
+
+  // Merge CP with CSF
+  ReplaceThis[nlist] =   31; WithThat[nlist] =   24; nlist++; // LChoroidP
+  ReplaceThis[nlist] =   63; WithThat[nlist] =   24; nlist++; // RChoroidP
+
+  // Merge Cerebellar GM into left cblum 8
+  ReplaceThis[nlist] =   47; WithThat[nlist] =   8; nlist++; // L Cblum GM
+  ReplaceThis[nlist] =  172; WithThat[nlist] =   8; nlist++; // Vermis
+
+  // Merge L and R Cerebellar WGM into left cblum wm 7
+  ReplaceThis[nlist] =   46; WithThat[nlist] =   7; nlist++; // R Cblum WM
+
+  // Merge Hippo and Amyg into LHip 17
+  ReplaceThis[nlist] =   53; WithThat[nlist] =   17; nlist++; // R Hippo
+  ReplaceThis[nlist] =   18; WithThat[nlist] =   17; nlist++; // L Amyg
+  ReplaceThis[nlist] =   54; WithThat[nlist] =   17; nlist++; // R Amyg
+
+  // Merge Putamen and Pallidum into L Put 12
+  ReplaceThis[nlist] =   51; WithThat[nlist] =   12; nlist++; // R Put
+  ReplaceThis[nlist] =   13; WithThat[nlist] =   12; nlist++; // L Pal
+  ReplaceThis[nlist] =   52; WithThat[nlist] =   12; nlist++; // R Pal
+
+  // Merge Caudate and NucAcc into L Caud 11
+  ReplaceThis[nlist] =   50; WithThat[nlist] =   11; nlist++; // R Put
+  ReplaceThis[nlist] =   26; WithThat[nlist] =   11; nlist++; // L NAcc
+  ReplaceThis[nlist] =   58; WithThat[nlist] =   11; nlist++; // R NAcc
+
+  // Merge L and R Thal into L Thal 10
+  ReplaceThis[nlist] =   49; WithThat[nlist] =   10; nlist++; // R Thal
+
+  // Merge L and R VDC into L VDC 28
+  ReplaceThis[nlist] =   60; WithThat[nlist] =   28; nlist++; // R VDC
+
+  // Merge L and R Cerebral WM into L WM 2 (and WMSAs too)
+  ReplaceThis[nlist] =   41; WithThat[nlist] =   2; nlist++; // R WM
+  ReplaceThis[nlist] =   77; WithThat[nlist] =   2; nlist++; // WMSA
+  ReplaceThis[nlist] =   78; WithThat[nlist] =   2; nlist++; // L WMSA
+  ReplaceThis[nlist] =   79; WithThat[nlist] =   2; nlist++; // R WMSA
+
+  // Merge ExtraCerebral CSF with CSF 24
+  ReplaceThis[nlist] =   257; WithThat[nlist] =   24; nlist++; // XCSF
+
+  // Merge Head segs
+  ReplaceThis[nlist] =   130; WithThat[nlist] =   258; nlist++; // Air
+  ReplaceThis[nlist] =   165; WithThat[nlist] =   258; nlist++; // Skull
+
+  *nReplace = nlist;
   return (0);
 }
 
