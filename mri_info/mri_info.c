@@ -102,6 +102,7 @@ static int PrintSliceDirection = 0;
 static int PrintCRAS = 0;
 static int PrintP0 = 0;
 static int PrintEntropy = 0;
+static int PrintVoxVolSum = 0;
 static int PrintStats = 0;
 static int PrintVoxel = 0;
 static int PrintAutoAlign = 0;
@@ -406,6 +407,10 @@ static int parse_commandline(int argc, char **argv)
     {
       PrintEntropy = 1;
     }
+    else if (!strcasecmp(option, "--voxvolsum"))
+    {
+      PrintVoxVolSum = 1;
+    }
     else if (!strcasecmp(option, "--stats"))
     {
       PrintStats = 1;
@@ -476,6 +481,7 @@ static void print_usage(void)
   printf("   --rres : print row    voxel size (ysize)\n");
   printf("   --sres : print slice  voxel size (zsize)\n");
   printf("   --voxvol : print voxel volume\n");
+  printf("   --voxvolsum : compute sum of all voxels times the voxel volume \n");
   printf("   --ncols : print number of columns (width) to stdout\n");
   printf("   --nrows : print number of rows (height) to stdout\n");
   printf("   --nslices : print number of slices (depth) to stdout\n");
@@ -629,7 +635,7 @@ static void do_file(char *fname)
     fprintf(fpout,"%s\n", type_to_string(mri_identify(fname)));
     return;
   }
-  if (!PrintVoxel && !PrintEntropy && !PrintStats)
+  if (!PrintVoxel && !PrintEntropy && !PrintStats && !PrintVoxVolSum)
   {
     mri = MRIreadHeader(fname, intype) ;
   }
@@ -984,6 +990,21 @@ static void do_file(char *fname)
       return;
     }
     MatrixPrintFmt(fpout,"%10f",mri->AutoAlign);
+    return;
+  }
+  if(PrintVoxVolSum)
+  {
+    double long sum=0;
+    for(c=0; c < mri->width; c++){
+      for(r=0; r < mri->height; r++){
+	for(s=0; s < mri->depth; s++){
+	  for(f=0; f < mri->nframes; f++){
+	  sum += MRIgetVoxVal(mri,c,r,s,f);
+	  }
+	}
+      }
+    }
+    fprintf(fpout,"%Lf\n",sum*mri->xsize*mri->ysize*mri->zsize);
     return;
   }
   if (PrintEntropy)
