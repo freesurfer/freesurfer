@@ -572,6 +572,10 @@ static int parse_commandline(int argc, char **argv) {
       cmdargs->optschema = 2;
       cmdargs->dof = 3;
     }
+    else if (!strcasecmp(option, "--zscale"))   {
+      cmdargs->optschema = 3;
+      cmdargs->dof = 7;
+    }
     else if (!strcasecmp(option, "--bf-lim")) {
       if(nargc < 1) CMDargNErr(option,1);
       cmdargs->DoBF = 1;
@@ -726,6 +730,8 @@ static void print_usage(void) {
   printf("\n");
   printf("   --s subject (forces --ref-mask aparc+aseg.mgz)\n");
   printf("   --dof DOF : default is %d (also: --6, --9, --12)\n",cmdargs->dof);
+  printf("   --zscale : a 7 dof reg with xyz shift and rot and scaling in z\n");
+  printf("   --2dz : for 2D images uses shifts in x and z and rot about y\n");
   printf("   --ref-mask refmaskvol : mask ref with refmaskvol\n");
   printf("   --no-ref-mask : do not mask ref (good to undo aparc+aseg.mgz, put AFTER --s)\n");
   printf("   --mov-mask movmaskvol : mask ref with movmaskvol\n");
@@ -1316,6 +1322,12 @@ double NMICost(double **H, int cols, int rows)
   return(cost);
 }
 
+/*!
+  \fn double *COREGoptSchema2MatrixPar(COREG *coreg, double *par)
+  \brief Convert the vector of optimized parameters to parameters used
+  to create an actual matrix transform. This schema allows for
+  differnt parameters to be optimized (and not just the first n dof)
+ */
 double *COREGoptSchema2MatrixPar(COREG *coreg, double *par)
 {
   int n;
@@ -1324,16 +1336,26 @@ double *COREGoptSchema2MatrixPar(COREG *coreg, double *par)
 
   switch(coreg->optschema){
   case 1: 
+    // schema 1 is that the number of params = dof and that
+    // the order is given by xyz shift, xyz rot, xyz scale, then shear
     for(n=0; n<12; n++) par[n] = 0;
     par[6] = par[7] = par[8] = 1; // scaling
     for(n=0; n<coreg->nparams;n++) par[n] = coreg->params[n];
     break;
   case 2: 
+    // schema 2 is for a 2D image (3dof: x and z trans with rot about y)
     for(n=0; n<12; n++) par[n] = 0;
     par[6] = par[7] = par[8] = 1; // scaling
     par[0] = coreg->params[0]; // x trans
     par[2] = coreg->params[1]; // z trans
     par[4] = coreg->params[2]; // rotation about y
+    break;
+  case 3: 
+    // schema 3 is 7 dof (xyz shift, xyz rot, and z scale)
+    for(n=0; n<12; n++) par[n] = 0;
+    par[6] = par[7] = 1; // scaling in x and y
+    for(n=0; n < 6; n++) par[n] = coreg->params[n];
+    par[8] = coreg->params[6];
     break;
   }
   return(par);
