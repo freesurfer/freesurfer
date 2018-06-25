@@ -779,7 +779,7 @@ typedef struct
   int     start_t ;           /* starting time step */
   int     t ;                 /* current time */
   
-  FILE    * const fp ;        /* for logging results, write by calling  */
+  FILE    * const fp ;        /* for logging results, write by calling INTEGRATION_PARMS_<various> functions */
   
   float   Hdesired ;          /* desired (mean) curvature */
   int     integration_type ;  /* line minimation or momentum */
