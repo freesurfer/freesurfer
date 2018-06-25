@@ -108,6 +108,34 @@ static const int debugNonDeterminism = 0;
 
 #include "romp_support.h"
 
+void INTEGRATION_PARMS_copy   (INTEGRATION_PARMS* dst, INTEGRATION_PARMS const * src) {
+    memcpy(dst, src, sizeof(*src)); // note: copies the const fp et. al.!
+}
+
+
+void INTEGRATION_PARMS_openFp (INTEGRATION_PARMS* parms, const char* name, const char* mode) {
+  FILE* const* fpcp = &parms->fp;
+  FILE*      * fpp  = (FILE**)fpcp;
+  *fpp = fopen(name, mode);
+  if (!*fpp) {
+    fprintf(stderr, "%s:%d Error opening parms.fp using filename %s mode %s\n", __FILE__, __LINE__, name, mode);
+    exit(1);
+  }
+}
+
+void INTEGRATION_PARMS_closeFp(INTEGRATION_PARMS* parms) {
+  if (!parms->fp) return;
+  fclose(parms->fp);
+  FILE* const* fpcp = &parms->fp;
+  FILE*      * fpp  = (FILE**)fpcp;
+  *fpp = NULL;
+}
+
+void INTEGRATION_PARMS_copyFp (INTEGRATION_PARMS* dst, INTEGRATION_PARMS const * src) {
+  FILE* const* fpcp = &dst->fp;
+  FILE*      * fpp  = (FILE**)fpcp;
+  *fpp = src->fp;
+}
 
 #define DMALLOC 0
 
@@ -6953,7 +6981,7 @@ int MRISregister(MRI_SURFACE *mris,
   mrisLogIntegrationParms(stdout, mris, parms);
   printf("--------------------\n");
 
-  saved_parms = *parms;
+  INTEGRATION_PARMS_copy(&saved_parms, parms);
 
   if (IS_QUADRANGULAR(mris)) {
     MRISremoveTriangleLinks(mris);
@@ -6980,10 +7008,10 @@ int MRISregister(MRI_SURFACE *mris,
   if (Gdiag & DIAG_WRITE) {
     sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
     if (!parms->start_t) {
-      parms->fp = fopen(fname, "w");
+      INTEGRATION_PARMS_openFp(parms, fname, "w");
     }
     else {
-      parms->fp = fopen(fname, "a");
+      INTEGRATION_PARMS_openFp(parms, fname, "a");
     }
     if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
     mrisLogIntegrationParms(parms->fp, mris, parms);
@@ -7327,12 +7355,11 @@ int MRISregister(MRI_SURFACE *mris,
   if (Gdiag & DIAG_SHOW) fprintf(stdout, "registration took %2.2f hours\n", (float)msec / (1000.0f * 60.0f * 60.0f));
   if (Gdiag & DIAG_WRITE) {
     fprintf(parms->fp, "registration took %2.2f hours\n", (float)msec / (1000.0f * 60.0f * 60.0f));
-    fclose(parms->fp);
-    parms->fp = NULL;
+    INTEGRATION_PARMS_closeFp(parms);
   }
 
   start_t = parms->start_t;
-  *parms = *(&saved_parms);
+  INTEGRATION_PARMS_copy(parms, &saved_parms);
   parms->start_t = start_t;
   printf("MRISregister() return, current seed %ld\n", getRandomSeed());
   fflush(stdout);
@@ -7476,7 +7503,7 @@ int MRISvectorRegister(MRI_SURFACE *mris,
   if (Gdiag & DIAG_WRITE) {
     sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
     if (!parms->start_t) {
-      parms->fp = fopen(fname, "w");
+      INTEGRATION_PARMS_openFp(parms, fname, "w");
       if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
     }
     mrisLogIntegrationParms(parms->fp, mris, parms);
@@ -7882,10 +7909,10 @@ MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_pas
     sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
     if (!parms->fp) {
       if (!parms->start_t) {
-        parms->fp = fopen(fname, "w");
+        INTEGRATION_PARMS_openFp(parms, fname, "w");
       }
       else {
-        parms->fp = fopen(fname, "a");
+        INTEGRATION_PARMS_openFp(parms, fname, "a");
       }
 
       if (!parms->fp) ErrorExit(ERROR_NOFILE, "MRISunfold: could not open log file %s\n", fname);
@@ -8142,8 +8169,7 @@ MRI_SURFACE *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int max_pas
     fprintf(parms->fp, "unfolding took %2.2f hours\n", (float)msec / (1000.0f * 60.0f * 60.0f));
     mrisLogStatus(mris, parms, parms->fp, 0, -1);
     fprintf(parms->fp, "final distance error %%%2.2f\n", pct_error);
-    fclose(parms->fp);
-    parms->fp = NULL;
+    INTEGRATION_PARMS_closeFp(parms);
   }
   printf("MRISunfold() return, current seed %ld\n", getRandomSeed());
   fflush(stdout);
@@ -8185,10 +8211,10 @@ MRI_SURFACE *MRISquickSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int ma
     sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
     if (!parms->fp) {
       if (!parms->start_t) {
-        parms->fp = fopen(fname, "w");
+        INTEGRATION_PARMS_openFp(parms, fname, "w");
       }
       else {
-        parms->fp = fopen(fname, "a");
+        INTEGRATION_PARMS_openFp(parms, fname, "a");
       }
       if (!parms->fp) ErrorExit(ERROR_NOFILE, "MRISquickSphere: could not open log file %s\n", fname);
     }
@@ -8520,10 +8546,10 @@ static int mrisRemoveNegativeArea(
 
     sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
     if (!parms->start_t) {
-      parms->fp = fopen(fname, "w");
+      INTEGRATION_PARMS_openFp(parms, fname, "w");
     }
     else {
-      parms->fp = fopen(fname, "a");
+      INTEGRATION_PARMS_openFp(parms, fname, "a");
     }
     if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
     mrisLogIntegrationParms(parms->fp, mris, parms);
@@ -8706,10 +8732,10 @@ static int mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int
       if (!parms->fp) {
         sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
         if (!parms->start_t) {
-          parms->fp = fopen(fname, "w");
+          INTEGRATION_PARMS_openFp(parms, fname, "w");
         }
         else {
-          parms->fp = fopen(fname, "a");
+          INTEGRATION_PARMS_openFp(parms, fname, "a");
         }
         if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
       }
@@ -8795,10 +8821,10 @@ int MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 
     sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
     if (!parms->start_t) {
-      parms->fp = fopen(fname, "w");
+      INTEGRATION_PARMS_openFp(parms, fname, "w");
     }
     else {
-      parms->fp = fopen(fname, "a");
+      INTEGRATION_PARMS_openFp(parms, fname, "a");
     }
     if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
     mrisLogIntegrationParms(parms->fp, mris, parms);
@@ -9175,10 +9201,10 @@ int mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_average
     char fname[STRLEN];
     sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
     if (!parms->start_t) {
-      parms->fp = fopen(fname, "w");
+      INTEGRATION_PARMS_openFp(parms, fname, "w");
     }
     else {
-      parms->fp = fopen(fname, "a");
+      INTEGRATION_PARMS_openFp(parms, fname, "a");
     }
     if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
     mrisLogIntegrationParms(parms->fp, mris, parms);
@@ -19375,10 +19401,10 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
     sprintf(fname, "%s.out", parms->base_name);
     if (!parms->start_t) {
-      parms->fp = fopen(fname, "w");
+      INTEGRATION_PARMS_openFp(parms, fname, "w");
     }
     else {
-      parms->fp = fopen(fname, "a");
+      INTEGRATION_PARMS_openFp(parms, fname, "a");
     }
     if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
     mrisLogIntegrationParms(parms->fp, mris, parms);
@@ -19521,8 +19547,7 @@ int MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   fprintf(stdout, "\ninflation complete.\n");
   if (Gdiag & DIAG_WRITE) {
-    fclose(parms->fp);
-    parms->fp = NULL;
+    INTEGRATION_PARMS_closeFp(parms);
   }
 
   return (NO_ERROR);
@@ -19553,10 +19578,10 @@ int MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
     if (!parms->fp) {
       if (!parms->start_t) {
-        parms->fp = fopen(fname, "w");
+        INTEGRATION_PARMS_openFp(parms, fname, "w");
       }
       else {
-        parms->fp = fopen(fname, "a");
+        INTEGRATION_PARMS_openFp(parms, fname, "a");
       }
 
       if (!parms->fp) ErrorExit(ERROR_NOFILE, "MRISunfold: could not open log file %s\n", fname);
@@ -19569,10 +19594,10 @@ int MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
     sprintf(fname, "%s.out", parms->base_name);
     if (!parms->start_t) {
-      parms->fp = fopen(fname, "w");
+      INTEGRATION_PARMS_openFp(parms, fname, "w");
     }
     else {
-      parms->fp = fopen(fname, "a");
+      INTEGRATION_PARMS_openFp(parms, fname, "a");
     }
     if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
     mrisLogIntegrationParms(parms->fp, mris, parms);
@@ -19690,8 +19715,7 @@ int MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   fprintf(stdout, "\nspherical inflation complete.\n");
   if (Gdiag & DIAG_WRITE) {
-    fclose(parms->fp);
-    parms->fp = NULL;
+    INTEGRATION_PARMS_closeFp(parms);
   }
   if (!FZERO(parms->l_repulse)) {
     MHTfree(&mht_v_current);
@@ -31944,7 +31968,7 @@ int MRISrigidBodyAlignLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parms)
   parms.integration_type = INTEGRATE_LINE_MINIMIZE;
 
   parms.mrisp_template = old_parms->mrisp_template;
-  parms.fp = old_parms->fp;
+  INTEGRATION_PARMS_copyFp(&parms, old_parms);
   parms.niterations = 25;
   parms.frame_no = old_parms->frame_no;
   parms.mrisp = old_parms->mrisp;
@@ -31986,7 +32010,7 @@ int MRISrigidBodyAlignVectorLocal(MRI_SURFACE *mris, INTEGRATION_PARMS *old_parm
   parms.integration_type = INTEGRATE_LINE_MINIMIZE;
 
   parms.mrisp_template = old_parms->mrisp_template;
-  parms.fp = old_parms->fp;
+  INTEGRATION_PARMS_copyFp(&parms, old_parms);
   parms.niterations = 25;
   parms.frame_no = old_parms->frame_no;
   parms.mrisp = old_parms->mrisp;
@@ -32037,7 +32061,7 @@ int MRISrigidBodyAlignGlobal(
     MRI_SURFACE *mris, INTEGRATION_PARMS *parms, float min_degrees, float max_degrees, int nangles)
 {
   bool const tracing             = (Gdiag & DIAG_SHOW);
-  bool const tracingWithSnapshot = tracing && (Gdiag & DIAG_SHOW);
+  bool const tracingWithSnapshot = tracing && (Gdiag & DIAG_WRITE);
     
   float const min_radians = RADIANS(min_degrees);
   float const max_radians = RADIANS(max_degrees);
@@ -33466,10 +33490,10 @@ int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEG
     if (!parms->fp) {
       sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
       if (!parms->start_t) {
-        parms->fp = fopen(fname, "w");
+        INTEGRATION_PARMS_openFp(parms, fname, "w");
       }
       else {
-        parms->fp = fopen(fname, "a");
+        INTEGRATION_PARMS_openFp(parms, fname, "a");
       }
       if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
     }
@@ -33768,8 +33792,7 @@ int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEG
     fprintf(stdout, "positioning took %2.1f minutes\n", (float)msec / (60 * 1000.0f));
   }
   if (Gdiag & DIAG_WRITE) {
-    fclose(parms->fp);
-    parms->fp = NULL;
+    INTEGRATION_PARMS_closeFp(parms);
   }
 
   /*  MHTcheckSurface(mris, mht) ;*/
@@ -33815,10 +33838,10 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
               mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : mris->hemisphere == BOTH_HEMISPHERES ? "both" : "lh",
               parms->base_name);
       if (!parms->start_t) {
-        parms->fp = fopen(fname, "w");
+        INTEGRATION_PARMS_openFp(parms, fname, "w");
       }
       else {
-        parms->fp = fopen(fname, "a");
+        INTEGRATION_PARMS_openFp(parms, fname, "a");
       }
       if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
     }
@@ -34134,8 +34157,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     fprintf(stdout, "positioning took %2.1f minutes\n", (float)msec / (60 * 1000.0f));
   }
   if (Gdiag & DIAG_WRITE) {
-    fclose(parms->fp);
-    parms->fp = NULL;
+    INTEGRATION_PARMS_closeFp(parms);
   }
 
   /*  MHTcheckSurface(mris, mht) ;*/
@@ -34189,10 +34211,10 @@ int MRISpositionSurface_mef(
     if (!parms->fp) {
       sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
       if (!parms->start_t) {
-        parms->fp = fopen(fname, "w");
+        INTEGRATION_PARMS_openFp(parms, fname, "w");
       }
       else {
-        parms->fp = fopen(fname, "a");
+        INTEGRATION_PARMS_openFp(parms, fname, "a");
       }
       if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
     }
@@ -34346,8 +34368,7 @@ int MRISpositionSurface_mef(
     fprintf(stdout, "positioning took %2.1f minutes\n", (float)msec / (60 * 1000.0f));
   }
   if (Gdiag & DIAG_WRITE) {
-    fclose(parms->fp);
-    parms->fp = NULL;
+    INTEGRATION_PARMS_closeFp(parms);
   }
 
   /*  MHTcheckSurface(mris, mht) ;*/
@@ -34385,10 +34406,10 @@ int MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTEGRAT
     if (!parms->fp) {
       sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
       if (!parms->start_t) {
-        parms->fp = fopen(fname, "w");
+        INTEGRATION_PARMS_openFp(parms, fname, "w");
       }
       else {
-        parms->fp = fopen(fname, "a");
+        INTEGRATION_PARMS_openFp(parms, fname, "a");
       }
       if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
     }
@@ -34447,8 +34468,7 @@ int MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTEGRAT
   }
 
   if (Gdiag & DIAG_WRITE) {
-    fclose(parms->fp);
-    parms->fp = NULL;
+    INTEGRATION_PARMS_closeFp(parms);
   }
 
   /*  MHTcheckSurface(mris, mht) ;*/
@@ -72893,7 +72913,7 @@ int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
     if (!parms->fp) {
       sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
-      parms->fp = fopen(fname, "a");
+      INTEGRATION_PARMS_openFp(parms, fname, "a");
       if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
     }
   }
@@ -72986,8 +73006,7 @@ int MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     printf("%03d: %d negative triangles\n", parms->t, negative);
   }
   if (parms->fp) {
-    fclose(parms->fp);
-    parms->fp = NULL;
+    INTEGRATION_PARMS_closeFp(parms);
   }
   parms->t += parms->start_t;
   parms->start_t = parms->t;
@@ -77182,10 +77201,10 @@ int MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
     if (!parms->fp) {
       if (!parms->start_t) {
-        parms->fp = fopen(fname, "w");
+        INTEGRATION_PARMS_openFp(parms, fname, "w");
       }
       else {
-        parms->fp = fopen(fname, "a");
+        INTEGRATION_PARMS_openFp(parms, fname, "a");
       }
 
       if (!parms->fp) ErrorExit(ERROR_NOFILE, "MRISunfold: could not open log file %s\n", fname);

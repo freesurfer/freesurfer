@@ -778,7 +778,9 @@ typedef struct
   float   c ;                 /* ellipsoid parameters */
   int     start_t ;           /* starting time step */
   int     t ;                 /* current time */
-  FILE    *fp ;               /* for logging results */
+  
+  FILE    * const fp ;        /* for logging results, write by calling  */
+  
   float   Hdesired ;          /* desired (mean) curvature */
   int     integration_type ;  /* line minimation or momentum */
   double  momentum ;
@@ -892,6 +894,13 @@ typedef struct
   int          explode_flag ;
 }
 INTEGRATION_PARMS ;
+
+void INTEGRATION_PARMS_copy   (INTEGRATION_PARMS* dst, INTEGRATION_PARMS const * src);
+
+void INTEGRATION_PARMS_openFp (INTEGRATION_PARMS* parms, const char* name, const char* mode);
+void INTEGRATION_PARMS_closeFp(INTEGRATION_PARMS* parms);
+void INTEGRATION_PARMS_copyFp (INTEGRATION_PARMS* dst, INTEGRATION_PARMS const * src);
+
 
 extern double (*gMRISexternalGradient)(MRI_SURFACE *mris,
                                          INTEGRATION_PARMS *parms) ;
