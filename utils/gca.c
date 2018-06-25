@@ -13619,13 +13619,12 @@ double HALF_BOX = (60 / 2);
 int GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
 {
   float x0, y0, z0, fmin, fmax, min_real_val;
-  int mri_peak, r, max_T1_weighted_image = 0, min_real_bin, peak;
+  int mri_peak, r, max_T1_weighted_image = 0, min_real_bin, peak, label, left_wm, right_wm;
   float wm_means[MAX_GCA_INPUTS], tmp[MAX_GCA_INPUTS], scales[MAX_GCA_INPUTS];
   // float max_wm /*, scale*/;
   HISTOGRAM *h_mri, *h_smooth, *h_gca;
   MRI_REGION box;
-  MRI *mri_frame, *mri_mask, *mri_tmp;
-
+  MRI *mri_frame, *mri_mask, *mri_tmp, *mri_seg;
   float gm_means[MAX_GCA_INPUTS], gray_white_CNR;
 
   if ((gca->flags & GCA_NO_LH) == 0) GCAlabelMean(gca, Left_Cerebral_White_Matter, wm_means);
@@ -13737,10 +13736,20 @@ int GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
 
   // why divided by 3 for x and y?? mistake or experience?? -xh
   // experience - don't want to be near midline (BRF)
-  x0 = box.x + box.dx / 3;
+  mri_seg = GCAbuildMostLikelyLabelVolume(gca, NULL) ;
+  left_wm = MRIvoxelsInLabel(mri_seg, Left_Cerebral_White_Matter) ;
+  right_wm = MRIvoxelsInLabel(mri_seg, Right_Cerebral_White_Matter) ;
+  label = (left_wm > 2*right_wm) ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter ;
+  printf("finding center of left hemi white matter\n") ;
+  MRIfree(&mri_seg) ;
+
   y0 = box.y + box.dy / 3;
   z0 = box.z + box.dz / 2;
-  printf("using (%.0f, %.0f, %.0f) as brain centroid...\n", x0, y0, z0);
+  if (label == Left_Cerebral_White_Matter)
+    x0 = box.x + 2*box.dx / 3;
+  else
+    x0 = box.x + box.dx / 3;
+  printf("using (%.0f, %.0f, %.0f) as brain centroid of %s...\n", x0, y0, z0, cma_label_to_name(label));
 #if 0
   box.x = x0 - HALF_BOX*mri->xsize ;
   box.dx = BOX_SIZE*mri->xsize ;

@@ -62,6 +62,12 @@ void WidgetTimeCoursePlot::SetTimeCourseData(const QList<double> &data,
   update();
 }
 
+void WidgetTimeCoursePlot::SetSecondData(const QList<double> &data)
+{
+  m_secondData = data;
+  update();
+}
+
 void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
 {
   Q_UNUSED(e);
@@ -95,6 +101,16 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
       else if (dMax < m_data[i])
         dMax = m_data[i];
     }
+    if (!m_secondData.isEmpty())
+    {
+      for (int i = 0; i < m_secondData.size(); i++)
+      {
+        if (dMin > m_secondData[i])
+          dMin = m_secondData[i];
+        else if (dMax < m_secondData[i])
+          dMax = m_secondData[i];
+      }
+    }
     dMax += (dMax-dMin)/4;
     double old_min = dMin;
     dMin -= (dMax-dMin)/4;
@@ -106,22 +122,35 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
   double dSpacing = rc_plot.width() / (m_data.size()-1);
   p.setRenderHint(QPainter::Antialiasing);
   QPointF* pts = new QPointF[m_data.size()];
+  QPointF* pts2 = NULL;
+  if (m_secondData.size() == m_data.size())
+    pts2 = new QPointF[m_data.size()];
   for (int i = 0; i < m_data.size(); i++)
   {
     pts[i] = QPointF(rc_plot.left() + dSpacing*i,
                      rc_plot.bottom() - (m_data[i]-dMin)/(dMax-dMin)*rc_plot.height());
+    if (m_secondData.size() >= m_data.size())
+      pts2[i] = QPointF(rc_plot.left() + dSpacing*i,
+                       rc_plot.bottom() - (m_secondData[i]-dMin)/(dMax-dMin)*rc_plot.height());
   }
   p.setPen(QPen(QBrush(Qt::yellow), 2));
   p.drawPolyline(pts, m_data.size());
+  if (pts2)
+  {
+    p.setPen(QPen(QBrush(Qt::cyan), 2));
+    p.drawPolyline(pts2, m_data.size());
+  }
 
   // draw cursor
   if (rc_plot.contains(pts[m_nCurrentFrame]))
   {
     p.setPen(QPen(QBrush(Qt::red), 2));
-    p.drawLine(pts[m_nCurrentFrame] - QPointF(0, qMin(20., pts[m_nCurrentFrame].y()-rc_plot.top())),
-               pts[m_nCurrentFrame] + QPointF(0, qMin(20., rc_plot.bottom()-pts[m_nCurrentFrame].y())));
+//    p.drawLine(pts[m_nCurrentFrame] - QPointF(0, qMin(20., pts[m_nCurrentFrame].y()-rc_plot.top())),
+//               pts[m_nCurrentFrame] + QPointF(0, qMin(20., rc_plot.bottom()-pts[m_nCurrentFrame].y())));
+    p.drawLine(pts[m_nCurrentFrame].x(), rc_plot.top(), pts[m_nCurrentFrame].x(), rc_plot.bottom());
   }
   delete[] pts;
+  delete[] pts2;
 
   // draw Y metrics
   p.setPen(QPen(Qt::black));
@@ -170,8 +199,9 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
   p.drawText(rc, Qt::AlignBottom | Qt::AlignHCenter, "Frame ");
 
   // draw current stats
-  QString strg = QString("Signal intensity: %1   Frame: %3")
+  QString strg = QString("Signal intensity: %1 %2  Frame: %3")
       .arg(m_data[m_nCurrentFrame])
+      .arg(!m_secondData.isEmpty() ? QString("/ %1").arg(m_secondData[m_nCurrentFrame]) : "")
       //   .arg(m_nCurrentFrame*m_dTR/1000)
       .arg(m_nCurrentFrame);
   rc = rect().adjusted(0, 5, 0, 0);

@@ -82,6 +82,8 @@ public :
   std::vector< PointsContainerType::Pointer >&  GetPositions()
     { return m_Positions; }
   
+  unsigned int GetNumberOfAlphas() const
+    { return(m_PointParameters->Begin().Value().m_Alphas.size()); }
   
   //
   unsigned int GetNumberOfMeshes() const
@@ -186,14 +188,24 @@ private :
   void operator=(const Self&); //purposely not implemented
 
   // Data members
+  // PointParameters have Alpha vector and flags to indicate whether 
+  //  point can move in a given direction (see kvlAtlasMesh.h)
   PointDataContainerType::Pointer  m_PointParameters;
+
+  // Vector of pointers to point containers, one for each mesh
   std::vector< PointsContainerType::Pointer >  m_Positions;
 
-  CellsContainerType::Pointer  m_Cells;
-  PointsContainerType::Pointer m_ReferencePosition;
-  double  m_K;
+  CellsContainerType::Pointer  m_Cells; // m_Cells = mesh->GetCells();
+  PointsContainerType::Pointer m_ReferencePosition; //m_ReferencePosition = mesh->GetPoints();
+  double  m_K; // stiffness, applies to all meshes
+
+  // This struct has info about the volume of a given tetrahron as well 
+  // as matrix info. See kvlAtlasMesh.h
   mutable CellDataContainerType::Pointer  m_ReferenceTetrahedronInfos; // Cached
+
   mutable std::vector< AtlasMesh::Pointer >  m_Meshes;  // Cached
+
+  // Cell links make it easier to go from cell to pointer (???)
   mutable AtlasMesh::CellLinksContainerPointer  m_CellLinks;
 };
 

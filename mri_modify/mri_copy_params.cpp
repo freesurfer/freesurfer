@@ -40,12 +40,14 @@ static char vcid[] =
 
 static int copy_pulse_params_only = 0 ;
 static int copy_ras_only = 0 ;
+static int copy_voxel_size = 0 ;
 
 using namespace std;
 
 void print_usage() {
   cout << "Usage: mri_copy_params <in_vol> <template_vol> <out_vol>" << endl;
   cout << "     : where all volume parameters of in_vol are replaced with those of template_vol." << endl;
+  cout << "use --size to force copying of voxel sizes when resolutions var" << endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -137,9 +139,22 @@ int main(int argc, char *argv[]) {
   }
   if (bSizeDifferent);
   {
-    dst->xsize = in->xsize;
-    dst->ysize = in->ysize;
-    dst->zsize = in->zsize;
+    if (copy_voxel_size)
+    {
+      printf("using template resolution\n");
+      dst->xsize = temp->xsize;
+      dst->ysize = temp->ysize;
+      dst->zsize = temp->zsize;
+    }
+    else
+    {
+      printf("retaining input resolution even though voxel sizes vary\n");
+      dst->xsize = in->xsize;
+      dst->ysize = in->ysize;
+      dst->zsize = in->zsize;
+    }
+    printf("setting destination sizes to (%2.2f, %2.2f %2.2f)\n",
+	   dst->xsize, dst->ysize, dst->zsize) ;
   }
   //
   MRIwrite(dst, argv[3]);
@@ -174,6 +189,11 @@ get_option(int argc, char *argv[]) {
   {
     printf("only copying ras2vox matrices\n") ;
     copy_ras_only = 1 ;
+  }
+  else if (!stricmp(option, "-size"))
+  {
+    printf("only copying voxel sizes\n") ;
+    copy_voxel_size = 1 ;
   }
   else switch (toupper(*option))
   {

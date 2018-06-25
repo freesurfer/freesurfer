@@ -39,6 +39,7 @@ public:
 
   void SetTimeCourseData(const QList<double>& data, double min_val, double max_val,
                          double t_interval = -1);
+  void SetSecondData(const QList<double>& data);
 
   void mousePressEvent(QMouseEvent *e);
   void mouseMoveEvent(QMouseEvent *e);
@@ -63,6 +64,7 @@ signals:
 
 private:
   QList<double>   m_data;
+  QList<double>   m_secondData;
   double          m_dTR;
   double          m_dMin;
   double          m_dMax;

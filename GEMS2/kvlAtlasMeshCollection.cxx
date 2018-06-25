@@ -85,9 +85,8 @@ AtlasMeshCollection
 {
   // Clean up cache of what we may have already
   m_ReferenceTetrahedronInfos = 0;
-  m_Meshes.clear();
+  m_Meshes.clear(); // delete all content from the mesh container
   m_CellLinks = 0;
-
 
   // Initialize topology
   m_Cells = mesh->GetCells();
@@ -99,36 +98,36 @@ AtlasMeshCollection
  
   // Initialize positions by making copies of the mesh position
   PointsContainerType::ConstPointer  sourcePosition = mesh->GetPoints();
-  m_Positions.clear();
+  m_Positions.clear();// delete all content from the positions container
   for ( unsigned int i = 0; i < numberOfMeshes; i++ )
     {
+    // Create a new Points container for this mesh
     PointsContainerType::Pointer  target = PointsContainerType::New();
-    
+    // Go through all source points
     PointsContainerType::ConstIterator  sourceIt = sourcePosition->Begin();
     while ( sourceIt != sourcePosition->End() )
       {
+      // insert source coords for this point into target
       target->InsertElement( sourceIt.Index(), sourceIt.Value() );
-
       ++sourceIt;
       }
 
-    // Push back
+    // Add the new mesh points container to the mesh collection
     m_Positions.push_back( target );
     }                                                
   
 }
   
-  
-  
-//
-//
-// 
+/*!
+  \fn const AtlasMesh* AtlasMeshCollection::GetMesh()
+  \brief Returns a pointer to the given mesh number. If the m_Meshes
+  private variable has not been initialized, then it gets initialized.
+  m_Positions, m_Cells, and m_PointParams must be initialized.
+ */
 const AtlasMesh*
 AtlasMeshCollection
 ::GetMesh( unsigned int meshNumber ) const
 {
-
-
   // Sanity check on requested mesh
   if ( meshNumber >= m_Positions.size() )
     {
@@ -138,6 +137,7 @@ AtlasMeshCollection
   // If cached meshes container is empty, create it
   if ( m_Meshes.size() == 0 )
     {
+    // go thru each mesh in the collection
     for ( unsigned int i = 0; i < m_Positions.size(); i++ )
       {
       // Construct an atlas mesh
@@ -147,21 +147,15 @@ AtlasMeshCollection
       mesh->SetPointData( m_PointParameters );
       mesh->SetCellData( const_cast< CellDataContainerType* >( this->GetReferenceTetrahedronInfos() ) );
 
-
       // Add to the container
       m_Meshes.push_back( mesh );
       }
-      
     }
-
     
   // Return the cached mesh
   return m_Meshes[ meshNumber ].GetPointer();
 
 }
-
-
-
 
 //
 //
@@ -180,12 +174,14 @@ AtlasMeshCollection
   return mesh.GetPointer();
 }
 
-
-
-
 //
 //
 //
+/*!
+  \fn const AtlasMeshCollection::CellDataContainerType* AtlasMeshCollection::GetReferenceTetrahedronInfos()
+  \brief Returns a pointer to the m_ReferenceTetrahedronInfos private
+  member. If the priv member is NULL, then computes the volume and matrix inverse.
+ */
 const AtlasMeshCollection::CellDataContainerType*
 AtlasMeshCollection
 ::GetReferenceTetrahedronInfos() const
@@ -243,8 +239,6 @@ AtlasMeshCollection
 
         info.m_ReferenceVolumeTimesK = m_K * referenceVolume;
 
-
-
         // Let's precalculate inv( [ p0 p1 p2 p3; 1 1 1 1 ] ) and call it Z
         vnl_matrix_fixed< double, 4, 4 >  referenceMatrix;
         referenceMatrix.put( 0, 0, x0 );
@@ -267,7 +261,7 @@ AtlasMeshCollection
         referenceMatrix.put( 2, 3, z3 );
         referenceMatrix.put( 3, 3, 1.0f );
 
-
+	// DNG: might be faster to have a dedicated 4x4 inverse, if not there already
         vnl_matrix_fixed< double, 4, 4 >  inverseReferenceMatrix = vnl_inverse( referenceMatrix );
         info.m_Z11 = inverseReferenceMatrix.get( 0, 0 );
         info.m_Z21 = inverseReferenceMatrix.get( 1, 0 );
@@ -439,7 +433,7 @@ AtlasMeshCollection
       }
     
     
-    // Can change alpas
+    // Can-change alphas
     if ( pointParamIt.Value().m_CanChangeAlphas )
       {
       out << "true  ";
@@ -449,7 +443,7 @@ AtlasMeshCollection
       out << "false  ";
       }
       
-    // Can move X
+    // Can-move X
     if ( pointParamIt.Value().m_CanMoveX )
       {
       out << "true  ";
@@ -459,7 +453,7 @@ AtlasMeshCollection
       out << "false  ";
       }
       
-    // Can move Y
+    // Can-move Y
     if ( pointParamIt.Value().m_CanMoveY )
       {
       out << "true  ";
@@ -469,7 +463,7 @@ AtlasMeshCollection
       out << "false  ";
       }
     
-    // Can move Z
+    // Can-move Z
     if ( pointParamIt.Value().m_CanMoveZ )
       {
       out << "true  ";
@@ -893,9 +887,17 @@ AtlasMeshCollection
 
 
 
-//
-//
-//
+/*!
+  \fn AtlasMeshCollection::Construct()
+  \brief Construct a mesh collection out of whole cloth.  The mesh is
+  constructed by defining cubes in a volume. Each cube is filled with
+  five tetrahedra. meshSize is the number of cubes in each dim. The
+  domainSize is the width of the volume in each dimension (units
+  unclear, probably best to think of them as 1mm, or
+  not). forceBorderVerticesToBackground will cause the vertices at the
+  edge of the volume to the first class (which is usually the
+  background).
+*/
 void
 AtlasMeshCollection
 ::Construct( const unsigned int*  meshSize, const unsigned int*  domainSize,
@@ -908,6 +910,7 @@ AtlasMeshCollection
   m_Meshes.clear();
   m_CellLinks = 0;
 
+  // Create a single mesh, then replicate it below
   // Use a mesh source to create the mesh
   MeshSourceType::Pointer  meshSource = MeshSourceType::New();
   for ( unsigned int  x = 0; x < meshSize[ 0 ]-1; x++ )
@@ -916,6 +919,7 @@ AtlasMeshCollection
       {
       for ( unsigned int  z = 0; z < meshSize[ 2 ]-1; z++ )
         {
+	// Get the two extreme corners of the cube
         float  x1 = static_cast< float >( x ) * static_cast< float >( domainSize[ 0 ] - 1 )
                                               / static_cast< float >( meshSize[ 0 ] - 1 );
         float  y1 = static_cast< float >( y ) * static_cast< float >( domainSize[ 1 ] - 1 )
@@ -971,15 +975,13 @@ AtlasMeshCollection
       }
     }
 
-
-
-
-
-  // Assign flat alphas as a starting point. Vertices lying on the border can not move freely and belong to 
-  // first class
+  // Alpha[Class] is the probability that the given point belongs to class Class.
+  // Each point needs an alpha vector, but set up some defaults first
+  // Assign flat alphas as a starting point. 
   AtlasAlphasType   flatAlphasEntry( numberOfClasses );
   flatAlphasEntry.Fill( 1.0f / static_cast< float >( numberOfClasses ) );
   
+  // Vertices lying on the border can not move freely and belong to first (background) class
   AtlasAlphasType   borderAlphasEntry( numberOfClasses );
   if ( forceBorderVerticesToBackground )
     {
@@ -991,15 +993,19 @@ AtlasMeshCollection
     borderAlphasEntry = flatAlphasEntry;
     }
 
+  // Now go through all the points
   for ( AtlasMesh::PointsContainer::ConstIterator  pointIt = meshSource->GetOutput()->GetPoints()->Begin();
         pointIt != meshSource->GetOutput()->GetPoints()->End();
         ++pointIt )
     {
+
+    // Goal here is to fill the pointParameters struct for this point
     AtlasMesh::PixelType  pointParameters;
-    
     pointParameters.m_Alphas = flatAlphasEntry;
     pointParameters.m_CanChangeAlphas = true;
     
+    // pointIt.Value() will return an array[3] of the coordinates of the point
+    // Check whether the point is on the X extreme
     if ( ( pointIt.Value()[ 0 ] == 0 ) || ( pointIt.Value()[ 0 ] == ( domainSize[ 0 ] - 1 ) ) )
       {
       pointParameters.m_CanMoveX = false;
@@ -1012,7 +1018,7 @@ AtlasMeshCollection
       {
       pointParameters.m_CanMoveX = true;
       }
-    
+    // Check whether the point is on the Y extreme    
     if ( ( pointIt.Value()[ 1 ] == 0 ) || ( pointIt.Value()[ 1 ] == ( domainSize[ 1 ] - 1 ) ) )
       {
       pointParameters.m_CanMoveY = false;
@@ -1025,7 +1031,7 @@ AtlasMeshCollection
       {
       pointParameters.m_CanMoveY = true;
       }
-
+    // Check whether the point is on the Z extreme
     if ( ( pointIt.Value()[ 2 ] == 0 ) || ( pointIt.Value()[ 2 ] == ( domainSize[ 2 ] - 1 ) ) )
       {
       pointParameters.m_CanMoveZ = false;
@@ -1038,15 +1044,12 @@ AtlasMeshCollection
       {
       pointParameters.m_CanMoveZ = true;
       }
-      
+    // Insert the pointParameters struct into the mesh
     meshSource->GetOutput()->SetPointData( pointIt.Index(), pointParameters );
     }
-
     
   // Now simply create the mesh collection by repeating the mesh
   this->GenerateFromSingleMesh( meshSource->GetOutput(), numberOfMeshes, K );
-
-
 }
   
 
@@ -2310,18 +2313,19 @@ AtlasMeshCollection
 
 }
 
-
-
-
-
-//
-//
-// 
+/*!
+  \fn AtlasMeshCollection::PointerAtlasMeshCollection::GetUpsampled() const
+  \brief Upsamples all meshes in the collection by dividing each
+  tetrahedra into 5 smaller tetrahedra. Reconstruct all 8 corners of
+  the original cube based on how the tessellation was originally done,
+  split it into 2^3 = 8 subcubes, and full those subcubes with 5 small
+  tetrahedra
+*/
 AtlasMeshCollection::Pointer
 AtlasMeshCollection
 ::GetUpsampled() const
 {
-  // Look up what domain size is
+  // Look up what domain size is (DNG: why not just store it?)
   int  domainSize[] = { 0, 0, 0 };
   for ( AtlasMesh::PointsContainer::ConstIterator  it = this->GetReferencePosition()->Begin();
         it != this->GetReferencePosition()->End(); ++it )
@@ -2347,7 +2351,7 @@ AtlasMeshCollection
   std::cout << std::endl;
 
 
-  // Loop over all meshes
+  // Loop over all meshes, including reference
   std::vector< PointsContainerType::Pointer >  upsampledPositions;
   PointsContainerType::Pointer   upsampledReferencePosition = 0;
   CellsContainerType::Pointer  upsampledCells;
@@ -3592,10 +3596,13 @@ AtlasMeshCollection
 
 }
 
+/*! 
+  \fn void AtlasMeshCollection::FlattenAlphas()
+  \brief Changes alphas at each point to have uniform alphas (ie, the
+  prob of a given class at that point). Alphas at the edge of the FoV 
+  have class0 (background) set to 1, all else 0.
+*/
 
-//
-//
-//
 void
 AtlasMeshCollection
 ::FlattenAlphas()
@@ -3625,13 +3632,14 @@ AtlasMeshCollection
       }
 
     }
-
-
 }
 
-
-
-
+/*!
+  \fn void AtlasMeshCollection::Transform( int meshNumber, const TransformType* transform )
+  \brief Applies the given transform to the given mesh. The reference mesh is used when
+  meshNumber = nMeshes+1. m_ReferenceTetrahedronInfos and m_Meshes are cleared forcing
+  a regeneration of those data.
+*/
 void
 AtlasMeshCollection
 ::Transform( int meshNumber, const TransformType* transform )
@@ -3680,6 +3688,11 @@ AtlasMeshCollection
 //
 //
 //
+/*!
+  \fn AtlasMesh::CellLinksContainerPointerAtlasMeshCollection::GetCellLinks() const
+  \brief Returns m_CellLinks. Builds the cell links if they do not already exist.
+  A "Cell Link" indicates which points belong to which cells (?).
+*/
 AtlasMesh::CellLinksContainerPointer
 AtlasMeshCollection
 ::GetCellLinks() const

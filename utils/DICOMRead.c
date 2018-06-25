@@ -221,6 +221,18 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   printf("INFO: (%3d %3d %3d), nframes = %d, ismosaic=%d\n", ncols, nrows, nslices, nframes, IsMosaic);
   fflush(stdout);
 
+  /*
+    6/19/18 Notes on rescaling: there are two possible types of
+    rescaling. (1) The autoscale functor has been used.  This is
+    indicated by 0x20, 0x4000. (2) The slice scale and intercept
+    indicated by 0x28, 0x1052 and 0x1053. The implementation here can
+    handle both simultaneously, though hopefully this will never
+    occur. I think the autoscale functor was somewhat
+    experimental. However, the slope and intercept can be common,
+    especially in PET. I have found it in some ASL scans too (probably
+    quantitative).
+   */
+
   /* PW 2012/09/06: If the Autoscale functor has been used, save the MRI
      structure as floats, otherwise use shorts  */
   if (sdfi->UseSliceScaleFactor)
@@ -229,6 +241,35 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
     vol_datatype = MRI_SHORT;
   printf("sdfi->UseSliceScaleFactor %d\n", sdfi->UseSliceScaleFactor);
 
+  int DoRescale = 1;
+  int RescaleNeeded = 0;
+  // Go through all files and determine whether any need to rescale
+  for (nthfile = 0; nthfile < nlist; nthfile++){
+    if(sdfi_list[nthfile]->RescaleSlope != 1 || sdfi_list[nthfile]->RescaleIntercept != 0){
+      RescaleNeeded = 1;
+      break;
+    }
+  }
+  if(RescaleNeeded){
+    // must explicitly set FS_RESCALE_DICOM=0 to turn off rescaling
+    if(getenv("FS_RESCALE_DICOM") != NULL && strcmp(getenv("FS_RESCALE_DICOM"),"0")==0){
+      printf("INFO: nontrivial rescale factors are present but will not be applied because\n");
+      printf("the FS_RESCALE_DICOM environment variable is set to 0.\n");
+      printf("If you want to apply rescaling (intercept and slope), then unset that \n");
+      printf("environment variable (or set it to non-zero) and re-run\n");
+      printf("\n");
+      DoRescale = 0;
+    }
+  }
+  else {
+    DoRescale = 0;
+    printf("INFO: rescale not needed\n");
+  }
+  if(DoRescale){
+    printf("INFO: applying rescale intercept and slope based on (0028,1052) (0028,1053).\n");
+    printf("  If you do not want this, then set FS_RESCALE_DICOM to 0 and rerun.\n");
+    vol_datatype = MRI_FLOAT;
+  }
   // Use float if largest value is greater than short max
   for (nthfile = 0; nthfile < nlist; nthfile++)
     if (sdfi_list[nthfile]->LargestValue >= pow(2.0, 15)) vol_datatype = MRI_FLOAT;
@@ -445,6 +486,8 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
             }
             else
               val = *(pixeldata++);
+	    if(DoRescale)
+	      val = val*sdfi->RescaleSlope + sdfi->RescaleIntercept;
             MRIsetVoxVal(vol, col, row, slice, frame, val);
           }
         }
@@ -457,6 +500,8 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
               val = ((float)*(pixeldata++)) / sdfi->SliceScaleFactor;
             else
               val = *(pixeldata++);
+	    if(DoRescale)
+	      val = val*sdfi->RescaleSlope + sdfi->RescaleIntercept;
             MRIsetVoxVal(vol, col, row, slice, 0, val);
           }
         }
@@ -497,6 +542,8 @@ MRI *sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
               val = ((float)*(pixeldata + mosindex)) / sdfi->SliceScaleFactor;
             else
               val = *(pixeldata + mosindex);
+	    if(DoRescale)
+	      val = val*sdfi->RescaleSlope + sdfi->RescaleIntercept;
             MRIsetVoxVal(vol, col, row, slice, frame, val);
           }
         }
@@ -2223,7 +2270,7 @@ int sdcmIsMosaic(const char *dcmfile, int *pNcols, int *pNrows, int *pNslices, i
       }
     }
     if (pNslices != NULL) {
-      tmpstr = getenv("NSLICES_OVERRIDE_BCHWAUNIE");
+      tmpstr = getenv("NSLICES_OVERRIDE"); // was NSLICES_OVERRIDE_BCHWAUNIE
       if (tmpstr == NULL) {
         tmpstr = SiemensAsciiTagEx(dcmfile, "sSliceArray.lSize", 0);
         if (tmpstr == NULL) {
@@ -2359,7 +2406,25 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile)
     }
   }
 
-  DCMcheckInterceptSlope(object);
+  sdcmfi->RescaleIntercept = 0;
+  tag = DCM_MAKETAG(0x28, 0x1052);
+  cond = GetString(&object, tag, &strtmp);
+  if(cond == DCM_NORMAL) {
+    sscanf(strtmp, "%lf", &sdcmfi->RescaleIntercept);
+    free(strtmp);
+    if(sdcmfi->RescaleIntercept != 0.0 && Gdiag_no > 0)
+      printf("Info: %d RescaleIntercept = %lf \n",DCM_ImageNumber,sdcmfi->RescaleIntercept);
+  }
+  sdcmfi->RescaleSlope = 1.0;
+  tag = DCM_MAKETAG(0x28, 0x1053);
+  cond = GetString(&object, tag, &strtmp);
+  if(cond == DCM_NORMAL) {
+    sscanf(strtmp, "%lf", &sdcmfi->RescaleSlope);
+    free(strtmp);
+    if(sdcmfi->RescaleSlope != 1.0 && Gdiag_no > 0)
+      printf("Info: %d RescaleSlope = %lf \n",DCM_ImageNumber,sdcmfi->RescaleSlope);
+  }
+  //DCMcheckInterceptSlope(object);
 
   tag = DCM_MAKETAG(0x18, 0x86);
   cond = GetUSFromString(&object, tag, &ustmp);

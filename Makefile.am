@@ -358,7 +358,8 @@ MISCDIRS=\
 	spline3 \
 	swi_processing \
 	HippoSF \
-	BrainstemSS
+	BrainstemSS \
+	ThalamicNuclei
 
 # ordering is important here for proper 'make check' and 'make distcheck' function
 COREDIRS=\

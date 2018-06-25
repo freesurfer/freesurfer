@@ -126,7 +126,6 @@ int main(int argc, char *argv[])
   if (!mri_mask)
     ErrorExit(ERROR_BADPARM, "%s: could not read mask volume %s",
               Progname, argv[2]) ;
-  mri_mask_orig = MRIcopy(mri_mask, NULL) ;
 
 //  if(mri_src->width != mri_mask->width)
 //  {
@@ -172,7 +171,6 @@ int main(int argc, char *argv[])
         // add src and dst information
         LTAchangeType(lta, LINEAR_VOX_TO_VOX);
       }
-
       if (lta->xforms[0].src.valid == 0)
       {
         if (lta_src == 0)
@@ -280,6 +278,8 @@ int main(int argc, char *argv[])
     }
   }   /* if (xform_fname != NULL) */
 
+  mri_mask_orig = MRIcopy(mri_mask, NULL);
+
   // Threshold and binarize mask. Without binarization, this fails 
   // when values are less than 1
   if(ThresholdSet){
@@ -344,6 +344,7 @@ int main(int argc, char *argv[])
   MRIfree(&mri_src);
   MRIfree(&mri_mask);
   MRIfree(&mri_dst);
+  MRIfree(&mri_mask_orig);
 
   exit(0);
 

@@ -1326,7 +1326,7 @@ int main(int argc, char *argv[])
       get_ints(argc, argv, &i, &NSlicesOverride, 1);
       printf("NSlicesOverride %d\n",NSlicesOverride);
       sprintf(tmpstr,"%d",NSlicesOverride);
-      setenv("NSLICES_OVERRIDE_BCHWAUNIE",tmpstr,1);
+      setenv("NSLICES_OVERRIDE",tmpstr,1);
     }
     /*-------------------------------------------------------------*/
     else if ( (strcmp(argv[i], "--ncols-override") == 0)) {

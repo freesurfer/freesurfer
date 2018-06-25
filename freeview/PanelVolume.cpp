@@ -1535,7 +1535,7 @@ void PanelVolume::OnCheckBoxSetDisplayVector(bool b)
   QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
   foreach (LayerMRI* layer, layers)
   {
-    if (layer->GetNumberOfFrames() == 3)
+    if (layer->GetNumberOfFrames() == 3 || layer->GetEndType() == "DTI")
       layer->GetProperty()->SetDisplayVector(b);
   }
 }
