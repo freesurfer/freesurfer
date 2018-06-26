@@ -524,7 +524,7 @@ main(int argc, char *argv[]) {
     MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
     vp_copy_from_surface(mris, CURRENT_VERTICES, WHITE_VERTICES);
     if (Gdiag & DIAG_WRITE)
-      eparms.fp = stdout ;
+      INTEGRATION_PARMS_setFp(&eparms, stdout) ;
     MRISexpandSurface(mris, MIN(1, 4*mri->xsize), &eparms, 0, 1) ;
     if (Gdiag & DIAG_WRITE)
     {

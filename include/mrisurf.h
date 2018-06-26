@@ -707,7 +707,7 @@ MRI_SURFACE_PARAMETERIZATION, MRI_SP ;
 /* VECTORIAL_REGISTRATION */
 #include "field_code.h"
 
-typedef struct
+typedef struct INTEGRATION_PARMS
 {
   double  tol ;               /* tolerance for terminating a step */
   float   l_angle ;           /* coefficient of angle term */
@@ -778,7 +778,9 @@ typedef struct
   float   c ;                 /* ellipsoid parameters */
   int     start_t ;           /* starting time step */
   int     t ;                 /* current time */
-  FILE    *fp ;               /* for logging results */
+  
+  FILE    * const fp ;        /* for logging results, write by calling INTEGRATION_PARMS_<various> functions */
+  
   float   Hdesired ;          /* desired (mean) curvature */
   int     integration_type ;  /* line minimation or momentum */
   double  momentum ;
@@ -890,8 +892,22 @@ typedef struct
   double       target_intensity ;
   double       stressthresh ;
   int          explode_flag ;
+  
+#ifdef __cplusplus
+  INTEGRATION_PARMS() : fp(NULL) {}
+  INTEGRATION_PARMS(FILE* file) : fp(file) {}
+#endif 
+  
 }
 INTEGRATION_PARMS ;
+
+void INTEGRATION_PARMS_copy   (INTEGRATION_PARMS* dst, INTEGRATION_PARMS const * src);
+
+void INTEGRATION_PARMS_setFp  (INTEGRATION_PARMS* parms, FILE* file);
+void INTEGRATION_PARMS_openFp (INTEGRATION_PARMS* parms, const char* name, const char* mode);
+void INTEGRATION_PARMS_closeFp(INTEGRATION_PARMS* parms);
+void INTEGRATION_PARMS_copyFp (INTEGRATION_PARMS* dst, INTEGRATION_PARMS const * src);
+
 
 extern double (*gMRISexternalGradient)(MRI_SURFACE *mris,
                                          INTEGRATION_PARMS *parms) ;

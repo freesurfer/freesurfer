@@ -459,7 +459,7 @@ main(int argc, char *argv[])
       }
       else if (!sphere_flag && !one_surf_flag)
         MRISreadOriginalProperties(mris, original_unfold_surf_name) ;
-      *(&p2) = *(&parms) ;
+      INTEGRATION_PARMS_copy(&p2, &parms) ;
       p2.l_dist = 0 ;
       p2.niterations = 100 ;
       p2.nbhd_size = p2.max_nbrs = 1 ;
