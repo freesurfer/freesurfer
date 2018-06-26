@@ -725,7 +725,7 @@ void WindowConfigureOverlay::OnFrameChanged(int nFrame)
     overlay->SetActiveFrame(nFrame);
     delete[] m_fDataCache;
     m_fDataCache = NULL;
-    UpdateGraph();
+    UpdateGraph(true);
     emit ActiveFrameChanged();
   }
 }
