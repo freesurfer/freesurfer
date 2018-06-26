@@ -117,7 +117,7 @@ main(int argc, char *argv[])
   {
     char log_fname[STRLEN] ;
     sprintf(log_fname, "%s.log", fname) ;
-    parms.fp = fopen(log_fname, "w") ;
+    INTEGRATION_PARMS_openFp(&parms, log_fname, "w") ;
     if (parms.fp)
       printf("writing log results to %s\n", log_fname) ;
     else
