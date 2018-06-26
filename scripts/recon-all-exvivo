@@ -1,6 +1,11 @@
 #!/bin/tcsh -ef
 
 
+set inputargs = ($argv);
+set AppendLog    = 1;
+set AppendStatus = 1;
+set LF_DEFAULT_NAME = recon-all-exvivo.log;
+set LF = ()
 set echo=1
 
 if ($#argv == 0) then
@@ -8,6 +13,7 @@ if ($#argv == 0) then
    echo make sure to set the SUBJECTS_DIR first
    exit 1 ;
 endif
+
 
 set norecon=0
 set cerebellum = ()
@@ -104,6 +110,34 @@ if (! $?base ) then
   set base=$SUBJECTS_DIR/$s
 endif
 
+# ------------ Create the log file --------------- #
+if($#LF == 0) then
+  set LF = ($sd/scripts/$LF_DEFAULT_NAME)
+  if(-e $LF) then
+    ls -l $LF
+    if(! $AppendLog) then
+      mv -f $LF $LF.old
+    else
+      # if running using -make, then dont bother with repeated info dumps
+      echo "\n\n"  >> $LF
+      echo "New invocation of recon-all-exvivo "  >> $LF
+      echo "\n\n"  >> $LF
+    endif
+  else
+    touch $LF
+  endif
+else
+  if(-e $LF) then
+    echo "\n\n"  >> $LF
+    echo "New invocation of recon-all-exvivo "  >> $LF
+    echo "\n\n"  >> $LF
+  endif
+endif
+date >> $LF
+echo $PWD >> $LF
+echo $0 >> $LF
+echo $inputargs >> $LF
+
 setenv base $SUBJECTS_DIR/$s
 set mdir=$sd/mri
 set odir=$mdir/orig
@@ -112,7 +146,7 @@ set ldir=$sd/label
 echo recon-all-exvivo $cmdline > $sdir/recon-all-exvivo.cmd
 
 if ( $?ifile ) then
-  rsync -auv $ifile $sdir/label_intensities.txt
+  rsync -auv $ifile $sdir/label_intensities.txt |& tee -a $LF
 endif
 
 if (-e $sdir/label_intensities.txt & ! $?renorm) then
@@ -158,7 +192,7 @@ else
   set bvol = $files[1]
 endif
 
-mri_compute_bias -c $ldir/../tmp/control.dat -sigma 8 -label $ldir/wm.label $bvol $odir/bias.mgz
+mri_compute_bias -c $ldir/../tmp/control.dat -sigma 8 -label $ldir/wm.label $bvol $odir/bias.mgz|& tee -a $LF
 foreach f ($odir/*.mgz)
     set fonly = ${f:t}
     set fonly = ${fonly:r}
@@ -177,24 +211,24 @@ foreach f ($odir/*.mgz)
     if ($fonly == brainmask) then
 	continue ;
     endif
-    mri_apply_bias $f $odir/bias.mgz $odir/norm/${fonly}.corrected.mgz
+    mri_apply_bias $f $odir/bias.mgz $odir/norm/${fonly}.corrected.mgz|& tee -a $LF
 end
 
-compute_label_vals.csh
-matlab < $FREESURFER_HOME/matlab/compute_opt_volume.m
-mri_convert $odir/fluid_mask.mgz $odir/fluid_mask.nii.gz
+compute_label_vals.csh|& tee -a $LF
+matlab < $FREESURFER_HOME/matlab/compute_opt_volume.m|& tee -a $LF
+mri_convert $odir/fluid_mask.mgz $odir/fluid_mask.nii.gz|& tee -a $LF
 if ($mask_vol) then
-    mri_mask $odir/opt.mgz ${mask_fname} $odir/opt.mgz
+    mri_mask $odir/opt.mgz ${mask_fname} $odir/opt.mgz|& tee -a $LF
 endif
 
 if ($run_bet) then
-  bet $odir/fluid_mask.nii.gz $odir/brainmask.nii.gz
-  mri_convert $odir/brainmask.nii.gz $odir/brainmask.mgz
-  mri_mask $odir/opt.mgz $odir/brainmask.mgz $odir/opt.mgz
+  bet $odir/fluid_mask.nii.gz $odir/brainmask.nii.gz|& tee -a $LF
+  mri_convert $odir/brainmask.nii.gz $odir/brainmask.mgz|& tee -a $LF
+  mri_mask $odir/opt.mgz $odir/brainmask.mgz $odir/opt.mgz|& tee -a $LF
 endif
-cp $odir/opt.mgz $odir/001.mgz
-mri_convert -ns 1 --conform $odir/brainmask.mgz $mdir/brainmask.mgz
-cp  $mdir/brainmask.mgz $mdir/brainmask.auto.mgz
+cp $odir/opt.mgz $odir/001.mgz|& tee -a $LF
+mri_convert -ns 1 --conform $odir/brainmask.mgz $mdir/brainmask.mgz|& tee -a $LF
+cp  $mdir/brainmask.mgz $mdir/brainmask.auto.mgz|& tee -a $LF
 
 
 # always do the following

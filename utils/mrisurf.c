@@ -32081,7 +32081,8 @@ int MRISrigidBodyAlignGlobal(
   if (!parms->start_t) {
     mrisLogStatus(mris, parms, stdout, 0.0f, -1);
     if (tracingWithSnapshot) {
-      mrisLogStatus(mris, parms, parms->fp, 0.0f, -1);
+      if (parms->fp)
+	mrisLogStatus(mris, parms, parms->fp, 0.0f, -1);
       if (parms->write_iterations > 0) {
         mrisWriteSnapshot(mris, parms, 0);
       }
