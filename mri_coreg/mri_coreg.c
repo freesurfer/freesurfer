@@ -36,6 +36,7 @@
 #include <sys/utsname.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <ctype.h>
 
 #include "macros.h"
 #include "utils.h"
@@ -613,7 +614,15 @@ static int parse_commandline(int argc, char **argv) {
       FILE *fp;
       LTA *lta1,*lta2;
       char *RMSDiffFile;
+      if(isalpha(pargv[0][0])){
+	printf("ERROR: first arg to --rms must be the radius\n");
+	exit(1);
+      }
       sscanf(pargv[0],"%lf",&RMSDiffRad);
+      if(RMSDiffRad <= 0){
+	printf("ERROR: radius is %lf, must be > 0\n",RMSDiffRad);
+	exit(1);
+      }
       RMSDiffFile = pargv[1];
       lta1 = LTAread(pargv[2]); if(lta1==NULL) exit(1);
       LTAchangeType(lta1,REGISTER_DAT);
@@ -761,6 +770,8 @@ static void print_usage(void) {
   printf("   --mov-oob : count mov voxels that are out-of-bounds as 0\n");
   printf("   --no-mov-oob : do not count mov voxels that are out-of-bounds as 0 (default)\n");
   printf("   --mat2par reg.lta : extract parameters out of registration\n");
+  printf("   --rms radius filename reg1 reg2 : compute RMS diff between two registrations using MJ's method (rad ~= 50mm)\n");
+  printf("      The rms will be written to filename; if filename == nofile, then no file is created\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
