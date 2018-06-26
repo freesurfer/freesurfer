@@ -223,7 +223,7 @@ main(int argc, char *argv[])
       else
         strcpy(parms.base_name, "template") ;
       sprintf(fname, "%s.%s.out", hemi, parms.base_name);
-      parms.fp = fopen(fname, "w") ;
+      INTEGRATION_PARMS_openFp(&parms, fname, "w") ;
       printf("writing output to '%s'\n", fname) ;
     }
 

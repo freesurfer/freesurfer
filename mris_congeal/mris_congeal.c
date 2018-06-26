@@ -1066,7 +1066,7 @@ MRIScongeal(MRI_SURFACE *mris_ico, MRI_SURFACE **mris_array, int nsubjects,
   {
     char fname[STRLEN] ;
     sprintf(fname, "%s.log", parms->base_name) ;
-    parms->fp = fopen(fname, "a") ;
+    INTEGRATION_PARMS_openFp(parms, fname, "a") ;
   }
 
   MRISscaleBrain(mris_ico, mris_ico, mris_array[0]->radius / mris_ico->radius) ;
@@ -1152,8 +1152,7 @@ MRIScongeal(MRI_SURFACE *mris_ico, MRI_SURFACE **mris_array, int nsubjects,
   MHTfree(&mht_ico) ;
   if (Gdiag & DIAG_WRITE)
   {
-    fclose(parms->fp) ;
-    parms->fp = NULL ;
+    INTEGRATION_PARMS_closeFp(parms);
   }
   return(mrisp) ;
 }

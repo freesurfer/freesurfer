@@ -112,29 +112,29 @@ void INTEGRATION_PARMS_copy   (INTEGRATION_PARMS* dst, INTEGRATION_PARMS const *
     memcpy(dst, src, sizeof(*src)); // note: copies the const fp et. al.!
 }
 
-
-void INTEGRATION_PARMS_openFp (INTEGRATION_PARMS* parms, const char* name, const char* mode) {
+void INTEGRATION_PARMS_setFp  (INTEGRATION_PARMS* parms, FILE* file) {
   FILE* const* fpcp = &parms->fp;
   FILE*      * fpp  = (FILE**)fpcp;
-  *fpp = fopen(name, mode);
-  if (!*fpp) {
+  *fpp = file;
+}
+
+void INTEGRATION_PARMS_openFp (INTEGRATION_PARMS* parms, const char* name, const char* mode) {
+  FILE* file = fopen(name, mode);
+  if (!file) {
     fprintf(stderr, "%s:%d Error opening parms.fp using filename %s mode %s\n", __FILE__, __LINE__, name, mode);
     exit(1);
   }
+  INTEGRATION_PARMS_setFp(parms, file);
 }
 
 void INTEGRATION_PARMS_closeFp(INTEGRATION_PARMS* parms) {
   if (!parms->fp) return;
   fclose(parms->fp);
-  FILE* const* fpcp = &parms->fp;
-  FILE*      * fpp  = (FILE**)fpcp;
-  *fpp = NULL;
+  INTEGRATION_PARMS_setFp(parms, NULL);
 }
 
 void INTEGRATION_PARMS_copyFp (INTEGRATION_PARMS* dst, INTEGRATION_PARMS const * src) {
-  FILE* const* fpcp = &dst->fp;
-  FILE*      * fpp  = (FILE**)fpcp;
-  *fpp = src->fp;
+  INTEGRATION_PARMS_setFp(dst, src->fp);
 }
 
 #define DMALLOC 0

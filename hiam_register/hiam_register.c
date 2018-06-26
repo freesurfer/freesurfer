@@ -481,7 +481,7 @@ mrisRegister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
     sprintf(fname, "%s.%s.out",
             mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",parms->base_name);
     if (!parms->start_t) {
-      parms->fp = fopen(fname, "w") ;
+      INTEGRATION_PARMS_openFp(parms, fname, "w") ;
       if (!parms->fp)
         ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
                   Progname, fname) ;
@@ -719,9 +719,9 @@ mrisIntegrationEpoch(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,int base_averag
                 mris->hemisphere == RIGHT_HEMISPHERE ? "rh":"lh",
                 parms->base_name);
         if (!parms->start_t)
-          parms->fp = fopen(fname, "w") ;
+          INTEGRATION_PARMS_openFp(parms, fname, "w") ;
         else
-          parms->fp = fopen(fname, "a") ;
+          INTEGRATION_PARMS_openFp(parms, fname, "a") ;
         if (!parms->fp)
           ErrorExit(ERROR_NOFILE, "%s: could not open log file %s",
                     Progname, fname) ;

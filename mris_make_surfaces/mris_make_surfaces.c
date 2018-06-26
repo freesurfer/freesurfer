@@ -1284,14 +1284,14 @@ L) ;
       sprintf(fname, "./%s-white%2.2f.mgz", hemi, current_sigma) ;
       MRISwriteValues(mris, fname);
     }
-    *(&old_parms) = *(&parms) ;
+    INTEGRATION_PARMS_copy(&old_parms, &parms) ;
     parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_spring *= spring_scale ;
     parms.l_tspring = MIN(1.0,parms.l_tspring) ;
     parms.l_nspring = MIN(1.0, parms.l_nspring) ;
     parms.l_spring = MIN(1.0, parms.l_spring) ;
     MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
     old_parms.start_t = parms.start_t ;
-    *(&parms) = *(&old_parms) ;
+    INTEGRATION_PARMS_copy(&parms, &old_parms) ;
 
     if (add)
     {
@@ -1729,7 +1729,7 @@ L) ;
             INTEGRATION_PARMS saved_parms ;
 
             MRISsegmentMarked(mris, &labels, &nlabels, 1) ;
-            *(&saved_parms) = *(&parms) ;
+            INTEGRATION_PARMS_copy(&saved_parms, &parms) ;
 
             printf("%d vertices found in imminent self-intersecting "
                    "regions, deforming to remove...\n",
@@ -1857,7 +1857,7 @@ L) ;
             INTEGRATION_PARMS saved_parms ;
 
             MRISsegmentMarked(mris, &labels, &nlabels, 1) ;
-            *(&saved_parms) = *(&parms) ;
+            INTEGRATION_PARMS_copy(&saved_parms, &parms) ;
 
             printf("%d vertices found in imminent self-intersecting regions, deforming to remove...\n", MRIScountMarked(mris,1));
             MRISinvertMarks(mris) ;
@@ -2100,7 +2100,7 @@ L) ;
 	int k, start_t ;
 
 	printf("perforing initial smooth deformation to move away from white surface\n") ;
-	*(&saved_parms) = *(&parms) ;
+	INTEGRATION_PARMS_copy(&saved_parms, &parms) ;
 //	parms.l_intensity /= 5 ;
 	parms.dt /= 10 ;   // take small steps to unkink pinched areas
 //	parms.l_spring = 1 ;
@@ -2109,14 +2109,14 @@ L) ;
 
 	for (k = 0 ; k < 3 ; k++)
 	{
-	  *(&old_parms) = *(&parms) ;
+	  INTEGRATION_PARMS_copy(&old_parms, &parms) ;
 	  parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_spring *= spring_scale ;
 	  parms.l_tspring = MIN(1.0,parms.l_tspring) ;
 	  parms.l_nspring = MIN(1.0, parms.l_nspring) ;
 	  parms.l_spring = MIN(1.0, parms.l_spring) ;
 	  MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
 	  old_parms.start_t = parms.start_t ;
-	  *(&parms) = *(&old_parms) ;
+	  INTEGRATION_PARMS_copy(&parms, &old_parms) ;
 	  if (!FZERO(parms.l_intensity))
 	    MRIScomputeBorderValues
 	      (mris, mri_T1, mri_smooth, max_gray,
@@ -2126,7 +2126,7 @@ L) ;
 	       GRAY_CSF, mri_mask, thresh, parms.flags,mri_aseg) ;
 	}
 	start_t = parms.start_t ;
-	*(&parms) = *(&saved_parms) ;
+	INTEGRATION_PARMS_copy(&parms, &saved_parms) ;
 	parms.start_t = start_t ;
 	parms.l_surf_repulse = l_surf_repulse ;
 #else
@@ -2134,14 +2134,14 @@ L) ;
 #endif
       }
 #endif
-      *(&old_parms) = *(&parms) ;
+      INTEGRATION_PARMS_copy(&old_parms, &parms) ;
       parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_spring *= spring_scale ;
       parms.l_tspring = MIN(1.0,parms.l_tspring) ;
       parms.l_nspring = MIN(1.0, parms.l_nspring) ;
       parms.l_spring = MIN(1.0, parms.l_spring) ;
       MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
       old_parms.start_t = parms.start_t ;
-      *(&parms) = *(&old_parms) ;
+      INTEGRATION_PARMS_copy(&parms, &old_parms) ;
 
       if (parms.l_location > 0)
       {
