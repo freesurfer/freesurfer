@@ -32037,7 +32037,7 @@ int MRISrigidBodyAlignGlobal(
     MRI_SURFACE *mris, INTEGRATION_PARMS *parms, float min_degrees, float max_degrees, int nangles)
 {
   bool const tracing             = (Gdiag & DIAG_SHOW);
-  bool const tracingWithSnapshot = tracing && (Gdiag & DIAG_SHOW);
+  bool const tracingWithSnapshot = tracing && (Gdiag & DIAG_WRITE);
     
   float const min_radians = RADIANS(min_degrees);
   float const max_radians = RADIANS(max_degrees);
@@ -32057,7 +32057,8 @@ int MRISrigidBodyAlignGlobal(
   if (!parms->start_t) {
     mrisLogStatus(mris, parms, stdout, 0.0f, -1);
     if (tracingWithSnapshot) {
-      mrisLogStatus(mris, parms, parms->fp, 0.0f, -1);
+      if (parms->fp)
+	mrisLogStatus(mris, parms, parms->fp, 0.0f, -1);
       if (parms->write_iterations > 0) {
         mrisWriteSnapshot(mris, parms, 0);
       }
