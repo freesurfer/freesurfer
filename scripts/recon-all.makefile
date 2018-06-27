@@ -68,7 +68,7 @@ $(NORM): $(TAL_LTA) $(CP) $(NU)
 $(TAL_M3Z): $(NORM) $(BRAINMASK) $(TAL_LTA)
 	recon-all -s $(subj) -careg 
 
-$(ASEG_PRESURF): $(NORM) $(TAL_M3Z)
+$(ASEG_AUTO_NOCC): $(NORM) $(TAL_M3Z)
 	recon-all -s $(subj) -calabel
 
 # ccseg is actually run with calabel, but this allows
