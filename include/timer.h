@@ -64,6 +64,9 @@ extern int ftime (struct timeb *__timebuf);
 	fprintf(stderr, "%s:%d interval took %d msec\n", __FILE__, __LINE__, TimerStop(&NAME));
 	
 
+// Use this string for writing into files etc. which are not compared by the test system.
+//
+const char* current_date_time_noOverride();
 
 // Use this string for writing into files etc. where it might be compared by
 // the test system.  The string is usually the current date and time but
