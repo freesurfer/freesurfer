@@ -435,7 +435,7 @@ static void node_show_stats(FILE* file, PerThreadScopeTreeData* node, unsigned i
 
 void ROMP_show_stats(FILE* file)
 {
-    fprintf(file, "ROMP_show_stats\n");
+    fprintf(file, "ROMP_show_stats %s\n", current_date_time_noOverride());
     fprintf(file, "file, line, level, in pf, in pflb, in_pfThread, pflb/elapsed, pft/elapsed\n");
 
     if (getMainFile())  {
