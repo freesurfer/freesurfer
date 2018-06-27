@@ -5841,6 +5841,13 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
           unlink(tmpfilestdout);
         }
 
+	/* Dicoms in MRI and PET are usually unsigned. But in CT, they can be signed.
+	   When signed, this code forces negative values to 32k. This can be fixed
+	   by changing v08 or v16 to be signed -- but that will mess up the unsigned
+	   data. To get around this, the PixelRepresentation (0028,0103) needs to be
+	   queried; PR=0=unsigned, PR=1=signed. If this turns into a problem, this
+	   code can be changed in this way. DNG 6/7/2018.
+	 */
 	val = 1;
         v08 = (unsigned char *)(element->d.string);
         v16 = (unsigned short *)(element->d.string);
