@@ -34,7 +34,9 @@ umask 002
 setenv FREESURFER_HOME ../distribution
 setenv SUBJECTS_DIR /no/such/directory
 
-foreach threads ( 4 8 )
+
+foreach threads ( 4 )
+    rm -rf test_mri_coreg_cout_cerr_T${threads}.txt
 
     rm -Rf testdata
     tar xvfz testdata.tar.gz
@@ -50,7 +52,7 @@ foreach threads ( 4 8 )
       --dof 12 --ftol .1 --linmintol .1)
     echo ""
     echo $cmd
-    $cmd
+    $cmd |& tee test_mri_coreg_cout_cerr_T${threads}.txt
     if($status) then
       echo "mri_coreg FAILED on execution"
       exit 1
