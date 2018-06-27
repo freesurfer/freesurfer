@@ -59,8 +59,8 @@ if( $1 == "--help") then
   echo "A probabilistic atlas of the human thalamic nuclei combining ex vivo MRI and histology "
   echo "Iglesias, J.E., Insausti, R., Lerma-Usabiaga, G., Bocchetta, M.,"
   echo "Van Leemput, K., Greve, D., van der Kouwe, A., Caballero-Gaudes, C., "
-  echo "Paz-Alonso, P."
-  echo "http://arxiv.org/"
+  echo "Paz-Alonso, P. Under revision."
+  echo "Preprint available at arXiv.org:  https://arxiv.org/abs/1806.08634" 
   echo " "
   exit 0
 endif
@@ -261,8 +261,8 @@ echo " "
 echo "A probabilistic atlas of the human thalamic nuclei combining ex vivo MRI and histology "
 echo "Iglesias, J.E., Insausti, R., Lerma-Usabiaga, G., Bocchetta, M.,"
 echo "Van Leemput, K., Greve, D., van der Kouwe, A., Caballero-Gaudes, C., "
-echo "Paz-Alonso, P."
-echo "http://arxiv.org/"
+echo "Paz-Alonso, P. Under revision."
+echo "Preprint available at arXiv.org:  https://arxiv.org/abs/1806.08634"
 echo " "
 
 exit 0
