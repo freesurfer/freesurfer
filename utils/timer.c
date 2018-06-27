@@ -115,15 +115,23 @@ struct Nanosecs TimerElapsedNanosecs(struct NanosecsTimer * nst) // returns delt
 }
 
 
+// Use this string for writing into files etc. which are not compared by the test system.
+//
+const char* current_date_time_noOverride() {
+  time_t tt = time(&tt);
+  const char* time_str = ctime(&tt);
+  return time_str;
+}
+
 // Use this string for writing into files etc. where it might be compared by
 // the test system.  The string is usually the current date and time but
 // can be overridden with a string that can the same across runs.
 //
 const char* current_date_time() {
-  time_t tt = time(&tt);
-  const char* time_str = ctime(&tt);
   const char* override_time_str =
     getenv("FREESURFER_REPLACEMENT_FOR_CREATION_TIME_STRING");
-  if (override_time_str) time_str = override_time_str;
+  const char* time_str = 
+    (!!override_time_str) ? override_time_str : current_date_time_noOverride();
   return time_str;
 }
+
