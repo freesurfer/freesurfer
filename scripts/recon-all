@@ -214,7 +214,7 @@ else
 endif
 set OMP_NUM_SET = 0 # set to 1 if -openmp <num> is used
 
-# hippocampal subfields processing uses ITK threading
+# subfields processing uses ITK threading
 setenv ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS 1 # -itkthreads <num_threads>
 set DoParallel = 0; # if 1, then run with -openmp 4 and -itkthreads 4, 
                     # and run rh/lh stages in parallel
@@ -238,12 +238,6 @@ set DoAddTp = 0; # if 1, then 'fake'-add this timepoint to long subj set
 set DoAffineBase = 0; # if 1, allow affine when creating base (fix calibration)
 set UseCubic = 0; # if 1, use cubic spline when mri_convert does conform step
 set UseFixMtl = 0; # if 1, add -fix_mtl flag to make_surfaces
-
-# Hippocampal subfields:
-set DoHippoSF_T1 = 0;  # if 1, run hippo subfield seg, exvivo atlas (only T1)
-set DoHippoSF_T1T2 = 0;# if 1, run hippo subfield seg, exvivo atlas (T1 and T2)
-set DoHippoSF_T2 = 0;  # if 1, run hippo subfield seg, exvivo atlas (only T2)
-set T2volHippoSF = ();
 
 # Brainstem substructures
 set DoBSsubst = 0;
@@ -7433,36 +7427,43 @@ while( $#argv != 0 )
       setenv ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS $argv[1]; shift;
       breaksw;
 
-
     # hippocampal subfield processing (in vivo atlas, Dickerson data)
     case "-hippo-subfields":
-      echo "ERROR: This form of hippocampal subfield segmentation"
-      echo "is deprecated.  Use -hippocampal-subfields-<T1/T1T2/T2>"
-      goto error_exit;
-      breaksw;
-
-    # hippocampal subfield processing (ex vivo atlas, only T1)
     case "-hippocampal-subfields-T1":
-      set DoHippoSF_T1 = 1;
-      breaksw;
-
-    # hippocampal subfield processing (ex vivo atlas, multispectral)
     case "-hippocampal-subfields-T1T2":
-      set DoHippoSF_T1T2 = 1;
-      if( $#argv < 2) goto arg2err;
-      set T2volHippoSF = "$argv[1]"; shift;
-      set UserSuffix = "$argv[1]"; shift;
-      breaksw;
     case "-hippocampal-subfields-T2":
-      set DoHippoSF_T2 = 1;
-      if( $#argv < 2) goto arg2err;
-      set T2volHippoSF = "$argv[1]"; shift;
-      set UserSuffix = "$argv[1]"; shift;
+      echo " "
+      echo "ERROR: the hippocampal subfield module is now in separate scripts:"
+      echo "  segmentHA_T1.sh"
+      echo "  segmentHA_T2.sh"
+      echo "  segmentHA_T1_long.sh"
+      echo " "
+      echo "For help, please execute the corresponding script  with the flag --help: "
+      echo " "
+      echo "     segmentHA_T1.sh --help"
+      echo "     segmentHA_T2.sh --help"
+      echo "     segmentHA_T1_long.sh --help"
+      echo " "
+      echo "or visit the following page: "
+      echo " "
+      echo "https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfieldsAndNucleiOfAmygdala" 
+      echo " "
+      exit 1;
       breaksw;
 
     # processing of brainstem substructures
     case "-brainstem-structures":
-      set DoBSsubst = 1;
+      echo " "
+      echo "ERROR: the brainstem module is now a separate script: segmentBS.sh"
+      echo " "
+      echo "For help, please execute the script with the flag --help: "
+      echo " "
+      echo "     segmentBS.sh --help"
+      echo " "
+      echo "or visit the following page: "
+      echo " "
+      echo "https://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures"
+      echo " "
       breaksw;
 
    
@@ -7946,7 +7947,6 @@ check_params:
      ! $DoSurfVolume && ! $DoASegMerge && ! $DoCCSeg && ! $DoCurvStats && ! $DoLabelV1 && \
      ! $DoCreateBaseSubj && ! $DoBaLabels && ! $DoShowEdits && \
      ! $DoLabelExvivoEC && ! $DoPialSurfs && \
-     ! $DoHippoSF_T1 && ! $DoHippoSF_T1T2 && ! $DoHippoSF_T2 &&  ! $DoBSsubst && \
      ! $DoPctSurfCon && ! $DoT2pial && ! $DoFLAIRpial && \
      ! $DoConvertT2Input && ! $DoConvertFlairInput && ! $DoSuperClean &&\
      ! $DoCortParc3 && ! $DoParcStats3 && ! $DoAPas2ASeg ) then
@@ -7981,57 +7981,6 @@ check_params:
     echo "ERROR: cannot use -parallel with a single hemi"
     exit(1);
   endif
-
-
-#--------------                        -----------------#
-#--------------  Hippocampal Subfields -----------------#
-##-----------   -hippocampal-subfields-T1  -------------#
-##-----------   -hippocampal-subfields-T1T2  -----------#
-##-----------   -hippocampal-subfields-T2  -------------#
-#--------------                        -----------------#
-#--------------  Brainstem Substructures ---------------#
-##-----------   -brainstem-structures  -----------------#
-#--------------                        -----------------#
-# In July 2017, Eugenio and Zeke decied to move this    #
-# code out of recon-all into scripts ones calls from    #
-# the command line. We still keep the flags here, and   #
-# redirect the user to the appropriate script.          #
-
-
-if ($DoBSsubst) then 
-  echo " "
-  echo "ERROR: the brainstem module is now a separate script: segmentBS.sh"
-  echo " "
-  echo "For help, please execute the script with the flag --help: "
-  echo " "
-  echo "     segmentBS.sh --help"
-  echo " "
-  echo "or visit the following page: "
-  echo " "
-  echo "https://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures"
-  echo " "
-  goto error_exit;
-endif
-
-if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2) then 
-  echo " "
-  echo "ERROR: the hippocampal subfield module is now in separate scripts:"
-  echo "  segmentHA_T1.sh"
-  echo "  segmentHA_T2.sh"
-  echo "  segmentHA_T1_long.sh"
-  echo " "
-  echo "For help, please execute the corresponding script  with the flag --help: "
-  echo " "
-  echo "     segmentHA_T1.sh --help"
-  echo "     segmentHA_T2.sh --help"
-  echo "     segmentHA_T1_long.sh --help"
-  echo " "
-  echo "or visit the following page: "
-  echo " "
-  echo "https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfieldsAndNucleiOfAmygdala" 
-  echo " "
-  goto error_exit;
-endif
 
 #-------------------------------------------------#
 goto check_params_return;
