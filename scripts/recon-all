@@ -216,6 +216,8 @@ set OMP_NUM_SET = 0 # set to 1 if -openmp <num> is used
 
 # subfields processing uses ITK threading
 setenv ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS 1 # -itkthreads <num_threads>
+set DoSubfields = 0;
+
 set DoParallel = 0; # if 1, then run with -openmp 4 and -itkthreads 4, 
                     # and run rh/lh stages in parallel
 
@@ -5483,6 +5485,22 @@ if($DoVnoMatchCheck) then
   endif
 endif
 
+if($DoSubfields) then
+  echo "Running subfield segmentation scripts ---------------" | tee -a $LF
+  set scrlist = (segmentHA_T1.sh segmentThalamicNuclei.sh segmentBS.sh)
+  foreach scr ($scrlist)
+    echo "#@# $scr `date` --------------" | tee -a $LF
+    date | tee -a $LF
+    echo "cd `pwd`" | tee -a $LF
+    set cmd = ($scr $subjid)
+    echo $cmd  |& tee -a $LF
+    if($RunIt) $fs_time $cmd  |& tee -a $LF
+    if($status) goto error_exit;
+  end
+  echo "---------------------------------" |& tee -a $LF
+  echo "Done with subfield scripts " |& tee -a $LF
+endif
+
 if($#TermScriptList) then
   echo "Running termination scripts ---------------" | tee -a $LF
   cd $SUBJECTS_DIR
@@ -7427,6 +7445,11 @@ while( $#argv != 0 )
       setenv ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS $argv[1]; shift;
       breaksw;
 
+    case "-subfields":
+      # Hippo, Amyg, Thal, and BrainStem, only using T1
+      set DoSubfields = 1;
+      breaksw;
+
     # hippocampal subfield processing (in vivo atlas, Dickerson data)
     case "-hippo-subfields":
     case "-hippocampal-subfields-T1":
@@ -7947,6 +7970,7 @@ check_params:
      ! $DoSurfVolume && ! $DoASegMerge && ! $DoCCSeg && ! $DoCurvStats && ! $DoLabelV1 && \
      ! $DoCreateBaseSubj && ! $DoBaLabels && ! $DoShowEdits && \
      ! $DoLabelExvivoEC && ! $DoPialSurfs && \
+     ! $DoSubfields  && \
      ! $DoPctSurfCon && ! $DoT2pial && ! $DoFLAIRpial && \
      ! $DoConvertT2Input && ! $DoConvertFlairInput && ! $DoSuperClean &&\
      ! $DoCortParc3 && ! $DoParcStats3 && ! $DoAPas2ASeg ) then
