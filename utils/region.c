@@ -398,8 +398,9 @@ MRI_REGION *REGIONgetBoundingBoxEqOdd(MRI *mask, int npad)
     }
   }
 
-  // Not sure if more can be done
+  // More can be done, eg, making the padding asymmetric.
   printf("ERROR: REGIONgetBoundingBoxEqOdd(): cannot make x=y\n");
+  printf("Volume size: %d %d %d, Region: ",mask->width,mask->height,mask->depth);
   REGIONprint(stdout,region);
   return(NULL);
 }
