@@ -33,6 +33,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "diag.h"
 
@@ -77,6 +79,12 @@ static const char *permission_msg =
     "Try running:\n\n"
     "  chmod a+r %s\n"
     "---------------------------------------------------------------------------\n";
+
+static const char *isdir_msg =
+    "---------------------------------------------------------------------------\n"
+    "ERROR: FS_LICENSE environment variable points to a folder not a file\n"
+    "---------------------------------------------------------------------------\n";
+
 
 void chklc(void)
 {
@@ -129,6 +137,13 @@ void chklc(void)
         exit(-1);
       }
       fprintf(stderr, licmsg, lfilename);
+      exit(-1);
+    }
+    // make sure that the path is not a directory
+    struct stat path_stat;
+    stat(alt, &path_stat);
+    if S_ISDIR(path_stat.st_mode) {;
+      printf(isdir_msg);
       exit(-1);
     }
   }
