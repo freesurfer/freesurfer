@@ -373,6 +373,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-octave":
+      setenv FS_MKCON_USE_BIN 0
       set UseOctave = 1;
       breaksw
 
