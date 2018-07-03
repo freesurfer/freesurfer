@@ -154,7 +154,13 @@ if($FS_MKCON_USE_BIN == 0) then
   echo "mkcontrast2m('$config');" >> $mfile
   if($monly) exit 1;
   echo "quit;" >> $mfile
-  cat $mfile | $MATLAB -nosplash -display iconic -nodesktop 
+  if($UseOctave == 0) then
+    echo "------- matlab output --------------------" 
+    cat $mfile | $MATLAB -nosplash -display iconic -nodesktop 
+  else
+    echo "------- octave output --------------------" 
+    cat $mfile | octave
+  endif
   rm $mfile
 else
   echo "FS_MCRROOT $FS_MCRROOT " 
@@ -437,31 +443,6 @@ check_params:
   if($RmPreStim != 0 && ! $IsFIR) then
     echo "ERROR: need an FIR model to remove prestim baseline"
     exit 1;
-  endif
-
-  if($UseOctave) then
-    if($?FS_OCTAVE_LIB == 0) then
-      echo "ERROR: you must set the FS_OCTAVE_LIB environment variable"
-      exit 1;
-    endif
-    if(! -e $FS_OCTAVE_LIB) then
-      echo "ERROR: cannot find $FS_OCTAVE_LIB"
-      exit 1;
-    endif
-    if($?FS_OCTAVE_BIN == 0) then
-      echo "ERROR: you must set the FS_OCTAVE_BIN environment variable"
-      exit 1;
-    endif
-    if(! -x $FS_OCTAVE_BIN) then
-      echo "ERROR: cannot find or execute $FS_OCTAVE_BIN"
-      exit 1;
-    endif
-    if($?LD_LIBRARY_PATH == 0) setenv LD_LIBRARY_PATH ""
-    if($#LD_LIBRARY_PATH == 0) then 
-      setenv LD_LIBRARY_PATH $FS_OCTAVE_LIB
-    else
-      setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:$FS_OCTAVE_LIB
-    endif
   endif
 
 goto check_params_return;
