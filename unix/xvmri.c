@@ -101,7 +101,7 @@ static int            show_three_views = 0 ;
 static void viewMenuItem(Menu menu, Menu_item menu_item) ;
 static IMAGE *get_next_slice(IMAGE *Iold, int which, int dir) ;
 static void repaint_handler(XV_FRAME *xvf, DIMAGE *dimage) ;
-static int mri_write_func(Event *event, DIMAGE *dimage, char *fname) ;
+static int mri_write_func(Event *event, DIMAGE *dimage, const char *fname) ;
 #if 0
 static int xvmriRepaintValue(XV_FRAME *xvf, int which, int x, int y, int z) ;
 #endif
@@ -1056,11 +1056,11 @@ XVMRIfree(MRI **pmri, int which)
 int
 XVMRIsetView(XV_FRAME *xvf, int which, int view)
 {
-  int     slice, which2, offset, slice2, sync ;
-  DIMAGE  *dimage, *dimage2 ;
-  MRI     *mri, *mri2 ;
-  char    *menu_str ;
-  float   xsize, ysize, zsize ;
+  int         slice, which2, offset, slice2, sync ;
+  DIMAGE     *dimage, *dimage2 ;
+  MRI        *mri, *mri2 ;
+  const char *menu_str ;
+  float       xsize, ysize, zsize ;
 
   if (!mris[which])
     return(NO_ERROR) ;
@@ -1186,7 +1186,7 @@ XVMRIsetView(XV_FRAME *xvf, int which, int view)
            Description:
 ----------------------------------------------------------------------*/
 static int
-mri_write_func(Event *event, DIMAGE *dimage, char *fname)
+mri_write_func(Event *event, DIMAGE *dimage, const char *fname)
 {
   int  which ;
   MRI  *mri ;

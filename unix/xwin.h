@@ -48,6 +48,10 @@
 #include <X11/keysym.h>
 #include <X11/keysymdef.h>
 
+#if defined(__cplusplus) || defined(c_plusplus)
+#define class c_class
+#endif
+
 #ifndef sparc
 #define sparc 1
 #endif

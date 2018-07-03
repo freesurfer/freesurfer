@@ -151,7 +151,7 @@ int ThreadEnd(int iTid)
             0 on success, < 0 otherwise.
 
 ------------------------------------------------------------------------*/
-int ThreadStart(char *name, void (*func)(int iTid, void *parm), void *parm, int priority)
+int ThreadStart(const char *name, void (*func)(int iTid, void *parm), void *parm, int priority)
 {
   int iMtid, iTid;
   THREAD *pthr;
