@@ -304,7 +304,7 @@ extern "C"
   CONDITION
   DCM_ElementDictionary(DCM_TAG tag, void *ctx,
                         void (*callback) (DCM_TAG t, char *description, DCM_VALUEREPRESENTATION r, void *ctx));
-  char *DCM_Message(CONDITION cond);
+  const char *DCM_Message(CONDITION cond);
   void DCM_Debug(CTNBOOLEAN flag);
   CONDITION DCM_WriteFile(DCM_OBJECT ** obj, unsigned long opt, const char *file);
   CONDITION
