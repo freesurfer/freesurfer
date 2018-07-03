@@ -143,7 +143,7 @@ void chklc(void)
     struct stat path_stat;
     stat(alt, &path_stat);
     if S_ISDIR(path_stat.st_mode) {;
-      printf(isdir_msg);
+      puts(isdir_msg);
       exit(-1);
     }
   }
