@@ -542,6 +542,9 @@ print_help(void) {
           "  -trans <number_in> <number_out>      translate <number_in> to \n"
           "                                       <number_out>\n\n");
   fprintf(stderr,
+          "  -cortex <cortex label file>          mask regions outside of the \n"
+          "                                       specified cortex label\n\n");
+  fprintf(stderr,
           "  -projmm <number>     project <number> millimeters along \n"
           "                       surface normal (default=0.0)\n\n");
   fprintf(stderr,
