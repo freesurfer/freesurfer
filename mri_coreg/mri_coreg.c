@@ -906,11 +906,12 @@ double COREGsamp(unsigned char *f, const double c, const double r, const double 
  */
 int COREGhist(COREG *coreg)
 {
-  int n,c,r,cref,k,nthreads;
-  long nhits;
-  double V2V[16],**HH;
+  int const nchunks = 32;
 
   // Pack vox2voxl matrix into an array for speed
+  //
+  double V2V[16];
+
   V2V[0] = coreg->V2V->rptr[1][1];
   V2V[1] = coreg->V2V->rptr[2][1];
   V2V[2] = coreg->V2V->rptr[3][1];
@@ -928,98 +929,110 @@ int COREGhist(COREG *coreg)
   V2V[14] = coreg->V2V->rptr[3][4];
   V2V[15] = 0;
 
-  nthreads = 1;
-  #ifdef HAVE_OPENMP
-  nthreads = omp_get_max_threads();
-  #endif
-  HH = (double **)calloc(sizeof(double*),nthreads);
-  for(n=0; n < nthreads; n++) 
-    HH[n] = (double *)calloc(sizeof(double),256*256);
+  double **HH  = (double **)calloc(sizeof(double*),nchunks);
+  { int n;
+    for(n=0; n < nchunks; n++) 
+      HH[n] = (double *)calloc(sizeof(double),256*256);
+  }
+  
+  long nhits = 0;
 
-  nhits = 0;
+  // Calculate the number of iterations the original loop did
+  // Do in chunks in parallel to get deterministic results independent of the number of threads used
+  //
+  int const niters    = (coreg->ref->width + coreg->sep - 1) / coreg->sep;
+  int const chunkSize = (niters            + nchunks    - 1) / nchunks;
+  
+  int chunk;
   ROMP_PF_begin
   #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(experimental) reduction(+:nhits)
+  #pragma omp parallel for if_ROMP(assume_reproducible) reduction(+:nhits)
   #endif
-  for(cref=0; cref < coreg->ref->width; cref += coreg->sep){
+  for (chunk = 0; chunk < nchunks; chunk++) {
     ROMP_PFLB_begin
-    int rref,sref;
-    double dcref,drref,dsref;
-    double dcmov,drmov,dsmov;
-    double vf, vg;
-    int   ivf, ivg, oob;
-    double *H;
-    int threadno = 1;
-    //int iran;
+    
+    int const crefBegin = (chunk+0)*chunkSize*coreg->sep;
+    int       crefEnd   = (chunk+1)*chunkSize*coreg->sep;
+    if (crefEnd > coreg->ref->width) crefEnd = coreg->ref->width;
+    
+    int cref;
+    for(cref=crefBegin; cref < crefEnd; cref += coreg->sep){
+  
+      double * const H = HH[chunk];
 
-    #ifdef HAVE_OPENMP
-    threadno = omp_get_thread_num(); 
-    #endif
-    H = HH[threadno];
+      int rref,sref;
+      for(rref=0; rref < coreg->ref->height; rref += coreg->sep){
+	for(sref=0; sref < coreg->ref->depth; sref += coreg->sep){
 
-    for(rref=0; rref < coreg->ref->height; rref += coreg->sep){
-      for(sref=0; sref < coreg->ref->depth; sref += coreg->sep){
-	dcref  = cref;
-	drref  = rref;
-	dsref  = sref;
+          double dcref = cref, drref = rref, dsref = sref;
 
-	if(coreg->DoCoordDither){
-	  // dither is uniform(0,1), scale by separation to sample entire vol
-	  dcref += coreg->sep*MRIgetVoxVal(coreg->cdither,cref,rref,sref,0);
-	  drref += coreg->sep*MRIgetVoxVal(coreg->cdither,cref,rref,sref,1);
-	  dsref += coreg->sep*MRIgetVoxVal(coreg->cdither,cref,rref,sref,2);
-	  if(dcref > coreg->ref->width-1)  dcref = coreg->ref->width-1;
-	  if(drref > coreg->ref->height-1) drref = coreg->ref->height-1;
-	  if(dsref > coreg->ref->depth-1)  dsref = coreg->ref->depth-1;
+	  if(coreg->DoCoordDither){
+	    // dither is uniform(0,1), scale by separation to sample entire vol
+	    dcref += coreg->sep*MRIgetVoxVal(coreg->cdither,cref,rref,sref,0);
+	    drref += coreg->sep*MRIgetVoxVal(coreg->cdither,cref,rref,sref,1);
+	    dsref += coreg->sep*MRIgetVoxVal(coreg->cdither,cref,rref,sref,2);
+	    if(dcref > coreg->ref->width-1)  dcref = coreg->ref->width-1;
+	    if(drref > coreg->ref->height-1) drref = coreg->ref->height-1;
+	    if(dsref > coreg->ref->depth-1)  dsref = coreg->ref->depth-1;
+	  }
+
+	  double dcmov  = V2V[0]*dcref + V2V[4]*drref + V2V[ 8]*dsref +  V2V[12];
+	  double drmov  = V2V[1]*dcref + V2V[5]*drref + V2V[ 9]*dsref +  V2V[13];
+
+	  int oob = 0;
+	  if(dcmov < 0 || dcmov > coreg->mov->width-1)  oob = 1;
+	  if(drmov < 0 || drmov > coreg->mov->height-1) oob = 1;
+
+          double dsmov = 0;
+	  if(coreg->optschema != 2){
+	    dsmov  = V2V[2]*dcref + V2V[6]*drref + V2V[10]*dsref +  V2V[14];
+	    if(dsmov < 0 || dsmov > coreg->mov->depth-1)  oob = 1;
+	  }
+
+          double vf;
+	  if(!oob) {
+	    vf = COREGsamp(coreg->f, dcmov, drmov, dsmov, coreg->mov->width,coreg->mov->height,coreg->mov->depth);
+	    nhits ++;
+	  } else {
+	    if(coreg->MovOOBFlag) vf = 0;
+	    else continue;
+	  }
+
+
+	  double vg = COREGsamp(coreg->g, dcref, drref, dsref, coreg->ref->width,coreg->ref->height,coreg->ref->depth);
+
+	  int const ivf = floor(vf);
+	  int const ivg = floor(vg+0.5);
+	  H[ivf+ivg*256] += (1-(vf-ivf));
+	  if(ivf<255) H[ivf+1+ivg*256] += (vf-ivf);
 	}
-
-	dcmov  = V2V[0]*dcref + V2V[4]*drref + V2V[ 8]*dsref +  V2V[12];
-	drmov  = V2V[1]*dcref + V2V[5]*drref + V2V[ 9]*dsref +  V2V[13];
-
-	oob = 0;
-	if(dcmov < 0 || dcmov > coreg->mov->width-1)  oob = 1;
-	if(drmov < 0 || drmov > coreg->mov->height-1) oob = 1;
-
-	dsmov = 0;
-	if(coreg->optschema != 2){
-	  dsmov  = V2V[2]*dcref + V2V[6]*drref + V2V[10]*dsref +  V2V[14];
-	  if(dsmov < 0 || dsmov > coreg->mov->depth-1)  oob = 1;
-	}
-
-	if(!oob) {
-	  vf = COREGsamp(coreg->f, dcmov, drmov, dsmov, coreg->mov->width,coreg->mov->height,coreg->mov->depth);
-	  nhits ++;
-	}
-	else {
-	  if(coreg->MovOOBFlag) vf = 0;
-	  else continue;
-	}
-
-
-	vg = COREGsamp(coreg->g, dcref, drref, dsref, coreg->ref->width,coreg->ref->height,coreg->ref->depth);
-
-	ivf = floor(vf);
-	ivg = floor(vg+0.5);
-	H[ivf+ivg*256] += (1-(vf-ivf));
-	if(ivf<255) H[ivf+1+ivg*256] += (vf-ivf);
       }
     }
     ROMP_PFLB_end
   }
   ROMP_PF_end
 
-  // Collect the threads
-  for(k=0; k < 256*256; k++){
-    coreg->H01d[k] = 0;
-    for(n=0; n < nthreads; n++) coreg->H01d[k] += HH[n][k];
+  // Collect the chunks
+  { int k;
+    for(k=0; k < 256*256; k++){
+      coreg->H01d[k] = 0;
+      int n;
+      for(n=0; n < nchunks; n++) coreg->H01d[k] += HH[n][k];
+    }
   }
-  for(n=0; n < nthreads; n++) free(HH[n]);
-  free(HH); HH=NULL;
-
+  
+  { int n;
+    for(n=0; n < nchunks; n++) free(HH[n]);
+    free(HH); HH=NULL;
+  }
+  
   // Repackage Histogram into a 2D array
   if(!coreg->H0) coreg->H0 = AllocDoubleMatrix(256,256);
-  n = 0;
+  
+  int n = 0;
+  int c;
   for(c=0; c < 256; c++){
+    int r;
     for(r=0; r < 256; r++){
       coreg->H0[r][c] = coreg->H01d[n];
       n++;
@@ -1027,7 +1040,7 @@ int COREGhist(COREG *coreg)
   }
 
   // This is good for computing whether and how much the mov and ref overlap
-  coreg->nhits = nhits;
+  coreg->nhits   = nhits;
   coreg->pcthits = pow(coreg->sep,3)*(double) 100.0*nhits/coreg->nvoxref;
 
   return(nhits);

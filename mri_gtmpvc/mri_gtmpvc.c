@@ -432,6 +432,13 @@ int main(int argc, char *argv[])
       gtm->automaskRegion = REGIONgetBoundingBox(gtm->mask,1);
     if(gtm->reduce_fov == 2)
       gtm->automaskRegion = REGIONgetBoundingBoxEqOdd(gtm->mask,1);
+    if(gtm->automaskRegion==NULL){
+      // REGIONgetBoundingBoxEqOdd() can fail when head is not centered
+      sprintf(tmpstr,"%s/mask.bberr.nii.gz",AuxDir);
+      printf("  writing mask to %s\n",tmpstr);
+      MRIwrite(gtm->mask,tmpstr);
+      exit(1);
+    }
     printf("region %d %d %d reduced to ",gtm->yvol->width,gtm->yvol->height,gtm->yvol->depth);
     REGIONprint(stdout, gtm->automaskRegion);
     fflush(stdout);

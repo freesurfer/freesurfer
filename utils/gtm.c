@@ -1893,7 +1893,7 @@ int GTMbuildX(GTM *gtm)
   err = 0;
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for if_ROMP(experimental) reduction(+ : err)
+  #pragma omp parallel for if_ROMP(assume_reproducible) reduction(+ : err)
 #endif
   for (nthseg = 0; nthseg < gtm->nsegs; nthseg++) {
     ROMP_PFLB_begin
@@ -2594,17 +2594,15 @@ int GTMrvarGM(GTM *gtm)
 */
 MRI **GTMlocal(GTM *gtm, MRI **pvc)
 {
-  int c, tt, nTT, nvmax;
   struct timeb timer;
-  MRI *pvfpsf;
+  int const nTT = gtm->ttpvf->nframes;
 
-  nTT = gtm->ttpvf->nframes;
-
-  pvfpsf = MRIgaussianSmoothNI(gtm->ttpvf, gtm->cStd, gtm->rStd, gtm->sStd, NULL);
+  MRI * const pvfpsf = MRIgaussianSmoothNI(gtm->ttpvf, gtm->cStd, gtm->rStd, gtm->sStd, NULL);
   // Need to add MB here
 
   if (pvc == NULL) {
     pvc = (MRI **)calloc(sizeof(MRI *), nTT);
+    int tt;
     for (tt = 0; tt < nTT; tt++) {
       pvc[tt] = MRIallocSequence(gtm->yvol->width, gtm->yvol->height, gtm->yvol->depth, MRI_FLOAT, gtm->yvol->nframes);
       if (pvc[tt] == NULL) {
@@ -2642,14 +2640,15 @@ MRI **GTMlocal(GTM *gtm, MRI **pvc)
     return (NULL);
   }
 
-  nvmax = (2 * gtm->lgtm->nrad + 1) * (2 * gtm->lgtm->nrad + 1) * (2 * gtm->lgtm->nrad + 1);
+  int const nvmax = (2 * gtm->lgtm->nrad + 1) * (2 * gtm->lgtm->nrad + 1) * (2 * gtm->lgtm->nrad + 1);
   printf("GTMlocal(): nrad = %d, nvmax = %d, nTT=%d, Xthresh %f\n", gtm->lgtm->nrad, nvmax, nTT, gtm->lgtm->Xthresh);
   TimerStart(&timer);
 
+  int c;
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
   printf("     nthreads = %d\n", omp_get_max_threads());
-#pragma omp parallel for if_ROMP(experimental)
+#pragma omp parallel for if_ROMP(assume_reproducible)
 #endif
   for (c = 0; c < gtm->yvol->width; c++) {
     ROMP_PFLB_begin
@@ -2778,7 +2777,9 @@ MRI **GTMlocal(GTM *gtm, MRI **pvc)
   }      // c
   ROMP_PF_end
   
-  MRIfree(&pvfpsf);
+  MRI * pvfpsf_nonconst = pvfpsf;     // don't use pvfpsf after here!
+  MRIfree(&pvfpsf_nonconst);
+  
   printf("\n");
   // printf("nNull=%d\n",nNull);
   printf("t=%6.4f\n", TimerStop(&timer) / 1000.0);

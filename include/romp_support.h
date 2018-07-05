@@ -24,51 +24,72 @@
 
 #pragma once
 
-// #define ROMP_SUPPORT_ENABLED
+// OPTIONS
 
+//#define ROMP_SUPPORT_ENABLED
+    // Uncomment this to compile in the code that collects the statistics 
+
+#define ROMP_maxWatchedThreadNum 4
+    // For efficiency reasons, only the first few threads are studied
+
+
+// This code requires omp to work, but can be compiled without it
+//
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
 
+
+// The source of the times
+//
 #include "timer.h"
 
 
-void ROMP_show_stats(FILE*);
+// Optionally tell romp when the main program has started
+// so it can time the period before the first parallel loop    
+//
+#define ROMP_main ROMP_main_started(__BASE_FILE__, __LINE__);
+void ROMP_main_started(const char* file, int line);
 
+
+// Write any collected stats to the file
+//
+void ROMP_show_stats(FILE* file);
+
+
+// Return the number of times the code has gone from serial to parallel
+// 
 size_t ROMP_countGoParallel();
-    // return the number of times the code has gone from serial to parallel
-    // Useful during debugging to write conditional code looking for a problem that is being caused by parallelism
+    // Useful during debugging to write conditional code looking for a problem 
+    // that is being caused by parallelism
 
-// An annotated omp for loop looks like this...
+// omp for loops should be annotated with the following macros
+// so that the romp support knows of their existence.  Other omp loops hjave no data collection.
+//
+// An annotated omp for loop that does not to reductions looks like this...
 //
 #if 0
-	ROMP_PF_begin
+	ROMP_PF_begin	    	    	    	    	    // times the whole loop
 	#ifdef HAVE_OPENMP
-	#pragma omp parallel for if_ROMP(experimental) ...
+	#pragma omp parallel for if_ROMP(experimental) ...  // decides whether it should be parallel
 	#endif
   	for (n=0; n < nsegid; n++)
 	{
-	    ROMP_PFLB_begin
-	    ...
-	    ROMP_PFLB_continue
+	    ROMP_PFLB_begin 	    	    	    	    // expensive timing of each loop body
+	    ...     	    	    	    	    	    // so these are usually defined as no code
+	    ROMP_PFLB_continue	    	    	    	    // Needed since doesn't go thru the end
 	    ...
 	    ROMP_PFLB_end
 	}
 	ROMP_PF_end
-    
 #endif
 
-// A possibly parallel for loop that has a reproducible set of reductions
-// Macros and include files simplify coding it
-//
-#if 0
-                
-    See the end of romp_support.c
+// A parallel for loop that has a reproducible set of floating point reductions
+// is shown at the end of romp_support.c
         
-#endif
 
 
-// Conditionalize a parallel for with
+// The omp for loops should be conditionalized to only be parallel if the romp_level allows it
 //
 typedef enum ROMP_level { 
     ROMP_level_serial,                // always run this code serially
@@ -80,10 +101,11 @@ typedef enum ROMP_level {
     } ROMP_level;
 extern ROMP_level romp_level;
 
-// Surround a parallel for
 
-#define ROMP_maxWatchedThreadNum 4
-
+// To speed up collection, an annotated omp for loop
+// has a static structure holding information about the loop
+// and one on the stack holding current timing information
+//
 typedef struct ROMP_pf_static_struct { 
     void * volatile ptr; 
     const char*     file; 
@@ -99,9 +121,6 @@ typedef struct ROMP_pf_stack_struct  {
     ROMP_level    entry_level;
 } ROMP_pf_stack_struct;
 
-#define ROMP_main ROMP_main_started(__BASE_FILE__, __LINE__);
-    
-void ROMP_main_started(const char* file, int line);
 
 void ROMP_pf_begin(
     ROMP_pf_static_struct * pf_static,
@@ -109,12 +128,18 @@ void ROMP_pf_begin(
 
 int ROMP_if_parallel1(ROMP_level);
 int ROMP_if_parallel2(ROMP_level, ROMP_pf_stack_struct*);
+    // it is the call of this function that tells the ROMP code what level the loop is
+    // so there is more done here than just supplying the condition value to the omp if clause
  
 void ROMP_pf_end(
     ROMP_pf_stack_struct  * pf_stack);
 
-// Begin and end of the loop body
-// Note: continue does need to be annotated
+
+// Instrumentation of  the Begin and end of the loop body
+// Because many loop bodies are too brief to hide the cost of doing these,
+// the macros below that add these are usually defined as noops rather than adding them.
+// 
+// Note: continue is the same as ROMP_pf_end, hence use it
 //       break and return and similar exits are illegal
 //
 typedef struct ROMP_pflb_stack_struct {
@@ -122,75 +147,6 @@ typedef struct ROMP_pflb_stack_struct {
     NanosecsTimer beginTime;
     int tid;
 } ROMP_pflb_stack_struct;
-
-
-#if !defined(ROMP_SUPPORT_ENABLED)
-
-#define if_ROMPLEVEL(LEVEL) \
-    if (ROMP_if_parallel1(LEVEL)) \
-    // end of macro
-
-#define if_ROMP(LEVEL) if_ROMPLEVEL(ROMP_level_##LEVEL)
-
-#define if_ROMP2(CONDITION, LEVEL) \
-    if ((CONDITION) && ROMP_if_parallel1(ROMP_level_##LEVEL)) \
-    // end of macro
-
-#define ROMP_PF_begin \
-    {
-
-#define ROMP_PF_end \
-    }
-
-#define ROMP_PFLB_begin
-#define ROMP_PFLB_end
-#define ROMP_PFLB_continue \
-    { continue; }
-#define ROMP_PF_continue \
-    ROMP_PFLB_continue
-    
-#else
-
-#define if_ROMPLEVEL(LEVEL) \
-    if (ROMP_pf_stack.staticInfo && \
-        (ROMP_if_parallel2(LEVEL,&ROMP_pf_stack))) \
-    // end of macro
-
-#define if_ROMP(LEVEL) if_ROMPLEVEL(ROMP_level_##LEVEL)
-
-#define if_ROMP2(CONDITION, LEVEL) \
-    if ((CONDITION) && \
-        ROMP_pf_stack.staticInfo && \
-        (ROMP_if_parallel2(ROMP_level_##LEVEL,&ROMP_pf_stack))) \
-    // end of macro
-
-#define ROMP_PF_begin \
-    { \
-    static ROMP_pf_static_struct ROMP_pf_static = { 0L, __BASE_FILE__, __func__, __LINE__ }; \
-    ROMP_pf_stack_struct  ROMP_pf_stack;  \
-    ROMP_pf_begin(&ROMP_pf_static, &ROMP_pf_stack);
-
-#define ROMP_PF_end \
-    ROMP_pf_end(&ROMP_pf_stack); \
-    }
-
-#define ROMP_PFLB_begin \
-    /* ROMP_pflb_stack_struct  ROMP_pflb_stack;  \
-    if (!ROMP_pf_stack.skip_pflb_timing) ROMP_pflb_begin(&ROMP_pf_stack, &ROMP_pflb_stack); */ \
-    // end of macro
-
-#define ROMP_PFLB_end \
-    /* if (!ROMP_pf_stack.skip_pflb_timing) ROMP_pflb_end(&ROMP_pflb_stack); */ \
-    // end of macro
-
-#define ROMP_PFLB_continue \
-    { /* if (!ROMP_pf_stack.skip_pflb_timing) ROMP_PFLB_end; */ continue; } \
-    // end of macro
-    
-#define ROMP_PF_continue \
-    ROMP_PFLB_continue
-
-#endif
 
 void ROMP_pflb_begin(
     ROMP_pf_stack_struct   * pf_stack,
@@ -200,7 +156,92 @@ void ROMP_pflb_end(
     ROMP_pflb_stack_struct  * pflb_stack);
 
 
-// Reproducible reductions
+// The conditionalized macros that either do or don't add the variables and calls based on the above
+//
+#if !defined(ROMP_SUPPORT_ENABLED)
+
+    #define if_ROMPLEVEL(LEVEL) \
+	if (ROMP_if_parallel1(LEVEL)) \
+	// end of macro
+
+    #define if_ROMP2(CONDITION, LEVEL) \
+	if ((CONDITION) && ROMP_if_parallel1(ROMP_level_##LEVEL)) \
+	// end of macro
+
+    #define ROMP_PF_begin \
+	{
+
+    #define ROMP_PF_end \
+	}
+
+    #define ROMP_PFLB_begin
+    #define ROMP_PFLB_end
+    #define ROMP_PFLB_continue \
+	{ continue; }
+	
+#else
+
+    #define if_ROMPLEVEL(LEVEL) \
+	if (ROMP_pf_stack.staticInfo && \
+            (ROMP_if_parallel2(LEVEL,&ROMP_pf_stack))) \
+	// end of macro
+
+    #define if_ROMP2(CONDITION, LEVEL) \
+	if ((CONDITION) && \
+            ROMP_pf_stack.staticInfo && \
+            (ROMP_if_parallel2(ROMP_level_##LEVEL,&ROMP_pf_stack))) \
+	// end of macro
+
+    #define ROMP_PF_begin \
+	{ \
+	static ROMP_pf_static_struct ROMP_pf_static = { 0L, __BASE_FILE__, __func__, __LINE__ }; \
+	ROMP_pf_stack_struct  ROMP_pf_stack;  \
+	ROMP_pf_begin(&ROMP_pf_static, &ROMP_pf_stack);
+
+    #define ROMP_PF_end \
+	ROMP_pf_end(&ROMP_pf_stack); \
+	}
+
+    #define ROMP_PFLB_begin \
+	/* ROMP_pflb_stack_struct  ROMP_pflb_stack;  \
+	if (!ROMP_pf_stack.skip_pflb_timing) ROMP_pflb_begin(&ROMP_pf_stack, &ROMP_pflb_stack); */ \
+	// end of macro
+
+    #define ROMP_PFLB_end \
+	/* if (!ROMP_pf_stack.skip_pflb_timing) ROMP_pflb_end(&ROMP_pflb_stack); */ \
+	// end of macro
+
+    #define ROMP_PFLB_continue \
+	{ /* if (!ROMP_pf_stack.skip_pflb_timing) ROMP_PFLB_end; */ continue; } \
+	// end of macro
+    
+#endif
+
+
+#define if_ROMP(LEVEL) if_ROMPLEVEL(ROMP_level_##LEVEL)
+
+#define ROMP_PF_continue \
+    ROMP_PFLB_continue
+
+
+// When measuring where time is going, 
+// it is convenient to be able to do some scopes other than parallel loops
+// Such scopes look a single trip loop, so can exploit the above support
+// 
+#define ROMP_SCOPE_begin    ROMP_PF_begin
+#define ROMP_SCOPE_end	    ROMP_PF_end
+
+
+// Deterministic reductions
+//
+// omp reduction clauses do the reduction operations in arbitrary order
+// but floating point add and mul are not precisely commutative, and are compiler and thead-count specific
+// so they are causing small initial variations that can cascade into test system failures.
+// The following implements are deterministic ordering of the operations independent of thread-count.
+//
+// For usage, see the example in romp_support.c in the test case at the end.
+//
+// Only sum is currently supported.
 //
 typedef struct ROMP_Distributor ROMP_Distributor;
 
