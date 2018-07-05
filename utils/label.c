@@ -2947,7 +2947,7 @@ int LabelMaskSurface(LABEL *area, MRI_SURFACE *mris)
     if (v->marked || v->ripflag) {
       continue;
     }
-    v->stat = v->val = v->imag_val = v->val2 = v->valbak = v->val2bak = 0.0;
+    v->stat = v->annotation = v->val = v->imag_val = v->val2 = v->valbak = v->val2bak = 0.0;
   }
   MRISclearMarks(mris);
   return (NO_ERROR);
