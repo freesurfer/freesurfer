@@ -1353,10 +1353,22 @@ L) ;
   if (!nowhite && strcmp(white_matter_name,"NOWRITE"))
   {
     MRISremoveIntersections(mris) ;
-    sprintf(fname,
+
+    if (getenv("FS_POSIX")) {
+        // PW 2018/07/05: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+        sprintf(fname,
+            "./%s.%s%s%s",
+            hemi,white_matter_name,
+            output_suffix,suffix);
+      }
+      else {
+        // PW 2018/07/05: Legacy behaviour
+        sprintf(fname,
             "%s/%s/surf/%s.%s%s%s",
             sdir, sname,hemi,white_matter_name,
             output_suffix,suffix);
+    }
+    
     fprintf(stderr, "writing white matter surface to %s...\n", fname) ;
     MRISaverageVertexPositions(mris, smoothwm) ;
     MRISwrite(mris, fname) ;
@@ -1369,30 +1381,60 @@ L) ;
       lcortex = MRIScortexLabel(mris, mri_aseg, -1) ;
       if (Gdiag & DIAG_VERBOSE_ON)
       {
-        sprintf(fname,
+        if (getenv("FS_POSIX")) {
+          // PW 2018/07/05: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+          sprintf(fname,
+                "./%s.%s%s%s_orig.label",
+                hemi,"cortex",
+                output_suffix,suffix);
+        }
+        else {
+          // PW 2018/07/05: Legacy behaviour
+          sprintf(fname,
                 "%s/%s/label/%s.%s%s%s_orig.label",
                 sdir, sname,hemi,"cortex",
                 output_suffix,suffix);
+        }
         printf("writing cortex label to %s...\n", fname) ;
         LabelWrite(lcortex, fname) ;
       }
       LabelErode(lcortex, mris, 4) ;
       if (Gdiag & DIAG_VERBOSE_ON)
       {
-        sprintf(fname,
+        if (getenv("FS_POSIX")) {
+          // PW 2018/07/05: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+          sprintf(fname,
+                "./%s.%s%s%s_erode.label",
+                hemi,"cortex",
+                output_suffix,suffix);
+        }
+        else {
+          // PW 2018/07/05: Legacy behaviour
+          sprintf(fname,
                 "%s/%s/label/%s.%s%s%s_erode.label",
                 sdir, sname,hemi,"cortex",
                 output_suffix,suffix);
+        }
         printf("writing cortex label to %s...\n", fname) ;
         LabelWrite(lcortex, fname) ;
       }
       LabelDilate(lcortex, mris, 4, CURRENT_VERTICES) ;
       if (Gdiag & DIAG_VERBOSE_ON)
       {
-        sprintf(fname,
+        if (getenv("FS_POSIX")) {
+          // PW 2018/07/05: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+          sprintf(fname,
+                "./%s.%s%s%s_dilate.label",
+                hemi,"cortex",
+                output_suffix,suffix);
+        }
+        else {
+          // PW 2018/07/05: Legacy behaviour
+          sprintf(fname,
                 "%s/%s/label/%s.%s%s%s_dilate.label",
                 sdir, sname,hemi,"cortex",
                 output_suffix,suffix);
+        }
         printf("writing cortex label to %s...\n", fname) ;
         LabelWrite(lcortex, fname) ;
       }
@@ -1418,11 +1460,22 @@ L) ;
       LabelFree(&lcortex) ;
       lcortex = LabelFromMarkedSurface(mris) ;
 
-      sprintf(fname,
+      if (getenv("FS_POSIX")) {
+        // PW 2018/07/05: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+        sprintf(fname,
+              "./%s.%s%s%s.label",
+              hemi,"cortex",
+              output_suffix,suffix);
+      }
+      else {
+        // PW 2018/07/05: Legacy behaviour
+        sprintf(fname,
               "%s/%s/label/%s.%s%s%s.label",
               sdir, sname,hemi,"cortex",
               output_suffix,suffix);
+      }
       printf("writing cortex label to %s...\n", fname) ;
+
       LabelWrite(lcortex, fname) ;
       LabelFree(&lcortex) ;
     }
