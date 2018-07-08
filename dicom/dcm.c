@@ -175,7 +175,7 @@ static long fileSize(int fd);
 static int fileSize(int fd);
 #endif
 static void swapInPlace(PRIVATE_OBJECT ** object, DCM_ELEMENT * e);
-static CONDITION checkObject(PRIVATE_OBJECT ** object, char *caller);
+static CONDITION checkObject(PRIVATE_OBJECT ** object, const char *caller);
 static CONDITION
 writeFile(void *buffer, U32 length, int flag, void /* int */ *fd);
 static CONDITION
@@ -183,7 +183,8 @@ countBytes(void *buffer, U32 length, int flag,
            void /* unsigned long */ *sizePtr);
 static CONDITION
 exportStream(DCM_OBJECT ** callerObject, unsigned long opt,
-             void *buffer, U32 bufferlength, CONDITION(*callback) (),
+             void *buffer, U32 bufferlength, 
+	     DCM_EXPORT_STREAM_CALLBACK* callback,
              void *ctx, int sequenceLevel);
 
 static CONDITION
@@ -956,7 +957,7 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
   * groupItem;
   PRV_ELEMENT_ITEM
   * elementItem;
-  int
+  ssize_t
   nBytes;
   CONDITION
   cond;
@@ -3944,10 +3945,10 @@ exportEncapsulatedPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
                          DCM_EXPORT_STREAM_CALLBACK* callback,
                          void* ctx) {
   DCM_ELEMENT * element;
-  int nBytes;
+  ssize_t nBytes;
   CONDITION cond;
   U32 toExport;
-  int length;
+  U32 length;
   DCM_FRAGMENT_ITEM* fragmentItem = 0;
   DCM_ELEMENT e;
   U32 rtnLength = 0;
@@ -3970,12 +3971,14 @@ exportEncapsulatedPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
       if ((*object)->fd != -1) {
         nBytes = read((*object)->fd, buffer, length);
       } else {
+        int nBytes_int;
         cond = (*object)->rd((*object)->userCtx, buffer,
-                             (long) length, &nBytes);
+                             (long) length, &nBytes_int);
+	nBytes = (ssize_t)nBytes_int;
       }
       if ((U32) nBytes != length) {
         char b[512];
-        sprintf(b, "byte count: %d %d, errno: %d", nBytes, length, errno);
+        sprintf(b, "byte count: %lu %u, errno: %d", nBytes, length, errno);
         (void) COND_PushCondition(DCM_GENERALWARNING,
                                   DCM_Message(DCM_GENERALWARNING),
                                   "exportEncapsualtedPixels", b);
@@ -4048,7 +4051,7 @@ exportEncapsulatedPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
                                   "exportEncapsulatedPixels");
       }
 
-      fragmentItem = LST_Next(&item->element.d.fragments);
+      fragmentItem = (DCM_FRAGMENT_ITEM*)LST_Next(&item->element.d.fragments);
     }
     e.tag = 0xfffee0dd;
     e.length = 0;
@@ -4101,7 +4104,7 @@ exportPixels(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
   bytesExported = rtnLength;
 
   remainingData = element->length;
-  src = element->d.ot;
+  src = (unsigned char*)element->d.ot;
   item->currentOffset = item->dataOffset;
 
   while (remainingData > 0) {
@@ -4269,7 +4272,7 @@ swapInPlace(PRIVATE_OBJECT ** object, DCM_ELEMENT * e) {
   *p1;
 
   length = e->length;
-  p1 = e->d.ot;
+  p1 = (unsigned char*)e->d.ot;
   if (e->representation == DCM_US || e->representation == DCM_SS ||
       e->representation == DCM_OW || e->representation == DCM_AT) {
     if (e->tag == DCM_PXLPIXELDATA &&
@@ -4338,7 +4341,7 @@ swapInPlace(PRIVATE_OBJECT ** object, DCM_ELEMENT * e) {
 */
 
 static CONDITION
-checkObject(PRIVATE_OBJECT ** object, char *caller) {
+checkObject(PRIVATE_OBJECT ** object, const char *caller) {
   if (object == NULL)
     return COND_PushCondition(DCM_NULLOBJECT, DCM_Message(DCM_NULLOBJECT),
                               caller);
@@ -4652,7 +4655,7 @@ exportStream(DCM_OBJECT ** callerObject, unsigned long opt,
     c -= rtnLength;
     bytesExported += rtnLength;
   }
-  groupItem = LST_Head(&(*object)->groupList);
+  groupItem = (PRV_GROUP_ITEM*)LST_Head(&(*object)->groupList);
 
   /*  Take this code out to allow empty groups. */
 #if 0
@@ -4675,7 +4678,7 @@ exportStream(DCM_OBJECT ** callerObject, unsigned long opt,
           return cond;
       }
     }
-    elementItem = LST_Head(&groupItem->elementList);
+    elementItem = (PRV_ELEMENT_ITEM*)LST_Head(&groupItem->elementList);
     if (elementItem != NULL) {
       (void) LST_Position(&groupItem->elementList, elementItem);
       if (DCM_TAG_ELEMENT(elementItem->element.tag) == 0x0000) {
@@ -4689,7 +4692,7 @@ exportStream(DCM_OBJECT ** callerObject, unsigned long opt,
            for group 0000 and 0002.
         */
         if (groupItem->group != 0x0000 && groupItem->group != 0x0002)
-          elementItem = LST_Next(&groupItem->elementList);
+          elementItem = (PRV_ELEMENT_ITEM*)LST_Next(&groupItem->elementList);
       }
     }
     while (elementItem != NULL) {
@@ -4716,7 +4719,7 @@ exportStream(DCM_OBJECT ** callerObject, unsigned long opt,
                                     "exportStream");
 
         cond = exportPixels(object, elementItem, encapsulatedPixels,
-                            buffer, bufferlength, callback,
+                            (unsigned char*)buffer, bufferlength, callback,
                             ctx, byteOrder, explicitVR);
         if (cond != DCM_NORMAL)
           return cond;
@@ -4741,7 +4744,7 @@ exportStream(DCM_OBJECT ** callerObject, unsigned long opt,
       bytesExported += rtnLength;
 
       remainingData = element.length;
-      src = element.d.ot;
+      src = (unsigned char*)element.d.ot;
       elementItem->currentOffset = elementItem->dataOffset;
 
       if (element.tag == DCM_PXLPIXELDATA) {
@@ -4760,7 +4763,7 @@ exportStream(DCM_OBJECT ** callerObject, unsigned long opt,
         dst = (unsigned char *) buffer;
 
         if (element.d.sq != NULL) {
-          sequenceItem = LST_Head(&element.d.sq);
+          sequenceItem = (DCM_SEQUENCE_ITEM*)LST_Head(&element.d.sq);
           if (sequenceItem != NULL)
             (void) LST_Position(&element.d.sq, sequenceItem);
           while (sequenceItem != NULL) {
@@ -4769,7 +4772,7 @@ exportStream(DCM_OBJECT ** callerObject, unsigned long opt,
                                 sequenceLevel + 1);
             if (cond != DCM_NORMAL)
               return cond;
-            sequenceItem = LST_Next(&element.d.sq);
+            sequenceItem = (DCM_SEQUENCE_ITEM*)LST_Next(&element.d.sq);
           }
         }
         if (element.length == DCM_UNSPECIFIEDLENGTH) {
@@ -4816,9 +4819,9 @@ exportStream(DCM_OBJECT ** callerObject, unsigned long opt,
           }
         }
       }
-      elementItem = LST_Next(&groupItem->elementList);
+      elementItem = (PRV_ELEMENT_ITEM*)LST_Next(&groupItem->elementList);
     }
-    groupItem = LST_Next(&(*object)->groupList);
+    groupItem = (PRV_GROUP_ITEM*)LST_Next(&(*object)->groupList);
   }
   if ((sequenceLevel != 0) && unspecifiedSQLength) {
     if (c <= 20) {
@@ -6007,7 +6010,7 @@ readSequence(const char *name, unsigned char **ptr, int fd, U32 * size,
       if (!fileFlag)
         *ptr = localPtr + sequenceLength;
       if (cond == DCM_NORMAL) {
-        sequenceItem = CTN_MALLOC(sizeof(*sequenceItem));
+        sequenceItem = (DCM_SEQUENCE_ITEM*)CTN_MALLOC(sizeof(*sequenceItem));
         if (sequenceItem == NULL)
           return COND_PushCondition(DCM_MALLOCFAILURE,
                                     DCM_Message(DCM_MALLOCFAILURE),
@@ -6039,7 +6042,7 @@ readSequence(const char *name, unsigned char **ptr, int fd, U32 * size,
 }
 
 static CONDITION
-scanCompressedPixels(char *name, unsigned char **ptr, int fd, U32 * size,
+scanCompressedPixels(const char *name, unsigned char **ptr, int fd, U32 * size,
                      off_t * fileOffset, int recursionLevel, unsigned long opt,
                      int byteOrder, CTNBOOLEAN explicitVR,
                      CTNBOOLEAN acceptVRMismatch,
@@ -6275,7 +6278,7 @@ handleGroupItem(PRIVATE_OBJECT ** obj, PRV_GROUP_ITEM ** groupItem,
     createGroupFlag = FALSE;
 
   if (createGroupFlag == TRUE) {
-    *groupItem = CTN_MALLOC(sizeof(**groupItem));
+    *groupItem = (PRV_GROUP_ITEM*)CTN_MALLOC(sizeof(**groupItem));
     if (*groupItem == NULL) {
       (void) DCM_CloseObject((DCM_OBJECT **) obj);
       return COND_PushCondition(DCM_ELEMENTCREATEFAILED,
@@ -6557,17 +6560,17 @@ readFile1(const char *name, unsigned char *callerBuf, int fd, U32 size,
 #ifdef SMM
 #endif
 
-  groupItem = LST_Head(&(*object)->groupList);
+  groupItem = (PRV_GROUP_ITEM*)LST_Head(&(*object)->groupList);
   if (groupItem != NULL) {
     (void) LST_Position(&(*object)->groupList, groupItem);
     while (groupItem != NULL) {
-      elementItem = LST_Head(&groupItem->elementList);
+      elementItem = (PRV_ELEMENT_ITEM*)LST_Head(&groupItem->elementList);
       if (elementItem != NULL) {
         if (DCM_TAG_ELEMENT(elementItem->element.tag) == 0x0000) {
           *elementItem->element.d.ul = groupItem->baseLength;
         }
       }
-      groupItem = LST_Next(&(*object)->groupList);
+      groupItem = (PRV_GROUP_ITEM*)LST_Next(&(*object)->groupList);
     }
   }
   return DCM_NORMAL;
@@ -6603,7 +6606,7 @@ locateElement(PRIVATE_OBJECT ** obj, DCM_TAG tag) {
   CTNBOOLEAN
   found = FALSE;
 
-  groupItem = LST_Head(&(*obj)->groupList);
+  groupItem = (PRV_GROUP_ITEM*)LST_Head(&(*obj)->groupList);
   if (groupItem == NULL)
     return NULL;
 
@@ -6612,12 +6615,12 @@ locateElement(PRIVATE_OBJECT ** obj, DCM_TAG tag) {
     if (groupItem->group == DCM_TAG_GROUP(tag))
       break;
 
-    groupItem = LST_Next(&(*obj)->groupList);
+    groupItem = (PRV_GROUP_ITEM*)LST_Next(&(*obj)->groupList);
   }
   if (groupItem == NULL)
     return NULL;
 
-  elementItem = LST_Head(&groupItem->elementList);
+  elementItem = (PRV_ELEMENT_ITEM*)LST_Head(&groupItem->elementList);
   if (elementItem == NULL)
     return NULL;
 
@@ -6626,7 +6629,7 @@ locateElement(PRIVATE_OBJECT ** obj, DCM_TAG tag) {
     if (elementItem->element.tag == tag) {
       found = TRUE;
     } else
-      elementItem = LST_Next(&groupItem->elementList);
+      elementItem = (PRV_ELEMENT_ITEM*)LST_Next(&groupItem->elementList);
   }
   if (found)
     return elementItem;
@@ -6957,35 +6960,35 @@ compareGroup(PRV_GROUP_ITEM * g1, PRV_GROUP_ITEM * g2,
                          *e2 = NULL;
 
   if (g1 != NULL) {
-    e1 = LST_Head(&g1->elementList);
+    e1 = (PRV_ELEMENT_ITEM*)LST_Head(&g1->elementList);
     if (e1 != NULL)
       LST_Position(&g1->elementList, e1);
   }
   if (g2 != NULL) {
-    e2 = LST_Head(&g2->elementList);
+    e2 = (PRV_ELEMENT_ITEM*)LST_Head(&g2->elementList);
     if (e2 != NULL)
       LST_Position(&g2->elementList, e2);
   }
   while (e1 != NULL) {
     if (e2 == NULL) {
       callback(&e1->element, NULL, ctx);
-      e1 = LST_Next(&g1->elementList);
+      e1 = (PRV_ELEMENT_ITEM*)LST_Next(&g1->elementList);
     } else if (e1->element.tag == e2->element.tag) {
       callback(&e1->element, &e2->element, ctx);
-      e1 = LST_Next(&g1->elementList);
-      e2 = LST_Next(&g2->elementList);
+      e1 = (PRV_ELEMENT_ITEM*)LST_Next(&g1->elementList);
+      e2 = (PRV_ELEMENT_ITEM*)LST_Next(&g2->elementList);
     } else if (e1->element.tag < e2->element.tag) {
       callback(&e1->element, NULL, ctx);
-      e1 = LST_Next(&g1->elementList);
+      e1 = (PRV_ELEMENT_ITEM*)LST_Next(&g1->elementList);
     } else {
       callback(NULL, &e2->element, ctx);
-      e2 = LST_Next(&g2->elementList);
+      e2 = (PRV_ELEMENT_ITEM*)LST_Next(&g2->elementList);
     }
   }
 
   while (e2 != NULL) {
     callback(NULL, &e2->element, ctx);
-    e2 = LST_Next(&g2->elementList);
+    e2 = (PRV_ELEMENT_ITEM*)LST_Next(&g2->elementList);
   }
 }
 
@@ -7012,7 +7015,7 @@ copySequence(PRIVATE_OBJECT ** dstObj, DCM_ELEMENT * e) {
 
   lst = LST_Create();
   if (e->d.sq != NULL) {
-    sqItem = LST_Head(&e->d.sq);
+    sqItem = (DCM_SEQUENCE_ITEM*)LST_Head(&e->d.sq);
     (void) LST_Position(&e->d.sq, sqItem);
   }
   while (sqItem != NULL) {
@@ -7020,11 +7023,11 @@ copySequence(PRIVATE_OBJECT ** dstObj, DCM_ELEMENT * e) {
     DCM_SEQUENCE_ITEM *copyItem;
 
     DCM_CopyObject(&sqItem->object, &copy);
-    copyItem = malloc(sizeof(*copyItem));
+    copyItem = (DCM_SEQUENCE_ITEM *)malloc(sizeof(*copyItem));
     copyItem->object = copy;
     (void) LST_Enqueue(&lst, copyItem);
 
-    sqItem = LST_Next(&e->d.sq);
+    sqItem = (DCM_SEQUENCE_ITEM*)LST_Next(&e->d.sq);
   }
 
   memset(&newElement, 0, sizeof(newElement));
@@ -7137,12 +7140,12 @@ DCM_GetCompressedValue(DCM_OBJECT ** callerObject, DCM_TAG tag, void *buf,
     if (firstBuffer) {
       firstBuffer = FALSE;
       if (e.length != 0) {
-        offsetBuffer = CTN_MALLOC(e.length);
+        offsetBuffer = (U32 *)CTN_MALLOC(e.length);
         offsetBufferCount = e.length / sizeof(U32);
         if (offsetBuffer == NULL)
           exit(1);  /* repair */
         nBytes = read((*object)->fd, offsetBuffer, e.length);
-        if (nBytes != e.length) {
+        if (nBytes != (ssize_t)e.length) {
           exit(1);  /* repair */
         }
         if (byteOrder == BYTEORDER_REVERSE) {
@@ -7160,7 +7163,7 @@ DCM_GetCompressedValue(DCM_OBJECT ** callerObject, DCM_TAG tag, void *buf,
       }
     } else {
       U32 l = e.length;
-      int j;
+      U32 j;
       int lastIndex;
 
       lastIndex = index;
@@ -7215,7 +7218,7 @@ DCM_PrintSequenceList(DCM_OBJECT ** object, DCM_TAG tag) {
                               "DCM_PrintSequenceList");
 
   lst = elementItem->element.d.sq;
-  sqItem = LST_Head(&lst);
+  sqItem = (DCM_SEQUENCE_ITEM *)LST_Head(&lst);
   (void) LST_Position(&lst, sqItem);
   while (sqItem != NULL) {
     sqObject = (PRIVATE_OBJECT *) sqItem->object;
@@ -7223,7 +7226,7 @@ DCM_PrintSequenceList(DCM_OBJECT ** object, DCM_TAG tag) {
            sqObject->objectSize,
            sqObject->offset,
            sqObject->pixelOffset);
-    sqItem = LST_Next(&lst);
+    sqItem = (DCM_SEQUENCE_ITEM *)LST_Next(&lst);
   }
   return cond;
 }
@@ -7255,7 +7258,7 @@ DCM_GetSequenceByOffset(DCM_OBJECT ** object,
                               "DCM_PrintSequenceList");
 
   lst = elementItem->element.d.sq;
-  sqItem = LST_Head(&lst);
+  sqItem = (DCM_SEQUENCE_ITEM *)LST_Head(&lst);
   (void) LST_Position(&lst, sqItem);
   while (sqItem != NULL) {
     sqObject = (PRIVATE_OBJECT *) sqItem->object;
@@ -7263,7 +7266,7 @@ DCM_GetSequenceByOffset(DCM_OBJECT ** object,
       *rtnObject = sqItem->object;
       return DCM_NORMAL;
     }
-    sqItem = LST_Next(&lst);
+    sqItem = (DCM_SEQUENCE_ITEM *)LST_Next(&lst);
   }
   return 0;
 }
@@ -7328,12 +7331,12 @@ DCM_CopyObject(DCM_OBJECT ** src, DCM_OBJECT ** dst) {
   }
   srcObj = (PRIVATE_OBJECT **) src;
 
-  groupItem = LST_Head(&(*srcObj)->groupList);
+  groupItem = (PRV_GROUP_ITEM *)LST_Head(&(*srcObj)->groupList);
   if (groupItem != NULL)
     (void) LST_Position(&(*srcObj)->groupList, groupItem);
 
   while (groupItem != NULL) {
-    elementItem = LST_Head(&groupItem->elementList);
+    elementItem = (PRV_ELEMENT_ITEM *)LST_Head(&groupItem->elementList);
     if (elementItem != NULL)
       (void) LST_Position(&groupItem->elementList, elementItem);
     while (elementItem != NULL) {
@@ -7343,9 +7346,9 @@ DCM_CopyObject(DCM_OBJECT ** src, DCM_OBJECT ** dst) {
         void* pvoid = (void*)& dstObj;
         DCM_AddElement((DCM_OBJECT **) pvoid, &elementItem->element);
       }
-      elementItem = LST_Next(&groupItem->elementList);
+      elementItem = (PRV_ELEMENT_ITEM *)LST_Next(&groupItem->elementList);
     }
-    groupItem = LST_Next(&(*srcObj)->groupList);
+    groupItem = (PRV_GROUP_ITEM *)LST_Next(&(*srcObj)->groupList);
   }
 
   *dst = (DCM_OBJECT *) dstObj;
@@ -7380,12 +7383,12 @@ DCM_MergeObject(DCM_OBJECT ** src, DCM_OBJECT ** dst) {
   }
   srcObj = (PRIVATE_OBJECT **) src;
 
-  groupItem = LST_Head(&(*srcObj)->groupList);
+  groupItem = (PRV_GROUP_ITEM *)LST_Head(&(*srcObj)->groupList);
   if (groupItem != NULL)
     (void) LST_Position(&(*srcObj)->groupList, groupItem);
 
   while (groupItem != NULL) {
-    elementItem = LST_Head(&groupItem->elementList);
+    elementItem = (PRV_ELEMENT_ITEM *)LST_Head(&groupItem->elementList);
     if (elementItem != NULL)
       (void) LST_Position(&groupItem->elementList, elementItem);
     while (elementItem != NULL) {
@@ -7395,9 +7398,9 @@ DCM_MergeObject(DCM_OBJECT ** src, DCM_OBJECT ** dst) {
         void* pvoid = (void*) & dstObj;
         DCM_AddElement((DCM_OBJECT **) pvoid, &elementItem->element);
       }
-      elementItem = LST_Next(&groupItem->elementList);
+      elementItem = (PRV_ELEMENT_ITEM *)LST_Next(&groupItem->elementList);
     }
-    groupItem = LST_Next(&(*srcObj)->groupList);
+    groupItem = (PRV_GROUP_ITEM *)LST_Next(&(*srcObj)->groupList);
   }
 
   /**dst = (DCM_OBJECT *) dstObj;*/
@@ -7417,7 +7420,7 @@ DCM_GetFirstElement(DCM_OBJECT ** callerObject, DCM_ELEMENT** e) {
   if (cond != DCM_NORMAL)
     return cond;
 
-  groupItem = LST_Head(&(*object)->groupList);
+  groupItem = (PRV_GROUP_ITEM*)LST_Head(&(*object)->groupList);
 
   if (groupItem == NULL) {
     *e = 0;
@@ -7426,7 +7429,7 @@ DCM_GetFirstElement(DCM_OBJECT ** callerObject, DCM_ELEMENT** e) {
   (void) LST_Position(&(*object)->groupList, groupItem);
   (*object)->groupCtx = groupItem;
 
-  elementItem = LST_Head(&groupItem->elementList);
+  elementItem = (PRV_ELEMENT_ITEM*)LST_Head(&groupItem->elementList);
   (*object)->elementCtx = elementItem;
   if (elementItem == NULL) {
     return DCM_GetNextElement(callerObject, e);
@@ -7532,7 +7535,7 @@ DCM_AddFragment(DCM_OBJECT** callerObject, void* fragment, U32 fragmentLength) {
   elementItem = locateElement(object, 0x7fe00010);
 
   mallocLength = sizeof(DCM_FRAGMENT_ITEM) + fragmentLength;
-  fragmentItem = CTN_MALLOC(mallocLength);
+  fragmentItem = (DCM_FRAGMENT_ITEM*)CTN_MALLOC(mallocLength);
   if (fragmentItem == NULL) {
     return COND_PushCondition(DCM_MALLOCFAILURE,
                               DCM_Message(DCM_MALLOCFAILURE), mallocLength,
