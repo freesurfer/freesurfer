@@ -2190,7 +2190,7 @@ DCM_GroupDictionary(unsigned short group, void *ctx,
 
 CONDITION
 DCM_ElementDictionary(DCM_TAG tag, void *ctx,
-                      void (*callback) (DCM_TAG t, char *description, DCM_VALUEREPRESENTATION r,
+                      void (*callback) (DCM_TAG t, const char *description, DCM_VALUEREPRESENTATION r,
                                         void *ctx)) {
   int i;
   unsigned long j;

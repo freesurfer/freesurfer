@@ -300,10 +300,10 @@ extern "C"
   CONDITION DCM_LookupElement(DCM_ELEMENT * attribute);
   CONDITION
   DCM_GroupDictionary(unsigned short group, void *ctx,
-                      void (*callback) (unsigned short g, char *description, void *ctx));
+                      void (*callback) (unsigned short g, const char *description, void *ctx));
   CONDITION
   DCM_ElementDictionary(DCM_TAG tag, void *ctx,
-                        void (*callback) (DCM_TAG t, char *description, DCM_VALUEREPRESENTATION r, void *ctx));
+                        void (*callback) (DCM_TAG t, const char *description, DCM_VALUEREPRESENTATION r, void *ctx));
   const char *DCM_Message(CONDITION cond);
   void DCM_Debug(CTNBOOLEAN flag);
   CONDITION DCM_WriteFile(DCM_OBJECT ** obj, unsigned long opt, const char *file);

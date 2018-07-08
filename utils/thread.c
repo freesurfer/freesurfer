@@ -153,6 +153,7 @@ int ThreadEnd(int iTid)
 ------------------------------------------------------------------------*/
 int ThreadStart(const char *name, void (*func)(int iTid, void *parm), void *parm, int priority)
 {
+  char* name_nonconstchar = (char*)name;    // work around bugs in THREAD and MachThreadStart definition
   int iMtid, iTid;
   THREAD *pthr;
 
@@ -160,11 +161,11 @@ int ThreadStart(const char *name, void (*func)(int iTid, void *parm), void *parm
 
   iTid = iNthreads++;
   pthr = &pthrTable[iTid];
-  pthr->name = name;
+  pthr->name = name_nonconstchar;
   pthr->inQ = Qalloc(QSIZE);
   if (!pthr->inQ) return (ErrorSet(ERROR_NO_MEMORY, "ThreadStart(%s): could not allocate Q\n", name));
 
-  iMtid = MachThreadStart(name, func, iTid, parm, priority);
+  iMtid = MachThreadStart(name_nonconstchar, func, iTid, parm, priority);
   if (iMtid < 0) {
     Qfree(pthr->inQ);
     iNthreads--;
