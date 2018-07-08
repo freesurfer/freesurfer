@@ -516,11 +516,11 @@ DCM_CloseObject(DCM_OBJECT ** callerObject) {
   if (debug)
     fprintf(stderr, "DCM_CloseObject: Legal object and file closed\n");
 
-  while ((group = LST_Pop(&(*object)->groupList)) != NULL) {
+  while ((group = (PRV_GROUP_ITEM*)LST_Pop(&(*object)->groupList)) != NULL) {
     if (debug)
       fprintf(stderr, "DCM_CloseObject: group %04x\n", group->group);
 
-    while ((element = LST_Pop(&group->elementList)) != NULL) {
+    while ((element = (PRV_ELEMENT_ITEM*)LST_Pop(&group->elementList)) != NULL) {
       if (debug)
         fprintf(stderr, "DCM_CloseObject: Element %08x\n",
                 (unsigned int) element->element.tag);
@@ -529,7 +529,7 @@ DCM_CloseObject(DCM_OBJECT ** callerObject) {
           fprintf(stderr, "Sequence List Address: %lx\n",
                   (unsigned long) element->element.d.sq);
         if (element->element.d.sq != NULL) {
-          while ((sequenceItem = LST_Pop(&element->element.d.sq)) != NULL) {
+          while ((sequenceItem = (DCM_SEQUENCE_ITEM*)LST_Pop(&element->element.d.sq)) != NULL) {
             (void) DCM_CloseObject(&sequenceItem->object);
             CTN_FREE(sequenceItem);
           }
@@ -540,7 +540,7 @@ DCM_CloseObject(DCM_OBJECT ** callerObject) {
           fprintf(stderr, "Fragment List Address: %lx\n",
                   (unsigned long) element->element.d.fragments);
         if (element->element.d.fragments != NULL) {
-          while ((fragmentItem = LST_Pop(&element->element.d.fragments))\
+          while ((fragmentItem = (DCM_FRAGMENT_ITEM*)LST_Pop(&element->element.d.fragments))
                  != NULL) {
             CTN_FREE(fragmentItem);
           }
@@ -830,7 +830,7 @@ DCM_RemoveElement(DCM_OBJECT ** callerObject, DCM_TAG tag) {
   group = DCM_TAG_GROUP(tag);
   element = DCM_TAG_ELEMENT(tag);
 
-  groupItem = LST_Head(&((*object)->groupList));
+  groupItem = (PRV_GROUP_ITEM*)LST_Head(&((*object)->groupList));
   if (groupItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
                               DCM_Message(DCM_ELEMENTNOTFOUND),
@@ -844,7 +844,7 @@ DCM_RemoveElement(DCM_OBJECT ** callerObject, DCM_TAG tag) {
     if (groupItem->group == group)
       flag = TRUE;
     else
-      groupItem = LST_Next(&(*object)->groupList);
+      groupItem = (PRV_GROUP_ITEM*)LST_Next(&(*object)->groupList);
   }
   if (flag == FALSE)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
@@ -852,7 +852,7 @@ DCM_RemoveElement(DCM_OBJECT ** callerObject, DCM_TAG tag) {
                               group, element,
                               "DCM_RemoveElement");
 
-  elementItem = LST_Head(&groupItem->elementList);
+  elementItem = (PRV_ELEMENT_ITEM*)LST_Head(&groupItem->elementList);
   if (elementItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
                               DCM_Message(DCM_ELEMENTNOTFOUND),
@@ -871,7 +871,7 @@ DCM_RemoveElement(DCM_OBJECT ** callerObject, DCM_TAG tag) {
     if (DCM_TAG_ELEMENT(elementItem->element.tag) == element)
       flag = TRUE;
     else
-      elementItem = LST_Next(&groupItem->elementList);
+      elementItem = (PRV_ELEMENT_ITEM*)LST_Next(&groupItem->elementList);
   }
 
   if (flag == FALSE)
@@ -967,7 +967,7 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
   if (cond != DCM_NORMAL)
     return cond;
 
-  groupItem = LST_Head(&(*object)->groupList);
+  groupItem = (PRV_GROUP_ITEM*)LST_Head(&(*object)->groupList);
   if (groupItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
                               DCM_Message(DCM_ELEMENTNOTFOUND),
@@ -980,7 +980,7 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
     if (groupItem->group == DCM_TAG_GROUP(element->tag))
       break;
 
-    groupItem = LST_Next(&(*object)->groupList);
+    groupItem = (PRV_GROUP_ITEM*)LST_Next(&(*object)->groupList);
   }
   if (groupItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
@@ -989,7 +989,7 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
                               DCM_TAG_ELEMENT(element->tag),
                               "DCM_GetElementValue");
 
-  elementItem = LST_Head(&groupItem->elementList);
+  elementItem = (PRV_ELEMENT_ITEM*)LST_Head(&groupItem->elementList);
   if (elementItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
                               DCM_Message(DCM_ELEMENTNOTFOUND),
@@ -1008,7 +1008,7 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
                                   DCM_Message(DCM_CANNOTGETSEQUENCEVALUE),
                                   element->tag, "DCM_GetElementValue");
 
-      p = *ctx;
+      p = (unsigned char*)*ctx;
       if ((long) p > elementItem->element.length)
         return COND_PushCondition(DCM_ILLEGALCONTEXT,
                                   DCM_Message(DCM_ILLEGALCONTEXT),
@@ -1027,8 +1027,10 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
             (*object)->sk((*object)->userCtx,
                           (long) (elementItem->dataOffset + (long) p),
                           SEEK_SET);
+	    int nBytes_int;
             cond = (*object)->rd((*object)->userCtx, element->d.ot, l,
-                                 &nBytes);
+                                 &nBytes_int);
+	    nBytes = (ssize_t)nBytes_int;
           }
           if ((unsigned) nBytes != l) {
             return COND_PushCondition(DCM_FILEACCESSERROR,
@@ -1074,7 +1076,7 @@ DCM_GetElementValue(DCM_OBJECT ** callerObject, DCM_ELEMENT * element,
       }
 
     }
-    elementItem = LST_Next(&groupItem->elementList);
+    elementItem = (PRV_ELEMENT_ITEM*)LST_Next(&groupItem->elementList);
   }
   return COND_PushCondition(DCM_ELEMENTNOTFOUND,
                             DCM_Message(DCM_ELEMENTNOTFOUND),
@@ -1099,7 +1101,7 @@ DCM_GetString(DCM_OBJECT** callerObject, DCM_TAG tag) {
   }
 
   if (DCM_IsString(e.representation)) {
-    s = malloc(e.length + 1);
+    s = (char*)malloc(e.length + 1);
     e.d.string = s;
     cond = DCM_ParseObject(callerObject, &e, 1, 0, 0, 0);
     if (cond != DCM_NORMAL) {
@@ -1321,7 +1323,7 @@ DCM_GetElementSize(DCM_OBJECT ** callerObject, DCM_TAG tag,
   group = DCM_TAG_GROUP(tag);
   element = DCM_TAG_ELEMENT(tag);
 
-  groupItem = LST_Head(&((*object)->groupList));
+  groupItem = (PRV_GROUP_ITEM*)LST_Head(&((*object)->groupList));
   if (groupItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
                               DCM_Message(DCM_ELEMENTNOTFOUND),
@@ -1335,7 +1337,7 @@ DCM_GetElementSize(DCM_OBJECT ** callerObject, DCM_TAG tag,
     if (groupItem->group == group)
       flag = TRUE;
     else
-      groupItem = LST_Next(&(*object)->groupList);
+      groupItem = (PRV_GROUP_ITEM*)LST_Next(&(*object)->groupList);
   }
   if (flag == FALSE)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
@@ -1343,7 +1345,7 @@ DCM_GetElementSize(DCM_OBJECT ** callerObject, DCM_TAG tag,
                               group, element,
                               "DCM_GetElementSize");
 
-  elementItem = LST_Head(&groupItem->elementList);
+  elementItem = (PRV_ELEMENT_ITEM*)LST_Head(&groupItem->elementList);
   if (elementItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
                               DCM_Message(DCM_ELEMENTNOTFOUND),
@@ -1357,7 +1359,7 @@ DCM_GetElementSize(DCM_OBJECT ** callerObject, DCM_TAG tag,
     if (elementItem->element.tag == tag)
       flag = TRUE;
     else
-      elementItem = LST_Next(&groupItem->elementList);
+      elementItem = (PRV_ELEMENT_ITEM*)LST_Next(&groupItem->elementList);
   }
 
   if (flag == FALSE)
@@ -1444,10 +1446,10 @@ DCM_ScanParseObject(DCM_OBJECT ** callerObject, void *buf, size_t bufferSize,
   if (cond != DCM_NORMAL)
     return cond;
 
-  groupItem = LST_Head(&((*object)->groupList));
+  groupItem = (PRV_GROUP_ITEM*)LST_Head(&((*object)->groupList));
   (void) LST_Position(&((*object)->groupList), groupItem);
   while (groupItem != NULL && !done) {
-    elementItem = LST_Head(&groupItem->elementList);
+    elementItem = (PRV_ELEMENT_ITEM*)LST_Head(&groupItem->elementList);
     (void) LST_Position(&groupItem->elementList, elementItem);
     while (elementItem != NULL && !done) {
       for (found = FALSE, i = 0; !found && i < vectorLength; i++) {
@@ -1470,9 +1472,9 @@ DCM_ScanParseObject(DCM_OBJECT ** callerObject, void *buf, size_t bufferSize,
         if (cond != DCM_NORMAL)
           done = TRUE;
       }
-      elementItem = LST_Next(&groupItem->elementList);
+      elementItem = (PRV_ELEMENT_ITEM*)LST_Next(&groupItem->elementList);
     }
-    groupItem = LST_Next(&((*object)->groupList));
+    groupItem = (PRV_GROUP_ITEM*)LST_Next(&((*object)->groupList));
   }
   return DCM_NORMAL;
 }
@@ -1691,14 +1693,14 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm) {
   }
   printf("Object size: %ld\n", (*object)->objectSize);
 
-  groupItem = LST_Head(&(*object)->groupList);
+  groupItem = (PRV_GROUP_ITEM*)LST_Head(&(*object)->groupList);
   if (groupItem != NULL)
     (void) LST_Position(&(*object)->groupList, groupItem);
 
   while (groupItem != NULL) {
     printf("Group: %04x, Length: %8ld\n", groupItem->group,
            groupItem->baseLength);
-    elementItem = LST_Head(&groupItem->elementList);
+    elementItem = (PRV_ELEMENT_ITEM*)LST_Head(&groupItem->elementList);
     if (elementItem != NULL)
       (void) LST_Position(&groupItem->elementList, elementItem);
     while (elementItem != NULL) {
@@ -1760,13 +1762,13 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm) {
           break;
         case DCM_SQ:
           (void) printf("SEQUENCE\n");
-          sq = LST_Head(&elementItem->element.d.sq);
+          sq = (DCM_SEQUENCE_ITEM*)LST_Head(&elementItem->element.d.sq);
           if (sq != NULL)
             (void) LST_Position(&elementItem->element.d.sq, sq);
           printf("DCM Dump Sequence\n");
           while (sq != NULL) {
             (void) DCM_DumpElements(&sq->object, vm);
-            sq = LST_Next(&elementItem->element.d.sq);
+            sq = (DCM_SEQUENCE_ITEM*)LST_Next(&elementItem->element.d.sq);
           }
           printf("DCM Dump Sequence Complete\n");
           break;
@@ -1819,9 +1821,9 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm) {
           break;
         }
       }
-      elementItem = LST_Next(&groupItem->elementList);
+      elementItem = (PRV_ELEMENT_ITEM*)LST_Next(&groupItem->elementList);
     }
-    groupItem = LST_Next(&(*object)->groupList);
+    groupItem = (PRV_GROUP_ITEM*)LST_Next(&(*object)->groupList);
   }
 
   printf("DCM Dump Elements Complete\n\n");
@@ -1872,14 +1874,14 @@ DCM_FormatElements(DCM_OBJECT ** callerObject, long vm, const char* prefix) {
   }
   printf("%sObject size: %ld\n", prefix, (*object)->objectSize);
 
-  groupItem = LST_Head(&(*object)->groupList);
+  groupItem = (PRV_GROUP_ITEM*)LST_Head(&(*object)->groupList);
   if (groupItem != NULL)
     (void) LST_Position(&(*object)->groupList, groupItem);
 
   while (groupItem != NULL) {
     printf("%sGroup: %04x, Length: %8lu\n", prefix, groupItem->group,
            groupItem->baseLength);
-    elementItem = LST_Head(&groupItem->elementList);
+    elementItem = (PRV_ELEMENT_ITEM*)LST_Head(&groupItem->elementList);
     if (elementItem != NULL)
       (void) LST_Position(&groupItem->elementList, elementItem);
     while (elementItem != NULL) {
@@ -1938,7 +1940,7 @@ DCM_FormatElements(DCM_OBJECT ** callerObject, long vm, const char* prefix) {
           break;
         case DCM_SQ:
           (void) printf("SEQUENCE\n");
-          sq = LST_Head(&elementItem->element.d.sq);
+          sq = (DCM_SEQUENCE_ITEM*)LST_Head(&elementItem->element.d.sq);
           if (sq != NULL)
             (void) LST_Position(&elementItem->element.d.sq, sq);
           printf("%sDCM Dump Sequence\n", prefix);
@@ -1946,7 +1948,7 @@ DCM_FormatElements(DCM_OBJECT ** callerObject, long vm, const char* prefix) {
           strcat(localPrefix, " ");
           while (sq != NULL) {
             (void) DCM_FormatElements(&sq->object, vm, localPrefix);
-            sq = LST_Next(&elementItem->element.d.sq);
+            sq = (DCM_SEQUENCE_ITEM*)LST_Next(&elementItem->element.d.sq);
           }
           printf("%sDCM Dump Sequence Complete\n", prefix);
           break;
@@ -1993,9 +1995,9 @@ DCM_FormatElements(DCM_OBJECT ** callerObject, long vm, const char* prefix) {
           break;
         }
       }
-      elementItem = LST_Next(&groupItem->elementList);
+      elementItem = (PRV_ELEMENT_ITEM*)LST_Next(&groupItem->elementList);
     }
-    groupItem = LST_Next(&(*object)->groupList);
+    groupItem = (PRV_GROUP_ITEM*)LST_Next(&(*object)->groupList);
   }
 
   printf("%sDCM Dump Elements Complete\n\n", prefix);
@@ -2324,7 +2326,7 @@ DCM_RemoveGroup(DCM_OBJECT ** callerObject, unsigned short group) {
   if (cond != DCM_NORMAL)
     return cond;
 
-  groupItem = LST_Head(&(*object)->groupList);
+  groupItem = (PRV_GROUP_ITEM*)LST_Head(&(*object)->groupList);
   if (groupItem == NULL)
     return COND_PushCondition(DCM_GROUPNOTFOUND,
                               DCM_Message(DCM_GROUPNOTFOUND),
@@ -2336,7 +2338,7 @@ DCM_RemoveGroup(DCM_OBJECT ** callerObject, unsigned short group) {
     if (groupItem->group == group)
       found = TRUE;
     else
-      groupItem = LST_Next(&(*object)->groupList);
+      groupItem = (PRV_GROUP_ITEM*)LST_Next(&(*object)->groupList);
   }
   if (groupItem == NULL)
     return COND_PushCondition(DCM_GROUPNOTFOUND,
@@ -2344,10 +2346,10 @@ DCM_RemoveGroup(DCM_OBJECT ** callerObject, unsigned short group) {
                               (int) group, "DCM_RemoveGroup");
 
 
-  while ((elementItem = LST_Pop(&groupItem->elementList)) != NULL)
+  while ((elementItem = (PRV_ELEMENT_ITEM*)LST_Pop(&groupItem->elementList)) != NULL)
     CTN_FREE(elementItem);
 
-  groupItem = LST_Remove(&(*object)->groupList, LST_K_AFTER);
+  groupItem = (PRV_GROUP_ITEM*)LST_Remove(&(*object)->groupList, LST_K_AFTER);
   cond = LST_Destroy(&groupItem->elementList);
   if (cond != LST_NORMAL)
     return COND_PushCondition(DCM_LISTFAILURE,
@@ -2400,7 +2402,7 @@ DCM_GetSequenceList(DCM_OBJECT ** object, DCM_TAG tag, LST_HEAD ** list) {
   if (cond != DCM_NORMAL)
     return cond;
 
-  groupItem = LST_Head(&(*obj)->groupList);
+  groupItem = (PRV_GROUP_ITEM*)LST_Head(&(*obj)->groupList);
   if (groupItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
                               DCM_Message(DCM_ELEMENTNOTFOUND),
@@ -2413,7 +2415,7 @@ DCM_GetSequenceList(DCM_OBJECT ** object, DCM_TAG tag, LST_HEAD ** list) {
     if (groupItem->group == DCM_TAG_GROUP(tag))
       break;
 
-    groupItem = LST_Next(&(*obj)->groupList);
+    groupItem = (PRV_GROUP_ITEM*)LST_Next(&(*obj)->groupList);
   }
   if (groupItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
@@ -2422,7 +2424,7 @@ DCM_GetSequenceList(DCM_OBJECT ** object, DCM_TAG tag, LST_HEAD ** list) {
                               DCM_TAG_ELEMENT(tag),
                               "DCM_GetSequenceList");
 
-  elementItem = LST_Head(&groupItem->elementList);
+  elementItem = (PRV_ELEMENT_ITEM*)LST_Head(&groupItem->elementList);
   if (elementItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
                               DCM_Message(DCM_ELEMENTNOTFOUND),
@@ -2436,7 +2438,7 @@ DCM_GetSequenceList(DCM_OBJECT ** object, DCM_TAG tag, LST_HEAD ** list) {
       *list = elementItem->element.d.sq;
       found = TRUE;
     }
-    elementItem = LST_Next(&groupItem->elementList);
+    elementItem = (PRV_ELEMENT_ITEM*)LST_Next(&groupItem->elementList);
   }
   if (found)
     return DCM_NORMAL;
@@ -2475,7 +2477,7 @@ DCM_GetSequenceElement(DCM_OBJECT ** object, DCM_TAG top, DCM_ELEMENT * e) {
                               DCM_Message(DCM_UNEXPECTEDREPRESENTATION),
                               "DCM_GetSequenceElement", "sequence");
   }
-  seqItem = LST_Head(&elementItem->element.d.sq);
+  seqItem = (DCM_SEQUENCE_ITEM*)LST_Head(&elementItem->element.d.sq);
   cond = DCM_ParseObject(&seqItem->object, e, 1, NULL, 0, NULL);
   return cond;
 
@@ -2531,7 +2533,7 @@ DCM_GetElementValueList(DCM_OBJECT ** object, DCM_TAG tag,
   if (cond != DCM_NORMAL)
     return cond;
 
-  groupItem = LST_Head(&(*obj)->groupList);
+  groupItem = (PRV_GROUP_ITEM*)LST_Head(&(*obj)->groupList);
   if (groupItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
                               DCM_Message(DCM_ELEMENTNOTFOUND),
@@ -2544,7 +2546,7 @@ DCM_GetElementValueList(DCM_OBJECT ** object, DCM_TAG tag,
     if (groupItem->group == DCM_TAG_GROUP(tag))
       break;
 
-    groupItem = LST_Next(&(*obj)->groupList);
+    groupItem = (PRV_GROUP_ITEM*)LST_Next(&(*obj)->groupList);
   }
   if (groupItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
@@ -2553,7 +2555,7 @@ DCM_GetElementValueList(DCM_OBJECT ** object, DCM_TAG tag,
                               DCM_TAG_ELEMENT(tag),
                               "DCM_GetSequenceList");
 
-  elementItem = LST_Head(&groupItem->elementList);
+  elementItem = (PRV_ELEMENT_ITEM*)LST_Head(&groupItem->elementList);
   if (elementItem == NULL)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
                               DCM_Message(DCM_ELEMENTNOTFOUND),
@@ -2566,7 +2568,7 @@ DCM_GetElementValueList(DCM_OBJECT ** object, DCM_TAG tag,
     if (elementItem->element.tag == tag) {
       found = TRUE;
     } else
-      elementItem = LST_Next(&groupItem->elementList);
+      elementItem = (PRV_ELEMENT_ITEM*)LST_Next(&groupItem->elementList);
   }
   if (!found)
     return COND_PushCondition(DCM_ELEMENTNOTFOUND,
@@ -2592,7 +2594,7 @@ DCM_GetElementValueList(DCM_OBJECT ** object, DCM_TAG tag,
       l--;
 
     if (l != 0) {
-      p = CTN_MALLOC(structureSize);
+      p = (char*)CTN_MALLOC(structureSize);
       if (p == NULL)
         return COND_PushCondition(DCM_MALLOCFAILURE,
                                   DCM_Message(DCM_MALLOCFAILURE),
@@ -2767,11 +2769,11 @@ DCM_CompareAttributes(DCM_OBJECT ** o1, DCM_OBJECT ** o2,
   if (cond != DCM_NORMAL)
     return cond;
 
-  groupItem1 = LST_Head(&(*object1)->groupList);
+  groupItem1 = (PRV_GROUP_ITEM*)LST_Head(&(*object1)->groupList);
   if (groupItem1 != NULL)
     (void) LST_Position(&(*object1)->groupList, groupItem1);
 
-  groupItem2 = LST_Head(&(*object2)->groupList);
+  groupItem2 = (PRV_GROUP_ITEM*)LST_Head(&(*object2)->groupList);
   if (groupItem2 != NULL)
     (void) LST_Position(&(*object2)->groupList, groupItem2);
 
@@ -2779,23 +2781,23 @@ DCM_CompareAttributes(DCM_OBJECT ** o1, DCM_OBJECT ** o2,
   while (groupItem1 != NULL) {
     if (groupItem2 == NULL) {
       compareGroup(groupItem1, NULL, callback, ctx);
-      groupItem1 = LST_Next(&(*object1)->groupList);
+      groupItem1 = (PRV_GROUP_ITEM*)LST_Next(&(*object1)->groupList);
     } else if (groupItem1->group == groupItem2->group) {
       compareGroup(groupItem1, groupItem2, callback, ctx);
-      groupItem1 = LST_Next(&(*object1)->groupList);
-      groupItem2 = LST_Next(&(*object2)->groupList);
+      groupItem1 = (PRV_GROUP_ITEM*)LST_Next(&(*object1)->groupList);
+      groupItem2 = (PRV_GROUP_ITEM*)LST_Next(&(*object2)->groupList);
     } else if (groupItem1->group > groupItem2->group) {
       compareGroup(NULL, groupItem2, callback, ctx);
-      groupItem2 = LST_Next(&(*object2)->groupList);
+      groupItem2 = (PRV_GROUP_ITEM*)LST_Next(&(*object2)->groupList);
     } else {
       compareGroup(groupItem1, NULL, callback, ctx);
-      groupItem1 = LST_Next(&(*object1)->groupList);
+      groupItem1 = (PRV_GROUP_ITEM*)LST_Next(&(*object1)->groupList);
     }
   }
 
   while (groupItem2 != NULL) {
     compareGroup(NULL, groupItem2, callback, ctx);
-    groupItem2 = LST_Next(&(*object2)->groupList);
+    groupItem2 = (PRV_GROUP_ITEM*)LST_Next(&(*object2)->groupList);
   }
   return DCM_NORMAL;
 }
@@ -2813,7 +2815,7 @@ DCM_GroupPresent(DCM_OBJECT ** o1, U16 group) {
     return FALSE;
 
 
-  item = LST_Head(&(*object)->groupList);
+  item = (PRV_GROUP_ITEM*)LST_Head(&(*object)->groupList);
   if (item != NULL)
     (void) LST_Position(&(*object)->groupList, item);
 
@@ -2823,7 +2825,7 @@ DCM_GroupPresent(DCM_OBJECT ** o1, U16 group) {
     } else if (item->group > group) {
       tooFar = TRUE;
     } else {
-      item = LST_Next(&(*object)->groupList);
+      item = (PRV_GROUP_ITEM*)LST_Next(&(*object)->groupList);
     }
   }
   return FALSE;
@@ -2957,7 +2959,7 @@ findCreateGroup(PRIVATE_OBJECT ** object, unsigned short group,
   CTNBOOLEAN
   tooFar = FALSE;
 
-  item = LST_Head(&(*object)->groupList);
+  item = (PRV_GROUP_ITEM*)LST_Head(&(*object)->groupList);
   if (item != NULL)
     (void) LST_Position(&(*object)->groupList, item);
 
@@ -2968,7 +2970,7 @@ findCreateGroup(PRIVATE_OBJECT ** object, unsigned short group,
     } else if (item->group > group) {
       tooFar = TRUE;
     } else {
-      item = LST_Next(&(*object)->groupList);
+      item = (PRV_GROUP_ITEM*)LST_Next(&(*object)->groupList);
     }
   }
 
@@ -2978,7 +2980,7 @@ findCreateGroup(PRIVATE_OBJECT ** object, unsigned short group,
     DCM_ELEMENT groupLength = {0, DCM_UL, "", 1, sizeof(l),{NULL}};
     PRV_ELEMENT_ITEM *groupLengthItem;
 
-    newGroupItem = CTN_MALLOC(sizeof(*newGroupItem));
+    newGroupItem = (PRV_GROUP_ITEM*)CTN_MALLOC(sizeof(*newGroupItem));
     if (newGroupItem == NULL)
       return COND_PushCondition(DCM_ELEMENTCREATEFAILED,
                                 DCM_Message(DCM_ELEMENTCREATEFAILED),
@@ -3182,7 +3184,7 @@ insertNewElement(PRIVATE_OBJECT ** object, DCM_ELEMENT * element) {
   if (cond != DCM_NORMAL)
     return cond;
 
-  groupItem = LST_Current(&(*object)->groupList);
+  groupItem = (PRV_GROUP_ITEM*)LST_Current(&(*object)->groupList);
   if (groupItem == NULL)
     return COND_PushCondition(DCM_LISTFAILURE,
                               DCM_Message(DCM_LISTFAILURE),
@@ -3197,7 +3199,7 @@ insertNewElement(PRIVATE_OBJECT ** object, DCM_ELEMENT * element) {
     groupItem->longVRAttributes++;
     (*object)->longVRAttributes++;
   }
-  if ((nextItem = LST_Head(&groupItem->elementList)) == NULL) {
+  if ((nextItem = (PRV_ELEMENT_ITEM*)LST_Head(&groupItem->elementList)) == NULL) {
     cond = LST_Enqueue(&groupItem->elementList, newItem);
     if (cond != LST_NORMAL)
       return COND_PushCondition(DCM_LISTFAILURE,
@@ -3233,7 +3235,7 @@ insertNewElement(PRIVATE_OBJECT ** object, DCM_ELEMENT * element) {
       else
         return DCM_NORMAL;
     }
-    nextItem = LST_Next(&groupItem->elementList);
+    nextItem = (PRV_ELEMENT_ITEM*)LST_Next(&groupItem->elementList);
   }
 
   /*  If we fall out of the loop, we must have reached the end of
@@ -3279,7 +3281,7 @@ insertThisElementItem(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM* newItem) {
     (*object)->longVRAttributes++;
   }
 
-  if ((nextItem = LST_Head(&groupItem->elementList)) == NULL) {
+  if ((nextItem = (PRV_ELEMENT_ITEM*)LST_Head(&groupItem->elementList)) == NULL) {
     cond = LST_Enqueue(&groupItem->elementList, newItem);
     if (cond != LST_NORMAL)
       return COND_PushCondition(DCM_LISTFAILURE,
@@ -3316,7 +3318,7 @@ insertThisElementItem(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM* newItem) {
       else
         return DCM_NORMAL;
     }
-    nextItem = LST_Next(&groupItem->elementList);
+    nextItem = (PRV_ELEMENT_ITEM*)LST_Next(&groupItem->elementList);
   }
 
   /*  If we fall out of the loop, we must have reached the end of
@@ -3524,8 +3526,7 @@ mapVRtoASCII(DCM_VALUEREPRESENTATION vr, char *s) {
 static void
 exportVRLength(DCM_ELEMENT * e, unsigned char *b, int byteOrder,
                U32 * rtnLength) {
-  int i;
-  char *c = "xx";
+  const char *c = "xx";
   unsigned char *p;
   U16 shortLength;
   DCM_VALUEREPRESENTATION vr;
@@ -3534,10 +3535,12 @@ exportVRLength(DCM_ELEMENT * e, unsigned char *b, int byteOrder,
   if (e->tag == DCM_MAKETAG(0x003a, 0x1000))
     vr = DCM_OB;
 
-  for (i = 0; i < DIM_OF(vrMap); i++) {
-    if (vr == vrMap[i].representation) {
-      c = vrMap[i].code;
-      break;
+  { unsigned int i;
+    for (i = 0; i < DIM_OF(vrMap); i++) {
+      if (vr == vrMap[i].representation) {
+        c = vrMap[i].code;
+        break;
+      }
     }
   }
 
@@ -3763,7 +3766,7 @@ union {
   unsigned short sh[2];
   unsigned char ch[4];
 }
-groupElement = {};
+static groupElement = {};
 
 static CONDITION
 exportData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
@@ -3907,7 +3910,7 @@ exportData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
 #elif defined MACOS
           /* Not Yet Defined */
 #else
-          swab(p, b, length);
+          swab(p, b, (size_t)length);
 #endif
       } else {
         if (byteOrder == BYTEORDER_SAME)
@@ -3920,7 +3923,7 @@ exportData(PRIVATE_OBJECT ** object, PRV_ELEMENT_ITEM * item,
 #elif defined MACOS
           /* Not Yet Defined */
 #else
-          swab(p, b, length);
+          swab(p, b, (size_t)length);
 #endif
       }
       break;
