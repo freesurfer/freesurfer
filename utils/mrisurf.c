@@ -76986,7 +76986,7 @@ int face_barycentric_coords(MRI_SURFACE const *mris,
   point[2] = cz;
   if (project_point_to_plane(point, V0, V1, V2, proj, e1, e2) < 0) {
     if (pl1) {
-      *pl1 = *pl2 = *pl3 = 1 / 3;
+      *pl1 = *pl2 = *pl3 = 1.0 / 3;
     }
     return (-3);
   }

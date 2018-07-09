@@ -68,6 +68,7 @@ char *Progname ;
 static int   avgs = 0 ;
 static int nclose = 0 ;
 static char *color_table_fname = NULL ;
+static LABEL *cortex_label = NULL ; // limit surface area calc to cortex.label
 static int   mode_filter = 0 ;
 static char *surf_name = WHITE_MATTER_NAME ;
 static char *thickness_name = "thickness" ;
@@ -198,6 +199,8 @@ main(int argc, char *argv[]) {
   if (sample_from_vol_to_surf) // sample from volume to surface */
   {
     MRIsampleParcellationToSurface(mris, mri_parc) ;
+    if (cortex_label)
+      LabelMaskSurface(cortex_label,mris);
   } else  /* sample from surface to volume */
   {
     for (vno = 0 ; vno < mris->nvertices ; vno++) {
@@ -363,6 +366,18 @@ get_option(int argc, char *argv[]) {
     surf_name = argv[2] ;
     nargs = 1 ;
     printf("using %s as surface name\n", surf_name) ;
+  }
+  else if (!stricmp(option, "cortex"))
+  {
+    cortex_label = LabelRead(NULL, argv[2]) ;
+    if (cortex_label == NULL)
+    {
+      ErrorExit(ERROR_NOFILE, "") ;
+    }
+    nargs = 1 ;
+    printf("INFO: using %s as mask to calc cortex "
+           "NumVert, SurfArea and MeanThickness.\n",
+           argv[2]);
   } else if (!stricmp(option, "mask")) {
     mask_fname = argv[2] ;
     mask_val = atoi(argv[3]) ;
@@ -526,6 +541,9 @@ print_help(void) {
   fprintf(stderr,
           "  -trans <number_in> <number_out>      translate <number_in> to \n"
           "                                       <number_out>\n\n");
+  fprintf(stderr,
+          "  -cortex <cortex label file>          mask regions outside of the \n"
+          "                                       specified cortex label\n\n");
   fprintf(stderr,
           "  -projmm <number>     project <number> millimeters along \n"
           "                       surface normal (default=0.0)\n\n");

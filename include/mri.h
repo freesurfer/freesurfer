@@ -1010,6 +1010,7 @@ extern float ic_z_vertices[]  ;
 #define MGH_MORPH                     29 // .m3z, .m3d
 #define MGH_AUTOENCODER               30
 #define ITK_MORPH                     31 // ITK (e.g., ANTs synWarp)
+#define MGH_LABEL_FILE                32
 
 int        MRImatchDimensions(MRI *mri1, MRI *mri2) ;
 int        MRImatch(MRI *mri1, MRI *mri2) ;
