@@ -125,6 +125,7 @@ MRI *CtxSeg = NULL;
 
 int FixParaHipWM = 1;
 double BRFdotCheck(MRIS *surf, int vtxno, int c, int r, int s, MRI *AParc);
+static double mrisFindMinDistanceVertexWithDotCheck(MRI_SURFACE *mris, int c, int r, int s, MRI *AParc, double dot_dir, int *pvtxno);
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -707,25 +708,48 @@ int main(int argc, char **argv)
         if (lhwvtx < 0)       dlhw = 1000000000000000.0;
 	else if(!LabelWM){
 	  dot = BRFdotCheck(lhwhite,lhwvtx,c,r,s,AParc);
-	  if (dot < 0) dlhw = 1000000000000000.0;
+	  if (dot < 0) 
+	  {
+	    if (MRIneighbors(ASeg, c, r, s, Left_Cerebral_Cortex) > 0) // only do expensive check if it is possible
+	      dlhw = mrisFindMinDistanceVertexWithDotCheck(lhwhite, c, r, s, AParc, 1, &lhwvtx) ;
+	    else
+	      dlhw = 1000000000000000.0;
+	  }
 	}
 
         if (lhpvtx < 0) dlhp = 1000000000000000.0;
 	else if(!LabelWM){
 	  dot = BRFdotCheck(lhpial,lhpvtx,c,r,s,AParc);
 	  if (dot > 0)   // pial surface normal should point in same direction as vector from voxel to vertex
-	    dlhp = 1000000000000000.0;
+	  {
+	    if (MRIneighbors(ASeg, c, r, s, Left_Cerebral_Cortex) > 0) // only do expensive check if it is possible
+	      dlhp = mrisFindMinDistanceVertexWithDotCheck(lhpial, c, r, s, AParc, -1, &lhpvtx) ;
+	    else
+	      dlhp = 1000000000000000.0;
+	  }
 	}
 
         if (rhwvtx < 0) drhw = 1000000000000000.0;
 	else if(!LabelWM){
 	  dot = BRFdotCheck(rhwhite,rhwvtx,c,r,s,AParc);
-	  if (dot < 0) drhw = 1000000000000000.0;
+	  if (dot < 0)
+	  {
+	    if (MRIneighbors(ASeg, c, r, s, Right_Cerebral_Cortex) > 0) // only do expensive check if it is possible
+	      drhw = mrisFindMinDistanceVertexWithDotCheck(rhwhite, c, r, s, AParc, 1, &rhwvtx) ;
+	    else
+	      drhw = 1000000000000000.0;
+	  }
 	}
         if (rhpvtx < 0) drhp = 1000000000000000.0;
 	else if(!LabelWM){
 	  dot = BRFdotCheck(rhpial,rhpvtx,c,r,s,AParc);
-	  if (dot > 0) drhp = 1000000000000000.0;
+	  if (dot > 0) 
+	  {
+	    if (MRIneighbors(ASeg, c, r, s, Right_Cerebral_Cortex) > 0) // only do expensive check if it is possible
+	      drhp = mrisFindMinDistanceVertexWithDotCheck(rhpial, c, r, s, AParc, -1, &rhpvtx) ;
+	    else
+	      drhp = 1000000000000000.0;
+	  }
 	}
 
         if (dlhw <= dlhp && dlhw < drhw && dlhw < drhp && lhwvtx >= 0) {
@@ -1694,3 +1718,40 @@ double BRFdotCheck(MRIS *surf, int vtxno, int c, int r, int s, MRI *AParc)
   return(dot);
 }
 
+
+static double
+mrisFindMinDistanceVertexWithDotCheck(MRI_SURFACE *mris, int c, int r, int s, MRI *AParc, double dot_dir, int *pvtxno)
+{
+  int     vno, min_vno ;
+  VERTEX  *v ;
+  double  dist, dot, min_dist, xs, ys, zs, dx, dy, dz ;
+
+  min_vno = -1 ; min_dist = 1e10;
+  MRIvoxelToSurfaceRAS(AParc, c, r, s, &xs, &ys, &zs);
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    dx = xs-v->x ; dy = ys-v->y ; dz = zs-v->z ;
+    dot = v->nx*dx + v->ny*dy + v->nz*dz ;
+//    dot = BRFdotCheck(mris, vno,c,r,s,AParc);
+    if (dot*dot_dir < 0)
+      continue ;
+
+    dist = sqrt(SQR(xs-v->x) + SQR(ys-v->y) + SQR(zs-v->z)) ;
+    if (dist < min_dist)
+    {
+      min_dist = dist ;
+      min_vno = vno ;
+    }
+      
+  }
+  *pvtxno = min_vno ;
+  return(min_dist);
+}
+    
+  
