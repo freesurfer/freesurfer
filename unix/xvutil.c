@@ -210,7 +210,8 @@ XValloc(int rows, int cols, int button_rows, int display_rows,
     if (notify_errno)
     {
       fprintf(stderr, "notifier error %d\n", notify_errno) ;
-      notify_perror("notify error installing poll routine:") ;
+      notify_perror(/* HACK should be const char but wer didn't write the header */
+      	(char*)"notify error installing poll routine:") ;
     }
   }
 
@@ -2844,8 +2845,8 @@ XVchangeDisplaySize(XV_FRAME *xvf)
            Description:
 ----------------------------------------------------------------------*/
 int
-XVsetWriteFunc(XV_FRAME *xvf, char *frame_name, char *prompt_str,
-               int (*write_func)(Event *event, DIMAGE *dimage, char *cmd_str))
+XVsetWriteFunc(XV_FRAME *xvf, const char *frame_name, const char *prompt_str,
+               int (*write_func)(Event *event, DIMAGE *dimage, const char *cmd_str))
 {
   if (frame_name)
     xv_set(hips_cmd_frame, FRAME_LABEL, frame_name, NULL) ;

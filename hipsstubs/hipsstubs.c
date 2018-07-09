@@ -100,12 +100,12 @@ int free_hdrcon(void) {
 int *memalloc(size_t, size_t)  ;
 int *memalloc(size_t a, size_t b) {
   ErrorExit(ERROR_UNSUPPORTED, "HIPS unsupported") ;
-  return(calloc(a,b));
+  return (int*)(calloc(a,b));
 }
 int *halloc(size_t a, size_t b) ;
 int *halloc(size_t a, size_t b) {
   ErrorExit(ERROR_UNSUPPORTED, "HIPS unsupported") ;
-  return(calloc(a,b)) ;
+  return (int*)(calloc(a,b)) ;
 }
 int fwrite_header(void) ;
 int fwrite_header(void) {

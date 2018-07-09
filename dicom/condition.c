@@ -98,7 +98,7 @@ EDB;
 
 static int stackPtr = -1;
 static EDB EDBStack[MAXEDB];
-static void (*ErrorCallback) () = NULL;
+static void (*ErrorCallback) (CONDITION, const char*) = NULL;
 static void dumpstack(FILE * fp);
 
 
@@ -136,7 +136,7 @@ static void dumpstack(FILE * fp);
 **
 */
 CONDITION
-COND_PushCondition(CONDITION cond, char *controlString,...) {
+COND_PushCondition(CONDITION cond, const char *controlString,...) {
   va_list
   args;
   char
@@ -214,7 +214,7 @@ COND_PushCondition(CONDITION cond, char *controlString,...) {
 */
 
 CONDITION
-COND_ExtractConditions(CTNBOOLEAN(*callback) ()) {
+COND_ExtractConditions(CTNBOOLEAN(*callback) (CONDITION, const char*)) {
   int
   index,
   returnflag;
@@ -390,7 +390,7 @@ COND_PopCondition(CTNBOOLEAN clearstack) {
 */
 
 CONDITION
-COND_EstablishCallback(void (*callback) ()) {
+COND_EstablishCallback(void (*callback) (CONDITION, const char*)) {
 #ifdef CTN_USE_THREADS
   if (THR_ObtainMutex(FAC_COND) != THR_NORMAL) {
     fprintf(stderr, "COND_EstablishCallback unable to obtain mutex, exiting\n");
