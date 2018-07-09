@@ -1,0 +1,8 @@
+project(mri_strip_subject_info)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+add_executable(mri_strip_subject_info mri_strip_subject_info.c)
+target_link_libraries(mri_strip_subject_info utils)
+
+install(TARGETS mri_strip_subject_info DESTINATION bin)

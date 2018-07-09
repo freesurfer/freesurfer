@@ -1,0 +1,8 @@
+project(mri_multispectral_segment)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+add_executable(mri_multispectral_segment mri_multispectral_segment.c)
+target_link_libraries(mri_multispectral_segment utils)
+
+install(TARGETS mri_multispectral_segment DESTINATION bin)

@@ -1,0 +1,2 @@
+project(histo_register)
+

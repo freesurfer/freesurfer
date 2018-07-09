@@ -1,0 +1,12 @@
+project(mri_ca_normalize)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+add_executable(mri_ca_normalize mri_ca_normalize.c)
+add_help(mri_ca_normalize mri_ca_normalize.help.xml)
+target_link_libraries(mri_ca_normalize utils)
+install(TARGETS mri_ca_normalize DESTINATION bin)
+
+add_executable(mri_cal_normalize mri_cal_normalize.c)
+target_link_libraries(mri_cal_normalize utils)
+install(TARGETS mri_cal_normalize DESTINATION bin)

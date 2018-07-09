@@ -1,0 +1,8 @@
+project(mri_xvolavg)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+add_executable(mri_xvolavg mri_xvolavg.c)
+target_link_libraries(mri_xvolavg utils)
+
+install(TARGETS mri_xvolavg DESTINATION bin)

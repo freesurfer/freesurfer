@@ -735,7 +735,7 @@ double CostFunctions::localNCC(MRI *mriS, MRI* mriT,
           tvar = sqrt( tvar);
           d += fabs(dd / (svar * tvar)); 
           
-          if (isnan(d))
+          if (std::isnan(d))
           {
             cout << "d is nan " << dd << " " << svar << " " << tvar << endl;
             exit (1);
@@ -1200,7 +1200,7 @@ std::vector<double> CostFunctions::centroid(MRI *i)
   dd[0] = dd[0] / n;
   dd[1] = dd[1] / n;
   dd[2] = dd[2] / n;
-  if (isnan(dd[0] + dd[1] + dd[2]))
+  if (std::isnan(dd[0] + dd[1] + dd[2]))
   {
     cerr << "CostFunctions::centroid is NAN (empty image? n = " << n << " )"
         << endl;

@@ -1,0 +1,8 @@
+project(mris_compute_optimal_kernel)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+add_executable(mris_compute_optimal_kernel mris_compute_optimal_kernel.c)
+target_link_libraries(mris_compute_optimal_kernel utils)
+
+install(TARGETS mris_compute_optimal_kernel DESTINATION bin)

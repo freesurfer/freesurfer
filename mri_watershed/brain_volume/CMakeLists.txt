@@ -1,0 +1,3 @@
+add_executable(mri_brain_volume mri_brain_volume.cpp)
+target_link_libraries(mri_brain_volume utils)
+install(TARGETS mri_brain_volume DESTINATION bin)

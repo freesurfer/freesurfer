@@ -25,6 +25,7 @@ config/test-driver
 stamp-h1
 cpuflags.mak
 *.[oa]
+ld_map.txt
 
 # libtool files:
 libtool

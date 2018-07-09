@@ -1,0 +1,19 @@
+project(mri_compute_volume_fractions)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+add_executable(mri_compute_volume_fractions mri_compute_volume_fractions.c)
+target_link_libraries(mri_compute_volume_fractions utils)
+install(TARGETS mri_compute_volume_fractions DESTINATION bin)
+
+add_executable(mri_compute_volume_intensities mri_compute_volume_intensities.c)
+target_link_libraries(mri_compute_volume_intensities utils)
+install(TARGETS mri_compute_volume_intensities DESTINATION bin)
+
+add_executable(mri_compute_layer_fractions mri_compute_layer_fractions.c)
+target_link_libraries(mri_compute_layer_fractions utils)
+install(TARGETS mri_compute_layer_fractions DESTINATION bin)
+
+add_executable(mris_compute_layer_intensities mris_compute_layer_intensities.c)
+target_link_libraries(mris_compute_layer_intensities utils)
+install(TARGETS mris_compute_layer_intensities DESTINATION bin)

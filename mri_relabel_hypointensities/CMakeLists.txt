@@ -1,0 +1,8 @@
+project(mri_relabel_hypointensities)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+add_executable(mri_relabel_hypointensities mri_relabel_hypointensities.c)
+target_link_libraries(mri_relabel_hypointensities utils)
+
+install(TARGETS mri_relabel_hypointensities DESTINATION bin)

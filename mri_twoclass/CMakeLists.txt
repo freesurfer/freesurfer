@@ -1,0 +1,8 @@
+project(mri_twoclass)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+add_executable(mri_twoclass mri_twoclass.c)
+target_link_libraries(mri_twoclass utils)
+
+install(TARGETS mri_twoclass DESTINATION bin)

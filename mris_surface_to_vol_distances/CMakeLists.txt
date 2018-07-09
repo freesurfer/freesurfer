@@ -1,0 +1,8 @@
+project(mris_surface_to_vol_distances)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+add_executable(mris_surface_to_vol_distances mris_surface_to_vol_distances.c)
+target_link_libraries(mris_surface_to_vol_distances utils)
+
+install(TARGETS mris_surface_to_vol_distances DESTINATION bin)

@@ -1,0 +1,8 @@
+project(mri_info)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+add_executable(mri_info mri_info.c)
+target_link_libraries(mri_info utils)
+
+install(TARGETS mri_info DESTINATION bin)

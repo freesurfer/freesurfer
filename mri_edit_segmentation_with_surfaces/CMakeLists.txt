@@ -1,0 +1,8 @@
+project(mri_edit_segmentation_with_surfaces)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+add_executable(mri_edit_segmentation_with_surfaces mri_edit_segmentation_with_surfaces.c)
+target_link_libraries(mri_edit_segmentation_with_surfaces utils)
+
+install(TARGETS mri_edit_segmentation_with_surfaces DESTINATION bin)
