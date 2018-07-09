@@ -272,7 +272,7 @@ _TIFFSetupFieldInfo(TIFF* tif)
 			if (fld->field_bit == FIELD_CUSTOM && 
 				strncmp("Tag ", fld->field_name, 4) == 0) 
 				{
-				_TIFFfree(fld->field_name);
+				_TIFFfree((void*)fld->field_name);
 				_TIFFfree(fld);
 				}
 		}   
@@ -405,7 +405,7 @@ _TIFFFindFieldInfo(TIFF* tif, ttag_t tag, TIFFDataType dt)
 		return (last);
 	/* NB: if table gets big, use sorted search (e.g. binary search) */
 	if(dt != TIFF_ANY) {
-            TIFFFieldInfo key = {0, 0, 0, 0, 0, 0, 0, 0};
+            TIFFFieldInfo key = {0, 0, 0, TIFF_NOTYPE, 0, 0, 0, 0};
             key.field_tag = tag;
             key.field_type = dt;
             return((const TIFFFieldInfo *) bsearch(&key, 
@@ -469,12 +469,14 @@ _TIFFCreateAnonFieldInfo(TIFF *tif, ttag_t tag, TIFFDataType field_type)
     fld->field_bit = FIELD_CUSTOM;
     fld->field_oktochange = TRUE;
     fld->field_passcount = TRUE;
-    fld->field_name = (char *) _TIFFmalloc(32);
 
     /* note that this name is a special sign to TIFFClose() and
      * _TIFFSetupFieldInfo() to free the field
      */
-    sprintf(fld->field_name, "Tag %d", (int) tag);
+    char* field_name = (char *) _TIFFmalloc(32);
+    sprintf(field_name, "Tag %d", (int) tag);
+
+    fld->field_name = field_name;
 
     return fld;    
 }

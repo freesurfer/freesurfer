@@ -464,13 +464,13 @@ _TIFFVSetField(TIFF* tif, ttag_t tag, va_list ap)
   		_TIFFsetByteArray (&td->td_photoshopData, va_arg(ap, void*),
  			td->td_photoshopLength);
  		break;
-	case TIFFTAG_RICHTIFFIPTC: 
+	case TIFFTAG_RICHTIFFIPTC: { 
   		td->td_richtiffiptcLength = (uint32) va_arg(ap, uint32);
-      void* pvoid = (void*)&td->td_richtiffiptcData;
-  		_TIFFsetLongArray (pvoid,
+                uint32** lpp = (uint32**)&td->td_richtiffiptcData;
+  		_TIFFsetLongArray (lpp,
 				   va_arg(ap, uint32*),
 				   td->td_richtiffiptcLength);
- 		break;
+ 	}	break;
 	case TIFFTAG_XMLPACKET:
 		td->td_xmlpacketLength = (uint32) va_arg(ap, uint32);
 		_TIFFsetByteArray(&td->td_xmlpacketData, va_arg(ap, void*),
@@ -564,7 +564,7 @@ _TIFFVSetField(TIFF* tif, ttag_t tag, va_list ap)
 			va_end(ap);
 			return 0;
 		}
-                strcpy( tv->value, value );
+                strcpy( (char*)tv->value, value );
             }
             else
             {
