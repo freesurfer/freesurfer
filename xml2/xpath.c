@@ -14676,10 +14676,10 @@ xmlXPathCompOpEval(xmlXPathParserContextPtr ctxt, xmlXPathStepOpPtr op)
       if (op->value5 == NULL)
         func =
           xmlXPathFunctionLookup(ctxt->context,
-                                 op->value4);
+                                 (const xmlChar*)op->value4);
       else
       {
-        URI = xmlXPathNsLookup(ctxt->context, op->value5);
+        URI = xmlXPathNsLookup(ctxt->context, (const xmlChar*)op->value5);
         if (URI == NULL)
         {
           xmlGenericError(xmlGenericErrorContext,
@@ -14688,7 +14688,7 @@ xmlXPathCompOpEval(xmlXPathParserContextPtr ctxt, xmlXPathStepOpPtr op)
           return (total);
         }
         func = xmlXPathFunctionLookupNS(ctxt->context,
-                                        op->value4, URI);
+                                        (const xmlChar*)op->value4, URI);
       }
       if (func == NULL)
       {
@@ -14697,13 +14697,13 @@ xmlXPathCompOpEval(xmlXPathParserContextPtr ctxt, xmlXPathStepOpPtr op)
                         (char *)op->value4);
         XP_ERROR0(XPATH_UNKNOWN_FUNC_ERROR);
       }
-      op->cache = XML_CAST_FPTR(func);
+      op->cache = (void*)XML_CAST_FPTR(func);
       op->cacheURI = (void *) URI;
     }
     oldFunc = ctxt->context->function;
     oldFuncURI = ctxt->context->functionURI;
-    ctxt->context->function = op->value4;
-    ctxt->context->functionURI = op->cacheURI;
+    ctxt->context->function = (const xmlChar*)op->value4;
+    ctxt->context->functionURI = (const xmlChar*)op->cacheURI;
     func(ctxt, op->value);
     ctxt->context->function = oldFunc;
     ctxt->context->functionURI = oldFuncURI;
@@ -14763,7 +14763,7 @@ xmlXPathCompOpEval(xmlXPathParserContextPtr ctxt, xmlXPathStepOpPtr op)
     { /* 12 */
       xmlXPathObjectPtr val;
 
-      val = comp->steps[op->ch2].value4;
+      val = (xmlXPathObjectPtr)comp->steps[op->ch2].value4;
       if ((val != NULL) && (val->type == XPATH_NUMBER) &&
           (val->floatval == 1.0))
       {
@@ -14801,7 +14801,7 @@ xmlXPathCompOpEval(xmlXPathParserContextPtr ctxt, xmlXPathStepOpPtr op)
           (comp->steps[f].value == 0) &&
           (comp->steps[f].value4 != NULL) &&
           (xmlStrEqual
-           (comp->steps[f].value4, BAD_CAST "last")))
+           ((const xmlChar*)comp->steps[f].value4, BAD_CAST "last")))
       {
         xmlNodePtr last = NULL;
 
@@ -14869,7 +14869,7 @@ xmlXPathCompOpEval(xmlXPathParserContextPtr ctxt, xmlXPathStepOpPtr op)
        */
       CHECK_TYPE0(XPATH_LOCATIONSET);
       obj = valuePop(ctxt);
-      oldlocset = obj->user;
+      oldlocset = (xmlLocationSetPtr)obj->user;
       ctxt->context->node = NULL;
 
       if ((oldlocset == NULL) || (oldlocset->locNr == 0))
@@ -14897,7 +14897,7 @@ xmlXPathCompOpEval(xmlXPathParserContextPtr ctxt, xmlXPathStepOpPtr op)
          * Run the evaluation with a node list made of a
          * single item in the nodelocset.
          */
-        ctxt->context->node = oldlocset->locTab[i]->user;
+        ctxt->context->node = (xmlNodePtr)oldlocset->locTab[i]->user;
         ctxt->context->contextSize = oldlocset->locNr;
         ctxt->context->proximityPosition = i + 1;
         tmp = xmlXPathCacheNewNodeSet(ctxt->context,
@@ -15150,7 +15150,7 @@ xmlXPathCompOpEval(xmlXPathParserContextPtr ctxt, xmlXPathStepOpPtr op)
        */
       CHECK_TYPE0(XPATH_LOCATIONSET);
       obj = valuePop(ctxt);
-      oldlocset = obj->user;
+      oldlocset = (xmlLocationSetPtr)obj->user;
 
       if ((oldlocset == NULL) || (oldlocset->locNr == 0))
       {
@@ -15175,7 +15175,7 @@ xmlXPathCompOpEval(xmlXPathParserContextPtr ctxt, xmlXPathStepOpPtr op)
          * Run the evaluation with a node list made of a
          * single item in the nodelocset.
          */
-        ctxt->context->node = oldlocset->locTab[i]->user;
+        ctxt->context->node = (xmlNodePtr)oldlocset->locTab[i]->user;
         ctxt->context->contextSize = oldlocset->locNr;
         ctxt->context->proximityPosition = i + 1;
         tmp = xmlXPathCacheNewNodeSet(ctxt->context,
@@ -15200,9 +15200,9 @@ xmlXPathCompOpEval(xmlXPathParserContextPtr ctxt, xmlXPathStepOpPtr op)
           for (j=0; j<rloc->locNr; j++)
           {
             range = xmlXPtrNewRange(
-                      oldlocset->locTab[i]->user,
+                      (xmlNodePtr)oldlocset->locTab[i]->user,
                       oldlocset->locTab[i]->index,
-                      rloc->locTab[j]->user2,
+                      (xmlNodePtr)rloc->locTab[j]->user2,
                       rloc->locTab[j]->index2);
             if (range != NULL)
             {
@@ -15846,7 +15846,7 @@ xmlXPathEvaluatePredicateResult(xmlXPathParserContextPtr ctxt,
 #ifdef LIBXML_XPTR_ENABLED
   case XPATH_LOCATIONSET:
   {
-    xmlLocationSetPtr ptr = res->user;
+    xmlLocationSetPtr ptr = (xmlLocationSetPtr)res->user;
     if (ptr == NULL)
       return(0);
     return (ptr->locNr != 0);
@@ -15906,7 +15906,7 @@ xmlXPathTryStreamCompile(xmlXPathContextPtr ctxt, const xmlChar *str)
       dict = ctxt->dict;
       if (ctxt->nsNr > 0)
       {
-        namespaces = xmlMalloc(2 * (ctxt->nsNr + 1) * sizeof(xmlChar*));
+        namespaces = (const xmlChar**)xmlMalloc(2 * (ctxt->nsNr + 1) * sizeof(xmlChar*));
         if (namespaces == NULL)
         {
           xmlXPathErrMemory(ctxt, "allocating namespaces array\n");

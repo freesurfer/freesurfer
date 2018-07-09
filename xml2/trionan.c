@@ -202,12 +202,14 @@ TRIO_ARGS1((values),
     #endif
 #endif
 
+#if 0
 #if defined(TRIO_COMPILER_SUPPORTS_C99) && defined(isfinite)
 #elif defined(TRIO_COMPILER_MSVC) || defined(TRIO_COMPILER_BCB)
 #elif defined(USE_IEEE_754)
     #ifndef NEEDS_trio_is_special_quantity
     #define NEEDS_trio_is_special_quantity
     #endif
+#endif
 #endif
 
 #ifdef NEEDS_trio_is_special_quantity
