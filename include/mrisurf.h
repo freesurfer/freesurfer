@@ -683,6 +683,7 @@ typedef struct
 #endif
   float        sigma ;                    /* blurring scale */
   float        radius ;
+  float        scale ;
 }
 MRI_SURFACE_PARAMETERIZATION, MRI_SP ;
 
@@ -1362,6 +1363,11 @@ double       MRISPfunctionVal(MRI_SURFACE_PARAMETERIZATION *mrisp,
                               MRI_SURFACE *mris,
                               float x, float y, float z, int fno) ;
                               
+MRI_SP       *MRIStoParameterizationBarycentric(MRI_SURFACE *mris, MRI_SP *mrisp,
+						float scale, int fno) ;
+MRI_SURFACE  *MRISfromParameterizationBarycentric(MRI_SP *mrisp, MRI_SURFACE *mris,
+						  int fno) ;
+
 MRI_SP       *MRIStoParameterization(MRI_SURFACE *mris, MRI_SP *mrisp,
                                      float scale, int fno) ;
 MRI_SURFACE  *MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris,
