@@ -14,6 +14,10 @@ mri_concat_LDFLAGS=$(OS_LDFLAGS)
 # systems 10.11 (El Capitan) and greater implemented SIP
 # which necessitates a wrapper script to pass the DYLD_LIBRARY_PATH env var.
 
+TESTS=test.py
+
+EXTRA_DIST= test.py
+
 install-exec-hook:
 	cp $(top_builddir)/mri_concat/mri_concat $(DESTDIR)$(bindir)/mri_concat.bin
 	echo "#!/bin/bash" > $(DESTDIR)$(bindir)/mri_concat

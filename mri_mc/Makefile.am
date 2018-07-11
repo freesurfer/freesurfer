@@ -21,7 +21,7 @@ foo:
 check_PROGRAMS=foo build_test_volume
 #build_MC_table
 
-TESTS=compare_test_volumes $(top_builddir)/scripts/help_xml_validate
+TESTS=test.py compare_test_volumes $(top_builddir)/scripts/help_xml_validate
 
 build_test_volume_SOURCES=build_test_volume.c
 build_test_volume_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
@@ -39,7 +39,7 @@ mris_extract_main_component_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 clean-local:
 	rm -f $(BUILT_SOURCES)
 
-EXTRA_DIST=compare_test_volumes test_volume_reference.mgz $(foo_DATA) \
+EXTRA_DIST=test.py compare_test_volumes test_volume_reference.mgz $(foo_DATA) \
 	build_MC_table.c mc_table.gif $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be

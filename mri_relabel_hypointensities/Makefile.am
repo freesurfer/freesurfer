@@ -10,9 +10,11 @@ mri_relabel_hypointensities_SOURCES=mri_relabel_hypointensities.c
 mri_relabel_hypointensities_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_relabel_hypointensities_LDFLAGS=$(OS_LDFLAGS)
 
-# TESTS=test_mri_relabel_hypointensities
+# TESTS=test.py test_mri_relabel_hypointensities
+TESTS=test.py
 
-# EXTRA_DIST=test_mri_relabel_hypointensities testdata.tar.gz $(foo_DATA) $(BUILT_SOURCES)
+# EXTRA_DIST=test.py test_mri_relabel_hypointensities testdata.tar.gz $(foo_DATA) $(BUILT_SOURCES)
+EXTRA_DIST=test.py testdata.tar.gz $(foo_DATA) $(BUILT_SOURCES)
 
 
 # Our release target. Include files to be excluded here. They will be

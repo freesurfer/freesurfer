@@ -15,6 +15,10 @@ mri_binarize_LDFLAGS=$(OS_LDFLAGS)
 # which necessitates a wrapper script to all binaries called by other binaries
 # in order to pass the DYLD_LIBRARY_PATH env var.
 
+TESTS=test.py
+
+EXTRA_DIST= test.py
+
 install-exec-hook:
 	cp $(top_builddir)/mri_binarize/mri_binarize $(DESTDIR)$(bindir)/mri_binarize.bin
 	echo "#!/bin/bash" > $(DESTDIR)$(bindir)/mri_binarize
