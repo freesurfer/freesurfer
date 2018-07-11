@@ -2067,7 +2067,7 @@ DCM_LookupElement(DCM_ELEMENT * element) {
 
 typedef struct {
   unsigned short group;
-  char *description;
+  const char *description;
 }
 GROUP_DESCRIPTION;
 
@@ -2143,7 +2143,7 @@ static GROUP_DESCRIPTION groupTable[] = {
 
 CONDITION
 DCM_GroupDictionary(unsigned short group, void *ctx,
-                    void (*callback) (unsigned short g, char *description, void *ctx)) {
+                    void (*callback) (unsigned short g, const char *description, void *ctx)) {
   int i;
 
   for (i = 0; i < (int) DIM_OF(groupTable); i++) {
@@ -2190,7 +2190,7 @@ DCM_GroupDictionary(unsigned short group, void *ctx,
 
 CONDITION
 DCM_ElementDictionary(DCM_TAG tag, void *ctx,
-                      void (*callback) (DCM_TAG t, char *description, DCM_VALUEREPRESENTATION r,
+                      void (*callback) (DCM_TAG t, const char *description, DCM_VALUEREPRESENTATION r,
                                         void *ctx)) {
   int i;
   unsigned long j;

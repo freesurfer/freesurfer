@@ -59,7 +59,7 @@
 
 typedef struct vector {
   CONDITION cond;
-  char *message;
+  const char *message;
 }
 VECTOR;
 
@@ -142,7 +142,7 @@ static VECTOR messageVector[] = {
 ** Description of the algorithm (optional) and any other notes.
 */
 
-char *
+const char *
 DCM_Message(CONDITION condition) {
   int
     index;

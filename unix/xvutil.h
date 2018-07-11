@@ -152,12 +152,12 @@ typedef struct
   IMAGE           *(*get_next_image)(IMAGE *Iold, int which, int dir) ;
   int             orig_disp_rows ;  /* original value of display_rows */
   int             orig_disp_cols ;  /* original values of display_cols */
-  int             (*write_func)(Event *event, DIMAGE *dimage, char *str) ;
+  int             (*write_func)(Event *event, DIMAGE *dimage, const char *str) ;
 }
 XV_FRAME ;
 
-int  XVsetWriteFunc(XV_FRAME *xvf, char *frame_name, char *prompt_str,
-                    int (*write_func)(Event *event,DIMAGE *dimage,char *str));
+int  XVsetWriteFunc(XV_FRAME *xvf, const char *frame_name, const char *prompt_str,
+                    int (*write_func)(Event *event,DIMAGE *dimage, const char *str));
 int  XVshowHistogram(XV_FRAME *xvf, int which, HISTOGRAM *mrih) ;
 XV_FRAME *XValloc(int rows, int cols, int button_rows, int display_rows,
                   int display_cols, char *name, Notify_value (*poll)(void)) ;
