@@ -49,7 +49,7 @@
       <argument>--outlta &lt;out.lta&gt;</argument>
       <explanation>output linear transform (LTA Freesurfer format)</explanation>
       <argument>--outfsl &lt;out.mat&gt;</argument>
-      <explanation>output transform in FSL format</explanation>
+      <explanation>output transform in FSL format (set FSLOUTPUTTYPE env var to, e.g., "NIFTI" or "ANALYZE" to determine type of flipping)</explanation>
       <argument>--outmni &lt;out.xfm&gt;</argument>
       <explanation>output transform in mni/xfm format</explanation>
       <argument>--outreg &lt;reg.dat&gt;</argument>
