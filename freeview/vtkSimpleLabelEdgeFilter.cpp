@@ -71,7 +71,11 @@ void vtkSimpleLabelEdgeFilterExecute(vtkImageData* input,
            inPtr[(j+1)*dim[0]+i] == pixelvalue &&
            inPtr[(j-1)*dim[0]+i] == pixelvalue &&
            inPtr[j*dim[0]+i+1] == pixelvalue &&
-           inPtr[j*dim[0]+i-1] == pixelvalue )
+           inPtr[j*dim[0]+i-1] == pixelvalue &&
+           inPtr[(j+1)*dim[0]+i+1] == pixelvalue &&
+           inPtr[(j-1)*dim[0]+i-1] == pixelvalue &&
+           inPtr[(j+1)*dim[0]+i-1] == pixelvalue &&
+           inPtr[(j-1)*dim[0]+i+1] == pixelvalue )
       {
         outPtr[j*dim[0]+i] = 0;
       }
@@ -82,7 +86,6 @@ void vtkSimpleLabelEdgeFilterExecute(vtkImageData* input,
 void vtkSimpleLabelEdgeFilter::SimpleExecute(vtkImageData* input,
                                              vtkImageData* output)
 {
-
   void* inPtr = input->GetScalarPointer();
   void* outPtr = output->GetScalarPointer();
 
