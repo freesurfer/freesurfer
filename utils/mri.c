@@ -842,8 +842,8 @@ MATRIX *MRItkreg2FSL(MRI *ref, MRI *mov, MATRIX *tkRegMat)
   FSLOUTPUTTYPE = getenv("FSLOUTPUTTYPE");
   if (FSLOUTPUTTYPE == NULL) {
     printf(
-        "ERROR: trying to convert FSL registration "
-        "matrix to FreeSurfer,\n");
+        "ERROR: trying to convert FreeSurfer registration "
+        "matrix to FSL,\n");
     printf("       but FSLOUTPUTTYPE variable is not set.\n");
     exit(1);
   }

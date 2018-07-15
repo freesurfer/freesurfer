@@ -20,15 +20,15 @@ rt.run(cmd)
 # edit output prior to diff, diff after 12th line
 f_edit = f_new  + ".edit"
 cmd1 = "tail -n +12 " + f_new + " > " + f_edit
-print "Running: %s" % (cmd1)
+print ("Running: %s" % (cmd1))
 os.system(cmd1)
 
 cmd2 = "cp -p -f " + f_edit + " " + f_new
-print "Running: %s" % (cmd2)
+print ("Running: %s" % (cmd2))
 os.system(cmd2)
 
 cmd3 = "rm -f " + f_edit
-print "Running: %s" % (cmd3)
+print ("Running: %s" % (cmd3))
 os.system(cmd3)
 
 rt.diff(f_new,f_ref)

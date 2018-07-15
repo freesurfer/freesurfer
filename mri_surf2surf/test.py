@@ -14,8 +14,8 @@ home = os.environ.get("HOME")
 home_license = home + "/" + "license.txt"
 if op.isfile(home_license) and not os.environ.get("FS_LICENSE"):
    os.environ["FS_LICENSE"] = home_license
-   # print "FS_LICENSE = %s" % (os.environ["FS_LICENSE"])
-# print "SUBJECTS_DIR = %s" % (os.environ["SUBJECTS_DIR"])
+   # print ("FS_LICENSE = %s" % (os.environ["FS_LICENSE"]))
+# print ("SUBJECTS_DIR = %s" % (os.environ["SUBJECTS_DIR"]))
 
 # this command apparently expects the license file to be found as ../distribution/license.txt
 license = os.environ.get("FS_LICENSE")
@@ -28,7 +28,7 @@ if op.isfile(license) and not os.access(license_dest_file,os.R_OK):
    os.system("ls -l " + license_dest_file)
 
 cmd = "mri_surf2surf --hemi lh --srcsubject bert --srcsurfval thickness --src_type curv --trgsubject fsaverage --trg_type curv --trgsurfval " + subjects_dir + "/bert/surf/lh.thickness"
-# print "cmd = %s" % cmd
+# print ("cmd = %s" % cmd)
 
 rt.run(cmd)
 
