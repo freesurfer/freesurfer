@@ -36,6 +36,7 @@
 #include "proto.h"
 #include "utils.h"
 #include "mrishash.h"
+#include "mri_identify.h"
 
 #include "romp_support.h"
 
@@ -2590,10 +2591,41 @@ int MRISPwrite(MRI_SP *mrisp, char *fname)
 MRI_SP *MRISPread(char *fname)
 {
   MRI_SP *mrisp;
+  int    type ;
 
   mrisp = (MRI_SP *)calloc(1, sizeof(MRI_SP));
   if (!mrisp) ErrorExit(ERROR_NOMEMORY, "MRISPread(%s): allocation failed", fname);
-  mrisp->Ip = ImageRead(fname);
+
+  type = mri_identify(fname) ;
+  if (type == MRI_MGH_FILE)
+  {
+    MRI *mri ;
+    int r, c, f ;
+
+    printf("reading MRISP from mgh file\n") ;
+    mri = MRIread(fname) ;
+    if (mri == NULL)
+      ErrorReturn(NULL, (ERROR_NOFILE, "MRISPread(%s): could not read MGH file",fname));
+    mrisp->Ip = ImageAlloc(mri->height, mri->width, PFFLOAT, mri->depth);
+    mrisp->scale = (float)mri->width/DEFAULT_UDIM ;
+    for (f = 0 ; f < mrisp->Ip->num_frame ; f++)
+      for (r = 0 ; r < mrisp->Ip->rows ; r++)
+	for (c = 0 ; c < mrisp->Ip->cols ; c++)
+	{
+	  float val ;
+	  if (c == Gx && r == Gy)
+	    DiagBreak() ;
+	  val = MRIgetVoxVal(mri, c, r, f, 0) ;
+	  if (devFinite(val) == 0)
+	    val = 0 ;
+	  if (val > 0)
+	    DiagBreak() ;
+	  *IMAGEFseq_pix(mrisp->Ip, c, r, f) = val ;
+	}
+    MRIfree(&mri) ;
+  }
+  else
+    mrisp->Ip = ImageRead(fname);
   if (!mrisp->Ip) ErrorReturn(NULL, (ERROR_NOFILE, "MRISPread(%s): could not open file", fname));
 
   return (mrisp);
