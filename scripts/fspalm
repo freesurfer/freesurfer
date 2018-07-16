@@ -164,6 +164,13 @@ if surface_analysis:
     errExit('subject %s does not exist in current SUBJECTS_DIR (%s)' % (targ_subject, subjects_dir))
   if not os.path.isfile(surface_file):
     errExit('subject file %s does not exist' % surface_file)
+  # see whether there is an average vertex area file
+  area_file = os.path.join(subjects_dir, targ_subject, 'surf', hemi + '.white' + '.avg.area.mgh')
+  if os.path.isfile(area_file):
+    print('using area file %s' % area_file);
+    extra_opts += [" areafile"];
+  else:
+    area_file = "";
 else:
   # could be a cvs subject, need a way to figure this out
   # mri_glmfit-sim does not figure it out either, user spec on cmd line
@@ -267,7 +274,10 @@ if args.pponly == False: # to test with post-processing only
     f.write("hemi = '%s';\n" % hemi)
     f.write("input = '%s';\n" % input_file)
     f.write("maskfile = '%s';\n" % maskfile)
-    if surface_analysis: f.write("surffile = '%s';\n" % surface_file)
+    if surface_analysis: 
+      f.write("surffile = '%s';\n" % surface_file)
+      if(len(area_file)>0):
+        f.write("areafile = '%s';\n" % area_file)
     f.write("\n")
     # Increase the CFT for two-tailed. PALM generates one-tailed
     # p-values.  Adding 0.301 to the sig threshold effectively halves
