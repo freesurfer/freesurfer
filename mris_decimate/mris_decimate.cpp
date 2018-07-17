@@ -339,8 +339,11 @@ int decimateSurface(MRI_SURFACE **pmris,
       mris->vertices[vno].v = NULL ;
     }
   }
-  free(mris->vertices);
-  free(mris->faces);
+
+  // DNG 7/16/18: these two frees were in the original. I don't know how it ever worked
+  // because the realloc below needs these to be valid pointers
+  //free(mris->vertices);
+  //free(mris->faces);
 
   GtsSurfaceStats stats;
   gts_surface_stats( gtsSurface, &stats);

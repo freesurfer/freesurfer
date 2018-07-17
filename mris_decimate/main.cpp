@@ -117,6 +117,7 @@ int main(int argc, char *argv[])
 {
   // Initialize Decimation options
   memset(&gDecimationOptions, 0, sizeof(DECIMATION_OPTIONS));
+  gDecimationOptions.desiredNumFaces = -1;
   gDecimationOptions.decimationLevel = 0.5; // Default decimation level if not specified
 
   char *in_fname, out_fpath[STRLEN] ;
@@ -168,6 +169,12 @@ int main(int argc, char *argv[])
   std::cout << "Original Surface Number of vertices: " << mris->nvertices << std::endl;
   std::cout << "Original Surface Number of faces: " << mris->nfaces << std::endl;
 
+  if(gDecimationOptions.desiredNumFaces > 0){
+    gDecimationOptions.decimationLevel = (float)gDecimationOptions.desiredNumFaces/mris->nfaces;
+    printf("Setting decimation level to %f based on %d/%d\n",gDecimationOptions.decimationLevel,
+	   gDecimationOptions.desiredNumFaces,mris->nfaces);
+  }
+
   // Decimate the surface
   decimateSurface(&mris, gDecimationOptions, DecimateProgressCallback);
 
@@ -203,6 +210,11 @@ static int get_option(int argc, char *argv[])
     case 'D':
       gDecimationOptions.decimationLevel = atof(argv[2]) ;
       printf("using decimation = %2.2f\n", gDecimationOptions.decimationLevel) ;
+      nargs = 1 ;
+      break ;
+    case 'N':
+      gDecimationOptions.desiredNumFaces = atoi(argv[2]) ;
+      printf("desired number of vertices = %d\n", gDecimationOptions.desiredNumFaces);
       nargs = 1 ;
       break ;
     case 'M':
