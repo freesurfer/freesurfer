@@ -61,6 +61,9 @@ typedef struct
   // Set the desired number of faces and then compute the decimationLevel from that
   int desiredNumFaces;
   
+  // Set the desired average face area and then compute the decimationLevel from that
+  float desiredFaceArea;
+  
   ///	The minimum angle between two neighboring triangles allowed by
   /// the decimation
   bool setMinimumAngle;
