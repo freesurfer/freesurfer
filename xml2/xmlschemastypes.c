@@ -2562,7 +2562,7 @@ xmlSchemaValAtomicType(xmlSchemaTypePtr type, const xmlChar * value,
   case XML_SCHEMAS_GYEARMONTH:
   case XML_SCHEMAS_DATE:
   case XML_SCHEMAS_DATETIME:
-    ret = xmlSchemaValidateDates(type->builtInType, value, val,
+    ret = xmlSchemaValidateDates((xmlSchemaValType)type->builtInType, value, val,
                                  normOnTheFly);
     break;
   case XML_SCHEMAS_DURATION:
@@ -3503,7 +3503,7 @@ xmlSchemaValAtomicType(xmlSchemaTypePtr type, const xmlChar * value,
     }
     if (val != NULL)
     {
-      v = xmlSchemaNewValue(type->builtInType);
+      v = xmlSchemaNewValue((xmlSchemaValType)type->builtInType);
       if (v != NULL)
       {
         if (ret == 0)
@@ -3593,7 +3593,7 @@ xmlSchemaValAtomicType(xmlSchemaTypePtr type, const xmlChar * value,
     }
     if (val != NULL)
     {
-      v = xmlSchemaNewValue(type->builtInType);
+      v = xmlSchemaNewValue((xmlSchemaValType)type->builtInType);
       if (v != NULL)
       {
         v->value.decimal.lo = lo;
@@ -3665,7 +3665,7 @@ xmlSchemaValAtomicType(xmlSchemaTypePtr type, const xmlChar * value,
     }
     if (val != NULL)
     {
-      v = xmlSchemaNewValue(type->builtInType);
+      v = xmlSchemaNewValue((xmlSchemaValType)type->builtInType);
       if (v != NULL)
       {
         v->value.decimal.lo = lo;
@@ -5812,7 +5812,7 @@ xmlSchemaValidateLengthFacet(xmlSchemaTypePtr type,
   if (type == NULL)
     return(-1);
   return (xmlSchemaValidateLengthFacetInternal(facet,
-          type->builtInType, value, val, length,
+          (xmlSchemaValType)type->builtInType, value, val, length,
           XML_SCHEMA_WHITESPACE_UNKNOWN));
 }
 
@@ -6110,11 +6110,11 @@ xmlSchemaValidateFacet(xmlSchemaTypePtr base,
   */
   if (val != NULL)
     return(xmlSchemaValidateFacetInternal(facet,
-                                          XML_SCHEMA_WHITESPACE_UNKNOWN, val->type, value, val,
+                                          XML_SCHEMA_WHITESPACE_UNKNOWN, (xmlSchemaValType)val->type, value, val,
                                           XML_SCHEMA_WHITESPACE_UNKNOWN));
   else if (base != NULL)
     return(xmlSchemaValidateFacetInternal(facet,
-                                          XML_SCHEMA_WHITESPACE_UNKNOWN, base->builtInType, value, val,
+                                          XML_SCHEMA_WHITESPACE_UNKNOWN, (xmlSchemaValType)base->builtInType, value, val,
                                           XML_SCHEMA_WHITESPACE_UNKNOWN));
   return(-1);
 }
@@ -6339,7 +6339,7 @@ xmlSchemaGetCanonValue(xmlSchemaValPtr val, const xmlChar **retValue)
       /* Add room for leading/trailing zero. */
       if ((dec.frac == 0) || (dec.frac == dec.total))
         bufsize++;
-      buf = xmlMalloc(bufsize);
+      buf = (char*)xmlMalloc(bufsize);
       if (buf == NULL)
         return(-1);
       offs = buf;
@@ -6423,7 +6423,7 @@ xmlSchemaGetCanonValue(xmlSchemaValPtr val, const xmlChar **retValue)
       /* Add room for the decimal point as well. */
       if (dec.sign)
         bufsize++;
-      *retValue = xmlMalloc(bufsize);
+      *retValue = (xmlChar*)xmlMalloc(bufsize);
       if (*retValue == NULL)
         return(-1);
       if (dec.hi != 0)
@@ -6511,7 +6511,7 @@ xmlSchemaGetCanonValue(xmlSchemaValPtr val, const xmlChar **retValue)
   {
     /* TODO: Unclear in XML Schema 1.0 */
     /* TODO: What to do with the timezone? */
-    *retValue = xmlMalloc(6);
+    *retValue = (xmlChar*)xmlMalloc(6);
     if (*retValue == NULL)
       return(-1);
     snprintf((char *) *retValue, 6, "--%02u",
@@ -6522,7 +6522,7 @@ xmlSchemaGetCanonValue(xmlSchemaValPtr val, const xmlChar **retValue)
   {
     /* TODO: Unclear in XML Schema 1.0 */
     /* TODO: What to do with the timezone? */
-    *retValue = xmlMalloc(6);
+    *retValue = (xmlChar*)xmlMalloc(6);
     if (*retValue == NULL)
       return(-1);
     snprintf((char *) *retValue, 6, "---%02u",
@@ -6533,7 +6533,7 @@ xmlSchemaGetCanonValue(xmlSchemaValPtr val, const xmlChar **retValue)
   {
     /* TODO: Unclear in XML Schema 1.0 */
     /* TODO: What to do with the timezone? */
-    *retValue = xmlMalloc(8);
+    *retValue = (xmlChar*)xmlMalloc(8);
     if (*retValue == NULL)
       return(-1);
     snprintf((char *) *retValue, 8, "--%02u-%02u",
