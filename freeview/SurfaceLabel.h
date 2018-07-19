@@ -46,7 +46,7 @@ class SurfaceLabel  : public QObject
 {
   Q_OBJECT
 public:
-  SurfaceLabel ( LayerSurface* surf );
+  SurfaceLabel ( LayerSurface* surf, bool bInitializeLabel = false );
   ~SurfaceLabel ();
 
   enum ColorCode { SolidColor = 0, Heatscale };
@@ -113,6 +113,12 @@ public:
     return m_strFilename;
   }
 
+  bool HasVertex(int nvo);
+
+  void EditVertices(const QVector<int>& verts, bool bAdd = true);
+
+  bool SaveToFile(const QString& filename = "");
+
 Q_SIGNALS:
   void SurfaceLabelChanged();
   void SurfaceLabelVisibilityChanged();
@@ -141,6 +147,7 @@ private:
   double        m_dHeatscaleMin;
   double        m_dHeatscaleMax;
   QString       m_strFilename;
+  bool          m_bModified;
 
   vtkSmartPointer<vtkRGBAColorTransferFunction> m_lut;
 };

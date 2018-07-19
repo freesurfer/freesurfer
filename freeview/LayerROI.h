@@ -28,6 +28,7 @@
 
 #include "LayerVolumeBase.h"
 #include "vtkSmartPointer.h"
+#include <QVector>
 
 class FSLabel;
 class vtkImageReslice;
@@ -104,7 +105,7 @@ public slots:
   void SetMappedSurface(LayerSurface* s);
   void OnUpdateLabelRequested();
   void EditVertex(int nvo, bool bAdd);
-  void EditVertex(const QList<int> list_nvo, bool bAdd);
+  void EditVertex(const QVector<int> list_nvo, bool bAdd);
   void Dilate(int nTimes = 1);
   void Erode(int nTimes = 1);
   void Open(int nTimes = 1);
@@ -114,7 +115,7 @@ public slots:
   void OnSurfaceDestroyed(QObject* obj);
 
 protected slots:
-  void OnBaseVoxelEdited(const QList<int> voxel_list, bool bAdd);
+  void OnBaseVoxelEdited(const QVector<int> voxel_list, bool bAdd);
 
 protected:
   bool DoRotate( std::vector<RotationElement>& rotations );

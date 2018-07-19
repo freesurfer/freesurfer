@@ -41,6 +41,8 @@
 #include "SurfacePath.h"
 #include <QToolButton>
 #include "LayerMRI.h"
+#include "DialogCustomFill.h"
+#include <QFileDialog>
 
 PanelSurface::PanelSurface(QWidget *parent) :
   PanelLayer("Surface", parent),
@@ -150,11 +152,40 @@ PanelSurface::PanelSurface(QWidget *parent) :
   connect(ui->treeWidgetLabels, SIGNAL(MenuResample()), this, SLOT(OnLabelResample()));
 
   connect(ui->actionCut, SIGNAL(toggled(bool)), SLOT(OnButtonEditCut(bool)));
+  connect(ui->actionPath, SIGNAL(toggled(bool)), SLOT(OnButtonEditPath(bool)));
+
   connect(ui->actionCutLine, SIGNAL(triggered(bool)), SLOT(OnButtonCutLine()));
   connect(ui->actionCutClosedLine, SIGNAL(triggered(bool)), SLOT(OnButtonCutClosedLine()));
   connect(ui->actionCutClear, SIGNAL(triggered(bool)), SLOT(OnButtonClearCuts()));
   connect(ui->actionFillUncutArea, SIGNAL(triggered(bool)), SLOT(OnButtonFillUncutArea()));
   connect(ui->actionUndoCut, SIGNAL(triggered(bool)), SLOT(OnButtonUndoCut()));
+
+  connect(ui->actionMakePath, SIGNAL(triggered(bool)), SLOT(OnButtonMakePath()));
+  connect(ui->actionMakeClosedPath, SIGNAL(triggered(bool)), SLOT(OnButtonMakeClosedPath()));
+  connect(ui->actionDeletePath, SIGNAL(triggered(bool)), SLOT(OnButtonDeletePath()));
+  connect(ui->actionPathFill, SIGNAL(triggered(bool)), SLOT(OnButtonCustomFillPath()));
+
+  connect(ui->actionClearMarks, SIGNAL(triggered(bool)), SLOT(OnButtonClearMarks()));
+
+  m_dlgCustomFill = new DialogCustomFill(this);
+  m_dlgCustomFill->hide();
+  connect(m_dlgCustomFill, SIGNAL(CustomFillTriggered(QVariantMap)), SLOT(OnCustomFillTriggered(QVariantMap)));
+
+  ag = new QActionGroup(this);
+  ag->addAction(ui->actionCutLine);
+  ag->addAction(ui->actionCutClosedLine);
+  ag->addAction(ui->actionFillUncutArea);
+  ag->addAction(ui->actionCutClear);
+  ag->addAction(ui->actionUndoCut);
+  ag->setVisible(false);
+  connect(ui->actionCut, SIGNAL(toggled(bool)), ag, SLOT(setVisible(bool)));
+  ag = new QActionGroup(this);
+  ag->addAction(ui->actionMakePath);
+  ag->addAction(ui->actionMakeClosedPath);
+  ag->addAction(ui->actionDeletePath);
+  ag->addAction(ui->actionPathFill);
+  ag->setVisible(false);
+  connect(ui->actionPath, SIGNAL(toggled(bool)), ag, SLOT(setVisible(bool)));
 }
 
 PanelSurface::~PanelSurface()
@@ -262,8 +293,14 @@ void PanelSurface::DoIdle()
                                     && m_layerCollection->GetLayerIndex(layer) > 0);
   ui->actionMoveLayerDown->setEnabled(layer && m_layerCollection
                                       && m_layerCollection->GetLayerIndex(layer) < m_layerCollection->GetNumberOfLayers()-1);
-  ui->actionCut->setChecked(MainWindow::GetMainWindow()->GetMode() == RenderView::IM_SurfacePath);
+
+  int nMode = MainWindow::GetMainWindow()->GetMode();
+  ui->actionCut->setChecked(nMode == RenderView::IM_SurfaceCut);
+  ui->actionPath->setChecked(nMode == RenderView::IM_SurfacePath);
+
   ui->actionUndoCut->setEnabled(layer && layer->HasUndoableCut());
+  if (nMode != RenderView::IM_SurfacePath)
+    m_dlgCustomFill->hide();
 
   QList<QAction*> acts = m_actGroupSurface->actions();
   foreach (QAction* act, acts)
@@ -301,7 +338,8 @@ void PanelSurface::DoUpdateWidgets()
       allWidgets[i]->setEnabled(layer);
     }
   }
-  ui->actionCut->setChecked(MainWindow::GetMainWindow()->GetMode() == RenderView::IM_SurfacePath);
+  ui->actionCut->setChecked(MainWindow::GetMainWindow()->GetMode() == RenderView::IM_SurfaceCut);
+  ui->actionPath->setChecked(MainWindow::GetMainWindow()->GetMode() == RenderView::IM_SurfacePath);
   FSSurface* surf = NULL;
   ui->lineEditFileName->clear();
   if ( layer )
@@ -309,8 +347,8 @@ void PanelSurface::DoUpdateWidgets()
     ui->checkBoxHideIn3DView->setChecked(!layer->GetVisibleIn3D());
 
     surf = layer->GetSourceSurface();
-//    ui->toolbarSurfaces->setVisible(surf->IsSurfaceLoaded( FSSurface::SurfaceOriginal ) || surf->IsSurfaceLoaded( FSSurface::SurfaceInflated ) ||
-//                             surf->IsSurfaceLoaded( FSSurface::SurfaceWhite ) || surf->IsSurfaceLoaded( FSSurface::SurfacePial ) );
+    //    ui->toolbarSurfaces->setVisible(surf->IsSurfaceLoaded( FSSurface::SurfaceOriginal ) || surf->IsSurfaceLoaded( FSSurface::SurfaceInflated ) ||
+    //                             surf->IsSurfaceLoaded( FSSurface::SurfaceWhite ) || surf->IsSurfaceLoaded( FSSurface::SurfacePial ) );
     ui->sliderOpacity->setValue( (int)( layer->GetProperty()->GetOpacity() * 100 ) );
     ChangeDoubleSpinBoxValue( ui->doubleSpinBoxOpacity, layer->GetProperty()->GetOpacity() );
 
@@ -434,6 +472,7 @@ void PanelSurface::DoUpdateWidgets()
       item->setText(0, label->GetName());
       item->setData(0, Qt::UserRole, QVariant::fromValue((QObject*)label));
       item->setCheckState(0, label->IsVisible() ? Qt::Checked : Qt::Unchecked);
+      item->setFlags(item->flags() | Qt::ItemIsEditable);
       if (layer->GetActiveLabel() == label)
         ui->treeWidgetLabels->setCurrentItem(item);
       if (selected_labels.contains(label))
@@ -748,6 +787,44 @@ void PanelSurface::OnButtonDeleteLabel()
     {
       surf->DeleteLabel(label);
     }
+    UpdateLabelWidgets();
+  }
+}
+
+void PanelSurface::OnButtonNewLabel()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf )
+  {
+    surf->CreateNewLabel();
+  }
+}
+
+void PanelSurface::OnButtonSaveLabel()
+{
+  static QString last_dir = "";
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if (surf)
+  {
+    SurfaceLabel* label = surf->GetActiveLabel();
+    if (label)
+    {
+      QString fn = label->GetFileName();
+      if (fn.isEmpty())
+      {
+        QString def_fn = label->GetName() + ".label";
+        if (!last_dir.isEmpty())
+          def_fn = last_dir + "/" + def_fn;
+        fn = QFileDialog::getSaveFileName( this, "Select label file",
+                                           def_fn,
+                                           "Label files (*)");
+      }
+      if (!fn.isEmpty())
+      {
+        label->SaveToFile(fn);
+        last_dir = QFileInfo(fn).absolutePath();
+      }
+    }
   }
 }
 
@@ -838,6 +915,8 @@ void PanelSurface::OnLabelItemChanged(QTreeWidgetItem *item)
   if ( label )
   {
     label->SetVisible( item->checkState( 0 ) == Qt::Checked );
+    if (item->text(0) != label->GetName())
+      label->SetName(item->text(0));
   }
 }
 
@@ -1075,32 +1154,47 @@ void PanelSurface::OnButtonEditCut(bool b)
 {
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   if (b)
+  {
+    mainwnd->SetMode(RenderView::IM_SurfaceCut);
+    ui->actionPath->setChecked(false);
+  }
+  else if (mainwnd->GetMode() != RenderView::IM_SurfacePath)
+    mainwnd->SetMode(RenderView::IM_Navigate);
+}
+
+void PanelSurface::OnButtonEditPath(bool b)
+{
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
+  if (b)
+  {
     mainwnd->SetMode(RenderView::IM_SurfacePath);
-  else
+    ui->actionCut->setChecked(false);
+  }
+  else if (mainwnd->GetMode() != RenderView::IM_SurfaceCut)
     mainwnd->SetMode(RenderView::IM_Navigate);
 }
 
 void PanelSurface::OnButtonCutLine()
 {
   LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
-  if ( surf && surf->GetActivePath())
+  if ( surf && surf->GetMarks())
   {
-    if (surf->GetActivePath()->GetPathVerts().size() < 2)
+    if (surf->GetMarks()->GetPathVerts().size() < 2)
       QMessageBox::warning(this->parentWidget(), "Error", "Need at least 2 marks to cut line");
     else
-      surf->GetActivePath()->MakeCutLine(false);
+      surf->GetMarks()->MakeCutLine(false);
   }
 }
 
 void PanelSurface::OnButtonCutClosedLine()
 {
   LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
-  if ( surf && surf->GetActivePath())
+  if ( surf && surf->GetMarks())
   {
-    if (surf->GetActivePath()->GetPathVerts().size() < 3)
+    if (surf->GetMarks()->GetPathVerts().size() < 3)
       QMessageBox::warning(this->parentWidget(), "Error", "Need at least 3 marks to cut closed line");
     else
-      surf->GetActivePath()->MakeCutLine(true);
+      surf->GetMarks()->MakeCutLine(true);
   }
 }
 
@@ -1126,7 +1220,7 @@ void PanelSurface::OnButtonFillUncutArea()
     else
     {
       surf->FillUncutArea(vno);
-      ui->actionCut->setChecked(false);
+      //  ui->actionCut->setChecked(false);
     }
   }
 }
@@ -1163,4 +1257,67 @@ void PanelSurface::OnSpinBoxZOrder(int nOrder)
     else if (sender() == ui->spinBoxZOrderOverlay)
       layer->GetProperty()->SetZOrderOverlay(nOrder);
   }
+}
+
+void PanelSurface::OnButtonMakePath()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf && surf->GetMarks())
+  {
+    if (surf->GetMarks()->GetPathVerts().size() < 2)
+      QMessageBox::warning(this->parentWidget(), "Error", "Need at least 2 marks to make path");
+    else
+      surf->GetMarks()->MakePath(false);
+  }
+}
+
+void PanelSurface::OnButtonMakeClosedPath()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf && surf->GetMarks())
+  {
+    if (surf->GetMarks()->GetPathVerts().size() < 3)
+      QMessageBox::warning(this->parentWidget(), "Error", "Need at least 3 marks to make closed path");
+    else
+      surf->GetMarks()->MakePath(true);
+  }
+}
+
+void PanelSurface::OnButtonDeletePath()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf && surf->GetActivePath())
+  {
+    surf->DeleteActivePath();
+  }
+}
+
+void PanelSurface::OnButtonCustomFillPath()
+{
+  m_dlgCustomFill->show();
+  m_dlgCustomFill->raise();
+}
+
+void PanelSurface::OnCustomFillTriggered(const QVariantMap &options)
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf)
+  {
+    int vno = surf->GetLastMark();
+    if (vno < 0)
+      vno = surf->GetCurrentVertex();
+    if (vno < 0)
+      QMessageBox::information(this->parentWidget(), "Fill Cut Area", "Please move cursor to a valid vertex");
+    else if (surf->IsVertexRipped(vno))
+      QMessageBox::information(this->parentWidget(), "Fill Cut Area", "Please move cursor to an uncut vertex");
+    else
+      surf->FillPath(vno, options);
+  }
+}
+
+void PanelSurface::OnButtonClearMarks()
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if (surf)
+    surf->ClearMarks();
 }

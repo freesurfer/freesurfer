@@ -70,6 +70,7 @@
 #include "LayerROI.h"
 #include "LayerPropertyROI.h"
 #include "SurfacePath.h"
+#include <QSet>
 
 LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( parent ),
   m_surfaceSource( NULL ),
@@ -90,7 +91,8 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_surfaceSphere1(NULL),
   m_surfaceSphere2(NULL),
   m_nMouseVertex(-1),
-  m_nActivePath(-1)
+  m_nActivePath(-1),
+  m_marks(NULL)
 {
   m_strTypeNames.push_back( "Surface" );
   m_sPrimaryType = "Surface";
@@ -181,6 +183,9 @@ LayerSurface::~LayerSurface()
 
   for (int i = 0; i < m_paths.size(); i++)
     delete m_paths[i];
+
+  if (m_marks)
+    delete m_marks;
 
   if (m_nColorDataCache)
     delete[] m_nColorDataCache;
@@ -540,6 +545,12 @@ bool LayerSurface::LoadLabelFromFile( const QString& filename )
     label->SetName( fi.fileName() );
   }
 
+  InitializeLabel(label);
+  return true;
+}
+
+void LayerSurface::InitializeLabel(SurfaceLabel *label)
+{
   m_labels.insert(0, label);
   connect(label, SIGNAL(SurfaceLabelChanged()), this, SLOT(UpdateColorMap()));
   connect(label, SIGNAL(SurfaceLabelChanged()), GetProperty(), SIGNAL(PropertyChanged()));
@@ -552,7 +563,20 @@ bool LayerSurface::LoadLabelFromFile( const QString& filename )
   emit Modified();
   emit SurfaceLabelAdded( label );
   emit ActorChanged();
-  return true;
+}
+
+SurfaceLabel* LayerSurface::CreateNewLabel(const QString& name_in)
+{
+  static int ncount = 1;
+  QString name = name_in;
+  if (name.isEmpty())
+  {
+    name = QString("label_%1").arg(ncount++);
+  }
+  SurfaceLabel* label = new SurfaceLabel( this, true );
+  InitializeLabel(label);
+  label->SetName(name);
+  return label;
 }
 
 bool LayerSurface::LoadSplineFromFile(const QString &filename)
@@ -868,6 +892,9 @@ void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility 
 
   foreach (SurfacePath* path, m_paths)
     path->AppendProps(renderer);
+
+  if (m_marks)
+    m_marks->AppendProps(renderer);
 
   m_roi->AppendProps(renderer);
 }
@@ -1214,6 +1241,11 @@ void LayerSurface::SetActiveSurface( int nSurface )
       GetProperty()->SetPosition(pos);
       if (old_thickness > 0)
         GetProperty()->SetEdgeThickness(old_thickness);
+    }
+
+    for (int i = 0; i < m_paths.size(); i++)
+    {
+      m_paths[i]->Update();
     }
 
     emit ActorUpdated();
@@ -2185,7 +2217,6 @@ bool LayerSurface::LoadRGBFromFile(const QString &filename)
   return true;
 }
 
-
 void LayerSurface::SetActiveRGBMap(int n)
 {
   if ( n < m_rgbMaps.size() )
@@ -2252,14 +2283,14 @@ void LayerSurface::RemoveMappedLabel(QObject *label_in)
   UpdateOverlay(true, true);
 }
 
-QList<int> LayerSurface::FindPath(const QList<int> seeds)
+QVector<int> LayerSurface::FindPath(const QVector<int>& seeds)
 {
   int* vert_vno = new int[seeds.size()];
   for (int i = 0; i < seeds.size(); i++)
     vert_vno[i] = seeds[i];
 
   int path[1000], path_length = 0;
-  QList<int> out_vno;
+  QVector<int> out_vno;
   if (m_surfaceSource->FindPath(vert_vno, seeds.size(), path, &path_length))
   {
     for (int i = 0; i < path_length; i++)
@@ -2278,9 +2309,9 @@ void LayerSurface::SetNeighborhoodSize(int nSize)
   ::MRISsetNeighborhoodSize(mris, nSize);
 }
 
-QList<int> LayerSurface::GetVertexNeighbors(int vno)
+QVector<int> LayerSurface::GetVertexNeighbors(int vno)
 {
-  QList<int> vno_list;
+  QVector<int> vno_list;
   MRIS* mris = m_surfaceSource->GetMRIS();
   VERTEX* v = &mris->vertices[vno];
   for (int i = 0; i < v->vtotal; i++)
@@ -2348,37 +2379,47 @@ void LayerSurface::RemovePathPoint(int vno)
   EditPathPoint(vno, true);
 }
 
+void LayerSurface::ClearMarks()
+{
+  if (m_marks)
+  {
+    m_marks->Clear();
+    emit ActorChanged();
+  }
+}
+
 void LayerSurface::EditPathPoint(int vno, bool remove)
 {
-  SurfacePath* path = NULL;
-  if (m_nActivePath >= 0 && !m_paths.isEmpty() && !m_paths[m_nActivePath]->IsPathMade())
-    path = m_paths[m_nActivePath];
-  else
-  {
-    for (int i = 0; i < m_paths.size(); i++)
-    {
-      if (!m_paths[i]->IsPathMade())
-      {
-        path = m_paths[i];
-        SetActivePath(i);
-        break;
-      }
-    }
-  }
+  //  SurfacePath* path = NULL;
+  //  if (m_nActivePath >= 0 && !m_paths.isEmpty() && !m_paths[m_nActivePath]->IsPathMade())
+  //    path = m_paths[m_nActivePath];
+  //  else
+  //  {
+  //    for (int i = 0; i < m_paths.size(); i++)
+  //    {
+  //      if (!m_paths[i]->IsPathMade())
+  //      {
+  //        path = m_paths[i];
+  //        SetActivePath(i);
+  //        break;
+  //      }
+  //    }
+  //  }
 
-  if (!path)
+  if (!m_marks)
   {
-    path = new SurfacePath(this);
-    m_paths << path;
-    SetActivePath(m_paths.size()-1);
-    connect(path, SIGNAL(Updated()), this, SIGNAL(ActorUpdated()));
-    connect(path, SIGNAL(CutLineMade()), this, SLOT(OnPathCut()), Qt::QueuedConnection);
+    m_marks = new SurfacePath(this);
+    m_marks->SetColor(Qt::cyan);
+    //    SetActivePath(m_paths.size()-1);
+    connect(m_marks, SIGNAL(Updated()), this, SIGNAL(ActorUpdated()));
+    connect(m_marks, SIGNAL(CutLineMade()), this, SLOT(OnPathCut()), Qt::QueuedConnection);
+    connect(m_marks, SIGNAL(PathMade()), this, SLOT(OnPathMade()), Qt::QueuedConnection);
     emit ActorChanged();
   }
   if (remove)
-    path->RemovePoint(vno);
+    m_marks->RemovePoint(vno);
   else
-    path->AddPoint(vno);
+    m_marks->AddPoint(vno);
 }
 
 void LayerSurface::SetActivePath(int n)
@@ -2415,10 +2456,12 @@ void LayerSurface::DeleteActivePath()
 
 int LayerSurface::FindPathAt(int vno)
 {
+  QVector<int> verts = GetVertexNeighbors(vno);
   for (int i = 0; i < m_paths.size(); i++)
   {
-    if (m_paths[i]->Contains(vno))
-      return i;
+    for (int j = 0; j < verts.size(); j++)
+      if (m_paths[i]->Contains(verts[j]))
+        return i;
   }
   return -1;
 }
@@ -2428,23 +2471,40 @@ void LayerSurface::OnPathCut()
   SurfacePath* path = qobject_cast<SurfacePath*>(sender());
   if (path)
   {
-    QList<int> undoableVerts = m_surfaceSource->MakeCutLine(path->GetPathVerts());
+    QVector<int> undoableVerts = m_surfaceSource->MakeCutLine(path->GetPathVerts());
     m_surfaceSource->RipFaces();
     m_surfaceSource->UpdatePolyData();
     path->SetUndoVerts(undoableVerts);
     emit ActorUpdated();
+    PushMarksToPath();
+  }
+}
+
+void LayerSurface::OnPathMade()
+{
+  PushMarksToPath();
+}
+
+void LayerSurface::PushMarksToPath()
+{
+  if (m_marks)
+  {
+    //    m_marks->SetColor(Qt::yellow);
+    m_paths << m_marks;
+    m_marks = NULL;
+    SetActivePath(m_paths.size()-1);
   }
 }
 
 void LayerSurface::ClearAllCuts()
 {
-  for (int i = 0; i < m_paths.size(); i++)
-  {
-    m_paths[i]->deleteLater();
-  }
-  m_paths.clear();
+  //  for (int i = 0; i < m_paths.size(); i++)
+  //  {
+  //    m_paths[i]->deleteLater();
+  //  }
+  //  m_paths.clear();
+  //  m_nActivePath = -1;
   m_surfaceSource->ClearCuts();
-  m_nActivePath = -1;
   m_surfaceSource->RipFaces();
   m_surfaceSource->UpdateHashTable();
   m_surfaceSource->UpdatePolyData();
@@ -2481,11 +2541,218 @@ void LayerSurface::UndoCut()
   }
 }
 
+QVector<int> LayerSurface::FloodFillFromSeed(int seed_vno, const QVariantMap& options)
+{
+  MRIS* mris = m_surfaceSource->GetMRIS();
+  char* filled;
+  int num_filled_this_iter;
+  int num_filled;
+  int iter;
+  int min_vno, max_vno, step_vno;
+  int vno;
+  //  int this_label = 0;
+  int neighbor_index;
+  int neighbor_vno;
+  VERTEX* v;
+  VERTEX* neighbor_v;
+  //  float fvalue = 0;
+  //  float seed_curv = 0;
+  //  float seed_fvalue = 0;
+  //  int new_index;
+  //  int num_labels_found, found_label_index;
+  //  int skip;
+  int count;
+
+  QVector<int> filled_verts;
+
+  if (seed_vno < 0 || seed_vno >= mris->nvertices)
+    return filled_verts;
+
+  /* init filled array. */
+  filled = (char*) calloc (mris->nvertices, sizeof(char));
+  memset(filled, 0, sizeof(char)*mris->nvertices);
+
+  /* start with the seed filled.*/
+  filled[seed_vno] = TRUE;
+  filled_verts << seed_vno;
+
+  /* find seed values for some conditions. */
+  //  if (params->dont_cross_label)
+  //    this_label = labl_selected_label;
+  //  if (params->dont_cross_cmid)
+  //    seed_curv = mris->vertices[seed_vno].curv;
+  //  if (params->dont_cross_fthresh)
+  //    sclv_get_value (&mris->vertices[seed_vno],
+  //                    sclv_current_field, &seed_fvalue);
+
+  /* while we're still filling stuff in a pass... */
+  num_filled_this_iter = 1;
+  num_filled = 0;
+  iter = 0;
+  bool bDoNotCrossPaths = options["DoNotCrossPaths"].toBool();
+  bool bDoNotCrossLabels = options["DoNotCrossLabels"].toBool();
+  bool bDoNotFillUnlabeled = options["DoNotFillUnlabeled"].toBool();
+  bool bDoNotCrossThreshold = options["DoNotCrossThreshold"].toBool();
+  bool bNewLabel = options["CreateLabel"].toBool();
+  double seed_value = 0;
+  SurfaceOverlay* overlay = GetActiveOverlay();
+  if (!overlay)
+    bDoNotCrossThreshold = false;
+  double fthresh = 0;
+  if (bDoNotCrossThreshold && overlay)
+  {
+    seed_value = overlay->GetDataAtVertex(seed_vno);
+    fthresh = overlay->GetProperty()->GetMinPoint();
+  }
+
+  while (num_filled_this_iter > 0)
+  {
+    num_filled_this_iter = 0;
+
+    /* switch between iterating forward and backwards. */
+    if ((iter%2)==0)
+    {
+      min_vno = 0;
+      max_vno = mris->nvertices-1;
+      step_vno = 1;
+    }
+    else
+    {
+      min_vno = mris->nvertices-1;
+      max_vno = 0;
+      step_vno = -1;
+    }
+
+    /* for each vertex, if it's filled, check its neighbors. for the
+       rules that are up-to-and-including, make the check on this
+       vertex. for the rules that are up-to-and-not-including, check
+       on the neighbor. */
+    for (vno = min_vno; vno != max_vno; vno += step_vno)
+    {
+      if (filled[vno])
+      {
+
+        /* check the neighbors... */
+        v = &mris->vertices[vno];
+
+        /* if this vert is ripped, move on. */
+        if (v->ripflag)
+        {
+          continue;
+        }
+
+        /* if we're not crossing paths, check if this is a
+           path. if so, move on. */
+        if (bDoNotCrossPaths && IsVertexOnPath(vno))
+        {
+          continue;
+        }
+
+        /* if we're not crossing the cmid, see if the cmid at this
+           vertex is on the other side of the cmid as the seed
+           point. if so, move on. */
+        //        if (params->dont_cross_cmid &&
+        //            ((seed_curv <= cmid && v->curv > cmid) ||
+        //             (seed_curv >= cmid && v->curv < cmid)))
+        //        {
+        //          continue;
+        //        }
+
+        for (neighbor_index = 0;
+             neighbor_index < v->vnum;
+             neighbor_index++)
+        {
+          neighbor_vno = v->v[neighbor_index];
+          neighbor_v = &mris->vertices[neighbor_vno] ;
+
+          /* if the neighbor is filled, move on. */
+          if (filled[neighbor_vno])
+            continue;
+
+          if (neighbor_v->ripflag)
+            continue;
+
+          /* if we're not crossing labels, check if the label at
+             this vertex is the same as the one at the seed. if not,
+             move on. */
+          if (bDoNotCrossLabels || bDoNotFillUnlabeled)
+          {
+            bool bFound = false, bSkip = false;
+            for (int i = 0; i < m_labels.size(); i++)
+            {
+              if (m_labels[i]->HasVertex(neighbor_vno))
+              {
+                bFound = true;
+                if (i != m_nActiveLabel || bNewLabel)
+                {
+                  bSkip = true;
+                  break;
+                }
+              }
+            }
+
+            if (bSkip && bDoNotCrossLabels)
+              continue;
+
+            if (!bFound && bDoNotFillUnlabeled)
+              continue;
+          }
+
+
+          /* if we're not crossing the fthresh, make sure this
+             point is above it, or, if our initial functional
+             value was negative, make sure it's not above
+             -fthresh. if not, move on. */
+          if (bDoNotCrossThreshold)
+          {
+            double fvalue = overlay->GetDataAtVertex(neighbor_vno);
+            if ((fthresh != 0 &&
+                 seed_value > 0 &&
+                 fvalue < fthresh) ||
+                (fthresh != 0 &&
+                 seed_value < 0 &&
+                 fvalue > -fthresh) ||
+                (fthresh == 0 && (fvalue * seed_value < 0)))
+            {
+              continue;
+            }
+          }
+
+          /* mark this vertex as filled. */
+          filled[neighbor_vno] = TRUE;
+          filled_verts << neighbor_vno;
+          num_filled_this_iter++;
+          num_filled++;
+        }
+      }
+    }
+
+    iter++;
+  }
+
+  /* mark all filled vertices. */
+  if (!options["DoNotMarkSurface"].toBool())
+  {
+    for (vno = 0; vno < mris->nvertices; vno++ )
+    {
+      mris->vertices[vno].ripflag = (!filled[vno]);
+    }
+  }
+
+  free (filled);
+
+  if (filled_verts.size() == 1)
+    filled_verts.clear();
+
+  return filled_verts;
+}
+
 bool LayerSurface::FillUncutArea(int vno)
 {
   if (vno < 0)
     return false;
-  m_surfaceSource->FloodFillFromSeed(vno);
+
+  FloodFillFromSeed(vno);
   m_surfaceSource->RipFaces();
   m_surfaceSource->UpdateHashTable();
   m_surfaceSource->UpdatePolyData();
@@ -2532,3 +2799,45 @@ bool LayerSurface::IsVertexRipped(int vno)
   return false;
 }
 
+bool LayerSurface::IsVertexOnPath(int vno)
+{
+  foreach (SurfacePath* path, m_paths)
+  {
+    if (path->IsPathMade() && path->Contains(vno))
+      return true;
+  }
+  return false;
+}
+
+void LayerSurface::FillPath(int nvo, const QVariantMap &options)
+{
+  QVector<int> verts = FloodFillFromSeed(nvo, options);
+  if (verts.size() == 0)
+  {
+    qDebug() << "Did not fill/remove any vertices";
+    return;
+  }
+  if (options["CreateLabel"].toBool())
+  {
+    CreateNewLabel();
+  }
+  SurfaceLabel* label = GetActiveLabel();
+  if (label)
+  {
+    label->EditVertices(verts, !options["RemoveFromLabel"].toBool());
+    emit Modified();
+    UpdateOverlay();
+  }
+}
+
+int LayerSurface::GetLastMark()
+{
+  int vno = -1;
+  if (m_marks)
+  {
+    QVector<int> verts = m_marks->GetPathVerts();
+    if (!verts.isEmpty())
+      vno = verts.last();
+  }
+  return vno;
+}

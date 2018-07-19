@@ -4812,14 +4812,17 @@ bool MainWindow::OnCloseVolume(const QList<Layer*>& layers_in)
       }
     }
   }
-  GetLayerCollection( "MRI" )->RemoveLayers( layers );
   foreach (Layer* layer, layers)
   {
     if (layer == m_layerVolumeRef)
     {
-      m_layerVolumeRef = (LayerMRI*)GetActiveLayer("MRI");
+      m_layerVolumeRef = NULL;
     }
   }
+  GetLayerCollection( "MRI" )->RemoveLayers( layers );
+  if (m_layerVolumeRef == NULL)
+    m_layerVolumeRef = (LayerMRI*)GetActiveLayer("MRI");
+
   OnSetModeNavigate();
 
   return true;

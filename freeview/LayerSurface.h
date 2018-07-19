@@ -29,6 +29,8 @@
 #include "LayerEditable.h"
 #include "vtkSmartPointer.h"
 #include <QList>
+#include <QVector>
+#include <QVariantMap>
 
 class vtkImageReslice;
 class vtkImageMapToColors;
@@ -263,6 +265,8 @@ public:
     return m_nCurrentVertex;
   }
 
+  int GetLastMark();
+
   bool GetCorrelationOverlayDataAtVertex(int nVert, float* output, int nFrames);
 
   bool IsInflated();
@@ -297,7 +301,7 @@ public:
 
   void SetNeighborhoodSize(int nSize);
 
-  QList<int> GetVertexNeighbors(int vno);
+  QVector<int> GetVertexNeighbors(int vno);
 
   bool IsContralateralReady()
   {
@@ -345,6 +349,12 @@ public:
 
   bool WritePatch(const QString& filename);
 
+  void FillPath(int nvo, const QVariantMap& options);
+
+  void ClearMarks();
+
+  SurfaceLabel* CreateNewLabel(const QString& name = "");
+
 public slots:
   void SetActiveSurface( int nSurfaceType );
   void UpdateOverlay(bool bAskRedraw = true, bool pre_cached = false);
@@ -390,7 +400,7 @@ public slots:
 
   void RemoveMappedLabel(QObject* label_in);
 
-  QList<int> FindPath(const QList<int> seeds);
+  QVector<int> FindPath(const QVector<int>& seeds);
 
   void UpdateOverlayLabels()
   {
@@ -402,9 +412,20 @@ public slots:
 
   void OnPathCut();
 
+  void OnPathMade();
+
   void ClearAllCuts();
 
   void UndoCut();
+
+  QVector<int> FloodFillFromSeed(int seed_vno, const QVariantMap& options = QVariantMap());
+
+  bool IsVertexOnPath(int vno);
+
+  SurfacePath* GetMarks()
+  {
+    return m_marks;
+  }
 
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
@@ -441,8 +462,10 @@ protected:
   void InitializeData();
   void InitializeSurface();
   void InitializeActors();
+  void InitializeLabel(SurfaceLabel* label);
   void MapLabels( unsigned char* data, int nVertexCount );
   void EditPathPoint(int vno, bool remove = false);
+  void PushMarksToPath();
 
   virtual void OnSlicePositionChanged( int nPlane );
 
@@ -482,6 +505,7 @@ protected:
 
   QList<SurfacePath*> m_paths;
   int         m_nActivePath;
+  SurfacePath*  m_marks;
 
   QList<RGBMap>             m_rgbMaps;
   int         m_nActiveRGBMap;

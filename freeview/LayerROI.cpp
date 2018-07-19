@@ -106,7 +106,7 @@ LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( par
   connect( mProperty, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
   connect( mProperty, SIGNAL(ThresholdChanged(double)), this, SLOT(UpdateThreshold()));
 
-  connect(this, SIGNAL(BaseVoxelEdited(QList<int>,bool)), SLOT(OnBaseVoxelEdited(QList<int>,bool)));
+  connect(this, SIGNAL(BaseVoxelEdited(QVector<int>,bool)), SLOT(OnBaseVoxelEdited(QVector<int>,bool)));
   UpdateProperties();
 }
 
@@ -410,8 +410,8 @@ void LayerROI::GetStats(int nPlane, int *count_out, float *area_out,
   float* ptr = (float*)m_imageData->GetScalarPointer();
 
   int cnt = 0;
-  //  QList<int> indices;
-  QList<float> coords;
+  //  QVector<int> indices;
+  QVector<float> coords;
   for ( int i = 0; i < dim[0]; i++ )
   {
     for ( int j = 0; j < dim[1]; j++ )
@@ -503,7 +503,7 @@ void LayerROI::MapLabelColorData( unsigned char* colordata, int nVertexCount )
   }
 }
 
-void LayerROI::OnBaseVoxelEdited(const QList<int> voxel_list, bool bAdd)
+void LayerROI::OnBaseVoxelEdited(const QVector<int> voxel_list, bool bAdd)
 {
   if (true)
   {
@@ -533,7 +533,7 @@ void LayerROI::OnBaseVoxelEdited(const QList<int> voxel_list, bool bAdd)
 
 void LayerROI::EditVertex(int nvo, bool bAdd)
 {
-  QList<int> list;
+  QVector<int> list;
   list << nvo;
   EditVertex(list, bAdd);
 }
@@ -547,11 +547,11 @@ void LayerROI::OnLabelDataUpdated()
   SetModified();
 }
 
-void LayerROI::EditVertex(const QList<int> list_nvo_in, bool bAdd)
+void LayerROI::EditVertex(const QVector<int> list_nvo_in, bool bAdd)
 {
   if (m_layerMappedSurface)
   {
-    QList<int> list_nvo;
+    QVector<int> list_nvo;
     if (m_nBrushRadius == 1)
       list_nvo = list_nvo_in;
     else

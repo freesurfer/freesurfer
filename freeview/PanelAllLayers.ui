@@ -68,6 +68,9 @@
        <property name="focusPolicy">
         <enum>Qt::ClickFocus</enum>
        </property>
+       <property name="editTriggers">
+        <set>QAbstractItemView::SelectedClicked</set>
+       </property>
        <property name="selectionMode">
         <enum>QAbstractItemView::ExtendedSelection</enum>
        </property>

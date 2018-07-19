@@ -78,7 +78,7 @@ bool Interactor3DROIEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderView*
           LayerSurface* surf = roi->GetMappedSurface();
           if (surf)
           {
-            QList<int> seeds;
+            QVector<int> seeds;
             seeds << m_nPrevVertex << nvo;
             roi->EditVertex(surf->FindPath(seeds), !(event->modifiers() & Qt::ShiftModifier));
           }
