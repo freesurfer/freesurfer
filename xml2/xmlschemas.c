@@ -2493,8 +2493,8 @@ xmlSchemaKeyrefErr(xmlSchemaValidCtxtPtr vctxt,
   xmlSchemaErr4Line(ACTXT_CAST vctxt, XML_ERR_ERROR,
                     error, NULL, idcNode->nodeLine, (const char *) msg,
                     xmlSchemaFormatQName(&qname,
-                                         vctxt->nodeQNames->items[idcNode->nodeQNameID +1],
-                                         vctxt->nodeQNames->items[idcNode->nodeQNameID]),
+                                         (const xmlChar*)vctxt->nodeQNames->items[idcNode->nodeQNameID +1],
+                                         (const xmlChar*)vctxt->nodeQNames->items[idcNode->nodeQNameID]),
                     str1, str2, NULL);
   FREE_AND_NULL(qname);
   FREE_AND_NULL(msg);
@@ -2897,7 +2897,7 @@ xmlSchemaFacetErr(xmlSchemaAbstractCtxtPtr actxt,
 }
 
 #define VERROR(err, type, msg) \
-    xmlSchemaCustomErr(ACTXT_CAST vctxt, err, NULL, type, msg, NULL, NULL);
+    xmlSchemaCustomErr(ACTXT_CAST vctxt, (xmlParserErrors)err, NULL, type, msg, NULL, NULL);
 
 #define VERROR_INT(func, msg) xmlSchemaInternalErr(ACTXT_CAST vctxt, func, msg);
 
@@ -4431,7 +4431,7 @@ xmlSchemaTypeDump(xmlSchemaTypePtr type, FILE * output); /* forward */
 static void
 xmlSchemaElementDump(xmlSchemaElementPtr elem, FILE * output,
                      const xmlChar * name ATTRIBUTE_UNUSED,
-                     const xmlChar * namespace ATTRIBUTE_UNUSED,
+                     const xmlChar * nameSpace ATTRIBUTE_UNUSED,
                      const xmlChar * context ATTRIBUTE_UNUSED)
 {
   if (elem == NULL)
@@ -4442,8 +4442,8 @@ xmlSchemaElementDump(xmlSchemaElementPtr elem, FILE * output,
   if (elem->flags & XML_SCHEMAS_ELEM_GLOBAL)
     fprintf(output, " (global)");
   fprintf(output, ": '%s' ", elem->name);
-  if (namespace != NULL)
-    fprintf(output, "ns '%s'", namespace);
+  if (nameSpace != NULL)
+    fprintf(output, "ns '%s'", nameSpace);
   fprintf(output, "\n");
 #if 0
   if ((elem->minOccurs != 1) || (elem->maxOccurs != 1))
@@ -6688,7 +6688,7 @@ xmlSchemaPValAttrNodeValue(xmlSchemaParserCtxtPtr pctxt,
     else
       ret = XML_SCHEMAV_CVC_DATATYPE_VALID_1_2_1;
     xmlSchemaPSimpleTypeErr(pctxt,
-                            ret, ownerItem, (xmlNodePtr) attr,
+                            (xmlParserErrors)ret, ownerItem, (xmlNodePtr) attr,
                             type, NULL, value, NULL, NULL, NULL);
   }
   return (ret);
@@ -10349,22 +10349,22 @@ xmlSchemaParseModelGroupDefinition(xmlSchemaParserCtxtPtr ctxt,
 static void
 xmlSchemaCleanupDoc(xmlSchemaParserCtxtPtr ctxt, xmlNodePtr root)
 {
-  xmlNodePtr delete, cur;
+  xmlNodePtr del, cur;
 
   if ((ctxt == NULL) || (root == NULL)) return;
 
   /*
    * Remove all the blank text nodes
    */
-  delete = NULL;
+  del = NULL;
   cur = root;
   while (cur != NULL)
   {
-    if (delete != NULL)
+    if (del != NULL)
     {
-      xmlUnlinkNode(delete);
-      xmlFreeNode(delete);
-      delete = NULL;
+      xmlUnlinkNode(del);
+      xmlFreeNode(del);
+      del = NULL;
     }
     if (cur->type == XML_TEXT_NODE)
     {
@@ -10372,14 +10372,14 @@ xmlSchemaCleanupDoc(xmlSchemaParserCtxtPtr ctxt, xmlNodePtr root)
       {
         if (xmlNodeGetSpacePreserve(cur) != 1)
         {
-          delete = cur;
+          del = cur;
         }
       }
     }
     else if ((cur->type != XML_ELEMENT_NODE) &&
              (cur->type != XML_CDATA_SECTION_NODE))
     {
-      delete = cur;
+      del = cur;
       goto skip_children;
     }
 
@@ -10421,11 +10421,11 @@ skip_children:
     }
     while (cur != NULL);
   }
-  if (delete != NULL)
+  if (del != NULL)
   {
-    xmlUnlinkNode(delete);
-    xmlFreeNode(delete);
-    delete = NULL;
+    xmlUnlinkNode(del);
+    xmlFreeNode(del);
+    del = NULL;
   }
 }
 
@@ -11223,7 +11223,7 @@ xmlSchemaAddSchemaDoc(xmlSchemaParserCtxtPtr pctxt,
     {
       /* Report self-imports/inclusions/redefinitions. */
 
-      xmlSchemaCustomErr(ACTXT_CAST pctxt, err,
+      xmlSchemaCustomErr(ACTXT_CAST pctxt, (xmlParserErrors)err,
                          invokingNode, NULL,
                          "The schema must not import/include/redefine itself",
                          NULL, NULL);
@@ -11272,7 +11272,7 @@ xmlSchemaAddSchemaDoc(xmlSchemaParserCtxtPtr pctxt,
       if (!xmlStrEqual(schemaLocation,
                        bkt->schemaLocation))
       {
-        xmlSchemaCustomErr(ACTXT_CAST pctxt, err,
+        xmlSchemaCustomErr(ACTXT_CAST pctxt, (xmlParserErrors)err,
                            invokingNode, NULL,
                            "The schema document '%s' cannot be imported, since "
                            "it was already included or redefined",
@@ -11292,7 +11292,7 @@ xmlSchemaAddSchemaDoc(xmlSchemaParserCtxtPtr pctxt,
       if (!xmlStrEqual(schemaLocation,
                        bkt->schemaLocation))
       {
-        xmlSchemaCustomErr(ACTXT_CAST pctxt, err,
+        xmlSchemaCustomErr(ACTXT_CAST pctxt, (xmlParserErrors)err,
                            invokingNode, NULL,
                            "The schema document '%s' cannot be included or "
                            "redefined, since it was already imported",
@@ -11512,7 +11512,7 @@ doc_load:
         located = 1;
         /* TODO: Error code ?? */
         res = XML_SCHEMAP_SRC_IMPORT_2_1;
-        xmlSchemaCustomErr(ACTXT_CAST pctxt, res,
+        xmlSchemaCustomErr(ACTXT_CAST pctxt, (xmlParserErrors)res,
                            invokingNode, NULL,
                            "Failed to parse the XML resource '%s'",
                            schemaLocation, NULL);
@@ -11967,7 +11967,7 @@ xmlSchemaParseIncludeOrRedefine(xmlSchemaParserCtxtPtr pctxt,
       * So do we need a warning report here?"
       */
       res = XML_SCHEMAP_SRC_INCLUDE;
-      xmlSchemaCustomErr(ACTXT_CAST pctxt, res,
+      xmlSchemaCustomErr(ACTXT_CAST pctxt, (xmlParserErrors)res,
                          node, NULL,
                          "Failed to load the document '%s' for inclusion",
                          schemaLocation, NULL);
@@ -11986,7 +11986,7 @@ xmlSchemaParseIncludeOrRedefine(xmlSchemaParserCtxtPtr pctxt,
       * here as well!
       */
       res = XML_SCHEMAP_SRC_REDEFINE;
-      xmlSchemaCustomErr(ACTXT_CAST pctxt, res,
+      xmlSchemaCustomErr(ACTXT_CAST pctxt, (xmlParserErrors)res,
                          node, NULL,
                          "Failed to load the document '%s' for redefinition",
                          schemaLocation, NULL);
@@ -12142,13 +12142,13 @@ xmlSchemaParseIncludeOrRedefine(xmlSchemaParserCtxtPtr pctxt,
     res = XML_SCHEMAP_S4S_ELEM_NOT_ALLOWED;
     if (type == XML_SCHEMA_SCHEMA_REDEFINE)
     {
-      xmlSchemaPContentErr(pctxt, res,
+      xmlSchemaPContentErr(pctxt, (xmlParserErrors)res,
                            NULL, node, child, NULL,
                            "(annotation | (simpleType | complexType | group | attributeGroup))*");
     }
     else
     {
-      xmlSchemaPContentErr(pctxt, res,
+      xmlSchemaPContentErr(pctxt, (xmlParserErrors)res,
                            NULL, node, child, NULL,
                            "(annotation?)");
     }
@@ -20509,7 +20509,7 @@ xmlSchemaCheckFacet(xmlSchemaFacetPtr facet,
         xmlChar *str = NULL;
 
         xmlSchemaCustomErr(ACTXT_CAST pctxt,
-                           ret, facet->node, WXS_BASIC_CAST facet,
+                           (xmlParserErrors)ret, facet->node, WXS_BASIC_CAST facet,
                            "The value '%s' of the facet does not validate "
                            "against the base type '%s'",
                            facet->value,
@@ -20539,7 +20539,7 @@ xmlSchemaCheckFacet(xmlSchemaFacetPtr facet,
       if (ctxtGiven)
       {
         xmlSchemaCustomErr(ACTXT_CAST pctxt,
-                           ret, facet->node, WXS_BASIC_CAST typeDecl,
+                           (xmlParserErrors)ret, facet->node, WXS_BASIC_CAST typeDecl,
                            "The value '%s' of the facet 'pattern' is not a "
                            "valid regular expression",
                            facet->value, NULL);
@@ -20582,7 +20582,7 @@ xmlSchemaCheckFacet(xmlSchemaFacetPtr facet,
       {
         /* error code */
         xmlSchemaCustomErr4(ACTXT_CAST pctxt,
-                            ret, facet->node, WXS_BASIC_CAST typeDecl,
+                            (xmlParserErrors)ret, facet->node, WXS_BASIC_CAST typeDecl,
                             "The value '%s' of the facet '%s' is not a valid '%s'",
                             facet->value,
                             xmlSchemaFacetTypeToString(facet->type),
@@ -20616,7 +20616,7 @@ xmlSchemaCheckFacet(xmlSchemaFacetPtr facet,
       {
         /* error was previously: XML_SCHEMAP_INVALID_WHITE_SPACE */
         xmlSchemaCustomErr(ACTXT_CAST pctxt,
-                           ret, facet->node, WXS_BASIC_CAST typeDecl,
+                           (xmlParserErrors)ret, facet->node, WXS_BASIC_CAST typeDecl,
                            "The value '%s' of the facet 'whitespace' is not "
                            "valid", facet->value, NULL);
       }
@@ -26528,7 +26528,7 @@ xmlSchemaValidateFacets(xmlSchemaAbstractCtxtPtr actxt,
     else if (ret > 0)
     {
       if (fireErrors)
-        xmlSchemaFacetErr(actxt, ret, node,
+        xmlSchemaFacetErr(actxt, (xmlParserErrors)ret, node,
                           value, len, type, facetLink->facet, NULL, NULL, NULL);
       else
         return (ret);
@@ -26569,7 +26569,7 @@ WXS_IS_LIST:
     else if (ret > 0)
     {
       if (fireErrors)
-        xmlSchemaFacetErr(actxt, ret, node,
+        xmlSchemaFacetErr(actxt, (xmlParserErrors)ret, node,
                           value, length, type, facetLink->facet, NULL, NULL, NULL);
       else
         return (ret);
@@ -26628,7 +26628,7 @@ pattern_and_enum:
       ret = XML_SCHEMAV_CVC_ENUMERATION_VALID;
       if (fireErrors)
       {
-        xmlSchemaFacetErr(actxt, ret, node,
+        xmlSchemaFacetErr(actxt, (xmlParserErrors)ret, node,
                           value, 0, type, NULL, NULL, NULL, NULL);
       }
       else
@@ -26682,7 +26682,7 @@ pattern_and_enum:
         ret = XML_SCHEMAV_CVC_PATTERN_VALID;
         if (fireErrors)
         {
-          xmlSchemaFacetErr(actxt, ret, node,
+          xmlSchemaFacetErr(actxt, (xmlParserErrors)ret, node,
                             value, 0, type, facet, NULL, NULL, NULL);
         }
         else
@@ -26759,7 +26759,7 @@ xmlSchemaValidateQName(xmlSchemaValidCtxtPtr vctxt,
     if (nsName == NULL)
     {
       ret = XML_SCHEMAV_CVC_DATATYPE_VALID_1_2_1;
-      xmlSchemaCustomErr(ACTXT_CAST vctxt, ret, NULL,
+      xmlSchemaCustomErr(ACTXT_CAST vctxt, (xmlParserErrors)ret, NULL,
                          WXS_BASIC_CAST xmlSchemaGetBuiltInType(XML_SCHEMAS_QNAME),
                          "The QName value '%s' has no "
                          "corresponding namespace declaration in "
@@ -26964,7 +26964,7 @@ xmlSchemaVCheckCVCSimpleType(xmlSchemaAbstractCtxtPtr actxt,
       }
     }
     if (fireErrors && (ret > 0))
-      xmlSchemaSimpleTypeErr(actxt, ret, node, value, type, 1);
+      xmlSchemaSimpleTypeErr(actxt, (xmlParserErrors)ret, node, value, type, 1);
   }
   else if (WXS_IS_LIST(type))
   {
@@ -27061,7 +27061,7 @@ xmlSchemaVCheckCVCSimpleType(xmlSchemaAbstractCtxtPtr actxt,
       */
       normalize = 1;
       NORMALIZE(type);
-      xmlSchemaSimpleTypeErr(actxt, ret, node, value, type, 1);
+      xmlSchemaSimpleTypeErr(actxt, (xmlParserErrors)ret, node, value, type, 1);
     }
   }
   else if (WXS_IS_UNION(type))
@@ -27144,7 +27144,7 @@ xmlSchemaVCheckCVCSimpleType(xmlSchemaAbstractCtxtPtr actxt,
       }
     }
     if (fireErrors && (ret > 0))
-      xmlSchemaSimpleTypeErr(actxt, ret, node, value, type, 1);
+      xmlSchemaSimpleTypeErr(actxt, (xmlParserErrors)ret, node, value, type, 1);
   }
 
   if (normValue != NULL)
@@ -27631,8 +27631,8 @@ attrUseList = (xmlSchemaItemListPtr) type->attrUses;
   for (i = 0; i < nbUses; i++)
   {
     found = 0;
-    attrUse = attrUseList->items[i];
-    attrDecl = WXS_ATTRUSE_DECL(attrUse);
+    attrUse  = (xmlSchemaAttributeUsePtr)attrUseList->items[i];
+    attrDecl = (xmlSchemaAttributePtr)WXS_ATTRUSE_DECL(attrUse);
     for (j = 0; j < nbAttrs; j++)
     {
       iattr = vctxt->attrInfos[j];
@@ -28834,7 +28834,7 @@ default_psvi:
             */
             ret = XML_SCHEMAV_CVC_ELT_5_2_2_2_1;
             xmlSchemaCustomErr(ACTXT_CAST vctxt,
-                               ret, NULL, NULL,
+                               (xmlParserErrors)ret, NULL, NULL,
                                "The initial value '%s' does not match the fixed "
                                "value constraint '%s'",
                                inode->value, inode->decl->value);
@@ -28860,7 +28860,7 @@ default_psvi:
           {
             ret = XML_SCHEMAV_CVC_ELT_5_2_2_2_2;
             xmlSchemaCustomErr(ACTXT_CAST vctxt,
-                               ret, NULL, NULL,
+                               (xmlParserErrors)ret, NULL, NULL,
                                "The actual value '%s' does not match the fixed "
                                "value constraint '%s'",
                                inode->value,
