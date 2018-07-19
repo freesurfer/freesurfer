@@ -119,5 +119,7 @@
         <file>resource/icons/surface_cut.png</file>
         <file>resource/icons/surface_fill_uncut_area.png</file>
         <file>resource/icons/surface_undo_cut.png</file>
+        <file>resource/icons/surface_path_fill.png</file>
+        <file>resource/icons/surface_clear_marks.png</file>
     </qresource>
 </RCC>

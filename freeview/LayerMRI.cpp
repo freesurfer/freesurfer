@@ -2263,7 +2263,7 @@ bool LayerMRI::GetVoxelStatsRectangle( const double* pt0, const double* pt1, int
   return true;
 }
 
-bool LayerMRI::GetVoxelStats(QList<int> &indices, double *mean_out, double *sd_out)
+bool LayerMRI::GetVoxelStats(QVector<int> &indices, double *mean_out, double *sd_out)
 {
   int nActiveComp = GetActiveFrame();
   double dMean = 0;
@@ -2314,12 +2314,12 @@ bool LayerMRI::GetVoxelStats(QList<int> &indices, double *mean_out, double *sd_o
   return true;
 }
 
-bool LayerMRI::GetVoxelStatsByTargetRAS(QList<float> &coords, double* mean_out, double *sd_out)
+bool LayerMRI::GetVoxelStatsByTargetRAS(QVector<float> &coords, double* mean_out, double *sd_out)
 {
   double* orig = m_imageData->GetOrigin();
   double* vsize = m_imageData->GetSpacing();
   
-  QList<int> indices;
+  QVector<int> indices;
   for (int i = 0; i < coords.size(); i+=3)
   {
     indices << (int)( ( coords[i] - orig[0] ) / vsize[0] + 0.5 )
@@ -2587,7 +2587,7 @@ void LayerMRI::GetCurrentLabelStats(int nPlane, float *label_out, int *count_out
   int ext[3][2] = { { 0, dim[0]-1 }, {0, dim[1]-1}, {0, dim[2]-1} };
   ext[nPlane][0] = ext[nPlane][1] = n[nPlane];
   //  QList<int> indices;
-  QList<float> coords;
+  QVector<float> coords;
   for ( int i = ext[0][0]; i <= ext[0][1]; i++ )
   {
     for ( int j = ext[1][0]; j <= ext[1][1]; j++ )

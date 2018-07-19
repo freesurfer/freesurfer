@@ -1,0 +1,8 @@
+project(mri_simulate_atrophy)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+add_executable(mri_simulate_atrophy mri_simulate_atrophy.c)
+target_link_libraries(mri_simulate_atrophy utils)
+
+install(TARGETS mri_simulate_atrophy DESTINATION bin)

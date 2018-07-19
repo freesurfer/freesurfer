@@ -1,0 +1,8 @@
+project(mris_parcellate_connectivity)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+add_executable(mris_parcellate_connectivity mris_parcellate_connectivity.c)
+target_link_libraries(mris_parcellate_connectivity utils)
+
+install(TARGETS mris_parcellate_connectivity DESTINATION bin)

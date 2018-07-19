@@ -1,17 +1,11 @@
 project(mris_shrinkwrap)
-include_directories(${mris_shrinkwrap_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mris_shrinkwrap_SRCS
-mris_AA_shrinkwrap.c
-mris_shrinkwrap.c
-)
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
+add_executable(mris_shrinkwrap mris_shrinkwrap.c)
+target_link_libraries(mris_shrinkwrap utils)
+install(TARGETS mris_shrinkwrap DESTINATION bin)
 
-add_executable(mris_shrinkwrap ${mris_shrinkwrap_SRCS})
-target_link_libraries(mris_shrinkwrap ${FS_LIBS})
-install(TARGETS mris_shrinkwrap DESTINATION bin)	
-
-
+add_executable(mris_AA_shrinkwrap mris_AA_shrinkwrap.c)
+target_link_libraries(mris_AA_shrinkwrap utils)
+install(TARGETS mris_AA_shrinkwrap DESTINATION bin)

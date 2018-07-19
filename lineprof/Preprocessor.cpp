@@ -160,11 +160,9 @@ Preprocessor::convertPointSetToBinaryImage(PointSetPointer pointSet)
   BoundingBoxType::Pointer boundingBox = BoundingBoxType::New();
   boundingBox->SetPoints(pointSet->GetPoints());
   boundingBox->ComputeBoundingBox();
-  BoundingBoxType::BoundsArrayType bbox
-    = boundingBox->GetBounds();
+  BoundingBoxType::BoundsArrayType bbox = boundingBox->GetBounds();
 #else
-  PointSetType::BoundingBoxType::BoundsArrayType bbox
-    = pointSet->GetBoundingBox()->GetBounds();
+  PointSetType::BoundingBoxType::BoundsArrayType bbox = pointSet->GetBoundingBox()->GetBounds();
 #endif
 
   // use it to infer the resolution

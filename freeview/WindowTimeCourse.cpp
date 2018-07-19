@@ -80,7 +80,7 @@ void WindowTimeCourse::UpdateUI()
   {
     QList<LayerMRI*> valid_layers;
     LayerMRI* layer = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer(type));
-    if (layer->GetNumberOfFrames() == 1 && lastMRI && MainWindow::GetMainWindow()->GetLayerCollection("MRI")->Contains(lastMRI))
+    if (layer && layer->GetNumberOfFrames() == 1 && lastMRI && MainWindow::GetMainWindow()->GetLayerCollection("MRI")->Contains(lastMRI))
       layer = lastMRI;
     if (layer)
     {

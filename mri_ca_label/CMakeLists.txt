@@ -1,15 +1,11 @@
 project(mri_ca_label)
-include_directories(${mri_ca_label_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mri_ca_label_SRCS
-mri_ca_label.c
-)
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
+add_executable(mri_ca_label mri_ca_label.c)
+add_help(mri_ca_label mri_ca_label.help.xml)
+target_link_libraries(mri_ca_label utils)
 
-add_executable(mri_ca_label ${mri_ca_label_SRCS})
-target_link_libraries(mri_ca_label ${FS_LIBS})
-install(TARGETS mri_ca_label DESTINATION bin)	
+add_test_script(NAME mri_ca_label_test SCRIPT test_mri_ca_label DEPENDS mri_ca_label)
 
+install(TARGETS mri_ca_label DESTINATION bin)

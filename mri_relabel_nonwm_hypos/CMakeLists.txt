@@ -1,0 +1,8 @@
+project(mri_relabel_nonwm_hypos)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+add_executable(mri_relabel_nonwm_hypos mri_relabel_nonwm_hypos.c)
+target_link_libraries(mri_relabel_nonwm_hypos utils)
+
+install(TARGETS mri_relabel_nonwm_hypos DESTINATION bin)

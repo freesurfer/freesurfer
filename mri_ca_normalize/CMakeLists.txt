@@ -1,15 +1,14 @@
 project(mri_ca_normalize)
-include_directories(${mri_ca_normalize_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mri_ca_normalize_SRCS
-mri_ca_normalize.c
-)
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
+add_executable(mri_ca_normalize mri_ca_normalize.c)
+add_help(mri_ca_normalize mri_ca_normalize.help.xml)
+target_link_libraries(mri_ca_normalize utils)
+install(TARGETS mri_ca_normalize DESTINATION bin)
 
-add_executable(mri_ca_normalize ${mri_ca_normalize_SRCS})
-target_link_libraries(mri_ca_normalize ${FS_LIBS})
-install(TARGETS mri_ca_normalize DESTINATION bin)	
+add_test_script(NAME mri_ca_normalize_test SCRIPT test_mri_ca_normalize DEPENDS mri_ca_normalize)
 
+add_executable(mri_cal_normalize mri_cal_normalize.c)
+target_link_libraries(mri_cal_normalize utils)
+install(TARGETS mri_cal_normalize DESTINATION bin)

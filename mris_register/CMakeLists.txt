@@ -1,16 +1,11 @@
 project(mris_register)
-include_directories(${mris_register_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mris_register_SRCS
-mris_register.c
-)
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
+add_executable(mris_register mris_register.c)
+add_help(mris_register mris_register.help.xml)
+target_link_libraries(mris_register utils)
 
-add_executable(mris_register ${mris_register_SRCS})
-target_link_libraries(mris_register ${FS_LIBS})
-install(TARGETS mris_register DESTINATION bin)	
+add_test_script(NAME mris_register_test SCRIPT test_mris_register DEPENDS mris_register)
 
-
+install(TARGETS mris_register DESTINATION bin)

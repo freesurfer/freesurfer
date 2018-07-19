@@ -145,6 +145,7 @@ void RenderView3D::SetInteractionMode( int nMode )
     m_interactor = m_interactorROIEdit;
     break;
   case IM_SurfacePath:
+  case IM_SurfaceCut:
     m_interactor = m_interactorPathEdit;
     break;
   default:

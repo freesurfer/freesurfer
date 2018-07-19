@@ -2084,7 +2084,7 @@ void FSSurface::RipFaces()
     }
 }
 
-QList<int> FSSurface::FloodFillFromSeed(int seed_vno)
+QVector<int> FSSurface::FloodFillFromSeed(int seed_vno)
 {
   MRIS* mris = m_MRIS;
   char* filled;
@@ -2106,7 +2106,7 @@ QList<int> FSSurface::FloodFillFromSeed(int seed_vno)
 //  int skip;
   int count;
 
-  QList<int> filled_verts;
+  QVector<int> filled_verts;
 
   if (seed_vno < 0 || seed_vno >= mris->nvertices)
     return filled_verts;
@@ -2117,6 +2117,7 @@ QList<int> FSSurface::FloodFillFromSeed(int seed_vno)
 
   /* start with the seed filled.*/
   filled[seed_vno] = TRUE;
+  filled_verts << seed_vno;
 
   /* find seed values for some conditions. */
   //  if (params->dont_cross_label)
@@ -2255,6 +2256,7 @@ QList<int> FSSurface::FloodFillFromSeed(int seed_vno)
 
           /* mark this vertex as filled. */
           filled[neighbor_vno] = TRUE;
+          filled_verts << neighbor_vno;
           num_filled_this_iter++;
           num_filled++;
         }
@@ -2265,7 +2267,6 @@ QList<int> FSSurface::FloodFillFromSeed(int seed_vno)
   }
 
   /* mark all filled vertices. */
-  count = 0;
   for (vno = 0; vno < mris->nvertices; vno++ )
   {
     mris->vertices[vno].ripflag = (!filled[vno]);
@@ -2276,9 +2277,9 @@ QList<int> FSSurface::FloodFillFromSeed(int seed_vno)
   return filled_verts;
 }
 
-QList<int> FSSurface::MakeCutLine(const QList<int>& verts)
+QVector<int> FSSurface::MakeCutLine(const QVector<int>& verts)
 {
-  QList<int> old;
+  QVector<int> old;
   MRIS* mris = m_MRIS;
   for (int i = 0; i < verts.size(); i++)
   {
@@ -2292,7 +2293,7 @@ QList<int> FSSurface::MakeCutLine(const QList<int>& verts)
   return old;
 }
 
-void FSSurface::ClearCuts(const QList<int> &verts)
+void FSSurface::ClearCuts(const QVector<int> &verts)
 {
   MRIS* mris = m_MRIS;
   if (verts.isEmpty())

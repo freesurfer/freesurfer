@@ -1,16 +1,10 @@
 project(mris_transform)
-include_directories(${mris_transform_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mris_transform_SRCS
-mris_transform.c
-)
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
+add_executable(mris_transform mris_transform.c)
+target_link_libraries(mris_transform utils)
 
-add_executable(mris_transform ${mris_transform_SRCS})
-target_link_libraries(mris_transform ${FS_LIBS})
-install(TARGETS mris_transform DESTINATION bin)	
+add_test_script(NAME mris_transform_test SCRIPT test DEPENDS mris_transform)
 
-
+install(TARGETS mris_transform DESTINATION bin)

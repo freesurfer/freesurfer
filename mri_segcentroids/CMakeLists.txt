@@ -1,0 +1,8 @@
+project(mri_segcentroids)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+add_executable(mri_segcentroids mri_segcentroids.cpp)
+add_help(mri_segcentroids mri_segcentroids.help.xml)
+target_link_libraries(mri_segcentroids utils)
+install(TARGETS mri_segcentroids DESTINATION bin) 

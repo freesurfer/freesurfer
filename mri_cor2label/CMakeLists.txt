@@ -1,15 +1,8 @@
 project(mri_cor2label)
-include_directories(${mri_cor2label_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mri_cor2label_SRCS
-mri_cor2label.c
-)
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
-
-add_executable(mri_cor2label ${mri_cor2label_SRCS})
-target_link_libraries(mri_cor2label ${FS_LIBS})
-install(TARGETS mri_cor2label DESTINATION bin)	
-
+add_executable(mri_cor2label mri_cor2label.c)
+target_link_libraries(mri_cor2label utils)
+install(TARGETS mri_cor2label DESTINATION bin)
+install(PROGRAMS mri_cor2label DESTINATION bin RENAME mri_vol2label)

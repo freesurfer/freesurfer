@@ -1,17 +1,15 @@
 project(mris_thickness)
-include_directories(${mris_thickness_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mris_thickness_SRCS
-mris_cluster_profiles.c
-mris_intensity_profile.c
-mris_thickness.c
-)
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
+add_executable(mris_thickness mris_thickness.c)
+target_link_libraries(mris_thickness utils)
+install(TARGETS mris_thickness DESTINATION bin)
 
-add_executable(mris_thickness ${mris_thickness_SRCS})
-target_link_libraries(mris_thickness ${FS_LIBS})
-install(TARGETS mris_thickness DESTINATION bin)	
+add_executable(mris_intensity_profile mris_intensity_profile.c)
+target_link_libraries(mris_intensity_profile utils)
+install(TARGETS mris_intensity_profile DESTINATION bin)
 
+add_executable(mris_gradient mris_gradient.c)
+target_link_libraries(mris_gradient utils)
+install(TARGETS mris_gradient DESTINATION bin)

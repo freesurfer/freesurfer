@@ -1,14 +1,7 @@
 project(hipsstubs)
-include_directories(${hipsstubs_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(hipsstubs_SRCS
-hipsrepl.c
-hipsstubs.c
-)
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
+SET(SOURCES hipsrepl.c hipsstubs.c)
 
-add_library(hipsstubs STATIC ${hipsstubs_SRCS})
-
+add_library(hipsstubs STATIC ${SOURCES})

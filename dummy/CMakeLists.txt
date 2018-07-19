@@ -1,16 +1,8 @@
 project(dummy)
-include_directories(${dummy_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(dummy_SRCS
-dummy.c
-myown.c
-)
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
+add_executable(dummy dummy.c)
+target_link_libraries(dummy utils)
 
-add_executable(dummy ${dummy_SRCS})
-target_link_libraries(dummy ${FS_LIBS})
-install(TARGETS dummy DESTINATION bin)	
-
+install(TARGETS dummy DESTINATION bin)

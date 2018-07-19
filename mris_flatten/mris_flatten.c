@@ -65,7 +65,7 @@ static INTEGRATION_PARMS  parms ;
 static float base_dt_scale = BASE_DT_SCALE ;
 static char *label_fname = NULL ;
 static int nbrs = 2 ;
-static int inflate = 0 ;
+static int do_inflate = 0 ;
 static double disturb = 0 ;
 static int mrisDisturbVertices(MRI_SURFACE *mris, double amount) ;
 static int randomly_flatten = 0 ;
@@ -954,7 +954,7 @@ get_option(int argc, char *argv[])
               parms.write_iterations) ;
       break ;
     case 'I':
-      inflate = 1 ;
+      do_inflate = 1 ;
       fprintf(stderr, "inflating brain...\n") ;
       break ;
     case 'A':

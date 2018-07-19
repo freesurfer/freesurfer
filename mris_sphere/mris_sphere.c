@@ -70,7 +70,7 @@ static INTEGRATION_PARMS  parms ;
 #define BASE_DT_SCALE     1.0
 static float base_dt_scale = BASE_DT_SCALE ;
 static int nbrs = 2 ;
-static int inflate = 0 ;
+static int do_inflate = 0 ;
 static double disturb = 0 ;
 static int   max_passes = 1 ;
 static int   randomly_project = 0 ;
@@ -317,7 +317,7 @@ main(int argc, char *argv[])
            target_radius) ;
   }
   //  MRISsampleAtEachDistance(mris, parms.nbhd_size, parms.max_nbrs) ;
-  if (!load && inflate)
+  if (!load && do_inflate)
   {
     INTEGRATION_PARMS inflation_parms ;
 
@@ -737,7 +737,7 @@ get_option(int argc, char *argv[])
     case 'Q':
       remove_negative = 0 ;
       quick = 1 ;
-      inflate = 1 ;
+      do_inflate = 1 ;
       inflate_iterations = 300 ;
       max_passes = 3 ;
       fprintf(stderr, "doing quick spherical unfolding.\n") ;
@@ -789,7 +789,7 @@ get_option(int argc, char *argv[])
       (stderr, "using write iterations = %d\n", parms.write_iterations) ;
       break ;
     case 'I':
-      inflate = 1 ;
+      do_inflate = 1 ;
       fprintf(stderr, "inflating brain...\n") ;
       break ;
     case 'A':

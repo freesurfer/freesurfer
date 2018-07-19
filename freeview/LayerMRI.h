@@ -179,9 +179,9 @@ public:
 
   bool GetVoxelsOnLine( const double* pt0, const double* pt1, int nPlane, int*& indice_out, double*& value_out, int* cnt_out );
 
-  bool GetVoxelStats(QList<int>& indices, double* mean_out, double* sd_out = NULL);
+  bool GetVoxelStats(QVector<int>& indices, double* mean_out, double* sd_out = NULL);
 
-  bool GetVoxelStatsByTargetRAS(QList<float> &coords, double* mean_out, double *sd_out = NULL);
+  bool GetVoxelStatsByTargetRAS(QVector<float> &coords, double* mean_out, double *sd_out = NULL);
 
   void ResetWindowLevel();
 

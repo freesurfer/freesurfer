@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>332</width>
-    <height>1030</height>
+    <width>445</width>
+    <height>991</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,11 +24,11 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>318</width>
+     <width>431</width>
      <height>1246</height>
     </rect>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout">
+   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0,1">
     <property name="leftMargin">
      <number>0</number>
     </property>
@@ -98,13 +98,18 @@
          <bool>false</bool>
         </property>
         <addaction name="actionCut"/>
+        <addaction name="actionPath"/>
         <addaction name="separator"/>
         <addaction name="actionCutLine"/>
         <addaction name="actionCutClosedLine"/>
         <addaction name="actionFillUncutArea"/>
-        <addaction name="separator"/>
         <addaction name="actionUndoCut"/>
         <addaction name="actionCutClear"/>
+        <addaction name="actionMakePath"/>
+        <addaction name="actionMakeClosedPath"/>
+        <addaction name="actionPathFill"/>
+        <addaction name="actionDeletePath"/>
+        <addaction name="actionClearMarks"/>
        </widget>
       </item>
      </layout>
@@ -367,8 +372,11 @@
         <property name="maximumSize">
          <size>
           <width>16777215</width>
-          <height>90</height>
+          <height>100</height>
          </size>
+        </property>
+        <property name="editTriggers">
+         <set>QAbstractItemView::SelectedClicked</set>
         </property>
         <property name="selectionMode">
          <enum>QAbstractItemView::ExtendedSelection</enum>
@@ -697,10 +705,45 @@
       </item>
       <item row="19" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout22_5">
+        <property name="spacing">
+         <number>2</number>
+        </property>
+        <item>
+         <widget class="QPushButton" name="pushButtonNewLabel">
+          <property name="maximumSize">
+           <size>
+            <width>52</width>
+            <height>166666</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>New</string>
+          </property>
+         </widget>
+        </item>
         <item>
          <widget class="QPushButton" name="pushButtonLoadLabel">
+          <property name="maximumSize">
+           <size>
+            <width>52</width>
+            <height>16777215</height>
+           </size>
+          </property>
           <property name="text">
            <string>Load</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButtonSaveLabel">
+          <property name="maximumSize">
+           <size>
+            <width>52</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Save</string>
           </property>
          </widget>
         </item>
@@ -709,10 +752,29 @@
           <property name="enabled">
            <bool>false</bool>
           </property>
+          <property name="maximumSize">
+           <size>
+            <width>52</width>
+            <height>16777215</height>
+           </size>
+          </property>
           <property name="text">
            <string>Delete</string>
           </property>
          </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_5">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
         </item>
        </layout>
       </item>
@@ -1109,10 +1171,13 @@
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>
+      <property name="sizeType">
+       <enum>QSizePolicy::Expanding</enum>
+      </property>
       <property name="sizeHint" stdset="0">
        <size>
-        <width>0</width>
-        <height>0</height>
+        <width>20</width>
+        <height>5</height>
        </size>
       </property>
      </spacer>
@@ -1332,6 +1397,63 @@
     <string>Undo Cut</string>
    </property>
   </action>
+  <action name="actionPath">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/surface_path.png</normaloff>:/resource/icons/surface_path.png</iconset>
+   </property>
+   <property name="text">
+    <string>Path</string>
+   </property>
+  </action>
+  <action name="actionMakePath">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/surface_path_make.png</normaloff>:/resource/icons/surface_path_make.png</iconset>
+   </property>
+   <property name="text">
+    <string>Make Path</string>
+   </property>
+  </action>
+  <action name="actionMakeClosedPath">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/surface_path_make_closed.png</normaloff>:/resource/icons/surface_path_make_closed.png</iconset>
+   </property>
+   <property name="text">
+    <string>Make Closed Path</string>
+   </property>
+  </action>
+  <action name="actionDeletePath">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/surface_path_delete.png</normaloff>:/resource/icons/surface_path_delete.png</iconset>
+   </property>
+   <property name="text">
+    <string>Delete Path</string>
+   </property>
+  </action>
+  <action name="actionPathFill">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/surface_path_fill.png</normaloff>:/resource/icons/surface_path_fill.png</iconset>
+   </property>
+   <property name="text">
+    <string>Custom Fill</string>
+   </property>
+  </action>
+  <action name="actionClearMarks">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/surface_clear_marks.png</normaloff>:/resource/icons/surface_clear_marks.png</iconset>
+   </property>
+   <property name="text">
+    <string>Clear Marks</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -1430,8 +1552,8 @@
    <slot>OnLineEditMidPoint(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>315</x>
-     <y>388</y>
+     <x>394</x>
+     <y>398</y>
     </hint>
     <hint type="destinationlabel">
      <x>326</x>
@@ -1446,8 +1568,8 @@
    <slot>OnLineEditSlope(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>315</x>
-     <y>418</y>
+     <x>394</x>
+     <y>428</y>
     </hint>
     <hint type="destinationlabel">
      <x>332</x>
@@ -1494,11 +1616,11 @@
    <slot>OnComboAnnotation(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>316</x>
-     <y>505</y>
+     <x>395</x>
+     <y>546</y>
     </hint>
     <hint type="destinationlabel">
-     <x>429</x>
+     <x>410</x>
      <y>686</y>
     </hint>
    </hints>
@@ -1510,8 +1632,8 @@
    <slot>OnComboVector(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>316</x>
-     <y>842</y>
+     <x>395</x>
+     <y>945</y>
     </hint>
     <hint type="destinationlabel">
      <x>27</x>
@@ -1526,12 +1648,12 @@
    <slot>OnEditPositionOffset()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>316</x>
-     <y>1055</y>
+     <x>395</x>
+     <y>1158</y>
     </hint>
     <hint type="destinationlabel">
-     <x>486</x>
-     <y>946</y>
+     <x>410</x>
+     <y>820</y>
     </hint>
    </hints>
   </connection>
@@ -1542,11 +1664,11 @@
    <slot>OnLabelItemChanged(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>316</x>
-     <y>639</y>
+     <x>395</x>
+     <y>711</y>
     </hint>
     <hint type="destinationlabel">
-     <x>513</x>
+     <x>410</x>
      <y>610</y>
     </hint>
    </hints>
@@ -1558,11 +1680,11 @@
    <slot>OnCurrentLabelItemChanged(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>316</x>
-     <y>639</y>
+     <x>395</x>
+     <y>711</y>
     </hint>
     <hint type="destinationlabel">
-     <x>663</x>
+     <x>410</x>
      <y>566</y>
     </hint>
    </hints>
@@ -1574,11 +1696,11 @@
    <slot>OnButtonLoadLabel()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>206</x>
-     <y>562</y>
+     <x>209</x>
+     <y>634</y>
     </hint>
     <hint type="destinationlabel">
-     <x>489</x>
+     <x>410</x>
      <y>570</y>
     </hint>
    </hints>
@@ -1623,10 +1745,10 @@
    <hints>
     <hint type="sourcelabel">
      <x>178</x>
-     <y>728</y>
+     <y>800</y>
     </hint>
     <hint type="destinationlabel">
-     <x>662</x>
+     <x>410</x>
      <y>688</y>
     </hint>
    </hints>
@@ -1638,11 +1760,11 @@
    <slot>OnLabelItemDoubleClicked(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>316</x>
-     <y>639</y>
+     <x>395</x>
+     <y>711</y>
     </hint>
     <hint type="destinationlabel">
-     <x>803</x>
+     <x>410</x>
      <y>659</y>
     </hint>
    </hints>
@@ -1654,11 +1776,11 @@
    <slot>OnButtonDeleteLabel()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>315</x>
-     <y>562</y>
+     <x>317</x>
+     <y>634</y>
     </hint>
     <hint type="destinationlabel">
-     <x>506</x>
+     <x>410</x>
      <y>586</y>
     </hint>
    </hints>
@@ -1671,10 +1793,10 @@
    <hints>
     <hint type="sourcelabel">
      <x>198</x>
-     <y>668</y>
+     <y>740</y>
     </hint>
     <hint type="destinationlabel">
-     <x>623</x>
+     <x>410</x>
      <y>717</y>
     </hint>
    </hints>
@@ -1687,10 +1809,10 @@
    <hints>
     <hint type="sourcelabel">
      <x>178</x>
-     <y>698</y>
+     <y>770</y>
     </hint>
     <hint type="destinationlabel">
-     <x>518</x>
+     <x>410</x>
      <y>745</y>
     </hint>
    </hints>
@@ -1703,10 +1825,10 @@
    <hints>
     <hint type="sourcelabel">
      <x>259</x>
-     <y>698</y>
+     <y>770</y>
     </hint>
     <hint type="destinationlabel">
-     <x>605</x>
+     <x>410</x>
      <y>707</y>
     </hint>
    </hints>
@@ -1722,7 +1844,7 @@
      <y>476</y>
     </hint>
     <hint type="destinationlabel">
-     <x>512</x>
+     <x>410</x>
      <y>517</y>
     </hint>
    </hints>
@@ -1738,7 +1860,7 @@
      <y>207</y>
     </hint>
     <hint type="destinationlabel">
-     <x>415</x>
+     <x>410</x>
      <y>173</y>
     </hint>
    </hints>
@@ -1750,12 +1872,12 @@
    <slot>OnButtonLoadSpline()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>206</x>
-     <y>922</y>
+     <x>246</x>
+     <y>1025</y>
     </hint>
     <hint type="destinationlabel">
-     <x>610</x>
-     <y>871</y>
+     <x>410</x>
+     <y>820</y>
     </hint>
    </hints>
   </connection>
@@ -1766,11 +1888,11 @@
    <slot>OnButtonDeleteSpline()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>315</x>
-     <y>922</y>
+     <x>394</x>
+     <y>1025</y>
     </hint>
     <hint type="destinationlabel">
-     <x>509</x>
+     <x>410</x>
      <y>805</y>
     </hint>
    </hints>
@@ -1782,12 +1904,12 @@
    <slot>OnSplineItemChanged(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>316</x>
-     <y>999</y>
+     <x>395</x>
+     <y>1102</y>
     </hint>
     <hint type="destinationlabel">
-     <x>550</x>
-     <y>879</y>
+     <x>410</x>
+     <y>820</y>
     </hint>
    </hints>
   </connection>
@@ -1798,12 +1920,44 @@
    <slot>OnCurrentSplineItemChanged(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>316</x>
-     <y>999</y>
+     <x>395</x>
+     <y>1102</y>
     </hint>
     <hint type="destinationlabel">
-     <x>467</x>
-     <y>898</y>
+     <x>410</x>
+     <y>820</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonNewLabel</sender>
+   <signal>clicked()</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnButtonNewLabel()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>128</x>
+     <y>627</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>444</x>
+     <y>623</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonSaveLabel</sender>
+   <signal>clicked()</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnButtonSaveLabel()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>255</x>
+     <y>630</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>444</x>
+     <y>730</y>
     </hint>
    </hints>
   </connection>
@@ -1840,5 +1994,7 @@
   <slot>OnButtonDeleteSpline()</slot>
   <slot>OnSplineItemChanged(QTreeWidgetItem*)</slot>
   <slot>OnCurrentSplineItemChanged(QTreeWidgetItem*)</slot>
+  <slot>OnButtonNewLabel()</slot>
+  <slot>OnButtonSaveLabel()</slot>
  </slots>
 </ui>
