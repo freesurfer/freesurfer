@@ -1,7 +1,7 @@
 #!/bin/tcsh -ef
 
 #setenv CMDDIR `pwd`
-setenv CMDDIR $FREESURFER_HOME/scripts/InfantFS/
+setenv CMDDIR $FREESURFER_HOME/bin/
 setenv MLAB $MATLAB_ROOT
 setenv MRFparams "1 5"
 
