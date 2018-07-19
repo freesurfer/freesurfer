@@ -13,7 +13,7 @@ foo_DATA=\
 	license.swig.txt \
 	license.vxl.txt \
 	license.thrust.txt \
-	license.qt.html \
+	license.qt.txt \
 	license.vtk.txt \
 	license.itk.txt \
 	license.petsc.txt \
