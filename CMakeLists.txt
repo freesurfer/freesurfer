@@ -81,7 +81,7 @@ find_package(PETSC REQUIRED)
 if(NOT ITK_DIR)
   set(ITK_DIR ${FS_PACKAGES_DIR}/itk/5.0.0)
 endif()
-find_package(ITK REQUIRED)
+find_package(ITK PATHS ${ITK_DIR} REQUIRED)
 add_definitions(-DHAVE_ITK_LIBS)
 
 # -------- boost program options --------
