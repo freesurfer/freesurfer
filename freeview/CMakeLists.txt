@@ -27,6 +27,7 @@ set(SOURCES
   BrushProperty.cpp 
   DialogAbout.cpp
   DialogCropVolume.cpp
+  DialogCustomFill.cpp
   DialogGradientFilter.cpp
   DialogLoadDTI.cpp
   DialogLoadPointSet.cpp
