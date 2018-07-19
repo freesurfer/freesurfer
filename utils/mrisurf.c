@@ -81278,3 +81278,57 @@ int MRISedges(MRIS *surf)
   return(0);
 }
 
+
+/*!
+  \fn int MRISfixAverageSurf7(MRIS *surf7)
+  \brief This fixeds a problem with ico7 average surfaces as created
+  by mris_make_average_surface where two vertices (0 and 40969) have
+  the same xyz coordinates. The fix is to move vertex 40969 to a point
+  half way between itself and its nearest neighbor.
+*/
+int MRISfixAverageSurf7(MRIS *surf7)
+{
+  VERTEX *v0,*v1,*vn;
+  int n;
+  double dx,dy,dz;  
+  double xmin,ymin,zmin,d,dmin;
+
+  if(surf7->nvertices != 163842){
+    printf("ERROR: MRISfixAverageSurf7(): must be ico7\n");
+    return(1);
+  }
+
+  v0 = &(surf7->vertices[0]);
+  v1 = &(surf7->vertices[40969]);
+
+  // Make sure that the xyz are the same at these two vertices
+  if(fabs(v0->x-v1->x) > 10e-6 || fabs(v0->y-v1->y) > 10e-6 || fabs(v0->z-v1->z) > 10e-6){
+    printf("ERROR: MRISfixAverageSurf7(): this surface appears to have been fixed already\n");
+    return(1);
+  }
+
+  // Go through the neighbors of 40969 and find the closest vertex. Note: exclude any vertex
+  // with a distance of 0 (because this is what the problem is)
+  dmin = 10e10;
+  xmin = ymin = zmin = 10e10;
+  for(n=0; n < v1->num; n++){
+    vn = &(surf7->vertices[v1->v[n]]);	
+    dx = (vn->x - v1->x);
+    dy = (vn->y - v1->y);
+    dz = (vn->z - v1->z);
+    d = sqrt(dx*dx + dy*dy + dz*dz);
+    if(d<dmin && d > 0){
+      dmin = d;
+      xmin = vn->x;
+      ymin = vn->y;
+      zmin = vn->z;
+    }
+  }
+
+  // Move vertex 40969 half way between itself and its nearest neighbor
+  v1->x = (v1->x + xmin)/2;
+  v1->y = (v1->y + ymin)/2;
+  v1->z = (v1->z + zmin)/2;
+
+  return(0);
+}
