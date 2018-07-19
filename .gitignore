@@ -25,6 +25,12 @@ config/test-driver
 stamp-h1
 cpuflags.mak
 *.[oa]
+ld_map.txt
+
+# cmake build files
+cmake_install.cmake
+CTestTestfile.cmake
+CMakeFiles
 
 # libtool files:
 libtool

@@ -1,2 +1,0 @@
-project(fs_vnl)
-

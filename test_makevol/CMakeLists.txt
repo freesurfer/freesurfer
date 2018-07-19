@@ -1,15 +1,8 @@
-project(.-test_makevol)
-include_directories(${.-test_makevol_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
+project(test_makevol)
 
-SET(.-test_makevol_SRCS
-main.c
-)
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
+add_executable(makevol main.c)
+target_link_libraries(makevol utils)
 
-add_executable(.-test_makevol ${.-test_makevol_SRCS})
-target_link_libraries(.-test_makevol ${FS_LIBS})
-install(TARGETS .-test_makevol DESTINATION bin)	
-
+install(TARGETS makevol DESTINATION bin)

@@ -1,15 +1,10 @@
 project(mri_relabel_hypointensities)
-include_directories(${mri_relabel_hypointensities_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mri_relabel_hypointensities_SRCS
-mri_relabel_hypointensities.c
-)
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
+add_executable(mri_relabel_hypointensities mri_relabel_hypointensities.c)
+target_link_libraries(mri_relabel_hypointensities utils)
 
-add_executable(mri_relabel_hypointensities ${mri_relabel_hypointensities_SRCS})
-target_link_libraries(mri_relabel_hypointensities ${FS_LIBS})
-install(TARGETS mri_relabel_hypointensities DESTINATION bin)	
+add_test_script(NAME mri_relabel_hypointensities_test SCRIPT test_mri_relabel_hypointensities DEPENDS mri_relabel_hypointensities)
 
+install(TARGETS mri_relabel_hypointensities DESTINATION bin)

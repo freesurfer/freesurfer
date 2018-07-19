@@ -1479,7 +1479,7 @@ MRI * MyMRI::entropyImage(MRI* mri, int radius, bool ball, bool correction, MRI 
             entropy -= etmp * log(etmp);
           }
 
-        if (entropy < 0 || isnan(entropy))
+        if (entropy < 0 || std::isnan(entropy))
         {
           cerr << " ERROR in MyMRI::entropyImage: entropy is negative or nan ? "
               << endl;

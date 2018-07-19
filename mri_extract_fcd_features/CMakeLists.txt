@@ -1,0 +1,8 @@
+project(mri_extract_fcd_features)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
+add_executable(mri_extract_fcd_features mri_extract_fcd_features.c)
+target_link_libraries(mri_extract_fcd_features utils)
+
+install(TARGETS mri_extract_fcd_features DESTINATION bin)

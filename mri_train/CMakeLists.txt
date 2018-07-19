@@ -1,15 +1,8 @@
 project(mri_train)
-include_directories(${mri_train_SOURCE_DIR}
-${INCLUDE_DIR_TOP} 
-${VXL_INCLUDES} 
-${MINC_INCLUDE_DIRS}) 
 
-SET(mri_train_SRCS
-mri_train.c
-)
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
+add_executable(mri_train mri_train.c)
+target_link_libraries(mri_train utils)
 
-add_executable(mri_train ${mri_train_SRCS})
-target_link_libraries(mri_train ${FS_LIBS})
-install(TARGETS mri_train DESTINATION bin)	
-
+install(TARGETS mri_train DESTINATION bin)
