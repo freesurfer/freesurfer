@@ -2,7 +2,7 @@ project(vtkfsio)
 
 if(VTK_FOUND)
 
-  include_directories(${CMAKE_SOURCE_DIR}/include ${VTK_INCLUDE_DIRS})
+  include_directories(${CMAKE_SOURCE_DIR}/include ${VTK_INCLUDE_DIR})
 
   set(SOURCES
     vtkFSSurfaceLabelSource.cxx

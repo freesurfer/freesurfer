@@ -24,8 +24,10 @@
 #include "RenderView2D.h"
 #include "LayerCollection.h"
 #include "MainWindow.h"
+#include "LayerLineProfile.h"
+#include "LayerSurface.h"
 #include "LayerMRI.h"
-#undef isfinite 
+// #undef isfinite
 #include "LayerPropertyMRI.h"
 #include "Contour2D.h"
 #include "VolumeCropper.h"
@@ -48,8 +50,6 @@
 #include <QMessageBox>
 #include <QMenu>
 #include <QDebug>
-#include "LayerLineProfile.h"
-#include "LayerSurface.h"
 
 RenderView2D::RenderView2D( QWidget* parent ) : RenderView( parent )
 {

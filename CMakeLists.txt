@@ -12,63 +12,13 @@ enable_language(C CXX Fortran)
 # a few build options
 enable_testing()
 option(BUILD_GUIS "Build GUIs" ON)
+option(SMALL_INSTALL "Install a minimal FS distribution" OFF)
 
 # include our custom cmake functions
 include(cmake/functions.cmake)
 
 # prevents itk from importing as a system
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED TRUE)
-
-
-# --------------------------------------------------
-#             global build configuration
-# --------------------------------------------------
-
-add_definitions(-D${CMAKE_SYSTEM_NAME})
-
-# general check for big endian
-include(TestBigEndian)
-test_big_endian(IS_BIG_ENDIAN)
-
-# todo: config.h
-
-# compiler warnings
-set(COMPILE_FLAGS "${COMPILE_FLAGS} -Wall -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs")
-
-# not entirely sure what this ANSI is used for
-add_definitions(-DANSI)
-
-# todo: write some logic to set this correctly
-# SSE matrix and math functions (affine.h and sse_mathfun.h)
-add_definitions(-DUSE_SSE_MATHFUN)
-set(COMPILE_FLAGS "${COMPILE_FLAGS} -msse2 -mfpmath=sse")
-
-# -g compiles debugging info for use by debuggers like gdb. Normally we want
-# that in the build, but here we add the FS_DEBUG option, which greatly
-# reduces the size of compiled binaries when turned OFF
-option(FS_DEBUG "Compile with the -g flag" ON)
-if(FS_DEBUG)
-  set(COMPILE_FLAGS "${COMPILE_FLAGS} -g")
-endif()
-
-# for stripping unused code
-if(APPLE)
-  set(COMPILE_FLAGS "${COMPILE_FLAGS} -dead_strip")
-else()
-  set(COMPILE_FLAGS "${COMPILE_FLAGS} -fdata-sections -ffunction-sections -Wl,--gc-sections")
-endif()
-
-# optimization
-# todo: implement processor-based logic to determine this
-set(COMPILE_FLAGS "${COMPILE_FLAGS} -O3 -m64")
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMPILE_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMPILE_FLAGS}")
-
-# link map (only on linux)
-if(NOT APPLE)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
-endif()
 
 
 # --------------------------------------------------
@@ -89,7 +39,6 @@ if(NOT FS_PACKAGES_DIR)
   endif()
 endif()
 
-# todo: comment
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 # -------- zlib --------
@@ -192,6 +141,60 @@ if(BUILD_GUIS)
 
 endif()
 
+
+# --------------------------------------------------
+#             global build configuration
+# --------------------------------------------------
+
+add_definitions(-D${CMAKE_SYSTEM_NAME})
+
+# general check for big endian
+include(TestBigEndian)
+test_big_endian(IS_BIG_ENDIAN)
+
+# todo: config.h
+
+# compiler warnings
+set(COMPILE_FLAGS "${COMPILE_FLAGS} -Wall -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs")
+
+# not entirely sure what this ANSI is used for
+add_definitions(-DANSI)
+
+# todo: write some logic to set this correctly
+# SSE matrix and math functions (affine.h and sse_mathfun.h)
+add_definitions(-DUSE_SSE_MATHFUN)
+set(COMPILE_FLAGS "${COMPILE_FLAGS} -msse2 -mfpmath=sse")
+
+# -g compiles debugging info for use by debuggers like gdb. Normally we want
+# that in the build, but here we add the FS_DEBUG option, which greatly
+# reduces the size of compiled binaries when turned OFF
+option(FS_DEBUG "Compile with the -g flag" ON)
+if(FS_DEBUG)
+  set(COMPILE_FLAGS "${COMPILE_FLAGS} -g")
+endif()
+
+# for stripping unused code
+if(APPLE)
+  set(COMPILE_FLAGS "${COMPILE_FLAGS} -dead_strip")
+else()
+  set(COMPILE_FLAGS "${COMPILE_FLAGS} -fdata-sections -ffunction-sections -Wl,--gc-sections")
+endif()
+
+# optimization
+# todo: implement processor-based logic to determine this
+set(COMPILE_FLAGS "${COMPILE_FLAGS} -O3 -m64")
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMPILE_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMPILE_FLAGS}")
+
+# link map (only on linux)
+if(NOT APPLE)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
+endif()
+
+# this is just a way to properly include netcdf in include/minc_volume_io.h
+# todo: there should be a better way to include netcdf and this macro should be removed
+add_definitions(-DCMAKE) 
 
 # --------------------------------------------------
 #                    freesurfer
@@ -451,7 +454,6 @@ add_subdirectories(
   mris_curvature
   mris_curvature_stats
   mris_decimate
-  mris_decimate_gui
   mris_deform
   mris_density
   mris_diff

@@ -21,13 +21,10 @@ As a validation, it will use the gcam to morph again the volumes
 // BOOST
 #include <boost/program_options.hpp>
 
+#include "morph.h"
+
 // OWN
 #include "simple_timer.h"
-
-// the isfinite defined in utils conflicts with vnl
-#undef isfinite
-
-#include "morph.h"
 
 // FS
 extern "C"

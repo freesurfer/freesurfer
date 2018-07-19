@@ -34,7 +34,7 @@
 extern "C"
 {
 #include "label.h"
-#undef uchar
+#undef uchar  // conflicts with Qt
 #include "mrisutils.h"
 }
 

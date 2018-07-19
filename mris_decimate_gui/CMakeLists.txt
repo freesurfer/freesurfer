@@ -10,7 +10,7 @@ if(GTS_FOUND AND VTK_FOUND AND WXWidgets_FOUND)
     ${CMAKE_SOURCE_DIR}/mris_decimate
     ${WXWIDGETS_INCLUDE_DIRS}
     ${GTS_INCLUDE_DIRS}
-    ${VTK_INCLUDE_DIRS})
+    ${VTK_INCLUDE_DIR})
 
   set(SOURCES
     ../mris_decimate/mris_decimate.cpp

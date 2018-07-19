@@ -4,9 +4,13 @@ if(ITK_FOUND AND VTK_FOUND AND PETSC_FOUND)
 
   include_directories(
     ${ITK_INCLUDE_DIRS}
-    ${VTK_INCLUDE_DIRS}
+    ${VTK_INCLUDE_DIR}
     ${PETSC_INCLUDE_DIR}
   )
+
+  # temporary macro to deal with BoundingBoxType
+  # this should be removed once we updgrade everything
+  add_definitions(-DHAVE_ITK45)
 
   set(SOURCES
     Tracer.cpp

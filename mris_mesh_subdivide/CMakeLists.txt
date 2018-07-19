@@ -3,7 +3,7 @@ project(mris_mesh_subdivide)
 
 if(VTK_FOUND)
 
-  include_directories(${CMAKE_SOURCE_DIR}/include ${VTK_INCLUDE_DIRS})
+  include_directories(${CMAKE_SOURCE_DIR}/include ${VTK_INCLUDE_DIR})
 
   add_executable(mris_mesh_subdivide mris_mesh_subdivide.cxx)
   target_link_libraries(mris_mesh_subdivide utils ${VTK_LIBRARIES})

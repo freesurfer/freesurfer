@@ -9,7 +9,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/vtkutils
   ${CMAKE_SOURCE_DIR}/lineprof
   ${ITK_INCLUDE_DIRS}
-  ${VTK_INCLUDE_DIRS}
+  ${VTK_INCLUDE_DIR}
   ${QT_INCLUDE_DIRS}
 )
 

@@ -34,7 +34,7 @@
 extern "C"
 {
 #include "fsgdf.h"
-#undef isfinite
+#undef isfinite  // conflicts with vnl
 }
 
 class FSVolume;

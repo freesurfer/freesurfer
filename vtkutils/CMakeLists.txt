@@ -5,7 +5,7 @@ if(VTK_FOUND AND KWWidgets_FOUND)
   include_directories(
     ${CMAKE_SOURCE_DIR}/include
     ${TIFF_INCLUDE_DIR}
-    ${VTK_INCLUDE_DIRS}
+    ${VTK_INCLUDE_DIR}
     ${KWWidgets_INCLUDE_DIR}
   )
 
@@ -14,14 +14,14 @@ if(VTK_FOUND AND KWWidgets_FOUND)
     OUTPUT vtkKWRGBATransferFunctionEditorTcl.cxx
     DEPENDS vtkKWRGBATransferFunctionEditor.h
     COMMAND ${VTK_DIR}/bin/vtkWrapTcl vtkKWRGBATransferFunctionEditor.h 
-            ${VTK_LIBRARY_DIRS}/hints 1 vtkKWRGBATransferFunctionEditorTcl.cxx
+            ${VTK_LIBRARY_DIR}/hints 1 vtkKWRGBATransferFunctionEditorTcl.cxx
   )
 
   add_custom_command(
     OUTPUT vtkKWBltGraphTcl.cxx
     DEPENDS vtkKWBltGraph.h
     COMMAND ${VTK_DIR}/bin/vtkWrapTcl vtkKWBltGraph.h 
-            ${VTK_LIBRARY_DIRS}/hints 1 vtkKWBltGraphTcl.cxx
+            ${VTK_LIBRARY_DIR}/hints 1 vtkKWBltGraphTcl.cxx
   )
 
   set(SOURCES
