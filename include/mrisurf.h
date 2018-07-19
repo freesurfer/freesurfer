@@ -2512,4 +2512,12 @@ int MRIScountEdges(MRIS *surf);
 int MRISedges(MRIS *surf);
 int MRISfixAverageSurf7(MRIS *surf7);
 
+typedef struct{
+  int vtxno;
+  float x,y,z;
+}
+VERTEX_SORT; // for sorting vertices using qsort
+MRIS *MRISsortVertices(MRIS *mris0);
+int CompareVertexCoords(const void *v1, const void *v2);
+
 #endif // MRISURF_H

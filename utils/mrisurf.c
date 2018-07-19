@@ -81284,7 +81284,8 @@ int MRISedges(MRIS *surf)
   \brief This fixeds a problem with ico7 average surfaces as created
   by mris_make_average_surface where two vertices (0 and 40969) have
   the same xyz coordinates. The fix is to move vertex 40969 to a point
-  half way between itself and its nearest neighbor.
+  half way between itself and its nearest neighbor. mris_make_average_surface
+  has since been fixed.
 */
 int MRISfixAverageSurf7(MRIS *surf7)
 {
@@ -81337,3 +81338,117 @@ int MRISfixAverageSurf7(MRIS *surf7)
 
   return(0);
 }
+
+
+/*!
+  \fn int CompareVertexCoords(const void *v1, const void *v2)
+  \brief Compares the xyz coords from two vertices in the VERTEX_SORT structure. This
+  if a function that can be used in qsort to sort vertices by xyz.
+ */
+int CompareVertexCoords(const void *v1, const void *v2)
+{
+  VERTEX_SORT *vtx1, *vtx2;
+  vtx1 = (VERTEX_SORT*) v1;
+  vtx2 = (VERTEX_SORT*) v2;
+
+  // Traditionally, vertices tended to be sorted in the ydir
+  if(vtx1->y < vtx2->y) return(-1);
+  if(vtx1->y > vtx2->y) return(+1);
+  if(vtx1->x < vtx2->x) return(-1);
+  if(vtx1->x > vtx2->x) return(+1);
+  if(vtx1->z < vtx2->z) return(-1);
+  return(+1);
+}
+
+/*!
+  \fn MRIS *MRISsortVertices(MRIS *mris0)
+  \brief Creates a new surface with the vertices sorted by y,x,z. The purpose of this
+  function is to run after mris_decimate to make the output deterministic. mris_decimate
+  will always produce the same surface xyz, but the vertices may be sorted differently,
+  which is pretty annoying. The input surface is cloned, but one should not trust anything
+  in the vertex strcture except the xyz and neighboring vertices and ripflag. The surface
+  is actually written to disk and read back in to clean out all the elements.
+ */
+MRIS *MRISsortVertices(MRIS *mris0)
+{
+  MRIS *mris;
+  int nthvtx, nthface, n, vno_old, *lut=NULL;
+  VERTEX_SORT *vtxsort;
+  VERTEX *vtxnew, *vtxold;
+  FACE *f;
+
+  vtxsort = (VERTEX_SORT *) calloc(mris0->nvertices,sizeof(VERTEX_SORT));
+  for(nthvtx = 0; nthvtx < mris0->nvertices; nthvtx++){
+    vtxsort[nthvtx].vtxno = nthvtx;
+    vtxsort[nthvtx].x = mris0->vertices[nthvtx].x;
+    vtxsort[nthvtx].y = mris0->vertices[nthvtx].y;
+    vtxsort[nthvtx].z = mris0->vertices[nthvtx].z;
+  }
+
+  qsort(vtxsort, mris0->nvertices, sizeof(VERTEX_SORT), CompareVertexCoords);
+
+  // Create a LUT to map from old to new
+  lut = (int *) calloc(mris0->nvertices,sizeof(int));
+  for(nthvtx = 0; nthvtx < mris0->nvertices; nthvtx++){
+    lut[vtxsort[nthvtx].vtxno] = nthvtx;
+  }
+
+  // Create a new surface. Cloning is tricky here because it will
+  // copy all the elements from the vertices and faces. But when the
+  // vertex identity is reassigned, most of the elements will be out
+  // of synch. So below, the surface is written out and read back in
+  // to clean it.
+  mris = MRISclone(mris0);
+
+  // Change the vertex xyz and neighbors
+  for(nthvtx = 0; nthvtx < mris0->nvertices; nthvtx++){
+    vtxold = &(mris0->vertices[vtxsort[nthvtx].vtxno]);
+    vtxnew = &(mris->vertices[nthvtx]);
+    vtxnew->x = vtxold->x;
+    vtxnew->y = vtxold->y;
+    vtxnew->z = vtxold->z;
+    vtxnew->ripflag = vtxold->ripflag;
+    vtxnew->vnum = vtxold->vnum; // number of neighboring vertices
+    if(vtxnew->v) free(vtxnew->v);
+    vtxnew->v = (int *)calloc(vtxnew->vnum, sizeof(int));
+    for(n=0; n < vtxold->vnum; n++){
+      vno_old = vtxold->v[n];
+      vtxnew->v[n] = lut[vno_old];
+    }
+    // Other items in the vertex are not copied over
+  }
+
+  // Change the face vertx numbers. All the other info in the face stays the same
+  for(nthface = 0; nthface < mris0->nfaces; nthface++){
+    f = &(mris0->faces[nthface]);
+    for(n=0; n < 3; n++){
+      vno_old = f->v[n];
+      mris->faces[nthface].v[n] = lut[vno_old];
+    }
+  }
+
+  // Create a temporary file to write the output and then read it back in
+  // to get the decimated surface. The reason I do this is because there
+  // was no clear API call in mrisurf.c that would allow me to muck with
+  // the vertex/face array and properly calculate everything else in the
+  // structure.  I felt this was the safest way to make sure everything
+  // in the surface got recalculated properly.
+  char *tmpName = strdup("/tmp/mris_decimateXXXXXX");
+  int fd = mkstemp(tmpName);
+  if(fd == -1) {
+    printf("Error creating temporary file: %s\n",tmpName);
+    return(NULL);
+  }
+  char tmp_fpath[STRLEN];
+  FileNameAbsolute(tmpName, tmp_fpath);
+  MRISwrite(mris, tmp_fpath);
+  MRISfree(&mris);
+  mris = MRISread(tmp_fpath);
+  remove(tmp_fpath);
+
+  free(lut);
+  lut = NULL;
+
+  return(mris);
+}
+
