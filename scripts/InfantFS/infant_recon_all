@@ -37,7 +37,7 @@ set setksize            = 0
 
 set useMI               = 0
 
-source set_infant_recon_params.csh
+source $FREESURFER_HOME/bin/set_infant_recon_params.csh
 set TEMPLATE_SUBJECTS = ($CNYBCH_SUBJECTS) # the full CNYBCH training set
 set TEMPLATE_AGES     = ($CNYBCH_AGES)
 setenv TEMPLATE_SUBJECTS_DIR  $CNYBCH_TEMPLATE_SUBJECTS_DIR 

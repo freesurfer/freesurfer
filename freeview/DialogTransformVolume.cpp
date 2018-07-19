@@ -169,7 +169,7 @@ void DialogTransformVolume::UpdateUI( int scope )
         int npos = (int)(pos[i]/m_dIncrementTranslate) + range/2;
         m_scrollTranslate[i]->setRange(0, range);
         m_scrollTranslate[i]->setValue(npos);
-        ChangeLineEditNumber(m_textTranslate[i], pos[i]);
+        ChangeLineEditNumber(m_textTranslate[i], pos[i], 6);
       }
     }
     if ( scope == 1 || scope == 2 )
@@ -188,7 +188,7 @@ void DialogTransformVolume::UpdateUI( int scope )
           m_scrollScale[i]->setValue( nmax/2 - (int)( (1.0-scale[i])*nmax ) );
         }
 
-        ChangeLineEditNumber(m_textScale[i], scale[i]);
+        ChangeLineEditNumber(m_textScale[i], scale[i], 6);
       }
     }
 
@@ -206,7 +206,7 @@ void DialogTransformVolume::UpdateUI( int scope )
       while (angle[i] < -180)
         val += 360;
       m_sliderRotate[i]->setValue((int)(val*2));
-      ChangeLineEditNumber(m_textAngle[i], angle[i]);
+      ChangeLineEditNumber(m_textAngle[i], angle[i], 4);
     }
 
     for ( int i = 0; i < allwidgets.size(); i++ )

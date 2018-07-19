@@ -3,7 +3,7 @@
 ##### scripts location
 
 set FS_HOME = $FREESURFER_HOME
-setenv FSSCRIPTSDIR      $FS_HOME/scripts/InfantFS/
+setenv FSSCRIPTSDIR      $FS_HOME/bin/
 setenv BABYDEVSCRIPTSDIR $FSSCRIPTSDIR
 set BabyDevPath = $BABYDEVSCRIPTSDIR
 

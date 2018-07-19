@@ -1729,7 +1729,7 @@ int LabelMarkSurface(LABEL *area, MRI_SURFACE *mris)
 
   for (n = 0; n < area->n_points; n++) {
     vno = area->lv[n].vno;
-    if (vno < 0) {
+    if (vno < 0 || area->lv[n].deleted) {
       continue;
     }
     if (vno >= mris->nvertices) {
