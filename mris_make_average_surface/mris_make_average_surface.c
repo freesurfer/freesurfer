@@ -375,6 +375,9 @@ main(int argc, char *argv[]) {
   getVolGeom(mritemplate, &mris_ico->vg);
   MRIfree(&mritemplate);
 
+  // This catches cases where vertex 0 and vertex 40969 have the same coordinate
+  if(mris_ico->nvertices == 163842)
+    MRISfixAverageSurf7(mris_ico);
   sprintf(fname, "%s/%s/surf/%s.%s", sdirout,out_sname, hemi, avg_surf_name) ;
   printf("writing average %s surface to %s\n", avg_surf_name, fname);
   MRISwrite(mris_ico,  fname) ;

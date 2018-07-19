@@ -81302,8 +81302,13 @@ int MRISfixAverageSurf7(MRIS *surf7)
   v1 = &(surf7->vertices[40969]);
 
   // Make sure that the xyz are the same at these two vertices
-  if(fabs(v0->x-v1->x) > 10e-6 || fabs(v0->y-v1->y) > 10e-6 || fabs(v0->z-v1->z) > 10e-6){
-    printf("ERROR: MRISfixAverageSurf7(): this surface appears to have been fixed already\n");
+  dx = (v0->x - v1->x);
+  dy = (v0->y - v1->y);
+  dz = (v0->z - v1->z);
+  d = sqrt(dx*dx + dy*dy + dz*dz);
+  if(d > .001){
+    printf("INFO: MRISfixAverageSurf7(): this surface appears to have been fixed already\n");
+    printf(" v0 (%g,%g,%g) v40969 (%g,%g,%g), d = %g\n",v0->x,v0->y,v0->z,v1->x,v1->y,v1->z,d);
     return(1);
   }
 
@@ -81317,7 +81322,7 @@ int MRISfixAverageSurf7(MRIS *surf7)
     dy = (vn->y - v1->y);
     dz = (vn->z - v1->z);
     d = sqrt(dx*dx + dy*dy + dz*dz);
-    if(d<dmin && d > 0){
+    if(d<dmin && d > .001){
       dmin = d;
       xmin = vn->x;
       ymin = vn->y;

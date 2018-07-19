@@ -1218,20 +1218,11 @@ MRI_SURFACE *MRISfromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int fno)
 ------------------------------------------------------*/
 MRI_SURFACE *MRIScoordsFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int which_vertices)
 {
-  float a, b, c, phi, theta, x, y, z, uf, vf, du, dv, origx, origy, origz, d, val1, val2, val3, val4;
+  float rad, phi, theta, x, y, z, uf, vf, du, dv, origx, origy, origz, d, val1, val2, val3, val4;
   int vno, u0, v0, u1, v1;
   VERTEX *vertex;
 
   if (!mris) mris = MRISclone(mrisp->mris);
-
-#if 0
-  if (FZERO(mris->radius))
-    a = b = c = MRISaverageRadius(mris) ;
-  else
-    a = b = c = mris->radius ;
-#else
-  a = b = c = MRISaverageRadius(mris);
-#endif
 
   for (vno = 0; vno < mris->nvertices; vno++) {
     vertex = &mris->vertices[vno];
@@ -1239,9 +1230,11 @@ MRI_SURFACE *MRIScoordsFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, in
     x = vertex->x;
     y = vertex->y;
     z = vertex->z;
-    theta = atan2(vertex->y / b, vertex->x / a);
+    // DNG 7/19/18: changed to use a vertex specific radius rather than the mean radius
+    rad = sqrt(x*x + y*y + z*z);
+    theta = atan2(vertex->y / rad, vertex->x / rad);
     if (theta < 0.0f) theta = 2 * M_PI + theta; /* make it 0 --> 2*PI */
-    d = c * c - z * z;
+    d = rad * rad - z * z;
     if (d < 0.0) d = 0.0;
     phi = atan2(sqrt(d), z);
     if (phi < RADIANS(1)) DiagBreak();
