@@ -480,7 +480,7 @@ xmlPointerListCreate(int initialSize)
 {
   xmlPointerListPtr ret;
 
-  ret = xmlMalloc(sizeof(xmlPointerList));
+  ret = (xmlPointerListPtr)xmlMalloc(sizeof(xmlPointerList));
   if (ret == NULL)
   {
     xmlXPathErrMemory(NULL,
@@ -697,7 +697,7 @@ xmlXPathFreeCompExpr(xmlXPathCompExprPtr comp)
       if (op->value4 != NULL)
       {
         if (op->op == XPATH_OP_VALUE)
-          xmlXPathFreeObject(op->value4);
+          xmlXPathFreeObject((xmlXPathObjectPtr)op->value4);
         else
           xmlFree(op->value4);
       }
@@ -713,7 +713,7 @@ xmlXPathFreeCompExpr(xmlXPathCompExprPtr comp)
       if (op->value4 != NULL)
       {
         if (op->op == XPATH_OP_VALUE)
-          xmlXPathFreeObject(op->value4);
+          xmlXPathFreeObject((xmlXPathObjectPtr)op->value4);
       }
     }
     xmlDictFree(comp->dict);
@@ -792,16 +792,14 @@ xmlXPathCompExprAdd(xmlXPathCompExprPtr comp, int ch1, int ch2,
   {
     if (value4 != NULL)
     {
-      comp->steps[comp->nbStep].value4 = (xmlChar *)
-                                         (void *)xmlDictLookup(comp->dict, value4, -1);
+      comp->steps[comp->nbStep].value4 = (void*)xmlDictLookup(comp->dict, (const xmlChar*)value4, -1);
       xmlFree(value4);
     }
     else
       comp->steps[comp->nbStep].value4 = NULL;
     if (value5 != NULL)
     {
-      comp->steps[comp->nbStep].value5 = (xmlChar *)
-                                         (void *)xmlDictLookup(comp->dict, value5, -1);
+      comp->steps[comp->nbStep].value5 = (void*)xmlDictLookup(comp->dict, (const xmlChar*)value5, -1);
       xmlFree(value5);
     }
     else
@@ -1264,8 +1262,8 @@ xmlXPathDebugDumpStepOp(FILE *output, xmlXPathCompExprPtr comp,
     xmlXPathAxisVal axis = (xmlXPathAxisVal)op->value;
     xmlXPathTestVal test = (xmlXPathTestVal)op->value2;
     xmlXPathTypeVal type = (xmlXPathTypeVal)op->value3;
-    const xmlChar *prefix = op->value4;
-    const xmlChar *name = op->value5;
+    const xmlChar *prefix = (const xmlChar *)op->value4;
+    const xmlChar *name   = (const xmlChar *)op->value5;
 
     fprintf(output, "COLLECT ");
     switch (axis)
@@ -1363,8 +1361,8 @@ xmlXPathDebugDumpStepOp(FILE *output, xmlXPathCompExprPtr comp,
   }
   case XPATH_OP_VARIABLE:
   {
-    const xmlChar *prefix = op->value5;
-    const xmlChar *name = op->value4;
+    const xmlChar *prefix = (const xmlChar *)op->value5;
+    const xmlChar *name   = (const xmlChar *)op->value4;
 
     if (prefix != NULL)
       fprintf(output, "VARIABLE %s:%s", prefix, name);
@@ -1375,8 +1373,8 @@ xmlXPathDebugDumpStepOp(FILE *output, xmlXPathCompExprPtr comp,
   case XPATH_OP_FUNCTION:
   {
     int nbargs = op->value;
-    const xmlChar *prefix = op->value5;
-    const xmlChar *name = op->value4;
+    const xmlChar *prefix = (const xmlChar *)op->value5;
+    const xmlChar *name   = (const xmlChar *)op->value4;
 
     if (prefix != NULL)
       fprintf(output, "FUNCTION %s:%s(%d args)",
@@ -1964,7 +1962,7 @@ xmlXPathCacheFreeObjectList(xmlPointerListPtr list)
 
   for (i = 0; i < list->number; i++)
   {
-    obj = list->items[i];
+    obj = (xmlXPathObjectPtr)list->items[i];
     /*
     * Note that it is already assured that we don't need to
     * look out for namespace nodes in the node-set.
@@ -3016,7 +3014,7 @@ xmlXPathOrderDocElems(xmlDocPtr doc)
   {
     if (cur->type == XML_ELEMENT_NODE)
     {
-      cur->content = (void *) (-(++count));
+      cur->content = (xmlChar *) (-(++count));
       if (cur->children != NULL)
       {
         cur = cur->children;
@@ -5183,7 +5181,7 @@ xmlXPathRegisterFuncNS(xmlXPathContextPtr ctxt, const xmlChar *name,
     return(-1);
   if (f == NULL)
     return(xmlHashRemoveEntry2(ctxt->funcHash, name, ns_uri, NULL));
-  return(xmlHashAddEntry2(ctxt->funcHash, name, ns_uri, XML_CAST_FPTR(f)));
+  return(xmlHashAddEntry2(ctxt->funcHash, name, ns_uri, (void*)XML_CAST_FPTR(f)));
 }
 
 /**
@@ -5269,7 +5267,7 @@ xmlXPathFunctionLookupNS(xmlXPathContextPtr ctxt, const xmlChar *name,
   if (ctxt->funcHash == NULL)
     return(NULL);
 
-  XML_CAST_FPTR(ret) = xmlHashLookup2(ctxt->funcHash, name, ns_uri);
+  XML_CAST_FPTR(ret) = (xmlXPathFunction)xmlHashLookup2(ctxt->funcHash, name, ns_uri);
   return(ret);
 }
 
@@ -5805,7 +5803,7 @@ xmlXPathObjectCopy(xmlXPathObjectPtr val)
   case XPATH_LOCATIONSET:
 #ifdef LIBXML_XPTR_ENABLED
     {
-      xmlLocationSetPtr loc = val->user;
+      xmlLocationSetPtr loc = (xmlLocationSetPtr)val->user;
       ret->user = (void *) xmlXPtrLocationSetMerge(NULL, loc);
       break;
     }
@@ -5858,7 +5856,7 @@ xmlXPathFreeObject(xmlXPathObjectPtr obj)
   else if (obj->type == XPATH_LOCATIONSET)
   {
     if (obj->user != NULL)
-      xmlXPtrFreeLocationSet(obj->user);
+      xmlXPtrFreeLocationSet((xmlLocationSetPtr)obj->user);
 #endif
   }
   else if (obj->type == XPATH_STRING)
@@ -5958,7 +5956,7 @@ xmlXPathReleaseObject(xmlXPathContextPtr ctxt, xmlXPathObjectPtr obj)
     case XPATH_LOCATIONSET:
       if (obj->user != NULL)
       {
-        xmlXPtrFreeLocationSet(obj->user);
+        xmlXPtrFreeLocationSet((xmlLocationSetPtr)obj->user);
       }
       goto free_obj;
 #endif
@@ -13075,8 +13073,8 @@ xmlXPathNodeCollectAndTest(xmlXPathParserContextPtr ctxt,
   xmlXPathAxisVal axis = (xmlXPathAxisVal) op->value;
   xmlXPathTestVal test = (xmlXPathTestVal) op->value2;
   xmlXPathTypeVal type = (xmlXPathTypeVal) op->value3;
-  const xmlChar *prefix = op->value4;
-  const xmlChar *name = op->value5;
+  const xmlChar *prefix = (const xmlChar *)op->value4;
+  const xmlChar *name = (const xmlChar*)op->value5;
   const xmlChar *URI = NULL;
 
 #ifdef DEBUG_STEP
@@ -14078,7 +14076,7 @@ xmlXPathCompOpEvalFilterFirst(xmlXPathParserContextPtr ctxt,
         (comp->steps[f].value == 0) &&
         (comp->steps[f].value4 != NULL) &&
         (xmlStrEqual
-         (comp->steps[f].value4, BAD_CAST "last")))
+         ((const xmlChar*)comp->steps[f].value4, BAD_CAST "last")))
     {
       xmlNodePtr last = NULL;
 
@@ -14136,7 +14134,7 @@ xmlXPathCompOpEvalFilterFirst(xmlXPathParserContextPtr ctxt,
     */
     CHECK_TYPE0(XPATH_LOCATIONSET);
     obj = valuePop(ctxt);
-    oldlocset = obj->user;
+    oldlocset = (xmlLocationSetPtr)obj->user;
     ctxt->context->node = NULL;
 
     if ((oldlocset == NULL) || (oldlocset->locNr == 0))
@@ -14162,7 +14160,7 @@ xmlXPathCompOpEvalFilterFirst(xmlXPathParserContextPtr ctxt,
       * Run the evaluation with a node list made of a
       * single item in the nodelocset.
       */
-      ctxt->context->node = oldlocset->locTab[i]->user;
+      ctxt->context->node = (xmlNodePtr)oldlocset->locTab[i]->user;
       ctxt->context->contextSize = oldlocset->locNr;
       ctxt->context->proximityPosition = i + 1;
       if (tmp == NULL)
@@ -14612,7 +14610,7 @@ xmlXPathCompOpEval(xmlXPathParserContextPtr ctxt, xmlXPathStepOpPtr op)
         xmlXPathCompOpEval(ctxt, &comp->steps[op->ch1]);
     if (op->value5 == NULL)
     {
-      val = xmlXPathVariableLookup(ctxt->context, op->value4);
+      val = xmlXPathVariableLookup(ctxt->context, (const xmlChar*)op->value4);
       if (val == NULL)
       {
         ctxt->error = XPATH_UNDEF_VARIABLE_ERROR;
@@ -14624,7 +14622,7 @@ xmlXPathCompOpEval(xmlXPathParserContextPtr ctxt, xmlXPathStepOpPtr op)
     {
       const xmlChar *URI;
 
-      URI = xmlXPathNsLookup(ctxt->context, op->value5);
+      URI = xmlXPathNsLookup(ctxt->context, (const xmlChar*)op->value5);
       if (URI == NULL)
       {
         xmlGenericError(xmlGenericErrorContext,
@@ -14633,7 +14631,7 @@ xmlXPathCompOpEval(xmlXPathParserContextPtr ctxt, xmlXPathStepOpPtr op)
         return (total);
       }
       val = xmlXPathVariableLookupNS(ctxt->context,
-                                     op->value4, URI);
+                                     (const xmlChar*)op->value4, URI);
       if (val == NULL)
       {
         ctxt->error = XPATH_UNDEF_VARIABLE_ERROR;
@@ -14668,7 +14666,7 @@ xmlXPathCompOpEval(xmlXPathParserContextPtr ctxt, xmlXPathStepOpPtr op)
         return (total);
       }
     if (op->cache != NULL)
-      XML_CAST_FPTR(func) = op->cache;
+      XML_CAST_FPTR(func) = (xmlXPathFunction)op->cache;
     else
     {
       const xmlChar *URI = NULL;
