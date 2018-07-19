@@ -2,6 +2,7 @@
 #include "ui_DialogLineProfile.h"
 #include "MainWindow.h"
 #include "LayerMRI.h"
+#undef isfinite
 #include "LayerPointSet.h"
 #include "LayerCollection.h"
 #include "LayerLineProfile.h"

@@ -32,6 +32,7 @@
 #include <QDebug>
 #include <QStringList>
 
+
 FSGroupDescriptor::FSGroupDescriptor( QObject* parent ) : QObject( parent ),
   m_fsgd( NULL ),
   m_dXStart(0),

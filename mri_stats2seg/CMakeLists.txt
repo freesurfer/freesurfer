@@ -3,6 +3,5 @@ project(mri_stats2seg)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 add_executable(mri_stats2seg mri_stats2seg.c)
-target_link_libraries(mri_stats2seg utils)
-
+target_link_libraries(mri_stats2seg utils fsgdf)
 install(TARGETS mri_stats2seg DESTINATION bin)

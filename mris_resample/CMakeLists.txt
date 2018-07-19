@@ -6,6 +6,7 @@ if(Boost_FOUND)
 
   add_executable(mris_resample mris_resample.cpp)
   target_link_libraries(mris_resample utils ${ANN_LIBRARIES} ${Boost_PROGRAM_OPTIONS_LIBRARY})
+
   install(TARGETS mris_resample DESTINATION bin)
 
 endif()

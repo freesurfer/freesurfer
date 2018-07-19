@@ -12,7 +12,6 @@ install(PROGRAMS
   beta2sxa
   bblabel
   bbmask
-  bbregister
   biasfield
   bedpostx_mgh
   bmedits2surf
@@ -83,7 +82,6 @@ install(PROGRAMS
   fsl_rigid_register
   fslregister
   fsl.5.0.2.xyztrans.sch
-  fsfget
   getfullpath
   get_label_thickness
   grad_unwarp
@@ -259,7 +257,6 @@ install(PROGRAMS
   unpack_ima.tcl
   unpackmincdir
   unpack_mnc.tcl
-  unpacksdcmdir
   UpdateNeeded
   usbtree
   vno_match_check
@@ -282,4 +279,65 @@ install(PROGRAMS
   DESTINATION bin
 )
 
-install_symlinks(fs_spmreg.glnxa64 irepifitvol.glnx64 TYPE PROGRAMS DESTINATION bin)
+install(PROGRAMS
+  tkanalyse.tcl
+  tkm_common.tcl
+  tkm_dialog.tcl
+  tkmedit.tcl
+  tkm_functional.tcl
+  tkm_graph.tcl
+  tkm_wrappers.tcl
+  tkregister.tcl
+  tkregister2.tcl
+  tksurfer.tcl
+  tkUtils.tcl
+  fsgdfPlot.tcl
+  DESTINATION tktools
+)
+
+install(PROGRAMS
+  allisons_surfaces.tcl
+  curv-flat.tcl
+  curv-views.tcl
+  dara_data.tcl
+  dipmovie-flat.tcl
+  eccen-flat.tcl
+  eccen-views.tcl
+  fs-flat.tcl
+  fs-make.tcl
+  fs-views.tcl
+  mk-fieldsign.tcl
+  offsetmovie.tcl
+  phasemovie.tcl
+  polar-flat.tcl
+  polar-views.tcl
+  readenv.tcl
+  real-flat.tcl
+  real-views.tcl
+  saveflat.tcl
+  saveviews.tcl
+  setdefpatchview.tcl
+  solmovie-flat.tcl
+  twocond-flat.tcl
+  twocond-masked-views.tcl
+  twocond-views.tcl
+  wrappers.tcl
+  fsgdfPlot.tcl
+  DESTINATION lib/tcl
+)
+
+set(WRAPCODE "\
+#!/bin/tcsh -ef\n\
+source $FREESURFER_HOME/bin/tcl_setup\n\
+$FREESURFER_HOME/lib/tcltktixblt/bin/tclsh8.4 $FREESURFER_HOME/bin/fsfget.tcl $argv")
+install_wrapped(PROGRAMS fsfget DESTINATION bin WRAPCODE ${WRAPCODE} EXT tcl)
+
+set(WRAPCODE "\
+#!/bin/tcsh -ef\n\
+source $FREESURFER_HOME/bin/tcl_setup\n\
+$FREESURFER_HOME/lib/tcltktixblt/bin/tclsh8.4 $FREESURFER_HOME/bin/unpacksdcmdir.tcl $argv")
+install_wrapped(PROGRAMS unpacksdcmdir DESTINATION bin WRAPCODE ${WRAPCODE} EXT tcl)
+
+install_append_help(bbregister bbregister.help.xml bin)
+
+install_symlinks(fs_spmreg.glnxa64 irepifitvol.glnx64 TYPE programs DESTINATION bin)

@@ -1,1 +1,0 @@
-find_package(BLAS_LIBRARIES NAMES libblas.a)

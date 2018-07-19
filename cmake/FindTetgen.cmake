@@ -1,22 +1,13 @@
-include(ExternalProject)
+# Tetgen Find Module
 
-# build the jpeg library within the freesurfer build tree
-set(TETGEN_DIR ${CMAKE_BINARY_DIR}/packages/tetgen)
-ExternalProject_Add(
-  tetgen
-  PREFIX ${TETGEN_DIR}
-  URL "file://${CMAKE_SOURCE_DIR}/packages/tetgen-1.4.1.tar.gz"
-  BINARY_DIR ${TETGEN_DIR}/src/tetgen
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND make && make tetlib
-  INSTALL_COMMAND cd ${TETGEN_DIR} &&
-                  mkdir lib include bin &&
-                  install src/tetgen/tetgen bin/ &&
-                  install src/tetgen/libtet.a lib/ &&
-                  install src/tetgen/tetgen.h include/
-  DOWNLOAD_NO_PROGRESS true
-)
+if(NOT Tetgen_DIR)
+  set(Tetgen_DIR ${FS_PACKAGES_DIR}/tetgen/1.4.1)
+endif()
 
-# set JPEG paths
-set(TETGEN_INCLUDE_DIR ${TETGEN_DIR}/include)
-set(TETGEN_LIBRARY ${TETGEN_DIR}/lib/libtet.a)
+find_path(Tetgen_INCLUDE_DIR PATHS ${Tetgen_DIR} NAMES tetgen.h PATH_SUFFIXES include)
+find_library(Tetgen_LIBRARIES PATHS ${Tetgen_DIR} NAMES libtet.a PATH_SUFFIXES lib)
+find_package_handle_standard_args(Tetgen DEFAULT_MSG Tetgen_INCLUDE_DIR Tetgen_LIBRARIES)
+
+if(EXISTS ${Tetgen_DIR}/bin/tetgen)
+  install(PROGRAMS ${Tetgen_DIR}/bin/tetgen DESTINATION bin)
+endif()

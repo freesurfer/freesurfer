@@ -7,8 +7,8 @@ include_directories(
   ${XML2_INCLUDE_DIR}
   ${TIFF_INCLUDE_DIR}
   ${MINC_INCLUDE_DIR}
-  ${ITK_INCLUDE_DIR}
   ${GLUT_INCLUDE_DIR}/GL
+  ${ITK_INCLUDE_DIR}
 )
 
 set(SOURCES
@@ -240,8 +240,8 @@ else()
   add_definitions(-DTEEM_ENDIAN=1234)
 endif()
 
-# non 32-bit
 # todo: some logic needs to be setup to determine this
+# non 32-bit
 add_definitions(-DTEEM_32BIT=0)
 
 # add NrrdIO sources
@@ -290,26 +290,19 @@ set(SOURCES ${SOURCES}
 
 add_library(utils STATIC ${SOURCES})
 
-# the following libraries might get built locally via ExternalProject,
-# so we should make they're always built first
-add_external_dependencies(utils xml2 tiff minc itk)
-
 target_link_libraries(utils
   rgb
   hipsstubs
-  fsgdf
   dicom
   log
   unix
   crypt
   ${ZLIB_LIBRARIES}
-  ${XML2_LIBRARY}
-  ${JPEG_LIBRARY}
-  ${TIFF_LIBRARY}
-  ${OPENGL_LIBRARIES}
-  ${GLUT_LIBRARY}
+  ${XML2_LIBRARIES}
+  ${JPEG_LIBRARIES}
+  ${TIFF_LIBRARIES}
   ${MINC_LIBRARIES}
-  ${NETCDF_LIBRARY}
+  ${NetCDF_LIBRARIES}
   ${ITK_LIBRARIES}
 )
 
@@ -324,28 +317,23 @@ set(GIFTI_SOURCES gifti_io.c gifti_xml.c nifti1_io.c znzlib.c)
 
 # gifti_tool
 add_executable(gifti_tool gifti_tool.c ${GIFTI_SOURCES})
-target_link_libraries(gifti_tool ${EXPAT_LIBRARY} ${ZLIB_LIBRARIES})
-add_external_dependencies(gifti_tool expat)
+target_link_libraries(gifti_tool utils ${Expat_LIBRARIES} ${ZLIB_LIBRARIES})
 install(TARGETS gifti_tool DESTINATION bin)
 
 # gifti test
 add_executable(gifti_test gifti_test.c ${GIFTI_SOURCES})
-target_link_libraries(gifti_test ${EXPAT_LIBRARY} ${ZLIB_LIBRARIES})
-add_external_dependencies(gifti_test expat)
+target_link_libraries(gifti_test utils ${Expat_LIBRARIES} ${ZLIB_LIBRARIES})
 install(TARGETS gifti_test DESTINATION bin)
 
 # xmlToHtml
 add_executable(xmlToHtml xmlToHtml.c)
-target_link_libraries(xmlToHtml ${XML2_LIBRARY} ${ZLIB_LIBRARIES})
-add_external_dependencies(xmlToHtml xml2)
+target_link_libraries(xmlToHtml utils ${XML2_LIBRARIES} ${ZLIB_LIBRARIES})
 install(TARGETS xmlToHtml DESTINATION bin)
 
 # fsPrintHelp
 add_executable(fsPrintHelp fsPrintHelp.c)
 target_compile_definitions(fsPrintHelp PUBLIC BUILD_MAIN)
-target_link_libraries(fsPrintHelp ${XML2_LIBRARY} ${ZLIB_LIBRARIES})
-add_external_dependencies(fsPrintHelp xml2)
+target_link_libraries(fsPrintHelp utils ${XML2_LIBRARIES} ${ZLIB_LIBRARIES})
 install(TARGETS fsPrintHelp DESTINATION bin)
 install(PROGRAMS fsPrintHelp DESTINATION bin RENAME fsman)
 install(PROGRAMS fsPrintHelp DESTINATION bin RENAME fshelp)
-

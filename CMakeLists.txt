@@ -1,83 +1,57 @@
 # WARNING: this is in development and should not yet be used to replace automake
 
-# before starting the project, set gcc as the default compiler
+# before starting the project, set gcc/g++ as default
 find_program(CMAKE_C_COMPILER NAMES $ENV{CC} gcc PATHS ENV PATH NO_DEFAULT_PATH)
 find_program(CMAKE_CXX_COMPILER NAMES $ENV{CXX} g++ PATHS ENV PATH NO_DEFAULT_PATH)
 
+# project info
 project(freesurfer)
 cmake_minimum_required(VERSION 3.5)
+enable_language(C CXX Fortran)
 
+# a few build options
+enable_testing()
+option(BUILD_GUIS "Build GUIs" ON)
+
+# include our custom cmake functions
+include(cmake/functions.cmake)
+
+# prevents itk from importing as a system
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED TRUE)
 
 
 # --------------------------------------------------
-#                 operating system
+#             global build configuration
 # --------------------------------------------------
 
 add_definitions(-D${CMAKE_SYSTEM_NAME})
 
-# not sure what this ANSI is used for
-# todo: look into removing it
-add_definitions(-DANSI)
-
-# todo: logic for SSE matrix and math functions (affine.h and sse_mathfun.h)
-add_definitions(-DUSE_SSE_MATHFUN)
-set(COMPILE_FLAGS "${COMPILE_FLAGS} -msse2 -mfpmath=sse")
-
-# check for big endian
+# general check for big endian
 include(TestBigEndian)
 test_big_endian(IS_BIG_ENDIAN)
 
-# todo: -DHAVE_CONFIG_H
+# todo: config.h
 
-
-enable_language(Fortran)
-
-# --------------------------------------------------
-#                  TMP functions
-# --------------------------------------------------
-
-# maybe should move this somewhere else
-include(CheckFunctionExists)
-include(CheckIncludeFiles)
-
-function(add_help target helptext)
-  add_custom_command(COMMAND cd ${CMAKE_CURRENT_SOURCE_DIR} &&
-                             xxd -i ${helptext} ${CMAKE_CURRENT_BINARY_DIR}/${helptext}.h
-                     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${helptext}.h
-                     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${helptext})
-  include_directories(${CMAKE_CURRENT_BINARY_DIR})
-  target_sources(${target} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/${helptext}.h)
-endfunction(add_help)
-
-
-# todo: is target included in ARGN???
-function(add_external_dependencies target)
-  foreach(i ${ARGN})
-    if(TARGET ${i})
-      add_dependencies(${target} ${i})
-    endif()
-  endforeach()
-endfunction()
-
-include(cmake/functions.cmake)
-
-# --------------------------------------------------
-#                      options
-# --------------------------------------------------
-
-# set the compiler warnings
+# compiler warnings
 set(COMPILE_FLAGS "${COMPILE_FLAGS} -Wall -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs")
 
+# not entirely sure what this ANSI is used for
+add_definitions(-DANSI)
+
+# todo: write some logic to set this correctly
+# SSE matrix and math functions (affine.h and sse_mathfun.h)
+add_definitions(-DUSE_SSE_MATHFUN)
+set(COMPILE_FLAGS "${COMPILE_FLAGS} -msse2 -mfpmath=sse")
+
 # -g compiles debugging info for use by debuggers like gdb. Normally we want
-# that in the build, but here we add the DEBUGGING option, which greatly
+# that in the build, but here we add the FS_DEBUG option, which greatly
 # reduces the size of compiled binaries when turned OFF
-option(DEBUGGING "Compile with the -g flag" ON)
-if(DEBUGGING)
+option(FS_DEBUG "Compile with the -g flag" ON)
+if(FS_DEBUG)
   set(COMPILE_FLAGS "${COMPILE_FLAGS} -g")
 endif()
 
-# strip unused code
+# for stripping unused code
 if(APPLE)
   set(COMPILE_FLAGS "${COMPILE_FLAGS} -dead_strip")
 else()
@@ -85,20 +59,38 @@ else()
 endif()
 
 # optimization
-# todo: there needs to be processor-based logic for this
+# todo: implement processor-based logic to determine this
 set(COMPILE_FLAGS "${COMPILE_FLAGS} -O3 -m64")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMPILE_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMPILE_FLAGS}")
 
-# link map
+# link map (only on linux)
 if(NOT APPLE)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
 endif()
 
+
 # --------------------------------------------------
-#                     libraries
+#   library dependencies and third-party packages
 # --------------------------------------------------
+
+if(NOT FS_PACKAGES_DIR)
+  if(EXISTS /usr/pubsw/packages)
+    # if the user is at Martinos, default to /usr/pubsw/packages
+    set(FS_PACKAGES_DIR /usr/pubsw/packages)
+  else()
+    # setting FS_PACKAGES_DIR is required if the user is outside Martinos
+    message(FATAL_ERROR "External FreeSurfer developers must provide a valid FS_PACKAGES_DIR path! "
+                        "Required FS dependencies can be built locally by running:\n"
+                        "    packages/build_packages.sh \"/desired/packages/install/dir\"\n"
+                         "After packages have been built, cmake should be configured with:\n"
+                        "    -DFS_PACKAGES_DIR=\"/desired/packages/install/dir\"")
+  endif()
+endif()
+
+# todo: comment
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 # -------- zlib --------
 find_package(ZLIB REQUIRED)
@@ -106,27 +98,19 @@ add_definitions(-DHAVE_ZLIB)
 
 # -------- gfortran --------
 find_library(GFORTRAN_LIBRARIES NAMES libgfortran.a)
+
+# -------- blas and lapack --------
 find_library(BLAS_LIBRARIES NAMES libblas.a)
 find_library(LAPACK_LIBRARIES NAMES liblapack.a)
-message(STATUS "GFORTRAN_LIBRARIES: ${GFORTRAN_LIBRARIES}")
-message(STATUS "BLAS_LIBRARIES: ${BLAS_LIBRARIES}")
-message(STATUS "LAPACK_LIBRARIES: ${LAPACK_LIBRARIES}")
-
-
-# --------------------------------------------------
-#                third-party packages
-# --------------------------------------------------
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-
-# -------- expat --------
-find_package(Expat REQUIRED)
 
 # -------- jpeg --------
 find_package(JPEG REQUIRED)
 
 # -------- tiff --------
 find_package(TIFF REQUIRED)
+
+# -------- expat --------
+find_package(Expat REQUIRED)
 
 # -------- xml2 --------
 find_package(XML2 REQUIRED)
@@ -138,21 +122,29 @@ find_package(NetCDF REQUIRED)
 find_package(MINC REQUIRED)
 add_definitions(-DUSE_LOCAL_MINC)
 
-# -------- itk --------
-find_package(ITK REQUIRED)
-add_definitions(-DHAVE_ITK_LIBS)
+# -------- tetgen --------
+find_package(Tetgen REQUIRED)
 
 # -------- petsc --------
 find_package(PETSC REQUIRED)
 
+# -------- itk --------
+if(NOT ITK_DIR)
+  set(ITK_DIR ${FS_PACKAGES_DIR}/itk/5.0.0)
+endif()
+find_package(ITK REQUIRED)
+add_definitions(-DHAVE_ITK_LIBS)
+
+# -------- boost program options --------
+find_package(Boost COMPONENTS program_options)
+
 # -------- ann --------
+# ANN is only used by mris_resample
 find_package(ANN REQUIRED)
 
-# -------- tetgen --------
-find_package(Tetgen REQUIRED)
-
-# -------- vtk --------
-find_package(VTK REQUIRED)
+# -------- gts --------
+# only used by mris_decimate and mris_decimate_gui
+find_package(GTS)
 
 # -------- openMP --------
 find_package(OpenMP)
@@ -166,71 +158,78 @@ endif()
 find_package(OpenGL)
 if(OPENGL_FOUND)
   add_definitions(-DHAVE_OPENGL)
-endif()
-
-# -------- glut --------
-# todo fix the include dirs in utils/fix the source so that include "GL/glut.h"
-find_package(GLUT)
-if(GLUT_FOUND)
+  # since we have OpenGL, make sure we have glut too!
+  find_package(GLUT REQUIRED)
   add_definitions(-DHAVE_GLUT_LIBS)
 endif()
 
-# -------- gts --------
-find_package(GLIB2)
+# -------- openCV --------
+find_package(OpenCV)
 
-# -------- gts --------
-find_package(GTS)
+# search for GUI libraries
+if(BUILD_GUIS)
 
-# -------- boost program options --------
-find_package(Boost COMPONENTS program_options)
+  # -------- qt --------
+  set(MARTINOS_Qt5 /usr/pubsw/packages/qt/5.6.2/5.6/gcc_64/lib/cmake/Qt5)
+  if(NOT Qt5_DIR AND EXISTS ${MARTINOS_Qt5})
+    set(Qt5_DIR ${MARTINOS_Qt5})
+  endif()
+  find_package(Qt5 COMPONENTS Core Widgets X11Extras)
+  add_definitions(-DUSING_QT_5)
+
+  # -------- vtk --------
+  find_package(VTK)
+
+  # -------- tcltktixblt --------
+  find_package(TCLTKTIXBLT)
+
+  # -------- kwwidgets --------
+  find_package(KWWidgets)
+
+  # -------- wxwidgets --------
+  # only used by mris_decimate_gui
+  find_package(WXWidgets)
+
+endif()
+
 
 # --------------------------------------------------
-#                  freesurfer libs
+#                    freesurfer
 # --------------------------------------------------
 
-# unix
-add_subdirectory(unix)
+# first, prepare the freesurfer distribution
+add_subdirectories(distribution images)
 
-# log
-add_subdirectory(log)
+# now build the freesurfer libraries (order here matters!)
+add_subdirectories(
+  unix
+  log
+  rgb
+  hipsstubs
+  dicom
+  utils
+  utilscpp
+  fsgdf
+  svm-lib
+  opencl_algorithms
+)
 
-# rgb
-add_subdirectory(rgb)
-
-# hipsstubs
-add_subdirectory(hipsstubs)
-
-# dicom
-add_subdirectory(dicom)
-
-# c utils
-add_subdirectory(utils)
-
-# cpp utils
-# add_subdirectory(utilscpp)
-
-# fsgdf
-add_subdirectory(fsgdf)
+# the following utility libs are required for freeview
+add_subdirectories(vtkfsio vtkutils lineprof)
 
 
 # --------------------------------------------------
 #                      programs
 # --------------------------------------------------
 
-set(FS_SUBDIRS
-  # mris_decimate  # uses GTS and crazy glib stuff
-  # mris_topo_fixer  # uses the CPP utils
-  # qdec
-  # qdec_glmfit  # qdec has its own thing goin on
-  # tkmedit
-  # tkregister2
-  # tksurfer
+add_subdirectories(
   BrainstemSS
   check_siemens_dir
   connectgraph
   dmri_tensoreig
   dummy
   fem_elastic
+  freeview
   fsfast
   fslutils
   hiam_make_surfaces
@@ -239,6 +238,7 @@ set(FS_SUBDIRS
   HippoSF
   histo_compute_joint_density
   histo_fix_topology
+  histo_register
   histo_register_block
   histo_segment
   histo_synthesize
@@ -450,6 +450,8 @@ set(FS_SUBDIRS
   mris_copy_header
   mris_curvature
   mris_curvature_stats
+  mris_decimate
+  mris_decimate_gui
   mris_deform
   mris_density
   mris_diff
@@ -495,7 +497,7 @@ set(FS_SUBDIRS
   mris_multiscale_stats
   mris_niters2fwhm
   mris_parcellate_connectivity
-  # mris_pmake
+  mris_pmake
   mris_register
   mris_register_label_map
   mris_register_to_volume
@@ -526,6 +528,7 @@ set(FS_SUBDIRS
   mris_thickness
   mris_thickness_comparison
   mris_thickness_diff
+  mris_topo_fixer
   mris_transform
   mris_translate_annotation
   mris_transmantle_dysplasia_paths
@@ -540,6 +543,9 @@ set(FS_SUBDIRS
   oct_register_mosaic
   oct_train
   optseq2
+  qdecproject
+  qdec
+  qdec_glmfit
   rbftest
   regdat2xfm
   repair_siemens_file
@@ -554,17 +560,9 @@ set(FS_SUBDIRS
   template
   test_makevol
   ThalamicNuclei
+  tkmedit
+  tkregister2
+  tksurfer
   trc
   tridec
 )
-
-foreach(SUBDIR ${FS_SUBDIRS})
-  add_subdirectory(${SUBDIR})
-endforeach()
-
-
-# --------------------------------------------------
-#                      TMP to be named
-# --------------------------------------------------
-
-add_subdirectory(distribution)

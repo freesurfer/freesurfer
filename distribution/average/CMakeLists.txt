@@ -8,7 +8,7 @@ install_symlinks(
   aseg+spmhead.ixi.gca
   aseg+spmhead+vermis+pons.ixi.gca
   pons.mni152.2mm.mgz
-  TYPE FILES
+  TYPE files
   DESTINATION average
 )
 
@@ -34,7 +34,7 @@ install_symlinks(
   rh.DKTaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs
   lh.CDaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs
   rh.CDaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs
-  TYPE FILES
+  TYPE files
   DESTINATION average
 )
 
@@ -49,7 +49,7 @@ install_symlinks(
   rigidly_aligned_brain_template.tif
   lh.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif
   rh.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif
-  TYPE FILES
+  TYPE files
   DESTINATION average
 )
 
@@ -58,7 +58,7 @@ install_symlinks(
   colortable_desikan_killiany.txt
   colortable_BA.txt
   tissue_parms.txt
-  TYPE FILES
+  TYPE files
   DESTINATION average
 )
 
@@ -68,7 +68,7 @@ install_symlinks(
   mni305.cor.subfov1.mgz
   mni305.cor.subfov2.mgz
   mni305.mask.cor.mgz
-  TYPE FILES
+  TYPE files
   DESTINATION average
 )
 
@@ -82,23 +82,24 @@ install_symlinks(
   mni152.mni305.cor.subfov1.dat
   mni152.mni305.cor.subfov2.dat
   RB_all_2008-03-26.mni152.2mm.lta
-  TYPE FILES
+  TYPE files
   DESTINATION average
 )
 
 # unpack subjects
-install_tarball(fsaverage.tar.gz subjects)
-install_tarball(cvs_avg35.tar.gz subjects)
-install_tarball(cvs_avg35_inMNI152.tar.gz subjects)
-install_tarball(fsaverage_sym.tar.gz subjects)
-install_tarball(V1_average.tar.gz subjects)
-install_tarball(fsaverage3.tar.gz subjects)
-install_tarball(fsaverage4.tar.gz subjects)
-install_tarball(fsaverage5.tar.gz subjects)
-install_tarball(fsaverage6.tar.gz subjects)
-install_tarball(EC_average.tar.gz subjects)
-install_tarball(mult-comp-cor.tar.gz average)
-install_tarball(Yeo_Brainmap_MNI152.tar.gz average)
+install_tarball(fsaverage.tar.gz DESTINATION subjects)
+install_tarball(cvs_avg35.tar.gz DESTINATION subjects)
+install_tarball(cvs_avg35_inMNI152.tar.gz DESTINATION subjects)
+install_tarball(fsaverage_sym.tar.gz DESTINATION subjects)
+install_tarball(V1_average.tar.gz DESTINATION subjects)
+install(PROGRAMS predict_v1.sh DESTINATION bin)
+install_tarball(fsaverage3.tar.gz DESTINATION subjects)
+install_tarball(fsaverage4.tar.gz DESTINATION subjects)
+install_tarball(fsaverage5.tar.gz DESTINATION subjects)
+install_tarball(fsaverage6.tar.gz DESTINATION subjects)
+install_tarball(EC_average.tar.gz DESTINATION subjects)
+install_tarball(mult-comp-cor.tar.gz DESTINATION average)
+install_tarball(Yeo_Brainmap_MNI152.tar.gz DESTINATION average)
 
 # subdirectories
 add_subdirectory(surf)

@@ -15,3 +15,5 @@ add_executable(mris_extract_main_component mris_extract_main_component.c)
 add_help(mris_extract_main_component mris_extract_main_component.help.xml)
 target_link_libraries(mris_extract_main_component utils)
 install(TARGETS mris_extract_main_component DESTINATION bin)
+
+# add_test_script(NAME mri_mc_test SCRIPT test_mri_mc DEPENDS mri_mc)

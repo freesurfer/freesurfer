@@ -7,6 +7,8 @@ add_help(mris_fix_topology mris_fix_topology.help.xml)
 target_link_libraries(mris_fix_topology utils)
 install(TARGETS mris_fix_topology DESTINATION bin)
 
+add_test_script(NAME mris_fix_topology_test SCRIPT test_mris_fix_topology DEPENDS mris_fix_topology)
+
 add_executable(mris_remove_intersection mris_remove_intersection.c)
 add_help(mris_remove_intersection mris_remove_intersection.help.xml)
 target_link_libraries(mris_remove_intersection utils)

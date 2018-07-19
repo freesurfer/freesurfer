@@ -11,6 +11,6 @@ install_symlinks(
   Choi2012_7Networks_MNI152_FreeSurferConformed1mm_TightMask.nii.gz
   Choi_JNeurophysiol12_MNI152_README
   FSL_MNI152_FreeSurferConformed_1mm.nii.gz
-  TYPE FILES
+  TYPE files
   DESTINATION average/Choi_JNeurophysiol12_MNI152
 )

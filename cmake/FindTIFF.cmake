@@ -1,18 +1,9 @@
-include(ExternalProject)
+# TIFF Find Module
 
-# build the tiff library within the freesurfer build tree
-set(TIFF_DIR ${CMAKE_BINARY_DIR}/packages/tiff)
-ExternalProject_Add(
-  tiff
-  PREFIX ${TIFF_DIR}
-  URL "file://${CMAKE_SOURCE_DIR}/packages/tiff-3.6.1.tar.gz"
-  BINARY_DIR ${TIFF_DIR}/src/tiff
-  CONFIGURE_COMMAND ./configure --prefix=${TIFF_DIR} --noninteractive --with-PARAM=DSO=no
-  BUILD_COMMAND make
-  INSTALL_COMMAND make install
-  DOWNLOAD_NO_PROGRESS true
-)
+if(NOT TIFF_DIR)
+  set(TIFF_DIR ${FS_PACKAGES_DIR}/tiff/3.6.1)
+endif()
 
-# set TIFF paths
-set(TIFF_INCLUDE_DIR ${TIFF_DIR}/include)
-set(TIFF_LIBRARY ${TIFF_DIR}/lib/libtiff.a)
+find_path(TIFF_INCLUDE_DIR PATHS ${TIFF_DIR} NAMES tiff.h PATH_SUFFIXES include)
+find_library(TIFF_LIBRARIES PATHS ${TIFF_DIR} NAMES libtiff.a PATH_SUFFIXES lib)
+find_package_handle_standard_args(TIFF DEFAULT_MSG TIFF_INCLUDE_DIR TIFF_LIBRARIES)

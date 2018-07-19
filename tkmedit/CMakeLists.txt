@@ -1,8 +1,30 @@
 project(tkmedit)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+if(OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
 
-add_executable(tkmedit tkmedit.c)
-target_link_libraries(tkmedit utils)
+  include_directories(
+    ${CMAKE_SOURCE_DIR}/include
+    ${TCLTKTIXBLT_INCLUDE_DIR}
+    ${TIFF_INCLUDE_DIR}
+    ${GLUT_INCLUDE_DIR}/GL
+  )
 
-install(TARGETS tkmedit DESTINATION bin)
+  set(SOURCES
+    tkmDisplayArea.c
+    tkmedit.c
+    tkmFunctionalVolume.c
+    tkmMeditWindow.c
+  )
+
+  add_executable(tkmedit ${SOURCES})
+  target_link_libraries(tkmedit utils fsgdf ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES} ${TCLTKTIXBLT_LIBRARIES})
+
+  set(WRAPCODE "\
+#!/bin/tcsh -ef\n\
+source $FREESURFER_HOME/bin/tcl_setup\n\
+exec $FREESURFER_HOME/tktools/tkmedit.bin $argv"
+  )
+  install_wrapped(TARGETS tkmedit DESTINATION tktools WRAPCODE ${WRAPCODE})
+  install(PROGRAMS ${CMAKE_INSTALL_PREFIX}/bin/tkmedit DESTINATION tktools)
+
+endif()

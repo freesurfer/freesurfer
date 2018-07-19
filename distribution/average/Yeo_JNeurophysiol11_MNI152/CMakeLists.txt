@@ -7,6 +7,6 @@ install_symlinks(
    Yeo2011_7Networks_ColorLUT.txt
    Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii.gz
    Yeo2011_7Networks_MNI152_FreeSurferConformed1mm.nii.gz
-   TYPE FILES
+   TYPE files
    DESTINATION average/Yeo_JNeurophysiol11_MNI152
 )

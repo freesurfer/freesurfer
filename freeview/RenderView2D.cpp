@@ -25,6 +25,7 @@
 #include "LayerCollection.h"
 #include "MainWindow.h"
 #include "LayerMRI.h"
+#undef isfinite 
 #include "LayerPropertyMRI.h"
 #include "Contour2D.h"
 #include "VolumeCropper.h"

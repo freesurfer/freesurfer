@@ -1,6 +1,15 @@
 project(mris_pmake)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(
+  ${CMAKE_SOURCE_DIR}/include
+  ${CMAKE_SOURCE_DIR}/opencl_algorithms
+  ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+if(OpenCL_FOUND)
+  include_directories(${OpenCL_INCLUDE_DIR})
+endif()
+
 
 set(SOURCES
   abs2rel.c
@@ -25,6 +34,5 @@ set(SOURCES
 
 add_executable(mris_pmake ${SOURCES})
 add_help(mris_pmake mris_pmake.help.xml)
-target_link_libraries(mris_pmake utils)
-
+target_link_libraries(mris_pmake utils opencl_algorithms)
 install(TARGETS mris_pmake DESTINATION bin)

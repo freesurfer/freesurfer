@@ -27,6 +27,7 @@
 #include <QtGui>
 #include <QFileInfo>
 #include "LayerMRI.h"
+#undef isfinite
 #include "LayerPropertyMRI.h"
 #include "LayerSurface.h"
 #include "LayerROI.h"

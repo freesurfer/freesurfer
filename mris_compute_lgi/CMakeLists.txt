@@ -1,5 +1,7 @@
 project(mris_compute_lgi)
 
+install(PROGRAMS mris_compute_lgi DESTINATION bin)
+
 install(FILES
   ComputeGeodesicProjection.m
   compute_lgi.m

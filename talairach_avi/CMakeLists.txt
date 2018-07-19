@@ -75,6 +75,8 @@ target_link_libraries(compute_vox2vox ${ICC_LIBRARIES} ${G2C_LIBRARY})
 set_property(TARGET compute_vox2vox PROPERTY LINKER_LANGUAGE Fortran)
 install(TARGETS compute_vox2vox DESTINATION bin)
 
+install(FILES talairach_avi.help.xml DESTINATION docs/xml)
+
 install_symlinks(
   711-2B_as_mni_average_305.4dfp.hdr
   711-2B_as_mni_average_305_mask.4dfp.ifh
@@ -131,6 +133,6 @@ install_symlinks(
   SVIP_Young_Patient_N12_as_orig.4dfp.ifh
   SVIP_Young_Patient_N12_as_orig.4dfp.img
   SVIP_Young_Patient_N12_as_orig.4dfp.img.rec
-  TYPE FILES
+  TYPE files
   DESTINATION average
 )

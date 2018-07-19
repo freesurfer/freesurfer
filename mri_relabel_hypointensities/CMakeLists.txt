@@ -5,4 +5,6 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 add_executable(mri_relabel_hypointensities mri_relabel_hypointensities.c)
 target_link_libraries(mri_relabel_hypointensities utils)
 
+add_test_script(NAME mri_relabel_hypointensities_test SCRIPT test_mri_relabel_hypointensities DEPENDS mri_relabel_hypointensities)
+
 install(TARGETS mri_relabel_hypointensities DESTINATION bin)

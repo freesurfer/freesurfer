@@ -34,6 +34,7 @@
 extern "C"
 {
 #include "fsgdf.h"
+#undef isfinite
 }
 
 class FSVolume;

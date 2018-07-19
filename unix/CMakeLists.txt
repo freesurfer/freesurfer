@@ -22,4 +22,3 @@ SET(SOURCES
 add_library(unix STATIC ${SOURCES})
 
 target_link_libraries(unix ${MINC_LIBRARIES})
-add_external_dependencies(unix minc)

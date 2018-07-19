@@ -25,7 +25,7 @@ add_executable(
 )
 target_link_libraries(mri_robust_register utils ${FORTRAN_LIBS})
 add_help(mri_robust_register mri_robust_register.help.xml)
-install(TARGETS mri_robust_register DESTINATION bin)
+install_wrapped(TARGETS mri_robust_register DESTINATION bin)
 
 # mri_robust_template
 add_executable(

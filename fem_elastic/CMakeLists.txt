@@ -3,7 +3,7 @@ project(fem_elastic)
 include_directories(
   ${CMAKE_SOURCE_DIR}/include
   ${PETSC_INCLUDE_DIR}
-  ${TETGEN_INCLUDE_DIR}
+  ${Tetgen_INCLUDE_DIR}
   ${ITK_INCLUDE_DIRS}
 )
 
@@ -24,20 +24,17 @@ if(Boost_FOUND)
 
   # createMorph
   add_executable(createMorph fcreateMorph.cpp ${COMMON3D_SOURCES})
-  target_link_libraries(createMorph utils ${TETGEN_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY})
-  add_external_dependencies(createMorph tetgen)
+  target_link_libraries(createMorph utils ${Tetgen_LIBRARIES} ${Boost_PROGRAM_OPTIONS_LIBRARY})
   install(TARGETS createMorph DESTINATION bin)
 
   # applyMorph
   add_executable(applyMorph fapplyMorph.cpp ${COMMON3D_SOURCES})
-  target_link_libraries(applyMorph utils ${TETGEN_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY})
-  add_external_dependencies(applyMorph tetgen)
+  target_link_libraries(applyMorph utils ${Tetgen_LIBRARIES} ${Boost_PROGRAM_OPTIONS_LIBRARY})
   install(TARGETS applyMorph DESTINATION bin)
 
   # exportGcam
   add_executable(exportGcam exportGcam.cpp ${COMMON3D_SOURCES})
-  target_link_libraries(exportGcam utils ${TETGEN_LIBRARY} ${Boost_PROGRAM_OPTIONS_LIBRARY})
-  add_external_dependencies(exportGcam tetgen)
+  target_link_libraries(exportGcam utils ${Tetgen_LIBRARIES} ${Boost_PROGRAM_OPTIONS_LIBRARY})
   install(TARGETS exportGcam DESTINATION bin)
 
 endif()
@@ -57,16 +54,14 @@ add_executable(surf2vol
 )
 target_link_libraries(surf2vol
   utils
-  ${TETGEN_LIBRARY}
+  ${Tetgen_LIBRARIES}
   ${PETSC_LIBRARIES}
   ${LAPACK_LIBRARIES}
   ${BLAS_LIBRARIES}
   ${GFORTRAN_LIBRARIES}
 )
-add_external_dependencies(applyMorph tetgen petsc)
 install(TARGETS surf2vol DESTINATION bin)
 
 # fem_elastic library
 add_library(fem_elastic STATIC fcreateMorph.cpp fapplyMorph.cpp ${COMMON3D_SOURCES})
-add_external_dependencies(fem_elastic tetgen)
-target_link_libraries(fem_elastic utils ${TETGEN_LIBRARY})
+target_link_libraries(fem_elastic utils ${Tetgen_LIBRARIES})

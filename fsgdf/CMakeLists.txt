@@ -13,5 +13,4 @@ SET(SOURCES
 
 add_library(fsgdf STATIC ${SOURCES})
 
-target_link_libraries(fsgdf utils ${MINC_LIBRARIES} ${NETCDF_LIBRARY})
-add_external_dependencies(fsgdf minc)
+target_link_libraries(fsgdf utils ${MINC_LIBRARIES} ${NetCDF_LIBRARIES})

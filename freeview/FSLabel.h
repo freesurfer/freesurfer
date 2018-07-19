@@ -34,6 +34,7 @@
 extern "C"
 {
 #include "label.h"
+#undef uchar
 #include "mrisutils.h"
 }
 

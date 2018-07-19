@@ -1,18 +1,9 @@
-include(ExternalProject)
+# xml2 Find Module
 
-# build the xml2 library within the freesurfer build tree
-set(XML2_DIR ${CMAKE_BINARY_DIR}/packages/xml2)
-ExternalProject_Add(
-  xml2
-  PREFIX ${XML2_DIR}
-  URL "file://${CMAKE_SOURCE_DIR}/packages/xml2-2.7.7.tar.gz"
-  BINARY_DIR ${XML2_DIR}/src/xml2
-  CONFIGURE_COMMAND ./configure --prefix=${XML2_DIR} --with-sax1 --disable-shared --with-minimum
-  BUILD_COMMAND make
-  INSTALL_COMMAND make install
-  DOWNLOAD_NO_PROGRESS true
-)
+if(NOT XML2_DIR)
+  set(XML2_DIR ${FS_PACKAGES_DIR}/xml2/2.7.7)
+endif()
 
-# set XML2 paths
-set(XML2_INCLUDE_DIR ${XML2_DIR}/include/libxml2)
-set(XML2_LIBRARY ${XML2_DIR}/lib/libxml2.a)
+find_path(XML2_INCLUDE_DIR PATHS ${XML2_DIR} NAMES libxml PATH_SUFFIXES include/libxml2)
+find_library(XML2_LIBRARIES PATHS ${XML2_DIR} NAMES libxml2.a PATH_SUFFIXES lib)
+find_package_handle_standard_args(XML2 DEFAULT_MSG XML2_INCLUDE_DIR XML2_LIBRARIES)

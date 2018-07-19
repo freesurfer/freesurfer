@@ -9,6 +9,6 @@ install_symlinks(
   lh.sphere.ico5.reg rh.sphere.ico5.reg
   lh.sphere.ico6.reg rh.sphere.ico6.reg
   lh.sphere.ico7.reg rh.sphere.ico7.reg
-  TYPE FILES
+  TYPE files
   DESTINATION average/surf
 )
