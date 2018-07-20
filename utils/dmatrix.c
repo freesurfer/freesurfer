@@ -626,8 +626,7 @@ DMATRIX *DMatrixTranspose(DMATRIX *mIn, DMATRIX *mOut)
 */
 DMATRIX *DMatrixAddMul(DMATRIX *m1, DMATRIX *m2, double v1, double v2, DMATRIX *mOut)
 {
-  int row, col, err;
-  double val;
+  int row, err;
 
   if(m1 && m2){
     err = DMatrixCheckDims(m1, m2, 3, stdout, "DMatrixAddMul(): ");
@@ -646,7 +645,12 @@ DMATRIX *DMatrixAddMul(DMATRIX *m1, DMATRIX *m2, double v1, double v2, DMATRIX *
     if(err) return(NULL);
   }
 
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for 
+  #endif
   for(row = 1; row <= m1->rows; row++) {
+    int col;
+    double val;
     for(col = 1; col <= m1->cols; col++) {
       val = 0;
       if(m1){
@@ -718,11 +722,19 @@ double DVectorDot(const DVECTOR *v1, const DVECTOR *v2)
   a matrix rows-by-cols is alloced. If X is non-NULL, then rows and
   cols are ignored.
 */
-DMATRIX *DMatrixConstVal(double val, int rows, int cols, DMATRIX *X)
+DMATRIX *DMatrixConstVal(const double val, const int rows, const int cols, DMATRIX *X)
 {
-  int r, c;
+  int r;
+  if(val ==0) {
+    X = DMatrixZero(rows, cols, X);
+    return(X);
+  }
   if(X == NULL) X = DMatrixAlloc(rows, cols, MATRIX_REAL);
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for 
+  #endif
   for (r = 1; r <= X->rows; r++) {
+    int c;
     for (c = 1; c <= X->cols; c++) {
       X->rptr[r][c] = val;
     }
@@ -735,7 +747,8 @@ DMATRIX *DMatrixConstVal(double val, int rows, int cols, DMATRIX *X)
   \brief sets all the elements to 0.  If X is NULL, then a matrix
   rows-by-cols is alloced. If X is non-NULL, then rows and cols are
   ignored. This is different than DMatrixConstVal(0) in that it
-  it uses memset(), which should be much faster.
+  it uses memset(), which should be much faster. Now DMatrixConstVal(0)
+  will actually call DMatrixZero().
 */
 DMATRIX *DMatrixZero(const int rows, const int cols, DMATRIX *X)
 {
@@ -759,6 +772,9 @@ double DVectorLen(const DVECTOR *v)
     return(-1);
   }
   len = 0.0;
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for reduction (+:len)
+  #endif
   for (i = 1; i <= v->rows; i++) {
     vi = v->rptr[i][1];
     len += vi * vi;
