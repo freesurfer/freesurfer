@@ -36,11 +36,11 @@
 #include "dmatrix.h"
 #include "mrisurf.h"
 #include "romp_support.h"
+#undef private
 
+#define _SURFGRAD_SRC
 #include "surfgrad.h"
 
-int MRISfaceNormalFace_AddDeltaVertex = -1;
-long double MRISfaceNormalFace_AddDelta[3]={0,0,0};
 
 /*!
   \fn int MRISfaceNormalFace(MRIS *surf, int faceno, DMATRIX **pc, double *pcL)
@@ -1112,3 +1112,131 @@ int BBRPARsras2vox(BBRPARAMS *bbrpar)
   return(0);
 }
 
+long double MRISbbrCost(BBRPARAMS *bbrpar, DMATRIX *gradCost)
+{
+  long double cost = 0;
+  int faceno,nthreads,threadno;
+  BBRFACE **bbrfth;
+  static DMATRIX **gradCostTh=NULL;
+  static int nthreadsalloc=0;
+  extern int MRISbbrCostFree;
+
+  // This must already have been run
+  //MRISfaceNormalGrad(surf, 0);
+
+  // Get number of threads
+  nthreads = 1;
+  #ifdef HAVE_OPENMP
+  nthreads = omp_get_max_threads();  // using max should be ok
+  #endif
+
+  if(nthreadsalloc > 0 && (nthreadsalloc < nthreads || MRISbbrCostFree) ){
+    // Free the static gradCostTh if
+    // threads have been alloced AND either:
+    //   The number of threads that have been alloced is less than the number of threads
+    //   The caller wants to free the data
+    for(threadno = 0; threadno < nthreads; threadno++)
+      DMatrixFree(&gradCostTh[threadno]);
+    free(gradCostTh);
+    gradCostTh = NULL;
+    nthreadsalloc = 0;
+    if(MRISbbrCostFree) return(0);
+  }
+
+  if(gradCost){
+    if(gradCostTh==NULL){
+      nthreadsalloc = nthreads;
+      gradCostTh = (DMATRIX **) calloc(sizeof(DMATRIX *),nthreads);
+      for(threadno = 0; threadno < nthreads; threadno++){
+	gradCostTh[threadno] = DMatrixAlloc(bbrpar->surf->nvertices,3,MATRIX_REAL);
+      }
+    }
+    else{
+      // The static gradCostTh have already been alloced, so zero all the threads
+      for(threadno = 0; threadno < nthreads; threadno++)
+	DMatrixZero(0,0,gradCostTh[threadno]);
+    }
+  }
+
+  bbrfth = (BBRFACE **) calloc(sizeof(BBRFACE*),nthreads);
+  for(threadno = 0; threadno < nthreads; threadno++){
+    bbrfth[threadno] = BBRFaceAlloc();
+  }
+
+  cost = 0;
+  #ifdef HAVE_OPENMP
+  #pragma omp parallel for private(threadno) reduction(+ : cost)
+  #endif
+  for(faceno = 0; faceno < bbrpar->surf->nfaces; faceno++){
+    BBRFACE *bbrf;
+
+    threadno=0;
+    #ifdef HAVE_OPENMP
+    threadno = omp_get_thread_num();
+    #endif
+
+    bbrf = bbrfth[threadno];
+    bbrf = BBRCostFace(faceno, -1, bbrpar, bbrf); // Compute cost only, no grad
+    cost += bbrf->cost;
+    if(gradCost){
+      FACE *f = &(bbrpar->surf->faces[faceno]);
+      int  wrtvtxno, svtxno, n;
+      for(wrtvtxno=0; wrtvtxno < 3; wrtvtxno++){
+	bbrf = BBRCostFace(faceno, wrtvtxno, bbrpar, bbrf); // Compute grads
+	svtxno = f->v[wrtvtxno];
+	for(n=0; n<3; n++)
+	  gradCostTh[threadno]->rptr[svtxno+1][n+1] += bbrf->gradCost[wrtvtxno]->rptr[1][n+1];
+      }
+    }
+  }
+  // Change cost to average cost over number of faces
+  cost = cost/bbrpar->surf->nfaces;
+
+  // Merge gradients from different threads
+  if(gradCost){
+    DMatrixZero(0,0,gradCost);
+    for(threadno = 0; threadno < nthreads; threadno++)
+      gradCost = DMatrixAdd(gradCost,gradCostTh[threadno],gradCost);
+    DMatrixScalarMul(gradCost,1.0/bbrpar->surf->nfaces,gradCost);
+  }
+
+  // Free the BBRFACE structs
+  for(threadno = 0; threadno < nthreads; threadno++)
+    BBRFaceFree(&bbrfth[threadno]);
+  free(bbrfth);
+
+  return(cost);
+}
+
+double MRISedgeCost(MRIS *surf, DMATRIX *gradCost)
+{
+  long double cost;
+  int edgeno, wrtvtxno, svtxno,n;
+  MRI_EDGE *e;
+  DMATRIX *gradCostEV=NULL;
+
+  // These must have been already run
+  //MRISfaceNormalGrad(surf, 0);
+  //MRISedgeGradDot(surf);
+
+  cost = 0;
+  for(edgeno = 0; edgeno < surf->nedges; edgeno++){
+    e = &(surf->edges[edgeno]);
+    // easy enough to compute actual cost here
+    cost += pow(1.0-e->dot, 2.0);
+    if(gradCost){
+      for(wrtvtxno=0; wrtvtxno < 4; wrtvtxno++){
+	gradCostEV = DMatrixScalarMul(e->gradDot[wrtvtxno],-2*(1.0-e->dot),gradCostEV);
+	svtxno = e->vtxno[wrtvtxno];
+	for(n=0; n<3; n++)
+	  gradCost->rptr[svtxno+1][n+1] += gradCostEV->rptr[1][n+1];
+      }
+    }
+  }
+  cost /= surf->nedges;
+
+  if(gradCost)
+    DMatrixScalarMul(gradCost,1.0/surf->nedges,gradCost);
+
+  return(cost);
+}

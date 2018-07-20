@@ -63,15 +63,18 @@ BBRFACE;
 #ifdef _SURFGRAD_SRC
 int MRISfaceNormalFace_AddDeltaVertex = -1;
 long double MRISfaceNormalFace_AddDelta[3]={0,0,0};
+int MRISbbrCostFree=0;
 #else
 extern int MRISfaceNormalFace_AddDeltaVertex;
 extern long double MRISfaceNormalFace_AddDelta[3];
+extern int MRISbbrCostFree;
 #endif
 
 int MRISfaceNormalGradFace(MRIS *surf, int faceno);
 int MRISfaceNormalGradTest(MRIS *surf, char *surfpath, double delta);
 int MRISfaceNormalFace(MRIS *surf, int faceno, DMATRIX **pc, double *pcL);
 double MRISfaceNormalGradFaceTest(MRIS *surf, int faceno, int wrtvtxno, long double delta, int verbose);
+
 
 double MRISedgeAngleCostEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno, DMATRIX **pgrad);
 int MRISedgeGradDotEdgeVertex(MRIS *surf, int edgeno, int wrtvtxno);
@@ -90,8 +93,8 @@ int BBRFacePrint(FILE *fp, BBRFACE *bbrf, BBRPARAMS *bbrpar);
 BBRFACE *BBRFaceDiff(const BBRFACE *bbrf1, const BBRFACE *bbrf2, const double delta, BBRFACE *bbrfout);
 double TestBBRCostFace(BBRPARAMS *bbrpar, int faceno, int wrtvtxno, double delta, int verbose);
 int BBRPARsras2vox(BBRPARAMS *bbrpar);
-
-
+long double MRISbbrCost(BBRPARAMS *bbrpar, DMATRIX *gradCost);
+double MRISedgeCost(MRIS *surf, DMATRIX *gradCost);
 
 #if defined(__cplusplus)
 };
