@@ -1093,3 +1093,22 @@ double TestBBRCostFace(BBRPARAMS *bbrpar, int faceno, int wrtvtxno, double delta
 
   return(maxrdiff);
 }
+
+/*!
+  \fn int BBRPARsras2vox(BBRPARAMS *bbrpar)
+  \brief Creates matrices that map the surface RAS to CRS
+*/
+int BBRPARsras2vox(BBRPARAMS *bbrpar)
+{
+  MATRIX *vox2sras, *sras2vox, *sras2vox3x3=NULL;
+  vox2sras = MRIxfmCRS2XYZtkreg(bbrpar->mri);
+  sras2vox = MatrixInverse(vox2sras,NULL);
+  bbrpar->sras2vox = DMatrixCopyFMatrix(sras2vox,bbrpar->sras2vox);
+  sras2vox3x3 = MatrixCopyRegion(sras2vox, sras2vox3x3, 1,1,3,3,1,1);
+  bbrpar->sras2vox3x3 = DMatrixCopyFMatrix(sras2vox3x3,bbrpar->sras2vox3x3);
+  MatrixFree(&vox2sras);
+  MatrixFree(&sras2vox);
+  MatrixFree(&sras2vox3x3);
+  return(0);
+}
+
