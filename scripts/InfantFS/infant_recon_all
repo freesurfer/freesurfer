@@ -779,7 +779,7 @@ echo Creating wm surfaces.... >> $LF
 # if !(-e $SUBJECTS_DIR/$subj/surf/rh.white) then
 # if !(-e $SUBJECTS_DIR/$subj/label/rh.aparc.annot) then
 if (1) then # 06/14/2017
-  set cmd = (source create_wm_surfaces_mprage_subject.csh --s $subj) 
+  set cmd = (source $FREESURFER_HOME/bin/create_wm_surfaces_mprage_subject.csh --s $subj) 
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
@@ -790,7 +790,7 @@ endif
 echo Creating pial surfaces.... >> $LF
 # if !(-e $SUBJECTS_DIR/$subj/surf/rh.pial) then
 if !(-e $SUBJECTS_DIR/$subj/surf/rh.thickness) then
-  set cmd = (source create_pial_surfaces_mprage_subject.csh --s $subj)
+  set cmd = (source $FREESURFER_HOME/bin/create_pial_surfaces_mprage_subject.csh --s $subj)
   echo $cmd >> $LF
   echo $cmd >> $sLF
   $cmd |& tee -a $LF
