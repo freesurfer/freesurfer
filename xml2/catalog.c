@@ -1060,7 +1060,7 @@ xmlLoadFileContent(const char *filename)
     return (NULL);
   }
 #endif
-  content = xmlMallocAtomic(size + 10);
+  content = (xmlChar*)xmlMallocAtomic(size + 10);
   if (content == NULL)
   {
     xmlCatalogErrMemory("allocating catalog data");
@@ -1698,7 +1698,7 @@ xmlAddXMLCatalog(xmlCatalogEntryPtr catal, const xmlChar *type,
   if (doregister)
   {
     catal->type = XML_CATA_CATALOG;
-    cur = xmlHashLookup(xmlCatalogXMLFiles, catal->URL);
+    cur = (xmlCatalogEntryPtr)xmlHashLookup(xmlCatalogXMLFiles, catal->URL);
     if (cur != NULL)
       cur->children = catal->children;
   }
