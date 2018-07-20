@@ -69,6 +69,9 @@ typedef struct
   bool setMinimumAngle;
   float minimumAngle;
 	
+  // Run code to make sure the output surface is always the same given the input surface
+  int Deterministic;
+
 } DECIMATION_OPTIONS;
 
 ///	Optional callback function 

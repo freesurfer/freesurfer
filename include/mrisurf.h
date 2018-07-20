@@ -2512,12 +2512,19 @@ int MRIScountEdges(MRIS *surf);
 int MRISedges(MRIS *surf);
 int MRISfixAverageSurf7(MRIS *surf7);
 
+// for sorting vertices using qsort
 typedef struct{
   int vtxno;
   float x,y,z;
-}
-VERTEX_SORT; // for sorting vertices using qsort
-MRIS *MRISsortVertices(MRIS *mris0);
+} VERTEX_SORT; 
 int CompareVertexCoords(const void *v1, const void *v2);
+// for sorting faces using qsort
+typedef struct{
+  int faceno;
+  int v0, v1, v2;
+} FACE_SORT; 
+int CompareFaceVertices(const void *vf1, const void *vf2);
+// for making the surface deterministic after decimation
+MRIS *MRISsortVertices(MRIS *mris0);
 
 #endif // MRISURF_H
