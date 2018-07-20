@@ -236,13 +236,13 @@ xmlAddEntity(xmlDtdPtr dtd, const xmlChar *name, int type,
   case XML_EXTERNAL_GENERAL_UNPARSED_ENTITY:
     if (dtd->entities == NULL)
       dtd->entities = xmlHashCreateDict(0, dict);
-    table = dtd->entities;
+    table = (xmlEntitiesTablePtr)dtd->entities;
     break;
   case XML_INTERNAL_PARAMETER_ENTITY:
   case XML_EXTERNAL_PARAMETER_ENTITY:
     if (dtd->pentities == NULL)
       dtd->pentities = xmlHashCreateDict(0, dict);
-    table = dtd->pentities;
+    table = (xmlEntitiesTablePtr)dtd->pentities;
     break;
   case XML_INTERNAL_PREDEFINED_ENTITY:
     return(NULL);

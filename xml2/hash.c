@@ -171,13 +171,13 @@ xmlHashCreate(int size)
   if (size <= 0)
     size = 256;
 
-  table = xmlMalloc(sizeof(xmlHashTable));
+  table = (xmlHashTable*)xmlMalloc(sizeof(xmlHashTable));
   if (table)
   {
     table->dict = NULL;
     table->size = size;
     table->nbElems = 0;
-    table->table = xmlMalloc(size * sizeof(xmlHashEntry));
+    table->table = (xmlHashEntry*)xmlMalloc(size * sizeof(xmlHashEntry));
     if (table->table)
     {
       memset(table->table, 0, size * sizeof(xmlHashEntry));
@@ -243,7 +243,7 @@ xmlHashGrow(xmlHashTablePtr table, int size)
   if (oldtable == NULL)
     return(-1);
 
-  table->table = xmlMalloc(size * sizeof(xmlHashEntry));
+  table->table = (xmlHashEntry*)xmlMalloc(size * sizeof(xmlHashEntry));
   if (table->table == NULL)
   {
     table->table = oldtable;
@@ -616,7 +616,7 @@ xmlHashAddEntry3(xmlHashTablePtr table, const xmlChar *name,
   }
   else
   {
-    entry = xmlMalloc(sizeof(xmlHashEntry));
+    entry = (xmlHashEntryPtr)xmlMalloc(sizeof(xmlHashEntry));
     if (entry == NULL)
       return(-1);
   }
@@ -769,7 +769,7 @@ xmlHashUpdateEntry3(xmlHashTablePtr table, const xmlChar *name,
   }
   else
   {
-    entry = xmlMalloc(sizeof(xmlHashEntry));
+    entry = (xmlHashEntryPtr)xmlMalloc(sizeof(xmlHashEntry));
     if (entry == NULL)
       return(-1);
   }

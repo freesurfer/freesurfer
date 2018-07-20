@@ -68,7 +68,7 @@ void
 TIFFPrintDirectory(TIFF* tif, FILE* fd, long flags)
 {
 	register TIFFDirectory *td;
-	char *sep;
+	const char *sep;
 	uint16 i;
 	long l, n;
 

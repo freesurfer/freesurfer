@@ -7109,7 +7109,7 @@ htmlCreateFileParserCtxt(const char *filename, const char *encoding)
   /* set encoding */
   if (encoding)
   {
-    content = xmlMallocAtomic (xmlStrlen(content_line) + strlen(encoding) + 1);
+    content = (xmlChar*)xmlMallocAtomic (xmlStrlen(content_line) + strlen(encoding) + 1);
     if (content)
     {
       strcpy ((char *)content, (char *)content_line);
