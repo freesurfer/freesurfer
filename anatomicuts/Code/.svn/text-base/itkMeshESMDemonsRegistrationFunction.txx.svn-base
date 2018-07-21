@@ -1,0 +1,256 @@
+#ifndef _itk_MeshESMDemonsRegistrationFunction_txx_
+#define _itk_MeshESMDemonsRegistrationFunction_txx_
+
+#include "itkMeshESMDemonsRegistrationFunction.h"
+#include "itkClosestPointMeshCorrespondencesCalculator.h"
+//#include "itkMeassureMeshCorrespondencesCalculator.h"
+
+#include "itkKdTree.h"
+#include "itkKdTreeGenerator.h"
+#include "itkVector.h"
+#include "itkListSample.h"
+//print
+#include "time.h"
+#include <sys/time.h>
+#include "itkPolylineMeshToVTKPolyDataFilter.h"
+#include "itkVectorValue.h"
+
+#include "vtkPolyDataWriter.h"
+#include <algorithm>
+#include <map>
+#include <sstream>
+namespace itk
+{
+
+	template < class TFixedMesh,  class TMovingMesh,
+		 class TFixedImage, class TMovingImage, class TDeformationField>
+			 void
+			 MeshESMDemonsRegistrationFunction <TFixedMesh, TMovingMesh, TFixedImage, TMovingImage, TDeformationField>
+			 ::InitializeIteration()
+			 {
+    std::cout << " HOALAAAAAA" << std::endl;
+                             m_Metric    = 0.0;
+				 m_RMSChange = 0.0;
+				 m_NumberOfPointsProcessed = 0L;
+
+				 DeformationFieldTypePointer invDef = this->GetInverseDeformationField();
+
+			 // warp moving points, and update inputs of correspondence calculators
+				 typedef itk::WarpMeshFilter<TMovingMesh,TMovingMesh, DeformationFieldType>  MeshWarperType;
+				 typedef itk::PolylineMeshToVTKPolyDataFilter<TMovingMesh> VTKConverterType;
+				 time_t rawtime;
+				 struct tm * timeinfo;
+
+				 time ( &rawtime );
+				 timeinfo = localtime ( &rawtime ); 
+				 timeval curTime;
+				 gettimeofday(&curTime, NULL);
+				 int milli = curTime.tv_usec / 1000;
+
+				 //				 std::cout << "currents : "<< this->GetSigma() << std::endl;
+				 for (unsigned int i=0; i<m_MovingMeshVector->Size(); i++)
+				 {      
+					 typename WarpFilterType::Pointer warper = WarpFilterType::New();
+					 warper->SetInput ( m_MovingMeshVector->ElementAt (i) );
+					 warper->SetDeformationField ( invDef );
+					 warper->Update();
+
+					 typename MovingMeshType::Pointer warpedMesh = warper->GetOutput();
+
+					 CorrespondenceCalulatorPointerType cCalculator = m_CorrespondenceCalculatorVector->ElementAt (i);
+					 cCalculator->SetMovingMesh ( warpedMesh );
+/*					 if(this->GetSigma()==-1)
+					 {
+						 this->SetSigma(cCalculator->GetSigmaCurrents());
+					 }
+					 cCalculator->SetSigma(this->GetSigma());*/
+					 cCalculator->SetSpacing( this->GetMovingImage()->GetSpacing()[0]);
+//					 cCalculator->RecalculateSigma();
+//				   cCalculator->SetUpsamplingPointsNumber( this->GetMovingImage()->GetSpacing()[2]+1);
+
+
+					 //PRINT FIBERS EACH ITERATION
+					 /*typename VTKConverterType::Pointer converter = VTKConverterType::New();
+					 converter->SetInput( warpedMesh );
+					 converter->Update();
+
+					 vtkPolyDataWriter *writer = vtkPolyDataWriter::New();
+					 char meshName[100];
+					 char meshName2[100];
+					 strftime (meshName,100,"%H%M%S",timeinfo);
+					 sprintf(meshName2, "%s%d_%.2d.vtk", meshName, milli,i);
+					 writer->SetFileName(meshName2);
+					 writer->SetInput( converter->GetOutputPolyData() );
+					 writer->Update();
+					 writer->Delete();
+                     */
+				 }
+//				 std::cout << std::endl;
+
+				 // K-d tree typedefs
+				 typedef VectorValue< float, 3 >                             MeasurementVectorType;
+				 typedef Statistics::ListSample< MeasurementVectorType > SampleType;
+				 typedef Statistics::KdTreeGenerator< SampleType >       TreeGeneratorType;
+				 typedef typename TreeGeneratorType::KdTreeType          TreeType;
+				 typedef typename TreeType::NearestNeighbors             NeighborsType;
+				 typedef typename TreeType::KdTreeNodeType               NodeType;
+
+				 TreeType::Pointer                m_Tree;
+				 SampleType::Pointer              m_Sample;
+				 std::vector<SampleType::Pointer> m_SamplesCluster;
+
+				 double radius = 0.2; //this->GetSigma();//this->GetMovingImage()->GetSpacing()[2] ;
+				 m_Tree = 0;
+				 m_Sample = SampleType::New();
+                                 m_Sample->SetMeasurementVectorSize( 3 );
+                                 // I create a map to know which points were already added to the list (to not repeat)
+                                 std::map<std::string,int> pointsMap;
+                                 std::vector<MeasurementVectorType>  points;
+                                 std::vector<MeasurementVectorType>  allPoints;
+
+                                 InterpolatorPointListType  cPositions;
+                                 InterpolatorVectorListType cVectors;
+                                 typedef typename InterpolatorType::PointType InterpolatorPointType;
+                                 //				 InterpolatorPointListType  cMeshPositions;
+                                 for (unsigned int i=0; i<m_CorrespondenceCalculatorVector->Size(); i++)
+                                 {
+                                     m_CorrespondenceCalculatorVector->ElementAt (i)->Evaluate(); //Times(5,this->GetLambdaGradientDescent());
+                                     m_Metric += m_CorrespondenceCalculatorVector->ElementAt (i)->Distance();
+                                     CorrespondencePointListType  positions = m_CorrespondenceCalculatorVector->ElementAt (i)->GetOutputPositions();
+                                     CorrespondenceVectorListType vectors   = m_CorrespondenceCalculatorVector->ElementAt (i)->GetOutputVectors();
+                                     MetricListType metrics = m_CorrespondenceCalculatorVector->ElementAt (i)->GetOutputMetricValues();
+                                     for(unsigned int j=0; j<positions.size(); j++)
+                                     {
+                                         MovingMeshVectorType vec = (DeformationVectorType)vectors[j];
+                                         InterpolatorPointType  pt  = (InterpolatorPointType)positions[j];
+                                         if (metrics.size() >0)   {
+                                             m_Metric += metrics[j];
+                                             m_NumberOfPointsProcessed++;
+                                         }
+                                         m_RMSChange += vec.GetSquaredNorm();
+                                         cVectors.push_back(vec);
+                                         cPositions.push_back(pt);	
+                                     }
+                                     //gaussian map for each fiber
+                                     //  m_CorrespondencePositions.push_back ( cMeshPositions );
+                                     //  m_CorrespondenceVectors.push_back   ( cMeshVectors );
+                                 }
+                                 InterpolatorPointListType  cPositionsTruth;
+                                 InterpolatorVectorListType cVectorsTruth;
+                                 for (unsigned int i=0; i<m_CorrespondenceCalculatorVector->Size(); i++)
+                                 {
+                                     m_CorrespondenceCalculatorVector->ElementAt(i)->SetMovingMesh(m_CorrespondenceCalculatorVector->ElementAt(i)->GetFixedMesh());
+                                     m_CorrespondenceCalculatorVector->ElementAt (i)->Evaluate(); //Times(5,this->GetLambdaGradientDescent());
+                                     m_Metric += m_CorrespondenceCalculatorVector->ElementAt (i)->Distance();
+                                     CorrespondencePointListType  positions = m_CorrespondenceCalculatorVector->ElementAt (i)->GetOutputPositions();
+                                     CorrespondenceVectorListType vectors   = m_CorrespondenceCalculatorVector->ElementAt (i)->GetOutputVectors();
+                                     MetricListType metrics = m_CorrespondenceCalculatorVector->ElementAt (i)->GetOutputMetricValues();
+                                     InterpolatorVectorListType cMeshVectors;
+                                     for(unsigned int j=0; j<positions.size(); j++)
+                                     {
+                                         MovingMeshVectorType vec = (DeformationVectorType)vectors[j];
+                                         MovingMeshPointType  pt  = (DeformationPointType)positions[j];
+                                         cVectorsTruth.push_back(vec);
+                                         cPositionsTruth.push_back(pt);	
+                                     }
+                                 }	
+                                 if (m_NumberOfPointsProcessed>0 )
+                                 {
+                                     m_Metric /= m_NumberOfPointsProcessed;
+                                     m_RMSChange /= m_NumberOfPointsProcessed;
+				 }
+
+				 // interpolate
+         
+				 double sigmaInter = this->GetSigma();//*this->GetMovingImage()->GetSpacing()[2];
+				 typename InterpolatorType::Pointer inter = InterpolatorType::New();
+
+				 inter->SetInput   ( this->GetFixedImage() );
+				 //	m_Interpolator->SetSigma( this->GetSigma());
+				 inter->SetSigma(sigmaInter) ;
+				 inter->SetVectors ( cVectorsTruth );
+				 inter->SetPoints  ( cPositionsTruth );
+				 inter->GetOutput()->SetRequestedRegion ( this->GetDeformationField()->GetRequestedRegion() );
+
+				 //inter->Update();
+                                 inter->Initialize();
+				 //float epsilon = -this->GetLambdaGradientDescent(); //2.;///this->GetMovingImage()->GetSpacing()[2];
+				 for(unsigned int i =0; i < cVectors.size() ; i++)
+				 {
+                                        DeformationVectorType vec;
+                                        inter->InterpolateAtPoint(cPositions[i],vec);
+					 for(unsigned int j =0; j < 3 ; j++)
+					 {
+                                             cVectors[i][j] = -2 *cVectors[i][j]/((vec)[j]+cVectors[i][j]);
+                                             cPositions[i][j] += cVectors[i][j];
+					 }
+				 }
+                                 m_CorrespondencePositions.clear();
+				 m_CorrespondencePositions.push_back ( cPositions );
+				 std::cout << "v  " << cVectors[0] <<"v " << cVectors[10] << std::endl ;
+//				 std::cout << "p  " << cPositions[0] <<" p " << cPositions[10] ;
+				 //std::cout << std::endl;
+				 //         cVectors[i] /= cVectors[i].GetNorm();
+
+//				 m_Interpolator = InterpolatorType::New();
+				 m_Interpolator->SetInput   ( this->GetFixedImage() );
+//				 m_Interpolator->SetSigma( this->GetMovingImage()->GetSpacing()[2]);
+				 m_Interpolator->SetSigma(sigmaInter) ;
+				 m_Interpolator->SetVectors ( cVectors );
+				 m_Interpolator->SetPoints  ( cPositions );
+				 m_Interpolator->GetOutput()->SetRequestedRegion ( this->GetDeformationField()->GetRequestedRegion() );
+         m_Interpolator->SetNumberOfThreads(8);
+ 				 m_Interpolator->Update();
+				 m_MeshForces = m_Interpolator->GetOutput();
+				 m_MeshForces->DisconnectPipeline();
+			 }
+
+
+	template < class TFixedMesh,  class TMovingMesh,
+		 class TFixedImage, class TMovingImage, class TDeformationField>
+			 typename MeshESMDemonsRegistrationFunction
+			 <TFixedMesh, TMovingMesh, TFixedImage, TMovingImage, TDeformationField>::PixelType
+			 MeshESMDemonsRegistrationFunction <TFixedMesh, TMovingMesh, TFixedImage, TMovingImage, TDeformationField>
+			 ::ComputeUpdate(const NeighborhoodType &it,
+					 void *itkNotUsed (globalData),
+					 const FloatOffsetType &offset)
+			 {
+				 const IndexType index = it.GetIndex();
+
+				 return m_MeshForces->GetPixel(index);
+ //        PixelType p = m_Interpolator->InterpolateAt(index);
+ //        return p;
+
+			 }
+
+
+	template < class TFixedMesh,  class TMovingMesh,
+		 class TFixedImage, class TMovingImage, class TDeformationField>
+			 void
+			 MeshESMDemonsRegistrationFunction <TFixedMesh, TMovingMesh, TFixedImage, TMovingImage, TDeformationField>
+			 ::AddMeshCorrespondenceCalculator(CorrespondenceCalulatorType *calculator)
+			 {
+				 unsigned int lastIndex = m_CorrespondenceCalculatorVector->Size();
+
+				 m_CorrespondenceCalculatorVector->CreateIndex ( lastIndex );
+				 m_CorrespondenceCalculatorVector->SetElement  ( lastIndex, calculator );
+				 std::cout << " index create " << lastIndex << std::endl;
+				 m_MovingMeshVector->CreateIndex ( lastIndex );
+				 m_MovingMeshVector->SetElement  ( lastIndex, calculator->GetMovingMesh() );
+				 std::cout <<  " elem " << calculator->GetFixedMesh() << std::endl;
+			 }
+
+
+	template < class TFixedMesh,  class TMovingMesh,
+		 class TFixedImage, class TMovingImage, class TDeformationField>
+			 void
+			 MeshESMDemonsRegistrationFunction <TFixedMesh, TMovingMesh, TFixedImage, TMovingImage, TDeformationField>
+			 ::PrintSelf(std::ostream& os, Indent indent) const
+			 {
+				 Superclass::PrintSelf (os, indent);
+				 os << indent << m_CorrespondenceCalculatorVector << std::endl;
+			 }
+
+} // end of namespace
+
+#endif

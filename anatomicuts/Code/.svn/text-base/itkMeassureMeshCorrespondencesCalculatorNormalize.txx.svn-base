@@ -1,0 +1,707 @@
+#ifndef _itk_MeassureMeshCorrespondencesCalculatorNormalize_txx
+#define _itk_MeassureMeshCorrespondencesCalculatorNormalize_txx
+
+#include "itkMeassureMeshCorrespondencesCalculatorNormalize.h"
+#include "itkTransformMeshPointsFilter.h"
+#include <iostream>
+#include <limits>
+#include <utility>
+#include <algorithm>
+
+#include <fstream>
+#include "vnl/vnl_matrix.h"
+#include "vnl/vnl_math.h"
+#include "math.h"
+
+#include "interpolation.h"
+#include <itkGaussianSpatialFunction.h>
+#include <climits>
+using namespace alglib;
+
+
+namespace itk
+{
+
+  template< class TFixedMesh, class TMovingMesh > 
+    MeassureMeshCorrespondencesCalculatorNormalize < TFixedMesh, TMovingMesh >
+    ::MeassureMeshCorrespondencesCalculatorNormalize()
+    {
+      this->lastMetric = INT_MAX;
+    }
+
+  template< class TFixedMesh, class TMovingMesh >
+    void
+    MeassureMeshCorrespondencesCalculatorNormalize < TFixedMesh, TMovingMesh >
+    ::Evaluate ()
+    {
+      if (!this->GetFixedMesh() || !this->GetMovingMesh())
+        itkExceptionMacro (<< "Fixed and/or moving mesh not set");
+
+      this->m_vecP.clear();
+      this->m_vecV.clear();
+      this->m_metric.clear();
+//      RecalculateSigma();
+      typename FixedMeshType::PointsContainer *fixedPoints   = this->GetFixedMesh()->GetPoints();
+      typename MovingMeshType::PointsContainer *movingPoints = this->GetMovingMesh()->GetPoints();
+
+      typename MovingMeshType::PointsContainer::ConstIterator movingIterator = movingPoints->Begin();
+      typename FixedMeshType::PointsContainer::ConstIterator fixedIterator = fixedPoints->Begin();
+      std::vector<std::vector<float> > fp;
+      std::vector<std::vector<float> > mp;
+      std::vector<float> weightsM, weightsF;
+
+      for(typename TFixedMesh::PointsContainer::Iterator it=this->GetFixedMesh()->GetPoints()->Begin() ;it != this->GetFixedMesh()->GetPoints()->End();it++)
+      {
+        std::vector<float> point;
+        for(int i=0;i<3;i++)
+        {
+          point.push_back(it.Value()[i]);
+        }
+        fp.push_back(point);
+      } 
+      for(typename TMovingMesh::PointsContainer::Iterator it=this->GetMovingMesh()->GetPoints()->Begin() ;it != this->GetMovingMesh()->GetPoints()->End();it++)
+      {
+        std::vector<float> point;
+        for(int i=0;i<3;i++)
+        {
+          point.push_back(it.Value()[i]);
+        }
+        mp.push_back(point);
+      } 
+
+      typedef typename TFixedMesh::CellDataContainer FixedCellDataContainer;
+      if(  this->GetFixedMesh()->GetCellData() != 0)
+      {
+	      typename FixedCellDataContainer::ConstIterator fxdCellData = this->GetFixedMesh()->GetCellData()->Begin();
+              double value  = 0 ;
+	      for(;fxdCellData!= this->GetFixedMesh()->GetCellData()->End(); ++fxdCellData)
+	      {
+                      value += fxdCellData.Value();
+		      weightsF.push_back(fxdCellData.Value());
+	      }
+
+              typedef typename TMovingMesh::CellDataContainer MovingCellDataContainer;
+	      typename MovingCellDataContainer::ConstIterator mvgCellData = this->GetMovingMesh()->GetCellData()->Begin();
+              value = 0;
+	      for(;mvgCellData!= this->GetMovingMesh()->GetCellData()->End(); ++mvgCellData)
+	      {
+                      value +=  mvgCellData.Value() ;
+		      weightsM.push_back(mvgCellData.Value());
+	      }
+      }
+        
+      int pointsPerFiber = this->GetFixedMesh()->GetNumberOfPoints()/this->GetFixedMesh()->GetNumberOfCells();	
+//      double metric = 0;
+      float sigmaSquared = pow(this->GetSigma(),2);//*this->GetSpacing()+3,2);
+      std::cout << "mp "<< mp[0][0] << " fp " << fp[0][0] << "sigma squared " << sigmaSquared << std::endl;
+//      int downsampling=this->GetUpsamplingPointsNumber();
+//      std::cout << " downsampling " << downsampling << std::endl;
+
+      float normVal = sigmaSquared; // (mp.size()+ fp.size());
+      std::cout << "norm val " << normVal << std::endl;
+      for(unsigned int i=0; i< mp.size(); i++)
+      {
+        MovingVectorType corr, corr2 ; //= new MovingVectorType();
+        corr.Fill(0);
+        corr2.Fill(0);
+        float normSum=1, normSum2 =1;
+        for(unsigned int j=0; j<mp.size(); j++)
+        {
+          float vecNorm =pow(mp[i][0]-mp[j][0],2)+pow(mp[i][1]-mp[j][1],2)+pow(mp[i][2]-mp[j][2],2);
+          float norm = -2 *exp(- vecNorm/(2.*sigmaSquared))*weightsM[j%pointsPerFiber]*weightsM[i%pointsPerFiber];
+//          std::cout << weightsM[j%pointsPerFiber]<< " , " <<weightsM[i%pointsPerFiber] << " " ;
+          if( sqrt(vecNorm) < 2*this->GetSigma())
+          {
+             normSum+= weightsM[j%pointsPerFiber]*weightsM[i%pointsPerFiber];
+          }
+//          norm*= weightsM[i]*weightsM[j];
+          corr[0] += norm*(mp[i][0]-mp[j][0])/normVal;
+          corr[1] += norm*(mp[i][1]-mp[j][1])/normVal;
+          corr[2] += norm*(mp[i][2]-mp[j][2])/normVal;
+        }
+//        std::cout << " hola " << std::endl;
+       for(unsigned int j=0;j<fp.size();j++)
+        {
+          float vecNorm = pow(mp[i][0]-fp[j][0],2)+pow(mp[i][1]-fp[j][1],2)+pow(mp[i][2]-fp[j][2],2);
+          float norm = 2 * exp(-vecNorm/(2.*sigmaSquared))*weightsF[j%pointsPerFiber]*weightsM[i%pointsPerFiber];
+//            std::cout << weightsF[j%pointsPerFiber]<< " , " << weightsM[i%pointsPerFiber] << " " ;
+  //        norm*= weightsM[i]*weightsM[j];
+           if( sqrt(vecNorm) <  2*this->GetSigma())
+           {
+               normSum2+=  weightsF[j%pointsPerFiber]*weightsM[i%pointsPerFiber];
+           }
+          corr2[0] += norm*(mp[i][0]-fp[j][0])/normVal;
+          corr2[1] += norm*(mp[i][1]-fp[j][1])/normVal;
+          corr2[2] += norm*(mp[i][2]-fp[j][2])/normVal;
+        }
+        
+        MovingPointType p;
+        for(int j=0;j<3;j++)
+        {
+            //corr[j] = corr[j]/normSum + corr2[j]/normSum2;
+            corr[j] = corr[j] + corr2[j];
+            p[j] = mp[i][j];
+        }
+//        corr[0] /=fabs(normSum);
+//        corr[1] /=fabs(normSum);
+//        corr[2] /=fabs(normSum);
+
+        this->m_vecP.push_back(p );
+        this->m_vecV.push_back(corr);
+//        this->m_metric.push_back(0);
+      }
+    }
+  template< class TFixedMesh, class TMovingMesh >
+    void
+    MeassureMeshCorrespondencesCalculatorNormalize < TFixedMesh, TMovingMesh >
+    ::EvaluateNewton ()
+    {
+      if (!this->GetFixedMesh() || !this->GetMovingMesh())
+        itkExceptionMacro (<< "Fixed and/or moving mesh not set");
+
+      this->m_vecP.clear();
+      this->m_vecV.clear();
+      this->m_metric.clear();
+
+      typename FixedMeshType::PointsContainer *fixedPoints   = this->GetFixedMesh()->GetPoints();
+      typename MovingMeshType::PointsContainer *movingPoints = this->GetMovingMesh()->GetPoints();
+
+      typename MovingMeshType::PointsContainer::ConstIterator movingIterator = movingPoints->Begin();
+      typename FixedMeshType::PointsContainer::ConstIterator fixedIterator = fixedPoints->Begin();
+      std::vector<std::vector<float> > fp;
+      std::vector<std::vector<float> > mp;
+      std::vector<float> weightsM, weightsF;
+
+      for(typename TFixedMesh::PointsContainer::Iterator it=this->GetFixedMesh()->GetPoints()->Begin() ;it != this->GetFixedMesh()->GetPoints()->End();it++)
+      {
+        std::vector<float> point;
+        for(unsigned int i=0;i<3;i++)
+        {
+          point.push_back(it.Value()[i]);
+        }
+        fp.push_back(point);
+      } 
+      for(typename TMovingMesh::PointsContainer::Iterator it=this->GetMovingMesh()->GetPoints()->Begin() ;it != this->GetMovingMesh()->GetPoints()->End();it++)
+      {
+        std::vector<float> point;
+        for(unsigned int i=0;i<3;i++)
+        {
+          point.push_back(it.Value()[i]);
+        }
+        mp.push_back(point);
+      } 
+
+      typedef typename TFixedMesh::CellDataContainer FixedCellDataContainer;
+      if(  this->GetFixedMesh()->GetCellData() != 0)
+      {
+	      typename FixedCellDataContainer::ConstIterator fxdCellData = this->GetFixedMesh()->GetCellData()->Begin();
+	      for(;fxdCellData!= this->GetFixedMesh()->GetCellData()->End(); ++fxdCellData)
+	      {
+		      weightsF.push_back(fxdCellData.Value());
+	      }
+	      std::cout <<  std::endl;
+	      typedef typename TMovingMesh::CellDataContainer MovingCellDataContainer;
+	      typename MovingCellDataContainer::ConstIterator mvgCellData = this->GetMovingMesh()->GetCellData()->Begin();
+	      for(;mvgCellData!= this->GetMovingMesh()->GetCellData()->End(); ++mvgCellData)
+	      {
+		      weightsM.push_back(mvgCellData.Value());
+	      }
+      }
+      int pointsPerFiber = this->GetFixedMesh()->GetNumberOfPoints()/this->GetFixedMesh()->GetNumberOfCells();	
+      float sigmaSquared = pow(this->GetSigma(),2);
+      std::cout << "mp "<< mp[0][0] << " fp " << fp[0][0] << "sigma squared " << this->GetSigma() << std::endl;
+
+      for(unsigned int i=0; i< mp.size(); i++)
+      {
+        MovingVectorType jacobian, hessian, corr; 
+        jacobian.Fill(0);
+        hessian.Fill(0);
+        corr.Fill(0);
+        double normSum =0;
+        for(unsigned int j=0; j<mp.size(); j++)
+        {
+          float kernelDist =pow(mp[i][0]-mp[j][0],2)+pow(mp[i][1]-mp[j][1],2)+pow(mp[i][2]-mp[j][2],2);
+          kernelDist= exp(-kernelDist/(2.*sigmaSquared));
+          kernelDist = kernelDist *weightsM[j%pointsPerFiber]*weightsM[i%pointsPerFiber];
+
+          for(unsigned int k=0;k<3;k++)
+          {
+              jacobian[k] += -2.* kernelDist*(mp[i][k]-mp[j][k])/sigmaSquared;
+              hessian[k] += kernelDist*(mp[i][k]-mp[j][k])*(2./sigmaSquared*pow(mp[i][k]-mp[j][k],2)-1);
+          }
+
+        }
+       for(unsigned int j=0;j<fp.size();j++)
+        {
+          float kernelDist =pow(mp[i][0]-fp[j][0],2)+pow(mp[i][1]-fp[j][1],2)+pow(mp[i][2]-fp[j][2],2); 
+          kernelDist= exp(-kernelDist/(2.*sigmaSquared));
+          kernelDist = kernelDist *weightsF[j%pointsPerFiber]*weightsM[i%pointsPerFiber];
+
+          for(unsigned int k=0;k<3;k++)
+          { 
+              jacobian[k] += 2.* kernelDist*(mp[i][k]-fp[j][k])/sigmaSquared;
+              hessian[k] += kernelDist*(mp[i][k]-fp[j][k])*(1- 2./sigmaSquared*pow( mp[i][k]-fp[j][k],2));
+          }
+
+        }
+        
+        MovingPointType p;
+        for(unsigned int k=0;k<3;k++)
+        {
+            p[k] = mp[i][k];
+            corr[k] =-jacobian[k]/hessian[k];
+        }
+
+
+        this->m_vecP.push_back(p );
+        this->m_vecV.push_back(corr);
+//        this->m_metric.push_back(0);
+      }
+    }
+template< class TFixedMesh, class TMovingMesh >
+    void
+    MeassureMeshCorrespondencesCalculatorNormalize < TFixedMesh, TMovingMesh >
+    ::EvaluateTimes (int times, float epsilon)
+    {
+      if (!this->GetFixedMesh() || !this->GetMovingMesh())
+        itkExceptionMacro (<< "Fixed and/or moving mesh not set");
+
+      this->m_vecP.clear();
+      this->m_vecV.clear();
+      this->m_metric.clear();
+
+      typename FixedMeshType::PointsContainer *fixedPoints   = this->GetFixedMesh()->GetPoints();
+      typename MovingMeshType::PointsContainer *movingPoints = this->GetMovingMesh()->GetPoints();
+
+      typename MovingMeshType::PointsContainer::ConstIterator movingIterator = movingPoints->Begin();
+      typename FixedMeshType::PointsContainer::ConstIterator fixedIterator = fixedPoints->Begin();
+      std::vector<std::vector<float> > fp;
+      std::vector<std::vector<float> > mp;
+      std::vector<float> weightsM, weightsF;
+
+      for(typename TFixedMesh::PointsContainer::Iterator it=this->GetFixedMesh()->GetPoints()->Begin() ;it != this->GetFixedMesh()->GetPoints()->End();it++)
+      {
+        std::vector<float> point;
+        for(unsigned int i=0;i<3;i++)
+        {
+          point.push_back(it.Value()[i]);
+        }
+        fp.push_back(point);
+      } 
+      for(typename TMovingMesh::PointsContainer::Iterator it=this->GetMovingMesh()->GetPoints()->Begin() ;it != this->GetMovingMesh()->GetPoints()->End();it++)
+      {
+        std::vector<float> point;
+        for(unsigned int i=0;i<3;i++)
+        {
+          point.push_back(it.Value()[i]);
+        }
+        mp.push_back(point);
+      } 
+
+      typedef typename TFixedMesh::CellDataContainer FixedCellDataContainer;
+      if(  this->GetFixedMesh()->GetCellData() != 0)
+      {
+	      typename FixedCellDataContainer::ConstIterator fxdCellData = this->GetFixedMesh()->GetCellData()->Begin();
+	      for(;fxdCellData!= this->GetFixedMesh()->GetCellData()->End(); ++fxdCellData)
+	      {
+		      std::cout << fxdCellData.Value() ;
+		      weightsF.push_back(fxdCellData.Value());
+	      }
+	      std::cout <<  std::endl;
+	      typedef typename TMovingMesh::CellDataContainer MovingCellDataContainer;
+	      typename MovingCellDataContainer::ConstIterator mvgCellData = this->GetMovingMesh()->GetCellData()->Begin();
+	      for(;mvgCellData!= this->GetMovingMesh()->GetCellData()->End(); ++mvgCellData)
+	      {
+		      weightsM.push_back(mvgCellData.Value());
+	      }
+      }
+      int pointsPerFiber = this->GetFixedMesh()->GetNumberOfPoints()/this->GetFixedMesh()->GetNumberOfCells();	
+      std::cout << "points per fiber " << pointsPerFiber<< std::endl;
+      for(int t=0;t<times;t++)
+      {
+        //      double metric = 0;
+        float sigmaSquared = pow(this->GetSigma(),2);
+//        std::cout << "mp "<< mp[0][0] << " fp " << fp[0][0] << "sigma squared " << sigmaSquared << std::endl;
+        //      int downsampling=this->GetUpsamplingPointsNumber();
+        //      std::cout << " downsampling " << downsampling << std::endl;
+
+        float normVal = sigmaSquared; // (mp.size()+ fp.size());
+ //       std::cout << "norm val " << normVal << std::endl;
+        for(unsigned int i=0; i< mp.size(); i++)
+        {
+          MovingVectorType corr ; //= new MovingVectorType();
+          corr.Fill(0);
+          for(unsigned int j=0; j<mp.size(); j++)
+          {
+            float vecNorm =pow(mp[i][0]-mp[j][0],2)+pow(mp[i][1]-mp[j][1],2)+pow(mp[i][2]-mp[j][2],2);
+            float norm = -2 *exp(- vecNorm/(2.*sigmaSquared))*weightsM[j%pointsPerFiber]*weightsM[i%pointsPerFiber];
+            //          norm*= weightsM[i]*weightsM[j];
+            corr[0] += norm*(mp[i][0]-mp[j][0])/normVal;
+            corr[1] += norm*(mp[i][1]-mp[j][1])/normVal;
+            corr[2] += norm*(mp[i][2]-mp[j][2])/normVal;
+          }
+          for(unsigned int j=0;j<fp.size();j++)
+          {
+            float vecNorm = pow(mp[i][0]-fp[j][0],2)+pow(mp[i][1]-fp[j][1],2)+pow(mp[i][2]-fp[j][2],2);
+            float norm = 2 * exp(-vecNorm/(2.*sigmaSquared))* weightsF[j%pointsPerFiber]*weightsM[i%pointsPerFiber];
+            //        norm*= weightsM[i]*weightsM[j];
+            corr[0] += norm*(mp[i][0]-fp[j][0])/normVal;
+            corr[1] += norm*(mp[i][1]-fp[j][1])/normVal;
+            corr[2] += norm*(mp[i][2]-fp[j][2])/normVal;
+//        std::cout << " wM " << weightsM[j%pointsPerFiber] << " wF " <<weightsM[i%pointsPerFiber] ;
+          }
+          corr[0] = epsilon*corr[0];
+          corr[1] = epsilon*corr[1];
+          corr[2] = epsilon*corr[2];
+
+          if(t==0)
+          {
+            MovingPointType p;
+            p[0] = mp[i][0];
+            p[1] = mp[i][1];
+            p[2] = mp[i][2];
+            this->m_vecP.push_back(p );
+            this->m_vecV.push_back(corr);
+            this->m_metric.push_back(0);
+          }
+          else
+          {
+            this->m_vecV[i][0]+=corr[0];
+            this->m_vecV[i][1]+=corr[1];
+            this->m_vecV[i][2]+=corr[2];
+          }
+          mp[i][0] -= corr[0];
+          mp[i][1] -= corr[1];
+          mp[i][2] -= corr[2];
+        }
+      }
+      std::cout << std::endl;
+    }
+ template< class TFixedMesh, class TMovingMesh >
+    double 
+    MeassureMeshCorrespondencesCalculatorNormalize < TFixedMesh, TMovingMesh >
+    ::Distance ()
+    {
+      std::vector<std::vector<float> > fp;
+      std::vector<std::vector<float> > mp;
+      std::vector<float> weightsM, weightsF;
+      double sigmaSquared =pow(this->GetSigma(),2);//*this->GetSpacing()+3,2);
+      for(typename TFixedMesh::PointsContainer::Iterator it=this->GetFixedMesh()->GetPoints()->Begin() ;it != this->GetFixedMesh()->GetPoints()->End();it++)
+      {
+        std::vector<float> point;
+        for(int i=0;i<3;i++)
+        {
+          point.push_back(it.Value()[i]);
+        }
+        fp.push_back(point);
+      } 
+      double metric=0;
+      for(typename TMovingMesh::PointsContainer::Iterator it=this->GetMovingMesh()->GetPoints()->Begin() ;it != this->GetMovingMesh()->GetPoints()->End();it++)
+      {
+        std::vector<float> point;
+        for(int i=0;i<3;i++)
+        {
+          point.push_back(it.Value()[i]);
+        }
+        mp.push_back(point);
+      } 
+      typedef typename TFixedMesh::CellDataContainer FixedCellDataContainer;
+      if(  this->GetFixedMesh()->GetCellData() != 0)
+      {
+	      typename FixedCellDataContainer::ConstIterator fxdCellData = this->GetFixedMesh()->GetCellData()->Begin();
+	      for(;fxdCellData!= this->GetFixedMesh()->GetCellData()->End(); ++fxdCellData)
+	      {
+//		      std::cout << fxdCellData.Value() ;
+		      weightsF.push_back(fxdCellData.Value());
+	      }
+//	      std::cout <<  std::endl;
+	      typedef typename TMovingMesh::CellDataContainer MovingCellDataContainer;
+	      typename MovingCellDataContainer::ConstIterator mvgCellData = this->GetMovingMesh()->GetCellData()->Begin();
+	      for(;mvgCellData!= this->GetMovingMesh()->GetCellData()->End(); ++mvgCellData)
+	      {
+		      weightsM.push_back(mvgCellData.Value());
+	      }
+      }
+      int pointsPerFiber = this->GetFixedMesh()->GetNumberOfPoints()/this->GetFixedMesh()->GetNumberOfCells();	
+ //     std::cout << "points per fiber " << pointsPerFiber<< std::endl;
+      for(unsigned int i=0; i<mp.size(); i++)
+      {
+        for(unsigned int j=0; j<mp.size(); j++)
+        {
+          metric += exp(-(pow(mp[i][0]-mp[j][0],2)+pow(mp[i][1]-mp[j][1],2)+pow(mp[i][2]-mp[j][2],2))/(2.*sigmaSquared))* weightsM[j%pointsPerFiber]*weightsM[i%pointsPerFiber];
+        }
+      }
+      for(unsigned int i=0; i<fp.size(); i++)
+      {
+        for(unsigned int j=0; j<fp.size(); j++)
+        {
+          metric += exp(-(pow(fp[i][0]-fp[j][0],2)+pow(fp[i][1]-fp[j][1],2)+pow(fp[i][2]-fp[j][2],2))/(2.*sigmaSquared))* weightsF[j%pointsPerFiber]*weightsF[i%pointsPerFiber];
+        }
+      }
+      for(unsigned int i=0; i<mp.size(); i++)
+      {
+        for(unsigned int j=0; j<fp.size(); j++)
+        {
+          metric += -2. *exp(-(pow(mp[i][0]-fp[j][0],2)+pow(mp[i][1]-fp[j][1],2)+pow(mp[i][2]-fp[j][2],2))/(2.*sigmaSquared))* weightsF[j%pointsPerFiber]*weightsM[i%pointsPerFiber];
+        }
+      }
+      metric= metric/(this->GetFixedMesh()->GetNumberOfPoints()+this->GetMovingMesh()->GetNumberOfPoints());
+    RecalculateSigma(metric);
+    return metric;
+    }
+ template< class TFixedMesh, class TMovingMesh >
+    void
+    MeassureMeshCorrespondencesCalculatorNormalize < TFixedMesh, TMovingMesh >
+    ::UpsampleMeshes (int cantSamples, std::vector<std::vector<float> > *p,std::vector<float> *weights, FixedMeshPointer  mesh )
+    {
+      //p->resize((int)( mesh->GetNumberOfPoints()));
+      p->resize((int)( mesh->GetNumberOfCells()*cantSamples));
+
+      double x,y,z;
+      typedef typename TFixedMesh::CellsContainer FixedCellsContainer;
+      typename FixedCellsContainer::ConstIterator cellItFxd = mesh->GetCells()->Begin();
+
+      //looking for the sampling number of the spline:
+      typename TFixedMesh::CellTraits::PointIdIterator  pointIdIt  = cellItFxd.Value()->PointIdsBegin();
+      pointIdIt  = cellItFxd.Value()->PointIdsBegin();
+int k=0;
+      alglib::real_2d_array ptsFxd, ptsMvg;
+      int cellId = 0;
+      for(;cellItFxd!= mesh->GetCells()->End(); ++cellItFxd)
+      {
+        int j=0;
+        double vecPointsFxd[3*cellItFxd.Value()->GetNumberOfPoints()];
+        pointIdIt  = cellItFxd.Value()->PointIdsBegin();
+        for(;pointIdIt != cellItFxd.Value()->PointIdsEnd();pointIdIt++)
+        {
+          //    std::cout << " lala2 " << std::endl;
+          typename TFixedMesh::PointType pt;  
+          mesh->GetPoint(*pointIdIt, &pt);
+          //   std::cout << " pt "<< pt<< std::endl;
+//          std::vector<double> v;
+    //      (*p)[k].resize(3);
+          for(unsigned int i=0;i<3;i++)
+          {
+            vecPointsFxd[j] =pt[i];
+            j++;
+//            (*p)[k][i]= pt[i];
+          }
+//          p->push_back(&v);
+  //        k++;
+        }
+      //  return;
+        //        std::cout << " aaa " << j << std::endl; 
+        ptsFxd.setcontent(cellItFxd.Value()->GetNumberOfPoints(),3, vecPointsFxd);
+
+        alglib::pspline3interpolant sFxd;
+        alglib::pspline3build(ptsFxd,cellItFxd.Value()->GetNumberOfPoints(),1,0,sFxd);
+
+
+        float ii=0;
+        //        while(k<=Nf)
+        int top = k+cantSamples;
+        while(k<top)
+        {
+          //     std::cout << " i " << i << std::endl;
+          alglib::pspline3calc(sFxd,ii,x,y,z);
+          //          std::cout << " x " << x << " ii " << ii << std::endl;
+          (*p)[k].resize(3);
+          (*p)[k][0] = x;
+          (*p)[k][1] = y;
+          (*p)[k][2] = z;
+
+          ii+=(1./(cantSamples-1));
+          k++;
+        }
+      //  weightsF.push_back(this->GetFixedMesh()->GetCellData(cellId ));
+        cellId++;
+      }
+ 
+      std::cout << " cant samples " <<  cantSamples << " k " << k << " imp[k] " << (*p)[k-1][0] << std::endl;
+      std::cout << " cant samples " <<  cantSamples << " k " << k << " imp[k] " << (*p)[0][0] << std::endl;
+      typedef typename TFixedMesh::CellDataContainer FixedCellDataContainer;
+//      std::cout << " ws " <<std::endl;
+      typename FixedCellDataContainer::ConstIterator fxdCellData = mesh->GetCellData()->Begin();
+      for(;fxdCellData!= mesh->GetCellData()->End(); ++fxdCellData)
+      {
+//        std::cout << fxdCellData.Value() ;
+        weights->push_back(fxdCellData.Value());
+      }
+      std::cout <<  std::endl;
+    }
+
+template< class TFixedMesh, class TMovingMesh >
+   itk::AffineTransform<double,3>::Pointer 
+    MeassureMeshCorrespondencesCalculatorNormalize < TFixedMesh, TMovingMesh >
+    ::EvaluateGradientAffine (AffineTransformPointerType transform, float lambda)
+    {
+      if (!this->GetFixedMesh() || !this->GetMovingMesh())
+        itkExceptionMacro (<< "Fixed and/or moving mesh not set");
+
+      typedef typename TFixedMesh::CellsContainer FixedCellsContainer;
+      typename FixedCellsContainer::ConstIterator cellItFxd = this->GetFixedMesh()->GetCells()->Begin();
+
+      typedef itk::TransformMeshPointsFilter<MovingMeshType,MovingMeshType, AffineTransformType  >       MeshFilterType;
+      AffineTransformPointerType resultAffine = AffineTransformType::New(); 
+      typename AffineTransformType::MatrixType matrix;
+      matrix.Fill(0);
+
+      typename AffineTransformType::TranslationType translation;
+      translation.Fill(0);
+      resultAffine->SetMatrix(matrix);
+      resultAffine->SetTranslation(translation);
+
+      this->m_metric.clear();
+
+      typename MeshFilterType::Pointer meshFilter  = MeshFilterType::New();
+      meshFilter->SetInput(this->GetMovingMesh());
+      meshFilter->SetTransform(transform);
+      meshFilter->Update();
+	
+      //looking for the sampling number of the spline:
+/*      typename TFixedMesh::CellTraits::PointIdIterator  pointIdIt  = cellItFxd.Value()->PointIdsBegin();
+      typename TFixedMesh::PointType ptPrevious;  
+      this->GetFixedMesh()->GetPoint(*pointIdIt, &ptPrevious);
+      pointIdIt++; // I start with the secondg one, and compared it with the previous
+      double fiberLenght = 0;
+      for(;pointIdIt != cellItFxd.Value()->PointIdsEnd();pointIdIt++)
+      {
+        typename TFixedMesh::PointType pt;  
+        this->GetFixedMesh()->GetPoint(*pointIdIt, &pt);
+        //          std::cout << " pt "<< pt<< std::endl;
+        double dist=0;
+        for(int i=0;i<3;i++)
+        {
+          dist += pow(pt[i] - ptPrevious[i],2);
+        }
+        dist = sqrt(dist);
+        fiberLenght +=dist;
+        ptPrevious = pt;
+      }
+      
+      int    cantSamples = ceil(fiberLenght);
+      */
+      std::vector<std::vector<float> > fp;
+      std::vector<std::vector<float> > mp;
+      std::vector<std::vector<float> > omp;
+      std::vector<float> weightsM, weightsF, weightsOM;
+//      UpsampleMeshes(cantSamples, &fp, &weightsF, this->GetFixedMesh());
+//      UpsampleMeshes(cantSamples, &mp, &weightsM, meshFilter->GetOutput());
+//      UpsampleMeshes(cantSamples, &omp, &weightsOM,this->GetMovingMesh());
+      for(typename TFixedMesh::PointsContainer::Iterator it=this->GetFixedMesh()->GetPoints()->Begin() ;it != this->GetFixedMesh()->GetPoints()->End();it++)
+      {
+        std::vector<float> point;
+        for(unsigned int i=0;i<3;i++)
+        {
+          point.push_back(it.Value()[i]);
+        }
+        fp.push_back(point);
+      } 
+      for(typename TMovingMesh::PointsContainer::Iterator it=this->GetMovingMesh()->GetPoints()->Begin() ;it != this->GetMovingMesh()->GetPoints()->End();it++)
+      {
+        std::vector<float> point;
+        for(unsigned int i=0;i<3;i++)
+        {
+          point.push_back(it.Value()[i]);
+        }
+        omp.push_back(point);
+      } 
+      for(typename TMovingMesh::PointsContainer::Iterator it=meshFilter->GetOutput()->GetPoints()->Begin() ;it != meshFilter->GetOutput()->GetPoints()->End();it++)
+      {
+        std::vector<float> point;
+        for(unsigned int i=0;i<3;i++)
+        {
+          point.push_back(it.Value()[i]);
+        }
+        mp.push_back(point);
+      } 
+  /*    
+      std::cout << " " << fp[0][0] << " " <<fp[0][1] << " " <<  fp[0][2] << " " << std::endl; 
+      std::cout << " " << mp[0][0] << " " <<mp[0][1] << " " <<  mp[0][2] << " " << std::endl; 
+      std::cout << " " << omp[0][0] << " " <<omp[0][1] << " " <<  omp[0][2] << " " << std::endl; 
+
+	std::cout<< " weigt " << omp[omp.size()-1][0] << mp[mp.size()-1][0] << fp[fp.size()-1][0] << std::endl;*/
+      double metric = 0;
+      float sigmaSquared = this->GetSigma()*this->GetSigma();
+      int downsampling=this->GetUpsamplingPointsNumber(); 
+      float normVal = (mp.size()+ fp.size())*sigmaSquared*mp.size();
+      std::cout <<  "normVal : " << normVal << std::endl;
+      for(unsigned int i=0; i<mp.size();i++)
+      {
+      double metric_i = 0;
+/*
+      std::cout << " " << fp[i][0] << " " <<fp[i][1] << " " <<  fp[i][2] << " "; 
+      std::cout << " " << mp[i][0] << " " <<mp[i][1] << " " <<  mp[i][2] << " "; 
+      std::cout << " " << omp[i][0] << " " <<omp[i][1] << " " <<  omp[i][2] << " . " << std::endl; 
+*/
+        for(unsigned int j=0; j<mp.size();j++)
+        {
+    float norm =- exp(-(pow(mp[i][0]-mp[j][0],2)+pow(mp[i][1]-mp[j][1],2)+pow(mp[i][2]-mp[j][2],2))/(2.*sigmaSquared)) ;
+          metric_i+=  norm;
+//          std::cout <<  " norm " << norm  << " " << i <<  " " << j << mp[i][0] << " " << mp[j][0] << " " << mp[i][0] -mp[j][0] << std::endl;
+
+          for(int ii=0;ii<3;ii++)
+          {
+//          std::cout << " mp i - mp j " << (mp[i][ii]-mp[j][ii]) << "ompi - ompj " <<(omp[i][ii]-omp[j][ii]) << " . ";
+            for(int jj=0;jj<3;jj++)
+            {
+              matrix[jj][ii]+=  ( norm* (mp[i][jj]-mp[j][jj]) * (omp[i][ii]-omp[j][ii]))/normVal;
+            }
+            translation[ii] +=  ( norm* (mp[i][ii]-mp[j][ii]))/normVal;
+
+          }	
+        }
+        for(unsigned int j=0; j<fp.size();j++)
+        {
+float norm = - 2.*exp(-(pow(fp[j][0]-mp[i][0],2)+pow(fp[j][1]-mp[i][1],2)+pow(fp[j][2]-mp[i][2],2))/(2.*sigmaSquared));
+          metric_i-= 2.*norm;
+   //       std::cout <<  " norm " << norm  << " ";
+          for(int ii=0;ii<3;ii++)
+          {
+ //         std::cout << " mp i - mp j " << (fp[i][ii]-mp[j][ii]) << "ompi - ompj " <<(omp[i][ii]) << " . ";
+            for(int jj=0;jj<3;jj++)
+            {
+              matrix[jj][ii]+=  ( norm * (fp[j][jj]-mp[i][jj]) * omp[i][ii])/normVal;
+            }
+            translation[ii] += ( norm *( fp[j][ii]- mp[i][ii]) )/normVal;
+          }	
+        }
+        this->m_metric.push_back(metric_i);
+        metric += metric_i;
+      }
+
+      std::cout << std::endl;
+      this->lastMetric = metric;
+      resultAffine->SetMatrix(matrix);
+      resultAffine->SetTranslation(translation);
+      
+//      std::cout << " i matrix " << matrix << std::endl;
+//      std::cout << " i tranlation " << translation << std::endl;
+       return resultAffine;
+    }
+  template< class TFixedMesh, class TMovingMesh >
+    void
+    MeassureMeshCorrespondencesCalculatorNormalize < TFixedMesh, TMovingMesh >
+    ::RecalculateSigma(double metric)
+    {
+/*      if(this->GetSigma()>6)
+      {
+        this->SetSigma(this->GetSigma()-0.025*this->GetSigma());     	
+      }
+*/
+//	this->SetSigma(  this->GetSpacing()*this->GetSigma());     	
+//      std::cout << " sigma " << this->GetSigma() <<  " spacing " << this->GetSpacing() <<  std::endl;
+
+        std::cout << "hola hola recalculate " <<(lastMetric -metric )*10000000<<  std::endl;
+      if(((lastMetric -metric )*10000000< this->GetSigma()) && this->GetSigma()>2 && metric < lastMetric)
+      {
+        this->SetSigma(this->GetSigma()-1);     	
+
+      }
+      lastMetric = metric;
+      
+    }
+  
+}
+
+#endif

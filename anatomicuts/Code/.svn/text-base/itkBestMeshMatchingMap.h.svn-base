@@ -1,0 +1,121 @@
+#ifndef _itk_BestMeshMatchingMap_h_
+#define _itk_BestMeshMatchingMap_h_
+
+#include "itkMeshToMeshFilter.h"
+
+namespace itk
+{
+
+  template <class TInputMesh, class TOutputMesh, class TImage>
+    class BestMeshMatchingMap: 
+  public MeshToMeshFilter<TInputMesh, TOutputMesh>
+  {
+  public:
+    typedef BestMeshMatchingMap Self;
+    typedef MeshToMeshFilter<TInputMesh, TOutputMesh>       Superclass;
+    typedef SmartPointer<Self>                              Pointer;
+    typedef SmartPointer<const Self>                        ConstPointer;
+
+    itkNewMacro  (Self);
+    itkTypeMacro (BestMeshMatchingMap, MeshToMeshFilter);
+
+    /** image type. */
+    typedef TImage           ImageType;
+    typedef typename ImageType::Pointer        ImagePointer;
+
+    typedef TInputMesh                         OutputMeshType;
+    typedef typename OutputMeshType::MeshTraits OutputMeshTraits;
+    typedef typename OutputMeshType::PointType  OutputPointType;
+    typedef typename OutputMeshType::PixelType  OutputPixelType;
+
+    
+    typedef TOutputMesh                         InputMeshType;
+    typedef typename InputMeshType::MeshTraits InputMeshTraits;
+    typedef typename InputMeshType::PointType  InputPointType;
+    typedef typename InputMeshType::PixelType  InputPixelType;
+
+    
+    /** Some convenient typedefs. */
+    typedef typename OutputMeshType::Pointer         OutputMeshPointer;
+    typedef typename OutputMeshType::CellTraits      OutputCellTraits;
+    typedef typename OutputMeshType::CellIdentifier  OutputCellIdentifier;
+    typedef typename OutputMeshType::CellType        OutputCellType;
+    typedef typename OutputMeshType::CellAutoPointer OutputCellAutoPointer;
+    typedef typename OutputMeshType::PointIdentifier OutputPointIdentifier;
+    typedef typename OutputCellTraits::PointIdIterator     OutputPointIdIterator;
+    
+    typedef typename OutputMeshType::PointsContainerPointer
+      OutputPointsContainerPointer;
+    
+    typedef typename OutputMeshType::PointsContainer
+      OutputPointsContainer;
+
+    typedef typename OutputMeshType::CellsContainer
+      OutputCellsContainer;
+
+    typedef typename OutputMeshType::CellsContainerPointer
+      OutputCellsContainerPointer;
+
+    typedef PolylineCell<OutputCellType>                      PolylineCellType;
+
+    typedef typename InputMeshType::Pointer         InputMeshPointer;
+    typedef typename InputMeshType::CellTraits      InputMeshCellTraits;
+    typedef typename InputMeshType::CellIdentifier  InputMeshCellIdentifier;
+    typedef typename InputMeshType::CellType        InputMeshCellType;
+    typedef typename InputMeshType::CellAutoPointer InputMeshCellAutoPointer;
+    typedef typename InputMeshType::PointIdentifier InputMeshPointIdentifier;
+    typedef typename InputMeshCellTraits::PointIdIterator   InputMeshPointIdIterator;
+    
+    typedef typename InputMeshType::PointsContainerPointer
+      InputPointsContainerPointer;
+    
+    typedef typename InputMeshType::PointsContainer
+      InputPointsContainer;
+
+    typedef typename InputMeshType::CellsContainer
+      InputCellsContainer;
+
+    typedef typename InputMeshType::CellsContainerPointer
+      InputCellsContainerPointer;
+
+   
+    typedef typename std::vector<InputMeshPointer> InputListMeshType;
+    typedef typename InputListMeshType::iterator InputListMeshIteratorType;
+   
+   
+   void SetInputMeshList(InputListMeshType &inputList)
+    {
+      this->inputList = inputList;
+    }
+    
+    ImagePointer GetInputMap()
+    {
+      return this->inputMap;
+    }
+
+    void SetInputMap(ImagePointer inputMap)
+    {
+       this->inputMap = inputMap;
+    }
+
+  protected:
+    BestMeshMatchingMap(){}
+    ~BestMeshMatchingMap() {};
+    
+    virtual void GenerateData (void);
+    ImagePointer inputMap;
+    InputListMeshType  inputList;
+
+  private:
+    int sampling;
+    BestMeshMatchingMap (const Self&);
+    void operator=(const Self&);
+  };
+  
+}
+
+#ifndef ITK_MANUAL_INSTANTIATION
+#include "itkBestMeshMatchingMap.txx"
+#endif
+
+#endif

@@ -1,0 +1,136 @@
+/*=========================================================================
+
+  Program:   Insight Segmentation & Registration Toolkit
+  Module:    $RCSfile: itkEuclideanToCentroidMembershipFunction.h,v $
+  Language:  C++
+  Date:      $Date: 2009-03-04 15:23:46 $
+  Version:   $Revision: 1.11 $
+
+  Copyright (c) Insight Software Consortium. All rights reserved.
+  See ITKCopyright.txt or http://www.itk.org/HTML/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even 
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR 
+     PURPOSE.  See the above copyright notices for more information.
+
+=========================================================================*/
+#ifndef __itkEuclideanToCentroidMembershipFunction_h
+#define __itkEuclideanToCentroidMembershipFunction_h
+
+#include <vnl/vnl_vector.h>
+#include <vnl/vnl_transpose.h>
+#include <vnl/vnl_matrix.h>
+#include <vnl/algo/vnl_matrix_inverse.h>
+#include <vnl/algo/vnl_determinant.h>
+
+
+#include "itkMembershipFunctionBase.h"
+
+namespace itk { 
+namespace Statistics {
+
+/** \class EuclideanToCentroidMembershipFunction
+ * \brief class represents EuclideanToCentroid Density Function.
+ *
+ * This class keeps parameter to define EuclideanToCentroid Density Function  and has
+ * method to return the probability density 
+ * of an instance.  MeasurementVectorSize is the dimension of measurement
+ * space.
+ * double is type of measurement. 
+ */
+template< class TVector >
+class ITK_EXPORT EuclideanToCentroidMembershipFunction :
+      public MembershipFunctionBase< TVector >
+{
+public:
+  /** Standard class typedefs */
+  typedef EuclideanToCentroidMembershipFunction Self;
+  typedef MembershipFunctionBase< TVector >    Superclass;
+  typedef SmartPointer<Self>                   Pointer;
+  typedef SmartPointer<const Self>             ConstPointer;
+
+  /** Strandard macros */
+  itkTypeMacro(EuclideanToCentroidMembershipFunction,
+               MembershipFunctionBase);
+  itkNewMacro(Self);
+  
+  /** Typedef alias for the measurement vectors */
+  typedef TVector MeasurementVectorType;
+  typedef TVector CentroidType;
+
+  /** Typedef to represent the length of measurement vectors */
+  typedef typename Superclass::MeasurementVectorSizeType 
+                                                  MeasurementVectorSizeType;
+
+  void SetCentroid( MeasurementVectorType c)
+  {
+    this->m_Centroid = c; 
+    this->m_Centroid_index = -1;
+  }
+ void SetCentroid( int i)
+  {
+    this->m_Centroid_index = i;
+    this->m_Centroid = this->childs[i];
+  }
+  MeasurementVectorType GetCentroid(){
+    return this->m_Centroid; 
+  }
+  int GetCentroidIndex()
+  {
+    return this->m_Centroid_index; 
+  }
+    void SetSigma(int n)
+    { this->m_Sigma = n;}
+
+   int GetSigma()
+    {
+      return this->m_Sigma;
+    }
+void SetNumberOfSamples(int n)
+    { this->m_NumberOfSamples= n;}
+
+   int GetNumberOfSamples()
+    {
+      return this->m_NumberOfSamples;
+    }
+  std::vector<MeasurementVectorType> GetChilds()
+  {
+    return this->childs;
+  }
+  double GetVariance(){ return this->m_Variance;}
+
+  /**
+   * Method to get probability of an instance. The return value is the
+   * value of the density function, not probability. */
+  double Evaluate(MeasurementVectorType &measurement) ;
+  double Evaluate(MeasurementVectorType *m1,MeasurementVectorType *m2) ;
+  double Evaluate(const MeasurementVectorType &measurement) const{ std::cout << "not implemented " << std::endl;return -1;};
+
+  void AddChild(MeasurementVectorType measurement) ;
+  void RecalculateCentroid() ;
+  void ClearChilds(){ this->childs.clear();}
+
+
+protected:
+  EuclideanToCentroidMembershipFunction(void);
+  virtual ~EuclideanToCentroidMembershipFunction(void) {}
+  void PrintSelf(std::ostream& os, Indent indent) const;
+
+private:
+  int m_Centroid_index;
+  double m_Variance;
+  MeasurementVectorType m_Centroid;
+  std::vector<MeasurementVectorType> childs;
+  // Number of samples defining this density
+  int m_NumberOfSamples;
+  int m_Sigma;
+};
+
+} // end of namespace Statistics
+} // end namespace itk
+
+#ifndef ITK_MANUAL_INSTANTIATION
+#include "itkEuclideanToCentroidMembershipFunction.txx"
+#endif
+
+#endif

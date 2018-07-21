@@ -1,0 +1,154 @@
+#ifndef _itk_KMeansFilter_h
+#define _itk_KMeansFilter_h
+#include "itkKdTree.h"
+#include "itkKdTreeGenerator.h"
+#include "itkKdTreeBasedKmeansEstimator.h"
+#include "itkListSample.h"
+#include "itkArray.h"
+#include "itkVector.h"
+#include "itkImageKmeansModelEstimator.h"
+#include "itkImageRegionIteratorWithIndex.h"
+#include "itkImageToListSampleAdaptor.h"
+#include "itkKMeansClassifierFilter.h"
+#include "itkVariableLengthVector.h"
+#include "itkPolylineCell.h"
+#include "itkWeightedCentroidKdTreeGenerator.h"
+#include "itkMeshToMeshFilter.h"
+
+#if ITK_VERSION_MAJOR < 4
+#include "itkMinimumDecisionRule2.h"
+#else
+#include "itkMinimumDecisionRule.h"
+#endif
+using namespace itk;
+using namespace Statistics;
+template <class TMesh,class  TMembershipFunctionType>
+class KMeansFilter :
+	public ProcessObject
+	//  public MeshToMeshFilter<TInputMesh, TOutputMesh>
+{
+	public: 
+		typedef KMeansFilter       Self;
+		typedef SmartPointer<Self>                              Pointer;
+		typedef SmartPointer<const Self>                        ConstPointer;
+
+		itkNewMacro  (Self);
+		itkTypeMacro (KMeansFilter,ProcessObject);
+
+		typedef TMesh                         MeshType;
+		typedef typename MeshType::MeshTraits MeshTraits;
+		typedef typename MeshType::PointType  PointType;
+		typedef typename MeshType::PixelType  PixelType;
+		typedef typename MeshType::CellType   CellType;
+		typedef typename MeshType::Pointer   MeshPointerType;
+
+		typedef typename std::vector<MeshPointerType>  ListOfOutputMeshTypePointer;     
+
+		typedef typename MeshType::CellTraits      MeshCellTraits;
+		typedef typename MeshType::CellIdentifier  MeshCellIdentifier;
+		typedef typename MeshType::CellType        MeshCellType;
+
+		typedef typename MeshType::CellAutoPointer MeshCellAutoPointer;
+		typedef typename MeshType::PointIdentifier MeshPointIdentifier;
+		typedef typename MeshCellTraits::PointIdIterator   MeshPointIdIterator;
+
+		typedef typename MeshType::PointsContainerPointer       PointsContainerPointer;
+
+		typedef typename MeshType::PointsContainer       PointsContainer;
+
+		typedef typename MeshType::CellsContainer      CellsContainer;
+
+		typedef typename MeshType::CellsContainerPointer      CellsContainerPointer;
+		typedef PolylineCell<MeshCellType>                  PolylineCellType;
+
+
+		// K-d tree typedefs
+		typedef TMembershipFunctionType MembershipFunctionType;
+		typedef typename MembershipFunctionType::Pointer                      MembershipFunctionPointer;
+		typedef typename MembershipFunctionType::MeasurementVectorType MeasurementVectorType;
+		//		typedef itk::VariableLengthVectorCurrents<double>           MeasurementVectorType;
+
+		typedef ListSample< MeasurementVectorType > SampleType;
+		typedef WeightedCentroidKdTreeGenerator< SampleType > TreeGeneratorType;
+		typedef typename TreeGeneratorType::KdTreeType TreeType;
+		typedef KdTreeBasedKmeansEstimator<TreeType> EstimatorType;
+
+
+#if ITK_VERSION_MAJOR < 4
+		typedef MinimumDecisionRule2 DecisionRuleType;
+#else
+		typedef MinimumDecisionRule DecisionRuleType;
+#endif
+
+		typedef KMeansClassifierFilter<SampleType,MembershipFunctionType> ClassifierType;
+		typedef typename ClassifierType::ClassLabelVectorType                     ClassLabelVectorType;
+		typedef typename ClassifierType::MembershipFunctionVectorType             MembershipFunctionVectorType;
+
+
+
+		ListOfOutputMeshTypePointer GetOutput()
+		{
+			return this->m_Output;
+		}
+
+		void SetNumberOfClusters(int n)
+		{ this->numberOfClusters = n;}
+
+		int GetNumberOfClusters()
+		{
+			return this->numberOfClusters;
+		}
+		std::vector<int> GetLabels()
+		{ return this->labels;}
+		void SetLabels(std::vector<int> labels)
+		{ this->labels = labels; }
+
+		MeshPointerType GetInput()
+		{ return this->input; }
+		void SetInput(MeshPointerType input)
+		{	this->input = input ; }
+		//void Update();
+		virtual void Update(void);    
+
+		itkGetMacro( SigmaCurrents, int );
+		//  itkSetMacro( SigmaCurrents, int );
+		void SetSigmaCurrents(int s){	this->m_SigmaCurrents =s; }
+
+		itkSetMacro( NumberOfIterations, unsigned int );
+		itkGetMacro( NumberOfIterations, unsigned int );
+
+		MembershipFunctionVectorType* GetMembershipFunctionVector()
+		{
+			return this->m_membershipFunctions;
+		}
+		void SetMembershipFunctionVector(MembershipFunctionVectorType *functions)
+		{
+			this->m_membershipFunctions = functions;
+		}
+	protected:
+		
+
+		std::vector<int> SelectCentroids(typename SampleType::Pointer samples);
+		MeshPointerType input;
+		std::vector<int> labels;
+		ListOfOutputMeshTypePointer m_Output;
+		int numberOfClusters;
+		KMeansFilter() {}
+		~KMeansFilter() {}
+
+		//    virtual void GenerateData (void);
+	private:
+		unsigned int 		 		m_NumberOfIterations; 
+		KMeansFilter (const Self&);
+		void operator=(const Self&);    
+		int m_SigmaCurrents;
+		void SaveClustersInMeshes(MembershipFunctionVectorType mfv);
+		MembershipFunctionVectorType *m_membershipFunctions; 
+};  
+
+#ifndef ITK_MANUAL_INSTANTIATION
+#include "itkKMeansFilter.txx"
+#endif
+
+#endif
+

@@ -1,0 +1,418 @@
+#ifndef _itk_GaussianExtrapolatorVectorImageFilter_txx_
+#define _itk_GaussianExtrapolatorVectorImageFilter_txx_
+#include "itkGaussianExtrapolatorVectorImageFilter.h"
+#include <algorithm>
+#include <itkImageRegionIterator.h>
+#include <itkImageRegionConstIteratorWithIndex.h>
+
+#ifdef TTK_USE_MKL
+#include <mkl_lapack.h>
+#else
+#include <vnl/algo/vnl_matrix_inverse.h>
+#include <vnl/algo/vnl_symmetric_eigensystem.h>
+#include <vnl/algo/vnl_lsqr.h>
+#include <vnl/vnl_sparse_matrix_linear_system.h>
+#endif
+#include <cLapack.h>
+
+// #include "gmm/gmm.h"
+
+namespace itk
+{
+	template< class TInputImage, class TOutputImage>
+		void
+		GaussianExtrapolatorVectorImageFilter<TInputImage, TOutputImage>
+		::Initialize()
+		{
+			BeforeThreadedGenerateData();
+		} 
+	template< class TInputImage, class TOutputImage>
+		void
+		GaussianExtrapolatorVectorImageFilter<TInputImage, TOutputImage>
+		::BeforeThreadedGenerateData()
+		{
+			if( ( m_Vectors.size()==0 ) || ( m_Vectors.size()!=m_Points.size() ) )
+			{
+				std::cout << " vector size , pints size " << m_Vectors.size() << " " << m_Points.size() << std::endl;
+				throw itk::ExceptionObject(__FILE__,__LINE__,"Error: Vectors (or Points) not (or badly) set.");
+			}
+
+			// Solve the system
+			unsigned int numVectors = m_Vectors.size();
+			unsigned int N          = numVectors;//+1;
+
+			m_MaxValue = static_cast<OutputPixelType>(0.0);
+
+			double *VH = new double[N*N];
+
+			/*
+			   for( unsigned int j=0;j<numVectors;j++)
+			   {
+
+			   VH[numVectors*N+j] = 1.0;
+			   VH[j*N+numVectors] = 	1.0;
+
+			   }
+
+			   VH[numVectors*N+numVectors] =0.0;
+			   */
+
+			// comment for using the kdtree	
+
+			m_Sample = SampleType::New();
+			m_Sample->SetMeasurementVectorSize( 3 );
+			for(unsigned int j=0; j<numVectors; j++)
+			{
+				PointType xj = (m_Points)[j];
+
+/*				for(unsigned int i=0; i<numVectors; i++)
+				{
+					PointType xi =(m_Points)[i];
+					VH[i*N+j] = static_cast<double>(this->h(xj,xi, m_Sigma, m_Gamma));
+
+				}
+*/
+				MeasurementVectorType mv;
+				for(int i=0;i<3;i++)
+				{
+					mv[i] = m_Points[j][i];
+				}
+				mv.SetValue(j);
+				m_Sample->PushBack( mv );
+
+			}
+			/*  for(unsigned int j=0; j<numVectors; j++)
+			    {
+			    MeasurementVectorType mv;
+			    for(int i=0;i<3;i++)
+			    {
+			    mv[i] = m_Points[j][i];
+			    }
+			    mv.SetValue(j);
+			    m_Sample->PushBack( mv );
+			    }
+			    */
+			m_Trees.clear();
+			for(unsigned int i=0;i<this->GetNumberOfThreads();i++)
+			{
+				TreeGeneratorType::Pointer treeGenerator = TreeGeneratorType::New();
+				treeGenerator->SetSample( m_Sample );
+				treeGenerator->SetBucketSize( m_Points.size() );
+				treeGenerator->Update();
+
+				m_Trees.push_back(treeGenerator->GetOutput());
+			}
+			/*
+			   for(unsigned int j=0; j<numVectors; j++)
+			   {
+			   PointType xj = (m_Points)[j];
+
+			   MeasurementVectorType p;
+			   p[0] = xj[0];
+			   p[1] = xj[1];
+			   p[2] = xj[2];
+
+			   TreeType::InstanceIdentifierVectorType neighbors;
+			   unsigned int radius= 10;// m_Sigma*m_Sigma*2;
+			   m_Tree->Search( p, radius  , neighbors ) ;
+			   for ( unsigned int i = 0 ; i < neighbors.size() ; ++i )
+			   {
+			   VH[i*N+j]=0;
+			   }
+			   for ( unsigned int i = 0 ; i < neighbors.size() ; ++i )
+			   {
+			   MeasurementVectorType x = m_Tree->GetMeasurementVector( neighbors[i] );
+			   VH[x.GetValue()*N+j] = this->h(xj,m_Points[x.GetValue()],m_Sigma,m_Gamma); 
+
+			   }
+
+			   }
+			   */
+
+
+/*
+			for(unsigned int i=0; i<numVectors; i++)
+			{
+				VH[i*N+i] += 0.00001 ;
+			}
+
+			double* LT = new double[N*OutputPixelType::GetVectorDimension()];
+
+			for( unsigned int i=0; i<OutputPixelType::GetVectorDimension(); i++)
+			{
+				for( unsigned int j=0; j<numVectors; j++)
+				{
+					OutputPixelType W = (m_Vectors)[j];
+					LT[i*N+j] = static_cast<double>(W[i]);
+				}
+
+				//      LT[i*N+numVectors]  = 0;
+
+			}
+			m_L =      GeneralMatrixType ( numVectors, OutputPixelType::GetVectorDimension());
+			int res=	LAPACK::dgels(N,N,OutputPixelType::GetVectorDimension(),VH,LT);
+
+			for( unsigned int i=0; i<OutputPixelType::GetVectorDimension(); i++)
+			{
+
+				for(unsigned int j=0; j<numVectors; j++)
+				{
+					m_L(j,i) = LT[i*N+j];
+				}
+			}
+			std::cout << "  LT " << LT[0] << std::endl;
+			if(res!=0)
+			{
+				std::cout << " res!=0 Least squared problem in lapack error! : GaussianExtrapolatorVectorImageFilter !!!" << std::endl;
+			}
+			delete[] VH;
+			delete[]  LT;*/
+		}
+
+
+	template< class TInputImage, class TOutputImage>
+		void
+		GaussianExtrapolatorVectorImageFilter<TInputImage,  TOutputImage>
+		::ThreadedGenerateData(const OutputImageRegionType &outputRegionForThread, int threadId)
+
+		{
+			//  std::cout << " Gaussian exterpolator : threaded Generate Data " << std::endl;		
+			typedef ImageRegionIterator<OutputImageType>               OutputImageIteratorType;
+			typedef ImageRegionConstIteratorWithIndex<InputImageType>  InputImageIteratorType;
+
+			InputImageIteratorType itIn(this->GetInput(),outputRegionForThread);
+			OutputImageIteratorType itOut(this->GetOutput(),outputRegionForThread);
+
+			while(!itOut.IsAtEnd())
+			{
+				OutputPixelType out = static_cast<ScalarType>( 0.0 );
+
+				IndexType index = itIn.GetIndex();
+				GeneralMatrixType res; 
+
+
+				InterpolateAtIndexThreaded(index,threadId,out);
+				itOut.Set(out);
+
+				++itIn;
+				++itOut;
+			}
+			//std::cout << " end threaded generate data " << std::endl;		
+
+
+		}
+
+	template< class TInputImage, class TOutputImage>
+		typename GaussianExtrapolatorVectorImageFilter<TInputImage, TOutputImage>::ScalarType
+		GaussianExtrapolatorVectorImageFilter<TInputImage, TOutputImage>
+		::h(const PointType& x1, const PointType& x2, const ScalarType& sigma, const ScalarType& gamma)
+		{
+
+			double dist = x1.SquaredEuclideanDistanceTo (x2);
+			ScalarType res =  2*pow(sigma,2);
+			res = dist/res;
+			res = exp(-res);
+			return res;
+
+		}
+
+	template< class TInputImage, class TOutputImage>
+		void GaussianExtrapolatorVectorImageFilter<TInputImage, TOutputImage>::
+		InterpolateAtIndexThreaded(const IndexType& index, int threadId, OutputPixelType& px)
+		{
+			PointType pt;
+			this->GetInput()->TransformIndexToPhysicalPoint(index,pt);	    
+			InterpolateAtPointThreaded(pt, threadId,px);
+		}     
+	template< class TInputImage, class TOutputImage>
+		void GaussianExtrapolatorVectorImageFilter<TInputImage, TOutputImage>::
+		InterpolateAtPointThreaded(const PointType& pt, int threadId, OutputPixelType& px)
+		{
+			// PointType pt;
+			// this->GetInput()->TransformIndexToPhysicalPoint(index,pt);	    
+			unsigned int numVectors = m_Vectors.size();
+			//Add one row and col to the matrix, in order to add a polynomial ( constant )
+			unsigned int N = numVectors;//+1;
+			GeneralMatrixType H(1,N,0.0);
+			//      H(0,numVectors) = 1.0;
+
+			//std::cout << " m_Sigma " << m_Sigma << " h 0 2 " << H(0,2) << std::endl;
+			/*     //Distance to all
+			       for(unsigned int i=0; i<numVectors; i++)
+			       {
+			       PointType pti = (m_Points)[i];
+			       H(0,i) = this->h(pti,pt,m_Sigma,m_Gamma);
+			       }
+			       */
+			//Distance to close ones
+			MeasurementVectorType p;
+			p[0] = pt[0]+0.001;
+			p[1] = pt[1];
+			p[2] = pt[2];
+			TreeType::InstanceIdentifierVectorType neighbors;
+			//        std::cout << " sigma " << m_Sigma << std::endl;
+//			unsigned int radius=  std::min((unsigned int)10000, numVectors);
+			double radius = pow(m_Sigma,2);
+			//        std::cout<< "num vectors to extraolate from: " << numVectors; // m_Sigma*m_Sigma*2;
+			m_Trees[threadId]->Search( p, radius  , neighbors ) ;
+			//    std::cout  << " vecinos " <<  neighbors.size() << std::endl;
+			double norm=0;
+		 px.Fill(0);	
+			for ( unsigned int i = 0 ; i < neighbors.size() ; i++ )
+			{
+				MeasurementVectorType x = m_Trees[threadId]->GetMeasurementVector( neighbors[i] );
+//				H(0,x.GetValue()) = this->h(m_Points[x.GetValue()],pt,m_Sigma,m_Gamma);// m_L[x.GetValue()][0];
+//				px[0] += H(0,x.GetValue())* m_L(x.GetValue(),0);
+//				px[1] += H(0,x.GetValue())* m_L(x.GetValue(),1);
+//				px[2] += H(0,x.GetValue())* m_L(x.GetValue(),2);
+				px += (1/this->h(m_Points[x.GetValue()],pt,m_Sigma,m_Gamma))*m_Vectors[x.GetValue()];
+				norm += (1/this->h(m_Points[x.GetValue()],pt,m_Sigma,m_Gamma));			//		std::cout << " m point x vqlue" << m_Points[x.GetValue()] << " x " << x << "pt" << pt << std::endl;
+				//float d = this->h(m_Points[x.GetValue()],pt,m_Sigma,m_Gamma); 
+				/*	float nt =0;
+					for(unsigned j=0; j<3;j++)
+					{
+				//	out[j] += d* m_L(x.GetValue(),j);
+				nt += pow(m_L(x.GetValue(),j),2);
+				}
+				norm+=nt;*/
+				//          std::cout << " cx.GetValue " << m_Points[x.GetValue()] << " hi "<< x << " pt " << pt <<  std::endl;  
+			}
+			if(neighbors.size()>0)
+				px/= norm;
+			return;
+			//		norm = sqrt(norm);
+			/*		if(neighbors.size()>0)
+					{
+					for(unsigned j=0; j<3;j++)
+					out[j]/= norm[j];
+					}
+					*/
+			//        OutputPixelType out = static_cast<ScalarType>( 0.0 );
+			//	OutputPixelType out ;//= new OutputPixelType();
+			//                out.TakeReference(new ScalarType( 0.0)) ; // OutputPixelType::New();
+			//OutputPixelPointerType out = vtkSmartPointer<OutputPixelType>::New();
+			GeneralMatrixType res = H*m_L;
+			//			  OutputPixelType out;
+			for(unsigned int i =0; i<OutputPixelType::GetVectorDimension();i++)
+			{
+				px[i] =res[0][i];///norm;
+			}
+			//return px; 
+		}
+
+	/*
+	   template< class TInputImage, class TOutputImage>
+	   typename GaussianExtrapolatorVectorImageFilter<TInputImage, TOutputImage>::VectorOfPixelType
+	   GaussianExtrapolatorVectorImageFilter<TInputImage, TOutputImage>::
+	   InterpolateValuesAt(const VectorOfPixelType& vectors, const VectorOfPointsType& points, const VectorOfPointsType& positions, const ScalarType& sigma, const ScalarType& gamma)
+	   {
+	   std::cout << "iterate values at " << std::endl;
+	   if( vectors.size()==0 || vectors.size()!=points.size() )
+	   throw itk::ExceptionObject (__FILE__,__LINE__,"Error in GaussianExtrapolatorVectorImageFilter::InterpolateValuesAt(): Sizes do not match.");
+
+	// compute the tensors mean:
+	OutputPixelType mean = Self::ComputeMeanOfVectors( vectors );
+
+	// Solve the system
+	unsigned int numVectors = vectors.size();
+	//Add a col and row to the matrix for the polynomial (constant )
+	unsigned int N = numVectors+1;
+
+	GeneralMatrixType H(N, N, 0.0);
+	GeneralMatrixType T(N, OutputPixelType::GetVectorDimension(), 0.0);
+
+	//Initialize the polynomial part
+	for( unsigned int j=0;j<numVectors;j++)
+	{
+	//j,0 
+	H(numVectors,j) = 1.0;
+	H(j,numVectors) = 1.0;
+	}
+	H(numVectors,numVectors) = 0.0;
+
+
+	//numVectors ,0
+	//    H(0,numVectors) = 0.0;
+
+	for(unsigned int j=0; j<numVectors; j++)
+	{
+	PointType xj = points[j];
+
+	for(unsigned int i=0; i<numVectors; i++)
+	{
+	PointType xi = points[i];
+	//j,i
+	H(i,j) = Self::h(xj,xi, sigma, gamma);
+	}
+
+	//numVectors,j
+	//H(numVectors,j) = 0.0;
+
+	}
+
+	for( unsigned int i=0; i<OutputPixelType::GetVectorDimension(); i++)
+	{
+	for( unsigned int j=0; j<numVectors; j++)
+	{
+	//OutputPixelType W = vectors[j] - mean;
+	OutputPixelType W = vectors[j];
+	T(j,i) = W[i];
+	}
+
+	//i,numVectors
+	//T(numVectors,i) = 0.0;
+	T(numVectors,i) = 0.0;
+	}
+
+	GeneralMatrixType L = GeneralMatrixType ( N, OutputPixelType::GetVectorDimension(), 0.0 );
+	//      std::cout  << "T "<< T << std::endl;
+
+	vnl_matrix_inverse<ScalarType> IH(H);
+	L = ( IH.inverse() ) * T;
+	//      std::cout <<  H*L << std::endl;
+
+	VectorOfPixelType output;
+
+	// now interpolate
+	for( unsigned int j=0; j<positions.size(); j++)
+	{
+		GeneralMatrixType H(1,N);
+		//1.0
+		//H (0,0)=1.0;
+		//corresponds to the polynomial.
+		H(0,numVectors) =1.0;
+
+		PointType pt = positions[j];
+
+		for(unsigned int i=0; i<numVectors; i++)
+		{
+			PointType pti = points[i];
+			H(0,i) = Self::h(pti,pt,sigma,gamma);
+		}
+		//  std::cout << "H " << H  << std::endl;
+		//  std::cout << "L "<< L << std::endl;
+
+		//        std::cout << H*L << std::endl;
+
+		// std::cin.get();
+		// compute the interpolated value
+		GeneralMatrixType res = H*L;
+		OutputPixelType M;
+		//        std::cout << "res " << res ;
+		// M = res[0]/mean;
+		//std::cin.get();
+		for(unsigned int i=0; i<OutputPixelType::GetVectorDimension(); i++)
+		{
+			M[i] =res[0][i]; // mean[i];
+		}      
+
+		output.push_back (M);
+	}
+	return output;
+}*/
+
+
+} // end of namespace itk
+
+
+#endif

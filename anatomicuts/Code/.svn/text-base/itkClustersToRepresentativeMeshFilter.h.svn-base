@@ -1,0 +1,113 @@
+#ifndef _itk_ClustersToRepresentativeMeshFilter_h_
+#define _itk_ClustersToRepresentativeMeshFilter_h_
+
+#include "itkMeshToMeshFilter.h"
+#include "itkPolylineCell.h"
+#include "itkObject.h"
+
+namespace itk
+{
+
+  template <class TInputMesh, class TOutputMesh>
+    class ClustersToRepresentativeMeshFilter : public Object 
+//   :  public MeshToMeshFilter<TInputMesh, TOutputMesh>
+  {
+  public:
+    typedef ClustersToRepresentativeMeshFilter Self;
+//    typedef MeshToMeshFilter<std::vector<TInputMesh>, TOutputMesh>       Superclass;
+    typedef Object                            Superclass;
+    typedef SmartPointer<Self>                              Pointer;
+    typedef SmartPointer<const Self>                        ConstPointer;
+
+    itkNewMacro  (Self);
+    itkTypeMacro (ClustersToRepresentativeMeshFilter, MeshToMeshFilter);
+
+    typedef TOutputMesh                         OutputMeshType;
+    typedef typename OutputMeshType::MeshTraits OutputMeshTraits;
+    typedef typename OutputMeshType::PointType  OutputPointType;
+    typedef typename OutputMeshType::PixelType  OutputPixelType;
+
+    
+    typedef TInputMesh                         InputMeshType;
+    typedef typename InputMeshType::Pointer    InputMeshPointer;
+    typedef typename InputMeshType::MeshTraits InputMeshTraits;
+    typedef typename InputMeshType::PointType  InputPointType;
+    typedef typename InputMeshType::PixelType  InputPixelType;
+
+    
+    /** Some convenient typedefs. */
+    typedef typename OutputMeshType::Pointer         OutputMeshPointer;
+    typedef typename OutputMeshType::CellTraits      OutputCellTraits;
+    typedef typename OutputMeshType::CellIdentifier  OutputCellIdentifier;
+    typedef typename OutputMeshType::CellType        OutputCellType;
+    typedef typename OutputMeshType::CellAutoPointer OutputCellAutoPointer;
+    typedef typename OutputMeshType::PointIdentifier OutputPointIdentifier;
+    typedef typename OutputCellTraits::PointIdIterator     OutputPointIdIterator;
+    
+	  typedef typename itk::PolylineCell<OutputCellType>          OutputPolylineCellType;
+    typedef typename OutputMeshType::PointsContainerPointer
+      OutputPointsContainerPointer;
+    
+    typedef typename OutputMeshType::PointsContainer
+      OutputPointsContainer;
+
+    typedef typename OutputMeshType::CellsContainer
+      OutputCellsContainer;
+
+    typedef typename OutputMeshType::CellsContainerPointer
+      OutputCellsContainerPointer;
+
+
+    typedef typename InputMeshType::CellTraits      InputMeshCellTraits;
+    typedef typename InputMeshType::CellIdentifier  InputMeshCellIdentifier;
+    typedef typename InputMeshType::CellType        InputMeshCellType;
+    typedef typename InputMeshType::CellAutoPointer InputMeshCellAutoPointer;
+    typedef typename InputMeshType::PointIdentifier InputMeshPointIdentifier;
+    typedef typename InputMeshCellTraits::PointIdIterator   InputMeshPointIdIterator;
+    
+    typedef typename InputMeshType::PointsContainerPointer
+      InputPointsContainerPointer;
+    
+    typedef typename InputMeshType::PointsContainer
+      InputPointsContainer;
+
+    typedef typename InputMeshType::CellsContainer
+      InputCellsContainer;
+
+    typedef typename InputMeshType::CellsContainerPointer
+      InputCellsContainerPointer;
+    
+    void SetInput(std::vector<InputMeshPointer> clusters)
+    {
+      this->m_Clusters =  clusters;  
+    }
+    OutputMeshPointer GetOutput()
+    {
+      return this->m_Output;
+    }
+    std::vector<InputMeshPointer> GetInput()
+    {
+     return this->m_Clusters;
+    }
+    void Update();
+
+  protected:
+    ClustersToRepresentativeMeshFilter();
+    ~ClustersToRepresentativeMeshFilter() {};
+
+    virtual void GenerateData (void);
+
+    
+  private:
+    ClustersToRepresentativeMeshFilter (const Self&);
+    std::vector<InputMeshPointer> m_Clusters;
+    OutputMeshPointer m_Output;
+  };
+  
+}
+
+#ifndef ITK_MANUAL_INSTANTIATION
+#include "itkClustersToRepresentativeMeshFilter.txx"
+#endif
+
+#endif

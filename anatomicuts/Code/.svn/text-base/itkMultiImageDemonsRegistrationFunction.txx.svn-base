@@ -1,0 +1,193 @@
+#ifndef _itk_MultiImageDemonsRegistrationFunction_txx_
+#define _itk_MultiImageDemonsRegistrationFunction_txx_
+
+#include "itkMultiImageDemonsRegistrationFunction.h"
+#include "itkImageFileWriter.h"
+#include "itkESMDemonsRegistrationFunction.h"
+
+namespace itk
+{
+
+  template < class TFixedImage,  class TMovingImage,
+             class TDeformationField>
+  void
+  MultiImageDemonsRegistrationFunction <TFixedImage, TMovingImage, TDeformationField>
+  ::InitializeIteration()
+  {
+//  std::cout << "  inistialize iteration image and mesh demons registration function " << std::endl;
+  if (m_ImageDemonsFunctionList.size() == 0)
+      itkExceptionMacro (<< "Image function not set");
+  typename std::vector<typename ImageDemonsFunctionType::Pointer>::iterator iter =m_ImageDemonsFunctionList.begin();
+  this->globalDatas.clear();
+  std::cout << " initialize iteration multi image fdunction " << m_ImageDemonsFunctionList.size() << std::endl; 
+    for(; iter != m_ImageDemonsFunctionList.end();iter++)
+    {
+        (*iter)->SetDeformationField ( this->GetDeformationField() );
+//        (*iter)->SetMovingImage      ( this->GetMovingImage1() );
+//        (*iter)->SetFixedImage       ( this->GetFixedImage1() );
+//        std::cout << (*iter) << std::endl;
+        this->globalDatas.push_back((*iter)->GetGlobalDataPointer());
+        (*iter)->InitializeIteration();
+    }
+  }
+
+
+  template < class TFixedImage,  class TMovingImage,
+             class TDeformationField>
+  typename MultiImageDemonsRegistrationFunction
+  <TFixedImage, TMovingImage, TDeformationField>::PixelType
+  MultiImageDemonsRegistrationFunction <TFixedImage, TMovingImage, TDeformationField>
+  ::ComputeUpdate(const NeighborhoodType &it, void *gd,
+		  const FloatOffsetType& itkNotUsed(offset))
+  {
+    const IndexType index =  it.GetIndex();
+    PixelType update = static_cast<PixelType>(0.0);
+    typename std::vector<typename ImageDemonsFunctionType::Pointer>::iterator iter =m_ImageDemonsFunctionList.begin();
+//    typename std::vector<void*>::iterator iGD =globalDatas.begin();
+int i=0;
+
+    for(; iter != m_ImageDemonsFunctionList.end();iter++)
+    {
+/*        update += (*iter)->ComputeUpdate(it, *iGD) *  ;
+        iGD++;
+        */
+        update += (*iter)->ComputeUpdate(it, globalDatas[i])* m_ImageDemonsFunctionWeightsList[i];
+        i++;
+ /*       iter++;
+        update += (*iter)->ComputeUpdate(it, *iGD)  ;
+       iGD++;
+       */
+    }
+    /*if( update.GetSquaredNorm() > 1)
+    {
+        
+    
+    std::cout << " update " << update << " " << m_ImageDemonsFunctionList.size() <<  std::endl;
+    }*/
+    return update;  
+  }
+ 
+  template < class TFixedImage,  class TMovingImage,
+             class TDeformationField>
+  float
+  MultiImageDemonsRegistrationFunction <TFixedImage, TMovingImage, TDeformationField>
+  ::GetMetric()
+  {
+    typename std::vector<typename ImageDemonsFunctionType::Pointer>::iterator iter =m_ImageDemonsFunctionList.begin();
+    typename std::vector<void*>::iterator iGD =globalDatas.begin();
+    for(; iter != m_ImageDemonsFunctionList.end();iter++)
+    {
+        (*iter)->ReleaseGlobalDataPointer(*iGD);
+        iGD++;
+    }
+/*     typename std::vector<void*>::iterator iGD =globalDatas.begin();
+    for(; iGD != globalDatas.end();iGD++)
+    {
+        std::cout << (*iGD) << std::endl;
+        GlobalDataStruct* gd =  (GlobalDataStruct*)(*iGD);
+        std::cout << gd->m_NumberOfPixelsProcessed << std::endl;
+        m_Metric = m_SumOfSquaredDifference /static_cast<double>( m_NumberOfPixelsProcessed );
+        m_RMSChange = vcl_sqrt( m_SumOfSquaredChange /static_cast<double>( m_NumberOfPixelsProcessed ) );
+        delete gd;
+        std::cout << m_Metric << std::endl;
+        std::cout <<  m_RMSChange << std::endl;
+    }
+ */
+      float metric = 0;
+    iter =m_ImageDemonsFunctionList.begin();
+    for(; iter != m_ImageDemonsFunctionList.end();iter++)
+    {
+        metric += (*iter)->GetMetric();
+        std::cout <<" Metric: " << (*iter)->GetMetric() << std::endl;
+    }
+ return metric; 
+  }  
+
+
+  template <class TFixedImage, class TMovingImage, class TDeformationField>
+      void
+      MultiImageDemonsRegistrationFunction<TFixedImage,TMovingImage,TDeformationField>
+      ::SetIntensityDifferenceThreshold(double threshold)
+      {
+          typename std::vector<typename ImageDemonsFunctionType::Pointer>::iterator iter =m_ImageDemonsFunctionList.begin();
+          for(; iter != m_ImageDemonsFunctionList.end();iter++)
+              (*iter)->SetIntensityDifferenceThreshold(threshold);
+
+      }
+  template <class TFixedImage, class TMovingImage, class TDeformationField>
+      double
+      MultiImageDemonsRegistrationFunction<TFixedImage,TMovingImage,TDeformationField>
+      ::GetIntensityDifferenceThreshold()
+      {
+          typename std::vector<typename ImageDemonsFunctionType::Pointer>::iterator iter =m_ImageDemonsFunctionList.begin();
+          //return the intensity difference of the first function as both are suppose to have the same value
+          return   (*iter)->GetIntensityDifferenceThreshold();
+
+      }
+
+  template <class TFixedImage, class TMovingImage, class TDeformationField>
+      void
+      MultiImageDemonsRegistrationFunction<TFixedImage,TMovingImage,TDeformationField>
+      ::SetMaximumUpdateStepLenght(double step)
+      {
+          std::cout << " step " << step << std::endl;
+          typename std::vector<typename ImageDemonsFunctionType::Pointer>::iterator iter =m_ImageDemonsFunctionList.begin();
+          for(; iter != m_ImageDemonsFunctionList.end();iter++)
+              (*iter)->SetMaximumUpdateStepLength(step);
+
+      }
+  template <class TFixedImage, class TMovingImage, class TDeformationField>
+      double
+      MultiImageDemonsRegistrationFunction<TFixedImage,TMovingImage,TDeformationField>
+      ::GetMaximumUpdateStepLength()
+      {
+          typename std::vector<typename ImageDemonsFunctionType::Pointer>::iterator iter =m_ImageDemonsFunctionList.begin();
+          //return the intensity difference of the first function as both are suppose to have the same value
+          return   (*iter)->GetMaximumUpdateStepLength();
+
+      }
+  template <class TFixedImage, class TMovingImage, class TDeformationField>
+      const double & 
+      MultiImageDemonsRegistrationFunction<TFixedImage,TMovingImage,TDeformationField>
+      ::GetRMSChange()
+      {
+          typename std::vector<typename ImageDemonsFunctionType::Pointer>::iterator iter =m_ImageDemonsFunctionList.begin();
+            double rms = 0;
+          for(; iter != m_ImageDemonsFunctionList.end();iter++)
+                rms+=  (*iter)->GetRMSChange();
+            std::cout <<  " get RMS "  << rms <<std::endl;
+          return rms;
+      }
+
+
+  template <class TFixedImage, class TMovingImage, class TDeformationField>
+      void
+      MultiImageDemonsRegistrationFunction<TFixedImage,TMovingImage,TDeformationField>
+      ::SetUseGradientType(GradientType gtype)
+      {
+          typename std::vector<typename ImageDemonsFunctionType::Pointer>::iterator iter =m_ImageDemonsFunctionList.begin();
+            
+          for(; iter != m_ImageDemonsFunctionList.end();iter++)
+          {
+              std::cout << " use gradient " << std::endl;  
+              (*iter)->SetUseGradientType(gtype);
+
+          }
+
+      }
+/*  template <class TFixedImage, class TMovingImage, class TDeformationField>
+typename      MultiImageDemonsRegistrationFunction<TFixedImage,TMovingImage,TDeformationField>::GradientType
+      MultiImageDemonsRegistrationFunction<TFixedImage,TMovingImage,TDeformationField>
+      ::GetIntensityDifferenceThreshold()
+      {
+          typename std::vector<typename ImageDemonsFunctionType::Pointer>::iterator iter =m_ImageDemonsFunctionList.begin();
+          //return the intensity difference of the first function as both are suppose to have the same value
+          return   (*iter)->GetUseGradientType();
+
+      }
+*/
+
+
+} // end of namespace
+
+#endif

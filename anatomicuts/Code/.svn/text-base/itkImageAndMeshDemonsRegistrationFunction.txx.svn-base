@@ -1,0 +1,158 @@
+#ifndef _itk_ImageAndMeshDemonsRegistrationFunction_txx_
+#define _itk_ImageAndMeshDemonsRegistrationFunction_txx_
+
+namespace itk
+{
+
+  template < class TFixedMesh,  class TMovingMesh,
+             class TFixedImage, class TMovingImage, class TDeformationField>
+  void *
+  ImageAndMeshDemonsRegistrationFunction <TFixedMesh, TMovingMesh, TFixedImage, TMovingImage, TDeformationField>
+  ::GetGlobalDataPointer() const
+  {
+    if (!m_ImageDemonsFunction.IsNull() )
+    {
+      return m_ImageDemonsFunction->GetGlobalDataPointer();
+    }
+    else
+      return NULL;
+  }
+
+
+  template < class TFixedMesh,  class TMovingMesh,
+             class TFixedImage, class TMovingImage, class TDeformationField>
+  void
+  ImageAndMeshDemonsRegistrationFunction <TFixedMesh, TMovingMesh, TFixedImage, TMovingImage, TDeformationField>
+  ::ReleaseGlobalDataPointer( void *GlobalData ) const
+  {
+    if (!m_ImageDemonsFunction.IsNull() )
+    {
+      m_ImageDemonsFunction->ReleaseGlobalDataPointer( GlobalData );
+    }
+  }
+
+
+  template < class TFixedMesh,  class TMovingMesh,
+             class TFixedImage, class TMovingImage, class TDeformationField>
+  void
+  ImageAndMeshDemonsRegistrationFunction <TFixedMesh, TMovingMesh, TFixedImage, TMovingImage, TDeformationField>
+  ::InitializeIteration()
+  {
+//  std::cout << "  inistialize iteration image and mesh demons registration function " << std::endl;
+  if (m_ImageDemonsFunction.IsNull() || m_MeshDemonsFunction.IsNull())
+      itkExceptionMacro (<< "Image or mesh demons function not set");
+
+
+    std::cout << " Initializing Image Function " << std::endl;
+    m_ImageDemonsFunction->SetDeformationField ( this->GetDeformationField() );
+    m_ImageDemonsFunction->SetMovingImage      ( this->GetMovingImage() );
+    m_ImageDemonsFunction->SetFixedImage       ( this->GetFixedImage() );
+    m_ImageDemonsFunction->InitializeIteration();
+
+    // std::cout << "Image RMSE: " << dynamic_cast<ESMDemonsRegistrationFunction<TFixedImage,TMovingImage, TDeformationField>* >(m_ImageDemonsFunction.GetPointer())->GetMetric() << std::endl;
+
+    if (m_MeshDemonsFunction->GetNumberOfMeshes()==0) // no mesh, do nothing
+    {
+        std::cout << " No Meshes in Mesh Function " << std::endl;
+      m_GaussianMap = 0;
+      return;
+    }
+    
+    std::cout << " Initializing Mesh Function " << std::endl;
+    m_MeshDemonsFunction->SetDeformationField ( this->GetDeformationField() );
+    m_MeshDemonsFunction->SetInverseDeformationField(this->GetInverseDeformationField());
+    m_MeshDemonsFunction->SetMovingImage      ( this->GetMovingImage() );
+    m_MeshDemonsFunction->SetFixedImage       ( this->GetFixedImage() );
+
+/*    typename MapFilterType::SigmaType sigmaX;
+    for ( int i =0 ; i< TMovingImage::ImageDimension; i++)
+    {
+      sigmaX[i] = this->GetMovingImage()->GetSpacing()[i];
+    }*/
+   
+
+    typename MapFilterType::SigmaType sigma;
+    for ( int i =0 ; i< TMovingImage::ImageDimension; i++)
+    {
+      sigma[i] = max( 6.0, m_Sigma * this->GetMovingImage()->GetSpacing()[i]);
+      
+    }
+
+//    m_MeshDemonsFunction->SetSigmaI(this->GetSigmaI()); 
+    m_MeshDemonsFunction->SetLambdaGradientDescent(this->GetLambdaGradientDescent());
+    m_MeshDemonsFunction->SetSigma(this->GetSigma());
+    std::cout << " hola " << std::endl;
+//    m_MeshDemonsFunction->SetSigma(this->GetMovingImage()->GetSpacing()[2]*m_Sigma);
+    m_MeshDemonsFunction->InitializeIteration();
+    
+//    std::cout << "hola sigma " << sigma << std::endl;
+/*    m_GaussianMapSource->SetOutputParametersFromImage ( this->GetMovingImage() );
+    m_GaussianMapSource->SetSigma ( sigma );
+    m_GaussianMapSource->SetPoints ( m_MeshDemonsFunction->GetCorrespondencePositions (0) );
+    m_GaussianMapSource->GetOutput()->SetLargestPossibleRegion( this->GetDeformationField()->GetLargestPossibleRegion() );
+    m_GaussianMapSource->GetOutput()->SetRequestedRegion( this->GetDeformationField()->GetRequestedRegion() );
+    m_GaussianMapSource->Update();
+
+    typename MovingImageType::Pointer gaussianMap = m_GaussianMapSource->GetOutput();
+    gaussianMap->DisconnectPipeline();
+*//*
+    m_MergeFilter->SetInput (0, gaussianMap );
+    //The following code was for having a gaussian map for each bundle, but now we have a unique gaussian map for all the bundles together (a bag of all the points from all the bundles)
+    for (unsigned int i=1; i<m_MeshDemonsFunction->GetCorrespondencePositions().size();i++)
+    {
+      m_GaussianMapSource->SetPoints ( m_MeshDemonsFunction->GetCorrespondencePositions (i) );
+      m_GaussianMapSource->Update();
+
+      gaussianMap = m_GaussianMapSource->GetOutput();
+      gaussianMap->DisconnectPipeline();
+    
+      m_MergeFilter->SetInput (1, gaussianMap);
+      m_MergeFilter->GetOutput()->SetLargestPossibleRegion( this->GetDeformationField()->GetLargestPossibleRegion() );
+      m_MergeFilter->GetOutput()->SetRequestedRegion( this->GetDeformationField()->GetRequestedRegion() );
+      m_MergeFilter->Update();
+
+      gaussianMap = m_MergeFilter->GetOutput();
+      gaussianMap->DisconnectPipeline();
+
+      m_MergeFilter->SetInput (0, gaussianMap);
+    }
+  */
+  //m_GaussianMap = gaussianMap;
+    
+  }
+
+
+  template < class TFixedMesh,  class TMovingMesh,
+             class TFixedImage, class TMovingImage, class TDeformationField>
+  typename ImageAndMeshDemonsRegistrationFunction
+  <TFixedMesh, TMovingMesh, TFixedImage, TMovingImage, TDeformationField>::PixelType
+  ImageAndMeshDemonsRegistrationFunction <TFixedMesh, TMovingMesh, TFixedImage, TMovingImage, TDeformationField>
+  ::ComputeUpdate(const NeighborhoodType &it, void *gd,
+		  const FloatOffsetType& itkNotUsed(offset))
+  {
+    const IndexType index =  it.GetIndex();
+    PixelType update;
+
+    PixelType update1 = m_ImageDemonsFunction->ComputeUpdate(it, gd);
+
+    PixelType update2 = static_cast<PixelType> (0.0);
+    PixelType returnValue = 0.0;
+   /* if (!m_GaussianMap.IsNull() )
+    {
+      double valueMap =  m_GaussianMap->GetPixel (index);
+      if(valueMap>0)
+      {
+     */
+     update2 = m_MeshDemonsFunction->ComputeUpdate(it, gd);
+     // }
+//      std::cout << "update2 " << update2 << " update1 " << update1 << " valueMap " << valueMap <<  std::endl;
+
+//  returnValue =  update2* valueMap + update1 * (1.0-valueMap);
+  returnValue = update2 + update1;
+    return returnValue;  
+  }
+  
+  
+} // end of namespace
+
+#endif

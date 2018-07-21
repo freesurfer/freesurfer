@@ -1,0 +1,343 @@
+#ifndef _itk_CurrentsSplineMeshAndImageCorrespondencesCalculator_txx
+#define _itk_CurrentsSplineMeshAndImageCorrespondencesCalculator_txx
+
+#include "itkCurrentsSplineMeshAndImageCorrespondencesCalculator.h"
+
+#include <iostream>
+#include <limits>
+#include <utility>
+#include <algorithm>
+
+#include <fstream>
+#include "vnl/vnl_matrix.h"
+#include "vnl/vnl_math.h"
+#include "math.h"
+
+#include <blitz/array.h>
+#include <blitz/tinyvec-et.h>
+//using namespace blitz;
+
+
+#include "SqDistScalarKernel.h"
+#include "CurveCurr.h" 
+
+#include "CommonFunctions.h"
+
+#include "interpolation.h"
+#include <itkGaussianSpatialFunction.h>
+#include <climits>
+using namespace alglib;
+
+
+namespace itk
+{
+  template< class TFixedMesh, class TMovingMesh > 
+    CurrentsSplineMeshAndImageCorrespondencesCalculator < TFixedMesh, TMovingMesh >
+    ::CurrentsSplineMeshAndImageCorrespondencesCalculator()
+    {
+      this->lastMetric = INT_MAX;
+    }
+
+  template< class TFixedMesh, class TMovingMesh >
+    void
+    CurrentsSplineMeshAndImageCorrespondencesCalculator < TFixedMesh, TMovingMesh >
+    ::Evaluate ()
+    {
+      if (!this->GetFixedMesh() || !this->GetMovingMesh())
+        itkExceptionMacro (<< "Fixed and/or moving mesh not set");
+
+      this->m_vecP.clear();
+      this->m_vecV.clear();
+      this->m_metric.clear();
+
+      typename FixedMeshType::PointsContainer *fixedPoints   = this->GetFixedMesh()->GetPoints();
+      typename MovingMeshType::PointsContainer *movingPoints = this->GetMovingMesh()->GetPoints();
+
+      typename MovingMeshType::PointsContainer::ConstIterator movingIterator = movingPoints->Begin();
+      typename FixedMeshType::PointsContainer::ConstIterator fixedIterator = fixedPoints->Begin();
+
+      // upsample with spline
+      //for now we know each mesh contain only one fiber: check after for the "cant points"
+      //*3 is because of the dimension  (all poitns are in a one dimension array )
+
+      double vecPointsMvg[3*this->GetMovingMesh()->GetNumberOfPoints()];
+      alglib::real_2d_array ptsFxd, ptsMvg;
+
+
+      //spline interpolant for moving fibers
+      int k=0;
+      while ( movingIterator!=movingPoints->End() )
+      {
+        for(int i=0;i<3;i++)
+        {
+          vecPointsMvg[k] = movingIterator.Value()[i];
+          k++;
+        }
+        ++movingIterator;
+      }
+      ptsMvg.setcontent(this->GetMovingMesh()->GetNumberOfPoints(),3, vecPointsMvg);
+
+      alglib::pspline3interpolant sMvg;
+      alglib::pspline3build(ptsMvg,this->GetMovingMesh()->GetNumberOfPoints(),1,0,sMvg);
+
+      //Convert to ArrayPoint to bridge with CurveCurr
+      typedef blitz::TinyVector<double,3> Vect;
+      typedef blitz::Array<Vect,1> ArrVect;
+      typedef blitz::TinyVector<double,3> Point;
+      typedef blitz::Array<Point,1> ArrPoint;
+      typedef blitz::TinyVector<double,3> VectPoint;
+      typedef blitz::Array<Point,1> ArrVectPoint;
+      typedef blitz::TinyVector<int,2> Face;
+      typedef blitz::Array<Face,1> ArrFace;
+      typedef blitz::Array<double,1> ArrWeight;
+
+     
+      double x,y,z;
+      k=1;
+      typedef typename TFixedMesh::CellsContainer FixedCellsContainer;
+      typename FixedCellsContainer::ConstIterator cellItFxd = this->GetFixedMesh()->GetCells()->Begin();
+      
+      //looking for the sampling number of the spline:
+      typename TFixedMesh::CellTraits::PointIdIterator  pointIdIt  = cellItFxd.Value()->PointIdsBegin();
+      typename TFixedMesh::PointType ptPrevious;  
+      this->GetFixedMesh()->GetPoint(*pointIdIt, &ptPrevious);
+      pointIdIt++; // I start with the secondg one, and compared it with the previous
+      double fiberLenght = 0;
+      for(;pointIdIt != cellItFxd.Value()->PointIdsEnd();pointIdIt++)
+        {
+          typename TFixedMesh::PointType pt;  
+          this->GetFixedMesh()->GetPoint(*pointIdIt, &pt);
+          //          std::cout << " pt "<< pt<< std::endl;
+          double dist=0;
+          for(int i=0;i<3;i++)
+          {
+            dist += pow(pt[i] - ptPrevious[i],2);
+          }
+          dist = sqrt(dist);
+          fiberLenght +=dist;
+          ptPrevious = pt;
+        }
+      double    cantSamples = ceil(fiberLenght);
+
+      pointIdIt  = cellItFxd.Value()->PointIdsBegin();
+
+      
+      int Nf = this->GetFixedMesh()->GetNumberOfPoints()*2;
+      int Nm = cantSamples*this->GetMovingMesh()->GetNumberOfCells();
+      int Sf = this->GetFixedMesh()->GetNumberOfPoints();
+      int Sm = Nm - this->GetMovingMesh()->GetNumberOfCells();
+
+      ArrPoint fp(Range(1,Nf)), mp(Range(1,Nm));
+      ArrFace fIndex(Range(1,Sf)), mIndex(Range(1,Sm));
+      ArrWeight fWeight(Range(1,Nf)), mWeight(Range(1,Nm));
+      bool notInterpolate =  true ;
+
+      //for the ATLAS!
+      typedef TFixedMesh::PointsContainer::Iterator     PointsIterator;
+      PointsIterator  pointIterator = this->GetFixedMesh()->GetPoints()->Begin();  
+      PointsIterator end = mesh->GetPoints()->End();
+      
+      int a1 =1;
+      while( pointIterator != end ) 
+      {
+        TFixedMesh::PointType p = pointIterator.Value();  // access the point
+
+        fp(k)(0) = p[0];
+        fp(k)(1) = p[1];
+        fp(k)(2) = p[2];
+
+        fWeight(k) = 1./this->GetFixedMesh()->GetNumberOfPoints();
+        
+        k++;
+        fp(k)(0) = p[0]+;
+        fp(k)(1) = p[1];
+        fp(k)(2) = p[2];
+
+        fWeight(k) = 1./this->GetFixedMesh()->GetNumberOfPoints();
+        k++;
+        ++pointIterator;                                // advance to next point
+	fIndex(a1) = k-2,k-1;
+	a1++;  
+      }
+      /*int a1 =1;
+      for(int i=1;i<cantSamples*this->GetFixedMesh()->GetNumberOfCells();i++)
+      {
+        if( i %( Nf/ this->GetFixedMesh()->GetNumberOfCells()) != 0)
+        {
+          fIndex(a1) = i,i+1;
+	  a1++;  
+	}
+      }*/
+   /*
+      for(;cellItFxd!= this->GetFixedMesh()->GetCells()->End(); ++cellItFxd)
+      {
+        int j=0;
+        double vecPointsFxd[3*cellItFxd.Value()->GetNumberOfPoints()];
+        pointIdIt  = cellItFxd.Value()->PointIdsBegin();
+        for(;pointIdIt != cellItFxd.Value()->PointIdsEnd();pointIdIt++)
+        {
+          typename TFixedMesh::PointType pt;  
+          this->GetFixedMesh()->GetPoint(*pointIdIt, &pt);
+          for(int i=0;i<3;i++)
+          {
+            vecPointsFxd[j] =pt[i];
+            j++;
+          }
+        }
+        ptsFxd.setcontent(cellItFxd.Value()->GetNumberOfPoints(),3, vecPointsFxd);
+
+        alglib::pspline3interpolant sFxd;
+        alglib::pspline3build(ptsFxd,cellItFxd.Value()->GetNumberOfPoints(),1,0,sFxd);
+
+
+        float ii=0;
+        while(k<top)
+        {
+          alglib::pspline3calc(sFxd,ii,x,y,z);
+          fp(k)(0) = x;
+          fp(k)(1) = y;
+          fp(k)(2) = z;
+
+          fWeight(k) = 1./this->GetFixedMesh()->GetNumberOfCells();
+          ii+=(1/(cantSamples-1));
+          k++;
+        }
+      }
+      int a1 =1;
+      for(int i=1;i<cantSamples*this->GetFixedMesh()->GetNumberOfCells();i++)
+      {
+        if( i %( Nf/ this->GetFixedMesh()->GetNumberOfCells()) != 0)
+        {
+          fIndex(a1) = i,i+1;
+	  a1++;  
+	}
+      }
+*/
+      k=1;
+      typedef typename TMovingMesh::CellsContainer MovingCellsContainer;
+      typename MovingCellsContainer::ConstIterator cellItMvg = this->GetMovingMesh()->GetCells()->Begin();
+      for(;cellItMvg!= this->GetMovingMesh()->GetCells()->End(); ++cellItMvg)
+      {
+        int j=0;
+        double vecPointsMvg[3*cellItMvg.Value()->GetNumberOfPoints()];
+        typename TMovingMesh::CellTraits::PointIdIterator  pointIdIt  = cellItMvg.Value()->PointIdsBegin();
+        for(;pointIdIt != cellItMvg.Value()->PointIdsEnd();pointIdIt++)
+        {
+          typename TMovingMesh::PointType pt;  
+          this->GetMovingMesh()->GetPoint(*pointIdIt, &pt);
+          for(int i=0;i<3;i++)
+          {
+            vecPointsMvg[j] =pt[i];
+            j++;
+          }
+        }
+        ptsMvg.setcontent(cellItMvg.Value()->GetNumberOfPoints(),3, vecPointsMvg);
+
+        alglib::pspline3interpolant sMvg;
+        alglib::pspline3build(ptsMvg,cellItMvg.Value()->GetNumberOfPoints(),1,0,sMvg);
+
+
+        float ii=0;
+        int top = k +cantSamples;
+        while(k<top)
+        {
+          alglib::pspline3calc(sMvg,ii,x,y,z);
+          mp(k)(0) = x;
+          mp(k)(1) = y;
+          mp(k)(2) = z;
+          mWeight(k)= 1./this->GetMovingMesh()->GetNumberOfCells();
+          ii+=(1/(cantSamples-1));
+          k++;
+        }
+      
+      }
+            int a2 =1;
+      for(int i=1;i<cantSamples*this->GetMovingMesh()->GetNumberOfCells();i++)
+      {
+	      if( i %( Nm/ this->GetMovingMesh()->GetNumberOfCells()) != 0)
+	      {
+		      mIndex(a2) = i,i+1;
+		      a2++;
+	      }
+      }
+      double  sig=this->GetSigma();//*distPoints;
+      CauchyFunction<double> *func = new CauchyFunction<double>(sig);
+      Kernel<Point,Vect,VectPoint> *ker = new SqDistScalarKernel<double,3,Vect>(func);
+
+      // create the curve/current
+      //from fixed to moving
+      /*     CurveCurr<double,3> CurvCurr(mp,fIndex,mIndex,ker,fWeight,mWeight);
+             double D = CurvCurr.Eval(fp);  
+             ArrVectPoint Grad = CurvCurr.Gradient(fp);
+       */
+      //from moving to fixed
+    CurveCurr<double,3> CurvCurr(fp,mIndex,fIndex,ker,mWeight,fWeight);
+      double D = CurvCurr.Eval(mp);  
+      ArrVectPoint Grad = CurvCurr.Gradient(mp);
+
+      typedef GaussianSpatialFunction<double,3> FunctionType; 
+      typename FunctionType::Pointer function = FunctionType::New();
+    int downsampling =max(ceil(this->GetSpacing()), ceil(fiberLenght /this->GetMovingMesh()->GetNumberOfPoints()*this->GetMovingMesh()->GetNumberOfCells()));
+  std::cout <<  " downsampling" << downsampling  <<" , "; // <<std::endl;
+      for(int j=1;j<=Grad.size(); j++)
+      {
+        typename FunctionType::ArrayType mean;
+        for (int k=0; k<3; k++)
+          mean[k] = Grad(j)(k);
+
+        function->SetMean(mean);
+        double normalization=0;
+        MovingVectorType corr ; //= new MovingVectorType();
+        for (int k=0; k<3; k++)
+          (corr)[k] =0; 
+
+        for(int i=(max(1, j-downsampling)); i<=(min(Grad.size(),j+downsampling)); i++)
+        {
+          typename FunctionType::InputType pt;
+
+          for (int k=0; k<3; k++)
+            pt[k] = Grad(i)(k) ;
+
+          double value = function->Evaluate(pt);
+          for (int k=0; k<3; k++)
+            (corr)[k] += value*Grad(i)(k);
+
+          normalization +=value;
+
+        }
+        if(normalization>0){
+          for (int k=0; k<3; k++)
+          {
+            (corr)[k] /= normalization; 
+          }
+        }
+        else
+        {
+          std::cout << " puttttaaaa madree"<<std::endl; 
+        }
+        MovingPointType p; //= new MovingPointType(); 
+        /*
+           (*p)[0] =     fp(j)(0) - (*corr)[0];
+           (*p)[1] =     fp(j)(1) - (*corr)[1];
+           (*p)[2] =     fp(j)(2) -  (*corr)[2];
+         */
+        (p)[0] =     mp(j)(0);
+        (p)[1] =     mp(j)(1);
+        (p)[2] =     mp(j)(2);
+
+        this->m_vecP.push_back(p );
+        this->m_vecV.push_back(corr);
+        this->m_metric.push_back(D/Grad.size());
+        j+=downsampling;
+      }
+
+  std::cout <<  " downsampling" << downsampling  <<" , "<<  this->m_vecP.size() << std::endl;
+//std::cin.get();
+  delete func;
+      delete ker;
+      this->lastMetric = D;
+      //    std::cout << "Eval=" << D<< "    Sigma="<< this->GetSigma()<< std::endl;
+    }
+}
+
+#endif

@@ -1,0 +1,192 @@
+#ifndef __itkMultiImageLogDomainDemonsRegistrationFilter_h
+#define __itkMultiImageLogDomainDemonsRegistrationFilter_h
+
+#include "itkLogDomainDeformableRegistrationFilter.h"
+#include "itkESMDemonsRegistrationFunction.h"
+
+#include "itkMultiplyByConstantImageFilter.h"
+#include "itkVelocityFieldBCHCompositionFilter.h"
+#include "itkImageAndMeshDemonsRegistrationFunction.h"
+#include "itkMeshDemonsRegistrationFunction.h"
+#include "itkMultiImageDemonsRegistrationFunction.h"
+
+namespace itk {
+
+template<class TFixedImage, class TMovingImage,  class TField>
+class ITK_EXPORT MultiImageLogDomainDemonsRegistrationFilter : 
+   public LogDomainDeformableRegistrationFilter<TFixedImage,TMovingImage,TField>
+{
+public:
+  /** Standard class typedefs. */
+  typedef MultiImageLogDomainDemonsRegistrationFilter             Self;
+  typedef LogDomainDeformableRegistrationFilter<TFixedImage,TMovingImage,TField>   Superclass;
+  typedef SmartPointer<Self>                            Pointer;
+  typedef SmartPointer<const Self>                      ConstPointer;
+ 
+  /** Method for creation through the object factory. */
+  itkNewMacro(Self);
+
+  /** Run-time type information (and related methods) */
+  itkTypeMacro( MultiImageLogDomainDemonsRegistrationFilter,LogDomainDeformableRegistrationFilter );
+
+  /** FixedImage image type. */
+  typedef typename Superclass::FixedImageType           FixedImageType;
+  typedef typename Superclass::FixedImagePointer        FixedImagePointer;
+
+  /** MovingImage image type. */
+  typedef typename Superclass::MovingImageType          MovingImageType;
+  typedef typename Superclass::MovingImagePointer       MovingImagePointer;
+
+/* Meshes type  */
+//  typedef TFixedMesh FixedMeshType;
+//  typedef TMovingMesh MovingMeshType;
+ 
+  /** Velocity field type. */
+  typedef TField                                        VelocityFieldType;
+  typedef typename VelocityFieldType::Pointer           VelocityFieldPointer;
+  
+  /** Deformation field type. */
+  typedef typename Superclass::DeformationFieldType     DeformationFieldType;
+  typedef typename Superclass::DeformationFieldPointer  DeformationFieldPointer;
+
+  /** Types inherithed from the superclass */
+//  typedef typename Superclass::OutputImageType          OutputImageType;
+
+  /** FiniteDifferenceFunction type. */
+  typedef typename Superclass::FiniteDifferenceFunctionType  FiniteDifferenceFunctionType;
+
+  /** Take timestep type from the FiniteDifferenceFunction. */
+  typedef typename 
+    FiniteDifferenceFunctionType::TimeStepType          TimeStepType;
+
+  /** Image and mesh DemonsRegistrationFilterFunction type. */
+  typedef MultiImageDemonsRegistrationFunction<
+    FixedImageType,
+    MovingImageType,
+    DeformationFieldType>              ImageDemonsRegistrationFunctionType;
+
+  /** Image DemonsRegistrationFilterFunction type. */
+/*  typedef ESMDemonsRegistrationFunction<
+    FixedImageType,
+    MovingImageType, DeformationFieldType>              ImageDemonsRegistrationFunctionType;
+  */
+typedef typename ImageDemonsRegistrationFunctionType::GradientType        GradientType;
+
+  
+
+ 
+  /** DemonsRegistrationFilterFunction type. */
+/*  typedef ESMDemonsRegistrationFunction<FixedImageType,
+    MovingImageType, DeformationFieldType>                          DemonsRegistrationFunctionType;
+  typedef typename DemonsRegistrationFunctionType::Pointer          DemonsRegistrationFunctionPointer;
+  typedef typename DemonsRegistrationFunctionType::GradientType     GradientType;
+*/
+  /** Get the metric value. The metric value is the mean square difference 
+   * in intensity between the fixed image and transforming moving image 
+   * computed over the the overlapping region between the two images. 
+   * This value is calculated for the current iteration */
+  virtual double GetMetric() const;
+  virtual const double &GetRMSChange() const;
+
+  virtual void SetUseGradientType( GradientType gtype );
+  virtual GradientType GetUseGradientType() const;
+
+  /** Set/Get the threshold below which the absolute difference of
+   * intensity yields a match. When the intensities match between a
+   * moving and fixed image pixel, the update vector (for that
+   * iteration) will be the zero vector. Default is 0.001. */
+  virtual void SetIntensityDifferenceThreshold(double);
+  virtual double GetIntensityDifferenceThreshold() const;
+
+  /** Set/Get the maximum length in terms of pixels of
+   *  the vectors in the update buffer. */
+  void SetMaximumUpdateStepLength(double step);
+  double GetMaximumUpdateStepLength() const;
+ 
+  /** Set/Get the number of terms used in the Baker-Campbell-Hausdorff approximation. */
+  virtual void SetNumberOfBCHApproximationTerms(unsigned int);
+  virtual unsigned int GetNumberOfBCHApproximationTerms() const;
+
+  void SetImageRegistrationFunction(typename ImageDemonsRegistrationFunctionType::Pointer r)
+  {
+    this->m_MultiImageRegistrationFunction = r;
+
+    this->SetDifferenceFunction( static_cast<FiniteDifferenceFunctionType *>(r.GetPointer()));
+    }
+
+  void SetMovingImage(MovingImagePointer img, unsigned int index)
+  {
+
+      m_MultiImageRegistrationFunction->SetMovingImage(img.GetPointer(),index);
+      if(index==0)
+          Superclass::SetMovingImage(img.GetPointer());
+  }
+  void SetFixedImage(FixedImagePointer img, unsigned int index)
+  {
+      m_MultiImageRegistrationFunction->SetFixedImage(img.GetPointer(),index);
+      if(index==0)
+          Superclass::SetFixedImage(img.GetPointer());
+  }
+  void SetInitialVelocityField(typename VelocityFieldType::Pointer v)
+  {
+    Superclass::SetInitialVelocityField(v);          
+  //    this->m_MultiImageRegistrationFunction->SetInitialVelocityField(v);
+//      this->m_MultiImageRegistrationFunction->SetDeformationField( v);
+  }
+void SetInitialDeformationField(typename VelocityFieldType::Pointer v)
+{
+    this->m_InitialDeformationField = v;
+}
+typename VelocityFieldType::Pointer GetInitialDeformationField()
+{
+return this->m_InitialDeformationField;
+}
+protected:
+  MultiImageLogDomainDemonsRegistrationFilter();
+  ~MultiImageLogDomainDemonsRegistrationFilter() {}
+  void PrintSelf(std::ostream& os, Indent indent) const;
+
+  /** Initialize the state of filter and equation before each iteration. */
+  virtual void InitializeIteration();
+
+  /** Apply update. */
+  virtual void ApplyUpdate(TimeStepType dt);
+  
+
+private:
+  MultiImageLogDomainDemonsRegistrationFilter(const Self&); //purposely not implemented
+  void operator=(const Self&); //purposely not implemented
+
+  /** Downcast the DifferenceFunction using a dynamic_cast to ensure that it is of the correct type.
+   * this method will throw an exception if the function is not of the expected type. */
+  ImageDemonsRegistrationFunctionType *  DownCastDifferenceFunctionType();
+  const ImageDemonsRegistrationFunctionType *  DownCastDifferenceFunctionType() const;
+
+  /** Exp and composition typedefs */
+  typedef MultiplyByConstantImageFilter<
+    VelocityFieldType, 
+    TimeStepType, VelocityFieldType >                   MultiplyByConstantType;
+
+  typedef VelocityFieldBCHCompositionFilter<
+     VelocityFieldType,
+    VelocityFieldType>                                 BCHFilterType;
+
+  typedef typename MultiplyByConstantType::Pointer      MultiplyByConstantPointer;
+  typedef typename BCHFilterType::Pointer               BCHFilterPointer;
+
+
+  MultiplyByConstantPointer                             m_Multiplier;
+  BCHFilterPointer                                      m_BCHFilter;
+
+  typename ImageDemonsRegistrationFunctionType::Pointer m_MultiImageRegistrationFunction;
+ typename VelocityFieldType::Pointer            m_InitialDeformationField;
+};
+
+
+} // end namespace itk
+
+#ifndef ITK_MANUAL_INSTANTIATION
+#include "itkMultiImageLogDomainDemonsRegistrationFilter.txx"
+#endif
+
+#endif

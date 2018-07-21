@@ -1,0 +1,166 @@
+#ifndef _itk_ImageAndMeshDemonsRegistrationFunction_h_
+#define _itk_ImageAndMeshDemonsRegistrationFunction_h_
+
+#include "itkPDEDeformableRegistrationFunction.h"
+#include "itkMeshDemonsRegistrationFunction.h"
+#include "itkMeshESMDemonsRegistrationFunction.h"
+#include "itkGaussianMapImageSource.h"
+#include "itkMaximumImageFilter.h"
+#include "itkImageAndMeshDemonsRegistrationFunction.h"
+#include "itkImageFileWriter.h"
+#include "itkESMDemonsRegistrationFunction.h"
+
+
+namespace itk
+{
+
+  template < class TFixedMesh,  class TMovingMesh,
+             class TFixedImage, class TMovingImage, class TDeformationField >
+    class ImageAndMeshDemonsRegistrationFunction :
+  public PDEDeformableRegistrationFunction< TFixedImage,
+                                            TMovingImage, TDeformationField>
+  {
+  public:
+    typedef ImageAndMeshDemonsRegistrationFunction     Self;
+    typedef PDEDeformableRegistrationFunction
+      < TFixedImage, TMovingImage, TDeformationField > Superclass;
+    typedef SmartPointer<Self>                         Pointer;
+    typedef SmartPointer<const Self>                   ConstPointer;
+
+    itkNewMacro  (Self);
+    itkTypeMacro (ImageAndMeshDemonsRegistrationFunction, PDEDeformableRegistrationFunction);
+
+    /** MovingImage image type. */
+    typedef typename Superclass::MovingImageType      MovingImageType;
+    typedef typename Superclass::MovingImagePointer   MovingImagePointer;
+    typedef typename MovingImageType::PixelType       MovingPixelType;
+
+    typedef typename Superclass::NeighborhoodType     NeighborhoodType;
+    typedef typename Superclass::FloatOffsetType      FloatOffsetType;
+    typedef typename Superclass::PixelType            PixelType;
+    typedef typename Superclass::TimeStepType         TimeStepType;
+    
+    /** FixedImage image type. */
+    typedef typename Superclass::FixedImageType       FixedImageType;
+    typedef typename Superclass::FixedImagePointer    FixedImagePointer;
+    typedef typename FixedImageType::IndexType        IndexType;
+    typedef typename FixedImageType::SizeType         SizeType;
+    typedef typename FixedImageType::SpacingType      SpacingType;
+    typedef typename FixedImageType::DirectionType    DirectionType;
+
+
+    typedef TDeformationField DeformationField;
+    typedef typename DeformationField::Pointer DeformationFieldPointer;
+
+/** Image Demons function */
+    typedef PDEDeformableRegistrationFunction
+      < TFixedImage, TMovingImage, TDeformationField> ImageDemonsFunctionType;
+
+    /** Mesh Demons function */
+    typedef MeshDemonsRegistrationFunction
+      <TFixedMesh, TMovingMesh, TFixedImage, TMovingImage, TDeformationField> MeshDemonsFunctionType;
+
+    /** The Gaussian map filter */
+    typedef itk::GaussianMapImageSource<TMovingImage> MapFilterType;
+
+    /** The max image filter */
+    typedef MaximumImageFilter<TMovingImage, TMovingImage, TMovingImage> MergeFilterType;
+
+    void SetImageDemonsFunction (ImageDemonsFunctionType *function)
+    { m_ImageDemonsFunction = function; }
+    ImageDemonsFunctionType *GetImageDemonsFunction (void) const
+    { return m_ImageDemonsFunction; }
+
+    void SetMeshDemonsFunction (MeshDemonsFunctionType *function)
+    { m_MeshDemonsFunction = function; }
+    MeshDemonsFunctionType *GetMeshDemonsFunction (void) const
+    { return m_MeshDemonsFunction; }
+
+    /** This class uses a constant timestep of 1. */
+    virtual TimeStepType ComputeGlobalTimeStep(void * GlobalData) const
+    { return m_TimeStep; }
+
+    virtual void *GetGlobalDataPointer() const;
+
+    virtual void ReleaseGlobalDataPointer( void *GlobalData ) const;
+
+    virtual void InitializeIteration();
+    
+    virtual PixelType  ComputeUpdate(const NeighborhoodType &neighborhood,
+				     void *globalData,
+				     const FloatOffsetType &offset = FloatOffsetType(0.0));
+
+    virtual void SetSigmaI (double sigma)
+    { m_SigmaI = sigma; }
+    virtual double GetSigmaI (void) const
+    { return m_SigmaI; }
+    virtual void SetSigmaX (double sigma)
+    { m_SigmaX = sigma; }
+    virtual double GetSigmaX (void) const
+    { return m_SigmaX; }
+    virtual void SetLambdaGradientDescent (double lambda)
+    { m_LambdaGradientDescent = lambda; }
+    virtual double GetLambdaGradientDescent (void) const
+    { return m_LambdaGradientDescent; }
+    virtual void SetSigma (double sigma)
+    { m_Sigma = sigma; }
+    virtual double GetSigma (void) const
+    { return m_Sigma; }
+
+    void SetInverseDeformationField(DeformationFieldPointer invDef)
+    {
+      this->m_inverseDefField= invDef;
+    }
+    DeformationFieldPointer GetInverseDeformationField()
+    {
+      return this->m_inverseDefField;
+    }
+
+  protected:
+    ImageAndMeshDemonsRegistrationFunction ()
+    {
+      m_ImageDemonsFunction = 0;
+      m_MeshDemonsFunction  = 0;
+      m_TimeStep = 1.0;
+      m_GaussianMapSource = MapFilterType::New();
+      m_MergeFilter = MergeFilterType::New();
+      m_Sigma = 1.0;
+      m_GaussianMap = 0;
+      iter=0;
+      m_SigmaX=1;
+      m_SigmaI=1;
+      m_LambdaGradientDescent=1;
+    }
+    ~ImageAndMeshDemonsRegistrationFunction() {}
+
+  private:
+    ImageAndMeshDemonsRegistrationFunction (const Self&);
+    void operator=(const Self&);
+
+    typename ImageDemonsFunctionType::Pointer m_ImageDemonsFunction;
+    typename MeshDemonsFunctionType::Pointer  m_MeshDemonsFunction;
+
+    typename MapFilterType::Pointer   m_GaussianMapSource;
+    typename MergeFilterType::Pointer m_MergeFilter;
+    
+    DeformationFieldPointer m_inverseDefField;
+
+    MovingImagePointer m_GaussianMap;
+    
+    TimeStepType m_TimeStep;
+
+    double m_Sigma;
+    double m_SigmaI;
+    double m_SigmaX;
+    double m_LambdaGradientDescent;
+
+    int iter;    
+  };
+
+} // end of namespace
+
+#ifndef ITK_MANUAL_INSTANTIATION
+#include "itkImageAndMeshDemonsRegistrationFunction.txx"
+#endif
+
+#endif

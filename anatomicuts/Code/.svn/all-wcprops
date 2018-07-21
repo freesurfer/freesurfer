@@ -1,0 +1,713 @@
+K 25
+svn:wc:ra_dav:version-url
+V 70
+/svn/kmtk/!svn/ver/553/branches/equation-currents-gradientDescent/Code
+END
+itkTensorLinearInterpolateImageFunction.txx
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/svn/kmtk/!svn/ver/544/branches/equation-currents-gradientDescent/Code/itkTensorLinearInterpolateImageFunction.txx
+END
+itkCurrentsToCentroidMembershipFunction.h
+K 25
+svn:wc:ra_dav:version-url
+V 112
+/svn/kmtk/!svn/ver/440/branches/equation-currents-gradientDescent/Code/itkCurrentsToCentroidMembershipFunction.h
+END
+itkImageToVTKImageFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkImageToVTKImageFilter.h
+END
+itkMeassureMeshCorrespondencesCalculator.txx
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/svn/kmtk/!svn/ver/485/branches/equation-currents-gradientDescent/Code/itkMeassureMeshCorrespondencesCalculator.txx
+END
+itkImageAndMeshDemonsRegistrationFunction.txx
+K 25
+svn:wc:ra_dav:version-url
+V 116
+/svn/kmtk/!svn/ver/508/branches/equation-currents-gradientDescent/Code/itkImageAndMeshDemonsRegistrationFunction.txx
+END
+itkTensorLinearInterpolateImageFunction.h
+K 25
+svn:wc:ra_dav:version-url
+V 112
+/svn/kmtk/!svn/ver/514/branches/equation-currents-gradientDescent/Code/itkTensorLinearInterpolateImageFunction.h
+END
+itkMeshOPTDemonsRegistrationFunction.h
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/svn/kmtk/!svn/ver/508/branches/equation-currents-gradientDescent/Code/itkMeshOPTDemonsRegistrationFunction.h
+END
+itkTransformMeshPointsFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/svn/kmtk/!svn/ver/387/branches/equation-currents-gradientDescent/Code/itkTransformMeshPointsFilter.txx
+END
+itkCurrentsSplineMeshAndAtlasCorrespondencesCalculator.txx
+K 25
+svn:wc:ra_dav:version-url
+V 129
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkCurrentsSplineMeshAndAtlasCorrespondencesCalculator.txx
+END
+itkImageAndMeshDiffeomorphicDemonsRegistrationFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 125
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkImageAndMeshDiffeomorphicDemonsRegistrationFilter.h
+END
+itkImageAndMeshDemonsRegistrationFunction.h
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/svn/kmtk/!svn/ver/482/branches/equation-currents-gradientDescent/Code/itkImageAndMeshDemonsRegistrationFunction.h
+END
+itkMultiImageLogDomainDemonsRegistrationFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 121
+/svn/kmtk/!svn/ver/504/branches/equation-currents-gradientDescent/Code/itkMultiImageLogDomainDemonsRegistrationFilter.txx
+END
+itkClosestPointMeshCorrespondencesCalculator.h
+K 25
+svn:wc:ra_dav:version-url
+V 117
+/svn/kmtk/!svn/ver/399/branches/equation-currents-gradientDescent/Code/itkClosestPointMeshCorrespondencesCalculator.h
+END
+itkTransformMeshPointsFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/svn/kmtk/!svn/ver/385/branches/equation-currents-gradientDescent/Code/itkTransformMeshPointsFilter.h
+END
+itkGaussianMapImageSource.h
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkGaussianMapImageSource.h
+END
+itkVariableLengthVectorCurrents.txx
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/svn/kmtk/!svn/ver/541/branches/equation-currents-gradientDescent/Code/itkVariableLengthVectorCurrents.txx
+END
+itkVTKPolyDataToPolylineMeshFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/svn/kmtk/!svn/ver/541/branches/equation-currents-gradientDescent/Code/itkVTKPolyDataToPolylineMeshFilter.txx
+END
+itkPolylineMeshToVTKPolyDataFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/svn/kmtk/!svn/ver/543/branches/equation-currents-gradientDescent/Code/itkPolylineMeshToVTKPolyDataFilter.txx
+END
+itkMultiImageDemonsRegistrationFunction.h
+K 25
+svn:wc:ra_dav:version-url
+V 112
+/svn/kmtk/!svn/ver/501/branches/equation-currents-gradientDescent/Code/itkMultiImageDemonsRegistrationFunction.h
+END
+itkMeshESMDemonsRegistrationFunction.txx
+K 25
+svn:wc:ra_dav:version-url
+V 111
+/svn/kmtk/!svn/ver/482/branches/equation-currents-gradientDescent/Code/itkMeshESMDemonsRegistrationFunction.txx
+END
+itkLabelMapVariableLengthVector.txx
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/svn/kmtk/!svn/ver/561/branches/equation-currents-gradientDescent/Code/itkLabelMapVariableLengthVector.txx
+END
+itkMeassureMeshCorrespondencesCalculatorNormalize.txx
+K 25
+svn:wc:ra_dav:version-url
+V 124
+/svn/kmtk/!svn/ver/516/branches/equation-currents-gradientDescent/Code/itkMeassureMeshCorrespondencesCalculatorNormalize.txx
+END
+itkCurrentsSplineMeshAndImageCorrespondencesCalculator.txx
+K 25
+svn:wc:ra_dav:version-url
+V 129
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkCurrentsSplineMeshAndImageCorrespondencesCalculator.txx
+END
+itkKmeanCurrentsVtkPolydataFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 108
+/svn/kmtk/!svn/ver/440/branches/equation-currents-gradientDescent/Code/itkKmeanCurrentsVtkPolydataFilter.txx
+END
+itkSumOfDistanceMatrixToCentroidMembershipFunction.h
+K 25
+svn:wc:ra_dav:version-url
+V 123
+/svn/kmtk/!svn/ver/558/branches/equation-currents-gradientDescent/Code/itkSumOfDistanceMatrixToCentroidMembershipFunction.h
+END
+itkLabelVariableLengthVector.txx
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/svn/kmtk/!svn/ver/542/branches/equation-currents-gradientDescent/Code/itkLabelVariableLengthVector.txx
+END
+itkMeshToImageFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/svn/kmtk/!svn/ver/407/branches/equation-currents-gradientDescent/Code/itkMeshToImageFilter.h
+END
+itkMeassureMeshCorrespondencesCalculatorNormalize.h
+K 25
+svn:wc:ra_dav:version-url
+V 122
+/svn/kmtk/!svn/ver/481/branches/equation-currents-gradientDescent/Code/itkMeassureMeshCorrespondencesCalculatorNormalize.h
+END
+itkKMeansFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/svn/kmtk/!svn/ver/561/branches/equation-currents-gradientDescent/Code/itkKMeansFilter.h
+END
+GetPot.h
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/GetPot.h
+END
+itkMultiImageDiffeomorphicDemonsRegistrationFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 125
+/svn/kmtk/!svn/ver/477/branches/equation-currents-gradientDescent/Code/itkMultiImageDiffeomorphicDemonsRegistrationFilter.txx
+END
+itkKdTreeGenericMetricKmeansEstimator.txx
+K 25
+svn:wc:ra_dav:version-url
+V 112
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkKdTreeGenericMetricKmeansEstimator.txx
+END
+itkFastMeassureMeshCorrespondencesCalculator.txx
+K 25
+svn:wc:ra_dav:version-url
+V 119
+/svn/kmtk/!svn/ver/477/branches/equation-currents-gradientDescent/Code/itkFastMeassureMeshCorrespondencesCalculator.txx
+END
+itkMultiImageResolutionLogDomainRegistration.txx
+K 25
+svn:wc:ra_dav:version-url
+V 119
+/svn/kmtk/!svn/ver/501/branches/equation-currents-gradientDescent/Code/itkMultiImageResolutionLogDomainRegistration.txx
+END
+itkMultiImageDiffeomorphicDemonsRegistrationFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 123
+/svn/kmtk/!svn/ver/477/branches/equation-currents-gradientDescent/Code/itkMultiImageDiffeomorphicDemonsRegistrationFilter.h
+END
+itkRemoveTipPolyLineMeshFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkRemoveTipPolyLineMeshFilter.txx
+END
+itkEuclideanToCentroidMembershipFunction.h
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/svn/kmtk/!svn/ver/440/branches/equation-currents-gradientDescent/Code/itkEuclideanToCentroidMembershipFunction.h
+END
+itkClusterToSingleRepresentativePolylineMeshFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 123
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkClusterToSingleRepresentativePolylineMeshFilter.h
+END
+itkGaussianExtrapolatorVectorImageFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/svn/kmtk/!svn/ver/534/branches/equation-currents-gradientDescent/Code/itkGaussianExtrapolatorVectorImageFilter.txx
+END
+itkRemoveTipPolyLineMeshFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkRemoveTipPolyLineMeshFilter.h
+END
+itkGaussianExtrapolatorVectorImageFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/svn/kmtk/!svn/ver/482/branches/equation-currents-gradientDescent/Code/itkGaussianExtrapolatorVectorImageFilter.h
+END
+itkClosestPointMeshMatchingMap.h
+K 25
+svn:wc:ra_dav:version-url
+V 103
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkClosestPointMeshMatchingMap.h
+END
+itkFiberImageToVtkPolyData.txx
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/svn/kmtk/!svn/ver/512/branches/equation-currents-gradientDescent/Code/itkFiberImageToVtkPolyData.txx
+END
+itkWarpMeshFilter2.h
+K 25
+svn:wc:ra_dav:version-url
+V 91
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkWarpMeshFilter2.h
+END
+itkCurrentsToCentroidMembershipFunction.txx
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/svn/kmtk/!svn/ver/358/branches/equation-currents-gradientDescent/Code/itkCurrentsToCentroidMembershipFunction.txx
+END
+itkFiberTrackingImageFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/svn/kmtk/!svn/ver/550/branches/equation-currents-gradientDescent/Code/itkFiberTrackingImageFilter.txx
+END
+itkFixedVTKSamplingFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/svn/kmtk/!svn/ver/549/branches/equation-currents-gradientDescent/Code/itkFixedVTKSamplingFilter.txx
+END
+itkMeshOPTDemonsRegistrationFunction.txx
+K 25
+svn:wc:ra_dav:version-url
+V 111
+/svn/kmtk/!svn/ver/516/branches/equation-currents-gradientDescent/Code/itkMeshOPTDemonsRegistrationFunction.txx
+END
+itkStructureTensorRecursiveGaussianImageFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 121
+/svn/kmtk/!svn/ver/530/branches/equation-currents-gradientDescent/Code/itkStructureTensorRecursiveGaussianImageFilter.txx
+END
+itkCurrentsMembershipFunction.txx
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkCurrentsMembershipFunction.txx
+END
+itkFiber.txx
+K 25
+svn:wc:ra_dav:version-url
+V 83
+/svn/kmtk/!svn/ver/512/branches/equation-currents-gradientDescent/Code/itkFiber.txx
+END
+itkFiberTrackingImageFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/svn/kmtk/!svn/ver/524/branches/equation-currents-gradientDescent/Code/itkFiberTrackingImageFilter.h
+END
+itkCurrentsSplineMeshCorrespondencesCalculator.h
+K 25
+svn:wc:ra_dav:version-url
+V 119
+/svn/kmtk/!svn/ver/399/branches/equation-currents-gradientDescent/Code/itkCurrentsSplineMeshCorrespondencesCalculator.h
+END
+itkImageAndMeshDiffeomorphicDemonsRegistrationFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 127
+/svn/kmtk/!svn/ver/481/branches/equation-currents-gradientDescent/Code/itkImageAndMeshDiffeomorphicDemonsRegistrationFilter.txx
+END
+itkKmeanVtkPolydataFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkKmeanVtkPolydataFilter.h
+END
+itkBaseDistance.h
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkBaseDistance.h
+END
+itkFixedVTKSamplingFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/svn/kmtk/!svn/ver/533/branches/equation-currents-gradientDescent/Code/itkFixedVTKSamplingFilter.h
+END
+itkClosestPointMeshCorrespondencesCalculator.txx
+K 25
+svn:wc:ra_dav:version-url
+V 119
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkClosestPointMeshCorrespondencesCalculator.txx
+END
+itkStructureTensorRecursiveGaussianImageFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 119
+/svn/kmtk/!svn/ver/510/branches/equation-currents-gradientDescent/Code/itkStructureTensorRecursiveGaussianImageFilter.h
+END
+itkRBFFastInterpolationVectorImageFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkRBFFastInterpolationVectorImageFilter.txx
+END
+itkPolylineCell.txx
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkPolylineCell.txx
+END
+itkCurrentsMembershipFunction.h
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkCurrentsMembershipFunction.h
+END
+itkFiber.h
+K 25
+svn:wc:ra_dav:version-url
+V 81
+/svn/kmtk/!svn/ver/512/branches/equation-currents-gradientDescent/Code/itkFiber.h
+END
+itkGaussianMapImageSource.txx
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkGaussianMapImageSource.txx
+END
+itkMeassureMeshCorrespondencesCalculator.h
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/svn/kmtk/!svn/ver/468/branches/equation-currents-gradientDescent/Code/itkMeassureMeshCorrespondencesCalculator.h
+END
+itkRBFFastInterpolationVectorImageFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/svn/kmtk/!svn/ver/350/branches/equation-currents-gradientDescent/Code/itkRBFFastInterpolationVectorImageFilter.h
+END
+itkPolylineCell.h
+K 25
+svn:wc:ra_dav:version-url
+V 88
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkPolylineCell.h
+END
+itkOrientPolyLineMeshFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 102
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkOrientPolyLineMeshFilter.txx
+END
+itkCurrentsSplineMeshAndAtlasCorrespondencesCalculator.h
+K 25
+svn:wc:ra_dav:version-url
+V 127
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkCurrentsSplineMeshAndAtlasCorrespondencesCalculator.h
+END
+itkMultiImageLogDomainDemonsRegistrationFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 119
+/svn/kmtk/!svn/ver/500/branches/equation-currents-gradientDescent/Code/itkMultiImageLogDomainDemonsRegistrationFilter.h
+END
+itkOrientPolyLineMeshFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkOrientPolyLineMeshFilter.h
+END
+itkVariableLengthVectorCurrents.h
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/svn/kmtk/!svn/ver/541/branches/equation-currents-gradientDescent/Code/itkVariableLengthVectorCurrents.h
+END
+itkMultiImageDemonsRegistrationFunction.txx
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/svn/kmtk/!svn/ver/501/branches/equation-currents-gradientDescent/Code/itkMultiImageDemonsRegistrationFunction.txx
+END
+itkSumOfDistanceMatrixToCentroidMembershipFunction.txx
+K 25
+svn:wc:ra_dav:version-url
+V 125
+/svn/kmtk/!svn/ver/558/branches/equation-currents-gradientDescent/Code/itkSumOfDistanceMatrixToCentroidMembershipFunction.txx
+END
+itkVTKPolyDataToPolylineMeshFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkVTKPolyDataToPolylineMeshFilter.h
+END
+itkPolylineMeshToVTKPolyDataFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 107
+/svn/kmtk/!svn/ver/364/branches/equation-currents-gradientDescent/Code/itkPolylineMeshToVTKPolyDataFilter.h
+END
+itkMeshToImageFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/svn/kmtk/!svn/ver/522/branches/equation-currents-gradientDescent/Code/itkMeshToImageFilter.txx
+END
+itkCurrentsMeshCorrespondencesCalculator.txx
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkCurrentsMeshCorrespondencesCalculator.txx
+END
+itkClustersToRepresentativeMeshFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 112
+/svn/kmtk/!svn/ver/482/branches/equation-currents-gradientDescent/Code/itkClustersToRepresentativeMeshFilter.txx
+END
+itkMeshESMDemonsRegistrationFunction.h
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/svn/kmtk/!svn/ver/508/branches/equation-currents-gradientDescent/Code/itkMeshESMDemonsRegistrationFunction.h
+END
+itkLabelMapVariableLengthVector.h
+K 25
+svn:wc:ra_dav:version-url
+V 104
+/svn/kmtk/!svn/ver/561/branches/equation-currents-gradientDescent/Code/itkLabelMapVariableLengthVector.h
+END
+itkCurrentsMeshCorrespondencesCalculator.h
+K 25
+svn:wc:ra_dav:version-url
+V 113
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkCurrentsMeshCorrespondencesCalculator.h
+END
+itkCurrentsSplineMeshAndImageCorrespondencesCalculator.h
+K 25
+svn:wc:ra_dav:version-url
+V 127
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkCurrentsSplineMeshAndImageCorrespondencesCalculator.h
+END
+itkKmeanCurrentsVtkPolydataFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/svn/kmtk/!svn/ver/358/branches/equation-currents-gradientDescent/Code/itkKmeanCurrentsVtkPolydataFilter.h
+END
+itkLabelVariableLengthVector.h
+K 25
+svn:wc:ra_dav:version-url
+V 101
+/svn/kmtk/!svn/ver/541/branches/equation-currents-gradientDescent/Code/itkLabelVariableLengthVector.h
+END
+itkClustersToRepresentativeMeshFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 110
+/svn/kmtk/!svn/ver/435/branches/equation-currents-gradientDescent/Code/itkClustersToRepresentativeMeshFilter.h
+END
+itkMeshCorrespondencesCalculatorBase.h
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/svn/kmtk/!svn/ver/468/branches/equation-currents-gradientDescent/Code/itkMeshCorrespondencesCalculatorBase.h
+END
+itkMeshAndImageLogDomainDemonsRegistrationFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 123
+/svn/kmtk/!svn/ver/505/branches/equation-currents-gradientDescent/Code/itkMeshAndImageLogDomainDemonsRegistrationFilter.txx
+END
+itkBestMeshMatchingMap.txx
+K 25
+svn:wc:ra_dav:version-url
+V 97
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkBestMeshMatchingMap.txx
+END
+itkFeatureDistanceToCentroidMembershipFunction.txx
+K 25
+svn:wc:ra_dav:version-url
+V 121
+/svn/kmtk/!svn/ver/561/branches/equation-currents-gradientDescent/Code/itkFeatureDistanceToCentroidMembershipFunction.txx
+END
+itkKMeansFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 90
+/svn/kmtk/!svn/ver/561/branches/equation-currents-gradientDescent/Code/itkKMeansFilter.txx
+END
+itkBestMeshMatchingMap.h
+K 25
+svn:wc:ra_dav:version-url
+V 95
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkBestMeshMatchingMap.h
+END
+itkMeshAndImageLogDomainDemonsRegistrationFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 121
+/svn/kmtk/!svn/ver/516/branches/equation-currents-gradientDescent/Code/itkMeshAndImageLogDomainDemonsRegistrationFilter.h
+END
+itkFeatureDistanceToCentroidMembershipFunction.h
+K 25
+svn:wc:ra_dav:version-url
+V 119
+/svn/kmtk/!svn/ver/561/branches/equation-currents-gradientDescent/Code/itkFeatureDistanceToCentroidMembershipFunction.h
+END
+itkKMeansClassifierFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/svn/kmtk/!svn/ver/561/branches/equation-currents-gradientDescent/Code/itkKMeansClassifierFilter.txx
+END
+itkKMeansClassifierFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 98
+/svn/kmtk/!svn/ver/558/branches/equation-currents-gradientDescent/Code/itkKMeansClassifierFilter.h
+END
+itkVarifoldCorrespondencesCalculator.txx
+K 25
+svn:wc:ra_dav:version-url
+V 111
+/svn/kmtk/!svn/ver/541/branches/equation-currents-gradientDescent/Code/itkVarifoldCorrespondencesCalculator.txx
+END
+itkVarifoldCorrespondencesCalculator.h
+K 25
+svn:wc:ra_dav:version-url
+V 109
+/svn/kmtk/!svn/ver/536/branches/equation-currents-gradientDescent/Code/itkVarifoldCorrespondencesCalculator.h
+END
+itkVectorValue.h
+K 25
+svn:wc:ra_dav:version-url
+V 87
+/svn/kmtk/!svn/ver/536/branches/equation-currents-gradientDescent/Code/itkVectorValue.h
+END
+itkMeshDemonsRegistrationFunction.txx
+K 25
+svn:wc:ra_dav:version-url
+V 108
+/svn/kmtk/!svn/ver/536/branches/equation-currents-gradientDescent/Code/itkMeshDemonsRegistrationFunction.txx
+END
+itkEuclideanToCentroidMembershipFunction.txx
+K 25
+svn:wc:ra_dav:version-url
+V 115
+/svn/kmtk/!svn/ver/440/branches/equation-currents-gradientDescent/Code/itkEuclideanToCentroidMembershipFunction.txx
+END
+itkClusterToSingleRepresentativePolylineMeshFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 125
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkClusterToSingleRepresentativePolylineMeshFilter.txx
+END
+itkMeshDemonsRegistrationFunction.h
+K 25
+svn:wc:ra_dav:version-url
+V 106
+/svn/kmtk/!svn/ver/508/branches/equation-currents-gradientDescent/Code/itkMeshDemonsRegistrationFunction.h
+END
+itkAppendBundleFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 96
+/svn/kmtk/!svn/ver/535/branches/equation-currents-gradientDescent/Code/itkAppendBundleFilter.txx
+END
+itkHierarchicalKmeanCurrentsVtkPolydataFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 120
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkHierarchicalKmeanCurrentsVtkPolydataFilter.txx
+END
+itkKdTreeGenericMetricKmeansEstimator.h
+K 25
+svn:wc:ra_dav:version-url
+V 110
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkKdTreeGenericMetricKmeansEstimator.h
+END
+itkMultiImageResolutionLogDomainRegistration.h
+K 25
+svn:wc:ra_dav:version-url
+V 117
+/svn/kmtk/!svn/ver/493/branches/equation-currents-gradientDescent/Code/itkMultiImageResolutionLogDomainRegistration.h
+END
+itkFastMeassureMeshCorrespondencesCalculator.h
+K 25
+svn:wc:ra_dav:version-url
+V 117
+/svn/kmtk/!svn/ver/432/branches/equation-currents-gradientDescent/Code/itkFastMeassureMeshCorrespondencesCalculator.h
+END
+itkAppendBundleFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 94
+/svn/kmtk/!svn/ver/387/branches/equation-currents-gradientDescent/Code/itkAppendBundleFilter.h
+END
+itkClosestPointMeshMatchingMap.txx
+K 25
+svn:wc:ra_dav:version-url
+V 105
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkClosestPointMeshMatchingMap.txx
+END
+itkHierarchicalKmeanCurrentsVtkPolydataFilter.h
+K 25
+svn:wc:ra_dav:version-url
+V 118
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkHierarchicalKmeanCurrentsVtkPolydataFilter.h
+END
+itkRBFFastInterpolationVectorImageFilter2.txx
+K 25
+svn:wc:ra_dav:version-url
+V 116
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkRBFFastInterpolationVectorImageFilter2.txx
+END
+itkWarpMeshFilter2.txx
+K 25
+svn:wc:ra_dav:version-url
+V 93
+/svn/kmtk/!svn/ver/482/branches/equation-currents-gradientDescent/Code/itkWarpMeshFilter2.txx
+END
+itkRBFFastInterpolationVectorImageFilter2.h
+K 25
+svn:wc:ra_dav:version-url
+V 114
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkRBFFastInterpolationVectorImageFilter2.h
+END
+itkImageToVTKImageFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkImageToVTKImageFilter.txx
+END
+itkCurrentsSplineMeshCorrespondencesCalculator.txx
+K 25
+svn:wc:ra_dav:version-url
+V 121
+/svn/kmtk/!svn/ver/399/branches/equation-currents-gradientDescent/Code/itkCurrentsSplineMeshCorrespondencesCalculator.txx
+END
+itkKmeanVtkPolydataFilter.txx
+K 25
+svn:wc:ra_dav:version-url
+V 100
+/svn/kmtk/!svn/ver/336/branches/equation-currents-gradientDescent/Code/itkKmeanVtkPolydataFilter.txx
+END
+itkFiberImageToVtkPolyData.h
+K 25
+svn:wc:ra_dav:version-url
+V 99
+/svn/kmtk/!svn/ver/516/branches/equation-currents-gradientDescent/Code/itkFiberImageToVtkPolyData.h
+END

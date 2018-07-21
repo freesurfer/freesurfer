@@ -1,0 +1,105 @@
+#ifndef _itk_ClustersToRepresentativeMeshFilter_txx_
+#define _itk_ClustersToRepresentativeMeshFilter_txx_
+
+#include "itkClustersToRepresentativeMeshFilter.h"
+
+namespace itk
+{
+
+  template <class TInputMesh, class TOutputMesh>
+  ClustersToRepresentativeMeshFilter<TInputMesh, TOutputMesh>
+  ::ClustersToRepresentativeMeshFilter()
+  {
+  }
+
+  template <class TInputMesh, class TOutputMesh>
+  void
+  ClustersToRepresentativeMeshFilter<TInputMesh, TOutputMesh>
+  ::GenerateData()
+  {
+  
+}
+template <class TInputMesh, class TOutputMesh>
+void
+    ClustersToRepresentativeMeshFilter<TInputMesh, TOutputMesh>
+::Update()
+{
+
+    const std::vector<InputMeshPointer> clusters  = this->GetInput();
+    float totalNumberOfFibers = 0.0;
+    typedef typename InputMeshType::CellDataContainer::ConstIterator CellDataIterator;
+    for( int i=0; i<clusters.size();i++)
+    {
+        if(this->GetInput()[i]->GetCellData() != NULL )
+        {
+            CellDataIterator cellDataIter =  this->GetInput()[i]->GetCellData()->Begin();
+            cellDataIter++;
+            if ( cellDataIter != this->GetInput()[i]->GetCellData()->End())
+            {
+                while(cellDataIter != this->GetInput()[i]->GetCellData()->End())
+                {
+
+                    totalNumberOfFibers += cellDataIter.Value() +1;
+                    cellDataIter++;
+                }
+            }
+            else
+            {
+                totalNumberOfFibers+= this->GetInput()[i]->GetNumberOfCells();
+            }
+            }
+        }
+        int pointIndex = 0;
+        int cellIndex=0;
+        this->m_Output = TOutputMesh::New();
+        this->m_Output->SetCellsAllocationMethod( OutputMeshType::CellsAllocatedDynamicallyCellByCell );
+        for(unsigned int i=0;i<clusters.size();i++)
+        { 
+            OutputCellAutoPointer line;
+            line.TakeOwnership ( new OutputPolylineCellType);
+            InputMeshCellAutoPointer cell;
+            int representativeCellId = 0;
+            double weight=0;
+            if(this->GetInput()[i]->GetCellData() != NULL) 
+            {
+                CellDataIterator cellDataIter =  this->GetInput()[i]->GetCellData()->Begin();
+                representativeCellId = cellDataIter.Value();
+                cellDataIter++;
+                while(cellDataIter != this->GetInput()[i]->GetCellData()->End())
+                {
+                    weight += cellDataIter.Value();
+                    cellDataIter++;
+                }
+            }
+            if (weight == 0)
+            {
+                weight=this->GetInput()[i]->GetNumberOfCells();
+            }
+            //std::cout << " rep " << representativeCellId << std::endl;
+            this->GetInput()[i]->GetCell(representativeCellId, cell);
+            int k=0;
+            for (typename InputMeshCellType::PointIdIterator it = cell->PointIdsBegin(); it!=cell->PointIdsEnd(); it++)
+            {
+                OutputPointType pt;
+                pt.Fill (0.0);
+                this->GetInput()[i]->GetPoint (*it, &pt);
+
+                this->m_Output->SetPoint (pointIndex, pt);
+                line->SetPointId (k,pointIndex);
+                k++;
+                pointIndex++;
+
+            }
+            this->m_Output->SetCell (cellIndex, line);
+            //        this->m_Output->SetCellData(cellIndex,weight);
+            //    this->m_Output->SetCellData(cellIndex,this->GetInput()[i]->GetNumberOfCells()/totalNumberOfFibers);
+            this->m_Output->SetCellData(cellIndex, weight/totalNumberOfFibers);
+            // std::cout << " weight " << weight << " total fibers " << totalNumberOfFibers << std::endl;
+            cellIndex++;
+        }
+
+    }
+
+}
+
+#endif

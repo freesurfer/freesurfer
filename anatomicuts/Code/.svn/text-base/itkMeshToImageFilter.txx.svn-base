@@ -1,0 +1,180 @@
+#ifndef _itk_MeshToImageFilter_txx_
+#define _itk_MeshToImageFilter_txx_
+
+#include "itkMeshToImageFilter.h"
+
+#include <itkImageRegionIterator.h>
+#include <itkImageIterator.h>
+#include <itkImageRegionConstIteratorWithIndex.h>
+#include <itkGaussianSpatialFunction.h>
+#include <algorithm>
+#include <iostream>
+#include <exception>
+
+
+namespace itk
+{
+
+  template<class TInputMesh, class TOutputImage>
+  MeshToImageFilter<TInputMesh,TOutputImage>
+  ::MeshToImageFilter()
+  {
+    
+  /*  this->m_OutputSpacing.Fill(1.0);
+    this->m_OutputOrigin.Fill(0.0);
+    this->m_OutputDirection.SetIdentity();
+
+    SizeType size;
+    size.Fill( 0 );
+    this->m_OutputRegion.SetSize( size );
+    
+    IndexType index;
+    index.Fill( 0 );
+    this->m_OutputRegion.SetIndex( index );*/
+  }
+
+
+    // Set the output image size.
+  template<class TInputMesh, class TOutputImage>
+  void
+  MeshToImageFilter<TInputMesh,TOutputImage>
+  ::SetOutputSize( const SizeType & size )
+  {
+    this->m_OutputRegion.SetSize( size );
+  }
+
+
+  // Get the output image size.
+  template<class TInputMesh, class TOutputImage>
+  const typename MeshToImageFilter<TInputMesh,TOutputImage>
+  ::SizeType &
+  MeshToImageFilter<TInputMesh,TOutputImage>
+  ::GetOutputSize()
+  {
+    return this->m_OutputRegion.GetSize();
+  }
+
+
+  // Set the output image index.
+  template<class TInputMesh, class TOutputImage>
+  void
+  MeshToImageFilter<TInputMesh,TOutputImage>
+  ::SetOutputIndex( const IndexType & index )
+  {
+    this->m_OutputRegion.SetIndex( index );
+  }
+
+
+  // Get the output image index.
+  template<class TInputMesh, class TOutputImage>
+  const typename MeshToImageFilter<TInputMesh,TOutputImage>
+  ::IndexType &
+  MeshToImageFilter<TInputMesh, TOutputImage>
+  ::GetOutputIndex()
+  {
+    return this->m_OutputRegion.GetIndex();
+  }
+
+
+  // Set the output image spacing.
+  template <class TInputMesh, class TOutputImage>
+  void 
+  MeshToImageFilter<TInputMesh, TOutputImage>
+  ::SetOutputSpacing( const double* spacing )
+  {
+    SpacingType s( spacing );
+    this->SetOutputSpacing( s );
+  }
+
+
+  // Set the output image origin.
+  template <class TInputMesh, class TOutputImage>
+  void 
+  MeshToImageFilter<TInputMesh, TOutputImage>
+  ::SetOutputOrigin( const double* origin )
+  {
+    PointType p( origin );
+    this->SetOutputOrigin( p );
+  }
+  
+  // Helper method to set the output parameters based on this image
+  template <class TInputMesh, class TOutputImage>
+  void 
+  MeshToImageFilter<TInputMesh, TOutputImage>
+  ::SetOutputParametersFromImage ( const ImageBaseType * image )
+  {
+    if( !image )
+    {
+      itkExceptionMacro(<< "Cannot use a null image reference");
+    }
+    this->GetOutput()->CopyInformation(image); 
+    this->SetOutputOrigin( image->GetOrigin() );
+    this->SetOutputSpacing( image->GetSpacing() );
+    this->SetOutputDirection( image->GetDirection() );
+    this->SetOutputRegion( image->GetLargestPossibleRegion() );
+    SetOutputIndex(image->GetLargestPossibleRegion().GetIndex());
+    SetOutputSize(image->GetLargestPossibleRegion().GetSize());
+  }
+
+
+  // Inform pipeline of required output region
+  template <class TInputMesh, class TOutputImage>
+  void 
+  MeshToImageFilter<TInputMesh,TOutputImage>
+  ::GenerateOutputInformation( void )
+  {
+    // call the superclass' implementation of this method
+    Superclass::GenerateOutputInformation();
+    
+    // get pointer to the output
+    typename OutputImageType::Pointer outputPtr = this->GetOutput();
+    if ( !outputPtr )
+    {
+      return;
+    }
+    
+//    outputPtr->SetRegion( m_OutputRegion );    
+    outputPtr->SetLargestPossibleRegion( m_OutputRegion );    
+    outputPtr->SetRequestedRegion( m_OutputRegion );    
+    outputPtr->SetSpacing( m_OutputSpacing );
+    outputPtr->SetOrigin( m_OutputOrigin );
+    outputPtr->SetDirection( m_OutputDirection );
+//    outputPtr->Update();
+  }
+
+  
+  
+  template<class TInputMesh, class TOutputImage>
+    void
+    MeshToImageFilter<TInputMesh,TOutputImage>
+    ::GenerateData()
+    {
+      this->GetOutput()->SetBufferedRegion( this->GetOutput()->GetRequestedRegion() );
+      this->GetOutput()->Allocate();
+      this->GetOutput()->FillBuffer(0);
+//      std::cout <<  " region " << this->GetOutput()->GetRequestedRegion() << std::endl;
+ //   this->GetOutput()->FillBuffer(0);
+	int outsidePixels = 0;
+      for(typename MeshType::PointsContainer::Iterator it=this->GetInput()->GetPoints()->Begin() ;it != this->GetInput()->GetPoints()->End();it++)
+      {
+          IndexType index;
+//          std::cout <<  it.Value()<<std::endl; 
+          if(this->GetOutput()->TransformPhysicalPointToIndex(it.Value(),index))
+          {
+              this->GetOutput()->SetPixel(index, this->GetOutput()->GetPixel(index)+1);
+          }
+          else
+          {
+		outsidePixels ++;
+          }
+
+      } 
+      std::cout << " ouside pixels " << outsidePixels << std::endl;
+
+    }
+  
+  
+} // end of namespace itk
+
+
+#endif

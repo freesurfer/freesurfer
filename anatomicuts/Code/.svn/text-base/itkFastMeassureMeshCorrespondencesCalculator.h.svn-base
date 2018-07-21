@@ -1,0 +1,118 @@
+#ifndef _itk_FastMeassureMeshCorrespondencesCalculator_h
+#define _itk_FastMeassureMeshCorrespondencesCalculator_h
+#include "itkKdTree.h"
+#include "itkKdTreeGenerator.h"
+#include "itkListSample.h"
+#include "itkMeshCorrespondencesCalculatorBase.h"
+#include "itkAffineTransform.h"
+#include "itkVectorValue.h"
+namespace itk
+{
+ 
+  template < class TFixedMesh, class TMovingMesh >
+    class FastMeassureMeshCorrespondencesCalculator :
+  public MeshCorrespondencesCalculatorBase < TFixedMesh, TMovingMesh >
+  {
+  public:
+    typedef FastMeassureMeshCorrespondencesCalculator       Self;
+    typedef MeshCorrespondencesCalculatorBase
+      < TFixedMesh, TMovingMesh >                           Superclass;
+    typedef SmartPointer<Self>                              Pointer;
+    typedef SmartPointer<const Self>                        ConstPointer;
+
+    itkNewMacro  (Self);
+    itkTypeMacro (FastMeassureMeshCorrespondencesCalculator, MeshCorrespondencesCalculatorBase);
+    
+
+    typedef typename Superclass::FixedMeshType    FixedMeshType;
+    typedef typename Superclass::FixedMeshTraits  FixedMeshTraits;
+    typedef typename Superclass::FixedPointType   FixedPointType;
+    typedef typename Superclass::FixedPixelType   FixedPixelType;
+    typedef typename Superclass::FixedVectorType  FixedVectorType;
+
+
+    typedef typename Superclass::MovingMeshType    MovingMeshType;
+    typedef typename Superclass::MovingMeshTraits  MovingMeshTraits;
+    typedef typename Superclass::MovingPointType   MovingPointType;
+    typedef typename Superclass::MovingPixelType   MovingPixelType;
+    typedef typename Superclass::MovingVectorType  MovingVectorType;
+
+
+    /** Some convenient typedefs. */
+    typedef typename Superclass::FixedMeshPointer      FixedMeshPointer;
+    typedef typename Superclass::FixedCellTraits       FixedCellTraits;
+    typedef typename Superclass::FixedCellIdentifier   FixedCellIdentifier;
+    typedef typename Superclass::FixedCellType         FixedCellType;
+    typedef typename Superclass::FixedCellAutoPointer  FixedCellAutoPointer;
+    typedef typename Superclass::FixedPointIdentifier  FixedPointIdentifier;
+    typedef typename Superclass::FixedPointIdIterator  FixedPointIdIterator;
+
+
+    typedef typename Superclass::MovingMeshPointer       MovingMeshPointer;
+    typedef typename Superclass::MovingCellTraits        MovingCellTraits;
+    typedef typename Superclass::MovingCellIdentifier    MovingCellIdentifier;
+    typedef typename Superclass::MovingCellType          MovingCellType;
+    typedef typename Superclass::MovingCellAutoPointer   MovingCellAutoPointer;
+    typedef typename Superclass::MovingPointIdentifier   MovingPointIdentifier;
+    typedef typename Superclass::MovingPointIdIterator   MovingPointIdIterator;
+
+    // K-d tree typedefs
+    typedef VectorWeighted< float, float, 3 >                             MeasurementVectorType;
+    typedef Statistics::ListSample< MeasurementVectorType > SampleType;
+    typedef SampleType::Pointer                             SamplePointer;
+    typedef Statistics::KdTreeGenerator< SampleType >       TreeGeneratorType;
+    typedef typename TreeGeneratorType::KdTreeType          TreeType;
+    typedef typename TreeType::NearestNeighbors             NeighborsType;
+    typedef typename TreeType::KdTreeNodeType               NodeType;
+    typedef typename TreeType::Pointer                      TreeTypePointer;
+
+
+    virtual void Evaluate (void);
+    virtual double Distance (void);
+    virtual void RecalculateSigma(void);
+    virtual void EvaluateTimes (int times, float epsilon);
+    
+    virtual void SetMovingMesh(MovingMeshType* m){ 
+      Superclass::SetMovingMesh(m); 
+      this->m_MovingSample = GenerateSample(this->GetMovingMesh());
+      this->m_MovingTree = GenerateTree(this->m_MovingSample);
+    }
+    virtual void SetFixedMesh(FixedMeshType* f){ 
+      Superclass::SetFixedMesh(f); 
+      this->m_FixedSample = GenerateSample(this->GetFixedMesh());
+      this->m_FixedTree = GenerateTree(this->m_FixedSample);
+    }
+    //This should be set in he sample meassure as the points (cm, mm) 
+    //virtual void SetUpsamplingPointsNumber(unsigned int n){this->upsamplingPointsNumber= n;}
+
+    virtual double GetSigma(){ return Superclass::GetSigma();}//+this->GetSpacing();}
+  protected:
+    void UpsampleMeshes(int, std::vector< std::vector< float> >* , std::vector<float>*, FixedMeshPointer);
+    FastMeassureMeshCorrespondencesCalculator();
+    ~FastMeassureMeshCorrespondencesCalculator() {}
+    
+  private:
+    unsigned int GetRadio(){ return 100;}//pow(this->GetSigma(),2);}  
+    FastMeassureMeshCorrespondencesCalculator (const Self&);
+    void operator=(const Self&);   
+    double lastMetric;
+    SamplePointer GenerateSample(FixedMeshPointer );
+    TreeTypePointer GenerateTree(SamplePointer );
+    //unsigned int upsamplingPointsNumber;
+    
+    SamplePointer m_FixedSample;
+    SamplePointer m_MovingSample;
+
+    TreeTypePointer m_FixedTree;
+    TreeTypePointer m_MovingTree;
+
+
+  };  
+}
+
+#ifndef ITK_MANUAL_INSTANTIATION
+#include "itkFastMeassureMeshCorrespondencesCalculator.txx"
+#endif
+
+#endif
+

@@ -1,0 +1,74 @@
+#ifndef __itkVariableLengthVectorCurrents_h
+#define __itkVariableLengthVectorCurrents_h
+
+#include "itkVariableLengthVector.h"
+#include "itkMacro.h"
+#include "itkNumericTraits.h"
+#include <vnl/vnl_vector.h>
+#include <vnl/vnl_transpose.h>
+#include <vnl/vnl_matrix.h>
+#include <vnl/algo/vnl_matrix_inverse.h>
+#include <vnl/algo/vnl_determinant.h>
+
+#include <blitz/array.h>
+#include <blitz/tinyvec-et.h>
+using namespace blitz;
+using namespace itk;
+template <typename TValueType , class TMesh>
+class VariableLengthVectorCurrents : public VariableLengthVector<TValueType>
+{
+public:
+ 
+  /** The element type stored at each location in the Array. */
+  typedef TValueType                                    ValueType;
+  typedef TValueType                                    ComponentType;
+  typedef typename NumericTraits< ValueType >::RealType RealValueType;
+  typedef VariableLengthVectorCurrents                          Self;
+  typedef VariableLengthVector<TValueType>              Superclass;
+  typedef TMesh						MeshType;
+  typedef typename MeshType::Pointer			MeshPointerType;
+  typedef typename MeshPointerType::CellType		CellPointerType; //??
+  typedef typename MeshPointerType::CellAutoPointerType		CellAutoPointerType; //??
+
+ VariableLengthVectorCurrents():Superclass(){
+	m_Points = NULL;
+}; 
+
+  /** Constructor with size. Size can only be changed by assignment */
+  VariableLengthVectorCurrents(unsigned int dimension):Superclass(dimension){
+	m_Points = NULL;
+};
+
+ VariableLengthVectorCurrents( ValueType* data, unsigned int sz, 
+                                        bool LetArrayManageMemory = false):Superclass(data, sz, LetArrayManageMemory){};
+  
+  typedef blitz::TinyVector<double,3> Vect;                                                                    
+   typedef blitz::Array<Vect,1> ArrVect;                                                                         
+   typedef blitz::TinyVector<double,3> Point;
+   typedef blitz::Array<Point,1> ArrPoint;                                                                       
+   typedef blitz::TinyVector<double,3> VectPoint;
+   typedef blitz::Array<Point,1> ArrVectPoint;                                                                   
+   typedef blitz::TinyVector<int,2> Face;                                                                        
+   typedef blitz::Array<Face,1> ArrFace;
+   typedef blitz::Array<double,1> ArrWeight;                                                                     
+     void SetPoints( ArrPoint *p ) {this->m_Points = p; }
+     ArrPoint* GetPoints(){ return (this->m_Points); }
+     void SetPointsReverse( ArrPoint* p ) {this->m_PointsReverse = p; }
+     ArrPoint* GetPointsReverse(){ return this->m_PointsReverse; }
+      void SetVectors( ArrFace* v ) {this->m_Vectors = v; }
+     ArrFace* GetVectors(){ return this->m_Vectors; }
+ 
+	void SetCell(MeshPointerType mesh, int cellId);
+private:
+    ArrPoint *m_Points;
+    ArrPoint *m_PointsReverse;
+    ArrFace *m_Vectors;
+};
+
+#ifndef ITK_MANUAL_INSTANTIATION
+#include "itkVariableLengthVectorCurrents.txx"
+#endif
+
+
+
+#endif

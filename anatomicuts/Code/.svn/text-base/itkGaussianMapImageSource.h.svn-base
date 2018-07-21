@@ -1,0 +1,159 @@
+#ifndef _itk_GaussianMapImageSource_h_
+#define _itk_GaussianMapImageSource_h_
+
+#include "itkImageSource.h"
+#include "itkGaussianSpatialFunction.h"
+#include "itkMinimumMaximumImageCalculator.h"
+#include "itkShiftScaleImageFilter.h"
+
+#include "itkContinuousIndex.h"
+#include "itkKdTree.h"
+#include "itkKdTreeGenerator.h"
+#include "itkListSample.h"
+#include "itkEuclideanDistanceMetric.h"
+
+namespace itk
+{
+  
+  template<class TOutputImage>
+    class ITK_EXPORT GaussianMapImageSource :
+  public ImageSource<TOutputImage>
+  {
+    
+  public:
+    
+    typedef GaussianMapImageSource     Self;
+    typedef ImageSource<TOutputImage>  Superclass;
+    typedef SmartPointer<Self>         Pointer;
+    typedef SmartPointer<const Self>   ConstPointer;
+
+    itkNewMacro  (Self);
+    itkTypeMacro (GaussianMapImageSource, ImageSource);
+    
+    itkStaticConstMacro(ImageDimension, unsigned int,
+			TOutputImage::ImageDimension);
+
+    /** Image typedefs */
+    typedef TOutputImage                            OutputImageType;
+    typedef typename OutputImageType::PixelType     OutputPixelType;
+    typedef typename OutputImageType::RegionType    OutputImageRegionType;
+    typedef typename OutputImageType::PointType     PointType;
+    typedef typename OutputImageType::IndexType     IndexType;
+    typedef typename OutputImageType::SpacingType   SpacingType;
+    typedef typename OutputImageType::SizeType      SizeType;
+    typedef typename OutputImageType::DirectionType DirectionType;
+
+    /** Typedefs for base image. */
+    typedef ImageBase< itkGetStaticConstMacro( ImageDimension ) > ImageBaseType;
+    
+    /** Specific typedefs */
+    typedef GaussianSpatialFunction<double, TOutputImage::ImageDimension> FunctionType; 
+    typedef typename FunctionType::ArrayType                              SigmaType;
+    typedef std::vector<PointType>                                        PointListType;
+    typedef MinimumMaximumImageCalculator<TOutputImage>                   MinMaxCalculatorType;
+    typedef ShiftScaleImageFilter<TOutputImage, TOutputImage>             ScaleImageFilterType;
+
+    // K-d tree typedefs
+    typedef Vector< double, 3 >                             MeasurementVectorType;
+    typedef Statistics::ListSample< MeasurementVectorType > SampleType;
+    typedef Statistics::KdTreeGenerator< SampleType >       TreeGeneratorType;
+    typedef typename TreeGeneratorType::KdTreeType          TreeType;
+    typedef typename TreeType::NearestNeighbors             NeighborsType;
+    typedef typename TreeType::KdTreeNodeType               NodeType;
+    typedef Statistics::EuclideanDistanceMetric< MeasurementVectorType > DistanceMetricType;
+
+
+    /** Set the size of the output image. */
+    virtual void SetOutputSize( const SizeType & size );
+
+    /** Get the size of the output image. */
+    virtual const SizeType & GetOutputSize();
+
+    /** Set the start index of the output largest possible region. 
+     * The default is an index of all zeros. */
+    virtual void SetOutputIndex( const IndexType & index );
+    
+    /** Get the start index of the output largest possible region. */
+    virtual const IndexType & GetOutputIndex();
+    
+    /** Set the region of the output image. */
+    itkSetMacro( OutputRegion, OutputImageRegionType );
+
+    /** Get the region of the output image. */
+    itkGetConstReferenceMacro( OutputRegion, OutputImageRegionType );
+     
+    /** Set the output image spacing. */
+    itkSetMacro( OutputSpacing, SpacingType );
+    virtual void SetOutputSpacing( const double* values );
+
+    /** Get the output image spacing. */
+    itkGetConstReferenceMacro( OutputSpacing, SpacingType );
+
+    /** Set the output image origin. */
+    itkSetMacro( OutputOrigin, PointType );
+    virtual void SetOutputOrigin( const double* values);
+
+    /** Get the output image origin. */
+    itkGetConstReferenceMacro( OutputOrigin, PointType );
+
+    /** Set the output direction cosine matrix. */
+    itkSetMacro( OutputDirection, DirectionType );
+    itkGetConstReferenceMacro( OutputDirection, DirectionType );
+
+    /** Helper method to set the output parameters based on this image */
+    void SetOutputParametersFromImage( const ImageBaseType * image );
+  
+    /** TransformToVelocityFieldSource produces a vector image. */
+    virtual void GenerateOutputInformation( void );
+
+    /** Set/Get the vector of positions */
+    void SetPoints(PointListType vec)
+    { m_Points=vec; }
+    PointListType GetPoints(void) 
+    { return m_Points; }
+    
+    /** Set/Get the vector of positions */
+    void SetSigma(const SigmaType vec)
+    { m_Sigma=vec; }
+    SigmaType GetSigma(void) const 
+    { return m_Sigma; }
+    
+  protected:
+    GaussianMapImageSource();
+    ~GaussianMapImageSource(){};
+    
+    /** Threaded implementation */
+    void BeforeThreadedGenerateData(void);
+    void AfterThreadedGenerateData(void);
+    void ThreadedGenerateData(const OutputImageRegionType &,int);
+    
+    void PrintSelf(std::ostream& os, Indent indent) const
+    {
+      Superclass::PrintSelf(os,indent);
+    }
+
+  private:
+    GaussianMapImageSource (const Self&);
+    void operator=(const Self&);
+
+    OutputImageRegionType   m_OutputRegion;      // region of the output image
+    SpacingType             m_OutputSpacing;     // output image spacing
+    PointType               m_OutputOrigin;      // output image origin
+    DirectionType           m_OutputDirection;   // output image direction cosines
+
+    PointListType                   m_Points;
+    SigmaType                       m_Sigma;
+
+    TreeType::Pointer                m_Tree;
+    SampleType::Pointer              m_Sample;
+    std::vector<SampleType::Pointer> m_SamplesCluster;
+  };
+
+
+} // end of namespace itk
+
+#ifndef ITK_MANUAL_INSTANTIATION
+#include "itkGaussianMapImageSource.txx"
+#endif
+
+#endif

@@ -1,0 +1,82 @@
+/*=========================================================================
+
+  Program:   Insight Segmentation & Registration Toolkit
+  Module:    $RCSfile: itkEuclideanDistance.txx,v $
+  Language:  C++
+  Date:      $Date: 2009-03-04 15:23:47 $
+  Version:   $Revision: 1.13 $
+
+  Copyright (c) Insight Software Consortium. All rights reserved.
+  See ITKCopyright.txt or http://www.itk.org/HTML/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even 
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR 
+     PURPOSE.  See the above copyright notices for more information.
+
+=========================================================================*/
+#ifndef __itkCurrentsMembershipFunction_txx
+#define __itkCurrentsMembershipFunction_txx
+
+
+#include <blitz/array.h>
+#include <blitz/tinyvec-et.h>
+//using namespace blitz;
+
+
+#include "SqDistScalarKernel.h"
+#include "CurveCurr.h" 
+
+#include "CommonFunctions.h"
+
+
+namespace itk
+{
+ 
+template < class TVector >  double CurrentsMembershipFunction< TVector >::Evaluate(const MeasurementVectorType &measurement) const
+ {
+   typedef blitz::TinyVector<double,3> Vect;
+   typedef blitz::Array<Vect,1> ArrVect;
+   typedef blitz::TinyVector<double,3> Point;
+   typedef blitz::Array<Point,1> ArrPoint;
+   typedef blitz::TinyVector<double,3> VectPoint;
+   typedef blitz::Array<Point,1> ArrVectPoint;
+   typedef blitz::TinyVector<int,2> Face;
+   typedef blitz::Array<Face,1> ArrFace;
+   typedef blitz::Array<double,1> ArrWeight;
+
+    // Assuming that measurement has the same length asthe centroid.
+   double temp =0;
+   double tempDistance;
+
+   //currents
+   arrpoint cp(range(1,m_CentroidSize)), mp(range(1,m_MeasurementVectorSize));
+   arrface cIndex(range(1,m_CentroidSize-1)), mIndex(range(1,m_MeasurementVectorSize-1));
+
+   for ( unsigned int i = 1; i <= this->m_MeasurementVectorSize; i++ )
+   {
+     mp(i)(0) = measurement[0];
+     mp(i)(1) = measurement[1];
+     mp(i)(2) = measurement[2];
+
+     cp(i)(0) = m_Centroid[0];
+     cp(i)(1) = m_Centroid[1];
+     cp(i)(2) = m_Centroid[2];
+
+     if(i>1)
+     {
+       mIndex(i-1) = i-1,i;
+       cIndex(i-1) = i-1,i;
+     }
+
+   }
+   double  sig=20;//*distPoints;
+   CauchyFunction<double> *func = new CauchyFunction<double>(sig);
+   Kernel<Point,Vect,VectPoint> *ker = new SqDistScalarKernel<double,3,Vect>(func);
+
+   CurveCurr<double,3> CurvCurr(cp,mIndex,cIndex,ker);
+   double D = CurvCurr.Eval(mp);  
+
+     return D 
+  
+  }
+}

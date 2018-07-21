@@ -1,0 +1,182 @@
+#ifndef _itk_KmeanVtkPolydataFilter_txx
+#define _itk_KmeanVtkPolydataFilter_txx
+
+#include "itkKmeanVtkPolydataFilter.h"
+#include "itkDecisionRule.h"
+#include "itkVector.h"
+#include "itkListSample.h"
+#include "itkKdTree.h"
+#include "itkWeightedCentroidKdTreeGenerator.h"
+#include "itkKdTreeBasedKmeansEstimator.h"
+#if ITK_VERSION_MAJOR < 4
+#include "itkMinimumDecisionRule2.h"
+#else
+#include "itkMinimumDecisionRule.h"
+#endif
+#include "itkEuclideanDistanceMetric.h"
+#include "itkDistanceToCentroidMembershipFunction.h"
+#include "itkSampleClassifierFilter.h"
+#include "itkNormalVariateGenerator.h"
+#include <iostream>
+#include <limits>
+#include <utility>
+#include <algorithm>
+#include "vnl/vnl_matrix.h"
+#include "vnl/vnl_math.h"
+#include "math.h"
+
+
+namespace itk
+{
+
+  template< class TInputMesh , class TOutputMesh>
+    void
+    KmeanVtkPolydataFilter < TInputMesh,TOutputMesh >
+//    ::GenerateData()
+::Update()
+    {
+      if (!this->GetInput())
+        itkExceptionMacro (<< "Mesh not set");
+
+      // K-d tree typedefs
+      //      typedef itk::Vector<double, 3>                      MeasurementVectorType;
+      typedef itk::VariableLengthVector<double>           MeasurementVectorType;
+      typedef Statistics::ListSample< MeasurementVectorType > SampleType;
+      typedef itk::Statistics::WeightedCentroidKdTreeGenerator< SampleType > TreeGeneratorType;
+      typedef TreeGeneratorType::KdTreeType TreeType;
+      typedef itk::Statistics::KdTreeBasedKmeansEstimator<TreeType> EstimatorType;
+      int numberOfPoints  = this->GetInput()->GetCells()->Begin().Value()->GetNumberOfPoints();
+      std::cout << " number of points " << numberOfPoints << std::endl;
+      const int vectorSize =  3*numberOfPoints;
+
+      SampleType::Pointer sample = SampleType::New();
+      sample->SetMeasurementVectorSize( 3* this->GetInput()->GetCells()->Begin().Value()->GetNumberOfPoints());
+
+      typename InputCellsContainer::ConstIterator inputCellIt = this->GetInput()->GetCells()->Begin();
+      int cellId =0;
+//      OutputMeshPointer output = this->GetOutput();
+      int offset=0;
+      MeasurementVectorType mv;
+      mv.SetSize(vectorSize);
+
+      EstimatorType::ParametersType initialMeans(this->GetNumberOfClusters()*vectorSize);
+      initialMeans.Fill(0.0f);
+      int notSoRandomInit  = this->GetInput()->GetNumberOfCells()/this->GetNumberOfClusters()-1;
+      std::cout << " notsorandom init " << notSoRandomInit << std::endl;
+      int notSoRandomInitIndex = -1;
+      int cellIndex = 0;
+      for ( ; inputCellIt!=this->GetInput()->GetCells()->End(); ++inputCellIt)
+      {
+        int i = 0;
+        for (typename InputCellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin(); it!=inputCellIt.Value()->PointIdsEnd(); it++)
+        {
+          InputPointType pt;
+          pt.Fill (0.0);
+          this->GetInput()->GetPoint (*it, &pt);
+          mv[i*3] = pt[0];
+          mv[i*3+1] = pt[1];
+          mv[i*3+2] = pt[2];
+          i++;
+          if(cellIndex%notSoRandomInit==0&& notSoRandomInitIndex<(this->GetNumberOfClusters()*vectorSize))
+          {
+            initialMeans[++notSoRandomInitIndex] =pt[0];
+            initialMeans[++notSoRandomInitIndex] =pt[1];
+            initialMeans[++notSoRandomInitIndex] =pt[2];
+
+          }
+        } 
+        cellIndex++;
+
+        //   std::cout << "mv " << mv << std::endl;
+        sample->PushBack(mv);
+      }
+
+      TreeGeneratorType::Pointer treeGenerator = TreeGeneratorType::New();
+      treeGenerator->SetSample( sample );
+      treeGenerator->SetBucketSize( 54 );
+      treeGenerator->Update();
+	std::cout << " end tree generator " << std::endl;
+
+      EstimatorType::Pointer estimator = EstimatorType::New();
+
+      estimator->SetParameters( initialMeans );
+      estimator->SetKdTree( treeGenerator->GetOutput() );
+      estimator->SetMaximumIteration( 200 );
+      estimator->SetCentroidPositionChangesThreshold(0.0);
+      estimator->StartOptimization();
+
+	std::cout << " end start optimization" << std::endl;
+
+      EstimatorType::ParametersType estimatedMeans = estimator->GetParameters();
+
+      typedef itk::Statistics::DistanceToCentroidMembershipFunction< MeasurementVectorType >
+        MembershipFunctionType;
+      typedef MembershipFunctionType::Pointer                      MembershipFunctionPointer;
+
+#if ITK_VERSION_MAJOR < 4
+      typedef itk::Statistics::MinimumDecisionRule2 DecisionRuleType;
+#else
+      typedef itk::Statistics::MinimumDecisionRule DecisionRuleType;
+#endif
+      DecisionRuleType::Pointer decisionRule = DecisionRuleType::New();
+
+      typedef itk::Statistics::SampleClassifierFilter< SampleType > ClassifierType;
+      ClassifierType::Pointer classifier = ClassifierType::New();
+
+      classifier->SetDecisionRule(decisionRule);
+      classifier->SetInput( sample );
+      classifier->SetNumberOfClasses( this->GetNumberOfClusters() );
+
+      typedef ClassifierType::ClassLabelVectorObjectType               ClassLabelVectorObjectType;
+      typedef ClassifierType::ClassLabelVectorType                     ClassLabelVectorType;
+      typedef ClassifierType::MembershipFunctionVectorObjectType       MembershipFunctionVectorObjectType;
+      typedef ClassifierType::MembershipFunctionVectorType             MembershipFunctionVectorType;
+
+      ClassLabelVectorObjectType::Pointer  classLabelsObject = ClassLabelVectorObjectType::New();
+      classifier->SetClassLabels( classLabelsObject );
+
+      ClassLabelVectorType &  classLabelsVector = classLabelsObject->Get();
+      for(int i =0; i<this->GetNumberOfClusters();i++)
+      {
+        classLabelsVector.push_back( i );
+      }
+
+      MembershipFunctionVectorObjectType::Pointer membershipFunctionsObject =
+        MembershipFunctionVectorObjectType::New();
+      classifier->SetMembershipFunctions( membershipFunctionsObject );
+
+      MembershipFunctionVectorType &  membershipFunctionsVector = membershipFunctionsObject->Get();
+
+      MembershipFunctionType::CentroidType origin( sample->GetMeasurementVectorSize() );
+      int index = 0;
+      for ( unsigned int i = 0 ; i < this->GetNumberOfClusters() ; i++ )
+      {
+        MembershipFunctionPointer membershipFunction = MembershipFunctionType::New();
+        for ( unsigned int j = 0 ; j < sample->GetMeasurementVectorSize(); j++ )
+        {
+          origin[j] = estimatedMeans[index++];
+        }
+        membershipFunction->SetCentroid( origin );
+        membershipFunctionsVector.push_back( membershipFunction.GetPointer() );
+      }
+      //std::cout << "befor clss up "<< std::endl;
+      classifier->Update();
+
+      //std::cout << "after clss up "<< std::endl;
+      const ClassifierType::MembershipSampleType*  membershipSample = classifier->GetOutput();
+      ClassifierType::MembershipSampleType::ConstIterator iter = membershipSample->Begin();
+      std::vector<int> labels; 
+      while ( iter != membershipSample->End() )
+      {
+        labels.push_back(iter.GetClassLabel());
+//        std::cout << "label " << iter.GetClassLabel()<< std::endl;
+        ++iter;
+      } 
+      std::cout << labels.size()<< std::endl;
+      this->SetLabels(labels);
+      std::cout << " chau " << std::endl;
+  
+  }
+
+}
+#endif

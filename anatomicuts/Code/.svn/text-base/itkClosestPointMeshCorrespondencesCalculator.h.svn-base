@@ -1,0 +1,87 @@
+#ifndef _itk_ClosestPointMeshCorrespondencesCalculator_h
+#define _itk_ClosestPointMeshCorrespondencesCalculator_h
+#include "itkKdTree.h"
+#include "itkKdTreeGenerator.h"
+#include "itkListSample.h"
+#include "itkMeshCorrespondencesCalculatorBase.h"
+
+namespace itk
+{
+  
+  template < class TFixedMesh, class TMovingMesh >
+    class ClosestPointMeshCorrespondencesCalculator :
+  public MeshCorrespondencesCalculatorBase < TFixedMesh, TMovingMesh >
+  {
+  public:
+    typedef ClosestPointMeshCorrespondencesCalculator       Self;
+    typedef MeshCorrespondencesCalculatorBase
+      < TFixedMesh, TMovingMesh >                           Superclass;
+    typedef SmartPointer<Self>                              Pointer;
+    typedef SmartPointer<const Self>                        ConstPointer;
+
+    itkNewMacro  (Self);
+    itkTypeMacro (ClosestPointMeshCorrespondencesCalculator, MeshCorrespondencesCalculatorBase);
+    
+
+    typedef typename Superclass::FixedMeshType    FixedMeshType;
+    typedef typename Superclass::FixedMeshTraits  FixedMeshTraits;
+    typedef typename Superclass::FixedPointType   FixedPointType;
+    typedef typename Superclass::FixedPixelType   FixedPixelType;
+    typedef typename Superclass::FixedVectorType  FixedVectorType;
+
+
+    typedef typename Superclass::MovingMeshType    MovingMeshType;
+    typedef typename Superclass::MovingMeshTraits  MovingMeshTraits;
+    typedef typename Superclass::MovingPointType   MovingPointType;
+    typedef typename Superclass::MovingPixelType   MovingPixelType;
+    typedef typename Superclass::MovingVectorType  MovingVectorType;
+
+
+    /** Some convenient typedefs. */
+    typedef typename Superclass::FixedMeshPointer      FixedMeshPointer;
+    typedef typename Superclass::FixedCellTraits       FixedCellTraits;
+    typedef typename Superclass::FixedCellIdentifier   FixedCellIdentifier;
+    typedef typename Superclass::FixedCellType         FixedCellType;
+    typedef typename Superclass::FixedCellAutoPointer  FixedCellAutoPointer;
+    typedef typename Superclass::FixedPointIdentifier  FixedPointIdentifier;
+    typedef typename Superclass::FixedPointIdIterator  FixedPointIdIterator;
+
+
+    typedef typename Superclass::MovingMeshPointer       MovingMeshPointer;
+    typedef typename Superclass::MovingCellTraits        MovingCellTraits;
+    typedef typename Superclass::MovingCellIdentifier    MovingCellIdentifier;
+    typedef typename Superclass::MovingCellType          MovingCellType;
+    typedef typename Superclass::MovingCellAutoPointer   MovingCellAutoPointer;
+    typedef typename Superclass::MovingPointIdentifier   MovingPointIdentifier;
+    typedef typename Superclass::MovingPointIdIterator   MovingPointIdIterator;
+
+    // K-d tree typedefs
+    typedef Vector< double, 3 >                             MeasurementVectorType;
+    typedef Statistics::ListSample< MeasurementVectorType > SampleType;
+    typedef Statistics::KdTreeGenerator< SampleType >       TreeGeneratorType;
+    typedef typename TreeGeneratorType::KdTreeType          TreeType;
+    typedef typename TreeType::NearestNeighbors             NeighborsType;
+    typedef typename TreeType::KdTreeNodeType               NodeType;
+    typedef Statistics::EuclideanDistanceMetric< MeasurementVectorType > DistanceMetricType;
+
+
+
+    virtual void Evaluate (void);
+
+   	virtual void RecalculateSigma(){} 
+  protected:
+    ClosestPointMeshCorrespondencesCalculator() {}
+    ~ClosestPointMeshCorrespondencesCalculator() {}
+    
+  private:
+    ClosestPointMeshCorrespondencesCalculator (const Self&);
+    void operator=(const Self&);    
+  };  
+}
+
+#ifndef ITK_MANUAL_INSTANTIATION
+#include "itkClosestPointMeshCorrespondencesCalculator.txx"
+#endif
+
+#endif
+

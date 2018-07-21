@@ -1,0 +1,305 @@
+#ifndef _itk_KmeanCurrentsVtkPolydataFilter_txx
+#define _itk_KmeanCurrentsVtkPolydataFilter_txx
+
+
+//#include "itkCurrentsMembershipFunction.h"
+#include "itkKmeanCurrentsVtkPolydataFilter.h"
+#include "itkDecisionRule.h"
+#include "itkVector.h"
+#include "itkListSample.h"
+#include "itkKdTree.h"
+#include "itkWeightedCentroidKdTreeGenerator.h"
+#include "itkKdTreeBasedKmeansEstimator.h"
+#include "itkMinimumDecisionRule2.h"
+//#include "itkEuclideanDistanceMetric.h"
+#include "itkDistanceToCentroidMembershipFunction.h"
+#include "itkCurrentsToCentroidMembershipFunction.h"
+#include "itkEuclideanToCentroidMembershipFunction.h"
+#include "itkKMeansClassifierFilter.h"
+#include "itkNormalVariateGenerator.h"
+#include <iostream>
+#include <limits>
+#include <utility>
+#include <algorithm>
+#include "vnl/vnl_matrix.h"
+#include "vnl/vnl_math.h"
+#include "math.h"
+
+
+namespace itk
+{
+
+  template< class TMesh>
+    void
+    KmeanCurrentsVtkPolydataFilter < TMesh >::Update()
+    {
+      if (!this->GetInput())
+        itkExceptionMacro (<< "Mesh not set");
+
+      // K-d tree typedefs
+      //typedef itk::Vector<double, 3>                      MeasurementVectorType;
+      typedef itk::VariableLengthVectorCurrents<double>           MeasurementVectorType;
+      //typedef itk::VariableLengthVector<double>           MeasurementVectorType;
+      typedef Statistics::ListSample< MeasurementVectorType > SampleType;
+      typedef itk::Statistics::WeightedCentroidKdTreeGenerator< SampleType > TreeGeneratorType;
+      typedef TreeGeneratorType::KdTreeType TreeType;
+      typedef itk::Statistics::KdTreeBasedKmeansEstimator<TreeType> EstimatorType;
+      int numberOfPoints  = this->GetInput()->GetCells()->Begin().Value()->GetNumberOfPoints();
+      std::cout << " number of points " << numberOfPoints << std::endl;
+      const int vectorSize =  3*numberOfPoints;
+
+      SampleType::Pointer sample = SampleType::New();
+      sample->SetMeasurementVectorSize(vectorSize);
+
+      typename CellsContainer::ConstIterator inputCellIt = this->GetInput()->GetCells()->Begin();
+      int cellId =0;
+      //      OutputMeshPointer output = this->GetOutput();
+      int offset=0;
+      EstimatorType::ParametersType initialMeans(this->GetNumberOfClusters()*vectorSize);
+      initialMeans.Fill(0.0f);
+      int notSoRandomInit  = this->GetInput()->GetNumberOfCells()/this->GetNumberOfClusters()-1;
+      std::cout << " notsorandom init " << notSoRandomInit << std::endl;
+      int notSoRandomInitIndex = 0;
+      int cellIndex = 0;
+      std::cout << " lala " << std::endl;
+      typedef blitz::TinyVector<double,3> Vect;
+      typedef blitz::Array<Vect,1> ArrVect;
+      typedef blitz::TinyVector<double,3> Point;
+      typedef blitz::Array<Point,1> ArrPoint;
+      typedef blitz::TinyVector<double,3> VectPoint;
+      typedef blitz::Array<Point,1> ArrVectPoint;
+      typedef blitz::TinyVector<int,2> Face;
+      typedef blitz::Array<Face,1> ArrFace;
+      typedef blitz::Array<double,1> ArrWeight;
+
+
+      for ( ; inputCellIt!=this->GetInput()->GetCells()->End(); ++inputCellIt)
+      {
+	      int numberOfPoints = vectorSize/3;
+//	      ArrPoint mp(Range(1,numberOfPoints)), mp2(Range(1, numberOfPoints));
+//	      ArrFace  mIndex(Range(1,numberOfPoints-1));
+	      ArrPoint* mp= new ArrPoint(Range(1,numberOfPoints));
+	      ArrPoint*  mp2 = new ArrPoint(Range(1, numberOfPoints));
+	      ArrFace*  mIndex= new ArrFace(Range(1,numberOfPoints-1));
+
+
+	      MeasurementVectorType mv ;
+	      mv.SetSize(vectorSize);
+
+	      int i = 1;
+	      for (typename CellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin(); it!=inputCellIt.Value()->PointIdsEnd(); it++)
+	      {
+		      PointType pt;
+		      pt.Fill (0.0);
+		      this->GetInput()->GetPoint (*it, &pt);
+		      mv[(i-1)*3] = pt[0];
+		      mv[(i-1)*3+1] = pt[1];
+		      mv[(i-1)*3+2] = pt[2];
+
+		      //currents
+		      (*mp)(i)(0) = pt[0];
+		      (*mp)(i)(1) = pt[1];
+		      (*mp)(i)(2) = pt[2];
+		      (*mp2)(numberOfPoints-i+1)(0) = pt[0];
+		      (*mp2)(numberOfPoints-i+1)(1) = pt[1];
+		      (*mp2)(numberOfPoints-i+1)(2) = pt[2];
+
+		      if(i>1)
+		      {
+			      (*mIndex)(i-1) = i-1,i;
+		      }
+
+		      i++;
+		      if((cellIndex%notSoRandomInit==0&& notSoRandomInitIndex<(this->GetNumberOfClusters()*vectorSize)))
+		      {
+			      initialMeans[notSoRandomInitIndex] =pt[0];
+			      initialMeans[notSoRandomInitIndex+1] =pt[1];
+			      initialMeans[notSoRandomInitIndex+2] =pt[2];
+			      notSoRandomInitIndex+=3;	
+
+		      }
+
+	      }
+	     //std::cout << " mp " << mp << std::endl;
+	      mv.SetPoints(mp);
+	    // std::cout << " mp " << *mv.GetPoints() << std::endl;
+	      mv.SetPointsReverse(mp2);
+	      mv.SetVectors(mIndex);
+
+	      cellIndex++;
+
+	      sample->PushBack(mv);
+      }
+      std::cout << " lala " << std::endl;
+
+      TreeGeneratorType::Pointer treeGenerator = TreeGeneratorType::New();
+      treeGenerator->SetSample( sample );
+      treeGenerator->SetBucketSize( 54 );
+      treeGenerator->Update();
+
+      EstimatorType::Pointer estimator = EstimatorType::New();
+
+      estimator->SetParameters( initialMeans );
+      estimator->SetKdTree( treeGenerator->GetOutput() );
+      estimator->SetMaximumIteration( 200 );
+      estimator->SetCentroidPositionChangesThreshold(0.0);
+      estimator->StartOptimization();
+
+      EstimatorType::ParametersType estimatedMeans = estimator->GetParameters();
+
+      /*      for ( unsigned int i = 0 ; i < 8 ; i+=2 )
+	      {
+	      std::cout << "cluster[" << i << "] " << std::endl;
+	      std::cout << "    estimated mean : " << estimatedMeans[i] << " , " << estimatedMeans[i+1] << std::endl;
+	      }
+       */
+      //     typedef itk::Statistics::DistanceToCentroidMembershipFunction< MeasurementVectorType >         MembershipFunctionType;
+      //      typedef Statistics::CurrentsMembershipFunction< MeasurementVectorType >         MembershipFunctionType;
+      typedef itk::Statistics::EuclideanToCentroidMembershipFunction< MeasurementVectorType >         MembershipFunctionType;
+//      typedef itk::Statistics::CurrentsToCentroidMembershipFunction< MeasurementVectorType >         MembershipFunctionType;
+      typedef MembershipFunctionType::Pointer                      MembershipFunctionPointer;
+
+#if ITK_VERSION_MAJOR < 4
+      typedef itk::Statistics::MinimumDecisionRule2 DecisionRuleType;
+#else
+      typedef itk::Statistics::MinimumDecisionRule DecisionRuleType;
+#endif
+      DecisionRuleType::Pointer decisionRule = DecisionRuleType::New();
+
+      typedef itk::Statistics::KMeansClassifierFilter< SampleType > ClassifierType;
+      ClassifierType::Pointer classifier = ClassifierType::New();
+
+      classifier->SetNumberOfIterations(this->GetNumberOfIterations());
+      classifier->SetDecisionRule(decisionRule);
+      classifier->SetInput( sample );
+      classifier->SetNumberOfClasses( this->GetNumberOfClusters() );
+
+      typedef ClassifierType::ClassLabelVectorObjectType               ClassLabelVectorObjectType;
+      typedef ClassifierType::ClassLabelVectorType                     ClassLabelVectorType;
+      typedef ClassifierType::MembershipFunctionVectorObjectType       MembershipFunctionVectorObjectType;
+      typedef ClassifierType::MembershipFunctionVectorType             MembershipFunctionVectorType;
+
+      ClassLabelVectorObjectType::Pointer  classLabelsObject = ClassLabelVectorObjectType::New();
+      classifier->SetClassLabels( classLabelsObject );
+
+      ClassLabelVectorType &  classLabelsVector = classLabelsObject->Get();
+      for(int i =0; i<this->GetNumberOfClusters();i++)
+      {
+	      classLabelsVector.push_back( i );
+      }
+
+      std::cout << " lala " << std::endl;
+      MembershipFunctionVectorObjectType::Pointer membershipFunctionsObject =
+	      MembershipFunctionVectorObjectType::New();
+      classifier->SetMembershipFunctions( membershipFunctionsObject );
+
+      MembershipFunctionVectorType & membershipFunctionsVector = membershipFunctionsObject->Get();
+
+      MembershipFunctionType::CentroidType origin( sample->GetMeasurementVectorSize() );
+      int index = 0;
+      for ( unsigned int i = 0 ; i < this->GetNumberOfClusters() ; i++ )
+      {
+	      MembershipFunctionPointer membershipFunction = MembershipFunctionType::New();
+	      MeasurementVectorType originM(vectorSize);
+	      ArrPoint* mp = new ArrPoint(Range(1,numberOfPoints));
+		ArrPoint*  mp2= new ArrPoint(Range(1, numberOfPoints));
+	      ArrFace*   mIndex = new ArrFace(Range(1,numberOfPoints-1));
+	      for ( unsigned int k = 1 ; k <= numberOfPoints; k++ )
+	      {
+		      originM[(k-1)*3] = estimatedMeans[index];
+		      originM[(k-1)*3+1] = estimatedMeans[index+1];
+		      originM[(k-1)*3+2] = estimatedMeans[index+2];
+		      (*mp)(k)(0) = estimatedMeans[index];
+		      (*mp)(k)(1) = estimatedMeans[index+1];
+		      (*mp)(k)(2) = estimatedMeans[index+2];
+		      (*mp2)(numberOfPoints-k+1)(0) =estimatedMeans[index];
+		      (*mp2)(numberOfPoints-k+1)(1) = estimatedMeans[index+1];
+		      (*mp2)(numberOfPoints-k+1)(2) = estimatedMeans[index+2];
+
+		      if(k>1)
+		      {
+			     ( *mIndex)(k-1) = k-1,k;
+		      }
+			index+=3;
+	      }
+		      originM.SetVectors(mIndex);
+		      originM.SetPoints(mp);
+		      originM.SetPointsReverse(mp2);
+	      membershipFunction->SetCentroid( originM );
+	      membershipFunction->SetSigma(this->GetSigmaCurrents());
+	      membershipFunctionsVector.push_back( membershipFunction.GetPointer() );
+      }
+      std::cout << " b lala " << std::endl;
+      classifier->Update();
+
+      std::cout << " lala " << std::endl;
+      const ClassifierType::MembershipSampleType* membershipSample = classifier->GetOutput();
+      ClassifierType::MembershipSampleType::ConstIterator iter = membershipSample->Begin();
+      std::vector<int> labels; 
+      while ( iter != membershipSample->End() )
+      {
+	      std::cout <<  iter.GetClassLabel() << "" ;
+          labels.push_back(iter.GetClassLabel());
+        ++iter;
+      } 
+      std::cout << std::endl;
+      this->SetLabels(labels);
+
+
+      //************************** return of meshes */////////
+      //TODO: This should be in a get output method or something like that
+      std::cout << " numner f points " << numberOfPoints << std::endl;
+      typedef TMesh  MeshType;
+      for(int i=0;i<membershipFunctionsVector.size();i++)
+      { 
+        typename MeshType::Pointer om = MeshType::New();
+        om->SetCellsAllocationMethod( MeshType::CellsAllocatedDynamicallyCellByCell );
+        int pointIndex = 0;
+        int cellIndex = 0;
+        int cellIndexCentroid = -1;
+        MembershipFunctionPointer memFunc = membershipFunctionsVector[i];
+        for(int j=0; j< memFunc->GetChilds().size();j++)
+        {
+
+          MeasurementVectorType child = memFunc->GetChilds()[j];
+
+          typedef itk::PolylineCell<typename MeshType::CellType>                      PolylineCellType;
+          typename MeshType::CellAutoPointer line;
+          line.TakeOwnership ( new PolylineCellType);
+          for (int k=0; k<numberOfPoints; k++)
+          {
+            typename MeshType::PointType pt;
+            pt[0]= (*child.GetPoints())(k+1)(0);
+            pt[1]= (*child.GetPoints())(k+1)(1);
+            pt[2]= (*child.GetPoints())(k+1)(2);
+
+            om->SetPoint (pointIndex, pt);
+
+            line->SetPointId (k,pointIndex);
+
+            pointIndex++;
+          }
+          //pointIndex++;
+          om->SetCell (cellIndex, line);
+          if(j == memFunc->GetCentroidIndex())
+          {
+              //it is very ugly, but it will mean that this is the representative
+            om->SetCellData(0,cellIndex);
+            cellIndexCentroid = cellIndex;
+          }
+
+          cellIndex++;
+
+        }
+            //std::cout << std::endl;
+            if(cellIndexCentroid != -1)
+            {
+                this->m_Output.push_back(om);
+            }
+        
+      }
+
+
+    }
+}
+#endif

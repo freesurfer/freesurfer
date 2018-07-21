@@ -1,0 +1,146 @@
+/*=========================================================================
+
+  Program:   Insight Segmentation & Registration Toolkit
+  Module:    $RCSfile: itkEuclideanToCentroidMembershipFunction.txx,v $
+  Language:  C++
+  Date:      $Date: 2009-03-04 15:23:46 $
+  Version:   $Revision: 1.12 $
+
+  Copyright (c) Insight Software Consortium. All rights reserved.
+  See ITKCopyright.txt or http://www.itk.org/HTML/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even 
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR 
+     PURPOSE.  See the above copyright notices for more information.
+
+=========================================================================*/
+#ifndef __itkEuclideanToCentroidMembershipFunction_txx
+#define __itkEuclideanToCentroidMembershipFunction_txx
+
+#include <blitz/array.h>
+#include <blitz/tinyvec-et.h>
+//using namespace blitz;
+
+
+#include <iostream>
+#include <limits>
+
+#include <utility>
+#include <algorithm>
+
+#include <fstream>
+#include "vnl/vnl_matrix.h"
+#include "vnl/vnl_math.h"
+#include "math.h"
+
+#include "itkEuclideanToCentroidMembershipFunction.h"
+
+namespace itk { 
+namespace Statistics {
+
+template < class TVector >
+EuclideanToCentroidMembershipFunction< TVector >
+::EuclideanToCentroidMembershipFunction():
+  m_NumberOfSamples(-1)
+{
+}
+template < class TVector >
+double 
+EuclideanToCentroidMembershipFunction< TVector >
+::Evaluate(MeasurementVectorType &measurement)
+{
+	return this->Evaluate(&this->GetCentroid(), &measurement);
+/*   	double dist=0;	
+   	double dist2=0;	
+
+	for(int i=0;i<this->GetCentroid().GetPoints()->size();i++)
+	{
+		double d = pow( (*this->GetCentroid().GetPoints())(i)(0)- (*measurement.GetPoints())(i)(0),2); 
+		d += pow( (*this->GetCentroid().GetPoints())(i)(1)- (*measurement.GetPoints())(i)(1),2); 
+		d += pow( (*this->GetCentroid().GetPoints())(i)(2)- (*measurement.GetPoints())(i)(2),2); 
+
+		double d2 = pow( (*this->GetCentroid().GetPoints())(i)(0)- (*measurement.GetPointsReverse())(i)(0),2); 
+		d2 += pow( (*this->GetCentroid().GetPoints())(i)(1)- (*measurement.GetPointsReverse())(i)(1),2); 
+		d2 += pow( (*this->GetCentroid().GetPoints())(i)(2)- (*measurement.GetPointsReverse())(i)(2),2); 
+		dist += sqrt(d);
+		dist2 += sqrt(d2);
+
+	}	
+
+	return min(dist, dist2); 
+*/
+ }
+template < class TVector >
+double 
+EuclideanToCentroidMembershipFunction< TVector >
+::Evaluate(MeasurementVectorType *m1, MeasurementVectorType *m2 )
+{
+   	double dist=0;	
+   	double dist2=0;	
+	for(int i=0;i<this->GetCentroid().GetPoints()->size();i++)
+	{
+		double d = pow( (*m1->GetPoints())(i)(0)- (*m2->GetPoints())(i)(0),2); 
+		d += pow( (*m1->GetPoints())(i)(1)- (*m2->GetPoints())(i)(1),2); 
+		d += pow( (*m1->GetPoints())(i)(2)- (*m2->GetPoints())(i)(2),2); 
+
+		double d2 = pow( (*m1->GetPoints())(i)(0)- (*m2->GetPointsReverse())(i)(0),2); 
+		d2 += pow( (*m1->GetPoints())(i)(1)- (*m2->GetPointsReverse())(i)(1),2); 
+		d2 += pow( (*m1->GetPoints())(i)(2)- (*m2->GetPointsReverse())(i)(2),2); 
+		dist += sqrt(d);
+		dist2 += sqrt(d2);
+	
+	}	
+
+	return min(dist, dist2); 
+ }
+
+
+template < class TVector >
+void  
+EuclideanToCentroidMembershipFunction< TVector >
+::AddChild(MeasurementVectorType child) 
+{
+	childs.push_back(child);
+}
+ template < class TVector >
+void  
+EuclideanToCentroidMembershipFunction< TVector >
+::RecalculateCentroid() 
+{
+
+  this->m_Variance = 0;
+  double minDist =  numeric_limits<double>::max();
+
+ for(int i=0; i< this->childs.size(); i++)
+  {
+     double min_i = 0;
+    for(int j=0; j< this->childs.size() ; j++)
+    {
+		double D = this->Evaluate(&childs[i], &childs[j]);
+
+      min_i += D*D;
+
+    }
+
+    if( min_i < minDist )
+    {
+      minDist = min_i;
+    this->SetCentroid(i);
+	}
+  }
+  this->m_Variance = sqrt( minDist/this->childs.size());
+}
+   
+template < class TVector >
+void  
+EuclideanToCentroidMembershipFunction< TVector >
+::PrintSelf(std::ostream& os, Indent indent) const
+{
+  unsigned int i;
+  Superclass::PrintSelf(os,indent);
+}
+
+} // end namespace Statistics
+} // end of namespace itk
+
+#endif

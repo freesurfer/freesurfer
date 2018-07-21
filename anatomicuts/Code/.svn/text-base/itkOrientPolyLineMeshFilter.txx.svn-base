@@ -1,0 +1,113 @@
+#ifndef _itk_OrientPolyLineMeshFilter_txx_
+#define _itk_OrientPolyLineMeshFilter_txx_
+
+#include "itkOrientPolyLineMeshFilter.h"
+
+#include "itkPolylineCell.h"
+namespace itk
+{
+
+  template <class TInputMesh, class TOutputMesh>
+  OrientPolylineMeshFilter<TInputMesh, TOutputMesh>
+  ::OrientPolylineMeshFilter()
+  {
+    this->referenceDirection = NULL;
+  }
+
+
+  template <class TInputMesh, class TOutputMesh>
+  void
+  OrientPolylineMeshFilter<TInputMesh, TOutputMesh>
+  ::GenerateData()
+  {
+    const InputMeshType *input = this->GetInput();
+
+    if (input->GetNumberOfCells()==0) // in case no cell is found in the input, just return (empty output)
+    {
+      return;
+    }
+
+    typename InputCellsContainer::ConstIterator inputCellIt = input->GetCells()->Begin();
+    double avg = 0;
+    int cellId =0;
+    //OutputMeshPointer output = this->GetOutput();
+    typename OutputMeshType::Pointer outputMesh = this->GetOutput();
+    outputMesh->SetCellsAllocationMethod(
+    OutputMeshType::CellsAllocatedDynamicallyCellByCell );
+
+    outputMesh->GetPoints()->Reserve ( this->GetInput()->GetNumberOfPoints() );
+
+ 
+  int offset=0;
+    for ( ; inputCellIt!=input->GetCells()->End(); ++inputCellIt)
+    {
+
+      InputPointType ptBegin;
+      ptBegin.Fill (0.0);
+      input->GetPoint (*inputCellIt.Value()->PointIdsBegin(), &ptBegin);
+
+      InputPointType ptEnd;
+      ptEnd.Fill (0.0);
+      input->GetPoint (*(inputCellIt.Value()->PointIdsEnd()-1), &ptEnd);
+      double scalar=0;
+      int index = 0;
+      if(this->referenceDirection == NULL)
+      {
+        this->referenceDirection = new double[3];
+        this->referenceDirection[0] = ptBegin[0] - ptEnd[0];
+        this->referenceDirection[1] = ptBegin[1] - ptEnd[1];
+        this->referenceDirection[2] = ptBegin[2] - ptEnd[2];
+      }
+      else
+      {
+        for(int i =0;i<3;i++)
+        {
+          scalar += this->referenceDirection[i]*(ptBegin[i]-ptEnd[i]); 
+        }
+        if(scalar <0)
+        {  index = inputCellIt.Value()->GetNumberOfPoints()-1;
+        }
+      }
+
+      index += offset;
+
+
+      typename OutputMeshType::CellAutoPointer line;
+      typedef itk::PolylineCell<typename OutputMeshType::CellType>    PolylineCellType;
+      line.TakeOwnership ( new PolylineCellType);
+
+//      OutputCellAutoPointer outputCell;
+//      inputCellIt.Value()->MakeCopy ( outputCell );
+int k=0;
+     for (typename OutputCellType::PointIdIterator it = inputCellIt.Value()->PointIdsBegin(); it!=inputCellIt.Value()->PointIdsEnd(); it++)
+      {
+        InputPointType pt;
+        pt.Fill (0.0);
+        input->GetPoint (*it, &pt);
+        
+        outputMesh->SetPoint (index,pt);
+        line->SetPointId ( (typename OutputMeshType::PointIdentifier)k, index);
+k++;
+//  output->SetPoint (index, pt);
+
+//        outputCell->SetPointId (index, index);
+        offset++;
+        if(scalar >=0)
+          index++;
+        else
+          index--;
+      }    
+
+//      outputMesh->SetCell (cellId, outputCell);
+      outputMesh->SetCell(cellId,line);
+      cellId++;
+      avg +=  inputCellIt.Value()->GetNumberOfPoints();
+    }
+
+    std::cout << "Number of fibers "<< input->GetNumberOfCells() << " averg points "<< avg << std::endl; 
+    // this->CopyInputMeshToOutputMeshPointData();
+  }
+
+}
+
+#endif

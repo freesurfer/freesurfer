@@ -1,0 +1,297 @@
+#ifndef _itk_MeshDemonsRegistrationFunction_h_
+#define _itk_MeshDemonsRegistrationFunction_h_
+
+#include "itkPDEDeformableRegistrationFunction.h"
+
+#include "itkMeshCorrespondencesCalculatorBase.h"
+//#include "itkRBFFastInterpolationVectorImageFilter.h"
+#include "itkGaussianExtrapolatorVectorImageFilter.h"
+#include "itkVectorContainer.h"
+#include "itkWarpMeshFilter2.h"
+#include "itkIterativeInverseDeformationFieldImageFilter.h"
+
+namespace itk
+{
+  
+  template < class TFixedMesh,  class TMovingMesh,
+             class TFixedImage, class TMovingImage, class TDeformationField>
+    class MeshDemonsRegistrationFunction :
+  public PDEDeformableRegistrationFunction< TFixedImage,
+                                            TMovingImage, TDeformationField>
+  {
+  public:
+    typedef MeshDemonsRegistrationFunction            Self;
+    typedef PDEDeformableRegistrationFunction
+      < TFixedImage, TMovingImage, TDeformationField> Superclass;
+    typedef SmartPointer< Self >                      Pointer;
+    typedef SmartPointer< const Self >                ConstPointer;
+
+    itkNewMacro  (Self);
+    itkTypeMacro (MeshDemonsRegistrationFunction, PDEDeformableRegistrationFunction);
+
+    /** MovingImage image type. */
+    typedef typename Superclass::MovingImageType      MovingImageType;
+    typedef typename Superclass::MovingImagePointer   MovingImagePointer;
+    typedef typename MovingImageType::PixelType       MovingPixelType;
+
+    typedef typename Superclass::NeighborhoodType     NeighborhoodType;
+    typedef typename Superclass::FloatOffsetType      FloatOffsetType;
+    typedef typename Superclass::PixelType            PixelType;
+    typedef typename Superclass::TimeStepType         TimeStepType;
+    
+    /** FixedImage image type. */
+    typedef typename Superclass::FixedImageType       FixedImageType;
+    typedef typename Superclass::FixedImagePointer    FixedImagePointer;
+    typedef typename FixedImageType::IndexType        IndexType;
+    typedef typename FixedImageType::SizeType         SizeType;
+    typedef typename FixedImageType::SpacingType      SpacingType;
+    typedef typename FixedImageType::DirectionType    DirectionType;
+
+    /** Deformation field type. */
+    typedef typename Superclass::DeformationFieldType    DeformationFieldType;
+    typedef typename Superclass::DeformationFieldTypePointer
+      DeformationFieldTypePointer;
+    typedef typename DeformationFieldType::PixelType DeformationVectorType;
+    typedef typename DeformationFieldType::PointType DeformationPointType;
+
+    /** Inherit some enums from the superclass. */
+    itkStaticConstMacro(ImageDimension, unsigned int,Superclass::ImageDimension);
+
+    /** MovingMesh mesh type */
+    typedef TMovingMesh                          MovingMeshType;
+    typedef typename MovingMeshType::MeshTraits  MovingMeshTraits;
+    typedef typename MovingMeshType::PointType   MovingMeshPointType;
+    typedef typename MovingMeshType::PixelType   MovingMeshPixelType;
+    typedef typename MovingMeshPointType::VectorType   MovingMeshVectorType;
+    typedef typename MovingMeshType::Pointer           MovingMeshPointer;
+    typedef typename MovingMeshType::CellTraits        MovingMeshCellTraits;
+    typedef typename MovingMeshType::CellIdentifier    MovingMeshCellIdentifier;
+    typedef typename MovingMeshType::CellType          MovingMeshCellType;
+    typedef typename MovingMeshType::CellAutoPointer   MovingMeshCellAutoPointer;
+    typedef typename MovingMeshType::PointIdentifier   MovingMeshPointIdentifier;
+    typedef typename MovingMeshCellTraits::PointIdIterator  MovingMeshPointIdIterator;
+
+    /** FixedMesh mesh type */
+    typedef TFixedMesh                          FixedMeshType;
+    typedef typename FixedMeshType::MeshTraits  FixedMeshTraits;
+    typedef typename FixedMeshType::PointType   FixedMeshPointType;
+    typedef typename FixedMeshType::PixelType   FixedMeshPixelType;
+    typedef typename FixedMeshPointType::VectorType   FixedMeshVectorType;
+    typedef typename FixedMeshType::Pointer           FixedMeshPointer;
+    typedef typename FixedMeshType::CellTraits        FixedMeshCellTraits;
+    typedef typename FixedMeshType::CellIdentifier    FixedMeshCellIdentifier;
+    typedef typename FixedMeshType::CellType          FixedMeshCellType;
+    typedef typename FixedMeshType::CellAutoPointer   FixedMeshCellAutoPointer;
+    typedef typename FixedMeshType::PointIdentifier   FixedMeshPointIdentifier;
+    typedef typename FixedMeshCellTraits::PointIdIterator  FixedMeshPointIdIterator;
+
+
+    /** Correspondences calculator */
+    typedef MeshCorrespondencesCalculatorBase <TFixedMesh, TMovingMesh> CorrespondenceCalulatorType;
+    typedef typename CorrespondenceCalulatorType::Pointer               CorrespondenceCalulatorPointerType;
+    typedef VectorContainer<unsigned int, CorrespondenceCalulatorPointerType>
+      CorrespondenceCalulatorVectorType;
+    typedef typename CorrespondenceCalulatorType::MetricListType        MetricListType;
+    typedef typename CorrespondenceCalulatorType::VectorListType        CorrespondenceVectorListType;
+    typedef typename CorrespondenceCalulatorType::PointListType         CorrespondencePointListType;
+    typedef VectorContainer<unsigned int, typename MovingMeshType::Pointer>
+      MovingMeshVectorContainerType;
+
+    /** Interpolator */
+//  typedef RBFFastInterpolationVectorImageFilter <FixedImageType, DeformationFieldType> InterpolatorType;
+    typedef itk::GaussianExtrapolatorVectorImageFilter <FixedImageType, DeformationFieldType> InterpolatorType;
+    typedef typename InterpolatorType::Pointer                                       InterpolatorPointerType;
+    typedef typename InterpolatorType::VectorOfPixelType                             InterpolatorVectorListType;
+    typedef typename InterpolatorType::VectorOfPointsType                            InterpolatorPointListType;
+
+
+    /** Mesh warper */
+    typedef WarpMeshFilter<TMovingMesh, TMovingMesh, TDeformationField> WarpFilterType;
+
+    /** Deformation field inverter */
+    typedef IterativeInverseDeformationFieldImageFilter<TDeformationField, TDeformationField>
+      InvertionFilterType;
+
+    void SetMaximumUpdateStepLength( double val )
+    { m_MaximumUpdateStepLength = val; }
+    double GetMaximumUpdateStepLength(void) const
+    { return m_MaximumUpdateStepLength; }
+    
+    /** This class uses a constant timestep of 1. */
+    virtual TimeStepType ComputeGlobalTimeStep(void * itkNotUsed(GlobalData)) const
+    { return m_TimeStep; }
+	  
+    /** Return a pointer to a global data structure that is passed to
+     * this object from the solver at each calculation.  */
+    virtual void *GetGlobalDataPointer() const
+    {
+      /*
+	GlobalDataStruct *global = new GlobalDataStruct();
+	global->m_SumOfSquaredDifference  = 0.0;
+	global->m_NumberOfPointsProcessed = 0L;
+	global->m_SumOfSquaredChange      = 0;
+	return global;
+      */
+      return NULL;
+    }
+    
+    /** Release memory for global data structure. */
+    virtual void ReleaseGlobalDataPointer( void *GlobalData ) const {};
+    
+    /** Set the object's state before each iteration. */
+    virtual void InitializeIteration();
+    
+    /** This method is called by a finite difference solver image filter at
+     * each pixel that does not lie on a data set boundary */
+    virtual PixelType  ComputeUpdate(const NeighborhoodType &neighborhood,
+				     void *globalData,
+				     const FloatOffsetType &offset = FloatOffsetType(0.0));
+
+    /** Get the metric value. The metric value is the mean square difference
+     * in point position between the fixed mesh and transforming moving mesh. */
+    virtual double GetMetric() const
+    { return m_Metric; }
+    
+    /** Get the rms change in deformation field. */
+    virtual const double &GetRMSChange() const
+    { return m_RMSChange; }
+
+    std::vector<InterpolatorPointListType>  GetCorrespondencePositions ()
+    { return m_CorrespondencePositions; }
+
+ 
+    /**
+       Get the point definition of the correspondence vectors. The integer specifies
+       which mesh we want.
+    */
+    InterpolatorPointListType  GetCorrespondencePositions (unsigned int n)
+    { return m_CorrespondencePositions[n]; }
+
+    /**
+       Get the the correspondence vectors. The integer specifies which mesh we want.
+     */
+    InterpolatorVectorListType GetCorrespondenceVectors   (unsigned int n)
+    { return m_CorrespondenceVectors[n]; }
+
+    /** Get the number of meshes. */
+    unsigned int GetNumberOfMeshes (void) const
+    { return m_CorrespondenceCalculatorVector->Size(); }
+    
+    void AddMeshCorrespondenceCalculator(CorrespondenceCalulatorType *calculator);
+   void SetInverseDeformationField(DeformationFieldTypePointer invField)
+   {
+     this->m_inverseDeformationField = invField;
+   }
+   DeformationFieldTypePointer GetInverseDeformationField()
+   {
+     return this->m_inverseDeformationField;
+   } 
+   void SetSigma(double sigma)
+   {
+     this->m_Sigma = sigma;
+   }
+   double GetSigma()
+   {
+     return this->m_Sigma;
+   }
+
+   void SetSigmaX(double sigma)
+   {
+     this->m_SigmaX = sigma;
+   }
+   double GetSigmaX()
+   {
+     return this->m_SigmaX;
+   }
+   void SetSigmaI(double sigma)
+   {
+     this->m_SigmaI = sigma;
+   }
+   double GetSigmaI()
+   {
+     return this->m_SigmaI;
+   }
+   void SetLambdaGradientDescent(double lambda)
+   {
+     this->m_LambdaGradientDescent = lambda;
+   }
+   double GetLambdaGradientDescent()
+   {
+     return this->m_LambdaGradientDescent;
+   } 
+   protected:
+    MeshDemonsRegistrationFunction()
+    {
+   
+        std::cout << " new mesh demons function " << std::endl;
+        m_CorrespondenceCalculatorVector = CorrespondenceCalulatorVectorType::New();
+      m_MovingMeshVector = MovingMeshVectorContainerType::New();
+      m_Inverter = InvertionFilterType::New();
+      m_Interpolator = InterpolatorType::New();
+      m_MeshForces = 0;
+      m_Normalizer = 0.0;
+      m_TimeStep = 1.0;
+      m_Metric = NumericTraits<double>::max();
+      m_NumberOfPointsProcessed = 0L;
+      m_RMSChange = NumericTraits<double>::max();
+      m_Sigma = -1;
+      m_SigmaI = 0;
+      m_SigmaX = 0;
+      m_LambdaGradientDescent=1;
+    }
+    ~MeshDemonsRegistrationFunction() {}
+    
+    void PrintSelf(std::ostream& os, Indent indent) const;
+    
+    /** A global data type for this class of equation. Used to store
+     * iterators for the fixed image. */
+    /*
+    struct GlobalDataStruct
+    {
+      double          m_SumOfSquaredDifference;
+      unsigned long   m_NumberOfPointsProcessed;
+      double          m_SumOfSquaredChange;
+    };
+    */
+   
+   
+    typename CorrespondenceCalulatorVectorType::Pointer m_CorrespondenceCalculatorVector;
+
+    typename DeformationFieldType::Pointer m_MeshForces;
+
+    typename InvertionFilterType::Pointer m_Inverter;
+
+    typename MovingMeshVectorContainerType::Pointer m_MovingMeshVector;
+
+    InterpolatorPointerType m_Interpolator;
+
+    std::vector<InterpolatorPointListType>  m_CorrespondencePositions;
+    std::vector<InterpolatorVectorListType> m_CorrespondenceVectors;
+    
+    double       m_Normalizer;
+    double       m_MaximumUpdateStepLength;
+    TimeStepType m_TimeStep;
+    
+    /** The metric value is the mean square difference in intensity between
+     * the fixed image and transforming moving image computed over the
+     * the overlapping region between the two images. */
+    double                  m_Metric;
+    unsigned long           m_NumberOfPointsProcessed;
+    double                  m_RMSChange;
+    double                  m_Sigma;
+    double                  m_SigmaI;
+    double                  m_SigmaX;
+    double                  m_LambdaGradientDescent;
+    DeformationFieldTypePointer m_inverseDeformationField;
+  private:
+    MeshDemonsRegistrationFunction (const Self&);
+    void operator=(const Self&);
+   };
+    
+} // end of namespace
+
+#ifndef ITK_MANUAL_INSTANTIATION
+#include "itkMeshDemonsRegistrationFunction.txx"
+#endif
+
+#endif

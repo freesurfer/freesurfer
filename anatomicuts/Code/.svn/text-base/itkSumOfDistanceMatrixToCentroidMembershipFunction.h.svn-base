@@ -1,0 +1,114 @@
+#ifndef __itkSumOfDistanceMatrixToCentroidMembershipFunction_h
+#define __itkSumOfDistanceMatrixToCentroidMembershipFunction_h
+
+#include <vnl/vnl_vector.h>
+#include <vnl/vnl_transpose.h>
+#include <vnl/vnl_matrix.h>
+#include <vnl/algo/vnl_matrix_inverse.h>
+#include <vnl/algo/vnl_determinant.h>
+
+
+#include "itkMembershipFunctionBase.h"
+
+template< class TVector >
+class ITK_EXPORT SumOfDistanceMatrixToCentroidMembershipFunction :
+	public MembershipFunctionBase< TVector >
+{
+	public:
+		/** Standard class typedefs */
+		typedef SumOfDistanceMatrixToCentroidMembershipFunction Self;
+		typedef MembershipFunctionBase< TVector >    Superclass;
+		typedef SmartPointer<Self>                   Pointer;
+		typedef SmartPointer<const Self>             ConstPointer;
+
+		/** Strandard macros */
+		itkTypeMacro(SumOfDistanceMatrixToCentroidMembershipFunction,
+				MembershipFunctionBase);
+		itkNewMacro(Self);
+
+		/** Typedef alias for the measurement vectors */
+		typedef TVector MeasurementVectorType;
+		typedef TVector CentroidType;
+
+		/** Typedef to represent the length of measurement vectors */
+		typedef typename Superclass::MeasurementVectorSizeType    MeasurementVectorSizeType;
+		typedef vnl_matrix<int> DistanceMatrixType;
+
+		void SetCentroid(const MeasurementVectorType* c)
+		{
+			this->m_Centroid = c; 
+//			this->m_Centroid_index = -1;
+		}
+/*		void SetCentroid( int i)
+		{
+//			this->m_Centroid_index = i;
+			this->m_Centroid = this->childs[i];
+		}
+*/
+		const MeasurementVectorType* GetCentroid() const {
+			return this->m_Centroid; 
+		}
+/*		int GetCentroidIndex()
+		{
+			return this->m_Centroid_index; 
+		}*/
+		/*    void SetSigma(int n)
+		      { this->m_Sigma = n;}
+
+		      int GetSigma()
+		      {
+		      return this->m_Sigma;
+		      }
+		      void SetNumberOfSamples(int n)
+		      { this->m_NumberOfSamples= n;}
+
+		      int GetNumberOfSamples()
+		      {
+		      return this->m_NumberOfSamples;
+		      }
+		      */
+		void SetDistanceMatrix(DistanceMatrixType* distances)
+		{
+			this->m_distances =  distances;
+		}
+
+		std::vector<const MeasurementVectorType*> GetChilds()
+		{
+			return this->childs;
+		}
+		double GetVariance(){ return this->m_Variance;}
+
+		/**
+		 * Method to get probability of an instance. The return value is the
+		 * value of the density function, not probability. */
+		double Evaluate(const MeasurementVectorType *measurement) const  ;
+		double Evaluate(const MeasurementVectorType *m1,const MeasurementVectorType *m2) const;
+		double Evaluate(const MeasurementVectorType &measurement) const{ std::cout << "not implemented " << std::endl;return -1;};
+
+		void AddChild(const MeasurementVectorType* measurement) ;
+		void RecalculateCentroid() ;
+		void ClearChilds(){ this->childs.clear();}
+
+		int GetNumberOfChilds(){return this->childs.size();}
+	protected:
+		SumOfDistanceMatrixToCentroidMembershipFunction(void);
+		virtual ~SumOfDistanceMatrixToCentroidMembershipFunction(void) {}
+		void PrintSelf(std::ostream& os, Indent indent) const;
+
+	private:
+//		int m_Centroid_index;
+		double m_Variance;
+		const MeasurementVectorType *m_Centroid;
+		std::vector<const MeasurementVectorType*> childs;
+		// Number of samples defining this density
+		//int m_NumberOfSamples;
+		//int m_Sigma;
+		DistanceMatrixType* m_distances;
+};
+
+
+#ifndef ITK_MANUAL_INSTANTIATION
+#include "itkSumOfDistanceMatrixToCentroidMembershipFunction.txx"
+#endif
+
+#endif

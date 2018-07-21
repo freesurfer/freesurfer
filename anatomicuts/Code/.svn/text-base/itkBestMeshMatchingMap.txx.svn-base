@@ -1,0 +1,91 @@
+#ifndef _itk_BestMeshMatchingMap_txx_
+#define _itk_BestMeshMatchingMap_txx_
+
+#include "interpolation.h"
+#include "itkBestMeshMatchingMap.h"
+#include <vtkCellArray.h>
+#include <vtkCellData.h>
+
+
+namespace itk
+{
+  template <class TInputMesh, class TOutputMesh, class TImage>
+    void
+    BestMeshMatchingMap<TInputMesh, TOutputMesh, TImage>
+    ::GenerateData()
+    {
+      typedef typename TInputMesh::CellsContainer CellsContainer;
+
+
+        OutputMeshPointer bestMesh;// = inputCellIt.Value();
+        int  bestCantPointsMatch= 0;
+      
+      for (InputListMeshIteratorType it = this->inputList.begin(); it != this->inputList.end();it++)
+      {
+        float cantPointsMatch = 0;
+        
+        float cantPoints = 0;
+        typename CellsContainer::ConstIterator cellIt = (*it)->GetCells()->Begin();
+        for(;cellIt!= (*it)->GetCells()->End(); ++cellIt)
+        {
+//std::cout << " hola 7"<< std::endl;
+          typename TInputMesh::CellTraits::PointIdIterator  pointIdIt  = cellIt.Value()->PointIdsBegin();
+          for(;pointIdIt != cellIt.Value()->PointIdsEnd();pointIdIt++)
+          {
+            cantPoints+=1;
+            typename TInputMesh::PointType pt;  
+            (*it)->GetPoint(*pointIdIt, &pt);
+            typename ImageType::IndexType index;
+
+  //          std::cout <<  "  pt " << pt << std::endl;
+//              std::cout << " pixel " << this->GetInputMap()->GetPixel(index) << std::endl;
+              if ( this->GetInputMap()->TransformPhysicalPointToIndex(pt,index))
+              {
+              if( this->GetInputMap()->GetPixel(index)>0)
+              {
+               std::cout << " se " << this->GetInputMap()->GetPixel(index) << std::endl;
+                cantPointsMatch+=1;
+              }
+              }
+
+      //      std::cout << " lalal " << std::endl;
+          }
+       //   std::cout << " lalal " << std::endl;
+        }
+      std::cout << "cantPoints " << cantPointsMatch << std::endl;
+      cantPointsMatch /= cantPoints;
+      std::cout << "cantPoints " << cantPointsMatch << std::endl;
+      if(cantPointsMatch>bestCantPointsMatch)
+          {
+            bestMesh = (*it);
+            bestCantPointsMatch = cantPointsMatch;
+            std::cout << " best " << cantPointsMatch << " mesh " << bestMesh << std::endl;
+        }
+        
+      }
+      std::cout << " fin " <<  std::endl;
+      this->GraftOutput(bestMesh);
+
+/*
+      std::cout << " holaaaaaaaa " << std::endl;
+      // bestCell is the best cell: fill output with it
+      OutputMeshPointer output = this->GetOutput();
+
+      OutputCellAutoPointer outputCell;
+      bestCell->MakeCopy ( outputCell );
+
+      OutputPointIdentifier index = 0;
+      for (typename OutputCellType::PointIdIterator it = outputCell->PointIdsBegin(); it!=outputCell->PointIdsEnd(); it++)
+      {
+        InputPointType pt;
+        pt.Fill (0.0);
+        this->GetInput()->GetPoint (*it, &pt);
+        output->SetPoint (index, pt);
+        outputCell->SetPointId (index, index);
+        index++;
+      }    
+      output->SetCell (0, outputCell);
+  */        
+    }
+}
+#endif

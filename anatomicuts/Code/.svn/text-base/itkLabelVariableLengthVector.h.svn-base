@@ -1,0 +1,70 @@
+/*=========================================================================
+
+  Program:   Insight Segmentation & Registration Toolkit
+  Module:    $RCSfile: itkVariableLengthVector.h,v $
+  Language:  C++
+  Date:      $Date: 2009-05-25 08:34:20 $
+  Version:   $Revision: 1.16 $
+
+  Copyright (c) Insight Software Consortium. All rights reserved.
+  See ITKCopyright.txt or http://www.itk.org/HTML/Copyright.htm for details.
+
+     This software is distributed WITHOUT ANY WARRANTY; without even 
+     the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR 
+     PURPOSE.  See the above copyright notices for more information.
+
+=========================================================================*/
+#ifndef __itkLabelVariableLengthVector_h
+#define __itkLabelVariableLengthVector_h
+
+#include "itkVariableLengthVector.h"
+#include "itkMacro.h"
+#include "itkNumericTraits.h"
+#include <vnl/vnl_vector.h>
+#include <vnl/vnl_transpose.h>
+#include <vnl/vnl_matrix.h>
+#include <vnl/algo/vnl_matrix_inverse.h>
+#include <vnl/algo/vnl_determinant.h>
+
+#include <blitz/array.h>
+#include <blitz/tinyvec-et.h>
+using namespace blitz;
+using namespace itk;
+
+template <typename TValueType , class TMesh>
+class LabelVariableLengthVector : public VariableLengthVector<TValueType>
+{
+public:
+ 
+  /** The element type stored at each location in the Array. */
+  typedef TValueType                                    ValueType;
+  typedef TValueType                                    ComponentType;
+  typedef typename NumericTraits< ValueType >::RealType RealValueType;
+  typedef LabelVariableLengthVector                          Self;
+  typedef VariableLengthVector<TValueType>              Superclass;
+  typedef TMesh						MeshType;
+  typedef typename MeshType::Pointer			MeshPointerType;
+  typedef typename MeshType::CellType		CellType; //??
+  typedef typename MeshType::CellAutoPointer		CellAutoPointerType; //??
+
+  LabelVariableLengthVector():Superclass(){
+	;
+}; 
+
+  /** Constructor with size. Size can only be changed by assignment */
+  LabelVariableLengthVector(unsigned int dimension):Superclass(dimension){
+	;
+};
+  LabelVariableLengthVector( ValueType* data, unsigned int sz, 
+                                        bool LetArrayManageMemory = false):Superclass(data, sz, LetArrayManageMemory){};
+ 	void SetCell(MeshPointerType mesh, int cellID);
+private:
+};
+
+#ifndef ITK_MANUAL_INSTANTIATION
+#include "itkLabelVariableLengthVector.txx"
+#endif
+
+
+
+#endif

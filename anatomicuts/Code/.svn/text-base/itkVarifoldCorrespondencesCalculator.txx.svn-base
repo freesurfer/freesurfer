@@ -1,0 +1,318 @@
+#ifndef _itk_VarifoldCorrespondencesCalculator_txx
+#define _itk_VarifoldCorrespondencesCalculator_txx
+
+#include "itkVarifoldCorrespondencesCalculator.h"
+#include "itkTransformMeshPointsFilter.h"
+#include <iostream>
+#include <limits>
+#include <utility>
+#include <algorithm>
+
+#include <fstream>
+#include "vnl/vnl_matrix.h"
+#include "vnl/vnl_math.h"
+#include "math.h"
+
+#include "interpolation.h"
+#include <itkGaussianSpatialFunction.h>
+#include <climits>
+using namespace alglib;
+
+
+namespace itk
+{
+	template< class TFixedMesh, class TMovingMesh >
+		void 
+		VarifoldMeshCorrespondencesCalculator < TFixedMesh, TMovingMesh >
+		::SetFixedMesh (FixedMeshType *  fixedMesh)
+		{
+			Superclass::SetFixedMesh(fixedMesh);
+
+			m_FixedSample = SampleType::New();
+			m_FixedSample->SetMeasurementVectorSize( 3 );
+
+			//			fVectors.clear();
+			//			fPoints.clear();
+			typename TFixedMesh::PointsContainer::Iterator it=fixedMesh->GetPoints()->Begin();
+			typename TFixedMesh::PointsContainer::Iterator it2=fixedMesh->GetPoints()->Begin();
+			it2++;
+			//int j=0;
+			while(it2!=fixedMesh->GetPoints()->End())
+			{
+				//				itk::Vector<ScalarType> vec;
+				itk::Vector<ScalarType> pt;
+				MeasurementPointType mv;
+				for(int i=0;i<3;i++)
+				{
+					//					vec[i] = it2.Value()[i] -it.Value()[i];
+					//					pt[i]=it.Value()[i];
+					pt[i]=it2.Value()[i] -it.Value()[i];
+
+					mv[i]=it.Value()[i];
+				}
+				if(pt.GetNorm()!=0)
+				{
+					mv.SetValue(pt/pt.GetNorm());
+				}
+				m_FixedSample->PushBack( mv );
+
+				//				fVectors.push_back(vec/vec.GetNorm());
+				//				fPoints.push_back(pt);
+				it++;
+				it2++;
+				//				j++;
+
+			} 
+			TreeGeneratorType::Pointer treeGenerator = TreeGeneratorType::New();
+			treeGenerator->SetSample( m_FixedSample );
+			//			treeGenerator->SetBucketSize( fixedSample.Size() );
+			treeGenerator->Update();
+
+			m_FixedTree = treeGenerator->GetOutput();
+
+			this->lastMetric =-1;
+		}
+	template< class TFixedMesh, class TMovingMesh >
+		void 
+		VarifoldMeshCorrespondencesCalculator < TFixedMesh, TMovingMesh >
+		::SetMovingMesh (MovingMeshType * movingMesh)
+		{
+			Superclass::SetMovingMesh(movingMesh);
+			m_MovingSample = SampleType::New();
+			m_MovingSample->SetMeasurementVectorSize( 3 );
+			//			mVectors.clear();
+			//			mPoints.clear();
+
+			typename TMovingMesh::PointsContainer::Iterator it=movingMesh->GetPoints()->Begin();
+			typename TMovingMesh::PointsContainer::Iterator it2=movingMesh->GetPoints()->Begin();	
+			it2++;
+			//			int j=0;
+			while(it2!=movingMesh->GetPoints()->End())
+			{
+				//				itk::Vector<ScalarType> vec;
+				itk::Vector<ScalarType> pt;
+				MeasurementPointType mv;
+				for(int i=0;i<3;i++)
+				{
+					//					vec[i] = it2.Value()[i] -it.Value()[i];
+					//					pt[i]=it.Value()[i];
+					pt[i] = it2.Value()[i] -it.Value()[i];
+					mv[i]=it.Value()[i];
+				}
+				if(pt.GetNorm()!=0)
+				{
+					mv.SetValue(pt/pt.GetNorm());
+				}
+				m_MovingSample->PushBack( mv );
+				//				mPoints.push_back(pt);
+				//				mVectors.push_back(vec/vec.GetNorm());
+				it++;
+				it2++;
+				//				i++;
+			} 
+			TreeGeneratorType::Pointer treeGenerator = TreeGeneratorType::New();
+			treeGenerator->SetSample( m_MovingSample );
+			//			treeGenerator->SetBucketSize( i );
+			treeGenerator->Update();
+
+			m_MovingTree = treeGenerator->GetOutput();
+
+			this->lastMetric =-1;
+		}
+	template< class TFixedMesh, class TMovingMesh > 
+		VarifoldMeshCorrespondencesCalculator < TFixedMesh, TMovingMesh >
+		::VarifoldMeshCorrespondencesCalculator()
+		{
+			this->lastMetric = INT_MAX;
+		}
+
+	template< class TFixedMesh, class TMovingMesh >
+		void
+		VarifoldMeshCorrespondencesCalculator < TFixedMesh, TMovingMesh >
+		::Evaluate ()
+		{
+			if (!this->GetFixedMesh() || !this->GetMovingMesh())
+				itkExceptionMacro (<< "Fixed and/or moving mesh not set");
+
+
+			std::cout << "sigmaa " << this->GetSigma() << std::endl;
+			double sigmaSquared =  pow(this->GetSigma(),2);
+			double radius = 2* this->GetSigma();
+			double metric = 0;
+			this->lastMetric=0;
+
+			this->m_vecP.clear();
+			this->m_vecV.clear();
+			this->m_metric.clear();
+			//typename  TMovingMesh::PointsContainer::Iterator itM1=this->m_MovingMesh->GetPoints()->Begin();
+			typename SampleType::Iterator movIter = m_MovingSample->Begin();
+
+			while(movIter != m_MovingSample->End())
+			{
+
+				itk::Vector<ScalarType, 3> corr;
+				corr.Fill(0);
+				MeasurementPointType point = movIter.GetMeasurementVector();
+				MeasurementPointType p = movIter.GetMeasurementVector();
+				p[0] += 0.001;
+
+
+				TreeType::InstanceIdentifierVectorType neighbors;
+				m_MovingTree->Search( p, radius  , neighbors ) ;
+				for ( unsigned int i = 0 ; i < neighbors.size() ; i++ )
+				{
+					MeasurementPointType x = m_MovingTree->GetMeasurementVector( neighbors[i] );
+					float pointDistances =  x.SquaredEuclideanDistanceTo(point);
+					float angleDistance = 1  - pow(point.GetValue()*x.GetValue() ,2);
+					float kernel =exp(- (pointDistances+angleDistance)/sigmaSquared)/ neighbors.size();
+					corr  += 2*kernel* (x-point+((point.GetValue()*x.GetValue())*x.GetValue()))/sigmaSquared;
+					this->lastMetric+= kernel;	
+				}
+
+				/*				typename TMovingMesh::PointsContainer::Iterator itM2=this->m_MovingMesh->GetPoints()->Begin();
+								for(int m2_i=0;m2_i<mVectors.size();m2_i++)
+								{
+								float pointDistances =  itM2.Value().SquaredEuclideanDistanceTo(itM1.Value());
+								float angleDistance = 1  - pow(mVectors[m1_i]*mVectors[m2_i] ,2);
+								float kernel =exp(- (pointDistances+angleDistance)/sigmaSquared)/ mVectors.size();
+								corr  += 2*kernel* (itM2.Value()-itM1.Value()+((mVectors[m1_i]*mVectors[m2_i])*mVectors[m2_i]))/sigmaSquared;
+								itM2++;
+								}
+
+*/
+
+				m_FixedTree->Search( p, radius  , neighbors ) ;
+				for ( unsigned int i = 0 ; i < neighbors.size() ; i++ )
+				{
+					MeasurementPointType x = m_MovingTree->GetMeasurementVector( neighbors[i] );
+					float pointDistances =  x.SquaredEuclideanDistanceTo(point);
+					float angleDistance = 1  - pow(point.GetValue()*x.GetValue(),2);
+					float kernel= -2*exp(- (pointDistances+angleDistance)/sigmaSquared)/neighbors.size();
+					corr  += 2*kernel* (x-point+((x.GetValue()*point.GetValue())*x.GetValue()))/sigmaSquared;
+
+					this->lastMetric+= kernel;	
+					//			itF2++;
+				}
+
+				/*				typename TFixedMesh::PointsContainer::Iterator itF2=this->m_FixedMesh->GetPoints()->Begin();
+								itF2= this->m_FixedMesh->GetPoints()->Begin();
+								for(int f2_i=0;f2_i<fVectors.size();f2_i++)
+								{
+								float pointDistances =  itF2.Value().SquaredEuclideanDistanceTo(itM1.Value());
+								float angleDistance = 1  - pow(fVectors[m1_i]*mVectors[f2_i],2);
+								float kernel= -2*exp(- (pointDistances+angleDistance)/sigmaSquared)/fVectors.size();
+								corr  += 2*kernel* (itF2.Value()-itM1.Value()+((fVectors[f2_i]*mVectors[m1_i])*fVectors[f2_i]))/sigmaSquared;
+
+								itF2++;
+								}
+
+								itM1++;
+								*/
+				this->m_vecP.push_back( point);
+				this->m_vecV.push_back(corr);
+				movIter++;				
+			}
+			typename SampleType::Iterator fxdIter = m_FixedSample->Begin();
+
+			while(fxdIter != m_FixedSample->End())
+			{
+				MeasurementPointType point = fxdIter.GetMeasurementVector();
+				MeasurementPointType p = fxdIter.GetMeasurementVector();
+				p[0] += 0.001;
+
+				TreeType::InstanceIdentifierVectorType neighbors;
+				m_FixedTree->Search( p, radius  , neighbors ) ;
+				for ( unsigned int i = 0 ; i < neighbors.size() ; i++ )
+				{
+					MeasurementPointType x = m_MovingTree->GetMeasurementVector( neighbors[i] );
+					float pointDistances =  x.SquaredEuclideanDistanceTo(point);
+					float angleDistance = 1  - pow(point.GetValue()*x.GetValue(),2);
+					float kernel= exp(- (pointDistances+angleDistance)/sigmaSquared)/neighbors.size();
+
+					this->lastMetric+= kernel;	
+					//			itF2++;
+				}
+				fxdIter++;
+			}
+
+
+		}
+	template< class TFixedMesh, class TMovingMesh >
+		double 
+		VarifoldMeshCorrespondencesCalculator < TFixedMesh, TMovingMesh >
+		::Distance ()
+		{
+			if(lastMetric >= 0)
+			{
+				return lastMetric;
+			}
+			return -1;
+			/*			double sigmaSquared =  pow(this->GetSigma(),2);
+						double metric1=0,metric2=0,metric3 = 0;
+
+						typename TFixedMesh::PointsContainer::Iterator itF1=this->m_FixedMesh->GetPoints()->Begin();
+
+						for(unsigned int i=0; i<fVectors.size(); i++)
+						{
+						typename TFixedMesh::PointsContainer::Iterator itF2=this->m_FixedMesh->GetPoints()->Begin();
+						for(unsigned int j=0; j<fVectors.size(); j++)
+						{
+			//			    std::cout << " dis  " << (fVectors[i]*fVectors[i]/(fVectors[i].GetNorm() * fVectors[i].GetNorm()))<< std::endl;
+			float pointDistances =  itF1.Value().SquaredEuclideanDistanceTo(itF2.Value());
+			float angleDistance =1  - pow(fVectors[i]*fVectors[j],2);
+			float norm= fVectors.size()*2;
+			metric1 += exp(- (pointDistances+angleDistance)/sigmaSquared)/norm;
+			itF2++;
+			}
+			itF1++;
+			}
+
+			typename  TMovingMesh::PointsContainer::Iterator itM1=this->m_MovingMesh->GetPoints()->Begin();
+			for(unsigned int i=0; i<mVectors.size(); i++)
+			{
+			typename TMovingMesh::PointsContainer::Iterator itM2=this->m_MovingMesh->GetPoints()->Begin();
+			for(unsigned int j=0; j<mVectors.size(); j++)
+			{
+			float pointDistances =  itM1.Value().SquaredEuclideanDistanceTo(itM2.Value());
+			float angleDistance = 1  - pow(mVectors[i]*mVectors[j],2);
+			float norm= mVectors.size()*2;
+			metric2 += exp(- (pointDistances+angleDistance)/sigmaSquared)/norm;
+			itM2++;
+			}
+			itM1++;
+			}
+			itF1= this->m_FixedMesh->GetPoints()->Begin();
+			for(unsigned int i=0; i<fVectors.size(); i++)
+			{
+			itM1=this->m_MovingMesh->GetPoints()->Begin();
+			for(unsigned int j=0; j<mVectors.size(); j++)
+			{
+			float pointDistances =  itF1.Value().SquaredEuclideanDistanceTo(itM1.Value());
+			float angleDistance = 1- pow(fVectors[i]*mVectors[j],2);
+			float norm=fVectors.size()+ mVectors.size();
+			metric3 -= 2*exp(- (pointDistances+angleDistance)/sigmaSquared)/norm;
+			itM1++;	
+			}
+			itF1++;
+			}
+			std::cout << " metric " << metric1 << " " << metric2 << " " << metric3 << std::endl;
+			return metric1+metric2+metric3;
+			*/		}
+			template< class TFixedMesh, class TMovingMesh >
+				void
+				VarifoldMeshCorrespondencesCalculator < TFixedMesh, TMovingMesh >
+				::RecalculateSigma(double metric)
+				{
+					std::cout << "hola hola recalculate " <<(lastMetric -metric )*10000000<<  std::endl;
+					if(((lastMetric -metric )*10000000< this->GetSigma()) && this->GetSigma()>2 && metric < lastMetric)
+					{
+						this->SetSigma(this->GetSigma()-1);     	
+
+					}
+					lastMetric = metric;
+
+				}
+
+}
+
+#endif

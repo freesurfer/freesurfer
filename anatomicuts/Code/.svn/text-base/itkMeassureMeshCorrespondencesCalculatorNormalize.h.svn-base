@@ -1,0 +1,102 @@
+#ifndef _itk_MeassureMeshCorrespondencesCalculatorNormalize_h
+#define _itk_MeassureMeshCorrespondencesCalculatorNormalize_h
+#include "itkKdTree.h"
+#include "itkKdTreeGenerator.h"
+#include "itkListSample.h"
+#include "itkMeshCorrespondencesCalculatorBase.h"
+#include "itkAffineTransform.h"
+
+namespace itk
+{
+  
+  template < class TFixedMesh, class TMovingMesh >
+    class MeassureMeshCorrespondencesCalculatorNormalize :
+  public MeshCorrespondencesCalculatorBase < TFixedMesh, TMovingMesh >
+  {
+  public:
+    typedef MeassureMeshCorrespondencesCalculatorNormalize       Self;
+    typedef MeshCorrespondencesCalculatorBase
+      < TFixedMesh, TMovingMesh >                           Superclass;
+    typedef SmartPointer<Self>                              Pointer;
+    typedef SmartPointer<const Self>                        ConstPointer;
+
+    itkNewMacro  (Self);
+    itkTypeMacro (MeassureMeshCorrespondencesCalculatorNormalize, MeshCorrespondencesCalculatorBase);
+    
+
+    typedef typename Superclass::FixedMeshType    FixedMeshType;
+    typedef typename Superclass::FixedMeshTraits  FixedMeshTraits;
+    typedef typename Superclass::FixedPointType   FixedPointType;
+    typedef typename Superclass::FixedPixelType   FixedPixelType;
+    typedef typename Superclass::FixedVectorType  FixedVectorType;
+
+
+    typedef typename Superclass::MovingMeshType    MovingMeshType;
+    typedef typename Superclass::MovingMeshTraits  MovingMeshTraits;
+    typedef typename Superclass::MovingPointType   MovingPointType;
+    typedef typename Superclass::MovingPixelType   MovingPixelType;
+    typedef typename Superclass::MovingVectorType  MovingVectorType;
+
+
+    /** Some convenient typedefs. */
+    typedef typename Superclass::FixedMeshPointer      FixedMeshPointer;
+    typedef typename Superclass::FixedCellTraits       FixedCellTraits;
+    typedef typename Superclass::FixedCellIdentifier   FixedCellIdentifier;
+    typedef typename Superclass::FixedCellType         FixedCellType;
+    typedef typename Superclass::FixedCellAutoPointer  FixedCellAutoPointer;
+    typedef typename Superclass::FixedPointIdentifier  FixedPointIdentifier;
+    typedef typename Superclass::FixedPointIdIterator  FixedPointIdIterator;
+
+
+    typedef typename Superclass::MovingMeshPointer       MovingMeshPointer;
+    typedef typename Superclass::MovingCellTraits        MovingCellTraits;
+    typedef typename Superclass::MovingCellIdentifier    MovingCellIdentifier;
+    typedef typename Superclass::MovingCellType          MovingCellType;
+    typedef typename Superclass::MovingCellAutoPointer   MovingCellAutoPointer;
+    typedef typename Superclass::MovingPointIdentifier   MovingPointIdentifier;
+    typedef typename Superclass::MovingPointIdIterator   MovingPointIdIterator;
+
+    // K-d tree typedefs
+    typedef Vector< double, 3 >                             MeasurementVectorType;
+    typedef Statistics::ListSample< MeasurementVectorType > SampleType;
+    typedef Statistics::KdTreeGenerator< SampleType >       TreeGeneratorType;
+    typedef typename TreeGeneratorType::KdTreeType          TreeType;
+    typedef typename TreeType::NearestNeighbors             NeighborsType;
+    typedef typename TreeType::KdTreeNodeType               NodeType;
+    typedef Statistics::EuclideanDistanceMetric< MeasurementVectorType > DistanceMetricType;
+    typedef itk::AffineTransform<double,3>                  AffineTransformType;
+    typedef typename AffineTransformType::Pointer                    AffineTransformPointerType ;
+
+
+    virtual void Evaluate (void);
+    virtual void EvaluateNewton (void);
+    virtual double Distance (void);
+    virtual void RecalculateSigma(double);
+    virtual AffineTransformPointerType  EvaluateGradientAffine (AffineTransformPointerType, float);
+    virtual void EvaluateTimes (int times, float epsilon);
+    
+    //This should be set in he sample meassure as the points (cm, mm) 
+    //virtual void SetUpsamplingPointsNumber(unsigned int n){this->upsamplingPointsNumber= n;}
+
+    virtual double GetSigma(){ return Superclass::GetSigma();}// *this->GetSpacing();}
+  protected:
+    void UpsampleMeshes(int, std::vector< std::vector< float> >* , std::vector<float>*, FixedMeshPointer);
+    MeassureMeshCorrespondencesCalculatorNormalize();
+    ~MeassureMeshCorrespondencesCalculatorNormalize() {}
+    
+  private:
+    
+    MeassureMeshCorrespondencesCalculatorNormalize (const Self&);
+    void operator=(const Self&);   
+    double lastMetric;
+    //unsigned int upsamplingPointsNumber;
+ 
+  };  
+}
+
+#ifndef ITK_MANUAL_INSTANTIATION
+#include "itkMeassureMeshCorrespondencesCalculatorNormalize.txx"
+#endif
+
+#endif
+

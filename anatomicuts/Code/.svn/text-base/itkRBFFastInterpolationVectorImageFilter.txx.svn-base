@@ -1,0 +1,482 @@
+#ifndef _itk_RBFFastInterpolationVectorImageFilter_txx_
+#define _itk_RBFFastInterpolationVectorImageFilter_txx_
+#include "itkRBFFastInterpolationVectorImageFilter.h"
+
+#include <itkImageRegionIterator.h>
+#include <itkImageRegionConstIteratorWithIndex.h>
+
+#ifdef TTK_USE_MKL
+#include <mkl_lapack.h>
+#else
+#include <vnl/algo/vnl_matrix_inverse.h>
+#include <vnl/algo/vnl_symmetric_eigensystem.h>
+#include <vnl/algo/vnl_lsqr.h>
+#include <vnl/vnl_sparse_matrix_linear_system.h>
+#endif
+#include <cLapack.h>
+
+// #include "gmm/gmm.h"
+
+namespace itk
+{
+
+  template< class TInputImage, class TOutputImage>
+    void
+    RBFFastInterpolationVectorImageFilter<TInputImage, TOutputImage>
+    ::BeforeThreadedGenerateData()
+    {
+//    std::cout << " before threaded generate data rbffast interpolation vector image filter" << std::endl;
+      if( ( m_Vectors.size()==0 ) || ( m_Vectors.size()!=m_Points.size() ) )
+      {
+        std::cout << " vector size , pints size " << m_Vectors.size() << " " << m_Points.size() << std::endl;
+        throw itk::ExceptionObject(__FILE__,__LINE__,"Error: Vectors (or Points) not (or badly) set.");
+      }
+
+
+ 
+      // Solve the system
+      unsigned int numVectors = m_Vectors.size();
+      unsigned int N          = numVectors+1;
+
+      m_MaxValue = static_cast<OutputPixelType>(0.0);
+      
+      
+//      SparseMatrixType  SH(N, N);
+      double *VH = new double[N*N];
+      
+
+      //Add polynomial part (constant polynomial)
+      for( unsigned int j=0;j<numVectors;j++)
+      {
+
+	//SH(j,numVectors) = 1.0;
+   //     SH(numVectors,j) = 1.0;
+
+        VH[numVectors*N+j] = 1.0;
+        VH[j*N+numVectors] = 	1.0;
+
+      }
+   //   SH(numVectors,numVectors) = 0.0;
+      VH[numVectors*N+numVectors] =0.0;
+
+      for(unsigned int j=0; j<numVectors; j++)
+      {
+        PointType xj = (m_Points)[j];
+
+        for(unsigned int i=0; i<numVectors; i++)
+        {
+          PointType xi =(m_Points)[i];
+//	  SH(j,i) = static_cast<double>(this->h(xj,xi, m_Sigma, m_Gamma));
+//upside down
+		VH[i*N+j] = static_cast<double>(this->h(xj,xi, m_Sigma, m_Gamma));
+        }
+      }
+      
+
+  //    std::vector<GeneralVectorType> T;
+
+//     std::vector<double*> LT;
+      double* LT = new double[N*OutputPixelType::GetVectorDimension()];
+
+     for( unsigned int i=0; i<OutputPixelType::GetVectorDimension(); i++)
+      {
+	//      GeneralVectorType t (N);
+	  //   double *ti = new double[N];      
+	
+        for( unsigned int j=0; j<numVectors; j++)
+        {
+          //OutputPixelType W = m_Vectors[j] - m_Mean;
+          OutputPixelType W = (m_Vectors)[j];
+//	  t (j) = static_cast<double>(W[i]);
+//	  ti[j] = static_cast<double>(W[i]);
+//        int index = j*OutputPixelType::GetVectorDimension() +i;
+        LT[i*N+j] = static_cast<double>(W[i]);
+//        std::cout <<"  index "<< index;
+        }
+
+        LT[i*N+numVectors]  = 0;
+	
+  //t(numVectors) = 0;
+	//T.push_back (t);
+	
+      }
+m_L =      GeneralMatrixType ( N, OutputPixelType::GetVectorDimension());
+	//std::cout << " before lapack " << std::endl;
+  int res =	LAPACK::dgels(N,N,OutputPixelType::GetVectorDimension(),VH,LT);
+//	std::cout << " result lapack " << res <<std::endl;
+	
+      for( unsigned int i=0; i<OutputPixelType::GetVectorDimension(); i++)
+      {
+//	vnl_sparse_matrix_linear_system<double> h_system (SH, T[i]);
+	
+	
+//GeneralVectorType pt (N);
+/*	h_system.apply_preconditioner (T[i], pt);
+	
+	vnl_lsqr lsq ( h_system );
+	lsq.set_max_iterations(500);
+	lsq.minimize (pt);
+
+	std::cout << " pt :"  << std::endl;
+*/
+	for(unsigned int j=0; j<N; j++)
+	{
+		//std::cout << 	pt(g) ;
+	//	pt(g) = LT[i][g];
+    m_L(j,i) = LT[i*N+j];
+	}
+//	std::cout << std::endl;
+
+	/*
+	SolverVectorType *residual = new SolverVectorType (N, 0.0);
+	gmm::iteration iter(1e-8);
+	iter.set_maxiter(1000);
+      
+	gmm::least_squares_cg(*gmmHRead, *residual, *(gmmTT[i]), iter);
+
+	double rhsNorm = gmm::vect_norm2(*(gmmTT[i]));
+	
+	std::cout << "Iter: "<< iter.get_iteration() <<", ";
+	std::cout << "Res: "<< iter.get_res() <<", ";
+	std::cout << "Rhsn: "<< rhsNorm <<", ";
+	std::cout << "An: " << gmm::mat_euclidean_norm(*gmmHRead) << ", ";
+	std::cout << "Fraction: " << iter.get_res()/rhsNorm << std::endl;
+	*/
+	
+//	m_L.set_column (i, pt);
+
+	//std::cout << pt << std::endl;
+	//std::cout << *residual << std::endl;
+	//getchar();
+	
+      }
+
+
+      
+      
+      //vnl_symmetric_eigensystem <ScalarType> EH (H);
+
+      /*
+      vnl_matrix_inverse<ScalarType> IH (H);
+      for( unsigned int i=0; i<OutputPixelType::GetVectorDimension(); i++)
+      {
+	GeneralVectorType t = IH.solve (T[i]);
+	vnl_sparse_matrix_linear_system<ScalarType> h_system (SH, T[i]);
+	std::cout << "System solved (brute force) " << i << ": " << h_system.get_rms_error(t) << std::endl;
+	std::cout << t << std::endl;
+      }
+      
+      m_L = ( IH.inverse() ) * TT;
+      */
+
+      //std::cout << m_L << std::endl;
+      
+      //m_L = IH.solve (T); //( IH.inverse() ) * T;
+     delete VH;
+     delete  LT;
+    }
+
+
+  template< class TInputImage, class TOutputImage>
+    void
+    RBFFastInterpolationVectorImageFilter<TInputImage,  TOutputImage>
+    ::ThreadedGenerateData(const OutputImageRegionType &outputRegionForThread, int threadId)
+
+    {
+	/*std::cout << " rbf fast interpolator : threaded Generate Data " << std::endl;		
+      typedef ImageRegionIterator<OutputImageType>               OutputImageIteratorType;
+      typedef ImageRegionConstIteratorWithIndex<InputImageType>  InputImageIteratorType;
+
+      InputImageIteratorType itIn(this->GetInput(),outputRegionForThread);
+      OutputImageIteratorType itOut(this->GetOutput(),outputRegionForThread);
+
+      unsigned int numVectors = m_Vectors.size();
+      //Add one row and col to the matrix, in order to add a polynomial ( constant )
+      unsigned int N = numVectors+1;
+//      std::cout <<"m_L :" <<m_L<<std::endl;
+	int indexP = 0;
+      while(!itOut.IsAtEnd())
+      {
+        OutputPixelType out = static_cast<ScalarType>( 0.0 );
+        
+        IndexType index = itIn.GetIndex();
+        PointType pt;
+        this->GetInput()->TransformIndexToPhysicalPoint(index,pt);	    
+        GeneralMatrixType res; 
+	double uniqueIndex = pt[0]*256*256+ pt[1]*256+pt[2];	
+		
+	if(mapPointDistances.find(uniqueIndex) == mapPointDistances.end())
+	{ 
+		GeneralMatrixType H(1,N);
+		//        H (0,0)=1.0;
+		//The last value corresponds to the coefficient of the P
+		H(0,numVectors) = 1.0;
+
+		for(unsigned int i=0; i<numVectors; i++)
+		{
+			//          std::cout << m_Points[i] << " , ";
+			PointType pti = (m_Points)[i];
+			H(0,i) = this->h(pti,pt,m_Sigma,m_Gamma);
+		}
+
+		// compute the interpolated value
+		//         std::cout <<"H " <<H<<std::endl;
+		//        std::cout <<"m_L :" <<m_L<<std::endl;
+		//        std::cin.get();
+		res = H*m_L;
+		mapPointDistances[uniqueIndex] = H;
+	
+	}
+	else
+	{
+std::cout << " pt : " << pt << std::endl;
+		res = mapPointDistances[uniqueIndex]*m_L;
+	}
+	OutputPixelType M;
+	for(unsigned int i =0; i<OutputPixelType::GetVectorDimension();i++)
+	{
+		out[i] =res[0][i];
+		if(this->m_MaxValue[i] < out[i])
+		{
+			this->m_MaxValue[i] = out[i];
+		}
+	}
+
+        itOut.Set(out);
+
+        ++itIn;
+        ++itOut;
+      }
+      std::cout << " end threaded generate data " << std::endl;		
+*/
+    }
+
+
+  template< class TInputImage, class TOutputImage>
+    typename RBFFastInterpolationVectorImageFilter<TInputImage, TOutputImage>::OutputPixelType
+    RBFFastInterpolationVectorImageFilter<TInputImage, TOutputImage>
+    ::ComputeMeanOfVectors(const VectorOfPixelType& vec)
+    {
+
+      unsigned int numVectors = vec.size();
+      OutputPixelType mean (static_cast<ScalarType>( 0.0 ) );
+
+      for(unsigned int n=0; n<numVectors; n++)
+      {
+
+        //OutputPixelType W = m_Vectors[n].Log();
+        OutputPixelType W = vec[n];
+
+        for(unsigned  int i=0; i<OutputPixelType::GetVectorDimension(); i++)
+        { 
+          mean[i] += W[i];
+        }
+
+      }
+
+      if( numVectors != 0 )
+      {
+        for(unsigned int i=0;i<OutputPixelType::GetVectorDimension();i++)
+        {
+          mean[i] /= static_cast<ScalarType>( numVectors );
+        }
+      }
+      return mean;
+
+    }
+
+
+  template< class TInputImage, class TOutputImage>
+    typename RBFFastInterpolationVectorImageFilter<TInputImage, TOutputImage>::ScalarType
+    RBFFastInterpolationVectorImageFilter<TInputImage, TOutputImage>
+    ::h(const PointType& x1, const PointType& x2, const ScalarType& sigma, const ScalarType& gamma)
+    {
+       double dist2 = x1.SquaredEuclideanDistanceTo (x2);
+//      std::cout << "euclidean " << dist2 << std::endl ; 
+      //return static_cast<ScalarType>( 1.0/(1.0 + pow(dist2/(sigma*sigma),gamma)) );
+      
+      ScalarType res;// = static_cast<ScalarType>(dist2);
+      if( dist2 == 0.0 )
+      {
+        res = static_cast<ScalarType>(0.0);
+      }
+      else
+      {  
+        res = static_cast<ScalarType>( sqrt (dist2) );
+      }
+
+     // std::cout << "distancia euc " << res<< std::endl; 
+      return res;
+
+    }
+
+  template< class TInputImage, class TOutputImage>
+    typename RBFFastInterpolationVectorImageFilter<TInputImage, TOutputImage>::OutputPixelType
+    RBFFastInterpolationVectorImageFilter<TInputImage, TOutputImage>::
+    InterpolateAt(const IndexType& index)
+    {
+        PointType pt;
+        this->GetInput()->TransformIndexToPhysicalPoint(index,pt);	    
+       unsigned int numVectors = m_Vectors.size();
+      //Add one row and col to the matrix, in order to add a polynomial ( constant )
+      unsigned int N = numVectors+1;
+        GeneralMatrixType H(1,N);
+        H(0,numVectors) = 1.0;
+
+        for(unsigned int i=0; i<numVectors; i++)
+        {
+          PointType pti = (m_Points)[i];
+          H(0,i) = this->h(pti,pt,m_Sigma,m_Gamma);
+        }
+
+        GeneralMatrixType res = H*m_L;
+        OutputPixelType out;
+        for(unsigned int i =0; i<OutputPixelType::GetVectorDimension();i++)
+        {
+          out[i] =res[0][i];
+        }
+      return out; 
+    }
+    
+
+  template< class TInputImage, class TOutputImage>
+    typename RBFFastInterpolationVectorImageFilter<TInputImage, TOutputImage>::VectorOfPixelType
+    RBFFastInterpolationVectorImageFilter<TInputImage, TOutputImage>::
+    InterpolateValuesAt(const VectorOfPixelType& vectors, const VectorOfPointsType& points, const VectorOfPointsType& positions, const ScalarType& sigma, const ScalarType& gamma)
+    {
+      std::cout << "iterate values at " << std::endl;
+	if( vectors.size()==0 || vectors.size()!=points.size() )
+        throw itk::ExceptionObject (__FILE__,__LINE__,"Error in RBFFastInterpolationVectorImageFilter::InterpolateValuesAt(): Sizes do not match.");
+
+      // compute the tensors mean:
+      OutputPixelType mean = Self::ComputeMeanOfVectors( vectors );
+
+      // Solve the system
+      unsigned int numVectors = vectors.size();
+      //Add a col and row to the matrix for the polynomial (constant )
+      unsigned int N = numVectors+1;
+
+      GeneralMatrixType H(N, N, 0.0);
+      GeneralMatrixType T(N, OutputPixelType::GetVectorDimension(), 0.0);
+      
+      //Initialize the polynomial part
+      for( unsigned int j=0;j<numVectors;j++)
+      {
+        //j,0 
+        H(numVectors,j) = 1.0;
+        H(j,numVectors) = 1.0;
+      }
+      H(numVectors,numVectors) = 0.0;
+      
+
+      //numVectors ,0
+      //    H(0,numVectors) = 0.0;
+
+      for(unsigned int j=0; j<numVectors; j++)
+      {
+        PointType xj = points[j];
+
+        for(unsigned int i=0; i<numVectors; i++)
+        {
+          PointType xi = points[i];
+          //j,i
+          H(i,j) = Self::h(xj,xi, sigma, gamma);
+        }
+
+        //numVectors,j
+        //H(numVectors,j) = 0.0;
+
+      }
+
+      for( unsigned int i=0; i<OutputPixelType::GetVectorDimension(); i++)
+      {
+        for( unsigned int j=0; j<numVectors; j++)
+        {
+          //OutputPixelType W = vectors[j] - mean;
+          OutputPixelType W = vectors[j];
+          T(j,i) = W[i];
+        }
+
+        //i,numVectors
+        //T(numVectors,i) = 0.0;
+        T(numVectors,i) = 0.0;
+      }
+
+      GeneralMatrixType L = GeneralMatrixType ( N, OutputPixelType::GetVectorDimension(), 0.0 );
+//      std::cout  << "T "<< T << std::endl;
+
+      vnl_matrix_inverse<ScalarType> IH(H);
+      L = ( IH.inverse() ) * T;
+//      std::cout <<  H*L << std::endl;
+
+      VectorOfPixelType output;
+
+      // now interpolate
+      for( unsigned int j=0; j<positions.size(); j++)
+      {
+        GeneralMatrixType H(1,N);
+        //1.0
+        //H (0,0)=1.0;
+        //corresponds to the polynomial.
+        H(0,numVectors) =1.0;
+
+        PointType pt = positions[j];
+
+        for(unsigned int i=0; i<numVectors; i++)
+        {
+          PointType pti = points[i];
+          H(0,i) = Self::h(pti,pt,sigma,gamma);
+        }
+        //  std::cout << "H " << H  << std::endl;
+        //  std::cout << "L "<< L << std::endl;
+
+//        std::cout << H*L << std::endl;
+
+        // std::cin.get();
+        // compute the interpolated value
+        GeneralMatrixType res = H*L;
+        OutputPixelType M;
+//        std::cout << "res " << res ;
+        // M = res[0]/mean;
+        //std::cin.get();
+        for(unsigned int i=0; i<OutputPixelType::GetVectorDimension(); i++)
+        {
+          M[i] =res[0][i]; //* mean[i];
+        }      
+
+        output.push_back (M);
+      }
+      return output;
+    }
+  template< class TInputImage, class TOutputImage>
+    void
+    RBFFastInterpolationVectorImageFilter<TInputImage, TOutputImage>
+    ::AfterThreadedGenerateData()
+    {
+/*      typedef ImageRegionIterator<OutputImageType>               OutputImageIteratorType;
+      OutputImageIteratorType itOut(this->GetOutput(), this->GetOutput()->GetRequestedRegion());
+      
+      OutputPixelType out = static_cast<OutputPixelType>( 0.0 );
+      double val = 0 ;
+      for(unsigned int i=0; i<OutputPixelType::GetVectorDimension(); i++)
+      {
+          val = m_MaxValue[i] * m_MaxValue[i];
+      }
+
+      val = sqrt(val);
+      while(!itOut.IsAtEnd())
+      {
+        for(unsigned int i=0; i<OutputPixelType::GetVectorDimension(); i++)
+        {
+          out[i]= itOut.Get()[i] /val;
+        }
+
+        itOut.Set(out);
+        ++itOut;
+      }
+  */  }
+
+} // end of namespace itk
+
+
+#endif

@@ -1,0 +1,105 @@
+#ifndef _itk_RemoveTipPolyLineMeshFilter_h_
+#define _itk_RemoveTipPolyLineMeshFilter_h_
+
+#include "itkMeshToMeshFilter.h"
+
+namespace itk
+{
+
+  template <class TInputMesh,class TOutputMesh>
+    class RemoveTipPolylineMeshFilter :
+  public MeshToMeshFilter<TInputMesh, TOutputMesh>
+  {
+  public:
+    typedef RemoveTipPolylineMeshFilter Self;
+    typedef MeshToMeshFilter<TInputMesh,TOutputMesh>       Superclass;
+    typedef SmartPointer<Self>                              Pointer;
+    typedef SmartPointer<const Self>                        ConstPointer;
+
+    itkNewMacro  (Self);
+    itkTypeMacro (RemoveTipPolylineMeshFilter, MeshToMeshFilter);
+
+    typedef TInputMesh                         OutputMeshType;
+    typedef typename OutputMeshType::MeshTraits OutputMeshTraits;
+    typedef typename OutputMeshType::PointType  OutputPointType;
+    typedef typename OutputMeshType::PixelType  OutputPixelType;
+
+    
+    typedef TOutputMesh                         InputMeshType;
+    typedef typename InputMeshType::MeshTraits InputMeshTraits;
+    typedef typename InputMeshType::PointType  InputPointType;
+    typedef typename InputMeshType::PixelType  InputPixelType;
+
+    
+    /** Some convenient typedefs. */
+    typedef typename OutputMeshType::Pointer         OutputMeshPointer;
+    typedef typename OutputMeshType::CellTraits      OutputCellTraits;
+    typedef typename OutputMeshType::CellIdentifier  OutputCellIdentifier;
+    typedef typename OutputMeshType::CellType        OutputCellType;
+    typedef typename OutputMeshType::CellAutoPointer OutputCellAutoPointer;
+    typedef typename OutputMeshType::PointIdentifier OutputPointIdentifier;
+    typedef typename OutputCellTraits::PointIdIterator     OutputPointIdIterator;
+    
+    typedef typename OutputMeshType::PointsContainerPointer
+      OutputPointsContainerPointer;
+    
+    typedef typename OutputMeshType::PointsContainer
+      OutputPointsContainer;
+
+    typedef typename OutputMeshType::CellsContainer
+      OutputCellsContainer;
+
+    typedef typename OutputMeshType::CellsContainerPointer
+      OutputCellsContainerPointer;
+
+
+    typedef typename InputMeshType::Pointer         InputMeshPointer;
+    typedef typename InputMeshType::CellTraits      InputMeshCellTraits;
+    typedef typename InputMeshType::CellIdentifier  InputMeshCellIdentifier;
+    typedef typename InputMeshType::CellType        InputMeshCellType;
+    typedef typename InputMeshType::CellAutoPointer InputMeshCellAutoPointer;
+    typedef typename InputMeshType::PointIdentifier InputMeshPointIdentifier;
+    typedef typename InputMeshCellTraits::PointIdIterator   InputMeshPointIdIterator;
+    
+    typedef typename InputMeshType::PointsContainerPointer
+      InputPointsContainerPointer;
+    
+    typedef typename InputMeshType::PointsContainer
+      InputPointsContainer;
+
+    typedef typename InputMeshType::CellsContainer
+      InputCellsContainer;
+
+    typedef typename InputMeshType::CellsContainerPointer
+      InputCellsContainerPointer;
+
+    double GetTipLenght()
+    {
+      return this->tipLenght;
+    }
+
+    void SetTipLenght(double  tl)
+    {
+       this->tipLenght= tl;
+    }
+
+  protected:
+    RemoveTipPolylineMeshFilter();
+    ~RemoveTipPolylineMeshFilter() {};
+
+    virtual void GenerateData (void);
+
+    
+  private:
+    RemoveTipPolylineMeshFilter (const Self&);
+    void operator=(const Self&);
+     double tipLenght;
+  };
+  
+}
+
+#ifndef ITK_MANUAL_INSTANTIATION
+#include "itkRemoveTipPolyLineMeshFilter.txx"
+#endif
+
+#endif
