@@ -73,6 +73,7 @@ static int PrintCRes = 0;
 static int PrintType = 0 ;
 static int PrintConformed = 0 ;
 static int PrintConformedToMin = 0 ;
+static int PrintIs1mmIso = 0;
 static int PrintRRes = 0;
 static int PrintSRes = 0;
 static int PrintVoxVol  = 0;
@@ -279,6 +280,10 @@ static int parse_commandline(int argc, char **argv)
     {
       PrintType = 1;
     }
+    else if (!strcasecmp(option, "--is-1mm-iso"))
+    {
+      PrintIs1mmIso = 1;
+    }
     else if (!strcasecmp(option, "--conformed"))
     {
       PrintConformed = 1;
@@ -470,6 +475,7 @@ static void print_usage(void)
   printf("\n");
   printf("   --conformed : print whether a volume is conformed stdout\n");
   printf("   --conformed-to-min : print whether a volume is conformed-to-min stdout\n");
+  printf("   --is-1mm-iso : print whether the voxel size is 1mm isotropic\n");
   printf("   --type : print the voxel type/precision (e.g. FLOAT) to stdout\n");
   printf("   --tr : print TR to stdout\n");
   printf("   --te : print TE to stdout\n");
@@ -701,10 +707,18 @@ static void do_file(char *fname)
 //    return;
   }
 
+  if(PrintIs1mmIso)
+  {
+    if(fabs(mri->xsize-1.0)<.001 && fabs(mri->ysize-1.0)<.001 && fabs(mri->zsize-1.0)<.001)
+      fprintf(fpout,"yes\n");
+    else
+      fprintf(fpout,"no\n");
+    return;
+  }
   if (PrintConformed)
   {
     fprintf(fpout,"%s\n",mriConformed(mri) ? "yes" : "no");
-//    return;
+    return;
   }
   if (PrintConformedToMin)
   {
@@ -713,6 +727,7 @@ static void do_file(char *fname)
       fprintf(fpout,"yes\n");
     else
       fprintf(fpout,"no\n");
+    return;
   }
 
   if (PrintType)
