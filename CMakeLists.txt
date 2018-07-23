@@ -75,13 +75,13 @@ add_definitions(-DUSE_LOCAL_MINC)
 find_package(Tetgen REQUIRED)
 
 # -------- petsc --------
-find_package(PETSC REQUIRED)
+find_package(PETSC)
 
 # -------- itk --------
 if(NOT ITK_DIR)
   set(ITK_DIR ${FS_PACKAGES_DIR}/itk/5.0.0)
 endif()
-find_package(ITK REQUIRED)
+find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 add_definitions(-DHAVE_ITK_LIBS)
 
 # -------- boost program options --------
@@ -89,7 +89,7 @@ find_package(Boost COMPONENTS program_options)
 
 # -------- ann --------
 # ANN is only used by mris_resample
-find_package(ANN REQUIRED)
+find_package(ANN)
 
 # -------- gts --------
 # only used by mris_decimate and mris_decimate_gui
@@ -124,7 +124,9 @@ if(BUILD_GUIS)
     set(Qt5_DIR ${MARTINOS_Qt5})
   endif()
   find_package(Qt5 COMPONENTS Core Widgets X11Extras)
-  add_definitions(-DUSING_QT_5)
+  if(Qt5_FOUND)
+    add_definitions(-DUSING_QT_5)
+  endif()
 
   # -------- vtk --------
   find_package(VTK)
