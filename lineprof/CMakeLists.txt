@@ -4,7 +4,7 @@ if(ITK_FOUND AND VTK_FOUND AND PETSC_FOUND)
 
   include_directories(
     ${ITK_INCLUDE_DIRS}
-    ${VTK_INCLUDE_DIR}
+    ${VTK_INCLUDE_DIRS}
     ${PETSC_INCLUDE_DIR}
   )
 
