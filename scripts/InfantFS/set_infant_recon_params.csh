@@ -6,6 +6,7 @@ setenv FSSCRIPTSDIR $FREESURFER_HOME/bin
 # training subjects
 source $BABYDEVSCRIPTSDIR/atlassubjects.csh
 
+
 # segmentation postprocessing
 # set version = Num4
 # set withparcellationlabels = 0
