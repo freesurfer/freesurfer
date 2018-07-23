@@ -25,6 +25,14 @@ set(CMAKE_NO_SYSTEM_FROM_IMPORTED TRUE)
 #   library dependencies and third-party packages
 # --------------------------------------------------
 
+# Most of the packages required by freesurfer are located by custom find-modules stored in the
+# 'cmake' subdir. The find-modules expect each package to be installed under a common
+# path defined by FS_PACKAGES_DIR. On Martinos machines, this variable automatically defaults
+# to /usr/pubsw/packages, but external developers must provide this path manually. External developers
+# can run the packages/build_packages.py script to compile the dependencies locally. If a package
+# is not found under FS_PACKAGES_DIR, cmake will continue to look through the default search paths.
+# Additionally, alternative paths to package installs can be specified with the <PACKAGE>_DIR variables
+
 if(NOT FS_PACKAGES_DIR)
   if(EXISTS /usr/pubsw/packages)
     # if the user is at Martinos, default to /usr/pubsw/packages
@@ -39,6 +47,7 @@ if(NOT FS_PACKAGES_DIR)
   endif()
 endif()
 
+# all custom find-modules are stored in the cmake subdir
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 # -------- zlib --------
@@ -195,17 +204,18 @@ if(NOT APPLE)
 endif()
 
 # this is just a way to properly include netcdf in include/minc_volume_io.h
-# todo: there should be a better way to include netcdf and this macro should be removed
+# todo: this macro should be removed once the above gets sorted out
 add_definitions(-DCMAKE) 
 
+
 # --------------------------------------------------
-#                    freesurfer
+#                 build freesurfer
 # --------------------------------------------------
 
 # first, prepare the freesurfer distribution
 add_subdirectories(distribution images)
 
-# now build the freesurfer libraries (order here matters!)
+# now build the freesurfer static libraries (order here matters!)
 add_subdirectories(
   unix
   log
@@ -222,10 +232,15 @@ add_subdirectories(
 # the following utility libs are required for freeview
 add_subdirectories(vtkfsio vtkutils lineprof)
 
+# the fem elastic subdir also builds a library, so it should be added first
+add_subdirectory(fem_elastic)
+
 
 # --------------------------------------------------
 #                      programs
 # --------------------------------------------------
+
+# configure the remaining FS subdirs
 
 add_subdirectories(
   BrainstemSS
@@ -233,7 +248,6 @@ add_subdirectories(
   connectgraph
   dmri_tensoreig
   dummy
-  fem_elastic
   freeview
   fsfast
   fslutils

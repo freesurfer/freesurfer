@@ -1,5 +1,22 @@
 #!/usr/bin/env python
 
+# This is a utility script to help external developers easily build
+# freesurfer dependencies. The packages, defined below in the 'pkgs' list,
+# are built with the scripts and tarballs stored in the packages/source dir
+# and will get installed to the destination directory specified on the command-line.
+# 
+# usage:
+#    build_packages.py /path/to/install/destination
+#
+# Particular packages can be ignored with the --no-<package-name> flags documented in the
+# help text. This script loops through each package object defined below, extracts the
+# assocated tarball to <destination-dir>/<package-name>/<version>/src, and runs
+# the provided build script. The individual build scripts should always expect a single
+# input argument that specifies the appropriate install directory. After each successful package
+# build, the checksum of the tarball + build script is saved to the src dir. This way,
+# if this script is rerun, the package is only rebuilt when the source code has been
+# modified/updated.
+
 import os
 import sys
 import shutil
@@ -8,10 +25,13 @@ import tarfile
 import subprocess
 import hashlib
 
+# get the absolute path of this build_packages.py script, so we can
+# locate the source tarballs and scripts (and import the log module while we're at it)
 fs_source_dir = os.path.dirname(os.path.abspath(os.path.dirname(sys.argv[0])))
 sys.path.append(os.path.join(fs_source_dir, 'python'))
 from freesurfer.log import *
 
+# simple package class to store package source information
 class Package:
   def __init__(self, name, version, script, tarball, required=True):
     self.name = name
@@ -24,6 +44,8 @@ class Package:
     if not os.path.exists(self.tarball):
       errorExit('%s does not exist' % self.tarball)
 
+# -----------------------------------------------------------------------------------------
+#                           ~~ freesurfer dependencies ~~
 
 pkgs = [
   Package('jpeg',        '6b',     'build_jpeg.sh',   'jpeg-6b.tar.gz'),
@@ -41,15 +63,18 @@ pkgs = [
   Package('itk',         '5.0.0',  'build_itk.sh',    'itk-5.0.0.tar.gz')
 ]
 
+# -----------------------------------------------------------------------------------------
 
 # parse the command line inputs
 parser = argparse.ArgumentParser()
 parser.add_argument('destination', help="installation dir for the packages")
+parser.add_argument('-f', '--force', action='store_true', help="force build packages")
 for package in pkgs:
+  # add option to skip individual packages
   parser.add_argument('--no-%s' % package.name, action='store_true', help="don't build %s %s" % (package.name, package.version))
-args = parser.parse_args()
+args = parser.parse_args()  # parse the cmd line
 
-# make the packages destination dir
+# create the packages destination dir
 destination_dir = os.path.abspath(args.destination)
 if not os.path.exists(destination_dir): os.makedirs(destination_dir)
 
@@ -57,9 +82,9 @@ for package in pkgs:
   # cd into packages install destination
   os.chdir(destination_dir)
   
-  # make sure we aren't skipping this package
+  # make sure we aren't skipping this one
   if vars(args)['no_%s' % package.name]:
-    print('skipping %s %s...' % (package.name, package.version))
+    print('skipping %s%s %s%s...' % (term.bold, package.name, package.version, term.end))
     continue
   
   # get the actual package install dir
@@ -81,8 +106,8 @@ for package in pkgs:
   md5_filename = os.path.join(src_dir, 'md5')
   if os.path.isfile(md5_filename):
     with open(md5_filename, 'r') as f: md5_old = f.read().replace('\n', '')
-    # check for a difference
-    if md5_old == md5_current:
+    # check for any difference
+    if md5_old == md5_current and not args.force:
       print('It appears that %s%s %s%s has already been built successfully. '
             'To force a rebuild, use the --force option or delete %s' % (term.bold, package.name,
              package.version, term.end, md5_filename))
@@ -90,7 +115,7 @@ for package in pkgs:
 
   print('\n%sBuilding %s %s...%s\n' % (term.bold, package.name, package.version, term.end))
 
-  # make the package directory
+  # setup the package install directory
   if not os.path.exists(package_dir): os.makedirs(package_dir)
 
   # clean the src directory and cd into it
@@ -98,7 +123,7 @@ for package in pkgs:
   os.makedirs(src_dir)
   os.chdir(src_dir)
 
-  # untar
+  # untar the tar
   ret = subprocess.call('tar -xzf %s' % package.tarball, shell=True)
   if ret != 0: exit(ret)
 
