@@ -247,7 +247,7 @@ add_subdirectories(
   check_siemens_dir
   connectgraph
   dmri_tensoreig
-  dummy
+  dngtester
   freeview
   fsfast
   fslutils

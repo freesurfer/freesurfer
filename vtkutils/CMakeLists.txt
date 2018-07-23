@@ -4,24 +4,25 @@ if(VTK_FOUND AND KWWidgets_FOUND AND TCLTKTIXBLT_FOUND)
 
   include_directories(
     ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${TIFF_INCLUDE_DIR}
-    ${VTK_INCLUDE_DIR}
+    ${VTK_INCLUDE_DIRS}
     ${KWWidgets_INCLUDE_DIR}
   )
 
   # use vtkWrapTcl to create the tcl-wrapped code for these objects
   add_custom_command(
     OUTPUT vtkKWRGBATransferFunctionEditorTcl.cxx
-    DEPENDS vtkKWRGBATransferFunctionEditor.h
-    COMMAND ${VTK_WRAP_TCL_EXE} vtkKWRGBATransferFunctionEditor.h 
-            ${VTK_LIBRARY_DIR}/hints 1 vtkKWRGBATransferFunctionEditorTcl.cxx
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vtkKWRGBATransferFunctionEditor.h
+    COMMAND ${VTK_WRAP_TCL_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/vtkKWRGBATransferFunctionEditor.h 
+            ${VTK_LIBRARY_DIRS}/hints 1 vtkKWRGBATransferFunctionEditorTcl.cxx
   )
 
   add_custom_command(
     OUTPUT vtkKWBltGraphTcl.cxx
-    DEPENDS vtkKWBltGraph.h
-    COMMAND ${VTK_WRAP_TCL_EXE} vtkKWBltGraph.h 
-            ${VTK_LIBRARY_DIR}/hints 1 vtkKWBltGraphTcl.cxx
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vtkKWBltGraph.h
+    COMMAND ${VTK_WRAP_TCL_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/vtkKWBltGraph.h 
+            ${VTK_LIBRARY_DIRS}/hints 1 vtkKWBltGraphTcl.cxx
   )
 
   set(SOURCES

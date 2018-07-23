@@ -166,6 +166,7 @@ set(SOURCES
   stats.c
   stc.c
   surfcluster.c
+  surfgrad.c
   svm.c
   tags.c
   talairachex.c

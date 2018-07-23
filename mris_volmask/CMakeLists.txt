@@ -2,6 +2,8 @@ project(mris_volmask)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
+
 add_executable(mris_volmask mris_volmask.cpp cmd_line_interface.cpp)
 target_compile_definitions(mris_volmask PUBLIC NO_VTK)
 add_help(mris_volmask mris_volmask.help.xml)
