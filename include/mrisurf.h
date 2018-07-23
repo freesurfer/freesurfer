@@ -173,6 +173,35 @@ face_type, FACE ;
 
 #include "colortab.h" // 'COLOR_TABLE'
 
+typedef struct VERTEX_TOPOLOGY {
+    // The topology of the vertex describes its neighbors
+    // but not its position nor any properties derived from its position.
+    //
+    // This data is not changed as the vertices are moved during distortion of the polyhedra.
+    //
+#define LIST_OF_VERTEX_TOPOLOGY_ELTS \
+  ELTT(uchar,num) SEP           /* number neighboring faces */      	    	    	    \
+  ELTP(int,f) SEP               /* array neighboring face numbers */        	    	    \
+  ELTP(uchar,n) SEP           	/* [0-3, num long] */       	    	    	    	    \
+  ELTT(uchar,vnum) SEP       	/* number neighboring vertices */    	    	    	    \
+  ELTP(int,v) SEP               /* array neighboring vertex numbers, vnum long */    	    \
+  ELTP(int,e) SEP               /* edge state for neighboring vertices */    	    	    \
+  ELTT(int,v2num) SEP         	/* number of 2-connected neighbors */       	    	    \
+  ELTT(int,v3num) SEP         	/* number of 3-connected neighbors */       	    	    \
+  ELTT(short,vtotal) SEP        /* total # of neighbors will be same as one of above*/      \
+  ELTT(uchar,nsize) 	        /* size of neighborhood (e.g. 1, 2, 3) */    	    	    \
+  // end of macro
+
+#define SEP
+#define ELTT(TYPE,NAME) TYPE NAME ;
+#define ELTP(TARGET,NAME) TARGET *NAME ;
+  LIST_OF_VERTEX_TOPOLOGY_ELTS
+#undef ELTP
+#undef ELTT
+#undef SEP
+} VERTEX_TOPOLOGY;
+
+
 typedef struct vertex_type_
 {
 // The LIST_OF_VERTEX_ELTS macro used here enables the the mris_hash
@@ -283,18 +312,7 @@ typedef struct vertex_type_
     \
   ELTT(float,fieldsign) SEP       /* fieldsign--final: -1,0,1 (file: rh.fs) */    \
   ELTT(float,fsmask) SEP          /* significance mask (file: rh.fm) */    \
-  ELTT(uchar,num) SEP             /* number neighboring faces */    \
-  ELTP(int,f) SEP              /* array neighboring face numbers */    \
-  ELTP(uchar,n) SEP              /* [0-3, num long] */    \
-  ELTT(uchar,vnum) SEP            /* number neighboring vertices */    \
-  ELTP(int,v) SEP              /* array neighboring vertex numbers, vnum long */    \
-  ELTP(int,e) SEP              /* edge state for neighboring vertices */    \
-  ELTT(int,v2num) SEP         /* number of 2-connected neighbors */    \
-  ELTT(int,v3num) SEP         /* number of 3-connected neighbors */    \
-  ELTT(short,vtotal) SEP        /* total # of neighbors,    \
-                                    will be same as one of above*/    \
   ELTT(float,d) SEP              /* for distance calculations */    \
-  ELTT(uchar,nsize) SEP          /* size of neighborhood (e.g. 1, 2, 3) */    \
   // end of macro
   
 #if 0
@@ -428,6 +446,7 @@ typedef struct MRIS
   ELTT(const int,nfaces) SEP         /* # of faces on surface, change by calling MRISreallocVerticesAndFaces et al */    \
   ELTT(int,nedges) SEP         /* # of edges on surface*/    \
   ELTT(int,nstrips) SEP    \
+  ELTP(VERTEX_TOPOLOGY,vertices_topology) SEP    \
   ELTP(VERTEX,vertices) SEP    \
   ELTP(FACE,faces) SEP    \
   ELTP(MRI_EDGE,edges) SEP    \
