@@ -12,7 +12,7 @@
 # help text. This script loops through each package object defined below, extracts the
 # assocated tarball to <destination-dir>/<package-name>/<version>/src, and runs
 # the provided build script. The individual build scripts should always expect a single
-# input argument that specifies the appropriate install directory. After each successful package
+# input argument that specifies the package install directory. After each successful package
 # build, the checksum of the tarball + build script is saved to the src dir. This way,
 # if this script is rerun, the package is only rebuilt when the source code has been
 # modified/updated.
@@ -44,8 +44,8 @@ class Package:
     if not os.path.exists(self.tarball):
       errorExit('%s does not exist' % self.tarball)
 
-# -----------------------------------------------------------------------------------------
-#                           ~~ freesurfer dependencies ~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#                              ~~ freesurfer dependencies ~~
 
 pkgs = [
   Package('jpeg',        '6b',     'build_jpeg.sh',   'jpeg-6b.tar.gz'),
@@ -63,12 +63,12 @@ pkgs = [
   Package('itk',         '5.0.0',  'build_itk.sh',    'itk-5.0.0.tar.gz')
 ]
 
-# -----------------------------------------------------------------------------------------
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # parse the command line inputs
 parser = argparse.ArgumentParser()
 parser.add_argument('destination', help="installation dir for the packages")
-parser.add_argument('-f', '--force', action='store_true', help="force build packages")
+parser.add_argument('-f', '--force', action='store_true', help="force rebuild")
 for package in pkgs:
   # add option to skip individual packages
   parser.add_argument('--no-%s' % package.name, action='store_true', help="don't build %s %s" % (package.name, package.version))
