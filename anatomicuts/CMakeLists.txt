@@ -1,11 +1,13 @@
+project(anatomicuts)
 
 include_directories(
 	Code
 	${CMAKE_SOURCE_DIR}/include 
 	${CMAKE_SOURCE_DIR}/freeview/track_io 
-	${VTK_INCLUDE_DIR}
+	${VTK_INCLUDE_DIRS}
 	#../trc
 )
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated") # "-Wmaybe-uninitialized")
 add_executable(AnatomiCuts
 	../freeview/track_io/TrackIO.cpp
@@ -13,9 +15,7 @@ add_executable(AnatomiCuts
 )
 
 target_link_libraries(AnatomiCuts
-		utils
+	utils
 	${ITK_LIBRARIES}
 	${VTK_LIBRARIES}
 )
-
-
