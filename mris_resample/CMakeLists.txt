@@ -1,6 +1,6 @@
 project(mris_resample)
 
-if(Boost_FOUND)
+if(ANN_FOUND AND Boost_FOUND)
 
   include_directories(${CMAKE_SOURCE_DIR}/include ${ANN_INCLUDE_DIR} ${Boost_INCLUDE_DIRS})
 
