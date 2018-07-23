@@ -26,6 +26,7 @@ if(BUILD_GUIS AND Qt5_FOUND AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARG
     BrushProperty.cpp 
     DialogAbout.cpp
     DialogCropVolume.cpp
+    DialogCustomFill.cpp
     DialogGradientFilter.cpp
     DialogLoadDTI.cpp
     DialogLoadPointSet.cpp

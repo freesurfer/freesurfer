@@ -41,7 +41,7 @@ if(VTK_FOUND)
   )
 
   foreach(LIB ${LIBS})
-    set(VTK_LIBRARIES ${VTK_LIBRARIES} ${VTK_LIBRARY_DIRS}/lib${LIB}.a)
+    set(VTK_LIBRARIES ${VTK_LIBRARIES} ${VTK_LIBRARY_DIRS}/lib${LIB}.so)
   endforeach()
 
   # vtkWrapTcl command (required for the vtkutils)

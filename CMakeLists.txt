@@ -243,11 +243,12 @@ add_subdirectory(fem_elastic)
 # configure the remaining FS subdirs
 
 add_subdirectories(
+  anatomicuts
   BrainstemSS
   check_siemens_dir
   connectgraph
   dmri_tensoreig
-  dummy
+  dngtester
   freeview
   fsfast
   fslutils
