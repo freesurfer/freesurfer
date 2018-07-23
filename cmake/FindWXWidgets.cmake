@@ -12,10 +12,10 @@ if(NOT WXWidgets_DIR AND EXISTS ${MARTINOS_WXWidgets})
 endif()
 
 # find the include dir
-find_path(WXWidgets_INCLUDE_DIRS PATHS ${WXWidgets_DIR} NAMES wx/wx.h PATH_SUFFIXES include/wx-2.8)
+find_path(WXWidgets_INCLUDE_DIRS HINTS ${WXWidgets_DIR} NAMES wx/wx.h PATH_SUFFIXES include/wx-2.8)
 
 # find the wx gtk gl library
-find_library(WXLIB PATHS ${WXWidgets_DIR} NAMES libwx_gtk2_gl-2.8.a PATH_SUFFIXES lib)
+find_library(WXLIB HINTS ${WXWidgets_DIR} NAMES libwx_gtk2_gl-2.8.a PATH_SUFFIXES lib)
 
 # the wx-config command is quite helpful in locating library dependencies, so we'll use the output
 # of this when we link (but we'll use our own jpeg, tiff, and expat libraries)

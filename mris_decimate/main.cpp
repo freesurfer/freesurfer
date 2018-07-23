@@ -62,6 +62,7 @@ extern "C"
 #include "cmdargs.h"
 #include "error.h"
 #include "diag.h"
+#include "mrisurf.h"
 }
 
 
@@ -120,10 +121,11 @@ int main(int argc, char *argv[])
   gDecimationOptions.desiredNumFaces = -1;
   gDecimationOptions.desiredFaceArea = -1;
   gDecimationOptions.decimationLevel = 0.5; // Default decimation level if not specified
+  gDecimationOptions.Deterministic = 1;
 
   char *in_fname, out_fpath[STRLEN] ;
   int nargs;
-  MRI_SURFACE *mris ;
+  MRI_SURFACE *mris;
   double avgfacearea ;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -244,6 +246,10 @@ static int get_option(int argc, char *argv[])
       gDecimationOptions.desiredNumFaces = atoi(argv[2]) ;
       printf("desired number of vertices = %d\n", gDecimationOptions.desiredNumFaces);
       nargs = 1 ;
+      break ;
+    case 'Q':
+      gDecimationOptions.Deterministic = 0;
+      printf("turning off deterministic behavior\n");
       break ;
     case 'M':
       gDecimationOptions.setMinimumAngle = true;

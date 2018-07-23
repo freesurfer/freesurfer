@@ -41,30 +41,15 @@
 #include "dmatrix.h"
 #include "surfgrad.h"
 #include "diag.h"
+#include "DICOMRead.h"
+#include "region.h"
+#include "surfgrad.h"
 
 #include "romp_support.h"
+#undef private
 
 //int MRISfaceNormalFace_AddDeltaVertex = -1;
 //long double MRISfaceNormalFace_AddDelta[3]={0,0,0};
-
- 
-/*!
-  \fn int BBRPARsras2vox(BBRPARAMS *bbrpar)
-  \brief Creates matrices that map the surface RAS to CRS
-*/
-int BBRPARsras2vox(BBRPARAMS *bbrpar)
-{
-  MATRIX *vox2sras, *sras2vox, *sras2vox3x3=NULL;
-  vox2sras = MRIxfmCRS2XYZtkreg(bbrpar->mri);
-  sras2vox = MatrixInverse(vox2sras,NULL);
-  bbrpar->sras2vox = DMatrixCopyFMatrix(sras2vox,bbrpar->sras2vox);
-  sras2vox3x3 = MatrixCopyRegion(sras2vox, sras2vox3x3, 1,1,3,3,1,1);
-  bbrpar->sras2vox3x3 = DMatrixCopyFMatrix(sras2vox3x3,bbrpar->sras2vox3x3);
-  MatrixFree(&vox2sras);
-  MatrixFree(&sras2vox);
-  MatrixFree(&sras2vox3x3);
-  return(0);
-}
 
 double MRISfaceMinEdge(MRIS *surf, int faceno);
 DMATRIX *MRISvertex2Matrix(MRIS *surf, int vtxno, DMATRIX *vm);
@@ -72,11 +57,14 @@ int MRISmatrix2Vertex(MRIS *surf, int vtxno, DMATRIX *vm);
 int MRISscaleVertices(MRIS *surf, double scale);
 int OldTestBBRCostFace(BBRFACE *bbrf, BBRPARAMS *bbrpar, int wrtvtxno);
 
-double MRISedgeCost(MRIS *surf, DMATRIX **gradCost);
-double MRISbbrCost(BBRPARAMS *bbrpar, DMATRIX **gradCost);
-DMATRIX **AllocGradCost(int nvertices);
-int FreeGradCost(int nvertices, DMATRIX ***pgradCost);
-int UpdateVertexPosition(MRIS *surf, double stepsize, DMATRIX **grad);
+DMATRIX *AllocGradCost(int nvertices);
+int FreeGradCost(int nvertices, DMATRIX **pgradCost);
+int UpdateVertexPosition(MRIS *surf, double stepsize, DMATRIX *grad);
+
+long double ConjGradBeta(int method, DMATRIX *SteepDir, DMATRIX *PrevSteepDir, DMATRIX *PrevCGDir);
+DMATRIX *ConjGradDir(int method, DMATRIX *SteepDir, DMATRIX *PrevSteepDir, DMATRIX *PrevCGDir, DMATRIX *CGDir);
+int PlaceSurf(MRI *mri, MRIS *surf);
+
 
 /*----------------------------------------*/
 int main(int argc, char **argv) 
@@ -91,7 +79,7 @@ int main(int argc, char **argv)
   int c,r,s;
   LABEL2SURF *l2s;
   LTA *lta;
-  DMATRIX **dJ, **dpTprev, *gnum;
+  DMATRIX *dJ, *gnum;
   VERTEX *v;
   double d1, delta;
 
@@ -105,14 +93,21 @@ int main(int argc, char **argv)
   //surf = MRISread(argv[1]);
 
   //printf("Reading volume\n"); fflush(stdout);
-  mri = MRIread("/homes/4/greve/subjects/vrfp-mar14-anat/mri/orig.mgz");
+  //mri = MRIread("/homes/4/greve/subjects/vrfp-mar14-anat/mri/orig.mgz");
+  //mri = MRIread("/autofs/cluster/fsm/users/greve/subjects/t1fit.fsm010/resample/coreg.0037.T2w_SPC_vNav.conf.mgz");
+  mri = MRIread("/autofs/cluster/fsm/users/greve/subjects/fsm010/mri/norm.mgz");
 
   //printf("Reading surface\n"); fflush(stdout);
-  surf = MRISread("/homes/4/greve/subjects/vrfp-mar14-anat/surf/lh.orig");
+  //surf = MRISread("/homes/4/greve/subjects/vrfp-mar14-anat/surf/lh.white");
+  surf = MRISread("/autofs/cluster/fsm/users/greve/subjects/fsm010/surf/lh.pial");
+
+
+  MRISedges(surf);
   MRIScomputeMetricProperties(surf);
   MRISfaceNormalGrad(surf, 0);
-  MRISedges(surf);
-  //MRISedgeGradDot(surf);
+  MRISedgeGradDot(surf);
+  PlaceSurf(mri, surf);
+  exit(0);
 
   BBRFACE *bbrf = BBRFaceAlloc();
   BBRPARAMS *bbrpar = (BBRPARAMS *) calloc(sizeof(BBRPARAMS),1);
@@ -123,13 +118,14 @@ int main(int argc, char **argv)
   bbrpar->mri = mri;
   bbrpar->surf = surf;
   BBRPARsras2vox(bbrpar);
-  //bbrpar->interp = SAMPLE_CUBIC;
-  bbrpar->interp = SAMPLE_TRILINEAR;
+  bbrpar->interp = SAMPLE_CUBIC;
+  //bbrpar->interp = SAMPLE_TRILINEAR;
 
   dJ = AllocGradCost(surf->nvertices);
   MRIScomputeMetricProperties(surf);
   MRISfaceNormalGrad(surf, 0);
-  d = MRISbbrCost(bbrpar, dJ);
+  d = MRISedgeCost(surf, dJ);
+  //d = MRISbbrCost(bbrpar, dJ);
   gnum = DMatrixAlloc(1,3,MATRIX_REAL);
   delta = .0001;
   for(s=0; s < surf->nvertices; s++){
@@ -138,18 +134,20 @@ int main(int argc, char **argv)
       if(c==0) v->x += delta;
       if(c==1) v->y += delta;
       if(c==2) v->z += delta;
-      //MRIScomputeMetricProperties(surf);
       MRISfaceNormalGrad(surf, 0);
-      d1 = MRISbbrCost(bbrpar, NULL);
+      MRISedgeGradDot(surf);
+      //d1 = MRISbbrCost(bbrpar, NULL);
+      d1 = MRISedgeCost(surf, NULL);
       gnum->rptr[1][c+1] = (d1-d)/delta;
       if(c==0) v->x -= delta;
       if(c==1) v->y -= delta;
       if(c==2) v->z -= delta;
     }
     printf("#@# %d ",s);
-    DMatrixPrintFmt(stdout,"%12.10lf",DMatrixSubtract(dJ[s],gnum,NULL));
-    printf("g0   = "); for(c=0; c<3; c++) printf("%12.8lf ",dJ[s]->rptr[1][c+1]);  printf("\n");
-    printf("gnum = "); for(c=0; c<3; c++) printf("%12.8lf ",gnum->rptr[1][c+1]);  printf("\n");
+    for(c=0; c<3; c++) printf("%12.10lf ",100000*(dJ->rptr[s+1][c+1]-gnum->rptr[1][c+1]));
+    printf("\n");
+    printf("g0   = "); for(c=0; c<3; c++) printf("%12.8lf ",100000*dJ->rptr[s+1][c+1]);  printf("\n");
+    printf("gnum = "); for(c=0; c<3; c++) printf("%12.8lf ",100000*gnum->rptr[1][c+1]);  printf("\n");
     fflush(stdout);
   }
   exit(0); //--------------------------------------
@@ -198,73 +196,6 @@ int main(int argc, char **argv)
   MRIfree(&mri);
   MRISfree(&surf);
   exit(0); //--------------------------------------
-
-#if 0
-  MRISfaceNormalGrad(surf, 0);
-  MRISedgeGradDot(surf);
-  dmax = 0;
-  s = 0;
-  for(c = 0; c < surf->nedges; c++){
-    for(r=0; r < 4; r++){
-      d = MRISedgeGradDotEdgeVertexTest(surf, c, r, 0.00000001, 0);
-      if(d > 0.1){
-	printf("#@# %4d %5d %d %12.10lf\n",s,c,r,d);
-	MRISedgeGradDotEdgeVertexTest(surf, c, r, 0.00000001, 1);
-	s++;
-      }
-      if(dmax < d) dmax = d;
-    }
-  }
-  printf("%5d %12.10lf\n",s,dmax);
-  exit(0);
-#endif
-
-  dJ = (DMATRIX **) calloc(surf->nvertices,sizeof(DMATRIX *));
-  for(c = 0; c < surf->nvertices; c++){
-    dJ[c] = DMatrixAlloc(1,3,MATRIX_REAL);
-  }
-  dpTprev = (DMATRIX **) calloc(surf->nvertices,sizeof(DMATRIX *));
-  for(c = 0; c < surf->nvertices; c++){
-    dpTprev[c] = DMatrixAlloc(3,1,MATRIX_REAL);
-  }
-
-  long double J;
-  DMATRIX *dJev=NULL, *V=NULL, *dp=NULL, *dpT=NULL;
-  MRI_EDGE *e;
-  int vtxno;
-  dJev = DMatrixAlloc(1,3,MATRIX_REAL);
-  for(s=0; s < 400000; s++){
-    J = 0;
-    MRISfaceNormalGrad(surf, 0);
-    MRISedgeGradDot(surf);
-    for(c = 0; c < surf->nedges; c++){
-      for(r=0; r < 4; r++){
-	//printf("c = %d  r = %d\n",c,r); fflush(stDout);
-	e = &(surf->edges[c]);
-	//J += MRISedgeAngleCostEdgeVertex(surf, c, r, &dJev);
-	J += pow(1.0-e->dot,2.0);
-	//printf("# %d %d %lf\n",c,r,e->gradDot[r]->rptr[1][1]);
-	dJev = DMatrixScalarMul(e->gradDot[r],-2*(1.0-e->dot),dJev);
-	vtxno = e->vtxno[r];
-	dJ[vtxno] = DMatrixAdd(dJ[vtxno],dJev,dJ[vtxno]);
-      }
-    }
-    printf("%3d %Lf\n",s,J);
-    fflush(stdout);
-    for(c = 0; c < surf->nvertices; c++){
-      V = MRISvertex2Matrix(surf, c, V);
-      dp = DMatrixScalarMul(dJ[c],-0.001,dp);
-      dpT = DMatrixTranspose(dp,dpT);
-      if(c>0) dpT = DMatrixAddMul(dpT,dpTprev[c],1,-0.9,dpT);
-      V = DMatrixAdd(V,dpT,V);
-      MRISmatrix2Vertex(surf, c, V);
-      dpTprev[c] = DMatrixCopy(dpT,dpTprev[c]);
-    }
-  }
-  MRISwrite(surf,"./lh.tmp");
-
-  MRISfree(&surf);
-  exit(0);
 
   sscanf(argv[1],"%lf",&delta);
   printf("delta = %lf\n",delta);
@@ -466,164 +397,111 @@ int MRISscaleVertices(MRIS *surf, double scale)
 }
 
 
-double MRISbbrCost(BBRPARAMS *bbrpar, DMATRIX **gradCost)
-{
-  double cost = 0;
-  int faceno,nthreads,threadno;
-  BBRFACE **bbrfth;
-  DMATRIX ***gradCostth=NULL;
-
-  // This must already have been run
-  //MRISfaceNormalGrad(surf, 0);
-  // Not sure if the gradient part can be easily parallelized
-
-  // Get number of threads
-  nthreads = 1;
-  #ifdef HAVE_OPENMP
-  nthreads = omp_get_max_threads();  // using max should be ok
-  #endif
-  bbrfth = (BBRFACE **) calloc(sizeof(BBRFACE*),nthreads);
-  for(threadno = 0; threadno < nthreads; threadno++){
-    bbrfth[threadno] = BBRFaceAlloc();
-  }
-  if(gradCostth==NULL){
-    gradCostth = (DMATRIX ***) calloc(sizeof(DMATRIX **),nthreads);
-    for(threadno = 0; threadno < nthreads; threadno++){
-      if(gradCost) gradCostth[threadno] = AllocGradCost(bbrpar->surf->nvertices);
-    }
-    // if static, then these have to be zeroed
-  }
-
-  cost = 0;
-  #ifdef HAVE_OPENMP
-  #pragma omp parallel for reduction(+ : cost)
-  #endif
-  for(faceno = 0; faceno < bbrpar->surf->nfaces; faceno++){
-    BBRFACE *bbrf;
-
-    int thno=0;
-    #ifdef HAVE_OPENMP
-    thno = omp_get_thread_num();
-    #endif
-
-    bbrf = bbrfth[thno];
-    bbrf = BBRCostFace(faceno, -1, bbrpar, bbrf); // Compute Cost
-    cost += bbrf->cost;
-    if(gradCost){
-      DMATRIX **thisGradCost;
-      FACE *f;
-      int  wrtvtxno, svtxno;
-      thisGradCost = gradCostth[thno];
-      f = &(bbrpar->surf->faces[faceno]);
-      for(wrtvtxno=0; wrtvtxno < 3; wrtvtxno++){
-	bbrf = BBRCostFace(faceno, wrtvtxno, bbrpar, bbrf); // Compute grads
-	svtxno = f->v[wrtvtxno];
-	thisGradCost[svtxno] = DMatrixAdd(thisGradCost[svtxno],bbrf->gradCost[wrtvtxno],thisGradCost[svtxno]);
-      }
-    }
-  }
-
-  // Merge threads
-  if(gradCost){
-    int  svtxno;
-    //#ifdef HAVE_OPENMP
-    //#pragma omp parallel for 
-    //#endif
-    for(svtxno=0; svtxno < bbrpar->surf->nvertices; svtxno++){
-      DMATRIX *g;
-      int threadno;
-      g = gradCost[svtxno];
-      DMatrixConstVal(0.0, 1, 3, g);
-      // threadno here refers to threadno above
-      for(threadno = 0; threadno < nthreads; threadno++){
-	g = DMatrixAdd(g,gradCostth[threadno][svtxno],g);
-      }
-      // don't divde by number of threads
-    }
-  }
-
-  for(threadno = 0; threadno < nthreads; threadno++){
-    BBRFaceFree(&bbrfth[threadno]);
-    if(gradCost) FreeGradCost(bbrpar->surf->nvertices, &gradCostth[threadno]);
-  }
-
-  free(bbrfth);
-  free(gradCostth);
-
-  //return(cost/bbrpar->surf->nvertices);
-  return(cost);
-}
-
 /*-----------------------------------------------------------------------------*/
-DMATRIX **AllocGradCost(int nvertices)
+DMATRIX *AllocGradCost(int nvertices)
 {
-  DMATRIX **gradCost;
-  int vtxno;
-
-  gradCost = (DMATRIX **) calloc(nvertices,sizeof(DMATRIX *));
-  for(vtxno = 0; vtxno < nvertices; vtxno++){
-    gradCost[vtxno] = DMatrixAlloc(1,3,MATRIX_REAL);
-  }
+  DMATRIX *gradCost;
+  gradCost = DMatrixAlloc(nvertices,3,MATRIX_REAL);
   return(gradCost);
 }
 /*-----------------------------------------------------------------------------*/
-int FreeGradCost(int nvertices, DMATRIX ***pgradCost)
+int FreeGradCost(int nvertices, DMATRIX **pgradCost)
 {
-  int vtxno;
-  DMATRIX **gradCost = *pgradCost;
-  for(vtxno = 0; vtxno < nvertices; vtxno++){
-    if(gradCost[vtxno]) DMatrixFree(&gradCost[vtxno]);
-  }
-  free(gradCost);
+  DMatrixFree(pgradCost);
   return(0);
 }
 
-int UpdateVertexPosition(MRIS *surf, double stepsize, DMATRIX **grad)
+int UpdateVertexPosition(MRIS *surf, double stepsize, DMATRIX *grad)
 {
   int vtxno;
-
   #ifdef HAVE_OPENMP
   #pragma omp parallel for 
   #endif
   for(vtxno = 0; vtxno < surf->nvertices; vtxno++){
-    DMATRIX *V=NULL,*dp=NULL,*dpT=NULL;
-    dp = DMatrixScalarMul(grad[vtxno],-stepsize,dp);
-    dpT = DMatrixTranspose(dp,dpT);
-    V = MRISvertex2Matrix(surf, vtxno, V);
-    V = DMatrixAdd(V,dpT,V);
-    MRISmatrix2Vertex(surf, vtxno, V);
-    DMatrixFree(&V);
-    DMatrixFree(&dp);
-    DMatrixFree(&dpT);
+    VERTEX *v = &(surf->vertices[vtxno]);
+    v->x -= (stepsize*grad->rptr[vtxno+1][1]);
+    v->y -= (stepsize*grad->rptr[vtxno+1][2]);
+    v->z -= (stepsize*grad->rptr[vtxno+1][3]);
   }
   return(0);
 }
 
 
 
-double MRISedgeCost(MRIS *surf, DMATRIX **gradCost)
+long double ConjGradBeta(int method, DMATRIX *SteepDir, DMATRIX *PrevSteepDir, DMATRIX *PrevCGDir)
 {
-  double cost = 0;
-  int edgeno, wrtvtxno, svtxno;
-  MRI_EDGE *e;
-  DMATRIX *gradCostEV;
+  long double beta, ss, ssprev;
+  int r,c;
 
-  // These must have been already run
-  //MRISfaceNormalGrad(surf, 0);
-  //MRISedgeGradDot(surf);
-
-  for(edgeno = 0; edgeno < surf->nedges; edgeno++){
-    e = &(surf->edges[edgeno]);
-    // easy enough to compute actual cost here
-    cost += pow(1.0-e->dot, 2.0);
-    if(gradCost){
-      for(wrtvtxno=0; wrtvtxno < 4; wrtvtxno++){
-	gradCostEV = DMatrixScalarMul(e->gradDot[wrtvtxno],-2*(1.0-e->dot),gradCostEV);
-	svtxno = e->vtxno[wrtvtxno];
-	gradCost[svtxno] = DMatrixAdd(gradCost[svtxno],gradCostEV,gradCost[svtxno]);
-      }
+  // Fletcher Reeves
+  ss=0;
+  for(r=1; r < SteepDir->rows; r++){
+    for(c=1; c < SteepDir->cols; c++){
+      ss += (SteepDir->rptr[r][c] * SteepDir->rptr[r][c]);
     }
   }
-  return(cost);
+  ssprev=0;
+  for(r=1; r < SteepDir->rows; r++){
+    for(c=1; c < SteepDir->cols; c++){
+      ssprev += (PrevSteepDir->rptr[r][c] * PrevSteepDir->rptr[r][c]);
+    }
+  }
+  beta = ss/(ssprev+10e-10);
 
+  return(beta);
 }
+
+DMATRIX *ConjGradDir(int method, DMATRIX *SteepDir, DMATRIX *PrevSteepDir, DMATRIX *PrevCGDir, DMATRIX *CGDir)
+{
+  long double beta;
+  beta = ConjGradBeta(method, SteepDir, PrevSteepDir, PrevCGDir);
+  CGDir = DMatrixAddMul(SteepDir, PrevCGDir, 1, beta, CGDir);
+  return(CGDir);
+}
+
+
+int PlaceSurf(MRI *mri, MRIS *surf)
+{
+  DMATRIX *gradBBR, *gradEdge, *SteepDir=NULL;
+  double costBBR, costEdge, cost;
+  int n;
+
+  BBRPARAMS *bbrpar = (BBRPARAMS *) calloc(sizeof(BBRPARAMS),1);
+  bbrpar->Din  = 0.5;
+  bbrpar->Dout = 0.5;
+  bbrpar->M = 0.5;
+  bbrpar->Q0 = -10.0;
+  bbrpar->mri = mri;
+  bbrpar->surf = surf;
+  BBRPARsras2vox(bbrpar);
+  //bbrpar->interp = SAMPLE_CUBIC;
+  bbrpar->interp = SAMPLE_TRILINEAR;
+
+  MRISfaceNormalGrad(surf, 0);
+  MRISedgeGradDot(surf);
+  gradEdge = AllocGradCost(surf->nvertices);
+  gradBBR  = AllocGradCost(surf->nvertices);
+  costEdge = MRISedgeCost(surf, gradEdge);
+  costBBR = MRISbbrCost(bbrpar, gradBBR);
+  cost = costEdge + costBBR;
+  for(n=0; n < 1000; n++){
+    SteepDir = DMatrixAddMul(gradEdge,gradBBR,1,1,SteepDir);
+    UpdateVertexPosition(surf, 1000, SteepDir);
+    MRISfaceNormalGrad(surf, 0);
+    MRISedgeGradDot(surf);
+    costEdge = MRISedgeCost(surf, gradEdge);
+    costBBR = MRISbbrCost(bbrpar, gradBBR);
+    cost = costEdge + costBBR;
+    printf("%3d %12.10lf %12.10lf %12.10lf\n",n,costEdge,costBBR,cost);
+    fflush(stdout);
+    if(n== 20) MRISwrite(surf,"./lh.fsm010.pial.020");
+    if(n==100) MRISwrite(surf,"./lh.fsm010.pial.100");
+    if(n==200) MRISwrite(surf,"./lh.fsm010.pial.200");
+    if(n==400) MRISwrite(surf,"./lh.fsm010.pial.400");
+    if(n==700) MRISwrite(surf,"./lh.fsm010.pial.700");
+  }
+  MRISwrite(surf,"./lh.fsm010.pial");
+
+  return(0);
+}
+

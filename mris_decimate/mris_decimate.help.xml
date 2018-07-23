@@ -50,7 +50,10 @@
 			<explanation>target decimation level of new surface (value between 0&lt;--&gt;1.0, default: 0.5). The resulting surface will have approximately triangles = &lt;decimationLevel&gt; * origTriangles</explanation>
 			<argument>-n &lt;desired number of faces&gt;</argument>
 			<explanation>compute decimation level based on the target number of faces in the new surface</explanation>
-
+			<argument>-a &lt;desired average face area&gt;</argument>
+			<explanation>compute decimation level based on the desired area of the new surface</explanation>
+			<argument>-q</argument>
+			<explanation>turn off determinism (determinism does not work for orig.nofix</explanation>
 			<argument>-m &lt;minimum angle&gt;</argument>
 			<explanation>The minimum angle in degrees allowed between faces during decimation (default: 1.0).</explanation>
 

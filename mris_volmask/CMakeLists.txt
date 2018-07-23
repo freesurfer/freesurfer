@@ -17,7 +17,7 @@ install(TARGETS mris_volmask_novtk DESTINATION bin)
 
 if(VTK_FOUND)
 
-  include_directories(${VTK_INCLUDE_DIR})
+  include_directories(${VTK_INCLUDE_DIRS})
 
   add_executable(mris_volmask_vtk mris_volmask_old.cpp cmd_line_interface.cpp)
   target_link_libraries(mris_volmask_vtk utils ${VTK_LIBRARIES})

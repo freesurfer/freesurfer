@@ -882,7 +882,7 @@ xmlNanoHTTPScanAnswer(xmlNanoHTTPCtxtPtr ctxt, const char *line)
     {
       ctxt->usesGzip = 1;
 
-      ctxt->strm = xmlMalloc(sizeof(z_stream));
+      ctxt->strm = (z_stream*)xmlMalloc(sizeof(z_stream));
 
       if (ctxt->strm != NULL)
       {
@@ -1376,7 +1376,7 @@ xmlNanoHTTPRead(void *ctx, void *dest, int len)
   {
     if (ctxt->strm == NULL) return(0);
 
-    ctxt->strm->next_out = dest;
+    ctxt->strm->next_out = (unsigned char*)dest;
     ctxt->strm->avail_out = len;
     ctxt->strm->avail_in = ctxt->inptr - ctxt->inrptr;
 

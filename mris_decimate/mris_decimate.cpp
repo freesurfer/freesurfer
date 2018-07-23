@@ -208,6 +208,7 @@ int decimateSurface(MRI_SURFACE **pmris,
                     void *userData)
 {
   MRI_SURFACE *mris = (*pmris);
+  MRI_SURFACE *mris0 = MRISclone(mris); // make a copy
 
   // Special case: if decimation level is 1.0, just make a copy of the
   // surface and return
@@ -393,20 +394,35 @@ int decimateSurface(MRI_SURFACE **pmris,
   char *tmpName = strdup("/tmp/mris_decimateXXXXXX");
   int fd = mkstemp(tmpName);
   char tmp_fpath[STRLEN];
-
-  if (fd == -1)
-  {
-    std::cerr << "Error creating temporary file: " 
-              << std::string(tmpName) << std::endl;
+  if (fd == -1)  {
+    std::cerr << "Error creating temporary file: "<< std::string(tmpName) << std::endl;
     return -1;
   }
-
   FileNameAbsolute(tmpName, tmp_fpath);
-
   MRISwrite(mris, tmp_fpath);
   MRISfree(pmris);
   *pmris = MRISread(tmp_fpath);
   remove(tmp_fpath);
+  mris = *pmris;
+
+  if(decimationOptions.Deterministic){
+    // The gts_surface_coarsen() function will always produce the same
+    // surface for the same input in that the xyz of the vertices will
+    // be the same. However, the order of the vertices and faces will
+    // be different from run to run. The code below makes it so the output
+    // will always be the same. By default, this code is run. It can be
+    // turned off with mris_decimate -q. There may still be some non-deterministic
+    // behavior. For example, when the orig.nofix is input. Not sure why, but
+    // probably because the lengths of the edges are all either 1 or sqrt(2)
+    // thus creating some abiguity which is handled differently on different
+    // runs.
+    printf("Sorting surface into deterministic order\n");
+    MRI_SURFACE *mris2;
+    mris2 = MRISsortVertices(mris);
+    MRISfree(&mris);
+    mris = mris2;
+    *pmris = mris;
+  }
 
   g_free(gtsVertices);
   g_free(gtsEdges);
@@ -417,6 +433,7 @@ int decimateSurface(MRI_SURFACE **pmris,
     decimateProgressFn(1.0, "Done.", userData);
   }
 
+  MRISfree(&mris0);
   return 0;
 }
 

@@ -354,23 +354,23 @@ TIFFClientOpen(
 	 * Setup initial directory.
 	 */
 	switch (mode[0]) {
-	case 'r':
+	case 'r': {
 		tif->tif_nextdiroff = tif->tif_header.tiff_diroff;
 		/*
 		 * Try to use a memory-mapped file if the client
 		 * has not explicitly suppressed usage with the
 		 * 'm' flag in the open mode (see above).
 		 */
-    void* ptd = (void*) &tif->tif_base;
+    	    	tdata_t* ptd = (tdata_t*)&tif->tif_base;
 		if ((tif->tif_flags & TIFF_MAPPED) &&
-	!TIFFMapFileContents(tif, ptd, &tif->tif_size))
+	            !TIFFMapFileContents(tif, ptd, &tif->tif_size))
 			tif->tif_flags &= ~TIFF_MAPPED;
 		if (TIFFReadDirectory(tif)) {
 			tif->tif_rawcc = -1;
 			tif->tif_flags |= TIFF_BUFFERSETUP;
 			return (tif);
 		}
-		break;
+	  }	break;
 	case 'a':
 		/*
 		 * New directories are automatically append

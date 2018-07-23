@@ -81284,7 +81284,8 @@ int MRISedges(MRIS *surf)
   \brief This fixeds a problem with ico7 average surfaces as created
   by mris_make_average_surface where two vertices (0 and 40969) have
   the same xyz coordinates. The fix is to move vertex 40969 to a point
-  half way between itself and its nearest neighbor.
+  half way between itself and its nearest neighbor. mris_make_average_surface
+  has since been fixed.
 */
 int MRISfixAverageSurf7(MRIS *surf7)
 {
@@ -81337,3 +81338,178 @@ int MRISfixAverageSurf7(MRIS *surf7)
 
   return(0);
 }
+
+
+/*!
+  \fn int CompareVertexCoords(const void *v1, const void *v2)
+  \brief Compares the xyz coords from two vertices in the VERTEX_SORT structure. This
+  if a function that can be used in qsort to sort vertices by xyz.
+ */
+int CompareVertexCoords(const void *v1, const void *v2)
+{
+  VERTEX_SORT *vtx1, *vtx2;
+  vtx1 = (VERTEX_SORT*) v1;
+  vtx2 = (VERTEX_SORT*) v2;
+  // Traditionally, vertices tended to be sorted in the ydir
+  if(vtx1->y < vtx2->y) return(-1);
+  if(vtx1->y > vtx2->y) return(+1);
+  if(vtx1->x < vtx2->x) return(-1);
+  if(vtx1->x > vtx2->x) return(+1);
+  if(vtx1->z < vtx2->z) return(-1);
+  return(+1);
+}
+
+/*!
+  \fn int CompareFaceVertices(const void *f1, const void *f2);
+  \brief Compares the vertex indices from two faces in the FACE_SORT
+  structure. This if a function that can be used in qsort to sort
+  faces by vertex index.
+ */
+int CompareFaceVertices(const void *vf1, const void *vf2)
+{
+  FACE_SORT *f1, *f2;
+  f1 = (FACE_SORT*) vf1;
+  f2 = (FACE_SORT*) vf2;
+  if(f1->v0 < f2->v0) return(-1);
+  if(f1->v0 > f2->v0) return(+1);
+  if(f1->v1 < f2->v1) return(-1);
+  if(f1->v1 > f2->v1) return(+1);
+  if(f1->v2 < f2->v2) return(-1);
+  return(+1);
+}
+
+/*!
+  \fn MRIS *MRISsortVertices(MRIS *mris0)
+  \brief Creates a new surface with the vertices sorted by y,x,z; the
+  faces are also sorted. The purpose of this function is to run after
+  mris_decimate to make the output deterministic. mris_decimate will
+  always produce the same surface xyz, but the vertices and faces may
+  be sorted differently, which is pretty annoying. The input surface
+  is cloned, but one should not trust anything in the vertex strcture
+  except the xyz and neighboring vertices. The surface is actually
+  written to disk and read back in to clean out all the elements.
+  There may still be some non-deterministic behavior. For example,
+  when the orig.nofix is input. Not sure why, but probably because
+  the lengths of the edges are all either 1 or sqrt(2) thus
+  creating some abiguity which is handled differently on different
+  runs.
+ */
+MRIS *MRISsortVertices(MRIS *mris0)
+{
+  MRIS *mris;
+  int nthvtx, nthface, n, m, vno_old, vno_new, vno_new_min, n_vno_new_min, *lut=NULL;
+  int vnolist[3];
+  VERTEX_SORT *vtxsort;
+  VERTEX *vtxnew, *vtxold;
+  FACE *f;
+  FACE_SORT *facesort;
+
+  vtxsort = (VERTEX_SORT *) calloc(mris0->nvertices,sizeof(VERTEX_SORT));
+  for(nthvtx = 0; nthvtx < mris0->nvertices; nthvtx++){
+    vtxsort[nthvtx].vtxno = nthvtx;
+    vtxsort[nthvtx].x = mris0->vertices[nthvtx].x;
+    vtxsort[nthvtx].y = mris0->vertices[nthvtx].y;
+    vtxsort[nthvtx].z = mris0->vertices[nthvtx].z;
+  }
+  qsort(vtxsort, mris0->nvertices, sizeof(VERTEX_SORT), CompareVertexCoords);
+  // Create a LUT to quickly map from old to new
+  lut = (int *) calloc(mris0->nvertices,sizeof(int));
+  for(nthvtx = 0; nthvtx < mris0->nvertices; nthvtx++){
+    lut[vtxsort[nthvtx].vtxno] = nthvtx;
+  }
+
+  // Create a new surface. Cloning is tricky here because it will
+  // copy all the elements from the vertices and faces. But when the
+  // vertex identity is reassigned, most of the elements will be out
+  // of synch. So below, the surface is written out and read back in
+  // to clean it. When writing, only xyz and face vertices are kept.
+  mris = MRISclone(mris0);
+
+  // Change the vertex xyz and neighbors
+  for(nthvtx = 0; nthvtx < mris0->nvertices; nthvtx++){
+    vtxold = &(mris0->vertices[vtxsort[nthvtx].vtxno]);
+    vtxnew = &(mris->vertices[nthvtx]);
+    vtxnew->x = vtxold->x;
+    vtxnew->y = vtxold->y;
+    vtxnew->z = vtxold->z;
+    vtxnew->vnum = vtxold->vnum; // number of neighboring vertices
+    // Now copy the neighbors
+    if(vtxnew->v) free(vtxnew->v);
+    vtxnew->v = (int *)calloc(vtxnew->vnum, sizeof(int));
+    for(n=0; n < vtxold->vnum; n++){
+      vno_old = vtxold->v[n];
+      vtxnew->v[n] = lut[vno_old];
+    }
+    // The order of the neighbors appears to be the deterministic
+    // after decimation but this is added to make sure.
+    qsort(vtxnew->v, vtxnew->vnum, sizeof(int), compare_ints);
+  }
+  free(vtxsort);
+
+  // Change the face vertex numbers to match the new vertex
+  // order. Also change the order of the vertices at each face. The
+  // face order is changed in such a way that the minimum vertex
+  // number is first but the vertex order is same. Eg, if the original
+  // vertex order was 2-1-3 the new order would be 1-3-2 (NOT
+  // 1-2-3). This is necessary to keep the direction of the normal
+  // correct.
+  for(nthface = 0; nthface < mris0->nfaces; nthface++){
+    f = &(mris0->faces[nthface]); // old and new faces are the same
+    vno_new_min = 0;
+    n_vno_new_min = 0;
+    for(n=0; n < 3; n++){
+      vno_old = f->v[n];
+      vno_new = lut[vno_old];
+      vnolist[n] = vno_new;
+      if(vno_new_min > vno_new){
+	vno_new_min = vno_new;
+	n_vno_new_min = n;
+      }
+    }
+    // Now change to order so that the min vertex number is first.
+    for(n=0; n < 3; n++){
+      m = (n_vno_new_min + n)%3;
+      mris->faces[nthface].v[n] = vnolist[m];
+    }    
+  }
+  free(lut);
+
+  // Now sort the faces to be in deterministic order
+  facesort = (FACE_SORT *) calloc(mris->nfaces,sizeof(FACE_SORT));
+  for(nthface = 0; nthface < mris->nfaces; nthface++){
+    facesort[nthface].faceno = nthface;
+    facesort[nthface].v0 = mris->faces[nthface].v[0];
+    facesort[nthface].v1 = mris->faces[nthface].v[1];
+    facesort[nthface].v2 = mris->faces[nthface].v[2];
+  }
+  qsort(facesort, mris->nfaces, sizeof(FACE_SORT), CompareFaceVertices);
+  for(nthface = 0; nthface < mris->nfaces; nthface++){
+    f = &(mris->faces[nthface]);
+    f->v[0] = facesort[nthface].v0;
+    f->v[1] = facesort[nthface].v1;
+    f->v[2] = facesort[nthface].v2;
+  }
+  free(facesort);
+
+  // Create a temporary file to write the output and then read it back in
+  // to get the decimated surface. The reason I do this is because there
+  // was no clear API call in mrisurf.c that would allow me to muck with
+  // the vertex/face array and properly calculate everything else in the
+  // structure.  I felt this was the safest way to make sure everything
+  // in the surface got recalculated properly.
+  char *tmpName = strdup("/tmp/mris_decimateXXXXXX");
+  int fd = mkstemp(tmpName);
+  if(fd == -1) {
+    printf("Error creating temporary file: %s\n",tmpName);
+    return(NULL);
+  }
+  char tmp_fpath[STRLEN];
+  FileNameAbsolute(tmpName, tmp_fpath);
+  MRISwrite(mris, tmp_fpath);
+  MRISfree(&mris);
+  mris = MRISread(tmp_fpath);
+  remove(tmp_fpath);
+
+  return(mris);
+}
+

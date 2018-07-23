@@ -862,7 +862,7 @@ static int parse_commandline(int argc, char **argv) {
       MatchValues[nMatch] = Right_VentralDC; nMatch++;
       MatchValues[nMatch] = Right_Substancia_Nigra; nMatch++;
       MatchValues[nMatch] = Right_Cerebellum_Cortex; nMatch++;
-      MatchValues[nMatch] = Brain_Stem; nMatch++;
+      //MatchValues[nMatch] = Brain_Stem; nMatch++;
       DoMatch = 1;
     } 
     else if (!strcasecmp(option, "--frame")) {
