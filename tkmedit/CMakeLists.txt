@@ -1,6 +1,6 @@
 project(tkmedit)
 
-if(OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
+if(BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
 
   include_directories(
     ${CMAKE_SOURCE_DIR}/include

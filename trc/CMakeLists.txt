@@ -4,8 +4,8 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/include
   ${CMAKE_SOURCE_DIR}/fem_elastic
-  ${PETSC_INCLUDE_DIR}
   ${Tetgen_INCLUDE_DIR}
+  ${PETSC_INCLUDE_DIR}
 )
 
 # dmri_spline

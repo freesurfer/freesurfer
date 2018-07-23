@@ -58,12 +58,12 @@ term = TerminalColors()
 
 # print a warning message
 def warning(message):
-  print(term.yellow + '[warning] '+ term.end + message)
+  print(term.yellow + 'warning: '+ term.end + message)
 
 
 # print an error message
 def error(message):
-  print(term.red + '[error] ' + term.end + message)
+  print(term.red + 'error: ' + term.end + message)
 
 
 # print an error message and exit
