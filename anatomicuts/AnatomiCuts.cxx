@@ -237,7 +237,7 @@ int main(int narg, char* arg[])
 			//std::cout << " finish sampling "<< std::endl;
 
 			typedef MeshBasicType::CellsContainer::ConstIterator CellIterator;
-						int globalIndex=0;
+			int globalIndex=0;
 			int indexCell =0;
 			typedef MeshType::PointIdentifier PointIdentifier;
 			typedef MeshType::PointDataContainer PointDataContainerType;

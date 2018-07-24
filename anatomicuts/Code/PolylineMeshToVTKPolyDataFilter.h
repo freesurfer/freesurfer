@@ -6,7 +6,7 @@
 #include <vtkSmartPointer.h>
 
 #include "vtkCellData.h"
-
+using namespace itk;
 class vtkPolyData;
 
   template <class TMesh>

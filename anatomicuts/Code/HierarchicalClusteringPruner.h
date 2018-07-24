@@ -2,7 +2,7 @@
 #define _HierarchicalClusteringPruner_h_
 
 #include "itkMeshToMeshFilter.h"
-
+#include "AppendBundleFilter.h"
 enum FiberFormat {VTK=0, TRK=1};
 
 template < class TOutputMesh,class TImageType>
