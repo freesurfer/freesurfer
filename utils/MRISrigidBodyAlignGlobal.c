@@ -37,14 +37,6 @@ static float* getFloats(size_t capacity) {
   return (float*)ptr;
 }
 
-static int doneIndexForI(int gabi, int gridSize) {
-  int result = gabi;
-  if (result <         0) result += gridSize;
-  if (result >= gridSize) result -= gridSize;
-  if (result < 0 || gridSize <= result) *(int*)(-1) = 0;
-  return result;
-}    
-
 void MRISrigidBodyAlignGlobal_findMinSSE(
   double* new_mina, double* new_minb, double* new_ming, double* new_sse,  // outputs
   MRI_SURFACE*       mris,
@@ -231,9 +223,9 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
 
       int gj;
       for (gj=0; gj < nangles + 1 ; gj++) {
-        int   const gi    = center_gi + gridStride*(gj - nangles/2);    // note: can be negative
+        int   const gi    = center_gi + gridStride*(gj - nangles/2);
+        if (gi < 0 || gridSize <= gi) continue;
         float const gamma = iToRadians(gi);
-        int   const gi_doneIndex = doneIndexForI(gi,gridSize);
         
         rotateVertices(gammaRotated_xv, gammaRotated_yv, gammaRotated_zv, xv, yv, zv, verticesSize,
           0.0,      // rotate around z axis - last rotation
@@ -242,9 +234,9 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
 
         int bj;
         for (bj=0; bj < nangles + 1 ; bj++) {
-          int   const bi   = center_bi + gridStride*(bj - nangles/2);   // note: can be negative
+          int   const bi   = center_bi + gridStride*(bj - nangles/2);
+          if (bi < 0 || gridSize <= bi) continue;
           float const beta = iToRadians(bi);
-          int   const bi_doneIndex = doneIndexForI(bi,gridSize);
          
           rotateVertices(betaGammaRotated_xv, betaGammaRotated_yv, betaGammaRotated_zv, gammaRotated_xv, gammaRotated_yv, gammaRotated_zv, verticesSize,
             0.0,    // rotate around z axis - last rotation
@@ -257,11 +249,11 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
 
           int aj;
           for (aj = 0; aj < nangles + 1 ; aj++) {
-            int   const ai    = center_ai + gridStride*(aj - nangles/2);    // note: can be negative
+            int   const ai    = center_ai + gridStride*(aj - nangles/2);
+            if (ai < 0 || gridSize <= ai) continue;
             float const alpha = iToRadians(ai);
-            int   const ai_doneIndex = doneIndexForI(ai,gridSize);
 
-            int    const doneIndex = gi_doneIndex*gridSize*gridSize + bi_doneIndex*gridSize + ai_doneIndex;
+            int    const doneIndex = gi*gridSize*gridSize + bi*gridSize + ai;
             int    const doneElt   = doneIndex / doneFlagsPerElt;
             size_t const doneFlag  = 1L << (doneIndex&doneFlagsMask);
 
