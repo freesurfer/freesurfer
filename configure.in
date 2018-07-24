@@ -4287,7 +4287,6 @@ AC_CONFIG_FILES([
 	oct_train/Makefile
 	opencl_algorithms/Makefile
 	optseq2/Makefile
-	orient_mri/Makefile
 	qdec/Makefile
 	qdec_glmfit/Makefile
 	qdecproject/Makefile
