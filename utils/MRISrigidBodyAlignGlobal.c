@@ -261,7 +261,7 @@ void MRISrigidBodyAlignGlobal_findMinSSE(
             if (!done) {
               doneFlags[doneElt] |= doneFlag;
               ajsForAlphas   [ajsSize  ] = aj;
-              alphasForAlphas[ajsSize++] = alpha; 
+              alphasForAlphas[ajsSize++] = alpha;
             }
           }
               
