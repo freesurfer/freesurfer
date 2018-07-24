@@ -26,6 +26,9 @@ subjects_example.csh
 xmldir=$(prefix)/docs/xml
 xml_DATA=
 
+install-exec-hook:
+	$(top_builddir)/utils/fsPrintHelp $(srcdir)/infant_recon_all.help.xml >> $(DESTDIR)$(bindir)/infant_recon_all
+
 TESTS = 
 
 EXTRA_DIST = 
