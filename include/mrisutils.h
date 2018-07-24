@@ -50,7 +50,23 @@ typedef struct {
   MATRIX *surfxyz2volcrs; // inverse
 } LABEL2SURF;
 
-
+// Structure to help create an average surface
+typedef struct {
+  char **subjectlist;
+  int nsubjects;
+  MRIS *targsurfreg; // an actual surface to use as the target registration
+  int  icoorder; // only use if targsurfreg not spec
+  char *targsubject; // only use if targsurfreg and icoorder not spec
+  char *hemi; // lh or rh
+  char *surfname; // eg, white
+  char *surfregname; // eg, sphere.reg
+  char *xform_name; // eg, talairach.xfm
+  int ReverseMapFlag; // map unmapped vertices in the source, generally 1
+  int UseHash; // use hash table for speed, generally 1
+} AVERAGE_SURFACE_PARAMS;
+MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp);
+AVERAGE_SURFACE_PARAMS *MRISaveageSurfaceParamAlloc(int nsubjects);
+int MRISaveageSurfaceParamFree(AVERAGE_SURFACE_PARAMS **pasp);
 
 void MRISsmoothSurface(MRI_SURFACE *mris,int niter,float step);
 void MRISsmoothSurface2(MRI_SURFACE *mris,int niter,float step,int avrg);

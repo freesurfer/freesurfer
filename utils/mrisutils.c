@@ -44,6 +44,7 @@
 #include "fio.h"
 #include "fsenv.h"
 #include "gca.h"
+#include "gcamorph.h"
 #include "icosahedron.h"
 #include "macros.h"
 #include "matrix.h"
@@ -55,6 +56,8 @@
 #include "stats.h"
 #include "timer.h"
 #include "tritri.h"
+#include "resample.h"
+#include "mri2.h"
 
 #include "mrisutils.h"
 
@@ -3409,4 +3412,181 @@ int L2Stest(char *subject)
 
   printf("L2Stest: passed tests, subject = %s\n", subject);
   return (0);
+}
+
+/*!
+  \fn MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp)
+  \brief Computes an average surface given parameters in asp.  This
+  routine differs from the current (7/23/18) version
+  mris_make_average_surface in that it maps directly to the nearest
+  vertex of the icosahedron rather than going through the
+  parameterized surface (MRISP). This prevents the really big vertex
+  at the poles. But otherwise, the surface appears to be near
+  idential, though the actual placement of the vertices might not be
+  the same.
+  \example
+    asp = MRISaveageSurfaceParamAlloc(40);
+    asp->icoorder = 7;
+    asp->hemi = "lh";
+    asp->surfname = "white";
+    asp->surfregname = "sphere.reg";
+    asp->xform_name = "talairach.xfm";
+    asp->subectlist[0] = "subject0";
+    asp->subectlist[1] = "subject1";
+    ...
+ */
+MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp)
+{
+  MRIS *surf, *targsurfreg=NULL, *surfreg, *stpair[2];
+  int nth;
+  char *subject;
+  FSENV *fsenv;
+  char tmpstr[2000];
+  MATRIX *XFM;
+  GCA_MORPH *gcam=NULL;
+  MRI *SrcXYZ, *TargXYZ, *TargXYZSum=NULL;
+  double average_surface_area;
+
+  fsenv = FSENVgetenv();
+
+  printf("MakeAverageSurf(): %d %s %s %s %s %d %d\n",asp->nsubjects,asp->hemi,
+	 asp->surfname,asp->surfregname,asp->xform_name,asp->ReverseMapFlag,
+	 asp->UseHash);
+
+  if(asp->targsurfreg != NULL){
+    // If the actual target surface is specified, then use that (not tested yet)
+    targsurfreg = MRISclone(asp->targsurfreg);
+    printf("Using passed target surface\n");
+  }
+  else if(asp->icoorder > 0){
+    // Otherwise, use the icosahedron order
+    sprintf(tmpstr,"%s/lib/bem/ic%d.tri",fsenv->FREESURFER_HOME,asp->icoorder);
+    printf("Loading %s as target surface\n",tmpstr);
+    //targsurfreg = MRISread(tmpstr);
+    targsurfreg = ReadIcoByOrder(asp->icoorder, 100.0);
+    if(targsurfreg==NULL) return(NULL);
+  }
+  else if(asp->targsubject){
+    // Otherwise, use the target surbject
+    sprintf(tmpstr,"%s/%s/surf/%s.%s",fsenv->SUBJECTS_DIR,asp->targsubject,asp->hemi,asp->surfregname);
+    printf("Loading %s as target surface\n",tmpstr);
+    targsurfreg = MRISread(tmpstr);
+    if(targsurfreg==NULL) return(NULL);
+  }
+  if(targsurfreg == NULL){
+    printf("ERROR: not target specified\n");
+    return(NULL);
+  }
+
+  average_surface_area = 0;
+  for(nth=0; nth < asp->nsubjects; nth++){
+    subject = asp->subjectlist[nth];
+    printf("  %d/%d %s ---------------\n",nth+1,asp->nsubjects,subject);
+
+    sprintf(tmpstr,"%s/%s/surf/%s.%s",fsenv->SUBJECTS_DIR,subject,asp->hemi,asp->surfregname);
+    surfreg = MRISread(tmpstr);
+    if(surfreg==NULL) return(NULL);
+
+    sprintf(tmpstr,"%s/%s/surf/%s.%s",fsenv->SUBJECTS_DIR,subject,asp->hemi,asp->surfname);
+    surf = MRISread(tmpstr);
+    if(surf==NULL) return(NULL);
+
+    if(asp->xform_name){
+      if (!strcmp(asp->xform_name,"talairach.xfm")) {
+	printf("  Applying linear transform %s\n",asp->xform_name);
+	XFM = DevolveXFMWithSubjectsDir(subject, NULL, asp->xform_name, fsenv->SUBJECTS_DIR);
+	if(XFM == NULL) return(NULL);
+	MRISmatrixMultiply(surf, XFM);
+	MatrixFree(&XFM);
+      } 
+      else if (!strcmp(asp->xform_name,"talairach.m3z")) {
+	printf("  Applying GCA Morph %s\n",asp->xform_name);
+	sprintf(tmpstr, "%s/%s/mri/transforms/%s", fsenv->SUBJECTS_DIR, subject,asp->xform_name);
+	printf("   reading %s\n",tmpstr);
+	gcam = GCAMreadAndInvert(tmpstr);
+	if(gcam == NULL) return(NULL);
+	GCAMmorphSurf(surf, gcam);
+	GCAMfree(&gcam);
+      } 
+      else {
+	printf("ERROR: don't know what to do with %s\n",asp->xform_name);
+	return(NULL);
+      }
+    }
+
+    // Copy the surace XYZ into an MRI structure
+    SrcXYZ = MRIcopyMRIS(NULL, surf, 2, "z"); // start at z to autoalloc
+    MRIcopyMRIS(SrcXYZ, surf, 0, "x");
+    MRIcopyMRIS(SrcXYZ, surf, 1, "y");
+
+    // Apply the surface registration to the XYZ
+    stpair[0] = surfreg;
+    stpair[1] = targsurfreg;
+    TargXYZ = MRISapplyReg(SrcXYZ, stpair, 2, asp->ReverseMapFlag, 0, asp->UseHash);
+    if(TargXYZ == NULL) return(NULL);
+
+    // Accumulate
+    if(nth == 0)
+      TargXYZSum = MRIcopy(TargXYZ,TargXYZSum);
+    else
+      TargXYZSum = MRIadd(TargXYZSum,TargXYZ,TargXYZSum);
+
+    // keep track of the total area
+    average_surface_area += surf->total_area ;
+
+    MRIfree(&SrcXYZ);
+    MRIfree(&TargXYZ);
+    MRISfree(&surf);
+    MRISfree(&surfreg);
+  }
+
+  // Compute average and copy back into the target surface XYZ
+  TargXYZSum = MRImultiplyConst(TargXYZSum,1.0/asp->nsubjects,TargXYZSum);
+  MRIScopyMRI(targsurfreg,TargXYZSum,0,"x");
+  MRIScopyMRI(targsurfreg,TargXYZSum,1,"y");
+  MRIScopyMRI(targsurfreg,TargXYZSum,2,"z");
+
+  average_surface_area /= (double)asp->nsubjects ;
+  MRIScomputeMetricProperties(targsurfreg);
+  printf("setting group surface area to be %2.1f cm^2 (scale=%2.2f)\n",
+	 average_surface_area/100.0,sqrt(average_surface_area/targsurfreg->total_area)) ;
+  targsurfreg->group_avg_surface_area = average_surface_area ;
+  MRIScomputeMetricProperties(targsurfreg);
+
+  FSENVfree(&fsenv);
+  MRIfree(&TargXYZSum);
+
+  printf("MakeAverageSurf(): done\n");
+  return(targsurfreg);
+}
+
+/*!
+  \fn AVERAGE_SURFACE_PARAMS *MRISaveageSurfaceParamAlloc(int nsubjects)
+  \brief Allocates the subjectlist char string in the PARAMS
+  struct. Also sets the icoorder to -1, ReverseMapFlag = 1, and
+  UseHash = 1.
+ */
+AVERAGE_SURFACE_PARAMS *MRISaveageSurfaceParamAlloc(int nsubjects)
+{
+  AVERAGE_SURFACE_PARAMS *asp;
+  asp = (AVERAGE_SURFACE_PARAMS *)calloc(1, sizeof(AVERAGE_SURFACE_PARAMS));
+  asp->nsubjects = nsubjects;
+  asp->subjectlist = (char **) calloc(sizeof(char*),nsubjects);
+  asp->icoorder = -1;
+  asp->ReverseMapFlag = 1;
+  asp->UseHash = 1;
+  return(asp);
+}
+
+/*!
+  \fn int MRISaveageSurfaceParamFree(AVERAGE_SURFACE_PARAMS **pasp)
+  \brief Frees the subjectlist and the ASP prointer.
+ */
+int MRISaveageSurfaceParamFree(AVERAGE_SURFACE_PARAMS **pasp)
+{
+  AVERAGE_SURFACE_PARAMS *asp = *pasp;
+  free(asp->subjectlist);
+  free(*pasp);
+  *pasp = NULL;
+  return(0);
 }
