@@ -1233,10 +1233,12 @@ static int addFnoFaceSet(int firstFnoToUpdatePlus1, RealmTree* realmTree, int fn
     return firstFnoToUpdatePlus1;
 }
 
-static int addFacesToFaceSet(int firstFnoToUpdatePlus1, RealmTree* realmTree, VERTEX const * const vertex) {
+static int addFacesToFaceSet(int firstFnoToUpdatePlus1, RealmTree* realmTree, MRIS const * mris, int vno) {
+    VERTEX_TOPOLOGY const * vt = &mris->vertices_topology[vno];
+    int const numFaces = vt->num;
     int fi; 
-    for (fi = 0; fi < vertex->num; fi++) {
-        firstFnoToUpdatePlus1 = addFnoFaceSet(firstFnoToUpdatePlus1, realmTree, vertex->f[fi]);
+    for (fi = 0; fi < numFaces; fi++) {
+        firstFnoToUpdatePlus1 = addFnoFaceSet(firstFnoToUpdatePlus1, realmTree, vt->f[fi]);
     }
     return firstFnoToUpdatePlus1;
 }
@@ -1262,7 +1264,7 @@ void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionTyp
     int vno;
     for (vno = previous_saved_nvertices; vno < mris->nvertices; vno++) {
         recentNode = insertVnoNear(realmTree, recentNode, vno);
-        firstFnoToUpdatePlus1 = addFacesToFaceSet(firstFnoToUpdatePlus1, realmTree, &mris->vertices[vno]);
+        firstFnoToUpdatePlus1 = addFacesToFaceSet(firstFnoToUpdatePlus1, realmTree, mris, vno);
     }
     
     // add the new faces
@@ -1292,7 +1294,7 @@ void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionTyp
         
             // add the faces to the face set
             //
-            firstFnoToUpdatePlus1 = addFacesToFaceSet(firstFnoToUpdatePlus1, realmTree, vertex);
+            firstFnoToUpdatePlus1 = addFacesToFaceSet(firstFnoToUpdatePlus1, realmTree, mris, vno);
 
             // remove it from the existing realmTreeNode
             //
