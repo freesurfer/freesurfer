@@ -23,32 +23,10 @@ if(BUILD_GUIS
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
 
   # use vtkWrapTcl to create the tcl-wrapped code for these objects
-  add_custom_command(
-    OUTPUT vtkKWQdecAppTcl.cxx
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vtkKWQdecApp.h
-    COMMAND ${VTK_WRAP_TCL_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/vtkKWQdecApp.h 
-            ${VTK_LIBRARY_DIRS}/hints 1 vtkKWQdecAppTcl.cxx
-  )
-
-  add_custom_command(
-    OUTPUT vtkKWQdecWindowTcl.cxx
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vtkKWQdecWindow.h
-    COMMAND ${VTK_WRAP_TCL_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/vtkKWQdecWindow.h 
-            ${VTK_LIBRARY_DIRS}/hints 1 vtkKWQdecWindowTcl.cxx
-  )
-
-  add_custom_command(
-    OUTPUT vtkKWQdecViewTcl.cxx
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vtkKWQdecView.h
-    COMMAND ${VTK_WRAP_TCL_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/vtkKWQdecView.h 
-            ${VTK_LIBRARY_DIRS}/hints 1 vtkKWQdecViewTcl.cxx
-  )
-
-  add_custom_command(
-    OUTPUT QdecLibInit.cxx
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/QdecLibInit.data
-    COMMAND ${VTK_WRAP_TCL_INIT_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/QdecLibInit.data QdecLibInit.cxx
-  )
+  vtk_wrap_tcl(vtkKWQdecApp.h vtkKWQdecAppTcl.cxx)
+  vtk_wrap_tcl(vtkKWQdecWindow.h vtkKWQdecWindowTcl.cxx)
+  vtk_wrap_tcl(vtkKWQdecView.h vtkKWQdecViewTcl.cxx)
+  vtk_wrap_tcl_init(QdecLibInit.data QdecLibInit.cxx)
 
   set(SOURCES
     QdecMain.cxx
