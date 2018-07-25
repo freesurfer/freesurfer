@@ -1,9 +1,9 @@
 import numpy as np
-import sklearn.mixture
 
 
 def piecewise_linear_normalize(in_img_data, ref_img_data):
     """Function to piecewise linearly scale image intensities to training data landmarks"""
+    import sklearn.mixture
     in_img_flat = np.ravel(in_img_data, 'C')
     in_img_fg = in_img_flat[in_img_flat > 0].reshape(-1, 1)
     clf_in = mixture.GaussianMixture(n_components=3, covariance_type='full')
@@ -40,6 +40,7 @@ def piecewise_linear_normalize(in_img_data, ref_img_data):
 
 def wm_peak_normalize(in_img_data):
     """Function to scale image intensities by setting wm peak to 200"""
+    import sklearn.mixture
     in_img_flat = np.ravel(in_img_data, 'C')
     in_img_fg = in_img_flat[in_img_flat > 0].reshape(-1, 1)
     # clf = mixture.GMM(n_components=3, covariance_type='full')
