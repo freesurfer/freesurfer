@@ -3,7 +3,7 @@
 
 #include "itkMesh.h"
 #include "itkMeshSource.h"
-#include "PolylineCell.h"
+#include "itkPolylineCell.h"
 
 #include <vtkPolyData.h>
 #include <vtkSmartPointer.h>

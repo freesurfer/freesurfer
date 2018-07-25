@@ -32,7 +32,7 @@ void
 	std::map<long long,long long>  idCluster_idClusterParent;
 	std::set<long long> clustersIds;
 	std::set<long long> leafIds;
-	int max = 0;
+	//int max = 0;
 	std::map<long long,std::string> fiberFiles;
 	while ( file.good() )
 	{
@@ -79,7 +79,7 @@ void
 //		std::cout << this->m_clustersPath << std::endl;
 //		std::cout << a << std::endl;
 		long long b = *it;
-		std::string num = to_string(b);
+		std::string num = std::to_string(b);
 //		std::cout << num<< std::endl;
 		std::string clusterFile = this->m_clustersPath + "/" +num+"."+a;
 		ifstream ifile(clusterFile);
@@ -127,7 +127,7 @@ void
 			}
 		}
 //		std::cout << w << polydatas.size() << std::endl;
-		itk::AppendBundleFilter::Pointer appendBundles = itk::AppendBundleFilter::New();
+		AppendBundleFilter::Pointer appendBundles = AppendBundleFilter::New();
 		appendBundles->SetNumberOfColours(polydatas.size());
 		appendBundles->SetRepresentatives(false);
 		appendBundles->SetInput(polydatas);
