@@ -109,10 +109,17 @@ volFraction MRIcomputeVoxelFractions(octTreeVoxel V, VERTEX *v, double acc, int 
      current_depth: current depth in the oct-tree structure
      mris: mri surface required for face normal information.
    */
+   
+  // HACK until the caller can provide the vno.  Can't right now.
+  //
+  int const vno = v - mris->vertices;
+  if (vno < 0 || vno >= mris->nvertices) *(int*)(-1) = 0;   // must never happen
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  
   int fnum, fiter, j, k;
   double meanNorm[3], meanVert[3];
   /* get the faces the closest vertex to the point (xs,ys,zs) is a part of */
-  fnum = v->num;
+  fnum = vt->num;
   /* compute a mean normal based on these faces */
   /* underlying assumption is that this mean normal is a good vector
      to decide if a point is inside or outside a surface
@@ -121,7 +128,7 @@ volFraction MRIcomputeVoxelFractions(octTreeVoxel V, VERTEX *v, double acc, int 
   meanNorm[1] = 0.0;
   meanNorm[2] = 0.0;
   for (fiter = 0; fiter < fnum; fiter++) {
-    FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, v->f[fiter]);
+    FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, vt->f[fiter]);
     meanNorm[0] = meanNorm[0] + fNorm->nx / (double)fnum;
     meanNorm[1] = meanNorm[1] + fNorm->ny / (double)fnum;
     meanNorm[2] = meanNorm[2] + fNorm->nz / (double)fnum;
