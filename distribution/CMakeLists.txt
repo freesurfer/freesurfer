@@ -21,21 +21,6 @@ install(PROGRAMS
   DESTINATION ${CMAKE_INSTALL_PREFIX}
 )
 
-set(FSLDIR $ENV{FSLDIR})
-if(FSLDIR)
-  foreach(CMD flirt fslmaths slicetimer bet fslswapdim fslorient)
-    install(PROGRAMS ${FSLDIR}/bin/${CMD} DESTINATION bin RENAME ${CMD}.fsl)
-  endforeach()
-endif()
-
-install(PROGRAMS fsl-extra/flirt.newdefault.20080811.sch DESTINATION bin)
-
-set(DCMTKDIR $ENV{DCMTKDIR})
-if(DCMTKDIR)
-  install(PROGRAMS ${FSLDIR}/bin/dcmdjpeg DESTINATION bin RENAME dcmdjpeg.fs)
-  install(PROGRAMS ${FSLDIR}/bin/dcmdrle DESTINATION bin RENAME dcmdrle.fs)
-endif()
-
 add_subdirectory(average)
 add_subdirectory(diffusion)
 add_subdirectory(docs)
@@ -60,3 +45,32 @@ install_symlinks(
 
 install(FILES sessions/README DESTINATION sessions)
 install_tarball(trctrain/trctraindata.tar.gz DESTINATION trctrain)
+
+# FSL commands
+set(FSLDIR $ENV{FSLDIR})
+if(FSLDIR)
+  foreach(CMD flirt fslmaths slicetimer bet fslswapdim fslorient)
+    install(PROGRAMS ${FSLDIR}/bin/${CMD} DESTINATION bin RENAME ${CMD}.fsl)
+  endforeach()
+endif()
+
+install(PROGRAMS fsl-extra/flirt.newdefault.20080811.sch DESTINATION bin)
+
+# DCMTK commands
+set(DCMTKDIR $ENV{DCMTKDIR})
+if(DCMTKDIR)
+  install(PROGRAMS ${FSLDIR}/bin/dcmdjpeg DESTINATION bin RENAME dcmdjpeg.fs)
+  install(PROGRAMS ${FSLDIR}/bin/dcmdrle DESTINATION bin RENAME dcmdrle.fs)
+endif()
+
+# GDCM commands
+set(GDCMDIR $ENV{GDCMDIR})
+if(GDCMDIR)
+  install(PROGRAMS ${GDCMDIR}/bin/gdcmconv DESTINATION bin RENAME gdcmconv.fs)
+endif()
+
+# AFNI commands
+set(AFNIDIR $ENV{AFNIDIR})
+if(AFNIDIR)
+  install(PROGRAMS ${AFNIDIR}/bin/3dvolreg DESTINATION bin RENAME 3dvolreg.afni)
+endif()
