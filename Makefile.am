@@ -12,8 +12,7 @@ OCTSUBDIRS=\
 	oct_register_mosaic
 
 DMRISUBDIRS=\
-	dmri_tensoreig \
-	anatomicuts
+	dmri_tensoreig
 
 GLSUBDIRS=\
 	glut \
