@@ -3,7 +3,7 @@
 set -e
 
 if [ "$#" != "1" ] ; then echo "error: usage: build_vtk.sh <prefix>" && exit 1 ; fi
-INSTALL_DIR="$(realpath $1)"
+INSTALL_DIR="$1"
 
 cd vtk-v5.10.1
 
