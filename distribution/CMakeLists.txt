@@ -59,8 +59,8 @@ install(PROGRAMS fsl-extra/flirt.newdefault.20080811.sch DESTINATION bin)
 # DCMTK commands
 set(DCMTKDIR $ENV{DCMTKDIR})
 if(DCMTKDIR)
-  install(PROGRAMS ${FSLDIR}/bin/dcmdjpeg DESTINATION bin RENAME dcmdjpeg.fs)
-  install(PROGRAMS ${FSLDIR}/bin/dcmdrle DESTINATION bin RENAME dcmdrle.fs)
+  install(PROGRAMS ${DCMTKDIR}/bin/dcmdjpeg DESTINATION bin RENAME dcmdjpeg.fs)
+  install(PROGRAMS ${DCMTKDIR}/bin/dcmdrle DESTINATION bin RENAME dcmdrle.fs)
 endif()
 
 # GDCM commands
