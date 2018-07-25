@@ -1,2 +1,0 @@
-SUBJ	Region1	Region1-Int-intensity	Region1-Seg-intensity	Region2	Region2-Int-intensity	Region2-Seg-intensity	Region4	Region4-Int-intensity	Region4-Seg-intensity	Region5	Region5-Int-intensity	Region5-Seg-intensity	No entry	No entry-Int-intensity	No entry-Seg-intensity
-Seg	625	2	1	625	4	2	625	8	4	625	10	5	0	0	0
