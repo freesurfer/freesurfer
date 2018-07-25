@@ -90,7 +90,12 @@ MRI *MRIcomputeVolumeFractionFromSurface(MRI_SURFACE *mris, double acc, MRI *mri
           vox[2] = zs - vsize[2] / 2.0;
           V = octTreeVoxelCreate(vox, vsize);
           /* compute the volume fraction of this voxel */
-          frac = MRIcomputeVoxelFractions(V, v, acc, 1, mris);
+    	  if (1) {  // HACK check the vno is correct
+	    int const correct_vno = v - mris->vertices;
+            if (correct_vno < 0 || correct_vno >= mris->nvertices || vno != correct_vno) 
+	      *(int*)(-1) = 0;   // must never happen
+          }
+          frac = MRIcomputeVoxelFractions(V, vno, acc, 1, mris);
           MRIsetVoxVal(mri_fractions, x, y, z, 0, frac.frac);
         }
         else if (MRIgetVoxVal(mri_interior, x, y, z, 0) > 0.0)
@@ -100,7 +105,7 @@ MRI *MRIcomputeVolumeFractionFromSurface(MRI_SURFACE *mris, double acc, MRI *mri
   }
   return mri_fractions;
 }
-volFraction MRIcomputeVoxelFractions(octTreeVoxel V, VERTEX *v, double acc, int current_depth, MRI_SURFACE *mris)
+volFraction MRIcomputeVoxelFractions(octTreeVoxel V, int vno, double acc, int current_depth, MRI_SURFACE *mris)
 {
   /* inputs:
      V: voxel element, which includes center, corners and the vsize
@@ -112,9 +117,8 @@ volFraction MRIcomputeVoxelFractions(octTreeVoxel V, VERTEX *v, double acc, int 
    
   // HACK until the caller can provide the vno.  Can't right now.
   //
-  int const vno = v - mris->vertices;
-  if (vno < 0 || vno >= mris->nvertices) *(int*)(-1) = 0;   // must never happen
   VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX          const * const v  = &mris->vertices         [vno];
   
   int fnum, fiter, j, k;
   double meanNorm[3], meanVert[3];
@@ -178,7 +182,7 @@ volFraction MRIcomputeVoxelFractions(octTreeVoxel V, VERTEX *v, double acc, int 
     else /* the error we are making is too big we will redivide and recurse */
     {
       for (k = 0; k < 8; k++) {
-        volFraction frac_new = MRIcomputeVoxelFractions(octTreeVoxelDivide(k + 1, V), v, acc, current_depth + 1, mris);
+        volFraction frac_new = MRIcomputeVoxelFractions(octTreeVoxelDivide(k + 1, V), vno, acc, current_depth + 1, mris);
         frac.frac += frac_new.frac;
         frac.err += frac_new.err;
       }
