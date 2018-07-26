@@ -13,10 +13,10 @@ rt = fst.RegressionTest()
 
 rt.run('./mri_fwhm --i HelixTensors.nii.gz --nframesmin 9 --auto-mask .2 --sum out.fwhm.sum')
 
-# remove timestamp line whose date will always differ
+# remove timestamp, hostname, user which can differ depending upon where run
 f_new = "out.fwhm.sum"
 f_edit = f_new  + ".edit"
-cmd1 = 'cat ' + f_new + ' | grep -v ' + '"' + '^timestamp ' + '"' + ' > ' + f_edit
+cmd1 = 'cat ' + f_new + ' | grep -v ' + '"' + '^timestamp ' + '"' + ' | grep -v ' + '"' + '^hostname ' + '"' + ' | grep -v ' + '"' + '^user ' + '"' + ' > ' + f_edit
 print ("Running: %s" % (cmd1))
 os.system(cmd1)
 
