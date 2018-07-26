@@ -44,10 +44,45 @@ if(VTK_FOUND)
     set(VTK_LIBRARIES ${VTK_LIBRARIES} ${VTK_LIBRARY_DIRS}/lib${LIB}.so)
   endforeach()
 
-  # vtkWrapTcl command (required for the vtkutils)
-  if(NOT EXISTS ${VTK_WRAP_TCL_EXE})
+  # VTK-TCL libraries
+  set(LIBS
+    vtkImagingTCL
+    vtkVolumeRenderingTCL
+    vtkRenderingTCL
+    vtkFilteringTCL
+    vtkWidgetsTCL
+    vtkHybridTCL
+    vtkGraphicsTCL
+    vtkImagingTCL
+    vtkIOTCL
+    vtkCommonTCL
+  )
+
+  foreach(LIB ${LIBS})
+    set(VTK_TCL_LIBRARIES ${VTK_TCL_LIBRARIES} ${VTK_LIBRARY_DIRS}/lib${LIB}.so)
+  endforeach()
+
+  # vtkWrapTcl and vtkWrapTclInit commands (required for qdec and vtkutils)
+  if(NOT EXISTS ${VTK_WRAP_TCL_EXE} OR NOT EXISTS ${VTK_WRAP_TCL_INIT_EXE})
     message(FATAL_ERROR "VTK must be built with VTK_WRAP_TCL ON")
   endif()
+
+  # create a simple cmake function to use vtkWrapTcl
+  function(vtk_wrap_tcl INFILE OUTFILE)
+    add_custom_command(
+      OUTPUT  ${OUTFILE}
+      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${INFILE}
+      COMMAND ${VTK_WRAP_TCL_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/${INFILE}
+              ${VTK_LIBRARY_DIRS}/hints 1 ${OUTFILE})
+  endfunction()
+
+  # create a simple cmake function to use vtkWrapTclInit
+  function(vtk_wrap_tcl_init INFILE OUTFILE)
+    add_custom_command(
+      OUTPUT  ${OUTFILE}
+      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${INFILE}
+      COMMAND ${VTK_WRAP_TCL_INIT_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/${INFILE} ${OUTFILE})
+  endfunction()
 
   # make sure the vtk path gets linked from the lib directory during install
   symlink(${VTK_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/lib/vtk)

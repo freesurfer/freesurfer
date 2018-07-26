@@ -1,7 +1,0 @@
-There are different guides here for different user tasks. Everybody
-should read the GUI guide first to get up to speed. After that, pick a
-guide that best suits what you're trying to do.
-
-  * [wiki:/ScubaGuide/GUI Introduction to the GUI]
-  * [wiki:/ScubaGuide/Transforms Viewing a hi-res volume on a normal volume with a transform]
-  * [wiki:/ScubaGuide/Segmentations Making a segmentation volume]

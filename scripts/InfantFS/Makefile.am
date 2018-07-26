@@ -4,6 +4,7 @@
 
 dist_bin_SCRIPTS = \
 atlassubjects.csh \
+check_infant_recon_success.csh \
 create_pial_surfaces_mprage_subject.csh \
 create_wm_surfaces_mprage_subject.csh \
 find_cerebellar_wm_labels.csh \
@@ -25,6 +26,9 @@ subjects_example.csh
 
 xmldir=$(prefix)/docs/xml
 xml_DATA=
+
+install-exec-hook:
+	$(top_builddir)/utils/fsPrintHelp $(srcdir)/infant_recon_all.help.xml >> $(DESTDIR)$(bindir)/infant_recon_all
 
 TESTS = 
 

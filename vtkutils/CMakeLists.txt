@@ -11,19 +11,8 @@ if(VTK_FOUND AND KWWidgets_FOUND AND TCLTKTIXBLT_FOUND)
   )
 
   # use vtkWrapTcl to create the tcl-wrapped code for these objects
-  add_custom_command(
-    OUTPUT vtkKWRGBATransferFunctionEditorTcl.cxx
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vtkKWRGBATransferFunctionEditor.h
-    COMMAND ${VTK_WRAP_TCL_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/vtkKWRGBATransferFunctionEditor.h 
-            ${VTK_LIBRARY_DIRS}/hints 1 vtkKWRGBATransferFunctionEditorTcl.cxx
-  )
-
-  add_custom_command(
-    OUTPUT vtkKWBltGraphTcl.cxx
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/vtkKWBltGraph.h
-    COMMAND ${VTK_WRAP_TCL_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/vtkKWBltGraph.h 
-            ${VTK_LIBRARY_DIRS}/hints 1 vtkKWBltGraphTcl.cxx
-  )
+  vtk_wrap_tcl(vtkKWRGBATransferFunctionEditor.h vtkKWRGBATransferFunctionEditorTcl.cxx)
+  vtk_wrap_tcl(vtkKWBltGraph.h vtkKWBltGraphTcl.cxx)
 
   set(SOURCES
     vtkKWProgressDialog.cxx

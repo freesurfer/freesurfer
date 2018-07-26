@@ -7,7 +7,7 @@
 set -e
 
 if [ "$#" != "1" ] ; then echo "error: usage: build.sh <prefix>" && exit 1 ; fi
-INSTALL_DIR="$(realpath $1)"
+INSTALL_DIR="$1"
 
 # COMBO_DIR must be set to where installation is desired
 export COMBO_DIR="${INSTALL_DIR}"

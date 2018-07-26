@@ -1,8 +1,9 @@
 #ifndef _FixedVTKSamplingFilter_h_
 #define _FixedVTKSamplingFilter_h_
 
-#include "itkMeshToMeshFilter.h"
 
+#include "itkMeshToMeshFilter.h"
+using namespace itk;
   template <class TInputMesh, class TOutputMesh>
     class FixedVTKSamplingFilter :
   public MeshToMeshFilter<TInputMesh, TOutputMesh>

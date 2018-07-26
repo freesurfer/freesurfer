@@ -10,9 +10,6 @@
 #include <vnl/algo/vnl_matrix_inverse.h>
 #include <vnl/algo/vnl_determinant.h>
 
-#include <blitz/array.h>
-#include <blitz/tinyvec-et.h>
-using namespace blitz;
 using namespace itk;
 
 template <typename TValueType , class TMesh>
