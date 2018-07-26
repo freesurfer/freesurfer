@@ -1,14 +1,14 @@
 project(mris_decimate_gui)
 
-if(GTS_FOUND AND VTK_FOUND AND WXWidgets_FOUND)
+if(BUILD_GUIS AND GTS_FOUND AND VTK_FOUND AND WXWidgets_FOUND)
 
-  add_definitions(-D__WXGTK__ -D__WXGTK20__)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${WXWidgets_FLAGS} -Wno-deprecated -Wno-literal-suffix")
 
   include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/res
     ${CMAKE_SOURCE_DIR}/include
     ${CMAKE_SOURCE_DIR}/mris_decimate
-    ${WXWIDGETS_INCLUDE_DIRS}
+    ${WXWidgets_INCLUDE_DIRS}
     ${GTS_INCLUDE_DIRS}
     ${VTK_INCLUDE_DIRS})
 
@@ -25,18 +25,13 @@ if(GTS_FOUND AND VTK_FOUND AND WXWidgets_FOUND)
   )
 
   add_executable(mris_decimate_gui ${SOURCES})
-  target_link_libraries(mris_decimate_gui utils fsgdf ${VTK_LIBRARIES} ${WXWidgets_LIBRARIES} ${GTS_LIBRARIES} ${OPENGL_LIBRARIES} X11 Xmu SM Xxf86vm
-  gtk-x11-2.0
-  gdk-x11-2.0
-  atk-1.0
-  gdk_pixbuf-2.0
-  pangoxft-1.0
-  pangox-1.0
-  pango-1.0
-  gobject-2.0
-  gmodule-2.0
-  gthread-2.0
-  Xinerama
+  target_link_libraries(mris_decimate_gui
+    utils
+    fsgdf
+    ${VTK_LIBRARIES}
+    ${WXWidgets_LIBRARIES}
+    ${GTS_LIBRARIES}
+    ${OPENGL_LIBRARIES} X11 Xmu
   )
 
   set(WRAPCODE "\

@@ -229,7 +229,7 @@ add_subdirectories(
   opencl_algorithms
 )
 
-# the following utility libs are required for freeview
+# the following utility libs are required for freeview and qdec
 add_subdirectories(vtkfsio vtkutils lineprof)
 
 # the fem elastic subdir also builds a library, so it should be added first
@@ -471,6 +471,7 @@ add_subdirectories(
   mris_curvature
   mris_curvature_stats
   mris_decimate
+  mris_decimate_gui
   mris_deform
   mris_density
   mris_diff
