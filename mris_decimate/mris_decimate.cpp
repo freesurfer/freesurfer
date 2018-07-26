@@ -405,18 +405,21 @@ int decimateSurface(MRI_SURFACE **pmris,
   remove(tmp_fpath);
   mris = *pmris;
 
-  if(decimationOptions.Deterministic){
+  if(decimationOptions.SortVertices){
     // The gts_surface_coarsen() function will always produce the same
     // surface for the same input in that the xyz of the vertices will
-    // be the same. However, the order of the vertices and faces will
-    // be different from run to run. The code below makes it so the output
-    // will always be the same. By default, this code is run. It can be
-    // turned off with mris_decimate -q. There may still be some non-deterministic
-    // behavior. For example, when the orig.nofix is input. Not sure why, but
-    // probably because the lengths of the edges are all either 1 or sqrt(2)
-    // thus creating some abiguity which is handled differently on different
-    // runs.
-    printf("Sorting surface into deterministic order\n");
+    // be the same. However, when GTS is compiled with hashes, the
+    // order of the vertices and faces will be different from run to
+    // run. The code below makes it so the output will always be the
+    // same. When GTS is compiled with BTREES (which we just changed
+    // to in July 2018), it will produce the same output. So, by
+    // default, the sorting code is not run. It can be turned on with
+    // mris_decimate -q. There may still be some non-deterministic
+    // behavior. For example, when the orig.nofix is input. Not sure
+    // why, but probably because the lengths of the edges are all
+    // either 1 or sqrt(2) thus creating some abiguity which is
+    // handled differently on different runs.
+    printf("Sorting surface vertices\n");
     MRI_SURFACE *mris2;
     mris2 = MRISsortVertices(mris);
     MRISfree(&mris);
