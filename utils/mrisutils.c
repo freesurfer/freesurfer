@@ -71,29 +71,30 @@
 // smooth a surface 'niter' times with a step (should be around 0.5)
 void MRISsmoothSurface(MRI_SURFACE *mris, int niter, float step)
 {
-  VERTEX *v;
-  int iter, k, m, n;
-  float x, y, z;
-
   if (step > 1) step = 1.0f;
 
+  int iter;
   for (iter = 0; iter < niter; iter++) {
     MRIScomputeMetricProperties(mris);
+
+    int k;
     for (k = 0; k < mris->nvertices; k++) {
-      v = &mris->vertices[k];
+      VERTEX * v = &mris->vertices[k];
       v->tx = v->x;
       v->ty = v->y;
       v->tz = v->z;
     }
 
     for (k = 0; k < mris->nvertices; k++) {
-      v = &mris->vertices[k];
-      n = 0;
-      x = y = z = 0;
-      for (m = 0; m < v->vnum; m++) {
-        x += mris->vertices[v->v[m]].tx;
-        y += mris->vertices[v->v[m]].ty;
-        z += mris->vertices[v->v[m]].tz;
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
+      VERTEX                * const v  = &mris->vertices         [k];
+      int n = 0;
+      float x = 0, y = 0, z = 0;
+      int m;
+      for (m = 0; m < vt->vnum; m++) {
+        x += mris->vertices[vt->v[m]].tx;
+        y += mris->vertices[vt->v[m]].ty;
+        z += mris->vertices[vt->v[m]].tz;
         n++;
       }
       x /= n;
@@ -379,79 +380,71 @@ mrisClearExtraGradient(MRI_SURFACE *mris)
 
 static int mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs)
 {
-  int i, vno, vnb, *pnb, vnum;
-  float dx, dy, dz, num, sigma, dot;
-  VERTEX *v, *vn;
-  MRI_SP *mrisp, *mrisp_blur;
-
   if (num_avgs <= 0) return (NO_ERROR);
 
   if (Gdiag_no >= 0) {
-    v = &mris->vertices[Gdiag_no];
+    VERTEX const * const v = &mris->vertices[Gdiag_no];
     fprintf(stdout, "before averaging dot = %2.2f ", v->dx * v->nx + v->dy * v->ny + v->dz * v->nz);
   }
+
   if (0 && mris->status == MRIS_PARAMETERIZED_SPHERE) /* use convolution */
   {
-    sigma = sqrt((float)num_avgs) / 4.0;
-    mrisp = MRISgradientToParameterization(mris, NULL, 1.0);
-    mrisp_blur = MRISPblur(mrisp, NULL, sigma, -1);
+    float const sigma = sqrt((float)num_avgs) / 4.0;
+    MRI_SP * mrisp      = MRISgradientToParameterization(mris, NULL, 1.0);
+    MRI_SP * mrisp_blur = MRISPblur(mrisp, NULL, sigma, -1);
     MRISgradientFromParameterization(mrisp_blur, mris);
     MRISPfree(&mrisp);
     MRISPfree(&mrisp_blur);
   }
   else
+  {
+    int i;
     for (i = 0; i < num_avgs; i++) {
+      int vno;
       for (vno = 0; vno < mris->nvertices; vno++) {
-        v = &mris->vertices[vno];
+        VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+        VERTEX*                       v  = &mris->vertices         [vno];
         if (v->ripflag) continue;
-        dx = v->dx;
-        dy = v->dy;
-        dz = v->dz;
-        pnb = v->v;
+        float dx = v->dx;
+        float dy = v->dy;
+        float dz = v->dz;
+        int const * pnb = vt->v;
         /*      vnum = v->v2num ? v->v2num : v->vnum ;*/
-        vnum = v->vnum;
-        for (num = 0.0f, vnb = 0; vnb < vnum; vnb++) {
-          vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        int const vnum = vt->vnum;
+        int num = 1;
+	int vnb;
+        for (vnb = 0; vnb < vnum; vnb++) {
+          VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
           if (vn->ripflag) continue;
-          dot = vn->dx * v->dx + vn->dy * v->dy + vn->dz * v->dz;
+          float dot = vn->dx * v->dx + vn->dy * v->dy + vn->dz * v->dz;
           if (dot < 0) continue; /* pointing in opposite directions */
 
           num++;
           dx += vn->dx;
           dy += vn->dy;
           dz += vn->dz;
-#if 0
-          if (vno == Gdiag_no)
-          {
-            float dot ;
-            dot = vn->dx*v->dx + vn->dy*v->dy + vn->dz*v->dz ;
-            if (dot < 0)
-              fprintf(stdout, 
-                      "vn %d: dot = %2.3f, dx = (%2.3f, %2.3f, %2.3f)\n",
-                      v->v[vnb], dot, vn->dx, vn->dy, vn->dz) ;
-          }
-#endif
         }
-        num++;
         v->tdx = dx / num;
         v->tdy = dy / num;
         v->tdz = dz / num;
       }
       for (vno = 0; vno < mris->nvertices; vno++) {
-        v = &mris->vertices[vno];
+        VERTEX * v = &mris->vertices[vno];
         if (v->ripflag) continue;
         v->dx = v->tdx;
         v->dy = v->tdy;
         v->dz = v->tdz;
       }
     }
+  }
+  
   if (Gdiag_no >= 0) {
-    float dot;
-    v = &mris->vertices[Gdiag_no];
-    dot = v->nx * v->dx + v->ny * v->dy + v->nz * v->dz;
+    VERTEX const * const v = &mris->vertices[Gdiag_no];
+    float const dot = v->nx * v->dx + v->ny * v->dy + v->nz * v->dz;
     fprintf(stdout, " after dot = %2.2f\n", dot);
     if (fabs(dot) > 50) DiagBreak();
   }
+  
   return (NO_ERROR);
 }
 
@@ -551,29 +544,29 @@ static int mrisRemoveNormalGradientComponent(MRI_SURFACE *mris, int vno)
 
 static int mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno)
 {
-  VERTEX *v, *vn;
-  int n;
-  float dx, dy, dz, dot, x, y, z, dist;
-
-  v = &mris->vertices[vno];
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX                * const v  = &mris->vertices         [vno];
   if (v->ripflag) return (NO_ERROR);
 
-  x = v->x;
-  y = v->y;
-  z = v->z;
-  for (n = 0; n < v->vnum; n++) {
-    vn = &mris->vertices[v->v[n]];
-    dx = vn->x - x;
-    dy = vn->y - y;
-    dz = vn->z - z;
-    dist = sqrt(dx * dx + dy * dy + dz * dz);
+  float const x = v->x;
+  float const y = v->y;
+  float const z = v->z;
+
+  int n;
+  for (n = 0; n < vt->vnum; n++) {
+
+    VERTEX const * const vn = &mris->vertices[vt->v[n]];
+    float dx = vn->x - x;
+    float dy = vn->y - y;
+    float dz = vn->z - z;
+    float const dist = sqrt(dx * dx + dy * dy + dz * dz);
 
     /* too close - take out gradient component in this dir. */
     if (dist <= MIN_NBR_DIST) {
       dx /= dist;
       dy /= dist;
       dz /= dist;
-      dot = dx * v->odx + dy * v->ody + dz * v->odz;
+      float const dot = dx * v->odx + dy * v->ody + dz * v->odz;
       if (dot > 0.0) {
         v->odx -= dot * dx;
         v->ody -= dot * dy;
@@ -720,7 +713,6 @@ static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)
   MATRIX *m_R, *m_R_inv;
   VECTOR *v_Y, *v_A, *v_n, *v_e1, *v_e2, *v_nbr;
   int vno, n;
-  VERTEX *v, *vn;
   float ui, vi, rsq, a, b;
 
   if (FZERO(l_curv)) return (NO_ERROR);
@@ -732,16 +724,17 @@ static int mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)
   v_e2 = VectorAlloc(3, MATRIX_REAL);
   v_nbr = VectorAlloc(3, MATRIX_REAL);
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) continue;
-    v_Y = VectorAlloc(v->vtotal, MATRIX_REAL);    /* heights above TpS */
-    m_R = MatrixAlloc(v->vtotal, 2, MATRIX_REAL); /* radial distances */
+    v_Y = VectorAlloc(vt->vtotal, MATRIX_REAL);    /* heights above TpS */
+    m_R = MatrixAlloc(vt->vtotal, 2, MATRIX_REAL); /* radial distances */
     VECTOR_LOAD(v_n, v->nx, v->ny, v->nz);
     VECTOR_LOAD(v_e1, v->e1x, v->e1y, v->e1z);
     VECTOR_LOAD(v_e2, v->e2x, v->e2y, v->e2z);
-    for (n = 0; n < v->vtotal; n++) /* build data matrices */
+    for (n = 0; n < vt->vtotal; n++) /* build data matrices */
     {
-      vn = &mris->vertices[v->v[n]];
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       VERTEX_EDGE(v_nbr, v, vn);
       VECTOR_ELT(v_Y, n + 1) = V3_DOT(v_nbr, v_n);
       ui = V3_DOT(v_e1, v_nbr);
@@ -893,13 +886,13 @@ static int mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *
 static int mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring)
 {
   int vno, n, m;
-  VERTEX *vertex, *vn;
   float sx, sy, sz, nx, ny, nz, nc, x, y, z;
 
   if (FZERO(l_spring)) return (NO_ERROR);
 
   for (vno = 0; vno < mris->nvertices; vno++) {
-    vertex = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vertex_topology = &mris->vertices_topology[vno];
+    VERTEX                * const vertex          = &mris->vertices         [vno];
     if (vertex->ripflag) continue;
     if (vno == Gdiag_no) DiagBreak();
 
@@ -912,8 +905,8 @@ static int mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring)
 
     sx = sy = sz = 0.0;
     n = 0;
-    for (m = 0; m < vertex->vnum; m++) {
-      vn = &mris->vertices[vertex->v[m]];
+    for (m = 0; m < vertex_topology->vnum; m++) {
+      VERTEX const * const vn = &mris->vertices[vertex_topology->v[m]];
       if (!vn->ripflag) {
         sx += vn->x - x;
         sy += vn->y - y;
@@ -945,13 +938,13 @@ static int mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring)
 static int mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring)
 {
   int vno, n, m;
-  VERTEX *v, *vn;
   float sx, sy, sz, x, y, z, nc;
 
   if (FZERO(l_spring)) return (NO_ERROR);
 
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) continue;
     if (vno == Gdiag_no) DiagBreak();
 
@@ -963,8 +956,8 @@ static int mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring)
 
     sx = sy = sz = 0.0;
     n = 0;
-    for (m = 0; m < v->vnum; m++) {
-      vn = &mris->vertices[v->v[m]];
+    for (m = 0; m < vt->vnum; m++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[m]];
       if (!vn->ripflag) {
         sx += vn->x - x;
         sy += vn->y - y;
@@ -1175,7 +1168,6 @@ MRIS *MRISmatchSurfaceToLabel(
 // smooth a surface 'niter' times with a step (should be around 0.5)
 void MRISsmoothSurface2(MRI_SURFACE *mris, int niter, float step, int avrg)
 {
-  VERTEX *v;
   int iter, k, m, n;
   float x, y, z;
 
@@ -1184,20 +1176,21 @@ void MRISsmoothSurface2(MRI_SURFACE *mris, int niter, float step, int avrg)
   for (iter = 0; iter < niter; iter++) {
     MRIScomputeMetricProperties(mris);
     for (k = 0; k < mris->nvertices; k++) {
-      v = &mris->vertices[k];
+      VERTEX * v = &mris->vertices[k];
       v->tx = v->x;
       v->ty = v->y;
       v->tz = v->z;
     }
 
     for (k = 0; k < mris->nvertices; k++) {
-      v = &mris->vertices[k];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
+      VERTEX                * const v  = &mris->vertices         [k];
       n = 0;
       x = y = z = 0;
-      for (m = 0; m < v->vnum; m++) {
-        x += mris->vertices[v->v[m]].tx;
-        y += mris->vertices[v->v[m]].ty;
-        z += mris->vertices[v->v[m]].tz;
+      for (m = 0; m < vt->vnum; m++) {
+        x += mris->vertices[vt->v[m]].tx;
+        y += mris->vertices[vt->v[m]].ty;
+        z += mris->vertices[vt->v[m]].tz;
         n++;
       }
       x /= n;
@@ -1210,7 +1203,7 @@ void MRISsmoothSurface2(MRI_SURFACE *mris, int niter, float step, int avrg)
     }
     mrisAverageSignedGradients(mris, avrg);
     for (k = 0; k < mris->nvertices; k++) {
-      v = &mris->vertices[k];
+      VERTEX * v = &mris->vertices[k];
       v->x += v->dx;
       v->y += v->dy;
       v->z += v->dz;
@@ -1719,10 +1712,10 @@ MRI *MRISvolumeTH3(MRIS *w, MRIS *p, MRI *vol, MRI *mask, double *totvol)
     vtx = &w->vertices[vno];
     if (vtx->ripflag) continue;
     if (mask && MRIgetVoxVal(mask, vno, 0, 0, 0) < 0.5) continue;
-    nfacenbrs = w->vertices[vno].num;
+    nfacenbrs = w->vertices_topology[vno].num;
     volsum = 0.0;
     for (nthfacenbr = 0; nthfacenbr < nfacenbrs; nthfacenbr++) {
-      nbrfaceno = w->vertices[vno].f[nthfacenbr];
+      nbrfaceno = w->vertices_topology[vno].f[nthfacenbr];
       volsum += (MRIgetVoxVal(facevol, nbrfaceno, 0, 0, 0) / 3.0);
       // divide by 3 because each face participates in 3 vertices
     }
@@ -2017,8 +2010,6 @@ int MRISfindPath(int *vert_vno, int num_vno, int max_path_length, int *path, int
   float *dist;
   int *pred;
   char done;
-  VERTEX *v;
-  VERTEX *u;
   float closest_dist;
   int closest_vno;
   int neighbor;
@@ -2070,7 +2061,8 @@ int MRISfindPath(int *vert_vno, int num_vno, int max_path_length, int *path, int
             closest_dist = dist[vno];
             closest_vno = vno;
           }
-      v = &(mris->vertices[closest_vno]);
+      VERTEX_TOPOLOGY const * const vt = &(mris->vertices_topology[closest_vno]);
+      VERTEX          const * const v  = &(mris->vertices         [closest_vno]);
       check[closest_vno] = FALSE;
 
       /* if this is the dest node, we're done. */
@@ -2079,9 +2071,9 @@ int MRISfindPath(int *vert_vno, int num_vno, int max_path_length, int *path, int
       }
       else {
         /* relax its neighbors. */
-        for (neighbor = 0; neighbor < v->vnum; neighbor++) {
-          neighbor_vno = v->v[neighbor];
-          u = &(mris->vertices[neighbor_vno]);
+        for (neighbor = 0; neighbor < vt->vnum; neighbor++) {
+          neighbor_vno = vt->v[neighbor];
+          VERTEX const * const u = &(mris->vertices[neighbor_vno]);
 
           /* calc the vector from u to v. */
           vu_x = u->x - v->x;
