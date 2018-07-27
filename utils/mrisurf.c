@@ -1896,7 +1896,12 @@ static bool MRISreallocVertices(MRI_SURFACE * mris, int max_vertices, int nverti
 
   mris->vertices = (VERTEX *)realloc(mris->vertices, max_vertices*sizeof(VERTEX));
   if (!mris->vertices) return false;
-
+  #ifndef SEPARATE_VERTEX_TOPOLOGY
+    mris->vertices = mris->vertices_topology;
+  #else
+    #error "NYI"
+  #endif
+  
   int change = max_vertices - mris->nvertices;
   if (change > 0) { // all above nvertices must be zero'ed, since MRISgrowNVertices does not...
       bzero(mris->vertices + mris->nvertices, change*sizeof(VERTEX));

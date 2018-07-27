@@ -173,12 +173,7 @@ face_type, FACE ;
 
 #include "colortab.h" // 'COLOR_TABLE'
 
-typedef struct VERTEX_TOPOLOGY {
-    // The topology of the vertex describes its neighbors
-    // but not its position nor any properties derived from its position.
-    //
-    // This data is not changed as the vertices are moved during distortion of the polyhedra.
-    //
+
 #define LIST_OF_VERTEX_TOPOLOGY_ELTS \
   ELTT(uchar,num) SEP           /* number neighboring faces */      	    	    	    \
   ELTP(int,f) SEP               /* array neighboring face numbers */        	    	    \
@@ -192,6 +187,27 @@ typedef struct VERTEX_TOPOLOGY {
   ELTT(uchar,nsize) 	        /* size of neighborhood (e.g. 1, 2, 3) */    	    	    \
   // end of macro
 
+
+// The above elements historically were in the VERTEX
+// and can still be there by
+//  having VERTEX_TOPOLOGY be a typedef of VERTEX
+//  having the mris->vertices and the mris->vertices_topology be the same pointer
+// and this is what the code is doing until the separation is completed.
+//
+//#define SEPARATE_VERTEX_TOPOLOGY
+#ifndef SEPARATE_VERTEX_TOPOLOGY
+
+#define LIST_OF_VERTEX_TOPOLOGY_ELTS_IN_VERTEX LIST_OF_VERTEX_TOPOLOGY_ELTS
+
+#else
+
+typedef struct VERTEX_TOPOLOGY {
+    // The topology of the vertex describes its neighbors
+    // but not its position nor any properties derived from its position.
+    //
+    // This data is not changed as the vertices are moved during distortion of the polyhedra.
+    //
+
 #define SEP
 #define ELTT(TYPE,NAME) TYPE NAME ;
 #define ELTP(TARGET,NAME) TARGET *NAME ;
@@ -201,6 +217,9 @@ typedef struct VERTEX_TOPOLOGY {
 #undef SEP
 } VERTEX_TOPOLOGY;
 
+#define LIST_OF_VERTEX_TOPOLOGY_ELTS_IN_VERTEX
+
+#endif
 
 typedef struct vertex_type_
 {
@@ -208,6 +227,7 @@ typedef struct vertex_type_
 // and other algorithms to process all the elements without having to explicitly name them there and here
 //
 #define LIST_OF_VERTEX_ELTS_1    \
+  LIST_OF_VERTEX_TOPOLOGY_ELTS_IN_VERTEX \
   ELTT(float,x) SEP    \
   ELTT(float,y) SEP    \
   ELTT(float,z) SEP           /* curr position */    \
@@ -419,6 +439,12 @@ typedef struct vertex_type_
 
 }
 vertex_type, VERTEX ;
+
+
+#ifndef SEPARATE_VERTEX_TOPOLOGY
+typedef vertex_type VERTEX_TOPOLOGY; 
+#endif
+
 
 #define VERTEX_SULCAL  0x00000001L
 
