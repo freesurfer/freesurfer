@@ -21,7 +21,6 @@ GLSUBDIRS=\
 	tkregister2 \
 	tksurfer \
 	mri_probedicom \
-	orient_mri \
 	qdec \
 	mris2rgb
 

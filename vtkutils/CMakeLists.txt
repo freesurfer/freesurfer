@@ -1,28 +1,18 @@
 project(vtkutils)
 
-if(VTK_FOUND AND KWWidgets_FOUND)
+if(VTK_FOUND AND KWWidgets_FOUND AND TCLTKTIXBLT_FOUND)
 
   include_directories(
     ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${TIFF_INCLUDE_DIR}
-    ${VTK_INCLUDE_DIR}
+    ${VTK_INCLUDE_DIRS}
     ${KWWidgets_INCLUDE_DIR}
   )
 
   # use vtkWrapTcl to create the tcl-wrapped code for these objects
-  add_custom_command(
-    OUTPUT vtkKWRGBATransferFunctionEditorTcl.cxx
-    DEPENDS vtkKWRGBATransferFunctionEditor.h
-    COMMAND ${VTK_DIR}/bin/vtkWrapTcl vtkKWRGBATransferFunctionEditor.h 
-            ${VTK_LIBRARY_DIR}/hints 1 vtkKWRGBATransferFunctionEditorTcl.cxx
-  )
-
-  add_custom_command(
-    OUTPUT vtkKWBltGraphTcl.cxx
-    DEPENDS vtkKWBltGraph.h
-    COMMAND ${VTK_DIR}/bin/vtkWrapTcl vtkKWBltGraph.h 
-            ${VTK_LIBRARY_DIR}/hints 1 vtkKWBltGraphTcl.cxx
-  )
+  vtk_wrap_tcl(vtkKWRGBATransferFunctionEditor.h vtkKWRGBATransferFunctionEditorTcl.cxx)
+  vtk_wrap_tcl(vtkKWBltGraph.h vtkKWBltGraphTcl.cxx)
 
   set(SOURCES
     vtkKWProgressDialog.cxx

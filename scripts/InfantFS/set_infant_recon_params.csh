@@ -6,6 +6,7 @@ setenv FSSCRIPTSDIR $FREESURFER_HOME/bin
 # training subjects
 source $BABYDEVSCRIPTSDIR/atlassubjects.csh
 
+
 # segmentation postprocessing
 # set version = Num4
 # set withparcellationlabels = 0
@@ -18,8 +19,8 @@ set rightlabel  = 127
 set rightprefix = right
 
 #####
-setenv PATH  ${PATH}:${BABYDEVSCRIPTSDIR}:${FSSCRIPTSDIR}
-echo $PATH
+# setenv PATH  ${PATH}:${BABYDEVSCRIPTSDIR}:${FSSCRIPTSDIR}
+# echo $PATH
 
 setenv CLUSTERRUN 0
 if (($HOST == launchpad) || ($HOST == tensor)) then

@@ -2,6 +2,8 @@ project(mris_volmask)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
+
 add_executable(mris_volmask mris_volmask.cpp cmd_line_interface.cpp)
 target_compile_definitions(mris_volmask PUBLIC NO_VTK)
 add_help(mris_volmask mris_volmask.help.xml)
@@ -17,7 +19,7 @@ install(TARGETS mris_volmask_novtk DESTINATION bin)
 
 if(VTK_FOUND)
 
-  include_directories(${VTK_INCLUDE_DIR})
+  include_directories(${VTK_INCLUDE_DIRS})
 
   add_executable(mris_volmask_vtk mris_volmask_old.cpp cmd_line_interface.cpp)
   target_link_libraries(mris_volmask_vtk utils ${VTK_LIBRARIES})

@@ -38,7 +38,11 @@ function(install_tarball)
     execute_process(
       COMMAND bash -c \"tar -xzf ${TARBALL}\"
       WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}/${INSTALL_DESTINATION}
-    )"
+      RESULT_VARIABLE retcode
+    )
+    if(NOT \${retcode} STREQUAL 0)
+      message(FATAL_ERROR \"Could not extract ${INSTALL_UNPARSED_ARGUMENTS} - perhaps it hasn't been downloaded from the annex?\")
+    endif()"
   )
 endfunction()
 
@@ -79,7 +83,12 @@ function(install_wrapped)
     message(STATUS \"Wrapping: ${CMAKE_INSTALL_PREFIX}/${INSTALL_DESTINATION}/${BINARY}.${EXT}\")
     execute_process(
       COMMAND bash -c \"echo -e '${WRAPCODE}' > ${CMAKE_INSTALL_PREFIX}/bin/${BINARY} &&
-                        chmod +x ${CMAKE_INSTALL_PREFIX}/bin/${BINARY}\")"
+                        chmod +x ${CMAKE_INSTALL_PREFIX}/bin/${BINARY}\"
+      RESULT_VARIABLE retcode
+    )
+    if(NOT \${retcode} STREQUAL 0)
+      message(FATAL_ERROR \"Could not wrap ${BINARY}\")
+    endif()"
   )
 endfunction()
 
@@ -109,7 +118,12 @@ function(install_append_help SCRIPT HELPTEXT DESTINATION)
         ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/utils --target fsPrintHelp &&
         cp -f ${CMAKE_CURRENT_SOURCE_DIR}/${SCRIPT} ${CMAKE_INSTALL_PREFIX}/${DESTINATION} &&
         ${CMAKE_BINARY_DIR}/utils/fsPrintHelp ${CMAKE_CURRENT_SOURCE_DIR}/${HELPTEXT} >> ${CMAKE_INSTALL_PREFIX}/${DESTINATION}/${SCRIPT}\"
-      OUTPUT_QUIET)"
+      OUTPUT_QUIET
+      RESULT_VARIABLE retcode
+    )
+    if(NOT \${retcode} STREQUAL 0)
+      message(FATAL_ERROR \"Could not append help text to ${SCRIPT}\")
+    endif()"
   )
   install(FILES ${HELPTEXT} DESTINATION docs/xml)
 endfunction()
@@ -120,7 +134,10 @@ endfunction()
 function(symlink TARGET LINKNAME)
   install(CODE "
     message(STATUS \"Symlinking: ${LINKNAME} to ${TARGET}\")
-    execute_process(COMMAND bash -c \"mkdir -p $(dirname ${LINKNAME}) && rm -f ${LINKNAME} && ln -s ${TARGET} ${LINKNAME}\")"
+    execute_process(COMMAND bash -c \"mkdir -p $(dirname ${LINKNAME}) && rm -f ${LINKNAME} && ln -s ${TARGET} ${LINKNAME}\" RESULT_VARIABLE retcode)
+    if(NOT \${retcode} STREQUAL 0)
+      message(FATAL_ERROR \"Could not create symlink to ${TARGET}\")
+    endif()"
   )
 endfunction()
 

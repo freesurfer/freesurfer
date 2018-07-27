@@ -25,6 +25,14 @@ set(CMAKE_NO_SYSTEM_FROM_IMPORTED TRUE)
 #   library dependencies and third-party packages
 # --------------------------------------------------
 
+# Most of the packages required by freesurfer are located by custom find-modules stored in the
+# 'cmake' subdir. The find-modules expect each package to be installed under a common
+# path defined by FS_PACKAGES_DIR. On Martinos machines, this variable automatically defaults
+# to /usr/pubsw/packages, but external developers must provide this path manually. External developers
+# can run the packages/build_packages.py script to compile the dependencies locally. If a package
+# is not found under FS_PACKAGES_DIR, cmake will continue to look through the default search paths.
+# Additionally, alternative paths to package installs can be specified with the <PACKAGE>_DIR variables
+
 if(NOT FS_PACKAGES_DIR)
   if(EXISTS /usr/pubsw/packages)
     # if the user is at Martinos, default to /usr/pubsw/packages
@@ -39,6 +47,7 @@ if(NOT FS_PACKAGES_DIR)
   endif()
 endif()
 
+# all custom find-modules are stored in the cmake subdir
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 # -------- zlib --------
@@ -75,13 +84,13 @@ add_definitions(-DUSE_LOCAL_MINC)
 find_package(Tetgen REQUIRED)
 
 # -------- petsc --------
-find_package(PETSC REQUIRED)
+find_package(PETSC)
 
 # -------- itk --------
 if(NOT ITK_DIR)
   set(ITK_DIR ${FS_PACKAGES_DIR}/itk/5.0.0)
 endif()
-find_package(ITK PATHS ${ITK_DIR} REQUIRED)
+find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 add_definitions(-DHAVE_ITK_LIBS)
 
 # -------- boost program options --------
@@ -89,7 +98,7 @@ find_package(Boost COMPONENTS program_options)
 
 # -------- ann --------
 # ANN is only used by mris_resample
-find_package(ANN REQUIRED)
+find_package(ANN)
 
 # -------- gts --------
 # only used by mris_decimate and mris_decimate_gui
@@ -124,7 +133,9 @@ if(BUILD_GUIS)
     set(Qt5_DIR ${MARTINOS_Qt5})
   endif()
   find_package(Qt5 COMPONENTS Core Widgets X11Extras)
-  add_definitions(-DUSING_QT_5)
+  if(Qt5_FOUND)
+    add_definitions(-DUSING_QT_5)
+  endif()
 
   # -------- vtk --------
   find_package(VTK)
@@ -193,17 +204,18 @@ if(NOT APPLE)
 endif()
 
 # this is just a way to properly include netcdf in include/minc_volume_io.h
-# todo: there should be a better way to include netcdf and this macro should be removed
+# todo: this macro should be removed once the above gets sorted out
 add_definitions(-DCMAKE) 
 
+
 # --------------------------------------------------
-#                    freesurfer
+#                 build freesurfer
 # --------------------------------------------------
 
 # first, prepare the freesurfer distribution
 add_subdirectories(distribution images)
 
-# now build the freesurfer libraries (order here matters!)
+# now build the freesurfer static libraries (order here matters!)
 add_subdirectories(
   unix
   log
@@ -217,21 +229,26 @@ add_subdirectories(
   opencl_algorithms
 )
 
-# the following utility libs are required for freeview
+# the following utility libs are required for freeview and qdec
 add_subdirectories(vtkfsio vtkutils lineprof)
+
+# the fem elastic subdir also builds a library, so it should be added first
+add_subdirectory(fem_elastic)
 
 
 # --------------------------------------------------
 #                      programs
 # --------------------------------------------------
 
+# configure the remaining FS subdirs
+
 add_subdirectories(
+  anatomicuts
   BrainstemSS
   check_siemens_dir
   connectgraph
   dmri_tensoreig
-  dummy
-  fem_elastic
+  dngtester
   freeview
   fsfast
   fslutils
@@ -454,6 +471,7 @@ add_subdirectories(
   mris_curvature
   mris_curvature_stats
   mris_decimate
+  mris_decimate_gui
   mris_deform
   mris_density
   mris_diff

@@ -69,8 +69,14 @@ typedef struct
   bool setMinimumAngle;
   float minimumAngle;
 	
-  // Run code to make sure the output surface is always the same given the input surface
-  int Deterministic;
+  // Run code to sort output vertices. This was needed when compiling
+  // GTS with hashes instead of btrees to make the output
+  // deterministic. Even then it did not always give the same output
+  // when the input was ?h.orig.nofix, because the underlying
+  // algorithm did not give the same vertices. The algorithm appears
+  // to give deterministic output when using btrees, so the sorting
+  // feature is off by default.
+  int SortVertices;
 
 } DECIMATION_OPTIONS;
 

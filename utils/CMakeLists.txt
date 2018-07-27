@@ -166,6 +166,7 @@ set(SOURCES
   stats.c
   stc.c
   surfcluster.c
+  surfgrad.c
   svm.c
   tags.c
   talairachex.c
@@ -335,5 +336,5 @@ add_executable(fsPrintHelp fsPrintHelp.c)
 target_compile_definitions(fsPrintHelp PUBLIC BUILD_MAIN)
 target_link_libraries(fsPrintHelp utils ${XML2_LIBRARIES} ${ZLIB_LIBRARIES})
 install(TARGETS fsPrintHelp DESTINATION bin)
-install(PROGRAMS fsPrintHelp DESTINATION bin RENAME fsman)
-install(PROGRAMS fsPrintHelp DESTINATION bin RENAME fshelp)
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/fsPrintHelp DESTINATION bin RENAME fsman)
+install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/fsPrintHelp DESTINATION bin RENAME fshelp)

@@ -652,10 +652,10 @@ GCA_MORPH *GCAMreadAndInvert(const char *gcamfname)
   else {
     // Must invert explicitly
     printf("Inverting Morph\n");
-    mridir = fio_dirname(gcamdir);
-    //  sprintf(tmpstr,"%s/orig.mgz",mridir);
     // Need template mri
-    sprintf(tmpstr, "%s", (gcam->image).fname);
+    mridir = fio_dirname(gcamdir);
+    sprintf(tmpstr, "%s/%s", mridir,(gcam->image).fname);
+    //sprintf(tmpstr, "%s", (gcam->image).fname); // was this. always fail?
     mri = MRIreadHeader(tmpstr, MRI_VOLUME_TYPE_UNKNOWN);
     if (mri == NULL) {
       printf("ERROR: reading %s\n", tmpstr);
