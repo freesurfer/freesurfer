@@ -1,6 +1,6 @@
 project(mrisp_write)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mrisp_write mrisp_write.c)
 add_help(mrisp_write mrisp_write.help.xml)

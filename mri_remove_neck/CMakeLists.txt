@@ -1,6 +1,6 @@
 project(mri_remove_neck)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_remove_neck mri_remove_neck.c)
 add_help(mri_remove_neck mri_remove_neck.help.xml)

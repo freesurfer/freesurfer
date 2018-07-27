@@ -1,6 +1,6 @@
 project(mris_make_map_surfaces)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_make_map_surfaces mris_make_map_surfaces.c)
 add_help(mris_make_map_surfaces mris_make_map_surfaces.help.xml)

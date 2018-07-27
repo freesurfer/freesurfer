@@ -1,6 +1,6 @@
 project(mris_segmentation_stats)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_segmentation_stats mris_segmentation_stats.c)
 target_link_libraries(mris_segmentation_stats utils)

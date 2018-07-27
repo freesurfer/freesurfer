@@ -1,6 +1,6 @@
 project(mri_cal_renormalize_gca)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_cal_renormalize_gca mri_cal_renormalize_gca.c)
 add_help(mri_cal_renormalize_gca mri_cal_renormalize_gca.help.xml)

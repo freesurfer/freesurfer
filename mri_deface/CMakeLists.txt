@@ -1,6 +1,6 @@
 project(mri_deface)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_deface mri_deface.c)
 target_link_libraries(mri_deface utils)

@@ -1,6 +1,6 @@
 project(mris_calc)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_calc mris_calc.c)
 add_help(mris_calc mris_calc.help.xml)

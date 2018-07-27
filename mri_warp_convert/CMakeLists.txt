@@ -1,6 +1,6 @@
 project(mri_warp_convert)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_warp_convert mri_warp_convert.cpp)
 add_help(mri_warp_convert mri_warp_convert.help.xml)

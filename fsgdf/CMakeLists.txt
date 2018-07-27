@@ -1,8 +1,10 @@
 project(fsgdf)
 
 include_directories(
-  ${CMAKE_SOURCE_DIR}/include
+  ${FS_INCLUDE_DIRS}
   ${MINC_INCLUDE_DIR}
+  ${TCLTKTIXBLT_INCLUDE_DIR}
+  ${X11_INCLUDE_DIR}
 )
 
 SET(SOURCES

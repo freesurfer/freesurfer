@@ -6,23 +6,25 @@ add_subdirectory(cmdl)
 if(BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
 
   include_directories(
-    ${CMAKE_SOURCE_DIR}/include
+    ${FS_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/unix
     ${TCLTKTIXBLT_INCLUDE_DIR}
     ${GLUT_INCLUDE_DIR}/GL
+    ${X11_INCLUDE_DIR}
   )
 
-  add_executable(tkregister2 tkregister2.c)
-  target_link_libraries(tkregister2 utils ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES} ${TCLTKTIXBLT_LIBRARIES})
-
-  set(WRAPCODE "\
-#!/bin/tcsh -ef\n\
-source $FREESURFER_HOME/bin/tcl_setup\n\
-exec $FREESURFER_HOME/tktools/tkregister2.bin $argv"
+  add_executable(tkregister2.bin tkregister2.c)
+  target_link_libraries(tkregister2.bin
+    utils
+    ${OPENGL_LIBRARIES}
+    ${GLUT_LIBRARIES}
+    ${X11_LIBRARIES}
+    ${TCLTKTIXBLT_LIBRARIES}
   )
-  install_wrapped(TARGETS tkregister2 DESTINATION tktools WRAPCODE ${WRAPCODE})
-  install(PROGRAMS ${CMAKE_INSTALL_PREFIX}/bin/tkregister2 DESTINATION bin RENAME tkregister)
-  install(PROGRAMS ${CMAKE_INSTALL_PREFIX}/bin/tkregister2 DESTINATION tktools)
-  install(PROGRAMS ${CMAKE_INSTALL_PREFIX}/bin/tkregister2 DESTINATION tktools RENAME tkregister)
+
+  install(TARGETS  tkregister2.bin DESTINATION tktools)
+  install(PROGRAMS tkregister2_wrapper DESTINATION bin RENAME tkregister2)
+  install(PROGRAMS tkregister2_wrapper DESTINATION tktools RENAME tkregister2)
+  install(PROGRAMS tkregister2_wrapper DESTINATION tktools RENAME tkregister)
 
 endif()

@@ -1,6 +1,6 @@
 project(mri_linear_register)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_linear_register mri_linear_register.c)
 target_link_libraries(mri_linear_register utils)

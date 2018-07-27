@@ -1,6 +1,6 @@
 project(mri_extract_label)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_extract_label mri_extract_label.c)
 target_link_libraries(mri_extract_label utils)

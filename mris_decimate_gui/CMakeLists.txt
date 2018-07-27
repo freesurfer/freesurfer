@@ -6,7 +6,7 @@ if(BUILD_GUIS AND GTS_FOUND AND VTK_FOUND AND WXWidgets_FOUND)
 
   include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/res
-    ${CMAKE_SOURCE_DIR}/include
+    ${FS_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}/mris_decimate
     ${WXWidgets_INCLUDE_DIRS}
     ${GTS_INCLUDE_DIRS}
@@ -24,25 +24,18 @@ if(BUILD_GUIS AND GTS_FOUND AND VTK_FOUND AND WXWidgets_FOUND)
     res/DecimatePanelBase.cpp
   )
 
-  add_executable(mris_decimate_gui ${SOURCES})
-  target_link_libraries(mris_decimate_gui
+  add_executable(mris_decimate_gui.bin ${SOURCES})
+  target_link_libraries(mris_decimate_gui.bin
     utils
     fsgdf
     ${VTK_LIBRARIES}
     ${WXWidgets_LIBRARIES}
     ${GTS_LIBRARIES}
-    ${OPENGL_LIBRARIES} X11 Xmu
+    ${OPENGL_LIBRARIES}
+    ${X11_LIBRARIES}
   )
 
-  set(WRAPCODE "\
-#!/bin/tcsh -ef\n\
-source $FREESURFER_HOME/bin/vtk_setup\n\
-if (-e /bin/pwd) then\n\
-  setenv HOME `cd $HOME && /bin/pwd`\n\
-  setenv SUBJECTS_DIR `cd $SUBJECTS_DIR && /bin/pwd`\n\
-endif\n\
-mris_decimate_gui.bin $argv"
-  )
-  install_wrapped(TARGETS mris_decimate_gui DESTINATION bin WRAPCODE ${WRAPCODE})
+  install(PROGRAMS mris_decimate_gui_wrapper DESTINATION bin RENAME mris_decimate_gui)
+  install(TARGETS mris_decimate_gui.bin DESTINATION bin) 
 
 endif()

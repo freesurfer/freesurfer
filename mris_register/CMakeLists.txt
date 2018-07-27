@@ -1,6 +1,6 @@
 project(mris_register)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_register mris_register.c)
 add_help(mris_register mris_register.help.xml)

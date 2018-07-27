@@ -3,10 +3,11 @@ project(tkmedit)
 if(BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
 
   include_directories(
-    ${CMAKE_SOURCE_DIR}/include
+    ${FS_INCLUDE_DIRS}
     ${TCLTKTIXBLT_INCLUDE_DIR}
     ${TIFF_INCLUDE_DIR}
     ${GLUT_INCLUDE_DIR}/GL
+    ${X11_INCLUDE_DIR}
   )
 
   set(SOURCES
@@ -16,15 +17,18 @@ if(BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
     tkmMeditWindow.c
   )
 
-  add_executable(tkmedit ${SOURCES})
-  target_link_libraries(tkmedit utils fsgdf ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES} ${TCLTKTIXBLT_LIBRARIES})
-
-  set(WRAPCODE "\
-#!/bin/tcsh -ef\n\
-source $FREESURFER_HOME/bin/tcl_setup\n\
-exec $FREESURFER_HOME/tktools/tkmedit.bin $argv"
+  add_executable(tkmedit.bin ${SOURCES})
+  target_link_libraries(tkmedit.bin
+    utils
+    fsgdf
+    ${OPENGL_LIBRARIES}
+    ${GLUT_LIBRARIES}
+    ${X11_LIBRARIES}
+    ${TCLTKTIXBLT_LIBRARIES}
   )
-  install_wrapped(TARGETS tkmedit DESTINATION tktools WRAPCODE ${WRAPCODE})
-  install(PROGRAMS ${CMAKE_INSTALL_PREFIX}/bin/tkmedit DESTINATION tktools)
+
+  install(TARGETS  tkmedit.bin DESTINATION tktools)
+  install(PROGRAMS tkmedit_wrapper DESTINATION bin RENAME tkmedit)
+  install(PROGRAMS tkmedit_wrapper DESTINATION tktools RENAME tkmedit)
 
 endif()

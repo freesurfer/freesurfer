@@ -1,6 +1,6 @@
 project(mris_segment_vals)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_segment_vals mris_segment_vals.c)
 target_link_libraries(mris_segment_vals utils)

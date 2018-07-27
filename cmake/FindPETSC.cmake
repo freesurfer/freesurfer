@@ -8,7 +8,7 @@ find_path(PETSC_INCLUDE_DIR HINTS ${PETSC_DIR} NAMES petsc.h PATH_SUFFIXES inclu
 
 find_package_handle_standard_args(PETSC DEFAULT_MSG PETSC_INCLUDE_DIR)
 
-foreach(LIB petscts petscsnes petscksp petscdm petscmat petscvec petsc petsccontrib fmpich mpich)
+foreach(LIB petscts petscsnes petscksp petscdm petscmat petscvec petsc petsccontrib mpich pmpich)
   set(PETSC_LIBRARIES ${PETSC_LIBRARIES} ${PETSC_DIR}/lib/lib${LIB}.a)
 endforeach()
 

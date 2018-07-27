@@ -1,6 +1,6 @@
 project(spherical_stats)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(spherical_stats spherical_stats.c)
 target_link_libraries(spherical_stats utils)

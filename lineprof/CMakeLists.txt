@@ -11,6 +11,7 @@ if(ITK_FOUND AND VTK_FOUND AND PETSC_FOUND)
   # temporary macro to deal with BoundingBoxType
   # this should be removed once we updgrade everything
   add_definitions(-DHAVE_ITK45)
+  set(CMAKE_CXX_STANDARD 11)
 
   set(SOURCES
     Tracer.cpp
@@ -22,6 +23,5 @@ if(ITK_FOUND AND VTK_FOUND AND PETSC_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
 
   add_library(lineprof STATIC ${SOURCES})
-  target_link_libraries(lineprof ${PETSC_LIBRARIES} ${VTK_LIBRARIES} ${ITK_LIBRARIES})
 
 endif()

@@ -1,6 +1,6 @@
 project(mri_aparc2wmseg)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_aparc2wmseg mri_aparc2wmseg.c)
 target_link_libraries(mri_aparc2wmseg utils)

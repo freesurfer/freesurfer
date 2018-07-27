@@ -1,0 +1,9 @@
+#!/bin/tcsh -ef
+source $FREESURFER_HOME/bin/tcl_setup
+source $FREESURFER_HOME/bin/vtk_setup
+source $FREESURFER_HOME/bin/kww_setup
+if (-e /bin/pwd) then
+  setenv HOME `cd $HOME && /bin/pwd`
+  setenv SUBJECTS_DIR `cd $SUBJECTS_DIR && /bin/pwd`
+endif
+qdec.bin $argv

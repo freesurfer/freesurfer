@@ -1,6 +1,6 @@
 project(mris_niters2fwhm)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_niters2fwhm mris_niters2fwhm.c)
 target_link_libraries(mris_niters2fwhm utils)
