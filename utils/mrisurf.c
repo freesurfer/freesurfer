@@ -1897,7 +1897,7 @@ static bool MRISreallocVertices(MRI_SURFACE * mris, int max_vertices, int nverti
   mris->vertices = (VERTEX *)realloc(mris->vertices, max_vertices*sizeof(VERTEX));
   if (!mris->vertices) return false;
   #ifndef SEPARATE_VERTEX_TOPOLOGY
-    mris->vertices = mris->vertices_topology;
+    mris->vertices_topology = mris->vertices;
   #else
     #error "NYI"
   #endif

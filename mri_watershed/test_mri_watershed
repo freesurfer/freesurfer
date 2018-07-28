@@ -44,6 +44,7 @@ for num in $threads; do
   echo 2>&1 | tee -a $logfile
   echo "${tname}:  running mri_watershed with ${num} thread(s)" 2>&1 | tee -a $logfile
   echo $cmd >> $logfile
+  echo $cmd
   $cmd >> $logfile 2>&1
   status=$?
   if [ $status -ne 0 ]; then
