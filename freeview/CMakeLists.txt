@@ -222,7 +222,6 @@ if(BUILD_GUIS AND Qt5_FOUND AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARG
     install(FILES Info.plist DESTINATION Freeview.app/Contents)
     install(DIRECTORY DESTINATION Freeview.app/Contents/Resources/English.lproj)
     install_symlinks(resource/icons/freeview.icns TYPE files DESTINATION Freeview.app/Contents/Resources)
-    install(CODE) ${QT_INSTALL_DIR}/bin/macdeployqt ${CMAKE_INSTALL_PREFIX}/Freeview.app
     install(CODE "
       message(STATUS \"Deploying Freeview.app\")
       execute_process(COMMAND bash -c \"${QT_INSTALL_DIR}/bin/macdeployqt ${CMAKE_INSTALL_PREFIX}/Freeview.app\" RESULT_VARIABLE retcode)
