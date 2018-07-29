@@ -13,10 +13,10 @@ rt = fst.RegressionTest()
 
 rt.run('./mri_fwhm --i HelixTensors.nii.gz --nframesmin 9 --auto-mask .2 --sum out.fwhm.sum')
 
-# remove timestamp, hostname, user which can differ depending upon where run
+# remove timestamp, hostname, user, sysname, Id:, FREESURFER_HOME, cwd  which can differ depending upon where run
 f_new = "out.fwhm.sum"
 f_edit = f_new  + ".edit"
-cmd1 = 'cat ' + f_new + ' | grep -v ' + '"' + '^timestamp ' + '"' + ' | grep -v ' + '"' + '^hostname ' + '"' + ' | grep -v ' + '"' + '^user ' + '"' + ' > ' + f_edit
+cmd1 = 'cat ' + f_new + ' | grep -v ' + '"' + '^timestamp ' + '"' + ' | grep -v ' + '"' + '^hostname ' + '"' + ' | grep -v ' + '"' + '^user ' + '"' + ' | grep -v ' + '"' + '^sysname ' + '"' + ' | grep -v ' + '"' + 'Id: ' + '"' +  ' | grep -v ' + '"' + '^FREESURFER_HOME ' + '"' + ' | grep -v ' + '"' + '^cwd ' + '"'  +  ' > ' + f_edit
 print ("Running: %s" % (cmd1))
 os.system(cmd1)
 
