@@ -190,10 +190,13 @@ if(BUILD_GUIS AND Qt5_FOUND AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARG
 
   if(APPLE)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Cocoa -framework IOKit -framework Accelerate")
+    set(FREEVIEW_EXEC_NAME Freeview)
+  else()
+    set(FREEVIEW_EXEC_NAME freeview.bin)
   endif()
 
-  add_executable(freeview.bin ${SOURCES})
-  target_link_libraries(freeview.bin 
+  add_executable(${FREEVIEW_EXEC_NAME} ${SOURCES})
+  target_link_libraries(${FREEVIEW_EXEC_NAME} 
     Qt5::Core
     Qt5::Widgets
     ${OPENGL_LIBRARIES}
@@ -211,10 +214,25 @@ if(BUILD_GUIS AND Qt5_FOUND AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARG
   )
 
   if(NOT APPLE)
-    target_link_libraries(freeview.bin ${GLUT_LIBRARIES} ${X11_LIBRARIES} Qt5::X11Extras)
+    target_link_libraries(${FREEVIEW_EXEC_NAME} ${GLUT_LIBRARIES} ${X11_LIBRARIES} Qt5::X11Extras)
   endif()
 
-  install(TARGETS freeview.bin DESTINATION bin)
-  install(PROGRAMS freeview_wrapper DESTINATION bin RENAME freeview)
+  if(APPLE)
+    install(TARGETS ${FREEVIEW_EXEC_NAME} DESTINATION Freeview.app/Contents/MacOS)
+    install(FILES Info.plist DESTINATION Freeview.app/Contents)
+    install(DIRECTORY DESTINATION Freeview.app/Contents/Resources/English.lproj)
+    install_symlinks(resource/icons/freeview.icns TYPE files DESTINATION Freeview.app/Contents/Resources)
+    install(CODE) ${QT_INSTALL_DIR}/bin/macdeployqt ${CMAKE_INSTALL_PREFIX}/Freeview.app
+    install(CODE "
+      message(STATUS \"Deploying Freeview.app\")
+      execute_process(COMMAND bash -c \"${QT_INSTALL_DIR}/bin/macdeployqt ${CMAKE_INSTALL_PREFIX}/Freeview.app\" RESULT_VARIABLE retcode)
+      if(NOT \${retcode} STREQUAL 0)
+        message(FATAL_ERROR \"Could not run macdeployqt\")
+      endif()"
+    )
+  else()
+    install(TARGETS ${FREEVIEW_EXEC_NAME} DESTINATION bin)
+    install(PROGRAMS freeview_wrapper DESTINATION bin RENAME freeview)  
+  endif()
 
 endif()

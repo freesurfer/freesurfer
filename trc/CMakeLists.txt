@@ -1,6 +1,6 @@
 project(trc)
 
-if(Boost_FOUND)
+if(Boost_FOUND AND PETSC_FOUND)
 
   include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}

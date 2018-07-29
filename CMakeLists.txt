@@ -14,8 +14,10 @@ enable_testing()
 option(BUILD_GUIS "Build GUIs" ON)
 option(SMALL_INSTALL "Install a minimal FS distribution" OFF)
 
-# include our custom cmake functions
+# include our custom cmake functions (and others)
 include(cmake/functions.cmake)
+include(TestBigEndian)
+include(CheckFunctionExists)
 
 # prevents itk from importing as a system
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED TRUE)
@@ -144,9 +146,11 @@ if(BUILD_GUIS)
   endif()
   # actually find qt
   find_package(Qt5 COMPONENTS ${QT_COMPONENTS})
-  if(Qt5_FOUND AND NOT APPLE)
+  if(Qt5_FOUND)
     get_filename_component(QT_INSTALL_DIR "${Qt5_DIR}/../../.." ABSOLUTE)
-    symlink(${QT_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX}/lib/qt)
+    if(NOT APPLE)
+      symlink(${QT_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX}/lib/qt)
+    endif()
   endif()
 
   # -------- vtk --------
@@ -172,7 +176,6 @@ endif()
 add_definitions(-D${CMAKE_SYSTEM_NAME})
 
 # general check for big endian
-include(TestBigEndian)
 test_big_endian(IS_BIG_ENDIAN)
 
 # todo: config.h
@@ -217,6 +220,14 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS}")
 # link map (only for linux)
 if(NOT APPLE)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
+endif()
+
+# check for 
+if(APPLE)
+  check_function_exists(clock_gettime HAVE_CLOCK_GETTIME)
+  if(HAVE_CLOCK_GETTIME)
+    add_definitions(-DHAVE_CLOCK_GETTIME)
+  endif()
 endif()
 
 # apply C and CXX flags

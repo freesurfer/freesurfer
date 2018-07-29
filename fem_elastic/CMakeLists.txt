@@ -20,7 +20,7 @@ if(Tetgen_FOUND AND PETSC_FOUND AND Boost_FOUND)
     misc_maths.cpp
     transformUtils.cpp
     surf_utils.cpp
-    ZlibStringCompressor.cpp 
+    ZlibStringCompressor.cpp
   )
 
   # createMorph
@@ -37,6 +37,10 @@ if(Tetgen_FOUND AND PETSC_FOUND AND Boost_FOUND)
   add_executable(exportGcam exportGcam.cpp ${COMMON3D_SOURCES})
   target_link_libraries(exportGcam utils ${Tetgen_LIBRARIES} ${Boost_PROGRAM_OPTIONS_LIBRARY})
   install(TARGETS exportGcam DESTINATION bin)
+
+  if(APPLE)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Accelerate")
+  endif()
 
   # surf2vol
   add_executable(surf2vol

@@ -2,7 +2,7 @@
 
 set -e
 
-if [ "$#" != "1" ] ; then echo "error: usage: build.sh <prefix>" && exit 1 ; fi
+[ "$#" != "1" ] && echo "error: usage: build.sh <prefix>" && exit 1
 INSTALL_DIR="$1"
 
 cd petsc
@@ -24,7 +24,7 @@ python2 config/configure.py \
 if [ "$(uname -s)" == "Linux" ]; then
   PETSC_ARCH="linux-gnu-c-opt"
 elif [ "$(uname -s)" == "Darwin" ]; then
-  PETSC_ARCH="$(uname -rs | tr -d '[:space:]')"
+  PETSC_ARCH="darwin$(uname -r)-c-opt"
 fi
 export PETSC_ARCH
 

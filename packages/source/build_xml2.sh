@@ -2,8 +2,11 @@
 
 set -e
 
-if [ "$#" != "1" ] ; then echo "error: usage: build.sh <prefix>" && exit 1 ; fi
+[ "$#" != "1" ] && echo "error: usage: build.sh <prefix>" && exit 1
 INSTALL_DIR="$1"
+
+export CC=$(which gcc)
+export CXX=$(which g++)
 
 cd xml2
 ./configure --prefix=${INSTALL_DIR} --with-sax1 --disable-shared --with-minimum

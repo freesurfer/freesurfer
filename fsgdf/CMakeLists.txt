@@ -1,18 +1,22 @@
 project(fsgdf)
 
-include_directories(
-  ${FS_INCLUDE_DIRS}
-  ${MINC_INCLUDE_DIR}
-  ${TCLTKTIXBLT_INCLUDE_DIR}
-  ${X11_INCLUDE_DIR}
-)
+if(TCLTKTIXBLT_FOUND)
 
-SET(SOURCES
-  fsgdf.c
-  fsgdf_wrap.c
-  FsgdfPlot.cxx
-)
+  include_directories(
+    ${FS_INCLUDE_DIRS}
+    ${MINC_INCLUDE_DIR}
+    ${TCLTKTIXBLT_INCLUDE_DIR}
+    ${X11_INCLUDE_DIR}
+  )
 
-add_library(fsgdf STATIC ${SOURCES})
+  SET(SOURCES
+    fsgdf.c
+    fsgdf_wrap.c
+    FsgdfPlot.cxx
+  )
 
-target_link_libraries(fsgdf utils ${MINC_LIBRARIES} ${NetCDF_LIBRARIES})
+  add_library(fsgdf STATIC ${SOURCES})
+
+  target_link_libraries(fsgdf utils ${MINC_LIBRARIES} ${NetCDF_LIBRARIES})
+
+endif()

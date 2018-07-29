@@ -6,7 +6,11 @@
 # that's hard to work with.
 
 if(NOT VTK_DIR)
-  set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/5.6)
+  if(EXISTS ${FS_PACKAGES_DIR}/vtk/5.10.1)
+    set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/5.10.1)
+  else()
+    set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/5.6)
+  endif()
 endif()
 
 find_package(VTK HINTS ${VTK_DIR} NO_MODULE)
@@ -35,6 +39,7 @@ if(VTK_FOUND)
     vtkGenericFiltering
     vtkexoIIc
     vtkNetCDF
+    vtkNetCDF_cxx
     vtkVolumeRendering
     vtkRendering
     vtkftgl
@@ -42,6 +47,9 @@ if(VTK_FOUND)
     vtkHybrid
     vtkIO
     vtkDICOMParser
+    vtkhdf5
+    vtkhdf5_hl
+    LSDyna
   )
 
   library_paths(
