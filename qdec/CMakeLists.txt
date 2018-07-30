@@ -8,7 +8,7 @@ if(BUILD_GUIS
   AND VTK_FOUND
   AND KWWidgets_FOUND)
   
-  if(APPLE)
+  if(APPLE AND NOT BUILD_OSX_TK_GUIS)
   
     install_symlinks(${CMAKE_SOURCE_DIR}/distribution/Mac_32b/qdec.bin TYPE programs DESTINATION bin)
 

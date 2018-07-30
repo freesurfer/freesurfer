@@ -219,6 +219,7 @@ if(BUILD_GUIS AND Qt5_FOUND AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARG
 
   if(APPLE)
     install(TARGETS ${FREEVIEW_EXEC_NAME} DESTINATION Freeview.app/Contents/MacOS)
+    install(PROGRAMS freeview_wrapper_osx DESTINATION bin RENAME freeview)
     install(FILES Info.plist DESTINATION Freeview.app/Contents)
     install(DIRECTORY DESTINATION Freeview.app/Contents/Resources/English.lproj)
     install_symlinks(resource/icons/freeview.icns TYPE files DESTINATION Freeview.app/Contents/Resources)
@@ -231,7 +232,7 @@ if(BUILD_GUIS AND Qt5_FOUND AND VTK_FOUND AND ITK_FOUND AND PETSC_FOUND AND TARG
     )
   else()
     install(TARGETS ${FREEVIEW_EXEC_NAME} DESTINATION bin)
-    install(PROGRAMS freeview_wrapper DESTINATION bin RENAME freeview)  
+    install(PROGRAMS freeview_wrapper DESTINATION bin RENAME freeview)
   endif()
 
 endif()
