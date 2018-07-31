@@ -2731,15 +2731,24 @@ int main(int argc, char *argv[])
   /* ----- apply command-line parameters ----- */
   if (out_i_size_flag)
   {
+    float scale ;
+    scale = template->xsize / out_i_size ;
     template->xsize = out_i_size;
+    template->width = nint(template->width *scale) ;
   }
   if (out_j_size_flag)
   {
+    float scale ;
+    scale = template->ysize / out_j_size ;
     template->ysize = out_j_size;
+    template->height = nint(template->height *scale) ;
   }
   if (out_k_size_flag)
   {
+    float scale ;
+    scale = template->zsize / out_k_size ;
     template->zsize = out_k_size;
+    template->depth = nint(template->depth *scale) ;
   }
   if (out_n_i_flag)
   {
