@@ -64,7 +64,7 @@ pkgs = [
   Package('kwwidgets',   'CVS',    'build_kwwidgets.sh', 'kwwidgets-cvs.tar.gz', required=False)  # must build kwwidgets after vtk
 ]
 
-# tcltk cannot be built on modern OSX
+# tcltk 8.4.6 cannot be built on modern OSX
 if platform.system() != 'Darwin':
   pkgs.append(Package('tcltktixblt', '8.4.6', 'build_tcltk.sh', 'tcltktixblt-8.4.6.tar.gz', required=False))
 

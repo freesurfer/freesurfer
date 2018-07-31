@@ -8,6 +8,8 @@ INSTALL_DIR="$1"
 export CC=$(which gcc)
 export CXX=$(which g++)
 
+export DIR_LIBGZ=/usr/lib  # make sure to compile with ZIP_SUPPORT
+
 cd tiff
 ./configure --prefix=${INSTALL_DIR} --noninteractive
 

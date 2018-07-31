@@ -14,7 +14,7 @@ enable_testing()
 option(BUILD_GUIS "Build GUIs" ON)
 option(SMALL_INSTALL "Install a minimal FS distribution" OFF)
 if(APPLE)
-  option(BUILD_OSX_TK_GUIS "Build OSX Tk GUIs" ON)
+  option(BUILD_OSX_TK_GUIS "Build OSX Tk GUIs" OFF)
 endif()
 
 # include our custom cmake functions (and others)
