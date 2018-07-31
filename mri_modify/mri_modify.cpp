@@ -47,6 +47,7 @@ static int tr_specified = 0 ;
 static int te_specified = 0 ;
 static int ti_specified = 0 ;
 static int fa_specified = 0 ;
+static int cras_specified = 0 ;
 
 void print_usage() {
   cout << "Usage: mri_modify <-xras xr xa xs> <-yras yr ya ys> <-zras zr za zs> <-cras cr ca cs> \\ " << endl;
@@ -82,6 +83,7 @@ int get_option(int argc, char *argv[], VOL_GEOM &vg) {
     vg.c_r = atof(argv[2]);
     vg.c_a = atof(argv[3]);
     vg.c_s = atof(argv[4]);
+    cras_specified = 1 ;
     nargs=3;
   } else if (!stricmp(option, (char*)"xsize")) {
     vg.xsize = atof(argv[2]);
@@ -192,7 +194,7 @@ int main(int argc, char *argv[]) {
     vgOut.z_s = vg.z_s;
   }
   // c_ras
-  if (!FZERO(vg.c_r) || !FZERO(vg.c_a) || !FZERO(vg.c_s)) {
+  if (cras_specified){
     vgOut.c_r = vg.c_r;
     vgOut.c_a = vg.c_a;
     vgOut.c_s = vg.c_s;
