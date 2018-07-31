@@ -53,7 +53,7 @@ extern const char *Progname;
 #define BIG_AND_NEGATIVE -10000000.0
 
 static int gcsaFixSingularCovarianceMatrices(GCSA *gcsa);
-static int edge_to_index(VERTEX *v, VERTEX *vn);
+static int edge_to_index(VERTEX const *v, VERTEX const *vn);
 static int MRIScomputeVertexPermutation(MRI_SURFACE *mris, int *indices);
 static int GCSAupdateNodeMeans(GCSA_NODE *gcsan, int label, double *v_inputs, int ninputs);
 static int GCSAupdateNodeGibbsPriors(CP_NODE *cpn, int label, MRI_SURFACE *mris, int vno);
@@ -62,7 +62,7 @@ static int GCSANclassify(
     GCSA_NODE *gcsa_node, CP_NODE *cpn, double *v_inputs, int ninputs, double *pprob, int *exlude_list, int nexcluded);
 static double gcsaNbhdGibbsLogLikelihood(
     GCSA *gcsa, MRI_SURFACE *mris, double *v_inputs, int vno, double gibbs_coef, int label);
-static double gcsaVertexGibbsLogLikelihood(GCSA *gcsa, MRI_SURFACE *mris, double *v_inputs, int vno, double gibbs_coef);
+static double gcsaVertexGibbsLogLikelihood(GCSA *gcsa, MRI_SURFACE *mris, double const *v_inputs, int vno, double gibbs_coef);
 static int add_gc_to_gcsan(GCSA_NODE *gcsan_src, int nsrc, GCSA_NODE *gcsan_dst);
 #if 0
 static int add_cp_to_cpn(CP_NODE *cpn_src, int nsrc, CP_NODE *cpn_dst) ;
@@ -291,7 +291,7 @@ int GCSAtrainCovariances(GCSA *gcsa, MRI_SURFACE *mris)
   return (NO_ERROR);
 }
 
-VERTEX *GCSAsourceToClassifierVertex(GCSA *gcsa, VERTEX *v)
+VERTEX *GCSAsourceToClassifierVertex(GCSA *gcsa, VERTEX const *v)
 {
   VERTEX *vdst;
 
@@ -299,14 +299,14 @@ VERTEX *GCSAsourceToClassifierVertex(GCSA *gcsa, VERTEX *v)
   return (vdst);
 }
 /*------------------------------------------------------------------*/
-VERTEX *GCSAsourceToPriorVertex(GCSA *gcsa, VERTEX *v)
+VERTEX *GCSAsourceToPriorVertex(GCSA *gcsa, VERTEX const *v)
 {
   VERTEX *vdst;
   vdst = MHTfindClosestVertex(gcsa->mht_priors, gcsa->mris_priors, v);
   return (vdst);
 }
 /*------------------------------------------------------------------*/
-int GCSAsourceToPriorVertexNo(GCSA *gcsa, VERTEX *v)
+int GCSAsourceToPriorVertexNo(GCSA *gcsa, VERTEX const *v)
 {
   int vdstno;
   float dmin;
@@ -951,7 +951,6 @@ static int GCSAupdateNodeGibbsPriors(CP_NODE *cpn, int label, MRI_SURFACE *mris,
 {
   int n, i, j, m, nbr_label;
   CP *cp;
-  VERTEX *v, *vn;
 
   if (label == 0) DiagBreak();
 
@@ -1005,9 +1004,11 @@ static int GCSAupdateNodeGibbsPriors(CP_NODE *cpn, int label, MRI_SURFACE *mris,
 
   cpn->total_training++;
   cp = &cpn->cps[n];
-  v = &mris->vertices[vno];
-  for (m = 0; m < v->vnum; m++) {
-    vn = &mris->vertices[v->v[m]];
+
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX          const * const v  = &mris->vertices         [vno];
+  for (m = 0; m < vt->vnum; m++) {
+    VERTEX *vn = &mris->vertices[vt->v[m]];
     i = edge_to_index(v, vn);
     cp->total_nbrs[i]++;
     nbr_label = vn->annotation;
@@ -1055,7 +1056,7 @@ static int GCSAupdateNodeGibbsPriors(CP_NODE *cpn, int label, MRI_SURFACE *mris,
   return (NO_ERROR);
 }
 
-static int edge_to_index(VERTEX *v, VERTEX *vn)
+static int edge_to_index(VERTEX const * const v, VERTEX const * const vn)
 {
   float dx, dy, dz, dot1, dot2, index, x_dist, y_dist, z_dist;
 
@@ -1095,7 +1096,6 @@ int GCSAreclassifyUsingGibbsPriors(GCSA *gcsa, MRI_SURFACE *mris)
   int *indices;
   int n, vno, i, nchanged, label, best_label, old_label, vno_prior, vno_classifier, niter, examined;
   double ll, max_ll;
-  VERTEX *v, *v_classifier, *v_prior, *vn;
   // GCSA_NODE *gcsan;
   CP_NODE *cpn;
   double v_inputs[100];
@@ -1118,7 +1118,7 @@ int GCSAreclassifyUsingGibbsPriors(GCSA *gcsa, MRI_SURFACE *mris)
     MRIScomputeVertexPermutation(mris, indices);
     for (i = 0; i < mris->nvertices; i++) {
       vno = indices[i];
-      v = &mris->vertices[vno];
+      VERTEX* const v = &mris->vertices[vno];
       if (v->marked == 0) continue;
       v->marked = 0;
       examined++;
@@ -1127,13 +1127,13 @@ int GCSAreclassifyUsingGibbsPriors(GCSA *gcsa, MRI_SURFACE *mris)
 
       load_inputs(v, v_inputs, gcsa->ninputs);
 
-      v_prior = GCSAsourceToPriorVertex(gcsa, v);
+      VERTEX const * const v_prior = GCSAsourceToPriorVertex(gcsa, v);
       vno_prior = v_prior - gcsa->mris_priors->vertices;
       if (vno_prior == Gdiag_no) DiagBreak();
       cpn = &gcsa->cp_nodes[vno_prior];
       if (cpn->nlabels <= 1) continue;
 
-      v_classifier = GCSAsourceToClassifierVertex(gcsa, v_prior);
+      VERTEX const * const v_classifier = GCSAsourceToClassifierVertex(gcsa, v_prior);
       vno_classifier = v_classifier - gcsa->mris_classifiers->vertices;
       // gcsan = &gcsa->gc_nodes[vno_classifier];
       if (vno_classifier == Gdiag_no) DiagBreak();
@@ -1178,10 +1178,11 @@ int GCSAreclassifyUsingGibbsPriors(GCSA *gcsa, MRI_SURFACE *mris)
       MRISwriteAnnotation(mris, fname);
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX          const * const v  = &mris->vertices         [vno];
       if (v->marked != 1) continue;
-      for (n = 0; n < v->vnum; n++) {
-        vn = &mris->vertices[v->v[n]];
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX * const vn = &mris->vertices[vt->v[n]];
         if (vn->marked == 1) continue;
         vn->marked = 2;
       }
@@ -1210,20 +1211,20 @@ int MRIScomputeVertexPermutation(MRI_SURFACE *mris, int *indices)
 }
 
 static double gcsaNbhdGibbsLogLikelihood(
-    GCSA *gcsa, MRI_SURFACE *mris, double *v_inputs, int vno, double gibbs_coef, int label)
+    GCSA *gcsa, MRI_SURFACE *mris, double *v_inputs, int const vno, double gibbs_coef, int label)
 {
-  double total_ll, ll;
-  int n, old_annotation;
-  VERTEX *v;
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX                * const v  = &mris->vertices[vno];
 
-  v = &mris->vertices[vno];
-  old_annotation = v->annotation;
+  int old_annotation = v->annotation;
   v->annotation = label;
 
-  total_ll = gcsaVertexGibbsLogLikelihood(gcsa, mris, v_inputs, vno, gibbs_coef);
+  double total_ll = gcsaVertexGibbsLogLikelihood(gcsa, mris, v_inputs, vno, gibbs_coef);
 
-  for (n = 0; n < v->vnum; n++) {
-    ll = gcsaVertexGibbsLogLikelihood(gcsa, mris, v_inputs, v->v[n], gibbs_coef);
+  int n;
+  for (n = 0; n < vt->vnum; n++) {
+    double ll = 
+    	gcsaVertexGibbsLogLikelihood(gcsa, mris, v_inputs, vt->v[n], gibbs_coef);
     total_ll += ll;
   }
 
@@ -1232,15 +1233,13 @@ static double gcsaNbhdGibbsLogLikelihood(
   return (total_ll);
 }
 
-static double gcsaVertexGibbsLogLikelihood(GCSA *gcsa, MRI_SURFACE *mris, double *v_inputs, int vno, double gibbs_coef)
+static double gcsaVertexGibbsLogLikelihood(
+    GCSA         * const gcsa, 
+    MRI_SURFACE  * const mris, 
+    double const * const v_inputs, 
+    int            const vno, 
+    double  	   const gibbs_coef)
 {
-  double ll, nbr_prior, det;
-  int nbr_label, label, i, j, np, n, nc, vno_prior, vno_classifier;
-  GCSA_NODE *gcsan;
-  CP_NODE *cpn;
-  CP *cp;
-  GCS *gcs;
-  VERTEX *v, *v_prior, *v_classifier;
   static MATRIX *m_cov_inv = NULL;
   static VECTOR *v_tmp = NULL, *v_x = NULL;
 
@@ -1250,49 +1249,60 @@ static double gcsaVertexGibbsLogLikelihood(GCSA *gcsa, MRI_SURFACE *mris, double
     VectorFree(&v_x);
   }
 
-  v = &mris->vertices[vno];
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX          const * const v  = &mris->vertices         [vno];
 
-  v_prior = GCSAsourceToPriorVertex(gcsa, v);
-  vno_prior = v_prior - gcsa->mris_priors->vertices;
+  VERTEX const * const v_prior = GCSAsourceToPriorVertex(gcsa, v);
+  int const vno_prior = v_prior - gcsa->mris_priors->vertices;
   if (vno_prior == Gdiag_no) DiagBreak();
-  cpn = &gcsa->cp_nodes[vno_prior];
 
-  v_classifier = GCSAsourceToClassifierVertex(gcsa, v_prior);
-  vno_classifier = v_classifier - gcsa->mris_classifiers->vertices;
+  CP_NODE * const cpn = &gcsa->cp_nodes[vno_prior];
+
+  VERTEX const * const v_classifier = 
+    GCSAsourceToClassifierVertex(gcsa, v_prior);
+    
+  int const vno_classifier = v_classifier - gcsa->mris_classifiers->vertices;
   if (vno_classifier == Gdiag_no) DiagBreak();
-  gcsan = &gcsa->gc_nodes[vno_classifier];
 
-  label = v->annotation;
+  GCSA_NODE * const gcsan = &gcsa->gc_nodes[vno_classifier];
 
+  int const label = v->annotation;
+  int np;
   for (np = 0; np < cpn->nlabels; np++) {
     if (cpn->labels[np] == label) break;
   }
   if (np >= cpn->nlabels) /* never occured here */
     return (BIG_AND_NEGATIVE);
 
+  int nc;  
   for (nc = 0; nc < gcsan->nlabels; nc++) {
     if (gcsan->labels[nc] == label) break;
   }
   if (nc >= gcsan->nlabels) /* never occured here */
     return (BIG_AND_NEGATIVE);
 
-  gcs = &gcsan->gcs[nc];
-  cp = &cpn->cps[np];
+  GCS * const gcs = &gcsan->gcs[nc];
+  CP  * const cp  = &cpn->cps[np];
 
   /* compute Mahalanobis distance */
   v_x = VectorCopy(gcs->v_means, v_x);
-  for (i = 0; i < gcsa->ninputs; i++) VECTOR_ELT(v_x, i + 1) -= v_inputs[i];
+  { int i;
+    for (i = 0; i < gcsa->ninputs; i++) VECTOR_ELT(v_x, i + 1) -= v_inputs[i];
+  }
   m_cov_inv = MatrixInverse(gcs->m_cov, m_cov_inv);
   if (!m_cov_inv) ErrorExit(ERROR_BADPARM, "GCSAvertexLogLikelihood: could not invert matrix");
 
-  det = MatrixDeterminant(gcs->m_cov);
+  double const det = MatrixDeterminant(gcs->m_cov);
   v_tmp = MatrixMultiply(m_cov_inv, v_x, v_tmp);
-  ll = -0.5 * VectorDot(v_x, v_tmp) - 0.5 * log(det);
 
-  nbr_prior = 0.0;
-  for (n = 0; n < v->vnum; n++) {
-    nbr_label = mris->vertices[v->v[n]].annotation;
-    i = edge_to_index(v, &mris->vertices[v->v[n]]);
+  double ll = -0.5 * VectorDot(v_x, v_tmp) - 0.5 * log(det);
+  double nbr_prior = 0.0;
+  
+  int n;
+  for (n = 0; n < vt->vnum; n++) {
+    int const nbr_label = mris->vertices[vt->v[n]].annotation;
+    int const i = edge_to_index(v, &mris->vertices[vt->v[n]]);
+    int j;
     for (j = 0; j < cp->nlabels[i]; j++) {
       if (nbr_label == cp->labels[i][j]) break;
     }
@@ -1340,7 +1350,6 @@ static GCS *getGC(GCSA_NODE *gcsan, int label, int *pn)
 int GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area)
 {
   int i, n, vno, annotation, best_label, max_ll, ll, nchanged, total;
-  VERTEX *v, *vn;
   double v_inputs[100];
 
   total = 0;
@@ -1349,7 +1358,8 @@ int GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area)
     nchanged = 0;
     for (i = 0; i < area->n_points; i++) {
       vno = area->lv[i].vno;
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX *                const v  = &mris->vertices[vno];
 
       if (vno == Gdiag_no) DiagBreak();
 
@@ -1358,8 +1368,8 @@ int GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area)
       load_inputs(v, v_inputs, gcsa->ninputs);
       max_ll = 10 * BIG_AND_NEGATIVE;
       best_label = v->annotation;
-      for (n = 0; n < v->vnum; n++) {
-        vn = &mris->vertices[v->v[n]];
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX const * const vn = &mris->vertices[vt->v[n]];
         if (vn->annotation == annotation) continue;
         ;
         ll = gcsaNbhdGibbsLogLikelihood(gcsa, mris, v_inputs, vno, 1.0, vn->annotation);
@@ -1413,16 +1423,17 @@ static int fill_cpn_holes(GCSA *gcsa)
       if (cpn->nlabels > 0) continue;
 
       /* found an empty cpn - find nearest nbr with data and fill in */
+      VERTEX_TOPOLOGY const * const vt = &gcsa->mris_priors->vertices_topology[vno];
       v = &gcsa->mris_priors->vertices[vno];
       x = v->x;
       y = v->y;
       z = v->z;
       min_dist = 100000;
       min_n = -1;
-      for (n = 0; n < v->vnum; n++) {
-        cpn_nbr = &gcsa->cp_nodes[v->v[n]];
+      for (n = 0; n < vt->vnum; n++) {
+        cpn_nbr = &gcsa->cp_nodes[vt->v[n]];
         if (cpn_nbr->nlabels == 0) continue;
-        vn = &gcsa->mris_priors->vertices[v->v[n]];
+        vn = &gcsa->mris_priors->vertices[vt->v[n]];
         dist = sqrt(SQR(vn->x - x) + SQR(vn->y - y) + SQR(vn->z - z));
         if (dist < min_dist || min_n < 0) {
           min_n = n;
@@ -1432,7 +1443,7 @@ static int fill_cpn_holes(GCSA *gcsa)
       if (min_n < 0) /* none of the nbr have data either */
         continue;
       nfilled++;
-      cpn_nbr = &gcsa->cp_nodes[v->v[min_n]];
+      cpn_nbr = &gcsa->cp_nodes[vt->v[min_n]];
       free(cpn->labels);
       free(cpn->cps);
       *cpn = *cpn_nbr;
@@ -1476,7 +1487,7 @@ static int fill_cpn_holes(GCSA *gcsa)
           int i, vno_nbr_classifier;
           VERTEX *vn, *vn_classifier;
 
-          vn = &gcsa->mris_priors->vertices[v->v[min_n]];
+          vn = &gcsa->mris_priors->vertices[vt->v[min_n]];
           vn_classifier = GCSAsourceToClassifierVertex(gcsa, vn);
           vno_nbr_classifier = vn_classifier - gcsa->mris_classifiers->vertices;
           if (vno_nbr_classifier == Gdiag_no) DiagBreak();
@@ -1515,16 +1526,17 @@ static int fill_gcsan_holes(GCSA *gcsa)
       if (gcsan->nlabels > 0) continue;
 
       /* found an empty gcsan - find nearest nbr with data and fill in */
+      const VERTEX_TOPOLOGY* const vt = &gcsa->mris_classifiers->vertices_topology[vno];
       v = &gcsa->mris_classifiers->vertices[vno];
       x = v->x;
       y = v->y;
       z = v->z;
       min_dist = 100000;
       min_n = -1;
-      for (n = 0; n < v->vnum; n++) {
-        gcsan_nbr = &gcsa->gc_nodes[v->v[n]];
+      for (n = 0; n < vt->vnum; n++) {
+        gcsan_nbr = &gcsa->gc_nodes[vt->v[n]];
         if (gcsan_nbr->nlabels == 0) continue;
-        vn = &gcsa->mris_priors->vertices[v->v[n]];
+        vn = &gcsa->mris_priors->vertices[vt->v[n]];
         dist = sqrt(SQR(vn->x - x) + SQR(vn->y - y) + SQR(vn->z - z));
         if (dist < min_dist || min_n < 0) {
           min_n = n;
@@ -1534,7 +1546,7 @@ static int fill_gcsan_holes(GCSA *gcsa)
       if (min_n < 0) /* none of the nbr have data either */
         continue;
       nfilled++;
-      gcsan_nbr = &gcsa->gc_nodes[v->v[min_n]];
+      gcsan_nbr = &gcsa->gc_nodes[vt->v[min_n]];
       for (n = 0; n < gcsan->max_labels; n++) {
         MatrixFree(&gcsan->gcs[n].m_cov);
         MatrixFree(&gcsan->gcs[n].v_means);
@@ -2117,11 +2129,12 @@ int GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris, int mark, int *exclude_l
      that had nonzero priors and reclassify them based on nbrs. */
   do {
     for (num = vno = 0; vno < mris->nvertices; vno++) {
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
       v = &mris->vertices[vno];
       if (v->ripflag || v->marked != mark) continue;
       if (vno == Gdiag_no) DiagBreak();
-      for (n = 0; n < v->vnum; n++) {
-        vn = &mris->vertices[v->v[n]];
+      for (n = 0; n < vt->vnum; n++) {
+        vn = &mris->vertices[vt->v[n]];
         if (vn->ripflag || vn->marked == mark || vn->annotation <= 0) continue;
         for (index = 0; index < nexcluded; index++)
           if (exclude_list[index] == vn->annotation) break;

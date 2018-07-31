@@ -105,7 +105,7 @@ extern "C" Geodesics *computeGeodesics(MRIS *surf, float maxdist)
   // compute each geodesic using the LOS algorithm. each geodesics is added
   // to the pathmap, but this will not account for every path.
   for (int vertexID = 0; vertexID < surf->nvertices; vertexID++) {
-    VERTEX *basevertex = &surf->vertices[vertexID];
+    VERTEX_TOPOLOGY const * const basevertex = &surf->vertices_topology[vertexID];
     // begin chain with each face that neighbors the current base vertex:
     for (int i = 0; i < basevertex->num; i++) {
       // clear triangle chain and surrounding vertices index:
@@ -297,12 +297,12 @@ extern "C" Geodesics *computeGeodesics(MRIS *surf, float maxdist)
       // but weren't discovered by the triangle chain
       edge = pathmap.find(makeKey(k, vi));
       if (edge != pathmap.end()) {
-        for (int side = 0; side < surf->vertices[vi].vnum; side++) {
-          if (!isnearest[surf->vertices[vi].v[side]]) {
+        for (int side = 0; side < surf->vertices_topology[vi].vnum; side++) {
+          if (!isnearest[surf->vertices_topology[vi].v[side]]) {
             distance = edge->second + 0.5;
             if (distance < maxdist) {
-              isnearest[surf->vertices[vi].v[side]] = true;
-              nearestverts[k].push_back(surf->vertices[vi].v[side]);
+              isnearest[surf->vertices_topology[vi].v[side]] = true;
+              nearestverts[k].push_back(surf->vertices_topology[vi].v[side]);
             }
           }
         }
@@ -474,18 +474,18 @@ static int getIndex(int *arr, int vid)
 
 static float distanceBetween(int v1, int v2, MRIS *surf)
 {
-  VERTEX *vert = &surf->vertices[v1];
-  int *ns = vert->v;
-  int idx = std::distance(ns, std::find(ns, ns + vert->vnum, v2));
-  return vert->dist[idx];
+  VERTEX_TOPOLOGY const * const vt = &surf->vertices_topology[v1];
+  VERTEX          const * const v  = &surf->vertices         [v1];
+  int const *ns = vt->v;
+  int idx = std::distance(ns, std::find(ns, ns + vt->vnum, v2));
+  return v->dist[idx];
 }
 
 static int findNeighbor(int faceidx, int v1, int v2, MRIS *surf)
 {
-  VERTEX *vert = &surf->vertices[v1];
-  int f;
-  for (int nf = 0; nf < vert->num; nf++) {
-    f = vert->f[nf];
+  VERTEX_TOPOLOGY const * const vt = &surf->vertices_topology[v1];
+  for (int nf = 0; nf < vt->num; nf++) {
+    int f = vt->f[nf];
     if (f == faceidx) continue;
     for (int nv = 0; nv < 3; nv++) {
       if (surf->faces[f].v[nv] == v2) return f;
