@@ -506,6 +506,7 @@ add_subdirectories(
   mris_curvature_stats
   mris_decimate
   mris_decimate_gui
+  mris_defects_pointset
   mris_deform
   mris_density
   mris_diff
