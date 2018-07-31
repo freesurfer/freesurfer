@@ -2,9 +2,7 @@ install(FILES
   ASegStatsLUT.txt
   DefectLUT.txt
   FreeSurferColorLUT.txt
-  numaris4-protocols.unpackcfg
   SegmentNoLUT.txt
-  Simple_surface_labels2005.txt
   Simple_surface_labels2009.txt
   tkmeditParcColorsCMA
   WMParcStatsLUT.txt
