@@ -1,0 +1,3 @@
+#!/bin/tcsh -ef
+source $FREESURFER_HOME/bin/vtk_setup
+mris_volmask_vtk.bin $argv

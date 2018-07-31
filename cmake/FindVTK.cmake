@@ -9,7 +9,7 @@ if(NOT VTK_DIR)
   if(EXISTS ${FS_PACKAGES_DIR}/vtk/5.10.1)
     set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/5.10.1)
   else()
-    set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/5.6.0)
+    set(VTK_DIR ${FS_PACKAGES_DIR}/vtk/5.6)
   endif()
 endif()
 
@@ -17,10 +17,17 @@ find_package(VTK HINTS ${VTK_DIR} NO_MODULE)
 
 if(VTK_FOUND)
 
-  # these are the libraries we need
-  set(LIBS
+  # overwrite VTK_LIBRARIES with the absolute paths
+  library_paths(
+    NAME VTK_LIBRARIES
+    LIBDIR ${VTK_LIBRARY_DIRS}
+    LIBRARIES
     vtkverdict
     vtkGraphics
+    vtkexpat
+    vtkfreetype
+    vtktiff
+    vtkjpeg
     vtkmetaio
     vtkpng
     vtkzlib
@@ -32,20 +39,23 @@ if(VTK_FOUND)
     vtkGenericFiltering
     vtkexoIIc
     vtkNetCDF
+    vtkNetCDF_cxx
     vtkVolumeRendering
     vtkRendering
     vtkftgl
     vtkWidgets
     vtkHybrid
     vtkIO
+    vtkDICOMParser
+    vtkhdf5
+    vtkhdf5_hl
+    LSDyna
   )
 
-  foreach(LIB ${LIBS})
-    set(VTK_LIBRARIES ${VTK_LIBRARIES} ${VTK_LIBRARY_DIRS}/lib${LIB}.so)
-  endforeach()
-
-  # VTK-TCL libraries
-  set(LIBS
+  library_paths(
+    NAME VTK_TCL_LIBRARIES
+    LIBDIR ${VTK_LIBRARY_DIRS}
+    LIBRARIES
     vtkImagingTCL
     vtkVolumeRenderingTCL
     vtkRenderingTCL
@@ -58,12 +68,8 @@ if(VTK_FOUND)
     vtkCommonTCL
   )
 
-  foreach(LIB ${LIBS})
-    set(VTK_TCL_LIBRARIES ${VTK_TCL_LIBRARIES} ${VTK_LIBRARY_DIRS}/lib${LIB}.so)
-  endforeach()
-
   # vtkWrapTcl and vtkWrapTclInit commands (required for qdec and vtkutils)
-  if(NOT EXISTS ${VTK_WRAP_TCL_EXE} OR NOT EXISTS ${VTK_WRAP_TCL_INIT_EXE})
+  if(NOT VTK_WRAP_TCL_EXE OR NOT VTK_WRAP_TCL_INIT_EXE)
     message(FATAL_ERROR "VTK must be built with VTK_WRAP_TCL ON")
   endif()
 
@@ -85,6 +91,8 @@ if(VTK_FOUND)
   endfunction()
 
   # make sure the vtk path gets linked from the lib directory during install
-  symlink(${VTK_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/lib/vtk)
+  if(VTK_INSTALL_PREFIX)
+    symlink(${VTK_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/lib/vtk)
+  endif()
 
 endif()

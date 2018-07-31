@@ -7,7 +7,10 @@ if(APPLE)
     mac_osx/run_segmentSubjectT2_autoEstimateAlveusML.sh
     mac_osx/run_SegmentSubfieldsT1Longitudinal.sh
   )
-  # todo: install the whole app!
+  install_osx_app(mac_osx/SegmentSubfieldsT1Longitudinal.app)
+  install_osx_app(mac_osx/segmentSubjectT1_autoEstimateAlveusML.app)
+  install_osx_app(mac_osx/segmentSubjectT1T2_autoEstimateAlveusML.app)
+  install_osx_app(mac_osx/segmentSubjectT2_autoEstimateAlveusML.app)
 else()
   set(BIN_PROGRAMS
     linux_x86_64/run_SegmentSubfieldsT1Longitudinal.sh

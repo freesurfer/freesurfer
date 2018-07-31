@@ -1,6 +1,6 @@
 project(histo_fix_topology)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(histo_fix_topology histo_fix_topology.c)
 target_link_libraries(histo_fix_topology utils)

@@ -1,6 +1,6 @@
 project(mris_svm_classify)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_svm_classify mris_svm_classify.c)
 target_link_libraries(mris_svm_classify utils svm)

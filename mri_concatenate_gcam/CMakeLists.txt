@@ -1,6 +1,6 @@
 project(mri_concatenate_gcam)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_concatenate_gcam mri_concatenate_gcam.c)
 target_link_libraries(mri_concatenate_gcam utils)

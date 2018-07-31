@@ -1,6 +1,6 @@
 project(repair_siemens_file)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(repair_siemens_file repair_siemens_file.c)
 target_link_libraries(repair_siemens_file utils)

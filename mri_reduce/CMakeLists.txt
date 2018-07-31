@@ -1,6 +1,6 @@
 project(mri_reduce)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_reduce mri_reduce.c)
 target_link_libraries(mri_reduce utils)

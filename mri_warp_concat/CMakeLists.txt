@@ -1,6 +1,6 @@
 project(mri_warp_concat)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_warp_concat mri_warp_concat.cpp)
 add_help(mri_warp_concat mri_warp_concat.help.xml)

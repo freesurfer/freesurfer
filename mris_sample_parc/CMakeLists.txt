@@ -1,6 +1,6 @@
 project(mris_sample_parc)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_sample_parc mris_sample_parc.c)
 target_link_libraries(mris_sample_parc utils)

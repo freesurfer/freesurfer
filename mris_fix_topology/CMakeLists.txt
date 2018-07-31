@@ -1,6 +1,6 @@
 project(mris_fix_topology)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_fix_topology mris_fix_topology.c)
 add_help(mris_fix_topology mris_fix_topology.help.xml)

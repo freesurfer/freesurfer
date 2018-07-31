@@ -3,10 +3,11 @@ project(vtkutils)
 if(VTK_FOUND AND KWWidgets_FOUND AND TCLTKTIXBLT_FOUND)
 
   include_directories(
-    ${CMAKE_SOURCE_DIR}/include
+    ${FS_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${TIFF_INCLUDE_DIR}
     ${VTK_INCLUDE_DIRS}
+    ${X11_INCLUDE_DIR}
     ${KWWidgets_INCLUDE_DIR}
   )
 
@@ -32,6 +33,6 @@ if(VTK_FOUND AND KWWidgets_FOUND AND TCLTKTIXBLT_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
 
   add_library(vtkutils STATIC ${SOURCES})
-  target_link_libraries(vtkutils ${TIFF_LIBRARIES} ${VTK_LIBRARIES} ${KWWidgets_LIBRARIES} ${TCLTKTIXBLT_LIBRARIES})
+  target_link_libraries(vtkutils ${TIFF_LIBRARIES})
 
 endif()

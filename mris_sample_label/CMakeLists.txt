@@ -1,6 +1,6 @@
 project(mris_sample_label)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_sample_label mris_sample_label.c)
 target_link_libraries(mris_sample_label utils)

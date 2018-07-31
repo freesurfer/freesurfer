@@ -1,6 +1,6 @@
 project(mri_auto_fill)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_auto_fill mri_auto_fill.c)
 target_link_libraries(mri_auto_fill utils)

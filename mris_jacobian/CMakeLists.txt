@@ -1,6 +1,6 @@
 project(mris_jacobian)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_jacobian mris_jacobian.c)
 add_help(mris_jacobian mris_jacobian.help.xml)

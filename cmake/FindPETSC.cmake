@@ -8,9 +8,21 @@ find_path(PETSC_INCLUDE_DIR HINTS ${PETSC_DIR} NAMES petsc.h PATH_SUFFIXES inclu
 
 find_package_handle_standard_args(PETSC DEFAULT_MSG PETSC_INCLUDE_DIR)
 
-foreach(LIB petscts petscsnes petscksp petscdm petscmat petscvec petsc petsccontrib fmpich mpich)
-  set(PETSC_LIBRARIES ${PETSC_LIBRARIES} ${PETSC_DIR}/lib/lib${LIB}.a)
-endforeach()
+library_paths(
+  NAME PETSC_LIBRARIES
+  LIBDIR ${PETSC_DIR}/lib
+  LIBRARIES
+  petscts
+  petscsnes
+  petscksp
+  petscdm
+  petscmat
+  petscvec
+  petsc
+  petsccontrib
+  mpich
+  pmpich
+)
 
 # make sure the petsc path gets linked from the lib directory during install
 symlink(${PETSC_DIR} ${CMAKE_INSTALL_PREFIX}/lib/petsc)

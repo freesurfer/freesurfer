@@ -5,7 +5,7 @@ if(OpenCV_FOUND)
   add_definitions(-DUSE_OPENCV -DUSE_CDT -DUSE_ZLIB)
 
   include_directories(
-    ${CMAKE_SOURCE_DIR}/include
+    ${FS_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/SimpleBaseLib/include
     ${CMAKE_CURRENT_SOURCE_DIR}/SimpleBaseLib/external
@@ -40,13 +40,10 @@ if(OpenCV_FOUND)
     Main.cc
   )
 
-  set(WRAPCODE "\
-#!/bin/tcsh -ef\n\
-setenv LD_LIBRARY_PATH /usr/pubsw/packages/opencv/current/lib\n\
-histo_register.bin $argv"
-  )
-  add_executable(histo_register ${SOURCES})
-  target_link_libraries(histo_register ${OpenCV_LIBRARIES} sbl pvl)
-  install_wrapped(TARGETS histo_register DESTINATION bin WRAPCODE ${WRAPCODE})
+  add_executable(histo_register.bin ${SOURCES})
+  target_link_libraries(histo_register.bin ${OpenCV_LIBRARIES} sbl pvl)
+
+  install(PROGRAMS histo_register_wrapper DESTINATION bin RENAME histo_register)
+  install(TARGETS histo_register.bin DESTINATION bin)
 
 endif()

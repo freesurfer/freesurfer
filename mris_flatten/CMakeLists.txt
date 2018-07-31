@@ -1,6 +1,6 @@
 project(mris_flatten)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_flatten mris_flatten.c)
 target_link_libraries(mris_flatten utils)
