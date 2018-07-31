@@ -1,6 +1,6 @@
 project(mris_ca_label)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_ca_label mris_ca_label.c)
 add_help(mris_ca_label mris_ca_label.help.xml)

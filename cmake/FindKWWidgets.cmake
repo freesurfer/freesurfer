@@ -1,7 +1,7 @@
 # KWWidgets Find Module
 
 if(NOT KWWidgets_DIR)
-  set(KWWidgets_DIR ${FS_PACKAGES_DIR}/KWWidgets/CVS-vtk560)
+  set(KWWidgets_DIR ${FS_PACKAGES_DIR}/KWWidgets/CVS)
 endif()
 
 find_path(KWWidgets_INCLUDE_DIR HINTS ${KWWidgets_DIR} NAMES vtkKWApplication.h PATH_SUFFIXES include/KWWidgets)

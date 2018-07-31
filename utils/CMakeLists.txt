@@ -1,13 +1,15 @@
 project(utils)
 
 include_directories(
-  ${CMAKE_SOURCE_DIR}/include
+  ${FS_INCLUDE_DIRS}
   ${CMAKE_SOURCE_DIR}/include/dicom
   ${CMAKE_SOURCE_DIR}/include/NrrdIO
   ${XML2_INCLUDE_DIR}
+  ${JPEG_INCLUDE_DIR}
   ${TIFF_INCLUDE_DIR}
   ${MINC_INCLUDE_DIR}
   ${GLUT_INCLUDE_DIR}/GL
+  ${X11_INCLUDE_DIR}
   ${ITK_INCLUDE_DIR}
 )
 
@@ -24,9 +26,11 @@ set(SOURCES
   Bruker.c
   chklc.c
   chronometer.c
-  cluster.c
+  chronometerpp.cpp
   class_array.c
+  cluster.c
   cma.c
+  cmat.c
   cmat.c
   cmdargs.c
   colortab.c
@@ -54,18 +58,28 @@ set(SOURCES
   flash.c
   fmarchmesh.c
   fmriutils.c
+  fs_cost_function.cpp
+  fs_lbfgs.cpp
+  fs_lbfgs_observer.cpp
+  fs_lbfgs_subject.cpp
+  fs_powell.cpp
   fsenv.c
   fsglm.c
-  fsPrintHelp.c
   fsinit.c
-  gcaboundary.c
+  fsPrintHelp.c
   gca.c
+  gcaboundary.c
+  gcalinearnode.cpp
+  gcalinearprior.cpp
+  gcamcomputeLabelsLinearCPU.cpp
   gcamorph.c
+  gcamorphtestutils.cpp
   gcarray.c
+  gcautils.cpp
   gclass.c
   gcsa.c
-  getdelim.c
   geos.c
+  getdelim.c
   getline.c
   gifti_io.c
   gifti_local.c
@@ -77,18 +91,18 @@ set(SOURCES
   heap.c
   hippo.c
   histo.c
-  joint_histo.c
+  ic12.c
   ic163842.c
   ic2562.c
-  ic642.c
   ic42.c
-  ic12.c
+  ic642.c
   icosahedron.c
   image.c
   imageio.c
   imautils.c
   intensity_eig.c
   ipmpar.c
+  joint_histo.c
   kernel.c
   kinput.c
   label.c
@@ -104,41 +118,46 @@ set(SOURCES
   minmaxrc.c
   morph.c
   mosaic.c
-  mri2.c
   mri.c
+  mri2.c
+  mri_conform.c
+  mri_fastmarching.cpp
+  mri_identify.c
+  mri_level_set.c
+  mri_tess.c
+  mri_topology.c
+  mri_transform.c
   mriBSpline.c
   mriclass.c
-  mri_conform.c
   mricurv.c
+  mrifilter.c
   mriflood.c
   mriFunctionalDataAccess.c
   mriHeadPointList.c
   mrihisto.c
-  mri_identify.c
-  MRIio_old.c
   mriio.c
-  mri_level_set.c
-  mrifilter.c
+  mriio_nrrd.c
+  mriio_nrrd_itk.cpp
+  MRIio_old.c
   mrimorph.c
   mrinorm.c
   mripolv.c
   mriprob.c
+  mris_compVolFrac.c
   mrisbiorthogonalwavelets.c
   mrisegment.c
   mriset.c
   mrishash.c
   mrisp.c
   MRISrigidBodyAlignGlobal.c
-  mriSurface.c
   mrisurf.c
+  mriSurface.c
   mrisutils.c
-  mri_tess.c
-  mri_topology.c
-  mri_transform.c
   mriTransform.c
   mriVolume.c
   mrivoxel.c
   nifti1_io.c
+  numerics.cpp
   offset.c
   path.c
   pdf.c
@@ -157,8 +176,8 @@ set(SOURCES
   rescale.c
   retinotopy.c
   rfa.c
-  rfutils.c
   rforest.c
+  rfutils.c
   romp_support.c
   selxavgio.c
   sig.c
@@ -192,23 +211,6 @@ set(SOURCES
   xUtilities.c
   xVoxel.c
   znzlib.c
-  fs_cost_function.cpp
-  fs_lbfgs.cpp
-  fs_lbfgs_observer.cpp
-  fs_lbfgs_subject.cpp
-  fs_powell.cpp
-  mri_fastmarching.cpp
-  mriio_nrrd.c
-  mriio_nrrd_itk.cpp
-  numerics.cpp
-  chronometerpp.cpp
-  gcamorphtestutils.cpp
-  gcautils.cpp
-  gcalinearnode.cpp
-  gcalinearprior.cpp
-  cmat.c
-  mris_compVolFrac.c
-  gcamcomputeLabelsLinearCPU.cpp
 )
 
 # add cephes sources
@@ -241,9 +243,11 @@ else()
   add_definitions(-DTEEM_ENDIAN=1234)
 endif()
 
-# todo: some logic needs to be setup to determine this
-# non 32-bit
-add_definitions(-DTEEM_32BIT=0)
+if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+  add_definitions(-DTEEM_32BIT=0)
+elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+  add_definitions(-DTEEM_32BIT=1)
+endif()
 
 # add NrrdIO sources
 set(SOURCES ${SOURCES}
@@ -297,7 +301,6 @@ target_link_libraries(utils
   dicom
   log
   unix
-  crypt
   ${ZLIB_LIBRARIES}
   ${XML2_LIBRARIES}
   ${JPEG_LIBRARIES}
@@ -308,7 +311,7 @@ target_link_libraries(utils
 )
 
 if(NOT APPLE)
-  target_link_libraries(utils rt)
+  target_link_libraries(utils crypt rt)
 endif()
 
 

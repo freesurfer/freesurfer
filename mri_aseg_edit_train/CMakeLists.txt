@@ -1,6 +1,6 @@
 project(mri_aseg_edit_train)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_aseg_edit_train mri_aseg_edit_train.c)
 target_link_libraries(mri_aseg_edit_train utils svm)

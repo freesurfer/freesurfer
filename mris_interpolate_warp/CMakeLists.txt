@@ -1,6 +1,6 @@
 project(mris_interpolate_warp)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_interpolate_warp mris_interpolate_warp.c)
 target_link_libraries(mris_interpolate_warp utils)

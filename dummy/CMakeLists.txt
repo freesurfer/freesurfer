@@ -1,6 +1,6 @@
 project(dummy)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(dummy dummy.c)
 target_link_libraries(dummy utils)

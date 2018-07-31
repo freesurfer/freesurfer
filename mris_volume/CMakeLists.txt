@@ -1,6 +1,6 @@
 project(mris_volume)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_volume mris_volume.c)
 target_link_libraries(mris_volume utils)

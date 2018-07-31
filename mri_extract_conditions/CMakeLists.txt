@@ -1,6 +1,6 @@
 project(mri_extract_conditions)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_extract_conditions mri_extract_conditions.c)
 target_link_libraries(mri_extract_conditions utils)

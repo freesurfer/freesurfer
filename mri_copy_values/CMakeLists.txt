@@ -1,6 +1,6 @@
 project(mri_copy_values)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_copy_values mri_copy_values.c)
 target_link_libraries(mri_copy_values utils)

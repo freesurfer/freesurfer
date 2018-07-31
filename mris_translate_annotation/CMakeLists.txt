@@ -1,6 +1,6 @@
 project(mris_translate_annotation)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_translate_annotation mris_translate_annotation.c)
 target_link_libraries(mris_translate_annotation utils)

@@ -1,6 +1,6 @@
 project(mris_sphere)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_sphere mris_sphere.c)
 add_help(mris_sphere mris_sphere.help.xml)

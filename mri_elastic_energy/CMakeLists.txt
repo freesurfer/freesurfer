@@ -1,6 +1,6 @@
 project(mri_elastic_energy)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_elastic_energy mri_elastic_energy.c)
 target_link_libraries(mri_elastic_energy utils)

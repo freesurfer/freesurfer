@@ -1,6 +1,6 @@
 project(talairach_afd)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(talairach_afd talairach_afd.c)
 add_help(talairach_afd talairach_afd.help.xml)

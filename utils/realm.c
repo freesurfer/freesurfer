@@ -1,9 +1,5 @@
 #include "realm.h"
 
-#ifndef freeAndNULL
-#define freeAndNULL(PTR) { free((PTR)); (PTR) = NULL; }
-#endif
-
 /**
  * @file  realm.c
  * @brief support quickly scanning all the vertices or faces on an MRI for
@@ -49,23 +45,24 @@ static inline __attribute__((always_inline)) int chkBnd(int lo, int b, int hi) {
 
 #ifdef REALM_UNIT_TEST
     //
-    // (cd utils; rm -f a.out ; gcc -o a.out -I ../include realm.c -lm |& less ; ./a.out)
+    // (cd utils; rm -f a.out ; gcc -DREALM_UNIT_TEST -o a.out -I ../include realm.c -lm |& less ; ./a.out)
     //
     
-    #define freeAndNULL(PTRVAR) { free((PTRVAR)); (PTRVAR) = NULL; }
-
     #define MAX_FACES_PER_VERTEX 3
     
-    typedef struct VERTEX {
-        float someX,someY,someZ;
+    typedef struct VERTEX_TOPOLOGY {
         int num;                        // number of faces
         int f[MAX_FACES_PER_VERTEX];    // fno of the faces this vertex touches
+    } VERTEX_TOPOLOGY;
+    
+    typedef struct VERTEX {
+        float cx,cy,cz;
     } VERTEX;
 
     void getSomeXYZ(VERTEX const * vertex, float* x, float* y, float* z) {
-        *x = vertex->someX;
-        *y = vertex->someY;
-        *z = vertex->someZ;
+        *x = vertex->cx;
+        *y = vertex->cy;
+        *z = vertex->cz;
     }
     
     #define VERTICES_PER_FACE 3
@@ -76,12 +73,30 @@ static inline __attribute__((always_inline)) int chkBnd(int lo, int b, int hi) {
     } FACE;
 
     struct MRIS {
-      int     nvertices;
-      VERTEX* vertices;
-      int     nfaces;
-      FACE*   faces;
+      int              nvertices;
+      VERTEX_TOPOLOGY* vertices_topology;
+      VERTEX*          vertices;
+      int              nfaces;
+      FACE*            faces;
     };
-    
+   
+
+    MRIS* MRISoverAlloc(int max_vertices, int max_faces, int nvertices, int nfaces) {
+    	MRIS* mris = (MRIS*)calloc(1, sizeof(MRIS));
+
+        mris->nvertices = nvertices;
+        mris->vertices_topology = (VERTEX_TOPOLOGY*)calloc(mris->nvertices, sizeof(VERTEX_TOPOLOGY));
+        mris->vertices          = (VERTEX*)         calloc(mris->nvertices, sizeof(VERTEX));
+
+    	return mris;
+    }
+
+    int MRISfree(MRIS **pmris) {
+    	MRIS* mris = *pmris;
+    	freeAndNULL(mris->vertices_topology);
+    	freeAndNULL(mris->vertices);
+    }
+
     static float MIN(float lhs, float rhs) { return (lhs < rhs) ? lhs : rhs; }
     static float MAX(float lhs, float rhs) { return (lhs > rhs) ? lhs : rhs; }
     
@@ -122,40 +137,37 @@ static inline __attribute__((always_inline)) int chkBnd(int lo, int b, int hi) {
         
         int fBenefitCount = 0, fBenefitLimit = 1, fNoBenefitCount = 0, fHasBenefitCount = 0;
 
-        MRIS mris;
+        MRIS* mris = MRISoverAlloc(nvertices, 0, nvertices, 0);
 
         // add the vertices
         //
-        mris.nvertices = nvertices;
-        mris.vertices = (VERTEX*)calloc(mris.nvertices, sizeof(VERTEX));
-
         int vno;
-        for (vno = 0; vno < mris.nvertices; vno++) {
+        for (vno = 0; vno < mris->nvertices; vno++) {
             int key = vno > useDuplicates ? vno : 936; 
-            VERTEX* v = &mris.vertices[vno];
-            v->someX = (key*321)%51; 
-            v->someY = (key*7321)%71; 
-            v->someZ = (key*17321)%91;
+            VERTEX* v = &mris->vertices[vno];
+            v->cx = (key*321)%51; 
+            v->cy = (key*7321)%71; 
+            v->cz = (key*17321)%91;
         }
         vno = 0;
-        float xMin = mris.vertices[vno].someX, xMax = xMin,
-              yMin = mris.vertices[vno].someY, yMax = yMin, 
-              zMin = mris.vertices[vno].someZ, zMax = zMin;
-        for (vno = 1; vno < mris.nvertices; vno++) {
-            VERTEX* v = &mris.vertices[vno];
-            xMin = MIN(xMin, v->someX);
-            yMin = MIN(yMin, v->someY);
-            zMin = MIN(zMin, v->someZ);
-            xMax = MAX(xMax, v->someX);
-            yMax = MAX(yMax, v->someY);
-            zMax = MAX(zMax, v->someZ);
+        float xMin = mris->vertices[vno].cx, xMax = xMin,
+              yMin = mris->vertices[vno].cy, yMax = yMin, 
+              zMin = mris->vertices[vno].cz, zMax = zMin;
+        for (vno = 1; vno < mris->nvertices; vno++) {
+            VERTEX* v = &mris->vertices[vno];
+            xMin = MIN(xMin, v->cx);
+            yMin = MIN(yMin, v->cy);
+            zMin = MIN(zMin, v->cz);
+            xMax = MAX(xMax, v->cx);
+            yMax = MAX(yMax, v->cy);
+            zMax = MAX(zMax, v->cz);
         }
         
 
         // add mostly small faces
         //
-        mris.nfaces = (nvertices > 2) ? nvertices - 2 : 0;    // see below
-        mris.faces  = (FACE*)calloc(mris.nfaces, sizeof(FACE));
+        mris->nfaces = (nvertices > 2) ? nvertices - 2 : 0;    // see below
+        mris->faces  = (FACE*)calloc(mris->nfaces, sizeof(FACE));
 
         const float delta_x = MAX(2, (xMax - xMin)/30 );
         const float delta_y = MAX(2, (yMax - yMin)/30 );
@@ -169,9 +181,9 @@ static inline __attribute__((always_inline)) int chkBnd(int lo, int b, int hi) {
             int i; 
             for (i=0; i<nvertices; i++) {
                 vnos [i] = i;
-                ctx_x[i] = mris.vertices[i].someX;
-                ctx_y[i] = mris.vertices[i].someY;
-                ctx_z[i] = mris.vertices[i].someZ;
+                ctx_x[i] = mris->vertices[i].cx;
+                ctx_y[i] = mris->vertices[i].cy;
+                ctx_z[i] = mris->vertices[i].cz;
             }
         }
         
@@ -217,24 +229,24 @@ static inline __attribute__((always_inline)) int chkBnd(int lo, int b, int hi) {
                         int v0 = m;
                         int v1 = m+1; if (v1 > j) v1 -= j-jLo;
                         int v2 = m+2; if (v2 > j) v2 -= j-jLo;
-                        if (fno >= mris.nfaces) *(int*)-1 = 0;
-                        FACE* face = &mris.faces[fno];
+                        if (fno >= mris->nfaces) *(int*)-1 = 0;
+                        FACE* face = &mris->faces[fno];
                         face->v[0] = vnos[v0];
                         face->v[1] = vnos[v1]; 
                         face->v[2] = vnos[v2];
                         int vi;
                         for (vi = 0; vi < 3; vi++) {
                             int vno = face->v[vi];
-                            VERTEX* v = &mris.vertices[vno];
-                            if (v->num >= MAX_FACES_PER_VERTEX) *(int*)-1 = 0;;
-                            v->f[v->num++] = fno;
+                            VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
+                            if (vt->num >= MAX_FACES_PER_VERTEX) *(int*)-1 = 0;;
+                            vt->f[vt->num++] = fno;
                         }
                         fno++;
                     }
                 }
             }
         }
-        mris.nfaces = fno;  // decrease to the correct number
+        mris->nfaces = fno;  // decrease to the correct number
 
         freeAndNULL(vnos );               
         freeAndNULL(ctx_x);
@@ -251,16 +263,16 @@ static inline __attribute__((always_inline)) int chkBnd(int lo, int b, int hi) {
             if (1) {
                 // Make a GreatArcSet
                 //
-                GreatArcSet* gas = makeGreatArcSet(&mris);
+                GreatArcSet* gas = makeGreatArcSet(mris);
 
                 // Throw in some one edge
                 //
-                mris.vertices[0].someX = 1;         // vertex 0
-                mris.vertices[0].someY = 0;
-                mris.vertices[0].someZ = -1.1;
-                mris.vertices[1].someX = 1;         // vertex 1
-                mris.vertices[1].someY = 0;
-                mris.vertices[1].someZ = -1.2;
+                mris->vertices[0].cx = 1;         // vertex 0
+                mris->vertices[0].cy = 0;
+                mris->vertices[0].cz = -1.1;
+                mris->vertices[1].cx = 1;         // vertex 1
+                mris->vertices[1].cy = 0;
+                mris->vertices[1].cz = -1.2;
                 insertGreatArc(gas, 77, 0,1);       // edge connecting them
                 
                 // See if an intersection is detected
@@ -268,7 +280,7 @@ static inline __attribute__((always_inline)) int chkBnd(int lo, int b, int hi) {
                 {
                     PossiblyIntersectingGreatArcs_callback_context context;
                     bzero(&context, sizeof(context));
-                    possiblyIntersectingGreatArcs(gas, &context, possiblyIntersectingGreatArcs_callback, 1,0,-1.2, 1,0,-1.1, false);
+                    possiblyIntersectingGreatArcs(gas, &context, possiblyIntersectingGreatArcs_callback, 0,1, 1,0,-1.2, 1,0,-1.1, false);
                     int size  = context.size;
                     int* keys = context.keys; 
                     if (size    !=  1) fprintf(stderr, "same lines failed, size:%d\n", size); else
@@ -286,7 +298,7 @@ static inline __attribute__((always_inline)) int chkBnd(int lo, int b, int hi) {
             
                 // Make a GreatArcSet
                 //
-                GreatArcSet* gas = makeGreatArcSet(&mris);
+                GreatArcSet* gas = makeGreatArcSet(mris);
 
                 // Throw in edges to make squared graph paper
                 //
@@ -295,19 +307,19 @@ static inline __attribute__((always_inline)) int chkBnd(int lo, int b, int hi) {
                 int x,y;
                 for (x = 0; x < 100; x++)             
                 for (y = 0; y < 100; y++) {
-                    if (vno + 3 >= mris.nvertices) break;
+                    if (vno + 3 >= mris->nvertices) break;
                                
-                    mris.vertices[vno].someX = x;
-                    mris.vertices[vno].someY = y;
-                    mris.vertices[vno].someZ = 1000.0;
+                    mris->vertices[vno].cx = x;
+                    mris->vertices[vno].cy = y;
+                    mris->vertices[vno].cz = 1000.0;
                     vno++;
-                    mris.vertices[vno].someX = x+1;
-                    mris.vertices[vno].someY = y;
-                    mris.vertices[vno].someZ = 1000.0;
+                    mris->vertices[vno].cx = x+1;
+                    mris->vertices[vno].cy = y;
+                    mris->vertices[vno].cz = 1000.0;
                     vno++;
-                    mris.vertices[vno].someX = x;
-                    mris.vertices[vno].someY = y+1;
-                    mris.vertices[vno].someZ = 1000.0;
+                    mris->vertices[vno].cx = x;
+                    mris->vertices[vno].cy = y+1;
+                    mris->vertices[vno].cz = 1000.0;
                     vno++;
 
                     insertGreatArc(gas, key++, vno-3,vno-2);
@@ -322,7 +334,7 @@ static inline __attribute__((always_inline)) int chkBnd(int lo, int b, int hi) {
                     PossiblyIntersectingGreatArcs_callback_context context;
                     bzero(&context, sizeof(context));
 
-                    possiblyIntersectingGreatArcs(gas, &context, possiblyIntersectingGreatArcs_callback,  x-0.5,y-0.5,1000.0, x+x%5,y+y%3,1000.0, true);
+                    possiblyIntersectingGreatArcs(gas, &context, possiblyIntersectingGreatArcs_callback,  0,1, x-0.5,y-0.5,1000.0, x+x%5,y+y%3,1000.0, true);
 
                     size = context.size;
                     keys = context.keys;
@@ -351,54 +363,54 @@ static inline __attribute__((always_inline)) int chkBnd(int lo, int b, int hi) {
         
             // Make a RealmTree
             //
-            RealmTree* realmTree = makeRealmTree(&mris, getSomeXYZ);
+            RealmTree* realmTree = makeRealmTree(mris, getSomeXYZ);
             if (0) summarizeRealmTree(realmTree);
 
             // Move some vertices
             //
             {
                 int vno;
-                for (vno = 0; vno < mris.nvertices; vno++) {
+                for (vno = 0; vno < mris->nvertices; vno++) {
                     if (vno % 77 >= 3) continue;
-                    VERTEX* v = &mris.vertices[vno];
-                    v->someX += 0.1 * (xMax - v->someX);
-                    v->someY += 0.1 * (yMax - v->someY);
-                    v->someZ += 0.1 * (zMax - v->someZ);
-                    noteIfXYZChangedRealmTree(realmTree, &mris, getSomeXYZ, vno);
+                    VERTEX* v = &mris->vertices[vno];
+                    v->cx += 0.1 * (xMax - v->cx);
+                    v->cy += 0.1 * (yMax - v->cy);
+                    v->cz += 0.1 * (zMax - v->cz);
+                    noteIfXYZChangedRealmTree(realmTree, mris, getSomeXYZ, vno);
                 }
-                for (vno = 0; vno < mris.nvertices; vno++) {
+                for (vno = 0; vno < mris->nvertices; vno++) {
                     if ((vno * 123) % 31 >= 2) continue;
-                    VERTEX* v = &mris.vertices[vno];
-                    v->someX -= 0.1 * (v->someX - xMin);
-                    v->someY -= 0.1 * (v->someY - yMin);
-                    v->someZ -= 0.1 * (v->someZ - zMin);
-                    noteIfXYZChangedRealmTree(realmTree, &mris, getSomeXYZ, vno);
+                    VERTEX* v = &mris->vertices[vno];
+                    v->cx -= 0.1 * (v->cx - xMin);
+                    v->cy -= 0.1 * (v->cy - yMin);
+                    v->cz -= 0.1 * (v->cz - zMin);
+                    noteIfXYZChangedRealmTree(realmTree, mris, getSomeXYZ, vno);
                 }
                 fprintf(stdout,"Moved vertices, now checking\n");
-                checkRealmTree(realmTree, &mris, getSomeXYZ);
+                checkRealmTree(realmTree, mris, getSomeXYZ);
                 fprintf(stdout,"Checked realmTree now updating\n");
-                updateRealmTree(realmTree, &mris, getSomeXYZ);
+                updateRealmTree(realmTree, mris, getSomeXYZ);
                 fprintf(stdout,"Updated realmTree, now checking\n");
-                checkRealmTree(realmTree, &mris, getSomeXYZ);
+                checkRealmTree(realmTree, mris, getSomeXYZ);
                 fprintf(stdout,"Checked realmTree\n");
             }
 
             // Be nasty, deliberately go outside in all the different directions
             //
-            if (mris.nvertices >= 6) {
+            if (mris->nvertices >= 6) {
                 int vno; VERTEX* v;
-                vno = 0; v = &mris.vertices[vno]; v->someX = xMin - 0.1; noteIfXYZChangedRealmTree(realmTree, &mris, getSomeXYZ, vno);
-                                                                         updateRealmTree          (realmTree, &mris, getSomeXYZ);
-                vno = 1; v = &mris.vertices[vno]; v->someY = yMin - 0.1; noteIfXYZChangedRealmTree(realmTree, &mris, getSomeXYZ, vno);
-                                                                         updateRealmTree          (realmTree, &mris, getSomeXYZ);
-                vno = 2; v = &mris.vertices[vno]; v->someZ = zMin - 0.1; noteIfXYZChangedRealmTree(realmTree, &mris, getSomeXYZ, vno);
-                                                                         updateRealmTree          (realmTree, &mris, getSomeXYZ);
-                vno = 3; v = &mris.vertices[vno]; v->someX = xMax + 0.1; noteIfXYZChangedRealmTree(realmTree, &mris, getSomeXYZ, vno);
-                                                                         updateRealmTree          (realmTree, &mris, getSomeXYZ);
-                vno = 4; v = &mris.vertices[vno]; v->someY = yMax + 0.1; noteIfXYZChangedRealmTree(realmTree, &mris, getSomeXYZ, vno);
-                                                                         updateRealmTree          (realmTree, &mris, getSomeXYZ);
-                vno = 5; v = &mris.vertices[vno]; v->someZ = zMax + 0.1; noteIfXYZChangedRealmTree(realmTree, &mris, getSomeXYZ, vno);
-                                                                         updateRealmTree          (realmTree, &mris, getSomeXYZ);
+                vno = 0; v = &mris->vertices[vno]; v->cx = xMin - 0.1; noteIfXYZChangedRealmTree(realmTree, mris, getSomeXYZ, vno);
+                                                                         updateRealmTree          (realmTree, mris, getSomeXYZ);
+                vno = 1; v = &mris->vertices[vno]; v->cy = yMin - 0.1; noteIfXYZChangedRealmTree(realmTree, mris, getSomeXYZ, vno);
+                                                                         updateRealmTree          (realmTree, mris, getSomeXYZ);
+                vno = 2; v = &mris->vertices[vno]; v->cz = zMin - 0.1; noteIfXYZChangedRealmTree(realmTree, mris, getSomeXYZ, vno);
+                                                                         updateRealmTree          (realmTree, mris, getSomeXYZ);
+                vno = 3; v = &mris->vertices[vno]; v->cx = xMax + 0.1; noteIfXYZChangedRealmTree(realmTree, mris, getSomeXYZ, vno);
+                                                                         updateRealmTree          (realmTree, mris, getSomeXYZ);
+                vno = 4; v = &mris->vertices[vno]; v->cy = yMax + 0.1; noteIfXYZChangedRealmTree(realmTree, mris, getSomeXYZ, vno);
+                                                                         updateRealmTree          (realmTree, mris, getSomeXYZ);
+                vno = 5; v = &mris->vertices[vno]; v->cz = zMax + 0.1; noteIfXYZChangedRealmTree(realmTree, mris, getSomeXYZ, vno);
+                                                                         updateRealmTree          (realmTree, mris, getSomeXYZ);
             }
 
             // Check varous realms
@@ -437,7 +449,7 @@ static inline __attribute__((always_inline)) int chkBnd(int lo, int b, int hi) {
                 RealmIterator realmIterator;
                 initRealmIterator(&realmIterator, realm);
 
-                int* states = (int*)calloc(mris.nvertices, sizeof(int));
+                int* states = (int*)calloc(mris->nvertices, sizeof(int));
 
                 int counter = 1;
                 int vno;
@@ -449,7 +461,7 @@ static inline __attribute__((always_inline)) int chkBnd(int lo, int b, int hi) {
     #endif
                     vno = realmNextMightTouchVno(realm, &realmIterator);
     #ifdef REALM_UNIT_TEST
-                    if (vno < -1 || vno >= mris.nvertices) {
+                    if (vno < -1 || vno >= mris->nvertices) {
                         fprintf(stdout,"ERROR, vno:%d is illegal\n", vno); 
                         exit(1);
                     }
@@ -464,13 +476,13 @@ static inline __attribute__((always_inline)) int chkBnd(int lo, int b, int hi) {
 
                 // No vno should have been visited more than once
                 // No unreported vno should be in the region
-                for (vno = 0; vno < mris.nvertices; vno++) {
+                for (vno = 0; vno < mris->nvertices; vno++) {
                     if (states[vno] > 1 ) 
                     if (states[vno] == 0) {
-                       VERTEX* v = &mris.vertices[vno];
-                       if (xLo <= v->someX && v->someX < xHi 
-                       &&  yLo <= v->someY && v->someY < yHi
-                       &&  zLo <= v->someZ && v->someZ < zHi) fprintf(stdout,"ERROR, vno:%d was not reported\n", vno);
+                       VERTEX* v = &mris->vertices[vno];
+                       if (xLo <= v->cx && v->cx < xHi 
+                       &&  yLo <= v->cy && v->cy < yHi
+                       &&  zLo <= v->cz && v->cz < zHi) fprintf(stdout,"ERROR, vno:%d was not reported\n", vno);
                     }
                 }
 
@@ -491,17 +503,17 @@ static inline __attribute__((always_inline)) int chkBnd(int lo, int b, int hi) {
 
                 fnosI = 0;
                 int fno;
-                for (fno = 0; fno < mris.nfaces; fno++) {
-                    FACE const * face = &mris.faces[fno];
+                for (fno = 0; fno < mris->nfaces; fno++) {
+                    FACE const * face = &mris->faces[fno];
                     int vi = 0;
-                    VERTEX const * vertex = &mris.vertices[face->v[vi]];
-                    float fxLo = vertex->someX, fxHi = fxLo,
-                          fyLo = vertex->someY, fyHi = fyLo,
-                          fzLo = vertex->someZ, fzHi = fzLo;
+                    VERTEX const * vertex = &mris->vertices[face->v[vi]];
+                    float fxLo = vertex->cx, fxHi = fxLo,
+                          fyLo = vertex->cy, fyHi = fyLo,
+                          fzLo = vertex->cz, fzHi = fzLo;
                     for (vi = 0; vi < VERTICES_PER_FACE; vi++) {
-                        fxLo = MIN(fxLo, vertex->someX); fxHi = MAX(fxHi, vertex->someX);
-                        fyLo = MIN(fyLo, vertex->someY); fyHi = MAX(fyHi, vertex->someY);
-                        fzLo = MIN(fzLo, vertex->someZ); fzHi = MAX(fzHi, vertex->someZ);
+                        fxLo = MIN(fxLo, vertex->cx); fxHi = MAX(fxHi, vertex->cx);
+                        fyLo = MIN(fyLo, vertex->cy); fyHi = MAX(fyHi, vertex->cy);
+                        fzLo = MIN(fzLo, vertex->cz); fzHi = MAX(fzHi, vertex->cz);
                     }
                     bool wontIntersect =  
                         fxHi < xLo || xHi <= fxLo ||
@@ -516,18 +528,18 @@ static inline __attribute__((always_inline)) int chkBnd(int lo, int b, int hi) {
 
                 // We are only interested in the benefits when the realm is much smaller than the volume
                 //
-                if (mris.nfaces > 0 &&
+                if (mris->nfaces > 0 &&
                     (xHi - xLo) < (xMax - xMin)/4 &&
                     (yHi - yLo) < (yMax - yMin)/4 &&
                     (zHi - zLo) < (zMax - zMin)/4
                     ) {
 
-                    if (fnosSize*3 > mris.nfaces*2) fNoBenefitCount++; else fHasBenefitCount++;
+                    if (fnosSize*3 > mris->nfaces*2) fNoBenefitCount++; else fHasBenefitCount++;
 
                     if (++fBenefitCount == fBenefitLimit) {
                         if (fBenefitLimit < 1000) fBenefitLimit *= 2; else fBenefitLimit += 1000;
-                        fprintf(stdout,"fnosSize:%d mris.nfaces:%d fNoBenefitCount:%d fHasBenefitCount:%d\n", 
-                            fnosSize, mris.nfaces, fNoBenefitCount, fHasBenefitCount);
+                        fprintf(stdout,"fnosSize:%d mris->nfaces:%d fNoBenefitCount:%d fHasBenefitCount:%d\n", 
+                            fnosSize, mris->nfaces, fNoBenefitCount, fHasBenefitCount);
                     }
                 }
 
@@ -541,8 +553,7 @@ static inline __attribute__((always_inline)) int chkBnd(int lo, int b, int hi) {
             freeRealmTree(&realmTree);
         }
                 
-        freeAndNULL(mris.vertices);
-        freeAndNULL(mris.faces); 
+        MRISfree(&mris); 
     }
     
     int main() {
@@ -830,7 +841,7 @@ static RealmTreeNode* insertVnoIntoNode(
 
     MRIS const* mris = realmTree->mris;
     VERTEX const* v = &mris->vertices[vno];
-    if (x != v->someX || y != v->someY || z != v->someZ) 
+    if (x != v->cx || y != v->cy || z != v->cz) 
         fprintf(stderr, "vertex moved\n");
 #endif
     
@@ -1233,10 +1244,12 @@ static int addFnoFaceSet(int firstFnoToUpdatePlus1, RealmTree* realmTree, int fn
     return firstFnoToUpdatePlus1;
 }
 
-static int addFacesToFaceSet(int firstFnoToUpdatePlus1, RealmTree* realmTree, VERTEX const * const vertex) {
+static int addFacesToFaceSet(int firstFnoToUpdatePlus1, RealmTree* realmTree, MRIS const * mris, int vno) {
+    VERTEX_TOPOLOGY const * vt = &mris->vertices_topology[vno];
+    int const numFaces = vt->num;
     int fi; 
-    for (fi = 0; fi < vertex->num; fi++) {
-        firstFnoToUpdatePlus1 = addFnoFaceSet(firstFnoToUpdatePlus1, realmTree, vertex->f[fi]);
+    for (fi = 0; fi < numFaces; fi++) {
+        firstFnoToUpdatePlus1 = addFnoFaceSet(firstFnoToUpdatePlus1, realmTree, vt->f[fi]);
     }
     return firstFnoToUpdatePlus1;
 }
@@ -1262,7 +1275,7 @@ void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionTyp
     int vno;
     for (vno = previous_saved_nvertices; vno < mris->nvertices; vno++) {
         recentNode = insertVnoNear(realmTree, recentNode, vno);
-        firstFnoToUpdatePlus1 = addFacesToFaceSet(firstFnoToUpdatePlus1, realmTree, &mris->vertices[vno]);
+        firstFnoToUpdatePlus1 = addFacesToFaceSet(firstFnoToUpdatePlus1, realmTree, mris, vno);
     }
     
     // add the new faces
@@ -1292,7 +1305,7 @@ void updateRealmTree(RealmTree* realmTree, MRIS const * mris, GetXYZ_FunctionTyp
         
             // add the faces to the face set
             //
-            firstFnoToUpdatePlus1 = addFacesToFaceSet(firstFnoToUpdatePlus1, realmTree, vertex);
+            firstFnoToUpdatePlus1 = addFacesToFaceSet(firstFnoToUpdatePlus1, realmTree, mris, vno);
 
             // remove it from the existing realmTreeNode
             //

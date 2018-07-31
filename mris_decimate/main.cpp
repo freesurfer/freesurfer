@@ -121,7 +121,15 @@ int main(int argc, char *argv[])
   gDecimationOptions.desiredNumFaces = -1;
   gDecimationOptions.desiredFaceArea = -1;
   gDecimationOptions.decimationLevel = 0.5; // Default decimation level if not specified
-  gDecimationOptions.Deterministic = 1;
+
+  // This flag is to run code to sort output vertices. This was needed
+  // when compiling GTS with hashes instead of btrees to make the
+  // output deterministic. Even then it did not always give the same
+  // output when the input was ?h.orig.nofix, because the underlying
+  // algorithm did not give the same vertices. The algorithm appears
+  // to give deterministic output when using btrees, so the sorting
+  // feature is off by default.
+  gDecimationOptions.SortVertices = 0;
 
   char *in_fname, out_fpath[STRLEN] ;
   int nargs;
@@ -248,8 +256,8 @@ static int get_option(int argc, char *argv[])
       nargs = 1 ;
       break ;
     case 'Q':
-      gDecimationOptions.Deterministic = 0;
-      printf("turning off deterministic behavior\n");
+      gDecimationOptions.SortVertices = 1;
+      printf("turning on vertex sorting\n");
       break ;
     case 'M':
       gDecimationOptions.setMinimumAngle = true;

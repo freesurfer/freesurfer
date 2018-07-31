@@ -1,6 +1,6 @@
 project(mri_aparc2aseg)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_aparc2aseg mri_aparc2aseg.c)
 add_help(mri_aparc2aseg mri_aparc2aseg.help.xml)

@@ -1,6 +1,6 @@
 project(mri_matrix_multiply)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_matrix_multiply mri_matrix_multiply.c)
 target_link_libraries(mri_matrix_multiply utils)

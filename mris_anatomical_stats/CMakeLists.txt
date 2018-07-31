@@ -1,6 +1,6 @@
 project(mris_anatomical_stats)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_anatomical_stats mris_anatomical_stats.c)
 add_help(mris_anatomical_stats mris_anatomical_stats.help.xml)

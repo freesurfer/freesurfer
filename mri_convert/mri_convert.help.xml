@@ -260,6 +260,8 @@ if the input/output has extension .nii.gz, then compressed is used</explanation>
       <explanation>input intensity scale factor</explanation> 
       <argument>-osc, --out-scale factor</argument>
       <explanation>output intensity scale factor</explanation> 
+      <argument>--rescale rescalefactor </argument>
+      <explanation>Rescale input so that the global mean is rescalefactor</explanation> 
       <argument>-il, --in_like</argument>
       <argument>-roi</argument>
       <argument>-fp, --fill_parcellation</argument>

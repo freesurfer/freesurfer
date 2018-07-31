@@ -2,7 +2,8 @@ import os
 import os.path as op
 import sys
 import argparse
-from . import run, rmdir, rmext, term, errorExit
+from .util import run, rmdir, rmext
+from .log import term, errorExit
 
 
 # This class is built specifically for configuring regression tests on 

@@ -1,6 +1,6 @@
 project(mri_tessellate)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_tessellate mri_tessellate.c)
 add_help(mri_tessellate mri_tessellate.help.xml)

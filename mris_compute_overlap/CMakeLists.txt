@@ -1,6 +1,6 @@
 project(mris_compute_overlap)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_compute_overlap mris_compute_overlap.c)
 target_link_libraries(mris_compute_overlap utils)

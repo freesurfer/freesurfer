@@ -1,6 +1,6 @@
 project(rgb)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 SET(SOURCES
   close.c

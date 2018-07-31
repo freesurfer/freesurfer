@@ -1,6 +1,6 @@
 project(rbftest)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(rbftest rbftest.c)
 target_link_libraries(rbftest utils)

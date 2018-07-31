@@ -89,7 +89,6 @@ float RETcircsubtract(float a, float b)
 void RETcompute_fieldsign(MRIS *mris)
 {
   int k, m, n;
-  VERTEX *v;
   float dv1, dv2, dx, dy, dv1dx, dv1dy, dv2dx, dv2dy;
   float m11, m12, m13, m22, m23, z1, z2, z3, z1b, z2b, z3b, denom;
 
@@ -97,17 +96,18 @@ void RETcompute_fieldsign(MRIS *mris)
   printf("surfer: compute_fieldsign()\n");
   for (k = 0; k < mris->nvertices; k++) {
     if (!mris->vertices[k].ripflag) {
-      v = &mris->vertices[k];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
+      VERTEX                * const v  = &mris->vertices         [k];
       dv1dx = dv1dy = dv2dx = dv2dy = 0;
       m11 = m12 = m13 = m22 = m23 = z1 = z2 = z3 = z1b = z2b = z3b = 0;
       n = 0;
-      for (m = 0; m < v->vnum; m++) {
-        if (mris->vertices[v->v[m]].ripflag) continue;
-        dv1 = RETcircsubtract(v->val, mris->vertices[v->v[m]].val);
-        dv2 = RETcircsubtract(v->valbak, mris->vertices[v->v[m]].valbak);
+      for (m = 0; m < vt->vnum; m++) {
+        if (mris->vertices[vt->v[m]].ripflag) continue;
+        dv1 = RETcircsubtract(v->val,    mris->vertices[vt->v[m]].val);
+        dv2 = RETcircsubtract(v->valbak, mris->vertices[vt->v[m]].valbak);
         if (dv1 == 0 || dv2 == 0) continue;
-        dx = v->x - mris->vertices[v->v[m]].x;
-        dy = v->y - mris->vertices[v->v[m]].y;
+        dx = v->x - mris->vertices[vt->v[m]].x;
+        dy = v->y - mris->vertices[vt->v[m]].y;
         m11 += dx * dx;
         m12 += dx * dy;
         m13 += dx;
