@@ -646,7 +646,7 @@ int ProjNormFracThickNbr(float *x, float *y, float *z, MRI_SURFACE *surf, int vt
   float r, nx, ny, nz;
   int nbrvtxno;
 
-  nbrvtxno = surf->vertices[vtxno].v[nthNbr];
+  nbrvtxno = surf->vertices_topology[vtxno].v[nthNbr];
   nx = (surf->vertices[vtxno].nx + surf->vertices[nbrvtxno].nx) / 2.0;
   ny = (surf->vertices[vtxno].ny + surf->vertices[nbrvtxno].ny) / 2.0;
   nz = (surf->vertices[vtxno].nz + surf->vertices[nbrvtxno].nz) / 2.0;
@@ -677,7 +677,7 @@ int ProjNormDistNbr(float *x, float *y, float *z, MRI_SURFACE *surf, int vtxno, 
   float nx, ny, nz;
   int nbrvtxno;
 
-  nbrvtxno = surf->vertices[vtxno].v[nthNbr];
+  nbrvtxno = surf->vertices_topology[vtxno].v[nthNbr];
   nx = (surf->vertices[vtxno].nx + surf->vertices[nbrvtxno].nx) / 2.0;
   ny = (surf->vertices[vtxno].ny + surf->vertices[nbrvtxno].ny) / 2.0;
   nz = (surf->vertices[vtxno].nz + surf->vertices[nbrvtxno].nz) / 2.0;

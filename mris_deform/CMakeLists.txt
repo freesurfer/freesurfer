@@ -1,6 +1,6 @@
 project(mris_deform)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_deform mris_deform.c)
 target_link_libraries(mris_deform utils)

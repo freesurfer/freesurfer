@@ -137,8 +137,8 @@ int sclustGrowSurfCluster(int ClusterNo, int SeedVtx, MRI_SURFACE *Surf, float t
 
   Surf->vertices[SeedVtx].undefval = ClusterNo;
 
-  for (nbr = 0; nbr < Surf->vertices[SeedVtx].vnum; nbr++) {
-    nbr_vtx = Surf->vertices[SeedVtx].v[nbr];
+  for (nbr = 0; nbr < Surf->vertices_topology[SeedVtx].vnum; nbr++) {
+    nbr_vtx = Surf->vertices_topology[SeedVtx].v[nbr];
     nbr_clustno = Surf->vertices[nbr_vtx].undefval;
     if (nbr_clustno != 0) continue;
     nbr_val = Surf->vertices[nbr_vtx].val;
@@ -830,7 +830,6 @@ int sclustGrowByDist(MRIS *surf, int seedvtxno, double dthresh, int shape, int v
   static double radius = 0, radius2 = 0;
   static int nhits = 0, ncalls = 0;
   static VERTEX *v1 = NULL;
-  VERTEX *v2;
   double theta = 0, costheta = 0, d = 0;
   int nthnbr, nbrvtxno;
 
@@ -858,7 +857,9 @@ int sclustGrowByDist(MRIS *surf, int seedvtxno, double dthresh, int shape, int v
     for (vtxno = 0; vtxno < surf->nvertices; vtxno++) surf->vertices[vtxno].undefval = 0;
     vtxno = seedvtxno;
   }
-  v2 = &(surf->vertices[vtxno]);
+
+  VERTEX_TOPOLOGY const * const v2t = &surf->vertices_topology[vtxno];
+  VERTEX    	        * const v2  = &surf->vertices         [vtxno];
   ncalls++;
 
   if (v2->undefval) return (0);
@@ -886,8 +887,8 @@ int sclustGrowByDist(MRIS *surf, int seedvtxno, double dthresh, int shape, int v
 
   // Go throught the neighbors ...
   v2->undefval = 1;
-  for (nthnbr = 0; nthnbr < v2->vnum; nthnbr++) {
-    nbrvtxno = v2->v[nthnbr];
+  for (nthnbr = 0; nthnbr < v2t->vnum; nthnbr++) {
+    nbrvtxno = v2t->v[nthnbr];
     sclustGrowByDist(surf, seedvtxno, dthresh, shape, nbrvtxno, vtxlist);
   }
 

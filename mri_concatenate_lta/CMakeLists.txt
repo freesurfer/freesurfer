@@ -1,10 +1,10 @@
 project(mri_concatenate_lta)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_concatenate_lta mri_concatenate_lta.c)
 target_link_libraries(mri_concatenate_lta utils)
 
 add_test_script(NAME mri_concatenate_lta_test SCRIPT test_mri_concatenate_lta DEPENDS mri_concatenate_lta)
 
-install_wrapped(TARGETS mri_concatenate_lta DESTINATION bin)
+install(TARGETS mri_concatenate_lta DESTINATION bin)

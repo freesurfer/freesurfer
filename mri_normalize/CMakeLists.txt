@@ -1,6 +1,6 @@
 project(mri_normalize)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_normalize mri_normalize.c)
 add_help(mri_normalize mri_normalize.help.xml)

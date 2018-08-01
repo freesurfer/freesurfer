@@ -1,6 +1,6 @@
 project(histo_synthesize)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(histo_synthesize histo_synthesize.c)
 target_link_libraries(histo_synthesize utils)

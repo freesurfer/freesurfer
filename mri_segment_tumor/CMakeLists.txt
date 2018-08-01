@@ -1,6 +1,6 @@
 project(mri_segment_tumor)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_segment_tumor mri_segment_tumor.c)
 target_link_libraries(mri_segment_tumor utils)

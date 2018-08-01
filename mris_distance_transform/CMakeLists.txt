@@ -1,6 +1,6 @@
 project(mris_distance_transform)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_distance_transform mris_distance_transform.c)
 target_link_libraries(mris_distance_transform utils)

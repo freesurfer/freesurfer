@@ -1,7 +1,7 @@
 project(mris_pmake)
 
 include_directories(
-  ${CMAKE_SOURCE_DIR}/include
+  ${FS_INCLUDE_DIRS}
   ${CMAKE_SOURCE_DIR}/opencl_algorithms
   ${CMAKE_CURRENT_SOURCE_DIR}
 )

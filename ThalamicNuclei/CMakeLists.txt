@@ -4,7 +4,7 @@ if(APPLE)
   set(BIN_PROGRAMS
     mac_osx/run_SegmentThalamicNuclei.sh
   )
-  # todo: install the whole app!
+  install_osx_app(mac_osx/SegmentThalamicNuclei.app)
 else()
   set(BIN_PROGRAMS
     linux_x86_64/SegmentThalamicNuclei

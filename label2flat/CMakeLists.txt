@@ -1,6 +1,6 @@
 project(label2flat)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(label2flat label2flat.c)
 target_link_libraries(label2flat utils)

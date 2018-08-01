@@ -1,6 +1,6 @@
 project(mris_curvature)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_curvature mris_curvature.c)
 add_help(mris_curvature mris_curvature.help.xml)

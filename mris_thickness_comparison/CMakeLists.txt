@@ -1,6 +1,6 @@
 project(mris_thickness_comparison)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_thickness_comparison mris_thickness_comparison.c)
 target_link_libraries(mris_thickness_comparison utils)

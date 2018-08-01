@@ -1,6 +1,6 @@
 project(histo_compute_joint_density)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(histo_compute_joint_density histo_compute_joint_density.c)
 target_link_libraries(histo_compute_joint_density utils)

@@ -1,6 +1,6 @@
 project(mris_spherical_average)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_spherical_average mris_spherical_average.c)
 target_link_libraries(mris_spherical_average utils)
