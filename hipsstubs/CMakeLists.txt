@@ -1,6 +1,6 @@
 project(hipsstubs)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 SET(SOURCES hipsrepl.c hipsstubs.c)
 

@@ -1,6 +1,6 @@
 project(mri_hires_register)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_hires_register mri_hires_register.c)
 target_link_libraries(mri_hires_register utils)

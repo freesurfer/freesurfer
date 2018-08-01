@@ -1,6 +1,6 @@
 project(mris_smooth)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_smooth mris_smooth.c)
 add_help(mris_smooth mris_smooth.help.xml)

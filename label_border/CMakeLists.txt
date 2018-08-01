@@ -1,6 +1,6 @@
 project(label_border)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(label_border label_border.c)
 target_link_libraries(label_border utils)

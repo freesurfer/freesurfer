@@ -1,6 +1,6 @@
 project(regdat2xfm)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(regdat2xfm regdat2xfm.cpp)
 target_link_libraries(regdat2xfm utils)

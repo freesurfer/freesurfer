@@ -1,6 +1,6 @@
 project(mri_train_autoencoder)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_train_autoencoder mri_train_autoencoder.c)
 target_link_libraries(mri_train_autoencoder utils)

@@ -1,6 +1,6 @@
 project(mri_coreg)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_coreg mri_coreg.c)
 target_link_libraries(mri_coreg utils)

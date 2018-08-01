@@ -1,6 +1,6 @@
 project(mris_simulate_atrophy)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_simulate_atrophy mris_simulate_atrophy.c)
 target_link_libraries(mris_simulate_atrophy utils)

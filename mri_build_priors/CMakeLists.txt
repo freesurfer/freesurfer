@@ -1,6 +1,6 @@
 project(mri_build_priors)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_build_priors mri_build_priors.c)
 target_link_libraries(mri_build_priors utils)

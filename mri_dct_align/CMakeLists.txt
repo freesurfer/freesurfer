@@ -1,6 +1,6 @@
 project(mri_dct_align)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_dct_align mri_dct_align.c)
 target_link_libraries(mri_dct_align utils)

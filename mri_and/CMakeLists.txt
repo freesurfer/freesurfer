@@ -1,6 +1,6 @@
 project(mri_and)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_and mri_and.c)
 target_link_libraries(mri_and utils)

@@ -1,13 +1,16 @@
 project(fem_elastic)
 
-if(Tetgen_FOUND AND PETSC_FOUND)
+if(Tetgen_FOUND AND PETSC_FOUND AND Boost_FOUND)
 
   include_directories(
-    ${CMAKE_SOURCE_DIR}/include
+    ${FS_INCLUDE_DIRS}
     ${PETSC_INCLUDE_DIR}
     ${Tetgen_INCLUDE_DIR}
     ${ITK_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIRS}
   )
+
+  set(CMAKE_CXX_STANDARD 11)
 
   set(COMMON3D_SOURCES
     fem_3d.cpp
@@ -17,28 +20,26 @@ if(Tetgen_FOUND AND PETSC_FOUND)
     misc_maths.cpp
     transformUtils.cpp
     surf_utils.cpp
-    ZlibStringCompressor.cpp 
+    ZlibStringCompressor.cpp
   )
 
-  if(Boost_FOUND)
+  # createMorph
+  add_executable(createMorph fcreateMorph.cpp ${COMMON3D_SOURCES})
+  target_link_libraries(createMorph utils ${Tetgen_LIBRARIES} ${Boost_PROGRAM_OPTIONS_LIBRARY})
+  install(TARGETS createMorph DESTINATION bin)
 
-    include_directories(${Boost_INCLUDE_DIRS})
+  # applyMorph
+  add_executable(applyMorph fapplyMorph.cpp ${COMMON3D_SOURCES})
+  target_link_libraries(applyMorph utils ${Tetgen_LIBRARIES} ${Boost_PROGRAM_OPTIONS_LIBRARY})
+  install(TARGETS applyMorph DESTINATION bin)
 
-    # createMorph
-    add_executable(createMorph fcreateMorph.cpp ${COMMON3D_SOURCES})
-    target_link_libraries(createMorph utils ${Tetgen_LIBRARIES} ${Boost_PROGRAM_OPTIONS_LIBRARY})
-    install(TARGETS createMorph DESTINATION bin)
+  # exportGcam
+  add_executable(exportGcam exportGcam.cpp ${COMMON3D_SOURCES})
+  target_link_libraries(exportGcam utils ${Tetgen_LIBRARIES} ${Boost_PROGRAM_OPTIONS_LIBRARY})
+  install(TARGETS exportGcam DESTINATION bin)
 
-    # applyMorph
-    add_executable(applyMorph fapplyMorph.cpp ${COMMON3D_SOURCES})
-    target_link_libraries(applyMorph utils ${Tetgen_LIBRARIES} ${Boost_PROGRAM_OPTIONS_LIBRARY})
-    install(TARGETS applyMorph DESTINATION bin)
-
-    # exportGcam
-    add_executable(exportGcam exportGcam.cpp ${COMMON3D_SOURCES})
-    target_link_libraries(exportGcam utils ${Tetgen_LIBRARIES} ${Boost_PROGRAM_OPTIONS_LIBRARY})
-    install(TARGETS exportGcam DESTINATION bin)
-
+  if(APPLE)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Accelerate")
   endif()
 
   # surf2vol
@@ -66,6 +67,6 @@ if(Tetgen_FOUND AND PETSC_FOUND)
 
   # fem_elastic library
   add_library(fem_elastic STATIC fcreateMorph.cpp fapplyMorph.cpp ${COMMON3D_SOURCES})
-  target_link_libraries(fem_elastic utils ${Tetgen_LIBRARIES})
+  target_link_libraries(fem_elastic)
 
 endif()

@@ -1,6 +1,6 @@
 project(mris_transmantle_dysplasia_paths)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_transmantle_dysplasia_paths mris_transmantle_dysplasia_paths.c)
 target_link_libraries(mris_transmantle_dysplasia_paths utils)

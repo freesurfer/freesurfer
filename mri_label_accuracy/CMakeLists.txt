@@ -1,6 +1,6 @@
 project(mri_label_accuracy)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_label_accuracy mri_label_accuracy.c)
 target_link_libraries(mri_label_accuracy utils)
