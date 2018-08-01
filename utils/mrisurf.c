@@ -75640,19 +75640,6 @@ int MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, double r, double a, doubl
   return (NO_ERROR);
 }
 
-/*!
-  \fn int MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri,
-        double r, double a, double s,
-        double *px, double *py, double *pz)
-  \brief Computes voxel coordinates of a given surface RAS.
-   Notes: The passed mri must share  a scanner RAS with mris->vg.
-          SurfaceRAS is the same as tkRegRAS
-  \param mris - surface (only used to get MRI struct)
-  \param mri - defines target voxel space
-  \param r, a, s - surface coordinates
-  \param px, py, pz - pointers to col, rowl, and slice in mri (output)
-*/
-
 void MRIS_loadRAS2VoxelMap(MRIS_SurfRAS2VoxelMap* cache, MRI const * const mri, MRI_SURFACE const * const mris)
 {
     if (cache->mri) {
@@ -75692,6 +75679,7 @@ void MRIS_loadRAS2VoxelMap(MRIS_SurfRAS2VoxelMap* cache, MRI const * const mri, 
 void MRIS_unloadRAS2VoxelMap(MRIS_SurfRAS2VoxelMap* map)
 {
     MRIfree(&map->mri);
+    MatrixFree(&map->sras2vox); // was missing, caused mem leak 7/31/2018
 }
 
 MRIS_SurfRAS2VoxelMap* MRIS_makeRAS2VoxelMap(MRI const * const mri, MRI_SURFACE const * const mris)
@@ -75762,6 +75750,22 @@ static int MRISsurfaceRASToVoxelCached_old(
     MRI_SURFACE *mris, MRI *mri, double r, double a, double s, double *px, double *py, double *pz);
     
 
+/*!
+  \fn int MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri,
+        double r, double a, double s,
+        double *px, double *py, double *pz)
+  \brief Computes voxel coordinates of a given surface RAS.
+   Notes: The passed mri must share  a scanner RAS with mris->vg.
+          SurfaceRAS is the same as tkRegRAS
+  \param mris - surface (only used to get MRI struct)
+  \param mri - defines target voxel space
+  \param r, a, s - surface coordinates
+  \param px, py, pz - pointers to col, rowl, and slice in mri (output)
+  Note: keeps a copy of the mri header and sras2vox. When an MRI with 
+  a different geometry is passed, if frees the MRI header and sras2vox,
+  and copies the new one in. This can make it inefficient if switching
+  back and forth between different MRIs (eg, mris_make_surfaces)
+*/
 int MRISsurfaceRASToVoxelCached(
     MRI_SURFACE *mris, MRI *mri, double r, double a, double s, double *px, double *py, double *pz)
 {
