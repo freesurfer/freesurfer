@@ -157,9 +157,9 @@ find_package(OpenCL)
 if(BUILD_GUIS)
 
   # -------- qt --------
-  set(MARTINOS_Qt5 /usr/pubsw/packages/qt/5.6.2/5.6/gcc_64/lib/cmake/Qt5)
-  if(NOT Qt5_DIR AND EXISTS ${MARTINOS_Qt5})
-    set(Qt5_DIR ${MARTINOS_Qt5})
+  set(PACKAGES_QT ${FS_PACKAGES_DIR}/qt/5.6.2/5.6/gcc_64/lib/cmake/Qt5)
+  if(NOT Qt5_DIR AND EXISTS ${PACKAGES_QT})
+    set(Qt5_DIR ${PACKAGES_QT})
   endif()
   # set components to search for
   set(QT_COMPONENTS Core Widgets)
