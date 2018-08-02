@@ -17,6 +17,7 @@ addons:
     packages:
       - gfortran
       - libxi-dev
+      - libglu1-mesa-dev
       - liblapack-dev
       - tcsh
       - curl
