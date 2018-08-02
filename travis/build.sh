@@ -12,8 +12,7 @@ set -o pipefail
 cmake . -DFS_PACKAGES_DIR="packages" -DBUILD_GUIS=OFF
 
 if [[ "$TRAVIS_OS_NAME" == "osx" ]] ; then
-  make 2>&1 | grep -v -e '^/var/folders/*' -e '^[[:space:]]*\.section' -e '^[[:space:]]*\^[[:space:]]*~*'
+  make -j4 2>&1 | grep -v -e '^/var/folders/*' -e '^[[:space:]]*\.section' -e '^[[:space:]]*\^[[:space:]]*~*'
 else
-  make mris2rgb VERBOSE=1
-  cd mris2rgb
+  make -j4
 fi
