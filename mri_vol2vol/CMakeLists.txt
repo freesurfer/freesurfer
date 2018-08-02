@@ -1,7 +1,8 @@
 project(mri_vol2vol)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_vol2vol mri_vol2vol.c)
 target_link_libraries(mri_vol2vol utils)
-install_wrapped(TARGETS mri_vol2vol DESTINATION bin)
+
+install(TARGETS mri_vol2vol DESTINATION bin)

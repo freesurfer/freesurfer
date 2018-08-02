@@ -573,25 +573,21 @@ namespace Math
    */
   MRI* MRISmaxedgeshell(MRI *mrisrc, MRIS *mris, MRI* mridst, int clearflag)
   {
-    VERTEX *vert, *nvert;
-    double _dist, distance, xd, yd, zd;
-    double fi, fj, fimnr;
-    int i, j, imnr;
-    
     /* For each vertex, find the edge with the 
        maximum length and store it in an array */
     for (int vno = 0; vno < mris->nvertices; vno++)
     {
-      vert = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vert_topology = &mris->vertices_topology[vno];
+      VERTEX          const * const vert          = &mris->vertices         [vno];
       /* neighbor m */
-      distance = 0.0; // An edge length obviously has to be atleast 0.0
-      for (int nc = 0; nc < vert->vnum; nc++)
+      double distance = 0.0; // An edge length obviously has to be atleast 0.0
+      for (int nc = 0; nc < vert_topology->vnum; nc++)
       {
-        nvert = &mris->vertices[ vert->v[nc] ];
-        xd    = vert->x - nvert->x;
-        yd    = vert->y - nvert->y;
-        zd    = vert->z - nvert->z;
-        _dist = sqrt( xd*xd + yd*yd + zd*zd);
+        VERTEX const * const nvert = &mris->vertices[ vert_topology->v[nc] ];
+        double const xd    = vert->x - nvert->x;
+        double const yd    = vert->y - nvert->y;
+        double const zd    = vert->z - nvert->z;
+        double const _dist = sqrt( xd*xd + yd*yd + zd*zd);
         // length of the edge with max length among its neighbors
         if ( _dist > distance )
           distance = _dist;
@@ -601,12 +597,14 @@ namespace Math
           for (double zk = -distance; zk <=distance ; zk+=distance/5.0)
           {
             if ( xk*xk + yk*yk + zk*zk > distance*distance ) continue;
+
+    	    double fi, fj, fimnr;
             MRISsurfaceRASToVoxelCached(mris, mrisrc,
                                         vert->x + xk,vert->y+yk,vert->z+zk,
                                         &fi,&fj,&fimnr);
-            i=nint(fi);
-            j=nint(fj);
-            imnr=nint(fimnr);
+            int i=nint(fi);
+            int j=nint(fj);
+            int imnr=nint(fimnr);
             if (i>=0 && i<mridst->width && 
                 j>=0 && j<mridst->height && 
                 imnr>=0 && imnr<mridst->depth)

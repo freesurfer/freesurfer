@@ -1,6 +1,6 @@
 project(mris_euler_number)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_euler_number mris_euler_number.c)
 add_help(mris_euler_number mris_euler_number.help.xml)

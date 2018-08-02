@@ -1,6 +1,6 @@
 project(mris_watershed)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_watershed mris_watershed.c)
 add_help(mris_watershed mris_watershed.help.xml)

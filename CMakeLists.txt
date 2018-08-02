@@ -10,15 +10,28 @@ cmake_minimum_required(VERSION 3.5)
 enable_language(C CXX Fortran)
 
 # a few build options
-enable_testing()
 option(BUILD_GUIS "Build GUIs" ON)
-option(SMALL_INSTALL "Install a minimal FS distribution" OFF)
+option(NMR_INSTALL "Install NMR files" OFF)
+if(APPLE)
+  option(BUILD_OSX_TK_GUIS "Compile OSX Tk GUIs" OFF)
+endif()
 
-# include our custom cmake functions
+# enable ctest
+enable_testing()
+
+# include our custom cmake functions (and others)
 include(cmake/functions.cmake)
+include(TestBigEndian)
+include(CheckFunctionExists)
 
 # prevents itk from importing as a system
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED TRUE)
+
+# xxd is used to generate the helptext headers - make sure it exists
+find_program(XXD xxd)
+if(NOT XXD)
+  message(FATAL_ERROR "The xxd program is required to build freesurfer")
+endif()
 
 
 # --------------------------------------------------
@@ -38,11 +51,18 @@ if(NOT FS_PACKAGES_DIR)
     # if the user is at Martinos, default to /usr/pubsw/packages
     set(FS_PACKAGES_DIR /usr/pubsw/packages)
   else()
+    if(APPLE)
+      set(FS_PACKAGES_URL "http://surfer.nmr.mgh.harvard.edu/pub/data/fspackages/prebuilt/osx10.11-packages.tar.gz")
+    else()
+      set(FS_PACKAGES_URL "http://surfer.nmr.mgh.harvard.edu/pub/data/fspackages/prebuilt/centos7-packages.tar.gz")
+    endif()
     # setting FS_PACKAGES_DIR is required if the user is outside Martinos
     message(FATAL_ERROR "External FreeSurfer developers must provide a valid FS_PACKAGES_DIR path! "
                         "Required FS dependencies can be built locally by running:\n"
                         "    packages/build_packages.sh \"/desired/packages/install/dir\"\n"
-                         "After packages have been built, cmake should be configured with:\n"
+                        "Or they can be downloaded from here:\n"
+                        "    ${FS_PACKAGES_URL}\n"
+                        "After the dependencies have been setup, cmake should be configured with:\n"
                         "    -DFS_PACKAGES_DIR=\"/desired/packages/install/dir\"")
   endif()
 endif()
@@ -54,12 +74,16 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 find_package(ZLIB REQUIRED)
 add_definitions(-DHAVE_ZLIB)
 
-# -------- gfortran --------
-find_library(GFORTRAN_LIBRARIES NAMES libgfortran.a)
+if(NOT APPLE)
 
-# -------- blas and lapack --------
-find_library(BLAS_LIBRARIES NAMES libblas.a)
-find_library(LAPACK_LIBRARIES NAMES liblapack.a)
+  # -------- gfortran --------
+  find_library(GFORTRAN_LIBRARIES NAMES libgfortran.a)
+
+  # -------- blas and lapack --------
+  find_library(BLAS_LIBRARIES NAMES libblas.a)
+  find_library(LAPACK_LIBRARIES NAMES liblapack.a)
+
+endif()
 
 # -------- jpeg --------
 find_package(JPEG REQUIRED)
@@ -78,7 +102,6 @@ find_package(NetCDF REQUIRED)
 
 # -------- minc --------
 find_package(MINC REQUIRED)
-add_definitions(-DUSE_LOCAL_MINC)
 
 # -------- tetgen --------
 find_package(Tetgen REQUIRED)
@@ -93,7 +116,8 @@ endif()
 find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 add_definitions(-DHAVE_ITK_LIBS)
 
-# -------- boost program options --------
+# -------- boost --------
+set(Boost_DIR ${FS_PACKAGES_DIR}/boost/1.53)
 find_package(Boost COMPONENTS program_options)
 
 # -------- ann --------
@@ -110,6 +134,7 @@ if(OPENMP_FOUND)
   add_definitions(-DHAVE_OPENMP)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${OpenMP_Fortran_FLAGS}")
 endif()
 
 # -------- openGL --------
@@ -119,22 +144,35 @@ if(OPENGL_FOUND)
   # since we have OpenGL, make sure we have glut too!
   find_package(GLUT REQUIRED)
   add_definitions(-DHAVE_GLUT_LIBS)
+  find_package(X11 REQUIRED)
 endif()
 
 # -------- openCV --------
 find_package(OpenCV)
 
+# -------- openCL --------
+find_package(OpenCL)
+
 # search for GUI libraries
 if(BUILD_GUIS)
 
   # -------- qt --------
-  set(MARTINOS_Qt5 /usr/pubsw/packages/qt/5.6.2/5.6/gcc_64/lib/cmake/Qt5)
-  if(NOT Qt5_DIR AND EXISTS ${MARTINOS_Qt5})
-    set(Qt5_DIR ${MARTINOS_Qt5})
+  set(PACKAGES_QT ${FS_PACKAGES_DIR}/qt/5.6.2/5.6/gcc_64/lib/cmake/Qt5)
+  if(NOT Qt5_DIR AND EXISTS ${PACKAGES_QT})
+    set(Qt5_DIR ${PACKAGES_QT})
   endif()
-  find_package(Qt5 COMPONENTS Core Widgets X11Extras)
+  # set components to search for
+  set(QT_COMPONENTS Core Widgets)
+  if(NOT APPLE)
+    set(QT_COMPONENTS ${QT_COMPONENTS} X11Extras)
+  endif()
+  # actually find qt
+  find_package(Qt5 COMPONENTS ${QT_COMPONENTS})
   if(Qt5_FOUND)
-    add_definitions(-DUSING_QT_5)
+    get_filename_component(QT_INSTALL_DIR "${Qt5_DIR}/../../.." ABSOLUTE)
+    if(NOT APPLE)
+      symlink(${QT_INSTALL_DIR} ${CMAKE_INSTALL_PREFIX}/lib/qt)
+    endif()
   endif()
 
   # -------- vtk --------
@@ -160,52 +198,61 @@ endif()
 add_definitions(-D${CMAKE_SYSTEM_NAME})
 
 # general check for big endian
-include(TestBigEndian)
 test_big_endian(IS_BIG_ENDIAN)
 
-# todo: config.h
-
 # compiler warnings
-set(COMPILE_FLAGS "${COMPILE_FLAGS} -Wall -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs")
+set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs")
 
-# not entirely sure what this ANSI is used for
+# ANSI
 add_definitions(-DANSI)
 
 # todo: write some logic to set this correctly
 # SSE matrix and math functions (affine.h and sse_mathfun.h)
 add_definitions(-DUSE_SSE_MATHFUN)
-set(COMPILE_FLAGS "${COMPILE_FLAGS} -msse2 -mfpmath=sse")
+set(C_CXX_FLAGS "${C_CXX_FLAGS} -msse2 -mfpmath=sse")
 
 # -g compiles debugging info for use by debuggers like gdb. Normally we want
 # that in the build, but here we add the FS_DEBUG option, which greatly
 # reduces the size of compiled binaries when turned OFF
 option(FS_DEBUG "Compile with the -g flag" ON)
 if(FS_DEBUG)
-  set(COMPILE_FLAGS "${COMPILE_FLAGS} -g")
+  set(C_CXX_FLAGS "${C_CXX_FLAGS} -g")
 endif()
 
-# for stripping unused code
+# large file support: support for files > 2GB
 if(APPLE)
-  set(COMPILE_FLAGS "${COMPILE_FLAGS} -dead_strip")
-else()
-  set(COMPILE_FLAGS "${COMPILE_FLAGS} -fdata-sections -ffunction-sections -Wl,--gc-sections")
+  add_definitions(-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE)
 endif()
 
 # optimization
 # todo: implement processor-based logic to determine this
-set(COMPILE_FLAGS "${COMPILE_FLAGS} -O3 -m64")
+set(C_CXX_FLAGS "${C_CXX_FLAGS} -O3 -m64")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMPILE_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMPILE_FLAGS}")
+# for stripping unused code
+if(APPLE)
+  set(STRIP_FLAGS "-dead_strip")
+else()
+  set(STRIP_FLAGS "-fdata-sections -ffunction-sections -Wl,--gc-sections")
+  set(C_CXX_FLAGS "${C_CXX_FLAGS} ${STRIP_FLAGS}")
+endif()
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${STRIP_FLAGS}")
 
-# link map (only on linux)
+# link map (only for linux)
 if(NOT APPLE)
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map,ld_map.txt -Wl,--no-demangle")
 endif()
 
-# this is just a way to properly include netcdf in include/minc_volume_io.h
-# todo: this macro should be removed once the above gets sorted out
-add_definitions(-DCMAKE) 
+# check for 
+if(APPLE)
+  check_function_exists(clock_gettime HAVE_CLOCK_GETTIME)
+  if(HAVE_CLOCK_GETTIME)
+    add_definitions(-DHAVE_CLOCK_GETTIME)
+  endif()
+endif()
+
+# apply C and CXX flags
+set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   ${C_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C_CXX_FLAGS}")
 
 
 # --------------------------------------------------
@@ -214,6 +261,10 @@ add_definitions(-DCMAKE)
 
 # first, prepare the freesurfer distribution
 add_subdirectories(distribution images)
+
+# the top-level include dir and the netcdf package contain the most commonly
+# included freesurfer header files
+set(FS_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/include ${MINC_INCLUDE_DIR} ${NetCDF_INCLUDE_DIR})
 
 # now build the freesurfer static libraries (order here matters!)
 add_subdirectories(
@@ -472,6 +523,7 @@ add_subdirectories(
   mris_curvature_stats
   mris_decimate
   mris_decimate_gui
+  mris_defects_pointset
   mris_deform
   mris_density
   mris_diff

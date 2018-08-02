@@ -1,6 +1,6 @@
 project(mris_shrinkwrap)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_shrinkwrap mris_shrinkwrap.c)
 target_link_libraries(mris_shrinkwrap utils)

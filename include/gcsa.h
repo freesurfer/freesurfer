@@ -129,9 +129,10 @@ int   GCSAreclassifyLabel(GCSA *gcsa, MRI_SURFACE *mris, LABEL *area) ;
 int   GCSAputInputType(GCSA *gcsa, int type, char *fname, int navgs, int ino,
                        int flags) ;
 int   GCSAsetCovariancesToIdentity(GCSA *gcsa) ;
-VERTEX *GCSAsourceToPriorVertex(GCSA *gcsa, VERTEX *v) ;
-int GCSAsourceToPriorVertexNo(GCSA *gcsa, VERTEX *v);
-VERTEX *GCSAsourceToClassifierVertex(GCSA *gcsa, VERTEX *v) ;
+VERTEX *GCSAsourceToPriorVertex     (GCSA *gcsa, VERTEX const *v);
+int     GCSAsourceToPriorVertexNo   (GCSA *gcsa, VERTEX const *v);
+VERTEX *GCSAsourceToClassifierVertex(GCSA *gcsa, VERTEX const *v);
+
 int dump_gcsan(GCSA_NODE *gcsan, CP_NODE *cpn, FILE *fp, int verbose) ;
 int GCSAbuildMostLikelyLabels(GCSA *gcsa, MRI_SURFACE *mris) ;
 int GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg) ;

@@ -1,6 +1,6 @@
 project(mri_ms_fitparms)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_ms_fitparms mri_ms_fitparms.c)
 add_help(mri_ms_fitparms mri_ms_fitparms.help.xml)

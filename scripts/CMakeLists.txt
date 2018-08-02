@@ -181,7 +181,6 @@ install(PROGRAMS
   petsc_setup
   plot_structure_stats.tcl
   print_unique_labels.csh
-  process_exvivo_diff_data_bay3.sh
   progressbar.tcl
   fsr-checkxopts
   fsr-getxopts
@@ -279,6 +278,10 @@ install(PROGRAMS
   DESTINATION bin
 )
 
+if(NMR_INSTALL)
+  install(PROGRAMS process_exvivo_diff_data_bay3.sh DESTINATION bin)
+endif()
+
 install(PROGRAMS
   tkanalyse.tcl
   tkm_common.tcl
@@ -326,17 +329,11 @@ install(PROGRAMS
   DESTINATION lib/tcl
 )
 
-set(WRAPCODE "\
-#!/bin/tcsh -ef\n\
-source $FREESURFER_HOME/bin/tcl_setup\n\
-$FREESURFER_HOME/lib/tcltktixblt/bin/tclsh8.4 $FREESURFER_HOME/bin/fsfget.tcl $argv")
-install_wrapped(PROGRAMS fsfget DESTINATION bin WRAPCODE ${WRAPCODE} EXT tcl)
+install(PROGRAMS fsfget_wrapper DESTINATION bin RENAME fsfget)
+install(PROGRAMS fsfget DESTINATION bin RENAME fsfget.tcl)
 
-set(WRAPCODE "\
-#!/bin/tcsh -ef\n\
-source $FREESURFER_HOME/bin/tcl_setup\n\
-$FREESURFER_HOME/lib/tcltktixblt/bin/tclsh8.4 $FREESURFER_HOME/bin/unpacksdcmdir.tcl $argv")
-install_wrapped(PROGRAMS unpacksdcmdir DESTINATION bin WRAPCODE ${WRAPCODE} EXT tcl)
+install(PROGRAMS unpacksdcmdir_wrapper DESTINATION bin RENAME unpacksdcmdir)
+install(PROGRAMS unpacksdcmdir DESTINATION bin RENAME unpacksdcmdir.tcl)
 
 install_append_help(bbregister bbregister.help.xml bin)
 

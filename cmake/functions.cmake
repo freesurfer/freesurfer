@@ -47,52 +47,6 @@ function(install_tarball)
 endfunction()
 
 
-# install_wrapped(<binary> DESTINATION <dir>)
-# Some freesurfer binaries require a wrapper script before being executed.
-# This function will install the program as binary.bin in the provied
-# install destination and create the wrapper in the bin dir. By default,
-# the script will contain:
-#
-# #!/bin/bash
-# source $FREESURFER_HOME/sources.sh
-# binary.bin "$@"
-# 
-# but this can be replaced with a custom string using the WRAPCODE argument.
-# The .bin extension can also be replaced with the EXT argument
-function(install_wrapped)
-  cmake_parse_arguments(INSTALL "" "TARGETS;PROGRAMS;DESTINATION;WRAPCODE;EXT" "" ${ARGN})
-  if(INSTALL_TARGETS)
-    set(BINARY "${INSTALL_TARGETS}")
-  elseif(INSTALL_PROGRAMS)
-    set(BINARY "${INSTALL_PROGRAMS}")
-  endif()
-  set(WRAPCODE "#!/bin/bash\nsource $FREESURFER_HOME/sources.sh\n${BINARY}.bin \\\"$@\\\"")
-  if(INSTALL_WRAPCODE)
-    set(WRAPCODE ${INSTALL_WRAPCODE})
-  endif()
-  set(EXT "bin")
-  if(INSTALL_EXT)
-    set(EXT ${INSTALL_EXT})
-  endif()
-  if(INSTALL_TARGETS)
-    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${BINARY} DESTINATION ${INSTALL_DESTINATION} RENAME ${BINARY}.${EXT})
-  elseif(INSTALL_PROGRAMS)
-    install(PROGRAMS ${BINARY} DESTINATION ${INSTALL_DESTINATION} RENAME ${BINARY}.${EXT})
-  endif()
-  install(CODE "
-    message(STATUS \"Wrapping: ${CMAKE_INSTALL_PREFIX}/${INSTALL_DESTINATION}/${BINARY}.${EXT}\")
-    execute_process(
-      COMMAND bash -c \"echo -e '${WRAPCODE}' > ${CMAKE_INSTALL_PREFIX}/bin/${BINARY} &&
-                        chmod +x ${CMAKE_INSTALL_PREFIX}/bin/${BINARY}\"
-      RESULT_VARIABLE retcode
-    )
-    if(NOT \${retcode} STREQUAL 0)
-      message(FATAL_ERROR \"Could not wrap ${BINARY}\")
-    endif()"
-  )
-endfunction()
-
-
 # add_help(<binary> <xml>)
 # Link an xml helptext to a target binary. This will create a target dependency on
 # the help file and will run xxd to create the xml header during the build
@@ -104,6 +58,8 @@ function(add_help BINARY HELPTEXT)
   include_directories(${CMAKE_CURRENT_BINARY_DIR})
   target_sources(${BINARY} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/${HELPTEXT}.h)
   install(FILES ${HELPTEXT} DESTINATION docs/xml)
+  # make sure to validate the xml as wel
+  add_test(${BINARY}_help_test bash -c "xmllint --noout --postvalid ${CMAKE_CURRENT_SOURCE_DIR}/${HELPTEXT}")
 endfunction(add_help)
 
 
@@ -126,6 +82,24 @@ function(install_append_help SCRIPT HELPTEXT DESTINATION)
     endif()"
   )
   install(FILES ${HELPTEXT} DESTINATION docs/xml)
+  # make sure to validate the xml as well
+  add_test(${SCRIPT}_help_test bash -c "xmllint --noout --postvalid ${CMAKE_CURRENT_SOURCE_DIR}/${HELPTEXT}")
+endfunction()
+
+# install_osx_app(<app>)
+# This copies a pre-built os x application to bin (for Eugenio's subfield applications)
+function(install_osx_app APP_PATH)
+  get_filename_component(APP_NAME ${APP_PATH} NAME)
+  install(CODE "
+    message(STATUS \"Copying OS X Application: ${APP_NAME} to ${CMAKE_INSTALL_PREFIX}/bin\")
+    execute_process(
+      COMMAND bash -c \"cp -RL ${CMAKE_CURRENT_SOURCE_DIR}/${APP_PATH} ${CMAKE_INSTALL_PREFIX}/bin\"
+      RESULT_VARIABLE retcode
+    )
+    if(NOT \${retcode} STREQUAL 0)
+      message(FATAL_ERROR \"Could not install ${APP_NAME}\")
+    endif()"
+  )
 endfunction()
 
 
@@ -151,4 +125,34 @@ function(add_test_script)
     set(TEST_CMD "${TEST_CMD} ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${TARGET} &&")
   endforeach()
   add_test(${TEST_NAME} bash -c "${TEST_CMD} ${CMAKE_CURRENT_SOURCE_DIR}/${TEST_SCRIPT}")
+endfunction()
+
+
+# add_test_executable(<target> <sources>)
+# Adds an executable to the test framework that only gets built by the test target.
+# This function takes the same input as add_executable()
+function(add_test_executable)
+  set(TARGET ${ARGV0})
+  LIST(REMOVE_AT ARGV 0)
+  add_executable(${TARGET} EXCLUDE_FROM_ALL ${ARGV})
+  set(TEST_CMD "${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${TARGET} &&")
+  add_test(${TARGET} bash -c "${TEST_CMD} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}")
+endfunction()
+
+
+# library_paths(NAME <var> LIBDIR <library-dir> LIBRARIES <libs>)
+# This function is meant to find valid paths of libraries in a given library directory.
+# It's mostly a utility for locating VTK and PETSC libs that may or may not exist on a
+# given platform.
+function(library_paths)
+  cmake_parse_arguments(ARG "" "NAME;LIBDIR" "LIBRARIES" ${ARGN})
+  unset(LIBPATH)
+  foreach(LIBRARY ${ARG_LIBRARIES})
+    find_library(LIBPATH PATHS ${ARG_LIBDIR} NAMES ${LIBRARY} NO_DEFAULT_PATH)
+    if(LIBPATH)
+      set(LIB_LIST ${LIB_LIST} ${LIBPATH})
+    endif()
+    unset(LIBPATH CACHE)
+  endforeach()
+  set(${ARG_NAME} ${LIB_LIST} PARENT_SCOPE)
 endfunction()

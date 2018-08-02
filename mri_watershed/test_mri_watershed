@@ -1,0 +1,89 @@
+#!/bin/bash -f
+
+#
+# test_mri_watershed
+#
+# execute mri_watershedand check results against expected results
+# reference data can be regenerated quickly with the --regenerate flag
+#
+
+tname="test_mri_watershed"
+
+# setting the environmental variable FS_FULL_TEST will run a more robust test
+[ -n "$FS_FULL_TEST" ] && fulltest=true || fulltest=false
+
+# -regenerate flag will regenerate the reference data
+if [ "$1" = "--regenerate" ]; then
+  regenerate=true
+  echo "regenerating reference data..."
+else
+  regenerate=false
+fi
+
+# extract testing data if it hasn't already
+umask 002
+[ -d testdata ] || gunzip -c testdata.tar.gz | tar xf -
+cd testdata
+
+# setup log file
+logfile="../test_mri_watershed.log"
+[ -e $logfile ] && rm -f $logfile
+
+# set number of threads used
+if $regenerate; then threads="1"
+elif $fulltest; then threads="1 8"
+else threads="8"; fi
+
+for num in $threads; do
+
+  # setup vars
+  export OMP_NUM_THREADS=$num
+  cmd="../mri_watershed -T1 -brain_atlas RB_all_withskull_2016-05-10.vc700.gca transforms/talairach_with_skull.lta T1.mgz brainmask.auto.mgz" 
+
+  # run 
+  echo 2>&1 | tee -a $logfile
+  echo "${tname}:  running mri_watershed with ${num} thread(s)" 2>&1 | tee -a $logfile
+  echo $cmd >> $logfile
+  echo $cmd
+  $cmd >> $logfile 2>&1
+  status=$?
+  if [ $status -ne 0 ]; then
+    echo "${tname}:  FAILED with exit code $status" 2>&1 | tee -a $logfile
+    exit 1
+  fi
+
+  # if regenerating, overwrite the reference
+  if $regenerate; then
+    mv -f $outfile $ref
+    break
+  fi
+
+  # compare expected results with actual results
+  cmd="../../mris_diff/mris_diff --debug ${ref} ${outfile}"
+  echo "${tname}:  comparing results to reference data" 2>&1 | tee -a $logfile
+  echo "$cmd" >> $logfile
+  $cmd >> $logfile 2>&1
+  status=$?
+  if [ $status -ne 0 ]; then
+    echo "${tname}:  FAILED with exit code $status" 2>&1 | tee -a $logfile
+    echo "check log file - test_mris_sphere.log"
+    exit 1
+  fi
+  echo "${tname}:  PASSED test with ${num} thread(s)" 2>&1 | tee -a $logfile
+
+done
+
+# cleanup
+cd ..
+# tar any regenerated data
+if $regenerate; then
+  tar -czvf newtestdata.tar.gz testdata
+  echo "${tname}:  compressed regenerated reference data to newtestdata.tar.gz"
+  exit 0
+fi
+rm -rf testdata
+
+echo 2>&1 | tee -a $logfile
+echo "${tname}:  PASSED all tests" 2>&1 | tee -a $logfile
+echo
+exit 0

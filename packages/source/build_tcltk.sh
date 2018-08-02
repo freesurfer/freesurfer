@@ -6,6 +6,9 @@
 
 set -e
 
+export CC=$(which gcc)
+export CXX=$(which g++)
+
 if [ "$#" != "1" ] ; then echo "error: usage: build.sh <prefix>" && exit 1 ; fi
 INSTALL_DIR="$1"
 
@@ -30,6 +33,7 @@ cd tcl8.4.6/unix
     --exec-prefix=${COMBO_DIR} \
     --mandir='${prefix}/share/man'
 make -j8
+make install
 if [ -e "libtcl8.4g.so" ] ; then
     rm -f libtcl8.4.so
     ln -s libtcl8.4g.so libtcl8.4.so
@@ -114,6 +118,8 @@ make install
 
 cd ../../blt2.4z
 
+[ "$(uname -s)" == "Darwin" ] && export USRLIBDIR="/usr/X11R6/lib"
+
 ./configure --prefix=${COMBO_DIR} \
   --mandir=${COMBO_DIR}/share/man \
   --enable-shared \
@@ -121,6 +127,7 @@ cd ../../blt2.4z
   --with-tk=${COMBO_DIR} \
   --enable-jpeg=${COMBO_DIR} \
   --x-includes=/usr/X11R6/include \
+  --x-libraries=/usr/X11R6/lib \
   --with-cflags="-fno-common"
 
 make -j8

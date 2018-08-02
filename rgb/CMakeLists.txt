@@ -1,8 +1,8 @@
 project(rgb)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
-SET(SOURCES
+set(SOURCES
   close.c
   filbuf.c
   flsbuf.c
@@ -12,6 +12,7 @@ SET(SOURCES
   rdwr.c
   rgbutils.c
   rle.c
-  row.c)
+  row.c
+)
 
 add_library(rgb STATIC ${SOURCES})

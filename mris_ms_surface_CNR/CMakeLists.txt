@@ -1,6 +1,6 @@
 project(mris_ms_surface_CNR)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_ms_surface_CNR mris_ms_surface_CNR.c)
 target_link_libraries(mris_ms_surface_CNR utils)

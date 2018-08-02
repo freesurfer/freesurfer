@@ -6,7 +6,7 @@ else()
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -z muldefs")
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 set(FORTRAN_LIBS ${LAPACK_LIBRARIES} ${BLAS_LIBRARIES} ${GFORTRAN_LIBRARIES})
 
@@ -25,7 +25,7 @@ add_executable(
 )
 target_link_libraries(mri_robust_register utils ${FORTRAN_LIBS})
 add_help(mri_robust_register mri_robust_register.help.xml)
-install_wrapped(TARGETS mri_robust_register DESTINATION bin)
+install(TARGETS mri_robust_register DESTINATION bin)
 
 # mri_robust_template
 add_executable(
@@ -41,6 +41,8 @@ add_executable(
 )
 target_link_libraries(mri_robust_template utils ${FORTRAN_LIBS})
 add_help(mri_robust_template mri_robust_template.help.xml)
+add_test_script(NAME mri_robust_template_test SCRIPT test_mri_robust_template DEPENDS mri_robust_template)
+add_test_script(NAME libgfortran_linker SCRIPT test_libgfortran DEPENDS mri_robust_template)
 install(TARGETS mri_robust_template DESTINATION bin)
 
 # lta_diff
@@ -73,4 +75,3 @@ install(TARGETS mri_create_tests DESTINATION bin)
 add_executable(mri_gradient_info mri_gradient_info.cpp)
 target_link_libraries(mri_gradient_info utils ${FORTRAN_LIBS})
 install(TARGETS mri_gradient_info DESTINATION bin)
-

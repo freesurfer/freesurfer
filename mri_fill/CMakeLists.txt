@@ -1,6 +1,6 @@
 project(mri_fill)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mri_fill mri_fill.c)
 add_help(mri_fill mri_fill.help.xml)

@@ -1,6 +1,6 @@
 project(mris_make_face_parcellation)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(mris_make_face_parcellation mris_make_face_parcellation.c)
 target_link_libraries(mris_make_face_parcellation utils)

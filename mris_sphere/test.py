@@ -5,8 +5,7 @@ import freesurfer.test as fst
 
 rt = fst.RegressionTest()
 
-# always run a multithreaded test, but use
-# single-thread reference data
+# always run a multithreaded test, but generate single-threaded reference data
 if rt.regenerate: threads = 1
 else: threads = 8
 

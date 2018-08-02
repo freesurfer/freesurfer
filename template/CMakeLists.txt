@@ -1,6 +1,6 @@
 project(template)
 
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${FS_INCLUDE_DIRS})
 
 add_executable(template template.c)
 target_link_libraries(template utils)
