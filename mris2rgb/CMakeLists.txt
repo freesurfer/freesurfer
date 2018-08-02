@@ -11,7 +11,7 @@ if(OPENGL_FOUND)
   )
 
   add_executable(mris2rgb mris2rgb.c)
-  target_link_libraries(mris2rgb utils ${GLUT_LIBRARIES} ${X11_LIBRARIES} ${OPENGL_LIBRARIES})
+  target_link_libraries(mris2rgb utils ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES} ${X11_LIBRARIES})
   install(TARGETS mris2rgb DESTINATION bin)
 
 endif()
