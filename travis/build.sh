@@ -1,18 +1,14 @@
 #!/usr/bin/env bash
+set -ex
 
 #
-# script to run the travis build step
-# this lets us handle build failures better
+# the gcc5 mac build output is riddled with innocuous 
 #
 
-function runstep {
-  $@ >> build.log 2>&1 || { tail -n 50 build.log; echo "travis build failed during $@"; exit 1; }
-}
+cmake . -DFS_PACKAGES_DIR="packages" -DBUILD_GUIS=OFF
 
-runstep "./setup_configure"
-
-config_flags="--with-pkgs-dir=${PWD}/build-packages --disable-Werror --disable-GUI-build"
-[[ "$TRAVIS_OS_NAME" == "osx" ]] && config_flags="${config_flags} F77=/usr/local/bin/gfortran-4.9 CC=/usr/local/bin/gcc-4.9 CXX=/usr/local/bin/g++-4.9"
-
-runstep ./configure ${config_flags}
-runstep make -j4
+if [[ "$TRAVIS_OS_NAME" == "osx" ]] ; then
+  make 2>&1 | grep -v -e '^/var/folders/*' -e '^[[:space:]]*\.section' -e '^[[:space:]]*\^[[:space:]]*~*'
+else
+  make 
+fi
