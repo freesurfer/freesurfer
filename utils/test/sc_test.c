@@ -25,6 +25,7 @@
 #include <math.h>
 
 #define HAVE_VPRINTF 1
+#define STDC_HEADERS 1
 
 #include "numerics.h"
 

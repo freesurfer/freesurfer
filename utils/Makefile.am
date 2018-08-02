@@ -459,15 +459,6 @@ install-exec-hook:
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/fs*
 
-if USE_SSE_MATHFUN
-check_PROGRAMS = sse_mathfun_test
-sse_mathfun_test_SOURCES = sse_mathfun_test.c
-sse_mathfun_test_LDADD = -lm
-
-TESTS = sse_mathfun_test
-endif
-
-
 EXTRA_DIST=$(srcdir)/$(NrrdIO_dir)/copyright.NrrdIO $(CUDA_DEPS)
 
 # Our release target. Include files to be excluded here. They will be
