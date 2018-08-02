@@ -63,7 +63,7 @@ if(NOT FS_PACKAGES_DIR)
                         "Or they can be downloaded from here:\n"
                         "    ${FS_PACKAGES_URL}\n"
                         "After the dependencies have been setup, cmake should be configured with:\n"
-                        "    -DFS_PACKAGES_DIR=\"/desired/packages/install/dir\"")
+                        "    -DFS_PACKAGES_DIR=\"/path/to/fs-packages\"")
   endif()
 endif()
 
@@ -214,8 +214,8 @@ set(C_CXX_FLAGS "${C_CXX_FLAGS} -msse2 -mfpmath=sse")
 # -g compiles debugging info for use by debuggers like gdb. Normally we want
 # that in the build, but here we add the FS_DEBUG option, which greatly
 # reduces the size of compiled binaries when turned OFF
-option(FS_DEBUG "Compile with the -g flag" ON)
-if(FS_DEBUG)
+option(DEBUG "Compile with the -g flag" ON)
+if(DEBUG)
   set(C_CXX_FLAGS "${C_CXX_FLAGS} -g")
 endif()
 
@@ -226,7 +226,10 @@ endif()
 
 # optimization
 # todo: implement processor-based logic to determine this
-set(C_CXX_FLAGS "${C_CXX_FLAGS} -O3 -m64")
+option(OPTIMIZATION "Compile with optimization falgs" ON)
+if(OPTIMIZATION)
+  set(C_CXX_FLAGS "${C_CXX_FLAGS} -O3 -m64")
+else()
 
 # for stripping unused code
 if(APPLE)
