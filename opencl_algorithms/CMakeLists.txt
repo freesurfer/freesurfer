@@ -3,7 +3,7 @@ project(opencl_algorithms)
 set(SOURCES oclDijkstraKernel.cpp)
 
 if(OpenCL_FOUND)
-  set(SOURCES "${SOURCES} oclCommon.cpp")
+  set(SOURCES ${SOURCES} oclCommon.cpp)
 endif()
 
 add_library(opencl_algorithms STATIC ${SOURCES})
