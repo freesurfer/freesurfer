@@ -117,7 +117,7 @@ find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 add_definitions(-DHAVE_ITK_LIBS)
 
 # -------- boost --------
-set(Boost_DIR ${FS_PACKAGES_DIR}/boost/1.53)
+set(BOOST_ROOT ${FS_PACKAGES_DIR}/boost/1.53)
 find_package(Boost COMPONENTS program_options)
 
 # -------- ann --------
