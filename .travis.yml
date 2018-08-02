@@ -15,14 +15,8 @@ matrix:
 addons:
   apt:
     packages:
-      - build-essential
       - gfortran
-      - libglu1-mesa-dev
-      - libxmu-dev
-      - libxmu-headers
       - libxi-dev
-      - libx11-dev
-      - libxt-dev
       - liblapack-dev
       - tcsh
       - curl
@@ -36,7 +30,8 @@ install:
       export CC=/usr/local/bin/gcc-5 ;
       export CXX=/usr/local/bin/g++-5 ;
       export FC=/usr/local/bin/gfortran-5 ;
+      sudo xcode-select -s /Library/Developer/CommandLineTools ;
     fi
 
 script:
-  - cmake . -DFS_PACKAGES_DIR="packages" && make
+  - cmake . -DFS_PACKAGES_DIR="packages" -DGUI_BUILDS=OFF && make
