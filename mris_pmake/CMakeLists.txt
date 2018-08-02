@@ -10,7 +10,6 @@ if(OpenCL_FOUND)
   include_directories(${OpenCL_INCLUDE_DIR})
 endif()
 
-
 set(SOURCES
   abs2rel.c
   asynch.cpp
@@ -35,4 +34,7 @@ set(SOURCES
 add_executable(mris_pmake ${SOURCES})
 add_help(mris_pmake mris_pmake.help.xml)
 target_link_libraries(mris_pmake utils opencl_algorithms)
+
+add_test_script(NAME mris_pmake_test SCRIPT test_mris_pmake DEPENDS mris_pmake)
+
 install(TARGETS mris_pmake DESTINATION bin)

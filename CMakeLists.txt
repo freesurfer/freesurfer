@@ -10,12 +10,14 @@ cmake_minimum_required(VERSION 3.5)
 enable_language(C CXX Fortran)
 
 # a few build options
-enable_testing()
 option(BUILD_GUIS "Build GUIs" ON)
-option(SMALL_INSTALL "Install a minimal FS distribution" OFF)
+option(NMR_INSTALL "Install NMR files" OFF)
 if(APPLE)
-  option(BUILD_OSX_TK_GUIS "Build OSX Tk GUIs" OFF)
+  option(BUILD_OSX_TK_GUIS "Compile OSX Tk GUIs" OFF)
 endif()
+
+# enable ctest
+enable_testing()
 
 # include our custom cmake functions (and others)
 include(cmake/functions.cmake)
@@ -24,6 +26,12 @@ include(CheckFunctionExists)
 
 # prevents itk from importing as a system
 set(CMAKE_NO_SYSTEM_FROM_IMPORTED TRUE)
+
+# xxd is used to generate the helptext headers - make sure it exists
+find_program(XXD xxd)
+if(NOT XXD)
+  message(FATAL_ERROR "The xxd program is required to build freesurfer")
+endif()
 
 
 # --------------------------------------------------
@@ -43,11 +51,18 @@ if(NOT FS_PACKAGES_DIR)
     # if the user is at Martinos, default to /usr/pubsw/packages
     set(FS_PACKAGES_DIR /usr/pubsw/packages)
   else()
+    if(APPLE)
+      set(FS_PACKAGES_URL "http://surfer.nmr.mgh.harvard.edu/pub/data/fspackages/prebuilt/osx10.11-packages.tar.gz")
+    else()
+      set(FS_PACKAGES_URL "http://surfer.nmr.mgh.harvard.edu/pub/data/fspackages/prebuilt/centos7-packages.tar.gz")
+    endif()
     # setting FS_PACKAGES_DIR is required if the user is outside Martinos
     message(FATAL_ERROR "External FreeSurfer developers must provide a valid FS_PACKAGES_DIR path! "
                         "Required FS dependencies can be built locally by running:\n"
                         "    packages/build_packages.sh \"/desired/packages/install/dir\"\n"
-                         "After packages have been built, cmake should be configured with:\n"
+                        "Or they can be downloaded from here:\n"
+                        "    ${FS_PACKAGES_URL}\n"
+                        "After the dependencies have been setup, cmake should be configured with:\n"
                         "    -DFS_PACKAGES_DIR=\"/desired/packages/install/dir\"")
   endif()
 endif()
@@ -102,7 +117,7 @@ find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 add_definitions(-DHAVE_ITK_LIBS)
 
 # -------- boost --------
-set(Boost_DIR ${FS_PACKAGES_DIR}/boost/current)
+set(Boost_DIR ${FS_PACKAGES_DIR}/boost/1.53)
 find_package(Boost COMPONENTS program_options)
 
 # -------- ann --------
@@ -119,6 +134,7 @@ if(OPENMP_FOUND)
   add_definitions(-DHAVE_OPENMP)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${OpenMP_Fortran_FLAGS}")
 endif()
 
 # -------- openGL --------
@@ -134,13 +150,16 @@ endif()
 # -------- openCV --------
 find_package(OpenCV)
 
+# -------- openCL --------
+find_package(OpenCL)
+
 # search for GUI libraries
 if(BUILD_GUIS)
 
   # -------- qt --------
-  set(MARTINOS_Qt5 /usr/pubsw/packages/qt/5.6.2/5.6/gcc_64/lib/cmake/Qt5)
-  if(NOT Qt5_DIR AND EXISTS ${MARTINOS_Qt5})
-    set(Qt5_DIR ${MARTINOS_Qt5})
+  set(PACKAGES_QT ${FS_PACKAGES_DIR}/qt/5.6.2/5.6/gcc_64/lib/cmake/Qt5)
+  if(NOT Qt5_DIR AND EXISTS ${PACKAGES_QT})
+    set(Qt5_DIR ${PACKAGES_QT})
   endif()
   # set components to search for
   set(QT_COMPONENTS Core Widgets)
@@ -181,12 +200,10 @@ add_definitions(-D${CMAKE_SYSTEM_NAME})
 # general check for big endian
 test_big_endian(IS_BIG_ENDIAN)
 
-# todo: config.h
-
 # compiler warnings
 set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs")
 
-# not entirely sure what this ANSI is used for
+# ANSI
 add_definitions(-DANSI)
 
 # todo: write some logic to set this correctly
@@ -209,7 +226,7 @@ endif()
 
 # optimization
 # todo: implement processor-based logic to determine this
-  set(C_CXX_FLAGS "${C_CXX_FLAGS} -O3 -m64")
+set(C_CXX_FLAGS "${C_CXX_FLAGS} -O3 -m64")
 
 # for stripping unused code
 if(APPLE)

@@ -63,10 +63,12 @@ static float anterior_dist = -1 ;
 static float posterior_dist = -1 ;
 
 static float binarize = 0.0 ;
+static int percent = 0;
 
 static int ndilations = 0 ;
 MRI *MRIthresholdPosterior(MRI *mri_src, MRI *mri_dst, float posterior_dist) ;
 MRI *MRIthresholdAnterior(MRI *mri_src, MRI *mri_dst, float anterior_dist) ;
+MRI *MRIscaleDistanceTransformToPercentMax(MRI *mri_in, MRI *mri_out);
 
 int main(int argc, char *argv[]) {
   MRI         *mri,*mri_distance;
@@ -214,6 +216,8 @@ int main(int argc, char *argv[]) {
 
   if (normalize > 0)
     MRIscalarMul(mri_distance, mri_distance, 1.0/normalize) ;
+  if (percent)
+    MRIscaleDistanceTransformToPercentMax(mri_distance,mri_distance) ;
   if (mri_area)
     {
       float csf_vox ;
@@ -381,6 +385,11 @@ get_option(int argc, char *argv[]) {
       binarize = atof(argv[2]) ;
       nargs = 1;
       printf("binarizing input data with thresh = %2.1f\n", binarize) ;
+    }
+  else if (!stricmp(option, "p"))
+    {
+      percent=1;
+      printf("scaling distances to be percent of max\n");
     }
   return(nargs) ;
 }
@@ -662,5 +671,30 @@ remove_csf_from_paths(MRI *mri_distance, MRI *mri_area, MRI *mri_csf)
   else
     mean_csf_len = 0.0 ;
   return(mean_csf_len) ;
+}
+
+MRI *
+MRIscaleDistanceTransformToPercentMax(MRI *mri_in, MRI *mri_out)
+{
+  float min_val, max_val, val ;
+  int   x, y, z ;
+
+  MRIvalRange(mri_in, &min_val, &max_val) ;
+  printf("scaling distance transforms by [%2.1f, %2.1f]\n", min_val, max_val);
+  mri_out = MRIcopy(mri_in, mri_out) ;
+
+  for (x = 0 ; x < mri_out->width ; x++)
+    for (y = 0 ; y < mri_out->height ; y++)
+      for (z = 0 ; z < mri_out->depth ; z++)
+      {
+	val = MRIgetVoxVal(mri_out, x, y, z, 0) ;
+	if (val > 0)
+	  val /= max_val ;
+	else if (min_val < 0)
+	  val /= -min_val ;
+	MRIsetVoxVal(mri_out, x, y,z, 0, val) ;
+      }
+
+  return(mri_out) ;
 }
 

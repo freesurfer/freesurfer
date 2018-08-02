@@ -1771,6 +1771,8 @@ int mhtfindClosestVertexGenericInBucket(MRIS_HASH_TABLE *mht,
     AVtxNum = bin->fno;
 
     AVtx = &mris->vertices[AVtxNum];
+    if (AVtx->ripflag)
+      continue ;
 
     if (AVtxNum == Gdiag_no) DiagBreak();
 

@@ -2,7 +2,12 @@ project(talairach_avi)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-SET(CMAKE_Fortran_FLAGS "-ffixed-line-length-132 -fno-second-underscore")
+if("${CMAKE_Fortran_COMPILER_ID}" MATCHES "Intel")
+  set(ICC_LIBRARIES irc svml imf)
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ax=CORE-AVX512 -qopenmp -132 -nofor_main")
+else()
+  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffixed-line-length-132 -fno-second-underscore")
+endif()
 
 install(
   PROGRAMS
@@ -15,26 +20,28 @@ install(
   DESTINATION bin
 )
 
+add_test_script(NAME talairach_avi_test SCRIPT test_talairach_avi)
+
 set(TRX_SOURCES rec.c Getifh.c endianio.c)
 
 add_executable(analyzeto4dfp analyzeto4dfp.c cflip.c ${TRX_SOURCES})
-target_link_libraries(analyzeto4dfp ${ICC_LIBRARIES} ${G2C_LIBRARY})
+target_link_libraries(analyzeto4dfp ${ICC_LIBRARIES} )
 install(TARGETS analyzeto4dfp DESTINATION bin)
 
 add_executable(4dfptoanalyze 4dfptoanalyze.c cflip.c Inithdr.c ${TRX_SOURCES})
-target_link_libraries(4dfptoanalyze ${ICC_LIBRARIES} ${G2C_LIBRARY})
+target_link_libraries(4dfptoanalyze ${ICC_LIBRARIES} )
 install(TARGETS 4dfptoanalyze DESTINATION bin)
 
 add_executable(flip_4dfp flip_4dfp.c cflip.c ${TRX_SOURCES})
-target_link_libraries(flip_4dfp ${ICC_LIBRARIES} ${G2C_LIBRARY})
+target_link_libraries(flip_4dfp ${ICC_LIBRARIES})
 install(TARGETS flip_4dfp DESTINATION bin)
 
 add_executable(zero_lt_4dfp zero_lt_4dfp.c ${TRX_SOURCES})
-target_link_libraries(zero_lt_4dfp ${ICC_LIBRARIES} ${G2C_LIBRARY})
+target_link_libraries(zero_lt_4dfp ${ICC_LIBRARIES})
 install(TARGETS zero_lt_4dfp DESTINATION bin)
 
 add_executable(ifh2hdr ifh2hdr.c Inithdr.c ${TRX_SOURCES})
-target_link_libraries(ifh2hdr ${ICC_LIBRARIES} ${G2C_LIBRARY})
+target_link_libraries(ifh2hdr ${ICC_LIBRARIES})
 install(TARGETS ifh2hdr DESTINATION bin)
 
 set(RMS_SOURCES
@@ -47,32 +54,33 @@ set(RMS_SOURCES
   param6opr.f
 )
 
+add_definitions(-DHAVE_GFORTRAN)
+# this prevents linking to gfortran dynmically
+if(NOT APPLE)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/lib64")
+endif()
+
 add_executable(gauss_4dfp gauss_4dfp.c cgauss3dd.c conc.c ${TRX_SOURCES} ${RMS_SOURCES})
-target_link_libraries(gauss_4dfp ${ICC_LIBRARIES} ${G2C_LIBRARY})
+target_link_libraries(gauss_4dfp ${ICC_LIBRARIES})
 install(TARGETS gauss_4dfp DESTINATION bin)
 
 set(LIN_SOURCES t4_sub.f t4scale.c)
 set(IMG_SOURCES fimgreg.f imgvalm.f imgvalx.f ffind.f)
 
-add_definitions(-DHAVE_GFORTRAN)
-
 add_executable(imgreg_4dfp imgreg_4dfp.c ${TRX_SOURCES} ${RMS_SOURCES}
                ${LIN_SOURCES} ${IMG_SOURCES} cflip.c)
-target_link_libraries(imgreg_4dfp ${ICC_LIBRARIES} ${G2C_LIBRARY})
-set_property(TARGET imgreg_4dfp PROPERTY LINKER_LANGUAGE Fortran)
+target_link_libraries(imgreg_4dfp ${ICC_LIBRARIES})
 install(TARGETS imgreg_4dfp DESTINATION bin)
 
 add_executable(t4imgs_4dfp t4imgs_4dfp.c ${TRX_SOURCES} ${RMS_SOURCES}
                ${LIN_SOURCES} ${IMG_SOURCES} cflip.c spline3dvgh.f
                ft4imgo.f to_711-2B.f ft4imgn.f set_rnan.f ft4ixyz.f)
-target_link_libraries(t4imgs_4dfp ${ICC_LIBRARIES} ${G2C_LIBRARY})
-set_property(TARGET t4imgs_4dfp PROPERTY LINKER_LANGUAGE Fortran)
+target_link_libraries(t4imgs_4dfp ${ICC_LIBRARIES})
 install(TARGETS t4imgs_4dfp DESTINATION bin)
 
 add_executable(compute_vox2vox compute_vox2vox.c ${TRX_SOURCES} ${RMS_SOURCES}
                ${LIN_SOURCES} ${IMG_SOURCES} cflip.c set_rnan.f ft4imgo.f)
-target_link_libraries(compute_vox2vox ${ICC_LIBRARIES} ${G2C_LIBRARY})
-set_property(TARGET compute_vox2vox PROPERTY LINKER_LANGUAGE Fortran)
+target_link_libraries(compute_vox2vox ${ICC_LIBRARIES})
 install(TARGETS compute_vox2vox DESTINATION bin)
 
 install(FILES talairach_avi.help.xml DESTINATION docs/xml)
@@ -136,3 +144,5 @@ install_symlinks(
   TYPE files
   DESTINATION average
 )
+
+add_test_script(NAME libg2c_linker SCRIPT test_libg2c DEPENDS gauss_4dfp)

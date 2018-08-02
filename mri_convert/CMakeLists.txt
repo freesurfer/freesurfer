@@ -8,7 +8,7 @@ target_link_libraries(mri_convert utils fsgdf)
 
 install(TARGETS mri_convert DESTINATION bin)
 
-add_test_script(NAME mri_convert_test SCRIPT test_mri_convert DEPENDS mri_convert)
+add_test_script(NAME mri_convert_test SCRIPT test.py DEPENDS mri_convert)
 
 add_executable(mri_make_uchar mri_make_uchar.c)
 target_link_libraries(mri_make_uchar utils)

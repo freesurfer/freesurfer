@@ -58,6 +58,8 @@ function(add_help BINARY HELPTEXT)
   include_directories(${CMAKE_CURRENT_BINARY_DIR})
   target_sources(${BINARY} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/${HELPTEXT}.h)
   install(FILES ${HELPTEXT} DESTINATION docs/xml)
+  # make sure to validate the xml as wel
+  add_test(${BINARY}_help_test bash -c "xmllint --noout --postvalid ${CMAKE_CURRENT_SOURCE_DIR}/${HELPTEXT}")
 endfunction(add_help)
 
 
@@ -80,6 +82,8 @@ function(install_append_help SCRIPT HELPTEXT DESTINATION)
     endif()"
   )
   install(FILES ${HELPTEXT} DESTINATION docs/xml)
+  # make sure to validate the xml as well
+  add_test(${SCRIPT}_help_test bash -c "xmllint --noout --postvalid ${CMAKE_CURRENT_SOURCE_DIR}/${HELPTEXT}")
 endfunction()
 
 # install_osx_app(<app>)
@@ -121,6 +125,18 @@ function(add_test_script)
     set(TEST_CMD "${TEST_CMD} ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${TARGET} &&")
   endforeach()
   add_test(${TEST_NAME} bash -c "${TEST_CMD} ${CMAKE_CURRENT_SOURCE_DIR}/${TEST_SCRIPT}")
+endfunction()
+
+
+# add_test_executable(<target> <sources>)
+# Adds an executable to the test framework that only gets built by the test target.
+# This function takes the same input as add_executable()
+function(add_test_executable)
+  set(TARGET ${ARGV0})
+  LIST(REMOVE_AT ARGV 0)
+  add_executable(${TARGET} EXCLUDE_FROM_ALL ${ARGV})
+  set(TEST_CMD "${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target ${TARGET} &&")
+  add_test(${TARGET} bash -c "${TEST_CMD} ${CMAKE_CURRENT_BINARY_DIR}/${TARGET}")
 endfunction()
 
 

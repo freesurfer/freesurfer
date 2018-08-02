@@ -2,7 +2,7 @@ project(log)
 
 include_directories(${FS_INCLUDE_DIRS})
 
-SET(SOURCES
+set(SOURCES
   congraph.c
   connect.c
   h_logz.c

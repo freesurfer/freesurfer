@@ -6,7 +6,7 @@ include_directories(
   ${X11_INCLUDE_DIR}
 )
 
-SET(SOURCES
+set(SOURCES
   cuserid.c
   ftime.c
   glStub.c

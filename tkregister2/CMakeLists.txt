@@ -1,7 +1,12 @@
 project(tkregister2)
 
-# todo: move all tkregister2_cmdl stuff up to this directory
-add_subdirectory(cmdl)
+include_directories(${FS_INCLUDE_DIRS})
+
+# first build without Tcl/Tk and OpenGL (command-line processing only)
+add_executable(tkregister2_cmdl tkregister2.c)
+target_compile_definitions(tkregister2_cmdl PRIVATE -DNO_GUI)
+target_link_libraries(tkregister2_cmdl utils)
+install(TARGETS tkregister2_cmdl DESTINATION tktools)
 
 if(BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
 
@@ -12,7 +17,6 @@ if(BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
   else()
 
     include_directories(
-      ${FS_INCLUDE_DIRS}
       ${CMAKE_SOURCE_DIR}/unix
       ${TCLTKTIXBLT_INCLUDE_DIR}
       ${GLUT_INCLUDE_DIR}/GL
@@ -34,6 +38,5 @@ if(BUILD_GUIS AND OPENGL_FOUND AND TCLTKTIXBLT_FOUND)
 
   install(PROGRAMS tkregister2_wrapper DESTINATION bin RENAME tkregister2)
   install(PROGRAMS tkregister2_wrapper DESTINATION tktools RENAME tkregister2)
-  install(PROGRAMS tkregister2_wrapper DESTINATION tktools RENAME tkregister)
 
 endif()

@@ -5,12 +5,15 @@ install_symlinks(
   RB_all_withskull_2016-05-10.vc700.gca
   talairach_mixed_with_skull.gca
   wmsa_new_eesmith.gca
-  aseg+spmhead.ixi.gca
   aseg+spmhead+vermis+pons.ixi.gca
   pons.mni152.2mm.mgz
   TYPE files
   DESTINATION average
 )
+
+if(NMR_INSTALL)
+  install_symlinks(aseg+spmhead.ixi.gca TYPE files DESTINATION average)
+endif()
 
 # GCS
 install_symlinks(
@@ -72,6 +75,10 @@ install_symlinks(
   DESTINATION average
 )
 
+if(NMR_INSTALL)
+  install_symlinks(HPMarch022005_ras.mgz TYPE files DESTINATION average)
+endif()
+
 # DAT
 install_symlinks(
   label_scales.dat
@@ -85,6 +92,10 @@ install_symlinks(
   TYPE files
   DESTINATION average
 )
+
+if(NMR_INSTALL)
+  install_symlinks(mni152.1mm.register.dat TYPE files DESTINATION average)
+endif()
 
 # unpack subjects
 install_tarball(fsaverage.tar.gz DESTINATION subjects)
