@@ -154,6 +154,10 @@ if(-e $IsRunningFile) then
   exit 1;
 endif
 
+# If not explicitly specfied, set to 1
+if($?ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS == 0) then
+  setenv ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS 1
+endif
 
 # If everything is in place, let's do it! First, we create the IsRunning file
 echo "------------------------------" > $IsRunningFile
@@ -191,12 +195,19 @@ echo "HOST `hostname`" >> $HSFLOG
 echo "PROCESSID $$ "   >> $HSFLOG
 echo "PROCESSOR `uname -m`" >> $HSFLOG
 echo "OS `uname -s`"       >> $HSFLOG
+echo "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS $ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS " >> $HSFLOG
 uname -a         >> $HSFLOG
 if($?PBS_JOBID) then
   echo "pbsjob $PBS_JOBID"  >> $HSFLOG
 endif
 echo "------------------------------" >> $HSFLOG
 echo " " >> $HSFLOG
+cat $FREESURFER_HOME/build-stamp.txt  >> $HSFLOG
+echo " " >> $HSFLOG
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"  >> $HSFLOG
+echo "cd `pwd`"   >> $HSFLOG
+echo $0 $argv  >> $HSFLOG
+echo ""  >> $HSFLOG
 
 foreach hemi ($hippohemilist)
   echo "#--------------------------------------------" \
@@ -228,6 +239,23 @@ foreach hemi ($hippohemilist)
     rm -f $IsRunningFile
     exit 1;
   endif
+end
+
+# Convert the txt files into a stats file so that asegstats2table can
+# be run Note: the number of voxels is set to 0 and there is no info
+# about intensity. The only useful info is the volume in mm and the
+# structure name. The segmentation IDs also do not mean anything. 
+# Could run mri_segstats instead, but the volumes would not include
+# partial volume correction.
+foreach hemi (lh rh)
+  set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/$hemi.hippoSfVolumes-T1.v21.txt
+  set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/hipposubfields.$hemi.stats
+  echo "# Hippocampal subfield volumes as created by segmentHA_T1.sh" > $stats
+  cat $txt | awk '{print NR" "NR"  0 "$2" "$1}' >> $stats
+  set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/$hemi.amygNucVolumes-T1.v21.txt
+  set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/amygdalar-nuclei.$hemi.stats
+  echo "# Amygdala nuclei volumes as created by segmentHA_T1.sh" > $stats
+  cat $txt | awk '{print NR" "NR"  0 "$2" "$1}' >> $stats
 end
  
 # All done!
