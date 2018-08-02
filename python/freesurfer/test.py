@@ -41,11 +41,12 @@ class RegressionTest:
     self.scriptdir = op.dirname(op.realpath(sys.argv[0]))
     self.testdatatar = op.join(self.scriptdir, 'testdata.tar.gz')
     # set up FREESURFER_HOME and default SUBJECTS_DIR
-    fs_home = self.findPath(self.scriptdir, 'distribution')
-    os.environ['FREESURFER_HOME'] = fs_home
+    self.fs_home = self.findPath(self.scriptdir, 'distribution')
+    os.environ['FREESURFER_HOME'] = self.fs_home
     os.environ['SUBJECTS_DIR'] = self.testdatadir
     # set up martinos license if needed
-    have_license = os.environ.get('FS_LICENSE') or op.exists(op.join(fs_home, '.license')) or op.exists(op.join(fs_home, 'license.txt'))
+    have_license = os.environ.get('FS_LICENSE') or op.exists(op.join(self.fs_home, '.license')) or \
+                   op.exists(op.join(self.fs_home, 'license.txt'))
     if not have_license and op.exists('/space/freesurfer/.license'):
       os.environ["FS_LICENSE"] = '/space/freesurfer/.license'
     # if regenerating...
