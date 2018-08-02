@@ -1,7 +1,6 @@
 sudo: required
 
 language: cpp
-
 compiler: gcc
 
 cache:
@@ -10,46 +9,34 @@ cache:
 
 matrix:
   include:
-  - os: osx
-  - os: linux
+    - os: osx
+    - os: linux
 
 addons:
   apt:
     packages:
-     - build-essential
-     - libtool
-     - automake
-     - gfortran
-     - libglu1-mesa-dev
-     - libfreetype6-dev
-     - uuid-dev
-     - libxmu-dev
-     - libxmu-headers
-     - libxi-dev
-     - libx11-dev
-     - libxt-dev
-     - libxaw7-dev
-     - liblapack-dev
-     - tcsh
-     - curl
-     - git
-     - libxml2-utils
-
-before_install:
-  # on osx use brew to install autotools and compiler
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      brew update ;
-      brew install libtool ;
-      brew install automake ;
-      brew cask uninstall oclint ;
-      brew install gcc49 ;
-      brew postinstall gcc49 ;
-    fi
+      - build-essential
+      - gfortran
+      - libglu1-mesa-dev
+      - libxmu-dev
+      - libxmu-headers
+      - libxi-dev
+      - libx11-dev
+      - libxt-dev
+      - liblapack-dev
+      - tcsh
+      - curl
+      - git
 
 install:
-  # install pre-built packages needed to compile freesurfer
-  - ./travis/packages.sh
+  - travis/packages.sh
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] ; then
+      brew cask uninstall oclint ;
+      brew install gcc5 ;
+      export CC=/usr/local/bin/gcc-5 ;
+      export CXX=/usr/local/bin/g++-5 ;
+      export FC=/usr/local/bin/gfortran-5 ;
+    fi
 
 script:
-  # configure and compile freesurfer
-  - travis_wait 30 ./travis/build.sh
+  - cmake . -DFS_PACKAGES_DIR="packages" && make
