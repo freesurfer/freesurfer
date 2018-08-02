@@ -9,7 +9,7 @@ include_directories(
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated -Wmaybe-uninitialized")
-
+include( ${ITK_USE_FILE} ) 
 add_executable(AnatomiCuts
 	../freeview/track_io/TrackIO.cpp
 	AnatomiCuts.cxx
