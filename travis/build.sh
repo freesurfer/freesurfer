@@ -9,6 +9,11 @@ set -o pipefail
 # so the travis log doesn't get filled up
 #
 
+nm -D /usr/lib/x86_64-linux-gnu/libGLU.so | grep gluErrorString
+nm -D /usr/lib/x86_64-linux-gnu/libGLU.so | grep gluBuild2DMipmaps
+nm -D /usr/lib/x86_64-linux-gnu/libGL.so  | grep gluErrorString
+nm -D /usr/lib/x86_64-linux-gnu/libGL.so  | grep gluBuild2DMipmaps
+
 cmake . -DFS_PACKAGES_DIR="packages" -DBUILD_GUIS=OFF
 
 if [[ "$TRAVIS_OS_NAME" == "osx" ]] ; then
