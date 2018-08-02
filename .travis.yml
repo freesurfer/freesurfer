@@ -33,4 +33,4 @@ install:
     fi
 
 script:
-  - cmake . -DFS_PACKAGES_DIR="packages" -DBUILD_GUIS=OFF -DOPTIMIZATION=OFF -DDEBUG=OFF && make
+  - cmake . -DFS_PACKAGES_DIR="packages" -DBUILD_GUIS=OFF && make

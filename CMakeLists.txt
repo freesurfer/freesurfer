@@ -77,7 +77,8 @@ add_definitions(-DHAVE_ZLIB)
 if(NOT APPLE)
 
   # -------- gfortran --------
-  find_library(GFORTRAN_LIBRARIES NAMES libgfortran.a)
+  # prefer the static library
+  find_library(GFORTRAN_LIBRARIES NAMES libgfortran.a gfortran)
 
   # -------- blas and lapack --------
   find_library(BLAS_LIBRARIES NAMES libblas.a)
@@ -226,10 +227,7 @@ endif()
 
 # optimization
 # todo: implement processor-based logic to determine this
-option(OPTIMIZATION "Compile with optimization falgs" ON)
-if(OPTIMIZATION)
-  set(C_CXX_FLAGS "${C_CXX_FLAGS} -O3 -m64")
-endif()
+set(C_CXX_FLAGS "${C_CXX_FLAGS} -O3 -m64")
 
 # for stripping unused code
 if(APPLE)
