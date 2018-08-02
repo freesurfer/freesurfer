@@ -15,6 +15,7 @@ matrix:
 addons:
   apt:
     packages:
+      - build-essential
       - gfortran
       - libxi-dev
       - libglu1-mesa-dev
