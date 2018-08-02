@@ -229,7 +229,7 @@ endif()
 option(OPTIMIZATION "Compile with optimization falgs" ON)
 if(OPTIMIZATION)
   set(C_CXX_FLAGS "${C_CXX_FLAGS} -O3 -m64")
-else()
+endif()
 
 # for stripping unused code
 if(APPLE)
