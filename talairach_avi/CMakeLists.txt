@@ -15,6 +15,8 @@ install(
   DESTINATION bin
 )
 
+add_test_script(NAME talairach_avi_test SCRIPT talairach_avi)
+
 set(TRX_SOURCES rec.c Getifh.c endianio.c)
 
 add_executable(analyzeto4dfp analyzeto4dfp.c cflip.c ${TRX_SOURCES})
@@ -136,3 +138,5 @@ install_symlinks(
   TYPE files
   DESTINATION average
 )
+
+add_test_script(NAME libg2c_linker SCRIPT test_libg2c DEPENDS gauss_4dfp)
