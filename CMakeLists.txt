@@ -77,8 +77,7 @@ add_definitions(-DHAVE_ZLIB)
 if(NOT APPLE)
 
   # -------- gfortran --------
-  # prefer the static library
-  find_library(GFORTRAN_LIBRARIES NAMES libgfortran.a gfortran)
+  find_library(GFORTRAN_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/4.8 NAMES libgfortran.a)
 
   # -------- blas and lapack --------
   find_library(BLAS_LIBRARIES NAMES libblas.a)
