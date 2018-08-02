@@ -1,12 +1,7 @@
 #!/usr/bin/env python
-
 import sys, os, os.path as op, platform, re
 sys.path.append(op.join(op.dirname(sys.argv[0]), '../python'))
 import freesurfer.test as fst
-
-if 'SKIP_MRI_CA_LABEL_TEST' in os.environ:
-   print "skipping test_mri_ca_label"
-   sys.exit(77)
 
 # set these to False for automated runs
 # diff_only = True

@@ -341,3 +341,5 @@ target_link_libraries(fsPrintHelp utils ${XML2_LIBRARIES} ${ZLIB_LIBRARIES})
 install(TARGETS fsPrintHelp DESTINATION bin)
 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/fsPrintHelp DESTINATION bin RENAME fsman)
 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/fsPrintHelp DESTINATION bin RENAME fshelp)
+
+add_subdirectory(test)

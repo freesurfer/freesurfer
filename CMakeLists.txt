@@ -12,9 +12,10 @@ enable_language(C CXX Fortran)
 # a few build options
 enable_testing()
 option(BUILD_GUIS "Build GUIs" ON)
+option(NMR_INSTALL "Install NMR files" OFF)
 option(SMALL_INSTALL "Install a minimal FS distribution" OFF)
 if(APPLE)
-  option(BUILD_OSX_TK_GUIS "Build OSX Tk GUIs" OFF)
+  option(BUILD_OSX_TK_GUIS "Compile OSX Tk GUIs" OFF)
 endif()
 
 # include our custom cmake functions (and others)
@@ -186,7 +187,7 @@ test_big_endian(IS_BIG_ENDIAN)
 # compiler warnings
 set(C_CXX_FLAGS "${C_CXX_FLAGS} -Wall -Wno-unused-but-set-variable -Wno-unused-result -Wno-unused-local-typedefs")
 
-# not entirely sure what this ANSI is used for
+# ANSI
 add_definitions(-DANSI)
 
 # todo: write some logic to set this correctly
@@ -209,7 +210,7 @@ endif()
 
 # optimization
 # todo: implement processor-based logic to determine this
-  set(C_CXX_FLAGS "${C_CXX_FLAGS} -O3 -m64")
+set(C_CXX_FLAGS "${C_CXX_FLAGS} -O3 -m64")
 
 # for stripping unused code
 if(APPLE)

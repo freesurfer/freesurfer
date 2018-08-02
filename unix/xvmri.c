@@ -948,13 +948,13 @@ repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
 
   if (mri_surface && !dont_redraw)
   {
-    VERTEX  *v, *vn ;
     int     vno, n ;
     double  xv, yv, zv, slice, xv2, yv2, zv2, dx, dy ;
 
     for (vno = 0 ; vno < mri_surface->nvertices ; vno++)
     {
-      v = &mri_surface->vertices[vno] ;
+      VERTEX_TOPOLOGY const * const vt = &mri_surface->vertices_topology[vno] ;
+      VERTEX          const * const v  = &mri_surface->vertices         [vno] ;
       if (v->ripflag)
         continue ;
       MRIworldToVoxel(mri, v->x, v->y, v->z, &xv, &yv, &zv) ;
@@ -971,9 +971,9 @@ repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
         slice = mri_depths[which] - mri->imnr0 ;
         if ((zv > slice-1) && (zv < slice+1))
         {
-          for (n = 0 ; n < v->vnum ; n++)
+          for (n = 0 ; n < vt->vnum ; n++)
           {
-            vn = &mri_surface->vertices[v->v[n]] ;
+            VERTEX const * const vn = &mri_surface->vertices[vt->v[n]] ;
             MRIworldToVoxel(mri,vn->x, vn->y, vn->z, &xv2, &yv2, &zv2) ;
             if ((zv2 > slice-.5) && (zv2 < slice+.5))
             {
@@ -993,9 +993,9 @@ repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
         slice = mri_slices[which] ;
         if ((xv > slice-.5) && (xv < slice+.5))
         {
-          for (n = 0 ; n < v->vnum ; n++)
+          for (n = 0 ; n < vt->vnum ; n++)
           {
-            vn = &mri_surface->vertices[v->v[n]] ;
+            VERTEX const * const vn = &mri_surface->vertices[vt->v[n]] ;
             MRIworldToVoxel(mri, vn->x, vn->y, vn->z, &xv2, &yv2, &zv2);
             if ((xv2 > slice-.5) && (xv2 < slice+.5))
             {
@@ -1015,9 +1015,9 @@ repaint_handler(XV_FRAME *xvf, DIMAGE *dimage)
         slice = mri_depths[which] ;
         if ((yv > slice-.5) && (yv < slice+.5))
         {
-          for (n = 0 ; n < v->vnum ; n++)
+          for (n = 0 ; n < vt->vnum ; n++)
           {
-            vn = &mri_surface->vertices[v->v[n]] ;
+            VERTEX const * const vn = &mri_surface->vertices[vt->v[n]] ;
             MRIworldToVoxel(mri, vn->x, vn->y, vn->z, &xv2, &yv2, &zv2) ;
             if ((yv2 > slice-.5) && (yv2 < slice+.5))
             {

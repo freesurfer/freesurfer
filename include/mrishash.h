@@ -59,8 +59,8 @@ MRIS_HASH_TABLE *MHTcreateFaceTable_Resolution(
     float res) ;
 
 // Add/remove the faces of which vertex V is a part
-int  MHTaddAllFaces(   MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VERTEX const *v) ;
-int  MHTremoveAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VERTEX const *v) ;
+int  MHTaddAllFaces(   MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VERTEX_TOPOLOGY const *v) ;
+int  MHTremoveAllFaces(MRIS_HASH_TABLE *mht, MRI_SURFACE const *mris, VERTEX_TOPOLOGY const *v) ;
 
 //------------------------------------------------
 // Surface --> MHT, store Vertex Numbers

@@ -6,6 +6,8 @@ add_executable(mri_mc mri_mc.c)
 target_link_libraries(mri_mc utils)
 install(TARGETS mri_mc DESTINATION bin)
 
+add_test_script(NAME mri_mc_test SCRIPT test.py DEPENDS mri_mc)
+
 add_executable(mri_pretess mri_pretess.c)
 add_help(mri_pretess mri_pretess.help.xml)
 target_link_libraries(mri_pretess utils)
