@@ -321,23 +321,25 @@ set(GIFTI_SOURCES gifti_io.c gifti_xml.c nifti1_io.c znzlib.c)
 
 # gifti_tool
 add_executable(gifti_tool gifti_tool.c ${GIFTI_SOURCES})
-target_link_libraries(gifti_tool utils ${Expat_LIBRARIES} ${ZLIB_LIBRARIES})
+target_link_libraries(gifti_tool ${Expat_LIBRARIES} ${ZLIB_LIBRARIES})
 install(TARGETS gifti_tool DESTINATION bin)
 
 # gifti test
 add_executable(gifti_test gifti_test.c ${GIFTI_SOURCES})
-target_link_libraries(gifti_test utils ${Expat_LIBRARIES} ${ZLIB_LIBRARIES})
+target_link_libraries(gifti_test ${Expat_LIBRARIES} ${ZLIB_LIBRARIES})
 install(TARGETS gifti_test DESTINATION bin)
 
 # xmlToHtml
 add_executable(xmlToHtml xmlToHtml.c)
-target_link_libraries(xmlToHtml utils ${XML2_LIBRARIES} ${ZLIB_LIBRARIES})
+target_link_libraries(xmlToHtml ${XML2_LIBRARIES} ${ZLIB_LIBRARIES})
 install(TARGETS xmlToHtml DESTINATION bin)
 
 # fsPrintHelp
 add_executable(fsPrintHelp fsPrintHelp.c)
-target_compile_definitions(fsPrintHelp PUBLIC BUILD_MAIN)
-target_link_libraries(fsPrintHelp utils ${XML2_LIBRARIES} ${ZLIB_LIBRARIES})
+target_compile_definitions(fsPrintHelp PRIVATE BUILD_MAIN)
+target_link_libraries(fsPrintHelp ${XML2_LIBRARIES} ${ZLIB_LIBRARIES})
 install(TARGETS fsPrintHelp DESTINATION bin)
 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/fsPrintHelp DESTINATION bin RENAME fsman)
 install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/fsPrintHelp DESTINATION bin RENAME fshelp)
+
+add_subdirectory(test)

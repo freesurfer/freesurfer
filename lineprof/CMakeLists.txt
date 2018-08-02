@@ -24,4 +24,16 @@ if(ITK_FOUND AND VTK_FOUND AND PETSC_FOUND)
 
   add_library(lineprof STATIC ${SOURCES})
 
+  add_test_executable(lineprof_test LineProfTest.cpp)
+  target_link_libraries(lineprof_test
+    lineprof
+    ${ZLIB_LIBRARIES}
+    ${VTK_LIBRARIES}
+    ${PETSC_LIBRARIES}
+    ${LAPACK_LIBRARIES}
+    ${BLAS_LIBRARIES}
+    ${GFORTRAN_LIBRARIES}
+    ${ITK_LIBRARIES}
+  )
+
 endif()

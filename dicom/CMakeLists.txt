@@ -5,7 +5,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/include/dicom
 )
 
-SET(SOURCES
+set(SOURCES
   condition.c
   ctnthread.c
   dcm.c

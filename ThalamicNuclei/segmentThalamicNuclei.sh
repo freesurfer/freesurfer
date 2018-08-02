@@ -170,6 +170,11 @@ if(-e $IsRunningFile) then
   exit 1;
 endif
 
+# If not explicitly specfied, set to 1
+if($?ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS == 0) then
+  echo Setting ITK threads to 1
+  setenv ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS 1
+endif
 
 # If everything is in place, let's do it! First, we create the IsRunning file
 echo "------------------------------" > $IsRunningFile
@@ -208,12 +213,18 @@ echo "HOST `hostname`" >> $THNUCLOG
 echo "PROCESSID $$ "   >> $THNUCLOG
 echo "PROCESSOR `uname -m`" >> $THNUCLOG
 echo "OS `uname -s`"       >> $THNUCLOG
+echo "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS $ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS " >> $THNUCLOG
 uname -a         >> $THNUCLOG
 if($?PBS_JOBID) then
   echo "pbsjob $PBS_JOBID"  >> $THNUCLOG
 endif
 echo "------------------------------" >> $THNUCLOG
+cat $FREESURFER_HOME/build-stamp.txt  >> $THNUCLOG
 echo " " >> $THNUCLOG
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"  >> $THNUCLOG
+echo "cd `pwd`"   >> $THNUCLOG
+echo $0 $argv  >> $THNUCLOG
+echo ""  >> $THNUCLOG
 
 echo "#--------------------------------------------" \
   |& tee -a $THNUCLOG
@@ -250,6 +261,22 @@ if ($returnVal) then
 endif
 
  
+# Convert the txt file into a stats file so that asegstats2table can
+# be run Note: the number of voxels is set to 0 and there is no info
+# about intensity. The only useful info is the volume in mm and the
+# structure name. The segmentation IDs also do not mean anything. 
+# Could run mri_segstats instead, but the volumes would not include
+# partial volume correction.
+set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/ThalamicNuclei.v10.T1.volumes.txt
+# Divide the stats into left and right. The sorting is done because
+# the Left and Right nuclei are not ordered the same in the txt file
+set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/thalamic-nuclei.lh.stats
+echo "# Left Thalamic nuclei volume statistics as created by segmentThalamicNNuclei.sh" > $stats
+grep Left $txt | sed 's/Left-//g' | sort -k 1 | awk '{print NR" "NR"  0 "$2" "$1}' >> $stats
+set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/thalamic-nuclei.rh.stats
+echo "# Right Thalamic nuclei volume statistics as created by segmentThalamicNNuclei.sh" > $stats
+grep Right $txt | sed 's/Right-//g' | sort -k 1 | awk '{print NR" "NR"  0 "$2" "$1}' >> $stats
+
 # All done!
 rm -f $IsRunningFile
 

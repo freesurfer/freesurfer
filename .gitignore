@@ -22,10 +22,11 @@ cpuflags.mak
 *.[oa]
 ld_map.txt
 
-# cmake build files
+# cmake files:
+CMakeFiles
 cmake_install.cmake
 CTestTestfile.cmake
-CMakeFiles
+Testing
 
 # libtool files:
 libtool

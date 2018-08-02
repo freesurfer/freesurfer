@@ -44,4 +44,3 @@ for filename in glob.iglob('./output_from_test_run/*.txt'):
 
 # issue with shell and consecutive runs ?
 # rt.cleanup()
-

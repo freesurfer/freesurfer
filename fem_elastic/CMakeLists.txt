@@ -40,6 +40,8 @@ if(Tetgen_FOUND AND PETSC_FOUND AND Boost_FOUND)
 
   if(APPLE)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -framework Accelerate")
+  else()
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -z muldefs")
   endif()
 
   # surf2vol
