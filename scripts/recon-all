@@ -205,10 +205,12 @@ set DoFLAIRpial = 0; # if 1, mris_make_surfaces refines pial using FLAIR
 set EMRegMaskArg = () ; # MOD: HCP: mask passed when running mri_em_reg, default is 
 set EMRegMask = brainmask.mgz ; # MOD: HCP: mask when running mri_em_reg, default is 
 
-# Desired average face area after decimation, 0.6584 is typical for 1mm3 vox.
-# Only applies if DoDecimation = 1. Decimation will have no effect if the
-# average face area is already => DecimationFaceArea.
-set DecimationFaceArea = 0.6584; 
+# Desired average face area of orig.nofix after decimation. This is
+# set to 0.5 by default because this is the value for the orig.nofix
+# 0.5 when the voxel size is 1mm3.  Only applies if DoDecimation = 1
+# or for high res data. Decimation will have no effect if the average
+# face area is already => DecimationFaceArea.
+set DecimationFaceArea = 0.5;
 set DoDecimation = 0;
 
 # set multi-threaded stuff to single-threaded/cpu for cluster politeness.
@@ -638,6 +640,7 @@ set allinfocmds = (\
 	mris_convert \
 	mris_curvature \
 	mris_curvature_stats \
+	mris_decimate \
 	mris_diff \
 	mris_divide_parcellation \
 	mri_segment \
