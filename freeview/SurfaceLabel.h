@@ -31,7 +31,7 @@
 
 #include <QObject>
 #include <vtkSmartPointer.h>
-
+#include <QList>
 
 extern "C"
 {
@@ -94,6 +94,11 @@ public:
     return m_dHeatscaleMax;
   }
 
+  double GetOpacity()
+  {
+    return m_dOpacity;
+  }
+
   int GetColorCode()
   {
     return m_nColorCode;
@@ -119,6 +124,17 @@ public:
 
   bool SaveToFile(const QString& filename = "");
 
+  bool HasUndo()
+  {
+    return !m_undoBuffer.isEmpty();
+  }
+
+  bool HasRedo()
+  {
+    return !m_redoBuffer.isEmpty();
+  }
+
+
 Q_SIGNALS:
   void SurfaceLabelChanged();
   void SurfaceLabelVisibilityChanged();
@@ -129,6 +145,10 @@ public slots:
   void SetColorCode(int nCode);
   void SetHeatscaleMin(double dval);
   void SetHeatscaleMax(double dval);
+  void Undo();
+  void Redo();
+  void SaveForUndo();
+  void SetOpacity(double dval);
 
 private:
   void UpdateOutline();
@@ -146,8 +166,11 @@ private:
   int           m_nColorCode;
   double        m_dHeatscaleMin;
   double        m_dHeatscaleMax;
+  double        m_dOpacity;
   QString       m_strFilename;
   bool          m_bModified;
+  QList<LABEL*> m_undoBuffer;
+  QList<LABEL*> m_redoBuffer;
 
   vtkSmartPointer<vtkRGBAColorTransferFunction> m_lut;
 };

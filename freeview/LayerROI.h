@@ -115,7 +115,7 @@ public slots:
   void OnSurfaceDestroyed(QObject* obj);
 
 protected slots:
-  void OnBaseVoxelEdited(const QVector<int> voxel_list, bool bAdd);
+  void OnBaseVoxelEdited(const QVector<int>& voxel_list, bool bAdd);
 
 protected:
   bool DoRotate( std::vector<RotationElement>& rotations );

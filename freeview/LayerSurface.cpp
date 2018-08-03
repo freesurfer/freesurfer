@@ -2824,9 +2824,9 @@ void LayerSurface::FillPath(int nvo, const QVariantMap &options)
   SurfaceLabel* label = GetActiveLabel();
   if (label)
   {
+//    label->SaveForUndo();
     label->EditVertices(verts, !options["RemoveFromLabel"].toBool());
     emit Modified();
-    UpdateOverlay();
   }
 }
 
