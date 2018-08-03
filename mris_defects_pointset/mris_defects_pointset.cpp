@@ -6,16 +6,19 @@
 #include "pointset.hpp"
 
 extern "C" {
+#include "utils.h"
 #include "mri.h"
+#include "label.h"
 #include "mrisurf.h"
 #include "mri_circulars.h"
 }
 
-
 static PointSet::Point sras2ras(MRIS* surf, PointSet::Point point);
 
-
-int main(int argc, const char **argv) {
+int main(int argc, const char **argv) 
+{
+  LABEL *label;
+  int v;
 
   // --- setup ----
 
@@ -23,34 +26,63 @@ int main(int argc, const char **argv) {
   parser.addArgument("-s", "--surf",    1, String, true);
   parser.addArgument("-d", "--defects", 1, String, true);
   parser.addArgument("-o", "--out",     1, String, true);
+  parser.addArgument("-l", "--label",     1, String, true);
+  if(argc < 3){
+    printf("mris_defects_pointset \n");
+    printf("  -s surface (eg, lh.orig.nofix) \n");
+    printf("  -d defectseg (eg, lh.defect_labels) \n");
+    printf("  -l label : restrict pointset to this label (optional, must be in eg, orig.nofix space) \n");
+    printf("\n");
+    exit(1);
+  }
   parser.parse(argc, argv);
 
   // load surface
   std::string surfpath = parser.retrieve<std::string>("surf");
   MRIS *surf = MRISread(surfpath.c_str());
+  printf("Reading in surface %s\n",surfpath.c_str());
   if (!surf) exit(1);
 
   // load defect overlay
   std::string defectpath = parser.retrieve<std::string>("defects");
+  printf("Reading in defect segmentation %s\n",defectpath.c_str());
   MRI *overlay = MRIread(defectpath.c_str());
   if (!overlay) exit(1);
 
   if (overlay->width != surf->nvertices) {
-    std::cerr << "error: defect overlay (" << overlay->width << " points) "
+    std::cout << "error: defect overlay (" << overlay->width << " points) "
               << "does not match surface (" << surf->nvertices << " vertices)"
               << std::endl;
     exit(1);
   }
-  
+
+  //mris_apply_reg --src-label ../label/lh.cortex.label --streg lh.orig lh.orig.nofix --trg ../label/lh.cortex.nofix.label
+  std::string labelpath = parser.retrieve<std::string>("label");
+  if(labelpath.length() > 0){
+    printf("Reading in label %s\n",labelpath.c_str());
+    label = LabelRead(NULL, labelpath.c_str());
+    if(label==NULL){
+      std::cout << "ERROR: loading " << labelpath << std::endl;
+      exit(1);
+    }
+    // Set values outside of the label to 0
+    MRI *tmpmri;
+    tmpmri = MRISlabel2Mask(surf, label, NULL);
+    for(v=0; v < surf->nvertices; v++){
+      if(MRIgetVoxVal(tmpmri,v,0,0,0)) continue;
+      MRIsetVoxVal(overlay, v, 0, 0, 0, 0);      
+    }
+    MRIfree(&tmpmri);
+    LabelFree(&label);
+  }
 
   // ---- get number of defects (max value in overlay) ----
 
   int ndefects = 0;
-  for (int v = 0 ; v < surf->nvertices ; v++) {
+  for (v = 0 ; v < surf->nvertices ; v++) {
     int value = MRIgetVoxVal(overlay, v, 0, 0, 0);
     if (value > ndefects) ndefects = value;
   }
-
 
   // ---- compute centroids of each defect ----
 
@@ -100,6 +132,10 @@ int main(int argc, const char **argv) {
 
   MRIfree(&overlay);
   MRISfree(&surf);
+
+  printf("#VMPC# mris_defects_pointset %d\n",GetVmPeak());
+  printf("mris_defects_pointset done\n");
+
   exit(0);
 
 }
