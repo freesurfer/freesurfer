@@ -19,10 +19,6 @@ gunzip -c testdata.tar.gz | tar xvf -
 
 cd testdata
 
-setenv FREESURFER_HOME ../../distribution
-setenv SUBJECTS_DIR ""
-
-
 set cmd=(../test_soapbubble src.mgz ctrl.mgz dst.mgz)
 echo
 $cmd
