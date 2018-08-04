@@ -42652,7 +42652,6 @@ double MRIScomputeTotalVertexSpacingStats(
 {
   double total_dist, mean, var, nv, dist, sigma, min_dist, max_dist, dist_scale;
   int vno, n;
-  VERTEX *v, *vn;
 
   MRIScomputeMetricProperties(mris);
   if (mris->patch) {
@@ -42665,15 +42664,16 @@ double MRIScomputeTotalVertexSpacingStats(
   min_dist = 1000;
   max_dist = -1;
   for (var = nv = total_dist = 0.0, vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
     if (vno == Gdiag_no) {
       DiagBreak();
     }
-    for (n = 0; n < v->vtotal; n++) {
-      vn = &mris->vertices[v->v[n]];
+    for (n = 0; n < vt->vtotal; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       nv++;
       dist = sqrt(SQR(vn->x - v->x) + SQR(vn->y - v->y) + SQR(vn->z - v->z));
       dist *= dist_scale;
@@ -42682,7 +42682,7 @@ double MRIScomputeTotalVertexSpacingStats(
           *pvno = vno;
         }
         if (pvno2) {
-          *pvno2 = v->v[n];
+          *pvno2 = vt->v[n];
         }
         max_dist = dist;
       }
@@ -44578,16 +44578,16 @@ int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp)
   fprintf(fp, "face area %2.2f +- %2.2f (%2.2f-->%2.2f)\n", mean, dsigma, dmin, dmax);
 
   if (dmax > 20) {
-    VERTEX *v, *vn;
     int n;
     float dist;
 
-    v = &mris->vertices[vno];
-    for (n = 0; n < v->vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
+    for (n = 0; n < vt->vnum; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       dist = sqrt(SQR(vn->x - v->x) + SQR(vn->y - v->y) + SQR(vn->z - v->z));
       if (dist > 20) {
-        fprintf(stdout, "\t%d --> %d = %2.1f mm\n", vno, v->v[n], dist);
+        fprintf(stdout, "\t%d --> %d = %2.1f mm\n", vno, vt->v[n], dist);
       }
     }
   }
@@ -44633,10 +44633,9 @@ static void mrisDumpFace(MRI_SURFACE *mris, int fno, FILE *fp)
 static int mrisStoreVtotalInV3num(MRI_SURFACE *mris)
 {
   int vno;
-  VERTEX *v;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];
     v->v3num = v->vtotal;
   }
   return (NO_ERROR);
@@ -46119,7 +46118,6 @@ static int mrisRipDefect(MRI_SURFACE *mris, DEFECT *defect, int ripflag);
 int MRISisSurfaceValid(MRIS *mris, int patch, int verbose)
 {
   int n, m, p, q, vnop, nfound, mark;
-  VERTEX *vn;
   int euler, nedges, nvf, nffm, nffs, cf, nvc;
   FACE *fm;
 
@@ -46129,7 +46127,7 @@ int MRISisSurfaceValid(MRIS *mris, int patch, int verbose)
   }
   nvf = 0;
   for (n = 0; n < mris->nvertices; n++) {
-    vn = &mris->vertices[n];
+    VERTEX_TOPOLOGY const * const vn = &mris->vertices_topology[n];
     if (vn->vnum != vn->num) {
       nvf++;
       if (verbose == 2 && patch == 0) {
@@ -46145,7 +46143,7 @@ int MRISisSurfaceValid(MRIS *mris, int patch, int verbose)
   nffm = nffs = 0;
   nedges = 0;
   for (n = 0; n < mris->nvertices; n++) {
-    vn = &mris->vertices[n];
+    VERTEX_TOPOLOGY const * const vn = &mris->vertices_topology[n];
     nedges += vn->vnum;
     for (p = 0; p < vn->vnum; p++) {
       vnop = vn->v[p];
@@ -46186,7 +46184,7 @@ int MRISisSurfaceValid(MRIS *mris, int patch, int verbose)
   }
   nvc = 0;
   for (n = 0; n < mris->nvertices; n++) {
-    vn = &mris->vertices[n];
+    VERTEX_TOPOLOGY const * const vn = &mris->vertices_topology[n];
     for (p = 0; p < vn->vnum; p++) {
       vnop = vn->v[p];
       mris->vertices[vnop].marked = 0;
@@ -46727,8 +46725,9 @@ void MRISinitDefectPatch(MRIS *mris, TOPOFIX_PARMS *parms)
   MRISclearMarks(mris);
   tp->ninside = 0;
   for (n = 0; n < mris->nvertices; n++) {
-    VERTEX *v = &mris->vertices[n];
-    if (v->vnum == v->num) {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[n];
+    VERTEX                * const v  = &mris->vertices         [n];
+    if (vt->vnum == vt->num) {
       v->marked = 1;
       tp->vertices[tp->ninside++] = n;
     }
@@ -47455,7 +47454,7 @@ static SEGMENTATION *segmentIntersectingEdges(MRIS *mris, DEFECT *defect, int *v
     }
     ep = (EP *)mris->vertices[vno1].vp;
     if (ep->nedges == 0) {
-      ep->edges = (int *)malloc((25 + mris->vertices[vno1].vnum) * sizeof(int));
+      ep->edges = (int *)malloc((25 + mris->vertices_topology[vno1].vnum) * sizeof(int));
     }
     ep->edges[ep->nedges++] = n;
 
@@ -47466,7 +47465,7 @@ static SEGMENTATION *segmentIntersectingEdges(MRIS *mris, DEFECT *defect, int *v
     }
     ep = (EP *)mris->vertices[vno2].vp;
     if (ep->nedges == 0) {
-      ep->edges = (int *)malloc((25 + mris->vertices[vno2].vnum) * sizeof(int));
+      ep->edges = (int *)malloc((25 + mris->vertices_topology[vno2].vnum) * sizeof(int));
     }
     ep->edges[ep->nedges++] = n;
   }
@@ -49003,7 +49002,7 @@ static void defectMatch(MRI *mri, MRI_SURFACE *mris, DP *dp, int smooth, int mat
 static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int type)
 {
   int i, n;
-  VERTEX *v, *vn;
+
   float x, y, z;
   float r, F, E, rmin, rmax;
   float dx, dy, dz, sx, sy, sz, sd, sxn, syn, szn, sxt, syt, szt, nc, nx, ny, nz, f;
@@ -49029,10 +49028,11 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       while (niter--) {
         /* using the tmp vertices */
         for (i = 0; i < ninside; i++) {
-          v = &mris->vertices[dp->tp.vertices[i]];
+          VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[dp->tp.vertices[i]];
+          VERTEX                * const v  = &mris->vertices         [dp->tp.vertices[i]];
 
-          for (x = 0, y = 0, z = 0, n = 0; n < v->vnum; n++) {
-            vn = &mris->vertices[v->v[n]];
+          for (x = 0, y = 0, z = 0, n = 0; n < vt->vnum; n++) {
+            VERTEX const * const vn = &mris->vertices[vt->v[n]];
             x += vn->origx;
             y += vn->origy;
             z += vn->origz;
@@ -49049,7 +49049,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
         }
 
         for (i = 0; i < ninside; i++) {
-          v = &mris->vertices[dp->tp.vertices[i]];
+          VERTEX * const v = &mris->vertices[dp->tp.vertices[i]];
 
           v->origx = v->tx; CHANGES_ORIG
           v->origy = v->ty;
@@ -49071,7 +49071,8 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
 
         /* using the tmp vertices */
         for (i = 0; i < ninside; i++) {
-          v = &mris->vertices[dp->tp.vertices[i]];
+          VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[dp->tp.vertices[i]];
+          VERTEX                * const v  = &mris->vertices         [dp->tp.vertices[i]];
           x = v->origx;
           y = v->origy;
           z = v->origz;
@@ -49081,8 +49082,8 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
 
           sx = sy = sz = sd = 0;
           n = 0;
-          for (n = 0; n < v->vnum; n++) {
-            vn = &mris->vertices[v->v[n]];
+          for (n = 0; n < vt->vnum; n++) {
+            VERTEX const * const vn = &mris->vertices[vt->v[n]];
 
             sx += dx = vn->origx - x;
             sy += dy = vn->origy - y;
@@ -49116,7 +49117,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
           v->tz = v->origz + alpha * (szt + f * szn);
         }
         for (i = 0; i < ninside; i++) {
-          v = &mris->vertices[dp->tp.vertices[i]];
+          VERTEX * const v = &mris->vertices[dp->tp.vertices[i]];
 
           v->origx = v->tx;
           v->origy = v->ty;
@@ -49131,7 +49132,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       }
 
       for (i = 0; i < nstrictlyinside; i++) {
-        v = &mris->vertices[dp->tp.vertices[i]];
+        VERTEX * const v = &mris->vertices[dp->tp.vertices[i]];
         v->old_undefval = 0;
       }
 
@@ -49141,14 +49142,15 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       while (changed) {
         changed = 0;
         for (i = 0; i < nstrictlyinside; i++) {
-          v = &mris->vertices[dp->tp.vertices[i]];
+          VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[dp->tp.vertices[i]];
+          VERTEX                * const v  = &mris->vertices         [dp->tp.vertices[i]];
           if (v->old_undefval) {
             continue; /* already processed */
           }
           /* check if neighboring values are lower or not */
           should_be_smoothed = 1;
-          for (n = 0; n < v->vnum; n++) {
-            vn = &mris->vertices[v->v[n]];
+          for (n = 0; n < vt->vnum; n++) {
+            VERTEX const * const vn = &mris->vertices[vt->v[n]];
             if ((!vn->old_undefval) && vn->undefval < v->undefval) {
               should_be_smoothed = 0;
               break;
@@ -49174,13 +49176,14 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       while (niter--) {
         /* using the tmp vertices */
         for (i = 0; i < nstrictlyinside; i++) {
-          v = &mris->vertices[dp->tp.vertices[i]];
+          VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[dp->tp.vertices[i]];
+          VERTEX                * const v  = &mris->vertices         [dp->tp.vertices[i]];
           if (v->old_undefval == 0) {
             continue;
           }
 
-          for (x = 0, y = 0, z = 0, n = 0; n < v->vnum; n++) {
-            vn = &mris->vertices[v->v[n]];
+          for (x = 0, y = 0, z = 0, n = 0; n < vt->vnum; n++) {
+            VERTEX const * const vn = &mris->vertices[vt->v[n]];
             x += vn->origx;
             y += vn->origy;
             z += vn->origz;
@@ -49197,7 +49200,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
         }
 
         for (i = 0; i < nstrictlyinside; i++) {
-          v = &mris->vertices[dp->tp.vertices[i]];
+          VERTEX * const v = &mris->vertices[dp->tp.vertices[i]];
           if (v->old_undefval == 0) {
             continue;
           }
@@ -49224,7 +49227,8 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
 
       mean = var = 0.0;
       for (i = 0; i < ninside; i++) {
-        v = &mris->vertices[dp->tp.vertices[i]];
+        VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[dp->tp.vertices[i]];
+        VERTEX                * const v  = &mris->vertices         [dp->tp.vertices[i]];
         x = v->origx;
         y = v->origy;
         z = v->origz;
@@ -49234,8 +49238,8 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
 
         sx = sy = sz = sd = 0;
         n = 0;
-        for (n = 0; n < v->vnum; n++) {
-          vn = &mris->vertices[v->v[n]];
+        for (n = 0; n < vt->vnum; n++) {
+          VERTEX const * const vn = &mris->vertices[vt->v[n]];
 
           sx += dx = vn->origx - x;
           sy += dy = vn->origy - y;
@@ -49271,7 +49275,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       vertices = (int *)malloc(dp->tp.nvertices * sizeof(int));
       nvertices = 0;
       for (i = 0; i < ninside; i++) {
-        v = &mris->vertices[dp->tp.vertices[i]];
+        VERTEX const * const v = &mris->vertices[dp->tp.vertices[i]];
         if (v->curv < mean - 1 * sqrt(var) || v->curv > mean + 1 * sqrt(var)) {
           vertices[nvertices++] = i;
         }
@@ -49285,7 +49289,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
 
     for (i = 0 ; i < nvertices; i++)
     {
-      v = &mris->vertices[dp->tp.vertices[vertices[i]]] ;
+      VERTEX * const v = &mris->vertices[dp->tp.vertices[vertices[i]]] ;
       v->annotation=100;
     }
 #endif
@@ -49303,10 +49307,11 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       while (niter--) {
         /* using the tmp vertices */
         for (i = 0; i < nvertices; i++) {
-          v = &mris->vertices[dp->tp.vertices[vertices[i]]];
+          VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[dp->tp.vertices[vertices[i]]];
+          VERTEX                * const v  = &mris->vertices         [dp->tp.vertices[vertices[i]]];
 
-          for (x = 0, y = 0, z = 0, n = 0; n < v->vnum; n++) {
-            vn = &mris->vertices[v->v[n]];
+          for (x = 0, y = 0, z = 0, n = 0; n < vt->vnum; n++) {
+            VERTEX const * const vn = &mris->vertices[vt->v[n]];
             x += vn->origx;
             y += vn->origy;
             z += vn->origz;
@@ -49323,7 +49328,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
         }
 
         for (i = 0; i < nvertices; i++) {
-          v = &mris->vertices[dp->tp.vertices[vertices[i]]];
+          VERTEX * const v = &mris->vertices[dp->tp.vertices[vertices[i]]];
 
           v->origx = v->tx; CHANGES_ORIG
           v->origy = v->ty;
@@ -49342,7 +49347,6 @@ static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, in
 {
   float wm, gm, mean;
   int i, n, nvertices, *vertices;
-  VERTEX *v, *vn;
   double x, y, z, xm, ym, zm, nx, ny, nz, dx, dy, dz, g, NRG;
   double xv, yv, zv, white_val, gray_val, val;
 
@@ -49376,14 +49380,15 @@ static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, in
   while (niter--) {
     /* using the tmp vertices */
     for (NRG = 0, i = 0; i < nvertices; i++) {
-      v = &mris->vertices[vertices[i]];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vertices[i]];
+      VERTEX                * const v  = &mris->vertices         [vertices[i]];
       x = v->origx;
       y = v->origy;
       z = v->origz;
 
       /* smoothness term */
-      for (xm = 0, ym = 0, zm = 0, n = 0; n < v->vnum; n++) {
-        vn = &mris->vertices[v->v[n]];
+      for (xm = 0, ym = 0, zm = 0, n = 0; n < vt->vnum; n++) {
+        VERTEX * const vn = &mris->vertices[vt->v[n]];
         xm += vn->origx;
         ym += vn->origy;
         zm += vn->origz;
@@ -49442,7 +49447,7 @@ static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, in
 
     /* update orig vertices */
     for (i = 0; i < nvertices; i++) {
-      v = &mris->vertices[vertices[i]];
+      VERTEX * const v = &mris->vertices[vertices[i]];
       v->origx = v->tx; CHANGES_ORIG
       v->origy = v->ty;
       v->origz = v->tz;
@@ -49486,18 +49491,18 @@ static void defectMaximizeLikelihood_new(MRI *mri, MRI_SURFACE *mris, DP *dp, in
 
     int i;
     for (i = 0; i < nvertices; i++) {
-
-      VERTEX* const v = &mris->vertices[dp->tp.vertices[i]];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[dp->tp.vertices[i]];
+      VERTEX                * const v  = &mris->vertices         [dp->tp.vertices[i]];
       float const x = v->origx;
       float const y = v->origy;
       float const z = v->origz;
 
       /* smoothness term */
       double xm = 0, ym = 0, zm = 0;
-      if (v->vnum > 0) {
+      if (vt->vnum > 0) {
         int n;
-        for (n = 0; n < v->vnum; n++) {
-          VERTEX const * const vn = &mris->vertices[v->v[n]];
+        for (n = 0; n < vt->vnum; n++) {
+          VERTEX const * const vn = &mris->vertices[vt->v[n]];
           xm += vn->origx;
           ym += vn->origy;
           zm += vn->origz;
@@ -49565,7 +49570,6 @@ static void defectMaximizeLikelihood_old(MRI *mri, MRI_SURFACE *mris, DP *dp, in
 {
   float wm, gm, mean;
   int i, n, nvertices;
-  VERTEX *v, *vn;
   double x, y, z, xm, ym, zm, nx, ny, nz, dx, dy, dz, g, NRG;
   double xv, yv, zv, white_val, gray_val, val;
 
@@ -49580,14 +49584,15 @@ static void defectMaximizeLikelihood_old(MRI *mri, MRI_SURFACE *mris, DP *dp, in
   while (niter--) {
     /* using the tmp vertices */
     for (NRG = 0, i = 0; i < nvertices; i++) {
-      v = &mris->vertices[dp->tp.vertices[i]];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[dp->tp.vertices[i]];
+      VERTEX                * const v  = &mris->vertices         [dp->tp.vertices[i]];
       x = v->origx;
       y = v->origy;
       z = v->origz;
 
       /* smoothness term */
-      for (xm = 0, ym = 0, zm = 0, n = 0; n < v->vnum; n++) {
-        vn = &mris->vertices[v->v[n]];
+      for (xm = 0, ym = 0, zm = 0, n = 0; n < vt->vnum; n++) {
+        VERTEX const * const vn = &mris->vertices[vt->v[n]];
         xm += vn->origx;
         ym += vn->origy;
         zm += vn->origz;
@@ -49646,7 +49651,7 @@ static void defectMaximizeLikelihood_old(MRI *mri, MRI_SURFACE *mris, DP *dp, in
 
     /* update orig vertices */
     for (i = 0; i < nvertices; i++) {
-      v = &mris->vertices[dp->tp.vertices[i]];
+      VERTEX * const v = &mris->vertices[dp->tp.vertices[i]];
       v->origx = v->tx;
       v->origy = v->ty;
       v->origz = v->tz;
@@ -49663,7 +49668,6 @@ static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp)
 {
   int i, n, m, vno, vn1, vn2, nvertices, nthings, *things, nfaces;
   int optimal = dp->defect->optimal_mapping;
-  VERTEX *v;
   TP *tp;
 
   /* the tessellated patch */
@@ -49679,14 +49683,14 @@ static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp)
   for (nthings = i = 0 ; i < nvertices ; i++)
   {
     vno=tp->vertices[i];
-    v = &mris->vertices[vno] ;
+    VERTEX * const v = &mris->vertices[vno] ;
     v->border=1;
   }
 #endif
   /* detect faces only for modified vertices */
   for (nthings = i = 0; i < nvertices; i++) {
     vno = tp->vertices[i];
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno];
 
     for (n = 0; n < v->vnum; n++) {
       vn1 = v->v[n];
@@ -49732,16 +49736,6 @@ static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp)
       }
     }
   }
-
-#if 0
-  /* reset border flag */
-  for (nthings = i = 0 ; i < nvertices ; i++)
-  {
-    vno=tp->vertices[i];
-    v = &mris->vertices[vno] ;
-    v->border=0;
-  }
-#endif
 
   /* save the list of new faces */
   if (nthings == nfaces) {
@@ -49790,7 +49784,6 @@ static void orientDefectFaces(MRIS *mris, DP *dp)
   float dot, cx, cy, cz, a[3], b[3], norm[3];
   TP *tp;
   FACE *face;
-  VERTEX *v, *v1, *v2, *v3;
 
   tp = &dp->tp;
 
@@ -49799,9 +49792,9 @@ static void orientDefectFaces(MRIS *mris, DP *dp)
 
     face = &mris->faces[fno];
 
-    v1 = &mris->vertices[face->v[0]];
-    v2 = &mris->vertices[face->v[1]];
-    v3 = &mris->vertices[face->v[2]];
+    VERTEX const * const v1 = &mris->vertices[face->v[0]];
+    VERTEX const * const v2 = &mris->vertices[face->v[1]];
+    VERTEX const * const v3 = &mris->vertices[face->v[2]];
 
     /* compute centroid direction on sphere */
     cx = v1->cx + v2->cx + v3->cx;
@@ -49827,14 +49820,14 @@ static void orientDefectFaces(MRIS *mris, DP *dp)
       face->v[2] = vno0;
 
       /* set vertex face index */
-      v = &mris->vertices[vno0]; /* vno0 is now in 2 */
+      VERTEX_TOPOLOGY * v = &mris->vertices_topology[vno0]; /* vno0 is now in 2 */
       for (m = 0; m < v->num; m++)
         if (v->f[m] == fno) {
           v->n[m] = 2;
           break;
         }
 
-      v = &mris->vertices[vno1]; /* vno1 is now in 1 */
+      v = &mris->vertices_topology[vno1]; /* vno1 is now in 1 */
       for (m = 0; m < v->num; m++)
         if (v->f[m] == fno) {
           v->n[m] = 1;
@@ -49917,7 +49910,6 @@ static void computeDefectFaceNormal(MRIS const * const mris, int const fno)
 static void computeDefectFaceNormals(MRIS *mris, DP *dp, DefectFacesCache* dfc)
 {
   int i, n;
-  VERTEX *v;
   FACE *face;
   TP *tp;
 
@@ -49934,7 +49926,7 @@ static void computeDefectFaceNormals(MRIS *mris, DP *dp, DefectFacesCache* dfc)
 
   /* compute faces only for modified vertices */
   for (i = 0; i < tp->nvertices; i++) {
-    v = &mris->vertices[tp->vertices[i]];
+    VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[tp->vertices[i]];
     for (n = 0; n < v->num; n++) {
       face = &mris->faces[v->f[n]];
       if (face->ripflag) {
@@ -49947,7 +49939,7 @@ static void computeDefectFaceNormals(MRIS *mris, DP *dp, DefectFacesCache* dfc)
   }
   /* unrip faces */
   for (i = 0; i < tp->nvertices; i++) {
-    v = &mris->vertices[tp->vertices[i]];
+    VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[tp->vertices[i]];
     for (n = 0; n < v->num; n++) {
       face = &mris->faces[v->f[n]];
       if (face->ripflag == TEMPORARY_RIPPED_FACE) /* unrip face */
@@ -49963,17 +49955,17 @@ static void computeDefectVertexNormals(MRIS *mris, DP *dp)
   int n, m;
   float nx, ny, nz, len;
   TP *tp;
-  VERTEX *v;
 
   tp = &dp->tp;
   /* compute vertex normals only for modified vertices */
   for (n = 0; n < tp->nvertices; n++) {
-    v = &mris->vertices[tp->vertices[n]];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[tp->vertices[n]];
+    VERTEX                * const v  = &mris->vertices         [tp->vertices[n]];
 
     /* compute normal at vertex */
     nx = ny = nz = 0.0f;
-    for (m = 0; m < v->num; m++) {
-      FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, v->f[m]);
+    for (m = 0; m < vt->num; m++) {
+      FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, vt->f[m]);
       nx += fNorm->nx;
       ny += fNorm->ny;
       nz += fNorm->nz;
@@ -49984,8 +49976,8 @@ static void computeDefectVertexNormals(MRIS *mris, DP *dp)
       fprintf(WHICH_OUTPUT,
               "normal vector of length zero at vertex %d with %d faces\n",
               tp->vertices[n],
-              (int)v->num);  // TO BE CHECKED
-      if ((int)v->num == 0) {
+              (int)vt->num);  // TO BE CHECKED
+      if ((int)vt->num == 0) {
         ErrorExit(ERROR_BADPARM, "vertex %d has 0 face", tp->vertices[n]);
       }
       len = 1;
@@ -50051,7 +50043,6 @@ static void computeDefectTangentPlaneAtVertex(MRIS *mris, int vno)
 static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp)
 {
   int p, vno, i, n, nbad = 0;
-  VERTEX *vertex, *vnb;
   MATRIX *m_U, *m_Ut, *m_tmp1, *m_tmp2, *m_inverse, *m_eigen, *m_Q;
   VECTOR *v_c, *v_z, *v_n, *v_e1, *v_e2, *v_yi;
   float k1, k2, evalues[3], a11, a12, a21, a22, cond_no, kmax, kmin, rsq, k;
@@ -50070,7 +50061,8 @@ static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp)
   for (p = 0; p < tp->nvertices; p++) {
     vno = tp->vertices[p];
 
-    vertex = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
+    VERTEX                * const vertex  = &mris->vertices         [vno];
 
     /* compute tangent plane */
     computeDefectTangentPlaneAtVertex(mris, vno);
@@ -50088,22 +50080,22 @@ static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp)
     MRIScomputeSecondFundamentalFormAtVertex(mris, vno, nbrs, num_nbrs) ;
 #endif
 
-    VECTOR_LOAD(v_n, vertex->nx, vertex->ny, vertex->nz);
+    VECTOR_LOAD(v_n,  vertex->nx,  vertex->ny,  vertex->nz);
     VECTOR_LOAD(v_e1, vertex->e1x, vertex->e1y, vertex->e1z);
     VECTOR_LOAD(v_e2, vertex->e2x, vertex->e2y, vertex->e2z);
 
-    if (vertex->vtotal <= 0) {
+    if (vertext->vtotal <= 0) {
       continue;
     }
 
-    m_U = MatrixAlloc(vertex->vtotal, 3, MATRIX_REAL);
-    v_z = VectorAlloc(vertex->vtotal, MATRIX_REAL);
+    m_U = MatrixAlloc(vertext->vtotal, 3, MATRIX_REAL);
+    v_z = VectorAlloc(vertext->vtotal, MATRIX_REAL);
 
     /* fit a quadratic form to the surface at this vertex */
     kmin = 10000.0f;
     kmax = -kmin;
-    for (n = i = 0; i < vertex->vtotal; i++) {
-      vnb = &mris->vertices[vertex->v[i]];
+    for (n = i = 0; i < vertext->vtotal; i++) {
+      VERTEX const * const vnb = &mris->vertices[vertext->v[i]];
 
       /* calculate the projection of this vertex onto the local tangent plane */
       VECTOR_LOAD(v_yi, vnb->origx - vertex->origx, vnb->origy - vertex->origy, vnb->origz - vertex->origz);
@@ -50328,9 +50320,7 @@ static int isVertexInsideFace(MRIS *mris, int vno, int fno)
 static int isDiscarded(MRIS *mris, int vno1, int vno2)
 {
   int n;
-  VERTEX *v;
-
-  v = &mris->vertices[vno2];
+  VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno2];
 
   for (n = 0; n < v->num; n++)
     if (isVertexInsideFace(mris, vno1, v->f[n])) /* vno1 is inside face v->f[n]! */
@@ -50344,9 +50334,8 @@ static int isDiscarded(MRIS *mris, int vno1, int vno2)
 static void removeVertex(MRIS *mris, int vno)
 {
   int n, m, vnum, *oldlist;
-  VERTEX *v, *vn;
-
-  v = &mris->vertices[vno];
+  VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
+  VERTEX          * const v  = &mris->vertices         [vno];
 
   // to be checked when the ADD_SOME_VERTICES mode is on
   // could be a good "outside" vertex
@@ -50359,44 +50348,43 @@ static void removeVertex(MRIS *mris, int vno)
     return;
   }
 
-  for (n = 0; n < v->vnum; n++) {
+  for (n = 0; n < vt->vnum; n++) {
     /* remove vno from the list of v->v[n] */
-    vn = &mris->vertices[v->v[n]];
-    oldlist = vn->v;
-    vnum = vn->vnum - 1; /* the new # of neighbors */
+    VERTEX_TOPOLOGY * const vnt = &mris->vertices_topology[vt->v[n]];
+    VERTEX          * const vn  = &mris->vertices         [vt->v[n]];
+    oldlist = vnt->v;
+    vnum = vnt->vnum - 1; /* the new # of neighbors */
     if (vnum) {
-      vn->v = (int *)malloc(vnum * sizeof(int));
-      for (vnum = m = 0; m < vn->vnum; m++) {
+      vnt->v = (int *)malloc(vnum * sizeof(int));
+      for (vnum = m = 0; m < vnt->vnum; m++) {
         if (oldlist[m] == vno) {
           continue;
         }
-        vn->v[vnum++] = oldlist[m];
+        vnt->v[vnum++] = oldlist[m];
       }
       free(oldlist);
     }
     else {
-      vn->v = NULL;
+      vnt->v = NULL;
     }
-    vn->vnum = vnum;
-    vn->vtotal = vnum;
+    vnt->vnum = vnum;
+    vnt->vtotal = vnum;
     /* check if the vertex became singled out */
-    if (vn->vnum == 0) {
+    if (vnt->vnum == 0) {
       vn->marked = INSIDE_VERTEX;
     }
   }
   v->marked = DISCARDED_VERTEX;
-  free(v->v);
-  v->v = NULL;
-  v->vnum = 0;
-  v->vtotal = 0;
+  free(vt->v);
+  vt->v = NULL;
+  vt->vnum = 0;
+  vt->vtotal = 0;
 }
 
 static int updateVertexTriangle(MRIS *mris, int vno, int fno)
 {
   int n, m, vn;
-  VERTEX *v;
-
-  v = &mris->vertices[vno];
+  VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno];
 
   for (m = n = 0; n < v->vnum; n++) {
     /* work with the vertex v->v[n] */
@@ -50443,11 +50431,10 @@ static int updateVertexTriangle(MRIS *mris, int vno, int fno)
 static void possiblyAddNewFaces(MRIS *mris, int vno1, int vno2)
 {
   int n, m, vn, fno;
-  VERTEX *v;
 
   /* only exterior triangles */
 
-  v = &mris->vertices[vno1];
+  VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno1];
   for (n = 0; n < v->vnum; n++) {
     if (v->v[n] == vno2) {
       continue;
@@ -50608,7 +50595,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
   int nthings, *things;
   int modified;
   IT *it;
-  VERTEX *vertex1, *vertex2;
   int counting;
 
   /* initialize arrays of tessellated patch to null pointer*/
@@ -50628,10 +50614,11 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
       continue;
     }
     vno = vertex_trans[defect->vertices[n]];
-    vertex1 = &mris_corrected->vertices[vno];
-    vertex1->undefval = 0;
-    if (vertex1->vnum) {
-      vertex1->undefval = 1;
+    VERTEX_TOPOLOGY const * const vt = &mris_corrected->vertices_topology[vno];
+    VERTEX                * const v  = &mris_corrected->vertices         [vno];
+    v->undefval = 0;
+    if (vt->vnum) {
+      v->undefval = 1;
       counting = 1;
     }
   }
@@ -50761,8 +50748,8 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
             et[i].used = USED_IN_NEW_TEMPORARY_TESSELLATION;
           }
           /* useful only if mode = USE_ALL_VERTICES */
-          vertex1 = &mris_corrected->vertices[et[i].vno1];
-          vertex2 = &mris_corrected->vertices[et[i].vno2];
+          VERTEX * const vertex1 = &mris_corrected->vertices[et[i].vno1];
+          VERTEX * const vertex2 = &mris_corrected->vertices[et[i].vno2];
           if (vertex1->undefval == 0 || vertex2->undefval == 0) {
             counting++;
             if (vertex1->undefval == 0) {
