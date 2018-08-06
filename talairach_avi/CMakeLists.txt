@@ -57,7 +57,7 @@ set(RMS_SOURCES
 add_definitions(-DHAVE_GFORTRAN)
 # this prevents linking to gfortran dynmically
 if(NOT APPLE)
-  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/usr/lib64")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgfortran")
 endif()
 
 add_executable(gauss_4dfp gauss_4dfp.c cgauss3dd.c conc.c ${TRX_SOURCES} ${RMS_SOURCES})
