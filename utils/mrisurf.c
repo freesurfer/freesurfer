@@ -3790,7 +3790,6 @@ int MRISremoveRippedVertices(MRI_SURFACE *mris)
 int MRISremoveRipped(MRI_SURFACE *mris)
 {
   int vno, n, fno, nripped, remove, vno2;
-  VERTEX *v;
   FACE *face;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
@@ -3800,7 +3799,8 @@ int MRISremoveRipped(MRI_SURFACE *mris)
     nripped = 0;
     // go through all vertices
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
+      VERTEX          * const v  = &mris->vertices         [vno];
       if (vno == Gdiag_no)
 	DiagBreak() ;
       // if rip flag set
@@ -3820,46 +3820,46 @@ int MRISremoveRipped(MRI_SURFACE *mris)
         continue;
       }
 
-      for (n = 0; n < v->vnum; n++) {
+      for (n = 0; n < vt->vnum; n++) {
         /* remove this vertex from neighbor list if it is ripped */
-        if (mris->vertices[v->v[n]].ripflag) {
-          if (n < v->vtotal - 1) /* not the last one in the list */
+        if (mris->vertices[vt->v[n]].ripflag) {
+          if (n < vt->vtotal - 1) /* not the last one in the list */
           {
-            memmove(v->v + n, v->v + n + 1, (v->vtotal - n - 1) * sizeof(int));
-            memmove(v->dist + n, v->dist + n + 1, (v->vtotal - n - 1) * sizeof(float));
-            memmove(v->dist_orig + n, v->dist_orig + n + 1, (v->vtotal - n - 1) * sizeof(float));
+            memmove(vt->v + n,        vt->v + n + 1,        (vt->vtotal - n - 1) * sizeof(int));
+            memmove(v->dist + n,      v->dist + n + 1,      (vt->vtotal - n - 1) * sizeof(float));
+            memmove(v->dist_orig + n, v->dist_orig + n + 1, (vt->vtotal - n - 1) * sizeof(float));
           }
-          if (n < v->vnum) /* it was a 1-neighbor */
+          if (n < vt->vnum) /* it was a 1-neighbor */
           {
-            v->vnum--;
+            vt->vnum--;
           }
-          if (n < v->v2num) /* it was a 2-neighbor */
+          if (n < vt->v2num) /* it was a 2-neighbor */
           {
-            v->v2num--;
+            vt->v2num--;
           }
-          if (n < v->v3num) /* it was a 3-neighbor */
+          if (n < vt->v3num) /* it was a 3-neighbor */
           {
-            v->v3num--;
+            vt->v3num--;
           }
-          if ((n < v->vnum) || ((n < v->v2num) && mris->nsize >= 2) || (mris->nsize >= 3 && (n < v->v3num))) {
-            v->vtotal--;
+          if ((n < vt->vnum) || ((n < vt->v2num) && mris->nsize >= 2) || (mris->nsize >= 3 && (n < vt->v3num))) {
+            vt->vtotal--;
           }
           n--;
         }
       }
 
       // make sure every nbr is a member of at least one unripped face
-      for (n = 0; n < v->vnum; n++) {
+      for (n = 0; n < vt->vnum; n++) {
         int members, m;
 
-        vno2 = v->v[n];
-        if (mris->vertices[v->v[n]].ripflag) {
+        vno2 = vt->v[n];
+        if (mris->vertices[vt->v[n]].ripflag) {
           continue;
         }
 
         remove = 1;
-        for (fno = 0; fno < v->num; fno++) {
-          face = &mris->faces[v->f[fno]];
+        for (fno = 0; fno < vt->num; fno++) {
+          face = &mris->faces[vt->f[fno]];
           if (face->ripflag == 1)  // only consider unripped
           {
             continue;
@@ -3875,43 +3875,42 @@ int MRISremoveRipped(MRI_SURFACE *mris)
         }
 
         if (remove) {
-          if (n < v->vtotal - 1) /* not the last one in the list */
+          if (n < vt->vtotal - 1) /* not the last one in the list */
           {
-            memmove(v->v + n, v->v + n + 1, (v->vtotal - n - 1) * sizeof(int));
-            memmove(v->dist + n, v->dist + n + 1, (v->vtotal - n - 1) * sizeof(float));
-            memmove(v->dist_orig + n, v->dist_orig + n + 1, (v->vtotal - n - 1) * sizeof(float));
+            memmove(vt->v + n,        vt->v + n + 1,        (vt->vtotal - n - 1) * sizeof(int));
+            memmove(v->dist + n,      v->dist + n + 1,      (vt->vtotal - n - 1) * sizeof(float));
+            memmove(v->dist_orig + n, v->dist_orig + n + 1, (vt->vtotal - n - 1) * sizeof(float));
           }
-          if (n < v->vnum) /* it was a 1-neighbor */
+          if (n < vt->vnum) /* it was a 1-neighbor */
           {
-            v->vnum--;
+            vt->vnum--;
           }
-          if (n < v->v2num) /* it was a 2-neighbor */
+          if (n < vt->v2num) /* it was a 2-neighbor */
           {
-            v->v2num--;
+            vt->v2num--;
           }
-          if (n < v->v3num) /* it was a 3-neighbor */
+          if (n < vt->v3num) /* it was a 3-neighbor */
           {
-            v->v3num--;
+            vt->v3num--;
           }
-          if ((n < v->vnum) || ((n < v->v2num) && mris->nsize >= 2) || (mris->nsize >= 3 && (n < v->v3num))) {
-            v->vtotal--;
+          if ((n < vt->vnum) || ((n < vt->v2num) && mris->nsize >= 2) || (mris->nsize >= 3 && (n < vt->v3num))) {
+            vt->vtotal--;
           }
           n--;
         }
       }
 
       // go through 2-nbr list and make sure each one is a nbr of a 1-nbr
-      for (n = v->vnum; n < v->v2num; n++) {
+      for (n = vt->vnum; n < vt->v2num; n++) {
         int n2, n3;
-        VERTEX *vn, *vn2;
 
         remove = 1;
 
-        vno2 = v->v[n];
-        vn = &mris->vertices[vno2];
+        vno2 = vt->v[n];
+        VERTEX_TOPOLOGY const * const vn = &mris->vertices_topology[vno2];
         for (n2 = 0; n2 < vn->vnum; n2++)  // 1-nbrs of the central node
         {
-          vn2 = &mris->vertices[vn->v[n2]];
+          VERTEX_TOPOLOGY const * const vn2 = &mris->vertices_topology[vn->v[n2]];
           for (n3 = 0; remove && n3 < vn2->vnum; n3++)  // 1 nbrs of nbr
             if (vn2->v[n3] == vno2) {
               remove = 0;  // they still share a 1-nbr, keep it
@@ -3920,43 +3919,42 @@ int MRISremoveRipped(MRI_SURFACE *mris)
         }
         if (remove) {
           nripped++;
-          if (n < v->vtotal - 1) /* not the last one in the list */
+          if (n < vt->vtotal - 1) /* not the last one in the list */
           {
-            memmove(v->v + n, v->v + n + 1, (v->vtotal - n - 1) * sizeof(int));
-            memmove(v->dist + n, v->dist + n + 1, (v->vtotal - n - 1) * sizeof(float));
-            memmove(v->dist_orig + n, v->dist_orig + n + 1, (v->vtotal - n - 1) * sizeof(float));
+            memmove(vt->v + n,        vt->v + n + 1,        (vt->vtotal - n - 1) * sizeof(int));
+            memmove(v->dist + n,      v->dist + n + 1,      (vt->vtotal - n - 1) * sizeof(float));
+            memmove(v->dist_orig + n, v->dist_orig + n + 1, (vt->vtotal - n - 1) * sizeof(float));
           }
-          if (n < v->vnum) /* it was a 1-neighbor */
+          if (n < vt->vnum) /* it was a 1-neighbor */
           {
-            v->vnum--;
+            vt->vnum--;
           }
-          if (n < v->v2num) /* it was a 2-neighbor */
+          if (n < vt->v2num) /* it was a 2-neighbor */
           {
-            v->v2num--;
+            vt->v2num--;
           }
-          if (n < v->v3num) /* it was a 3-neighbor */
+          if (n < vt->v3num) /* it was a 3-neighbor */
           {
-            v->v3num--;
+            vt->v3num--;
           }
-          if ((n < v->vnum) || ((n < v->v2num) && mris->nsize >= 2) || (mris->nsize >= 3 && (n < v->v3num))) {
-            v->vtotal--;
+          if ((n < vt->vnum) || ((n < vt->v2num) && mris->nsize >= 2) || (mris->nsize >= 3 && (n < vt->v3num))) {
+            vt->vtotal--;
           }
           n--;
         }
       }
 
       // go through 3-nbr list and make sure each one is a nbr of a 2-nbr
-      for (n = v->v2num; n < v->v3num; n++) {
+      for (n = vt->v2num; n < vt->v3num; n++) {
         int n2, n3;
-        VERTEX *vn, *vn2;
 
         remove = 1;
 
-        vno2 = v->v[n];
-        vn = &mris->vertices[vno2];
+        vno2 = vt->v[n];
+        VERTEX_TOPOLOGY const * const vn = &mris->vertices_topology[vno2];
         for (n2 = vn->vnum; n2 < vn->v2num; n2++)  // 2-nbrs of the central node
         {
-          vn2 = &mris->vertices[vn->v[n2]];
+          VERTEX_TOPOLOGY const * const vn2 = &mris->vertices_topology[vn->v[n2]];
           for (n3 = 0; remove && n3 < vn2->vnum; n3++)  // 1 nbrs of nbr
             if (vn2->v[n3] == vno2) {
               remove = 0;  // they still share a 1- or 2-nbr, keep it
@@ -3964,45 +3962,45 @@ int MRISremoveRipped(MRI_SURFACE *mris)
             }
         }
         if (remove) {
-          if (n < v->vtotal - 1) /* not the last one in the list */
+          if (n < vt->vtotal - 1) /* not the last one in the list */
           {
-            memmove(v->v + n, v->v + n + 1, (v->vtotal - n - 1) * sizeof(int));
-            memmove(v->dist + n, v->dist + n + 1, (v->vtotal - n - 1) * sizeof(float));
-            memmove(v->dist_orig + n, v->dist_orig + n + 1, (v->vtotal - n - 1) * sizeof(float));
+            memmove(vt->v + n,        vt->v + n + 1,        (vt->vtotal - n - 1) * sizeof(int));
+            memmove(v->dist + n,      v->dist + n + 1,      (vt->vtotal - n - 1) * sizeof(float));
+            memmove(v->dist_orig + n, v->dist_orig + n + 1, (vt->vtotal - n - 1) * sizeof(float));
           }
-          if (n < v->vnum) /* it was a 1-neighbor */
+          if (n < vt->vnum) /* it was a 1-neighbor */
           {
-            v->vnum--;
+            vt->vnum--;
           }
-          if (n < v->v2num) /* it was a 2-neighbor */
+          if (n < vt->v2num) /* it was a 2-neighbor */
           {
-            v->v2num--;
+            vt->v2num--;
           }
-          if (n < v->v3num) /* it was a 3-neighbor */
+          if (n < vt->v3num) /* it was a 3-neighbor */
           {
-            v->v3num--;
+            vt->v3num--;
           }
-          if ((n < v->vnum) || ((n < v->v2num) && mris->nsize >= 2) || (mris->nsize >= 3 && (n < v->v3num))) {
-            v->vtotal--;
+          if ((n < vt->vnum) || ((n < vt->v2num) && mris->nsize >= 2) || (mris->nsize >= 3 && (n < vt->v3num))) {
+            vt->vtotal--;
           }
           n--;
         }
       }
 
-      for (fno = 0; fno < v->num; fno++) {
+      for (fno = 0; fno < vt->num; fno++) {
         /* remove this face from face list if it is ripped */
-        if (mris->faces[v->f[fno]].ripflag) {
-          if (fno < v->num - 1) /* not the last one in the list */
+        if (mris->faces[vt->f[fno]].ripflag) {
+          if (fno < vt->num - 1) /* not the last one in the list */
           {
-            memmove(v->f + fno, v->f + fno + 1, (v->num - fno - 1) * sizeof(int));
-            memmove(v->n + fno, v->n + fno + 1, (v->num - fno - 1) * sizeof(uchar));
+            memmove(vt->f + fno, vt->f + fno + 1, (vt->num - fno - 1) * sizeof(int));
+            memmove(vt->n + fno, vt->n + fno + 1, (vt->num - fno - 1) * sizeof(uchar));
           }
-          v->num--;
+          vt->num--;
           fno--;
         }
       }
 #if 0
-      if (v->num <= 0 || v->vnum <= 0)  /* degenerate vertex */
+      if (vt->num <= 0 || vt->vnum <= 0)  /* degenerate vertex */
       {
         v->ripflag = 1 ;
         nripped++ ;
@@ -4014,15 +4012,16 @@ int MRISremoveRipped(MRI_SURFACE *mris)
   // rip all faces that each ripped vertex is part of
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag)
     {
-      for (n = 0 ; n < v->num ; n++)
+      for (n = 0 ; n < vt->num ; n++)
       {
 	int  n2, fno ;
 	FACE *face ;
 
-	fno = v->f[n] ;
+	fno = vt->f[n] ;
 	if (fno == Gdiag_no)
 	  DiagBreak() ;
 	face = &mris->faces[fno] ;
@@ -4034,7 +4033,7 @@ int MRISremoveRipped(MRI_SURFACE *mris)
 	  {
 	    int n3 ;
 
-	    VERTEX *vn = &mris->vertices[face->v[n2]] ;
+	    VERTEX_TOPOLOGY * const vn = &mris->vertices_topology[face->v[n2]] ;
 	    for (n3 = 0 ; n3 < vn->num ; n3++)
 	      if (vn->f[n3] == fno)  // found the ripped face - remove it
 	      {
@@ -4236,18 +4235,19 @@ static int MRIScomputeNormals_old(MRI_SURFACE *mris)
 
     float snorm[3], len;
 
-    VERTEX* v = &mris->vertices[k];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
+    VERTEX                * const v  = &mris->vertices         [k];
     if (!v->ripflag) {
       snorm[0] = snorm[1] = snorm[2] = 0;
       v->area = 0;
 
       int n, num;
-      for (num = n = 0; n < v->num; n++) {
-        int const fno = v->f[n];
+      for (num = n = 0; n < vt->num; n++) {
+        int const fno = vt->f[n];
         if (!mris->faces[fno].ripflag) {
           float norm[3];
           num++;
-          mrisNormalFace(mris, fno, (int)v->n[n], norm);
+          mrisNormalFace(mris, fno, (int)vt->n[n], norm);
           snorm[0] += norm[0];
           snorm[1] += norm[1];
           snorm[2] += norm[2];
@@ -4268,7 +4268,7 @@ static int MRIScomputeNormals_old(MRI_SURFACE *mris)
           setFaceNorm(mris, fno, norm[0], norm[1], norm[2]);
 
           /* Note: overestimates area by *2 !! */
-          v->area += mrisTriangleArea(mris, fno, (int)v->n[n]);
+          v->area += mrisTriangleArea(mris, fno, (int)vt->n[n]);
         }
       }
       if (!num) continue;
@@ -4320,12 +4320,12 @@ static int MRIScomputeNormals_old(MRI_SURFACE *mris)
         // BUG: Parallel non-deterministic, this is writing shared vertices
         //
         v->z += (float)randomNumber(-RAN, RAN);
-        for (n = 0; n < v->vnum; n++) /*if (!mris->faces[v->f[n]].ripflag)*/
+        for (n = 0; n < vt->vnum; n++) /*if (!mris->faces[v->f[n]].ripflag)*/
         {
-          if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) printf("   k=%5d %d nbr = %5d / %d\n", k, n, v->v[n], v->vnum);
-          mris->vertices[v->v[n]].x += (float)randomNumber(-RAN, RAN);
-          mris->vertices[v->v[n]].y += (float)randomNumber(-RAN, RAN);
-          mris->vertices[v->v[n]].z += (float)randomNumber(-RAN, RAN);
+          if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) printf("   k=%5d %d nbr = %5d / %d\n", k, n, vt->v[n], vt->vnum);
+          mris->vertices[vt->v[n]].x += (float)randomNumber(-RAN, RAN);
+          mris->vertices[vt->v[n]].y += (float)randomNumber(-RAN, RAN);
+          mris->vertices[vt->v[n]].z += (float)randomNumber(-RAN, RAN);
         }
         k--; /* recalculate the normal for this vertex */
       }
@@ -4447,7 +4447,8 @@ static int MRIScomputeNormals_new(MRI_SURFACE *mris)
       ROMP_PFLB_begin
 
       int const     k = pending[p];
-      VERTEX* const v = &mris->vertices[k];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
+      VERTEX                * const v  = &mris->vertices         [k];
 
       // calculate the vertex area (sum of the face areas)
       // and       the average of the face normals
@@ -4460,14 +4461,14 @@ static int MRIScomputeNormals_new(MRI_SURFACE *mris)
       int count = 0;
 
       int n;
-      for (n = 0; n < v->num; n++) {
-        FACE* face = &mris->faces[v->f[n]];
+      for (n = 0; n < vt->num; n++) {
+        FACE* face = &mris->faces[vt->f[n]];
         if (face->ripflag) continue;
         
         count++;
         
         float norm[3];
-        mrisNormalFace(mris, v->f[n], (int)v->n[n], norm);
+        mrisNormalFace(mris, vt->f[n], (int)vt->n[n], norm);
             // The normal is NOT unit length OR area length
             // Instead it's length is the sin of the angle of the vertex
             // The vertex normal is biased towards being perpendicular to 90degree contributors...
@@ -4476,7 +4477,7 @@ static int MRIScomputeNormals_new(MRI_SURFACE *mris)
         snorm[1] += norm[1];
         snorm[2] += norm[2];
 
-        area += mrisTriangleArea(mris, v->f[n], (int)v->n[n]);
+        area += mrisTriangleArea(mris, vt->f[n], (int)vt->n[n]);
       }
       
       if (!count || mrisNormalize(snorm) > 0.0) {       // Success?
@@ -4529,7 +4530,8 @@ static int MRIScomputeNormals_new(MRI_SURFACE *mris)
     //
     for (p = 0; p < nextPendingSize; p++) {
       int     const k = nextPending[p];
-      VERTEX* const v = &mris->vertices[k];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[k];
+      VERTEX                * const v  = &mris->vertices         [k];
 
       // Warn
       //      
@@ -4556,10 +4558,10 @@ static int MRIScomputeNormals_new(MRI_SURFACE *mris)
         // I don't know why this was not done for the MRIS_PLANE and _CUT
         //
         int n;
-        for (n = 0; n < v->vnum; n++) { /* if (!mris->faces[v->f[n]].ripflag) */
-          VERTEX* vn = &mris->vertices[v->v[n]];
+        for (n = 0; n < vt->vnum; n++) { /* if (!mris->faces[v->f[n]].ripflag) */
+          VERTEX* vn = &mris->vertices[vt->v[n]];
           if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) 
-            printf("   k=%5d %d nbr = %5d / %d\n", k, n, v->v[n], v->vnum);
+            printf("   k=%5d %d nbr = %5d / %d\n", k, n, vt->v[n], vt->vnum);
           vn->x += fnv_hash(trial, k, &random_counter, -RAN, RAN);
           vn->y += fnv_hash(trial, k, &random_counter, -RAN, RAN);
           vn->z += fnv_hash(trial, k, &random_counter, -RAN, RAN);
@@ -4568,8 +4570,8 @@ static int MRIScomputeNormals_new(MRI_SURFACE *mris)
         // Recompute the face norms for the affected faces
         // Note: this will recompute some, but I suspect the number is too small to be relevant
         //
-        for (n = 0; n < v->num; n++) {
-          int const fno = v->f[n];
+        for (n = 0; n < vt->num; n++) {
+          int const fno = vt->f[n];
           FACE* f = &mris->faces[fno];
           if (f->ripflag) continue;
           float norm[3];
@@ -4628,13 +4630,14 @@ static int mrisComputeVertexDistances(MRI_SURFACE *mris)
     
         if (vno == Gdiag_no) DiagBreak();
 
-        VERTEX const * const v = &mris->vertices[vno];
+        VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+        VERTEX                * const v  = &mris->vertices         [vno];
         if (v->ripflag || v->dist == NULL) continue;
 
         int *pv;
-        int const vtotal = v->vtotal;
+        int const vtotal = vt->vtotal;
         int n;
-        for (pv = v->v, n = 0; n < vtotal; n++) {
+        for (pv = vt->v, n = 0; n < vtotal; n++) {
           VERTEX const * const vn = &mris->vertices[*pv++];
           // if (vn->ripflag) continue;
           float xd = v->x - vn->x;
@@ -4662,7 +4665,8 @@ static int mrisComputeVertexDistances(MRI_SURFACE *mris)
     
         if (vno == Gdiag_no) DiagBreak();
 
-        VERTEX const * const v = &mris->vertices[vno];
+        VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+        VERTEX          const * const v  = &mris->vertices         [vno];
         if (v->ripflag || v->dist == NULL) continue;
 
         XYZ xyz1_normalized;
@@ -4672,9 +4676,9 @@ static int mrisComputeVertexDistances(MRI_SURFACE *mris)
         float const radius = xyz1_length;
 
         int *pv;
-        int const vtotal = v->vtotal;
+        int const vtotal = vt->vtotal;
         int n;
-        for (pv = v->v, n = 0; n < vtotal; n++) {
+        for (pv = vt->v, n = 0; n < vtotal; n++) {
           VERTEX const * const vn = &mris->vertices[*pv++];
           if (vn->ripflag) continue;
           
@@ -4704,7 +4708,6 @@ static int mrisComputeVertexDistances(MRI_SURFACE *mris)
 static int mrisComputeOriginalVertexDistances(MRI_SURFACE *mris)
 {
   int vno, n, vtotal, *pv;
-  VERTEX *v, *vn;
   float d, xd, yd, zd, circumference = 0.0f, angle;
   VECTOR *v1, *v2;
 
@@ -4712,19 +4715,20 @@ static int mrisComputeOriginalVertexDistances(MRI_SURFACE *mris)
   v2 = VectorAlloc(3, MATRIX_REAL);
 
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag || v->dist_orig == NULL) {
       continue;
     }
     if (vno == Gdiag_no) {
       DiagBreak();
     }
-    vtotal = v->vtotal;
+    vtotal = vt->vtotal;
     switch (mris->status) {
       default: /* don't really know what to do in other cases */
       case MRIS_PLANE:
-        for (pv = v->v, n = 0; n < vtotal; n++) {
-          vn = &mris->vertices[*pv++];
+        for (pv = vt->v, n = 0; n < vtotal; n++) {
+          VERTEX const * const vn = &mris->vertices[*pv++];
           if (vn->ripflag) {
             continue;
           }
@@ -4743,8 +4747,8 @@ static int mrisComputeOriginalVertexDistances(MRI_SURFACE *mris)
         {
           circumference = M_PI * 2.0 * V3_LEN(v1);
         }
-        for (pv = v->v, n = 0; n < vtotal; n++) {
-          vn = &mris->vertices[*pv++];
+        for (pv = vt->v, n = 0; n < vtotal; n++) {
+          VERTEX const * const vn = &mris->vertices[*pv++];
           if (vn->ripflag) {
             continue;
           }
@@ -4834,9 +4838,9 @@ static double MRISavgInterVertexDist(MRIS *Surf, double *StdDev)
     if (vtx1->ripflag) {
       continue;
     }
-    nNNbrs = Surf->vertices[VtxNo].vnum;
+    nNNbrs = Surf->vertices_topology[VtxNo].vnum;
     for (nthNNbr = 0; nthNNbr < nNNbrs; nthNNbr++) {
-      NbrVtxNo = Surf->vertices[VtxNo].v[nthNNbr];
+      NbrVtxNo = Surf->vertices_topology[VtxNo].v[nthNNbr];
       vtx2 = &Surf->vertices[NbrVtxNo];
       if (vtx2->ripflag) {
         continue;
@@ -4964,10 +4968,9 @@ static float mrisTriangleArea(MRIS *mris, int fac, int n)
 static int mrisComputeOrigNormal(MRIS *mris, int vno, float norm[])
 {
   float snorm[3];
-  VERTEX *v;
   int n, num;
 
-  v = &mris->vertices[vno];
+  VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno];
 
   norm[0] = norm[1] = norm[2] = 0.0;
   for (num = n = 0; n < v->num; n++)
@@ -4995,10 +4998,9 @@ static int mrisComputeOrigNormal(MRIS *mris, int vno, float norm[])
 static int mrisComputeWhiteNormal(MRIS *mris, int vno, float norm[])
 {
   float snorm[3];
-  VERTEX *v;
   int n, num;
 
-  v = &mris->vertices[vno];
+  VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno];
 
   norm[0] = norm[1] = norm[2] = 0.0;
   for (num = n = 0; n < v->num; n++)
