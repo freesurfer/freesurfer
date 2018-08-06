@@ -39,6 +39,7 @@ enum ArgType {Unknown, Bool, String, Int, Float};
 ///   std::string output = parser.retrieve<std::string>("output");
 ///   vector<std::string> inputs = parser.retrieve<vector<std::string>>("inputs");
 /// \endcode
+
 class ArgumentParser {
 private:
   class Any;
@@ -145,23 +146,25 @@ public:
   void addArgument(const String& name, char nargs = 0, ArgType argtype = Unknown, bool required = false);
   void addArgument(const String& short_name, const String& name, char nargs = 0, ArgType argtype = Unknown, bool required = false);
 
+  void addHelp(const unsigned char *text, unsigned int size);
+
   void parse(size_t argc, const char** argv);
   void parse(const StringVector& argv);
 
   bool exists(const String& name);
 
-
   /// Returns the parsed inputs for a given argument key (specified by 'name').
   /// The output must be correctly typecasted based on the configured arg type,
   /// but if it's not, the error message should hopefully provide the correct fix
   template <typename T>
-  T& retrieve(const String& name) {
+  T retrieve(const String& name) {
     String unstripped = unstrip(name);
     if (index.count(unstripped) == 0) errExit(1) << "'" << unstripped << "' is not a known argument";
     size_t N = index[unstripped];
+    T retrieved;
     // try to cast the arguments
     try {
-      return variables[N].castTo<T>();
+      retrieved = variables[N].castTo<T>();
     } catch (std::bad_cast) {
       // if casting fails, print out a VERY detailed debug message
       String fulltype, sentence_starter;
@@ -178,6 +181,7 @@ public:
                  << "To change the expected type, modify the call to "
                  << Log::dim() << "addArgument()" << Log::reset();
     }
+    return retrieved;
   }
 
 private:
@@ -193,6 +197,8 @@ private:
   ArgumentVector arguments;
   ArgumentVector positionals;
   AnyVector variables;
+  const unsigned char *helptext;
+  unsigned int helptextsize;
 };
 
 #endif

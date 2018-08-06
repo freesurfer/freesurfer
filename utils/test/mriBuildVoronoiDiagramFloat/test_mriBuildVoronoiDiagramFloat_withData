@@ -15,20 +15,16 @@ gunzip -c testdata.tar.gz | tar xvf -
 
 
 #
-# run test_mriBuildVoronoiDiagramFloat with the source and reference files:
+# run test_voronoi with the source and reference files:
 #
 
 cd testdata
 
-setenv FREESURFER_HOME ../../distribution
-setenv SUBJECTS_DIR ""
-
-
-set cmd=(../test_mriBuildVoronoiDiagramFloat src.mgz ctrl.mgz dst.mgz)
+set cmd=(../test_voronoi src.mgz ctrl.mgz dst.mgz)
 echo
 $cmd
 if ($status != 0) then
-  echo "test_mriBuildVoronoiDiagramFloat FAILED"
+  echo "test_voronoi FAILED"
   exit 1
 endif
 

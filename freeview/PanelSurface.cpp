@@ -102,7 +102,9 @@ PanelSurface::PanelSurface(QWidget *parent) :
                  << ui->lineEditLabelHeatscaleMax
                  << ui->labelHeatscaleRange
                  << ui->labelLabelZOrderLabel
-                 << ui->spinBoxZOrderLabel;
+                 << ui->spinBoxZOrderLabel
+                 << ui->labelLabelOpacity
+                 << ui->lineEditLabelOpacity;
 
   m_widgetsOverlay << ui->pushButtonConfigureOverlay
                    << ui->pushButtonRemoveOverlay
@@ -531,6 +533,7 @@ void PanelSurface::DoUpdateWidgets()
     ChangeLineEditNumber(ui->lineEditLabelThreshold, label->GetThreshold());
     ChangeLineEditNumber(ui->lineEditLabelHeatscaleMin, label->GetHeatscaleMin());
     ChangeLineEditNumber(ui->lineEditLabelHeatscaleMax, label->GetHeatscaleMax());
+    ChangeLineEditNumber(ui->lineEditLabelOpacity, label->GetOpacity());
     ui->comboBoxLabelColorCode->setCurrentIndex(label->GetColorCode());
     ui->labelHeatscaleRange->setVisible(label->GetColorCode() == SurfaceLabel::Heatscale);
     ui->lineEditLabelHeatscaleMin->setVisible(label->GetColorCode() == SurfaceLabel::Heatscale);
@@ -1320,4 +1323,22 @@ void PanelSurface::OnButtonClearMarks()
   LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
   if (surf)
     surf->ClearMarks();
+}
+
+void PanelSurface::OnLineEditLabelOpacity(const QString &text)
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  bool bOK;
+  double dval = text.toDouble( &bOK );
+  if (surf && bOK && dval >= 0 && dval <= 1)
+  {
+    QList<SurfaceLabel*> labels = GetSelectedLabels();
+    foreach (SurfaceLabel* label, labels)
+    {
+      label->blockSignals(true);
+      label->SetOpacity(dval);
+      label->blockSignals(false);
+    }
+    surf->UpdateColorMap();
+  }
 }

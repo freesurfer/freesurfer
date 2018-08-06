@@ -5,6 +5,10 @@
 
 #include "argparse.hpp"
 
+extern "C" {
+#include "utils.h"
+}
+
 
 /// Makes sure option key is valid (i.e it isn't empty and
 /// has the correct number of leading dashes)
@@ -172,6 +176,15 @@ void ArgumentParser::addArgument(const ArgumentParser::String& short_name, const
 }
 
 
+/// Configures a --help option that prints the supplied xml help text
+void ArgumentParser::addHelp(const unsigned char *text, unsigned int size)
+{
+  helptext = text;
+  helptextsize = size;
+  addArgument("-h", "--help", 0, Bool, false);
+}
+
+
 /// Parses the command line from the standard main() function arguments
 void ArgumentParser::parse(size_t argc, const char** argv)
 {
@@ -185,6 +198,12 @@ void ArgumentParser::parse(const ArgumentParser::StringVector& argv)
 {
   // name the app
   if (!argv.empty()) app_name = argv[0];
+
+  // make sure arguments were provided
+  if ((argv.size() <= 1) && (helptextsize > 0)) {
+    outputHelpXml(helptext, helptextsize);
+    exit(1);
+  }
 
   // first do a quick and dirty sweep of the options, making sure the minimum
   // amount of arguments have been provided
@@ -286,6 +305,12 @@ void ArgumentParser::parse(const ArgumentParser::StringVector& argv)
   }
   // validate the final argument
   if (active.valid) active.validate();
+
+  // check for the help flag
+  if ((exists("help")) && (helptextsize > 0)) {
+    outputHelpXml(helptext, helptextsize);
+    exit(0);
+  }
 
   // check that all of the required arguments have been provided
   for (ArgumentVector::const_iterator it = arguments.begin(); it != arguments.end(); ++it) {

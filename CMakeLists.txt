@@ -63,7 +63,7 @@ if(NOT FS_PACKAGES_DIR)
                         "Or they can be downloaded from here:\n"
                         "    ${FS_PACKAGES_URL}\n"
                         "After the dependencies have been setup, cmake should be configured with:\n"
-                        "    -DFS_PACKAGES_DIR=\"/desired/packages/install/dir\"")
+                        "    -DFS_PACKAGES_DIR=\"/path/to/fs-packages\"")
   endif()
 endif()
 
@@ -77,7 +77,7 @@ add_definitions(-DHAVE_ZLIB)
 if(NOT APPLE)
 
   # -------- gfortran --------
-  find_library(GFORTRAN_LIBRARIES NAMES libgfortran.a)
+  find_library(GFORTRAN_LIBRARIES HINTS /usr/lib/gcc/x86_64-linux-gnu/4.8 NAMES libgfortran.a)
 
   # -------- blas and lapack --------
   find_library(BLAS_LIBRARIES NAMES libblas.a)
@@ -117,7 +117,7 @@ find_package(ITK HINTS ${ITK_DIR} REQUIRED)
 add_definitions(-DHAVE_ITK_LIBS)
 
 # -------- boost --------
-set(Boost_DIR ${FS_PACKAGES_DIR}/boost/1.53)
+set(BOOST_ROOT ${FS_PACKAGES_DIR}/boost/1.53)
 find_package(Boost COMPONENTS program_options)
 
 # -------- ann --------
@@ -214,8 +214,8 @@ set(C_CXX_FLAGS "${C_CXX_FLAGS} -msse2 -mfpmath=sse")
 # -g compiles debugging info for use by debuggers like gdb. Normally we want
 # that in the build, but here we add the FS_DEBUG option, which greatly
 # reduces the size of compiled binaries when turned OFF
-option(FS_DEBUG "Compile with the -g flag" ON)
-if(FS_DEBUG)
+option(DEBUG "Compile with the -g flag" ON)
+if(DEBUG)
   set(C_CXX_FLAGS "${C_CXX_FLAGS} -g")
 endif()
 

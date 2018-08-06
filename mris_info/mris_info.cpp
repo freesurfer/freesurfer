@@ -79,7 +79,7 @@ int diag_vno=-1;
 
 /*------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  double InterVertexDistAvg, InterVertexDistStdDev,avgvtxarea;
+  double InterVertexDistAvg, InterVertexDistStdDev,avgvtxarea,avgfacearea;
   char ext[STRLEN] ;
   vector<string> type;
   FILE *fp;
@@ -252,11 +252,13 @@ int main(int argc, char *argv[]) {
   InterVertexDistAvg    = mris->avg_vertex_dist;
   InterVertexDistStdDev = mris->std_vertex_dist;
   avgvtxarea = mris->avg_vertex_area;
+  avgfacearea = mris->total_area/mris->nfaces;
 
   cout << "num vertices: " << mris->nvertices << endl;
   cout << "num faces   : " << mris->nfaces << endl;
   cout << "num strips  : " << mris->nstrips << endl;
   cout << "surface area: " << mris->total_area << endl;
+  printf("AvgFaceArea      %lf\n",avgfacearea);
   printf("AvgVtxArea       %lf\n",avgvtxarea);
   printf("AvgVtxDist       %lf\n",InterVertexDistAvg);
   printf("StdVtxDist       %lf\n",InterVertexDistStdDev);
@@ -327,6 +329,7 @@ int main(int argc, char *argv[]) {
   if (mris->group_avg_surface_area > 0)
     fprintf(fp,"group_avg_surf_area  %f\n",mris->group_avg_surface_area);
   printf("group_avg_vtxarea_loaded %d\n",mris->group_avg_vtxarea_loaded);
+  fprintf(fp,"avgfacearea  %lf\n",avgfacearea);
   fprintf(fp,"avgvtxarea  %lf\n",avgvtxarea);
   fprintf(fp,"avgvtxdist  %lf\n",InterVertexDistAvg);
   fprintf(fp,"stdvtxdist  %lf\n",InterVertexDistStdDev);

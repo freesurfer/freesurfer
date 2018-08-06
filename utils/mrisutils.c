@@ -3417,7 +3417,7 @@ int L2Stest(char *subject)
   idential, though the actual placement of the vertices might not be
   the same.
   \example
-    asp = MRISaveageSurfaceParamAlloc(40);
+    asp = MRISaverageSurfaceParamAlloc(40);
     asp->icoorder = 7;
     asp->hemi = "lh";
     asp->surfname = "white";
@@ -3553,12 +3553,12 @@ MRIS *MakeAverageSurf(AVERAGE_SURFACE_PARAMS *asp)
 }
 
 /*!
-  \fn AVERAGE_SURFACE_PARAMS *MRISaveageSurfaceParamAlloc(int nsubjects)
+  \fn AVERAGE_SURFACE_PARAMS *MRISaverageSurfaceParamAlloc(int nsubjects)
   \brief Allocates the subjectlist char string in the PARAMS
   struct. Also sets the icoorder to -1, ReverseMapFlag = 1, and
   UseHash = 1.
  */
-AVERAGE_SURFACE_PARAMS *MRISaveageSurfaceParamAlloc(int nsubjects)
+AVERAGE_SURFACE_PARAMS *MRISaverageSurfaceParamAlloc(int nsubjects)
 {
   AVERAGE_SURFACE_PARAMS *asp;
   asp = (AVERAGE_SURFACE_PARAMS *)calloc(1, sizeof(AVERAGE_SURFACE_PARAMS));
@@ -3571,10 +3571,10 @@ AVERAGE_SURFACE_PARAMS *MRISaveageSurfaceParamAlloc(int nsubjects)
 }
 
 /*!
-  \fn int MRISaveageSurfaceParamFree(AVERAGE_SURFACE_PARAMS **pasp)
+  \fn int MRISaverageSurfaceParamFree(AVERAGE_SURFACE_PARAMS **pasp)
   \brief Frees the subjectlist and the ASP prointer.
  */
-int MRISaveageSurfaceParamFree(AVERAGE_SURFACE_PARAMS **pasp)
+int MRISaverageSurfaceParamFree(AVERAGE_SURFACE_PARAMS **pasp)
 {
   AVERAGE_SURFACE_PARAMS *asp = *pasp;
   free(asp->subjectlist);

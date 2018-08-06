@@ -253,7 +253,7 @@ static float mrisSampleMinimizationEnergy(
     MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms, float cx, float cy, float cz);
 static int mrisScaleTimeStepByCurvature(MRI_SURFACE *mris);
 static float mrisSampleSpringEnergy(
-    MRI_SURFACE *mris, VERTEX *v, float cx, float cy, float cz, INTEGRATION_PARMS *parms);
+    MRI_SURFACE *mris, int vno, float cx, float cy, float cz, INTEGRATION_PARMS *parms);
 static int get_face_axes(
     MRI_SURFACE *mris, FACE *face, float *pe1x, float *pe1y, float *pe1z, float *pe2x, float *pe2y, float *pe2z);
 #if 0
@@ -18746,10 +18746,10 @@ int MRISuseAreaErrors(MRI_SURFACE *mris)
   int vno, fi, n;
   float area, orig_area;
   FACE *face;
-  VERTEX *vertex;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
-    vertex = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
+    VERTEX                * const vertex  = &mris->vertices         [vno];
     if (vertex->ripflag) {
       continue;
     }
@@ -18759,10 +18759,10 @@ int MRISuseAreaErrors(MRI_SURFACE *mris)
        this is not really correct, but should be good enough for
        visualization purposes.
     */
-    for (n = fi = 0; fi < vertex->num; fi++) {
-      face = &mris->faces[vertex->f[fi]];
+    for (n = fi = 0; fi < vertext->num; fi++) {
+      face = &mris->faces[vertext->f[fi]];
       area += face->area;
-      FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, vertex->f[fi]);
+      FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, vertext->f[fi]);
       orig_area += fNorm->orig_area;
     }
     vertex->curv = (area - orig_area) / (float)n;
@@ -19275,9 +19275,8 @@ mrisTearStressedRegions(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    VERTEX *v ;
-
-    v = &mris->vertices[vno] ;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
 
     if (!v->oripflag)
     {
@@ -19288,13 +19287,13 @@ mrisTearStressedRegions(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       nx = v->nx;  ny = v->ny; nz = v->nz;
       sx=sy=sz=sd=0;
       n=0;
-      for (m = 0 ; m < v->vnum ; m++)
-	if (!mris->vertices[v->v[m]].oripflag)
+      for (m = 0 ; m < vt->vnum ; m++)
+	if (!mris->vertices[vt->v[m]].oripflag)
           {
 	    double d ;
-            sx += dx = mris->vertices[v->v[m]].tx - x;
-            sy += dy = mris->vertices[v->v[m]].ty - y;
-            sz += dz = mris->vertices[v->v[m]].tz - z;
+            sx += dx = mris->vertices[vt->v[m]].tx - x;
+            sy += dy = mris->vertices[vt->v[m]].ty - y;
+            sz += dz = mris->vertices[vt->v[m]].tz - z;
             d = sqrt(dx*dx+dy*dy+dz*dz);
 	    sd += d ;
 #if 0
@@ -19304,7 +19303,7 @@ mrisTearStressedRegions(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 	    if (d > parms->stressthresh && parms->explode_flag && ncalls>EXPLODE_ITER)
 	    {
 	      nrip++ ;
-	      mrisRemoveLink(mris, vno, v->v[m]);
+	      mrisRemoveLink(mris, vno, vt->v[m]);
 	      mris->patch = 1 ;
 	    }
 #endif	      
@@ -19325,8 +19324,8 @@ mrisTearStressedRegions(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
             nrip++;
 	    mris->patch = 1 ;
 //            v->ripflag = TRUE;
-	    for (m = 0 ; m < v->vnum ; m++)
-	      mrisRemoveLink(mris, vno, v->v[m]);
+	    for (m = 0 ; m < vt->vnum ; m++)
+	      mrisRemoveLink(mris, vno, vt->v[m]);
           }
 #endif
 	}
@@ -19757,30 +19756,30 @@ int MRISsmoothOnSphere(MRIS *mris, int niters)
 {
   int n, p;
   float x, y, z;
-  VERTEX *v, *vp;
 
   while (niters--) {
     for (n = 0; n < mris->nvertices; n++) {
-      v = &mris->vertices[n];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[n];
+      VERTEX                * const v  = &mris->vertices         [n];
 
       x = y = z = 0.0f;
 
-      for (p = 0; p < v->vnum; p++) {
-        vp = &mris->vertices[v->v[p]];
+      for (p = 0; p < vt->vnum; p++) {
+        VERTEX * const vp = &mris->vertices[vt->v[p]];
         x += vp->x;
         y += vp->y;
         z += vp->z;
       }
-      if (v->vnum == 0) {
+      if (vt->vnum == 0) {
         v->tx = v->x;
         v->ty = v->y;
         v->tz = v->z;
         DiagBreak();
       }
       else {
-        v->tx = x / v->vnum;
-        v->ty = y / v->vnum;
-        v->tz = z / v->vnum;
+        v->tx = x / vt->vnum;
+        v->ty = y / vt->vnum;
+        v->tz = z / vt->vnum;
       }
       if (!isfinite(v->tx)) {
         DiagBreak();
@@ -19788,7 +19787,7 @@ int MRISsmoothOnSphere(MRIS *mris, int niters)
     }
 
     for (n = 0; n < mris->nvertices; n++) {
-      v = &mris->vertices[n];
+      VERTEX * const v  = &mris->vertices[n];
       sphericalProjection(v->tx, v->ty, v->tz, &v->x, &v->y, &v->z);
       if (!isfinite(v->x)) {
         DiagBreak();
@@ -19887,7 +19886,6 @@ static float computeArea(MRIS *mris, int fac, int n)
 int mrisApplyGradientPositiveAreaPreserving(MRI_SURFACE *mris, double dt)
 {
   int vno, nvertices, n;
-  VERTEX *v;
   float x, y, z, dx, dy, dz;
   float orig_area, area;
 
@@ -19914,7 +19912,8 @@ int mrisApplyGradientPositiveAreaPreserving(MRI_SURFACE *mris, double dt)
   fprintf(stderr, "before : neg = %d - area = %f \n", count, neg_area);
 
   for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -19935,16 +19934,16 @@ int mrisApplyGradientPositiveAreaPreserving(MRI_SURFACE *mris, double dt)
 
     step = 0;
     /* preserve triangle area */
-    for (n = 0; n < v->num && step < last_step; n++) {
+    for (n = 0; n < vt->num && step < last_step; n++) {
       sphericalProjection(x, y, z, &v->x, &v->y, &v->z);
-      orig_area = computeArea(mris, v->f[n], (int)v->n[n]);
+      orig_area = computeArea(mris, vt->f[n], (int)vt->n[n]);
       if (orig_area <= 0) {
         continue;
       }
       while (step < last_step) {
         eps = epsilon[step];
         sphericalProjection(x + eps * dx, y + eps * dy, z + eps * dz, &v->x, &v->y, &v->z);
-        area = computeArea(mris, v->f[n], (int)v->n[n]);
+        area = computeArea(mris, vt->f[n], (int)vt->n[n]);
         if (area > 0) {
           break; /* we can stop here */
         }
@@ -20320,7 +20319,6 @@ int MRISstoreMeanCurvature(MRI_SURFACE *mris)
 int MRISstoreMetricProperties(MRI_SURFACE *mris)
 {
   int vno, nvertices, fno, ano, n;
-  VERTEX *v;
   FACE *f;
 
 #if 0
@@ -20329,14 +20327,15 @@ int MRISstoreMetricProperties(MRI_SURFACE *mris)
 #endif
   nvertices = mris->nvertices;
   for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
     v->origarea = v->area;
 #if 1
     if (v->dist && v->dist_orig)
-      for (n = 0; n < v->vtotal; n++) {
+      for (n = 0; n < vt->vtotal; n++) {
         v->dist_orig[n] = v->dist[n];
       }
 #endif
@@ -20365,17 +20364,17 @@ int MRISstoreMetricProperties(MRI_SURFACE *mris)
 int MRISrestoreMetricProperties(MRI_SURFACE *mris)
 {
   int vno, nvertices, fno, ano, n;
-  VERTEX *v;
   FACE *f;
 
   nvertices = mris->nvertices;
   for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
     v->area = v->origarea;
-    for (n = 0; n < v->vtotal; n++) {
+    for (n = 0; n < vt->vtotal; n++) {
       v->dist[n] = v->dist_orig[n];
     }
   }
@@ -20545,28 +20544,28 @@ int MRISsmoothCurvatures(MRI_SURFACE *mris, int niterations)
 {
   int vno, i, vn;
   double g, H, norm;
-  VERTEX *vertex;
 
   for (i = 0; i < niterations; i++) {
     for (vno = 0; vno < mris->nvertices; vno++) {
-      vertex = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
+      VERTEX                * const vertex  = &mris->vertices         [vno];
       if (vertex->ripflag) {
         continue;
       }
       H = kernel[0] * vertex->H;
       g = kernel[1];
-      for (vn = 0; vn < vertex->vnum; vn++) {
-        H += g * mris->vertices[vertex->v[vn]].H;
+      for (vn = 0; vn < vertext->vnum; vn++) {
+        H += g * mris->vertices[vertext->v[vn]].H;
       }
       g = kernel[2];
-      for (; vn < vertex->v2num; vn++) {
-        H += g * mris->vertices[vertex->v[vn]].H;
+      for (; vn < vertext->v2num; vn++) {
+        H += g * mris->vertices[vertext->v[vn]].H;
       }
-      norm = kernel[0] + vertex->vnum * kernel[1] + (vertex->v2num - vertex->vnum) * kernel[2];
+      norm = kernel[0] + vertext->vnum * kernel[1] + (vertext->v2num - vertext->vnum) * kernel[2];
       vertex->d = H / norm;
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      vertex = &mris->vertices[vno];
+      VERTEX * const vertex = &mris->vertices[vno];
       if (vertex->ripflag) {
         continue;
       }
@@ -20967,10 +20966,10 @@ static int mrisComputeConvexityTerm(MRI_SURFACE *mris, double l_convex)
     ROMP_PFLB_begin
     
     int n, m;
-    VERTEX *vertex, *vn;
     float sx, sy, sz, nx, ny, nz, nc, x, y, z;
 
-    vertex = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
+    VERTEX                * const vertex  = &mris->vertices         [vno];
     if (vertex->ripflag) {
       continue;
     }
@@ -20987,8 +20986,8 @@ static int mrisComputeConvexityTerm(MRI_SURFACE *mris, double l_convex)
 
     sx = sy = sz = 0.0;
     n = 0;
-    for (m = 0; m < vertex->vnum; m++) {
-      vn = &mris->vertices[vertex->v[m]];
+    for (m = 0; m < vertext->vnum; m++) {
+      VERTEX const * const vn = &mris->vertices[vertext->v[m]];
       if (!vn->ripflag) {
         sx += vn->x - x;
         sy += vn->y - y;
@@ -21035,7 +21034,6 @@ static int mrisComputeConvexityTerm(MRI_SURFACE *mris, double l_convex)
 static int mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring)
 {
   int vno, n, m;
-  VERTEX *vertex, *vn;
   float sx, sy, sz, nx, ny, nz, nc, x, y, z;
 
   if (FZERO(l_spring)) {
@@ -21043,7 +21041,8 @@ static int mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring)
   }
 
   for (vno = 0; vno < mris->nvertices; vno++) {
-    vertex = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
+    VERTEX                * const vertex  = &mris->vertices         [vno];
     if (vertex->ripflag) {
       continue;
     }
@@ -21060,8 +21059,8 @@ static int mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring)
 
     sx = sy = sz = 0.0;
     n = 0;
-    for (m = 0; m < vertex->vnum; m++) {
-      vn = &mris->vertices[vertex->v[m]];
+    for (m = 0; m < vertext->vnum; m++) {
+      VERTEX const * const vn = &mris->vertices[vertext->v[m]];
       if (!vn->ripflag) {
         sx += vn->x - x;
         sy += vn->y - y;
@@ -21101,7 +21100,6 @@ static int mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring)
 static int mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring)
 {
   int vno, n, m;
-  VERTEX *v, *vn;
   float sx, sy, sz, x, y, z, nc;
 
   if (FZERO(l_spring)) {
@@ -21109,7 +21107,8 @@ static int mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring)
   }
 
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -21127,8 +21126,8 @@ static int mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring)
 
     sx = sy = sz = 0.0;
     n = 0;
-    for (m = 0; m < v->vnum; m++) {
-      vn = &mris->vertices[v->v[m]];
+    for (m = 0; m < vt->vnum; m++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[m]];
       if (!vn->ripflag) {
         sx += vn->x - x;
         sy += vn->y - y;
@@ -21172,7 +21171,6 @@ static int mrisComputeTangentialSpringTerm(MRI_SURFACE *mris, double l_spring)
 static int mrisComputeNonlinearTangentialSpringTerm(MRI_SURFACE *mris, double l_spring, double min_dist)
 {
   int vno, m, n;
-  VERTEX *v, *vn;
   float sx, sy, sz, x, y, z, dx, dy, dz;
   double d, scale;
 
@@ -21181,7 +21179,8 @@ static int mrisComputeNonlinearTangentialSpringTerm(MRI_SURFACE *mris, double l_
   }
 
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -21194,8 +21193,8 @@ static int mrisComputeNonlinearTangentialSpringTerm(MRI_SURFACE *mris, double l_
     z = v->z;
 
     sx = sy = sz = 0.0;
-    for (dx = dy = dz = 0.0, n = m = 0; m < v->vnum; m++) {
-      vn = &mris->vertices[v->v[m]];
+    for (dx = dy = dz = 0.0, n = m = 0; m < vt->vnum; m++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[m]];
       if (!vn->ripflag) {
         sx = x - vn->x;
         sy = y - vn->y;
@@ -22365,7 +22364,6 @@ static int mrisComputeExpansionTerm(MRI_SURFACE *mris, double l_expand)
 static int mrisComputeBorderTerm(MRI_SURFACE *mris, double l_border)
 {
   int vno, n, m;
-  VERTEX *v, *vn;
   float sx, sy, sz, x, y, z, dist_scale;
 
   if (FZERO(l_border)) {
@@ -22382,18 +22380,21 @@ static int mrisComputeBorderTerm(MRI_SURFACE *mris, double l_border)
   MRIScopyMarkedToMarked3(mris);
   MRISclearMarks(mris);
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
+
     if (v->ripflag == 0) {
       continue;
     }
-    for (m = 0; m < v->vtotal; m++) {
-      vn = &mris->vertices[v->v[m]];
+    for (m = 0; m < vt->vtotal; m++) {
+      VERTEX * const vn = &mris->vertices[vt->v[m]];
       vn->marked = 1;
     }
   }
 
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -22411,8 +22412,8 @@ static int mrisComputeBorderTerm(MRI_SURFACE *mris, double l_border)
 
     sx = sy = sz = 0.0;
     n = 0;
-    for (m = 0; m < v->vnum; m++) {
-      vn = &mris->vertices[v->v[m]];
+    for (m = 0; m < vt->vnum; m++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[m]];
       if (vn->marked)  // move towards ripped vertices
                        // that represent the border of this region
       {
@@ -22443,7 +22444,6 @@ static int mrisComputeBorderTerm(MRI_SURFACE *mris, double l_border)
 static int mrisComputeMaxSpringTerm(MRI_SURFACE *mris, double l_max_spring)
 {
   int vno, n, m, m_max;
-  VERTEX *v, *vn;
   float dx, dy, dz, x, y, z, dist_scale, dist, max_dist;
 
   if (FZERO(l_max_spring)) {
@@ -22458,7 +22458,8 @@ static int mrisComputeMaxSpringTerm(MRI_SURFACE *mris, double l_max_spring)
   }
 
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -22473,8 +22474,8 @@ static int mrisComputeMaxSpringTerm(MRI_SURFACE *mris, double l_max_spring)
     n = 0;
     m_max = 0;
     max_dist = 0;
-    for (m = 0; m < v->vnum; m++) {
-      vn = &mris->vertices[v->v[m]];
+    for (m = 0; m < vt->vnum; m++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[m]];
       dx = (vn->x - x);
       dy = (vn->y - y);
       dz = (vn->z - z);
@@ -22485,7 +22486,7 @@ static int mrisComputeMaxSpringTerm(MRI_SURFACE *mris, double l_max_spring)
       }
     }
 
-    vn = &mris->vertices[v->v[m_max]];
+    VERTEX const * const vn = &mris->vertices[vt->v[m_max]];
     dx = (vn->x - x);
     dy = (vn->y - y);
     dz = (vn->z - z);
@@ -22523,7 +22524,6 @@ static int mrisComputeMaxSpringTerm(MRI_SURFACE *mris, double l_max_spring)
 static int mrisComputeSpringTerm(MRI_SURFACE *mris, double l_spring)
 {
   int vno, n, m;
-  VERTEX *v, *vn;
   float sx, sy, sz, x, y, z, dist_scale;
 
   if (FZERO(l_spring)) {
@@ -22541,7 +22541,8 @@ static int mrisComputeSpringTerm(MRI_SURFACE *mris, double l_spring)
   dist_scale = 1.0;
 #endif
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -22559,8 +22560,8 @@ static int mrisComputeSpringTerm(MRI_SURFACE *mris, double l_spring)
 
     sx = sy = sz = 0.0;
     n = 0;
-    for (m = 0; m < v->vnum; m++) {
-      vn = &mris->vertices[v->v[m]];
+    for (m = 0; m < vt->vnum; m++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[m]];
       if (!vn->ripflag) {
         sx += vn->x - x;
         sy += vn->y - y;
@@ -22603,7 +22604,6 @@ static int mrisComputeSpringTerm(MRI_SURFACE *mris, double l_spring)
 static int mrisComputeLaplacianTerm(MRI_SURFACE *mris, double l_lap)
 {
   int vno, n, m;
-  VERTEX *v, *vn;
   float x, y, z, vx, vy, vz, vnx, vny, vnz, dx, dy, dz;
 
   if (FZERO(l_lap)) {
@@ -22611,7 +22611,8 @@ static int mrisComputeLaplacianTerm(MRI_SURFACE *mris, double l_lap)
   }
 
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -22632,8 +22633,8 @@ static int mrisComputeLaplacianTerm(MRI_SURFACE *mris, double l_lap)
     vy = v->y - v->ty2;
     vz = v->z - v->tz2;
     dx = dy = dz = 0.0f;
-    for (m = 0; m < v->vnum; m++) {
-      vn = &mris->vertices[v->v[m]];
+    for (m = 0; m < vt->vnum; m++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[m]];
       if (!vn->ripflag) {
         vnx = vn->x - vn->tx2;
         vny = vn->y - vn->ty2;
@@ -22884,7 +22885,8 @@ static int mrisComputeNormalizedSpringTerm(MRI_SURFACE *const mris, double const
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
     
-    VERTEX *v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -22895,8 +22897,8 @@ static int mrisComputeNormalizedSpringTerm(MRI_SURFACE *const mris, double const
     float sx = 0.0, sy = 0.0, sz = 0.0;
     int n = 0;
     int m;
-    for (m = 0; m < v->vnum; m++) {
-      VERTEX *vn = &mris->vertices[v->v[m]];
+    for (m = 0; m < vt->vnum; m++) {
+      VERTEX *vn = &mris->vertices[vt->v[m]];
       if (vn->ripflag) continue;
 
       // Almost all the time in this loop is spent in the above conditions
@@ -23057,7 +23059,6 @@ static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
     
-    VERTEX *v, *vn;
     int vnum, n;
     float d0, dt, delta, nc, vsmooth = 1.0;
 
@@ -23068,8 +23069,9 @@ static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     int tid = 0;
 #endif
 
-    v = &mris->vertices[vno];
-    vnum = v->vtotal;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
+    vnum = vt->vtotal;
     if (v->ripflag || vnum <= 0) continue;
 
     if (v->border) DiagBreak();
@@ -23081,7 +23083,7 @@ static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       fprintf(stdout, "computing distance term for v %d @ (%2.2f, %2.2f, %2.2f)\n", vno, v->x, v->y, v->z);
 
     for (n = 0; n < vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       if (vn->ripflag) continue;
 
       d0 = v->dist_orig[n] / scale;
@@ -23099,7 +23101,7 @@ static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
                 "d0 %2.2f, dt %2.2f, "
                 "delta %2.3f\n\tdx=%2.3f, %2.3f, %2.3f)\n",
                 n,
-                v->v[n],
+                vt->v[n],
                 vn->x,
                 vn->y,
                 vn->z,
@@ -23109,13 +23111,13 @@ static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
                 V3_X(v_y[tid]),
                 V3_Y(v_y[tid]),
                 V3_Z(v_y[tid]));
-      if ((vno == diag_vno1 && v->v[n] == diag_vno2) || (vno == diag_vno2 && v->v[n] == diag_vno1))
+      if ((vno == diag_vno1 && vt->v[n] == diag_vno2) || (vno == diag_vno2 && vt->v[n] == diag_vno1))
         printf(
             "nbr %d (%6.6d) @ (%2.2f, %2.2f, %2.2f), "
             "d0 %2.2f, dt %2.2f, "
             "delta %2.3f\n\ty=%2.3f, %2.3f, %2.3f)\n",
             n,
-            v->v[n],
+            vt->v[n],
             vn->x,
             vn->y,
             vn->z,
@@ -23147,18 +23149,19 @@ static int mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     if (Gdiag_no == vno) {
       FILE *fp;
       char fname[STRLEN];
-      VERTEX *v;
+      
       int i;
       static int iter = 0;
 
       sprintf(fname, "v%d_dist_%04d.log", Gdiag_no, iter++);
       fp = fopen(fname, "w");
-      v = &mris->vertices[Gdiag_no];
-      for (i = 0; i < v->vtotal; i++)
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[Gdiag_no];
+      VERTEX          const * const v  = &mris->vertices         [Gdiag_no];
+      for (i = 0; i < vt->vtotal; i++)
         fprintf(fp,
                 "%03d: %05d, %f   %f   %f\n",
                 i,
-                v->v[i],
+                vt->v[i],
                 v->dist_orig[i],
                 v->dist[i],
                 v->dist[i] - v->dist_orig[i] / scale);
@@ -23189,7 +23192,6 @@ static int mrisComputeNonlinearDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS
 {
   VECTOR *v_y, *v_delta, *v_n;
   float l_dist, d0, dt, delta, nc, scale, norm, ratio;
-  VERTEX *v, *vn;
   int vno, n, vnum;
 
   l_dist = parms->l_nldist;
@@ -23219,8 +23221,9 @@ static int mrisComputeNonlinearDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS
     fprintf(stdout, "distance scale = %2.3f\n", scale);
   }
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    vnum = v->vtotal;
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
+    vnum = vt->vtotal;
     if (v->ripflag || vnum <= 0) {
       continue;
     }
@@ -23235,7 +23238,7 @@ static int mrisComputeNonlinearDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS
       fprintf(stdout, "computing distance term for v %d @ (%2.2f, %2.2f, %2.2f)\n", vno, v->x, v->y, v->z);
 
     for (n = 0; n < vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       if (vn->ripflag) {
         continue;
       }
@@ -23259,7 +23262,7 @@ static int mrisComputeNonlinearDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS
                 "d0 %2.2f, dt %2.2f, "
                 "delta %2.3f\n\ty=%2.3f, %2.3f, %2.3f)\n",
                 n,
-                v->v[n],
+                vt->v[n],
                 vn->x,
                 vn->y,
                 vn->z,
@@ -23719,11 +23722,11 @@ static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *par
     ROMP_PFLB_begin
 
 #endif    
-    VERTEX *v, *vn;
-    int n, vn_vno;
+    int n;
     double delta, v_sse;
 
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) ROMP_PF_continue;
 
     if (vno == Gdiag_no) DiagBreak();
@@ -23732,13 +23735,13 @@ static double mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *par
     if (v->neg) ROMP_PF_continue;
 #endif
 
-    for (v_sse = 0.0, n = 0; n < v->vtotal; n++) {
-      vn_vno = v->v[n];
-      vn = &mris->vertices[vn_vno];
+    for (v_sse = 0.0, n = 0; n < vt->vtotal; n++) {
+      int const vn_vno = vt->v[n];
+      VERTEX const * const vn = &mris->vertices[vn_vno];
       if (vn->ripflag) continue;
 
 #if NO_NEG_DISTANCE_TERM
-      if (mris->vertices[v->v[n]].neg) continue;
+      if (mris->vertices[vn_vno].neg) continue;
 
 #endif
       if (v->dist_orig[n] >= UNFOUND_DIST) continue;
@@ -23868,7 +23871,6 @@ static float mrisComputeDistanceErrorCUDA(MRI_SURFACE *mris, MRI_CUDA_SURFACE *m
   ------------------------------------------------------*/
 static double mrisComputeNonlinearDistanceSSE(MRI_SURFACE *mris)
 {
-  VERTEX *v;
   int vno, n, nvertices, max_v, max_n;
   double dist_scale, sse_dist, delta, v_sse, max_del, ratio;
 
@@ -23888,12 +23890,13 @@ static double mrisComputeNonlinearDistanceSSE(MRI_SURFACE *mris)
   max_del = -1.0;
   max_v = max_n = -1;
   for (sse_dist = 0.0, nvertices = vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
     nvertices++;
-    for (v_sse = 0.0, n = 0; n < v->vtotal; n++) {
+    for (v_sse = 0.0, n = 0; n < vt->vtotal; n++) {
       if (FZERO(v->dist_orig[n])) {
         continue;
       }
@@ -23961,14 +23964,14 @@ static double mrisComputeThicknessSmoothnessEnergy(MRI_SURFACE *mris, double l_t
   int vno, n;
   double sse_tsmooth, v_sse, dn, dx, dy, dz, d0;
   float xp, yp, zp;
-  VERTEX *v, *vn;
 
   if (FZERO(l_tsmooth)) {
     return (0.0);
   }
 
   for (sse_tsmooth = 0.0, vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -23976,8 +23979,8 @@ static double mrisComputeThicknessSmoothnessEnergy(MRI_SURFACE *mris, double l_t
     MRISsampleFaceCoordsCanonical((MHT *)(parms->mht), mris, v->x, v->y, v->z, PIAL_VERTICES, &xp, &yp, &zp);
 
     d0 = SQR(xp - v->whitex) + SQR(yp - v->whitey) + SQR(zp - v->whitez);
-    for (v_sse = 0.0, n = 0; n < v->vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+    for (v_sse = 0.0, n = 0; n < vt->vnum; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       if (!vn->ripflag) {
         MRISsampleFaceCoordsCanonical((MHT *)(parms->mht), mris, vn->x, vn->y, vn->z, PIAL_VERTICES, &xp, &yp, &zp);
 
@@ -24031,12 +24034,14 @@ static int project_point_onto_sphere(float cx, float cy, float cz, float radius,
   return (NO_ERROR);
 }
 
-static float mrisSampleParallelEnergyAtVertex(MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms)
+static float mrisSampleParallelEnergyAtVertex(MRI_SURFACE *mris, int const vno, INTEGRATION_PARMS *parms)
 {
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX                * const v  = &mris->vertices         [vno];
+
   float xw, yw, zw, xp, yp, zp, dx, dy, dz, dxn, dyn, dzn, len, dxn_total, dyn_total, dzn_total;
   int n, num;
   double sse;
-  VERTEX *vn;
 
   MRISvertexCoord2XYZ_float(v, WHITE_VERTICES, &xw, &yw, &zw);
   MRISsampleFaceCoords(mris, v->fno, v->x, v->y, v->z, PIAL_VERTICES, CANONICAL_VERTICES, &xp, &yp, &zp);
@@ -24075,8 +24080,8 @@ static float mrisSampleParallelEnergyAtVertex(MRI_SURFACE *mris, VERTEX *v, INTE
 
   // compute average of neighboring vectors connecting white and pial surface, store it in d[xyz]n_total
   dxn_total = dyn_total = dzn_total = 0.0;
-  for (num = 0, sse = 0.0, n = 0; n < v->vnum; n++) {
-    vn = &mris->vertices[v->v[n]];
+  for (num = 0, sse = 0.0, n = 0; n < vt->vnum; n++) {
+    VERTEX * const vn = &mris->vertices[vt->v[n]];
     if (vn->ripflag) continue;
 
     MRISvertexCoord2XYZ_float(vn, WHITE_VERTICES, &xw, &yw, &zw);
@@ -24126,8 +24131,11 @@ static float mrisSampleParallelEnergyAtVertex(MRI_SURFACE *mris, VERTEX *v, INTE
   return (sse);
 }
 static float mrisSampleParallelEnergy(
-    MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms, float cx, float cy, float cz)
+    MRI_SURFACE *mris, int const vno, INTEGRATION_PARMS *parms, float cx, float cy, float cz)
 {
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX                * const v  = &mris->vertices         [vno];
+
   int fno = 0, old_fno, num;
   double sse, fdist;
   FACE *face;
@@ -24149,14 +24157,15 @@ static float mrisSampleParallelEnergy(
   v->x = cx;
   v->y = cy;
   v->z = cz;  // change coords to here and compute effects on sse
-  sse = mrisSampleParallelEnergyAtVertex(mris, v, parms);
+  sse = mrisSampleParallelEnergyAtVertex(mris, vno, parms);
 #if 1
-  for (num = 1, n = 0; n < v->vnum; n++) {
+  for (num = 1, n = 0; n < vt->vnum; n++) {
+    int const vnno = vt->v[n];
     VERTEX *vn;
-    vn = &mris->vertices[v->v[n]];
+    vn = &mris->vertices[vnno];
     if (vn->ripflag) continue;
 
-    sse += mrisSampleParallelEnergyAtVertex(mris, vn, parms);
+    sse += mrisSampleParallelEnergyAtVertex(mris, vnno, parms);
     num++;
   }
 #else
@@ -24216,12 +24225,15 @@ static float mrisSampleNormalEnergy(
 }
 
 static float mrisSampleSpringEnergy(
-    MRI_SURFACE *mris, VERTEX *v, float cx, float cy, float cz, INTEGRATION_PARMS *parms)
+    MRI_SURFACE *mris, int const vno, float cx, float cy, float cz, INTEGRATION_PARMS *parms)
 {
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX          const * const v  = &mris->vertices         [vno];
+
   float xn, yn, zn, xp, yp, zp, xc, yc, zc;
   double sse, fdist, vdist = mris->avg_vertex_dist;
   int n, num, fno;
-  VERTEX *vn;
+
   FACE *face;
   MHT *mht = (MHT *)(parms->mht);
 
@@ -24235,8 +24247,8 @@ static float mrisSampleSpringEnergy(
   MRISsampleFaceCoords(mris, fno, cx, cy, cz, PIAL_VERTICES, CANONICAL_VERTICES, &xp, &yp, &zp);
 
   xc = yc = zc = 0;
-  for (num = n = 0; n < v->vnum; n++) {
-    vn = &mris->vertices[v->v[n]];
+  for (num = n = 0; n < vt->vnum; n++) {
+    VERTEX const * const vn = &mris->vertices[vt->v[n]];
     if (vn->ripflag) continue;
     MRISsampleFaceCoords(mris, vn->fno, vn->x, vn->y, vn->z, PIAL_VERTICES, CANONICAL_VERTICES, &xn, &yn, &zn);
     xc += xn;
@@ -24523,8 +24535,11 @@ static double ashburnerTriangleEnergy(MRI_SURFACE *mris, int fno, double lambda)
 }
 #endif
 static float mrisSampleAshburnerTriangleEnergy(
-    MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms, float cx, float cy, float cz)
+    MRI_SURFACE * const mris, int const vno, INTEGRATION_PARMS * const parms, float cx, float cy, float cz)
 {
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX                * const v  = &mris->vertices         [vno];
+
   double sse, ox, oy, oz, sse_total;
   int n;
 
@@ -24537,8 +24552,8 @@ static float mrisSampleAshburnerTriangleEnergy(
   v->x = cx;
   v->y = cy;
   v->z = cz;  // change location to compute energy
-  for (sse_total = 0.0, n = 0; n < v->num; n++) {
-    sse = ashburnerTriangleEnergy(mris, v->f[n], parms->l_ashburner_lambda);
+  for (sse_total = 0.0, n = 0; n < vt->num; n++) {
+    sse = ashburnerTriangleEnergy(mris, vt->f[n], parms->l_ashburner_lambda);
     if (sse < 0 || !isfinite(sse)) DiagBreak();
 
     sse_total += sse;
@@ -24546,7 +24561,7 @@ static float mrisSampleAshburnerTriangleEnergy(
   v->x = ox;
   v->y = oy;
   v->z = oz;  // restore original location of vertex
-  sse_total /= v->num;
+  sse_total /= vt->num;
   return (sse_total);
 }
 #if 0
@@ -24763,7 +24778,7 @@ static double mrisComputeThicknessSpringEnergy(MRI_SURFACE *mris, double l_thick
 
     if (v->ripflag) continue;
 
-    sse = mrisSampleSpringEnergy(mris, v, v->x, v->y, v->z, parms);
+    sse = mrisSampleSpringEnergy(mris, vno, v->x, v->y, v->z, parms);
 
     sse_spring += sse;
     if (Gdiag_no == vno) {
@@ -24773,7 +24788,7 @@ static double mrisComputeThicknessSpringEnergy(MRI_SURFACE *mris, double l_thick
       cx = v->x;
       cy = v->y;
       cz = v->z;
-      E = mrisSampleSpringEnergy(mris, v, v->x, v->y, v->z, parms);
+      E = mrisSampleSpringEnergy(mris, vno, v->x, v->y, v->z, parms);
       MRISvertexCoord2XYZ_float(v, WHITE_VERTICES, &xw, &yw, &zw);
       MRISsampleFaceCoordsCanonical((MHT *)(parms->mht), mris, cx, cy, cz, PIAL_VERTICES, &xp, &yp, &zp);
       dx = xp - xw;
@@ -24867,14 +24882,14 @@ static double mrisComputeThicknessParallelEnergy(MRI_SURFACE *mris, double l_thi
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
     
-    VERTEX *v;
+    
     double sse;
 
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag) continue;
     if (vno == Gdiag_no) DiagBreak();
 
-    sse = mrisSampleParallelEnergy(mris, v, parms, v->x, v->y, v->z);
+    sse = mrisSampleParallelEnergy(mris, vno, parms, v->x, v->y, v->z);
     if ((vno < MAXVERTICES) && (sse > last_sse[vno] && cno > 1 && vno == Gdiag_no)) DiagBreak();
 
     if ((vno < MAXVERTICES) && (sse > last_sse[vno] && cno > 1)) {
@@ -24931,7 +24946,7 @@ static double mrisComputeAshburnerTriangleEnergy(MRI_SURFACE *mris,
 
     if (v->ripflag) ROMP_PF_continue;
 
-    sse = mrisSampleAshburnerTriangleEnergy(mris, v, parms, v->x, v->y, v->z);
+    sse = mrisSampleAshburnerTriangleEnergy(mris, vno, parms, v->x, v->y, v->z);
     if (sse < 0) DiagBreak();
 
     sse_ashburner += sse;
@@ -25150,10 +25165,10 @@ static int mrisComputeThicknessParallelTerm(MRI_SURFACE *mris, double l_thick_pa
     
     float dE_de1, dE_de2, e1p, e1m, e2p, e2m, dx, dy, dz;
     float e1x, e1y, e1z, e2x, e2y, e2z, norm, E0, E1;
-    VERTEX *v;
+    
     double d_dist = D_DIST * mris->avg_vertex_dist;
 
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
     if (vno == Gdiag_no) DiagBreak();
     if (v->ripflag) continue;
 
@@ -25167,10 +25182,10 @@ static int mrisComputeThicknessParallelTerm(MRI_SURFACE *mris, double l_thick_pa
       sample the coordinate functions along the tangent plane axes and
       compute the derivates using them.
     */
-    e1p = mrisSampleParallelEnergy(mris, v, parms, v->x + d_dist * e1x, v->y + d_dist * e1y, v->z + d_dist * e1z);
-    e1m = mrisSampleParallelEnergy(mris, v, parms, v->x - d_dist * e1x, v->y - d_dist * e1y, v->z - d_dist * e1z);
-    e2p = mrisSampleParallelEnergy(mris, v, parms, v->x + d_dist * e2x, v->y + d_dist * e2y, v->z + d_dist * e2z);
-    e2m = mrisSampleParallelEnergy(mris, v, parms, v->x - d_dist * e2x, v->y - d_dist * e2y, v->z - d_dist * e2z);
+    e1p = mrisSampleParallelEnergy(mris, vno, parms, v->x + d_dist * e1x, v->y + d_dist * e1y, v->z + d_dist * e1z);
+    e1m = mrisSampleParallelEnergy(mris, vno, parms, v->x - d_dist * e1x, v->y - d_dist * e1y, v->z - d_dist * e1z);
+    e2p = mrisSampleParallelEnergy(mris, vno, parms, v->x + d_dist * e2x, v->y + d_dist * e2y, v->z + d_dist * e2z);
+    e2m = mrisSampleParallelEnergy(mris, vno, parms, v->x - d_dist * e2x, v->y - d_dist * e2y, v->z - d_dist * e2z);
     dE_de1 = (e1p - e1m) / (2 * d_dist);
     dE_de2 = (e2p - e2m) / (2 * d_dist);
     norm = sqrt(dE_de1 * dE_de1 + dE_de2 * dE_de2);
@@ -25182,8 +25197,8 @@ static int mrisComputeThicknessParallelTerm(MRI_SURFACE *mris, double l_thick_pa
     dx = -l_thick_parallel * (dE_de1 * e1x + dE_de2 * e2x);
     dy = -l_thick_parallel * (dE_de1 * e1y + dE_de2 * e2y);
     dz = -l_thick_parallel * (dE_de1 * e1z + dE_de2 * e2z);
-    E0 = mrisSampleParallelEnergy(mris, v, parms, v->x, v->y, v->z);
-    E1 = mrisSampleParallelEnergy(mris, v, parms, v->x + parms->dt * dx, v->y + parms->dt * dy, v->z + parms->dt * dz);
+    E0 = mrisSampleParallelEnergy(mris, vno, parms, v->x, v->y, v->z);
+    E1 = mrisSampleParallelEnergy(mris, vno, parms, v->x + parms->dt * dx, v->y + parms->dt * dy, v->z + parms->dt * dz);
 #if 1
     if (E1 > E0) {
       double E2;
@@ -25191,7 +25206,7 @@ static int mrisComputeThicknessParallelTerm(MRI_SURFACE *mris, double l_thick_pa
       if (vno == Gdiag_no) DiagBreak();
 
       E2 =
-          mrisSampleParallelEnergy(mris, v, parms, v->x - parms->dt * dx, v->y - parms->dt * dy, v->z - parms->dt * dz);
+          mrisSampleParallelEnergy(mris, vno, parms, v->x - parms->dt * dx, v->y - parms->dt * dy, v->z - parms->dt * dz);
       if (E2 < E0) {
         dx *= -1;
         dy *= -1;
@@ -25509,7 +25524,7 @@ static int mrisComputeThicknessSpringTerm(MRI_SURFACE *mris, double l_thick_spri
   float E0, E1, dx, dy, dz;
   float e1x, e1y, e1z, e2x, e2y, e2z, max_DE, norm;
   double d_dist = .05 * D_DIST * mris->avg_vertex_dist;
-  VERTEX *v;
+  
   //  int     missed = 0 ;
 
   if (FZERO(l_thick_spring)) return (0.0);
@@ -25517,7 +25532,7 @@ static int mrisComputeThicknessSpringTerm(MRI_SURFACE *mris, double l_thick_spri
   max_DE = 0;
   max_vno = 0;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
     if (vno == Gdiag_no) DiagBreak();
     if (v->ripflag) continue;
 
@@ -25531,11 +25546,11 @@ static int mrisComputeThicknessSpringTerm(MRI_SURFACE *mris, double l_thick_spri
       sample the coordinate functions along the tangent plane axes and
       compute the derivates using them.
     */
-    E0 = mrisSampleSpringEnergy(mris, v, v->x, v->y, v->z, parms);
-    e1p = mrisSampleSpringEnergy(mris, v, v->x + d_dist * e1x, v->y + d_dist * e1y, v->z + d_dist * e1z, parms);
-    e1m = mrisSampleSpringEnergy(mris, v, v->x - d_dist * e1x, v->y - d_dist * e1y, v->z - d_dist * e1z, parms);
-    e2p = mrisSampleSpringEnergy(mris, v, v->x + d_dist * e2x, v->y + d_dist * e2y, v->z + d_dist * e2z, parms);
-    e2m = mrisSampleSpringEnergy(mris, v, v->x - d_dist * e2x, v->y - d_dist * e2y, v->z - d_dist * e2z, parms);
+    E0  = mrisSampleSpringEnergy(mris, vno, v->x, v->y, v->z, parms);
+    e1p = mrisSampleSpringEnergy(mris, vno, v->x + d_dist * e1x, v->y + d_dist * e1y, v->z + d_dist * e1z, parms);
+    e1m = mrisSampleSpringEnergy(mris, vno, v->x - d_dist * e1x, v->y - d_dist * e1y, v->z - d_dist * e1z, parms);
+    e2p = mrisSampleSpringEnergy(mris, vno, v->x + d_dist * e2x, v->y + d_dist * e2y, v->z + d_dist * e2z, parms);
+    e2m = mrisSampleSpringEnergy(mris, vno, v->x - d_dist * e2x, v->y - d_dist * e2y, v->z - d_dist * e2z, parms);
     dE_de1 = (e1p - e1m) / (2 * d_dist);
     dE_de2 = (e2p - e2m) / (2 * d_dist);
     if (e1p > E0 && e1m > E0)  // local max in this direction
@@ -25558,12 +25573,12 @@ static int mrisComputeThicknessSpringTerm(MRI_SURFACE *mris, double l_thick_spri
     cx = v->x + parms->dt * dx;
     cy = v->y + parms->dt * dy;
     cz = v->z + parms->dt * dz;
-    E1 = mrisSampleSpringEnergy(mris, v, cx, cy, cz, parms);
+    E1 = mrisSampleSpringEnergy(mris, vno, cx, cy, cz, parms);
     if (E1 > E0) {
       double E2;
       if (vno == Gdiag_no) DiagBreak();
 
-      E2 = mrisSampleSpringEnergy(mris, v, v->x - parms->dt * dx, v->y - parms->dt * dy, v->z - parms->dt * dz, parms);
+      E2 = mrisSampleSpringEnergy(mris, vno, v->x - parms->dt * dx, v->y - parms->dt * dy, v->z - parms->dt * dz, parms);
       if (E2 < E0) {
         dx *= -1;
         dy *= -1;
@@ -25687,13 +25702,13 @@ static int mrisComputeAshburnerTriangleTerm(MRI_SURFACE *mris, double l_ashburne
       compute the derivates using them.
     */
     e1p = mrisSampleAshburnerTriangleEnergy(
-        mris, v, parms, v->x + d_dist * e1x, v->y + d_dist * e1y, v->z + d_dist * e1z);
+        mris, vno, parms, v->x + d_dist * e1x, v->y + d_dist * e1y, v->z + d_dist * e1z);
     e1m = mrisSampleAshburnerTriangleEnergy(
-        mris, v, parms, v->x - d_dist * e1x, v->y - d_dist * e1y, v->z - d_dist * e1z);
+        mris, vno, parms, v->x - d_dist * e1x, v->y - d_dist * e1y, v->z - d_dist * e1z);
     e2p = mrisSampleAshburnerTriangleEnergy(
-        mris, v, parms, v->x + d_dist * e2x, v->y + d_dist * e2y, v->z + d_dist * e2z);
+        mris, vno, parms, v->x + d_dist * e2x, v->y + d_dist * e2y, v->z + d_dist * e2z);
     e2m = mrisSampleAshburnerTriangleEnergy(
-        mris, v, parms, v->x - d_dist * e2x, v->y - d_dist * e2y, v->z - d_dist * e2z);
+        mris, vno, parms, v->x - d_dist * e2x, v->y - d_dist * e2y, v->z - d_dist * e2z);
     dE_de1 = (e1p - e1m) / (2 * d_dist);
     dE_de2 = (e2p - e2m) / (2 * d_dist);
     norm = sqrt(dE_de1 * dE_de1 + dE_de2 * dE_de2);
@@ -25708,8 +25723,8 @@ static int mrisComputeAshburnerTriangleTerm(MRI_SURFACE *mris, double l_ashburne
     cx = v->x + parms->dt * dx;
     cy = v->y + parms->dt * dy;
     cz = v->z + parms->dt * dz;
-    E0 = mrisSampleAshburnerTriangleEnergy(mris, v, parms, v->x, v->y, v->z);
-    E1 = mrisSampleAshburnerTriangleEnergy(mris, v, parms, cx, cy, cz);
+    E0 = mrisSampleAshburnerTriangleEnergy(mris, vno, parms, v->x, v->y, v->z);
+    E1 = mrisSampleAshburnerTriangleEnergy(mris, vno, parms, cx, cy, cz);
     if (E1 > E0) {
       double E2;
       if (vno == Gdiag_no) {
@@ -25717,7 +25732,7 @@ static int mrisComputeAshburnerTriangleTerm(MRI_SURFACE *mris, double l_ashburne
       }
       DiagBreak();
       E2 = mrisSampleAshburnerTriangleEnergy(
-          mris, v, parms, v->x - parms->dt * dx, v->y - parms->dt * dy, v->z - parms->dt * dz);
+          mris, vno, parms, v->x - parms->dt * dx, v->y - parms->dt * dy, v->z - parms->dt * dz);
       if (E2 < E0) {
         dx *= -1;
         dy *= -1;
@@ -25770,7 +25785,6 @@ static double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MH
   int vno, num, min_vno, i, n;
   float dist, dx, dy, dz, x, y, z, min_d;
   double sse_repulse, v_sse;
-  VERTEX *v, *vn;
 
   if (FZERO(l_repulse)) {
     return (NO_ERROR);
@@ -25779,7 +25793,8 @@ static double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MH
   min_d = 1000.0;
   min_vno = 0;
   for (sse_repulse = vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -25797,15 +25812,15 @@ static double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MH
       if (bin->fno == vno) {
         continue; /* don't be repelled by myself */
       }
-      for (n = 0; n < v->vtotal; n++)
-        if (v->v[n] == bin->fno) {
+      for (n = 0; n < vt->vtotal; n++)
+        if (vt->v[n] == bin->fno) {
           break;
         }
-      if (n < v->vtotal) /* don't be repelled by a neighbor */
+      if (n < vt->vtotal) /* don't be repelled by a neighbor */
       {
         continue;
       }
-      vn = &mris->vertices[bin->fno];
+      VERTEX const * const vn = &mris->vertices[bin->fno];
       if (!vn->ripflag) {
         dx = vn->x - x;
         dy = vn->y - y;
@@ -25846,14 +25861,14 @@ static double mrisComputeRepulsiveRatioEnergy(MRI_SURFACE *mris, double l_repuls
 {
   int vno, n;
   double sse_repulse, v_sse, dist, dx, dy, dz, x, y, z, canon_dist, cdx, cdy, cdz;
-  VERTEX *v, *vn;
 
   if (FZERO(l_repulse)) {
     return (0.0);
   }
 
   for (sse_repulse = 0.0, vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -25861,8 +25876,8 @@ static double mrisComputeRepulsiveRatioEnergy(MRI_SURFACE *mris, double l_repuls
     x = v->x;
     y = v->y;
     z = v->z;
-    for (v_sse = 0.0, n = 0; n < v->vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+    for (v_sse = 0.0, n = 0; n < vt->vnum; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       if (!vn->ripflag) {
         dx = x - vn->x;
         dy = y - vn->y;
@@ -25897,14 +25912,14 @@ static int mrisComputeThicknessSmoothnessTerm(MRI_SURFACE *mris, double l_tsmoot
 {
   int vno, n, num;
   float dx, dy, dz, x, y, z, dn, d0, vx, vy, vz, delta;
-  VERTEX *v, *vn;
 
   if (FZERO(l_tsmooth)) {
     return (NO_ERROR);
   }
 
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -25919,8 +25934,8 @@ static int mrisComputeThicknessSmoothnessTerm(MRI_SURFACE *mris, double l_tsmoot
     vz = v->z - v->origz;
     d0 = vx * vx + vy * vy + vz * vz;
     dx = dy = dz = 0.0;
-    for (num = n = 0; n < v->vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+    for (num = n = 0; n < vt->vnum; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       if (!vn->ripflag) {
         dn = SQR(vn->x - vn->origx) + SQR(vn->origy - vn->y) + SQR(vn->origz - vn->z);
         delta = d0 - dn;
@@ -25957,12 +25972,6 @@ static int mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mh
   int vno, num, min_vno, i, n;
   float dist, dx, dy, dz, x, y, z, sx, sy, sz, min_d, min_scale, norm;
   double scale;
-  VERTEX *v, *vn;
-#if 0
-  double  fx, fy, fz ;
-  int     in_face ;
-  FACE    *f ;
-#endif
 
   if (FZERO(l_repulse)) {
     return (NO_ERROR);
@@ -25972,7 +25981,8 @@ static int mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mh
   min_scale = 1.0;
   min_vno = 0;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -25994,15 +26004,15 @@ static int mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mh
       if (bin->fno == vno) {
         continue; /* don't be repelled by myself */
       }
-      for (n = 0; n < v->vtotal; n++)
-        if (v->v[n] == bin->fno) {
+      for (n = 0; n < vt->vtotal; n++)
+        if (vt->v[n] == bin->fno) {
           break;
         }
-      if (n < v->vtotal) /* don't be repelled by a neighbor */
+      if (n < vt->vtotal) /* don't be repelled by a neighbor */
       {
         continue;
       }
-      vn = &mris->vertices[bin->fno];
+      VERTEX const * const vn = &mris->vertices[bin->fno];
       if (!vn->ripflag) {
         dx = x - vn->x;
         dy = y - vn->y;
@@ -26046,118 +26056,12 @@ static int mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mh
     v->dy += sy;
     v->dz += sz;
     if ((vno == Gdiag_no) && min_d < 1) {
-      vn = &mris->vertices[min_vno];
-
       fprintf(stdout, "v %d self repulse term:   (%2.3f, %2.3f, %2.3f)\n", vno, sx, sy, sz);
       fprintf(stdout, "min_dist @ %d = %2.2f, scale = %2.1f\n", min_vno, min_d, min_scale);
     }
     
     MHTrelBucket(&bucket);
   }
-
-#if 0
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-    {
-      continue ;
-    }
-    if (vno == Gdiag_no)
-    {
-      DiagBreak() ;
-    }
-    x = v->x ;
-    y = v->y ;
-    z = v->z ;
-    bucket = MHTgetBucket(mht_faces, x, y, z) ;
-    if (!bucket)
-    {
-      continue ;
-    }
-    sx = sy = sz = 0.0 ;
-    for (bin = bucket->bins, num = i = 0 ;
-         i < bucket->nused ;
-         i++, bin++)
-    {
-      f = &mris->faces[bin->fno] ;
-      fx = fy = fz = 0 ;
-      for (in_face = n = 0 ; n < VERTICES_PER_FACE ; n++)
-      {
-        fx += mris->vertices[f->v[n]].x ;
-        fy += mris->vertices[f->v[n]].y ;
-        fz += mris->vertices[f->v[n]].z ;
-        if (f->v[n] == vno)
-        {
-          in_face = 1 ;
-        }
-      }
-      if (in_face)
-      {
-        continue ;  /* don't be repelled by myself */
-      }
-      fx /= VERTICES_PER_FACE ;
-      fy /= VERTICES_PER_FACE ;
-      fz /= VERTICES_PER_FACE ;
-      for (n = 0 ; n < v->vtotal ; n++)
-        if (v->f[n] == bin->fno)
-        {
-          break ;
-        }
-      if (n < v->vtotal)   /* don't be repelled by a neighbor */
-      {
-        continue ;
-      }
-      if (!f->ripflag)
-      {
-        dx = fx - x ;
-        dy = fy - y ;
-        dz = fz - z ;
-        dist = sqrt(dx*dx+dy*dy+dz*dz) + REPULSE_E ;
-        scale = 4*REPULSE_K / (dist*dist*dist*dist*dist*dist*dist) ;
-        /* ^-7 */
-        if (vno == Gdiag_no)
-        {
-          if (dist-REPULSE_E < 0.75)
-          {
-            DiagBreak() ;
-          }
-          if (dist-REPULSE_E < min_d)
-          {
-            min_vno = bin->fno ;
-            min_d = dist-REPULSE_E ;
-            min_scale = scale ;
-          }
-        }
-        norm = sqrt(dx*dx+dy*dy+dz*dz) ;
-        if (FZERO(norm))
-        {
-          norm = 1.0 ;
-        }
-        dx /= norm ;
-        dy /= norm ;
-        dz /= norm ;
-        sx += scale * dx ;
-        sy += scale * dy ;
-        sz += scale * dz ;
-        num++ ;
-      }
-    }
-
-    if (vno == Gdiag_no && min_d < .75)
-    {
-      f = &mris->faces[min_vno] ;
-      dx = x - fx ;
-      dy = y - fy ;
-      dz = z - fz ;
-
-      fprintf(stdout, "v %d self repulse term:   (%2.3f, %2.3f, %2.3f)\n",
-              vno, sx, sy, sz) ;
-      fprintf(stdout, "min_dist @ %d = %2.2f, scale = %2.1f\n",
-              min_vno, min_d, min_scale) ;
-    }
-  }
-#endif
 
   return (NO_ERROR);
 }
@@ -26265,7 +26169,6 @@ static double mrisComputeSpringEnergy(MRI_SURFACE *mris)
 {
   int vno, n;
   double area_scale, sse_spring, v_sse;
-  VERTEX *v;
 
 #if METRIC_SCALE
   if (mris->patch) {
@@ -26279,12 +26182,13 @@ static double mrisComputeSpringEnergy(MRI_SURFACE *mris)
 #endif
 
   for (sse_spring = 0.0, vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
 
-    for (v_sse = 0.0, n = 0; n < v->vnum; n++) {
+    for (v_sse = 0.0, n = 0; n < vt->vnum; n++) {
       v_sse += (v->dist[n] * v->dist[n]);
     }
     sse_spring += area_scale * v_sse;
@@ -26308,7 +26212,6 @@ static double mrisComputeLaplacianEnergy(MRI_SURFACE *mris)
 {
   int vno, n;
   double area_scale, sse_lap, v_sse, dx, dy, dz, vx, vy, vz, vnx, vny, vnz, error;
-  VERTEX *v, *vn;
 
 #if METRIC_SCALE
   if (mris->patch) {
@@ -26322,7 +26225,8 @@ static double mrisComputeLaplacianEnergy(MRI_SURFACE *mris)
 #endif
 
   for (sse_lap = 0.0, vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -26330,8 +26234,8 @@ static double mrisComputeLaplacianEnergy(MRI_SURFACE *mris)
     vx = v->x - v->tx2;
     vy = v->y - v->ty2;
     vz = v->z - v->tz2;
-    for (v_sse = 0.0, n = 0; n < v->vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+    for (v_sse = 0.0, n = 0; n < vt->vnum; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       vnx = vn->x - vn->tx2;
       vny = vn->y - vn->ty2;
       vnz = vn->z - vn->tz2;
@@ -26357,7 +26261,6 @@ static double mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris)
 {
   int vno, n;
   double area_scale, sse_spring, v_sse;
-  VERTEX *v, *vn;
   float dx, dy, dz, x, y, z, nc, dist_sq;
 
 #if METRIC_SCALE
@@ -26372,7 +26275,8 @@ static double mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris)
 #endif
 
   for (sse_spring = 0.0, vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -26381,8 +26285,8 @@ static double mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris)
     y = v->y;
     z = v->z;
 
-    for (v_sse = 0.0, n = 0; n < v->vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+    for (v_sse = 0.0, n = 0; n < vt->vnum; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       dx = vn->x - x;
       dy = vn->y - y;
       dz = vn->z - z;
@@ -26412,7 +26316,6 @@ static int mrisComputeNonlinearSpringTerm(MRI_SURFACE *mris, double l_nlspring, 
 {
   int vno, n;
   double area_scale, sse_spring, E, F, f, rmin, rmax;
-  VERTEX *v, *vn;
   float dx, dy, dz, nc, r, lsq, mean_vdist;
 
   if (FZERO(parms->l_nlspring)) {
@@ -26441,13 +26344,14 @@ static int mrisComputeNonlinearSpringTerm(MRI_SURFACE *mris, double l_nlspring, 
   F = 6.0 / (1.0 / rmin - 1.0 / rmax);
   E = (1.0 / rmin + 1.0 / rmax) / 2;
   for (sse_spring = 0.0, vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
 
-    for (n = 0; n < v->vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+    for (n = 0; n < vt->vnum; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       dx = vn->x - v->x;
       dy = vn->y - v->y;
       dz = vn->z - v->z;
@@ -26480,7 +26384,6 @@ static double mrisComputeNonlinearSpringEnergy(MRI_SURFACE *mris, INTEGRATION_PA
 {
   int vno, n;
   double area_scale, sse_spring, E, F, f, rmin, rmax, ftotal;
-  VERTEX *v, *vn;
   float dx, dy, dz, nc, r, lsq, mean_vdist;
 
   mean_vdist = MRIScomputeVertexSpacingStats(mris, NULL, NULL, NULL, NULL, NULL, CURRENT_VERTICES);
@@ -26504,13 +26407,14 @@ static double mrisComputeNonlinearSpringEnergy(MRI_SURFACE *mris, INTEGRATION_PA
   F = 6.0 / (1.0 / rmin - 1.0 / rmax);
   E = (1.0 / rmin + 1.0 / rmax) / 2;
   for (sse_spring = 0.0, vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
 
-    for (ftotal = r = 0.0, n = 0; n < v->vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+    for (ftotal = r = 0.0, n = 0; n < vt->vnum; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       dx = vn->x - v->x;
       dy = vn->y - v->y;
       dz = vn->z - v->z;
@@ -26524,9 +26428,9 @@ static double mrisComputeNonlinearSpringEnergy(MRI_SURFACE *mris, INTEGRATION_PA
       ftotal += f * f;
     }
     if (vno == Gdiag_no) {
-      printf("E_nlspring: f = %2.3f\n", ftotal / v->vnum);
+      printf("E_nlspring: f = %2.3f\n", ftotal / vt->vnum);
     }
-    sse_spring += area_scale * ftotal / v->vnum;
+    sse_spring += area_scale * ftotal / vt->vnum;
   }
   return (sse_spring);
 }
@@ -27406,7 +27310,6 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
 {
   char fname[STRLEN];
   int vno, nvertices, nfaces, magic, version, tmp, ix, iy, iz, n, type;
-  VERTEX *vertex;
   FILE *fp;
 
   type = MRISfileNameType(name);
@@ -27468,7 +27371,8 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
     }
 
     for (vno = 0; vno < nvertices; vno++) {
-      vertex = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
+      VERTEX                * const vertex  = &mris->vertices         [vno];
       if (version == -1) {
         fread2(&ix, fp);
         fread2(&iy, fp);
@@ -27486,7 +27390,7 @@ int MRISreadVertexPositions(MRI_SURFACE *mris, const char *name)
       if (version == 0) /* old surface format */
       {
         fread1(&tmp, fp);
-        for (n = 0; n < vertex->num; n++) {
+        for (n = 0; n < vertext->num; n++) {
           fread3(&tmp, fp);
         }
       }
@@ -27634,7 +27538,6 @@ int mrisComputeMetricPropertiesCUDA(MRI_CUDA_SURFACE *mrics, MRI_SURFACE *mris)
 double MRISrescaleMetricProperties(MRIS *surf)
 {
   int VtxNo, nthNNbr, nNNbrs, NbrVtxNo;
-  VERTEX *vtx1, *vtx2;
   double scale;
 
   if (surf->group_avg_surface_area == 0) {
@@ -27645,15 +27548,15 @@ double MRISrescaleMetricProperties(MRIS *surf)
   printf("scale = %lf\n", scale);
 
   for (VtxNo = 0; VtxNo < surf->nvertices; VtxNo++) {
-    vtx1 = &surf->vertices[VtxNo];
+    VERTEX * const vtx1 = &surf->vertices[VtxNo];
     if (vtx1->ripflag) {
       continue;
     }
     vtx1->area *= (scale * scale);
-    nNNbrs = surf->vertices[VtxNo].vnum;
+    nNNbrs = surf->vertices_topology[VtxNo].vnum;
     for (nthNNbr = 0; nthNNbr < nNNbrs; nthNNbr++) {
-      NbrVtxNo = surf->vertices[VtxNo].v[nthNNbr];
-      vtx2 = &surf->vertices[NbrVtxNo];
+      NbrVtxNo = surf->vertices_topology[VtxNo].v[nthNNbr];
+      VERTEX const * const vtx2 = &surf->vertices[NbrVtxNo];
       if (vtx2->ripflag) {
         continue;
       }
@@ -27672,15 +27575,15 @@ double MRISrescaleMetricProperties(MRIS *surf)
 static int mrisCountTotalNeighbors(MRI_SURFACE *mris)
 {
   int vno, total;
-  VERTEX *v;
 
   for (total = vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
 
-    total += v->vtotal + 1; /* include this vertex in count */
+    total += vt->vtotal + 1; /* include this vertex in count */
   }
   return (total);
 }
@@ -28204,7 +28107,6 @@ int MRISrestoreVertexPositions(MRI_SURFACE *mris, int which)
   ------------------------------------------------------*/
 double MRISpercentDistanceError(MRI_SURFACE *mris)
 {
-  VERTEX *v;
   int vno, n, nvertices;
   double dist_scale, pct, dist, odist, mean, mean_error;
 
@@ -28217,11 +28119,12 @@ double MRISpercentDistanceError(MRI_SURFACE *mris)
 
   mean = 0.0;
   for (pct = 0.0, nvertices = vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
-    for (n = 0; n < v->vtotal; n++) {
+    for (n = 0; n < vt->vtotal; n++) {
       nvertices++;
       dist = dist_scale * v->dist[n];
       odist = v->dist_orig[n];
@@ -28233,12 +28136,12 @@ double MRISpercentDistanceError(MRI_SURFACE *mris)
   }
 
   for (mean_error = 0.0, vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
-    for (n = 0; n < v->vtotal; n++)
-
+    for (n = 0; n < vt->vtotal; n++)
     {
       dist = dist_scale * v->dist[n];
       odist = v->dist_orig[n];
@@ -28740,7 +28643,7 @@ MRI_SURFACE *MRISreadVTK(MRI_SURFACE *mris, const char *fname)
       {
         // fill-in the face data to our new mris struct
         face->v[n] = vno;
-        mris->vertices[vno].num++;
+        mris->vertices_topology[vno].num++;
       }
       else {
         // confirm that the mris structure passed to us has the same face num
@@ -29136,7 +29039,7 @@ static MRI_SURFACE *mrisReadAsciiFile(const char *fname)
                   n,
                   face->v[n],
                   mris->nvertices - 1);
-      mris->vertices[face->v[n]].num++;
+      mris->vertices_topology[face->v[n]].num++;
     }
     fscanf(fp, "%d\n", &rip);
     face->ripflag = rip;
@@ -29162,7 +29065,6 @@ static MRI_SURFACE *mrisReadGeoFile(const char *fname)
   MRI_SURFACE *mris;
   char line[202], *cp;
   int vno, fno, n, nvertices, nfaces, patch, vertices_per_face, nedges;
-  VERTEX *v;
   FACE *face;
   FILE *fp;
 
@@ -29190,7 +29092,7 @@ static MRI_SURFACE *mrisReadGeoFile(const char *fname)
   mris = MRISalloc(nvertices, nfaces);
   mris->type = MRIS_GEO_TRIANGLE_FILE;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
     fscanf(fp, "%e %e %e", &v->x, &v->y, &v->z);
     if (ISODD(vno)) {
       fscanf(fp, "\n");
@@ -29205,12 +29107,12 @@ static MRI_SURFACE *mrisReadGeoFile(const char *fname)
       if (face->v[n] < 0) {
         DiagBreak();
       }
-      mris->vertices[face->v[n]].num++;
+      mris->vertices_topology[face->v[n]].num++;
     }
     n = VERTICES_PER_FACE - 1; /* already true - but make it explicit */
     fscanf(fp, "-%d\n", &face->v[n]);
     face->v[n]--; /* make it 0-based */
-    mris->vertices[face->v[n]].num++;
+    mris->vertices_topology[face->v[n]].num++;
 
     /* swap positions so normal (via cross-product) will point outwards */
     tmp = face->v[1];
@@ -29546,7 +29448,6 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
   }
 
   int fno, vno, fvno, n2;
-  VERTEX *v;
   FACE *face = NULL;
   
 #if 1
@@ -29557,7 +29458,7 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
     for (fno = 0; fno < mris->nfaces; fno++) {
       face = &mris->faces[fno];
       for (fvno = 0; fvno < VERTICES_PER_FACE; fvno++) {
-        v = &mris->vertices[face->v[fvno]];
+        VERTEX_TOPOLOGY * const v = &mris->vertices_topology[face->v[fvno]];
         v->num++;
         v->vnum += 2;
       }
@@ -29565,7 +29466,7 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
 
     // alloc mem for neighbor list for each vertex
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];
       v->v = (int *)calloc(v->vnum, sizeof(int));
       if (!v->v) ErrorExit(ERROR_NOMEMORY, "MRISreadSTLfile: could not allocate %dth vertex list.", vno);
       v->vnum = 0;
@@ -29575,7 +29476,7 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
     for (fno = 0; fno < mris->nfaces; fno++) {
       face = &mris->faces[fno];
       for (fvno = 0; fvno < VERTICES_PER_FACE; fvno++) {
-        v = &mris->vertices[face->v[fvno]];
+        VERTEX_TOPOLOGY * const v = &mris->vertices_topology[face->v[fvno]];
 
         /* now add an edge to other 2 vertices if not already in list */
         for (fvno2 = 0; fvno2 < VERTICES_PER_FACE; fvno2++) {
@@ -29602,34 +29503,35 @@ static MRI_SURFACE *mrisReadSTLfile(const char *fname)
 
     /* now allocate face arrays in vertices */
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
-      v->f = (int *)calloc(v->num, sizeof(int));
-      if (!v->f) ErrorExit(ERROR_NO_MEMORY, "MRISreadSTLfileICOread: could not allocate %d faces", v->num);
-      v->n = (unsigned char *)calloc(v->num, sizeof(unsigned char));
-      if (!v->n) ErrorExit(ERROR_NO_MEMORY, "MRISreadSTLfile: could not allocate %d nbrs", v->n);
-      v->num = 0; /* for use as counter in next section */
-      v->dist = (float *)calloc(v->vnum, sizeof(float));
+      VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
+      VERTEX          * const v  = &mris->vertices         [vno];
+      vt->f = (int *)calloc(vt->num, sizeof(int));
+      if (!vt->f) ErrorExit(ERROR_NO_MEMORY, "MRISreadSTLfileICOread: could not allocate %d faces", vt->num);
+      vt->n = (unsigned char *)calloc(vt->num, sizeof(unsigned char));
+      if (!vt->n) ErrorExit(ERROR_NO_MEMORY, "MRISreadSTLfile: could not allocate %d nbrs", vt->n);
+      vt->num = 0; /* for use as counter in next section */
+      v->dist = (float *)calloc(vt->vnum, sizeof(float));
       if (!v->dist)
         ErrorExit(ERROR_NOMEMORY,
                   "MRISreadSTLfile: could not allocate list of %d "
                   "dists at v=%d",
-                  v->vnum,
+                  vt->vnum,
                   vno);
-      v->dist_orig = (float *)calloc(v->vnum, sizeof(float));
+      v->dist_orig = (float *)calloc(vt->vnum, sizeof(float));
       if (!v->dist_orig)
         ErrorExit(ERROR_NOMEMORY,
                   "MRISreadSTLfile: could not allocate list of %d "
                   "dists at v=%d",
-                  v->vnum,
+                  vt->vnum,
                   vno);
-      v->vtotal = v->vnum;
+      vt->vtotal = vt->vnum;
     }
 
     /* fill in face indices in vertex structures */
     for (fno = 0; fno < mris->nfaces; fno++) {
       face = &mris->faces[fno];
       for (fvno = 0; fvno < VERTICES_PER_FACE; fvno++) {
-        v = &mris->vertices[face->v[fvno]];
+        VERTEX_TOPOLOGY * const v = &mris->vertices_topology[face->v[fvno]];
         v->n[v->num] = fvno;
         v->f[v->num++] = fno;
       }
@@ -30897,14 +30799,13 @@ int MRISnormalizeCurvatureVariance(MRI_SURFACE *mris)
 int MRISscaleDistances(MRI_SURFACE *mris, float scale)
 {
   int vno, n;
-  VERTEX *v;
-
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
-    for (n = 0; n < v->vtotal; n++) {
+    for (n = 0; n < vt->vtotal; n++) {
       v->dist[n] *= scale;
     }
   }
@@ -30951,19 +30852,19 @@ int MRISminFilterCurvatures(MRI_SURFACE *mris, int niter)
 {
   int i, vno, vnb, *pnb, vnum;
   float curv;
-  VERTEX *v, *vn;
 
   for (i = 0; i < niter; i++) {
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag) {
         continue;
       }
       curv = v->curv;
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       for (vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) {
           continue;
         }
@@ -30974,7 +30875,7 @@ int MRISminFilterCurvatures(MRI_SURFACE *mris, int niter)
       v->tdx = curv;
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -30995,19 +30896,19 @@ int MRISmaxFilterCurvatures(MRI_SURFACE *mris, int niter)
 {
   int i, vno, vnb, *pnb, vnum;
   float curv;
-  VERTEX *v, *vn;
 
   for (i = 0; i < niter; i++) {
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag) {
         continue;
       }
       curv = v->curv;
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       for (vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) {
           continue;
         }
@@ -31018,7 +30919,7 @@ int MRISmaxFilterCurvatures(MRI_SURFACE *mris, int niter)
       v->tdx = curv;
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -31036,19 +30937,19 @@ int MRISaverageCurvatures(MRI_SURFACE *mris, int navgs)
 {
   int i, vno, vnb, *pnb, vnum;
   float curv, num;
-  VERTEX *v, *vn;
 
   for (i = 0; i < navgs; i++) {
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag) {
         continue;
       }
       curv = v->curv;
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       for (num = 0.0f, vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) {
           continue;
         }
@@ -31059,7 +30960,7 @@ int MRISaverageCurvatures(MRI_SURFACE *mris, int navgs)
       v->tdx = curv / num;
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -31080,19 +30981,19 @@ int MRISaverageMarkedCurvatures(MRI_SURFACE *mris, int navgs)
 {
   int i, vno, vnb, *pnb, vnum;
   float curv, num;
-  VERTEX *v, *vn;
 
   for (i = 0; i < navgs; i++) {
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag || !v->marked) {
         continue;
       }
       curv = v->curv;
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       for (num = 0.0f, vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) {
           continue;
         }
@@ -31103,7 +31004,7 @@ int MRISaverageMarkedCurvatures(MRI_SURFACE *mris, int navgs)
       v->tdx = curv / num;
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag || v->marked == 0) {
         continue;
       }
@@ -31124,19 +31025,19 @@ int MRISaverageMarkedVals(MRI_SURFACE *mris, int navgs)
 {
   int i, vno, vnb, *pnb, vnum;
   float val, num;
-  VERTEX *v, *vn;
 
   for (i = 0; i < navgs; i++) {
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag || v->marked == 0) {
         continue;
       }
       val = v->val;
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       for (num = 0.0f, vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag || vn->marked == 0) {
           continue;
         }
@@ -31147,7 +31048,7 @@ int MRISaverageMarkedVals(MRI_SURFACE *mris, int navgs)
       v->tdx = val / num;
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag || v->marked == 0) {
         continue;
       }
@@ -31177,16 +31078,16 @@ int MRISaverageVals(MRI_SURFACE *mris, int navgs)
       
       int vnb, *pnb, vnum;
       float val, num;
-      VERTEX *v, *vn;
 
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag) ROMP_PF_continue;
 
       val = v->val;
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       for (num = 0.0f, vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) continue;
 
         num++;
@@ -31204,8 +31105,7 @@ int MRISaverageVals(MRI_SURFACE *mris, int navgs)
 #endif
     for (vno = 0; vno < mris->nvertices; vno++) {
       ROMP_PFLB_begin
-      VERTEX *v;
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) ROMP_PF_continue;
 
       v->val = v->tdx;
@@ -31228,19 +31128,19 @@ int MRISaverageD(MRI_SURFACE *mris, int navgs)
 {
   int i, vno, vnb, *pnb, vnum;
   float val, num;
-  VERTEX *v, *vn;
 
   for (i = 0; i < navgs; i++) {
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag) {
         continue;
       }
       val = v->d;
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       for (num = 0.0f, vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) {
           continue;
         }
@@ -31251,7 +31151,7 @@ int MRISaverageD(MRI_SURFACE *mris, int navgs)
       v->tdx = val / num;
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -31288,20 +31188,20 @@ int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians)
 {
   int i, vno, vnb, *pnb, vnum, num;
   float val_list[MAX_NEIGHBORS];
-  VERTEX *v, *vn;
 
   for (i = 0; i < nmedians; i++) {
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag) {
         continue;
       }
-      pnb = v->v;
-      //      vnum = v->vtotal ;   BRF - used to be vnum
-      vnum = v->vnum;
+      pnb = vt->v;
+      //      vnum = vt->vtotal ;   BRF - used to be vnum
+      vnum = vt->vnum;
       val_list[0] = v->val;
       for (num = 1, vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) {
           continue;
         }
@@ -31317,7 +31217,7 @@ int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians)
       }
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -31337,19 +31237,19 @@ int MRISmedianFilterVerexPositions(MRI_SURFACE *mris, int nmedians)
 {
   int i, vno, vnb, *pnb, vnum, num;
   float val_list[MAX_NEIGHBORS];
-  VERTEX *v, *vn;
 
   for (i = 0; i < nmedians; i++) {
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag) {
         continue;
       }
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       val_list[0] = v->x;
       for (num = 1, vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) {
           continue;
         }
@@ -31364,11 +31264,11 @@ int MRISmedianFilterVerexPositions(MRI_SURFACE *mris, int nmedians)
         v->tdx = (val_list[num / 2] + val_list[num / 2 - 1]) / 2;
       }
 
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       val_list[0] = v->y;
       for (num = 1, vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) {
           continue;
         }
@@ -31383,11 +31283,11 @@ int MRISmedianFilterVerexPositions(MRI_SURFACE *mris, int nmedians)
         v->tdy = (val_list[num / 2] + val_list[num / 2 - 1]) / 2;
       }
 
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       val_list[0] = v->z;
       for (num = 1, vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) {
           continue;
         }
@@ -31403,7 +31303,7 @@ int MRISmedianFilterVerexPositions(MRI_SURFACE *mris, int nmedians)
       }
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -31425,21 +31325,21 @@ int MRISgaussianFilterD(MRI_SURFACE *mris, double wt)
 {
   int vno, vnb, *pnb, vnum;
   double nbr_wt, val, norm;
-  VERTEX *v, *vn;
 
   nbr_wt = 1 - wt;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
-    pnb = v->v;
-    vnum = v->vnum;
+    pnb  = vt->v;
+    vnum = vt->vnum;
 
     val = wt * v->d;
 
     for (norm = wt, vnb = 0; vnb < vnum; vnb++) {
-      vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+      VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
       if (vn->ripflag) {
         continue;
       }
@@ -31450,7 +31350,7 @@ int MRISgaussianFilterD(MRI_SURFACE *mris, double wt)
     v->tdx = val / norm;
   }
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag) {
       continue;
     }
@@ -31469,24 +31369,24 @@ int MRISmedianFilterD(MRI_SURFACE *mris, int nmedians, int vtotal)
 {
   int i, vno, vnb, *pnb, vnum, num;
   float val_list[MAX_NEIGHBORS];
-  VERTEX *v, *vn;
 
   for (i = 0; i < nmedians; i++) {
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag) {
         continue;
       }
-      pnb = v->v;
+      pnb = vt->v;
       if (vtotal) {
-        vnum = v->vtotal;
+        vnum = vt->vtotal;
       }
       else {
-        vnum = v->vnum;
+        vnum = vt->vnum;
       }
       val_list[0] = v->d;
       for (num = 1, vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) {
           continue;
         }
@@ -31502,7 +31402,7 @@ int MRISmedianFilterD(MRI_SURFACE *mris, int nmedians, int vtotal)
       }
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -31522,19 +31422,19 @@ int MRISmedianFilterCurvature(MRI_SURFACE *mris, int nmedians)
 {
   int i, vno, vnb, *pnb, vnum, num;
   float val_list[MAX_NEIGHBORS];
-  VERTEX *v, *vn;
 
   for (i = 0; i < nmedians; i++) {
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag) {
         continue;
       }
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       val_list[0] = v->curv;
       for (num = 1, vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) {
           continue;
         }
@@ -31550,7 +31450,7 @@ int MRISmedianFilterCurvature(MRI_SURFACE *mris, int nmedians)
       }
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -31570,19 +31470,19 @@ int MRISmedianFilterVal2s(MRI_SURFACE *mris, int nmedians)
 {
   int i, vno, vnb, *pnb, vnum, num;
   float val_list[MAX_NEIGHBORS];
-  VERTEX *v, *vn;
 
   for (i = 0; i < nmedians; i++) {
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag) {
         continue;
       }
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       val_list[0] = v->val2;
       for (num = 1, vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) {
           continue;
         }
@@ -31598,7 +31498,7 @@ int MRISmedianFilterVal2s(MRI_SURFACE *mris, int nmedians)
       }
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -31618,19 +31518,19 @@ int MRISmedianFilterVal2baks(MRI_SURFACE *mris, int nmedians)
 {
   int i, vno, vnb, *pnb, vnum, num;
   float val_list[MAX_NEIGHBORS];
-  VERTEX *v, *vn;
 
   for (i = 0; i < nmedians; i++) {
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag) {
         continue;
       }
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       val_list[0] = v->val2bak;
       for (num = 1, vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) {
           continue;
         }
@@ -31646,7 +31546,7 @@ int MRISmedianFilterVal2baks(MRI_SURFACE *mris, int nmedians)
       }
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -31666,19 +31566,19 @@ int MRISaverageVal2s(MRI_SURFACE *mris, int navgs)
 {
   int i, vno, vnb, *pnb, vnum;
   float val, num;
-  VERTEX *v, *vn;
 
   for (i = 0; i < navgs; i++) {
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag) {
         continue;
       }
-      val = v->val2;
-      pnb = v->v;
-      vnum = v->vnum;
+      val  = v->val2;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       for (num = 0.0f, vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) {
           continue;
         }
@@ -31689,7 +31589,7 @@ int MRISaverageVal2s(MRI_SURFACE *mris, int navgs)
       v->tdx = val / num;
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -31709,19 +31609,19 @@ int MRISaverageVal2baks(MRI_SURFACE *mris, int navgs)
 {
   int i, vno, vnb, *pnb, vnum;
   float val, num;
-  VERTEX *v, *vn;
 
   for (i = 0; i < navgs; i++) {
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag) {
         continue;
       }
-      val = v->val2bak;
-      pnb = v->v;
-      vnum = v->vnum;
+      val  = v->val2bak;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       for (num = 0.0f, vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) {
           continue;
         }
@@ -31732,7 +31632,7 @@ int MRISaverageVal2baks(MRI_SURFACE *mris, int navgs)
       v->tdx = val / num;
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -32420,7 +32320,6 @@ int MRISrigidBodyAlignVectorGlobal(
 double MRISrmsTPHeight(MRI_SURFACE *mris)
 {
   int vno, i, total_nbrs;
-  VERTEX *vertex, *vnb;
   double avg_height, dot, nx, ny, nz, x, y, z, d;
 
   if (mris->status == MRIS_PLANE) {
@@ -32432,12 +32331,13 @@ double MRISrmsTPHeight(MRI_SURFACE *mris)
   mrisComputeTangentPlanes(mris);
 
   for (vno = 0; vno < mris->nvertices; vno++) {
-    vertex = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
+    VERTEX          const * const vertex  = &mris->vertices         [vno];
     if (vertex->ripflag) {
       continue;
     }
 
-    if (vertex->vtotal <= 0) {
+    if (vertext->vtotal <= 0) {
       continue;
     }
     if (vno == Gdiag_no) {
@@ -32448,8 +32348,8 @@ double MRISrmsTPHeight(MRI_SURFACE *mris)
     ny = vertex->ny;
     nz = vertex->nz;
 
-    for (i = 0; i < vertex->vtotal; i++) {
-      vnb = &mris->vertices[vertex->v[i]];
+    for (i = 0; i < vertext->vtotal; i++) {
+      VERTEX const * const vnb = &mris->vertices[vertext->v[i]];
       if (vnb->ripflag) {
         continue;
       }
@@ -32778,19 +32678,19 @@ int MRISuseCurvatureMin(MRI_SURFACE *mris)
 int MRISuseCurvatureStretch(MRI_SURFACE *mris)
 {
   int vno, n;
-  VERTEX *v;
   float kmin, kmax, dist, dist_orig, curv, dist_scale, max_stretch, stretch;
 
   dist_scale = sqrt(mris->orig_area / mris->total_area);
   kmin = 100000.0f;
   kmax = -100000.0f;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
     max_stretch = 0.0f;
-    for (curv = 0.0f, n = 0; n < v->vtotal; n++) {
+    for (curv = 0.0f, n = 0; n < vt->vtotal; n++) {
       dist = dist_scale * v->dist[n];
       dist_orig = v->dist_orig[n];
       stretch = dist - dist_orig;
@@ -32824,17 +32724,17 @@ int MRISuseCurvatureStretch(MRI_SURFACE *mris)
 int MRISuseNegCurvature(MRI_SURFACE *mris)
 {
   int vno, fno;
-  VERTEX *v;
   FACE *f;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
     v->curv = 0;
-    for (fno = 0; fno < v->num; fno++) {
-      f = &mris->faces[v->f[fno]];
+    for (fno = 0; fno < vt->num; fno++) {
+      f = &mris->faces[vt->f[fno]];
       if (f->area < 0.0f) {
         v->curv = 1.0f;
       }
@@ -33054,21 +32954,21 @@ int MRISaverageVertexPositions(MRI_SURFACE *mris, int navgs)
 {
   int i, vno, vnb, *pnb, vnum;
   float x, y, z, num;
-  VERTEX *v, *vn;
 
   for (i = 0; i < navgs; i++) {
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag) {
         continue;
       }
       x = v->x;
       y = v->y;
       z = v->z;
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       for (num = 0.0f, vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) {
           continue;
         }
@@ -33083,7 +32983,7 @@ int MRISaverageVertexPositions(MRI_SURFACE *mris, int navgs)
       v->tdz = z / num;
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -33105,22 +33005,22 @@ int MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, int which
 {
   int i, vno, vnb, *pnb, vnum;
   float x, y, z, num;
-  VERTEX *v, *vn;
 
   which = ISODD(which);
   for (i = 0; i < navgs; i++) {
     for (vno = which; vno < mris->nvertices; vno += 2) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag) {
         continue;
       }
       x = v->x;
       y = v->y;
       z = v->z;
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       for (num = 0.0f, vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) {
           continue;
         }
@@ -33135,7 +33035,7 @@ int MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, int which
       v->tdz = z / num;
     }
     for (vno = which; vno < mris->nvertices; vno += 2) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) {
         continue;
       }
@@ -33149,19 +33049,19 @@ int MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs, int which
 static int mrisCountCompressed(MRI_SURFACE *mris, double min_dist)
 {
   int vno, n, num;
-  VERTEX *v, *vn;
   double d, dx, dy, dz;
 
   for (vno = num = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (vno == Gdiag_no) {
       DiagBreak();
     }
     if (v->ripflag) {
       continue;
     }
-    for (n = 0; n < v->vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+    for (n = 0; n < vt->vnum; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       if (vn->ripflag) {
         continue;
       }
@@ -33181,7 +33081,6 @@ static int mrisComputePlaneTerm(MRI_SURFACE *mris, double l_plane, double l_spac
 {
   int vno, n, vnum;
   MATRIX *M, *m_evectors;
-  VERTEX *v, *vn;
   double dx, dy, dz, norm, dist, a, b, c, d, xc, yc, zc, dxt, dyt, dzt;
   float evalues[3];
   d = 0.0f;
@@ -33193,7 +33092,8 @@ static int mrisComputePlaneTerm(MRI_SURFACE *mris, double l_plane, double l_spac
   M = MatrixAlloc(3, 3, MATRIX_REAL);
   m_evectors = MatrixAlloc(3, 3, MATRIX_REAL);
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (vno == Gdiag_no) {
       DiagBreak();
     }
@@ -33201,17 +33101,17 @@ static int mrisComputePlaneTerm(MRI_SURFACE *mris, double l_plane, double l_spac
       continue;
     }
 
-    vnum = v->vnum;  // try with just closest nbrs
-    if (v->vnum < 4) {
-      vnum = v->v2num;
+    vnum = vt->vnum;  // try with just closest nbrs
+    if (vt->vnum < 4) {
+      vnum = vt->v2num;
     }
-    vnum = v->vtotal;
+    vnum = vt->vtotal;
 
     if (vnum < 4) {
       continue;  // can't estimate it
     }
     for (xc = yc = zc = 0.0, n = 0; n < vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       xc += vn->x;
       yc += vn->y;
       zc += vn->z;
@@ -33221,7 +33121,7 @@ static int mrisComputePlaneTerm(MRI_SURFACE *mris, double l_plane, double l_spac
     zc /= vnum;
     MatrixClear(M);
     for (dxt = dyt = dzt = 0.0, n = 0; n < vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       *MATRIX_RELT(M, 1, 1) += SQR(vn->x - xc);
       *MATRIX_RELT(M, 2, 2) += SQR(vn->y - yc);
       *MATRIX_RELT(M, 3, 3) += SQR(vn->z - zc);
@@ -34759,14 +34659,13 @@ static int mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on)
 int MRISfindClosestOrigVertices(MRI_SURFACE *mris, int nbhd_size)
 {
   int vno, n, vlist[100000], vtotal, ns, i, vnum, nbr_count[100], min_n, min_vno;
-  VERTEX *v, *vn, *vn2;
   float dx, dy, dz, dist, min_dist, nx, ny, nz, dot;
 
   memset(nbr_count, 0, 100 * sizeof(int));
 
   /* current vertex positions are gray matter, orig are white matter */
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag) {
       continue;
     }
@@ -34788,20 +34687,21 @@ int MRISfindClosestOrigVertices(MRI_SURFACE *mris, int nbhd_size)
     for (ns = 1; ns <= nbhd_size; ns++) {
       vnum = 0; /* will be # of new neighbors added to list */
       for (i = 0; i < vtotal; i++) {
-        vn = &mris->vertices[vlist[i]];
+        VERTEX_TOPOLOGY const * const vnt = &mris->vertices_topology[vlist[i]];
+        VERTEX          const * const vn  = &mris->vertices         [vlist[i]];
         if (vn->ripflag) {
           continue;
         }
         if (vn->marked && vn->marked < ns - 1) {
           continue;
         }
-        for (n = 0; n < vn->vnum; n++) {
-          vn2 = &mris->vertices[vn->v[n]];
+        for (n = 0; n < vnt->vnum; n++) {
+          VERTEX * const vn2 = &mris->vertices[vnt->v[n]];
           if (vn2->ripflag || vn2->marked) /* already processed */
           {
             continue;
           }
-          vlist[vtotal + vnum++] = vn->v[n];
+          vlist[vtotal + vnum++] = vnt->v[n];
           vn2->marked = ns;
           dx = vn2->x - v->origx;
           dy = vn2->y - v->origy;
@@ -34820,8 +34720,8 @@ int MRISfindClosestOrigVertices(MRI_SURFACE *mris, int nbhd_size)
           if (dist < min_dist) {
             min_n = ns;
             min_dist = dist;
-            if (min_n == nbhd_size && DIAG_VERBOSE_ON) fprintf(stdout, "%d --> %d = %2.3f\n", vno, vn->v[n], dist);
-            min_vno = vn->v[n];
+            if (min_n == nbhd_size && DIAG_VERBOSE_ON) fprintf(stdout, "%d --> %d = %2.3f\n", vno, vnt->v[n], dist);
+            min_vno = vnt->v[n];
           }
         }
       }
@@ -34830,7 +34730,7 @@ int MRISfindClosestOrigVertices(MRI_SURFACE *mris, int nbhd_size)
 
     nbr_count[min_n]++;
     for (n = 0; n < vtotal; n++) {
-      vn = &mris->vertices[vlist[n]];
+      VERTEX * const vn = &mris->vertices[vlist[n]];
       if (vn->ripflag) {
         continue;
       }
@@ -34851,13 +34751,12 @@ int MRISfindClosestOrigVertices(MRI_SURFACE *mris, int nbhd_size)
 int MRISfindClosestPialVerticesCanonicalCoords(MRI_SURFACE *mris, int nbhd_size)
 {
   int vno, n, vlist[100000], vtotal, ns, i, vnum, nbr_count[100], min_n, min_vno;
-  VERTEX *v, *vn, *vn2;
   float dx, dy, dz, dist, min_dist, nx, ny, nz, dot;
 
   memset(nbr_count, 0, 100 * sizeof(int));
 
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -34879,20 +34778,21 @@ int MRISfindClosestPialVerticesCanonicalCoords(MRI_SURFACE *mris, int nbhd_size)
     for (ns = 1; ns <= nbhd_size; ns++) {
       vnum = 0; /* will be # of new neighbors added to list */
       for (i = 0; i < vtotal; i++) {
-        vn = &mris->vertices[vlist[i]];
+        VERTEX_TOPOLOGY const * const vnt = &mris->vertices_topology[vlist[i]];
+        VERTEX          const * const vn  = &mris->vertices         [vlist[i]];
         if (vn->ripflag) {
           continue;
         }
         if (vn->marked && vn->marked < ns - 1) {
           continue;
         }
-        for (n = 0; n < vn->vnum; n++) {
-          vn2 = &mris->vertices[vn->v[n]];
+        for (n = 0; n < vnt->vnum; n++) {
+          VERTEX * const vn2 = &mris->vertices[vnt->v[n]];
           if (vn2->ripflag || vn2->marked) /* already processed */
           {
             continue;
           }
-          vlist[vtotal + vnum++] = vn->v[n];
+          vlist[vtotal + vnum++] = vnt->v[n];
           vn2->marked = ns;
           dx = vn2->pialx - v->whitex;
           dy = vn2->pialy - v->whitey;
@@ -34911,8 +34811,8 @@ int MRISfindClosestPialVerticesCanonicalCoords(MRI_SURFACE *mris, int nbhd_size)
           if (dist < min_dist) {
             min_n = ns;
             min_dist = dist;
-            if (min_n == nbhd_size && DIAG_VERBOSE_ON) fprintf(stdout, "%d --> %d = %2.3f\n", vno, vn->v[n], dist);
-            min_vno = vn->v[n];
+            if (min_n == nbhd_size && DIAG_VERBOSE_ON) fprintf(stdout, "%d --> %d = %2.3f\n", vno, vnt->v[n], dist);
+            min_vno = vnt->v[n];
           }
         }
       }
@@ -34921,7 +34821,7 @@ int MRISfindClosestPialVerticesCanonicalCoords(MRI_SURFACE *mris, int nbhd_size)
 
     nbr_count[min_n]++;
     for (n = 0; n < vtotal; n++) {
-      vn = &mris->vertices[vlist[n]];
+      VERTEX * const vn = &mris->vertices[vlist[n]];
       if (vn->ripflag) {
         continue;
       }
@@ -34941,7 +34841,6 @@ int MRISfindClosestPialVerticesCanonicalCoords(MRI_SURFACE *mris, int nbhd_size)
 int MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, float max_thick)
 {
   int vno, n, vlist[100000], vtotal, ns, i, vnum, nbr_count[100], min_n, nwg_bad, ngw_bad;
-  VERTEX *v, *vn, *vn2;
   float dx, dy, dz, dist, min_dist, nx, ny, nz, dot;
 
   memset(nbr_count, 0, 100 * sizeof(int));
@@ -34952,7 +34851,7 @@ int MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, float max_thi
     if (!(vno % 25000)) {
       fprintf(stdout, "%d of %d vertices processed\n", vno, mris->nvertices);
     }
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag) {
       v->curv = 0;
       continue;
@@ -34977,20 +34876,21 @@ int MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, float max_thi
     for (ns = 1; ns <= nbhd_size; ns++) {
       vnum = 0; /* will be # of new neighbors added to list */
       for (i = 0; i < vtotal; i++) {
-        vn = &mris->vertices[vlist[i]];
+        VERTEX_TOPOLOGY const * const vnt = &mris->vertices_topology[vlist[i]];
+        VERTEX          const * const vn  = &mris->vertices         [vlist[i]];
         if (vn->ripflag) {
           continue;
         }
         if (vn->marked && vn->marked < ns - 1) {
           continue;
         }
-        for (n = 0; n < vn->vnum; n++) {
-          vn2 = &mris->vertices[vn->v[n]];
+        for (n = 0; n < vnt->vnum; n++) {
+          VERTEX * const vn2 = &mris->vertices[vnt->v[n]];
           if (vn2->ripflag || vn2->marked) /* already processed */
           {
             continue;
           }
-          vlist[vtotal + vnum++] = vn->v[n];
+          vlist[vtotal + vnum++] = vnt->v[n];
           vn2->marked = ns;
           dx = vn2->x - v->origx;
           dy = vn2->y - v->origy;
@@ -35009,7 +34909,7 @@ int MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, float max_thi
           if (dist < min_dist) {
             min_n = ns;
             min_dist = dist;
-            if (min_n == nbhd_size && DIAG_VERBOSE_ON) fprintf(stdout, "%d --> %d = %2.3f\n", vno, vn->v[n], dist);
+            if (min_n == nbhd_size && DIAG_VERBOSE_ON) fprintf(stdout, "%d --> %d = %2.3f\n", vno, vnt->v[n], dist);
           }
         }
       }
@@ -35018,7 +34918,7 @@ int MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, float max_thi
 
     nbr_count[min_n]++;
     for (n = 0; n < vtotal; n++) {
-      vn = &mris->vertices[vlist[n]];
+      VERTEX * const vn = &mris->vertices[vlist[n]];
       if (vn->ripflag) {
         continue;
       }
@@ -35038,7 +34938,7 @@ int MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, float max_thi
     if (!(vno % 25000)) {
       fprintf(stdout, "%d of %d vertices processed\n", vno, mris->nvertices);
     }
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
     if (vno == Gdiag_no) {
       DiagBreak();
     }
@@ -35062,20 +34962,21 @@ int MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, float max_thi
     for (ns = 1; ns <= nbhd_size; ns++) {
       vnum = 0; /* will be # of new neighbors added to list */
       for (i = 0; i < vtotal; i++) {
-        vn = &mris->vertices[vlist[i]];
+        VERTEX_TOPOLOGY const * const vnt = &mris->vertices_topology[vlist[i]];
+        VERTEX          const * const vn  = &mris->vertices         [vlist[i]];
         if (vn->ripflag) {
           continue;
         }
         if (vn->marked && vn->marked < ns - 1) {
           continue;
         }
-        for (n = 0; n < vn->vnum; n++) {
-          vn2 = &mris->vertices[vn->v[n]];
+        for (n = 0; n < vnt->vnum; n++) {
+          VERTEX * const vn2 = &mris->vertices[vnt->v[n]];
           if (vn2->ripflag || vn2->marked) /* already processed */
           {
             continue;
           }
-          vlist[vtotal + vnum++] = vn->v[n];
+          vlist[vtotal + vnum++] = vnt->v[n];
           vn2->marked = ns;
           dx = v->x - vn2->origx;
           dy = v->y - vn2->origy;
@@ -35094,7 +34995,7 @@ int MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, float max_thi
           if (dist < min_dist) {
             min_n = ns;
             min_dist = dist;
-            if (min_n == nbhd_size && DIAG_VERBOSE_ON) fprintf(stdout, "%d --> %d = %2.3f\n", vno, vn->v[n], dist);
+            if (min_n == nbhd_size && DIAG_VERBOSE_ON) fprintf(stdout, "%d --> %d = %2.3f\n", vno, vnt->v[n], dist);
           }
         }
       }
@@ -35103,7 +35004,7 @@ int MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size, float max_thi
 
     nbr_count[min_n]++;
     for (n = 0; n < vtotal; n++) {
-      vn = &mris->vertices[vlist[n]];
+      VERTEX * const vn = &mris->vertices[vlist[n]];
       if (vn->ripflag) {
         continue;
       }
@@ -35555,22 +35456,23 @@ int MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs)
 {
   int i, vno, vnb, *pnb, vnum, n;
   float x, y, z, num;
-  VERTEX *v, *vn;
   int nmarked;
 
   MRIScopyMarkedToMarked3(mris);
   for (i = 0; i < navgs; i++) {
     if (Gdiag_no >= 0 && (mris->vertices[Gdiag_no].marked == 0)) {
-      v = &mris->vertices[Gdiag_no];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[Gdiag_no];
+      VERTEX                * const v  = &mris->vertices         [Gdiag_no];
       printf("v %d @ (%2.1f, %2.1f, %2.1f) will be moved during soap bubble:\n", Gdiag_no, v->x, v->y, v->z);
-      for (n = 0; n < v->vnum; n++) {
-        vn = &mris->vertices[v->v[n]];
-        printf("\tnbr %d=%d, marked = %d, (%2.1f, %2.1f, %2.1f)\n", n, v->v[n], vn->marked, vn->x, vn->y, vn->z);
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX const * const vn = &mris->vertices[vt->v[n]];
+        printf("\tnbr %d=%d, marked = %d, (%2.1f, %2.1f, %2.1f)\n", n, vt->v[n], vn->marked, vn->x, vn->y, vn->z);
       }
       DiagBreak();
     }
     for (nmarked = vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag || v->marked == 1) {
         continue;
       }
@@ -35586,17 +35488,11 @@ int MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs)
         z = v->z;
         num++; /* account for central vertex */
       }
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       for (vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
-#if 0
-        if (vn->ripflag ||
-            !vn->marked ||
-            vn->marked > 2) /* no valid data */
-#else
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) /* no valid data */
-#endif
         continue;
         num++;
         x += vn->x;
@@ -35614,7 +35510,7 @@ int MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs)
       }
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v  = &mris->vertices         [vno];
       if (v->ripflag || v->marked == 1) {
         continue;
       }
@@ -35642,12 +35538,6 @@ int MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs)
     if (nmarked && (Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON) {
       printf("%d: %d vertices marked\n", i, nmarked);
     }
-#if 0
-    if (!nmarked)
-    {
-      break ;
-    }
-#endif
   }
 
   MRIScopyMarked3ToMarked(mris);
@@ -35664,58 +35554,23 @@ int MRISweightedSoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs)
 {
   int i, vno, vnb, *pnb, vnum, n;
   float x, y, z;
-  VERTEX *v, *vn;
   int nmarked;
   double norm, total_norm;
-#if 0
-  double  xn, yn, zn, xc, yc, zc ;
-  int     *vertices = NULL, nv ;
-  FILE    *fp = NULL ;
-
-  if (Gdiag_no >= 0)
-  {
-    MRIScopyMarkedToMarked3(mris) ; // save current marks
-    MRISripMarked(mris) ;   // only part of surface to smooth is unmarked
-    mris->vertices[Gdiag_no].marked = 1 ;
-    MRISdilateMarked(mris, 1000) ;  // to ripped borders
-
-    vertices = (int *)calloc(mris->nvertices, sizeof(int)) ;
-    for (nv = vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (v->ripflag == 0)  // find ripped border and fit plane to it
-      {
-        continue ;
-      }
-      for (n = 0 ; n < v->vnum ; n++)
-        if (mris->vertices[v->v[n]].marked == 1)
-        {
-          break ;
-        }
-      if (n < v->vnum)
-      {
-        vertices[nv++] = vno ;
-      }
-    }
-    mrisComputeOptimalPlane(mris, vertices, nmarked, &xn, &yn, &zn, &xc, &yc, &zc);
-    MRISunrip(mris) ;
-    MRIScopyMarked3ToMarked(mris) ;
-    fp = fopen("soap.dat", "w") ;
-  }
-#endif
 
   for (i = 0; i < navgs; i++) {
     if (Gdiag_no >= 0 && (mris->vertices[Gdiag_no].marked == 0)) {
-      v = &mris->vertices[Gdiag_no];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[Gdiag_no];
+      VERTEX          const * const v  = &mris->vertices         [Gdiag_no];
       printf("v %d @ (%2.1f, %2.1f, %2.1f) will be moved during soap bubble:\n", Gdiag_no, v->x, v->y, v->z);
-      for (n = 0; n < v->vnum; n++) {
-        vn = &mris->vertices[v->v[n]];
-        printf("\tnbr %d=%d, marked = %d, (%2.1f, %2.1f, %2.1f)\n", n, v->v[n], vn->marked, vn->x, vn->y, vn->z);
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX const * const vn = &mris->vertices[vt->v[n]];
+        printf("\tnbr %d=%d, marked = %d, (%2.1f, %2.1f, %2.1f)\n", n, vt->v[n], vn->marked, vn->x, vn->y, vn->z);
       }
       DiagBreak();
     }
     for (nmarked = vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag || v->marked == 1) {
         v->tdx = v->x;
         v->tdy = v->y;
@@ -35730,11 +35585,11 @@ int MRISweightedSoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs)
       x = v->x;
       y = v->y;
       z = v->z;
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       for (vnb = 0; vnb < vnum; vnb++) {
         norm = 1.0;
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag)              /* no valid data */
         {
           norm *= 20;
@@ -35755,7 +35610,7 @@ int MRISweightedSoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs)
       }
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag || v->marked == 1) {
         continue;
       }
@@ -35783,24 +35638,8 @@ int MRISweightedSoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs)
     if (nmarked && (Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON) {
       printf("%d: %d vertices marked\n", i, nmarked);
     }
-#if 0
-    if (!nmarked)
-    {
-      break ;
-    }
-#endif
     if (DIAG_VERBOSE_ON) MRISprintVertexStats(mris, Gdiag_no, Gstdout, CURRENT_VERTICES);
   }
-#if 0
-  if (fp)
-  {
-    fclose(fp) ;
-  }
-  if (vertices)
-  {
-    free(vertices) ;
-  }
-#endif
 
   return (NO_ERROR);
 }
@@ -35815,7 +35654,6 @@ int MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs)
 {
   int i, vno, vnb, *pnb, vnum;
   float x, y, z, num;
-  VERTEX *v, *vn;
   int nmarked, num_none_marked = 0;
 
   /*
@@ -35828,7 +35666,8 @@ int MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs)
   */
   for (i = 0; i < navgs; i++) {
     for (nmarked = vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag || v->marked == 1) {
         continue;
       }
@@ -35841,10 +35680,10 @@ int MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs)
         z = v->origz;
         num++; /* account for central vertex */
       }
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       for (vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++];                     /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++];                     /* neighboring vertex pointer */
         if (vn->ripflag || !vn->marked || vn->marked > 2) /* no valid data */
         {
           continue;
@@ -35865,7 +35704,7 @@ int MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs)
       }
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag || v->marked == 1) {
         continue;
       }
@@ -35888,7 +35727,7 @@ int MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs)
     }
   }
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag || v->marked == 1) {
       continue;
     }
@@ -35900,7 +35739,6 @@ int MRISsoapBubbleTargetVertexPositions(MRI_SURFACE *mris, int navgs)
 {
   int i, vno, vnb, *pnb, vnum;
   float x, y, z, num;
-  VERTEX *v, *vn;
   int nmarked, num_none_marked = 0;
 
   /*
@@ -35913,7 +35751,8 @@ int MRISsoapBubbleTargetVertexPositions(MRI_SURFACE *mris, int navgs)
   */
   for (i = 0; i < navgs; i++) {
     for (nmarked = vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (vno == Gdiag_no) DiagBreak();
       if (v->ripflag || v->marked == 1) continue;
 
@@ -35926,10 +35765,10 @@ int MRISsoapBubbleTargetVertexPositions(MRI_SURFACE *mris, int navgs)
         z = v->targz;
         num++; /* account for central vertex */
       }
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       for (vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++];                     /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++];                     /* neighboring vertex pointer */
         if (vn->ripflag || !vn->marked || vn->marked > 2) /* no valid data */
         {
           continue;
@@ -35952,7 +35791,7 @@ int MRISsoapBubbleTargetVertexPositions(MRI_SURFACE *mris, int navgs)
       }
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag || v->marked == 1) {
         continue;
       }
@@ -35975,7 +35814,7 @@ int MRISsoapBubbleTargetVertexPositions(MRI_SURFACE *mris, int navgs)
     }
   }
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag || v->marked == 1) {
       continue;
     }
@@ -36204,21 +36043,21 @@ int MRISsequentialAverageVertexPositions(MRI_SURFACE *mris, int navgs)
 {
   int i, vno, vnb, *pnb, vnum;
   float x, y, z, num;
-  VERTEX *v, *vn;
 
   for (i = 0; i < navgs; i++) {
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag || v->marked) {
         continue;
       }
       x = v->x;
       y = v->y;
       z = v->z;
-      pnb = v->v;
-      vnum = v->vnum;
+      pnb  = vt->v;
+      vnum = vt->vnum;
       for (num = 0.0f, vnb = 0; vnb < vnum; vnb++) {
-        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        VERTEX const * const vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag) {
           continue;
         }
@@ -36703,7 +36542,9 @@ static int MRIScomputeBorderValues_new(
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
     
-    VERTEX * const v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
+    
     if (v->ripflag) {
       ROMP_PF_continue;
     }
@@ -37122,8 +36963,8 @@ static int MRIScomputeBorderValues_new(
       if (vno == Gdiag_no) DiagBreak();
       {
         int n;
-        for (n = 0; n < v->vnum; n++)
-          if (v->v[n] == Gdiag_no) {
+        for (n = 0; n < vt->vnum; n++)
+          if (vt->v[n] == Gdiag_no) {
             DiagBreak();
           }
       }
@@ -37485,7 +37326,8 @@ static int MRIScomputeBorderValues_old(
   for (vno = 0; vno < mris->nvertices; vno++) {
     ROMP_PFLB_begin
     
-    VERTEX * const v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       ROMP_PF_continue;
     }
@@ -37696,7 +37538,7 @@ static int MRIScomputeBorderValues_old(
       numberOfSamples++;
 
       double previous_val;
-#if 1
+
       {
         double const x = v->x + v->nx * (dist - STEP_SIZE);
         double const y = v->y + v->ny * (dist - STEP_SIZE);
@@ -37705,28 +37547,6 @@ static int MRIScomputeBorderValues_old(
         MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
         MRIsampleVolume(mri_brain, xw, yw, zw, &previous_val);
       }
-#else
-      /* find max val within 1 mm in inwards direction */
-      {
-        previous_val = 0.0;
-        float d;
-        for (d = 0.25; d <= 1.5; d += 0.25) {
-          double xw, yw, zw;
-
-          double const x = v->x + v->nx * (d - 1);
-          double const y = v->y + v->ny * (d - 1);
-          double const z = v->z + v->nz * (d - 1);
-          MRISsurfaceRASToVoxelCached(mris, mri_brain, x, y, z, &xw, &yw, &zw);
-
-          double tmp_val;
-          MRIsampleVolume(mri_brain, xw, yw, zw, &tmp_val);
-
-          if (tmp_val > previous_val) {
-            previous_val = tmp_val;
-          }
-        }
-      }
-#endif
 
       /* the previous point was inside the surface */
       if (previous_val < inside_hi && previous_val >= border_low) {
@@ -37910,8 +37730,8 @@ static int MRIScomputeBorderValues_old(
       if (vno == Gdiag_no) DiagBreak();
       {
         int n;
-        for (n = 0; n < v->vnum; n++)
-          if (v->v[n] == Gdiag_no) {
+        for (n = 0; n < vt->vnum; n++)
+          if (vt->v[n] == Gdiag_no) {
             DiagBreak();
           }
       }
@@ -38363,7 +38183,6 @@ int MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,
                                    int callno)
 {
   int total_vertices, vno, n, num, found;
-  VERTEX *v, *vn;
   double x, y, z, xv, yv, zv, dist, grad, max_grad, max_grad_dist, sigma_vox, nx, ny, nz, sample_dist, mag,
       max_grad_val, min_val, val, wm_mean, wm_std, wm_hi, wm_lo;
   MRI *mri_median;
@@ -38390,7 +38209,7 @@ int MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,
 
   sigma_vox = sigma / mri_brain->xsize;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX * const v  = &mris->vertices[vno];
     if (vno == Gdiag_no) {
       DiagBreak();
     }
@@ -38451,7 +38270,8 @@ int MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,
 
   // let user do smoothing  MRISaverageVals(mris, 10) ;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (vno == Gdiag_no) {
       DiagBreak();
     }
@@ -38461,8 +38281,8 @@ int MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,
     wm_mean = v->val;
     wm_std = v->val * v->val;
     v->valbak = v->val2bak = v->val;  // min and max
-    for (num = 1, n = 0; n < v->vtotal; n++) {
-      vn = &mris->vertices[v->v[n]];
+    for (num = 1, n = 0; n < vt->vtotal; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       if (vn->ripflag) {
         continue;
       }
@@ -38486,7 +38306,7 @@ int MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,
   }
 
   for (total_vertices = vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
     if (vno == Gdiag_no) {
       DiagBreak();
     }
@@ -38601,7 +38421,7 @@ int MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,
     }
   }
   for (total_vertices = vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
     if (vno == Gdiag_no) {
       DiagBreak();
     }
@@ -38628,7 +38448,6 @@ int MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,
                                        MRI *mri_mask)
 {
   int total_vertices, vno, n, num, found;
-  VERTEX *v, *vn;
   double x, y, z, xv, yv, zv, dist, grad, max_grad, max_grad_dist, sigma_vox, xm, ym, zm, nx, ny, nz, sample_dist, mag,
       max_grad_val, min_val, val, wm_mean, wm_std, wm_hi, wm_lo;
   MRI *mri_median, *mri_targets;
@@ -38666,7 +38485,8 @@ int MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,
 
   sigma_vox = sigma / mri_brain->xsize;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
+
     if (vno == Gdiag_no) {
       DiagBreak();
     }
@@ -38728,7 +38548,8 @@ int MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,
 
   // let user do smoothing  MRISaverageVals(mris, 10) ;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (vno == Gdiag_no) {
       DiagBreak();
     }
@@ -38738,8 +38559,8 @@ int MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,
     wm_mean = v->val;
     wm_std = v->val * v->val;
     v->valbak = v->val2bak = v->val;  // min and max
-    for (num = 1, n = 0; n < v->vtotal; n++) {
-      vn = &mris->vertices[v->v[n]];
+    for (num = 1, n = 0; n < vt->vtotal; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       if (vn->ripflag || vn->marked == 0) {
         continue;
       }
@@ -38763,7 +38584,7 @@ int MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,
   }
 
   for (total_vertices = vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (vno == Gdiag_no) {
       DiagBreak();
     }
@@ -38934,7 +38755,7 @@ int MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,
     }
   }
   for (total_vertices = vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX * const v  = &mris->vertices         [vno];
     if (vno == Gdiag_no) {
       DiagBreak();
     }
@@ -39621,7 +39442,7 @@ mrisNeighborAtVoxel(MRI_SURFACE *mris, MRI *mri, int vno, int xv,int yv,int zv)
 double MRIScomputeAnalyticDistanceError(MRI_SURFACE *mris, int which, FILE *fp)
 {
   int vno, n, vtotal, *pv, ndists;
-  VERTEX *v, *vn;
+
   float d, xd, yd, zd, circumference = 0.0f, angle, odist;
   double pct_orig, pct, mean, mean_orig_error, mean_error, smean_error, smean_orig_error;
   VECTOR *v1, *v2;
@@ -39633,19 +39454,20 @@ double MRIScomputeAnalyticDistanceError(MRI_SURFACE *mris, int which, FILE *fp)
   smean_orig_error = smean_error = 0.0;
   ndists = 0;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
     if (vno == Gdiag_no) {
       DiagBreak();
     }
-    vtotal = v->vtotal;
+    vtotal = vt->vtotal;
     switch (which) {
       default: /* don't really know what to do in other cases */
       case MRIS_PLANE:
-        for (pv = v->v, n = 0; n < vtotal; n++) {
-          vn = &mris->vertices[*pv++];
+        for (pv = vt->v, n = 0; n < vtotal; n++) {
+          VERTEX const * const vn = &mris->vertices[*pv++];
           if (vn->ripflag) {
             continue;
           }
@@ -39669,8 +39491,8 @@ double MRIScomputeAnalyticDistanceError(MRI_SURFACE *mris, int which, FILE *fp)
         {
           circumference = M_PI * 2.0 * V3_LEN(v1);
         }
-        for (pv = v->v, n = 0; n < vtotal; n++) {
-          vn = &mris->vertices[*pv++];
+        for (pv = vt->v, n = 0; n < vtotal; n++) {
+          VERTEX const * const vn = &mris->vertices[*pv++];
           if (vn->ripflag) {
             continue;
           }
@@ -39746,7 +39568,6 @@ double MRIScomputeAnalyticDistanceError(MRI_SURFACE *mris, int which, FILE *fp)
 double MRISstoreAnalyticDistances(MRI_SURFACE *mris, int which)
 {
   int vno, n, vtotal, *pv;
-  VERTEX *v, *vn;
   float d, xd, yd, zd, circumference = 0.0f, angle, odist;
   double pct_orig, pct, mean, mean_orig_error, mean_error, smean_error, smean_orig_error;
   VECTOR *v1, *v2;
@@ -39757,19 +39578,20 @@ double MRISstoreAnalyticDistances(MRI_SURFACE *mris, int which)
   mean_orig_error = mean_error = pct_orig = pct = mean = 0.0;
   smean_orig_error = smean_error = 0.0;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
     if (vno == Gdiag_no) {
       DiagBreak();
     }
-    vtotal = v->vtotal;
+    vtotal = vt->vtotal;
     switch (which) {
       default: /* don't really know what to do in other cases */
       case MRIS_PLANE:
-        for (pv = v->v, n = 0; n < vtotal; n++) {
-          vn = &mris->vertices[*pv++];
+        for (pv = vt->v, n = 0; n < vtotal; n++) {
+          VERTEX * const vn = &mris->vertices[*pv++];
           if (vn->ripflag) {
             continue;
           }
@@ -39788,8 +39610,8 @@ double MRISstoreAnalyticDistances(MRI_SURFACE *mris, int which)
         {
           circumference = M_PI * 2.0 * V3_LEN(v1);
         }
-        for (pv = v->v, n = 0; n < vtotal; n++) {
-          vn = &mris->vertices[*pv++];
+        for (pv = vt->v, n = 0; n < vtotal; n++) {
+          VERTEX * const vn = &mris->vertices[*pv++];
           if (vn->ripflag) {
             continue;
           }
@@ -39816,14 +39638,14 @@ double MRISstoreAnalyticDistances(MRI_SURFACE *mris, int which)
 int MRISdisturbOriginalDistances(MRI_SURFACE *mris, double max_pct)
 {
   int vno, n;
-  VERTEX *v;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
-    for (n = 0; n < v->vtotal; n++) {
+    for (n = 0; n < vt->vtotal; n++) {
       v->dist_orig[n] *= (1.0 + randomNumber(-max_pct / 100.0f, max_pct / 100.0f));
     }
   }
@@ -40103,7 +39925,6 @@ int MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris, int total_dof, int 
 int MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area, float *pdx, float *pdy, float *pdz)
 {
   int N, vno, n, i;
-  VERTEX *v, *vn;
   VECTOR *vdf, *vfz;
   MATRIX *mz, *mzt, *mztz, *mztz_inv, *mztz_inv_zt;
   double x0, y0, z0, f0, x1, y1, z1, f1, dx, dy, dz, df;
@@ -40111,15 +39932,16 @@ int MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area, floa
   dx = dy = dz = 0.0;
   for (i = 0; i < area->n_points; i++) {
     vno = area->lv[i].vno;
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     x0 = v->x;
     y0 = v->y;
     z0 = v->z;
     f0 = atan2(v->imag_val, v->val);
 
     /* first count # of valid neighbors */
-    for (N = n = 0; n < v->vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+    for (N = n = 0; n < vt->vnum; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       if (vn->ripflag) {
         continue;
       }
@@ -40135,8 +39957,8 @@ int MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area, floa
     }
 
     /* now fill in matrix and vector entries */
-    for (n = 0; n < v->vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+    for (n = 0; n < vt->vnum; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       if (vn->ripflag) {
         continue;
       }
@@ -40800,7 +40622,6 @@ int MRIScopyCurvatureFromImagValues(MRI_SURFACE *mris)
   ------------------------------------------------------*/
 int MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs)
 {
-  VERTEX *v;
   int vno, n, nvertices;
   double dist_scale, pct, dist, odist, mean, mean_error, smean, total_mean_error, total_mean;
 
@@ -40814,12 +40635,13 @@ int MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs)
 
   total_mean = total_mean_error = mean = 0.0;
   for (pct = 0.0, nvertices = vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       v->val = 0.0f;
       continue;
     }
-    for (smean = mean_error = mean = 0.0, n = 0; n < v->vtotal; n++) {
+    for (smean = mean_error = mean = 0.0, n = 0; n < vt->vtotal; n++) {
       nvertices++;
       dist = dist_scale * v->dist[n];
       odist = v->dist_orig[n];
@@ -40842,9 +40664,9 @@ int MRIScomputeDistanceErrors(MRI_SURFACE *mris, int nbhd_size, int max_nbrs)
         pct += fabs(dist - odist) / odist;
       }
     }
-    mean /= (double)v->vtotal;
+    mean /= (double)vt->vtotal;
 #if USE_FABS
-    mean_error /= (double)v->vtotal;
+    mean_error /= (double)vt->vtotal;
 #else
     mean_error = sqrt(mean_error / (double)v->vtotal);
 #endif
@@ -41064,7 +40886,6 @@ static int mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname)
   ------------------------------------------------------*/
 static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over)
 {
-  VERTEX *v;
   FACE *f;
   int nvertices, nfaces, magic, vno, fno, n;
   char line[STRLEN];
@@ -41090,17 +40911,16 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over)
 
   for (vno = 0; vno < nvertices; vno++) {
     if (vno % 100 == 0) exec_progress_callback(vno, nvertices, 0, 1);
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
+    VERTEX          * const v  = &mris->vertices         [vno];
     if (vno == Gdiag_no) {
       DiagBreak();
     }
     v->x = freadFloat(fp);
     v->y = freadFloat(fp);
     v->z = freadFloat(fp);
-#if 0
-    v->label = NO_LABEL ;
-#endif
-    v->num = 0; /* will figure it out */
+
+    vt->num = 0; /* will figure it out */
     if (fabs(v->x) > 10000 || !isfinite(v->x))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d x coordinate %f!", Progname, vno, v->x);
     if (fabs(v->y) > 10000 || !isfinite(v->y))
@@ -41118,7 +40938,7 @@ static MRI_SURFACE *mrisReadTriangleFile(const char *fname, double pct_over)
     }
 
     for (n = 0; n < VERTICES_PER_FACE; n++) {
-      mris->vertices[mris->faces[fno].v[n]].num++;
+      mris->vertices_topology[mris->faces[fno].v[n]].num++;
     }
   }
   // new addition
@@ -41213,7 +41033,8 @@ static bool mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno,
 {
   float const min_nbr_dist = minNeighborDistance(mris);
 
-  VERTEX* const v = &mris->vertices[vno];
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX                * const v  = &mris->vertices         [vno];
   
   if (v->ripflag) {
     return true;
@@ -41224,8 +41045,8 @@ static bool mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno,
   float const z = v->z;
 
   int n;
-  for (n = 0; n < v->vnum; n++) {
-    VERTEX const * const vn = &mris->vertices[v->v[n]];
+  for (n = 0; n < vt->vnum; n++) {
+    VERTEX const * const vn = &mris->vertices[vt->v[n]];
 
     float dx = vn->x - x;
     float dy = vn->y - y;
@@ -41319,10 +41140,9 @@ int MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
 {
   int *histo;
   int i, n, vno, ino, index, max_histo, max_index, nchanged, nzero, max_val;
-  VERTEX *v, *vn;
 
   for (max_val = vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX const * const v = &mris->vertices[vno];
     if (v->val > max_val) max_val = v->val;
   }
   histo = (int *)calloc(max_val + 1, sizeof(int));
@@ -41333,7 +41153,8 @@ int MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
   for (ino = 0; ino < niter; ino++) {
     nzero = nchanged = 0;
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (vno == Gdiag_no) DiagBreak();
 
       if (v->ripflag || v->marked) continue;
@@ -41345,8 +41166,8 @@ int MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
       // initialize
       memset(histo, 0, (max_val + 1) * sizeof(*histo));
       // create histogram
-      for (n = 0; n < v->vnum; n++) {
-        vn = &mris->vertices[v->v[n]];
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX const * const vn = &mris->vertices[vt->v[n]];
         index = (int)nint(vn->val);
         if (index < 0) continue;
 
@@ -41363,7 +41184,7 @@ int MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
       v->valbak = max_index;
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) continue;
 
       if (vno == Gdiag_no) DiagBreak();
@@ -41380,12 +41201,13 @@ int MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
 
     /* unmark all nbrs of unmarked vertices */
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX          const * const v  = &mris->vertices         [vno];
       if (v->ripflag || v->marked == 1) continue;
 
       if (vno == Gdiag_no) DiagBreak();
-      for (n = 0; n < v->vnum; n++) {
-        vn = &mris->vertices[v->v[n]];
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX * const vn = &mris->vertices[vt->v[n]];
         vn->marked = 0; /* process it again */
       }
     }
@@ -41406,10 +41228,9 @@ int MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
 int MRISmodeFilterZeroVals(MRI_SURFACE *mris)
 {
   int *histo, i, n, vno, ino, max_val, index, max_histo, max_index, nchanged, nzero;
-  VERTEX *v, *vn;
 
   for (max_val = vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX const * const v = &mris->vertices[vno];
     if (v->val > max_val) max_val = v->val;
   }
   histo = (int *)calloc(max_val + 1, sizeof(int));
@@ -41421,7 +41242,8 @@ int MRISmodeFilterZeroVals(MRI_SURFACE *mris)
   do {
     nzero = nchanged = 0;
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (vno == Gdiag_no) DiagBreak();
 
       if (v->ripflag || v->marked) continue;
@@ -41434,8 +41256,8 @@ int MRISmodeFilterZeroVals(MRI_SURFACE *mris)
       }
 
       memset(histo, 0, (max_val + 1) * sizeof(*histo));
-      for (n = 0; n < v->vnum; n++) {
-        vn = &mris->vertices[v->v[n]];
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX const * const vn = &mris->vertices[vt->v[n]];
         index = (int)nint(vn->val);
         if (index < 0) continue;
 
@@ -41452,7 +41274,7 @@ int MRISmodeFilterZeroVals(MRI_SURFACE *mris)
       v->valbak = max_index;
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) continue;
 
       if (vno == Gdiag_no) DiagBreak();
@@ -41469,13 +41291,14 @@ int MRISmodeFilterZeroVals(MRI_SURFACE *mris)
 
     /* unmark all nbrs of unmarked vertices */
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX          const * const v  = &mris->vertices         [vno];
       if (v->ripflag || v->marked == 1) continue;
 
       if (vno == Gdiag_no) DiagBreak();
 
-      for (n = 0; n < v->vnum; n++) {
-        vn = &mris->vertices[v->v[n]];
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX * const vn = &mris->vertices[vt->v[n]];
         vn->marked = 0; /* process it again */
       }
     }
@@ -41498,10 +41321,9 @@ int MRISmodeFilterZeroVals(MRI_SURFACE *mris)
 int MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
 {
   int *histo, i, n, vno, ino, index, max_histo, max_index, max_annotation, *annotations, nchanged = 0;
-  VERTEX *v, *vn;
 
   for (max_index = vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX const * const v = &mris->vertices[vno];
     index = annotation_to_index(v->annotation);
     if (index > max_index) max_index = index;
   }
@@ -41518,15 +41340,16 @@ int MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
 
   for (ino = 0; ino < niter; ino++) {
     for (nchanged = vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag) continue;
 
       if (vno == Gdiag_no) DiagBreak();
 
       memset(histo, 0, (max_index + 1) * sizeof(*histo));
       memset(annotations, 0, (max_index + 1) * sizeof(*annotations));
-      for (n = 0; n < v->vtotal; n++) {
-        vn = &mris->vertices[v->v[n]];
+      for (n = 0; n < vt->vtotal; n++) {
+        VERTEX const * const vn = &mris->vertices[vt->v[n]];
         index = annotation_to_index(vn->annotation);
         if (index < 0) continue;
 
@@ -41552,7 +41375,7 @@ int MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
       v->undefval = max_annotation;
     }
     for (vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX * const v = &mris->vertices[vno];
       if (v->ripflag) continue;
 
       if (vno == Gdiag_no) DiagBreak();
@@ -41580,14 +41403,14 @@ int MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
 int MRISsoapBubbleVals(MRI_SURFACE *mris, int navgs)
 {
   int vno, n, i, cmpt, nmarked;
-  VERTEX *v, *vn;
   double mean;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "performing soap bubble smoothing of vals for %d iterations.\n", navgs);
   for (i = 0; i < navgs; i++) {
     for (nmarked = vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag || (v->marked == 1)) {
         continue;
       }
@@ -41595,8 +41418,8 @@ int MRISsoapBubbleVals(MRI_SURFACE *mris, int navgs)
       /* compute average of self and neighbors */
       mean = 0.0;
       cmpt = 0;
-      for (n = 0; n < v->vnum; n++) {
-        vn = &mris->vertices[v->v[n]];
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX const * const vn = &mris->vertices[vt->v[n]];
         if (vn->marked) {
           mean += vn->val;
           cmpt++;
@@ -41635,14 +41458,15 @@ int MRISsoapBubbleVals(MRI_SURFACE *mris, int navgs)
 int MRISsoapBubbleD(MRI_SURFACE *mris, int navgs)
 {
   int vno, n, i, cmpt, nmarked;
-  VERTEX *v, *vn;
+
   double mean;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "performing soap bubble smoothing of D vals for %d iterations.\n", navgs);
   for (i = 0; i < navgs; i++) {
     for (nmarked = vno = 0; vno < mris->nvertices; vno++) {
-      v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+      VERTEX                * const v  = &mris->vertices         [vno];
       if (v->ripflag || (v->marked == 1)) {
         continue;
       }
@@ -41650,8 +41474,8 @@ int MRISsoapBubbleD(MRI_SURFACE *mris, int navgs)
       /* compute average of self and neighbors */
       mean = 0.0;
       cmpt = 0;
-      for (n = 0; n < v->vnum; n++) {
-        vn = &mris->vertices[v->v[n]];
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX const * const vn = &mris->vertices[vt->v[n]];
         if (vn->marked) {
           mean += vn->d;
           cmpt++;
@@ -41716,9 +41540,7 @@ int MRISremoveTriangleLinks(MRI_SURFACE *mris)
 static int mrisRemoveVertexLink(MRI_SURFACE *mris, int vno1, int vno2)
 {
   int n;
-  VERTEX *v;
-
-  v = &mris->vertices[vno1];
+  VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno1];
   for (n = 0; n < v->vnum; n++)
     if (v->v[n] == vno2) {
       break;
@@ -41809,12 +41631,12 @@ int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh)
 {
   double dist;
   int vno, nadded, n /*,nvertices, nfaces, nedges, eno*/;
-  VERTEX *v, *vn;
   float x, y, z;
 
   /* make it squared so we don't need sqrts later */
   for (nadded = vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -41829,11 +41651,11 @@ int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh)
       only add vertices if average neighbor vector is in
       normal direction, that is, if the region is concave or sulcal.
     */
-    for (n = 0; n < v->vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+    for (n = 0; n < vt->vnum; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       dist = sqrt(SQR(vn->x - x) + SQR(vn->y - y) + SQR(vn->z - z));
       if (dist > thresh) {
-        if (mrisDivideEdge(mris, vno, v->v[n]) == NO_ERROR) {
+        if (mrisDivideEdge(mris, vno, vt->v[n]) == NO_ERROR) {
           nadded++;
         }
       }
@@ -41931,9 +41753,7 @@ mrisAddVertices(MRI_SURFACE *mris, double thresh)
 #define MAX_FACES 50
 static int mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2)
 {
-  VERTEX *v1, *v2, *vnew;
-  int vnew_no, n, m, fno, n1, n2, flist[100];
-  FACE *face;
+  int n, m, n1, n2;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
     fprintf(stdout, "dividing edge %d --> %d\n", vno1, vno2);
@@ -41943,8 +41763,11 @@ static int mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2)
     printf("dividing edge %d --> %d, adding vertex number %d\n", vno1, vno2, mris->nvertices);
     DiagBreak();
   }
-  v1 = &mris->vertices[vno1];
-  v2 = &mris->vertices[vno2];
+  VERTEX_TOPOLOGY const * const v1t = &mris->vertices_topology[vno1];
+  VERTEX          const * const v1  = &mris->vertices         [vno1];
+  VERTEX_TOPOLOGY const * const v2t = &mris->vertices_topology[vno2];
+  VERTEX          const * const v2  = &mris->vertices         [vno2];
+  
   if (v1->ripflag || v2->ripflag || mris->nvertices >= mris->max_vertices || mris->nfaces >= (mris->max_faces - 1)) {
     return (ERROR_NO_MEMORY);
   }
@@ -41952,14 +41775,16 @@ static int mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2)
   /* check to make sure these vertices or the faces they are part of
      have enough room to expand.
   */
-  if (v1->vnum >= MAX_VERTEX_NEIGHBORS || v2->vnum >= MAX_VERTEX_NEIGHBORS || v1->num >= MAX_FACES ||
-      v2->num >= MAX_FACES) {
+  if (v1t->vnum >= MAX_VERTEX_NEIGHBORS || v2t->vnum >= MAX_VERTEX_NEIGHBORS || v1t->num >= MAX_FACES ||
+      v2t->num >= MAX_FACES) {
     return (ERROR_NO_MEMORY);
   }
 
   /* add 1 new vertex, 2 new faces, and 2 new edges */
-  vnew_no = mris->nvertices;
-  vnew = &mris->vertices[vnew_no];
+  int const vnew_no = mris->nvertices;
+  VERTEX_TOPOLOGY * const vnewt = &mris->vertices_topology[vnew_no];
+  VERTEX          * const vnew  = &mris->vertices         [vnew_no];
+  
   vnew->x = (v1->x + v2->x) / 2;
   vnew->y = (v1->y + v2->y) / 2;
   vnew->z = (v1->z + v2->z) / 2;
@@ -41988,23 +41813,24 @@ static int mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2)
   vnew->origx = (v1->origx + v2->origx) / 2; CHANGES_ORIG
   vnew->origy = (v1->origy + v2->origy) / 2;
   vnew->origz = (v1->origz + v2->origz) / 2;
-  vnew->vnum = 2; /* at least connected to two bisected vertices */
+  vnewt->vnum = 2; /* at least connected to two bisected vertices */
 
   /* count the # of faces that both vertices are part of */
-  for (n = 0; n < v1->num; n++) {
-    fno = v1->f[n];
-    face = &mris->faces[fno];
+  int flist[100];
+  for (n = 0; n < v1t->num; n++) {
+    int const fno = v1t->f[n];
+    FACE const * const face = &mris->faces[fno];
     for (m = 0; m < VERTICES_PER_FACE; m++)
       if (face->v[m] == vno2) {
         if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
           fprintf(stdout, " face %d shared.\n", fno);
         }
-        flist[vnew->num++] = fno;
-        if (vnew->num == 100) {
+        flist[vnewt->num++] = fno;
+        if (vnewt->num == 100) {
           ErrorExit(ERROR_BADPARM, "Too many faces to divide edge");
         }
-        vnew->vnum++;
-        vnew->vtotal = vnew->vnum;
+        vnewt->vnum++;
+        vnewt->vtotal = vnewt->vnum;
       }
   }
 
@@ -42012,43 +41838,30 @@ static int mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2)
 
   /* will be part of two new faces also */
   // total array size is going to be vnew->num*2!
-  if (vnew->num == 50) {
+  if (vnewt->num >= 50) {
     ErrorExit(ERROR_BADPARM, "Too many faces to divide edge");
   }
-  for (n = 0; n < vnew->num; n++) {
-    flist[vnew->num + n] = mris->nfaces + n;
+  for (n = 0; n < vnewt->num; n++) {
+    flist[vnewt->num + n] = mris->nfaces + n;
   }
-  vnew->num *= 2;
-#if 0
-  flist[vnew->num++] = mris->nfaces ;
-  flist[vnew->num++] = mris->nfaces+1 ;
-  vnew->num = 4 ;
-  vnew->vnum = 4 ;
-#endif
-  vnew->f = (int *)calloc(vnew->num, sizeof(int));
-  if (!vnew->f) {
+  vnewt->num *= 2;
+  vnewt->f = (int *)calloc(vnewt->num, sizeof(int));
+  if (!vnewt->f) {
     ErrorExit(ERROR_NOMEMORY, "could not allocate %dth face list.\n", vnew_no);
   }
-  vnew->n = (uchar *)calloc(vnew->num, sizeof(uchar));
-  if (!vnew->n) {
+  vnewt->n = (uchar *)calloc(vnewt->num, sizeof(uchar));
+  if (!vnewt->n) {
     ErrorExit(ERROR_NOMEMORY, "could not allocate %dth face list.\n", vnew_no);
   }
-  vnew->v = (int *)calloc(vnew->vnum, sizeof(int));
-  if (!vnew->v) ErrorExit(ERROR_NOMEMORY, "could not allocate %dth vertex list.\n", vnew_no);
+  vnewt->v = (int *)calloc(vnewt->vnum, sizeof(int));
+  if (!vnewt->v) ErrorExit(ERROR_NOMEMORY, "could not allocate %dth vertex list.\n", vnew_no);
 
-#if 0
-  vnew->v[0] = vno1 ;
-  vnew->v[0] = vno2 ;
-  vnew->vnum = 2 ;
-  vnew->num = 0;
-#else
-  vnew->num = vnew->vnum = 0;
-#endif
+  vnewt->num = vnewt->vnum = 0;
 
   /* divide every face that both vertices are part of in two */
-  for (n = 0; n < v1->num; n++) {
-    fno = v1->f[n];
-    face = &mris->faces[fno];
+  for (n = 0; n < v1t->num; n++) {
+    int const fno = v1t->f[n];
+    FACE const * const face = &mris->faces[fno];
     for (m = 0; m < VERTICES_PER_FACE; m++)
       if (face->v[m] == vno2) {
         if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -42062,62 +41875,63 @@ static int mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2)
 
   /* build vnew->f and vnew->n lists by going through all faces v1 and
      v2 are part of */
-  for (fno = 0; fno < vnew->num; fno++) {
-    vnew->f[fno] = flist[fno];
-    face = &mris->faces[flist[fno]];
+  int fno;
+  for (fno = 0; fno < vnewt->num; fno++) {
+    vnewt->f[fno] = flist[fno];
+    FACE const * const face = &mris->faces[flist[fno]];
     for (n = 0; n < VERTICES_PER_FACE; n++)
       if (face->v[n] == vnew_no) {
-        vnew->n[fno] = (uchar)n;
+        vnewt->n[fno] = (uchar)n;
       }
   }
 
   /* remove vno1 from vno2 list and visa-versa */
-  for (n = 0; n < v1->vnum; n++)
-    if (v1->v[n] == vno2) {
-      v1->v[n] = vnew_no;
+  for (n = 0; n < v1t->vnum; n++)
+    if (v1t->v[n] == vno2) {
+      v1t->v[n] = vnew_no;
       break;
     }
-  for (n = 0; n < v2->vnum; n++)
-    if (v2->v[n] == vno1) {
-      v2->v[n] = vnew_no;
+  for (n = 0; n < v2t->vnum; n++)
+    if (v2t->v[n] == vno1) {
+      v2t->v[n] = vnew_no;
       break;
     }
   /* build vnew->v list by going through faces it is part of and
      rejecting duplicates
   */
-  for (fno = 0; fno < vnew->num; fno++) {
-    face = &mris->faces[vnew->f[fno]];
-    n1 = vnew->n[fno] == 0 ? VERTICES_PER_FACE - 1 : vnew->n[fno] - 1;
-    n2 = vnew->n[fno] == VERTICES_PER_FACE - 1 ? 0 : vnew->n[fno] + 1;
+  for (fno = 0; fno < vnewt->num; fno++) {
+    FACE const * const face = &mris->faces[vnewt->f[fno]];
+    n1 = vnewt->n[fno] == 0 ? VERTICES_PER_FACE - 1 : vnewt->n[fno] - 1;
+    n2 = vnewt->n[fno] == VERTICES_PER_FACE - 1 ? 0 : vnewt->n[fno] + 1;
     vno1 = face->v[n1];
     vno2 = face->v[n2];
 
     /* go through this faces vertices and see if they should be added to v[] */
-    for (n = 0; n < vnew->vnum; n++) {
-      if (vnew->v[n] == vno1) {
+    for (n = 0; n < vnewt->vnum; n++) {
+      if (vnewt->v[n] == vno1) {
         vno1 = -1;
       }
-      if (vnew->v[n] == vno2) {
+      if (vnewt->v[n] == vno2) {
         vno2 = -1;
       }
     }
     if (vno1 >= 0) {
-      vnew->v[vnew->vnum++] = vno1;
+      vnewt->v[vnewt->vnum++] = vno1;
     }
     if (vno2 >= 0) {
-      vnew->v[vnew->vnum++] = vno2;
+      vnewt->v[vnewt->vnum++] = vno2;
     }
-    vnew->vtotal = vnew->vnum;
+    vnewt->vtotal = vnewt->vnum;
   }
   if (0 && Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
-    fprintf(stdout, "%d edges and %d faces.\n", vnew->vnum, vnew->num);
+    fprintf(stdout, "%d edges and %d faces.\n", vnewt->vnum, vnewt->num);
   }
 
-  if (!vnew->vnum || !v1->vnum || !v2->vnum) {
+  if (!vnewt->vnum || !v1t->vnum || !v2t->vnum) {
     fprintf(stderr, "empty vertex (%d <-- %d --> %d!\n", vno1, vnew_no, vno2);
     DiagBreak();
   }
-  if (vnew->vnum != 4 || vnew->num != 4) {
+  if (vnewt->vnum != 4 || vnewt->num != 4) {
     DiagBreak();
   }
   mrisInitializeNeighborhood(mris, vnew_no);
@@ -42132,8 +41946,6 @@ static int mrisDivideEdge(MRI_SURFACE *mris, int vno1, int vno2)
   ------------------------------------------------------*/
 static int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vnew_no)
 {
-  FACE *f1, *f2;
-  VERTEX *v1, *v2, *v3, *vnew;
   int fnew_no, n, vno3, flist[5000], vlist[5000], nlist[5000];
 
   if (vno1 == Gdiag_no || vno2 == Gdiag_no || vnew_no == Gdiag_no) {
@@ -42150,11 +41962,10 @@ static int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vn
   fnew_no = mris->nfaces;
   MRISgrowNFaces(mris, fnew_no+1);
 
-  f1 = &mris->faces[fno];
-  f2 = &mris->faces[fnew_no];
-  v1 = &mris->vertices[vno1];
-  v2 = &mris->vertices[vno2];
-  vnew = &mris->vertices[vnew_no];
+  FACE * const f1 = &mris->faces[fno];
+  FACE * const f2 = &mris->faces[fnew_no];
+  VERTEX_TOPOLOGY const * const v2   = &mris->vertices_topology[vno2];
+  VERTEX_TOPOLOGY       * const vnew = &mris->vertices_topology[vnew_no];
   memmove(f2->v, f1->v, VERTICES_PER_FACE * sizeof(int));
 
   /* set v3 to be other vertex in face being divided */
@@ -42171,7 +41982,8 @@ static int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vn
       vno3 = f1->v[n];
     }
   }
-  v3 = &mris->vertices[vno3];
+  
+  VERTEX_TOPOLOGY * const v3 = &mris->vertices_topology[vno3];
 
   if (vno1 == Gdiag_no || vno2 == Gdiag_no || vno3 == Gdiag_no) {
     DiagBreak();
@@ -42196,9 +42008,9 @@ static int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vn
     }
 
   /* add new face and edge connected to new vertex to v3 */
-  memmove(flist, v3->f, v3->num * sizeof(v3->f[0]));
+  memmove(flist, v3->f, v3->num  * sizeof(v3->f[0]));
   memmove(vlist, v3->v, v3->vnum * sizeof(v3->v[0]));
-  memmove(nlist, v3->n, v3->num * sizeof(v3->n[0]));
+  memmove(nlist, v3->n, v3->num  * sizeof(v3->n[0]));
   free(v3->f);
   free(v3->v);
   free(v3->n);
@@ -42229,27 +42041,9 @@ static int mrisDivideFace(MRI_SURFACE *mris, int fno, int vno1, int vno2, int vn
     fprintf(stdout, "face %d: (%d, %d, %d)\n", fno, f1->v[0], f1->v[1], f1->v[2]);
     fprintf(stdout, "face %d: (%d, %d, %d)\n", fnew_no, f2->v[0], f2->v[1], f2->v[2]);
   }
-#if 1
+
   mrisInitializeNeighborhood(mris, vno3);
-#else
-  /*
-  NOTE!!!!!! This won't work if the neighborhood size is 1
-  */
-  if (v3->dist) {
-    memmove(dlist, v3->dist, v3->vtotal * sizeof(v3->dist[0]));
-    free(v3->dist);
-    v3->dist = (float *)calloc(v3->vtotal + 1, sizeof(float));
-    if (!v3->dist) ErrorExit(ERROR_NOMEMORY, "mrisDivideFace: could not allocate %d dists", v3->vtotal + 1);
-    memmove(v3->dist, dlist, v3->vtotal * sizeof(v3->dist[0]));
-  }
-  if (v3->dist_orig) {
-    memmove(dlist, v3->dist_orig, v3->vtotal * sizeof(v3->dist_orig[0]));
-    free(v3->dist_orig);
-    v3->dist_orig = (float *)calloc(v3->vtotal + 1, sizeof(float));
-    if (!v3->dist_orig) ErrorExit(ERROR_NOMEMORY, "mrisDivideFace: could not allocate %d dist_origs", v3->vtotal + 1);
-    memmove(v3->dist_orig, dlist, v3->vtotal * sizeof(v3->dist_orig[0]));
-  }
-#endif
+
   return (NO_ERROR);
 }
 #if 0
@@ -42561,7 +42355,6 @@ double MRIScomputeVertexSpacingStats(
 {
   double total_dist, mean, var, nv, dist, sigma, min_dist, max_dist, dist_scale;
   int vno, n;
-  VERTEX *v, *vn;
 
   MRIScomputeMetricProperties(mris);
   if (mris->patch) {
@@ -42574,15 +42367,16 @@ double MRIScomputeVertexSpacingStats(
   min_dist = 1000;
   max_dist = -1;
   for (var = nv = total_dist = 0.0, vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
     if (vno == Gdiag_no) {
       DiagBreak();
     }
-    for (n = 0; n < v->vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+    for (n = 0; n < vt->vnum; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       nv++;
       switch (which_vertices) {
         default:
@@ -42617,7 +42411,7 @@ double MRIScomputeVertexSpacingStats(
           *pvno = vno;
         }
         if (pvno2) {
-          *pvno2 = v->v[n];
+          *pvno2 = vt->v[n];
         }
         max_dist = dist;
       }
@@ -42652,7 +42446,6 @@ double MRIScomputeTotalVertexSpacingStats(
 {
   double total_dist, mean, var, nv, dist, sigma, min_dist, max_dist, dist_scale;
   int vno, n;
-  VERTEX *v, *vn;
 
   MRIScomputeMetricProperties(mris);
   if (mris->patch) {
@@ -42665,15 +42458,16 @@ double MRIScomputeTotalVertexSpacingStats(
   min_dist = 1000;
   max_dist = -1;
   for (var = nv = total_dist = 0.0, vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
     if (vno == Gdiag_no) {
       DiagBreak();
     }
-    for (n = 0; n < v->vtotal; n++) {
-      vn = &mris->vertices[v->v[n]];
+    for (n = 0; n < vt->vtotal; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       nv++;
       dist = sqrt(SQR(vn->x - v->x) + SQR(vn->y - v->y) + SQR(vn->z - v->z));
       dist *= dist_scale;
@@ -42682,7 +42476,7 @@ double MRIScomputeTotalVertexSpacingStats(
           *pvno = vno;
         }
         if (pvno2) {
-          *pvno2 = v->v[n];
+          *pvno2 = vt->v[n];
         }
         max_dist = dist;
       }
@@ -44578,16 +44372,16 @@ int MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp)
   fprintf(fp, "face area %2.2f +- %2.2f (%2.2f-->%2.2f)\n", mean, dsigma, dmin, dmax);
 
   if (dmax > 20) {
-    VERTEX *v, *vn;
     int n;
     float dist;
 
-    v = &mris->vertices[vno];
-    for (n = 0; n < v->vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
+    for (n = 0; n < vt->vnum; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       dist = sqrt(SQR(vn->x - v->x) + SQR(vn->y - v->y) + SQR(vn->z - v->z));
       if (dist > 20) {
-        fprintf(stdout, "\t%d --> %d = %2.1f mm\n", vno, v->v[n], dist);
+        fprintf(stdout, "\t%d --> %d = %2.1f mm\n", vno, vt->v[n], dist);
       }
     }
   }
@@ -44633,10 +44427,9 @@ static void mrisDumpFace(MRI_SURFACE *mris, int fno, FILE *fp)
 static int mrisStoreVtotalInV3num(MRI_SURFACE *mris)
 {
   int vno;
-  VERTEX *v;
 
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];
     v->v3num = v->vtotal;
   }
   return (NO_ERROR);
@@ -46119,7 +45912,6 @@ static int mrisRipDefect(MRI_SURFACE *mris, DEFECT *defect, int ripflag);
 int MRISisSurfaceValid(MRIS *mris, int patch, int verbose)
 {
   int n, m, p, q, vnop, nfound, mark;
-  VERTEX *vn;
   int euler, nedges, nvf, nffm, nffs, cf, nvc;
   FACE *fm;
 
@@ -46129,7 +45921,7 @@ int MRISisSurfaceValid(MRIS *mris, int patch, int verbose)
   }
   nvf = 0;
   for (n = 0; n < mris->nvertices; n++) {
-    vn = &mris->vertices[n];
+    VERTEX_TOPOLOGY const * const vn = &mris->vertices_topology[n];
     if (vn->vnum != vn->num) {
       nvf++;
       if (verbose == 2 && patch == 0) {
@@ -46145,7 +45937,7 @@ int MRISisSurfaceValid(MRIS *mris, int patch, int verbose)
   nffm = nffs = 0;
   nedges = 0;
   for (n = 0; n < mris->nvertices; n++) {
-    vn = &mris->vertices[n];
+    VERTEX_TOPOLOGY const * const vn = &mris->vertices_topology[n];
     nedges += vn->vnum;
     for (p = 0; p < vn->vnum; p++) {
       vnop = vn->v[p];
@@ -46186,7 +45978,7 @@ int MRISisSurfaceValid(MRIS *mris, int patch, int verbose)
   }
   nvc = 0;
   for (n = 0; n < mris->nvertices; n++) {
-    vn = &mris->vertices[n];
+    VERTEX_TOPOLOGY const * const vn = &mris->vertices_topology[n];
     for (p = 0; p < vn->vnum; p++) {
       vnop = vn->v[p];
       mris->vertices[vnop].marked = 0;
@@ -46727,8 +46519,9 @@ void MRISinitDefectPatch(MRIS *mris, TOPOFIX_PARMS *parms)
   MRISclearMarks(mris);
   tp->ninside = 0;
   for (n = 0; n < mris->nvertices; n++) {
-    VERTEX *v = &mris->vertices[n];
-    if (v->vnum == v->num) {
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[n];
+    VERTEX                * const v  = &mris->vertices         [n];
+    if (vt->vnum == vt->num) {
       v->marked = 1;
       tp->vertices[tp->ninside++] = n;
     }
@@ -47455,7 +47248,7 @@ static SEGMENTATION *segmentIntersectingEdges(MRIS *mris, DEFECT *defect, int *v
     }
     ep = (EP *)mris->vertices[vno1].vp;
     if (ep->nedges == 0) {
-      ep->edges = (int *)malloc((25 + mris->vertices[vno1].vnum) * sizeof(int));
+      ep->edges = (int *)malloc((25 + mris->vertices_topology[vno1].vnum) * sizeof(int));
     }
     ep->edges[ep->nedges++] = n;
 
@@ -47466,7 +47259,7 @@ static SEGMENTATION *segmentIntersectingEdges(MRIS *mris, DEFECT *defect, int *v
     }
     ep = (EP *)mris->vertices[vno2].vp;
     if (ep->nedges == 0) {
-      ep->edges = (int *)malloc((25 + mris->vertices[vno2].vnum) * sizeof(int));
+      ep->edges = (int *)malloc((25 + mris->vertices_topology[vno2].vnum) * sizeof(int));
     }
     ep->edges[ep->nedges++] = n;
   }
@@ -49003,7 +48796,7 @@ static void defectMatch(MRI *mri, MRI_SURFACE *mris, DP *dp, int smooth, int mat
 static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int type)
 {
   int i, n;
-  VERTEX *v, *vn;
+
   float x, y, z;
   float r, F, E, rmin, rmax;
   float dx, dy, dz, sx, sy, sz, sd, sxn, syn, szn, sxt, syt, szt, nc, nx, ny, nz, f;
@@ -49029,10 +48822,11 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       while (niter--) {
         /* using the tmp vertices */
         for (i = 0; i < ninside; i++) {
-          v = &mris->vertices[dp->tp.vertices[i]];
+          VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[dp->tp.vertices[i]];
+          VERTEX                * const v  = &mris->vertices         [dp->tp.vertices[i]];
 
-          for (x = 0, y = 0, z = 0, n = 0; n < v->vnum; n++) {
-            vn = &mris->vertices[v->v[n]];
+          for (x = 0, y = 0, z = 0, n = 0; n < vt->vnum; n++) {
+            VERTEX const * const vn = &mris->vertices[vt->v[n]];
             x += vn->origx;
             y += vn->origy;
             z += vn->origz;
@@ -49049,7 +48843,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
         }
 
         for (i = 0; i < ninside; i++) {
-          v = &mris->vertices[dp->tp.vertices[i]];
+          VERTEX * const v = &mris->vertices[dp->tp.vertices[i]];
 
           v->origx = v->tx; CHANGES_ORIG
           v->origy = v->ty;
@@ -49071,7 +48865,8 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
 
         /* using the tmp vertices */
         for (i = 0; i < ninside; i++) {
-          v = &mris->vertices[dp->tp.vertices[i]];
+          VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[dp->tp.vertices[i]];
+          VERTEX                * const v  = &mris->vertices         [dp->tp.vertices[i]];
           x = v->origx;
           y = v->origy;
           z = v->origz;
@@ -49081,8 +48876,8 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
 
           sx = sy = sz = sd = 0;
           n = 0;
-          for (n = 0; n < v->vnum; n++) {
-            vn = &mris->vertices[v->v[n]];
+          for (n = 0; n < vt->vnum; n++) {
+            VERTEX const * const vn = &mris->vertices[vt->v[n]];
 
             sx += dx = vn->origx - x;
             sy += dy = vn->origy - y;
@@ -49116,7 +48911,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
           v->tz = v->origz + alpha * (szt + f * szn);
         }
         for (i = 0; i < ninside; i++) {
-          v = &mris->vertices[dp->tp.vertices[i]];
+          VERTEX * const v = &mris->vertices[dp->tp.vertices[i]];
 
           v->origx = v->tx;
           v->origy = v->ty;
@@ -49131,7 +48926,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       }
 
       for (i = 0; i < nstrictlyinside; i++) {
-        v = &mris->vertices[dp->tp.vertices[i]];
+        VERTEX * const v = &mris->vertices[dp->tp.vertices[i]];
         v->old_undefval = 0;
       }
 
@@ -49141,14 +48936,15 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       while (changed) {
         changed = 0;
         for (i = 0; i < nstrictlyinside; i++) {
-          v = &mris->vertices[dp->tp.vertices[i]];
+          VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[dp->tp.vertices[i]];
+          VERTEX                * const v  = &mris->vertices         [dp->tp.vertices[i]];
           if (v->old_undefval) {
             continue; /* already processed */
           }
           /* check if neighboring values are lower or not */
           should_be_smoothed = 1;
-          for (n = 0; n < v->vnum; n++) {
-            vn = &mris->vertices[v->v[n]];
+          for (n = 0; n < vt->vnum; n++) {
+            VERTEX const * const vn = &mris->vertices[vt->v[n]];
             if ((!vn->old_undefval) && vn->undefval < v->undefval) {
               should_be_smoothed = 0;
               break;
@@ -49174,13 +48970,14 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       while (niter--) {
         /* using the tmp vertices */
         for (i = 0; i < nstrictlyinside; i++) {
-          v = &mris->vertices[dp->tp.vertices[i]];
+          VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[dp->tp.vertices[i]];
+          VERTEX                * const v  = &mris->vertices         [dp->tp.vertices[i]];
           if (v->old_undefval == 0) {
             continue;
           }
 
-          for (x = 0, y = 0, z = 0, n = 0; n < v->vnum; n++) {
-            vn = &mris->vertices[v->v[n]];
+          for (x = 0, y = 0, z = 0, n = 0; n < vt->vnum; n++) {
+            VERTEX const * const vn = &mris->vertices[vt->v[n]];
             x += vn->origx;
             y += vn->origy;
             z += vn->origz;
@@ -49197,7 +48994,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
         }
 
         for (i = 0; i < nstrictlyinside; i++) {
-          v = &mris->vertices[dp->tp.vertices[i]];
+          VERTEX * const v = &mris->vertices[dp->tp.vertices[i]];
           if (v->old_undefval == 0) {
             continue;
           }
@@ -49224,7 +49021,8 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
 
       mean = var = 0.0;
       for (i = 0; i < ninside; i++) {
-        v = &mris->vertices[dp->tp.vertices[i]];
+        VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[dp->tp.vertices[i]];
+        VERTEX                * const v  = &mris->vertices         [dp->tp.vertices[i]];
         x = v->origx;
         y = v->origy;
         z = v->origz;
@@ -49234,8 +49032,8 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
 
         sx = sy = sz = sd = 0;
         n = 0;
-        for (n = 0; n < v->vnum; n++) {
-          vn = &mris->vertices[v->v[n]];
+        for (n = 0; n < vt->vnum; n++) {
+          VERTEX const * const vn = &mris->vertices[vt->v[n]];
 
           sx += dx = vn->origx - x;
           sy += dy = vn->origy - y;
@@ -49271,7 +49069,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       vertices = (int *)malloc(dp->tp.nvertices * sizeof(int));
       nvertices = 0;
       for (i = 0; i < ninside; i++) {
-        v = &mris->vertices[dp->tp.vertices[i]];
+        VERTEX const * const v = &mris->vertices[dp->tp.vertices[i]];
         if (v->curv < mean - 1 * sqrt(var) || v->curv > mean + 1 * sqrt(var)) {
           vertices[nvertices++] = i;
         }
@@ -49285,7 +49083,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
 
     for (i = 0 ; i < nvertices; i++)
     {
-      v = &mris->vertices[dp->tp.vertices[vertices[i]]] ;
+      VERTEX * const v = &mris->vertices[dp->tp.vertices[vertices[i]]] ;
       v->annotation=100;
     }
 #endif
@@ -49303,10 +49101,11 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
       while (niter--) {
         /* using the tmp vertices */
         for (i = 0; i < nvertices; i++) {
-          v = &mris->vertices[dp->tp.vertices[vertices[i]]];
+          VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[dp->tp.vertices[vertices[i]]];
+          VERTEX                * const v  = &mris->vertices         [dp->tp.vertices[vertices[i]]];
 
-          for (x = 0, y = 0, z = 0, n = 0; n < v->vnum; n++) {
-            vn = &mris->vertices[v->v[n]];
+          for (x = 0, y = 0, z = 0, n = 0; n < vt->vnum; n++) {
+            VERTEX const * const vn = &mris->vertices[vt->v[n]];
             x += vn->origx;
             y += vn->origy;
             z += vn->origz;
@@ -49323,7 +49122,7 @@ static void defectSmooth(MRI_SURFACE *mris, DP *dp, int niter, double alpha, int
         }
 
         for (i = 0; i < nvertices; i++) {
-          v = &mris->vertices[dp->tp.vertices[vertices[i]]];
+          VERTEX * const v = &mris->vertices[dp->tp.vertices[vertices[i]]];
 
           v->origx = v->tx; CHANGES_ORIG
           v->origy = v->ty;
@@ -49342,7 +49141,6 @@ static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, in
 {
   float wm, gm, mean;
   int i, n, nvertices, *vertices;
-  VERTEX *v, *vn;
   double x, y, z, xm, ym, zm, nx, ny, nz, dx, dy, dz, g, NRG;
   double xv, yv, zv, white_val, gray_val, val;
 
@@ -49376,14 +49174,15 @@ static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, in
   while (niter--) {
     /* using the tmp vertices */
     for (NRG = 0, i = 0; i < nvertices; i++) {
-      v = &mris->vertices[vertices[i]];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vertices[i]];
+      VERTEX                * const v  = &mris->vertices         [vertices[i]];
       x = v->origx;
       y = v->origy;
       z = v->origz;
 
       /* smoothness term */
-      for (xm = 0, ym = 0, zm = 0, n = 0; n < v->vnum; n++) {
-        vn = &mris->vertices[v->v[n]];
+      for (xm = 0, ym = 0, zm = 0, n = 0; n < vt->vnum; n++) {
+        VERTEX * const vn = &mris->vertices[vt->v[n]];
         xm += vn->origx;
         ym += vn->origy;
         zm += vn->origz;
@@ -49442,7 +49241,7 @@ static void MRISdefectMaximizeLikelihood(MRI *mri, MRI_SURFACE *mris, DP *dp, in
 
     /* update orig vertices */
     for (i = 0; i < nvertices; i++) {
-      v = &mris->vertices[vertices[i]];
+      VERTEX * const v = &mris->vertices[vertices[i]];
       v->origx = v->tx; CHANGES_ORIG
       v->origy = v->ty;
       v->origz = v->tz;
@@ -49486,18 +49285,18 @@ static void defectMaximizeLikelihood_new(MRI *mri, MRI_SURFACE *mris, DP *dp, in
 
     int i;
     for (i = 0; i < nvertices; i++) {
-
-      VERTEX* const v = &mris->vertices[dp->tp.vertices[i]];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[dp->tp.vertices[i]];
+      VERTEX                * const v  = &mris->vertices         [dp->tp.vertices[i]];
       float const x = v->origx;
       float const y = v->origy;
       float const z = v->origz;
 
       /* smoothness term */
       double xm = 0, ym = 0, zm = 0;
-      if (v->vnum > 0) {
+      if (vt->vnum > 0) {
         int n;
-        for (n = 0; n < v->vnum; n++) {
-          VERTEX const * const vn = &mris->vertices[v->v[n]];
+        for (n = 0; n < vt->vnum; n++) {
+          VERTEX const * const vn = &mris->vertices[vt->v[n]];
           xm += vn->origx;
           ym += vn->origy;
           zm += vn->origz;
@@ -49565,7 +49364,6 @@ static void defectMaximizeLikelihood_old(MRI *mri, MRI_SURFACE *mris, DP *dp, in
 {
   float wm, gm, mean;
   int i, n, nvertices;
-  VERTEX *v, *vn;
   double x, y, z, xm, ym, zm, nx, ny, nz, dx, dy, dz, g, NRG;
   double xv, yv, zv, white_val, gray_val, val;
 
@@ -49580,14 +49378,15 @@ static void defectMaximizeLikelihood_old(MRI *mri, MRI_SURFACE *mris, DP *dp, in
   while (niter--) {
     /* using the tmp vertices */
     for (NRG = 0, i = 0; i < nvertices; i++) {
-      v = &mris->vertices[dp->tp.vertices[i]];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[dp->tp.vertices[i]];
+      VERTEX                * const v  = &mris->vertices         [dp->tp.vertices[i]];
       x = v->origx;
       y = v->origy;
       z = v->origz;
 
       /* smoothness term */
-      for (xm = 0, ym = 0, zm = 0, n = 0; n < v->vnum; n++) {
-        vn = &mris->vertices[v->v[n]];
+      for (xm = 0, ym = 0, zm = 0, n = 0; n < vt->vnum; n++) {
+        VERTEX const * const vn = &mris->vertices[vt->v[n]];
         xm += vn->origx;
         ym += vn->origy;
         zm += vn->origz;
@@ -49646,7 +49445,7 @@ static void defectMaximizeLikelihood_old(MRI *mri, MRI_SURFACE *mris, DP *dp, in
 
     /* update orig vertices */
     for (i = 0; i < nvertices; i++) {
-      v = &mris->vertices[dp->tp.vertices[i]];
+      VERTEX * const v = &mris->vertices[dp->tp.vertices[i]];
       v->origx = v->tx;
       v->origy = v->ty;
       v->origz = v->tz;
@@ -49663,7 +49462,6 @@ static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp)
 {
   int i, n, m, vno, vn1, vn2, nvertices, nthings, *things, nfaces;
   int optimal = dp->defect->optimal_mapping;
-  VERTEX *v;
   TP *tp;
 
   /* the tessellated patch */
@@ -49679,14 +49477,14 @@ static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp)
   for (nthings = i = 0 ; i < nvertices ; i++)
   {
     vno=tp->vertices[i];
-    v = &mris->vertices[vno] ;
+    VERTEX * const v = &mris->vertices[vno] ;
     v->border=1;
   }
 #endif
   /* detect faces only for modified vertices */
   for (nthings = i = 0; i < nvertices; i++) {
     vno = tp->vertices[i];
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno];
 
     for (n = 0; n < v->vnum; n++) {
       vn1 = v->v[n];
@@ -49732,16 +49530,6 @@ static void detectDefectFaces(MRIS *mris, DEFECT_PATCH *dp)
       }
     }
   }
-
-#if 0
-  /* reset border flag */
-  for (nthings = i = 0 ; i < nvertices ; i++)
-  {
-    vno=tp->vertices[i];
-    v = &mris->vertices[vno] ;
-    v->border=0;
-  }
-#endif
 
   /* save the list of new faces */
   if (nthings == nfaces) {
@@ -49790,7 +49578,6 @@ static void orientDefectFaces(MRIS *mris, DP *dp)
   float dot, cx, cy, cz, a[3], b[3], norm[3];
   TP *tp;
   FACE *face;
-  VERTEX *v, *v1, *v2, *v3;
 
   tp = &dp->tp;
 
@@ -49799,9 +49586,9 @@ static void orientDefectFaces(MRIS *mris, DP *dp)
 
     face = &mris->faces[fno];
 
-    v1 = &mris->vertices[face->v[0]];
-    v2 = &mris->vertices[face->v[1]];
-    v3 = &mris->vertices[face->v[2]];
+    VERTEX const * const v1 = &mris->vertices[face->v[0]];
+    VERTEX const * const v2 = &mris->vertices[face->v[1]];
+    VERTEX const * const v3 = &mris->vertices[face->v[2]];
 
     /* compute centroid direction on sphere */
     cx = v1->cx + v2->cx + v3->cx;
@@ -49827,14 +49614,14 @@ static void orientDefectFaces(MRIS *mris, DP *dp)
       face->v[2] = vno0;
 
       /* set vertex face index */
-      v = &mris->vertices[vno0]; /* vno0 is now in 2 */
+      VERTEX_TOPOLOGY * v = &mris->vertices_topology[vno0]; /* vno0 is now in 2 */
       for (m = 0; m < v->num; m++)
         if (v->f[m] == fno) {
           v->n[m] = 2;
           break;
         }
 
-      v = &mris->vertices[vno1]; /* vno1 is now in 1 */
+      v = &mris->vertices_topology[vno1]; /* vno1 is now in 1 */
       for (m = 0; m < v->num; m++)
         if (v->f[m] == fno) {
           v->n[m] = 1;
@@ -49917,7 +49704,6 @@ static void computeDefectFaceNormal(MRIS const * const mris, int const fno)
 static void computeDefectFaceNormals(MRIS *mris, DP *dp, DefectFacesCache* dfc)
 {
   int i, n;
-  VERTEX *v;
   FACE *face;
   TP *tp;
 
@@ -49934,7 +49720,7 @@ static void computeDefectFaceNormals(MRIS *mris, DP *dp, DefectFacesCache* dfc)
 
   /* compute faces only for modified vertices */
   for (i = 0; i < tp->nvertices; i++) {
-    v = &mris->vertices[tp->vertices[i]];
+    VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[tp->vertices[i]];
     for (n = 0; n < v->num; n++) {
       face = &mris->faces[v->f[n]];
       if (face->ripflag) {
@@ -49947,7 +49733,7 @@ static void computeDefectFaceNormals(MRIS *mris, DP *dp, DefectFacesCache* dfc)
   }
   /* unrip faces */
   for (i = 0; i < tp->nvertices; i++) {
-    v = &mris->vertices[tp->vertices[i]];
+    VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[tp->vertices[i]];
     for (n = 0; n < v->num; n++) {
       face = &mris->faces[v->f[n]];
       if (face->ripflag == TEMPORARY_RIPPED_FACE) /* unrip face */
@@ -49963,17 +49749,17 @@ static void computeDefectVertexNormals(MRIS *mris, DP *dp)
   int n, m;
   float nx, ny, nz, len;
   TP *tp;
-  VERTEX *v;
 
   tp = &dp->tp;
   /* compute vertex normals only for modified vertices */
   for (n = 0; n < tp->nvertices; n++) {
-    v = &mris->vertices[tp->vertices[n]];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[tp->vertices[n]];
+    VERTEX                * const v  = &mris->vertices         [tp->vertices[n]];
 
     /* compute normal at vertex */
     nx = ny = nz = 0.0f;
-    for (m = 0; m < v->num; m++) {
-      FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, v->f[m]);
+    for (m = 0; m < vt->num; m++) {
+      FaceNormCacheEntry const * const fNorm = getFaceNorm(mris, vt->f[m]);
       nx += fNorm->nx;
       ny += fNorm->ny;
       nz += fNorm->nz;
@@ -49984,8 +49770,8 @@ static void computeDefectVertexNormals(MRIS *mris, DP *dp)
       fprintf(WHICH_OUTPUT,
               "normal vector of length zero at vertex %d with %d faces\n",
               tp->vertices[n],
-              (int)v->num);  // TO BE CHECKED
-      if ((int)v->num == 0) {
+              (int)vt->num);  // TO BE CHECKED
+      if ((int)vt->num == 0) {
         ErrorExit(ERROR_BADPARM, "vertex %d has 0 face", tp->vertices[n]);
       }
       len = 1;
@@ -50051,7 +49837,6 @@ static void computeDefectTangentPlaneAtVertex(MRIS *mris, int vno)
 static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp)
 {
   int p, vno, i, n, nbad = 0;
-  VERTEX *vertex, *vnb;
   MATRIX *m_U, *m_Ut, *m_tmp1, *m_tmp2, *m_inverse, *m_eigen, *m_Q;
   VECTOR *v_c, *v_z, *v_n, *v_e1, *v_e2, *v_yi;
   float k1, k2, evalues[3], a11, a12, a21, a22, cond_no, kmax, kmin, rsq, k;
@@ -50070,7 +49855,8 @@ static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp)
   for (p = 0; p < tp->nvertices; p++) {
     vno = tp->vertices[p];
 
-    vertex = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vertext = &mris->vertices_topology[vno];
+    VERTEX                * const vertex  = &mris->vertices         [vno];
 
     /* compute tangent plane */
     computeDefectTangentPlaneAtVertex(mris, vno);
@@ -50088,22 +49874,22 @@ static void computeDefectSecondFundamentalForm(MRIS *mris, TP *tp)
     MRIScomputeSecondFundamentalFormAtVertex(mris, vno, nbrs, num_nbrs) ;
 #endif
 
-    VECTOR_LOAD(v_n, vertex->nx, vertex->ny, vertex->nz);
+    VECTOR_LOAD(v_n,  vertex->nx,  vertex->ny,  vertex->nz);
     VECTOR_LOAD(v_e1, vertex->e1x, vertex->e1y, vertex->e1z);
     VECTOR_LOAD(v_e2, vertex->e2x, vertex->e2y, vertex->e2z);
 
-    if (vertex->vtotal <= 0) {
+    if (vertext->vtotal <= 0) {
       continue;
     }
 
-    m_U = MatrixAlloc(vertex->vtotal, 3, MATRIX_REAL);
-    v_z = VectorAlloc(vertex->vtotal, MATRIX_REAL);
+    m_U = MatrixAlloc(vertext->vtotal, 3, MATRIX_REAL);
+    v_z = VectorAlloc(vertext->vtotal, MATRIX_REAL);
 
     /* fit a quadratic form to the surface at this vertex */
     kmin = 10000.0f;
     kmax = -kmin;
-    for (n = i = 0; i < vertex->vtotal; i++) {
-      vnb = &mris->vertices[vertex->v[i]];
+    for (n = i = 0; i < vertext->vtotal; i++) {
+      VERTEX const * const vnb = &mris->vertices[vertext->v[i]];
 
       /* calculate the projection of this vertex onto the local tangent plane */
       VECTOR_LOAD(v_yi, vnb->origx - vertex->origx, vnb->origy - vertex->origy, vnb->origz - vertex->origz);
@@ -50328,9 +50114,7 @@ static int isVertexInsideFace(MRIS *mris, int vno, int fno)
 static int isDiscarded(MRIS *mris, int vno1, int vno2)
 {
   int n;
-  VERTEX *v;
-
-  v = &mris->vertices[vno2];
+  VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno2];
 
   for (n = 0; n < v->num; n++)
     if (isVertexInsideFace(mris, vno1, v->f[n])) /* vno1 is inside face v->f[n]! */
@@ -50344,9 +50128,8 @@ static int isDiscarded(MRIS *mris, int vno1, int vno2)
 static void removeVertex(MRIS *mris, int vno)
 {
   int n, m, vnum, *oldlist;
-  VERTEX *v, *vn;
-
-  v = &mris->vertices[vno];
+  VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
+  VERTEX          * const v  = &mris->vertices         [vno];
 
   // to be checked when the ADD_SOME_VERTICES mode is on
   // could be a good "outside" vertex
@@ -50359,44 +50142,43 @@ static void removeVertex(MRIS *mris, int vno)
     return;
   }
 
-  for (n = 0; n < v->vnum; n++) {
+  for (n = 0; n < vt->vnum; n++) {
     /* remove vno from the list of v->v[n] */
-    vn = &mris->vertices[v->v[n]];
-    oldlist = vn->v;
-    vnum = vn->vnum - 1; /* the new # of neighbors */
+    VERTEX_TOPOLOGY * const vnt = &mris->vertices_topology[vt->v[n]];
+    VERTEX          * const vn  = &mris->vertices         [vt->v[n]];
+    oldlist = vnt->v;
+    vnum = vnt->vnum - 1; /* the new # of neighbors */
     if (vnum) {
-      vn->v = (int *)malloc(vnum * sizeof(int));
-      for (vnum = m = 0; m < vn->vnum; m++) {
+      vnt->v = (int *)malloc(vnum * sizeof(int));
+      for (vnum = m = 0; m < vnt->vnum; m++) {
         if (oldlist[m] == vno) {
           continue;
         }
-        vn->v[vnum++] = oldlist[m];
+        vnt->v[vnum++] = oldlist[m];
       }
       free(oldlist);
     }
     else {
-      vn->v = NULL;
+      vnt->v = NULL;
     }
-    vn->vnum = vnum;
-    vn->vtotal = vnum;
+    vnt->vnum = vnum;
+    vnt->vtotal = vnum;
     /* check if the vertex became singled out */
-    if (vn->vnum == 0) {
+    if (vnt->vnum == 0) {
       vn->marked = INSIDE_VERTEX;
     }
   }
   v->marked = DISCARDED_VERTEX;
-  free(v->v);
-  v->v = NULL;
-  v->vnum = 0;
-  v->vtotal = 0;
+  free(vt->v);
+  vt->v = NULL;
+  vt->vnum = 0;
+  vt->vtotal = 0;
 }
 
 static int updateVertexTriangle(MRIS *mris, int vno, int fno)
 {
   int n, m, vn;
-  VERTEX *v;
-
-  v = &mris->vertices[vno];
+  VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno];
 
   for (m = n = 0; n < v->vnum; n++) {
     /* work with the vertex v->v[n] */
@@ -50443,11 +50225,10 @@ static int updateVertexTriangle(MRIS *mris, int vno, int fno)
 static void possiblyAddNewFaces(MRIS *mris, int vno1, int vno2)
 {
   int n, m, vn, fno;
-  VERTEX *v;
 
   /* only exterior triangles */
 
-  v = &mris->vertices[vno1];
+  VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno1];
   for (n = 0; n < v->vnum; n++) {
     if (v->v[n] == vno2) {
       continue;
@@ -50608,7 +50389,6 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
   int nthings, *things;
   int modified;
   IT *it;
-  VERTEX *vertex1, *vertex2;
   int counting;
 
   /* initialize arrays of tessellated patch to null pointer*/
@@ -50628,10 +50408,11 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
       continue;
     }
     vno = vertex_trans[defect->vertices[n]];
-    vertex1 = &mris_corrected->vertices[vno];
-    vertex1->undefval = 0;
-    if (vertex1->vnum) {
-      vertex1->undefval = 1;
+    VERTEX_TOPOLOGY const * const vt = &mris_corrected->vertices_topology[vno];
+    VERTEX                * const v  = &mris_corrected->vertices         [vno];
+    v->undefval = 0;
+    if (vt->vnum) {
+      v->undefval = 1;
       counting = 1;
     }
   }
@@ -50761,8 +50542,8 @@ static int retessellateDefect_wkr(MRI_SURFACE *mris, MRI_SURFACE *mris_corrected
             et[i].used = USED_IN_NEW_TEMPORARY_TESSELLATION;
           }
           /* useful only if mode = USE_ALL_VERTICES */
-          vertex1 = &mris_corrected->vertices[et[i].vno1];
-          vertex2 = &mris_corrected->vertices[et[i].vno2];
+          VERTEX * const vertex1 = &mris_corrected->vertices[et[i].vno1];
+          VERTEX * const vertex2 = &mris_corrected->vertices[et[i].vno2];
           if (vertex1->undefval == 0 || vertex2->undefval == 0) {
             counting++;
             if (vertex1->undefval == 0) {
@@ -51076,8 +50857,6 @@ static DEFECT_VERTEX_STATE *mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *def
 {
   DEFECT_VERTEX_STATE *dvs;
   int i, n, vno;
-  VERTEX *v;
-  VERTEX_STATE *vs;
 
   dvs = calloc(1, sizeof(DVS));
   if (!dvs) {
@@ -51116,13 +50895,14 @@ static DEFECT_VERTEX_STATE *mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *def
 #endif
 
   for (i = 0; i < dvs->nvertices; i++) {
-    vs = &dvs->vs[i];
+    VERTEX_STATE *vs = &dvs->vs[i];
     vno = vs->vno;
 
     if (vno < 0) {
       continue;
     }
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
 
     vs->origx = v->origx; 
     vs->origy = v->origy;
@@ -51133,25 +50913,25 @@ static DEFECT_VERTEX_STATE *mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *def
     vs->ny = v->ny;
     vs->nz = v->nz;
 
-    vs->vtotal = v->vtotal;
-    vs->vnum = v->vnum;
-    if (v->vtotal) {
+    vs->vtotal = vt->vtotal;
+    vs->vnum = vt->vnum;
+    if (vt->vtotal) {
       vs->v = (int *)calloc(vs->vtotal, sizeof(int));
       if (!vs->v) {
         ErrorExit(ERROR_NOMEMORY, "mrisRecordVertexState: could not allocate %dth array of %d elts", i, vs->vtotal);
       }
-      for (n = 0; n < v->vtotal; n++) {
-        vs->v[n] = v->v[n];
+      for (n = 0; n < vt->vtotal; n++) {
+        vs->v[n] = vt->v[n];
       }
     }
 #if 1
-    if (v->num > 0) {
-      vs->num = v->num;
-      vs->f = (int *)calloc(v->num, sizeof(int));
-      vs->n = (unsigned char *)calloc(v->num, sizeof(unsigned char));
-      for (n = 0; n < v->num; n++) {
-        vs->f[n] = v->f[n];
-        vs->n[n] = v->n[n];
+    if (vt->num > 0) {
+      vs->num = vt->num;
+      vs->f = (int *)calloc(vt->num, sizeof(int));
+      vs->n = (unsigned char *)calloc(vt->num, sizeof(unsigned char));
+      for (n = 0; n < vt->num; n++) {
+        vs->f[n] = vt->f[n];
+        vs->n[n] = vt->n[n];
       }
     }
     else {
@@ -51168,20 +50948,18 @@ static DEFECT_VERTEX_STATE *mrisRecordVertexState(MRI_SURFACE *mris, DEFECT *def
 static int mrisRestoreFaceVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs)
 {
   int i, n, vno;
-  VERTEX *v;
-  VERTEX_STATE *vs;
 
   /* remove the added faces */
   MRIStruncateNFaces(mris, dvs->nfaces);
 
   for (i = 0; i < dvs->nvertices; i++) {
-    vs = &dvs->vs[i];
+    VERTEX_STATE const * const vs = &dvs->vs[i];
     vno = vs->vno;
     if (vno < 0) {
       continue;
     }
 
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY * const v = &mris->vertices_topology[vno];
 
     freeAndNULL(v->f);
     freeAndNULL(v->n);
@@ -51207,19 +50985,18 @@ static int mrisRestoreFaceVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dv
 static int mrisRestoreVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs)
 {
   int i, n, vno;
-  VERTEX *v;
-  VERTEX_STATE *vs;
 
   /* remove the added faces */
   MRIStruncateNFaces(mris, dvs->nfaces);
 
   for (i = 0; i < dvs->nvertices; i++) {
-    vs = &dvs->vs[i];
+    VERTEX_STATE const * const vs = &dvs->vs[i];
     vno = vs->vno;
     if (vno < 0) {
       continue;
     }
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY * const vt = &mris->vertices_topology[vno];
+    VERTEX          * const v  = &mris->vertices         [vno];
     v->origx = vs->origx; 
     v->origy = vs->origy;
     v->origz = vs->origz;
@@ -51229,40 +51006,40 @@ static int mrisRestoreVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs)
     v->ny = vs->ny;
     v->nz = vs->nz;
 
-    free(v->v);
-    v->v = NULL;
-    v->vtotal = vs->vtotal;
-    v->vnum = vs->vnum;
+    free(vt->v);
+    vt->v = NULL;
+    vt->vtotal = vs->vtotal;
+    vt->vnum = vs->vnum;
 
 #if 1
-    free(v->f);
-    v->f = NULL;
-    free(v->n);
-    v->n = NULL;
-    v->num = vs->num;
+    free(vt->f);
+    vt->f = NULL;
+    free(vt->n);
+    vt->n = NULL;
+    vt->num = vs->num;
 
     if (vs->num) {
-      v->f = (int *)calloc(vs->num, sizeof(int));
-      if (!v->f)
+      vt->f = (int *)calloc(vs->num, sizeof(int));
+      if (!vt->f)
         ErrorExit(ERROR_NOMEMORY, "mrisRestoreVertexState: could not allocate first %dth array of %d elts", i, vs->num);
-      v->n = (unsigned char *)calloc(vs->num, sizeof(unsigned char));
-      if (!v->n)
+      vt->n = (unsigned char *)calloc(vs->num, sizeof(unsigned char));
+      if (!vt->n)
         ErrorExit(
             ERROR_NOMEMORY, "mrisRestoreVertexState: could not allocate second %dth array of %d elts", i, vs->num);
-      for (n = 0; n < v->num; n++) {
-        v->f[n] = vs->f[n];
-        v->n[n] = vs->n[n];
+      for (n = 0; n < vt->num; n++) {
+        vt->f[n] = vs->f[n];
+        vt->n[n] = vs->n[n];
       }
     }
 #endif
-    if (!v->vtotal) {
+    if (!vt->vtotal) {
       continue;
     }
-    v->v = (int *)calloc(vs->vtotal, sizeof(int));
-    if (!v->v)
+    vt->v = (int *)calloc(vs->vtotal, sizeof(int));
+    if (!vt->v)
       ErrorExit(ERROR_NOMEMORY, "mrisRestoreVertexState: could not allocate %dth array of %d elts", i, vs->vtotal);
-    for (n = 0; n < v->vtotal; n++) {
-      v->v[n] = vs->v[n];
+    for (n = 0; n < vt->vtotal; n++) {
+      vt->v[n] = vs->v[n];
     }
   }
 
@@ -51272,7 +51049,7 @@ static int mrisRestoreVertexState(MRI_SURFACE *mris, DEFECT_VERTEX_STATE *dvs)
 static int mrisComputeNormalDotDistribution(MRI_SURFACE *mris, HISTOGRAM *h_dot)
 {
   int vno, bin, n, num;
-  VERTEX *v, *vn;
+
   float bin_size, min_dot, max_dot, bin_val, dot, dx, dy, dz, nx, ny, nz, x, y, z;
   HISTOGRAM *h_raw;
 
@@ -51284,7 +51061,8 @@ static int mrisComputeNormalDotDistribution(MRI_SURFACE *mris, HISTOGRAM *h_dot)
 
   /* first compute min and max */
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -51295,8 +51073,8 @@ static int mrisComputeNormalDotDistribution(MRI_SURFACE *mris, HISTOGRAM *h_dot)
     x = v->x;
     y = v->y;
     z = v->z;
-    for (n = 0; n < v->vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+    for (n = 0; n < vt->vnum; n++) {
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       dx = vn->x - x;
       dy = vn->y - y;
       dz = vn->z - z;
@@ -51321,7 +51099,8 @@ static int mrisComputeNormalDotDistribution(MRI_SURFACE *mris, HISTOGRAM *h_dot)
 
   /* now fill in distribution */
   for (num = vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -51332,9 +51111,9 @@ static int mrisComputeNormalDotDistribution(MRI_SURFACE *mris, HISTOGRAM *h_dot)
     x = v->x;
     y = v->y;
     z = v->z;
-    for (n = 0; n < v->vnum; n++) {
+    for (n = 0; n < vt->vnum; n++) {
       num++;
-      vn = &mris->vertices[v->v[n]];
+      VERTEX const * const vn = &mris->vertices[vt->v[n]];
       dx = vn->x - x;
       dy = vn->y - y;
       dz = vn->z - z;
@@ -51793,7 +51572,6 @@ static int ver1 = -1, ver2 = -1, ver3 = -1, ver4 = -1;
 int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_gradient)
 {
   int vno, nvertices, n, m;
-  VERTEX *v, *vn;  //,*vm;
   EDGE e1, *e2;
   FACE *face;
 #if DEBUG_PRESERVING_GRADIENT
@@ -51826,7 +51604,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
 
   /* just making sure */
   for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX * const v = &mris->vertices[vno];
     if (v->ripflag) {
       continue;
     }
@@ -51836,7 +51614,8 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
   }
 
   for (vno = 0; vno < nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
@@ -51943,26 +51722,26 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
       case VERTEX_CHULL:
         step = 0;
         /* preserve triangle area */
-        for (n = 0; n < v->num && step < last_step; n++) {
+        for (n = 0; n < vt->num && step < last_step; n++) {
           sphericalProjection(x, y, z, &v->x, &v->y, &v->z);
           v->cx = v->x;
           v->cy = v->y;
           v->cz = v->z;
-          orig_area = computeArea(mris, v->f[n], (int)v->n[n]);
+          orig_area = computeArea(mris, vt->f[n], (int)vt->n[n]);
           if ((orig_area <= 0)) {
             //&&(parms->verbose>=VERBOSE_MODE_MEDIUM)) {
 
             fprintf(stderr, "negative area : this should never happen!\n");
             fprintf(stderr,
                     "face %d (%d,%d,%d) at vertex %d\n",
-                    v->f[n],
-                    mris->faces[v->f[n]].v[0],
-                    mris->faces[v->f[n]].v[1],
-                    mris->faces[v->f[n]].v[2],
+                    vt->f[n],
+                    mris->faces[vt->f[n]].v[0],
+                    mris->faces[vt->f[n]].v[1],
+                    mris->faces[vt->f[n]].v[2],
                     vno);
-            v1 = mris->faces[v->f[n]].v[0];
-            v2 = mris->faces[v->f[n]].v[1];
-            v3 = mris->faces[v->f[n]].v[2];
+            v1 = mris->faces[vt->f[n]].v[0];
+            v2 = mris->faces[vt->f[n]].v[1];
+            v3 = mris->faces[vt->f[n]].v[2];
             fprintf(stderr,
                     "cur: vertex %d (%f,%f,%f)\n",
                     v1,
@@ -51990,7 +51769,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
             v->cx = v->x;
             v->cy = v->y;
             v->cz = v->z;
-            area = computeArea(mris, v->f[n], (int)v->n[n]);
+            area = computeArea(mris, vt->f[n], (int)vt->n[n]);
             if (area > 0) {
               break; /* we can stop here */
             }
@@ -52018,8 +51797,8 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
       case VERTEX_BORDER:
         step = 0;
         /* preserve triangle area for border/chull vertices */
-        for (n = 0; n < v->num && step < last_step; n++) {
-          face = &mris->faces[v->f[n]];
+        for (n = 0; n < vt->num && step < last_step; n++) {
+          face = &mris->faces[vt->f[n]];
           if (mris->vertices[face->v[0]].flags == VERTEX_INTERIOR ||
               mris->vertices[face->v[1]].flags == VERTEX_INTERIOR ||
               mris->vertices[face->v[2]].flags == VERTEX_INTERIOR) {
@@ -52030,20 +51809,20 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
           v->cx = v->x;
           v->cy = v->y;
           v->cz = v->z;
-          orig_area = computeArea(mris, v->f[n], (int)v->n[n]);
+          orig_area = computeArea(mris, vt->f[n], (int)vt->n[n]);
           if ((orig_area <= 0)) {
             //&&(parms->verbose>=VERBOSE_MODE_MEDIUM)) {
             fprintf(stderr, "negative area : should not happen!\n");
             fprintf(stderr,
                     "face %d (%d,%d,%d) at vertex %d\n",
-                    v->f[n],
-                    mris->faces[v->f[n]].v[0],
-                    mris->faces[v->f[n]].v[1],
-                    mris->faces[v->f[n]].v[2],
+                    vt->f[n],
+                    mris->faces[vt->f[n]].v[0],
+                    mris->faces[vt->f[n]].v[1],
+                    mris->faces[vt->f[n]].v[2],
                     vno);
-            v1 = mris->faces[v->f[n]].v[0];
-            v2 = mris->faces[v->f[n]].v[1];
-            v3 = mris->faces[v->f[n]].v[2];
+            v1 = mris->faces[vt->f[n]].v[0];
+            v2 = mris->faces[vt->f[n]].v[1];
+            v3 = mris->faces[vt->f[n]].v[2];
             fprintf(stderr,
                     "cur: vertex %d (%f,%f,%f)\n",
                     v1,
@@ -52072,7 +51851,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
             v->cx = v->x;
             v->cy = v->y;
             v->cz = v->z;
-            area = computeArea(mris, v->f[n], (int)v->n[n]);
+            area = computeArea(mris, vt->f[n], (int)vt->n[n]);
             if (area > 0) {
               break; /* we can stop here */
             }
@@ -52085,8 +51864,8 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
            This is because the border does not have to be convex!!
         */
         /* test : could be removed */
-        for (n = 0; n < v->vnum; n++) {
-          vn = &mris->vertices[v->v[n]];
+        for (n = 0; n < vt->vnum; n++) {
+          VERTEX const * const vn = &mris->vertices[vt->v[n]];
 #if DEBUG_PRESERVING_GRADIENT
 // if(vno==412)
 // fprintf(stderr,"\n%d(%d) and %d(%d)\n",vno,v->flags,v->v[n],vn->flags);
@@ -52095,7 +51874,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
             continue;
           }
           e1.vno1 = vno;
-          e1.vno2 = v->v[n];
+          e1.vno2 = vt->v[n];
           sphericalProjection(x, y, z, &v->x, &v->y, &v->z);
           v->cx = v->x;
           v->cy = v->y;
@@ -52105,6 +51884,8 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
             /* intersection */
             if (edgesIntersect(mris, &e1, e2)) {
               {
+                VERTEX const * v;   // NOTE HIDES OUTER DEFINITION
+                
                 // if(parms->verbose>=VERBOSE_MODE_MEDIUM){
                 fprintf(stderr, "edge intersection : should not happen\n");
                 fprintf(stderr, "edge %d-%d with edge %d %d \n", e1.vno1, e1.vno2, e2->vno1, e2->vno2);
@@ -52138,13 +51919,13 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
           v->cz = v->z;
 
           /* check for all edges */
-          for (n = 0; (n < v->vnum) && (!intersect); n++) {
-            vn = &mris->vertices[v->v[n]];
+          for (n = 0; (n < vt->vnum) && (!intersect); n++) {
+            VERTEX const * const vn = &mris->vertices[vt->v[n]];
             if (vn->flags != VERTEX_BORDER) {
               continue;
             }
             e1.vno1 = vno;
-            e1.vno2 = v->v[n];
+            e1.vno2 = vt->v[n];
 
             for (m = 0; m < ninside; m++) {
               e2 = &inside[m];
@@ -52185,8 +51966,8 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
            This is because the border does not have to be convex!!
         */
         /* test : could be removed */
-        for (n = 0; n < v->vnum; n++) {
-          vn = &mris->vertices[v->v[n]];
+        for (n = 0; n < vt->vnum; n++) {
+          VERTEX const * const vn = &mris->vertices[vt->v[n]];
 #if DEBUG_PRESERVING_GRADIENT
 // if(vno==412)
 // fprintf(stderr,"\n%d(%d) and %d(%d)\n",vno,v->flags,v->v[n],vn->flags);
@@ -52195,7 +51976,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
             continue;
           }
           e1.vno1 = vno;
-          e1.vno2 = v->v[n];
+          e1.vno2 = vt->v[n];
           sphericalProjection(x, y, z, &v->x, &v->y, &v->z);
           v->cx = v->x;
           v->cy = v->y;
@@ -52227,13 +52008,13 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris, double dt, int which_
           v->cz = v->z;
 
           /* check for all edges */
-          for (n = 0; n < v->vnum && (!intersect); n++) {
-            vn = &mris->vertices[v->v[n]];
+          for (n = 0; n < vt->vnum && (!intersect); n++) {
+            VERTEX const * const vn = &mris->vertices[vt->v[n]];
             if (vn->flags != VERTEX_INTERIOR) {
               continue;
             }
             e1.vno1 = vno;
-            e1.vno2 = v->v[n];
+            e1.vno2 = vt->v[n];
 
             for (m = 0; m < nborder; m++) {
               e2 = &border[m];
@@ -52354,7 +52135,7 @@ static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris, DEFECT_LIST *dl)
   int i, j, n, m, *nd, ndefects, merged;
   int vlist[MAX_DEFECT_VERTICES], nadded;
   float len;
-  VERTEX *v, *nv;
+
   DEFECT *defect;
   DEFECT_LIST *new_dl;
 
@@ -52376,9 +52157,9 @@ static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris, DEFECT_LIST *dl)
     memset(nd, 0, (ndefects + 1) * sizeof(int));
     defect = &dl->defects[i];
     for (n = 0; n < defect->nborder; n++) {
-      v = &mris->vertices[defect->border[n]];
-      for (m = 0; m < v->vnum; m++) {
-        nv = &mris->vertices[v->v[m]];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[defect->border[n]];
+      for (m = 0; m < vt->vnum; m++) {
+        VERTEX const * const nv = &mris->vertices[vt->v[m]];
         if (nv->marked && nv->marked != i + 1)  // belong to another defect
         {
           nd[nv->marked]++;
@@ -52461,14 +52242,14 @@ static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris, DEFECT_LIST *dl)
       /* update border vertices */
       nadded = 0;
       for (n = 0; n < defect->nvertices; n++) {
-        v = &mris->vertices[defect->vertices[n]];
-        for (m = 0; m < v->vnum; m++) {
-          nv = &mris->vertices[v->v[m]];
+        VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[defect->vertices[n]];
+        for (m = 0; m < vt->vnum; m++) {
+          VERTEX * const nv = &mris->vertices[vt->v[m]];
           if (nv->marked) {
             continue;
           }
           nv->marked = -1; /* border vertex */
-          vlist[nadded++] = v->v[m];
+          vlist[nadded++] = vt->v[m];
         }
       }
 
@@ -52511,7 +52292,7 @@ static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris, DEFECT_LIST *dl)
     defect->cy = 0;
     defect->cz = 0;
     for (n = 0; n < defect->nvertices; n++) {
-      v = &mris->vertices[defect->vertices[n]];
+      VERTEX const * const v = &mris->vertices[defect->vertices[n]];
       defect->cx += v->x;
       defect->cy += v->y;
       defect->cz += v->z;
@@ -52524,7 +52305,7 @@ static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris, DEFECT_LIST *dl)
 
     defect->nx = defect->ny = defect->nz = 0;
     for (n = 0; n < defect->nborder; n++) {
-      v = &mris->vertices[defect->border[n]];
+      VERTEX const * const v = &mris->vertices[defect->border[n]];
       defect->nx += v->nx;
       defect->ny += v->ny;
       defect->nz += v->nz;
@@ -52547,7 +52328,7 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
   int *vertex_trans, *face_trans;
   int vno, fno, i, n, nrippedfaces, nrippedvertices, kept_vertices, kept_faces;
   MRIS *mris_corrected;
-  VERTEX *v, *vdst;
+
   FACE *f, *fdst;
 
   fprintf(WHICH_OUTPUT, "building final representation...\n");
@@ -52560,7 +52341,7 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
 
   // cout the number of faces and vertices
   for (kept_vertices = vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX const * const v = &mris->vertices[vno];
     if (v->ripflag) {
       continue;
     }
@@ -52584,15 +52365,17 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
 
   int newNVertices = 0;
   for (nrippedvertices = vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     /* ignore the ripped vertices */
     if (v->ripflag) {
       nrippedvertices++;
       continue;
     }
     /* save vertex information */
-    vdst = &mris_corrected->vertices[newNVertices];
-    vdst->nsize = v->nsize;
+    VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[newNVertices];
+    VERTEX          * const vdst  = &mris_corrected->vertices         [newNVertices];
+    vdstt->nsize = vt->nsize;
     vdst->x = v->x;
     vdst->y = v->y;
     vdst->z = v->z;
@@ -52654,38 +52437,39 @@ MRIS *MRISremoveRippedSurfaceElements(MRIS *mris)
 
   /* now allocate face and neighbor stuff in mris_corrected */
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->ripflag) {
       continue;
     }
 
-    vdst = &mris_corrected->vertices[vertex_trans[vno]];
+    VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[vertex_trans[vno]];
 
     /* count # of good triangles attached to this vertex */
-    for (vdst->num = n = 0; n < v->num; n++)
-      if (mris->faces[v->f[n]].ripflag == 0) {
-        vdst->num++;
+    for (vdstt->num = n = 0; n < vt->num; n++)
+      if (mris->faces[vt->f[n]].ripflag == 0) {
+        vdstt->num++;
       }
-    vdst->f = (int *)calloc(vdst->num, sizeof(int));
-    vdst->n = (uchar *)calloc(vdst->num, sizeof(uchar));
-    for (i = n = 0; n < v->num; n++) {
-      if (mris->faces[v->f[n]].ripflag) {
+    vdstt->f = (int *)calloc(vdstt->num, sizeof(int));
+    vdstt->n = (uchar *)calloc(vdstt->num, sizeof(uchar));
+    for (i = n = 0; n < vt->num; n++) {
+      if (mris->faces[vt->f[n]].ripflag) {
         continue;
       }
-      vdst->n[i] = v->n[n];
-      vdst->f[i] = face_trans[v->f[n]];
+      vdstt->n[i] = vt->n[n];
+      vdstt->f[i] = face_trans[vt->f[n]];
       i++;
     }
     /* count # of valid neighbors */
-    for (n = vdst->vnum = 0; n < v->vnum; n++)
-      if (mris->vertices[v->v[n]].ripflag == 0) {
-        vdst->vnum++;
+    for (n = vdstt->vnum = 0; n < vt->vnum; n++)
+      if (mris->vertices[vt->v[n]].ripflag == 0) {
+        vdstt->vnum++;
       }
-    vdst->vtotal = vdst->vnum;
-    vdst->v = (int *)calloc(vdst->vnum, sizeof(int));
-    for (i = n = 0; n < v->vnum; n++)
-      if (mris->vertices[v->v[n]].ripflag == 0) {
-        vdst->v[i++] = vertex_trans[v->v[n]];
+    vdstt->vtotal = vdstt->vnum;
+    vdstt->v = (int *)calloc(vdstt->vnum, sizeof(int));
+    for (i = n = 0; n < vt->vnum; n++)
+      if (mris->vertices[vt->v[n]].ripflag == 0) {
+        vdstt->v[i++] = vertex_trans[vt->v[n]];
       }
   }
 
@@ -52707,7 +52491,6 @@ static int defectIdentifyDefectiveVertices(MRI_SURFACE *mris,
                                            int mode)
 {
   int counting, n, p;
-  VERTEX *v, *v0, *v1, *v2;
   FACE *f;
   VECTOR *v_a, *v_b, *v_n;
   float dot, area;
@@ -52718,9 +52501,9 @@ static int defectIdentifyDefectiveVertices(MRI_SURFACE *mris,
 
   /* set marks to zero */
   for (n = 0; n < defect->nvertices; n++) {
-    v = &mris->vertices[defect->vertices[n]];
-    for (p = 0; p < v->num; p++) {
-      int const fno = v->f[p];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[defect->vertices[n]];
+    for (p = 0; p < vt->num; p++) {
+      int const fno = vt->f[p];
       f = &mris->faces[fno];
       f->ripflag = 0;
       /* store information */
@@ -52730,17 +52513,18 @@ static int defectIdentifyDefectiveVertices(MRI_SURFACE *mris,
 
   /* store areas and compute spherical area */
   for (n = 0; n < defect->nvertices; n++) {
-    v = &mris->vertices[defect->vertices[n]];
-    for (p = 0; p < v->num; p++) {
-      f = &mris->faces[v->f[p]];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[defect->vertices[n]];
+    VERTEX          const * const v  = &mris->vertices         [defect->vertices[n]];
+    for (p = 0; p < vt->num; p++) {
+      f = &mris->faces[vt->f[p]];
       if (f->ripflag) {
         continue;
       }
       f->ripflag = 1;
       /* compute new area with new coord systems */
-      v0 = &mris->vertices[f->v[0]];
-      v1 = &mris->vertices[f->v[1]];
-      v2 = &mris->vertices[f->v[2]];
+      VERTEX const * const v0 = &mris->vertices[f->v[0]];
+      VERTEX const * const v1 = &mris->vertices[f->v[1]];
+      VERTEX const * const v2 = &mris->vertices[f->v[2]];
 
       VERTEX_CANONICAL_EDGE(v_a, v0, v1);
       VERTEX_CANONICAL_EDGE(v_b, v0, v2);
@@ -52760,9 +52544,9 @@ static int defectIdentifyDefectiveVertices(MRI_SURFACE *mris,
   }
   /* unrip */
   for (n = 0; n < defect->nvertices; n++) {
-    v = &mris->vertices[defect->vertices[n]];
-    for (p = 0; p < v->num; p++) {
-      f = &mris->faces[v->f[p]];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[defect->vertices[n]];
+    for (p = 0; p < vt->num; p++) {
+      f = &mris->faces[vt->f[p]];
       f->ripflag = 0;
     }
   }
@@ -52775,10 +52559,10 @@ static int defectIdentifyDefectiveVertices(MRI_SURFACE *mris,
 
   /* setting back old areas */
   for (n = 0; n < defect->nvertices; n++) {
-    v = &mris->vertices[defect->vertices[n]];
-    for (p = 0; p < v->num; p++) {
-      FaceNormCacheEntry const * fNorm = getFaceNorm(mris, v->f[p]);
-      f = &mris->faces[v->f[p]];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[defect->vertices[n]];
+    for (p = 0; p < vt->num; p++) {
+      FaceNormCacheEntry const * fNorm = getFaceNorm(mris, vt->f[p]);
+      f = &mris->faces[vt->f[p]];
       f->area = fNorm->orig_area;
     }
   }
@@ -52936,7 +52720,6 @@ MRI_SURFACE *MRIScorrectTopology(
   DEFECT *defect;
   int fno, i, n, p, vno, kept_vertices, *face_trans, *vertex_trans, counter = 0, ninitialfaces;
   MHT *mht;
-  VERTEX *v, *vdst;
   FACE *f, *fdst;
   HISTOGRAM *h_k1, *h_k2, *h_gray, *h_white, *h_dot, *h_border, *h_grad;
   MRI *mri_gray_white, *mri_k1_k2;
@@ -53047,7 +52830,6 @@ MRI_SURFACE *MRIScorrectTopology(
   /* for diagnostic purposes */
   for (i = 0; i < dl->ndefects; i++) {
     int vno2, n2;
-    VERTEX *vn;
 
     defect = &dl->defects[i];
     defect->defect_number = i;
@@ -53061,7 +52843,7 @@ MRI_SURFACE *MRIScorrectTopology(
       else {
         vno = defect->border[n - defect->nvertices];
       }
-      v = &mris->vertices[vno];
+      VERTEX const * const v = &mris->vertices[vno];
       for (n2 = n + 1; n2 < defect->nvertices + defect->nborder; n2++) {
         if (n2 < defect->nvertices) {
           if (defect->status[n2] == DISCARD_VERTEX) {
@@ -53075,7 +52857,7 @@ MRI_SURFACE *MRIScorrectTopology(
         if (vno == vno2) {
           continue;
         }
-        vn = &mris->vertices[vno2];
+        VERTEX const * const vn = &mris->vertices[vno2];
         if (FEQUAL(vn->x, v->x) && FEQUAL(vn->y, v->y) && FEQUAL(vn->z, v->z)) {
           counter++;
           if (Gdiag & DIAG_SHOW) fprintf(WHICH_OUTPUT, "defect %d, vertices %d and %d coincident!\n", i, vno, vno2);
@@ -53290,7 +53072,9 @@ MRI_SURFACE *MRIScorrectTopology(
 
   int newNVertices = 0;
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (vno == Gdiag_no) {
       DiagBreak();
     }
@@ -53298,12 +53082,14 @@ MRI_SURFACE *MRIScorrectTopology(
     if (v->marked) {
       continue;
     }
-    vdst = &mris_corrected->vertices[newNVertices];
+    
+    VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[newNVertices];
+    VERTEX          * const vdst  = &mris_corrected->vertices         [newNVertices];
     if (mris_corrected->nvertices == Gdiag_no) {
       DiagBreak();
     }
 
-    vdst->nsize = v->nsize;
+    vdstt->nsize = vt->nsize;
     /* original vertices */
     vdst->x = v->x;
     vdst->y = v->y;
@@ -53322,7 +53108,7 @@ MRI_SURFACE *MRIScorrectTopology(
     vdst->cx = v->cx;
     vdst->cy = v->cy;
     vdst->cz = v->cz;
-    vdst->num = v->num;
+    vdstt->num = vt->num;
     vdst->val = v->val;
     vdst->val2 = v->val2;
     vdst->valbak = v->valbak;
@@ -53351,16 +53137,19 @@ MRI_SURFACE *MRIScorrectTopology(
       /* only add the kept vertices in greedy_search mode */
       if (parms->search_mode != GREEDY_SEARCH || defect->status[n] == KEEP_VERTEX) {
         vno = defect->vertices[n];
-        v = &mris->vertices[vno];
+        VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+        VERTEX          const * const v  = &mris->vertices         [vno];
         if (vno == Gdiag_no) {
           DiagBreak();
         }
-        vdst = &mris_corrected->vertices[newNVertices];
+        
+        VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[newNVertices];
+        VERTEX          * const vdst  = &mris_corrected->vertices         [newNVertices];
         if (mris_corrected->nvertices == Gdiag_no) {
           DiagBreak();
         }
 
-        vdst->nsize = v->nsize;
+        vdstt->nsize = vt->nsize;
         vdst->x = v->x;
         vdst->y = v->y;
         vdst->z = v->z;
@@ -53392,7 +53181,7 @@ MRI_SURFACE *MRIScorrectTopology(
         vdst->K = v->K;
         vdst->k1 = v->k1;
         vdst->k2 = v->k2;
-        vdst->num = vdst->vnum = 0;
+        vdstt->num = vdstt->vnum = 0;
         if (parms->search_mode != GREEDY_SEARCH && defect->status[n] == DISCARD_VERTEX) {
           vdst->ripflag = 1;
         }
@@ -53442,41 +53231,43 @@ MRI_SURFACE *MRIScorrectTopology(
 
   /* now allocate face and neighbor stuff in mris_corrected */
   for (vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
     if (v->marked) {
       continue;
     }
     if (vertex_trans[vno] < 0 || vertex_trans[vno] >= mris_corrected->nvertices) {
       continue;
     }
-    vdst = &mris_corrected->vertices[vertex_trans[vno]];
+    
+    VERTEX_TOPOLOGY * const vdstt = &mris_corrected->vertices_topology[vertex_trans[vno]];
 
     /* count # of good triangles attached to this vertex */
-    for (vdst->num = n = 0; n < v->num; n++)
-      if (triangleMarked(mris, v->f[n]) == 0) {
-        vdst->num++;
+    for (vdstt->num = n = 0; n < vt->num; n++)
+      if (triangleMarked(mris, vt->f[n]) == 0) {
+        vdstt->num++;
       }
-    vdst->f = (int *)calloc(vdst->num, sizeof(int));
-    vdst->n = (uchar *)calloc(vdst->num, sizeof(uchar));
-    for (i = n = 0; n < v->num; n++) {
-      if (triangleMarked(mris, v->f[n])) {
+    vdstt->f = (int *)  calloc(vdstt->num, sizeof(int));
+    vdstt->n = (uchar *)calloc(vdstt->num, sizeof(uchar));
+    for (i = n = 0; n < vt->num; n++) {
+      if (triangleMarked(mris, vt->f[n])) {
         continue;
       }
-      vdst->n[i] = v->n[n];
-      vdst->f[i] = face_trans[v->f[n]];
+      vdstt->n[i] = vt->n[n];
+      vdstt->f[i] = face_trans[vt->f[n]];
       i++;
     }
 
     /* count # of valid neighbors */
-    for (n = vdst->vnum = 0; n < v->vnum; n++)
-      if (mris->vertices[v->v[n]].marked == 0) {
-        vdst->vnum++;
+    for (n = vdstt->vnum = 0; n < vt->vnum; n++)
+      if (mris->vertices[vt->v[n]].marked == 0) {
+        vdstt->vnum++;
       }
-    vdst->vtotal = vdst->vnum;
-    vdst->v = (int *)calloc(vdst->vnum, sizeof(int));
-    for (i = n = 0; n < v->vnum; n++)
-      if (mris->vertices[v->v[n]].marked == 0) {
-        vdst->v[i++] = vertex_trans[v->v[n]];
+    vdstt->vtotal = vdstt->vnum;
+    vdstt->v = (int *)calloc(vdstt->vnum, sizeof(int));
+    for (i = n = 0; n < vt->vnum; n++)
+      if (mris->vertices[vt->v[n]].marked == 0) {
+        vdstt->v[i++] = vertex_trans[vt->v[n]];
       }
   }
 
@@ -53584,10 +53375,10 @@ MRI_SURFACE *MRIScorrectTopology(
           if (mris_corrected->vertices[tt].ripflag) {
             continue;
           }
-          if (mris_corrected->vertices[tt].vnum == 0) {
+          if (mris_corrected->vertices_topology[tt].vnum == 0) {
             continue;
           }
-          ne += mris_corrected->vertices[tt].vnum;
+          ne += mris_corrected->vertices_topology[tt].vnum;
           nv++;
         }
         ne /= 2;
@@ -53633,14 +53424,14 @@ MRI_SURFACE *MRIScorrectTopology(
 
         /* save border positions */
         for (n = 0; n < defect->nborder; n++) {
-          vdst = &mris_corrected->vertices[vertex_trans[defect->border[n]]];
+          VERTEX * const vdst = &mris_corrected->vertices[vertex_trans[defect->border[n]]];
           vdst->tx2 = vdst->cx;
           vdst->ty2 = vdst->cy;
           vdst->tz2 = vdst->cz;
         }
         /* save inside positions */
         for (n = 0; n < defect->nvertices; n++) {
-          vdst = &mris_corrected->vertices[vertex_trans[defect->vertices[n]]];
+          VERTEX * const vdst = &mris_corrected->vertices[vertex_trans[defect->vertices[n]]];
           vdst->tx2 = vdst->cx;
           vdst->ty2 = vdst->cy;
           vdst->tz2 = vdst->cz;
@@ -53663,8 +53454,8 @@ MRI_SURFACE *MRIScorrectTopology(
           /* use new coordinates */
           for (n = 0; n < defect->nchull; n++) {
             vinfo = &mapping->vertices[o_d_m->vertex_trans[defect->chull[n]]];
-            vdst = &mris_corrected->vertices[vertex_trans[defect->chull[n]]];
-            v = &mris->vertices[defect->chull[n]];
+            VERTEX * const vdst = &mris_corrected->vertices[vertex_trans[defect->chull[n]]];
+            VERTEX * const v = &mris->vertices[defect->chull[n]];
             vdst->cx = vinfo->c_x;
             vdst->cy = vinfo->c_y;
             vdst->cz = vinfo->c_z;
@@ -53676,8 +53467,8 @@ MRI_SURFACE *MRIScorrectTopology(
           }
           for (n = 0; n < defect->nvertices; n++) {
             vinfo = &mapping->vertices[o_d_m->vertex_trans[defect->vertices[n]]];
-            vdst = &mris_corrected->vertices[vertex_trans[defect->vertices[n]]];
-            v = &mris->vertices[defect->vertices[n]];
+            VERTEX * const vdst = &mris_corrected->vertices[vertex_trans[defect->vertices[n]]];
+            VERTEX * const v = &mris->vertices[defect->vertices[n]];
             vdst->cx = vinfo->c_x;
             vdst->cy = vinfo->c_y;
             vdst->cz = vinfo->c_z;
@@ -53719,10 +53510,10 @@ MRI_SURFACE *MRIScorrectTopology(
               if (mris_corrected->vertices[tt].ripflag) {
                 continue;
               }
-              if (mris_corrected->vertices[tt].vnum == 0) {
+              if (mris_corrected->vertices_topology[tt].vnum == 0) {
                 continue;
               }
-              ne += mris_corrected->vertices[tt].vnum;
+              ne += mris_corrected->vertices_topology[tt].vnum;
               nv++;
             }
             ne /= 2;
@@ -53765,14 +53556,14 @@ MRI_SURFACE *MRIScorrectTopology(
 
           /* restore border positions */
           for (n = 0; n < defect->nborder; n++) {
-            vdst = &mris_corrected->vertices[vertex_trans[defect->border[n]]];
+            VERTEX * const vdst = &mris_corrected->vertices[vertex_trans[defect->border[n]]];
             vdst->cx = vdst->tx2;
             vdst->cy = vdst->ty2;
             vdst->cz = vdst->tz2;
           }
           /* save inside positions */
           for (n = 0; n < defect->nvertices; n++) {
-            vdst = &mris_corrected->vertices[vertex_trans[defect->vertices[n]]];
+            VERTEX * const vdst = &mris_corrected->vertices[vertex_trans[defect->vertices[n]]];
             vdst->cx = vdst->tx2;
             vdst->cy = vdst->ty2;
             vdst->cz = vdst->tz2;
@@ -53826,10 +53617,10 @@ MRI_SURFACE *MRIScorrectTopology(
         if (mris_corrected->vertices[tt].ripflag) {
           continue;
         }
-        if (mris_corrected->vertices[tt].vnum == 0) {
+        if (mris_corrected->vertices_topology[tt].vnum == 0) {
           continue;
         }
-        ne += mris_corrected->vertices[tt].vnum;
+        ne += mris_corrected->vertices_topology[tt].vnum;
         nv++;
       }
       ne /= 2;
@@ -53872,7 +53663,7 @@ MRI_SURFACE *MRIScorrectTopology(
     for (i = 0; i < dl->ndefects; i++) {
       defect = &dl->defects[i];
       for (n = 0; n < defect->nvertices; n++) {
-        vdst = &mris_corrected->vertices[vertex_trans[defect->vertices[n]]];
+        VERTEX * const vdst = &mris_corrected->vertices[vertex_trans[defect->vertices[n]]];
         if (vdst->ripflag == 0) {
           vdst->curv = (i + 1);  // for diagnostics
         }
@@ -53942,20 +53733,19 @@ MRI_SURFACE *MRIScorrectTopology(
   }
 #endif
   for (vno = 0; vno < mris_corrected->nvertices; vno++) {
-    VERTEX *v;
-
-    v = &mris_corrected->vertices[vno];
+    VERTEX_TOPOLOGY * const vt = &mris_corrected->vertices_topology[vno];
+    VERTEX          * const v  = &mris_corrected->vertices         [vno];
     if (v->dist) {
       free(v->dist);
     }
     if (v->dist_orig) {
       free(v->dist_orig);
     }
-    v->vtotal = v->vnum;
-    v->dist = (float *)calloc(v->vtotal, sizeof(float));
-    if (!v->dist) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", v->vtotal);
-    v->dist_orig = (float *)calloc(v->vtotal, sizeof(float));
-    if (!v->dist_orig) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", v->vtotal);
+    vt->vtotal = vt->vnum;
+    v->dist = (float *)calloc(vt->vtotal, sizeof(float));
+    if (!v->dist) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", vt->vtotal);
+    v->dist_orig = (float *)calloc(vt->vtotal, sizeof(float));
+    if (!v->dist_orig) ErrorExit(ERROR_NO_MEMORY, "MRISclone: could not allocate %d num", vt->vtotal);
   }
 
   fprintf(WHICH_OUTPUT, "computing original vertex metric properties...\n");
@@ -53976,7 +53766,7 @@ MRI_SURFACE *MRIScorrectTopology(
       if (vno < 0 || vno >= mris_corrected->nvertices) {
         continue;
       }
-      v = &mris_corrected->vertices[vno];
+      VERTEX * const v = &mris_corrected->vertices[vno];
       v->marked = 0;
     }
     for (n = 0; n < defect->nborder; n++) {
@@ -53984,7 +53774,7 @@ MRI_SURFACE *MRIScorrectTopology(
       if (vno < 0 || vno >= mris_corrected->nvertices) {
         continue;
       }
-      v = &mris_corrected->vertices[vno];
+      VERTEX * const v = &mris_corrected->vertices[vno];
       v->marked = 0;
     }
   }
@@ -54033,7 +53823,7 @@ MRI_SURFACE *MRIScorrectTopology(
           if (vno < 0 || vno >= mris_corrected->nvertices) {
             continue;
           }
-          v = &mris_corrected->vertices[vno];
+          VERTEX * const v = &mris_corrected->vertices[vno];
           v->curv = -1;
         }
       }
@@ -54384,31 +54174,32 @@ DEFECT_LIST *MRISsegmentDefects(MRI_SURFACE *mris, int mark_ambiguous, int mark_
 static int mrisSegmentDefect(MRI_SURFACE *mris, int vno, DEFECT *defect, int mark_ambiguous, int mark_segmented)
 {
   int vlist[MAX_DEFECT_VERTICES], i, j, n, nfilled, nadded, vno1, m;
-  VERTEX *v, *vn, *vadded;
+
   float len, nx, ny, nz;
 
   vno1 = nadded = m = j = 0; /* to avoid compilator warnings */
-  vadded = NULL;
 
   if (defect->nvertices + 1 >= MAX_DEFECT_VERTICES)
     ErrorExit(ERROR_NOMEMORY, "mrisSegmentDefect: max number of defective vertices %d exceeded\n", MAX_DEFECT_VERTICES);
   vlist[defect->nvertices++] = vno; /* start the list */
 
-  v = &mris->vertices[vno];
-  v->marked = mark_segmented;
-  defect->cx = v->x;
-  defect->cy = v->y;
-  defect->cz = v->z;
-  defect->area = v->origarea;
-
+  {
+    VERTEX * const v = &mris->vertices[vno];
+    v->marked = mark_segmented;
+    defect->cx = v->x;
+    defect->cy = v->y;
+    defect->cz = v->z;
+    defect->area = v->origarea;
+  }
+  
   do {
     nfilled = 0;
 
     for (i = 0; i < defect->nvertices; i++) {
-      v = &mris->vertices[vlist[i]];
-      for (n = 0; n < v->vnum; n++) {
-        vn = &mris->vertices[v->v[n]];
-        if (v->v[n] == Gdiag_no) {
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vlist[i]];
+      for (n = 0; n < vt->vnum; n++) {
+        VERTEX * const vn = &mris->vertices[vt->v[n]];
+        if (vt->v[n] == Gdiag_no) {
           DiagBreak();
         }
         if (vn->marked == mark_ambiguous) {
@@ -54416,7 +54207,7 @@ static int mrisSegmentDefect(MRI_SURFACE *mris, int vno, DEFECT *defect, int mar
             ErrorExit(ERROR_NOMEMORY,
                       "mrisSegmentDefect: max number of defective vertices %d exceeded\n",
                       MAX_DEFECT_VERTICES);
-          vlist[defect->nvertices++] = v->v[n]; /* add it to list */
+          vlist[defect->nvertices++] = vt->v[n]; /* add it to list */
 
           vn->marked = mark_segmented;
           defect->cx += vn->x;
@@ -54468,7 +54259,7 @@ static int mrisSegmentDefect(MRI_SURFACE *mris, int vno, DEFECT *defect, int mar
             vj->marked = (int)vj->curv;
           }
 
-          vadded = &mris->vertices[mris->nvertices - 1];
+          VERTEX * const vadded = &mris->vertices[mris->nvertices - 1];
           // fprintf(stderr,"adding vertex %d(%d)\n",
           // mris->nvertices-1,vn->fixedval);
           vadded->marked = 0; /* border vertex  */
@@ -54490,20 +54281,21 @@ static int mrisSegmentDefect(MRI_SURFACE *mris, int vno, DEFECT *defect, int mar
 #endif
 
   for (nfilled = i = 0; i < defect->nvertices; i++) {
-    v = &mris->vertices[defect->vertices[i]];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[defect->vertices[i]];
+    VERTEX                * const v  = &mris->vertices         [defect->vertices[i]];
     if (defect->vertices[i] == Gdiag_no) {
       DiagBreak();
     }
     v->val = defect->area;
     defect->status[i] = KEEP_VERTEX;
-    for (n = 0; n < v->vnum; n++) {
-      if (v->v[n] == Gdiag_no) {
+    for (n = 0; n < vt->vnum; n++) {
+      if (vt->v[n] == Gdiag_no) {
         DiagBreak();
       }
-      if (mris->vertices[v->v[n]].marked == 0) /* border vertex */
+      if (mris->vertices[vt->v[n]].marked == 0) /* border vertex */
       {
-        mris->vertices[v->v[n]].marked = 2;
-        vlist[nfilled++] = v->v[n];
+        mris->vertices[vt->v[n]].marked = 2;
+        vlist[nfilled++] = vt->v[n];
       }
     }
   }
@@ -54515,7 +54307,7 @@ static int mrisSegmentDefect(MRI_SURFACE *mris, int vno, DEFECT *defect, int mar
 
   nx = ny = nz = 0.0f;
   for (n = 0; n < defect->nborder; n++) {
-    v = &mris->vertices[defect->border[n]];
+    VERTEX * const v = &mris->vertices[defect->border[n]];
     nx += v->nx;
     ny += v->ny;
     nz += v->nz;
@@ -54574,10 +54366,10 @@ static int mrisSegmentConnectedComponents(MRIS *mris)
 
     while (nvertices) {
       for (next_nvertices = n = 0; n < nvertices; n++) {
-        v = &mris->vertices[vlist[n]];
+        VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vlist[n]];
 
-        for (p = 0; p < v->vnum; p++) {
-          vp = &mris->vertices[v->v[p]];
+        for (p = 0; p < vt->vnum; p++) {
+          vp = &mris->vertices[vt->v[p]];
           if (vp->old_undefval) {
             continue;
           }
@@ -54586,7 +54378,7 @@ static int mrisSegmentConnectedComponents(MRIS *mris)
           }
 
           /* new point to be added */
-          next_vlist[next_nvertices++] = v->v[p];
+          next_vlist[next_nvertices++] = vt->v[p];
           vp->undefval = seed;
         }
       }
@@ -54628,7 +54420,6 @@ static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect, int mark
   int n, p, l, label, j, w;
   int nvertices, nedges, inside_face, outside_face;
   int add_vertex, add_edges;
-  VERTEX *v, *v1, *v2, *vin, *vout;
   FACE *f;
   EDGE *edges, *edge, *new_edges;
   int added_edges, vno1, vno2, vno_in, vno_out, isedge;
@@ -54651,11 +54442,11 @@ static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect, int mark
   }
 
   for (n = 0; n < defect->nborder; n++) {
-    v = &mris->vertices[defect->border[n]];
+    VERTEX * const v = &mris->vertices[defect->border[n]];
     v->old_undefval = 1; /* forbidden border point */
   }
   for (n = 0; n < defect->nvertices; n++) {
-    v = &mris->vertices[defect->vertices[n]];
+    VERTEX * const v = &mris->vertices[defect->vertices[n]];
     v->old_undefval = 1; /* forbidden inside point */
   }
 
@@ -54668,7 +54459,7 @@ static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect, int mark
   vnb = 0;
   for (n = 0; n < mris->nvertices; n++) {
     /* these first vertices are new ones */
-    v = &mris->vertices[n];
+    VERTEX const * const v = &mris->vertices[n];
     if (v->old_undefval) {
       continue;
     }
@@ -54683,7 +54474,7 @@ static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect, int mark
   vnb = 0;
   for (n = 0; n < mris->nvertices; n++) {
     /* this first vertices are new ones */
-    v = &mris->vertices[n];
+    VERTEX * const v = &mris->vertices[n];
     if (v->old_undefval) {
       continue;
     }
@@ -54697,14 +54488,14 @@ static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect, int mark
   }
 
   for (n = 0; n < defect->nvertices; n++) {
-    v = &mris->vertices[defect->vertices[n]];
+    VERTEX * const v = &mris->vertices[defect->vertices[n]];
     v->old_undefval = 0;
     v->undefval = 1;
   }
 
   for (n = 0; n < defect->nborder; n++) {
     /* border vertices become 2 */
-    v = &mris->vertices[defect->border[n]];
+    VERTEX * const v = &mris->vertices[defect->border[n]];
     v->old_undefval = 0;
     v->undefval = 2;
   }
@@ -54720,21 +54511,22 @@ static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect, int mark
      the right border vertices are marked as 3 */
 
   for (nvertices = nedges = n = 0; n < defect->nborder; n++) {
-    v = &mris->vertices[defect->border[n]];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[defect->border[n]];
+    VERTEX                * const v  = &mris->vertices         [defect->border[n]];
     add_vertex = add_edges = 0;
     /* count # of neighbors */
-    for (p = 0; p < v->vnum; p++) {
-      if (mris->vertices[v->v[p]].undefval == 2 || mris->vertices[v->v[p]].undefval == 3) {
+    for (p = 0; p < vt->vnum; p++) {
+      if (mris->vertices[vt->v[p]].undefval == 2 || mris->vertices[vt->v[p]].undefval == 3) {
         /* potential edge */
         /* is there an inside and outside triangle in common with this vertex */
         inside_face = 0;
         outside_face = 0;
         vno_in = vno_out = -1;
-        for (l = 0; l < v->num; l++) {
-          f = &mris->faces[v->f[l]];
-          /* check if this face has v->v[p] */
+        for (l = 0; l < vt->num; l++) {
+          f = &mris->faces[vt->f[l]];
+          /* check if this face has vt->v[p] */
           for (j = 0; j < 3; j++) {
-            if (f->v[j] == v->v[p]) {
+            if (f->v[j] == vt->v[p]) {
               /* check if the last vertex is outside */
               for (w = 0; w < 3; w++) {
                 if (mris->vertices[f->v[w]].undefval == 0) {
@@ -54747,7 +54539,7 @@ static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect, int mark
               for (w = 0; w < 3; w++) {
                 if (mris->vertices[f->v[w]].undefval == 1 /* inside vertex */
                     || ((mris->vertices[f->v[w]].undefval == 2 || mris->vertices[f->v[w]].undefval == 3) &&
-                        f->v[w] != defect->border[n] && f->v[w] != v->v[p])) {
+                        f->v[w] != defect->border[n] && f->v[w] != vt->v[p])) {
                   /* border vertex */
                   inside_face = 1;
                   vno_in = f->v[w];
@@ -54765,7 +54557,7 @@ static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect, int mark
 
           /* vertices constituting the edge to be potentially added */
           vno1 = defect->border[n];
-          vno2 = v->v[p];
+          vno2 = vt->v[p];
 
           /* check is edge already exists */
           for (isedge = w = 0; w < added_edges; w++) {
@@ -54778,10 +54570,10 @@ static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect, int mark
           if (isedge == 0) {
             /* add edge to list */
             /* orient edge first */
-            v1 = &mris->vertices[vno1];
-            v2 = &mris->vertices[vno2];
-            vout = &mris->vertices[vno_out];
-            vin = &mris->vertices[vno_in];
+            VERTEX          const * const v1 = &mris->vertices[vno1];
+            VERTEX          const * const v2 = &mris->vertices[vno2];
+            VERTEX                * const vout = &mris->vertices[vno_out];
+            VERTEX          const * const vin  = &mris->vertices[vno_in];
             VECTOR_LOAD(v_a, v2->cx - v1->cx, v2->cy - v1->cy, v2->cz - v1->cz);
             VECTOR_LOAD(v_b, vin->cx - vout->cx, vin->cy - vout->cy, vin->cz - vout->cz);
             V3_CROSS_PRODUCT(v_a, v_b, v_n);
@@ -54837,7 +54629,7 @@ static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect, int mark
     varray[vnb++] = defect->vertices[n];
   }
   for (n = 0; n < defect->nborder; n++) {
-    v = &mris->vertices[defect->border[n]];
+    VERTEX const * const v = &mris->vertices[defect->border[n]];
     if (v->undefval == 3) /* good border vertex */
     {
       barray[bnb++] = defect->border[n];
@@ -54954,7 +54746,7 @@ static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect, int mark
   defect->cz = 0;
   defect->area = 0;
   for (n = 0; n < defect->nvertices; n++) {
-    v = &mris->vertices[defect->vertices[n]];
+    VERTEX * const v = &mris->vertices[defect->vertices[n]];
     defect->status[n] = KEEP_VERTEX;
     v->marked = mark_segmented;
     defect->cx += v->x;
@@ -54968,7 +54760,7 @@ static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect, int mark
 
   defect->nx = defect->ny = defect->nz = 0.0f;
   for (n = 0; n < defect->nborder; n++) {
-    v = &mris->vertices[defect->border[n]];
+    VERTEX * const v = &mris->vertices[defect->border[n]];
     v->marked = 0;
     defect->nx += v->nx;
     defect->ny += v->ny;
@@ -54988,7 +54780,7 @@ static int mrisSimplyConnectedDefect(MRI_SURFACE *mris, DEFECT *defect, int mark
 #if ADD_EXTRA_VERTICES
   /* mark the border vertices */
   for (n = 0; n < defect->nborder; n++) {
-    v = &mris->vertices[defect->border[n]];
+    VERTEX * const v = &mris->vertices[defect->border[n]];
     v->fixedval = defect->defect_number + 1;
   }
 #endif
@@ -55586,10 +55378,9 @@ static int mrisMarkRetainedPartOfDefect(MRI_SURFACE *mris,
   ------------------------------------------------------*/
 static int vertexInFace(MRI_SURFACE *mris, int vno, int fno)
 {
-  VERTEX *v;
-  int n;
+  VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno];
 
-  v = &mris->vertices[vno];
+  int n;
   for (n = 0; n < v->num; n++)
     if (v->f[n] == fno) {
       return (1);
@@ -56065,9 +55856,7 @@ static int edgeExists(MRI_SURFACE *mris, int vno1, int vno2);
 static int edgeExists(MRI_SURFACE *mris, int vno1, int vno2)
 {
   int n;
-  VERTEX *v;
-
-  v = &mris->vertices[vno1];
+  VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno1];
   for (n = 0; n < v->vnum; n++)
     if (v->v[n] == vno2) {
       return (1);
@@ -56549,9 +56338,8 @@ static int findOtherEdgeFace(MRIS const *mris, int fno, int vno, int vn1)
 {
   int n, m;
 
-  VERTEX const *v1, *v2;
-  v1 = &mris->vertices[vno];
-  v2 = &mris->vertices[vn1];
+  VERTEX_TOPOLOGY const * const v1 = &mris->vertices_topology[vno];
+  VERTEX_TOPOLOGY const * const v2 = &mris->vertices_topology[vn1];
   for (n = 0; n < v1->num; n++) {
     if (v1->f[n] == fno) {
       continue;
@@ -56571,132 +56359,138 @@ static void vertexPseudoNormal(MRIS *mris1, int vn1, MRIS *mris2, int vn2, float
 {
   int n, n0, n1, n2;
   float v1[3], v2[3], alpha;
-  VERTEX *v;
 
   // fprintf(stderr,"-vpn: %d and %d - ",vn1,vn2);
 
   norm[0] = norm[1] = norm[2] = 0;
 
-  v = &mris1->vertices[vn1];
-  for (n = 0; n < v->num; n++) {
-    int const fno = v->f[n];
-    FACE * const face = &mris1->faces[fno];
-    if (face->marked) {
-      continue;  // defect
-    }
+  {
+    VERTEX_TOPOLOGY const * const vt = &mris1->vertices_topology[vn1];
+    VERTEX          const * const v  = &mris1->vertices         [vn1];
 
-    n0 = v->n[n];
-    n1 = (n0 == 2) ? 0 : n0 + 1;
-    n2 = (n0 == 0) ? 2 : n0 - 1;
+    for (n = 0; n < vt->num; n++) {
+      int const fno = vt->f[n];
+      FACE * const face = &mris1->faces[fno];
+      if (face->marked) {
+        continue;  // defect
+      }
 
-#if 1
-    if ((face->v[n0] != vn1) || (face->v[n1] == vn1) || (face->v[n2] == vn1) || (face->v[n2] == face->v[n1])) {
-      if (1) {
-        // verbose>=VERBOSE_MODE_MEDIUM){
-        if (face->v[n0] != vn1) {
-          fprintf(WHICH_OUTPUT, "error for vno in face %d", v->f[n]);
-        }
-        if (face->v[n1] == vn1) {
-          fprintf(WHICH_OUTPUT, "error for vn1 in face %d", v->f[n]);
-        }
-        if (face->v[n2] == vn1) {
-          fprintf(WHICH_OUTPUT, "error for vn2 in face %d", v->f[n]);
-        }
-        if (face->v[n2] == face->v[n1]) {
-          fprintf(WHICH_OUTPUT, "error for vn in face %d", v->f[n]);
-        }
+      n0 = vt->n[n];
+      n1 = (n0 == 2) ? 0 : n0 + 1;
+      n2 = (n0 == 0) ? 2 : n0 - 1;
 
-        fprintf(WHICH_OUTPUT, "face %d (%d,%d,%d) != (%d)\n", v->f[n], face->v[n0], face->v[n1], face->v[n2], vn1);
+  #if 1
+      if ((face->v[n0] != vn1) || (face->v[n1] == vn1) || (face->v[n2] == vn1) || (face->v[n2] == face->v[n1])) {
+        if (1) {
+          // verbose>=VERBOSE_MODE_MEDIUM){
+          if (face->v[n0] != vn1) {
+            fprintf(WHICH_OUTPUT, "error for vno in face %d", vt->f[n]);
+          }
+          if (face->v[n1] == vn1) {
+            fprintf(WHICH_OUTPUT, "error for vn1 in face %d", vt->f[n]);
+          }
+          if (face->v[n2] == vn1) {
+            fprintf(WHICH_OUTPUT, "error for vn2 in face %d", vt->f[n]);
+          }
+          if (face->v[n2] == face->v[n1]) {
+            fprintf(WHICH_OUTPUT, "error for vn in face %d", vt->f[n]);
+          }
 
-        if (1)  // verbose==VERBOSE_MODE_MEDIUM)
-        {
-          fprintf(stderr, "vertexPseudoNormal: SHOULD NOT HAPPEN\n");
-        }
+          fprintf(WHICH_OUTPUT, "face %d (%d,%d,%d) != (%d)\n", vt->f[n], face->v[n0], face->v[n1], face->v[n2], vn1);
 
-        //                      MRISwrite(mris,"rh.testdebug1");
-        // MRISrestoreVertexPositions(mris,CANONICAL_VERTICES);
-        // MRISwrite(mris,"rh.testdebug2");
-        if (1)  // verbose==VERBOSE_MODE_HIGH)
-        {
-          ErrorExit(ERROR_BADPARM, "vertexPseudoNormal: SHOULD NOT HAPPEN\n");
+          if (1)  // verbose==VERBOSE_MODE_MEDIUM)
+          {
+            fprintf(stderr, "vertexPseudoNormal: SHOULD NOT HAPPEN\n");
+          }
+
+          //                      MRISwrite(mris,"rh.testdebug1");
+          // MRISrestoreVertexPositions(mris,CANONICAL_VERTICES);
+          // MRISwrite(mris,"rh.testdebug2");
+          if (1)  // verbose==VERBOSE_MODE_HIGH)
+          {
+            ErrorExit(ERROR_BADPARM, "vertexPseudoNormal: SHOULD NOT HAPPEN\n");
+          }
         }
       }
+  #endif
+      v1[0] = mris1->vertices[face->v[n1]].origx - v->origx;
+      v1[1] = mris1->vertices[face->v[n1]].origy - v->origy;
+      v1[2] = mris1->vertices[face->v[n1]].origz - v->origz;
+
+      v2[0] = mris1->vertices[face->v[n2]].origx - v->origx;
+      v2[1] = mris1->vertices[face->v[n2]].origy - v->origy;
+      v2[2] = mris1->vertices[face->v[n2]].origz - v->origz;
+
+      alpha = MAX(0.0, MIN(1.0, F_DOT(v1, v2) / NORM3(v1) / NORM3(v2)));
+      alpha = acos(alpha);
+
+      FaceNormCacheEntry const * fNorm = getFaceNorm(mris1, fno);
+
+      norm[0] += alpha * fNorm->nx;
+      norm[1] += alpha * fNorm->ny;
+      norm[2] += alpha * fNorm->nz;
     }
-#endif
-    v1[0] = mris1->vertices[face->v[n1]].origx - v->origx;
-    v1[1] = mris1->vertices[face->v[n1]].origy - v->origy;
-    v1[2] = mris1->vertices[face->v[n1]].origz - v->origz;
-
-    v2[0] = mris1->vertices[face->v[n2]].origx - v->origx;
-    v2[1] = mris1->vertices[face->v[n2]].origy - v->origy;
-    v2[2] = mris1->vertices[face->v[n2]].origz - v->origz;
-
-    alpha = MAX(0.0, MIN(1.0, F_DOT(v1, v2) / NORM3(v1) / NORM3(v2)));
-    alpha = acos(alpha);
-
-    FaceNormCacheEntry const * fNorm = getFaceNorm(mris1, fno);
-
-    norm[0] += alpha * fNorm->nx;
-    norm[1] += alpha * fNorm->ny;
-    norm[2] += alpha * fNorm->nz;
   }
-
-  v = &mris2->vertices[vn2];
-  for (n = 0; n < v->num; n++) {
-    int const fno = v->f[n];
-    FACE* const face = &mris2->faces[fno];
-    n0 = v->n[n];
-    n1 = (n0 == 2) ? 0 : n0 + 1;
-    n2 = (n0 == 0) ? 2 : n0 - 1;
+  
+  {
+    VERTEX_TOPOLOGY const * const vt = &mris2->vertices_topology[vn2];
+    VERTEX          const * const v  = &mris2->vertices         [vn2];
+    for (n = 0; n < vt->num; n++) {
+      int const fno = vt->f[n];
+      FACE* const face = &mris2->faces[fno];
+      n0 = vt->n[n];
+      n1 = (n0 == 2) ? 0 : n0 + 1;
+      n2 = (n0 == 0) ? 2 : n0 - 1;
 #if 1
-    if ((face->v[n0] != vn2) || (face->v[n1] == vn2) || (face->v[n2] == vn2) || (face->v[n2] == face->v[n1])) {
-      if (1) {
-        // verbose>=VERBOSE_MODE_MEDIUM){
-        if (face->v[n0] != vn2) {
-          fprintf(WHICH_OUTPUT, "error for vno in face %d", v->f[n]);
-        }
-        if (face->v[n1] == vn2) {
-          fprintf(WHICH_OUTPUT, "error for vn1 in face %d", v->f[n]);
-        }
-        if (face->v[n2] == vn2) {
-          fprintf(WHICH_OUTPUT, "error for vn2 in face %d", v->f[n]);
-        }
-        if (face->v[n2] == face->v[n1]) {
-          fprintf(WHICH_OUTPUT, "error for vn in face %d", v->f[n]);
-        }
+      if ((face->v[n0] != vn2) || (face->v[n1] == vn2) || (face->v[n2] == vn2) || (face->v[n2] == face->v[n1])) {
+        if (1) {
+          // verbose>=VERBOSE_MODE_MEDIUM){
+          if (face->v[n0] != vn2) {
+            fprintf(WHICH_OUTPUT, "error for vno in face %d", vt->f[n]);
+          }
+          if (face->v[n1] == vn2) {
+            fprintf(WHICH_OUTPUT, "error for vn1 in face %d", vt->f[n]);
+          }
+          if (face->v[n2] == vn2) {
+            fprintf(WHICH_OUTPUT, "error for vn2 in face %d", vt->f[n]);
+          }
+          if (face->v[n2] == face->v[n1]) {
+            fprintf(WHICH_OUTPUT, "error for vn in face %d", vt->f[n]);
+          }
 
-        fprintf(WHICH_OUTPUT, "face %d (%d,%d,%d) != (%d)\n", v->f[n], face->v[n0], face->v[n1], face->v[n2], vn2);
+          fprintf(WHICH_OUTPUT, "face %d (%d,%d,%d) != (%d)\n", vt->f[n], face->v[n0], face->v[n1], face->v[n2], vn2);
 
-        if (1)  // verbose==VERBOSE_MODE_MEDIUM)
-        {
-          fprintf(stderr, "vertexPseudoNormal: SHOULD NOT HAPPEN\n");
-        }
+          if (1)  // verbose==VERBOSE_MODE_MEDIUM)
+          {
+            fprintf(stderr, "vertexPseudoNormal: SHOULD NOT HAPPEN\n");
+          }
 
-        //                      MRISwrite(mris,"rh.testdebug1");
-        // MRISrestoreVertexPositions(mris,CANONICAL_VERTICES);
-        // MRISwrite(mris,"rh.testdebug2");
-        if (1)  // verbose==VERBOSE_MODE_HIGH)
-        {
-          ErrorExit(ERROR_BADPARM, "vertexPseudoNormal: SHOULD NOT HAPPEN\n");
+          //                      MRISwrite(mris,"rh.testdebug1");
+          // MRISrestoreVertexPositions(mris,CANONICAL_VERTICES);
+          // MRISwrite(mris,"rh.testdebug2");
+          if (1)  // verbose==VERBOSE_MODE_HIGH)
+          {
+            ErrorExit(ERROR_BADPARM, "vertexPseudoNormal: SHOULD NOT HAPPEN\n");
+          }
         }
       }
+  #endif
+      v1[0] = mris2->vertices[face->v[n1]].origx - v->origx;
+      v1[1] = mris2->vertices[face->v[n1]].origy - v->origy;
+      v1[2] = mris2->vertices[face->v[n1]].origz - v->origz;
+
+      v2[0] = mris2->vertices[face->v[n2]].origx - v->origx;
+      v2[1] = mris2->vertices[face->v[n2]].origy - v->origy;
+      v2[2] = mris2->vertices[face->v[n2]].origz - v->origz;
+
+      alpha = MAX(0.0, MIN(1.0, F_DOT(v1, v2) / NORM3(v1) / NORM3(v2)));
+      alpha = acos(alpha);
+
+      FaceNormCacheEntry const * fNorm = getFaceNorm(mris2, fno);
+      norm[0] += alpha * fNorm->nx;
+      norm[1] += alpha * fNorm->ny;
+      norm[2] += alpha * fNorm->nz;
     }
-#endif
-    v1[0] = mris2->vertices[face->v[n1]].origx - v->origx;
-    v1[1] = mris2->vertices[face->v[n1]].origy - v->origy;
-    v1[2] = mris2->vertices[face->v[n1]].origz - v->origz;
-
-    v2[0] = mris2->vertices[face->v[n2]].origx - v->origx;
-    v2[1] = mris2->vertices[face->v[n2]].origy - v->origy;
-    v2[2] = mris2->vertices[face->v[n2]].origz - v->origz;
-
-    alpha = MAX(0.0, MIN(1.0, F_DOT(v1, v2) / NORM3(v1) / NORM3(v2)));
-    alpha = acos(alpha);
-
-    FaceNormCacheEntry const * fNorm = getFaceNorm(mris2, fno);
-    norm[0] += alpha * fNorm->nx;
-    norm[1] += alpha * fNorm->ny;
-    norm[2] += alpha * fNorm->nz;
   }
 }
 
@@ -56704,35 +56498,35 @@ static void computeVertexPseudoNormal(MRIS const *mris, int vno, float norm[3], 
 {
   int n, n0, n1, n2;
   float v1[3], v2[3], alpha;
-  VERTEX const *v;
-  v = &mris->vertices[vno];
+  VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+  VERTEX          const * const v  = &mris->vertices         [vno];
 
   norm[0] = norm[1] = norm[2] = 0;
 
-  for (n = 0; n < v->num; n++) {
-    int const fno = v->f[n];
+  for (n = 0; n < vt->num; n++) {
+    int const fno = vt->f[n];
     FACE   const * const face = &mris->faces[fno];
 
-    n0 = v->n[n];
+    n0 = vt->n[n];
     n1 = (n0 == 2) ? 0 : n0 + 1;
     n2 = (n0 == 0) ? 2 : n0 - 1;
 
     if ((face->v[n0] != vno) || (face->v[n1] == vno) || (face->v[n2] == vno) || (face->v[n2] == face->v[n1])) {
       if (verbose >= VERBOSE_MODE_MEDIUM) {
         if (face->v[n0] != vno) {
-          fprintf(WHICH_OUTPUT, "error for vno in face %d", v->f[n]);
+          fprintf(WHICH_OUTPUT, "error for vno in face %d", vt->f[n]);
         }
         if (face->v[n1] == vno) {
-          fprintf(WHICH_OUTPUT, "error for vn1 in face %d", v->f[n]);
+          fprintf(WHICH_OUTPUT, "error for vn1 in face %d", vt->f[n]);
         }
         if (face->v[n2] == vno) {
-          fprintf(WHICH_OUTPUT, "error for vn2 in face %d", v->f[n]);
+          fprintf(WHICH_OUTPUT, "error for vn2 in face %d", vt->f[n]);
         }
         if (face->v[n2] == face->v[n1]) {
-          fprintf(WHICH_OUTPUT, "error for vn in face %d", v->f[n]);
+          fprintf(WHICH_OUTPUT, "error for vn in face %d", vt->f[n]);
         }
 
-        fprintf(WHICH_OUTPUT, "face %d (%d,%d,%d) != (%d)\n", v->f[n], face->v[n0], face->v[n1], face->v[n2], vno);
+        fprintf(WHICH_OUTPUT, "face %d (%d,%d,%d) != (%d)\n", vt->f[n], face->v[n0], face->v[n1], face->v[n2], vno);
 
         if (verbose == VERBOSE_MODE_MEDIUM) {
           fprintf(stderr, "computeVertexPseudoNormal: SHOULD NOT HAPPEN\n");
@@ -56769,7 +56563,6 @@ static int findNonMarkedFace(MRIS *mris, int vno, int vn1)
 {
   int i, nf;
   int fn;
-  VERTEX *v;
   FACE *f;
 
   // test
@@ -56777,7 +56570,7 @@ static int findNonMarkedFace(MRIS *mris, int vno, int vn1)
     fprintf(stderr, "error in findNonmarkedFace\n");
     return -1;
   }
-  v = &mris->vertices[vno];
+  VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno];
   for (nf = 0; nf < v->num; nf++) {
     fn = v->f[nf];
     f = &mris->faces[fn];
@@ -57138,8 +56931,8 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
     }
     else {
       int vn = face->v[0];
-      // fprintf(stderr,"we have %d and %d \n", mris->vertices[vn].vnum,mris->vertices[vn].num);
-      if (mris->vertices[vn].vnum != mris->vertices[vn].num) {
+      // fprintf(stderr,"we have %d and %d \n", mris->vertices_topology[vn].vnum,mris->vertices_topology[vn].num);
+      if (mris->vertices_topology[vn].vnum != mris->vertices_topology[vn].num) {
         // border
         // test
         if (vn >= n_vertices) {
@@ -57153,7 +56946,7 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
         computeVertexPseudoNormal(mris, vn, n_v0, 0);
       }
       vn = face->v[1];
-      if (mris->vertices[vn].vnum != mris->vertices[vn].num) {
+      if (mris->vertices_topology[vn].vnum != mris->vertices_topology[vn].num) {
         // border
         // test
         if (vn >= n_vertices) {
@@ -57167,7 +56960,7 @@ void MRIScomputeDistanceVolume(TOPOFIX_PARMS *parms, float distance_to_surface)
         computeVertexPseudoNormal(mris, vn, n_v1, 0);
       }
       vn = face->v[2];
-      if (mris->vertices[vn].vnum != mris->vertices[vn].num) {
+      if (mris->vertices_topology[vn].vnum != mris->vertices_topology[vn].num) {
         // border
         // test
         if (vn >= n_vertices) {
@@ -59088,7 +58881,7 @@ static double mrisComputeDefectNormalDotLogLikelihood(MRI_SURFACE *mris, TP *tp,
 {
   double v_ll, total_ll = 0.0, nx, ny, nz, x, y, z, dx, dy, dz, dot;
   int vno, n, i, bin;
-  VERTEX *v, *vn;
+
   double t_area, tc_area;
 
   t_area = tc_area = 0.0;
@@ -59096,7 +58889,8 @@ static double mrisComputeDefectNormalDotLogLikelihood(MRI_SURFACE *mris, TP *tp,
   /* compute faces only for modified vertices */
   for (i = 0; i < tp->nvertices; i++) {
     vno = tp->vertices[i];
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX          const * const v  = &mris->vertices         [vno];
 
     x = v->origx;
     y = v->origy;
@@ -59106,8 +58900,8 @@ static double mrisComputeDefectNormalDotLogLikelihood(MRI_SURFACE *mris, TP *tp,
     ny = v->ny;
     nz = v->nz;
 
-    for (v_ll = 0.0, n = 0; n < v->vnum; n++) {
-      vn = &mris->vertices[v->v[n]];
+    for (v_ll = 0.0, n = 0; n < vt->vnum; n++) {
+      VERTEX * const vn = &mris->vertices[vt->v[n]];
       dx = vn->origx - x;
       dy = vn->origy - y;
       dz = vn->origz - z;
@@ -59123,9 +58917,9 @@ static double mrisComputeDefectNormalDotLogLikelihood(MRI_SURFACE *mris, TP *tp,
 
       v_ll += log(h_dot->counts[bin]);
     }
-    total_ll += v_ll / v->vnum;
+    total_ll += v_ll / vt->vnum;
     t_area += v->area;
-    tc_area += v->area * v_ll / v->vnum;
+    tc_area += v->area * v_ll / vt->vnum;
   }
 
   if (tp->nvertices) {
@@ -59144,11 +58938,10 @@ static double mrisComputeDefectNormalDotLogLikelihood(MRI_SURFACE *mris, TP *tp,
 static int mrisCheckDefectFaces(MRI_SURFACE *mris, DEFECT_PATCH *dp)
 {
   int fno, n1, n2, vno1, vno2, fshared;
-  VERTEX *v;
 
   for (n1 = 0; n1 < dp->tp.nvertices; n1++) {
     vno1 = dp->tp.vertices[n1];
-    v = &mris->vertices[vno1];
+    VERTEX_TOPOLOGY const * const v = &mris->vertices_topology[vno1];
     for (n2 = 0; n2 < v->vnum; n2++) {
       vno2 = v->v[n2];
       for (fshared = fno = 0; fno < v->num; fno++)
@@ -59747,19 +59540,19 @@ static void computeInteriorGradients(MRIS *mris, int option)
 {
   int n, p, count;
   float x, y, z;
-  VERTEX *v, *vp;
 
   for (n = 0; n < mris->nvertices; n++) {
-    v = &mris->vertices[n];
-
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[n];
+    VERTEX                * const v  = &mris->vertices         [n];
+    
     if (v->flags != VERTEX_INTERIOR) {
       continue;
     }
 
     x = y = z = 0.0f;
 
-    for (count = p = 0; p < v->vnum; p++) {
-      vp = &mris->vertices[v->v[p]];
+    for (count = p = 0; p < vt->vnum; p++) {
+      VERTEX const * const vp = &mris->vertices[vt->v[p]];
       if (v->fixedval != option && vp->fixedval == option) {
         continue;
       }
@@ -59879,11 +59672,9 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
   MAPPING *mapping;
   FS_VERTEX_INFO *vinfo;
   FACE *face, *face_dst;
-  VERTEX *v_dst, *v_src, *v;
+
   MRIS *mris_dst;
-#if 0 /* useless with the new plane mapping */
-  EDGE_LIST_INFO e_l_i;
-#endif
+
   OPTIMAL_DEFECT_MAPPING *o_d_m;
   int option = 0, nclusters;
   EDGE *edge;
@@ -59895,9 +59686,9 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
   vertex_list = (int *)malloc(nvertices * sizeof(int));
 
   vertex_trans = (int *)malloc(mris_src->nvertices * sizeof(int));
-  face_trans = (int *)malloc(mris_src->nfaces * sizeof(int));
+  face_trans   = (int *)malloc(mris_src->nfaces * sizeof(int));
   memset(vertex_trans, -1, mris_src->nvertices * sizeof(int));
-  memset(face_trans, -1, mris_src->nfaces * sizeof(int));
+  memset(face_trans,   -1, mris_src->nfaces * sizeof(int));
 
   nvertices = 0;
 
@@ -59942,9 +59733,6 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
   mris_dst->status = MRIS_SPHERICAL_PATCH;
   mris_dst->type = MRIS_TRIANGULAR_SURFACE;
   mris_dst->radius = DEFAULT_RADIUS;
-#if 0
-  mris_dst->vp=(void*)&e_l_i;
-#endif
 
   /* copy faces */
   for (n = 0; n < mris_src->nfaces; n++) {
@@ -59960,9 +59748,11 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
 
   /* copy vertices with their neighbors */
   for (n = 0; n < mris_dst->nvertices; n++) {
-    v_dst = &mris_dst->vertices[n];
-    v_src = &mris_src->vertices[vertex_list[n]];
-
+    VERTEX_TOPOLOGY       * const v_dstt = &mris_src->vertices_topology[n];
+    VERTEX                * const v_dst  = &mris_dst->vertices         [n];
+    VERTEX_TOPOLOGY const * const v_srct = &mris_src->vertices_topology[vertex_list[n]];
+    VERTEX          const * const v_src  = &mris_src->vertices         [vertex_list[n]];
+    
     /* useless since we reinitialize the locations */
     /* making sure the vertices are in canonical space */
     v_dst->x = v_src->cx;
@@ -60000,64 +59790,64 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
       /* if n < nchull, we need to watch for the
          right neighboring vertices/faces */
       /* count # of valid neighbors */
-      for (m = v_dst->vnum = 0; m < v_src->vnum; m++)
-        if (mris_src->vertices[v_src->v[m]].marked) {
-          v_dst->vnum++;
+      for (m = v_dstt->vnum = 0; m < v_srct->vnum; m++)
+        if (mris_src->vertices[v_srct->v[m]].marked) {
+          v_dstt->vnum++;
         }
 
-      v_dst->vtotal = v_dst->vnum;
-      v_dst->v = (int *)calloc(v_dst->vnum, sizeof(int));
-      v_dst->dist = (float *)calloc(v_dst->vnum, sizeof(float));
-      v_dst->dist_orig = (float *)calloc(v_dst->vnum, sizeof(float));
+      v_dstt->vtotal = v_dstt->vnum;
+      v_dstt->v = (int *)calloc(v_dstt->vnum, sizeof(int));
+      v_dst->dist = (float *)calloc(v_dstt->vnum, sizeof(float));
+      v_dst->dist_orig = (float *)calloc(v_dstt->vnum, sizeof(float));
 
-      for (i = m = 0; m < v_src->vnum; m++)
-        if (mris_src->vertices[v_src->v[m]].marked) {
-          v_dst->v[i] = vertex_trans[v_src->v[m]];
+      for (i = m = 0; m < v_srct->vnum; m++)
+        if (mris_src->vertices[v_srct->v[m]].marked) {
+          v_dstt->v[i] = vertex_trans[v_srct->v[m]];
           v_dst->dist[i] = v_src->dist[m];
           v_dst->dist_orig[i] = v_src->dist_orig[m];
           i++;
         }
 
       /* count # of good triangles attached to this vertex */
-      for (v_dst->num = m = 0; m < v_src->num; m++) {
-        face = &mris_src->faces[v_src->f[m]];
+      for (v_dstt->num = m = 0; m < v_srct->num; m++) {
+        face = &mris_src->faces[v_srct->f[m]];
         if (mris_src->vertices[face->v[0]].marked && mris_src->vertices[face->v[1]].marked &&
             mris_src->vertices[face->v[2]].marked) {
-          v_dst->num++;
+          v_dstt->num++;
         }
       }
 
-      v_dst->f = (int *)calloc(v_dst->num, sizeof(int));
-      v_dst->n = (uchar *)calloc(v_dst->num, sizeof(uchar));
-      for (i = m = 0; m < v_src->num; m++) {
-        face = &mris_src->faces[v_src->f[m]];
+      v_dstt->f = (int *)calloc(v_dstt->num, sizeof(int));
+      v_dstt->n = (uchar *)calloc(v_dstt->num, sizeof(uchar));
+      for (i = m = 0; m < v_srct->num; m++) {
+        face = &mris_src->faces[v_srct->f[m]];
         if (mris_src->vertices[face->v[0]].marked && mris_src->vertices[face->v[1]].marked &&
             mris_src->vertices[face->v[2]].marked) {
-          v_dst->n[i] = v_src->n[m];
-          v_dst->f[i] = face_trans[v_src->f[m]];
+          v_dstt->n[i] = v_srct->n[m];
+          v_dstt->f[i] = face_trans[v_srct->f[m]];
           i++;
         }
       }
     }
     else {
       /* neighboring vertices */
-      v_dst->vnum = v_src->vnum;
-      v_dst->vtotal = v_dst->vnum;
-      v_dst->v = (int *)calloc(v_dst->vnum, sizeof(int));
-      v_dst->dist = (float *)calloc(v_dst->vnum, sizeof(float));
-      v_dst->dist_orig = (float *)calloc(v_dst->vnum, sizeof(float));
-      for (m = 0; m < v_src->vnum; m++) {
-        v_dst->v[m] = vertex_trans[v_src->v[m]];
+      v_dstt->vnum = v_srct->vnum;
+      v_dstt->vtotal = v_dstt->vnum;
+      v_dstt->v = (int *)calloc(v_dstt->vnum, sizeof(int));
+      v_dst->dist = (float *)calloc(v_dstt->vnum, sizeof(float));
+      v_dst->dist_orig = (float *)calloc(v_dstt->vnum, sizeof(float));
+      for (m = 0; m < v_srct->vnum; m++) {
+        v_dstt->v[m] = vertex_trans[v_srct->v[m]];
         v_dst->dist[m] = v_src->dist[m];
         v_dst->dist_orig[m] = v_src->dist_orig[m];
       }
       /* neighboring faces */
-      v_dst->num = v_src->num;
-      v_dst->f = (int *)calloc(v_dst->num, sizeof(int));
-      v_dst->n = (uchar *)calloc(v_dst->num, sizeof(uchar));
-      for (m = 0; m < v_src->num; m++) {
-        v_dst->n[m] = v_src->n[m];
-        v_dst->f[m] = face_trans[v_src->f[m]];
+      v_dstt->num = v_srct->num;
+      v_dstt->f = (int *)calloc(v_dstt->num, sizeof(int));
+      v_dstt->n = (uchar *)calloc(v_dstt->num, sizeof(uchar));
+      for (m = 0; m < v_srct->num; m++) {
+        v_dstt->n[m] = v_srct->n[m];
+        v_dstt->f[m] = face_trans[v_srct->f[m]];
       }
     }
   }
@@ -60065,67 +59855,6 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
   /* unmark vertices */
   mrisMarkDefectConvexHull(mris_src, defect, 0);
   mrisMarkDefect(mris_src, defect, 0);
-
-#if 0
-  e_l_i.n_inside_edges=0;
-  e_l_i.n_border_edges=0;
-  for ( n = 0 ; n < mris_dst->nvertices ; n++)
-  {
-    v=&mris_dst->vertices[n];
-    if (v->flags==VERTEX_CHULL)
-    {
-      continue;
-    }
-    for ( m = 0 ; m < v->vnum ; m++)
-    {
-      if (v->v[m]<=n)
-      {
-        continue;
-      }
-      vm = &mris_dst->vertices[v->v[m]];
-      if (v->flags==VERTEX_BORDER && vm->flags==VERTEX_BORDER)
-      {
-        e_l_i.n_border_edges++;
-      }
-      if (v->flags==VERTEX_INTERIOR && vm->flags==VERTEX_INTERIOR)
-      {
-        e_l_i.n_inside_edges++;
-      }
-    }
-  }
-  e_l_i.inside_edges=(EDGE*)malloc(e_l_i.n_inside_edges*sizeof(EDGE));
-  e_l_i.border_edges=(EDGE*)malloc(e_l_i.n_border_edges*sizeof(EDGE));
-  e_l_i.n_inside_edges=0;
-  e_l_i.n_border_edges=0;
-  for ( n = 0 ; n < mris_dst->nvertices ; n++)
-  {
-    v=&mris_dst->vertices[n];
-    if (v->flags==VERTEX_CHULL)
-    {
-      continue;
-    }
-    for ( m = 0 ; m < v->vnum ; m++)
-    {
-      if (v->v[m]<=n)
-      {
-        continue;
-      }
-      vm = &mris_dst->vertices[v->v[m]];
-      if (v->flags==VERTEX_BORDER && vm->flags==VERTEX_BORDER)
-      {
-        e_l_i.border_edges[e_l_i.n_border_edges].vno1=n;
-        e_l_i.border_edges[e_l_i.n_border_edges].vno2=v->v[m];
-        e_l_i.n_border_edges++;
-      }
-      if (v->flags==VERTEX_INTERIOR && vm->flags==VERTEX_INTERIOR)
-      {
-        e_l_i.inside_edges[e_l_i.n_inside_edges].vno1=n;
-        e_l_i.inside_edges[e_l_i.n_inside_edges].vno2=v->v[m];
-        e_l_i.n_inside_edges++;
-      }
-    }
-  }
-#endif
 
   o_d_m = (OPTIMAL_DEFECT_MAPPING *)calloc(1, sizeof(OPTIMAL_DEFECT_MAPPING));
   o_d_m->mris = mris_dst;
@@ -60152,7 +59881,7 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
     edge = &defect->edges[n];
     vno = vertex_trans[edge->vno1];
     vinfo = &mapping->vertices[vno];
-    v = &mris_dst->vertices[vno];
+    VERTEX const * const v = &mris_dst->vertices[vno];
     /* circle */
     vinfo->c_x = 20.0 * cos(2 * PI * (float)n / defect->nedges);
     vinfo->c_y = 20.0 * sin(2 * PI * (float)n / defect->nedges);
@@ -60169,7 +59898,7 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
     /* init inside */
     vno = vertex_trans[defect->vertices[n]];
     vinfo = &mapping->vertices[vno];
-    v = &mris_dst->vertices[vno];
+    VERTEX const * const v = &mris_dst->vertices[vno];
     vinfo->c_x = 0;
     vinfo->c_y = 0;
     vinfo->c_z = 0;
@@ -60194,7 +59923,7 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
     mapping = &o_d_m->orig_mapping;
     for (n = 0; n < mris_dst->nvertices; n++) {
       vinfo = &mapping->vertices[n];
-      v = &mris_dst->vertices[n];
+      VERTEX * const v = &mris_dst->vertices[n];
       v->cx = vinfo->c_x; /* plane xy coord */
       v->cy = vinfo->c_y;
       v->cz = vinfo->c_z;
@@ -60229,7 +59958,7 @@ static OPTIMAL_DEFECT_MAPPING *mrisFindOptimalDefectMapping(MRIS *mris_src, DEFE
     mapping = &o_d_m->mappings[m];
     for (n = 0; n < mris_dst->nvertices; n++) {
       vinfo = &mapping->vertices[n];
-      v = &mris_dst->vertices[n];
+      VERTEX * const v = &mris_dst->vertices[n];
       vinfo->c_x = v->cx; /* spherical coord */
       vinfo->c_y = v->cy;
       v->cz = sqrt(10000.0 - SQR(v->cx) - SQR(v->cy));
@@ -63416,22 +63145,22 @@ mrisCheckDefectEdges(MRI_SURFACE *mris, DEFECT *defect, int vno,
 
       EDGE edge2;
       edge2.vno1 = vno;
-      VERTEX const * const v = &mris->vertices[vno];
+      VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
 
-      if (n >= v->vnum) {
+      if (n >= vt->vnum) {
         if (whyTracing) fprintf(stderr, "isHit vno:%d deleted edge n:%d when %s\n",vno,n, whyTracing);
         return false;
       }
       
-      if (whyTracing) fprintf(stderr, "isHit vno:%d v->v[n]:%d e:%p e->vno1:%d e->vno2:%d when %s\n",vno,v->v[n],e,e->vno1,e->vno2, whyTracing);
+      if (whyTracing) fprintf(stderr, "isHit vno:%d v->v[n]:%d e:%p e->vno1:%d e->vno2:%d when %s\n",vno,vt->v[n],e,e->vno1,e->vno2, whyTracing);
       
-      if (v->v[n] == e->vno1 || v->v[n] == e->vno2) {
+      if (vt->v[n] == e->vno1 || vt->v[n] == e->vno2) {
         if (whyTracing) fprintf(stderr, "isHit false because shared second vno when %s\n", whyTracing);
         goto Done;
       }
       
-      edge2.vno2 = v->v[n];
-      if (defect->optimal_mapping && mris->vertices[v->v[n]].fixedval == 0) {
+      edge2.vno2 = vt->v[n];
+      if (defect->optimal_mapping && mris->vertices[vt->v[n]].fixedval == 0) {
         if (whyTracing) fprintf(stderr, "isHit false optimal_mapping\n");
         goto Done;
       }
@@ -63469,13 +63198,14 @@ mrisCheckDefectEdges(MRI_SURFACE *mris, DEFECT *defect, int vno,
       *pIsHit = isHit(ctx->mris, entry->vno, ctx->defect, ctx->e, entry->n, NULL);
 
       if (ctx->emit_line_py) {
-        VERTEX const * const v0 = &ctx->mris->vertices[entry->vno]; 
-        VERTEX const * const v1 = &ctx->mris->vertices[v0->v[entry->n]]; 
+        VERTEX_TOPOLOGY const * const v0t = &ctx->mris->vertices_topology[entry->vno]; 
+        VERTEX          const * const v0  = &ctx->mris->vertices         [entry->vno]; 
+        VERTEX const * const v1 = &ctx->mris->vertices[v0t->v[entry->n]]; 
         fprintf(stderr, " [3, %f, %f, %f, %f, %f, %f, %d], # line.py trial\n", v0->cx,v0->cy,v0->cz, v1->cx,v1->cy,v1->cz, *pIsHit);
       }
       
       int entry_vnoLo = entry->vno;
-      int entry_vnoHi = ctx->mris->vertices[entry->vno].v[entry->n];
+      int entry_vnoHi = ctx->mris->vertices_topology[entry->vno].v[entry->n];
       if (entry_vnoLo > entry_vnoHi) { int temp = entry_vnoLo; entry_vnoLo = entry_vnoHi; entry_vnoHi = temp; }
       
       if ( ctx->old_firstHit_vnoLo == entry_vnoLo 

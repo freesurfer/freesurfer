@@ -22,4 +22,4 @@ set(SOURCES
 
 add_library(unix STATIC ${SOURCES})
 
-target_link_libraries(unix ${MINC_LIBRARIES} ${NetCDF_LIBRARIES})
+target_link_libraries(unix ${MINC_LIBRARIES} ${NetCDF_LIBRARIES} ${OPENGL_LIBRARIES})
