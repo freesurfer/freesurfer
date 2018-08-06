@@ -157,13 +157,14 @@ public:
   /// The output must be correctly typecasted based on the configured arg type,
   /// but if it's not, the error message should hopefully provide the correct fix
   template <typename T>
-  T& retrieve(const String& name) {
+  T retrieve(const String& name) {
     String unstripped = unstrip(name);
     if (index.count(unstripped) == 0) errExit(1) << "'" << unstripped << "' is not a known argument";
     size_t N = index[unstripped];
+    T retrieved;
     // try to cast the arguments
     try {
-      return variables[N].castTo<T>();
+      retrieved = variables[N].castTo<T>();
     } catch (std::bad_cast) {
       // if casting fails, print out a VERY detailed debug message
       String fulltype, sentence_starter;
@@ -180,6 +181,7 @@ public:
                  << "To change the expected type, modify the call to "
                  << Log::dim() << "addArgument()" << Log::reset();
     }
+    return retrieved;
   }
 
 private:
