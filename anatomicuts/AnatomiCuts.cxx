@@ -591,6 +591,7 @@ int main(int narg, char* arg[])
 			itk::SmartPointer<TrkVTKPolyDataFilter<ImageType>> trkReader  = TrkVTKPolyDataFilter<ImageType>::New();
 			trkReader->SetInput(vtkConverter->GetOutputPolyData());
 			trkReader->SetReferenceImage(segmentation);
+			trkReader->SetReferenceTrack(fiberFile);
 			trkReader->SetColor(color);
 			sprintf(meshName2, "%s/%s.trk",outputFolder, it->first.c_str());
 			trkReader->VTKToTrk(meshName2);
@@ -599,18 +600,15 @@ int main(int narg, char* arg[])
 		i++;
 	}
 
-	//if(cl.search(1,"-nc","-NC"))
-	//{
 
-		char csv_filename[100];
-		sprintf(csv_filename, "%s/HierarchicalHistory.csv",outputFolder);
+	char csv_filename[100];
+	sprintf(csv_filename, "%s/HierarchicalHistory.csv",outputFolder);
 
-		std::ofstream csv_file(csv_filename);
+	std::ofstream csv_file(csv_filename);
 
-		csv_file << "Parent, Child," <<std::endl;
-		for (std::vector<std::pair<std::string,std::string>>::iterator it=clusterIdHierarchy.begin(); it!=clusterIdHierarchy.end(); ++it)
-			csv_file << (*it).first << "," << (*it).second << ","<<std::endl;
+	csv_file << "Parent, Child," <<std::endl;
+	for (std::vector<std::pair<std::string,std::string>>::iterator it=clusterIdHierarchy.begin(); it!=clusterIdHierarchy.end(); ++it)
+		csv_file << (*it).first << "," << (*it).second << ","<<std::endl;
 
-		csv_file.close();
-	//}
+	csv_file.close();
 }
