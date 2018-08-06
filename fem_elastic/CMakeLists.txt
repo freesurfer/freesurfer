@@ -11,6 +11,7 @@ if(Tetgen_FOUND AND PETSC_FOUND AND Boost_FOUND)
   )
 
   set(CMAKE_CXX_STANDARD 11)
+  add_definitions(-DHAVE_ITK5)
 
   set(COMMON3D_SOURCES
     fem_3d.cpp
