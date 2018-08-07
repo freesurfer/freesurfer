@@ -21381,6 +21381,17 @@ static int mrisComputeDuraTerm(MRI_SURFACE *mris, double l_dura, MRI *mri_dura, 
 #define NSAMPLES 15
 #define SAMPLE_DISTANCE 0.1
 
+/*!
+  \fn static int mrisComputeIntensityTerm()
+  \brief Computes the step needed to minimize the intensity term. The
+  intensity term is a target intensity value as indicated by v->val
+  (eg, see MRIScomputeBorderValues_new()).  The error is the
+  difference between the actual intensity at the vertex and
+  v->val. v->{dx,dy,dz} are incremented. v->sigma is used when
+  computing the direction of the gradient of the intensity along the
+  normal. There is a limit on the maximum steps size controlled by a
+  hidden parameter.
+ */
 static int mrisComputeIntensityTerm(MRI_SURFACE *mris,
                                     double l_intensity,
                                     MRI *mri_brain,
@@ -21400,39 +21411,6 @@ static int mrisComputeIntensityTerm(MRI_SURFACE *mris,
     return (NO_ERROR);
   }
 
-#if 0
-  // scale intensity term down in regions that are compressed
-  mrisComputeVertexDistances(mris) ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    double davg ;
-    int    n ;
-
-    v = &mris->vertices[vno] ;
-    if (v->ripflag || v->val < 0)
-    {
-      continue ;
-    }
-    if (vno == Gdiag_no)
-    {
-      DiagBreak() ;
-    }
-    for (davg = 0.0, n = 0 ; n < v->vnum ; n++)
-    {
-      davg += v->dist[n] ;
-    }
-    davg /= v->vnum ;
-    v->d = davg ;
-  }
-  mrisAverageDs(mris, 5) ;
-  if (Gdiag_no >= 0)
-  {
-    v = &mris->vertices[Gdiag_no] ;
-    printf("v %d: avg vertex distance = %2.2f\n", Gdiag_no, v->d) ;
-    DiagBreak() ;
-  }
-#endif
-
   if (parms->grad_dir == 0 && parms->fill_interior)  // create binary mask of interior of surface
   {
     mri_interior = MRISfillInterior(mris, 0.5, NULL);
@@ -21443,6 +21421,7 @@ static int mrisComputeIntensityTerm(MRI_SURFACE *mris,
   else {
     mri_interior = NULL;
   }
+
   for (vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
     if (v->ripflag || v->val < 0) {
@@ -21456,25 +21435,24 @@ static int mrisComputeIntensityTerm(MRI_SURFACE *mris,
     y = v->y;
     z = v->z;
 
+    // Sample the volume at the vertex
     MRISvertexToVoxel(mris, v, mri_brain, &xw, &yw, &zw);
     MRIsampleVolume(mri_brain, xw, yw, zw, &val0);
-    sigma = v->val2;
-    if (FZERO(sigma)) {
-      sigma = sigma_global;
-    }
-    if (FZERO(sigma)) {
-      sigma = 0.25;
-    }
+
+    sigma = v->val2; // smoothing level for this vertex 
+    if (FZERO(sigma)) sigma = sigma_global;
+    if (FZERO(sigma)) sigma = 0.25;
 
     nx = v->nx;
     ny = v->ny;
     nz = v->nz;
 
-    /* compute intensity gradient using smoothed volume */
+    /* compute intensity gradient along the normal. Only used to get the right sign */
     if (parms->grad_dir == 0) {
       double dist, val, step_size;
       int n;
 
+      // Hidden parameter used to compute the step size
       step_size = MIN(sigma / 2, MIN(mri_brain->xsize, MIN(mri_brain->ysize, mri_brain->zsize)) * 0.5);
       ktotal_inside = ktotal_outside = 0.0;
       for (n = 0, val_outside = val_inside = 0.0, dist = step_size; dist <= 2 * sigma; dist += step_size, n++) {
@@ -21528,35 +21506,28 @@ static int mrisComputeIntensityTerm(MRI_SURFACE *mris,
       val_inside = -parms->grad_dir;
     }
 
-    delV = v->val - val0;
-    delI = (val_outside - val_inside) / 2.0;
-
-    if (!FZERO(delI)) {
-      delI /= fabs(delI);
-    }
-    else {
-      delI = -1; /* intensities tend to increase inwards */
-    }
-
-    if (delV > 5) {
+    // Difference between target intensity and actual intensity
+    delV = v->val - val0; 
+    // Dont allow the difference to be greater than 5 or less than -5
+    // Hidden parameter 5
+    if (delV > 5)
       delV = 5;
-    }
-    else if (delV < -5) {
+    else if (delV < -5) 
       delV = -5;
-    }
 
+    // Gradient of the intensity at this location wrt a change along the normal
+    delI = (val_outside - val_inside) / 2.0;
+    // Change delI into +1 or -1
+    if (!FZERO(delI))  delI /= fabs(delI);
+    else               delI = -1; /* intensities tend to increase inwards */
+
+    // Weight intensity error by cost weighting
     del = l_intensity * delV * delI;
-#if 0
-    if (v->d < .5)
-    {
-      del *= 0*v->d ;  // reduce weight in compressed regions
-    }
-#endif
 
+    // Set to push vertex in the normal direction by this amount
     dx = nx * del;
     dy = ny * del;
     dz = nz * del;
-
     v->dx += dx;
     v->dy += dy;
     v->dz += dz;
@@ -21606,8 +21577,8 @@ static int mrisComputeIntensityTerm(MRI_SURFACE *mris,
               delI,
               sigma,
               v->val);
-    }
-  }
+    } // end diag
+  } // loop over vertices
 
   if (mri_interior) {
     MRIfree(&mri_interior);
@@ -33790,10 +33761,6 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
   else if (!FZERO(parms->l_map2d)) {
     int nvox;
     MRISsaveVertexPositions(mris, PIAL_VERTICES);
-#if 0
-    if (parms->h2d != NULL)
-      HISTO2Dfree(&parms->h2d) ;
-#endif
     if (parms->mri_volume_fractions) MRIfree(&parms->mri_volume_fractions);
     if (parms->mri_dtrans) MRIfree(&parms->mri_dtrans);
     if ((getenv("READ_VOLS") != NULL)) {
@@ -33828,6 +33795,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     fflush(parms->fp);
   }
 
+  // Loop over iterations
   dt = parms->dt;
   l_intensity = parms->l_intensity;
   for (n = parms->start_t; n < parms->start_t + niterations; n++) {
