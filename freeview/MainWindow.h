@@ -549,6 +549,7 @@ private:
   void ShowNonModalMessage(const QString& title, const QString& msg);
   void LoadConnectomeMatrixFile(const QString& fn_cmat, const QString& fn_parcel, const QString& fn_ctab);
   void GoToContralateralPoint(LayerSurface* layer);
+  void ConnectMRILayer(LayerMRI* mri);
 
   QColor ParseColorInput(const QString& cmd);
 
