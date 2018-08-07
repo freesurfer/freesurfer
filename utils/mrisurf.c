@@ -36485,6 +36485,40 @@ int MRIScomputeBorderValues(
   return result;
 }
 
+/*!
+  \fn int MRIScomputeBorderValues_new()
+  \param mris surface
+    v->{x,y,z} is the current vertex coordinate
+    v->{nx,ny,nz} is the normal to the current vertex
+    v->orig{x,y,z} is a reference (see max_thickness)
+  \param mri_brain - T1 weighted input volume
+  \param mri_smooth - not apparently used for anything
+  \param inside_hi eg,  120 (MAX_WHITE)
+  \param border_hi eg,  115 (max_border_white)
+  \param border_low eg,  77 (min_border_white)
+  \param outside_low eg, 68 (min_gray_at_white_border)
+  \param outside_hi eg, 115 (outside_hi (often same as border_hi))
+  \param sigma sets the range of smoothing to [sigma 10*sigma]
+  \param max_thickness - (eg, 5) not really a thickness but a
+    threshold in mm that limits how far away a target point can be
+    respect to orig{xyz}
+  \param which = GRAY_WHITE or GRAY_CSF, gray/white surface or pial (?)
+  \param thresh eg, 0. Mask value must be > thresh to be in the mask
+  \param flags IPFLAG_FIND_FIRST_WM_PEAK (with hires, generally not set)
+  \param mri_aseg - use to check whether a voxel is in the contralat hemi
+  Note: STEP_SIZE (all caps) is #defined. It controls the step size when searching
+   through the normal after having found the distance range.
+  Hidden Parameter: 1mm 
+  Note: a volume is treated differently if xsize<.95 (hires)
+  The step size of the in/out search is determined by mri_brain->xsize/2
+
+  The outputs are set in each vertex structure:
+      v->val2 = current_sigma; // smoothing level used to find the target
+      v->val  = max_mag_val; // target intensity
+      v->d = max_mag_dist;   // dist to target intensity along normal
+      v->mean = max_mag;     // derive at target intensity
+      v->marked = 1;         // vertex has good data
+*/
 static int MRIScomputeBorderValues_new(
     MRI_SURFACE *       mris,
     MRI         * const mri_brain,
@@ -36514,7 +36548,6 @@ static int MRIScomputeBorderValues_new(
 
   MRISclearMarks(mris); /* for soap bubble smoothing later */
 
-
   // Various double sums which are not used to compute future results
   // so the instability is not important
   //
@@ -36533,6 +36566,7 @@ static int MRIScomputeBorderValues_new(
   
   int vno;
 
+  // Loop over all the vertices
   ROMP_PF_begin
 #ifdef HAVE_OPENMP
   #pragma omp parallel for if_ROMP(assume_reproducible) \
@@ -36587,26 +36621,27 @@ static int MRIScomputeBorderValues_new(
       the surface normal in which the gradient is pointing 'inwards'.
       The border will then be constrained to be within that region.
     */
-    double inward_dist  =  1.0;
-    double outward_dist = -1.0;
-    double current_sigma;
+    double inward_dist  =  1.0; // does nothing, reset below
+    double outward_dist = -1.0; // does nothing, reset below
+    // sigma is the amount of smoothing when computing the intensity derivative
+    double current_sigma; 
     for (current_sigma = sigma; current_sigma <= 10 * sigma; current_sigma *= 2) {
     
-      // search inwards
-      //
+      // search inwards, starting at 0 and going to max "thickness"
       double mag = -1.0;
       float dist;
       for (dist = 0; dist > -max_thickness; dist -= step_size) {
 
+        // dx dy dz is the direction and distance has moved
+        // v->nx etc. is the unit-length vertex normal
+        // so this is the maximum possible distance this can be from origx...
         double dx = v->x - v->origx;
         double dy = v->y - v->origy;
         double dz = v->z - v->origz;
         double orig_dist = fabs(dx * v->nx + dy * v->ny + dz * v->nz);
-            // dx dy dz is the direction and distance has moved
-            // v->nx etc. is the unit-length vertex normal
-            // so this is the maximum possible distance this can be from origx...
             
         if (fabs(dist) + orig_dist > max_thickness) {
+          // too far from the orig
           break;
         }
 
@@ -36616,28 +36651,38 @@ static int MRIScomputeBorderValues_new(
         double const z = v->z + v->nz * dist;
         MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
         
+	// Compute derivative of the intensity along the normal. The
+	// normal (nx,ny,nz) always points outward. mri_tmp is mri_brain.
+	// It may be a copy if mri_brain is UCHAR
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &mag, current_sigma);   // expensive
         if (mag >= 0.0) {
+          // In a T1, this should decrease, so break if it increases
           break;
         }
         
         double val;
         MRIsampleVolume(mri_brain, xw, yw, zw, &val);
         if (val > border_hi) {
+          //Out side of intensity range, so break
           break;
         }
         if (mri_mask) {
           MRIsampleVolume(mri_mask, xw, yw, zw, &val);
           if (val > thresh) {
+            //Out side of mask, so break
             break;
           }
         }
-      }
 
+      } // end loop over inward search
+
+      // This will be +step_size/2 if it did not make it even one step. Otherwise it will
+      // be some negative value
       inward_dist = dist + step_size / 2;
 
       if (DIAG_VERBOSE_ON && mri_brain->xsize < .95 && mag >= 0.0)  // refine inward_dist for hires volumes
       {
+	// This bit of code can be ignored unless DIAG_VERBOSE_ON is set and input is highres
         for (dist = inward_dist; dist > -max_thickness; dist -= step_size / 2) {
           double x,y,z;
           
@@ -36665,7 +36710,7 @@ static int MRIScomputeBorderValues_new(
           }
         }
         inward_dist = dist;
-      }
+      } // end diag verbose
 
       // search outwards
       //
@@ -36699,8 +36744,10 @@ static int MRIScomputeBorderValues_new(
             break;
           }
         }
-      }
+      } // end loop over outward search
 
+      // This will be +step_size/2 if it did not make it even one step. Otherwise it will
+      // be some positive value
       outward_dist = dist - step_size / 2;
       
       // Are the bounds found?
@@ -36709,13 +36756,17 @@ static int MRIScomputeBorderValues_new(
         DiagBreak();
       }
       if (inward_dist <= 0 || outward_dist >= 0) {
+	// Either the inward or the outward was able to take at least
+	// one step so we have defined a range along the normal.
         break;
       }
 
     } // current_sigma
 
     if (inward_dist > 0 && outward_dist < 0) {
-      current_sigma = sigma; /* couldn't find anything */
+      // Neither the inward noor the outward was able to take a single step
+      // across all the sigmas
+      current_sigma = sigma; // reset sigma to the input value
     }
 
     FILE *fp = NULL;
@@ -36731,46 +36782,42 @@ static int MRIScomputeBorderValues_new(
               current_sigma);
     }
 
+    // At this point, we have a sigma, a distance range (inward and outward)
     v->val2 = current_sigma;
 
     /*
-      search outwards and inwards and find the local gradient maximum
-      at a location with a reasonable MR intensity value. This will
-      be the location of the edge.
+      Search along the normal within the range determined above to
+      find the gradient maximum at a location with a reasonable MR
+      intensity value. This will be the location of the edge.
     */
-
-    /* search in the normal direction to find the min value */
     double max_mag_val     = -10.0f;
     double max_mag         = 0.0f;
     double min_val         = 10000.0;
     double min_val_dist    = 0.0f;
-
     int    local_max_found = 0;
-
     double max_mag_dist    = 0.0f;
-    
     float sample_dists[MAX_SAMPLES], sample_mri[MAX_SAMPLES];
     int   numberOfSamples = 0;
-
     float dist;    
     for (dist = inward_dist; dist <= outward_dist; dist += STEP_SIZE) {
 
+      // Get an intensity dist outward along the normal
       double val;
       {
         double const x = v->x + v->nx * dist;
         double const y = v->y + v->ny * dist;
         double const z = v->z + v->nz * dist;
-
         double xw, yw, zw;
         MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
-      
         MRIsampleVolume(mri_brain, xw, yw, zw, &val);
       }
-      
+
+      // These are only used with hires or IPFLAG_FIND_FIRST_WM_PEAK
       sample_dists[numberOfSamples] = dist;
       sample_mri[numberOfSamples]   = val;
       numberOfSamples++;
 
+      // Get an intensity dist inward along the normal
       double previous_val;
       {
         double const x = v->x + v->nx * (dist - STEP_SIZE);
@@ -36781,94 +36828,85 @@ static int MRIScomputeBorderValues_new(
         MRIsampleVolume(mri_brain, xw, yw, zw, &previous_val);
       }
 
-      /* the previous point was inside the surface */
       if (previous_val < inside_hi && previous_val >= border_low) {
+	/* the "previous" point intensity was inside the acceptable intensity range */
       
         double xw, yw, zw;
         double x,y,z;
         double val;
+        double next_mag;
+        double previous_mag;
+        double mag;
         
         /* see if we are at a local maximum in the gradient magnitude */
+
+	// Sample the intensity at dist along the normal
         x = v->x + v->nx * dist;
         y = v->y + v->ny * dist;
         z = v->z + v->nz * dist;
         MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
         MRIsampleVolume(mri_brain, xw, yw, zw, &val);
 
-        x = v->x + v->nx * (dist + STEP_SIZE);
-        y = v->y + v->ny * (dist + STEP_SIZE);
-        z = v->z + v->nz * (dist + STEP_SIZE);
-        MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
-        
-        double next_mag;
-        MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &next_mag, sigma);
-
-        x = v->x + v->nx * (dist - STEP_SIZE);
-        y = v->y + v->ny * (dist - STEP_SIZE);
-        z = v->z + v->nz * (dist - STEP_SIZE);
-        MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
-        
-        double previous_mag;
-        MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &previous_mag, sigma);
-
-        if (val < min_val) {
+        if(val < min_val) {
+	  // Keep track of the minimum intensity along the normal
           min_val = val; /* used if no gradient max is found */
           min_val_dist = dist;
         }
 
-        /* if gradient is big and val is in right range */
+	// Sample the intensity gradient at dist + STEP_SIZE along the normal
+        x = v->x + v->nx * (dist + STEP_SIZE);
+        y = v->y + v->ny * (dist + STEP_SIZE);
+        z = v->z + v->nz * (dist + STEP_SIZE);
+	// Note: xyz are in mm, xw,yw,zw are in voxels
+        MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
+        MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &next_mag, sigma);
+
+	// Sample the intensity gradient at dist - STEP_SIZE along the normal
+        x = v->x + v->nx * (dist - STEP_SIZE);
+        y = v->y + v->ny * (dist - STEP_SIZE);
+        z = v->z + v->nz * (dist - STEP_SIZE);
+        MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
+        MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &previous_mag, sigma);
+
+	// Sample the intensity gradient at dist along the normal. Use xw,yw,zw below
         x = v->x + v->nx * dist;
         y = v->y + v->ny * dist;
         z = v->z + v->nz * dist;
         MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
-
-        double mag;
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &mag, sigma);
         
-        // only for hires volumes - if intensities are increasing don't keep going - in gm
-        if ((which == GRAY_WHITE)
-        &&  (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) 
-        &&  (val > previous_val )
-        /* && (next_val > val) */   // NOTE - the old code has this uncommented, but fails to init next_val on many of the paths leading to it!
-            ) { 
-          break;
+        // Only for "hires" volumes or if IP flag is set - if
+	// intensities are increasing don't keep going.  This could be
+	// done earlier, before the gradient is computed, to save some
+	// time.
+        if ((which == GRAY_WHITE) &&  
+	    (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) &&  
+	    (val > previous_val )) { 
+          break; // out of distance loop
         }
  
-        if ((mri_aseg != NULL) && (MRIindexNotInVolume(mri_aseg, xw, yw, zw) == 0)) {
-
+        if((mri_aseg != NULL) && (MRIindexNotInVolume(mri_aseg, xw, yw, zw) == 0)) {
+	  // Check whether the aseg label is in the opposite hemisphere
           int const label = MRIgetVoxVal(mri_aseg, nint(xw), nint(yw), nint(zw), 0);
-
           if (vno == Gdiag_no)
             printf("v %d: label distance %2.2f = %s @ (%d %d %d)\n",
-                   vno,
-                   dist,
-                   cma_label_to_name(label),
-                   nint(xw),
-                   nint(yw),
-                   nint(zw));
-                   
-          if ((mris->hemisphere == LEFT_HEMISPHERE  && IS_RH_CLASS(label)) ||
-              (mris->hemisphere == RIGHT_HEMISPHERE && IS_LH_CLASS(label))
-             ) {
-            if (vno == Gdiag_no)
+                   vno, dist, cma_label_to_name(label), nint(xw), nint(yw),nint(zw));
+          if((mris->hemisphere == LEFT_HEMISPHERE  && IS_RH_CLASS(label)) ||
+              (mris->hemisphere == RIGHT_HEMISPHERE && IS_LH_CLASS(label))) {
+            if(vno == Gdiag_no){
               printf("v %d: terminating search at distance %2.2f due to presence of contra tissue (%s)\n",
-                     vno,
-                     dist,
-                     cma_label_to_name(label));
-            break;
+                     vno, dist, cma_label_to_name(label));
+	    }
+            break; // out of distance loop
           }
         }
         
-        if (which == GRAY_CSF) {
-          /*
-            sample the next val we would process.
-            If it is too low, then we
-            have definitely reached the border,
-            and the current gradient
-            should be considered a local max.
-
-            Don't want to do this for gray/white,
-            as the gray/white gradient
+        if(which == GRAY_CSF) {
+          /* NOT used for the Gray/White boundary.
+            Sample the next val we would process.  If it is too low,
+            then we have definitely reached the border, and the
+            current gradient should be considered a local max. Don't
+            want to do this for gray/white, as the gray/white gradient
             often continues seemlessly into the gray/csf.
           */
           double xw,yw,zw;
@@ -36887,34 +36925,34 @@ static int MRIScomputeBorderValues_new(
 
         if (vno == Gdiag_no) fprintf(fp, "%2.3f  %2.3f  %2.3f  %2.3f  %2.3f\n", dist, val, mag, previous_mag, next_mag);
 
-        /*
-          if no local max has been found, or this one
-          has a greater magnitude,
-          and it is in the right intensity range....
-        */
-        if (
-            /* (!local_max_found || (fabs(mag) > max_mag)) && */
-            (fabs(mag) > fabs(previous_mag)) && (fabs(mag) > fabs(next_mag)) && (val <= border_hi) &&
-            (val >= border_low)) {
-            
+        if ((fabs(mag) > fabs(previous_mag)) && (fabs(mag) > fabs(next_mag)) && 
+	    (val <= border_hi) && (val >= border_low)) {
+	  // Gradient maximum has been found if the grad at this
+	  // distance is greater than the grad at dist-STEP and
+	  // dist+STEP and the inensity is between BorderHi and
+	  // BorderLow.  Below determines whether the gradient is the
+	  // local maximum.
+          double next_val;
           double xw,yw,zw;
+	  // Sample the volume at dist + 1mm (1mm is a hidden parameter)
           double const x = v->x + v->nx * (dist + 1);
           double const y = v->y + v->ny * (dist + 1);
           double const z = v->z + v->nz * (dist + 1);
           MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
-          
-          double next_val;
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
-          /*
-            if next val is in the right range, and the intensity at
-            this local max is less than the one at the previous local
-            max, assume it is the correct one.
-          */
+          /*If a gradmax has not been found yet (or this one is
+            greater than the current max) and the "next_val" is in the
+            right range, set the gradmax to that at this point.*/
+	  // Not clear what the logic is for the 1mm criteria. It effectively
+	  // requires that the max gradient be at least 1mm away from the
+	  // edge that marks the allowable intensity range. 
+	  /* This looks inefficient in that the above could be skipped
+            if a local max had been found already (?).*/
           if ((next_val >= outside_low) &&
               (next_val <= border_hi  ) &&
               (next_val <= outside_hi ) &&
-              (!local_max_found || (max_mag < fabs(mag))))
-          {                             // beware, this is non-deterministic! if the max mag has equal fabs(), any could be chosen
+              (!local_max_found || (max_mag < fabs(mag)))) {
+            // beware, this is non-deterministic! if the max mag has equal fabs(), any could be chosen
             local_max_found = 1;
             max_mag_dist = dist; 
             max_mag      = fabs(mag);
@@ -36922,20 +36960,19 @@ static int MRIScomputeBorderValues_new(
           }
         }
         else {
-          /*
-            if no local max found yet, just used largest gradient
-            if the intensity is in the right range.
+          /* If no local max found yet, just used largest gradient if
+            the intensity is in the right range. This basically keeps
+            track of the max grad until a local max has been found.
           */
           if ((local_max_found == 0) && (fabs(mag) > max_mag) && (val <= border_hi) && (val >= border_low)) {
+  	    // Sample the volume at dist + 1mm (1mm is a hidden parameter); same code as above
+            double xw,yw,zw;
+            double next_val;
             double const x = v->x + v->nx * (dist + 1);
             double const y = v->y + v->ny * (dist + 1);
             double const z = v->z + v->nz * (dist + 1);
-            double xw,yw,zw;
             MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
-            
-            double next_val;
             MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
-            
             if (next_val >= outside_low && next_val <= border_hi && next_val < outside_hi) {
               max_mag_dist = dist;
               max_mag = fabs(mag);
@@ -36944,6 +36981,7 @@ static int MRIScomputeBorderValues_new(
           }
         }
       }
+
     } // for dist
 
     if (vno == Gdiag_no) {
@@ -36951,13 +36989,15 @@ static int MRIScomputeBorderValues_new(
       fp = NULL;
     }
 
-    // doesn't apply to standard stream - only highres or if user specifies
-    //
+    // Doesn't apply to standard stream - only highres or if user
+    // specifies IPFLAG_FIND_FIRST_WM_PEAK. Not clear what effect this will have
     if (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) {
+      // why use a #define here?
 #ifdef WSIZE
 #undef WSIZE
 #endif
 #define WSIZE 7
+      // Hidden parameter. Units of STEP_SIZE (I think)
       int const whalf = WSIZE;
 
       if (vno == Gdiag_no) DiagBreak();
@@ -36969,7 +37009,9 @@ static int MRIScomputeBorderValues_new(
           }
       }
       
-      // find max in range, and also compute derivative and put it in dm array
+      // Find max in the samples range, and also compute 1st
+      // derivative and put it in dm array Generally expect this
+      // derivative to be negative
       float max_mri = 0;
       float dm[MAX_SAMPLES];
       {
@@ -36984,7 +37026,7 @@ static int MRIScomputeBorderValues_new(
         }
       }
       
-      // compute second derivative
+      // compute second derivative if IPFLAG_FIND_FIRST_WM_PEAK
       float dm2[MAX_SAMPLES];
       if (flags & IPFLAG_FIND_FIRST_WM_PEAK) {
         int i;
@@ -37005,24 +37047,33 @@ static int MRIScomputeBorderValues_new(
         }
       }
 
+      // If max_mri > 1.15*max_mag_val. How often does this happen? 
       if (max_mag_val > 0 && max_mri / 1.15 > max_mag_val) {
-
-        float peak = 0.0f, outside = 1.0f;
+	// Hidden parameter 1.15
+	// Not sure what's going on here.
+        float peak = 0.0f, outside = 1.0f; // Hidden parameter 1.0
       
         int i;
         for (i = 0; i < numberOfSamples; i++) {
           if (i == Gdiag_no2) DiagBreak();
           
           // Find a local maxima, where the slope changes from positive to zero or negative
+	  // Skip samples that have a positive 1st deriv 
           if (dm[i] > 0) continue;
 
           peak    = dm[i];
           outside = 0.0;
           int num = 0;
           
+	  // Compute an average 1st deriv within a range of this point
           int const lo = MAX(0, i - whalf);          
           int const hi = MIN(i + whalf + 1, numberOfSamples);
           int i1;
+	  // Find the first i1 where dm is less than (ie, more
+	  // negative than) peak.  i1 will never get past one
+	  // increment until the max gradient is reached. After that,
+	  // it should go to its maximum making "outside" be the mean
+	  // of the derivative values past the peak derivative
           for (i1 = lo; i1 < hi; i1++) {
             outside += dm[i1];
             num++;
@@ -37031,13 +37082,14 @@ static int MRIScomputeBorderValues_new(
                 // If i1 == i then dm[i] == dm[i1], so this test fails
                 // It i1 >  i then this is searching for the first following slope that is even steeper down
           }
-          
           outside /= num;
-
+	  // This only happens if it gets past the peak
           if ((peak < 0) && (i1 > i + whalf))  // found a local maximum that is not a flat region of 0
             break;
         }
 
+	// If the peak derivative is greater than 1.5*the mean of the derivatives past the peak
+	// Hidden parameter 1.5
         if (i < numberOfSamples - whalf && peak / outside > 1.5)  // it was a local max - set the target to here
         {
           if (vno == Gdiag_no)
@@ -37052,7 +37104,6 @@ static int MRIScomputeBorderValues_new(
           max_mag      = fabs(dm[i]);
           max_mag_dist = sample_dists[i];
         }
-        
         else if (flags & IPFLAG_FIND_FIRST_WM_PEAK)  // not a local max in 1st derivative - try second */
         {
           for (i = 0; i < numberOfSamples; i++) {
@@ -37114,11 +37165,11 @@ static int MRIScomputeBorderValues_new(
         }
         
         if (vno == Gdiag_no) DiagBreak();
-      }
-    }
+      } // end if (max_mag_val > 0 && max_mri / 1.15 > max_mag_val) 
+
+    } // end if (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK)
 
     if (which == GRAY_CSF && local_max_found == 0 && max_mag_dist > 0) {
-      
       /* check to make sure it's not ringing near the gray white boundary,
          by seeing if there is uniform stuff outside that could be gray matter.
       */
@@ -37178,30 +37229,32 @@ static int MRIScomputeBorderValues_new(
       }
 
       mean_dist += max_mag_dist;
-
-      v->val  = max_mag_val;
-      v->mean = max_mag;
-      
       mean_border += max_mag_val;
       total_vertices++;
-      
-      v->d = max_mag_dist;
+
+      // Set vertex values
+      v->val  = max_mag_val; // target intensity
+      v->d = max_mag_dist;   // dist to target intensity
+      v->mean = max_mag;     // derive at target intensity
       v->marked = 1;
     }
     else /* couldn't find the border value */
     {
       if (min_val < 1000) {
+	// Could find some points within the acceptible intensity range
+	// so use the point with the minimum inensity.
         nmin++;
         v->d = min_val_dist;
         if (min_val < border_low) {
           min_val = border_low;
         }
         v->val = min_val;
+        v->marked = 1;
         mean_border += min_val;
         total_vertices++;
-        v->marked = 1;
       }
       else {
+	// Could NOT find some points within the acceptible intensity range.
         /* don't overwrite old target intensity if it was there */
         /*        v->val = -1.0f ;*/
         v->d = 0;
@@ -37215,6 +37268,7 @@ static int MRIScomputeBorderValues_new(
         nmissing++;
       }
     }
+
     if (vno == Gdiag_no)
       fprintf(stdout,
               "v %d, target value = %2.1f, mag = %2.1f, dist = %2.2f, %s\n",
@@ -37225,7 +37279,7 @@ static int MRIScomputeBorderValues_new(
               local_max_found ? "local max" : max_mag_val > 0 ? "grad" : "min");
   
     ROMP_PFLB_end
-  }
+  } // end loop over vertices
   ROMP_PF_end
   
   mean_dist   /= (float)(total_vertices - nmissing);
@@ -37239,6 +37293,8 @@ static int MRIScomputeBorderValues_new(
   }
 
   /*  MRISaverageVals(mris, 3) ;*/
+  
+  // This is an extremely hacky way to print to both stdout and log_fp
   FILE* fp = stdout;
   int pass;
   for (pass = 0; fp && (pass < 2); pass++, fp = log_fp) {
