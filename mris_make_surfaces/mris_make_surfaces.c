@@ -363,6 +363,13 @@ main(int argc, char *argv[])
   parms.l_surf_repulse = 0.0 ;
   parms.l_repulse = 5 ;
 
+  char *cmdline2, cwd[2000];
+  getcwd(cwd,2000);
+  printf("cd %s\n",cwd);
+  cmdline2 = argv2cmdline(argc,argv);
+  printf("%s\n",cmdline2);
+
+
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
   {
     nargs = get_option(argc, argv) ;
@@ -838,10 +845,11 @@ main(int argc, char *argv[])
   for (i = 0 ;  n_averages >= min_white_averages ; n_averages /= 2, current_sigma /= 2, i++)
   {
     if(nowhite) break ; // skip if not placing the white surface
-    printf("Iteration %d, n_averages=%d, current_sigma=%g\n",i,n_averages,current_sigma);
+    printf("Iteration %d =========================================\n",i);
+    printf("n_averages=%d, current_sigma=%g\n",n_averages,current_sigma); fflush(stdout);
 
     // This does not look like it actually smooths anything
-    fprintf(stdout, "smoothing T1 volume with sigma = %2.3f\n",current_sigma) ;
+    printf("Smoothing T1 volume with sigma = %2.3f\n",current_sigma) ; fflush(stdout);
     parms.sigma = current_sigma ;
     mri_kernel = MRIgaussian1d(current_sigma, 100) ;
     if (!mri_smooth)
@@ -858,19 +866,19 @@ main(int argc, char *argv[])
     parms.n_averages = n_averages ;
     MRISprintTessellationStats(mris, stdout) ;
 
-    if (mri_aseg)
+    if(mri_aseg){
+      printf("Fixing midline\n");  fflush(stdout);
       fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_WHITE, 0) ;
+    }
 
     if (mri_cover_seg) {
       MRI *mri_tmp, *mri_bin ;
 
-      if (i == 0)
-      {
+      if (i == 0){
         mri_bin = MRIclone(mri_T1, NULL) ;
 
         printf("creating distance transform volume from segmentation\n") ;
-        if (mris->hemisphere == LEFT_HEMISPHERE)
-        {
+        if (mris->hemisphere == LEFT_HEMISPHERE) {
           MRIcopyLabel(mri_cover_seg, mri_bin, Left_Cerebral_White_Matter) ;
           MRIcopyLabel(mri_cover_seg, mri_bin, Left_Thalamus_Proper) ;
           MRIcopyLabel(mri_cover_seg, mri_bin, Left_Caudate) ;
@@ -884,8 +892,7 @@ main(int argc, char *argv[])
           MRIcopyLabel(mri_cover_seg, mri_bin, Left_non_WM_hypointensities) ;
           MRIcopyLabel(mri_cover_seg, mri_bin, Left_vessel) ;
         }
-        else
-        {
+        else {
           MRIcopyLabel(mri_cover_seg, mri_bin, Right_Cerebral_White_Matter) ;
           MRIcopyLabel(mri_cover_seg, mri_bin, Right_Thalamus_Proper) ;
           MRIcopyLabel(mri_cover_seg, mri_bin, Right_Caudate) ;
@@ -921,17 +928,25 @@ main(int argc, char *argv[])
 
       if (!FZERO(max_gray_scale))
 	printf("setting outside hi = %2.1f (was %2.1f) in white surface deformation\n", outside_hi, max_border_white) ;
+
+      printf("Computing border values \n");
+      printf("  MAX_WHITE  %d, max_border_white %g, min_border_white %g, min_gray_at_white_border %g\n",
+	     MAX_WHITE, max_border_white, min_border_white, min_gray_at_white_border);
+      printf("  outside_hi  %g, max_thickness %g, max_gray_scale %g,  max_gray %g\n",
+	     outside_hi, max_thickness, max_gray_scale, max_gray); fflush(stdout);
       MRIScomputeBorderValues(mris, mri_T1, mri_smooth,
                               MAX_WHITE, max_border_white, min_border_white,
                               min_gray_at_white_border,
                               outside_hi, current_sigma,
                               2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0, parms.flags,mri_aseg) ;
+      printf("Finding expansion regions\n"); fflush(stdout);
       MRISfindExpansionRegions(mris) ;
     }
 
     else if (flairwhite)  {
       MRI  *mri_flair = NULL ;
       char fname[STRLEN] ;
+      printf("Code location: flairwhite\n");
       
       if (orig_pial) strcpy(fname, orig_pial) ;
       else           strcpy(fname, "pial") ;
@@ -994,7 +1009,7 @@ main(int argc, char *argv[])
 	MRISrestoreVertexPositions(mris, TMP2_VERTICES) ;
 	callno++ ;
       }
-    } // flairwhite
+    } // end flairwhite
 
     if(vavgs) {
       fprintf(stdout,"averaging target values for %d iterations...\n",vavgs) ;
@@ -1032,6 +1047,8 @@ main(int argc, char *argv[])
     parms.l_tspring = MIN(1.0,parms.l_tspring) ;
     parms.l_nspring = MIN(1.0, parms.l_nspring) ;
     parms.l_spring = MIN(1.0, parms.l_spring) ;
+    printf("Positioning Surface: tspring = %g, nspring = %g, spring = %g\n",
+	   parms.l_tspring,parms.l_nspring,parms.l_spring); fflush(stdout);
     MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
     old_parms.start_t = parms.start_t ;
     INTEGRATION_PARMS_copy(&parms, &old_parms) ;
@@ -1047,12 +1064,13 @@ main(int argc, char *argv[])
   } // end major loop placing the white surface
   // ==========================================================================
 
+  if(!nowhite) {
+    MRISunrip(mris) ;
+    printf("Done placing white\n");
+  }
 
-  if (!nowhite) MRISunrip(mris) ;
-  else /* read in previously generated white matter surface */
-  {
-    if (orig_white)
-    {
+  if(nowhite){ /* read in previously generated white matter surface */
+    if (orig_white)    {
       sprintf(fname, "%s%s", orig_white, suffix) ;
       printf("reading white vertex positions from %s...\n",
              orig_white) ;
@@ -1078,8 +1096,7 @@ main(int argc, char *argv[])
   if (mri_aseg) //update aseg using either generated or orig_white
   {
     //    fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF, fix_mtl) ;   //moved to later
-    if (write_aseg_fname)
-    {
+    if (write_aseg_fname) {
       edit_aseg_with_surfaces(mris, mri_aseg) ;
       printf("writing corrected aseg to %s\n", write_aseg_fname) ;
       MRIwrite(mri_aseg, write_aseg_fname) ;
@@ -1090,82 +1107,72 @@ main(int argc, char *argv[])
   // the white, curv, area, and cortex.label files.  this is in lieu of
   // -nowhite not creating pial surfaces that match those created
   // w/o the -nowhite option.
-  if (!nowhite && strcmp(white_matter_name,"NOWRITE"))
-  {
+  if (!nowhite && strcmp(white_matter_name,"NOWRITE"))  {
     MRISremoveIntersections(mris) ;
-    sprintf(fname,
-            "%s/%s/surf/%s.%s%s%s",
-            sdir, sname,hemi,white_matter_name,
-            output_suffix,suffix);
+    sprintf(fname,"%s/%s/surf/%s.%s%s%s",sdir, sname,hemi,white_matter_name,output_suffix,suffix);
     fprintf(stdout, "writing white matter surface to %s...\n", fname) ;
     MRISaverageVertexPositions(mris, smoothwm) ;
     MRISwrite(mris, fname) ;
-    if (mri_aseg && label_cortex)
-    {
+
+    if(mri_aseg && label_cortex) {
       LABEL *lcortex, **labels ;
       int   n, max_l, max_n, nlabels ;
 
       //lcortex = MRIScortexLabel(mris, mri_aseg, MIN_NONCORTEX_VERTICES) ;
+      // Label cortex based on aseg
       lcortex = MRIScortexLabel(mris, mri_aseg, -1) ;
-      if (Gdiag & DIAG_VERBOSE_ON)
-      {
-        sprintf(fname,
-                "%s/%s/label/%s.%s%s%s_orig.label",
-                sdir, sname,hemi,"cortex",
-                output_suffix,suffix);
+      if (Gdiag & DIAG_VERBOSE_ON) {
+        sprintf(fname,"%s/%s/label/%s.%s%s%s_orig.label",sdir, sname,hemi,"cortex",output_suffix,suffix);
         printf("writing cortex label to %s...\n", fname) ;
         LabelWrite(lcortex, fname) ;
       }
+
+      // Erode the label by 4
       LabelErode(lcortex, mris, 4) ;
-      if (Gdiag & DIAG_VERBOSE_ON)
-      {
-        sprintf(fname,
-                "%s/%s/label/%s.%s%s%s_erode.label",
-                sdir, sname,hemi,"cortex",
-                output_suffix,suffix);
+      if (Gdiag & DIAG_VERBOSE_ON){
+        sprintf(fname,"%s/%s/label/%s.%s%s%s_erode.label",sdir, sname,hemi,"cortex",output_suffix,suffix);
         printf("writing cortex label to %s...\n", fname) ;
         LabelWrite(lcortex, fname) ;
       }
+
+      // Dilate the label by 4
       LabelDilate(lcortex, mris, 4, CURRENT_VERTICES) ;
-      if (Gdiag & DIAG_VERBOSE_ON)
-      {
-        sprintf(fname,
-                "%s/%s/label/%s.%s%s%s_dilate.label",
-                sdir, sname,hemi,"cortex",
-                output_suffix,suffix);
+      if (Gdiag & DIAG_VERBOSE_ON)      {
+        sprintf(fname,"%s/%s/label/%s.%s%s%s_dilate.label", sdir, sname,hemi,"cortex",output_suffix,suffix);
         printf("writing cortex label to %s...\n", fname) ;
         LabelWrite(lcortex, fname) ;
       }
+
+      // Not sure what is happening here
       MRISclearMarks(mris) ;
       LabelMark(lcortex, mris) ;
-      MRISsegmentMarked(mris, &labels, &nlabels, 1) ;
+      MRISsegmentMarked(mris, &labels, &nlabels, 1) ; // where are labels coming from? aseg?
+
+      // Find the label with the most points in it
       max_n = 0 ;
       max_l = labels[0]->n_points ;
-      for (n = 1 ; n < nlabels ; n++)
-        if (labels[n]->n_points > max_l)
-        {
+      for (n = 1 ; n < nlabels ; n++){
+        if (labels[n]->n_points > max_l){
           max_l = labels[n]->n_points ;
           max_n = n ;
         }
-      for (n = 0 ; n < nlabels ; n++)
-      {
+      }
+      // Unmark the vertices if they are not part of the biggest label 
+      for (n = 0 ; n < nlabels ; n++)      {
         if (n != max_n)
-        {
           LabelUnmark(labels[n], mris) ;
-        }
         LabelFree(&labels[n]) ;
       }
       LabelFree(&lcortex) ;
+      
+      // Get the final cortex label
       lcortex = LabelFromMarkedSurface(mris) ;
 
-      sprintf(fname,
-              "%s/%s/label/%s.%s%s%s.label",
-              sdir, sname,hemi,"cortex",
-              output_suffix,suffix);
+      sprintf(fname,"%s/%s/label/%s.%s%s%s.label",sdir, sname,hemi,"cortex",output_suffix,suffix);
       printf("writing cortex label to %s...\n", fname) ;
       LabelWrite(lcortex, fname) ;
       LabelFree(&lcortex) ;
-    }
+    }// done writing out white surface
 
     if (create)   /* write out curvature and area files */
     {
@@ -1187,12 +1194,11 @@ main(int argc, char *argv[])
     }
   }
 
-  if (white_only)
-  {
+  if (white_only)  {
     msec = TimerStop(&then) ;
-    fprintf(stdout,
-            "refinement took %2.1f minutes\n", (float)msec/(60*1000.0f));
+    printf("refinement took %2.1f minutes\n", (float)msec/(60*1000.0f));
     MRIfree(&mri_T1);
+    printf("#VMPC# mris_make_surfaces VmPeak  %d\n",GetVmPeak());
     exit(0) ;
   }
 
@@ -2025,7 +2031,7 @@ main(int argc, char *argv[])
   msec = TimerStop(&then) ;
   fprintf(stdout,"positioning took %2.1f minutes\n", (float)msec/(60*1000.0f));
 
-  GetMemUsage(memusage);  printf("#VMPC# mris_make_surfaces VmPeak  %d\n",memusage[1]);
+  printf("#VMPC# mris_make_surfaces VmPeak  %d\n",GetVmPeak());
 
   printf("mris_make_surface done\n");
 
