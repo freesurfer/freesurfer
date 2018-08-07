@@ -36,6 +36,7 @@
 #include "LabelsEntropyAndIntersectionMembershipFunction.h"
 #include "LabelsPointToPointMembershipFunction.h"
 #include "LabelPerPointVariableLengthVector.h"
+#include "vtkDirectory.h" 
 
 typedef struct {
 	unsigned char r;
@@ -59,20 +60,22 @@ int main(int narg, char* arg[])
 	if(cl.size()==1 || cl.search(2,"--help","-h"))
 	{
 		std::cout<<"Usage: " << std::endl;
-		std::cout<< arg[0] << " -s segmentationFile -f fiber.vtk -c #clusters -n #points  -e #fibers for eigen  -o outputFolder -l [s:straight d:diagonal a:all o:none] "  << std::endl;
+		std::cout<< arg[0] << " -s segmentationFile -f fiber.vtk -c #clusters -n #points  -e #fibers for eigen  -o outputFolder -d [s:straight d:diagonal a:all o:none] "  << std::endl;
 		return -1;
 	}
 	
 	const char *segFile = cl.follow ("", "-s");
 	const char *fiberFile = cl.follow ("", "-f");
 	const char *outputFolder = cl.follow ("", "-o");
-	const char *neighbors = cl.follow ("", "-l");
-	int numberOfClusters = cl.follow(100,"-c");
+	const char *neighbors = cl.follow ("a", "-d");
+	int numberOfClusters = cl.follow(200,"-c");
 	int numberOfPoints = cl.follow(10, "-n");
-	int numberOfFibers = cl.follow(100, "-e");
+	int numberOfFibers = cl.follow(500, "-e");
+	vtkDirectory::MakeDirectory(outputFolder);
 	std::vector<std::string> labels;
 	std::vector<std::pair<std::string,std::string>> clusterIdHierarchy;
 	ImageType::Pointer segmentation; 
+
 	const unsigned int PointDimension = 3;
 	{
 
@@ -588,6 +591,7 @@ int main(int narg, char* arg[])
 			itk::SmartPointer<TrkVTKPolyDataFilter<ImageType>> trkReader  = TrkVTKPolyDataFilter<ImageType>::New();
 			trkReader->SetInput(vtkConverter->GetOutputPolyData());
 			trkReader->SetReferenceImage(segmentation);
+			trkReader->SetReferenceTrack(fiberFile);
 			trkReader->SetColor(color);
 			sprintf(meshName2, "%s/%s.trk",outputFolder, it->first.c_str());
 			trkReader->VTKToTrk(meshName2);
@@ -596,18 +600,15 @@ int main(int narg, char* arg[])
 		i++;
 	}
 
-	if(cl.search(1,"-nc","-NC"))
-	{
 
-		char csv_filename[100];
-		sprintf(csv_filename, "%s/HierarchicalHistory.csv",outputFolder);
+	char csv_filename[100];
+	sprintf(csv_filename, "%s/HierarchicalHistory.csv",outputFolder);
 
-		std::ofstream csv_file(csv_filename);
+	std::ofstream csv_file(csv_filename);
 
-		csv_file << "Parent, Child," <<std::endl;
-		for (std::vector<std::pair<std::string,std::string>>::iterator it=clusterIdHierarchy.begin(); it!=clusterIdHierarchy.end(); ++it)
-			csv_file << (*it).first << "," << (*it).second << ","<<std::endl;
+	csv_file << "Parent, Child," <<std::endl;
+	for (std::vector<std::pair<std::string,std::string>>::iterator it=clusterIdHierarchy.begin(); it!=clusterIdHierarchy.end(); ++it)
+		csv_file << (*it).first << "," << (*it).second << ","<<std::endl;
 
-		csv_file.close();
-	}
+	csv_file.close();
 }
