@@ -114,6 +114,7 @@
 #include "LayerPropertyTrack.h"
 #include "BinaryTreeView.h"
 #include "SurfaceAnnotation.h"
+#include "Annotation2D.h"
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
@@ -586,6 +587,10 @@ void MainWindow::LoadSettings()
   {
     m_settings["AutoReorientView"] = false;
   }
+  if (!m_settings.contains("TextSize"))
+  {
+    m_settings["TextSize"] = 12;
+  }
 
   OnPreferences();
   m_dlgPreferences->hide();
@@ -598,6 +603,9 @@ void MainWindow::LoadSettings()
       ((RenderView2D*)m_views[i])->GetCursor2D()->SetColor(m_settings["CursorColor"].value<QColor>());
       ((RenderView2D*)m_views[i])->GetCursor2D()->SetSize(m_settings["CursorSize"].toInt());
       ((RenderView2D*)m_views[i])->GetCursor2D()->SetThickness(m_settings["CursorThickness"].toInt());
+      ((RenderView2D*)m_views[i])->SetAutoScaleText(m_settings["AutoScaleText"].toBool());
+      ((RenderView2D*)m_views[i])->SetTextSize(m_settings["TextSize"].toInt());
+      ((RenderView2D*)m_views[i])->GetAnnotation2D()->SetColor(m_settings["AnnotationColor"].value<QColor>());
     }
     else
     {

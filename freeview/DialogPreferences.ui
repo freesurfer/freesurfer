@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>441</width>
-    <height>549</height>
+    <width>488</width>
+    <height>672</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -66,6 +66,75 @@
           <string>View</string>
          </property>
          <layout class="QGridLayout" name="gridLayout">
+          <item row="4" column="0" colspan="3">
+           <widget class="QGroupBox" name="groupBox_4">
+            <property name="title">
+             <string>Annotation</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_4">
+             <item row="0" column="5">
+              <widget class="QCheckBox" name="checkBoxAutoScaleFont">
+               <property name="text">
+                <string>Auto-scale by viewport size</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="4">
+              <widget class="QSpinBox" name="spinBoxFontSize">
+               <property name="minimum">
+                <number>5</number>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="6">
+              <spacer name="horizontalSpacer_7">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>5</width>
+                 <height>5</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_4">
+               <property name="text">
+                <string>Color</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QtColorPicker" name="colorPickerAnnotation" native="true"/>
+             </item>
+             <item row="0" column="3">
+              <widget class="QLabel" name="label_14">
+               <property name="text">
+                <string>Font size</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="2">
+              <spacer name="horizontalSpacer_8">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeType">
+                <enum>QSizePolicy::Fixed</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>15</width>
+                 <height>5</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+            </layout>
+           </widget>
+          </item>
           <item row="1" column="2">
            <spacer name="horizontalSpacer_2">
             <property name="orientation">
@@ -78,9 +147,6 @@
              </size>
             </property>
            </spacer>
-          </item>
-          <item row="4" column="1">
-           <widget class="QtColorPicker" name="colorPickerAnnotation" native="true"/>
           </item>
           <item row="1" column="0">
            <widget class="QLabel" name="label_2">
@@ -135,13 +201,6 @@
             </property>
            </spacer>
           </item>
-          <item row="4" column="0">
-           <widget class="QLabel" name="label_4">
-            <property name="text">
-             <string>Annotation color</string>
-            </property>
-           </widget>
-          </item>
           <item row="6" column="0" colspan="3">
            <widget class="QCheckBox" name="checkBoxDecimalVoxelCoord">
             <property name="text">
@@ -167,7 +226,7 @@
             <property name="title">
              <string>Cursor size</string>
             </property>
-            <layout class="QGridLayout" name="gridLayout_2">
+            <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,0,0,0,0,0,0,1">
              <property name="leftMargin">
               <number>15</number>
              </property>
@@ -177,19 +236,37 @@
              <property name="rightMargin">
               <number>15</number>
              </property>
-             <item row="2" column="5" colspan="2">
-              <widget class="QSlider" name="horizontalSliderThickness3D">
+             <item row="0" column="5" colspan="3">
+              <widget class="QSlider" name="horizontalSliderThickness2D">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>1</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
                <property name="minimum">
                 <number>1</number>
                </property>
                <property name="maximum">
-                <number>15</number>
+                <number>10</number>
                </property>
                <property name="pageStep">
                 <number>1</number>
                </property>
+               <property name="value">
+                <number>1</number>
+               </property>
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="invertedAppearance">
+                <bool>false</bool>
+               </property>
+               <property name="invertedControls">
+                <bool>false</bool>
+               </property>
+               <property name="tickPosition">
+                <enum>QSlider::NoTicks</enum>
                </property>
               </widget>
              </item>
@@ -229,40 +306,6 @@
                </property>
                <property name="alignment">
                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="5" colspan="2">
-              <widget class="QSlider" name="horizontalSliderThickness2D">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                 <horstretch>1</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="minimum">
-                <number>1</number>
-               </property>
-               <property name="maximum">
-                <number>10</number>
-               </property>
-               <property name="pageStep">
-                <number>1</number>
-               </property>
-               <property name="value">
-                <number>1</number>
-               </property>
-               <property name="orientation">
-                <enum>Qt::Horizontal</enum>
-               </property>
-               <property name="invertedAppearance">
-                <bool>false</bool>
-               </property>
-               <property name="invertedControls">
-                <bool>false</bool>
-               </property>
-               <property name="tickPosition">
-                <enum>QSlider::NoTicks</enum>
                </property>
               </widget>
              </item>
@@ -308,19 +351,6 @@
                </property>
               </widget>
              </item>
-             <item row="3" column="6">
-              <widget class="QLabel" name="label_10">
-               <property name="styleSheet">
-                <string notr="true">font-size:9px;</string>
-               </property>
-               <property name="text">
-                <string>thick</string>
-               </property>
-               <property name="alignment">
-                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-               </property>
-              </widget>
-             </item>
              <item row="3" column="5">
               <widget class="QLabel" name="label_9">
                <property name="styleSheet">
@@ -346,6 +376,48 @@
                 <size>
                  <width>5</width>
                  <height>1</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item row="2" column="5" colspan="3">
+              <widget class="QSlider" name="horizontalSliderThickness3D">
+               <property name="minimum">
+                <number>1</number>
+               </property>
+               <property name="maximum">
+                <number>15</number>
+               </property>
+               <property name="pageStep">
+                <number>1</number>
+               </property>
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="7">
+              <widget class="QLabel" name="label_10">
+               <property name="styleSheet">
+                <string notr="true">font-size:9px;</string>
+               </property>
+               <property name="text">
+                <string>thick</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="8">
+              <spacer name="horizontalSpacer_9">
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>0</width>
+                 <height>5</height>
                 </size>
                </property>
               </spacer>
