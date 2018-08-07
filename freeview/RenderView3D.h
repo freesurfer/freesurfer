@@ -98,8 +98,6 @@ public:
     return m_cursorInflatedSurf;
   }
 
-  void UpdateScalarBar();
-
   void TriggerContextMenu( QMouseEvent* event );
 
   bool GetShowSlices()
@@ -153,6 +151,7 @@ public slots:
   void OnLayerVisibilityChanged();
   void Azimuth(double degrees);
   void Elevation(double degrees);
+  void UpdateScalarBar();
 
 protected:
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false );
