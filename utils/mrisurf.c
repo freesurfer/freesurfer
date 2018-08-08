@@ -25743,14 +25743,18 @@ static int mrisComputeAshburnerTriangleTerm(MRI_SURFACE *mris, double l_ashburne
   
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-
+/*!
+  \fn double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht, MHT *mht_faces)
+  \brief The repulsive term causes vertices to push away from each
+  other based on the distance in 3D space (does not apply to nearest
+  neighbors). This helps to prevent self-intersection. The force is
+  inversely proportional to the distance to the 6th power (hidden
+  parameter). Sets v->{dx,dy,dz}. 
+  Hidden parameters:
+    REPULSE_K - scaling term
+    REPULSE_E - sets minimum distance
+    4 - scaling term
+*/
 static double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht, MHT *mht_faces)
 {
   int vno, num, min_vno, i, n;
@@ -25763,52 +25767,59 @@ static double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris, double l_repulse, MH
 
   min_d = 1000.0;
   min_vno = 0;
-  for (sse_repulse = vno = 0; vno < mris->nvertices; vno++) {
+  sse_repulse = 0;
+  for (vno = 0; vno < mris->nvertices; vno++) {
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
+    if (v->ripflag) 
       continue;
-    }
+
     x = v->x;
     y = v->y;
     z = v->z;
 
     MHBT *bucket = MHTacqBucket(mht, x, y, z);
-    if (!bucket) {
+    if (!bucket)
       continue;
-    }
     
     MHB *bin;
     for (v_sse = 0.0, bin = bucket->bins, num = i = 0; i < bucket->nused; i++, bin++) {
-      if (bin->fno == vno) {
-        continue; /* don't be repelled by myself */
-      }
-      for (n = 0; n < vt->vtotal; n++)
+
+      /* don't be repelled by myself */
+      if (bin->fno == vno)
+        continue; 
+
+      /* don't be repelled by a neighbor */
+      for (n = 0; n < vt->vtotal; n++){
         if (vt->v[n] == bin->fno) {
           break;
         }
-      if (n < vt->vtotal) /* don't be repelled by a neighbor */
-      {
-        continue;
       }
+      if (n < vt->vtotal) 
+        continue;
+
       VERTEX const * const vn = &mris->vertices[bin->fno];
       if (!vn->ripflag) {
         dx = vn->x - x;
         dy = vn->y - y;
         dz = vn->z - z;
         dist = sqrt(dx * dx + dy * dy + dz * dz) + REPULSE_E;
+
         if (vno == Gdiag_no) {
           if (dist - REPULSE_E < min_d) {
             min_vno = bin->fno;
             min_d = dist - REPULSE_E;
           }
         }
+
         dist = dist * dist * dist;
         dist *= dist; /* dist^6 */
+	// dist = pow(dist,6.0); 
         v_sse += REPULSE_K / dist;
       }
-    }
-    sse_repulse += v_sse;
+    } // loop over bucket
+
+    sse_repulse += v_sse; // does not divide by the number of bins
 
     if (vno == Gdiag_no && !FZERO(v_sse)) {
       printf("v %d: repulse sse:    min_dist=%2.4f, v_sse %2.4f\n", vno, min_d, v_sse);
@@ -25833,21 +25844,20 @@ static double mrisComputeRepulsiveRatioEnergy(MRI_SURFACE *mris, double l_repuls
   int vno, n;
   double sse_repulse, v_sse, dist, dx, dy, dz, x, y, z, canon_dist, cdx, cdy, cdz;
 
-  if (FZERO(l_repulse)) {
+  if (FZERO(l_repulse))
     return (0.0);
-  }
 
   for (sse_repulse = 0.0, vno = 0; vno < mris->nvertices; vno++) {
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX          const * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
+
+    if (v->ripflag) 
       continue;
-    }
 
     x = v->x;
     y = v->y;
     z = v->z;
-    for (v_sse = 0.0, n = 0; n < vt->vnum; n++) {
+    for(v_sse = 0.0, n = 0; n < vt->vnum; n++) {
       VERTEX const * const vn = &mris->vertices[vt->v[n]];
       if (!vn->ripflag) {
         dx = x - vn->x;
@@ -25931,13 +25941,18 @@ static int mrisComputeThicknessSmoothnessTerm(MRI_SURFACE *mris, double l_tsmoot
   return (NO_ERROR);
 }
 
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
+/*!
+  \fn int mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht, MHT *mht_faces)
+  \brief The repulsive term causes vertices to push away from each
+  other based on the distance in 3D space (does not apply to nearest
+  neighbors). This helps to prevent self-intersection. The force is
+  inversely proportional to the distance to the 7th power (hidden
+  parameter). Sets v->{dx,dy,dz}. 
+  Hidden parameters:
+    REPULSE_K - scaling term
+    REPULSE_E - sets minimum distance
+    4 - scaling term
+*/
 static int mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht, MHT *mht_faces)
 {
   int vno, num, min_vno, i, n;
@@ -25951,46 +25966,66 @@ static int mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mh
   min_d = 100000.0;
   min_scale = 1.0;
   min_vno = 0;
+  // loop thru vertices
   for (vno = 0; vno < mris->nvertices; vno++) {
+    // VERTEX_TOPOLOGY is a subset of VERTEX
     VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
     VERTEX                * const v  = &mris->vertices         [vno];
-    if (v->ripflag) {
+    if (v->ripflag) 
       continue;
-    }
-    if (vno == Gdiag_no) {
+
+    if (vno == Gdiag_no)
       DiagBreak();
-    }
+
     x = v->x;
     y = v->y;
     z = v->z;
 
+    // Get the list of vertices that are close in 3d space.
+    // How close is close? Determined by bucket size?
     MHBT *bucket = MHTacqBucket(mht, x, y, z);
-    if (!bucket) {
+    if(!bucket)
       continue;
-    }
-    sx = sy = sz = 0.0;
 
+    // Go through list of vertices in bucket
     MHB *bin;
+    sx = sy = sz = 0.0;
     for (bin = bucket->bins, num = i = 0; i < bucket->nused; i++, bin++) {
-      if (bin->fno == vno) {
-        continue; /* don't be repelled by myself */
-      }
-      for (n = 0; n < vt->vtotal; n++)
+
+      /* don't be repelled by myself */
+      if (bin->fno == vno) 
+        continue; 
+
+      /* don't be repelled by a neighbor */
+      for (n = 0; n < vt->vtotal; n++){
         if (vt->v[n] == bin->fno) {
           break;
         }
-      if (n < vt->vtotal) /* don't be repelled by a neighbor */
-      {
-        continue;
       }
+      if (n < vt->vtotal) 
+        continue;
+
       VERTEX const * const vn = &mris->vertices[bin->fno];
       if (!vn->ripflag) {
+	// Compute the distance between the two vertices
         dx = x - vn->x;
         dy = y - vn->y;
         dz = z - vn->z;
         dist = sqrt(dx * dx + dy * dy + dz * dz) + REPULSE_E;
-        scale = 4 * REPULSE_K / (dist * dist * dist * dist * dist * dist * dist);
-        /* ^-7 */
+	// REPULSE_E is a hidden parameter
+
+	// Cost = K/pow(dist,6) (see mrisComputeRepulsiveEnergy())
+        // dCost/dx = -dx*K/pow(dist,8) but it is incorrectly computed
+        // here as dCost/dx = -dx*K/pow(dist,7). pow8 still not right
+        // when E!=0. Maybe it does not matter much because you just
+        // want to push them apart.
+	// The multiplication by dx, dy, dz happens below. The
+	// negative sign is not applied because it is the step that is
+	// actually computed.
+        scale = 4 * REPULSE_K / (dist * dist * dist * dist * dist * dist * dist); /* ^-7 */
+	// REPULSE_K is a hidden parameter
+	// 4 is a hidden parameter (?)
+
         if (vno == Gdiag_no) {
           if (dist - REPULSE_E < 0.75) {
             DiagBreak();
@@ -26001,31 +26036,43 @@ static int mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mh
             min_scale = scale;
           }
         }
+
+	// Normalize dx, dy, dz
         norm = sqrt(dx * dx + dy * dy + dz * dz);
-        if (FZERO(norm)) {
-          norm = 1.0;
-        }
+        if(FZERO(norm))  norm = 1.0;
         dx /= norm;
         dy /= norm;
         dz /= norm;
-        if (!isfinite(dx) || !isfinite(dy) || !isfinite(dz)) {
+
+        if (!isfinite(dx) || !isfinite(dy) || !isfinite(dz)) 
           DiagBreak();
-        }
+
         sx += scale * dx;
         sy += scale * dy;
         sz += scale * dz;
-        num++;
-      }
-    }
+
+        num++; // number of hits in the bucket
+
+      } // not ripped
+
+    } // loop over bucket
+
     if (num) {
+      // "scale" here is a way to compute the mean (div by num) and
+      // apply the weighting factor at the same time. Not to be
+      // confused with "scale" above.  
+      // NOTE: this dividing by num is not consistent with
+      // mrisComputeRepulsiveEnergy().
       scale = l_repulse / (double)num;
       sx *= scale;
       sy *= scale;
       sz *= scale;
     }
+
     v->dx += sx;
     v->dy += sy;
     v->dz += sz;
+
     if ((vno == Gdiag_no) && min_d < 1) {
       fprintf(stdout, "v %d self repulse term:   (%2.3f, %2.3f, %2.3f)\n", vno, sx, sy, sz);
       fprintf(stdout, "min_dist @ %d = %2.2f, scale = %2.1f\n", min_vno, min_d, min_scale);
