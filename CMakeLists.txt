@@ -298,6 +298,7 @@ add_subdirectories(
   BrainstemSS
   check_siemens_dir
   connectgraph
+  diffusion_tool
   dmri_tensoreig
   dngtester
   freeview
