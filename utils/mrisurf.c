@@ -36566,6 +36566,9 @@ static int MRIScomputeBorderValues_new(
   float const step_size = mri_brain->xsize / 2;
   double next_val = 0;    
 
+  printf("Entering MRIScomputeBorderValues_new(): BorderValsHiRes=%d, step_size=%g\n",
+	 BorderValsHiRes,step_size);
+
   MRI *mri_tmp;
   if (mri_brain->type == MRI_UCHAR) {
     mri_tmp = MRIreplaceValues(mri_brain, NULL, 255, 0);
@@ -36713,7 +36716,7 @@ static int MRIScomputeBorderValues_new(
       // in v6. Also, next_val needs to be defined globally withing
       // the scope of the function. There are several places below
       // (now commented out) where it is redefined.
-      if(mri_brain->xsize < .95 && mag >= 0.0){
+      if(BorderValsHiRes==1  && mag >= 0.0){
 	// This code is supposed to refine inward_dist for hires
 	// volumes. This is similar to the code above except using a
 	// step that is half the size. But it just looks at the value
@@ -36905,7 +36908,7 @@ static int MRIScomputeBorderValues_new(
 	// done earlier, before the gradient is computed, to save some
 	// time.
         if ((which == GRAY_WHITE) &&  
-	    (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) &&  
+	    (BorderValsHiRes==1 || flags & IPFLAG_FIND_FIRST_WM_PEAK) &&  
 	    (val > previous_val ) && (next_val > val) ) { 
 	  // This if() did not have "&& (next_val > val)" which was in the "orignial"
 	  // ie, v6 and before
@@ -37019,15 +37022,12 @@ static int MRIScomputeBorderValues_new(
     // Doesn't apply to standard stream - only highres or if user
     // specifies IPFLAG_FIND_FIRST_WM_PEAK. Not clear what effect this will have
     if (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) {
-      // why use a #define here?
-#ifdef WSIZE
-#undef WSIZE
-#endif
-#define WSIZE 7
       // Hidden parameter. Units of STEP_SIZE (I think)
-      int const whalf = WSIZE;
+      int const whalf = 7; // This was a #define
 
-      if (vno == Gdiag_no) DiagBreak();
+      if(vno == Gdiag_no) 
+	DiagBreak();
+
       {
         int n;
         for (n = 0; n < vt->vnum; n++)
@@ -37804,13 +37804,11 @@ static int MRIScomputeBorderValues_old(
 
     // doesn't apply to standard stream - only highres or if user specifies
     if (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) {
-#ifdef WSIZE
-#undef WSIZE
-#endif
-#define WSIZE 7
-      int const whalf = WSIZE;
+      int const whalf = 7;
 
-      if (vno == Gdiag_no) DiagBreak();
+      if (vno == Gdiag_no) 
+	DiagBreak();
+
       {
         int n;
         for (n = 0; n < vt->vnum; n++)

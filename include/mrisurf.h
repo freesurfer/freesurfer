@@ -70,6 +70,14 @@ int UnitizeNormalFace = 1;
 extern int UnitizeNormalFace;
 #endif
 
+// This variable can be used to turn on the hires options
+// in MRIScomputeBorderValues_new()
+#ifdef _MRISURF_SRC
+int BorderValsHiRes = 0;
+#else
+extern int BorderValsHiRes;
+#endif
+
 typedef struct _area_label
 {
   char     name[STRLEN] ;     /* name of region */

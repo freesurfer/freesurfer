@@ -2108,7 +2108,20 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "repulse"))
   {
     parms.l_repulse = atof(argv[2]) ;
-    fprintf(stderr,  "setting l_repulse = %2.2f\n", l_repulse) ;
+    l_repulse = parms.l_repulse;
+    fprintf(stderr,  "setting l_repulse = %2.2f\n", parms.l_repulse) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "no-unitize"))
+  {
+    UnitizeNormalFace = 0;
+    printf("Turning off face normal unitization\n");
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "border-vals-hires"))
+  {
+    BorderValsHiRes = 1;
+    printf("Turning on hires option for MRIScomputeBorderValues_new()\n");
     nargs = 1 ;
   }
   else if (!stricmp(option, "max_gray_scale"))
