@@ -37,8 +37,8 @@
       <rect>
        <x>30</x>
        <y>50</y>
-       <width>661</width>
-       <height>474</height>
+       <width>761</width>
+       <height>478</height>
       </rect>
      </property>
      <layout class="QFormLayout" name="formLayout">
@@ -54,6 +54,19 @@
       </item>
       <item row="1" column="1">
        <widget class="QLineEdit" name="subjectNameLineEdit"/>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="dtrootLabel">
+        <property name="text">
+         <string>TRACULA output directory</string>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QLineEdit" name="dtrootLineEdit"/>
       </item>
       <item row="4" column="0">
        <widget class="QLabel" name="subjectDcmFileLabel">
@@ -187,39 +200,23 @@
         </item>
        </layout>
       </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="dtrootLabel">
+      <item row="2" column="1">
+       <widget class="QCheckBox" name="checkBox_26">
         <property name="text">
-         <string>TRACULA output directory</string>
+         <string>apply same property values to all other subjects</string>
         </property>
-        <property name="wordWrap">
-         <bool>true</bool>
+        <property name="tristate">
+         <bool>false</bool>
         </property>
        </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="QLineEdit" name="dtrootLineEdit"/>
-      </item>
-      <item row="2" column="1">
-       <spacer name="verticalSpacer_5">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>10</height>
-         </size>
-        </property>
-       </spacer>
       </item>
      </layout>
     </widget>
     <widget class="QGroupBox" name="groupBox">
      <property name="geometry">
       <rect>
-       <x>30</x>
-       <y>440</y>
+       <x>20</x>
+       <y>460</y>
        <width>341</width>
        <height>301</height>
       </rect>
@@ -441,7 +438,7 @@
      <property name="geometry">
       <rect>
        <x>340</x>
-       <y>440</y>
+       <y>460</y>
        <width>301</width>
        <height>311</height>
       </rect>
@@ -454,8 +451,8 @@
        <rect>
         <x>0</x>
         <y>30</y>
-        <width>171</width>
-        <height>275</height>
+        <width>161</width>
+        <height>241</height>
        </rect>
       </property>
       <layout class="QGridLayout" name="gridLayout_2">
@@ -628,22 +625,6 @@
        </widget>
       </item>
      </layout>
-    </widget>
-    <widget class="QCheckBox" name="checkBox_26">
-     <property name="geometry">
-      <rect>
-       <x>350</x>
-       <y>0</y>
-       <width>341</width>
-       <height>51</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>apply same property values to all other subjects</string>
-     </property>
-     <property name="tristate">
-      <bool>false</bool>
-     </property>
     </widget>
     <widget class="QPushButton" name="pushButton_3">
      <property name="geometry">
