@@ -113,9 +113,6 @@ void ConfigurationFileForm::loadDefaults2(QString fileName)
         }
     }
 
-    // REMOVE THIS LINE WHEN YOU ACTUALLY WANT TO DO A CHECK
-    found = true;
-
     if (found)
     {
         ui.testingLineEdit->setText(fileName);
@@ -184,7 +181,7 @@ void ConfigurationFileForm::on_pushButton_3_clicked(bool checked)
 
     if (validDcm(full_path))
     {
-        QTextStream(stdout) << "the file root name is " << file_root << '\n';
+        // QTextStream(stdout) << "the file root name is " << file_root << '\n';
         loadDefaults(full_name);
     }
 
@@ -1030,8 +1027,3 @@ bool validTrk(QFileInfo file)
         return false;
     }
 }
-
-/*bool subjectSeeker(QString file_path, QString subject, QString dir_path)
-{
-
-}*/
