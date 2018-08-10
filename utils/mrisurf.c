@@ -34012,12 +34012,12 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
       //   1. RMS *fraction* reduced by less than tolerance (requires parms->check_tol=1 which is
       //      NOT the case by default for white surface placement).
       //   2. SSE *percent* reduced by less than tolerance (requires l_location=0 which is
-      //      the case by default for white surface placement). It seems unlikely
-      //      that #2 would ever be met given that the tol is often 10e-4. 
+      //      the case by default for white surface placement). It would seems unlikely
+      //      that #2 would ever be met given that the tol is often 10e-4, but it does happen
       //   3. RMS *value* reduced by less than .05 (requires parms->check_tol=0 && location=0
       //      which is the case by default for white surface placement). This is probably 
       //      the factor that dictates when a reduction occurs. 
-      // It is a bit strange that #1 is a fraction and #2 is a percent. 
+      // It is a bit strange that #1 is a fraction and #2 is a percent and #3 is a hard value
       if (((parms->check_tol && ((last_rms - rms) / last_rms < parms->tol))) ||
           ((FZERO(parms->l_location) && (100 * (last_sse - sse) / last_sse < parms->tol))) ||
           ((parms->check_tol == 0) && FZERO(parms->l_location) && (rms > last_rms - 0.05)) ) {
@@ -36564,7 +36564,8 @@ static int MRIScomputeBorderValues_new(
     MRI *         const mri_aseg) 
 {
   float const step_size = mri_brain->xsize / 2;
-    
+  double next_val = 0;    
+
   MRI *mri_tmp;
   if (mri_brain->type == MRI_UCHAR) {
     mri_tmp = MRIreplaceValues(mri_brain, NULL, 255, 0);
@@ -36609,23 +36610,22 @@ static int MRIScomputeBorderValues_new(
       ROMP_PF_continue;
     }
 
-    if (vno == Gdiag_no) {
+    if (vno == Gdiag_no)
       DiagBreak();
-    }
+
+    // Note: xyz are in mm, xw,yw,zw are in voxels
 
     // calculate the unit-length normal to the vertex in voxel space
     // 
     float nx,ny,nz;
     {
       double x,y,z;
-      
       double xw, yw, zw;
+      double xw1, yw1, zw1;
       x = v->x;
       y = v->y;
       z = v->z;
       MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
-      
-      double xw1, yw1, zw1;
       x = v->x + v->nx;
       y = v->y + v->ny;
       z = v->z + v->nz;
@@ -36636,10 +36636,11 @@ static int MRIScomputeBorderValues_new(
       nz = zw1 - zw;
 
       float dist = sqrt(SQR(nx) + SQR(ny) + SQR(nz));
-      if (FZERO(dist)) ROMP_PF_continue;                                            // WAS "dist = 1;" BUT THAT MAKES NO SENSE
+      if (FZERO(dist)) ROMP_PF_continue;  // WAS "dist = 1;" BUT THAT MAKES NO SENSE
       nx /= dist;
       ny /= dist;
       nz /= dist;
+      // Note: these nx,ny,nz are in voxel space. v->{nx,ny,nz} are in TKR mm space
     }
     
     /*
@@ -36665,6 +36666,7 @@ static int MRIScomputeBorderValues_new(
         double dy = v->y - v->origy;
         double dz = v->z - v->origz;
         double orig_dist = fabs(dx * v->nx + dy * v->ny + dz * v->nz);
+        double val;
             
         if (fabs(dist) + orig_dist > max_thickness) {
           // too far from the orig
@@ -36679,14 +36681,13 @@ static int MRIScomputeBorderValues_new(
         
 	// Compute derivative of the intensity along the normal. The
 	// normal (nx,ny,nz) always points outward. mri_tmp is mri_brain.
-	// It may be a copy if mri_brain is UCHAR
+	// It may be a copy if mri_brain is UCHAR. nx,ny,nz are in voxel space
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &mag, current_sigma);   // expensive
         if (mag >= 0.0) {
           // In a T1, this should decrease, so break if it increases
           break;
         }
         
-        double val;
         MRIsampleVolume(mri_brain, xw, yw, zw, &val);
         if (val > border_hi) {
           //Out side of intensity range, so break
@@ -36706,40 +36707,47 @@ static int MRIScomputeBorderValues_new(
       // be some negative value
       inward_dist = dist + step_size / 2;
 
-      if (DIAG_VERBOSE_ON && mri_brain->xsize < .95 && mag >= 0.0)  // refine inward_dist for hires volumes
-      {
-	// This bit of code can be ignored unless DIAG_VERBOSE_ON is set and input is highres
+      // This if() used to have a "DIAG_VERBOSE_ON &&". This made the
+      // behavior non-deterministic for hires volumes because
+      // "next_val" was used downstream but not set here. This existed
+      // in v6. Also, next_val needs to be defined globally withing
+      // the scope of the function. There are several places below
+      // (now commented out) where it is redefined.
+      if(mri_brain->xsize < .95 && mag >= 0.0){
+	// This code is supposed to refine inward_dist for hires
+	// volumes. This is similar to the code above except using a
+	// step that is half the size. But it just looks at the value
+	// and not the gradient, so it is not clear how this is
+	// supposed to work. And why only the inward loop?
         for (dist = inward_dist; dist > -max_thickness; dist -= step_size / 2) {
           double x,y,z;
-          
           double xw, yw, zw;
+          double val;
+          //double next_val; // define above with function scope
 
+	  // Sample brain at this distance
           x = v->x + v->nx * dist;
           y = v->y + v->ny * dist;
           z = v->z + v->nz * dist;
           MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
-          
-          double val;
           MRIsampleVolume(mri_brain, xw, yw, zw, &val);
 
+	  // Sample brain at this distance + stepsize/2
           x = v->x + v->nx * (dist + step_size / 2);
           y = v->y + v->ny * (dist + step_size / 2);
           z = v->z + v->nz * (dist + step_size / 2);
           MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
-          
-          double next_val;
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
           
-          if (next_val < val)  // found max inwards intensity
-          {
-            break;
-          }
-        }
+          if (next_val < val)  
+	    // There is a decrease in the value, so must be at max inward max
+	    // Again, this does not make sense if not sampling the gradient. 
+            break; // break from distance loop
+        } // end loop over distance
         inward_dist = dist;
       } // end diag verbose
 
       // search outwards
-      //
       for (dist = 0; dist < max_thickness; dist += step_size) {
         double dx = v->x - v->origx;
         double dy = v->y - v->origy;
@@ -36755,15 +36763,13 @@ static int MRIScomputeBorderValues_new(
         double const z = v->z + v->nz * dist;
         MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &mag, current_sigma);
-        if (mag >= 0.0) {
+        if (mag >= 0.0)
           break;
-        }
 
         double val;
         MRIsampleVolume(mri_brain, xw, yw, zw, &val);
-        if (val < border_low) {
+        if (val < border_low)
           break;
-        }
         if (mri_mask) {
           MRIsampleVolume(mri_mask, xw, yw, zw, &val);
           if (val > thresh) {
@@ -36777,10 +36783,9 @@ static int MRIScomputeBorderValues_new(
       outward_dist = dist - step_size / 2;
       
       // Are the bounds found?
-      //
-      if (!isfinite(outward_dist)) {
+      if (!isfinite(outward_dist))
         DiagBreak();
-      }
+
       if (inward_dist <= 0 || outward_dist >= 0) {
 	// Either the inward or the outward was able to take at least
 	// one step so we have defined a range along the normal.
@@ -36800,22 +36805,17 @@ static int MRIScomputeBorderValues_new(
       char fname[STRLEN];
       sprintf(fname, "v%d.%2.0f.log", Gdiag_no, sigma * 100);
       fp = fopen(fname, "w");
-      fprintf(stdout,
-              "v %d: inward dist %2.2f, outward dist %2.2f, sigma %2.1f\n",
-              vno,
-              inward_dist,
-              outward_dist,
-              current_sigma);
+      fprintf(stdout,"v %d: inward dist %2.2f, outward dist %2.2f, sigma %2.1f\n",
+              vno,inward_dist,outward_dist,current_sigma);
     }
 
-    // At this point, we have a sigma, a distance range (inward and outward)
+    // At this point, we have a sigma and a distance range (inward and outward)
     v->val2 = current_sigma;
 
-    /*
-      Search along the normal within the range determined above to
-      find the gradient maximum at a location with a reasonable MR
-      intensity value. This will be the location of the edge.
-    */
+    /* Search along the normal within the distance range determined
+      above to find the gradient maximum at a location with a
+      reasonable MR intensity value. This will be the target intensity
+      value when placing the surface.  */
     double max_mag_val     = -10.0f;
     double max_mag         = 0.0f;
     double min_val         = 10000.0;
@@ -36827,7 +36827,7 @@ static int MRIScomputeBorderValues_new(
     float dist;    
     for (dist = inward_dist; dist <= outward_dist; dist += STEP_SIZE) {
 
-      // Get an intensity dist outward along the normal
+      // Get an intensity at dist outward along the normal
       double val;
       {
         double const x = v->x + v->nx * dist;
@@ -36843,7 +36843,7 @@ static int MRIScomputeBorderValues_new(
       sample_mri[numberOfSamples]   = val;
       numberOfSamples++;
 
-      // Get an intensity dist inward along the normal
+      // Get an intensity at dist inward along the normal
       double previous_val;
       {
         double const x = v->x + v->nx * (dist - STEP_SIZE);
@@ -36883,7 +36883,6 @@ static int MRIScomputeBorderValues_new(
         x = v->x + v->nx * (dist + STEP_SIZE);
         y = v->y + v->ny * (dist + STEP_SIZE);
         z = v->z + v->nz * (dist + STEP_SIZE);
-	// Note: xyz are in mm, xw,yw,zw are in voxels
         MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &next_mag, sigma);
 
@@ -36907,7 +36906,9 @@ static int MRIScomputeBorderValues_new(
 	// time.
         if ((which == GRAY_WHITE) &&  
 	    (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) &&  
-	    (val > previous_val )) { 
+	    (val > previous_val ) && (next_val > val) ) { 
+	  // This if() did not have "&& (next_val > val)" which was in the "orignial"
+	  // ie, v6 and before
           break; // out of distance loop
         }
  
@@ -36942,7 +36943,7 @@ static int MRIScomputeBorderValues_new(
           double const z = v->z + v->nz * (dist + STEP_SIZE);
           MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
           
-          double next_val;
+          //double next_val; // define with function scope
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
           if (next_val < border_low) {
             next_mag = 0;
@@ -36958,7 +36959,7 @@ static int MRIScomputeBorderValues_new(
 	  // dist+STEP and the inensity is between BorderHi and
 	  // BorderLow.  Below determines whether the gradient is the
 	  // local maximum.
-          double next_val;
+          // double next_val;  // define with function scope
           double xw,yw,zw;
 	  // Sample the volume at dist + 1mm (1mm is a hidden parameter)
           double const x = v->x + v->nx * (dist + 1);
@@ -36993,7 +36994,7 @@ static int MRIScomputeBorderValues_new(
           if ((local_max_found == 0) && (fabs(mag) > max_mag) && (val <= border_hi) && (val >= border_low)) {
   	    // Sample the volume at dist + 1mm (1mm is a hidden parameter); same code as above
             double xw,yw,zw;
-            double next_val;
+            // double next_val;  // define with function scope
             double const x = v->x + v->nx * (dist + 1);
             double const y = v->y + v->ny * (dist + 1);
             double const z = v->z + v->nz * (dist + 1);
