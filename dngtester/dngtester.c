@@ -83,7 +83,9 @@ int main(int argc, char **argv)
   VERTEX *v;
   double d1, delta;
 
+#ifdef HAVE_OPENMP
   omp_set_num_threads(10);
+#endif
 
   UnitizeNormalFace = 1;
   //surf = MRISread("/homes/4/greve/subjects/vrfp-mar14-anat/surf/lh.white");
