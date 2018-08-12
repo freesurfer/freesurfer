@@ -604,14 +604,14 @@ static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, flo
   static int direction = 1;
   double mag;
   int vno, i;
-  VERTEX *v;
 
   for (i = 0; i < mris->nvertices; i++) {
     if (direction < 0)
       vno = mris->nvertices - i - 1;
     else
       vno = i;
-    v = &mris->vertices[vno];
+    VERTEX_TOPOLOGY const * const vt = &mris->vertices_topology[vno];
+    VERTEX                * const v  = &mris->vertices         [vno];
     if (v->ripflag) continue;
     if (vno == Gdiag_no) DiagBreak();
     v->odx = delta_t * v->dx + momentum * v->odx;
@@ -628,7 +628,7 @@ static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, flo
 
     /* erase the faces this vertex is part of */
 
-    if (mht) MHTremoveAllFaces(mht, mris, v);
+    if (mht) MHTremoveAllFaces(mht, mris, vt);
 
     if (mht) mrisLimitGradientDistance(mris, mht, vno);
 
@@ -638,7 +638,7 @@ static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, flo
 
     if ((fabs(v->x) > 128.0f) || (fabs(v->y) > 128.0f) || (fabs(v->z) > 128.0f)) DiagBreak();
 
-    if (mht) MHTaddAllFaces(mht, mris, v);
+    if (mht) MHTaddAllFaces(mht, mris, vt);
   }
 
   direction *= -1;
