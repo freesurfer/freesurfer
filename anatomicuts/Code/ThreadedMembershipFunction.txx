@@ -73,7 +73,7 @@ ThreadedMembershipFunction< TMembershipFunctionType >::GetMaxIndeces()
 template< class  TMembershipFunctionType> 
 vnl_sparse_matrix<double>* ThreadedMembershipFunction< TMembershipFunctionType >::GetResults()
 {
-	std::cout << " get results start " << std::endl;
+	//std::cout << " get results start " << std::endl;
 	vnl_sparse_matrix<double>*res = new vnl_sparse_matrix<double>(m_matrixDim,m_matrixDim);
 	//const itk::ThreadIdType numberOfThreads = this->GetNumberOfThreadsUsed();
 	//this->m_results.resize( numberOfThreads );
@@ -89,7 +89,7 @@ vnl_sparse_matrix<double>* ThreadedMembershipFunction< TMembershipFunctionType >
 		int j= m_outIndeces[k].second;
 		(*res)(i,j)=(*res)(j,i)=this->m_results2[k];
 	}
-	std::cout << " get results end" << std::endl;
+	//std::cout << " get results end" << std::endl;
 	return res;
 
 }

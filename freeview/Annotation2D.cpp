@@ -55,7 +55,8 @@ Annotation2D::Annotation2D( QObject* parent ) : QObject( parent )
     m_actorCoordinates[i]->GetTextProperty()->ShadowOff();
     m_actorCoordinates[i]->GetTextProperty()->SetFontSize(11);
     m_actorCoordinates[i]->GetTextProperty()->ItalicOff();
-    // m_actorCoordinates[i]->GetTextProperty()->SetFontFamilyToTimes();
+    //     m_actorCoordinates[i]->GetTextProperty()->SetFontFamilyToTimes();
+    //    m_actorCoordinates[i]->SetTextScaleModeToViewport();
     m_actorsAll->AddItem( m_actorCoordinates[i] );
   }
   m_actorCoordinates[0]->SetPosition( 0.01, 0.5 );
@@ -105,6 +106,25 @@ Annotation2D::Annotation2D( QObject* parent ) : QObject( parent )
 
 Annotation2D::~Annotation2D()
 {}
+
+void Annotation2D::SetAutoScaleText(bool b)
+{
+  for ( int i = 0; i < NUMBER_OF_COORD_ANNOTATIONS; i++ )
+  {
+    if (b)
+      m_actorCoordinates[i]->SetTextScaleModeToViewport();
+    else
+      m_actorCoordinates[i]->SetTextScaleModeToNone();
+  }
+}
+
+void Annotation2D::SetTextSize(int nsize)
+{
+  for ( int i = 0; i < NUMBER_OF_COORD_ANNOTATIONS; i++ )
+  {
+    m_actorCoordinates[i]->GetTextProperty()->SetFontSize(nsize);
+  }
+}
 
 void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
 {

@@ -334,6 +334,18 @@ while( $#argv != 0 )
       set surflist = ($surflist inflated)
       breaksw
 
+    case "--orig":
+      set surflist = (orig orig.nofix)
+      breaksw
+
+    case "--white":
+      set surflist = (white)
+      breaksw
+
+    case "--pial":
+      set surflist = (white)
+      breaksw
+
     case "--gray":
     case "--grayscale":
       if($#argv < 2) goto arg2err;
@@ -491,6 +503,8 @@ usage_exit:
   echo "  --annot annotname :  loads annotname.annot onto surfaces"
   echo "  --aparc : load aparc.annot onto surfaces"
   echo "  --inflated : load inflated surfaces in addition to white and pial"
+  echo "  --white : only show white surfaces"
+  echo "  --orig : only show orig.nofix and orig surfaces"
   echo "  --p pointset : load point set file"
   echo ""
   echo "Note: unrecognized arguments are appended to freeview command line"
