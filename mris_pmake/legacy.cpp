@@ -169,15 +169,16 @@ s_Dweights_scan(
                207);
 }
 
+#if 1
 void
 s_weights_print(
   s_weights& asw
 ) {
   int lw     = 20;
   int rw     = 20;
-  std::_Ios_Fmtflags origFlags;
+  //std::_Ios_Fmtflags origFlags;
 
-  origFlags  = cout.flags();
+  //origFlags  = cout.flags();
   cout.setf(ios::left);
 
   cout << "_________________________"  << endl;
@@ -202,8 +203,9 @@ s_weights_print(
   CW(lw, "wdir");
   CWn(rw, asw.wdir);
 
-  cout.flags(origFlags);
+  //cout.flags(origFlags);
 }
+#endif
 
 void
 s_weights_setAll(
@@ -220,15 +222,16 @@ s_weights_setAll(
     asw.wdir    = af;
 }
 
+#if 1
 void
 s_Dweights_print(
   s_Dweights& asw
 ) {
   int lw     = 20;
   int rw     = 20;
-  std::_Ios_Fmtflags origFlags;
+  //std::_Ios_Fmtflags origFlags;
 
-  origFlags  = cout.flags();
+  //origFlags  = cout.flags();
   cout.setf(ios::left);
 
   cout << "_________________________"  << endl;
@@ -253,8 +256,9 @@ s_Dweights_print(
   CW(lw, "Dwdir");
   CWn(rw, asw.Dwdir);
 
-  cout.flags(origFlags);
+  //cout.flags(origFlags);
 }
+#endif
 
 void
 s_Dweights_setAll(
@@ -681,6 +685,7 @@ costFunc_EuclideanReturn(
     return(f_cost);
 }
 
+#if 0
 bool
 asynchEvent_processWGHT(
   s_env&    ast_env,
@@ -698,8 +703,8 @@ asynchEvent_processWGHT(
   string str_sep  = " ";
   float f_val  = 0.0;
 
-  std::_Ios_Fmtflags origFlags;
-  origFlags  = cout.flags();
+  //std::_Ios_Fmtflags origFlags;
+  //origFlags  = cout.flags();
   cout.setf(ios::left);
 
   if (!str_3parse( astr_comms, str_object, str_verb, str_modifier))
@@ -804,10 +809,12 @@ asynchEvent_processWGHT(
     }
   }
 
-  cout.flags(origFlags);
+  //cout.flags(origFlags);
   return true;
 }
+#endif
 
+#if 0
 bool
 asynchEvent_processDWGHT(
   s_env&    ast_env,
@@ -825,8 +832,8 @@ asynchEvent_processDWGHT(
   string str_sep  = " ";
   float f_val  = 0.0;
 
-  std::_Ios_Fmtflags origFlags;
-  origFlags  = cout.flags();
+  //std::_Ios_Fmtflags origFlags;
+  //origFlags  = cout.flags();
   cout.setf(ios::left);
 
   if (!str_3parse( astr_comms, str_object, str_verb, str_modifier))
@@ -931,8 +938,9 @@ asynchEvent_processDWGHT(
     }
   }
 
-  cout.flags(origFlags);
+  //cout.flags(origFlags);
   return true;
 }
+#endif
 
 /* eof */
