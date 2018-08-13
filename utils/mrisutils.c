@@ -3582,3 +3582,77 @@ int MRISaverageSurfaceParamFree(AVERAGE_SURFACE_PARAMS **pasp)
   *pasp = NULL;
   return(0);
 }
+
+/*!
+  \fn int MRISeulerNoSeg(MRI_SURFACE *mris, MRI *surfseg, int segno, int *pnvertices, int *pnfaces, int *pnedges, int *pv0)
+  \brief Computes the euler number for the set of vertices in which
+  surfseg==segno. If *pnvertices, *pnfaces, *pnedges, *pv0 are
+  non-null, then returns those values. Alters vertex->marked. v0 is a
+  vertex in the seg.  Only considers vertices if they belong to a
+  triangle where all the corners are in the segmentation.
+*/
+int MRISeulerNoSeg(MRI_SURFACE *mris, MRI *surfseg, int segno, int *pnvertices, int *pnfaces, int *pnedges, int *pv0)
+{
+  int eno, nfaces, nedges, nvertices, vno, fno, vnb, i, dno;
+  VERTEX *v1;
+  int n, nhits,v0;
+
+  // Only consider vertices if they belong to a triangle where all the corners
+  // are in the segmentation. 
+  nfaces = 0;
+  for(fno = 0; fno < mris->nfaces; fno++){
+    if(mris->faces[fno].ripflag) continue;
+    nhits = 0;
+    for(n=0; n < 3; n++){
+      vno = mris->faces[fno].v[n];
+      if(mris->vertices[vno].ripflag) continue;
+      if(MRIgetVoxVal(surfseg,vno,0,0,0) != segno) break;
+      nhits++;
+    }
+    if(nhits != 3) continue;
+    for(n=0; n < 3; n++){
+      vno = mris->faces[fno].v[n];
+      mris->vertices[vno].marked = 1;
+    }
+    nfaces++;
+  }
+
+  // Count the number of vertices and get a vertex in the label
+  v0 = -1;
+  nvertices = 0;
+  for(vno = 0; vno < mris->nvertices; vno++){
+    if(!mris->vertices[vno].marked) continue;
+    if(v0<0) v0 = vno;
+    nvertices++;
+  }
+
+  // Count up the edges. This cannot be parallized.
+  nedges = 0;
+  for (vno = 0; vno < mris->nvertices; vno++){
+    if(!mris->vertices[vno].marked) continue;
+    v1 = &mris->vertices[vno];
+    for (i = 0; i < v1->vnum; i++) {
+      vnb = v1->v[i];
+      if(! mris->vertices[vnb].marked) continue;
+      if(vnb <= vno) continue; /* already counted */
+      nedges++;
+    }
+  }
+  
+  eno = nvertices - nedges + nfaces; // euler number
+  dno = abs(2 - eno) + abs(2 * nedges - 3 * nfaces);
+  //if(nvertices>0 && eno == 1)
+  //printf("label=%d v0=%d nv=%d, ne=%d nf=%d eno=%d dno=%d\n",segno,v0,nvertices,nedges,nfaces,eno,dno);
+  //printf("%3d %4d %5d %5d %5d %5d\n",segno,nvertices,nedges,nfaces,eno,dno);
+
+  // Clear the marks
+  for(vno = 0; vno < mris->nvertices; vno++)
+    mris->vertices[vno].marked = 0;
+
+  if(pnvertices != NULL) *pnvertices = nvertices;
+  if(pnfaces != NULL) *pnfaces = nfaces;
+  if(pnedges != NULL) *pnedges = nedges;
+  if(pv0 != NULL)     *pv0 = v0;
+
+  return(eno);
+}
