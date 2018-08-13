@@ -94,30 +94,46 @@ void ConfigurationFileForm::loadDefaults2(QString fileName)
 {
     QFileInfo file_info(fileName);
     // QTextStream(stdout) << (file_info.dir()).dirName() << " is the name of the directory" << endl;
+    ui.testingLineEdit->setText(fileName);
     QDir temp_directory = file_info.dir();
 
     QFileInfoList temp_list;
     bool found = false;
+    QString end_of_file;
 
     temp_list = temp_directory.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
 
     // this is a check to see if the ".trk" file exists in the directory
     for (int i = 0; i < temp_list.size(); i++)
     {
+        if (found)
+        {
+            break;
+        }
+
         if (temp_list[i].isFile())
         {
-            if (temp_list[i].fileName() == "dMRI.trk")
+            if (temp_list[i].fileName().length() >= 5)
             {
-                found = true;
+                end_of_file = temp_list[i].fileName();
+                end_of_file.remove(0, end_of_file.length() - 4);
+
+                if (end_of_file == ".trk")
+                {
+                    found = true;
+                    ui.testingLineEdit_2->setText(temp_list[i].absoluteFilePath());
+                }
+
+                else
+                {
+                    QTextStream(stdout) << temp_list[i].absoluteFilePath() << " was just rejected with " << end_of_file << " being the remainder." << endl;
+                }
             }
         }
     }
 
     if (found)
     {
-        ui.testingLineEdit->setText(fileName);
-        ui.testingLineEdit_2->setText(temp_directory.absolutePath() + "/dMRI.trk");
-
         ui.spinBox_19->setValue(200);
         ui.spinBox_20->setValue(10);
         ui.spinBox_21->setValue(500);
@@ -126,6 +142,13 @@ void ConfigurationFileForm::loadDefaults2(QString fileName)
         ui.comboBox_2->setCurrentIndex(2);
 
         ui.spinBox_22->setValue(1);
+    }
+
+    else
+    {
+        QMessageBox msgBox;
+        msgBox.setText("warning: no valid .trk file was found in directory");
+        msgBox.exec();
     }
 }
 
