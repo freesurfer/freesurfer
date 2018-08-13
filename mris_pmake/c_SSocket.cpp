@@ -22,7 +22,6 @@
  *
  */
 
-
 #include <iostream>
 using namespace std;
 
@@ -640,12 +639,15 @@ c_SSocket_UDP_receive::c_SSocket_UDP_receive(
   STsin_name.sin_family         = AF_INET;
   STsin_name.sin_addr.s_addr    = INADDR_ANY;
   STsin_name.sin_port           = htons(port);
+
+#if 0
   if (bind(sockID, (struct sockaddr *)&STsin_name, sizeof(STsin_name))) {
     char pch_error[1024];
     sprintf(pch_error, "Problem binding to socket %d", port);
     perror("System error");
     error(pch_error);
   }
+#endif
 
   // Find assigned port
   length = sizeof(STsin_name);
@@ -681,5 +683,4 @@ void c_SSocket_UDP_receive::print() {
   cout << "timeoutUsec:\t\t"   << timeoutUsec  << endl;
   cout << "Using port:\t\t"   << port  << endl;
 }
-
 
