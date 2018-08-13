@@ -28,6 +28,7 @@ public:
 
   bool save(std::string filename);
   // bool load(std::string filename);
+  bool save_as_ctrlpoint(std::string filename);
 
   int add(Point point) {
     points.push_back(point);

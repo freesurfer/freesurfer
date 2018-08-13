@@ -13,10 +13,10 @@ endif()
 set(SOURCES
   abs2rel.c
   asynch.cpp
-  c_label.cpp
-  C_mpmProg.cpp
   c_SMessage.cpp
   c_SSocket.cpp
+  c_label.cpp
+  C_mpmProg.cpp
   c_surface.cpp
   c_vertex.cpp
   dijkstra.cpp
@@ -30,6 +30,7 @@ set(SOURCES
   C_mpmOverlay.cpp
   legacy.cpp
 )
+
 
 add_executable(mris_pmake ${SOURCES})
 add_help(mris_pmake mris_pmake.help.xml)

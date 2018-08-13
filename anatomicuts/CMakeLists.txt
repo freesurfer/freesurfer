@@ -5,7 +5,8 @@ if(ITK_FOUND AND VTK_FOUND)
   include_directories(
     Code
     ${FS_INCLUDE_DIRS}
-    ${CMAKE_SOURCE_DIR}/freeview/track_io 
+    ${CMAKE_SOURCE_DIR}/freeview/track_io
+    ${ITK_INCLUDE_DIRS}
     ${VTK_INCLUDE_DIRS}
   )
 

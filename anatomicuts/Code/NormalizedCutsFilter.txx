@@ -149,7 +149,7 @@ NormalizedCutsFilter < TMesh,TMembershipFunctionType >::Update()
 			threadedMembershipFunction->SetStuff(sample,inIndeces, outIndeces,hola,sample->Size());
 			threadedMembershipFunction->Execute(hola ,domain);
 			//vnl_sparse_matrix<double>* ms= threadedMembershipFunction->GetResults();
-			std::cout << " finding maximum start " << std::endl;	
+			//std::cout << " finding maximum start " << std::endl;	
 			std::vector<int> maxvals = threadedMembershipFunction->GetMaxIndeces();
 			for(int j=0; j< sample->Size();j++)
 			{
@@ -176,7 +176,7 @@ NormalizedCutsFilter < TMesh,TMembershipFunctionType >::Update()
 					sampleNegatives->PushBack(sample->GetMeasurementVector(j));
 				}
 			}
-			std::cout << " finding maximum end " << std::endl;	
+			//std::cout << " finding maximum end " << std::endl;	
 		}
 		else
 		{
