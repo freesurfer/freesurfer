@@ -114,6 +114,7 @@
 #include "LayerPropertyTrack.h"
 #include "BinaryTreeView.h"
 #include "SurfaceAnnotation.h"
+#include "Annotation2D.h"
 
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
@@ -586,6 +587,10 @@ void MainWindow::LoadSettings()
   {
     m_settings["AutoReorientView"] = false;
   }
+  if (!m_settings.contains("TextSize"))
+  {
+    m_settings["TextSize"] = 12;
+  }
 
   OnPreferences();
   m_dlgPreferences->hide();
@@ -598,6 +603,9 @@ void MainWindow::LoadSettings()
       ((RenderView2D*)m_views[i])->GetCursor2D()->SetColor(m_settings["CursorColor"].value<QColor>());
       ((RenderView2D*)m_views[i])->GetCursor2D()->SetSize(m_settings["CursorSize"].toInt());
       ((RenderView2D*)m_views[i])->GetCursor2D()->SetThickness(m_settings["CursorThickness"].toInt());
+      ((RenderView2D*)m_views[i])->SetAutoScaleText(m_settings["AutoScaleText"].toBool());
+      ((RenderView2D*)m_views[i])->SetTextSize(m_settings["TextSize"].toInt());
+      ((RenderView2D*)m_views[i])->GetAnnotation2D()->SetColor(m_settings["AnnotationColor"].value<QColor>());
     }
     else
     {
@@ -4856,8 +4864,15 @@ void MainWindow::OnNewVolume()
     }
     layer_new->GetProperty()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );
     layer_new->SetName( dlg.GetVolumeName() );
-    col_mri->AddLayer( layer_new );
+    col_mri->AddLayer(layer_new);
+    ConnectMRILayer(layer_new);
   }
+}
+
+void MainWindow::ConnectMRILayer(LayerMRI *mri)
+{
+  for (int i = 0; i < 4; i++)
+    connect(mri->GetProperty(), SIGNAL(ColorMapChanged()), m_views[i], SLOT(UpdateScalarBar()), Qt::UniqueConnection);
 }
 
 void MainWindow::OnSaveVolume()
@@ -5640,6 +5655,7 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
       lc_sup->SetWorldSize( mri->GetWorldSize() );
 
       lc_mri->AddLayer( layer, true );
+      ConnectMRILayer(mri);
       lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
       SetSlicePosition( lc_mri->GetSlicePosition() );
       m_layerVolumeRef = mri;
@@ -5671,7 +5687,8 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     }
     else
     {
-      lc_mri->AddLayer( layer );
+      lc_mri->AddLayer( mri );
+      ConnectMRILayer(mri);
     }
 
     m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();

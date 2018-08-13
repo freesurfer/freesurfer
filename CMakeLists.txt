@@ -46,6 +46,8 @@ endif()
 # is not found under FS_PACKAGES_DIR, cmake will continue to look through the default search paths.
 # Additionally, alternative paths to package installs can be specified with the <PACKAGE>_DIR variables
 
+#set(FS_PACKAGES_DIR ${CMAKE_SOURCE_DIR}/packages)
+
 if(NOT FS_PACKAGES_DIR)
   if(EXISTS /usr/pubsw/packages)
     # if the user is at Martinos, default to /usr/pubsw/packages
@@ -98,10 +100,13 @@ find_package(Expat REQUIRED)
 find_package(XML2 REQUIRED)
 
 # -------- netcdf --------
-find_package(NetCDF REQUIRED)
+set(NetCDF_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/netcdf_3_6_0_p1)
+set(NetCDF_LIBRARIES netcdf_3_6_0_p1)
 
 # -------- minc --------
-find_package(MINC REQUIRED)
+set(MINC_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/minc_1_5_1)
+set(MINC_LIBRARIES minc_1_5_1)
+add_definitions(-DUSE_LOCAL_MINC)
 
 # -------- tetgen --------
 find_package(Tetgen REQUIRED)
@@ -137,24 +142,26 @@ if(OPENMP_FOUND)
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${OpenMP_Fortran_FLAGS}")
 endif()
 
-# -------- openGL --------
-find_package(OpenGL)
-if(OPENGL_FOUND)
-  add_definitions(-DHAVE_OPENGL)
-  # since we have OpenGL, make sure we have glut too!
-  find_package(GLUT REQUIRED)
-  add_definitions(-DHAVE_GLUT_LIBS)
-  find_package(X11 REQUIRED)
-endif()
-
 # -------- openCV --------
 find_package(OpenCV)
 
 # -------- openCL --------
 find_package(OpenCL)
 
+# -------- X11 ---------
+find_package(X11 REQUIRED)
+
 # search for GUI libraries
 if(BUILD_GUIS)
+
+  # -------- openGL --------
+  find_package(OpenGL)
+  if(OPENGL_FOUND)
+    add_definitions(-DHAVE_OPENGL)
+    # since we have OpenGL, make sure we have glut too!
+    find_package(GLUT REQUIRED)
+    add_definitions(-DHAVE_GLUT_LIBS)
+  endif()
 
   # -------- qt --------
   set(PACKAGES_QT ${FS_PACKAGES_DIR}/qt/5.6.2/5.6/gcc_64/lib/cmake/Qt5)
@@ -262,9 +269,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${C_CXX_FLAGS}")
 # first, prepare the freesurfer distribution
 add_subdirectories(distribution images)
 
-# the top-level include dir and the netcdf package contain the most commonly
+# the top-level include dir contain the most commonly
 # included freesurfer header files
-set(FS_INCLUDE_DIRS ${CMAKE_SOURCE_DIR}/include ${MINC_INCLUDE_DIR} ${NetCDF_INCLUDE_DIR})
+set(FS_INCLUDE_DIRS ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/include ${MINC_INCLUDE_DIR} ${NetCDF_INCLUDE_DIR})
 
 # now build the freesurfer static libraries (order here matters!)
 add_subdirectories(
@@ -278,6 +285,8 @@ add_subdirectories(
   fsgdf
   svm-lib
   opencl_algorithms
+  minc_1_5_1
+  netcdf_3_6_0_p1
 )
 
 # the following utility libs are required for freeview and qdec
@@ -298,6 +307,7 @@ add_subdirectories(
   BrainstemSS
   check_siemens_dir
   connectgraph
+  diffusion_tool
   dmri_tensoreig
   dngtester
   freeview
