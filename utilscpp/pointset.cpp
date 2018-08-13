@@ -41,3 +41,21 @@ bool PointSet::save(std::string filename)
 
   return true;
 }
+
+// Save in control point format, v6 compatible
+bool PointSet::save_as_ctrlpoint(std::string filename)
+{
+  std::ofstream ctrpfile;
+  ctrpfile.open(filename);
+
+  for (const Point& point : points)
+    ctrpfile << point.x << " " << point.y << " " << point.z << "\n";
+  ctrpfile << "info\n";
+  ctrpfile << "numpoints" << points.size() << "\n";
+  ctrpfile << "useRealRAS 1\n";
+
+  ctrpfile.close();
+
+  return true;
+}
+
