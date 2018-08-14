@@ -1,5 +1,5 @@
-//#include "colortab.h"
-//#include "fsenv.h"
+#include "colortab.h"
+#include "fsenv.h"
 #include <iostream>
 #include "itkImage.h"
 #include <map>

@@ -3,12 +3,13 @@ project(anatomicuts)
 
 if(ITK_FOUND AND VTK_FOUND)
 
+  include(${ITK_USE_FILE})  
   include_directories(
     ${ITK_INCLUDE_DIRS}
     ${VTK_INCLUDE_DIRS}
     Code
     ${FS_INCLUDE_DIRS}
-    ${FS_INCLUDE_DIRS}/utils/
+    #${FS_INCLUDE_DIRS}/utils/
     ${CMAKE_SOURCE_DIR}/freeview/track_io
   )
 
