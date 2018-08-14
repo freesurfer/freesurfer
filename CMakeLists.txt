@@ -1,5 +1,3 @@
-# WARNING: this is in development and should not yet be used to replace automake
-
 # before starting the project, set gcc/g++ as default
 find_program(CMAKE_C_COMPILER NAMES $ENV{CC} gcc PATHS ENV PATH NO_DEFAULT_PATH)
 find_program(CMAKE_CXX_COMPILER NAMES $ENV{CXX} g++ PATHS ENV PATH NO_DEFAULT_PATH)
@@ -35,10 +33,12 @@ endif()
 
 # allow reading installation dir from environment var, but if not defined,
 # then override default install dir /usr/local (too messy to install there)
-if(NOT "$ENV{FS_INSTALL_DIR}" STREQUAL "")
-  set(CMAKE_INSTALL_PREFIX "$ENV{FS_INSTALL_DIR}" CACHE INTERNAL "Copied from environment variable")
-else()
-  set(CMAKE_INSTALL_PREFIX "/usr/local/freesurfer")
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  if(NOT "$ENV{FS_INSTALL_DIR}" STREQUAL "")
+    set(CMAKE_INSTALL_PREFIX "$ENV{FS_INSTALL_DIR}" CACHE INTERNAL "Copied from environment variable")
+  else()
+    set(CMAKE_INSTALL_PREFIX "/usr/local/freesurfer")
+  endif()
 endif()
 
 # --------------------------------------------------
