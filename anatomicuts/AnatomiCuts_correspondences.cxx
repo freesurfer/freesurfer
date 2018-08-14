@@ -1,5 +1,5 @@
-#include "colortab.h"
-#include "fsenv.h"
+//#include "colortab.h"
+//#include "fsenv.h"
 #include <iostream>
 #include "itkImage.h"
 #include <map>
@@ -309,13 +309,13 @@ std::vector<BasicMeshType::Pointer> FixSampleClusters(std::vector<vtkSmartPointe
 int main(int narg, char*  arg[])
 {
 
-COLOR_TABLE *ct;
+/*COLOR_TABLE *ct;
 
   FSENV *fsenv = FSENVgetenv();
   char tmpstr[2000];
   sprintf(tmpstr, "%s/FreeSurferColorLUT.txt", fsenv->FREESURFER_HOME);
   ct = CTABreadASCII(tmpstr);
-  
+  */
 
 
 	try 

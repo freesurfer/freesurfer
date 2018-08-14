@@ -624,6 +624,7 @@ add_subdirectories(
   mrisp_write
   oct_register_mosaic
   oct_train
+  oct_vsl
   optseq2
   qdecproject
   qdec
