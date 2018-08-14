@@ -309,6 +309,7 @@ target_link_libraries(utils
   ${MINC_LIBRARIES}
   ${NetCDF_LIBRARIES}
   ${ITK_LIBRARIES}
+  ${Expat_LIBRARIES}
 )
 
 if(NOT APPLE)
