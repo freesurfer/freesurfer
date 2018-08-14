@@ -11,6 +11,7 @@ include_directories(
   ${GLUT_INCLUDE_DIR}/GL
   ${X11_INCLUDE_DIR}
   ${ITK_INCLUDE_DIR}
+  ${Expat_INCLUDE_DIR}
 )
 
 set(SOURCES
