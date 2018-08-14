@@ -11,6 +11,7 @@ include_directories(
   ${GLUT_INCLUDE_DIR}/GL
   ${X11_INCLUDE_DIR}
   ${ITK_INCLUDE_DIR}
+  ${Expat_INCLUDE_DIR}
 )
 
 set(SOURCES
@@ -308,6 +309,7 @@ target_link_libraries(utils
   ${MINC_LIBRARIES}
   ${NetCDF_LIBRARIES}
   ${ITK_LIBRARIES}
+  ${Expat_LIBRARIES}
 )
 
 if(NOT APPLE)
