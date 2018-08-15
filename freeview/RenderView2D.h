@@ -114,6 +114,16 @@ public:
 
   bool PickLineProfile(int x, int y);
 
+  bool GetAutoScaleText()
+  {
+    return m_bAutoScaleText;
+  }
+
+  int GetTextSize()
+  {
+    return m_nTextSize;
+  }
+
 public slots:
   void RefreshAllActors(bool bForScreenShot = false);
   void StopSelection();
@@ -121,6 +131,8 @@ public slots:
   void Update2DOverlay();
   void ShowCoordinateAnnotation( bool bShow );
   void CenterAtCursor();
+  void SetAutoScaleText(bool b);
+  void SetTextSize(int nsize);
 
 signals:
   void RegionSelected( Region2D* );
@@ -154,6 +166,9 @@ private:
   Interactor2DROIEdit*    m_interactorROIEdit;
   Interactor2DPointSetEdit*   m_interactorPointSetEdit;
   Interactor2DVolumeCrop* m_interactorVolumeCrop;
+
+  bool      m_bAutoScaleText;
+  int       m_nTextSize;
 };
 
 #endif // RENDERVIEW2D_H

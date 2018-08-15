@@ -32,7 +32,7 @@
     L/R Pallidum (13,52)
     L/R Amygdala (18,54)
     L/R Thalamus_Proper (10,49)
-    L/R Lateral_Ventricle (75,76)
+    L/R Lateral_Ventricle (4,43)
     Third and Fourth Ventricles (14,15)
     L/R Inf_Lat_Vent (5,44)
     L/R Cerebral_White_Matter (2,41)
@@ -43,6 +43,9 @@
     'overall Dice' measure (which is a mean), as the surface-based 
     wm/gm measures are more accurate (and accumbens is very 
     difficult to measure).
+
+    Use the --all_labels flag to compute across all labels (not
+    just the structures listed above)
 
 </description>
   <arguments>
@@ -72,6 +75,8 @@
       <argument>-wm (0/1)</argument>
       <explanation>if (0/1) is nonzero, exclude cerebral white matter
 	  labels from all calculation</explanation>
+      <argument>-all_labels</argument>
+      <explanation>check all labels</explanation>
     </optional-flagged>
   </arguments>
   <example>mri_compute_seg_overlap manual_seg.mgz aseg.mgz

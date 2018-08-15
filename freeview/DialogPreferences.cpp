@@ -62,6 +62,10 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
             ((RenderView2D*)mainwnd->GetRenderView(i))->GetCursor2D(), SLOT(SetThickness(int)));
     connect(ui->colorPickerAnnotation, SIGNAL(colorChanged(QColor)),
             ((RenderView2D*)mainwnd->GetRenderView(i))->GetAnnotation2D(), SLOT(SetColor(QColor)));
+    connect(ui->spinBoxFontSize, SIGNAL(valueChanged(int)),
+            ((RenderView2D*)mainwnd->GetRenderView(i)), SLOT(SetTextSize(int)));
+    connect(ui->checkBoxAutoScaleFont, SIGNAL(toggled(bool)),
+            ((RenderView2D*)mainwnd->GetRenderView(i)), SLOT(SetAutoScaleText(bool)));
   }
   connect(ui->colorPickerCursor, SIGNAL(colorChanged(QColor)),
           ((RenderView3D*)mainwnd->GetRenderView(3))->GetCursor3D(), SLOT(SetColor(QColor)));
@@ -101,6 +105,8 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   connect(ui->radioButtonThemeDark, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->checkBoxAutoReorientView, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->checkBoxDecimalVoxelCoord, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->checkBoxAutoScaleFont, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->spinBoxFontSize, SIGNAL(valueChanged(int)), mainwnd, SLOT(UpdateSettings()));
 
   QList<QComboBox*> list_combos;
   list_combos << ui->comboBoxShortcutCycleLayer << ui->comboBoxShortcutToggleSurface
@@ -144,6 +150,8 @@ void DialogPreferences::SetSettings(const QVariantMap &map)
   ui->checkBoxRightButtonErase->setChecked(map["RightButtonErase"].toBool());
   ui->checkBoxAutoReorientView->setChecked(map["AutoReorientView"].toBool());
   ui->checkBoxDecimalVoxelCoord->setChecked(map["DecimalVoxelCoord"].toBool());
+  ui->checkBoxAutoScaleFont->setChecked(map["AutoScaleText"].toBool());
+  ui->spinBoxFontSize->setValue(map["TextSize"].toInt());
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   QString val = map.value("ShortcutCycleLayer").toString();
@@ -191,6 +199,8 @@ QVariantMap DialogPreferences::GetSettings()
   map["ShortcutCycleLayer"] = ui->comboBoxShortcutCycleLayer->currentText();
   map["ShortcutToggleVolume"] = ui->comboBoxShortcutToggleVolume->currentText();
   map["ShortcutToggleSurface"] = ui->comboBoxShortcutToggleSurface->currentText();
+  map["TextSize"] = ui->spinBoxFontSize->value();
+  map["AutoScaleText"] = ui->checkBoxAutoScaleFont->isChecked();
   return map;
 }
 

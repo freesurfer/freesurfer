@@ -346,6 +346,11 @@ while( $#argv != 0 )
       set surflist = (white)
       breaksw
 
+    case "--surf":
+      if($#argv < 1) goto arg1err;
+      set surflist = $argv[1]; shift;
+      breaksw
+
     case "--gray":
     case "--grayscale":
       if($#argv < 2) goto arg2err;
@@ -505,6 +510,7 @@ usage_exit:
   echo "  --inflated : load inflated surfaces in addition to white and pial"
   echo "  --white : only show white surfaces"
   echo "  --orig : only show orig.nofix and orig surfaces"
+  echo "  --surf surfname : only show surfname"
   echo "  --p pointset : load point set file"
   echo ""
   echo "Note: unrecognized arguments are appended to freeview command line"

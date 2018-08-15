@@ -63,9 +63,9 @@ void   fComplementCode(double *pdIn, double *pdOut, int iLen) ;
 char *fgetl(char *s, int n, FILE *fp) ;
 #endif
 
-#ifndef isfinite 
-#define isfinite(x) (finite(x))
-#endif
+  //#ifndef isfinite 
+  //#define isfinite(x) (finite(x))
+  //#endif
 
 int  IntSqrt(int n) ;
 

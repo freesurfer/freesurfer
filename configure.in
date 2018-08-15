@@ -4329,6 +4329,7 @@ AC_CONFIG_FILES([
 	vtkfsio/Makefile
 	vtkutils/Makefile
 	xml2/Makefile
+	anatomicuts/Makefile
 	])
 # generate Makefiles from list in AC_CONFIG_FILES:
 AC_OUTPUT()

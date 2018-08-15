@@ -37,9 +37,10 @@
       <intro>None</intro>
     </required-flagged>
     <optional-flagged>
-      <argument>-orig origname</argument>
-      <argument>-sphere spherename</argument>
-      <argument>-inflated inflatedname</argument>
+      <argument>-orig origname (input, default is orig.nofix)</argument>
+      <argument>-sphere spherename (default is qsphere.nofix)</argument>
+      <argument>-inflated inflatedname (default is inflated.nofix)</argument>
+      <argument>-out outputname (default is orig)</argument>
       <argument>-wi</argument>
       <explanation>write fixed inflated</explanation>
       <argument>-verbose </argument>

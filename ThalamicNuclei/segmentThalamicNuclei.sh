@@ -267,13 +267,18 @@ endif
 # structure name. The segmentation IDs also do not mean anything. 
 # Could run mri_segstats instead, but the volumes would not include
 # partial volume correction.
-set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/ThalamicNuclei.v10.T1.volumes.txt
+if("$ANALYSISID" == "mainFreeSurferT1") then
+  set suffix2 = $SUFFIX.T1
+else
+  set suffix2 = $SUFFIX.$ANALYSISID
+endif
+set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/ThalamicNuclei.$suffix2.volumes.txt
 # Divide the stats into left and right. The sorting is done because
 # the Left and Right nuclei are not ordered the same in the txt file
-set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/thalamic-nuclei.lh.stats
+set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/thalamic-nuclei.lh.$suffix2.stats
 echo "# Left Thalamic nuclei volume statistics as created by segmentThalamicNNuclei.sh" > $stats
 grep Left $txt | sed 's/Left-//g' | sort -k 1 | awk '{print NR" "NR"  0 "$2" "$1}' >> $stats
-set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/thalamic-nuclei.rh.stats
+set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/thalamic-nuclei.rh.$suffix2.stats
 echo "# Right Thalamic nuclei volume statistics as created by segmentThalamicNNuclei.sh" > $stats
 grep Right $txt | sed 's/Right-//g' | sort -k 1 | awk '{print NR" "NR"  0 "$2" "$1}' >> $stats
 

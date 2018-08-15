@@ -90,6 +90,20 @@
       <explanation>specify threshold for max T2 value outside of pial surface that will cause surface to deform outwards</explanation>
       <argument>-min_peak_pct  inside_pct outside_pct</argument>
       <explanation>specify the pct of the histo peak in the local gm histogram to use as threshold for finding the local inside and outside gm thresholds. Smaller values will cause more intensities to be included as gm </explanation>
+      <argument>-border-vals-hires</argument>
+      <explanation>Turn on hires options in MRIScomputeBorderValues_new(). May not be helpful. </explanation>
+      <argument>-no-unitize</argument>
+      <explanation>Turn off face normal unitization </explanation>
+      <argument>-intensity intensitycostweight</argument>
+      <explanation>Set weight of intensity cost </explanation>
+      <argument>-curv curvcostweight</argument>
+      <explanation>Set weight of curv cost </explanation>
+      <argument>-tspring tspringcostweight</argument>
+      <explanation>Set weight of tangiential spring cost </explanation>
+      <argument>-nspring nspringcostweight</argument>
+      <explanation>Set weight of normal spring cost </explanation>
+      <argument>-repulse repulsecostweight</argument>
+      <explanation>Set weight of repulsion force </explanation>
     </optional-flagged>
   </arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
