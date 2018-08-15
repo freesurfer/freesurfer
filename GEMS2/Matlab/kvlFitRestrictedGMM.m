@@ -313,7 +313,7 @@ if ( nargin == 3 )
     numericalZeroThreshold = 1e-5; % Theoretically zero
     % isAllowable = ( max( abs( E_all * currentMeans ) - currentSigma * n * ones( K-1, 1 ) ) < numericalZeroThreshold )
     normalizedAbsoluteDistanceBetweenMeans = abs( E_all * currentMeans ) / currentSigma;
-    isAllowable = ( max( normalizedAbsoluteDistanceBetweenMeans - n * ones( K-1, 1 ) ) < numericalZeroThreshold )
+    isAllowable = ( max( normalizedAbsoluteDistanceBetweenMeans - n * ones( K-1, 1 ) ) < numericalZeroThreshold );
   
   
     % 
@@ -345,9 +345,7 @@ if ( nargin == 3 )
   return
 end
 
-  
-boundaryEnforcement
-  
+    
   
 %
 K = size( W, 2 );
@@ -388,7 +386,7 @@ q = [ S - eye( K ) ] * v;
 a = N;
 b = -sum( ( d - p' ) .* W ) * q;
 c = -sum( sum( ( d - p' ).^2 .* W ) ); 
-sigmaHat = ( -b + sqrt( b^2 - 4*a*c ) ) / ( 2 * a )
+sigmaHat = ( -b + sqrt( b^2 - 4*a*c ) ) / ( 2 * a );
 
 
 % Solve for x
