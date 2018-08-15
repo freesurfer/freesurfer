@@ -198,6 +198,9 @@ if ( nargin == 0 )
       case 2
         %  Normal user-mode: give me the best solution among all possible boundary enforcements
         [ xHat, sigmaHat, costHat ] = kvlFitRestrictedGMM( d, W, n );
+      % case 3
+      %   % Normal user-mode with only one class
+      %  [ xHat, sigmaHat, costHat ] = kvlFitRestrictedGMM( d, W( :, 1 ), n )
       otherwise
         % Normal user-mode with multicontrast data
         d = [ d 100-3*d ];
@@ -233,8 +236,8 @@ if ( nargin == 0 )
     plot( binCenters, model * binWidth )
 
     %
-    disp( '------ Press ENTER to continue' )
-    pause
+    %disp( '------ Press ENTER to continue' )
+    %pause
     
   end % End loop over tests
   
@@ -275,6 +278,14 @@ if ( nargin == 3 )
     return
   end
   
+  % Catch trivial case of only a single class
+  if ( K == 1 )
+    means = W' * d / sum( W );
+    variance = W' * ( d - means ).^2 / sum( W ); 
+    sigma = sqrt( variance );
+    cost = W' * ( ( d - means ).^2 / sigma^2 + log( sigma^2 ) );
+    return
+  end
   
   
   % Set up test variables to determine whether solutions fall inside the allowable parameter domain later
@@ -302,7 +313,7 @@ if ( nargin == 3 )
     numericalZeroThreshold = 1e-5; % Theoretically zero
     % isAllowable = ( max( abs( E_all * currentMeans ) - currentSigma * n * ones( K-1, 1 ) ) < numericalZeroThreshold )
     normalizedAbsoluteDistanceBetweenMeans = abs( E_all * currentMeans ) / currentSigma;
-    isAllowable = ( max( normalizedAbsoluteDistanceBetweenMeans - n * ones( K-1, 1 ) ) < numericalZeroThreshold );
+    isAllowable = ( max( normalizedAbsoluteDistanceBetweenMeans - n * ones( K-1, 1 ) ) < numericalZeroThreshold )
   
   
     % 
@@ -335,6 +346,7 @@ if ( nargin == 3 )
 end
 
   
+boundaryEnforcement
   
   
 %
@@ -370,13 +382,13 @@ N = sum( Ns );
 mu = ( sum( d .* W ) ./ Ns )';
 Q = diag( Ns );
 S = Z * inv( Z' * Q * Z ) * Z' * Q;
-p = S * mu; 
+p = S * mu;
 q = [ S - eye( K ) ] * v;
 
 a = N;
 b = -sum( ( d - p' ) .* W ) * q;
 c = -sum( sum( ( d - p' ).^2 .* W ) ); 
-sigmaHat = ( -b + sqrt( b^2 - 4*a*c ) ) / ( 2 * a );
+sigmaHat = ( -b + sqrt( b^2 - 4*a*c ) ) / ( 2 * a )
 
 
 % Solve for x
@@ -424,5 +436,4 @@ end
 % Give variables the correct names to return
 means = xHat;
 sigma = sigmaHat;
-
 

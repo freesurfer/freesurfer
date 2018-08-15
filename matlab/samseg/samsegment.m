@@ -580,24 +580,27 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
       posteriors = posteriors ./ repmat( normalizer, [ 1 numberOfGaussians ] );
       minLogLikelihood = -sum( log( normalizer ) );
       intensityModelParameterCost = 0;
-      for gaussianNumber = 1 : numberOfGaussians
-        variance = squeeze( variances( gaussianNumber, :, : ) );
-        
-        % Evaluate unnormalized Wishart distribution (conjugate prior on precisions) with parameters 
-        %
-        %   scale matrix V = inv( pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior )
-        %
-        % and 
-        %
-        %   degrees of freedom n = numberOfPseudoMeasurementsOfWishartPrior + numberOfContrasts + 1
-        %
-        % which has pseudoVarianceOfWishartPrior as the MAP solution in the absence of any data
-        %
-        minLogUnnormalizedWishart = ...
-            trace( variance \ pseudoVarianceOfWishartPrior ) * numberOfPseudoMeasurementsOfWishartPrior / 2 + ...
-            numberOfPseudoMeasurementsOfWishartPrior / 2 * log( det( variance ) );
-        intensityModelParameterCost = intensityModelParameterCost + minLogUnnormalizedWishart;
-      end
+      useRestrictedGMMs = true;
+      if ~useRestrictedGMMs
+        for gaussianNumber = 1 : numberOfGaussians
+          variance = squeeze( variances( gaussianNumber, :, : ) );
+          
+          % Evaluate unnormalized Wishart distribution (conjugate prior on precisions) with parameters 
+          %
+          %   scale matrix V = inv( pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior )
+          %
+          % and 
+          %
+          %   degrees of freedom n = numberOfPseudoMeasurementsOfWishartPrior + numberOfContrasts + 1
+          %
+          % which has pseudoVarianceOfWishartPrior as the MAP solution in the absence of any data
+          %
+          minLogUnnormalizedWishart = ...
+              trace( variance \ pseudoVarianceOfWishartPrior ) * numberOfPseudoMeasurementsOfWishartPrior / 2 + ...
+              numberOfPseudoMeasurementsOfWishartPrior / 2 * log( det( variance ) );
+          intensityModelParameterCost = intensityModelParameterCost + minLogUnnormalizedWishart;
+        end
+      end  
       historyOfEMCost = [ historyOfEMCost; minLogLikelihood + intensityModelParameterCost ];
 
       % Show some figures
@@ -657,25 +660,46 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
       % M-step: update the model parameters based on the current posterior 
       %
       % First the mixture model parameters
-      for gaussianNumber = 1 : numberOfGaussians
-        posterior = posteriors( :, gaussianNumber );
+      if ~useRestrictedGMMs
+        for gaussianNumber = 1 : numberOfGaussians
+          posterior = posteriors( :, gaussianNumber );
 
-        mean = biasCorrectedData' * posterior ./ sum( posterior );
-        tmp = biasCorrectedData - repmat( mean', [ size( biasCorrectedData, 1 ) 1 ] );
-        %variance = ( tmp' * ( tmp .* repmat( posterior, [ 1 numberOfContrasts ] ) ) + dataVariance ) ...
-        %            / ( 2 * ( numberOfContrasts + 2 ) + sum( posterior ) );
-        variance = ( tmp' * ( tmp .* repmat( posterior, [ 1 numberOfContrasts ] ) ) + ...
-                                pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior ) ...
-                    / ( sum( posterior ) + numberOfPseudoMeasurementsOfWishartPrior );
-        if modelSpecifications.useDiagonalCovarianceMatrices
-          % Force diagonal covariance matrices
-          variance = diag( diag( variance ) );
+          mean = biasCorrectedData' * posterior ./ sum( posterior );
+          tmp = biasCorrectedData - repmat( mean', [ size( biasCorrectedData, 1 ) 1 ] );
+          %variance = ( tmp' * ( tmp .* repmat( posterior, [ 1 numberOfContrasts ] ) ) + dataVariance ) ...
+          %            / ( 2 * ( numberOfContrasts + 2 ) + sum( posterior ) );
+          variance = ( tmp' * ( tmp .* repmat( posterior, [ 1 numberOfContrasts ] ) ) + ...
+                                  pseudoVarianceOfWishartPrior * numberOfPseudoMeasurementsOfWishartPrior ) ...
+                      / ( sum( posterior ) + numberOfPseudoMeasurementsOfWishartPrior );
+          if modelSpecifications.useDiagonalCovarianceMatrices
+            % Force diagonal covariance matrices
+            variance = diag( diag( variance ) );
+          end
+
+          variances( gaussianNumber, :, : ) = variance;
+          means( gaussianNumber, : ) = mean';
         end
+      else
+        %
+        for classNumber = 1 : numberOfClasses
+          numberOfComponents = numberOfGaussiansPerClass( classNumber );
+          gaussianNumbers = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + [ 1 : numberOfComponents ];
 
-        variances( gaussianNumber, :, : ) = variance;
-        means( gaussianNumber, : ) = mean';
-
+          if 0
+            save myxxx.mat biasCorrectedData posteriors gaussianNumbers      
+          end
+          [ mixtureMeans, mixtureSigma, ~ ] = kvlFitRestrictedGMM( biasCorrectedData, posteriors( :, gaussianNumbers ), 2 );
+          
+          variances( gaussianNumbers, :, : ) = diag( mixtureSigma.^2 );
+          if ( ~modelSpecifications.useDiagonalCovarianceMatrices & ( length( mixtureSigma ) > 1 ) )
+            % Issue an error if non-diagonal covariances are asked for 
+            error( 'Non-diagonal covariance matrices for multicontrast models not implemented for restricted GMMs' )            
+          end
+          means( gaussianNumbers, : ) = mixtureMeans;
+        end % End loop over classNumber
+        
       end
+
       mixtureWeights = sum( posteriors + eps )';
       for classNumber = 1 : numberOfClasses
         % mixture weights are normalized (those belonging to one mixture sum to one)
