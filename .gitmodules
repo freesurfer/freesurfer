@@ -1,5 +1,5 @@
-[submodule "GEMS2/pybind11"]
-	path = GEMS2/pybind11
+[submodule "GEMS2/python/pybind11"]
+	path = GEMS2/python/pybind11
 	url = https://github.com/pybind/pybind11.git
 [submodule "samseg/samseg/hdav"]
 	path = samseg/samseg/hdav
