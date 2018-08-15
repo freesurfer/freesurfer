@@ -644,7 +644,6 @@ static bool mrisLimitGradientDistance(MRI_SURFACE *mris, MHT const *mht, int vno
 static int mrisFillFace(MRI_SURFACE *mris, MRI *mri, int fno);
 static int mrisHatchFace(MRI_SURFACE *mris, MRI *mri, int fno, int on);
 
-static double mrisRmsValError(MRI_SURFACE *mris, MRI *mri);
 static double mrisRmsDistanceError(MRI_SURFACE *mris);
 static int mrisRemoveVertexLink(MRI_SURFACE *mris, int vno1, int vno2);
 static int mrisStoreVtotalInV3num(MRI_SURFACE *mris);
@@ -9788,10 +9787,12 @@ double MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   if (!FZERO(parms->l_repulse)) {
     double vmean, vsigma;
-
     vmean = MRIScomputeTotalVertexSpacingStats(mris, &vsigma, NULL, NULL, NULL, NULL);
     mht_v_current = MHTcreateVertexTable_Resolution(mris, CURRENT_VERTICES, vmean);
     mht_f_current = MHTcreateFaceTable_Resolution  (mris, CURRENT_VERTICES, vmean);
+    // These two were what was used in V6, but they do not exist anymre
+    //mht_v_current = MHTfillVertexTable(mris, mht_v_current,CURRENT_VERTICES);
+    //mht_f_current = MHTfillTable(mris, mht_f_current);
   }
 
   double sse_angle = 0, sse_neg_area = 0, sse_area = 0;
@@ -19569,52 +19570,31 @@ int MRISinflateToSphere(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   double delta_t = 0.0, rms_radial_error, sse, base_dt;
   MHT *mht_v_current = NULL;
 
+  printf("Entering MRISinflateToSphere()\n");
+
   if (IS_QUADRANGULAR(mris)) {
     MRISremoveTriangleLinks(mris);
   }
   write_iterations = parms->write_iterations;
   n_averages = parms->n_averages;
 
-#if 1
   if (Gdiag & DIAG_WRITE) {
     char fname[STRLEN];
-
     sprintf(fname, "%s.%s.out", mris->hemisphere == RIGHT_HEMISPHERE ? "rh" : "lh", parms->base_name);
     if (!parms->fp) {
-      if (!parms->start_t) {
+      if (!parms->start_t) 
         INTEGRATION_PARMS_openFp(parms, fname, "w");
-      }
-      else {
+      else
         INTEGRATION_PARMS_openFp(parms, fname, "a");
-      }
-
-      if (!parms->fp) ErrorExit(ERROR_NOFILE, "MRISunfold: could not open log file %s\n", fname);
+      if(!parms->fp) ErrorExit(ERROR_NOFILE, "MRISunfold: could not open log file %s\n", fname);
     }
     mrisLogIntegrationParms(parms->fp, mris, parms);
   }
-#else
-  if (Gdiag & DIAG_WRITE) {
-    char fname[STRLEN];
-
-    sprintf(fname, "%s.out", parms->base_name);
-    if (!parms->start_t) {
-      INTEGRATION_PARMS_openFp(parms, fname, "w");
-    }
-    else {
-      INTEGRATION_PARMS_openFp(parms, fname, "a");
-    }
-    if (!parms->fp) ErrorExit(ERROR_NOFILE, "%s: could not open log file %s", Progname, fname);
-    mrisLogIntegrationParms(parms->fp, mris, parms);
-  }
-#endif
-  if (Gdiag & DIAG_SHOW) {
+  if(Gdiag & DIAG_SHOW) 
     mrisLogIntegrationParms(stderr, mris, parms);
-  }
 
   MRIScomputeMetricProperties(mris);
-#if 0
-  MRIScomputeSecondFundamentalForm(mris) ;
-#endif
+
   /*  parms->start_t = 0 ;*/
   niterations = parms->niterations;
   MRISstoreMetricProperties(mris);
@@ -22654,178 +22634,6 @@ static int mrisComputeLaplacianTerm(MRI_SURFACE *mris, double l_lap)
   average normal component which typically forces the surface
   to shrink.
   ------------------------------------------------------*/
-#if 0
-static int
-mrisComputeNormalizedSpringTerm(MRI_SURFACE *mris, double l_spring)
-{
-  int     vno, n, m ;
-  VERTEX  *v, *vn ;
-  float   sx, sy, sz, x, y, z, dist_scale, nx, ny, nz, dx, dy, dz ;
-  double  dot_total, avg_len, std_len, len, num ;
-
-  if (FZERO(l_spring))
-  {
-    return(NO_ERROR) ;
-  }
-
-#if METRIC_SCALE
-  if (mris->patch)
-  {
-    dist_scale = 1.0 ;
-  }
-  else
-  {
-    dist_scale = sqrt(mris->orig_area / mris->total_area) ;
-  }
-#else
-  dist_scale = 1.0 ;
-#endif
-
-  std_len = avg_len = dot_total = 0.0 ;
-  for (num = vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-    {
-      continue ;
-    }
-    if (vno == Gdiag_no)
-    {
-      DiagBreak() ;
-    }
-
-    x = v->x ;
-    y = v->y ;
-    z = v->z ;
-    nx = v->nx ;
-    ny = v->ny ;
-    nz = v->nz ;
-
-    sx = sy = sz = 0.0 ;
-    n=0;
-    for (m = 0 ; m < v->vnum ; m++)
-    {
-      vn = &mris->vertices[v->v[m]] ;
-      if (!vn->ripflag)
-      {
-        dx = vn->x - x;
-        dy = vn->y - y;
-        dz = vn->z - z;
-        sx += dx ;
-        sy += dy ;
-        sz += dz ;
-        n++;
-        len = sqrt(dx*dx + dy*dy + dz*dz) ;
-        avg_len += len ;
-        std_len += len*len ;
-      }
-    }
-    num += n ;
-    if (n>0)
-    {
-      sx = dist_scale*sx/n;
-      sy = dist_scale*sy/n;
-      sz = dist_scale*sz/n;
-    }
-  }
-  avg_len /= num ;
-  std_len = sqrt(std_len/num-avg_len*avg_len) ;
-
-  num = (double)MRISvalidVertices(mris) ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-    {
-      continue ;
-    }
-    if (vno == Gdiag_no)
-    {
-      DiagBreak() ;
-    }
-
-    x = v->x ;
-    y = v->y ;
-    z = v->z ;
-    nx = v->nx ;
-    ny = v->ny ;
-    nz = v->nz ;
-
-    sx = sy = sz = 0.0 ;
-    n=0;
-    for (m = 0 ; m < v->vnum ; m++)
-    {
-      vn = &mris->vertices[v->v[m]] ;
-      if (!vn->ripflag)
-      {
-        dx = vn->x - x;
-        dy = vn->y - y;
-        dz = vn->z - z;
-        len = sqrt(dx*dx + dy*dy + dz*dz) ;
-        if (vno == 91951 && v->v[m] == 90994)
-        {
-          fprintf(stdout, "v %d-->%d: len %2.3f, "
-                  "avg %2.3f (ratio=%2.3f)\n",
-                  vno, v->v[m], len, avg_len, len/avg_len) ;
-        }
-#if 1
-        dx /= len ;
-        dy /= len ;
-        dz /= len ;
-        if (len/avg_len > 1.5)
-        {
-          len = avg_len * 1.0 * dist_scale ;
-        }
-        dx *= len ;
-        dy *= len ;
-        dz *= len ;
-#endif
-        sx += dx ;
-        sy += dy ;
-        sz += dz ;
-        n++;
-      }
-    }
-    if (n>0)
-    {
-      sx = dist_scale*sx/n;
-      sy = dist_scale*sy/n;
-      sz = dist_scale*sz/n;
-    }
-
-    dot_total += l_spring*(nx*sx + ny*sy + nz*sz) ;
-    v->dx += l_spring * sx ;
-    v->dy += l_spring * sy ;
-    v->dz += l_spring * sz ;
-    if (vno == Gdiag_no)
-      fprintf(stdout, "v %d spring nm term: (%2.3f, %2.3f, %2.3f)\n",
-              vno, v->dx, v->dy, v->dz) ;
-  }
-  dot_total /= num ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-    {
-      continue ;
-    }
-    if (vno == Gdiag_no)
-    {
-      DiagBreak() ;
-    }
-    nx = v->nx ;
-    ny = v->ny ;
-    nz = v->nz ;
-
-    v->dx -= dot_total * nx ;
-    v->dy -= dot_total * ny ;
-    v->dz -= dot_total * nz ;
-  }
-
-
-  return(NO_ERROR) ;
-}
-#else
 static int mrisComputeNormalizedSpringTerm(MRI_SURFACE *const mris, double const l_spring)
 {
   if (FZERO(l_spring)) {
@@ -22929,7 +22737,7 @@ static int mrisComputeNormalizedSpringTerm(MRI_SURFACE *const mris, double const
   return (NO_ERROR);
 }
 
-#endif
+
 
 /*-----------------------------------------------------
   Parameters:
@@ -33728,14 +33536,17 @@ int MRISpositionSurfaces(MRI_SURFACE *mris, MRI **mri_flash, int nvolumes, INTEG
 
 int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTEGRATION_PARMS *parms)
 {
-  /*  char   *cp ;*/
   int avgs, niterations, n, write_iterations, nreductions = 0, done;
   double sse, delta_t = 0.0, rms, dt, l_intensity, base_dt, last_sse, last_rms, max_mm;
   MHT *mht = NULL, *mht_v_orig = NULL, *mht_v_current = NULL, *mht_f_current = NULL, *mht_pial = NULL;
   struct timeb then;
   int msec;
 
+  printf("Entering MRISpositionSurface()\n");
   max_mm = MIN(MAX_ASYNCH_MM, MIN(mri_smooth->xsize, MIN(mri_smooth->ysize, mri_smooth->zsize)) / 2);
+  printf("max_mm = %g\n",max_mm);
+  printf("  MAX_REDUCTIONS = %d, REDUCTION_PCT = %g\n",MAX_REDUCTIONS,REDUCTION_PCT);
+
   if (!FZERO(parms->l_surf_repulse)) {
     mht_v_orig = MHTcreateVertexTable(mris, ORIGINAL_VERTICES);
   }
@@ -33753,6 +33564,7 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
   parms->mri_smooth = mri_smooth;
   niterations = parms->niterations;
   write_iterations = parms->write_iterations;
+
   if (Gdiag & DIAG_WRITE) {
     char fname[STRLEN];
 
@@ -33842,7 +33654,13 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     fflush(parms->fp);
   }
 
-  // Loop over iterations
+  // Loop over iterations ==========================================
+  // It may not reach the total number of iterations because, on each
+  // iteration, it decides whether the step size needs to be
+  // reduced. Only a certain number (MAX_REDUCTIONS+1) of reductions
+  // are allowed after which it will break from the iteration loop.
+  // This can make the number of iterations parameter much less
+  // important than it first appears.
   dt = parms->dt;
   l_intensity = parms->l_intensity;
   for (n = parms->start_t; n < parms->start_t + niterations; n++) {
@@ -33857,6 +33675,8 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
       MHTfree(&mht); mht = MHTcreateFaceTable(mris);
     }
     MRISclearGradient(mris);
+
+    // Compute the gradient direction
     mrisComputeTargetLocationTerm(mris, parms->l_location, parms);
     mrisComputeIntensityTerm(mris, l_intensity, mri_brain, mri_smooth, parms->sigma, parms);
     mrisComputeShrinkwrapTerm(mris, mri_brain, parms->l_shrinkwrap);
@@ -33871,12 +33691,10 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     if (gMRISexternalGradient) {
       (*gMRISexternalGradient)(mris, parms);
     }
-
-    /*                mrisMarkSulcalVertices(mris, parms) ;*/
+    /*mrisMarkSulcalVertices(mris, parms) ;*/
     mrisComputeLaplacianTerm(mris, parms->l_lap);
     mrisAverageSignedGradients(mris, avgs);
-    /*                mrisUpdateSulcalGradients(mris, parms) ;*/
-
+    /*mrisUpdateSulcalGradients(mris, parms) ;*/
     /* smoothness terms */
     mrisComputeSpringTerm(mris, parms->l_spring);
     mrisComputeNormalizedSpringTerm(mris, parms->l_spring_norm);
@@ -33886,63 +33704,51 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
     mrisComputeThicknessParallelTerm(mris, parms->l_thick_parallel, parms);
     mrisComputeNormalSpringTerm(mris, parms->l_nspring);
     mrisComputeQuadraticCurvatureTerm(mris, parms->l_curv);
-    /*    mrisComputeAverageNormalTerm(mris, avgs, parms->l_nspring) ;*/
-    /*    mrisComputeCurvatureTerm(mris, parms->l_curv) ;*/
+    /*mrisComputeAverageNormalTerm(mris, avgs, parms->l_nspring) ;*/
+    /*mrisComputeCurvatureTerm(mris, parms->l_curv) ;*/
     mrisComputeNonlinearSpringTerm(mris, parms->l_nlspring, parms);
     mrisComputeTangentialSpringTerm(mris, parms->l_tspring);
     mrisComputeNonlinearTangentialSpringTerm(mris, parms->l_nltspring, parms->min_dist);
     mrisComputeMaxSpringTerm(mris, parms->l_max_spring);
     mrisComputeAngleAreaTerms(mris, parms);
-#if 0
-    switch (parms->integration_type)
-    {
-    case INTEGRATE_LM_SEARCH:
-      delta_t = mrisLineMinimizeSearch(mris, parms) ;
-      break ;
-    default:
-    case INTEGRATE_LINE_MINIMIZE:
-      delta_t = mrisLineMinimize(mris, parms) ;
-      break ;
-    case INTEGRATE_MOMENTUM:
-      delta_t = MRISmomentumTimeStep(mris, parms->momentum, parms->dt,
-                                     parms->tol, avgs) ;
-      break ;
-    case INTEGRATE_ADAPTIVE:
-      mrisAdaptiveTimeStep(mris, parms);
-      break ;
-    }
-#else
-    do {
+
+    // This do loop will move the vertices along the direction
+    // computed above. It may adjust the step size for the next iter.
+    // If the RMS increased, then it will redo this iter with a
+    // smaller step. Only a certain number (MAX_REDUCTIONS+1) of
+    // reductions are allowed after which it will break from the
+    // iteration loop. The way it is set up, it always forces the RMS
+    // (intensity error) to drop regardless of what factors are
+    // included in SSE and gradient calculations. Given that the
+    // gradient includes other terms (eg, repulse, curv, tang and norm
+    // spring), the direction may not always result in a decrease of
+    // in RMS. Some terms (eg, curv and nspring) don't even have
+    // functions that compute the SSE. Annectotally, the intensity
+    // SSE is an order of mag > than the other SSEs. 
+    do { // do loops alway execute at least once
+      // save vertex positions in case we have to reject this step
       MRISsaveVertexPositions(mris, TMP2_VERTICES);
+
       mrisScaleTimeStepByCurvature(mris);
+
       MRISclearMarks(mris);
+
+      // Take a step by changing the v->{x,y,z} of all vertices
       delta_t = mrisAsynchronousTimeStep(mris, parms->momentum, dt, mht, max_mm);
       parms->t = n + 1;                                           // for diags
-#if 0
-      if (Gdiag & DIAG_WRITE)
-      {
-        char fname[STRLEN] ;
-        sprintf(fname, "%s.marked.%3.3d.mgz", parms->base_name, n) ;
-        printf("writing vertices that would have intersected to %s\n", fname) ;
-        MRISwriteMarked(mris, fname) ;
-      }
-#endif
+
       if (Gdiag_no >= 0 && mris->vertices[Gdiag_no].marked == 0)  // diag vertex was cropped
-      {
         DiagBreak();
-      }
+
       if (parms->smooth_intersections) {
         MRISerodeMarked(mris, 4);
         if (Gdiag_no >= 0 && mris->vertices[Gdiag_no].marked == 0)  // diag vertex was cropped
-        {
           DiagBreak();
-        }
         MRISsoapBubbleVertexPositions(mris, 500);
       }
 
-      if (parms->uncompress) {
+      if (parms->uncompress)
         MRISremoveCompressedRegions(mris, .2);
-      }
 
       if (gMRISexternalTimestep) {
         (*gMRISexternalTimestep)(mris, parms);
@@ -33950,7 +33756,10 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
       if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST)) {
         MHTcheckFaces(mris, mht);
       }
+
       MRIScomputeMetricProperties(mris);
+
+      // Compute RMS using one of various methods
       if (!FZERO(parms->l_histo)) {
         rms = mrisComputeHistoNegativeLikelihood(mris, parms);
       }
@@ -33965,10 +33774,6 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
       else if (!FZERO(parms->l_map2d)) {
         int nvox;
         MRISsaveVertexPositions(mris, PIAL_VERTICES);
-#if 0
-        if (parms->h2d != NULL)
-          HISTO2Dfree(&parms->h2d) ;
-#endif
         if (parms->mri_volume_fractions) MRIfree(&parms->mri_volume_fractions);
         if (parms->mri_dtrans) MRIfree(&parms->mri_dtrans);
         parms->mri_volume_fractions = MRIcomputeLaminarVolumeFractions(mris, parms->resolution, parms->mri_brain, NULL);
@@ -33982,6 +33787,12 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
         rms = (*gMRISexternalRMS)(mris, parms);
       }
       else {
+	// This RMS is only for the intensity cost. This is different than SSE below in 
+	// that SSE is not normalized for the number of vertices, includes all the costs
+	// that have non-zero weight each of which are weighted by their weights. 
+	// RMS will = sqrt(SSE/nvert) when all weights are zero except for l_intensity
+	// and l_intensity=1. Even then it will only be equal when nvert is the number
+	// of unripped vertices. 
         rms = mrisRmsValError(mris, mri_brain);
       }
       
@@ -33989,63 +33800,72 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
         fprintf(stdout, "%s:%d stdout ",__FILE__,__LINE__);
         mris_print_hash(stdout, mris, "Input to MRIScomputeSSE ", "\n");
       }
-      
+
+      // Comute SSE. This differs from RMS in that RMS may only have a
+      // contribution from intensity where as SSE has a contribution
+      // from any component with a non-zero weight, and the components
+      // are weighted. The SSE is summed over the number of vertices
+      // which makes it resolution dependent. However, it is evaluated
+      // in as a ratio, so the number of verts divides out. 
       sse = MRIScomputeSSE(mris, parms);
-      done = 1;
-      /* check to see if the error decreased substantially, if not
-      reduce the  step size  */
+
+      done = 1; // assume done with this step unless there is an increase in RMS (below)
+
+      // This next section is doing a couple of things:
+      // A. it is determining whether it to reduce the step size on the next iteration.
+      // B. it will force a rerun this iteration with the smaller step if the RMS increased.
+      // There are three criteria for reducing the step size:
+      //   1. RMS *fraction* reduced by less than tolerance (requires parms->check_tol=1 which is
+      //      NOT the case by default for white surface placement).
+      //   2. SSE *percent* reduced by less than tolerance (requires l_location=0 which is
+      //      the case by default for white surface placement). It would seems unlikely
+      //      that #2 would ever be met given that the tol is often 10e-4, but it does happen
+      //   3. RMS *value* reduced by less than .05 (requires parms->check_tol=0 && location=0
+      //      which is the case by default for white surface placement). This is probably 
+      //      the factor that dictates when a reduction occurs. 
+      // It is a bit strange that #1 is a fraction and #2 is a percent and #3 is a hard value
       if (((parms->check_tol && ((last_rms - rms) / last_rms < parms->tol))) ||
           ((FZERO(parms->l_location) && (100 * (last_sse - sse) / last_sse < parms->tol))) ||
-          ((parms->check_tol == 0) && FZERO(parms->l_location) && (rms > last_rms - 0.05))) {
+          ((parms->check_tol == 0) && FZERO(parms->l_location) && (rms > last_rms - 0.05)) ) {
         nreductions++;
-        parms->dt *= REDUCTION_PCT;
+        parms->dt *= REDUCTION_PCT; // hidden parameter, generally 0.5 (not a percent)
         dt = parms->dt;
-        fprintf(stdout,
-                "rms = %2.2f, time step reduction %d of %d to %2.3f...\n",
-                rms,
-                nreductions,
-                MAX_REDUCTIONS + 1,
-                dt);
         mrisClearMomentum(mris);
-#if 1
-        if ((FZERO(parms->l_location)) && (rms > last_rms)) /* error increased - reject step */
-        {
+
+	int aa, bb, cc; // These indicate which reason the reduction took place
+	aa = ((parms->check_tol && ((last_rms - rms) / last_rms < parms->tol)));
+	bb = ((FZERO(parms->l_location) && (100 * (last_sse - sse) / last_sse < parms->tol)));
+	cc = ((parms->check_tol == 0) && FZERO(parms->l_location) && (rms > last_rms - 0.05));
+        printf("rms = %5.4f/%5.4f, sse=%2.1f/%2.1f, time step reduction %d of %d to %2.3f  %d %d %d\n",
+	       rms, last_rms, sse, last_sse, nreductions, MAX_REDUCTIONS+1, dt,aa,bb,cc);
+
+        if ((FZERO(parms->l_location)) && (rms > last_rms)){
+	  /* error increased - reject step */
+	  printf("   RMS increased, rejecting step\n");
           MRISrestoreVertexPositions(mris, TMP2_VERTICES);
           MRIScomputeMetricProperties(mris);
-
-          /* if error increased and we've only reduced the time
-          step a few times, try taking a smaller step (done=0).
-          */
+          /* if error increased and we've only reduced the time step a
+          few times, try taking a smaller step (done=0). */
           done = (nreductions > MAX_REDUCTIONS);
         }
-#endif
       }
-      if (Gdiag_no >= 0 && DIAG_VERBOSE_ON) {
+
+      if (Gdiag_no >= 0 && DIAG_VERBOSE_ON) 
         MRISprintVertexStats(mris, Gdiag_no, Gstdout, CURRENT_VERTICES);
-      }
+
     } while (!done);
 
-#endif
-    mrisTrackTotalDistanceNew(mris); /* computes signed
-                           deformation amount */
+    mrisTrackTotalDistanceNew(mris); /* computes signed deformation amount */
 
-    if (Gdiag & DIAG_SHOW)
-      fprintf(stdout,
-              "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.3f (%2.3f%%)\n",
-              n + 1,
-              (float)delta_t,
-              (float)sse,
-              (float)rms,
-              100 * (last_rms - rms) / last_rms);
+    if (Gdiag & DIAG_SHOW){
+      printf("%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.3f (%2.3f%%)\n",
+	     n + 1, (float)delta_t,(float)sse,(float)rms,100 * (last_rms - rms) / last_rms);
+      fflush(stdout);
+    }
 
     if (Gdiag & DIAG_WRITE) {
-      fprintf(parms->fp,
-              "%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.3f (%2.3f%%)\n",
-              n + 1,
-              (float)delta_t,
-              (float)sse,
-              (float)rms,
-              100 * (last_rms - rms) / last_rms);
+      fprintf(parms->fp,"%3.3d: dt: %2.4f, sse=%2.1f, rms=%2.3f (%2.3f%%)\n",
+              n + 1,(float)delta_t,(float)sse, (float)rms,100 * (last_rms - rms) / last_rms);
       fflush(parms->fp);
     }
 
@@ -34063,13 +33883,14 @@ int MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth, INTE
       MRISvertexToVoxel(mris, v, mri_brain, &xv, &yv, &zv);
       printf("v %d: (%2.1f, %2.1f, %2.1f), vox = (%2.0f, %2.0f %2.0f)\n", Gdiag_no, v->x, v->y, v->z, xv, yv, zv);
     }
-    if (nreductions > MAX_REDUCTIONS) {
+    if(nreductions > MAX_REDUCTIONS) {
+      printf("  maximum number of reductions reached, breaking from loop\n");fflush(stdout);
       n++; /* count this step */
       break;
     }
     last_sse = sse;
     last_rms = rms;
-  }
+  } // end loop over iterations
 
   parms->start_t = n;
   parms->dt = base_dt;
@@ -34217,7 +34038,6 @@ int MRISpositionSurface_mef(
       rms = mrisRmsValError_mef(mris, mri_30, mri_5, weight30, weight5);
       sse = mrisComputeSSE_MEF(mris, parms, mri_30, mri_5, weight30, weight5, mht_v_orig);
       done = 1;
-#if 1
       if (parms->check_tol) {
         delta_rms = parms->tol * last_rms;
       }
@@ -34225,9 +34045,6 @@ int MRISpositionSurface_mef(
         delta_rms = 0.05;  // don't worry about energy functional decreasing, just continue
       }
       if (parms->check_tol && (rms > last_rms - delta_rms))  // error increased - reduce step size
-#else
-      if (sse > last_sse - (last_sse * parms->tol))
-#endif
       {
         nreductions++;
         parms->dt *= REDUCTION_PCT;
@@ -36506,8 +36323,8 @@ int MRIScomputeBorderValues(
     v->{x,y,z} is the current vertex coordinate
     v->{nx,ny,nz} is the normal to the current vertex
     v->orig{x,y,z} is a reference (see max_thickness)
-  \param mri_brain - T1 weighted input volume
-  \param mri_smooth - not apparently used for anything
+  \param mri_brain - T1 weighted input volume (mri_T1)
+  \param mri_smooth - not apparently used for anything (mri_smooth)
   \param inside_hi eg,  120 (MAX_WHITE)
   \param border_hi eg,  115 (max_border_white)
   \param border_low eg,  77 (min_border_white)
@@ -36524,8 +36341,8 @@ int MRIScomputeBorderValues(
   Note: STEP_SIZE (all caps) is #defined. It controls the step size when searching
    through the normal after having found the distance range.
   Hidden Parameter: 1mm 
-  Note: a volume is treated differently if xsize<.95 (hires)
   The step size of the in/out search is determined by mri_brain->xsize/2
+  It does not appear that the annot is used in this function or its children
 
   The outputs are set in each vertex structure:
       v->val2 = current_sigma; // smoothing level used to find the target
@@ -36553,7 +36370,11 @@ static int MRIScomputeBorderValues_new(
     MRI *         const mri_aseg) 
 {
   float const step_size = mri_brain->xsize / 2;
-    
+  double next_val = 0;    
+
+  printf("Entering MRIScomputeBorderValues_new(): BorderValsHiRes=%d, step_size=%g\n",
+	 BorderValsHiRes,step_size);
+
   MRI *mri_tmp;
   if (mri_brain->type == MRI_UCHAR) {
     mri_tmp = MRIreplaceValues(mri_brain, NULL, 255, 0);
@@ -36598,34 +36419,32 @@ static int MRIScomputeBorderValues_new(
       ROMP_PF_continue;
     }
 
-    if (vno == Gdiag_no) {
+    if (vno == Gdiag_no)
       DiagBreak();
-    }
 
-    // calculate the unit-length normal to the vertex in voxel space
-    // 
+    // Note: xyz are in mm, xw,yw,zw are in voxels
+
+    // Calculate the unit-length normal to the vertex in VOXEL space
     float nx,ny,nz;
     {
       double x,y,z;
-      
       double xw, yw, zw;
+      double xw1, yw1, zw1;
       x = v->x;
       y = v->y;
       z = v->z;
       MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
-      
-      double xw1, yw1, zw1;
       x = v->x + v->nx;
       y = v->y + v->ny;
       z = v->z + v->nz;
       MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw1, &yw1, &zw1);
     
+      // Note: these nx,ny,nz are in VOXEL space whereas v->{nx,ny,nz} are in TKR mm space
       nx = xw1 - xw;
       ny = yw1 - yw;
       nz = zw1 - zw;
-
       float dist = sqrt(SQR(nx) + SQR(ny) + SQR(nz));
-      if (FZERO(dist)) ROMP_PF_continue;                                            // WAS "dist = 1;" BUT THAT MAKES NO SENSE
+      if (FZERO(dist)) ROMP_PF_continue;  // WAS "dist = 1;" BUT THAT MAKES NO SENSE
       nx /= dist;
       ny /= dist;
       nz /= dist;
@@ -36642,19 +36461,20 @@ static int MRIScomputeBorderValues_new(
     double current_sigma; 
     for (current_sigma = sigma; current_sigma <= 10 * sigma; current_sigma *= 2) {
     
-      // search inwards, starting at 0 and going to max "thickness"
+      // search inwards, starting at 0 and going to -max "thickness"
       double mag = -1.0;
       float dist;
       for (dist = 0; dist > -max_thickness; dist -= step_size) {
 
-        // dx dy dz is the direction and distance has moved
+        // dx dy dz is the direction and distance vertex has moved
         // v->nx etc. is the unit-length vertex normal
         // so this is the maximum possible distance this can be from origx...
         double dx = v->x - v->origx;
         double dy = v->y - v->origy;
         double dz = v->z - v->origz;
         double orig_dist = fabs(dx * v->nx + dy * v->ny + dz * v->nz);
-            
+        double val;
+
         if (fabs(dist) + orig_dist > max_thickness) {
           // too far from the orig
           break;
@@ -36665,17 +36485,16 @@ static int MRIScomputeBorderValues_new(
         double const y = v->y + v->ny * dist;
         double const z = v->z + v->nz * dist;
         MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
-        
+
 	// Compute derivative of the intensity along the normal. The
 	// normal (nx,ny,nz) always points outward. mri_tmp is mri_brain.
-	// It may be a copy if mri_brain is UCHAR
+	// It may be a copy if mri_brain is UCHAR. nx,ny,nz are in voxel space
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &mag, current_sigma);   // expensive
         if (mag >= 0.0) {
           // In a T1, this should decrease, so break if it increases
           break;
         }
         
-        double val;
         MRIsampleVolume(mri_brain, xw, yw, zw, &val);
         if (val > border_hi) {
           //Out side of intensity range, so break
@@ -36695,41 +36514,49 @@ static int MRIScomputeBorderValues_new(
       // be some negative value
       inward_dist = dist + step_size / 2;
 
-      if (DIAG_VERBOSE_ON && mri_brain->xsize < .95 && mag >= 0.0)  // refine inward_dist for hires volumes
-      {
-	// This bit of code can be ignored unless DIAG_VERBOSE_ON is set and input is highres
+      // This if() used to have a "DIAG_VERBOSE_ON &&". This made the
+      // behavior non-deterministic for hires volumes because
+      // "next_val" was used downstream but not set here. This existed
+      // in v6. Also, next_val needs to be defined globally withing
+      // the scope of the function. There are several places below
+      // (now commented out) where it is redefined.
+      if(BorderValsHiRes==1  && mag >= 0.0){
+	// This code is supposed to refine inward_dist for hires
+	// volumes. This is similar to the code above except using a
+	// step that is half the size. But it just looks at the value
+	// and not the gradient, so it is not clear how this is
+	// supposed to work. And why only the inward loop?
         for (dist = inward_dist; dist > -max_thickness; dist -= step_size / 2) {
           double x,y,z;
-          
           double xw, yw, zw;
+          double val;
+          //double next_val; // define above with function scope
 
+	  // Sample brain at this distance
           x = v->x + v->nx * dist;
           y = v->y + v->ny * dist;
           z = v->z + v->nz * dist;
           MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
-          
-          double val;
           MRIsampleVolume(mri_brain, xw, yw, zw, &val);
 
+	  // Sample brain at this distance + stepsize/2
           x = v->x + v->nx * (dist + step_size / 2);
           y = v->y + v->ny * (dist + step_size / 2);
           z = v->z + v->nz * (dist + step_size / 2);
           MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
-          
-          double next_val;
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
           
-          if (next_val < val)  // found max inwards intensity
-          {
-            break;
-          }
-        }
+          if (next_val < val)  
+	    // There is a decrease in the value, so must be at max inward max
+	    // Again, this does not make sense if not sampling the gradient. 
+            break; // break from distance loop
+        } // end loop over distance
         inward_dist = dist;
       } // end diag verbose
 
       // search outwards
-      //
       for (dist = 0; dist < max_thickness; dist += step_size) {
+        double val;
         double dx = v->x - v->origx;
         double dy = v->y - v->origy;
         double dz = v->z - v->origz;
@@ -36744,15 +36571,13 @@ static int MRIScomputeBorderValues_new(
         double const z = v->z + v->nz * dist;
         MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &mag, current_sigma);
-        if (mag >= 0.0) {
-          break;
-        }
 
-        double val;
-        MRIsampleVolume(mri_brain, xw, yw, zw, &val);
-        if (val < border_low) {
+        if (mag >= 0.0)
           break;
-        }
+
+        MRIsampleVolume(mri_brain, xw, yw, zw, &val);
+        if (val < border_low)
+          break;
         if (mri_mask) {
           MRIsampleVolume(mri_mask, xw, yw, zw, &val);
           if (val > thresh) {
@@ -36766,10 +36591,9 @@ static int MRIScomputeBorderValues_new(
       outward_dist = dist - step_size / 2;
       
       // Are the bounds found?
-      //
-      if (!isfinite(outward_dist)) {
+      if (!isfinite(outward_dist))
         DiagBreak();
-      }
+
       if (inward_dist <= 0 || outward_dist >= 0) {
 	// Either the inward or the outward was able to take at least
 	// one step so we have defined a range along the normal.
@@ -36789,22 +36613,17 @@ static int MRIScomputeBorderValues_new(
       char fname[STRLEN];
       sprintf(fname, "v%d.%2.0f.log", Gdiag_no, sigma * 100);
       fp = fopen(fname, "w");
-      fprintf(stdout,
-              "v %d: inward dist %2.2f, outward dist %2.2f, sigma %2.1f\n",
-              vno,
-              inward_dist,
-              outward_dist,
-              current_sigma);
+      fprintf(stdout,"v %d: inward dist %2.2f, outward dist %2.2f, sigma %2.1f\n",
+              vno,inward_dist,outward_dist,current_sigma);
     }
 
-    // At this point, we have a sigma, a distance range (inward and outward)
+    // At this point, we have a sigma and a distance range (inward and outward)
     v->val2 = current_sigma;
 
-    /*
-      Search along the normal within the range determined above to
-      find the gradient maximum at a location with a reasonable MR
-      intensity value. This will be the location of the edge.
-    */
+    /* Search along the normal within the distance range determined
+      above to find the gradient maximum at a location with a
+      reasonable MR intensity value. This will be the target intensity
+      value when placing the surface.  */
     double max_mag_val     = -10.0f;
     double max_mag         = 0.0f;
     double min_val         = 10000.0;
@@ -36816,7 +36635,7 @@ static int MRIScomputeBorderValues_new(
     float dist;    
     for (dist = inward_dist; dist <= outward_dist; dist += STEP_SIZE) {
 
-      // Get an intensity dist outward along the normal
+      // Get an intensity at dist outward along the normal
       double val;
       {
         double const x = v->x + v->nx * dist;
@@ -36832,7 +36651,7 @@ static int MRIScomputeBorderValues_new(
       sample_mri[numberOfSamples]   = val;
       numberOfSamples++;
 
-      // Get an intensity dist inward along the normal
+      // Get an intensity at dist inward along the normal
       double previous_val;
       {
         double const x = v->x + v->nx * (dist - STEP_SIZE);
@@ -36872,7 +36691,6 @@ static int MRIScomputeBorderValues_new(
         x = v->x + v->nx * (dist + STEP_SIZE);
         y = v->y + v->ny * (dist + STEP_SIZE);
         z = v->z + v->nz * (dist + STEP_SIZE);
-	// Note: xyz are in mm, xw,yw,zw are in voxels
         MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
         MRIsampleVolumeDerivativeScale(mri_tmp, xw, yw, zw, nx, ny, nz, &next_mag, sigma);
 
@@ -36895,8 +36713,10 @@ static int MRIScomputeBorderValues_new(
 	// done earlier, before the gradient is computed, to save some
 	// time.
         if ((which == GRAY_WHITE) &&  
-	    (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) &&  
-	    (val > previous_val )) { 
+	    (BorderValsHiRes==1 || flags & IPFLAG_FIND_FIRST_WM_PEAK) &&  
+	    (val > previous_val ) && (next_val > val) ) { 
+	  // This if() did not have "&& (next_val > val)" which was in the "orignial"
+	  // ie, v6 and before
           break; // out of distance loop
         }
  
@@ -36931,7 +36751,7 @@ static int MRIScomputeBorderValues_new(
           double const z = v->z + v->nz * (dist + STEP_SIZE);
           MRIS_useRAS2VoxelMap(sras2v_map, mri_brain,x, y, z, &xw, &yw, &zw);
           
-          double next_val;
+          //double next_val; // define with function scope
           MRIsampleVolume(mri_brain, xw, yw, zw, &next_val);
           if (next_val < border_low) {
             next_mag = 0;
@@ -36947,7 +36767,7 @@ static int MRIScomputeBorderValues_new(
 	  // dist+STEP and the inensity is between BorderHi and
 	  // BorderLow.  Below determines whether the gradient is the
 	  // local maximum.
-          double next_val;
+          // double next_val;  // define with function scope
           double xw,yw,zw;
 	  // Sample the volume at dist + 1mm (1mm is a hidden parameter)
           double const x = v->x + v->nx * (dist + 1);
@@ -36982,7 +36802,7 @@ static int MRIScomputeBorderValues_new(
           if ((local_max_found == 0) && (fabs(mag) > max_mag) && (val <= border_hi) && (val >= border_low)) {
   	    // Sample the volume at dist + 1mm (1mm is a hidden parameter); same code as above
             double xw,yw,zw;
-            double next_val;
+            // double next_val;  // define with function scope
             double const x = v->x + v->nx * (dist + 1);
             double const y = v->y + v->ny * (dist + 1);
             double const z = v->z + v->nz * (dist + 1);
@@ -37007,15 +36827,12 @@ static int MRIScomputeBorderValues_new(
     // Doesn't apply to standard stream - only highres or if user
     // specifies IPFLAG_FIND_FIRST_WM_PEAK. Not clear what effect this will have
     if (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) {
-      // why use a #define here?
-#ifdef WSIZE
-#undef WSIZE
-#endif
-#define WSIZE 7
       // Hidden parameter. Units of STEP_SIZE (I think)
-      int const whalf = WSIZE;
+      int const whalf = 7; // This was a #define
 
-      if (vno == Gdiag_no) DiagBreak();
+      if(vno == Gdiag_no) 
+	DiagBreak();
+
       {
         int n;
         for (n = 0; n < vt->vnum; n++)
@@ -37792,13 +37609,11 @@ static int MRIScomputeBorderValues_old(
 
     // doesn't apply to standard stream - only highres or if user specifies
     if (mri_brain->xsize < .95 || flags & IPFLAG_FIND_FIRST_WM_PEAK) {
-#ifdef WSIZE
-#undef WSIZE
-#endif
-#define WSIZE 7
-      int const whalf = WSIZE;
+      int const whalf = 7;
 
-      if (vno == Gdiag_no) DiagBreak();
+      if (vno == Gdiag_no) 
+	DiagBreak();
+
       {
         int n;
         for (n = 0; n < vt->vnum; n++)
@@ -39380,52 +39195,41 @@ mrisDebugVertex(MRI_SURFACE *mris, int vno)
   return(NO_ERROR) ;
 }
 #endif
-/*-----------------------------------------------------
-  Parameters:
 
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
-static double mrisRmsValError(MRI_SURFACE *mris, MRI *mri)
+/*!
+  \fn double mrisRmsValError(MRI_SURFACE *mris, MRI *mri)
+  \brief Samples mri at each vertex and computes the difference
+  between the sample and v->val. The diff is squared and summed (SSE);
+  that is then divided by the number of vertices hit and sqrt taken to
+  give RMS. Similar to mrisComputeIntensityError() which returns the
+  simple SSE. No changes are made to the input surface structure
+  unless RmsValErrorRecord==1 in which case v->valbak takes the
+  value of the sampled MRI value and v->val2bak takes the value
+  of the error = sampled - target (ie, v->val2bak - v->val). #RMS
+*/
+double mrisRmsValError(MRI_SURFACE *mris, MRI *mri)
 {
-  int vno, n, xv, yv, zv;
+  int vno, n; // xv, yv, zv;
   double val, total, delta, x, y, z;
   VERTEX *v;
+  extern int RmsValErrorRecord;
 
   for (total = 0.0, n = vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
-    if (v->ripflag || v->val < 0) {
+    if (v->ripflag || v->val < 0) 
       continue;
-    }
     n++;
+    // Sample mri at vertex
     MRISvertexToVoxel(mris, v, mri, &x, &y, &z);
-    xv = nint(x);
-    yv = nint(y);
-    zv = nint(z);
     MRIsampleVolume(mri, x, y, z, &val);
     delta = (val - v->val);
-    if (fabs(delta) > 100) {
-      DiagBreak();
-    }
-    else if (fabs(delta) > 1000) {
-      DiagBreak();
-    }
-    else if (fabs(delta) > 10000) {
-      DiagBreak();
-    }
-    else if (fabs(delta) > 100000) {
-      DiagBreak();
-    }
-
-    if (!devFinite(delta)) {
-      DiagBreak();
-    }
     total += delta * delta;
-    if (sqrt(total / (double)n) > 1000) {
-      DiagBreak();
+    if(RmsValErrorRecord){
+      v->valbak = val;
+      v->val2bak = delta;
     }
   }
+  //printf("mrisRmsValError() total = %f, n=%d\n",total,n);
   return (sqrt(total / (double)n));
 }
 
@@ -40086,45 +39890,36 @@ int MRIScomputeAverageCircularPhaseGradient(MRI_SURFACE *mris, LABEL *area, floa
   *pdz = dz /= (float)area->n_points;
   return (NO_ERROR);
 }
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  ------------------------------------------------------*/
+/*!
+  \fn double mrisComputeIntensityError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
+  \brief Computes the sum of the squares of the value at a vertex minus the v->val.
+   Ignores ripped vertices or any with v->val<0. Does not normalize by the number
+   of vertices. Basically same computation as mrisRmsValError() but that func
+   does normalize.
+*/
 static double mrisComputeIntensityError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  int vno;
+  int vno,nhits;
   VERTEX *v;
-  float x, y, z;
   double val0, xw, yw, zw;
   double sse, del0;
 
-  if (FZERO(parms->l_intensity)) {
+  if (FZERO(parms->l_intensity))
     return (0.0f);
-  }
 
+  nhits = 0;
   for (sse = 0.0, vno = 0; vno < mris->nvertices; vno++) {
     v = &mris->vertices[vno];
-    if (v->ripflag || v->val < 0) {
+    if (v->ripflag || v->val < 0)
       continue;
-    }
-    if (vno == Gdiag_no) {
-      DiagBreak();
-    }
-
-    x = v->x;
-    y = v->y;
-    z = v->z;
-
+    nhits++;
+    // Sample mri_brain at vertex
     MRISvertexToVoxel(mris, v, parms->mri_brain, &xw, &yw, &zw);
     MRIsampleVolume(parms->mri_brain, xw, yw, zw, &val0);
-
     del0 = v->val - val0;
     sse += (del0 * del0);
   }
-
+  //printf("mrisComputeIntensityError() %f %d\n",sse,nhits);
   return (sse);
 }
 /*-----------------------------------------------------
@@ -52795,9 +52590,6 @@ MRI_SURFACE *MRIScorrectTopology(
   HISTOGRAM *h_k1, *h_k2, *h_gray, *h_white, *h_dot, *h_border, *h_grad;
   MRI *mri_gray_white, *mri_k1_k2;
   MRIS *mris_corrected_final;
-#if 0
-  float              max_len ;
-#endif
 
 #if ADD_EXTRA_VERTICES
   int retessellation_error = -1;
@@ -52950,7 +52742,6 @@ MRI_SURFACE *MRIScorrectTopology(
   mrisFindGrayWhiteBorderMean(mris, mri);
   mrisRipAllDefects(mris, dl, 0);
 
-#if 1
   MRISsaveVertexPositions(mris, TMP_VERTICES);
   /* at this point : tmp becomes original vertices */
   MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES);
@@ -52961,8 +52752,7 @@ MRI_SURFACE *MRIScorrectTopology(
   // MRISwrite(mris,"orig_smooth_uncorrected");
 
   MRISrestoreVertexPositions(mris, TMP_VERTICES);
-/* at this point : back to original vertices */
-#endif
+  /* at this point : back to original vertices */
 
   /* vertex information :
      canonical - canonical
@@ -53024,12 +52814,7 @@ MRI_SURFACE *MRIScorrectTopology(
           DiagBreak();
         }
       }
-#if 0
-      if (i != Gdiag_no)
-      {
-        continue ;
-      }
-#endif
+
       fprintf(fp, "\nconvex hull (%d)\n", dl->defects[i].nchull);
       for (n = 0; n < dl->defects[i].nchull; n++) {
         fprintf(fp, "%d\n", dl->defects[i].chull[n]);
@@ -53959,8 +53744,9 @@ MRI_SURFACE *MRIScorrectTopology(
      orig = smoothed correct vertices = true solution
      canonical = canonical vertices
   */
+
   return (mris_corrected_final);
-}
+} // finished MRIScorrectTopology()
 
 static int mrisMarkAllDefects(MRI_SURFACE *mris, DEFECT_LIST *dl, int flag)
 {

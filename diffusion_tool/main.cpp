@@ -1,5 +1,4 @@
 #include <QApplication>
-#include "mainwindow.h"
 #include "configurationfileform.h"
 
 

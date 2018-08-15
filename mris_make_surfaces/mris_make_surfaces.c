@@ -312,7 +312,7 @@ main(int argc, char *argv[])
   M3D           *m3d ;
   INTEGRATION_PARMS old_parms ;
   int memusage[5];
-
+  char *cmdline2, cwd[2000];
   char cmdline[CMD_LINE_LEN] ;
 
   FSinit() ;
@@ -326,6 +326,9 @@ main(int argc, char *argv[])
           (argc, argv,
            "$Id: mris_make_surfaces.c,v 1.172 2017/02/16 19:42:36 fischl Exp $",
            "$Name:  $");
+  getcwd(cwd,2000);
+  cmdline2 = argv2cmdline(argc,argv);
+
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -344,13 +347,14 @@ main(int argc, char *argv[])
   parms.tol = 1e-4 ;
   parms.dt = 0.5f ;
   parms.base_dt = BASE_DT_SCALE*parms.dt ;
-  parms.l_spring = 1.0f ;
+
   parms.l_curv = 1.0 ;
-  parms.l_intensity = 0.2 ;
-  parms.l_spring = 0.0f ;
   parms.l_intensity = 0.2 ;
   parms.l_tspring = 1.0f ;
   parms.l_nspring = 0.5f ;
+  parms.l_spring = 0.0f ;
+  parms.l_surf_repulse = 0.0 ;
+  parms.l_repulse = 5.0 ;
 
   parms.niterations = 0 ;
   parms.write_iterations = 0 /*WRITE_ITERATIONS */;
@@ -360,15 +364,6 @@ main(int argc, char *argv[])
   parms.dt_decrease = 0.50 /* DT_DECREASE*/ ;
   parms.error_ratio = 50.0 /*ERROR_RATIO */;
   /*  parms.integration_type = INTEGRATE_LINE_MINIMIZE ;*/
-  parms.l_surf_repulse = 0.0 ;
-  parms.l_repulse = 5 ;
-
-  char *cmdline2, cwd[2000];
-  getcwd(cwd,2000);
-  printf("cd %s\n",cwd);
-  cmdline2 = argv2cmdline(argc,argv);
-  printf("%s\n",cmdline2);
-
 
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
   {
@@ -410,9 +405,14 @@ main(int argc, char *argv[])
   // print out version of this program and mrisurf.c
   printf("%s\n",vcid);
   printf("%s\n",MRISurfSrcVersion());
+  printf("\n");
+  printf("cd %s\n",cwd);
+  printf("setenv SUBJECTS_DIR %s\n",getenv("SUBJECTS_DIR"));
+  printf("%s\n",cmdline2);
+  printf("\n");
+
   fflush(stdout);
-  sprintf(fname, "%s/%s/surf/mris_make_surfaces.%s.mrisurf.c.version",
-          sdir, sname, hemi) ;
+  sprintf(fname, "%s/%s/surf/mris_make_surfaces.%s.mrisurf.c.version", sdir, sname, hemi) ;
 
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, filled_name) ;
   if (MGZ)
@@ -837,7 +837,9 @@ main(int argc, char *argv[])
   }
 
   // ==========================================================================
-  // Place the white surface
+  // Place white surface. This is a loop where the number of averages
+  // descreases by a factor of two until it reaches min_white_averages (0).
+  // The sigma also decreases by a factor of two for each iter.
   if(nowhite==0)
     printf("Placing white surface white_sigma=%g, max_white_averages=%d\n",white_sigma, max_white_averages);
   current_sigma = white_sigma ;
@@ -845,10 +847,12 @@ main(int argc, char *argv[])
   for (i = 0 ;  n_averages >= min_white_averages ; n_averages /= 2, current_sigma /= 2, i++)
   {
     if(nowhite) break ; // skip if not placing the white surface
+
     printf("Iteration %d =========================================\n",i);
     printf("n_averages=%d, current_sigma=%g\n",n_averages,current_sigma); fflush(stdout);
 
-    // This does not look like it actually smooths anything
+    // This does not look like it actually smooths anything. It creates the kernel and frees 
+    // it without ever applying it. mri_smooth is just a copy of mri_T1. current sigma is used below
     printf("Smoothing T1 volume with sigma = %2.3f\n",current_sigma) ; fflush(stdout);
     parms.sigma = current_sigma ;
     mri_kernel = MRIgaussian1d(current_sigma, 100) ;
@@ -864,6 +868,7 @@ main(int argc, char *argv[])
     }
 
     parms.n_averages = n_averages ;
+
     MRISprintTessellationStats(mris, stdout) ;
 
     if(mri_aseg){
@@ -924,6 +929,8 @@ main(int argc, char *argv[])
     } // cover seg
 
     else if (flair_or_T2_name == NULL){ // otherwise already done
+      // This is where most of the recon-all commands end up when placing white
+
       double outside_hi = (max_border_white + max_gray_scale*max_gray) / (max_gray_scale+1.0) ;
 
       if (!FZERO(max_gray_scale))
@@ -991,10 +998,10 @@ main(int argc, char *argv[])
 	mri_aseg = mri_tmp ;
       }
 
+      // Compute white locations when using FLAIR
       compute_white_target_locations(mris, mri_flair, mri_aseg, 3, 3, CONTRAST_FLAIR, 
 				     T2_min_inside, T2_max_inside, below_set, above_set, white_sigma,
 				     max_outward_dist) ;
-
       if (Gdiag & DIAG_WRITE){
 	char fname[STRLEN] ;
 	static int callno = 0 ;
@@ -1043,13 +1050,24 @@ main(int argc, char *argv[])
     // Everything up to now has been leading up to this. This is where
     // the surfaces get placed.
     INTEGRATION_PARMS_copy(&old_parms, &parms) ;
-    parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_spring *= spring_scale ;
-    parms.l_tspring = MIN(1.0,parms.l_tspring) ;
+
+    // This appears to adjust the cost weights based on the iteration but in
+    // practice, they never change because of the PARMS_copy above and below
+    parms.l_nspring *= spring_scale ; 
+    parms.l_spring *= spring_scale ; 
+    // This line with tspring being ajusted twice was probably originally a typo
+    // but it has existed this way for a long time. It was changed after 
+    // version 6, but I just changed it back for consistency. 
+    parms.l_tspring *= spring_scale ;  parms.l_tspring *= spring_scale ;
+
+    //parms.l_tspring = MIN(1.0,parms.l_tspring) ; // This had a bad effect on highres and no effect on 1mm
     parms.l_nspring = MIN(1.0, parms.l_nspring) ;
     parms.l_spring = MIN(1.0, parms.l_spring) ;
-    printf("Positioning Surface: tspring = %g, nspring = %g, spring = %g\n",
-	   parms.l_tspring,parms.l_nspring,parms.l_spring); fflush(stdout);
+    printf("Positioning Surface: tspring = %g, nspring = %g, spring = %g, niters = %d ",
+	   parms.l_tspring,parms.l_nspring,parms.l_spring,parms.niterations); 
+    printf("l_repulse = %g, checktol = %d\n",parms.l_repulse,parms.check_tol);fflush(stdout);
     MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
+
     old_parms.start_t = parms.start_t ;
     INTEGRATION_PARMS_copy(&parms, &old_parms) ;
 
@@ -2089,8 +2107,21 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "repulse"))
   {
-    l_repulse = atof(argv[2]) ;
-    fprintf(stderr,  "setting l_repulse = %2.2f\n", l_repulse) ;
+    parms.l_repulse = atof(argv[2]) ;
+    l_repulse = parms.l_repulse;
+    fprintf(stderr,  "setting l_repulse = %2.2f\n", parms.l_repulse) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "no-unitize"))
+  {
+    UnitizeNormalFace = 0;
+    printf("Turning off face normal unitization\n");
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "border-vals-hires"))
+  {
+    BorderValsHiRes = 1;
+    printf("Turning on hires option for MRIScomputeBorderValues_new()\n");
     nargs = 1 ;
   }
   else if (!stricmp(option, "max_gray_scale"))
@@ -2443,6 +2474,7 @@ get_option(int argc, char *argv[])
   {
     strcpy(sdir, argv[2]) ;
     printf("using %s as SUBJECTS_DIR...\n", sdir) ;
+    setenv("SUBJECTS_DIR",sdir,1);
     nargs = 1 ;
   }
   else if (!stricmp(option, "orig_white"))
@@ -3125,13 +3157,22 @@ MRIsmoothMasking(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask_val,
   return(mri_dst) ;
 }
 
-int
-MRISfindExpansionRegions(MRI_SURFACE *mris)
+/*!
+  \fn int MRISfindExpansionRegions(MRI_SURFACE *mris)
+  \brief Sets v->curv=0 unless the given vertex has more than 25% of
+  the neighbors whose v->d value is greater than mean+2*std (mean and
+  std are the global mean and stddev distances). The dist, eg, is the
+  distance along the normal to point of the max gradient. The v->val
+  is the max gradient.
+  Hidden parameters: 0.25 and mean+2*std
+ */
+int MRISfindExpansionRegions(MRI_SURFACE *mris)
 {
   int    vno, num, n, num_long, total ;
   float  d, dsq, mean, std, dist ;
   VERTEX *v, *vn ;
 
+  // Compute the mean and stddev of the distance to max gradient
   d = dsq = 0.0f ;
   for (total = num = vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -3145,51 +3186,46 @@ MRISfindExpansionRegions(MRI_SURFACE *mris)
     d += dist ;
     dsq += (dist*dist) ;
   }
-
   mean = d / num ;
   std = sqrt(dsq/num - mean*mean) ;
-  fprintf(stderr, "mean absolute distance = %2.2f +- %2.2f\n", mean, std) ;
+  printf("mean absolute distance = %2.2f +- %2.2f\n", mean, std); fflush(stdout);
 
   for (num = vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     v->curv = 0 ;
-    if (v->ripflag || v->val <= 0)
-    {
-      continue ;
-    }
-    if (fabs(v->d) < mean+2*std)
-    {
-      continue ;
-    }
+
+    if (v->ripflag || v->val <= 0) continue ;
+
+    if (fabs(v->d) < mean+2*std) continue ;
+
+    // Only gets here if distance is not too big
+
+    // Count number of neighbors with big distances
     for (num_long = num = 1, n = 0 ; n < v->vnum ; n++)
     {
       vn = &mris->vertices[v->v[n]] ;
-      if (vn->val <= 0 || v->ripflag)
-      {
-        continue ;
-      }
+      if (vn->val <= 0 || v->ripflag) continue ;
       if (fabs(vn->d) >= mean+2*std)
-      {
         num_long++ ;
-      }
       num++ ;
     }
 
+    // If the number of big dist neighbors is greater than 25%
+    // Set v->curv = fabs(v->d) and increment total
     if ((float)num_long / (float)num > 0.25)
     {
       v->curv = fabs(v->d) ;
-      total++ ;
+      total++ ; // not used for anything except diagnostic
     }
-  }
+
+  } // end loop over vertices
+
   if (Gdiag & DIAG_SHOW)
-  {
     fprintf(stderr, "%d vertices more than 2 sigmas from mean.\n", total) ;
-  }
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-  {
     MRISwriteCurvature(mris, "long") ;
-  }
+
   return(NO_ERROR) ;
 }
 
@@ -3920,7 +3956,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
     HISTOGRAM *hcdf_rev,*hcdf;
     int bin1, bin2;
 
-    whalf = nint(7.0/pix_size);
+    whalf = nint(7.0/pix_size); // 7mm, hidden parameter
     wsize = 2*whalf+1 ;
     v = &mris->vertices[vno] ;
 
