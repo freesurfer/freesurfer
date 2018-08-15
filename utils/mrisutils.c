@@ -310,7 +310,6 @@ static int mrisClearGradient(MRI_SURFACE *mris);
 // static int mrisClearExtraGradient(MRI_SURFACE *mris);
 static MRI *mriIsolateLabel(MRI *mri_seg, int label, MRI_REGION *bbox);
 static int mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs);
-static double mrisRmsValError(MRI_SURFACE *mris, MRI *mri);
 static void mrisSetVal(MRIS *mris, float val);
 static double mrisAsynchronousTimeStepNew(MRI_SURFACE *mris, float momentum, float delta_t, MHT *mht, float max_mag);
 static int mrisLimitGradientDistance(MRI_SURFACE *mris, MHT *mht, int vno);
@@ -500,26 +499,6 @@ static MRI *mriIsolateLabel(MRI *mri_seg, int label, MRI_REGION *bbox)
   return mri;
 }
 
-static double mrisRmsValError(MRI_SURFACE *mris, MRI *mri)
-{
-  int vno, n, xv, yv, zv;
-  double val, total, delta, x, y, z;
-  VERTEX *v;
-
-  for (total = 0.0, n = vno = 0; vno < mris->nvertices; vno++) {
-    v = &mris->vertices[vno];
-    if (v->ripflag || v->val < 0) continue;
-    n++;
-    MRISvertexToVoxel(mris, v, mri, &x, &y, &z);
-    xv = nint(x);
-    yv = nint(y);
-    zv = nint(z);
-    MRIsampleVolume(mri, x, y, z, &val);
-    delta = (val - v->val);
-    total += delta * delta;
-  }
-  return (sqrt(total / (double)n));
-}
 
 static void mrisSetVal(MRIS *mris, float val)
 {
