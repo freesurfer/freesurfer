@@ -248,12 +248,12 @@ end
 # Could run mri_segstats instead, but the volumes would not include
 # partial volume correction.
 foreach hemi (lh rh)
-  set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/$hemi.hippoSfVolumes-T1.v21.txt
-  set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/hipposubfields.$hemi.stats
+  set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/$hemi.hippoSfVolumes-T1.$SUFFIX.txt
+  set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/hipposubfields.$hemi.T1.$SUFFIX.stats
   echo "# Hippocampal subfield volumes as created by segmentHA_T1.sh" > $stats
   cat $txt | awk '{print NR" "NR"  0 "$2" "$1}' >> $stats
-  set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/$hemi.amygNucVolumes-T1.v21.txt
-  set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/amygdalar-nuclei.$hemi.stats
+  set txt=$SUBJECTS_DIR/$SUBJECTNAME/mri/$hemi.amygNucVolumes-T1.$SUFFIX.txt
+  set stats=$SUBJECTS_DIR/$SUBJECTNAME/stats/amygdalar-nuclei.$hemi.T1.$SUFFIX.stats
   echo "# Amygdala nuclei volumes as created by segmentHA_T1.sh" > $stats
   cat $txt | awk '{print NR" "NR"  0 "$2" "$1}' >> $stats
 end
