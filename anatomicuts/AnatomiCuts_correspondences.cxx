@@ -1,5 +1,3 @@
-#include "colortab.h"
-#include "fsenv.h"
 #include <iostream>
 #include "itkImage.h"
 #include <map>
@@ -35,6 +33,8 @@
 #include "GetPot.h"
 #include <string>
 #include "vtkSplineFilter.h"
+#include "colortab.h"
+#include "fsenv.h"
 
 typedef std::vector<int>                  PointDataType;
 typedef float PixelType;

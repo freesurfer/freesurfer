@@ -21,7 +21,7 @@ if(ITK_FOUND AND VTK_FOUND)
     AnatomiCuts_correspondences.cxx ../freeview/track_io/TrackIO.cpp
   )
 # ../utils/colortab.c
-  target_link_libraries(AnatomiCuts_correspondences.bin utils ${ITK_LIBRARIES} ${VTK_LIBRARIES})
+  target_link_libraries(AnatomiCuts_correspondences.bin ${ITK_LIBRARIES} ${VTK_LIBRARIES} utils)
   install(TARGETS AnatomiCuts_correspondences.bin DESTINATION bin)
   install(PROGRAMS AnatomiCuts_correspondences_wrapper DESTINATION bin RENAME AnatomiCuts_correspondences)
 
