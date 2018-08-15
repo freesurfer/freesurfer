@@ -178,18 +178,17 @@ end
 
 %
 multiResolutionLevel = 1;
-figure
+classNumber = 5;
+mergedName = history.input.modelSpecifications.sharedGMMParameters( classNumber ).mergedName 
 modelSpecifications = history.input.modelSpecifications;
 numberOfGaussiansPerClass = [ modelSpecifications.sharedGMMParameters.numberOfComponents ];
 numberOfClasses = length( numberOfGaussiansPerClass );
 numberOfGaussians = sum( numberOfGaussiansPerClass );
-
+figure
 %  colors = 255 * [ hsv( numberOfClasses ) ones( numberOfClasses, 1 ) ];           
 downSampledImageSize = size( history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).downSampledImageBuffers( :, :, :, 1 ) );
 downSampledMaskIndices = find( history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).downSampledMask );
 downSampledImageBuffer = history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).downSampledImageBuffers( :, :, :, 1 );
-
-mergedName = history.input.modelSpecifications.sharedGMMParameters( classNumber ).mergedName 
 if 1
   % Posterior
   probabilities = history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).posteriorsAtEnd;
@@ -207,25 +206,32 @@ else
     end
   end
 end
-
-
-classNumber = 5;
 numberOfComponents = numberOfGaussiansPerClass( classNumber );
 colors = 255 * [ parula( numberOfComponents ) ones( numberOfComponents, 1 ) ];
 probabilityImages = zeros( [ downSampledImageSize numberOfComponents ] );
+figure
+numberOfRows = ceil( sqrt( numberOfComponents ) );
+numberOfColumns = ceil( numberOfComponents / numberOfRows );
 for componentNumber = 1 : numberOfComponents
   gaussianNumber = sum( numberOfGaussiansPerClass( 1 : classNumber-1 ) ) + componentNumber;
   probabilityImages( downSampledMaskIndices + ( componentNumber-1) * prod( downSampledImageSize ) ) = ...
         probabilities( :, gaussianNumber );
-end                                        
-figure
-imageToShow = ( downSampledImageBuffer - min( downSampledImageBuffer(:) ) ) / ...
+  
+  subplot( numberOfRows, numberOfColumns, componentNumber )
+  imageToShow = zeros( downSampledImageSize );
+  imageToShow( downSampledMaskIndices ) = probabilities( :, gaussianNumber );
+  showImage( imageToShow )
+  
+end
+dataImage = ( downSampledImageBuffer - min( downSampledImageBuffer(:) ) ) / ...
               ( max( downSampledImageBuffer(:) ) - min( downSampledImageBuffer(:) ) );
-alpha = .5;
-imageToShow = ( 1 - alpha ) * repmat( imageToShow, [ 1 1 1 3 ] ) + ...
-              alpha * kvlColorCodeProbabilityImages( probabilityImages, colors );
-showImage( imageToShow )
-
+for alpha = [ 1 0.5 ]
+  figure
+  imageToShow = ( 1 - alpha ) * repmat( dataImage, [ 1 1 1 3 ] ) + ...
+                alpha * kvlColorCodeProbabilityImages( probabilityImages, colors );
+  showImage( imageToShow )
+end
+  
 
 numberOfIterations = ...
    length( history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).historyWithinEachIteration );
@@ -246,13 +252,18 @@ for iterationNumber = 1 : numberOfIterations
     gauss = 1/sqrt( 2 * pi * variance ) * exp( -( binCenters - mean ).^2 / 2 / variance );
     plot( binCenters, gauss * mixtureWeight )
     hold on
-    model = gauss * mixtureWeight;
+    model = model + gauss * mixtureWeight;
   end
   plot( binCenters, model )
   hold off
+  xlim = get( gca, 'xlim' );
+  ylim = get( gca, 'ylim' );
+  t = text( xlim * [ 0.7 0.3 ]', ylim * [ 0.2 0.8 ]', [ 'iterationNumber: ' num2str( iterationNumber ) ] );
   drawnow
   pause( .1 )
 end 
+
+
 
 
 
