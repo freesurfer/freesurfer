@@ -34,7 +34,9 @@ endif()
 
 # allow reading installation dir from environment var, but if not defined,
 # then override default install dir /usr/local (too messy to install there)
-if(NOT DEFINED FS_INSTALL_DIR)
+if(DEFINED FS_INSTALL_DIR)
+  set(CMAKE_INSTALL_PREFIX "${FS_INSTALL_DIR}" CACHE INTERNAL "Copied from -DFS_INSTALL_DIR")
+else()
   if(NOT "$ENV{FS_INSTALL_DIR}" STREQUAL "")
     set(CMAKE_INSTALL_PREFIX "$ENV{FS_INSTALL_DIR}" CACHE INTERNAL "Copied from environment variable")
   else()
